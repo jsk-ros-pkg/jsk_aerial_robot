@@ -237,12 +237,11 @@ void TransformController::principalInertiaComputation(std::vector<tf::StampedTra
 
       if(!init_flag)
         {
-
-          //rotate_matrix_ = rotate_matrix;
           setRotateMatrix(rotate_matrix);
 
           links_principal_inertia_ = links_principal_inertia;
-          //init_links_principal_inertia_ = links_principal_inertia;
+
+
           init_links_principal_inertia_ <<multilink_i_xx_, 0, 0, 0, multilink_i_yy_, 0, 0, 0, multilink_i_zz_;
           init_flag = true;
         }

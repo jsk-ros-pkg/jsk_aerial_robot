@@ -1,11 +1,16 @@
+<?xml version="1.0"?>
+
 <launch>
-  <arg name="visualize" default="true" /> 
+  <arg name="visualize" default="false" /> 
   <arg name="model" default="hydra" /> 
+
 
   <param name="robot_description" 
          command="$(find xacro)/xacro.py '$(find aerial_robot_model)/robots/$(arg model).urdf.xacro'" />
 
-  <node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher" />
+
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" output="screen" />
+
 
 
 <group if="$(arg visualize)">
