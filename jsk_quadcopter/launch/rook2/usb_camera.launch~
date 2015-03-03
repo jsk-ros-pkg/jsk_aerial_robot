@@ -1,1 +1,0 @@
-  <include file="$(find jsk_quadcopter)/launch/rook2/usb_camera.launch" />

@@ -1,6 +1,0 @@
-iso_speed: 400
-guid: 0x00b09d01009bce69
-video_mode: 640x480_rgb24
-#frame_id: camera
-camera_info_url: package://jsk_quadcopter/config/camera1394.yaml
-

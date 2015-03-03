@@ -1,6 +1,0 @@
-<launch>
-
-  <rosparam file="$(find hydra)/config/DemoTransform.yaml" command="load"/>
-  <node name="demo_transform_node" pkg="hydra" type="demo_transform_node" output="screen"/>
-
-</launch>

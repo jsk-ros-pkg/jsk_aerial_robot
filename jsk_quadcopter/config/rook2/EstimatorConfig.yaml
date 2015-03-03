@@ -1,9 +1,0 @@
-# Quadcopter State Estimation
-
-estimator/laserToBaselinkDistance: -0.1
-estimator/mirrorModuleArmLength: 0.08
-estimator/baselinkFrame: quadcopter_base
-estimator/baseFootprintFrame: base_footprint
-estimator/laserFrame: laser
-estimator/cameraFrame: camera
-

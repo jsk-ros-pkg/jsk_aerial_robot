@@ -1,5 +1,0 @@
-<launch>
-    <node name="px4flow" pkg="px4flow_node" type="px4flow_node" output="screen" respawn="true" clear_params="true">
-        <rosparam file="$(find jsk_quadcopter)/config/rook_p/Px4FlowConfig.yaml"/>
-    </node>
-</launch>
