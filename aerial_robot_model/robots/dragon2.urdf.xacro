@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<robot
+    xmlns:xacro="http://www.ros.org/wiki/xacro" name="dragon2" >
+
+  <include filename="$(find aerial_robot_model)/urdf/dragon2/dragon2_common.xacro" />
+  <include filename="$(find aerial_robot_model)/urdf/dragon2/dragon2_link.urdf.xacro" />
+  <include filename="$(find aerial_robot_model)/urdf/dragon2/dragon2_head.urdf.xacro" />
+
+  <xacro:dragon_head self="link0"/>
+  <xacro:dragon_link parent="link0" self="link1"/>
+  <xacro:dragon_link parent="link1" self="link2"/>
+  <xacro:dragon_link parent="link2" self="link3"/>
+  <xacro:dragon_link parent="link3" self="link4"/>
+  <xacro:dragon_link parent="link4" self="link5"/>
+<!--    <xacro:dragon_end_link parent="link5" self="link6"/>  -->
+
+<!-- two gripper mode -->
+  <xacro:dragon_link parent="link5" self="link6"/>
+  <xacro:dragon_head2 parent="link6" self="link7"/>  
+
+
+</robot>

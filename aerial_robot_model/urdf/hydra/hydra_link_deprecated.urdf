@@ -1,0 +1,313 @@
+<?xml version="1.0"?>
+
+
+<robot name="hydra_link">
+  <link name="front_junction">
+    <visual>
+      <geometry>
+        <box size="0.01 .04 .08"/>
+      </geometry>
+      <material name="gray">
+        <color rgba="0.4 .4 .5 0.9"/>
+      </material>
+    </visual>
+  </link>
+
+  <joint name="front_junction_abdomen_joint" type="fixed">
+    <parent link="abdomen"/>
+    <child link="front_junction"/>
+    <origin rpy="0 0 0" xyz="0.195 0 0"/>
+  </joint>
+
+  <link name="battery">
+    <visual>
+      <geometry>
+        <box size="0.06 .035 .025"/>
+      </geometry>
+      <material name="blue">
+        <color rgba="0 0 .8 0.8"/>
+      </material>
+    </visual>
+  </link>
+
+  <joint name="baterry_abdomen_joint" type="fixed">
+    <parent link="abdomen"/>
+    <child link="battery"/>
+    <origin rpy="0 0 0" xyz="0.15 0 -0.0175"/>
+  </joint>
+
+  <link name="front_bottom_tail">
+    <visual>
+      <geometry>
+        <box size="0.1 .04 .01"/>
+      </geometry>
+      <material name="gray">
+        <color rgba="0.4 .4 .5 0.9"/>
+      </material>
+    </visual>
+  </link>
+
+  <joint name="front_bottom_tail_abdomen_joint" type="fixed">
+    <parent link="abdomen"/>
+    <child link="front_bottom_tail"/>
+    <origin rpy="0 0 0" xyz="0.15 0 -0.035"/>
+  </joint>
+
+  <link name="front_top_tail">
+    <visual>
+      <geometry>
+        <box size="0.1 .04 .01"/>
+      </geometry>    
+      <material name="gray">
+        <color rgba="0.4 .4 .5 0.9"/>
+      </material>
+    </visual>
+  </link>
+
+  <joint name="front_top_tail_abdomen_joint" type="fixed">
+    <parent link="abdomen"/>
+    <child link="front_top_tail"/>
+    <origin rpy="0 0 0" xyz="0.15 0 0.035"/>
+  </joint>
+
+
+  <link name="abdomen">
+    <visual>
+      <geometry>
+        <cylinder length="0.08" radius="0.1"/>
+      </geometry>
+      <material name="gray">
+        <color rgba="0.4 .4 .5 0.9"/>
+      </material>
+    </visual>
+  </link>
+
+  <link name="rear_bottom_tail">
+    <visual>
+      <geometry>
+        <box size="0.08 .04 .01"/>
+      </geometry>
+      <material name="gray">
+        <color rgba="0.4 .4 .5 0.9"/>
+      </material>
+    </visual>
+  </link>
+
+  <joint name="rear_bottom_tail_abdomen_joint" type="fixed">
+    <parent link="abdomen"/>
+    <child link="rear_bottom_tail"/>
+    <origin rpy="0 0 0" xyz="-0.14 0 -0.035"/>
+  </joint>
+
+  <link name="rear_bottom_tail_end">
+    <visual>
+      <geometry>
+        <cylinder length="0.01" radius="0.02"/>
+      </geometry>
+      <material name="gray">
+        <color rgba="0.4 .4 .5 0.9"/>
+      </material>
+    </visual>
+  </link>
+
+  <joint name="rear_bottom_tail_end_abdomen_joint" type="fixed">
+    <parent link="abdomen"/>
+    <child link="rear_bottom_tail_end"/>
+    <origin rpy="0 0 0" xyz="-0.18 0 -0.035"/>
+  </joint>
+
+
+  <link name="rear_top_tail">
+    <visual>
+      <geometry>
+        <box size="0.08 .04 .01"/>
+      </geometry>
+      <material name="gray">
+        <color rgba="0.4 .4 .5 0.9"/>
+      </material>
+    </visual>
+  </link>
+
+  <joint name="rear_top_tail_abdomen_joint" type="fixed">
+    <parent link="abdomen"/>
+    <child link="rear_top_tail"/>
+    <origin rpy="0 0 0" xyz="-0.14 0 0.035"/>
+  </joint>
+
+
+  <link name="rear_top_tail_end">
+    <visual>
+      <geometry>
+        <cylinder length="0.01" radius="0.02"/>
+      </geometry>
+      <material name="gray">
+        <color rgba="0.4 .4 .5 0.9"/>
+      </material>
+    </visual>
+  </link>
+
+  <joint name="rear_top_tail_end_abdomen_joint" type="fixed">
+    <parent link="abdomen"/>
+    <child link="rear_top_tail_end"/>
+    <origin rpy="0 0 0" xyz="-0.18 0 0.035"/>
+  </joint>
+
+
+  <link name="servo">
+    <visual>
+      <geometry>
+        <box size="0.06 .03 .06"/>
+      </geometry>
+      <material name="black">
+        <color rgba="0 0 0 1"/>
+      </material>
+    </visual>
+  </link>
+
+  <joint name="servo_abdomen_joint" type="fixed">
+    <parent link="abdomen"/>
+    <child link="servo"/>
+    <origin rpy="0 0 0" xyz="-0.205 0 0"/>
+  </joint>
+
+  <link name="servo_rod">
+    <visual>
+      <geometry>
+        <cylinder length="0.08" radius="0.005"/>
+      </geometry>
+      <material name="white">
+        <color rgba="1 1 1 0.8"/>
+      </material>
+    </visual>
+  </link>
+
+  <joint name="servo_rod_servo_joint" type="revolute">
+    <limit effort="100.0" lower="-1.57" upper="1.57" velocity="0.5"/>
+    <parent link="servo"/>
+    <child link="servo_rod"/>
+    <origin xyz="-0.025 0 0"/>
+    <axis xyz="0 0 1"/>
+  </joint>
+
+  <link name="servo_rod_top">
+    <visual>
+      <geometry>
+        <sphere radius="0.005"/>
+      </geometry>
+      <material name="white">
+        <color rgba="1 1 1 0.8"/>
+      </material>
+    </visual>
+  </link>
+
+  <joint name="servo_rod_top_servo_rod_joint" type="fixed">
+    <parent link="servo_rod"/>
+    <child link="servo_rod_top"/>
+    <origin rpy="0 0 0" xyz="0 0 0.04"/>
+  </joint>
+
+  <link name="servo_rod_bottom">
+    <visual>
+      <geometry>
+        <sphere radius="0.005"/>
+      </geometry>
+      <material name="white">
+        <color rgba="1 1 1 0.8"/>
+      </material>
+    </visual>
+  </link>
+
+  <joint name="servo_rod_bottom_servo_rod_joint" type="fixed">
+    <parent link="servo_rod"/>
+    <child link="servo_rod_bottom"/>
+    <origin rpy="0 0 0" xyz="0 0 -0.04"/>
+  </joint>
+
+  <link name="top_hinge_end">
+    <visual>
+      <geometry>
+        <cylinder length="0.01" radius="0.02"/>
+      </geometry>
+      <material name="gray">
+        <color rgba="0.4 .4 .5 0.9"/>
+      </material>
+    </visual>
+  </link>
+
+  <joint name="top_hinge_end_servo_rod_joint" type="fixed">
+    <parent link="servo_rod"/>
+    <child link="top_hinge_end"/>
+    <origin rpy="0 0 0" xyz="0 0 0.035"/>
+  </joint>
+
+  <link name="bottom_hinge_end">
+    <visual>
+      <geometry>
+        <cylinder length="0.01" radius="0.02"/>
+      </geometry>
+      <material name="gray">
+        <color rgba="0.4 .4 .5 0.9"/>
+      </material>
+    </visual>
+  </link>
+
+  <joint name="bottom_hinge_end_servo_rod_joint" type="fixed">
+    <parent link="servo_rod"/>
+    <child link="bottom_hinge_end"/>
+    <origin rpy="0 0 0" xyz="0 0 -0.035"/>
+  </joint>
+
+  <link name="top_hinge">
+    <visual>
+      <geometry>
+        <box size="0.03 .04 .01"/>
+      </geometry>
+      <material name="gray">
+        <color rgba="0.4 .4 .5 0.9"/>
+      </material>
+    </visual>
+  </link>
+
+  <joint name="top_hinge_top_hinge_end_joint" type="fixed">
+    <parent link="top_hinge_end"/>
+    <child link="top_hinge"/>
+    <origin rpy="0 0 0" xyz="-0.015 0 0"/>
+  </joint>
+
+  <link name="bottom_hinge">
+    <visual>
+      <geometry>
+        <box size="0.03 .04 .01"/>
+      </geometry>
+      <material name="gray">
+        <color rgba="0.4 .4 .5 0.9"/>
+      </material>
+    </visual>
+  </link>
+
+  <joint name="bottom_hinge_bottom_hinge_end_joint" type="fixed">
+    <parent link="bottom_hinge_end"/>
+    <child link="bottom_hinge"/>
+    <origin rpy="0 0 0" xyz="-0.015 0 0"/>
+  </joint>
+
+  <link name="rear_junction">
+    <visual>
+      <geometry>
+        <box size="0.01 .04 .08"/>
+      </geometry>
+      <material name="gray">
+        <color rgba="0.4 .4 .5 0.9"/>
+      </material>
+    </visual>
+  </link>
+
+  <joint name="rear_junction_servo_rod_joint" type="fixed">
+    <parent link="servo_rod"/>
+    <child link="rear_junction"/>
+    <origin rpy="0 0 0" xyz="-0.025 0 0"/>
+  </joint>
+
+
+
+</robot>

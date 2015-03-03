@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<robot
+    xmlns:xacro="http://www.ros.org/wiki/xacro" name="dolphin" >
+
+  <include filename="$(find aerial_robot_model)/urdf/dolphin/dolphin_common.xacro" />
+  <include filename="$(find aerial_robot_model)/urdf/dolphin/dolphin_link.urdf.xacro" />
+  <include filename="$(find aerial_robot_model)/urdf/dolphin/dolphin_head.urdf.xacro" />
+
+  <xacro:dolphin_head />
+  <xacro:dolphin_link parent="link0" self="link1"/>
+  <xacro:dolphin_link parent="link1" self="link2"/>
+  <xacro:dolphin_link parent="link2" self="link3"/>
+  <xacro:dolphin_link parent="link3" self="link4"/>
+  <xacro:dolphin_link parent="link4" self="link5"/>
+  <xacro:dolphin_end_link parent="link5" self="link6"/>
+
+</robot>

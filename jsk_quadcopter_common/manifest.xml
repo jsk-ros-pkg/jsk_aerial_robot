@@ -1,0 +1,21 @@
+<package>
+  <description brief="jsk_quadcopter_common">
+
+     jsk_quadcopter_common
+
+  </description>
+  <author>bakui</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/jsk_quadcopter_common</url>
+  <depend package="roscpp"/>
+  <depend package="rospy"/>
+
+<!--
+the files related to message can not use  <export> => compile error(python)
+-->
+
+
+</package>
+
+

@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<robot
+    xmlns:xacro="http://www.ros.org/wiki/xacro" name="test_common" >
+
+  <xacro:property name="abdomen_radius" value=".23" />
+  <xacro:property name="abdomen_height" value=".055" />
+  <xacro:property name="abdomen_x_offset" value=".006" />
+  <xacro:property name="abdomen_z_offset" value=".02" />
+  <xacro:property name="tail_len" value=".1" />
+  <xacro:property name="tail_width" value=".04" />
+  <xacro:property name="tail_height" value=".005" />
+  <xacro:property name="joint_rod_radius" value=".0012" />
+
+  <xacro:macro name="link_color">
+    <material name="gray">
+      <color rgba="0.4 .4 .5 0.9"/>
+    </material>
+  </xacro:macro>
+
+  <xacro:macro name="servo_color">
+    <material name="balck">
+      <color rgba="0.0 .0 .0 1"/>
+    </material>
+  </xacro:macro>
+
+</robot>

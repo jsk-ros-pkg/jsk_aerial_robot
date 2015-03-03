@@ -1,0 +1,330 @@
+<?xml version="1.0"?>
+<robot
+    xmlns:xacro="http://www.ros.org/wiki/xacro" name="test_link" >
+
+  <xacro:macro name="test_link" params="parent self"> 
+
+    <!-- the radius of abdomen is 230mm -->
+
+    <link name="${self}_front_junction">
+      <visual>
+        <geometry>
+          <box size="0.01 ${tail_width} ${abdomen_height}"/>
+        </geometry>
+        <xacro:link_color />
+      </visual>
+    </link>
+
+    <joint name="${self}_front_junction_${self}_front_joint_rod_joint" type="fixed">
+      <child link="${self}_front_joint_rod"/>
+      <parent link="${self}_front_junction"/>
+      <origin rpy="0 0 0" xyz="${-tail_len*.3+.005} 0 0"/>
+    </joint>
+
+    <link name="${self}_front_joint_rod_top">
+      <visual>
+        <geometry>
+          <sphere radius="${joint_rod_radius*2}"/>
+        </geometry>
+        <material name="white">
+          <color rgba="1 1 1 0.8"/>
+        </material>
+      </visual>
+    </link>
+
+    <joint name="${self}_front_joint_rod_top_${self}_front_joint_rod_joint" type="fixed">
+      <parent link="${self}_front_joint_rod"/>
+      <child link="${self}_front_joint_rod_top"/>
+      <origin rpy="0 0 0" xyz="0 0 ${abdomen_height*.5}"/>
+    </joint>
+
+    <link name="${self}_front_joint_rod_bottom">
+      <visual>
+        <geometry>
+          <sphere radius="${joint_rod_radius*2}"/>
+        </geometry>
+        <material name="white">
+          <color rgba="1 1 1 0.8"/>
+        </material>
+      </visual>
+    </link>
+
+    <joint name="${self}_front_joint_rod_${self}_bottom_front_joint_rod_joint" type="fixed">
+      <parent link="${self}_front_joint_rod"/>
+      <child link="${self}_front_joint_rod_bottom"/>
+      <origin rpy="0 0 0" xyz="0 0 -${abdomen_height*.5}"/>
+    </joint>
+
+    <link name="${self}_top_front_hinge_end">
+      <visual>
+        <geometry>
+          <cylinder length="${tail_height}" radius="${tail_width*.5}"/>
+        </geometry>
+        <xacro:link_color />
+      </visual>
+    </link>
+
+    <joint name="${self}_top_front_hinge_end_${self}_front_joint_rod_joint" type="fixed">
+      <parent link="${self}_front_joint_rod"/>
+      <child link="${self}_top_front_hinge_end"/>
+      <origin rpy="0 0 0" xyz="0 0 ${abdomen_height*.5-tail_height*.5}"/>
+    </joint>
+
+    <link name="${self}_bottom_front_hinge_end">
+      <visual>
+        <geometry>
+          <cylinder length="${tail_height}" radius="${tail_width*.5}"/>
+        </geometry>
+        <xacro:link_color />
+      </visual>
+    </link>
+
+    <joint name="${self}_bottom_front_hinge_end_${self}_front_joint_rod_joint" type="fixed">
+      <parent link="${self}_front_joint_rod"/>
+      <child link="${self}_bottom_front_hinge_end"/>
+      <origin rpy="0 0 0" xyz="0 0 ${-abdomen_height*.5+tail_height*.5}"/>
+    </joint>
+
+    <link name="${self}_top_front_hinge">
+      <visual>
+        <geometry>
+          <box size="${tail_len*.3} ${tail_width} ${tail_height}"/>
+        </geometry>
+        <xacro:link_color />
+      </visual>
+    </link>
+
+    <joint name="${self}_top_front_hinge_${self}_top_front_hinge_end_joint" type="fixed">
+      <parent link="${self}_top_front_hinge_end"/>
+      <child link="${self}_top_front_hinge"/>
+      <origin rpy="0 0 0" xyz="${tail_len*.15} 0 0"/>
+    </joint>
+
+    <link name="${self}_bottom_front_hinge">
+      <visual>
+        <geometry>
+          <box size="${tail_len*.3} ${tail_width} ${tail_height}"/>
+        </geometry>
+        <xacro:link_color />
+      </visual>
+    </link>
+
+    <joint name="${self}_bottom_front_hinge_${self}_bottom_front_hinge_end_joint" type="fixed">
+      <parent link="${self}_bottom_front_hinge_end"/>
+      <child link="${self}_bottom_front_hinge"/>
+      <origin rpy="0 0 0" xyz="${tail_len*.15} 0 0"/>
+    </joint>
+
+
+    <link name="${self}_front_joint_rod">
+      <visual>
+        <geometry>
+          <cylinder length="${abdomen_height}" radius="${joint_rod_radius}"/>
+        </geometry>
+        <material name="white">
+          <color rgba="1 1 1 0.8"/>
+        </material>
+      </visual>
+    </link>
+
+    <joint name="${self}_front_joint_${self}_abdomen_joint" type="fixed">
+      <parent link="${self}_front_joint_rod"/>
+      <child link="${self}_abdomen3"/>
+      <origin rpy="1.5708 0  0"
+              xyz="${-abdomen_radius + abdomen_x_offset} 0 ${-abdomen_z_offset}"/> 
+    </joint>
+
+    <link name="${self}_abdomen">
+      <visual>
+        <origin rpy="0 0 0" xyz="0 0 0"/>
+        <geometry>
+          <mesh filename="package://aerial_robot_model/urdf/mesh_model/propeller_link_new1.stl" scale=".001 .001 .001"/>
+        </geometry>
+        <xacro:link_color /> 
+      </visual>
+    </link>
+
+    <link name="${self}_abdomen2">
+      <visual>
+        <origin rpy="0 0 0" xyz="0 0 0"/>
+        <geometry>
+          <mesh filename="package://aerial_robot_model/urdf/mesh_model/propeller_link_new2.stl" scale=".001 .001 .001"/>
+        </geometry>
+        <xacro:link_color /> 
+      </visual>
+    </link>
+
+    <joint name="${self}_abdomen_${self}_abdomen2_joint" type="fixed">
+      <parent link="${self}_abdomen2"/>
+      <child link="${self}_abdomen"/>
+      <origin rpy="0 0 0"
+              xyz="0 0 0"/> 
+    </joint>
+
+
+    <link name="${self}_abdomen3">
+      <visual>
+        <origin rpy="0 0 0" xyz="0 0 0"/>
+        <geometry>
+          <mesh filename="package://aerial_robot_model/urdf/mesh_model/propeller_link_new3.stl" scale=".001 .001 .001"/>
+        </geometry>
+        <xacro:servo_color /> 
+      </visual>
+    </link>
+
+    <joint name="${self}_abdomen2_${self}_abdomen3_joint" type="fixed">
+      <child link="${self}_abdomen2"/>
+      <parent link="${self}_abdomen3"/>
+      <origin rpy="0 0 0" xyz="0 0 0"/> 
+    </joint>
+
+    <link name="${self}_propeller">
+      <visual>
+        <origin rpy="0 0 0" xyz="0 0 0"/>
+        <geometry>
+          <mesh filename="package://aerial_robot_model/urdf/mesh_model/propellers.stl" scale=".001 .001 .001"/>
+        </geometry>
+        <xacro:propeller_color /> 
+      </visual>
+    </link>
+
+    <joint name="${parent}_abdomen_${self}_propeller_joint" type="fixed">
+      <parent link="${self}_abdomen"/>
+      <child link="${self}_propeller"/>
+      <origin rpy="-1.5708 0 0" xyz="0  0.018 0"/>
+    </joint>
+
+
+    <joint name="${self}_rear_joint_${self}_abdomen_joint" type="fixed">
+      <parent link="${self}_front_joint_rod"/>
+      <child link="${self}_rear_joint_rod"/>
+      <origin rpy="1.5708 0 0"
+              xyz="${-abdomen_radius * 2 + abdomen_x_offset*2} 0 0"/> 
+    </joint>
+
+
+    <link name="${self}_rear_joint_rod">
+      <visual>
+        <geometry>
+          <cylinder length="${abdomen_height}" radius="${joint_rod_radius}"/>
+        </geometry>
+        <material name="white">
+          <color rgba="1 1 1 0.8"/>
+        </material>
+      </visual>
+    </link>
+
+
+    <link name="${self}_rear_joint_rod_top">
+      <visual>
+        <geometry>
+          <sphere radius="${joint_rod_radius*2}"/>
+        </geometry>
+        <material name="white">
+          <color rgba="1 1 1 0.8"/>
+        </material>
+      </visual>
+    </link>
+
+    <joint name="${self}_rear_joint_rod_top_${self}_rear_joint_rod_joint" type="fixed">
+      <parent link="${self}_rear_joint_rod"/>
+      <child link="${self}_rear_joint_rod_top"/>
+      <origin rpy="0 0 0" xyz="0 0 ${abdomen_height*.5}"/>
+    </joint>
+
+    <link name="${self}_rear_joint_rod_bottom">
+      <visual>
+        <geometry>
+          <sphere radius="${joint_rod_radius*2}"/>
+        </geometry>
+        <material name="white">
+          <color rgba="1 1 1 0.8"/>
+        </material>
+      </visual>
+    </link>
+
+    <joint name="${self}_rear_joint_rod_${self}_bottom_rear_joint_rod_joint" type="fixed">
+      <parent link="${self}_rear_joint_rod"/>
+      <child link="${self}_rear_joint_rod_bottom"/>
+      <origin rpy="0 0 0" xyz="0 0 -${abdomen_height*.5}"/>
+    </joint>
+
+    <link name="${self}_top_rear_hinge_end">
+      <visual>
+        <geometry>
+          <cylinder length="${tail_height}" radius="${tail_width*.5}"/>
+        </geometry>
+        <xacro:link_color />
+      </visual>
+    </link>
+
+    <joint name="${self}_top_rear_hinge_end_${self}_rear_joint_rod_joint" type="fixed">
+      <parent link="${self}_rear_joint_rod"/>
+      <child link="${self}_top_rear_hinge_end"/>
+      <origin rpy="0 0 0" xyz="0 0 ${abdomen_height*.5-tail_height*.5}"/>
+    </joint>
+
+    <link name="${self}_bottom_rear_hinge_end">
+      <visual>
+        <geometry>
+          <cylinder length="${tail_height}" radius="${tail_width*.5}"/>
+        </geometry>
+        <xacro:link_color />
+      </visual>
+    </link>
+
+    <joint name="${self}_bottom_rear_hinge_end_${self}_rear_joint_rod_joint" type="fixed">
+      <parent link="${self}_rear_joint_rod"/>
+      <child link="${self}_bottom_rear_hinge_end"/>
+      <origin rpy="0 0 0" xyz="0 0 ${-abdomen_height*.5+tail_height*.5}"/>
+    </joint>
+
+    <link name="${self}_top_rear_hinge">
+      <visual>
+        <geometry>
+          <box size="${tail_len*.3} ${tail_width} ${tail_height}"/>
+        </geometry>
+        <xacro:link_color />
+      </visual>
+    </link>
+
+    <joint name="${self}_top_rear_hinge_${self}_top_rear_hinge_end_joint" type="fixed">
+      <parent link="${self}_top_rear_hinge_end"/>
+      <child link="${self}_top_rear_hinge"/>
+      <origin rpy="0 0 0" xyz="${-tail_len*.15} 0 0"/>
+    </joint>
+
+    <link name="${self}_bottom_rear_hinge">
+      <visual>
+        <geometry>
+          <box size="${tail_len*.3} ${tail_width} ${tail_height}"/>
+        </geometry>
+        <xacro:link_color />
+      </visual>
+    </link>
+
+    <joint name="${self}_bottom_rear_hinge_${self}_bottom_rear_hinge_end_joint" type="fixed">
+      <parent link="${self}_bottom_rear_hinge_end"/>
+      <child link="${self}_bottom_rear_hinge"/>
+      <origin rpy="0 0 0" xyz="${-tail_len*.15} 0 0"/>
+    </joint>
+
+    <link name="${self}_rear_junction">
+      <visual>
+        <geometry>
+          <box size="0.01 ${tail_width } ${abdomen_height}"/>
+        </geometry>
+        <xacro:link_color />
+      </visual>
+    </link>
+
+    <joint name="${self}_rear_junction_${self}_rear_joint_rod_joint" type="fixed">
+      <parent link="${self}_rear_joint_rod"/>
+      <child link="${self}_rear_junction"/>
+      <origin rpy="0 0 0" xyz="${-tail_len*.3+.005} 0 0"/>
+    </joint>
+
+  </xacro:macro>
+
+
+</robot>

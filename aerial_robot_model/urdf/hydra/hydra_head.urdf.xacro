@@ -1,0 +1,105 @@
+<?xml version="1.0"?>
+<robot
+    xmlns:xacro="http://www.ros.org/wiki/xacro" name="hydra_head" >
+
+  <xacro:macro name="hydra_head"> 
+<!--
+    <link name="left_eye">
+      <visual>
+        <geometry>
+          <sphere radius="${tail_width*.2}"/>
+        </geometry>
+        <material name="Red">
+          <color rgba=".7 .0 .0 1"/>
+        </material>
+      </visual>
+    </link>
+
+    <joint name="left_eye_head_cylinder_joint" type="fixed">
+      <parent link="head_cylinder"/>
+      <child link="left_eye"/>
+      <origin rpy="0 0 0" xyz="${tail_len*.2} ${tail_width*.5*.707} ${tail_width*.5*.707}"/> 
+    </joint>
+
+    <link name="right_eye">
+      <visual>
+        <geometry>
+          <sphere radius="${tail_width*.2}"/>
+        </geometry>
+        <material name="Red">
+          <color rgba=".7 .0 .0 1"/>
+        </material>
+      </visual>
+    </link>
+    <joint name="right_eye_head_cylinder_joint" type="fixed">
+      <parent link="head_cylinder"/>
+      <child link="right_eye"/>
+      <origin rpy="0 0 0" xyz="${tail_len*.2} ${-tail_width*.5*.707} ${tail_width*.5*.707}"/> 
+    </joint>
+
+-->
+
+    <link name="eye">
+      <visual>
+        <geometry>
+          <sphere radius="0.01"/>
+        </geometry>
+        <material name="Red">
+          <color rgba=".7 .0 .0 1"/>
+        </material>
+      </visual>
+    </link>
+
+    <joint name="eye_head_sphere_joint" type="fixed">
+      <parent link="head_sphere"/>
+      <child link="eye"/>
+      <origin rpy="0 0 0" xyz="0 0 0"/> 
+    </joint>
+
+
+    <link name="head_sphere">
+      <visual>
+        <geometry>
+          <sphere radius="${tail_width*.5}"/> 
+        </geometry>
+        <material name="Red">
+          <color rgba=".7 .0 .0 1"/>
+        </material>
+      </visual>
+    </link>
+
+    <joint name="head_sphere_head_cylinder_joint" type="fixed">
+      <parent link="head_cylinder"/>
+      <child link="head_sphere"/>
+      <origin rpy="0 0 0" xyz="0 0 0"/> 
+    </joint>
+
+    <link name="head_cylinder">
+      <visual>
+        <geometry>
+          <cylinder length="0.1" radius="${tail_width*.5}"/>
+        </geometry>
+        <origin rpy="0 1.57075 0 " xyz="-0.055 0 0"/>
+        <xacro:link_color />
+      </visual>
+    </link>
+
+    <link name="link0_rear_junction">
+      <visual>
+        <geometry>
+          <box size="0.01 ${tail_width} ${abdomen_height}"/>
+        </geometry>
+        <xacro:link_color />
+      </visual>
+    </link>
+
+    <joint name="link0_rear_junction_abdomen_joint" type="fixed">
+      <parent link="head_cylinder"/>
+      <child link="link0_rear_junction"/>
+      <origin rpy="0 0 0" xyz="-0.055 0 0"/>
+    </joint>
+
+  </xacro:macro>
+
+
+</robot>

@@ -1,0 +1,9 @@
+<launch>
+<group ns="camera" >
+  <node pkg="usb_cam" type="usb_cam_node" name="usb_camera" output="screen">
+    <param name="video_device" type="string" value="/dev/video1" />
+  </node>
+
+</group>
+
+</launch>

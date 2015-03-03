@@ -1,0 +1,21 @@
+<launch>
+  <arg name="model" default="hydra" /> 
+  <arg name="gui" default="False" />
+  <arg name="map_file" default="eng2-1f"/>
+
+  <param name="robot_description" 
+         command="$(find xacro)/xacro.py '$(find aerial_robot_model)/robots/$(arg model).urdf.xacro'" />
+  <param name="use_gui" value="$(arg gui)"/>
+  
+
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher" />
+
+  <node name="rviz" pkg="rviz" type="rviz"
+        args="-d $(find aerial_robot_model)/launch/rviz_$(env ROS_DISTRO)_traj_config" respawn="true" />
+
+  <node name="map_server" pkg="map_server" type="map_server" args="$(find path2d)/raw_maps/$(arg map_file).yaml" output="screen"/> 
+  <node name= "map" pkg="tf" type="static_transform_publisher" args="0.0 0.0 0.0 0 0 0 /map /path 100" />
+
+  <include file="$(find aerial_robot_model)/launch/traj_motion_node.launch" />
+
+</launch>

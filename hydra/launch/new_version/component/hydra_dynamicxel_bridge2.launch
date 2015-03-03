@@ -1,0 +1,49 @@
+<launch>
+
+  <node name="dynamixel_manager" pkg="dynamixel_controllers" type="controller_manager.py" required="true" output="screen">
+        <rosparam>
+            namespace: dxl_manager
+            serial_ports:
+                joints_port:
+                    port_name: "/dev/ttyUSB0"
+                    baud_rate: 1000000
+                    min_motor_id: 1
+                    max_motor_id: 25
+                    update_rate: 20
+        </rosparam>
+    </node>
+
+    <rosparam file="$(find my_dynamixel_tutorial)/config/tilt.yaml" command="load"/>
+    <node name="tilt_controller_spawner" pkg="dynamixel_controllers" type="controller_spawner.py"
+          args="--manager=dxl_manager
+                --port joints_port
+                --type simple
+                j1_controller
+                j2_controller
+                j3_controller"
+          output="screen"/>
+
+  <node pkg="hydra" type="dynamicxel_bridge_node" name="dynamicxel_bridge_node"  output="screen" > 
+    <param name="joint_num" type="int" value="3"/>
+    <param name="/joint1_angle_max" type="double" value="1.58"/>
+    <param name="/joint1_angle_min" type="double" value="-1.58"/>
+    <param name="/joint1_angle_sgn" type="int" value="1"/>
+    <param name="/joint1_angle_offset" type="double" value="2.603"/>
+
+    <param name="/joint2_angle_max" type="double" value="1.58"/>
+    <param name="/joint2_angle_min" type="double" value="-1.58"/>
+    <param name="/joint2_angle_sgn" type="int" value="1"/>
+    <param name="/joint2_angle_offset" type="double" value="2.608"/>
+
+    <param name="/joint3_angle_max" type="double" value="1.58"/>
+    <param name="/joint3_angle_min" type="double" value="-1.58"/>
+    <param name="/joint3_angle_sgn" type="int" value="1"/>
+    <param name="/joint3_angle_offset" type="double" value="2.608"/>
+
+    <remap from="joint_states" to="hydra/joint_states" />
+
+  </node>
+
+
+
+</launch>

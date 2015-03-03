@@ -1,0 +1,17 @@
+<launch>
+  <arg name="model" default="hydra" /> 
+  <arg name="gui" default="False" />
+  <param name="hydra/robot_description" 
+         command="$(find xacro)/xacro.py '$(find aerial_robot_model)/robots/$(arg model).urdf.xacro'" />
+
+<group ns="$(arg model)" >
+  <param name="use_gui" value="$(arg gui)"/>
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher" /> 
+
+</group>
+
+  <node name="rviz" pkg="rviz" type="rviz"
+        args="-d $(find aerial_robot_model)/launch/rviz_$(env ROS_DISTRO)_config" respawn="true" />
+
+
+</launch>

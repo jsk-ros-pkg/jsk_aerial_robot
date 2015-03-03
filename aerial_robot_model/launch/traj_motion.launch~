@@ -1,0 +1,26 @@
+<launch>
+  <arg name="model" default="hydra" /> 
+  <arg name="gui" default="False" />
+  <arg name="map_file" default="eng2-1f"/>
+
+  <param name="robot_description" 
+         command="$(find xacro)/xacro.py '$(find aerial_robot_model)/robots/$(arg model).urdf.xacro'" />
+  <param name="use_gui" value="$(arg gui)"/>
+  
+
+<!--  <node name="joint_state_publisher" pkg="aerial_robot_model" type="joint_state_publisher_node" />  -->
+  <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" /> 
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher" />
+
+  <!-- fuerte version's urdf vcg -->
+  <!--
+      <node name="rviz" pkg="rviz" type="rviz" args="-d $(find aerial_robot_model)/urdf/urdf.vcg" />
+  -->
+  <!-- groovy version's urdf vcg -->
+
+  <node name="rviz" pkg="rviz" type="rviz"
+        args="-d $(find aerial_robot_model)/launch/rviz_$(env ROS_DISTRO)_traj_config" respawn="true" />
+
+  <node name="map_server" pkg="map_server" type="map_server" args="$(find path2d)/raw_maps/$(arg map_file).yaml" output="screen"/> 
+
+</launch>

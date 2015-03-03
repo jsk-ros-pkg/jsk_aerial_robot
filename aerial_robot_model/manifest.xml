@@ -1,0 +1,20 @@
+<package>
+  <description brief="aerial_robot_model">
+
+     aerial_robot_model
+
+  </description>
+  <author>bakui</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/aerial_robot_model</url>
+  <depend package="roscpp"/>
+  <depend package="tf"/>
+  <depend package="std_msgs"/>
+  <depend package="sensor_msgs"/>
+  <depend package="geometry_msgs"/>
+  
+
+</package>
+
+

@@ -1,0 +1,13 @@
+# Optical Flow Kalman Filter on Kawasaki IMU Board
+
+/sim/quadcopter_node/kalman_filter/XOpt/inputSigma: 0.06 #0.05
+/sim/quadcopter_node/kalman_filter/XOpt/biasSigma: 0.006 #0.005 test 0.002 good
+/sim/quadcopter_node/kalman_filter/XOpt/measureSigma: 0.1
+
+/sim/quadcopter_node/kalman_filter/YOpt/inputSigma: 0.06 #0.05
+/sim/quadcopter_node/kalman_filter/YOpt/biasSigma: 0.006 #0.005 test 0.002 good
+/sim/quadcopter_node/kalman_filter/YOpt/measureSigma: 0.1
+
+/sim/quadcopter_node/kalman_filter/ZOpt/inputSigma: 0.35
+/sim/quadcopter_node/kalman_filter/ZOpt/biasSigma: 0.0006
+/sim/quadcopter_node/kalman_filter/ZOpt/measureSigma: 0.01

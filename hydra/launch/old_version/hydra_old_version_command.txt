@@ -1,0 +1,5 @@
+roslaunch hydra hydra_old_version.launch
+roslaunch my_dynamixel_tutorial controller_manager_spawner.launch
+roslaunch mocap_optitrack mocap.launch
+roslaunch mocap_retime mocap_retime.launch
+rosrun  jsk_quadcopter keyboard_command.py

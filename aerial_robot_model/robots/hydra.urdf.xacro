@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<robot
+    xmlns:xacro="http://www.ros.org/wiki/xacro" name="hydra" >
+
+  <include filename="$(find aerial_robot_model)/urdf/hydra/hydra_common.xacro" />
+  <include filename="$(find aerial_robot_model)/urdf/hydra/hydra_link.urdf.xacro" />
+  <include filename="$(find aerial_robot_model)/urdf/hydra/hydra_head.urdf.xacro" />
+
+  <xacro:hydra_head />
+  <xacro:hydra_link parent="link0" self="link1"/>
+  <xacro:hydra_link parent="link1" self="link2"/>
+  <xacro:hydra_link parent="link2" self="link3"/>
+  <xacro:hydra_end_link parent="link3" self="link4"/>
+
+</robot>

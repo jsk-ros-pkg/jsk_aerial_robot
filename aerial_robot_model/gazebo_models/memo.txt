@@ -1,0 +1,23 @@
+
+1.
+drcsimをインストール
+http://gazebosim.org/wiki/DRC/Install
+
+2.
+~/.bashrcに以下を追記
+
+export ROS_PACKAGE_PATH="/home/leus/prog/euslib/demo/chou/ros_workspace_rosbuild/quadcopter":$ROS_PACKAGE_PATH
+
+export GAZEBO_MODEL_PATH="/home/leus/prog/euslib/demo/chou/ros_workspace_rosbuild/quadcopter":$GAZEBO_MODEL_PATH
+export GAZEBO_MODEL_PATH="/home/leus/prog/euslib/demo/chou/ros_workspace_rosbuild/quadcopter/aerial_robot_model/gazebo_models":$GAZEBO_MODEL_PATH
+
+
+3.
+
+# launch drcsim
+roslaunch drcsim_gazebo vrc_task_1.launch
+
+# new terminal
+roscd aerial_robot_model/gazebo_models/hydra
+gzfactory spawn -f model.urdf -x 0 -y 0 -z 1 -R 0 -P 0 -Y 0
+gzfactory delete -m hydra

@@ -1,0 +1,5 @@
+#serial_port: /dev/ttyACM0
+#baudrate:    921600
+
+serial_port: /dev/px4flow
+baudrate:    115200

@@ -1,0 +1,17 @@
+<launch>
+
+  <node name="traj_motion_node" pkg="aerial_robot_model" type="traj_motion_node" output="screen" >
+     <param name="loop_rate" value="20" />
+     <param name="link_num" value="4" />
+     <param name="joint0_name" value="head_cylinder" />
+     <param name="joint1_name" value="link1_servo_rod_link1_servo_joint" />
+     <param name="joint2_name" value="link2_servo_rod_link2_servo_joint" />
+     <param name="joint3_name" value="link3_servo_rod_link3_servo_joint" />
+     <param name="link1_length" value="0.48" />
+     <param name="link2_length" value="0.475" />
+     <param name="link3_length" value="0.475" />
+     <param name="link4_length" value="0.475" />
+
+  </node>
+
+</launch>
