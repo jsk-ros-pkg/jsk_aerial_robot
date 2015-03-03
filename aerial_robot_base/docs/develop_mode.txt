@@ -1,0 +1,182 @@
+2013/8/16
+done:
+1. edit the 
+2. change the name of "keyboard_navigator" to "teleop_naviagtor"
+3. change the name of "asctec_state_estimator.cpp" to
+"quadcopter_state_estimator.cpp", as wellas the change at CMakelists.txt
+
+tips:
+1. necessity to seperate code relavant to "rocket_start" from
+quadcopter_state_estimator.cpp, merging to flight_navigator.cpp for
+the independence.
+2. blash up the structure of quadcopter_state_estimtor.cpp, deviding
+into smaller component, e.g. laser_mirror_module, optical_flow_module
+3. ros_system for quadcopter, without pr2 package
+
+2013/8/17
+
+done:
+1. keystone correction test, modifying the interval from 0.005 ~ 0.01,
+which behaviors well.
+2. sonat alt control is unstable, observing the gap(< 2.5m). 
+-> we constrict the gap limit to 1.8m
+
+
+tips:
+1. sonar problem:
+a)in px4flow, we add a filter to remove the big gap ( < 2m), using the
+previous data in px4flow board. good gap filtering is good, but if once a
+relatively big gap passes the filtering, the whole alt estimation
+would go wrong. --> constrict or deprecate it?
+b)in jsk_quadcopter, we add a upper limit to remove a big value
+--> constrict the upper limit? like 2m?
+c) "rawPosZ != prev_raw_pos_z" -- always use the latest sonar value,
+which is 10Hz.
+=> is this enough? the alt control is always unstable, especially in
+stairs env. add other condition equation in px4flow    
+2. yaw unstable phenomenon, in stairs env !!
+
+to do:
+1. startup writing
+2. alt control test (1. normal mode, 2. stair mode)
+3. throwing mode
+4. udev for static dev name
+
+2013/8/18
+tips(to do):
+1. sonar problem(cont'd):
+d) add a landing mode, when alt estimation goes wrong -- say the alt > 2m?
+
+2013/8/19
+done:
+1)udev static name for kawsaki_imu_board and px4flow
+2)startup registration --> 37sec startup
+
+tips:
+1. pitch/roll vel control is unstable --say the vel tracking is bad.
+--> need to fix the keystone correction interval and the pitch/roll
+pid control param.
+2. the yaw control is still unstable, in the stairs env. We think this
+is associated with the minimumthrottle value, as well as the whole
+throttle power.
+
+to do:
+1. shortten the rosserial connection first duration
+2. throwing modtion: 
+a) relationship between the integeration of acc_x and opt_vel_x -->
+the first flag of throwing
+b) the relationship bettween the acc_z and acc_x --> calculate the
+average of acc_z as a threshold
+c) the relationship between pitch and acc_z
+d) the relationship between acc_z and baro sensor and sonar
+
+2013/08/22
+
+tips:
+1. kawasaki/imu
+btScalar yaw   = -M_PI * imu_msg->angle[2] / 180.0; 
+why opposite?
+
+2013/08/25
+
+tips:
+1. lego ev3
+a) RunBytecodeFile --> ui.lms
+
+2013/09/02
+to do:
+1) throwing and collecting the us-data without filter in the px4flow
+
+2013/09/26
+done:
+brush up
+to do:
+1) throwing
+2) extended kalman filter
+
+2013/10/15
+to do:
+1. kalman filter add proper flag to realize:
+--> only prediction mode
+--> only correction mode
+problem: now, prediction mode + correction mode / no prediction + no
+correction 
+<<<<<<< .mine
+
+2013/11/05
+points for slam in Buld2 1F
+1. be slow to move
+2. be fixed at corner
+=======
+
+2013/11/13
+1. kduino's axe
+-> yaw axis is reverse ordinally, and is changed in
+jsk_quadcopter/src/quadcopter_state_estimation.cpp. Should it be
+changed in kduino code?
+
+-> the acc's and angle's are different, is the acc axis belong to
+   invensense's axe and angle axis belong to complementary filter? 
+
+2013/11/18
+change list for new rook2 position control
+1. kduino (RCSEIRAL)
+2. quadocpter_state_estimation.cpp
+ --> 1258. change to plus frame
+3. todo?
+
+2013/11/21
+PID
+1.P -> I -> D
+P:ピコピコピコピコ
+i:ピーコーピーコー
+d:ピコ　---- ピコ
+ 
+>>>>>>> .r711
+
+
+2014/2/18
+TODO
+1. motor stop arming -> OK
+2. increment rocket increasing => to big -> OK (reason : the weight of
+battery is different from previous one)
+3. increment rocket decreasingg => to fast -> OK (reason : the weight of
+battery is different from previous one)
+
+2014/2/19
+TODO
+1. enable the thrwoing mode when doing the vel control mode
+
+2014/6/11
+rxplot
+/opticalFlow/debug/rawPosZ,/opticalFlow/debug/crrPosZNonBias,/ground_truth/pose/posZ /opticalFlow/debug/crrVelZNonBias,/ground_truth/pose/velZ
+
+rxplot /imu/debug/acceleration_body_frame/x,/ground_truth/pose/emptyX1
+imu/debug/acceleration_body_frame/y,/ground_truth/pose/emptyY1
+
+rxplot /imu/debug/angles/x,/ground_truth/pose/emptyPsi2/imu/debug/angles/y,/ground_truth/pose/emptyPsi1 /imu/debug/angles/z,/ground_truth/pose/psi
+
+rxplot
+/opticalFlow/debug/crrVelXNonBias,/opticalFlow/debug/crrVelXBias,/opticalFlow/debug/rawVelX,/opticalFlow/debug/velX,/ground_truth/pose/velX
+/opticalFlow/debug/crrPosXBias,/ground_truth/pose/posX
+
+rxplot
+/opticalFlow/debug/crrVelYBias,/opticalFlow/debug/crrVelYNonBias,/opticalFlow/debug/rawVelY,/opticalFlow/debug/velY,/ground_truth/pose/velY /opticalFlow/debug/crrPosYBias,/ground_truth/pose/posY
+
+rxplot
+/sim/opticalFlow/debug/crrVelXBias,/opticalFlow/debug/rawVelX,/opticalFlow/debug/velX,/ground_truth/pose/velX
+
+rxplot
+/sim/opticalFlow/debug/crrVelYBias,/opticalFlow/debug/rawVelY,/opticalFlow/debug/velY,/ground_truth/pose/velY
+
+
+ rxplot
+ /opticalFlow/debug/rawPosZ,/opticalFlow/debug/crrPosZNonBias,/ground_truth/pose/posZ
+ /imu/debug/acceleration_body_frame/z,/imu/debug/magnetometer/z,/ground_truth/pose/emptyZ1
+
+rxplot /ground_truth/pose/velX,/opticalFlow/debug/crrVelXBias,/opticalFlow/debug/velX,/controller/debug/pitch/velErrTransform
+
+
+1. keystone: the rapid change of vel command => the divergence of velocity when go to the target velocity
+
+rxplot /ground_truth/pose/velY,/opticalFlow/debug/crrVelYBias,/opticalFlow/debug/velY,/controller/debug/roll/velErrTransform

@@ -1,0 +1,26 @@
+<package>
+  <description brief="hydra">
+
+     hydra
+
+  </description>
+  <author>bakui</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/hydra</url>
+  <depend package="roscpp"/>
+  <depend package="roseus"/>
+  <depend package="jsk_quadcopter_common"/>
+  <depend package="jsk_quadcopter"/>
+  <depend package="tf_conversions"/>
+  <depend package="dynamixel_controllers"/>
+  <depend package="dynamixel_msgs"/>
+
+  <export>
+    <cpp cflags="-I${prefix}/include -I${prefix}/cfg/cpp" lflags="-Wl,-rpath,${prefix}/lib -L${prefix}/lib -ltransform_control "/>
+  </export>
+
+
+</package>
+
+

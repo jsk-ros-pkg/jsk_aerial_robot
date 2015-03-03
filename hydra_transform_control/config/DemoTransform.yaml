@@ -1,0 +1,34 @@
+demo_transform_node/joint_num: 3
+demo_transform_node/node_num: 3
+
+#c - inv c
+
+#node0: pi/2 pi/2 pi/2
+demo_transform_node/node0_pos_roll_i_term: 0 #0
+demo_transform_node/node0_pos_pitch_i_term: 180 #50
+demo_transform_node/node0_att_roll_pitch_p_gain: 100 #100
+demo_transform_node/node0_att_roll_d_gain: 51 #21
+demo_transform_node/node0_att_pitch_d_gain: 69 #21
+demo_transform_node/node0_joint0_angle: 1.5708
+demo_transform_node/node0_joint1_angle: 0
+demo_transform_node/node0_joint2_angle: 0
+
+#node1: pi/1 pi/2 pi/4
+demo_transform_node/node1_pos_roll_i_term: -50 #-50
+demo_transform_node/node1_pos_pitch_i_term: -60 # -40
+demo_transform_node/node1_att_roll_pitch_p_gain: 100
+demo_transform_node/node1_att_roll_d_gain: 51
+demo_transform_node/node1_att_pitch_d_gain: 71
+demo_transform_node/node1_joint0_angle: 1.5708
+demo_transform_node/node1_joint1_angle: 0
+demo_transform_node/node1_joint2_angle: -1.5708
+
+#node2: pi/2 pi/2 0
+demo_transform_node/node2_pos_roll_i_term: -60
+demo_transform_node/node2_pos_pitch_i_term: -200
+demo_transform_node/node2_att_roll_pitch_p_gain: 100
+demo_transform_node/node2_att_roll_d_gain: 51
+demo_transform_node/node2_att_pitch_d_gain: 69
+demo_transform_node/node2_joint0_angle: 0
+demo_transform_node/node2_joint1_angle: 0
+demo_transform_node/node2_joint2_angle: -1.5708

@@ -1,0 +1,139 @@
+<?xml version="1.0"?>
+<launch>
+
+ 
+  #### JSK Quadcopter ###################################
+
+  <arg name="asctec_flag" value="false" />  <!-- arm cortex does exist -->
+  <arg name="kawasaki_flag" value="true" />  <!-- aruduino does exist -->
+
+  <arg name="control_board" value="1"/> <!--flight control flag 0: arm cortex; 1: kawasaki board -->
+  <arg name="kalman_filter_board" value="1"/> <!--kalman filter flag 0: arm cortex; 1: kawasaki board -->
+  <arg name="optical_flow_flag" value="true" />  <!-- optical flow does exist -->
+
+  <group ns="sim">
+
+  <node pkg="jsk_quadcopter" type="jsk_quadcopter_node" name="quadcopter_node"  output="screen" > 
+    <!-- <param name="" type="bool" value="false"/> -->
+    <!-- <param name="" type="int" value="0"/> -->
+    <!-- <param name="" type="double" value="0"/> -->
+    <!-- <param name="" type="string" value="unknown"/> -->
+
+    <!-- quadcopter basic param -->
+    <param name="controlAble" type="bool" value="false"/>
+    <!-- if freq < 0, the function will not work, meaning disable -->
+    <param name="rxLoopRate" type="double" value="110"/>
+    <param name="txLoopRate" type="double" value="40"/>
+    <param name="tfPubLoopRate" type="double" value="120"/>
+
+    <!-- Estimator 1 -->
+    <!--                SLAM  -->
+    <!--                IIR Filter  -->
+    <param name="slamRxFreqX" type="double" value="40"/>
+    <param name="slamRxFreqY" type="double" value="40"/>
+    <param name="slamRxFreqZ" type="double" value="40"/>
+    <param name="slamRxFreqTheta" type="double" value="40"/>
+    <param name="slamRxFreqPhy" type="double" value="40"/>
+    <param name="slamRxFreqPsi" type="double" value="40"/>
+    <param name="slamCutoffPosFreqX" type="double" value="15"/>
+    <param name="slamCutoffPosFreqY" type="double" value="15"/>
+    <param name="slamCutoffPosFreqZ" type="double" value="15"/>
+    <param name="slamCutoffPosFreqTheta" type="double" value="15"/>
+    <param name="slamCutoffPosFreqPhy" type="double" value="15"/>
+    <param name="slamCutoffPosFreqPsi" type="double" value="15"/>
+    <param name="slamCutoffVelFreqX" type="double" value="4.4"/>
+    <param name="slamCutoffVelFreqY" type="double" value="4.3"/>
+    <param name="slamCutoffVelFreqZ" type="double" value="4.3"/>
+    <param name="slamCutoffVelFreqTheta" type="double" value="4.3"/>
+    <param name="slamCutoffVelFreqPhy" type="double" value="4.3"/>
+    <param name="slamCutoffVelFreqPsi" type="double" value="10"/>
+    <param name="slamFilterVelValThreX" type="double" value="1"/>
+    <param name="slamFilterVelValThreY" type="double" value="1"/>
+    <param name="slamFilterVelValThreZ" type="double" value="1"/>
+    <param name="slamFilterVelValThreTheta" type="double" value="1"/>
+    <param name="slamFilterVelValThrePhy" type="double" value="1"/>
+    <param name="slamFilterVelValThrePsi" type="double" value="1"/>
+    <param name="slamFilterVelChangeRateThreX" type="double" value="2"/>
+    <param name="slamFilterVelChangeRateThreY" type="double" value="2"/>
+    <param name="slamFilterVelChangeRateThreZ" type="double" value="2"/>
+    <param name="slamFilterVelChangeRateThreTheta" type="double" value="2"/>
+    <param name="slamFilterVelChangeRateThrePhy" type="double" value="2"/>
+    <param name="slamFilterVelChangeRateThrePsi" type="double" value="2"/>
+
+    <param name="iirFilterAccXCutoffHz" type="double" value="10"/> 
+    <param name="iirFilterAccYCutoffHz" type="double" value="10"/> 
+    <param name="iirFilterAccZCutoffHz" type="double" value="10"/> 
+
+    <!--                Kalman Filter  -->
+    <param name="kalmanFilterFlag" type="bool" value="true"/>
+    <rosparam file="$(find jsk_quadcopter)/config/KawasakiImuBoardKalmanFilterConfig.yaml" command="load" />
+    <rosparam  file="$(find jsk_quadcopter)/config/OpticalFlowKalmanFilterConfig.yaml" command="load" />
+
+
+    <!--                Kalman Filter Debug -->
+    <param name="kalmanFilterDebug" type="bool" value="true"/>
+    <param name="kalmanFilterAxis" type="int" value="0"/> <!-- 0: X , 1: Y -->
+    <param name="kalmanFilter1AxisInputSigma" type="double" value="0.16"/>
+    <param name="kalmanFilter1AxisBiasSigma" type="double" value="0.03"/> <!-- 0.006 -->
+    <param name="kalmanFilter1AxisMeasureSigma" type="double" value="0.08"/>
+    <param name="kalmanFilter2AxisInputSigma" type="double" value="0.04"/>
+    <param name="kalmanFilter2AxisBiasSigma" type="double" value="0.03"/> <!-- 0.006 -->
+    <param name="kalmanFilter2AxisMeasureSigma" type="double" value="0.04"/>
+
+
+    <remap from="/sim/imu/kawasaki/imu" to="/kawasaki/imu" />
+    <remap from="/sim/slam/slam_out_pose" to="/slam/slam_out_pose" />
+
+    <param name="kalmanFilterBoard" type="int" value="$(arg kalman_filter_board)"/>
+    <param name="imuHz" type="double" value="105"/>
+
+    <!--                  Mirror Module -->
+    <param name="mirrorRxFreq" type="double" value="40"/> <!-- same with hokuyo -->
+    <param name="mirrorCutoffPosFreq" type="double" value="15"/>
+    <param name="mirrorCutoffVelFreq" type="double" value="10"/>
+    <param name="mirrorFilterVelChangeRateThre" type="double" value="2"/>
+    <param name="mirrorFilterVelValThre" type="double" value="1"/>
+    <param name="mirrorZOffsetUpperLimit" type="double" value="0.32"/> <!-- 0.4 -->
+    <param name="mirrorZOffsetLowerLimit" type="double" value="0.22"/> <!-- 0.3 -->
+    <param name="laserToBaselinkDistance" type="double" value="-0.1"/>
+    <param name="mirrorModuleArmLength" type="double" value="0.114"/>
+    <param name="baselinkFrame" type="string" value="quadcopter_base"/>
+    <param name="baseFootprintFrame" type="string" value="base_footprint"/>
+    <param name="laserFrame" type="string" value="laser"/>
+    <param name="cameraFrame" type="string" value="camera"/>
+    <remap from="/sim/mirror/scan" to="/scan" />
+    <remap from="mirror/laser_boundary_offset" to="laser_boundary_offset" /> 
+
+    <param name="rocketStartLowerThre" type="double" value="0.301"/> 
+    <param name="rocketStartUpperThre" type="double" value="0.4"/> 
+    <param name="rocketStartVel" type="double" value="0.25"/> 
+    <!-- 0.2 ~ 0.4 (0.25 for laser; 0.35 for sonar), finally estimate using baro -->
+    <param name="useRocketStart" type="bool" value="true"/> 
+
+    <!--                  Optical Flow Data -->
+    <remap from="/sim/opticalFlow/opt_flow" to="/px4flow/opt_flow" />
+
+    <!-- asctec pelican  config -->
+    <param name="asctecFlag" type="bool" value="$(arg asctec_flag)" />  <!-- arm cortex does exist -->
+
+    <!-- Keyboard Navigation -->
+    <param name="takeoffHeight" type="double" value="0.4"/>
+    <param name="evenMoveDistance" type="double" value="0.2"/>
+    <param name="upDownDistance" type="double" value="0.1"/>
+    <param name="forwardBackwardDistance" type="double" value="0"/>
+    <param name="leftRightDistance" type="double" value="0"/>
+    <param name="naviFrameInt" type="int" value="0"/> <!-- map frame: 0, body frame: 1 -->
+    <param name="mapFrame" type="string" value="map"/>
+    <param name="targetFrame" type="string" value="target"/>
+
+    <param name="controlMode" type="int" value="0"/> <!-- pos control: 0, vel control: 1 -->
+
+  </node>
+  
+</group>
+
+
+</launch>
+
+
+

@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<launch>
+
+  ################################# Hydra Robot Model ################################
+  <include file="$(find hydra)/launch/new_version/component/hydra_robot_model.launch" />
+
+  ################################# Aerial Robot Base Platform ######################################
+  <include file="$(find hydra)/launch/new_version/component/aerial_robot_base_platform.launch" />
+
+  ################################# Dynamixel Motor Control ################################
+  <include file="$(find hydra)/launch/new_version/component/hydra_dynamicxel_bridge.launch" />
+
+  ################################# Hydra Transform Control ################################
+  <include file="$(find hydra)/launch/new_version/component/hydra_transform_control.launch" />
+
+</launch>
+
+
+

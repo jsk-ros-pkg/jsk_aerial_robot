@@ -1,0 +1,348 @@
+<?xml version="1.0"?>
+<launch>
+
+ 
+  #### JSK Quadcopter ###################################
+
+  <arg name="asctec_flag" value="false" />  <!-- arm cortex does exist -->
+  <arg name="kawasaki_flag" value="true" />  <!-- aruduino does exist -->
+
+  <arg name="control_board" value="1"/> <!--flight control flag 0: arm cortex; 1: kawasaki board -->
+  <arg name="kalman_filter_board" value="1"/> <!--kalman filter flag 0: arm cortex; 1: kawasaki board -->
+  <!-- please change here for laser mounting module -->
+  <arg name="optical_flow_flag" value="true" />  <!-- optical flow does exist -->
+  <arg name="joy_stick_flag" value="true" />  <!-- joy stick does exist -->
+
+  <node pkg="jsk_quadcopter" type="jsk_quadcopter_node" name="quadcopter_node"  output="screen" > 
+    <!-- <param name="" type="bool" value="false"/> -->
+    <!-- <param name="" type="int" value="0"/> -->
+    <!-- <param name="" type="double" value="0"/> -->
+    <!-- <param name="" type="string" value="unknown"/> -->
+
+    <!-- quadcopter basic param -->
+    <param name="controlAble" type="bool" value="true"/>
+    <!-- if freq < 0, the function will not work, meaning disable -->
+    <param name="rxLoopRate" type="double" value="110"/>
+    <param name="txLoopRate" type="double" value="40"/>
+    <param name="tfPubLoopRate" type="double" value="120"/>
+
+    <!-- PID control -->
+    <param name="controlBoard" type="int" value="$(arg control_board)"/>
+    <param name="pitchCtrlLoopRate" type="int" value="40"/>
+    <param name="rollCtrlLoopRate" type="int" value="40"/>
+    <param name="throttleCtrlLoopRate" type="int" value="40"/>
+    <param name="yawCtrlLoopRate" type="int" value="40"/>
+    <!--                   throttle -->
+    <param name="posPGainThrottle" type="double" value="0.25"/> <!-- arm cortex -->
+    <param name="posIGainThrottle" type="double" value="0.1"/>
+    <param name="posDGainThrottle" type="double" value="0.28"/> <!-- kawasaki board 1.4 -->
+    <param name="posPGainThrottleLand" type="double" value="0.1"/>
+    <param name="posIGainThrottleLand" type="double" value="0.03"/>
+    <param name="posDGainThrottleLand" type="double" value="0.2"/>
+    <param name="constPControlThreThrottleLand" type="double" value="-0.1"/>
+    <param name="constPTermLev1ValueThrottleLand" type="double" value="-20"/>
+    <param name="constPTermLev2ValueThrottleLand" type="double" value="-40"/>
+    <param name="constIControlThreThrottleLand" type="double" value="-0.25"/>
+    <param name="constITermValueThrottleLand" type="double" value="0.5"/>
+    <param name="offsetThrottle" type="int" value="1000"/>
+    <param name="posLimitThrottle" type="int" value="1800"/>
+    <param name="posPLimitThrottle" type="int" value="150"/>
+    <param name="posPLimitThrottleHover" type="int" value="50"/>
+    <param name="posILimitThrottle" type="int" value="800"/>
+    <param name="posDLimitThrottle" type="int" value="180"/>
+    <param name="velValueLimitThrottle" type="double" value="0"/>
+    <param name="iEnableLimitThrottle" type="double" value="0.1"/>
+    <param name="freeFallStepValue" type="int" value="3"/>  <!-- 2: hokuyo + nuc + px4; 3: px4 + nuc-->
+    <param name="motorStopValue" type="int" value="1440"/> <!-- 1470: hokuyo + nuc + px4, 1420: nuc + px4 -->
+    <!-- please change here for laser mounting module -->
+    <param name="rocketStartInitValue" type="int" value="1530"/> <!-- 1520 for no laser; 1560 for laser mounted -->
+    <param name="rocketStartStepValue" type="int" value="1"/>
+    <!-- 1535:  nuc + optical within high voltage level; 1550 ~ 1560: nuc + optical within low voltage level  -->
+    <!-- 1550 : hokuyo + nuc + 2650mAh within all voltage range(maybe), and within higher level of voltage range for hokuyo + nuc + optical sensor-->
+    <!-- 1580 : hokuyo + nuc + optical + 2650mAh -->
+
+
+    <!--                   pitch -->
+    <param name="posPGainPitch" type="double" value="0.1"/> <!-- prev: 0.2 --> 
+    <!-- point: takeoff convergence -->
+    <param name="posIGainPitch" type="double" value="0.05"/> <!-- prev: 0.005 --> 
+    <param name="posIGainPitchHover" type="double" value="0.005"/> 
+    <param name="posDGainPitch" type="double" value="0.4"/> <!--  -->
+    <!-- point: x/y axis vel -->
+    <param name="velPGainPitch" type="double" value="0.45"/> <!--  -->
+    <param name="velIGainPitch" type="double" value="0.005"/> <!--  -->
+    <param name="offsetPitch" type="int" value="0"/>
+    <param name="posLimitPitch" type="int" value="200"/>
+    <param name="posPLimitPitch" type="int" value="100"/>
+    <param name="posILimitPitch" type="int" value="100"/>
+    <param name="posDLimitPitch" type="int" value="100"/>
+    <param name="velValueLimitPitch" type="double" value="0.8"/>
+    <param name="iEnableLimitPitch" type="double" value="0.4"/>
+    <!--                   roll -->
+    <param name="posPGainRoll" type="double" value="0.1"/> <!-- 0.2- -->
+    <!-- point: takeoff convergence -->
+    <param name="posIGainRoll" type="double" value="0.05"/> <!-- prev: 0.006 --> 
+    <param name="posIGainRollHover" type="double" value="0.005"/>
+    <param name="posDGainRoll" type="double" value="0.5"/> <!-- -->
+    <!-- point: x/y axis vel -->
+    <param name="velPGainRoll" type="double" value="0.45"/> <!--  -->
+    <param name="velIGainRoll" type="double" value="0.005"/> 
+    <param name="offsetRoll" type="int" value="0"/>
+    <param name="posLimitRoll" type="int" value="200"/>
+    <param name="posPLimitRoll" type="int" value="100"/>
+    <param name="posILimitRoll" type="int" value="100"/>
+    <param name="posDLimitRoll" type="int" value="100"/>
+    <param name="velValueLimitRoll" type="double" value="0.8"/>
+    <param name="iEnableLimitRoll" type="double" value="0.4"/>
+    <!--                   yaw -->
+    <param name="posPGainYaw" type="double" value="0.1"/>
+    <param name="posIGainYaw" type="double" value="0.0001"/>
+    <param name="posDGainYaw" type="double" value="0.0"/>
+    <param name="posLimitYaw" type="int" value="100"/>
+    <param name="posPLimitYaw" type="int" value="100"/>
+    <param name="posILimitYaw" type="int" value="50"/>
+    <param name="posDLimitYaw" type="int" value="100"/>
+    <param name="velValueLimitYaw" type="double" value="0"/>
+    <param name="iEnableLimitYaw" type="double" value="0.25"/>
+
+    <!-- Estimator 1 -->
+    <!--                SLAM  -->
+    <!--                IIR Filter  -->
+    <param name="slamRxFreqX" type="double" value="40"/>
+    <param name="slamRxFreqY" type="double" value="40"/>
+    <param name="slamRxFreqZ" type="double" value="40"/>
+    <param name="slamRxFreqTheta" type="double" value="40"/>
+    <param name="slamRxFreqPhy" type="double" value="40"/>
+    <param name="slamRxFreqPsi" type="double" value="40"/>
+    <param name="slamCutoffPosFreqX" type="double" value="15"/>
+    <param name="slamCutoffPosFreqY" type="double" value="15"/>
+    <param name="slamCutoffPosFreqZ" type="double" value="15"/>
+    <param name="slamCutoffPosFreqTheta" type="double" value="15"/>
+    <param name="slamCutoffPosFreqPhy" type="double" value="15"/>
+    <param name="slamCutoffPosFreqPsi" type="double" value="15"/>
+    <param name="slamCutoffVelFreqX" type="double" value="4.4"/>
+    <param name="slamCutoffVelFreqY" type="double" value="4.3"/>
+    <param name="slamCutoffVelFreqZ" type="double" value="4.3"/>
+    <param name="slamCutoffVelFreqTheta" type="double" value="4.3"/>
+    <param name="slamCutoffVelFreqPhy" type="double" value="4.3"/>
+    <param name="slamCutoffVelFreqPsi" type="double" value="10"/>
+    <param name="slamFilterVelValThreX" type="double" value="1"/>
+    <param name="slamFilterVelValThreY" type="double" value="1"/>
+    <param name="slamFilterVelValThreZ" type="double" value="1"/>
+    <param name="slamFilterVelValThreTheta" type="double" value="1"/>
+    <param name="slamFilterVelValThrePhy" type="double" value="1"/>
+    <param name="slamFilterVelValThrePsi" type="double" value="1"/>
+    <param name="slamFilterVelChangeRateThreX" type="double" value="2"/>
+    <param name="slamFilterVelChangeRateThreY" type="double" value="2"/>
+    <param name="slamFilterVelChangeRateThreZ" type="double" value="2"/>
+    <param name="slamFilterVelChangeRateThreTheta" type="double" value="2"/>
+    <param name="slamFilterVelChangeRateThrePhy" type="double" value="2"/>
+    <param name="slamFilterVelChangeRateThrePsi" type="double" value="2"/>
+
+    <param name="iirFilterAccXCutoffHz" type="double" value="10"/> 
+    <param name="iirFilterAccYCutoffHz" type="double" value="10"/> 
+    <param name="iirFilterAccZCutoffHz" type="double" value="10"/> 
+
+    <!--                Kalman Filter  -->
+    <param name="kalmanFilterFlag" type="bool" value="true"/>
+    <rosparam file="$(find jsk_quadcopter)/config/KawasakiImuBoardKalmanFilterConfig.yaml" command="load" />
+    <rosparam  file="$(find jsk_quadcopter)/config/OpticalFlowKalmanFilterConfig.yaml" command="load" />
+
+
+    <!--                Kalman Filter Debug -->
+    <param name="kalmanFilterDebug" type="bool" value="true"/>
+    <param name="kalmanFilterAxis" type="int" value="0"/> <!-- 0: X , 1: Y -->
+    <param name="kalmanFilter1AxisInputSigma" type="double" value="0.16"/>
+    <param name="kalmanFilter1AxisBiasSigma" type="double" value="0.03"/> <!-- 0.006 -->
+    <param name="kalmanFilter1AxisMeasureSigma" type="double" value="0.08"/>
+    <param name="kalmanFilter2AxisInputSigma" type="double" value="0.04"/>
+    <param name="kalmanFilter2AxisBiasSigma" type="double" value="0.03"/> <!-- 0.006 -->
+    <param name="kalmanFilter2AxisMeasureSigma" type="double" value="0.04"/>
+
+
+    <!--                  IMU DATA      -->
+    <remap from="/imu/kawasaki/imu" to="/kawasaki/imu" />
+    <remap from="/navigator/kawasaki/rc_cmd" to="/kawasaki/rc_cmd" />
+    <remap from="/navigator/kawasaki/arming_ack" to="/kawasaki/arming_ack" />
+
+
+    <!-- <remap from="/imu/kawasaki/imu" to="/debug_board/kawasaki/imu" />  -->
+    <!-- <remap from="/navigator/kawasaki/rc_cmd" to="/core_board/kawasaki/rc_cmd" />  -->
+    <!-- <remap from="/navigator/kawasaki/arming_ack" to="/core_board/kawasaki/arming_ack" />  -->
+
+
+    <!--                  NAVIGATION DATA      -->
+    <remap from="/navigator/teleop_command/land" to="/teleop_command/land" /> 
+    <remap from="/navigator/teleop_command/start" to="/teleop_command/start" /> 
+    <remap from="/navigator/teleop_command/halt" to="/teleop_command/halt" /> 
+    <remap from="/navigator/teleop_command/takeoff" to="/teleop_command/takeoff" /> 
+    <remap from="/navigator/teleop_command/roll" to="/teleop_command/roll" /> 
+    <remap from="/navigator/teleop_command/pitch" to="/teleop_command/pitch" /> 
+    <remap from="/navigator/teleop_command/yaw" to="/teleop_command/yaw" /> 
+    <remap from="/navigator/teleop_command/throttle" to="/teleop_command/throttle" /> 
+    <remap from="/navigator/teleop_command/ctrl_mode" to="/teleop_command/ctrl_mode" /> 
+
+    <remap from="/navigator/joy_stick_command" to="/joy" /> 
+
+    <param name="kalmanFilterBoard" type="int" value="$(arg kalman_filter_board)"/>
+    <param name="imuHz" type="double" value="105"/>
+
+    <!--                  Mirror Module -->
+    <param name="mirrorRxFreq" type="double" value="40"/> <!-- same with hokuyo -->
+    <param name="mirrorCutoffPosFreq" type="double" value="15"/>
+    <param name="mirrorCutoffVelFreq" type="double" value="10"/>
+    <param name="mirrorFilterVelChangeRateThre" type="double" value="2"/>
+    <param name="mirrorFilterVelValThre" type="double" value="1"/>
+    <param name="mirrorZOffsetUpperLimit" type="double" value="0.32"/> <!-- 0.4 -->
+    <param name="mirrorZOffsetLowerLimit" type="double" value="0.22"/> <!-- 0.3 -->
+    <param name="laserToBaselinkDistance" type="double" value="-0.1"/>
+    <param name="mirrorModuleArmLength" type="double" value="0.114"/>
+    <param name="baselinkFrame" type="string" value="quadcopter_base"/>
+    <param name="baseFootprintFrame" type="string" value="base_footprint"/>
+    <param name="laserFrame" type="string" value="laser"/>
+    <param name="cameraFrame" type="string" value="camera"/>
+    <remap from="mirror/scan" to="scan" />
+    <remap from="mirror/laser_boundary_offset" to="laser_boundary_offset" /> 
+
+
+    <!-- the most important param 
+         controlMode: switch betwen vel and pos
+         altitudeControlMode: switch between laser and sonoar
+         usefreefall: necessary for snoar mode
+         useouteryawest: necessary for lasersalm + pos
+    -->
+
+    <!-- please change here for laser mounting module -->
+    <param name="altitudeControlMode" type="int" value="1"/> <!-- 0: laser, 1:sonar -->
+    <!-- please change here for laser mounting module -->
+    <param name="useOuterYawEst" type="bool" value="false"/>  <!-- true for slam -->
+    <!-- please change here for laser mounting module -->
+    <param name="controlMode" type="int" value="1"/> <!-- pos control: 0, vel control: 1 -->
+
+
+    <param name="rocketStartLowerThre" type="double" value="0.305"/> 
+    <param name="rocketStartUpperThre" type="double" value="0.4"/> 
+    <param name="rocketStartVel" type="double" value="0.25"/>  
+    <!-- 0.2 ~ 0.4 (0.25 for laser; 0.35 for sonar), finally estimate using baro -->
+    <!-- please change here for laser mounting module -->
+    <param name="useRocketStart" type="bool" value="true"/> 
+    <!-- please change here for laser mounting module -->
+    <param name="useFreeFall" type="bool" value="true"/> 
+    <param name="freeFallThre" type="double" value="0.28"/> <!--is it safe in sonar mode? prediction quality -->
+    <!--                  Optical Flow Data -->
+    <remap from="opticalFlow/opt_flow" to="px4flow/opt_flow" />
+
+    <!-- asctec pelican  config -->
+    <param name="asctecFlag" type="bool" value="$(arg asctec_flag)" />  <!-- arm cortex does exist -->
+
+    <!-- Keyboard Navigation -->
+    <param name="takeoffHeight" type="double" value="0.4"/>
+    <param name="evenMoveDistance" type="double" value="0.2"/>
+    <param name="upDownDistance" type="double" value="0.1"/>
+    <param name="forwardBackwardDistance" type="double" value="0"/>
+    <param name="leftRightDistance" type="double" value="0"/>
+    <param name="naviFrameInt" type="int" value="0"/> <!-- map frame: 0, body frame: 1 -->
+    <param name="mapFrame" type="string" value="map"/>
+    <param name="targetFrame" type="string" value="target"/>
+
+    <!-- Joy Stick Navigation -->
+    <param name="targetVelRate" type="double" value="0.5"/>
+    <param name="targetPitchRollInterval" type="double" value="0.005"/> <!-- 0.2 / 20 = 0.01, 0.005 ~ 0.01  m/s-->
+    <param name="targetAltInterval" type="double" value="0.02"/>
+    <!-- point: yaw -->
+    <param name="targetYawRate" type="double" value="0.12"/> <!-- 0.05 -->
+
+
+  </node>
+  
+  #### Hector Mapping  ###################################
+
+
+  <arg name="tf_map_scanmatch_transform_frame_name" default="scanmatcher_frame"/>
+  <arg name="base_frame" default="base_footprint"/>
+  <arg name="odom_frame" default="nav"/>
+  <arg name="pub_map_odom_transform" default="true"/>
+
+  <node pkg="hector_mapping" type="hector_mapping" name="hector_mapping" output="screen">
+    
+    <!-- Frame names -->
+    <param name="map_frame" value="map" />
+    <param name="base_frame" value="$(arg base_frame)" />
+    <param name="odom_frame" value="$(arg base_frame)" />
+    
+    <!-- Tf use -->
+    <param name="use_tf_scan_transformation" value="true"/>
+    <param name="use_tf_pose_start_estimate" value="false"/>
+    <param name="pub_map_odom_transform" value="$(arg pub_map_odom_transform)"/>
+    
+    <!-- Map size / start point -->
+    <param name="map_resolution" value="0.050"/>
+    <param name="map_size" value="2048"/>
+    <param name="map_start_x" value="0.5"/>
+    <param name="map_start_y" value="0.5" />
+    <param name="map_multi_res_levels" value="2" />
+    
+    <!-- Map update parameters -->
+    <param name="update_factor_free" value="0.4"/>
+    <param name="update_factor_occupied" value="0.9" />
+    <param name="map_update_distance_thresh" value="0.4"/>
+    <param name="map_update_angle_thresh" value="0.06" />
+    <param name="laser_z_min_value" value = "-1.0" />
+    <param name="laser_z_max_value" value = "1.0" />
+    
+    <!-- Advertising config -->
+    <param name="advertise_map_service" value="true"/>
+    
+    <!-- Debug parameters -->
+    <!--
+      <param name="output_timing" value="false"/>
+      <param name="pub_drawings" value="true"/>
+      <param name="pub_debug_output" value="true"/>
+    -->
+    <param name="tf_map_scanmatch_transform_frame_name" value="$(arg tf_map_scanmatch_transform_frame_name)" />
+
+    <remap from="slam_out_pose" to="slam/slam_out_pose" />
+    <!-- <remap from="pose2D" to="asctec/pose2D" /> -->
+
+
+  </node>
+
+
+  #### Hokuyo  ###################################
+
+  <node name="hokuyo" pkg="hokuyo_node" type="hokuyo_node" respawn="false" output="screen">
+  
+    <!-- Starts up faster, but timestamps will be inaccurate. -->
+    <param name="calibrate_time" type="bool" value="false"/>
+    
+    <!-- Set the port to connect to here -->
+    <param if="$(arg optical_flow_flag)" name="port" type="string" value="/dev/ttyACM0"/>
+    <param unless="$(arg optical_flow_flag)" name="port" type="string" value="/dev/ttyACM0"/>
+  
+    <param name="intensity" type="bool" value="false"/>
+
+    <param name="min_ang" type="double" value="-2.25" />
+    <param name="max_ang" type="double" value="1.75" />
+
+  </node>
+
+
+  ### Kawasaki IMU-Arduino Board ###############
+
+  <node pkg="rosserial_python" type="serial_node.py" name="kawasaki_imu" args="/dev/kawasaki_imu_board" output="screen"/> 
+
+  ### Optical PX4Flow ###############
+  <group if="$(arg optical_flow_flag)">
+    <include file="$(find px4flow_node)/launch/px4flow.launch" />    
+  </group>
+
+  ### Joy Stick ###############
+  <group if="$(arg joy_stick_flag)">
+    <include file="$(find jsk_quadcopter)/launch/quadcopter_driver_old_jsk/joy_stick.launch" />    
+  </group>
+
+
+</launch>
+
+
+

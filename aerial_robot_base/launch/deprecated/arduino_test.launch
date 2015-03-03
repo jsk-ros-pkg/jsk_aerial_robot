@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<launch>
+
+  <group ns="down"> 
+    <node pkg="rosserial_python" type="serial_node.py" name="kawasaki_imu" args="/dev/ttyUSB0" output="screen"/>
+  </group>
+
+  <group ns="top">
+    <node pkg="rosserial_python" type="serial_node.py" name="kawasaki_imu2" args="/dev/ttyUSB1" output="screen"/>
+  </group>
+
+
+</launch>
+
+
+

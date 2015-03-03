@@ -1,0 +1,39 @@
+<launch>
+
+  <arg name="PI" value ="3.1415026" />
+ <arg name="half_PI" value ="1.5707963" />
+  <group ns="checkerdetector" clear_params="true">
+
+    <node pkg="checkerboard_detector" type="checkerboard_detector"
+          name="detector_node" respawn="false" output="screen">
+      <!-- display 0: (default) not display / 1: display found corner -->
+      <param name="display" type="int" value="1"/>
+      <!-- maxboard -1: (default) infinite search board / 1<=: limit found number of boards -->
+      <param name="maxboard" type="int" value="1"/>
+      <!-- set frame_id if you want to use specific frame_id -->
+      <!-- param name="frame_id" type="string" value="stereo_link"/-->
+      <param name="rect0_size_x" type="double" value="0.108"/>
+      <param name="rect0_size_y" type="double" value="0.108"/>
+      <param name="grid0_size_x" type="int" value="7"/>
+      <param name="grid0_size_y" type="int" value="6"/>
+      <param name="type0" type="string" value="7x6chessboard"/>
+
+      <remap from="camera_info" to="/camera/camera_info"/>
+      <remap from="image" to="/camera/image_rect"/>
+    </node>
+
+    <node pkg="jsk_quadcopter" type="objectdetection_tf_publisher.py"
+          name="tf_publisher" respawn="false" output="screen"/> 
+
+<!--    <node pkg="checkerboard_detector" type="objectdetection_tf_publisher.py"
+          name="tf_publisher" respawn="false" output="screen"/> -->
+
+<!--    <node name= "checkerboard" pkg="tf" type="static_transform_publisher"
+          args="0.0 0.0 0.0 0 -$(arg half_PI) -$(arg half_PI) /object /checkerboard 100" /> -->
+
+<!--    <node name= "camera" pkg="tf" type="static_transform_publisher"
+          args="0.0 0.0 0.0 -$(arg half_PI) 0 -$(arg half_PI) /camera_attached_body /camera 100" /> -->
+
+
+  </group>
+</launch>

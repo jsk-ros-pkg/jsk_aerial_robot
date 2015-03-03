@@ -1,0 +1,3 @@
+uint8 roll_pitch_p_gain
+uint8 roll_d_gain
+uint8 pitch_d_gain

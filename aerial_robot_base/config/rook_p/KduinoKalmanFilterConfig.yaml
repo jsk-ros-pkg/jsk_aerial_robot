@@ -1,0 +1,18 @@
+# Kawasaki IMU Board
+
+kalman_filter/X/inputSigma: 0.15
+kalman_filter/X/biasSigma: 0.03
+kalman_filter/X/measureSigma: 0.04
+
+kalman_filter/Y/inputSigma: 0.15
+kalman_filter/Y/biasSigma: 0.03
+kalman_filter/Y/measureSigma: 0.04
+
+kalman_filter/Z/inputSigma: 0.35 # 0.12
+kalman_filter/Z/biasSigma: 0.003 # 0.003
+kalman_filter/Z/measureSigma: 0.005
+
+#kalman_filterYawInputSigma: 0.1
+#kalman_filterYawBiasSigma: 0.001
+#kalman_filterYawMeasureSigma: 0.004
+

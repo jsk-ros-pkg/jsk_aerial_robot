@@ -1,0 +1,10 @@
+# Mirror Laser Module
+
+mirror/mirrorRxFreq: 40 #<!-- same with hokuyo -->
+mirror/mirrorCutoffPosFreq: 15
+mirror/mirrorCutoffVelFreq: 10
+mirror/mirrorFilterVelChangeRateThre: 2
+mirror/mirrorFilterVelValThre: 1
+mirror/mirrorZOffsetUpperLimit: 0.30  #<!-- for asctec 0.4, for rook1 0.32 -->
+mirror/mirrorZOffsetLowerLimit: 0.20  #<!-- for asctec 0.3, for rook1 0.22-->
+

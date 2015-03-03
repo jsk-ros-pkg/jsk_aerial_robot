@@ -1,0 +1,36 @@
+### IIR FIlter
+
+slam/slamRxFreqX: 40
+slam/slamRxFreqY: 40
+slam/slamRxFreqZ: 40
+slam/slamRxFreqTheta: 40
+slam/slamRxFreqPhy: 40
+slam/slamRxFreqPsi: 40
+slam/slamCutoffPosFreqX: 15
+slam/slamCutoffPosFreqY: 15
+slam/slamCutoffPosFreqZ: 15
+slam/slamCutoffPosFreqTheta: 15
+slam/slamCutoffPosFreqPhy: 15
+slam/slamCutoffPosFreqPsi: 15
+slam/slamCutoffVelFreqX: 4.4
+slam/slamCutoffVelFreqY: 4.3
+slam/slamCutoffVelFreqZ: 4.3
+slam/slamCutoffVelFreqTheta: 4.3
+slam/slamCutoffVelFreqPhy: 4.3
+slam/slamCutoffVelFreqPsi: 10
+slam/slamFilterVelValThreX: 1
+slam/slamFilterVelValThreY: 1
+slam/slamFilterVelValThreZ: 1
+slam/slamFilterVelValThreTheta: 1
+slam/slamFilterVelValThrePhy: 1
+slam/slamFilterVelValThrePsi: 1
+slam/slamFilterVelChangeRateThreX: 2
+slam/slamFilterVelChangeRateThreY: 2
+slam/slamFilterVelChangeRateThreZ: 2
+slam/slamFilterVelChangeRateThreTheta: 2
+slam/slamFilterVelChangeRateThrePhy: 2
+slam/slamFilterVelChangeRateThrePsi: 2
+
+opticalFlow/iirFilterAccXCutoffHz: 10 
+opticalFlow/iirFilterAccYCutoffHz: 10 
+opticalFlow/iirFilterAccZCutoffHz: 10 
