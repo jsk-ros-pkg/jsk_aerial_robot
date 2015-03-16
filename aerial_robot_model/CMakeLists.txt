@@ -1,32 +1,51 @@
-cmake_minimum_required(VERSION 2.4.6)
-include($ENV{ROS_ROOT}/core/rosbuild/rosbuild.cmake)
+cmake_minimum_required(VERSION 2.8.3)
+project(aerial_robot_model)
 
-# Set the build type.  Options are:
-#  Coverage       : w/ debug symbols, w/o optimization, w/ code-coverage
-#  Debug          : w/ debug symbols, w/o optimization
-#  Release        : w/o debug symbols, w/ optimization
-#  RelWithDebInfo : w/ debug symbols, w/ optimization
-#  MinSizeRel     : w/o debug symbols, w/ optimization, stripped binaries
-#set(ROS_BUILD_TYPE RelWithDebInfo)
+## Find catkin macros and libraries
+## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
+## is used, also find other catkin packages
+find_package(catkin REQUIRED COMPONENTS
+  roscpp
+  std_msgs
+  sensor_msgs
+  geometry_msgs
+  tf
+)
 
-rosbuild_init()
+catkin_package(
+  INCLUDE_DIRS include
+  LIBRARIES ${PROJECT_NAME}
+  CATKIN_DEPENDS roscpp  std_msgs  sensor_msgs geometry_msgs tf
+#  DEPENDS system_lib
+)
 
-#set the default path for built executables to the "bin" directory
-set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
-#set the default path for built libraries to the "lib" directory
-set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
+###########
+## Build ##
+###########
 
-#uncomment if you have defined messages
-#rosbuild_genmsg()
-#uncomment if you have defined services
-#rosbuild_gensrv()
+## Specify additional locations of header files
+## Your package locations should be listed before other locations
+# include_directories(include)
+include_directories(
+  include ${Boost_INCLUDE_DIR} ${catkin_INCLUDE_DIRS}
+)
 
-#common commands for building c++ executables and libraries
-rosbuild_add_library(joint_state_publisher src/joint_state_publisher.cpp)
-#target_link_libraries(${PROJECT_NAME} another_library)
-#rosbuild_add_boost_directories()
-#rosbuild_link_boost(${PROJECT_NAME} thread)
-rosbuild_add_executable(joint_state_publisher_node src/joint_state_publisher_node.cpp)
-target_link_libraries(joint_state_publisher_node joint_state_publisher)
+add_library(joint_state_publisher src/joint_state_publisher.cpp)
+add_executable(joint_state_publisher_node src/joint_state_publisher_node.cpp)
+target_link_libraries(joint_state_publisher_node joint_state_publisher ${catkin_LIBRARIES})
 
-rosbuild_add_executable(traj_motion_node src/traj_motion.cpp)
+
+add_executable(traj_motion_node src/traj_motion.cpp)
+target_link_libraries(traj_motion_node ${catkin_LIBRARIES})
+
+install(DIRECTORY launch
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
+
+
+## Mark executables and/or libraries for installation
+install(TARGETS joint_state_publisher joint_state_publisher traj_motion_node
+   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+ )
+
