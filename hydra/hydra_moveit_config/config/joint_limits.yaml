@@ -1,0 +1,16 @@
+joint_limits:
+  link1_servo_rod_link1_servo_joint:
+    has_velocity_limits: true
+    max_velocity: 0.5
+    has_acceleration_limits: true
+    max_acceleration: 0.1
+  link2_servo_rod_link2_servo_joint:
+    has_velocity_limits: true
+    max_velocity: 0.5
+    has_acceleration_limits: true
+    max_acceleration: 0.1
+  link3_servo_rod_link3_servo_joint:
+    has_velocity_limits: true
+    max_velocity: 0.5
+    has_acceleration_limits: true
+    max_acceleration: 0.1

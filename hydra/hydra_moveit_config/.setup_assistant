@@ -1,0 +1,8 @@
+moveit_setup_assistant_config:
+  URDF:
+    package: aerial_robot_model
+    relative_path: robots/hydra.urdf
+  SRDF:
+    relative_path: config/hydra.srdf
+  CONFIG:
+    generated_timestamp: 1419436231
