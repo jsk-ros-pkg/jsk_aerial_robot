@@ -7,7 +7,7 @@ Panels:
         - /Global Options1
         - /Status1
         - /RobotModel1
-        - /RobotModel1/Links1
+        - /RobotModel1/Status1
         - /TF1
         - /TF1/Frames1
       Splitter Ratio: 0.501014
@@ -43,17 +43,17 @@ Visualization Manager:
         Expand Link Details: false
         Expand Tree: false
         Link Tree Style: Links in Alphabetic Order
+        eye:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
         head_cylinder:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
         head_sphere:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        left_eye:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -278,13 +278,8 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
           Value: true
-        right_eye:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
       Name: RobotModel
-      Robot Description: robot_description
+      Robot Description: hydra/robot_description
       TF Prefix: ""
       Update Interval: 0
       Value: true
@@ -294,11 +289,11 @@ Visualization Manager:
       Frame Timeout: 15
       Frames:
         All Enabled: false
+        eye:
+          Value: true
         head_cylinder:
           Value: true
         head_sphere:
-          Value: true
-        left_eye:
           Value: true
         link0_rear_junction:
           Value: true
@@ -388,8 +383,6 @@ Visualization Manager:
           Value: true
         link4_propeller:
           Value: true
-        right_eye:
-          Value: true
       Marker Scale: 1
       Name: TF
       Show Arrows: true
@@ -398,9 +391,8 @@ Visualization Manager:
       Tree:
         head_cylinder:
           head_sphere:
-            {}
-          left_eye:
-            {}
+            eye:
+              {}
           link0_rear_junction:
             link1_front_junction:
               link1_abdomen:
@@ -465,8 +457,6 @@ Visualization Manager:
                   link1_top_hinge_end:
                     link1_top_hinge:
                       {}
-          right_eye:
-            {}
       Update Interval: 0
       Value: true
   Enabled: true
@@ -488,7 +478,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 3.1645
+      Distance: 4.21587
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
@@ -500,10 +490,10 @@ Visualization Manager:
         Z: -0.435753
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.769797
+      Pitch: 0.809797
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 3.66406
+      Yaw: 3.97906
     Saved: ~
 Window Geometry:
   Displays:
