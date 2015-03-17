@@ -16,14 +16,10 @@
 #include <Eigen/Dense>
 #include <Eigen/Geometry> 
 
-#include <hydra/HydraParam.h>
+#include <hydra_transform_control/HydraParam.h>
 #include <std_msgs/UInt16.h>
 
 #include <std_msgs/Float32.h>
-
-//test
-#include <jsk_quadcopter/sensor/mocap_data.h>
-
 
 class TransformController{
  public:

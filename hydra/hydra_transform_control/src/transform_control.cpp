@@ -2,7 +2,7 @@
 1. the model of quad-rotor is too wrong, especially the position from propeller to joint
  ***/
 
-#include <hydra/transform_control.h>
+#include <hydra_transform_control/transform_control.h>
 
 TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_private, bool callback_flag): nh_(nh),nh_private_(nh_private)
 {
@@ -12,7 +12,7 @@ TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_
   principal_axis_pub_ = nh_.advertise<visualization_msgs::MarkerArray>("orientation_data", 5);
 
 
-  transform_control_pub_ = nh_.advertise<hydra::HydraParam>("kduino/hydra_param", 1);
+  transform_control_pub_ = nh_.advertise<hydra_transform_control::HydraParam>("kduino/hydra_param", 1);
   cog_rotate_pub_ = nh_.advertise<std_msgs::Float32>("/hydra/cog_rotate", 1); //absolute
   cog_(0) = 0;
   cog_(1) = 0;
@@ -34,12 +34,10 @@ TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_
                                               &TransformController::tfPubFunc, this);
     }
 
-  //mocapData_ = new MocapData(nh_, nh_private_); //test
 
 }
 TransformController::~TransformController()
 {
-  //delete mocapData_;
 }
 
 void TransformController::initParam()
@@ -577,7 +575,7 @@ void TransformController::visualization()
 
 void TransformController::param2contoller()
 {
-  hydra::HydraParam param_msg;
+  hydra_transform_control::HydraParam param_msg;
 
   //inertial rate => pid gain rate
   Eigen::Vector3d i_prncipal_rate_f;

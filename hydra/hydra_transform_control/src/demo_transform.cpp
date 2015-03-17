@@ -7,8 +7,8 @@
 #include <sensor_msgs/JointState.h>
 #include <string>
 
-#include <jsk_quadcopter_common/RPYCtrlOffset.h>
-#include <jsk_quadcopter_common/AttGains.h>
+#include <aerial_robot_msgs/RPYCtrlOffset.h>
+#include <aerial_robot_msgs/AttGains.h>
 
 
 typedef struct{
@@ -67,13 +67,13 @@ protected:
         //ROS_INFO("rate: %f", rate);
 
         //i term offset
-        jsk_quadcopter_common::RPYCtrlOffset i_term_offset;
+        aerial_robot_msgs::RPYCtrlOffset i_term_offset;
         i_term_offset.roll_offset = nodes_info_[node_sequence_].pos_roll_i_term + (nodes_info_[node_sequence_+1].pos_roll_i_term - nodes_info_[node_sequence_].pos_roll_i_term)* rate;
         i_term_offset.pitch_offset = nodes_info_[node_sequence_].pos_pitch_i_term + (nodes_info_[node_sequence_+1].pos_pitch_i_term - nodes_info_[node_sequence_].pos_pitch_i_term)* rate;
         pos_i_term_pub_.publish(i_term_offset);
 
         //att gain
-        jsk_quadcopter_common::AttGains att_gains;
+        aerial_robot_msgs::AttGains att_gains;
         att_gains.roll_d_gain = (uint8_t)nodes_info_[node_sequence_].att_roll_d_gain + (uint8_t)((nodes_info_[node_sequence_+1].att_roll_d_gain - nodes_info_[node_sequence_].att_roll_d_gain)* rate);
         att_gains.pitch_d_gain = (uint8_t)nodes_info_[node_sequence_].att_pitch_d_gain + (uint8_t)((nodes_info_[node_sequence_+1].att_pitch_d_gain - nodes_info_[node_sequence_].att_pitch_d_gain)* rate);
         att_gain_pub_.publish(att_gains);
@@ -130,13 +130,13 @@ protected:
     joints_ctrl_pub_.publish(joints_ctrl_msg);
 
     //i term offset
-    jsk_quadcopter_common::RPYCtrlOffset i_term_offset;
+    aerial_robot_msgs::RPYCtrlOffset i_term_offset;
     i_term_offset.roll_offset = nodes_info_[node_sequence_].pos_roll_i_term;
     i_term_offset.pitch_offset = nodes_info_[node_sequence_].pos_pitch_i_term;
     pos_i_term_pub_.publish(i_term_offset);
 
     //att gain
-    jsk_quadcopter_common::AttGains att_gains;
+    aerial_robot_msgs::AttGains att_gains;
     att_gains.roll_d_gain = (uint8_t)nodes_info_[node_sequence_].att_roll_d_gain;
     att_gains.pitch_d_gain = (uint8_t)nodes_info_[node_sequence_].att_pitch_d_gain;
     att_gain_pub_.publish(att_gains);
@@ -185,8 +185,8 @@ public:
 
     joints_ctrl_pub_ = nh_.advertise<sensor_msgs::JointState>("hydra/joints_ctrl", 1);
     transform_convergent_pub_ = nh_.advertise<std_msgs::Int8>("hydra/transform_convergent_flag", 1);
-    pos_i_term_pub_ = nh_.advertise<jsk_quadcopter_common::RPYCtrlOffset>("/flight_control/rpy_ctrl_offset", 1);
-    att_gain_pub_ = nh_.advertise<jsk_quadcopter_common::AttGains>("kduino/att_gains", 1);
+    pos_i_term_pub_ = nh_.advertise<aerial_robot_msgs::RPYCtrlOffset>("/flight_control/rpy_ctrl_offset", 1);
+    att_gain_pub_ = nh_.advertise<aerial_robot_msgs::AttGains>("kduino/att_gains", 1);
     transform_start_sub_ = nh_.subscribe<std_msgs::Int8>("/teleop_command/transform_start",  1, &DemoTransform::transformStartCallback, this, ros::TransportHints().tcpNoDelay());
     transform_start_flag_ = 0;
     

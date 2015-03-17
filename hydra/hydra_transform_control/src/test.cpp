@@ -1,6 +1,6 @@
 #include "ros/ros.h"
 #include "hydra/HydraParam.h"
-#include "jsk_quadcopter_common/RcData.h"
+#include "aerial_robot_msgs/RcData.h"
 
 void kduinoRcDataCallback(const jsk_quadcopter_common::RcDataPtr &msg)
 {

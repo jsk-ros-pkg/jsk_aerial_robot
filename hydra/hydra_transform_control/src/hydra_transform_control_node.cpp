@@ -1,4 +1,4 @@
-#include "hydra/transform_control.h"
+#include <hydra_transform_control/transform_control.h>
 
 int main (int argc, char **argv)
 {
