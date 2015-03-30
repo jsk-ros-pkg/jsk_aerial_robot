@@ -10,6 +10,7 @@ find_package(catkin REQUIRED COMPONENTS
   dynamixel_msgs
   dynamixel_controllers
   tf_conversions
+  message_generation
 )
 
 

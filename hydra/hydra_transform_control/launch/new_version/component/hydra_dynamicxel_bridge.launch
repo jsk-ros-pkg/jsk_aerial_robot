@@ -13,7 +13,7 @@
         </rosparam>
     </node>
 
-    <rosparam file="$(find my_dynamixel_tutorial)/config/tilt.yaml" command="load"/>
+    <rosparam file="$(find hydra_transform_control)/config/HydraDynamixelConfig.yaml" command="load"/>
     <node name="tilt_controller_spawner" pkg="dynamixel_controllers" type="controller_spawner.py"
           args="--manager=dxl_manager
                 --port joints_port
@@ -23,7 +23,7 @@
                 j3_controller"
           output="screen"/>
 
-  <node pkg="hydra" type="dynamicxel_bridge_node" name="dynamicxel_bridge_node"  output="screen" > 
+  <node pkg="hydra_transform_control" type="dynamicxel_bridge_node" name="dynamicxel_bridge_node"  output="screen" > 
     <param name="joint_num" type="int" value="3"/>
     <param name="/joint1_angle_max" type="double" value="1.58"/>
     <param name="/joint1_angle_min" type="double" value="-1.58"/>
