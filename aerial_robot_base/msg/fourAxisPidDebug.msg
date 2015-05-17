@@ -1,9 +1,9 @@
 Header header
 
-jsk_quadcopter/PidDebug pitch
-jsk_quadcopter/PidDebug roll
-jsk_quadcopter/PidDebug yaw
-jsk_quadcopter/PidDebug throttle
+aerial_robot_base/PidDebug pitch
+aerial_robot_base/PidDebug roll
+aerial_robot_base/PidDebug yaw
+aerial_robot_base/PidDebug throttle
 
 
 

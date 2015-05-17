@@ -137,7 +137,7 @@ void PidController::pidFunction(Navigator* navigator, Estimator* estimator,
   static int restartCnt = 0;
 
   //*** リセット
-  if (navigator->getFlightMode() == RESET_MODE) 
+  if (navigator_->getFlightMode() == Navigator::RESET_MODE) 
     {
       first_flag = true;
       pitchCtrlCnt = 0; rollCtrlCnt = 0; throttleCtrlCnt = 0; yawCtrlCnt = 0;

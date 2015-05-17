@@ -1,56 +1,77 @@
-cmake_minimum_required(VERSION 2.4.6)
-include($ENV{ROS_ROOT}/core/rosbuild/rosbuild.cmake)
+cmake_minimum_required(VERSION 2.8.3)
+project(aerial_robot_base)
 
-# Set the build type.  Options are:
-#  Coverage       : w/ debug symbols, w/o optimization, w/ code-coverage
-#  Debug          : w/ debug symbols, w/o optimization
-#  Release        : w/o debug symbols, w/ optimization
-#  RelWithDebInfo : w/ debug symbols, w/ optimization
-#  MinSizeRel     : w/o debug symbols, w/ optimization, stripped binaries
-#set(ROS_BUILD_TYPE RelWithDebInfo)
+## Find catkin macros and libraries
+## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
+## is used, also find other catkin packages
+find_package(catkin REQUIRED COMPONENTS
+  roscpp
+  rospy
+  std_msgs
+  nav_msgs
+  geometry_msgs
+  sensor_msgs
+  laser_geometry
+  visualization_msgs
+  tf
+  dynamic_tf_publisher
+  dynamic_reconfigure
+  jsk_recognition_msgs #not good
+  px_comm #not good
+  #image_processing #not good
+  aerial_robot_msgs
+)
 
-rosbuild_init()
 
-
-#to find  eigen core for laser geometry
 find_package(Eigen REQUIRED)
 include_directories(${EIGEN_INCLUDE_DIRS})
 add_definitions(${EIGEN_DEFINITIONS})
 
-#set the default path for built executables to the "bin" directory
-set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
-#set the default path for built libraries to the "lib" directory
-set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 
 
-#uncomment if you have defined messages
-rosbuild_genmsg()
-#uncomment if you have defined services
-#rosbuild_gensrv()
+add_message_files(FILES
+  ArMarkerDebug.msg
+  QuadcopterStatus.msg
+  FlightNav.msg
+  MirrorModuleDebug.msg
+  SlamDebug.msg
+  ImuDebug.msg
+  OpticalFlowDebug.msg
+  fourAxisPidDebug.msg
+  ImuQu.msg
+  PidDebug.msg
+  ImuSim.msg
+  PoseStamped.msg
+  )
+generate_messages(DEPENDENCIES std_msgs geometry_msgs)
+
+generate_dynamic_reconfigure_options(
+  cfg/PidPitchControl.cfg
+  cfg/PidRollControl.cfg
+  cfg/PidYawControl.cfg
+  cfg/PidThrottleControl.cfg
+  cfg/StateKalmanFilter.cfg)
+
+catkin_package(
+  INCLUDE_DIRS include
+  LIBRARIES 
+  CATKIN_DEPENDS roscpp message_runtime aerial_robot_msgs std_msgs geometry_msgs visualization_msgs nav_msgs  sensor_msgs laser_geometry px_comm jsk_recognition_msgs
+  DEPENDS Eigen
+)
+
+###########
+## Build ##
+###########
+
+## Specify additional locations of header files
+## Your package locations should be listed before other locations
+# include_directories(include)
+include_directories(
+  include ${Boost_INCLUDE_DIR} ${catkin_INCLUDE_DIRS}
+)
 
 
-# find Eigen3
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
-find_package(Eigen REQUIRED)
-include_directories(${Eigen_INCLUDE_DIRS})
-
-#add dynamic reconfigure api
-rosbuild_find_ros_package(dynamic_reconfigure)
-include(${dynamic_reconfigure_PACKAGE_PATH}/cmake/cfgbuild.cmake)
-gencfg()
-
-#common commands for building c++ executables and libraries
-#rosbuild_add_library(${PROJECT_NAME} src/example.cpp)
-#target_link_libraries(${PROJECT_NAME} another_library)
-#rosbuild_add_boost_directories()
-#rosbuild_link_boost(${PROJECT_NAME} thread)
-#rosbuild_add_executable(example examples/example.cpp)
-#target_link_libraries(example ${PROJECT_NAME})
-
-#rosbuild_add_executable(test_node src/test.cpp)
-#rosbuild_add_executable(test_publish_node src/test_publish.cpp)
-
-rosbuild_add_library (jsk_quadcopter src/quadcopter.cpp
+rosbuild_add_library (aerial_robot_base src/aerial_robot_base.cpp
   src/basic_controller_superior_controller_interface_lev0.cpp
   src/flight_navigation.cpp
   src/control_input_array.cpp
@@ -71,5 +92,17 @@ rosbuild_add_library (tracking src/tracking.cpp
 rosbuild_add_executable(jsk_quadcopter_node src/quadcopter_node.cpp)
 target_link_libraries (jsk_quadcopter_node jsk_quadcopter tracking) 
 
-#rosbuild_add_executable(tracking_node src/tracking_node.cpp)
-#target_link_libraries (tracking_node jsk_quadcopter tracking) 
+rosbuild_add_executable(tracking_node src/tracking_node.cpp)
+target_link_libraries (tracking_node jsk_quadcopter tracking) 
+
+
+install(DIRECTORY launch
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
+
+install(TARGETS 
+   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+ )
+
+

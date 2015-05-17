@@ -54,7 +54,6 @@
   <depend package="geometry_msgs"/>
   <depend package="px_comm" />
   <depend package="dynamic_reconfigure" />
-  <!--<depend package="ar_pose"/> -->
   <depend package="posedetection_msgs"/>
   <depend package="dynamic_tf_publisher" />
   <depend package="image_processing" />
