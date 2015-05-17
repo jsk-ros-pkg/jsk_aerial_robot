@@ -7,28 +7,34 @@
 class FlightCtrlInput
 {
  public:
-  FlightCtrlInput ();
-  ~FlightCtrlInput ();
+  FlightCtrlInput ()
+{
+  pitch = 0;
+  roll = 0;
+  yaw = 0;
+  throttle = 0;
+
+}
+
+  ~FlightCtrlInput (){ }
 
 
-  void setPitchValue(short pitch_value);
-  void setRollValue(short roll_value);
-  void setYawValue(short yaw_value);
-  void setThrottleValue(short throttle_value);
-  void addPitchValue(short pitch_value);
-  void addRollValue(short roll_value);
-  void addYawValue(short yaw_value);
-  void addThrottleValue(short throttle_value);
+  inline  void setPitchValue(short pitch_value){  pitch = pitch_value;}
+  inline  void setRollValue(short roll_value){  roll = roll_value; }
+  inline  void setYawValue(short yaw_value){  yaw = yaw_value; }
+  inline  void setThrottleValue(short throttle_value){  throttle = throttle_value;}
+
+  inline  void addPitchValue(short pitch_value){  pitch += pitch_value;}
+  inline  void addRollValue(short roll_value){  roll += roll_value;}
+  inline  void addYawValue(short yaw_value){  yaw += yaw_value;}
+  inline  void addThrottleValue(short throttle_value){  throttle += throttle_value;}
+
+  inline  short getPitchValue(){ return pitch;}
+  inline  short getRollValue(){ return roll;}
+  inline  short getYawValue(){ return yaw;}
+  inline  short getThrottleValue(){ return throttle;}
 
 
-  short getPitchValue();
-  short getRollValue();
-  short getYawValue();
-  short getThrottleValue();
-
-  void setCtrlInputArray();
-  uint8_t* getCtrlInputArray();
-  int getCtrlInputSize();
     
  private:
 
@@ -40,7 +46,6 @@ class FlightCtrlInput
   //collective: 0..4095 = 0..100%
   short throttle;
 
-  uint8_t* ctrlInputArray;
 
 };
 
