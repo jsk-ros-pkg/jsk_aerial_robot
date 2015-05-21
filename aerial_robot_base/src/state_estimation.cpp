@@ -178,7 +178,7 @@ float RigidEstimator::getStatePosXc()
   if(useOuterPoseEstimate & X_AXIS)
     {
       float state_pos_xc
-        = outerEstimatePosX * cos(outerEstimatePsiBody) + outerEstimatePosY * sin(outerEstimatePsiBody);
+        = outerEstimatePosX * cos(outerEstimatePsiBoard) + outerEstimatePosY * sin(outerEstimatePsiBoard);
       return  state_pos_xc;
     }
   else
@@ -198,7 +198,7 @@ float RigidEstimator::getStateVelXc()
   if(useOuterVelEstimate & X_AXIS)
     {
       float state_vel_xc
-        = outerEstimateVelX * cos(outerEstimatePsiBody) + outerEstimateVelY * sin(outerEstimatePsiBody);
+        = outerEstimateVelX * cos(outerEstimatePsiBoard) + outerEstimateVelY * sin(outerEstimatePsiBoard);
       return  state_vel_xc;
     }
   else
@@ -223,7 +223,7 @@ float RigidEstimator::getStatePosYc()
  if(useOuterPoseEstimate & Y_AXIS)
    {
       float state_pos_yc
-        = -outerEstimatePosX * sin(outerEstimatePsiBody) + outerEstimatePosY * cos(outerEstimatePsiBody);
+        = -outerEstimatePosX * sin(outerEstimatePsiBoard) + outerEstimatePosY * cos(outerEstimatePsiBoard);
       return  state_pos_yc;
    }
   else
@@ -243,17 +243,14 @@ float RigidEstimator::getStateVelYc()
  if(useOuterVelEstimate & Y_AXIS)
    {
       float state_vel_yc
-        = -outerEstimateVelX * sin(outerEstimatePsiBody) + outerEstimateVelY * cos(outerEstimatePsiBody);
+        = -outerEstimateVelX * sin(outerEstimatePsiBoard) + outerEstimateVelY * cos(outerEstimatePsiBoard);
       return  state_vel_yc;
    }
   else
     return  kfbYForOpt_->getEstimateVel();
 }
 
-float RigidEstimator::getStateAccYb()
-{
-  return imuData_->getAccYbValue();
-}
+inline float RigidEstimator::getStateAccYb(){  return imuData_->getAccYbValue(); }
 
 float RigidEstimator::getStatePosZ()
 {
@@ -284,10 +281,7 @@ float RigidEstimator::getStateVelZ()
     }
 }
 
-float RigidEstimator::getStateAccZb()
-{
-  return imuData_->getAccZbValue();
-}
+inline float RigidEstimator::getStateAccZb(){  return imuData_->getAccZbValue(); }
 
 float RigidEstimator::getStateTheta()
 {
@@ -333,11 +327,11 @@ float RigidEstimator::getStateVelPsiCog()
     }
 }
 
-float RigidEstimator::getStatePsiBody()
+float RigidEstimator::getStatePsiBoard()
 {
   if(useOuterPoseEstimate & YAW_AXIS)
     {      
-      return  outerEstimatePsiBody;
+      return  outerEstimatePsiBoard;
     }
   else
     {
@@ -347,11 +341,11 @@ float RigidEstimator::getStatePsiBody()
         return 0;  //+*+*+ fixed point
     }
 }
-float RigidEstimator::getStateVelPsiBody()
+float RigidEstimator::getStateVelPsiBoard()
 {
   if(useOuterVelEstimate & YAW_AXIS)
     {      
-      return  outerEstimateVelPsiBody;
+      return  outerEstimateVelPsiBoard;
     }
   else
     {
@@ -363,15 +357,8 @@ float RigidEstimator::getStateVelPsiBody()
 }
 
 
-float RigidEstimator::getStateVelXOpt()
-{
-  return opticalFlowData_->getRawVelX();
-}
-float RigidEstimator::getStateVelYOpt()
-{
-  return opticalFlowData_->getRawVelY();
-}
-
+inline float RigidEstimator::getStateVelXOpt(){  return opticalFlowData_->getRawVelX();}
+inline float RigidEstimator::getStateVelYOpt(){  return opticalFlowData_->getRawVelY();}
 
 bool RigidEstimator::getRocketStartFlag()
 {

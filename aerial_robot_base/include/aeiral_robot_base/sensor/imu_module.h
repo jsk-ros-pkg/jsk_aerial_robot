@@ -548,7 +548,7 @@ class ImuData
           }
       }
 
-    float yaw2 = state_estimator->getStatePsiBody();
+    float yaw2 = state_estimator->getStatePsiBoard();
 
     //iir filter for acceleration
     /* filterAccXImu_->filterFunction(accelerationX); */

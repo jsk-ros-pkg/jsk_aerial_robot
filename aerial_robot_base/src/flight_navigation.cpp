@@ -1,4 +1,5 @@
 /* 
+0. flightNavCallback => implementation
 1. the optical flow => indefference
 2. rocket start => depracated
 3. free fall
@@ -60,44 +61,6 @@ Navigator::~Navigator()
   delete tfB_;
 }
 
-
-
-//*** startAble 
-bool Navigator::getStartAble()
-{
-  return start_able_;
-}
-void Navigator::startNavigation()
-{
-  start_able_ = true;
-}
-void Navigator::stopNavigation()
-{
-  start_able_ = false;
-}
-//*** flightAble
-bool Navigator::getFlightAble()
-{
-  return flight_able_;
-}
-void Navigator::startFlight()
-{
-  flight_able_ = true;
-}
-void Navigator::stopFlight()
-{
-  flight_able_ = false;
-}
-//*** command type
-uint8_t Navigator::getNaviCommand()
-{
-  return navi_command_;
-}
-void Navigator::setNaviCommand(const uint8_t  command)
-{
-  navi_command_ = command;
-}
-
 void Navigator::tfPublish()
 {
   //TODO mutex
@@ -112,163 +75,6 @@ void Navigator::tfPublish()
 
 }
 
-float Navigator::getTargetPosX()
-{
-  return current_target_pos_x_;
-}
-void Navigator::setTargetPosX(float value)
-{
-  final_target_pos_x_ = value;
-}
-void Navigator::addTargetPosX(float value)
-{
-  final_target_pos_x_ += value;
-}
-float Navigator::getTargetVelX()
-{
-  return current_target_vel_x_;
-}
-void Navigator::setTargetVelX(float value)
-{
-  final_target_vel_x_= value;
-}
-
-float Navigator::getTargetPosY()
-{
-  return current_target_pos_y_;
-}
-void Navigator::setTargetPosY(float value)
-{
-  final_target_pos_y_ = value;
-}
-void Navigator::addTargetPosY(float value)
-{
-  final_target_pos_y_ += value;
-}
-float Navigator::getTargetVelY()
-{
-  return current_target_vel_y_;
-}
-void Navigator::setTargetVelY(float value)
-{
-  final_target_vel_y_ = value;
-}
-float Navigator::getTargetPosZ()
-{
-  return current_target_pos_z_;
-}
-void Navigator::setTargetPosZ(float value)
-{
-  final_target_pos_z_ = value;
-}
-void Navigator::addTargetPosZ(float value)
-{
-  final_target_pos_z_ += value;
-}
-float Navigator::getTargetVelZ()
-{
-  return current_target_vel_z_;
-}
-void Navigator::setTargetVelZ(float value)
-{
-  final_target_vel_z_ = value;
-}
-
-float Navigator::getTargetTheta()
-{
-  return current_target_theta_;
-}
-void Navigator::setTargetTheta(float value)
-{
-  final_target_theta_ = value;
-}
-float Navigator::getTargetVelTheta()
-{
-  return current_target_vel_theta_;
- }
-void Navigator::setTargetVelTheta(float value)
-{
-  final_target_vel_theta_ = value;
-}
-float Navigator::getTargetPhy()
-{
-  return current_target_phy_;
-}
-void Navigator::setTargetPhy(float value)
-{
-  final_target_phy_ = value;
-}
-float Navigator::getTargetVelPhy()
-{
-  return current_target_vel_phy_;
-}
-void Navigator::setTargetVelPhy(float value)
-{
-  final_target_vel_phy_ = value;
-}
-float Navigator::getTargetPsi()
-{
-  return current_target_psi_;
-}
-void Navigator::setTargetPsi(float value)
-{
-  final_target_psi_ = value;
-}
-float Navigator::getTargetVelPsi()
-{
-  return current_target_vel_psi_;
-}
-void Navigator::setTargetVelPsi(float value)
-{
-  final_target_vel_psi_ = value;
-}
-
-
-uint8_t Navigator::getFlightMode()
-{
-  return 0;
-}
-
-void Navigator::setXyControlMode(uint8_t mode)
-{
-  return;
-}
-
-uint8_t Navigator::getXyControlMode()
-{
-  return 0;
-}
-
-bool Navigator::getMotorStopFlag()
-{
-  return false;
-}
-
-void Navigator::setMotorStopFlag(bool motor_stop_flag)
-{
-  //do nothing
-}
-
-bool Navigator::getFreeFallFlag()
-{
-  return false;
-}
-
-void Navigator::resetFreeFallFlag()
-{
-  //do nothing
-}
-
-//not good
-uint8_t Navigator::getThrowingMode()
-{
-  return false;
-}
-
-bool Navigator::getXyVelModePosCtrlTakeoff()
-{
-  return false;
-}
 
 TeleopNavigator::TeleopNavigator(ros::NodeHandle nh, ros::NodeHandle nh_private,
                                  Estimator* estimator, 
@@ -374,6 +180,12 @@ void TeleopNavigator::haltCallback(const std_msgs::EmptyConstPtr & msg)
     if(xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE) xy_control_mode_ = POS_WORLD_BASED_CONTROL_MODE;
     setNaviCommand(STOP_COMMAND);
     flight_mode_ = RESET_MODE;
+
+    setTargetPosX(estimator_->getState_posX());
+    setTargetPosY(estimator_->getState_posY());
+    setTargetPsi(estimator_->getStatePsiBody());
+
+
     ROS_INFO("Halt command");
   }
 
@@ -565,6 +377,12 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr joy_msg)
         {
           setNaviCommand(STOP_COMMAND);
           flight_mode_= RESET_MODE;
+
+          setTargetPosX(estimator_->getState_posX());
+          setTargetPosY(estimator_->getState_posY());
+          setTargetPsi(estimator_->getStatePsiBody());
+
+
           if(xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE) xy_control_mode_ = POS_WORLD_BASED_CONTROL_MODE;
           ROS_INFO("Halt command");
           return;
@@ -730,6 +548,11 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr joy_msg)
         {
           setNaviCommand(STOP_COMMAND);
           flight_mode_= RESET_MODE;
+
+          setTargetPosX(estimator_->getState_posX());
+          setTargetPosY(estimator_->getState_posY());
+          setTargetPsi(estimator_->getStatePsiBody());
+
           ROS_INFO("Halt command");
           return;
         }
@@ -807,51 +630,6 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr joy_msg)
     }
 }
 
-uint8_t TeleopNavigator::getFlightMode()
-{
-  return flight_mode_;
-}
-
-uint8_t TeleopNavigator::getXyControlMode()
-{
-  return (uint8_t)xy_control_mode_;
-}
-
-void TeleopNavigator::setXyControlMode(uint8_t mode)
-{
-  xy_control_mode_ = mode;
-}
-
-bool TeleopNavigator::getMotorStopFlag()
-{
-  return motor_stop_flag;
-}
-
-void TeleopNavigator::setMotorStopFlag(bool motor_stop_flag)
-{
-  motor_stop_flag_ = motor_stop_flag;
-}
-
-bool TeleopNavigator::getFreeFallFlag()
-{
-  return free_fall_flag_;
-}
-
-void TeleopNavigator::resetFreeFallFlag()
-{
-  free_fall_flag_ = false;
-}
-
-
-uint8_t TeleopNavigator::getThrowingMode()
-{
-  return throwing_mode_;
-}
-
-bool TeleopNavigator::getXyVelModePosCtrlTakeoff()
-{
-  return xy_vel_mode_pos_ctrl_takeoff_;
-}
 
 //1 implemented in  a more higher rate loop 
 //2 implement callback function
@@ -1158,9 +936,13 @@ void TeleopNavigator::teleopNavigation()
           ROS_ERROR(" land land mode mode");
 	  setNaviCommand(STOP_COMMAND);
 	  flight_mode_= RESET_MODE;
+
+          setTargetPosX(estimator_->getState_posX());
+          setTargetPosY(estimator_->getState_posY());
+          setTargetPsi(estimator_->getStatePsiBody());
+
           motorStopFlag = false;
           resetFreeFallFlag();
-
           //bad
           estimator_->setRocketStartFlag();
 

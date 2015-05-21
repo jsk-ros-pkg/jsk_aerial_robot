@@ -3,98 +3,95 @@ I_y * dot(w_y) = - x * F => Q (符号の話)
 varphi_des = - 1/g * y_des => (roll軸制御　反転の話) 
  */
 
-#include "jsk_quadcopter/flight_control.h"
+#include "aerial_robot_base/flight_control.h"
 
-FlightController::FlightController()
+FlightController::FlightController(ros::NodeHandle nh,
+                                   ros::NodeHandle nh_private,
+                                   Estimator* estimator, Navigator* navigator, 
+                                   FlightCtrlInput* flight_ctrl_input): nh_(nh, "controller"), nhp_(nh_private, "controller")
 {
+  estimator_ = estimator;
+  navigator_ = navigator;
+  flight_ctrl_input_= flight_ctrl_input;
 }
 
 FlightController::~FlightController()
 {
-  printf(" deleted flight controller!\n");
 }
 
 float FlightController::limit(float value, int limit)
 {
-  if(value > (float)limit) 
-    {
-      //ROS_ERROR("upprer limit, value: %f , limit: %d", value, limit );
-      return (float)limit;
-    }
-  else if(value < - (float)limit)
-    {
-      //ROS_ERROR("lower limit, value: %f , limit: %d", value, limit );
-      return -(float)limit;
-    }
+  if(value > (float)limit) { return (float)limit;}
+  else if(value < - (float)limit) { return -(float)limit; }
   else return value;
 }
 
 
 PidController::PidController(ros::NodeHandle nh,
                              ros::NodeHandle nh_private,
+                             Estimator* estimator,
+                             Navigator* navigator,  
+                             FlightCtrlInput* flight_ctrl_input,
                              double ctrl_loop_rate)
-  : FlightController(), controllerNodeHandle_(nh, "controller"), controllerNodeHandlePrivate_(nh_private, "controller")
+  : FlightController(nh, nh_private, estimator, navigator, flight_ctrl_input)
 {
-  pidCtrlLoopRate_ = ctrl_loop_rate;
-  controlBoard_ = KDUINO_BOARD; //default
-  printf("control board is kduino\n");
+  pid_ctrl_loop_rate_ = ctrl_loop_rate;
 
-  rosParamInit();
+  rosParamInit(nhp_);
 
-  dErrPosCurrPitch = 0;
-  dErrPosCurrRoll = 0;
-  dErrPosCurrThrottle = 0;
-  dErrPosCurrYaw = 0;
+  d_err_pos_curr_pitch_ = 0;
+  d_err_pos_curr_roll_ = 0;
+  d_err_pos_curr_throttle_ = 0;
+  d_err_pos_curr_yaw_ = 0;
 
-  dErrVelCurrRoll = 0;
-  dErrVelCurrPitch = 0;
-  dErrVelCurrYaw = 0;
-  dErrVelCurrThrottle = 0;
-  dErrVelPrevRoll = 0;
-  dErrVelPrevPitch = 0;
-  dErrVelPrevYaw = 0;
-  dErrVelPrevThrottle = 0;
+  d_err_vel_curr_roll_ = 0;
+  d_err_vel_curr_pitch_ = 0;
+  d_err_vel_curr_yaw_ = 0;
+  d_err_vel_curr_throttle_ = 0;
+  d_err_vel_prev_roll_ = 0;
+  d_err_vel_prev_pitch_ = 0;
+  d_err_vel_prev_yaw_ = 0;
+  d_err_vel_prev_throttle_ = 0;
 
-  posITermRoll = 0;
-  posITermPitch = 0;
-  posITermYaw = 0;
-  posITermThrottle = 0;
-  posPTermRoll = 0;
-  posPTermPitch = 0;
-  posPTermYaw = 0;
-  posPTermThrottle = 0;
-  posDTermRoll = 0;
-  posDTermPitch = 0;
-  posDTermYaw = 0;
-  posDTermThrottle = 0;
-
-  pitchCtrlCnt = 0; rollCtrlCnt = 0; throttleCtrlCnt = 0; yawCtrlCnt = 0;
+  pos_i_term_roll_ = 0;
+  pos_i_term_pitch_ = 0;
+  pos_i_term_yaw_ = 0;
+  pos_i_term_throttle_ = 0;
+  pos_p_term_roll_ = 0;
+  pos_p_term_pitch_ = 0;
+  pos_p_term_yaw_ = 0;
+  pos_p_term_throttle_ = 0;
+  pos_d_term_roll_ = 0;
+  pos_d_term_pitch_ = 0;
+  pos_d_term_yaw_ = 0;
+  pos_d_term_throttle_ = 0;
 
   //publish
-  pidPub_ = controllerNodeHandle_.advertise<jsk_quadcopter::fourAxisPidDebug>("debug", 10); 
+  pud_pub_ = nh_.advertise<aerial_robot_base::fourAxisPidDebug>("debug", 10); 
 
   //subscribe
   motorBiasFlag = false;
-  motorBiasSetPub_ = controllerNodeHandle_.advertise<jsk_quadcopter_common::ITermBias>("/kduino/i_term_bias", 2);
-  motorBiasSetSub_ = controllerNodeHandle_.subscribe<std_msgs::Int8>("/teleop_command/motor_bais_set", 1, &PidController::motorBiasSetCallback, this, ros::TransportHints().tcpNoDelay());
-  rpyCtrlOffsetSub_ = controllerNodeHandle_.subscribe<jsk_quadcopter_common::RPYCtrlOffset>("/flight_control/rpy_ctrl_offset", 1, &PidController::rpyCtrlOffsetCallback, this, ros::TransportHints().tcpNoDelay());
+  motor_bias_set_pub_ = nh_.advertise<aerial_robot_msgs::ITermBias>("/kduino/i_term_bias", 2);
+  //deprecated
+  motor_bias_set_sub_ = nh_.subscribe<std_msgs::Int8>("/teleop_command/motor_bais_set", 1, &PidController::motorBiasSetCallback, this, ros::TransportHints().tcpNoDelay());
+  rpy_ctrl_offset_sub_ = nh_.subscribe<aerial_robot_msgs::RPYCtrlOffset>("/flight_control/rpy_ctrl_offset", 1, &PidController::rpyCtrlOffsetCallback, this, ros::TransportHints().tcpNoDelay());
 
   //dynamic reconfigure server
-  pitchServer = new dynamic_reconfigure::Server<jsk_quadcopter::PidPitchControlConfig>(ros::NodeHandle(controllerNodeHandlePrivate_, "pitch"));
-  dynamicReconfFuncPitch = boost::bind(&PidController::cfgPitchCallback, this, _1, _2);
-  pitchServer->setCallback(dynamicReconfFuncPitch);
+  pitch_server_ = new dynamic_reconfigure::Server<aerial_robot_base::PidPitchControlConfig>(ros::NodeHandle(nhp_, "pitch"));
+  dynamic_reconf_func_pitch_ = boost::bind(&PidController::cfgPitchCallback, this, _1, _2);
+  pitchServer->setCallback(dynamic_reconf_func_pitch_);
 
-  rollServer = new dynamic_reconfigure::Server<jsk_quadcopter::PidRollControlConfig>(ros::NodeHandle(controllerNodeHandlePrivate_,"roll"));
-  dynamicReconfFuncRoll = boost::bind(&PidController::cfgRollCallback, this, _1, _2);
-  rollServer->setCallback(dynamicReconfFuncRoll);
+  roll_server_ = new dynamic_reconfigure::Server<aerial_robot_base::PidRollControlConfig>(ros::NodeHandle(nhp_,"roll"));
+  dynamic_reconf_func_roll_ = boost::bind(&PidController::cfgRollCallback, this, _1, _2);
+  rollServer->setCallback(dynamic_reconf_func_roll_);
 
-  yawServer = new dynamic_reconfigure::Server<jsk_quadcopter::PidYawControlConfig>(ros::NodeHandle(controllerNodeHandlePrivate_, "yaw"));
-  dynamicReconfFuncYaw = boost::bind(&PidController::cfgYawCallback, this, _1, _2);
-  yawServer->setCallback(dynamicReconfFuncYaw);
+  yaw_server_ = new dynamic_reconfigure::Server<aerial_robot_base::PidYawControlConfig>(ros::NodeHandle(nhp_, "yaw"));
+  dynamic_reconf_func_yaw_ = boost::bind(&PidController::cfgYawCallback, this, _1, _2);
+  yawServer->setCallback(dynamic_reconf_func_yaw_);
 
-  throttleServer = new dynamic_reconfigure::Server<jsk_quadcopter::PidThrottleControlConfig>(ros::NodeHandle(controllerNodeHandlePrivate_, "throttle"));
-  dynamicReconfFuncThrottle = boost::bind(&PidController::cfgThrottleCallback, this, _1, _2);
-  throttleServer->setCallback(dynamicReconfFuncThrottle);
+  throttle_server_ = new dynamic_reconfigure::Server<aerial_robot_base::PidThrottleControlConfig>(ros::NodeHandle(nhp_, "throttle"));
+  dynamic_reconf_func_throttle_ = boost::bind(&PidController::cfgThrottleCallback, this, _1, _2);
+  throttleServer->setCallback(dynamic_reconf_func_throttle_);
 }
 
 PidController::~PidController()
@@ -102,565 +99,521 @@ PidController::~PidController()
   printf(" deleted pid flight control input!\n");
 }
 
+
+//deprecated
 void PidController::motorBiasSetCallback(const std_msgs::Int8ConstPtr& set_flag)
 {
 
-  jsk_quadcopter_common::ITermBias msg;
-  msg.bias[0] = (short)(-posITermRoll - offsetRoll_); //反転
-  msg.bias[1] = (short)(posITermPitch + offsetPitch_);
-  motorBiasSetPub_.publish(msg);
+  aerial_robot_msgs::I_termBias msg;
+  msg.bias[0] = (short)(-pos_i_term_roll_ - offset_roll_); //反転
+  msg.bias[1] = (short)(pos_i_term_pitch_ + offset_pitch_);
+  motor_bias_set_pub_.publish(msg);
 
-  motorBiasFlag = true;
-  posITermRoll = 0;
-  posITermPitch = 0;
+  motor_bias_flag_ = true;
+  pos_i_term_roll_ = 0;
+  pos_i_term_pitch_ = 0;
 
 }
 
-void PidController::rpyCtrlOffsetCallback(const jsk_quadcopter_common::RPYCtrlOffsetConstPtr& offset_value)
+void PidController::rpyCtrlOffsetCallback(const aerial_robot_msgs::RPYCtrlOffsetConstPtr& offset_value)
 {
-  offsetRoll_ = offset_value->roll_offset;
-  offsetPitch_ = offset_value->pitch_offset;
+  offset_roll_ = offset_value->roll_offset;
+  offset_pitch_ = offset_value->pitch_offset;
 
-  posITermRoll = 0;
-  posITermPitch = 0;
+  pos_i_term_roll_ = 0;
+  pos_i_term_pitch_ = 0;
 }
 
 
-void PidController::pidFunction(Navigator* navigator, Estimator* estimator,
-				FlightCtrlInput* flight_ctrl_input)
+void PidController::pidFunction()
 {
   static bool first_flag = true;
   static bool start_free_fall = false;
 
   //for rocket start
-  static int rocketStartValueTmp = rocketStartInitValue_ - offsetThrottle_;
-  static int restartCnt = 0;
+  static int rocket_start_value_tmp = rocket_start_init_value_ - offset_throttle_;
+  static int restart_cnt = 0;
 
   //*** リセット
   if (navigator_->getFlightMode() == Navigator::RESET_MODE) 
     {
       first_flag = true;
-      pitchCtrlCnt = 0; rollCtrlCnt = 0; throttleCtrlCnt = 0; yawCtrlCnt = 0;
-      posPTermPitch = 0; posITermPitch = 0; posDTermPitch = 0;
-      posPTermRoll = 0; posITermRoll = 0; posDTermRoll = 0;
-      posPTermYaw = 0; posITermYaw = 0; posDTermYaw = 0;
-      posPTermThrottle = 0; posITermThrottle = 0; posDTermThrottle = 0;
-      flight_ctrl_input->setPitchValue(0);
-      flight_ctrl_input->setRollValue(0);
-      flight_ctrl_input->setYawValue(0);
-      flight_ctrl_input->setThrottleValue(0);
 
-      //no necessary?
-      navigator->setTargetPosX(estimator->getStatePosX());
-      navigator->setTargetPosY(estimator->getStatePosY());
-      navigator->setTargetPsi(estimator->getStatePsiBody());
+      pos_p_term_pitch_ = 0; pos_i_term_pitch_ = 0; pos_d_term_pitch_ = 0;
+      pos_p_term_roll_ = 0; pos_i_term_roll_ = 0; pos_d_term_roll_ = 0;
+      pos_p_term_yaw_ = 0; pos_i_term_yaw_ = 0; pos_d_term_yaw_ = 0;
+      pos_p_term_throttle_ = 0; pos_i_term_throttle_ = 0; pos_d_term_throttle_ = 0;
 
-      restartCnt++;
-      rocketStartValueTmp
-        = rocketStartInitValue_ - offsetThrottle_ + rocketStartInitIncrementValue_ * restartCnt;
+      flight_ctrl_input_->set_pitch_value(0);
+      flight_ctrl_input_->set_roll_value(0);
+      flight_ctrl_input_->set_yaw_value(0);
+      flight_ctrl_input_->set_throttle_value(0);
+
+      restart_cnt++;
+      rocket_start_value_tmp
+        = rocket_start_init_value_ - offset_throttle_ + rocket_start_init_increment_value_ * restart_cnt;
 
       start_free_fall = false;
       return;
     }
-  else if(navigator->getFlightMode() == NO_CONTROL_MODE)
+  else if(navigator_->getFlightMode() == Navigator::NO_CONTROL_MODE)
     {
       return;
     }
   else
     {
-      float statePosX;
-      float stateVelX;
-      float statePosY;
-      float stateVelY;
+      float state_pos_x;
+      float state_vel_x;
+      float state_pos_y;
+      float state_vel_y;
 
-      float targetPosX;
-      float targetPosY;
-      float targetVelX;
-      float targetVelY;
+      float target_pos_x;
+      float target_pos_y;
+      float target_vel_x;
+      float target_vel_y;
 
-      if(navigator->getXyControlMode() == navigator->POS_WORLD_BASED_CONTROL_MODE ||
-         navigator->getXyControlMode() == navigator->VEL_WORLD_BASED_CONTROL_MODE) 
+      if(navigator_->getXyControlMode() == Navigator::POS_WORLD_BASED_CONTROL_MODE ||
+         navigator_->getXyControlMode() == Navigator::VEL_WORLD_BASED_CONTROL_MODE) 
         {
-          statePosX = estimator->getStatePosX();
-          stateVelX = estimator->getStateVelX();
-          statePosY = estimator->getStatePosY();
-          stateVelY = estimator->getStateVelY();
+          state_pos_x = estimator_->getStatePosX();
+          state_vel_x = estimator_->getStateVelX();
+          state_pos_y = estimator_->getStatePosY();
+          state_vel_y = estimator_->getStateVelY();
         }
-      else if(navigator->getXyControlMode() == navigator->POS_LOCAL_BASED_CONTROL_MODE)
+      else if(navigator_->getXyControlMode() == navigator_->POS_LOCAL_BASED_CONTROL_MODE)
         {
-          statePosX = estimator->getStatePosX();
-          statePosY = estimator->getStatePosY();
-          stateVelX = estimator->getStateVelXc();
-          stateVelY = estimator->getStateVelYc();
+          state_pos_x = estimator_->getStatePosX();
+          state_pos_y = estimator_->getStatePosY();
+          state_vel_x = estimator_->getStateVelXc();
+          state_vel_y = estimator_->getStateVelYc();
         }
-      else if(navigator->getXyControlMode() == navigator->VEL_LOCAL_BASED_CONTROL_MODE)
+      else if(navigator_->getXyControlMode() == navigator_->VEL_LOCAL_BASED_CONTROL_MODE)
         {
-          statePosX = estimator->getStatePosXc();
-          statePosY = estimator->getStatePosYc();
-          stateVelX = estimator->getStateVelXc();
-          stateVelY = estimator->getStateVelYc();
+          state_pos_x = estimator_->getStatePosXc();
+          state_pos_y = estimator_->getStatePosYc();
+          state_vel_x = estimator_->getStateVelXc();
+          state_vel_y = estimator_->getStateVelYc();
         }
       else
         {
           ROS_ERROR(" bad ");
-          statePosX = 0;
-          stateVelX = 0;
-          statePosY = 0;
-          stateVelY = 0;
+          state_pos_x = 0;
+          state_vel_x = 0;
+          state_pos_y = 0;
+          state_vel_y = 0;
         }
 
-      targetVelX = navigator->getTargetVelX();
-      targetVelY = navigator->getTargetVelY();
-      targetPosX = navigator->getTargetPosX();
-      targetPosY = navigator->getTargetPosY();
+      target_vel_x = navigator_->getTargetVelX();
+      target_vel_y = navigator_->getTargetVelY();
+      target_pos_x = navigator_->getTargetPosX();
+      target_pos_y = navigator_->getTargetPosY();
 
-      float statePosZ = estimator->getStatePosZ();
-      float stateVelZ = estimator->getStateVelZ();
-      float statePsiCog = estimator->getStatePsiCog();
-      float statePsiBody = estimator->getStatePsiBody();
-      float stateVelPsiBody = estimator->getStateVelPsiBody();
+      float state_pos_z = estimator_->getStatePosZ();
+      float state_vel_z = estimator_->getStateVelZ();
+      float state_psi_cog = estimator_->getStatePsiCog();
+      float state_psi_board = estimator_->getStatePsiBoard();
+      float state_vel_psi_board = estimator_->getStateVelPsiBoard();
 
-      float targetPosZ = navigator->getTargetPosZ();
-      float targetPsi = navigator->getTargetPsi();
+      float target_pos_z = navigator_->getTargetPosZ();
+      float target_psi = navigator_->getTargetPsi();
 
-      jsk_quadcopter::fourAxisPidDebug  fourAxisPidDebug_;
+      aerial_robot_base::fourAxisPidDebug  four_axis_pid_debug;
 
-      fourAxisPidDebug_.header.stamp = ros::Time::now();
+      four_axis_pid_debug.header.stamp = ros::Time::now();
 
       if (first_flag) 
 	first_flag = false;
       else
 	{
           //pitch
-          if(navigator->getXyControlMode() == navigator->POS_WORLD_BASED_CONTROL_MODE)
+          if(navigator_->getXyControlMode() == Navigator::POS_WORLD_BASED_CONTROL_MODE)
             {
               //** 座標変換
-              dErrPosCurrPitch 
-                = (targetPosX - statePosX) * cos(statePsiCog)
-                + (targetPosY - statePosY) * sin(statePsiCog);
+              d_err_pos_curr_pitch_
+                = (target_pos_x - state_pos_x) * cos(state_psi_cog)
+                + (target_pos_y - state_pos_y) * sin(state_psi_cog);
 
-              dErrVelCurrPitch = - (stateVelX * cos(statePsiCog) + stateVelY * sin(statePsiCog)); 
+              d_err_vel_curr_pitch = - (state_velX * cos(state_psi_cog) + state_vel_y * sin(state_psi_cog)); 
 
               //**** Pの項
-              posPTermPitch =
-                limit(1000 * posPGainPitch_ * dErrPosCurrPitch,  posPLimitPitch_);
+              pos_p_term_pitch_ =
+                limit(1000 * pos_p_gain_pitch_ * d_err_pos_curr_pitch_,  pos_p_limit_pitch_);
 
               //**** Iの項
-              if(navigator->getFlightMode() == TAKEOFF_MODE || navigator->getFlightMode() == LAND_MODE) //takeoff or land
-                posITermPitch += 1000 * 
-                  dErrPosCurrPitch * (1 / (float)pitchCtrlLoopRate_) * posIGainPitch_;
-              else if(navigator->getFlightMode() == FLIGHT_MODE &&
-                      fabs(dErrPosCurrPitch) < iEnableLimitPitch_) //hover or land
-                posITermPitch += 1000 * 
-                  dErrPosCurrPitch * (1 / (float)pitchCtrlLoopRate_) * posIGainPitchHover_;
-              posITermPitch = limit(posITermPitch, posILimitPitch_);
+              if(navigator_->getFlightMode() == Navigator::TAKEOFF_MODE || navigator_->getFlightMode() == Navigator::LAND_MODE) //takeoff or land
+                pos_i_term_pitch_ += 1000 * 
+                  d_err_pos_curr_pitch * (1 / (float)pitch_ctrl_loop_rate_) * pos_i_gain_pitch_;
+              else if(navigator_->getFlightMode() == Navigator::FLIGHT_MODE &&
+                      fabs(d_err_pos_curr_pitch_) < i_enable_limit_pitch_) //hover or land
+                pos_i_term_pitch_ += 1000 * 
+                  d_err_pos_curr_pitch * (1 / (float)pitch_ctrl_loop_rate_) * pos_i_gain_pitch_hover_;
+              pos_i_term_pitch_ = limit(pos_i_term_pitch_, pos_i_limit_pitch_);
 
               //***** Dの項
-              posDTermPitch = 
-                limit(1000 * posDGainPitch_ * dErrVelCurrPitch, posDLimitPitch_);
+              pos_d_term_pitch_ = 
+                limit(1000 * pos_d_gain_pitch_ * d_err_vel_curr_pitch_, pos_d_limit_pitch_);
 
             }
-          else if(navigator->getXyControlMode() == navigator->POS_LOCAL_BASED_CONTROL_MODE)
+          else if(navigator_->getXyControlMode() == Navigator::POS_LOCAL_BASED_CONTROL_MODE)
             {
               //** 座標変換
-              dErrPosCurrPitch 
-                = (targetPosX - statePosX) * cos(statePsiCog)
-                + (targetPosY - statePosY) * sin(statePsiCog);
+              d_err_pos_curr_pitch_ 
+                = (target_pos_x - state_pos_x) * cos(state_psi_cog)
+                + (target_pos_y - state_pos_y) * sin(state_psi_cog);
 
-              dErrVelCurrPitch = targetVelX - stateVelX;
+              d_err_vel_curr_pitch_ = target_vel_x - state_vel_x;
 
               //**** Pの項
-              posPTermPitch =
-                limit(1000 * posPGainPitch_ * dErrPosCurrPitch, posPLimitPitch_);
+              pos_p_term_pitch_ =
+                limit(1000 * pos_p_gain_pitch_ * d_err_pos_curr_pitch_, pos_p_limit_pitch_);
               //**** Dの項
-              posDTermPitch =
-                limit(1000 * posDGainPitch_ * dErrVelCurrPitch, posDLimitPitch_);
+              pos_d_term_pitch_ =
+                limit(1000 * pos_d_gain_pitch_ * d_err_vel_curr_pitch_, pos_d_limit_pitch_);
 
             }
-          else if(navigator->getXyControlMode() == navigator->VEL_WORLD_BASED_CONTROL_MODE)
+          else if(navigator_->getXyControlMode() == Navigator::VEL_WORLD_BASED_CONTROL_MODE)
             {
               //** 座標変換
-#if 0 // for body coord base
-              dErrVelCurrPitch =
-                targetVelX - (stateVelX * cos(statePsiCog) + stateVelY * sin(statePsiCog)); 
-#else //for world coord base
-              dErrVelCurrPitch 
-                = (targetVelX - stateVelX) * cos(statePsiCog) 
-                + (targetVelY - stateVelY) * sin(statePsiCog); 
-#endif
+              d_err_vel_curr_pitch_ 
+                = (target_vel_x - state_vel_x) * cos(state_psi_cog) 
+                + (target_vel_y - state_vel_y) * sin(state_psi_cog); 
+
               //**** Pの項
-              posPTermPitch =
-                limit(1000 * velPGainPitch_ * dErrVelCurrPitch, posDLimitPitch_);
-              posDTermPitch =  0;
+              pos_p_term_pitch_ =
+                limit(1000 * vel_p_gain_pitch_ * d_err_vel_curr_pitch_, pos_d_limit_pitch_);
+              pos_d_term_pitch_ =  0;
             }
-          else if(navigator->getXyControlMode() == navigator->VEL_LOCAL_BASED_CONTROL_MODE)
+          else if(navigator_->getXyControlMode() == Navigator::VEL_LOCAL_BASED_CONTROL_MODE)
             {
-              if(navigator->getFlightMode() == TAKEOFF_MODE)
+              if(navigator_->getFlightMode() == Navigator::TAKEOFF_MODE)
                 {// special mode for velocity control
-                  //#if 1 // flight pid control for takeoff
-                  if(navigator->getXyVelModePosCtrlTakeoff())
+                  if(navigator_->getXyVelModePosCtrlTakeoff())
                     {
                       //**** Pの項
-                      dErrPosCurrPitch = targetPosX - statePosX;
-                      dErrVelCurrPitch = targetVelX - stateVelX;
-                      //dErrVelCurrPitch = - stateVelX;
+                      d_err_pos_curr_pitch_ = target_pos_x - state_pos_x;
+                      d_err_vel_curr_pitch_ = target_vel_x - state_vel_x;
 
-                      posPTermPitch =
-                        limit( 1000 * posPGainPitch_ * dErrPosCurrPitch,  posPLimitPitch_);
+                      pos_p_term_pitch_ =
+                        limit( 1000 * pos_p_gain_pitch_ * d_err_pos_curr_pitch_,  pos_p_limit_pitch_);
 
-                      posITermPitch += 1000 * 
-                        dErrPosCurrPitch * (1 / (float)pitchCtrlLoopRate_) * posIGainPitch_;
-                      posITermPitch = limit(posITermPitch, posILimitPitch_);
+                      pos_i_term_pitch_ += 1000 * 
+                        d_err_pos_curr_pitch_ * (1 / (float)pitch_ctrl_loop_rate_) * pos_i_gain_pitch_;
+                      pos_i_term_pitch_ = limit(pos_i_term_pitch_, pos_i_limit_pitch_);
 
-                      posDTermPitch = 
-                        limit(1000 * posDGainPitch_ * dErrVelCurrPitch, posDLimitPitch_);
+                      pos_d_term_pitch_ = 
+                        limit(1000 * pos_d_gain_pitch_ * d_err_vel_curr_pitch_, pos_d_limit_pitch_);
                     }
                   else
                     {
-                      dErrVelCurrPitch = targetVelX - stateVelX;
+                      d_err_vel_curr_pitch_ = target_vel_x - state_vel_x;
                       //**** Pの項
-                      posPTermPitch =
-                        limit(1000 * velPGainPitch_ * dErrVelCurrPitch, posDLimitPitch_);
+                      pos_p_term_pitch_ =
+                        limit(1000 * vel_p_gain_pitch_ * d_err_vel_curr_pitch_, pos_d_limit_pitch_);
                       //**** Iの項
-                      posITermPitch = 0;
+                      pos_i_term_pitch_ = 0;
                       //**** Dの項
-                      posDTermPitch = 0;
+                      pos_d_term_pitch_ = 0;
                     }
-                  //#endif
                 }
               else
                 { // other flight mode except takeoff
-                  dErrVelCurrPitch = targetVelX - stateVelX;
+                  d_err_vel_curr_pitch_ = target_vel_x - state_vel_x;
                   //**** Pの項
-                  posPTermPitch =
-                    limit(1000 * velPGainPitch_ * dErrVelCurrPitch, posDLimitPitch_);
+                  pos_p_term_pitch_ =
+                    limit(1000 * vel_p_gain_pitch_ * d_err_vel_curr_pitch_, pos_d_limit_pitch_);
 
                   //**** Dの項
-                  posDTermPitch = 0;
+                  pos_d_term_pitch_ = 0;
                 }
 
             }
           else
             ROS_ERROR("wrong control mode");
 
-          if(navigator->getFreeFallFlag())
+          if(navigator_->getFreeFallFlag())
             {// free fall mode
-              posPTermPitch =  0;
-              posITermPitch =  0;
-              posDTermPitch =  0;
+              pos_p_term_pitch_ =  0;
+              pos_i_term_pitch_ =  0;
+              pos_d_term_pitch_ =  0;
             }
 
           //*** motor bias
-          if(motorBiasFlag)
-            posITermPitch = 0;
+          if(motor_bias_flag_) pos_i_term_pitch_ = 0;
 
           //*** 指令値算出
-          short pitch_value = limit(posPTermPitch + posITermPitch + posDTermPitch 
-                                    + offsetPitch_, posLimitPitch_);
-          //**** 指令値反転
-          if( controlBoard_ == ASCTEC_BOARD) //asctec
-            pitch_value = - pitch_value;
+          short pitch_value = limit(pos_p_term_pitch_ + pos_i_term_pitch_ + pos_d_term_pitch_ + offset_pitch_, pos_limit_pitch_);
 
           //*** 指令値代入
-          flight_ctrl_input->setPitchValue(pitch_value);
+          flight_ctrl_input_->setPitchValue(pitch_value);
 
           //**** ros pub
-          fourAxisPidDebug_.pitch.total = pitch_value;
-          fourAxisPidDebug_.pitch.pTerm = posPTermPitch;
-          fourAxisPidDebug_.pitch.iTerm = posITermPitch;
-          fourAxisPidDebug_.pitch.dTerm = posDTermPitch;
-          fourAxisPidDebug_.pitch.posErrTransform = dErrPosCurrPitch;
-          fourAxisPidDebug_.pitch.posErrNoTransform = targetPosX - statePosX;
-          fourAxisPidDebug_.pitch.velErrTransform = targetVelX;
-          fourAxisPidDebug_.pitch.velErrNoTransform = targetVelX -stateVelX;
-                
+          four_axis_pid_debug.pitch.total = pitch_value;
+          four_axis_pid_debug.pitch.pTerm = pos_p_term_pitch_;
+          four_axis_pid_debug.pitch.iTerm = pos_i_term_pitch_;
+          four_axis_pid_debug.pitch.dTerm = pos_d_term_pitch_;
+          four_axis_pid_debug.pitch.posErrTransform = d_err_pos_curr_pitch_;
+          four_axis_pid_debug.pitch.posErrNoTransform = target_pos_x - state_pos_x;
+          four_axis_pid_debug.pitch.velErrTransform = target_vel_x;
+          four_axis_pid_debug.pitch.velErrNoTransform = target_vel_x -state_vel_x;
 
           //roll
-          if(navigator->getXyControlMode() == navigator->POS_WORLD_BASED_CONTROL_MODE)
+          if(navigator_->getXyControlMode() == Navigator::POS_WORLD_BASED_CONTROL_MODE)
             {
               //** 座標変換
-              dErrPosCurrRoll 
-                = - (targetPosX - statePosX) * sin(statePsiCog)
-                + (targetPosY - statePosY) * cos(statePsiCog);
+              d_err_pos_curr_roll_ 
+                = - (target_pos_x - state_pos_x) * sin(state_psi_cog)
+                + (target_pos_y - state_pos_y) * cos(state_psi_cog);
 
-              dErrVelCurrRoll = - (- stateVelX * sin(statePsiCog) + stateVelY * cos(statePsiCog));
+              d_err_vel_curr_roll_ = - (- state_vel_x * sin(state_psi_cog) + state_vel_y * cos(state_psi_cog));
 
               //**** Pの項
-              posPTermRoll =  
-                limit(1000 * posPGainRoll_ * dErrPosCurrRoll, posPLimitRoll_);
+              pos_p_term_roll_ =
+                limit(1000 * pos_p_gain_roll_ * d_err_pos_curr_roll_, pos_p_limit_roll_);
 
               //**** Iの項
-              if(navigator->getFlightMode() == TAKEOFF_MODE || navigator->getFlightMode() == LAND_MODE) //takeoff or land
-                posITermRoll += 1000 * 
-                  dErrPosCurrRoll * (1 / (float)rollCtrlLoopRate_) * posIGainRoll_;
-              else if(navigator->getFlightMode() == FLIGHT_MODE &&
-                      fabs(dErrPosCurrRoll) < iEnableLimitRoll_) //hover
-                posITermRoll += 1000 * 
-                  dErrPosCurrRoll * (1 / (float)rollCtrlLoopRate_) * posIGainRollHover_;
-              posITermRoll = limit(posITermRoll, posILimitRoll_);
+              if(navigator_->getFlightMode() == Navigator::TAKEOFF_MODE || navigator_->getFlightMode() == Navigator::LAND_MODE) //takeoff or land
+                pos_i_term_roll_ += 1000 * 
+                  d_err_pos_curr_roll_ * (1 / (float)roll_ctrl_loop_rate_) * pos_i_gain_roll_;
+              else if(navigator_->getFlightMode() == Navigator::FLIGHT_MODE &&
+                      fabs(d_err_pos_curr_roll_) < i_enable_limit_roll_) //hover
+                pos_i_term_roll_ += 1000 * 
+                  d_err_pos_curr_roll_ * (1 / (float)roll_ctrl_loop_rate_) * pos_i_gain_roll_hover_;
+              pos_i_term_roll_ = limit(pos_i_term_roll_, pos_i_limit_roll_);
 
               //***** Dの項
-              posDTermRoll = 
-                limit(1000 * posDGainRoll_ * dErrVelCurrRoll, posDLimitRoll_);
+              pos_d_term_roll_ = 
+                limit(1000 * pos_d_gain_roll_ * d_err_vel_curr_roll_, pos_d_limit_roll_);
             }
-          else if(navigator->getXyControlMode() == navigator->POS_LOCAL_BASED_CONTROL_MODE)
+          else if(navigator_->getXyControlMode() == Navigator::POS_LOCAL_BASED_CONTROL_MODE)
             {
               //** 座標変換
-              dErrPosCurrRoll 
-                = - (targetPosX - statePosX) * sin(statePsiCog)
-                + (targetPosY - statePosY) * cos(statePsiCog);
+              d_err_pos_curr_roll_
+                = - (target_pos_x - state_pos_x) * sin(state_psi_cog)
+                + (target_pos_y - state_pos_y) * cos(state_psi_cog);
 
-              dErrVelCurrRoll = targetVelY - stateVelY;
+              d_err_vel_curr_roll_ = target_vel_y - state_vel_y;
 
               //**** Pの項
-              posPTermRoll =  
-                limit(1000 * posPGainRoll_ * dErrPosCurrRoll, posPLimitRoll_);
+              pos_p_term_roll_ =  
+                limit(1000 * pos_p_gain_roll_ * d_err_pos_curr_roll_, pos_p_limit_roll_);
 
               //**** Dの項
-              posDTermRoll =
-                limit(1000 * posDGainRoll_ * dErrVelCurrRoll, posDLimitRoll_);
+              pos_d_term_roll_ =
+                limit(1000 * pos_d_gain_roll_ * d_err_vel_curr_roll, pos_d_limit_roll_);
 
             }
-          else if(navigator->getXyControlMode() == navigator->VEL_WORLD_BASED_CONTROL_MODE)
+          else if(navigator_->getXyControlMode() == Navigator::VEL_WORLD_BASED_CONTROL_MODE)
             {
-#if 0 //for body coord base
-              dErrVelCurrRoll =
-                targetVelY - (- stateVelX * sin(statePsiCog) + stateVelY * cos(statePsiCog));
-#else 
-              dErrVelCurrRoll 
-                = -(targetVelX - stateVelX) * sin(statePsiCog)
-                + (targetVelY - stateVelY)  * cos(statePsiCog);
-#endif
+              d_err_vel_curr_roll_ 
+                = -(target_vel_x - state_vel_x) * sin(state_psi_cog)
+                + (target_vel_y - state_vel_y)  * cos(state_psi_cog);
+
               //**** Pの項
-              posPTermRoll =
-                limit(1000 * velPGainRoll_ * dErrVelCurrRoll, posDLimitRoll_);
-              posDTermRoll = 0;
+              pos_p_term_roll_ =
+                limit(1000 * vel_p_gain_roll_ * d_err_vel_curr_roll_, pos_d_limit_roll_);
+              pos_d_term_roll_ = 0;
             }
-          else if(navigator->getXyControlMode() == navigator->VEL_LOCAL_BASED_CONTROL_MODE)
+          else if(navigator_->getXyControlMode() == Navigator::VEL_LOCAL_BASED_CONTROL_MODE)
             {
-              if(navigator->getFlightMode() == TAKEOFF_MODE)
+              if(navigator_->getFlightMode() == Navigator::TAKEOFF_MODE)
                 {// special mode for velocity control
-                  //#if 1 // flight pid control for takeoff
-                  if(navigator->getXyVelModePosCtrlTakeoff())
+                  if(navigator_->getXyVelModePosCtrlTakeoff())
                     {
                       //**** Pの項
-                      dErrPosCurrRoll = targetPosY - statePosY;
-                      dErrVelCurrRoll = targetVelY - stateVelY;
+                      d_err_pos_curr_roll_ = target_pos_y - state_pos_y;
+                      d_err_vel_curr_roll_ = target_vel_y - state_vel_y;
 
-                      posPTermRoll =
-                        limit( 1000 * posPGainRoll_ * dErrPosCurrRoll,  posPLimitRoll_);
+                      pos_p_term_roll_ =
+                        limit( 1000 * pos_p_gain_roll_ * d_err_pos_curr_roll_,  pos_p_limit_roll_);
 
-                      posITermRoll += 1000 * 
-                        dErrPosCurrRoll * (1 / (float)rollCtrlLoopRate_) * posIGainRoll_;
-                      posITermRoll = limit(posITermRoll, posILimitRoll_);
+                      pos_i_term_roll_ += 1000 * 
+                        d_err_pos_curr_roll_ * (1 / (float)roll_ctrl_loop_rate_) * pos_i_gain_roll_;
+                      pos_i_term_roll_ = limit(pos_i_term_roll_, pos_i_limit_roll_);
 
-                      posDTermRoll = 
-                        limit(1000 * posDGainRoll_ * dErrVelCurrRoll, posDLimitRoll_);
+                      pos_d_term_roll_ = 
+                        limit(1000 * pos_d_gain_roll_ * d_err_vel_curr_roll_, pos_d_limit_roll_);
                     }
-                  //#else //velocity pid control for takeoff
                   else
                     {
-                      dErrVelCurrRoll = targetVelY - stateVelY;
+                      d_err_vel_curr_roll_ = target_vel_y - state_vel_y;
                       //**** Pの項
-                      posPTermRoll =
-                        limit(1000 * velPGainRoll_ * dErrVelCurrRoll, posDLimitRoll_);
+                      pos_p_term_roll_ =
+                        limit(1000 * vel_p_gain_roll_ * d_err_vel_curr_roll_, pos_d_limit_roll_);
                       //**** Iの項
-                      posITermRoll = 0;
+                      pos_i_term_roll_ = 0;
                       //**** Dの項
-                      posDTermRoll = 0;
+                      pos_d_term_roll_ = 0;
                     }
-                  //#endif
 
                 }
               else
                 {
-                  dErrVelCurrRoll = targetVelY - stateVelY;
+                  d_err_vel_curr_roll_ = target_vel_y - state_vel_y;
                   //**** Pの項
-                  posPTermRoll =
-                    limit(1000 * velPGainRoll_ * dErrVelCurrRoll, posDLimitRoll_);
+                  pos_p_term_roll_ =
+                    limit(1000 * vel_p_gain_roll_ * d_err_vel_curr_roll_, pos_d_limit_roll_);
 
-                  //**** Iの項
-                  //1)+*+*+ no i term 
-                  //posITermPitch = 0;
-                  //2)+*+*+ inherit the takeoff iterm
 
                   //**** Dの項
-                  posDTermRoll = 0;
+                  pos_d_term_roll_ = 0;
                 }
             }
           else
             ROS_ERROR("wrong control mode");
 
-          if(navigator->getFreeFallFlag())
+          if(navigator_->getFreeFallFlag())
             {// free fall mode
-              posPTermRoll =  0;
-              posITermRoll =  0;
-              posDTermRoll =  0;
+              pos_p_term_roll_ =  0;
+              pos_i_term_roll_ =  0;
+              pos_d_term_roll_ =  0;
             }
 
           //*** motor bias
-          if(motorBiasFlag)
-            posITermRoll = 0;
+          if(motor_bias_flag) pos_i_term_roll_ = 0;
 
           //*** 指令値算出
-          short roll_value = limit(posPTermRoll + posITermRoll + posDTermRoll 
-                                   + offsetRoll_, posLimitRoll_);
+          short roll_value = limit(pos_p_term_roll_ + pos_i_term_roll_ + pos_d_term_roll_ + offset_roll_, pos_limit_roll_);
           //**** 指令値反転
           roll_value = - roll_value;
 
           //*** 指令値代入
-          flight_ctrl_input->setRollValue(roll_value);
+          flight_ctrl_input_->setRollValue(roll_value);
 
           //**** ros pub
-          fourAxisPidDebug_.roll.total = roll_value;
-          fourAxisPidDebug_.roll.pTerm = posPTermRoll;
-          fourAxisPidDebug_.roll.iTerm = posITermRoll;
-          fourAxisPidDebug_.roll.dTerm = posDTermRoll;
-          fourAxisPidDebug_.roll.posErrTransform = dErrPosCurrRoll;
-          fourAxisPidDebug_.roll.posErrNoTransform = targetPosY - statePosY;
-          fourAxisPidDebug_.roll.velErrTransform = targetVelY;
-          fourAxisPidDebug_.roll.velErrNoTransform = targetVelY - stateVelY;
+          four_axis_pid_debug.roll.total = roll_value;
+          four_axis_pid_debug.roll.pTerm = pos_p_term_roll_;
+          four_axis_pid_debug.roll.iTerm = pos_i_term_roll_;
+          four_axis_pid_debug.roll.dTerm = pos_d_term_roll_;
+          four_axis_pid_debug.roll.posErrTransform = d_err_pos_curr_roll_;
+          four_axis_pid_debug.roll.posErrNoTransform = target_pos_y - state_pos_y;
+          four_axis_pid_debug.roll.velErrTransform = target_vel_y;
+          four_axis_pid_debug.roll.velErrNoTransform = target_vel_y - state_vel_y;
 
 
           //yaw
-          if(navigator->getXyControlMode() == navigator->POS_WORLD_BASED_CONTROL_MODE ||
-             navigator->getXyControlMode() == navigator->POS_LOCAL_BASED_CONTROL_MODE || 
-             navigator->getXyControlMode() == navigator->VEL_WORLD_BASED_CONTROL_MODE)
+          if(navigator_->getXyControlMode() == Navigator::POS_WORLD_BASED_CONTROL_MODE ||
+             navigator_->getXyControlMode() == Navigator::POS_LOCAL_BASED_CONTROL_MODE || 
+             navigator_->getXyControlMode() == Navigator::VEL_WORLD_BASED_CONTROL_MODE)
             {
-              dErrPosCurrYaw = targetPsi - statePsiBody;
-              //極座標の補正
-              if(dErrPosCurrYaw > M_PI)  dErrPosCurrYaw = -2 * M_PI + dErrPosCurrYaw; 
-              else if(dErrPosCurrYaw < -M_PI)  dErrPosCurrYaw = 2 * M_PI + dErrPosCurrYaw;
+              d_err_pos_curr_yaw_ = target_psi - state_psi_board;
+              if(d_err_pos_curr_yaw > M_PI)  d_err_pos_curr_yaw_ -= 2 * M_PI; 
+              else if(d_err_pos_curr_yaw < -M_PI)  d_err_pos_curr_yaw += 2 * M_PI;
 
               //**** Pの項
-              posPTermYaw = 
-                limit(1000 * posPGainYaw_ * dErrPosCurrYaw, posPLimitYaw_);
+              pos_p_term_yaw_ = 
+                limit(1000 * pos_p_gain_yaw_ * d_err_pos_curr_yaw_, pos_p_limit_yaw_);
 
               //**** Iの項 : deprecated
 #if 1 //bad for hydra control
-              if(fabs(dErrPosCurrYaw) < iEnableLimitYaw_) 
-                posITermYaw += 1000 *
-                  dErrPosCurrYaw * ( 1 / (float)yawCtrlLoopRate_ ) * posIGainYaw_;
-              else{ posITermYaw = 0;} // right ?
+              if(fabs(d_err_pos_curr_yaw_) < i_enable_limit_yaw_) 
+                pos_i_term_yaw_ += 1000 *
+                  d_err_pos_curr_yaw_ * ( 1 / (float)yaw_ctrl_loop_rate_ ) * pos_i_gain_yaw_;
+              else{ pos_i_term_yaw_ = 0;} // right ?
 #else 
-              posITermYaw += 1000 *
-                dErrPosCurrYaw * ( 1 / (float)yawCtrlLoopRate_ ) * posIGainYaw_;
+              pos_i_term_yaw_ += 1000 *
+                d_err_pos_curr_yaw_ * ( 1 / (float)yaw_ctrl_loop_rate_ ) * pos_i_gain_yaw_;
 #endif
 
-              posITermYaw= limit(posITermYaw, posILimitYaw_);
+              pos_i_term_yaw_ = limit(pos_i_term_yaw_, pos_i_limit_yaw_);
 
               //***** Dの項
-              posDTermYaw = 
-                limit(- 1000 * posDGainYaw_ * stateVelPsiBody, posDLimitYaw_);
+              pos_d_term_yaw_ = 
+                limit(- 1000 * pos_d_gain_yaw_ * state_vel_psi_board_, pos_d_limit_yaw_);
             }
-          else if(navigator->getXyControlMode() == navigator->VEL_LOCAL_BASED_CONTROL_MODE)
+          else if(navigator_->getXyControlMode() == Navigator::VEL_LOCAL_BASED_CONTROL_MODE)
             {
               //fixed point  getStatePsi()
               //develop the p term yaw
-              posPTermYaw = limit(1000 * targetPsi, posPLimitYaw_);
-              posITermYaw = 0;
-              posDTermYaw = 0;
+              pos_p_term_yaw_ = limit(1000 * target_psi_, pos_p_limit_yaw_);
+              pos_i_term_yaw_ = 0;
+              pos_d_term_yaw_ = 0;
             }
 
           //*** 指令値算出
-          short yaw_value = limit(posPTermYaw + posITermYaw + posDTermYaw,
-                                  posLimitYaw_);
-          //**** 指令値反転
-          // critical point
-          //if( controlBoard_ == ASCTEC_BOARD || controlBoard_ == KDUINO_BOARD) // both
-          if( controlBoard_ == ASCTEC_BOARD) //only asctec
-            yaw_value = - yaw_value;
+          short yaw_value = limit(pos_p_term_yaw_ + pos_i_term_yaw_ + pos_d_term_yaw_,
+                                  pos_limit_yaw_);
 	
           //**** ros pub
-          fourAxisPidDebug_.yaw.total = yaw_value;
-          fourAxisPidDebug_.yaw.pTerm = posPTermYaw;
-          fourAxisPidDebug_.yaw.iTerm = posITermYaw;
-          fourAxisPidDebug_.yaw.dTerm = posDTermYaw;
-          fourAxisPidDebug_.yaw.posErrTransform = targetPsi;
-          fourAxisPidDebug_.yaw.posErrNoTransform = dErrPosCurrYaw;
-          fourAxisPidDebug_.yaw.velErrTransform = stateVelPsiBody;
-          fourAxisPidDebug_.yaw.velErrNoTransform = stateVelPsiBody;
+          four_axis_pid_debug.yaw.total = yaw_value;
+          four_axis_pid_debug.yaw.pTerm = pos_p_term_yaw_;
+          four_axis_pid_debug.yaw.iTerm = pos_i_term_yaw_;
+          four_axis_pid_debug.yaw.dTerm = pos_d_term_yaw_;
+          four_axis_pid_debug.yaw.posErrTransform = target_psi;
+          four_axis_pid_debug.yaw.posErrNoTransform = d_err_pos_curr_yaw_;
+          four_axis_pid_debug.yaw.velErrTransform = state_vel_psi_board;
+          four_axis_pid_debug.yaw.velErrNoTransform = state_vel_psi_board;
 
           //*** 指令値代入
           flight_ctrl_input->setYawValue(yaw_value);
-          //flight_ctrl_input->setYawValue(0);
+          //flight_ctrl_input->set_yaw_value(0);
 
           //throttle
-          dErrPosCurrThrottle = targetPosZ - statePosZ;
+          d_err_pos_curr_throttle_ = target_pos_z - state_pos_z;
 
-          if(navigator->getFlightMode() == TAKEOFF_MODE)
+          if(navigator_->getFlightMode() == Navigator::TAKEOFF_MODE)
             {
-              if(estimator->getRocketStartFlag())
+              if(estimator_->getRocketStartFlag())
                 {
                   ROS_INFO("rocket start");
-                  posPTermThrottle = 0;
+                  pos_p_term_throttle_ = 0;
                   //increment rocket start
-                  rocketStartValueTmp += rocketStartStepValue_;
-                  posITermThrottle = rocketStartValueTmp;
-                  posDTermThrottle = 0;
+                  rocket_start_value_tmp += rocket_start_step_value_;
+                  pos_i_term_throttle_ = rocket_start_value_tmp;
+                  pos_d_term_throttle_ = 0;
                 }
               else
                 {
                   //ROS_INFO("normal takeoff");
                   //**** Pの項
-                  posPTermThrottle = 
-                    limit(1000 * posPGainThrottle_ * dErrPosCurrThrottle, posPLimitThrottle_);
+                  pos_p_term_throttle_ = 
+                    limit(1000 * pos_p_gain_throttle_ * d_err_pos_curr_throttle_, pos_p_limit_throttle_);
                   //**** Iの項
-                  posITermThrottle += 1000 *
-                    dErrPosCurrThrottle * ( 1 / (float)throttleCtrlLoopRate_) * posIGainThrottle_;
-                  posITermThrottle = limit(posITermThrottle, posILimitThrottle_);
+                  pos_i_term_throttle_ += 1000 *
+                    d_err_pos_curr_throttle_ * ( 1 / (float)throttle_ctrl_loop_rate_) * pos_i_gain_throttle_;
+                  pos_i_term_throttle_ = limit(pos_i_term_throttle_, pos_i_limit_throttle_);
                   //***** Dの項
-                  posDTermThrottle = 
-                    limit(-1000 * posDGainThrottle_ * stateVelZ, posDLimitThrottle_);
+                  pos_d_term_throttle_ = 
+                    limit(-1000 * pos_d_gain_throttle_ * state_vel_z, pos_d_limit_throttle_);
                 }
             }
-          else if(navigator->getFlightMode() == FLIGHT_MODE) //hover
+          else if(navigator_->getFlightMode() == Navigator::FLIGHT_MODE) //hover
             {
               //**** Pの項
-              posPTermThrottle = 
-                limit(1000 * posPGainThrottle_ * dErrPosCurrThrottle, posPLimitThrottleHover_);
+              pos_p_term_throttle_ = 
+                limit(1000 * pos_p_gain_throttle_ * d_err_pos_curr_throttle_, pos_p_limit_throttle_hover_);
               //**** Iの項
-#if 1     // without limit
-              posITermThrottle += 1000 *
-                dErrPosCurrThrottle * ( 1 / (float)throttleCtrlLoopRate_) * posIGainThrottle_;
-              posITermThrottle = limit(posITermThrottle, posILimitThrottle_);
-#else 	  // iEnableLimitThrottleHover :0.1
-              if(fabs(dErrPosCurrThrottle) < iEnableLimitThrottleHover_) 
-                {
-                  posITermThrottle += 1000 *
-                    dErrPosCurrThrottle * ( 1 / (float)throttleCtrlLoopRate_) * posIGainThrottle_;
-                  posITermThrottle = limit(posITermThrottle, posILimitThrottle_);
-                }
-#endif
+              pos_i_term_throttle_ += 1000 *
+                d_err_pos_curr_throttle_ * ( 1 / (float)throttle_ctrl_loop_rate_) * pos_i_gain_throttle_;
+              pos_i_term_throttle_ = limit(pos_i_term_throttle_, pos_i_limit_throttle_);
               //***** Dの項
-              posDTermThrottle = 
-                limit(-1000 * posDGainThrottle_ * stateVelZ, posDLimitThrottle_);
+              pos_d_term_throttle_ = 
+                limit(-1000 * pos_d_gain_throttle_ * state_vel_z, pos_d_limit_throttle_);
             }
-          else if(navigator->getFlightMode() == LAND_MODE)
+          else if(navigator_->getFlightMode() == Navigator::LAND_MODE)
             {
               ROS_WARN(" land mode");
 
-              if(navigator->getFreeFallFlag())
+              if(navigator_->getFreeFallFlag())
                 {//free fall mode from free fall threshold
 
                   if(!start_free_fall)
                     { //first time
-                      short posITermThrottleTmp = - offsetThrottle_ + limit(posPTermThrottle +
-                                                                            posITermThrottle + 
-                                                                            posDTermThrottle + 
-                                                                            offsetThrottle_,
-                                                                            posLimitThrottle_);
-                      posITermThrottle = posITermThrottleTmp;
+                      short pos_i_term_throttle_tmp = - offset_throttle_ + limit(pos_p_term_throttle_ +
+                                                                            pos_i_term_throttle_ + 
+                                                                            pos_d_term_throttle_ + 
+                                                                            offset_throttle_,
+                                                                            pos_limit_throttle_);
+                      pos_i_term_throttle_ = pos_i_term_throttle_tmp;
                       start_free_fall  = true;
                     }
-                  posPTermThrottle = 0;
-                  posITermThrottle -= freeFallStepValue_;
-                  posDTermThrottle = 0;
+                  pos_p_term_throttle_ = 0;
+                  pos_i_term_throttle_ -= free_fall_step_value_;
+                  pos_d_term_throttle_ = 0;
 
-                  if(posITermThrottle + offsetThrottle_ < motorStopValue_)
+                  if(pos_i_term_throttle_ + offset_throttle_ < motor_stop_value_)
                     {
                       bool tmp = true;
-                      navigator->setMotorStopFlag(tmp);
+                      navigator_->setMotorStopFlag(tmp);
                       ROS_WARN("  stop motor ");
                     }
                 }
@@ -669,168 +622,160 @@ void PidController::pidFunction(Navigator* navigator, Estimator* estimator,
                   ROS_WARN(" no free fall mode");
 
                   //**** Pの項
-                  //TODO: dErrPosCurrThrottle < -0.1 or > -0.1 ; Original is < -0.1
-                  //constPcontrolThreLand : -0.1m
-                  //constPTermLev1ValueLand : -50
-                  //constPTermLev2ValueLand : -90
-                  if(dErrPosCurrThrottle < constPControlThreThrottleLand_) 
-                    posPTermThrottle = constPTermLev1ValueThrottleLand_; 
-                  else  posPTermThrottle = constPTermLev2ValueThrottleLand_;
+                  //TODO: d_err_pos_curr_throttle < -0.1 or > -0.1 ; Original is < -0.1
+                  //const_pcontrolThre_land : -0.1m
+                  //const_p_term_lev1_value_land : -50
+                  //const_p_term_lev2_value_land : -90
+                  if(d_err_pos_curr_throttle_ < const_p_ctrl_thre_throttle_land_) 
+                    pos_p_term_throttle_ = const_p_term_lev1_value_throttle_land_; 
+                  else  pos_p_term_throttle_ = const_p_term_lev2_value_throttle_land_;
 
                   //**** Iの項
-                  // constIcontrolThreLand : -0.25m
-                  if(dErrPosCurrThrottle > constIControlThreThrottleLand_)
-                    posITermThrottle += 1000 * dErrPosCurrThrottle *
-                      (1 / (float)throttleCtrlLoopRate_) * posIGainThrottleLand_;
-                  else posITermThrottle -= constITermValueThrottleLand_;
+                  // const_icontrolThre_land : -0.25m
+                  if(d_err_pos_curr_throttle_ > const_i_ctrl_thre_throttle_land_)
+                    pos_i_term_throttle_ += 1000 * d_err_pos_curr_throttle_ *
+                      (1 / (float)throttle_ctrl_loop_rate_) * pos_i_gain_throttle_land_;
+                  else pos_i_term_throttle_ -= const_i_term_value_throttle_land_;
 
                   //***** Dの項
-                  posDTermThrottle =
-                    limit(-1000 * posDGainThrottleLand_ * stateVelZ, posDLimitThrottle_);
+                  pos_d_term_throttle_ =
+                    limit(-1000 * pos_d_gain_throttle_land_ * state_velZ, pos_d_limit_throttle_);
                 }
             }
           //throwing mode function
-          throttleThrowingMode(navigator, estimator);
+          throttleThrowingMode();
 
           //*** 指令値算出
-          short throttle_value = limit(posPTermThrottle + posITermThrottle 
-                                       + posDTermThrottle + offsetThrottle_, 
-                                       posLimitThrottle_);
+          short throttle_value = limit(pos_p_term_throttle_ + pos_i_term_throttle_ 
+                                       + pos_d_term_throttle_ + offset_throttle_, 
+                                       pos_limit_throttle_);
           //**** 指令値反転
           //throttle_value = - throttle_value;
 	  
           //*** 指令値代入
-          flight_ctrl_input->setThrottleValue(throttle_value);
+          flight_ctrl_input_->set_throttle_value(throttle_value);
 
           //**** ros pub
-          fourAxisPidDebug_.throttle.total = throttle_value;
-          fourAxisPidDebug_.throttle.pTerm = posPTermThrottle;
-          fourAxisPidDebug_.throttle.iTerm = posITermThrottle;
-          fourAxisPidDebug_.throttle.dTerm = posDTermThrottle;
-          fourAxisPidDebug_.throttle.posErrTransform = targetPosZ;
-          fourAxisPidDebug_.throttle.posErrNoTransform = dErrPosCurrThrottle;
-          fourAxisPidDebug_.throttle.velErrTransform = stateVelZ;
-          fourAxisPidDebug_.throttle.velErrNoTransform = stateVelZ;
+          four_axis_pid_debug.throttle.total = throttle_value_;
+          four_axis_pid_debug.throttle.pTerm = pos_p_term_throttle_;
+          four_axis_pid_debug.throttle.iTerm = pos_i_term_throttle_;
+          four_axis_pid_debug.throttle.dTerm = pos_d_term_throttle_;
+          four_axis_pid_debug.throttle.posErrTransform = target_pos_z;
+          four_axis_pid_debug.throttle.posErrNoTransform = d_err_pos_curr_throttle_;
+          four_axis_pid_debug.throttle.velErrTransform = state_vel_z;
+          four_axis_pid_debug.throttle.velErrNoTransform = state_vel_z;
 
-
-
-
-	  pidPub_.publish(fourAxisPidDebug_);
+	  pud_pub_.publish(four_axis_pid_debug);
 	}
 
       //*** 更新
       //previous_secs = current_secs;
-      dErrVelPrevPitch =  dErrVelCurrPitch;
-      dErrVelPrevRoll =  dErrVelCurrRoll;
-      dErrVelPrevThrottle = dErrVelCurrThrottle;
-      dErrVelPrevYaw =  dErrVelCurrYaw;
+      d_err_vel_prev_pitch_ =  d_err_vel_curr_pitch_;
+      d_err_vel_prev_roll_ =  d_err_vel_curr_roll_;
+      d_err_vel_prev_throttle_ = d_err_vel_curr_throttle_;
+      d_err_vel_prev_yaw_ =  d_err_vel_curr_yaw_;
 
       return;
     }
 }
 
-void PidController::feedForwardFunction(Navigator* navigator, Estimator* estimator,
-                                        FlightCtrlInput* flight_ctrl_input)
+void PidController::feedForwardFunction()
 {
   //do nothing
 }
 
 
-void PidController::throttleThrowingMode(Navigator* navigator, Estimator* estimator)
+void PidController::throttleThrowingMode()
 {
   static bool first_flag = true;
-  if(navigator->getThrowingMode() == navigator->THROWING_START_ALTHOLD)
+  if(navigator_->getThrowingMode() == Navigator::THROWING_START_ALTHOLD)
     {
       if(first_flag)
         {
           first_flag = false;
-          posITermThrottle += (rocketStartInitValue_ - offsetThrottle_  + throwingModeInitValueFromRocketStart_); //param
-          //posITermThrottle = limit(posITermThrottle, posILimitThrottle_);
+          pos_i_term_throttle_ += (rocket_start_init_value_ - offset_throttle_  + throwing_mode_init_value_from_rocket_start_); //param
 
           //debug
-          ROS_ERROR("first time: posITermThtottle init");
+          ROS_ERROR("first time: pos_i_termThtottle init");
         }
 
-#if 1
       //**** Pの項
-      posPTermThrottle = 
-        limit(1000 * posPGainThrottle_ * dErrPosCurrThrottle, posPLimitThrottle_);
+      pos_p_term_throttle_ = 
+        limit(1000 * pos_p_gain_throttle_ * d_err_pos_curr_throttle_, pos_p_limit_throttle_);
       //**** Iの項
-      posITermThrottle += 1000 *
-        dErrPosCurrThrottle * ( 1 / (float)throttleCtrlLoopRate_) * posIGainThrottle_;
-      posITermThrottle = limit(posITermThrottle, posILimitThrottle_);
+      pos_i_term_throttle_ += 1000 *
+        d_err_pos_curr_throttle_ * ( 1 / (float)throttle_ctrl_loop_rate_) * pos_i_gain_throttle_;
+      pos_i_term_throttle_ = limit(pos_i_term_throttle_, pos_i_limit_throttle_);
       //***** Dの項
-      posDTermThrottle = 
-        limit(-1000 * posDGainThrottle_ * estimator->getStateVelZ(), posDLimitThrottle_);
+      pos_d_term_throttle_ = 
+        limit(-1000 * pos_d_gain_throttle_ * estimator_->getStateVelZ(), pos_d_limit_throttle_);
 
-      ROS_ERROR("ok, dErrPosCurrThrottle: %f",dErrPosCurrThrottle );
+      ROS_ERROR("ok, d_err_pos_curr_throttle: %f",d_err_pos_curr_throttle_ );
 
-#endif
     }
 }
 
-void PidController::cfgPitchCallback(jsk_quadcopter::PidPitchControlConfig &config, uint32_t level)
+void PidController::cfgPitchCallback(aerial_robot_base::PidPitchControlConfig &config, uint32_t level)
 {
-
   if(config.pidControlFlag)
     {
       printf("Pitch Dynamic:");
       switch(level)
         {
-        case jsk_quadcopter_common::DynamicReconfigureLevels::RECONFIGURE_CONTROL_LOOP_RATE:
-          pitchCtrlLoopRate_ = config.ctrlLoopRate;
+        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_CONTROL_LOOP_RATE:
+          pitch_ctrl_loop_rate_ = config.ctrlLoopRate;
           printf("change the control loop rate\n");
           break;
-        case jsk_quadcopter_common::DynamicReconfigureLevels::RECONFIGURE_POS_P_GAIN:
-          posPGainPitch_ = config.posPGain;
+        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_POS_P_GAIN:
+          pos_p_gain_pitch_ = config.posPGain;
           printf("change the pos p gain\n");
           break;
-        case jsk_quadcopter_common::DynamicReconfigureLevels::RECONFIGURE_POS_I_GAIN:
-          posIGainPitch_ = config.posIGain;
+        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_POS_I_GAIN:
+          pos_i_gain_pitch_ = config.posIGain;
           printf("change the pos i gain\n");
           break;
-        case jsk_quadcopter_common::DynamicReconfigureLevels::RECONFIGURE_POS_I_GAIN_HOVER:
-          posIGainPitchHover_ = config.posIGainHover;
+        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_POS_I_GAIN_HOVER:
+          pos_i_gain_pitch_hover_ = config.posIGainHover;
           printf("change the posi_hover gain\n");
           break;
-        case jsk_quadcopter_common::DynamicReconfigureLevels::RECONFIGURE_POS_D_GAIN:
-          posDGainPitch_ = config.posDGain;
+        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_POS_D_GAIN:
+          pos_d_gain_pitch_ = config.posDGain;
           printf("change the pos d gain\n");
           break;
-        case jsk_quadcopter_common::DynamicReconfigureLevels::RECONFIGURE_VEL_P_GAIN:
-          velPGainPitch_ = config.velPGain;
+        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_VEL_P_GAIN:
+          vel_p_gain_pitch_ = config.velPGain;
           printf("change the vel p gain\n");
           break;
-        case jsk_quadcopter_common::DynamicReconfigureLevels::RECONFIGURE_VEL_I_GAIN:
-          velIGainPitch_ = config.velIGain;
+        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_VEL_I_GAIN:
+          vel_i_gain_pitch_ = config.velIGain;
           printf("change the vel i gain\n");
           break;
-        case jsk_quadcopter_common::DynamicReconfigureLevels::RECONFIGURE_OFFSET:
-          offsetPitch_ = config.offset;
+        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_OFFSET:
+          offset_pitch_ = config.offset;
           printf("change the offset\n");
           break;
-        case jsk_quadcopter_common::DynamicReconfigureLevels::RECONFIGURE_POS_LIMIT:
-          posLimitPitch_ = config.posLimit;
+        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_POS_LIMIT:
+          pos_limit_pitch_ = config.posLimit;
           printf("change the limit\n");
           break;
-        case jsk_quadcopter_common::DynamicReconfigureLevels::RECONFIGURE_POS_P_LIMIT:
-          posPLimitPitch_ = config.posPLimit;
+        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_POS_P_LIMIT:
+          pos_p_limit_pitch_ = config.posPLimit;
           printf("change the p limit\n");
           break;
-        case jsk_quadcopter_common::DynamicReconfigureLevels::RECONFIGURE_POS_I_LIMIT:
-          posILimitPitch_ = config.posILimit;
+        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_POS_I_LIMIT:
+          pos_i_limit_pitch_ = config.posILimit;
           printf("change the i limit\n");
           break;
-        case jsk_quadcopter_common::DynamicReconfigureLevels::RECONFIGURE_POS_D_LIMIT:
-          posDLimitPitch_ = config.posDLimit;
+        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_POS_D_LIMIT:
+          pos_d_limit_pitch_ = config.posDLimit;
           printf("change the d limit\n");
           break;
-        case jsk_quadcopter_common::DynamicReconfigureLevels::RECONFIGURE_VEL_VALUE_LIMIT_HOVER:
-          velValueLimitPitch_ = config.velValueLimit;
+        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_VEL_VALUE_LIMIT_HOVER:
+          vel_value_limit_pitch_ = config.velValueLimit;
           printf("change the vel value limit\n");
           break;
-        case jsk_quadcopter_common::DynamicReconfigureLevels::RECONFIGURE_I_ENABLE_LIMIT_HOVER:
-          iEnableLimitPitch_ = config.iEnableLimit;
+        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_I_ENABLE_LIMIT_HOVER:
+          i_enable_limit_pitch_ = config.iEnableLimit;
           printf("change the i enable limit\n");
           break;
         default :
@@ -838,72 +783,70 @@ void PidController::cfgPitchCallback(jsk_quadcopter::PidPitchControlConfig &conf
           break;
         }
     }
-
 }
 
-void PidController::cfgRollCallback(jsk_quadcopter::PidRollControlConfig &config, uint32_t level)
+void PidController::cfgRollCallback(aerial_robot_base::PidRollControlConfig &config, uint32_t level)
 {
-
 
   if(config.pidControlFlag)
     {
       printf("Roll Dynamic:");
       switch(level)
         {
-        case jsk_quadcopter_common::DynamicReconfigureLevels::RECONFIGURE_CONTROL_LOOP_RATE:
-          rollCtrlLoopRate_ = config.ctrlLoopRate;
+        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_CONTROL_LOOP_RATE:
+          roll_ctrl_loop_rate_ = config.ctrlLoopRate;
           printf("change the control loop rate\n");
           break;
-        case jsk_quadcopter_common::DynamicReconfigureLevels::RECONFIGURE_POS_P_GAIN:
-          posPGainRoll_ = config.posPGain;
+        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_POS_P_GAIN:
+          pos_p_gain_roll_ = config.posPGain;
           printf("change the pos p gain\n");
           break;
-        case jsk_quadcopter_common::DynamicReconfigureLevels::RECONFIGURE_POS_I_GAIN:
-          posIGainRoll_ = config.posIGain;
+        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_POS_I_GAIN:
+          pos_i_gain_roll_ = config.posIGain;
           printf("change the pos i gain\n");
           break;
-        case jsk_quadcopter_common::DynamicReconfigureLevels::RECONFIGURE_POS_I_GAIN_HOVER:
-          posIGainRollHover_ = config.posIGainHover;
+        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_POS_I_GAIN_HOVER:
+          pos_i_gain_roll_hover_ = config.posIGainHover;
           printf("change the pos i_hover gain\n");
           break;
-        case jsk_quadcopter_common::DynamicReconfigureLevels::RECONFIGURE_POS_D_GAIN:
-          posDGainRoll_ = config.posDGain;
+        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_POS_D_GAIN:
+          pos_d_gain_roll_ = config.posDGain;
           printf("change the pos d gain\n");
           break;
-        case jsk_quadcopter_common::DynamicReconfigureLevels::RECONFIGURE_VEL_P_GAIN:
-          velPGainRoll_ = config.velPGain;
+        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_VEL_P_GAIN:
+          vel_p_gain_roll_ = config.velPGain;
           printf("change the vel p gain\n");
           break;
-        case jsk_quadcopter_common::DynamicReconfigureLevels::RECONFIGURE_VEL_I_GAIN:
-          velIGainRoll_ = config.velIGain;
+        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_VEL_I_GAIN:
+          vel_i_gain_roll_ = config.velIGain;
           printf("change the vel i gain\n");
           break;
-        case jsk_quadcopter_common::DynamicReconfigureLevels::RECONFIGURE_OFFSET:
-          offsetRoll_ = config.offset;
+        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_OFFSET:
+          offset_roll_ = config.offset;
           printf("change the offset\n");
           break;
-        case jsk_quadcopter_common::DynamicReconfigureLevels::RECONFIGURE_POS_LIMIT:
-          posLimitRoll_ = config.posLimit;
+        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_POS_LIMIT:
+          pos_limit_roll_ = config.posLimit;
           printf("change the limit\n");
           break;
-        case jsk_quadcopter_common::DynamicReconfigureLevels::RECONFIGURE_POS_P_LIMIT:
-          posPLimitRoll_ = config.posPLimit;
+        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_POS_P_LIMIT:
+          pos_p_limit_roll_ = config.posPLimit;
           printf("change the p limit\n");
           break;
-        case jsk_quadcopter_common::DynamicReconfigureLevels::RECONFIGURE_POS_I_LIMIT:
-          posILimitRoll_ = config.posILimit;
+        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_POS_I_LIMIT:
+          pos_i_limit_roll_ = config.posILimit;
           printf("change the i limit\n");
           break;
-        case jsk_quadcopter_common::DynamicReconfigureLevels::RECONFIGURE_POS_D_LIMIT:
-          posDLimitRoll_ = config.posDLimit;
+        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_POS_D_LIMIT:
+          pos_d_limit_roll_ = config.posDLimit;
           printf("change the d limit\n");
           break;
-        case jsk_quadcopter_common::DynamicReconfigureLevels::RECONFIGURE_VEL_VALUE_LIMIT_HOVER:
-          velValueLimitRoll_ = config.velValueLimit;
+        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_VEL_VALUE_LIMIT_HOVER:
+          vel_value_limit_roll_ = config.velValueLimit;
           printf("change the vel value limit\n");
           break;
-        case jsk_quadcopter_common::DynamicReconfigureLevels::RECONFIGURE_I_ENABLE_LIMIT_HOVER:
-          iEnableLimitRoll_ = config.iEnableLimit;
+        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_I_ENABLE_LIMIT_HOVER:
+          i_enable_limit_roll_ = config.iEnableLimit;
           printf("change the i enable limit\n");
           break;
         default :   
@@ -913,43 +856,43 @@ void PidController::cfgRollCallback(jsk_quadcopter::PidRollControlConfig &config
     }
 }
 
-void PidController::cfgYawCallback(jsk_quadcopter::PidYawControlConfig &config, uint32_t level)
+void PidController::cfgYawCallback(aerial_robot_base::PidYawControlConfig &config, uint32_t level)
 {
   if(config.pidControlFlag)
     {
-      printf("Yaw Dynamic:");
+      printf("_yaw Dynamic:");
       switch(level)
         {
-        case jsk_quadcopter_common::DynamicReconfigureLevels::RECONFIGURE_CONTROL_LOOP_RATE:
-          yawCtrlLoopRate_ = config.ctrlLoopRate;
+        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_CONTROL_LOOP_RATE:
+          yaw_ctrl_loop_rate_ = config.ctrlLoopRate;
           printf("change the control loop rate\n");
           break;
-        case jsk_quadcopter_common::DynamicReconfigureLevels::RECONFIGURE_POS_P_GAIN:
-          posPGainYaw_ = config.posPGain;
+        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_POS_P_GAIN:
+          pos_p_gain_yaw_ = config.posPGain;
           printf("change the p gain\n");
           break;
-        case jsk_quadcopter_common::DynamicReconfigureLevels::RECONFIGURE_POS_I_GAIN:
-          posIGainYaw_ = config.posIGain;
+        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_POS_I_GAIN:
+          pos_i_gain_yaw_ = config.posIGain;
           printf("change the i gain\n");
           break;
-        case jsk_quadcopter_common::DynamicReconfigureLevels::RECONFIGURE_POS_D_GAIN:
-          posDGainYaw_ = config.posDGain;
+        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_POS_D_GAIN:
+          pos_d_gain_yaw_ = config.posDGain;
           printf("change the d gain\n");
           break;
-        case jsk_quadcopter_common::DynamicReconfigureLevels::RECONFIGURE_POS_LIMIT:
-          posLimitYaw_ = config.posLimit;
+        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_POS_LIMIT:
+          pos_limit_yaw_ = config.posLimit;
           printf("change the limit\n");
           break;
-        case jsk_quadcopter_common::DynamicReconfigureLevels::RECONFIGURE_POS_P_LIMIT:
-          posPLimitYaw_ = config.posPLimit;
+        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_POS_P_LIMIT:
+          pos_p_limit_yaw_ = config.posPLimit;
           printf("change the p limit\n");
           break;
-        case jsk_quadcopter_common::DynamicReconfigureLevels::RECONFIGURE_POS_I_LIMIT:
-          posILimitYaw_ = config.posILimit;
+        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_POS_I_LIMIT:
+          pos_i_limit_yaw_ = config.posILimit;
           printf("change the i limit\n");
           break;
-        case jsk_quadcopter_common::DynamicReconfigureLevels::RECONFIGURE_POS_D_LIMIT:
-          posDLimitYaw_ = config.posDLimit;
+        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_POS_D_LIMIT:
+          pos_d_limit_yaw_ = config.posDLimit;
           printf("change the d limit\n");
           break;
         default :
@@ -959,7 +902,7 @@ void PidController::cfgYawCallback(jsk_quadcopter::PidYawControlConfig &config, 
     }
 }
 
-void PidController::cfgThrottleCallback(jsk_quadcopter::PidThrottleControlConfig &config, uint32_t level)
+void PidController::cfgThrottleCallback(aerial_robot_base::PidThrottleControlConfig &config, uint32_t level)
 {
 
   if(config.pidControlFlag)
@@ -967,84 +910,84 @@ void PidController::cfgThrottleCallback(jsk_quadcopter::PidThrottleControlConfig
       printf("Throttle Dynamic:");
       switch(level)
         {
-        case jsk_quadcopter_common::DynamicReconfigureLevels::RECONFIGURE_CONTROL_LOOP_RATE:
-          throttleCtrlLoopRate_ = config.ctrlLoopRate;
+        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_CONTROL_LOOP_RATE:
+          throttle_ctrl_loop_rate_ = config.ctrlLoopRate;
           printf("change the control loop rate\n");
           break;
-        case jsk_quadcopter_common::DynamicReconfigureLevels::RECONFIGURE_POS_P_GAIN:
-          posPGainThrottle_ = config.posPGain;
+        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_POS_P_GAIN:
+          pos_p_gain_throttle_ = config.posPGain;
           printf("change the p gain\n");
           break;
-        case jsk_quadcopter_common::DynamicReconfigureLevels::RECONFIGURE_POS_I_GAIN:
-          posIGainThrottle_ = config.posIGain;
+        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_POS_I_GAIN:
+          pos_i_gain_throttle_ = config.posIGain;
           printf("change the i gain\n");
           break;
-        case jsk_quadcopter_common::DynamicReconfigureLevels::RECONFIGURE_POS_D_GAIN:
-          posDGainThrottle_ = config.posDGain;
+        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_POS_D_GAIN:
+          pos_d_gain_throttle_ = config.posDGain;
           printf("change the d gain\n");
           break;
-        case jsk_quadcopter_common::DynamicReconfigureLevels::RECONFIGURE_POS_P_GAIN_LAND:
-          posPGainThrottleLand_ = config.posPGainLand;
+        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_POS_P_GAIN_LAND:
+          pos_p_gain_throttle_land_ = config.posPGainLand;
           printf("change the p gain\n");
           break;
-        case jsk_quadcopter_common::DynamicReconfigureLevels::RECONFIGURE_POS_I_GAIN_LAND:
-          posIGainThrottleLand_ = config.posIGainLand;
+        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_POS_I_GAIN_LAND:
+          pos_i_gain_throttle_land_ = config.posIGainLand;
           printf("change the i gain\n");
           break;
-        case jsk_quadcopter_common::DynamicReconfigureLevels::RECONFIGURE_POS_D_GAIN_LAND:
-          posDGainThrottleLand_ = config.posDGainLand;
+        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_POS_D_GAIN_LAND:
+          pos_d_gain_throttle_land_ = config.posDGainLand;
           printf("change the d gain\n");
           break;
-        case jsk_quadcopter_common::DynamicReconfigureLevels::RECONFIGURE_CONST_P_CONTROL_THRESHOLD_LAND:
-          constPControlThreThrottleLand_ = config.constPControlThreLand;
+        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_CONST_P_CONTROL_THRESHOLD_LAND:
+          const_p_ctrl_thre_throttle_land_ = config.constPCtrlThreLand;
           printf("change const p control threshold throttle land\n");
           break;
-        case jsk_quadcopter_common::DynamicReconfigureLevels::RECONFIGURE_CONST_P_TERM_LEVEL1_VALUE_LAND:
-          constPTermLev1ValueThrottleLand_ = config.constPTermLev1ValueLand;
+        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_CONST_P_TERM_LEVEL1_VALUE_LAND:
+          const_p_term_lev1_value_throttle_land_ = config.constPTermLev1ValueLand;
           printf("change const p term level1 value throttle land\n");
           break;
-        case jsk_quadcopter_common::DynamicReconfigureLevels::RECONFIGURE_CONST_P_TERM_LEVEL2_VALUE_LAND:
-          constPTermLev2ValueThrottleLand_ = config.constPTermLev2ValueLand;
+        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_CONST_P_TERM_LEVEL2_VALUE_LAND:
+          const_p_term_lev2_value_throttle_land_ = config.constPTermLev2ValueLand;
           printf("change const p term level2 value throttle land\n");
           break;
-        case jsk_quadcopter_common::DynamicReconfigureLevels::RECONFIGURE_CONST_I_CONTROL_THRESHOLD_LAND:
-          constIControlThreThrottleLand_ = config.constIControlThreLand;
+        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_CONST_I_CONTROL_THRESHOLD_LAND:
+          const_i_ctrl_thre_throttle_land_ = config.constICtrlThreLand;
           printf("change const i control threshold throttle land\n");
           break;
-        case jsk_quadcopter_common::DynamicReconfigureLevels::RECONFIGURE_CONST_I_TERM_VALUE_LAND:
-          constITermValueThrottleLand_ = config.constITermValueLand;
+        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_CONST_I_TERM_VALUE_LAND:
+          const_i_term_value_throttle_land_ = config.constITermValueLand;
           printf("change const i term value throttle land\n");
           break;
-        case jsk_quadcopter_common::DynamicReconfigureLevels::RECONFIGURE_OFFSET:
-          offsetThrottle_ = config.offset;
+        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_OFFSET:
+          offset_throttle_ = config.offset;
           printf("change the offset\n");
           break;
-        case jsk_quadcopter_common::DynamicReconfigureLevels::RECONFIGURE_POS_LIMIT:
-          posLimitThrottle_ = config.posLimit;
+        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_POS_LIMIT:
+          pos_limit_throttle_ = config.posLimit;
           printf("change the limit\n");
           break;
-        case jsk_quadcopter_common::DynamicReconfigureLevels::RECONFIGURE_POS_P_LIMIT:
-          posPLimitThrottle_ = config.posPLimit;
+        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_POS_P_LIMIT:
+          pos_p_limit_throttle_ = config.posPLimit;
           printf("change the p limit\n");
           break;
-        case jsk_quadcopter_common::DynamicReconfigureLevels::RECONFIGURE_POS_P_LIMIT_HOVER:
-          posPLimitThrottleHover_ = config.posPLimitHover;
+        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_POS_P_LIMIT_HOVER:
+          pos_p_limit_throttle_hover_ = config.posPLimitHover;
           printf("change the p hover limit\n");
           break;
-        case jsk_quadcopter_common::DynamicReconfigureLevels::RECONFIGURE_POS_I_LIMIT:
-          posILimitThrottle_ = config.posILimit;
+        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_POS_I_LIMIT:
+          pos_i_limit_throttle_ = config.posILimit;
           printf("change the i limit\n");
           break;
-        case jsk_quadcopter_common::DynamicReconfigureLevels::RECONFIGURE_POS_D_LIMIT:
-          posDLimitThrottle_ = config.posDLimit;
+        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_POS_D_LIMIT:
+          pos_d_limit_throttle_ = config.posDLimit;
           printf("change the d limit\n");
           break;
-        case jsk_quadcopter_common::DynamicReconfigureLevels::RECONFIGURE_VEL_VALUE_LIMIT_HOVER:
-          velValueLimitThrottleHover_ = config.velValueLimitHover;
+        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_VEL_VALUE_LIMIT_HOVER:
+          vel_value_limit_throttle_hover_ = config.velValueLimitHover;
           printf("change the vel value limit\n");
           break;
-        case jsk_quadcopter_common::DynamicReconfigureLevels::RECONFIGURE_I_ENABLE_LIMIT_HOVER:
-          iEnableLimitThrottleHover_ = config.iEnableLimitHover;
+        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_I_ENABLE_LIMIT_HOVER:
+          i_enable_limit_throttle_hover_ = config.iEnableLimitHover;
           printf("change the i enable limit\n");
           break;
         default :
@@ -1054,12 +997,12 @@ void PidController::cfgThrottleCallback(jsk_quadcopter::PidThrottleControlConfig
     }
 }
 
-void PidController::rosParamInit()
+void PidController::rosParamInit(ros::NodeHandle nh)
 {
-  ros::NodeHandle pitch_node(controllerNodeHandlePrivate_, "pitch");
-  ros::NodeHandle roll_node(controllerNodeHandlePrivate_, "roll");
-  ros::NodeHandle throttle_node(controllerNodeHandlePrivate_, "throttle");
-  ros::NodeHandle yaw_node(controllerNodeHandlePrivate_, "yaw");
+  ros::NodeHandle pitch_node(nh, "pitch");
+  ros::NodeHandle roll_node(nh, "roll");
+  ros::NodeHandle throttle_node(nh, "throttle");
+  ros::NodeHandle yaw_node(nh, "yaw");
 
   std::string pitch_ns = pitch_node.getNamespace();
   std::string roll_ns = roll_node.getNamespace();
@@ -1067,276 +1010,264 @@ void PidController::rosParamInit()
   std::string yaw_ns = yaw_node.getNamespace();
 
   //**** throttle
-  if (!throttle_node.getParam ("ctrlLoopRate", throttleCtrlLoopRate_))
-    throttleCtrlLoopRate_ = 0;
-  printf("%s: ctrlLoopRate_ is %d\n", throttle_ns.c_str(), throttleCtrlLoopRate_);
+  if (!throttle_node.getParam ("ctrlLoopRate", throttle_ctrl_loop_rate_))
+    throttle_ctrl_loop_rate_ = 0;
+  printf("%s: ctrl_loop_rate_ is %d\n", throttle_ns.c_str(), throttle_ctrl_loop_rate_);
 
-  if (!throttle_node.getParam ("posPGain", posPGainThrottle_))
-    posPGainThrottle_ = 0;
-  printf("%s: posPGain_ is %.3f\n", throttle_ns.c_str(), posPGainThrottle_);
+  if (!throttle_node.getParam ("posPGain", pos_p_gain_throttle_))
+    pos_p_gain_throttle_ = 0;
+  printf("%s: pos_p_gain_ is %.3f\n", throttle_ns.c_str(), pos_p_gain_throttle_);
 
-  if (!throttle_node.getParam ("posIGain", posIGainThrottle_))
-    posIGainThrottle_ = 0;
-  printf("%s: posIGain_ is %.3f\n", throttle_ns.c_str(), posIGainThrottle_);
+  if (!throttle_node.getParam ("posIGain", pos_i_gain_throttle_))
+    pos_i_gain_throttle_ = 0;
+  printf("%s: pos_i_gain_ is %.3f\n", throttle_ns.c_str(), pos_i_gain_throttle_);
 
-  if (!throttle_node.getParam ("posDGain", posDGainThrottle_))
-    posDGainThrottle_ = 0;
-  printf("%s: posDGain_ is %.3f\n", throttle_ns.c_str(), posDGainThrottle_);
+  if (!throttle_node.getParam ("posDGain", pos_d_gain_throttle_))
+    pos_d_gain_throttle_ = 0;
+  printf("%s: pos_d_gain_ is %.3f\n", throttle_ns.c_str(), pos_d_gain_throttle_);
 
-  if (!throttle_node.getParam ("posPGainLand", posPGainThrottleLand_))
-    posPGainThrottleLand_ = 0;
-  printf("%s: posPGainLand_ is %.3f\n", throttle_ns.c_str(), posPGainThrottleLand_);
+  if (!throttle_node.getParam ("posPGainLand", pos_p_gain_throttle_land_))
+    pos_p_gain_throttle_land_ = 0;
+  printf("%s: pos_p_gain_land_ is %.3f\n", throttle_ns.c_str(), pos_p_gain_throttle_land_);
 
-  if (!throttle_node.getParam ("posIGainLand", posIGainThrottleLand_))
-    posIGainThrottleLand_ = 0;
-  printf("%s: posIGainLand_ is %.3f\n", throttle_ns.c_str(), posIGainThrottleLand_);
+  if (!throttle_node.getParam ("posIGainLand", pos_i_gain_throttle_land_))
+    pos_i_gain_throttle_land_ = 0;
+  printf("%s: pos_i_gain_land_ is %.3f\n", throttle_ns.c_str(), pos_i_gain_throttle_land_);
 
-  if (!throttle_node.getParam ("posDGainLand", posDGainThrottleLand_))
-    posDGainThrottleLand_ = 0;
-  printf("%s: posDGainLand_ is %.3f\n", throttle_ns.c_str(), posDGainThrottleLand_);
+  if (!throttle_node.getParam ("posDGainLand", pos_d_gain_throttle_land_))
+    pos_d_gain_throttle_land_ = 0;
+  printf("%s: pos_d_gain_land_ is %.3f\n", throttle_ns.c_str(), pos_d_gain_throttle_land_);
 
-  if (!throttle_node.getParam ("constPControlThreLand",  constPControlThreThrottleLand_))
-    constPControlThreThrottleLand_ = 0;
-  printf("%s: constPControlThreLand_ is %.3f\n", throttle_ns.c_str(), constPControlThreThrottleLand_);
+  if (!throttle_node.getParam ("constPCtrlThreLand",  const_p_ctrl_thre_throttle_land_))
+    const_p_ctrl_thre_throttle_land_ = 0;
+  printf("%s: const_p_ctrl_thre_land_ is %.3f\n", throttle_ns.c_str(), const_p_ctrl_thre_throttle_land_);
 
-  if(!throttle_node.getParam("constPTermLev1ValueLand",constPTermLev1ValueThrottleLand_))
-    constPTermLev1ValueThrottleLand_ = 0;
-  printf("%s: constPTermLev1ValueLand_ is %.3f\n", throttle_ns.c_str(), constPTermLev1ValueThrottleLand_);
+  if(!throttle_node.getParam("constPTermLev1ValueLand",const_p_term_lev1_value_throttle_land_))
+    const_p_term_lev1_value_throttle_land_ = 0;
+  printf("%s: const_p_term_lev1_value_land_ is %.3f\n", throttle_ns.c_str(), const_p_term_lev1_value_throttle_land_);
 
-  if(!throttle_node.getParam("constPTermLev2ValueLand",constPTermLev2ValueThrottleLand_))
-    constPTermLev2ValueThrottleLand_ = 0;
-  printf("%s: constPTermLev2ValueLand_ is %.3f\n", throttle_ns.c_str(), constPTermLev2ValueThrottleLand_);
+  if(!throttle_node.getParam("constPTermLev2ValueLand",const_p_term_lev2_value_throttle_land_))
+    const_p_term_lev2_value_throttle_land_ = 0;
+  printf("%s: const_p_term_lev2_value_land_ is %.3f\n", throttle_ns.c_str(), const_p_term_lev2_value_throttle_land_);
 
-  if (!throttle_node.getParam ("constIControlThreLand",  constIControlThreThrottleLand_))
-    constIControlThreThrottleLand_ = 0;
-  printf("%s: constIControlThreLand_ is %.3f\n", throttle_ns.c_str(), constIControlThreThrottleLand_);
+  if (!throttle_node.getParam ("constICtrlThreLand",  const_i_ctrl_thre_throttle_land_))
+    const_i_ctrl_thre_throttle_land_ = 0;
+  printf("%s: const_i_ctrl_thre_land_ is %.3f\n", throttle_ns.c_str(), const_i_ctrl_thre_throttle_land_);
 
-  if (!throttle_node.getParam ("constITermValueLand",  constITermValueThrottleLand_))
-    constITermValueThrottleLand_ = 0;
-  printf("%s: constITermValueLand_ is %.3f\n", throttle_ns.c_str(), constITermValueThrottleLand_);
+  if (!throttle_node.getParam ("constITermValueLand",  const_i_term_value_throttle_land_))
+    const_i_term_value_throttle_land_ = 0;
+  printf("%s: const_i_term_value_land_ is %.3f\n", throttle_ns.c_str(), const_i_term_value_throttle_land_);
 
-  if (!throttle_node.getParam ("offset", offsetThrottle_))
-    offsetThrottle_ = 0;
-  printf("%s: offset_ is %d\n", throttle_ns.c_str(), offsetThrottle_);
+  if (!throttle_node.getParam ("offset", offset_throttle_))
+    offset_throttle_ = 0;
+  printf("%s: offset_ is %d\n", throttle_ns.c_str(), offset_throttle_);
 
-  if (!throttle_node.getParam ("posLimit", posLimitThrottle_))
-    posLimitThrottle_ = 0;
-  printf("%s: posLimit_ is %d\n", throttle_ns.c_str(), posLimitThrottle_);
+  if (!throttle_node.getParam ("posLimit", pos_limit_throttle_))
+    pos_limit_throttle_ = 0;
+  printf("%s: pos_limit_ is %d\n", throttle_ns.c_str(), pos_limit_throttle_);
 
-  if (!throttle_node.getParam ("posPLimit", posPLimitThrottle_))
-    posPLimitThrottle_ = 0;
-  printf("%s: posPLimit_ is %d\n", throttle_ns.c_str(), posPLimitThrottle_);
+  if (!throttle_node.getParam ("posPLimit", pos_p_limit_throttle_))
+    pos_p_limit_throttle_ = 0;
+  printf("%s: pos_p_limit_ is %d\n", throttle_ns.c_str(), pos_p_limit_throttle_);
 
-  if (!throttle_node.getParam ("posPLimitHover", posPLimitThrottleHover_))
-    posPLimitThrottleHover_ = 0;
-  printf("%s: posPLimitHover_ is %d\n", throttle_ns.c_str(), posPLimitThrottleHover_);
+  if (!throttle_node.getParam ("posPLimitHover", pos_p_limit_throttle_hover_))
+    pos_p_limit_throttle_hover_ = 0;
+  printf("%s: pos_p_limit_hover_ is %d\n", throttle_ns.c_str(), pos_p_limit_throttle_hover_);
 
-  if (!throttle_node.getParam ("posILimit", posILimitThrottle_))
-    posILimitThrottle_ = 0;
-  printf("%s: posILimit_ is %d\n", throttle_ns.c_str(), posILimitThrottle_);
+  if (!throttle_node.getParam ("posILimit", pos_i_limit_throttle_))
+    pos_i_limit_throttle_ = 0;
+  printf("%s: pos_i_limit_ is %d\n", throttle_ns.c_str(), pos_i_limit_throttle_);
 
-  if (!throttle_node.getParam ("posDLimit", posDLimitThrottle_))
-    posDLimitThrottle_ = 0;
-  printf("%s: posDLimit_ is %d\n", throttle_ns.c_str(), posDLimitThrottle_);
+  if (!throttle_node.getParam ("posDLimit", pos_d_limit_throttle_))
+    pos_d_limit_throttle_ = 0;
+  printf("%s: pos_d_limit_ is %d\n", throttle_ns.c_str(), pos_d_limit_throttle_);
 
-  if (!throttle_node.getParam ("velValueLimitHover", velValueLimitThrottleHover_))
-    velValueLimitThrottleHover_ = 0;
-  printf("%s: velValueLimitHover_ is %.3f\n", throttle_ns.c_str(), velValueLimitThrottleHover_);
+  if (!throttle_node.getParam ("velValueLimitHover", vel_value_limit_throttle_hover_))
+    vel_value_limit_throttle_hover_ = 0;
+  printf("%s: vel_value_limit_hover_ is %.3f\n", throttle_ns.c_str(), vel_value_limit_throttle_hover_);
 
-  if (!throttle_node.getParam ("iEnableLimitHover", iEnableLimitThrottleHover_))
-    iEnableLimitThrottleHover_ = 0;
-  printf("%s: iEnableLimitHover_ is %.3f\n", throttle_ns.c_str(), iEnableLimitThrottleHover_);
+  if (!throttle_node.getParam ("iEnableLimitHover", i_enable_limit_throttle_hover_))
+    i_enable_limit_throttle_hover_ = 0;
+  printf("%s: i_enable_limit_hover_ is %.3f\n", throttle_ns.c_str(), i_enable_limit_throttle_hover_);
 
-  if (!throttle_node.getParam ("rocketStartInitValue", rocketStartInitValue_))
-    rocketStartInitValue_ = 0;
-  printf("%s: rocketStartInitValue_ is %d\n", throttle_ns.c_str(), rocketStartInitValue_);
+  if (!throttle_node.getParam ("rocketStartInitValue", rocket_start_init_value_))
+    rocket_start_init_value_ = 0;
+  printf("%s: rocket_start_init_value_ is %d\n", throttle_ns.c_str(), rocket_start_init_value_);
 
-  if (!throttle_node.getParam ("rocketStartInitIncrementValue", rocketStartInitIncrementValue_))
-    rocketStartInitIncrementValue_ = 0;
-  printf("%s: rocketStartInitIncrementValue_ is %d\n", throttle_ns.c_str(), rocketStartInitIncrementValue_);
+  if (!throttle_node.getParam ("rocketStartInitIncrementValue", rocket_start_init_increment_value_))
+    rocket_start_init_increment_value_ = 0;
+  printf("%s: rocket_start_init_increment_value_ is %d\n", throttle_ns.c_str(), rocket_start_init_increment_value_);
 
-  if (!throttle_node.getParam ("rocketStartStepValue", rocketStartStepValue_))
-    rocketStartStepValue_ = 0;
-  printf("%s: rocketStartStepValue_ is %d\n", throttle_ns.c_str(), rocketStartStepValue_);
+  if (!throttle_node.getParam ("rocketStartStepValue", rocket_start_step_value_))
+    rocket_start_step_value_ = 0;
+  printf("%s: rocket_start_step_value_ is %d\n", throttle_ns.c_str(), rocket_start_step_value_);
 
-  if (!throttle_node.getParam ("throwingModeInitValueFromRocketStart", throwingModeInitValueFromRocketStart_))
-    throwingModeInitValueFromRocketStart_ = 0;
-  printf("%s: throwingModeInitValueFromRocketStart_ is %d\n", throttle_ns.c_str(), throwingModeInitValueFromRocketStart_);
+  if (!throttle_node.getParam ("throwingModeInitValueFromRocketStart", throwing_mode_init_value_from_rocket_start_))
+    throwing_mode_init_value_from_rocket_start_ = 0;
+  printf("%s: throwing_mode_init_value_from_rocket_start_ is %d\n", throttle_ns.c_str(), throwing_mode_init_value_from_rocket_start_);
 
-  if (!throttle_node.getParam ("freeFallStepValue", freeFallStepValue_))
-    freeFallStepValue_ = 0;
-  printf("%s: freeFallStepValue_ is %d\n", throttle_ns.c_str(), freeFallStepValue_);
+  if (!throttle_node.getParam ("freeFallStepValue", free_fall_step_value_))
+    free_fall_step_value_ = 0;
+  printf("%s: free_fall_step_value_ is %d\n", throttle_ns.c_str(), free_fall_step_value_);
 
-  if (!throttle_node.getParam ("motorStopValue", motorStopValue_))
-    motorStopValue_ = 0;
-  printf("%s: motorStopValue_ is %d\n", throttle_ns.c_str(), motorStopValue_);
+  if (!throttle_node.getParam ("motorStopValue", motor_stop_value_))
+    motor_stop_value_ = 0;
+  printf("%s: motor_stop_value_ is %d\n", throttle_ns.c_str(), motor_stop_value_);
 
   //**** pitch
-  if (!pitch_node.getParam ("ctrlLoopRate", pitchCtrlLoopRate_))
-    pitchCtrlLoopRate_ = 0;
-  printf("%s: ctrlLoopRate_ is %d\n", pitch_ns.c_str(), pitchCtrlLoopRate_);
+  if (!pitch_node.getParam ("ctrlLoopRate", pitch_ctrl_loop_rate_))
+    pitch_ctrl_loop_rate_ = 0;
+  printf("%s: ctrl_loop_rate_ is %d\n", pitch_ns.c_str(), pitch_ctrl_loop_rate_);
 
-  if (!pitch_node.getParam ("posPGain", posPGainPitch_))
-    posPGainPitch_ = 0;
-  printf("%s: posPGain_ is %.3f\n", pitch_ns.c_str(), posPGainPitch_);
+  if (!pitch_node.getParam ("posPGain", pos_p_gain_pitch_))
+    pos_p_gain_pitch_ = 0;
+  printf("%s: pos_p_gain_ is %.3f\n", pitch_ns.c_str(), pos_p_gain_pitch_);
 
-  if (!pitch_node.getParam ("posIGain", posIGainPitch_))
-    posIGainPitch_ = 0;
-  printf("%s: posIGain_ is %.3f\n", pitch_ns.c_str(), posIGainPitch_);
+  if (!pitch_node.getParam ("posIGain", pos_i_gain_pitch_))
+    pos_i_gain_pitch_ = 0;
+  printf("%s: pos_i_gain_ is %.3f\n", pitch_ns.c_str(), pos_i_gain_pitch_);
 
-  if (!pitch_node.getParam ("posIGainHover", posIGainPitchHover_))
-    posIGainPitchHover_ = 0;
-  printf("%s: posIGainHover_ is %.3f\n", pitch_ns.c_str(), posIGainPitchHover_);
+  if (!pitch_node.getParam ("posIGainHover", pos_i_gain_pitch_hover_))
+    pos_i_gain_pitch_hover_ = 0;
+  printf("%s: pos_i_gain_hover_ is %.3f\n", pitch_ns.c_str(), pos_i_gain_pitch_hover_);
 
-  if (!pitch_node.getParam ("posDGain", posDGainPitch_))
-    posDGainPitch_ = 0;
-  printf("%s: posDGain_ is %.3f\n", pitch_ns.c_str(), posDGainPitch_);
+  if (!pitch_node.getParam ("posDGain", pos_d_gain_pitch_))
+    pos_d_gain_pitch_ = 0;
+  printf("%s: pos_d_gain_ is %.3f\n", pitch_ns.c_str(), pos_d_gain_pitch_);
 
-  if (!pitch_node.getParam ("velPGain", velPGainPitch_))
-    velPGainPitch_ = 0;
-  printf("%s: velPGain_ is %.3f\n", pitch_ns.c_str(), velPGainPitch_);
+  if (!pitch_node.getParam ("velPGain", vel_p_gain_pitch_))
+    vel_p_gain_pitch_ = 0;
+  printf("%s: vel_p_gain_ is %.3f\n", pitch_ns.c_str(), vel_p_gain_pitch_);
 
-  if (!pitch_node.getParam ("velIGain", velIGainPitch_))
-    velIGainPitch_ = 0;
-  printf("%s: velIGain_ is %.3f\n", pitch_ns.c_str(), velIGainPitch_);
+  if (!pitch_node.getParam ("velIGain", vel_i_gain_pitch_))
+    vel_i_gain_pitch_ = 0;
+  printf("%s: vel_i_gain_ is %.3f\n", pitch_ns.c_str(), vel_i_gain_pitch_);
 
 
-  if (!pitch_node.getParam ("offset", offsetPitch_))
-    offsetPitch_ = 0;
-  printf("%s: offset_ is %d\n", pitch_ns.c_str(), offsetPitch_);
+  if (!pitch_node.getParam ("offset", offset_pitch_))
+    offset_pitch_ = 0;
+  printf("%s: offset_ is %d\n", pitch_ns.c_str(), offset_pitch_);
 
-  if (!pitch_node.getParam ("posLimit", posLimitPitch_))
-    posLimitPitch_ = 0;
-  printf("%s: posLimit_ is %d\n", pitch_ns.c_str(), posLimitPitch_);
+  if (!pitch_node.getParam ("posLimit", pos_limit_pitch_))
+    pos_limit_pitch_ = 0;
+  printf("%s: pos_limit_ is %d\n", pitch_ns.c_str(), pos_limit_pitch_);
 
-  if (!pitch_node.getParam ("posPLimit", posPLimitPitch_))
-    posPLimitPitch_ = 0;
-  printf("%s: posPLimit_ is %d\n", pitch_ns.c_str(), posPLimitPitch_);
+  if (!pitch_node.getParam ("posPLimit", pos_p_limit_pitch_))
+    pos_p_limit_pitch_ = 0;
+  printf("%s: pos_p_limit_ is %d\n", pitch_ns.c_str(), pos_p_limit_pitch_);
 
-  if (!pitch_node.getParam ("posILimit", posILimitPitch_))
-    posILimitPitch_ = 0;
-  printf("%s: posILimit_ is %d\n", pitch_ns.c_str(), posILimitPitch_);
+  if (!pitch_node.getParam ("posILimit", pos_i_limit_pitch_))
+    pos_i_limit_pitch_ = 0;
+  printf("%s: pos_i_limit_ is %d\n", pitch_ns.c_str(), pos_i_limit_pitch_);
 
-  if (!pitch_node.getParam ("posDLimit", posDLimitPitch_))
-    posDLimitPitch_ = 0;
-  printf("%s: posDLimit_ is %d\n", pitch_ns.c_str(), posDLimitPitch_);
+  if (!pitch_node.getParam ("posDLimit", pos_d_limit_pitch_))
+    pos_d_limit_pitch_ = 0;
+  printf("%s: pos_d_limit_ is %d\n", pitch_ns.c_str(), pos_d_limit_pitch_);
 
-  if (!pitch_node.getParam ("velValueLimit", velValueLimitPitch_))
-    velValueLimitPitch_ = 0;
-  printf("%s: velValueLimit_ is %.3f\n", pitch_ns.c_str(), velValueLimitPitch_);
+  if (!pitch_node.getParam ("velValueLimit", vel_value_limit_pitch_))
+    vel_value_limit_pitch_ = 0;
+  printf("%s: vel_value_limit_ is %.3f\n", pitch_ns.c_str(), vel_value_limit_pitch_);
 
-  if (!pitch_node.getParam ("iEnableLimit", iEnableLimitPitch_))
-    iEnableLimitPitch_ = 0;
-  printf("%s: iEnableLimit_ is %.3f\n", pitch_ns.c_str(), iEnableLimitPitch_);
+  if (!pitch_node.getParam ("iEnableLimit", i_enable_limit_pitch_))
+    i_enable_limit_pitch_ = 0;
+  printf("%s: i_enable_limit_ is %.3f\n", pitch_ns.c_str(), i_enable_limit_pitch_);
 
   //***** roll
-  if (!roll_node.getParam ("ctrlLoopRate", rollCtrlLoopRate_))
-    rollCtrlLoopRate_ = 0;
-  printf("%s: ctrlLoopRate_ is %d\n", roll_ns.c_str(), rollCtrlLoopRate_);
+  if (!roll_node.getParam ("ctrlLoopRate", roll_ctrl_loop_rate_))
+    roll_ctrl_loop_rate_ = 0;
+  printf("%s: ctrl_loop_rate_ is %d\n", roll_ns.c_str(), roll_ctrl_loop_rate_);
 
-  if (!roll_node.getParam ("posPGain", posPGainRoll_))
-    posPGainRoll_ = 0;
-  printf("%s: posPGain_ is %.3f\n", roll_ns.c_str(), posPGainRoll_);
+  if (!roll_node.getParam ("posPGain", pos_p_gain_roll_))
+    pos_p_gain_roll_ = 0;
+  printf("%s: pos_p_gain_ is %.3f\n", roll_ns.c_str(), pos_p_gain_roll_);
 
-  if (!roll_node.getParam ("posIGain", posIGainRoll_))
-    posIGainRoll_ = 0;
-  printf("%s: posIGain_ is %.3f\n", roll_ns.c_str(), posIGainRoll_);
+  if (!roll_node.getParam ("posIGain", pos_i_gain_roll_))
+    pos_i_gain_roll_ = 0;
+  printf("%s: pos_i_gain_ is %.3f\n", roll_ns.c_str(), pos_i_gain_roll_);
 
-  if (!roll_node.getParam ("posIGainHover", posIGainRollHover_))
-    posIGainRollHover_ = 0;
-  printf("%s: posIGainHover_ is %.3f\n", roll_ns.c_str(), posIGainRollHover_);
+  if (!roll_node.getParam ("posIGainHover", pos_i_gain_roll_hover_))
+    pos_i_gain_roll_hover_ = 0;
+  printf("%s: pos_i_gain_hover_ is %.3f\n", roll_ns.c_str(), pos_i_gain_roll_hover_);
 
-  if (!roll_node.getParam ("posDGain", posDGainRoll_))
-    posDGainRoll_ = 0;
-  printf("%s: posDGain_ is %.3f\n", roll_ns.c_str(), posDGainRoll_);
+  if (!roll_node.getParam ("posDGain", pos_d_gain_roll_))
+    pos_d_gain_roll_ = 0;
+  printf("%s: pos_d_gain_ is %.3f\n", roll_ns.c_str(), pos_d_gain_roll_);
 
-  if (!roll_node.getParam ("velPGain", velPGainRoll_))
-    velPGainRoll_ = 0;
-  printf("%s: velPGain_ is %.3f\n", roll_ns.c_str(), velPGainRoll_);
+  if (!roll_node.getParam ("velPGain", vel_p_gain_roll_))
+    vel_p_gain_roll_ = 0;
+  printf("%s: vel_p_gain_ is %.3f\n", roll_ns.c_str(), vel_p_gain_roll_);
 
-  if (!roll_node.getParam ("velIGain", velIGainRoll_))
-    velIGainRoll_ = 0;
-  printf("%s: velIGain_ is %.3f\n", roll_ns.c_str(), velIGainRoll_);
+  if (!roll_node.getParam ("velIGain", vel_i_gain_roll_))
+    vel_i_gain_roll_ = 0;
+  printf("%s: vel_i_gain_ is %.3f\n", roll_ns.c_str(), vel_i_gain_roll_);
 
+  if (!roll_node.getParam ("offset", offset_roll_))
+    offset_roll_ = 0;
+  printf("%s: offset_ is %d\n", roll_ns.c_str(), offset_roll_);
 
-  if (!roll_node.getParam ("offset", offsetRoll_))
-    offsetRoll_ = 0;
-  printf("%s: offset_ is %d\n", roll_ns.c_str(), offsetRoll_);
+  if (!roll_node.getParam ("posLimit", pos_limit_roll_))
+    pos_limit_roll_ = 0;
+  printf("%s: pos_limit_ is %d\n", roll_ns.c_str(), pos_limit_roll_);
 
-  if (!roll_node.getParam ("posLimit", posLimitRoll_))
-    posLimitRoll_ = 0;
-  printf("%s: posLimit_ is %d\n", roll_ns.c_str(), posLimitRoll_);
+  if (!roll_node.getParam ("posPLimit", pos_p_limit_roll_))
+    pos_p_limit_roll_ = 0;
+  printf("%s: pos_p_limit_ is %d\n", roll_ns.c_str(), pos_p_limit_roll_);
 
-  if (!roll_node.getParam ("posPLimit", posPLimitRoll_))
-    posPLimitRoll_ = 0;
-  printf("%s: posPLimit_ is %d\n", roll_ns.c_str(), posPLimitRoll_);
+  if (!roll_node.getParam ("posILimit", pos_i_limit_roll_))
+    pos_i_limit_roll_ = 0;
+  printf("%s: pos_i_limit_ is %d\n", roll_ns.c_str(), pos_i_limit_roll_);
 
-  if (!roll_node.getParam ("posILimit", posILimitRoll_))
-    posILimitRoll_ = 0;
-  printf("%s: posILimit_ is %d\n", roll_ns.c_str(), posILimitRoll_);
+  if (!roll_node.getParam ("posDLimit", pos_d_limit_roll_))
+    pos_d_limit_roll_ = 0;
+  printf("%s: pos_d_limit_ is %d\n", roll_ns.c_str(), pos_d_limit_roll_);
 
-  if (!roll_node.getParam ("posDLimit", posDLimitRoll_))
-    posDLimitRoll_ = 0;
-  printf("%s: posDLimit_ is %d\n", roll_ns.c_str(), posDLimitRoll_);
+  if (!roll_node.getParam ("velValueLimit", vel_value_limit_roll_))
+    vel_value_limit_roll_ = 0;
+  printf("%s: vel_value_limit_ is %.3f\n", roll_ns.c_str(), vel_value_limit_roll_);
 
-  if (!roll_node.getParam ("velValueLimit", velValueLimitRoll_))
-    velValueLimitRoll_ = 0;
-  printf("%s: velValueLimit_ is %.3f\n", roll_ns.c_str(), velValueLimitRoll_);
-
-  if (!roll_node.getParam ("iEnableLimit", iEnableLimitRoll_))
-    iEnableLimitRoll_ = 0;
-  printf("%s: iEnableLimit_ is %.3f\n", roll_ns.c_str(), iEnableLimitRoll_);
+  if (!roll_node.getParam ("iEnableLimit", i_enable_limit_roll_))
+    i_enable_limit_roll_ = 0;
+  printf("%s: i_enable_limit_ is %.3f\n", roll_ns.c_str(), i_enable_limit_roll_);
 
   //**** yaw
-  if (!yaw_node.getParam ("posPGain", posPGainYaw_))
-    posPGainYaw_ = 0;
-  printf("%s: posPGain_ is %.3f\n", yaw_ns.c_str(), posPGainYaw_);
+  if (!yaw_node.getParam ("posPGain", pos_p_gain_yaw_))
+    pos_p_gain_yaw_ = 0;
+  printf("%s: pos_p_gain_ is %.3f\n", yaw_ns.c_str(), pos_p_gain_yaw_);
 
-  if (!yaw_node.getParam ("posIGain", posIGainYaw_))
-    posIGainYaw_ = 0;
-  printf("%s: posIGain_ is %.3f\n", yaw_ns.c_str(), posIGainYaw_);
+  if (!yaw_node.getParam ("posIGain", pos_i_gain_yaw_))
+    pos_i_gain_yaw_ = 0;
+  printf("%s: pos_i_gain_ is %.3f\n", yaw_ns.c_str(), pos_i_gain_yaw_);
 
-  if (!yaw_node.getParam ("posDGain", posDGainYaw_))
-    posDGainYaw_ = 0;
-  printf("%s: posDGain_ is %.3f\n", yaw_ns.c_str(), posDGainYaw_);
+  if (!yaw_node.getParam ("posDGain", pos_d_gain_yaw_))
+    pos_d_gain_yaw_ = 0;
+  printf("%s: pos_d_gain_ is %.3f\n", yaw_ns.c_str(), pos_d_gain_yaw_);
 
-  if (!yaw_node.getParam ("posLimit", posLimitYaw_))
-    posLimitYaw_ = 0;
-  printf("%s: posLimit_ is %d\n", yaw_ns.c_str(), posLimitYaw_);
+  if (!yaw_node.getParam ("posLimit", pos_limit_yaw_))
+    pos_limit_yaw_ = 0;
+  printf("%s: pos_limit_ is %d\n", yaw_ns.c_str(), pos_limit_yaw_);
 
-  if (!yaw_node.getParam ("posPLimit", posPLimitYaw_))
-    posPLimitYaw_ = 0;
-  printf("%s: posPLimit_ is %d\n", yaw_ns.c_str(), posPLimitYaw_);
+  if (!yaw_node.getParam ("posPLimit", pos_p_limit_yaw_))
+    pos_p_limit_yaw_ = 0;
+  printf("%s: pos_p_limit_ is %d\n", yaw_ns.c_str(), pos_p_limit_yaw_);
 
-  if (!yaw_node.getParam ("posILimit", posILimitYaw_))
-    posILimitYaw_ = 0;
-  printf("%s: posILimit_ is %d\n", yaw_ns.c_str(), posILimitYaw_);
+  if (!yaw_node.getParam ("posILimit", pos_i_limit_yaw_))
+    pos_i_limit_yaw_ = 0;
+  printf("%s: pos_i_limit_ is %d\n", yaw_ns.c_str(), pos_i_limit_yaw_);
 
-  if (!yaw_node.getParam ("posDLimit", posDLimitYaw_))
-    posDLimitYaw_ = 0;
-  printf("%s: posDLimit_ is %d\n", yaw_ns.c_str(), posDLimitYaw_);
+  if (!yaw_node.getParam ("posDLimit", pos_d_limit_yaw_))
+    pos_d_limit_yaw_ = 0;
+  printf("%s: pos_d_limit_ is %d\n", yaw_ns.c_str(), pos_d_limit_yaw_);
 
-  if (!yaw_node.getParam ("velValueLimit", velValueLimitYaw_))
-    velValueLimitYaw_ = 0;
-  printf("%s: velValueLimit_ is %.3f\n", yaw_ns.c_str(), velValueLimitYaw_);
+  if (!yaw_node.getParam ("velValueLimit", vel_value_limit_yaw_))
+    vel_value_limit_yaw_ = 0;
+  printf("%s: vel_value_limit_ is %.3f\n", yaw_ns.c_str(), vel_value_limit_yaw_);
 
-  if (!yaw_node.getParam ("iEnableLimit", iEnableLimitYaw_))
-    iEnableLimitYaw_ = 0;
-  printf("%s: iEnableLimit_ is %.3f\n", yaw_ns.c_str(), iEnableLimitYaw_);
+  if (!yaw_node.getParam ("iEnableLimit", i_enable_limit_yaw_))
+    i_enable_limit_yaw_ = 0;
+  printf("%s: i_enable_limit_ is %.3f\n", yaw_ns.c_str(), i_enable_limit_yaw_);
 
-  if (!yaw_node.getParam ("ctrlLoopRate", yawCtrlLoopRate_))
-    yawCtrlLoopRate_ = 0;
-  printf("%s: ctrlLoopRate_ is %d\n", yaw_ns.c_str(), yawCtrlLoopRate_);
+  if (!yaw_node.getParam ("ctrlLoopRate", yaw_ctrl_loop_rate_))
+    yaw_ctrl_loop_rate_ = 0;
+  printf("%s: ctrl_loop_rate_ is %d\n", yaw_ns.c_str(), yaw_ctrl_loop_rate_);
 
-}
-
-void PidController::setControlBoardToAsctec()
-{
-  controlBoard_ = ASCTEC_BOARD;
-  printf("change control board from kduino to asctec\n");
-}
-
-uint8_t PidController::getControlBoard()
-{
-  return controlBoard_;
 }

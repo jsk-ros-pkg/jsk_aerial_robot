@@ -86,7 +86,7 @@ class MocapData
     estimator->setStatePosY(pose_msg->posY);
     estimator->setStatePosZ(pose_msg->posZ);
     estimator->setStatePsiCog(pose_msg->psi + cog_rotate_offset_);
-    estimator->setStatePsiBody(pose_msg->psi);
+    estimator->setStatePsiBoard(pose_msg->psi);
     //ROS_INFO("angle from map to cog is %f", pose_msg->psi + cog_rotate_offset_);
     estimator->setStateVelX(pose_msg->velX);
     estimator->setStateVelY(pose_msg->velY);

@@ -18,7 +18,7 @@ AerialRobotBase::AerialRobotBase(ros::NodeHandle nh, ros::NodeHandle nh_private)
       navigator_ = new TeleopNavigator(nh_, nhp_, estimator_, flight_ctrl_input_, tx_loop_rate_);
 
       //*** pid controller
-      controller_ = new PidController(nh_, nhp_, tx_loop_rate_);
+      controller_ = new PidController(nh_, nhp_, navigator_, estimator_, flight_ctrl_input_, tx_loop_rate_);
 
 
       // if(trackingFlag_)

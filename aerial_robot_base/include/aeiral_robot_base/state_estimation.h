@@ -38,8 +38,8 @@ class BasicEstimator
       outerEstimateVelPhy = 0;
       outerEstimatePsiCog = 0;
       outerEstimateVelPsiCog = 0;
-      outerEstimatePsiBody = 0;
-      outerEstimateVelPsiBody = 0;
+      outerEstimatePsiBoard = 0;
+      outerEstimateVelPsiBoard = 0;
 
 
       statePosZOffset = 1.0; //1m
@@ -72,8 +72,8 @@ class BasicEstimator
   virtual float getStateAccZb(){ return 0;}
   virtual float getStateTheta(){ return 0;}
   virtual float getStatePhy(){ return 0;}
-  virtual float getStatePsiBody(){ return 0;}
-  virtual float getStateVelPsiBody(){ return 0;}
+  virtual float getStatePsiBoard(){ return 0;}
+  virtual float getStateVelPsiBoard(){ return 0;}
   virtual float getStatePsiCog(){ return 0;}
   virtual float getStateVelPsiCog(){ return 0;}
 
@@ -150,16 +150,16 @@ class BasicEstimator
       outerEstimateVelPsiCog = value;
   }
 
-  virtual void setStatePsiBody(float value) //body frame
+  virtual void setStatePsiBoard(float value) //body frame
   {
     if(useOuterPoseEstimate & YAW_AXIS)
-      outerEstimatePsiBody = value;
+      outerEstimatePsiBoard = value;
   }
 
-  virtual void setStateVelPsiBody(float value)
+  virtual void setStateVelPsiBoard(float value)
   {
     if(useOuterVelEstimate & YAW_AXIS)
-      outerEstimateVelPsiBody = value;
+      outerEstimateVelPsiBoard = value;
   }
 
   virtual void setStatePsi(float value) //both cog and body
@@ -167,7 +167,7 @@ class BasicEstimator
     if(useOuterPoseEstimate & YAW_AXIS)
       {
         outerEstimatePsiCog = value;
-        outerEstimatePsiBody = value;
+        outerEstimatePsiBoard = value;
       }
   }
 
@@ -176,7 +176,7 @@ class BasicEstimator
     if(useOuterVelEstimate & YAW_AXIS)
       {
         outerEstimateVelPsiCog = value;
-        outerEstimateVelPsiBody = value;
+        outerEstimateVelPsiBoard = value;
       }
   }
 
@@ -229,8 +229,8 @@ class BasicEstimator
   float outerEstimateVelPhy;
   float outerEstimatePsiCog;
   float outerEstimateVelPsiCog;
-  float outerEstimatePsiBody;
-  float outerEstimateVelPsiBody;
+  float outerEstimatePsiBoard;
+  float outerEstimateVelPsiBoard;
 
   float statePosZOffset; 
   uint8_t useOuterPoseEstimate;
@@ -334,8 +334,8 @@ class RigidEstimator : public BasicEstimator
   float getStatePhy();
   float getStatePsiCog();
   float getStateVelPsiCog();
-  float getStatePsiBody();
-  float getStateVelPsiBody();
+  float getStatePsiBoard();
+  float getStateVelPsiBoard();
 
 
   //+*+*+* option

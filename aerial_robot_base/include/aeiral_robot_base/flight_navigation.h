@@ -25,63 +25,55 @@ class Navigator
             int ctrl_loop_rate);
   virtual ~Navigator();
 
-  //*** startAble
-  bool getStartAble();
-  void startNavigation();
-  void stopNavigation();
 
-  //*** flightAble
-  bool getFlightAble();
-  void startFlight();
-  void stopFlight();
-  //*** command type
-  uint8_t getNaviCommand();
-  void setNaviCommand(const uint8_t  command);
+  inline bool getStartAble(){  return start_able_;}
+  inline void startNavigation(){  start_able_ = true;}
+  inline void stopNavigation() {  start_able_ = false;}
+  inline bool getFlightAble(){  return flight_able_;}
+  inline void startFlight(){  flight_able_ = true;}
+  inline void stopFlight(){  flight_able_ = false;}
+
+  inline uint8_t getNaviCommand(){  return navi_command_;}
+  inline void setNaviCommand(const uint8_t  command){ navi_command_ = command;}
+
+
+  inline float getTargetPosX(){  return current_target_pos_x_;}
+  inline void setTargetPosX( float value){  final_target_pos_x_ = value;}
+  inline void addTargetPosX( float value){  final_target_pos_x_ += value;}
+  inline float getTargetVelX(){  return current_target_vel_x_;}
+  inline void setTargetVelX( float value){  final_target_vel_x_= value;}
+  inline float getTargetPosY(){  return current_target_pos_y_;}
+  inline void setTargetPosY( float value){  final_target_pos_y_ = value;}
+  inline void addTargetPosY( float value){  final_target_pos_y_ += value;}
+  inline float getTargetVelY(){  return current_target_vel_y_;}
+  inline void setTargetVelY( float value){  final_target_vel_y_ = value;}
+  inline float getTargetPosZ(){  return current_target_pos_z_;}
+  inline void setTargetPosZ( float value){  final_target_pos_z_ = value;}
+  inline void addTargetPosZ( float value){  final_target_pos_z_ += value;}
+  inline float getTargetVelZ(){  return current_target_vel_z_;}
+  inline void setTargetVelZ( float value){  final_target_vel_z_ = value;}
+  inline float getTargetTheta(){  return current_target_theta_;}
+  inline void setTargetTheta( float value){  final_target_theta_ = value;}
+  inline float getTargetVelTheta(){  return current_target_vel_theta_; }
+  inline void setTargetVelTheta( float value){  final_target_vel_theta_ = value;}
+  inline float getTargetPhy(){  return current_target_phy_;}
+  inline void setTargetPhy( float value){  final_target_phy_ = value;}
+  inline float getTargetVelPhy(){  return current_target_vel_phy_;}
+  inline void setTargetVelPhy( float value){  final_target_vel_phy_ = value;}
+  inline float getTargetPsi(){  return current_target_psi_;}
+  inline void setTargetPsi( float value){  final_target_psi_ = value;}
+  inline float getTargetVelPsi(){  return current_target_vel_psi_;}
+  inline void setTargetVelPsi( float value){  final_target_vel_psi_ = value;}
+
+
   void tfPublish();
 
-  float getTargetPosX();
-  void setTargetPosX(float value);
-  void addTargetPosX(float value);
-  float getTargetVelX();
-  void setTargetVelX(float value);
-  float getTargetPosY();
-  void setTargetPosY(float value);
-  void addTargetPosY(float value);
-  float getTargetVelY();
-  void setTargetVelY(float value);
-  float getTargetPosZ();
-  void setTargetPosZ(float value);
-  void addTargetPosZ(float value);
-  float getTargetVelZ();
-  void setTargetVelZ(float value);
-  float getTargetTheta();
-  void setTargetTheta(float value);
-  float getTargetVelTheta();
-  void setTargetVelTheta(float value);
-  float getTargetPhy();
-  void setTargetPhy(float value);
-  float getTargetVelPhy();
-  void setTargetVelPhy(float value);
-  float getTargetPsi();
-  void setTargetPsi(float value);
-  float getTargetVelPsi();
-  void setTargetVelPsi(float value);
-
-
-  virtual uint8_t getFlightMode(); //for teleop navigator
-  virtual void  setXyControlMode(uint8_t mode); //for teleop navigator
-  virtual uint8_t getXyControlMode(); //for teleop navigator
-  virtual bool getXyVelModePosCtrlTakeoff();
-  virtual  bool getMotorStopFlag();
-  virtual  void setMotorStopFlag(bool motor_stop_flag);
-  virtual  bool getFreeFallFlag();
-  virtual  void resetFreeFallFlag();
-  virtual  uint8_t getThrowingMode();
 
 
   const static uint8_t POS_CONTROL_COMMAND = 0;
   const static uint8_t VEL_CONTROL_COMMAND = 1;
 
+  // navi command
   static const uint8_t START_COMMAND = 0x00;
   static const uint8_t STOP_COMMAND = 0x01;
   static const uint8_t IDLE_COMMAND = 0x02;
@@ -89,11 +81,20 @@ class Navigator
   static const uint8_t LAND_COMMAND = 0x04;
   static const uint8_t HOVER_COMMAND= 0x05;
 
+  //flight mode
+  const static uint8_t TAKEOFF_MODE = 0;
+  const static uint8_t FLIGHT_MODE = 1;
+  const static uint8_t LAND_MODE = 2;
+  const static uint8_t NO_CONTROL_MODE = 3; 
+  const static uint8_t RESET_MODE = 4;
 
-  //for throwing start, not good
-  const static uint8_t THROWING_START_STANDBY = 0x31;
-  const static uint8_t THROWING_START_ARMINGON = 0x32;
-  const static uint8_t THROWING_START_ALTHOLD = 0x33;
+
+  const static uint8_t MAP_FRAME = 0;
+  const static uint8_t BODY_FRAME = 1;
+
+
+
+
 
   //for ros arm/disarm cmd
   const static uint8_t ARM_ON_CMD = 150;
@@ -168,8 +169,6 @@ class TeleopNavigator :public Navigator
                   int ctrl_loop_rate);
   virtual ~TeleopNavigator();
 
-  void teleopNavigation();
-  void sendRcCmd();
 
   void takeoffCallback(const std_msgs::EmptyConstPtr & msg);
   void startCallback(const std_msgs::EmptyConstPtr & msg);
@@ -181,41 +180,36 @@ class TeleopNavigator :public Navigator
   void throttleCallback(const std_msgs::Int8ConstPtr & msg);
 
   void joyStickControl(const sensor_msgs::JoyConstPtr joy_msg);
-  void flightNavCallback(const aeiral_robot_base::FlightNavConstPtr& msg);
 
   void xyControlModeCallback(const std_msgs::Int8ConstPtr & msg);
   void armingAckCallback(const std_msgs::Int8ConstPtr& ack_msg);
 
+  //for navigation => TODO
+  void flightNavCallback(const aeiral_robot_base::FlightNavConstPtr& msg);
+
   void targetValueCorrection();
+  void throwingModeNavi();
+  void teleopNavigation();
+  void sendRcCmd();
 
-  void throwingModeNavi(Estimator* estimator);
-  uint8_t getThrowingMode(); 
 
-  uint8_t getFlightMode();
-  void  setXyControlMode(uint8_t mode); 
-  uint8_t getXyControlMode(); 
-
-  bool getMotorStopFlag();
-  void setMotorStopFlag(bool motor_stop_flag); 
-
-  bool getFreeFallFlag();
-  void resetFreeFallFlag(); 
-
-  bool getXyVelModePosCtrlTakeoff();
-
-  const static uint8_t MAP_FRAME = 0;
-  const static uint8_t BODY_FRAME = 1;
-
-  //for pidFunction
-  const static uint8_t TAKEOFF_MODE = 0;
-  const static uint8_t FLIGHT_MODE = 1;
-  const static uint8_t LAND_MODE = 2;
-  const static uint8_t NO_CONTROL_MODE = 3; 
-  const static uint8_t RESET_MODE = 4;
+  inline uint8_t getFlightMode(){  return flight_mode_;}
+  inline uint8_t getXyControlMode(){  return (uint8_t)xy_control_mode_;}
+  inline void setXyControlMode(uint8_t mode){  xy_control_mode_ = mode;}
+  inline bool getMotorStopFlag(){  return motor_stop_flag;}
+  inline void setMotorStopFlag(bool motor_stop_flag){  motor_stop_flag_ = motor_stop_flag;}
+  inline bool getFreeFallFlag(){  return free_fall_flag_;}
+  inline void resetFreeFallFlag(){  free_fall_flag_ = false;}
+  inline uint8_t getThrowingMode(){  return throwing_mode_;}
+  inline bool getXyVelModePosCtrlTakeoff(){  return xy_vel_mode_pos_ctrl_takeoff_;}
 
   const static int TAKEOFF_COUNT = 8;
 
   //for throwing
+  const static uint8_t THROWING_START_STANDBY = 0x31;
+  const static uint8_t THROWING_START_ARMINGON = 0x32;
+  const static uint8_t THROWING_START_ALTHOLD = 0x33;
+
   const static uint8_t GOOD_XY_TRACKING = 0x01;
   const static uint8_t ZERO_XY_TRACKING = 0x02;
   const static uint8_t RECOVER_XY_TRACKING = 0x03;
@@ -244,9 +238,6 @@ class TeleopNavigator :public Navigator
     ros::Subscriber ctrl_mode_sub_;
     ros::Subscriber joy_stick_sub_;
     ros::Subscriber flight_nav_sub_;
-
-
-
 
     //*** base navigation
     uint8_t flight_mode_; //important
@@ -287,7 +278,6 @@ class TeleopNavigator :public Navigator
     bool  pos_control_flag_;
     bool  alt_control_flag_;
     bool  yaw_control_flag_;
-    
 
     void rosParamInit();
 };
