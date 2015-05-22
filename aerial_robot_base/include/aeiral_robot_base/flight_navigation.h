@@ -116,7 +116,7 @@ class Navigator
   protected:
     ros::NodeHandle nh_;
     ros::NodeHandle nhp_;
-    tf::TransformBroadcaster* tfB_ ; 
+    tf::TransformBroadcaster* br_ ; 
 
     Estimator* estimator_;
     FlightCtrlInput* flight_ctrl_input_;

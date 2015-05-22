@@ -3,12 +3,9 @@
 
 //* ros
 #include <ros/ros.h>
-//* for dynamic reconfigure
-#include <aerial_robot_msgs/DynamicReconfigureLevels.h>
-#include <dynamic_reconfigure/server.h>
-#include <aerial_robot_base/StateKalmanFilterConfig.h>
 
 //* for state estimate
+//TODO:  plugin 
 #include <aerial_robot_base/sensor/mirror_module.h>
 #include <aerial_robot_base/sensor/slam_data.h>
 #include <aerial_robot_base/sensor/imu_module.h>
@@ -24,28 +21,28 @@
 class BasicEstimator
 {
  public:
-  BasicEstimator()
+ BasicEstimator(ros::NodeHandle nh, ros::NodeHandle nh_private):
+  : nh_(nh, "estimator"), nhp_(nh_private, "estimator")
     {
-      outerEstimatePosX = 0;
-      outerEstimateVelX = 0;
-      outerEstimatePosY = 0;
-      outerEstimateVelY = 0;
-      outerEstimatePosZ = 0;
-      outerEstimateVelZ = 0;
-      outerEstimateTheta = 0;
-      outerEstimateVelTheta = 0;
-      outerEstimatePhy = 0;
-      outerEstimateVelPhy = 0;
-      outerEstimatePsiCog = 0;
-      outerEstimateVelPsiCog = 0;
-      outerEstimatePsiBoard = 0;
-      outerEstimateVelPsiBoard = 0;
+      outer_estimate_pos_x_ = 0;
+      outer_estimate_vel_x_ = 0;
+      outer_estimate_pos_y_ = 0;
+      outer_estimate_vel_y_ = 0;
+      outer_estimate_pos_z_ = 0;
+      outer_estimate_vel_z_ = 0;
+      outer_estimate_theta_ = 0;
+      outer_estimate_vel_theta_ = 0;
+      outer_estimate_phy_ = 0;
+      outer_estimate_vel_phy_ = 0;
+      outer_estimate_psi_cog_ = 0;
+      outer_estimate_vel_psi_cog_ = 0;
+      outer_estimate_psi_board_ = 0;
+      outer_estimate_vel_psi_board_ = 0;
 
+      state_pos_z_offset_ = 1.0; //1m
 
-      statePosZOffset = 1.0; //1m
-
-      useOuterPoseEstimate = 0;
-      useOuterVelEstimate = 0;
+      use_outer_pose_estimate_ = 0;
+      use_outer_vel_estimate_ = 0;
     }
 
   virtual ~BasicEstimator(){}
@@ -79,110 +76,110 @@ class BasicEstimator
 
   virtual void setStatePosX(float value)
   {
-    if(useOuterPoseEstimate & X_AXIS)
-      outerEstimatePosX = value;
+    if(use_outer_pose_estimate_ & X_AXIS)
+      outer_estimate_pos_x_ = value;
   }
 
   virtual void setStateVelX(float value)
   {
-    if(useOuterVelEstimate & X_AXIS)
-      outerEstimateVelX = value;
+    if(use_outer_vel_estimate_ & X_AXIS)
+      outer_estimate_vel_x_ = value;
   }
 
   virtual void setStatePosY(float value)
   {
-    if(useOuterPoseEstimate & Y_AXIS)
-      outerEstimatePosY = value;
+    if(use_outer_pose_estimate_ & Y_AXIS)
+      outer_estimate_pos_y_ = value;
   }
 
   virtual void setStateVelY(float value)
   {
-    if(useOuterVelEstimate & Y_AXIS)
-      outerEstimateVelY = value;
+    if(use_outer_vel_estimate_ & Y_AXIS)
+      outer_estimate_vel_y_ = value;
   }
 
   virtual void setStatePosZ(float value)
   {
-    if(useOuterPoseEstimate & Z_AXIS)
-      outerEstimatePosZ = value;
+    if(use_outer_pose_estimate_ & Z_AXIS)
+      outer_estimate_pos_z_ = value;
   }
 
   virtual void setStateVelZ(float value)
   {
-    if(useOuterVelEstimate & Z_AXIS)
-      outerEstimateVelZ = value;
+    if(use_outer_vel_estimate_ & Z_AXIS)
+      outer_estimate_vel_z_ = value;
   }
 
   virtual void setStateTheta(float value)
   {
-    if(useOuterPoseEstimate & PITCH_AXIS)
-      outerEstimateTheta = value;
+    if(use_outer_pose_estimate_ & PITCH_AXIS)
+      outer_estimate_theta_ = value;
   }
 
   virtual void setStateVelTheta(float value)
   {
-    if(useOuterVelEstimate & PITCH_AXIS)
-      outerEstimateVelTheta = value;
+    if(use_outer_vel_estimate_ & PITCH_AXIS)
+      outer_estimate_vel_theta_ = value;
   }
 
   virtual void setStatePhy(float value)
   {
-    if(useOuterPoseEstimate & ROLL_AXIS)
-      outerEstimatePhy = value;
+    if(use_outer_pose_estimate & ROLL_AXIS)
+      outer_estimate_phy_ = value;
   }
 
   virtual void setStateVelPhy(float value)
   {
-    if(useOuterVelEstimate & ROLL_AXIS)
-      outerEstimateVelPhy = value;
+    if(use_outer_vel_estimate_ & ROLL_AXIS)
+      outer_estimate_vel_phy_ = value;
   }
 
 
   virtual void setStatePsiCog(float value) //cog frame, for hydra
   {
-    if(useOuterPoseEstimate & YAW_AXIS)
-      outerEstimatePsiCog = value;
+    if(use_outer_pose_estimate_ & YAW_AXIS)
+      outer_estimate_psi_cog_ = value;
   }
 
   virtual void setStateVelPsiCog(float value)
   {
-    if(useOuterVelEstimate & YAW_AXIS)
-      outerEstimateVelPsiCog = value;
+    if(use_outer_vel_estimate_ & YAW_AXIS)
+      outer_estimate_vel_psi_cog_ = value;
   }
 
   virtual void setStatePsiBoard(float value) //body frame
   {
-    if(useOuterPoseEstimate & YAW_AXIS)
-      outerEstimatePsiBoard = value;
+    if(use_outer_pose_estimate_ & YAW_AXIS)
+      outer_estimate_psi_board_ = value;
   }
 
   virtual void setStateVelPsiBoard(float value)
   {
-    if(useOuterVelEstimate & YAW_AXIS)
-      outerEstimateVelPsiBoard = value;
+    if(use_outer_vel_estimate_ & YAW_AXIS)
+      outer_estimate_vel_psi_board_ = value;
   }
 
   virtual void setStatePsi(float value) //both cog and body
   {
-    if(useOuterPoseEstimate & YAW_AXIS)
+    if(use_outer_pose_estimate_ & YAW_AXIS)
       {
-        outerEstimatePsiCog = value;
-        outerEstimatePsiBoard = value;
+        outer_estimate_psi_cog_ = value;
+        outer_estimate_psi_board_ = value;
       }
   }
 
   virtual void setStateVelPsi(float value)
   {
-    if(useOuterVelEstimate & YAW_AXIS)
+    if(use_outer_vel_estimate_ & YAW_AXIS)
       {
-        outerEstimateVelPsiCog = value;
-        outerEstimateVelPsiBoard = value;
+        outer_estimate_vel_psi_cog_ = value;
+        outer_estimate_vel_psi_board_ = value;
       }
   }
 
 
-  virtual float getPosZOffset() {  return  statePosZOffset;}
-  virtual void setPosZOffset(float pos_z_offset){  statePosZOffset = pos_z_offset;}
+  virtual float getPosZOffset() {  return  state_pos_z_offset_;}
+  virtual void setPosZOffset(float pos_z_offset){  state_pos_z_offset_ = pos_z_offset;}
 
   virtual float getLaserToImuDistance() {  return 0; }
 
@@ -192,49 +189,47 @@ class BasicEstimator
   virtual void setOuterEstimatePoseFlag(uint8_t axis)
   {
     if(axis == 0)
-      useOuterPoseEstimate = 0;
+      use_outer_pose_estimate_ = 0;
     else
-      useOuterPoseEstimate |= axis;
+      use_outer_pose_estimate_ |= axis;
   }
 
   virtual void setOuterEstimateVelFlag(uint8_t axis)
   {
     if(axis == 0)
-      useOuterVelEstimate = 0;
+      use_outer_vel_estimate_ = 0;
     else
-      useOuterVelEstimate |= axis;
+      use_outer_vel_estimate_ |= axis;
   }
 
-
-  //+*+*+* option
+  //+*+*+* option, bad
   virtual float getStateVelXOpt() { return 0;}
   virtual float getStateVelYOpt() { return 0;}
   virtual void setKFMeaureFlag(int axis, bool flag){}
 
-
  protected:  
 
-  ros::NodeHandle estimatorNodeHandle_;
-  ros::NodeHandle estimatorNodeHandlePrivate_;
+  ros::NodeHandle nh_;
+  ros::NodeHandle nhp_;
 
-  float outerEstimatePosX;
-  float outerEstimateVelX;
-  float outerEstimatePosY;
-  float outerEstimateVelY;
-  float outerEstimatePosZ;
-  float outerEstimateVelZ;
-  float outerEstimateTheta;
-  float outerEstimateVelTheta;
-  float outerEstimatePhy;
-  float outerEstimateVelPhy;
-  float outerEstimatePsiCog;
-  float outerEstimateVelPsiCog;
-  float outerEstimatePsiBoard;
-  float outerEstimateVelPsiBoard;
+  float outer_estimate_pos_x_;
+  float outer_estimate_vel_x_;
+  float outer_estimate_pos_y_;
+  float outer_estimate_vel_y_;
+  float outer_estimate_pos_z_;
+  float outer_estimate_vel_z_;
+  float outer_estimate_theta_;
+  float outer_estimate_vel_theta_;
+  float outer_estimate_phy_;
+  float outer_estimate_vel_phy_;
+  float outer_estimate_psi_cog_;
+  float outer_estimate_vel_psi_cog_;
+  float outer_estimate_psi_board_;
+  float outer_estimate_vel_psi_board_;
 
-  float statePosZOffset; 
-  uint8_t useOuterPoseEstimate;
-  uint8_t useOuterVelEstimate;
+  float state_pos_z_offset_; 
+  uint8_t use_outer_pose_estimate_;
+  uint8_t use_outer_vel_estimate_;
 };
 
 
@@ -247,75 +242,68 @@ class RigidEstimator : public BasicEstimator
               bool simulation_flag);
   ~RigidEstimator ();
 
-  //+*+*+*+* add as members, but not superclass 
-  ImuData* imuData_ ;
-  SlamData* slamData_ ;
-  OpticalFlowData* opticalFlowData_;
-  MirrorModule* mirrorModule_ ;
-  MocapData* mocapData_;
-
-  void tfPublish();
-  float getLaserToImuDistance();
-  void setKalmanFilterBoardToAsctec();
-
-  //simulation flag
-  bool simulationFlag;
-
-  //kalman filter
-  bool kalmanFilterFlag;
-  
-  KalmanFilterImuLaser* kfX_;
-  KalmanFilterImuLaser* kfY_;
-  KalmanFilterImuLaser* kfZ_;
-  KalmanFilterImuLaserBias *kfbX_;
-  KalmanFilterImuLaserBias *kfbY_;
-  KalmanFilterImuLaserBias *kfbZ_;
-
-  bool kalmanFilterDebug; 
-  KalmanFilterImuLaserBias *kf1_;
-  KalmanFilterImuLaserBias *kf2_;
-
-
-  //IIR filter for acceleration
-  FirFilter *filterAccX_;
-  FirFilter *filterAccY_;
-  FirFilter *filterAccZ_;
-
-  //for optical flow
-  KalmanFilterImuLaser* kfXForOpt_;
-  KalmanFilterImuLaser* kfYForOpt_;
-  KalmanFilterImuLaser* kfZForOpt_;
-  KalmanFilterImuLaserBias *kfbXForOpt_;
-  KalmanFilterImuLaserBias *kfbYForOpt_;
-  KalmanFilterImuLaserBias *kfbZForOpt_;
-
+  //deprecated
   static const int LASER_MIRROR = 0;
   static const int SONAR = 1;
 
+  void tfPublish();
+  float getLaserToImuDistance();
 
  private:
 
-  tf::TransformBroadcaster* tfB_;
-  ros::Time tfStamp_;
+  tf::TransformBroadcaster* br_;
+  ros::Time tf_stamp_;
+
+  //+*+*+*+* add as members, but not superclass 
+  ImuData* imu_data_ ;
+  SlamData* slam_data_ ;
+  OpticalFlowData* optical_flow_data_;
+  MirrorModule* mirror_module_ ;
+  MocapData* mocap_data_;
+
+
+  KalmanFilterImuLaser* kf_x_;
+  KalmanFilterImuLaser* kf_y_;
+  KalmanFilterImuLaser* kf_z_;
+  KalmanFilterImuLaserBias *kf_bias_x_;
+  KalmanFilterImuLaserBias *kf_bias_y_;
+  KalmanFilterImuLaserBias *kf_bias_Z_;
+
+  KalmanFilterImuLaserBias *kf1_;
+  KalmanFilterImuLaserBias *kf2_;
+
+  //IIR filter for acceleration
+  FirFilter *lpf_acc_x_;
+  FirFilter *lpf_acc_y_;
+  FirFilter *lpf_acc_z_;
+
+  //for optical flow
+  KalmanFilterImuLaser* kf_opt_x_;
+  KalmanFilterImuLaser* kf_opt_y_;
+  KalmanFilterImuLaser* kf_opt_z_;
+  KalmanFilterImuLaserBias *kf_opt_bias_x_;
+  KalmanFilterImuLaserBias *kf_opt_bias_y_;
+  KalmanFilterImuLaserBias *kf_opt_bias_z_;
+
+  //simulation flag
+  bool simulation_flag_;
 
   //*** Kalma Filter 
-  bool   kalmanFilterFlag_;
-  bool   kalmanFilterDebug_;
-  int    kalmanFilterAxis_;
+  bool   kalman_filter_flag_;
+  bool   kalman_filter_debug_;
+  int    kalman_filter_axis_;
 
-  bool mocapFlag_;
+  bool mocap_flag_;
 
-  int altitudeControlMode_;
-  bool useOuterYawEst_;
-  double laserToBaselinkDistance_; 
-  double mirrorModuleArmLength_;
+  int altitude_control_mode_;
+  bool use_outer_yaw_est_;
+  double laser_to_baselink_distance_; 
+  double mirror_module_arm_length_;
 
-  std::string laserFrame_;
-  std::string cameraFrame_;
-  std::string baselinkFrame_;
-  std::string baseFootprintFrame_;
-
-
+  std::string laser_frame_;
+  std::string camera_frame_;
+  std::string baselink_frame_;
+  std::string base_footprint_frame_;
 
   float getStatePosX();
   float getStatePosXc();
@@ -345,7 +333,7 @@ class RigidEstimator : public BasicEstimator
   bool getRocketStartFlag();
   void setRocketStartFlag();
 
-  void rosParamInit();
+  void rosParamInit(ros::NodeHandle nh);
 
 };
 

@@ -1,6 +1,7 @@
 /*
   2015 05 16 
-  1. the prioripty of the sensor => state
+  1. the prioripty of the sensor => 1) pluginazation, 2) order=> profile
+  2. uniform the state(set, get , etc, no "sate_xc", no "outer state")
 
   +*+*+*+* 最重要事項：関数のstatic変数はすべて同じポインタに保存されるので、同じ関数を複数呼ぶ場合、中身のstatic変数はお互い
 >  
@@ -17,52 +18,49 @@
 #include "aerial_robot_base/state_estimation.h"
 
 RigidEstimator::RigidEstimator(ros::NodeHandle nh,
-                       ros::NodeHandle nh_private,
-                       bool simulation_flag) : Estimator()
+                               ros::NodeHandle nh_private,
+                               bool simulation_flag) : Estimator(nh, nh_private)
 {
-  estimatorNodeHandle_ = ros::NodeHandle(nh, "estimator"); 
-  estimatorNodeHandlePrivate_ = ros::NodeHandle(nh_private, "estimator");
+  rosParamInit(nhp_);
 
-  rosParamInit();
 
-  //iir filter
-  filterAccX_ = new FirFilter(128);
-  filterAccY_ = new FirFilter(128);
-  filterAccZ_ = new FirFilter(32);
+  lpf_acc_x_ = new FirLpf(128);
+  lpf_acc_y_ = new FirLpf(128);
+  lpf_acc_z_ = new FirLpf(32);
 
   //kalman filter
-  if (kalmanFilterFlag_)
+  if (kalman_filter_flag_)
     {
       std::string x("X");
       std::string y("Y");
       std::string z("Z");
-      std::string xOpt("XOpt");
-      std::string yOpt("YOpt");
-      std::string zOpt("ZOpt");
+      std::string x_opt("XOpt");
+      std::string y_opt("YOpt");
+      std::string z_opt("ZOpt");
 
       std::string debug1("Debug1");
       std::string debug2("Debug2");
 
       bool use_dynamic_reconfigure = true;
-      kfX_ = new KalmanFilterImuLaser(nh, nh_private, x);
-      kfY_ = new KalmanFilterImuLaser(nh, nh_private, y);
-      kfZ_ = new KalmanFilterImuLaser(nh, nh_private, z, use_dynamic_reconfigure);
-      kfbX_ = new KalmanFilterImuLaserBias(nh, nh_private, x, use_dynamic_reconfigure); 
-      kfbY_ = new KalmanFilterImuLaserBias(nh, nh_private, y, use_dynamic_reconfigure);
-      kfbZ_ = new KalmanFilterImuLaserBias(nh, nh_private, z);
+      kf_x_ = new KalmanFilterImuLaser(nh, nh_private, x);
+      kf_y_ = new KalmanFilterImuLaser(nh, nh_private, y);
+      kf_z_ = new KalmanFilterImuLaser(nh, nh_private, z, use_dynamic_reconfigure);
+      kf_bias_x_ = new KalmanFilterImuLaserBias(nh, nh_private, x, use_dynamic_reconfigure); 
+      kf_bias_y_ = new KalmanFilterImuLaserBias(nh, nh_private, y, use_dynamic_reconfigure);
+      kf_bias_z_ = new KalmanFilterImuLaserBias(nh, nh_private, z);
 
       // for optical flow
-      kfXForOpt_ = new KalmanFilterImuLaser(nh, nh_private,xOpt);
-      kfYForOpt_ = new KalmanFilterImuLaser(nh, nh_private,yOpt);
-      kfZForOpt_ = new KalmanFilterImuLaser(nh, nh_private,zOpt);
-      kfbXForOpt_ = new KalmanFilterImuLaserBias(nh, nh_private, xOpt, use_dynamic_reconfigure); 
-      kfbYForOpt_ = new KalmanFilterImuLaserBias(nh, nh_private, yOpt, use_dynamic_reconfigure);
-      kfbZForOpt_ = new KalmanFilterImuLaserBias(nh, nh_private, zOpt, use_dynamic_reconfigure);
+      kf_opt_x_ = new KalmanFilterImuLaser(nh, nh_private,x_opt);
+      kf_opt_y_ = new KalmanFilterImuLaser(nh, nh_private,y_opt);
+      kf_opt_z_ = new KalmanFilterImuLaser(nh, nh_private,z_opt);
+      kf_opt_bias_x_ = new KalmanFilterImuLaserBias(nh, nh_private, x_opt, use_dynamic_reconfigure); 
+      kf_opt_bias_y_ = new KalmanFilterImuLaserBias(nh, nh_private, y_opt, use_dynamic_reconfigure);
+      kf_opt_bias_z_ = new KalmanFilterImuLaserBias(nh, nh_private, z_opt, use_dynamic_reconfigure);
 
-      if (kalmanFilterDebug_)
+      if (kalman_filter_debug_)
         {
-          kf1_ = new KalmanFilterImuLaserBias(nh, nh_private,debug1, use_dynamic_reconfigure);
-          kf2_ = new KalmanFilterImuLaserBias(nh, nh_private,debug2, use_dynamic_reconfigure);
+          kf1_ = new KalmanFilterImuLaserBias(nh, nh_private, debug1, use_dynamic_reconfigure);
+          kf2_ = new KalmanFilterImuLaserBias(nh, nh_private, debug2, use_dynamic_reconfigure);
         }
       else
         {
@@ -71,257 +69,245 @@ RigidEstimator::RigidEstimator(ros::NodeHandle nh,
     }
   else
     {
-      kfX_ = NULL; kfY_ = NULL; kfZ_ = NULL; kfbX_ = NULL; kfbY_ = NULL; kfbZ_ = NULL;
-      kfXForOpt_ = NULL; kfYForOpt_ = NULL; kfZForOpt_ = NULL; 
-      kfbXForOpt_ = NULL; kfbYForOpt_ = NULL; kfbZForOpt_ = NULL;
+      kf_x_ = NULL; kf_y_ = NULL; kf_z_ = NULL; kf_bias_x_ = NULL; kf_bias_y_ = NULL; kf_bias_z_ = NULL;
+      kf_opt_x_ = NULL; kf_opt_y_ = NULL; kf_opt_z_ = NULL;
+      kf_opt_bias_x_ = NULL; kf_opt_bias_y_ = NULL; kf_opt_bias_z_ = NULL;
       kf1_ = NULL; kf2_ = NULL;
     }
 
-  tfB_          = new tf::TransformBroadcaster();
+  br_          = new tf::TransformBroadcaster();
 
-  imuData_      = new ImuData(nh, 
+  imu_data_     = new ImuData(nh, 
                               nh_private, 
                               this,
-                              kalmanFilterFlag_,
-                              kfX_, kfY_, kfZ_,
-                              kfbX_, kfbY_, kfbZ_,
-                              kfXForOpt_,
-                              kfYForOpt_,
-                              kfZForOpt_,
-                              kfbXForOpt_,
-                              kfbYForOpt_,
-                              kfbZForOpt_,
-                              kalmanFilterDebug_,
-                              kalmanFilterAxis_,
+                              kalman_filter_flag_,
+                              kalman_filter_debug_,
+                              kalman_filter_axis_,
+                              kf_x_, kf_y_, kf_z_,
+                              kf_bias_x_, kf_bias_y_, kf_bias_z_,
+                              kf_opt_x_, kf_opt_y_, kf_opt_z_,
+                              kf_opt_bias_x_, kf_opt_bias_y_, kf_opt_bias_z_,
                               kf1_, kf2_,
-                              filterAccX_,
-                              filterAccY_,
-                              filterAccZ_,
-                              simulation_flag);
+                              lpf_acc_x_,
+                              lpf_acc_y_,
+                              lpf_acc_z_,
+                              simulation_flag_);
 
-  slamData_     = new SlamData(nh,
-                               nh_private,
-                               this,
-                               kalmanFilterFlag_,
-                               kalmanFilterDebug_,
-                               kalmanFilterAxis_,
-                               kfX_, kfY_, kfZ_,
-                               kfbX_, kfbY_, kfbZ_,
-                               kf1_, kf2_); 
+  slam_data_     = new SlamData(nh,
+                                nh_private,
+                                this,
+                                kalman_filter_flag_,
+                                kalman_filter_debug_,
+                                kalman_filter_axis_,
+                                kf_x_, kf_y_, kf_z_,
+                                kf_bias_x_, kf_bias_y_, kf_bias_z_,
+                                kf1_, kf2_);
 
-  opticalFlowData_   = new OpticalFlowData(nh,
-                                           nh_private,
-                                           this,
-                                           kalmanFilterFlag_,
-                                           kfXForOpt_, kfYForOpt_, kfZForOpt_,
-                                           kfbXForOpt_, kfbYForOpt_, kfbZForOpt_);
+  optical_flow_data_   = new OpticalFlowData(nh,
+                                             nh_private,
+                                             this,
+                                             kalman_filter_flag_,
+                                             kf_opt_x_, kf_opt_y_, kf_opt_z_,
+                                             kf_opt_bias_x_, kf_opt_bias_y_, kf_opt_bias_z_);
 
-  mirrorModule_ = new MirrorModule(nh, nh_private,
-                                   this,
-                                   kalmanFilterFlag_, kalmanFilterDebug_,
-                                   kfZ_, kfbZ_);
+  mirror_module_ = new MirrorModule(nh, nh_private,
+                                    this,
+                                    kalman_filter_flag_, kalman_filter_debug_,
+                                    kf_z_, kf_bias_z_);
 
-  if(mocapFlag_)
-      mocapData_ = new MocapData(nh, nh_private, this);
+  if(mocap_flag_)
+      mocap_data_ = new MocapData(nh, nh_private, this);
   
-  simulationFlag = simulation_flag;
+  simulation_flag_ = simulation_flag;
 }
 
 RigidEstimator::~RigidEstimator()
 {
-  if(kalmanFilterFlag)
+  if(kalman_filter_flag_)
     {
-      delete kfX_;
-      delete kfY_;
-      delete kfZ_;
-      delete kfbX_;
-      delete kfbY_;
-      delete kfbZ_;
-      delete kfXForOpt_;
-      delete kfYForOpt_;
-      delete kfZForOpt_;
-      delete kfbXForOpt_;
-      delete kfbYForOpt_;
-      delete kfbZForOpt_;
+      delete kf_x_; delete kf_y_; delete kf_z_;
+      delete kf_bias_x_; delete kf_bias_y_; delete kf_bias_z_;
+      delete kf_opt_x_; delete kf_opt_y_; delete kf_opt_z_;
+      delete kf_opt_bias_x_; delete kf_opt_bias_y_; delete kf_opt_bias_z_;
+
     }
-  if(kalmanFilterDebug)
+  if(kalman_filter_debug_)
     {
       delete kf1_;
       delete kf2_;
     }
 
+  delete br_;
+  delete imu_data_;
+  delete optical_flow_data_;
+  delete slam_data_;
+  delete mirror_module_;
 
-  delete tfB_;
-  delete imuData_;
-  delete opticalFlowData_;
-  delete slamData_;
-  delete mirrorModule_;
+  delete lpf_acc_x_;
+  delete lpf_acc_y_;
+  delete lpf_acc_z_;
 
-  delete filterAccX_;
-  delete filterAccY_;
-  delete filterAccZ_;
-
-  printf("   deleted tfB_, imuData_, slamData_, mirrorModule_, kalmanFilters from estimator1");
+  printf("   deleted br_, imu_data_, slam_data_, mirror_module_, kalmanFilters from rigid estimator");
 }
 
-//TODO: unify those two func
+
 float RigidEstimator::getStatePosX()
 {
-  if(useOuterPoseEstimate & X_AXIS)
-    return  outerEstimatePosX;
+  if(use_outer_pose_estimate_ & X_AXIS)
+    return  outer_estimate_pos_x_;
   else
-    return  kfbX_->getEstimatePos();
+    return  kf_bias_x_->getEstimatePos();
 }
 
 float RigidEstimator::getStatePosXc()
 {
-  if(useOuterPoseEstimate & X_AXIS)
+  if(use_outer_pose_estimate_ & X_AXIS)
     {
       float state_pos_xc
-        = outerEstimatePosX * cos(outerEstimatePsiBoard) + outerEstimatePosY * sin(outerEstimatePsiBoard);
+        = outer_estimate_pos_x_ * cos(outer_estimate_psi_board_) + outer_estimate_pos_y_ * sin(outer_estimate_psi_board_);
       return  state_pos_xc;
     }
   else
-    return  kfbXForOpt_->getEstimatePos();
+    return  kf_opt_bias_x_->getEstimatePos();
 }
 
 float RigidEstimator::getStateVelX()
 {
-  if(useOuterVelEstimate & X_AXIS)
-      return  outerEstimateVelX;
+  if(use_outer_vel_estimate_ & X_AXIS)
+      return  outer_estimate_vel_x_;
   else
-    return  kfbX_->getEstimateVel();
+    return  kf_bias_x_->getEstimateVel();
 }
 
 float RigidEstimator::getStateVelXc()
 {
-  if(useOuterVelEstimate & X_AXIS)
+  if(use_outer_vel_estimate_ & X_AXIS)
     {
       float state_vel_xc
-        = outerEstimateVelX * cos(outerEstimatePsiBoard) + outerEstimateVelY * sin(outerEstimatePsiBoard);
+        = outer_estimate_vel_x_ * cos(outer_estimate_psi_board_) + outer_estimate_vel_y_ * sin(outer_estimate_psi_board_);
       return  state_vel_xc;
     }
   else
-    return  kfbXForOpt_->getEstimateVel();
+    return  kf_opt_bias_x_->getEstimateVel();
 }
 
 float RigidEstimator::getStateAccXb()
 {
-  return imuData_->getAccXbValue();
+  return imu_data_->getAccXbValue();
 }
 
 float RigidEstimator::getStatePosY()
 {
- if(useOuterPoseEstimate & Y_AXIS)
-      return  outerEstimatePosY;
+ if(use_outer_pose_estimate_ & Y_AXIS)
+      return  outer_estimate_pos_y_;
   else
-    return  kfbY_->getEstimatePos();
+    return  kf_bias_y_->getEstimatePos();
 }
 
 float RigidEstimator::getStatePosYc()
 {
- if(useOuterPoseEstimate & Y_AXIS)
+ if(use_outer_pose_estimate_ & Y_AXIS)
    {
       float state_pos_yc
-        = -outerEstimatePosX * sin(outerEstimatePsiBoard) + outerEstimatePosY * cos(outerEstimatePsiBoard);
+        = -outer_estimate_pos_x_ * sin(outer_estimate_psi_board_) + outer_estimate_pos_y_ * cos(outer_estimate_psi_board_);
       return  state_pos_yc;
    }
   else
-  return  kfbYForOpt_->getEstimatePos();
+  return  kf_opt_bias_y_->getEstimatePos();
 }
 
 float RigidEstimator::getStateVelY()
 {
- if(useOuterVelEstimate & Y_AXIS)
-     return  outerEstimateVelY;
+ if(use_outer_vel_estimate_ & Y_AXIS)
+     return  outer_estimate_vel_y_;
   else
-    return  kfbY_->getEstimateVel();
+    return  kf_bias_y_->getEstimateVel();
 }
 
 float RigidEstimator::getStateVelYc()
 {
- if(useOuterVelEstimate & Y_AXIS)
+ if(use_outer_vel_estimate_ & Y_AXIS)
    {
       float state_vel_yc
-        = -outerEstimateVelX * sin(outerEstimatePsiBoard) + outerEstimateVelY * cos(outerEstimatePsiBoard);
+        = -outer_estimate_vel_x_ * sin(outer_estimate_psi_board_) + outer_estimate_vel_y_ * cos(outer_estimate_psi_board_);
       return  state_vel_yc;
    }
   else
-    return  kfbYForOpt_->getEstimateVel();
+    return  kf_opt_bias_y_->getEstimateVel();
 }
 
-inline float RigidEstimator::getStateAccYb(){  return imuData_->getAccYbValue(); }
+inline float RigidEstimator::getStateAccYb(){  return imu_data_->getAccYbValue(); }
 
 float RigidEstimator::getStatePosZ()
 {
-  if(useOuterPoseEstimate & Z_AXIS)
-      return  outerEstimatePosZ;
+  if(use_outer_pose_estimate_ & Z_AXIS)
+      return  outer_estimate_pos_z_;
   else
     {
-      if(altitudeControlMode_ == LASER_MIRROR)
-        return kfZ_->getEstimatePos();
-      else if(altitudeControlMode_ == SONAR)
-        return kfZForOpt_->getEstimatePos();
+      if(altitude_control_mode_ == LASER_MIRROR)
+        return kf_z_->getEstimatePos();
+      else if(altitude_control_mode_ == SONAR)
+        return kf_opt_z_->getEstimatePos();
       else
         return 0;
     }
 }
 float RigidEstimator::getStateVelZ()
 {
-  if(useOuterVelEstimate & Z_AXIS)
-      return  outerEstimateVelZ;
+  if(use_outer_vel_estimate_ & Z_AXIS)
+      return  outer_estimate_vel_z_;
   else
     {
-      if(altitudeControlMode_ == LASER_MIRROR)
-        return kfZ_->getEstimateVel();
-      else if(altitudeControlMode_ == SONAR)
-        return kfZForOpt_->getEstimateVel();
+      if(altitude_control_mode_ == LASER_MIRROR)
+        return kf_z_->getEstimateVel();
+      else if(altitude_control_mode_ == SONAR)
+        return kf_opt_z_->getEstimateVel();
       else
         return 0;
     }
 }
 
-inline float RigidEstimator::getStateAccZb(){  return imuData_->getAccZbValue(); }
+inline float RigidEstimator::getStateAccZb(){  return imu_data_->getAccZbValue(); }
 
 float RigidEstimator::getStateTheta()
 {
-  if(useOuterPoseEstimate & PITCH_AXIS)
-    return  outerEstimateTheta;
+  if(use_outer_pose_estimate_ & PITCH_AXIS)
+    return  outer_estimate_theta_;
   else
-    return imuData_->getPitchValue();
+    return imu_data_->getPitchValue();
 }
 float RigidEstimator::getStatePhy()
 {
-  if(useOuterPoseEstimate & ROLL_AXIS)
-    return  outerEstimatePhy;
+  if(use_outer_pose_estimate_ & ROLL_AXIS)
+    return  outer_estimate_phy_;
   else
-    return imuData_->getRollValue();
+    return imu_data_->getRollValue();
 }
 
 float RigidEstimator::getStatePsiCog()
 {
-  if(useOuterPoseEstimate & YAW_AXIS)
+  if(use_outer_pose_estimate_ & YAW_AXIS)
     {      
-      return  outerEstimatePsiCog;
+      return  outer_estimate_psi_cog_;
     }
   else
     {
-      if(useOuterYawEst_)
-        return slamData_->getPsiSlamValue();
+      if(use_outer_yaw_est_)
+        return slam_data_->getPsiSlamValue();
       else
         return 0;  //+*+*+ fixed point
     }
 }
 float RigidEstimator::getStateVelPsiCog()
 {
-  if(useOuterVelEstimate & YAW_AXIS)
+  if(use_outer_vel_estimate_ & YAW_AXIS)
     {      
-      return  outerEstimateVelPsiCog;
+      return  outer_estimate_vel_psi_cog_;
     }
   else
     {
-      if(useOuterYawEst_)
-        return   slamData_->getVelPsiSlamValue();
+      if(use_outer_yaw_est_)
+        return   slam_data_->getVelPsiSlamValue();
       else 
         return 0;   //+*+*+ fixed point
     }
@@ -329,156 +315,149 @@ float RigidEstimator::getStateVelPsiCog()
 
 float RigidEstimator::getStatePsiBoard()
 {
-  if(useOuterPoseEstimate & YAW_AXIS)
+  if(use_outer_pose_estimate_ & YAW_AXIS)
     {      
-      return  outerEstimatePsiBoard;
+      return  outer_estimate_psi_board_;
     }
   else
     {
-      if(useOuterYawEst_)
-        return slamData_->getPsiSlamValue();
+      if(use_outer_yaw_est_)
+        return slam_data_->getPsiSlamValue();
       else
         return 0;  //+*+*+ fixed point
     }
 }
+
 float RigidEstimator::getStateVelPsiBoard()
 {
-  if(useOuterVelEstimate & YAW_AXIS)
+  if(use_outer_vel_estimate_ & YAW_AXIS)
     {      
-      return  outerEstimateVelPsiBoard;
+      return  outer_estimate_vel_psi_board_;
     }
   else
     {
-      if(useOuterYawEst_)
-        return   slamData_->getVelPsiSlamValue();
+      if(use_outer_yaw_est_)
+        return   slam_data_->getVelPsiSlamValue();
       else 
         return 0;   //+*+*+ fixed point
     }
 }
 
 
-inline float RigidEstimator::getStateVelXOpt(){  return opticalFlowData_->getRawVelX();}
-inline float RigidEstimator::getStateVelYOpt(){  return opticalFlowData_->getRawVelY();}
+inline float RigidEstimator::getStateVelXOpt(){  return optical_flow_data_->getRawVelX();}
+inline float RigidEstimator::getStateVelYOpt(){  return optical_flow_data_->getRawVelY();}
 
 bool RigidEstimator::getRocketStartFlag()
 {
-   if(altitudeControlMode_ == SONAR)
-      return opticalFlowData_->getRocketStartFlag();
+   if(altitude_control_mode_ == SONAR)
+      return optical_flow_data_->getRocketStartFlag();
   else
       return false;
 }
 
 void RigidEstimator::setRocketStartFlag()
 {
-  if(altitudeControlMode_ == SONAR)
-    opticalFlowData_->setRocketStartFlag();
+  if(altitude_control_mode_ == SONAR)
+    optical_flow_data_->setRocketStartFlag();
 }
 
 void RigidEstimator::tfPublish()
 {
-
   //TODO mutex
-  if(simulationFlag)
-    tfStamp_ = mirrorModule_->getScanStamp();
+  if(simulation_flag_)
+    tf_stamp_ = mirror_module_->getScanStamp();
   else
-    tfStamp_ = ros::Time::now();
+    tf_stamp_ = ros::Time::now();
 
 
-
-  tf::Transform laser_to_baselink_;
-  tf::Transform footprint_to_laser_;
-  tf::Transform laser_to_camera_;
-  tf::Quaternion tmp_;
+  tf::Transform laser_to_baselink;
+  tf::Transform footprint_to_laser;
+  tf::Transform laser_to_camera;
+  tf::Quaternion tmp;
 
   //send the laser -> quadcopter_base
-  laser_to_baselink_.setOrigin(tf::Vector3(0.0, 0.0, laserToBaselinkDistance_));
-  tmp_.setRPY(0.0 , 0.0 , 0.0);
-  laser_to_baselink_.setRotation(tmp_);
-  tfB_->sendTransform(tf::StampedTransform(laser_to_baselink_, tfStamp_, laserFrame_,
-        				   baselinkFrame_));
+  laser_to_baselink.setOrigin(tf::Vector3(0.0, 0.0, laser_to_baselink_distance_));
+  tmp.setRPY(0.0 , 0.0 , 0.0);
+  laser_to_baselink.setRotation(tmp);
+  br_->sendTransform(tf::StampedTransform(laser_to_baselink, tf_stamp_, laser_frame_,
+                                          baselink_frame_));
 
   //send the laser -> camera
-  laser_to_camera_.setOrigin(tf::Vector3(0.02, 0.0, -0.04));
-  tmp_.setRPY(0.0 , 0.0 , 0.0);
-  laser_to_camera_.setRotation(tmp_);
-  tfB_->sendTransform(tf::StampedTransform(laser_to_camera_, tfStamp_, laserFrame_,
-        				   cameraFrame_));
+  laser_to_camera.setOrigin(tf::Vector3(0.02, 0.0, -0.04));
+  tmp.setRPY(0.0 , 0.0 , 0.0);
+  laser_to_camera.setRotation(tmp);
+  br_->sendTransform(tf::StampedTransform(laser_to_camera, tf_stamp_, laser_frame_,
+                                          camera_frame_));
 
-  tmp_.setRPY((getStatePhy()), getStateTheta(), 0); 
+  tmp.setRPY((getStatePhy()), getStateTheta(), 0); 
+  footprint_to_laser.setRotation(tmp);
+  footprint_to_laser.setOrigin(tf::Vector3(0.0, 0.0, getStatePosZ() + getPosZOffset() - mirror_module_arm_length_));
 
-  footprint_to_laser_.setRotation(tmp_);
-
-  footprint_to_laser_.setOrigin(tf::Vector3(0.0, 0.0, getStatePosZ() + getPosZOffset() - mirrorModuleArmLength_));
-
-  tfB_->sendTransform(tf::StampedTransform(footprint_to_laser_, tfStamp_,
-  					   baseFootprintFrame_, laserFrame_));
+  br_->sendTransform(tf::StampedTransform(footprint_to_laser, tf_stamp_,
+  					   base_footprint_frame_, laser_frame_));
 
 }
 
 float RigidEstimator::getLaserToImuDistance()
 {
-  return laserToBaselinkDistance_;
+  return laser_to_baselink_distance_;
 }
 
-void RigidEstimator::setKalmanFilterBoardToAsctec()
+
+void RigidEstimator::rosParamInit(ros::NodeHandle nh)
 {
-  imuData_->setKalmanFilterBoardToAsctec();
-}
+  std::string ns = nhp_.getNamespace();
 
-void RigidEstimator::rosParamInit()
-{
-  std::string ns = estimatorNodeHandlePrivate_.getNamespace();
+  if (!nhp_.getParam ("altitudeControlMode", altitude_control_mode_))
+    altitude_control_mode_ = 0;
+  printf("%s: altitude_control_mode_ is %d\n", ns.c_str(), altitude_control_mode_);
 
-  if (!estimatorNodeHandlePrivate_.getParam ("altitudeControlMode", altitudeControlMode_))
-    altitudeControlMode_ = 0;
-  printf("%s: altitudeControlMode_ is %d\n", ns.c_str(), altitudeControlMode_);
+  if (!nhp_.getParam ("useOuterYawEst", use_outer_yaw_est_))
+    use_outer_yaw_est_ = false;
+  printf("%s: use_outer_yaw_est is %s\n", ns.c_str(), use_outer_yaw_est_ ? ("true") : ("false"));
 
-  if (!estimatorNodeHandlePrivate_.getParam ("useOuterYawEst", useOuterYawEst_))
-    useOuterYawEst_ = false;
-  printf("%s: useOuterYawEst is %s\n", ns.c_str(), useOuterYawEst_ ? ("true") : ("false"));
+  if (!nhp_.getParam ("baselinkFrame", baselink_frame_))
+    baselink_frame_ = "unknown";
+  printf("%s: baselink_frame_ is %s\n", ns.c_str(), baselink_frame_.c_str());
 
-  if (!estimatorNodeHandlePrivate_.getParam ("baselinkFrame", baselinkFrame_))
-    baselinkFrame_ = "unknown";
-  printf("%s: baselinkFrame_ is %s\n", ns.c_str(), baselinkFrame_.c_str());
+  if (!nhp_.getParam ("baseFootprintFrame", base_footprint_frame_))
+    base_footprint_frame_ = "unknown";
+  printf("%s: base_footprint_frame_ is %s\n", ns.c_str(), base_footprint_frame_.c_str());
 
-  if (!estimatorNodeHandlePrivate_.getParam ("baseFootprintFrame", baseFootprintFrame_))
-    baseFootprintFrame_ = "unknown";
-  printf("%s: baseFootprintFrame_ is %s\n", ns.c_str(), baseFootprintFrame_.c_str());
+  if (!nhp_.getParam ("laserFrame", laser_frame_))
+    laser_frame_ = "unknown";
+  printf("%s: laser_frame_ is %s\n", ns.c_str(), laser_frame_.c_str());
 
-  if (!estimatorNodeHandlePrivate_.getParam ("laserFrame", laserFrame_))
-    laserFrame_ = "unknown";
-  printf("%s: laserFrame_ is %s\n", ns.c_str(), laserFrame_.c_str());
+  if (!nhp_.getParam ("cameraFrame", camera_frame_))
+    laser_frame_ = "unknown";
+  printf("%s: camera_frame_ is %s\n", ns.c_str(), camera_frame_.c_str());
 
-  if (!estimatorNodeHandlePrivate_.getParam ("cameraFrame", cameraFrame_))
-    laserFrame_ = "unknown";
-  printf("%s: cameraFrame_ is %s\n", ns.c_str(), cameraFrame_.c_str());
+  if (!nhp_.getParam ("laserToBaselinkDistance", laser_to_baselink_distance_))
+    laser_to_baselink_distance_ = 0;
+  printf("%s: laser_to_baselink_distance_ is %.3f\n", ns.c_str(), laser_to_baselink_distance_);
 
-  if (!estimatorNodeHandlePrivate_.getParam ("laserToBaselinkDistance", laserToBaselinkDistance_))
-    laserToBaselinkDistance_ = 0;
-  printf("%s: laserToBaselinkDistance_ is %.3f\n", ns.c_str(), laserToBaselinkDistance_);
-
-  if (!estimatorNodeHandlePrivate_.getParam ("mirrorModuleArmLength", mirrorModuleArmLength_))
-    mirrorModuleArmLength_ = 0;
-  printf("%s: mirrorModuleArmLength_ is %.3f\n", ns.c_str(), mirrorModuleArmLength_);
+  if (!nhp_.getParam ("mirrorModuleArmLength", mirror_module_arm_length_))
+    mirror_module_arm_length_ = 0;
+  printf("%s: mirror_module_arm_length_ is %.3f\n", ns.c_str(), mirror_module_arm_length_);
 
   //*** kalman filter
-  if (!estimatorNodeHandlePrivate_.getParam ("kalmanFilterFlag", kalmanFilterFlag_))
-    kalmanFilterFlag_ = false;
-  printf("%s: kalmanFilterFlag is %s\n", ns.c_str(), kalmanFilterFlag_ ? ("true") : ("false"));
+  if (!nhp_.getParam ("kalmanFilterFlag", kalman_filter_flag_))
+    kalman_filter_flag_ = false;
+  printf("%s: kalman_filter_flag is %s\n", ns.c_str(), kalman_filter_flag_ ? ("true") : ("false"));
 
   //*** kalman filter debug
-  if (!estimatorNodeHandlePrivate_.getParam ("kalmanFilterDebug", kalmanFilterDebug_))
-    kalmanFilterDebug_ = false;
-  printf("%s: kalmanFilterDebug is %s\n", ns.c_str(), kalmanFilterDebug_ ? ("true") : ("false"));
+  if (!nhp_.getParam ("kalmanFilterDebug", kalman_filterDebug_))
+    kalman_filterDebug_ = false;
+  printf("%s: kalman_filterDebug is %s\n", ns.c_str(), kalman_filterDebug_ ? ("true") : ("false"));
 
-  if (!estimatorNodeHandlePrivate_.getParam ("kalmanFilterAxis", kalmanFilterAxis_))
-    kalmanFilterAxis_ = 0;
-  printf("%s: kalmanFilterAxis_ is %d\n", ns.c_str(), kalmanFilterAxis_);
+  if (!nhp_.getParam ("kalmanFilterAxis", kalman_filter_axis_))
+    kalman_filter_axis_ = 0;
+  printf("%s: kalman_filter_axis_ is %d\n", ns.c_str(), kalman_filter_axis_);
 
   //*** mocap 
-  if (!estimatorNodeHandlePrivate_.getParam ("mocapFlag", mocapFlag_))
-    mocapFlag_ = false;
-  printf("%s: mocapFlag is %s\n", ns.c_str(), mocapFlag_ ? ("true") : ("false"));
+  if (!nhp_.getParam ("mocapFlag", mocap_flag_))
+    mocap_flag_ = false;
+  printf("%s: mocap_flag is %s\n", ns.c_str(), mocap_flag_ ? ("true") : ("false"));
 
 
 }

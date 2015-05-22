@@ -20,7 +20,7 @@ Navigator::Navigator(ros::NodeHandle nh, ros::NodeHandle nh_private,
   estimator_ = estimator;
   flight_ctrl_input_ = flight_ctrl_input;
 
-  tfB_ =  new tf::TransformBroadcaster();
+  br_ =  new tf::TransformBroadcaster();
 
   final_target_pos_x = 0;
   final_target_vel_x = 0;
@@ -58,7 +58,7 @@ Navigator::Navigator(ros::NodeHandle nh, ros::NodeHandle nh_private,
 Navigator::~Navigator()
 {
   printf(" deleted navigator!\n");
-  delete tfB_;
+  delete br_;
 }
 
 void Navigator::tfPublish()
@@ -71,7 +71,7 @@ void Navigator::tfPublish()
   tmp.setRPY(0.0, 0.0, current_target_psi_); 
   map_to_target.setRotation(tmp);
   ros::Time tm = ros::_time::now();
-  tfB_->sendTransform(tf::StampedTransform(map_to_target, tm, map_frame_, target_frame_));
+  br_->sendTransform(tf::StampedTransform(map_to_target, tm, map_frame_, target_frame_));
 
 }
 
