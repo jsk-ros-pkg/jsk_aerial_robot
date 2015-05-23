@@ -1,134 +1,71 @@
-#include "jsk_quadcopter/kalman_filter.h"
+#include "aerial_robot_base/kalman_filter.h"
 
-
-KalmanFilterImuLaser::KalmanFilterImuLaser(double sigma_predict, double sigma_measure, 
-                                           double dtime, std::string filter_id): id(filter_d)
-{
-  //init 
-  sigmaAcc = sigmaPredict; sigmaLaser = sigmaMeasure;
-  dt = dtime;
-  inputStartFlag = false;
-  measureStartFlag = false;
-
-
-  //dynamic reconfigure
-  std::string strBegin("~WithoutBias");
-  strBegin.append(filterID);
-  server = new dynamic_reconfigure::Server<jsk_quadcopter::StateKalmanFilterConfig>(ros::NodeHandle(strBegin));
-  dynamicReconfFunc = boost::bind(&KalmanFilterImuLaser::cfgCallback, this, _1, _2);
-  server->setCallback(dynamicReconfFunc);
-
-
-  estimateState(0) = 0; //position initial
-  estimateState(1) = 0; //velocity initial
-
-  correctState(0) = 0; //position initial
-  correctState(1) = 0; //velocity initial
-
-  predictState(0) = 0; //position initial
-  predictState(1) = 0; //velocity initial
-
-  stateTransitionModel << 1, dt, 0, 1;
-  controlInputModel << (dt * dt)/2, dt;
-  observationModel << 1, 0;
-  observationOnlyVelocityModel << 0, 1;
-
-  predictionNoiseCovariance = (sigmaAcc * sigmaAcc) * controlInputModel * controlInputModel.transpose();
-  estimateCovariance << 0, 0, 0, 0;
-  inovationCovariance << 0;
-  measurementNoiseCovariance(0) = sigmaLaser * sigmaLaser;
-  //bad !!
-  measurementOnlyVelocityNoiseCovariance(0) = sigmaLaser * sigmaLaser;
-  kalmanGain << 0, 0;
-
-#if 0
-  std::cout << "Estimate State :\n" << estimateState << std::endl;
-  std::cout << "State Transition Model :\n" << stateTransitionModel << std::endl;
-  std::cout << "Control Input Model :\n" << controlInputModel << std::endl;
-  std::cout << "Observation Model :\n" << observationModel << std::endl;
-  std::cout << "Prediction Noise Covariance :\n" << predictionNoiseCovariance << std::endl;
-  std::cout << "Measurement Noise Covariance :\n" << measurementNoiseCovariance << std::endl;
-  std::cout << "Estimate Covariance :\n" << estimateCovariance << std::endl;
-  std::cout << "Inovation Covariance :\n" << inovationCovariance << std::endl;
-  std::cout << "Kalman Gain :\n" << kalmanGain << std::endl;
-
-#endif
-}
-
-KalmanFilterImuLaser::KalmanFilterImuLaser(ros::NodeHandle nh, ros::NodeHandle nh_private, std::string filterID, bool DynamicReconf): kalmanFilterNodeHandle_(nh, "kalman_filter"), kalmanFilterNodeHandlePrivate_(nh_private, "kalman_filter"), kalmanFilterNodeHandlePrivateWithAxis_(nh_private, "kalman_filter/" + filterID), id(filterID)
+KalmanFilterPosVelAcc::KalmanFilterPosVelAcc(ros::NodeHandle nh, ros::NodeHandle nh_private, std::string filter_id, bool dynamic_reconf): nh_(nh, "kalman_filter"), nhp_(nh_private, "kalman_filter"), nhp_axis_(nh_private, "kalman_filter/" + filter_id), id(filter_id)
 {
   rosParamInit();
 
   //init 
-  sigmaAcc = inputSigma_; sigmaLaser = measureSigma_;
-  dt = 1 / imuHz_;
-  inputStartFlag = false;
-  measureStartFlag = false;
+  sigma_acc_ = input_sigma_; sigma_laser_ = measure_sigma_;
+  dt_ = 1 / imu_hz_;
+  input_start_flag_ = false;
+  measure_start_flag_ = false;
 
-  //dynamic reconfigure
-  //std::string strBegin("~WithoutBias");
-  //strBegin.append(filterID);
-  if(DynamicReconf)
+  if(dynamic_reconf)
     {
-      server = new dynamic_reconfigure::Server<jsk_quadcopter::StateKalmanFilterConfig>(kalmanFilterNodeHandlePrivateWithAxis_);
-      dynamicReconfFunc = boost::bind(&KalmanFilterImuLaser::cfgCallback, this, _1, _2);
-      server->setCallback(dynamicReconfFunc);
+      server_ = new dynamic_reconfigure::Server<aerial_robot_base::StateKalmanFilterConfig>(nhp_axis__);
+      dynamic_reconf_func_ = boost::bind(&KalmanFilterPosVelAcc::cfgCallback, this, _1, _2);
+      server_->setCallback(dynamic_reconf_func_);
     }
 
-  estimateState(0) = 0; //position initial
-  estimateState(1) = 0; //velocity initial
+  estimate_state_(0) = 0; //position initial
+  estimate_state_(1) = 0; //velocity initial
 
-  correctState(0) = 0; //position initial
-  correctState(1) = 0; //velocity initial
+  correct_state_(0) = 0; //position initial
+  correct_state_(1) = 0; //velocity initial
 
-  predictState(0) = 0; //position initial
-  predictState(1) = 0; //velocity initial
+  predict_state_(0) = 0; //position initial
+  predict_state_(1) = 0; //velocity initial
 
-  stateTransitionModel << 1, dt, 0, 1;
-  controlInputModel << (dt * dt)/2, dt;
-  observationModel << 1, 0;
-  observationOnlyVelocityModel << 0, 1;
+  state_transition_model << 1, dt_, 0, 1;
+  control_input_model << (dt_ * dt_)/2, dt_;
+  observation_model << 1, 0;
+  observation_only_velocity_model << 0, 1;
 
-  predictionNoiseCovariance = (sigmaAcc * sigmaAcc) * controlInputModel * controlInputModel.transpose();
-  estimateCovariance << 0, 0, 0, 0;
-  inovationCovariance << 0;
-  measurementNoiseCovariance(0) = sigmaLaser * sigmaLaser;
+  prediction_noise_covariance_ = (sigma_acc_ * sigma_acc_) * control_input_model_ * control_input_model_.transpose();
+  estimate_covariance_ << 0, 0, 0, 0;
+  inovation_covariance_ << 0;
+  measurement_noise_covariance_(0) = sigma_laser_ * sigma_laser_;
   //bad !!
-  measurementOnlyVelocityNoiseCovariance(0) = sigmaLaser * sigmaLaser;
-  kalmanGain << 0, 0;
+  measurement_only_velocity_noise_covariance_(0) = sigma_laser_ * sigma_laser_;
+  kalman_gain_ << 0, 0;
 
 }
 
 
-
-KalmanFilterImuLaser::~KalmanFilterImuLaser()
+KalmanFilterPosVelAcc::~KalmanFilterPosVelAcc()
 {
 }
 
-bool KalmanFilterImuLaser::prediction(double input, ros::Time timeStamp)
+bool KalmanFilterPosVelAcc::prediction(double input, ros::Time stamp)
 {
-  boost::lock_guard<boost::mutex> lock(kfMutex);
+  boost::lock_guard<boost::mutex> lock(kf_mutex_);
 
   if(getFilteringStartFlag())
     {
-      //ROS_WARN("input");
-      //ROS_WARN(" input, %lf", timeStamp.toSec());
-      //bais effect
-      //float input = rawInput - accBias;
 
-      Eigen::Vector2d estimateHatState
-        = stateTransitionModel * estimateState + input * controlInputModel;
-      estimateState = estimateHatState;
+      Eigen::Vector2d estimate_hat_state
+        = state_transition_model_ * estimate_state_ + input * control_input_model_;
+      estimate_state_ = estimateHatState;
 
-      Eigen::Matrix2d estimateBarCovariance 
-        = stateTransitionModel * estimateCovariance * stateTransitionModel.transpose() 
-        + predictionNoiseCovariance;
-      estimateCovariance = estimateBarCovariance;
+      Eigen::Matrix2d estimate_bar_covariance 
+        = state_transition_model_ * estimate_covariance_ * state_transition_model_.transpose() 
+        + prediction_noise_covariance_;
+      estimate_covariance_ = estimate_bar_covariance_;
 
       //debug
-      Eigen::Vector2d predictHatState
-        = stateTransitionModel * predictState + input * controlInputModel;
-      predictState = predictHatState;
+      Eigen::Vector2d predict_hat_state_
+        = state_transition_model_ * predict_state_ + input * control_input_model_;
+      predict_state_ = predict_hat_state;
 
       return true;
     }
@@ -136,36 +73,30 @@ bool KalmanFilterImuLaser::prediction(double input, ros::Time timeStamp)
     return false;
 }
 
-bool KalmanFilterImuLaser::correction(double measurement, ros::Time timeStamp)
+bool KalmanFilterPosVelAcc::correction(double measurement, ros::Time stamp)
 {
-  boost::lock_guard<boost::mutex> lock(kfMutex);
+  boost::lock_guard<boost::mutex> lock(kf_mutex_);
   if(getFilteringStartFlag())
     {
 
-      //ROS_ERROR("measure is %f", measurement);
-
-      inovationCovariance = observationModel * estimateCovariance * observationModel.transpose()
-        + measurementNoiseCovariance;
+      inovation_covariance_ = observation_model_ * estiamte_covariance_ * observation_model_.transpose()
+        + measurement_noise_covariance_;
   
-      //std::cout << "Inovation Covariance :\n" << inovationCovariance << std::endl;
-      //std::cout << "Estimate Covariance :\n" << estimateCovariance << std::endl;
 
-      kalmanGain = estimateCovariance * observationModel.transpose() * inovationCovariance.inverse();
+      kalman_gain_ = estiamte_covariance_ * observation_model_.transpose() * inovation_covariance_.inverse();
 
-      //std::cout << "Kalman Gain :\n" << kalmanGain << std::endl;
 
-      Eigen::Vector2d estimateStateTmp 
-        = estimateState + kalmanGain * (measurement - observationModel * estimateState);
-      estimateState = estimateStateTmp;
-      correctState = estimateStateTmp;
 
-      //std::cout << "correctState :\n" << correctState << std::endl;
+      Eigen::Vector2d estiamte_state_tmp 
+        = estiamte_state_ + kalman_gain_ * (measurement - observation_model_ * estiamte_state_);
+      estiamte_state_ = estiamte_state_tmp;
+      correct_state_ = estiamte_state_tmp;
 
 
       Eigen::Matrix2d I; I.setIdentity();
-      Eigen::Matrix2d estimateCovarianceTmp;
-      estimateCovarianceTmp = (I - kalmanGain * observationModel) * estimateCovariance;
-      estimateCovariance = estimateCovarianceTmp;
+      Eigen::Matrix2d estiamte_covariance_tmp;
+      estiamte_covariance_tmp = (I - kalman_gain_ * observation_model_) * estiamte_covariance_;
+      estiamte_covariance_ = estiamte_covariance_tmp;
 
       return true;
     }
@@ -173,76 +104,61 @@ bool KalmanFilterImuLaser::correction(double measurement, ros::Time timeStamp)
     return false;
 }
 
-bool KalmanFilterImuLaser::correctionOnlyVelocity(double measurement, ros::Time timeStamp)
+bool KalmanFilterPosVelAcc::correctionOnlyVelocity(double measurement, ros::Time timeStamp)
 {
-  boost::lock_guard<boost::mutex> lock(kfMutex);
+  boost::lock_guard<boost::mutex> lock(kf_mutex_);
   if(getFilteringStartFlag())
     {
 
-      //ROS_ERROR("measure is %lf", timeStamp.toSec());
+      inovation_covariance_ = observation_only_velocity_model_ * estimate_covariance_ * observation_only_velocity_model_.transpose() + measurement_only_velocity_noise_covariance_;
 
-      inovationCovariance = observationOnlyVelocityModel * estimateCovariance * observationOnlyVelocityModel.transpose()
-        + measurementOnlyVelocityNoiseCovariance;
-      // std::cout << "observationOnlyVelocityModel :\n" << observationOnlyVelocityModel << std::endl;
-      // std::cout << "measurementOnlyVelocityNoiseCovariance :\n" << measurementOnlyVelocityNoiseCovariance << std::endl;
-      // std::cout << "Inovation Covariance :\n" << inovationCovariance << std::endl;
-      // std::cout << "Estimate Covariance :\n" << estimateCovariance << std::endl;
+      kalman_gain_ = estiamte_covariance_ * observation_only_velocity_model_.transpose() * inovation_covariance_.inverse();
 
-      kalmanGain = estimateCovariance * observationOnlyVelocityModel.transpose() * inovationCovariance.inverse();
-
-      //std::cout << "Kalman Gain :\n" << kalmanGain << std::endl;
-
-      Eigen::Vector2d estimateStateTmp 
-        = estimateState + kalmanGain * (measurement - observationOnlyVelocityModel * estimateState);
-      estimateState = estimateStateTmp;
-      correctState = estimateStateTmp;
-
-      //std::cout << "correctState :\n" << correctState << std::endl;
+      Eigen::Vector2d estiamte_state_tmp 
+        = estiamte_state_ + kalman_gain_ * (measurement - observation_only_velocity_model_ * estiamte_state_);
+      estiamte_state_ = estiamte_state_tmp;
+      correct_state_ = estiamte_state_tmp;
 
 
       Eigen::Matrix2d I; I.setIdentity();
-      Eigen::Matrix2d estimateCovarianceTmp;
-      estimateCovarianceTmp = (I - kalmanGain * observationOnlyVelocityModel) * estimateCovariance;
-      estimateCovariance = estimateCovarianceTmp;
+      Eigen::Matrix2d estiamte_covariance_tmp;
+      estiamte_covariance_tmp = (I - kalman_gain_ * observation_only_velocity_model_) * estiamte_covariance_;
+      estiamte_covariance_ = estiamte_covariance_tmp;
 
       return true;
     }
   else 
     {
-      //ROS_WARN("now permission");
       return false;
     }
 }
 
 
 
-void KalmanFilterImuLaser::imuQuPush(jsk_quadcopter::ImuQuPtr imuQuMsgPtr)
+void KalmanFilterPosVelAcc::imuQuPush(aerial_robot_base::ImuQuPtr imu_qu_msg_ptr)
 {
-  boost::lock_guard<boost::mutex> lock(queueMutex);
+  boost::lock_guard<boost::mutex> lock(queue_mutex_);
   if(getFilteringStartFlag())
     {
-      // ROS_ERROR(" push the imu data");
-      imuQu.push(imuQuMsgPtr);
+      imu_qu_.push(imu_qu_msg_ptr);
     }
   return;
 }
 
-bool KalmanFilterImuLaser::imuQuPrediction(ros::Time checkTimeStamp)
+bool KalmanFilterPosVelAcc::imuQuPrediction(ros::Time check_time_stamp)
 {
-  boost::lock_guard<boost::mutex> lock(queueMutex);
+  boost::lock_guard<boost::mutex> lock(queue_mutex_);
 
 
-  if(imuQu.empty())
+  if(imu_qu_.empty())
     {
-      //ROS_INFO("no imu data ");
       return false;
     }
 
-  if(checkTimeStamp.toSec() > (imuQu.front()->stamp.toSec()))
+  if(check_time_stamp.toSec() > (imu_qu_.front()->stamp.toSec()))
     { 
-      //ROS_ERROR(" pop the imu data");
-      prediction((double)imuQu.front()->acc, imuQu.front()->stamp);
-      imuQu.pop();
+      prediction((double)imu_qu_.front()->acc, imu_qu_.front()->stamp);
+      imu_qu_.pop();
 
       return true;
     }
@@ -252,13 +168,13 @@ bool KalmanFilterImuLaser::imuQuPrediction(ros::Time checkTimeStamp)
 
 
 //for bad measurement step
-void KalmanFilterImuLaser::imuQuOnlyPrediction(ros::Time checkTimeStamp)
+void KalmanFilterPosVelAcc::imuQuOnlyPrediction(ros::Time check_time_stamp)
 {
   if(getFilteringStartFlag())
     {
       while(1)
         {
-          if(!imuQuPrediction(checkTimeStamp))
+          if(!imuQuPrediction(check_time_stamp))
             break;
         }
     }
@@ -268,47 +184,46 @@ void KalmanFilterImuLaser::imuQuOnlyPrediction(ros::Time checkTimeStamp)
 
 
 //for time synchronized state
-void KalmanFilterImuLaser::imuQuCorrection(ros::Time checkTimeStamp, double measurement, int type)
+void KalmanFilterPosVelAcc::imuQuCorrection(ros::Time check_time_stamp, double measurement, int type)
 {
   if(getFilteringStartFlag())
     {
 
-
       while(1)
         {
-          if(!imuQuPrediction(checkTimeStamp))
+          if(!imuQuPrediction(check_time_stamp))
             break;
         }
 
       if(type == 0) // position measurement
-        correction(measurement, checkTimeStamp);
-      if(type == 1) // position measurement
-        correctionOnlyVelocity(measurement, checkTimeStamp);
-      //ROS_WARN("correct the data");
+        correction(measurement, check_time_stamp);
+      if(type == 1) // velocity measurement
+        correctionOnlyVelocity(measurement, check_time_stamp);
+
     }
   return;
 }
 
 
-void KalmanFilterImuLaser::cfgCallback(jsk_quadcopter::StateKalmanFilterConfig &config, uint32_t level)
+void KalmanFilterPosVelAcc::cfgCallback(aerial_robot_base::StateKalmanFilterConfig &config, uint32_t level)
 {
 
   if(config.kalmanFilterFlag == true)
     {
-      printf("%s axis kf without bias, ", id.c_str());
+      printf("%s axis kf without bias, ", id_.c_str());
 
       switch(level)
         {
-        case jsk_quadcopter_common::DynamicReconfigureLevels::RECONFIGURE_INPUT_SIGMA:
-          sigmaAcc = config.inputSigma;
-          //+*+*+*+*+ confirm?? 
-          predictionNoiseCovariance 
-            = (sigmaAcc * sigmaAcc) * controlInputModel * controlInputModel.transpose();
+        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_INPUT_SIGMA:
+          sigma_acc_ = config.inputSigma;
+
+          prediction_noise_covariance_ 
+            = (sigma_acc_ * sigma_acc_) * control_input_model_ * control_input_model_.transpose();
           printf("change the input sigma\n");
           break;
-        case jsk_quadcopter_common::DynamicReconfigureLevels::RECONFIGURE_MEASURE_SIGMA:
-          sigmaLaser   = config.measureSigma;
-          measurementNoiseCovariance(0) = sigmaLaser * sigmaLaser;
+        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_MEASURE_SIGMA:
+          sigma_laser_  = config.measureSigma;
+          measurement_noise_covariance_(0) = sigma_laser_ * sigma_laser_;
           printf("change the measure sigma\n");
           break;
         default :
@@ -319,231 +234,134 @@ void KalmanFilterImuLaser::cfgCallback(jsk_quadcopter::StateKalmanFilterConfig &
 
 }
 
-
-double KalmanFilterImuLaser::getEstimatePos()
+void KalmanFilterPosVelAcc::getEstimateCovariance(float* covariance_matrix)
 {
-  return estimateState(0);
-}
-
-double KalmanFilterImuLaser::getEstimateVel()
-{
-  return estimateState(1);
-}
-
-double KalmanFilterImuLaser::getPredictPos()
-{
-  return predictState(0);
-}
-
-double KalmanFilterImuLaser::getPredictVel()
-{
-  return predictState(1);
+  covariance_matrix[0] = estimate_covariance_(0,0);
+  covariance_matrix[1] = estimate_covariance_(0,1);
+  covariance_matrix[2] = estimate_covariance_(1,0);
+  covariance_matrix[3] = estimate_covariance_(1,1);
 }
 
 
-double KalmanFilterImuLaser::getCorrectPos()
-{
-  return correctState(0);
-}
-
-double KalmanFilterImuLaser::getCorrectVel()
-{
-  return correctState(1);
-}
-
-void KalmanFilterImuLaser::test()
-{
-  ROS_WARN("Test OK!");
-}
-
-void KalmanFilterImuLaser::getEstimateCovariance(float* covarianceMatrix)
-{
-  covarianceMatrix[0] = estimateCovariance(0,0);
-  covarianceMatrix[1] = estimateCovariance(0,1);
-  covarianceMatrix[2] = estimateCovariance(1,0);
-  covarianceMatrix[3] = estimateCovariance(1,1);
-}
-
-
-void KalmanFilterImuLaser::setInitImuBias(double initBias)
+void KalmanFilterPosVelAcc::setInitImuBias(double init_bias)
 {
   //set bias
-  accBias = initBias;
+  acc_bias_ = init_bias;
   // start filtering . danger!
   setInputStartFlag();
 }
 
-void KalmanFilterImuLaser::setInputStartFlag()
+void KalmanFilterPosVelAcc::setInputStartFlag()
 {
-  boost::lock_guard<boost::mutex> lock(kfMutex);
-  inputStartFlag = true;
+  boost::lock_guard<boost::mutex> lock(kf_mutex_);
+  input_start_flag_ = true;
 }
 
-void KalmanFilterImuLaser::setMeasureStartFlag(bool flag)
+void KalmanFilterPosVelAcc::setMeasure_start_flag_(bool flag)
 {
-  boost::lock_guard<boost::mutex> lock(kfMutex);
-  measureStartFlag = flag;
+  boost::lock_guard<boost::mutex> lock(kf_mutex_);
+  measure_start_flag_ = flag;
 }
 
 
-bool KalmanFilterImuLaser::getFilteringStartFlag()
+bool KalmanFilterPosVelAcc::getFilteringStartFlag()
 {
-  if(inputStartFlag && measureStartFlag)
+  if(input_start_flag_ && measure_start_flag_)
     return true;
   else 
     return false;
 }
 
-void KalmanFilterImuLaser::setInitState(double init_pos, double init_vel)
+void KalmanFilterPosVelAcc::setInitState(double init_pos, double init_vel)
 {
-  estimateState(0) = init_pos; //position initial
-  estimateState(1) = init_vel; //position initial
+  estimate_state_(0) = init_pos; //position initial
+  estimate_state_(1) = init_vel; //position initial
 
-  correctState(0) = init_pos; //position initial
-  correctState(1) = init_vel; //position initial
+  correct_state_(0) = init_pos; //position initial
+  correct_state_(1) = init_vel; //position initial
 
-  predictState(0) = init_pos; //position initial
-  predictState(1) = init_vel; //position initial
+  predict_state_(0) = init_pos; //position initial
+  predict_state_(1) = init_vel; //position initial
 
 
 }
 
-
-void KalmanFilterImuLaser::rosParamInit()
+void KalmanFilterPosVelAcc::rosParamInit()
 {
-  std::string ns = kalmanFilterNodeHandlePrivateWithAxis_.getNamespace();
+  std::string ns = nhp_axis_.getNamespace();
   ns.append(" without bias");
-  if (!kalmanFilterNodeHandlePrivateWithAxis_.getParam ("inputSigma", inputSigma_))
-    inputSigma_ = 0.0;
-  printf("%s: inputSigma_ is %.4f\n", ns.c_str(), inputSigma_);
-  if (!kalmanFilterNodeHandlePrivateWithAxis_.getParam ("measureSigma", measureSigma_))
-    measureSigma_ = 0.0;
-  printf("%s: measureSigma_ is %.4f\n", ns.c_str(), measureSigma_);
-  if (!kalmanFilterNodeHandlePrivate_.getParam ("imuHz", imuHz_))
-    imuHz_ = 100;
-  printf("%s: imuHz_ is %.4f\n",kalmanFilterNodeHandlePrivate_.getNamespace().c_str(), imuHz_);
+  if (!nhp_axis_.getParam ("inputSigma", input_sigma_))
+    input_sigma_ = 0.0;
+  printf("%s: input_sigma_ is %.4f\n", ns.c_str(), input_sigma_);
+  if (!nhp_axis_.getParam ("measureSigma", measure_sigma_))
+    measure_sigma_ = 0.0;
+  printf("%s: measure_sigma_ is %.4f\n", ns.c_str(), measure_sigma_);
+  if (!nhp_.getParam ("imuHz", imu_hz_))
+    imu_hz_ = 100;
+  printf("%s: imu_hz_ is %.4f\n",nhp_.getNamespace().c_str(), imu_hz_);
 }
 
 
 
-KalmanFilterImuLaserBias::KalmanFilterImuLaserBias(ros::NodeHandle nh, 
+KalmanFilterPosVelAccBias::KalmanFilterPosVelAccBias(ros::NodeHandle nh, 
                                                    ros::NodeHandle nh_private, 
-                                                   std::string filterID,
-                                                   bool DynamicReconf):kalmanFilterNodeHandle_(nh, "kalman_filter"), kalmanFilterNodeHandlePrivate_(nh_private, "kalman_filter"), kalmanFilterNodeHandlePrivateWithAxis_(nh_private, "kalman_filter/" + filterID), id(filterID) 
+                                                   std::string filter_id,
+                                                   bool dynamic_reconf):nh_(nh, "kalman_filter"), nhp_(nh_private, "kalman_filter"), nhp_axis_(nh_private, "kalman_filter/" + filter_id), id_(filter_id) 
 {
   rosParamInit();
 
   //init
-  sigmaAcc = inputSigma_;
-  sigmaAccBias = biasSigma_;
-  sigmaLaser = measureSigma_;
-  dt = 1 / imuHz_;
+  sigma_acc_ = input_sigma_;
+  sigma_acc_bias = bias_sigma_;
+  sigma_laser_ = measure_sigma_;
+  dt_ = 1 / imu_hz_;
 
-  inputStartFlag = false;
-  measureStartFlag = false;
+  input_start_flag_ = false;
+  measure_start_flag_ = false;
 
 
   //dynamic reconfigure
-  if(DynamicReconf)
+  if(dynamic_reconf_)
     {
-      server = new dynamic_reconfigure::Server<jsk_quadcopter::StateKalmanFilterConfig>(kalmanFilterNodeHandlePrivateWithAxis_);
-      dynamicReconfFunc = boost::bind(&KalmanFilterImuLaserBias::cfgCallback, this, _1, _2);
-      server->setCallback(dynamicReconfFunc);
+      server_ = new dynamic_reconfigure::Server<aerial_robot_base::StateKalmanFilterConfig>(nhp_axis_);
+      dynamic_reconf_func_ = boost::bind(&KalmanFilterPosVelAccBias::cfgCallback, this, _1, _2);
+      server_->setCallback(dynamic_reconf_func_);
     }
 
 
-  estimateState(0) = 0; //position initial
-  estimateState(1) = 0; //position initial
-  estimateState(2) = 0; //bias inital
+  estiamte_state_(0) = 0; //position initial
+  estiamte_state_(1) = 0; //position initial
+  estiamte_state_(2) = 0; //bias inital
 
-  correctState(0) = 0; //position initial
-  correctState(1) = 0; //velocity initial
-  correctState(2) = 0; //bias initial
+  correct_state_(0) = 0; //position initial
+  correct_state_(1) = 0; //velocity initial
+  correct_state_(2) = 0; //bias initial
 
-  predictState(0) = 0; //position initial
-  predictState(1) = 0; //velocity initial
-  predictState(2) = 0; //bias initial
+  predict_state_(0) = 0; //position initial
+  predict_state_(1) = 0; //velocity initial
+  predict_state_(2) = 0; //bias initial
 
-  stateTransitionModel << 1, dt, -dt*dt/2, 0, 1, -dt, 0, 0, 1;
-  controlInputModel << (dt * dt)/2, dt, 0;
-  observationModel << 1, 0, 0;
-  observationOnlyVelocityModel << 0, 1, 0;
+  state_transition_model_ << 1, dt_, -dt_*dt_/2, 0, 1, -dt_, 0, 0, 1;
+  control_input_model_ << (dt_ * dt_)/2, dt_, 0;
+  observation_model_ << 1, 0, 0;
+  observation_only_velocity_model_ << 0, 1, 0;
 
-  predictionNoiseCovariance = (sigmaAcc * sigmaAcc) * controlInputModel * controlInputModel.transpose();
+  prediction_noise_covarinace_ = (sigma_acc_ * sigma_acc_) * control_input_model_ * control_input_model_.transpose();
 
-  predictionNoiseCovariance(2,2) = sigmaAccBias * sigmaAccBias;
+  prediction_noise_covarinace_(2,2) = sigma_acc_Bias * sigma_acc_Bias;
 
-  estimateCovariance << 0, 0, 0, 0, 0, 0, 0, 0, 0;
-  inovationCovariance << 0;
-  measurementNoiseCovariance(0) = sigmaLaser * sigmaLaser;
+  estiamte_covariance_ << 0, 0, 0, 0, 0, 0, 0, 0, 0;
+  inovation_covariance_ << 0;
+  measurement_noise_covariance_(0) = sigma_laser_ * sigma_laser_;
   //bad !!
-  measurementOnlyVelocityNoiseCovariance(0) = sigmaLaser * sigmaLaser;
+  measurment_only_velocity_noise_covariance_(0) = sigma_laser_ * sigma_laser_;
 
-  kalmanGain << 0, 0, 0;
+  kalman_gain_ << 0, 0, 0;
 
-  kalmanFilterStamp = ros::Time::now();
-
+  kalman_filter_stamp_ = ros::Time::now();
 
 }
 
-
-KalmanFilterImuLaserBias::KalmanFilterImuLaserBias(double sigmaPredictAcc,
-                                                   double sigmaPredictBias,
-                                                   double sigmaMeasure,
-                                                   double dtime,
-                                                   std::string filterID): id(filterID) 
-{
-
-  //init 
-  sigmaAcc = sigmaPredictAcc;
-  sigmaAccBias = sigmaPredictBias;
-  sigmaLaser = sigmaMeasure;
-  dt = dtime;
-
-  inputStartFlag = false;
-  measureStartFlag = false;
-
-  //dynamic reconfigure
-  std::string strBegin("~WithBias");
-  strBegin.append(filterID);
-  server = new dynamic_reconfigure::Server<jsk_quadcopter::StateKalmanFilterConfig>(ros::NodeHandle(strBegin));
-  dynamicReconfFunc = boost::bind(&KalmanFilterImuLaserBias::cfgCallback, this, _1, _2);
-  server->setCallback(dynamicReconfFunc);
-
-
-
-  estimateState(0) = 0; //position initial
-  estimateState(1) = 0; //position initial
-  estimateState(2) = 0; //bias inital
-
-  correctState(0) = 0; //position initial
-  correctState(1) = 0; //velocity initial
-  correctState(2) = 0; //bias initial
-
-  predictState(0) = 0; //position initial
-  predictState(1) = 0; //velocity initial
-  predictState(2) = 0; //bias initial
-
-  stateTransitionModel << 1, dt, -dt*dt/2, 0, 1, -dt, 0, 0, 1;
-  controlInputModel << (dt * dt)/2, dt, 0;
-  observationModel << 1, 0, 0;
-  observationOnlyVelocityModel << 0, 1, 0;
-
-  predictionNoiseCovariance = (sigmaAcc * sigmaAcc) * controlInputModel * controlInputModel.transpose();
-
-  predictionNoiseCovariance(2,2) = sigmaAccBias * sigmaAccBias;
-
-  estimateCovariance << 0, 0, 0, 0, 0, 0, 0, 0, 0;
-  inovationCovariance << 0;
-  measurementNoiseCovariance(0) = sigmaLaser * sigmaLaser;
-  //bad !!
-  measurementOnlyVelocityNoiseCovariance(0) = sigmaLaser * sigmaLaser;
-
-  kalmanGain << 0, 0, 0;
-
-  kalmanFilterStamp = ros::Time::now();
-
-}
 
 KalmanFilterImuLaserBias::~KalmanFilterImuLaserBias()
 {
@@ -551,26 +369,25 @@ KalmanFilterImuLaserBias::~KalmanFilterImuLaserBias()
 
 bool KalmanFilterImuLaserBias::prediction(double input, ros::Time stamp)
 {
-  boost::lock_guard<boost::mutex> lock(kfMutex);
+  boost::lock_guard<boost::mutex> lock(kf_mutex_);
   if(getFilteringStartFlag())
     {
-      //ROS_WARN("input: %lf", stamp.toSec());
 
-      Eigen::Vector3d estimateHatState
-        = stateTransitionModel * estimateState + input * controlInputModel;
-      estimateState = estimateHatState;
+      Eigen::Vector3d estimate_hat_state
+        = state_transition_model_ * estiamte_state_ + input * control_input_model_;
+      estiamte_state_ = estimate_hat_state;
 
-      Eigen::Matrix3d estimateBarCovariance 
-        = stateTransitionModel * estimateCovariance * stateTransitionModel.transpose() 
-        + predictionNoiseCovariance;
-      estimateCovariance = estimateBarCovariance;
+      Eigen::Matrix3d estimate_bar_covariance 
+        = state_transition_model_ * estiamte_covariance_ * state_transition_model_.transpose() 
+        + prediction_noise_covarinace_;
+      estiamte_covariance_ = estimate_bar_covariance;
 
       //debug
-      Eigen::Vector3d predictHatState
-        = stateTransitionModel * predictState + input * controlInputModel;
-      predictState = predictHatState;
+      Eigen::Vector3d predict_hat_state
+        = state_transition_model_ * predict_state_ + input * control_input_model_;
+      predict_state_ = predict_hat_state;
 
-      kalmanFilterStamp = stamp;
+      kalman_filter_stamp_ = stamp;
 
       return true;
     }
@@ -579,13 +396,13 @@ bool KalmanFilterImuLaserBias::prediction(double input, ros::Time stamp)
 }
 
 //for bad measurement step
-void KalmanFilterImuLaserBias::imuQuOnlyPrediction(ros::Time checkTimeStamp)
+void KalmanFilterImuLaserBias::imuQuOnlyPrediction(ros::Time check_time_stamp)
 {
   if(getFilteringStartFlag())
     {
       while(1)
         {
-          if(!imuQuPrediction(checkTimeStamp))
+          if(!imuQuPrediction(check_time_stamp))
             break;
         }
     }
@@ -596,110 +413,93 @@ void KalmanFilterImuLaserBias::imuQuOnlyPrediction(ros::Time checkTimeStamp)
 
 double KalmanFilterImuLaserBias::correction(double measurement, ros::Time stamp)
 {
-  boost::lock_guard<boost::mutex> lock(kfMutex);
+  boost::lock_guard<boost::mutex> lock(kf_mutex_);
   if(getFilteringStartFlag())
     {
-      //ROS_ERROR("measure: %lf", stamp.toSec());
 
-      inovationCovariance = observationModel * estimateCovariance * observationModel.transpose()
-        + measurementNoiseCovariance;
+      inovation_covariance_ = observation_model_ * estiamte_covariance_ * observation_model_.transpose()
+        + measurement_noise_covariance_;
   
-      //std::cout << "Inovation Covariance :\n" << inovationCovariance << std::endl;
-      //std::cout << "Estimate Covariance :\n" << estimateCovariance << std::endl;
 
-      kalmanGain = estimateCovariance * observationModel.transpose() * inovationCovariance.inverse();
+      kalman_gain_ = estiamte_covariance_ * observation_model_.transpose() * inovation_covariance_.inverse();
 
-      //std::cout << "Kalman Gain :\n" << kalmanGain << std::endl;
 
-      Eigen::Vector3d estimateStateTmp 
-        = estimateState + kalmanGain * (measurement - observationModel * estimateState);
-      estimateState = estimateStateTmp;
-      correctState = estimateStateTmp;
+      Eigen::Vector3d estiamte_state_tmp 
+        = estiamte_state_ + kalman_gain_ * (measurement - observation_model_ * estiamte_state_);
+      estiamte_state_ = estiamte_state_tmp;
+      correct_state_ = estiamte_state_tmp;
 
       Eigen::Matrix3d I; I.setIdentity();
-      Eigen::Matrix3d estimateCovarianceTmp;
-      estimateCovarianceTmp = (I - kalmanGain * observationModel) * estimateCovariance;
-      estimateCovariance = estimateCovarianceTmp;
+      Eigen::Matrix3d estiamte_covariance_tmp;
+      estiamte_covariance_tmp = (I - kalman_gain_ * observation_model_) * estiamte_covariance_;
+      estiamte_covariance_ = estiamte_covariance_tmp;
 
-      // if(kalmanFilterStamp.toSec() > stamp.toSec()) 
-      //   ROS_WARN("%s Axis Kalman Filter: wrong time stamp, %.3f!!", id.c_str(), kalmanFilterStamp.toSec() - stamp.toSec());
 
-      return (kalmanFilterStamp.toSec() - stamp.toSec());
+      return (kalman_filter_stamp_.toSec() - stamp.toSec());
     }
   else 
     {
-      //ROS_WARN("now permission");
       return 0;
     }
 }
 
 double KalmanFilterImuLaserBias::correctionOnlyVelocity(double measurement, ros::Time stamp)
 {
-  boost::lock_guard<boost::mutex> lock(kfMutex);
+  boost::lock_guard<boost::mutex> lock(kf_mutex_);
   if(getFilteringStartFlag())
     {
-      //ROS_WARN("only velocity");
 
-      inovationCovariance = observationOnlyVelocityModel * estimateCovariance * observationOnlyVelocityModel.transpose()
-        + measurementOnlyVelocityNoiseCovariance;
+      inovation_covariance_ = observation_only_velocity_model_ * estiamte_covariance_ * observation_only_velocity_model_.transpose()
+        + measurment_only_velocity_noise_covariance_;
   
 
-      //std::cout << "Inovation Covariance :\n" << inovationCovariance << std::endl;
-      //std::cout << "Estimate Covariance :\n" << estimateCovariance << std::endl;
 
-      kalmanGain = estimateCovariance * observationOnlyVelocityModel.transpose() * inovationCovariance.inverse();
+      kalman_gain_ = estiamte_covariance_ * observation_only_velocity_model_.transpose() * inovation_covariance_.inverse();
 
-      //std::cout << "Kalman Gain :\n" << kalmanGain << std::endl;
 
-      Eigen::Vector3d estimateStateTmp 
-        = estimateState + kalmanGain * (measurement - observationOnlyVelocityModel * estimateState);
-      estimateState = estimateStateTmp;
-      correctState = estimateStateTmp;
+      Eigen::Vector3d estiamte_state_tmp 
+        = estiamte_state_ + kalman_gain_ * (measurement - observation_only_velocity_model_ * estiamte_state_);
+      estiamte_state_ = estiamte_state_tmp;
+      correct_state_ = estiamte_state_tmp;
 
       Eigen::Matrix3d I; I.setIdentity();
-      Eigen::Matrix3d estimateCovarianceTmp;
-      estimateCovarianceTmp = (I - kalmanGain * observationOnlyVelocityModel) * estimateCovariance;
-      estimateCovariance = estimateCovarianceTmp;
+      Eigen::Matrix3d estiamte_covariance_tmp;
+      estiamte_covariance_tmp = (I - kalman_gain_ * observation_only_velocity_model_) * estiamte_covariance_;
+      estiamte_covariance_ = estiamte_covariance_tmp;
 
-      // if(kalmanFilterStamp.toSec() > stamp.toSec()) 
-      //   ROS_WARN("%s Axis Kalman Filter: wrong time stamp, %.3f!!", id.c_str(), kalmanFilterStamp.toSec() - stamp.toSec());
 
-      return (kalmanFilterStamp.toSec() - stamp.toSec());
+      return (kalman_filter_stamp_.toSec() - stamp.toSec());
     }
   else 
     {
-      //ROS_WARN("now permission");
       return 0;
     }
 }
   
 
 
-void KalmanFilterImuLaserBias::imuQuPush(jsk_quadcopter::ImuQuPtr imuQuMsgPtr)
+void KalmanFilterImuLaserBias::imuQuPush(aerial_robot_base::ImuQuPtr imu_qu_msg_ptr)
 {
-  boost::lock_guard<boost::mutex> lock(queueMutex);
+  boost::lock_guard<boost::mutex> lock(queue_mutex_);
   if(getFilteringStartFlag())
     {
-      //ROS_ERROR(" push the imu data");
-      imuQu.push(imuQuMsgPtr);
+      imu_qu_.push(imu_qu_msg_ptr);
     }
   return;
 }
 
-bool KalmanFilterImuLaserBias::imuQuPrediction(ros::Time checkTimeStamp)
+bool KalmanFilterImuLaserBias::imuQuPrediction(ros::Time check_time_stamp)
 {
-  boost::lock_guard<boost::mutex> lock(queueMutex);
-  if(imuQu.empty())
+  boost::lock_guard<boost::mutex> lock(queue_mutex_);
+  if(imu_qu_.empty())
     {
-      //ROS_INFO("               no imu data ");
       return false;
     }
 
-  if(checkTimeStamp.toSec() > (imuQu.front()->stamp.toSec()))
+  if(check_time_stamp.toSec() > (imu_qu_.front()->stamp.toSec()))
     { 
-      //ROS_ERROR(" pop the imu data");
-      prediction((double)imuQu.front()->acc, imuQu.front()->stamp);
-      imuQu.pop();
+      prediction((double)imu_qu_.front()->acc, imu_qu_.front()->stamp);
+      imu_qu_.pop();
 
       return true;
     }
@@ -708,53 +508,52 @@ bool KalmanFilterImuLaserBias::imuQuPrediction(ros::Time checkTimeStamp)
 }
 
 //for time synchronized state
-void KalmanFilterImuLaserBias::imuQuCorrection(ros::Time checkTimeStamp, double measurement, int type)
+void KalmanFilterImuLaserBias::imuQuCorrection(ros::Time check_time_stamp, double measurement, int type)
 {
   if(getFilteringStartFlag())
     {
       while(1)
         {
-          if(!imuQuPrediction(checkTimeStamp))
+          if(!imuQuPrediction(check_time_stamp))
             break;
         }
 
       if(type == 0) // position measurement
-        correction(measurement, checkTimeStamp);
-      if(type == 1) // position measurement
-        correctionOnlyVelocity(measurement, checkTimeStamp);
-      //ROS_WARN("correct the data");
+        correction(measurement, check_time_stamp);
+      if(type == 1) // velocity measurement
+        correctionOnlyVelocity(measurement, check_time_stamp);
     }
   return;
 }
 
-void KalmanFilterImuLaserBias::cfgCallback(jsk_quadcopter::StateKalmanFilterConfig &config, uint32_t level)
+void KalmanFilterImuLaserBias::cfgCallback(aerial_robot_base::StateKalmanFilterConfig &config, uint32_t level)
 {
 
   if(config.kalmanFilterFlag == true)
     {
-      printf("%s axis kf with bias, ", id.c_str());
+      printf("%s axis kf with bias, ", id_.c_str());
       switch(level)
         {
-        case jsk_quadcopter_common::DynamicReconfigureLevels::RECONFIGURE_INPUT_SIGMA:
-          sigmaAcc = config.inputSigma;
+        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_INPUT_SIGMA:
+          sigma_acc_ = config.inputSigma;
           //+*+*+*+*+ confirm?? 
-          predictionNoiseCovariance 
-            = (sigmaAcc * sigmaAcc) * controlInputModel * controlInputModel.transpose();
-          predictionNoiseCovariance(2,2) = sigmaAccBias * sigmaAccBias;
+          prediction_noise_covarinace_ 
+            = (sigma_acc_ * sigma_acc_) * control_input_model_ * control_input_model_.transpose();
+          prediction_noise_covarinace_(2,2) = sigma_acc_bias * sigma_acc_bias;
           printf("change the input sigma\n");
-          std::cout << "Prediction Noise Covariance :\n" << predictionNoiseCovariance << std::endl;
+          std::cout << "Prediction Noise Covariance :\n" << prediction_noise_covarinace_ << std::endl;
           break;
-        case jsk_quadcopter_common::DynamicReconfigureLevels::RECONFIGURE_BIAS_SIGMA:
-          sigmaAccBias = config.biasSigma;
-          predictionNoiseCovariance 
-            = (sigmaAcc * sigmaAcc) * controlInputModel * controlInputModel.transpose();
-          predictionNoiseCovariance(2,2) = sigmaAccBias * sigmaAccBias;
+        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_BIAS_SIGMA:
+          sigma_acc_bias = config.biasSigma;
+          prediction_noise_covarinace_ 
+            = (sigma_acc_ * sigma_acc_) * control_input_model_ * control_input_model_.transpose();
+          prediction_noise_covarinace_(2,2) = sigma_acc_bias * sigma_acc_bias;
           printf("change the bias sigma\n");
-          std::cout << "Prediction Noise Covariance :\n" << predictionNoiseCovariance << std::endl;
+          std::cout << "Prediction Noise Covariance :\n" << prediction_noise_covarinace_ << std::endl;
           break;
-        case jsk_quadcopter_common::DynamicReconfigureLevels::RECONFIGURE_MEASURE_SIGMA:
-          sigmaLaser   = config.measureSigma;
-          measurementNoiseCovariance(0) = sigmaLaser * sigmaLaser;
+        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_MEASURE_SIGMA:
+          sigma_laser_   = config.measureSigma;
+          measurement_noise_covariance_(0) = sigma_laser_ * sigma_laser_;
           printf("change the measure sigma\n");
           break;
         default :
@@ -763,120 +562,63 @@ void KalmanFilterImuLaserBias::cfgCallback(jsk_quadcopter::StateKalmanFilterConf
         }
     }
 
-
 }
-
-
-
-double KalmanFilterImuLaserBias::getEstimatePos()
-{
-  return estimateState(0);
-}
-
-double KalmanFilterImuLaserBias::getEstimateVel()
-{
-  return estimateState(1);
-}
-
-double KalmanFilterImuLaserBias::getEstimateBias()
-{
-  return estimateState(2);
-}
-
-
-double KalmanFilterImuLaserBias::getPredictPos()
-{
-  return predictState(0);
-}
-
-double KalmanFilterImuLaserBias::getPredictVel()
-{
-  return predictState(1);
-}
-
-
-double KalmanFilterImuLaserBias::getCorrectPos()
-{
-  return correctState(0);
-}
-
-double KalmanFilterImuLaserBias::getCorrectVel()
-{
-  return correctState(1);
-}
-
 
 void KalmanFilterImuLaserBias::getEstimateCovariance(float* covarianceMatrix)
 {
-  covarianceMatrix[0] = estimateCovariance(0,0);
-  covarianceMatrix[1] = estimateCovariance(0,1);
-  covarianceMatrix[2] = estimateCovariance(0,2);
-  covarianceMatrix[3] = estimateCovariance(1,0);
-  covarianceMatrix[4] = estimateCovariance(1,1);
-  covarianceMatrix[5] = estimateCovariance(1,2);
-  covarianceMatrix[6] = estimateCovariance(2,0);
-  covarianceMatrix[7] = estimateCovariance(2,1);
-  covarianceMatrix[8] = estimateCovariance(2,2);
+  covarianceMatrix[0] = estimate_covariance_(0,0);
+  covarianceMatrix[1] = estimate_covariance_(0,1);
+  covarianceMatrix[2] = estimate_covariance_(0,2);
+  covarianceMatrix[3] = estimate_covariance_(1,0);
+  covarianceMatrix[4] = estimate_covariance_(1,1);
+  covarianceMatrix[5] = estimate_covariance_(1,2);
+  covarianceMatrix[6] = estimate_covariance_(2,0);
+  covarianceMatrix[7] = estimate_covariance_(2,1);
+  covarianceMatrix[8] = estimate_covariance_(2,2);
 }
 
-void KalmanFilterImuLaserBias::setInitImuBias(double initBias)
+void KalmanFilterImuLaserBias::setInitImuBias(double init_bias)
 {
   //set bias
-  estimateState(2) = initBias; //bias inital
-  correctState(2) = initBias; //bias initial
-  predictState(2) = initBias; //bias initial
+  estiamte_state_(2) = init_bias; //bias inital
+  correct_state_(2) = init_bias; //bias initial
+  predict_state_(2) = init_bias; //bias initial
 
   // start filtering . danger!
   setInputStartFlag();
 }
 
-void KalmanFilterImuLaserBias::setInputStartFlag()
-{
-  inputStartFlag = true;
-}
 
-void KalmanFilterImuLaserBias::setMeasureStartFlag(bool flag)
-{
-  measureStartFlag = flag;
-}
-
-bool KalmanFilterImuLaserBias::getFilteringStartFlag()
-{
-  if(inputStartFlag && measureStartFlag)
-    return true;
-  else 
-    return false;
-}
 
 void KalmanFilterImuLaserBias::setInitState(double init_pos, double init_vel)
 {
-  estimateState(0) = init_pos; //position initial
-  estimateState(1) = init_vel; //position initial
+  estiamte_state_(0) = init_pos; //position initial
+  estiamte_state_(1) = init_vel; //position initial
 
-  correctState(0) = init_pos; //position initial
-  correctState(1) = init_vel; //position initial
+  correct_state_(0) = init_pos; //position initial
+  correct_state_(1) = init_vel; //position initial
 
-  predictState(0) = init_pos; //position initial
-  predictState(1) = init_vel; //position initial
+  predict_state_(0) = init_pos; //position initial
+  predict_state_(1) = init_vel; //position initial
 
 }
 
 void KalmanFilterImuLaserBias::rosParamInit()
 {
-  std::string ns = kalmanFilterNodeHandlePrivateWithAxis_.getNamespace();
+  std::string ns = nhp_axis_.getNamespace();
   ns.append(" with bias");
-  if (!kalmanFilterNodeHandlePrivateWithAxis_.getParam ("inputSigma", inputSigma_))
-    inputSigma_ = 0.0;
-  printf("%s: inputSigma_ is %.4f\n", ns.c_str(), inputSigma_);
-  if (!kalmanFilterNodeHandlePrivateWithAxis_.getParam ("biasSigma", biasSigma_))
-    biasSigma_ = 0.0;
-  printf("%s: biasSigma_ is %.4f\n", ns.c_str(), biasSigma_);
-  if (!kalmanFilterNodeHandlePrivateWithAxis_.getParam ("measureSigma", measureSigma_))
-    measureSigma_ = 0.0;
-  printf("%s: measureSigma_ is %.4f\n", ns.c_str(), measureSigma_);
-  if (!kalmanFilterNodeHandlePrivate_.getParam ("imuHz", imuHz_))
-    imuHz_ = 100;
-  printf("%s: imuHz_ is %.4f\n",kalmanFilterNodeHandlePrivate_.getNamespace().c_str(), imuHz_);
+  if (!nhp_axis_.getParam ("inputSigma", input_sigma_))
+    input_sigma_ = 0.0;
+  printf("%s: input_sigma_ is %.4f\n", ns.c_str(), input_sigma_);
+  if (!nhp_axis_.getParam ("biasSigma", bias_sigma_))
+    bias_sigma_ = 0.0;
+  printf("%s: bias_sigma_ is %.4f\n", ns.c_str(), bias_sigma_);
+  if (!nhp_axis_.getParam ("measureSigma", measure_sigma_))
+    measure_sigma_ = 0.0;
+  printf("%s: measure_sigma_ is %.4f\n", ns.c_str(), measure_sigma_);
+  if (!nhp_.getParam ("imuHz", imu_hz_))
+    imu_hz_ = 100;
+  printf("%s: imu_hz_ is %.4f\n",nhp_.getNamespace().c_str(), imu_hz_);
 
 }
 

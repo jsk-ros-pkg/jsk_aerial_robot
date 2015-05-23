@@ -3,7 +3,7 @@
 
 //* ros
 #include <ros/ros.h>
-#include <jsk_quadcopter/ImuQu.h>
+#include <aerial_robot_base/ImuQu.h>
 
 //* for kalman filter
 #include <Eigen/Core>
@@ -13,45 +13,42 @@
 #include <iostream>
 #include <queue>
 
-#include <jsk_quadcopter/digital_filter.h>
+#include <aerial_robot_base/digital_filter.h>
 //* for dynamic reconfigure
 #include <dynamic_reconfigure/server.h>
-#include <jsk_quadcopter_common/DynamicReconfigureLevels.h>
-#include <jsk_quadcopter/StateKalmanFilterConfig.h>
-
+#include <aerial_robot_msgs/DynamicReconfigureLevels.h>
+#include <aerial_robot_base/StateKalmanFilterConfig.h>
 
 //* for mutex
 #include <boost/thread/mutex.hpp>
 
-
-
-
-class KalmanFilterImuLaser : public Filter 
+class KalmanFilterPosVelAcc : public Filter 
 {
  public:
-  KalmanFilterImuLaser(ros::NodeHandle nh, ros::NodeHandle nh_private, std::string filterID, bool DynamicReconf = false);
-  KalmanFilterImuLaser(double sigmaPredict, double sigmaMeasure, double dtime, std::string filterID); //deprecated
-  ~KalmanFilterImuLaser();
+  KalmanFilterPosVelAcc(ros::NodeHandle nh, ros::NodeHandle nh_private, std::string filter_id, bool DynamicReconf = false);
+  ~KalmanFilterPosVelAcc();
 
-  bool prediction(double input, ros::Time timeStamp);
-  bool correction(double measurement, ros::Time timeStamp);
+  bool prediction(double input, ros::Time stamp);
+  bool correction(double measurement, ros::Time stamp);
   //only velocity
-  bool correctionOnlyVelocity(double measurement, ros::Time timeStamp);
+  bool correctionOnlyVelocity(double measurement, ros::Time stamp);
   //for time synchronized state
-  void imuQuCorrection(ros::Time checkTimeStamp, double measurement, int type = 0);
-  void imuQuOnlyPrediction(ros::Time checkTimeStamp); //for bad measurement step
-  bool imuQuPrediction(ros::Time checkTimeStamp);
-  void imuQuPush(jsk_quadcopter::ImuQuPtr imuQuMsgPtr);
+  void imuQuCorrection(ros::Time check_time_stamp, double measurement, int type = 0);
+  void imuQuOnlyPrediction(ros::Time check_time_stamp); //for bad measurement step
+  bool imuQuPrediction(ros::Time check_time_stamp);
+  void imuQuPush(jsk_quadcopter::ImuQuPtr imu_qu_msg_ptr);
 
 
-  double getEstimatePos();
-  double getEstimateVel();
-  double getCorrectPos();
-  double getCorrectVel();
-  double getPredictPos();
-  double getPredictVel();
+  inline double getEstimatePos(){  return estimateState(0);}
+  inline double getEstimateVel(){  return estimateState(1);}
+  inline double getCorrectPos(){  return correctState(0);}
+  inline double getCorrectVel(){  return correctState(1);}
+
+  inline double getPredictPos(){  return predictState(0);}
+  inline double getPredictVel(){  return predictState(1);}
+
   void getEstimateCovariance(float* covarianceMatrix);
-  void test();
+
   bool getFilteringStartFlag();
   void setInputStartFlag();
   void setMeasureStartFlag(bool flag);
@@ -59,78 +56,66 @@ class KalmanFilterImuLaser : public Filter
   void setInitState(double init_pos, double init_vel);
 
   //dynamic reconfigure
-  void cfgCallback(jsk_quadcopter::StateKalmanFilterConfig &config, uint32_t level);
+  void cfgCallback(aerial_robot_base::StateKalmanFilterConfig &config, uint32_t level);
   
  private:
-  ros::NodeHandle kalmanFilterNodeHandle_;
-  ros::NodeHandle kalmanFilterNodeHandlePrivate_;
-  ros::NodeHandle kalmanFilterNodeHandlePrivateWithAxis_;
+  ros::NodeHandle nh_;
+  ros::NodeHandle nhp_;
+  ros::NodeHandle nhp_axis_;
 
 
-  double dt;
-  double sigmaAcc;
-  double sigmaOpticalFlow;
-  double sigmaLaser;
-  Eigen::Vector2d estimateState; //0:Position, 1:Velocity
-  Eigen::Vector2d correctState;  //0:Position, 1:Velocity
-  Eigen::Vector2d predictState; //0:Position, 1:Velocity
-  Eigen::Matrix2d predictionNoiseCovariance, estimateCovariance;
-  Eigen::Matrix<double, 1, 1> measurementNoiseCovariance;
-  Eigen::Matrix<double, 1, 1> measurementOnlyVelocityNoiseCovariance;
-  Eigen::Matrix<double, 1, 1> inovationCovariance;
-  Eigen::Matrix<double, 2, 1> kalmanGain;
+  double dt_;
+  double sigma_acc_;
+  //  double sigma_optical_flow_;
+  double sigma_laser_;
+  Eigen::Vector2d estimate_state_; //0:Position, 1:Velocity
+  Eigen::Vector2d correct_state_;  //0:Position, 1:_velocity
+  Eigen::Vector2d predict_state_; //0:Position, 1:_velocity
+  Eigen::Matrix2d prediction_noise_covariance_, estimate_covariance_;
+  Eigen::Matrix<double, 1, 1> measurement_noise_covariance_;
+  Eigen::Matrix<double, 1, 1> measurement_only_velocity_noise_covariance_;
+  Eigen::Matrix<double, 1, 1> inovation_covariance_;
+  Eigen::Matrix<double, 2, 1> kalman_gain_;
   
-  Eigen::Matrix2d stateTransitionModel;
-  Eigen::Matrix<double, 1, 2> observationModel;
-  Eigen::Matrix<double, 1, 2> observationOnlyVelocityModel;
-  Eigen::Matrix<double, 2, 1> controlInputModel;
+  Eigen::Matrix2d state_transition_model;
+  Eigen::Matrix<double, 1, 2> observation_model_;
+  Eigen::Matrix<double, 1, 2> observation_only_velocity_model_;
+  Eigen::Matrix<double, 2, 1> control_input_model_;
 
   //time synchronized state
-  std::queue<jsk_quadcopter::ImuQuPtr> imuQu;
+  std::queue<jsk_quadcopter::ImuQuPtr> imu_qu_;
 
-  ros::Time kalmanFilterStamp;
-  std::string id;
+  ros::Time kalman_filter_stamp_;
+  std::string id_;
 
   //filtering start flag
-  bool inputStartFlag;
-  bool measureStartFlag;
-
-  //bias effect
-  double accBias;
+  bool input_start_flag_;
+  bool measure_start_flag_;
 
   //dynamic reconfigure
-  dynamic_reconfigure::Server<jsk_quadcopter::StateKalmanFilterConfig>* server;
-  dynamic_reconfigure::Server<jsk_quadcopter::StateKalmanFilterConfig>::CallbackType dynamicReconfFunc;
+  dynamic_reconfigure::Server<aerial_robot_base::StateKalmanFilterConfig>* server_;
+  dynamic_reconfigure::Server<aerial_robot_base::StateKalmanFilterConfig>::CallbackType dynamic_reconf_func_;
 
   //for mutex
-  boost::mutex kfMutex;
-  boost::mutex queueMutex;
-  //boost::mutex kfMutex;
+  boost::mutex kf_mutex_;
+  boost::mutex queue_mutex_;
 
-  double inputSigma_;
-  double measureSigma_;
-  double imuHz_;
+  double input_sigma_;
+  double measure_sigma_;
+
+  //bias effect
+  double acc_bias_;
+
+  double imu_hz_;
   void rosParamInit();
 };
 
 class KalmanFilterImuLaserBias : public Filter 
 {
  public:
-  KalmanFilterImuLaserBias(ros::NodeHandle nh, ros::NodeHandle nh_private, std::string filterID, bool DynamicReconf = false);
+  KalmanFilterPosVelAccBias(ros::NodeHandle nh, ros::NodeHandle nh_private, std::string filterID, bool DynamicReconf = false);
 
-  //deprecated
-  KalmanFilterImuLaserBias(double sigmaPredictAcc, double sigmaPredictBias,
-                           double sigmaMeasure,  double dtime,
-                           std::string filterID);
-
-  /*
-  KalmanFilterImuLaserBias(double sigmaPredictAcc, double sigmaPredictBias,
-                           double sigmaMeasure,
-                           double dtime,
-                           std::string filterID);
-  */
-
-  ~KalmanFilterImuLaserBias();
+  ~KalmanFilterPosVelAccBias();
 
   bool prediction(double input, ros::Time stamp);
   double correction(double measurement, ros::Time stamp);
@@ -138,25 +123,33 @@ class KalmanFilterImuLaserBias : public Filter
   double correctionOnlyVelocity(double measurement, ros::Time stamp);
 
   //for time synchronized state
-  void imuQuCorrection(ros::Time checkTimeStamp, double measurement, int type = 0);
-  void imuQuOnlyPrediction(ros::Time checkTimeStamp); //for bad measurement step
-  bool imuQuPrediction(ros::Time checkTimeStamp);
-  void imuQuPush(jsk_quadcopter::ImuQuPtr imuQuMsgPtr);
+  void imuQuCorrection(ros::Time check_time_stamp, double measurement, int type = 0);
+  void imuQuOnlyPrediction(ros::Time check_time_stamp); //for bad measurement step
+  bool imuQuPrediction(ros::Time check_time_stamp);
+  void imuQuPush(aerial_robot_base::ImuQuPtr imu_qu_msg_ptr);
 
 
+  inline double getEstimatePos(){  return estiamte_state_(0);}
+  inline double getEstimateVel(){  return estiamte_state_(1);}
+  inline double getEstimateBias(){  return estiamte_state_(2);}
+  inline double getCorrectPos(){  return correct_state_(0);}
+  inline double getCorrectVel(){  return correct_state_(1);}
+  inline double getPredictPos(){  return predict_state_(0);}
+  inline double getPredictVel(){  return predict_state_(1);}
 
-  double getEstimatePos();
-  double getEstimateVel();
-  double getEstimateBias();
-  double getCorrectPos();
-  double getCorrectVel();
-  double getPredictPos();
-  double getPredictVel();
+
   void getEstimateCovariance(float* covarianceMatrix);
-  void test();
-  bool getFilteringStartFlag();
-  void setInputStartFlag();
-  void setMeasureStartFlag(bool flag);
+
+  inline bool getFilteringStartFlag()
+  {
+    if(input_start_flag_ && measure_start_flag_)
+      return true;
+    else 
+      return false;
+  }
+  inline void setInputStartFlag(){  input_start_flag_ = true; }
+  inline void setMeasureStartFlag(bool flag){  measure_start_flag_ = flag; }
+
   void setInitImuBias(double initBias);
   void setInitState(double init_pos, double init_vel);
   void reset();
@@ -165,52 +158,52 @@ class KalmanFilterImuLaserBias : public Filter
   void cfgCallback(jsk_quadcopter::StateKalmanFilterConfig &config, uint32_t level);
 
  private:
-  ros::NodeHandle kalmanFilterNodeHandle_;
-  ros::NodeHandle kalmanFilterNodeHandlePrivate_;
-  ros::NodeHandle kalmanFilterNodeHandlePrivateWithAxis_;
+  ros::NodeHandle nh_;
+  ros::NodeHandle nhp_;
+  ros::NodeHandle nhp_axis_;
   
 
-  double dt;
-  double sigmaAcc;
-  double sigmaOpticalFlow;
-  double sigmaAccBias;
-  double sigmaLaser;
-  Eigen::Vector3d estimateState; //0:Position, 1:Velocity, 2:Bias
-  Eigen::Vector3d correctState;  //0:Position, 1:Velocity, 2:Bias
-  Eigen::Vector3d predictState; //0:Position, 1:Velocity, 2:Bias
-  Eigen::Matrix3d predictionNoiseCovariance, estimateCovariance;
-  Eigen::Matrix<double, 1, 1> measurementNoiseCovariance;
-  Eigen::Matrix<double, 1, 1> measurementOnlyVelocityNoiseCovariance;
-  Eigen::Matrix<double, 1, 1> inovationCovariance;
-  Eigen::Matrix<double, 3, 1> kalmanGain;
+  double dt_;
+  double sigma_acc_;
+  double sigma_optical_flow_;
+  double sigma_acc_bias_;
+  double sigma_laser_;
+  Eigen::Vector3d estimate_state_; //0:Position, 1:Velocity, 2:Bias
+  Eigen::Vector3d correct_state_;  //0:Position, 1:Velocity, 2:Bias
+  Eigen::Vector3d predict_state_; //0:Position, 1:Velocity, 2:Bias
+  Eigen::Matrix3d prediction_noise_covariance_, estimate_covariance_;
+  Eigen::Matrix<double, 1, 1> measurement_noise_covariance_;
+  Eigen::Matrix<double, 1, 1> measurement_only_velocity_noise_covariance_;
+  Eigen::Matrix<double, 1, 1> inovation_covariance_;
+  Eigen::Matrix<double, 3, 1> kalman_gain_;
   
-  Eigen::Matrix3d stateTransitionModel;
-  Eigen::Matrix<double, 1, 3> observationModel;
-  Eigen::Matrix<double, 1, 3> observationOnlyVelocityModel;
-  Eigen::Matrix<double, 3, 1>  controlInputModel;
+  Eigen::Matrix3d state_transition_model_;
+  Eigen::Matrix<double, 1, 3> observation_model_;
+  Eigen::Matrix<double, 1, 3> observation_only_velocity_model_;
+  Eigen::Matrix<double, 3, 1>  controlInput_model_;
 
   //time synchronized state
-  std::queue <jsk_quadcopter::ImuQuPtr> imuQu;
-  Eigen::Vector2d estimateStateTimeSync; //0:Position, 1:Velocity
+  std::queue <jsk_quadcopter::ImuQuPtr> imu_qu_;
+  Eigen::Vector2d estimate_state_time_sync; //0:Position, 1:Velocity
 
 
-  bool inputStartFlag;
-  bool measureStartFlag;
+  bool input_start_flag_;
+  bool measure_start_flag_;
 
 
-  ros::Time kalmanFilterStamp;
-  std::string id;
+  ros::Time kalman_filter_stamp_;
+  std::string id_;
   //dynamic reconfigure
-  dynamic_reconfigure::Server<jsk_quadcopter::StateKalmanFilterConfig>* server;
-  dynamic_reconfigure::Server<jsk_quadcopter::StateKalmanFilterConfig>::CallbackType dynamicReconfFunc;
+  dynamic_reconfigure::Server<aerial_robot_base::StateKalmanFilterConfig>* server_;
+  dynamic_reconfigure::Server<aerial_robot_base::StateKalmanFilterConfig>::CallbackType dynamic_reconf_func_;
 
-  boost::mutex kfMutex;
-  boost::mutex queueMutex;
+  boost::mutex kf_mutex_;
+  boost::mutex queue_mutex_;
 
-  double inputSigma_;
-  double biasSigma_;
-  double measureSigma_;
-  double imuHz_;
+  double input_sigma_;
+  double bias_sigma_;
+  double measure_sigma_;
+  double imu_hz_;
   void rosParamInit();
 };
 
