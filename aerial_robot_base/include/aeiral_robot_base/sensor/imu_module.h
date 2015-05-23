@@ -366,14 +366,6 @@ class ImuData
 
     float yaw2 = state_estimator->getStatePsiBoard();
 
-    //iir filter for acceleration
-    /* filterAccXImu_->filterFunction(accelerationX); */
-    /* filteredAccelerationX = filterAccXImu_->getFilteredResult(); */
-    /* filterAccYImu_->filterFunction(accelerationY); */
-    /* filteredAccelerationY = filterAccYImu_->getFilteredResult(); */
-    /* filterAccZImu_->filterFunction(accelerationZ); */
-    /* filteredAccelerationZ = filterAccZImu_->getFilteredResult(); */
-
     if(biasCalib == CALIB_COUNT)
       {
         accXw = cos(yaw2) * accXc - sin(yaw2) * accYc;

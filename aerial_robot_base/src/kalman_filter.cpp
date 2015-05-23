@@ -1,15 +1,9 @@
 #include "jsk_quadcopter/kalman_filter.h"
 
 
-KalmanFilterImuLaser::KalmanFilterImuLaser(double sigmaPredict, double sigmaMeasure, 
-                                           double dtime, std::string filterID): id(filterID)
+KalmanFilterImuLaser::KalmanFilterImuLaser(double sigma_predict, double sigma_measure, 
+                                           double dtime, std::string filter_id): id(filter_d)
 {
-#if 0
-  ROS_WARN("kalman filter: sigmaPredictAcc is %f, sigmaMeasure is %f",
-           sigmaPredict,
-           sigmaMeasure);
-#endif
-
   //init 
   sigmaAcc = sigmaPredict; sigmaLaser = sigmaMeasure;
   dt = dtime;
@@ -500,13 +494,6 @@ KalmanFilterImuLaserBias::KalmanFilterImuLaserBias(double sigmaPredictAcc,
                                                    std::string filterID): id(filterID) 
 {
 
-#if 0
-  ROS_WARN("kalman filter bias: sigmaPredictAcc is %f, sigmaBiasAcc is %f, sigmaMeasure is %f",
-           sigmaPredictAcc,
-           sigmaPredictBias,
-           sigmaMeasure);
-
-#endif
   //init 
   sigmaAcc = sigmaPredictAcc;
   sigmaAccBias = sigmaPredictBias;
@@ -555,19 +542,6 @@ KalmanFilterImuLaserBias::KalmanFilterImuLaserBias(double sigmaPredictAcc,
   kalmanGain << 0, 0, 0;
 
   kalmanFilterStamp = ros::Time::now();
-
-#if 0
-  std::cout << "Estimate State :\n" << estimateState << std::endl;
-  std::cout << "State Transition Model :\n" << stateTransitionModel << std::endl;
-  std::cout << "Control Input Model :\n" << controlInputModel << std::endl;
-  std::cout << "Observation Model :\n" << observationModel << std::endl;
-  std::cout << "Prediction Noise Covariance :\n" << predictionNoiseCovariance << std::endl;
-  std::cout << "Measurement Noise Covariance :\n" << measurementNoiseCovariance << std::endl;
-  std::cout << "Estimate Covariance :\n" << estimateCovariance << std::endl;
-  std::cout << "Inovation Covariance :\n" << inovationCovariance << std::endl;
-  std::cout << "Kalman Gain :\n" << kalmanGain << std::endl;
-
-#endif
 
 }
 
