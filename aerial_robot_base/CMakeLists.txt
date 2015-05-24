@@ -30,14 +30,14 @@ add_definitions(${EIGEN_DEFINITIONS})
 
 
 add_message_files(FILES
-  ArMarkerDebug.msg
-  QuadcopterStatus.msg
+  ArMarkerData.msg
+  AerialRobotStatus.msg
   FlightNav.msg
-  MirrorModuleDebug.msg
-  SlamDebug.msg
-  ImuDebug.msg
-  OpticalFlowDebug.msg
-  fourAxisPidDebug.msg
+  MirrorModuleData.msg
+  FourAxisState.msg
+  ImuData.msg
+  OpticalFlowData.msg
+  FourAxisPid.msg
   ImuQu.msg
   PidDebug.msg
   ImuSim.msg

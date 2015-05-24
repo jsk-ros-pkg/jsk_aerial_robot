@@ -2,13 +2,14 @@
 #define OPTICAL_FLOW_MODULE_H
 
 #include <ros/ros.h>
-#include <std_msgs/Int32.h>
-#include <jsk_quadcopter/state_estimation.h>
-#include <jsk_quadcopter/OpticalFlowDebug.h>
-#include <px_comm/OpticalFlow.h>
+#include <aerial_robot_base/state_estimation.h>
 //* filter
-#include <jsk_quadcopter/kalman_filter.h>
-#include <jsk_quadcopter/digital_filter.h>
+#include <aerial_robot_base/kalman_filter.h>
+#include <aerial_robot_base/digital_filter.h>
+
+#include <aerial_robot_base/OpticalFlowData.h>
+#include <px_comm/OpticalFlow.h>
+#include <std_msgs/Int32.h>
 
 
 class OpticalFlowData
@@ -25,8 +26,8 @@ class OpticalFlowData
                  KalmanFilterImuLaserBias *kfb_x, 
                  KalmanFilterImuLaserBias *kfb_y,
                  KalmanFilterImuLaserBias *kfb_z)
-   : opticalFlowDataNodeHandle_(nh, "opticalFlow"),
-    opticalFlowDataNodeHandlePrivate_(nh_private, "opticalFlow")
+   : nh_(nh, "optical_flow"),
+    nhp_(nh_private, "optical_flow")
     {
       opticalFlowPub_ = opticalFlowDataNodeHandle_.advertise<jsk_quadcopter::OpticalFlowDebug>("debug", 10); 
       opticalFlowSub_ = opticalFlowDataNodeHandle_.subscribe<px_comm::OpticalFlow>("opt_flow", 5, boost::bind(&OpticalFlowData::opticalFlowCallback, this, _1, state_estimator));

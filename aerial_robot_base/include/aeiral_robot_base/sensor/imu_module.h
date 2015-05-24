@@ -1,20 +1,25 @@
+/*
+  1.the acc processing is wrong, related to the attitude estimation method
+*/
+
 #ifndef IMU_MODULE_H
 #define IMU_MODULE_H
 
 #include <ros/ros.h>
-#include <geometry_msgs/Vector3.h>
-#include <jsk_quadcopter/ImuDebug.h>
-#include <jsk_quadcopter/ImuSim.h>
-#include <jsk_quadcopter_common/KduinoImu.h>
-#include <jsk_quadcopter_common/KduinoSimpleImu.h>
-#include <jsk_quadcopter/state_estimation.h>
-#include <jsk_quadcopter/kalman_filter.h>
-#include <jsk_quadcopter/digital_filter.h>
+#include <aerial_robot_base/ImuData.h>
+#include <aerial_robot_base/ImuSim.h>
+#include <aerial_robot_base/state_estimation.h>
+#include <aerial_robot_base/kalman_filter.h>
+#include <aerial_robot_base/digital_filter.h>
 
-//for kduino (mpu 9150)
-#define ACC_SCALE  9.797 / 512.0
-#define GYRO_SCALE (2279 * M_PI)/((32767.0 / 4.0f ) * 180.0)
-#define MAG_SCALE  1200 / 32768.0
+#include <geometry_msgs/Vector3.h>
+#include <aerial_robot_msgs/KduinoImu.h>
+#include <aerial_robot_msgs/KduinoSimpleImu.h>
+
+
+/* #define acc_scale_  9.797 / 512.0 */
+/* #define gyro_scale_ (2279 * M_PI)/((32767.0 / 4.0f ) * 180.0) */
+/* #define mag_scale_  1200 / 32768.0 */
 
 
 class ImuData
@@ -24,87 +29,65 @@ class ImuData
          ros::NodeHandle nh_private,
          Estimator* state_estimator,
          bool kalman_filter_flag,
-         KalmanFilterImuLaser *kf_x,
-         KalmanFilterImuLaser *kf_y,
-         KalmanFilterImuLaser *kf_z,
-         KalmanFilterImuLaserBias *kfb_x,
-         KalmanFilterImuLaserBias *kfb_y,
-         KalmanFilterImuLaserBias *kfb_z,
-         KalmanFilterImuLaser *kf_x_opt,
-         KalmanFilterImuLaser *kf_y_opt,
-         KalmanFilterImuLaser *kf_z_opt,
-         KalmanFilterImuLaserBias *kfb_x_opt,
-         KalmanFilterImuLaserBias *kfb_y_opt,
-         KalmanFilterImuLaserBias *kfb_z_opt,
+         KalmanFilterPosVelAcc *kf_x,
+         KalmanFilterPosVelAcc *kf_y,
+         KalmanFilterPosVelAcc *kf_z,
+         KalmanFilterPosVelAccBias *kfb_x,
+         KalmanFilterPosVelAccBias *kfb_y,
+         KalmanFilterPosVelAccBias *kfb_z,
+         KalmanFilterPosVelAcc *kf_x_opt,
+         KalmanFilterPosVelAcc *kf_y_opt,
+         KalmanFilterPosVelAcc *kf_z_opt,
+         KalmanFilterPosVelAccBias *kfb_x_opt,
+         KalmanFilterPosVelAccBias *kfb_y_opt,
+         KalmanFilterPosVelAccBias *kfb_z_opt,
          bool kalman_filter_debug,
          int kalman_filter_axis,
-         KalmanFilterImuLaserBias *kf1,
-         KalmanFilterImuLaserBias *kf2,
-         FirFilter *filter_acc_x,
-         FirFilter *filter_acc_y,
-         FirFilter *filter_acc_z,
+         KalmanFilterPosVelAccBias *kf1,
+         KalmanFilterPosVelAccBias *kf2,
+         FirFilter *lpf_acc_x,
+         FirFilter *lpf_acc_y,
+         FirFilter *lpf_acc_z,
          bool simulation_flag)  
-   : imuDataNodeHandle_(nh, "imu"),
-    imuDataNodeHandlePrivate_(nh_private, "imu")
+   : nh_(nh, "imu"), nhp_(nh_private, "imu")
     {
+      state_estimator_ = state_estimator;
+      
+      imu_pub_ = nh_.advertise<aerial_robot_base::ImuData>("data", 2); 
+      imu_sub_ = nh_.subscribe<aerial_robot_msgs::KduinoImu>("kduino/imu", 1, &ImuData::kduinoImuCallback, this, this, ros::TransportHints().tcpNoDelay()); 
+      imu_simple_sub_ = nh_.subscribe<aerial_robot_msgs::KduinoSimpleImu>("kduino/simple_imu", 1, &ImuData::kduinoSimpleImuCallback, this, ros::TransportHints().tcpNoDelay()); 
 
-      imuPub_ = imuDataNodeHandle_.advertise<jsk_quadcopter::ImuDebug>("debug", 2); 
-      imuSub_ = imuDataNodeHandle_.subscribe<jsk_quadcopter_common::KduinoImu>("kduino/imu", 2, boost::bind(&ImuData::kduinoImuCallback, this, _1, state_estimator)); 
-      imuSimpleSub_ = imuDataNodeHandle_.subscribe<jsk_quadcopter_common::KduinoSimpleImu>("kduino/simple_imu", 2, boost::bind(&ImuData::kduinoSimpleImuCallback, this, _1, state_estimator)); 
+      rosParamInit(nhp_);
 
+      simulation_flag_ = simulation_flag;
+      kalman_filter_flag_ = kalman_filter_flag;
 
-      simulationFlag = simulation_flag;
-      kalmanFilterFlag = kalman_filter_flag;
-
-      kfXImu_ = kf_x;
-      kfYImu_ = kf_y;
-      kfZImu_ = kf_z;
-      kfbXImu_ = kfb_x;
-      kfbYImu_ = kfb_y;
-      kfbZImu_ = kfb_z;
+      kf_x_ = kf_x;      kf_y_ = kf_y;      kf_z_ = kf_z;
+      kfb_x_ = kfb_x;      kfb_y_ = kfb_y;      kfb_z_ = kfb_z;
   
-      kfXOpt_ = kf_x_opt;
-      kfYOpt_ = kf_y_opt;
-      kfZOpt_ = kf_z_opt;
-      kfbXOpt_ = kfb_x_opt;
-      kfbYOpt_ = kfb_y_opt;
-      kfbZOpt_ = kfb_z_opt;
+      kf_x_opt_ = kf_x_opt;      kf_y_opt_ = kf_y_opt;      kf_z_opt_ = kf_z_opt;
+      kfb_x_opt_ = kfb_x_opt;      kfb_y_opt_ = kfb_y_opt;      kfb_z_opt_ = kfb_z_opt;
 
-      kalmanFilterDebug = kalman_filter_debug;
-      kalmanFilterAxis  = kalman_filter_axis;
-      kf1_ = kf1;
-      kf2_ = kf2;
+      kalman_filter_debug_ = kalman_filter_debug;
+      kalman_filter_axis_  = kalman_filter_axis;
+      kf1_ = kf1;      kf2_ = kf2;
 
-      filterAccXImu_ = filter_acc_x;
-      filterAccYImu_ = filter_acc_y;
-      filterAccZImu_ = filter_acc_z;
+      lpf_acc_x_ = lpf_acc_x;      lpf_acc_y_ = lpf_acc_y;      lpf_acc_z_ = lpf_acc_z;
 
 
-      //??????
-      kalmanFilterBoard = KDUINO_BOARD;
-      printf("kalman filter board is kduino\n");
+      acc_xb_ = 0, acc_yb_ = 0, acc_zb_ = 0,
+      gyro_xb_ = 0, gyro_yb_ = 0, gyro_zb_ = 0,
+      mag_xb_ = 0, mag_yb_ = 0, mag_zb_ = 0,
 
-      accelerationX = 0, accelerationY = 0, accelerationZ = 0,
-      gyroX = 0, gyroY = 0, gyroZ = 0,
-      magX = 0, magY = 0, magZ = 0,
+      acc_xi_ = 0;      acc_yi_ = 0;
 
-      accXc = 0;
-      accYc = 0;
-      accXw = 0;
-      accYw = 0;
-      accZw = 0;
-      accXwNonBias = 0;
-      accYwNonBias = 0;
-      accZwNonBias = 0;
+      acc_xw_ = 0;      acc_yw_ = 0;      acc_zw_ = 0;
+      acc_xw_non_bias_ = 0;      acc_yw_non_bias_ = 0;      acc_zw_non_bias_ = 0;
 
-      accXBias = 0;
-      accYBias = 0;
-      accZBias = 0;
+      acc_x_bias_ = 0;      acc_y_bias_ = 0;      acc_z_bias_ = 0;
 
-      pitch = 0;
-      roll = 0;
-      yaw = 0;
-      height = 0;
+      pitch_ = 0;      roll_ = 0;      yaw_ = 0;
+      height_ = 0;
 
     }
 
@@ -114,60 +97,17 @@ class ImuData
 
 
 
-  void setPitchValue(float pitch_value)
-  {
-    pitch = pitch_value;
-  }
+  inline void setPitchValue(float pitch_value) {   pitch_ = pitch_value;  }
+  inline void setRollValue(float roll_value) {    roll_ = roll_value;  }
+  inline void setYawImuValue(float yaw_value)  {    yaw = yaw_value;  }
+  inline void setZImuValue(float z_value)  {    height_ = z_value;  }
+  inline float getPitchValue()  {    return pitch_;  }
+  inline float getRollValue()  {    return roll_;  }
+  inline float getYawValue()  {    return yaw_;  }
 
-  void setRollValue(float roll_value)
-  {
-    roll = roll_value;
-  }
-
-  void setYawImuValue(float yaw_value)
-  {
-    yaw = yaw_value;
-  }
-
-  void setZImuValue(float z_value)
-  {
-    height = z_value;
-  }
-
-  float getPitchValue()
-  {
-    return pitch;
-  }
-
-  float getRollValue()
-  {
-    return roll;
-  }
-
-  float getYawValue()
-  {
-    return yaw;
-  }
-
-  float getAccXbValue()
-  {
-    return accelerationX; 
-  }
-
-  float getAccYbValue()
-  {
-    return accelerationY;
-  }
-
-  float getAccZbValue()
-  {
-    return accelerationZ;
-  }
-  void setKalmanFilterBoardToAsctec()
-  {
-    kalmanFilterBoard = ASCTEC_BOARD;
-    printf("change kalman filter board from kduino to asctec\n");
-  }
+  inline float getAccXbValue()  {    return acc_xb_;  }
+  inline float getAccYbValue()  {    return acc_yb_;  }
+  inline float getAccZbValue()  {    return acc_zb_;  }
 
   const static float G = 9.797;
   const static int CALIB_COUNT = 200;
@@ -176,187 +116,177 @@ class ImuData
 
 
  private:
-  ros::NodeHandle imuDataNodeHandle_;
-  ros::NodeHandle imuDataNodeHandlePrivate_;
-  ros::Publisher  imuPub_;
-  ros::Subscriber  imuSub_;
-  ros::Subscriber  imuSimpleSub_;
+  ros::NodeHandle nh_;
+  ros::NodeHandle nhp_;
+  ros::Publisher  imu_pub_;
+  ros::Subscriber  imu_sub_;
+  ros::Subscriber  imu_simple_sub_;
 
-  bool simulationFlag;
+  Estimator* state_estimator_;
 
-  bool kalmanFilterFlag;
-  KalmanFilterImuLaser *kfXImu_;
-  KalmanFilterImuLaser *kfYImu_;
-  KalmanFilterImuLaser *kfZImu_;
-  KalmanFilterImuLaserBias *kfbXImu_;
-  KalmanFilterImuLaserBias *kfbYImu_;
-  KalmanFilterImuLaserBias *kfbZImu_;
+  bool simulation_flag_;
 
-  KalmanFilterImuLaser *kfXOpt_;
-  KalmanFilterImuLaser *kfYOpt_;
-  KalmanFilterImuLaser *kfZOpt_;
-  KalmanFilterImuLaserBias *kfbXOpt_;
-  KalmanFilterImuLaserBias *kfbYOpt_;
-  KalmanFilterImuLaserBias *kfbZOpt_;
+  bool kalman_filter_flag_;
+  KalmanFilterPosVelAcc *kf_x_;
+  KalmanFilterPosVelAcc *kf_y_;
+  KalmanFilterPosVelAcc *kf_z_;
+  KalmanFilterPosVelAccBias *kfb_x_;
+  KalmanFilterPosVelAccBias *kfb_y_;
+  KalmanFilterPosVelAccBias *kfb_z_;
 
-  bool kalmanFilterDebug;
-  int kalmanFilterAxis;
-  KalmanFilterImuLaserBias *kf1_;
-  KalmanFilterImuLaserBias *kf2_;
+  KalmanFilterPosVelAcc *kf_x_opt_;
+  KalmanFilterPosVelAcc *kf_y_opt_;
+  KalmanFilterPosVelAcc *kf_z_opt_;
+  KalmanFilterPosVelAccBias *kfb_x_opt_;
+  KalmanFilterPosVelAccBias *kfb_y_opt_;
+  KalmanFilterPosVelAccBias *kfb_z_opt_;
 
-  //FIR filter for acceleration
-  FirFilter *filterAccXImu_;
-  FirFilter *filterAccYImu_;
-  FirFilter *filterAccZImu_;
+  bool kalman_filter_debug;
+  int kalman_filter_axis_;
+  KalmanFilterPosVelAccBias *kf1_;
+  KalmanFilterPosVelAccBias *kf2_;
 
-  int kalmanFilterBoard;
+  //FIR filter for acc
+  FirFilter *lpf_acc_x_;
+  FirFilter *lpf_acc_y_;
+  FirFilter *lpf_acc_z_;
 
-  float accelerationX, accelerationY, accelerationZ;
-  float gyroX, gyroY, gyroZ;
-  float magX, magY, magZ;
+  float acc_scale_;
+  float gyro_scale_;
+  float mag_scale_;
 
+  float acc_xb_, acc_yb_, acc_zb_;
+  float gyro_xb_, gyro_yb_, gyro_zb_;
+  float mag_xb_, mag_yb_, mag_zb_;
 
-  float pitch;  //pitch angle
-  float roll;    //roll angle
-  float yaw;    //yaw angle
+  float pitch_;  //pitch angle
+  float roll_;    //roll angle
+  float yaw_;    //yaw angle
 
-  float filteredAccelerationX; 
-  float filteredAccelerationY; 
-  float filteredAccelerationZ; 
+  float filtered_acc_x_; 
+  float filtered_acc_y_; 
+  float filtered_acc_z_; 
 
-    //*** trans_acc with intermediate frame between world frame and boady frame
-  float accXc;
-  float accYc;
+  //*** trans_acc with intermediate frame between world frame and board frame
+  float acc_xi_, acc_yi_;
+
 
   //***  world frame
-  float accXw, accXwNonBias;
-  float accYw, accYwNonBias;
-  float accZw, accZwNonBias;
+  float acc_xw_, acc_xw_non_bias_;
+  float acc_yw_, acc_yw_non_bias_;
+  float acc_zw_, acc_zw_non_bias_;
 
-  //*** world coordinate
-  float accX;
-  float accY;
-  float accZ;
-  float height;
-
-  float vBat;   //*** battery
+  double acc_x_bias_;
+  double acc_y_bias_;
+  double acc_z_bias_;
 
 
 
-  double accXBias;
-  double accYBias;
-  double accZBias;
+  float height_;
+  float v_bat_;   //*** battery
 
 
-  void kduinoImuCallback(const jsk_quadcopter_common::KduinoImuConstPtr& imu_msg, Estimator* state_estimator)
+  void kduinoImuCallback(const aerial_robot_base_common::KduinoImuConstPtr& imu_msg)
   {
-    ros::Time imuTimeStamp = imu_msg->stamp;
+    ros::Time stamp = imu_msg->stamp;
 
 
-    roll  = M_PI * imu_msg->angle[0] / 10.0 / 180.0; //raw data is 10 times
-    pitch = M_PI * imu_msg->angle[1] / 10.0 / 180.0; //raw data is 10 times
-    yaw   = M_PI * imu_msg->angle[2] / 180.0;
+    roll_  = M_PI * imu_msg->angle[0] / 10.0 / 180.0; //raw data is 10 times
+    pitch_ = M_PI * imu_msg->angle[1] / 10.0 / 180.0; //raw data is 10 times
+    yaw_   = M_PI * imu_msg->angle[2] / 180.0;
 
-    accelerationX = imu_msg->accData[0] * ACC_SCALE;
-    accelerationY = imu_msg->accData[1] * ACC_SCALE;
-    accelerationZ = imu_msg->accData[2] * ACC_SCALE;
-    gyroX = imu_msg->gyroData[0] * GYRO_SCALE;
-    gyroY = imu_msg->gyroData[1] * GYRO_SCALE;
-    gyroZ = imu_msg->gyroData[2] * GYRO_SCALE;
-
-#if 0 
-    magX = imu_msg->magData[0] * MAG_SCALE;
-    magY = imu_msg->magData[1] * MAG_SCALE;
-    magZ = imu_msg->magData[2] * MAG_SCALE;
-#else //debug
-    magX = imu_msg->magData[0] * ACC_SCALE;
-    magY = imu_msg->magData[1] * ACC_SCALE;
-    magZ = imu_msg->magData[2] * ACC_SCALE + (-G);
-#endif
+    acc_xb_ = imu_msg->accData[0] * acc_scale_;
+    acc_yb_ = imu_msg->accData[1] * acc_scale_;
+    acc_zb_ = imu_msg->accData[2] * acc_scale_;
+    gyro_xb_ = imu_msg->gyroData[0] * gyro_scale_;
+    gyro_yb_ = imu_msg->gyroData[1] * gyro_scale_;
+    gyro_zb_ = imu_msg->gyroData[2] * gyro_scale_;
+    mag_xb_ = imu_msg->magData[0] * mag_scale_;
+    mag_yb_ = imu_msg->magData[1] * mag_scale_;
+    mag_zb_ = imu_msg->magData[2] * mag_scale_;
 
     //* height
-    height = imu_msg->altitude / 100.0;  //cm
+    height_ = imu_msg->altitude / 100.0;  //cm
 
-    imuDataConverter(imuTimeStamp, state_estimator);
+    imuDataConverter(stamp);
   }
 
-  void kduinoSimpleImuCallback(const jsk_quadcopter_common::KduinoSimpleImuConstPtr& imu_msg, Estimator* state_estimator)
+  void kduinoSimpleImuCallback(const aerial_robot_base_common::KduinoSimpleImuConstPtr& imu_msg)
   {
-    ros::Time imuTimeStamp = imu_msg->stamp;
+    ros::Time stamp = imu_msg->stamp;
 
-    roll  = M_PI * imu_msg->angle[0] / 10.0 / 180.0; //raw data is 10 times
-    pitch = M_PI * imu_msg->angle[1] / 10.0 / 180.0; //raw data is 10 times
-    yaw   = M_PI * imu_msg->angle[2] / 180.0;
+    roll_  = M_PI * imu_msg->angle[0] / 10.0 / 180.0; //raw data is 10 times
+    pitch_ = M_PI * imu_msg->angle[1] / 10.0 / 180.0; //raw data is 10 times
+    yaw_   = M_PI * imu_msg->angle[2] / 180.0;
 
-    accelerationX = imu_msg->accData[0] * ACC_SCALE;
-    accelerationY = imu_msg->accData[1] * ACC_SCALE;
-    accelerationZ = imu_msg->accData[2] * ACC_SCALE;
+    acc_xb_ = imu_msg->accData[0] * acc_scale_;
+    acc_yb_ = imu_msg->accData[1] * acc_scale_;
+    acc_zb_ = imu_msg->accData[2] * acc_scale_;
 
-    imuDataConverter(imuTimeStamp, state_estimator);
+    imuDataConverter(stamp);
   }
 
-  void imuDataConverter(ros::Time topicTimeStamp, Estimator* state_estimator)
+  void imuDataConverter(ros::Time stamp)
   {
-    static int biasCalib = 0;
-
+    static int bias_calib = 0;
     //* calculate accTran
 #if 0 // use x,y for factor4 and z for factor3
-    accXc = (accelerationX) * cos(pitch) + 
-      (accelerationY) * sin(pitch) * sin(roll) + 
-      (accelerationZ) * sin(pitch) * cos(roll);
-    accYc = (accelerationY) * cos(roll) - (accelerationZ) * sin(roll);
-    accZw = (accelerationX) * (-sin(pitch)) + 
-      (accelerationY) * cos(pitch) * sin(roll) + 
-      (accelerationZ) * cos(pitch) * cos(roll) + (-G);
+    acc_xi_ = (acc_xb_) * cos(pitch_) + 
+      (acc_yb_) * sin(pitch_) * sin(roll_) + 
+      (acc_zb_) * sin(pitch_) * cos(roll_);
+    acc_yi_ = (acc_yb_) * cos(roll_) - (acc_zb_) * sin(roll_);
+    acc_zw_ = (acc_xb_) * (-sin(pitch_)) + 
+      (acc_yb_) * cos(pitch_) * sin(roll_) + 
+      (acc_zb_) * cos(pitch_) * cos(roll_) + (-G);
 #else  // use approximation
-    accXc =  (accelerationZ) * sin(pitch) * cos(roll);
-    accYc =  - (accelerationZ) * sin(roll);
-    accZw = (accelerationZ) * cos(pitch) * cos(roll) + (-G);
+    acc_xi_ =  (acc_zb_) * sin(pitch_) * cos(roll_);
+    acc_yi_ =  - (acc_zb_) * sin(roll_);
+    acc_zw_ = (acc_zb_) * cos(pitch_) * cos(roll_) + (-G);
 #endif
 
     //bais calibration
-    if(biasCalib < CALIB_COUNT)
+    if(bias_calib < CALIB_COUNT)
       {
-        biasCalib ++;
+        bias_calib ++;
 
         //acc bias
-        accXBias += accXc;
-        accYBias += accYc;
-        accZBias += accZw;
+        acc_x_bias_ += acc_xi_;
+        acc_y_bias_ += acc_yi_;
+        acc_z_bias_ += acc_zw_;
 
-        if(biasCalib == CALIB_COUNT)
+        if(bias_calib == CALIB_COUNT)
           {
-            accXBias /= CALIB_COUNT;
-            accYBias /= CALIB_COUNT;
-            accZBias /= CALIB_COUNT;
-            ROS_WARN("accX bias is %f, accY bias is %f, accZ bias is %f", accXBias, accYBias, accZBias);
+            acc_x_bias_ /= CALIB_COUNT;
+            acc_y_bias_ /= CALIB_COUNT;
+            acc_z_bias_ /= CALIB_COUNT;
+            ROS_WARN("accX bias is %f, accY bias is %f, accZ bias is %f", acc_x_bias_, acc_y_bias_, acc_z_bias_);
 
-            kfXImu_->setInputStartFlag();
-            kfYImu_->setInputStartFlag();
-            kfZImu_->setInputStartFlag();
-
-            //for optical flow
-            kfXOpt_->setInputStartFlag();
-            kfYOpt_->setInputStartFlag();
-            kfZOpt_->setInputStartFlag();
-
-
-            //for bais mode
-            kfbXImu_->setInitImuBias(accXBias);
-            kfbYImu_->setInitImuBias(accYBias);
-            kfbZImu_->setInitImuBias(accZBias);
+            kf_x_->setInputStartFlag();
+            kf_y_->setInputStartFlag();
+            kf_z_->setInputStartFlag();
 
             //for optical flow
-            kfbXOpt_->setInitImuBias(accXBias);
-            kfbYOpt_->setInitImuBias(accYBias);
-            kfbZOpt_->setInitImuBias(accZBias);
+            kf_x_opt_->setInputStartFlag();
+            kf_y_opt_->setInputStartFlag();
+            kf_z_opt_->setInputStartFlag();
 
-            if(kalmanFilterAxis == 0)
+
+            //for bias mode
+            kfb_x_->setInitImuBias(acc_x_bias_);
+            kfb_y_->setInitImuBias(acc_y_bias_);
+            kfb_z_->setInitImuBias(acc_z_bias_);
+
+            //for optical flow
+            kfb_x_opt_->setInitImuBias(acc_x_bias_);
+            kfb_y_opt_->setInitImuBias(acc_y_bias_);
+            kfb_z_opt_->setInitImuBias(acc_z_bias_);
+
+            if(kalman_filter_axis_ == 0)
               {
                 kf1_->setInitImuBias(accXBias);
                 kf2_->setInitImuBias(accXBias);
               }
-            if(kalmanFilterAxis == 1)
+            if(kalmanFilter_axis_ == 1)
               {
                 kf1_->setInitImuBias(accYBias);
                 kf2_->setInitImuBias(accYBias);
@@ -364,185 +294,157 @@ class ImuData
           }
       }
 
-    float yaw2 = state_estimator->getStatePsiBoard();
+    float yaw2 = state_estimator_->getStatePsiBoard();
 
-    if(biasCalib == CALIB_COUNT)
+    if(bias_calib == CALIB_COUNT)
       {
-        accXw = cos(yaw2) * accXc - sin(yaw2) * accYc;
-        accYw = sin(yaw2) * accXc + cos(yaw2) * accYc;
+        acc_xw_ = cos(yaw2) * acc_xi_ - sin(yaw2) * acc_yi_;
+        acc_yw_ = sin(yaw2) * acc_xi_ + cos(yaw2) * acc_yi_;
 
-        accXwNonBias = cos(yaw2) * (accXc - accXBias) 
-          - sin(yaw2) * (accYc -accYBias);
-        accYwNonBias = sin(yaw2) * (accXc - accXBias) 
-          + cos(yaw2) * (accYc -accYBias);
-        accZwNonBias = accZw - accZBias;
+        acc_xw_non_bias_ = cos(yaw2) * (acc_xi_ - acc_x_bias_) 
+          - sin(yaw2) * (acc_yi_ -acc_y_bias_);
+        acc_yw_non_bias_ = sin(yaw2) * (acc_xi_ - acc_x_bias_) 
+          + cos(yaw2) * (acc_yi_ -acc_y_bias_);
+        acc_zw_non_bias_ = acc_zw_ - acc_z_bias_;
 
-        if(kalmanFilterFlag)
+        if(kalman_filter_flag_)
           {
-            //kfXImu_->prediction((double)accXwNonBias, topicTimeStamp);
-            jsk_quadcopter::ImuQuPtr imuXAxisNonBiasQuMsgPtr_
-              = boost::shared_ptr<jsk_quadcopter::ImuQu> ( new jsk_quadcopter::ImuQu() );
-            imuXAxisNonBiasQuMsgPtr_->stamp = topicTimeStamp;
-            imuXAxisNonBiasQuMsgPtr_->acc   = accXwNonBias;
-            kfXImu_->imuQuPush(imuXAxisNonBiasQuMsgPtr_);
+            //kf_x_->prediction((double)acc_xw_non_bias_, stamp);
+            aerial_robot_base::ImuQuPtr x_non_bias_ptr
+              = boost::shared_non_bias_ptr<aerial_robot_base::ImuQu> ( new aerial_robot_base::ImuQu() );
+            x_non_bias_ptr->stamp = stamp;
+            x_non_bias_ptr->acc   = acc_xw_non_bias_;
+            kf_x_->imuQuPush(x_non_bias_ptr);
 
-            //kfYImu_->prediction((double)accYwNonBias, topicTimeStamp);
-            jsk_quadcopter::ImuQuPtr imuYAxisNonBiasQuMsgPtr_
-              = boost::shared_ptr<jsk_quadcopter::ImuQu> ( new jsk_quadcopter::ImuQu() );
-            imuYAxisNonBiasQuMsgPtr_->stamp = topicTimeStamp;
-            imuYAxisNonBiasQuMsgPtr_->acc   = accYwNonBias;
-            kfYImu_->imuQuPush(imuYAxisNonBiasQuMsgPtr_);
+            //kf_y_->prediction((double)acc_yw_non_bias_, stamp);
+            aerial_robot_base::ImuQuPtr y_non_bias_ptr
+              = boost::shared_non_bias_ptr<aerial_robot_base::ImuQu> ( new aerial_robot_base::ImuQu() );
+            y_non_bias_ptr->stamp = stamp;
+            y_non_bias_ptr->acc   = acc_yw_non_bias_;
+            kf_y_->imuQuPush(y_non_bias_ptr);
 
-            //kfZImu_->prediction((double)accZwNonBias, topicTimeStamp);
-            jsk_quadcopter::ImuQuPtr imuZAxisNonBiasQuMsgPtr_
-              = boost::shared_ptr<jsk_quadcopter::ImuQu> ( new jsk_quadcopter::ImuQu() );
-            imuZAxisNonBiasQuMsgPtr_->stamp = topicTimeStamp;
-            imuZAxisNonBiasQuMsgPtr_->acc   = accZwNonBias;
-            kfZImu_->imuQuPush(imuZAxisNonBiasQuMsgPtr_);
-
-            //with bias
-            //kfbXImu_->prediction((double)accXwSlamYaw, topicTimeStamp);
-            jsk_quadcopter::ImuQuPtr imuXAxisBiasQuMsgPtr_
-              = boost::shared_ptr<jsk_quadcopter::ImuQu> ( new jsk_quadcopter::ImuQu() );
-            imuXAxisBiasQuMsgPtr_->stamp = topicTimeStamp;
-            imuXAxisBiasQuMsgPtr_->acc   = accXw;
-            kfbXImu_->imuQuPush(imuXAxisBiasQuMsgPtr_);
-
-            //kfbYImu_->prediction((double)accYwSlamYaw, topicTimeStamp);
-            jsk_quadcopter::ImuQuPtr imuYAxisBiasQuMsgPtr_
-              = boost::shared_ptr<jsk_quadcopter::ImuQu> ( new jsk_quadcopter::ImuQu() );
-            imuYAxisBiasQuMsgPtr_->stamp = topicTimeStamp;
-            imuYAxisBiasQuMsgPtr_->acc   = accYw;
-            kfbYImu_->imuQuPush(imuYAxisBiasQuMsgPtr_);
-
-            //kfbZImu_->prediction((double)accZw2, topicTimeStamp);
-            jsk_quadcopter::ImuQuPtr imuZAxisBiasQuMsgPtr_
-              = boost::shared_ptr<jsk_quadcopter::ImuQu> ( new jsk_quadcopter::ImuQu() );
-            imuZAxisBiasQuMsgPtr_->stamp = topicTimeStamp;
-            imuZAxisBiasQuMsgPtr_->acc   = accZw;
-            kfbZImu_->imuQuPush(imuZAxisBiasQuMsgPtr_);
-
-#if 0 //optical with accurate time stamp
-
-            jsk_quadcopter::ImuQuPtr imuXAxisNonBiasOptQuMsgPtr_
-              = boost::shared_ptr<jsk_quadcopter::ImuQu> ( new jsk_quadcopter::ImuQu() );
-            imuXAxisNonBiasOptQuMsgPtr_->stamp = topicTimeStamp;
-            imuXAxisNonBiasOptQuMsgPtr_->acc   = accXc - accXBias;
-            kfXOpt_->imuQuPush(imuXAxisNonBiasOptQuMsgPtr_);
-
-            jsk_quadcopter::ImuQuPtr imuYAxisNonBiasOptQuMsgPtr_
-              = boost::shared_ptr<jsk_quadcopter::ImuQu> ( new jsk_quadcopter::ImuQu() );
-            imuYAxisNonBiasOptQuMsgPtr_->stamp = topicTimeStamp;
-            imuYAxisNonBiasOptQuMsgPtr_->acc   = accYc - accYBias;
-            kfYOpt_->imuQuPush(imuYAxisNonBiasOptQuMsgPtr_);
-
-            jsk_quadcopter::ImuQuPtr imuZAxisNonBiasOptQuMsgPtr_
-              = boost::shared_ptr<jsk_quadcopter::ImuQu> ( new jsk_quadcopter::ImuQu() );
-            imuZAxisNonBiasOptQuMsgPtr_->stamp = topicTimeStamp;
-            imuZAxisNonBiasOptQuMsgPtr_->acc   = accZwNonBias;
+            //kf_z_->prediction((double)acc_zw_non_bias_, stamp);
+            aerial_robot_base::ImuQuPtr z_non_bias_ptr
+              = boost::shared_non_bias_ptr<aerial_robot_base::ImuQu> ( new aerial_robot_base::ImuQu() );
+            z_non_bias_ptr->stamp = stamp;
+            z_non_bias_ptr->acc   = acc_zw_non_bias_;
+            kf_z_->imuQuPush(z_non_bias_ptr);
 
             //with bias
+            //kfb_x_->prediction((double)acc_xw_, stamp);
+            aerial_robot_base::ImuQuPtr x_bias_ptr
+              = boost::shared_ptr<aerial_robot_base::ImuQu> ( new aerial_robot_base::ImuQu() );
+            x_bias_ptr->stamp = stamp;
+            x_bias_ptr->acc   = acc_xw_;
+            kfb_x_->imuQuPush(x_bias_ptr);
 
-            jsk_quadcopter::ImuQuPtr imuXAxisBiasOptQuMsgPtr_
-              = boost::shared_ptr<jsk_quadcopter::ImuQu> ( new jsk_quadcopter::ImuQu() );
-            imuXAxisBiasOptQuMsgPtr_->stamp = topicTimeStamp;
-            imuXAxisBiasOptQuMsgPtr_->acc   = accXc;
-            kfbXOpt_->imuQuPush(imuXAxisBiasQuMsgPtr_);
+            //kfb_y_->prediction((double)acc_yw_, stamp);
+            aerial_robot_base::ImuQuPtr y_bias_ptr
+              = boost::shared_ptr<aerial_robot_base::ImuQu> ( new aerial_robot_base::ImuQu() );
+            y_bias_ptr->stamp = stamp;
+            y_bias_ptr->acc   = acc_yw_;
+            kfb_y_->imuQuPush(y_bias_ptr);
 
-            jsk_quadcopter::ImuQuPtr imuYAxisBiasOptQuMsgPtr_
-              = boost::shared_ptr<jsk_quadcopter::ImuQu> ( new jsk_quadcopter::ImuQu() );
-            imuYAxisBiasOptQuMsgPtr_->stamp = topicTimeStamp;
-            imuYAxisBiasOptQuMsgPtr_->acc   = accYc;
-            kfbYOpt_->imuQuPush(imuYAxisBiasOptQuMsgPtr_);
+            //kfb_z_->prediction((double)acc_zw_, stamp);
+            aerial_robot_base::ImuQuPtr z_bias_ptr
+              = boost::shared_ptr<aerial_robot_base::ImuQu> ( new aerial_robot_base::ImuQu() );
+            z_bias_ptr->stamp = stamp;
+            z_bias_ptr->acc   = acc_zw_;
+            kfb_z_->imuQuPush(z_bias_ptr);
 
-            jsk_quadcopter::ImuQuPtr imuZAxisBiasOptQuMsgPtr_
-              = boost::shared_ptr<jsk_quadcopter::ImuQu> ( new jsk_quadcopter::ImuQu() );
-            imuZAxisBiasOptQuMsgPtr_->stamp = topicTimeStamp;
-            imuZAxisBiasOptQuMsgPtr_->acc   = accZw;
-            kfbZOpt_->imuQuPush(imuZAxisBiasOptQuMsgPtr_);
+            //optical without accurate time stamp
+            kf_x_opt_->prediction((double)acc_xi_ - acc_x_bias_, stamp);
+            kf_y_opt_->prediction((double)acc_yi_ - acc_y_bias_, stamp);
+            kf_z_opt_->prediction((double)acc_zw_non_bias_, stamp);
+            kfb_x_opt_->prediction((double)acc_xi_, stamp);
+            kfb_y_opt_->prediction((double)acc_yi_, stamp);
+            kfb_z_opt_->prediction((double)acc_zw_, stamp);
 
-#else //optical without accurate time stamp
-            kfXOpt_->prediction((double)accXc - accXBias, topicTimeStamp);
-            kfYOpt_->prediction((double)accYc - accYBias, topicTimeStamp);
-            kfZOpt_->prediction((double)accZwNonBias, topicTimeStamp);
-            kfbXOpt_->prediction((double)accXc, topicTimeStamp);
-            kfbYOpt_->prediction((double)accYc, topicTimeStamp);
-            kfbZOpt_->prediction((double)accZw, topicTimeStamp);
-#endif
           }
 
-        if(kalmanFilterDebug)
+        if(kalman_filter_debug_)
           {
-            if(kalmanFilterAxis == 0)
+            if(kalman_filter_axis_ == 0)
               { //x axis
-                kf1_->prediction((double)accXw, topicTimeStamp);
-                kf2_->prediction((double)accXw, topicTimeStamp);
+                kf1_->prediction((double)acc_xw_, stamp);
+                kf2_->prediction((double)acc_xw_, stamp);
               }
-            else if(kalmanFilterAxis == 1)
+            else if(kalman_filter_axis_ == 1)
               { //y axis
-                kf1_->prediction((double)accYw, topicTimeStamp);
-                kf2_->prediction((double)accYw, topicTimeStamp);
+                kf1_->prediction((double)acc_yw_, stamp);
+                kf2_->prediction((double)acc_yw_, stamp);
               }
-            else if(kalmanFilterAxis == 3)
+            else if(kalman_filter_axis_ == 3)
               { //simulation about 
-                jsk_quadcopter::ImuQuPtr imuBiasQuMsgPtr_
-                  = boost::shared_ptr<jsk_quadcopter::ImuQu> ( new jsk_quadcopter::ImuQu() );
-                imuBiasQuMsgPtr_->stamp = topicTimeStamp;
-                imuBiasQuMsgPtr_->acc   = accXw;
-                kf1_->imuQuPush(imuBiasQuMsgPtr_);
+                aerial_robot_base::ImuQuPtr imu_bias_qu_msg_ptr_
+                  = boost::shared_ptr<aerial_robot_base::ImuQu> ( new aerial_robot_base::ImuQu() );
+                imu_bias_qu_msg_ptr->stamp = stamp;
+                imu_bias_qu_msg_ptr->acc   = accXw;
+                kf1_->imuQuPush(imu_bias_qu_msg_ptr);
               }
           }
-        publishImuData(topicTimeStamp, imuPub_);
+        publishImuData(stamp);
       }
   }
 
-  void publishImuData(ros::Time topicTimeStamp, ros::Publisher imu_pub)
+  void publishImuData(ros::Time stamp)
   {
-    jsk_quadcopter::ImuDebug imuDebug_;
-    imuDebug_.header.stamp = topicTimeStamp;
+    aerial_robot_base::ImuData imu_data;
+    imu_data.header.stamp = stamp;
 
-    imuDebug_.height = height;
+    imu_data.height = height_;
 
-    imuDebug_.angles.x = roll;
-    imuDebug_.angles.y = pitch;
-    imuDebug_.angles.z = yaw;
+    imu_data.angles.x = roll_;
+    imu_data.angles.y = pitch_;
+    imu_data.angles.z = yaw_;
 
-    imuDebug_.accelerometer.x = accelerationX;
-    imuDebug_.accelerometer.y = accelerationY;
-    imuDebug_.accelerometer.z = accelerationZ;
+    imu_data.accelerometer.x = acc_xb_;
+    imu_data.accelerometer.y = acc_yb_;
+    imu_data.accelerometer.z = acc_zb_;
 
-    imuDebug_.gyrometer.x = gyroX;
-    imuDebug_.gyrometer.y = gyroY;
-    imuDebug_.gyrometer.z = gyroZ;
+    imu_data.gyrometer.x = gyro_xb_;
+    imu_data.gyrometer.y = gyro_yb_;
+    imu_data.gyrometer.z = gyro_zb_;
 
-    imuDebug_.magnetometer.x = magX;
-    imuDebug_.magnetometer.y = magY;
-    imuDebug_.magnetometer.z = magZ;
+    imu_data.magnetometer.x = mag_xb_;
+    imu_data.magnetometer.y = mag_yb_;
+    imu_data.magnetometer.z = mag_zb_;
 
 
-    imuDebug_.acceleration_body_frame.x = accXc;
-    imuDebug_.acceleration_body_frame.y = accYc; 
-    imuDebug_.acceleration_body_frame.z = accZw;
+    imu_data.acc_body_frame.x = acc_xi_;
+    imu_data.acc_body_frame.y = acc_yi_; 
+    imu_data.acc_body_frame.z = acc_zw_;
 
-    imuDebug_.acceleration_world_frame.x = accXw;
-    imuDebug_.acceleration_world_frame.y = accYw; 
-    imuDebug_.acceleration_world_frame.z = accZw;
+    imu_data.acc_world_frame.x = acc_xw_;
+    imu_data.acc_world_frame.y = acc_yw_; 
+    imu_data.acc_world_frame.z = acc_zw_;
 
-    imuDebug_.acceleration_non_bias_world_frame.x = accXwNonBias;
-    imuDebug_.acceleration_non_bias_world_frame.y = accYwNonBias;
-    imuDebug_.acceleration_non_bias_world_frame.z = accZwNonBias;
+    imu_data.acc_non_bias_world_frame.x = acc_xw_non_bias_;
+    imu_data.acc_non_bias_world_frame.y = acc_yw_non_bias_;
+    imu_data.acc_non_bias_world_frame.z = acc_zw_non_bias_;
 
-    if(kalmanFilterFlag)
+    if(kalman_filter_flag_)
       {
-        imuDebug_.preZPos = kfZImu_->getEstimatePos();
-        imuDebug_.preZVel = kfZImu_->getEstimateVel();
-        imuDebug_.preXPos = kfXImu_->getEstimatePos();
-        imuDebug_.preXVel = kfXImu_->getEstimateVel();
-        imuDebug_.preYPos = kfYImu_->getEstimatePos();
-        imuDebug_.preYVel = kfYImu_->getEstimateVel();
+        imu_data.position.x = kf_x_->getEstimatePos();
+        imu_data.position.y = kf_y_->getEstimatePos();
+        imu_data.position.z = kf_z_->getEstimatePos();
+
+        imu_data.velocity.x = kf_x_->getEstimateVel();
+        imu_data.velocity.y = kf_y_->getEstimateVel();
+        imu_data.velocity.z = kf_z_->getEstimateVel();
       }
 
-    imu_pub.publish(imuDebug_);
+    imu_pub_.publish(imu_data);
+  }
+
+  void rosParamInit(ros::NodeHandle nh)
+  {
+    nh.param("acc_scale", acc_scale_, 9.797 / 512.0);
+    printf(" acc scale is %f\n", acc_scale_);
+    nh.param("gyro_scale", gyro_scale_, (2279 * M_PI)/((32767.0 / 4.0f ) * 180.0));
+    printf(" gyro scale is %f\n", gyro_scale_);
+    nh.param("mag_scale", mag_scale_, 1200 / 32768.0);
+    printf(" mag scale is %f\n", mag_scale_);
   }
 
 };

@@ -4,23 +4,21 @@
 //* ros
 #include <ros/ros.h>
 
-#include <jsk_quadcopter/ArMarkerDebug.h>
+#include <aerial_robot_base/ArMarkerData.h>
 
 //* for dynamic reconfigure
 #include <dynamic_reconfigure/server.h>
-#include <jsk_quadcopter/StateKalmanFilterConfig.h>
-#include <jsk_quadcopter/DynamicReconfigureLevels.h>
+#include <aerial_robot_base/StateKalmanFilterConfig.h>
+#include <aerial_robot_msgs/DynamicReconfigureLevels.h>
 #include <tf/transform_broadcaster.h>
 //* filter
-#include <jsk_quadcopter/kalman_filter.h>
-#include <jsk_quadcopter/digital_filter.h>
+#include <aerial_robot_base/kalman_filter.h>
+#include <aerial_robot_base/digital_filter.h>
 
 //* for debug
 #include <iostream>
-
-
 //* state
-#include <jsk_quadcopter/state_estimation.h>
+#include <aerial_robot_base/state_estimation.h>
 
 
 class ARMarkerData
@@ -28,10 +26,10 @@ class ARMarkerData
  public:
   ARMarkerData (ros::NodeHandle nh);
   ARMarkerData (ros::NodeHandle nh,
-                bool slamKalmanFilterFlag,
-                KalmanFilterImuLaserBias *kfb_x, 
-                KalmanFilterImuLaserBias *kfb_y,
-                KalmanFilterImuLaserBias *kfb_z);
+                bool kalman_filter_flag,
+                KalmanFilterPosVelAcc *kf_x, 
+                KalmanFilterPosVelAcc *kf_y,
+                KalmanFilterPosVelAcc *kf_z);
   ~ARMarkerData ();
 
   void setPosXValue(float pos_x_value);
@@ -94,72 +92,56 @@ class ARMarkerData
   //void arMarkerPoseStampedCallback(const ar_pose::ARMarkers &ar_marker_pose_msg);
 
   bool arMarkerKalmanFilterFlag_;
-  KalmanFilterImuLaserBias *kfbXARMarker_;
-  KalmanFilterImuLaserBias *kfbYARMarker_;
-  KalmanFilterImuLaserBias *kfbZARMarker_;
+  KalmanFilterPosVelAcc *kf_x_;
+  KalmanFilterPosVelAcc *kf_y_;
+  KalmanFilterPosVelAcc *kf_z_;
 
   const static int CALIBCOUNT = 30;
 
  private:
-  ros::NodeHandle arMarkerDataNodeHandle_;
-  ros::Publisher arMarkerPub_;
-  ros::Subscriber arMarkerSub_;
-  ros::Time slamStamp_;
+  ros::NodeHandle nh_;
+  ros::Publisher ar_pub_;
+  ros::Subscriber ar_sub_;
+  ros::Time stamp_;
 
-  int calibCount;
+  int calib_count_;
 
-  tf::Transform initARMarkerTF;
-  float initARMarkerPoseX;
-  float initARMarkerPoseY;
-  float initARMarkerPoseZ;
-  float initARMarkerPoseQ1;
-  float initARMarkerPoseQ2;
-  float initARMarkerPoseQ3;
-  float initARMarkerPoseQ4;
-
-
-  float initARMarkerPoseTheta;
-  float initARMarkerPosePhy;
-  float initARMarkerPosePsi;
+  tf::Transform init_ar_tf_;
+  float init_ar_pose_x_;
+  float init_ar_pose_y_;
+  float init_ar_pose_z_;
+  float init_ar_pose_theta_;
+  float init_ar_pose_phy_;
+  float init_ar_pose_psi_;
 
 
-  //R_Camera   = R_initARMarkerTF * R_ARMarkerTF_Inverse
-  //Vec_Camera = R_ARMarkerTF_Inverse * (-Vec_ARMarkerTF) + Vec_Init_ARMarker
-  //tf::Transform ARMarkerReTF;
-  /* float ARMarkerPoseX; */
-  /* float ARMarkerPoseY; */
-  /* float ARMarkerPoseZ; */
-  /* float ARMarkerPoseTheta; */
-  /* float ARMarkerPosePhy; */
-  /* float ARMarkerPosePsi; */
-
-  float posX;
-  float posY;
-  float posZ;
-  float theta;
-  float phy;  
-  float psi; //yaw angle
+  float pos_x_;
+  float pos_y_;
+  float pos_z_;
+  float theta_;
+  float phy_;  
+  float psi_; 
   
-  float rawPosX;
-  float rawPosY;
-  float rawPosZ;
-  float rawTheta;
-  float rawPhy;
-  float rawPsi;
+  float raw_pos_x_;
+  float raw_pos_y_;
+  float raw_pos_z_;
+  float raw_theta_;
+  float raw_phy_;
+  float raw_psi_;
 
-  float velX;
-  float velY;
-  float velZ;
-  float velTheta; 
-  float velPhy; 
-  float velPsi; 
+  float vel_x_;
+  float vel_y_;
+  float vel_z_;
+  float vel_theta_; 
+  float vel_phy_; 
+  float vel_psi_; 
 
-  float rawVelX;
-  float rawVelY;
-  float rawVelZ;
-  float rawVelTheta;
-  float rawVelPhy;
-  float rawVelPsi;
+  float raw_vel_x_;
+  float raw_vel_y_;
+  float raw_vel_z_;
+  float raw_vel_theta_;
+  float raw_vel_phy_;
+  float raw_vel_psi_;
 
 };
 

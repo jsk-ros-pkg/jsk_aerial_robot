@@ -14,9 +14,5 @@ float32 height
 
 
 #tmp for prediction of kalman filter
-float32 preXPos
-float32 preXVel
-float32 preYPos
-float32 preYVel
-float32 preZPos
-float32 preZVel
+geometry_msgs/Vector3 position
+geometry_msgs/Vector3 velocity

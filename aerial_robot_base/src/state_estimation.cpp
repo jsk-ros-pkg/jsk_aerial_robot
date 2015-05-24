@@ -2,6 +2,7 @@
   2015 05 16 
   1. the prioripty of the sensor => 1) pluginazation, 2) order=> profile
   2. uniform the state(set, get , etc, no "sate_xc", no "outer state")
+  3. independent catkin packgage for sensor modules(px_comm is bad )
 
   +*+*+*+* 最重要事項：関数のstatic変数はすべて同じポインタに保存されるので、同じ関数を複数呼ぶ場合、中身のstatic変数はお互い
 >  
@@ -293,7 +294,7 @@ float RigidEstimator::getStatePsiCog()
   else
     {
       if(use_outer_yaw_est_)
-        return slam_data_->getPsiSlamValue();
+        return slam_data_->getPsiValue();
       else
         return 0;  //+*+*+ fixed point
     }
@@ -307,7 +308,7 @@ float RigidEstimator::getStateVelPsiCog()
   else
     {
       if(use_outer_yaw_est_)
-        return   slam_data_->getVelPsiSlamValue();
+        return   slam_data_->getVelPsiValue();
       else 
         return 0;   //+*+*+ fixed point
     }
@@ -322,7 +323,7 @@ float RigidEstimator::getStatePsiBoard()
   else
     {
       if(use_outer_yaw_est_)
-        return slam_data_->getPsiSlamValue();
+        return slam_data_->getPsiValue();
       else
         return 0;  //+*+*+ fixed point
     }
@@ -337,7 +338,7 @@ float RigidEstimator::getStateVelPsiBoard()
   else
     {
       if(use_outer_yaw_est_)
-        return   slam_data_->getVelPsiSlamValue();
+        return   slam_data_->getVelPsiValue();
       else 
         return 0;   //+*+*+ fixed point
     }

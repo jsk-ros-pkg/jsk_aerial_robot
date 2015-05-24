@@ -9,7 +9,7 @@
 #include <aerial_robot_base/sensor/mirror_module.h>
 #include <aerial_robot_base/sensor/slam_data.h>
 #include <aerial_robot_base/sensor/imu_module.h>
-#include <aerial_robot_base/sensor/mocap_data.h>
+#include <aerial_robot_base/sensor/mocap.h>
 #include <aerial_robot_base/sensor/optical_flow_module.h>
 #include <tf/transform_broadcaster.h>
 #include <iostream>
