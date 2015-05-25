@@ -262,7 +262,6 @@ class CamShift
 
   }
 
-
   void startTracking()
   {
     image_processing::StartTracking srv;

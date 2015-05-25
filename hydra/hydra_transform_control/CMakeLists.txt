@@ -48,12 +48,12 @@ target_link_libraries (dynamicxel_bridge_node  ${catkin_LIBRARIES})
 
 add_executable(demo_transform_node src/demo_transform.cpp )
 target_link_libraries (demo_transform_node  ${catkin_LIBRARIES})
-
+add_dependencies(demo_transform_node aerial_robot_msgs_generate_message_cpp)
 
 add_library (transform_control src/transform_control.cpp)
 add_executable (hydra_transform_control_node src/hydra_transform_control_node.cpp)
 target_link_libraries (hydra_transform_control_node transform_control ${catkin_LIBRARIES} ${Eigen_LIBRAIES})
-
+add_dependencies(hydra_transform_control_node aerial_robot_msgs_generate_message_cpp)
 
 install(DIRECTORY launch
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
