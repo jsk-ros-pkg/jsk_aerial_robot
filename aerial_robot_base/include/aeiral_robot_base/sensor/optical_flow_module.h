@@ -29,34 +29,28 @@ class OpticalFlowData
    : nh_(nh, "optical_flow"),
     nhp_(nh_private, "optical_flow")
     {
-      opticalFlowPub_ = opticalFlowDataNodeHandle_.advertise<jsk_quadcopter::OpticalFlowDebug>("debug", 10); 
-      opticalFlowSub_ = opticalFlowDataNodeHandle_.subscribe<px_comm::OpticalFlow>("opt_flow", 5, boost::bind(&OpticalFlowData::opticalFlowCallback, this, _1, state_estimator));
+      optical_flow_pub_ = nh_.advertise<aeiral_robot_base::OpticalFlowDaya>("data",10);
+      optical_flow_sub_ = nh_.subscribe<px_comm::OpticalFlow>("opt_flow", 1, &OpticalFlowData::opticalFlowCallback, this, ros::TransportHints().tcpNoDelay());
 
-      rosParamInit();
+      rosParamInit(nhp_);
 
-      kalmanFilterFlag = kalman_filter_flag;
-      kfX_ = kf_x; kfY_ = kf_y; kfZ_ = kf_z;
-      kfbX_ = kfb_x; kfbY_ = kfb_y; kfbZ_ = kfb_z;
+      kalman_filter_flag = kalman_filter_flag;
+      kf_x_ = kf_x; kf_y_ = kf_y; kf_z_ = kf_z;
+      kfb_x_ = kfb_x; kfb_y_ = kfb_y; kfb_z_ = kfb_z;
 
-      firFilterVelX_ = FirFilter(16);
-      firFilterVelY_ = FirFilter(16);
-
-      iirFilterVelX_ = IirFilter(97, iirFilterAccXCutoffHz_);
-      iirFilterVelY_ = IirFilter(97, iirFilterAccYCutoffHz_);
-      iirFilterPosZ_ = IirFilter(97, iirFilterAccZCutoffHz_);
       setRocketStartFlag();
 
-      rawPosZ = 0;
-      posZ = 0;
-      rawVelZ = 0;
-      velZ = 0;
+      raw_pos_z_ = 0;
+      pos_z_ = 0;
+      raw_vel_z_ = 0;
+      vel_z_ = 0;
 
-      rawVelX = 0;
-      velX = 0;
-      posX = 0;
-      rawVelY = 0;
-      velY = 0;
-      posY = 0;
+      raw_vel_x_ = 0;
+      filtered_vel_x_ = 0;
+      pos_x_ = 0;
+      raw_vel_y_ = 0;
+      filtered_vel_y_ = 0;
+      pos_y_ = 0;
     }
 
   ~OpticalFlowData()
@@ -64,160 +58,84 @@ class OpticalFlowData
     }
 
 
-  float getPosX()
-  {
-    return 0;
-  }
+  inline float getPosX()  { return 0; }
+  inline float getPosY()  { return 0; }
+  inline float getPosZ()  { return raw_pos_z_; }
 
-  float getPosY()
-  {
-    return 0;
-  }
+  inline float getFilteredVelX() {  return filtered_vel_x_;  }
+  inline float getFilteredVelY() {  return filtered_vel_y_;  }
 
-  float getPosZ()
-  {
-    //default
-    return rawPosZ;
-  }
+  inline float getRawVelX() {  return raw_vel_x_; }
+  inline float getRawVelY() {  return raw_vel_y_; }
+  inline float getRawVelZ() {  return raw_vel_z_; }
 
-  void setVelX(float vel_x)
-  {
-    rawVelX= vel_x;
-  }
-
-  void setVelY(float vel_y)
-  {
-    rawVelY= vel_y;
-  }
-
-  void setVelZ(float vel_z)
-  {
-    rawVelZ= vel_z;
-  }
-
-  float getVelX()
-  {
-    return velX;
-  }
-
-  float getVelY()
-  {
-    return velY;
-  }
-
-  float getVelZ()
-  {
-    // default
-    return rawVelZ;
-  }
-
-  void setRawVelX(float raw_vel_x)
-  {
-    rawVelX = raw_vel_x;
-  }
-
-  void setRawVelY(float raw_vel_y)
-  {
-    rawVelY = raw_vel_y;
-  }
-
-  void setRawVelZ(float raw_vel_z)
-  {
-    rawVelZ = raw_vel_z;
-  }
-
-  float getRawVelX()
-  {
-    return rawVelX;
-  }
-
-  float getRawVelY()
-  {
-    return rawVelY;
-  }
-
-  float getRawVelZ()
-  {
-    return rawVelZ;
-  }
-
-  bool  getRocketStartFlag()
-  {
-    return rocketStartFlag;
-  }
+  inline bool  getRocketStartFlag() { return rocket_start_flag_; }
 
   void  setRocketStartFlag()
   {
-    if(useRocketStart_)
+    if(use_rocket_start_)
       {
-        rocketStartFlag = true;
+        rocket_start_flag_ = true;
         bool stop_flag = false;
-        kfX_->setMeasureStartFlag(stop_flag);
-        kfY_->setMeasureStartFlag(stop_flag);
-        kfZ_->setMeasureStartFlag(stop_flag);
+        kf_x_->setMeasureStartFlag(stop_flag);
+        kf_y_->setMeasureStartFlag(stop_flag);
+        kf_z_->setMeasureStartFlag(stop_flag);
       
-        kfbX_->setMeasureStartFlag(stop_flag);
-        kfbY_->setMeasureStartFlag(stop_flag);
-        kfbZ_->setMeasureStartFlag(stop_flag);
+        kfb_x_->setMeasureStartFlag(stop_flag);
+        kfb_y_->setMeasureStartFlag(stop_flag);
+        kfb_z_->setMeasureStartFlag(stop_flag);
         ROS_ERROR(" set measure start flag to false");
       }
     else
       {
-        rocketStartFlag = false;
+        rocket_start_flag_ = false;
       }
   }
 
-
  private:
-  ros::NodeHandle opticalFlowDataNodeHandle_;
-  ros::NodeHandle opticalFlowDataNodeHandlePrivate_;
-  ros::Publisher opticalFlowPub_;
-  ros::Subscriber opticalFlowSub_;
-  ros::Time opticalFlowStamp_;
+  ros::NodeHandle nh_;
+  ros::NodeHandle nhp_;
+  ros::Publisher optical_flow_pub_;
+  ros::Subscriber optical_flow_sub_;
+  ros::Time optical_flow_stamp_;
 
-  bool   useRocketStart_;
-  bool   rocketStartFlag;
-  double rocketStartUpperThre_;
-  double rocketStartLowerThre_;
-  double rocketStartVel_;
+  Estimator* state_estimator_;
 
-  double xAxisDirection_;  
-  double yAxisDirection_;
+  bool   useRocket_start_;
+  bool   rocket_start_flag;
+  double rocket_start_upper_thre_;
+  double rocket_start_lower_thre_;
+  double rocket_start_vel_;
 
+  double x_axis_direction_;
+  double y_axis_direction_;
 
-  bool kalmanFilterFlag;
-  KalmanFilterImuLaser *kfX_;
-  KalmanFilterImuLaser *kfY_;
-  KalmanFilterImuLaser *kfZ_;
+  bool kalman_filter_flag_;
+  KalmanFilterImuLaser *kf_x_;
+  KalmanFilterImuLaser *kf_y_;
+  KalmanFilterImuLaser *kf_z_;
 
-  KalmanFilterImuLaserBias *kfbX_;
-  KalmanFilterImuLaserBias *kfbY_;
-  KalmanFilterImuLaserBias *kfbZ_;
+  KalmanFilterImuLaserBias *kfb_x_;
+  KalmanFilterImuLaserBias *kfb_y_;
+  KalmanFilterImuLaserBias *kfb_z_;
   
-  IirFilter iirFilterVelX_;
-  IirFilter iirFilterVelY_;
-  IirFilter iirFilterPosZ_;
-  double iirFilterAccXCutoffHz_;
-  double iirFilterAccYCutoffHz_;
-  double iirFilterAccZCutoffHz_;
+  double iir_filter_acc_x_cutoff_hz_;
+  double iir_filter_acc_y_cutoff_hz_;
+  double iir_filter_acc_z_cutoff_hz_;
 
-  FirFilter firFilterVelX_;
-  FirFilter firFilterVelY_;
+  float raw_pos_z_;
+  float pos_z_;
+  float raw_vel_z_;
+  float vel_z_;
 
-  float rawPosZ;
-  float posZ;
-  float rawVelZ;
-  float velZ;
+  float raw_vel_x_;
+  float filtered_vel_x_;
 
-  float rawVelX;
-  float velX;
-  float posX;
-  float rawVelY;
-  float velY;
-  float posY;
+  float raw_vel_y_;
+  float filtered_vel_y_;
 
-  void opticalFlowCallback(const px_comm::OpticalFlowConstPtr & optical_flow_msg,
-                           Estimator* state_estimator)
+
+  void opticalFlowCallback(const px_comm::OpticalFlowConstPtr & optical_flow_msg)
   {
     static int cnt = 0;
     static int CNT = 1;
@@ -227,202 +145,163 @@ class OpticalFlowData
     double current_secs = optical_flow_msg->header.stamp.toSec();
 
     //**** 高さ方向情報の更新
-    rawPosZ = optical_flow_msg->ground_distance;
+    raw_pos_z_ = optical_flow_msg->ground_distance;
 
     // rocket start mode
-    if( optical_flow_msg->ground_distance < rocketStartUpperThre_ &&
-        optical_flow_msg->ground_distance > rocketStartLowerThre_ &&
-	prev_raw_pos_z < rocketStartLowerThre_ &&
-	prev_raw_pos_z > (rocketStartLowerThre_ - 0.1) &&
-        rocketStartFlag)
+    if( raw_pos_z_ < rocket_start_upper_thre_ &&
+        raw_pos_z_ > rocket_start_lower_thre_ &&
+	prev_raw_pos_z < rocket_start_lower_thre_ &&
+	prev_raw_pos_z > (rocket_start_lower_thre_ - 0.1) &&
+        rocket_start_flag_)
       {//pose init
 	//TODO: start flag fresh arm, or use air pressure => refined
 
 	ROS_INFO("prev_raw_pos_z : %f", prev_raw_pos_z);
 	ROS_ERROR("start rocket!");
 
-        kfX_->setInitState(0, optical_flow_msg->flow_x /1000.0);
-        kfbX_->setInitState(0, optical_flow_msg->flow_x /1000.0);
+        kf_x_->setInitState(0, optical_flow_msg->flow_x /1000.0);
+        kfb_x_->setInitState(0, optical_flow_msg->flow_x /1000.0);
 
-        kfY_->setInitState(0, -optical_flow_msg->flow_y /1000.0);
-        kfbY_->setInitState(0, -optical_flow_msg->flow_y /1000.0);
+        kf_y_->setInitState(0, -optical_flow_msg->flow_y /1000.0);
+        kfb_y_->setInitState(0, -optical_flow_msg->flow_y /1000.0);
 
-        kfZ_->setInitState(optical_flow_msg->ground_distance, rocketStartVel_);
-        kfbZ_->setInitState(optical_flow_msg->ground_distance, rocketStartVel_);
+        kf_z_->setInitState(optical_flow_msg->ground_distance, rocket_start_vel_);
+        kfb_z_->setInitState(optical_flow_msg->ground_distance, rocket_start_vel_);
 
         bool start_flag = true;
 
-        kfX_->setMeasureStartFlag(start_flag);
-        kfY_->setMeasureStartFlag(start_flag);
-        kfZ_->setMeasureStartFlag(start_flag);
+        kf_x_->setMeasureStartFlag(start_flag);
+        kf_y_->setMeasureStartFlag(start_flag);
+        kf_z_->setMeasureStartFlag(start_flag);
 
-        kfbX_->setMeasureStartFlag(start_flag);
-        kfbY_->setMeasureStartFlag(start_flag);
-        kfbZ_->setMeasureStartFlag(start_flag);
+        kfb_x_->setMeasureStartFlag(start_flag);
+        kfb_y_->setMeasureStartFlag(start_flag);
+        kfb_z_->setMeasureStartFlag(start_flag);
 
-        rocketStartFlag = false;
+        rocket_start_flag_ = false;
       }
 
-
     if(first_flag)
+      {
         first_flag = false;
+      }
     else
       {
-        if(!rocketStartFlag)
+        if(!rocket_start_flag_)
           {
             //**** 高さ方向情報の更新
-            //rawPosZ = optical_flow_msg->ground_distance;
-            rawVelZ = (rawPosZ - prev_raw_pos_z) / (current_secs - previous_secs);
+            raw_vel_z_ = (raw_pos_z_ - prev_raw_pos_z) / (current_secs - previous_secs);
 
             //**** 速度情報の更新,ボードの向き
-            rawVelX = optical_flow_msg->velocity_x; 
-            rawVelY = -optical_flow_msg->velocity_y; 
+            raw_vel_x_ = x_axis_direction_ * optical_flow_msg->velocity_x; 
+            raw_vel_y_ = y_axis_direction_ * optical_flow_msg->velocity_y; 
 
-            velX = optical_flow_msg->flow_x /1000.0;
-            velY = - optical_flow_msg->flow_y /1000.0;
+            filtered_vel_x_ = x_axis_direction_ * optical_flow_msg->flow_x /1000.0;
+            filtered_vel_y_ = y_axis_direction_ * optical_flow_msg->flow_y /1000.0;
 
-            if(kalmanFilterFlag)
+            if(kalman_filter_flag_)
               {
                 cnt++;
                 if(cnt == CNT) //50 Hz !!!!!!!!!!!!!!!!!!!!!
                   {
                     cnt = 0; 
-#if 0 // optical with accurate timestamp
-                    if(optical_flow_msg->quality == 0 || rawVelX == 0 || rawPosZ > 2.5)
-                      {// 2.5m is a good threhold
-                        kfX_->imuQuCorrection(optical_flow_msg->header.stamp, velX,1);  //velocity
-                        kfbX_->imuQuCorrection(optical_flow_msg->header.stamp, velX, 1); //velocity
-                      }
-                    else
-                      {
-                        kfX_->imuQuCorrection(optical_flow_msg->header.stamp, rawVelX,1);  //velocity
-                        kfbX_->imuQuCorrection(optical_flow_msg->header.stamp, rawVelX, 1); //velocity
-                      }
-                    if(optical_flow_msg->quality == 0 || rawVelY == 0 || rawPosZ > 2.5)
-                      {
-                        kfY_->imuQuCorrection(optical_flow_msg->header.stamp, velY, 1); //velocity
-                        kfbY_->imuQuCorrection(optical_flow_msg->header.stamp, velY, 1); //velocity                      
-                      }
-                    else
-                      {
-                        kfY_->imuQuCorrection(optical_flow_msg->header.stamp, rawVelY, 1); //velocity
-                        kfbY_->imuQuCorrection(optical_flow_msg->header.stamp, rawVelY, 1); //velocity
-                      }
-      
-#else // optical without accurate timestamp
-                    if(optical_flow_msg->quality == 0 || rawVelX == 0 || rawPosZ > 2.5)
-                      { // remove the rawVelX case is not good !!
-                        kfX_->correctionOnlyVelocity(velX, optical_flow_msg->header.stamp);  //velocity
-                        kfbX_->correctionOnlyVelocity(velX, optical_flow_msg->header.stamp); //velocity
+                    // optical without accurate timestamp
+                    if(optical_flow_msg->quality == 0 || raw_vel_x_ == 0 || raw_pos_z_ > 2.5)
+                      { // remove the raw_vel_x case is not good !!
+                        kf_x_->correctionOnlyVelocity(filtered_vel_x_, optical_flow_msg->header.stamp);  //velocity
+                        kfb_x_->correctionOnlyVelocity(filtered_vel_x_, optical_flow_msg->header.stamp); //velocity
                       }
                     else  
                       {
-                        kfX_->correctionOnlyVelocity(rawVelX, optical_flow_msg->header.stamp);  //velocity
-                        kfbX_->correctionOnlyVelocity(rawVelX, optical_flow_msg->header.stamp); //velocity
+                        kf_x_->correctionOnlyVelocity(raw_vel_x_, optical_flow_msg->header.stamp);  //velocity
+                        kfb_x_->correctionOnlyVelocity(raw_vel_x_, optical_flow_msg->header.stamp); //velocity
                       }
-                    if(optical_flow_msg->quality == 0 || rawVelY == 0 || rawPosZ > 2.5)
-                      //if(optical_flow_msg->quality == 0)
-                      { // remove the rawVelY case is not good !!
-                        kfY_->correctionOnlyVelocity(velY, optical_flow_msg->header.stamp); //velocity
-                        kfbY_->correctionOnlyVelocity(velY, optical_flow_msg->header.stamp); //velocity
+                    if(optical_flow_msg->quality == 0 || raw_vel_y_ == 0 || raw_pos_z > 2.5)
+                      { // remove the raw_vel_y case is not good !!
+                        kf_y_->correctionOnlyVelocity(filtered_vel_y_, optical_flow_msg->header.stamp); //velocity
+                        kfb_y_->correctionOnlyVelocity(filtered_vel_y_, optical_flow_msg->header.stamp); //velocity
                       }
                     else
                       {
-                        kfY_->correctionOnlyVelocity(rawVelY, optical_flow_msg->header.stamp); //velocity
-                        kfbY_->correctionOnlyVelocity(rawVelY, optical_flow_msg->header.stamp); //velocity
+                        kf_y_->correctionOnlyVelocity(raw_vel_y_, optical_flow_msg->header.stamp); //velocity
+                        kfb_y_->correctionOnlyVelocity(raw_vel_y_, optical_flow_msg->header.stamp); //velocity
                       }
-#endif
-
                   }
-                if(rawPosZ != prev_raw_pos_z && rawPosZ < 2.5) //100Hz
+                
+                if(raw_pos_z_ != prev_raw_pos_z && raw_pos_z_ < 2.5) //100Hz
                   {
-#if 0 //time stamp
-                    kfZ_->imuQuCorrection(optical_flow_msg->header.stamp, rawPosZ);
-                    kfbZ_->imuQuCorrection(optical_flow_msg->header.stamp, rawPosZ);
-#else
-                    kfbZ_->correction(rawPosZ, optical_flow_msg->header.stamp);
-                    kfZ_->correction(rawPosZ, optical_flow_msg->header.stamp);
-#endif
+                    kfb_z_->correction(raw_pos_z, optical_flow_msg->header.stamp);
+                    kf_z_->correction(raw_pos_z, optical_flow_msg->header.stamp);
                   }
               }
-            jsk_quadcopter::OpticalFlowDebug opticalFlowDebug_;
-            opticalFlowDebug_.header.stamp = optical_flow_msg->header.stamp;
-            opticalFlowDebug_.rawVelX = rawVelX;
-            opticalFlowDebug_.velX = velX;
-            opticalFlowDebug_.rawVelY = rawVelY;
-            opticalFlowDebug_.velY = velY;
-            opticalFlowDebug_.rawPosZ = rawPosZ;
-            opticalFlowDebug_.rawVelZ = rawVelZ;
+
+
+            //publish
+            aerial_robot_base::OpticalFlowData opt_data;
+            opt_data.header.stamp = optical_flow_msg->header.stamp;
+            opt_data.rawVelX = raw_vel_x_;
+            opt_data.velX = filtered_vel_x_;
+            opt_data.rawVelY = raw_vel_y_;
+            opt_data.velY = filtered_vel_y_;
+            opt_data.rawPosZ = raw_pos_z_;
+            opt_data.rawVelZ = raw_vel_z_;
 
             if(kalmanFilterFlag)
               {
-                opticalFlowDebug_.crrPosXNonBias = kfX_->getEstimatePos();
-                opticalFlowDebug_.crrVelXNonBias = kfX_->getEstimateVel();
-                opticalFlowDebug_.crrPosXBias    = kfbX_->getEstimatePos();
-                opticalFlowDebug_.crrVelXBias    = kfbX_->getEstimateVel();
-                opticalFlowDebug_.crrXBias       = kfbX_->getEstimateBias();
+                opt_data.crrPos_xNonBias = kf_x_->getEstimatePos();
+                opt_data.crrVel_xNonBias = kf_x_->getEstimateVel();
+                opt_data.crrPos_xBias    = kfb_x_->getEstimatePos();
+                opt_data.crrVel_xBias    = kfb_x_->getEstimateVel();
+                opt_data.crr_xBias       = kfb_x_->getEstimateBias();
 
-                opticalFlowDebug_.crrPosYNonBias = kfY_->getEstimatePos();
-                opticalFlowDebug_.crrVelYNonBias = kfY_->getEstimateVel();
-                opticalFlowDebug_.crrPosYBias    = kfbY_->getEstimatePos();
-                opticalFlowDebug_.crrVelYBias    = kfbY_->getEstimateVel();
-                opticalFlowDebug_.crrYBias       = kfbY_->getEstimateBias();
+                opt_data.crrPos_yNonBias = kf_y_->getEstimatePos();
+                opt_data.crrVel_yNonBias = kf_y_->getEstimateVel();
+                opt_data.crrPos_yBias    = kfb_y_->getEstimatePos();
+                opt_data.crrVel_yBias    = kfb_y_->getEstimateVel();
+                opt_data.crr_yBias       = kfb_y_->getEstimateBias();
 
-                opticalFlowDebug_.crrPosZNonBias = kfZ_->getEstimatePos();
-                opticalFlowDebug_.crrVelZNonBias = kfZ_->getEstimateVel();
-                opticalFlowDebug_.crrPosZBias    = kfbZ_->getEstimatePos();
-                opticalFlowDebug_.crrVelZBias    = kfbZ_->getEstimateVel();
-                opticalFlowDebug_.crrZBias       = kfbZ_->getEstimateBias();
-
+                opt_data.crrPos_zNonBias = kf_z_->getEstimatePos();
+                opt_data.crrVel_zNonBias = kf_z_->getEstimateVel();
+                opt_data.crrPos_zBias    = kfb_z_->getEstimatePos();
+                opt_data.crrVel_zBias    = kfb_z_->getEstimateVel();
+                opt_data.crr_zBias       = kfb_z_->getEstimateBias();
               }
-            opticalFlowPub_.publish(opticalFlowDebug_);
+            optical_flow_pub_.publish(opt_data);
           }
       }
 
     //更新
     previous_secs = current_secs;
-    prev_raw_pos_z = rawPosZ;
+    prev_raw_pos_z = raw_pos_z_;
   }
 
 
-  void rosParamInit()
+  void rosParamInit(ros::NodeHandle nh)
   {
     //name space in /quadcopter/navigator/...
-    ros::NodeHandle navigatorNodeHandle("~navigator");
-    if (!navigatorNodeHandle.getParam ("useRocketStart", useRocketStart_))
-      useRocketStart_ = false;
-    printf("%s: useRocketStart is %s\n", navigatorNodeHandle.getNamespace().c_str(), useRocketStart_ ? ("true") : ("false"));
-    if (!navigatorNodeHandle.getParam ("rocketStartUpperThre", rocketStartUpperThre_))
-      rocketStartUpperThre_ = 0;
-    printf("%s: rocketStartUpperThre_ is %.3f\n", navigatorNodeHandle.getNamespace().c_str(), rocketStartUpperThre_);
-    if (!navigatorNodeHandle.getParam ("rocketStartLowerThre", rocketStartLowerThre_))
-      rocketStartLowerThre_ = 0;
-    printf("%s: rocketStartLowerThre_ is %.3f\n", navigatorNodeHandle.getNamespace().c_str(), rocketStartLowerThre_);
-    if (!navigatorNodeHandle.getParam ("rocketStartVel", rocketStartVel_))
-      rocketStartVel_ = 0;
-    printf("%s: rocketStartVel_ is %.3f\n", navigatorNodeHandle.getNamespace().c_str(), rocketStartVel_);
+    ros::NodeHandle navi_nh("~navigator");
+    if (!navi_nh.getParam ("useRocketStart", use_rocket_start_))
+      use_rocket_start_ = false;
+    printf("%s: useRocketStart is %s\n", navi_nh.getNamespace().c_str(), use_rocket_start_ ? ("true") : ("false"));
+    if (!navi_nh.getParam ("rocketStartUpperThre", rocket_start_upper_thre_))
+      rocket_start_upper_thre_ = 0;
+    printf("%s: rocketStartUpperThre_ is %.3f\n", navi_nh.getNamespace().c_str(), rocket_start_upper_thre_);
+    if (!navi_nh.getParam ("rocketStartLowerThre", rocket_start_lower_thre_))
+      rocket_start_lower_thre_ = 0;
+    printf("%s: rocketStartLowerThre_ is %.3f\n", navi_nh.getNamespace().c_str(), rocket_start_lower_thre_);
+    if (!navi_nh.getParam ("rocketStartVel", rocket_start_vel_))
+      rocket_start_vel_ = 0;
+    printf("%s: rocketStartVel_ is %.3f\n", navi_nh.getNamespace().c_str(), rocket_start_vel_);
 
-    std::string ns = opticalFlowDataNodeHandlePrivate_.getNamespace();
-    if (!opticalFlowDataNodeHandlePrivate_.getParam ("xAxisDirection", xAxisDirection_))
-      xAxisDirection_ = 1.0;
-    printf("%s: xAxisDirection_ is %.3f\n", ns.c_str(), xAxisDirection_);
+    std::string ns = nh.getNamespace();
+    if (!nh.getParam ("xAxisDirection", x_axis_direction_))
+      x_axis_direction_ = 1.0;
+    printf("%s: xAxisDirection_ is %.3f\n", ns.c_str(), x_axis_direction_);
 
-    if (!opticalFlowDataNodeHandlePrivate_.getParam ("yAxisDirection", yAxisDirection_))
-      yAxisDirection_ = 1.0;
-    printf("%s: yAxisDirection_ is %.3f\n", ns.c_str(), yAxisDirection_);
+    if (!nh.getParam ("yAxisDirection", y_axis_direction_))
+      y_axis_direction_ = -1.0; //-1 is default
+    printf("%s: yAxisDirection_ is %.3f\n", ns.c_str(), y_axis_direction_);
 
-    if (!opticalFlowDataNodeHandlePrivate_.getParam ("iirFilterAccXCutoffHz", iirFilterAccXCutoffHz_))
-      iirFilterAccXCutoffHz_ = 0;
-    printf("%s: iirFilterAccXCutoffHz_ is %.3f\n", ns.c_str(), iirFilterAccXCutoffHz_);
-
-    if (!opticalFlowDataNodeHandlePrivate_.getParam ("iirFilterAccYCutoffHz", iirFilterAccYCutoffHz_))
-      iirFilterAccYCutoffHz_ = 0;
-    printf("%s: iirFilterAccYCutoffHz_ is %.3f\n", ns.c_str(), iirFilterAccYCutoffHz_);
-
-    if (!opticalFlowDataNodeHandlePrivate_.getParam ("iirFilterAccZCutoffHz", iirFilterAccZCutoffHz_))
-      iirFilterAccZCutoffHz_ = 0;
-    printf("%s: iirFilterAccZCutoffHz_ is %.3f\n", ns.c_str(), iirFilterAccZCutoffHz_);
-  }
 };
 
 

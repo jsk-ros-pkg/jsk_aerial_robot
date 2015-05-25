@@ -210,7 +210,9 @@ void PidController::pidFunction()
 
       float state_pos_z = estimator_->getStatePosZ();
       float state_vel_z = estimator_->getStateVelZ();
+
       float state_psi_cog = estimator_->getStatePsiCog();
+
       float state_psi_board = estimator_->getStatePsiBoard();
       float state_vel_psi_board = estimator_->getStateVelPsiBoard();
 
@@ -490,7 +492,7 @@ void PidController::pidFunction()
           four_axis_pid_debug.roll.velErrNoTransform = target_vel_y - state_vel_y;
 
 
-          //yaw
+          //yaw => refer to the board frame angle(psi_board)
           if(navigator_->getXyControlMode() == Navigator::POS_WORLD_BASED_CONTROL_MODE ||
              navigator_->getXyControlMode() == Navigator::POS_LOCAL_BASED_CONTROL_MODE || 
              navigator_->getXyControlMode() == Navigator::VEL_WORLD_BASED_CONTROL_MODE)
@@ -518,7 +520,7 @@ void PidController::pidFunction()
 
               //***** Dの項
               pos_d_term_yaw_ = 
-                limit(- 1000 * pos_d_gain_yaw_ * state_vel_psi_board_, pos_d_limit_yaw_);
+                limit(- 1000 * pos_d_gain_yaw_ * state_vel_psi_board, pos_d_limit_yaw_);
             }
           else if(navigator_->getXyControlMode() == Navigator::VEL_LOCAL_BASED_CONTROL_MODE)
             {
