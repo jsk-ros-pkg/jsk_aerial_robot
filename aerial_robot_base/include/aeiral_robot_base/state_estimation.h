@@ -43,6 +43,9 @@ class BasicEstimator
 
       use_outer_pose_estimate_ = 0;
       use_outer_vel_estimate_ = 0;
+
+      sys_stamp_ = ros::Time::now()
+
     }
 
   virtual ~BasicEstimator(){}
@@ -53,6 +56,9 @@ class BasicEstimator
   static const uint8_t PITCH_AXIS = 8;
   static const uint8_t ROLL_AXIS = 16;
   static const uint8_t YAW_AXIS = 32;
+
+  inline ros::Time getSystemTimeStamp(){ return sys_stamp_;}
+  inline void setSystemTimeStamp(ros::Time sys_stamp){ return 0;}
 
   virtual float getStatePosX(){ return 0;}
   virtual float getStatePosXc(){ return 0;}
@@ -252,7 +258,7 @@ class RigidEstimator : public BasicEstimator
  private:
 
   tf::TransformBroadcaster* br_;
-  ros::Time tf_stamp_;
+  ros::Time sys_stamp_;
 
   //+*+*+*+* add as members, but not superclass 
   ImuData* imu_data_ ;

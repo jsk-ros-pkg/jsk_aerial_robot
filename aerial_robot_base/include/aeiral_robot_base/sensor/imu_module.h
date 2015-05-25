@@ -114,6 +114,7 @@ class ImuData
   const static int KDUINO_BOARD = 0;
   const static int ASCTEC_BOARD = 1;
 
+  inline ros::Time getImuStamp(){return imu_stamp_;}
 
  private:
   ros::NodeHandle nh_;
@@ -181,15 +182,18 @@ class ImuData
   double acc_z_bias_;
 
 
+  ros::Time imu_stamp_;
 
   float height_;
   float v_bat_;   //*** battery
 
 
+
+
   void kduinoImuCallback(const aerial_robot_base_common::KduinoImuConstPtr& imu_msg)
   {
-    ros::Time stamp = imu_msg->stamp;
-
+    imu_stamp_ = imu_msg->stamp;
+    estimator_->setSystemTimeStamp(imu_stamp_);
 
     roll_  = M_PI * imu_msg->angle[0] / 10.0 / 180.0; //raw data is 10 times
     pitch_ = M_PI * imu_msg->angle[1] / 10.0 / 180.0; //raw data is 10 times
@@ -208,12 +212,13 @@ class ImuData
     //* height
     height_ = imu_msg->altitude / 100.0;  //cm
 
-    imuDataConverter(stamp);
+    imuDataConverter(imu_stamp_);
   }
 
   void kduinoSimpleImuCallback(const aerial_robot_base_common::KduinoSimpleImuConstPtr& imu_msg)
   {
-    ros::Time stamp = imu_msg->stamp;
+    imu_stamp_ = imu_msg->stamp;
+    estimator_->setSystemTimeStamp(imu_stamp_);
 
     roll_  = M_PI * imu_msg->angle[0] / 10.0 / 180.0; //raw data is 10 times
     pitch_ = M_PI * imu_msg->angle[1] / 10.0 / 180.0; //raw data is 10 times
@@ -223,7 +228,7 @@ class ImuData
     acc_yb_ = imu_msg->accData[1] * acc_scale_;
     acc_zb_ = imu_msg->accData[2] * acc_scale_;
 
-    imuDataConverter(stamp);
+    imuDataConverter(imu_stamp_);
   }
 
   void imuDataConverter(ros::Time stamp)

@@ -365,10 +365,8 @@ void RigidEstimator::setRocketStartFlag()
 void RigidEstimator::tfPublish()
 {
   //TODO mutex
-  if(simulation_flag_)
-    tf_stamp_ = mirror_module_->getScanStamp();
-  else
-    tf_stamp_ = ros::Time::now();
+
+  ros::Time sys_stamp = getSystemTimeStamp();
 
 
   tf::Transform laser_to_baselink;
@@ -380,21 +378,21 @@ void RigidEstimator::tfPublish()
   laser_to_baselink.setOrigin(tf::Vector3(0.0, 0.0, laser_to_baselink_distance_));
   tmp.setRPY(0.0 , 0.0 , 0.0);
   laser_to_baselink.setRotation(tmp);
-  br_->sendTransform(tf::StampedTransform(laser_to_baselink, tf_stamp_, laser_frame_,
+  br_->sendTransform(tf::StampedTransform(laser_to_baselink, sys_stamp, laser_frame_,
                                           baselink_frame_));
 
   //send the laser -> camera
   laser_to_camera.setOrigin(tf::Vector3(0.02, 0.0, -0.04));
   tmp.setRPY(0.0 , 0.0 , 0.0);
   laser_to_camera.setRotation(tmp);
-  br_->sendTransform(tf::StampedTransform(laser_to_camera, tf_stamp_, laser_frame_,
+  br_->sendTransform(tf::StampedTransform(laser_to_camera, sys_stamp, laser_frame_,
                                           camera_frame_));
 
   tmp.setRPY((getStatePhy()), getStateTheta(), 0); 
   footprint_to_laser.setRotation(tmp);
   footprint_to_laser.setOrigin(tf::Vector3(0.0, 0.0, getStatePosZ() + getPosZOffset() - mirror_module_arm_length_));
 
-  br_->sendTransform(tf::StampedTransform(footprint_to_laser, tf_stamp_,
+  br_->sendTransform(tf::StampedTransform(footprint_to_laser, sys_stamp,
   					   base_footprint_frame_, laser_frame_));
 
 }
