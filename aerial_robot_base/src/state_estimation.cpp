@@ -453,54 +453,54 @@ void RigidEstimator::rosParamInit(ros::NodeHandle nh)
 {
   std::string ns = nhp_.getNamespace();
 
-  if (!nhp_.getParam ("altitudeControlMode", altitude_control_mode_))
+  if (!nhp_.getParam ("altitude_control_mode", altitude_control_mode_))
     altitude_control_mode_ = 0;
   printf("%s: altitude_control_mode_ is %d\n", ns.c_str(), altitude_control_mode_);
 
-  if (!nhp_.getParam ("useOuterYawEst", use_outer_yaw_est_))
+  if (!nhp_.getParam ("useOuter_yaw_est", use_outer_yaw_est_))
     use_outer_yaw_est_ = false;
   printf("%s: use_outer_yaw_est is %s\n", ns.c_str(), use_outer_yaw_est_ ? ("true") : ("false"));
 
-  if (!nhp_.getParam ("baselinkFrame", baselink_frame_))
+  if (!nhp_.getParam ("baselink_frame", baselink_frame_))
     baselink_frame_ = "unknown";
   printf("%s: baselink_frame_ is %s\n", ns.c_str(), baselink_frame_.c_str());
 
-  if (!nhp_.getParam ("baseFootprintFrame", base_footprint_frame_))
+  if (!nhp_.getParam ("base_footprint_frame", base_footprint_frame_))
     base_footprint_frame_ = "unknown";
   printf("%s: base_footprint_frame_ is %s\n", ns.c_str(), base_footprint_frame_.c_str());
 
-  if (!nhp_.getParam ("laserFrame", laser_frame_))
+  if (!nhp_.getParam ("laser_frame", laser_frame_))
     laser_frame_ = "unknown";
   printf("%s: laser_frame_ is %s\n", ns.c_str(), laser_frame_.c_str());
 
-  if (!nhp_.getParam ("cameraFrame", camera_frame_))
+  if (!nhp_.getParam ("camera_frame", camera_frame_))
     laser_frame_ = "unknown";
   printf("%s: camera_frame_ is %s\n", ns.c_str(), camera_frame_.c_str());
 
-  if (!nhp_.getParam ("laserToBaselinkDistance", laser_to_baselink_distance_))
+  if (!nhp_.getParam ("laser_to_baselink_distance", laser_to_baselink_distance_))
     laser_to_baselink_distance_ = 0;
   printf("%s: laser_to_baselink_distance_ is %.3f\n", ns.c_str(), laser_to_baselink_distance_);
 
-  if (!nhp_.getParam ("mirrorModuleArmLength", mirror_module_arm_length_))
+  if (!nhp_.getParam ("mirror_module_arm_length", mirror_module_arm_length_))
     mirror_module_arm_length_ = 0;
   printf("%s: mirror_module_arm_length_ is %.3f\n", ns.c_str(), mirror_module_arm_length_);
 
   //*** kalman filter
-  if (!nhp_.getParam ("kalmanFilterFlag", kalman_filter_flag_))
+  if (!nhp_.getParam ("kalman_filter_flag", kalman_filter_flag_))
     kalman_filter_flag_ = false;
   printf("%s: kalman_filter_flag is %s\n", ns.c_str(), kalman_filter_flag_ ? ("true") : ("false"));
 
   //*** kalman filter debug
-  if (!nhp_.getParam ("kalmanFilterDebug", kalman_filterDebug_))
-    kalman_filterDebug_ = false;
-  printf("%s: kalman_filterDebug is %s\n", ns.c_str(), kalman_filterDebug_ ? ("true") : ("false"));
+  if (!nhp_.getParam ("kalman_filter_debug", kalman_filter_debug_))
+    kalman_filter_debug_ = false;
+  printf("%s: kalman_filter_debug is %s\n", ns.c_str(), kalman_filter_debug_ ? ("true") : ("false"));
 
-  if (!nhp_.getParam ("kalmanFilterAxis", kalman_filter_axis_))
+  if (!nhp_.getParam ("kalman_filter_axis", kalman_filter_axis_))
     kalman_filter_axis_ = 0;
   printf("%s: kalman_filter_axis_ is %d\n", ns.c_str(), kalman_filter_axis_);
 
   //*** mocap 
-  if (!nhp_.getParam ("mocapFlag", mocap_flag_))
+  if (!nhp_.getParam ("mocap_flag", mocap_flag_))
     mocap_flag_ = false;
   printf("%s: mocap_flag is %s\n", ns.c_str(), mocap_flag_ ? ("true") : ("false"));
 

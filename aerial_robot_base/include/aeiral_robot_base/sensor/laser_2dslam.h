@@ -155,39 +155,39 @@ class SlamData
   void rosParamInit(ros::NodeHandle nh)
   {
     std::string ns = nh.getNamespace();
-    if (!nh.getParam ("rxFreqX", rx_freq_x_))
+    if (!nh.get_param ("rx_freq_x", rx_freq_x_))
       rx_freq_x_ = 0;
     printf("%s: rx_freq_x_ is %.3f\n", ns.c_str(), rx_freq_x_);
 
-    if (!nh.getParam ("rxFreqY", rx_freq_y_))
+    if (!nh.get_param ("rx_freq_y", rx_freq_y_))
       rx_freq_y_ = 0;
     printf("%s: rx_freq_y_ is %.3f\n", ns.c_str(), rx_freq_y_);
 
-    if (!nh.getParam ("rxFreqPsi", rx_freq_psi_))
+    if (!nh.get_param ("rx_freq_psi", rx_freq_psi_))
       rx_freq_psi_ = 0;
     printf("%s: rx_freq_psi_ is %.3f\n", ns.c_str(), rx_freq_psi_);
 
-    if (!nh.getParam ("cutoffPosFreqX", cutoff_pos_freq_x_))
+    if (!nh.get_param ("cutoff_pos_freq_x", cutoff_pos_freq_x_))
       cutoff_pos_freq_x_ = 0;
     printf("%s: cutoff_pos_freq_x_ is %.3f\n", ns.c_str(), cutoff_pos_freq_x_);
 
-    if (!nh.getParam ("cutoffPosFreqY", cutoff_pos_freq_y_))
+    if (!nh.get_param ("cutoff_pos_freq_y", cutoff_pos_freq_y_))
       cutoff_pos_freq_y_ = 0;
     printf("%s: cutoff_pos_freq_y_ is %.3f\n", ns.c_str(), cutoff_pos_freq_y_);
 
-    if (!nh.getParam ("cutoffPosFreqPsi", cutoff_pos_freq_psi_))
+    if (!nh.get_param ("cutoff_pos_freq_psi", cutoff_pos_freq_psi_))
       cutoff_pos_freq_psi_ = 0;
     printf("%s: cutoff_pos_freq_psi_ is %.3f\n", ns.c_str(), cutoff_pos_freq_psi_);
 
-    if (!nh.getParam ("cutoffVelFreqX", cutoff_vel_freq_x_))
+    if (!nh.get_param ("cutoff_vel_freq_x", cutoff_vel_freq_x_))
       cutoff_vel_freq_x_ = 0;
     printf("%s: cutoff_vel_freq_x_ is %.3f\n", ns.c_str(), cutoff_vel_freq_x_);
 
-    if (!nh.getParam ("cutoffVelFreqY", cutoff_vel_freq_y_))
+    if (!nh.get_param ("cutoff_vel_freq_y", cutoff_vel_freq_y_))
       cutoff_vel_freq_y_ = 0;
     printf("%s: cutoff_vel_freq_y_ is %.3f\n", ns.c_str(), cutoff_vel_freq_y_);
 
-    if (!nh.getParam ("cutoffVelFreqPsi", cutoff_vel_freq_psi_))
+    if (!nh.get_param ("cutoff_vel_freq_psi", cutoff_vel_freq_psi_))
       cutoff_vel_freq_psi_ = 0;
     printf("%s: cutoff_vel_freq_psi_ is %.3f\n", ns.c_str(), cutoff_vel_freq_psi_);
 

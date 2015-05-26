@@ -1012,263 +1012,263 @@ void PidController::rosParamInit(ros::NodeHandle nh)
   std::string yaw_ns = yaw_node.getNamespace();
 
   //**** throttle
-  if (!throttle_node.getParam ("ctrlLoopRate", throttle_ctrl_loop_rate_))
+  if (!throttle_node.get_param ("ctrl_loop_rate", throttle_ctrl_loop_rate_))
     throttle_ctrl_loop_rate_ = 0;
   printf("%s: ctrl_loop_rate_ is %d\n", throttle_ns.c_str(), throttle_ctrl_loop_rate_);
 
-  if (!throttle_node.getParam ("posPGain", pos_p_gain_throttle_))
+  if (!throttle_node.get_param ("pos_p_gain", pos_p_gain_throttle_))
     pos_p_gain_throttle_ = 0;
   printf("%s: pos_p_gain_ is %.3f\n", throttle_ns.c_str(), pos_p_gain_throttle_);
 
-  if (!throttle_node.getParam ("posIGain", pos_i_gain_throttle_))
+  if (!throttle_node.get_param ("pos_i_gain", pos_i_gain_throttle_))
     pos_i_gain_throttle_ = 0;
   printf("%s: pos_i_gain_ is %.3f\n", throttle_ns.c_str(), pos_i_gain_throttle_);
 
-  if (!throttle_node.getParam ("posDGain", pos_d_gain_throttle_))
+  if (!throttle_node.get_param ("pos_d_gain", pos_d_gain_throttle_))
     pos_d_gain_throttle_ = 0;
   printf("%s: pos_d_gain_ is %.3f\n", throttle_ns.c_str(), pos_d_gain_throttle_);
 
-  if (!throttle_node.getParam ("posPGainLand", pos_p_gain_throttle_land_))
+  if (!throttle_node.get_param ("pos_p_gain_land", pos_p_gain_throttle_land_))
     pos_p_gain_throttle_land_ = 0;
   printf("%s: pos_p_gain_land_ is %.3f\n", throttle_ns.c_str(), pos_p_gain_throttle_land_);
 
-  if (!throttle_node.getParam ("posIGainLand", pos_i_gain_throttle_land_))
+  if (!throttle_node.get_param ("pos_i_gain_land", pos_i_gain_throttle_land_))
     pos_i_gain_throttle_land_ = 0;
   printf("%s: pos_i_gain_land_ is %.3f\n", throttle_ns.c_str(), pos_i_gain_throttle_land_);
 
-  if (!throttle_node.getParam ("posDGainLand", pos_d_gain_throttle_land_))
+  if (!throttle_node.get_param ("pos_d_gain_land", pos_d_gain_throttle_land_))
     pos_d_gain_throttle_land_ = 0;
   printf("%s: pos_d_gain_land_ is %.3f\n", throttle_ns.c_str(), pos_d_gain_throttle_land_);
 
-  if (!throttle_node.getParam ("constPCtrlThreLand",  const_p_ctrl_thre_throttle_land_))
+  if (!throttle_node.get_param ("const_p_ctrl_thre_land",  const_p_ctrl_thre_throttle_land_))
     const_p_ctrl_thre_throttle_land_ = 0;
   printf("%s: const_p_ctrl_thre_land_ is %.3f\n", throttle_ns.c_str(), const_p_ctrl_thre_throttle_land_);
 
-  if(!throttle_node.getParam("constPTermLev1ValueLand",const_p_term_lev1_value_throttle_land_))
+  if(!throttle_node.get_param("const_p_term_lev1_value_land",const_p_term_lev1_value_throttle_land_))
     const_p_term_lev1_value_throttle_land_ = 0;
   printf("%s: const_p_term_lev1_value_land_ is %.3f\n", throttle_ns.c_str(), const_p_term_lev1_value_throttle_land_);
 
-  if(!throttle_node.getParam("constPTermLev2ValueLand",const_p_term_lev2_value_throttle_land_))
+  if(!throttle_node.get_param("const_p_term_lev2_value_land",const_p_term_lev2_value_throttle_land_))
     const_p_term_lev2_value_throttle_land_ = 0;
   printf("%s: const_p_term_lev2_value_land_ is %.3f\n", throttle_ns.c_str(), const_p_term_lev2_value_throttle_land_);
 
-  if (!throttle_node.getParam ("constICtrlThreLand",  const_i_ctrl_thre_throttle_land_))
+  if (!throttle_node.get_param ("const_i_ctrl_thre_land",  const_i_ctrl_thre_throttle_land_))
     const_i_ctrl_thre_throttle_land_ = 0;
   printf("%s: const_i_ctrl_thre_land_ is %.3f\n", throttle_ns.c_str(), const_i_ctrl_thre_throttle_land_);
 
-  if (!throttle_node.getParam ("constITermValueLand",  const_i_term_value_throttle_land_))
+  if (!throttle_node.get_param ("const_i_term_value_land",  const_i_term_value_throttle_land_))
     const_i_term_value_throttle_land_ = 0;
   printf("%s: const_i_term_value_land_ is %.3f\n", throttle_ns.c_str(), const_i_term_value_throttle_land_);
 
-  if (!throttle_node.getParam ("offset", offset_throttle_))
+  if (!throttle_node.get_param ("offset", offset_throttle_))
     offset_throttle_ = 0;
   printf("%s: offset_ is %d\n", throttle_ns.c_str(), offset_throttle_);
 
-  if (!throttle_node.getParam ("posLimit", pos_limit_throttle_))
+  if (!throttle_node.get_param ("pos_limit", pos_limit_throttle_))
     pos_limit_throttle_ = 0;
   printf("%s: pos_limit_ is %d\n", throttle_ns.c_str(), pos_limit_throttle_);
 
-  if (!throttle_node.getParam ("posPLimit", pos_p_limit_throttle_))
+  if (!throttle_node.get_param ("pos_p_limit", pos_p_limit_throttle_))
     pos_p_limit_throttle_ = 0;
   printf("%s: pos_p_limit_ is %d\n", throttle_ns.c_str(), pos_p_limit_throttle_);
 
-  if (!throttle_node.getParam ("posPLimitHover", pos_p_limit_throttle_hover_))
+  if (!throttle_node.get_param ("pos_p_limit_hover", pos_p_limit_throttle_hover_))
     pos_p_limit_throttle_hover_ = 0;
   printf("%s: pos_p_limit_hover_ is %d\n", throttle_ns.c_str(), pos_p_limit_throttle_hover_);
 
-  if (!throttle_node.getParam ("posILimit", pos_i_limit_throttle_))
+  if (!throttle_node.get_param ("pos_i_limit", pos_i_limit_throttle_))
     pos_i_limit_throttle_ = 0;
   printf("%s: pos_i_limit_ is %d\n", throttle_ns.c_str(), pos_i_limit_throttle_);
 
-  if (!throttle_node.getParam ("posDLimit", pos_d_limit_throttle_))
+  if (!throttle_node.get_param ("pos_d_limit", pos_d_limit_throttle_))
     pos_d_limit_throttle_ = 0;
   printf("%s: pos_d_limit_ is %d\n", throttle_ns.c_str(), pos_d_limit_throttle_);
 
-  if (!throttle_node.getParam ("velValueLimitHover", vel_value_limit_throttle_hover_))
+  if (!throttle_node.get_param ("vel_value_limit_hover", vel_value_limit_throttle_hover_))
     vel_value_limit_throttle_hover_ = 0;
   printf("%s: vel_value_limit_hover_ is %.3f\n", throttle_ns.c_str(), vel_value_limit_throttle_hover_);
 
-  if (!throttle_node.getParam ("iEnableLimitHover", i_enable_limit_throttle_hover_))
+  if (!throttle_node.get_param ("i_enable_limit_hover", i_enable_limit_throttle_hover_))
     i_enable_limit_throttle_hover_ = 0;
   printf("%s: i_enable_limit_hover_ is %.3f\n", throttle_ns.c_str(), i_enable_limit_throttle_hover_);
 
-  if (!throttle_node.getParam ("rocketStartInitValue", rocket_start_init_value_))
+  if (!throttle_node.get_param ("rocket_start_init_value", rocket_start_init_value_))
     rocket_start_init_value_ = 0;
   printf("%s: rocket_start_init_value_ is %d\n", throttle_ns.c_str(), rocket_start_init_value_);
 
-  if (!throttle_node.getParam ("rocketStartInitIncrementValue", rocket_start_init_increment_value_))
+  if (!throttle_node.get_param ("rocket_start_init_increment_value", rocket_start_init_increment_value_))
     rocket_start_init_increment_value_ = 0;
   printf("%s: rocket_start_init_increment_value_ is %d\n", throttle_ns.c_str(), rocket_start_init_increment_value_);
 
-  if (!throttle_node.getParam ("rocketStartStepValue", rocket_start_step_value_))
+  if (!throttle_node.get_param ("rocket_start_step_value", rocket_start_step_value_))
     rocket_start_step_value_ = 0;
   printf("%s: rocket_start_step_value_ is %d\n", throttle_ns.c_str(), rocket_start_step_value_);
 
-  if (!throttle_node.getParam ("throwingModeInitValueFromRocketStart", throwing_mode_init_value_from_rocket_start_))
+  if (!throttle_node.get_param ("throwing_mode_init_value_from_rocket_start", throwing_mode_init_value_from_rocket_start_))
     throwing_mode_init_value_from_rocket_start_ = 0;
   printf("%s: throwing_mode_init_value_from_rocket_start_ is %d\n", throttle_ns.c_str(), throwing_mode_init_value_from_rocket_start_);
 
-  if (!throttle_node.getParam ("freeFallStepValue", free_fall_step_value_))
+  if (!throttle_node.get_param ("free_fall_step_value", free_fall_step_value_))
     free_fall_step_value_ = 0;
   printf("%s: free_fall_step_value_ is %d\n", throttle_ns.c_str(), free_fall_step_value_);
 
-  if (!throttle_node.getParam ("motorStopValue", motor_stop_value_))
+  if (!throttle_node.get_param ("motor_stop_value", motor_stop_value_))
     motor_stop_value_ = 0;
   printf("%s: motor_stop_value_ is %d\n", throttle_ns.c_str(), motor_stop_value_);
 
   //**** pitch
-  if (!pitch_node.getParam ("ctrlLoopRate", pitch_ctrl_loop_rate_))
+  if (!pitch_node.get_param ("ctrl_loop_rate", pitch_ctrl_loop_rate_))
     pitch_ctrl_loop_rate_ = 0;
   printf("%s: ctrl_loop_rate_ is %d\n", pitch_ns.c_str(), pitch_ctrl_loop_rate_);
 
-  if (!pitch_node.getParam ("posPGain", pos_p_gain_pitch_))
+  if (!pitch_node.get_param ("pos_p_gain", pos_p_gain_pitch_))
     pos_p_gain_pitch_ = 0;
   printf("%s: pos_p_gain_ is %.3f\n", pitch_ns.c_str(), pos_p_gain_pitch_);
 
-  if (!pitch_node.getParam ("posIGain", pos_i_gain_pitch_))
+  if (!pitch_node.get_param ("pos_i_gain", pos_i_gain_pitch_))
     pos_i_gain_pitch_ = 0;
   printf("%s: pos_i_gain_ is %.3f\n", pitch_ns.c_str(), pos_i_gain_pitch_);
 
-  if (!pitch_node.getParam ("posIGainHover", pos_i_gain_pitch_hover_))
+  if (!pitch_node.get_param ("pos_i_gain_hover", pos_i_gain_pitch_hover_))
     pos_i_gain_pitch_hover_ = 0;
   printf("%s: pos_i_gain_hover_ is %.3f\n", pitch_ns.c_str(), pos_i_gain_pitch_hover_);
 
-  if (!pitch_node.getParam ("posDGain", pos_d_gain_pitch_))
+  if (!pitch_node.get_param ("pos_d_gain", pos_d_gain_pitch_))
     pos_d_gain_pitch_ = 0;
   printf("%s: pos_d_gain_ is %.3f\n", pitch_ns.c_str(), pos_d_gain_pitch_);
 
-  if (!pitch_node.getParam ("velPGain", vel_p_gain_pitch_))
+  if (!pitch_node.get_param ("vel_p_gain", vel_p_gain_pitch_))
     vel_p_gain_pitch_ = 0;
   printf("%s: vel_p_gain_ is %.3f\n", pitch_ns.c_str(), vel_p_gain_pitch_);
 
-  if (!pitch_node.getParam ("velIGain", vel_i_gain_pitch_))
+  if (!pitch_node.get_param ("vel_i_gain", vel_i_gain_pitch_))
     vel_i_gain_pitch_ = 0;
   printf("%s: vel_i_gain_ is %.3f\n", pitch_ns.c_str(), vel_i_gain_pitch_);
 
 
-  if (!pitch_node.getParam ("offset", offset_pitch_))
+  if (!pitch_node.get_param ("offset", offset_pitch_))
     offset_pitch_ = 0;
   printf("%s: offset_ is %d\n", pitch_ns.c_str(), offset_pitch_);
 
-  if (!pitch_node.getParam ("posLimit", pos_limit_pitch_))
+  if (!pitch_node.get_param ("pos_limit", pos_limit_pitch_))
     pos_limit_pitch_ = 0;
   printf("%s: pos_limit_ is %d\n", pitch_ns.c_str(), pos_limit_pitch_);
 
-  if (!pitch_node.getParam ("posPLimit", pos_p_limit_pitch_))
+  if (!pitch_node.get_param ("pos_p_limit", pos_p_limit_pitch_))
     pos_p_limit_pitch_ = 0;
   printf("%s: pos_p_limit_ is %d\n", pitch_ns.c_str(), pos_p_limit_pitch_);
 
-  if (!pitch_node.getParam ("posILimit", pos_i_limit_pitch_))
+  if (!pitch_node.get_param ("pos_i_limit", pos_i_limit_pitch_))
     pos_i_limit_pitch_ = 0;
   printf("%s: pos_i_limit_ is %d\n", pitch_ns.c_str(), pos_i_limit_pitch_);
 
-  if (!pitch_node.getParam ("posDLimit", pos_d_limit_pitch_))
+  if (!pitch_node.get_param ("pos_d_limit", pos_d_limit_pitch_))
     pos_d_limit_pitch_ = 0;
   printf("%s: pos_d_limit_ is %d\n", pitch_ns.c_str(), pos_d_limit_pitch_);
 
-  if (!pitch_node.getParam ("velValueLimit", vel_value_limit_pitch_))
+  if (!pitch_node.get_param ("vel_value_limit", vel_value_limit_pitch_))
     vel_value_limit_pitch_ = 0;
   printf("%s: vel_value_limit_ is %.3f\n", pitch_ns.c_str(), vel_value_limit_pitch_);
 
-  if (!pitch_node.getParam ("iEnableLimit", i_enable_limit_pitch_))
+  if (!pitch_node.get_param ("i_enable_limit", i_enable_limit_pitch_))
     i_enable_limit_pitch_ = 0;
   printf("%s: i_enable_limit_ is %.3f\n", pitch_ns.c_str(), i_enable_limit_pitch_);
 
   //***** roll
-  if (!roll_node.getParam ("ctrlLoopRate", roll_ctrl_loop_rate_))
+  if (!roll_node.get_param ("ctrl_loop_rate", roll_ctrl_loop_rate_))
     roll_ctrl_loop_rate_ = 0;
   printf("%s: ctrl_loop_rate_ is %d\n", roll_ns.c_str(), roll_ctrl_loop_rate_);
 
-  if (!roll_node.getParam ("posPGain", pos_p_gain_roll_))
+  if (!roll_node.get_param ("pos_p_gain", pos_p_gain_roll_))
     pos_p_gain_roll_ = 0;
   printf("%s: pos_p_gain_ is %.3f\n", roll_ns.c_str(), pos_p_gain_roll_);
 
-  if (!roll_node.getParam ("posIGain", pos_i_gain_roll_))
+  if (!roll_node.get_param ("pos_i_gain", pos_i_gain_roll_))
     pos_i_gain_roll_ = 0;
   printf("%s: pos_i_gain_ is %.3f\n", roll_ns.c_str(), pos_i_gain_roll_);
 
-  if (!roll_node.getParam ("posIGainHover", pos_i_gain_roll_hover_))
+  if (!roll_node.get_param ("pos_i_gain_hover", pos_i_gain_roll_hover_))
     pos_i_gain_roll_hover_ = 0;
   printf("%s: pos_i_gain_hover_ is %.3f\n", roll_ns.c_str(), pos_i_gain_roll_hover_);
 
-  if (!roll_node.getParam ("posDGain", pos_d_gain_roll_))
+  if (!roll_node.get_param ("pos_d_gain", pos_d_gain_roll_))
     pos_d_gain_roll_ = 0;
   printf("%s: pos_d_gain_ is %.3f\n", roll_ns.c_str(), pos_d_gain_roll_);
 
-  if (!roll_node.getParam ("velPGain", vel_p_gain_roll_))
+  if (!roll_node.get_param ("vel_p_gain", vel_p_gain_roll_))
     vel_p_gain_roll_ = 0;
   printf("%s: vel_p_gain_ is %.3f\n", roll_ns.c_str(), vel_p_gain_roll_);
 
-  if (!roll_node.getParam ("velIGain", vel_i_gain_roll_))
+  if (!roll_node.get_param ("vel_i_gain", vel_i_gain_roll_))
     vel_i_gain_roll_ = 0;
   printf("%s: vel_i_gain_ is %.3f\n", roll_ns.c_str(), vel_i_gain_roll_);
 
-  if (!roll_node.getParam ("offset", offset_roll_))
+  if (!roll_node.get_param ("offset", offset_roll_))
     offset_roll_ = 0;
   printf("%s: offset_ is %d\n", roll_ns.c_str(), offset_roll_);
 
-  if (!roll_node.getParam ("posLimit", pos_limit_roll_))
+  if (!roll_node.get_param ("pos_limit", pos_limit_roll_))
     pos_limit_roll_ = 0;
   printf("%s: pos_limit_ is %d\n", roll_ns.c_str(), pos_limit_roll_);
 
-  if (!roll_node.getParam ("posPLimit", pos_p_limit_roll_))
+  if (!roll_node.get_param ("pos_p_limit", pos_p_limit_roll_))
     pos_p_limit_roll_ = 0;
   printf("%s: pos_p_limit_ is %d\n", roll_ns.c_str(), pos_p_limit_roll_);
 
-  if (!roll_node.getParam ("posILimit", pos_i_limit_roll_))
+  if (!roll_node.get_param ("pos_i_limit", pos_i_limit_roll_))
     pos_i_limit_roll_ = 0;
   printf("%s: pos_i_limit_ is %d\n", roll_ns.c_str(), pos_i_limit_roll_);
 
-  if (!roll_node.getParam ("posDLimit", pos_d_limit_roll_))
+  if (!roll_node.get_param ("pos_d_limit", pos_d_limit_roll_))
     pos_d_limit_roll_ = 0;
   printf("%s: pos_d_limit_ is %d\n", roll_ns.c_str(), pos_d_limit_roll_);
 
-  if (!roll_node.getParam ("velValueLimit", vel_value_limit_roll_))
+  if (!roll_node.get_param ("vel_value_limit", vel_value_limit_roll_))
     vel_value_limit_roll_ = 0;
   printf("%s: vel_value_limit_ is %.3f\n", roll_ns.c_str(), vel_value_limit_roll_);
 
-  if (!roll_node.getParam ("iEnableLimit", i_enable_limit_roll_))
+  if (!roll_node.get_param ("i_enable_limit", i_enable_limit_roll_))
     i_enable_limit_roll_ = 0;
   printf("%s: i_enable_limit_ is %.3f\n", roll_ns.c_str(), i_enable_limit_roll_);
 
   //**** yaw
-  if (!yaw_node.getParam ("posPGain", pos_p_gain_yaw_))
+  if (!yaw_node.get_param ("pos_p_gain", pos_p_gain_yaw_))
     pos_p_gain_yaw_ = 0;
   printf("%s: pos_p_gain_ is %.3f\n", yaw_ns.c_str(), pos_p_gain_yaw_);
 
-  if (!yaw_node.getParam ("posIGain", pos_i_gain_yaw_))
+  if (!yaw_node.get_param ("pos_i_gain", pos_i_gain_yaw_))
     pos_i_gain_yaw_ = 0;
   printf("%s: pos_i_gain_ is %.3f\n", yaw_ns.c_str(), pos_i_gain_yaw_);
 
-  if (!yaw_node.getParam ("posDGain", pos_d_gain_yaw_))
+  if (!yaw_node.get_param ("pos_d_gain", pos_d_gain_yaw_))
     pos_d_gain_yaw_ = 0;
   printf("%s: pos_d_gain_ is %.3f\n", yaw_ns.c_str(), pos_d_gain_yaw_);
 
-  if (!yaw_node.getParam ("posLimit", pos_limit_yaw_))
+  if (!yaw_node.get_param ("pos_limit", pos_limit_yaw_))
     pos_limit_yaw_ = 0;
   printf("%s: pos_limit_ is %d\n", yaw_ns.c_str(), pos_limit_yaw_);
 
-  if (!yaw_node.getParam ("posPLimit", pos_p_limit_yaw_))
+  if (!yaw_node.get_param ("pos_p_limit", pos_p_limit_yaw_))
     pos_p_limit_yaw_ = 0;
   printf("%s: pos_p_limit_ is %d\n", yaw_ns.c_str(), pos_p_limit_yaw_);
 
-  if (!yaw_node.getParam ("posILimit", pos_i_limit_yaw_))
+  if (!yaw_node.get_param ("pos_i_limit", pos_i_limit_yaw_))
     pos_i_limit_yaw_ = 0;
   printf("%s: pos_i_limit_ is %d\n", yaw_ns.c_str(), pos_i_limit_yaw_);
 
-  if (!yaw_node.getParam ("posDLimit", pos_d_limit_yaw_))
+  if (!yaw_node.get_param ("pos_d_limit", pos_d_limit_yaw_))
     pos_d_limit_yaw_ = 0;
   printf("%s: pos_d_limit_ is %d\n", yaw_ns.c_str(), pos_d_limit_yaw_);
 
-  if (!yaw_node.getParam ("velValueLimit", vel_value_limit_yaw_))
+  if (!yaw_node.get_param ("vel_value_limit", vel_value_limit_yaw_))
     vel_value_limit_yaw_ = 0;
   printf("%s: vel_value_limit_ is %.3f\n", yaw_ns.c_str(), vel_value_limit_yaw_);
 
-  if (!yaw_node.getParam ("iEnableLimit", i_enable_limit_yaw_))
+  if (!yaw_node.get_param ("i_enable_limit", i_enable_limit_yaw_))
     i_enable_limit_yaw_ = 0;
   printf("%s: i_enable_limit_ is %.3f\n", yaw_ns.c_str(), i_enable_limit_yaw_);
 
-  if (!yaw_node.getParam ("ctrlLoopRate", yaw_ctrl_loop_rate_))
+  if (!yaw_node.get_param ("ctrl_loop_rate", yaw_ctrl_loop_rate_))
     yaw_ctrl_loop_rate_ = 0;
   printf("%s: ctrl_loop_rate_ is %d\n", yaw_ns.c_str(), yaw_ctrl_loop_rate_);
 

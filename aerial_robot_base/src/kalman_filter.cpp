@@ -290,13 +290,13 @@ void KalmanFilterPosVelAcc::rosParamInit()
 {
   std::string ns = nhp_axis_.getNamespace();
   ns.append(" without bias");
-  if (!nhp_axis_.getParam ("inputSigma", input_sigma_))
+  if (!nhp_axis_.getParam ("input_sigma", input_sigma_))
     input_sigma_ = 0.0;
   printf("%s: input_sigma_ is %.4f\n", ns.c_str(), input_sigma_);
-  if (!nhp_axis_.getParam ("measureSigma", measure_sigma_))
+  if (!nhp_axis_.getParam ("measure_sigma", measure_sigma_))
     measure_sigma_ = 0.0;
   printf("%s: measure_sigma_ is %.4f\n", ns.c_str(), measure_sigma_);
-  if (!nhp_.getParam ("imuHz", imu_hz_))
+  if (!nhp_.getParam ("imu_hz", imu_hz_))
     imu_hz_ = 100;
   printf("%s: imu_hz_ is %.4f\n",nhp_.getNamespace().c_str(), imu_hz_);
 }
@@ -607,16 +607,16 @@ void KalmanFilterImuLaserBias::rosParamInit()
 {
   std::string ns = nhp_axis_.getNamespace();
   ns.append(" with bias");
-  if (!nhp_axis_.getParam ("inputSigma", input_sigma_))
+  if (!nhp_axis_.getParam ("input_sigma", input_sigma_))
     input_sigma_ = 0.0;
   printf("%s: input_sigma_ is %.4f\n", ns.c_str(), input_sigma_);
-  if (!nhp_axis_.getParam ("biasSigma", bias_sigma_))
+  if (!nhp_axis_.getParam ("bias_sigma", bias_sigma_))
     bias_sigma_ = 0.0;
   printf("%s: bias_sigma_ is %.4f\n", ns.c_str(), bias_sigma_);
-  if (!nhp_axis_.getParam ("measureSigma", measure_sigma_))
+  if (!nhp_axis_.getParam ("measure_sigma", measure_sigma_))
     measure_sigma_ = 0.0;
   printf("%s: measure_sigma_ is %.4f\n", ns.c_str(), measure_sigma_);
-  if (!nhp_.getParam ("imuHz", imu_hz_))
+  if (!nhp_.getParam ("imu_hz", imu_hz_))
     imu_hz_ = 100;
   printf("%s: imu_hz_ is %.4f\n",nhp_.getNamespace().c_str(), imu_hz_);
 

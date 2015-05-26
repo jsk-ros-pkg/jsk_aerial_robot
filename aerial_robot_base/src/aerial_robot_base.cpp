@@ -69,20 +69,20 @@ void AerialRobotBase::rosParamInit(ros::NodeHandle nh)
 {
   std::string ns = nh.getNamespace();
 
-  if (!nh.getParam ("rxLoopRate", rx_loop_rate_))
+  if (!nh.getParam ("rx_loop_rate", rx_loop_rate_))
     rx_loop_rate_ = 0;
   printf("%s: rx_loop_rate_ is %.3f\n", ns.c_str(), rx_loop_rate_);
 
-  if (!nh.getParam ("txLoopRate", tx_loop_rate_))
+  if (!nh.getParam ("tx_loop_rate", tx_loop_rate_))
     tx_loop_rate_ = 0;
   printf("%s: tx_loop_rate_ is %.3f\n", ns.c_str(), tx_loop_rate_);
 
 
-  if (!nh.getParam ("simulationFlag", simulation_flag_))
+  if (!nh.getParam ("simulation_flag", simulation_flag_))
     simulation_flag_ = false;
   printf("%s: simulation_flag is %s\n", ns.c_str(), simulation_flag_ ? ("true") : ("false"));
 
-  if (!nh.getParam ("tfPubLoopRate", tf_pub_loop_rate_))
+  if (!nh.getParam ("tf_pub_loop_rate", tf_pub_loop_rate_))
     tf_pub_loop_rate_ = 0;
   printf("%s: tf_pub_loop_rate_ is %.3f\n", ns.c_str(),  tf_pub_loop_rate_);
 

@@ -8,7 +8,7 @@
 #include <aerial_robot_base/digital_filter.h>
 
 #include <aerial_robot_base/States.h>
-#include <px_comm/OpticalFlow.h>
+#include <aerial_robot_base/OpticalFlow.h>
 #include <std_msgs/Int32.h>
 
 
@@ -294,27 +294,27 @@ class OpticalFlowData
   {
     //name space in /quadcopter/navigator/...
     ros::NodeHandle navi_nh("~navigator");
-    if (!navi_nh.getParam ("useRocketStart", use_rocket_start_))
+    if (!navi_nh.getParam ("use_rocket_start", use_rocket_start_))
       use_rocket_start_ = false;
-    printf("%s: useRocketStart is %s\n", navi_nh.getNamespace().c_str(), use_rocket_start_ ? ("true") : ("false"));
-    if (!navi_nh.getParam ("rocketStartUpperThre", rocket_start_upper_thre_))
+    printf("%s: use_rocket_start is %s\n", navi_nh.getNamespace().c_str(), use_rocket_start_ ? ("true") : ("false"));
+    if (!navi_nh.getParam ("rocket_start_upper_thre", rocket_start_upper_thre_))
       rocket_start_upper_thre_ = 0;
-    printf("%s: rocketStartUpperThre_ is %.3f\n", navi_nh.getNamespace().c_str(), rocket_start_upper_thre_);
-    if (!navi_nh.getParam ("rocketStartLowerThre", rocket_start_lower_thre_))
+    printf("%s: rocket_start_upper_thre_ is %.3f\n", navi_nh.getNamespace().c_str(), rocket_start_upper_thre_);
+    if (!navi_nh.getParam ("rocket_start_lower_thre", rocket_start_lower_thre_))
       rocket_start_lower_thre_ = 0;
-    printf("%s: rocketStartLowerThre_ is %.3f\n", navi_nh.getNamespace().c_str(), rocket_start_lower_thre_);
-    if (!navi_nh.getParam ("rocketStartVel", rocket_start_vel_))
+    printf("%s: rocket_start_lower_thre_ is %.3f\n", navi_nh.getNamespace().c_str(), rocket_start_lower_thre_);
+    if (!navi_nh.getParam ("rocket_start_vel", rocket_start_vel_))
       rocket_start_vel_ = 0;
-    printf("%s: rocketStartVel_ is %.3f\n", navi_nh.getNamespace().c_str(), rocket_start_vel_);
+    printf("%s: rocket_start_vel_ is %.3f\n", navi_nh.getNamespace().c_str(), rocket_start_vel_);
 
     std::string ns = nh.getNamespace();
-    if (!nh.getParam ("xAxisDirection", x_axis_direction_))
+    if (!nh.getParam ("x_axis_direction", x_axis_direction_))
       x_axis_direction_ = 1.0;
-    printf("%s: xAxisDirection_ is %.3f\n", ns.c_str(), x_axis_direction_);
+    printf("%s: x_axis_direction_ is %.3f\n", ns.c_str(), x_axis_direction_);
 
-    if (!nh.getParam ("yAxisDirection", y_axis_direction_))
+    if (!nh.getParam ("y_axis_direction", y_axis_direction_))
       y_axis_direction_ = -1.0; //-1 is default
-    printf("%s: yAxisDirection_ is %.3f\n", ns.c_str(), y_axis_direction_);
+    printf("%s: y_axisDirection_ is %.3f\n", ns.c_str(), y_axis_direction_);
 
 };
 

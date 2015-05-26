@@ -255,35 +255,35 @@ class MirrorModule
   void rosParamInit(ros::NodeHandle nh)
   {
     std::string ns = nh.getNamespace();
-    if (!nh.getParam ("mirrorRxFreq", rx_freq_))
+    if (!nh.get_param ("rx_freq", rx_freq_))
       rx_freq_ = 0;
-    printf("%s: mirrorRxFreq_ is %.3f\n", ns.c_str(), rx_freq_);
+    printf("%s: rx_freq_ is %.3f\n", ns.c_str(), rx_freq_);
 
-    if (!nh.getParam ("mirrorCutoffPosFreq", cutoff_pos_freq_))
+    if (!nh.get_param ("cutoff_pos_freq", cutoff_pos_freq_))
       cutoff_pos_freq_ = 0;
     printf("%s: cutoff_pos_freq_ is %.3f\n", ns.c_str(), cutoff_pos_freq_);
 
-    if (!nh.getParam ("mirrorutoffVelFreq", cutoff_vel_freq_))
+    if (!nh.get_param ("cutoff_vel_freq", cutoff_vel_freq_))
       cutoff_vel_freq_ = 0;
     printf("%s: cutoff_vel_freq_ is %.3f\n", ns.c_str(), cutoff_vel_freq_);
 
-    if (!nh.getParam ("filterVelValThre", lpf_vel_val_thre_))
+    if (!nh.get_param ("lpf_vel_val_thre", lpf_vel_val_thre_))
       lpf_vel_val_thre_ = 0;
-    printf("%s: lpf_vel_valThre_ is %.3f\n", ns.c_str(), lpf_vel_val_thre_);
+    printf("%s: lpf_vel_val_thre_ is %.3f\n", ns.c_str(), lpf_vel_val_thre_);
 
-    if (!nh.getParam ("filterVelChangeRateThre", lpf_vel_change_rateThre_))
+    if (!nh.get_param ("lpf_vel_change_rate_thre", lpf_vel_change_rate_thre_))
       lpf_vel_change_rate_thre_ = 0;
-    printf("%s: lpf_vel_change_rateThre_ is %.3f\n", ns.c_str(), lpf_vel_change_rateThre_);
+    printf("%s: lpf_vel_change_rate_thre_ is %.3f\n", ns.c_str(), lpf_vel_change_rate_thre_);
 
-    if (!nh.getParam ("zOffsetUpperLimit", z_offset_upper_limit_))
+    if (!nh.get_param ("z_offset_upper_limit", z_offset_upper_limit_))
       z_offset_upper_limit_ = 0;
     printf("%s: z_offset_upper_limit_ is %.3f\n", ns.c_str(), z_offset_upper_limit_);
 
-    if (!nh.getParam ("zOffsetLowerLimit", z_offset_lower_limit_))
+    if (!nh.get_param ("z_offset_lower_limit", z_offset_lower_limit_))
       z_offset_lower_limit_ = 0;
     printf("%s: z_offset_lower_limit_ is %.3f\n", ns.c_str(), z_offset_lower_limit_);
 
-    if (!nh.getParam ("maxDiffHeight", max_diff_height_))
+    if (!nh.get_param ("max_diff_height", max_diff_height_))
       max_diff_height_ = 0.05;
     printf("%s: max_diff_height_ is %.3f\n", ns.c_str(), max_diff_height_);
 

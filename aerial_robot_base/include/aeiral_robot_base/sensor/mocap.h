@@ -281,13 +281,13 @@ class MocapData
   void rosParamInit(  ros::NodeHandle nh)
   {
     std::string ns = nh.getNamespace();
-    nhp_.param("retimeFlag", retime_flag_, true);
-    nhp_.param("pubName", pub_name_, std::string("ground_truth/pose"));
-    nhp_.param("cogRotateSubName", cog_rotate_sub_name_, std::string("cog_rotate"));
+    nhp_.param("retime_flag", retime_flag_, true);
+    nhp_.param("pub_name", pub_name_, std::string("ground_truth/pose"));
+    nhp_.param("cog_rotate_sub_name", cog_rotate_sub_name_, std::string("cog_rotate"));
 
-    nhp_.param("rxFreq", rx_freq_, 100.0);
-    nhp_.param("cutoffPosFreq", cutoff_pos_freq_, 50.0);
-    nhp_.param("cutoffVelFreq", cutoff_vel_freq_, 50.0);
+    nhp_.param("rx_freq", rx_freq_, 100.0);
+    nhp_.param("cutoff_pos_freq", cutoff_pos_freq_, 50.0);
+    nhp_.param("cutoff_vel_freq", cutoff_vel_freq_, 50.0);
 
     nh.param ("cog_offset", cog_offset_, false);
 

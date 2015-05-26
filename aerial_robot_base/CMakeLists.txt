@@ -28,21 +28,18 @@ include_directories(${EIGEN_INCLUDE_DIRS})
 add_definitions(${EIGEN_DEFINITIONS})
 
 
-
 add_message_files(FILES
-  ArMarkerData.msg
   AerialRobotStatus.msg
   FlightNav.msg
-  MirrorModuleData.msg
-  FourAxisState.msg
-  ImuData.msg
-  OpticalFlowData.msg
   FourAxisPid.msg
+  ImuData.msg
   ImuQu.msg
-  PidDebug.msg
-  ImuSim.msg
-  PoseStamped.msg
+  OpticalFlow.msg
+  Pid.msg
+  State.msg
+  States.msg
   )
+
 generate_messages(DEPENDENCIES std_msgs geometry_msgs)
 
 generate_dynamic_reconfigure_options(
@@ -55,7 +52,7 @@ generate_dynamic_reconfigure_options(
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES 
-  CATKIN_DEPENDS roscpp message_runtime aerial_robot_msgs std_msgs geometry_msgs visualization_msgs nav_msgs  sensor_msgs laser_geometry px_comm jsk_recognition_msgs
+  CATKIN_DEPENDS roscpp message_runtime aerial_robot_msgs std_msgs geometry_msgs visualization_msgs nav_msgs  sensor_msgs laser_geometry 
   DEPENDS Eigen
 )
 
@@ -71,35 +68,20 @@ include_directories(
 )
 
 
-rosbuild_add_library (aerial_robot_base src/aerial_robot_base.cpp
-  src/basic_controller_superior_controller_interface_lev0.cpp
+add_library (aerial_robot_base src/aerial_robot_base.cpp
   src/flight_navigation.cpp
-  src/control_input_array.cpp
   src/flight_control.cpp
   src/state_estimation.cpp
-  src/quadcopter_state_estimation.cpp
   src/kalman_filter.cpp
-  src/digital_filter.cpp
-  src/crc16.cpp
 )
 
-rosbuild_add_library (tracking src/tracking.cpp
-  src/state_estimation.cpp
-  src/flight_navigation.cpp
-  src/control_input_array.cpp)
-
-
-rosbuild_add_executable(jsk_quadcopter_node src/quadcopter_node.cpp)
-target_link_libraries (jsk_quadcopter_node jsk_quadcopter tracking) 
-
-rosbuild_add_executable(tracking_node src/tracking_node.cpp)
-target_link_libraries (tracking_node jsk_quadcopter tracking) 
-
+add_executable(aerial_robot_base_node src/aerial_robot_base_node.cpp)
+target_link_libraries (aerial_robot_base_node aerial_robot_base) 
 
 install(DIRECTORY launch
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
 
-install(TARGETS 
+install(TARGETS aerial_robot_base_node aerial_robot_base
    ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
    LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
    RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}

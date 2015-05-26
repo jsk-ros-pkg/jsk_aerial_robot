@@ -1048,100 +1048,100 @@ void TeleopNavigator::rosParamInit(ros::NodeHandle nh)
   std::string ns = nh.getNamespace();
 
   //*** teleop navigation
-    if (!nh.getParam ("useFreeFall", use_free_fall_))
+    if (!nh.get_param ("use_free_fall", use_free_fall_))
       use_free_fall_ = false;
-    printf("%s: useFreeFall is %s\n", ns.c_str(), use_free_fall_ ? ("true") : ("false"));
-    if (!nh.getParam ("freeFallThre", free_fall_thre_))
+    printf("%s: use_free_fall is %s\n", ns.c_str(), use_free_fall_ ? ("true") : ("false"));
+    if (!nh.get_param ("free_fall_thre", free_fall_thre_))
       free_fall_thre_ = 0;
     printf("%s: free_fall_thre_ is %.3f\n", ns.c_str(), free_fall_thre_);
 
-  if (!nh.getParam ("takeoffHeight", takeoff_height_))
+  if (!nh.get_param ("takeoff_height", takeoff_height_))
     takeoff_height_ = 0;
   printf("%s: takeoff_height_ is %.3f\n", ns.c_str(), takeoff_height_);
 
-  if (!nh.getParam ("evenMoveDistance", even_move_distance_))
+  if (!nh.get_param ("even_move_distance", even_move_distance_))
     even_move_distance_ = 0;
   printf("%s: even_move_distance_ is %.3f\n", ns.c_str(), even_move_distance_);
 
-  if (!nh.getParam ("upDownDistance", up_down_distance_))
+  if (!nh.get_param ("up_down_distance", up_down_distance_))
     up_down_distance_ = 0;
   printf("%s: up_down_distance_ is %.3f\n", ns.c_str(), up_down_distance_);
 
-  if (!nh.getParam ("forwardBackwardDistance", forward_backward_distance_))
+  if (!nh.get_param ("forward_backward_distance", forward_backward_distance_))
     forward_backward_distance_ = 0;
   printf("%s: forward_backward_distance_ is %.3f\n", ns.c_str(), forward_backward_distance_);
 
-  if (!nh.getParam ("leftRightDistance", left_right_distance_))
+  if (!nh.get_param ("left_right_distance", left_right_distance_))
     left_right_distance_ = 0;
   printf("%s: left_right_distance_ is %.3f\n", ns.c_str(), left_right_distance_);
 
-  if (!nh.getParam ("targetVelRate", target_vel_rate_))
+  if (!nh.get_param ("target_vel_rate", target_vel_rate_))
     target_vel_rate_ = 0;
   printf("%s: target_vel_rate_ is %.3f\n", ns.c_str(), target_vel_rate_);
 
-  if (!nh.getParam ("targetPitchRollInterval", target_pitch_roll_interval_))
+  if (!nh.get_param ("target_pitch_roll_interval", target_pitch_roll_interval_))
     target_pitch_roll_interval_ = 0;
   printf("%s: target_pitch_roll_interval_ is %.3f\n", ns.c_str(), target_pitch_roll_interval_);
 
-  if (!nh.getParam ("targetAltInterval", target_alt_interval_))
+  if (!nh.get_param ("target_alt_interval", target_alt_interval_))
     target_alt_interval_ = 0;
   printf("%s: target_alt_interval_ is %.3f\n", ns.c_str(), target_alt_interval_);
 
-  if (!nh.getParam ("targetYawRate", target_yaw_rate_))
+  if (!nh.get_param ("targetYaw_rate", target_yaw_rate_))
     target_yaw_rate_ = 0;
   printf("%s: target_yaw_rate_ is %.3f\n", ns.c_str(), target_yaw_rate_);
 
-  if (!nh.getParam ("naviFrameInt", navi_frame_int_))
+  if (!nh.get_param ("navi_frame_int", navi_frame_int_))
     navi_frame_int_ = 0;
   printf("%s: navi_frame_int_ is %d\n", ns.c_str(), navi_frame_int_);
   navi_frame_ = navi_frame_int_;
 
-  if (!nh.getParam ("mapFrame", map_frame_))
+  if (!nh.get_param ("map_frame", map_frame_))
     map_frame_ = "unknown";
   printf("%s: map_frame_ is %s\n", ns.c_str(), map_frame_.c_str());
 
-  if (!nh.getParam ("targetFrame", target_frame_))
+  if (!nh.get_param ("target_frame", target_frame_))
     target_frame_ = "unknown";
   printf("%s: target_frame_ is %s\n", ns.c_str(), target_frame_.c_str());
 
-  if (!nh.getParam ("xyControlMode", xy_control_mode_))
+  if (!nh.get_param ("xy_control_mode", xy_control_mode_))
     xy_control_mode_ = 0;
   printf("%s: xy_control_mode_ is %d\n", ns.c_str(), xy_control_mode_);
 
   //hidden variable
-  if (!nh.getParam ("xyVelModePosCtrlTakeoff", xy_vel_mode_pos_ctrl_takeoff_))
+  if (!nh.get_param ("xy_vel_mode_pos_ctrl_takeoff", xy_vel_mode_pos_ctrl_takeoff_))
     xy_vel_mode_pos_ctrl_takeoff_ = true;
-  printf("%s: xyVelModePosCtrlTakeoff is %s\n", ns.c_str(), xy_vel_mode_pos_ctrl_takeoff_ ? ("true") : ("false"));
+  printf("%s: xy_vel_mode_pos_ctrl_takeoff is %s\n", ns.c_str(), xy_vel_mode_pos_ctrl_takeoff_ ? ("true") : ("false"));
 
-  if (!nh.getParam ("useThrowingMode", use_throwing_mode_))
+  if (!nh.get_param ("use_throwing_mode", use_throwing_mode_))
     use_throwing_mode_ = false;
-  printf("%s: useThrowingMode is %s\n", ns.c_str(), use_throwing_mode_ ? ("true") : ("false"));
+  printf("%s: use_throwing_mode is %s\n", ns.c_str(), use_throwing_mode_ ? ("true") : ("false"));
 
-  if (!nh.getParam ("throwingModeStandbyAltThre", thowing_mode_standby_alt_thre_))
+  if (!nh.get_param ("throwing_mode_standby_alt_thre", thowing_mode_standby_alt_thre_))
     thowing_mode_standby_alt_thre_ = 0;
   printf("%s: thowing_mode_standby_alt_thre_ is %f\n", ns.c_str(), thowing_mode_standby_alt_thre_);
 
-  if (!nh.getParam ("throwingModeThrowAccXThre", thowing_mode_throw_acc_x_thre_))
+  if (!nh.get_param ("throwing_mode_throw_acc_x_thre", thowing_mode_throw_acc_x_thre_))
     thowing_mode_throw_acc_x_thre_ = 0;
   printf("%s: thowing_mode_throw_acc_x_thre_ is %f\n", ns.c_str(), thowing_mode_throw_acc_x_thre_);
 
-  if (!nh.getParam ("throwingModeThrowAccZThre", thowing_mode_throw_acc_z_thre_))
+  if (!nh.get_param ("throwing_mode_throw_acc_z_thre", thowing_mode_throw_acc_z_thre_))
     thowing_mode_throw_acc_z_thre_ = 0;
   printf("%s: thowing_mode_throw_acc_z_thre_ is %f\n", ns.c_str(), thowing_mode_throw_acc_z_thre_);
 
-  if (!nh.getParam ("throwingModeSetAltAccZThre", thowing_mode_set_alt_acc_z_thre_))
+  if (!nh.get_param ("throwing_mode_set_alt_acc_z_thre", thowing_mode_set_alt_acc_z_thre_))
     thowing_mode_set_alt_acc_z_thre_ = 0;
   printf("%s: thowing_mode_set_alt_acc_z_thre_ is %f\n", ns.c_str(), thowing_mode_set_alt_acc_z_thre_);
 
-  if (!nh.getParam ("throwingModeAltHoldVelZThre", thowing_mode_alt_hold_vel_z_thre_))
+  if (!nh.get_param ("throwing_mode_alt_hold_vel_z_thre", thowing_mode_alt_hold_vel_z_thre_))
     thowing_mode_alt_hold_vel_z_thre_ = 0;
   printf("%s: thowing_mode_alt_hold_vel_z_thre_ is %f\n", ns.c_str(), thowing_mode_alt_hold_vel_z_thre_);
 
-  if (!nh.getParam ("throwingModeShiftStepCntThre", thowing_mode_shift_step_cnt_thre_))
+  if (!nh.get_param ("throwing_mode_shift_step_cnt_thre", thowing_mode_shift_step_cnt_thre_))
     thowing_mode_shift_step_cnt_thre_ = 0;
   printf("%s: thowing_mode_shift_step_cnt_thre_ is %d\n", ns.c_str(), thowing_mode_shift_step_cnt_thre_);
 
-  if (!nh.getParam ("cmdVelLev2Gain", cmd_vel_lev2_gain_))
+  if (!nh.get_param ("cmd_vel_lev2_gain", cmd_vel_lev2_gain_))
     cmd_vel_lev2_gain_ = 1.0;
   printf("%s: cmd_vel_lev2_gain_ is %.3f\n", ns.c_str(), cmd_vel_lev2_gain_);
 }
