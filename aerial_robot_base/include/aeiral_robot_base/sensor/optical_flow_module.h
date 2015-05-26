@@ -118,10 +118,6 @@ class OpticalFlowData
   KalmanFilterImuLaserBias *kfb_x_;
   KalmanFilterImuLaserBias *kfb_y_;
   KalmanFilterImuLaserBias *kfb_z_;
-  
-  double iir_filter_acc_x_cutoff_hz_;
-  double iir_filter_acc_y_cutoff_hz_;
-  double iir_filter_acc_z_cutoff_hz_;
 
   float raw_pos_z_;
   float pos_z_;

@@ -30,65 +30,63 @@
 
   ############################# JSK Quadcopter ###################################
 
-  <node pkg="jsk_quadcopter" type="jsk_quadcopter_node" name="quadcopter_node"  output="screen" > 
+  <node pkg="aerial_robot_base" type="aerial_robot_base_node" name="aerial_robot_base_node"  output="screen" > 
 
     ############### Basic Param  #####################
-    <param name="rxLoopRate" type="double" value="110"/>
-    <param name="txLoopRate" type="double" value="40"/>
-    <param name="tfPubLoopRate" type="double" value="120"/>
+    <param name="rx_loop_rate" type="double" value="110"/>
+    <param name="tx_loop_rate" type="double" value="40"/>
+    <param name="tf_pub_loop_rate" type="double" value="120"/>
 
     <!-- z axis   -> 0: laser, 1:sonar -->
-    <param if="$(arg flight_pos_mode)" name="estimator/altitudeControlMode" type="int" value="0"/>
+    <param if="$(arg flight_pos_mode)" name="estimator/altitude_control_mode" type="int" value="0"/>
     <!-- yaw axis -> true for slam; false for kduino -->
-    <param if="$(arg flight_pos_mode)" name="estimator/useOuterYawEst" type="bool" value="true"/>
+    <param if="$(arg flight_pos_mode)" name="estimator/use_outer_yaw_est" type="bool" value="true"/>
     <!-- x/y axis -> pos control: 0, vel control: 1 -->
-    <param if="$(arg flight_pos_mode)" name="navigator/xyControlMode" type="int" value="0"/>
-    <param if="$(arg flight_vel_mode)" name="estimator/altitudeControlMode" type="int" value="1"/>
-    <param if="$(arg flight_vel_mode)" name="estimator/useOuterYawEst" type="bool" value="false"/>
-    <param if="$(arg flight_vel_mode)" name="navigator/xyControlMode" type="int" value="1"/>
+    <param if="$(arg flight_pos_mode)" name="navigator/xy_control_mode" type="int" value="0"/>
+    <param if="$(arg flight_vel_mode)" name="estimator/altitude_control_mode" type="int" value="1"/>
+    <param if="$(arg flight_vel_mode)" name="estimator/use_outer_yaw_est" type="bool" value="false"/>
+    <param if="$(arg flight_vel_mode)" name="navigator/xy_control_mode" type="int" value="1"/>
 
     ############### Quadctoper Basic State ######################
-    <rosparam file="$(find jsk_quadcopter)/config/rook_p/EstimatorConfig.yaml" command="load" />
-
+    <rosparam file="$(find aerial_robot_base)/config/rook2/EstimatorConfig.yaml" command="load" />
 
     ############### PID Control ######################
-    <rosparam file="$(find jsk_quadcopter)/config/rook2/PidControlConfig.yaml" command="load" />
+    <rosparam file="$(find aerial_robot_base)/config/rook2/PidControlConfig.yaml" command="load" />
 
-    ############### Motion Capture####################
-    <param name="estimator/mocapFlag" type="bool" value="true"/>
+    ############### _motion Capture####################
+    <param name="estimator/mocap_flag" type="bool" value="true"/>
 
     ############### Kalman Filter ####################
-    <param name="estimator/kalmanFilterFlag" type="bool" value="true"/>
-    <param name="kalman_filter/imuHz" type="double" value="105"/>
-    <rosparam file="$(find jsk_quadcopter)/config/rook2/KduinoKalmanFilterConfig.yaml" command="load" />
-    <rosparam file="$(find jsk_quadcopter)/config/rook2/OpticalFlowKalmanFilterConfig.yaml" command="load" />
+    <param name="estimator/kalman_filter_flag" type="bool" value="true"/>
+    <param name="kalman_filter/imu_hz" type="double" value="105"/>
+    <rosparam file="$(find aerial_robot_base)/config/rook2/KduinoKalmanFilterConfig.yaml" command="load" />
+    <rosparam file="$(find aerial_robot_base)/config/rook2/OpticalFlowKalmanFilterConfig.yaml" command="load" />
 
     ############### Kalman Filter Debug/Simulation ###
-    <param name="estimator/kalmanFilterDebug" type="bool" value="true"/>
-    <param name="estimator/kalmanFilterAxis" type="int" value="1"/>
-    <rosparam file="$(find jsk_quadcopter)/config/rook2/SimulationKalmanFilterConfig.yaml" command="load" />
+    <param name="estimator/kalman_filter_debug" type="bool" value="true"/>
+    <param name="estimator/kalman_filter_axis" type="int" value="1"/>
+    <rosparam file="$(find aerial_robot_base)/config/rook2/SimulationKalmanFilterConfig.yaml" command="load" />
 
 
-    ############### IIR Filter #######################
-    <rosparam file="$(find jsk_quadcopter)/config/rook2/IirFilterConfig.yaml" command="load" />
+    ############### II_r Filter #######################
+    <rosparam file="$(find aerial_robot_base)/config/rook2/IirFilterConfig.yaml" command="load" />
 
-    ############### Hokuyo and Mirror Module Param ###
-    <rosparam file="$(find jsk_quadcopter)/config/rook2/MirrorLaserModuleConfig.yaml" command="load" />
+    ############### Hokuyo and _mirror _module _param ###
+    <rosparam file="$(find aerial_robot_base)/config/rook2/MirrorLaserModuleConfig.yaml" command="load" />
 
-    ############### Rocekt Start and Free Fall #######
-    <param if="$(arg flight_pos_mode)" name="navigator/useRocketStart" type="bool" value="false"/>
-    <param if="$(arg flight_pos_mode)" name="navigator/useFreeFall" type="bool" value="false"/>
-    <param if="$(arg flight_vel_mode)" name="navigator/useRocketStart" type="bool" value="true"/>
-    <param if="$(arg flight_vel_mode)" name="navigator/useFreeFall" type="bool" value="true"/>
-    <rosparam file="$(find jsk_quadcopter)/config/rook2/RocketStartFreeFallConfig.yaml" command="load" />
+    ############### _rocekt Start and Free Fall #######
+    <param if="$(arg flight_pos_mode)" name="navigator/use_rocket_start" type="bool" value="false"/>
+    <param if="$(arg flight_pos_mode)" name="navigator/use_free_fall" type="bool" value="false"/>
+    <param if="$(arg flight_vel_mode)" name="navigator/use_rocket_start" type="bool" value="true"/>
+    <param if="$(arg flight_vel_mode)" name="navigator/use_free_fall" type="bool" value="true"/>
+    <rosparam file="$(find aerial_robot_base)/config/rook2/RocketStartFreeFallConfig.yaml" command="load" />
 
     ############### Throwing Mode ####################
-    <param if="$(arg flight_vel_mode)" name="navigator/useThrowingMode" type="bool" value="true"/>
-    <rosparam file="$(find jsk_quadcopter)/config/rook2/ThrowingModeConfig.yaml" command="load"/>
-
+    <param if="$(arg flight_vel_mode)" name="navigator/use_throwing_mode" type="bool" value="true"/>
+    <rosparam file="$(find aerial_robot_base)/config/rook2/ThrowingModeConfig.yaml" command="load"/>
 
     ############### Keyboard Navigation ##############
-    <rosparam file="$(find jsk_quadcopter)/config/rook2/TeleopNavigationConfig.yaml" command="load" />
+    <rosparam file="$(find aerial_robot_base)/config/rook2/TeleopNavigationConfig.yaml" command="load" />
 
     ############### remap topic ######################
     ### Kduino IMU ################
@@ -100,7 +98,7 @@
     <remap from="mirror/scan" to="scan" />
     <remap from="mirror/laser_boundary_offset" to="laser_boundary_offset" />
     ### Optical Flow ##############
-    <remap from="opticalFlow/opt_flow" to="px4flow/opt_flow" />
+    <remap from="optical_flow/opt_flow" to="px4flow/opt_flow" />
     ### Joy Stick #################
     <remap from="/navigator/joy_stick_command" to="/joy" />
     ### Teleop Navigator ##########
@@ -118,7 +116,7 @@
 
   ################################# Kduino #########################################
 
-  <node pkg="rosserial_jsk_patch" type="serial_node.sh" name="serial_node" output="screen">
+  <node pkg="rosserial_python" type="serial_node.py" name="serial_node" output="screen">
     <param name="baud" value="115200" />
     <param name="port" value="/dev/kawasaki_imu_board" />
   </node>
@@ -126,24 +124,24 @@
   ################################# Hector Mapping  ################################
 
   <group if="$(arg flight_pos_mode)">
-    <include file="$(find jsk_quadcopter)/launch/rook2/hector_mapping.launch" />
+    <include file="$(find aerial_robot_base)/launch/hector_mapping.launch" />
   </group>
 
   ################################# Hokuyo  ########################################
   <group if="$(arg flight_pos_mode)">
-    <include file="$(find jsk_quadcopter)/launch/rook2/hokuyo.launch" />
+    <include file="$(find aerial_robot_base)/launch/hokuyo.launch" />
   </group>
 
   ################################# Optical PX4Flow ################################
   <group if="$(arg flight_vel_mode)">
-    <include file="$(find jsk_quadcopter)/launch/rook2/px4flow.launch" />
+    <include file="$(find aerial_robot_base)/launch/px4flow.launch" />
   </group>
 
   ################################# Joy Stick ######################################
-  <include file="$(find jsk_quadcopter)/launch/rook2/joy_stick.launch" />
+  <include file="$(find aerial_robot_base)/launch/joy_stick.launch" />
 
   ################################# Camera ######################################
-<!--  <include file="$(find jsk_quadcopter)/launch/camera/usb_camera.launch" /> -->
+<!--  <include file="$(find aerial_robot_base)/launch/camera/usb_camera.launch" /> -->
 
 </launch>
 

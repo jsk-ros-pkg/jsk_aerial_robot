@@ -1,20 +1,20 @@
 # Teleop Basic Param
 
-navigator/takeoffHeight: 0.4 # 0.4 for non leg version; 0.2 for leg version
-navigator/naviFrameInt: 0  # deprecated?  map frame: 0, body frame: 1 
-navigator/mapFrame: map
-navigator/targetFrame: target
+navigator/takeoff_height: 0.4 # 0.4 for non leg version; 0.2 for leg version
+navigator/navi_frame_int: 0  # deprecated?  map frame: 0, body frame: 1 
+navigator/map_frame: map
+navigator/target_frame: target
 
 # Keyboard Teleop
 
-navigator/evenMoveDistance: 0.2
-navigator/upDownDistance: 0.1
-navigator/forwardBackwardDistance: 0
-navigator/leftRightDistance: 0
+navigator/even_move_distance: 0.2
+navigator/up_down_distance: 0.1
+navigator/forward_backward_distance: 0
+navigator/left_right_distance: 0
 
 # Keyboard Teleop
-navigator/targetVelRate: 0.5
-navigator/targetPitchRollInterval: 0.005  # 0.2 / 20 = 0.01, 0.005 ~ 0.01  m/s
-navigator/targetAltInterval: 0.02
-navigator/targetYawRate: 0.5 #  0.05 
-navigator/cmdVelLev2Gain : 1.5
+navigator/target_vel_rate: 0.5
+navigator/target_pitch_roll_interval: 0.005  # 0.2 / 20 = 0.01, 0.005 ~ 0.01  m/s
+navigator/target_alt_interval: 0.02
+navigator/target_yaw_rate: 0.5 #  0.05 
+navigator/cmd_vel_lev2_gain : 1.5
