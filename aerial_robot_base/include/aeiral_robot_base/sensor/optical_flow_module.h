@@ -7,7 +7,7 @@
 #include <aerial_robot_base/kalman_filter.h>
 #include <aerial_robot_base/digital_filter.h>
 
-#include <aerial_robot_base/OpticalFlowData.h>
+#include <aerial_robot_base/States.h>
 #include <px_comm/OpticalFlow.h>
 #include <std_msgs/Int32.h>
 
@@ -237,35 +237,49 @@ class OpticalFlowData
 
 
             //publish
-            aerial_robot_base::OpticalFlowData opt_data;
+            aerial_robot_base::States opt_data;
             opt_data.header.stamp = optical_flow_msg->header.stamp;
-            opt_data.rawVelX = raw_vel_x_;
-            opt_data.velX = filtered_vel_x_;
-            opt_data.rawVelY = raw_vel_y_;
-            opt_data.velY = filtered_vel_y_;
-            opt_data.rawPosZ = raw_pos_z_;
-            opt_data.rawVelZ = raw_vel_z_;
 
-            if(kalmanFilterFlag)
+            aerial_robot_base::State x_state;
+            x_state.id = "x";
+            x_state.raw_vel = raw_vel_x_;
+            x_state.vel = filtered_vel_x_;
+
+            aerial_robot_base::State y_state;
+            y_state.id = "y";
+            y_state.raw_vel = raw_vel_y_;
+            y_state.vel = filtered_vel_y_;
+
+            aerial_robot_base::State z_state;
+            z_state.id = "z";
+            z_state.raw_pos = raw_pos_z_;
+            z_state.raw_vel = raw_vel_z_;
+
+            if(kalman_filter_flag_)
               {
-                opt_data.crrPos_xNonBias = kf_x_->getEstimatePos();
-                opt_data.crrVel_xNonBias = kf_x_->getEstimateVel();
-                opt_data.crrPos_xBias    = kfb_x_->getEstimatePos();
-                opt_data.crrVel_xBias    = kfb_x_->getEstimateVel();
-                opt_data.crr_xBias       = kfb_x_->getEstimateBias();
+                x_state.kf_pos = kf_x_->getEstimatePos();
+                x_state.kf_vel = kf_x_->getEstimateVel();
+                x_state.kfb_pos = kfb_x_->getEstimatePos();
+                x_state.kfb_vel = kfb_x_->getEstimateVel();
+                x_state.kfb_bias = kfb_x_->getEstimateBias();
 
-                opt_data.crrPos_yNonBias = kf_y_->getEstimatePos();
-                opt_data.crrVel_yNonBias = kf_y_->getEstimateVel();
-                opt_data.crrPos_yBias    = kfb_y_->getEstimatePos();
-                opt_data.crrVel_yBias    = kfb_y_->getEstimateVel();
-                opt_data.crr_yBias       = kfb_y_->getEstimateBias();
+                y_state.kf_pos = kf_y_->getEstimatePos();
+                y_state.kf_vel = kf_y_->getEstimateVel();
+                y_state.kfb_pos = kfb_y_->getEstimatePos();
+                y_state.kfb_vel = kfb_y_->getEstimateVel();
+                y_state.kfb_bias = kfb_y_->getEstimateBias();
 
-                opt_data.crrPos_zNonBias = kf_z_->getEstimatePos();
-                opt_data.crrVel_zNonBias = kf_z_->getEstimateVel();
-                opt_data.crrPos_zBias    = kfb_z_->getEstimatePos();
-                opt_data.crrVel_zBias    = kfb_z_->getEstimateVel();
-                opt_data.crr_zBias       = kfb_z_->getEstimateBias();
+                z_state.kf_pos = kf_z_->getEstimatePos();
+                z_state.kf_vel = kf_z_->getEstimateVel();
+                z_state.kfb_pos = kfb_z_->getEstimatePos();
+                z_state.kfb_vel = kfb_z_->getEstimateVel();
+                z_state.kfb_bias = kfb_z_->getEstimateBias();
               }
+
+            opt_data.states.push_back(x_state);
+            opt_data.states.push_back(y_state);
+            opt_data.states.push_back(z_state);
+
             optical_flow_pub_.publish(opt_data);
           }
       }

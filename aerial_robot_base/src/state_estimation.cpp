@@ -120,6 +120,10 @@ RigidEstimator::RigidEstimator(ros::NodeHandle nh,
       mocap_data_ = new MocapData(nh, nh_private, this);
   
   simulation_flag_ = simulation_flag;
+
+  full_states_pub_ = nh_.advertise<aerial_robot_base::States>("full_states", 1); 
+
+
 }
 
 RigidEstimator::~RigidEstimator()
@@ -285,6 +289,8 @@ float RigidEstimator::getStatePhy()
     return imu_data_->getRollValue();
 }
 
+
+//bad
 float RigidEstimator::getStatePsiCog()
 {
   if(use_outer_pose_estimate_ & YAW_AXIS)
@@ -364,10 +370,12 @@ void RigidEstimator::setRocketStartFlag()
 
 void RigidEstimator::tfPublish()
 {
+  //set the states broadcast
+  statesBroadcast();
+
   //TODO mutex
 
   ros::Time sys_stamp = getSystemTimeStamp();
-
 
   tf::Transform laser_to_baselink;
   tf::Transform footprint_to_laser;
@@ -402,6 +410,44 @@ float RigidEstimator::getLaserToImuDistance()
   return laser_to_baselink_distance_;
 }
 
+void RigidEstimator::statesBroadcast()
+{
+  aeiral_robot_base::States full_states;
+  full_states.header.stamp = getSystemTimeStamp();
+  aerial_robot_base::State x_state;
+  x_state.id = "x";
+  x_state.pos = getStatePosX();
+  x_state.vel = getStateVelX();
+  aerial_robot_base::State y_state;
+  y_state.id = "y";
+  y_state.pos = getStatePosY();
+  y_state.vel = getStateVelY();
+  aerial_robot_base::State z_state;
+  z_state.id = "z";
+  z_state.pos = getStatePosZ();
+  z_state.vel = getStateVelZ();
+
+  aerial_robot_base::State yaw_state;
+  yaw_state.id = "yaw";
+  yaw_state.pos = getStatePosPsiBoard();
+  yaw_state.vel = getStateVelPsiBoard();
+  aerial_robot_base::State pitch_state;
+  pitch_state.id = "pitch";
+  pitch_state.pos = getStateTheta();
+  aerial_robot_base::State roll_state;
+  roll_state.id = "roll";
+  roll_state.pos = getStatePhy();
+
+  full_states.states.push_back(x_state);
+  full_states.states.push_back(y_state);
+  full_states.states.push_back(z_state);
+  full_states.states.push_back(yaw_state);
+  full_states.states.push_back(pitch_state);
+  full_states.states.push_back(roll_state);
+
+  pose_stamped_pub_.publish(full_states);
+  
+}
 
 void RigidEstimator::rosParamInit(ros::NodeHandle nh)
 {
@@ -457,6 +503,5 @@ void RigidEstimator::rosParamInit(ros::NodeHandle nh)
   if (!nhp_.getParam ("mocapFlag", mocap_flag_))
     mocap_flag_ = false;
   printf("%s: mocap_flag is %s\n", ns.c_str(), mocap_flag_ ? ("true") : ("false"));
-
 
 }

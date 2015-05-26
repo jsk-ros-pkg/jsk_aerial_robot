@@ -12,7 +12,7 @@
 #include <aeiral_robot_base/digital_filter.h>
 #include <tf/transform_listener.h>
 
-#include <aeiral_robot_base/FourAxisState.h>
+#include <aeiral_robot_base/States.h>
 #include <aeiral_robot_base/ImuData.h>
 #include <std_msgs/Float32.h>
 #include <geometry_msgs/PoseStamped.h>
@@ -176,6 +176,7 @@ class MocapData
             filterAccY_.filterFunction(raw_acc_y, acc_y);
             filterAccZ_.filterFunction(raw_acc_z, acc_z);
 
+            //correct way
             estimator_->setStatePosX(pos_x);
             estimator_->setStatePosY(pos_y);
             estimator_->setStatePosZ(pos_z);
@@ -188,33 +189,60 @@ class MocapData
             estimator_->setStateVelPsi(vel_psi);
 
             //publish for deubg, can delete
-            aeiral_robot_base::FourAxisState ground_truth_pose;
+            aeiral_robot_base::States ground_truth_pose;
             ground_truth_pose.header.stamp.fromNSec(ros::Time::now().toNSec()-offset);
-            ground_truth_pose.rawPosX = raw_pos_x;
-            ground_truth_pose.rawVelX = raw_vel_x;
-            ground_truth_pose.posX = pos_x;
-            ground_truth_pose.velX = vel_x;
-            ground_truth_pose.emptyX1 = acc_x;
-            ground_truth_pose.emptyX2 = raw_acc_x;
-            ground_truth_pose.rawPosY = raw_pos_y;
-            ground_truth_pose.rawVelY = raw_vel_y;
-            ground_truth_pose.posY = pos_y;
-            ground_truth_pose.velY = vel_y;
-            ground_truth_pose.emptyY1 = acc_y;
-            ground_truth_pose.emptyY2 = raw_acc_y;
-            ground_truth_pose.rawPosZ = raw_pos_z;
-            ground_truth_pose.rawVelZ = raw_vel_z;
-            ground_truth_pose.posZ = pos_z;
-            ground_truth_pose.velZ = vel_z;
-            ground_truth_pose.emptyZ1 = acc_z;
-            ground_truth_pose.emptyZ2 = raw_acc_z;
-            ground_truth_pose.rawPsi = raw_psi;
-            ground_truth_pose.rawVelPsi = raw_vel_psi;
-            ground_truth_pose.psi = psi;
-            ground_truth_pose.velPsi = vel_psi;
-            ground_truth_pose.emptyPsi1 = raw_theta;
-            ground_truth_pose.emptyPsi2 = raw_phy;
-            poseStampedPub_.publish(ground_truth_pose);
+
+            aerial_robot_base::State x_state;
+            x_state.id = "x"
+            x_state.raw_pos = raw_pos_x;
+            x_state.raw_vel = raw_vel_x;
+            x_state.pos = pos_x;
+            x_state.vel = vel_x;
+            x_state.reserves.push_back(acc_x);
+            x_state.reserves.push_back(raw_acc_x);
+
+            aerial_robot_base::State y_state;
+            y_state.id = "y"
+            y_state.raw_pos = raw_pos_y;
+            y_state.raw_vel = raw_vel_y;
+            y_state.pos = pos_y;
+            y_state.vel = vel_y;
+            y_state.reserves.push_back(acc_y);
+            y_state.reserves.push_back(raw_acc_y);
+
+            aerial_robot_base::State z_state;
+            z_state.id = "z"
+            z_state.raw_pos = raw_pos_z;
+            z_state.raw_vel = raw_vel_z;
+            z_state.pos = pos_z;
+            z_state.vel = vel_z;
+            z_state.reserves.push_back(acc_z);
+            z_state.reserves.push_back(raw_acc_z);
+
+
+            aerial_robot_base::State yaw_state;
+            yaw_state.id = "yaw"
+            yaw_state.raw_pos = raw_psi;
+            yaw_state.raw_vel = raw_vel_psi;
+            yaw_state.pos = psi;
+            yaw_state.vel = vel_psi;
+
+            aerial_robot_base::State pitch_state;
+            pitch_state.id = "pitch"
+            pitch_state.raw_pos = raw_pitch;
+
+            aerial_robot_base::State roll_state;
+            roll_state.id = "roll"
+            roll_state.raw_pos = raw_roll;
+            
+            ground_truth_pose.states.push_back(x_state);
+            ground_truth_pose.states.push_back(y_state);
+            ground_truth_pose.states.push_back(z_state);
+            ground_truth_pose.states.push_back(yaw_state);
+            ground_truth_pose.states.push_back(pitch_state);
+            ground_truth_pose.states.push_back(roll_state);
+
+            pose_stamped_pub_.publish(ground_truth_pose);
 
           }
 

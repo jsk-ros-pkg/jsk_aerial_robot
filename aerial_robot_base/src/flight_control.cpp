@@ -350,13 +350,13 @@ void PidController::pidFunction()
 
           //**** ros pub
           four_axis_pid_debug.pitch.total = pitch_value;
-          four_axis_pid_debug.pitch.pTerm = pos_p_term_pitch_;
-          four_axis_pid_debug.pitch.iTerm = pos_i_term_pitch_;
-          four_axis_pid_debug.pitch.dTerm = pos_d_term_pitch_;
-          four_axis_pid_debug.pitch.posErrTransform = d_err_pos_curr_pitch_;
-          four_axis_pid_debug.pitch.posErrNoTransform = target_pos_x - state_pos_x;
-          four_axis_pid_debug.pitch.velErrTransform = target_vel_x;
-          four_axis_pid_debug.pitch.velErrNoTransform = target_vel_x -state_vel_x;
+          four_axis_pid_debug.pitch.p_term = pos_p_term_pitch_;
+          four_axis_pid_debug.pitch.i_term = pos_i_term_pitch_;
+          four_axis_pid_debug.pitch.d_term = pos_d_term_pitch_;
+          four_axis_pid_debug.pitch.pos_err_transform = d_err_pos_curr_pitch_;
+          four_axis_pid_debug.pitch.pos_err_no_transform = target_pos_x - state_pos_x;
+          four_axis_pid_debug.pitch.vel_err_transform = target_vel_x;
+          four_axis_pid_debug.pitch.vel_err_no_transform = target_vel_x -state_vel_x;
 
           //roll
           if(navigator_->getXyControlMode() == Navigator::POS_WORLD_BASED_CONTROL_MODE)
@@ -483,13 +483,13 @@ void PidController::pidFunction()
 
           //**** ros pub
           four_axis_pid_debug.roll.total = roll_value;
-          four_axis_pid_debug.roll.pTerm = pos_p_term_roll_;
-          four_axis_pid_debug.roll.iTerm = pos_i_term_roll_;
-          four_axis_pid_debug.roll.dTerm = pos_d_term_roll_;
-          four_axis_pid_debug.roll.posErrTransform = d_err_pos_curr_roll_;
-          four_axis_pid_debug.roll.posErrNoTransform = target_pos_y - state_pos_y;
-          four_axis_pid_debug.roll.velErrTransform = target_vel_y;
-          four_axis_pid_debug.roll.velErrNoTransform = target_vel_y - state_vel_y;
+          four_axis_pid_debug.roll.p_term = pos_p_term_roll_;
+          four_axis_pid_debug.roll.i_term = pos_i_term_roll_;
+          four_axis_pid_debug.roll.d_term = pos_d_term_roll_;
+          four_axis_pid_debug.roll.pos_err_transform = d_err_pos_curr_roll_;
+          four_axis_pid_debug.roll.pos_err_no_transform = target_pos_y - state_pos_y;
+          four_axis_pid_debug.roll.vel_err_transform = target_vel_y;
+          four_axis_pid_debug.roll.vel_err_no_transform = target_vel_y - state_vel_y;
 
 
           //yaw => refer to the board frame angle(psi_board)
@@ -523,7 +523,7 @@ void PidController::pidFunction()
                 limit(- 1000 * pos_d_gain_yaw_ * state_vel_psi_board, pos_d_limit_yaw_);
             }
           else if(navigator_->getXyControlMode() == Navigator::VEL_LOCAL_BASED_CONTROL_MODE)
-            {
+            {//bad
               //fixed point  getStatePsi()
               //develop the p term yaw
               pos_p_term_yaw_ = limit(1000 * target_psi_, pos_p_limit_yaw_);
@@ -537,13 +537,13 @@ void PidController::pidFunction()
 	
           //**** ros pub
           four_axis_pid_debug.yaw.total = yaw_value;
-          four_axis_pid_debug.yaw.pTerm = pos_p_term_yaw_;
-          four_axis_pid_debug.yaw.iTerm = pos_i_term_yaw_;
-          four_axis_pid_debug.yaw.dTerm = pos_d_term_yaw_;
-          four_axis_pid_debug.yaw.posErrTransform = target_psi;
-          four_axis_pid_debug.yaw.posErrNoTransform = d_err_pos_curr_yaw_;
-          four_axis_pid_debug.yaw.velErrTransform = state_vel_psi_board;
-          four_axis_pid_debug.yaw.velErrNoTransform = state_vel_psi_board;
+          four_axis_pid_debug.yaw.p_term = pos_p_term_yaw_;
+          four_axis_pid_debug.yaw.i_term = pos_i_term_yaw_;
+          four_axis_pid_debug.yaw.d_term = pos_d_term_yaw_;
+          four_axis_pid_debug.yaw.pos_err_transform = target_psi;
+          four_axis_pid_debug.yaw.pos_err_no_transform = d_err_pos_curr_yaw_;
+          four_axis_pid_debug.yaw.vel_err_transform = state_vel_psi_board;
+          four_axis_pid_debug.yaw.vel_err_no_transform = state_vel_psi_board;
 
           //*** 指令値代入
           flight_ctrl_input->setYawValue(yaw_value);
@@ -659,13 +659,13 @@ void PidController::pidFunction()
 
           //**** ros pub
           four_axis_pid_debug.throttle.total = throttle_value_;
-          four_axis_pid_debug.throttle.pTerm = pos_p_term_throttle_;
-          four_axis_pid_debug.throttle.iTerm = pos_i_term_throttle_;
-          four_axis_pid_debug.throttle.dTerm = pos_d_term_throttle_;
-          four_axis_pid_debug.throttle.posErrTransform = target_pos_z;
-          four_axis_pid_debug.throttle.posErrNoTransform = d_err_pos_curr_throttle_;
-          four_axis_pid_debug.throttle.velErrTransform = state_vel_z;
-          four_axis_pid_debug.throttle.velErrNoTransform = state_vel_z;
+          four_axis_pid_debug.throttle.p_term = pos_p_term_throttle_;
+          four_axis_pid_debug.throttle.i_term = pos_i_term_throttle_;
+          four_axis_pid_debug.throttle.d_term = pos_d_term_throttle_;
+          four_axis_pid_debug.throttle.pos_err_transform = target_pos_z;
+          four_axis_pid_debug.throttle.pos_err_no_transform = d_err_pos_curr_throttle_;
+          four_axis_pid_debug.throttle.vel_err_transform = state_vel_z;
+          four_axis_pid_debug.throttle.vel_err_no_transform = state_vel_z;
 
 	  pud_pub_.publish(four_axis_pid_debug);
 	}

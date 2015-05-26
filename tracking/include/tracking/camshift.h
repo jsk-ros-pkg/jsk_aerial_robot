@@ -1,14 +1,14 @@
+
 #ifndef CAM_SHIFT_H
 #define CAM_SHIFT_H
 
 #include <ros/ros.h>
-#include <jsk_quadcopter/flight_navigation.h>
-#include <jsk_quadcopter/state_estimation.h>
+
+#include <aerial_robot_base/digital_filter.h>
+
 #include <sensor_msgs/CameraInfo.h>
-#include <jsk_perception/RotatedRectStamped.h>
+#include <jsk_recognition_msgs/RotatedRectStamped.h>
 #include <image_processing/StartTracking.h>
-#include <boost/thread/mutex.hpp>
-#include <jsk_quadcopter/digital_filter.h>
 #include <geometry_msgs/Vector3Stamped.h>
 
 #include <Eigen/Core>
@@ -18,24 +18,15 @@
 class CamShift
 {
  public:
- CamShift(ros::NodeHandle nh,	ros::NodeHandle nh_private): 
-  nh_(nh), nh_private_(nh_private, "cam_shift")
-    {
-      navigator_ = new Navigator(nh, nh_private, 1);
-      estimator_ = new Estimator();
-      alt_control_flag_ = false;
-    }
 
 
-
- CamShift(ros::NodeHandle nh,	ros::NodeHandle nh_private, 
-          Estimator* estimator,Navigator* navigator)
+ CamShift(ros::NodeHandle nh,	ros::NodeHandle nh_private, Tracking* tracker
+          )
    : nh_(nh), nh_private_(nh_private, "cam_shift")
     {
       rosParamInit();
-
-      navigator_ = navigator;
-      estimator_ = estimator;
+      
+      tracker_ = tracker;
 
       camshift_sub_ = nh_.subscribe<jsk_perception::RotatedRectStamped>("result", 1, &CamShift::trackerCallback, this, ros::TransportHints().tcpNoDelay());
 
@@ -45,10 +36,9 @@ class CamShift
 
       world_cam_pub_ = nh_.advertise<geometry_msgs::Vector3Stamped>("world_cam_coord", 1); 
 
-
-      filter_image_x_ =  IirFilter((float)rx_freq_, (float)cutoff_freq_);
-      filter_image_y_ =  IirFilter((float)rx_freq_, (float)cutoff_freq_);
-      filter_image_area_ =  IirFilter((float)rx_freq_, (float)cutoff_freq_);
+      lpf_image_x_ =  IirFilter((float)rx_freq_, (float)cutoff_freq_);
+      lpf_image_y_ =  IirFilter((float)rx_freq_, (float)cutoff_freq_);
+      lpf_image_area_ =  IirFilter((float)rx_freq_, (float)cutoff_freq_);
 
       alt_control_flag_ = false;
 
@@ -58,9 +48,18 @@ class CamShift
 
   ~CamShift()
     {
-      navigator_->setTargetVelX(0);
-      navigator_->setTargetVelY(0);
-      navigator_->setTargetPsi(0);
+      /* navigator_->setTargetVelX(0); */
+      /* navigator_->setTargetVelY(0); */
+      /* navigator_->setTargetPsi(0); */
+      aerial_robot_base::FlightNav navi_command;
+      navi_command.header.stamp = msg->header.stamp;
+      navi_command.command_mode = aerial_robot_base::FlightNav::VEL_FLIGHT_MODE_COMMAND;
+      navi_command.target_vel_x = 0;
+      navi_command.target_vel_y = 0;
+      navi_command.target_psi = 0;
+      navi_command.pos_z_navi_mode = aerial_robot_base::FlightNav::NO_NAVIGATION:
+      tracker_->navi_pub_.publish(navi_command);
+
 
       camshift_sub_.shutdown();
       start_tracking_client_.shutdown();
@@ -72,13 +71,14 @@ class CamShift
   ros::Subscriber camshift_sub_;
   ros::Subscriber camera_info_sub_;
   ros::Publisher world_cam_pub_;
+  ros::Publisher navi_pub_;
+  ros::Subscriber state_sub_;
+
   ros::ServiceClient start_tracking_client_;
+  Tracking* tracker_;
 
 
-  Estimator* estimator_;
-  Navigator* navigator_;
-
-  IirFilter filter_image_x_, filter_image_y_, filter_image_area_;
+  IirFilter lpf_image_x_, lpf_image_y_, lpf_image_area_;
   double rx_freq_, cutoff_freq_;
 
   Eigen::Matrix3d intrinsic_matrix_, intrinsic_matrix_inverse_;
@@ -118,13 +118,14 @@ class CamShift
     camera_info_sub_.shutdown();
   }
 
-
   void trackerCallback(const jsk_perception::RotatedRectStampedConstPtr& msg)
   {
-    double pitch = estimator_->getStateTheta();
-    double roll  = estimator_->getStatePhy();
+    /* double pitch = estimator_->getStateTheta(); */
+    /* double roll  = estimator_->getStatePhy(); */
 
-    
+    double pitch = tracker_->getTheta();
+    double roll  = tracker_->getPhy();
+
     //IMPORTANT : We need transform system!! => TODO
     Eigen::Quaternion<double> q = Eigen::AngleAxisd(-pitch, Eigen::Vector3d::UnitX()) 
       * Eigen::AngleAxisd(roll, Eigen::Vector3d::UnitZ()) ;
@@ -142,9 +143,9 @@ class CamShift
     // x_dash = world_coord(0);
     // y_dash = world_coord(1);
     // ball_area = msg->rect.width * msg->rect.height;
-    filter_image_x_.filterFunction((double)world_coord(0), x_dash);
-    filter_image_y_.filterFunction((double)world_coord(1), y_dash);
-    filter_image_area_.filterFunction((double)(msg->rect.width * msg->rect.height), ball_area);
+    lpf_image_x_.filterFunction((double)world_coord(0), x_dash);
+    lpf_image_y_.filterFunction((double)world_coord(1), y_dash);
+    lpf_image_area_.filterFunction((double)(msg->rect.width * msg->rect.height), ball_area);
 
     geometry_msgs::Vector3Stamped world_cam_coord;
     world_cam_coord.header.stamp = msg->header.stamp;
@@ -156,8 +157,11 @@ class CamShift
     world_cam_coord.vector.z = ball_area;
     world_cam_pub_.publish(world_cam_coord);
 
-
     //tracking process using vel control
+    aerial_robot_base::FlightNav navi_command;
+    navi_command.header.stamp = msg->header.stamp;
+    navi_command.command_mode = aerial_robot_base::FlightNav::VEL_FLIGHT_MODE_COMMAND;
+
     //* x
     float dif_area =  - (ball_area - target_area_) / target_area_;
     float target_vel_x = 0;
@@ -165,16 +169,20 @@ class CamShift
       target_vel_x = dif_area * gain_forward_x_;
     else
       target_vel_x = dif_area * gain_backward_x_;
-    navigator_->setTargetVelX(target_vel_x);
+    //navigator_->setTargetVelX(target_vel_x);
+    navi_command.target_vel_x = target_vel_x;
 
     //* z
+    navi_command.pos_z_navi_mode = aerial_robot_base::FlightNav::NO_NAVIGATION:
+
     int dif_z = - (y_dash - target_z_);
     //TODO: should add the factor of area of ball, 
     //      same with the alt control func of joy stick navigator.
     float target_dif_pos_z = dif_z / abs(dif_z) * gain_z_;
     if(abs(dif_z) > thre_z_)
       {
-        navigator_->addTargetPosZ(target_dif_pos_z);
+        navi_command.pos_z_navi_mode = aerial_robot_base::FlightNav::VEL_FLIGHT_MODE_COMMAND;
+        navi_command.target_pos_diff_z = target_dif_pos_z;
         alt_control_flag_ = true;
       }
     else
@@ -182,11 +190,23 @@ class CamShift
         if(alt_control_flag_)
           {
             alt_control_flag_ = false;
-            navigator_->setTargetPosZ(estimator_->getStatePosZ());
+            navi_command.pos_z_navi_mode = aerial_robot_base::FlightNav::POS_FLIGHT_MODE_COMMAND;
+            navi_command.target_pos_z = tracker_->getPosZ();
+            //navigator_->setTargetPosZ(estimator_->getStatePosZ());
           }
       }
-    if(navigator_->getTargetPosZ() < 0.35) navigator_->setTargetPosZ(0.35);
-    if(navigator_->getTargetPosZ() > 3) navigator_->setTargetPosZ(3);
+    if(navigator_->getTargetPosZ() < 0.35) 
+      {
+        navi_command.pos_z_navi_mode = aerial_robot_base::FlightNav::POS_FLIGHT_MODE_COMMAND;
+        navi_command.target_pos_z = 0.35;
+        //navigator_->setTargetPosZ(0.35);
+      }
+    if(navigator_->getTargetPosZ() > 3) 
+      {
+        navi_command.pos_z_navi_mode = aerial_robot_base::FlightNav::POS_FLIGHT_MODE_COMMAND;
+        navi_command.target_pos_z = 3;
+        // navigator_->setTargetPosZ(3);
+      }
 
     //* y & psi
     int dif_y = - (x_dash - target_y_);
@@ -195,13 +215,34 @@ class CamShift
     float target_psi = dif_y * gain_psi_;
     if(dif_psi > 0)
       {
-        navigator_->setTargetPsi(target_psi);
-        navigator_->setTargetVelY(0);
+        navi_command.target_psi = target_psi; //bad-> should be velocity control
+        navi_command.target_vel_y = 0; //bad-> should be velocity control
+        /* navigator_->setTargetPsi(target_psi); */
+        /* navigator_->setTargetVelY(0); */
       }
     else 
       {
-        navigator_->setTargetPsi(0);
-        navigator_->setTargetVelY(target_vel_y);
+        navi_command.target_psi = 0; //bad-> should be velocity control
+        navi_command.target_vel_y = target_vel_y; 
+        /* navigator_->setTargetPsi(0); */
+        /* navigator_->setTargetVelY(target_vel_y); */
+      }
+
+    tracker_->navi_pub_.publish(navi_command);
+  }
+
+  void startTracking()
+  {
+    image_processing::StartTracking srv;
+    srv.request.tracking_req = true;
+    if(start_tracking_client_.call(srv))
+      {
+        if(srv.response.tracking_res)
+          ROS_INFO("start tracking from jsk_quadcopter");
+      }
+    else
+      {
+        ROS_ERROR("Filaed to call service");
       }
   }
 
@@ -260,21 +301,6 @@ class CamShift
     nh_private_.param("rx_freq", rx_freq_, 30.0);
     nh_private_.param("cutoff_freq", cutoff_freq_, 5.0);
 
-  }
-
-  void startTracking()
-  {
-    image_processing::StartTracking srv;
-    srv.request.tracking_req = true;
-    if(start_tracking_client_.call(srv))
-      {
-        if(srv.response.tracking_res)
-          ROS_INFO("start tracking from jsk_quadcopter");
-      }
-    else
-      {
-        ROS_ERROR("Filaed to call service");
-      }
   }
   
 };

@@ -25,6 +25,8 @@ class Navigator
             int ctrl_loop_rate);
   virtual ~Navigator();
 
+  navi_sub_ = nh_.subscribe<aerial_robot_base::FlightNav>("full_states", 1, &Navigator::naviCallback, this, ros::TransportHints().tcpNoDelay());
+
 
   inline bool getStartAble(){  return start_able_;}
   inline void startNavigation(){  start_able_ = true;}
@@ -65,9 +67,9 @@ class Navigator
   inline float getTargetVelPsi(){  return current_target_vel_psi_;}
   inline void setTargetVelPsi( float value){  final_target_vel_psi_ = value;}
 
+  
 
   void tfPublish();
-
 
 
   const static uint8_t POS_CONTROL_COMMAND = 0;
@@ -116,6 +118,7 @@ class Navigator
   protected:
     ros::NodeHandle nh_;
     ros::NodeHandle nhp_;
+    ros::Subscriber navi_sub_;
     tf::TransformBroadcaster* br_ ; 
 
     Estimator* estimator_;
@@ -156,6 +159,38 @@ class Navigator
     int ctrl_loop_rate;
     std::string map_frame_;
     std::string target_frame_;
+
+    void naviCallback(const aerial_robot_base::FlightNavConstPtr & msg)
+    {
+      //for x & y
+      if(msg->command_mode == aerial_robot_base::FlightNav::VEL_FLIGHT_MODE_COMMAND)
+        {
+          setTargetVelX(msg->target_vel_x);
+          setTargetVelY(msg->target_vel_y);
+        }
+      else if(msg->command_mode == aerial_robot_base::FlightNav::POS_FLIGHT_MODE_COMMAND)
+        {
+          setTargetPosX(msg->target_pos_x);
+          setTargetPosY(msg->target_pos_y);
+        }
+
+      //for z
+      if(msg->pos_z_navi_mode == aerial_robot_base::FlightNav::VEL_FLIGHT_MODE_COMMAND)
+        {
+          addTargetPosZ(msg->target_pos_diff_z);
+        }
+      else if(msg->pos_z_navi_mode == aerial_robot_base::FlightNav::POS_FLIGHT_MODE_COMMAND)
+        {
+          setTargetPosZ(msg->target_pos_z);
+        }
+
+      //for psi
+      //not good, be carefukk
+      if(msg->command_mode != aerial_robot_base::FlightNav::NO_NAVIGATION)
+        {
+          setTargetPsi(msg->target_psi);
+        }
+    }
 
 };
 

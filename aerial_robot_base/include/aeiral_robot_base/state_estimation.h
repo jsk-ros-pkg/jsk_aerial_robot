@@ -17,6 +17,7 @@
 #include <aerial_robot_base/kalman_filter.h>
 #include <aerial_robot_base/digital_filter.h>
 
+#include <aerial_robot_base/States.h>
 
 class BasicEstimator
 {
@@ -153,7 +154,7 @@ class BasicEstimator
       outer_estimate_vel_psi_cog_ = value;
   }
 
-  virtual void setStatePsiBoard(float value) //body frame
+  virtual void setStatePsiBoard(float value) //board frame
   {
     if(use_outer_pose_estimate_ & YAW_AXIS)
       outer_estimate_psi_board_ = value;
@@ -165,6 +166,7 @@ class BasicEstimator
       outer_estimate_vel_psi_board_ = value;
   }
 
+  //recommandicate
   virtual void setStatePsi(float value) //both cog and body
   {
     if(use_outer_pose_estimate_ & YAW_AXIS)
@@ -260,6 +262,8 @@ class RigidEstimator : public BasicEstimator
   tf::TransformBroadcaster* br_;
   ros::Time sys_stamp_;
 
+  ros::Publisher full_states_pub_;
+
   //+*+*+*+* add as members, but not superclass 
   ImuData* imu_data_ ;
   SlamData* slam_data_ ;
@@ -336,10 +340,14 @@ class RigidEstimator : public BasicEstimator
   float getStateVelXOpt();
   float getStateVelYOpt();
 
+
+  void rosParamInit(ros::NodeHandle nh);
+  void statesBroadcast();
+
   bool getRocketStartFlag();
   void setRocketStartFlag();
 
-  void rosParamInit(ros::NodeHandle nh);
+
 
 };
 

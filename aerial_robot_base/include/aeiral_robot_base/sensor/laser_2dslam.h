@@ -8,7 +8,7 @@
 #include <aerial_robot_base/digital_filter.h>
 #include <tf/transform_broadcaster.h>
 
-#include <aerial_robot_base/FourAxisState.h>
+#include <aerial_robot_base/States.h>
 #include <geometry_msgs/PoseStamped.h>
 
 class SlamData
@@ -31,7 +31,7 @@ class SlamData
       {
         rosParamInit();
 
-        slam_pub_ = nh_.advertise<aerial_robot_base::FourAxisState>("state", 10);
+        slam_pub_ = nh_.advertise<aerial_robot_base::SisAxisState>("state", 10);
         slam_sub_ = nh_.subscribe<geometry_msgs::PoseStamped>("slam_out_pose", 5, boost::bind(&SlamData::poseStampedCallback, this, _1, state_estimator));
 
         pos_x_ = 0; pos_y_ = 0; psi_ = 0; 
@@ -72,7 +72,7 @@ class SlamData
 
   inline void setPosXValue(float pos_x_value)  {    pos_x_ = pos_x_value;  }
   inline void setPosYValue(float pos_y_value)  {    pos_y_ = pos_y_value;  }
-  inline void setPsiValue(float psi_value)  {    psi_slam = psi_value;  }
+  inline void setPsiValue(float psi_value)  {    psi_slam_ = psi_value;  }
   inline float getPosXValue()  {    return  pos_x_;  }
   inline float getPosYValue()  {    return pos_y_;   }
   inline float getPsiValue()  {    return psi_slam_;  }
@@ -267,47 +267,69 @@ class SlamData
             else{}
           }
 
-        aerial_robot_base::FourAxisState four_axis_state;
-        four_axis_state.header.stamp = pose_msg->header.stamp;
-        four_axis_state.posX = pos_x_;
-        four_axis_state.rawPosX = raw_pos_x_;
-        four_axis_state.velX = vel_x_;
-        four_axis_state.rawVelX = raw_vel_x_;
-        four_axis_state.posY = pos_y_;
-        four_axis_state.rawPosY = raw_pos_y_;
-        four_axis_state.velY = vel_y_;
-        four_axis_state.rawVelY = raw_vel_y_;
+        aerial_robot_base::States three_axis_state;
+        three_axis_state.header.stamp = pose_msg->header.stamp;
+
+        aerial_robot_base::State x_state;
+        x_state.id = "x"
+        x_state.pos = pos_x_;
+        x_state.raw_pos = raw_pos_x_;
+        x_state.vel = vel_x_;
+        x_state.raw_vel = raw_vel_x_;
+
+
+        aerial_robot_base::State y_state;
+        y_state.id = "y"
+        y_state.pos = pos_y_;
+        y_state.raw_pos = raw_pos_y_;
+        y_state.vel = vel_y_;
+        y_state.raw_vel = raw_vel_y_;
+
+        aerial_robot_base::State yaw_state;
+        yaw_state.id = "yaw"
+        yaw_state.pos = psi_slam;
+        yaw_state.raw_pos = raw_psi_;
+        yaw_state.vel = vel_psi_;
+        yaw_state.raw_vel = raw_vel_psi_;
 
 
         if(kalman_filter_flag_)
           {
-            four_axis_state.crrPosX1 = kf_x_->getEstimatePos();
-            four_axis_state.crrVelX1 = kf_x_->getEstimateVel();
-            four_axis_state.crrPosX2 = kfb_x_->getEstimatePos();
-            four_axis_state.crrVelX2 = kfb_x_->getEstimateVel();
-            four_axis_state.crrXBias = kfb_x_->getEstimateBias();
+            x_state.kf_pos = kf_x_->getEstimatePos();
+            x_state.kf_vel = kf_x_->getEstimateVel();
+            x_state.kfb_pos = kfb_x_->getEstimatePos();
+            x_state.kfb_vel = kfb_x_->getEstimateVel();
+            x_state.kfb_bias = kfb_x_->getEstimateBias();
 
-            four_axis_state.crrPosY1 = kf_y_->getEstimatePos();
-            four_axis_state.crrVelY1 = kf_y_->getEstimateVel();
-            four_axis_state.crrPosY2 = kfb_y_->getEstimatePos();
-            four_axis_state.crrVelY2 = kfb_y_->getEstimateVel();
-            four_axis_state.crrXBias = kfb_y_->getEstimateBias();
-
+            y_state.kf_pos = kf_y_->getEstimatePos();
+            y_state.kf_vel = kf_y_->getEstimateVel();
+            y_state.kfb_pos = kfb_y_->getEstimatePos();
+            y_state.kfb_vel = kfb_y_->getEstimateVel();
+            y_state.kfb_bias = kfb_y_->getEstimateBias();
           }
 
-        if(kalmanFilterDebug)
+        three_axis_state.states.push_back(x_state);
+        three_axis_state.states.push_back(y_state);
+        three_axis_state.states.push_back(yaw_state);
+
+
+        if(kalman_filter_debug_)
           {
-            four_axis_state.crrPosDebug1 = kf1_->getEstimatePos();
-            four_axis_state.crrVelDebug1 = kf1_->getEstimateVel();
-            four_axis_state.crrPosDebug2 = kf2_->getEstimatePos();
-            four_axis_state.crrVelDebug2 = kf2_->getEstimateVel();
+            aerial_robot_base::State debug1;
+            debug1.id = "debug1"
+            debug1.pos = kf1_->getEstimatePos();
+            debug1.vel = kf1_->getEstimateVel();
+
+            aerial_robot_base::State debug2;
+            debug2.id = "debug2"
+            debug2.pos = kf2_->getEstimatePos();
+            debug2.vel = kf2_->getEstimateVel();
+
+            three_axis_state.states.push_back(debug1);
+            three_axis_state.states.push_back(debug2);
           }
 
-        four_axis_state.psi = psi_slam;
-        four_axis_state.rawPsi = raw_psi_;
-        four_axis_state.velPsi = vel_psi_;
-        four_axis_state.rawVelPsi = raw_vel_psi_;
-        slam_pub_.publish(four_axis_state);
+        slam_pub_.publish(three_axis_state);
       }
 
     //更新
