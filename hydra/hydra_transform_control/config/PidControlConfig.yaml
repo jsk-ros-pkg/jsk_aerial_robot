@@ -1,74 +1,74 @@
 ### PID control for quadcopter
 
-controller/pitch/ctrlLoopRate: 40
-controller/roll/ctrlLoopRate: 40
-controller/throttle/ctrlLoopRate: 40
-controller/yaw/ctrlLoopRate: 40
+controller/pitch/ctrl_loop_rate: 40
+controller/roll/ctrl_loop_rate: 40
+controller/throttle/ctrl_loop_rate: 40
+controller/yaw/ctrl_loop_rate: 40
 
 # throttle 
-controller/throttle/posPGain: 0.25
-controller/throttle/posIGain: 0.25
-controller/throttle/posDGain:  0.28
-controller/throttle/posPGainLand: 0.1
-controller/throttle/posIGainLand: 0.03
-controller/throttle/posDGainLand: 0.2
-controller/throttle/constPControlThreLand: -0.1
-controller/throttle/constPTermLev1ValueLand: -20
-controller/throttle/constPTermLev2ValueLand: -40
-controller/throttle/constIControlThreLand: -0.25
-controller/throttle/constITermValueLand: 0.5
+controller/throttle/pos_p_gain: 0.25
+controller/throttle/pos_i_gain: 0.25
+controller/throttle/pos_d_gain:  0.28
+controller/throttle/pos_p_gain_land: 0.1
+controller/throttle/pos_i_gain_land: 0.03
+controller/throttle/pos_d_gain_land: 0.2
+controller/throttle/const_p_control_thre_land: -0.1
+controller/throttle/const_p_term_lev1_value_land: -20
+controller/throttle/const_p_term_lev2_value_land: -40
+controller/throttle/const_i_control_thre_land: -0.25
+controller/throttle/const_i_term_value_land: 0.5
 controller/throttle/offset: 1000
-controller/throttle/posLimit: 2100
-controller/throttle/posPLimit: 150
-controller/throttle/posPLimitHover: 50
-controller/throttle/posILimit: 1100
-controller/throttle/posDLimit: 180
-controller/throttle/velValueLimit: 0
-controller/throttle/iEnableLimitHover: 0.1
+controller/throttle/pos_limit: 2100
+controller/throttle/pos_p_limit: 150
+controller/throttle/pos_p_limit_hover: 50
+controller/throttle/pos_i_limit: 1100
+controller/throttle/pos_d_limit: 180
+controller/throttle/vel_value_limit: 0
+controller/throttle/i_enable_limit_hover: 0.1
 
 # pitch 
-controller/pitch/posPGain: 0.1
-controller/pitch/posIGain: 0.01 # old : 0.05
-controller/pitch/posIGainHover: 0.005
-controller/pitch/posDGain: 0.3 #for mocap: 0.5,  for opt 0.4
-controller/pitch/velPGain: 0.4 #for mocap: 0.48, for opt 0.4
-controller/pitch/velIGain: 0.005 
-controller/pitch/posLimit: 400 # rook1: 200
-controller/pitch/posPLimit: 200 #rook1 :100
-controller/pitch/posILimit: 200 #rook1 :100 
-controller/pitch/posDLimit: 200 #rook1 :100
-controller/pitch/velValueLimit: 0.8
-controller/pitch/iEnableLimit: 1.0
+controller/pitch/pos_p_gain: 0.1
+controller/pitch/pos_i_gain: 0.01 # old : 0.05
+controller/pitch/pos_i_gain_hover: 0.005
+controller/pitch/pos_d_gain: 0.3 #for mocap: 0.5,  for opt 0.4
+controller/pitch/vel_p_gain: 0.4 #for mocap: 0.48, for opt 0.4
+controller/pitch/vel_i_gain: 0.005 
+controller/pitch/pos_limit: 400 # rook1: 200
+controller/pitch/pos_p_limit: 200 #rook1 :100
+controller/pitch/pos_i_limit: 200 #rook1 :100 
+controller/pitch/pos_d_limit: 200 #rook1 :100
+controller/pitch/vel_value_limit: 0.8
+controller/pitch/i_enable_limit: 1.0
 #controller/pitch/offset: -200 #predecated, for att-pitch-roll-gain-70 
 #controller/pitch/offset: 120  #for att-pitch-roll-gain-100 
 # controller/pitch/offset: 150 # for 157 0 0
 controller/pitch/offset: 180
 
 #  roll 
-controller/roll/posPGain: 0.1
-controller/roll/posIGain: 0.01 #old : 0.05
-controller/roll/posIGainHover: 0.005
-controller/roll/posDGain: 0.3 # for mocap 0.5, for opt 0.4
-controller/roll/velPGain: 0.4 # for mocap 0.5, for opt 0.4
-controller/roll/velIGain: 0.005
-controller/roll/posLimit: 500 #prev: 400
-controller/roll/posPLimit: 200 #prev: 200
-controller/roll/posILimit: 300 #prev : 200
-controller/roll/posDLimit: 200 #rook1 : 100
-controller/roll/velValueLimit: 0.8
-controller/roll/iEnableLimit: 1.0
+controller/roll/pos_p_gain: 0.1
+controller/roll/pos_i_gain: 0.01 #old : 0.05
+controller/roll/pos_i_gain_hover: 0.005
+controller/roll/pos_d_gain: 0.3 # for mocap 0.5, for opt 0.4
+controller/roll/vel_p_gain: 0.4 # for mocap 0.5, for opt 0.4
+controller/roll/vel_i_gain: 0.005
+controller/roll/pos_limit: 500 #prev: 400
+controller/roll/pos_p_limit: 200 #prev: 200
+controller/roll/pos_i_limit: 300 #prev : 200
+controller/roll/pos_d_limit: 200 #rook1 : 100
+controller/roll/vel_value_limit: 0.8
+controller/roll/i_enable_limit: 1.0
 #controller/roll/offset: -260 #roll is reversed!! predecated, for att-pitch-roll-gain-70, and wrong axis, which initialize with s-model
 #controller/roll/offset: -200 #roll is reversed!! for att-pitch-roll-gain-100, which initialize with s-model
 controller/roll/offset: 10
 
 # yaw 
-controller/yaw/posPGain: 0.15 # 0.15
-controller/yaw/posIGain: 0.001 #prev 0.001
-controller/yaw/posDGain: 0.0
-controller/yaw/posLimit: 100 #200 is too big => lots of problem
-controller/yaw/posPLimit: 100
-controller/yaw/posILimit: 100
-controller/yaw/posDLimit: 50
-controller/yaw/velValueLimit: 0
-controller/yaw/iEnableLimit: 0.25 #prev 0.25
+controller/yaw/pos_p_gain: 0.15 # 0.15
+controller/yaw/pos_i_gain: 0.001 #prev 0.001
+controller/yaw/pos_d_gain: 0.0
+controller/yaw/pos_limit: 100 #200 is too big => lots of problem
+controller/yaw/pos_p_limit: 100
+controller/yaw/pos_i_limit: 100
+controller/yaw/pos_d_limit: 50
+controller/yaw/vel_value_limit: 0
+controller/yaw/i_enable_limit: 0.25 #prev 0.25
                              

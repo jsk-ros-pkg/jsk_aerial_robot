@@ -5,9 +5,9 @@
 
   <arg name="flight_pos_mode" value="true" /> <!-- pos mode -->
 
-  ############################# JSK Quadcopter ###################################
+  ############################# AERIAL ROBOT BASE ###################################
 
-  <node pkg="aeiral_robot_base" type="aerial_robot_base_node" name="aerial_robot_base_node"  output="screen" > 
+  <node pkg="aeiral_robot_base" type="aerial_robot_base_node" name="hydra1_node"  output="screen" > 
 
     ############### Basic Param  #####################
     <param name="rx_loop_rate" type="double" value="110"/>
@@ -18,7 +18,7 @@
     <param name="estimator/use_outery_yaw_est" type="bool" value="true"/>
     <param name="navigator/xy_control_mode" type="int" value="0"/>
 
-    ############### Quadctoper Basic State ######################
+    ############### Basic State ######################
 <!--    <rosparam file="$(find hydra)/config/EstimatorConfig.yaml" command="load" /> -->
 
     ############### Motion Capture####################
@@ -28,19 +28,10 @@
     ############### PID Control ######################
     <rosparam file="$(find hydra)/config/PidControlConfig.yaml" command="load" />
 
-    ############### Kalman Filter ####################
-    <param name="estimator/kalman_filter_flag" type="bool" value="true"/>
-    <param name="kalman_filter/imu_hz" type="double" value="105"/>
-<!--    <rosparam file="$(find hydra)/config/KduinoKalman_filterConfig.yaml" command="load" /> -->
-<!--    <rosparam file="$(find hydra)/config/Optical_flowKalman_filterConfig.yaml" command="load" /> -->
-
     ############### Kalman Filter Debug/Simulation ###
 <!--    <param name="estimator/kalman_filter_debug" type="bool" value="true"/>-->
 <!--    <param name="estimator/kalman_filter_axis" type="int" value="1"/> -->
-    <rosparam file="$(find hydra)/config/SimulationKalmanFilterConfig.yaml" command="load" />
-
-    ############### IIR Filter #######################
-<!--    <rosparam file="$(find aerial_robot_base)/config//IirFilterConfig.yaml" command="load" /> -->
+<!--    <rosparam file="$(find hydra)/config/SimulationKalmanFilterConfig.yaml" command="load" /> -->
 
     ############### Keyboard Navigation ##############
     <rosparam file="$(find hydra)/config/hydra/TeleopNavigationConfig.yaml" command="load" />
@@ -74,7 +65,7 @@
  </node>
 
   ################################# Joy Stick ######################################
-<!--  <include file="$(find aerial_robot_base)/launch/joy_stick.launch" /> -->
+<!--  <include file="$(find aerial_robot_base)/launch/sensors/joy_stick.launch" /> -->
 
 </launch>
 
