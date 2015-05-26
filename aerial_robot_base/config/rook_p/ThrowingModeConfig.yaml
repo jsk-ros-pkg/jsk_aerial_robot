@@ -1,11 +1,11 @@
 # Throwing Mode 
 
-controller/throttle/throwingModeInitValueFromRocketStart: 70
-# rocketStartInitValue: 1530 
+controller/throttle/throwing_mode_init_value_from_rocket_start: 70
+# rocket_start_init_value: 1530 
 
-navigator/throwingModeStandbyAltThre: 0.5 # [m]
-navigator/throwingModeThrowAccXThre: 3.0 # 3.9[m/s^2] = 200 / 512 * 9.18
-navigator/throwingModeThrowAccZThre: 0.0 # or 1.0[m/s^2]
-navigator/throwingModeSetAltAccZThre: -5 # m/s^2
-navigator/throwingModeAltHoldVelZThre: 0.6 # m/s
-navigator/throwingModeShiftStepCntThre: 2 # number of counter
+navigator/throwing_mode_standby_alt_thre: 0.5 # [m]
+navigator/throwing_mode_throw_acc_x_thre: 3.0 # 3.9[m/s^2] = 200 / 512 * 9.18
+navigator/throwing_mode_throw_acc_z_thre: 0.0 # or 1.0[m/s^2]
+navigator/throwing_mode_set_alt_acc_z_thre: -5 # m/s^2
+navigator/throwing_mode_alt_hold_vel_z_thre: 0.6 # m/s
+navigator/throwing_mode_shift_step_cnt_thre: 2 # number of counter

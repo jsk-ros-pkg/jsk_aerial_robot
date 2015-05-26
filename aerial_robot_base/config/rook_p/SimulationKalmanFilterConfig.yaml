@@ -1,8 +1,8 @@
 # Kalman Filter Parameter for Simulation
 
-/quadcopter_node/kalman_filter/Debug1/inputSigma : 0.16
-/quadcopter_node/kalman_filter/Debug1/biasSigma : 0.03  #<!-- 0.006 -->
-/quadcopter_node/kalman_filter/Debug1/measureSigma : 0.08
-/quadcopter_node/kalman_filter/Debug2/inputSigma : 0.04
-/quadcopter_node/kalman_filter/Debug2/biasSigma : 0.03  #<!-- 0.006 -->
-/quadcopter_node/kalman_filter/Debug2/measureSigma : 0.04
+kalman_filter/Debug1/input_sigma : 0.16
+kalman_filter/Debug1/bias_sigma : 0.03  #<!-- 0.006 -->
+kalman_filter/Debug1/measure_sigma : 0.08
+kalman_filter/Debug2/input_sigma : 0.04
+kalman_filter/Debug2/bias_sigma : 0.03  #<!-- 0.006 -->
+kalman_filter/Debug2/measure_sigma : 0.04
