@@ -20,14 +20,13 @@
 
 RigidEstimator::RigidEstimator(ros::NodeHandle nh,
                                ros::NodeHandle nh_private,
-                               bool simulation_flag) : Estimator(nh, nh_private)
+                               bool simulation_flag) : BasicEstimator(nh, nh_private)
 {
   rosParamInit(nhp_);
 
-
-  lpf_acc_x_ = new FirLpf(128);
-  lpf_acc_y_ = new FirLpf(128);
-  lpf_acc_z_ = new FirLpf(32);
+  lpf_acc_x_ = new FirFilter(128);
+  lpf_acc_y_ = new FirFilter(128);
+  lpf_acc_z_ = new FirFilter(32);
 
   //kalman filter
   if (kalman_filter_flag_)
@@ -43,25 +42,25 @@ RigidEstimator::RigidEstimator(ros::NodeHandle nh,
       std::string debug2("Debug2");
 
       bool use_dynamic_reconfigure = true;
-      kf_x_ = new KalmanFilterImuLaser(nh, nh_private, x);
-      kf_y_ = new KalmanFilterImuLaser(nh, nh_private, y);
-      kf_z_ = new KalmanFilterImuLaser(nh, nh_private, z, use_dynamic_reconfigure);
-      kf_bias_x_ = new KalmanFilterImuLaserBias(nh, nh_private, x, use_dynamic_reconfigure); 
-      kf_bias_y_ = new KalmanFilterImuLaserBias(nh, nh_private, y, use_dynamic_reconfigure);
-      kf_bias_z_ = new KalmanFilterImuLaserBias(nh, nh_private, z);
+      kf_x_ = new KalmanFilterPosVelAcc(nh, nh_private, x);
+      kf_y_ = new KalmanFilterPosVelAcc(nh, nh_private, y);
+      kf_z_ = new KalmanFilterPosVelAcc(nh, nh_private, z, use_dynamic_reconfigure);
+      kf_bias_x_ = new KalmanFilterPosVelAccBias(nh, nh_private, x, use_dynamic_reconfigure); 
+      kf_bias_y_ = new KalmanFilterPosVelAccBias(nh, nh_private, y, use_dynamic_reconfigure);
+      kf_bias_z_ = new KalmanFilterPosVelAccBias(nh, nh_private, z);
 
       // for optical flow
-      kf_opt_x_ = new KalmanFilterImuLaser(nh, nh_private,x_opt);
-      kf_opt_y_ = new KalmanFilterImuLaser(nh, nh_private,y_opt);
-      kf_opt_z_ = new KalmanFilterImuLaser(nh, nh_private,z_opt);
-      kf_opt_bias_x_ = new KalmanFilterImuLaserBias(nh, nh_private, x_opt, use_dynamic_reconfigure); 
-      kf_opt_bias_y_ = new KalmanFilterImuLaserBias(nh, nh_private, y_opt, use_dynamic_reconfigure);
-      kf_opt_bias_z_ = new KalmanFilterImuLaserBias(nh, nh_private, z_opt, use_dynamic_reconfigure);
+      kf_opt_x_ = new KalmanFilterPosVelAcc(nh, nh_private,x_opt);
+      kf_opt_y_ = new KalmanFilterPosVelAcc(nh, nh_private,y_opt);
+      kf_opt_z_ = new KalmanFilterPosVelAcc(nh, nh_private,z_opt);
+      kf_opt_bias_x_ = new KalmanFilterPosVelAccBias(nh, nh_private, x_opt, use_dynamic_reconfigure); 
+      kf_opt_bias_y_ = new KalmanFilterPosVelAccBias(nh, nh_private, y_opt, use_dynamic_reconfigure);
+      kf_opt_bias_z_ = new KalmanFilterPosVelAccBias(nh, nh_private, z_opt, use_dynamic_reconfigure);
 
       if (kalman_filter_debug_)
         {
-          kf1_ = new KalmanFilterImuLaserBias(nh, nh_private, debug1, use_dynamic_reconfigure);
-          kf2_ = new KalmanFilterImuLaserBias(nh, nh_private, debug2, use_dynamic_reconfigure);
+          kf1_ = new KalmanFilterPosVelAccBias(nh, nh_private, debug1, use_dynamic_reconfigure);
+          kf2_ = new KalmanFilterPosVelAccBias(nh, nh_private, debug2, use_dynamic_reconfigure);
         }
       else
         {
@@ -82,12 +81,12 @@ RigidEstimator::RigidEstimator(ros::NodeHandle nh,
                               nh_private, 
                               this,
                               kalman_filter_flag_,
-                              kalman_filter_debug_,
-                              kalman_filter_axis_,
                               kf_x_, kf_y_, kf_z_,
                               kf_bias_x_, kf_bias_y_, kf_bias_z_,
                               kf_opt_x_, kf_opt_y_, kf_opt_z_,
                               kf_opt_bias_x_, kf_opt_bias_y_, kf_opt_bias_z_,
+                              kalman_filter_debug_,
+                              kalman_filter_axis_,
                               kf1_, kf2_,
                               lpf_acc_x_,
                               lpf_acc_y_,
@@ -97,11 +96,11 @@ RigidEstimator::RigidEstimator(ros::NodeHandle nh,
   slam_data_     = new SlamData(nh,
                                 nh_private,
                                 this,
-                                kalman_filter_flag_,
+                                kalman_filter_flag_,                                
+                                kf_x_, kf_y_,
+                                kf_bias_x_, kf_bias_y_,
                                 kalman_filter_debug_,
                                 kalman_filter_axis_,
-                                kf_x_, kf_y_, kf_z_,
-                                kf_bias_x_, kf_bias_y_, kf_bias_z_,
                                 kf1_, kf2_);
 
   optical_flow_data_   = new OpticalFlowData(nh,
@@ -120,8 +119,6 @@ RigidEstimator::RigidEstimator(ros::NodeHandle nh,
       mocap_data_ = new MocapData(nh, nh_private, this);
   
   simulation_flag_ = simulation_flag;
-
-  full_states_pub_ = nh_.advertise<aerial_robot_base::States>("full_states", 1); 
 
 
 }
@@ -410,44 +407,6 @@ float RigidEstimator::getLaserToImuDistance()
   return laser_to_baselink_distance_;
 }
 
-void RigidEstimator::statesBroadcast()
-{
-  aeiral_robot_base::States full_states;
-  full_states.header.stamp = getSystemTimeStamp();
-  aerial_robot_base::State x_state;
-  x_state.id = "x";
-  x_state.pos = getStatePosX();
-  x_state.vel = getStateVelX();
-  aerial_robot_base::State y_state;
-  y_state.id = "y";
-  y_state.pos = getStatePosY();
-  y_state.vel = getStateVelY();
-  aerial_robot_base::State z_state;
-  z_state.id = "z";
-  z_state.pos = getStatePosZ();
-  z_state.vel = getStateVelZ();
-
-  aerial_robot_base::State yaw_state;
-  yaw_state.id = "yaw";
-  yaw_state.pos = getStatePosPsiBoard();
-  yaw_state.vel = getStateVelPsiBoard();
-  aerial_robot_base::State pitch_state;
-  pitch_state.id = "pitch";
-  pitch_state.pos = getStateTheta();
-  aerial_robot_base::State roll_state;
-  roll_state.id = "roll";
-  roll_state.pos = getStatePhy();
-
-  full_states.states.push_back(x_state);
-  full_states.states.push_back(y_state);
-  full_states.states.push_back(z_state);
-  full_states.states.push_back(yaw_state);
-  full_states.states.push_back(pitch_state);
-  full_states.states.push_back(roll_state);
-
-  pose_stamped_pub_.publish(full_states);
-  
-}
 
 void RigidEstimator::rosParamInit(ros::NodeHandle nh)
 {

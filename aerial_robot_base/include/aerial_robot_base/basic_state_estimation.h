@@ -1,30 +1,20 @@
-#ifndef STATE_ESTIMATION_H
-#define STATE_ESTIMATION_H
+#ifndef BASIC_STATE_ESTIMATION_H
+#define BASIC_STATE_ESTIMATION_H
 
 //* ros
 #include <ros/ros.h>
-
-//* for state estimate
-//TODO:  plugin 
-#include <aerial_robot_base/sensor/mirror_module.h>
-#include <aerial_robot_base/sensor/slam_data.h>
-#include <aerial_robot_base/sensor/imu_module.h>
-#include <aerial_robot_base/sensor/mocap.h>
-#include <aerial_robot_base/sensor/optical_flow_module.h>
-#include <tf/transform_broadcaster.h>
-#include <iostream>
-//* filter
-#include <aerial_robot_base/kalman_filter.h>
-#include <aerial_robot_base/digital_filter.h>
-
 #include <aerial_robot_base/States.h>
+#include <iostream>
+
 
 class BasicEstimator
 {
  public:
- BasicEstimator(ros::NodeHandle nh, ros::NodeHandle nh_private):
+ BasicEstimator(ros::NodeHandle nh, ros::NodeHandle nh_private)
   : nh_(nh, "estimator"), nhp_(nh_private, "estimator")
     {
+      full_states_pub_ = nh_.advertise<aerial_robot_base::States>("full_states", 1); 
+
       outer_estimate_pos_x_ = 0;
       outer_estimate_vel_x_ = 0;
       outer_estimate_pos_y_ = 0;
@@ -45,7 +35,7 @@ class BasicEstimator
       use_outer_pose_estimate_ = 0;
       use_outer_vel_estimate_ = 0;
 
-      sys_stamp_ = ros::Time::now()
+      sys_stamp_ = ros::Time::now();
 
     }
 
@@ -59,7 +49,7 @@ class BasicEstimator
   static const uint8_t YAW_AXIS = 32;
 
   inline ros::Time getSystemTimeStamp(){ return sys_stamp_;}
-  inline void setSystemTimeStamp(ros::Time sys_stamp){ return 0;}
+  inline void setSystemTimeStamp(ros::Time sys_stamp){ sys_stamp_ = sys_stamp;}
 
   virtual float getStatePosX(){ return 0;}
   virtual float getStatePosXc(){ return 0;}
@@ -131,7 +121,7 @@ class BasicEstimator
 
   virtual void setStatePhy(float value)
   {
-    if(use_outer_pose_estimate & ROLL_AXIS)
+    if(use_outer_pose_estimate_ & ROLL_AXIS)
       outer_estimate_phy_ = value;
   }
 
@@ -192,8 +182,8 @@ class BasicEstimator
   virtual float getLaserToImuDistance() {  return 0; }
 
   virtual bool getRocketStartFlag(){ return true; }
-
   virtual void setRocketStartFlag(){}
+
   virtual void setOuterEstimatePoseFlag(uint8_t axis)
   {
     if(axis == 0)
@@ -219,6 +209,9 @@ class BasicEstimator
 
   ros::NodeHandle nh_;
   ros::NodeHandle nhp_;
+  ros::Publisher full_states_pub_;
+
+  ros::Time sys_stamp_;
 
   float outer_estimate_pos_x_;
   float outer_estimate_vel_x_;
@@ -238,118 +231,48 @@ class BasicEstimator
   float state_pos_z_offset_; 
   uint8_t use_outer_pose_estimate_;
   uint8_t use_outer_vel_estimate_;
-};
 
+  void statesBroadcast()
+  {
+    aerial_robot_base::States full_states;
+    full_states.header.stamp = getSystemTimeStamp();
+    aerial_robot_base::State x_state;
+    x_state.id = "x";
+    x_state.pos = getStatePosX();
+    x_state.vel = getStateVelX();
+    aerial_robot_base::State y_state;
+    y_state.id = "y";
+    y_state.pos = getStatePosY();
+    y_state.vel = getStateVelY();
+    aerial_robot_base::State z_state;
+    z_state.id = "z";
+    z_state.pos = getStatePosZ();
+    z_state.vel = getStateVelZ();
 
+    aerial_robot_base::State yaw_state;
+    yaw_state.id = "yaw";
+    yaw_state.pos = getStatePsiBoard();
+    yaw_state.vel = getStateVelPsiBoard();
+    aerial_robot_base::State pitch_state;
+    pitch_state.id = "pitch";
+    pitch_state.pos = getStateTheta();
+    aerial_robot_base::State roll_state;
+    roll_state.id = "roll";
+    roll_state.pos = getStatePhy();
 
-class RigidEstimator : public BasicEstimator
-{
- public:
-  RigidEstimator (ros::NodeHandle nh,
-              ros::NodeHandle nh_private,
-              bool simulation_flag);
-  ~RigidEstimator ();
+    full_states.states.push_back(x_state);
+    full_states.states.push_back(y_state);
+    full_states.states.push_back(z_state);
+    full_states.states.push_back(yaw_state);
+    full_states.states.push_back(pitch_state);
+    full_states.states.push_back(roll_state);
 
-  //deprecated
-  static const int LASER_MIRROR = 0;
-  static const int SONAR = 1;
-
-  void tfPublish();
-  float getLaserToImuDistance();
-
- private:
-
-  tf::TransformBroadcaster* br_;
-  ros::Time sys_stamp_;
-
-  ros::Publisher full_states_pub_;
-
-  //+*+*+*+* add as members, but not superclass 
-  ImuData* imu_data_ ;
-  SlamData* slam_data_ ;
-  OpticalFlowData* optical_flow_data_;
-  MirrorModule* mirror_module_ ;
-  MocapData* mocap_data_;
-
-
-  KalmanFilterImuLaser* kf_x_;
-  KalmanFilterImuLaser* kf_y_;
-  KalmanFilterImuLaser* kf_z_;
-  KalmanFilterImuLaserBias *kf_bias_x_;
-  KalmanFilterImuLaserBias *kf_bias_y_;
-  KalmanFilterImuLaserBias *kf_bias_Z_;
-
-  KalmanFilterImuLaserBias *kf1_;
-  KalmanFilterImuLaserBias *kf2_;
-
-  //IIR filter for acceleration
-  FirFilter *lpf_acc_x_;
-  FirFilter *lpf_acc_y_;
-  FirFilter *lpf_acc_z_;
-
-  //for optical flow
-  KalmanFilterImuLaser* kf_opt_x_;
-  KalmanFilterImuLaser* kf_opt_y_;
-  KalmanFilterImuLaser* kf_opt_z_;
-  KalmanFilterImuLaserBias *kf_opt_bias_x_;
-  KalmanFilterImuLaserBias *kf_opt_bias_y_;
-  KalmanFilterImuLaserBias *kf_opt_bias_z_;
-
-  //simulation flag
-  bool simulation_flag_;
-
-  //*** Kalma Filter 
-  bool   kalman_filter_flag_;
-  bool   kalman_filter_debug_;
-  int    kalman_filter_axis_;
-
-  bool mocap_flag_;
-
-  int altitude_control_mode_;
-  bool use_outer_yaw_est_;
-  double laser_to_baselink_distance_; 
-  double mirror_module_arm_length_;
-
-  std::string laser_frame_;
-  std::string camera_frame_;
-  std::string baselink_frame_;
-  std::string base_footprint_frame_;
-
-  float getStatePosX();
-  float getStatePosXc();
-  float getStateVelX();
-  float getStateVelXc();
-  float getStateAccXb();
-  float getStatePosY();
-  float getStatePosYc();
-  float getStateVelY();
-  float getStateVelYc();
-  float getStateAccYb();
-  float getStatePosZ();
-  float getStateVelZ();
-  float getStateAccZb();
-  float getStateTheta();
-  float getStatePhy();
-  float getStatePsiCog();
-  float getStateVelPsiCog();
-  float getStatePsiBoard();
-  float getStateVelPsiBoard();
-
-
-  //+*+*+* option
-  float getStateVelXOpt();
-  float getStateVelYOpt();
-
-
-  void rosParamInit(ros::NodeHandle nh);
-  void statesBroadcast();
-
-  bool getRocketStartFlag();
-  void setRocketStartFlag();
-
-
+    full_states_pub_.publish(full_states);
+  }
 
 };
+
+
 
 
 

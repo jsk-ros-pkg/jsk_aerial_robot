@@ -1,4 +1,4 @@
-#include "aerial_robot_base/aerial_robot_base.h"
+#include <aerial_robot_base/aerial_robot_base.h>
 
 AerialRobotBase::AerialRobotBase(ros::NodeHandle nh, ros::NodeHandle nh_private)
   : nh_(nh), nhp_(nh_private)
@@ -7,7 +7,7 @@ AerialRobotBase::AerialRobotBase(ros::NodeHandle nh, ros::NodeHandle nh_private)
   rosParamInit(nhp_);
 
   //*** estimator1
-  estimator_ = new Estimator1(nh_, nhp_, simulation_flag_);
+  estimator_ = new RigidEstimator(nh_, nhp_, simulation_flag_);
 
   if(!simulation_flag_)
     { 
@@ -18,7 +18,7 @@ AerialRobotBase::AerialRobotBase(ros::NodeHandle nh, ros::NodeHandle nh_private)
       navigator_ = new TeleopNavigator(nh_, nhp_, estimator_, flight_ctrl_input_, tx_loop_rate_);
 
       //*** pid controller
-      controller_ = new PidController(nh_, nhp_, navigator_, estimator_, flight_ctrl_input_, tx_loop_rate_);
+      controller_ = new PidController(nh_, nhp_, estimator_, navigator_, flight_ctrl_input_, tx_loop_rate_);
 
 
       // if(trackingFlag_)
@@ -39,14 +39,14 @@ AerialRobotBase::AerialRobotBase(ros::NodeHandle nh, ros::NodeHandle nh_private)
     ROS_ERROR("Disable the tx function\n");
   else
     {
-      txTimer_ = nhp_.createTimer(ros::Duration(1.0 / tx_loop_rate_), &AerialRobotBase::txFunction,this);
+      tx_timer_ = nhp_.createTimer(ros::Duration(1.0 / tx_loop_rate_), &AerialRobotBase::txFunction,this);
     }
 
 
   if(rx_loop_rate_ <= 0)
     ROS_ERROR("Disable the rx function\n");
   else
-    rxTimer_ = nhp_.createTimer(ros::Duration(1.0 / rx_loop_rate_), &AerialRobotBase::rxFunction, this);
+    rx_timer_ = nhp_.createTimer(ros::Duration(1.0 / rx_loop_rate_), &AerialRobotBase::rxFunction, this);
 }
 
 AerialRobotBase::~AerialRobotBase()
@@ -107,8 +107,7 @@ void AerialRobotBase::txFunction(const ros::TimerEvent & e)
       //feed forward control
       controller_->feedForwardFunction();
 
-      if(controller_->getControlBoard() == controller_->KDUINO_BOARD)
-        navigator_->sendRcCmd();
+      navigator_->sendRcCmd();
     }
 }
 

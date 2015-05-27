@@ -3,11 +3,11 @@
 
 //* ros
 #include <ros/ros.h>
-#include <aerial_robot_base/state_estimation.h>
+#include <aerial_robot_base/basic_state_estimation.h>
 #include <aerial_robot_base/control_input_array.h>
 #include <aerial_robot_base/flight_navigation.h>
 
-#include <aerial_robot_base/FourAxisPidDebug.h>
+#include <aerial_robot_base/FourAxisPid.h>
 #include <aerial_robot_msgs/ITermBias.h>
 #include <aerial_robot_msgs/RPYCtrlOffset.h>
 
@@ -26,18 +26,18 @@ class FlightController
 public:
   FlightController(ros::NodeHandle nh,
                    ros::NodeHandle nh_private,
-                   Estimator* estimator, Navigator* navigator, 
+                   BasicEstimator* estimator, Navigator* navigator, 
                    FlightCtrlInput* flight_ctrl_input);
   virtual ~FlightController();
 
   float limit(float value, int limit);
 
- private:
+ protected:
   ros::NodeHandle nh_;
   ros::NodeHandle nhp_;
 
   Navigator* navigator_;
-  Estimator* estimator_;
+  BasicEstimator* estimator_;
   FlightCtrlInput* flight_ctrl_input_;
 
 };
@@ -47,7 +47,7 @@ class PidController : public FlightController
  public:
   PidController(ros::NodeHandle nh,
                 ros::NodeHandle nh_private,
-                Estimator* estimator, Navigator* navigator,
+                BasicEstimator* estimator, Navigator* navigator,
                 FlightCtrlInput* flight_ctrl_input,
                 double ctrl_loop_rate);
   ~PidController();

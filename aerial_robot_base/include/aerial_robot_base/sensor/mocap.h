@@ -8,12 +8,12 @@
 
 //* ros
 #include <ros/ros.h>
-#include <aeiral_robot_base/state_estimation.h>
-#include <aeiral_robot_base/digital_filter.h>
+#include <aerial_robot_base/basic_state_estimation.h>
+#include <aerial_robot_base/digital_filter.h>
 #include <tf/transform_listener.h>
 
-#include <aeiral_robot_base/States.h>
-#include <aeiral_robot_base/ImuData.h>
+#include <aerial_robot_base/States.h>
+#include <aerial_robot_base/ImuData.h>
 #include <std_msgs/Float32.h>
 #include <geometry_msgs/PoseStamped.h>
 
@@ -22,13 +22,19 @@ class MocapData
 {
  public:
 
- MocapData(ros::NodeHandle nh, ros::NodeHandle nh_private, Estimator* estimator)
+ MocapData(ros::NodeHandle nh, ros::NodeHandle nh_private, BasicEstimator* estimator)
    : nh_(nh, "mocap"), nhp_(nh_private, "mocap")
     {
+      //time modification
+      offset_ = 0;
+      sec_offset_ = 0;
+      n_sec_offset_ = 0;
+      time_sync_count_ = TIME_SYNC_CALIB_COUNT;
+
       rosParamInit(nhp_);
 
       if(!retime_flag_) time_sync_count_ = 0;
-      mocap_sub_ = nodeHandle_.subscribe<geometry_msgs::Pose>("/aerial_robot/pose", 1, &MocapRetime::poseCallback, this, ros::TransportHints().tcpNoDelay());
+      mocap_sub_ = nh_.subscribe<geometry_msgs::Pose>("/aerial_robot/pose", 1, &MocapData::poseCallback, this, ros::TransportHints().tcpNoDelay());
 
       if(cog_offset_)
         {
@@ -37,14 +43,8 @@ class MocapData
         }
 
       //debug, can be delete
-      pose_stamped_pub_ = nh_.advertise<aerial_robot_base::FourAxisState>(pub_name_, 5); 
+      pose_stamped_pub_ = nh_.advertise<aerial_robot_base::States>(pub_name_, 5); 
 
-
-      //time modification
-      offset_ = 0;
-      sec_offset_ = 0;
-      n_sec_offset_ = 0;
-      time_sync_count_ = TIME_SYNC_CALIB_COUNT;
 
 
       //low pass filter
@@ -77,14 +77,16 @@ class MocapData
     {
     }
 
+  static const int TIME_SYNC_CALIB_COUNT = 10;
 
  private:
   ros::NodeHandle nh_;
   ros::NodeHandle nhp_;
-  ros::Publisher  pose_stamped_pub_
+  ros::Publisher  pose_stamped_pub_;
   ros::Subscriber mocap_sub_;
   ros::Subscriber cog_offset_sub_;
 
+  BasicEstimator* estimator_;
 
   //time modification
   bool retime_flag_;
@@ -104,7 +106,7 @@ class MocapData
   std::string pub_name_;
   std::string cog_rotate_sub_name_;
 
-  float pos_x_offset_, pos_x_offset_, pos_z_offset_;
+  float pos_x_offset_, pos_y_offset_, pos_z_offset_;
 
   void poseCallback(const geometry_msgs::PoseConstPtr & msg)
   {
@@ -153,10 +155,10 @@ class MocapData
             raw_pos_x = msg->position.x - pos_x_offset_;
             raw_vel_x = (msg->position.x - prev_pos_x) / (ros::Time::now().toSec() - previous_time.toSec());
             raw_acc_x = (raw_vel_x - prev_vel_x) / (ros::Time::now().toSec() - previous_time.toSec());
-            raw_pos_y = msg->position.y - posY_offset;
+            raw_pos_y = msg->position.y - pos_y_offset_;
             raw_vel_y = (msg->position.y - prev_pos_y) / (ros::Time::now().toSec() - previous_time.toSec());
             raw_acc_y = (raw_vel_y - prev_vel_y) / (ros::Time::now().toSec() - previous_time.toSec());
-            raw_pos_z = msg->position.z - posZ_offset;
+            raw_pos_z = msg->position.z - pos_z_offset_;
             raw_vel_z = (msg->position.z - prev_pos_z) / (ros::Time::now().toSec() - previous_time.toSec());
             raw_acc_z = (raw_vel_z - prev_vel_z) / (ros::Time::now().toSec() - previous_time.toSec());
 
@@ -167,14 +169,14 @@ class MocapData
             tf::Matrix3x3(q).getRPY(raw_phy, raw_theta, raw_psi);
             raw_vel_psi = (raw_psi - prev_psi) / (ros::Time::now().toSec() - previous_time.toSec());
 
-            filterX_.filterFunction(raw_pos_x, pos_x, raw_vel_x, vel_x);
-            filterY_.filterFunction(raw_pos_y, pos_y, raw_vel_y, vel_y);
-            filterZ_.filterFunction(raw_pos_z, pos_z, raw_vel_z, vel_z);
-            filterPsi_.filterFunction(raw_psi, psi, raw_vel_psi, vel_psi);
+            lpf_pos_x_.filterFunction(raw_pos_x, pos_x, raw_vel_x, vel_x);
+            lpf_pos_y_.filterFunction(raw_pos_y, pos_y, raw_vel_y, vel_y);
+            lpf_pos_z_.filterFunction(raw_pos_z, pos_z, raw_vel_z, vel_z);
+            lpf_pos_psi_.filterFunction(raw_psi, psi, raw_vel_psi, vel_psi);
 
-            filterAccX_.filterFunction(raw_acc_x, acc_x);
-            filterAccY_.filterFunction(raw_acc_y, acc_y);
-            filterAccZ_.filterFunction(raw_acc_z, acc_z);
+            lpf_acc_x_.filterFunction(raw_acc_x, acc_x);
+            lpf_acc_y_.filterFunction(raw_acc_y, acc_y);
+            lpf_acc_z_.filterFunction(raw_acc_z, acc_z);
 
             //correct way
             estimator_->setStatePosX(pos_x);
@@ -182,18 +184,18 @@ class MocapData
             estimator_->setStatePosZ(pos_z);
             estimator_->setStatePsiCog(psi + cog_offset_angle_);
             estimator_->setStatePsiBoard(psi);
-            ROS_INFO("angle from map to cog is %f", psi + cog_rotate_offset_);
+            ROS_INFO("angle from map to cog is %f", psi + cog_offset_angle_);
             estimator_->setStateVelX(vel_x);
             estimator_->setStateVelY(vel_y);
             estimator_->setStateVelZ(vel_z);
             estimator_->setStateVelPsi(vel_psi);
 
             //publish for deubg, can delete
-            aeiral_robot_base::States ground_truth_pose;
-            ground_truth_pose.header.stamp.fromNSec(ros::Time::now().toNSec()-offset);
+            aerial_robot_base::States ground_truth_pose;
+            ground_truth_pose.header.stamp.fromNSec(ros::Time::now().toNSec() - offset_);
 
             aerial_robot_base::State x_state;
-            x_state.id = "x"
+            x_state.id = "x";
             x_state.raw_pos = raw_pos_x;
             x_state.raw_vel = raw_vel_x;
             x_state.pos = pos_x;
@@ -202,7 +204,7 @@ class MocapData
             x_state.reserves.push_back(raw_acc_x);
 
             aerial_robot_base::State y_state;
-            y_state.id = "y"
+            y_state.id = "y";
             y_state.raw_pos = raw_pos_y;
             y_state.raw_vel = raw_vel_y;
             y_state.pos = pos_y;
@@ -211,7 +213,7 @@ class MocapData
             y_state.reserves.push_back(raw_acc_y);
 
             aerial_robot_base::State z_state;
-            z_state.id = "z"
+            z_state.id = "z";
             z_state.raw_pos = raw_pos_z;
             z_state.raw_vel = raw_vel_z;
             z_state.pos = pos_z;
@@ -221,19 +223,19 @@ class MocapData
 
 
             aerial_robot_base::State yaw_state;
-            yaw_state.id = "yaw"
+            yaw_state.id = "yaw";
             yaw_state.raw_pos = raw_psi;
             yaw_state.raw_vel = raw_vel_psi;
             yaw_state.pos = psi;
             yaw_state.vel = vel_psi;
 
             aerial_robot_base::State pitch_state;
-            pitch_state.id = "pitch"
-            pitch_state.raw_pos = raw_pitch;
+            pitch_state.id = "pitch";
+            pitch_state.raw_pos = raw_theta;
 
             aerial_robot_base::State roll_state;
-            roll_state.id = "roll"
-            roll_state.raw_pos = raw_roll;
+            roll_state.id = "roll";
+            roll_state.raw_pos = raw_phy;
             
             ground_truth_pose.states.push_back(x_state);
             ground_truth_pose.states.push_back(y_state);
@@ -252,9 +254,9 @@ class MocapData
             prev_pos_y = msg->position.y;
             prev_pos_z = msg->position.z;
 
-            posX_offset = msg->position.x;
-            posY_offset = msg->position.y;
-            posZ_offset = msg->position.z;
+            pos_x_offset_ = msg->position.x;
+            pos_y_offset_ = msg->position.y;
+            pos_z_offset_ = msg->position.z;
             first_flag = false;
           }
 
@@ -272,7 +274,7 @@ class MocapData
       }
   }
 
-  void cog_offsetCallback(std_msgs::Float32 offset_msg)
+  void cogOffsetCallback(std_msgs::Float32 offset_msg)
   {
     cog_offset_angle_ =  offset_msg.data;
   }

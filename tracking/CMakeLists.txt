@@ -6,7 +6,7 @@ project(tracking)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   roscpp
-  rosp
+  rospy
   aerial_robot_msgs
   aerial_robot_base
   

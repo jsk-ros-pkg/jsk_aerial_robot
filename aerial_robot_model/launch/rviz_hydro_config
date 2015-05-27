@@ -7,9 +7,9 @@ Panels:
         - /Global Options1
         - /Status1
         - /RobotModel1
-        - /RobotModel1/Status1
         - /TF1
         - /TF1/Frames1
+        - /MarkerArray1
       Splitter Ratio: 0.501014
     Tree Height: 663
 Visualization Manager:
@@ -285,179 +285,28 @@ Visualization Manager:
       Value: true
       Visual Enabled: true
     - Class: rviz/TF
-      Enabled: true
+      Enabled: false
       Frame Timeout: 15
       Frames:
         All Enabled: false
-        eye:
-          Value: true
-        head_cylinder:
-          Value: true
-        head_sphere:
-          Value: true
-        link0_rear_junction:
-          Value: true
-        link1_abdomen:
-          Value: true
-        link1_battery:
-          Value: true
-        link1_bottom_hinge:
-          Value: true
-        link1_bottom_hinge_end:
-          Value: true
-        link1_front_junction:
-          Value: true
-        link1_propeller:
-          Value: true
-        link1_rear_junction:
-          Value: true
-        link1_servo:
-          Value: true
-        link1_servo_rod:
-          Value: true
-        link1_servo_rod_bottom:
-          Value: true
-        link1_servo_rod_top:
-          Value: true
-        link1_top_hinge:
-          Value: true
-        link1_top_hinge_end:
-          Value: true
-        link2_abdomen:
-          Value: true
-        link2_battery:
-          Value: true
-        link2_bottom_hinge:
-          Value: true
-        link2_bottom_hinge_end:
-          Value: true
-        link2_front_junction:
-          Value: true
-        link2_propeller:
-          Value: true
-        link2_rear_junction:
-          Value: true
-        link2_servo:
-          Value: true
-        link2_servo_rod:
-          Value: true
-        link2_servo_rod_bottom:
-          Value: true
-        link2_servo_rod_top:
-          Value: true
-        link2_top_hinge:
-          Value: true
-        link2_top_hinge_end:
-          Value: true
-        link3_abdomen:
-          Value: true
-        link3_battery:
-          Value: true
-        link3_bottom_hinge:
-          Value: true
-        link3_bottom_hinge_end:
-          Value: true
-        link3_front_junction:
-          Value: true
-        link3_propeller:
-          Value: true
-        link3_rear_junction:
-          Value: true
-        link3_servo:
-          Value: true
-        link3_servo_rod:
-          Value: true
-        link3_servo_rod_bottom:
-          Value: true
-        link3_servo_rod_top:
-          Value: true
-        link3_top_hinge:
-          Value: true
-        link3_top_hinge_end:
-          Value: true
-        link4_abdomen:
-          Value: true
-        link4_battery:
-          Value: true
-        link4_front_junction:
-          Value: true
-        link4_propeller:
-          Value: true
       Marker Scale: 1
       Name: TF
       Show Arrows: true
       Show Axes: true
       Show Names: true
       Tree:
-        head_cylinder:
-          head_sphere:
-            eye:
-              {}
-          link0_rear_junction:
-            link1_front_junction:
-              link1_abdomen:
-                link1_battery:
-                  {}
-                link1_propeller:
-                  {}
-              link1_servo:
-                link1_servo_rod:
-                  link1_bottom_hinge_end:
-                    link1_bottom_hinge:
-                      {}
-                  link1_rear_junction:
-                    link2_front_junction:
-                      link2_abdomen:
-                        link2_battery:
-                          {}
-                        link2_propeller:
-                          {}
-                      link2_servo:
-                        link2_servo_rod:
-                          link2_bottom_hinge_end:
-                            link2_bottom_hinge:
-                              {}
-                          link2_rear_junction:
-                            link3_front_junction:
-                              link3_abdomen:
-                                link3_battery:
-                                  {}
-                                link3_propeller:
-                                  {}
-                              link3_servo:
-                                link3_servo_rod:
-                                  link3_bottom_hinge_end:
-                                    link3_bottom_hinge:
-                                      {}
-                                  link3_rear_junction:
-                                    link4_front_junction:
-                                      link4_abdomen:
-                                        link4_battery:
-                                          {}
-                                        link4_propeller:
-                                          {}
-                                  link3_servo_rod_bottom:
-                                    {}
-                                  link3_servo_rod_top:
-                                    {}
-                                  link3_top_hinge_end:
-                                    link3_top_hinge:
-                                      {}
-                          link2_servo_rod_bottom:
-                            {}
-                          link2_servo_rod_top:
-                            {}
-                          link2_top_hinge_end:
-                            link2_top_hinge:
-                              {}
-                  link1_servo_rod_bottom:
-                    {}
-                  link1_servo_rod_top:
-                    {}
-                  link1_top_hinge_end:
-                    link1_top_hinge:
-                      {}
+        {}
       Update Interval: 0
+      Value: false
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /orientation_data
+      Name: MarkerArray
+      Namespaces:
+        cog: true
+        inertia_x: true
+        inertia_y: true
+      Queue Size: 100
       Value: true
   Enabled: true
   Global Options:
@@ -490,7 +339,7 @@ Visualization Manager:
         Z: -0.435753
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.809797
+      Pitch: 0.874797
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
       Yaw: 3.97906

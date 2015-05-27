@@ -3,6 +3,9 @@
 
 //* ros
 #include <ros/ros.h>
+#include <aerial_robot_base/basic_state_estimation.h>
+#include <aerial_robot_base/control_input_array.h>
+
 #include <std_msgs/Int8.h>
 #include <std_msgs/UInt16.h>
 #include <std_msgs/Int32.h>
@@ -10,8 +13,6 @@
 #include <aerial_robot_msgs/VirtualRC.h>
 #include <aerial_robot_msgs/RcData.h>
 #include <tf/transform_broadcaster.h>
-#include <aerial_robot_base/state_estimation.h>
-#include <aerial_robot_base/control_input_array.h>
 #include <aerial_robot_base/FlightNav.h>
 #include <sensor_msgs/Joy.h>
 
@@ -21,11 +22,9 @@ class Navigator
 {
  public:
   Navigator(ros::NodeHandle nh,	ros::NodeHandle nh_private, 
-            Estimator* estimator, FlightCtrlInput* flight_ctrl_input,
+            BasicEstimator* estimator, FlightCtrlInput* flight_ctrl_input,
             int ctrl_loop_rate);
   virtual ~Navigator();
-
-  navi_sub_ = nh_.subscribe<aerial_robot_base::FlightNav>("full_states", 1, &Navigator::naviCallback, this, ros::TransportHints().tcpNoDelay());
 
 
   inline bool getStartAble(){  return start_able_;}
@@ -35,9 +34,20 @@ class Navigator
   inline void startFlight(){  flight_able_ = true;}
   inline void stopFlight(){  flight_able_ = false;}
 
+  inline uint8_t getFlightMode(){  return flight_mode_;}
+
   inline uint8_t getNaviCommand(){  return navi_command_;}
   inline void setNaviCommand(const uint8_t  command){ navi_command_ = command;}
 
+  inline uint8_t getXyControlMode(){  return (uint8_t)xy_control_mode_;}
+  inline void setXyControlMode(uint8_t mode){  xy_control_mode_ = mode;}
+  inline bool getXyVelModePosCtrlTakeoff(){  return xy_vel_mode_pos_ctrl_takeoff_;}
+  inline bool getFreeFallFlag(){  return free_fall_flag_;}
+  inline void resetFreeFallFlag(){  free_fall_flag_ = false;}
+
+  inline bool getMotorStopFlag(){  return motor_stop_flag_;}
+  inline void setMotorStopFlag(bool motor_stop_flag){  motor_stop_flag_ = motor_stop_flag;}
+  inline uint8_t getThrowingMode(){  return throwing_mode_;}
 
   inline float getTargetPosX(){  return current_target_pos_x_;}
   inline void setTargetPosX( float value){  final_target_pos_x_ = value;}
@@ -67,7 +77,7 @@ class Navigator
   inline float getTargetVelPsi(){  return current_target_vel_psi_;}
   inline void setTargetVelPsi( float value){  final_target_vel_psi_ = value;}
 
-  
+  void throwingModeNavi();
 
   void tfPublish();
 
@@ -91,10 +101,16 @@ class Navigator
   const static uint8_t RESET_MODE = 4;
 
 
-  const static uint8_t MAP_FRAME = 0;
-  const static uint8_t BODY_FRAME = 1;
 
 
+  //for throwing
+  const static uint8_t THROWING_START_STANDBY = 0x31;
+  const static uint8_t THROWING_START_ARMINGON = 0x32;
+  const static uint8_t THROWING_START_ALT_HOLD = 0x33;
+
+  const static uint8_t GOOD_XY_TRACKING = 0x01;
+  const static uint8_t ZERO_XY_TRACKING = 0x02;
+  const static uint8_t RECOVER_XY_TRACKING = 0x03;
 
 
 
@@ -114,19 +130,40 @@ class Navigator
   const static uint8_t VEL_WORLD_BASED_CONTROL_MODE = 2;
   const static uint8_t VEL_LOCAL_BASED_CONTROL_MODE = 3;
 
-
   protected:
     ros::NodeHandle nh_;
     ros::NodeHandle nhp_;
     ros::Subscriber navi_sub_;
     tf::TransformBroadcaster* br_ ; 
 
-    Estimator* estimator_;
+    BasicEstimator* estimator_;
     FlightCtrlInput* flight_ctrl_input_;
 
     bool start_able_;
     bool flight_able_;
     uint8_t navi_command_;
+    uint8_t flight_mode_; //important
+
+    int  xy_control_mode_;
+    bool xy_vel_mode_pos_ctrl_takeoff_;
+
+
+    //*** free fall
+    double free_fall_thre_;
+    bool   use_free_fall_;
+    bool   free_fall_flag_;
+    bool   motor_stop_flag_;
+
+    //*** base navigation
+
+    bool   use_throwing_mode_;
+    uint8_t throwing_mode_;
+    double throwing_mode_standby_alt_thre_;
+    double throwing_mode_throw_acc_x_thre_;
+    double throwing_mode_throw_acc_z_thre_;
+    double throwing_mode_set_alt_acc_z_thre_;
+    double throwing_mode_alt_hold_vel_z_thre_;
+    int    throwing_mode_shift_step_cnt_thre_;
 
     // final target value
     float final_target_pos_x_;
@@ -156,41 +193,13 @@ class Navigator
     float current_target_psi_;
     float current_target_vel_psi_;
 
-    int ctrl_loop_rate;
+    int ctrl_loop_rate_;
     std::string map_frame_;
     std::string target_frame_;
 
-    void naviCallback(const aerial_robot_base::FlightNavConstPtr & msg)
-    {
-      //for x & y
-      if(msg->command_mode == aerial_robot_base::FlightNav::VEL_FLIGHT_MODE_COMMAND)
-        {
-          setTargetVelX(msg->target_vel_x);
-          setTargetVelY(msg->target_vel_y);
-        }
-      else if(msg->command_mode == aerial_robot_base::FlightNav::POS_FLIGHT_MODE_COMMAND)
-        {
-          setTargetPosX(msg->target_pos_x);
-          setTargetPosY(msg->target_pos_y);
-        }
+    void rosParamInit(ros::NodeHandle nh);
 
-      //for z
-      if(msg->pos_z_navi_mode == aerial_robot_base::FlightNav::VEL_FLIGHT_MODE_COMMAND)
-        {
-          addTargetPosZ(msg->target_pos_diff_z);
-        }
-      else if(msg->pos_z_navi_mode == aerial_robot_base::FlightNav::POS_FLIGHT_MODE_COMMAND)
-        {
-          setTargetPosZ(msg->target_pos_z);
-        }
-
-      //for psi
-      //not good, be carefukk
-      if(msg->command_mode != aerial_robot_base::FlightNav::NO_NAVIGATION)
-        {
-          setTargetPsi(msg->target_psi);
-        }
-    }
+    void naviCallback(const aerial_robot_base::FlightNavConstPtr & msg);
 
 };
 
@@ -199,7 +208,7 @@ class TeleopNavigator :public Navigator
  public:
   TeleopNavigator(ros::NodeHandle nh,
                   ros::NodeHandle nh_private,
-                  Estimator* estimator,
+                  BasicEstimator* estimator,
                   FlightCtrlInput* flight_ctrl_input,
                   int ctrl_loop_rate);
   virtual ~TeleopNavigator();
@@ -214,45 +223,29 @@ class TeleopNavigator :public Navigator
   void yawCallback(const std_msgs::Int8ConstPtr & msg);
   void throttleCallback(const std_msgs::Int8ConstPtr & msg);
 
-  void joyStickControl(const sensor_msgs::JoyConstPtr joy_msg);
+  void joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg);
 
   void xyControlModeCallback(const std_msgs::Int8ConstPtr & msg);
   void armingAckCallback(const std_msgs::Int8ConstPtr& ack_msg);
 
   //for navigation => TODO
-  void flightNavCallback(const aeiral_robot_base::FlightNavConstPtr& msg);
+  void flightNavCallback(const aerial_robot_base::FlightNavConstPtr& msg);
 
   void targetValueCorrection();
-  void throwingModeNavi();
   void teleopNavigation();
   void sendRcCmd();
 
 
-  inline uint8_t getFlightMode(){  return flight_mode_;}
-  inline uint8_t getXyControlMode(){  return (uint8_t)xy_control_mode_;}
-  inline void setXyControlMode(uint8_t mode){  xy_control_mode_ = mode;}
-  inline bool getMotorStopFlag(){  return motor_stop_flag;}
-  inline void setMotorStopFlag(bool motor_stop_flag){  motor_stop_flag_ = motor_stop_flag;}
-  inline bool getFreeFallFlag(){  return free_fall_flag_;}
-  inline void resetFreeFallFlag(){  free_fall_flag_ = false;}
-  inline uint8_t getThrowingMode(){  return throwing_mode_;}
-  inline bool getXyVelModePosCtrlTakeoff(){  return xy_vel_mode_pos_ctrl_takeoff_;}
-
   const static int TAKEOFF_COUNT = 8;
-
-  //for throwing
-  const static uint8_t THROWING_START_STANDBY = 0x31;
-  const static uint8_t THROWING_START_ARMINGON = 0x32;
-  const static uint8_t THROWING_START_ALTHOLD = 0x33;
-
-  const static uint8_t GOOD_XY_TRACKING = 0x01;
-  const static uint8_t ZERO_XY_TRACKING = 0x02;
-  const static uint8_t RECOVER_XY_TRACKING = 0x03;
 
   //for hovering convergence
   const static float POS_X_THRE = 0.15; //m
   const static float POS_Y_THRE = 0.15; //m
   const static float POS_Z_THRE = 0.05; //m
+
+
+  const static uint8_t MAP_FRAME = 0;
+  const static uint8_t BODY_FRAME = 1;
 
 
  private:
@@ -274,26 +267,6 @@ class TeleopNavigator :public Navigator
     ros::Subscriber joy_stick_sub_;
     ros::Subscriber flight_nav_sub_;
 
-    //*** base navigation
-    uint8_t flight_mode_; //important
-    int  xy_control_mode_;
-    bool xy_vel_mode_pos_ctrl_takeoff_;
-
-    //*** free fall
-    double free_fall_thre_;
-    bool   use_free_fall_;
-    bool   free_fall_flag_;
-    bool   motor_stop_flag_;
-
-    bool   use_throwing_mode_;
-    uint8_t throwing_mode_;
-    double throwing_mode_standby_alt_thre_;
-    double throwing_mode_throw_acc_x_thre_;
-    double throwing_mode_throw_acc_z_thre_;
-    double throwing_mode_set_alt_acc_z_thre_;
-    double throwing_mode_alt_hold_vel_z_thre_;
-    int    throwing_mode_shift_step_cnt_thre_;
-
     //*** teleop navigation
     double takeoff_height_;
     double even_move_distance_;
@@ -314,7 +287,7 @@ class TeleopNavigator :public Navigator
     bool  alt_control_flag_;
     bool  yaw_control_flag_;
 
-    void rosParamInit();
+    void rosParamInit(ros::NodeHandle nh);
 };
 
 

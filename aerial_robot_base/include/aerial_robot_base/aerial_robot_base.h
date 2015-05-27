@@ -4,7 +4,6 @@
 #include <ros/ros.h>
 #include <aerial_robot_base/flight_control.h>
 #include <aerial_robot_base/flight_navigation.h>
-//#include <aerial_robot_base/tracking.h>
 #include <aerial_robot_base/state_estimation.h>
 #include <boost/thread.hpp>
 
@@ -38,7 +37,6 @@ class AerialRobotBase
   PidController* controller_;
   RigidEstimator*  estimator_; 
   TeleopNavigator* navigator_;
-
 
   //*** tracking function
   /* bool trackingFlag_; */

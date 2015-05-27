@@ -36,16 +36,16 @@ class KalmanFilterPosVelAcc : public Filter
   void imuQuCorrection(ros::Time check_time_stamp, double measurement, int type = 0);
   void imuQuOnlyPrediction(ros::Time check_time_stamp); //for bad measurement step
   bool imuQuPrediction(ros::Time check_time_stamp);
-  void imuQuPush(jsk_quadcopter::ImuQuPtr imu_qu_msg_ptr);
+  void imuQuPush(aerial_robot_base::ImuQuPtr imu_qu_msg_ptr);
 
 
-  inline double getEstimatePos(){  return estimateState(0);}
-  inline double getEstimateVel(){  return estimateState(1);}
-  inline double getCorrectPos(){  return correctState(0);}
-  inline double getCorrectVel(){  return correctState(1);}
+  inline double getEstimatePos(){  return estimate_state_(0);}
+  inline double getEstimateVel(){  return estimate_state_(1);}
+  inline double getCorrectPos(){  return correct_state_(0);}
+  inline double getCorrectVel(){  return correct_state_(1);}
 
-  inline double getPredictPos(){  return predictState(0);}
-  inline double getPredictVel(){  return predictState(1);}
+  inline double getPredictPos(){  return predict_state_(0);}
+  inline double getPredictVel(){  return predict_state_(1);}
 
   void getEstimateCovariance(float* covarianceMatrix);
 
@@ -77,13 +77,13 @@ class KalmanFilterPosVelAcc : public Filter
   Eigen::Matrix<double, 1, 1> inovation_covariance_;
   Eigen::Matrix<double, 2, 1> kalman_gain_;
   
-  Eigen::Matrix2d state_transition_model;
+  Eigen::Matrix2d state_transition_model_;
   Eigen::Matrix<double, 1, 2> observation_model_;
   Eigen::Matrix<double, 1, 2> observation_only_velocity_model_;
   Eigen::Matrix<double, 2, 1> control_input_model_;
 
   //time synchronized state
-  std::queue<jsk_quadcopter::ImuQuPtr> imu_qu_;
+  std::queue<aerial_robot_base::ImuQuPtr> imu_qu_;
 
   ros::Time kalman_filter_stamp_;
   std::string id_;
@@ -110,7 +110,7 @@ class KalmanFilterPosVelAcc : public Filter
   void rosParamInit();
 };
 
-class KalmanFilterImuLaserBias : public Filter 
+class KalmanFilterPosVelAccBias : public Filter 
 {
  public:
   KalmanFilterPosVelAccBias(ros::NodeHandle nh, ros::NodeHandle nh_private, std::string filterID, bool DynamicReconf = false);
@@ -129,9 +129,9 @@ class KalmanFilterImuLaserBias : public Filter
   void imuQuPush(aerial_robot_base::ImuQuPtr imu_qu_msg_ptr);
 
 
-  inline double getEstimatePos(){  return estiamte_state_(0);}
-  inline double getEstimateVel(){  return estiamte_state_(1);}
-  inline double getEstimateBias(){  return estiamte_state_(2);}
+  inline double getEstimatePos(){  return estimate_state_(0);}
+  inline double getEstimateVel(){  return estimate_state_(1);}
+  inline double getEstimateBias(){  return estimate_state_(2);}
   inline double getCorrectPos(){  return correct_state_(0);}
   inline double getCorrectVel(){  return correct_state_(1);}
   inline double getPredictPos(){  return predict_state_(0);}
@@ -155,7 +155,7 @@ class KalmanFilterImuLaserBias : public Filter
   void reset();
 
   //dynamic reconfigure
-  void cfgCallback(jsk_quadcopter::StateKalmanFilterConfig &config, uint32_t level);
+  void cfgCallback(aerial_robot_base::StateKalmanFilterConfig &config, uint32_t level);
 
  private:
   ros::NodeHandle nh_;
@@ -180,10 +180,10 @@ class KalmanFilterImuLaserBias : public Filter
   Eigen::Matrix3d state_transition_model_;
   Eigen::Matrix<double, 1, 3> observation_model_;
   Eigen::Matrix<double, 1, 3> observation_only_velocity_model_;
-  Eigen::Matrix<double, 3, 1>  controlInput_model_;
+  Eigen::Matrix<double, 3, 1>  control_input_model_;
 
   //time synchronized state
-  std::queue <jsk_quadcopter::ImuQuPtr> imu_qu_;
+  std::queue <aerial_robot_base::ImuQuPtr> imu_qu_;
   Eigen::Vector2d estimate_state_time_sync; //0:Position, 1:Velocity
 
 

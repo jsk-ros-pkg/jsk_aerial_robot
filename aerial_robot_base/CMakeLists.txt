@@ -16,9 +16,6 @@ find_package(catkin REQUIRED COMPONENTS
   tf
   dynamic_tf_publisher
   dynamic_reconfigure
-  jsk_recognition_msgs #not good
-  px_comm #not good
-  #image_processing #not good
   aerial_robot_msgs
 )
 
@@ -51,7 +48,7 @@ generate_dynamic_reconfigure_options(
 
 catkin_package(
   INCLUDE_DIRS include
-  LIBRARIES 
+  LIBRARIES ${PROJECT_NAME}
   CATKIN_DEPENDS roscpp message_runtime aerial_robot_msgs std_msgs geometry_msgs visualization_msgs nav_msgs  sensor_msgs laser_geometry 
   DEPENDS Eigen
 )
@@ -62,11 +59,9 @@ catkin_package(
 
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
-# include_directories(include)
 include_directories(
   include ${Boost_INCLUDE_DIR} ${catkin_INCLUDE_DIRS}
 )
-
 
 add_library (aerial_robot_base src/aerial_robot_base.cpp
   src/flight_navigation.cpp
@@ -75,16 +70,16 @@ add_library (aerial_robot_base src/aerial_robot_base.cpp
   src/kalman_filter.cpp
 )
 
-add_executable(aerial_robot_base_node src/aerial_robot_base_node.cpp)
-target_link_libraries (aerial_robot_base_node aerial_robot_base) 
+#add_executable(aerial_robot_base_node src/aerial_robot_base_node.cpp)
+#target_link_libraries (aerial_robot_base_node aerial_robot_base) 
 
 install(DIRECTORY launch
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
 
-install(TARGETS aerial_robot_base_node aerial_robot_base
-   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
- )
+#install(TARGETS aerial_robot_base_node aerial_robot_base
+#   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+#   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+#   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+# )
 
 

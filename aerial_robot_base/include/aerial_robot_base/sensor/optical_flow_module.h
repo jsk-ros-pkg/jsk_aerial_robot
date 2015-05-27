@@ -2,7 +2,7 @@
 #define OPTICAL_FLOW_MODULE_H
 
 #include <ros/ros.h>
-#include <aerial_robot_base/state_estimation.h>
+#include <aerial_robot_base/basic_state_estimation.h>
 //* filter
 #include <aerial_robot_base/kalman_filter.h>
 #include <aerial_robot_base/digital_filter.h>
@@ -18,21 +18,23 @@ class OpticalFlowData
 
  OpticalFlowData(ros::NodeHandle nh,
                  ros::NodeHandle nh_private,
-                 Estimator* state_estimator,
+                 BasicEstimator* state_estimator,
                  bool kalman_filter_flag,
-                 KalmanFilterImuLaser *kf_x, 
-                 KalmanFilterImuLaser *kf_y,
-                 KalmanFilterImuLaser *kf_z,
-                 KalmanFilterImuLaserBias *kfb_x, 
-                 KalmanFilterImuLaserBias *kfb_y,
-                 KalmanFilterImuLaserBias *kfb_z)
+                 KalmanFilterPosVelAcc *kf_x, 
+                 KalmanFilterPosVelAcc *kf_y,
+                 KalmanFilterPosVelAcc *kf_z,
+                 KalmanFilterPosVelAccBias *kfb_x, 
+                 KalmanFilterPosVelAccBias *kfb_y,
+                 KalmanFilterPosVelAccBias *kfb_z)
    : nh_(nh, "optical_flow"),
     nhp_(nh_private, "optical_flow")
     {
-      optical_flow_pub_ = nh_.advertise<aeiral_robot_base::OpticalFlowDaya>("data",10);
-      optical_flow_sub_ = nh_.subscribe<px_comm::OpticalFlow>("opt_flow", 1, &OpticalFlowData::opticalFlowCallback, this, ros::TransportHints().tcpNoDelay());
+      optical_flow_pub_ = nh_.advertise<aerial_robot_base::States>("data",10);
+      optical_flow_sub_ = nh_.subscribe<aerial_robot_base::OpticalFlow>("opt_flow", 1, &OpticalFlowData::opticalFlowCallback, this, ros::TransportHints().tcpNoDelay());
 
       rosParamInit(nhp_);
+
+      state_estimator_ = state_estimator;
 
       kalman_filter_flag = kalman_filter_flag;
       kf_x_ = kf_x; kf_y_ = kf_y; kf_z_ = kf_z;
@@ -47,10 +49,9 @@ class OpticalFlowData
 
       raw_vel_x_ = 0;
       filtered_vel_x_ = 0;
-      pos_x_ = 0;
+
       raw_vel_y_ = 0;
       filtered_vel_y_ = 0;
-      pos_y_ = 0;
     }
 
   ~OpticalFlowData()
@@ -99,10 +100,10 @@ class OpticalFlowData
   ros::Subscriber optical_flow_sub_;
   ros::Time optical_flow_stamp_;
 
-  Estimator* state_estimator_;
+  BasicEstimator* state_estimator_;
 
-  bool   useRocket_start_;
-  bool   rocket_start_flag;
+  bool   use_rocket_start_;
+  bool   rocket_start_flag_;
   double rocket_start_upper_thre_;
   double rocket_start_lower_thre_;
   double rocket_start_vel_;
@@ -111,13 +112,13 @@ class OpticalFlowData
   double y_axis_direction_;
 
   bool kalman_filter_flag_;
-  KalmanFilterImuLaser *kf_x_;
-  KalmanFilterImuLaser *kf_y_;
-  KalmanFilterImuLaser *kf_z_;
+  KalmanFilterPosVelAcc *kf_x_;
+  KalmanFilterPosVelAcc *kf_y_;
+  KalmanFilterPosVelAcc *kf_z_;
 
-  KalmanFilterImuLaserBias *kfb_x_;
-  KalmanFilterImuLaserBias *kfb_y_;
-  KalmanFilterImuLaserBias *kfb_z_;
+  KalmanFilterPosVelAccBias *kfb_x_;
+  KalmanFilterPosVelAccBias *kfb_y_;
+  KalmanFilterPosVelAccBias *kfb_z_;
 
   float raw_pos_z_;
   float pos_z_;
@@ -131,7 +132,7 @@ class OpticalFlowData
   float filtered_vel_y_;
 
 
-  void opticalFlowCallback(const px_comm::OpticalFlowConstPtr & optical_flow_msg)
+  void opticalFlowCallback(const aerial_robot_base::OpticalFlowConstPtr & optical_flow_msg)
   {
     static int cnt = 0;
     static int CNT = 1;
@@ -212,7 +213,7 @@ class OpticalFlowData
                         kf_x_->correctionOnlyVelocity(raw_vel_x_, optical_flow_msg->header.stamp);  //velocity
                         kfb_x_->correctionOnlyVelocity(raw_vel_x_, optical_flow_msg->header.stamp); //velocity
                       }
-                    if(optical_flow_msg->quality == 0 || raw_vel_y_ == 0 || raw_pos_z > 2.5)
+                    if(optical_flow_msg->quality == 0 || raw_vel_y_ == 0 || raw_pos_z_ > 2.5)
                       { // remove the raw_vel_y case is not good !!
                         kf_y_->correctionOnlyVelocity(filtered_vel_y_, optical_flow_msg->header.stamp); //velocity
                         kfb_y_->correctionOnlyVelocity(filtered_vel_y_, optical_flow_msg->header.stamp); //velocity
@@ -226,8 +227,8 @@ class OpticalFlowData
                 
                 if(raw_pos_z_ != prev_raw_pos_z && raw_pos_z_ < 2.5) //100Hz
                   {
-                    kfb_z_->correction(raw_pos_z, optical_flow_msg->header.stamp);
-                    kf_z_->correction(raw_pos_z, optical_flow_msg->header.stamp);
+                    kfb_z_->correction(raw_pos_z_, optical_flow_msg->header.stamp);
+                    kf_z_->correction(raw_pos_z_, optical_flow_msg->header.stamp);
                   }
               }
 
@@ -311,7 +312,7 @@ class OpticalFlowData
     if (!nh.getParam ("y_axis_direction", y_axis_direction_))
       y_axis_direction_ = -1.0; //-1 is default
     printf("%s: y_axisDirection_ is %.3f\n", ns.c_str(), y_axis_direction_);
-
+  }
 };
 
 
