@@ -24,7 +24,6 @@ find_package(Eigen REQUIRED)
 include_directories(${EIGEN_INCLUDE_DIRS})
 add_definitions(${EIGEN_DEFINITIONS})
 
-
 add_message_files(FILES
   AerialRobotStatus.msg
   FlightNav.msg
@@ -49,7 +48,7 @@ generate_dynamic_reconfigure_options(
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES ${PROJECT_NAME}
-  CATKIN_DEPENDS roscpp message_runtime aerial_robot_msgs std_msgs geometry_msgs visualization_msgs nav_msgs  sensor_msgs laser_geometry 
+  CATKIN_DEPENDS roscpp message_runtime aerial_robot_msgs std_msgs geometry_msgs visualization_msgs nav_msgs  sensor_msgs laser_geometry tf
   DEPENDS Eigen
 )
 
@@ -69,17 +68,21 @@ add_library (aerial_robot_base src/aerial_robot_base.cpp
   src/state_estimation.cpp
   src/kalman_filter.cpp
 )
+## important link
+target_link_libraries (aerial_robot_base ${catkin_LIBRARIES}  ${Boost_LIBRARIES} aerial_robot_base) 
 
-#add_executable(aerial_robot_base_node src/aerial_robot_base_node.cpp)
-#target_link_libraries (aerial_robot_base_node aerial_robot_base) 
+
+add_executable(aerial_robot_base_node src/aerial_robot_base_node.cpp)
+target_link_libraries (aerial_robot_base_node ${catkin_LIBRARIES}  ${Boost_LIBRARIES} aerial_robot_base) 
+add_dependencies(aerial_robot_base_node aerial_robot_msgs_generate_message_cpp ${PROJECT_NAME}_gencfg)
 
 install(DIRECTORY launch
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
 
-#install(TARGETS aerial_robot_base_node aerial_robot_base
-#   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-# )
+install(TARGETS aerial_robot_base_node aerial_robot_base
+   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+ )
 
 

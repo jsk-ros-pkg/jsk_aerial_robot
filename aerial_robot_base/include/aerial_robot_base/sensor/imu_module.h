@@ -94,6 +94,7 @@ class ImuData
     {
     };
 
+  const static int CALIB_COUNT = 200;
 
 
   inline void setPitchValue(float pitch_value) {   pitch_ = pitch_value;  }
@@ -107,11 +108,6 @@ class ImuData
   inline float getAccXbValue()  {    return acc_xb_;  }
   inline float getAccYbValue()  {    return acc_yb_;  }
   inline float getAccZbValue()  {    return acc_zb_;  }
-
-  const static float G = 9.797;
-  const static int CALIB_COUNT = 200;
-  const static int KDUINO_BOARD = 0;
-  const static int ASCTEC_BOARD = 1;
 
   inline ros::Time getImuStamp(){return imu_stamp_;}
 
@@ -151,6 +147,7 @@ class ImuData
   FirFilter *lpf_acc_y_;
   FirFilter *lpf_acc_z_;
 
+  double g_value_;
   double acc_scale_;
   double gyro_scale_;
   double mag_scale_;
@@ -185,7 +182,6 @@ class ImuData
 
   float height_;
   float v_bat_;   //*** battery
-
 
 
 
@@ -241,11 +237,11 @@ class ImuData
     acc_yi_ = (acc_yb_) * cos(roll_) - (acc_zb_) * sin(roll_);
     acc_zw_ = (acc_xb_) * (-sin(pitch_)) + 
       (acc_yb_) * cos(pitch_) * sin(roll_) + 
-      (acc_zb_) * cos(pitch_) * cos(roll_) + (-G);
+      (acc_zb_) * cos(pitch_) * cos(roll_) + (-g_value_);
 #else  // use approximation
     acc_xi_ =  (acc_zb_) * sin(pitch_) * cos(roll_);
     acc_yi_ =  - (acc_zb_) * sin(roll_);
-    acc_zw_ = (acc_zb_) * cos(pitch_) * cos(roll_) + (-G);
+    acc_zw_ = (acc_zb_) * cos(pitch_) * cos(roll_) + (- g_value_);
 #endif
 
     //bais calibration
@@ -443,7 +439,10 @@ class ImuData
 
   void rosParamInit(ros::NodeHandle nh)
   {
-    nh.param("acc_scale", acc_scale_, 9.797 / 512.0);
+    nh.param("g_value", g_value_, 9.797 );
+    printf(" acc scale is %f\n", g_value_);
+
+    nh.param("acc_scale", acc_scale_, g_value_ / 512.0);
     printf(" acc scale is %f\n", acc_scale_);
     nh.param("gyro_scale", gyro_scale_, (2279 * M_PI)/((32767.0 / 4.0f ) * 180.0));
     printf(" gyro scale is %f\n", gyro_scale_);

@@ -1,13 +1,13 @@
-#include "jsk_quadcopter/quadcopter.h"
+#include "aerial_robot_base/aerial_robot_base.h"
 
 int main (int argc, char **argv)
 {
-  ros::init (argc, argv, "quadcopter");
+  ros::init (argc, argv, "aeria_robot_base");
   ros::NodeHandle nh;
   ros::NodeHandle nh_private("~");
-  JskQuadcopter*  quadcopterNode = new JskQuadcopter(nh, nh_private);
+  AerialRobotBase*  aerialRobotBaseNode = new AerialRobotBase(nh, nh_private);
   ros::spin ();
-  delete quadcopterNode;
+  delete aerialRobotBaseNode;
   return 0;
 }
 
