@@ -3,32 +3,33 @@
 #define CAM_SHIFT_H
 
 #include <ros/ros.h>
-
+#include <tracking/basic_tracking.h>
 #include <aerial_robot_base/digital_filter.h>
-
+#include <tracking/tracking.h>
 #include <sensor_msgs/CameraInfo.h>
 #include <jsk_recognition_msgs/RotatedRectStamped.h>
 #include <image_processing/StartTracking.h>
 #include <geometry_msgs/Vector3Stamped.h>
+#include <aerial_robot_base/FlightNav.h>
 
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
+
 
 class CamShift
 {
  public:
 
 
- CamShift(ros::NodeHandle nh,	ros::NodeHandle nh_private, Tracking* tracker
-          )
+ CamShift(ros::NodeHandle nh, ros::NodeHandle nh_private, BasicTracking* tracker)
    : nh_(nh), nh_private_(nh_private, "cam_shift")
     {
       rosParamInit();
       
       tracker_ = tracker;
 
-      camshift_sub_ = nh_.subscribe<jsk_perception::RotatedRectStamped>("result", 1, &CamShift::trackerCallback, this, ros::TransportHints().tcpNoDelay());
+      camshift_sub_ = nh_.subscribe<jsk_recognition_msgs::RotatedRectStamped>("result", 1, &CamShift::trackerCallback, this, ros::TransportHints().tcpNoDelay());
 
       camera_info_sub_ = nh_.subscribe<sensor_msgs::CameraInfo>(cam_info_topic_, 1, &CamShift::cameraInfoCallback, this, ros::TransportHints().tcpNoDelay());
 
@@ -52,13 +53,14 @@ class CamShift
       /* navigator_->setTargetVelY(0); */
       /* navigator_->setTargetPsi(0); */
       aerial_robot_base::FlightNav navi_command;
-      navi_command.header.stamp = msg->header.stamp;
+      navi_command.header.stamp = ros::Time::now();
       navi_command.command_mode = aerial_robot_base::FlightNav::VEL_FLIGHT_MODE_COMMAND;
       navi_command.target_vel_x = 0;
       navi_command.target_vel_y = 0;
       navi_command.target_psi = 0;
-      navi_command.pos_z_navi_mode = aerial_robot_base::FlightNav::NO_NAVIGATION:
-      tracker_->navi_pub_.publish(navi_command);
+      navi_command.pos_z_navi_mode = aerial_robot_base::FlightNav::NO_NAVIGATION;
+      //tracker_->navi_pub_.publish(navi_command);
+      tracker_->navigation(navi_command);
 
 
       camshift_sub_.shutdown();
@@ -75,7 +77,7 @@ class CamShift
   ros::Subscriber state_sub_;
 
   ros::ServiceClient start_tracking_client_;
-  Tracking* tracker_;
+  BasicTracking* tracker_;
 
 
   IirFilter lpf_image_x_, lpf_image_y_, lpf_image_area_;
@@ -118,12 +120,12 @@ class CamShift
     camera_info_sub_.shutdown();
   }
 
-  void trackerCallback(const jsk_perception::RotatedRectStampedConstPtr& msg)
+  void trackerCallback(const jsk_recognition_msgs::RotatedRectStampedConstPtr& msg)
   {
     /* double pitch = estimator_->getStateTheta(); */
     /* double roll  = estimator_->getStatePhy(); */
 
-    double pitch = tracker_->getTheta();
+    double pitch = (double)tracker_->getTheta();
     double roll  = tracker_->getPhy();
 
     //IMPORTANT : We need transform system!! => TODO
@@ -173,12 +175,13 @@ class CamShift
     navi_command.target_vel_x = target_vel_x;
 
     //* z
-    navi_command.pos_z_navi_mode = aerial_robot_base::FlightNav::NO_NAVIGATION:
+    navi_command.pos_z_navi_mode = aerial_robot_base::FlightNav::NO_NAVIGATION;
 
     int dif_z = - (y_dash - target_z_);
     //TODO: should add the factor of area of ball, 
     //      same with the alt control func of joy stick navigator.
     float target_dif_pos_z = dif_z / abs(dif_z) * gain_z_;
+    float pos_z = tracker_->getPosZ();
     if(abs(dif_z) > thre_z_)
       {
         navi_command.pos_z_navi_mode = aerial_robot_base::FlightNav::VEL_FLIGHT_MODE_COMMAND;
@@ -191,17 +194,17 @@ class CamShift
           {
             alt_control_flag_ = false;
             navi_command.pos_z_navi_mode = aerial_robot_base::FlightNav::POS_FLIGHT_MODE_COMMAND;
-            navi_command.target_pos_z = tracker_->getPosZ();
+            navi_command.target_pos_z = pos_z;
             //navigator_->setTargetPosZ(estimator_->getStatePosZ());
           }
       }
-    if(navigator_->getTargetPosZ() < 0.35) 
+    if(pos_z < 0.35) 
       {
         navi_command.pos_z_navi_mode = aerial_robot_base::FlightNav::POS_FLIGHT_MODE_COMMAND;
         navi_command.target_pos_z = 0.35;
         //navigator_->setTargetPosZ(0.35);
       }
-    if(navigator_->getTargetPosZ() > 3) 
+    if(pos_z > 3) 
       {
         navi_command.pos_z_navi_mode = aerial_robot_base::FlightNav::POS_FLIGHT_MODE_COMMAND;
         navi_command.target_pos_z = 3;
@@ -228,7 +231,7 @@ class CamShift
         /* navigator_->setTargetVelY(target_vel_y); */
       }
 
-    tracker_->navi_pub_.publish(navi_command);
+    tracker_->navigation(navi_command);
   }
 
   void startTracking()

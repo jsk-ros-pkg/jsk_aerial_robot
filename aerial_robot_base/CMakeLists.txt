@@ -68,13 +68,15 @@ add_library (aerial_robot_base src/aerial_robot_base.cpp
   src/state_estimation.cpp
   src/kalman_filter.cpp
 )
+add_dependencies(aerial_robot_base aerial_robot_msgs_gencpp ${PROJECT_NAME}_gencpp)
 ## important link
 target_link_libraries (aerial_robot_base ${catkin_LIBRARIES}  ${Boost_LIBRARIES} aerial_robot_base) 
 
 
 add_executable(aerial_robot_base_node src/aerial_robot_base_node.cpp)
 target_link_libraries (aerial_robot_base_node ${catkin_LIBRARIES}  ${Boost_LIBRARIES} aerial_robot_base) 
-add_dependencies(aerial_robot_base_node aerial_robot_msgs_generate_message_cpp ${PROJECT_NAME}_gencfg)
+#add_dependencies(aerial_robot_base_node aerial_robot_msgs_generate_message_cpp ${PROJECT_NAME}_generate_message_cpp ${PROJECT_NAME}_gencfg)
+add_dependencies(aerial_robot_base_node  ${PROJECT_NAME}_gencfg)
 
 install(DIRECTORY launch
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
