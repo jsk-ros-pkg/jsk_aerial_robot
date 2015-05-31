@@ -1,12 +1,12 @@
 <launch>
   <arg name="visualize" default="true" /> 
   <arg name="model" default="hydra" /> 
-  <param name="hydra/robot_description" 
+
+  <param name="robot_description" 
          command="$(find xacro)/xacro.py '$(find aerial_robot_model)/robots/$(arg model).urdf.xacro'" />
 
-<group ns="$(arg model)" >
   <node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher" />
-</group>
+
 
 <group if="$(arg visualize)">
  <node name="rviz" pkg="rviz" type="rviz"

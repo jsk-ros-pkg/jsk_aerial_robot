@@ -2,96 +2,49 @@
 #define CHECKER_BOARD_H
 
 #include <ros/ros.h>
-#include <jsk_quadcopter/flight_navigation.h>
-#include <jsk_quadcopter/state_estimation.h>
-#include <jsk_quadcopter/PoseStamped.h>
 #include <posedetection_msgs/ObjectDetection.h>
 #include <boost/thread/mutex.hpp>
 #include <tf/transform_broadcaster.h>
 #include <tf/transform_listener.h>
+#include <aerial_robot_base/FlightNav.h>
 
 class CheckerBoard
 {
  public:
- CheckerBoard(ros::NodeHandle nh,	ros::NodeHandle nh_private): 
-  nh_(nh), nh_private_(nh_private, "checker_board")
+
+ CheckerBoard(ros::NodeHandle nh,	ros::NodeHandle nh_private): nh_(nh), nhp_(nh_private, "tracking")
     {
-      rosParamInit();
-
-      navigator_ = new Navigator(nh, nh_private, 1);
-      estimator_ = new Estimator();
-
-      targetX = target_x_;
-      targetY = target_y_;
-      targetZ = target_z_;
-      targetPsi = target_psi_;
-      targetTheta = target_theta_;
-      targetPhy = target_phy_;
-
-      checkerboard_sub_ = nh_.subscribe<posedetection_msgs::ObjectDetection>("/checkerdetector/ObjectDetection", 1, &CheckerBoard::checkerBoardCallback, this, ros::TransportHints().tcpNoDelay());
-      quadcopter_relative_pose_pub_ = nh_.advertise<jsk_quadcopter::PoseStamped>("relative_pose", 1); 
-
-      timer_ = nh_private_.createTimer(ros::Duration(1.0 / loop_rate_), &CheckerBoard::loopFunc, this);
-    }
-
-
- CheckerBoard(ros::NodeHandle nh,	ros::NodeHandle nh_private, 
-              Navigator* navigator, 
-              Estimator* estimator): nh_(nh), nh_private_(nh_private, "tracking")
-    {
-      rosParamInit();
-
-      navigator_ = navigator;
-      estimator_ = estimator;
-
-      targetX = target_x_;
-      targetY = target_y_;
-      targetZ = target_z_;
-      targetPsi = target_psi_;
-      targetTheta = target_theta_;
-      targetPhy = target_phy_;
+      rosParamInit(nh_);
 
       checkerboard_dectect_time = ros::Time().now();
 
       checkerboard_sub_ = nh_.subscribe<posedetection_msgs::ObjectDetection>("/checkerdetector/ObjectDetection", 1, &CheckerBoard::checkerBoardCallback, this, ros::TransportHints().tcpNoDelay());
-      quadcopter_relative_pose_pub_ = nh_.advertise<jsk_quadcopter::PoseStamped>("relative_pose", 1); 
 
-      timer_ = nh_private_.createTimer(ros::Duration(1.0 / loop_rate_), &CheckerBoard::loopFunc, this);
+      timer_ = nhp_.createTimer(ros::Duration(1.0 / loop_rate_), &CheckerBoard::loopFunc, this);
  }
   ~CheckerBoard();
 
  protected:
   ros::NodeHandle nh_;
-  ros::NodeHandle nh_private_;
+  ros::NodeHandle nhp_;
   ros::Subscriber checkerboard_sub_;
-  ros::Publisher quadcopter_relative_pose_pub_;
+
   ros::Timer  timer_;
 
-  Estimator* estimator_;
-  Navigator* navigator_;
   tf::TransformListener tf_;
 
-  boost::mutex mutex_time;
+  boost::mutex mutex_time_;
 
-  ros::Time checkerboard_dectect_time;
+  ros::Time checkerboard_dectect_time_;
   double loop_rate_;
   double detect_time_limit_;
   double target_x_;
   double target_y_;
   double target_z_;
   double target_psi_;
-  double target_theta_;
-  double target_phy_;
 
   std::string camera_frame_;
   std::string checkerboard_frame_;
-
-  float targetX;
-  float targetY;
-  float targetZ;
-  float targetPsi;
-  float targetTheta;
-  float targetPhy;
   
 
 
@@ -103,7 +56,7 @@ class CheckerBoard
        ros::Time().now().toSec() - checkerboard_dectect_time.toSec() < detect_time_limit_ + 4 / loop_rate_)
       {
         //navigation 
-        navigator_->setXyControlMode(navigator_->VEL_LOCAL_BASED_CONTROL_MODE);
+        navigator_->set_x_yControlMode(navigator_->VEL_LOCAL_BASED_CONTROL_MODE);
 
         //estimation
         estimator_->setOuterEstimatePoseFlag(0);
@@ -114,9 +67,9 @@ class CheckerBoard
 
   void checkerBoardCallback(const posedetection_msgs::ObjectDetectionConstPtr& msg)
   {
-    boost::mutex::scoped_lock lock(mutex_time);
+    boost::mutex::scoped_lock lock(mutex_time_);
 
-    checkerboard_dectect_time = ros::Time().now();
+    checkerboard_dectect_time_ = ros::Time().now();
 
     if(msg->objects.size() > 0)
       {
@@ -131,7 +84,7 @@ class CheckerBoard
             tf_.waitForTransform(checkerboard_frame_, camera_frame_, checkerboard_dectect_time, ros::Duration(2.0));
             tf_.lookupTransform(checkerboard_frame_, camera_frame_, checkerboard_dectect_time, stamped_pose);
 
-            pos_x = stamped_pose.getOrigin().getX();
+            pos_x = stamped_pose.getOrigin().get_x_();
             pos_y = stamped_pose.getOrigin().getY();
             pos_z = stamped_pose.getOrigin().getZ();
             stamped_pose.getBasis().getEulerYPR((double&)psi, (double&)theta, (double&)phy);
@@ -149,32 +102,31 @@ class CheckerBoard
                                            msg->objects[0].pose.position.y,
                                            msg->objects[0].pose.position.z)).inverse();
         //navigation
-        navigator_->setXyControlMode(navigator_->POS_LOCAL_BASED_CONTROL_MODE);
-        navigator_->setTargetPosX(targetX);
+        navigator_->set_x_yControlMode(navigator_->POS_LOCAL_BASED_CONTROL_MODE);
+        navigator_->setTargetPos_x_(target_x_);
         navigator_->setTargetPosY(targetY);
         navigator_->setTargetPsi(targetPsi);
 
-        float pos_x = inverse_tf.getOrigin().getX();
+        float pos_x = inverse_tf.getOrigin().get_x_();
         float pos_y = inverse_tf.getOrigin().getY();
         float pos_z = inverse_tf.getOrigin().getZ();
         float theta, phy, psi;
         inverse_tf.getBasis().getRPY((double&)phy, (double&)theta, (double&)psi);
 
         //estimation
-        estimator_->setOuterEstimatePoseFlag(estimator_->X_AXIS | estimator_->Y_AXIS | estimator_->YAW_AXIS);
+        estimator_->setOuterEstimatePoseFlag(estimator_->_x__A_x_IS | estimator_->Y_A_x_IS | estimator_->YAW_A_x_IS);
         estimator_->setStatePosX(pos_x);
         estimator_->setStatePosY(pos_y);
         estimator_->setStatePsi(psi);
 
 #endif
 
-        jsk_quadcopter::PoseStamped pose;
+        aerial_robot_base::FlightNav navi_command;
         pose.header.stamp = ros::Time().now();
         pose.position.x = pos_x;
         pose.position.y = pos_y;
         pose.position.z = pos_z;
-        pose.rpy.x = phy;
-        pose.rpy.y = theta;
+
         pose.rpy.z = psi;
   
         quadcopter_relative_pose_pub_.publish(pose);
@@ -184,51 +136,40 @@ class CheckerBoard
   }
 
 
-  void rosParamInit()
+  void rosParamInit(ros::NodeHandle nh)
   {
-    std::string ns = nh_private_.getNamespace();
-    if (!nh_private_.getParam ("loop_rate", loop_rate_))
+    std::string ns = nh.getNamespace();
+    if (!nh.getParam ("loop_rate", loop_rate_))
       loop_rate_ = 2.0;
     printf("%s: loop_rate_ is %.3f\n", ns.c_str(), loop_rate_);
 
-    if (!nh_private_.getParam ("detect_time_limit", detect_time_limit_))
+    if (!nh.getParam ("detect_time_limit", detect_time_limit_))
       detect_time_limit_ = 2.0;
     printf("%s: detect_time_limit_ is %.3f\n", ns.c_str(), detect_time_limit_);
 
-    if (!nh_private_.getParam ("target_x", target_x_))
+    if (!nh.getParam ("target_x", target_x_))
       target_x_ = 0;
     printf("%s: target_x_ is %.3f\n", ns.c_str(), target_x_);
 
-    if (!nh_private_.getParam ("target_y", target_y_))
+    if (!nh.getParam ("target_y", target_y_))
       target_y_ = 0;
     printf("%s: target_y_ is %.3f\n", ns.c_str(), target_y_);
 
-    if (!nh_private_.getParam ("target_z", target_z_))
+    if (!nh.getParam ("target_z", target_z_))
       target_z_ = 0;
     printf("%s: target_z_ is %.3f\n", ns.c_str(), target_z_);
 
-    if (!nh_private_.getParam ("target_theta", target_theta_))
-      target_theta_ = 0;
-    printf("%s: target_theta_ is %.3f\n", ns.c_str(), target_theta_);
-
-    if (!nh_private_.getParam ("target_psi", target_psi_))
+    if (!nh.getParam ("target_psi", target_psi_))
       target_psi_ = 0;
     printf("%s: target_psi_ is %.3f\n", ns.c_str(), target_psi_);
 
-    if (!nh_private_.getParam ("target_phy", target_phy_))
-      target_phy_ = 0;
-    printf("%s: target_phy_ is %.3f\n", ns.c_str(), target_phy_);
-
-    if (!nh_private_.getParam ("camera_frame", camera_frame_))
-      //camera_frame_ = std::string("camera");
+    if (!nh.getParam ("camera_frame", camera_frame_))
       camera_frame_ = std::string("camera_attached_body");
     printf("%s: camera_frame_ is %s\n", ns.c_str(), camera_frame_.c_str());
 
-    if (!nh_private_.getParam ("checkerboard_frame", checkerboard_frame_))
-      //checkerboard_frame_ = std::string("object");
+    if (!nh.getParam ("checkerboard_frame", checkerboard_frame_))
       checkerboard_frame_ = std::string("checkerboard");
     printf("%s: checkerboard_frame_ is %s\n", ns.c_str(), checkerboard_frame_.c_str());
-
   }
 
 

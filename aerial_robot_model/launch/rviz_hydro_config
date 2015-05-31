@@ -279,7 +279,7 @@ Visualization Manager:
           Show Trail: false
           Value: true
       Name: RobotModel
-      Robot Description: hydra/robot_description
+      Robot Description: robot_description
       TF Prefix: ""
       Update Interval: 0
       Value: true
@@ -342,7 +342,7 @@ Visualization Manager:
       Pitch: 0.874797
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 3.97906
+      Yaw: 3.97406
     Saved: ~
 Window Geometry:
   Displays:
@@ -352,5 +352,5 @@ Window Geometry:
   Hide Right Dock: false
   QMainWindow State: 000000ff00000000fd0000000100000000000001ff00000326fc0200000001fb000000100044006900730070006c006100790073010000002800000326000000dd00ffffff000003fa0000032600000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Width: 1535
-  X: 58
+  X: 57
   Y: 24

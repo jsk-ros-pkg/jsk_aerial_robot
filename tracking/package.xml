@@ -47,6 +47,8 @@
   <build_depend>aerial_robot_msgs</build_depend>
   <build_depend>aerial_robot_base</build_depend>
   <build_depend>jsk_recognition_msgs</build_depend>
+  <build_depend>posedetection_msgs</build_depend>
+  <build_depend>tf</build_depend>
 
   <run_depend>roscpp</run_depend>
   <run_depend>sensor_msgs</run_depend>
@@ -55,6 +57,8 @@
   <run_depend>aerial_robot_msgs</run_depend>
   <run_depend>aerial_robot_base</run_depend>
   <run_depend>jsk_recognition_msgs</run_depend>
+  <run_depend>posedetection_msgs</run_depend>
+  <run_depend>tf</run_depend>
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>

@@ -40,7 +40,7 @@
     <param name="/joint3_angle_sgn" type="int" value="1"/>
     <param name="/joint3_angle_offset" type="double" value="2.608"/>
 
-    <remap from="joint_states" to="hydra/joint_states" />
+    <!--<remap from="joint_states" to="hydra/joint_states" />-->
 
   </node>
 

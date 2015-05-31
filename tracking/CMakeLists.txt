@@ -12,6 +12,8 @@ find_package(catkin REQUIRED COMPONENTS
   aerial_robot_msgs
   aerial_robot_base
   jsk_recognition_msgs
+  posedetection_msgs
+  tf
 )
 
 find_package(Eigen REQUIRED)
@@ -44,7 +46,7 @@ add_definitions(${EIGEN_DEFINITIONS})
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES tracking
-  CATKIN_DEPENDS roscpp aerial_robot_msgs aerial_robot_base image_processing sensor_msgs geometry_msgs image_processing jsk_recognition_msgs
+  CATKIN_DEPENDS roscpp aerial_robot_msgs aerial_robot_base image_processing sensor_msgs geometry_msgs image_processing jsk_recognition_msgs posedection_msgs tf
   DEPENDS Eigen
 )
 
