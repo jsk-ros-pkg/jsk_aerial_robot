@@ -9,10 +9,14 @@ AerialRobotBase::AerialRobotBase(ros::NodeHandle nh, ros::NodeHandle nh_private)
   //*** estimator1
   estimator_ = new RigidEstimator(nh_, nhp_, simulation_flag_);
 
+  ROS_INFO("OKOKOKO1111");
+
   if(!simulation_flag_)
     { 
       //*** control input 
       flight_ctrl_input_ = new FlightCtrlInput();
+
+      ROS_INFO("OKOKOKO");
 
       //*** teleop navigation
       navigator_ = new TeleopNavigator(nh_, nhp_, estimator_, flight_ctrl_input_, tx_loop_rate_);
@@ -100,7 +104,7 @@ void AerialRobotBase::rxFunction(const ros::TimerEvent & e)
 void AerialRobotBase::txFunction(const ros::TimerEvent & e)
 {
 
-  if(simulation_flag_)
+  if(!simulation_flag_)
     {
       navigator_->teleopNavigation();
       controller_->pidFunction();
@@ -119,8 +123,7 @@ void AerialRobotBase::tfPubFunction()
   while(ros::ok())
     {
       estimator_->tfPublish();
-      if(!simulation_flag_)
-        navigator_->tfPublish();
+      if(!simulation_flag_) navigator_->tfPublish();
 
       ros::spinOnce();
       loop_rate.sleep();

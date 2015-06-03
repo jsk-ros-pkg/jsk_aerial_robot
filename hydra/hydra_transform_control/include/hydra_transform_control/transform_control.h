@@ -20,6 +20,8 @@
 #include <std_msgs/UInt16.h>
 
 #include <std_msgs/Float32.h>
+#include <boost/thread/mutex.hpp>
+
 
 class TransformController{
  public:
@@ -37,12 +39,37 @@ class TransformController{
 
   std::vector<Eigen::Matrix<double, 3, 1> > links_origin_from_cog_; //temporary
 
+  Eigen::Matrix<double, 3, 3> getRotateMatrix()
+    {
+      boost::lock_guard<boost::mutex> lock(rm_mutex_);
+      return rotate_matrix_;
+    }
+  void setRotateMatrix(Eigen::Matrix<double, 3, 3> rotate_matrix)
+    {
+      boost::lock_guard<boost::mutex> lock(rm_mutex_);
+      rotate_matrix_ = rotate_matrix;
+    }
+
+  Eigen::Matrix<double, 3, 1> getCog()
+    {
+      boost::lock_guard<boost::mutex> lock(cog_mutex_);
+      return cog_;
+    }
+  void setCog(Eigen::Matrix<double, 3, 1> cog)
+    {
+      boost::lock_guard<boost::mutex> lock(cog_mutex_);
+      cog_ = cog;
+    }
+
+
  private:
 
   ros::NodeHandle nh_,nh_private_;
   ros::Publisher transform_control_pub_;
   ros::Publisher principal_axis_pub_;
   ros::Publisher cog_rotate_pub_; //for position control => to mocap
+
+  boost::mutex rm_mutex_, cog_mutex_;
 
   tf::TransformListener tf_;
   double control_rate_;

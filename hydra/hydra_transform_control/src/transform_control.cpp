@@ -5,18 +5,15 @@
 #include <hydra_transform_control/transform_control.h>
 
 
-
-
 TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_private, bool callback_flag): nh_(nh),nh_private_(nh_private)
 {
 
   initParam();
 
-  principal_axis_pub_ = nh_.advertise<visualization_msgs::MarkerArray>("orientation_data", 5);
-
+  principal_axis_pub_ = nh_.advertise<visualization_msgs::MarkerArray>("orientation_data", 1);
 
   transform_control_pub_ = nh_.advertise<hydra_transform_control::HydraParam>("kduino/hydra_param", 1);
-  cog_rotate_pub_ = nh_.advertise<std_msgs::Float32>("/hydra/cog_rotate", 1); //absolute
+  cog_rotate_pub_ = nh_.advertise<std_msgs::Float32>("/cog_rotate", 1); //absolute
   cog_(0) = 0;
   cog_(1) = 0;
   cog_(2) = 0;
@@ -33,8 +30,11 @@ TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_
     {
       control_timer_ = nh_private_.createTimer(ros::Duration(1.0 / control_rate_),
                                                &TransformController::controlFunc, this);
+
+      
       tf_pub_timer_ = nh_private_.createTimer(ros::Duration(1.0 / tf_pub_rate_),
                                               &TransformController::tfPubFunc, this);
+      
     }
 
 
@@ -111,18 +111,27 @@ void TransformController::tfPubFunc(const ros::TimerEvent & e)
 
 void TransformController::controlFunc(const ros::TimerEvent & e)
 {
+  ROS_ERROR("OK0");
   //get transform;
   std::vector<tf::StampedTransform>  transforms;
   transforms.resize(link_num_);
-
+  ROS_ERROR("OK");
   ros::Duration dur (0.02);
   if (tf_.waitForTransform(root_link_name_, links_name_[link_num_ - 1], ros::Time(0),dur))
     {
+      ROS_ERROR("OK1");
       for(int i = 0; i < link_num_; i++)
         {
-          //double time0 = ros::Time::now().toSec();
-          tf_.lookupTransform(root_link_name_, links_name_[i], ros::Time(0), transforms[i]);
-          //ROS_INFO("time %d: %f", i, ros::Time::now().toSec() - time0);
+          try
+            {
+              //double time0 = ros::Time::now().toSec();
+              tf_.lookupTransform(root_link_name_, links_name_[i], ros::Time(0), transforms[i]);
+              //ROS_INFO("time %d: %f", i, ros::Time::now().toSec() - time0);
+            }
+          catch (tf::TransformException ex)
+            {
+              ROS_ERROR("%s",ex.what());
+          }
         }
       //time set
       system_tf_time_  = transforms[0].stamp_;
@@ -143,6 +152,9 @@ void TransformController::controlFunc(const ros::TimerEvent & e)
           ROS_ERROR("bad q computation");
         }
     }
+
+  ROS_ERROR("OK_ end");
+
 }
 
 void TransformController::cogComputation(std::vector<tf::StampedTransform> transforms)
@@ -154,10 +166,11 @@ void TransformController::cogComputation(std::vector<tf::StampedTransform> trans
       y_sum += transforms[i].getOrigin().y();
       z_sum += transforms[i].getOrigin().z();
     }
-  cog_(0) = x_sum / link_num_ ; //all link have same mass!
-  cog_(1) = y_sum / link_num_ ; //all link have same mass!
-  cog_(2) = z_sum / link_num_ ; //all link have same mass!
-  
+  Eigen::Matrix<double, 3, 1> cog;
+  cog(0) = x_sum / link_num_ ; //all link have same mass!
+  cog(1) = y_sum / link_num_ ; //all link have same mass!
+  cog(2) = z_sum / link_num_ ; //all link have same mass!
+  setCog(cog);
 }
 
 void TransformController::principalInertiaComputation(std::vector<tf::StampedTransform> transforms, bool continuous_flag)
@@ -177,7 +190,7 @@ void TransformController::principalInertiaComputation(std::vector<tf::StampedTra
       //offset
       Eigen::Vector3d origin_from_root_link;
       tf::vectorTFToEigen(transforms[i].getOrigin(), origin_from_root_link);
-      Eigen::Vector3d origin_from_cog = origin_from_root_link - cog_;
+      Eigen::Vector3d origin_from_cog = origin_from_root_link - getCog();
       links_origin_from_cog[i] = origin_from_cog;
       
       Eigen::Matrix3d link_offset_inertia;
@@ -224,7 +237,10 @@ void TransformController::principalInertiaComputation(std::vector<tf::StampedTra
 
       if(!init_flag)
         {
-          rotate_matrix_ = rotate_matrix;
+
+          //rotate_matrix_ = rotate_matrix;
+          setRotateMatrix(rotate_matrix);
+
           links_principal_inertia_ = links_principal_inertia;
           //init_links_principal_inertia_ = links_principal_inertia;
           init_links_principal_inertia_ <<multilink_i_xx_, 0, 0, 0, multilink_i_yy_, 0, 0, 0, multilink_i_zz_;
@@ -276,7 +292,7 @@ void TransformController::principalInertiaComputation(std::vector<tf::StampedTra
                 }
 
 
-              Eigen::Matrix3d rotate_matrix_candidates_delta_m = rotate_matrix_candidates[i] - rotate_matrix_;
+              Eigen::Matrix3d rotate_matrix_candidates_delta_m = rotate_matrix_candidates[i] - getRotateMatrix();
               rotate_matrix_candidates_delta[i] = rotate_matrix_candidates_delta_m.squaredNorm();
 
               if(rotate_matrix_candidates_delta[i] < min_delta)
@@ -286,7 +302,10 @@ void TransformController::principalInertiaComputation(std::vector<tf::StampedTra
                 }
             }
 
-          rotate_matrix_ = rotate_matrix_candidates[no];
+
+          //rotate_matrix_ = rotate_matrix_candidates[no];
+          setRotateMatrix(rotate_matrix_candidates[no]);
+
           links_principal_inertia_ = links_principal_inertia_candidates[no];
 
 
@@ -294,12 +313,14 @@ void TransformController::principalInertiaComputation(std::vector<tf::StampedTra
     }
   else
     {
-      rotate_matrix_ = rotate_matrix;
+      //rotate_matrix_ = rotate_matrix;
+      setRotateMatrix(rotate_matrix);
     }
 
 
   //rotate the link origins from cog
-  cog_matrix_ = rotate_matrix_.transpose();
+  //cog_matrix_ = rotate_matrix_.transpose();
+  cog_matrix_ = getRotateMatrix().transpose();
   //std::cout << "cog matrix :\n" << cog_matrix_ << std::endl;
   for(int i = 0; i < link_num_; i ++)
     {
@@ -312,7 +333,8 @@ void TransformController::principalInertiaComputation(std::vector<tf::StampedTra
     }
 
 
-  rotate_angle_ = atan2(rotate_matrix_(1,0), rotate_matrix_(0,0));
+  Eigen::Matrix<double, 3, 3> rotate_matrix_tmp = getRotateMatrix();
+  rotate_angle_ = atan2(rotate_matrix_tmp(1,0), rotate_matrix_tmp(0,0));
   std_msgs::Float32 rotate_msg;
   rotate_msg.data = rotate_angle_;
   cog_rotate_pub_.publish(rotate_msg);
@@ -484,16 +506,26 @@ void TransformController::cogCoordPublish()
 
   tf::TransformBroadcaster br;
   tf::Transform transform;
-  transform.setOrigin( tf::Vector3(cog_(0), cog_(1), cog_(2)));
-  Eigen::Quaterniond q_eigen(rotate_matrix_);
+
+
+  Eigen::Matrix<double, 3, 1> cog = getCog();
+  Eigen::Matrix<double, 3, 3> rotate_matrix = getRotateMatrix();
+  transform.setOrigin( tf::Vector3(cog(0), cog(1), cog(2)));
+  Eigen::Quaterniond q_eigen(rotate_matrix);
+
   tf::Quaternion q_tf;
   tf::quaternionEigenToTF(q_eigen, q_tf);
   transform.setRotation(q_tf);
   br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), root_link_name_, "cog"));
+
+
 }
 
 void TransformController::visualization()
 {
+  Eigen::Matrix<double, 3, 1> cog = getCog();
+  Eigen::Matrix<double, 3, 3> rotate_matrix = getRotateMatrix();
+
   visualization_msgs::MarkerArray cog_inertia;
   visualization_msgs::Marker cog_point;
   cog_point.header.frame_id = root_link_name_;
@@ -503,9 +535,9 @@ void TransformController::visualization()
   cog_point.type = visualization_msgs::Marker::SPHERE;
   cog_point.action = visualization_msgs::Marker::ADD;
   cog_point.lifetime = ros::Duration();
-  cog_point.pose.position.x = cog_(0);
-  cog_point.pose.position.y = cog_(1);
-  cog_point.pose.position.z = cog_(2);
+  cog_point.pose.position.x = cog(0);
+  cog_point.pose.position.y = cog(1);
+  cog_point.pose.position.z = cog(2);
   cog_point.pose.orientation.x = 0;
   cog_point.pose.orientation.y = 0;
   cog_point.pose.orientation.z = 0;
@@ -527,10 +559,13 @@ void TransformController::visualization()
   inertia_axis_x.type = visualization_msgs::Marker::ARROW;
   inertia_axis_x.action = visualization_msgs::Marker::ADD;
   inertia_axis_x.lifetime = ros::Duration();
-  inertia_axis_x.pose.position.x = cog_(0);
-  inertia_axis_x.pose.position.y = cog_(1);
-  inertia_axis_x.pose.position.z = cog_(2);  
-  Eigen::Quaterniond q(rotate_matrix_);
+
+
+  inertia_axis_x.pose.position.x = cog(0);
+  inertia_axis_x.pose.position.y = cog(1);
+  inertia_axis_x.pose.position.z = cog(2);  
+  Eigen::Quaterniond q(rotate_matrix);
+
   //ROS_INFO("arrow1 x:%f, y:%f, z:%f, w:%f", q.x(), q.y(), q.z(),q.w());
   inertia_axis_x.pose.orientation.x = q.x();
   inertia_axis_x.pose.orientation.y = q.y();
@@ -553,10 +588,10 @@ void TransformController::visualization()
   inertia_axis_y.type = visualization_msgs::Marker::ARROW;
   inertia_axis_y.action = visualization_msgs::Marker::ADD;
   inertia_axis_y.lifetime = ros::Duration();
-  inertia_axis_y.pose.position.x = cog_(0);
-  inertia_axis_y.pose.position.y = cog_(1);
-  inertia_axis_y.pose.position.z = cog_(2);  
-  Eigen::Matrix3d rot = Eigen::AngleAxisd(M_PI/2, Eigen::Vector3d(0, 0, 1)) * rotate_matrix_;
+  inertia_axis_y.pose.position.x = cog(0);
+  inertia_axis_y.pose.position.y = cog(1);
+  inertia_axis_y.pose.position.z = cog(2);  
+  Eigen::Matrix3d rot = Eigen::AngleAxisd(M_PI/2, Eigen::Vector3d(0, 0, 1)) * rotate_matrix;
   Eigen::Quaterniond q2(rot);
   //ROS_INFO("arrow2 x:%f, y:%f, z:%f, w:%f", q2.x(), q2.y(), q2.z(),q2.w());
   inertia_axis_y.pose.orientation.x = q2.x();
@@ -635,6 +670,7 @@ void TransformController::param2contoller()
   param_msg.rotate_angle[1] = (uint16_t)(cog_matrix_(1, 0) * 1024);
 
   transform_control_pub_.publish(param_msg);
+  ROS_WARN("ok");
 }
 
 double TransformController::getLinkLength()

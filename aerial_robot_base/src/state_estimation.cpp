@@ -120,7 +120,6 @@ RigidEstimator::RigidEstimator(ros::NodeHandle nh,
   
   simulation_flag_ = simulation_flag;
 
-
 }
 
 RigidEstimator::~RigidEstimator()
@@ -433,7 +432,7 @@ void RigidEstimator::rosParamInit(ros::NodeHandle nh)
   printf("%s: laser_frame_ is %s\n", ns.c_str(), laser_frame_.c_str());
 
   if (!nhp_.getParam ("camera_frame", camera_frame_))
-    laser_frame_ = "unknown";
+    camera_frame_ = "unknown";
   printf("%s: camera_frame_ is %s\n", ns.c_str(), camera_frame_.c_str());
 
   if (!nhp_.getParam ("laser_to_baselink_distance", laser_to_baselink_distance_))

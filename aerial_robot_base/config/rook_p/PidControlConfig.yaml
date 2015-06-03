@@ -23,7 +23,7 @@ controller/throttle/pos_p_limit: 150
 controller/throttle/pos_p_limit_hover: 50
 controller/throttle/pos_i_limit: 800
 controller/throttle/pos_d_limit: 180
-controller/throttle/vel_value_limit: 0
+controller/throttle/vel_value_limit_hover: 0
 controller/throttle/i_enable_limit_hover: 0.1
 
 # pitch 

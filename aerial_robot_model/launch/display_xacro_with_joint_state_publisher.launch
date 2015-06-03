@@ -1,5 +1,6 @@
 <launch>
-  <arg name="model" default="hydra" /> 
+  <!--  <arg name="model" default="tiltrotor" />  -->
+  <arg name="model" default="hydra" />  
   <arg name="gui" default="True" />
 
   <param name="use_gui" value="$(arg gui)"/>

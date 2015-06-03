@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-import roslib; roslib.load_manifest('jsk_quadcopter')
 import rospy
 
 from std_msgs.msg import Empty

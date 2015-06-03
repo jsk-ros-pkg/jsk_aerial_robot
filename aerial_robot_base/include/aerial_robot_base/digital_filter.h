@@ -142,6 +142,9 @@ class IirFilter : public Filter
     pre2_vel_ =0;
     prev_raw_vel_val_ =0;
     //first_flag_ = true;
+
+    //ROS_WARN(" w0:%f , a:%f, a1:%f, a2:%f, b0:%f, b1:%f, b2:%f", w0_pos_,a_pos_,a1_pos_,a2_pos_,b0_pos_,b1_pos_,b2_pos_);
+
   }
 
   void filterFunction(double pos_input, double& pos_output,

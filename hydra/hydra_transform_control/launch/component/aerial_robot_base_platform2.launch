@@ -19,23 +19,23 @@
     <param name="navigator/xy_control_mode" type="int" value="0"/>
 
     ############### Quadctoper Basic State ######################
-<!--    <rosparam file="$(find hydra)/config/EstimatorConfig.yaml" command="load" /> -->
+        <rosparam file="$(find hydra_transform_control)/config/EstimatorConfig.yaml" command="load" /> 
 
     ############### Motion Capture####################
     <param name="mocap/cog_offset" type="bool" value="true"/><!-- new for new hydra control -->
     <param name="estimator/mocap_flag" type="bool" value="true"/>
 
     ############### PID Control ######################
-    <rosparam file="$(find hydra)/config/PidControlConfig2.yaml" command="load" />
+    <rosparam file="$(find hydra_transform_control)/config/PidControlConfig2.yaml" command="load" />
 
     ############### Kalman Filter ####################
-    <param name="estimator/kalmanFilterFlag" type="bool" value="true"/>
-    <param name="kalman_filter/imuHz" type="double" value="105"/>
-<!--    <rosparam file="$(find hydra)/config/KduinoKalmanFilterConfig.yaml" command="load" />
-    <rosparam file="$(find hydra)/config/OpticalFlowKalmanFilterConfig.yaml" command="load" /> -->
+    <!--    <param name="estimator/kalman_filter_flag" type="bool" value="true"/>
+    <param name="kalman_filter/imu_hz" type="double" value="105"/> -->
+<!--    <rosparam file="$(find hydra_transform_control)/config/KduinoKalmanFilterConfig.yaml" command="load" />
+    <rosparam file="$(find hydra_transform_control)/config/OpticalFlowKalmanFilterConfig.yaml" command="load" /> -->
 
     ############### Keyboard Navigation ##############
-    <rosparam file="$(find hydra)/config/hydra/TeleopNavigationConfig.yaml" command="load" />
+    <rosparam file="$(find hydra_transform_control)/config/TeleopNavigationConfig.yaml" command="load" />
 
     ############### remap topic ######################
     ### Kduino IMU ################
@@ -59,13 +59,14 @@
   </node>
 
   ################################# Kduino #########################################
+
  <node pkg="rosserial_python" type="serial_node.py" name="serial_node" output="screen">
    <param name="baud" value="115200" />
    <param name="port" value="/dev/ttyUSB1" />
  </node>
 
   ################################# Joy Stick ######################################
-<!--  <include file="$(find aerial_robot_base)/launch/sensors/joy_stick.launch" /> -->
+  <include file="$(find aerial_robot_base)/launch/sensors/joy_stick.launch" /> 
 
 </launch>
 

@@ -261,35 +261,42 @@ class ImuData
             acc_z_bias_ /= CALIB_COUNT;
             ROS_WARN("accX bias is %f, accY bias is %f, accZ bias is %f", acc_x_bias_, acc_y_bias_, acc_z_bias_);
 
-            kf_x_->setInputStartFlag();
-            kf_y_->setInputStartFlag();
-            kf_z_->setInputStartFlag();
-
-            //for optical flow
-            kf_x_opt_->setInputStartFlag();
-            kf_y_opt_->setInputStartFlag();
-            kf_z_opt_->setInputStartFlag();
-
-
-            //for bias mode
-            kfb_x_->setInitImuBias(acc_x_bias_);
-            kfb_y_->setInitImuBias(acc_y_bias_);
-            kfb_z_->setInitImuBias(acc_z_bias_);
-
-            //for optical flow
-            kfb_x_opt_->setInitImuBias(acc_x_bias_);
-            kfb_y_opt_->setInitImuBias(acc_y_bias_);
-            kfb_z_opt_->setInitImuBias(acc_z_bias_);
-
-            if(kalman_filter_axis_ == 0)
+            if(kalman_filter_flag_)
               {
-                kf1_->setInitImuBias(acc_x_bias_);
-                kf2_->setInitImuBias(acc_x_bias_);
+                kf_x_->setInputStartFlag();
+                kf_y_->setInputStartFlag();
+                kf_z_->setInputStartFlag();
+
+                //for optical flow
+                kf_x_opt_->setInputStartFlag();
+                kf_y_opt_->setInputStartFlag();
+                kf_z_opt_->setInputStartFlag();
+
+
+                //for bias mode
+                kfb_x_->setInitImuBias(acc_x_bias_);
+                kfb_y_->setInitImuBias(acc_y_bias_);
+                kfb_z_->setInitImuBias(acc_z_bias_);
+
+                //for optical flow
+                kfb_x_opt_->setInitImuBias(acc_x_bias_);
+                kfb_y_opt_->setInitImuBias(acc_y_bias_);
+                kfb_z_opt_->setInitImuBias(acc_z_bias_);
+
               }
-            if(kalman_filter_axis_ == 1)
+            if(kalman_filter_debug_)
               {
-                kf1_->setInitImuBias(acc_y_bias_);
-                kf2_->setInitImuBias(acc_y_bias_);
+
+                if(kalman_filter_axis_ == 0)
+                  {
+                    kf1_->setInitImuBias(acc_x_bias_);
+                    kf2_->setInitImuBias(acc_x_bias_);
+                  }
+                if(kalman_filter_axis_ == 1)
+                  {
+                    kf1_->setInitImuBias(acc_y_bias_);
+                    kf2_->setInitImuBias(acc_y_bias_);
+                  }
               }
           }
       }
