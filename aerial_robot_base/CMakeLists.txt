@@ -78,6 +78,15 @@ target_link_libraries (aerial_robot_base_node ${catkin_LIBRARIES}  ${Boost_LIBRA
 #add_dependencies(aerial_robot_base_node aerial_robot_msgs_generate_message_cpp ${PROJECT_NAME}_generate_message_cpp ${PROJECT_NAME}_gencfg)
 add_dependencies(aerial_robot_base_node  ${PROJECT_NAME}_gencfg)
 
+
+install(PROGRAMS
+  scripts/keyboard_command.py
+  scripts/rms.py
+  scripts/test.py
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+
 install(DIRECTORY launch
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
 

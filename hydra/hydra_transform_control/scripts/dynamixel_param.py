@@ -1,5 +1,14 @@
 #!/usr/bin/env python
 
+#for j1 and j3 
+# margin: 1
+# slope: 32
+# punch: 10
+#forj2
+# margin: 5
+# slope: 0
+# punch: 100
+
 import sys
 import rospy
 from dynamixel_controllers.srv import *

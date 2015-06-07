@@ -57,6 +57,13 @@ add_executable (hydra_transform_control_node src/hydra_transform_control_node.cp
 target_link_libraries (hydra_transform_control_node transform_control ${catkin_LIBRARIES})
 add_dependencies(hydra_transform_control_node aerial_robot_msgs_generate_message_cpp)
 
+install(PROGRAMS
+  scripts/dynamixel_param.py
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+
+
 install(DIRECTORY launch
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
 

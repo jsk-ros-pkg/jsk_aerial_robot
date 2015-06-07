@@ -9,13 +9,15 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   sensor_msgs
   geometry_msgs
+  interactive_markers 
+  visualization_msgs
   tf
 )
 
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES ${PROJECT_NAME}
-  CATKIN_DEPENDS roscpp  std_msgs  sensor_msgs geometry_msgs tf
+  CATKIN_DEPENDS roscpp  std_msgs  sensor_msgs geometry_msgs tf interactive_markers visualization_msgs
 #  DEPENDS system_lib
 )
 
@@ -31,6 +33,7 @@ include_directories(
 )
 
 add_library(joint_state_publisher src/joint_state_publisher.cpp)
+target_link_libraries(joint_state_publisher  ${catkin_LIBRARIES})
 add_executable(joint_state_publisher_node src/joint_state_publisher_node.cpp)
 target_link_libraries(joint_state_publisher_node joint_state_publisher ${catkin_LIBRARIES})
 
@@ -38,12 +41,21 @@ target_link_libraries(joint_state_publisher_node joint_state_publisher ${catkin_
 add_executable(traj_motion_node src/traj_motion.cpp)
 target_link_libraries(traj_motion_node ${catkin_LIBRARIES})
 
+
+add_executable(interactive_marker src/interactive_marker.cpp)
+target_link_libraries(interactive_marker ${catkin_LIBRARIES})
+
+add_executable(dragon2_joint_state_publisher src/dragon2_joint_state_publisher.cpp)
+target_link_libraries(dragon2_joint_state_publisher ${catkin_LIBRARIES})
+
+
+
 install(DIRECTORY launch
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
 
 
 ## Mark executables and/or libraries for installation
-install(TARGETS joint_state_publisher joint_state_publisher traj_motion_node
+install(TARGETS joint_state_publisher joint_state_publisher traj_motion_node interactive_marker
    ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
    LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
    RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}

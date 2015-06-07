@@ -4,6 +4,8 @@
 
   <xacro:macro name="pr2_gripper" params="self"> 
 
+
+
     <joint name="${self}_left_gripper_joint" type="revolute">
       <axis xyz="0 0 1"/>
       <limit effort="1000.0" lower="0.0" upper="0.548" velocity="0.5"/>
@@ -83,6 +85,7 @@
         <xacro:link_color />
       </visual>
     </link>
+
 
   </xacro:macro>
 
