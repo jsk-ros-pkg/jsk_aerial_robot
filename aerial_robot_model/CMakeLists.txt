@@ -49,6 +49,10 @@ add_executable(dragon2_joint_state_publisher src/dragon2_joint_state_publisher.c
 target_link_libraries(dragon2_joint_state_publisher ${catkin_LIBRARIES})
 
 
+add_executable(other_object_tf_publisher src/other_object_tf_publisher.cpp)
+target_link_libraries(other_object_tf_publisher ${catkin_LIBRARIES})
+
+
 
 install(DIRECTORY launch
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})

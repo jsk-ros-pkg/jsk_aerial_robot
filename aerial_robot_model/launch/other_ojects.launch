@@ -1,0 +1,21 @@
+<launch>
+  <arg name="model" default="street_lamp" />  
+  <group ns="$(arg model)"> 
+        <param name="robot_description"
+               command="$(find xacro)/xacro.py '$(find aerial_robot_model)/robots/other_objects/streetlamp.urdf.xacro'" />
+
+	<node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" ></node>
+	<node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher" />
+
+	<node name="other_object_tf_publisher" pkg="aerial_robot_model" type="other_object_tf_publisher" >
+          <param name="world" value="/world0" />
+          <param name="other_object" value="$(arg model)" />
+        </node>
+
+<!--
+        <node pkg="tf" type="static_transform_publisher" name="static_transform" args="0 0 0 0 0 0 /world /streetlamp 50"/>  
+-->
+
+        
+  </group> 
+</launch>
