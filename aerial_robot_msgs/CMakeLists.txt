@@ -12,7 +12,6 @@ generate_messages(DEPENDENCIES std_msgs)
 
 ## Declare a catkin package
 catkin_package(
-  INCLUDE_DIRS include
   CATKIN_DEPENDS message_runtime
 )
 

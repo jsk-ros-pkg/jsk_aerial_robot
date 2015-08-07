@@ -10,8 +10,9 @@
 class LinkModule
 {
 public:
-  LinkModule(ros::NodeHandle nh, ros::NodeHandle nhp, const boost::shared_ptr<interactive_markers::InteractiveMarkerServer> &server)
+  LinkModule(ros::NodeHandle nh, ros::NodeHandle nhp, const boost::shared_ptr<interactive_markers::InteractiveMarkerServer> &server): nh_(nh), nhp_(nhp)
   {
+    nhp_.param("tf_prefix", tf_prefix_, std::string(""));
     server_ = server;
   }
   ~LinkModule(){}
@@ -42,6 +43,8 @@ protected:
   
   std::stringstream link_no_str_;
   boost::mutex mutex_;
+
+  std::string tf_prefix_;
 
   boost::shared_ptr<interactive_markers::InteractiveMarkerServer> server_;
 
@@ -97,6 +100,8 @@ protected:
   {
     boost::lock_guard<boost::mutex> lock(mutex_);
 
+
+
     for(std::vector<std::string>::iterator it = joints_name_.begin() ; it != joints_name_.end() ; ++it)
       {
         if(*it == joint_name)
@@ -138,7 +143,6 @@ public:
   ~DragonLink(){}
 
 
-
 private:
 
 
@@ -148,9 +152,10 @@ private:
     visualization_msgs::InteractiveMarkerControl rotate_control;
 
     //front yaw joint
-    int_marker.header.frame_id = std::string("link") + link_no_str_.str() + "_front_joint_rod";
+    int_marker.header.frame_id = tf_prefix_ + std::string("/link") + link_no_str_.str() + "_front_joint_rod";
+    //int_marker.name = tf_prefix_ + std::string("/") + joints_name_[0];
     int_marker.name = joints_name_[0];
-    int_marker.description = "";
+    int_marker.description = int_marker.name;
     int_marker.scale = 0.1;
     rotate_control.orientation.w = 1;
     rotate_control.orientation.x = 0;
@@ -163,9 +168,9 @@ private:
     server_->insert(int_marker,  boost::bind(&DragonLink::processFeedback, this, _1));
 
     //tiltrotor pitch joint
-    int_marker.header.frame_id = std::string("link") + link_no_str_.str() + "_abdomen2";
+    int_marker.header.frame_id = tf_prefix_ + std::string("/link") + link_no_str_.str() + "_abdomen2";
     int_marker.name = joints_name_[1];
-    int_marker.description = "";
+    int_marker.description = int_marker.name;
     int_marker.scale = 0.1;
     rotate_control.orientation.w = 1;
     rotate_control.orientation.x = 0;
@@ -179,9 +184,9 @@ private:
 
 
     //tiltrotor roll joint
-    int_marker.header.frame_id = std::string("link") + link_no_str_.str() + "_abdomen3";
+    int_marker.header.frame_id = tf_prefix_ + std::string("/link") + link_no_str_.str() + "_abdomen3";
     int_marker.name = joints_name_[2];
-    int_marker.description = "";
+    int_marker.description = int_marker.name;
     int_marker.scale = 0.1;
     rotate_control.orientation.w = 1;
     rotate_control.orientation.x = 1;
@@ -194,9 +199,9 @@ private:
     server_->insert(int_marker,  boost::bind(&DragonLink::processFeedback, this, _1));
 
     //propeller joint
-    int_marker.header.frame_id = std::string("link") + link_no_str_.str() + "_abdomen";
+    int_marker.header.frame_id = tf_prefix_ + std::string("/link") + link_no_str_.str() + "_abdomen";
     int_marker.name = joints_name_[3];
-    int_marker.description = "";
+    int_marker.description = int_marker.name;
     int_marker.scale = 0.1;
     rotate_control.orientation.w = 1;
     rotate_control.orientation.x = 0;
@@ -209,9 +214,9 @@ private:
     server_->insert(int_marker,  boost::bind(&DragonLink::processFeedback, this, _1));
 
     //rear pitch joint
-    int_marker.header.frame_id = std::string("link") + link_no_str_.str() + "_abdomen3";
+    int_marker.header.frame_id = tf_prefix_ + std::string("/link") + link_no_str_.str() + "_abdomen3";
     int_marker.name = joints_name_[4];
-    int_marker.description = "";
+    int_marker.description = int_marker.name;
     int_marker.scale = 0.1;
     int_marker.pose.position.x = -0.448;
     rotate_control.orientation.w = 1;
@@ -224,7 +229,6 @@ private:
     int_marker.controls.push_back(rotate_control);
     server_->insert(int_marker,  boost::bind(&DragonLink::processFeedback, this, _1));
 
-
   }
 
 
@@ -233,7 +237,7 @@ private:
 class DragonHead: public LinkModule
 {
 public:
-  DragonHead(ros::NodeHandle nh, ros::NodeHandle nhp, int link_no, const boost::shared_ptr<interactive_markers::InteractiveMarkerServer> &server):
+  DragonHead(ros::NodeHandle nh, ros::NodeHandle nhp, int link_no, bool end_pose_flag, const boost::shared_ptr<interactive_markers::InteractiveMarkerServer> &server):
     LinkModule(nh, nhp, server)
   {
     link_no_str_ << link_no;
@@ -241,15 +245,19 @@ public:
 
     joints_name_.push_back(std::string("link") + link_no_str_.str() + std::string("_left_gripper_joint"));
     joints_name_.push_back(std::string("link") + link_no_str_.str() + std::string("_right_gripper_joint"));
+    joints_name_.push_back(std::string("link") + link_no_str_.str() + std::string("_roll_joint"));
+
  
     std::vector<float> tmp(joints_name_.size(), 0.0);
     joints_value_ = tmp;
 
+    end_pose_flag_ = end_pose_flag;
 
     intMarkerInit();
 
     nhp_.param("tf_loop_rate", tf_loop_rate_, 60.0);
-    end_pose_.setRotation(tf::Quaternion(0.0, 0.0, 0.0, 1.0));
+
+   end_pose_.setRotation(tf::Quaternion(0.0, 0.0, 0.0, 1.0));
     tf_timer_ = nh_.createTimer(ros::Duration(1.0 / tf_loop_rate_), &DragonHead::tfPublish, this);
 
   }
@@ -259,17 +267,25 @@ public:
 private:
   ros::Timer  tf_timer_;
   double tf_loop_rate_;
+
+  bool end_pose_flag_;
+
   tf::TransformBroadcaster br_;
-  tf::Transform end_pose_;;
+  tf::Transform end_pose_;
   boost::mutex tf_mutex_;
 
   void setJointValue(float value, std::string joint_name)
   {
+    ROS_WARN("value :%f", value);
     boost::lock_guard<boost::mutex> lock(mutex_);
+
+    std::string joint_name_tmp(joint_name, 6, 7);
 
     for(std::vector<float>::iterator it = joints_value_.begin() ; it != joints_value_.end() ; ++it)
       {
-        *it = value;
+        size_t index = std::distance( joints_value_.begin(), it );
+        if(strstr(joints_name_[index].c_str(),joint_name_tmp.c_str()))
+           *it = value;
       }
   }
 
@@ -293,18 +309,40 @@ private:
     tf::Transform t;
     ros::Time time = ros::Time::now();
 
+    if(atoi(link_no_str_.str().c_str()) == 0)
+      {
+        t.setOrigin(tf::Vector3(-0.075, 0.0, 0.0));
+        t.setRotation(tf::Quaternion(0.0, 0.0, 0.0, 1.0));
+        br_.sendTransform(tf::StampedTransform(t, time, 
+                                               tf_prefix_ + std::string("/link") + link_no_str_.str() + std::string("_end_pose"), 
+                                               tf_prefix_ + std::string("/link") + link_no_str_.str() + std::string("_rear_junction") ));
+
+
+        t = getTransform();
+        br_.sendTransform(tf::StampedTransform(t, time, 
+                                               std::string("/world") + link_no_str_.str(),
+                                               tf_prefix_ + std::string("/link") + link_no_str_.str() + std::string("_end_pose")
+                                               ));
+
+      }
+    else if(end_pose_flag_)
+      {
+
     t.setOrigin(tf::Vector3(0.075, 0.0, 0.0));
     t.setRotation(tf::Quaternion(0.0, 0.0, 0.0, 1.0));
     br_.sendTransform(tf::StampedTransform(t, time, 
-                                           std::string("link") + link_no_str_.str() + std::string("_rear_junction"), 
-                                           std::string("link") + link_no_str_.str() + std::string("_end_pose") ));
+                                           tf_prefix_ + std::string("/link") + link_no_str_.str() + std::string("_rear_junction"), 
+                                           tf_prefix_ + std::string("/link") + link_no_str_.str() + std::string("_end_pose") ));
 
 
     t = getTransform();
     br_.sendTransform(tf::StampedTransform(t.inverse(), time, 
-                                           std::string("link") + link_no_str_.str() + std::string("_end_pose"),
-                                           std::string("world") + link_no_str_.str()
+                                           tf_prefix_ + std::string("/link") + link_no_str_.str() + std::string("_end_pose"),
+                                           std::string("/world") + link_no_str_.str()
                                             ));
+
+      }
+
   }
 
   void setTransform(tf::Vector3 origin, tf::Quaternion rotation)
@@ -320,16 +358,15 @@ private:
     return end_pose_;
   }
 
-
   void intMarkerInit()
   {
     visualization_msgs::InteractiveMarker int_marker;
     visualization_msgs::InteractiveMarkerControl rotate_control;
 
     // gripper joints
-    int_marker.header.frame_id = std::string("link") + link_no_str_.str() + std::string("_rear_junction");
-    int_marker.name = std::string("link") + link_no_str_.str() +  std::string("_gripper");
-    int_marker.description = "";
+    int_marker.header.frame_id = tf_prefix_ + std::string("/link") + link_no_str_.str() + std::string("_head_base");
+    int_marker.name = std::string("link") + link_no_str_.str() + std::string("_gripper");
+    int_marker.description = std::string("gripper");
     int_marker.scale = 0.1;
     rotate_control.orientation.w = 1;
     rotate_control.orientation.x = 0;
@@ -341,46 +378,63 @@ private:
     int_marker.controls.push_back(rotate_control);
     server_->insert(int_marker,  boost::bind(&DragonHead::processFeedback, this, _1));
 
-
-    //end pose
-    int_marker.controls.resize(0);
-    int_marker.header.frame_id = std::string("world") + link_no_str_.str();
-    int_marker.name = std::string("end_pose") + link_no_str_.str() +  std::string("_control");
+    //roll joint
+    int_marker.header.frame_id = tf_prefix_ + std::string("/link") + link_no_str_.str() + std::string("_rear_junction");
+    int_marker.name = std::string("link") + link_no_str_.str() +  std::string("_roll");
+    int_marker.description = std::string("roll");
     rotate_control.orientation.w = 1;
     rotate_control.orientation.x = 1;
     rotate_control.orientation.y = 0;
     rotate_control.orientation.z = 0;
     rotate_control.name = "rotate_x";
     rotate_control.interaction_mode = visualization_msgs::InteractiveMarkerControl::ROTATE_AXIS;
+    int_marker.controls.resize(0);
     int_marker.controls.push_back(rotate_control);
-    rotate_control.name = "move_x";
-    rotate_control.interaction_mode = visualization_msgs::InteractiveMarkerControl::MOVE_AXIS;
+    server_->insert(int_marker,  boost::bind(&DragonHead::processFeedback, this, _1));
 
-    int_marker.controls.push_back(rotate_control);
+    //end pose
+    if(end_pose_flag_)
+      {
+        int_marker.controls.resize(0);
+        int_marker.header.frame_id = std::string("/world") + link_no_str_.str();
+        //int_marker.name = tf_prefix_ + std::string("/end_pose") + link_no_str_.str() +  std::string("_control");
+        int_marker.name = std::string("end_pose") + link_no_str_.str() +  std::string("_control");
+        int_marker.description = int_marker.name;
+        rotate_control.orientation.w = 1;
+        rotate_control.orientation.x = 1;
+        rotate_control.orientation.y = 0;
+        rotate_control.orientation.z = 0;
+        rotate_control.name = "rotate_x";
+        rotate_control.interaction_mode = visualization_msgs::InteractiveMarkerControl::ROTATE_AXIS;
+        int_marker.controls.push_back(rotate_control);
+        rotate_control.name = "move_x";
+        rotate_control.interaction_mode = visualization_msgs::InteractiveMarkerControl::MOVE_AXIS;
+        int_marker.controls.push_back(rotate_control);
 
-    rotate_control.orientation.w = 1;
-    rotate_control.orientation.x = 0;
-    rotate_control.orientation.y = 1;
-    rotate_control.orientation.z = 0;
-    rotate_control.name = "rotate_z";
-    rotate_control.interaction_mode = visualization_msgs::InteractiveMarkerControl::ROTATE_AXIS;
-    int_marker.controls.push_back(rotate_control);
-    rotate_control.name = "move_z";
-    rotate_control.interaction_mode = visualization_msgs::InteractiveMarkerControl::MOVE_AXIS;
-    int_marker.controls.push_back(rotate_control);
-    rotate_control.orientation.w = 1;
-    rotate_control.orientation.x = 0;
-    rotate_control.orientation.y = 0;
-    rotate_control.orientation.z = 1;
-    rotate_control.name = "rotate_y";
-    rotate_control.interaction_mode = visualization_msgs::InteractiveMarkerControl::ROTATE_AXIS;
-    int_marker.controls.push_back(rotate_control);
-    rotate_control.name = "move_y";
-    rotate_control.interaction_mode = visualization_msgs::InteractiveMarkerControl::MOVE_AXIS;
+        rotate_control.orientation.w = 1;
+        rotate_control.orientation.x = 0;
+        rotate_control.orientation.y = 1;
+        rotate_control.orientation.z = 0;
+        rotate_control.name = "rotate_z";
+        rotate_control.interaction_mode = visualization_msgs::InteractiveMarkerControl::ROTATE_AXIS;
+        int_marker.controls.push_back(rotate_control);
+        rotate_control.name = "move_z";
+        rotate_control.interaction_mode = visualization_msgs::InteractiveMarkerControl::MOVE_AXIS;
+        int_marker.controls.push_back(rotate_control);
 
-    int_marker.controls.push_back(rotate_control);
+        rotate_control.orientation.w = 1;
+        rotate_control.orientation.x = 0;
+        rotate_control.orientation.y = 0;
+        rotate_control.orientation.z = 1;
+        rotate_control.name = "rotate_y";
+        rotate_control.interaction_mode = visualization_msgs::InteractiveMarkerControl::ROTATE_AXIS;
+        int_marker.controls.push_back(rotate_control);
+        rotate_control.name = "move_y";
+        rotate_control.interaction_mode = visualization_msgs::InteractiveMarkerControl::MOVE_AXIS;
+        int_marker.controls.push_back(rotate_control);
 
-    server_->insert(int_marker,  boost::bind(&DragonHead::tfProcessFeedback, this, _1));
+        server_->insert(int_marker,  boost::bind(&DragonHead::tfProcessFeedback, this, _1));
+      }
   }
 
 };
@@ -401,26 +455,25 @@ public:
 
     if(head_flag_)
       {
-        boost::shared_ptr<DragonHead> dragon_head(new DragonHead(nh_, nhp_, 0, server_));
+        boost::shared_ptr<DragonHead> dragon_head(new DragonHead(nh_, nhp_, 0, true, server_));
         dragon_links_.push_back(dragon_head);
       }
 
     for(int i = 0; i < link_num_; i++)
       {
-        boost::shared_ptr<DragonLink> dragon_link(new DragonLink(nh_, nhp_, i+1, server_));
+        boost::shared_ptr<DragonLink> dragon_link(new DragonLink(nh_, nhp_, i+1,  server_));
         dragon_links_.push_back(dragon_link);
       }
 
     if(head_flag_)
       {
-        boost::shared_ptr<DragonHead> dragon_head(new DragonHead(nh_, nhp_, link_num_ + 1, server_));
+        boost::shared_ptr<DragonHead> dragon_head(new DragonHead(nh_, nhp_, link_num_ + 1, two_end_pose_flag_, server_));
         dragon_links_.push_back(dragon_head);
       }
 
     joint_pub_ = nh_.advertise<sensor_msgs::JointState>("joint_states", 1);
 
     joint_pub_timer_ = nh_.createTimer(ros::Duration(1.0 / joint_pub_loop_rate_), &JointStatePublisher::jointsPublish, this);
-
 
 
     server_->applyChanges();
@@ -451,6 +504,8 @@ private:
 
   int link_num_;
   bool head_flag_;
+
+  bool two_end_pose_flag_;
   
   std::vector< boost::shared_ptr<LinkModule> > dragon_links_;
 
@@ -459,6 +514,8 @@ private:
     nhp_.param("joint_pub_loop_rate", joint_pub_loop_rate_, 10.0);
     nhp_.param("link_num", link_num_, 6);
     nhp_.param("head_flag", head_flag_, true);
+
+    nhp_.param("two_end_pose_flag", two_end_pose_flag_, false);
 
   }
 

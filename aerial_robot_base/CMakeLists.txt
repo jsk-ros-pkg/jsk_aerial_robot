@@ -78,6 +78,9 @@ target_link_libraries (aerial_robot_base_node ${catkin_LIBRARIES}  ${Boost_LIBRA
 #add_dependencies(aerial_robot_base_node aerial_robot_msgs_generate_message_cpp ${PROJECT_NAME}_generate_message_cpp ${PROJECT_NAME}_gencfg)
 add_dependencies(aerial_robot_base_node  ${PROJECT_NAME}_gencfg)
 
+add_executable(rotate_node src/rotate.cpp)
+target_link_libraries (rotate_node ${catkin_LIBRARIES}  ${Boost_LIBRARIES} aerial_robot_base) 
+
 
 install(PROGRAMS
   scripts/keyboard_command.py

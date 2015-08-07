@@ -31,6 +31,8 @@ geometry_msgs::TransformStamped odom_trans;
 sensor_msgs::JointState joint_state;
 ros::Time startTime;
 
+ std::string tf_prefix_;
+
  float delta_t_;
  double hydraMotion(double phase);
 

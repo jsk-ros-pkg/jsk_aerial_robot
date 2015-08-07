@@ -14,8 +14,8 @@ public:
 
     ros::Duration(0.1).sleep();
 
-    nhp_.param("other_object", other_object_, std::string("other_object"));
-    other_object_ = std::string("/") + other_object_; //abs frame
+    nhp_.param("other_object", other_object_, std::string("base_link"));
+    //other_object_ = std::string("/") + other_object_; //abs frame
     nhp_.param("world", world_, std::string("/world"));
     nhp_.param("tf_loop_rate", tf_loop_rate_, 60.0);
 

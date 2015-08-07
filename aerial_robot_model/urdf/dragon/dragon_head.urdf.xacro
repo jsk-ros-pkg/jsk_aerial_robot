@@ -2,69 +2,90 @@
 <robot
     xmlns:xacro="http://www.ros.org/wiki/xacro" name="dragon_head" >
 
-<!--
-  <xacro:macro name="dragon_head"> 
-
-    <link name="left_eye">
-      <visual>
-        <geometry>
-          <sphere radius="${tail_width*.2}"/>
-        </geometry>
-        <material name="Red">
-          <color rgba=".7 .0 .0 1"/>
-        </material>
-      </visual>
-    </link>
-
-    <joint name="left_eye_head_cylinder_joint" type="fixed">
-      <parent link="head_cylinder"/>
-      <child link="left_eye"/>
-      <origin rpy="0 0 0" xyz="${tail_len*.2} ${tail_width*.5*.707} ${tail_width*.5*.707}"/> 
+  <xacro:macro name="pr2_gripper" params="self"> 
+    <joint name="${self}_left_gripper_joint" type="revolute">
+      <axis xyz="0 0 1"/>
+      <limit effort="1000.0" lower="0.0" upper="0.548" velocity="0.5"/>
+      <origin rpy="0 0 0" xyz="0.015 0.01 0"/>
+      <parent link="${self}_head_base"/>
+      <child link="${self}_left_gripper"/>
     </joint>
 
-    <link name="right_eye">
+    <link name="${self}_left_gripper">
       <visual>
+        <origin rpy="0.0 0 0" xyz="0 0 0"/>
         <geometry>
-          <sphere radius="${tail_width*.2}"/>
-        </geometry>
-        <material name="Red">
-          <color rgba=".7 .0 .0 1"/>
-        </material>
-      </visual>
-    </link>
-
-    <joint name="right_eye_head_cylinder_joint" type="fixed">
-      <parent link="head_cylinder"/>
-      <child link="right_eye"/>
-      <origin rpy="0 0 0" xyz="${tail_len*.2} ${-tail_width*.5*.707} ${tail_width*.5*.707}"/> 
-    </joint>
-
-    <link name="head_sphere">
-      <visual>
-        <geometry>
-          <sphere radius="${tail_width*.5}"/>
+          <mesh filename="package://aerial_robot_model/urdf/mesh_model/l_finger.dae"/>
         </geometry>
         <xacro:link_color />
       </visual>
     </link>
 
-    <joint name="head_sphere_head_cylinder_joint" type="fixed">
-      <parent link="head_cylinder"/>
-      <child link="head_sphere"/>
-      <origin rpy="0 0 0" xyz="${tail_len*.25} 0 0"/> 
+    <joint name="${self}_left_tip_joint" type="fixed">
+      <parent link="${self}_left_gripper"/>
+      <child link="${self}_left_tip"/>
     </joint>
 
-    <link name="head_cylinder">
+    <link name="${self}_left_tip">
       <visual>
+        <origin rpy="0.0 0 0" xyz="0.09137 0.00495 0"/>
         <geometry>
-          <cylinder length="${tail_len*.5}" radius="${tail_width*.5}"/>
+          <mesh filename="package://pr2_description/meshes/gripper_v0/l_finger_tip.dae"/>
         </geometry>
-        <origin rpy="0 1.57075 0 " xyz="0 0 0"/>
         <xacro:link_color />
       </visual>
     </link>
 
-    <link name="link0_rear_junction">
+    <joint name="${self}_right_gripper_joint" type="revolute">
+      <axis xyz="0 0 -1"/>
+      <limit effort="1000.0" lower="0.0" upper="0.548" velocity="0.5"/>
+      <origin rpy="0 0 0" xyz="0.015 -0.01 0"/>
+      <parent link="${self}_head_base"/>
+      <child link="${self}_right_gripper"/>
+    </joint>
+
+    <link name="${self}_right_gripper">
+      <visual>
+        <origin rpy="-3.1415 0 0" xyz="0 0 0"/>
+        <geometry>
+          <mesh filename="package://aerial_robot_model/urdf/mesh_model/l_finger.dae"/>
+        </geometry>
+        <xacro:link_color />
+      </visual>
+    </link>
+
+    <joint name="${self}_right_tip_joint" type="fixed">
+      <parent link="${self}_right_gripper"/>
+      <child link="${self}_right_tip"/>
+    </joint>
+
+    <link name="${self}_right_tip">
+      <visual>
+        <origin rpy="-3.1415 0 0" xyz="0.09137 0.00495 0"/>
+        <geometry>
+          <mesh filename="package://pr2_description/meshes/gripper_v0/l_finger_tip.dae"/>
+        </geometry>
+        <xacro:link_color />
+      </visual>
+    </link>
+
+    <link name="${self}_head_base">
+      <visual>
+        <geometry>
+          <box size="0.01 ${tail_width*.5} ${abdomen_height*.5}"/>
+        </geometry>
+        <xacro:link_color />
+      </visual>
+    </link>
+
+    <joint name="${self}_roll_joint" type="continuous">
+      <parent link="${self}_rear_junction"/>
+      <child link="${self}_head_base"/>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <axis xyz="1 0 0"/>
+    </joint>
+
+    <link name="${self}_rear_junction">
       <visual>
         <geometry>
           <box size="0.01 ${tail_width} ${abdomen_height}"/>
@@ -72,93 +93,24 @@
         <xacro:link_color />
       </visual>
     </link>
-
-    <joint name="link0_rear_junction_abdomen_joint" type="fixed">
-      <parent link="head_cylinder"/>
-      <child link="link0_rear_junction"/>
-      <origin rpy="0 0 0" xyz="${-tail_len*.25-.005} 0 0"/> 
-    </joint>
 
   </xacro:macro>
--->
-  <xacro:macro name="dragon_head"> 
 
-  <joint name="left_gripper_joint" type="revolute">
-    <axis xyz="0 0 1"/>
-    <limit effort="1000.0" lower="0.0" upper="0.548" velocity="0.5"/>
-    <origin rpy="0 0 0" xyz="0.015 0.01 0"/>
-    <parent link="link0_rear_junction"/>
-    <child link="left_gripper"/>
-  </joint>
+  <xacro:macro name="dragon_head" params="self gripper"> 
+    <xacro:if value="${gripper}">  
+      <xacro:pr2_gripper self="${self}"/>
+    </xacro:if>  
+  </xacro:macro>
 
- <link name="left_gripper">
-    <visual>
-      <origin rpy="0.0 0 0" xyz="0 0 0"/>
-      <geometry>
-        <mesh filename="package://aerial_robot_model/urdf/mesh_model/l_finger.dae"/>
-      </geometry>
-      <xacro:link_color />
-    </visual>
- </link>
-
-  <joint name="left_tip_joint" type="fixed">
-    <parent link="left_gripper"/>
-    <child link="left_tip"/>
-  </joint>
-
-  <link name="left_tip">
-    <visual>
-      <origin rpy="0.0 0 0" xyz="0.09137 0.00495 0"/>
-      <geometry>
-        <mesh filename="package://pr2_description/meshes/gripper_v0/l_finger_tip.dae"/>
-      </geometry>
-      <xacro:link_color />
-    </visual>
-  </link>
-
-  <joint name="right_gripper_joint" type="revolute">
-    <axis xyz="0 0 -1"/>
-    <limit effort="1000.0" lower="0.0" upper="0.548" velocity="0.5"/>
-    <origin rpy="0 0 0" xyz="0.015 -0.01 0"/>
-    <parent link="link0_rear_junction"/>
-    <child link="right_gripper"/>
-  </joint>
-
-  <link name="right_gripper">
-    <visual>
-      <origin rpy="-3.1415 0 0" xyz="0 0 0"/>
-      <geometry>
-        <mesh filename="package://aerial_robot_model/urdf/mesh_model/l_finger.dae"/>
-      </geometry>
-      <xacro:link_color />
-    </visual>
-  </link>
-
-  <joint name="right_tip_joint" type="fixed">
-    <parent link="right_gripper"/>
-    <child link="right_tip"/>
-  </joint>
-
-  <link name="right_tip">
-    <visual>
-      <origin rpy="-3.1415 0 0" xyz="0.09137 0.00495 0"/>
-      <geometry>
-        <mesh filename="package://pr2_description/meshes/gripper_v0/l_finger_tip.dae"/>
-      </geometry>
-      <xacro:link_color />
-    </visual>
-  </link>
-
-
-    <link name="link0_rear_junction">
-      <visual>
-        <geometry>
-          <box size="0.01 ${tail_width} ${abdomen_height}"/>
-        </geometry>
-        <xacro:link_color />
-      </visual>
-    </link>
-
+  <xacro:macro name="dragon_head2" params="parent self gripper"> 
+    <xacro:if value="${gripper}">  
+      <xacro:pr2_gripper self="${self}"/>
+    </xacro:if>  
+    <joint name="${parent}_${self}_joint" type="fixed">
+      <parent link="${parent}_rear_junction"/>
+      <child link="${self}_rear_junction"/>
+      <origin rpy="-1.5708  3.1415 0" xyz="-0.01 0 0"/>
+    </joint>
   </xacro:macro>
 
 </robot>

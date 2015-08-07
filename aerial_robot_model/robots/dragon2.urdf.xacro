@@ -13,11 +13,15 @@
   <xacro:dragon_link parent="link2" self="link3"/>
   <xacro:dragon_link parent="link3" self="link4"/>
   <xacro:dragon_link parent="link4" self="link5"/>
+  <xacro:dragon_link parent="link5" self="link6"/>
+  <xacro:dragon_link parent="link6" self="link7"/>
+  <xacro:dragon_link parent="link7" self="link8"/>
+
 <!--    <xacro:dragon_end_link parent="link5" self="link6"/>  -->
 
 <!-- two gripper mode -->
-  <xacro:dragon_link parent="link5" self="link6"/>
-  <xacro:dragon_head2 parent="link6" self="link7" gripper="1"/>  
+
+  <xacro:dragon_head2 parent="link8" self="link9" gripper="1"/>  
 
 
 </robot>

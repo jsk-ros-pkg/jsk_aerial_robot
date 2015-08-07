@@ -1,11 +1,11 @@
 <?xml version="1.0"?>
 <robot name="streetlamp">
 
-    <link name="street_lamp">
+    <link name="base_link">
       <visual>
         <origin rpy="0 0 0" xyz="0 0 0"/>
         <geometry>
-          <mesh filename="package://aerial_robot_model/urdf/other_objects/StreetLamp.dae" scale="1 1 1"/>
+          <mesh filename="package://aerial_robot_model/urdf/other_objects/street_lamp.dae" scale="0.2 0.2 0.2"/>
         </geometry>
       </visual>
     </link>
