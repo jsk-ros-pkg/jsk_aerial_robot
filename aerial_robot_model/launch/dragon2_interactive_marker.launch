@@ -1,0 +1,7 @@
+<launch>
+
+  <node name="interactive_marker" pkg="aerial_robot_model" type="dragon2_joint_state_publisher" >
+    <param name="link_num" value="8" />
+  </node>
+
+</launch>

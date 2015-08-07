@@ -1,0 +1,8 @@
+digraph G {
+"quadcopter/camera_link" -> "quadcopter/camera_depth_frame"[label="Broadcaster: /quadcopter/robot_state_publisher\nAverage rate: 50.208 Hz\nMost recent transform: 1436379624.814 \nBuffer length: 4.939 sec\n"];
+"quadcopter/base_link" -> "quadcopter/camera_link"[label="Broadcaster: /quadcopter/robot_state_publisher\nAverage rate: 50.208 Hz\nMost recent transform: 1436379624.814 \nBuffer length: 4.939 sec\n"];
+"quadcopter/camera_depth_frame" -> "quadcopter/camera_depth_optical_frame"[label="Broadcaster: /quadcopter/robot_state_publisher\nAverage rate: 50.208 Hz\nMost recent transform: 1436379624.814 \nBuffer length: 4.939 sec\n"];
+"world0" -> "quadcopter/base_link"[label="Broadcaster: /quadcopter/other_object_tf_publisher\nAverage rate: 60.196 Hz\nMost recent transform: 1436379624.352 \nBuffer length: 4.967 sec\n"];
+"quadcopter/camera_link" -> "quadcopter/camera_rgb_frame"[label="Broadcaster: /quadcopter/robot_state_publisher\nAverage rate: 50.208 Hz\nMost recent transform: 1436379624.814 \nBuffer length: 4.939 sec\n"];
+"quadcopter/camera_rgb_frame" -> "quadcopter/camera_rgb_optical_frame"[label="Broadcaster: /quadcopter/robot_state_publisher\nAverage rate: 50.208 Hz\nMost recent transform: 1436379624.814 \nBuffer length: 4.939 sec\n"];
+}

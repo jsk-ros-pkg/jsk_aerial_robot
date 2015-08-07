@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<robot name="terrain">
+
+    <link name="base_link">
+      <visual>
+        <origin rpy="0 0 0" xyz="0 0 0"/>
+        <geometry>
+          <mesh filename="package://aerial_robot_model/urdf/other_objects/terrain.dea" scale="1.0 1.0 1.0"/>
+        </geometry>
+        <material name="gray">
+          <color rgba="0.6 .6 0.6 1"/>
+        </material>
+      </visual>
+    </link>
+
+</robot>

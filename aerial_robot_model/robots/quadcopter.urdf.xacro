@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<robot
+    xmlns:xacro="http://www.ros.org/wiki/xacro" name="quadcopter" >
+
+    <xacro:include filename="$(find aerial_robot_model)/robots/other_objects/doraemon_hand.urdf.xacro" />
+
+
+    <xacro:include filename="$(find hector_quadrotor_description)/urdf/quadrotor_with_kinect.urdf.xacro" />
+
+    <xacro:doraemon_hand parent="base_link" />  
+
+</robot>

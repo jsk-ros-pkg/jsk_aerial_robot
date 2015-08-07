@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<robot name="beam">
+
+    <link name="base_link">
+      <visual>
+        <origin rpy="0 0 0" xyz="0 0 0"/>
+        <geometry>
+          <mesh filename="package://aerial_robot_model/urdf/other_objects/tower2.stl" scale="0.0006 0.0006 0.0004"/>
+        </geometry>
+        <material name="gray">
+          <color rgba="0.9 .5 0.3 1"/>
+        </material>
+      </visual>
+    </link>
+
+</robot>

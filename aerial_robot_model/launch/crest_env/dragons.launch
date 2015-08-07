@@ -1,0 +1,35 @@
+<launch>
+
+  <arg name="model1" default="dragon1" />  
+  <group ns="$(arg model1)"> 
+    <param name="robot_description"
+           command="$(find xacro)/xacro.py '$(find aerial_robot_model)/robots/dragon2.urdf.xacro'" />
+    <node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher" >
+      <param name="tf_prefix" value="$(arg model1)" /> 
+    </node>
+
+    <node name="interactive_marker" pkg="aerial_robot_model" type="dragon2_joint_state_publisher" output="screen" >
+      <param name="link_num" value="8" />
+      <param name="tf_prefix" value="$(arg model1)" />
+<!--      <param name="two_end_pose_flag" value="true" />-->
+    </node>
+  </group> 
+
+
+  <arg name="model2" default="dragon2" />  
+  <group ns="$(arg model2)"> 
+    <param name="robot_description"
+           command="$(find xacro)/xacro.py '$(find aerial_robot_model)/robots/dragon2.urdf.xacro'" />
+    <node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher" >
+      <param name="tf_prefix" value="$(arg model2)" /> 
+    </node>
+
+    <node name="interactive_marker" pkg="aerial_robot_model" type="dragon2_joint_state_publisher" output="screen" >
+      <param name="link_num" value="8" />
+      <param name="tf_prefix" value="$(arg model2)" />
+    </node>
+  </group> 
+
+
+
+</launch>
