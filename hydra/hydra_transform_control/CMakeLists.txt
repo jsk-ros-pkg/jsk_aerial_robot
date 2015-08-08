@@ -11,6 +11,7 @@ find_package(catkin REQUIRED COMPONENTS
   dynamixel_controllers
   tf_conversions
   message_generation
+  cmake_modules
 )
 
 

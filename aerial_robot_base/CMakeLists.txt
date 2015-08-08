@@ -17,6 +17,7 @@ find_package(catkin REQUIRED COMPONENTS
   dynamic_tf_publisher
   dynamic_reconfigure
   aerial_robot_msgs
+  cmake_modules
 )
 
 

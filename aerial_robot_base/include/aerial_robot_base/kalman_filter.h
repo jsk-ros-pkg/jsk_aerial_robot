@@ -20,8 +20,11 @@
 #include <aerial_robot_base/StateKalmanFilterConfig.h>
 
 //* for mutex
+#include <boost/version.hpp>
 #include <boost/thread/mutex.hpp>
-
+#if BOOST_VERSION>105200
+ #include <boost/thread/lock_guard.hpp>
+#endif
 class KalmanFilterPosVelAcc : public Filter 
 {
  public:
