@@ -66,13 +66,16 @@ public:
       {
         std::stringstream joint_no;
         joint_no << i + 1;
-        std::stringstream reverse_joint_no;
-        reverse_joint_no << joint_num_ - i; //reverse
-        joints_info_[i].joint_ctrl_pub_name = std::string("/j") + reverse_joint_no.str()  + std::string("_controller/command");
+        //std::stringstream reverse_joint_no;
+        //reverse_joint_no << joint_num_ - i; // reverse
+        //joints_info_[i].joint_ctrl_pub_name = std::string("/j") + reverse_joint_no.str()  + std::string("_controller/command");
+
+        joints_info_[i].joint_ctrl_pub_name = std::string("/j") + joint_no.str()  + std::string("_controller/command");
         joints_info_[i].joint_ctrl_pub = nh_.advertise<std_msgs::Float64>(joints_info_[i].joint_ctrl_pub_name, 1); 
 
         joints_info_[i].joint_state_sub_name = std::string("/j") + joint_no.str()  + std::string("_controller/state");
-        joints_info_[i].joint_state_sub = nh_.subscribe<dynamixel_msgs::JointState>(joints_info_[i].joint_state_sub_name, 1, boost::bind(&HydraJoints::jointCallback, this, _1, joint_num_ - i - 1)); //reverse
+        //joints_info_[i].joint_state_sub = nh_.subscribe<dynamixel_msgs::JointState>(joints_info_[i].joint_state_sub_name, 1, boost::bind(&HydraJoints::jointCallback, this, _1, joint_num_ - i - 1)); //reverse
+        joints_info_[i].joint_state_sub = nh_.subscribe<dynamixel_msgs::JointState>(joints_info_[i].joint_state_sub_name, 1, boost::bind(&HydraJoints::jointCallback, this, _1, i)); //reverse
 
         nhp_.param(std::string("joint") + joint_no.str() + std::string("_angle_max"), joints_info_[i].angle_max, 1.57); //real angle
         nhp_.param(std::string("joint") + joint_no.str() + std::string("_angle_min"), joints_info_[i].angle_min, -1.57); //real angle

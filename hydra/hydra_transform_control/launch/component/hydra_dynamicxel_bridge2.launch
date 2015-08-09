@@ -23,6 +23,7 @@
                 j3_controller"
           output="screen"/>
 
+
   <node pkg="hydra_transform_control" type="dynamicxel_bridge_node" name="dynamicxel_bridge_node"  output="screen" > 
     <param name="joint_num" type="int" value="3"/>
     <param name="/joint1_angle_max" type="double" value="1.58"/>
