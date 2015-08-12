@@ -22,6 +22,8 @@
 
     <param name="debug_log" type="bool" value="true"/>
 
+    <param name="root_link_name" type="string" value="/link2_abdomen"/>
+
   </node>
 
 </launch>

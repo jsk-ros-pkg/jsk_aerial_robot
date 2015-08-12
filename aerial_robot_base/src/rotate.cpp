@@ -87,6 +87,7 @@ int main (int argc, char **argv)
   ros::NodeHandle nh_private("~");
   Rotate*  rotateNode = new Rotate(nh, nh_private);
   ros::spin ();
+  delete rotateNode;
 
   return 0;
 }

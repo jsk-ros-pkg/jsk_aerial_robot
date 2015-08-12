@@ -67,6 +67,7 @@ void TransformController::initParam()
   nh_private_.param("multilink_i_zz", multilink_i_zz_, 0.161686);
 
   nh_private_.param("root_link_name", root_link_name_, std::string("/link3_abdomen")); 
+  printf(" root_link_name_ is %s\n", root_link_name_.c_str());
   links_name_.resize(link_num_);
 
   for(int i = 0; i < link_num_; i++)
@@ -111,7 +112,7 @@ void TransformController::tfPubFunc(const ros::TimerEvent & e)
 
 void TransformController::controlFunc(const ros::TimerEvent & e)
 {
-  ROS_ERROR("OK0");
+
   //get transform;
   std::vector<tf::StampedTransform>  transforms;
   transforms.resize(link_num_);
@@ -119,7 +120,6 @@ void TransformController::controlFunc(const ros::TimerEvent & e)
   ros::Duration dur (0.02);
   if (tf_.waitForTransform(root_link_name_, links_name_[link_num_ - 1], ros::Time(0),dur))
     {
-      ROS_ERROR("OK1");
       for(int i = 0; i < link_num_; i++)
         {
           try
@@ -343,7 +343,6 @@ void TransformController::principalInertiaComputation(std::vector<tf::StampedTra
 }
 
 
-
 bool TransformController::qCompute()
 {
   
@@ -354,28 +353,8 @@ bool TransformController::qCompute()
       double propeller_x = links_origin_from_cog_[propeller_order](0);
       double propeller_y = links_origin_from_cog_[propeller_order](1);
 
-#if 1 //propeller 
-      if(fabs(links_origin_from_cog_[propeller_order](0)) < (propeller_diameter_/2))
-        {//(propeller_diameter_/2)m is the real propeller radimeter
-          //ROS_WARN("the propeller%d x axis  sliced, rate is %f, %f", propeller_order, fabs(propeller_x) / (propeller_diameter_/2), propeller_x);
-
-          propeller_x = propeller_x * (fabs(propeller_x) / (propeller_diameter_/2));
-        }
-      
-      if(fabs(links_origin_from_cog_[propeller_order](1)) < (propeller_diameter_/2))
-        {
-          //ROS_WARN("the propeller%d y axis  sliced, rate is %f, %f", propeller_order, fabs(propeller_y) / (propeller_diameter_/2), propeller_y);
-
-          propeller_y = propeller_y * (fabs(propeller_y) / (propeller_diameter_/2));
-        }
-#endif 
       Eigen::Vector4d propeller_distribution;
-      propeller_distribution << 1, 
-        propeller_y / y_distribution_scale_,     
-        - propeller_x / x_distribution_scale_,
-        propeller_direction_[propeller_order];
-      
-      //ROS_INFO("propeller %d, %f, %f",propeller_order, links_origin_from_cog_[propeller_order](0), links_origin_from_cog_[propeller_order](0));
+      propeller_distribution << 1, propeller_y, - propeller_x, propeller_direction_[propeller_order];
       int motor_order = propeller_order_[propeller_order];
       P.row(motor_order) = propeller_distribution;
       
@@ -383,94 +362,16 @@ bool TransformController::qCompute()
   if(debug_log_)
     {
       std::cout << "P :\n" << P << std::endl;
-    }  
-  //Feasibility of a Distributed Flight Array
-  //Pt * Q = I; Q = P*Q2
-  //Eigen::MatrixXd Q(4, 4); 
-
-#if 0 // DFA'kai algorithm
-  Eigen::MatrixXd ptp_block(3, 3); 
+    } 
 
 
-  ptp_block << 
-    1, (P.col(1).dot(P.col(2))) / P.col(2).squaredNorm(), (P.col(1).dot(P.col(3))) / P.col(3).squaredNorm(),
-    (P.col(1).dot(P.col(2))) / P.col(1).squaredNorm(), 1, (P.col(2).dot(P.col(3))) / P.col(3).squaredNorm(),
-    (P.col(1).dot(P.col(3))) / P.col(1).squaredNorm(), (P.col(2).dot(P.col(3))) / P.col(2).squaredNorm(), 1;
-
-  //std::cout << "ptp_block :\n" << ptp_block << std::endl;
-
-  double det = ptp_block.determinant();
-  if(P.col(1).squaredNorm() == 0 || P.col(2).squaredNorm() == 0)
-    {
-      ROS_ERROR("singular configuration");
-      return false;
-    }
-
-  if(fabs(det) < 1e-6 )
-    {
-      
-      ROS_ERROR("det is too small: %lf", det);
-      //temporary, the approximation from DFA
-      for(int i = 0; i < link_num_; i++)
-        {
-          Q_.col(i) = q_vector_scale_[i] * P.col(i) / P.col(i).squaredNorm();
-        }
-    }
-  else
-    {
-     
-      Eigen::Matrix<double, 4, 4> _Q =  Eigen::MatrixXd::Identity(4,4);
-      _Q.block(1, 1, 3, 3) = ptp_block.inverse();
-
-      //std::cout << "test :\n" << ptp_block* ptp_block.inverse()  << std::endl;
-
-      Eigen::Vector4d diagonal_vector;
-      diagonal_vector <<  1 / P.col(0).squaredNorm(), 1 / P.col(1).squaredNorm(), 
-        1 / P.col(2).squaredNorm(), 1 / P.col(3).squaredNorm();
-      Eigen::Matrix<double, 4, 4> D = diagonal_vector.asDiagonal();
-      Eigen::Matrix<double, 4, 4> Q_tmp = P * D * _Q;
-      
-      
-      for(int i = 0; i < 4; i++)
-        {
-          Q_.col(i) = Q_tmp.col(i) * q_vector_scale_[i];
-          //Q_.col(i) = Q_tmp.col(i) / Q_tmp.col(i).norm() * 2;
-        }
-      
-      
-
-    }
-
-  
-  Eigen::Matrix<double, 4, 4> Q_dfa;
-  for(int i = 0; i < link_num_; i++)
-    {
-      Q_dfa.col(i) = q_vector_scale_[i] * P.col(i) / P.col(i).squaredNorm();
-    }
-
-  if(debug_log_)
-    {
-  std::cout << "Q_dfa :\n" << Q_dfa << std::endl;
-  std::cout << "Pt * Q_dfa :\n" << P.transpose() * Q_dfa << std::endl;
-    }
 
 
-#elif 1 //original dfa
+#if 1 //original dfa
   for(int i = 0; i < link_num_; i++)
     {
       Q_.col(i) = q_vector_scale_[i] * P.col(i) / P.col(i).squaredNorm();
-      //Q_.col(i) = P.col(i) / P.col(i).squaredNorm();
     }
-  
-
-#elif 0 //total original
-  Eigen::Matrix<double, 4, 4>  _I = Eigen::MatrixXd::Identity(4,4);
-  _I.block(1,1,3,3) = links_inertia_;
-  Eigen::Matrix<double, 4, 4>  _I_init_inverse = Eigen::MatrixXd::Identity(4,4);
-  _I_init_inverse.block(1,1,3,3) = init_links_principal_inertia_.inverse();
-  Eigen::Matrix<double, 4, 4> P_t = P.transpose();
-  Eigen::Matrix<double, 4, 4> Q_ = (P_t.inverse()  * _I * _I_init_inverse) * 4;
-
 
 #else //Ax = b => x
   Eigen::Matrix<double, 4, 4> I = Eigen::MatrixXd::Identity(4,4) * 4;
@@ -489,9 +390,21 @@ bool TransformController::qCompute()
             Q_.col(i) = solver.solve(I.col(i));
           }
       }
-  
-
 #endif
+
+  //for the mg log 
+  /*
+  Eigen::FullPivLU<Eigen::MatrixXd> solver(P.transpose());
+  Eigen::Matrix<double, 4, 1> U;
+  U << 2100, 0, 0, 0;
+  Eigen::Matrix<double, 4, 1> F;
+  F = solver.solve(U);
+  std::cout << "F :\n" << F << std::endl;
+  */
+  //test P.transpose() * P
+  //std::cout << "P.t * P :\n" << P.transpose() * P  << std::endl;
+
+
   if(debug_log_)
     {
       std::cout << "Q :\n" << Q_ << std::endl;
@@ -634,16 +547,6 @@ void TransformController::param2contoller()
         {
           Q_inertia_fact.col(j + 1) = Q_.col(j + 1) ;
         }
-      
-
-      /*
-      Q_inertia_fact.col(j + 1) = Q_.col(j + 1);
-      if(j == 0 || j == 1)
-        {
-          if(i_prncipal_rate_f(j) < 1) 
-            Q_inertia_fact.col(j + 1) = Q_.col(j + 1) * i_prncipal_rate_f(j);
-        }
-      */
     }
   if(debug_log_)
     {
