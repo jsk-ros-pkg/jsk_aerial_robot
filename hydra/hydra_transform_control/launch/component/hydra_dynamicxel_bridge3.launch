@@ -34,12 +34,12 @@
     <param name="/joint2_angle_max" type="double" value="1.58"/>
     <param name="/joint2_angle_min" type="double" value="-1.58"/>
     <param name="/joint2_angle_sgn" type="int" value="-1"/>
-    <param name="/joint2_angle_offset" type="double" value="2.5975"/>
+    <param name="/joint2_angle_offset" type="double" value="2.612"/>
 
     <param name="/joint3_angle_max" type="double" value="1.58"/>
     <param name="/joint3_angle_min" type="double" value="-1.58"/>
     <param name="/joint3_angle_sgn" type="int" value="-1"/>
-    <param name="/joint3_angle_offset" type="double" value=" 2.6231"/>
+    <param name="/joint3_angle_offset" type="double" value="2.617"/>
 
     <!--<remap from="joint_states" to="hydra/joint_states" />-->
 

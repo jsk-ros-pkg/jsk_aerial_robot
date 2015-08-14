@@ -116,7 +116,7 @@ void TransformController::controlFunc(const ros::TimerEvent & e)
   //get transform;
   std::vector<tf::StampedTransform>  transforms;
   transforms.resize(link_num_);
-  ROS_ERROR("OK");
+  //ROS_ERROR("OK");
   ros::Duration dur (0.02);
   if (tf_.waitForTransform(root_link_name_, links_name_[link_num_ - 1], ros::Time(0),dur))
     {
@@ -153,7 +153,7 @@ void TransformController::controlFunc(const ros::TimerEvent & e)
         }
     }
 
-  ROS_ERROR("OK_ end");
+  //ROS_ERROR("OK_ end");
 
 }
 
@@ -237,6 +237,7 @@ void TransformController::principalInertiaComputation(std::vector<tf::StampedTra
 
       if(!init_flag)
         {
+	  ROS_ERROR("start");
           setRotateMatrix(rotate_matrix);
 
           links_principal_inertia_ = links_principal_inertia;
@@ -353,7 +354,7 @@ bool TransformController::qCompute()
       double propeller_y = links_origin_from_cog_[propeller_order](1);
 
       Eigen::Vector4d propeller_distribution;
-      propeller_distribution << 1, propeller_y, - propeller_x, propeller_direction_[propeller_order];
+      propeller_distribution << 1, propeller_y, - propeller_x, propeller_direction_[propeller_order]; // the direction of moment is corrected in arduino(YAW_DIRECTION)
       int motor_order = propeller_order_[propeller_order];
       P.row(motor_order) = propeller_distribution;
       
@@ -540,7 +541,9 @@ void TransformController::param2contoller()
    
       if(j != 2)
         {//no yaw
-          Q_inertia_fact.col(j + 1) = Q_.col(j + 1) * i_prncipal_rate_f(j);
+          //Q_inertia_fact.col(j + 1) = Q_.col(j + 1) * i_prncipal_rate_f(j);
+	  //temporary
+          Q_inertia_fact.col(j + 1) = Q_.col(j + 1) * 0.19;
         }
       else
         {
@@ -558,7 +561,7 @@ void TransformController::param2contoller()
   for(int j = 0; j < 3; j++)
     {
       for(int i = 0; i < link_num_; i++)
-        param_msg.q_matrix[j * link_num_ + i] = (uint16_t)(Q_inertia_fact(i, j + 1) * 1024);
+        param_msg.q_matrix[j * link_num_ + i] = (int16_t)(Q_inertia_fact(i, j + 1) * 1024);
     }
   
 
@@ -568,11 +571,12 @@ void TransformController::param2contoller()
   //param_msg.i_principal_rate[2] = (uint16_t)(i_prncipal_rate_f(2) * 1024);
 
   //rotate angle for the attitude and gyro
-  param_msg.rotate_angle[0] = (uint16_t)(cog_matrix_(0, 0) * 1024);
-  param_msg.rotate_angle[1] = (uint16_t)(cog_matrix_(1, 0) * 1024);
+  param_msg.rotate_angle[0] = (int16_t)(cog_matrix_(0, 0) * 1024);
+  param_msg.rotate_angle[1] = (int16_t)(cog_matrix_(1, 0) * 1024);
 
   transform_control_pub_.publish(param_msg);
-  ROS_WARN("ok");
+
+  //ROS_WARN("ok");
 }
 
 double TransformController::getLinkLength()
