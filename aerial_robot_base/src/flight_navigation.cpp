@@ -1121,13 +1121,12 @@ void TeleopNavigator::sendRcCmd()
           getNaviCommand() == LAND_COMMAND ||
           getNaviCommand() == HOVER_COMMAND)
     {
-      aerial_robot_msgs::FourAxisCommand rc_data;
-      rc_data.roll  =  flight_ctrl_input_->getRollValue();
-      rc_data.pitch =  flight_ctrl_input_->getPitchValue();
-      rc_data.yaw   =  flight_ctrl_input_->getYawValue();
-      //rc_data.throttle = flight_ctrl_input_->getThrottleValue() - 1520; //MIDRC
-      rc_data.throttle = flight_ctrl_input_->getThrottleValue() ;
-      rc_cmd_pub_.publish(rc_data);
+      aerial_robot_msgs::FourAxisCommand four_axis_command_data;
+      four_axis_command_data.roll  =  flight_ctrl_input_->getRollValue();
+      four_axis_command_data.pitch =  flight_ctrl_input_->getPitchValue();
+      four_axis_command_data.yaw   =  flight_ctrl_input_->getYawValue();
+      four_axis_command_data.throttle = flight_ctrl_input_->getThrottleValue() ;
+      rc_cmd_pub_.publish(four_axis_command_data);
 
     }
   else
