@@ -41,6 +41,10 @@ class Navigator
 
   inline uint8_t getXyControlMode(){  return (uint8_t)xy_control_mode_;}
   inline void setXyControlMode(uint8_t mode){  xy_control_mode_ = mode;}
+
+  inline uint8_t getGainTunningMode(){  return (uint8_t)gain_tunning_mode_;}
+  inline void setGainTunningMode(uint8_t mode){  gain_tunning_mode_ = mode;}
+
   inline bool getXyVelModePosCtrlTakeoff(){  return xy_vel_mode_pos_ctrl_takeoff_;}
   inline bool getFreeFallFlag(){  return free_fall_flag_;}
   inline void resetFreeFallFlag(){  free_fall_flag_ = false;}
@@ -77,6 +81,9 @@ class Navigator
   inline float getTargetVelPsi(){  return current_target_vel_psi_;}
   inline void setTargetVelPsi( float value){  final_target_vel_psi_ = value;}
 
+  inline float getTargetAnglePitch(){  return target_pitch_angle_;}
+  inline float getTargetAngleRoll(){  return target_roll_angle_;}
+
   void throwingModeNavi();
 
   void tfPublish();
@@ -84,6 +91,9 @@ class Navigator
 
   const static uint8_t POS_CONTROL_COMMAND = 0;
   const static uint8_t VEL_CONTROL_COMMAND = 1;
+
+  //gain tunning mode
+  static const uint8_t ATTITUDE_GAIN_TUNNING_MODE = 1;//also can operate in joystick
 
   // navi command
   static const uint8_t START_COMMAND = 0x00;
@@ -148,6 +158,7 @@ class Navigator
     bool xy_vel_mode_pos_ctrl_takeoff_;
 
 
+
     //*** free fall
     double free_fall_thre_;
     bool   use_free_fall_;
@@ -192,6 +203,13 @@ class Navigator
     float current_target_vel_phy_;
     float current_target_psi_;
     float current_target_vel_psi_;
+
+    // gain tunning mode
+    int gain_tunning_mode_; //for attitude gain
+    double target_angle_rate_;
+    double cmd_angle_lev2_gain_;
+    float target_pitch_angle_;
+    float target_roll_angle_;
 
     int ctrl_loop_rate_;
     std::string map_frame_;

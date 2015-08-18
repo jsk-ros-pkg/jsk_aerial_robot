@@ -345,6 +345,16 @@ void PidController::pidFunction()
           //*** 指令値算出
           short pitch_value = limit(pos_p_term_pitch_ + pos_i_term_pitch_ + pos_d_term_pitch_ + offset_pitch_, pos_limit_pitch_);
 
+          //**** attitude gain tunnign mode
+          if(navigator_->getGainTunningMode() == Navigator::ATTITUDE_GAIN_TUNNING_MODE)
+            {
+              pitch_value = navigator_->getTargetAnglePitch();
+              pos_p_term_pitch_ =  0;
+              pos_i_term_pitch_ =  0;
+              pos_d_term_pitch_ =  0;
+            }
+
+
           //*** 指令値代入
           flight_ctrl_input_->setPitchValue(pitch_value);
 
@@ -477,6 +487,16 @@ void PidController::pidFunction()
           short roll_value = limit(pos_p_term_roll_ + pos_i_term_roll_ + pos_d_term_roll_ + offset_roll_, pos_limit_roll_);
           //**** 指令値反転
           roll_value = - roll_value;
+
+
+          //**** attitude gain tunnign mode
+          if(navigator_->getGainTunningMode() == Navigator::ATTITUDE_GAIN_TUNNING_MODE)
+            {
+              roll_value = navigator_->getTargetAngleRoll();
+              pos_p_term_roll_ =  0;
+              pos_i_term_roll_ =  0;
+              pos_d_term_roll_ =  0;
+            }
 
           //*** 指令値代入
           flight_ctrl_input_->setRollValue(roll_value);

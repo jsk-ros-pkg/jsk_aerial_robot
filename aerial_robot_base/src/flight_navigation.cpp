@@ -53,6 +53,10 @@ Navigator::Navigator(ros::NodeHandle nh, ros::NodeHandle nh_private,
   current_target_psi_ = 0;
   current_target_vel_psi_ = 0;
 
+  target_pitch_angle_ = 0;
+  target_roll_angle_ = 0;
+
+
   stopNavigation();
   stopFlight();
   setNaviCommand( IDLE_COMMAND );
@@ -67,6 +71,7 @@ Navigator::Navigator(ros::NodeHandle nh, ros::NodeHandle nh_private,
   //throwing mode init
   throwing_mode_ = NO_CONTROL_MODE;
 
+  gain_tunning_mode_ = 0; //no tunning mode
 
 }
 
@@ -642,8 +647,147 @@ void TeleopNavigator::xyControlModeCallback(const std_msgs::Int8ConstPtr & msg)
 
 
 void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
-{
-  if(xy_control_mode_ == POS_WORLD_BASED_CONTROL_MODE || xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE)
+{ //botton assignment: http://wiki.ros.org/ps3joy
+
+  if(gain_tunning_mode_ == ATTITUDE_GAIN_TUNNING_MODE)
+    {
+      static bool gain_tunning_flag_  = false;
+      //ROS_INFO("ATTITUDE_GAIN_TUNNING_MODE");
+
+      //start 
+      if(joy_msg->buttons[3] == 1 && getNaviCommand() != START_COMMAND)
+        {
+          setNaviCommand(START_COMMAND);
+          final_target_pos_z_ = takeoff_height_;  // 0.55m
+          final_target_psi_  = estimator_->getStatePsiBoard();
+          ROS_INFO("Start command");
+          return;
+        }
+      //halt
+      if(joy_msg->buttons[0] == 1)
+        {
+          setNaviCommand(STOP_COMMAND);
+          flight_mode_= RESET_MODE;
+          setTargetPsi(estimator_->getStatePsiBoard());
+
+          if(xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE) xy_control_mode_ = POS_WORLD_BASED_CONTROL_MODE;
+          ROS_INFO("Halt command");
+          return;
+        }
+      //takeoff
+      if(joy_msg->buttons[7] == 1 && joy_msg->buttons[13] == 1)
+        {
+          if(getStartAble())  
+            {
+              setNaviCommand(TAKEOFF_COMMAND);
+              ROS_INFO("Takeoff command");
+            }
+          else  stopFlight();
+
+          return;
+        }
+      //landing
+      if(joy_msg->buttons[5] == 1 && joy_msg->buttons[15] == 1)
+        {
+          setNaviCommand(LAND_COMMAND);
+          //更新
+          final_target_pos_z_= 0; 
+          final_target_psi_  = estimator_->getStatePsiBoard();
+          ROS_INFO("Land command");
+
+          return;
+        }
+
+      //pitch && roll angle command
+      if(getNaviCommand() == HOVER_COMMAND)
+        {
+          if(joy_msg->buttons[1] == 0)
+            {//no push the left joysitck
+              target_pitch_angle_ = joy_msg->axes[1] * target_angle_rate_;
+              target_roll_angle_ = - joy_msg->axes[0]  * target_angle_rate_;
+            }
+          if(joy_msg->buttons[1] == 1)
+            {//push the left joysitck
+              ROS_INFO("large angle");
+              target_pitch_angle_
+                = joy_msg->axes[1] * target_angle_rate_ * cmd_angle_lev2_gain_;
+              target_roll_angle_
+                = - joy_msg->axes[0] * target_angle_rate_ * cmd_angle_lev2_gain_;
+            }
+        }
+
+      //throttle, TODO: not good
+      if(fabs(joy_msg->axes[3]) > 0.2)
+        {
+          if(joy_msg->buttons[2] == 0 && getNaviCommand() == HOVER_COMMAND)
+            {//push the right joysitck
+              alt_control_flag_ = true;
+              if(joy_msg->axes[3] >= 0) 
+                final_target_pos_z_+= target_alt_interval_;
+              else 
+                final_target_pos_z_-= target_alt_interval_;
+              ROS_INFO("Thrust command");
+            }
+        }
+      else
+        {
+          if(alt_control_flag_)
+            {
+              alt_control_flag_= false;
+              final_target_pos_z_= estimator_->getStatePosZ();
+              ROS_INFO("Fixed Alt command, targetPosz_is %f",final_target_pos_z_);
+            }
+        }
+
+      //yaw
+      if(joy_msg->buttons[2] == 1 && getNaviCommand() == HOVER_COMMAND)
+        {
+          if(fabs(joy_msg->axes[2]) > 0.05)
+            {
+              final_target_psi_ = estimator_->getStatePsiBoard() + joy_msg->axes[2] * target_yaw_rate_;
+              ROS_INFO("yaw control");
+            }
+          else
+            final_target_psi_ = estimator_->getStatePsiBoard();
+        }
+
+      //gain tunning
+      if(joy_msg->buttons[10] == 1 && !gain_tunning_flag_) //left up trigger
+        {
+          std_msgs::UInt16 att_p_gain_cmd;
+          att_p_gain_cmd.data = 161;
+          msp_cmd_pub_.publish(att_p_gain_cmd); 
+          gain_tunning_flag_ = true;
+        }
+      if(joy_msg->buttons[8] == 1 && !gain_tunning_flag_) //left down trigger
+        {
+          std_msgs::UInt16 att_p_gain_cmd;
+          att_p_gain_cmd.data = 162;
+          msp_cmd_pub_.publish(att_p_gain_cmd); 
+          gain_tunning_flag_ = true;
+        }
+      if(joy_msg->buttons[11] == 1 && !gain_tunning_flag_) //right up trigger
+        {
+          std_msgs::UInt16 att_p_gain_cmd;
+          att_p_gain_cmd.data = 161;
+          msp_cmd_pub_.publish(att_p_gain_cmd); 
+          gain_tunning_flag_ = true;
+        }
+      if(joy_msg->buttons[9] == 1 && !gain_tunning_flag_) //right down trigger
+        {
+          std_msgs::UInt16 att_p_gain_cmd;
+          att_p_gain_cmd.data = 162;
+          msp_cmd_pub_.publish(att_p_gain_cmd); 
+          gain_tunning_flag_ = true;
+        }
+      if(joy_msg->buttons[8] == 0 &&  joy_msg->buttons[9] == 0 &&
+         joy_msg->buttons[10] == 0 &&joy_msg->buttons[11] == 0 && gain_tunning_flag_)
+        gain_tunning_flag_  = false;
+
+
+
+    }
+  else if(xy_control_mode_ == POS_WORLD_BASED_CONTROL_MODE || xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE)
     {
       //start 
       if(joy_msg->buttons[3] == 1 && getNaviCommand() != START_COMMAND)
@@ -1194,4 +1338,16 @@ void TeleopNavigator::rosParamInit(ros::NodeHandle nh)
   if (!nh.getParam ("cmd_vel_lev2_gain", cmd_vel_lev2_gain_))
     cmd_vel_lev2_gain_ = 1.0;
   printf("%s: cmd_vel_lev2_gain_ is %.3f\n", ns.c_str(), cmd_vel_lev2_gain_);
+
+  if (!nh.getParam ("gain_tunning_mode", gain_tunning_mode_))
+    gain_tunning_mode_ = 0;
+  printf("%s: gain_tunning_mode_ is %d\n", ns.c_str(), gain_tunning_mode_);
+  if (!nh.getParam ("target_angle_rate", target_angle_rate_))
+    target_angle_rate_ = 1.0;
+  printf("%s: target_angle_rate_ is %f\n", ns.c_str(), target_angle_rate_);
+  if (!nh.getParam ("cmd_angle_lev2_gain", cmd_angle_lev2_gain_))
+    cmd_angle_lev2_gain_ = 1.0;
+  printf("%s: cmd_angle_lev2_gain_ is %f\n", ns.c_str(), cmd_angle_lev2_gain_);
+
+
 }
