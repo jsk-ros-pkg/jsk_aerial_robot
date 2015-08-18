@@ -65,14 +65,11 @@
    <param name="port" value="/dev/ttyUSB1" />
  </node>
 
-  ################################# Joy Stick ######################################
-<!--  <include file="$(find aerial_robot_base)/launch/sensors/joy_stick.launch" /> -->
-
   ################################# Dynamixel  ######################################
- <include file="$(find hydra_transform_control)/launch/component/hydra_dynamicxel_bridge3.launch" /> 
+<!-- <include file="$(find hydra_transform_control)/launch/component/hydra_dynamicxel_bridge3.launch" />  -->
 
   ################################# Robot Model  ######################################
-  <include file="$(find hydra_transform_control)/launch/component/hydra_robot_model.launch" /> 
+<!--  <include file="$(find hydra_transform_control)/launch/component/hydra_robot_model.launch" />  -->
 
 
 

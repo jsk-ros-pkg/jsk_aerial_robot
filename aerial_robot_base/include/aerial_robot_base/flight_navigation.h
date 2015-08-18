@@ -10,8 +10,7 @@
 #include <std_msgs/UInt16.h>
 #include <std_msgs/Int32.h>
 #include <std_msgs/Empty.h>
-#include <aerial_robot_msgs/VirtualRC.h>
-#include <aerial_robot_msgs/RcData.h>
+#include <aerial_robot_msgs/FourAxisCommand.h>
 #include <tf/transform_broadcaster.h>
 #include <aerial_robot_base/FlightNav.h>
 #include <sensor_msgs/Joy.h>

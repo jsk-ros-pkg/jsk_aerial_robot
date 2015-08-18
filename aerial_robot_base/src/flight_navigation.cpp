@@ -403,7 +403,7 @@ TeleopNavigator::TeleopNavigator(ros::NodeHandle nh, ros::NodeHandle nh_private,
   ctrl_mode_sub_ = nh_.subscribe<std_msgs::Int8>("teleop_command/ctrl_mode", 1, &TeleopNavigator::xyControlModeCallback, this, ros::TransportHints().tcpNoDelay());
 
   joy_stick_sub_ = nh_.subscribe<sensor_msgs::Joy>("joy_stick_command", 1, &TeleopNavigator::joyStickControl, this, ros::TransportHints().tcpNoDelay());
-  rc_cmd_pub_ = nh_.advertise<aerial_robot_msgs::RcData>("kduino/rc_cmd", 10); 
+  rc_cmd_pub_ = nh_.advertise<aerial_robot_msgs::FourAxisCommand>("kduino/rc_cmd", 10); 
   msp_cmd_pub_ = nh_.advertise<std_msgs::UInt16>("kduino/msp_cmd", 10);
 
 }
@@ -699,22 +699,20 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
         }
 
       //pitch && roll angle command
-      if(getNaviCommand() == HOVER_COMMAND)
-        {
-          if(joy_msg->buttons[1] == 0)
-            {//no push the left joysitck
-              target_pitch_angle_ = joy_msg->axes[1] * target_angle_rate_;
-              target_roll_angle_ = - joy_msg->axes[0]  * target_angle_rate_;
-            }
-          if(joy_msg->buttons[1] == 1)
-            {//push the left joysitck
-              ROS_INFO("large angle");
-              target_pitch_angle_
-                = joy_msg->axes[1] * target_angle_rate_ * cmd_angle_lev2_gain_;
-              target_roll_angle_
-                = - joy_msg->axes[0] * target_angle_rate_ * cmd_angle_lev2_gain_;
-            }
-        }
+      if(joy_msg->buttons[1] == 0)
+	{//no push the left joysitck
+	  target_pitch_angle_ = joy_msg->axes[1] * target_angle_rate_;
+	  target_roll_angle_ = - joy_msg->axes[0]  * target_angle_rate_;
+	}
+      if(joy_msg->buttons[1] == 1)
+	{//push the left joysitck
+	  ROS_INFO("large angle");
+	  target_pitch_angle_
+	    = joy_msg->axes[1] * target_angle_rate_ * cmd_angle_lev2_gain_;
+	  target_roll_angle_
+	    = - joy_msg->axes[0] * target_angle_rate_ * cmd_angle_lev2_gain_;
+	}
+
 
       //throttle, TODO: not good
       if(fabs(joy_msg->axes[3]) > 0.2)
@@ -769,14 +767,18 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
       if(joy_msg->buttons[11] == 1 && !gain_tunning_flag_) //right up trigger
         {
           std_msgs::UInt16 att_p_gain_cmd;
-          att_p_gain_cmd.data = 161;
+          att_p_gain_cmd.data = 167;
+          msp_cmd_pub_.publish(att_p_gain_cmd); 
+          att_p_gain_cmd.data = 163;
           msp_cmd_pub_.publish(att_p_gain_cmd); 
           gain_tunning_flag_ = true;
         }
       if(joy_msg->buttons[9] == 1 && !gain_tunning_flag_) //right down trigger
         {
           std_msgs::UInt16 att_p_gain_cmd;
-          att_p_gain_cmd.data = 162;
+          att_p_gain_cmd.data = 168;
+          msp_cmd_pub_.publish(att_p_gain_cmd); 
+          att_p_gain_cmd.data = 164;
           msp_cmd_pub_.publish(att_p_gain_cmd); 
           gain_tunning_flag_ = true;
         }
@@ -1119,7 +1121,7 @@ void TeleopNavigator::sendRcCmd()
           getNaviCommand() == LAND_COMMAND ||
           getNaviCommand() == HOVER_COMMAND)
     {
-      aerial_robot_msgs::RcData rc_data;
+      aerial_robot_msgs::FourAxisCommand rc_data;
       rc_data.roll  =  flight_ctrl_input_->getRollValue();
       rc_data.pitch =  flight_ctrl_input_->getPitchValue();
       rc_data.yaw   =  flight_ctrl_input_->getYawValue();

@@ -343,17 +343,17 @@ void PidController::pidFunction()
           if(motor_bias_flag_) pos_i_term_pitch_ = 0;
 
           //*** 指令値算出
-          short pitch_value = limit(pos_p_term_pitch_ + pos_i_term_pitch_ + pos_d_term_pitch_ + offset_pitch_, pos_limit_pitch_);
+          float pitch_value = limit(pos_p_term_pitch_ + pos_i_term_pitch_ + pos_d_term_pitch_ + offset_pitch_, pos_limit_pitch_);
 
           //**** attitude gain tunnign mode
           if(navigator_->getGainTunningMode() == Navigator::ATTITUDE_GAIN_TUNNING_MODE)
             {
+
               pitch_value = navigator_->getTargetAnglePitch();
               pos_p_term_pitch_ =  0;
               pos_i_term_pitch_ =  0;
               pos_d_term_pitch_ =  0;
             }
-
 
           //*** 指令値代入
           flight_ctrl_input_->setPitchValue(pitch_value);
@@ -484,7 +484,7 @@ void PidController::pidFunction()
           if(motor_bias_flag_) pos_i_term_roll_ = 0;
 
           //*** 指令値算出
-          short roll_value = limit(pos_p_term_roll_ + pos_i_term_roll_ + pos_d_term_roll_ + offset_roll_, pos_limit_roll_);
+          float roll_value = limit(pos_p_term_roll_ + pos_i_term_roll_ + pos_d_term_roll_ + offset_roll_, pos_limit_roll_);
           //**** 指令値反転
           roll_value = - roll_value;
 
@@ -552,7 +552,7 @@ void PidController::pidFunction()
             }
 
           //*** 指令値算出
-          short yaw_value = limit(pos_p_term_yaw_ + pos_i_term_yaw_ + pos_d_term_yaw_,
+          float yaw_value = limit(pos_p_term_yaw_ + pos_i_term_yaw_ + pos_d_term_yaw_,
                                   pos_limit_yaw_);
 	
           //**** ros pub
@@ -567,7 +567,6 @@ void PidController::pidFunction()
 
           //*** 指令値代入
           flight_ctrl_input_->setYawValue(yaw_value);
-          //flight_ctrl_input->set_yaw_value(0);
 
           //throttle
           d_err_pos_curr_throttle_ = target_pos_z - state_pos_z;
@@ -620,7 +619,7 @@ void PidController::pidFunction()
 
                   if(!start_free_fall)
                     { //first time
-                      short pos_i_term_throttle_tmp = - offset_throttle_ + limit(pos_p_term_throttle_ +
+                      float pos_i_term_throttle_tmp = - offset_throttle_ + limit(pos_p_term_throttle_ +
                                                                             pos_i_term_throttle_ + 
                                                                             pos_d_term_throttle_ + 
                                                                             offset_throttle_,
@@ -668,7 +667,7 @@ void PidController::pidFunction()
           throttleThrowingMode();
 
           //*** 指令値算出
-          short throttle_value = limit(pos_p_term_throttle_ + pos_i_term_throttle_ 
+          uint16_t throttle_value = limit(pos_p_term_throttle_ + pos_i_term_throttle_ 
                                        + pos_d_term_throttle_ + offset_throttle_, 
                                        pos_limit_throttle_);
           //**** 指令値反転
