@@ -30,7 +30,7 @@ class MocapData
 
       rosParamInit(nhp_);
 
-      mocap_sub_ = nh_.subscribe<geometry_msgs::PoseStamped>("/aerial_robot/pose", 1, &MocapData::poseCallback, this, ros::TransportHints().tcpNoDelay());
+      mocap_sub_ = nh_.subscribe<geometry_msgs::PoseStamped>("/aerial_robot/pose", 1, &MocapData::poseCallback, this, ros::TransportHints().udp());
 
 
       if(cog_offset_)
