@@ -1,5 +1,5 @@
 <launch>
-  <arg name="model" default="hydra" />  
+  <arg name="model" default="hydra3" />  
   <arg name="gui" default="True" />
 
   <param name="use_gui" value="$(arg gui)"/>

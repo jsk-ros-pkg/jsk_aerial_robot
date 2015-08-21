@@ -1,0 +1,102 @@
+<?xml version="1.0"?>
+<robot
+    xmlns:xacro="http://www.ros.org/wiki/xacro" name="hydra_link" >
+
+  <!-- problem: the direction of the link is opposite, because the joint!! -->
+  <xacro:macro name="hydra3_link" params="self child head tail imu"> 
+
+    <xacro:if value="${head}">  
+      <link name="link${self}">
+        <visual>
+          <origin rpy="0 0 ${pi}" xyz="0 0 0"/>
+          <geometry>
+            <mesh filename="package://aerial_robot_model/urdf/hydra3/mesh/hydra_link1.stl" scale=".001 .001 .001"/>
+          </geometry>
+          <xacro:link_color /> 
+        </visual>
+      </link>
+
+      <joint name="joint${self}" type="revolute">
+        <limit effort="100.0" lower="-1.57" upper="1.57" velocity="0.5"/>
+        <parent link="link${self}"/>
+        <child link="joint${self}"/>
+        <origin rpy="0 0 0" xyz="-${link_length*.5} 0 0"/>
+        <axis xyz="0 0 1"/>
+      </joint>
+
+      <link name="joint${self}">  </link>
+
+      <joint name="joint${self}_link${child}" type="fixed">
+        <parent link="joint${self}"/>
+        <child link="link${child}"/>
+        <origin rpy="0 0 0" xyz="-${link_length*.5} 0 0"/> 
+      </joint>
+
+
+    </xacro:if>
+    <xacro:unless value="${head}">
+      <xacro:if value="${tail}">
+
+        <link name="link${self}">
+          <visual>
+            <origin rpy="0 0 ${pi}" xyz="0 0 0"/>
+            <geometry>
+              <mesh filename="package://aerial_robot_model/urdf/hydra3/mesh/hydra_link4.stl" scale=".001 .001 .001"/>
+            </geometry>
+            <xacro:link_color /> 
+          </visual>
+        </link>
+
+      </xacro:if>
+      <xacro:unless value="${tail}">
+        <xacro:if value="${imu}">
+
+          <link name="link${self}">
+            <visual>
+              <origin rpy="0 0 ${pi}" xyz="0 0 0"/>
+              <geometry>
+                <mesh filename="package://aerial_robot_model/urdf/hydra3/mesh/hydra_link2.stl" scale=".001 .001 .001"/>
+              </geometry>
+              <xacro:link_color /> 
+            </visual>
+          </link>
+
+        </xacro:if>
+        <xacro:unless value="${imu}">
+
+          <link name="link${self}">
+            <visual>
+              <origin rpy="0 0 ${pi}" xyz="0 0 0"/>
+              <geometry>
+                <mesh filename="package://aerial_robot_model/urdf/hydra3/mesh/hydra_link3.stl" scale=".001 .001 .001"/>
+              </geometry>
+              <xacro:link_color /> 
+            </visual>
+          </link>
+          
+        </xacro:unless>
+        <joint name="joint${self}" type="revolute">
+          <limit effort="100.0" lower="-1.57" upper="1.57" velocity="0.5"/>
+          <parent link="link${self}"/>
+          <child link="joint${self}"/>
+          <origin rpy="0 0 0" xyz="-${link_length*.5} 0 0"/>
+          <axis xyz="0 0 1"/>
+        </joint>
+
+        <link name="joint${self}">  </link>
+
+        <joint name="joint${self}_link${child}" type="fixed">
+          <parent link="joint${self}"/>
+          <child link="link${child}"/>
+          <origin rpy="0 0 0" xyz="-${link_length*.5} 0 0"/> 
+        </joint>
+
+      </xacro:unless>
+
+
+    </xacro:unless>
+
+
+  </xacro:macro>
+
+</robot>

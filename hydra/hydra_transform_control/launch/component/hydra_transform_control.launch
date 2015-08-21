@@ -2,27 +2,40 @@
 <launch>
   <node pkg="hydra_transform_control" type="hydra_transform_control_node" name="transform_control_node"  output="screen" > 
 
-    <param name="link_mass" type="double" value="0.4" /> <!-- 0.475 is hydra1 -->
-    <param name="link_length" type="double" value="0.55" /> <!-- 0.475 is hydra1 -->
-    <param name="propeller_diameter" type="double" value="0.254" /> <!-- 0.475 is hydra1 -->
+    <param name="link_joint_offset" type="double" value="0.205"/>
+
+    <param name="link_base_center_mass" type="double" value="0.238"/>
+
+    <param name="link_joint_mass" type="double" value="0.0785"/>
+    <param name="controller1_mass" type="double" value="0.022"/>
+    <param name="controller2_mass" type="double" value="0.093"/>
+
+    <param name="root_link_name" type="string" value="/link2"/>
+
+
+    <param name="link1_base_rod_mass" type="double" value="0.105"/> 
+
     <param name="propeller1_direction" type="int" value="-1"/>
     <param name="propeller1_order" type="int" value="0"/>
+
+    <param name="link2_base_rod_mass" type="double" value="0.1"/> 
 
     <param name="propeller2_direction" type="int" value="1"/>
     <param name="propeller2_order" type="int" value="1"/>
 
+    <param name="link3_base_rod_mass" type="double" value="0.094"/>  
+
     <param name="propeller3_direction" type="int" value="-1"/>
     <param name="propeller3_order" type="int" value="3"/>
+
+   <param name="link4_base_rod_mass" type="double" value="0.094"/>  
 
     <param name="propeller4_direction" type="int" value="1"/>
     <param name="propeller4_order" type="int" value="2"/>
 
-    <!-- test the mocap sysytem coordinate direction and the cog_computation problem-->
-    <!-- <param name="mocap/cog_offset" type="bool" value="true"/> -->
+    <param name="debug_log" type="bool" value="true"/>
 
-    <param name="debug_log" type="bool" value="false"/>
 
-    <param name="root_link_name" type="string" value="/link2_abdomen"/>
 
   </node>
 

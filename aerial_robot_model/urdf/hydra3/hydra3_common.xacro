@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<robot
+    xmlns:xacro="http://www.ros.org/wiki/xacro" name="hydra3_common" >
+
+  <xacro:property name="pi" value="3.1415926535897931" />
+  <xacro:property name="link_length" value=".44" />
+
+
+  <xacro:macro name="link_color">
+    <material name="gray">
+      <color rgba="0.75 .5 .2 1"/>
+    </material>
+  </xacro:macro>
+
+</robot>
