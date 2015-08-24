@@ -34,7 +34,32 @@
     <param name="propeller4_order" type="int" value="2"/>
 
     <param name="debug_log" type="bool" value="true"/>
+    <param name="debug2_log" type="bool" value="true"/>
 
+
+    <param name="lqi_thread_rate" type="double" value="1.0"/>
+    <param name="q_roll" type="double" value="100.0"/> <!--  100 -->
+    <param name="q_roll_d" type="double" value="100.0"/> <!--  100 -->
+    <param name="q_roll_i" type="double" value="10.0"/><!--  10 -->
+    <param name="q_pitch" type="double" value="100.0"/> <!--  100 -->
+    <param name="q_pitch_d" type="double" value="100.0"/> <!--  100 -->
+    <param name="q_pitch_i" type="double" value="10.0"/><!--  10 -->
+
+    <param name="q_yaw" type="double" value="10"/> <!--  10 -->
+    <param name="q_yaw_d" type="double" value="10.0"/> <!--  10 -->
+    <param name="q_yaw_i" type="double" value="1"/> <!--  1 -->
+
+
+    <param name="q_z" type="double" value="1.0"/>
+    <param name="q_z_d" type="double" value="1.0"/>
+    <param name="q_z_i" type="double" value="1.0"/>
+
+    <param name="r1" type="double" value="1.0"/>
+    <param name="r2" type="double" value="1.0"/>
+    <param name="r3" type="double" value="1.0"/>
+    <param name="r4" type="double" value="1.0"/>
+
+    <param name="alfa" type="double" value="0"/>
 
 
   </node>
