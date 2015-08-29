@@ -1,0 +1,7 @@
+controller_list:
+  - name: fake_body_controller
+    joints:
+      - base
+      - joint1
+      - joint2
+      - joint3
