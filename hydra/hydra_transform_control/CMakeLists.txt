@@ -10,7 +10,6 @@ find_package(catkin REQUIRED COMPONENTS
   dynamixel_msgs
   dynamixel_controllers
   tf_conversions
-  message_generation
   cmake_modules
 )
 
@@ -19,17 +18,11 @@ find_package(Eigen REQUIRED)
 include_directories(${EIGEN_INCLUDE_DIRS})
 add_definitions(${EIGEN_DEFINITIONS})
 
-add_message_files(FILES
-  HydraParam.msg
-  TransformRes.msg
-  )
-generate_messages(DEPENDENCIES std_msgs)
-
 
 catkin_package(
   INCLUDE_DIRS include
-  LIBRARIES ${PROJECT_NAME}
-  CATKIN_DEPENDS roscpp   aerial_robot_msgs dynamixel_msgs dynamixel_controllers tf_conversions message_runtime
+  LIBRARIES transform_control
+  CATKIN_DEPENDS roscpp   aerial_robot_msgs dynamixel_msgs dynamixel_controllers tf_conversions
   DEPENDS Eigen
 )
 

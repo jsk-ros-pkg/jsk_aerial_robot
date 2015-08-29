@@ -5,7 +5,7 @@ project(aerial_robot_msgs)
 find_package(catkin REQUIRED COMPONENTS roscpp std_msgs message_generation)
 
 ## Declare ROS messages and services
-add_message_files(FILES AttGains.msg DynamicReconfigureLevels.msg ITermBias.msg KduinoSimpleImu.msg RPYCtrlOffset.msg  AttitudePDGain.msg HydraParam.msg KduinoImu.msg MotorBias.msg FourAxisCommand.msg)
+add_message_files(FILES  DynamicReconfigureLevels.msg  KduinoSimpleImu.msg  KduinoImu.msg RollPitchYawGain.msg FourAxisCommand.msg MotorValue.msg)
 
 ## Generate added messages and services
 generate_messages(DEPENDENCIES std_msgs)

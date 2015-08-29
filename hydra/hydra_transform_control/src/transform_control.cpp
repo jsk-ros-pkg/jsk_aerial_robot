@@ -10,10 +10,8 @@ TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_
 
   initParam();
 
-  principal_axis_pub_ = nh_.advertise<visualization_msgs::MarkerArray>("orientation_data", 1);
+  callback_flag_ = callback_flag;
 
-  transform_control_pub_ = nh_.advertise<hydra_transform_control::HydraParam>("kduino/hydra_param", 1);
-  cog_rotate_pub_ = nh_.advertise<std_msgs::Float32>("/cog_rotate", 1); //absolute
   cog_(0) = 0;
   cog_(1) = 0;
   cog_(2) = 0;
@@ -21,82 +19,103 @@ TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_
   links_origin_from_cog_.resize(link_num_);
   rotate_matrix_ = Eigen::Matrix3d::Identity();
 
-  //for(int i = 0; i < link_num_; i++)
-  //link_principal_inertia_ << link_i_xx_, 0, 0, 0, link_i_yy_, 0, 0, 0, link_i_zz_;
-
-
   //lqi
   lqi_flag_ = false;
-  //A
-  A_ = Eigen::MatrixXd::Zero(8,8);
-  A_(0,1) = 1;
-  A_(2,3) = 1;
-  A_(4,5) = 1;
-  A_(6,7) = 1;
+
+  //U
+  U_ = Eigen::MatrixXd::Zero(4,4); //4 is the link number, should change!!
 
   //A
-  B_ = Eigen::MatrixXd::Zero(8,4); //4 is the link number, should change!!
+  A8_ = Eigen::MatrixXd::Zero(8,8);
+  A8_(0,1) = 1;
+  A8_(2,3) = 1;
+  A8_(4,5) = 1;
+  A8_(6,7) = 1;
 
+  A6_ = Eigen::MatrixXd::Zero(6,6);
+  A6_(0,1) = 1;
+  A6_(2,3) = 1;
+  A6_(4,5) = 1;
+
+
+  //B
+  B8_ = Eigen::MatrixXd::Zero(8,4); //4 is the link number, should change!!
+  B6_ = Eigen::MatrixXd::Zero(6,4); //4 is the link number, should change!!
 
   //C
-  C_ = Eigen::MatrixXd::Zero(4,8);
-  C_(0,0) = 1;
-  C_(1,2) = 1;
-  C_(2,4) = 1;
-  C_(3,6) = 1;
+  C8_ = Eigen::MatrixXd::Zero(4,8);
+  C8_(0,0) = 1;
+  C8_(1,2) = 1;
+  C8_(2,4) = 1;
+  C8_(3,6) = 1;
+  C6_ = Eigen::MatrixXd::Zero(3,6);
+  C6_(0,0) = 1;
+  C6_(1,2) = 1;
+  C6_(2,4) = 1;
 
 
   //A_aug
-  A_aug_ = Eigen::MatrixXd::Zero(12,12);
-  A_aug_.block<8,8>(0,0) = A_;
-  A_aug_.block<4,8>(8,0) = -C_;
+  A12_aug_ = Eigen::MatrixXd::Zero(12,12);
+  A12_aug_.block<8,8>(0,0) = A8_;
+  A12_aug_.block<4,8>(8,0) = -C8_;
+
+  A9_aug_ = Eigen::MatrixXd::Zero(9,9);
+  A9_aug_.block<6,6>(0,0) = A6_;
+  A9_aug_.block<3,6>(6,0) = -C6_;
 
 
   //A_aug
-  C_aug_ = Eigen::MatrixXd::Zero(4,12);
-  C_aug_.block<4,8>(0,0) = C_;
+  C12_aug_ = Eigen::MatrixXd::Zero(4,12);
+  C12_aug_.block<4,8>(0,0) = C8_;
 
+  C9_aug_ = Eigen::MatrixXd::Zero(3,9);
+  C9_aug_.block<3,6>(0,0) = C6_;
 
 
   //Q
-  Eigen::VectorXd  q_diagonal(12);
-  q_diagonal << q_roll_,q_roll_d_,q_pitch_,q_pitch_d_,q_yaw_,q_yaw_d_,q_z_,q_z_d_, q_roll_i_,q_pitch_i_,q_yaw_i_,q_z_i_;
+  Eigen::VectorXd  q12_diagonal(12);
+  q12_diagonal << q_roll_,q_roll_d_,q_pitch_,q_pitch_d_,q_yaw_,q_yaw_d_,q_z_,q_z_d_, q_roll_i_,q_pitch_i_,q_yaw_i_,q_z_i_;
+  Q12_ = q12_diagonal.asDiagonal();
 
-
-
-  Q_ = q_diagonal.asDiagonal();
-
-
+  Eigen::VectorXd  q9_diagonal(9);
+  q9_diagonal << q_roll_,q_roll_d_,q_pitch_,q_pitch_d_,q_z_,q_z_d_, q_roll_i_,q_pitch_i_, q_z_i_;
+  Q9_ = q9_diagonal.asDiagonal();
 
   //R
-  R_ = Eigen::Matrix4d(Eigen::Vector4d(r_[0], r_[1],r_[2], r_[3]).asDiagonal()); // bad, 4 should be link num
+  R4_ = Eigen::Matrix4d(Eigen::Vector4d(r_[0], r_[1],r_[2], r_[3]).asDiagonal()); // bad, 4 should be link num
 
+  std::cout << "A8:"  << std::endl << A8_ << std::endl;
+  std::cout << "C8:"  << std::endl << C8_ << std::endl;
+  std::cout << "A12_aug:"  << std::endl << A12_aug_ << std::endl;
+  std::cout << "C12_aug:"  << std::endl << C12_aug_ << std::endl;
+  std::cout << "Q12:"  << std::endl << Q12_ << std::endl;
 
-  std::cout << "A:"  << std::endl << A_ << std::endl;
-  std::cout << "C:"  << std::endl << C_ << std::endl;
+  std::cout << "A6:"  << std::endl << A6_ << std::endl;
+  std::cout << "C6:"  << std::endl << C6_ << std::endl;
+  std::cout << "A9_aug:"  << std::endl << A9_aug_ << std::endl;
+  std::cout << "C9_aug:"  << std::endl << C9_aug_ << std::endl;
+  std::cout << "Q9:"  << std::endl << Q9_ << std::endl;
 
-  std::cout << "A_aug:"  << std::endl << A_aug_ << std::endl;
-  std::cout << "C_aug:"  << std::endl << C_aug_ << std::endl;
+  std::cout << "R4:"  << std::endl << R4_ << std::endl;
 
+  lqi_mode_ = LQI_FOUR_AXIS_MODE;
 
-  std::cout << "Q:"  << std::endl << Q_ << std::endl;
-  std::cout << "R:"  << std::endl << R_ << std::endl;
-
-
-
-  if(callback_flag)
+  if(callback_flag_)
     {
+      principal_axis_pub_ = nh_.advertise<visualization_msgs::MarkerArray>("orientation_data", 1);
+      rpy_gain_pub_ = nh_.advertise<aerial_robot_msgs::RollPitchYawGain>("/kduino/rpy_gain", 1);
+      yaw_throttle_gain_pub_ = nh_.advertise<aerial_robot_base::YawThrottleGain>("yaw_throttle_gain", 1);
+
+      cog_rotate_pub_ = nh_.advertise<std_msgs::Float32>("/cog_rotate", 1); //absolute
+
       control_timer_ = nh_private_.createTimer(ros::Duration(1.0 / control_rate_),
                                                &TransformController::controlFunc, this);
 
-      
       tf_pub_timer_ = nh_private_.createTimer(ros::Duration(1.0 / tf_pub_rate_),
                                               &TransformController::tfPubFunc, this);
-      
-      
+
       lqi_thread_ = boost::thread(boost::bind(&TransformController::lqi, this));
     }
-
 
 }
 TransformController::~TransformController()
@@ -171,6 +190,19 @@ void TransformController::initParam()
     controller2_mass_ = 0.093;
   printf("controller2_mass_ is %.3f\n", controller2_mass_);
 
+ if (!nh_private_.getParam ("dist_thre", dist_thre_))
+    dist_thre_ = 0.05;
+  printf("dist_thre_ is %.3f\n", dist_thre_);
+
+ if (!nh_private_.getParam ("f_max", f_max_))
+    f_max_ = 8.6;
+  printf("f_max_ is %.3f\n", f_max_);
+
+ if (!nh_private_.getParam ("f_min", f_min_))
+   f_min_ = 2.0;
+  printf("f_min_ is %.3f\n", f_min_);
+
+
   //lqi
   r_.resize(link_num_);
 
@@ -244,7 +276,7 @@ void TransformController::initParam()
 
   //dynamics
   if (!nh_private_.getParam ("m_f_rate", m_f_rate_))
-    m_f_rate_ = 0.016837; //the sgn is right?, should be nagative
+    m_f_rate_ = -0.016837; //the sgn is right?, should be nagative
   printf("m_f_rate_ is %.3f\n",m_f_rate_);
   if (!nh_private_.getParam ("f_pwm_rate", f_pwm_rate_))
     f_pwm_rate_ = 0.3029; // with the pwm percentage: x / 1800 * 100
@@ -495,10 +527,10 @@ void TransformController::principalInertiaComputation(std::vector<tf::StampedTra
 
     }
   links_inertia_ = links_inertia;
-   // if(debug_log_)
-   //   std::cout << " inertia :\n" << links_inertia_ << std::endl;
 
 
+
+  //pricipal inertia
   //eigen solver
   ros::Time start_time = ros::Time::now();
   Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> eig(links_inertia_);
@@ -604,6 +636,7 @@ void TransformController::principalInertiaComputation(std::vector<tf::StampedTra
      std::cout << "pricipal inertia :\n" << getPrincipalInertia() << std::endl;
 
 
+
   //rotate the link origins from cog
   cog_matrix_ = getRotateMatrix().transpose();
   //std::cout << "cog matrix :\n" << cog_matrix_ << std::endl;
@@ -619,12 +652,20 @@ void TransformController::principalInertiaComputation(std::vector<tf::StampedTra
     }
   setLinksOriginFromCog(links_origin_from_principal_cog);
 
+
+
+
+
   Eigen::Matrix3d rotate_matrix_tmp = getRotateMatrix();
   rotate_angle_ = atan2(rotate_matrix_tmp(1,0), rotate_matrix_tmp(0,0));
-  std_msgs::Float32 rotate_msg;
-  rotate_msg.data = rotate_angle_;
-  cog_rotate_pub_.publish(rotate_msg);
   //ROS_INFO("rotate angle is %f", rotate_angle_);
+
+  if(callback_flag_)
+    {
+      std_msgs::Float32 rotate_msg;
+      rotate_msg.data = rotate_angle_;
+      cog_rotate_pub_.publish(rotate_msg);
+    }
 
 }
 
@@ -736,16 +777,149 @@ void TransformController::visualization()
 
 void TransformController::param2contoller()
 {
-  hydra_transform_control::HydraParam param_msg;
+  aerial_robot_msgs::RollPitchYawGain rpy_gain_msg;
+  aerial_robot_base::YawThrottleGain yt_gain_msg;
 
+  for(int i = 0; i < link_num_; i ++)
+    {
+      if(lqi_mode_ == LQI_FOUR_AXIS_MODE)
+        {
+          //to kduino => 1024 multiplication
+          rpy_gain_msg.roll_p_gain[i] = K12_(i,0) * M_PI/ 18; // still need to be divide by 100
+          // 29281.765852; //0.1deg * bitshift:  M_PI/180/10* (2^24) 
+          rpy_gain_msg.roll_d_gain[i] = K12_(i,1) * (2279 * M_PI)/((32767.0 / 4.0 ) * 1.8);
+          // still need to be divide by 100
+          // 81463.8439605; //(2279 * M_PI)/((32767.0 / 4.0 ) * 180.0) * 2^24 
+          rpy_gain_msg.roll_i_gain[i] = K12_(i,8) * M_PI/ 18; // still need to be divide by 100 
+          // 29281.765852; //0.1deg * bitshift:  M_PI/180/10* (2^24) 
 
-  param_msg.rotate_angle[0] = (int16_t)(cog_matrix_(0, 0) * 1024);
-  param_msg.rotate_angle[1] = (int16_t)(cog_matrix_(1, 0) * 1024);
+          rpy_gain_msg.pitch_p_gain[i] = K12_(i,2) * M_PI/18;// still need to be divide by 100
+          rpy_gain_msg.pitch_d_gain[i] = K12_(i,3) * (2279 * M_PI)/((32767.0 / 4.0 ) * 1.8);
+          // still need to be divide by 100
+          rpy_gain_msg.pitch_i_gain[i] = K12_(i,9) * M_PI/ 18; // still need to be divide by 100
+          rpy_gain_msg.yaw_d_gain[i] = K12_(i,5) * (2279 * M_PI)/((32767.0 / 4.0 ) * 1.8);
+          // still need to be divide by 100
 
-  transform_control_pub_.publish(param_msg);
+          yt_gain_msg.pos_p_gain_throttle.push_back(K12_(i,6));
+          yt_gain_msg.pos_d_gain_throttle.push_back(K12_(i,7));
+          yt_gain_msg.pos_i_gain_throttle.push_back(K12_(i,11));
+
+          yt_gain_msg.pos_p_gain_yaw.push_back(K12_(i,4));
+          yt_gain_msg.pos_d_gain_yaw.push_back(K12_(i,5));
+          yt_gain_msg.pos_i_gain_yaw.push_back(K12_(i,10));
+        }
+      else if(lqi_mode_ == LQI_THREE_AXIS_MODE)
+        {
+          rpy_gain_msg.roll_p_gain[i] = K9_(i,0) * M_PI/ 18; 
+          rpy_gain_msg.roll_d_gain[i] = K9_(i,1) * (2279 * M_PI)/((32767.0 / 4.0 ) * 1.8);
+          rpy_gain_msg.roll_i_gain[i] = K9_(i,6) * M_PI/ 18; 
+
+          rpy_gain_msg.pitch_p_gain[i] = K9_(i,2) * M_PI/18;
+          rpy_gain_msg.pitch_d_gain[i] = K9_(i,3) * (2279 * M_PI)/((32767.0 / 4.0 ) * 1.8);
+          rpy_gain_msg.pitch_i_gain[i] = K9_(i,7) * M_PI/ 18; 
+          rpy_gain_msg.yaw_d_gain[i] = 0;
+
+          yt_gain_msg.pos_p_gain_throttle.push_back(K9_(i,4));
+          yt_gain_msg.pos_d_gain_throttle.push_back(K9_(i,5));
+          yt_gain_msg.pos_i_gain_throttle.push_back(K9_(i,8));
+
+          yt_gain_msg.pos_p_gain_yaw.push_back(0.0);
+          yt_gain_msg.pos_d_gain_yaw.push_back(0.0);
+          yt_gain_msg.pos_i_gain_yaw.push_back(0.0);
+        }
+    }
+
+  rpy_gain_pub_.publish(rpy_gain_msg);
+  yaw_throttle_gain_pub_.publish(yt_gain_msg);
 
 }
 
+bool TransformController::distThreCheck()
+{
+  static int i = 0;
+  float x_minus_max_dist = 0, x_plus_max_dist = 0;
+  float y_minus_max_dist = 0, y_plus_max_dist = 0;
+
+  for(; i < link_num_; i++)
+    {
+
+      std::vector<Eigen::Vector3d> links_origin_from_cog = getLinksOriginFromCog();
+      //x
+      if(links_origin_from_cog[i](0) > 0 && links_origin_from_cog[i](0) > x_plus_max_dist)
+        x_plus_max_dist = links_origin_from_cog[i](0);
+      if(links_origin_from_cog[i](0) < 0 && links_origin_from_cog[i](0) < x_minus_max_dist)
+        x_minus_max_dist = links_origin_from_cog[i](0);
+      //y
+      if(links_origin_from_cog[i](1) > 0 && links_origin_from_cog[i](1) > y_plus_max_dist)
+        y_plus_max_dist = links_origin_from_cog[i](1);
+      if(links_origin_from_cog[i](1) < 0 && links_origin_from_cog[i](1) < y_minus_max_dist)
+        y_minus_max_dist = links_origin_from_cog[i](1);
+    }
+  i = 0;
+  
+
+  if(x_plus_max_dist < dist_thre_ || -x_minus_max_dist < dist_thre_ ||
+     y_plus_max_dist < dist_thre_ || -y_minus_max_dist < dist_thre_ ) //[m]
+    {
+      // ROS_WARN("x_plus:%f, x_minus:%f, y_plus:%f, y_minus:%f", x_plus_max_dist, x_minus_max_dist, y_plus_max_dist, y_minus_max_dist);
+
+      return false;
+    }
+
+  // ROS_INFO("x_plus:%f, x_minus:%f, y_plus:%f, y_minus:%f", x_plus_max_dist, x_minus_max_dist, y_plus_max_dist, y_minus_max_dist);
+
+  return true;
+}
+
+bool  TransformController::stabilityCheck()
+{
+
+  std::vector<Eigen::Vector3d> links_origin_from_cog = getLinksOriginFromCog();
+  Eigen::Matrix3d links_principal_inertia = getPrincipalInertia();
+  //std::cout << "inertia :\n" << links_principal_inertia << std::endl;
+  Eigen::Vector4d p_x, p_y, p_c, p_m; 
+  static int i = 0;
+
+  for(; i < link_num_; i++)
+    {
+      int order = propeller_order_[i];
+      p_y(order) =  links_origin_from_cog[i](1);
+      p_x(order) = -links_origin_from_cog[i](0);
+      p_c(order) = propeller_direction_[i] * m_f_rate_ ;
+      p_m(order) = 1 / all_mass_;
+
+      if(debug_log_)
+        std::cout << "link" << i + 1 <<"origin :\n" << links_origin_from_cog[i] << std::endl;
+    }
+  i = 0;
+
+  U_.row(0) = p_y / links_principal_inertia(0,0);
+  U_.row(1) = p_x / links_principal_inertia(1,1);
+  U_.row(2) = p_c / links_principal_inertia(2,2);
+  U_.row(3) = p_m;
+  if(debug_log_)
+    std::cout << "U_:"  << std::endl << U_ << std::endl;
+
+  ros::Time start_time = ros::Time::now();
+  Eigen::FullPivLU<Eigen::MatrixXd> solver(U_);
+  if(debug_log_)
+    ROS_INFO("U solver is: %f\n", ros::Time::now().toSec() - start_time.toSec());
+
+  Eigen::VectorXd x(4), g(4);
+  g << 0, 0, 0, 9.8;
+  x = solver.solve(g);
+  if(debug_log_)
+    {
+      std::cout << "x:"  << std::endl << x << std::endl;
+      std::cout << "U det:"  << std::endl << U_.determinant() << std::endl;
+    }
+
+  if(x.maxCoeff() > f_max_ || x.minCoeff() < f_min_)
+    {
+      return false; //can not be stable
+    }
+  return true;
+}
 
 void TransformController::lqi()
 {
@@ -758,157 +932,203 @@ void TransformController::lqi()
     {
       if(lqi_flag_)
         {
-          std::vector<Eigen::Vector3d> links_origin_from_cog = getLinksOriginFromCog();
-          Eigen::Matrix3d links_principal_inertia = getPrincipalInertia();
-          Eigen::Vector4d p_x, p_y, p_c, p_m; 
-
-          //std::cout << "inertia :\n" << links_principal_inertia << std::endl;
-
-          for(; i < link_num_; i++)
-            {
-              int order = propeller_order_[i];
-              p_y(order) = links_origin_from_cog[i](1); 
-              p_x(order) = -links_origin_from_cog[i](0);
-              p_c(order) = propeller_direction_[i] * m_f_rate_ / links_principal_inertia(2,2);
-              p_m(order) = 1 / all_mass_;
-
-              //std::cout << "link" << i + 1 <<"origin :\n" << links_origin_from_cog[i] << std::endl;
-            }
-          i = 0;
-
-          //check the controllability!!
-          if(debug_log_)
-            {
-              std::cout << "x norm :\n" << p_x.norm() << std::endl;
-              std::cout << "y norm :\n" << p_y.norm() << std::endl;
-            }
-
-          if(p_y.norm() < 0.1 || p_x.norm() < 0.1) //[m]
+          //check the thre check
+          if(!distThreCheck()) //[m]
             {
               ROS_ERROR("(singular pose, can not resolve the lqi control problem");
               loop_rate.sleep();
               continue;
             }
 
-          B_.row(1) = p_y / links_principal_inertia(0,0);
-          B_.row(3) = p_x / links_principal_inertia(1,1);
-          B_.row(5) = p_c;
-          B_.row(7) = p_m;
+          //check the stability within the range of the motor force
+          if(stabilityCheck()) lqi_mode_ = LQI_FOUR_AXIS_MODE;
+          else
+            {
+              ROS_ERROR("can not be four axis stable, switch to three axis stable mode");
+              lqi_mode_ = LQI_THREE_AXIS_MODE;
+            }
 
-          if(debug_log_)
-            std::cout << "B:"  << std::endl << B_ << std::endl;
-
-          B_aug_ = Eigen::MatrixXd::Zero(12, 4);
-          B_aug_.block<8,4>(0,0) = B_;
-          //std::cout << "B_aug:"  << std::endl << B_aug_<< std::endl;
-     
-          if(!hamiltonMatrixSolver()){ continue;}
+           if(!hamiltonMatrixSolver(lqi_mode_)){ continue;}
+           param2contoller();
         }
-
       loop_rate.sleep();
     }
 }
 
-bool TransformController::hamiltonMatrixSolver()
+bool TransformController::hamiltonMatrixSolver(uint8_t lqi_mode)
 {
   //for the R which is  diagonal matrix. should be changed to link_num
   Eigen::MatrixXd R_inv = Eigen::Matrix4d(Eigen::Vector4d(1 / r_[0], 1 / r_[1], 1 / r_[2], 1 / r_[3]).asDiagonal());
 
-
   // hamilton matrix
-
-  Eigen::MatrixXcd H = Eigen::MatrixXcd::Zero(24,24); //all right?
-  H.block<12,12>(0,0) = A_aug_.cast<std::complex<double> >();
-
-  H.block<12,12>(12,0) = -(Q_.cast<std::complex<double> >());
-  H.block<12,12>(0,12) = - (B_aug_ * R_inv * B_aug_.transpose()).cast<std::complex<double> >();
-  H.block<12,12>(12,12) = - (A_aug_.transpose()).cast<std::complex<double> >();
-
-  //std::cout << " H  is:" << std::endl << H << std::endl;
-
-  //eigen shift
-  //Eigen::MatrixXcd H_tmp = H; //all right?
-  //H = H_tmp + Eigen::MatrixXcd::Identity(24,24) * alfa_;
-
-
-  //std::cout << " R inv  is:" << std::endl << - B_aug_ * R_inv * B_aug_.transpose() << std::endl;
-
-
-  
-
-  //eigen solving
-  ros::Time start_time = ros::Time::now();
-  Eigen::ComplexEigenSolver<Eigen::MatrixXcd> ces;
-  ces.compute(H);
-
-  if(debug_log_)
-    ROS_INFO("h eigen time is: %f\n", ros::Time::now().toSec() - start_time.toSec());
-  //std::cout << "The eigenvalues of H are:" << std::endl << ces.eigenvalues() << std::endl;
-  //std::cout << "The eigenvalues vector of H are:" << std::endl << es.eigenvectors() << std::endl;
-
-
-
-  Eigen::MatrixXcd phy = Eigen::MatrixXcd::Zero(24,12);
-  int j = 0;
-
-
-  for(int i = 0; i < 24; i++)
+  if(lqi_mode_ == LQI_FOUR_AXIS_MODE)
     {
-      if(ces.eigenvalues()[i].real() < 0)
+      B8_.row(1) = U_.row(0);
+      B8_.row(3) = U_.row(1);
+      B8_.row(5) = U_.row(2);
+      B8_.row(7) = U_.row(3);
+      if(debug_log_)
+        std::cout << "B8:"  << std::endl << B8_ << std::endl;
+
+      B12_aug_ = Eigen::MatrixXd::Zero(12, 4);
+      B12_aug_.block<8,4>(0,0) = B8_;
+
+
+      Eigen::MatrixXcd H = Eigen::MatrixXcd::Zero(24,24); //all right?
+      H.block<12,12>(0,0) = A12_aug_.cast<std::complex<double> >();
+
+      H.block<12,12>(12,0) = -(Q12_.cast<std::complex<double> >());
+      H.block<12,12>(0,12) = - (B12_aug_ * R_inv * B12_aug_.transpose()).cast<std::complex<double> >();
+      H.block<12,12>(12,12) = - (A12_aug_.transpose()).cast<std::complex<double> >();
+
+      //std::cout << " H  is:" << std::endl << H << std::endl;
+
+      //eigen solving
+      ros::Time start_time = ros::Time::now();
+      Eigen::ComplexEigenSolver<Eigen::MatrixXcd> ces;
+      ces.compute(H);
+
+      if(debug_log_)
+        ROS_INFO("h eigen time is: %f\n", ros::Time::now().toSec() - start_time.toSec());
+      //std::cout << "The eigenvalues of H are:" << std::endl << ces.eigenvalues() << std::endl;
+      //std::cout << "The eigenvalues vector of H are:" << std::endl << es.eigenvectors() << std::endl;
+
+      Eigen::MatrixXcd phy = Eigen::MatrixXcd::Zero(24,12);
+      int j = 0;
+
+
+      for(int i = 0; i < 24; i++)
         {
-          if(j > 11) 
+          if(ces.eigenvalues()[i].real() < 0)
             {
-              ROS_ERROR("nagativa sigular amount is larger");
-              return false;
+              if(j > 11) 
+                {
+                  ROS_ERROR("nagativa sigular amount is larger");
+                  return false;
+                }
+
+              phy.col(j) = ces.eigenvectors().col(i);
+              j++;
             }
 
-          phy.col(j) = ces.eigenvectors().col(i);
-          j++;
         }
 
-    }
+      if(j != 12)
+        {
+          ROS_ERROR("nagativa sigular value amount is not enough");
+          return false;
+        }
 
-  if(j != 12)
+      Eigen::MatrixXcd f = phy.block<12,12>(0,0);
+      Eigen::MatrixXcd g = phy.block<12,12>(12,0);
+
+      start_time = ros::Time::now();
+      Eigen::MatrixXcd f_inv  = f.inverse();
+      if(debug_log_)
+        ROS_INFO("f inverse: %f\n", ros::Time::now().toSec() - start_time.toSec());
+
+
+      Eigen::MatrixXcd P = g * f_inv;
+
+      //K
+      K12_ = -R_inv * B12_aug_.transpose() * P.real();
+
+      if(debug_log_)
+        std::cout << "K is:" << std::endl << K12_ << std::endl;
+
+      //check the eigen of new A
+      Eigen::MatrixXd A12_dash = Eigen::MatrixXd::Zero(12, 12);
+      A12_dash = A12_aug_ + B12_aug_ * K12_;
+      // start_time = ros::Time::now();
+      Eigen::EigenSolver<Eigen::MatrixXd> esa(A12_dash);
+      if(debug_log_)
+        std::cout << "The eigenvalues of A_hash are:" << std::endl << esa.eigenvalues() << std::endl;
+      // ROS_INFO("A dash: %f\n", ros::Time::now().toSec() - start_time.toSec());
+
+    }
+  
+  if(lqi_mode_ == LQI_THREE_AXIS_MODE)
     {
-      ROS_ERROR("nagativa sigular value amount is not enough");
-      return false;
+      B6_.row(1) = U_.row(0);
+      B6_.row(3) = U_.row(1);
+      B6_.row(5) = U_.row(3);
+      if(debug_log_)
+        std::cout << "B6:"  << std::endl << B6_ << std::endl;
+
+      B9_aug_ = Eigen::MatrixXd::Zero(9, 4);
+      B9_aug_.block<6,4>(0,0) = B6_;
+
+      Eigen::MatrixXcd H = Eigen::MatrixXcd::Zero(18,18); //all right?
+      H.block<9,9>(0,0) = A9_aug_.cast<std::complex<double> >();
+
+      H.block<9,9>(9,0) = -(Q9_.cast<std::complex<double> >());
+      H.block<9,9>(0,9) = - (B9_aug_ * R_inv * B9_aug_.transpose()).cast<std::complex<double> >();
+      H.block<9,9>(9,9) = - (A9_aug_.transpose()).cast<std::complex<double> >();
+
+      //std::cout << " H  is:" << std::endl << H << std::endl;
+
+      //eigen solving
+      ros::Time start_time = ros::Time::now();
+      Eigen::ComplexEigenSolver<Eigen::MatrixXcd> ces;
+      ces.compute(H);
+
+      if(debug_log_)
+        ROS_INFO("h eigen time is: %f\n", ros::Time::now().toSec() - start_time.toSec());
+      //std::cout << "The eigenvalues of H are:" << std::endl << ces.eigenvalues() << std::endl;
+      //std::cout << "The eigenvalues vector of H are:" << std::endl << es.eigenvectors() << std::endl;
+
+      Eigen::MatrixXcd phy = Eigen::MatrixXcd::Zero(18,9);
+      int j = 0;
+
+
+      for(int i = 0; i < 18; i++)
+        {
+          if(ces.eigenvalues()[i].real() < 0)
+            {
+              if(j > 8) 
+                {
+                  ROS_ERROR("nagativa sigular amount is larger");
+                  return false;
+                }
+
+              phy.col(j) = ces.eigenvectors().col(i);
+              j++;
+            }
+
+        }
+
+      if(j != 9)
+        {
+          ROS_ERROR("nagativa sigular value amount is not enough");
+          return false;
+        }
+
+      Eigen::MatrixXcd f = phy.block<9,9>(0,0);
+      Eigen::MatrixXcd g = phy.block<9,9>(9,0);
+
+      start_time = ros::Time::now();
+      Eigen::MatrixXcd f_inv  = f.inverse();
+      if(debug_log_)
+        ROS_INFO("f inverse: %f\n", ros::Time::now().toSec() - start_time.toSec());
+
+
+      Eigen::MatrixXcd P = g * f_inv;
+
+      //K
+      K9_ = -R_inv * B9_aug_.transpose() * P.real();
+
+      if(debug_log_)
+        std::cout << "K is:" << std::endl << K9_ << std::endl;
+
+      //check the eigen of new A
+      Eigen::MatrixXd A9_dash = Eigen::MatrixXd::Zero(9, 9);
+      A9_dash = A9_aug_ + B9_aug_ * K9_;
+      // start_time = ros::Time::now();
+      Eigen::EigenSolver<Eigen::MatrixXd> esa(A9_dash);
+      if(debug_log_)
+        std::cout << "The eigenvalues of A_hash are:" << std::endl << esa.eigenvalues() << std::endl;
+      // ROS_INFO("A dash: %f\n", ros::Time::now().toSec() - start_time.toSec());
     }
-
-  Eigen::MatrixXcd f = phy.block<12,12>(0,0);
-  Eigen::MatrixXcd g = phy.block<12,12>(12,0);
-
-
-  //std::cout << "f:" << std::endl << f << std::endl;
-  //std::cout << "g:" << std::endl << g << std::endl;
-
-
-  start_time = ros::Time::now();
-  Eigen::MatrixXcd f_inv  = f.inverse();
-  //std::cout << "f inv is:" << std::endl << f_inv << std::endl;
-  if(debug_log_)
-    ROS_INFO("f inverse: %f\n", ros::Time::now().toSec() - start_time.toSec());
-
-
-  Eigen::MatrixXcd P = g * f_inv;
-
-  //std::cout << "P is:" << std::endl << P << std::endl;
-
-  //K
-  Eigen::MatrixXd K = -R_inv * B_aug_.transpose() * P.real();
-
-  if(debug_log_)
-    std::cout << "K is:" << std::endl << K << std::endl;
-
-
-  //check the eigen of new A
-   Eigen::MatrixXd A_dash = Eigen::MatrixXd::Zero(12, 12);
-   A_dash = A_aug_ + B_aug_ * K;
-  // start_time = ros::Time::now();
-   Eigen::EigenSolver<Eigen::MatrixXd> esa(A_dash);
-  if(debug_log_)
-    std::cout << "The eigenvalues of A_hash are:" << std::endl << esa.eigenvalues() << std::endl;
-  // ROS_INFO("A dash: %f\n", ros::Time::now().toSec() - start_time.toSec());
-
   return true;
 
 }

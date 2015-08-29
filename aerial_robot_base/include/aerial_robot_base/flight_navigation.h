@@ -45,12 +45,7 @@ class Navigator
   inline void setGainTunningMode(uint8_t mode){  gain_tunning_mode_ = mode;}
 
   inline bool getXyVelModePosCtrlTakeoff(){  return xy_vel_mode_pos_ctrl_takeoff_;}
-  inline bool getFreeFallFlag(){  return free_fall_flag_;}
-  inline void resetFreeFallFlag(){  free_fall_flag_ = false;}
 
-  inline bool getMotorStopFlag(){  return motor_stop_flag_;}
-  inline void setMotorStopFlag(bool motor_stop_flag){  motor_stop_flag_ = motor_stop_flag;}
-  inline uint8_t getThrowingMode(){  return throwing_mode_;}
 
   inline float getTargetPosX(){  return current_target_pos_x_;}
   inline void setTargetPosX( float value){  final_target_pos_x_ = value;}
@@ -157,23 +152,7 @@ class Navigator
     bool xy_vel_mode_pos_ctrl_takeoff_;
 
 
-
-    //*** free fall
-    double free_fall_thre_;
-    bool   use_free_fall_;
-    bool   free_fall_flag_;
-    bool   motor_stop_flag_;
-
     //*** base navigation
-
-    bool   use_throwing_mode_;
-    uint8_t throwing_mode_;
-    double throwing_mode_standby_alt_thre_;
-    double throwing_mode_throw_acc_x_thre_;
-    double throwing_mode_throw_acc_z_thre_;
-    double throwing_mode_set_alt_acc_z_thre_;
-    double throwing_mode_alt_hold_vel_z_thre_;
-    int    throwing_mode_shift_step_cnt_thre_;
 
     // final target value
     float final_target_pos_x_;

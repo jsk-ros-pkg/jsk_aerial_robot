@@ -1,8 +1,8 @@
 moveit_setup_assistant_config:
   URDF:
     package: aerial_robot_model
-    relative_path: robots/hydra.urdf
+    relative_path: robots/hydra3.urdf
   SRDF:
-    relative_path: config/hydra.srdf
+    relative_path: config/hydra3.srdf
   CONFIG:
-    generated_timestamp: 1419436231
+    generated_timestamp: 1440686749

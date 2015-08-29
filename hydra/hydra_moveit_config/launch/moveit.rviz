@@ -4,17 +4,15 @@ Panels:
     Name: Displays
     Property Tree Widget:
       Expanded:
-        - /PlanningScene1
-        - /RobotModel1
+        - /MotionPlanning1
+        - /MotionPlanning1/Scene Geometry1
+        - /MotionPlanning1/Scene Robot1
+        - /MotionPlanning1/Planning Metrics1
+        - /MotionPlanning1/Planned Path1
       Splitter Ratio: 0.74256
     Tree Height: 475
   - Class: rviz/Help
     Name: Help
-  - Class: rviz/Views
-    Expanded:
-      - /Current View1
-    Name: Views
-    Splitter Ratio: 0.5
   - Class: rviz/Views
     Expanded:
       - /Current View1
@@ -41,13 +39,288 @@ Visualization Manager:
       Plane Cell Count: 10
       Reference Frame: <Fixed Frame>
       Value: true
-    - Class: moveit_rviz_plugin/PlanningScene
+    - Class: moveit_rviz_plugin/MotionPlanning
       Enabled: true
-      Name: PlanningScene
-      Planning Scene Topic: planning_scene
+      Move Group Namespace: ""
+      MoveIt_Goal_Tolerance: 0
+      MoveIt_Planning_Attempts: 10
+      MoveIt_Planning_Time: 5
+      MoveIt_Use_Constraint_Aware_IK: true
+      MoveIt_Warehouse_Host: 127.0.0.1
+      MoveIt_Warehouse_Port: 33829
+      Name: MotionPlanning
+      Planned Path:
+        Links:
+          All Links Enabled: true
+          Expand Joint Details: false
+          Expand Link Details: false
+          Expand Tree: false
+          Link Tree Style: Links in Alphabetic Order
+          eye:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          head_cylinder:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          head_sphere:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          link0_rear_junction:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          link1_abdomen:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          link1_battery:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          link1_bottom_hinge:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          link1_bottom_hinge_end:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          link1_front_junction:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          link1_propeller:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          link1_rear_junction:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          link1_servo:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          link1_servo_rod:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          link1_servo_rod_bottom:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          link1_servo_rod_top:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          link1_top_hinge:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          link1_top_hinge_end:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          link2_abdomen:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          link2_battery:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          link2_bottom_hinge:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          link2_bottom_hinge_end:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          link2_front_junction:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          link2_propeller:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          link2_rear_junction:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          link2_servo:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          link2_servo_rod:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          link2_servo_rod_bottom:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          link2_servo_rod_top:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          link2_top_hinge:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          link2_top_hinge_end:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          link3_abdomen:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          link3_battery:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          link3_bottom_hinge:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          link3_bottom_hinge_end:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          link3_front_junction:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          link3_propeller:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          link3_rear_junction:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          link3_servo:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          link3_servo_rod:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          link3_servo_rod_bottom:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          link3_servo_rod_top:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          link3_top_hinge:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          link3_top_hinge_end:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          link4_abdomen:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          link4_battery:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          link4_front_junction:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          link4_propeller:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+        Loop Animation: true
+        Robot Alpha: 0.5
+        Show Robot Collision: false
+        Show Robot Visual: false
+        Show Trail: false
+        State Display Time: 0.05 s
+        Trajectory Topic: /move_group/display_planned_path
+      Planning Metrics:
+        Payload: 1
+        Show Joint Torques: false
+        Show Manipulability: false
+        Show Manipulability Index: false
+        Show Weight Limit: false
+        TextHeight: 0.08
+      Planning Request:
+        Colliding Link Color: 255; 0; 0
+        Goal State Alpha: 1
+        Goal State Color: 250; 128; 0
+        Interactive Marker Size: 0
+        Joint Violation Color: 255; 0; 255
+        Planning Group: body
+        Query Goal State: true
+        Query Start State: false
+        Show Workspace: false
+        Start State Alpha: 1
+        Start State Color: 0; 255; 0
+      Planning Scene Topic: /planning_scene
       Robot Description: robot_description
       Scene Geometry:
-        Scene Alpha: 0.9
+        Scene Alpha: 1
         Scene Color: 50; 230; 50
         Scene Display Time: 0.2
         Show Scene Geometry: true
@@ -297,28 +570,14 @@ Visualization Manager:
             Show Trail: false
             Value: true
         Robot Alpha: 0.5
-        Show Scene Robot: true
+        Show Robot Collision: false
+        Show Robot Visual: true
       Value: true
-    - Alpha: 1
-      Class: rviz/RobotModel
-      Collision Enabled: false
-      Enabled: false
-      Links:
-        All Links Enabled: true
-        Expand Joint Details: false
-        Expand Link Details: false
-        Expand Tree: false
-        Link Tree Style: Links in Alphabetic Order
-      Name: RobotModel
-      Robot Description: robot_description
-      TF Prefix: ""
-      Update Interval: 0
-      Value: false
-      Visual Enabled: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
-    Fixed Frame: /world
+    Fixed Frame: world
+    Frame Rate: 30
   Name: root
   Tools:
     - Class: rviz/Interact
@@ -328,18 +587,20 @@ Visualization Manager:
   Value: true
   Views:
     Current:
-      Class: rviz/XYOrbit
-      Distance: 3.46749
-      Focal Point:
-        X: -1.77597
-        Y: -0.713338
-        Z: -1.20699e-06
+      Angle: 0
+      Class: rviz/TopDownOrtho
+      Enable Stereo Rendering:
+        Stereo Eye Separation: 0.06
+        Stereo Focal Distance: 1
+        Swap Stereo Eyes: false
+        Value: false
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 1.1398
-      Target Frame: /head_cylinder
-      Value: XYOrbit (rviz)
-      Yaw: 3.83495
+      Scale: 131.835
+      Target Frame: link1
+      Value: TopDownOrtho (rviz)
+      X: -0.480327
+      Y: 0.298217
     Saved: ~
 Window Geometry:
   Displays:
@@ -349,9 +610,11 @@ Window Geometry:
     collapsed: false
   Hide Left Dock: false
   Hide Right Dock: false
-  QMainWindow State: 000000ff00000000fd00000001000000000000010f00000326fc0200000006fb000000100044006900730070006c006100790073010000002800000270000000dd00fffffffb0000000800480065006c00700000000342000000bb0000007600fffffffb0000000a0056006900650077007300000003b0000000b0000000b000fffffffb0000000c00430061006d00650072006100000002ff000001610000000000000000fb0000001e004d006f00740069006f006e00200050006c0061006e006e0069006e00670100000338000000160000000000000000fb0000000a00560069006500770073010000029e000000b0000000b000ffffff000004ea0000032600000001000000020000000100000002fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  Motion Planning:
+    collapsed: false
+  QMainWindow State: 000000ff00000000fd00000001000000000000034600000326fc0200000005fb000000100044006900730070006c006100790073010000002800000270000000dd00fffffffb0000000800480065006c00700000000342000000bb0000007600fffffffb0000000a00560069006500770073010000029e000000b0000000b000fffffffb0000000c00430061006d00650072006100000002ff000001610000000000000000fb0000001e004d006f00740069006f006e00200050006c0061006e006e0069006e006700000001cf0000017f0000017400ffffff000002b30000032600000001000000020000000100000002fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Views:
     collapsed: false
   Width: 1535
   X: 58
-  Y: 24
+  Y: -876

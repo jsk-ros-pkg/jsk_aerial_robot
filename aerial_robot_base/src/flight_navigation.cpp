@@ -2,7 +2,7 @@
 0. flightNavCallback => implementation
 1. the optical flow => indefference
 2. rocket start => depracated
-3. free fall
+
 4. flight mode vs navi command => development
 
 
@@ -65,11 +65,6 @@ Navigator::Navigator(ros::NodeHandle nh, ros::NodeHandle nh_private,
   //base navigation mode init
   flight_mode_ = NO_CONTROL_MODE;
 
-  //free fall mode init
-  free_fall_flag_ = false;
-  motor_stop_flag_ =false;
-  //throwing mode init
-  throwing_mode_ = NO_CONTROL_MODE;
 
   gain_tunning_mode_ = 0; //no tunning mode
 
@@ -114,191 +109,6 @@ void Navigator::naviCallback(const aerial_robot_base::FlightNavConstPtr & msg)
 }
 
 
-//1 implemented in  a more higher rate loop 
-//2 implement callback function
-//3 now: a 40Hz function ( z_offset is not important for flight control)
-void Navigator::throwingModeNavi()
-{
-  static int ready_to_standby_cnt = 0;
-  static int ready_to_arm_cnt = 0;
-  static int ready_to_set_alt_cnt = 0;
-  static int ready_to_alt_hold_cnt = 0;
-  static int xy_vel_state = GOOD_XY_TRACKING;
-
-  float pos_z = estimator_->getStatePosZ();
-  float vel_z = estimator_->getStateVelZ();
-  float acc_z = estimator_->getStateAccZb() - 9.8;
-
-  float vel_x = estimator_->getStateVelXc();
-  //float vel_y = estimator_->getStateVelYc();
-  //float vel_x = estimator_->getStateVelX();
-
-  float acc_x = estimator_->getStateAccXb();
-  float acc_y = estimator_->getStateAccYb();
-
-  static float prev_acc_x, prev_acc_z, prev_vel_z;
-
-  if(throwing_mode_ == NO_CONTROL_MODE)
-    {
-      //+*+*+* for alt control
-      if(getNaviCommand() == IDLE_COMMAND)
-        {
-          if(pos_z > throwing_mode_standby_alt_thre_) // altitude thre + getNaviCommand() == IDLE_COMMAND
-            ready_to_standby_cnt ++;
-          else 
-            ready_to_standby_cnt = 0;
-          if(ready_to_standby_cnt > throwing_mode_shift_step_cnt_thre_ * 2)
-            {
-              throwing_mode_ = THROWING_START_STANDBY;
-              ROS_INFO("shift to THROWING_START_STANDBY");
-            }
-        }
-    }
-
-  else if(throwing_mode_ == THROWING_START_STANDBY)
-    {
-      //+*+* for alt control
-      if(acc_x > throwing_mode_throw_acc_x_thre_ &&
-         acc_z > throwing_mode_throw_acc_z_thre_) // altitude vel/pos/acc + x acc/vel + timer(e.g. 0.1s)
-        {
-          ROS_INFO("both acc x/z is big enough, accX:%f, accZ:%f", acc_x, acc_z);
-          if(ready_to_arm_cnt == 0)
-            {
-              ready_to_arm_cnt ++;
-              prev_acc_x = acc_x;
-              prev_acc_z = acc_z;
-            }
-          else
-            {
-              // if(acc_x > prev_acc_x && acc_z > prev_acc_z)
-              if(acc_x > prev_acc_x )
-                {
-                  ready_to_arm_cnt ++;
-                  ROS_INFO("acc x/z is bigger than previous ones");
-                }
-              else
-                ready_to_arm_cnt = 0;
-            }
-        }
-      else
-        ready_to_arm_cnt = 0;
-
-      if(ready_to_arm_cnt > throwing_mode_shift_step_cnt_thre_)
-        {
-          ready_to_arm_cnt = 0;
-          throwing_mode_ = THROWING_START_ARMINGON;
-          setNaviCommand(START_COMMAND);
-          startNavigation();
-          ROS_ERROR("shift to arming mode");
-
-        }
-    }
-
-  else if(throwing_mode_ == THROWING_START_ARMINGON)
-    {
-      ROS_INFO("arming mode");
-
-      //+*+* for alt control
-      if(acc_z < throwing_mode_set_alt_acc_z_thre_)  // -5
-        {
-          if(ready_to_set_alt_cnt < throwing_mode_shift_step_cnt_thre_)
-            {
-              if(ready_to_set_alt_cnt == 0)
-                {
-                  ready_to_set_alt_cnt ++;
-                  prev_acc_z = acc_z;
-                }
-              else
-                {
-                  if(acc_z < prev_acc_z)
-                    ready_to_set_alt_cnt ++;
-                  else 
-                    ready_to_set_alt_cnt = 0;
-                }
-            }
-        }
-      else
-        ready_to_set_alt_cnt = 0;
-
-      if(vel_z < throwing_mode_alt_hold_vel_z_thre_)  //0.5
-        {
-          if(ready_to_set_alt_cnt > throwing_mode_shift_step_cnt_thre_)
-            {
-              if(ready_to_alt_hold_cnt == 0)
-                {
-                  ready_to_alt_hold_cnt += throwing_mode_shift_step_cnt_thre_;
-                  prev_vel_z = vel_z;
-                }
-            }
-        }
-      else
-        ready_to_alt_hold_cnt = 0;
-
-
-      //+*+* for optflow
-      //TODO : remove the optflow
-      if(estimator_->getStateVelXOpt() == 0) 
-        {
-          xy_vel_state = ZERO_XY_TRACKING;
-          bool stop_flag = false;
-          estimator_->setKFMeaureFlag(BasicEstimator::X_AXIS, stop_flag);
-          estimator_->setKFMeaureFlag(BasicEstimator::Y_AXIS, stop_flag);
-          ROS_WARN("ZERO TRACKING");
-        }
-
-      if(ready_to_set_alt_cnt == throwing_mode_shift_step_cnt_thre_)
-        {
-          final_target_pos_z_ = pos_z + 0.5 * vel_z * vel_z / 9.8 + 0.2;
-          ready_to_set_alt_cnt++;
-          ROS_ERROR("set alt, %f", final_target_pos_z_);
-        }
-      if(ready_to_alt_hold_cnt == throwing_mode_shift_step_cnt_thre_)
-        {
-          ready_to_set_alt_cnt = 0;
-          ready_to_alt_hold_cnt = 0;
-          throwing_mode_ = THROWING_START_ALT_HOLD;
-          startFlight(); //not very good , temporarily
-          setNaviCommand(HOVER_COMMAND); //special
-          ROS_ERROR("shift to alt_hold mode");
-        }
-
-    }
-  else if(throwing_mode_ == THROWING_START_ALT_HOLD)
-    {
-      //+*+* for alt control
-      setNaviCommand(HOVER_COMMAND); //special, escape from start res from quadcopter
-      ROS_INFO("alt hold mode");
-      //very simple way
-      if(vel_x < 0) //todo: altitude pos + x vel + etc
-        {
-          ROS_INFO("takeoff mode");
-          throwing_mode_ = FLIGHT_MODE; //to avoid loop
-          final_target_pos_x_ = estimator_->getStatePosXc();
-          final_target_pos_y_ = estimator_->getStatePosYc();
-
-          //final_target_pos_x_ = estimator_->getStatePosX();
-          //final_target_pos_y_ = estimator_->getStatePosY();
-        }
-
-      //*+*+ for optical flow => bad
-      if(xy_vel_state == ZERO_XY_TRACKING && 
-         acc_z > 0 && estimator_->getStateVelXOpt() > 0.25)
-        {
-          xy_vel_state = RECOVER_XY_TRACKING;
-          bool start_flag = true;
-          estimator_->setKFMeaureFlag(BasicEstimator::X_AXIS, start_flag);
-          estimator_->setKFMeaureFlag(BasicEstimator::Y_AXIS, start_flag);
-          ROS_WARN("RECOVER TRACKING");
-        }
-    }
-
-  else
-    {
-      //do nothing
-    }
-}
-
-
 void Navigator::tfPublish()
 {
   //TODO mutex
@@ -318,12 +128,6 @@ void Navigator::rosParamInit(ros::NodeHandle nh)
   std::string ns = nh.getNamespace();
 
   //*** teleop navigation
-  if (!nh.getParam ("use_free_fall", use_free_fall_))
-    use_free_fall_ = false;
-  printf("%s: use_free_fall is %s\n", ns.c_str(), use_free_fall_ ? ("true") : ("false"));
-  if (!nh.getParam ("free_fall_thre", free_fall_thre_))
-    free_fall_thre_ = 0;
-  printf("%s: free_fall_thre_ is %.3f\n", ns.c_str(), free_fall_thre_);
 
   if (!nh.getParam ("map_frame", map_frame_))
     map_frame_ = "unknown";
@@ -341,34 +145,6 @@ void Navigator::rosParamInit(ros::NodeHandle nh)
   if (!nh.getParam ("xy_vel_mode_pos_ctrl_takeoff", xy_vel_mode_pos_ctrl_takeoff_))
     xy_vel_mode_pos_ctrl_takeoff_ = true;
   printf("%s: xy_vel_mode_pos_ctrl_takeoff is %s\n", ns.c_str(), xy_vel_mode_pos_ctrl_takeoff_ ? ("true") : ("false"));
-
-  if (!nh.getParam ("use_throwing_mode", use_throwing_mode_))
-    use_throwing_mode_ = false;
-  printf("%s: use_throwing_mode is %s\n", ns.c_str(), use_throwing_mode_ ? ("true") : ("false"));
-
-  if (!nh.getParam ("throwing_mode_standby_alt_thre", throwing_mode_standby_alt_thre_))
-    throwing_mode_standby_alt_thre_ = 0;
-  printf("%s: throwing_mode_standby_alt_thre_ is %f\n", ns.c_str(), throwing_mode_standby_alt_thre_);
-
-  if (!nh.getParam ("throwing_mode_throw_acc_x_thre", throwing_mode_throw_acc_x_thre_))
-    throwing_mode_throw_acc_x_thre_ = 0;
-  printf("%s: throwing_mode_throw_acc_x_thre_ is %f\n", ns.c_str(), throwing_mode_throw_acc_x_thre_);
-
-  if (!nh.getParam ("throwing_mode_throw_acc_z_thre", throwing_mode_throw_acc_z_thre_))
-    throwing_mode_throw_acc_z_thre_ = 0;
-  printf("%s: throwing_mode_throw_acc_z_thre_ is %f\n", ns.c_str(), throwing_mode_throw_acc_z_thre_);
-
-  if (!nh.getParam ("throwing_mode_set_alt_acc_z_thre", throwing_mode_set_alt_acc_z_thre_))
-    throwing_mode_set_alt_acc_z_thre_ = 0;
-  printf("%s: throwing_mode_set_alt_acc_z_thre_ is %f\n", ns.c_str(), throwing_mode_set_alt_acc_z_thre_);
-
-  if (!nh.getParam ("throwing_mode_alt_hold_vel_z_thre", throwing_mode_alt_hold_vel_z_thre_))
-    throwing_mode_alt_hold_vel_z_thre_ = 0;
-  printf("%s: throwing_mode_alt_hold_vel_z_thre_ is %f\n", ns.c_str(), throwing_mode_alt_hold_vel_z_thre_);
-
-  if (!nh.getParam ("throwing_mode_shift_step_cnt_thre", throwing_mode_shift_step_cnt_thre_))
-    throwing_mode_shift_step_cnt_thre_ = 0;
-  printf("%s: throwing_mode_shift_step_cnt_thre_ is %d\n", ns.c_str(), throwing_mode_shift_step_cnt_thre_);
 
 }
 
@@ -1076,7 +852,6 @@ void TeleopNavigator::targetValueCorrection()
   current_target_psi_ = final_target_psi_;
   current_target_vel_psi_ = final_target_vel_psi_;
 
-
 #if 1 //keystone
   // for pitch and roll velocity control
   //pitch
@@ -1121,10 +896,14 @@ void TeleopNavigator::sendRcCmd()
           getNaviCommand() == HOVER_COMMAND)
     {
       aerial_robot_msgs::FourAxisCommand four_axis_command_data;
-      four_axis_command_data.roll  =  flight_ctrl_input_->getRollValue();
-      four_axis_command_data.pitch =  flight_ctrl_input_->getPitchValue();
-      four_axis_command_data.yaw   =  flight_ctrl_input_->getYawValue();
-      four_axis_command_data.throttle = flight_ctrl_input_->getThrottleValue() ;
+      four_axis_command_data.angles[0]  =  flight_ctrl_input_->getRollValue();
+      four_axis_command_data.angles[1] =  flight_ctrl_input_->getPitchValue();
+
+      for(int i =0; i < flight_ctrl_input_->getMotorNumber(); i++)
+        {
+          four_axis_command_data.yaw_pi_term[i]   =  (flight_ctrl_input_->getYawValue())[i];
+          four_axis_command_data.throttle_pid_term[i] = (flight_ctrl_input_->getThrottleValue())[i] ;
+        }
       rc_cmd_pub_.publish(four_axis_command_data);
 
     }
@@ -1138,9 +917,6 @@ void TeleopNavigator::teleopNavigation()
 {
   static int convergence_cnt = 0; 
   static int clock_cnt = 0; //mainly for velocity control takeoff
-
-  //throwing mode
-  if(use_throwing_mode_) throwingModeNavi();
 
   //keystron correction / target value process
   targetValueCorrection();
@@ -1167,7 +943,6 @@ void TeleopNavigator::teleopNavigation()
           //TODO => check same as pos_world_based_control_mode
           if (fabs(getTargetPosZ() - estimator_->getStatePosZ()) < POS_Z_THRE)
               convergence_cnt++;
-
 
         }
 
@@ -1219,10 +994,6 @@ void TeleopNavigator::teleopNavigation()
           setTargetPosY(estimator_->getStatePosY());
           setTargetPsi(estimator_->getStatePsiBoard());
 
-          motor_stop_flag_ = false;
-          resetFreeFallFlag();
-          //bad
-          estimator_->setRocketStartFlag();
 
           if(xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE) xy_control_mode_ = POS_WORLD_BASED_CONTROL_MODE;
 	}
@@ -1231,40 +1002,18 @@ void TeleopNavigator::teleopNavigation()
 	{
 	  flight_mode_= LAND_MODE; //--> for control
 
-          if(use_free_fall_)
-            {
-              if(free_fall_thre_ > estimator_->getStatePosZ())
-                {
-                  ROS_WARN(" free fall mode");
-                  free_fall_flag_ = true;
-                }
-              if(motor_stop_flag_)
-                {
-                  ROS_ERROR(" stop motor arming");
-                  convergence_cnt = 0;
-                  stopFlight();
-                }
-            }
-          else
-            { // do not use free fall
               if (fabs(getTargetPosZ() - estimator_->getStatePosZ()) < POS_Z_THRE)
                 convergence_cnt++;
               if (convergence_cnt > ctrl_loop_rate_) 
                 { 
-                  ROS_WARN("  no free fall mode");
                   convergence_cnt = 0;
                   stopFlight();
                 }
-            }
 	} 
       else if (!getStartAble())
 	{
 	  flight_mode_= NO_CONTROL_MODE;
 	  setNaviCommand(IDLE_COMMAND);
-
-
-          estimator_->setRocketStartFlag();
-          resetFreeFallFlag();
 
 	}
     }
@@ -1348,6 +1097,5 @@ void TeleopNavigator::rosParamInit(ros::NodeHandle nh)
   if (!nh.getParam ("cmd_angle_lev2_gain", cmd_angle_lev2_gain_))
     cmd_angle_lev2_gain_ = 1.0;
   printf("%s: cmd_angle_lev2_gain_ is %f\n", ns.c_str(), cmd_angle_lev2_gain_);
-
 
 }

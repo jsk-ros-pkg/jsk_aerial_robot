@@ -35,6 +35,7 @@ add_message_files(FILES
   Pid.msg
   State.msg
   States.msg
+  YawThrottleGain.msg
   )
 
 generate_messages(DEPENDENCIES std_msgs geometry_msgs)

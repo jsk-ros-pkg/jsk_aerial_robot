@@ -13,6 +13,26 @@ FlightController::FlightController(ros::NodeHandle nh,
   estimator_ = estimator;
   navigator_ = navigator;
   flight_ctrl_input_= flight_ctrl_input;
+
+  if (!nhp_.getParam ("motor_num", motor_num_))
+    motor_num_ = 4;
+  printf("motor_num_ is %d\n", motor_num_);
+
+  if (!nhp_.getParam ("f_pwm_rate", f_pwm_rate_))
+    f_pwm_rate_ = 0.3029;
+  printf("f_pwm_rate_ is %f\n", f_pwm_rate_);
+
+  if (!nhp_.getParam ("f_pwm_offset", f_pwm_offset_))
+    f_pwm_offset_ = -21.196;
+  printf("f_pwm_offset_ is %f\n", f_pwm_offset_);
+
+  if (!nhp_.getParam ("pwm_rate", pwm_rate_))
+    pwm_rate_ = 1800/100.0;
+  printf("pwm_rate_ is %f\n", pwm_rate_);
+
+  
+
+
 }
 
 FlightController::~FlightController()
@@ -25,7 +45,6 @@ float FlightController::limit(float value, int limit)
   else if(value < - (float)limit) { return -(float)limit; }
   else return value;
 }
-
 
 PidController::PidController(ros::NodeHandle nh,
                              ros::NodeHandle nh_private,
@@ -66,15 +85,35 @@ PidController::PidController(ros::NodeHandle nh,
   pos_d_term_yaw_ = 0;
   pos_d_term_throttle_ = 0;
 
-  //publish
- pid_pub_ = nh_.advertise<aerial_robot_base::FourAxisPid>("debug", 10); 
+  error_i_throttle_ = 0;
+  error_i_yaw_ = 0;
 
-  //subscribe
-  motor_bias_flag_ = false;
-  motor_bias_set_pub_ = nh_.advertise<aerial_robot_msgs::ITermBias>("/kduino/i_term_bias", 2);
-  //deprecated
-  motor_bias_set_sub_ = nh_.subscribe<std_msgs::Int8>("/teleop_command/motor_bais_set", 1, &PidController::motorBiasSetCallback, this, ros::TransportHints().tcpNoDelay());
-  rpy_ctrl_offset_sub_ = nh_.subscribe<aerial_robot_msgs::RPYCtrlOffset>("/flight_control/rpy_ctrl_offset", 1, &PidController::rpyCtrlOffsetCallback, this, ros::TransportHints().tcpNoDelay());
+  pos_p_gain_yaw_.resize(motor_num_);
+  pos_i_gain_yaw_.resize(motor_num_);
+  pos_d_gain_yaw_.resize(motor_num_);
+
+  pos_p_gain_throttle_.resize(motor_num_);
+  pos_i_gain_throttle_.resize(motor_num_);
+  pos_d_gain_throttle_.resize(motor_num_);
+
+
+  for(int i = 0; i < motor_num_; i++)
+    {
+      pos_p_gain_yaw_[i] = 0;
+      pos_i_gain_yaw_[i] = 0;
+      pos_d_gain_yaw_[i] = 0;
+
+      pos_p_gain_throttle_[i] = 0;
+      pos_i_gain_throttle_[i] = 0;
+      pos_d_gain_throttle_[i] = 0;
+    }
+
+  //publish
+  pid_pub_ = nh_.advertise<aerial_robot_base::FourAxisPid>("debug", 10); 
+
+  //subscriber
+  four_axis_gain_sub_ = nh_.subscribe<aerial_robot_base::YawThrottleGain>("yaw_throttle_gain", 1, &PidController::yawThrottleGainCallback, this, ros::TransportHints().tcpNoDelay());
+
 
   //dynamic reconfigure server
   pitch_server_ = new dynamic_reconfigure::Server<aerial_robot_base::PidPitchControlConfig>(ros::NodeHandle(nhp_, "pitch"));
@@ -85,6 +124,7 @@ PidController::PidController(ros::NodeHandle nh,
   dynamic_reconf_func_roll_ = boost::bind(&PidController::cfgRollCallback, this, _1, _2);
   roll_server_->setCallback(dynamic_reconf_func_roll_);
 
+#if 0 // no tunning for yaw and throttle
   yaw_server_ = new dynamic_reconfigure::Server<aerial_robot_base::PidYawControlConfig>(ros::NodeHandle(nhp_, "yaw"));
   dynamic_reconf_func_yaw_ = boost::bind(&PidController::cfgYawCallback, this, _1, _2);
   yaw_server_->setCallback(dynamic_reconf_func_yaw_);
@@ -92,6 +132,8 @@ PidController::PidController(ros::NodeHandle nh,
   throttle_server_ = new dynamic_reconfigure::Server<aerial_robot_base::PidThrottleControlConfig>(ros::NodeHandle(nhp_, "throttle"));
   dynamic_reconf_func_throttle_ = boost::bind(&PidController::cfgThrottleCallback, this, _1, _2);
   throttle_server_->setCallback(dynamic_reconf_func_throttle_);
+
+#endif
 }
 
 PidController::~PidController()
@@ -99,40 +141,29 @@ PidController::~PidController()
   printf(" deleted pid flight control input!\n");
 }
 
-
-//deprecated
-void PidController::motorBiasSetCallback(const std_msgs::Int8ConstPtr& set_flag)
+void PidController::yawThrottleGainCallback(const aerial_robot_base::YawThrottleGainConstPtr & msg)
 {
+  if(msg->motor_num != motor_num_) 
+    {
+      ROS_ERROR("the motor number is not correct");
+      return ;
+    }
 
-  aerial_robot_msgs::ITermBias msg;
-  msg.bias[0] = (short)(-pos_i_term_roll_ - offset_roll_); //反転
-  msg.bias[1] = (short)(pos_i_term_pitch_ + offset_pitch_);
-  motor_bias_set_pub_.publish(msg);
+  for(int i = 0; i < msg->motor_num; i++)
+    {
+      pos_p_gain_yaw_[i] = msg->pos_p_gain_yaw[i];
+      pos_i_gain_yaw_[i] = msg->pos_i_gain_yaw[i];
+      pos_d_gain_yaw_[i] = msg->pos_d_gain_yaw[i];
 
-  motor_bias_flag_ = true;
-  pos_i_term_roll_ = 0;
-  pos_i_term_pitch_ = 0;
-
+      pos_p_gain_throttle_[i] = msg->pos_p_gain_throttle[i];
+      pos_i_gain_throttle_[i] = msg->pos_i_gain_throttle[i];
+      pos_d_gain_throttle_[i] = msg->pos_d_gain_throttle[i];
+    }
 }
-
-void PidController::rpyCtrlOffsetCallback(const aerial_robot_msgs::RPYCtrlOffsetConstPtr& offset_value)
-{
-  offset_roll_ = offset_value->roll_offset;
-  offset_pitch_ = offset_value->pitch_offset;
-
-  pos_i_term_roll_ = 0;
-  pos_i_term_pitch_ = 0;
-}
-
 
 void PidController::pidFunction()
 {
   static bool first_flag = true;
-  static bool start_free_fall = false;
-
-  //for rocket start
-  static int rocket_start_value_tmp = rocket_start_init_value_ - offset_throttle_;
-  static int restart_cnt = 0;
 
   //*** リセット
   if (navigator_->getFlightMode() == Navigator::RESET_MODE) 
@@ -144,16 +175,10 @@ void PidController::pidFunction()
       pos_p_term_yaw_ = 0; pos_i_term_yaw_ = 0; pos_d_term_yaw_ = 0;
       pos_p_term_throttle_ = 0; pos_i_term_throttle_ = 0; pos_d_term_throttle_ = 0;
 
-      flight_ctrl_input_->setPitchValue(0);
-      flight_ctrl_input_->setRollValue(0);
-      flight_ctrl_input_->setYawValue(0);
-      flight_ctrl_input_->setThrottleValue(0);
+      error_i_throttle_ = 0;  error_i_yaw_ = 0;
 
-      restart_cnt++;
-      rocket_start_value_tmp
-        = rocket_start_init_value_ - offset_throttle_ + rocket_start_init_increment_value_ * restart_cnt;
+      flight_ctrl_input_->reset();
 
-      start_free_fall = false;
       return;
     }
   else if(navigator_->getFlightMode() == Navigator::NO_CONTROL_MODE)
@@ -196,7 +221,7 @@ void PidController::pidFunction()
         }
       else
         {
-          ROS_ERROR(" bad ");
+          ROS_ERROR("wrong xy control mode ");
           state_pos_x = 0;
           state_vel_x = 0;
           state_pos_y = 0;
@@ -245,8 +270,8 @@ void PidController::pidFunction()
               if(navigator_->getFlightMode() == Navigator::TAKEOFF_MODE || navigator_->getFlightMode() == Navigator::LAND_MODE) //takeoff or land
                 pos_i_term_pitch_ += 1000 * 
                   d_err_pos_curr_pitch_ * (1 / (float)pitch_ctrl_loop_rate_) * pos_i_gain_pitch_;
-              else if(navigator_->getFlightMode() == Navigator::FLIGHT_MODE &&
-                      fabs(d_err_pos_curr_pitch_) < i_enable_limit_pitch_) //hover or land
+              //else if(navigator_->getFlightMode() == Navigator::FLIGHT_MODE && fabs(d_err_pos_curr_pitch_) < i_enable_limit_pitch_) //hover or land
+              else if(navigator_->getFlightMode() == Navigator::FLIGHT_MODE) //hover or land
                 pos_i_term_pitch_ += 1000 * 
                   d_err_pos_curr_pitch_ * (1 / (float)pitch_ctrl_loop_rate_) * pos_i_gain_pitch_hover_;
               pos_i_term_pitch_ = limit(pos_i_term_pitch_, pos_i_limit_pitch_);
@@ -332,15 +357,6 @@ void PidController::pidFunction()
           else
             ROS_ERROR("wrong control mode");
 
-          if(navigator_->getFreeFallFlag())
-            {// free fall mode
-              pos_p_term_pitch_ =  0;
-              pos_i_term_pitch_ =  0;
-              pos_d_term_pitch_ =  0;
-            }
-
-          //*** motor bias
-          if(motor_bias_flag_) pos_i_term_pitch_ = 0;
 
           //*** 指令値算出
           float pitch_value = limit(pos_p_term_pitch_ + pos_i_term_pitch_ + pos_d_term_pitch_ + offset_pitch_, pos_limit_pitch_);
@@ -348,7 +364,6 @@ void PidController::pidFunction()
           //**** attitude gain tunnign mode
           if(navigator_->getGainTunningMode() == Navigator::ATTITUDE_GAIN_TUNNING_MODE)
             {
-
               pitch_value = navigator_->getTargetAnglePitch();
               pos_p_term_pitch_ =  0;
               pos_i_term_pitch_ =  0;
@@ -359,14 +374,15 @@ void PidController::pidFunction()
           flight_ctrl_input_->setPitchValue(pitch_value);
 
           //**** ros pub
-          four_axis_pid_debug.pitch.total = pitch_value;
-          four_axis_pid_debug.pitch.p_term = pos_p_term_pitch_;
-          four_axis_pid_debug.pitch.i_term = pos_i_term_pitch_;
-          four_axis_pid_debug.pitch.d_term = pos_d_term_pitch_;
+          four_axis_pid_debug.pitch.total.push_back(pitch_value);
+          four_axis_pid_debug.pitch.p_term.push_back(pos_p_term_pitch_);
+          four_axis_pid_debug.pitch.i_term.push_back(pos_i_term_pitch_);
+          four_axis_pid_debug.pitch.d_term.push_back(pos_d_term_pitch_);
           four_axis_pid_debug.pitch.pos_err_transform = d_err_pos_curr_pitch_;
           four_axis_pid_debug.pitch.pos_err_no_transform = target_pos_x - state_pos_x;
           four_axis_pid_debug.pitch.vel_err_transform = target_vel_x;
           four_axis_pid_debug.pitch.vel_err_no_transform = target_vel_x -state_vel_x;
+
 
           //roll
           if(navigator_->getXyControlMode() == Navigator::POS_WORLD_BASED_CONTROL_MODE)
@@ -386,8 +402,8 @@ void PidController::pidFunction()
               if(navigator_->getFlightMode() == Navigator::TAKEOFF_MODE || navigator_->getFlightMode() == Navigator::LAND_MODE) //takeoff or land
                 pos_i_term_roll_ += 1000 * 
                   d_err_pos_curr_roll_ * (1 / (float)roll_ctrl_loop_rate_) * pos_i_gain_roll_;
-              else if(navigator_->getFlightMode() == Navigator::FLIGHT_MODE &&
-                      fabs(d_err_pos_curr_roll_) < i_enable_limit_roll_) //hover
+              //else if(navigator_->getFlightMode() == Navigator::FLIGHT_MODE && fabs(d_err_pos_curr_roll_) < i_enable_limit_roll_) //hover
+              else if(navigator_->getFlightMode() == Navigator::FLIGHT_MODE) //hover
                 pos_i_term_roll_ += 1000 * 
                   d_err_pos_curr_roll_ * (1 / (float)roll_ctrl_loop_rate_) * pos_i_gain_roll_hover_;
               pos_i_term_roll_ = limit(pos_i_term_roll_, pos_i_limit_roll_);
@@ -473,21 +489,10 @@ void PidController::pidFunction()
           else
             ROS_ERROR("wrong control mode");
 
-          if(navigator_->getFreeFallFlag())
-            {// free fall mode
-              pos_p_term_roll_ =  0;
-              pos_i_term_roll_ =  0;
-              pos_d_term_roll_ =  0;
-            }
-
-          //*** motor bias
-          if(motor_bias_flag_) pos_i_term_roll_ = 0;
-
           //*** 指令値算出
           float roll_value = limit(pos_p_term_roll_ + pos_i_term_roll_ + pos_d_term_roll_ + offset_roll_, pos_limit_roll_);
           //**** 指令値反転
           roll_value = - roll_value;
-
 
           //**** attitude gain tunnign mode
           if(navigator_->getGainTunningMode() == Navigator::ATTITUDE_GAIN_TUNNING_MODE)
@@ -502,10 +507,10 @@ void PidController::pidFunction()
           flight_ctrl_input_->setRollValue(roll_value);
 
           //**** ros pub
-          four_axis_pid_debug.roll.total = roll_value;
-          four_axis_pid_debug.roll.p_term = pos_p_term_roll_;
-          four_axis_pid_debug.roll.i_term = pos_i_term_roll_;
-          four_axis_pid_debug.roll.d_term = pos_d_term_roll_;
+          four_axis_pid_debug.roll.total.push_back(roll_value);
+          four_axis_pid_debug.roll.p_term.push_back(pos_p_term_roll_);
+          four_axis_pid_debug.roll.i_term.push_back(pos_i_term_roll_);
+          four_axis_pid_debug.roll.d_term.push_back(pos_d_term_roll_);
           four_axis_pid_debug.roll.pos_err_transform = d_err_pos_curr_roll_;
           four_axis_pid_debug.roll.pos_err_no_transform = target_pos_y - state_pos_y;
           four_axis_pid_debug.roll.vel_err_transform = target_vel_y;
@@ -513,174 +518,73 @@ void PidController::pidFunction()
 
 
           //yaw => refer to the board frame angle(psi_board)
+          //error p
+          d_err_pos_curr_yaw_ = target_psi - state_psi_board;
+          if(d_err_pos_curr_yaw_ > M_PI)  d_err_pos_curr_yaw_ -= 2 * M_PI; 
+          else if(d_err_pos_curr_yaw_ < -M_PI)  d_err_pos_curr_yaw_ += 2 * M_PI;
+          //error i
+          error_i_yaw_ += d_err_pos_curr_yaw_ * (1 / (float)yaw_ctrl_loop_rate_); 
+
           if(navigator_->getXyControlMode() == Navigator::POS_WORLD_BASED_CONTROL_MODE ||
              navigator_->getXyControlMode() == Navigator::POS_LOCAL_BASED_CONTROL_MODE || 
              navigator_->getXyControlMode() == Navigator::VEL_WORLD_BASED_CONTROL_MODE)
             {
-              d_err_pos_curr_yaw_ = target_psi - state_psi_board;
-              if(d_err_pos_curr_yaw_ > M_PI)  d_err_pos_curr_yaw_ -= 2 * M_PI; 
-              else if(d_err_pos_curr_yaw_ < -M_PI)  d_err_pos_curr_yaw_ += 2 * M_PI;
 
-              //**** Pの項
-              pos_p_term_yaw_ = 
-                limit(1000 * pos_p_gain_yaw_ * d_err_pos_curr_yaw_, pos_p_limit_yaw_);
+              for(int j = 0; j < motor_num_; j++)
+                {
+                  //**** Pの項
+                  pos_p_term_yaw_ = limit(pos_p_gain_yaw_[j] * state_psi_board, pos_p_limit_yaw_);
+                  //**** Iの項 : deprecated
+                  pos_i_term_yaw_ = limit(pos_i_gain_yaw_[j] * error_i_yaw_, pos_i_limit_yaw_);
+                  //***** Dの項 // to think about d term, now in kduino controller
+                  pos_d_term_yaw_ = 0;
 
-              //**** Iの項 : deprecated
-#if 1 //bad for hydra control
-              if(fabs(d_err_pos_curr_yaw_) < i_enable_limit_yaw_) 
-                pos_i_term_yaw_ += 1000 *
-                  d_err_pos_curr_yaw_ * ( 1 / (float)yaw_ctrl_loop_rate_ ) * pos_i_gain_yaw_;
-              else{ pos_i_term_yaw_ = 0;} // right ?
-#else 
-              pos_i_term_yaw_ += 1000 *
-                d_err_pos_curr_yaw_ * ( 1 / (float)yaw_ctrl_loop_rate_ ) * pos_i_gain_yaw_;
-#endif
+                  //*** each motor command value for log
+                  float yaw_value = limit(pos_p_term_yaw_ + pos_i_term_yaw_ + pos_d_term_yaw_, pos_limit_yaw_);
+                  four_axis_pid_debug.yaw.total.push_back(yaw_value);
+                  four_axis_pid_debug.yaw.p_term.push_back(pos_p_term_yaw_);
+                  four_axis_pid_debug.yaw.i_term.push_back(pos_i_term_yaw_);
+                  four_axis_pid_debug.yaw.d_term.push_back(pos_d_term_yaw_);
 
-              pos_i_term_yaw_ = limit(pos_i_term_yaw_, pos_i_limit_yaw_);
-
-              //***** Dの項
-              pos_d_term_yaw_ = 
-                limit(- 1000 * pos_d_gain_yaw_ * state_vel_psi_board, pos_d_limit_yaw_);
-            }
-          else if(navigator_->getXyControlMode() == Navigator::VEL_LOCAL_BASED_CONTROL_MODE)
-            {//bad
-              //fixed point  getStatePsi()
-              //develop the p term yaw
-              pos_p_term_yaw_ = limit(1000 * target_psi, pos_p_limit_yaw_);
-              pos_i_term_yaw_ = 0;
-              pos_d_term_yaw_ = 0;
+                  //*** 指令値代入(new*** 14 bit shift)
+                  flight_ctrl_input_->setYawValue(yaw_value * 100, j); //100x
+                }
             }
 
-          //*** 指令値算出
-          float yaw_value = limit(pos_p_term_yaw_ + pos_i_term_yaw_ + pos_d_term_yaw_,
-                                  pos_limit_yaw_);
-	
           //**** ros pub
-          four_axis_pid_debug.yaw.total = yaw_value;
-          four_axis_pid_debug.yaw.p_term = pos_p_term_yaw_;
-          four_axis_pid_debug.yaw.i_term = pos_i_term_yaw_;
-          four_axis_pid_debug.yaw.d_term = pos_d_term_yaw_;
           four_axis_pid_debug.yaw.pos_err_transform = target_psi;
           four_axis_pid_debug.yaw.pos_err_no_transform = d_err_pos_curr_yaw_;
           four_axis_pid_debug.yaw.vel_err_transform = state_vel_psi_board;
           four_axis_pid_debug.yaw.vel_err_no_transform = state_vel_psi_board;
 
-          //*** 指令値代入
-          flight_ctrl_input_->setYawValue(yaw_value);
-
           //throttle
           d_err_pos_curr_throttle_ = target_pos_z - state_pos_z;
-
-          if(navigator_->getFlightMode() == Navigator::TAKEOFF_MODE)
+          error_i_throttle_ += d_err_pos_curr_throttle_ * (1 / (float)throttle_ctrl_loop_rate_);
+          if(navigator_->getFlightMode() == Navigator::TAKEOFF_MODE ||
+             navigator_->getFlightMode() == Navigator::LAND_MODE   ||
+             navigator_->getFlightMode() == Navigator::FLIGHT_MODE)
             {
-              if(estimator_->getRocketStartFlag())
+              for(int j = 0; j < motor_num_; j++)
                 {
-                  ROS_INFO("rocket start");
-                  pos_p_term_throttle_ = 0;
-                  //increment rocket start
-                  rocket_start_value_tmp += rocket_start_step_value_;
-                  pos_i_term_throttle_ = rocket_start_value_tmp;
-                  pos_d_term_throttle_ = 0;
-                }
-              else
-                {
-                  //ROS_INFO("normal takeoff");
                   //**** Pの項
-                  pos_p_term_throttle_ = 
-                    limit(1000 * pos_p_gain_throttle_ * d_err_pos_curr_throttle_, pos_p_limit_throttle_);
+                  pos_p_term_throttle_ = limit(pos_p_gain_throttle_[j] * state_pos_z, pos_p_limit_throttle_);
                   //**** Iの項
-                  pos_i_term_throttle_ += 1000 *
-                    d_err_pos_curr_throttle_ * ( 1 / (float)throttle_ctrl_loop_rate_) * pos_i_gain_throttle_;
-                  pos_i_term_throttle_ = limit(pos_i_term_throttle_, pos_i_limit_throttle_);
-                  //***** Dの項
-                  pos_d_term_throttle_ = 
-                    limit(-1000 * pos_d_gain_throttle_ * state_vel_z, pos_d_limit_throttle_);
+                  pos_i_term_throttle_ = limit(pos_i_gain_throttle_[j] * error_i_throttle_, pos_i_limit_throttle_);
+                  //***** Dの項 // to think about d term, now in kduino controller
+                  pos_d_term_throttle_ = limit(pos_d_gain_throttle_[j] * state_vel_z, pos_p_limit_throttle_);;
+
+                  //*** each motor command value for log
+                  float throttle_value = limit(pos_p_term_throttle_ + pos_i_term_throttle_ + pos_d_term_throttle_ + offset_throttle_, pos_limit_throttle_);
+                  four_axis_pid_debug.throttle.total.push_back(throttle_value);
+                  four_axis_pid_debug.throttle.p_term.push_back(pos_p_term_throttle_);
+                  four_axis_pid_debug.throttle.i_term.push_back(pos_i_term_throttle_);
+                  four_axis_pid_debug.throttle.d_term.push_back(pos_d_term_throttle_);
+
+                  //*** 指令値代入
+                  uint16_t throttle_value_16bit = (throttle_value - f_pwm_offset_) / f_pwm_rate_ * pwm_rate_;
+                  flight_ctrl_input_->setThrottleValue(throttle_value_16bit, j);
                 }
             }
-          else if(navigator_->getFlightMode() == Navigator::FLIGHT_MODE) //hover
-            {
-              //**** Pの項
-              pos_p_term_throttle_ = 
-                limit(1000 * pos_p_gain_throttle_ * d_err_pos_curr_throttle_, pos_p_limit_throttle_hover_);
-              //**** Iの項
-              pos_i_term_throttle_ += 1000 *
-                d_err_pos_curr_throttle_ * ( 1 / (float)throttle_ctrl_loop_rate_) * pos_i_gain_throttle_;
-              pos_i_term_throttle_ = limit(pos_i_term_throttle_, pos_i_limit_throttle_);
-              //***** Dの項
-              pos_d_term_throttle_ = 
-                limit(-1000 * pos_d_gain_throttle_ * state_vel_z, pos_d_limit_throttle_);
-            }
-          else if(navigator_->getFlightMode() == Navigator::LAND_MODE)
-            {
-              ROS_WARN(" land mode");
-
-              if(navigator_->getFreeFallFlag())
-                {//free fall mode from free fall threshold
-
-                  if(!start_free_fall)
-                    { //first time
-                      float pos_i_term_throttle_tmp = - offset_throttle_ + limit(pos_p_term_throttle_ +
-                                                                            pos_i_term_throttle_ + 
-                                                                            pos_d_term_throttle_ + 
-                                                                            offset_throttle_,
-                                                                            pos_limit_throttle_);
-                      pos_i_term_throttle_ = pos_i_term_throttle_tmp;
-                      start_free_fall  = true;
-                    }
-                  pos_p_term_throttle_ = 0;
-                  pos_i_term_throttle_ -= free_fall_step_value_;
-                  pos_d_term_throttle_ = 0;
-
-                  if(pos_i_term_throttle_ + offset_throttle_ < motor_stop_value_)
-                    {
-                      bool tmp = true;
-                      navigator_->setMotorStopFlag(tmp);
-                      ROS_WARN("  stop motor ");
-                    }
-                }
-              else
-                {
-                  ROS_WARN(" no free fall mode");
-
-                  //**** Pの項
-                  //TODO: d_err_pos_curr_throttle < -0.1 or > -0.1 ; Original is < -0.1
-                  //const_pcontrolThre_land : -0.1m
-                  //const_p_term_lev1_value_land : -50
-                  //const_p_term_lev2_value_land : -90
-                  if(d_err_pos_curr_throttle_ < const_p_ctrl_thre_throttle_land_) 
-                    pos_p_term_throttle_ = const_p_term_lev1_value_throttle_land_; 
-                  else  pos_p_term_throttle_ = const_p_term_lev2_value_throttle_land_;
-
-                  //**** Iの項
-                  // const_icontrolThre_land : -0.25m
-                  if(d_err_pos_curr_throttle_ > const_i_ctrl_thre_throttle_land_)
-                    pos_i_term_throttle_ += 1000 * d_err_pos_curr_throttle_ *
-                      (1 / (float)throttle_ctrl_loop_rate_) * pos_i_gain_throttle_land_;
-                  else pos_i_term_throttle_ -= const_i_term_value_throttle_land_;
-
-                  //***** Dの項
-                  pos_d_term_throttle_ =
-                    limit(-1000 * pos_d_gain_throttle_land_ * state_vel_z, pos_d_limit_throttle_);
-                }
-            }
-          //throwing mode function
-          throttleThrowingMode();
-
-          //*** 指令値算出
-          uint16_t throttle_value = limit(pos_p_term_throttle_ + pos_i_term_throttle_ 
-                                       + pos_d_term_throttle_ + offset_throttle_, 
-                                       pos_limit_throttle_);
-          //**** 指令値反転
-          //throttle_value = - throttle_value;
-	  
-          //*** 指令値代入
-          flight_ctrl_input_->setThrottleValue(throttle_value);
-
-          //**** ros pub
-          four_axis_pid_debug.throttle.total = throttle_value;
-          four_axis_pid_debug.throttle.p_term = pos_p_term_throttle_;
-          four_axis_pid_debug.throttle.i_term = pos_i_term_throttle_;
-          four_axis_pid_debug.throttle.d_term = pos_d_term_throttle_;
           four_axis_pid_debug.throttle.pos_err_transform = target_pos_z;
           four_axis_pid_debug.throttle.pos_err_no_transform = d_err_pos_curr_throttle_;
           four_axis_pid_debug.throttle.vel_err_transform = state_vel_z;
@@ -690,7 +594,6 @@ void PidController::pidFunction()
 	}
 
       //*** 更新
-      //previous_secs = current_secs;
       d_err_vel_prev_pitch_ =  d_err_vel_curr_pitch_;
       d_err_vel_prev_roll_ =  d_err_vel_curr_roll_;
       d_err_vel_prev_throttle_ = d_err_vel_curr_throttle_;
@@ -705,36 +608,6 @@ void PidController::feedForwardFunction()
   //do nothing
 }
 
-
-void PidController::throttleThrowingMode()
-{
-  static bool first_flag = true;
-  if(navigator_->getThrowingMode() == Navigator::THROWING_START_ALT_HOLD)
-    {
-      if(first_flag)
-        {
-          first_flag = false;
-          pos_i_term_throttle_ += (rocket_start_init_value_ - offset_throttle_  + throwing_mode_init_value_from_rocket_start_); //param
-
-          //debug
-          ROS_ERROR("first time: pos_i_termThtottle init");
-        }
-
-      //**** Pの項
-      pos_p_term_throttle_ = 
-        limit(1000 * pos_p_gain_throttle_ * d_err_pos_curr_throttle_, pos_p_limit_throttle_);
-      //**** Iの項
-      pos_i_term_throttle_ += 1000 *
-        d_err_pos_curr_throttle_ * ( 1 / (float)throttle_ctrl_loop_rate_) * pos_i_gain_throttle_;
-      pos_i_term_throttle_ = limit(pos_i_term_throttle_, pos_i_limit_throttle_);
-      //***** Dの項
-      pos_d_term_throttle_ = 
-        limit(-1000 * pos_d_gain_throttle_ * estimator_->getStateVelZ(), pos_d_limit_throttle_);
-
-      ROS_ERROR("ok, d_err_pos_curr_throttle: %f",d_err_pos_curr_throttle_ );
-
-    }
-}
 
 void PidController::cfgPitchCallback(aerial_robot_base::PidPitchControlConfig &config, uint32_t level)
 {
@@ -790,10 +663,6 @@ void PidController::cfgPitchCallback(aerial_robot_base::PidPitchControlConfig &c
         case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_POS_D_LIMIT:
           pos_d_limit_pitch_ = config.posDLimit;
           printf("change the d limit\n");
-          break;
-        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_VEL_VALUE_LIMIT_HOVER:
-          vel_value_limit_pitch_ = config.velValueLimit;
-          printf("change the vel value limit\n");
           break;
         case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_I_ENABLE_LIMIT_HOVER:
           i_enable_limit_pitch_ = config.iEnableLimit;
@@ -862,10 +731,6 @@ void PidController::cfgRollCallback(aerial_robot_base::PidRollControlConfig &con
           pos_d_limit_roll_ = config.posDLimit;
           printf("change the d limit\n");
           break;
-        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_VEL_VALUE_LIMIT_HOVER:
-          vel_value_limit_roll_ = config.velValueLimit;
-          printf("change the vel value limit\n");
-          break;
         case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_I_ENABLE_LIMIT_HOVER:
           i_enable_limit_roll_ = config.iEnableLimit;
           printf("change the i enable limit\n");
@@ -877,6 +742,7 @@ void PidController::cfgRollCallback(aerial_robot_base::PidRollControlConfig &con
     }
 }
 
+#if 0 // no throttle and yaw tunning 
 void PidController::cfgYawCallback(aerial_robot_base::PidYawControlConfig &config, uint32_t level)
 {
   if(config.pidControlFlag)
@@ -922,6 +788,7 @@ void PidController::cfgYawCallback(aerial_robot_base::PidYawControlConfig &confi
         }
     }
 }
+
 
 void PidController::cfgThrottleCallback(aerial_robot_base::PidThrottleControlConfig &config, uint32_t level)
 {
@@ -1017,6 +884,8 @@ void PidController::cfgThrottleCallback(aerial_robot_base::PidThrottleControlCon
         }
     }
 }
+#endif
+
 
 void PidController::rosParamInit(ros::NodeHandle nh)
 {
@@ -1035,6 +904,7 @@ void PidController::rosParamInit(ros::NodeHandle nh)
     throttle_ctrl_loop_rate_ = 0;
   printf("%s: ctrl_loop_rate_ is %d\n", throttle_ns.c_str(), throttle_ctrl_loop_rate_);
 
+#if 0 // no constant gain for throttle
   if (!throttle_node.getParam ("pos_p_gain", pos_p_gain_throttle_))
     pos_p_gain_throttle_ = 0;
   printf("%s: pos_p_gain_ is %.3f\n", throttle_ns.c_str(), pos_p_gain_throttle_);
@@ -1059,6 +929,7 @@ void PidController::rosParamInit(ros::NodeHandle nh)
     pos_d_gain_throttle_land_ = 0;
   printf("%s: pos_d_gain_land_ is %.3f\n", throttle_ns.c_str(), pos_d_gain_throttle_land_);
 
+
   if (!throttle_node.getParam ("const_p_ctrl_thre_land",  const_p_ctrl_thre_throttle_land_))
     const_p_ctrl_thre_throttle_land_ = 0;
   printf("%s: const_p_ctrl_thre_land_ is %.3f\n", throttle_ns.c_str(), const_p_ctrl_thre_throttle_land_);
@@ -1078,10 +949,12 @@ void PidController::rosParamInit(ros::NodeHandle nh)
   if (!throttle_node.getParam ("const_i_term_value_land",  const_i_term_value_throttle_land_))
     const_i_term_value_throttle_land_ = 0;
   printf("%s: const_i_term_value_land_ is %.3f\n", throttle_ns.c_str(), const_i_term_value_throttle_land_);
+#endif
+
 
   if (!throttle_node.getParam ("offset", offset_throttle_))
     offset_throttle_ = 0;
-  printf("%s: offset_ is %d\n", throttle_ns.c_str(), offset_throttle_);
+  printf("%s: offset_ is %f\n", throttle_ns.c_str(), offset_throttle_);
 
   if (!throttle_node.getParam ("pos_limit", pos_limit_throttle_))
     pos_limit_throttle_ = 0;
@@ -1091,10 +964,6 @@ void PidController::rosParamInit(ros::NodeHandle nh)
     pos_p_limit_throttle_ = 0;
   printf("%s: pos_p_limit_ is %d\n", throttle_ns.c_str(), pos_p_limit_throttle_);
 
-  if (!throttle_node.getParam ("pos_p_limit_hover", pos_p_limit_throttle_hover_))
-    pos_p_limit_throttle_hover_ = 0;
-  printf("%s: pos_p_limit_hover_ is %d\n", throttle_ns.c_str(), pos_p_limit_throttle_hover_);
-
   if (!throttle_node.getParam ("pos_i_limit", pos_i_limit_throttle_))
     pos_i_limit_throttle_ = 0;
   printf("%s: pos_i_limit_ is %d\n", throttle_ns.c_str(), pos_i_limit_throttle_);
@@ -1103,6 +972,8 @@ void PidController::rosParamInit(ros::NodeHandle nh)
     pos_d_limit_throttle_ = 0;
   printf("%s: pos_d_limit_ is %d\n", throttle_ns.c_str(), pos_d_limit_throttle_);
 
+
+#if 0
   if (!throttle_node.getParam ("vel_value_limit_hover", vel_value_limit_throttle_hover_))
     vel_value_limit_throttle_hover_ = 0;
   printf("%s: vel_value_limit_hover_ is %.3f\n", throttle_ns.c_str(), vel_value_limit_throttle_hover_);
@@ -1130,10 +1001,8 @@ void PidController::rosParamInit(ros::NodeHandle nh)
   if (!throttle_node.getParam ("free_fall_step_value", free_fall_step_value_))
     free_fall_step_value_ = 0;
   printf("%s: free_fall_step_value_ is %d\n", throttle_ns.c_str(), free_fall_step_value_);
+#endif
 
-  if (!throttle_node.getParam ("motor_stop_value", motor_stop_value_))
-    motor_stop_value_ = 0;
-  printf("%s: motor_stop_value_ is %d\n", throttle_ns.c_str(), motor_stop_value_);
 
   //**** pitch
   if (!pitch_node.getParam ("ctrl_loop_rate", pitch_ctrl_loop_rate_))
@@ -1185,14 +1054,6 @@ void PidController::rosParamInit(ros::NodeHandle nh)
     pos_d_limit_pitch_ = 0;
   printf("%s: pos_d_limit_ is %d\n", pitch_ns.c_str(), pos_d_limit_pitch_);
 
-  if (!pitch_node.getParam ("vel_value_limit", vel_value_limit_pitch_))
-    vel_value_limit_pitch_ = 0;
-  printf("%s: vel_value_limit_ is %.3f\n", pitch_ns.c_str(), vel_value_limit_pitch_);
-
-  if (!pitch_node.getParam ("i_enable_limit", i_enable_limit_pitch_))
-    i_enable_limit_pitch_ = 0;
-  printf("%s: i_enable_limit_ is %.3f\n", pitch_ns.c_str(), i_enable_limit_pitch_);
-
   //***** roll
   if (!roll_node.getParam ("ctrl_loop_rate", roll_ctrl_loop_rate_))
     roll_ctrl_loop_rate_ = 0;
@@ -1242,27 +1103,10 @@ void PidController::rosParamInit(ros::NodeHandle nh)
     pos_d_limit_roll_ = 0;
   printf("%s: pos_d_limit_ is %d\n", roll_ns.c_str(), pos_d_limit_roll_);
 
-  if (!roll_node.getParam ("vel_value_limit", vel_value_limit_roll_))
-    vel_value_limit_roll_ = 0;
-  printf("%s: vel_value_limit_ is %.3f\n", roll_ns.c_str(), vel_value_limit_roll_);
-
-  if (!roll_node.getParam ("i_enable_limit", i_enable_limit_roll_))
-    i_enable_limit_roll_ = 0;
-  printf("%s: i_enable_limit_ is %.3f\n", roll_ns.c_str(), i_enable_limit_roll_);
-
   //**** yaw
-  if (!yaw_node.getParam ("pos_p_gain", pos_p_gain_yaw_))
-    pos_p_gain_yaw_ = 0;
-  printf("%s: pos_p_gain_ is %.3f\n", yaw_ns.c_str(), pos_p_gain_yaw_);
-
-  if (!yaw_node.getParam ("pos_i_gain", pos_i_gain_yaw_))
-    pos_i_gain_yaw_ = 0;
-  printf("%s: pos_i_gain_ is %.3f\n", yaw_ns.c_str(), pos_i_gain_yaw_);
-
-  if (!yaw_node.getParam ("pos_d_gain", pos_d_gain_yaw_))
-    pos_d_gain_yaw_ = 0;
-  printf("%s: pos_d_gain_ is %.3f\n", yaw_ns.c_str(), pos_d_gain_yaw_);
-
+  if (!yaw_node.getParam ("ctrl_loop_rate", yaw_ctrl_loop_rate_))
+    yaw_ctrl_loop_rate_ = 0;
+  printf("%s: ctrl_loop_rate_ is %d\n", yaw_ns.c_str(), yaw_ctrl_loop_rate_);
   if (!yaw_node.getParam ("pos_limit", pos_limit_yaw_))
     pos_limit_yaw_ = 0;
   printf("%s: pos_limit_ is %d\n", yaw_ns.c_str(), pos_limit_yaw_);
@@ -1279,16 +1123,5 @@ void PidController::rosParamInit(ros::NodeHandle nh)
     pos_d_limit_yaw_ = 0;
   printf("%s: pos_d_limit_ is %d\n", yaw_ns.c_str(), pos_d_limit_yaw_);
 
-  if (!yaw_node.getParam ("vel_value_limit", vel_value_limit_yaw_))
-    vel_value_limit_yaw_ = 0;
-  printf("%s: vel_value_limit_ is %.3f\n", yaw_ns.c_str(), vel_value_limit_yaw_);
-
-  if (!yaw_node.getParam ("i_enable_limit", i_enable_limit_yaw_))
-    i_enable_limit_yaw_ = 0;
-  printf("%s: i_enable_limit_ is %.3f\n", yaw_ns.c_str(), i_enable_limit_yaw_);
-
-  if (!yaw_node.getParam ("ctrl_loop_rate", yaw_ctrl_loop_rate_))
-    yaw_ctrl_loop_rate_ = 0;
-  printf("%s: ctrl_loop_rate_ is %d\n", yaw_ns.c_str(), yaw_ctrl_loop_rate_);
 
 }

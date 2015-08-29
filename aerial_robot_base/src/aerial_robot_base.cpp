@@ -9,20 +9,19 @@ AerialRobotBase::AerialRobotBase(ros::NodeHandle nh, ros::NodeHandle nh_private)
   //*** estimator1
   estimator_ = new RigidEstimator(nh_, nhp_, simulation_flag_);
 
-  ROS_INFO("OKOKOKO1111");
 
   if(!simulation_flag_)
     { 
-      //*** control input 
-      flight_ctrl_input_ = new FlightCtrlInput();
 
-      ROS_INFO("OKOKOKO");
 
       //*** teleop navigation
       navigator_ = new TeleopNavigator(nh_, nhp_, estimator_, flight_ctrl_input_, tx_loop_rate_);
 
       //*** pid controller
       controller_ = new PidController(nh_, nhp_, estimator_, navigator_, flight_ctrl_input_, tx_loop_rate_);
+
+      //*** control input 
+      flight_ctrl_input_ = new FlightCtrlInput(controller_->getMotorNumber());
 
 
       // if(trackingFlag_)

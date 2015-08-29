@@ -9,6 +9,9 @@
 #include <visualization_msgs/MarkerArray.h>
 #include <iostream>
 
+#include <aerial_robot_base/YawThrottleGain.h>
+#include <aerial_robot_msgs/RollPitchYawGain.h>
+
 #include <string>
 //* for eigen cumputation 
 #include <Eigen/Core>
@@ -17,7 +20,6 @@
 #include <Eigen/Geometry> 
 #include <Eigen/Eigenvalues>
 
-#include <hydra_transform_control/HydraParam.h>
 #include <std_msgs/UInt16.h>
 
 #include <std_msgs/Float32.h>
@@ -58,9 +60,11 @@ class TransformController{
   void cogComputation(std::vector<tf::StampedTransform> transforms);
   void principalInertiaComputation(std::vector<tf::StampedTransform> transforms, bool continuous_flag = true);
 
-  double getLinkLength();
-  double getPropellerDiameter(); 
-  int getLinkNum();
+  bool distThreCheck();
+  bool stabilityCheck();
+
+  inline double getLinkLength(){return link_length_;}
+  inline int getLinkNum(){return link_num_;}
 
 
   std::vector<Eigen::Vector3d> links_origin_from_cog_; 
@@ -109,11 +113,14 @@ class TransformController{
       cog_ = cog;
     }
 
+  const static uint8_t LQI_FOUR_AXIS_MODE = 0;
+  const static uint8_t LQI_THREE_AXIS_MODE = 1;
 
  private:
 
   ros::NodeHandle nh_,nh_private_;
-  ros::Publisher transform_control_pub_;
+  ros::Publisher rpy_gain_pub_;
+  ros::Publisher yaw_throttle_gain_pub_;
   ros::Publisher principal_axis_pub_;
   ros::Publisher cog_rotate_pub_; //for position control => to mocap
 
@@ -127,6 +134,7 @@ class TransformController{
 
   ros::Time system_tf_time_;
 
+  bool callback_flag_;
   bool debug_log_;
   bool debug2_log_;
 
@@ -194,27 +202,47 @@ class TransformController{
   bool lqi_flag_;
   double lqi_thread_rate_;
   void lqi();
-  bool hamiltonMatrixSolver();
-  Eigen::MatrixXd A_;
-  Eigen::MatrixXd B_;
-  Eigen::MatrixXd C_;
-  Eigen::MatrixXd A_aug_;
-  Eigen::MatrixXd B_aug_;
-  Eigen::MatrixXd C_aug_;
+  bool hamiltonMatrixSolver(uint8_t lqi_mode);
 
-  Eigen::MatrixXd Q_;
-  Eigen::MatrixXd R_;
+  //8/12:r,r_d, p, p_d, y, y_d, z. z_d, r_i, p_i, y_i, z_i
+  //6/9:r,r_d, p, p_d, z. z_d, r_i, p_i, z_i
+  Eigen::MatrixXd U_;
+
+  Eigen::MatrixXd A8_;
+  Eigen::MatrixXd B8_;
+  Eigen::MatrixXd C8_;
+  Eigen::MatrixXd A12_aug_;
+  Eigen::MatrixXd B12_aug_;
+  Eigen::MatrixXd C12_aug_;
+  Eigen::MatrixXd Q12_;
+
+  Eigen::MatrixXd A6_;
+  Eigen::MatrixXd B6_;
+  Eigen::MatrixXd C6_;
+  Eigen::MatrixXd A9_aug_;
+  Eigen::MatrixXd B9_aug_;
+  Eigen::MatrixXd C9_aug_;
+  Eigen::MatrixXd Q9_;
+
+  Eigen::MatrixXd R4_;
+
+  Eigen::MatrixXd K12_;
+  Eigen::MatrixXd K9_;
 
   //Q
   double q_roll_,q_roll_d_,q_pitch_,q_pitch_d_,q_yaw_,q_yaw_d_,q_z_,q_z_d_;
   double q_roll_i_,q_pitch_i_,q_yaw_i_,q_z_i_;
-  
+
   //R
   std::vector<double> r_;
 
-
-  //shift
+  //distance_thresold
   double alfa_;
+  double dist_thre_;
+  double f_max_, f_min_;
+
+  uint8_t lqi_mode_;
+
 };
 
 
