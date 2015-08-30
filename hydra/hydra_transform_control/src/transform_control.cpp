@@ -14,7 +14,7 @@ TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_
   callback_flag_ = callback_flag;
   /* the mutex lock should be used in multi thread process!! if there is only one thream, the value of mutex will be wrong */
   /* the lock guard is lock the process until the scope(bock) end */
-  multi_thread_flag_ = callback_flag_; //not good
+  //multi_thread_flag_ = callback_flag_; //not good
 
   cog_(0) = 0;
   cog_(1) = 0;

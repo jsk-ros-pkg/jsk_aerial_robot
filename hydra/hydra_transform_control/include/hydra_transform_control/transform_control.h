@@ -103,6 +103,7 @@ void cogComputation(const std::vector<tf::StampedTransform>& transforms);
 
   void setLinksOriginFromCog(const std::vector<Eigen::Vector3d>& links_origin_from_cog)
   {
+#if 0
     if(multi_thread_flag_)
       {
         boost::lock_guard<boost::mutex> lock(origins_mutex_);
@@ -112,10 +113,14 @@ void cogComputation(const std::vector<tf::StampedTransform>& transforms);
       {
         links_origin_from_cog_ = links_origin_from_cog;
       }
+#endif
+    boost::lock_guard<boost::mutex> lock(origins_mutex_);
+    links_origin_from_cog_ = links_origin_from_cog;
   }
 
   Eigen::Matrix3d getPrincipalInertia()
     {
+#if 0
       if(multi_thread_flag_)
         {
           boost::lock_guard<boost::mutex> lock(inertia_mutex_);
@@ -125,9 +130,13 @@ void cogComputation(const std::vector<tf::StampedTransform>& transforms);
         {
           return links_principal_inertia_;
         }
+#endif
+      boost::lock_guard<boost::mutex> lock(inertia_mutex_);
+      return links_principal_inertia_;
     }
   void setPrincipalInertia(Eigen::Matrix3d principal_inertia)
   {
+#if 0
     if(multi_thread_flag_)
       {
         boost::lock_guard<boost::mutex> lock(inertia_mutex_);
@@ -137,11 +146,15 @@ void cogComputation(const std::vector<tf::StampedTransform>& transforms);
       {
         links_principal_inertia_ = principal_inertia;
       }
+#endif
+    boost::lock_guard<boost::mutex> lock(inertia_mutex_);
+    links_principal_inertia_ = principal_inertia;
     }
 
 
   Eigen::Matrix3d getRotateMatrix()
     {
+#if 0
     if(multi_thread_flag_)
       {
         boost::lock_guard<boost::mutex> lock(rm_mutex_);
@@ -151,9 +164,14 @@ void cogComputation(const std::vector<tf::StampedTransform>& transforms);
       {
         return rotate_matrix_;
       }
+#endif
+    boost::lock_guard<boost::mutex> lock(rm_mutex_);
+    return rotate_matrix_;
     }
+
   void setRotateMatrix(Eigen::Matrix3d rotate_matrix)
   {
+#if 0
     if(multi_thread_flag_)
       {
         boost::lock_guard<boost::mutex> lock(rm_mutex_);
@@ -163,29 +181,41 @@ void cogComputation(const std::vector<tf::StampedTransform>& transforms);
       {
         rotate_matrix_ = rotate_matrix;
       }
+#endif
+    boost::lock_guard<boost::mutex> lock(rm_mutex_);
+    rotate_matrix_ = rotate_matrix;
   }
 
   Eigen::Vector3d getCog()
     {
+#if 0
       if(multi_thread_flag_)
         {
           boost::lock_guard<boost::mutex> lock(cog_mutex_);
           return cog_;
         }
+
       else
         {
           return cog_;
         }
+#endif
+      boost::lock_guard<boost::mutex> lock(cog_mutex_);
+      return cog_;
     }
+
   void setCog(Eigen::Vector3d cog)
     {
+#if 0
       if(multi_thread_flag_)
         {
           boost::lock_guard<boost::mutex> lock(cog_mutex_);
           cog_ = cog;
         }
       else { cog_ = cog;}
-
+#endif
+      boost::lock_guard<boost::mutex> lock(cog_mutex_);
+      cog_ = cog;
     }
 
   Eigen::MatrixXd getU()
@@ -218,7 +248,7 @@ void cogComputation(const std::vector<tf::StampedTransform>& transforms);
   bool realtime_control_flag_;
 
   bool callback_flag_;
-  bool multi_thread_flag_;
+  //bool multi_thread_flag_;
 
   bool debug_log_;
   bool debug2_log_;
