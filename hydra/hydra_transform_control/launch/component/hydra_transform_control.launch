@@ -2,66 +2,7 @@
 <launch>
   <node pkg="hydra_transform_control" type="hydra_transform_control_node" name="transform_control_node"  output="screen" > 
 
-    <param name="link_joint_offset" type="double" value="0.205"/>
-
-    <param name="link_base_center_mass" type="double" value="0.238"/>
-
-    <param name="link_joint_mass" type="double" value="0.0785"/>
-    <param name="controller1_mass" type="double" value="0.022"/>
-    <param name="controller2_mass" type="double" value="0.093"/>
-
-    <param name="root_link_name" type="string" value="/link2"/>
-
-
-    <param name="link1_base_rod_mass" type="double" value="0.105"/> 
-
-    <param name="propeller1_direction" type="int" value="-1"/> <!--default: -1-->
-    <param name="propeller1_order" type="int" value="0"/>
-
-    <param name="link2_base_rod_mass" type="double" value="0.1"/> 
-
-    <param name="propeller2_direction" type="int" value="1"/> <!--default: 1-->
-    <param name="propeller2_order" type="int" value="1"/>
-
-    <param name="link3_base_rod_mass" type="double" value="0.094"/>  
-
-    <param name="propeller3_direction" type="int" value="-1"/> <!--default: -1-->
-    <param name="propeller3_order" type="int" value="3"/>
-
-   <param name="link4_base_rod_mass" type="double" value="0.094"/>  
-
-    <param name="propeller4_direction" type="int" value="1"/> <!--default: 1-->
-    <param name="propeller4_order" type="int" value="2"/>
-
-    <param name="debug_log" type="bool" value="true"/>
-    <param name="debug2_log" type="bool" value="false"/>
-
-
-    <param name="lqi_thread_rate" type="double" value="10.0"/>
-    <param name="q_roll" type="double" value="100.0"/> <!--  100 -->
-    <param name="q_roll_d" type="double" value="100.0"/> <!--  100 -->
-    <param name="q_roll_i" type="double" value="10.0"/><!--  10 -->
-    <param name="q_pitch" type="double" value="100.0"/> <!--  100 -->
-    <param name="q_pitch_d" type="double" value="100.0"/> <!--  100 -->
-    <param name="q_pitch_i" type="double" value="10.0"/><!--  10 -->
-
-    <param name="q_yaw" type="double" value="10"/> <!--  10 -->
-    <param name="q_yaw_d" type="double" value="10.0"/> <!--  10 -->
-    <param name="q_yaw_i" type="double" value="1"/> <!--  1 -->
-
-
-    <param name="q_z" type="double" value="1.0"/>
-    <param name="q_z_d" type="double" value="1.0"/>
-    <param name="q_z_i" type="double" value="1.0"/>
-
-    <param name="r1" type="double" value="1.0"/>
-    <param name="r2" type="double" value="1.0"/>
-    <param name="r3" type="double" value="1.0"/>
-    <param name="r4" type="double" value="1.0"/>
-
-    <param name="dist_thre" type="double" value="0.04"/>
-    <param name="f_max" type="double" value="8.2"/>
-    <param name="f_min" type="double" value="2.0"/>
+    <rosparam file="$(find hydra_transform_control)/config/Hydra3.yaml" command="load" />
 
 
   </node>

@@ -7,11 +7,11 @@
 
 TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_private, bool callback_flag): nh_(nh),nh_private_(nh_private)
 {
-
   initParam();
 
+  //thread
+  realtime_control_flag_ = true;
   callback_flag_ = callback_flag;
-
   /* the mutex lock should be used in multi thread process!! if there is only one thream, the value of mutex will be wrong */
   /* the lock guard is lock the process until the scope(bock) end */
   multi_thread_flag_ = callback_flag_; //not good
@@ -106,6 +106,7 @@ TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_
 
   if(callback_flag_)
     {
+      realtime_control_sub_ = nh_.subscribe<std_msgs::UInt8>("realtime_control", 1, &TransformController::realtimeControlCallback, this, ros::TransportHints().tcpNoDelay());
 
       principal_axis_pub_ = nh_.advertise<visualization_msgs::MarkerArray>("orientation_data", 1);
       rpy_gain_pub_ = nh_.advertise<aerial_robot_msgs::RollPitchYawGain>("/kduino/rpy_gain", 1);
@@ -129,6 +130,17 @@ TransformController::~TransformController()
     {
       lqi_thread_.interrupt();
       lqi_thread_.join();
+    }
+}
+
+void TransformController::realtimeControlCallback(const std_msgs::UInt8ConstPtr & msg)
+{
+  if(msg->data == 1)
+      realtime_control_flag_ = true;
+  else if(msg->data == 0)
+    {
+      realtime_control_flag_ = false;
+      lqi_flag_ = false;
     }
 }
 
@@ -348,34 +360,36 @@ void TransformController::tfPubFunc(const ros::TimerEvent & e)
 
 void TransformController::controlFunc(const ros::TimerEvent & e)
 {
-  //get transform;
-  std::vector<tf::StampedTransform>  transforms;
-  transforms.resize(link_num_);
-
-  ros::Duration dur (0.02);
-  if (tf_.waitForTransform(root_link_name_, links_name_[link_num_ - 1], ros::Time(0),dur))
+  if(realtime_control_flag_)
     {
-      for(int i = 0; i < link_num_; i++)
+      //get transform;
+      std::vector<tf::StampedTransform>  transforms;
+      transforms.resize(link_num_);
+
+      ros::Duration dur (0.02);
+      if (tf_.waitForTransform(root_link_name_, links_name_[link_num_ - 1], ros::Time(0),dur))
         {
-          try
+          for(int i = 0; i < link_num_; i++)
             {
-              tf_.lookupTransform(root_link_name_, links_name_[i], ros::Time(0), transforms[i]);
+              try
+                {
+                  tf_.lookupTransform(root_link_name_, links_name_[i], ros::Time(0), transforms[i]);
+                }
+              catch (tf::TransformException ex)
+                {
+                  ROS_ERROR("%s",ex.what());
+                }
             }
-          catch (tf::TransformException ex)
-            {
-              ROS_ERROR("%s",ex.what());
-          }
+          //time set
+          system_tf_time_  = transforms[0].stamp_;
+
+          cogComputation(transforms);
+          principalInertiaComputation(transforms);
+          visualization();
+
+          if(!lqi_flag_) lqi_flag_ = true;
         }
-      //time set
-      system_tf_time_  = transforms[0].stamp_;
-
-      cogComputation(transforms);
-      principalInertiaComputation(transforms);
-      visualization();
-
-      if(!lqi_flag_) lqi_flag_ = true;
     }
-
 }
 
 void TransformController::cogComputation(const std::vector<tf::StampedTransform>& transforms)
@@ -639,11 +653,12 @@ void TransformController::principalInertiaComputation(const std::vector<tf::Stam
     }
   else
     {
+      setPrincipalInertia(links_principal_inertia);
       setRotateMatrix(rotate_matrix);
     }
 
 
-   if(debug2_log_)
+  if(debug2_log_)
      std::cout << "pricipal inertia :\n" << getPrincipalInertia() << std::endl;
 
 
@@ -925,13 +940,15 @@ bool TransformController::distThreCheckFromJointValues(const std::vector<double>
   return distThreCheck();
 }
 
-bool  TransformController::stabilityCheck()
+bool  TransformController::stabilityCheck(bool debug)
 {
 
   std::vector<Eigen::Vector3d> links_origin_from_cog(link_num_);
   getLinksOriginFromCog(links_origin_from_cog);
   Eigen::Matrix3d links_principal_inertia = getPrincipalInertia();
+  
   //std::cout << "inertia :\n" << links_principal_inertia << std::endl;
+
   Eigen::Vector4d p_x, p_y, p_c, p_m; 
   static int i = 0;
 
@@ -943,7 +960,7 @@ bool  TransformController::stabilityCheck()
       p_c(order) = propeller_direction_[i] * m_f_rate_ ;
       p_m(order) = 1 / all_mass_;
 
-      if(debug_log_)
+      if(debug_log_ || debug)
         std::cout << "link" << i + 1 <<"origin :\n" << links_origin_from_cog[i] << std::endl;
     }
   i = 0;
@@ -952,7 +969,7 @@ bool  TransformController::stabilityCheck()
   U_.row(1) = p_x / links_principal_inertia(1,1);
   U_.row(2) = p_c / links_principal_inertia(2,2);
   U_.row(3) = p_m;
-  if(debug_log_)
+  if(debug_log_ || debug)
     std::cout << "U_:"  << std::endl << U_ << std::endl;
 
   ros::Time start_time = ros::Time::now();
@@ -963,7 +980,7 @@ bool  TransformController::stabilityCheck()
   Eigen::VectorXd x(4), g(4);
   g << 0, 0, 0, 9.8;
   x = solver.solve(g);
-  if(debug_log_)
+  if(debug_log_ || debug)
     {
       std::cout << "x:"  << std::endl << x << std::endl;
       std::cout << "U det:"  << std::endl << U_.determinant() << std::endl;
@@ -985,7 +1002,7 @@ void TransformController::lqi()
 
   while(ros::ok())
     {
-      if(lqi_flag_) //no processing when single thread flag
+      if(lqi_flag_) 
         {
           //check the thre check
           if(!distThreCheck()) //[m]

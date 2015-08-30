@@ -25,6 +25,7 @@
 #include <Eigen/Eigenvalues>
 
 #include <std_msgs/UInt16.h>
+#include <std_msgs/UInt8.h>
 
 #include <std_msgs/Float32.h>
 #include <boost/thread/mutex.hpp>
@@ -57,18 +58,20 @@ class ElementModel{
 
 
 class TransformController{
- public:
-  TransformController(ros::NodeHandle nh, ros::NodeHandle nh_private, bool callback_flag = true);
-  ~TransformController();
+public:
+TransformController(ros::NodeHandle nh, ros::NodeHandle nh_private, bool callback_flag = true);
+~TransformController();
 
-  void cogComputation(const std::vector<tf::StampedTransform>& transforms);
+void realtimeControlCallback(const std_msgs::UInt8ConstPtr & msg);
+
+void cogComputation(const std::vector<tf::StampedTransform>& transforms);
   void principalInertiaComputation(const std::vector<tf::StampedTransform>& transforms, bool continuous_flag = true);
 
   bool distThreCheck();
   bool distThreCheckFromJointValues(const std::vector<double>& joint_values, int joint_offset,bool continous_flag = true);
     std::vector<tf::StampedTransform> transformsFromJointValues(const std::vector<double>& joint_values, int joint_offset);
 
-  bool stabilityCheck();
+  bool stabilityCheck(bool debug = false);
 
   inline double getLinkLength(){return link_length_;}
   inline int getLinkNum(){return link_num_;}
@@ -76,6 +79,7 @@ class TransformController{
 
   void getLinksOriginFromCog(std::vector<Eigen::Vector3d>& links_origin_from_cog)
     {
+#if 0
       if(multi_thread_flag_)
         {
           boost::lock_guard<boost::mutex> lock(origins_mutex_);
@@ -89,7 +93,14 @@ class TransformController{
           for(int i=0; i< size; i++)
             links_origin_from_cog = links_origin_from_cog_;
         }
+#endif
+          boost::lock_guard<boost::mutex> lock(origins_mutex_);
+          int size = links_origin_from_cog_.size();
+          for(int i=0; i< size; i++)
+            links_origin_from_cog = links_origin_from_cog_;
+
     }
+
   void setLinksOriginFromCog(const std::vector<Eigen::Vector3d>& links_origin_from_cog)
   {
     if(multi_thread_flag_)
@@ -177,6 +188,11 @@ class TransformController{
 
     }
 
+  Eigen::MatrixXd getU()
+    {
+      return U_;
+    }
+
   const static uint8_t LQI_FOUR_AXIS_MODE = 0;
   const static uint8_t LQI_THREE_AXIS_MODE = 1;
 
@@ -187,6 +203,7 @@ class TransformController{
   ros::Publisher yaw_throttle_gain_pub_;
   ros::Publisher principal_axis_pub_;
   ros::Publisher cog_rotate_pub_; //for position control => to mocap
+  ros::Subscriber realtime_control_sub_;
 
   boost::mutex rm_mutex_, cog_mutex_, origins_mutex_, inertia_mutex_;
 
@@ -197,6 +214,8 @@ class TransformController{
   ros::Timer  tf_pub_timer_;
 
   ros::Time system_tf_time_;
+
+  bool realtime_control_flag_;
 
   bool callback_flag_;
   bool multi_thread_flag_;
