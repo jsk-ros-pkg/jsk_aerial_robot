@@ -546,7 +546,7 @@ void PidController::pidFunction()
                   four_axis_pid_debug.yaw.i_term.push_back(pos_i_term_yaw_);
                   four_axis_pid_debug.yaw.d_term.push_back(pos_d_term_yaw_);
 
-                  //*** 指令値代入(new*** 14 bit shift)
+                  //*** 指令値代入(new*** )
                   flight_ctrl_input_->setYawValue(yaw_value * 100, j); //100x
                 }
             }
@@ -1122,6 +1122,5 @@ void PidController::rosParamInit(ros::NodeHandle nh)
   if (!yaw_node.getParam ("pos_d_limit", pos_d_limit_yaw_))
     pos_d_limit_yaw_ = 0;
   printf("%s: pos_d_limit_ is %d\n", yaw_ns.c_str(), pos_d_limit_yaw_);
-
 
 }

@@ -12,6 +12,10 @@ TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_
 
   callback_flag_ = callback_flag;
 
+  /* the mutex lock should be used in multi thread process!! if there is only one thream, the value of mutex will be wrong */
+  /* the lock guard is lock the process until the scope(bock) end */
+  multi_thread_flag_ = callback_flag_; //not good
+
   cog_(0) = 0;
   cog_(1) = 0;
   cog_(2) = 0;
@@ -102,6 +106,7 @@ TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_
 
   if(callback_flag_)
     {
+
       principal_axis_pub_ = nh_.advertise<visualization_msgs::MarkerArray>("orientation_data", 1);
       rpy_gain_pub_ = nh_.advertise<aerial_robot_msgs::RollPitchYawGain>("/kduino/rpy_gain", 1);
       yaw_throttle_gain_pub_ = nh_.advertise<aerial_robot_base::YawThrottleGain>("yaw_throttle_gain", 1);
@@ -120,9 +125,11 @@ TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_
 }
 TransformController::~TransformController()
 {
-  lqi_thread_.interrupt();
-  lqi_thread_.join();
-
+  if(callback_flag_)
+    {
+      lqi_thread_.interrupt();
+      lqi_thread_.join();
+    }
 }
 
 void TransformController::initParam()
@@ -371,17 +378,20 @@ void TransformController::controlFunc(const ros::TimerEvent & e)
 
 }
 
-void TransformController::cogComputation(std::vector<tf::StampedTransform> transforms)
+void TransformController::cogComputation(const std::vector<tf::StampedTransform>& transforms)
 {
   Eigen::Vector3d cog_n  = Eigen::Vector3d::Zero();
+
   for(int i = 0; i < link_num_; i++)
     {
       Eigen::Vector3d link_origin;
       tf::vectorTFToEigen(transforms[i].getOrigin(), link_origin);
 
+
       Eigen::Quaterniond q;
       tf::quaternionTFToEigen(transforms[i].getRotation(), q);
       Eigen::Matrix3d link_rotate(q);
+
 
       //1. link base model
       //std::cout << "link" << i + 1 << "_origin :\n" << link_origin << std::endl;
@@ -400,19 +410,21 @@ void TransformController::cogComputation(std::vector<tf::StampedTransform> trans
           Eigen::Vector3d controller_origin = link_rotate * controller_model_[1].getOffset()  + link_origin;
           cog_n += controller_origin * controller_model_[1].getWeight(); 
         }
+
       if(i == 1)
         {// controller1
           Eigen::Vector3d controller_origin = link_rotate * controller_model_[0].getOffset()  + link_origin;
           //std::cout << "controller1 :\n" << controller_origin << std::endl;
           cog_n += controller_origin * controller_model_[0].getWeight(); 
         }
+
     }
 
   Eigen::Vector3d cog = cog_n / all_mass_;
   setCog(cog);
 }
 
-void TransformController::principalInertiaComputation(std::vector<tf::StampedTransform> transforms, bool continuous_flag)
+void TransformController::principalInertiaComputation(const std::vector<tf::StampedTransform>& transforms, bool continuous_flag)
 {
   static bool init_flag = false;
 
@@ -523,7 +535,6 @@ void TransformController::principalInertiaComputation(std::vector<tf::StampedTra
           Eigen::Matrix3d links_inertia_tmp = links_inertia;
           links_inertia = links_inertia_tmp + link_offset_inertia;
         }
-
 
     }
   links_inertia_ = links_inertia;
@@ -834,6 +845,39 @@ void TransformController::param2contoller()
 
 }
 
+std::vector<tf::StampedTransform> TransformController::transformsFromJointValues(const std::vector<double>& joint_values, int joint_offset)
+{
+  //temporary for quad-type
+  std::vector<tf::Vector3> origins;
+  std::vector<tf::StampedTransform>  transforms;
+  transforms.resize(link_num_);
+
+  float theta1 = 0, theta2 = 0;
+  tf::Quaternion q;
+  for(int i = 0; i < link_num_; i ++)
+    {
+      if(i == 0)
+        {
+          transforms[0].setOrigin( tf::Vector3(0, 0, 0) );
+
+          q.setRPY(0, 0, 0);
+          transforms[0].setRotation(q);
+        }
+      else
+        {
+          theta2 += joint_values[i+joint_offset -1];
+          transforms[i].setOrigin( tf::Vector3(transforms[i-1].getOrigin().getX() - link_length_ / 2 * cos(theta1) - link_length_ / 2 * cos(theta2),
+                                               transforms[i-1].getOrigin().getY() - link_length_ / 2 * sin(theta1) - link_length_ / 2 * sin(theta2),
+                                               0) );
+          q.setRPY(0, 0, theta2);
+          transforms[i].setRotation(q);
+          theta1 += joint_values[i+joint_offset -1];
+        }
+    }
+
+  return transforms;
+}
+
 bool TransformController::distThreCheck()
 {
   static int i = 0;
@@ -843,7 +887,8 @@ bool TransformController::distThreCheck()
   for(; i < link_num_; i++)
     {
 
-      std::vector<Eigen::Vector3d> links_origin_from_cog = getLinksOriginFromCog();
+      std::vector<Eigen::Vector3d> links_origin_from_cog(link_num_);
+      getLinksOriginFromCog(links_origin_from_cog);
       //x
       if(links_origin_from_cog[i](0) > 0 && links_origin_from_cog[i](0) > x_plus_max_dist)
         x_plus_max_dist = links_origin_from_cog[i](0);
@@ -871,10 +916,20 @@ bool TransformController::distThreCheck()
   return true;
 }
 
+
+bool TransformController::distThreCheckFromJointValues(const std::vector<double>& joint_values, int joint_offset, bool continous_flag)
+{
+  std::vector<tf::StampedTransform> transforms = transformsFromJointValues(joint_values, joint_offset);
+  cogComputation(transforms);
+  principalInertiaComputation(transforms, continous_flag);
+  return distThreCheck();
+}
+
 bool  TransformController::stabilityCheck()
 {
 
-  std::vector<Eigen::Vector3d> links_origin_from_cog = getLinksOriginFromCog();
+  std::vector<Eigen::Vector3d> links_origin_from_cog(link_num_);
+  getLinksOriginFromCog(links_origin_from_cog);
   Eigen::Matrix3d links_principal_inertia = getPrincipalInertia();
   //std::cout << "inertia :\n" << links_principal_inertia << std::endl;
   Eigen::Vector4d p_x, p_y, p_c, p_m; 
@@ -930,7 +985,7 @@ void TransformController::lqi()
 
   while(ros::ok())
     {
-      if(lqi_flag_)
+      if(lqi_flag_) //no processing when single thread flag
         {
           //check the thre check
           if(!distThreCheck()) //[m]
@@ -1130,5 +1185,4 @@ bool TransformController::hamiltonMatrixSolver(uint8_t lqi_mode)
       // ROS_INFO("A dash: %f\n", ros::Time::now().toSec() - start_time.toSec());
     }
   return true;
-
 }

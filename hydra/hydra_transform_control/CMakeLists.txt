@@ -40,9 +40,9 @@ include_directories(
 add_executable(dynamicxel_bridge_node src/dynamicxel_bridge.cpp) 
 target_link_libraries (dynamicxel_bridge_node  ${catkin_LIBRARIES})
 
-add_executable(demo_transform_node src/demo_transform.cpp )
-target_link_libraries (demo_transform_node  ${catkin_LIBRARIES})
-add_dependencies(demo_transform_node aerial_robot_msgs_generate_message_cpp)
+#add_executable(demo_transform_node src/demo_transform.cpp )
+#target_link_libraries (demo_transform_node  ${catkin_LIBRARIES})
+#add_dependencies(demo_transform_node aerial_robot_msgs_generate_message_cpp)
 
 add_library (transform_control src/transform_control.cpp)
 target_link_libraries (transform_control ${catkin_LIBRARIES})
@@ -61,7 +61,7 @@ install(PROGRAMS
 install(DIRECTORY launch
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
 
-install(TARGETS dynamicxel_bridge_node demo_transform_node transform_control hydra_transform_control_node
+install(TARGETS dynamicxel_bridge_node  transform_control hydra_transform_control_node
    ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
    LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
    RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}

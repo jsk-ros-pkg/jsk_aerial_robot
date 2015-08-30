@@ -1,3 +1,7 @@
+/*
+1. the std::vector should be sent by reference(getLinksOriginFromCog)
+ */
+
 #ifndef TRANSFORM_CONTROL_H
 #define TRANSFORM_CONTROL_H
 
@@ -57,60 +61,120 @@ class TransformController{
   TransformController(ros::NodeHandle nh, ros::NodeHandle nh_private, bool callback_flag = true);
   ~TransformController();
 
-  void cogComputation(std::vector<tf::StampedTransform> transforms);
-  void principalInertiaComputation(std::vector<tf::StampedTransform> transforms, bool continuous_flag = true);
+  void cogComputation(const std::vector<tf::StampedTransform>& transforms);
+  void principalInertiaComputation(const std::vector<tf::StampedTransform>& transforms, bool continuous_flag = true);
 
   bool distThreCheck();
+  bool distThreCheckFromJointValues(const std::vector<double>& joint_values, int joint_offset,bool continous_flag = true);
+    std::vector<tf::StampedTransform> transformsFromJointValues(const std::vector<double>& joint_values, int joint_offset);
+
   bool stabilityCheck();
 
   inline double getLinkLength(){return link_length_;}
   inline int getLinkNum(){return link_num_;}
 
 
-  std::vector<Eigen::Vector3d> links_origin_from_cog_; 
-  std::vector<Eigen::Vector3d> getLinksOriginFromCog()
+  void getLinksOriginFromCog(std::vector<Eigen::Vector3d>& links_origin_from_cog)
     {
-      boost::lock_guard<boost::mutex> lock(origins_mutex_);
-      return links_origin_from_cog_;
+      if(multi_thread_flag_)
+        {
+          boost::lock_guard<boost::mutex> lock(origins_mutex_);
+          int size = links_origin_from_cog_.size();
+          for(int i=0; i< size; i++)
+            links_origin_from_cog = links_origin_from_cog_;
+        }
+      else
+        {
+          int size = links_origin_from_cog_.size();
+          for(int i=0; i< size; i++)
+            links_origin_from_cog = links_origin_from_cog_;
+        }
     }
-  void setLinksOriginFromCog(std::vector<Eigen::Vector3d> links_origin_from_cog)
-    {
-      boost::lock_guard<boost::mutex> lock(origins_mutex_);
-      links_origin_from_cog_ = links_origin_from_cog;
-    }
+  void setLinksOriginFromCog(const std::vector<Eigen::Vector3d>& links_origin_from_cog)
+  {
+    if(multi_thread_flag_)
+      {
+        boost::lock_guard<boost::mutex> lock(origins_mutex_);
+        links_origin_from_cog_ = links_origin_from_cog;
+      }
+    else
+      {
+        links_origin_from_cog_ = links_origin_from_cog;
+      }
+  }
 
   Eigen::Matrix3d getPrincipalInertia()
     {
-      boost::lock_guard<boost::mutex> lock(inertia_mutex_);
-      return links_principal_inertia_;
+      if(multi_thread_flag_)
+        {
+          boost::lock_guard<boost::mutex> lock(inertia_mutex_);
+          return links_principal_inertia_;
+        }
+      else
+        {
+          return links_principal_inertia_;
+        }
     }
   void setPrincipalInertia(Eigen::Matrix3d principal_inertia)
-    {
-      boost::lock_guard<boost::mutex> lock(inertia_mutex_);
-      links_principal_inertia_ = principal_inertia;
+  {
+    if(multi_thread_flag_)
+      {
+        boost::lock_guard<boost::mutex> lock(inertia_mutex_);
+        links_principal_inertia_ = principal_inertia;
+      }
+    else
+      {
+        links_principal_inertia_ = principal_inertia;
+      }
     }
 
 
   Eigen::Matrix3d getRotateMatrix()
     {
-      boost::lock_guard<boost::mutex> lock(rm_mutex_);
-      return rotate_matrix_;
+    if(multi_thread_flag_)
+      {
+        boost::lock_guard<boost::mutex> lock(rm_mutex_);
+        return rotate_matrix_;
+      }
+    else
+      {
+        return rotate_matrix_;
+      }
     }
   void setRotateMatrix(Eigen::Matrix3d rotate_matrix)
-    {
-      boost::lock_guard<boost::mutex> lock(rm_mutex_);
-      rotate_matrix_ = rotate_matrix;
-    }
+  {
+    if(multi_thread_flag_)
+      {
+        boost::lock_guard<boost::mutex> lock(rm_mutex_);
+        rotate_matrix_ = rotate_matrix;
+      }
+    else
+      {
+        rotate_matrix_ = rotate_matrix;
+      }
+  }
 
   Eigen::Vector3d getCog()
     {
-      boost::lock_guard<boost::mutex> lock(cog_mutex_);
-      return cog_;
+      if(multi_thread_flag_)
+        {
+          boost::lock_guard<boost::mutex> lock(cog_mutex_);
+          return cog_;
+        }
+      else
+        {
+          return cog_;
+        }
     }
   void setCog(Eigen::Vector3d cog)
     {
-      boost::lock_guard<boost::mutex> lock(cog_mutex_);
-      cog_ = cog;
+      if(multi_thread_flag_)
+        {
+          boost::lock_guard<boost::mutex> lock(cog_mutex_);
+          cog_ = cog;
+        }
+      else { cog_ = cog;}
+
     }
 
   const static uint8_t LQI_FOUR_AXIS_MODE = 0;
@@ -135,6 +199,8 @@ class TransformController{
   ros::Time system_tf_time_;
 
   bool callback_flag_;
+  bool multi_thread_flag_;
+
   bool debug_log_;
   bool debug2_log_;
 
@@ -174,6 +240,7 @@ class TransformController{
   std::vector<std::string> links_name_;
 
   Eigen::Vector3d cog_;
+  std::vector<Eigen::Vector3d> links_origin_from_cog_; 
 
   Eigen::Matrix3d links_inertia_, links_principal_inertia_;
 
