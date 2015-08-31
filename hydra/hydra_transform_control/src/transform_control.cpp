@@ -536,15 +536,15 @@ void TransformController::principalInertiaComputation(const std::vector<tf::Stam
           float controller_mass = controller_model_[0].getWeight();
           Eigen::Matrix3d link_offset_inertia;
           link_offset_inertia << 
+            controller_mass * origin_from_cog(1) * origin_from_cog(1),
+            controller_mass * (-origin_from_cog(0) * origin_from_cog(1)),
+            0,
+            controller_mass * (-origin_from_cog(0) * origin_from_cog(1)),
             controller_mass * origin_from_cog(0) * origin_from_cog(0),
-            controller_mass * (-origin_from_cog(0) * origin_from_cog(0)),
-            0,
-            controller_mass * (-origin_from_cog(0) * origin_from_cog(0)),
-            controller_mass * origin_from_cog(0) * origin_from_cog(0),
             0,
             0,
             0,
-            controller_mass * (origin_from_cog(0) * origin_from_cog(0) + origin_from_cog(0) * origin_from_cog(0));
+            controller_mass * (origin_from_cog(0) * origin_from_cog(0) + origin_from_cog(1) * origin_from_cog(1));
 
           Eigen::Matrix3d links_inertia_tmp = links_inertia;
           links_inertia = links_inertia_tmp + link_offset_inertia;
@@ -553,6 +553,9 @@ void TransformController::principalInertiaComputation(const std::vector<tf::Stam
     }
   links_inertia_ = links_inertia;
 
+
+  if(debug2_log_)
+     std::cout << "links inertia :\n" << links_inertia_ << std::endl;
 
 
   //pricipal inertia
@@ -568,6 +571,7 @@ void TransformController::principalInertiaComputation(const std::vector<tf::Stam
   Eigen::Matrix3d rotate_matrix = eig.eigenvectors();
 
   //std::cout << "rotate_matrix :\n" << rotate_matrix << std::endl;
+
 
   //the reorder of the inertia and rotate matrix (just for 2D)!!
   if(sgn(rotate_matrix(0,0)) != sgn(rotate_matrix(1,1)))
@@ -660,7 +664,6 @@ void TransformController::principalInertiaComputation(const std::vector<tf::Stam
 
   if(debug2_log_)
      std::cout << "pricipal inertia :\n" << getPrincipalInertia() << std::endl;
-
 
 
   //rotate the link origins from cog

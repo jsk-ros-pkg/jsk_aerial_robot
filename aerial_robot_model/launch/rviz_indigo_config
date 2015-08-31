@@ -6,6 +6,9 @@ Panels:
       Expanded:
         - /Global Options1
         - /Status1
+        - /TF1
+        - /TF1/Frames1
+        - /MarkerArray1
       Splitter Ratio: 0.5
     Tree Height: 595
   - Class: rviz/Selection
@@ -96,6 +99,55 @@ Visualization Manager:
       Update Interval: 0
       Value: true
       Visual Enabled: true
+    - Class: rviz/TF
+      Enabled: true
+      Frame Timeout: 15
+      Frames:
+        All Enabled: true
+        cog:
+          Value: true
+        joint1:
+          Value: true
+        joint2:
+          Value: true
+        joint3:
+          Value: true
+        link1:
+          Value: true
+        link2:
+          Value: true
+        link3:
+          Value: true
+        link4:
+          Value: true
+      Marker Scale: 1
+      Name: TF
+      Show Arrows: true
+      Show Axes: true
+      Show Names: true
+      Tree:
+        link1:
+          joint1:
+            link2:
+              cog:
+                {}
+              joint2:
+                link3:
+                  joint3:
+                    link4:
+                      {}
+      Update Interval: 0
+      Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /orientation_data
+      Name: MarkerArray
+      Namespaces:
+        cog: true
+        inertia_x: true
+        inertia_y: true
+      Queue Size: 100
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -119,7 +171,7 @@ Visualization Manager:
   Value: true
   Views:
     Current:
-      Angle: 0
+      Angle: 0.06
       Class: rviz/TopDownOrtho
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
@@ -128,11 +180,11 @@ Visualization Manager:
         Value: false
       Name: Current View
       Near Clip Distance: 0.01
-      Scale: 392.47
+      Scale: 374.671
       Target Frame: <Fixed Frame>
       Value: TopDownOrtho (rviz)
-      X: 0.00186614
-      Y: 0.00337256
+      X: -0.0363004
+      Y: -0.170595
     Saved: ~
 Window Geometry:
   Displays:
