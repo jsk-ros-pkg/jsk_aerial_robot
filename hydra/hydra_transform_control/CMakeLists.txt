@@ -7,6 +7,7 @@ project(hydra_transform_control)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   aerial_robot_msgs
+  aerial_robot_base
   dynamixel_msgs
   dynamixel_controllers
   tf_conversions
@@ -22,7 +23,7 @@ add_definitions(${EIGEN_DEFINITIONS})
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES transform_control
-  CATKIN_DEPENDS roscpp   aerial_robot_msgs dynamixel_msgs dynamixel_controllers tf_conversions
+  CATKIN_DEPENDS roscpp   aerial_robot_msgs aerial_robot_base dynamixel_msgs dynamixel_controllers tf_conversions
   DEPENDS Eigen
 )
 

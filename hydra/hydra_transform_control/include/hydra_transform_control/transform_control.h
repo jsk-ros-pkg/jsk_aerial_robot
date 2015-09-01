@@ -73,6 +73,8 @@ void cogComputation(const std::vector<tf::StampedTransform>& transforms);
 
   bool stabilityCheck(bool debug = false);
 
+  bool hamiltonMatrixSolver(uint8_t lqi_mode);
+
   inline double getLinkLength(){return link_length_;}
   inline int getLinkNum(){return link_num_;}
 
@@ -223,6 +225,29 @@ void cogComputation(const std::vector<tf::StampedTransform>& transforms);
       return U_;
     }
 
+  Eigen::MatrixXd getK()
+    {
+      return K12_;
+    }
+
+  void setK(Eigen::MatrixXd K)
+  {
+    K12_ = K; 
+  }
+
+  //really  bad!!
+  void setRotateAngle(float angle_cos, float angle_sin)
+  {
+    cog_matrix_(0, 0) = angle_cos;
+    cog_matrix_(1, 0) = angle_sin;
+  }
+  void getRotateAngle(float& angle_cos, float& angle_sin)
+  {
+    angle_cos = cog_matrix_(0, 0);
+    angle_sin = cog_matrix_(1, 0);
+  }
+  
+
   const static uint8_t LQI_FOUR_AXIS_MODE = 0;
   const static uint8_t LQI_THREE_AXIS_MODE = 1;
 
@@ -318,7 +343,7 @@ void cogComputation(const std::vector<tf::StampedTransform>& transforms);
   bool lqi_flag_;
   double lqi_thread_rate_;
   void lqi();
-  bool hamiltonMatrixSolver(uint8_t lqi_mode);
+
 
   //8/12:r,r_d, p, p_d, y, y_d, z. z_d, r_i, p_i, y_i, z_i
   //6/9:r,r_d, p, p_d, z. z_d, r_i, p_i, z_i

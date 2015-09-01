@@ -22,6 +22,7 @@ TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_
 
   links_origin_from_cog_.resize(link_num_);
   rotate_matrix_ = Eigen::Matrix3d::Identity();
+  cog_matrix_ = Eigen::Matrix3d::Identity();
 
   //lqi
   lqi_flag_ = false;
@@ -808,6 +809,9 @@ void TransformController::param2contoller()
 {
   aerial_robot_msgs::RollPitchYawGain rpy_gain_msg;
   aerial_robot_base::YawThrottleGain yt_gain_msg;
+
+  rpy_gain_msg.angle_cos = (int16_t)(cog_matrix_(0, 0) * 1024);
+  rpy_gain_msg.angle_sin = (int16_t)(cog_matrix_(1, 0) * 1024);
 
   for(int i = 0; i < link_num_; i ++)
     {
