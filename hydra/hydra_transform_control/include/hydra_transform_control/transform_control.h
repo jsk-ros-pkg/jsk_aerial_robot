@@ -310,7 +310,9 @@ void cogComputation(const std::vector<tf::StampedTransform>& transforms);
   std::vector<ElementModel> link_joint_model_;
   std::vector<ElementModel> controller_model_;
 
+
   std::string root_link_name_;
+  int root_link_;
   std::vector<std::string> links_name_;
 
   Eigen::Vector3d cog_;

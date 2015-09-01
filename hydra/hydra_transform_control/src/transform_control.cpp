@@ -164,7 +164,10 @@ void TransformController::initParam()
   all_mass_ = 0;
 
 
-  nh_private_.param("root_link_name", root_link_name_, std::string("/link3"));
+  nh_private_.param("root_link", root_link_, 3);
+  std::stringstream ss;
+  ss << root_link_;
+  root_link_name_ = std::string("/link") + ss.str();
   printf(" root_link_name_ is %s\n", root_link_name_.c_str());
 
   //position(m)
@@ -876,6 +879,39 @@ std::vector<tf::StampedTransform> TransformController::transformsFromJointValues
 
   float theta1 = 0, theta2 = 0;
   tf::Quaternion q;
+
+  int root_link = root_link_ - 1; //minus -1
+  transforms[root_link].setOrigin( tf::Vector3(0, 0, 0) );
+  q.setRPY(0, 0, 0);
+  transforms[root_link].setRotation(q);
+
+  for(int i = root_link - 1; i >= 0; i--)
+    {
+      theta2 -= joint_values[i+joint_offset];
+      transforms[i].setOrigin( tf::Vector3(transforms[i+1].getOrigin().getX() + link_length_ / 2 * cos(theta1) + link_length_ / 2 * cos(theta2),
+                                           transforms[i+1].getOrigin().getY() + link_length_ / 2 * sin(theta1) + link_length_ / 2 * sin(theta2),
+                                           0) );
+      q.setRPY(0, 0, theta2);
+      transforms[i].setRotation(q);
+      theta1 -= joint_values[i+joint_offset];
+    }
+
+  theta1 = 0, theta2 = 0;
+  for(int i = root_link + 1; i < link_num_; i ++)
+    {
+      theta2 += joint_values[i+joint_offset -1];
+      transforms[i].setOrigin( tf::Vector3(transforms[i-1].getOrigin().getX() - link_length_ / 2 * cos(theta1) - link_length_ / 2 * cos(theta2),
+                                           transforms[i-1].getOrigin().getY() - link_length_ / 2 * sin(theta1) - link_length_ / 2 * sin(theta2),
+                                           0) );
+      q.setRPY(0, 0, theta2);
+      transforms[i].setRotation(q);
+      theta1 += joint_values[i+joint_offset -1];
+    }
+
+
+  //for transform from link1
+
+#if 0
   for(int i = 0; i < link_num_; i ++)
     {
       if(i == 0)
@@ -896,6 +932,7 @@ std::vector<tf::StampedTransform> TransformController::transformsFromJointValues
           theta1 += joint_values[i+joint_offset -1];
         }
     }
+#endif
 
   return transforms;
 }
