@@ -58,13 +58,11 @@ if __name__=="__main__":
 	ctrl_mode_pub = rospy.Publisher('/teleop_command/ctrl_mode', Int8)
 
         #for hydra joints
-        joints_init_pub = rospy.Publisher('/teleop_command/joints_init', Empty)
-        joints_start_pub = rospy.Publisher('/teleop_command/joints_start', Empty)
-        joints_stop_pub = rospy.Publisher('/teleop_command/joints_stop', Empty)
         joints_ctrl_pub = rospy.Publisher('/teleop_command/joints_ctrl', Int8)
-        motor_bias_set_pub = rospy.Publisher('/teleop_command/motor_bais_set', Int8)
-        attitude_gain_pub = rospy.Publisher('/kduino/msp_cmd', UInt16)
-        transform_start_pub = rospy.Publisher('/teleop_command/transform_start', Int8)
+
+
+        motion_start_pub = rospy.Publisher('hydra/motion_control', UInt8)
+        stop_realtime_lqi_pub = rospy.Publisher('realtime_control', UInt8)
 
 	rospy.init_node('keyboard_command')
         #the way to write publisher in python
@@ -120,51 +118,13 @@ if __name__=="__main__":
                                 #for hydra joints
                                 comm.data = 2
                                 joints_ctrl_pub.publish(comm)
-			if key == '7':
-                                #attitude roll gain 
-                                #gain.data = 161 #ROS_ROLL_PID_P_UP  
-                                #attitude pitch gain 
-                                gain.data = 167 #ROS_PITCH_PID_D_UP  
-                                attitude_gain_pub.publish(gain)
-			if key == '8':
-                                #attitude roll gain 
-                                #gain.data = 162 #ROS_ROLL_PID_P_DOWN  
-                                #attitude pitch gain 
-                                gain.data = 168 #ROS_PITCH_PID_D_DOWN  
-                                attitude_gain_pub.publish(gain)
-			if key == '9':
-                                #attitude roll gain 
-                                gain.data = 163 #ROS_ROLL_PID_D_UP  
-                                attitude_gain_pub.publish(gain)
-			if key == '0':
-                                #attitude roll gain 
-                                gain.data = 164 #ROS_ROLL_PID_P_UP  
-                                attitude_gain_pub.publish(gain)
-			if key == '-':
-                                #attitude roll gain 
-                                gain.data = 161 #ROS_ROLL_PITCH_PID_P_UP  
-                                attitude_gain_pub.publish(gain)
-			if key == '^':
-                                #attitude roll gain 
-                                gain.data = 162 #ROS_ROLL_PITCH_PID_P_DOWN  
-                                attitude_gain_pub.publish(gain)
-			if key == '[':
-                                #attitude yaw d gain 
-                                gain.data = 165 #ROS_YAW_D_UP  
-                                attitude_gain_pub.publish(gain)
-			if key == ']':
-                                #attitude yaw d gain 
-                                gain.data = 166 #ROS_YAW_D_DOWN  
-                                attitude_gain_pub.publish(gain)
-			if key == 'q':
-                                #for hydra joints
-                                joints_start_pub.publish(Empty())
-			if key == 'e':
-                                #for hydra joints
-                                joints_stop_pub.publish(Empty())
 			if key == 'x':
-				comm.data = 1
-                                transform_start_pub.publish(comm)
+                                stop_real = UInt8()
+				stop_real.data = 0
+                                stop_realtime_lqi_pub.publish(stop_real)
+                                start_motion = Uin8()
+                                start_motion.dta = 1
+                                motion_start_pub.publish(start_motion)
 			if key == 'a':
 				comm.data = 1
 				yaw_pub.publish(comm)

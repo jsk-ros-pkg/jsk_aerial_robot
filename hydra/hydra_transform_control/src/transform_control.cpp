@@ -137,9 +137,13 @@ TransformController::~TransformController()
 void TransformController::realtimeControlCallback(const std_msgs::UInt8ConstPtr & msg)
 {
   if(msg->data == 1)
+    {
+      ROS_WARN("start realtime control");
       realtime_control_flag_ = true;
+    }
   else if(msg->data == 0)
     {
+      ROS_WARN("stop realtime control");
       realtime_control_flag_ = false;
       lqi_flag_ = false;
     }

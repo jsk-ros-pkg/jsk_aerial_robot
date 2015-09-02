@@ -227,12 +227,25 @@ void cogComputation(const std::vector<tf::StampedTransform>& transforms);
 
   Eigen::MatrixXd getK()
     {
-      return K12_;
+      if(lqi_mode_ == LQI_THREE_AXIS_MODE) return K9_; 
+      if(lqi_mode_ == LQI_FOUR_AXIS_MODE) return K12_; 
     }
 
-  void setK(Eigen::MatrixXd K)
+  void setK(Eigen::MatrixXd K, uint8_t lqi_mode)
   {
-    K12_ = K; 
+    lqi_mode_ = lqi_mode;
+    if(lqi_mode_ == LQI_THREE_AXIS_MODE) K9_ = K; 
+    if(lqi_mode_ == LQI_FOUR_AXIS_MODE) K12_ = K; 
+  }
+
+  inline uint8_t getLqiMode()
+  {
+    return lqi_mode_;
+  }
+
+  void setLqiMode(uint8_t lqi_mode)
+  {
+    lqi_mode_ = lqi_mode;
   }
 
   //really  bad!!
