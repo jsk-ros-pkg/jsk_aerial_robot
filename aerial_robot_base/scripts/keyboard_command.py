@@ -4,6 +4,7 @@ import rospy
 from std_msgs.msg import Empty
 from std_msgs.msg import Int8
 from std_msgs.msg import UInt16
+from std_msgs.msg import UInt8
 
 import sys, select, termios, tty
 
@@ -122,8 +123,8 @@ if __name__=="__main__":
                                 stop_real = UInt8()
 				stop_real.data = 0
                                 stop_realtime_lqi_pub.publish(stop_real)
-                                start_motion = Uin8()
-                                start_motion.dta = 1
+                                start_motion = UInt8()
+                                start_motion.data = 1
                                 motion_start_pub.publish(start_motion)
 			if key == 'a':
 				comm.data = 1

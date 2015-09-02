@@ -105,13 +105,15 @@ TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_
 
   lqi_mode_ = LQI_FOUR_AXIS_MODE;
 
+  //those publisher is published from func param2controller
+  rpy_gain_pub_ = nh_.advertise<aerial_robot_msgs::RollPitchYawGain>("/kduino/rpy_gain", 1);
+  yaw_throttle_gain_pub_ = nh_.advertise<aerial_robot_base::YawThrottleGain>("yaw_throttle_gain", 1);
+
   if(callback_flag_)
-    {
+    {// the name callback flag is not correct
       realtime_control_sub_ = nh_.subscribe<std_msgs::UInt8>("realtime_control", 1, &TransformController::realtimeControlCallback, this, ros::TransportHints().tcpNoDelay());
 
       principal_axis_pub_ = nh_.advertise<visualization_msgs::MarkerArray>("orientation_data", 1);
-      rpy_gain_pub_ = nh_.advertise<aerial_robot_msgs::RollPitchYawGain>("/kduino/rpy_gain", 1);
-      yaw_throttle_gain_pub_ = nh_.advertise<aerial_robot_base::YawThrottleGain>("yaw_throttle_gain", 1);
 
       cog_rotate_pub_ = nh_.advertise<std_msgs::Float32>("/cog_rotate", 1); //absolute
 
@@ -819,6 +821,8 @@ void TransformController::param2contoller()
 
   rpy_gain_msg.angle_cos = (int16_t)(cog_matrix_(0, 0) * 1024);
   rpy_gain_msg.angle_sin = (int16_t)(cog_matrix_(1, 0) * 1024);
+
+  yt_gain_msg.motor_num = link_num_;
 
   for(int i = 0; i < link_num_; i ++)
     {

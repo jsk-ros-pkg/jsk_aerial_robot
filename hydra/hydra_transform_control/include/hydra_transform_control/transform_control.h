@@ -260,6 +260,7 @@ void cogComputation(const std::vector<tf::StampedTransform>& transforms);
     angle_sin = cog_matrix_(1, 0);
   }
   
+  void param2contoller();
 
   const static uint8_t LQI_FOUR_AXIS_MODE = 0;
   const static uint8_t LQI_THREE_AXIS_MODE = 1;
@@ -338,8 +339,6 @@ void cogComputation(const std::vector<tf::StampedTransform>& transforms);
   double rotate_angle_;
 
 
-
-
   void controlFunc(const ros::TimerEvent & e);  
   void tfPubFunc(const ros::TimerEvent & e);
   void visualization();
@@ -347,11 +346,6 @@ void cogComputation(const std::vector<tf::StampedTransform>& transforms);
 
   void cogCoordPublish();
   void initParam();
-
-  
-
-  void param2contoller();
-
 
   //lqi
   boost::thread lqi_thread_;
