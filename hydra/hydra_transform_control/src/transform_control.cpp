@@ -1036,8 +1036,11 @@ bool  TransformController::stabilityCheck(bool debug)
 
   if(x.maxCoeff() > f_max_ || x.minCoeff() < f_min_)
     {
+      lqi_mode_ = LQI_THREE_AXIS_MODE;
       return false; //can not be stable
     }
+
+  lqi_mode_ = LQI_FOUR_AXIS_MODE;
   return true;
 }
 
@@ -1061,12 +1064,8 @@ void TransformController::lqi()
             }
 
           //check the stability within the range of the motor force
-          if(stabilityCheck()) lqi_mode_ = LQI_FOUR_AXIS_MODE;
-          else
-            {
-              ROS_ERROR("can not be four axis stable, switch to three axis stable mode");
-              lqi_mode_ = LQI_THREE_AXIS_MODE;
-            }
+          if(!stabilityCheck()) 
+            ROS_ERROR("can not be four axis stable, switch to three axis stable mode");
 
            if(!hamiltonMatrixSolver(lqi_mode_)){ continue;}
            param2contoller();
@@ -1239,6 +1238,8 @@ bool TransformController::hamiltonMatrixSolver(uint8_t lqi_mode)
 
       if(debug_log_)
         std::cout << "K is:" << std::endl << K9_ << std::endl;
+
+
 
       //check the eigen of new A
       Eigen::MatrixXd A9_dash = Eigen::MatrixXd::Zero(9, 9);
