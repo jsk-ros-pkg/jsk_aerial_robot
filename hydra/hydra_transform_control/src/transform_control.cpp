@@ -28,7 +28,7 @@ TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_
   lqi_flag_ = false;
 
   //U
-  U_ = Eigen::MatrixXd::Zero(4,4); //4 is the link number, should change!!
+  U_ = Eigen::MatrixXd::Zero(4,link_num_); //4 is the link number, should change!!
 
   //A
   A8_ = Eigen::MatrixXd::Zero(8,8);
@@ -44,8 +44,8 @@ TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_
 
 
   //B
-  B8_ = Eigen::MatrixXd::Zero(8,4); //4 is the link number, should change!!
-  B6_ = Eigen::MatrixXd::Zero(6,4); //4 is the link number, should change!!
+  B8_ = Eigen::MatrixXd::Zero(8,link_num_); //4 is the link number, should change!!
+  B6_ = Eigen::MatrixXd::Zero(6,link_num_); //4 is the link number, should change!!
 
   //C
   C8_ = Eigen::MatrixXd::Zero(4,8);
@@ -87,7 +87,9 @@ TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_
   Q9_ = q9_diagonal.asDiagonal();
 
   //R
-  R4_ = Eigen::Matrix4d(Eigen::Vector4d(r_[0], r_[1],r_[2], r_[3]).asDiagonal()); // bad, 4 should be link num
+  R_  = Eigen::MatrixXd::Zero(link_num_, link_num_);
+  for(int i = 0; i < link_num_; i ++)
+    R_(i,i) = r_[i];
 
   std::cout << "A8:"  << std::endl << A8_ << std::endl;
   std::cout << "C8:"  << std::endl << C8_ << std::endl;
@@ -101,7 +103,7 @@ TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_
   std::cout << "C9_aug:"  << std::endl << C9_aug_ << std::endl;
   std::cout << "Q9:"  << std::endl << Q9_ << std::endl;
 
-  std::cout << "R4:"  << std::endl << R4_ << std::endl;
+  std::cout << "R:"  << std::endl << R_ << std::endl;
 
   lqi_mode_ = LQI_FOUR_AXIS_MODE;
 
@@ -195,6 +197,12 @@ void TransformController::initParam()
   if (!nh_private_.getParam ("controller2_offset", controller2_offset_))
     controller2_offset_ = 0.178;
   printf("controller2_offset_ is %.3f\n", controller2_offset_);
+  if (!nh_private_.getParam ("controller2_link", controller2_link_))
+    controller2_link_ = 0;
+  printf("controller2_link_ is %d\n", controller2_link_);
+  if (!nh_private_.getParam ("controller1_link", controller1_link_))
+    controller1_link_ = 1;
+  printf("controller1_link_ is %d\n", controller1_link_);
 
   //mass(Kg)
  if (!nh_private_.getParam ("link_base_rod_mid_mass", link_base_rod_mid_mass_))
@@ -429,13 +437,15 @@ void TransformController::cogComputation(const std::vector<tf::StampedTransform>
         }
 
       //3. controlers
-      if(i == 0)
+      //if(i == 0)
+      if(i == controller2_link_)
         {// controller2
           Eigen::Vector3d controller_origin = link_rotate * controller_model_[1].getOffset()  + link_origin;
           cog_n += controller_origin * controller_model_[1].getWeight(); 
         }
 
-      if(i == 1)
+      //if(i == 1)
+      if(i == controller1_link_)
         {// controller1
           Eigen::Vector3d controller_origin = link_rotate * controller_model_[0].getOffset()  + link_origin;
           //std::cout << "controller1 :\n" << controller_origin << std::endl;
@@ -521,7 +531,8 @@ void TransformController::principalInertiaComputation(const std::vector<tf::Stam
           links_inertia = links_inertia_tmp + link_offset_inertia;
         }
       //controller
-      if(i == 0)
+      if(i == controller2_link_)
+      //if(i == 0)
         {// controller2
           origin_from_cog = rotate_m * controller_model_[1].getOffset() + origin_from_root_link - getCog();
           float controller_mass = controller_model_[1].getWeight();
@@ -540,7 +551,8 @@ void TransformController::principalInertiaComputation(const std::vector<tf::Stam
           Eigen::Matrix3d links_inertia_tmp = links_inertia;
           links_inertia = links_inertia_tmp + link_offset_inertia;
         }
-      if(i == 1)
+      if(i == controller1_link_)
+      //if(i == 1)
         {// controller1
           origin_from_cog = rotate_m * controller_model_[0].getOffset() + origin_from_root_link - getCog();
           float controller_mass = controller_model_[0].getWeight();
@@ -994,19 +1006,24 @@ bool TransformController::distThreCheckFromJointValues(const std::vector<double>
 
 bool  TransformController::stabilityCheck(bool debug)
 {
-
   std::vector<Eigen::Vector3d> links_origin_from_cog(link_num_);
   getLinksOriginFromCog(links_origin_from_cog);
   Eigen::Matrix3d links_principal_inertia = getPrincipalInertia();
   
   //std::cout << "inertia :\n" << links_principal_inertia << std::endl;
 
-  Eigen::Vector4d p_x, p_y, p_c, p_m; 
+  Eigen::VectorXd x;
+  x.resize(link_num_);
+  Eigen::VectorXd g(4);
+  g << 0, 0, 0, 9.8;
+
+  Eigen::VectorXd p_x(link_num_), p_y(link_num_), p_c(link_num_), p_m(link_num_); 
   static int i = 0;
 
   for(; i < link_num_; i++)
     {
       int order = propeller_order_[i];
+      std::cout << "order:"  << std::endl << order << std::endl;
       p_y(order) =  links_origin_from_cog[i](1);
       p_x(order) = -links_origin_from_cog[i](0);
       p_c(order) = propeller_direction_[i] * m_f_rate_ ;
@@ -1024,23 +1041,59 @@ bool  TransformController::stabilityCheck(bool debug)
   if(debug_log_ || debug)
     std::cout << "U_:"  << std::endl << U_ << std::endl;
 
-  ros::Time start_time = ros::Time::now();
-  Eigen::FullPivLU<Eigen::MatrixXd> solver(U_);
+      ros::Time start_time = ros::Time::now();
+  if(link_num_ == 4) 
+    {//square mothod
+      Eigen::FullPivLU<Eigen::MatrixXd> solver(U_);
+
+      x = solver.solve(g);
+      if(debug_log_)
+        std::cout << "U det:"  << std::endl << U_.determinant() << std::endl;
+    }
+  else
+    {//lagrange mothod
+      // issue: min x_t * x; constraint: g = U_ * x  (stable point)
+      //lamda: [4:0]
+      // x = U_t * lamba
+      // (U_  * U_t) * lamda = g
+      // x = U_t * (U_ * U_t).inv * g
+      Eigen::FullPivLU<Eigen::MatrixXd> solver((U_ * U_.transpose())); 
+      Eigen::VectorXd lamda;
+      lamda = solver.solve(g);
+      x = U_.transpose() * lamda;
+    }
+
   if(debug_log_)
     ROS_INFO("U solver is: %f\n", ros::Time::now().toSec() - start_time.toSec());
 
-  Eigen::VectorXd x(4), g(4);
-  g << 0, 0, 0, 9.8;
-  x = solver.solve(g);
   if(debug_log_ || debug)
-    {
-      std::cout << "x:"  << std::endl << x << std::endl;
-      std::cout << "U det:"  << std::endl << U_.determinant() << std::endl;
-    }
+    std::cout << "x:"  << std::endl << x << std::endl;
 
   if(x.maxCoeff() > f_max_ || x.minCoeff() < f_min_)
     {
       lqi_mode_ = LQI_THREE_AXIS_MODE;
+
+      //debug
+#if 1
+      //no yaw constraint
+      Eigen::MatrixXd U_dash = Eigen::MatrixXd::Zero(3, link_num_);
+      U_dash.row(0) = U_.row(0);
+      U_dash.row(1) = U_.row(1);
+      U_dash.row(2) = U_.row(3);
+      Eigen::VectorXd g3(3);
+      g3 << 0, 0, 9.8;
+      Eigen::FullPivLU<Eigen::MatrixXd> solver((U_dash * U_dash.transpose())); 
+      ROS_WARN("okoko");
+      Eigen::VectorXd lamda;
+      lamda = solver.solve(g3);
+      ROS_WARN("okoko");
+      x = U_dash.transpose() * lamda;
+      ROS_WARN("okoko");
+      if(debug_log_)
+        std::cout << "x:"  << std::endl << x << std::endl;
+
+#endif
+
       return false; //can not be stable
     }
 
@@ -1073,7 +1126,9 @@ void TransformController::lqi()
             ROS_ERROR("can not be four axis stable, switch to three axis stable mode");
 
            if(!hamiltonMatrixSolver(lqi_mode_)){ continue;}
-           param2contoller();
+
+           //just do publishing when link number is 4
+           if(link_num_ == 4) param2contoller();
         }
       loop_rate.sleep();
     }
@@ -1082,7 +1137,12 @@ void TransformController::lqi()
 bool TransformController::hamiltonMatrixSolver(uint8_t lqi_mode)
 {
   //for the R which is  diagonal matrix. should be changed to link_num
-  Eigen::MatrixXd R_inv = Eigen::Matrix4d(Eigen::Vector4d(1 / r_[0], 1 / r_[1], 1 / r_[2], 1 / r_[3]).asDiagonal());
+  Eigen::MatrixXd R_inv  = Eigen::MatrixXd::Zero(link_num_, link_num_);
+  for(int i = 0; i < link_num_; i ++)
+    R_inv(i,i) = 1/r_[i];
+
+  //debug
+  std::cout << "R_inv:"  << std::endl << R_inv << std::endl;
 
   // hamilton matrix
   if(lqi_mode_ == LQI_FOUR_AXIS_MODE)
@@ -1094,8 +1154,10 @@ bool TransformController::hamiltonMatrixSolver(uint8_t lqi_mode)
       if(debug_log_)
         std::cout << "B8:"  << std::endl << B8_ << std::endl;
 
-      B12_aug_ = Eigen::MatrixXd::Zero(12, 4);
-      B12_aug_.block<8,4>(0,0) = B8_;
+      B12_aug_ = Eigen::MatrixXd::Zero(12, link_num_);
+      //B12_aug_.block<8,link_num_>(0,0) = B8_;
+      for(int j = 0; j < 8; j++)
+        B12_aug_.row(j) = B8_.row(j);
 
 
       Eigen::MatrixXcd H = Eigen::MatrixXcd::Zero(24,24); //all right?
@@ -1179,8 +1241,11 @@ bool TransformController::hamiltonMatrixSolver(uint8_t lqi_mode)
       if(debug_log_)
         std::cout << "B6:"  << std::endl << B6_ << std::endl;
 
-      B9_aug_ = Eigen::MatrixXd::Zero(9, 4);
-      B9_aug_.block<6,4>(0,0) = B6_;
+      B9_aug_ = Eigen::MatrixXd::Zero(9, link_num_);
+      //B9_aug_.block<6,4>(0,0) = B6_;
+      for(int j = 0; j < 6; j++)
+        B9_aug_.row(j) = B6_.row(j);
+
 
       Eigen::MatrixXcd H = Eigen::MatrixXcd::Zero(18,18); //all right?
       H.block<9,9>(0,0) = A9_aug_.cast<std::complex<double> >();
