@@ -1067,6 +1067,7 @@ void TransformController::lqi()
               continue;
             }
 
+
           //check the stability within the range of the motor force
           if(!stabilityCheck()) 
             ROS_ERROR("can not be four axis stable, switch to three axis stable mode");
