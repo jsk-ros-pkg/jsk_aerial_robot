@@ -31,7 +31,7 @@ link4_base_rod_mass: 0.094
 propeller4_direction: 1
 propeller4_order: 2
 
-debug_log: true
+debug_log: false
 debug2_log: false
 
 

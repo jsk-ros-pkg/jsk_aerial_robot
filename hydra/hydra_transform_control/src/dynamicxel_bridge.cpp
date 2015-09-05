@@ -84,7 +84,7 @@ public:
 
         std::stringstream joint_no2;
         joint_no2 << i + 1;
-        nhp_.param(std::string("joint") + joint_no.str() + std::string("_name"), joints_info_[i].joint_name, std::string("link") + joint_no2.str() + std::string("_servo_rod_link") + joint_no2.str() + std::string("_servo_joint"));
+        nhp_.param(std::string("joint") + joint_no.str() + std::string("_name"), joints_info_[i].joint_name, std::string("joint") + joint_no2.str());
 
         ROS_INFO("joint%d attribute: angle_max: %f, angle_min: %f, angle_sng: %d, angle_offset: %f", i + 1, joints_info_[i].angle_max, joints_info_[i].angle_min, joints_info_[i].angle_sgn, joints_info_[i].angle_offset);
       }

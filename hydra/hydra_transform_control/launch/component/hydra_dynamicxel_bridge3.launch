@@ -1,3 +1,4 @@
+<?xml version="1.0"?>
 <launch>
 
   <node name="dynamixel_manager" pkg="dynamixel_controllers" type="controller_manager.py" required="true" output="screen">

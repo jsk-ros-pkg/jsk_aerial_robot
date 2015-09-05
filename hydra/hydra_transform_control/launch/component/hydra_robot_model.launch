@@ -2,7 +2,7 @@
 
 <launch>
   <arg name="visualize" default="false" /> 
-  <arg name="model" default="hydra" /> 
+  <arg name="model" default="hydra3" /> 
 
 
   <param name="robot_description" 

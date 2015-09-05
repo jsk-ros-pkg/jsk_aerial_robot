@@ -1140,8 +1140,6 @@ bool TransformController::hamiltonMatrixSolver(uint8_t lqi_mode)
   for(int i = 0; i < link_num_; i ++)
     R_inv(i,i) = 1/r_[i];
 
-  //debug
-  std::cout << "R_inv:"  << std::endl << R_inv << std::endl;
 
   // hamilton matrix
   if(lqi_mode_ == LQI_FOUR_AXIS_MODE)
