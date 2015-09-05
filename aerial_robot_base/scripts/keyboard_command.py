@@ -82,11 +82,9 @@ if __name__=="__main__":
 			if key == 'r':
 				start_pub.publish(Empty())
                                 #for hydra joints
-                                joints_init_pub.publish(Empty())
 			if key == 'h':
 				halt_pub.publish(Empty())
                                  #for hydra joints
-                                joints_stop_pub.publish(Empty())
 			if key == 't':
 				takeoff_pub.publish(Empty())
 			if key == 'u':
