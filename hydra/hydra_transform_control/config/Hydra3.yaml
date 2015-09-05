@@ -6,10 +6,10 @@ link_base_center_mass: 0.238
 
 link_joint_mass: 0.0785
 controller1_mass: 0.022
-controller2_mass: 0.093
+controller2_mass: 0.104 #old: 0.093Kg(93g)
+controller2_offset: 0.189 #old: 0.178
 
 root_link: 2
-
 
 link1_base_rod_mass: 0.105 
 
@@ -32,7 +32,7 @@ propeller4_direction: 1
 propeller4_order: 2
 
 debug_log: true
-debug2_log: true
+debug2_log: false
 
 
 lqi_thread_rate: 10.0

@@ -1023,7 +1023,6 @@ bool  TransformController::stabilityCheck(bool debug)
   for(; i < link_num_; i++)
     {
       int order = propeller_order_[i];
-      std::cout << "order:"  << std::endl << order << std::endl;
       p_y(order) =  links_origin_from_cog[i](1);
       p_x(order) = -links_origin_from_cog[i](0);
       p_c(order) = propeller_direction_[i] * m_f_rate_ ;
