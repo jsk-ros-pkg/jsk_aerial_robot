@@ -14,10 +14,12 @@ FlightController::FlightController(ros::NodeHandle nh,
   navigator_ = navigator;
   flight_ctrl_input_= flight_ctrl_input;
 
-  if (!nhp_.getParam ("motor_num", motor_num_))
+  //normal namespace
+  if (!nh_private.getParam ("motor_num", motor_num_))
     motor_num_ = 4;
   printf("motor_num_ is %d\n", motor_num_);
 
+  //controller namespace
   if (!nhp_.getParam ("f_pwm_rate", f_pwm_rate_))
     f_pwm_rate_ = 0.3029;
   printf("f_pwm_rate_ is %f\n", f_pwm_rate_);
@@ -368,6 +370,7 @@ void PidController::pidFunction()
               pos_p_term_pitch_ =  0;
               pos_i_term_pitch_ =  0;
               pos_d_term_pitch_ =  0;
+
             }
 
           //*** 指令値代入
@@ -917,6 +920,7 @@ void PidController::rosParamInit(ros::NodeHandle nh)
     pos_d_gain_throttle_ = 0;
   printf("%s: pos_d_gain_ is %.3f\n", throttle_ns.c_str(), pos_d_gain_throttle_);
 
+
   if (!throttle_node.getParam ("pos_p_gain_land", pos_p_gain_throttle_land_))
     pos_p_gain_throttle_land_ = 0;
   printf("%s: pos_p_gain_land_ is %.3f\n", throttle_ns.c_str(), pos_p_gain_throttle_land_);
@@ -950,7 +954,6 @@ void PidController::rosParamInit(ros::NodeHandle nh)
     const_i_term_value_throttle_land_ = 0;
   printf("%s: const_i_term_value_land_ is %.3f\n", throttle_ns.c_str(), const_i_term_value_throttle_land_);
 #endif
-
 
   if (!throttle_node.getParam ("offset", offset_throttle_))
     offset_throttle_ = 0;

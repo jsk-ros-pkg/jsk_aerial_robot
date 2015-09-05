@@ -29,6 +29,7 @@ class AerialRobotBase
 
   double rx_loop_rate_;
   double tx_loop_rate_; //navigation + cntrol
+  int motor_num_;
 
   boost::thread tf_thread_;
 

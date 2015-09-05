@@ -2,12 +2,15 @@
 <launch>
 
   ############################# Global Param ###################################
+  <arg name="debug" default="false" />
+  <arg unless="$(arg debug)" name="launch_prefix" value="" />
+  <arg if="$(arg debug)" name="launch_prefix" value="gdb --ex run --args" />
 
   <arg name="flight_pos_mode" value="true" /> <!-- pos mode -->
 
   ############################# JSK Quadcopter ###################################
 
-  <node pkg="aerial_robot_base" type="aerial_robot_base_node" name="hydra3_node"  output="screen" > 
+  <node pkg="aerial_robot_base" type="aerial_robot_base_node" name="hydra3_node"  launch-prefix="$(arg launch_prefix)"  output="screen" > 
 
     ############### Basic Param  #####################
     <param name="rx_loop_rate" type="double" value="110"/>
@@ -26,7 +29,7 @@
     <param name="estimator/mocap_flag" type="bool" value="true"/>
 
     ############### PID Control ######################
-    <rosparam file="$(find hydra_transform_control)/config/PidControlConfig3.yaml" command="load" />
+    <rosparam file="$(find hydra_transform_control)/config/PidControlConfig4.yaml" command="load" />
 
     ############### Kalman Filter ####################
     <!--    <param name="estimator/kalman_filter_flag" type="bool" value="true"/>
@@ -56,6 +59,7 @@
     <remap from="/navigator/teleop_command/yaw" to="/teleop_command/yaw" />
     <remap from="/navigator/teleop_command/throttle" to="/teleop_command/throttle" />
     <remap from="/navigator/teleop_command/ctrl_mode" to="/teleop_command/ctrl_mode" />
+    <remap from="/controller/yaw_throttle_gain" to="/yaw_throttle_gain" />
   </node>
 
   ################################# Kduino #########################################

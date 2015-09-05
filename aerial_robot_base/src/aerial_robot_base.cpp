@@ -13,6 +13,8 @@ AerialRobotBase::AerialRobotBase(ros::NodeHandle nh, ros::NodeHandle nh_private)
   if(!simulation_flag_)
     { 
 
+      //*** control input 
+      flight_ctrl_input_ = new FlightCtrlInput(motor_num_);
 
       //*** teleop navigation
       navigator_ = new TeleopNavigator(nh_, nhp_, estimator_, flight_ctrl_input_, tx_loop_rate_);
@@ -20,8 +22,6 @@ AerialRobotBase::AerialRobotBase(ros::NodeHandle nh, ros::NodeHandle nh_private)
       //*** pid controller
       controller_ = new PidController(nh_, nhp_, estimator_, navigator_, flight_ctrl_input_, tx_loop_rate_);
 
-      //*** control input 
-      flight_ctrl_input_ = new FlightCtrlInput(controller_->getMotorNumber());
 
 
       // if(trackingFlag_)
@@ -89,6 +89,11 @@ void AerialRobotBase::rosParamInit(ros::NodeHandle nh)
     tf_pub_loop_rate_ = 0;
   printf("%s: tf_pub_loop_rate_ is %.3f\n", ns.c_str(),  tf_pub_loop_rate_);
 
+  if (!nh.getParam ("motor_num", motor_num_))
+    motor_num_ = 4;
+  printf("motor_num_ is %d\n", motor_num_);
+
+
   // if (!nh.getParam ("trackingFlag", trackingFlag_))
   //   trackingFlag_ = false;
   // printf("%s: trackingFlag is %s\n", ns.c_str(), trackingFlag_ ? ("true") : ("false"));
@@ -108,7 +113,8 @@ void AerialRobotBase::txFunction(const ros::TimerEvent & e)
       navigator_->teleopNavigation();
       controller_->pidFunction();
       //feed forward control
-      controller_->feedForwardFunction();
+      //controller_->feedForwardFunction();
+
 
       navigator_->sendRcCmd();
     }

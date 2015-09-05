@@ -78,7 +78,6 @@ if __name__=="__main__":
 			if key == 'l':
 				land_pub.publish(Empty())
                                 #for hydra joints
-                                joints_stop_pub.publish(Empty())
 			if key == 'r':
 				start_pub.publish(Empty())
                                 #for hydra joints
