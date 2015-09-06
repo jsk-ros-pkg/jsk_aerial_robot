@@ -24,7 +24,6 @@ class FlightCtrlInput
   pitch_ = 0;
   roll_ = 0;
 
-
 }
 
   ~FlightCtrlInput (){ }

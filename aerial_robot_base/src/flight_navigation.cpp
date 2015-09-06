@@ -898,14 +898,12 @@ void TeleopNavigator::sendRcCmd()
       aerial_robot_msgs::FourAxisCommand four_axis_command_data;
       four_axis_command_data.angles[0]  =  flight_ctrl_input_->getRollValue();
       four_axis_command_data.angles[1] =  flight_ctrl_input_->getPitchValue();
-
       for(int i =0; i < flight_ctrl_input_->getMotorNumber(); i++)
         {
           four_axis_command_data.yaw_pi_term[i]   =  (flight_ctrl_input_->getYawValue())[i];
           four_axis_command_data.throttle_pid_term[i] = (flight_ctrl_input_->getThrottleValue())[i] ;
         }
       rc_cmd_pub_.publish(four_axis_command_data);
-
     }
   else
     {
