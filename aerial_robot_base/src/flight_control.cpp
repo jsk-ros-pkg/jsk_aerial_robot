@@ -547,7 +547,7 @@ void PidController::pidFunction()
                   four_axis_pid_debug.yaw.d_term.push_back(pos_d_term_yaw_);
 
                   //*** 指令値代入(new*** )
-                  flight_ctrl_input_->setYawValue(yaw_value * 100, j); //100x
+                  flight_ctrl_input_->setYawValue(yaw_value / f_pwm_rate_ * pwm_rate_, j); //f => pwm
                 }
             }
 

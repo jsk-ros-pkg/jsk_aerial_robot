@@ -212,6 +212,8 @@ void cogComputation(const std::vector<tf::StampedTransform>& transforms);
   double m_f_rate_; //moment / force rate
   double f_pwm_rate_; //force / pwm rate
   double f_pwm_offset_; //force / pwm offset
+  double pwm_rate_; //percentage
+
 
   double link_length_;
   double link_base_rod_length_; //the length of the lik base rod
@@ -304,6 +306,8 @@ void cogComputation(const std::vector<tf::StampedTransform>& transforms);
   double f_max_, f_min_;
 
   uint8_t lqi_mode_;
+
+
 
 };
 

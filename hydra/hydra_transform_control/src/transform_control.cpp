@@ -240,6 +240,8 @@ void TransformController::initParam()
   printf("f_min_ is %.3f\n", f_min_);
 
 
+
+
   //lqi
   r_.resize(link_num_);
 
@@ -367,6 +369,18 @@ void TransformController::initParam()
   if (!nh_private_.getParam ("alfa", alfa_))
     alfa_ = 0.0;
   printf("alfa_ is %.3f\n", alfa_);
+
+  if (!nh_private_.getParam ("f_pwm_rate", f_pwm_rate_))
+    f_pwm_rate_ = 0.3029;
+  printf("f_pwm_rate_ is %f\n", f_pwm_rate_);
+
+  if (!nh_private_.getParam ("f_pwm_offset", f_pwm_offset_))
+    f_pwm_offset_ = -21.196;
+  printf("f_pwm_offset_ is %f\n", f_pwm_offset_);
+
+  if (!nh_private_.getParam ("pwm_rate", pwm_rate_))
+    pwm_rate_ = 1800/100.0;
+  printf("pwm_rate_ is %f\n", pwm_rate_);
 
 
 }
@@ -836,25 +850,24 @@ void TransformController::param2contoller()
 
   yt_gain_msg.motor_num = link_num_;
 
+  double radian_convert_rate = M_PI/ 180 / 10 / f_pwm_rate_ * pwm_rate_; 
+  //0.1deg => rad:  M_PI/180/10; f=> pwm(no_offset)
+  double omega_convert_rate = (2279 * M_PI)/((32767.0 / 4.0 ) * 180) / f_pwm_rate_ * pwm_rate_;    //(2279 * M_PI)/((32767.0 / 4.0 ) * 180.0); f =>pwm
+
   for(int i = 0; i < link_num_; i ++)
     {
       if(lqi_mode_ == LQI_FOUR_AXIS_MODE)
         {
           //to kduino => 1024 multiplication
-          rpy_gain_msg.roll_p_gain[i] = K12_(i,0) * M_PI/ 18; // still need to be divide by 100
-          // 29281.765852; //0.1deg * bitshift:  M_PI/180/10* (2^24) 
-          rpy_gain_msg.roll_d_gain[i] = K12_(i,1) * (2279 * M_PI)/((32767.0 / 4.0 ) * 1.8);
-          // still need to be divide by 100
-          // 81463.8439605; //(2279 * M_PI)/((32767.0 / 4.0 ) * 180.0) * 2^24 
-          rpy_gain_msg.roll_i_gain[i] = K12_(i,8) * M_PI/ 18; // still need to be divide by 100 
-          // 29281.765852; //0.1deg * bitshift:  M_PI/180/10* (2^24) 
+          rpy_gain_msg.roll_p_gain[i] = K12_(i,0) * radian_convert_rate;
+          rpy_gain_msg.roll_d_gain[i] = K12_(i,1) * omega_convert_rate;
+          rpy_gain_msg.roll_i_gain[i] = K12_(i,8) * radian_convert_rate;
 
-          rpy_gain_msg.pitch_p_gain[i] = K12_(i,2) * M_PI/18;// still need to be divide by 100
-          rpy_gain_msg.pitch_d_gain[i] = K12_(i,3) * (2279 * M_PI)/((32767.0 / 4.0 ) * 1.8);
-          // still need to be divide by 100
-          rpy_gain_msg.pitch_i_gain[i] = K12_(i,9) * M_PI/ 18; // still need to be divide by 100
-          rpy_gain_msg.yaw_d_gain[i] = K12_(i,5) * (2279 * M_PI)/((32767.0 / 4.0 ) * 1.8);
-          // still need to be divide by 100
+          rpy_gain_msg.pitch_p_gain[i] = K12_(i,2) * radian_convert_rate;
+          rpy_gain_msg.pitch_d_gain[i] = K12_(i,3) * omega_convert_rate;
+          rpy_gain_msg.pitch_i_gain[i] = K12_(i,9) * radian_convert_rate;
+
+          rpy_gain_msg.yaw_d_gain[i] = K12_(i,5) * omega_convert_rate;
 
           yt_gain_msg.pos_p_gain_throttle.push_back(K12_(i,6));
           yt_gain_msg.pos_d_gain_throttle.push_back(K12_(i,7));
@@ -866,13 +879,14 @@ void TransformController::param2contoller()
         }
       else if(lqi_mode_ == LQI_THREE_AXIS_MODE)
         {
-          rpy_gain_msg.roll_p_gain[i] = K9_(i,0) * M_PI/ 18; 
-          rpy_gain_msg.roll_d_gain[i] = K9_(i,1) * (2279 * M_PI)/((32767.0 / 4.0 ) * 1.8);
-          rpy_gain_msg.roll_i_gain[i] = K9_(i,6) * M_PI/ 18; 
+          rpy_gain_msg.roll_p_gain[i] = K9_(i,0) * radian_convert_rate;
+          rpy_gain_msg.roll_d_gain[i] = K9_(i,1) * omega_convert_rate;
+          rpy_gain_msg.roll_i_gain[i] = K9_(i,6) * radian_convert_rate;
 
-          rpy_gain_msg.pitch_p_gain[i] = K9_(i,2) * M_PI/18;
-          rpy_gain_msg.pitch_d_gain[i] = K9_(i,3) * (2279 * M_PI)/((32767.0 / 4.0 ) * 1.8);
-          rpy_gain_msg.pitch_i_gain[i] = K9_(i,7) * M_PI/ 18; 
+          rpy_gain_msg.pitch_p_gain[i] = K9_(i,2) * radian_convert_rate;
+          rpy_gain_msg.pitch_d_gain[i] = K9_(i,3) * omega_convert_rate;
+          rpy_gain_msg.pitch_i_gain[i] = K9_(i,7) * radian_convert_rate;
+
           rpy_gain_msg.yaw_d_gain[i] = 0;
 
           yt_gain_msg.pos_p_gain_throttle.push_back(K9_(i,4));
