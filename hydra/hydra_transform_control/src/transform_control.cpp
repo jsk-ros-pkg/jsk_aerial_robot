@@ -850,9 +850,9 @@ void TransformController::param2contoller()
 
   yt_gain_msg.motor_num = link_num_;
 
-  double radian_convert_rate = M_PI/ 180 / 10 / f_pwm_rate_ * pwm_rate_; 
-  //0.1deg => rad:  M_PI/180/10; f=> pwm(no_offset)
-  double omega_convert_rate = (2279 * M_PI)/((32767.0 / 4.0 ) * 180) / f_pwm_rate_ * pwm_rate_;    //(2279 * M_PI)/((32767.0 / 4.0 ) * 180.0); f =>pwm
+  double radian_convert_rate = M_PI/ 180 / 10 / f_pwm_rate_ * pwm_rate_ * 10000; 
+  //0.1deg => rad:  M_PI/180/10; f=> pwm(no_offset); 1e4(10000)x
+  double omega_convert_rate = (2279 * M_PI)/((32767.0 / 4.0 ) * 180) / f_pwm_rate_ * pwm_rate_ * 10000;    //(2279 * M_PI)/((32767.0 / 4.0 ) * 180.0); f =>pwm
 
   for(int i = 0; i < link_num_; i ++)
     {
