@@ -25,6 +25,8 @@ class Navigator
             int ctrl_loop_rate);
   virtual ~Navigator();
 
+  ros::Publisher  msp_cmd_pub_; //temporarily
+
 
   inline bool getStartAble(){  return start_able_;}
   inline void startNavigation(){  start_able_ = true;}
@@ -210,7 +212,6 @@ class TeleopNavigator :public Navigator
                   int ctrl_loop_rate);
   virtual ~TeleopNavigator();
 
-  ros::Publisher  msp_cmd_pub_;
 
   void takeoffCallback(const std_msgs::EmptyConstPtr & msg);
   void startCallback(const std_msgs::EmptyConstPtr & msg);
