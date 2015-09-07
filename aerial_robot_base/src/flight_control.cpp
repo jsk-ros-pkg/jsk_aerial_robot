@@ -32,9 +32,6 @@ FlightController::FlightController(ros::NodeHandle nh,
     pwm_rate_ = 1800/100.0;
   printf("pwm_rate_ is %f\n", pwm_rate_);
 
-  
-
-
 }
 
 FlightController::~FlightController()
@@ -110,6 +107,9 @@ PidController::PidController(ros::NodeHandle nh,
       pos_d_gain_throttle_[i] = 0;
     }
 
+  //roll/pitch integration start
+  start_rp_integration_ = false;
+
   //publish
   pid_pub_ = nh_.advertise<aerial_robot_base::FourAxisPid>("debug", 10); 
 
@@ -178,6 +178,8 @@ void PidController::pidFunction()
       pos_p_term_throttle_ = 0; pos_i_term_throttle_ = 0; pos_d_term_throttle_ = 0;
 
       error_i_throttle_ = 0;  error_i_yaw_ = 0;
+
+      start_rp_integration_ = false;
 
       flight_ctrl_input_->reset();
 
@@ -254,6 +256,19 @@ void PidController::pidFunction()
 	first_flag = false;
       else
 	{
+          //roll/pitch integration flag
+          if(!start_rp_integration_)
+            {
+              if(state_pos_z > 0.015) 
+                {
+                  start_rp_integration_ = true;
+                  std_msgs::UInt16 integration_cmd;
+                  integration_cmd.data = navigator_->ROS_INTEGRATE_CMD;
+                  navigator_->msp_cmd_pub_.publish(integration_cmd);
+                }
+            }
+
+
           //pitch
           if(navigator_->getXyControlMode() == Navigator::POS_WORLD_BASED_CONTROL_MODE)
             {

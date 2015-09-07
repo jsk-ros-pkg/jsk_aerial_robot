@@ -249,7 +249,6 @@ void TeleopNavigator::haltCallback(const std_msgs::EmptyConstPtr & msg)
     setTargetPosY(estimator_->getStatePosY());
     setTargetPsi(estimator_->getStatePsiBoard());
 
-
     ROS_INFO("Halt command");
   }
 
@@ -803,7 +802,7 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
                 final_target_pos_z_+= target_alt_interval_;
               else 
                 final_target_pos_z_-= target_alt_interval_;
-                  
+
               ROS_INFO("Thrust command");
             }
           else
@@ -924,7 +923,7 @@ void TeleopNavigator::teleopNavigation()
       flight_mode_= NO_CONTROL_MODE;
     }
   else if(getNaviCommand() == TAKEOFF_COMMAND)
-    {	//Take OFF Phase
+    { //Take OFF Phase
 
       flight_mode_= TAKEOFF_MODE;
 
@@ -941,12 +940,10 @@ void TeleopNavigator::teleopNavigation()
           //TODO => check same as pos_world_based_control_mode
           if (fabs(getTargetPosZ() - estimator_->getStatePosZ()) < POS_Z_THRE)
               convergence_cnt++;
-
         }
 
       if (convergence_cnt > ctrl_loop_rate_) 
 	{ //*** 安定収束した 20 ~ 40
-
           if(xy_control_mode_ == POS_WORLD_BASED_CONTROL_MODE)
             {
               convergence_cnt = 0;
@@ -978,6 +975,7 @@ void TeleopNavigator::teleopNavigation()
                 }
             }
 	}
+      
     }
   else if(getNaviCommand() == LAND_COMMAND)
     {

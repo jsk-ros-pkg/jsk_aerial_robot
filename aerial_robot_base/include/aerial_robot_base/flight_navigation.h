@@ -121,6 +121,7 @@ class Navigator
   //for ros arm/disarm cmd
   const static uint8_t ARM_ON_CMD = 150;
   const static uint8_t ARM_OFF_CMD = 151;
+  const static uint8_t ROS_INTEGRATE_CMD = 160;
 
   static const uint8_t X_AXIS = 1;
   static const uint8_t Y_AXIS = 2;
@@ -209,6 +210,7 @@ class TeleopNavigator :public Navigator
                   int ctrl_loop_rate);
   virtual ~TeleopNavigator();
 
+  ros::Publisher  msp_cmd_pub_;
 
   void takeoffCallback(const std_msgs::EmptyConstPtr & msg);
   void startCallback(const std_msgs::EmptyConstPtr & msg);
@@ -245,10 +247,10 @@ class TeleopNavigator :public Navigator
 
 
  private:
-    ros::Publisher  rc_cmd_pub_;
-    ros::Publisher  msp_cmd_pub_;
+  ros::Publisher  rc_cmd_pub_;
+
     //temporarily
-    ros::Publisher  joints_ctrl_pub_;
+  ros::Publisher  joints_ctrl_pub_;
 
     ros::Subscriber arming_ack_sub_;
     ros::Subscriber takeoff_sub_;

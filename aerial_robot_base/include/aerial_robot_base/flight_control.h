@@ -18,7 +18,6 @@
 #include <aerial_robot_base/PidYawControlConfig.h>
 #include <aerial_robot_base/PidThrottleControlConfig.h>
 
-
 class FlightController
 {
 public:
@@ -59,7 +58,6 @@ class PidController : public FlightController
                 FlightCtrlInput* flight_ctrl_input,
                 double ctrl_loop_rate);
   ~PidController();
-
 
   void pidFunction();
   void feedForwardFunction();
@@ -182,6 +180,7 @@ class PidController : public FlightController
  float pos_d_term_throttle_;
  float error_i_throttle_, error_i_yaw_;
 
+ bool start_rp_integration_;
 
  //callback
  void yawThrottleGainCallback(const aerial_robot_base::YawThrottleGainConstPtr & msg);
