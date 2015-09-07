@@ -36,6 +36,7 @@ class Navigator
   inline void stopFlight(){  flight_able_ = false;}
 
   inline uint8_t getFlightMode(){  return flight_mode_;}
+  inline void setFlightMode(uint8_t flight_mode){ flight_mode_ = flight_mode;}
 
   inline uint8_t getNaviCommand(){  return navi_command_;}
   inline void setNaviCommand(const uint8_t  command){ navi_command_ = command;}

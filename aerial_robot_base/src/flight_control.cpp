@@ -170,6 +170,7 @@ void PidController::pidFunction()
   //*** リセット
   if (navigator_->getFlightMode() == Navigator::RESET_MODE) 
     {
+      //ROS_ERROR("ok");
       first_flag = true;
 
       pos_p_term_pitch_ = 0; pos_i_term_pitch_ = 0; pos_d_term_pitch_ = 0;
@@ -182,6 +183,8 @@ void PidController::pidFunction()
       start_rp_integration_ = false;
 
       flight_ctrl_input_->reset();
+
+      navigator_->setFlightMode(Navigator::NO_CONTROL_MODE);
 
       return;
     }
