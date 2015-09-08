@@ -36,20 +36,20 @@ debug2_log: false
 
 
 lqi_thread_rate: 10.0
-q_roll: 100.0  #  100
-q_roll_d: 100.0  #  100
+q_roll: 10.0  #  100
+q_roll_d: 10.0  #  100
 q_roll_i: 10.0 #  10
-q_pitch: 100.0  #  100
-q_pitch_d: 100.0  #  100
+q_pitch: 10.0  #  100
+q_pitch_d: 10.0  #  100
 q_pitch_i: 10.0 #  10
 
 q_yaw: 10.0 # 10 
 q_yaw_d: 10.0 #  10
 q_yaw_i: 1 # 1
 
-q_z: 1.0
-q_z_d: 1.0
-q_z_i: 1.0
+q_z: 10.0
+q_z_d: 10.0
+q_z_i: 10.0
 
 r1: 1.0
 r2: 1.0
