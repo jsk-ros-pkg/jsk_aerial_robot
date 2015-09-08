@@ -1023,7 +1023,8 @@ void TeleopNavigator::teleopNavigation()
     }
   else if(getNaviCommand() == STOP_COMMAND)
     {
-      flight_mode_= NO_CONTROL_MODE;
+      if(flight_mode_ != RESET_MODE)
+        flight_mode_= NO_CONTROL_MODE;
     }
   else
     {

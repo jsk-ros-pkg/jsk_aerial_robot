@@ -76,7 +76,6 @@
   <include file="$(find hydra_transform_control)/launch/component/hydra_robot_model.launch" />  
 
 
-
 </launch>
 
 
