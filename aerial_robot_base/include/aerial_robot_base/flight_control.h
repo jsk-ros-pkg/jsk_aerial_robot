@@ -7,6 +7,9 @@
 #include <aerial_robot_base/control_input_array.h>
 #include <aerial_robot_base/flight_navigation.h>
 
+#include <std_msgs/Float32MultiArray.h>
+#include <Eigen/Core>
+#include <Eigen/Geometry>
 #include <aerial_robot_base/FourAxisPid.h>
 #include <aerial_robot_base/YawThrottleGain.h>
 
@@ -41,11 +44,14 @@ public:
 
   int motor_num_;
 
- //new param
- double f_pwm_rate_; //gain which convert f to pwm and also take the bit shift into account
- double f_pwm_offset_;
+  bool feedforward_flag_;
+  Eigen::MatrixXd feedforward_matrix_;
 
- double pwm_rate_; //percentage
+  //new param
+  double f_pwm_rate_; //gain which convert f to pwm and also take the bit shift into account
+  double f_pwm_offset_;
+
+  double pwm_rate_; //percentage
 
 };
 
@@ -72,6 +78,7 @@ class PidController : public FlightController
 
  private:
   ros::Publisher  pid_pub_;
+  ros::Publisher  ff_pub_;
   ros::Subscriber four_axis_gain_sub_;
 
   int pid_ctrl_loop_rate_;

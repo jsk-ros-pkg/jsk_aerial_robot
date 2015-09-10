@@ -53,6 +53,28 @@ class FlightCtrlInput
     throttle_ = reset_data2;
   }
 
+  void addFFValues(std::vector<int16_t> ff_value)
+  {  
+    if(ff_value.size() != motor_num_) 
+      {
+        ROS_ERROR("bad size matching for ff");
+        return;
+      }
+
+    for(int i = 0; i < motor_num_; i++)
+      {
+        int16_t tmp =  (int16_t)throttle_[i]  + ff_value[i];
+        //hard code
+        if(tmp < 1200 && tmp > 1800) 
+          {
+            ROS_ERROR("bad range matching for ff");
+            return;
+          }
+      }
+    for(int i = 0; i < motor_num_; i++)
+        throttle_[i]  += ff_value[i];
+  }
+
  private:
   int motor_num_;
 

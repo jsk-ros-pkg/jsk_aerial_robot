@@ -56,7 +56,6 @@ class ElementModel{
   Eigen::Vector3d origin_offset_;
 };
 
-
 class TransformController{
 public:
 TransformController(ros::NodeHandle nh, ros::NodeHandle nh_private, bool callback_flag = true);

@@ -858,7 +858,7 @@ void TransformController::param2contoller()
     {
       if(lqi_mode_ == LQI_FOUR_AXIS_MODE)
         {
-          //to kduino => 1024 multiplication
+          //to kduino
           rpy_gain_msg.roll_p_gain[i] = K12_(i,0) * radian_convert_rate;
           rpy_gain_msg.roll_d_gain[i] = K12_(i,1) * omega_convert_rate;
           rpy_gain_msg.roll_i_gain[i] = K12_(i,8) * radian_convert_rate;
@@ -869,6 +869,7 @@ void TransformController::param2contoller()
 
           rpy_gain_msg.yaw_d_gain[i] = K12_(i,5) * omega_convert_rate;
 
+          //to aerial_robot_base, feedback
           yt_gain_msg.pos_p_gain_throttle.push_back(K12_(i,6));
           yt_gain_msg.pos_d_gain_throttle.push_back(K12_(i,7));
           yt_gain_msg.pos_i_gain_throttle.push_back(K12_(i,11));
@@ -876,6 +877,12 @@ void TransformController::param2contoller()
           yt_gain_msg.pos_p_gain_yaw.push_back(K12_(i,4));
           yt_gain_msg.pos_d_gain_yaw.push_back(K12_(i,5));
           yt_gain_msg.pos_i_gain_yaw.push_back(K12_(i,10));
+
+          //to aerial_robot_base, feedforward
+          yt_gain_msg.roll_vec.push_back(K12_(i,0));
+          yt_gain_msg.pitch_vec.push_back(K12_(i,2));
+          yt_gain_msg.yaw_vec.push_back(K12_(i,4));
+
         }
       else if(lqi_mode_ == LQI_THREE_AXIS_MODE)
         {
@@ -896,6 +903,11 @@ void TransformController::param2contoller()
           yt_gain_msg.pos_p_gain_yaw.push_back(0.0);
           yt_gain_msg.pos_d_gain_yaw.push_back(0.0);
           yt_gain_msg.pos_i_gain_yaw.push_back(0.0);
+
+          //to aerial_robot_base, feedforward
+          yt_gain_msg.roll_vec.push_back(K9_(i,0));
+          yt_gain_msg.pitch_vec.push_back(K9_(i,2));
+          yt_gain_msg.yaw_vec.push_back(0);
         }
     }
 
