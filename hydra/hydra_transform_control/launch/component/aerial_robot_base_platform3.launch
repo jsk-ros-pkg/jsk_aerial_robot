@@ -44,7 +44,7 @@
     ### Kduino IMU ################
     <remap from="/imu/kduino/imu" to="/kduino/imu" /> 
     <remap from="/imu/kduino/simple_imu" to="/kduino/simple_imu" /> 
-    <!--<remap from="/navigator/kduino/rc_cmd" to="/kduino/rc_cmd" />-->
+    <remap from="/navigator/kduino/rc_cmd" to="/kduino/rc_cmd" />
     <remap from="/navigator/kduino/msp_cmd" to="/kduino/msp_cmd" />
     <remap from="/navigator/kduino/arming_ack" to="/kduino/arming_ack" />
     ### Joy Stick #################
