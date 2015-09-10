@@ -262,7 +262,7 @@ void PidController::pidFunction()
           //roll/pitch integration flag
           if(!start_rp_integration_)
             {
-              if(state_pos_z > 0.015) 
+              if(state_pos_z > 0.01) 
                 {
                   start_rp_integration_ = true;
                   std_msgs::UInt16 integration_cmd;
