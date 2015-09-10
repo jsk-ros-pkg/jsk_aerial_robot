@@ -32,6 +32,10 @@ FlightController::FlightController(ros::NodeHandle nh,
     pwm_rate_ = 1800/100.0;
   printf("pwm_rate_ is %f\n", pwm_rate_);
 
+  if (!nh_private.getParam ("feedforward_flag", feedforward_flag_))
+    feedforward_flag_ = true;
+  printf("feedforward_flag_ is %s\n", (feedforward_flag_)?"true":"false");
+
 }
 
 FlightController::~FlightController()
@@ -95,6 +99,7 @@ PidController::PidController(ros::NodeHandle nh,
   pos_i_gain_throttle_.resize(motor_num_);
   pos_d_gain_throttle_.resize(motor_num_);
 
+  feedforward_matrix_ = Eigen::MatrixXd::Zero(motor_num_, 3);
 
   for(int i = 0; i < motor_num_; i++)
     {
@@ -112,6 +117,7 @@ PidController::PidController(ros::NodeHandle nh,
 
   //publish
   pid_pub_ = nh_.advertise<aerial_robot_base::FourAxisPid>("debug", 10); 
+  ff_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("ff", 10); 
 
   //subscriber
   four_axis_gain_sub_ = nh_.subscribe<aerial_robot_base::YawThrottleGain>("yaw_throttle_gain", 1, &PidController::yawThrottleGainCallback, this, ros::TransportHints().tcpNoDelay());
@@ -160,7 +166,13 @@ void PidController::yawThrottleGainCallback(const aerial_robot_base::YawThrottle
       pos_p_gain_throttle_[i] = msg->pos_p_gain_throttle[i];
       pos_i_gain_throttle_[i] = msg->pos_i_gain_throttle[i];
       pos_d_gain_throttle_[i] = msg->pos_d_gain_throttle[i];
+
+      feedforward_matrix_(i, 0) = msg->roll_vec[i];
+      feedforward_matrix_(i, 1) = msg->pitch_vec[i];
+      feedforward_matrix_(i, 2) = msg->yaw_vec[i];
     }
+  //debug 
+  std::cout << "ff matrix :\n" << feedforward_matrix_ << std::endl;
 }
 
 void PidController::pidFunction()
@@ -259,10 +271,12 @@ void PidController::pidFunction()
 	first_flag = false;
       else
 	{
+          float roll_value = 0, pitch_value = 0;
+
           //roll/pitch integration flag
           if(!start_rp_integration_)
             {
-              if(state_pos_z > 0.015) 
+              if(state_pos_z > 0.01) 
                 {
                   start_rp_integration_ = true;
                   std_msgs::UInt16 integration_cmd;
@@ -379,7 +393,7 @@ void PidController::pidFunction()
 
 
           //*** 指令値算出
-          float pitch_value = limit(pos_p_term_pitch_ + pos_i_term_pitch_ + pos_d_term_pitch_ + offset_pitch_, pos_limit_pitch_);
+          pitch_value = limit(pos_p_term_pitch_ + pos_i_term_pitch_ + pos_d_term_pitch_ + offset_pitch_, pos_limit_pitch_);
 
           //**** attitude gain tunnign mode
           if(navigator_->getGainTunningMode() == Navigator::ATTITUDE_GAIN_TUNNING_MODE)
@@ -511,7 +525,7 @@ void PidController::pidFunction()
             ROS_ERROR("wrong control mode");
 
           //*** 指令値算出
-          float roll_value = limit(pos_p_term_roll_ + pos_i_term_roll_ + pos_d_term_roll_ + offset_roll_, pos_limit_roll_);
+          roll_value = limit(pos_p_term_roll_ + pos_i_term_roll_ + pos_d_term_roll_ + offset_roll_, pos_limit_roll_);
           //**** 指令値反転
           roll_value = - roll_value;
 
@@ -612,6 +626,33 @@ void PidController::pidFunction()
           four_axis_pid_debug.throttle.vel_err_no_transform = state_vel_z;
 
 	  pid_pub_.publish(four_axis_pid_debug);
+
+          if(feedforward_flag_)
+            {
+              std_msgs::Float32MultiArray ff_msg;
+
+              //roll & pitch : 0.1deg, yaw: rad
+              // ref set
+              Eigen::Vector3d r;
+              r << roll_value / 10 /  180  * M_PI, pitch_value / 10 / 180  * M_PI, target_psi;
+
+              // feedfowd input
+              Eigen::VectorXd u_ff = feedforward_matrix_  * r;
+              //debug
+              std::cout << "u_ff :\n" << u_ff << std::endl;
+              std::vector<int16_t> u_ff_pwm;
+              u_ff_pwm.resize(0);
+              for(int i = 0; i < u_ff.rows(); i++)
+                {
+                  u_ff_pwm.push_back( u_ff(i) / f_pwm_rate_ * pwm_rate_);
+                  ff_msg.data.push_back(u_ff(i));
+                }
+
+              //add to throttle
+              flight_ctrl_input_->addFFValues(u_ff_pwm);
+
+              ff_pub_.publish(ff_msg);
+            }
 	}
 
       //*** 更新
