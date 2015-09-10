@@ -879,9 +879,9 @@ void TransformController::param2contoller()
           yt_gain_msg.pos_i_gain_yaw.push_back(K12_(i,10));
 
           //to aerial_robot_base, feedforward
-          yt_gain_msg.roll_vec.push_back(K12_(i,0));
-          yt_gain_msg.pitch_vec.push_back(K12_(i,2));
-          yt_gain_msg.yaw_vec.push_back(K12_(i,4));
+          yt_gain_msg.roll_vec.push_back(-K12_(i,0));
+          yt_gain_msg.pitch_vec.push_back(-K12_(i,2));
+          yt_gain_msg.yaw_vec.push_back(-K12_(i,4));
 
         }
       else if(lqi_mode_ == LQI_THREE_AXIS_MODE)
@@ -905,8 +905,8 @@ void TransformController::param2contoller()
           yt_gain_msg.pos_i_gain_yaw.push_back(0.0);
 
           //to aerial_robot_base, feedforward
-          yt_gain_msg.roll_vec.push_back(K9_(i,0));
-          yt_gain_msg.pitch_vec.push_back(K9_(i,2));
+          yt_gain_msg.roll_vec.push_back(-K9_(i,0));
+          yt_gain_msg.pitch_vec.push_back(-K9_(i,2));
           yt_gain_msg.yaw_vec.push_back(0);
         }
     }

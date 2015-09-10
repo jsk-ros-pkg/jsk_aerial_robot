@@ -172,7 +172,7 @@ void PidController::yawThrottleGainCallback(const aerial_robot_base::YawThrottle
       feedforward_matrix_(i, 2) = msg->yaw_vec[i];
     }
   //debug 
-  std::cout << "ff matrix :\n" << feedforward_matrix_ << std::endl;
+  //std::cout << "ff matrix :\n" << feedforward_matrix_ << std::endl;
 }
 
 void PidController::pidFunction()
@@ -639,7 +639,7 @@ void PidController::pidFunction()
               // feedfowd input
               Eigen::VectorXd u_ff = feedforward_matrix_  * r;
               //debug
-              std::cout << "u_ff :\n" << u_ff << std::endl;
+              //std::cout << "u_ff :\n" << u_ff << std::endl;
               std::vector<int16_t> u_ff_pwm;
               u_ff_pwm.resize(0);
               for(int i = 0; i < u_ff.rows(); i++)
