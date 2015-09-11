@@ -42,10 +42,7 @@ add_message_files(FILES
 generate_messages(DEPENDENCIES std_msgs geometry_msgs)
 
 generate_dynamic_reconfigure_options(
-  cfg/PidPitchControl.cfg
-  cfg/PidRollControl.cfg
-  cfg/PidYawControl.cfg
-  cfg/PidThrottleControl.cfg
+  cfg/XYPidControl.cfg
   cfg/StateKalmanFilter.cfg)
 
 catkin_package(

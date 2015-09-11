@@ -16,10 +16,7 @@
 //* for dynamic reconfigure
 #include <dynamic_reconfigure/server.h>
 #include <aerial_robot_msgs/DynamicReconfigureLevels.h>
-#include <aerial_robot_base/PidPitchControlConfig.h>
-#include <aerial_robot_base/PidRollControlConfig.h>
-#include <aerial_robot_base/PidYawControlConfig.h>
-#include <aerial_robot_base/PidThrottleControlConfig.h>
+#include <aerial_robot_base/XYPidControlConfig.h>
 
 class FlightController
 {
@@ -69,12 +66,7 @@ class PidController : public FlightController
   void feedForwardFunction();
 
   //dynamic reconfigure
-  void cfgPitchCallback(aerial_robot_base::PidPitchControlConfig &config, uint32_t level);
-  void cfgRollCallback(aerial_robot_base::PidRollControlConfig &config, uint32_t level);
-#if 0
-  void cfgThrottleCallback(aerial_robot_base::PidThrottleControlConfig &config, uint32_t level);
-  void cfgYawCallback(aerial_robot_base::PidYawControlConfig &config, uint32_t level);
-#endif
+  void cfgXYPidCallback(aerial_robot_base::XYPidControlConfig &config, uint32_t level);
 
  private:
   ros::Publisher  pid_pub_;
@@ -193,20 +185,9 @@ class PidController : public FlightController
  void yawThrottleGainCallback(const aerial_robot_base::YawThrottleGainConstPtr & msg);
 
  //dynamic reconfigure
- dynamic_reconfigure::Server<aerial_robot_base::PidPitchControlConfig>* pitch_server_;
- dynamic_reconfigure::Server<aerial_robot_base::PidRollControlConfig>* roll_server_;
+ dynamic_reconfigure::Server<aerial_robot_base::XYPidControlConfig>* xy_pid_server_;
 
-#if 0
- dynamic_reconfigure::Server<aerial_robot_base::PidThrottleControlConfig>* throttle_server_;
- dynamic_reconfigure::Server<aerial_robot_base::PidYawControlConfig>* yaw_server_;
-#endif
-
- dynamic_reconfigure::Server<aerial_robot_base::PidPitchControlConfig>::CallbackType dynamic_reconf_func_pitch_;
- dynamic_reconfigure::Server<aerial_robot_base::PidRollControlConfig>::CallbackType dynamic_reconf_func_roll_;
-#if 0
- dynamic_reconfigure::Server<aerial_robot_base::PidThrottleControlConfig>::CallbackType dynamic_reconf_func_throttle_;
- dynamic_reconfigure::Server<aerial_robot_base::PidYawControlConfig>::CallbackType dynamic_reconf_func_yaw_;
-#endif
+ dynamic_reconfigure::Server<aerial_robot_base::XYPidControlConfig>::CallbackType dynamic_reconf_func_xy_pid_;
  void rosParamInit(ros::NodeHandle nh);
 
 

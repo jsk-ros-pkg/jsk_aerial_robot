@@ -124,24 +124,10 @@ PidController::PidController(ros::NodeHandle nh,
 
 
   //dynamic reconfigure server
-  pitch_server_ = new dynamic_reconfigure::Server<aerial_robot_base::PidPitchControlConfig>(ros::NodeHandle(nhp_, "pitch"));
-  dynamic_reconf_func_pitch_ = boost::bind(&PidController::cfgPitchCallback, this, _1, _2);
-  pitch_server_->setCallback(dynamic_reconf_func_pitch_);
+  xy_pid_server_ = new dynamic_reconfigure::Server<aerial_robot_base::XYPidControlConfig>(ros::NodeHandle(nhp_, "pitch"));
+  dynamic_reconf_func_xy_pid_ = boost::bind(&PidController::cfgXYPidCallback, this, _1, _2);
+  xy_pid_server_->setCallback(dynamic_reconf_func_xy_pid_);
 
-  roll_server_ = new dynamic_reconfigure::Server<aerial_robot_base::PidRollControlConfig>(ros::NodeHandle(nhp_,"roll"));
-  dynamic_reconf_func_roll_ = boost::bind(&PidController::cfgRollCallback, this, _1, _2);
-  roll_server_->setCallback(dynamic_reconf_func_roll_);
-
-#if 0 // no tunning for yaw and throttle
-  yaw_server_ = new dynamic_reconfigure::Server<aerial_robot_base::PidYawControlConfig>(ros::NodeHandle(nhp_, "yaw"));
-  dynamic_reconf_func_yaw_ = boost::bind(&PidController::cfgYawCallback, this, _1, _2);
-  yaw_server_->setCallback(dynamic_reconf_func_yaw_);
-
-  throttle_server_ = new dynamic_reconfigure::Server<aerial_robot_base::PidThrottleControlConfig>(ros::NodeHandle(nhp_, "throttle"));
-  dynamic_reconf_func_throttle_ = boost::bind(&PidController::cfgThrottleCallback, this, _1, _2);
-  throttle_server_->setCallback(dynamic_reconf_func_throttle_);
-
-#endif
 }
 
 PidController::~PidController()
@@ -674,130 +660,76 @@ void PidController::feedForwardFunction()
 }
 
 
-void PidController::cfgPitchCallback(aerial_robot_base::PidPitchControlConfig &config, uint32_t level)
+void PidController::cfgXYPidCallback(aerial_robot_base::XYPidControlConfig &config, uint32_t level)
 {
-  if(config.pidControlFlag)
+  if(config.xy_pid_control_flag)
     {
-      printf("Pitch Dynamic:");
+      printf("XY Pid Param:");
       switch(level)
         {
         case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_CONTROL_LOOP_RATE:
-          pitch_ctrl_loop_rate_ = config.ctrlLoopRate;
+          roll_ctrl_loop_rate_ = config.ctrl_loop_rate;
+          pitch_ctrl_loop_rate_ = config.ctrl_loop_rate;
           printf("change the control loop rate\n");
           break;
         case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_POS_P_GAIN:
-          pos_p_gain_pitch_ = config.posPGain;
+          pos_p_gain_roll_ = config.pos_p_gain;
+          pos_p_gain_pitch_ = config.pos_p_gain;
           printf("change the pos p gain\n");
           break;
         case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_POS_I_GAIN:
-          pos_i_gain_pitch_ = config.posIGain;
+          pos_i_gain_roll_ = config.pos_i_gain;
+          pos_i_gain_pitch_ = config.pos_i_gain;
           printf("change the pos i gain\n");
           break;
         case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_POS_I_GAIN_HOVER:
-          pos_i_gain_pitch_hover_ = config.posIGainHover;
-          printf("change the posi_hover gain\n");
+          pos_i_gain_roll_hover_ = config.pos_i_gain_hover;
+          pos_i_gain_pitch_hover_ = config.pos_i_gain_hover;
+          printf("change the pos i_hover gain\n");
           break;
         case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_POS_D_GAIN:
-          pos_d_gain_pitch_ = config.posDGain;
+          pos_d_gain_roll_ = config.pos_d_gain;
+          pos_d_gain_pitch_ = config.pos_d_gain;
           printf("change the pos d gain\n");
           break;
         case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_VEL_P_GAIN:
-          vel_p_gain_pitch_ = config.velPGain;
+          vel_p_gain_roll_ = config.vel_p_gain;
+          vel_p_gain_pitch_ = config.vel_p_gain;
           printf("change the vel p gain\n");
           break;
         case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_VEL_I_GAIN:
-          vel_i_gain_pitch_ = config.velIGain;
+          vel_i_gain_roll_ = config.vel_i_gain;
           printf("change the vel i gain\n");
           break;
         case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_OFFSET:
+          //bad!!
+          offset_roll_ = config.offset;
           offset_pitch_ = config.offset;
           printf("change the offset\n");
           break;
         case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_POS_LIMIT:
-          pos_limit_pitch_ = config.posLimit;
+          pos_limit_roll_ = config.pos_limit;
+          pos_limit_pitch_ = config.pos_limit;
           printf("change the limit\n");
           break;
         case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_POS_P_LIMIT:
-          pos_p_limit_pitch_ = config.posPLimit;
+          pos_p_limit_roll_ = config.pos_p_limit;
+          pos_p_limit_pitch_ = config.pos_p_limit;
           printf("change the p limit\n");
           break;
         case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_POS_I_LIMIT:
-          pos_i_limit_pitch_ = config.posILimit;
+          pos_i_limit_roll_ = config.pos_i_limit;
+          pos_i_limit_pitch_ = config.pos_i_limit;
           printf("change the i limit\n");
           break;
         case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_POS_D_LIMIT:
-          pos_d_limit_pitch_ = config.posDLimit;
+          pos_d_limit_roll_ = config.pos_d_limit;
+          pos_d_limit_pitch_ = config.pos_d_limit;
           printf("change the d limit\n");
           break;
         case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_I_ENABLE_LIMIT_HOVER:
-          i_enable_limit_pitch_ = config.iEnableLimit;
-          printf("change the i enable limit\n");
-          break;
-        default :
-          printf("\n");
-          break;
-        }
-    }
-}
-
-void PidController::cfgRollCallback(aerial_robot_base::PidRollControlConfig &config, uint32_t level)
-{
-
-  if(config.pidControlFlag)
-    {
-      printf("Roll Dynamic:");
-      switch(level)
-        {
-        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_CONTROL_LOOP_RATE:
-          roll_ctrl_loop_rate_ = config.ctrlLoopRate;
-          printf("change the control loop rate\n");
-          break;
-        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_POS_P_GAIN:
-          pos_p_gain_roll_ = config.posPGain;
-          printf("change the pos p gain\n");
-          break;
-        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_POS_I_GAIN:
-          pos_i_gain_roll_ = config.posIGain;
-          printf("change the pos i gain\n");
-          break;
-        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_POS_I_GAIN_HOVER:
-          pos_i_gain_roll_hover_ = config.posIGainHover;
-          printf("change the pos i_hover gain\n");
-          break;
-        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_POS_D_GAIN:
-          pos_d_gain_roll_ = config.posDGain;
-          printf("change the pos d gain\n");
-          break;
-        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_VEL_P_GAIN:
-          vel_p_gain_roll_ = config.velPGain;
-          printf("change the vel p gain\n");
-          break;
-        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_VEL_I_GAIN:
-          vel_i_gain_roll_ = config.velIGain;
-          printf("change the vel i gain\n");
-          break;
-        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_OFFSET:
-          offset_roll_ = config.offset;
-          printf("change the offset\n");
-          break;
-        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_POS_LIMIT:
-          pos_limit_roll_ = config.posLimit;
-          printf("change the limit\n");
-          break;
-        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_POS_P_LIMIT:
-          pos_p_limit_roll_ = config.posPLimit;
-          printf("change the p limit\n");
-          break;
-        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_POS_I_LIMIT:
-          pos_i_limit_roll_ = config.posILimit;
-          printf("change the i limit\n");
-          break;
-        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_POS_D_LIMIT:
-          pos_d_limit_roll_ = config.posDLimit;
-          printf("change the d limit\n");
-          break;
-        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_I_ENABLE_LIMIT_HOVER:
-          i_enable_limit_roll_ = config.iEnableLimit;
+          i_enable_limit_roll_ = config.i_enable_limit;
+          i_enable_limit_pitch_ = config.i_enable_limit;
           printf("change the i enable limit\n");
           break;
         default :   
@@ -806,150 +738,6 @@ void PidController::cfgRollCallback(aerial_robot_base::PidRollControlConfig &con
         }
     }
 }
-
-#if 0 // no throttle and yaw tunning 
-void PidController::cfgYawCallback(aerial_robot_base::PidYawControlConfig &config, uint32_t level)
-{
-  if(config.pidControlFlag)
-    {
-      printf("_yaw Dynamic:");
-      switch(level)
-        {
-        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_CONTROL_LOOP_RATE:
-          yaw_ctrl_loop_rate_ = config.ctrlLoopRate;
-          printf("change the control loop rate\n");
-          break;
-        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_POS_P_GAIN:
-          pos_p_gain_yaw_ = config.posPGain;
-          printf("change the p gain\n");
-          break;
-        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_POS_I_GAIN:
-          pos_i_gain_yaw_ = config.posIGain;
-          printf("change the i gain\n");
-          break;
-        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_POS_D_GAIN:
-          pos_d_gain_yaw_ = config.posDGain;
-          printf("change the d gain\n");
-          break;
-        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_POS_LIMIT:
-          pos_limit_yaw_ = config.posLimit;
-          printf("change the limit\n");
-          break;
-        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_POS_P_LIMIT:
-          pos_p_limit_yaw_ = config.posPLimit;
-          printf("change the p limit\n");
-          break;
-        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_POS_I_LIMIT:
-          pos_i_limit_yaw_ = config.posILimit;
-          printf("change the i limit\n");
-          break;
-        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_POS_D_LIMIT:
-          pos_d_limit_yaw_ = config.posDLimit;
-          printf("change the d limit\n");
-          break;
-        default :
-          printf("\n");
-          break;
-        }
-    }
-}
-
-
-void PidController::cfgThrottleCallback(aerial_robot_base::PidThrottleControlConfig &config, uint32_t level)
-{
-
-  if(config.pidControlFlag)
-    {
-      printf("Throttle Dynamic:");
-      switch(level)
-        {
-        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_CONTROL_LOOP_RATE:
-          throttle_ctrl_loop_rate_ = config.ctrlLoopRate;
-          printf("change the control loop rate\n");
-          break;
-        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_POS_P_GAIN:
-          pos_p_gain_throttle_ = config.posPGain;
-          printf("change the p gain\n");
-          break;
-        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_POS_I_GAIN:
-          pos_i_gain_throttle_ = config.posIGain;
-          printf("change the i gain\n");
-          break;
-        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_POS_D_GAIN:
-          pos_d_gain_throttle_ = config.posDGain;
-          printf("change the d gain\n");
-          break;
-        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_POS_P_GAIN_LAND:
-          pos_p_gain_throttle_land_ = config.posPGainLand;
-          printf("change the p gain\n");
-          break;
-        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_POS_I_GAIN_LAND:
-          pos_i_gain_throttle_land_ = config.posIGainLand;
-          printf("change the i gain\n");
-          break;
-        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_POS_D_GAIN_LAND:
-          pos_d_gain_throttle_land_ = config.posDGainLand;
-          printf("change the d gain\n");
-          break;
-        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_CONST_P_CONTROL_THRESHOLD_LAND:
-          const_p_ctrl_thre_throttle_land_ = config.constPControlThreLand;
-          printf("change const p control threshold throttle land\n");
-          break;
-        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_CONST_P_TERM_LEVEL1_VALUE_LAND:
-          const_p_term_lev1_value_throttle_land_ = config.constPTermLev1ValueLand;
-          printf("change const p term level1 value throttle land\n");
-          break;
-        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_CONST_P_TERM_LEVEL2_VALUE_LAND:
-          const_p_term_lev2_value_throttle_land_ = config.constPTermLev2ValueLand;
-          printf("change const p term level2 value throttle land\n");
-          break;
-        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_CONST_I_CONTROL_THRESHOLD_LAND:
-          const_i_ctrl_thre_throttle_land_ = config.constIControlThreLand;
-          printf("change const i control threshold throttle land\n");
-          break;
-        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_CONST_I_TERM_VALUE_LAND:
-          const_i_term_value_throttle_land_ = config.constITermValueLand;
-          printf("change const i term value throttle land\n");
-          break;
-        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_OFFSET:
-          offset_throttle_ = config.offset;
-          printf("change the offset\n");
-          break;
-        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_POS_LIMIT:
-          pos_limit_throttle_ = config.posLimit;
-          printf("change the limit\n");
-          break;
-        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_POS_P_LIMIT:
-          pos_p_limit_throttle_ = config.posPLimit;
-          printf("change the p limit\n");
-          break;
-        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_POS_P_LIMIT_HOVER:
-          pos_p_limit_throttle_hover_ = config.posPLimitHover;
-          printf("change the p hover limit\n");
-          break;
-        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_POS_I_LIMIT:
-          pos_i_limit_throttle_ = config.posILimit;
-          printf("change the i limit\n");
-          break;
-        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_POS_D_LIMIT:
-          pos_d_limit_throttle_ = config.posDLimit;
-          printf("change the d limit\n");
-          break;
-        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_VEL_VALUE_LIMIT_HOVER:
-          vel_value_limit_throttle_hover_ = config.velValueLimitHover;
-          printf("change the vel value limit\n");
-          break;
-        case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_I_ENABLE_LIMIT_HOVER:
-          i_enable_limit_throttle_hover_ = config.iEnableLimitHover;
-          printf("change the i enable limit\n");
-          break;
-        default :
-          printf("\n");
-          break;
-        }
-    }
-}
-#endif
 
 
 void PidController::rosParamInit(ros::NodeHandle nh)
@@ -969,56 +757,9 @@ void PidController::rosParamInit(ros::NodeHandle nh)
     throttle_ctrl_loop_rate_ = 0;
   printf("%s: ctrl_loop_rate_ is %d\n", throttle_ns.c_str(), throttle_ctrl_loop_rate_);
 
-#if 0 // no constant gain for throttle
-  if (!throttle_node.getParam ("pos_p_gain", pos_p_gain_throttle_))
-    pos_p_gain_throttle_ = 0;
-  printf("%s: pos_p_gain_ is %.3f\n", throttle_ns.c_str(), pos_p_gain_throttle_);
-
-  if (!throttle_node.getParam ("pos_i_gain", pos_i_gain_throttle_))
-    pos_i_gain_throttle_ = 0;
-  printf("%s: pos_i_gain_ is %.3f\n", throttle_ns.c_str(), pos_i_gain_throttle_);
-
-  if (!throttle_node.getParam ("pos_d_gain", pos_d_gain_throttle_))
-    pos_d_gain_throttle_ = 0;
-  printf("%s: pos_d_gain_ is %.3f\n", throttle_ns.c_str(), pos_d_gain_throttle_);
-
-
-  if (!throttle_node.getParam ("pos_p_gain_land", pos_p_gain_throttle_land_))
-    pos_p_gain_throttle_land_ = 0;
-  printf("%s: pos_p_gain_land_ is %.3f\n", throttle_ns.c_str(), pos_p_gain_throttle_land_);
-
-  if (!throttle_node.getParam ("pos_i_gain_land", pos_i_gain_throttle_land_))
-    pos_i_gain_throttle_land_ = 0;
-  printf("%s: pos_i_gain_land_ is %.3f\n", throttle_ns.c_str(), pos_i_gain_throttle_land_);
-
-  if (!throttle_node.getParam ("pos_d_gain_land", pos_d_gain_throttle_land_))
-    pos_d_gain_throttle_land_ = 0;
-  printf("%s: pos_d_gain_land_ is %.3f\n", throttle_ns.c_str(), pos_d_gain_throttle_land_);
-
-
-  if (!throttle_node.getParam ("const_p_ctrl_thre_land",  const_p_ctrl_thre_throttle_land_))
-    const_p_ctrl_thre_throttle_land_ = 0;
-  printf("%s: const_p_ctrl_thre_land_ is %.3f\n", throttle_ns.c_str(), const_p_ctrl_thre_throttle_land_);
-
-  if(!throttle_node.getParam("const_p_term_lev1_value_land",const_p_term_lev1_value_throttle_land_))
-    const_p_term_lev1_value_throttle_land_ = 0;
-  printf("%s: const_p_term_lev1_value_land_ is %.3f\n", throttle_ns.c_str(), const_p_term_lev1_value_throttle_land_);
-
-  if(!throttle_node.getParam("const_p_term_lev2_value_land",const_p_term_lev2_value_throttle_land_))
-    const_p_term_lev2_value_throttle_land_ = 0;
-  printf("%s: const_p_term_lev2_value_land_ is %.3f\n", throttle_ns.c_str(), const_p_term_lev2_value_throttle_land_);
-  if (!throttle_node.getParam ("const_i_term_value_land",  const_i_term_value_throttle_land_))
-    const_i_term_value_throttle_land_ = 0;
-  printf("%s: const_i_term_value_land_ is %.3f\n", throttle_ns.c_str(), const_i_term_value_throttle_land_);
-
-
-#endif
-
   if (!throttle_node.getParam ("const_i_ctrl_thre_land",  const_i_ctrl_thre_throttle_land_))
     const_i_ctrl_thre_throttle_land_ = 0;
   printf("%s: const_i_ctrl_thre_land_ is %.3f\n", throttle_ns.c_str(), const_i_ctrl_thre_throttle_land_);
-
-
 
   if (!throttle_node.getParam ("offset", offset_throttle_))
     offset_throttle_ = 0;
@@ -1039,37 +780,6 @@ void PidController::rosParamInit(ros::NodeHandle nh)
   if (!throttle_node.getParam ("pos_d_limit", pos_d_limit_throttle_))
     pos_d_limit_throttle_ = 0;
   printf("%s: pos_d_limit_ is %d\n", throttle_ns.c_str(), pos_d_limit_throttle_);
-
-
-#if 0
-  if (!throttle_node.getParam ("vel_value_limit_hover", vel_value_limit_throttle_hover_))
-    vel_value_limit_throttle_hover_ = 0;
-  printf("%s: vel_value_limit_hover_ is %.3f\n", throttle_ns.c_str(), vel_value_limit_throttle_hover_);
-
-  if (!throttle_node.getParam ("i_enable_limit_hover", i_enable_limit_throttle_hover_))
-    i_enable_limit_throttle_hover_ = 0;
-  printf("%s: i_enable_limit_hover_ is %.3f\n", throttle_ns.c_str(), i_enable_limit_throttle_hover_);
-
-  if (!throttle_node.getParam ("rocket_start_init_value", rocket_start_init_value_))
-    rocket_start_init_value_ = 0;
-  printf("%s: rocket_start_init_value_ is %d\n", throttle_ns.c_str(), rocket_start_init_value_);
-
-  if (!throttle_node.getParam ("rocket_start_init_increment_value", rocket_start_init_increment_value_))
-    rocket_start_init_increment_value_ = 0;
-  printf("%s: rocket_start_init_increment_value_ is %d\n", throttle_ns.c_str(), rocket_start_init_increment_value_);
-
-  if (!throttle_node.getParam ("rocket_start_step_value", rocket_start_step_value_))
-    rocket_start_step_value_ = 0;
-  printf("%s: rocket_start_step_value_ is %d\n", throttle_ns.c_str(), rocket_start_step_value_);
-
-  if (!throttle_node.getParam ("throwing_mode_init_value_from_rocket_start", throwing_mode_init_value_from_rocket_start_))
-    throwing_mode_init_value_from_rocket_start_ = 0;
-  printf("%s: throwing_mode_init_value_from_rocket_start_ is %d\n", throttle_ns.c_str(), throwing_mode_init_value_from_rocket_start_);
-
-  if (!throttle_node.getParam ("free_fall_step_value", free_fall_step_value_))
-    free_fall_step_value_ = 0;
-  printf("%s: free_fall_step_value_ is %d\n", throttle_ns.c_str(), free_fall_step_value_);
-#endif
 
 
   //**** pitch
@@ -1190,5 +900,4 @@ void PidController::rosParamInit(ros::NodeHandle nh)
   if (!yaw_node.getParam ("pos_d_limit", pos_d_limit_yaw_))
     pos_d_limit_yaw_ = 0;
   printf("%s: pos_d_limit_ is %d\n", yaw_ns.c_str(), pos_d_limit_yaw_);
-
 }
