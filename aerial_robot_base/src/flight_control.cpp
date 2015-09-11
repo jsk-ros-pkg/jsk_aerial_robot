@@ -594,6 +594,9 @@ void PidController::pidFunction()
 
           //throttle
           d_err_pos_curr_throttle_ = target_pos_z - state_pos_z;
+          // land時,iterm は特殊
+          if(navigator_->getFlightMode() == Navigator::LAND_MODE)
+            d_err_pos_curr_throttle_ += const_i_ctrl_thre_throttle_land_;
           error_i_throttle_ += d_err_pos_curr_throttle_ * (1 / (float)throttle_ctrl_loop_rate_);
           if(navigator_->getFlightMode() == Navigator::TAKEOFF_MODE ||
              navigator_->getFlightMode() == Navigator::LAND_MODE   ||
@@ -605,7 +608,7 @@ void PidController::pidFunction()
                   pos_p_term_throttle_ = limit(pos_p_gain_throttle_[j] * state_pos_z, pos_p_limit_throttle_);
                   //**** Iの項
                   pos_i_term_throttle_ = limit(pos_i_gain_throttle_[j] * error_i_throttle_, pos_i_limit_throttle_);
-                  //***** Dの項 // to think about d term, now in kduino controller
+                  //***** Dの項
                   pos_d_term_throttle_ = limit(pos_d_gain_throttle_[j] * state_vel_z, pos_p_limit_throttle_);;
 
                   //*** each motor command value for log
@@ -1004,15 +1007,18 @@ void PidController::rosParamInit(ros::NodeHandle nh)
   if(!throttle_node.getParam("const_p_term_lev2_value_land",const_p_term_lev2_value_throttle_land_))
     const_p_term_lev2_value_throttle_land_ = 0;
   printf("%s: const_p_term_lev2_value_land_ is %.3f\n", throttle_ns.c_str(), const_p_term_lev2_value_throttle_land_);
+  if (!throttle_node.getParam ("const_i_term_value_land",  const_i_term_value_throttle_land_))
+    const_i_term_value_throttle_land_ = 0;
+  printf("%s: const_i_term_value_land_ is %.3f\n", throttle_ns.c_str(), const_i_term_value_throttle_land_);
+
+
+#endif
 
   if (!throttle_node.getParam ("const_i_ctrl_thre_land",  const_i_ctrl_thre_throttle_land_))
     const_i_ctrl_thre_throttle_land_ = 0;
   printf("%s: const_i_ctrl_thre_land_ is %.3f\n", throttle_ns.c_str(), const_i_ctrl_thre_throttle_land_);
 
-  if (!throttle_node.getParam ("const_i_term_value_land",  const_i_term_value_throttle_land_))
-    const_i_term_value_throttle_land_ = 0;
-  printf("%s: const_i_term_value_land_ is %.3f\n", throttle_ns.c_str(), const_i_term_value_throttle_land_);
-#endif
+
 
   if (!throttle_node.getParam ("offset", offset_throttle_))
     offset_throttle_ = 0;
