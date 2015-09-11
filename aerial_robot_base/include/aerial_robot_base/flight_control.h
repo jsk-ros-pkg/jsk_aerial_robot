@@ -101,7 +101,7 @@ class PidController : public FlightController
   //double const_p_ctrl_thre_throttle_land_; 
   //double const_p_term_lev1_value_throttle_land_;
   //double const_p_term_lev2_value_throttle_land_;
-  //double const_i_ctrl_thre_throttle_land_; 
+  double const_i_ctrl_thre_throttle_land_; 
   //double const_i_term_value_throttle_land_; 
   double offset_throttle_;
   int pos_limit_throttle_;

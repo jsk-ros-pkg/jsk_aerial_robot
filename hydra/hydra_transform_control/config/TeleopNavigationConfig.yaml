@@ -23,6 +23,6 @@ navigator/cmd_vel_lev2_gain : 1.5
 #navigator/xy_vel_mode_pos_ctrl_takeoff : false
 
 # attitude tunning mode in joystick mode
-navigator/gain_tunning_mode: 1
+navigator/gain_tunning_mode: 0
 navigator/target_angle_rate: 100.0
 navigator/cmd_angle_lev2_gain : 1.5
