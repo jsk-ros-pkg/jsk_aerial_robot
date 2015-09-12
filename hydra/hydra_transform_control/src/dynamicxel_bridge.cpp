@@ -198,48 +198,51 @@ void jointsTempCtrlCallback(const std_msgs::Int8ConstPtr& msg)
     //joint1 
     if(msg->data == 1)
       { // joint1 --
-        joints_info_[2].target_angle -= transform_delta_angle_;
+        joints_info_[0].target_angle -= transform_delta_angle_;
         std_msgs::Float64 command;
-        command.data = joints_info_[2].target_angle * joints_info_[2].angle_sgn + joints_info_[2].angle_offset;
+        command.data = joints_info_[0].target_angle * joints_info_[0].angle_sgn + joints_info_[0].angle_offset;
         joint1_pub_.publish(command);
         ROS_INFO("1: command.data: %f", command.data);
       }
     if(msg->data == 2)
       { // joint1 ++
-        joints_info_[2].target_angle += transform_delta_angle_;
-        std_msgs::Float64 command;
-        command.data = joints_info_[2].target_angle * joints_info_[2].angle_sgn + joints_info_[2].angle_offset;
-        joint1_pub_.publish(command);
-      }
-    if(msg->data == 3)
-      { // joint3 --
-        joints_info_[0].target_angle -= transform_delta_angle_;
-        std_msgs::Float64 command;
-        command.data = joints_info_[0].target_angle * joints_info_[0].angle_sgn  + joints_info_[0].angle_offset;
-        ROS_INFO("3: command.data: %f", command.data);
-        joint3_pub_.publish(command);
-      }
-    if(msg->data == 4)
-      { // joint3 ++
         joints_info_[0].target_angle += transform_delta_angle_;
         std_msgs::Float64 command;
         command.data = joints_info_[0].target_angle * joints_info_[0].angle_sgn + joints_info_[0].angle_offset;
-        joint3_pub_.publish(command);
+        joint1_pub_.publish(command);
+        ROS_INFO("1: command.data: %f", command.data);
       }
-    if(msg->data == 5)
-      { // joint2 --
+    if(msg->data == 3)
+      { // joint3 --
         joints_info_[1].target_angle -= transform_delta_angle_;
         std_msgs::Float64 command;
-        command.data = joints_info_[1].target_angle * joints_info_[1].angle_sgn + joints_info_[1].angle_offset;
-        ROS_INFO("3: command.data: %f", command.data);
+        command.data = joints_info_[1].target_angle * joints_info_[1].angle_sgn  + joints_info_[1].angle_offset;
+        ROS_INFO("2: command.data: %f", command.data);
         joint2_pub_.publish(command);
       }
-    if(msg->data == 6)
-      { // joint2 ++
+    if(msg->data == 4)
+      { // joint3 ++
         joints_info_[1].target_angle += transform_delta_angle_;
         std_msgs::Float64 command;
         command.data = joints_info_[1].target_angle * joints_info_[1].angle_sgn + joints_info_[1].angle_offset;
         joint2_pub_.publish(command);
+        ROS_INFO("2: command.data: %f", command.data);
+      }
+    if(msg->data == 5)
+      { // joint2 --
+        joints_info_[2].target_angle -= transform_delta_angle_;
+        std_msgs::Float64 command;
+        command.data = joints_info_[2].target_angle * joints_info_[2].angle_sgn + joints_info_[2].angle_offset;
+        ROS_INFO("3: command.data: %f", command.data);
+        joint3_pub_.publish(command);
+      }
+    if(msg->data == 6)
+      { // joint2 ++
+        joints_info_[2].target_angle += transform_delta_angle_;
+        std_msgs::Float64 command;
+        command.data = joints_info_[2].target_angle * joints_info_[2].angle_sgn + joints_info_[2].angle_offset;
+        joint3_pub_.publish(command);
+        ROS_INFO("3: command.data: %f", command.data);
       }
     if(msg->data == 7)
       { // joint1&3 --
@@ -247,12 +250,11 @@ void jointsTempCtrlCallback(const std_msgs::Int8ConstPtr& msg)
         std_msgs::Float64 command1;
         command1.data = joints_info_[2].target_angle * joints_info_[2].angle_sgn + joints_info_[2].angle_offset;
         joint1_pub_.publish(command1);
-        ROS_INFO("1: command.data: %f", command1.data);
+        ROS_INFO("1&3: command: %f", command1.data);
 
         joints_info_[0].target_angle -= transform_delta_angle_;
         std_msgs::Float64 command3;
         command3.data = joints_info_[0].target_angle * joints_info_[0].angle_sgn + joints_info_[0].angle_offset;
-        ROS_INFO("3: command3.data: %f", command3.data);
         joint3_pub_.publish(command3);
 
       }
@@ -262,7 +264,7 @@ void jointsTempCtrlCallback(const std_msgs::Int8ConstPtr& msg)
         std_msgs::Float64 command1;
         command1.data = joints_info_[2].target_angle * joints_info_[2].angle_sgn + joints_info_[2].angle_offset;
         joint1_pub_.publish(command1);
-        ROS_INFO("1: command1.data: %f", command1.data);
+        ROS_INFO("1&3: command: %f", command1.data);
 
         joints_info_[0].target_angle += transform_delta_angle_;
         std_msgs::Float64 command3;

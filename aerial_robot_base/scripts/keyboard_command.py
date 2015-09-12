@@ -94,27 +94,27 @@ if __name__=="__main__":
                                 motor_bias_set_pub.publish(comm)
 			if key == '1':
                                 #for hydra joints
-                                comm.data = 3
+                                comm.data = 1
                                 joints_ctrl_pub.publish(comm)
 			if key == '2':
                                 #for hydra joints
-                                comm.data = 4
+                                comm.data = 2
                                 joints_ctrl_pub.publish(comm)
 			if key == '3':
                                 #for hydra joints
-                                comm.data = 5
+                                comm.data = 3
                                 joints_ctrl_pub.publish(comm)
 			if key == '4':
                                 #for hydra joints
-                                comm.data = 6
+                                comm.data = 4
                                 joints_ctrl_pub.publish(comm)
 			if key == '5':
                                 #for hydra joints
-                                comm.data = 1
+                                comm.data = 5
                                 joints_ctrl_pub.publish(comm)
 			if key == '6':
                                 #for hydra joints
-                                comm.data = 2
+                                comm.data = 6
                                 joints_ctrl_pub.publish(comm)
 			if key == 'x':
                                 stop_real = UInt8()

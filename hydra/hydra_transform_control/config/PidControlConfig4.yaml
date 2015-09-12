@@ -11,34 +11,34 @@ controller/throttle/pos_limit: 9.0
 controller/throttle/pos_p_limit: 9.0
 controller/throttle/pos_i_limit: 9.0
 controller/throttle/pos_d_limit: 9.0
-controller/throttle/const_i_ctrl_thre_land: -0.1
+controller/throttle/const_i_ctrl_thre_land: -0.2
 
 # pitch 
-controller/pitch/pos_p_gain: 0.03575  #0.11 * 0.325
-controller/pitch/pos_i_gain: 0.01625 # 0.05 * 0.325
-controller/pitch/pos_i_gain_hover: 0.001625  # 0.005 * 0.325
-controller/pitch/pos_d_gain: 0.18 #0.13325 #0.41 * 0.325 
-controller/pitch/vel_p_gain:  0.18 #0.13325 #0.41 * 0.325 0.41 
+controller/pitch/pos_p_gain: 0.054
+controller/pitch/pos_i_gain: 0.005
+controller/pitch/pos_i_gain_hover: 0.001625 
+controller/pitch/pos_d_gain: 0.28 
+controller/pitch/vel_p_gain:  0.28 #0.13325 #0.41 * 0.325 0.41 
 controller/pitch/vel_i_gain: 0.001625  # 0.005 * 0.325
-controller/pitch/pos_limit: 70 # rook1: 200 * 0.325
-controller/pitch/pos_p_limit: 33 #rook1 :100 *0.325
-controller/pitch/pos_i_limit: 33 #rook1 :100 * 0.325 
-controller/pitch/pos_d_limit: 33 #rook1 :100 * 0.325
+controller/pitch/pos_limit: 120 # rook1: 200 * 0.325
+controller/pitch/pos_p_limit: 60 #rook1 :100 *0.325
+controller/pitch/pos_i_limit: 60 #rook1 :100 * 0.325 
+controller/pitch/pos_d_limit: 60 #rook1 :100 * 0.325
 controller/pitch/vel_value_limit: 0.26 #0.8 * 0.325
 controller/pitch/i_enable_limit: 0.325 # 1.0 * 0.325
 controller/pitch/offset: 0
 
 #  roll 
-controller/roll/pos_p_gain: 0.03575 # 0.11 * 0.325
-controller/roll/pos_i_gain: 0.01625 # 0.05 * 0.325
-controller/roll/pos_i_gain_hover: 0.001625  # 0.005 * 0.325
-controller/roll/pos_d_gain: 0.18 #0.13325 #0.41 * 0.325 
-controller/roll/vel_p_gain: 0.18 #0.13325 #0.41 * 0.325 
-controller/roll/vel_i_gain: 0.001625  # 0.005 * 0.325
-controller/roll/pos_limit: 200 #rook1 : 70
-controller/roll/pos_p_limit: 100 #rook1 : 33
-controller/roll/pos_i_limit: 100 #rook1 : 33
-controller/roll/pos_d_limit: 100 #rook1 : 33
+controller/roll/pos_p_gain: 0.054 
+controller/roll/pos_i_gain: 0.005 
+controller/roll/pos_i_gain_hover: 0.001625 
+controller/roll/pos_d_gain: 0.28
+controller/roll/vel_p_gain: 0.28
+controller/roll/vel_i_gain: 0.001625
+controller/roll/pos_limit: 120
+controller/roll/pos_p_limit: 60
+controller/roll/pos_i_limit: 60
+controller/roll/pos_d_limit: 60
 controller/roll/vel_value_limit: 0.26
 controller/roll/i_enable_limit: 0.325
 controller/roll/offset: 0 #roll is reversed!!
