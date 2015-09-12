@@ -1108,12 +1108,9 @@ bool  TransformController::stabilityCheck(bool debug)
       Eigen::VectorXd g3(3);
       g3 << 0, 0, 9.8;
       Eigen::FullPivLU<Eigen::MatrixXd> solver((U_dash * U_dash.transpose())); 
-      ROS_WARN("okoko");
       Eigen::VectorXd lamda;
       lamda = solver.solve(g3);
-      ROS_WARN("okoko");
       x = U_dash.transpose() * lamda;
-      ROS_WARN("okoko");
       if(debug_log_)
         std::cout << "x:"  << std::endl << x << std::endl;
 

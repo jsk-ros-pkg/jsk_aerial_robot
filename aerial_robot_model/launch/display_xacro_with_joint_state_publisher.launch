@@ -1,7 +1,7 @@
 <launch>
   <arg name="model" default="hydra3" />  
   <arg name="gui" default="True" />
-  <arg name="rviz" default="True" />
+  <arg name="rviz" default="False" />
 
   <param name="use_gui" value="$(arg gui)"/>
   <param name="robot_description"

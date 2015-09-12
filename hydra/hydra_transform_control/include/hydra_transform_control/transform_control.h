@@ -67,8 +67,8 @@ void cogComputation(const std::vector<tf::StampedTransform>& transforms);
   void principalInertiaComputation(const std::vector<tf::StampedTransform>& transforms, bool continuous_flag = true);
 
   bool distThreCheck();
-  bool distThreCheckFromJointValues(const std::vector<double>& joint_values, int joint_offset,bool continous_flag = true);
-  std::vector<tf::StampedTransform> transformsFromJointValues(const std::vector<double>& joint_values, int joint_offset);
+  bool distThreCheckFromJointValues(const std::vector<double>& joint_values, int joint_offset = 0,bool continous_flag = true);
+  std::vector<tf::StampedTransform> transformsFromJointValues(const std::vector<double>& joint_values, int joint_offset = 0);
 
   bool stabilityCheck(bool debug = false); //lagrange method
 

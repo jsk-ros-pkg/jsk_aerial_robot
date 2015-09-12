@@ -1,6 +1,6 @@
 <launch>
 
-  <arg name="model" default="dragon2" />  
+  <arg name="model" default="hydra3" />  
   <arg name="gui" default="False" />
 
   <param name="robot_description"
