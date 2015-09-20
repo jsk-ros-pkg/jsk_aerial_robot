@@ -1,11 +1,10 @@
 #!/usr/bin/env python
-import roslib; roslib.load_manifest('jsk_quadcopter')
 import rospy
 
 from std_msgs.msg import Empty
 from std_msgs.msg import Int8
 from std_msgs.msg import UInt16
-from jsk_quadcopter.msg import fourAxisPidDebug
+from aerial_robot_base.msg import FourAxisPid
 
 import sys, select, termios, tty, math
 
@@ -18,10 +17,10 @@ def callback(data):
                 global roll_sum
                 global yaw_sum
                 msg_cnt = msg_cnt + 1
-                throttle_sum = throttle_sum + data.throttle.posErrNoTransform * data.throttle.posErrNoTransform
-                pitch_sum = pitch_sum + data.pitch.posErrTransform * data.pitch.posErrTransform
-                roll_sum = roll_sum + data.roll.posErrTransform * data.roll.posErrTransform
-                yaw_sum = yaw_sum + data.yaw.posErrNoTransform * data.yaw.posErrNoTransform
+                throttle_sum = throttle_sum + data.throttle.pos_err_no_transform * data.throttle.pos_err_no_transform
+                pitch_sum = pitch_sum + data.pitch.pos_err_transform * data.pitch.pos_err_transform
+                roll_sum = roll_sum + data.roll.pos_err_transform * data.roll.pos_err_transform
+                yaw_sum = yaw_sum + data.yaw.pos_err_no_transform * data.yaw.pos_err_no_transform
 
                 throttle_rms = math.sqrt(throttle_sum / msg_cnt)
                 pitch_rms = math.sqrt(pitch_sum / msg_cnt)
@@ -47,15 +46,11 @@ if __name__=="__main__":
         roll_sum = 0
         throttle_sum = 0
 
-        rospy.Subscriber("/controller/debug", fourAxisPidDebug, callback)
-
+        rospy.Subscriber("/controller/debug", FourAxisPid, callback)
 
 
 	rospy.init_node('keyboard_command')
 
-        
-
-	#gain=UInt16() 
 
 	try:
 		while(True):
@@ -66,6 +61,11 @@ if __name__=="__main__":
                                 start_flag = True
 			if key == 'h':
                                 start_flag = False
+                                msg_cnt = 0
+                                yaw_sum = 0
+                                pitch_sum = 0
+                                roll_sum = 0
+                                throttle_sum = 0
 			else:
 				if (key == '\x03'):
 					break
