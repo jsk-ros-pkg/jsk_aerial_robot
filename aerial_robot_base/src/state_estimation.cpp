@@ -93,27 +93,34 @@ RigidEstimator::RigidEstimator(ros::NodeHandle nh,
                               lpf_acc_z_,
                               simulation_flag_);
 
-  slam_data_     = new SlamData(nh,
-                                nh_private,
-                                this,
-                                kalman_filter_flag_,                                
-                                kf_x_, kf_y_,
-                                kf_bias_x_, kf_bias_y_,
-                                kalman_filter_debug_,
-                                kalman_filter_axis_,
-                                kf1_, kf2_);
+  if(px4flow_flag_)
+    {
+      optical_flow_data_   = new OpticalFlowData(nh,
+                                                 nh_private,
+                                                 this,
+                                                 kalman_filter_flag_,
+                                                 kf_opt_x_, kf_opt_y_, kf_opt_z_,
+                                                 kf_opt_bias_x_, kf_opt_bias_y_, kf_opt_bias_z_);
+    }
 
-  optical_flow_data_   = new OpticalFlowData(nh,
-                                             nh_private,
-                                             this,
-                                             kalman_filter_flag_,
-                                             kf_opt_x_, kf_opt_y_, kf_opt_z_,
-                                             kf_opt_bias_x_, kf_opt_bias_y_, kf_opt_bias_z_);
+  if(hokuyo_flag_)
+    {
+      mirror_module_ = new MirrorModule(nh, nh_private,
+                                        this,
+                                        kalman_filter_flag_, kalman_filter_debug_,
+                                        kf_z_, kf_bias_z_);
 
-  mirror_module_ = new MirrorModule(nh, nh_private,
+      slam_data_     = new SlamData(nh,
+                                    nh_private,
                                     this,
-                                    kalman_filter_flag_, kalman_filter_debug_,
-                                    kf_z_, kf_bias_z_);
+                                    kalman_filter_flag_,
+                                    kf_x_, kf_y_,
+                                    kf_bias_x_, kf_bias_y_,
+                                    kalman_filter_debug_,
+                                    kalman_filter_axis_,
+                                    kf1_, kf2_);
+
+    }
 
   if(mocap_flag_)
       mocap_data_ = new MocapData(nh, nh_private, this);
@@ -347,22 +354,13 @@ float RigidEstimator::getStateVelPsiBoard()
 }
 
 
+void RigidEstimator::setStateCorrectFlag(bool flag)
+{ 
+  if(px4flow_flag_) optical_flow_data_->setKFCorrectFlag(flag);
+}
+
 inline float RigidEstimator::getStateVelXOpt(){  return optical_flow_data_->getRawVelX();}
 inline float RigidEstimator::getStateVelYOpt(){  return optical_flow_data_->getRawVelY();}
-
-bool RigidEstimator::getRocketStartFlag()
-{
-   if(altitude_control_mode_ == SONAR)
-      return optical_flow_data_->getRocketStartFlag();
-  else
-      return false;
-}
-
-void RigidEstimator::setRocketStartFlag()
-{
-  if(altitude_control_mode_ == SONAR)
-    optical_flow_data_->setRocketStartFlag();
-}
 
 void RigidEstimator::tfPublish()
 {
@@ -397,7 +395,7 @@ void RigidEstimator::tfPublish()
   footprint_to_laser.setOrigin(tf::Vector3(0.0, 0.0, getStatePosZ() + getPosZOffset() - mirror_module_arm_length_));
 
   br_->sendTransform(tf::StampedTransform(footprint_to_laser, sys_stamp,
-  					   base_footprint_frame_, laser_frame_));
+                                          base_footprint_frame_, laser_frame_));
 
 }
 
@@ -405,7 +403,6 @@ float RigidEstimator::getLaserToImuDistance()
 {
   return laser_to_baselink_distance_;
 }
-
 
 void RigidEstimator::rosParamInit(ros::NodeHandle nh)
 {
@@ -457,9 +454,15 @@ void RigidEstimator::rosParamInit(ros::NodeHandle nh)
     kalman_filter_axis_ = 0;
   printf("%s: kalman_filter_axis_ is %d\n", ns.c_str(), kalman_filter_axis_);
 
-  //*** mocap 
+  //*** sensors
+  if (!nhp_.getParam ("hokuyo_flag", hokuyo_flag_))
+    hokuyo_flag_ = false;
+  printf("%s: hokuyo_flag is %s\n", ns.c_str(), hokuyo_flag_ ? ("true") : ("false"));
+  if (!nhp_.getParam ("px4flow_flag", px4flow_flag_))
+    px4flow_flag_ = false;
+  printf("%s: px4flow_flag is %s\n", ns.c_str(), px4flow_flag_ ? ("true") : ("false"));
+ 
   if (!nhp_.getParam ("mocap_flag", mocap_flag_))
     mocap_flag_ = false;
   printf("%s: mocap_flag is %s\n", ns.c_str(), mocap_flag_ ? ("true") : ("false"));
-
 }

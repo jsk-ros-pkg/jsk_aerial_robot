@@ -26,8 +26,8 @@ def callback(data):
                 pitch_rms = math.sqrt(pitch_sum / msg_cnt)
                 roll_rms = math.sqrt(roll_sum / msg_cnt)
                 yaw_rms = math.sqrt(yaw_sum / msg_cnt)
-                rospy.loginfo("throttle rms:%f , pitch rms: %f, roll rms: %f, yaw rms: %f", throttle_rms, pitch_rms, roll_rms, yaw_rms)
-        #rospy.loginfo(rospy.get_caller_id()+"I heard %s",data.data)
+                #rospy.loginfo("throttle rms:%f , pitch rms: %f, roll rms: %f, yaw rms: %f", throttle_rms, pitch_rms, roll_rms, yaw_rms)
+                print u"throttle rms:%f , pitch rms: %f, roll rms: %f, yaw rms: %f" % (throttle_rms, pitch_rms, roll_rms, yaw_rms)
 
 def getKey():
 	tty.setraw(sys.stdin.fileno())

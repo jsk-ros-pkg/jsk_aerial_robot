@@ -12,27 +12,27 @@ FlightController::FlightController(ros::NodeHandle nh,
 {
   estimator_ = estimator;
   navigator_ = navigator;
-  flight_ctrl_input_= flight_ctrl_input;
+  flight_ctrl_input_ = flight_ctrl_input;
 
   //normal namespace
-  if (!nh_private.getParam ("motor_num", motor_num_))
-    motor_num_ = 4;
-  printf("motor_num_ is %d\n", motor_num_);
-
+  // if (!nh_private.getParam ("motor_num", motor_num_))
+  //   motor_num_ = 4;
+  // printf("motor_num_ is %d\n", motor_num_);
+  motor_num_ = flight_ctrl_input_->getMotorNumber();
   //controller namespace
   if (!nhp_.getParam ("f_pwm_rate", f_pwm_rate_))
-    f_pwm_rate_ = 0.3029;
+    f_pwm_rate_ = 1; //0.3029;
   printf("f_pwm_rate_ is %f\n", f_pwm_rate_);
 
   if (!nhp_.getParam ("f_pwm_offset", f_pwm_offset_))
-    f_pwm_offset_ = -21.196;
+    f_pwm_offset_ = 0; //-21.196;
   printf("f_pwm_offset_ is %f\n", f_pwm_offset_);
 
   if (!nhp_.getParam ("pwm_rate", pwm_rate_))
-    pwm_rate_ = 1800/100.0;
+    pwm_rate_ = 1; //1800/100.0;
   printf("pwm_rate_ is %f\n", pwm_rate_);
 
-  if (!nh_private.getParam ("feedforward_flag", feedforward_flag_))
+  if (!nhp_.getParam ("feedforward_flag", feedforward_flag_))
     feedforward_flag_ = true;
   printf("feedforward_flag_ is %s\n", (feedforward_flag_)?"true":"false");
 
@@ -91,26 +91,8 @@ PidController::PidController(ros::NodeHandle nh,
   error_i_throttle_ = 0;
   error_i_yaw_ = 0;
 
-  pos_p_gain_yaw_.resize(motor_num_);
-  pos_i_gain_yaw_.resize(motor_num_);
-  pos_d_gain_yaw_.resize(motor_num_);
-
-  pos_p_gain_throttle_.resize(motor_num_);
-  pos_i_gain_throttle_.resize(motor_num_);
-  pos_d_gain_throttle_.resize(motor_num_);
 
   feedforward_matrix_ = Eigen::MatrixXd::Zero(motor_num_, 3);
-
-  for(int i = 0; i < motor_num_; i++)
-    {
-      pos_p_gain_yaw_[i] = 0;
-      pos_i_gain_yaw_[i] = 0;
-      pos_d_gain_yaw_[i] = 0;
-
-      pos_p_gain_throttle_[i] = 0;
-      pos_i_gain_throttle_[i] = 0;
-      pos_d_gain_throttle_[i] = 0;
-    }
 
   //roll/pitch integration start
   start_rp_integration_ = false;
@@ -270,7 +252,6 @@ void PidController::pidFunction()
                   navigator_->msp_cmd_pub_.publish(integration_cmd);
                 }
             }
-
 
           //pitch
           if(navigator_->getXyControlMode() == Navigator::POS_WORLD_BASED_CONTROL_MODE)
@@ -900,4 +881,54 @@ void PidController::rosParamInit(ros::NodeHandle nh)
   if (!yaw_node.getParam ("pos_d_limit", pos_d_limit_yaw_))
     pos_d_limit_yaw_ = 0;
   printf("%s: pos_d_limit_ is %d\n", yaw_ns.c_str(), pos_d_limit_yaw_);
+
+  pos_p_gain_yaw_.resize(motor_num_);
+  pos_i_gain_yaw_.resize(motor_num_);
+  pos_d_gain_yaw_.resize(motor_num_);
+
+  pos_p_gain_throttle_.resize(motor_num_);
+  pos_i_gain_throttle_.resize(motor_num_);
+  pos_d_gain_throttle_.resize(motor_num_);
+
+
+  if(motor_num_ == 1)//general multirot
+    {
+      if (!throttle_node.getParam ("pos_p_gain", pos_p_gain_throttle_))
+        pos_p_gain_throttle_[0] = 0;
+      printf("%s: pos_p_gain_ is %.3f\n", throttle_ns.c_str(), pos_p_gain_throttle_[0]);
+
+      if (!throttle_node.getParam ("pos_i_gain", pos_i_gain_throttle_[0]))
+        pos_i_gain_throttle_[0] = 0;
+      printf("%s: pos_i_gain_ is %.3f\n", throttle_ns.c_str(), pos_i_gain_throttle_[0]);
+
+      if (!throttle_node.getParam ("pos_d_gain", pos_d_gain_throttle_[0]))
+        pos_d_gain_throttle_[0] = 0;
+      printf("%s: pos_d_gain_ is %.3f\n", throttle_ns.c_str(), pos_d_gain_throttle_[0]);
+
+      if (!yaw_node.getParam ("pos_p_gain", pos_p_gain_yaw_[0]))
+        pos_p_gain_yaw_[0] = 0;
+      printf("%s: pos_p_gain_ is %.3f\n", yaw_ns.c_str(), pos_p_gain_yaw_[0]);
+
+      if (!yaw_node.getParam ("pos_i_gain", pos_i_gain_yaw_[0]))
+        pos_i_gain_yaw_[0] = 0;
+      printf("%s: pos_i_gain_ is %.3f\n", yaw_ns.c_str(), pos_i_gain_yaw_[0]);
+
+      if (!yaw_node.getParam ("pos_d_gain", pos_d_gain_yaw_[0]))
+        pos_d_gain_yaw_[0] = 0;
+      printf("%s: pos_d_gain_ is %.3f\n", yaw_ns.c_str(), pos_d_gain_yaw_[0]);
+    }
+  else
+    {//transformable
+      for(int i = 0; i < motor_num_; i++)
+        {
+          pos_p_gain_yaw_[i] = 0;
+          pos_i_gain_yaw_[i] = 0;
+          pos_d_gain_yaw_[i] = 0;
+
+          pos_p_gain_throttle_[i] = 0;
+          pos_i_gain_throttle_[i] = 0;
+          pos_d_gain_throttle_[i] = 0;
+        }
+    }
+
 }

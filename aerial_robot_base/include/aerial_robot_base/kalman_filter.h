@@ -52,9 +52,9 @@ class KalmanFilterPosVelAcc : public Filter
 
   void getEstimateCovariance(float* covarianceMatrix);
 
-  bool getFilteringStartFlag();
-  void setInputStartFlag();
-  void setMeasureStartFlag(bool flag);
+  bool getFilteringFlag();
+  void setInputFlag();
+  void setMeasureFlag(bool flag = true);
   void setInitImuBias(double initBias);
   void setInitState(double init_pos, double init_vel);
 
@@ -143,15 +143,16 @@ class KalmanFilterPosVelAccBias : public Filter
 
   void getEstimateCovariance(float* covarianceMatrix);
 
-  inline bool getFilteringStartFlag()
+  inline bool getFilteringFlag()
   {
     if(input_start_flag_ && measure_start_flag_)
       return true;
     else 
       return false;
   }
-  inline void setInputStartFlag(){  input_start_flag_ = true; }
-  inline void setMeasureStartFlag(bool flag){  measure_start_flag_ = flag; }
+
+  void setInputFlag();
+  void setMeasureFlag(bool flag = true);
 
   void setInitImuBias(double initBias);
   void setInitState(double init_pos, double init_vel);

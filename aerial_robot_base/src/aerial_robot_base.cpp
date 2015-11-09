@@ -9,10 +9,8 @@ AerialRobotBase::AerialRobotBase(ros::NodeHandle nh, ros::NodeHandle nh_private)
   //*** estimator1
   estimator_ = new RigidEstimator(nh_, nhp_, simulation_flag_);
 
-
   if(!simulation_flag_)
-    { 
-
+    {
       //*** control input 
       flight_ctrl_input_ = new FlightCtrlInput(motor_num_);
 
@@ -92,7 +90,6 @@ void AerialRobotBase::rosParamInit(ros::NodeHandle nh)
   if (!nh.getParam ("motor_num", motor_num_))
     motor_num_ = 4;
   printf("motor_num_ is %d\n", motor_num_);
-
 
   // if (!nh.getParam ("trackingFlag", trackingFlag_))
   //   trackingFlag_ = false;

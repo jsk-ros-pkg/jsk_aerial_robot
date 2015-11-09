@@ -263,14 +263,14 @@ class ImuData
 
             if(kalman_filter_flag_)
               {
-                kf_x_->setInputStartFlag();
-                kf_y_->setInputStartFlag();
-                kf_z_->setInputStartFlag();
+                kf_x_->setInputFlag();
+                kf_y_->setInputFlag();
+                kf_z_->setInputFlag();
 
                 //for optical flow
-                kf_x_opt_->setInputStartFlag();
-                kf_y_opt_->setInputStartFlag();
-                kf_z_opt_->setInputStartFlag();
+                kf_x_opt_->setInputFlag();
+                kf_y_opt_->setInputFlag();
+                kf_z_opt_->setInputFlag();
 
 
                 //for bias mode

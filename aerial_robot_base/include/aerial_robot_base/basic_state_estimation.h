@@ -181,8 +181,6 @@ class BasicEstimator
 
   virtual float getLaserToImuDistance() {  return 0; }
 
-  virtual bool getRocketStartFlag(){ return true; }
-  virtual void setRocketStartFlag(){}
 
   virtual void setOuterEstimatePoseFlag(uint8_t axis)
   {
@@ -204,6 +202,8 @@ class BasicEstimator
   virtual float getStateVelXOpt() { return 0;}
   virtual float getStateVelYOpt() { return 0;}
   virtual void setKFMeaureFlag(int axis, bool flag){}
+
+  virtual void setStateCorrectFlag(bool flag){ return;}
 
  protected:  
 

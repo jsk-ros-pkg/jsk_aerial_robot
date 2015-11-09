@@ -205,15 +205,14 @@ class SlamData
         prev_raw_pos_x = 0; prev_raw_pos_y = 0; prev_raw_pos_psi = 0;
         first_flag = false;
        
-        bool start_flag = true;
-        kfb_x_->setMeasureStartFlag(start_flag);
-        kfb_y_->setMeasureStartFlag(start_flag);
+        kfb_x_->setMeasureFlag();
+        kfb_y_->setMeasureFlag();
        
-        kf1_->setMeasureStartFlag(start_flag);
-        kf2_->setMeasureStartFlag(start_flag);
+        kf1_->setMeasureFlag();
+        kf2_->setMeasureFlag();
        
-        kf_x_->setMeasureStartFlag(start_flag);
-        kf_y_->setMeasureStartFlag(start_flag);
+        kf_x_->setMeasureFlag();
+        kf_y_->setMeasureFlag();
       }
     else
       {

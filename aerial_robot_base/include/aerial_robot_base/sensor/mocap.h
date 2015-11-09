@@ -101,7 +101,7 @@ class MocapData
   void poseCallback(const geometry_msgs::PoseStampedConstPtr & msg)
   {
 
-    static float prev_pos_x, prev_pos_y, prev_pos_z, prev_psi;
+    static float prev_pos_x, prev_pos_y, prev_pos_z, prev_psi, prev_phy, prev_theta;
     static float prev_vel_x, prev_vel_y, prev_vel_z;
     static bool first_flag = true;
     static ros::Time previous_time;
@@ -132,6 +132,8 @@ class MocapData
                          msg->pose.orientation.z,
                          msg->pose.orientation.w);
         tf::Matrix3x3(q).getRPY(raw_phy, raw_theta, raw_psi);
+        raw_vel_phy = (raw_phy - prev_phy) / (msg->header.stamp.toSec() - previous_time.toSec());
+        raw_vel_theta = (raw_theta - prev_theta) / (msg->header.stamp.toSec() - previous_time.toSec());
         raw_vel_psi = (raw_psi - prev_psi) / (msg->header.stamp.toSec() - previous_time.toSec());
 
         lpf_pos_x_.filterFunction(raw_pos_x, pos_x, raw_vel_x, vel_x);
@@ -197,11 +199,13 @@ class MocapData
         aerial_robot_base::State pitch_state;
         pitch_state.id = "pitch";
         pitch_state.raw_pos = raw_theta;
+        pitch_state.raw_vel = raw_vel_theta;
 
         aerial_robot_base::State roll_state;
         roll_state.id = "roll";
         roll_state.raw_pos = raw_phy;
-            
+        roll_state.raw_vel = raw_vel_phy;
+
         ground_truth_pose.states.push_back(x_state);
         ground_truth_pose.states.push_back(y_state);
         ground_truth_pose.states.push_back(z_state);
@@ -232,6 +236,8 @@ class MocapData
     prev_vel_y = raw_vel_y;
     prev_vel_z = raw_vel_z;
 
+    prev_theta = raw_theta;
+    prev_phy = raw_phy;
     prev_psi = raw_psi;
     previous_time = msg->header.stamp;
 

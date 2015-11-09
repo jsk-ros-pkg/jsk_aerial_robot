@@ -103,9 +103,6 @@ class PidController : public FlightController
  //int pos_p_limit_throttle_hover_;  
  //double vel_value_limit_throttle_hover_;
  //double i_enable_limit_throttle_hover_; 
- //int  rocket_start_init_value_;
- //int  rocket_start_init_increment_value_;
- //int  rocket_start_step_value_;
  //int  free_fall_step_value_;
  // int  motor_stop_value_;
  //int throwing_mode_init_value_from_rocket_start_;

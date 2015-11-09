@@ -146,9 +146,8 @@ class MirrorModule
           msg.data = laser_boundary_ * 2; //set the parameter
           module_laser_boundary_pub_.publish(msg);
 
-          bool start_flag = true;
-          kfb_z_->setMeasureStartFlag(start_flag);
-          kf_z_->setMeasureStartFlag(start_flag);
+          kfb_z_->setMeasureFlag();
+          kf_z_->setMeasureFlag();
 
           calibrate_count++;
 

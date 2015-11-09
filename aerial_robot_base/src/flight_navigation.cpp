@@ -1,7 +1,6 @@
 /* 
 0. flightNavCallback => implementation
 1. the optical flow => indefference
-2. rocket start => depracated
 
 4. flight mode vs navi command => development
 
@@ -178,7 +177,13 @@ TeleopNavigator::TeleopNavigator(ros::NodeHandle nh, ros::NodeHandle nh_private,
   ctrl_mode_sub_ = nh_.subscribe<std_msgs::Int8>("teleop_command/ctrl_mode", 1, &TeleopNavigator::xyControlModeCallback, this, ros::TransportHints().tcpNoDelay());
 
   joy_stick_sub_ = nh_.subscribe<sensor_msgs::Joy>("joy_stick_command", 1, &TeleopNavigator::joyStickControl, this, ros::TransportHints().udp());
-  rc_cmd_pub_ = nh_.advertise<aerial_robot_msgs::FourAxisCommand>("kduino/rc_cmd", 10); 
+
+  if(flight_ctrl_input_->getMotorNumber() > 1)
+    rc_cmd_pub_ = nh_.advertise<aerial_robot_msgs::FourAxisCommand>("kduino/rc_cmd", 10); 
+  else
+    rc_cmd_pub_ = nh_.advertise<aerial_robot_msgs::RcData>("kduino/rc_cmd", 10); 
+ 
+
   msp_cmd_pub_ = nh_.advertise<std_msgs::UInt16>("kduino/msp_cmd", 10);
 
 }
@@ -894,15 +899,27 @@ void TeleopNavigator::sendRcCmd()
           getNaviCommand() == LAND_COMMAND ||
           getNaviCommand() == HOVER_COMMAND)
     {
-      aerial_robot_msgs::FourAxisCommand four_axis_command_data;
-      four_axis_command_data.angles[0]  =  flight_ctrl_input_->getRollValue();
-      four_axis_command_data.angles[1] =  flight_ctrl_input_->getPitchValue();
-      for(int i =0; i < flight_ctrl_input_->getMotorNumber(); i++)
+      if(flight_ctrl_input_->getMotorNumber() > 1)
         {
-          four_axis_command_data.yaw_pi_term[i]   =  (flight_ctrl_input_->getYawValue())[i];
-          four_axis_command_data.throttle_pid_term[i] = (flight_ctrl_input_->getThrottleValue())[i] ;
+          aerial_robot_msgs::FourAxisCommand four_axis_command_data;
+          four_axis_command_data.angles[0]  =  flight_ctrl_input_->getRollValue();
+          four_axis_command_data.angles[1] =  flight_ctrl_input_->getPitchValue();
+          for(int i =0; i < flight_ctrl_input_->getMotorNumber(); i++)
+            {
+              four_axis_command_data.yaw_pi_term[i]   =  (flight_ctrl_input_->getYawValue())[i];
+              four_axis_command_data.throttle_pid_term[i] = (flight_ctrl_input_->getThrottleValue())[i] ;
+            }
+          rc_cmd_pub_.publish(four_axis_command_data);
         }
-      rc_cmd_pub_.publish(four_axis_command_data);
+      else
+        {
+          aerial_robot_msgs::RcData rc_data;
+          rc_data.roll  =  flight_ctrl_input_->getRollValue();
+          rc_data.pitch =  flight_ctrl_input_->getPitchValue();
+          rc_data.yaw   =  (flight_ctrl_input_->getYawValue())[0] / 10000.0; //
+          rc_data.throttle = (flight_ctrl_input_->getThrottleValue())[0];
+          rc_cmd_pub_.publish(rc_data);
+        }
     }
   else
     {
@@ -921,6 +938,9 @@ void TeleopNavigator::teleopNavigation()
   if(getNaviCommand() == START_COMMAND)
     { //takeoff phase
       flight_mode_= NO_CONTROL_MODE;
+
+      //state correct flag(Kalman Filter, especially for px4flow
+      estimator_->setStateCorrectFlag(true);
     }
   else if(getNaviCommand() == TAKEOFF_COMMAND)
     { //Take OFF Phase
@@ -974,12 +994,15 @@ void TeleopNavigator::teleopNavigation()
                   ROS_WARN(" no x/y pos stable hovering ");
                 }
             }
-	}
-      
+        }
     }
   else if(getNaviCommand() == LAND_COMMAND)
     {
       ROS_WARN(" land command");
+
+      //state correct flag(Kalman Filter, especially for px4flow
+      estimator_->setStateCorrectFlag(false);
+
       if (!getFlightAble()  && getStartAble()) 
 	{
           ROS_ERROR(" land land mode mode");

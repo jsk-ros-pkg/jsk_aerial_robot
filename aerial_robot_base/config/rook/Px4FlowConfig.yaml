@@ -1,0 +1,2 @@
+serial_port: /dev/px4flow
+baudrate:    115200

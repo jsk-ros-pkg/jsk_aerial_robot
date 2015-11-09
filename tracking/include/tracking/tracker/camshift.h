@@ -305,7 +305,7 @@ class CamShift
     nh_private_.param("cutoff_freq", cutoff_freq_, 5.0);
 
   }
-  
+
 };
 
 

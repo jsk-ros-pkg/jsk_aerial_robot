@@ -1,30 +1,33 @@
 ### PID control for quadcopter
 
+controller/feedforward_flag: false
+
 controller/pitch/ctrl_loop_rate: 40
 controller/roll/ctrl_loop_rate: 40
 controller/throttle/ctrl_loop_rate: 40
 controller/yaw/ctrl_loop_rate: 40
 
 # throttle 
-controller/throttle/pos_p_gain: 0.25
-controller/throttle/pos_i_gain: 0.25
-controller/throttle/pos_d_gain:  0.28
-controller/throttle/pos_p_gain_land: 0.1
-controller/throttle/pos_i_gain_land: 0.03
-controller/throttle/pos_d_gain_land: 0.2
-controller/throttle/const_p_control_thre_land: -0.1
-controller/throttle/const_p_term_lev1_value_land: -20
-controller/throttle/const_p_term_lev2_value_land: -40
-controller/throttle/const_i_control_thre_land: -0.25
-controller/throttle/const_i_term_value_land: 0.5
+controller/throttle/pos_p_gain: 250.0  #0.25 * 1000
+controller/throttle/pos_i_gain: 250.0  #0.25 * 1000
+controller/throttle/pos_d_gain: 280.0  #0.28 * 1000
+controller/throttle/const_i_ctrl_thre_land: -0.2
 controller/throttle/offset: 1000
 controller/throttle/pos_limit: 1800
 controller/throttle/pos_p_limit: 150
-controller/throttle/pos_p_limit_hover: 50
 controller/throttle/pos_i_limit: 800
 controller/throttle/pos_d_limit: 180
-controller/throttle/vel_value_limit_hover: 0
-controller/throttle/i_enable_limit_hover: 0.1
+
+# yaw 
+controller/yaw/pos_p_gain: 100.0 #0.1 * 1000
+controller/yaw/pos_i_gain: 0.1 #0.0001 * 1000
+controller/yaw/pos_d_gain: 0.0
+controller/yaw/pos_limit: 100
+controller/yaw/pos_p_limit: 100
+controller/yaw/pos_i_limit: 50
+controller/yaw/pos_d_limit: 50
+controller/yaw/vel_value_limit: 0
+#controller/yaw/i_enable_limit: 0.25
 
 # pitch 
 controller/pitch/pos_p_gain: 0.1
@@ -54,15 +57,3 @@ controller/roll/pos_i_limit: 100 #rook1 : 100
 controller/roll/pos_d_limit: 100 #rook1 : 100
 controller/roll/vel_value_limit: 0.8
 controller/roll/i_enable_limit: 0.4
-
-
-# yaw 
-controller/yaw/pos_p_gain: 0.1
-controller/yaw/pos_i_gain: 0.0001
-controller/yaw/pos_d_gain: 0.0
-controller/yaw/pos_limit: 100
-controller/yaw/pos_p_limit: 100
-controller/yaw/pos_i_limit: 50
-controller/yaw/pos_d_limit: 50
-controller/yaw/vel_value_limit: 0
-controller/yaw/i_enable_limit: 0.25
