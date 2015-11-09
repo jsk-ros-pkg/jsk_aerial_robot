@@ -7,6 +7,7 @@
 
 #include <ros/ros.h>
 #include <aerial_tracking/basic_tracking.h>
+#include <sensor_msgs/Joy.h>
 //#include <tracking/tracker/6dof.h>
 #include <aerial_tracking/tracker/bouding_box.h>
 #include <aerial_robot_msgs/KduinoImu.h>
@@ -22,7 +23,7 @@ class Tracking: public BasicTracking
 
       tracking_joy_sub_ = nh_.subscribe<sensor_msgs::Joy>("/joy", 1, &Tracking::trackingCallback, this, ros::TransportHints().tcpNoDelay());
 
-      imu_sub_ = nh_.subscribe<aerial_robot_msgs::KduinoImu>("kduino/imu", 1, &ImuData::AttitudeCallback, this, ros::TransportHints().tcpNoDelay()); 
+      imu_sub_ = nh_.subscribe<aerial_robot_msgs::KduinoImu>("kduino/imu", 1, &Tracking::AttitudeCallback, this, ros::TransportHints().tcpNoDelay()); 
 
       tracking_flag_ = false;
 
@@ -40,7 +41,7 @@ class Tracking: public BasicTracking
   ros::NodeHandle nh_private_;
   ros::Subscriber tracking_joy_sub_;
   ros::Subscriber full_state_sub_;
-  ros::Subscriber imu_sub_
+  ros::Subscriber imu_sub_;
   ros::Publisher  navi_pub_;
 
   bool tracking_flag_;
@@ -57,7 +58,7 @@ class Tracking: public BasicTracking
           tracking_flag_ = true;
 
           //trial
-          bounding_shift_tracker_ = new CamShift(nh_, nh_private_, this);
+          bounding_box_tracker_ = new BoundingBox(nh_, nh_private_, this);
         }
       if(joy_msg->buttons[14] == 1 && tracking_flag_)
         {
@@ -65,7 +66,7 @@ class Tracking: public BasicTracking
           tracking_flag_ = false;
 
           //trial
-          delete cam_shift_tracker_;
+          delete bounding_box_tracker_;
         }
 
   }
@@ -74,9 +75,9 @@ class Tracking: public BasicTracking
   void AttitudeCallback(const aerial_robot_msgs::KduinoImuConstPtr& msg)
   {
 
-    float roll_  = M_PI * imu_msg->angle[0] / 10.0 / 180.0; //raw data is 10 times
-    float pitch_ = M_PI * imu_msg->angle[1] / 10.0 / 180.0; //raw data is 10 times
-    float yaw_   = M_PI * imu_msg->angle[2] / 180.0;
+    float roll_  = M_PI * msg->angle[0] / 10.0 / 180.0; //raw data is 10 times
+    float pitch_ = M_PI * msg->angle[1] / 10.0 / 180.0; //raw data is 10 times
+    float yaw_   = M_PI * msg->angle[2] / 180.0;
 
     setPsi(roll_);
     setTheta(pitch_);

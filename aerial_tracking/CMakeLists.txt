@@ -12,8 +12,8 @@ find_package(catkin REQUIRED COMPONENTS
   aerial_robot_msgs
   aerial_robot_base
   tf
+  cmake_modules
 )
-
 
 find_package(Eigen REQUIRED)
 include_directories(${EIGEN_INCLUDE_DIRS})
@@ -45,7 +45,7 @@ add_definitions(${EIGEN_DEFINITIONS})
 catkin_package(
   INCLUDE_DIRS include
 #  LIBRARIES tracking
-  CATKIN_DEPENDS roscpp aerial_robot_msgs aerial_robot_base image_processing sensor_msgs geometry_msgs image_processing tf message_runtime
+  CATKIN_DEPENDS roscpp aerial_robot_msgs aerial_robot_base image_processing sensor_msgs geometry_msgs image_processing tf 
   DEPENDS Eigen
 )
 

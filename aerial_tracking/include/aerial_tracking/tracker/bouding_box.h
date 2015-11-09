@@ -2,7 +2,7 @@
 #define BOUNDING_BOX_H
 
 #include <ros/ros.h>
-#include <tracking/basic_tracking.h>
+#include <aerial_tracking/basic_tracking.h>
 #include <aerial_robot_base/digital_filter.h>
 #include <aerial_tracking/basic_tracking.h>
 #include <sensor_msgs/CameraInfo.h>
@@ -26,7 +26,7 @@ class BoundingBox
 
       tracker_ = tracker;
 
-      bouding_box_sub_ = nh_.subscribe<jsk_recognition_msgs::RotatedRectStamped>("result", 1, &BoundingBox::trackerCallback, this, ros::TransportHints().tcpNoDelay());
+      bounding_box_sub_ = nh_.subscribe<image_processing::RotatedRectStamped>("result", 1, &BoundingBox::trackerCallback, this, ros::TransportHints().tcpNoDelay());
 
       camera_info_sub_ = nh_.subscribe<sensor_msgs::CameraInfo>(cam_info_topic_, 1, &BoundingBox::cameraInfoCallback, this, ros::TransportHints().tcpNoDelay());
 
@@ -88,8 +88,8 @@ class BoundingBox
   double target_z_;
   double thre_z_;
   double thre_psi_;
-  double z_real_pos_lower_thre_;
-  double z_real_pos_upper_thre_;
+  double z_real_lower_pos_thre_;
+  double z_real_upper_pos_thre_;
 
   double gain_forward_x_;
   double gain_backward_x_;
@@ -120,7 +120,7 @@ class BoundingBox
     camera_info_sub_.shutdown();
   }
 
-  void trackerCallback(const jsk_recognition_msgs::RotatedRectStampedConstPtr& msg)
+  void trackerCallback(const image_processing::RotatedRectStampedConstPtr& msg)
   {
     /* double pitch = estimator_->getStateTheta(); */
     /* double roll  = estimator_->getStatePhy(); */
@@ -134,7 +134,7 @@ class BoundingBox
     Eigen::Matrix3d rotation = q.matrix();
 
     Eigen::Matrix<double, 3, 1> local_coord; 
-    local_coord << (float)msg->rect.x, (float)msg->rect.y, 1;
+    local_coord << (float)msg->x, (float)msg->y, 1;
     Eigen::Matrix<double, 3, 1> world_coord; 
     world_coord << intrinsic_matrix_ * rotation * intrinsic_matrix_inverse_ * local_coord;
 
@@ -144,10 +144,10 @@ class BoundingBox
     double x_dash, y_dash, ball_area;
     // x_dash = world_coord(0);
     // y_dash = world_coord(1);
-    // ball_area = msg->rect.width * msg->rect.height;
+    // ball_area = msg->width * msg->height;
     lpf_image_x_.filterFunction((double)world_coord(0), x_dash);
     lpf_image_y_.filterFunction((double)world_coord(1), y_dash);
-    lpf_image_area_.filterFunction((double)(msg->rect.width * msg->rect.height), ball_area);
+    lpf_image_area_.filterFunction((double)(msg->width * msg->height), ball_area);
 
     geometry_msgs::Vector3Stamped world_cam_coord;
     world_cam_coord.header.stamp = msg->header.stamp;
