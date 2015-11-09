@@ -164,7 +164,11 @@ float RigidEstimator::getStatePosX()
   if(use_outer_pose_estimate_ & X_AXIS)
     return  outer_estimate_pos_x_;
   else
-    return  kf_bias_x_->getEstimatePos();
+    {
+      if(hokuyo_flag_) return  kf_bias_x_->getEstimatePos();
+      else if(px4flow_flag_) return kf_opt_bias_x_->getEstimatePos();
+      else return 0;
+    }
 }
 
 float RigidEstimator::getStatePosXc()
@@ -184,7 +188,12 @@ float RigidEstimator::getStateVelX()
   if(use_outer_vel_estimate_ & X_AXIS)
       return  outer_estimate_vel_x_;
   else
-    return  kf_bias_x_->getEstimateVel();
+    {
+      if(hokuyo_flag_) return  kf_bias_x_->getEstimateVel();
+      else if(px4flow_flag_) return  kf_opt_bias_x_->getEstimateVel();
+      else return 0;
+    }
+
 }
 
 float RigidEstimator::getStateVelXc()
@@ -208,8 +217,12 @@ float RigidEstimator::getStatePosY()
 {
  if(use_outer_pose_estimate_ & Y_AXIS)
       return  outer_estimate_pos_y_;
-  else
-    return  kf_bias_y_->getEstimatePos();
+ else
+   {
+     if(hokuyo_flag_) return  kf_bias_y_->getEstimatePos();
+     else if (px4flow_flag_) return kf_opt_bias_y_->getEstimatePos();
+     else return 0;
+   }
 }
 
 float RigidEstimator::getStatePosYc()
@@ -228,8 +241,12 @@ float RigidEstimator::getStateVelY()
 {
  if(use_outer_vel_estimate_ & Y_AXIS)
      return  outer_estimate_vel_y_;
-  else
-    return  kf_bias_y_->getEstimateVel();
+ else 
+   {
+     if(hokuyo_flag_)  return  kf_bias_y_->getEstimateVel();
+     else if(px4flow_flag_) return  kf_opt_bias_y_->getEstimateVel();
+     else return 0;
+   }
 }
 
 float RigidEstimator::getStateVelYc()
@@ -252,12 +269,9 @@ float RigidEstimator::getStatePosZ()
       return  outer_estimate_pos_z_;
   else
     {
-      if(altitude_control_mode_ == LASER_MIRROR)
-        return kf_z_->getEstimatePos();
-      else if(altitude_control_mode_ == SONAR)
-        return kf_opt_z_->getEstimatePos();
-      else
-        return 0;
+      if(hokuyo_flag_) return kf_z_->getEstimatePos();
+      else if(px4flow_flag_) return kf_opt_z_->getEstimatePos();
+      else return 0;
     }
 }
 float RigidEstimator::getStateVelZ()
@@ -266,12 +280,9 @@ float RigidEstimator::getStateVelZ()
       return  outer_estimate_vel_z_;
   else
     {
-      if(altitude_control_mode_ == LASER_MIRROR)
-        return kf_z_->getEstimateVel();
-      else if(altitude_control_mode_ == SONAR)
-        return kf_opt_z_->getEstimateVel();
-      else
-        return 0;
+      if(hokuyo_flag_) return kf_z_->getEstimateVel();
+      else if(px4flow_flag_) return kf_opt_z_->getEstimateVel();
+      else return 0;
     }
 }
 
@@ -466,3 +477,43 @@ void RigidEstimator::rosParamInit(ros::NodeHandle nh)
     mocap_flag_ = false;
   printf("%s: mocap_flag is %s\n", ns.c_str(), mocap_flag_ ? ("true") : ("false"));
 }
+
+
+void RigidEstimator::statesBroadcast()
+{
+  aerial_robot_base::States full_states;
+  full_states.header.stamp = getSystemTimeStamp();
+  aerial_robot_base::State x_state;
+  x_state.id = "x";
+  x_state.pos = getStatePosX();
+  x_state.vel = getStateVelX();
+  aerial_robot_base::State y_state;
+  y_state.id = "y";
+  y_state.pos = getStatePosY();
+  y_state.vel = getStateVelY();
+  aerial_robot_base::State z_state;
+  z_state.id = "z";
+  z_state.pos = getStatePosZ();
+  z_state.vel = getStateVelZ();
+
+  aerial_robot_base::State yaw_state;
+  yaw_state.id = "yaw";
+  yaw_state.pos = getStatePsiBoard();
+  yaw_state.vel = getStateVelPsiBoard();
+  aerial_robot_base::State pitch_state;
+  pitch_state.id = "pitch";
+  pitch_state.pos = getStateTheta();
+  aerial_robot_base::State roll_state;
+  roll_state.id = "roll";
+  roll_state.pos = getStatePhy();
+
+  full_states.states.push_back(x_state);
+  full_states.states.push_back(y_state);
+  full_states.states.push_back(z_state);
+  full_states.states.push_back(yaw_state);
+  full_states.states.push_back(pitch_state);
+  full_states.states.push_back(roll_state);
+
+  full_states_pub_.publish(full_states);
+}
+

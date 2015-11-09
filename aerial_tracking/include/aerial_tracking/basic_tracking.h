@@ -6,6 +6,7 @@
 #define BASIC_TRACKING_H
 
 #include <aerial_robot_base/FlightNav.h>
+#include <aerial_robot_base/States.h>
 
 class BasicTracking
 {

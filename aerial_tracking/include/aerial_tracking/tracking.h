@@ -6,14 +6,10 @@
 #define TRACKING_H
 
 #include <ros/ros.h>
-#include <tracking/basic_tracking.h>
-//#include <tracking/tracker/checkerboard.h>
-#include <tracking/tracker/camshift.h>
-
-#include <sensor_msgs/Joy.h>
-#include <aerial_robot_base/FlightNav.h>
-#include <aerial_robot_base/States.h>
-
+#include <aerial_tracking/basic_tracking.h>
+//#include <tracking/tracker/6dof.h>
+#include <aerial_tracking/tracker/bouding_box.h>
+#include <aerial_robot_msgs/KduinoImu.h>
 
 class Tracking: public BasicTracking
 {
@@ -22,9 +18,11 @@ class Tracking: public BasicTracking
     {
       navi_pub_ = nh_.advertise<aerial_robot_base::FlightNav>("flight_nav", 1); 
 
-      full_state_sub_ = nh_.subscribe<aerial_robot_base::States>("full_states", 1, &Tracking::fullStatesCallback, this, ros::TransportHints().tcpNoDelay());
+      full_state_sub_ = nh_.subscribe<aerial_robot_base::States>("/estimator/full_states", 1, &Tracking::fullStatesCallback, this, ros::TransportHints().tcpNoDelay());
 
       tracking_joy_sub_ = nh_.subscribe<sensor_msgs::Joy>("/joy", 1, &Tracking::trackingCallback, this, ros::TransportHints().tcpNoDelay());
+
+      imu_sub_ = nh_.subscribe<aerial_robot_msgs::KduinoImu>("kduino/imu", 1, &ImuData::AttitudeCallback, this, ros::TransportHints().tcpNoDelay()); 
 
       tracking_flag_ = false;
 
@@ -35,7 +33,6 @@ class Tracking: public BasicTracking
       navi_pub_.publish(navi_command);
     }
 
-
   ~Tracking(){}
 
  protected:
@@ -43,13 +40,14 @@ class Tracking: public BasicTracking
   ros::NodeHandle nh_private_;
   ros::Subscriber tracking_joy_sub_;
   ros::Subscriber full_state_sub_;
+  ros::Subscriber imu_sub_
   ros::Publisher  navi_pub_;
 
   bool tracking_flag_;
 
   //plugin
   //CheckerBoard* checker_board_tracker_;
-  CamShift* cam_shift_tracker_;
+  BoundingBox* bounding_box_tracker_;
 
   void trackingCallback(const sensor_msgs::JoyConstPtr &joy_msg)
   {
@@ -59,7 +57,7 @@ class Tracking: public BasicTracking
           tracking_flag_ = true;
 
           //trial
-          cam_shift_tracker_ = new CamShift(nh_, nh_private_, this);
+          bounding_shift_tracker_ = new CamShift(nh_, nh_private_, this);
         }
       if(joy_msg->buttons[14] == 1 && tracking_flag_)
         {
@@ -72,6 +70,19 @@ class Tracking: public BasicTracking
 
   }
 
+
+  void AttitudeCallback(const aerial_robot_msgs::KduinoImuConstPtr& msg)
+  {
+
+    float roll_  = M_PI * imu_msg->angle[0] / 10.0 / 180.0; //raw data is 10 times
+    float pitch_ = M_PI * imu_msg->angle[1] / 10.0 / 180.0; //raw data is 10 times
+    float yaw_   = M_PI * imu_msg->angle[2] / 180.0;
+
+    setPsi(roll_);
+    setTheta(pitch_);
+    setPhy(yaw_);
+  }
+
   void fullStatesCallback(const aerial_robot_base::StatesConstPtr& msg)
   {
     setPosX(msg->states[0].pos);
@@ -80,13 +91,6 @@ class Tracking: public BasicTracking
     setVelY(msg->states[1].vel);
     setPosZ(msg->states[2].pos);
     setVelZ(msg->states[2].vel);
-
-    setPsi(msg->states[3].pos);
-    setVelPsi(msg->states[3].vel);
-    setTheta(msg->states[4].pos);
-    setVelTheta(msg->states[4].vel);
-    setPhy(msg->states[5].pos);
-    setVelPhy(msg->states[5].vel);
   }
 
   void rosParamInit();

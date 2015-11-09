@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package>
-  <name>tracking</name>
+  <name>aerial_tracking</name>
   <version>0.0.0</version>
   <description>The tracking package</description>
 
@@ -46,8 +46,6 @@
   <build_depend>image_processing</build_depend>
   <build_depend>aerial_robot_msgs</build_depend>
   <build_depend>aerial_robot_base</build_depend>
-  <build_depend>jsk_recognition_msgs</build_depend>
-  <build_depend>posedetection_msgs</build_depend>
   <build_depend>tf</build_depend>
 
   <run_depend>roscpp</run_depend>
@@ -56,8 +54,6 @@
   <run_depend>image_processing</run_depend>
   <run_depend>aerial_robot_msgs</run_depend>
   <run_depend>aerial_robot_base</run_depend>
-  <run_depend>jsk_recognition_msgs</run_depend>
-  <run_depend>posedetection_msgs</run_depend>
   <run_depend>tf</run_depend>
 
   <!-- The export tag contains other, unspecified, tags -->

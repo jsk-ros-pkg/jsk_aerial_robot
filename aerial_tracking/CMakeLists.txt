@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(tracking)
+project(aerial_tracking)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -11,10 +11,9 @@ find_package(catkin REQUIRED COMPONENTS
   image_processing
   aerial_robot_msgs
   aerial_robot_base
-  jsk_recognition_msgs
-  posedetection_msgs
   tf
 )
+
 
 find_package(Eigen REQUIRED)
 include_directories(${EIGEN_INCLUDE_DIRS})
@@ -45,8 +44,8 @@ add_definitions(${EIGEN_DEFINITIONS})
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
   INCLUDE_DIRS include
-  LIBRARIES tracking
-  CATKIN_DEPENDS roscpp aerial_robot_msgs aerial_robot_base image_processing sensor_msgs geometry_msgs image_processing jsk_recognition_msgs posedection_msgs tf
+#  LIBRARIES tracking
+  CATKIN_DEPENDS roscpp aerial_robot_msgs aerial_robot_base image_processing sensor_msgs geometry_msgs image_processing tf message_runtime
   DEPENDS Eigen
 )
 
@@ -61,10 +60,8 @@ include_directories(
   include ${catkin_INCLUDE_DIRS}  ${Boost_INCLUDE_DIR}
 )
 
-
-
 add_executable(tracking_node src/tracking_node.cpp)
-add_dependencies(tracking_node image_processing_gencpp jsk_recognition_msgs_gencpp)
+add_dependencies(tracking_node  ${PROJECT_NAME}_gencpp)
 target_link_libraries(tracking_node   ${catkin_LIBRARIES} )
 
 #############

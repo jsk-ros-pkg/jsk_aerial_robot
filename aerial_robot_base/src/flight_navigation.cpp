@@ -77,6 +77,8 @@ Navigator::~Navigator()
 
 void Navigator::naviCallback(const aerial_robot_base::FlightNavConstPtr & msg)
 {
+  //debug
+  ROS_WARN("navi cmd callback");
   //for x & y
   if(msg->command_mode == aerial_robot_base::FlightNav::VEL_FLIGHT_MODE_COMMAND)
     {
@@ -98,9 +100,13 @@ void Navigator::naviCallback(const aerial_robot_base::FlightNavConstPtr & msg)
     {
       setTargetPosZ(msg->target_pos_z);
     }
+  // else if(msg->pos_z_navi_mode == aerial_robot_base::FlightNav::NO_NAVIGATION)
+  //   {
+  //     setTargetPosZ(estimator_->getStatePosZ());
+  //   }
 
   //for psi
-  //not good, be carefukk
+  //not good, be careful
   if(msg->command_mode != aerial_robot_base::FlightNav::NO_NAVIGATION)
     {
       setTargetPsi(msg->target_psi);

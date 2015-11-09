@@ -279,6 +279,15 @@ class OpticalFlowData
         opt_data.states.push_back(y_state);
         opt_data.states.push_back(z_state);
 
+        /* state_estimator_->setStatePosX(x_state.kfb_pos); */
+        /* state_estimator_->setStatePosY(y_state.kfb_pos); */
+        /* state_estimator_->setStatePosZ(z_state.kf_pos); */
+        /* state_estimator_->setStateVelX(x_state.kfb_vel); */
+        /* state_estimator_->setStateVelY(y_state.kfb_vel); */
+        /* state_estimator_->setStateVelZ(z_state.kf); */
+
+
+
         optical_flow_pub_.publish(opt_data);
 
       }

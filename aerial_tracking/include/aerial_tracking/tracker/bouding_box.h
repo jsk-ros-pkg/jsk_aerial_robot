@@ -1,37 +1,34 @@
-
-#ifndef CAM_SHIFT_H
-#define CAM_SHIFT_H
+#ifndef BOUNDING_BOX_H
+#define BOUNDING_BOX_H
 
 #include <ros/ros.h>
 #include <tracking/basic_tracking.h>
 #include <aerial_robot_base/digital_filter.h>
-#include <tracking/tracking.h>
+#include <aerial_tracking/basic_tracking.h>
 #include <sensor_msgs/CameraInfo.h>
-#include <jsk_recognition_msgs/RotatedRectStamped.h>
+#include <image_processing/RotatedRectStamped.h>
 #include <image_processing/StartTracking.h>
 #include <geometry_msgs/Vector3Stamped.h>
-#include <aerial_robot_base/FlightNav.h>
 
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
 
 
-class CamShift
+class BoundingBox
 {
  public:
 
-
- CamShift(ros::NodeHandle nh, ros::NodeHandle nh_private, BasicTracking* tracker)
-   : nh_(nh), nh_private_(nh_private, "cam_shift")
+ BoundingBox(ros::NodeHandle nh, ros::NodeHandle nh_private, BasicTracking* tracker)
+   : nh_(nh), nh_private_(nh_private, "bounding_box")
     {
       rosParamInit();
-      
+
       tracker_ = tracker;
 
-      camshift_sub_ = nh_.subscribe<jsk_recognition_msgs::RotatedRectStamped>("result", 1, &CamShift::trackerCallback, this, ros::TransportHints().tcpNoDelay());
+      bouding_box_sub_ = nh_.subscribe<jsk_recognition_msgs::RotatedRectStamped>("result", 1, &BoundingBox::trackerCallback, this, ros::TransportHints().tcpNoDelay());
 
-      camera_info_sub_ = nh_.subscribe<sensor_msgs::CameraInfo>(cam_info_topic_, 1, &CamShift::cameraInfoCallback, this, ros::TransportHints().tcpNoDelay());
+      camera_info_sub_ = nh_.subscribe<sensor_msgs::CameraInfo>(cam_info_topic_, 1, &BoundingBox::cameraInfoCallback, this, ros::TransportHints().tcpNoDelay());
 
       start_tracking_client_ = nh_.serviceClient<image_processing::StartTracking>("/start_tracking");
 
@@ -47,7 +44,7 @@ class CamShift
       startTracking();
  }
 
-  ~CamShift()
+  ~BoundingBox()
     {
       /* navigator_->setTargetVelX(0); */
       /* navigator_->setTargetVelY(0); */
@@ -58,19 +55,21 @@ class CamShift
       navi_command.target_vel_x = 0;
       navi_command.target_vel_y = 0;
       navi_command.target_psi = 0;
-      navi_command.pos_z_navi_mode = aerial_robot_base::FlightNav::NO_NAVIGATION;
+      navi_command.pos_z_navi_mode = aerial_robot_base::FlightNav::POS_FLIGHT_MODE_COMMAND;
+      navi_command.target_pos_z = tracker_->getPosZ();;
+
       //tracker_->navi_pub_.publish(navi_command);
       tracker_->navigation(navi_command);
 
-
-      camshift_sub_.shutdown();
+      bounding_box_sub_.shutdown();
       start_tracking_client_.shutdown();
+      ROS_WARN("shutdown the once bounding box tracker");
     }
 
  protected:
   ros::NodeHandle nh_;
   ros::NodeHandle nh_private_;
-  ros::Subscriber camshift_sub_;
+  ros::Subscriber bounding_box_sub_;
   ros::Subscriber camera_info_sub_;
   ros::Publisher world_cam_pub_;
   ros::Publisher navi_pub_;
@@ -78,7 +77,6 @@ class CamShift
 
   ros::ServiceClient start_tracking_client_;
   BasicTracking* tracker_;
-
 
   IirFilter lpf_image_x_, lpf_image_y_, lpf_image_area_;
   double rx_freq_, cutoff_freq_;
@@ -90,6 +88,8 @@ class CamShift
   double target_z_;
   double thre_z_;
   double thre_psi_;
+  double z_real_pos_lower_thre_;
+  double z_real_pos_upper_thre_;
 
   double gain_forward_x_;
   double gain_backward_x_;
@@ -198,16 +198,17 @@ class CamShift
             //navigator_->setTargetPosZ(estimator_->getStatePosZ());
           }
       }
-    if(pos_z < 0.35) 
+
+    if(pos_z < z_real_lower_pos_thre_) 
       {
         navi_command.pos_z_navi_mode = aerial_robot_base::FlightNav::POS_FLIGHT_MODE_COMMAND;
-        navi_command.target_pos_z = 0.35;
+        navi_command.target_pos_z = z_real_lower_pos_thre_;
         //navigator_->setTargetPosZ(0.35);
       }
-    if(pos_z > 3) 
+    if(pos_z > z_real_upper_pos_thre_) 
       {
         navi_command.pos_z_navi_mode = aerial_robot_base::FlightNav::POS_FLIGHT_MODE_COMMAND;
-        navi_command.target_pos_z = 3;
+        navi_command.target_pos_z = z_real_upper_pos_thre_;
         // navigator_->setTargetPosZ(3);
       }
 
@@ -241,14 +242,13 @@ class CamShift
     if(start_tracking_client_.call(srv))
       {
         if(srv.response.tracking_res)
-          ROS_INFO("start tracking from jsk_quadcopter");
+          ROS_INFO("start tracking from aerial tracker");
       }
     else
       {
         ROS_ERROR("Filaed to call service");
       }
   }
-
 
   void rosParamInit()
   {
@@ -266,7 +266,6 @@ class CamShift
     if (!nh_private_.getParam ("gain_forward_x", gain_forward_x_))
       gain_forward_x_ = 0.4; //old: 0.2
     printf("%s: gain_forward_x_ is %.3f\n", ns.c_str(), gain_forward_x_);
-
 
     //y
     if (!nh_private_.getParam ("target_y", target_y_))
@@ -290,6 +289,17 @@ class CamShift
       thre_z_ = 0.25;
     printf("%s: thre_z_ is %.3f\n", ns.c_str(), thre_z_);
 
+
+    if (!nh_private_.getParam ("z_real_lower_pos_thre", z_real_lower_pos_thre_))
+      z_real_lower_pos_thre_ = 0.35;
+    printf("%s: z_real_lower_pos_thre_ is %.3f\n", ns.c_str(), z_real_lower_pos_thre_);
+
+    if (!nh_private_.getParam ("z_real_upper_pos_thre", z_real_upper_pos_thre_))
+      z_real_upper_pos_thre_ = 3.0;
+    printf("%s: z_real_upper_pos_thre_ is %.3f\n", ns.c_str(), z_real_upper_pos_thre_);
+
+
+
     //psi
     if (!nh_private_.getParam ("thre_psi", thre_psi_))
       thre_psi_ = 0.6;
@@ -301,13 +311,14 @@ class CamShift
 
     nh_private_.param("cam_info_topic", cam_info_topic_, std::string("/camera/camera_info"));
     printf("%s: cam_info_topic_ is %s\n", ns.c_str(), cam_info_topic_.c_str());
-    nh_private_.param("rx_freq", rx_freq_, 30.0);
-    nh_private_.param("cutoff_freq", cutoff_freq_, 5.0);
+
+    //for IIR filter
+    nh_private_.param("rx_freq", rx_freq_, 30.0); //cam hz
+    nh_private_.param("cutoff_freq", cutoff_freq_, 5.0); //cutoff hz
 
   }
 
 };
-
 
 #endif
 

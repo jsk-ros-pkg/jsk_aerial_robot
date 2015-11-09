@@ -123,6 +123,8 @@ class RigidEstimator : public BasicEstimator
 
   void rosParamInit(ros::NodeHandle nh);
 
+  void statesBroadcast();
+
 };
 
 
