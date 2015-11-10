@@ -81,7 +81,7 @@ class BoundingBox
   IirFilter lpf_image_x_, lpf_image_y_, lpf_image_area_;
   double rx_freq_, cutoff_freq_;
 
-  Eigen::Matrix3d intrinsic_matrix_, intrinsic_matrix_inverse_;
+  Eigen::Matrix3d intrinsic_r_matrix_, r_intrinsic_inverse_matrix_;
 
   double target_area_;
   double target_y_;
@@ -106,9 +106,14 @@ class BoundingBox
     projection_matrix_ << msg->P[0], msg->P[1], msg->P[2], msg->P[3],
       msg->P[4], msg->P[5], msg->P[6], msg->P[7],
       msg->P[8], msg->P[9], msg->P[10], msg->P[11];
-    intrinsic_matrix_  = projection_matrix_.block<3,3>(0,0);
-    intrinsic_matrix_inverse_ = intrinsic_matrix_.inverse();
-    std::cout << "Intrinsic Matrix is :\n" << intrinsic_matrix_ << std::endl; 
+
+    Eigen::Matrix<double, 3, 3> r_zero;
+    r_zero << 0, -1, 0, 0, 0, -1, 1, 0, 0;
+
+    intrinsic_r_matrix_  = projection_matrix_.block<3,3>(0,0) * r_zero;
+    r_intrinsic_inverse_matrix_ =  r_zero.inverse() * intrinsic_r_matrix_.inverse();
+    std::cout << "Intrinsic Matrix is :\n" << intrinsic_r_matrix_ << std::endl; 
+
 
     //param
     target_area_ = msg->height * msg->width * target_area_;
@@ -135,11 +140,14 @@ class BoundingBox
 
     Eigen::Matrix<double, 3, 1> local_coord; 
     local_coord << (float)msg->x, (float)msg->y, 1;
+    Eigen::Matrix<double, 3, 1> temp_coord; 
+    temp_coord << intrinsic_r_matrix_ * rotation * r_intrinsic_inverse_matrix_ * local_coord;
+    float scale = temp_coord(2);
     Eigen::Matrix<double, 3, 1> world_coord; 
-    world_coord << intrinsic_matrix_ * rotation * intrinsic_matrix_inverse_ * local_coord;
+    world_coord = temp_coord / scale;
 
-    //std::cout << " intrinsic_matrix_ * rotation * intrinsic_matrix_inverse_ is :\n" << intrinsic_matrix_ * rotation * intrinsic_matrix_inverse_ << std::endl; 
-    //std::cout << "world_coord is :\n" << world_coord << std::endl; 
+    std::cout << " intrinsic_r_matrix_ * rotation * intrinsic_r_matrix_inverse_ is :\n" << intrinsic_r_matrix_ * rotation * r_intrinsic_inverse_matrix_ << std::endl; 
+    std::cout << "world_coord is :\n" << world_coord << std::endl; 
 
     double x_dash, y_dash, ball_area;
     // x_dash = world_coord(0);
