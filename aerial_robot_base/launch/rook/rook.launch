@@ -73,9 +73,6 @@
     ############### IIR Filter #######################
     <rosparam file="$(find aerial_robot_base)/config/rook/IirFilterConfig.yaml" command="load" />
 
-    ############### Hokuyo and _mirror _module _param ###
-    <rosparam file="$(find aerial_robot_base)/config/rook/MirrorLaserModuleConfig.yaml" command="load" />
-
     ############### Keyboard Navigation ##############
     <rosparam file="$(find aerial_robot_base)/config/rook/TeleopNavigationConfig.yaml" command="load" />
 

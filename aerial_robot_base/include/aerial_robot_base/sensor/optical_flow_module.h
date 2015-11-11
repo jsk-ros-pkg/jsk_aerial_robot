@@ -149,7 +149,7 @@ class OpticalFlowData
       {
         if(raw_pos_z_ < start_upper_thre_ && raw_pos_z_ > start_lower_thre_ &&
            prev_raw_pos_z < start_lower_thre_ && 
-           prev_raw_pos_z > (start_lower_thre_ - 0.1))
+           prev_raw_pos_z > (start_lower_thre_ - 0.1) && !start_flag)
           {//pose init
             //TODO: start flag fresh arm, or use air pressure => refined
             ROS_ERROR("px4flow: start kf measuring, prev_raw_pos_z : %f", prev_raw_pos_z);
@@ -176,7 +176,7 @@ class OpticalFlowData
             ROS_ERROR("px4flow: start kf correction"); //debug
           }
       }
-    else //special process for 
+    else //special process for landing
       {
         if(prev_raw_pos_z < start_upper_thre_ &&
            prev_raw_pos_z > start_lower_thre_ &&
