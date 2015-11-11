@@ -110,8 +110,11 @@ class BoundingBox
     Eigen::Matrix<double, 3, 3> r_zero;
     r_zero << 0, -1, 0, 0, 0, -1, 1, 0, 0;
 
-    intrinsic_r_matrix_  = projection_matrix_.block<3,3>(0,0) * r_zero;
-    r_intrinsic_inverse_matrix_ =  r_zero.inverse() * intrinsic_r_matrix_.inverse();
+    /* intrinsic_r_matrix_  = projection_matrix_.block<3,3>(0,0) * r_zero; */
+    /* r_intrinsic_inverse_matrix_ =  r_zero.inverse() * intrinsic_r_matrix_.inverse(); */
+    intrinsic_r_matrix_  = projection_matrix_.block<3,3>(0,0);
+    r_intrinsic_inverse_matrix_ =  intrinsic_r_matrix_.inverse();
+
     std::cout << "Intrinsic Matrix is :\n" << intrinsic_r_matrix_ << std::endl; 
 
 
@@ -134,8 +137,14 @@ class BoundingBox
     double roll  = tracker_->getPhy();
 
     //IMPORTANT : We need transform system!! => TODO
+#if 1
     Eigen::Quaternion<double> q = Eigen::AngleAxisd(-pitch, Eigen::Vector3d::UnitX()) 
       * Eigen::AngleAxisd(roll, Eigen::Vector3d::UnitZ()) ;
+#else
+    Eigen::Quaternion<double> q = Eigen::AngleAxisd(pitch, Eigen::Vector3d::UnitY()) 
+      * Eigen::AngleAxisd(roll, Eigen::Vector3d::UnitX()) ;
+#endif
+
     Eigen::Matrix3d rotation = q.matrix();
 
     Eigen::Matrix<double, 3, 1> local_coord; 
@@ -146,8 +155,11 @@ class BoundingBox
     Eigen::Matrix<double, 3, 1> world_coord; 
     world_coord = temp_coord / scale;
 
-    std::cout << " intrinsic_r_matrix_ * rotation * intrinsic_r_matrix_inverse_ is :\n" << intrinsic_r_matrix_ * rotation * r_intrinsic_inverse_matrix_ << std::endl; 
+    //std::cout << " intrinsic_r_matrix_ * rotation * intrinsic_r_matrix_inverse_ is :\n" << intrinsic_r_matrix_ * rotation * r_intrinsic_inverse_matrix_ << std::endl;
+    std::cout << "rotation is :\n" << rotation << std::endl;  
+    std::cout << "temp_coord is :\n" << temp_coord << std::endl;  
     std::cout << "world_coord is :\n" << world_coord << std::endl; 
+    std::cout << "local_coord is :\n" << local_coord << std::endl; 
 
     double x_dash, y_dash, ball_area;
     // x_dash = world_coord(0);

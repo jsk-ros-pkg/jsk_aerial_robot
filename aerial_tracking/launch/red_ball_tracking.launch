@@ -2,10 +2,12 @@
 <launch>
 
   <!-- hsv + camshift red ball tracking -->
-  <include file="$(find image_processing)/launch/red_ball_tracking.launch" /
+  <include file="$(find image_processing)/launch/red_ball_tracking.launch" />
 
   <!-- aerial tracking for bunding box -->
-  <node pkg="tracking" type="tracking_node" name="red_ball_tracking_node"  output="screen" /> 
+  <node pkg="aerial_tracking" type="tracking_node" name="red_ball_tracking_node"  output="screen" > 
+    <remap from="flight_nav" to="/navigator/full_states" /> 
+  </node>
 
   <!-- aerial platform -->
   <include file="$(find aerial_robot_base)/launch/rook/rook.launch" />

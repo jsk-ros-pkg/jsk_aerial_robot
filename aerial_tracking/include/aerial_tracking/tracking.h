@@ -53,7 +53,7 @@ class Tracking: public BasicTracking
   void trackingCallback(const sensor_msgs::JoyConstPtr &joy_msg)
   {
       if(joy_msg->buttons[12] == 1 && !tracking_flag_)
-        {
+        {//triangle
           ROS_INFO("start tracking");
           tracking_flag_ = true;
 
@@ -61,7 +61,7 @@ class Tracking: public BasicTracking
           bounding_box_tracker_ = new BoundingBox(nh_, nh_private_, this);
         }
       if(joy_msg->buttons[14] == 1 && tracking_flag_)
-        {
+        {//cross
           ROS_INFO("stop tracking");
           tracking_flag_ = false;
 
@@ -79,9 +79,9 @@ class Tracking: public BasicTracking
     float pitch_ = M_PI * msg->angle[1] / 10.0 / 180.0; //raw data is 10 times
     float yaw_   = M_PI * msg->angle[2] / 180.0;
 
-    setPsi(roll_);
+    setPsi(yaw_);
     setTheta(pitch_);
-    setPhy(yaw_);
+    setPhy(roll_);
   }
 
   void fullStatesCallback(const aerial_robot_base::StatesConstPtr& msg)
