@@ -529,7 +529,8 @@ void PidController::pidFunction()
 
           if(navigator_->getXyControlMode() == Navigator::POS_WORLD_BASED_CONTROL_MODE ||
              navigator_->getXyControlMode() == Navigator::POS_LOCAL_BASED_CONTROL_MODE || 
-             navigator_->getXyControlMode() == Navigator::VEL_WORLD_BASED_CONTROL_MODE)
+             navigator_->getXyControlMode() == Navigator::VEL_WORLD_BASED_CONTROL_MODE ||
+             navigator_->getXyControlMode() == Navigator::VEL_LOCAL_BASED_CONTROL_MODE)
             {
 
               for(int j = 0; j < motor_num_; j++)
@@ -540,6 +541,9 @@ void PidController::pidFunction()
                   pos_i_term_yaw_ = limit(pos_i_gain_yaw_[j] * error_i_yaw_, pos_i_limit_yaw_);
                   //***** Dの項 // to think about d term, now in kduino controller
                   pos_d_term_yaw_ = 0;
+
+                  if(motor_num_ == 1)
+                    pos_p_term_yaw_ = limit(pos_p_gain_yaw_[j] * d_err_pos_curr_yaw_, pos_p_limit_yaw_);
 
                   //*** each motor command value for log
                   float yaw_value = limit(pos_p_term_yaw_ + pos_i_term_yaw_ + pos_d_term_yaw_, pos_limit_yaw_);
@@ -576,7 +580,14 @@ void PidController::pidFunction()
                   //**** Iの項
                   pos_i_term_throttle_ = limit(pos_i_gain_throttle_[j] * error_i_throttle_, pos_i_limit_throttle_);
                   //***** Dの項
-                  pos_d_term_throttle_ = limit(pos_d_gain_throttle_[j] * state_vel_z, pos_p_limit_throttle_);;
+                  pos_d_term_throttle_ = limit(pos_d_gain_throttle_[j] * state_vel_z, pos_d_limit_throttle_);
+
+                  if(motor_num_= 1)
+                    {
+                      pos_p_term_throttle_ = limit(pos_p_gain_throttle_[j] * d_err_pos_curr_throttle_, pos_p_limit_throttle_); //P term for pid
+                      pos_d_term_throttle_ = limit(-pos_d_gain_throttle_[j] * state_vel_z, pos_d_limit_throttle_);
+
+                    }
 
                   //*** each motor command value for log
                   float throttle_value = limit(pos_p_term_throttle_ + pos_i_term_throttle_ + pos_d_term_throttle_ + offset_throttle_, pos_limit_throttle_);
@@ -893,7 +904,7 @@ void PidController::rosParamInit(ros::NodeHandle nh)
 
   if(motor_num_ == 1)//general multirot
     {
-      if (!throttle_node.getParam ("pos_p_gain", pos_p_gain_throttle_))
+      if (!throttle_node.getParam ("pos_p_gain", pos_p_gain_throttle_[0]))
         pos_p_gain_throttle_[0] = 0;
       printf("%s: pos_p_gain_ is %.3f\n", throttle_ns.c_str(), pos_p_gain_throttle_[0]);
 

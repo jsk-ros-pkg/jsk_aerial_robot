@@ -1052,6 +1052,9 @@ void TeleopNavigator::teleopNavigation()
     }
   else if(getNaviCommand() == STOP_COMMAND)
     {
+      //state correct flag(Kalman Filter, especially for px4flow
+      estimator_->setStateCorrectFlag(false);
+
       if(flight_mode_ != RESET_MODE)
         flight_mode_= NO_CONTROL_MODE;
     }
