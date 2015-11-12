@@ -45,6 +45,21 @@ KalmanFilterPosVelAcc::~KalmanFilterPosVelAcc()
 {
 }
 
+double KalmanFilterPosVelAcc::getEstimatePos()
+{  boost::lock_guard<boost::mutex> lock(kf_mutex_);  return estimate_state_(0);}
+double KalmanFilterPosVelAcc::getEstimateVel()
+{  boost::lock_guard<boost::mutex> lock(kf_mutex_);  return estimate_state_(1);}
+double KalmanFilterPosVelAcc::getCorrectPos()
+{    boost::lock_guard<boost::mutex> lock(kf_mutex_);return correct_state_(0);}
+double KalmanFilterPosVelAcc::getCorrectVel()
+{    boost::lock_guard<boost::mutex> lock(kf_mutex_);return correct_state_(1);}
+double KalmanFilterPosVelAcc::getPredictPos()
+{    boost::lock_guard<boost::mutex> lock(kf_mutex_);return correct_state_(0);}
+double KalmanFilterPosVelAcc::getPredictVel()
+{    boost::lock_guard<boost::mutex> lock(kf_mutex_);return correct_state_(1);}
+
+
+
 bool KalmanFilterPosVelAcc::prediction(double input, ros::Time stamp)
 {
   boost::lock_guard<boost::mutex> lock(kf_mutex_);
@@ -365,6 +380,36 @@ KalmanFilterPosVelAccBias::KalmanFilterPosVelAccBias(ros::NodeHandle nh,
 KalmanFilterPosVelAccBias::~KalmanFilterPosVelAccBias()
 {
 }
+
+double KalmanFilterPosVelAccBias::getEstimatePos()
+{
+  boost::lock_guard<boost::mutex> lock(kf_mutex_);  return estimate_state_(0);
+}
+double KalmanFilterPosVelAccBias::getEstimateVel()
+{
+  boost::lock_guard<boost::mutex> lock(kf_mutex_);  return estimate_state_(1);
+}
+double KalmanFilterPosVelAccBias::getEstimateBias()
+{
+  boost::lock_guard<boost::mutex> lock(kf_mutex_);  return estimate_state_(2);
+}
+double KalmanFilterPosVelAccBias::getCorrectPos()
+{
+  boost::lock_guard<boost::mutex> lock(kf_mutex_);  return correct_state_(0);
+}
+double KalmanFilterPosVelAccBias::getCorrectVel()
+{
+  boost::lock_guard<boost::mutex> lock(kf_mutex_);  return correct_state_(1);
+}
+double KalmanFilterPosVelAccBias::getPredictPos()
+{
+  boost::lock_guard<boost::mutex> lock(kf_mutex_);  return predict_state_(0);
+}
+double KalmanFilterPosVelAccBias::getPredictVel()
+{
+  boost::lock_guard<boost::mutex> lock(kf_mutex_);  return predict_state_(1);
+}
+
 
 void KalmanFilterPosVelAccBias::setInputFlag()
 {

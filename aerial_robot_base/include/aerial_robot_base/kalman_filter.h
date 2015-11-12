@@ -42,13 +42,12 @@ class KalmanFilterPosVelAcc : public Filter
   void imuQuPush(aerial_robot_base::ImuQuPtr imu_qu_msg_ptr);
 
 
-  inline double getEstimatePos(){  return estimate_state_(0);}
-  inline double getEstimateVel(){  return estimate_state_(1);}
-  inline double getCorrectPos(){  return correct_state_(0);}
-  inline double getCorrectVel(){  return correct_state_(1);}
-
-  inline double getPredictPos(){  return predict_state_(0);}
-  inline double getPredictVel(){  return predict_state_(1);}
+  double getEstimatePos();
+  double getEstimateVel();
+  double getCorrectPos();
+  double getCorrectVel();
+  double getPredictPos();
+  double getPredictVel();
 
   void getEstimateCovariance(float* covarianceMatrix);
 
@@ -132,14 +131,13 @@ class KalmanFilterPosVelAccBias : public Filter
   void imuQuPush(aerial_robot_base::ImuQuPtr imu_qu_msg_ptr);
 
 
-  inline double getEstimatePos(){  return estimate_state_(0);}
-  inline double getEstimateVel(){  return estimate_state_(1);}
-  inline double getEstimateBias(){  return estimate_state_(2);}
-  inline double getCorrectPos(){  return correct_state_(0);}
-  inline double getCorrectVel(){  return correct_state_(1);}
-  inline double getPredictPos(){  return predict_state_(0);}
-  inline double getPredictVel(){  return predict_state_(1);}
-
+  double getEstimatePos();
+  double getEstimateVel();
+  double getEstimateBias();
+  double getCorrectPos();
+  double getCorrectVel();
+  double getPredictPos();
+  double getPredictVel();
 
   void getEstimateCovariance(float* covarianceMatrix);
 
