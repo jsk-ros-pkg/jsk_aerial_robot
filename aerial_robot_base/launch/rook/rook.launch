@@ -47,7 +47,7 @@
     <param if="$(arg flight_pos_mode)" name="navigator/xy_control_mode" type="int" value="0"/>
     <param if="$(arg flight_vel_mode)" name="estimator/altitude_control_mode" type="int" value="1"/>
     <param if="$(arg flight_vel_mode)" name="estimator/use_outer_yaw_est" type="bool" value="false"/>
-    <param if="$(arg flight_vel_mode)" name="navigator/xy_control_mode" type="int" value="1"/>
+    <param if="$(arg flight_vel_mode)" name="navigator/xy_control_mode" type="int" value="3"/> <!-- pos local vel -->
 
     ############### Quadctoper Basic State ######################
     <rosparam file="$(find aerial_robot_base)/config/rook/EstimatorConfig.yaml" command="load" />
