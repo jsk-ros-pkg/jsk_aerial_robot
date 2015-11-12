@@ -287,9 +287,32 @@ class OpticalFlowData
         /* state_estimator_->setStateVelZ(z_state.kf); */
 
 
-
         optical_flow_pub_.publish(opt_data);
 
+      }
+
+    if(!start_flag && !kf_correct_flag_)
+      {//special process
+        if(kf_z_->getEstimatePos() <= 0)
+          {
+            bool stop_flag = false;
+            kf_x_->setMeasureFlag(stop_flag);
+            kf_y_->setMeasureFlag(stop_flag);
+            kf_z_->setMeasureFlag(stop_flag);
+
+            kfb_x_->setMeasureFlag(stop_flag);
+            kfb_y_->setMeasureFlag(stop_flag);
+            kfb_z_->setMeasureFlag(stop_flag);
+
+            kf_x_->setInitState(0, 0);
+            kfb_x_->setInitState(0,0);
+
+            kf_y_->setInitState(0, 0);
+            kfb_y_->setInitState(0,0);
+
+            kf_z_->setInitState(0, 0);
+            kfb_z_->setInitState(0, 0);
+          }
       }
 
     //更新
