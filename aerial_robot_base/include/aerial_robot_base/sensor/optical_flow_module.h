@@ -139,7 +139,8 @@ class OpticalFlowData
     static float prev_raw_pos_z;
     static bool start_flag = false;
     static double previous_secs;
-    double current_secs = optical_flow_msg->header.stamp.toSec();
+    static double special_increment = 0;
+  double current_secs = optical_flow_msg->header.stamp.toSec();
 
     //**** 高さ方向情報の更新
     raw_pos_z_ = optical_flow_msg->ground_distance;
@@ -174,6 +175,9 @@ class OpticalFlowData
 
             start_flag = true;
             ROS_ERROR("px4flow: start kf correction"); //debug
+
+            //special 
+            special_increment = 0;
           }
       }
     else //special process for landing
@@ -310,8 +314,9 @@ class OpticalFlowData
             kf_y_->setInitState(0, 0);
             kfb_y_->setInitState(0,0);
 
-            kf_z_->setInitState(0, 0);
-            kfb_z_->setInitState(0, 0);
+            special_increment += 0.005;
+            kf_z_->setInitState(0, special_increment);
+            kfb_z_->setInitState(0, special_increment);
           }
       }
 

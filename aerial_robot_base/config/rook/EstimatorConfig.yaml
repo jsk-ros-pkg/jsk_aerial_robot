@@ -6,7 +6,3 @@ estimator/baselink_frame: quadcopter_base
 estimator/base_footprint_frame: base_footprint
 estimator/laser_frame: laser
 estimator/camera_frame: camera
-
-estimator/start_lower_thre: 0.305 
-estimator/start_upper_thre: 0.4  #0.46
-estimator/start_vel: 0.25  
