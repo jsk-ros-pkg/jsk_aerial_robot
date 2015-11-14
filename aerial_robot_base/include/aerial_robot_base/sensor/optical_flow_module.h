@@ -242,8 +242,7 @@ class OpticalFlowData
               {
                 kfb_z_->correction(raw_pos_z_, optical_flow_msg->header.stamp);
                 kf_z_->correction(raw_pos_z_, optical_flow_msg->header.stamp);
-                ROS_WARN("alt test");
-              }
+                              }
           }
 
         //publish

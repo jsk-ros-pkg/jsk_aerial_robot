@@ -376,7 +376,7 @@ inline float RigidEstimator::getStateVelYOpt(){  return optical_flow_data_->getR
 void RigidEstimator::tfPublish()
 {
   //set the states broadcast
-  //statesBroadcast();
+  statesBroadcast();
 
   //TODO mutex
 
