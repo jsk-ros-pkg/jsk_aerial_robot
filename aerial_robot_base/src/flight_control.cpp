@@ -589,8 +589,10 @@ void PidController::pidFunction()
 
                       if(navigator_->getFlightMode() == Navigator::LAND_MODE)
                         {
-                          pos_p_term_throttle_ = limit(pos_p_gain_throttle_[j] * land_gain_slow_rate_ *  d_err_pos_curr_throttle_, pos_p_limit_throttle_); //half of the gain
-                          pos_d_term_throttle_ = limit(-pos_d_gain_throttle_[j] / land_gain_slow_rate_ * state_vel_z, pos_d_limit_throttle_); //twice
+                          //pos_p_term_throttle_ = limit(pos_p_gain_throttle_[j] * land_gain_slow_rate_ *  d_err_pos_curr_throttle_, pos_p_limit_throttle_); //half of the gain
+                          //pos_d_term_throttle_ = limit(-pos_d_gain_throttle_[j] / land_gain_slow_rate_ * state_vel_z, pos_d_limit_throttle_); //twice
+                          pos_p_term_throttle_ = 0;
+
                         }
                     }
 
