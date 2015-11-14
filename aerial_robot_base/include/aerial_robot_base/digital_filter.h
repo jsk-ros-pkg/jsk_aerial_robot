@@ -154,58 +154,42 @@ class IirFilter : public Filter
     float raw_pos_val = pos_input;
     float raw_vel_val = vel_input;
 
-#if 0
-    if( first_flag ) first_flag = false;
-    else
-      {
-        //*** pos
-        reg_pos = raw_pos_val + a1_pos_ * pre1_pos_ + a2_pos_ * pre2_pos_;
-        pos_output = b0_pos_ * reg_pos + b1_pos_ * pre1_pos_ + b2_pos_ * pre2_pos_;
-        pre2_pos_ = pre1_pos_;
-        pre1_pos_ = reg_pos;
+    //*** pos
+    reg_pos = raw_pos_val + a1_pos_ * pre1_pos_ + a2_pos_ * pre2_pos_;
+    pos_output = b0_pos_ * reg_pos + b1_pos_ * pre1_pos_ + b2_pos_ * pre2_pos_;
+    pre2_pos_ = pre1_pos_;
+    pre1_pos_ = reg_pos;
 
-        //*** vel
-        reg_vel = raw_vel_val + a1_vel_ * pre1_vel_ + a2_vel_ * pre2_vel_;
-        vel_output = b0_vel_ * reg_vel + b1_vel_ * pre1_vel_ + b2_vel_ * pre2_vel_;
-        pre2_vel_ = pre1_vel_;
-        pre1_vel_ = reg_vel;
-      }
-#else
-        //*** pos
-        reg_pos = raw_pos_val + a1_pos_ * pre1_pos_ + a2_pos_ * pre2_pos_;
-        pos_output = b0_pos_ * reg_pos + b1_pos_ * pre1_pos_ + b2_pos_ * pre2_pos_;
-        pre2_pos_ = pre1_pos_;
-        pre1_pos_ = reg_pos;
-
-        //*** vel
-        reg_vel = raw_vel_val + a1_vel_ * pre1_vel_ + a2_vel_ * pre2_vel_;
-        vel_output = b0_vel_ * reg_vel + b1_vel_ * pre1_vel_ + b2_vel_ * pre2_vel_;
-        pre2_vel_ = pre1_vel_;
-        pre1_vel_ = reg_vel;
-#endif
+    //*** vel
+    reg_vel = raw_vel_val + a1_vel_ * pre1_vel_ + a2_vel_ * pre2_vel_;
+    vel_output = b0_vel_ * reg_vel + b1_vel_ * pre1_vel_ + b2_vel_ * pre2_vel_;
+    pre2_vel_ = pre1_vel_;
+    pre1_vel_ = reg_vel;
 
   }
   void filterFunction(double pos_input, double& pos_output)
   {
     double reg_pos=0;
     float raw_pos_val = pos_input;
-
-#if 0
-    if( first_flag ) first_flag = false;
-    else
-      {
-        reg_pos = raw_pos_val + a1_pos_ * pre1_pos_ + a2_pos_ * pre2_pos_;
-        pos_output = b0_pos_ * reg_pos + b1_pos_ * pre1_pos_ + b2_pos_ * pre2_pos_;
-        pre2_pos_ = pre1_pos_;
-        pre1_pos_ = reg_pos;
-      }
-#else
     reg_pos = raw_pos_val + a1_pos_ * pre1_pos_ + a2_pos_ * pre2_pos_;
     pos_output = b0_pos_ * reg_pos + b1_pos_ * pre1_pos_ + b2_pos_ * pre2_pos_;
     pre2_pos_ = pre1_pos_;
     pre1_pos_ = reg_pos;
 
-#endif
+    ROS_INFO("reg_pos:%f, pre_pos1:%f, pre_ps2:%f", reg_pos, pre1_pos_, pre2_pos_);
+
+  }
+
+  void setPosInitState(double init_value)
+  {
+    pre2_pos_ = init_value * rx_freq_ / cutoff_pos_freq_; //not sure
+    pre1_pos_ = init_value * rx_freq_ / cutoff_pos_freq_;
+  }
+
+  void setVelInitState(double init_value)
+  {
+    pre2_vel_ = init_value;
+    pre1_vel_ = init_value;
   }
 
 };

@@ -20,4 +20,4 @@ navigator/target_yaw_rate: 0.8 #0.12 #  0.05
 navigator/cmd_vel_lev2_gain : 1.5
 
 # for optical flow control
-navigator/xy_vel_mode_pos_ctrl_takeoff : false
+navigator/xy_vel_mode_pos_ctrl_takeoff : true #false

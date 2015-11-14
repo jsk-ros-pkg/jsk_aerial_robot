@@ -39,6 +39,7 @@ class BoundingBox
       lpf_image_area_ =  IirFilter((float)rx_freq_, (float)cutoff_freq_);
 
       alt_control_flag_ = false;
+      start_tracking_flag_ = false;
 
       //trial, start tracking
       startTracking();
@@ -100,6 +101,8 @@ class BoundingBox
 
   bool alt_control_flag_;
 
+  bool start_tracking_flag_;
+
   void cameraInfoCallback(const sensor_msgs::CameraInfoConstPtr &msg)
   {
     Eigen::Matrix<double, 3, 4> projection_matrix_;
@@ -119,20 +122,28 @@ class BoundingBox
 
 
     //param
-    target_area_ = msg->height * msg->width * target_area_;
+    //target_area_ = msg->height * msg->width * target_area_;
     target_y_ = msg->width * target_y_;
     target_z_ = msg->height * target_z_;
     thre_z_  = msg->height  * thre_z_; 
     thre_psi_  = msg->width / 2 * thre_psi_; //half of image frame
 
+    ROS_INFO("target_y_: %f, target_z_: %f", target_y_, target_z_);
+
+    start_tracking_flag_ = true;
+
     camera_info_sub_.shutdown();
+
   }
 
   void trackerCallback(const image_processing::RotatedRectStampedConstPtr& msg)
   {
+    static bool first_flag = true;
+
+    if(!start_tracking_flag_) return;
+
     /* double pitch = estimator_->getStateTheta(); */
     /* double roll  = estimator_->getStatePhy(); */
-
     double pitch = (double)tracker_->getTheta();
     double roll  = tracker_->getPhy();
 
@@ -156,10 +167,21 @@ class BoundingBox
     world_coord = temp_coord / scale;
 
     //std::cout << " intrinsic_r_matrix_ * rotation * intrinsic_r_matrix_inverse_ is :\n" << intrinsic_r_matrix_ * rotation * r_intrinsic_inverse_matrix_ << std::endl;
-    std::cout << "rotation is :\n" << rotation << std::endl;  
-    std::cout << "temp_coord is :\n" << temp_coord << std::endl;  
-    std::cout << "world_coord is :\n" << world_coord << std::endl; 
-    std::cout << "local_coord is :\n" << local_coord << std::endl; 
+    //std::cout << "rotation is :\n" << rotation << std::endl;  
+    //std::cout << "world_coord is :\n" << world_coord << std::endl; 
+    //std::cout << "local_coord is :\n" << local_coord << std::endl; 
+
+    if(first_flag) 
+      {
+        target_area_ = msg->width * msg->height;
+        lpf_image_x_.setPosInitState((double)world_coord(0));
+        lpf_image_y_.setPosInitState((double)world_coord(1));
+        lpf_image_area_.setPosInitState((double)target_area_);
+        first_flag = false;
+        return;
+      }
+
+
 
     double x_dash, y_dash, ball_area;
     // x_dash = world_coord(0);
@@ -184,6 +206,7 @@ class BoundingBox
     navi_command.header.stamp = msg->header.stamp;
     navi_command.command_mode = aerial_robot_base::FlightNav::VEL_FLIGHT_MODE_COMMAND;
 
+
     //* x
     float dif_area =  - (ball_area - target_area_) / target_area_;
     float target_vel_x = 0;
@@ -202,10 +225,14 @@ class BoundingBox
     //      same with the alt control func of joy stick navigator.
     float target_dif_pos_z = dif_z / abs(dif_z) * gain_z_;
     float pos_z = tracker_->getPosZ();
+
+
+    //ROS_INFO("navi_command.target_pos_diff_z :%f", target_dif_pos_z);
     if(abs(dif_z) > thre_z_)
       {
         navi_command.pos_z_navi_mode = aerial_robot_base::FlightNav::VEL_FLIGHT_MODE_COMMAND;
         navi_command.target_pos_diff_z = target_dif_pos_z;
+
         alt_control_flag_ = true;
       }
     else
@@ -234,6 +261,8 @@ class BoundingBox
 
     //* y & psi
     int dif_y = - (x_dash - target_y_);
+
+    ROS_INFO("x:%f, y:%f, aera:%f", x_dash, y_dash, ball_area);
     float target_vel_y = dif_y / target_y_ * gain_y_;
     int dif_psi = abs(dif_y) - thre_psi_;
     float target_psi = dif_y * gain_psi_;
