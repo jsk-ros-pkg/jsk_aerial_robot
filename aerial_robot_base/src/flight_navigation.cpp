@@ -78,7 +78,7 @@ Navigator::~Navigator()
 void Navigator::naviCallback(const aerial_robot_base::FlightNavConstPtr & msg)
 {
   //debug
-  ROS_WARN("navi cmd callback");
+  //ROS_WARN("navi cmd callback");
   //for x & y
   if(msg->command_mode == aerial_robot_base::FlightNav::VEL_FLIGHT_MODE_COMMAND)
     {

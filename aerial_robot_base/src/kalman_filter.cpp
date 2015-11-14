@@ -47,7 +47,6 @@ KalmanFilterPosVelAcc::~KalmanFilterPosVelAcc()
 
 bool KalmanFilterPosVelAcc::prediction(double input, ros::Time stamp)
 {
-
   if(getFilteringFlag())
     {
 
@@ -83,8 +82,8 @@ bool KalmanFilterPosVelAcc::correction(double measurement, ros::Time stamp)
 
       Eigen::Vector2d estimate_state_tmp = getEstimateState();
       Eigen::Vector2d estimate_state = estimate_state_tmp + kalman_gain_ * (measurement - observation_model_ * estimate_state_tmp);
-      setEstimateState(estimate_state_tmp);
-      correct_state_ = estimate_state_tmp;
+      setEstimateState(estimate_state);
+      correct_state_ = estimate_state;
 
       Eigen::Matrix2d I; I.setIdentity();
       Eigen::Matrix2d estimate_covariance_tmp;

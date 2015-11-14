@@ -36,7 +36,7 @@ class OpticalFlowData
 
       state_estimator_ = state_estimator;
 
-      kalman_filter_flag = kalman_filter_flag;
+      kalman_filter_flag_ = kalman_filter_flag;
       kf_x_ = kf_x; kf_y_ = kf_y; kf_z_ = kf_z;
       kfb_x_ = kfb_x; kfb_y_ = kfb_y; kfb_z_ = kfb_z;
 
@@ -54,6 +54,10 @@ class OpticalFlowData
       filtered_vel_y_ = 0;
 
       kf_correct_flag_ = true; //this is just for fall down 
+
+      //debug, but can be constant;
+      //kalman_filter_flag_ = true; 
+      //ROS_ERROR("kalman_filter_flag_: %s", kalman_filter_flag_?("true"):("false"));
     }
 
   ~OpticalFlowData()
@@ -90,7 +94,7 @@ class OpticalFlowData
       }
     else
       {//debug
-        ROS_WARN("px4flow: kf correct flag is false");
+        //ROS_WARN("px4flow: kf correct flag is false");
       }
   }
 
@@ -155,23 +159,23 @@ class OpticalFlowData
             //TODO: start flag fresh arm, or use air pressure => refined
             ROS_ERROR("px4flow: start kf measuring, prev_raw_pos_z : %f", prev_raw_pos_z);
 
-            kf_x_->setInitState(0, optical_flow_msg->flow_x /1000.0);
+            //kf_x_->setInitState(0, optical_flow_msg->flow_x /1000.0);
             kfb_x_->setInitState(0, optical_flow_msg->flow_x /1000.0);
 
-            kf_y_->setInitState(0, -optical_flow_msg->flow_y /1000.0);
+            //kf_y_->setInitState(0, -optical_flow_msg->flow_y /1000.0);
             kfb_y_->setInitState(0, -optical_flow_msg->flow_y /1000.0);
 
             kf_z_->setInitState(optical_flow_msg->ground_distance, start_vel_);
-            kfb_z_->setInitState(optical_flow_msg->ground_distance, start_vel_);
+            //kfb_z_->setInitState(optical_flow_msg->ground_distance, start_vel_);
 
 
-            kf_x_->setMeasureFlag();
-            kf_y_->setMeasureFlag();
+            //kf_x_->setMeasureFlag();
+            //kf_y_->setMeasureFlag();
             kf_z_->setMeasureFlag();
 
             kfb_x_->setMeasureFlag();
             kfb_y_->setMeasureFlag();
-            kfb_z_->setMeasureFlag();
+            //kfb_z_->setMeasureFlag();
 
             start_flag = true;
             ROS_ERROR("px4flow: start kf correction"); //debug
@@ -193,6 +197,7 @@ class OpticalFlowData
 
     if(start_flag)
       {
+
         //**** 高さ方向情報の更新
         raw_vel_z_ = (raw_pos_z_ - prev_raw_pos_z) / (current_secs - previous_secs);
 
@@ -202,6 +207,7 @@ class OpticalFlowData
 
         filtered_vel_x_ = x_axis_direction_ * optical_flow_msg->flow_x /1000.0;
         filtered_vel_y_ = y_axis_direction_ * optical_flow_msg->flow_y /1000.0;
+
 
         if(kalman_filter_flag_)
           {
@@ -217,7 +223,7 @@ class OpticalFlowData
                   }
                 else  
                   {
-                    kf_x_->correctionOnlyVelocity(raw_vel_x_, optical_flow_msg->header.stamp);  //velocity
+                    //kf_x_->correctionOnlyVelocity(raw_vel_x_, optical_flow_msg->header.stamp);  //velocity
                     kfb_x_->correctionOnlyVelocity(raw_vel_x_, optical_flow_msg->header.stamp); //velocity
                   }
                 if(optical_flow_msg->quality == 0 || raw_vel_y_ == 0 || raw_pos_z_ > 2.5)
@@ -236,6 +242,7 @@ class OpticalFlowData
               {
                 kfb_z_->correction(raw_pos_z_, optical_flow_msg->header.stamp);
                 kf_z_->correction(raw_pos_z_, optical_flow_msg->header.stamp);
+                ROS_WARN("alt test");
               }
           }
 
@@ -306,7 +313,6 @@ class OpticalFlowData
       {//special process
         if((kf_z_->getEstimateState())[0] <= 0)
           {
-            ROS_ERROR("bad");
             bool stop_flag = false;
             kf_x_->setMeasureFlag(stop_flag);
             kf_y_->setMeasureFlag(stop_flag);

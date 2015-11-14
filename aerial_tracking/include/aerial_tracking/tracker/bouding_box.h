@@ -262,7 +262,7 @@ class BoundingBox
     //* y & psi
     int dif_y = - (x_dash - target_y_);
 
-    ROS_INFO("x:%f, y:%f, aera:%f", x_dash, y_dash, ball_area);
+    //ROS_INFO("x:%f, y:%f, aera:%f", x_dash, y_dash, ball_area);
     float target_vel_y = dif_y / target_y_ * gain_y_;
     int dif_psi = abs(dif_y) - thre_psi_;
     float target_psi = dif_y * gain_psi_;

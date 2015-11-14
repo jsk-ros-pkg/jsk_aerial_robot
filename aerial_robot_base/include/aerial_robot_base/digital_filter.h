@@ -176,7 +176,7 @@ class IirFilter : public Filter
     pre2_pos_ = pre1_pos_;
     pre1_pos_ = reg_pos;
 
-    ROS_INFO("reg_pos:%f, pre_pos1:%f, pre_ps2:%f", reg_pos, pre1_pos_, pre2_pos_);
+    //ROS_INFO("reg_pos:%f, pre_pos1:%f, pre_ps2:%f", reg_pos, pre1_pos_, pre2_pos_);
 
   }
 
