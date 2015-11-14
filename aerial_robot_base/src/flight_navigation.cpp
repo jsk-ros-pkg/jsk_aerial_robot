@@ -189,6 +189,8 @@ TeleopNavigator::TeleopNavigator(ros::NodeHandle nh, ros::NodeHandle nh_private,
   else
     rc_cmd_pub_ = nh_.advertise<aerial_robot_msgs::RcData>("kduino/rc_cmd", 10); 
  
+  stop_teleop_sub_ = nh_.subscribe<std_msgs::UInt8>("stop_teleop", 1, &TeleopNavigator::stopTeleopCallback, this, ros::TransportHints().tcpNoDelay());
+  teleop_flag_ = true;
 
   msp_cmd_pub_ = nh_.advertise<std_msgs::UInt16>("kduino/msp_cmd", 10);
 
@@ -427,6 +429,20 @@ void TeleopNavigator::xyControlModeCallback(const std_msgs::Int8ConstPtr & msg)
           xy_control_mode_ = VEL_LOCAL_BASED_CONTROL_MODE;
           ROS_INFO("x/y velocity control mode");
         }
+    }
+}
+
+void TeleopNavigator::stopTeleopCallback(const std_msgs::UInt8ConstPtr & stop_msg)
+{
+  if(stop_msg->data == 1) 
+    {
+      ROS_WARN("stop teleop control");
+      teleop_flag_ = false;
+    }
+  else if(stop_msg->data == 0) 
+    {
+      ROS_WARN("start teleop control");
+      teleop_flag_ = true;
     }
 }
 
@@ -798,9 +814,11 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
           return;
         }
 
-      if(getStartAble() && getFlightAble() && getNaviCommand() != LAND_COMMAND)  
+      if(getStartAble() && getFlightAble() && getNaviCommand() != LAND_COMMAND 
+         && teleop_flag_)  
         {//start &  takeoff & !land
           setNaviCommand(HOVER_COMMAND);
+
           //pitch
           final_target_vel_x_= joy_msg->axes[1] * fabs(joy_msg->axes[1]) * target_vel_rate_;
           //roll

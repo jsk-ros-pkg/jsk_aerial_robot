@@ -216,15 +216,14 @@ class BoundingBox
     //navigator_->setTargetVelX(target_vel_x);
     navi_command.target_vel_x = target_vel_x;
 
-
     //* z
     navi_command.pos_z_navi_mode = aerial_robot_base::FlightNav::NO_NAVIGATION;
 
-    double dif_z = - (y_dash - target_z_);
+    double dif_z =  -(y_dash - target_z_); //sign should be opposite, according to the camera  coord
     //ROS_INFO("ok1-5: dif_z:%f, y_dash:%lf, target_z:%lf", dif_z, y_dash, target_z_);
     //TODO: should add the factor of area of ball, 
     //      same with the alt control func of joy stick navigator.
-    float target_dif_pos_z = dif_z / fabs(dif_z) * gain_z_;
+    float target_dif_pos_z =  dif_z / fabs(dif_z) * gain_z_;
     float pos_z = tracker_->getPosZ();
 
 
@@ -336,7 +335,7 @@ class BoundingBox
     printf("%s: gain_z_ is %.3f\n", ns.c_str(), gain_z_);
 
     if (!nh_private_.getParam ("thre_z", thre_z_))
-      thre_z_ = 0.25;
+      thre_z_ = 0.2;
     printf("%s: thre_z_ is %.3f\n", ns.c_str(), thre_z_);
 
     if (!nh_private_.getParam ("z_real_lower_pos_thre", z_real_lower_pos_thre_))
@@ -348,14 +347,13 @@ class BoundingBox
     printf("%s: z_real_upper_pos_thre_ is %.3f\n", ns.c_str(), z_real_upper_pos_thre_);
 
 
-
     //psi
     if (!nh_private_.getParam ("thre_psi", thre_psi_))
       thre_psi_ = 0.6;
     printf("%s: thre_psi_ is %.3f\n", ns.c_str(), thre_psi_);
 
     if (!nh_private_.getParam ("gain_psi", gain_psi_))
-      gain_psi_ = 0.5;
+      gain_psi_ = 0.4;
     printf("%s: gain_psi_ is %.3f\n", ns.c_str(), gain_psi_);
 
     nh_private_.param("cam_info_topic", cam_info_topic_, std::string("/camera/camera_info"));

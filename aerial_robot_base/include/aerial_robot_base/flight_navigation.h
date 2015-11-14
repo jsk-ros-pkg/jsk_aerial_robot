@@ -7,6 +7,7 @@
 #include <aerial_robot_base/control_input_array.h>
 
 #include <std_msgs/Int8.h>
+#include <std_msgs/UInt8.h>
 #include <std_msgs/UInt16.h>
 #include <std_msgs/Int32.h>
 #include <std_msgs/Empty.h>
@@ -232,6 +233,8 @@ class TeleopNavigator :public Navigator
   //for navigation => TODO
   void flightNavCallback(const aerial_robot_base::FlightNavConstPtr& msg);
 
+  void stopTeleopCallback(const std_msgs::UInt8ConstPtr & stop_msg);
+
   void targetValueCorrection();
   void teleopNavigation();
   void sendRcCmd();
@@ -267,6 +270,7 @@ class TeleopNavigator :public Navigator
     ros::Subscriber ctrl_mode_sub_;
     ros::Subscriber joy_stick_sub_;
     ros::Subscriber flight_nav_sub_;
+    ros::Subscriber stop_teleop_sub_;
 
     //*** teleop navigation
     double takeoff_height_;
@@ -287,6 +291,8 @@ class TeleopNavigator :public Navigator
     bool  pos_control_flag_;
     bool  alt_control_flag_;
     bool  yaw_control_flag_;
+
+    bool teleop_flag_;
 
     void rosParamInit(ros::NodeHandle nh);
 };

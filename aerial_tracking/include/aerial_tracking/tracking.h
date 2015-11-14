@@ -6,6 +6,7 @@
 #define TRACKING_H
 
 #include <ros/ros.h>
+#include <std_msgs/UInt8.h>
 #include <aerial_tracking/basic_tracking.h>
 #include <sensor_msgs/Joy.h>
 //#include <tracking/tracker/6dof.h>
@@ -19,11 +20,14 @@ class Tracking: public BasicTracking
     {
       navi_pub_ = nh_.advertise<aerial_robot_base::FlightNav>("flight_nav", 1); 
 
+      stop_teleop_pub_ = nh_.advertise<std_msgs::UInt8>("stop_teleop", 1); 
+
       full_state_sub_ = nh_.subscribe<aerial_robot_base::States>("/estimator/full_states", 1, &Tracking::fullStatesCallback, this, ros::TransportHints().tcpNoDelay());
 
       tracking_joy_sub_ = nh_.subscribe<sensor_msgs::Joy>("/joy", 1, &Tracking::trackingCallback, this, ros::TransportHints().tcpNoDelay());
 
       imu_sub_ = nh_.subscribe<aerial_robot_msgs::KduinoImu>("kduino/imu", 1, &Tracking::AttitudeCallback, this, ros::TransportHints().tcpNoDelay()); 
+
 
       tracking_flag_ = false;
 
@@ -43,6 +47,7 @@ class Tracking: public BasicTracking
   ros::Subscriber full_state_sub_;
   ros::Subscriber imu_sub_;
   ros::Publisher  navi_pub_;
+  ros::Publisher  stop_teleop_pub_;
 
   bool tracking_flag_;
 
@@ -57,6 +62,11 @@ class Tracking: public BasicTracking
           ROS_INFO("start tracking");
           tracking_flag_ = true;
 
+          //send to base
+          std_msgs::UInt8 stop_msg;
+          stop_msg.data = 1;
+          stop_teleop_pub_.publish(stop_msg);
+
           //trial
           bounding_box_tracker_ = new BoundingBox(nh_, nh_private_, this);
         }
@@ -64,6 +74,12 @@ class Tracking: public BasicTracking
         {//cross
           ROS_INFO("stop tracking");
           tracking_flag_ = false;
+
+          //send to base
+          std_msgs::UInt8 stop_msg;
+          stop_msg.data = 0;
+          stop_teleop_pub_.publish(stop_msg);
+
 
           //trial
           delete bounding_box_tracker_;
