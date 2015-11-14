@@ -165,8 +165,8 @@ float RigidEstimator::getStatePosX()
     return  outer_estimate_pos_x_;
   else
     {
-      if(hokuyo_flag_) return  kf_bias_x_->getEstimatePos();
-      else if(px4flow_flag_) return kf_opt_bias_x_->getEstimatePos();
+      if(hokuyo_flag_) return  (kf_bias_x_->getEstimateState())[0];
+      else if(px4flow_flag_) return (kf_opt_bias_x_->getEstimateState())[0];
       else return 0;
     }
 }
@@ -180,7 +180,7 @@ float RigidEstimator::getStatePosXc()
       return  state_pos_xc;
     }
   else
-    return  kf_opt_bias_x_->getEstimatePos();
+    return  (kf_opt_bias_x_->getEstimateState())[0];
 }
 
 float RigidEstimator::getStateVelX()
@@ -189,8 +189,8 @@ float RigidEstimator::getStateVelX()
       return  outer_estimate_vel_x_;
   else
     {
-      if(hokuyo_flag_) return  kf_bias_x_->getEstimateVel();
-      else if(px4flow_flag_) return  kf_opt_bias_x_->getEstimateVel();
+      if(hokuyo_flag_) return  (kf_bias_x_->getEstimateState())[1];
+      else if(px4flow_flag_) return  (kf_opt_bias_x_->getEstimateState())[1];
       else return 0;
     }
 
@@ -205,7 +205,7 @@ float RigidEstimator::getStateVelXc()
       return  state_vel_xc;
     }
   else
-    return  kf_opt_bias_x_->getEstimateVel();
+    return  (kf_opt_bias_x_->getEstimateState())[1];
 }
 
 float RigidEstimator::getStateAccXb()
@@ -219,8 +219,8 @@ float RigidEstimator::getStatePosY()
       return  outer_estimate_pos_y_;
  else
    {
-     if(hokuyo_flag_) return  kf_bias_y_->getEstimatePos();
-     else if (px4flow_flag_) return kf_opt_bias_y_->getEstimatePos();
+     if(hokuyo_flag_) return  (kf_bias_y_->getEstimateState())[0];
+     else if (px4flow_flag_) return (kf_opt_bias_y_->getEstimateState())[0];
      else return 0;
    }
 }
@@ -234,7 +234,7 @@ float RigidEstimator::getStatePosYc()
       return  state_pos_yc;
    }
   else
-  return  kf_opt_bias_y_->getEstimatePos();
+    return  (kf_opt_bias_y_->getEstimateState())[0];
 }
 
 float RigidEstimator::getStateVelY()
@@ -243,8 +243,8 @@ float RigidEstimator::getStateVelY()
      return  outer_estimate_vel_y_;
  else 
    {
-     if(hokuyo_flag_)  return  kf_bias_y_->getEstimateVel();
-     else if(px4flow_flag_) return  kf_opt_bias_y_->getEstimateVel();
+     if(hokuyo_flag_)  return  (kf_bias_y_->getEstimateState())[1];
+     else if(px4flow_flag_) return  (kf_opt_bias_y_->getEstimateState())[1];
      else return 0;
    }
 }
@@ -258,7 +258,7 @@ float RigidEstimator::getStateVelYc()
       return  state_vel_yc;
    }
   else
-    return  kf_opt_bias_y_->getEstimateVel();
+    return  (kf_opt_bias_y_->getEstimateState())[1];
 }
 
 inline float RigidEstimator::getStateAccYb(){  return imu_data_->getAccYbValue(); }
@@ -269,8 +269,8 @@ float RigidEstimator::getStatePosZ()
       return  outer_estimate_pos_z_;
   else
     {
-      if(hokuyo_flag_) return kf_z_->getEstimatePos();
-      else if(px4flow_flag_) return kf_opt_z_->getEstimatePos();
+      if(hokuyo_flag_) return (kf_z_->getEstimateState())[0];
+      else if(px4flow_flag_) return (kf_opt_z_->getEstimateState())[0];
       else return 0;
     }
 }
@@ -280,8 +280,8 @@ float RigidEstimator::getStateVelZ()
       return  outer_estimate_vel_z_;
   else
     {
-      if(hokuyo_flag_) return kf_z_->getEstimateVel();
-      else if(px4flow_flag_) return kf_opt_z_->getEstimateVel();
+      if(hokuyo_flag_) return (kf_z_->getEstimateState())[1];
+      else if(px4flow_flag_) return (kf_opt_z_->getEstimateState())[1];
       else return 0;
     }
 }

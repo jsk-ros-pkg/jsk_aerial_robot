@@ -45,31 +45,15 @@ KalmanFilterPosVelAcc::~KalmanFilterPosVelAcc()
 {
 }
 
-double KalmanFilterPosVelAcc::getEstimatePos()
-{  boost::lock_guard<boost::mutex> lock(kf_mutex_);  return estimate_state_(0);}
-double KalmanFilterPosVelAcc::getEstimateVel()
-{  boost::lock_guard<boost::mutex> lock(kf_mutex_);  return estimate_state_(1);}
-double KalmanFilterPosVelAcc::getCorrectPos()
-{    boost::lock_guard<boost::mutex> lock(kf_mutex_);return correct_state_(0);}
-double KalmanFilterPosVelAcc::getCorrectVel()
-{    boost::lock_guard<boost::mutex> lock(kf_mutex_);return correct_state_(1);}
-double KalmanFilterPosVelAcc::getPredictPos()
-{    boost::lock_guard<boost::mutex> lock(kf_mutex_);return correct_state_(0);}
-double KalmanFilterPosVelAcc::getPredictVel()
-{    boost::lock_guard<boost::mutex> lock(kf_mutex_);return correct_state_(1);}
-
-
-
 bool KalmanFilterPosVelAcc::prediction(double input, ros::Time stamp)
 {
-  boost::lock_guard<boost::mutex> lock(kf_mutex_);
 
   if(getFilteringFlag())
     {
 
-      Eigen::Vector2d estimate_hat_state
-        = state_transition_model_ * estimate_state_ + input * control_input_model_;
-      estimate_state_ = estimate_hat_state;
+      Eigen::Vector2d estimate_state_tmp = getEstimateState();
+      Eigen::Vector2d estimate_hat_state = state_transition_model_ * estimate_state_tmp + input * control_input_model_;
+      setEstimateState(estimate_hat_state);
 
       Eigen::Matrix2d estimate_bar_covariance
         = state_transition_model_ * estimate_covariance_ * state_transition_model_.transpose() 
@@ -89,23 +73,18 @@ bool KalmanFilterPosVelAcc::prediction(double input, ros::Time stamp)
 
 bool KalmanFilterPosVelAcc::correction(double measurement, ros::Time stamp)
 {
-  boost::lock_guard<boost::mutex> lock(kf_mutex_);
   if(getFilteringFlag())
     {
 
       inovation_covariance_ = observation_model_ * estimate_covariance_ * observation_model_.transpose()
         + measurement_noise_covariance_;
   
-
       kalman_gain_ = estimate_covariance_ * observation_model_.transpose() * inovation_covariance_.inverse();
 
-
-
-      Eigen::Vector2d estimate_state_tmp 
-        = estimate_state_ + kalman_gain_ * (measurement - observation_model_ * estimate_state_);
-      estimate_state_ = estimate_state_tmp;
+      Eigen::Vector2d estimate_state_tmp = getEstimateState();
+      Eigen::Vector2d estimate_state = estimate_state_tmp + kalman_gain_ * (measurement - observation_model_ * estimate_state_tmp);
+      setEstimateState(estimate_state_tmp);
       correct_state_ = estimate_state_tmp;
-
 
       Eigen::Matrix2d I; I.setIdentity();
       Eigen::Matrix2d estimate_covariance_tmp;
@@ -120,7 +99,6 @@ bool KalmanFilterPosVelAcc::correction(double measurement, ros::Time stamp)
 
 bool KalmanFilterPosVelAcc::correctionOnlyVelocity(double measurement, ros::Time timeStamp)
 {
-  boost::lock_guard<boost::mutex> lock(kf_mutex_);
   if(getFilteringFlag())
     {
 
@@ -128,11 +106,10 @@ bool KalmanFilterPosVelAcc::correctionOnlyVelocity(double measurement, ros::Time
 
       kalman_gain_ = estimate_covariance_ * observation_only_velocity_model_.transpose() * inovation_covariance_.inverse();
 
-      Eigen::Vector2d estimate_state_tmp 
-        = estimate_state_ + kalman_gain_ * (measurement - observation_only_velocity_model_ * estimate_state_);
-      estimate_state_ = estimate_state_tmp;
+      Eigen::Vector2d estimate_state_tmp = getEstimateState();
+      Eigen::Vector2d estimate_state = estimate_state_tmp + kalman_gain_ * (measurement - observation_only_velocity_model_ * estimate_state_tmp);
+      setEstimateState(estimate_state_tmp);
       correct_state_ = estimate_state_tmp;
-
 
       Eigen::Matrix2d I; I.setIdentity();
       Eigen::Matrix2d estimate_covariance_tmp;
@@ -267,13 +244,13 @@ void KalmanFilterPosVelAcc::setInitImuBias(double init_bias)
 
 void KalmanFilterPosVelAcc::setInputFlag()
 {
-  boost::lock_guard<boost::mutex> lock(kf_mutex_);
+  //boost::lock_guard<boost::mutex> lock(kf_mutex_);
   input_start_flag_ = true;
 }
 
 void KalmanFilterPosVelAcc::setMeasureFlag(bool flag)
 {
-  boost::lock_guard<boost::mutex> lock(kf_mutex_);
+  //boost::lock_guard<boost::mutex> lock(kf_mutex_);
   measure_start_flag_ = flag;
 }
 
@@ -288,6 +265,7 @@ bool KalmanFilterPosVelAcc::getFilteringFlag()
 
 void KalmanFilterPosVelAcc::setInitState(double init_pos, double init_vel)
 {
+  boost::lock_guard<boost::mutex> lock(kf_mutex_);
   estimate_state_(0) = init_pos; //position initial
   estimate_state_(1) = init_vel; //position initial
 
@@ -381,62 +359,31 @@ KalmanFilterPosVelAccBias::~KalmanFilterPosVelAccBias()
 {
 }
 
-double KalmanFilterPosVelAccBias::getEstimatePos()
-{
-  boost::lock_guard<boost::mutex> lock(kf_mutex_);  return estimate_state_(0);
-}
-double KalmanFilterPosVelAccBias::getEstimateVel()
-{
-  boost::lock_guard<boost::mutex> lock(kf_mutex_);  return estimate_state_(1);
-}
-double KalmanFilterPosVelAccBias::getEstimateBias()
-{
-  boost::lock_guard<boost::mutex> lock(kf_mutex_);  return estimate_state_(2);
-}
-double KalmanFilterPosVelAccBias::getCorrectPos()
-{
-  boost::lock_guard<boost::mutex> lock(kf_mutex_);  return correct_state_(0);
-}
-double KalmanFilterPosVelAccBias::getCorrectVel()
-{
-  boost::lock_guard<boost::mutex> lock(kf_mutex_);  return correct_state_(1);
-}
-double KalmanFilterPosVelAccBias::getPredictPos()
-{
-  boost::lock_guard<boost::mutex> lock(kf_mutex_);  return predict_state_(0);
-}
-double KalmanFilterPosVelAccBias::getPredictVel()
-{
-  boost::lock_guard<boost::mutex> lock(kf_mutex_);  return predict_state_(1);
-}
-
-
 void KalmanFilterPosVelAccBias::setInputFlag()
 {
-  boost::lock_guard<boost::mutex> lock(kf_mutex_);
+  //boost::lock_guard<boost::mutex> lock(kf_mutex_);
   input_start_flag_ = true;
 }
 
 void KalmanFilterPosVelAccBias::setMeasureFlag(bool flag)
 {
-  boost::lock_guard<boost::mutex> lock(kf_mutex_);
+  //boost::lock_guard<boost::mutex> lock(kf_mutex_);
   measure_start_flag_ = flag;
 }
 
 
 bool KalmanFilterPosVelAccBias::prediction(double input, ros::Time stamp)
 {
-  boost::lock_guard<boost::mutex> lock(kf_mutex_);
   if(getFilteringFlag())
     {
 
+      Eigen::Vector3d estimate_state_tmp = getEstimateState();
       Eigen::Vector3d estimate_hat_state
-        = state_transition_model_ * estimate_state_ + input * control_input_model_;
-      estimate_state_ = estimate_hat_state;
+        = state_transition_model_ * estimate_state_tmp + input * control_input_model_;
+      setEstimateState(estimate_hat_state);
 
-      Eigen::Matrix3d estimate_bar_covariance 
-        = state_transition_model_ * estimate_covariance_ * state_transition_model_.transpose() 
-        + prediction_noise_covariance_;
+      Eigen::Matrix3d estimate_bar_covariance
+        = state_transition_model_ * estimate_covariance_ * state_transition_model_.transpose()  + prediction_noise_covariance_;
       estimate_covariance_ = estimate_bar_covariance;
 
       //debug
@@ -470,7 +417,6 @@ void KalmanFilterPosVelAccBias::imuQuOnlyPrediction(ros::Time check_time_stamp)
 
 double KalmanFilterPosVelAccBias::correction(double measurement, ros::Time stamp)
 {
-  boost::lock_guard<boost::mutex> lock(kf_mutex_);
   if(getFilteringFlag())
     {
 
@@ -481,16 +427,15 @@ double KalmanFilterPosVelAccBias::correction(double measurement, ros::Time stamp
       kalman_gain_ = estimate_covariance_ * observation_model_.transpose() * inovation_covariance_.inverse();
 
 
-      Eigen::Vector3d estimate_state_tmp 
-        = estimate_state_ + kalman_gain_ * (measurement - observation_model_ * estimate_state_);
-      estimate_state_ = estimate_state_tmp;
-      correct_state_ = estimate_state_tmp;
+      Eigen::Vector3d estimate_state_tmp = getEstimateState();
+      Eigen::Vector3d estimate_state = estimate_state_tmp + kalman_gain_ * (measurement - observation_model_ * estimate_state_tmp);
+      setEstimateState(estimate_state);
+      correct_state_ = estimate_state;
 
       Eigen::Matrix3d I; I.setIdentity();
       Eigen::Matrix3d estimate_covariance_tmp;
       estimate_covariance_tmp = (I - kalman_gain_ * observation_model_) * estimate_covariance_;
       estimate_covariance_ = estimate_covariance_tmp;
-
 
       return (kalman_filter_stamp_.toSec() - stamp.toSec());
     }
@@ -502,7 +447,6 @@ double KalmanFilterPosVelAccBias::correction(double measurement, ros::Time stamp
 
 double KalmanFilterPosVelAccBias::correctionOnlyVelocity(double measurement, ros::Time stamp)
 {
-  boost::lock_guard<boost::mutex> lock(kf_mutex_);
   if(getFilteringFlag())
     {
 
@@ -512,10 +456,10 @@ double KalmanFilterPosVelAccBias::correctionOnlyVelocity(double measurement, ros
       kalman_gain_ = estimate_covariance_ * observation_only_velocity_model_.transpose() * inovation_covariance_.inverse();
 
 
-      Eigen::Vector3d estimate_state_tmp 
-        = estimate_state_ + kalman_gain_ * (measurement - observation_only_velocity_model_ * estimate_state_);
-      estimate_state_ = estimate_state_tmp;
-      correct_state_ = estimate_state_tmp;
+      Eigen::Vector3d estimate_state_tmp = getEstimateState();
+      Eigen::Vector3d estimate_state = estimate_state_tmp + kalman_gain_ * (measurement - observation_only_velocity_model_ * estimate_state_tmp);
+      setEstimateState(estimate_state);
+      correct_state_ = estimate_state;
 
       Eigen::Matrix3d I; I.setIdentity();
       Eigen::Matrix3d estimate_covariance_tmp;
@@ -633,6 +577,7 @@ void KalmanFilterPosVelAccBias::getEstimateCovariance(float* covarianceMatrix)
 
 void KalmanFilterPosVelAccBias::setInitImuBias(double init_bias)
 {
+  boost::lock_guard<boost::mutex> lock(kf_mutex_);
   //set bias
   estimate_state_(2) = init_bias; //bias inital
   correct_state_(2) = init_bias; //bias initial
@@ -643,9 +588,9 @@ void KalmanFilterPosVelAccBias::setInitImuBias(double init_bias)
 }
 
 
-
 void KalmanFilterPosVelAccBias::setInitState(double init_pos, double init_vel)
 {
+  boost::lock_guard<boost::mutex> lock(kf_mutex_);
   estimate_state_(0) = init_pos; //position initial
   estimate_state_(1) = init_vel; //position initial
 

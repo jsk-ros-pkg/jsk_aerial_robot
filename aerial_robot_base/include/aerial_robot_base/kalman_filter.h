@@ -41,13 +41,36 @@ class KalmanFilterPosVelAcc : public Filter
   bool imuQuPrediction(ros::Time check_time_stamp);
   void imuQuPush(aerial_robot_base::ImuQuPtr imu_qu_msg_ptr);
 
+  void setEstimateState(const Eigen::Vector2d& state)
+  {
+    boost::lock_guard<boost::mutex> lock(kf_mutex_);
+    estimate_state_ = state;
+  }
+  void setCorrectState(const Eigen::Vector2d& state)
+  {
+    correct_state_ = state;
+  }
+  void setPredictState(const Eigen::Vector2d& state)
+  {
+    predict_state_ = state;
+  }
 
-  double getEstimatePos();
-  double getEstimateVel();
-  double getCorrectPos();
-  double getCorrectVel();
-  double getPredictPos();
-  double getPredictVel();
+  Eigen::Vector2d getEstimateState()
+    {
+      boost::lock_guard<boost::mutex> lock(kf_mutex_);
+      return estimate_state_;
+    }
+
+  Eigen::Vector2d getCorrectState()
+    {
+      return correct_state_;
+    }
+
+  Eigen::Vector2d getPredictState()
+    {
+      return predict_state_;
+    }
+
 
   void getEstimateCovariance(float* covarianceMatrix);
 
@@ -131,13 +154,36 @@ class KalmanFilterPosVelAccBias : public Filter
   void imuQuPush(aerial_robot_base::ImuQuPtr imu_qu_msg_ptr);
 
 
-  double getEstimatePos();
-  double getEstimateVel();
-  double getEstimateBias();
-  double getCorrectPos();
-  double getCorrectVel();
-  double getPredictPos();
-  double getPredictVel();
+  void setEstimateState(Eigen::Vector3d state)
+  {
+    boost::lock_guard<boost::mutex> lock(kf_mutex_); 
+     estimate_state_ = state;
+  }
+  void setEstimateCorrect(Eigen::Vector3d state)
+  {
+    correct_state_ = state;
+  }
+  void setEstimatePredict(Eigen::Vector3d state)
+  {
+    predict_state_ = state;
+  }
+
+
+Eigen::Vector3d getEstimateState()
+{
+  boost::lock_guard<boost::mutex> lock(kf_mutex_); 
+  return estimate_state_;
+}
+ Eigen::Vector3d getCorrectState()
+{
+  return correct_state_;
+}
+Eigen::Vector3d getPredictState()
+{
+  return predict_state_;
+}
+
+
 
   void getEstimateCovariance(float* covarianceMatrix);
 

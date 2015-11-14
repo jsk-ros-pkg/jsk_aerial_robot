@@ -293,17 +293,23 @@ class SlamData
 
         if(kalman_filter_flag_)
           {
-            x_state.kf_pos = kf_x_->getEstimatePos();
-            x_state.kf_vel = kf_x_->getEstimateVel();
-            x_state.kfb_pos = kfb_x_->getEstimatePos();
-            x_state.kfb_vel = kfb_x_->getEstimateVel();
-            x_state.kfb_bias = kfb_x_->getEstimateBias();
+            Eigen::Vector2d kf_x_state = kf_x_->getEstimateState();
+            Eigen::Vector2d kf_y_state = kf_y_->getEstimateState();
+            Eigen::Vector3d kfb_x_state = kfb_x_->getEstimateState();
+            Eigen::Vector3d kfb_y_state = kfb_y_->getEstimateState();
 
-            y_state.kf_pos = kf_y_->getEstimatePos();
-            y_state.kf_vel = kf_y_->getEstimateVel();
-            y_state.kfb_pos = kfb_y_->getEstimatePos();
-            y_state.kfb_vel = kfb_y_->getEstimateVel();
-            y_state.kfb_bias = kfb_y_->getEstimateBias();
+            x_state.kf_pos = kf_x_state(0);
+            x_state.kf_vel = kf_x_state(1);
+            x_state.kfb_pos = kfb_x_state(0);
+            x_state.kfb_vel = kfb_x_state(1);
+            x_state.kfb_bias = kfb_x_state(2);
+
+            y_state.kf_pos = kf_y_state(0);
+            y_state.kf_vel = kf_y_state(1);
+            y_state.kfb_pos = kfb_y_state(0);
+            y_state.kfb_vel = kfb_y_state(1);
+            y_state.kfb_bias = kfb_y_state(2);
+
           }
 
         three_axis_state.states.push_back(x_state);
@@ -313,15 +319,19 @@ class SlamData
 
         if(kalman_filter_debug_)
           {
+
+            Eigen::Vector3d kf1_state = kf1_->getEstimateState();
+            Eigen::Vector3d kf2_state = kf2_->getEstimateState();
+
             aerial_robot_base::State debug1;
             debug1.id = "debug1";
-            debug1.pos = kf1_->getEstimatePos();
-            debug1.vel = kf1_->getEstimateVel();
+            debug1.pos =  kf1_state(0);
+            debug1.vel =  kf1_state(1);
 
             aerial_robot_base::State debug2;
             debug2.id = "debug2";
-            debug2.pos = kf2_->getEstimatePos();
-            debug2.vel = kf2_->getEstimateVel();
+            debug2.pos = kf2_state(0);
+            debug2.vel = kf2_state(1);
 
             three_axis_state.states.push_back(debug1);
             three_axis_state.states.push_back(debug2);

@@ -260,23 +260,30 @@ class OpticalFlowData
 
         if(kalman_filter_flag_)
           {
-            x_state.kf_pos = kf_x_->getEstimatePos();
-            x_state.kf_vel = kf_x_->getEstimateVel();
-            x_state.kfb_pos = kfb_x_->getEstimatePos();
-            x_state.kfb_vel = kfb_x_->getEstimateVel();
-            x_state.kfb_bias = kfb_x_->getEstimateBias();
+            Eigen::Vector2d kf_x_state = kf_x_->getEstimateState();
+            Eigen::Vector2d kf_y_state = kf_y_->getEstimateState();
+            Eigen::Vector2d kf_z_state = kf_z_->getEstimateState();
+            Eigen::Vector3d kfb_x_state = kfb_x_->getEstimateState();
+            Eigen::Vector3d kfb_y_state = kfb_y_->getEstimateState();
+            Eigen::Vector3d kfb_z_state = kfb_z_->getEstimateState();
 
-            y_state.kf_pos = kf_y_->getEstimatePos();
-            y_state.kf_vel = kf_y_->getEstimateVel();
-            y_state.kfb_pos = kfb_y_->getEstimatePos();
-            y_state.kfb_vel = kfb_y_->getEstimateVel();
-            y_state.kfb_bias = kfb_y_->getEstimateBias();
+            x_state.kf_pos = kf_x_state(0);
+            x_state.kf_vel = kf_x_state(1);
+            x_state.kfb_pos = kfb_x_state(0);
+            x_state.kfb_vel = kfb_x_state(1);
+            x_state.kfb_bias = kfb_x_state(2);
 
-            z_state.kf_pos = kf_z_->getEstimatePos();
-            z_state.kf_vel = kf_z_->getEstimateVel();
-            z_state.kfb_pos = kfb_z_->getEstimatePos();
-            z_state.kfb_vel = kfb_z_->getEstimateVel();
-            z_state.kfb_bias = kfb_z_->getEstimateBias();
+            y_state.kf_pos = kf_y_state(0);
+            y_state.kf_vel = kf_y_state(1);
+            y_state.kfb_pos = kfb_y_state(0);
+            y_state.kfb_vel = kfb_y_state(1);
+            y_state.kfb_bias = kfb_y_state(2);
+
+            z_state.kf_pos = kf_z_state(0);
+            z_state.kf_vel = kf_z_state(1);
+            z_state.kfb_pos = kfb_z_state(0);
+            z_state.kfb_vel = kfb_z_state(1);
+            z_state.kfb_bias = kfb_z_state(2);
           }
 
         opt_data.states.push_back(x_state);
@@ -297,8 +304,9 @@ class OpticalFlowData
 
     if(!start_flag && !kf_correct_flag_)
       {//special process
-        if(kf_z_->getEstimatePos() <= 0)
+        if((kf_z_->getEstimateState())[0] <= 0)
           {
+            ROS_ERROR("bad");
             bool stop_flag = false;
             kf_x_->setMeasureFlag(stop_flag);
             kf_y_->setMeasureFlag(stop_flag);
