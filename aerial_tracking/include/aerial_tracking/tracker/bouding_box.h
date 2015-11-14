@@ -265,7 +265,7 @@ class BoundingBox
     //ROS_INFO("x:%f, y:%f, aera:%f", x_dash, y_dash, ball_area);
     float target_vel_y = dif_y / target_y_ * gain_y_;
     int dif_psi = abs(dif_y) - thre_psi_;
-    float target_psi = dif_y * gain_psi_;
+    float target_psi = dif_y /target_y_ * gain_psi_;
     if(dif_psi > 0)
       {
         navi_command.target_psi = target_psi; //bad-> should be velocity control
@@ -338,7 +338,6 @@ class BoundingBox
       thre_z_ = 0.25;
     printf("%s: thre_z_ is %.3f\n", ns.c_str(), thre_z_);
 
-
     if (!nh_private_.getParam ("z_real_lower_pos_thre", z_real_lower_pos_thre_))
       z_real_lower_pos_thre_ = 0.35;
     printf("%s: z_real_lower_pos_thre_ is %.3f\n", ns.c_str(), z_real_lower_pos_thre_);
@@ -355,7 +354,7 @@ class BoundingBox
     printf("%s: thre_psi_ is %.3f\n", ns.c_str(), thre_psi_);
 
     if (!nh_private_.getParam ("gain_psi", gain_psi_))
-      gain_psi_ = 0.35;
+      gain_psi_ = 0.5;
     printf("%s: gain_psi_ is %.3f\n", ns.c_str(), gain_psi_);
 
     nh_private_.param("cam_info_topic", cam_info_topic_, std::string("/camera/camera_info"));
