@@ -587,6 +587,11 @@ void PidController::pidFunction()
                       pos_p_term_throttle_ = limit(pos_p_gain_throttle_[j] * d_err_pos_curr_throttle_, pos_p_limit_throttle_); //P term for pid
                       pos_d_term_throttle_ = limit(-pos_d_gain_throttle_[j] * state_vel_z, pos_d_limit_throttle_);
 
+                      if(navigator_->getFlightMode() == Navigator::LAND_MODE)
+                        {
+                          pos_p_term_throttle_ = limit(pos_p_gain_throttle_[j] / 2*  d_err_pos_curr_throttle_, pos_p_limit_throttle_); //half of the gain
+                          pos_i_term_throttle_ = limit(pos_i_gain_throttle_[j] / 2 * error_i_throttle_, pos_i_limit_throttle_); //half of the gain
+                        }
                     }
 
                   //*** each motor command value for log
