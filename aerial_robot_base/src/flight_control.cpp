@@ -589,8 +589,8 @@ void PidController::pidFunction()
 
                       if(navigator_->getFlightMode() == Navigator::LAND_MODE)
                         {
-                          pos_p_term_throttle_ = limit(pos_p_gain_throttle_[j] / 2*  d_err_pos_curr_throttle_, pos_p_limit_throttle_); //half of the gain
-                          pos_i_term_throttle_ = limit(pos_i_gain_throttle_[j] / 2 * error_i_throttle_, pos_i_limit_throttle_); //half of the gain
+                          pos_p_term_throttle_ = limit(pos_p_gain_throttle_[j] * land_gain_slow_rate_ *  d_err_pos_curr_throttle_, pos_p_limit_throttle_); //half of the gain
+                          pos_d_term_throttle_ = limit(-pos_d_gain_throttle_[j] / land_gain_slow_rate_ * state_vel_z, pos_d_limit_throttle_); //twice
                         }
                     }
 
@@ -909,6 +909,10 @@ void PidController::rosParamInit(ros::NodeHandle nh)
 
   if(motor_num_ == 1)//general multirot
     {
+      if (!nh.getParam ("land_gain_slow_rate", land_gain_slow_rate_))
+        land_gain_slow_rate_ = 1.0;
+      printf(" land_gain_slow_rate_ is %.3f\n", land_gain_slow_rate_);
+
       if (!throttle_node.getParam ("pos_p_gain", pos_p_gain_throttle_[0]))
         pos_p_gain_throttle_[0] = 0;
       printf("%s: pos_p_gain_ is %.3f\n", throttle_ns.c_str(), pos_p_gain_throttle_[0]);
@@ -932,6 +936,7 @@ void PidController::rosParamInit(ros::NodeHandle nh)
       if (!yaw_node.getParam ("pos_d_gain", pos_d_gain_yaw_[0]))
         pos_d_gain_yaw_[0] = 0;
       printf("%s: pos_d_gain_ is %.3f\n", yaw_ns.c_str(), pos_d_gain_yaw_[0]);
+      
     }
   else
     {//transformable

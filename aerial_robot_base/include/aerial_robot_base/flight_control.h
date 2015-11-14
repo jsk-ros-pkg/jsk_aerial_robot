@@ -97,6 +97,7 @@ class PidController : public FlightController
   //double const_i_term_value_throttle_land_; 
   double offset_throttle_;
   int pos_limit_throttle_;
+  double land_gain_slow_rate_;
   int pos_p_limit_throttle_;
   int pos_i_limit_throttle_;
   int pos_d_limit_throttle_;
