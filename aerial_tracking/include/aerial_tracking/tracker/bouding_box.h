@@ -78,6 +78,9 @@ class BoundingBox
   IirFilter lpf_image_x_, lpf_image_y_, lpf_image_area_;
   double rx_freq_, cutoff_freq_;
 
+  float wh_rate_ ,width_, height_;
+
+
   Eigen::Matrix3d intrinsic_r_matrix_, r_intrinsic_inverse_matrix_;
 
   double target_area_;
@@ -123,6 +126,10 @@ class BoundingBox
     target_z_ = msg->height * target_z_;
     thre_z_  = msg->height  * thre_z_; 
     thre_psi_  = msg->width / 2 * thre_psi_; //half of image frame
+
+    width_ = msg->width;
+    height_ = msg->height;
+
 
     ROS_INFO("target_y_: %f, target_z_: %f", target_y_, target_z_);
 
@@ -170,6 +177,8 @@ class BoundingBox
     if(first_flag) 
       {
         target_area_ = msg->width * msg->height;
+        wh_rate_ = (float)msg->width / (float)msg->height;
+
         lpf_image_x_.setPosInitState((double)world_coord(0));
         lpf_image_y_.setPosInitState((double)world_coord(1));
         lpf_image_area_.setPosInitState((double)target_area_);
@@ -221,7 +230,8 @@ class BoundingBox
     //      same with the alt control func of joy stick navigator.
     float target_dif_pos_z =  dif_z / fabs(dif_z) * gain_z_;
     float pos_z = tracker_->getPosZ();
-
+    
+    
 
     //ROS_INFO("navi_command.target_pos_diff_z :%f", target_dif_pos_z);
     if(abs(dif_z) > thre_z_)
@@ -254,6 +264,13 @@ class BoundingBox
         navi_command.target_pos_z = z_real_upper_pos_thre_;
         // navigator_->setTargetPosZ(3);
       }
+    //for x 
+    if(world_coord(1) - (msg->width / wh_rate_ / 2.0) < 0 ||
+       world_coord(1) + (msg->width / wh_rate_ / 2.0) > height_)
+      {
+        navi_command.target_vel_x = 0;
+        ROS_WARN("bouding box: over horizontal edge");
+      }
 
     //* y & psi
     int dif_y = - (x_dash - target_y_);
@@ -277,6 +294,15 @@ class BoundingBox
         /* navigator_->setTargetVelY(target_vel_y); */
       }
 
+    //for x 
+    if(world_coord(0) - (msg->height * wh_rate_ / 2.0) < 0 ||
+       world_coord(0) + (msg->height * wh_rate_ / 2.0) > width_)
+      {
+        navi_command.target_vel_x = 0;
+        ROS_WARN("bouding box: over vertical edge");
+      }
+
+
     tracker_->navigation(navi_command);
   }
 
@@ -296,6 +322,7 @@ class BoundingBox
     if (!nh_private_.getParam ("gain_forward_x", gain_forward_x_))
       gain_forward_x_ = 0.4; //old: 0.2
     printf("%s: gain_forward_x_ is %.3f\n", ns.c_str(), gain_forward_x_);
+
 
     //y
     if (!nh_private_.getParam ("target_y", target_y_))
