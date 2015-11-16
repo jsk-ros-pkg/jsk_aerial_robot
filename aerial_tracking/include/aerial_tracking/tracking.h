@@ -28,6 +28,7 @@ class Tracking: public BasicTracking
 
       imu_sub_ = nh_.subscribe<aerial_robot_msgs::KduinoImu>("kduino/imu", 1, &Tracking::AttitudeCallback, this, ros::TransportHints().tcpNoDelay()); 
 
+      start_tracking_pub_ = nh_.advertise<std_msgs::UInt8>("/start_tracking", 1);
 
       tracking_flag_ = false;
 
@@ -48,6 +49,7 @@ class Tracking: public BasicTracking
   ros::Subscriber imu_sub_;
   ros::Publisher  navi_pub_;
   ros::Publisher  stop_teleop_pub_;
+  ros::Publisher start_tracking_pub_;
 
   bool tracking_flag_;
 
@@ -69,6 +71,10 @@ class Tracking: public BasicTracking
 
           //trial
           bounding_box_tracker_ = new BoundingBox(nh_, nh_private_, this);
+
+          //trial, start tracking
+          startTracking();
+
         }
       if(joy_msg->buttons[14] == 1 && tracking_flag_)
         {//cross
@@ -111,6 +117,27 @@ class Tracking: public BasicTracking
   }
 
   void rosParamInit();
+
+  void startTracking()
+  {
+    std_msgs::UInt8 start_msg;
+    start_msg.data = 1;
+    start_tracking_pub_.publish(start_msg);
+
+    /* image_processing::StartTracking srv; */
+    /* srv.request.tracking_req = true; */
+    /* if(start_tracking_client_.call(srv)) */
+    /*   { */
+    /*     if(srv.response.tracking_res) */
+    /*       ROS_INFO("start tracking from aerial tracker"); */
+    /*   } */
+    /* else */
+    /*   { */
+    /*     ROS_ERROR("Filaed to call service"); */
+    /*   } */
+  }
+
+
 
 };
 

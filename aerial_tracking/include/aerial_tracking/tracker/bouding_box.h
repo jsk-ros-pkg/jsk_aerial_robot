@@ -30,8 +30,6 @@ class BoundingBox
 
       camera_info_sub_ = nh_.subscribe<sensor_msgs::CameraInfo>(cam_info_topic_, 1, &BoundingBox::cameraInfoCallback, this, ros::TransportHints().tcpNoDelay());
 
-      start_tracking_pub_ = nh_.advertise<std_msgs::UInt8>("/start_tracking", 1);
-
       world_cam_pub_ = nh_.advertise<geometry_msgs::Vector3Stamped>("world_cam_coord", 1); 
 
       lpf_image_x_ =  IirFilter((float)rx_freq_, (float)cutoff_freq_);
@@ -40,9 +38,6 @@ class BoundingBox
 
       alt_control_flag_ = false;
       start_tracking_flag_ = false;
-
-      //trial, start tracking
-      startTracking();
  }
 
   ~BoundingBox()
@@ -75,7 +70,7 @@ class BoundingBox
   ros::Publisher world_cam_pub_;
   ros::Publisher navi_pub_;
   ros::Subscriber state_sub_;
-  ros::Publisher start_tracking_pub_;
+
 
   //ros::ServiceClient start_tracking_client_;
   BasicTracking* tracker_;
@@ -283,25 +278,6 @@ class BoundingBox
       }
 
     tracker_->navigation(navi_command);
-  }
-
-  void startTracking()
-  {
-    std_msgs::UInt8 start_msg;
-    start_msg.data = 1;
-    start_tracking_pub_.publish(start_msg);
-
-    /* image_processing::StartTracking srv; */
-    /* srv.request.tracking_req = true; */
-    /* if(start_tracking_client_.call(srv)) */
-    /*   { */
-    /*     if(srv.response.tracking_res) */
-    /*       ROS_INFO("start tracking from aerial tracker"); */
-    /*   } */
-    /* else */
-    /*   { */
-    /*     ROS_ERROR("Filaed to call service"); */
-    /*   } */
   }
 
   void rosParamInit()
