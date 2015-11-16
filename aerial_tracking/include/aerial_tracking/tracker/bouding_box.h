@@ -193,8 +193,27 @@ class BoundingBox
     // ball_area = msg->width * msg->height;
     lpf_image_x_.filterFunction((double)world_coord(0), x_dash);
     lpf_image_y_.filterFunction((double)world_coord(1), y_dash);
-    lpf_image_area_.filterFunction((double)(msg->width * msg->height), ball_area);
 
+
+    bool area_control_flag = true;
+    //for x 
+    //ROS_INFO("y_center:%f, length:%f, height:%f ", (float)world_coord(1) , (msg->width / wh_rate_ / 2.0), height_);
+    if(world_coord(1) - (msg->width / wh_rate_ / 2.0) < 0 + 30  ||
+       world_coord(1) + (msg->width / wh_rate_ / 2.0) > height_ - 30)
+      {
+        area_control_flag = false;
+        ROS_WARN("bouding box: over horizontal edge");
+      }
+
+    if(world_coord(0) - (msg->height * wh_rate_ / 2.0) < 0 ||
+       world_coord(0) + (msg->height * wh_rate_ / 2.0) > width_)
+      {
+        area_control_flag = false;
+        ROS_WARN("bouding box: over vertical edge");
+      }
+
+    if(area_control_flag)
+    lpf_image_area_.filterFunction((double)(msg->width * msg->height), ball_area);
 
     geometry_msgs::Vector3Stamped world_cam_coord;
     world_cam_coord.header.stamp = msg->header.stamp;
@@ -221,6 +240,8 @@ class BoundingBox
     //navigator_->setTargetVelX(target_vel_x);
     navi_command.target_vel_x = target_vel_x;
 
+    if(!area_control_flag) navi_command.target_vel_x = 0;
+
     //* z
     navi_command.pos_z_navi_mode = aerial_robot_base::FlightNav::NO_NAVIGATION;
 
@@ -231,8 +252,6 @@ class BoundingBox
     float target_dif_pos_z =  dif_z / fabs(dif_z) * gain_z_;
     float pos_z = tracker_->getPosZ();
     
-    
-
     //ROS_INFO("navi_command.target_pos_diff_z :%f", target_dif_pos_z);
     if(abs(dif_z) > thre_z_)
       {
@@ -264,13 +283,6 @@ class BoundingBox
         navi_command.target_pos_z = z_real_upper_pos_thre_;
         // navigator_->setTargetPosZ(3);
       }
-    //for x 
-    if(world_coord(1) - (msg->width / wh_rate_ / 2.0) < 0 ||
-       world_coord(1) + (msg->width / wh_rate_ / 2.0) > height_)
-      {
-        navi_command.target_vel_x = 0;
-        ROS_WARN("bouding box: over horizontal edge");
-      }
 
     //* y & psi
     int dif_y = - (x_dash - target_y_);
@@ -292,14 +304,6 @@ class BoundingBox
         navi_command.target_vel_y = target_vel_y; 
         /* navigator_->setTargetPsi(0); */
         /* navigator_->setTargetVelY(target_vel_y); */
-      }
-
-    //for x 
-    if(world_coord(0) - (msg->height * wh_rate_ / 2.0) < 0 ||
-       world_coord(0) + (msg->height * wh_rate_ / 2.0) > width_)
-      {
-        navi_command.target_vel_x = 0;
-        ROS_WARN("bouding box: over vertical edge");
       }
 
 
