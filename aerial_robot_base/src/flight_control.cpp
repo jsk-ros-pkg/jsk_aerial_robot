@@ -121,7 +121,7 @@ void PidController::yawThrottleGainCallback(const aerial_robot_base::YawThrottle
 {
   if(msg->motor_num != motor_num_) 
     {
-      ROS_ERROR("the motor number is not correct");
+      ROS_ERROR("the motor number is not correct, msg->motor_num:%d, motor_num_:%d", msg->motor_num, motor_num_);
       return ;
     }
 
