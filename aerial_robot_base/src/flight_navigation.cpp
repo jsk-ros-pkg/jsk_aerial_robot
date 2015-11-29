@@ -181,6 +181,10 @@ TeleopNavigator::TeleopNavigator(ros::NodeHandle nh, ros::NodeHandle nh_private,
   rc_cmd_pub_ = nh_.advertise<aerial_robot_msgs::FourAxisCommand>("kduino/rc_cmd", 10); 
   msp_cmd_pub_ = nh_.advertise<std_msgs::UInt16>("kduino/msp_cmd", 10);
 
+  //temporarily
+  joints_ctrl_pub_= nh_.advertise<std_msgs::Int8>("/teleop_command/joints_ctrl", 2);
+
+
 }
 
 TeleopNavigator::~TeleopNavigator()
@@ -422,6 +426,9 @@ void TeleopNavigator::xyControlModeCallback(const std_msgs::Int8ConstPtr & msg)
 
 void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
 { //botton assignment: http://wiki.ros.org/ps3joy
+  //temporary
+  static bool joint_ctrl_flag   = false;
+
 
   if(gain_tunning_mode_ == ATTITUDE_GAIN_TUNNING_MODE)
     {
@@ -486,7 +493,6 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
 	  target_roll_angle_
 	    = - joy_msg->axes[0] * target_angle_rate_ * cmd_angle_lev2_gain_;
 	}
-
 
       //throttle, TODO: not good
       if(fabs(joy_msg->axes[3]) > 0.2)
@@ -564,7 +570,7 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
 
     }
   else if(xy_control_mode_ == POS_WORLD_BASED_CONTROL_MODE || xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE)
-    {
+   {
       //start 
       if(joy_msg->buttons[3] == 1 && getNaviCommand() != START_COMMAND)
         {
@@ -832,6 +838,28 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
 
         }
     }
+
+  if(!joint_ctrl_flag)
+    {//joints angle ctrl
+      if(joy_msg->buttons[8] == 1)
+        {
+          std_msgs::Int8 joints_ctrl_cmd;
+          joints_ctrl_cmd.data = 7;
+          joints_ctrl_pub_.publish(joints_ctrl_cmd);
+          joint_ctrl_flag = true;
+          ROS_INFO("to ku model");
+        }
+      if(joy_msg->buttons[10] == 1)
+        {
+          std_msgs::Int8 joints_ctrl_cmd;
+          joints_ctrl_cmd.data = 8;
+          joints_ctrl_pub_.publish(joints_ctrl_cmd);
+          joint_ctrl_flag = true;
+          ROS_INFO("to normal model");
+        }
+    }
+  if(joy_msg->buttons[8] == 0 && joy_msg->buttons[10] == 0 && joint_ctrl_flag)
+    joint_ctrl_flag = false;
 }
 
 

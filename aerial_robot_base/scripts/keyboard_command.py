@@ -119,7 +119,7 @@ if __name__=="__main__":
 			if key == 'x':
                                 stop_real = UInt8()
 				stop_real.data = 0
-                                stop_realtime_lqi_pub.publish(stop_real)
+                                #stop_realtime_lqi_pub.publish(stop_real)
                                 start_motion = UInt8()
                                 start_motion.data = 1
                                 motion_start_pub.publish(start_motion)
