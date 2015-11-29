@@ -80,6 +80,8 @@ class RigidEstimator : public BasicEstimator
   bool   kalman_filter_debug_;
   int    kalman_filter_axis_;
 
+  bool hokuyo_flag_;
+  bool px4flow_flag_;
   bool mocap_flag_;
 
   int altitude_control_mode_;
@@ -117,12 +119,11 @@ class RigidEstimator : public BasicEstimator
   float getStateVelXOpt();
   float getStateVelYOpt();
 
+  void setStateCorrectFlag(bool flag);
 
   void rosParamInit(ros::NodeHandle nh);
 
-  bool getRocketStartFlag();
-  void setRocketStartFlag();
-
+  void statesBroadcast();
 
 };
 

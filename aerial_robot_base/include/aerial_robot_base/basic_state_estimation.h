@@ -181,8 +181,6 @@ class BasicEstimator
 
   virtual float getLaserToImuDistance() {  return 0; }
 
-  virtual bool getRocketStartFlag(){ return true; }
-  virtual void setRocketStartFlag(){}
 
   virtual void setOuterEstimatePoseFlag(uint8_t axis)
   {
@@ -204,6 +202,8 @@ class BasicEstimator
   virtual float getStateVelXOpt() { return 0;}
   virtual float getStateVelYOpt() { return 0;}
   virtual void setKFMeaureFlag(int axis, bool flag){}
+
+  virtual void setStateCorrectFlag(bool flag){ return;}
 
  protected:  
 
@@ -232,43 +232,6 @@ class BasicEstimator
   uint8_t use_outer_pose_estimate_;
   uint8_t use_outer_vel_estimate_;
 
-  void statesBroadcast()
-  {
-    aerial_robot_base::States full_states;
-    full_states.header.stamp = getSystemTimeStamp();
-    aerial_robot_base::State x_state;
-    x_state.id = "x";
-    x_state.pos = getStatePosX();
-    x_state.vel = getStateVelX();
-    aerial_robot_base::State y_state;
-    y_state.id = "y";
-    y_state.pos = getStatePosY();
-    y_state.vel = getStateVelY();
-    aerial_robot_base::State z_state;
-    z_state.id = "z";
-    z_state.pos = getStatePosZ();
-    z_state.vel = getStateVelZ();
-
-    aerial_robot_base::State yaw_state;
-    yaw_state.id = "yaw";
-    yaw_state.pos = getStatePsiBoard();
-    yaw_state.vel = getStateVelPsiBoard();
-    aerial_robot_base::State pitch_state;
-    pitch_state.id = "pitch";
-    pitch_state.pos = getStateTheta();
-    aerial_robot_base::State roll_state;
-    roll_state.id = "roll";
-    roll_state.pos = getStatePhy();
-
-    full_states.states.push_back(x_state);
-    full_states.states.push_back(y_state);
-    full_states.states.push_back(z_state);
-    full_states.states.push_back(yaw_state);
-    full_states.states.push_back(pitch_state);
-    full_states.states.push_back(roll_state);
-
-    full_states_pub_.publish(full_states);
-  }
 
 };
 

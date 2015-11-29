@@ -1,0 +1,20 @@
+# Optical Flow Kalman Filter on Kawasaki IMU Board
+
+
+estimator/start_lower_thre: 0.305 
+estimator/start_upper_thre: 0.4  #0.46
+estimator/start_vel: 0.75 #0.25  
+
+kalman_filter/XOpt/input_sigma: 0.06 #0.05
+kalman_filter/XOpt/bias_sigma: 0.006 #0.005 test 0.002 good
+kalman_filter/XOpt/measure_sigma: 0.1
+
+
+kalman_filter/YOpt/input_sigma: 0.06 #0.05
+kalman_filter/YOpt/bias_sigma: 0.006 #0.005 test 0.002 good
+kalman_filter/YOpt/measure_sigma: 0.1
+
+
+kalman_filter/ZOpt/input_sigma: 0.35
+kalman_filter/ZOpt/bias_sigma: 0.0006
+kalman_filter/ZOpt/measure_sigma: 0.01

@@ -1,0 +1,6 @@
+
+# _free _fall
+
+navigator/free_fall_thre: 0.28 # 0.2 ~ 0.4 (0.25 for laser; 0.35 for sonar), finally estimate using baro 
+controller/throttle/free_fall_step_value: 3  # 2: hokuyo + nuc + px4; 3: px4 + nuc
+controller/throttle/motor_stop_value: 1340  # 1470: hokuyo + nuc + px4; 1440: nuc + px4 + 6000mAh; 1340: nuc + px4 + 2650mAh

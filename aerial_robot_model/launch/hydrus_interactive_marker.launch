@@ -1,0 +1,11 @@
+<launch>
+
+  <arg name="base" default="world" />
+  <arg name="tf_prefix" default="" />
+
+  <node name="interactive_marker" pkg="aerial_robot_model" type="hydrus_origin_publisher" >
+    <param name="base" value="$(arg base)"/>
+    <param name="tf_prefix" value="$(arg tf_prefix)"/>
+  </node>
+
+</launch>

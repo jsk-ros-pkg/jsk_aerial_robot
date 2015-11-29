@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="red_ball_mode" value="false" /> 
+
+  <!-- hsv + camshift red ball tracking -->
+  <include file="$(find image_processing)/launch/bs_tracking.launch" >
+      <arg name="red_ball_mode" value="$(arg red_ball_mode)" /> 
+  </include>
+
+  <!-- aerial tracking for bunding box -->
+  <node pkg="aerial_tracking" type="tracking_node" name="tracking_node"  output="screen" > 
+    <remap from="flight_nav" to="/navigator/full_states" /> 
+    <remap from="stop_teleop" to="/navigator/stop_teleop" /> 
+    <param name="tracking/bounding_box/gain_y" value="0.2" />
+    <param name="tracking/bounding_box/gain_forward_x" value="0.15" />
+    <param name="tracking/bounding_box/gain_backward_x" value="0.15" />
+    <param name="tracking/bounding_box/thre_z" value="0.1" /> <!-- 0.125 -->
+    <param name="tracking/bounding_box/gain_z" value="0.004" /> 
+  </node>
+
+  <!-- aerial platform -->
+
+  <include file="$(find aerial_robot_base)/launch/rook/rook.launch" />
+
+</launch>

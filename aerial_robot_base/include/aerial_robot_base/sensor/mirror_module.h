@@ -146,9 +146,8 @@ class MirrorModule
           msg.data = laser_boundary_ * 2; //set the parameter
           module_laser_boundary_pub_.publish(msg);
 
-          bool start_flag = true;
-          kfb_z_->setMeasureStartFlag(start_flag);
-          kf_z_->setMeasureStartFlag(start_flag);
+          kfb_z_->setMeasureFlag();
+          kf_z_->setMeasureFlag();
 
           calibrate_count++;
 
@@ -198,11 +197,14 @@ class MirrorModule
 
       if(kalman_filter_flag_)
         {
-          state.kf_pos = kf_z_->getEstimatePos();
-          state.kf_vel = kf_z_->getEstimateVel();
-          state.kfb_pos = kfb_z_->getEstimatePos();
-          state.kfb_vel = kfb_z_->getEstimateVel();
-          state.kfb_bias= kfb_z_->getEstimateBias();
+          Eigen::Vector2d kf_z_state = kf_z_->getEstimateState();
+          Eigen::Vector3d kfb_z_state = kfb_z_->getEstimateState();
+
+          state.kf_pos = kf_z_state(0);
+          state.kf_vel = kf_z_state(1);
+          state.kfb_pos = kfb_z_state(0);
+          state.kfb_vel = kfb_z_state(1);
+          state.kfb_bias= kfb_z_state(2);
         }
 
       height_state.states.push_back(state);

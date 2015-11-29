@@ -263,14 +263,14 @@ class ImuData
 
             if(kalman_filter_flag_)
               {
-                kf_x_->setInputStartFlag();
-                kf_y_->setInputStartFlag();
-                kf_z_->setInputStartFlag();
+                kf_x_->setInputFlag();
+                kf_y_->setInputFlag();
+                kf_z_->setInputFlag();
 
                 //for optical flow
-                kf_x_opt_->setInputStartFlag();
-                kf_y_opt_->setInputStartFlag();
-                kf_z_opt_->setInputStartFlag();
+                kf_x_opt_->setInputFlag();
+                kf_y_opt_->setInputFlag();
+                kf_z_opt_->setInputFlag();
 
 
                 //for bias mode
@@ -430,6 +430,7 @@ class ImuData
     imu_data.acc_non_bias_world_frame.y = acc_yw_non_bias_;
     imu_data.acc_non_bias_world_frame.z = acc_zw_non_bias_;
 
+#if 0 //deprecated
     if(kalman_filter_flag_)
       {
         imu_data.position.x = kf_x_->getEstimatePos();
@@ -440,6 +441,7 @@ class ImuData
         imu_data.velocity.y = kf_y_->getEstimateVel();
         imu_data.velocity.z = kf_z_->getEstimateVel();
       }
+#endif
 
     imu_pub_.publish(imu_data);
   }

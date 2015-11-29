@@ -1086,6 +1086,9 @@ bool  TransformController::stabilityCheck(bool debug)
       Eigen::VectorXd lamda;
       lamda = solver.solve(g);
       x = U_.transpose() * lamda;
+
+      if(debug_log_)
+        std::cout << "U det:"  << std::endl << (U_ * U_.transpose()).determinant() << std::endl;
     }
 
   if(debug_log_)
@@ -1135,22 +1138,21 @@ void TransformController::lqi()
       if(lqi_flag_) 
         {
           //check the thre check
-          if(!distThreCheck()) //[m]
-            {
-              ROS_ERROR("(singular pose, can not resolve the lqi control problem");
-              loop_rate.sleep();
-              continue;
-            }
-
+            if(!distThreCheck()) //[m]
+              {
+                ROS_ERROR("(singular pose, can not resolve the lqi control problem");
+                loop_rate.sleep();
+                continue;
+              }
 
           //check the stability within the range of the motor force
           if(!stabilityCheck()) 
             ROS_ERROR("can not be four axis stable, switch to three axis stable mode");
 
-           if(!hamiltonMatrixSolver(lqi_mode_)){ continue;}
+          if(!hamiltonMatrixSolver(lqi_mode_)){ continue;}
 
            //just do publishing when link number is 4
-           if(link_num_ == 4) param2contoller();
+          if(link_num_ == 4) param2contoller();
         }
       loop_rate.sleep();
     }

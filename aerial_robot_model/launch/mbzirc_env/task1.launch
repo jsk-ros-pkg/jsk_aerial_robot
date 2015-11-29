@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<launch>
+
+  <include file="$(find aerial_robot_model)/launch/display_xacro_with_joint_state_publisher.launch" >
+    <arg name="rviz" value="True" />
+    <arg name="model" value="hydrax/hydra_penta" />
+  </include>
+
+  <include file="$(find aerial_robot_model)/launch/hydrus_interactive_marker.launch" >
+    <arg name="base" value="base_link" />
+  </include>
+
+
+  <arg name="model" default="mbzirc_small_object" />  
+  <group ns="$(arg model)"> 
+    <param name="robot_description"
+           command="$(find xacro)/xacro.py '$(find aerial_robot_model)/robots/other_objects/$(arg model).urdf.xacro'" />
+
+    <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" ></node>
+    <node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher" >
+      <!-- <param name="tf_prefix" value="$(arg model)" />-->
+    </node>
+
+    <node name="other_object_tf_publisher" pkg="aerial_robot_model" type="other_object_tf_publisher" >
+      <param name="other_object" value="base_link" /> 
+    </node>
+  </group> 
+
+
+</launch>
