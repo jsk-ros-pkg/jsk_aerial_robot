@@ -38,6 +38,10 @@ class BoundingBox
 
       alt_control_flag_ = false;
       start_tracking_flag_ = false;
+
+      x_dash_ = 0;
+      y_dash_ = 0;
+      ball_area_ = 0;
  }
 
   ~BoundingBox()
@@ -90,6 +94,8 @@ class BoundingBox
   double thre_psi_;
   double z_real_lower_pos_thre_;
   double z_real_upper_pos_thre_;
+
+  double x_dash_, y_dash_, ball_area_;
 
   double gain_forward_x_;
   double gain_backward_x_;
@@ -186,14 +192,11 @@ class BoundingBox
         return;
       }
 
-
-    double x_dash, y_dash, ball_area;
     // x_dash = world_coord(0);
     // y_dash = world_coord(1);
     // ball_area = msg->width * msg->height;
-    lpf_image_x_.filterFunction((double)world_coord(0), x_dash);
-    lpf_image_y_.filterFunction((double)world_coord(1), y_dash);
-
+    lpf_image_x_.filterFunction((double)world_coord(0), x_dash_);
+    lpf_image_y_.filterFunction((double)world_coord(1), y_dash_);
 
     bool area_control_flag = true;
     //for x 
@@ -213,16 +216,16 @@ class BoundingBox
       }
 
     if(area_control_flag)
-    lpf_image_area_.filterFunction((double)(msg->width * msg->height), ball_area);
+      lpf_image_area_.filterFunction((double)(msg->width * msg->height), ball_area_);
 
     geometry_msgs::Vector3Stamped world_cam_coord;
     world_cam_coord.header.stamp = msg->header.stamp;
     //world_cam_coord.vector.x = world_coord(0);
     //world_cam_coord.vector.y = world_coord(1);
     //world_cam_coord.vector.z = local_coord(1);
-    world_cam_coord.vector.x = x_dash;
-    world_cam_coord.vector.y = y_dash;
-    world_cam_coord.vector.z = ball_area;
+    world_cam_coord.vector.x = x_dash_;
+    world_cam_coord.vector.y = y_dash_;
+    world_cam_coord.vector.z = ball_area_;
     world_cam_pub_.publish(world_cam_coord);
 
     //tracking process using vel control
@@ -231,7 +234,7 @@ class BoundingBox
     navi_command.command_mode = aerial_robot_base::FlightNav::VEL_FLIGHT_MODE_COMMAND;
 
     //* x
-    float dif_area =  - (ball_area - target_area_) / target_area_;
+    float dif_area =  - (ball_area_ - target_area_) / target_area_;
     float target_vel_x = 0;
     if(dif_area > 0) // forward
       target_vel_x = dif_area * gain_forward_x_;
@@ -245,7 +248,7 @@ class BoundingBox
     //* z
     navi_command.pos_z_navi_mode = aerial_robot_base::FlightNav::NO_NAVIGATION;
 
-    double dif_z =  -(y_dash - target_z_); //sign should be opposite, according to the camera  coord
+    double dif_z =  -(y_dash_ - target_z_); //sign should be opposite, according to the camera  coord
     //ROS_INFO("ok1-5: dif_z:%f, y_dash:%lf, target_z:%lf", dif_z, y_dash, target_z_);
     //TODO: should add the factor of area of ball, 
     //      same with the alt control func of joy stick navigator.
@@ -285,7 +288,7 @@ class BoundingBox
       }
 
     //* y & psi
-    int dif_y = - (x_dash - target_y_);
+    int dif_y = - (x_dash_ - target_y_);
 
     //ROS_INFO("x:%f, y:%f, aera:%f", x_dash, y_dash, ball_area);
     float target_vel_y = dif_y / target_y_ * gain_y_;
