@@ -1,9 +1,9 @@
 ### PID control for quadcopter
 
 controller/feedforward_flag: false
-controller/f_pwm_rate:  0.3029
-controller/f_pwm_offset -21.196
-controller/pwm_rate_ 1800/100.0
+controller/f_pwm_rate: 0.3029
+controller/f_pwm_offset: -21.196
+controller/pwm_rate: 18.0  #1800/100.0
 
 controller/pitch/ctrl_loop_rate: 40
 controller/roll/ctrl_loop_rate: 40

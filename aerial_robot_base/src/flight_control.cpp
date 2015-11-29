@@ -17,8 +17,8 @@ FlightController::FlightController(ros::NodeHandle nh,
   //normal namespace
   // if (!nh_private.getParam ("motor_num", motor_num_))
   //   motor_num_ = 4;
-  // printf("motor_num_ is %d\n", motor_num_);
   motor_num_ = flight_ctrl_input_->getMotorNumber();
+  printf("motor_num_ is %d\n", motor_num_);
   //controller namespace
   if (!nhp_.getParam ("f_pwm_rate", f_pwm_rate_))
     f_pwm_rate_ = 1; //0.3029;
@@ -582,7 +582,7 @@ void PidController::pidFunction()
                   //***** Dの項
                   pos_d_term_throttle_ = limit(pos_d_gain_throttle_[j] * state_vel_z, pos_d_limit_throttle_);
 
-                  if(motor_num_= 1)
+                  if(motor_num_ == 1)
                     {
                       pos_p_term_throttle_ = limit(pos_p_gain_throttle_[j] * d_err_pos_curr_throttle_, pos_p_limit_throttle_); //P term for pid
                       pos_d_term_throttle_ = limit(-pos_d_gain_throttle_[j] * state_vel_z, pos_d_limit_throttle_);
