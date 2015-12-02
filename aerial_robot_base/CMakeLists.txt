@@ -70,7 +70,7 @@ add_library (aerial_robot_base src/aerial_robot_base.cpp
 )
 add_dependencies(aerial_robot_base aerial_robot_msgs_gencpp ${PROJECT_NAME}_gencpp)
 ## important link
-target_link_libraries (aerial_robot_base ${catkin_LIBRARIES}  ${Boost_LIBRARIES} aerial_robot_base) 
+target_link_libraries (aerial_robot_base ${catkin_LIBRARIES}  ${Boost_LIBRARIES}) 
 
 
 add_executable(aerial_robot_base_node src/aerial_robot_base_node.cpp)
