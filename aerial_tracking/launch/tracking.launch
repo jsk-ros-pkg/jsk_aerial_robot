@@ -11,6 +11,7 @@
   <node pkg="aerial_tracking" type="tracking_node" name="tracking_node"  output="screen" > 
     <remap from="flight_nav" to="/navigator/full_states" /> 
     <remap from="stop_teleop" to="/navigator/stop_teleop" /> 
+    <param name="tracking/bounding_box/gain_psi" value="0.8" />
     <param name="tracking/bounding_box/gain_y" value="0.2" />
     <param name="tracking/bounding_box/gain_forward_x" value="0.15" />
     <param name="tracking/bounding_box/gain_backward_x" value="0.15" />
