@@ -1,6 +1,6 @@
 ### PID control for quadcopter
 
-controller/feedforward_flag: false
+controller/feedforward_flag: true
 controller/f_pwm_rate: 0.3029
 controller/f_pwm_offset: -21.196
 controller/pwm_rate: 18.0  #1800/100.0
