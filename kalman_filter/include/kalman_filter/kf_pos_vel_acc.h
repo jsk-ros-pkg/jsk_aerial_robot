@@ -24,7 +24,7 @@ class KalmanFilterPosVelAcc:  KalmanFilter<2, 1, 1>
   inline void setCorrectMode(uint8_t correct_mode){correct_mode_ = correct_mode;}
 
   //dynamic reconfigure
-  void cfgCallback(aerial_robot_base::StateKalmanFilterConfig &config, uint32_t level);
+  void cfgCallback(kalman_filter::KalmanFilterPosVelAccConfig &config, uint32_t level);
 
 
  private:
@@ -37,6 +37,7 @@ class KalmanFilterPosVelAcc:  KalmanFilter<2, 1, 1>
   dynamic_reconfigure::Server<aerial_robot_base::StateKalmanFilterConfig>::CallbackType dynamic_reconf_func_;
 
   void rosParamInit();
+
 };
 
 class KalmanFilterPosVelAccBias : KalmanFilter<3, 2, 1>
@@ -48,14 +49,14 @@ class KalmanFilterPosVelAccBias : KalmanFilter<3, 2, 1>
   //void setInitImuBias(double initBias);
   inline void setCorrectMode(uint8_t correct_mode){correct_mode_ = correct_mode;}
 
-  void cfgCallback(aerial_robot_base::StateKalmanFilterConfig &config, uint32_t level);
+  void cfgCallback(kalman_filter::KalmanFilterPosVelAccConfigBias &config, uint32_t level);
 
  private:
   ros::NodeHandle nhp_axis_;
 
   //dynamic reconfigure
-  dynamic_reconfigure::Server<aerial_robot_base::StateKalmanFilterConfig>* server_;
-  dynamic_reconfigure::Server<aerial_robot_base::StateKalmanFilterConfig>::CallbackType dynamic_reconf_func_;
+  dynamic_reconfigure::Server<kaman_filter::KalmanFilterPosVelAccBiasConfig>* server_;
+  dynamic_reconfigure::Server<kaman_filter::KalmanFilterPosVelAccBiasConfig>::CallbackType dynamic_reconf_func_;
 
   void rosParamInit();
 };

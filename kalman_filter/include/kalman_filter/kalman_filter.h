@@ -43,10 +43,9 @@ class KalmanFilter
   void setPredictionNoiseCovariance()
   {
     //wrong!!!!!!
-    prediction_noise_covariance_ = (input_sigma_ * input_sigma_.transpose()) * (control_input_model_ * control_input_model_.transpose());
-    measurement_noise_covariance_ = (measure_sigma_ * measure_sigma_.transpose()) * (observation_model_.transpose() * observation_model_);
+    prediction_noise_covariance_ = control_input_model_ * (input_sigma_.asDiagonal() * input_sigma_.asDiagonal()) * control_input_model_.transpose();
+    measurement_noise_covariance_ = measure_sigma_.asDiagonal() * measure_sigma_.asDiagonal();
   }
-
 
   inline void setCorrectState(const Matrix<double, state_dim, 1>& state) {  correct_state_ = state; }
   inline void setPredictState(const Matrix<double, state_dim, 1>& state) { predict_state_ = state; }

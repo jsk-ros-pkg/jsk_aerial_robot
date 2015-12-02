@@ -7,7 +7,7 @@ KalmanFilterPosVelAcc::KalmanFilterPosVelAcc(ros::NodeHandle nh, ros::NodeHandle
   //init 
   correct_mode_ = correct_mode;
 
-  server_ = new dynamic_reconfigure::Server<aerial_robot_base::StateKalmanFilterConfig>(nhp_axis_);
+  server_ = new dynamic_reconfigure::Server<kalman_filter::KalmanFilterPosVelAccConfig>(nhp_axis_);
   dynamic_reconf_func_ = boost::bind(&KalmanFilterPosVelAcc::cfgCallback, this, _1, _2);
   server_->setCallback(dynamic_reconf_func_);
 
@@ -28,7 +28,6 @@ KalmanFilterPosVelAcc::KalmanFilterPosVelAcc(ros::NodeHandle nh, ros::NodeHandle
   setMeasurementNoiseCovariance();
 }
 
-
 void KalmanFilterPosVelAcc::cfgCallback(kalman_filter::StateKalmanFilterConfig &config, uint32_t level)
 {
 
@@ -38,12 +37,12 @@ void KalmanFilterPosVelAcc::cfgCallback(kalman_filter::StateKalmanFilterConfig &
 
       switch(level)
         {
-        case kalman_filter::DynamicReconfigureLevels::RECONFIGURE_INPUT_SIGMA:
+        case kalman_filter::KalmanFilterPosVelAccConf::RECONFIGURE_INPUT_SIGMA:
           input_sigma_(0,0) = config.inputSigma;
           setPredictionNoiseCovariance();
           printf("change the input sigma\n");
           break;
-        case kalman_filter::DynamicReconfigureLevels::RECONFIGURE_MEASURE_SIGMA:
+        case kalman_filter::KalmanFilterPosVelAccConf::RECONFIGURE_MEASURE_SIGMA:
           measure_sigma_(0,0)  = config.measureSigma;
           setMeasurementNoiseCovariance();
           printf("change the measure sigma\n");
@@ -66,11 +65,10 @@ void KalmanFilterPosVelAcc::rosParamInit()
   if (!nhp_axis_.getParam ("measure_sigma", measure_sigma_(0,0)))
     measure_sigma_(0,0) = 0.0;
   printf("%s: measure_sigma_ is %.4f\n", ns.c_str(), measure_sigma_(0,0));
-  if (!nhp_.getParam ("imu_hz", imu_hz_))
-    imu_hz_ = 100;
-  printf("%s: imu_hz_ is %.4f\n",nhp_.getNamespace().c_str(), imu_hz_);
+  if (!nhp_.getParam ("input_hz", input_hz_))
+    input_hz_ = 100;
+  printf("%s: input_hz_ is %.4f\n",nhp_.getNamespace().c_str(), input_hz_);
 }
-
 
 
 KalmanFilterPosVelAccBias::KalmanFilterPosVelAccBias(ros::NodeHandle nh, 
@@ -80,36 +78,13 @@ KalmanFilterPosVelAccBias::KalmanFilterPosVelAccBias(ros::NodeHandle nh,
 {
   rosParamInit();
 
-  //init
-  sigma_acc_ = input_sigma_;
-  sigma_acc_bias_ = bias_sigma_;
-  sigma_laser_ = measure_sigma_;
-  dt_ = 1 / imu_hz_;
-
-  input_start_flag_ = false;
-  measure_start_flag_ = false;
+  //init 
+  correct_mode_ = correct_mode;
 
 
-  //dynamic reconfigure
-  if(dynamic_reconf)
-    {
-      server_ = new dynamic_reconfigure::Server<aerial_robot_base::StateKalmanFilterConfig>(nhp_axis_);
-      dynamic_reconf_func_ = boost::bind(&KalmanFilterPosVelAccBias::cfgCallback, this, _1, _2);
-      server_->setCallback(dynamic_reconf_func_);
-    }
-
-
-  estimate_state_(0) = 0; //position initial
-  estimate_state_(1) = 0; //position initial
-  estimate_state_(2) = 0; //bias inital
-
-  correct_state_(0) = 0; //position initial
-  correct_state_(1) = 0; //velocity initial
-  correct_state_(2) = 0; //bias initial
-
-  predict_state_(0) = 0; //position initial
-  predict_state_(1) = 0; //velocity initial
-  predict_state_(2) = 0; //bias initial
+  server_ = new dynamic_reconfigure::Server<kalman_filter::KalmanFilterPosVelAccConfig>(nhp_axis_);
+  dynamic_reconf_func_ = boost::bind(&KalmanFilterPosVelAcc::cfgCallback, this, _1, _2);
+  server_->setCallback(dynamic_reconf_func_);
 
   state_transition_model_ << 1, dt_, -dt_*dt_/2, 0, 1, -dt_, 0, 0, 1;
   control_input_model_ << (dt_ * dt_)/2, dt_, 0;
@@ -126,9 +101,22 @@ KalmanFilterPosVelAccBias::KalmanFilterPosVelAccBias(ros::NodeHandle nh,
   //bad !!
   measurement_only_velocity_noise_covariance_(0) = sigma_laser_ * sigma_laser_;
 
-  kalman_gain_ << 0, 0, 0;
+  Matrix3d state_transition_model; 
+  state_transition_model << 1, dt_, -dt_*dt_/2, 0, 1, -dt_, 0, 0, 1;
+  setStateTransitionModel(state_transition_model);
 
-  kalman_filter_stamp_ = ros::Time::now();
+  Matrix<double, 2 ,1> control_input_model; 
+  control_input_model << (dt_ * dt_)/2, dt_, 0;
+  setControlInputModel(control_input_model);
+
+  Matrix<double, 2 ,1>   observation_model;
+  if(correct_mode_ == CORRECT_POS) observation_model << 1, 0;
+  else if(correct_mode_ == CORRECT_VEL) observation_only_model << 0, 1;
+  setObservationModel(observation_model);
+
+  setPredictionNoiseCovariance();
+  setMeasurementNoiseCovariance();
+
 
 }
 
