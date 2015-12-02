@@ -2,9 +2,11 @@
 
 template <size_t state_dim, size_t input_dim, size_t measure_dim> KalmanFilter<state_dim, input_dim, measure_dim>::KalmanFilter(ros::NodeHandle nh, ros::NodeHandle nh_private): nh_(nh, "kalman_filter"), nhp_(nh_private, "kalman_filter")
 {
+
   dt_ = 1 / input_hz_;
   input_start_flag_ = false;
   measure_start_flag_ = false;
+
 
   estimate_state_ = MatrixXd::Zero(state_dim, 1);
   correct_state_ = MatrixXd::Zero(state_dim, 1);

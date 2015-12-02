@@ -5,15 +5,16 @@
 
 //* for dynamic reconfigure
 #include <dynamic_reconfigure/server.h>
-#include <kalman_filter/DynamicReconfigureLevels.h>
+#include <kalman_filter/KalmanFilterPosVelAccConf.h>
 #include <kalman_filter/KalmanFilterPosVelAccConfig.h>
+#include <kalman_filter/KalmanFilterPosVelAccBiasConfig.h>
 
 //using namespace Eigen;
 //using namespace std;
 
-#define uint_8 CORRECT_POS = 0;
-#define uint_8 CORRECT_VEL = 1;
-#define uint_8 CORRECT_POS_VEL = 2;
+#define CORRECT_POS 0
+#define CORRECT_VEL 1
+#define CORRECT_POS_VEL 2
 
 class KalmanFilterPosVelAcc:  KalmanFilter<2, 1, 1>
 {
@@ -33,30 +34,37 @@ class KalmanFilterPosVelAcc:  KalmanFilter<2, 1, 1>
   uint8_t correct_mode_;
 
   //dynamic reconfigure
-  dynamic_reconfigure::Server<aerial_robot_base::StateKalmanFilterConfig>* server_;
-  dynamic_reconfigure::Server<aerial_robot_base::StateKalmanFilterConfig>::CallbackType dynamic_reconf_func_;
+  dynamic_reconfigure::Server<kalman_filter::KalmanFilterPosVelAccConfig>* server_;
+  dynamic_reconfigure::Server<kalman_filter::KalmanFilterPosVelAccConfig>::CallbackType dynamic_reconf_func_;
 
   void rosParamInit();
+
+  string id_;
 
 };
 
 class KalmanFilterPosVelAccBias : KalmanFilter<3, 2, 1>
 {
- public:
-  KalmanFilterPosVelAccBias(ros::NodeHandle nh, ros::NodeHandle nh_private, string filter_id = string(""), , uint8_t correct_mode = CORRECT_POS);
-  ~KalmanFilterPosVelAccBias();
+public:
+KalmanFilterPosVelAccBias(ros::NodeHandle nh, ros::NodeHandle nh_private, string filter_id = string(""), uint8_t correct_mode = CORRECT_POS);
+
+~KalmanFilterPosVelAccBias(){}
 
   //void setInitImuBias(double initBias);
-  inline void setCorrectMode(uint8_t correct_mode){correct_mode_ = correct_mode;}
+inline void setCorrectMode(uint8_t correct_mode){correct_mode_ = correct_mode;}
 
-  void cfgCallback(kalman_filter::KalmanFilterPosVelAccConfigBias &config, uint32_t level);
+void cfgCallback(kalman_filter::KalmanFilterPosVelAccBiasConfig &config, uint32_t level);
+void setInitImuBias(double init_bias);
 
  private:
   ros::NodeHandle nhp_axis_;
+  uint8_t correct_mode_;
+
+  string id_;
 
   //dynamic reconfigure
-  dynamic_reconfigure::Server<kaman_filter::KalmanFilterPosVelAccBiasConfig>* server_;
-  dynamic_reconfigure::Server<kaman_filter::KalmanFilterPosVelAccBiasConfig>::CallbackType dynamic_reconf_func_;
+  dynamic_reconfigure::Server<kalman_filter::KalmanFilterPosVelAccBiasConfig>* server_;
+  dynamic_reconfigure::Server<kalman_filter::KalmanFilterPosVelAccBiasConfig>::CallbackType dynamic_reconf_func_;
 
   void rosParamInit();
 };

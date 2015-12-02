@@ -8,8 +8,8 @@
 #include <ros/ros.h>
 #include <aerial_robot_base/ImuData.h>
 #include <aerial_robot_base/state_estimation.h>
-#include <aerial_robot_base/kalman_filter.h>
-#include <aerial_robot_base/digital_filter.h>
+#include <kalman_filter/kf_pos_vel_acc.h>
+#include <kalman_filter/digital_filter.h>
 
 #include <geometry_msgs/Vector3.h>
 #include <aerial_robot_msgs/KduinoImu.h>
@@ -277,11 +277,17 @@ class ImuData
                 kfb_x_->setInitImuBias(acc_x_bias_);
                 kfb_y_->setInitImuBias(acc_y_bias_);
                 kfb_z_->setInitImuBias(acc_z_bias_);
+                kfb_x_->setInputFlag();
+                kfb_y_->setInputFlag();
+                kfb_z_->setInputFlag();
 
                 //for optical flow
                 kfb_x_opt_->setInitImuBias(acc_x_bias_);
                 kfb_y_opt_->setInitImuBias(acc_y_bias_);
                 kfb_z_opt_->setInitImuBias(acc_z_bias_);
+                kfb_x_opt_->setInputFlag();
+                kfb_y_opt_->setInputFlag();
+                kfb_z_opt_->setInputFlag();
 
               }
             if(kalman_filter_debug_)
@@ -291,11 +297,16 @@ class ImuData
                   {
                     kf1_->setInitImuBias(acc_x_bias_);
                     kf2_->setInitImuBias(acc_x_bias_);
+                    kf1_->setInputFlag();
+                    kf2_->setInputFlag();
+
                   }
                 if(kalman_filter_axis_ == 1)
                   {
                     kf1_->setInitImuBias(acc_y_bias_);
                     kf2_->setInitImuBias(acc_y_bias_);
+                    kf1_->setInputFlag();
+                    kf2_->setInputFlag();
                   }
               }
           }
@@ -316,78 +327,50 @@ class ImuData
 
         if(kalman_filter_flag_)
           {
-            //kf_x_->prediction((double)acc_xw_non_bias_, stamp);
-            aerial_robot_base::ImuQuPtr x_non_bias_ptr
-              = boost::shared_ptr<aerial_robot_base::ImuQu> ( new aerial_robot_base::ImuQu() );
-            x_non_bias_ptr->stamp = stamp;
-            x_non_bias_ptr->acc   = acc_xw_non_bias_;
-            kf_x_->imuQuPush(x_non_bias_ptr);
-
-            //kf_y_->prediction((double)acc_yw_non_bias_, stamp);
-            aerial_robot_base::ImuQuPtr y_non_bias_ptr
-              = boost::shared_ptr<aerial_robot_base::ImuQu> ( new aerial_robot_base::ImuQu() );
-            y_non_bias_ptr->stamp = stamp;
-            y_non_bias_ptr->acc   = acc_yw_non_bias_;
-            kf_y_->imuQuPush(y_non_bias_ptr);
-
-            //kf_z_->prediction((double)acc_zw_non_bias_, stamp);
-            aerial_robot_base::ImuQuPtr z_non_bias_ptr
-              = boost::shared_ptr<aerial_robot_base::ImuQu> ( new aerial_robot_base::ImuQu() );
-            z_non_bias_ptr->stamp = stamp;
-            z_non_bias_ptr->acc   = acc_zw_non_bias_;
-            kf_z_->imuQuPush(z_non_bias_ptr);
+            Eigen::MatrixXd temp(1,1); 
+            temp(0, 0) = (double)acc_xw_non_bias_;
+            kf_x_->prediction(temp);
+            temp(0, 0) = (double)acc_yw_non_bias_;
+            kf_y_->prediction(temp);
+            temp(0, 0) = (double)acc_zw_non_bias_;
+            kf_z_->prediction(temp);
 
             //with bias
-            //kfb_x_->prediction((double)acc_xw_, stamp);
-            aerial_robot_base::ImuQuPtr x_bias_ptr
-              = boost::shared_ptr<aerial_robot_base::ImuQu> ( new aerial_robot_base::ImuQu() );
-            x_bias_ptr->stamp = stamp;
-            x_bias_ptr->acc   = acc_xw_;
-            kfb_x_->imuQuPush(x_bias_ptr);
-
-            //kfb_y_->prediction((double)acc_yw_, stamp);
-            aerial_robot_base::ImuQuPtr y_bias_ptr
-              = boost::shared_ptr<aerial_robot_base::ImuQu> ( new aerial_robot_base::ImuQu() );
-            y_bias_ptr->stamp = stamp;
-            y_bias_ptr->acc   = acc_yw_;
-            kfb_y_->imuQuPush(y_bias_ptr);
-
-            //kfb_z_->prediction((double)acc_zw_, stamp);
-            aerial_robot_base::ImuQuPtr z_bias_ptr
-              = boost::shared_ptr<aerial_robot_base::ImuQu> ( new aerial_robot_base::ImuQu() );
-            z_bias_ptr->stamp = stamp;
-            z_bias_ptr->acc   = acc_zw_;
-            kfb_z_->imuQuPush(z_bias_ptr);
+            temp(0, 0) = (double)acc_xw_;
+            kfb_x_->prediction(temp);
+            temp(0, 0) = (double)acc_yw_;
+            kfb_y_->prediction(temp);
+            temp(0, 0) = (double)acc_zw_;
+            kfb_z_->prediction(temp);
 
             //optical without accurate time stamp
-            kf_x_opt_->prediction((double)acc_xi_ - acc_x_bias_, stamp);
-            kf_y_opt_->prediction((double)acc_yi_ - acc_y_bias_, stamp);
-            kf_z_opt_->prediction((double)acc_zw_non_bias_, stamp);
-            kfb_x_opt_->prediction((double)acc_xi_, stamp);
-            kfb_y_opt_->prediction((double)acc_yi_, stamp);
-            kfb_z_opt_->prediction((double)acc_zw_, stamp);
-
+            temp(0, 0) = (double)acc_xi_ - acc_x_bias_;
+            kf_x_opt_->prediction(temp);
+            temp(0, 0) = (double)acc_yi_ - acc_y_bias_;
+            kf_y_opt_->prediction(temp);
+            temp(0, 0) = (double)acc_zw_non_bias_;
+            kf_z_opt_->prediction(temp);
+            temp(0, 0) = (double)acc_xi_;
+            kfb_x_opt_->prediction(temp);
+            temp(0, 0) = (double)acc_yi_;
+            kfb_y_opt_->prediction(temp);
+            temp(0, 0) = (double)acc_zw_;
+            kfb_z_opt_->prediction(temp);
           }
 
         if(kalman_filter_debug_)
           {
             if(kalman_filter_axis_ == 0)
               { //x axis
-                kf1_->prediction((double)acc_xw_, stamp);
-                kf2_->prediction((double)acc_xw_, stamp);
+                temp(0, 0) = (double)acc_xw_;
+                kf1_->prediction(temp);
+                kf2_->prediction(temp);
               }
             else if(kalman_filter_axis_ == 1)
               { //y axis
-                kf1_->prediction((double)acc_yw_, stamp);
-                kf2_->prediction((double)acc_yw_, stamp);
-              }
-            else if(kalman_filter_axis_ == 3)
-              { //simulation about 
-                aerial_robot_base::ImuQuPtr imu_bias_qu_msg_ptr
-                  = boost::shared_ptr<aerial_robot_base::ImuQu> ( new aerial_robot_base::ImuQu() );
-                imu_bias_qu_msg_ptr->stamp = stamp;
-                imu_bias_qu_msg_ptr->acc   = acc_xw_;
-                kf1_->imuQuPush(imu_bias_qu_msg_ptr);
+                temp(0, 0) = (double)acc_yw_;
+                kf1_->prediction(temp);
+                kf2_->prediction(temp);
               }
           }
         publishImuData(stamp);

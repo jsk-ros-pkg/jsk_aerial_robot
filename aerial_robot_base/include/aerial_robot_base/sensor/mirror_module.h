@@ -9,8 +9,8 @@
 #include <aerial_robot_base/basic_state_estimation.h>
 
 //* filter
-#include <aerial_robot_base/kalman_filter.h>
-#include <aerial_robot_base/digital_filter.h>
+#include <kalman_filter/kf_pos_vel_acc.h>
+#include <kalman_filter/digital_filter.h>
 
 
 class MirrorModule
@@ -172,16 +172,12 @@ class MirrorModule
           lpf_z_.filterFunction(raw_pos_z_, pos_z_, 
                                   raw_vel_z_, vel_z_);
 
-
           if(kalman_filter_flag_)
             { //noF rocket start mode
-#if 1 //true
-              kfb_z_->imuQuCorrection(scan->header.stamp, (double)(raw_pos_z_ - pos_z_mirror_offset_));
-              kf_z_->imuQuCorrection(scan->header.stamp, (double)(raw_pos_z_- pos_z_mirror_offset_));
-#else //no time stamp
-              kfb_z_->correction((double)(raw_pos_z_ - pos_z_mirror_offset_), scan->header.stamp);
-              kf_z_->correction((double)(raw_pos_z_ - pos_z_mirror_offset_), scan->header.stamp);
-#endif
+              Eigen::MatrixXd temp(1,1); 
+              temp(0, 0) = (double)(raw_pos_z_ - pos_z_mirror_offset_);
+              kfb_z_->correction(temp);
+              kf_z_->correction(temp);
             }
         }
 

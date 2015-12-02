@@ -91,8 +91,8 @@ add_definitions(${EIGEN_DEFINITIONS})
 
 ## Generate dynamic reconfigure parameters in the 'cfg' folder
  generate_dynamic_reconfigure_options(
-   cfg/KalmanFilterPosVelAcc.cfg
    cfg/KalmanFilterPosVelAccBias.cfg
+   cfg/KalmanFilterPosVelAcc.cfg
  )
 
 ###################################
@@ -127,10 +127,11 @@ add_library(kalman_filter
  )
 target_link_libraries (kalman_filter ${catkin_LIBRARIES}  ${Boost_LIBRARIES} ) 
 
-#add_library(kf_pos_vel_acc
-#   src/kf_pos_vel_acc.cpp
-# )
-#target_link_libraries (kalman_filter ${catkin_LIBRARIES}  ${Boost_LIBRARIES} kalman_filter) 
+add_library(kf_pos_vel_acc
+   src/kf_pos_vel_acc.cpp
+ )
+target_link_libraries (kf_pos_vel_acc ${catkin_LIBRARIES}  ${Boost_LIBRARIES} kalman_filter) 
+add_dependencies(kf_pos_vel_acc  ${PROJECT_NAME}_gencfg)
 
 
 ## Add cmake target dependencies of the library

@@ -36,15 +36,20 @@ class KalmanFilter
   }
 
 
-
   inline void setInputSigma( Matrix<double, input_dim, 1> input_sigma) { input_sigma_ = input_sigma; }
   inline void setMeasureSigma( Matrix<double, measure_dim, 1> measure_sigma) { measure_sigma_ = measure_sigma; }
 
   void setPredictionNoiseCovariance()
   {
     //wrong!!!!!!
-    prediction_noise_covariance_ = control_input_model_ * (input_sigma_.asDiagonal() * input_sigma_.asDiagonal()) * control_input_model_.transpose();
-    measurement_noise_covariance_ = measure_sigma_.asDiagonal() * measure_sigma_.asDiagonal();
+    Matrix<double, input_dim, input_dim> input_sigma_m = (input_sigma_.col(0)).asDiagonal();
+    prediction_noise_covariance_ = control_input_model_ * (input_sigma_m * input_sigma_m) * control_input_model_.transpose();
+  }
+
+  void setMeasurementNoiseCovariance()
+  {
+    Matrix<double, measure_dim, measure_dim> measure_sigma_m = (measure_sigma_.col(0)).asDiagonal();
+    measurement_noise_covariance_ = measure_sigma_m * measure_sigma_m;
   }
 
   inline void setCorrectState(const Matrix<double, state_dim, 1>& state) {  correct_state_ = state; }
@@ -77,11 +82,15 @@ class KalmanFilter
 
   void setInitState(Matrix<double, state_dim, 1> init_state);
 
- private:
+ protected:
+
   ros::NodeHandle nh_;
   ros::NodeHandle nhp_;
 
   double dt_, input_hz_;
+
+
+
   Matrix<double, input_dim, 1>  input_sigma_;
   Matrix<double, measure_dim, 1>  measure_sigma_;
 
@@ -100,7 +109,7 @@ class KalmanFilter
   Matrix<double, state_dim, input_dim> control_input_model_;
   Matrix<double, measure_dim, state_dim> observation_model_;
 
-  string id_;
+
 
   //filtering start flag
   bool input_start_flag_;

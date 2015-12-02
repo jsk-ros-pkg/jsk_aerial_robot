@@ -16,9 +16,8 @@
 #include <tf/transform_broadcaster.h>
 
 //* filter
-#include <aerial_robot_base/kalman_filter.h>
-#include <aerial_robot_base/digital_filter.h>
-
+#include <kalman_filter/kf_pos_vel_acc.h>
+#include <kalman_filter/digital_filter.h>
 
 class RigidEstimator : public BasicEstimator
 {
