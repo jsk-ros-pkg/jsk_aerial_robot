@@ -60,7 +60,7 @@ class KalmanFilter
       estimate_covariance_ = estimate_bar_covariance;
 
       Matrix<double, state_dim, 1> predict_hat_state
-        = state_transition_model_ * predict_state_ + input * control_input_model_;
+        = state_transition_model_ * predict_state_ + control_input_model_ * input ;
       predict_state_ = predict_hat_state;
 
       return true;
@@ -139,7 +139,7 @@ class KalmanFilter
   inline void setInputFlag(bool flag = true){input_start_flag_ = flag; }
   inline void setMeasureFlag(bool flag = true){ measure_start_flag_ = flag;}
 
-  void getFilteringFlag()
+  bool getFilteringFlag()
   {
     if(input_start_flag_ && measure_start_flag_)
       return true;

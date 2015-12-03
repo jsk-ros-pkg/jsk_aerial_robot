@@ -12,8 +12,8 @@ int main (int argc, char **argv)
   kf_test.setInputFlag();
   Eigen::Matrix<double, 1, 1> temp = Eigen::MatrixXd::Zero(1, 1); 
   temp(0,0) = 0;
-  //kf_test.KalmanFilter<2, 1, 1>::prediction(temp);
-  //kf_test.correction(temp);
+  kf_test.prediction(temp);
+  kf_test.correction(temp);
 
   ros::spin ();
   //delete kf_test;
