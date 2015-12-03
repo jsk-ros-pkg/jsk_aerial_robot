@@ -106,7 +106,7 @@ add_definitions(${EIGEN_DEFINITIONS})
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
   INCLUDE_DIRS include
-  LIBRARIES kalman_filter
+  LIBRARIES  kf_pos_vel_acc
   CATKIN_DEPENDS roscpp message_runtime std_msgs
   DEPENDS Eigen
 )
@@ -122,15 +122,15 @@ include_directories(
   include ${Boost_INCLUDE_DIR} ${catkin_INCLUDE_DIRS}
 )
 ## Declare a C++ library
-add_library(kalman_filter
-   src/kalman_filter.cpp
- )
-target_link_libraries (kalman_filter ${catkin_LIBRARIES}  ${Boost_LIBRARIES} ) 
+#add_library(kalman_filter
+#   src/kalman_filter.cpp
+# )
+#target_link_libraries (kalman_filter ${catkin_LIBRARIES}  ${Boost_LIBRARIES} ) 
 
 add_library(kf_pos_vel_acc
    src/kf_pos_vel_acc.cpp
  )
-target_link_libraries (kf_pos_vel_acc ${catkin_LIBRARIES}  ${Boost_LIBRARIES} kalman_filter) 
+target_link_libraries (kf_pos_vel_acc ${catkin_LIBRARIES}  ${Boost_LIBRARIES} ) 
 add_dependencies(kf_pos_vel_acc  ${PROJECT_NAME}_gencfg)
 
 
@@ -140,16 +140,9 @@ add_dependencies(kf_pos_vel_acc  ${PROJECT_NAME}_gencfg)
 # add_dependencies(kalman_filter ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Declare a C++ executable
-# add_executable(kalman_filter_node src/kalman_filter_node.cpp)
 
-## Add cmake target dependencies of the executable
-## same as for the library above
-# add_dependencies(kalman_filter_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-
-## Specify libraries to link a library or executable target against
-# target_link_libraries(kalman_filter_node
-#   ${catkin_LIBRARIES}
-# )
+add_executable(test_node src/test.cpp)
+target_link_libraries(test_node  ${catkin_LIBRARIES} kf_pos_vel_acc  )
 
 #############
 ## Install ##
@@ -166,11 +159,11 @@ add_dependencies(kf_pos_vel_acc  ${PROJECT_NAME}_gencfg)
 # )
 
 ## Mark executables and/or libraries for installation
-# install(TARGETS kalman_filter kalman_filter_node
-#   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-# )
+ install(TARGETS  kf_pos_vel_acc
+   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+ )
 
 ## Mark cpp header files for installation
 # install(DIRECTORY include/${PROJECT_NAME}/

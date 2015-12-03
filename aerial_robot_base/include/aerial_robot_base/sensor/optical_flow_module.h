@@ -24,8 +24,7 @@ class OpticalFlowData
                  KalmanFilterPosVelAcc *kf_y,
                  KalmanFilterPosVelAcc *kf_z,
                  KalmanFilterPosVelAccBias *kfb_x, 
-                 KalmanFilterPosVelAccBias *kfb_y,
-                 KalmanFilterPosVelAccBias *kfb_z)
+                 KalmanFilterPosVelAccBias *kfb_y)
    : nh_(nh, "optical_flow"),
     nhp_(nh_private, "optical_flow")
     {
@@ -38,7 +37,7 @@ class OpticalFlowData
 
       kalman_filter_flag_ = kalman_filter_flag;
       kf_x_ = kf_x; kf_y_ = kf_y; kf_z_ = kf_z;
-      kfb_x_ = kfb_x; kfb_y_ = kfb_y; kfb_z_ = kfb_z;
+      kfb_x_ = kfb_x; kfb_y_ = kfb_y;
 
       //setRocketStartFlag();
 
@@ -90,7 +89,6 @@ class OpticalFlowData
 
         kfb_x_->setMeasureFlag(stop_flag);
         kfb_y_->setMeasureFlag(stop_flag);
-        kfb_z_->setMeasureFlag(stop_flag);
       }
     else
       {//debug
@@ -121,7 +119,6 @@ class OpticalFlowData
 
   KalmanFilterPosVelAccBias *kfb_x_;
   KalmanFilterPosVelAccBias *kfb_y_;
-  KalmanFilterPosVelAccBias *kfb_z_;
 
   float raw_pos_z_;
   float pos_z_;
@@ -159,15 +156,16 @@ class OpticalFlowData
             //TODO: start flag fresh arm, or use air pressure => refined
             ROS_ERROR("px4flow: start kf measuring, prev_raw_pos_z : %f", prev_raw_pos_z);
 
-            //kf_x_->setInitState(0, optical_flow_msg->flow_x /1000.0);
-            kfb_x_->setInitState(0, optical_flow_msg->flow_x /1000.0);
+            //kf_x_->setInitState(x_axis_direction_ * optical_flow_msg->flow_x /1000.0, 1);
+            kfb_x_->setInitState(x_axis_direction_ * optical_flow_msg->flow_x /1000.0, 1);
 
-            //kf_y_->setInitState(0, -optical_flow_msg->flow_y /1000.0);
-            kfb_y_->setInitState(0, -optical_flow_msg->flow_y /1000.0);
+            //kf_y_->setInitState(y_axis_direction_ * optical_flow_msg->flow_y /1000.0 ,1);
+            kfb_y_->setInitState(y_axis_direction_ * optical_flow_msg->flow_y /1000.0 ,1);
 
-            kf_z_->setInitState(optical_flow_msg->ground_distance, start_vel_);
-            //kfb_z_->setInitState(optical_flow_msg->ground_distance, start_vel_);
-
+            Eigen::Matrix<double, 2, 1> init_state2 = Eigen::MatrixXd::Zero(2, 1); 
+            init_state2(0,0) = optical_flow_msg->ground_distance;
+            init_state2(1,0) = start_vel_;
+            kf_z_->setInitState(init_state2);
 
             //kf_x_->setMeasureFlag();
             //kf_y_->setMeasureFlag();
@@ -175,7 +173,6 @@ class OpticalFlowData
 
             kfb_x_->setMeasureFlag();
             kfb_y_->setMeasureFlag();
-            //kfb_z_->setMeasureFlag();
 
             start_flag = true;
             ROS_ERROR("px4flow: start kf correction"); //debug
@@ -212,37 +209,44 @@ class OpticalFlowData
         if(kalman_filter_flag_)
           {
             cnt++;
+
+            Eigen::MatrixXd temp(1,1); 
             if(cnt == CNT) //50 Hz !!!!!!!!!!!!!!!!!!!!!
               {
                 cnt = 0; 
+
                 // optical without accurate timestamp
                 if(optical_flow_msg->quality == 0 || raw_vel_x_ == 0 || raw_pos_z_ > 2.5)
                   { // remove the raw_vel_x case is not good !!
-                    kf_x_->correctionOnlyVelocity(filtered_vel_x_, optical_flow_msg->header.stamp);  //velocity
-                    kfb_x_->correctionOnlyVelocity(filtered_vel_x_, optical_flow_msg->header.stamp); //velocity
+                    temp(0, 0) = filtered_vel_x_;
+                    //kf_x_->correction(temp);
+                    kfb_x_->correction(temp); 
                   }
                 else  
                   {
-                    //kf_x_->correctionOnlyVelocity(raw_vel_x_, optical_flow_msg->header.stamp);  //velocity
-                    kfb_x_->correctionOnlyVelocity(raw_vel_x_, optical_flow_msg->header.stamp); //velocity
+                    temp(0, 0) = raw_vel_x_;
+                    //kf_x_->correction(temp);
+                    kfb_x_->correction(temp); 
                   }
                 if(optical_flow_msg->quality == 0 || raw_vel_y_ == 0 || raw_pos_z_ > 2.5)
                   { // remove the raw_vel_y case is not good !!
-                    kf_y_->correctionOnlyVelocity(filtered_vel_y_, optical_flow_msg->header.stamp); //velocity
-                    kfb_y_->correctionOnlyVelocity(filtered_vel_y_, optical_flow_msg->header.stamp); //velocity
+                    temp(0, 0) = filtered_vel_y_;
+                    //kf_y_->correction(temp);
+                    kfb_y_->correction(temp); 
                   }
                 else
                   {
-                    kf_y_->correctionOnlyVelocity(raw_vel_y_, optical_flow_msg->header.stamp); //velocity
-                    kfb_y_->correctionOnlyVelocity(raw_vel_y_, optical_flow_msg->header.stamp); //velocity
+                    temp(0, 0) = raw_vel_y_;
+                    //kf_y_->correction(temp);
+                    kfb_y_->correction(temp); 
                   }
               }
 
             if(raw_pos_z_ != prev_raw_pos_z && raw_pos_z_ < 2.5) //100Hz
               {
-                kfb_z_->correction(raw_pos_z_, optical_flow_msg->header.stamp);
-                kf_z_->correction(raw_pos_z_, optical_flow_msg->header.stamp);
-                              }
+                temp(0, 0) = raw_pos_z_;
+                kf_z_->correction(temp);
+              }
           }
 
         //publish
@@ -266,43 +270,31 @@ class OpticalFlowData
 
         if(kalman_filter_flag_)
           {
-            Eigen::Vector2d kf_x_state = kf_x_->getEstimateState();
-            Eigen::Vector2d kf_y_state = kf_y_->getEstimateState();
-            Eigen::Vector2d kf_z_state = kf_z_->getEstimateState();
-            Eigen::Vector3d kfb_x_state = kfb_x_->getEstimateState();
-            Eigen::Vector3d kfb_y_state = kfb_y_->getEstimateState();
-            Eigen::Vector3d kfb_z_state = kfb_z_->getEstimateState();
+            Eigen::Matrix<double,2,1> kf_x_state = kf_x_->getEstimateState();
+            Eigen::Matrix<double,2,1> kf_y_state = kf_y_->getEstimateState();
+            Eigen::Matrix<double,2,1> kf_z_state = kf_z_->getEstimateState();
+            Eigen::Matrix<double,3,1> kfb_x_state = kfb_x_->getEstimateState();
+            Eigen::Matrix<double,3,1> kfb_y_state = kfb_y_->getEstimateState();
 
-            x_state.kf_pos = kf_x_state(0);
-            x_state.kf_vel = kf_x_state(1);
-            x_state.kfb_pos = kfb_x_state(0);
-            x_state.kfb_vel = kfb_x_state(1);
-            x_state.kfb_bias = kfb_x_state(2);
+            x_state.kf_pos = kf_x_state(0, 0);
+            x_state.kf_vel = kf_x_state(1, 0);
+            x_state.kfb_pos = kfb_x_state(0, 0);
+            x_state.kfb_vel = kfb_x_state(1, 0);
+            x_state.kfb_bias = kfb_x_state(2, 0);
 
-            y_state.kf_pos = kf_y_state(0);
-            y_state.kf_vel = kf_y_state(1);
-            y_state.kfb_pos = kfb_y_state(0);
-            y_state.kfb_vel = kfb_y_state(1);
-            y_state.kfb_bias = kfb_y_state(2);
+            y_state.kf_pos = kf_y_state(0, 0);
+            y_state.kf_vel = kf_y_state(1, 0);
+            y_state.kfb_pos = kfb_y_state(0, 0);
+            y_state.kfb_vel = kfb_y_state(1, 0);
+            y_state.kfb_bias = kfb_y_state(2, 0);
 
-            z_state.kf_pos = kf_z_state(0);
-            z_state.kf_vel = kf_z_state(1);
-            z_state.kfb_pos = kfb_z_state(0);
-            z_state.kfb_vel = kfb_z_state(1);
-            z_state.kfb_bias = kfb_z_state(2);
+            z_state.kf_pos = kf_z_state(0, 0);
+            z_state.kf_vel = kf_z_state(1, 0);
           }
 
         opt_data.states.push_back(x_state);
         opt_data.states.push_back(y_state);
         opt_data.states.push_back(z_state);
-
-        /* state_estimator_->setStatePosX(x_state.kfb_pos); */
-        /* state_estimator_->setStatePosY(y_state.kfb_pos); */
-        /* state_estimator_->setStatePosZ(z_state.kf_pos); */
-        /* state_estimator_->setStateVelX(x_state.kfb_vel); */
-        /* state_estimator_->setStateVelY(y_state.kfb_vel); */
-        /* state_estimator_->setStateVelZ(z_state.kf); */
-
 
         optical_flow_pub_.publish(opt_data);
 
@@ -319,17 +311,19 @@ class OpticalFlowData
 
             kfb_x_->setMeasureFlag(stop_flag);
             kfb_y_->setMeasureFlag(stop_flag);
-            kfb_z_->setMeasureFlag(stop_flag);
 
-            kf_x_->setInitState(0, 0);
-            kfb_x_->setInitState(0,0);
+            Eigen::Matrix<double, 3, 1> init_state3 = Eigen::MatrixXd::Zero(3, 1); 
 
-            kf_y_->setInitState(0, 0);
-            kfb_y_->setInitState(0,0);
+            //kf_x_->setInitState(0, 0);
+            kfb_x_->setInitState(init_state3);
+
+            //kf_y_->setInitState(0, 0);
+            kfb_y_->setInitState(init_state3);
 
             special_increment += 0.005;
-            kf_z_->setInitState(0, special_increment);
-            kfb_z_->setInitState(0, special_increment);
+            Eigen::Matrix<double, 2, 1> init_state2 = Eigen::MatrixXd::Zero(2, 1); 
+            init_state2(1,0) = special_increment;
+            kf_z_->setInitState(init_state2);
           }
       }
 

@@ -9,11 +9,6 @@
   1. kalman filters of optical flow(vel_x, vel_y, pos_z) do not use accurate timestamp => for throwing?
    on the other hand, the kalman filters for laser-imu do use accurate timestamp => use queue
   ==> the timestamp do not have any important effect on the accuracy of kalman filter, in the case of 100Hz   
-
-  old1. X/Y axis の問題: フィルタ遅延によるもの？ --実は係数をあげればよい(Z axisとX/Y axixの周波数応答が違う)
-  old2. the input of slam data should be after the input imu data?
-
-  
 */
 
 #include "aerial_robot_base/state_estimation.h"
@@ -34,9 +29,9 @@ RigidEstimator::RigidEstimator(ros::NodeHandle nh,
       std::string x("X");
       std::string y("Y");
       std::string z("Z");
-      std::string x_opt("XOpt");
-      std::string y_opt("YOpt");
-      std::string z_opt("ZOpt");
+      std::string x_vel("X_Vel");
+      std::string y_vel("Y_Vel");
+      std::string z2("Z2");
 
       std::string debug1("Debug1");
       std::string debug2("Debug2");
@@ -49,13 +44,12 @@ RigidEstimator::RigidEstimator(ros::NodeHandle nh,
       kf_bias_y_ = new KalmanFilterPosVelAccBias(nh, nh_private, y, use_dynamic_reconfigure);
       kf_bias_z_ = new KalmanFilterPosVelAccBias(nh, nh_private, z);
 
-      // for optical flow
-      kf_opt_x_ = new KalmanFilterPosVelAcc(nh, nh_private,x_opt);
-      kf_opt_y_ = new KalmanFilterPosVelAcc(nh, nh_private,y_opt);
-      kf_opt_z_ = new KalmanFilterPosVelAcc(nh, nh_private,z_opt);
-      kf_opt_bias_x_ = new KalmanFilterPosVelAccBias(nh, nh_private, x_opt, use_dynamic_reconfigure); 
-      kf_opt_bias_y_ = new KalmanFilterPosVelAccBias(nh, nh_private, y_opt, use_dynamic_reconfigure);
-      kf_opt_bias_z_ = new KalmanFilterPosVelAccBias(nh, nh_private, z_opt, use_dynamic_reconfigure);
+      // for velocity
+      kf_vel_x_ = new KalmanFilterPosVelAcc(nh, nh_private,x_vel);
+      kf_vel_y_ = new KalmanFilterPosVelAcc(nh, nh_private,y_vel);
+      kf_pos_z2_ = new KalmanFilterPosVelAcc(nh, nh_private,z2);
+      kf_vel_bias_x_ = new KalmanFilterPosVelAccBias(nh, nh_private, x_vel, use_dynamic_reconfigure); 
+      kf_vel_bias_y_ = new KalmanFilterPosVelAccBias(nh, nh_private, y_vel, use_dynamic_reconfigure);
 
       if (kalman_filter_debug_)
         {
@@ -70,8 +64,7 @@ RigidEstimator::RigidEstimator(ros::NodeHandle nh,
   else
     {
       kf_x_ = NULL; kf_y_ = NULL; kf_z_ = NULL; kf_bias_x_ = NULL; kf_bias_y_ = NULL; kf_bias_z_ = NULL;
-      kf_opt_x_ = NULL; kf_opt_y_ = NULL; kf_opt_z_ = NULL;
-      kf_opt_bias_x_ = NULL; kf_opt_bias_y_ = NULL; kf_opt_bias_z_ = NULL;
+      kf_vel_x_ = NULL; kf_vel_y_ = NULL; kf_pos_z2_ = NULL;  kf_vel_bias_x_ = NULL; kf_vel_bias_y_ = NULL;
       kf1_ = NULL; kf2_ = NULL;
     }
 
@@ -83,8 +76,8 @@ RigidEstimator::RigidEstimator(ros::NodeHandle nh,
                               kalman_filter_flag_,
                               kf_x_, kf_y_, kf_z_,
                               kf_bias_x_, kf_bias_y_, kf_bias_z_,
-                              kf_opt_x_, kf_opt_y_, kf_opt_z_,
-                              kf_opt_bias_x_, kf_opt_bias_y_, kf_opt_bias_z_,
+                              kf_vel_x_, kf_vel_y_, kf_pos_z2_,
+                              kf_vel_bias_x_, kf_vel_bias_y_,
                               kalman_filter_debug_,
                               kalman_filter_axis_,
                               kf1_, kf2_,
@@ -99,8 +92,8 @@ RigidEstimator::RigidEstimator(ros::NodeHandle nh,
                                                  nh_private,
                                                  this,
                                                  kalman_filter_flag_,
-                                                 kf_opt_x_, kf_opt_y_, kf_opt_z_,
-                                                 kf_opt_bias_x_, kf_opt_bias_y_, kf_opt_bias_z_);
+                                                 kf_vel_x_, kf_vel_y_, kf_pos_z2_,
+                                                 kf_vel_bias_x_, kf_vel_bias_y_);
     }
 
   if(hokuyo_flag_)
@@ -135,8 +128,8 @@ RigidEstimator::~RigidEstimator()
     {
       delete kf_x_; delete kf_y_; delete kf_z_;
       delete kf_bias_x_; delete kf_bias_y_; delete kf_bias_z_;
-      delete kf_opt_x_; delete kf_opt_y_; delete kf_opt_z_;
-      delete kf_opt_bias_x_; delete kf_opt_bias_y_; delete kf_opt_bias_z_;
+      delete kf_vel_x_; delete kf_vel_y_; delete kf_pos_z2_;
+      delete kf_vel_bias_x_; delete kf_vel_bias_y_;
 
     }
   if(kalman_filter_debug_)
@@ -165,8 +158,8 @@ float RigidEstimator::getStatePosX()
     return  outer_estimate_pos_x_;
   else
     {
-      if(hokuyo_flag_) return  (kf_bias_x_->getEstimateState())[0];
-      else if(px4flow_flag_) return (kf_opt_bias_x_->getEstimateState())[0];
+      if(hokuyo_flag_) return  (kf_bias_x_->getEstimateState())(0,0);
+      else if(px4flow_flag_) return (kf_vel_bias_x_->getEstimateState())(0,0);
       else return 0;
     }
 }
@@ -180,7 +173,7 @@ float RigidEstimator::getStatePosXc()
       return  state_pos_xc;
     }
   else
-    return  (kf_opt_bias_x_->getEstimateState())[0];
+    return  (kf_vel_bias_x_->getEstimateState())(0,0);
 }
 
 float RigidEstimator::getStateVelX()
@@ -189,8 +182,8 @@ float RigidEstimator::getStateVelX()
       return  outer_estimate_vel_x_;
   else
     {
-      if(hokuyo_flag_) return  (kf_bias_x_->getEstimateState())[1];
-      else if(px4flow_flag_) return  (kf_opt_bias_x_->getEstimateState())[1];
+      if(hokuyo_flag_) return  (kf_bias_x_->getEstimateState())(1,0);
+      else if(px4flow_flag_) return  (kf_vel_bias_x_->getEstimateState())(1,0);
       else return 0;
     }
 
@@ -205,7 +198,7 @@ float RigidEstimator::getStateVelXc()
       return  state_vel_xc;
     }
   else
-    return  (kf_opt_bias_x_->getEstimateState())[1];
+    return  (kf_vel_bias_x_->getEstimateState())(1,0);
 }
 
 float RigidEstimator::getStateAccXb()
@@ -219,8 +212,8 @@ float RigidEstimator::getStatePosY()
       return  outer_estimate_pos_y_;
  else
    {
-     if(hokuyo_flag_) return  (kf_bias_y_->getEstimateState())[0];
-     else if (px4flow_flag_) return (kf_opt_bias_y_->getEstimateState())[0];
+     if(hokuyo_flag_) return  (kf_bias_y_->getEstimateState())(0,0);
+     else if (px4flow_flag_) return (kf_vel_bias_y_->getEstimateState())(0,0);
      else return 0;
    }
 }
@@ -234,7 +227,7 @@ float RigidEstimator::getStatePosYc()
       return  state_pos_yc;
    }
   else
-    return  (kf_opt_bias_y_->getEstimateState())[0];
+    return  (kf_vel_bias_y_->getEstimateState())(0,0);
 }
 
 float RigidEstimator::getStateVelY()
@@ -243,8 +236,8 @@ float RigidEstimator::getStateVelY()
      return  outer_estimate_vel_y_;
  else 
    {
-     if(hokuyo_flag_)  return  (kf_bias_y_->getEstimateState())[1];
-     else if(px4flow_flag_) return  (kf_opt_bias_y_->getEstimateState())[1];
+     if(hokuyo_flag_)  return  (kf_bias_y_->getEstimateState())(1,0);
+     else if(px4flow_flag_) return  (kf_vel_bias_y_->getEstimateState())(1,0);
      else return 0;
    }
 }
@@ -258,7 +251,7 @@ float RigidEstimator::getStateVelYc()
       return  state_vel_yc;
    }
   else
-    return  (kf_opt_bias_y_->getEstimateState())[1];
+    return  (kf_vel_bias_y_->getEstimateState())(1,0);
 }
 
 inline float RigidEstimator::getStateAccYb(){  return imu_data_->getAccYbValue(); }
@@ -269,8 +262,8 @@ float RigidEstimator::getStatePosZ()
       return  outer_estimate_pos_z_;
   else
     {
-      if(hokuyo_flag_) return (kf_z_->getEstimateState())[0];
-      else if(px4flow_flag_) return (kf_opt_z_->getEstimateState())[0];
+      if(hokuyo_flag_) return (kf_z_->getEstimateState())(0,0);
+      else if(px4flow_flag_) return (kf_pos_z2_->getEstimateState())(0,0);
       else return 0;
     }
 }
@@ -280,8 +273,8 @@ float RigidEstimator::getStateVelZ()
       return  outer_estimate_vel_z_;
   else
     {
-      if(hokuyo_flag_) return (kf_z_->getEstimateState())[1];
-      else if(px4flow_flag_) return (kf_opt_z_->getEstimateState())[1];
+      if(hokuyo_flag_) return (kf_z_->getEstimateState())(1,0);
+      else if(px4flow_flag_) return (kf_pos_z2_->getEstimateState())(1,0);
       else return 0;
     }
 }

@@ -63,13 +63,12 @@ class RigidEstimator : public BasicEstimator
   FirFilter *lpf_acc_y_;
   FirFilter *lpf_acc_z_;
 
-  //for optical flow
-  KalmanFilterPosVelAcc* kf_opt_x_;
-  KalmanFilterPosVelAcc* kf_opt_y_;
-  KalmanFilterPosVelAcc* kf_opt_z_;
-  KalmanFilterPosVelAccBias *kf_opt_bias_x_;
-  KalmanFilterPosVelAccBias *kf_opt_bias_y_;
-  KalmanFilterPosVelAccBias *kf_opt_bias_z_;
+  //for vel sensor
+  KalmanFilterPosVelAcc* kf_vel_x_;
+  KalmanFilterPosVelAcc* kf_vel_y_;
+  KalmanFilterPosVelAcc* kf_pos_z2_;
+  KalmanFilterPosVelAccBias *kf_vel_bias_x_;
+  KalmanFilterPosVelAccBias *kf_vel_bias_y_;
 
   //simulation flag
   bool simulation_flag_;

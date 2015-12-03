@@ -16,13 +16,13 @@
 #define CORRECT_VEL 1
 #define CORRECT_POS_VEL 2
 
-class KalmanFilterPosVelAcc:  KalmanFilter<2, 1, 1>
+class KalmanFilterPosVelAcc:  public KalmanFilter<2, 1, 1>
 {
  public:
   KalmanFilterPosVelAcc(ros::NodeHandle nh, ros::NodeHandle nh_private, string filter_id = string(""), uint8_t correct_mode = CORRECT_POS);
   ~KalmanFilterPosVelAcc(){}
 
-  inline void setCorrectMode(uint8_t correct_mode){correct_mode_ = correct_mode;}
+ void setCorrectMode(uint8_t correct_mode);
 
   //dynamic reconfigure
   void cfgCallback(kalman_filter::KalmanFilterPosVelAccConfig &config, uint32_t level);
@@ -43,7 +43,7 @@ class KalmanFilterPosVelAcc:  KalmanFilter<2, 1, 1>
 
 };
 
-class KalmanFilterPosVelAccBias : KalmanFilter<3, 2, 1>
+class KalmanFilterPosVelAccBias : public KalmanFilter<3, 2, 1>
 {
 public:
 KalmanFilterPosVelAccBias(ros::NodeHandle nh, ros::NodeHandle nh_private, string filter_id = string(""), uint8_t correct_mode = CORRECT_POS);
@@ -51,7 +51,7 @@ KalmanFilterPosVelAccBias(ros::NodeHandle nh, ros::NodeHandle nh_private, string
 ~KalmanFilterPosVelAccBias(){}
 
   //void setInitImuBias(double initBias);
-inline void setCorrectMode(uint8_t correct_mode){correct_mode_ = correct_mode;}
+ void setCorrectMode(uint8_t correct_mode);
 
 void cfgCallback(kalman_filter::KalmanFilterPosVelAccBiasConfig &config, uint32_t level);
 void setInitImuBias(double init_bias);

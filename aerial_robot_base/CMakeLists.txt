@@ -80,7 +80,6 @@ add_dependencies(aerial_robot_base_node  ${PROJECT_NAME}_gencfg)
 add_executable(rotate_node src/rotate.cpp)
 target_link_libraries (rotate_node ${catkin_LIBRARIES}  ${Boost_LIBRARIES} aerial_robot_base) 
 
-
 add_executable(mocap_node src/mocap_node.cpp)
 target_link_libraries (mocap_node ${catkin_LIBRARIES}  ${Boost_LIBRARIES}) 
 

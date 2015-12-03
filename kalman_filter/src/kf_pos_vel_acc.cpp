@@ -2,6 +2,7 @@
 
 KalmanFilterPosVelAcc::KalmanFilterPosVelAcc(ros::NodeHandle nh, ros::NodeHandle nh_private, std::string filter_id, uint8_t correct_mode): KalmanFilter<2, 1, 1>(nh, nh_private), nhp_axis_(nh_private, "kalman_filter/" + filter_id), id_(filter_id)
 {
+  //this->KalmanFilter<2, 1, 1>(nh, nh_private);
   rosParamInit();
 
   //init 
@@ -71,10 +72,21 @@ void KalmanFilterPosVelAcc::rosParamInit()
 }
 
 
+ void KalmanFilterPosVelAcc::setCorrectMode(uint8_t correct_mode)
+{
+  correct_mode_ = correct_mode;
+
+  Matrix<double, 2 ,1>   observation_model;
+  if(correct_mode_ == CORRECT_POS) observation_model << 1, 0;
+  else if(correct_mode_ == CORRECT_VEL) observation_model << 0, 1;
+  setObservationModel(observation_model);
+}
+
+
 KalmanFilterPosVelAccBias::KalmanFilterPosVelAccBias(ros::NodeHandle nh, 
                                                    ros::NodeHandle nh_private, 
                                                    std::string filter_id,
-                                                   uint8_t correct_mode):KalmanFilter<3, 2, 1>(nh, nh_private), nhp_axis_(nh_private, "kalman_filter/" + filter_id), id_(filter_id) 
+                                                     uint8_t correct_mode):KalmanFilter<3, 2, 1>(nh, nh_private), nhp_axis_(nh_private, "kalman_filter/" + filter_id), id_(filter_id) 
 {
   rosParamInit();
 
@@ -140,6 +152,16 @@ void KalmanFilterPosVelAccBias::setInitImuBias(double init_bias)
   estimate_state_(2,0) = init_bias;
   correct_state_(2,0) = init_bias;
   predict_state_(2,0) = init_bias;
+}
+
+ void KalmanFilterPosVelAccBias::setCorrectMode(uint8_t correct_mode)
+{
+  correct_mode_ = correct_mode;
+
+  Matrix<double, 3, 1> observation_model;
+  if(correct_mode_ == CORRECT_POS) observation_model << 1, 0, 0;
+  else if(correct_mode_ == CORRECT_VEL) observation_model << 0, 1, 0;
+  setObservationModel(observation_model);
 }
 
 

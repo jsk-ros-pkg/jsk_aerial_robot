@@ -34,12 +34,11 @@ class ImuData
          KalmanFilterPosVelAccBias *kfb_x,
          KalmanFilterPosVelAccBias *kfb_y,
          KalmanFilterPosVelAccBias *kfb_z,
-         KalmanFilterPosVelAcc *kf_x_opt,
-         KalmanFilterPosVelAcc *kf_y_opt,
-         KalmanFilterPosVelAcc *kf_z_opt,
-         KalmanFilterPosVelAccBias *kfb_x_opt,
-         KalmanFilterPosVelAccBias *kfb_y_opt,
-         KalmanFilterPosVelAccBias *kfb_z_opt,
+         KalmanFilterPosVelAcc *kf_x_vel,
+         KalmanFilterPosVelAcc *kf_y_vel,
+         KalmanFilterPosVelAcc *kf_z2,
+         KalmanFilterPosVelAccBias *kfb_x_vel,
+         KalmanFilterPosVelAccBias *kfb_y_vel,
          bool kalman_filter_debug,
          int kalman_filter_axis,
          KalmanFilterPosVelAccBias *kf1,
@@ -64,8 +63,8 @@ class ImuData
       kf_x_ = kf_x;      kf_y_ = kf_y;      kf_z_ = kf_z;
       kfb_x_ = kfb_x;      kfb_y_ = kfb_y;      kfb_z_ = kfb_z;
   
-      kf_x_opt_ = kf_x_opt;      kf_y_opt_ = kf_y_opt;      kf_z_opt_ = kf_z_opt;
-      kfb_x_opt_ = kfb_x_opt;      kfb_y_opt_ = kfb_y_opt;      kfb_z_opt_ = kfb_z_opt;
+      kf_x_vel_ = kf_x_vel;      kf_y_vel_ = kf_y_vel;      kf_z2_ = kf_z2;
+      kfb_x_vel_ = kfb_x_vel;      kfb_y_vel_ = kfb_y_vel;
 
       kalman_filter_debug_ = kalman_filter_debug;
       kalman_filter_axis_  = kalman_filter_axis;
@@ -130,12 +129,11 @@ class ImuData
   KalmanFilterPosVelAccBias *kfb_y_;
   KalmanFilterPosVelAccBias *kfb_z_;
 
-  KalmanFilterPosVelAcc *kf_x_opt_;
-  KalmanFilterPosVelAcc *kf_y_opt_;
-  KalmanFilterPosVelAcc *kf_z_opt_;
-  KalmanFilterPosVelAccBias *kfb_x_opt_;
-  KalmanFilterPosVelAccBias *kfb_y_opt_;
-  KalmanFilterPosVelAccBias *kfb_z_opt_;
+  KalmanFilterPosVelAcc *kf_x_vel_;
+  KalmanFilterPosVelAcc *kf_y_vel_;
+  KalmanFilterPosVelAcc *kf_z2_;
+  KalmanFilterPosVelAccBias *kfb_x_vel_;
+  KalmanFilterPosVelAccBias *kfb_y_vel_;
 
   bool kalman_filter_debug_;
   int kalman_filter_axis_;
@@ -267,27 +265,25 @@ class ImuData
                 kf_y_->setInputFlag();
                 kf_z_->setInputFlag();
 
-                //for optical flow
-                kf_x_opt_->setInputFlag();
-                kf_y_opt_->setInputFlag();
-                kf_z_opt_->setInputFlag();
+                //for vel flow
+                kf_x_vel_->setInputFlag();
+                kf_y_vel_->setInputFlag();
+                kf_z2_->setInputFlag();
 
 
                 //for bias mode
-                kfb_x_->setInitImuBias(acc_x_bias_);
-                kfb_y_->setInitImuBias(acc_y_bias_);
-                kfb_z_->setInitImuBias(acc_z_bias_);
+                kfb_x_->setInitState(acc_x_bias_, 2);
+                kfb_y_->setInitState(acc_y_bias_, 2);
+                kfb_z_->setInitState(acc_z_bias_, 2);
                 kfb_x_->setInputFlag();
                 kfb_y_->setInputFlag();
                 kfb_z_->setInputFlag();
 
-                //for optical flow
-                kfb_x_opt_->setInitImuBias(acc_x_bias_);
-                kfb_y_opt_->setInitImuBias(acc_y_bias_);
-                kfb_z_opt_->setInitImuBias(acc_z_bias_);
-                kfb_x_opt_->setInputFlag();
-                kfb_y_opt_->setInputFlag();
-                kfb_z_opt_->setInputFlag();
+                //for velocity
+                kfb_x_vel_->setInitState(acc_x_bias_, 2);
+                kfb_y_vel_->setInitState(acc_y_bias_, 2);
+                kfb_x_vel_->setInputFlag();
+                kfb_y_vel_->setInputFlag();
 
               }
             if(kalman_filter_debug_)
@@ -295,16 +291,16 @@ class ImuData
 
                 if(kalman_filter_axis_ == 0)
                   {
-                    kf1_->setInitImuBias(acc_x_bias_);
-                    kf2_->setInitImuBias(acc_x_bias_);
+                    kf1_->setInitState(acc_x_bias_, 2);
+                    kf2_->setInitState(acc_x_bias_, 2);
                     kf1_->setInputFlag();
                     kf2_->setInputFlag();
 
                   }
                 if(kalman_filter_axis_ == 1)
                   {
-                    kf1_->setInitImuBias(acc_y_bias_);
-                    kf2_->setInitImuBias(acc_y_bias_);
+                    kf1_->setInitState(acc_y_bias_, 2);
+                    kf2_->setInitState(acc_y_bias_, 2);
                     kf1_->setInputFlag();
                     kf2_->setInputFlag();
                   }
@@ -325,52 +321,54 @@ class ImuData
           + cos(yaw2) * (acc_yi_ -acc_y_bias_);
         acc_zw_non_bias_ = acc_zw_ - acc_z_bias_;
 
+        Eigen::Matrix<double, 1, 1> temp = Eigen::MatrixXd::Zero(1, 1); 
+        Eigen::Matrix<double, 2, 1> temp2 = Eigen::MatrixXd::Zero(1, 1); 
+        //temp << 0;
         if(kalman_filter_flag_)
           {
-            Eigen::MatrixXd temp(1,1); 
+
             temp(0, 0) = (double)acc_xw_non_bias_;
-            kf_x_->prediction(temp);
+            //kf_x_->KalmanFilter<2, 1, 1>::prediction(temp);
             temp(0, 0) = (double)acc_yw_non_bias_;
-            kf_y_->prediction(temp);
+            //kf_y_->KalmanFilter<2, 1, 1>::prediction(temp);
             temp(0, 0) = (double)acc_zw_non_bias_;
-            kf_z_->prediction(temp);
+            //kf_z_->KalmanFilter<2, 1, 1>::prediction(temp);
 
             //with bias
-            temp(0, 0) = (double)acc_xw_;
-            kfb_x_->prediction(temp);
-            temp(0, 0) = (double)acc_yw_;
-            kfb_y_->prediction(temp);
-            temp(0, 0) = (double)acc_zw_;
-            kfb_z_->prediction(temp);
+            temp2(0, 0) = (double)acc_xw_;
+            kfb_x_->prediction(temp2);
+            temp2(0, 0) = (double)acc_yw_;
+            kfb_y_->prediction(temp2);
+            temp2(0, 0) = (double)acc_zw_;
+            kfb_z_->prediction(temp2);
 
             //optical without accurate time stamp
             temp(0, 0) = (double)acc_xi_ - acc_x_bias_;
-            kf_x_opt_->prediction(temp);
+            //kf_x_vel_->KalmanFilter<2, 1, 1>::prediction(temp);
             temp(0, 0) = (double)acc_yi_ - acc_y_bias_;
-            kf_y_opt_->prediction(temp);
+            //kf_y_vel_->KalmanFilter<2, 1, 1>::prediction(temp);
+
             temp(0, 0) = (double)acc_zw_non_bias_;
-            kf_z_opt_->prediction(temp);
-            temp(0, 0) = (double)acc_xi_;
-            kfb_x_opt_->prediction(temp);
-            temp(0, 0) = (double)acc_yi_;
-            kfb_y_opt_->prediction(temp);
-            temp(0, 0) = (double)acc_zw_;
-            kfb_z_opt_->prediction(temp);
+            //kf_z2_->KalmanFilter<2, 1, 1>::prediction(temp);
+            temp2(0, 0) = (double)acc_xi_;
+            kfb_x_vel_->prediction(temp2);
+            temp2(0, 0) = (double)acc_yi_;
+            kfb_y_vel_->prediction(temp2);
           }
 
         if(kalman_filter_debug_)
           {
             if(kalman_filter_axis_ == 0)
               { //x axis
-                temp(0, 0) = (double)acc_xw_;
-                kf1_->prediction(temp);
-                kf2_->prediction(temp);
+                temp2(0, 0) = (double)acc_xw_;
+                kf1_->prediction(temp2);
+                kf2_->prediction(temp2);
               }
             else if(kalman_filter_axis_ == 1)
               { //y axis
-                temp(0, 0) = (double)acc_yw_;
-                kf1_->prediction(temp);
-                kf2_->prediction(temp);
+                temp2(0, 0) = (double)acc_yw_;
+                kf1_->prediction(temp2);
+                kf2_->prediction(temp2);
               }
           }
         publishImuData(stamp);
@@ -413,18 +411,6 @@ class ImuData
     imu_data.acc_non_bias_world_frame.y = acc_yw_non_bias_;
     imu_data.acc_non_bias_world_frame.z = acc_zw_non_bias_;
 
-#if 0 //deprecated
-    if(kalman_filter_flag_)
-      {
-        imu_data.position.x = kf_x_->getEstimatePos();
-        imu_data.position.y = kf_y_->getEstimatePos();
-        imu_data.position.z = kf_z_->getEstimatePos();
-
-        imu_data.velocity.x = kf_x_->getEstimateVel();
-        imu_data.velocity.y = kf_y_->getEstimateVel();
-        imu_data.velocity.z = kf_z_->getEstimateVel();
-      }
-#endif
 
     imu_pub_.publish(imu_data);
   }

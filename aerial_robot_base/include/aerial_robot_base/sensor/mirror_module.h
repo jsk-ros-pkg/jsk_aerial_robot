@@ -168,7 +168,7 @@ class MirrorModule
         {
           raw_vel_z_ = (raw_pos_z_ - prev_raw_pos_z) /
             (current_secs - previous_secs);
-           
+
           lpf_z_.filterFunction(raw_pos_z_, pos_z_, 
                                   raw_vel_z_, vel_z_);
 
@@ -193,14 +193,14 @@ class MirrorModule
 
       if(kalman_filter_flag_)
         {
-          Eigen::Vector2d kf_z_state = kf_z_->getEstimateState();
-          Eigen::Vector3d kfb_z_state = kfb_z_->getEstimateState();
+          Eigen::Matrix<double,2,1> kf_z_state = kf_z_->getEstimateState();
+          Eigen::Matrix<double,3,1> kfb_z_state = kfb_z_->getEstimateState();
 
-          state.kf_pos = kf_z_state(0);
-          state.kf_vel = kf_z_state(1);
-          state.kfb_pos = kfb_z_state(0);
-          state.kfb_vel = kfb_z_state(1);
-          state.kfb_bias= kfb_z_state(2);
+          state.kf_pos = kf_z_state(0, 0);
+          state.kf_vel = kf_z_state(1, 0);
+          state.kfb_pos = kfb_z_state(0, 0);
+          state.kfb_vel = kfb_z_state(1, 0);
+          state.kfb_bias= kfb_z_state(2, 0);
         }
 
       height_state.states.push_back(state);
