@@ -1,5 +1,5 @@
 /*
-cannot resolve the problem that seperates files to kalman_filter.h and kalman_filter.cpp
+cannot resolve the problem that seperates files to kalman_filter.h and kalman_filter.cpp => cannot do in catkin?
  */
 
 #ifndef KALMAN_FILTER_H
@@ -27,24 +27,32 @@ template <size_t state_dim, size_t input_dim, size_t measure_dim>
 class KalmanFilter
 {
  public:
+#if 0
+  KalmanFilter(ros::NodeHandle nh, ros::NodeHandle nh_private);
+#else
   KalmanFilter(ros::NodeHandle nh, ros::NodeHandle nh_private)
     {
-  dt_ = 1 / input_hz_;
-  input_start_flag_ = false;
-  measure_start_flag_ = false;
+      dt_ = 1 / input_hz_;
+      input_start_flag_ = false;
+      measure_start_flag_ = false;
 
 
-  estimate_state_ = MatrixXd::Zero(state_dim, 1);
-  correct_state_ = MatrixXd::Zero(state_dim, 1);
-  predict_state_ = MatrixXd::Zero(state_dim, 1);
+      estimate_state_ = MatrixXd::Zero(state_dim, 1);
+      correct_state_ = MatrixXd::Zero(state_dim, 1);
+      predict_state_ = MatrixXd::Zero(state_dim, 1);
 
-  estimate_covariance_ = MatrixXd::Zero(state_dim, state_dim);
-  inovation_covariance_ = MatrixXd::Zero(measure_dim, measure_dim);
-  kalman_gain_  = MatrixXd::Zero(state_dim, measure_dim);
+      estimate_covariance_ = MatrixXd::Zero(state_dim, state_dim);
+      inovation_covariance_ = MatrixXd::Zero(measure_dim, measure_dim);
+      kalman_gain_  = MatrixXd::Zero(state_dim, measure_dim);
 
     }
+
+#endif
   ~KalmanFilter(){}
 
+#if 0
+  bool prediction(Matrix<double, input_dim, 1> input);
+#else
   bool prediction(Matrix<double, input_dim, 1> input)
   {
   if(getFilteringFlag())
@@ -69,6 +77,11 @@ class KalmanFilter
     return false;
 
   }
+#endif
+
+#if 0
+  bool correction(Matrix<double, measure_dim, 1> measurement);
+#else
   bool correction(Matrix<double, measure_dim, 1> measurement)
   {
   if(getFilteringFlag())
@@ -91,10 +104,9 @@ class KalmanFilter
 
       return true;
     }
-
     return false;
-
   }
+#endif
 
   void setEstimateState(const Matrix<double, state_dim, 1>& state)
   {
@@ -153,6 +165,10 @@ class KalmanFilter
     correct_state_(no,0) = state_value;
     predict_state_(no,0) = state_value;
   }
+
+#if 0
+  void setInitState(Matrix<double, state_dim, 1> init_state);
+#else
   void setInitState(Matrix<double, state_dim, 1> init_state)
   {
   boost::lock_guard<boost::mutex> lock(kf_mutex_);
@@ -161,6 +177,7 @@ class KalmanFilter
   predict_state_ = init_state;
 
   }
+#endif
 
  protected:
 

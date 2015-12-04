@@ -1,5 +1,6 @@
 #include "kalman_filter/kalman_filter.h"
 
+
 template <size_t state_dim, size_t input_dim, size_t measure_dim> KalmanFilter<state_dim, input_dim, measure_dim>::KalmanFilter(ros::NodeHandle nh, ros::NodeHandle nh_private): nh_(nh, "kalman_filter"), nhp_(nh_private, "kalman_filter")
 {
 
@@ -76,5 +77,4 @@ template <size_t state_dim, size_t input_dim, size_t measure_dim> void KalmanFil
   correct_state_ = init_state;
   predict_state_ = init_state;
 }
-
 
