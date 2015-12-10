@@ -41,7 +41,7 @@ Visualization Manager:
   Class: ""
   Displays:
     - Alpha: 0.5
-      Cell Size: 0.01
+      Cell Size: 1
       Class: rviz/Grid
       Color: 160; 160; 164
       Enabled: true
@@ -55,7 +55,7 @@ Visualization Manager:
         Y: 0
         Z: 0
       Plane: XY
-      Plane Cell Count: 1000
+      Plane Cell Count: 10
       Reference Frame: <Fixed Frame>
       Value: true
     - Alpha: 1
@@ -63,7 +63,8 @@ Visualization Manager:
       Collision Enabled: false
       Enabled: true
       Links:
-        All Links Enabled: true
+        All Links Enabled:
+          {}
         Expand Joint Details: false
         Expand Link Details: false
         Expand Tree: false
@@ -80,35 +81,22 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-        joint4:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
         link1:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
         link2:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
         link3:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
         link4:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
-        link5:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
       Name: RobotModel
       Robot Description: robot_description
       TF Prefix: ""
@@ -151,7 +139,8 @@ Visualization Manager:
       Collision Enabled: false
       Enabled: true
       Links:
-        All Links Enabled: true
+        All Links Enabled:
+          {}
         Expand Joint Details: false
         Expand Link Details: false
         Expand Tree: false
@@ -220,7 +209,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 1.97351
+      Distance: 16.6921
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
