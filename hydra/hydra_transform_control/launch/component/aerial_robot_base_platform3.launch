@@ -22,7 +22,7 @@
     <param name="navigator/xy_control_mode" type="int" value="0"/>
 
     ############### Quadctoper Basic State ######################
-        <rosparam file="$(find hydra_transform_control)/config/EstimatorConfig.yaml" command="load" /> 
+    <rosparam file="$(find hydra_transform_control)/config/EstimatorConfig.yaml" command="load" /> 
 
     ############### Motion Capture####################
     <param name="mocap/cog_offset" type="bool" value="true"/><!-- new for new hydra control -->
@@ -33,9 +33,9 @@
 
     ############### Kalman Filter ####################
     <!--    <param name="estimator/kalman_filter_flag" type="bool" value="true"/>
-    <param name="kalman_filter/imu_hz" type="double" value="105"/> -->
-<!--    <rosparam file="$(find hydra_transform_control)/config/KduinoKalmanFilterConfig.yaml" command="load" />
-    <rosparam file="$(find hydra_transform_control)/config/OpticalFlowKalmanFilterConfig.yaml" command="load" /> -->
+         <param name="kalman_filter/imu_hz" type="double" value="105"/> -->
+    <!--    <rosparam file="$(find hydra_transform_control)/config/KduinoKalmanFilterConfig.yaml" command="load" />
+         <rosparam file="$(find hydra_transform_control)/config/OpticalFlowKalmanFilterConfig.yaml" command="load" /> -->
 
     ############### Keyboard Navigation ##############
     <rosparam file="$(find hydra_transform_control)/config/TeleopNavigationConfig.yaml" command="load" />
@@ -64,10 +64,10 @@
 
   ################################# Kduino #########################################
 
- <node pkg="rosserial_python" type="serial_node.py" name="serial_node" output="screen">
-   <param name="baud" value="115200" />
-   <param name="port" value="/dev/ttyUSB1" />
- </node>
+  <node pkg="rosserial_python" type="serial_node.py" name="serial_node" output="screen">
+    <param name="baud" value="115200" />
+    <param name="port" value="/dev/ttyUSB1" />
+  </node>
 
   ################################# Dynamixel  ######################################
   <include file="$(find hydra_transform_control)/launch/component/hydra_dynamicxel_bridge3.launch" />  

@@ -448,7 +448,6 @@ public:
   {
     initRosParam();
 
-    
     server_.reset( new interactive_markers::InteractiveMarkerServer("dragon2_joints","",false) );
 
     ros::Duration(0.1).sleep();
@@ -548,7 +547,7 @@ int main(int argc, char** argv)
   JointStatePublisher *dragon_joints_state = new JointStatePublisher(n, np);
   ros::spin();
   delete dragon_joints_state;
-  
+
   return 0;
 }
 

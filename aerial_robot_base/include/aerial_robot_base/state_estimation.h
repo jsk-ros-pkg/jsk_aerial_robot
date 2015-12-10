@@ -16,9 +16,8 @@
 #include <tf/transform_broadcaster.h>
 
 //* filter
-#include <aerial_robot_base/kalman_filter.h>
-#include <aerial_robot_base/digital_filter.h>
-
+#include <kalman_filter/kf_pos_vel_acc.h>
+#include <kalman_filter/digital_filter.h>
 
 class RigidEstimator : public BasicEstimator
 {
@@ -64,13 +63,12 @@ class RigidEstimator : public BasicEstimator
   FirFilter *lpf_acc_y_;
   FirFilter *lpf_acc_z_;
 
-  //for optical flow
-  KalmanFilterPosVelAcc* kf_opt_x_;
-  KalmanFilterPosVelAcc* kf_opt_y_;
-  KalmanFilterPosVelAcc* kf_opt_z_;
-  KalmanFilterPosVelAccBias *kf_opt_bias_x_;
-  KalmanFilterPosVelAccBias *kf_opt_bias_y_;
-  KalmanFilterPosVelAccBias *kf_opt_bias_z_;
+  //for vel sensor
+  KalmanFilterPosVelAcc* kf_vel_x_;
+  KalmanFilterPosVelAcc* kf_vel_y_;
+  KalmanFilterPosVelAcc* kf_pos_z2_;
+  KalmanFilterPosVelAccBias *kf_vel_bias_x_;
+  KalmanFilterPosVelAccBias *kf_vel_bias_y_;
 
   //simulation flag
   bool simulation_flag_;
@@ -80,6 +78,8 @@ class RigidEstimator : public BasicEstimator
   bool   kalman_filter_debug_;
   int    kalman_filter_axis_;
 
+  bool hokuyo_flag_;
+  bool px4flow_flag_;
   bool mocap_flag_;
 
   int altitude_control_mode_;
@@ -117,12 +117,11 @@ class RigidEstimator : public BasicEstimator
   float getStateVelXOpt();
   float getStateVelYOpt();
 
+  void setStateCorrectFlag(bool flag);
 
   void rosParamInit(ros::NodeHandle nh);
 
-  bool getRocketStartFlag();
-  void setRocketStartFlag();
-
+  void statesBroadcast();
 
 };
 

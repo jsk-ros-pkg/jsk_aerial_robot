@@ -4,8 +4,8 @@
 //* ros
 #include <ros/ros.h>
 #include <aerial_robot_base/basic_state_estimation.h>
-#include <aerial_robot_base/kalman_filter.h>
-#include <aerial_robot_base/digital_filter.h>
+#include <kalman_filter/kf_pos_vel_acc.h>
+#include <kalman_filter/digital_filter.h>
 #include <tf/transform_broadcaster.h>
 
 #include <aerial_robot_base/States.h>
@@ -205,15 +205,14 @@ class SlamData
         prev_raw_pos_x = 0; prev_raw_pos_y = 0; prev_raw_pos_psi = 0;
         first_flag = false;
        
-        bool start_flag = true;
-        kfb_x_->setMeasureStartFlag(start_flag);
-        kfb_y_->setMeasureStartFlag(start_flag);
+        kfb_x_->setMeasureFlag();
+        kfb_y_->setMeasureFlag();
        
-        kf1_->setMeasureStartFlag(start_flag);
-        kf2_->setMeasureStartFlag(start_flag);
+        kf1_->setMeasureFlag();
+        kf2_->setMeasureFlag();
        
-        kf_x_->setMeasureStartFlag(start_flag);
-        kf_y_->setMeasureStartFlag(start_flag);
+        kf_x_->setMeasureFlag();
+        kf_y_->setMeasureFlag();
       }
     else
       {
@@ -242,26 +241,30 @@ class SlamData
 
         if(kalman_filter_flag_)
           {
-
-            kf_x_->imuQuCorrection(pose_msg->header.stamp, raw_pos_x_);
-            kf_y_->imuQuCorrection(pose_msg->header.stamp, raw_pos_y_);
-            kfb_x_->imuQuCorrection(pose_msg->header.stamp, raw_pos_x_);
-            kfb_y_->imuQuCorrection(pose_msg->header.stamp, raw_pos_y_);
+            Eigen::MatrixXd temp(1,1); 
+            temp(0, 0) = (double)raw_pos_x_;
+            kf_x_->correction(temp);
+            kfb_x_->correction(temp);
+            temp(0, 0) = (double)raw_pos_y_;
+            kf_y_->correction(temp);
+            kfb_y_->correction(temp);
           }
 
         if(kalman_filter_debug_)
           {
             if(kalman_filter_axis_ == X) 
               {
-                kf1_->correction(raw_pos_x_,pose_msg->header.stamp);
-                kf2_->correction(raw_pos_x_,pose_msg->header.stamp);
-
+                Eigen::MatrixXd temp(1,1); 
+                temp(0, 0) = (double)raw_pos_x_;
+                kf1_->correction(temp);
+                kf2_->correction(temp);
               }
             else if(kalman_filter_axis_ == Y) 
               {
-                kf1_->correction(raw_pos_y_,pose_msg->header.stamp);
-                kf2_->correction(raw_pos_y_,pose_msg->header.stamp);
-
+                Eigen::MatrixXd temp(1,1); 
+                temp(0, 0) = (double)raw_pos_y_;
+                kf1_->correction(temp);
+                kf2_->correction(temp);
               }
             else{}
           }
@@ -294,35 +297,44 @@ class SlamData
 
         if(kalman_filter_flag_)
           {
-            x_state.kf_pos = kf_x_->getEstimatePos();
-            x_state.kf_vel = kf_x_->getEstimateVel();
-            x_state.kfb_pos = kfb_x_->getEstimatePos();
-            x_state.kfb_vel = kfb_x_->getEstimateVel();
-            x_state.kfb_bias = kfb_x_->getEstimateBias();
+            Eigen::Matrix<double,2,1> kf_x_state = kf_x_->getEstimateState();
+            Eigen::Matrix<double,2,1> kf_y_state = kf_y_->getEstimateState();
+            Eigen::Matrix<double,3,1> kfb_x_state = kfb_x_->getEstimateState();
+            Eigen::Matrix<double,3,1> kfb_y_state = kfb_y_->getEstimateState();
 
-            y_state.kf_pos = kf_y_->getEstimatePos();
-            y_state.kf_vel = kf_y_->getEstimateVel();
-            y_state.kfb_pos = kfb_y_->getEstimatePos();
-            y_state.kfb_vel = kfb_y_->getEstimateVel();
-            y_state.kfb_bias = kfb_y_->getEstimateBias();
+            x_state.kf_pos = kf_x_state(0, 0);
+            x_state.kf_vel = kf_x_state(1, 0);
+            x_state.kfb_pos = kfb_x_state(0, 0);
+            x_state.kfb_vel = kfb_x_state(1, 0);
+            x_state.kfb_bias = kfb_x_state(2, 0);
+
+            y_state.kf_pos = kf_y_state(0, 0);
+            y_state.kf_vel = kf_y_state(1, 0);
+            y_state.kfb_pos = kfb_y_state(0, 0);
+            y_state.kfb_vel = kfb_y_state(1, 0);
+            y_state.kfb_bias = kfb_y_state(2, 0);
+
           }
 
         three_axis_state.states.push_back(x_state);
         three_axis_state.states.push_back(y_state);
         three_axis_state.states.push_back(yaw_state);
 
-
         if(kalman_filter_debug_)
           {
+
+            Eigen::Matrix<double,3,1> kf1_state = kf1_->getEstimateState();
+            Eigen::Matrix<double,3,1> kf2_state = kf2_->getEstimateState();
+
             aerial_robot_base::State debug1;
             debug1.id = "debug1";
-            debug1.pos = kf1_->getEstimatePos();
-            debug1.vel = kf1_->getEstimateVel();
+            debug1.pos =  kf1_state(0, 0);
+            debug1.vel =  kf1_state(1, 0);
 
             aerial_robot_base::State debug2;
             debug2.id = "debug2";
-            debug2.pos = kf2_->getEstimatePos();
-            debug2.vel = kf2_->getEstimateVel();
+            debug2.pos = kf2_state(0, 0);
+            debug2.vel = kf2_state(1, 0);
 
             three_axis_state.states.push_back(debug1);
             three_axis_state.states.push_back(debug2);

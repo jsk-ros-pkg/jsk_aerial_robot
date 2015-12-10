@@ -1,8 +1,0 @@
-<?xml version="1.0"?>
-<launch>
-
-  <node pkg="tracking" type="tracking_node" name="red_ball_tracking_node"  output="screen" /> 
-
-  <include file="$(find aerial_robot_base)/launch/rook_p/quadcopter_driver_rook_p.launch" />
-
-</launch>

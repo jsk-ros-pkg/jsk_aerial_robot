@@ -97,15 +97,13 @@ class PidController : public FlightController
   //double const_i_term_value_throttle_land_; 
   double offset_throttle_;
   int pos_limit_throttle_;
+  double land_gain_slow_rate_;
   int pos_p_limit_throttle_;
   int pos_i_limit_throttle_;
   int pos_d_limit_throttle_;
  //int pos_p_limit_throttle_hover_;  
  //double vel_value_limit_throttle_hover_;
  //double i_enable_limit_throttle_hover_; 
- //int  rocket_start_init_value_;
- //int  rocket_start_init_increment_value_;
- //int  rocket_start_step_value_;
  //int  free_fall_step_value_;
  // int  motor_stop_value_;
  //int throwing_mode_init_value_from_rocket_start_;

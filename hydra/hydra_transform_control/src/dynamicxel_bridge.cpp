@@ -122,10 +122,10 @@ public:
     
     //bad!!!
 #if 1 //the singular position(pi/2)
-    if(fabs(joints_info_[i].current_angle - M_PI/2) < 0.18) // 0.18 = 10 / 180 * pi ; 0.09 = 5 / 180 * pi
+    if(fabs(joints_info_[i].current_angle - M_PI/2) < 0.09) // 0.18 = 10 / 180 * pi ; 0.09 = 5 / 180 * pi
       joints_info_[i].current_angle= M_PI/2;
 
-    if(fabs(joints_info_[i].current_angle + M_PI/2) < 0.18) // 0.18 = 10 / 180 * pi ; 0.09 = 5 / 180 * pi
+    if(fabs(joints_info_[i].current_angle + M_PI/2) < 0.09) // 0.18 = 10 / 180 * pi ; 0.09 = 5 / 180 * pi
       joints_info_[i].current_angle= -M_PI/2;
 
 #endif
@@ -139,7 +139,7 @@ public:
         //if(joints_ctrl_msg->name[i] == joints_info_[i].joint_name)
         if(1)
           {
-            ROS_INFO("joint %d position %f", i, joints_ctrl_msg->position[i]);
+            //ROS_INFO("joint %d position %f", i, joints_ctrl_msg->position[i]);
             joints_info_[i].target_angle = joints_ctrl_msg->position[i];
             double dynamicxel_postion = joints_info_[i].target_angle * joints_info_[i].angle_sgn  + joints_info_[i].angle_offset;
 

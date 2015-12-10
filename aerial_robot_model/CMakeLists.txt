@@ -42,11 +42,15 @@ add_executable(traj_motion_node src/traj_motion.cpp)
 target_link_libraries(traj_motion_node ${catkin_LIBRARIES})
 
 
+
 add_executable(interactive_marker src/interactive_marker.cpp)
 target_link_libraries(interactive_marker ${catkin_LIBRARIES})
 
 add_executable(dragon2_joint_state_publisher src/dragon2_joint_state_publisher.cpp)
 target_link_libraries(dragon2_joint_state_publisher ${catkin_LIBRARIES})
+
+add_executable(hydrus_origin_publisher src/hydrus_origin_publisher.cpp)
+target_link_libraries(hydrus_origin_publisher ${catkin_LIBRARIES})
 
 
 add_executable(other_object_tf_publisher src/other_object_tf_publisher.cpp)

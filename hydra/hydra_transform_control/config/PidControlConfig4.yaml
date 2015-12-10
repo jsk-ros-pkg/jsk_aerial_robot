@@ -1,5 +1,10 @@
 ### PID control for quadcopter
 
+controller/feedforward_flag: true
+controller/f_pwm_rate: 0.3029
+controller/f_pwm_offset: -21.196
+controller/pwm_rate: 18.0  #1800/100.0
+
 controller/pitch/ctrl_loop_rate: 40
 controller/roll/ctrl_loop_rate: 40
 controller/throttle/ctrl_loop_rate: 40
@@ -11,14 +16,14 @@ controller/throttle/pos_limit: 9.0
 controller/throttle/pos_p_limit: 9.0
 controller/throttle/pos_i_limit: 9.0
 controller/throttle/pos_d_limit: 9.0
-controller/throttle/const_i_ctrl_thre_land: -0.2
+controller/throttle/const_i_ctrl_thre_land: -0.3
 
 # pitch 
-controller/pitch/pos_p_gain: 0.054
+controller/pitch/pos_p_gain: 0.07 #0.054
 controller/pitch/pos_i_gain: 0.005
 controller/pitch/pos_i_gain_hover: 0.001625 
-controller/pitch/pos_d_gain: 0.28 
-controller/pitch/vel_p_gain:  0.28 #0.13325 #0.41 * 0.325 0.41 
+controller/pitch/pos_d_gain: 0.35 # 0.28 
+controller/pitch/vel_p_gain: 0.35 # 0.28 
 controller/pitch/vel_i_gain: 0.001625  # 0.005 * 0.325
 controller/pitch/pos_limit: 120 # rook1: 200 * 0.325
 controller/pitch/pos_p_limit: 60 #rook1 :100 *0.325
@@ -29,11 +34,11 @@ controller/pitch/i_enable_limit: 0.325 # 1.0 * 0.325
 controller/pitch/offset: 0
 
 #  roll 
-controller/roll/pos_p_gain: 0.054 
+controller/roll/pos_p_gain: 0.07 
 controller/roll/pos_i_gain: 0.005 
 controller/roll/pos_i_gain_hover: 0.001625 
-controller/roll/pos_d_gain: 0.28
-controller/roll/vel_p_gain: 0.28
+controller/roll/pos_d_gain: 0.35
+controller/roll/vel_p_gain: 0.35
 controller/roll/vel_i_gain: 0.001625
 controller/roll/pos_limit: 120
 controller/roll/pos_p_limit: 60

@@ -171,6 +171,9 @@ void cogComputation(const std::vector<tf::StampedTransform>& transforms);
   
   void param2contoller();
 
+  //only for link4
+  double getUDeterminant(){return U_.determinant();}
+
   const static uint8_t LQI_FOUR_AXIS_MODE = 0;
   const static uint8_t LQI_THREE_AXIS_MODE = 1;
 

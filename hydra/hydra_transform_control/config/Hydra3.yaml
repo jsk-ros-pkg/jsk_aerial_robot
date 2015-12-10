@@ -10,6 +10,7 @@ controller2_mass: 0.104 #old: 0.093Kg(93g)
 controller2_offset: 0.189 #old: 0.178
 
 link_base_two_end_mass: 0.047 # 0.053 - 0.006(2leg)
+link_num: 4
 
 root_link: 2
 

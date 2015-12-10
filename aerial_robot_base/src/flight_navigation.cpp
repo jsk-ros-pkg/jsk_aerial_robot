@@ -1,7 +1,6 @@
 /* 
 0. flightNavCallback => implementation
 1. the optical flow => indefference
-2. rocket start => depracated
 
 4. flight mode vs navi command => development
 
@@ -78,6 +77,8 @@ Navigator::~Navigator()
 
 void Navigator::naviCallback(const aerial_robot_base::FlightNavConstPtr & msg)
 {
+  //debug
+  //ROS_WARN("navi cmd callback");
   //for x & y
   if(msg->command_mode == aerial_robot_base::FlightNav::VEL_FLIGHT_MODE_COMMAND)
     {
@@ -99,9 +100,13 @@ void Navigator::naviCallback(const aerial_robot_base::FlightNavConstPtr & msg)
     {
       setTargetPosZ(msg->target_pos_z);
     }
+  // else if(msg->pos_z_navi_mode == aerial_robot_base::FlightNav::NO_NAVIGATION)
+  //   {
+  //     setTargetPosZ(estimator_->getStatePosZ());
+  //   }
 
   //for psi
-  //not good, be carefukk
+  //not good, be careful
   if(msg->command_mode != aerial_robot_base::FlightNav::NO_NAVIGATION)
     {
       setTargetPsi(msg->target_psi);
@@ -178,8 +183,20 @@ TeleopNavigator::TeleopNavigator(ros::NodeHandle nh, ros::NodeHandle nh_private,
   ctrl_mode_sub_ = nh_.subscribe<std_msgs::Int8>("teleop_command/ctrl_mode", 1, &TeleopNavigator::xyControlModeCallback, this, ros::TransportHints().tcpNoDelay());
 
   joy_stick_sub_ = nh_.subscribe<sensor_msgs::Joy>("joy_stick_command", 1, &TeleopNavigator::joyStickControl, this, ros::TransportHints().udp());
-  rc_cmd_pub_ = nh_.advertise<aerial_robot_msgs::FourAxisCommand>("kduino/rc_cmd", 10); 
+
+  if(flight_ctrl_input_->getMotorNumber() > 1)
+    rc_cmd_pub_ = nh_.advertise<aerial_robot_msgs::FourAxisCommand>("kduino/rc_cmd", 10); 
+  else
+    rc_cmd_pub_ = nh_.advertise<aerial_robot_msgs::RcData>("kduino/rc_cmd", 10); 
+ 
+  stop_teleop_sub_ = nh_.subscribe<std_msgs::UInt8>("stop_teleop", 1, &TeleopNavigator::stopTeleopCallback, this, ros::TransportHints().tcpNoDelay());
+  teleop_flag_ = true;
+
   msp_cmd_pub_ = nh_.advertise<std_msgs::UInt16>("kduino/msp_cmd", 10);
+
+  //temporarily
+  joints_ctrl_pub_= nh_.advertise<std_msgs::Int8>("/teleop_command/joints_ctrl", 2);
+
 
 }
 
@@ -419,9 +436,26 @@ void TeleopNavigator::xyControlModeCallback(const std_msgs::Int8ConstPtr & msg)
     }
 }
 
+void TeleopNavigator::stopTeleopCallback(const std_msgs::UInt8ConstPtr & stop_msg)
+{
+  if(stop_msg->data == 1) 
+    {
+      ROS_WARN("stop teleop control");
+      teleop_flag_ = false;
+    }
+  else if(stop_msg->data == 0) 
+    {
+      ROS_WARN("start teleop control");
+      teleop_flag_ = true;
+    }
+}
+
 
 void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
 { //botton assignment: http://wiki.ros.org/ps3joy
+  //temporary
+  static bool joint_ctrl_flag   = false;
+
 
   if(gain_tunning_mode_ == ATTITUDE_GAIN_TUNNING_MODE)
     {
@@ -486,7 +520,6 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
 	  target_roll_angle_
 	    = - joy_msg->axes[0] * target_angle_rate_ * cmd_angle_lev2_gain_;
 	}
-
 
       //throttle, TODO: not good
       if(fabs(joy_msg->axes[3]) > 0.2)
@@ -564,7 +597,7 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
 
     }
   else if(xy_control_mode_ == POS_WORLD_BASED_CONTROL_MODE || xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE)
-    {
+   {
       //start 
       if(joy_msg->buttons[3] == 1 && getNaviCommand() != START_COMMAND)
         {
@@ -787,9 +820,11 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
           return;
         }
 
-      if(getStartAble() && getFlightAble() && getNaviCommand() != LAND_COMMAND)  
+      if(getStartAble() && getFlightAble() && getNaviCommand() != LAND_COMMAND 
+         && teleop_flag_)  
         {//start &  takeoff & !land
           setNaviCommand(HOVER_COMMAND);
+
           //pitch
           final_target_vel_x_= joy_msg->axes[1] * fabs(joy_msg->axes[1]) * target_vel_rate_;
           //roll
@@ -832,6 +867,28 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
 
         }
     }
+
+  if(!joint_ctrl_flag)
+    {//joints angle ctrl
+      if(joy_msg->buttons[8] == 1)
+        {
+          std_msgs::Int8 joints_ctrl_cmd;
+          joints_ctrl_cmd.data = 7;
+          joints_ctrl_pub_.publish(joints_ctrl_cmd);
+          joint_ctrl_flag = true;
+          ROS_INFO("to ku model");
+        }
+      if(joy_msg->buttons[10] == 1)
+        {
+          std_msgs::Int8 joints_ctrl_cmd;
+          joints_ctrl_cmd.data = 8;
+          joints_ctrl_pub_.publish(joints_ctrl_cmd);
+          joint_ctrl_flag = true;
+          ROS_INFO("to normal model");
+        }
+    }
+  if(joy_msg->buttons[8] == 0 && joy_msg->buttons[10] == 0 && joint_ctrl_flag)
+    joint_ctrl_flag = false;
 }
 
 
@@ -894,15 +951,27 @@ void TeleopNavigator::sendRcCmd()
           getNaviCommand() == LAND_COMMAND ||
           getNaviCommand() == HOVER_COMMAND)
     {
-      aerial_robot_msgs::FourAxisCommand four_axis_command_data;
-      four_axis_command_data.angles[0]  =  flight_ctrl_input_->getRollValue();
-      four_axis_command_data.angles[1] =  flight_ctrl_input_->getPitchValue();
-      for(int i =0; i < flight_ctrl_input_->getMotorNumber(); i++)
+      if(flight_ctrl_input_->getMotorNumber() > 1)
         {
-          four_axis_command_data.yaw_pi_term[i]   =  (flight_ctrl_input_->getYawValue())[i];
-          four_axis_command_data.throttle_pid_term[i] = (flight_ctrl_input_->getThrottleValue())[i] ;
+          aerial_robot_msgs::FourAxisCommand four_axis_command_data;
+          four_axis_command_data.angles[0]  =  flight_ctrl_input_->getRollValue();
+          four_axis_command_data.angles[1] =  flight_ctrl_input_->getPitchValue();
+          for(int i =0; i < flight_ctrl_input_->getMotorNumber(); i++)
+            {
+              four_axis_command_data.yaw_pi_term[i]   =  (flight_ctrl_input_->getYawValue())[i];
+              four_axis_command_data.throttle_pid_term[i] = (flight_ctrl_input_->getThrottleValue())[i] ;
+            }
+          rc_cmd_pub_.publish(four_axis_command_data);
         }
-      rc_cmd_pub_.publish(four_axis_command_data);
+      else
+        {
+          aerial_robot_msgs::RcData rc_data;
+          rc_data.roll  =  flight_ctrl_input_->getRollValue();
+          rc_data.pitch =  flight_ctrl_input_->getPitchValue();
+          rc_data.yaw   =  (flight_ctrl_input_->getYawValue())[0] / 10000.0; //
+          rc_data.throttle = (flight_ctrl_input_->getThrottleValue())[0];
+          rc_cmd_pub_.publish(rc_data);
+        }
     }
   else
     {
@@ -921,6 +990,9 @@ void TeleopNavigator::teleopNavigation()
   if(getNaviCommand() == START_COMMAND)
     { //takeoff phase
       flight_mode_= NO_CONTROL_MODE;
+
+      //state correct flag(Kalman Filter, especially for px4flow
+      estimator_->setStateCorrectFlag(true);
     }
   else if(getNaviCommand() == TAKEOFF_COMMAND)
     { //Take OFF Phase
@@ -974,12 +1046,15 @@ void TeleopNavigator::teleopNavigation()
                   ROS_WARN(" no x/y pos stable hovering ");
                 }
             }
-	}
-      
+        }
     }
   else if(getNaviCommand() == LAND_COMMAND)
     {
       ROS_WARN(" land command");
+
+      //state correct flag(Kalman Filter, especially for px4flow
+      estimator_->setStateCorrectFlag(false);
+
       if (!getFlightAble()  && getStartAble()) 
 	{
           ROS_ERROR(" land land mode mode");
@@ -1023,6 +1098,9 @@ void TeleopNavigator::teleopNavigation()
     }
   else if(getNaviCommand() == STOP_COMMAND)
     {
+      //state correct flag(Kalman Filter, especially for px4flow
+      estimator_->setStateCorrectFlag(false);
+
       if(flight_mode_ != RESET_MODE)
         flight_mode_= NO_CONTROL_MODE;
     }
