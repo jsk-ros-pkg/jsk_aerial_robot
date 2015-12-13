@@ -106,7 +106,7 @@ add_definitions(${EIGEN_DEFINITIONS})
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
   INCLUDE_DIRS include
-  LIBRARIES  kf_pos_vel_acc
+  LIBRARIES  kf_pos_vel_acc kalman_filter
   CATKIN_DEPENDS roscpp message_runtime std_msgs
   DEPENDS Eigen
 )
@@ -143,6 +143,7 @@ add_dependencies(kf_pos_vel_acc  ${PROJECT_NAME}_gencfg)
 
 add_executable(test_node src/test.cpp)
 target_link_libraries(test_node  ${catkin_LIBRARIES} kf_pos_vel_acc  )
+#target_link_libraries(test_node kalman_filter ${catkin_LIBRARIES} )
 
 #############
 ## Install ##

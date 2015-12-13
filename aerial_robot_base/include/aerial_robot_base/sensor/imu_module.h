@@ -328,11 +328,11 @@ class ImuData
           {
 
             temp(0, 0) = (double)acc_xw_non_bias_;
-            //kf_x_->KalmanFilter<2, 1, 1>::prediction(temp);
+            kf_x_->prediction(temp);
             temp(0, 0) = (double)acc_yw_non_bias_;
-            //kf_y_->KalmanFilter<2, 1, 1>::prediction(temp);
+            kf_y_->prediction(temp);
             temp(0, 0) = (double)acc_zw_non_bias_;
-            //kf_z_->KalmanFilter<2, 1, 1>::prediction(temp);
+            kf_z_->prediction(temp);
 
             //with bias
             temp2(0, 0) = (double)acc_xw_;
@@ -344,12 +344,12 @@ class ImuData
 
             //optical without accurate time stamp
             temp(0, 0) = (double)acc_xi_ - acc_x_bias_;
-            //kf_x_vel_->KalmanFilter<2, 1, 1>::prediction(temp);
+            kf_x_vel_->prediction(temp);
             temp(0, 0) = (double)acc_yi_ - acc_y_bias_;
-            //kf_y_vel_->KalmanFilter<2, 1, 1>::prediction(temp);
+            kf_y_vel_->prediction(temp);
 
             temp(0, 0) = (double)acc_zw_non_bias_;
-            //kf_z2_->KalmanFilter<2, 1, 1>::prediction(temp);
+            kf_z2_->prediction(temp);
             temp2(0, 0) = (double)acc_xi_;
             kfb_x_vel_->prediction(temp2);
             temp2(0, 0) = (double)acc_yi_;
