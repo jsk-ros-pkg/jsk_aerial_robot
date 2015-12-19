@@ -171,7 +171,7 @@ TeleopNavigator::TeleopNavigator(ros::NodeHandle nh, ros::NodeHandle nh_private,
   alt_control_flag_ = false;
   yaw_control_flag_ = false;
 
-  arming_ack_sub_ = nh_.subscribe<std_msgs::Int8>("kduino/arming_ack", 1, &TeleopNavigator::armingAckCallback, this, ros::TransportHints().tcpNoDelay());
+  arming_ack_sub_ = nh_.subscribe<std_msgs::Int8>("arming_ack", 1, &TeleopNavigator::armingAckCallback, this, ros::TransportHints().tcpNoDelay());
   takeoff_sub_ = nh_.subscribe<std_msgs::Empty>("teleop_command/takeoff", 1, &TeleopNavigator::takeoffCallback, this, ros::TransportHints().tcpNoDelay());
   halt_sub_ = nh_.subscribe<std_msgs::Empty>("teleop_command/halt", 1, &TeleopNavigator::haltCallback, this, ros::TransportHints().tcpNoDelay());
   land_sub_ = nh_.subscribe<std_msgs::Empty>("teleop_command/land", 1, &TeleopNavigator::landCallback, this, ros::TransportHints().tcpNoDelay());
@@ -185,14 +185,14 @@ TeleopNavigator::TeleopNavigator(ros::NodeHandle nh, ros::NodeHandle nh_private,
   joy_stick_sub_ = nh_.subscribe<sensor_msgs::Joy>("joy_stick_command", 1, &TeleopNavigator::joyStickControl, this, ros::TransportHints().udp());
 
   if(flight_ctrl_input_->getMotorNumber() > 1)
-    rc_cmd_pub_ = nh_.advertise<aerial_robot_msgs::FourAxisCommand>("kduino/rc_cmd", 10); 
+    rc_cmd_pub_ = nh_.advertise<aerial_robot_msgs::FourAxisCommand>("rc_cmd", 10); 
   else
-    rc_cmd_pub_ = nh_.advertise<aerial_robot_msgs::RcData>("kduino/rc_cmd", 10); 
+    rc_cmd_pub_ = nh_.advertise<aerial_robot_msgs::RcData>("rc_cmd", 10); 
  
   stop_teleop_sub_ = nh_.subscribe<std_msgs::UInt8>("stop_teleop", 1, &TeleopNavigator::stopTeleopCallback, this, ros::TransportHints().tcpNoDelay());
   teleop_flag_ = true;
 
-  msp_cmd_pub_ = nh_.advertise<std_msgs::UInt16>("kduino/msp_cmd", 10);
+  msp_cmd_pub_ = nh_.advertise<std_msgs::UInt16>("msp_cmd", 10);
 
   //temporarily
   joints_ctrl_pub_= nh_.advertise<std_msgs::Int8>("/teleop_command/joints_ctrl", 2);
