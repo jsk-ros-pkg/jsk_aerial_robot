@@ -249,7 +249,7 @@ void PidController::pidFunction()
                   start_rp_integration_ = true;
                   std_msgs::UInt16 integration_cmd;
                   integration_cmd.data = navigator_->ROS_INTEGRATE_CMD;
-                  navigator_->msp_cmd_pub_.publish(integration_cmd);
+                  navigator_->config_cmd_pub_.publish(integration_cmd);
                 }
             }
 

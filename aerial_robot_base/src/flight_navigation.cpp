@@ -171,7 +171,7 @@ TeleopNavigator::TeleopNavigator(ros::NodeHandle nh, ros::NodeHandle nh_private,
   alt_control_flag_ = false;
   yaw_control_flag_ = false;
 
-  arming_ack_sub_ = nh_.subscribe<std_msgs::Int8>("arming_ack", 1, &TeleopNavigator::armingAckCallback, this, ros::TransportHints().tcpNoDelay());
+  arming_ack_sub_ = nh_.subscribe<std_msgs::Int8>("/arming_ack", 1, &TeleopNavigator::armingAckCallback, this, ros::TransportHints().tcpNoDelay());
   takeoff_sub_ = nh_.subscribe<std_msgs::Empty>("teleop_command/takeoff", 1, &TeleopNavigator::takeoffCallback, this, ros::TransportHints().tcpNoDelay());
   halt_sub_ = nh_.subscribe<std_msgs::Empty>("teleop_command/halt", 1, &TeleopNavigator::haltCallback, this, ros::TransportHints().tcpNoDelay());
   land_sub_ = nh_.subscribe<std_msgs::Empty>("teleop_command/land", 1, &TeleopNavigator::landCallback, this, ros::TransportHints().tcpNoDelay());
@@ -185,14 +185,14 @@ TeleopNavigator::TeleopNavigator(ros::NodeHandle nh, ros::NodeHandle nh_private,
   joy_stick_sub_ = nh_.subscribe<sensor_msgs::Joy>("joy_stick_command", 1, &TeleopNavigator::joyStickControl, this, ros::TransportHints().udp());
 
   if(flight_ctrl_input_->getMotorNumber() > 1)
-    rc_cmd_pub_ = nh_.advertise<aerial_robot_msgs::FourAxisCommand>("rc_cmd", 10); 
+    rc_cmd_pub_ = nh_.advertise<aerial_robot_msgs::FourAxisCommand>("/aerial_robot_control", 10); 
   else
-    rc_cmd_pub_ = nh_.advertise<aerial_robot_msgs::RcData>("rc_cmd", 10); 
+    rc_cmd_pub_ = nh_.advertise<aerial_robot_msgs::RcData>("/aerial_robot_control", 10); 
  
   stop_teleop_sub_ = nh_.subscribe<std_msgs::UInt8>("stop_teleop", 1, &TeleopNavigator::stopTeleopCallback, this, ros::TransportHints().tcpNoDelay());
   teleop_flag_ = true;
 
-  msp_cmd_pub_ = nh_.advertise<std_msgs::UInt16>("msp_cmd", 10);
+  config_cmd_pub_ = nh_.advertise<std_msgs::UInt16>("/config_cmd", 10);
 
   //temporarily
   joints_ctrl_pub_= nh_.advertise<std_msgs::Int8>("/teleop_command/joints_ctrl", 2);
@@ -561,32 +561,32 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
         {
           std_msgs::UInt16 att_p_gain_cmd;
           att_p_gain_cmd.data = 161;
-          msp_cmd_pub_.publish(att_p_gain_cmd); 
+          config_cmd_pub_.publish(att_p_gain_cmd); 
           gain_tunning_flag_ = true;
         }
       if(joy_msg->buttons[8] == 1 && !gain_tunning_flag_) //left down trigger
         {
           std_msgs::UInt16 att_p_gain_cmd;
           att_p_gain_cmd.data = 162;
-          msp_cmd_pub_.publish(att_p_gain_cmd); 
+          config_cmd_pub_.publish(att_p_gain_cmd); 
           gain_tunning_flag_ = true;
         }
       if(joy_msg->buttons[11] == 1 && !gain_tunning_flag_) //right up trigger
         {
           std_msgs::UInt16 att_p_gain_cmd;
           att_p_gain_cmd.data = 167;
-          msp_cmd_pub_.publish(att_p_gain_cmd); 
+          config_cmd_pub_.publish(att_p_gain_cmd); 
           att_p_gain_cmd.data = 163;
-          msp_cmd_pub_.publish(att_p_gain_cmd); 
+          config_cmd_pub_.publish(att_p_gain_cmd); 
           gain_tunning_flag_ = true;
         }
       if(joy_msg->buttons[9] == 1 && !gain_tunning_flag_) //right down trigger
         {
           std_msgs::UInt16 att_p_gain_cmd;
           att_p_gain_cmd.data = 168;
-          msp_cmd_pub_.publish(att_p_gain_cmd); 
+          config_cmd_pub_.publish(att_p_gain_cmd); 
           att_p_gain_cmd.data = 164;
-          msp_cmd_pub_.publish(att_p_gain_cmd); 
+          config_cmd_pub_.publish(att_p_gain_cmd); 
           gain_tunning_flag_ = true;
         }
       if(joy_msg->buttons[8] == 0 &&  joy_msg->buttons[9] == 0 &&
@@ -939,13 +939,13 @@ void TeleopNavigator::sendRcCmd()
      ROS_INFO("START_COMMAND");
      std_msgs::UInt16 start_cmd;
      start_cmd.data = ARM_ON_CMD;
-     msp_cmd_pub_.publish(start_cmd); 
+     config_cmd_pub_.publish(start_cmd); 
     }
   else if(getNaviCommand() == STOP_COMMAND)
     { 
       std_msgs::UInt16 stop_cmd;
       stop_cmd.data = ARM_OFF_CMD;
-      msp_cmd_pub_.publish(stop_cmd);
+      config_cmd_pub_.publish(stop_cmd);
     }
   else if(getNaviCommand() == TAKEOFF_COMMAND ||
           getNaviCommand() == LAND_COMMAND ||

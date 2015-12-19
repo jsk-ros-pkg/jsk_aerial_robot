@@ -54,10 +54,6 @@
     <rosparam file="$(find aerial_robot_base)/config/d_rook/TeleopNavigationConfig.yaml" command="load" />
 
     ############### remap topic ######################
-    ### Kduino IMU ################
-    <remap from="/navigator/rc_cmd" to="/dragon/rc_cmd" />
-    <remap from="/navigator/msp_cmd" to="/dragon/msp_cmd" />
-    <remap from="/navigator/arming_ack" to="/dragon/arming_ack" />
     ### Optical Flow ##############
     <remap from="optical_flow/opt_flow" to="px4flow/opt_flow" />
     ### Joy Stick #################

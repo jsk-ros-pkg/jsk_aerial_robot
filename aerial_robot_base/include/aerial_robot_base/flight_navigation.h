@@ -27,7 +27,7 @@ class Navigator
             int ctrl_loop_rate);
   virtual ~Navigator();
 
-  ros::Publisher  msp_cmd_pub_; //temporarily
+  ros::Publisher  config_cmd_pub_; //temporarily
 
 
   inline bool getStartAble(){  return start_able_;}
@@ -124,8 +124,8 @@ class Navigator
 
 
   //for ros arm/disarm cmd
-  const static uint8_t ARM_ON_CMD = 150;
-  const static uint8_t ARM_OFF_CMD = 151;
+  const static uint8_t ARM_ON_CMD = 0x20; //old: 150;
+  const static uint8_t ARM_OFF_CMD = 0x21; //old: 151;
   const static uint8_t ROS_INTEGRATE_CMD = 160;
 
   static const uint8_t X_AXIS = 1;
