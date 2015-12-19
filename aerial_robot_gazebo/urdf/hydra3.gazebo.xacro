@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+
+<robot
+    xmlns:xacro="http://www.ros.org/wiki/xacro" name="hydra3" >
+  <xacro:include filename="$(find aerial_robot_model)/robots/hydra3.urdf.xacro" />
+  <xacro:include filename="$(find aerial_robot_gazebo)/urdf/hydra3.gazebo" />
+
+</robot>
