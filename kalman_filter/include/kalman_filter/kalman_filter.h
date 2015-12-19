@@ -151,6 +151,7 @@ class KalmanFilter
   inline void setInputFlag(bool flag = true){input_start_flag_ = flag; }
   inline void setMeasureFlag(bool flag = true){ measure_start_flag_ = flag;}
 
+
   bool getFilteringFlag()
   {
     if(input_start_flag_ && measure_start_flag_)

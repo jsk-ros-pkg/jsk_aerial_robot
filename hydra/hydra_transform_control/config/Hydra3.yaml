@@ -59,6 +59,12 @@ r2: 1.0
 r3: 1.0
 r4: 1.0
 
+<<<<<<< HEAD
+dist_thre: 0.04 # 0.04 is enough to calculate the planning, resulting in 0.07 ~ 0.08
+f_max: 1000000.0#8.2
+f_min: 0.0#2.0
+=======
 dist_thre: 0.045 # 0.04 is enough to calculate the planning, resulting in 0.07 ~ 0.08
 f_max: 8.2
 f_min: 2.0
+>>>>>>> 8d3e598ea1de467b78e417abbd36f3ea9558ef94
