@@ -106,7 +106,7 @@ add_definitions(${EIGEN_DEFINITIONS})
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
   INCLUDE_DIRS include
-  LIBRARIES  kf_pos_vel_acc kalman_filter
+  LIBRARIES  kf_pos_vel_acc
   CATKIN_DEPENDS roscpp message_runtime std_msgs
   DEPENDS Eigen
 )
