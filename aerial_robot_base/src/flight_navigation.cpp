@@ -968,7 +968,7 @@ void TeleopNavigator::sendRcCmd()
           aerial_robot_msgs::RcData rc_data;
           rc_data.roll  =  flight_ctrl_input_->getRollValue();
           rc_data.pitch =  flight_ctrl_input_->getPitchValue();
-          rc_data.yaw   =  (flight_ctrl_input_->getYawValue())[0] / 10000.0; //
+          rc_data.yaw   =  (flight_ctrl_input_->getYawValue())[0];
           rc_data.throttle = (flight_ctrl_input_->getThrottleValue())[0];
           rc_cmd_pub_.publish(rc_data);
         }

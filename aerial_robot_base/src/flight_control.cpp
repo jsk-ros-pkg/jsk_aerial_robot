@@ -265,21 +265,18 @@ void PidController::pidFunction()
 
               //**** Pの項
               pos_p_term_pitch_ =
-                limit(1000 * pos_p_gain_pitch_ * d_err_pos_curr_pitch_,  pos_p_limit_pitch_);
+                limit(pos_p_gain_pitch_ * d_err_pos_curr_pitch_,  pos_p_limit_pitch_);
 
               //**** Iの項
               if(navigator_->getFlightMode() == Navigator::TAKEOFF_MODE || navigator_->getFlightMode() == Navigator::LAND_MODE) //takeoff or land
-                pos_i_term_pitch_ += 1000 * 
-                  d_err_pos_curr_pitch_ * (1 / (float)pitch_ctrl_loop_rate_) * pos_i_gain_pitch_;
+                pos_i_term_pitch_ += d_err_pos_curr_pitch_ * (1 / (float)pitch_ctrl_loop_rate_) * pos_i_gain_pitch_;
               //else if(navigator_->getFlightMode() == Navigator::FLIGHT_MODE && fabs(d_err_pos_curr_pitch_) < i_enable_limit_pitch_) //hover or land
               else if(navigator_->getFlightMode() == Navigator::FLIGHT_MODE) //hover or land
-                pos_i_term_pitch_ += 1000 * 
-                  d_err_pos_curr_pitch_ * (1 / (float)pitch_ctrl_loop_rate_) * pos_i_gain_pitch_hover_;
+                pos_i_term_pitch_ += d_err_pos_curr_pitch_ * (1 / (float)pitch_ctrl_loop_rate_) * pos_i_gain_pitch_hover_;
               pos_i_term_pitch_ = limit(pos_i_term_pitch_, pos_i_limit_pitch_);
 
               //***** Dの項
-              pos_d_term_pitch_ = 
-                limit(1000 * pos_d_gain_pitch_ * d_err_vel_curr_pitch_, pos_d_limit_pitch_);
+              pos_d_term_pitch_ = limit(pos_d_gain_pitch_ * d_err_vel_curr_pitch_, pos_d_limit_pitch_);
 
             }
           else if(navigator_->getXyControlMode() == Navigator::POS_LOCAL_BASED_CONTROL_MODE)
@@ -293,10 +290,10 @@ void PidController::pidFunction()
 
               //**** Pの項
               pos_p_term_pitch_ =
-                limit(1000 * pos_p_gain_pitch_ * d_err_pos_curr_pitch_, pos_p_limit_pitch_);
+                limit(pos_p_gain_pitch_ * d_err_pos_curr_pitch_, pos_p_limit_pitch_);
               //**** Dの項
               pos_d_term_pitch_ =
-                limit(1000 * pos_d_gain_pitch_ * d_err_vel_curr_pitch_, pos_d_limit_pitch_);
+                limit(pos_d_gain_pitch_ * d_err_vel_curr_pitch_, pos_d_limit_pitch_);
 
             }
           else if(navigator_->getXyControlMode() == Navigator::VEL_WORLD_BASED_CONTROL_MODE)
@@ -307,8 +304,7 @@ void PidController::pidFunction()
                 + (target_vel_y - state_vel_y) * sin(state_psi_cog); 
 
               //**** Pの項
-              pos_p_term_pitch_ =
-                limit(1000 * vel_p_gain_pitch_ * d_err_vel_curr_pitch_, pos_d_limit_pitch_);
+              pos_p_term_pitch_ = limit(vel_p_gain_pitch_ * d_err_vel_curr_pitch_, pos_d_limit_pitch_);
               pos_d_term_pitch_ =  0;
             }
           else if(navigator_->getXyControlMode() == Navigator::VEL_LOCAL_BASED_CONTROL_MODE)
@@ -321,22 +317,18 @@ void PidController::pidFunction()
                       d_err_pos_curr_pitch_ = target_pos_x - state_pos_x;
                       d_err_vel_curr_pitch_ = target_vel_x - state_vel_x;
 
-                      pos_p_term_pitch_ =
-                        limit( 1000 * pos_p_gain_pitch_ * d_err_pos_curr_pitch_,  pos_p_limit_pitch_);
+                      pos_p_term_pitch_ = limit(pos_p_gain_pitch_ * d_err_pos_curr_pitch_,  pos_p_limit_pitch_);
 
-                      pos_i_term_pitch_ += 1000 * 
-                        d_err_pos_curr_pitch_ * (1 / (float)pitch_ctrl_loop_rate_) * pos_i_gain_pitch_;
+                      pos_i_term_pitch_ += d_err_pos_curr_pitch_ * (1 / (float)pitch_ctrl_loop_rate_) * pos_i_gain_pitch_;
                       pos_i_term_pitch_ = limit(pos_i_term_pitch_, pos_i_limit_pitch_);
 
-                      pos_d_term_pitch_ = 
-                        limit(1000 * pos_d_gain_pitch_ * d_err_vel_curr_pitch_, pos_d_limit_pitch_);
+                      pos_d_term_pitch_ = limit(pos_d_gain_pitch_ * d_err_vel_curr_pitch_, pos_d_limit_pitch_);
                     }
                   else
                     {
                       d_err_vel_curr_pitch_ = target_vel_x - state_vel_x;
                       //**** Pの項
-                      pos_p_term_pitch_ =
-                        limit(1000 * vel_p_gain_pitch_ * d_err_vel_curr_pitch_, pos_d_limit_pitch_);
+                      pos_p_term_pitch_ = limit(vel_p_gain_pitch_ * d_err_vel_curr_pitch_, pos_d_limit_pitch_);
                       //**** Iの項
                       pos_i_term_pitch_ = 0;
                       //**** Dの項
@@ -347,8 +339,7 @@ void PidController::pidFunction()
                 { // other flight mode except takeoff
                   d_err_vel_curr_pitch_ = target_vel_x - state_vel_x;
                   //**** Pの項
-                  pos_p_term_pitch_ =
-                    limit(1000 * vel_p_gain_pitch_ * d_err_vel_curr_pitch_, pos_d_limit_pitch_);
+                  pos_p_term_pitch_ = limit(vel_p_gain_pitch_ * d_err_vel_curr_pitch_, pos_d_limit_pitch_);
 
                   //**** Dの項
                   pos_d_term_pitch_ = 0;
@@ -397,22 +388,18 @@ void PidController::pidFunction()
               d_err_vel_curr_roll_ = - (- state_vel_x * sin(state_psi_cog) + state_vel_y * cos(state_psi_cog));
 
               //**** Pの項
-              pos_p_term_roll_ =
-                limit(1000 * pos_p_gain_roll_ * d_err_pos_curr_roll_, pos_p_limit_roll_);
+              pos_p_term_roll_ = limit(pos_p_gain_roll_ * d_err_pos_curr_roll_, pos_p_limit_roll_);
 
               //**** Iの項
               if(navigator_->getFlightMode() == Navigator::TAKEOFF_MODE || navigator_->getFlightMode() == Navigator::LAND_MODE) //takeoff or land
-                pos_i_term_roll_ += 1000 * 
-                  d_err_pos_curr_roll_ * (1 / (float)roll_ctrl_loop_rate_) * pos_i_gain_roll_;
+                pos_i_term_roll_ += d_err_pos_curr_roll_ * (1 / (float)roll_ctrl_loop_rate_) * pos_i_gain_roll_;
               //else if(navigator_->getFlightMode() == Navigator::FLIGHT_MODE && fabs(d_err_pos_curr_roll_) < i_enable_limit_roll_) //hover
               else if(navigator_->getFlightMode() == Navigator::FLIGHT_MODE) //hover
-                pos_i_term_roll_ += 1000 * 
-                  d_err_pos_curr_roll_ * (1 / (float)roll_ctrl_loop_rate_) * pos_i_gain_roll_hover_;
+                pos_i_term_roll_ += d_err_pos_curr_roll_ * (1 / (float)roll_ctrl_loop_rate_) * pos_i_gain_roll_hover_;
               pos_i_term_roll_ = limit(pos_i_term_roll_, pos_i_limit_roll_);
 
               //***** Dの項
-              pos_d_term_roll_ = 
-                limit(1000 * pos_d_gain_roll_ * d_err_vel_curr_roll_, pos_d_limit_roll_);
+              pos_d_term_roll_ = limit(pos_d_gain_roll_ * d_err_vel_curr_roll_, pos_d_limit_roll_);
             }
           else if(navigator_->getXyControlMode() == Navigator::POS_LOCAL_BASED_CONTROL_MODE)
             {
@@ -424,12 +411,10 @@ void PidController::pidFunction()
               d_err_vel_curr_roll_ = target_vel_y - state_vel_y;
 
               //**** Pの項
-              pos_p_term_roll_ =  
-                limit(1000 * pos_p_gain_roll_ * d_err_pos_curr_roll_, pos_p_limit_roll_);
+              pos_p_term_roll_ = limit(pos_p_gain_roll_ * d_err_pos_curr_roll_, pos_p_limit_roll_);
 
               //**** Dの項
-              pos_d_term_roll_ =
-                limit(1000 * pos_d_gain_roll_ * d_err_vel_curr_roll_, pos_d_limit_roll_);
+              pos_d_term_roll_ = limit(pos_d_gain_roll_ * d_err_vel_curr_roll_, pos_d_limit_roll_);
 
             }
           else if(navigator_->getXyControlMode() == Navigator::VEL_WORLD_BASED_CONTROL_MODE)
@@ -439,8 +424,7 @@ void PidController::pidFunction()
                 + (target_vel_y - state_vel_y)  * cos(state_psi_cog);
 
               //**** Pの項
-              pos_p_term_roll_ =
-                limit(1000 * vel_p_gain_roll_ * d_err_vel_curr_roll_, pos_d_limit_roll_);
+              pos_p_term_roll_ = limit(vel_p_gain_roll_ * d_err_vel_curr_roll_, pos_d_limit_roll_);
               pos_d_term_roll_ = 0;
             }
           else if(navigator_->getXyControlMode() == Navigator::VEL_LOCAL_BASED_CONTROL_MODE)
@@ -453,22 +437,18 @@ void PidController::pidFunction()
                       d_err_pos_curr_roll_ = target_pos_y - state_pos_y;
                       d_err_vel_curr_roll_ = target_vel_y - state_vel_y;
 
-                      pos_p_term_roll_ =
-                        limit( 1000 * pos_p_gain_roll_ * d_err_pos_curr_roll_,  pos_p_limit_roll_);
+                      pos_p_term_roll_ = limit(pos_p_gain_roll_ * d_err_pos_curr_roll_,  pos_p_limit_roll_);
 
-                      pos_i_term_roll_ += 1000 * 
-                        d_err_pos_curr_roll_ * (1 / (float)roll_ctrl_loop_rate_) * pos_i_gain_roll_;
+                      pos_i_term_roll_ += d_err_pos_curr_roll_ * (1 / (float)roll_ctrl_loop_rate_) * pos_i_gain_roll_;
                       pos_i_term_roll_ = limit(pos_i_term_roll_, pos_i_limit_roll_);
 
-                      pos_d_term_roll_ = 
-                        limit(1000 * pos_d_gain_roll_ * d_err_vel_curr_roll_, pos_d_limit_roll_);
+                      pos_d_term_roll_ = limit(pos_d_gain_roll_ * d_err_vel_curr_roll_, pos_d_limit_roll_);
                     }
                   else
                     {
                       d_err_vel_curr_roll_ = target_vel_y - state_vel_y;
                       //**** Pの項
-                      pos_p_term_roll_ =
-                        limit(1000 * vel_p_gain_roll_ * d_err_vel_curr_roll_, pos_d_limit_roll_);
+                      pos_p_term_roll_ = limit(vel_p_gain_roll_ * d_err_vel_curr_roll_, pos_d_limit_roll_);
                       //**** Iの項
                       pos_i_term_roll_ = 0;
                       //**** Dの項
@@ -480,8 +460,7 @@ void PidController::pidFunction()
                 {
                   d_err_vel_curr_roll_ = target_vel_y - state_vel_y;
                   //**** Pの項
-                  pos_p_term_roll_ =
-                    limit(1000 * vel_p_gain_roll_ * d_err_vel_curr_roll_, pos_d_limit_roll_);
+                  pos_p_term_roll_ = limit(vel_p_gain_roll_ * d_err_vel_curr_roll_, pos_d_limit_roll_);
 
 
                   //**** Dの項
@@ -553,7 +532,8 @@ void PidController::pidFunction()
                   four_axis_pid_debug.yaw.d_term.push_back(pos_d_term_yaw_);
 
                   //*** 指令値代入(new*** )
-                  flight_ctrl_input_->setYawValue(yaw_value / f_pwm_rate_ * pwm_rate_ * 10000, j); //f => pwm; x10000
+                  //flight_ctrl_input_->setYawValue(yaw_value / f_pwm_rate_ * pwm_rate_ * 10000, j); //f => pwm; x10000 //2015.12.20
+                  flight_ctrl_input_->setYawValue(yaw_value / f_pwm_rate_ * pwm_rate_, j); //f => pwm;
                 }
             }
 
