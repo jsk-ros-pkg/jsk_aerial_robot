@@ -526,6 +526,17 @@ void PidController::pidFunction()
 
                   //*** each motor command value for log
                   float yaw_value = limit(pos_p_term_yaw_ + pos_i_term_yaw_ + pos_d_term_yaw_, pos_limit_yaw_);
+
+                  //**** attitude gain tunnign mode
+                  if(navigator_->getGainTunningMode() == Navigator::ATTITUDE_GAIN_TUNNING_MODE)
+                    {
+                      yaw_value = limit(pos_p_gain_yaw_[j] * target_psi, pos_p_limit_yaw_);
+                      pos_p_term_yaw_ =  0;
+                      pos_i_term_yaw_ =  0;
+                      pos_d_term_yaw_ =  0;
+                    }
+
+
                   four_axis_pid_debug.yaw.total.push_back(yaw_value);
                   four_axis_pid_debug.yaw.p_term.push_back(pos_p_term_yaw_);
                   four_axis_pid_debug.yaw.i_term.push_back(pos_i_term_yaw_);
