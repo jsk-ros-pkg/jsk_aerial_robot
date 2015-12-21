@@ -8,6 +8,7 @@
     <rosparam file="$(find aerial_robot_base)/config/mocap.yaml" command="load" />
   </node>
 
+
   <node pkg="aerial_robot_base" type="mocap_node" name="mocap_transform_node"  output="screen" />
 
 </launch>
