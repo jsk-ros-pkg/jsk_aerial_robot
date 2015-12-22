@@ -45,10 +45,8 @@
     ############### Quadctoper Basic State ######################
     <rosparam file="$(find aerial_robot_base)/config/d_rook/EstimatorConfig.yaml" command="load" />
     ############### PID Control ######################
-<!--
     <rosparam file="$(find aerial_robot_base)/config/d_rook/PidControlConfig.yaml" command="load" />
--->
-    <rosparam file="$(find aerial_robot_base)/config/rook/PidControlConfig.yaml" command="load" />
+
 
 
     ############### _motion Capture####################
@@ -78,10 +76,9 @@
     <remap from="/navigator/teleop_command/throttle" to="/teleop_command/throttle" />
     <remap from="/navigator/teleop_command/ctrl_mode" to="/teleop_command/ctrl_mode" />
 
-    <remap from="/imu/kduino/imu" to="/kduino/imu" />
-    <remap from="/aerial_robot_control" to="/kduino/rc_cmd" />
-    <remap from="/config_cmd" to="/kduino/msp_cmd" />
-    <remap from="arming_ack" to="/kduino/arming_ack" />
+    <remap from="/arming_ack" to="/jsk_stm_serial_comm/arming_ack" />
+    <remap from="/aerial_robot_control" to="/jsk_stm_serial_comm/aerial_robot_control" />
+    <remap from="/config_cmd" to="/jsk_stm_serial_comm/config_cmd" />
 
   </node>
 
@@ -101,11 +98,12 @@
 
   ################################# kduino test ########################################
 
+<!--
   <node pkg="rosserial_python" type="serial_node.py" name="serial_node" output="screen">
     <param name="baud" value="115200" />
     <param name="port" value="/dev/ttyUSB1" />
   </node>
-  
+-->
 
 
 </launch>
