@@ -198,10 +198,16 @@ class ImuData
     gyro_xb_ = imu_msg->gyroData[0] * gyro_scale_;
     gyro_yb_ = imu_msg->gyroData[1] * gyro_scale_;
     gyro_zb_ = imu_msg->gyroData[2] * gyro_scale_;
+
+    mag_xb_ = imu_msg->magData[0] * gyro_scale_;
+    mag_yb_ = imu_msg->magData[1] * gyro_scale_;
+    mag_zb_ = imu_msg->magData[2] * gyro_scale_;
+
+    /*
     mag_xb_ = imu_msg->magData[0] * mag_scale_;
     mag_yb_ = imu_msg->magData[1] * mag_scale_;
     mag_zb_ = imu_msg->magData[2] * mag_scale_;
-
+    */
     //* height
     height_ = imu_msg->altitude / 100.0;  //cm
 
