@@ -109,8 +109,10 @@ void AerialRobotBase::txFunction(const ros::TimerEvent & e)
     {
       navigator_->teleopNavigation();
       controller_->pidFunction();
-      //feed forward control
-      //controller_->feedForwardFunction();
+
+
+      ////feed forward control
+      ////controller_->feedForwardFunction();
 
 
       navigator_->sendRcCmd();

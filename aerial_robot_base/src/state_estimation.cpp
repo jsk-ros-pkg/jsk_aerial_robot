@@ -23,6 +23,8 @@ RigidEstimator::RigidEstimator(ros::NodeHandle nh,
   lpf_acc_y_ = new FirFilter(128);
   lpf_acc_z_ = new FirFilter(32);
 
+
+
   //kalman filter
   if (kalman_filter_flag_)
     {
@@ -68,7 +70,9 @@ RigidEstimator::RigidEstimator(ros::NodeHandle nh,
       kf1_ = NULL; kf2_ = NULL;
     }
 
+
   br_          = new tf::TransformBroadcaster();
+
 
   imu_data_     = new ImuData(nh, 
                               nh_private, 
@@ -119,7 +123,6 @@ RigidEstimator::RigidEstimator(ros::NodeHandle nh,
       mocap_data_ = new MocapData(nh, nh_private, this);
   
   simulation_flag_ = simulation_flag;
-
 }
 
 RigidEstimator::~RigidEstimator()
@@ -370,10 +373,10 @@ void RigidEstimator::tfPublish()
 {
   //set the states broadcast
   statesBroadcast();
-
   //TODO mutex
 
-  ros::Time sys_stamp = getSystemTimeStamp();
+  //ros::Time sys_stamp = getSystemTimeStamp();
+  ros::Time sys_stamp = ros::Time::now();
 
   tf::Transform laser_to_baselink;
   tf::Transform footprint_to_laser;
@@ -475,7 +478,8 @@ void RigidEstimator::rosParamInit(ros::NodeHandle nh)
 void RigidEstimator::statesBroadcast()
 {
   aerial_robot_base::States full_states;
-  full_states.header.stamp = getSystemTimeStamp();
+  //full_states.header.stamp = getSystemTimeStamp();
+  full_states.header.stamp = ros::Time::now();
   aerial_robot_base::State x_state;
   x_state.id = "x";
   x_state.pos = getStatePosX();
@@ -499,7 +503,6 @@ void RigidEstimator::statesBroadcast()
   aerial_robot_base::State roll_state;
   roll_state.id = "roll";
   roll_state.pos = getStatePhy();
-
   full_states.states.push_back(x_state);
   full_states.states.push_back(y_state);
   full_states.states.push_back(z_state);

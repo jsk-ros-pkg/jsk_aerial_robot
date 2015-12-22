@@ -35,7 +35,7 @@ class BasicEstimator
       use_outer_pose_estimate_ = 0;
       use_outer_vel_estimate_ = 0;
 
-      sys_stamp_ = ros::Time::now();
+      sys_stamp_ = ros::Time::now();//removed this
 
     }
 

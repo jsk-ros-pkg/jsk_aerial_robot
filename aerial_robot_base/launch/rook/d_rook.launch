@@ -16,9 +16,14 @@
   <arg name="flight_pos_mode" value="true" /> <!-- pos mode -->
   <arg name="flight_vel_mode" value="false" />  <!-- vel mode -->
 
+  <arg name="debug" default="false" />
+  <arg unless="$(arg debug)" name="launch_prefix" value="" />
+  <arg if="$(arg debug)" name="launch_prefix" value="gdb --ex run --args" />
+
+
   ############################# JSK Quadcopter ###################################
 
-  <node pkg="aerial_robot_base" type="aerial_robot_base_node" name="aerial_robot_base_node"  output="screen" > 
+  <node pkg="aerial_robot_base" type="aerial_robot_base_node" name="aerial_robot_base_node"  launch-prefix="$(arg launch_prefix)" output="screen" > 
 
     ############### Basic Param  #####################
     <param name="rx_loop_rate" type="double" value="110"/>
@@ -39,13 +44,17 @@
 
     ############### Quadctoper Basic State ######################
     <rosparam file="$(find aerial_robot_base)/config/d_rook/EstimatorConfig.yaml" command="load" />
-
     ############### PID Control ######################
+<!--
     <rosparam file="$(find aerial_robot_base)/config/d_rook/PidControlConfig.yaml" command="load" />
+-->
+    <rosparam file="$(find aerial_robot_base)/config/rook/PidControlConfig.yaml" command="load" />
+
 
     ############### _motion Capture####################
-    <param name="estimator/mocap_flag" type="bool" value="false"/>
-    <param name="estimator/px4flow_flag" type="bool" value="true"/>
+    <param name="mocap/cog_offset" type="bool" value="false"/><!-- new for new hydra control -->
+    <param name="estimator/mocap_flag" type="bool" value="true"/>
+    <param name="estimator/px4flow_flag" type="bool" value="false"/>
 
     ############### Kalman Filter ####################
     <param name="estimator/kalman_filter_flag" type="bool" value="false"/>
@@ -69,21 +78,35 @@
     <remap from="/navigator/teleop_command/throttle" to="/teleop_command/throttle" />
     <remap from="/navigator/teleop_command/ctrl_mode" to="/teleop_command/ctrl_mode" />
 
+    <remap from="/imu/kduino/imu" to="/kduino/imu" />
+    <remap from="/aerial_robot_control" to="/kduino/rc_cmd" />
+    <remap from="/config_cmd" to="/kduino/msp_cmd" />
+    <remap from="arming_ack" to="/kduino/arming_ack" />
+
   </node>
 
   ############### Motion Capture####################
-    <param name="mocap/cog_offset" type="bool" value="true"/><!-- new for new hydra control -->
-    <param name="estimator/mocap_flag" type="bool" value="true"/>
 
 
   ################################# jsk_stm ########################################
+
 <node name="jsk_stm" pkg="jsk_stm" type="jsk_stm_node" respawn="false"  output="screen">
   <param name="serial_port" value="/dev/ttyUSB0" />
 </node>
 
-
   ################################# Joy Stick ######################################
+
   <include file="$(find aerial_robot_base)/launch/sensors/joy_stick.launch" />
+
+
+  ################################# kduino test ########################################
+
+  <node pkg="rosserial_python" type="serial_node.py" name="serial_node" output="screen">
+    <param name="baud" value="115200" />
+    <param name="port" value="/dev/ttyUSB1" />
+  </node>
+  
+
 
 </launch>
 

@@ -285,25 +285,26 @@ class ImuData
                 kfb_x_vel_->setInputFlag();
                 kfb_y_vel_->setInputFlag();
 
-              }
-            if(kalman_filter_debug_)
-              {
-
-                if(kalman_filter_axis_ == 0)
+                if(kalman_filter_debug_)
                   {
-                    kf1_->setInitState(acc_x_bias_, 2);
-                    kf2_->setInitState(acc_x_bias_, 2);
-                    kf1_->setInputFlag();
-                    kf2_->setInputFlag();
 
+                    if(kalman_filter_axis_ == 0)
+                      {
+                        kf1_->setInitState(acc_x_bias_, 2);
+                        kf2_->setInitState(acc_x_bias_, 2);
+                        kf1_->setInputFlag();
+                        kf2_->setInputFlag();
+
+                      }
+                    if(kalman_filter_axis_ == 1)
+                      {
+                        kf1_->setInitState(acc_y_bias_, 2);
+                        kf2_->setInitState(acc_y_bias_, 2);
+                        kf1_->setInputFlag();
+                        kf2_->setInputFlag();
+                      }
                   }
-                if(kalman_filter_axis_ == 1)
-                  {
-                    kf1_->setInitState(acc_y_bias_, 2);
-                    kf2_->setInitState(acc_y_bias_, 2);
-                    kf1_->setInputFlag();
-                    kf2_->setInputFlag();
-                  }
+
               }
           }
       }
@@ -322,7 +323,7 @@ class ImuData
         acc_zw_non_bias_ = acc_zw_ - acc_z_bias_;
 
         Eigen::Matrix<double, 1, 1> temp = Eigen::MatrixXd::Zero(1, 1); 
-        Eigen::Matrix<double, 2, 1> temp2 = Eigen::MatrixXd::Zero(1, 1); 
+        Eigen::Matrix<double, 2, 1> temp2 = Eigen::MatrixXd::Zero(2, 1); 
         //temp << 0;
         if(kalman_filter_flag_)
           {
@@ -354,23 +355,25 @@ class ImuData
             kfb_x_vel_->prediction(temp2);
             temp2(0, 0) = (double)acc_yi_;
             kfb_y_vel_->prediction(temp2);
+
+            if(kalman_filter_debug_)
+              {
+                if(kalman_filter_axis_ == 0)
+                  { //x axis
+                    temp2(0, 0) = (double)acc_xw_;
+                    kf1_->prediction(temp2);
+                    kf2_->prediction(temp2);
+                  }
+                else if(kalman_filter_axis_ == 1)
+                  { //y axis
+                    temp2(0, 0) = (double)acc_yw_;
+                    kf1_->prediction(temp2);
+                    kf2_->prediction(temp2);
+                  }
+              }
+
           }
 
-        if(kalman_filter_debug_)
-          {
-            if(kalman_filter_axis_ == 0)
-              { //x axis
-                temp2(0, 0) = (double)acc_xw_;
-                kf1_->prediction(temp2);
-                kf2_->prediction(temp2);
-              }
-            else if(kalman_filter_axis_ == 1)
-              { //y axis
-                temp2(0, 0) = (double)acc_yw_;
-                kf1_->prediction(temp2);
-                kf2_->prediction(temp2);
-              }
-          }
         publishImuData(stamp);
       }
   }

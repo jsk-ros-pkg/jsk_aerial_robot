@@ -115,6 +115,7 @@ class MocapData
     double raw_acc_x = 0, raw_acc_y = 0, raw_acc_z = 0;
     double acc_x = 0, acc_y = 0, acc_z = 0;
 
+    static uint64_t time_offset=0;
 
     if(!first_flag)
       {
@@ -160,7 +161,7 @@ class MocapData
 
         //publish for deubg, can delete
         aerial_robot_base::States ground_truth_pose;
-        ground_truth_pose.header.stamp.fromNSec(msg->header.stamp.toNSec());
+        ground_truth_pose.header.stamp.fromNSec(msg->header.stamp.toNSec()+ time_offset);
 
         aerial_robot_base::State x_state;
         x_state.id = "x";
@@ -227,6 +228,10 @@ class MocapData
         pos_x_offset_ = msg->pose.position.x;
         pos_y_offset_ = msg->pose.position.y;
         pos_z_offset_ = msg->pose.position.z;
+
+        //time
+        time_offset = ros::Time::now().toNSec() - msg->header.stamp.toNSec();
+
         first_flag = false;
       }
 
@@ -241,7 +246,6 @@ class MocapData
     prev_phy = raw_phy;
     prev_psi = raw_psi;
     previous_time = msg->header.stamp;
-
 
 
   }
