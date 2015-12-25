@@ -199,9 +199,9 @@ class ImuData
     gyro_yb_ = imu_msg->gyroData[1] * gyro_scale_;
     gyro_zb_ = imu_msg->gyroData[2] * gyro_scale_;
 
-    mag_xb_ = imu_msg->magData[0] * acc_scale_;
-    mag_yb_ = imu_msg->magData[1] * acc_scale_;
-    mag_zb_ = imu_msg->magData[2] * acc_scale_;
+    mag_xb_ = imu_msg->magData[0];
+    mag_yb_ = imu_msg->magData[1];
+    mag_zb_ = imu_msg->magData[2];
 
     /*
     mag_xb_ = imu_msg->magData[0] * mag_scale_;
