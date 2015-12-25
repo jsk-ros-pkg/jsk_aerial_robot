@@ -1,6 +1,6 @@
 # Teleop Basic Param
 
-navigator/takeoff_height: 0.4
+navigator/takeoff_height: 0.2
 navigator/navi_frame_int: 0  # deprecated?  map frame: 0, body frame: 1 
 navigator/map_frame: map
 navigator/target_frame: target
@@ -21,3 +21,5 @@ navigator/cmd_vel_lev2_gain : 1.5
 
 # for optical flow control
 navigator/xy_vel_mode_pos_ctrl_takeoff : true
+
+navigator/target_angle_rate: 0.12
