@@ -42,10 +42,10 @@ FlightController::~FlightController()
 {
 }
 
-float FlightController::limit(float value, int limit)
+float FlightController::limit(float value, float limit)
 {
-  if(value > (float)limit) { return (float)limit;}
-  else if(value < - (float)limit) { return -(float)limit; }
+  if(value > limit) { return limit;}
+  else if(value < - limit) { return -limit; }
   else return value;
 }
 

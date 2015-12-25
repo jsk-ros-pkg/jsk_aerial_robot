@@ -27,7 +27,7 @@ public:
                    FlightCtrlInput* flight_ctrl_input);
   virtual ~FlightController();
 
-  float limit(float value, int limit);
+  float limit(float value, float limit);
 
   inline int getMotorNumber(){return motor_num_;}
 
