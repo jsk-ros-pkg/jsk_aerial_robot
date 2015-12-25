@@ -115,11 +115,11 @@ class PidController : public FlightController
  double pos_i_gain_pitch_hover_;
  double vel_p_gain_pitch_; 
  double vel_i_gain_pitch_; 
- int offset_pitch_;
- int pos_limit_pitch_;
- int pos_p_limit_pitch_;
- int pos_i_limit_pitch_;
- int pos_d_limit_pitch_;
+ double offset_pitch_;
+ double pos_limit_pitch_;
+ double pos_p_limit_pitch_;
+ double pos_i_limit_pitch_;
+ double pos_d_limit_pitch_;
  //double vel_value_limit_pitch_;
  double i_enable_limit_pitch_;
 
@@ -130,11 +130,11 @@ class PidController : public FlightController
  double pos_i_gain_roll_hover_;
  double vel_p_gain_roll_; 
  double vel_i_gain_roll_; 
- int offset_roll_;
- int pos_limit_roll_;
- int pos_p_limit_roll_;
- int pos_i_limit_roll_;
- int pos_d_limit_roll_;
+ double offset_roll_;
+ double pos_limit_roll_;
+ double pos_p_limit_roll_;
+ double pos_i_limit_roll_;
+ double pos_d_limit_roll_;
  //double vel_value_limit_roll_;
  double i_enable_limit_roll_;
 

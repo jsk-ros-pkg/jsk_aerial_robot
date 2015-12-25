@@ -804,23 +804,23 @@ void PidController::rosParamInit(ros::NodeHandle nh)
 
   if (!pitch_node.getParam ("offset", offset_pitch_))
     offset_pitch_ = 0;
-  printf("%s: offset_ is %d\n", pitch_ns.c_str(), offset_pitch_);
+  printf("%s: offset_ is %f\n", pitch_ns.c_str(), offset_pitch_);
 
   if (!pitch_node.getParam ("pos_limit", pos_limit_pitch_))
     pos_limit_pitch_ = 0;
-  printf("%s: pos_limit_ is %d\n", pitch_ns.c_str(), pos_limit_pitch_);
+  printf("%s: pos_limit_ is %f\n", pitch_ns.c_str(), pos_limit_pitch_);
 
   if (!pitch_node.getParam ("pos_p_limit", pos_p_limit_pitch_))
     pos_p_limit_pitch_ = 0;
-  printf("%s: pos_p_limit_ is %d\n", pitch_ns.c_str(), pos_p_limit_pitch_);
+  printf("%s: pos_p_limit_ is %f\n", pitch_ns.c_str(), pos_p_limit_pitch_);
 
   if (!pitch_node.getParam ("pos_i_limit", pos_i_limit_pitch_))
     pos_i_limit_pitch_ = 0;
-  printf("%s: pos_i_limit_ is %d\n", pitch_ns.c_str(), pos_i_limit_pitch_);
+  printf("%s: pos_i_limit_ is %f\n", pitch_ns.c_str(), pos_i_limit_pitch_);
 
   if (!pitch_node.getParam ("pos_d_limit", pos_d_limit_pitch_))
     pos_d_limit_pitch_ = 0;
-  printf("%s: pos_d_limit_ is %d\n", pitch_ns.c_str(), pos_d_limit_pitch_);
+  printf("%s: pos_d_limit_ is %f\n", pitch_ns.c_str(), pos_d_limit_pitch_);
 
   //***** roll
   if (!roll_node.getParam ("ctrl_loop_rate", roll_ctrl_loop_rate_))
@@ -853,23 +853,23 @@ void PidController::rosParamInit(ros::NodeHandle nh)
 
   if (!roll_node.getParam ("offset", offset_roll_))
     offset_roll_ = 0;
-  printf("%s: offset_ is %d\n", roll_ns.c_str(), offset_roll_);
+  printf("%s: offset_ is %f\n", roll_ns.c_str(), offset_roll_);
 
   if (!roll_node.getParam ("pos_limit", pos_limit_roll_))
     pos_limit_roll_ = 0;
-  printf("%s: pos_limit_ is %d\n", roll_ns.c_str(), pos_limit_roll_);
+  printf("%s: pos_limit_ is %f\n", roll_ns.c_str(), pos_limit_roll_);
 
   if (!roll_node.getParam ("pos_p_limit", pos_p_limit_roll_))
     pos_p_limit_roll_ = 0;
-  printf("%s: pos_p_limit_ is %d\n", roll_ns.c_str(), pos_p_limit_roll_);
+  printf("%s: pos_p_limit_ is %f\n", roll_ns.c_str(), pos_p_limit_roll_);
 
   if (!roll_node.getParam ("pos_i_limit", pos_i_limit_roll_))
     pos_i_limit_roll_ = 0;
-  printf("%s: pos_i_limit_ is %d\n", roll_ns.c_str(), pos_i_limit_roll_);
+  printf("%s: pos_i_limit_ is %f\n", roll_ns.c_str(), pos_i_limit_roll_);
 
   if (!roll_node.getParam ("pos_d_limit", pos_d_limit_roll_))
     pos_d_limit_roll_ = 0;
-  printf("%s: pos_d_limit_ is %d\n", roll_ns.c_str(), pos_d_limit_roll_);
+  printf("%s: pos_d_limit_ is %f\n", roll_ns.c_str(), pos_d_limit_roll_);
 
   //**** yaw
   if (!yaw_node.getParam ("ctrl_loop_rate", yaw_ctrl_loop_rate_))
