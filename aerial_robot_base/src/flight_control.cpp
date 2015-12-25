@@ -400,6 +400,9 @@ void PidController::pidFunction()
 
               //***** Dの項
               pos_d_term_roll_ = limit(pos_d_gain_roll_ * d_err_vel_curr_roll_, pos_d_limit_roll_);
+
+
+              ROS_INFO("ok");
             }
           else if(navigator_->getXyControlMode() == Navigator::POS_LOCAL_BASED_CONTROL_MODE)
             {
