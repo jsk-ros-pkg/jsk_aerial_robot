@@ -79,7 +79,6 @@
     <remap from="/navigator/teleop_command/ctrl_mode" to="/teleop_command/ctrl_mode" />
 
     <remap from="/imu/kduino/imu" to="/kduino/imu" />
-    <remap from="/aerial_robot_control" to="/kduino/rc_cmd" />
     <remap from="/config_cmd" to="/kduino/msp_cmd" />
     <remap from="arming_ack" to="/kduino/arming_ack" />
 

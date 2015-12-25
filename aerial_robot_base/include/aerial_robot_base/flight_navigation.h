@@ -13,6 +13,7 @@
 #include <std_msgs/Empty.h>
 #include <aerial_robot_msgs/FourAxisCommand.h>
 #include <aerial_robot_msgs/RcData.h> //old
+#include <aerial_robot_msgs/RcData2.h>
 #include <tf/transform_broadcaster.h>
 #include <aerial_robot_base/FlightNav.h>
 #include <sensor_msgs/Joy.h>
@@ -254,6 +255,7 @@ class TeleopNavigator :public Navigator
 
  private:
   ros::Publisher  rc_cmd_pub_;
+  ros::Publisher  rc_cmd_pub2_;
 
     //temporarily
   ros::Publisher  joints_ctrl_pub_;
