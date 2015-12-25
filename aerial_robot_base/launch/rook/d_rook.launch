@@ -36,7 +36,7 @@
     <param name="navigator/xy_control_mode" type="int" value="0"/>
 
     <!--degub -->
-    <param name="navigator/gain_tunning_mode" type="int" value="1"/>
+    <param name="navigator/gain_tunning_mode" type="int" value="0"/>
 
 
     ############### Quadctoper Basic State ######################
@@ -76,6 +76,8 @@
     <remap from="/arming_ack" to="/jsk_stm_serial_comm/arming_ack" />
     <remap from="/aerial_robot_control" to="/jsk_stm_serial_comm/aerial_robot_control" />
     <remap from="/config_cmd" to="/jsk_stm_serial_comm/config_cmd" />
+
+    <remap from="/imu/kduino/imu" to="/kduino/imu" />
 
   </node>
 
