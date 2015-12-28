@@ -161,7 +161,8 @@ class MocapData
 
         //publish for deubg, can delete
         aerial_robot_base::States ground_truth_pose;
-        ground_truth_pose.header.stamp.fromNSec(msg->header.stamp.toNSec()+ time_offset);
+        //ground_truth_pose.header.stamp.fromNSec(msg->header.stamp.toNSec()+ time_offset);
+        ground_truth_pose.header.stamp = msg->header.stamp;
 
         aerial_robot_base::State x_state;
         x_state.id = "x";

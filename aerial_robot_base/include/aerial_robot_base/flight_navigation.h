@@ -29,8 +29,6 @@ class Navigator
   virtual ~Navigator();
 
   ros::Publisher  config_cmd_pub_; //temporarily
-  ros::Publisher  config_cmd_pub2_; //temporarily
-
 
   inline bool getStartAble(){  return start_able_;}
   inline void startNavigation(){  start_able_ = true;}
@@ -257,7 +255,6 @@ class TeleopNavigator :public Navigator
  private:
   ros::Publisher  rc_cmd_pub_;
   ros::Publisher  rc_cmd_pub2_;
-
     //temporarily
   ros::Publisher  joints_ctrl_pub_;
 
