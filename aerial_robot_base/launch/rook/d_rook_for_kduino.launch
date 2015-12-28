@@ -79,7 +79,7 @@
     <remap from="/navigator/teleop_command/ctrl_mode" to="/teleop_command/ctrl_mode" />
 
     <remap from="/imu/kduino/imu" to="/kduino/imu" />
-    <remap from="/config_cmd" to="/kduino/msp_cmd" />
+    <remap from="/navigator/kduino/msp_cmd" to="/kduino/msp_cmd" />
     <remap from="arming_ack" to="/kduino/arming_ack" />
 
   </node>

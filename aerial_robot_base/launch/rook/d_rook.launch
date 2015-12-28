@@ -78,6 +78,7 @@
     <remap from="/config_cmd" to="/jsk_stm_serial_comm/config_cmd" />
 
     <remap from="/imu/kduino/imu" to="/kduino/imu" />
+    <remap from="/navigator/kduino/msp_cmd" to="/kduino/msp_cmd" />
 
   </node>
 

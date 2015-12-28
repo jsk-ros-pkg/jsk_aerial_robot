@@ -29,6 +29,7 @@ class Navigator
   virtual ~Navigator();
 
   ros::Publisher  config_cmd_pub_; //temporarily
+  ros::Publisher  config_cmd_pub2_; //temporarily
 
 
   inline bool getStartAble(){  return start_able_;}

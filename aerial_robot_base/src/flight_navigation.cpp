@@ -197,6 +197,7 @@ TeleopNavigator::TeleopNavigator(ros::NodeHandle nh, ros::NodeHandle nh_private,
   teleop_flag_ = true;
 
   config_cmd_pub_ = nh_.advertise<std_msgs::UInt16>("/config_cmd", 10);
+  config_cmd_pub2_ = nh_.advertise<std_msgs::UInt16>("kduino/msp_cmd", 10);
 
   //temporarily
   joints_ctrl_pub_= nh_.advertise<std_msgs::Int8>("/teleop_command/joints_ctrl", 2);
@@ -565,32 +566,32 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
         {
           std_msgs::UInt16 att_p_gain_cmd;
           att_p_gain_cmd.data = 161;
-          config_cmd_pub_.publish(att_p_gain_cmd); 
+          config_cmd_pub2_.publish(att_p_gain_cmd); 
           gain_tunning_flag_ = true;
         }
       if(joy_msg->buttons[8] == 1 && !gain_tunning_flag_) //left down trigger
         {
           std_msgs::UInt16 att_p_gain_cmd;
           att_p_gain_cmd.data = 162;
-          config_cmd_pub_.publish(att_p_gain_cmd); 
+          config_cmd_pub2_.publish(att_p_gain_cmd); 
           gain_tunning_flag_ = true;
         }
       if(joy_msg->buttons[11] == 1 && !gain_tunning_flag_) //right up trigger
         {
           std_msgs::UInt16 att_p_gain_cmd;
           att_p_gain_cmd.data = 167;
-          config_cmd_pub_.publish(att_p_gain_cmd); 
+          config_cmd_pub2_.publish(att_p_gain_cmd); 
           att_p_gain_cmd.data = 163;
-          config_cmd_pub_.publish(att_p_gain_cmd); 
+          config_cmd_pub2_.publish(att_p_gain_cmd); 
           gain_tunning_flag_ = true;
         }
       if(joy_msg->buttons[9] == 1 && !gain_tunning_flag_) //right down trigger
         {
           std_msgs::UInt16 att_p_gain_cmd;
           att_p_gain_cmd.data = 168;
-          config_cmd_pub_.publish(att_p_gain_cmd); 
+          config_cmd_pub2_.publish(att_p_gain_cmd); 
           att_p_gain_cmd.data = 164;
-          config_cmd_pub_.publish(att_p_gain_cmd); 
+          config_cmd_pub2_.publish(att_p_gain_cmd); 
           gain_tunning_flag_ = true;
         }
       if(joy_msg->buttons[8] == 0 &&  joy_msg->buttons[9] == 0 &&
@@ -944,12 +945,16 @@ void TeleopNavigator::sendRcCmd()
      std_msgs::UInt16 start_cmd;
      start_cmd.data = ARM_ON_CMD;
      config_cmd_pub_.publish(start_cmd); 
+
+     config_cmd_pub2_.publish(start_cmd); 
     }
   else if(getNaviCommand() == STOP_COMMAND)
     { 
       std_msgs::UInt16 stop_cmd;
       stop_cmd.data = ARM_OFF_CMD;
       config_cmd_pub_.publish(stop_cmd);
+
+     config_cmd_pub2_.publish(stop_cmd); 
     }
   else if(getNaviCommand() == TAKEOFF_COMMAND ||
           getNaviCommand() == LAND_COMMAND ||
