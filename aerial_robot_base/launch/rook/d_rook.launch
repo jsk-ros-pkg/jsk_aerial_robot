@@ -79,6 +79,8 @@
 
 
     <remap from="/kduino/rc_cmd" to="/deprected" />
+
+    <remap from="/controller/debug" to="/test/controller/debug" />
 <!--
     <remap from="/imu/kduino/imu" to="/kduino/imu" />
     <remap from="/navigator/kduino/msp_cmd" to="/kduino/msp_cmd" />
