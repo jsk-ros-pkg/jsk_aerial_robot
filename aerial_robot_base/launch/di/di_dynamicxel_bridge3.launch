@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<launch>
+
+  <node name="dynamixel_manager" pkg="dynamixel_controllers" type="controller_manager.py" required="true" output="screen">
+        <rosparam>
+            namespace: dxl_manager
+            serial_ports:
+                joints_port:
+                    port_name: "/dev/ttyUSB0"
+                    baud_rate: 57143
+                    min_motor_id: 1
+                    max_motor_id: 25
+                    update_rate: 40
+        </rosparam>
+    </node>
+
+    <rosparam file="$(find aerial_robot_base)/config/di/DiDynamixelConfig.yaml" command="load"/>
+    <node name="servo_controller_spawner" pkg="dynamixel_controllers" type="controller_spawner.py"
+          args="--manager=dxl_manager
+                --port joints_port
+                --type simple
+		j1_controller
+		j2_controller
+		j3_controller
+		j4_controller
+		j5_controller
+		j6_controller
+		j7_controller
+                j8_controller"
+          output="screen"/>
+
+</launch>
