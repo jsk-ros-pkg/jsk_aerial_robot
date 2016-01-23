@@ -40,9 +40,9 @@
 
 
     ############### Quadctoper Basic State ######################
-    <rosparam file="$(find aerial_robot_base)/config/d_rook/EstimatorConfig.yaml" command="load" />
+    <rosparam file="$(find aerial_robot_base)/config/di/EstimatorConfig.yaml" command="load" />
     ############### PID Control ######################
-    <rosparam file="$(find aerial_robot_base)/config/d_rook/PidControlConfig.yaml" command="load" />
+    <rosparam file="$(find aerial_robot_base)/config/di/PidControlConfig.yaml" command="load" />
 
 
 
@@ -55,7 +55,7 @@
     <param name="estimator/kalman_filter_flag" type="bool" value="false"/>
 
     ############### Keyboard Navigation ##############
-    <rosparam file="$(find aerial_robot_base)/config/d_rook/TeleopNavigationConfig.yaml" command="load" />
+    <rosparam file="$(find aerial_robot_base)/config/di/TeleopNavigationConfig.yaml" command="load" />
 
     ############### remap topic ######################
     ### Optical Flow ##############
@@ -80,7 +80,7 @@
 
     <remap from="/kduino/rc_cmd" to="/deprected" />
 
-    <remap from="/controller/debug" to="/test/controller/debug" />
+<!--    <remap from="/controller/debug" to="/test/controller/debug" /> -->
 <!--
     <remap from="/imu/kduino/imu" to="/kduino/imu" />
     <remap from="/navigator/kduino/msp_cmd" to="/kduino/msp_cmd" />
@@ -94,15 +94,19 @@
   ################################# jsk_stm ########################################
 
 <node name="jsk_stm" pkg="jsk_stm" type="jsk_stm_node" respawn="false"  output="screen">
-  <param name="serial_port" value="/dev/ttyUSB0" />
+  <param name="serial_port" value="/dev/ttyUSB1" />
 </node>
 
   ################################# Joy Stick ######################################
+
 
 <!--
   <include file="$(find aerial_robot_base)/launch/sensors/joy_stick.launch" />
 -->
 
+
+################################## dynamixel motor #########################
+<include file="$(find aerial_robot_base)/launch/di/di_dynamicxel_bridge.launch" />
 
 </launch>
 
