@@ -74,6 +74,9 @@ if __name__ == "__main__":
 
     for i in range(int(servo_max_id)):
         comm = Float64()
-        comm.data = math.pi
+        if i == 6:
+            comm.data = 3.19
+        else:
+            comm.data = math.pi
         init_angle_pubs[i].publish(comm)
 

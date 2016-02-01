@@ -508,6 +508,7 @@ void PidController::pidFunction()
           //error i
           error_i_yaw_ += d_err_pos_curr_yaw_ * (1 / (float)yaw_ctrl_loop_rate_); 
 
+
           if(navigator_->getXyControlMode() == Navigator::POS_WORLD_BASED_CONTROL_MODE ||
              navigator_->getXyControlMode() == Navigator::POS_LOCAL_BASED_CONTROL_MODE || 
              navigator_->getXyControlMode() == Navigator::VEL_WORLD_BASED_CONTROL_MODE ||
@@ -519,13 +520,19 @@ void PidController::pidFunction()
                   //**** Pの項
                   pos_p_term_yaw_ = limit(pos_p_gain_yaw_[j] * state_psi_board, pos_p_limit_yaw_);
                   //**** Iの項 : deprecated
+                  if(motor_num_ == 1)
+                    {
+                      //temporarily to fix the devergence problem of 
+                      error_i_yaw_ = limit(error_i_yaw_, pos_i_limit_yaw_ / pos_i_gain_yaw_[j]);
+                    }
                   pos_i_term_yaw_ = limit(pos_i_gain_yaw_[j] * error_i_yaw_, pos_i_limit_yaw_);
                   //***** Dの項 // to think about d term, now in kduino controller
                   pos_d_term_yaw_ = 0;
 
                   if(motor_num_ == 1)
-                    pos_p_term_yaw_ = limit(pos_p_gain_yaw_[j] * d_err_pos_curr_yaw_, pos_p_limit_yaw_);
-
+                    {
+                      pos_p_term_yaw_ = limit(pos_p_gain_yaw_[j] * d_err_pos_curr_yaw_, pos_p_limit_yaw_);
+                    }
                   //*** each motor command value for log
                   float yaw_value = limit(pos_p_term_yaw_ + pos_i_term_yaw_ + pos_d_term_yaw_, pos_limit_yaw_);
 
