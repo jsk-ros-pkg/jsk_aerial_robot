@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<launch>
+
+<arg name="port" default="/dev/ttyUSB0" />
+
+<node name="jsk_stm" pkg="jsk_stm" type="jsk_stm_node" respawn="false"  output="screen">
+  <param name="serial_port" value="$(arg port)" />
+</node>
+
+
+</launch>
