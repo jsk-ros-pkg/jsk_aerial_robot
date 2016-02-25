@@ -1,0 +1,42 @@
+### PID control for quadcopter
+
+tilt_module_num: 4
+tilt_mode: 0
+
+tilt_thre: 0.087
+
+tilt_module1_rotate_angle: 2.356194
+#1 : module 1 internal
+servo1_angle_sgn: -1
+servo1_angle_offset: 3.16
+
+#2 : module 1 external 
+servo1_angle_sgn: 1
+servo1_angle_offset: 3.1415926
+
+tilt_module2_rotate_angle: -2.356194
+#3 : module 2 internal
+servo1_angle_sgn: -1
+servo1_angle_offset: 3.142
+
+#4 : module 2 external 
+servo1_angle_sgn: 1
+servo1_angle_offset: 3.1415926
+
+tilt_module3_rotate_angle: -0.785398
+#5 : module 3 internal
+servo1_angle_sgn: -1
+servo1_angle_offset: 3.2
+
+#6 : module 3 external 
+servo1_angle_sgn: 1
+servo1_angle_offset: 3.1415926
+
+tilt_module4_rotate_angle: 0.785398
+#7 : module 4 internal
+servo1_angle_sgn: -1
+servo1_angle_offset: 3.13
+
+#8 : module 4 external 
+servo1_angle_sgn: 1
+servo1_angle_offset: 3.1415926
