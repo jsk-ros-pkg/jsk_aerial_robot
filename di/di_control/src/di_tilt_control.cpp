@@ -13,7 +13,6 @@ TiltControl::TiltControl(ros::NodeHandle nh, ros::NodeHandle nhp): nh_(nh), nhp_
   nhp_.param("control_rate", control_rate_, 20.0);
   control_timer_ = nhp_.createTimer(ros::Duration(1.0 / control_rate_), &TiltControl::controlFunc, this);
 
-
 }
 
 TiltControl::~TiltControl(){};
