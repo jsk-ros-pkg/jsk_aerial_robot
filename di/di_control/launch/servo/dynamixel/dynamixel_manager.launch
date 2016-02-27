@@ -14,19 +14,4 @@
         </rosparam>
     </node>
 
-    <rosparam file="$(find aerial_robot_base)/config/DiDynamixelConfig.yaml" command="load"/>
-    <node name="servo_controller_spawner" pkg="dynamixel_controllers" type="controller_spawner.py"
-          args="--manager=dxl_manager
-                --port joints_port
-                --type simple
-		j1_controller
-		j2_controller
-		j3_controller
-		j4_controller
-		j5_controller
-		j6_controller
-		j7_controller
-                j8_controller"
-          output="screen"/>
-
 </launch>

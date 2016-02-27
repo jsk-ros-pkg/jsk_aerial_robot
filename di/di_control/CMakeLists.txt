@@ -107,7 +107,7 @@ add_definitions(${EIGEN_DEFINITIONS})
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
   INCLUDE_DIRS include
-  LIBRARIES di_tilt_control
+  LIBRARIES di_gimbal_control
   CATKIN_DEPENDS roscpp
   DEPENDS Eigen
 )
@@ -124,14 +124,14 @@ include_directories(
 )
 
 ## Declare a C++ library
- add_library(di_tilt_control
-   src/di_tilt_control.cpp
+ add_library(di_gimbal_control
+   src/di_gimbal_control.cpp
  )
-target_link_libraries (di_tilt_control ${catkin_LIBRARIES})
+target_link_libraries (di_gimbal_control ${catkin_LIBRARIES})
 
 
-add_executable(di_tilt_control_node src/di_tilt_control_node.cpp)
-target_link_libraries (di_tilt_control_node di_tilt_control ${catkin_LIBRARIES})
+add_executable(di_gimbal_control_node src/di_gimbal_control_node.cpp)
+target_link_libraries (di_gimbal_control_node di_gimbal_control ${catkin_LIBRARIES})
 
 ## Specify libraries to link a library or executable target against
 # target_link_libraries(di_control_node

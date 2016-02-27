@@ -31,18 +31,18 @@ typedef struct{
   double angle_offset[2];
   double angle_max[2];
   double angle_min[2];
-}TiltModule;
+}GimbalModule;
 
 
 
-class TiltControl
+class GimbalControl
 {
  public:
-  TiltControl(ros::NodeHandle nh, ros::NodeHandle nhp);
-  ~TiltControl();
+  GimbalControl(ros::NodeHandle nh, ros::NodeHandle nhp);
+  ~GimbalControl();
 
-  static const uint8_t ACTIVE_TILT_MODE = 0x00;
-  static const uint8_t PASSIVE_TILT_MODE = 0x01;
+  static const uint8_t ACTIVE_GIMBAL_MODE = 0x00;
+  static const uint8_t PASSIVE_GIMBAL_MODE = 0x01;
 
  private:
   ros::NodeHandle nh_;
@@ -50,7 +50,7 @@ class TiltControl
   ros::Subscriber attitude_sub_;
   ros::Subscriber desire_attitude_sub_;
 
-  std::vector<TiltModule> tilt_modules_;
+  std::vector<GimbalModule> gimbal_modules_;
   ros::Timer  control_timer_;
 
   geometry_msgs::Vector3 current_attitude_;
@@ -59,13 +59,13 @@ class TiltControl
 
   bool gimbal_debug_;
 
-  bool tilt_command_flag_;
-  int tilt_mode_;
-  int tilt_module_num_;
-  double tilt_thre_;
+  bool gimbal_command_flag_;
+  int gimbal_mode_;
+  int gimbal_module_num_;
+  double gimbal_thre_;
   double control_rate_;
 
-  void tiltModulesInit();
+  void gimbalModulesInit();
   void controlFunc(const ros::TimerEvent & e);
   void servoCallback(const dynamixel_msgs::JointStateConstPtr& msg, int i, int j);
 

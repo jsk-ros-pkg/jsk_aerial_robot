@@ -1,0 +1,42 @@
+### PID control for quadcopter
+
+gimbal_module_num: 4
+gimbal_mode: 0
+
+gimbal_thre: 0.087
+
+gimbal_module1_rotate_angle: 2.356194
+#1 : module 1 internal
+servo1_angle_sgn: -1
+servo1_angle_offset: 3.16
+
+#2 : module 1 external 
+servo2_angle_sgn: 1
+servo2_angle_offset: 3.1415926
+
+gimbal_module2_rotate_angle: -2.356194
+#3 : module 2 internal
+servo3_angle_sgn: -1
+servo3_angle_offset: 3.142
+
+#4 : module 2 external 
+servo4_angle_sgn: 1
+servo4_angle_offset: 3.1415926
+
+gimbal_module3_rotate_angle: -0.785398
+#5 : module 3 internal
+servo5_angle_sgn: -1
+servo5_angle_offset: 3.2
+
+#6 : module 3 external 
+servo6_angle_sgn: 1
+servo6_angle_offset: 3.1415926
+
+gimbal_module4_rotate_angle: 0.785398
+#7 : module 4 internal
+servo7_angle_sgn: -1
+servo7_angle_offset: 3.13
+
+#8 : module 4 external 
+servo8_angle_sgn: 1
+servo8_angle_offset: 3.1415926
