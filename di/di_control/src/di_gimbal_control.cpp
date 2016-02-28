@@ -4,11 +4,23 @@ GimbalControl::GimbalControl(ros::NodeHandle nh, ros::NodeHandle nhp): nh_(nh), 
 {
   gimbalModulesInit();
 
-  attitude_sub_ = nh_.subscribe<jsk_stm::JskImu>("jsk_imu", 1, &GimbalControl::attitudeCallback, this, ros::TransportHints().tcpNoDelay());
+  attitude_sub_ = nh_.subscribe<jsk_stm::JskImu>("imu", 1, &GimbalControl::attitudeCallback, this, ros::TransportHints().tcpNoDelay());
 
   desire_attitude_sub_ = nh_.subscribe<geometry_msgs::Vector3>("desire_attitude", 1, &GimbalControl::desireAttitudeCallback, this, ros::TransportHints().tcpNoDelay());
 
   gimbal_command_flag_ = false;
+
+  //init servo angle command
+  for(int i = 0; i < gimbal_module_num_; i++)
+    {
+      for(int j = 0; j < 2; j ++)
+        {
+          std_msgs::Float64 command;
+          command.data = gimbal_modules_[i].angle_offset[j];
+          gimbal_modules_[i].servos_ctrl_pub[j].publish(command);
+        }
+    }
+
 
   nhp_.param("control_rate", control_rate_, 20.0);
   control_timer_ = nhp_.createTimer(ros::Duration(1.0 / control_rate_), &GimbalControl::controlFunc, this);
@@ -65,20 +77,11 @@ void GimbalControl::gimbalModulesInit()
           nhp_.param(std::string("servo") + servo_no.str() + std::string("_angle_sgn"), gimbal_modules_[i].angle_sgn[j], 1);
 
           nhp_.param(std::string("servo") + servo_no.str() + std::string("_angle_offset"), gimbal_modules_[i].angle_offset[j], M_PI); 
+
         }
 
     }
 
-  //init servo angle command
-  for(int i = 0; i < gimbal_module_num_; i++)
-    {
-      for(int j = 0; j < 2; j ++)
-        {
-          std_msgs::Float64 command;
-          command.data = gimbal_modules_[i].angle_offset[j];
-          gimbal_modules_[i].servos_ctrl_pub[j].publish(command);
-        }
-    }
 }
 
 void GimbalControl::desireAttitudeCallback(const geometry_msgs::Vector3ConstPtr& msg)
@@ -131,6 +134,13 @@ void GimbalControl::gimbalControl()
 
 void GimbalControl::controlFunc(const ros::TimerEvent & e)
 {
+  if (gimbal_debug_)
+    {
+      gimbalControl();
+      return;
+    }
+
+
   if(gimbal_mode_ == ACTIVE_GIMBAL_MODE)
     {
 

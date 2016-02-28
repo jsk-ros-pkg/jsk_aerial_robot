@@ -5,6 +5,7 @@
 
 <node name="jsk_stm" pkg="jsk_stm" type="jsk_stm_node" respawn="false"  output="screen">
   <param name="serial_port" value="$(arg port)" />
+  <remap from="/jsk_stm_serial_comm/desire_attitude" to="/desire_attitude" />
 </node>
 
 

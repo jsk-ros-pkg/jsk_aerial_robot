@@ -4,6 +4,7 @@ gimbal_module_num: 4
 gimbal_mode: 0
 
 gimbal_thre: 0.087
+#gimable_debug: true
 
 gimbal_module1_rotate_angle: 2.356194
 #1 : module 1 internal
@@ -21,7 +22,7 @@ servo3_angle_offset: 3.142
 
 #4 : module 2 external 
 servo4_angle_sgn: 1
-servo4_angle_offset: 3.1415926
+servo4_angle_offset: 3.134
 
 gimbal_module3_rotate_angle: -0.785398
 #5 : module 3 internal
@@ -39,4 +40,4 @@ servo7_angle_offset: 3.13
 
 #8 : module 4 external 
 servo8_angle_sgn: 1
-servo8_angle_offset: 3.1415926
+servo8_angle_offset: 3.135
