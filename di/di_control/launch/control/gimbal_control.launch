@@ -8,5 +8,6 @@
   <node pkg="di_control" type="di_gimbal_control_node" name="di_gimbal_control_node" launch-prefix="$(arg launch_prefix)"   output="screen" > 
     <rosparam file="$(find di_control)/config/DiGimbalConfig.yaml" command="load" />
     <remap from="imu" to="/jsk_stm_serial_comm/jsk_imu" />
+    <remap from="desire_tilt" to="/jsk_stm_serial_comm/desire_attitude" />
   </node>
 </launch>

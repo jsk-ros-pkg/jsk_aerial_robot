@@ -41,3 +41,8 @@ servo7_angle_offset: 3.13
 #8 : module 4 external 
 servo8_angle_sgn: 1
 servo8_angle_offset: 3.135
+
+#active gimbal mode param
+active_gimbal_tilt_interval: 0.015 #0.04, the change angle per tilt(rad)
+
+active_gimbal_tilt_duration: 2.5  # 4.0, the changing duration per tilt(sec)

@@ -4,6 +4,8 @@ GimbalControl::GimbalControl(ros::NodeHandle nh, ros::NodeHandle nhp): nh_(nh), 
 {
   gimbalModulesInit();
 
+  desire_tilt_pub_ = nh_.advertise<geometry_msgs::Vector3>("desire_tilt", 1);
+
   attitude_sub_ = nh_.subscribe<jsk_stm::JskImu>("imu", 1, &GimbalControl::attitudeCallback, this, ros::TransportHints().tcpNoDelay());
 
   desire_attitude_sub_ = nh_.subscribe<geometry_msgs::Vector3>("desire_attitude", 1, &GimbalControl::desireAttitudeCallback, this, ros::TransportHints().tcpNoDelay());
@@ -21,6 +23,12 @@ GimbalControl::GimbalControl(ros::NodeHandle nh, ros::NodeHandle nhp): nh_(nh), 
         }
     }
 
+
+  // active gimbal mode param
+  nhp_.param("active_gimbal_tilt_duration", active_gimbal_tilt_duration_, 4.0);
+  nhp_.param("active_gimbal_tilt_interval", active_gimbal_tilt_interval_, 0.04);
+
+  ROS_INFO("duration: %f", active_gimbal_tilt_duration_);
 
   nhp_.param("control_rate", control_rate_, 20.0);
   control_timer_ = nhp_.createTimer(ros::Duration(1.0 / control_rate_), &GimbalControl::controlFunc, this);
@@ -82,11 +90,17 @@ void GimbalControl::gimbalModulesInit()
 
     }
 
+  final_attitude_.x = 0;
+  final_attitude_.y = 0;
+  desire_attitude_.x = 0;
+  desire_attitude_.y = 0;
+
+
 }
 
 void GimbalControl::desireAttitudeCallback(const geometry_msgs::Vector3ConstPtr& msg)
 {
-  desire_attitude_ = *msg;
+  final_attitude_ = *msg;
   gimbal_command_flag_ = true;
 
 }
@@ -105,6 +119,7 @@ void GimbalControl::servoCallback(const dynamixel_msgs::JointStateConstPtr& msg,
 void GimbalControl::gimbalControl()
 {
   Eigen::Quaternion<double> q_att ;
+
   if (gimbal_debug_)
     {
       q_att = Eigen::AngleAxisd(current_attitude_.y, Eigen::Vector3d::UnitY()) 
@@ -134,6 +149,8 @@ void GimbalControl::gimbalControl()
 
 void GimbalControl::controlFunc(const ros::TimerEvent & e)
 {
+  static ros::Time prev_update_time = ros::Time::now();
+
   if (gimbal_debug_)
     {
       gimbalControl();
@@ -143,24 +160,42 @@ void GimbalControl::controlFunc(const ros::TimerEvent & e)
 
   if(gimbal_mode_ == ACTIVE_GIMBAL_MODE)
     {
+      //if(!gimbal_command_flag_) return; //need?
 
-      if(!gimbal_command_flag_) return; //need?
+      //duration processing => should be erro estimation processing
+      if(ros::Time::now().toSec() - prev_update_time.toSec() < active_gimbal_tilt_duration_) return;
 
+      if(final_attitude_.x - desire_attitude_.x > active_gimbal_tilt_interval_)
+        desire_attitude_.x += active_gimbal_tilt_interval_;
+      else if (final_attitude_.x - desire_attitude_.x < -active_gimbal_tilt_interval_)
+        desire_attitude_.x -= active_gimbal_tilt_interval_;
+      else desire_attitude_.x = final_attitude_.x;
+
+      if(final_attitude_.y - desire_attitude_.y > active_gimbal_tilt_interval_)
+        desire_attitude_.y += active_gimbal_tilt_interval_;
+      else if (final_attitude_.y - desire_attitude_.y < -active_gimbal_tilt_interval_)
+        desire_attitude_.y -= active_gimbal_tilt_interval_;
+      else desire_attitude_.y = final_attitude_.y;
+
+      ROS_INFO("desire roll: %f, desire pitch: %f", desire_attitude_.x, desire_attitude_.y);
       gimbalControl();
-      gimbal_command_flag_ = false;
+      
+      prev_update_time = ros::Time::now();
+
+      //publish to control board for desire tilt angle
+      desire_tilt_pub_.publish(desire_attitude_);
+
+      //gimbal_command_flag_ = false;
     }
   else if(gimbal_mode_ == PASSIVE_GIMBAL_MODE)
     {
       gimbal_command_flag_ = false;
 
-      if(fabs(current_attitude_.x - desire_attitude_.x ) > gimbal_thre_)
+      if(fabs(current_attitude_.x - final_attitude_.x ) > gimbal_thre_ ||
+         fabs(current_attitude_.y - final_attitude_.y ) > gimbal_thre_)
         {
-          current_attitude_.x = desire_attitude_.x;
-          gimbal_command_flag_ = true;
-        }
-      if(fabs(current_attitude_.y - desire_attitude_.y ) > gimbal_thre_)
-        {
-          current_attitude_.y = desire_attitude_.y;
+          current_attitude_.x = final_attitude_.x;
+          current_attitude_.y = final_attitude_.y;
           gimbal_command_flag_ = true;
         }
 

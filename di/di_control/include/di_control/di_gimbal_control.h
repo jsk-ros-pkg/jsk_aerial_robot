@@ -47,6 +47,7 @@ class GimbalControl
  private:
   ros::NodeHandle nh_;
   ros::NodeHandle nhp_;
+  ros::Publisher desire_tilt_pub_;
   ros::Subscriber attitude_sub_;
   ros::Subscriber desire_attitude_sub_;
 
@@ -56,6 +57,7 @@ class GimbalControl
   geometry_msgs::Vector3 current_attitude_;
   //geometry_msgs::Vector3 attitude_threshold_;
   geometry_msgs::Vector3 desire_attitude_;
+  geometry_msgs::Vector3 final_attitude_;
 
   bool gimbal_debug_;
 
@@ -64,6 +66,9 @@ class GimbalControl
   int gimbal_module_num_;
   double gimbal_thre_;
   double control_rate_;
+
+  double active_gimbal_tilt_interval_;
+  double active_gimbal_tilt_duration_;
 
   void gimbalModulesInit();
   void controlFunc(const ros::TimerEvent & e);
