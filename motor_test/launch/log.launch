@@ -21,7 +21,7 @@
   <node name="motor_test_node" pkg="motor_test" type="motor_test_node"  output="screen"> 
     <param name="pwm_incremental_value" value="25" />
     <param name="duration" value="3.0" />
-    <param name="min_pwm_value" value="1200" />
+    <param name="min_pwm_value" value="1100" />
     <param name="max_pwm_value" value="1900" />
 
 

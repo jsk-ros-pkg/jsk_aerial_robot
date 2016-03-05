@@ -7,6 +7,7 @@ project(di_control)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   geometry_msgs
+  aerial_robot_base
   dynamixel_msgs
   dynamixel_controllers
   jsk_stm
@@ -91,10 +92,9 @@ add_definitions(${EIGEN_DEFINITIONS})
 ##     and list every .cfg file to be processed
 
 ## Generate dynamic reconfigure parameters in the 'cfg' folder
-# generate_dynamic_reconfigure_options(
-#   cfg/DynReconf1.cfg
-#   cfg/DynReconf2.cfg
-# )
+ generate_dynamic_reconfigure_options(
+   cfg/GimbalDynReconf.cfg
+ )
 
 ###################################
 ## catkin specific configuration ##
@@ -128,10 +128,12 @@ include_directories(
    src/di_gimbal_control.cpp
  )
 target_link_libraries (di_gimbal_control ${catkin_LIBRARIES})
+add_dependencies(di_gimbal_control  ${PROJECT_NAME}_gencfg)
 
 
 add_executable(di_gimbal_control_node src/di_gimbal_control_node.cpp)
 target_link_libraries (di_gimbal_control_node di_gimbal_control ${catkin_LIBRARIES})
+add_dependencies(di_gimbal_control_node  ${PROJECT_NAME}_gencfg)
 
 ## Specify libraries to link a library or executable target against
 # target_link_libraries(di_control_node

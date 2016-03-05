@@ -25,6 +25,8 @@ void GimbalControl::gimbalModulesInit()
 
   nhp_.param("gimable_debug", gimbal_debug_, false);
 
+  nhp_.param("body_diameter", body_diameter_, 1.2);
+
   gimbal_modules_.resize(gimbal_module_num_);
 
   for(int i = 0; i < gimbal_module_num_; i++)
@@ -101,7 +103,10 @@ void GimbalControl::servoCallback(const dynamixel_msgs::JointStateConstPtr& msg,
 
 void GimbalControl::gimbalControl()
 {
-  Eigen::Quaternion<double> q_att ;
+  Eigen::Quaternion<double> q_att;
+  static Eigen::Quaternion<double> prev_q_att = Eigen::Quaternion<double>(1,0,0,0);
+  static float tilt_alt_sum = 0;
+
   if (gimbal_debug_)
     {
       q_att = Eigen::AngleAxisd(current_attitude_.y, Eigen::Vector3d::UnitY()) 
@@ -113,6 +118,7 @@ void GimbalControl::gimbalControl()
         * Eigen::AngleAxisd(desire_attitude_.x, Eigen::Vector3d::UnitX());
     }
 
+  //gimbal
   for(int i = 0 ; i < gimbal_module_num_; i++)
     {
       Eigen::Quaternion<double> q =  q_att * Eigen::AngleAxisd(gimbal_modules_[i].rotate_angle, Eigen::Vector3d::UnitZ());
@@ -127,6 +133,24 @@ void GimbalControl::gimbalControl()
       command.data = gimbal_modules_[i].angle_offset[1] - gimbal_modules_[i].angle_sgn[1] * roll;
       gimbal_modules_[i].servos_ctrl_pub[1].publish(command);
     }
+
+  //alt
+  Eigen::Matrix3d r = q_att.matrix();
+  Eigen::Matrix3d prev_r = prev_q_att.matrix();
+  //float alt_tilt = sin(atan2(sqrt(r(0,2) * r(0,2)  + r(1,2) * r(1,2)), fabs(r(2,2)))) * body_diameter;
+  float alt_tilt = sqrt(r(0,2) * r(0,2)  + r(1,2) * r(1,2));
+  float prev_alt_tilt = sqrt(prev_r(0,2) * prev_r(0,2)  + prev_r(1,2) * prev_r(1,2));
+
+  aerial_robot_base::FlightNav flight_nav_msg;
+  flight_nav_msg.header.stamp = ros::Time::now();
+  flight_nav_msg.command_mode = NO_NAVIGATION;
+  flight_nav_msg.pos_z_navi_mode = VEL_FLIGHT_MODE_COMMAND;
+  flight_nav_msg.target_pos_diff_z = body_diameter_ / 2 * (alt_tilt - prev_alt_tilt);
+ 
+  tilt_alt_sum += flight_nav_msg.target_pos_diff_;
+  prev_q_att = q_att;
+
+  ROS_INFO("tilt_alt: %f, sum: %f", flight_nav_msg.target_pos_diff_, tilt_alt_sum);
 }
 
 void GimbalControl::controlFunc(const ros::TimerEvent & e)

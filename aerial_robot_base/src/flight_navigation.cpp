@@ -414,11 +414,15 @@ void TeleopNavigator::throttleCallback(const std_msgs::Int8ConstPtr & msg)
 
       if(msg->data == 1){
 	final_target_pos_z_ += up_down_distance_; 
-	ROS_INFO("UP");
-      }else{
+	ROS_INFO("incremental UP");
+      }else if (msg->data == -1){
 	final_target_pos_z_ -= up_down_distance_; 
-	ROS_INFO("DOWN");
+	ROS_INFO("incremental DOWN");
+      }else if (msg->data == 0){
+        final_target_pos_z_ -= up_down_distance_; 
+        ROS_INFO("absolute throttle modification");
       }
+      
     }
   //ROS_INFO("Thrust command");
 }

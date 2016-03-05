@@ -9,6 +9,7 @@
 #include <dynamixel_msgs/JointState.h>
 #include <dynamixel_controllers/TorqueEnable.h>
 #include <geometry_msgs/Vector3.h>
+#include <aerial_robot_base/FlightNav.h>
 
 #include <Eigen/Core>
 #include <Eigen/Dense>
@@ -49,6 +50,7 @@ class GimbalControl
   ros::NodeHandle nhp_;
   ros::Subscriber attitude_sub_;
   ros::Subscriber desire_attitude_sub_;
+  ros::Publisher alt_control_pub_;
 
   std::vector<GimbalModule> gimbal_modules_;
   ros::Timer  control_timer_;
@@ -64,6 +66,8 @@ class GimbalControl
   int gimbal_module_num_;
   double gimbal_thre_;
   double control_rate_;
+
+  double body_diameter_;
 
   void gimbalModulesInit();
   void controlFunc(const ros::TimerEvent & e);

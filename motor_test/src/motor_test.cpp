@@ -33,6 +33,7 @@ public:
     force_snesor_sub_ = nh_.subscribe<std_msgs::Int32MultiArray>(force_sensor_sub_name_, 1, &MotorTest::forceSensorCallback, this, ros::TransportHints().tcpNoDelay());
     power_info_sub_ = nh_.subscribe<takasako_sps::PowerInfo>(power_info_sub_name_, 1, &MotorTest::powerInfoCallback, this, ros::TransportHints().tcpNoDelay());
     start_cmd_sub_ =  nh_.subscribe<std_msgs::Empty>("start_log_cmd", 1,  &MotorTest::startCallback, this, ros::TransportHints().tcpNoDelay());
+    sps_on_pub_ = nh.advertise<std_msgs::Empty>("/power_on_cmd", 1);
 
     if(!auto_flag_)
       {
@@ -55,6 +56,7 @@ public:
         ROS_ERROR("Failed to call service add_two_ints");
       }
 
+    sps_on_pub_.publish(std_msgs::Empty());
 
     if(auto_flag_)
       pwm_timer_ = nhp_.createTimer(ros::Duration(1.0 / 50), &MotorTest::pwmFunc,this);
@@ -76,6 +78,7 @@ private:
   ros::Subscriber power_info_sub_;
   ros::Subscriber start_cmd_sub_;
   ros::Publisher motor_pwm_pub_;
+  ros::Publisher sps_on_pub_;
 
   ros::Timer  pwm_timer_;
 
@@ -90,6 +93,7 @@ private:
   int min_pwm_value_, max_pwm_value_;
   float currency_;
 
+  ros::Time init_time_;
 
   FILE * fp_; // for log
 
@@ -98,6 +102,14 @@ private:
   void startCallback(const std_msgs::EmptyConstPtr & msg)
   {
     log_flag_ = 1;
+
+    pwm_value_ = min_pwm_value_;
+    std_msgs::UInt16 cmd_msg;
+    cmd_msg.data = pwm_value_;
+    motor_pwm_pub_.publish(cmd_msg);
+    init_time_ = ros::Time::now();
+    ROS_INFO("first time");
+
   }
 
 
@@ -126,25 +138,11 @@ private:
 
   void pwmFunc(const ros::TimerEvent & e)
   {
-    static bool init_flag = true;
-    static ros::Time init_time = ros::Time::now();
-
-    if(init_flag)
-      {
-        pwm_value_ = min_pwm_value_;
-        init_flag = false;
-        std_msgs::UInt16 cmd_msg;
-        cmd_msg.data = pwm_value_;
-        motor_pwm_pub_.publish(cmd_msg);
-        log_flag_ = 0;
-        init_time = ros::Time::now();
-        ROS_INFO("first time");
-      }
    
     if(!log_flag_) return;
 
 
-    if(ros::Time::now().toSec() - init_time.toSec() > duration_)
+    if(ros::Time::now().toSec() - init_time_.toSec() > duration_)
       {
         ROS_INFO("incremnetal");
         pwm_value_ += pwm_incremental_value_;
@@ -163,11 +161,11 @@ private:
         cmd_msg.data = pwm_value_;
         motor_pwm_pub_.publish(cmd_msg);
         log_flag_ = 1;
-        init_time = ros::Time::now();
+        init_time_ = ros::Time::now();
 
       }
 
-    if(ros::Time::now().toSec() - init_time.toSec() > 1.0)
+    if(ros::Time::now().toSec() - init_time_.toSec() > 1.0)
       {
         if(log_flag_ == 1)  log_flag_ = 2;
           
