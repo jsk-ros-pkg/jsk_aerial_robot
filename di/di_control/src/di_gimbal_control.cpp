@@ -4,14 +4,43 @@ GimbalControl::GimbalControl(ros::NodeHandle nh, ros::NodeHandle nhp): nh_(nh), 
 {
   gimbalModulesInit();
 
-  attitude_sub_ = nh_.subscribe<jsk_stm::JskImu>("jsk_imu", 1, &GimbalControl::attitudeCallback, this, ros::TransportHints().tcpNoDelay());
+  alt_control_pub_ = nh_.advertise<aerial_robot_base::FlightNav>("flight_nav", 1);
+  desire_tilt_pub_ = nh_.advertise<geometry_msgs::Vector3>("desire_tilt", 1);
+
+  attitude_sub_ = nh_.subscribe<jsk_stm::JskImu>("imu", 1, &GimbalControl::attitudeCallback, this, ros::TransportHints().tcpNoDelay());
 
   desire_attitude_sub_ = nh_.subscribe<geometry_msgs::Vector3>("desire_attitude", 1, &GimbalControl::desireAttitudeCallback, this, ros::TransportHints().tcpNoDelay());
 
   gimbal_command_flag_ = false;
 
+  //init servo angle command
+  for(int i = 0; i < gimbal_module_num_; i++)
+    {
+      for(int j = 0; j < 2; j ++)
+        {
+          std_msgs::Float64 command;
+          command.data = gimbal_modules_[i].angle_offset[j];
+          gimbal_modules_[i].servos_ctrl_pub[j].publish(command);
+        }
+    }
+
+
+  // active gimbal mode param
+  nhp_.param("active_gimbal_tilt_duration", active_gimbal_tilt_duration_, 4.0);
+  nhp_.param("active_gimbal_tilt_interval", active_gimbal_tilt_interval_, 0.04);
+
+  ROS_INFO("duration: %f", active_gimbal_tilt_duration_);
+
+
+  //dynamic reconfigure server
+  gimbal_server_ = new dynamic_reconfigure::Server<di_control::GimbalDynReconfConfig>(nhp_);
+  dyn_reconf_func_ = boost::bind(&GimbalControl::GimbalDynReconfCallback, this, _1, _2);
+  gimbal_server_->setCallback(dyn_reconf_func_);
+
+
   nhp_.param("control_rate", control_rate_, 20.0);
   control_timer_ = nhp_.createTimer(ros::Duration(1.0 / control_rate_), &GimbalControl::controlFunc, this);
+
 
 }
 
@@ -67,25 +96,22 @@ void GimbalControl::gimbalModulesInit()
           nhp_.param(std::string("servo") + servo_no.str() + std::string("_angle_sgn"), gimbal_modules_[i].angle_sgn[j], 1);
 
           nhp_.param(std::string("servo") + servo_no.str() + std::string("_angle_offset"), gimbal_modules_[i].angle_offset[j], M_PI); 
+
         }
 
     }
 
-  //init servo angle command
-  for(int i = 0; i < gimbal_module_num_; i++)
-    {
-      for(int j = 0; j < 2; j ++)
-        {
-          std_msgs::Float64 command;
-          command.data = gimbal_modules_[i].angle_offset[j];
-          gimbal_modules_[i].servos_ctrl_pub[j].publish(command);
-        }
-    }
+  final_attitude_.x = 0;
+  final_attitude_.y = 0;
+  desire_attitude_.x = 0;
+  desire_attitude_.y = 0;
+
+
 }
 
 void GimbalControl::desireAttitudeCallback(const geometry_msgs::Vector3ConstPtr& msg)
 {
-  desire_attitude_ = *msg;
+  final_attitude_ = *msg;
   gimbal_command_flag_ = true;
 
 }
@@ -103,6 +129,7 @@ void GimbalControl::servoCallback(const dynamixel_msgs::JointStateConstPtr& msg,
 
 void GimbalControl::gimbalControl()
 {
+
   Eigen::Quaternion<double> q_att;
   static Eigen::Quaternion<double> prev_q_att = Eigen::Quaternion<double>(1,0,0,0);
   static float tilt_alt_sum = 0;
@@ -143,42 +170,82 @@ void GimbalControl::gimbalControl()
 
   aerial_robot_base::FlightNav flight_nav_msg;
   flight_nav_msg.header.stamp = ros::Time::now();
-  flight_nav_msg.command_mode = NO_NAVIGATION;
-  flight_nav_msg.pos_z_navi_mode = VEL_FLIGHT_MODE_COMMAND;
+  flight_nav_msg.command_mode = aerial_robot_base::FlightNav::NO_NAVIGATION;
+  flight_nav_msg.pos_z_navi_mode = aerial_robot_base::FlightNav::VEL_FLIGHT_MODE_COMMAND;
   flight_nav_msg.target_pos_diff_z = body_diameter_ / 2 * (alt_tilt - prev_alt_tilt);
- 
-  tilt_alt_sum += flight_nav_msg.target_pos_diff_;
-  prev_q_att = q_att;
+  alt_control_pub_.publish(flight_nav_msg);
 
-  ROS_INFO("tilt_alt: %f, sum: %f", flight_nav_msg.target_pos_diff_, tilt_alt_sum);
+  tilt_alt_sum += flight_nav_msg.target_pos_diff_z;
+
+
+  ROS_INFO("tilt_alt: %f, sum: %f", flight_nav_msg.target_pos_diff_z, tilt_alt_sum);
+
+  prev_q_att = q_att;
 }
 
 void GimbalControl::controlFunc(const ros::TimerEvent & e)
 {
+  static ros::Time prev_update_time = ros::Time::now();
+
+  if (gimbal_debug_)
+    {
+      gimbalControl();
+      return;
+    }
+
+
   if(gimbal_mode_ == ACTIVE_GIMBAL_MODE)
     {
+      //if(!gimbal_command_flag_) return; //need?
 
-      if(!gimbal_command_flag_) return; //need?
+      //duration processing => should be erro estimation processing
+      if(ros::Time::now().toSec() - prev_update_time.toSec() < active_gimbal_tilt_duration_) return;
 
+      if(final_attitude_.x - desire_attitude_.x > active_gimbal_tilt_interval_)
+        desire_attitude_.x += active_gimbal_tilt_interval_;
+      else if (final_attitude_.x - desire_attitude_.x < -active_gimbal_tilt_interval_)
+        desire_attitude_.x -= active_gimbal_tilt_interval_;
+      else desire_attitude_.x = final_attitude_.x;
+
+      if(final_attitude_.y - desire_attitude_.y > active_gimbal_tilt_interval_)
+        desire_attitude_.y += active_gimbal_tilt_interval_;
+      else if (final_attitude_.y - desire_attitude_.y < -active_gimbal_tilt_interval_)
+        desire_attitude_.y -= active_gimbal_tilt_interval_;
+      else desire_attitude_.y = final_attitude_.y;
+
+      ROS_INFO("desire roll: %f, desire pitch: %f", desire_attitude_.x, desire_attitude_.y);
       gimbalControl();
-      gimbal_command_flag_ = false;
+      
+      prev_update_time = ros::Time::now();
+
+      //publish to control board for desire tilt angle
+      desire_tilt_pub_.publish(desire_attitude_);
+
+      //gimbal_command_flag_ = false;
     }
   else if(gimbal_mode_ == PASSIVE_GIMBAL_MODE)
     {
       gimbal_command_flag_ = false;
 
-      if(fabs(current_attitude_.x - desire_attitude_.x ) > gimbal_thre_)
+      if(fabs(current_attitude_.x - final_attitude_.x ) > gimbal_thre_ ||
+         fabs(current_attitude_.y - final_attitude_.y ) > gimbal_thre_)
         {
-          current_attitude_.x = desire_attitude_.x;
-          gimbal_command_flag_ = true;
-        }
-      if(fabs(current_attitude_.y - desire_attitude_.y ) > gimbal_thre_)
-        {
-          current_attitude_.y = desire_attitude_.y;
+          current_attitude_.x = final_attitude_.x;
+          current_attitude_.y = final_attitude_.y;
           gimbal_command_flag_ = true;
         }
 
       if(gimbal_command_flag_) gimbalControl();
     }
 
+}
+
+void GimbalControl::GimbalDynReconfCallback(di_control::GimbalDynReconfConfig &config, uint32_t level)
+{
+  if(config.gimbal_control_flag)
+    {
+      active_gimbal_tilt_interval_ = config.active_gimbal_tilt_interval;
+      active_gimbal_tilt_duration_ = config.active_gimbal_tilt_duration;
+      ROS_INFO("new gimbal interval :%f, new gimbal duration :%f", active_gimbal_tilt_interval_, active_gimbal_tilt_duration_);
+    }
 }

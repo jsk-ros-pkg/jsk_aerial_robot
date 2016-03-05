@@ -17,6 +17,9 @@
 
 #include <string>
 
+//* for dynamic reconfigure
+#include <dynamic_reconfigure/server.h>
+#include <di_control/GimbalDynReconfConfig.h>
 
 typedef struct{
   ros::Subscriber servos_state_sub[2];
@@ -48,6 +51,7 @@ class GimbalControl
  private:
   ros::NodeHandle nh_;
   ros::NodeHandle nhp_;
+  ros::Publisher desire_tilt_pub_;
   ros::Subscriber attitude_sub_;
   ros::Subscriber desire_attitude_sub_;
   ros::Publisher alt_control_pub_;
@@ -58,6 +62,7 @@ class GimbalControl
   geometry_msgs::Vector3 current_attitude_;
   //geometry_msgs::Vector3 attitude_threshold_;
   geometry_msgs::Vector3 desire_attitude_;
+  geometry_msgs::Vector3 final_attitude_;
 
   bool gimbal_debug_;
 
@@ -68,6 +73,8 @@ class GimbalControl
   double control_rate_;
 
   double body_diameter_;
+  double active_gimbal_tilt_interval_;
+  double active_gimbal_tilt_duration_;
 
   void gimbalModulesInit();
   void controlFunc(const ros::TimerEvent & e);
@@ -77,5 +84,12 @@ class GimbalControl
   void desireAttitudeCallback(const geometry_msgs::Vector3ConstPtr& msg);
 
   void gimbalControl();
+
+  //cfg
+  dynamic_reconfigure::Server<di_control::GimbalDynReconfConfig>* gimbal_server_;
+  dynamic_reconfigure::Server<di_control::GimbalDynReconfConfig>::CallbackType dyn_reconf_func_;
+
+void GimbalDynReconfCallback(di_control::GimbalDynReconfConfig &config, uint32_t level);
+  
 
 };

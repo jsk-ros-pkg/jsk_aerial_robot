@@ -12,6 +12,7 @@ find_package(catkin REQUIRED COMPONENTS
   dynamixel_controllers
   jsk_stm
   cmake_modules
+  dynamic_reconfigure
 )
 
 ## System dependencies are found with CMake's conventions
@@ -128,8 +129,7 @@ include_directories(
    src/di_gimbal_control.cpp
  )
 target_link_libraries (di_gimbal_control ${catkin_LIBRARIES})
-add_dependencies(di_gimbal_control  ${PROJECT_NAME}_gencfg)
-
+add_dependencies(di_gimbal_control  ${PROJECT_NAME}_gencpp)
 
 add_executable(di_gimbal_control_node src/di_gimbal_control_node.cpp)
 target_link_libraries (di_gimbal_control_node di_gimbal_control ${catkin_LIBRARIES})
