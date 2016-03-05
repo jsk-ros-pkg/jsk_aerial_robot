@@ -6,6 +6,8 @@ gimbal_mode: 0
 gimbal_thre: 0.087
 #gimable_debug: true
 
+control_rate: 50.0
+
 gimbal_module1_rotate_angle: 2.356194
 #1 : module 1 internal
 servo1_angle_sgn: -1
@@ -45,4 +47,4 @@ servo8_angle_offset: 3.135
 #active gimbal mode param
 active_gimbal_tilt_interval: 0.015 #0.04, the change angle per tilt(rad)
 
-active_gimbal_tilt_duration: 2.5  # 4.0, the changing duration per tilt(sec)
+active_gimbal_tilt_duration: 0.05  # 4.0, the changing duration per tilt(sec)

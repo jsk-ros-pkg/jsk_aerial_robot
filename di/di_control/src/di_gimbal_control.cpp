@@ -246,6 +246,6 @@ void GimbalControl::GimbalDynReconfCallback(di_control::GimbalDynReconfConfig &c
     {
       active_gimbal_tilt_interval_ = config.active_gimbal_tilt_interval;
       active_gimbal_tilt_duration_ = config.active_gimbal_tilt_duration;
-      ROS_INFO("new gimbal interval :%f, new gimbal duration :%f", active_gimbal_tilt_interval_, active_gimbal_tilt_duration_);
+      ROS_WARN("new gimbal interval :%f, new gimbal duration :%f", active_gimbal_tilt_interval_, active_gimbal_tilt_duration_);
     }
 }
