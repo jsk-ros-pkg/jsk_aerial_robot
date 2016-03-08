@@ -10,5 +10,6 @@
     <remap from="imu" to="/jsk_stm_serial_comm/jsk_imu" />
     <remap from="desire_tilt" to="/jsk_stm_serial_comm/desire_attitude" />
     <remap from="/flight_nav" to="/navigator/full_states" />
+    <remap from="/attitude_command" to="/controller/debug" />
   </node>
 </launch>

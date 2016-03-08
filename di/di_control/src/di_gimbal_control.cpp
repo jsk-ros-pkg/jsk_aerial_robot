@@ -11,7 +11,10 @@ GimbalControl::GimbalControl(ros::NodeHandle nh, ros::NodeHandle nhp): nh_(nh), 
 
   desire_attitude_sub_ = nh_.subscribe<geometry_msgs::Vector3>("desire_attitude", 1, &GimbalControl::desireAttitudeCallback, this, ros::TransportHints().tcpNoDelay());
 
-  gimbal_command_flag_ = false;
+  attitude_command_sub_ = nh_.subscribe<aerial_robot_base::FourAxisPid>("attitude_command", 1, &GimbalControl::attCommandCallback, this, ros::TransportHints().tcpNoDelay());
+
+  //debug for passive att compare method
+  att_diff_pub_ = nh_.advertise<geometry_msgs::Vector3Stamped>("att_command_current_compare", 1);
 
   //init servo angle command
   for(int i = 0; i < gimbal_module_num_; i++)
@@ -29,18 +32,13 @@ GimbalControl::GimbalControl(ros::NodeHandle nh, ros::NodeHandle nhp): nh_(nh), 
   nhp_.param("active_gimbal_tilt_duration", active_gimbal_tilt_duration_, 4.0);
   nhp_.param("active_gimbal_tilt_interval", active_gimbal_tilt_interval_, 0.04);
 
-  ROS_INFO("duration: %f", active_gimbal_tilt_duration_);
-
-
   //dynamic reconfigure server
   gimbal_server_ = new dynamic_reconfigure::Server<di_control::GimbalDynReconfConfig>(nhp_);
   dyn_reconf_func_ = boost::bind(&GimbalControl::GimbalDynReconfCallback, this, _1, _2);
   gimbal_server_->setCallback(dyn_reconf_func_);
 
-
   nhp_.param("control_rate", control_rate_, 20.0);
   control_timer_ = nhp_.createTimer(ros::Duration(1.0 / control_rate_), &GimbalControl::controlFunc, this);
-
 
 }
 
@@ -52,11 +50,30 @@ void GimbalControl::gimbalModulesInit()
   nhp_.param("gimbal_mode", gimbal_mode_, 0);
   nhp_.param("gimbal_thre", gimbal_thre_, 0.0);
 
-  nhp_.param("gimable_debug", gimbal_debug_, false);
+  nhp_.param("gimabal_debug", gimbal_debug_, false);
 
   nhp_.param("body_diameter", body_diameter_, 1.2);
 
+  nhp_.param("att_control_rate", att_control_rate_, 40.0);
+  nhp_.param("att_comp_duration", att_comp_duration_, 0.5);
+  nhp_.param("passive_level_back_duration", passive_level_back_duration_, 10.0);
+  nhp_.param("attitude_outlier_thre", attitude_outlier_thre_, 0.5);
+
+  att_comp_duration_size_ = att_control_rate_ * att_comp_duration_;
+
   gimbal_modules_.resize(gimbal_module_num_);
+
+  final_attitude_.x = 0;
+  final_attitude_.y = 0;
+  desire_attitude_.x = 0;
+  desire_attitude_.y = 0;
+
+  passive_tilt_mode_ = false;
+
+  roll_diff_ = 0; 
+  pitch_diff_ = 0; 
+  roll_delay_ = 0; 
+  pitch_delay_ = 0; 
 
   for(int i = 0; i < gimbal_module_num_; i++)
     {
@@ -101,24 +118,34 @@ void GimbalControl::gimbalModulesInit()
 
     }
 
-  final_attitude_.x = 0;
-  final_attitude_.y = 0;
-  desire_attitude_.x = 0;
-  desire_attitude_.y = 0;
+}
 
+void GimbalControl::attCommandCallback(const aerial_robot_base::FourAxisPidConstPtr& cmd_msg)
+{
+  boost::lock_guard<boost::mutex> lock(queue_mutex_);
+  while (att_command_qu_.size() >= att_comp_duration_size_)
+    {
+      att_command_qu_.pop_front();
+    }
 
+  geometry_msgs::Vector3 new_command;
+  new_command.x = cmd_msg->roll.total[0];
+  new_command.y = cmd_msg->pitch.total[0];
+
+  att_command_qu_.push_back(new_command);
 }
 
 void GimbalControl::desireAttitudeCallback(const geometry_msgs::Vector3ConstPtr& msg)
 {
   final_attitude_ = *msg;
-  gimbal_command_flag_ = true;
 
 }
 
 void GimbalControl::attitudeCallback(const jsk_stm::JskImuConstPtr& msg)
 {
   current_attitude_ = msg->angles;
+
+  att_comp_time_ = msg->header.stamp;
 }
 
 
@@ -178,7 +205,7 @@ void GimbalControl::gimbalControl()
   tilt_alt_sum += flight_nav_msg.target_pos_diff_z;
 
 
-  ROS_INFO("tilt_alt: %f, sum: %f", flight_nav_msg.target_pos_diff_z, tilt_alt_sum);
+  //ROS_INFO("tilt_alt: %f, sum: %f", flight_nav_msg.target_pos_diff_z, tilt_alt_sum);
 
   prev_q_att = q_att;
 }
@@ -187,6 +214,8 @@ void GimbalControl::controlFunc(const ros::TimerEvent & e)
 {
   static ros::Time prev_update_time = ros::Time::now();
 
+  static ros::Time passive_tilt_start_time = ros::Time::now();
+
   if (gimbal_debug_)
     {
       gimbalControl();
@@ -194,10 +223,8 @@ void GimbalControl::controlFunc(const ros::TimerEvent & e)
     }
 
 
-  if(gimbal_mode_ == ACTIVE_GIMBAL_MODE)
+  if(gimbal_mode_ == ACTIVE_GIMBAL_MODE || gimbal_mode_ == ACTIVE_GIMBAL_MODE + PASSIVE_GIMBAL_MODE)
     {
-      //if(!gimbal_command_flag_) return; //need?
-
       //duration processing => should be erro estimation processing
       if(ros::Time::now().toSec() - prev_update_time.toSec() < active_gimbal_tilt_duration_) return;
 
@@ -215,29 +242,100 @@ void GimbalControl::controlFunc(const ros::TimerEvent & e)
 
       ROS_INFO("desire roll: %f, desire pitch: %f", desire_attitude_.x, desire_attitude_.y);
       gimbalControl();
-      
+
       prev_update_time = ros::Time::now();
 
       //publish to control board for desire tilt angle
       desire_tilt_pub_.publish(desire_attitude_);
 
-      //gimbal_command_flag_ = false;
+      if(gimbal_mode_ == ACTIVE_GIMBAL_MODE + PASSIVE_GIMBAL_MODE)
+        {
+          if(desire_attitude_.y == final_attitude_.y && desire_attitude_.x == final_attitude_.x)
+            {
+              gimbal_mode_ = PASSIVE_GIMBAL_MODE;
+              ROS_WARN("back to PASSIVE_GIMBAL_MODE");
+            }
+        }
+
     }
   else if(gimbal_mode_ == PASSIVE_GIMBAL_MODE)
     {
-      gimbal_command_flag_ = false;
+      geometry_msgs::Vector3Stamped comp_msg;
+      comp_msg.header.stamp = att_comp_time_;
 
-      if(fabs(current_attitude_.x - final_attitude_.x ) > gimbal_thre_ ||
-         fabs(current_attitude_.y - final_attitude_.y ) > gimbal_thre_)
+      if(!attCommandCompare()) return;
+
+      comp_msg.vector.x = roll_diff_;
+      comp_msg.vector.y = pitch_diff_;
+      comp_msg.vector.z = 0;
+
+      if(fabs(roll_diff_) > gimbal_thre_ ||
+         fabs(pitch_diff_) > gimbal_thre_)
         {
-          current_attitude_.x = final_attitude_.x;
-          current_attitude_.y = final_attitude_.y;
-          gimbal_command_flag_ = true;
+          final_attitude_ = current_attitude_ ;
+          desire_attitude_ = final_attitude_;
+          gimbalControl();
+          ROS_WARN("big att change in passive mode: roll_diff: %f, roll_delay:%f, pitch_diff: %f, pitch_delay: %f", roll_diff_, roll_delay_, pitch_diff_, pitch_delay_);
+
+          comp_msg.vector.z = 1;
+          passive_tilt_mode_ = true;
+          passive_tilt_start_time = ros::Time::now();
+        }
+      att_diff_pub_.publish(comp_msg);
+
+      if( passive_tilt_mode_ && ros::Time::now().toSec() - passive_tilt_start_time.toSec() > passive_level_back_duration_)
+        {
+          passive_tilt_mode_ = false;
+          final_attitude_.x = 0;
+          final_attitude_.y = 0;
+
+          gimbal_mode_ = ACTIVE_GIMBAL_MODE + PASSIVE_GIMBAL_MODE;
+          ROS_WARN("in order to back to level, turn to acitve tilt mode");
+        }
+    }
+}
+
+bool GimbalControl::attCommandCompare()
+{
+  boost::lock_guard<boost::mutex> lock(queue_mutex_);
+
+  static geometry_msgs::Vector3 previous_attitude_;
+
+  //outlier attitude data
+  if(fabs(previous_attitude_.x - current_attitude_.x) > attitude_outlier_thre_ ||
+     fabs(previous_attitude_.y - current_attitude_.y) > attitude_outlier_thre_)
+    return false;
+
+  //no enough buffer to compare
+  if(att_command_qu_.size() < att_comp_duration_size_) return false;
+
+  int i = 0;
+  float min_roll_time = 0, min_pitch_time = 0;
+  float min_roll_diff = 1e6, min_pitch_diff = 1e6;
+  for(std::deque<geometry_msgs::Vector3>::iterator itr = att_command_qu_.begin(); itr != att_command_qu_.end(); ++itr) 
+    {
+      //roll
+      if(fabs((*itr).x - current_attitude_.x) <  min_roll_diff)
+        {
+          min_roll_diff = fabs((*itr).x - current_attitude_.x);
+          min_roll_time = (att_comp_duration_size_- i ) * (1 / att_control_rate_);
+        }
+      //pitch
+      if(fabs((*itr).x - current_attitude_.x) <  min_pitch_diff)
+        {
+          min_pitch_diff = fabs((*itr).y - current_attitude_.y);
+          min_pitch_time = (att_comp_duration_size_-i ) * (1 / att_control_rate_);
         }
 
-      if(gimbal_command_flag_) gimbalControl();
+      i++;
     }
 
+  roll_diff_ = min_roll_diff; 
+  pitch_diff_ = min_pitch_diff; 
+  roll_delay_ = min_roll_time; 
+  pitch_delay_ = min_pitch_time; 
+
+  return true;
 }
 
 void GimbalControl::GimbalDynReconfCallback(di_control::GimbalDynReconfConfig &config, uint32_t level)

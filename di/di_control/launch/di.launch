@@ -29,7 +29,6 @@
 
     <param name="motor_num" type="int" value="1"/>
 
-
     <param name="estimator/altitude_control_mode" type="int" value="0"/>
     <param name="estimator/use_outer_yaw_est" type="bool" value="true"/>
     <!-- x/y axis -> pos control: 0, vel control: 1 -->
@@ -43,7 +42,6 @@
     <rosparam file="$(find di_control)/config/EstimatorConfig.yaml" command="load" />
     ############### PID Control ######################
     <rosparam file="$(find di_control)/config/PidControlConfig.yaml" command="load" />
-
 
     ############### _motion Capture####################
     <param name="mocap/cog_offset" type="bool" value="false"/><!-- new for new hydra control -->
