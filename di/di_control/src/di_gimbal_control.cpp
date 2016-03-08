@@ -321,7 +321,7 @@ bool GimbalControl::attCommandCompare()
           min_roll_time = (att_comp_duration_size_- i ) * (1 / att_control_rate_);
         }
       //pitch
-      if(fabs((*itr).x - current_attitude_.x) <  min_pitch_diff)
+      if(fabs((*itr).y - current_attitude_.y) <  min_pitch_diff)
         {
           min_pitch_diff = fabs((*itr).y - current_attitude_.y);
           min_pitch_time = (att_comp_duration_size_-i ) * (1 / att_control_rate_);
