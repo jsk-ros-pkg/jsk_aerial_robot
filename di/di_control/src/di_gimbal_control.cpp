@@ -48,6 +48,8 @@ void GimbalControl::gimbalModulesInit()
 {
   nhp_.param("gimbal_module_num", gimbal_module_num_, 4);
   nhp_.param("gimbal_mode", gimbal_mode_, 0);
+
+  ROS_ERROR("gimbal mode: %s", (gimbal_mode_ == ACTIVE_GIMBAL_MODE)?("ACTIVE_GIMBAL_MODE"):("PASSIVE_GIMBAL_MODE"));
   nhp_.param("gimbal_thre", gimbal_thre_, 0.0);
 
   nhp_.param("gimabal_debug", gimbal_debug_, false);
