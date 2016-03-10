@@ -97,6 +97,9 @@ class GimbalControl
   double control_rate_;
 
   double body_diameter_;
+
+  //active
+  bool active_tilt_mode_;
   double active_gimbal_tilt_interval_;
   double active_gimbal_tilt_duration_;
 

@@ -77,6 +77,7 @@ void GimbalControl::gimbalModulesInit()
   desire_attitude_.y = 0;
 
   passive_tilt_mode_ = false;
+  active_tilt_mode_ = false;
 
   roll_diff_ = 0; 
   pitch_diff_ = 0; 
@@ -145,8 +146,9 @@ void GimbalControl::attCommandCallback(const aerial_robot_base::FourAxisPidConst
 
 void GimbalControl::desireAttitudeCallback(const geometry_msgs::Vector3ConstPtr& msg)
 {
-  final_attitude_ = *msg;
 
+  final_attitude_ = *msg;
+  active_tilt_mode_ = true;
 }
 
 void GimbalControl::attitudeCallback(const jsk_stm::JskImuConstPtr& msg)
@@ -230,6 +232,8 @@ void GimbalControl::controlFunc(const ros::TimerEvent & e)
 
   if(gimbal_mode_ == ACTIVE_GIMBAL_MODE || gimbal_mode_ == ACTIVE_GIMBAL_MODE + PASSIVE_GIMBAL_MODE)
     {
+      if(!active_tilt_mode_) return;
+
       //duration processing => should be erro estimation processing
       if(ros::Time::now().toSec() - prev_update_time.toSec() < active_gimbal_tilt_duration_) return;
 
@@ -257,10 +261,13 @@ void GimbalControl::controlFunc(const ros::TimerEvent & e)
       desire_attitude_.z = ABSOLUTE_ATTITUDE; // absolute mode
       desire_tilt_pub_.publish(desire_attitude_);
 
-      if(gimbal_mode_ == ACTIVE_GIMBAL_MODE + PASSIVE_GIMBAL_MODE)
+      if(desire_attitude_.y == final_attitude_.y && desire_attitude_.x == final_attitude_.x)
         {
-          if(desire_attitude_.y == final_attitude_.y && desire_attitude_.x == final_attitude_.x)
+          active_tilt_mode_ = false;
+
+          if(gimbal_mode_ == ACTIVE_GIMBAL_MODE + PASSIVE_GIMBAL_MODE)
             {
+
               gimbal_mode_ = PASSIVE_GIMBAL_MODE;
               ROS_WARN("back to PASSIVE_GIMBAL_MODE");
             }
@@ -315,6 +322,7 @@ void GimbalControl::controlFunc(const ros::TimerEvent & e)
       if( passive_tilt_mode_ && ros::Time::now().toSec() - passive_tilt_start_time.toSec() > passive_level_back_duration_)
         {
           passive_tilt_mode_ = false;
+          active_tilt_mode_ = true;
           final_attitude_.x = 0;
           final_attitude_.y = 0;
 
