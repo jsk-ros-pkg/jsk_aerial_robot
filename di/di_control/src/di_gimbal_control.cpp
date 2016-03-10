@@ -37,7 +37,7 @@ GimbalControl::GimbalControl(ros::NodeHandle nh, ros::NodeHandle nhp): nh_(nh), 
   dyn_reconf_func_ = boost::bind(&GimbalControl::GimbalDynReconfCallback, this, _1, _2);
   gimbal_server_->setCallback(dyn_reconf_func_);
 
-  nhp_.param("control_rate", control_rate_, 20.0);
+
   control_timer_ = nhp_.createTimer(ros::Duration(1.0 / control_rate_), &GimbalControl::controlFunc, this);
 
 }
@@ -46,6 +46,8 @@ GimbalControl::~GimbalControl(){};
 
 void GimbalControl::gimbalModulesInit()
 {
+  nhp_.param("control_rate", control_rate_, 20.0);
+
   nhp_.param("gimbal_module_num", gimbal_module_num_, 4);
   nhp_.param("gimbal_mode", gimbal_mode_, 0);
 
@@ -60,6 +62,10 @@ void GimbalControl::gimbalModulesInit()
   nhp_.param("att_comp_duration", att_comp_duration_, 0.5);
   nhp_.param("passive_level_back_duration", passive_level_back_duration_, 10.0);
   nhp_.param("attitude_outlier_thre", attitude_outlier_thre_, 0.5);
+  nhp_.param("passive_loop_rate", passive_loop_rate_, 20.0);
+
+  passive_loop_cnt_ = control_rate_ / passive_loop_rate_;
+  ROS_INFO("passive loop cnt: %d", passive_loop_cnt_);
 
   att_comp_duration_size_ = att_control_rate_ * att_comp_duration_;
 
@@ -156,10 +162,9 @@ void GimbalControl::servoCallback(const dynamixel_msgs::JointStateConstPtr& msg,
   gimbal_modules_[i].current_angle[j] = gimbal_modules_[i].angle_sgn[j] * (msg->current_pos - gimbal_modules_[i].angle_offset[j]);
 }
 
-void GimbalControl::gimbalControl()
+void GimbalControl::gimbalControl(Eigen::Quaternion<double> q_att)
 {
 
-  Eigen::Quaternion<double> q_att;
   static Eigen::Quaternion<double> prev_q_att = Eigen::Quaternion<double>(1,0,0,0);
   static float tilt_alt_sum = 0;
 
@@ -168,11 +173,7 @@ void GimbalControl::gimbalControl()
       q_att = Eigen::AngleAxisd(current_attitude_.y, Eigen::Vector3d::UnitY()) 
         * Eigen::AngleAxisd(current_attitude_.x, Eigen::Vector3d::UnitX());
     }
-  else
-    {
-      q_att = Eigen::AngleAxisd(desire_attitude_.y, Eigen::Vector3d::UnitY()) 
-        * Eigen::AngleAxisd(desire_attitude_.x, Eigen::Vector3d::UnitX());
-    }
+
 
   //gimbal
   for(int i = 0 ; i < gimbal_module_num_; i++)
@@ -217,10 +218,12 @@ void GimbalControl::controlFunc(const ros::TimerEvent & e)
   static ros::Time prev_update_time = ros::Time::now();
 
   static ros::Time passive_tilt_start_time = ros::Time::now();
+  static int passive_loop_cnt = -1;
 
   if (gimbal_debug_)
     {
-      gimbalControl();
+      Eigen::Quaternion<double> q_att(1,0,0,0);
+      gimbalControl(q_att);
       return;
     }
 
@@ -243,11 +246,15 @@ void GimbalControl::controlFunc(const ros::TimerEvent & e)
       else desire_attitude_.y = final_attitude_.y;
 
       ROS_INFO("desire roll: %f, desire pitch: %f", desire_attitude_.x, desire_attitude_.y);
-      gimbalControl();
+
+
+      Eigen::Quaternion<double> q_att = Eigen::AngleAxisd(desire_attitude_.y, Eigen::Vector3d::UnitY()) * Eigen::AngleAxisd(desire_attitude_.x, Eigen::Vector3d::UnitX());
+      gimbalControl(q_att);
 
       prev_update_time = ros::Time::now();
 
       //publish to control board for desire tilt angle
+      desire_attitude_.z = ABSOLUTE_ATTITUDE; // absolute mode
       desire_tilt_pub_.publish(desire_attitude_);
 
       if(gimbal_mode_ == ACTIVE_GIMBAL_MODE + PASSIVE_GIMBAL_MODE)
@@ -262,6 +269,10 @@ void GimbalControl::controlFunc(const ros::TimerEvent & e)
     }
   else if(gimbal_mode_ == PASSIVE_GIMBAL_MODE)
     {
+      if(passive_loop_cnt >= 0)  passive_loop_cnt++;
+      if(passive_loop_cnt >= passive_loop_cnt_) passive_loop_cnt = -1;
+      if(passive_loop_cnt > 0) return; // for the delay of current attitude in this thread, when compare with attitude_command(controller debug);
+
       geometry_msgs::Vector3Stamped comp_msg;
       comp_msg.header.stamp = att_comp_time_;
 
@@ -274,14 +285,30 @@ void GimbalControl::controlFunc(const ros::TimerEvent & e)
       if(fabs(roll_diff_) > gimbal_thre_ ||
          fabs(pitch_diff_) > gimbal_thre_)
         {
-          final_attitude_ = current_attitude_ ;
-          desire_attitude_ = final_attitude_;
-          gimbalControl();
+          //final_attitude_ = current_attitude_ ;
+          //desire_attitude_ = final_attitude_;
+          Eigen::Quaternion<double> q_curr = Eigen::AngleAxisd(current_attitude_.y, Eigen::Vector3d::UnitY()) * Eigen::AngleAxisd(current_attitude_.x, Eigen::Vector3d::UnitX()) ;
+          Eigen::Quaternion<double> q_des = Eigen::AngleAxisd(desire_attitude_.y, Eigen::Vector3d::UnitY()) * Eigen::AngleAxisd(desire_attitude_.x, Eigen::Vector3d::UnitX()) ;
+          Eigen::Quaternion<double> q_att = q_curr * q_des;
+          gimbalControl(q_att);
+
+          Eigen::Matrix3d rotation = q_att.matrix();
+          desire_attitude_.x = atan2(rotation(2,1),rotation(2,2));
+          desire_attitude_.y = atan2(-rotation(2,0),  sqrt(rotation(2,1)*rotation(2,1) + rotation(2,2)* rotation(2,2)));
+
+
+          //publish to control board for desire tilt angle
+          //desire_attitude_.z = RELATIVE_ATTITUDE; //relative mode
+          desire_attitude_.z = ABSOLUTE_ATTITUDE; // absolute mode
+          desire_tilt_pub_.publish(desire_attitude_);
+
           ROS_WARN("big att change in passive mode: roll_diff: %f, roll_delay:%f, pitch_diff: %f, pitch_delay: %f", roll_diff_, roll_delay_, pitch_diff_, pitch_delay_);
 
           comp_msg.vector.z = 1;
           passive_tilt_mode_ = true;
           passive_tilt_start_time = ros::Time::now();
+
+          passive_loop_cnt = 0;
         }
       att_diff_pub_.publish(comp_msg);
 
@@ -294,6 +321,7 @@ void GimbalControl::controlFunc(const ros::TimerEvent & e)
           gimbal_mode_ = ACTIVE_GIMBAL_MODE + PASSIVE_GIMBAL_MODE;
           ROS_WARN("in order to back to level, turn to acitve tilt mode");
         }
+      
     }
 }
 

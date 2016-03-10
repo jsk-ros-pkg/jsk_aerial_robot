@@ -1,8 +1,8 @@
 ### PID control for quadcopter
 
 gimbal_module_num: 4
-#gimbal_mode: 1 #1: active, 2: passive
-gimbal_mode: 2
+gimbal_mode: 1 #1: active, 2: passive
+#gimbal_mode: 2
 
 #gimbal_debug: true
 
@@ -52,4 +52,4 @@ active_gimbal_tilt_duration: 0.05  # 4.0, the changing duration per tilt(sec)
 #passive gimbal mode param
 att_comp_duration: 0.7
 gimbal_thre: 0.087
-passive_level_back_duration: 60.0
+passive_level_back_duration: 30.0

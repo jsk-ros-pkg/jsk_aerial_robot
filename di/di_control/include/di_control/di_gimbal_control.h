@@ -51,7 +51,6 @@ typedef struct{
 }GimbalModule;
 
 
-
 class GimbalControl
 {
  public:
@@ -60,6 +59,10 @@ class GimbalControl
 
   static const uint8_t ACTIVE_GIMBAL_MODE = 0x01;
   static const uint8_t PASSIVE_GIMBAL_MODE = 0x02;
+
+  static const uint8_t ABSOLUTE_ATTITUDE = 0x00;
+  static const uint8_t RELATIVE_ATTITUDE = 0x01;
+
 
  private:
   ros::NodeHandle nh_;
@@ -112,6 +115,8 @@ class GimbalControl
   
   double attitude_outlier_thre_;
 
+  double passive_loop_rate_;
+  int passive_loop_cnt_;
 
   void gimbalModulesInit();
   void controlFunc(const ros::TimerEvent & e);
@@ -122,7 +127,7 @@ class GimbalControl
 void attCommandCallback(const aerial_robot_base::FourAxisPidConstPtr& cmd_msg);
 
 
-  void gimbalControl();
+  void gimbalControl(Eigen::Quaternion<double> q_att);
 
   bool attCommandCompare();
 

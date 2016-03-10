@@ -102,6 +102,7 @@
 
 
 ################################## dynamixel motor #########################
+
 <include file="$(find di_control)/launch/servo/servo.launch" />
 
 </launch>
