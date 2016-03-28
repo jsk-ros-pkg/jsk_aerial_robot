@@ -3,24 +3,13 @@
 
   ############################# Global Param ###################################
 
-  <!--   flight_mode
-      *pos mode: pos control with hokuyo + keyboard,
-      *vel mode: vel control with px4 + joystick
-      the most important param
-      controlMode: switch betwen vel and pos
-      altitudeControlMode: switch between laser and sonoar
-      usefreefall: necessary for snoar mode
-      useouteryawest: necessary for lasersalm + pos
-  -->
-
   <arg name="debug" default="false" />
   <arg unless="$(arg debug)" name="launch_prefix" value="" />
   <arg if="$(arg debug)" name="launch_prefix" value="gdb --ex run --args" />
 
-
   ############################# JSK Quadcopter ###################################
 
-  <node pkg="aerial_robot_base" type="aerial_robot_base_node" name="aerial_robot_base_node"  launch-prefix="$(arg launch_prefix)" output="screen" > 
+  <node pkg="aerial_robot_base" type="aerial_robot_base_node" name="tarot810_control_node"  launch-prefix="$(arg launch_prefix)" output="screen" > 
 
     ############### Basic Param  #####################
     <param name="rx_loop_rate" type="double" value="110"/>
@@ -28,7 +17,6 @@
     <param name="tf_pub_loop_rate" type="double" value="120"/>
 
     <param name="motor_num" type="int" value="1"/>
-
 
     <param name="estimator/altitude_control_mode" type="int" value="0"/>
     <param name="estimator/use_outer_yaw_est" type="bool" value="true"/>
@@ -38,13 +26,10 @@
     <!--degub -->
     <param name="navigator/gain_tunning_mode" type="int" value="0"/>
 
-
     ############### Quadctoper Basic State ######################
-    <rosparam file="$(find aerial_robot_base)/config/di/EstimatorConfig.yaml" command="load" />
+    <rosparam file="$(find aerial_robot_base)/config/mbzirc/task3/tarot810_0/EstimatorConfig.yaml" command="load" />
     ############### PID Control ######################
-    <rosparam file="$(find aerial_robot_base)/config/di/PidControlConfig.yaml" command="load" />
-
-
+    <rosparam file="$(find aerial_robot_base)/config/mbzirc/task3/tarot810_0/PidControlConfig.yaml" command="load" />
 
     ############### _motion Capture####################
     <param name="mocap/cog_offset" type="bool" value="false"/><!-- new for new hydra control -->
@@ -55,7 +40,7 @@
     <param name="estimator/kalman_filter_flag" type="bool" value="false"/>
 
     ############### Keyboard Navigation ##############
-    <rosparam file="$(find aerial_robot_base)/config/di/TeleopNavigationConfig.yaml" command="load" />
+    <rosparam file="$(find aerial_robot_base)/config/mbzirc/task3/tarot810_0/TeleopNavigationConfig.yaml" command="load" />
 
     ############### remap topic ######################
     ### Optical Flow ##############
@@ -76,16 +61,6 @@
     <remap from="/arming_ack" to="/jsk_stm_serial_comm/arming_ack" />
     <remap from="/aerial_robot_control" to="/jsk_stm_serial_comm/aerial_robot_control" />
     <remap from="/config_cmd" to="/jsk_stm_serial_comm/config_cmd" />
-
-
-    <remap from="/kduino/rc_cmd" to="/deprected" />
-
-<!--    <remap from="/controller/debug" to="/test/controller/debug" /> -->
-<!--
-    <remap from="/imu/kduino/imu" to="/kduino/imu" />
-    <remap from="/navigator/kduino/msp_cmd" to="/kduino/msp_cmd" />
--->
-
   </node>
 
   ############### Motion Capture####################
@@ -93,21 +68,8 @@
 
   ################################# jsk_stm ########################################
 <include file="$(find aerial_robot_base)/launch/sensors/d_board.launch" >
-  <arg name="port" value="/dev/ttyUSB1" />
+  <arg name="port" value="/dev/ttyUSB0" />
 </include>
-
-  ################################# Joy Stick ######################################
-
-
-<!--
-  <include file="$(find aerial_robot_base)/launch/sensors/joy_stick.launch" />
--->
-
-
-################################## dynamixel motor #########################
-
-<include file="$(find aerial_robot_base)/launch/di/di_dynamicxel_bridge.launch" />
-
 
 </launch>
 

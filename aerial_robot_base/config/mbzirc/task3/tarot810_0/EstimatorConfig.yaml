@@ -6,5 +6,3 @@ estimator/baselink_frame: aerial_robot_base
 estimator/base_footprint_frame: base_footprint
 estimator/laser_frame: laser
 estimator/camera_frame: camera
-
-imu/calib_count: 2000

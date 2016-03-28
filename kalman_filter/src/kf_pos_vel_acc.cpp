@@ -1,6 +1,6 @@
 #include "kalman_filter/kf_pos_vel_acc.h"
 
-KalmanFilterPosVelAcc::KalmanFilterPosVelAcc(ros::NodeHandle nh, ros::NodeHandle nh_private, std::string filter_id, uint8_t correct_mode): KalmanFilter<2, 1, 1>(nh, nh_private), nhp_axis_(nh_private, "kalman_filter/" + filter_id), id_(filter_id)
+KalmanFilterPosVelAcc::KalmanFilterPosVelAcc(ros::NodeHandle nh, ros::NodeHandle nh_private, std::string filter_id, uint8_t correct_mode): KalmanFilter<2, 1, 1>(nh, nh_private), nhp_axis_(nh_private, "kalman_filter_pos_vel_acc/" + filter_id), id_(filter_id)
 {
   //this->KalmanFilter<2, 1, 1>(nh, nh_private);
   rosParamInit();
@@ -86,7 +86,7 @@ void KalmanFilterPosVelAcc::rosParamInit()
 KalmanFilterPosVelAccBias::KalmanFilterPosVelAccBias(ros::NodeHandle nh, 
                                                    ros::NodeHandle nh_private, 
                                                    std::string filter_id,
-                                                     uint8_t correct_mode):KalmanFilter<3, 2, 1>(nh, nh_private), nhp_axis_(nh_private, "kalman_filter/" + filter_id), id_(filter_id) 
+                                                     uint8_t correct_mode):KalmanFilter<3, 2, 1>(nh, nh_private), nhp_axis_(nh_private, "kalman_filter_pos_vel_acc_bias/" + filter_id), id_(filter_id) 
 {
   rosParamInit();
 

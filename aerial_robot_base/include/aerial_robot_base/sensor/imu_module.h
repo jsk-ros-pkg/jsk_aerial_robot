@@ -14,11 +14,7 @@
 #include <geometry_msgs/Vector3.h>
 #include <aerial_robot_msgs/KduinoImu.h>
 #include <aerial_robot_msgs/KduinoSimpleImu.h>
-
-
-/* #define acc_scale_  9.797 / 512.0 */
-/* #define gyro_scale_ (2279 * M_PI)/((32767.0 / 4.0f ) * 180.0) */
-/* #define mag_scale_  1200 / 32768.0 */
+#include <jsk_stm/JskImu.h>
 
 
 class ImuData
@@ -50,12 +46,21 @@ class ImuData
    : nh_(nh, "imu"), nhp_(nh_private, "imu")
     {
       state_estimator_ = state_estimator;
-      
-      imu_pub_ = nh_.advertise<aerial_robot_base::ImuData>("data", 2); 
-      imu_sub_ = nh_.subscribe<aerial_robot_msgs::KduinoImu>("kduino/imu", 1, &ImuData::kduinoImuCallback, this, ros::TransportHints().tcpNoDelay()); 
-      imu_simple_sub_ = nh_.subscribe<aerial_robot_msgs::KduinoSimpleImu>("kduino/simple_imu", 1, &ImuData::kduinoSimpleImuCallback, this, ros::TransportHints().tcpNoDelay()); 
 
       rosParamInit(nhp_);
+
+      if(imu_board_ == D_BOARD)
+        {
+          imu_sub_ = nh_.subscribe<jsk_stm::JskImu>("/imu", 1, &ImuData::ImuCallback, this, ros::TransportHints().tcpNoDelay()); 
+        }
+
+      if(imu_board_ == KDUINO)
+        {
+          imu_pub_ = nh_.advertise<aerial_robot_base::ImuData>("data", 2); 
+          imu_sub_ = nh_.subscribe<aerial_robot_msgs::KduinoImu>("kduino/imu", 1, &ImuData::kduinoImuCallback, this, ros::TransportHints().tcpNoDelay()); 
+          imu_simple_sub_ = nh_.subscribe<aerial_robot_msgs::KduinoSimpleImu>("kduino/simple_imu", 1, &ImuData::kduinoSimpleImuCallback, this, ros::TransportHints().tcpNoDelay()); 
+        }
+
 
       simulation_flag_ = simulation_flag;
       kalman_filter_flag_ = kalman_filter_flag;
@@ -93,7 +98,8 @@ class ImuData
     {
     };
 
-  const static int CALIB_COUNT = 200;
+  const static uint8_t D_BOARD = 0;
+  const static uint8_t KDUINO = 1;
 
 
   inline void setPitchValue(float pitch_value) {   pitch_ = pitch_value;  }
@@ -175,12 +181,40 @@ class ImuData
   double acc_y_bias_;
   double acc_z_bias_;
 
+  int imu_board_;
 
   ros::Time imu_stamp_;
 
   float height_;
   float v_bat_;   //*** battery
 
+  int calib_count_;
+
+
+  void ImuCallback(const jsk_stm::JskImuConstPtr& imu_msg)
+  {
+    imu_stamp_ = imu_msg->header.stamp;
+    state_estimator_->setSystemTimeStamp(imu_stamp_);
+
+    roll_  = imu_msg->angles.x;
+    pitch_ = imu_msg->angles.y;
+    yaw_   = imu_msg->angles.z;
+
+    acc_xb_ = imu_msg->acc_data.x;
+    acc_yb_ = imu_msg->acc_data.y;
+    acc_zb_ = imu_msg->acc_data.z;
+    gyro_xb_ = imu_msg->gyro_data.x;
+    gyro_yb_ = imu_msg->gyro_data.y;
+    gyro_zb_ = imu_msg->gyro_data.z;
+
+    mag_xb_ = imu_msg->mag_data.x;
+    mag_yb_ = imu_msg->mag_data.y;
+    mag_zb_ = imu_msg->mag_data.z;
+    height_ = imu_msg->altitude;  //cm
+
+    imuDataConverter(imu_stamp_);
+
+  }
 
 
   void kduinoImuCallback(const aerial_robot_msgs::KduinoImuConstPtr& imu_msg)
@@ -250,7 +284,7 @@ class ImuData
 #endif
 
     //bais calibration
-    if(bias_calib < CALIB_COUNT)
+    if(bias_calib < calib_count_)
       {
         bias_calib ++;
 
@@ -259,11 +293,11 @@ class ImuData
         acc_y_bias_ += acc_yi_;
         acc_z_bias_ += acc_zw_;
 
-        if(bias_calib == CALIB_COUNT)
+        if(bias_calib == calib_count_)
           {
-            acc_x_bias_ /= CALIB_COUNT;
-            acc_y_bias_ /= CALIB_COUNT;
-            acc_z_bias_ /= CALIB_COUNT;
+            acc_x_bias_ /= calib_count_;
+            acc_y_bias_ /= calib_count_;
+            acc_z_bias_ /= calib_count_;
             ROS_WARN("accX bias is %f, accY bias is %f, accZ bias is %f", acc_x_bias_, acc_y_bias_, acc_z_bias_);
 
             if(kalman_filter_flag_)
@@ -318,7 +352,7 @@ class ImuData
 
     float yaw2 = state_estimator_->getStatePsiBoard();
 
-    if(bias_calib == CALIB_COUNT)
+    if(bias_calib == calib_count_)
       {
         acc_xw_ = cos(yaw2) * acc_xi_ - sin(yaw2) * acc_yi_;
         acc_yw_ = sin(yaw2) * acc_xi_ + cos(yaw2) * acc_yi_;
@@ -381,7 +415,7 @@ class ImuData
 
           }
 
-        publishImuData(stamp);
+        if(imu_board_ != D_BOARD) publishImuData(stamp);
       }
   }
 
@@ -428,14 +462,26 @@ class ImuData
   void rosParamInit(ros::NodeHandle nh)
   {
     nh.param("g_value", g_value_, 9.797 );
-    printf(" acc scale is %f\n", g_value_);
+    printf(" g value is %f\n", g_value_);
 
-    nh.param("acc_scale", acc_scale_, g_value_ / 512.0);
-    printf(" acc scale is %f\n", acc_scale_);
-    nh.param("gyro_scale", gyro_scale_, (2279 * M_PI)/((32767.0 / 4.0f ) * 180.0));
-    printf(" gyro scale is %f\n", gyro_scale_);
-    nh.param("mag_scale", mag_scale_, 1200 / 32768.0);
-    printf(" mag scale is %f\n", mag_scale_);
+    std::string ns = nh.getNamespace();
+
+    nh.param("calib_count", calib_count_, 200 );
+    printf("%s,  imu calib count is %f\n", ns.c_str(),  calib_count_);
+
+    nh.param("imu_board", imu_board_, 0);
+    if(imu_board_ != D_BOARD)
+      ROS_WARN(" imu board is %s\n", (imu_board_ == KDUINO)?"kduino":"other board");
+
+    if(imu_board_ == KDUINO)
+      {
+        nh.param("acc_scale", acc_scale_, g_value_ / 512.0);
+        printf(" acc scale is %f\n", acc_scale_);
+        nh.param("gyro_scale", gyro_scale_, (2279 * M_PI)/((32767.0 / 4.0f ) * 180.0));
+        printf(" gyro scale is %f\n", gyro_scale_);
+        nh.param("mag_scale", mag_scale_, 1200 / 32768.0);
+        printf(" mag scale is %f\n", mag_scale_);
+      }
   }
 
 };
