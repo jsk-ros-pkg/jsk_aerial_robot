@@ -1,6 +1,6 @@
 #ifndef KF_POS_VEL_ACC_H
 #define KF_POS_VEL_ACC_H
-
+a
 #include <kalman_filter/kalman_filter.h>
 
 //* for dynamic reconfigure
@@ -27,8 +27,6 @@ class KalmanFilterPosVelAcc:  public KalmanFilter<2, 1, 1>
 
   //dynamic reconfigure
   void cfgCallback(kalman_filter::KalmanFilterPosVelAccConfig &config, uint32_t level);
-
-
 
 
  private:
