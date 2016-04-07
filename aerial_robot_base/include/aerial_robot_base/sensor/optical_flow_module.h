@@ -136,7 +136,7 @@ class OpticalFlowData
   void opticalFlowCallback(const aerial_robot_base::OpticalFlowConstPtr & optical_flow_msg)
   {
     static int cnt = 0;
-    static int CNT = 1;
+    static int CNT = 0;
     static float prev_raw_pos_z;
     static bool start_flag = false;
     static double previous_secs;
@@ -208,38 +208,33 @@ class OpticalFlowData
 
         if(kalman_filter_flag_)
           {
-            cnt++;
 
             Eigen::MatrixXd temp(1,1); 
-            if(cnt == CNT) //50 Hz !!!!!!!!!!!!!!!!!!!!!
-              {
-                cnt = 0; 
 
-                // optical without accurate timestamp
-                if(optical_flow_msg->quality == 0 || raw_vel_x_ == 0 || raw_pos_z_ > 2.5)
-                  { // remove the raw_vel_x case is not good !!
-                    temp(0, 0) = filtered_vel_x_;
-                    //kf_x_->correction(temp);
-                    kfb_x_->correction(temp); 
-                  }
-                else  
-                  {
-                    temp(0, 0) = raw_vel_x_;
-                    //kf_x_->correction(temp);
-                    kfb_x_->correction(temp); 
-                  }
-                if(optical_flow_msg->quality == 0 || raw_vel_y_ == 0 || raw_pos_z_ > 2.5)
-                  { // remove the raw_vel_y case is not good !!
-                    temp(0, 0) = filtered_vel_y_;
-                    //kf_y_->correction(temp);
-                    kfb_y_->correction(temp); 
-                  }
-                else
-                  {
-                    temp(0, 0) = raw_vel_y_;
-                    //kf_y_->correction(temp);
-                    kfb_y_->correction(temp); 
-                  }
+            // optical without accurate timestamp
+            if(optical_flow_msg->quality == 0 || raw_vel_x_ == 0 || raw_pos_z_ > 2.5)
+              { // remove the raw_vel_x case is not good !!
+                temp(0, 0) = filtered_vel_x_;
+                //kf_x_->correction(temp);
+                kfb_x_->correction(temp); 
+              }
+            else  
+              {
+                temp(0, 0) = raw_vel_x_;
+                //kf_x_->correction(temp);
+                kfb_x_->correction(temp); 
+              }
+            if(optical_flow_msg->quality == 0 || raw_vel_y_ == 0 || raw_pos_z_ > 2.5)
+              { // remove the raw_vel_y case is not good !!
+                temp(0, 0) = filtered_vel_y_;
+                //kf_y_->correction(temp);
+                kfb_y_->correction(temp); 
+              }
+            else
+              {
+                temp(0, 0) = raw_vel_y_;
+                //kf_y_->correction(temp);
+                kfb_y_->correction(temp); 
               }
 
             if(raw_pos_z_ != prev_raw_pos_z && raw_pos_z_ < 2.5) //100Hz

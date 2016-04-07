@@ -12,6 +12,27 @@ KalmanFilterPosVelAcc::KalmanFilterPosVelAcc(ros::NodeHandle nh, ros::NodeHandle
   dynamic_reconf_func_ = boost::bind(&KalmanFilterPosVelAcc::cfgCallback, this, _1, _2);
   server_->setCallback(dynamic_reconf_func_);
 
+  updateModelFromDt(dt_);
+
+  setPredictionNoiseCovariance();
+  setMeasurementNoiseCovariance();
+
+  std::cout << "state_transition_model_" << std::endl <<  state_transition_model_ << std::endl;
+  std::cout << "control_input_model_" << std::endl << control_input_model_  << std::endl;
+  std::cout << "observation_model_" << std::endl << observation_model_  << std::endl;
+
+  std::cout << "estimate_covariance_" << std::endl << estimate_covariance_  << std::endl;
+  std::cout << "measurement_noise_covariance_" << std::endl << measurement_noise_covariance_  << std::endl;
+  std::cout << "prediction_noise_covariance_" << std::endl << prediction_noise_covariance_  << std::endl;
+
+  std::cout << "inovation_covariance_" << std::endl << inovation_covariance_  << std::endl;
+
+}
+
+void KalmanFilterPosVelAcc::updateModelFromDt(double dt)
+{
+  dt_ = dt;
+
   Matrix2d state_transition_model; 
   state_transition_model << 1, dt_, 0, 1;
   setStateTransitionModel(state_transition_model);
@@ -24,10 +45,9 @@ KalmanFilterPosVelAcc::KalmanFilterPosVelAcc(ros::NodeHandle nh, ros::NodeHandle
   if(correct_mode_ == CORRECT_POS) observation_model << 1, 0;
   else if(correct_mode_ == CORRECT_VEL) observation_model << 0, 1;
   setObservationModel(observation_model);
-
-  setPredictionNoiseCovariance();
-  setMeasurementNoiseCovariance();
 }
+
+
 
 void KalmanFilterPosVelAcc::cfgCallback(kalman_filter::KalmanFilterPosVelAccConfig &config, uint32_t level)
 {
@@ -59,7 +79,6 @@ void KalmanFilterPosVelAcc::cfgCallback(kalman_filter::KalmanFilterPosVelAccConf
 void KalmanFilterPosVelAcc::rosParamInit()
 {
   std::string ns = nhp_axis_.getNamespace();
-  ns.append(" without bias");
   if (!nhp_axis_.getParam ("input_sigma", input_sigma_(0,0)))
     input_sigma_(0,0) = 0.0;
   printf("%s: input_sigma_ is %.4f\n", ns.c_str(), input_sigma_(0,0));
@@ -67,8 +86,10 @@ void KalmanFilterPosVelAcc::rosParamInit()
     measure_sigma_(0,0) = 0.0;
   printf("%s: measure_sigma_ is %.4f\n", ns.c_str(), measure_sigma_(0,0));
   if (!nhp_.getParam ("input_hz", input_hz_))
-    input_hz_ = 100;
+    input_hz_ = 100.0;
   printf("%s: input_hz_ is %.4f\n",nhp_.getNamespace().c_str(), input_hz_);
+
+  dt_ = 1.0 / input_hz_;
 }
 
 
@@ -97,6 +118,17 @@ KalmanFilterPosVelAccBias::KalmanFilterPosVelAccBias(ros::NodeHandle nh,
   dynamic_reconf_func_ = boost::bind(&KalmanFilterPosVelAccBias::cfgCallback, this, _1, _2);
   server_->setCallback(dynamic_reconf_func_);
 
+  updateModelFromDt(dt_);
+
+  setPredictionNoiseCovariance();
+  setMeasurementNoiseCovariance();
+
+}
+
+void KalmanFilterPosVelAccBias::updateModelFromDt(double dt)
+{
+  dt_ = dt;
+
   Matrix3d state_transition_model; 
   state_transition_model << 1, dt_, -dt_*dt_/2, 0, 1, -dt_, 0, 0, 1;
   setStateTransitionModel(state_transition_model);
@@ -109,10 +141,6 @@ KalmanFilterPosVelAccBias::KalmanFilterPosVelAccBias(ros::NodeHandle nh,
   if(correct_mode_ == CORRECT_POS) observation_model << 1, 0, 0;
   else if(correct_mode_ == CORRECT_VEL) observation_model << 0, 1, 0;
   setObservationModel(observation_model);
-
-  setPredictionNoiseCovariance();
-  setMeasurementNoiseCovariance();
-
 
 }
 
@@ -168,7 +196,6 @@ void KalmanFilterPosVelAccBias::setInitImuBias(double init_bias)
 void KalmanFilterPosVelAccBias::rosParamInit()
 {
   std::string ns = nhp_axis_.getNamespace();
-  ns.append(" with bias");
   if (!nhp_axis_.getParam ("input1_sigma", input_sigma_(0,0)))
     input_sigma_(0,0) = 0.0;
   printf("%s: input1_sigma_ is %.4f\n", ns.c_str(), input_sigma_(0,0));
@@ -181,6 +208,8 @@ void KalmanFilterPosVelAccBias::rosParamInit()
   if (!nhp_.getParam ("input_hz", input_hz_))
     input_hz_ = 100;
   printf("%s: input_hz_ is %.4f\n",nhp_.getNamespace().c_str(), input_hz_);
+
+  dt_ = 1.0 / input_hz_;
 
 }
 

@@ -23,9 +23,12 @@ class KalmanFilterPosVelAcc:  public KalmanFilter<2, 1, 1>
   ~KalmanFilterPosVelAcc(){}
 
  void setCorrectMode(uint8_t correct_mode);
+ void updateModelFromDt(double dt);
 
   //dynamic reconfigure
   void cfgCallback(kalman_filter::KalmanFilterPosVelAccConfig &config, uint32_t level);
+
+
 
 
  private:
@@ -55,6 +58,8 @@ KalmanFilterPosVelAccBias(ros::NodeHandle nh, ros::NodeHandle nh_private, string
 
 void cfgCallback(kalman_filter::KalmanFilterPosVelAccBiasConfig &config, uint32_t level);
 void setInitImuBias(double init_bias);
+ void updateModelFromDt(double dt);
+
 
  private:
   ros::NodeHandle nhp_axis_;

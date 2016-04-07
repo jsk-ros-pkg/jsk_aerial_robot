@@ -61,7 +61,6 @@ class ImuData
           imu_simple_sub_ = nh_.subscribe<aerial_robot_msgs::KduinoSimpleImu>("kduino/simple_imu", 1, &ImuData::kduinoSimpleImuCallback, this, ros::TransportHints().tcpNoDelay()); 
         }
 
-
       simulation_flag_ = simulation_flag;
       kalman_filter_flag_ = kalman_filter_flag;
 
@@ -77,7 +76,6 @@ class ImuData
 
       lpf_acc_x_ = lpf_acc_x;      lpf_acc_y_ = lpf_acc_y;      lpf_acc_z_ = lpf_acc_z;
 
-
       acc_xb_ = 0, acc_yb_ = 0, acc_zb_ = 0,
       gyro_xb_ = 0, gyro_yb_ = 0, gyro_zb_ = 0,
       mag_xb_ = 0, mag_yb_ = 0, mag_zb_ = 0,
@@ -92,6 +90,7 @@ class ImuData
       pitch_ = 0;      roll_ = 0;      yaw_ = 0;
       height_ = 0;
 
+      calib_count_ = 100; // temporarily
     }
 
   ~ImuData ()
@@ -189,6 +188,7 @@ class ImuData
   float v_bat_;   //*** battery
 
   int calib_count_;
+  double calib_time_;
 
 
   void ImuCallback(const jsk_stm::JskImuConstPtr& imu_msg)
@@ -268,6 +268,8 @@ class ImuData
   void imuDataConverter(ros::Time stamp)
   {
     static int bias_calib = 0;
+    static ros::Time prev_time;
+    static double hz_calib = 0;
     //* calculate accTran
 #if 0 // use x,y for factor4 and z for factor3
     acc_xi_ = (acc_xb_) * cos(pitch_) + 
@@ -288,6 +290,19 @@ class ImuData
       {
         bias_calib ++;
 
+        if(bias_calib == 1)
+          prev_time = imu_stamp_;
+
+        double time_interval = imu_stamp_.toSec() - prev_time.toSec();
+        if(bias_calib == 2)
+          {
+            calib_count_ = calib_time_ / time_interval;
+            ROS_WARN("calib count is %d, time interval is %f", calib_count_, time_interval);
+          }
+
+        //hz estimation
+        hz_calib += time_interval;
+
         //acc bias
         acc_x_bias_ += acc_xi_;
         acc_y_bias_ += acc_yi_;
@@ -298,21 +313,33 @@ class ImuData
             acc_x_bias_ /= calib_count_;
             acc_y_bias_ /= calib_count_;
             acc_z_bias_ /= calib_count_;
-            ROS_WARN("accX bias is %f, accY bias is %f, accZ bias is %f", acc_x_bias_, acc_y_bias_, acc_z_bias_);
+
+            hz_calib /= (calib_count_ - 1 );
+
+            ROS_WARN("accX bias is %f, accY bias is %f, accZ bias is %f, hz is %f", acc_x_bias_, acc_y_bias_, acc_z_bias_, hz_calib);
 
             if(kalman_filter_flag_)
               {
+                //for pos 
+                kf_x_->updateModelFromDt(hz_calib);
+                kf_y_->updateModelFromDt(hz_calib);
+                kf_z_->updateModelFromDt(hz_calib);
                 kf_x_->setInputFlag();
                 kf_y_->setInputFlag();
                 kf_z_->setInputFlag();
 
-                //for vel flow
+                //for vel
+                kf_x_vel_->updateModelFromDt(hz_calib);
+                kf_y_vel_->updateModelFromDt(hz_calib);
+                kf_z2_->updateModelFromDt(hz_calib);
                 kf_x_vel_->setInputFlag();
                 kf_y_vel_->setInputFlag();
                 kf_z2_->setInputFlag();
 
-
                 //for bias mode
+                kfb_x_->updateModelFromDt(hz_calib);
+                kfb_y_->updateModelFromDt(hz_calib);
+                kfb_z_->updateModelFromDt(hz_calib);
                 kfb_x_->setInitState(acc_x_bias_, 2);
                 kfb_y_->setInitState(acc_y_bias_, 2);
                 kfb_z_->setInitState(acc_z_bias_, 2);
@@ -321,6 +348,8 @@ class ImuData
                 kfb_z_->setInputFlag();
 
                 //for velocity
+                kfb_x_vel_->updateModelFromDt(hz_calib);
+                kfb_y_vel_->updateModelFromDt(hz_calib);
                 kfb_x_vel_->setInitState(acc_x_bias_, 2);
                 kfb_y_vel_->setInitState(acc_y_bias_, 2);
                 kfb_x_vel_->setInputFlag();
@@ -328,9 +357,10 @@ class ImuData
 
                 if(kalman_filter_debug_)
                   {
-
                     if(kalman_filter_axis_ == 0)
                       {
+                        kf1_->updateModelFromDt(hz_calib);
+                        kf2_->updateModelFromDt(hz_calib);
                         kf1_->setInitState(acc_x_bias_, 2);
                         kf2_->setInitState(acc_x_bias_, 2);
                         kf1_->setInputFlag();
@@ -339,13 +369,14 @@ class ImuData
                       }
                     if(kalman_filter_axis_ == 1)
                       {
+                        kf1_->updateModelFromDt(hz_calib);
+                        kf2_->updateModelFromDt(hz_calib);
                         kf1_->setInitState(acc_y_bias_, 2);
                         kf2_->setInitState(acc_y_bias_, 2);
                         kf1_->setInputFlag();
                         kf2_->setInputFlag();
                       }
                   }
-
               }
           }
       }
@@ -417,6 +448,8 @@ class ImuData
 
         if(imu_board_ != D_BOARD) publishImuData(stamp);
       }
+
+    prev_time = imu_stamp_;
   }
 
   void publishImuData(ros::Time stamp)
@@ -466,8 +499,8 @@ class ImuData
 
     std::string ns = nh.getNamespace();
 
-    nh.param("calib_count", calib_count_, 200 );
-    printf("%s,  imu calib count is %f\n", ns.c_str(),  calib_count_);
+    nh.param("calib_time", calib_time_, 2.0 );
+    printf("%s,  imu calib time is %f\n", ns.c_str(),  calib_time_);
 
     nh.param("imu_board", imu_board_, 0);
     if(imu_board_ != D_BOARD)

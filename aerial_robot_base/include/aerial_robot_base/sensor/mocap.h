@@ -64,7 +64,6 @@ class MocapData
       lpf_acc_z_ =  IirFilter((float)rx_freq_,
                               (float)cutoff_pos_freq_);
 
-
       estimator_->setOuterEstimatePoseFlag(BasicEstimator::X_AXIS | BasicEstimator::Y_AXIS | BasicEstimator::Z_AXIS | BasicEstimator::YAW_AXIS);
       estimator_->setOuterEstimateVelFlag(BasicEstimator::X_AXIS | BasicEstimator::Y_AXIS | BasicEstimator::Z_AXIS | BasicEstimator::YAW_AXIS);
 

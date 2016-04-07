@@ -15,7 +15,7 @@
 
   <arg name="debug" default="false" />
   <arg unless="$(arg debug)" name="launch_prefix" value="" />
-  <arg if="$(arg debug)" name="launch_prefix" value="gdb --ex run --args" />
+  <arg if="$(arg debug)" name="launch_prefix" value="xterm -e gdb --args" />
 
   <arg name="flight_pos_mode" value="false" /> <!-- pos mode -->
   <arg name="flight_vel_mode" value="true" />  <!-- vel mode -->
@@ -95,26 +95,6 @@
     <!-- <remap from="/kduino/rc_cmd" to="/deprected" /> -->
     <!--<remap from="/controller/debug" to="/test/controller/debug" /> -->
   </node>
-
-
-  ################################# jsk_stm #######################################
-<node name="jsk_stm" pkg="jsk_stm" type="jsk_stm_node" respawn="false"  output="screen">
-  <param name="serial_port" value="/dev/ttyUSB0" />
-</node>
-
-  ################################# Joy Stick #####################################
-  <include file="$(find aerial_robot_base)/launch/sensors/joy_stick.launch" />
-
-
-  ################################# Optical PX4Flow ###############################
-
-  <group if="$(arg flight_vel_mode)">
-    <node name="px4flow" pkg="px4flow_node" type="px4flow_node" output="screen" respawn="true" clear_params="true">
-      <param name="baudrate" value="115200" />
-      <param name="serial_port" value="/dev/ttyUSB1" />
-    </node>
-  </group>
-
 
 </launch>
 

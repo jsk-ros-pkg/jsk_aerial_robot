@@ -1,6 +1,7 @@
 # State Kalman Filter Param
 
-/input_hz: 1000
+# the input hz is estimated in imu_module.h
+#/input_hz: 500 #1000
 
 # for imu + laser? Param
 kalman_filter_pos_vel_acc_bias/x/input1_sigma: 0.15
@@ -11,9 +12,13 @@ kalman_filter_pos_vel_acc_bias/y/input1_sigma: 0.15
 kalman_filter_pos_vel_acc_bias/y/input2_sigma: 0.03
 kalman_filter_pos_vel_acc_bias/y/measure_sigma: 0.04
 
+kalman_filter_pos_vel_acc/z/input_sigma: 0.35 # 0.12
+kalman_filter_pos_vel_acc/z/measure_sigma: 0.005
+
 kalman_filter_pos_vel_acc_bias/z/input1_sigma: 0.35 # 0.12
 kalman_filter_pos_vel_acc_bias/z/input2_sigma: 0.003 # 0.003
 kalman_filter_pos_vel_acc_bias/z/measure_sigma: 0.005
+
 
 # for imu +  px4flow Param
 estimator/start_lower_thre: 0.305 
@@ -22,12 +27,11 @@ estimator/start_vel: 0.75 #0.25
 
 kalman_filter_pos_vel_acc_bias/x_vel/input1_sigma: 0.06 #0.05
 kalman_filter_pos_vel_acc_bias/x_vel/input2_sigma: 0.006 #0.005 test 0.002 good
-kalman_filter_pos_vel_acc_bias/x_Vel/measure_sigma: 0.1
+kalman_filter_pos_vel_acc_bias/x_vel/measure_sigma: 0.1
 
 kalman_filter_pos_vel_acc_bias/y_vel/input1_sigma: 0.06 #0.05
 kalman_filter_pos_vel_acc_bias/y_vel/input2_sigma: 0.006 #0.005 test 0.002 good
 kalman_filter_pos_vel_acc_bias/y_vel/measure_sigma: 0.1
 
-kalman_filter_pos_vel_acc/z2/input1_sigma: 0.35
-kalman_filter_pos_vel_acc/z2/input2_sigma: 0.0006
+kalman_filter_pos_vel_acc/z2/input_sigma: 0.35
 kalman_filter_pos_vel_acc/z2/measure_sigma: 0.01
