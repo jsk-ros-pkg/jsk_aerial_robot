@@ -1,6 +1,6 @@
 #ifndef KF_POS_VEL_ACC_H
 #define KF_POS_VEL_ACC_H
-a
+
 #include <kalman_filter/kalman_filter.h>
 
 //* for dynamic reconfigure

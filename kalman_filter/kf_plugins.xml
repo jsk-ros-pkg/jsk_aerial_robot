@@ -1,8 +1,5 @@
-<library path="lib/libkalman_filter">
-  <class name="kalman_filter/" type="polygon_plugins::Triangle" base_class_type="polygon_base::RegularPolygon">
-    <description>This is a triangle plugin.</description>
-  </class>
-  <class name="pluginlib_tutorials/regular_square" type="polygon_plugins::Square" base_class_type="polygon_base::RegularPolygon">
-    <description>This is a square plugin.</description>
+<library path="lib/libkf_pluginlib">
+  <class name="kalman_filter/kf_pose_vel_acc_p" type="kf_pos_vel_acc_plugins::KalmanFilterPosVelAccP" base_class_type="kf_base::KalmanFilterP">
+    <description>This is a kf pos vel acc plugin.</description>
   </class>
 </library>

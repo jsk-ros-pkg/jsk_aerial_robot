@@ -6,6 +6,7 @@ project(kalman_filter)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   roscpp
+  pluginlib
   dynamic_reconfigure
   cmake_modules
   message_generation
@@ -107,7 +108,7 @@ add_definitions(${EIGEN_DEFINITIONS})
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES  kf_pos_vel_acc
-  CATKIN_DEPENDS roscpp message_runtime std_msgs
+  CATKIN_DEPENDS roscpp message_runtime std_msgs pluginlib
   DEPENDS Eigen
 )
 
@@ -144,6 +145,14 @@ add_dependencies(kf_pos_vel_acc  ${PROJECT_NAME}_gencfg)
 add_executable(test_node src/test.cpp)
 target_link_libraries(test_node  ${catkin_LIBRARIES} kf_pos_vel_acc  )
 #target_link_libraries(test_node kalman_filter ${catkin_LIBRARIES} )
+
+## pluginlib_tutorials library
+add_library(kf_pluginlib src/kf_plugins.cpp)
+target_link_libraries(kf_pluginlib ${catkin_LIBRARIES})
+
+## polygon_loader executable
+add_executable(kf_loader src/kf_loader.cpp)
+target_link_libraries(kf_loader ${catkin_LIBRARIES})
 
 #############
 ## Install ##
@@ -192,3 +201,9 @@ target_link_libraries(test_node  ${catkin_LIBRARIES} kf_pos_vel_acc  )
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
+
+## Mark other files for installation (e.g. launch and bag files, etc.)                                                                   
+install(FILES kf_plugins.xml
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
+
+

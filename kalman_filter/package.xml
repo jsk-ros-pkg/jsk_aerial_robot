@@ -55,6 +55,6 @@
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>
-    <kalman_filter plugin="${prefix}/kf_plugins.xml" />
+    <kalman_filter plugin="${prefix}/kf_plugins.xml" /> 
   </export>
 </package>

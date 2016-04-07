@@ -23,12 +23,16 @@ cannot resolve the problem that seperates files to kalman_filter.h and kalman_fi
 using namespace Eigen;
 using namespace std;
 
-template <size_t state_dim, size_t input_dim, size_t measure_dim>
-  class KalmanFilter
+namespace kf_base
 {
+  template <size_t state_dim, size_t input_dim, size_t measure_dim>
+    class KalmanFilterP
+  {
   public:
-    KalmanFilter(ros::NodeHandle nh, ros::NodeHandle nh_private)
-      {
+    virtual void initialize(ros::NodeHandle nh, ros::NodeHandle nh_private) = 0;
+
+    virtual void kfModelInit()
+    {
         dt_ = 1 / input_hz_;
         input_start_flag_ = false;
         measure_start_flag_ = false;
@@ -43,9 +47,9 @@ template <size_t state_dim, size_t input_dim, size_t measure_dim>
 
       }
 
-    ~KalmanFilter(){}
+    virtual ~KalmanFilterP(){}
 
-    bool prediction(Matrix<double, input_dim, 1> input)
+    virtual bool prediction(Matrix<double, input_dim, 1> input)
     {
       if(getFilteringFlag())
         {
@@ -71,7 +75,7 @@ template <size_t state_dim, size_t input_dim, size_t measure_dim>
 
     }
 
-    bool correction(Matrix<double, measure_dim, 1> measurement, bool debug = false)
+    virtual bool correction(Matrix<double, measure_dim, 1> measurement, bool debug = false)
     {
       if(getFilteringFlag())
         {
@@ -111,51 +115,51 @@ template <size_t state_dim, size_t input_dim, size_t measure_dim>
       return false;
     }
 
-    void setEstimateState(const Matrix<double, state_dim, 1>& state)
+    virtual void setEstimateState(const Matrix<double, state_dim, 1>& state)
     {
       boost::lock_guard<boost::mutex> lock(kf_mutex_);
       estimate_state_ = state;
     }
 
 
-    inline void setInputSigma( Matrix<double, input_dim, 1> input_sigma) { input_sigma_ = input_sigma; }
-    inline void setMeasureSigma( Matrix<double, measure_dim, 1> measure_sigma) { measure_sigma_ = measure_sigma; }
+    virtual void setInputSigma( Matrix<double, input_dim, 1> input_sigma) { input_sigma_ = input_sigma; }
+    virtual void setMeasureSigma( Matrix<double, measure_dim, 1> measure_sigma) { measure_sigma_ = measure_sigma; }
 
-    void setPredictionNoiseCovariance()
+    virtual void setPredictionNoiseCovariance()
     {
       //wrong!!!!!!
       Matrix<double, input_dim, input_dim> input_sigma_m = (input_sigma_.col(0)).asDiagonal();
       prediction_noise_covariance_ = control_input_model_ * (input_sigma_m * input_sigma_m) * control_input_model_.transpose();
     }
 
-    void setMeasurementNoiseCovariance()
+    virtual void setMeasurementNoiseCovariance()
     {
       Matrix<double, measure_dim, measure_dim> measure_sigma_m = (measure_sigma_.col(0)).asDiagonal();
       measurement_noise_covariance_ = measure_sigma_m * measure_sigma_m;
     }
 
-    inline void setCorrectState(const Matrix<double, state_dim, 1>& state) {  correct_state_ = state; }
-    inline void setPredictState(const Matrix<double, state_dim, 1>& state) { predict_state_ = state; }
+    virtual void setCorrectState(const Matrix<double, state_dim, 1>& state) {  correct_state_ = state; }
+    virtual void setPredictState(const Matrix<double, state_dim, 1>& state) { predict_state_ = state; }
 
-    Matrix<double, state_dim, 1> getEstimateState()
+    virtual Matrix<double, state_dim, 1> getEstimateState()
       {
         boost::lock_guard<boost::mutex> lock(kf_mutex_);
         return estimate_state_;
       }
 
-    inline Matrix<double, state_dim, 1> getCorrectState() { return correct_state_; }
-    inline Matrix<double, state_dim, 1> getPredictState() { return predict_state_; }
-    inline Matrix<double, state_dim, state_dim> getEstimateCovariance(){ return estimate_covariance_;}
+    virtual Matrix<double, state_dim, 1> getCorrectState() { return correct_state_; }
+    virtual Matrix<double, state_dim, 1> getPredictState() { return predict_state_; }
+    virtual Matrix<double, state_dim, state_dim> getEstimateCovariance(){ return estimate_covariance_;}
 
-    inline void setStateTransitionModel(Matrix<double, state_dim, state_dim> state_transition_model){state_transition_model_ = state_transition_model;}
-    inline void setControlInputModel(Matrix<double, state_dim, input_dim> control_input_model){control_input_model_ = control_input_model;}
-    inline void setObservationModel(Matrix<double, measure_dim, state_dim> observation_model){observation_model_ = observation_model;}
+    virtual void setStateTransitionModel(Matrix<double, state_dim, state_dim> state_transition_model){state_transition_model_ = state_transition_model;}
+    virtual void setControlInputModel(Matrix<double, state_dim, input_dim> control_input_model){control_input_model_ = control_input_model;}
+    virtual void setObservationModel(Matrix<double, measure_dim, state_dim> observation_model){observation_model_ = observation_model;}
 
-    inline void setInputFlag(bool flag = true){input_start_flag_ = flag; }
-    inline void setMeasureFlag(bool flag = true){ measure_start_flag_ = flag;}
+    virtual void setInputFlag(bool flag = true){input_start_flag_ = flag; }
+    virtual void setMeasureFlag(bool flag = true){ measure_start_flag_ = flag;}
 
 
-    bool getFilteringFlag()
+    virtual bool getFilteringFlag()
     {
       if(input_start_flag_ && measure_start_flag_)
         return true;
@@ -163,13 +167,13 @@ template <size_t state_dim, size_t input_dim, size_t measure_dim>
         return false;
     }
 
-    inline void setInitState(double state_value, int no)
+    virtual void setInitState(double state_value, int no)
     { 
       estimate_state_(no,0) = state_value;
       correct_state_(no,0) = state_value;
       predict_state_(no,0) = state_value;
     }
-    void setInitState(Matrix<double, state_dim, 1> init_state)
+    virtual void setInitState(Matrix<double, state_dim, 1> init_state)
     {
       boost::lock_guard<boost::mutex> lock(kf_mutex_);
       estimate_state_ = init_state;
@@ -211,6 +215,8 @@ template <size_t state_dim, size_t input_dim, size_t measure_dim>
     //for mutex
     boost::mutex kf_mutex_;
 
-  };
+    KalmanFilterP(){}
 
+  };
+};
 #endif
