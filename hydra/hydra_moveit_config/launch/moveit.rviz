@@ -4,14 +4,16 @@ Panels:
     Name: Displays
     Property Tree Widget:
       Expanded:
+        - /Global Options1
+        - /Status1
         - /MotionPlanning1
         - /MotionPlanning1/Scene Geometry1
         - /MotionPlanning1/Scene Robot1
         - /MotionPlanning1/Planning Request1
         - /MotionPlanning1/Planning Metrics1
         - /MotionPlanning1/Planned Path1
-      Splitter Ratio: 0.74256
-    Tree Height: 1021
+      Splitter Ratio: 0.528196
+    Tree Height: 999
   - Class: rviz/Help
     Name: Help
   - Class: rviz/Views
@@ -41,7 +43,7 @@ Visualization Manager:
       Reference Frame: <Fixed Frame>
       Value: true
     - Class: moveit_rviz_plugin/MotionPlanning
-      Enabled: true
+      Enabled: false
       Move Group Namespace: ""
       MoveIt_Goal_Tolerance: 0
       MoveIt_Planning_Attempts: 10
@@ -167,7 +169,55 @@ Visualization Manager:
         Robot Alpha: 0.5
         Show Robot Collision: false
         Show Robot Visual: true
+      Value: false
+    - Alpha: 1
+      Class: rviz/RobotModel
+      Collision Enabled: false
+      Enabled: true
+      Links:
+        All Links Enabled: true
+        Expand Joint Details: false
+        Expand Link Details: false
+        Expand Tree: false
+        Link Tree Style: Links in Alphabetic Order
+        joint1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        joint2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        joint3:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        link1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        link2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        link3:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        link4:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+      Name: RobotModel
+      Robot Description: robot_description
+      TF Prefix: ""
+      Update Interval: 0
       Value: true
+      Visual Enabled: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -182,7 +232,7 @@ Visualization Manager:
   Value: true
   Views:
     Current:
-      Angle: 2.98023e-08
+      Angle: 0.325
       Class: rviz/TopDownOrtho
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
@@ -191,7 +241,7 @@ Visualization Manager:
         Value: false
       Name: Current View
       Near Clip Distance: 0.01
-      Scale: 599.37
+      Scale: 244.948
       Target Frame: link1
       Value: TopDownOrtho (rviz)
       X: -0.175002
@@ -200,16 +250,16 @@ Visualization Manager:
 Window Geometry:
   Displays:
     collapsed: false
-  Height: 1576
+  Height: 1548
   Help:
     collapsed: false
   Hide Left Dock: false
   Hide Right Dock: false
   Motion Planning:
     collapsed: false
-  QMainWindow State: 000000ff00000000fd000000010000000000000346000005e2fc0200000005fb000000100044006900730070006c006100790073010000002800000492000000dd00fffffffb0000000800480065006c00700000000342000000bb0000007600fffffffb0000000a0056006900650077007301000004c00000014a000000b000fffffffb0000000c00430061006d00650072006100000002ff000001610000000000000000fb0000001e004d006f00740069006f006e00200050006c0061006e006e0069006e006700000001cf0000017f000001ab00ffffff00000673000005e200000001000000020000000100000002fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd000000010000000000000216000005c6fc0200000005fb000000100044006900730070006c00610079007301000000280000047c000000dd00fffffffb0000000800480065006c00700000000342000000bb0000007600fffffffb0000000a0056006900650077007301000004aa00000144000000b000fffffffb0000000c00430061006d00650072006100000002ff000001610000000000000000fb0000001e004d006f00740069006f006e00200050006c0061006e006e0069006e006700000001cf0000017f0000001600000016000002c3000005c600000001000000020000000100000002fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Views:
     collapsed: false
-  Width: 2495
-  X: 65
-  Y: 24
+  Width: 1247
+  X: 1292
+  Y: 14
