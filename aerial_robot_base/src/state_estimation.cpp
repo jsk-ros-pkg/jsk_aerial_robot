@@ -121,243 +121,15 @@ RigidEstimator::RigidEstimator(ros::NodeHandle nh,
   if(mocap_flag_)
       mocap_data_ = new MocapData(nh, nh_private, this);
   
-  simulation_flag_ = simulation_flag;
 }
 
 RigidEstimator::~RigidEstimator()
 {
-  if(kalman_filter_flag_)
-    {
-      delete kf_x_; delete kf_y_; delete kf_z_;
-      delete kf_bias_x_; delete kf_bias_y_; delete kf_bias_z_;
-      delete kf_vel_x_; delete kf_vel_y_; delete kf_pos_z2_;
-      delete kf_vel_bias_x_; delete kf_vel_bias_y_;
-
-    }
-  if(kalman_filter_debug_)
-    {
-      delete kf1_;
-      delete kf2_;
-    }
-
-  delete br_;
-  delete imu_data_;
-  delete optical_flow_data_;
-  delete slam_data_;
-  delete mirror_module_;
-
-  delete lpf_acc_x_;
-  delete lpf_acc_y_;
-  delete lpf_acc_z_;
-
-  printf("   deleted br_, imu_data_, slam_data_, mirror_module_, kalmanFilters from rigid estimator");
-}
-
-
-float RigidEstimator::getStatePosX()
-{
-  if(use_outer_pose_estimate_ & X_AXIS)
-    return  outer_estimate_pos_x_;
-  else
-    {
-      if(hokuyo_flag_) return  (kf_bias_x_->getEstimateState())(0,0);
-      else if(px4flow_flag_) return (kf_vel_bias_x_->getEstimateState())(0,0);
-      else return 0;
-    }
-}
-
-float RigidEstimator::getStatePosXc()
-{
-  if(use_outer_pose_estimate_ & X_AXIS)
-    {
-      float state_pos_xc
-        = outer_estimate_pos_x_ * cos(outer_estimate_psi_board_) + outer_estimate_pos_y_ * sin(outer_estimate_psi_board_);
-      return  state_pos_xc;
-    }
-  else
-    return  (kf_vel_bias_x_->getEstimateState())(0,0);
-}
-
-float RigidEstimator::getStateVelX()
-{
-  if(use_outer_vel_estimate_ & X_AXIS)
-      return  outer_estimate_vel_x_;
-  else
-    {
-      if(hokuyo_flag_) return  (kf_bias_x_->getEstimateState())(1,0);
-      else if(px4flow_flag_) return  (kf_vel_bias_x_->getEstimateState())(1,0);
-      else return 0;
-    }
+  //delete br_;
 
 }
 
-float RigidEstimator::getStateVelXc()
-{
-  if(use_outer_vel_estimate_ & X_AXIS)
-    {
-      float state_vel_xc
-        = outer_estimate_vel_x_ * cos(outer_estimate_psi_board_) + outer_estimate_vel_y_ * sin(outer_estimate_psi_board_);
-      return  state_vel_xc;
-    }
-  else
-    return  (kf_vel_bias_x_->getEstimateState())(1,0);
-}
 
-float RigidEstimator::getStateAccXb()
-{
-  return imu_data_->getAccXbValue();
-}
-
-float RigidEstimator::getStatePosY()
-{
- if(use_outer_pose_estimate_ & Y_AXIS)
-      return  outer_estimate_pos_y_;
- else
-   {
-     if(hokuyo_flag_) return  (kf_bias_y_->getEstimateState())(0,0);
-     else if (px4flow_flag_) return (kf_vel_bias_y_->getEstimateState())(0,0);
-     else return 0;
-   }
-}
-
-float RigidEstimator::getStatePosYc()
-{
- if(use_outer_pose_estimate_ & Y_AXIS)
-   {
-      float state_pos_yc
-        = -outer_estimate_pos_x_ * sin(outer_estimate_psi_board_) + outer_estimate_pos_y_ * cos(outer_estimate_psi_board_);
-      return  state_pos_yc;
-   }
-  else
-    return  (kf_vel_bias_y_->getEstimateState())(0,0);
-}
-
-float RigidEstimator::getStateVelY()
-{
- if(use_outer_vel_estimate_ & Y_AXIS)
-     return  outer_estimate_vel_y_;
- else 
-   {
-     if(hokuyo_flag_)  return  (kf_bias_y_->getEstimateState())(1,0);
-     else if(px4flow_flag_) return  (kf_vel_bias_y_->getEstimateState())(1,0);
-     else return 0;
-   }
-}
-
-float RigidEstimator::getStateVelYc()
-{
- if(use_outer_vel_estimate_ & Y_AXIS)
-   {
-      float state_vel_yc
-        = -outer_estimate_vel_x_ * sin(outer_estimate_psi_board_) + outer_estimate_vel_y_ * cos(outer_estimate_psi_board_);
-      return  state_vel_yc;
-   }
-  else
-    return  (kf_vel_bias_y_->getEstimateState())(1,0);
-}
-
-inline float RigidEstimator::getStateAccYb(){  return imu_data_->getAccYbValue(); }
-
-float RigidEstimator::getStatePosZ()
-{
-  if(use_outer_pose_estimate_ & Z_AXIS)
-      return  outer_estimate_pos_z_;
-  else
-    {
-      if(hokuyo_flag_) return (kf_z_->getEstimateState())(0,0);
-      else if(px4flow_flag_) return (kf_pos_z2_->getEstimateState())(0,0);
-      else return 0;
-    }
-}
-float RigidEstimator::getStateVelZ()
-{
-  if(use_outer_vel_estimate_ & Z_AXIS)
-      return  outer_estimate_vel_z_;
-  else
-    {
-      if(hokuyo_flag_) return (kf_z_->getEstimateState())(1,0);
-      else if(px4flow_flag_) return (kf_pos_z2_->getEstimateState())(1,0);
-      else return 0;
-    }
-}
-
-inline float RigidEstimator::getStateAccZb(){  return imu_data_->getAccZbValue(); }
-
-float RigidEstimator::getStateTheta()
-{
-  if(use_outer_pose_estimate_ & PITCH_AXIS)
-    return  outer_estimate_theta_;
-  else
-    return imu_data_->getPitchValue();
-}
-float RigidEstimator::getStatePhy()
-{
-  if(use_outer_pose_estimate_ & ROLL_AXIS)
-    return  outer_estimate_phy_;
-  else
-    return imu_data_->getRollValue();
-}
-
-
-//bad
-float RigidEstimator::getStatePsiCog()
-{
-  if(use_outer_pose_estimate_ & YAW_AXIS)
-    {      
-      return  outer_estimate_psi_cog_;
-    }
-  else
-    {
-      if(use_outer_yaw_est_)
-        return slam_data_->getPsiValue();
-      else
-        return 0;  //+*+*+ fixed point
-    }
-}
-float RigidEstimator::getStateVelPsiCog()
-{
-  if(use_outer_vel_estimate_ & YAW_AXIS)
-    {      
-      return  outer_estimate_vel_psi_cog_;
-    }
-  else
-    {
-      if(use_outer_yaw_est_)
-        return   slam_data_->getVelPsiValue();
-      else 
-        return 0;   //+*+*+ fixed point
-    }
-}
-
-float RigidEstimator::getStatePsiBoard()
-{
-  if(use_outer_pose_estimate_ & YAW_AXIS)
-    {      
-      return  outer_estimate_psi_board_;
-    }
-  else
-    {
-      if(use_outer_yaw_est_)
-        return slam_data_->getPsiValue();
-      else
-        return 0;  //+*+*+ fixed point
-    }
-}
-
-float RigidEstimator::getStateVelPsiBoard()
-{
-  if(use_outer_vel_estimate_ & YAW_AXIS)
-    {      
-      return  outer_estimate_vel_psi_board_;
-    }
-  else
-    {
-      if(use_outer_yaw_est_)
-        return   slam_data_->getVelPsiValue();
-      else 
-        return 0;   //+*+*+ fixed point
-    }
-}
 
 
 void RigidEstimator::setStateCorrectFlag(bool flag)
@@ -365,15 +137,13 @@ void RigidEstimator::setStateCorrectFlag(bool flag)
   if(px4flow_flag_) optical_flow_data_->setKFCorrectFlag(flag);
 }
 
-inline float RigidEstimator::getStateVelXOpt(){  return optical_flow_data_->getRawVelX();}
-inline float RigidEstimator::getStateVelYOpt(){  return optical_flow_data_->getRawVelY();}
-
 void RigidEstimator::tfPublish()
 {
   //set the states broadcast
   statesBroadcast();
   //TODO mutex
 
+#if 0
   //ros::Time sys_stamp = getSystemTimeStamp();
   ros::Time sys_stamp = ros::Time::now();
 
@@ -402,75 +172,72 @@ void RigidEstimator::tfPublish()
 
   br_->sendTransform(tf::StampedTransform(footprint_to_laser, sys_stamp,
                                           base_footprint_frame_, laser_frame_));
-
+#endif
 }
 
-float RigidEstimator::getLaserToImuDistance()
-{
-  return laser_to_baselink_distance_;
-}
-
-void RigidEstimator::rosParamInit(ros::NodeHandle nh)
+void RigidEstimator::rosParamInit()
 {
   std::string ns = nhp_.getNamespace();
 
-  if (!nhp_.getParam ("altitude_control_mode", altitude_control_mode_))
-    altitude_control_mode_ = 0;
-  printf("%s: altitude_control_mode_ is %d\n", ns.c_str(), altitude_control_mode_);
+  sensor_fusion_loader_ptr_ = new pluginlib::ClassLoader<kf_base_plugin::KalmanFilter>("kalman_filter", "kf_base_plugin::KalmanFilter");
 
-  if (!nhp_.getParam ("useOuter_yaw_est", use_outer_yaw_est_))
-    use_outer_yaw_est_ = false;
-  printf("%s: use_outer_yaw_est is %s\n", ns.c_str(), use_outer_yaw_est_ ? ("true") : ("false"));
+  if (!nhp_.getParam ("fuser_egomotion_no", fuser_egomotion_no_))
+    fuser_egomotion_no_ = 0;
+  printf("fuser_egomotion_no_ is %d\n", fuser_egomotion_no_);
+  fuser_egomotion_.resize(fuser_egomotion_no_);
+  fuser_egomotion_id_.resize(fuser_egomotion_no_);
+  fuser_egomotion_plugin_name_.resize(fuser_egomotion_no_);
 
-  if (!nhp_.getParam ("baselink_frame", baselink_frame_))
-    baselink_frame_ = "unknown";
-  printf("%s: baselink_frame_ is %s\n", ns.c_str(), baselink_frame_.c_str());
+  if (!nhp_.getParam ("fuser_experiment_no", fuser_experiment_no_))
+    fuser_experiment_no_ = 0;
+  printf("fuser_experiment_no_ is %d\n", fuser_experiment_no_);
+  fuser_experiment_.resize(fuser_experiment_no_);
+  fuser_experiment_id_.resize(fuser_experiment_no_);
+  fuser_experiment_plugin_name_.resize(fuser_experiment_no_);
 
-  if (!nhp_.getParam ("base_footprint_frame", base_footprint_frame_))
-    base_footprint_frame_ = "unknown";
-  printf("%s: base_footprint_frame_ is %s\n", ns.c_str(), base_footprint_frame_.c_str());
+  for(int i = 0; i < fuser_egomotion_no_; i++)
+    {
+      std::stringstream fuser_no;
+      fuser_no << i + 1;
 
-  if (!nhp_.getParam ("laser_frame", laser_frame_))
-    laser_frame_ = "unknown";
-  printf("%s: laser_frame_ is %s\n", ns.c_str(), laser_frame_.c_str());
+      if (!nhp_.getParam ("fuser_egomotion_id", fuser_egomotion_id_[i]))
+        ROS_ERROR("%d, no param in fuser egomotion id");
+      printf("fuser_egomotion_id_ is %d\n", fuser_egomotion_id_[i]);
 
-  if (!nhp_.getParam ("camera_frame", camera_frame_))
-    camera_frame_ = "unknown";
-  printf("%s: camera_frame_ is %s\n", ns.c_str(), camera_frame_.c_str());
+      if (!nhp_.getParam ("fuser_egomotion_name", fuser_egomotion_name_[i]))
+        ROS_ERROR("%d, no param in fuser egomotion name");
+      printf("fuser_egomotion_name_ is %s\n", fuser_egomotion_name_[i]);
 
-  if (!nhp_.getParam ("laser_to_baselink_distance", laser_to_baselink_distance_))
-    laser_to_baselink_distance_ = 0;
-  printf("%s: laser_to_baselink_distance_ is %.3f\n", ns.c_str(), laser_to_baselink_distance_);
+      if (!nhp_.getParam ("fuser_egomotion_plugin_name", fuser_egomotion_plugin_name_[i]))
+        ROS_ERROR("%d, no param in fuser egomotion plugin_name");
+      printf("fuser_egomotion_plugin_name_ is %s\n", fuser_egomotion_plugin_name_[i].c_str());
 
-  if (!nhp_.getParam ("mirror_module_arm_length", mirror_module_arm_length_))
-    mirror_module_arm_length_ = 0;
-  printf("%s: mirror_module_arm_length_ is %.3f\n", ns.c_str(), mirror_module_arm_length_);
+      fuser_egomotion_[i]  = sensor_fusion_loader_ptr_->createInstance(fuser_egomotion_plugin_name_[i]);
+      fuser_egomotion_[i]->initialize(nh_, fuser_egomotion_name_[i], fuser_egomotion_id_[i]);
+    }
 
-  //*** kalman filter
-  if (!nhp_.getParam ("kalman_filter_flag", kalman_filter_flag_))
-    kalman_filter_flag_ = false;
-  printf("%s: kalman_filter_flag is %s\n", ns.c_str(), kalman_filter_flag_ ? ("true") : ("false"));
+  for(int i = 0; i < fuser_experiment_no_; i++)
+    {
+      std::stringstream fuser_no;
+      fuser_no << i + 1;
 
-  //*** kalman filter debug
-  if (!nhp_.getParam ("kalman_filter_debug", kalman_filter_debug_))
-    kalman_filter_debug_ = false;
-  printf("%s: kalman_filter_debug is %s\n", ns.c_str(), kalman_filter_debug_ ? ("true") : ("false"));
+      if (!nhp_.getParam ("fuser_experiment_id", fuser_experiment_id_[i]))
+        ROS_ERROR("%d, no param in fuser experiment id");
+      printf("fuser_experiment_id_ is %s\n", fuser_experiment_id_[i].c_str());
 
-  if (!nhp_.getParam ("kalman_filter_axis", kalman_filter_axis_))
-    kalman_filter_axis_ = 0;
-  printf("%s: kalman_filter_axis_ is %d\n", ns.c_str(), kalman_filter_axis_);
+      if (!nhp_.getParam ("fuser_experiment_name", fuser_experiment_name_[i]))
+        ROS_ERROR("%d, no param in fuser experiment name");
+      printf("fuser_experiment_name_ is %s\n", fuser_experiment_name_[i].c_str());
 
-  //*** sensors
-  if (!nhp_.getParam ("hokuyo_flag", hokuyo_flag_))
-    hokuyo_flag_ = false;
-  printf("%s: hokuyo_flag is %s\n", ns.c_str(), hokuyo_flag_ ? ("true") : ("false"));
-  if (!nhp_.getParam ("px4flow_flag", px4flow_flag_))
-    px4flow_flag_ = false;
-  printf("%s: px4flow_flag is %s\n", ns.c_str(), px4flow_flag_ ? ("true") : ("false"));
- 
-  if (!nhp_.getParam ("mocap_flag", mocap_flag_))
-    mocap_flag_ = false;
-  printf("%s: mocap_flag is %s\n", ns.c_str(), mocap_flag_ ? ("true") : ("false"));
+      if (!nhp_.getParam ("fuser_experiment_plugin_name", fuser_experiment_plugin_name_))
+        ROS_ERROR("%d, no param in fuser experiment plugin_name");
+      printf("fuser_experiment_plugin_name_ is %s\n", fuser_experiment_plugin_name_.c_str());
+
+      fuser_experiment_[i]  = sensor_fusion_loader_ptr_->createInstance(fuser_experiment_plugin_name_);
+      fuser_experiment_[i]->initialize(nh_, fuser_experiment_name_[i], fuser_experiment_id_[i]);
+    }
+
+
 }
 
 

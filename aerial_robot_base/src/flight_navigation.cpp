@@ -1003,9 +1003,7 @@ void TeleopNavigator::teleopNavigation()
   if(getNaviCommand() == START_COMMAND)
     { //takeoff phase
       flight_mode_= NO_CONTROL_MODE;
-
-      //state correct flag(Kalman Filter, especially for px4flow
-      estimator_->setStateCorrectFlag(true);
+      estimator_->setSensorFusionFlag(true);
     }
   else if(getNaviCommand() == TAKEOFF_COMMAND)
     { //Take OFF Phase
@@ -1111,8 +1109,7 @@ void TeleopNavigator::teleopNavigation()
     }
   else if(getNaviCommand() == STOP_COMMAND)
     {
-      //state correct flag(Kalman Filter, especially for px4flow
-      estimator_->setStateCorrectFlag(false);
+      estimator_->setSensorFusionFlag(false);
 
       if(flight_mode_ != RESET_MODE)
         flight_mode_= NO_CONTROL_MODE;

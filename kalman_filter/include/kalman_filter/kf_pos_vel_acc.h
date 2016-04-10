@@ -54,8 +54,8 @@ KalmanFilterPosVelAccBias(ros::NodeHandle nh, ros::NodeHandle nh_private, string
   //void setInitImuBias(double initBias);
  void setCorrectMode(uint8_t correct_mode);
 
-void cfgCallback(kalman_filter::KalmanFilterPosVelAccBiasConfig &config, uint32_t level);
-void setInitImuBias(double init_bias);
+ void cfgCallback(kalman_filter::KalmanFilterPosVelAccBiasConfig &config, uint32_t level);
+ void setInitImuBias(double init_bias);
  void updateModelFromDt(double dt);
 
 

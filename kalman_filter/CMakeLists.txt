@@ -144,15 +144,15 @@ add_dependencies(kf_pos_vel_acc  ${PROJECT_NAME}_gencfg)
 
 add_executable(test_node src/test.cpp)
 target_link_libraries(test_node  ${catkin_LIBRARIES} kf_pos_vel_acc  )
-#target_link_libraries(test_node kalman_filter ${catkin_LIBRARIES} )
+
 
 ## pluginlib_tutorials library
-add_library(kf_pluginlib src/kf_plugins.cpp)
-target_link_libraries(kf_pluginlib ${catkin_LIBRARIES})
+add_library(kf_pos_vel_acc_pluginlib src/kf_pos_vel_acc_plugin.cpp)
+target_link_libraries(kf_pos_vel_acc_pluginlib ${catkin_LIBRARIES})
 
 ## polygon_loader executable
-add_executable(kf_loader src/kf_loader.cpp)
-target_link_libraries(kf_loader ${catkin_LIBRARIES})
+add_executable(kf_plugin_test src/kf_plugin_test.cpp)
+target_link_libraries(kf_plugin_test ${catkin_LIBRARIES})
 
 #############
 ## Install ##

@@ -31,6 +31,9 @@ public:
 
   inline int getMotorNumber(){return motor_num_;}
 
+  const static uint8_t GROUND_TRUTH = 0;
+  const static uint8_t EGOMOTION_ESTIMATE = 1;
+
  protected:
   ros::NodeHandle nh_;
   ros::NodeHandle nhp_;
@@ -49,6 +52,8 @@ public:
   double f_pwm_offset_;
 
   double pwm_rate_; //percentage
+
+  uint8_t state_mode_;
 
 };
 
