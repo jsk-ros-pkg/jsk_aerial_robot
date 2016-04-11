@@ -14,6 +14,8 @@ FlightController::FlightController(ros::NodeHandle nh,
   navigator_ = navigator;
   flight_ctrl_input_ = flight_ctrl_input;
 
+  state_mode_ = navigator->getStateMode();
+
   //normal namespace
   // if (!nh_private.getParam ("motor_num", motor_num_))
   //   motor_num_ = 4;
@@ -36,17 +38,6 @@ FlightController::FlightController(ros::NodeHandle nh,
     feedforward_flag_ = true;
   printf("feedforward_flag_ is %s\n", (feedforward_flag_)?"true":"false");
 
-}
-
-FlightController::~FlightController()
-{
-}
-
-float FlightController::limit(float value, float limit)
-{
-  if(value > limit) { return limit;}
-  else if(value < - limit) { return -limit; }
-  else return value;
 }
 
 PidController::PidController(ros::NodeHandle nh,
@@ -104,7 +95,6 @@ PidController::PidController(ros::NodeHandle nh,
   //subscriber
   four_axis_gain_sub_ = nh_.subscribe<aerial_robot_base::YawThrottleGain>("yaw_throttle_gain", 1, &PidController::yawThrottleGainCallback, this, ros::TransportHints().tcpNoDelay());
 
-
   //dynamic reconfigure server
   xy_pid_server_ = new dynamic_reconfigure::Server<aerial_robot_base::XYPidControlConfig>(ros::NodeHandle(nhp_, "pitch"));
   dynamic_reconf_func_xy_pid_ = boost::bind(&PidController::cfgXYPidCallback, this, _1, _2);
@@ -112,10 +102,6 @@ PidController::PidController(ros::NodeHandle nh,
 
 }
 
-PidController::~PidController()
-{
-  printf(" deleted pid flight control input!\n");
-}
 
 void PidController::yawThrottleGainCallback(const aerial_robot_base::YawThrottleGainConstPtr & msg)
 {
@@ -139,8 +125,6 @@ void PidController::yawThrottleGainCallback(const aerial_robot_base::YawThrottle
       feedforward_matrix_(i, 1) = msg->pitch_vec[i];
       feedforward_matrix_(i, 2) = msg->yaw_vec[i];
     }
-  //debug 
-  //std::cout << "ff matrix :\n" << feedforward_matrix_ << std::endl;
 }
 
 void PidController::pidFunction()
@@ -184,27 +168,48 @@ void PidController::pidFunction()
       float target_vel_x;
       float target_vel_y;
 
+      float state_pos_z;
+      float state_vel_z;
+      float state_psi_cog;
+      float state_psi_board;
+      float state_vel_psi;
+
       if(navigator_->getXyControlMode() == Navigator::POS_WORLD_BASED_CONTROL_MODE ||
          navigator_->getXyControlMode() == Navigator::VEL_WORLD_BASED_CONTROL_MODE) 
         {
-          state_pos_x = estimator_->getStatePosX();
-          state_vel_x = estimator_->getStateVelX();
-          state_pos_y = estimator_->getStatePosY();
-          state_vel_y = estimator_->getStateVelY();
+          if(state_mode_ == Navigator::GROUND_TRUTH)
+            {
+              state_pos_x = estimator_->getGTState(X_W, 0);
+              state_vel_x = estimator_->getGTState(X_W, 1);
+              state_pos_y = estimator_->getGTState(Y_W, 0);
+              state_vel_y = estimator_->getGTState(Y_W, 1);
+            }
+          else if(state_mode_ == Navigator::EGOMOTION_ESTIMATE)
+            {
+              state_pos_x = estimator_->getEEState(X_W, 0);
+              state_vel_x = estimator_->getEEState(X_W, 1);
+              state_pos_y = estimator_->getEEState(Y_W, 0);
+              state_vel_y = estimator_->getEEState(Y_W, 1);
+            }
+
         }
-      else if(navigator_->getXyControlMode() == navigator_->POS_LOCAL_BASED_CONTROL_MODE)
+      else if(navigator_->getXyControlMode() == navigator_->POS_LOCAL_BASED_CONTROL_MODE ||
+              navigator_->getXyControlMode() == navigator_->VEL_LOCAL_BASED_CONTROL_MODE)
         {
-          state_pos_x = estimator_->getStatePosX();
-          state_pos_y = estimator_->getStatePosY();
-          state_vel_x = estimator_->getStateVelXc();
-          state_vel_y = estimator_->getStateVelYc();
-        }
-      else if(navigator_->getXyControlMode() == navigator_->VEL_LOCAL_BASED_CONTROL_MODE)
-        {
-          state_pos_x = estimator_->getStatePosXc();
-          state_pos_y = estimator_->getStatePosYc();
-          state_vel_x = estimator_->getStateVelXc();
-          state_vel_y = estimator_->getStateVelYc();
+          if(state_mode_ == Navigator::GROUND_TRUTH)
+            {
+              state_pos_x = estimator_->getGTState(X_B, 0);
+              state_vel_x = estimator_->getGTState(X_B, 1);
+              state_pos_y = estimator_->getGTState(Y_B, 0);
+              state_vel_y = estimator_->getGTState(Y_B, 1);
+            }
+          else if(state_mode_ == Navigator::EGOMOTION_ESTIMATE)
+            {
+              state_pos_x = estimator_->getEEState(X_B, 0);
+              state_vel_x = estimator_->getEEState(X_B, 1);
+              state_pos_y = estimator_->getEEState(Y_B, 0);
+              state_vel_y = estimator_->getEEState(Y_B, 1);
+            }
         }
       else
         {
@@ -220,13 +225,27 @@ void PidController::pidFunction()
       target_pos_x = navigator_->getTargetPosX();
       target_pos_y = navigator_->getTargetPosY();
 
-      float state_pos_z = estimator_->getStatePosZ();
-      float state_vel_z = estimator_->getStateVelZ();
 
-      float state_psi_cog = estimator_->getStatePsiCog();
+      if(state_mode_ == Navigator::GROUND_TRUTH)
+        {
+          state_pos_z = estimator_->getGTState(Z_W, 0);
+          state_vel_z = estimator_->getGTState(Z_W, 1);
 
-      float state_psi_board = estimator_->getStatePsiBoard();
-      float state_vel_psi_board = estimator_->getStateVelPsiBoard();
+          state_psi_cog = estimator_->getGTState(YAW_W_COG, 0);
+          state_psi_board = estimator_->getGTState(YAW_W_B, 0);
+          state_vel_psi_board = estimator_->getGTState(YAW_W_B, 1);
+        }
+
+      if(state_mode_ == Navigator::EGOMOTION_ESTIMATE)
+        {
+          state_pos_z = estimator_->getEEState(Z_W, 0);
+          state_vel_z = estimator_->getEEState(Z_W, 1);
+
+          state_psi_cog = estimator_->getEEState(YAW_W_COG, 0);
+          state_psi_board = estimator_->getEEState(YAW_W_B, 0);
+          state_vel_psi_board = estimator_->getEEState(YAW_W_B, 1);
+        }
+
 
       float target_pos_z = navigator_->getTargetPosZ();
       float target_psi = navigator_->getTargetPsi();
@@ -282,10 +301,7 @@ void PidController::pidFunction()
           else if(navigator_->getXyControlMode() == Navigator::POS_LOCAL_BASED_CONTROL_MODE)
             {
               //** 座標変換
-              d_err_pos_curr_pitch_ 
-                = (target_pos_x - state_pos_x) * cos(state_psi_cog)
-                + (target_pos_y - state_pos_y) * sin(state_psi_cog);
-
+              d_err_pos_curr_pitch_ = target_pos_x - state_pos_x
               d_err_vel_curr_pitch_ = target_vel_x - state_vel_x;
 
               //**** Pの項
@@ -406,10 +422,7 @@ void PidController::pidFunction()
           else if(navigator_->getXyControlMode() == Navigator::POS_LOCAL_BASED_CONTROL_MODE)
             {
               //** 座標変換
-              d_err_pos_curr_roll_
-                = - (target_pos_x - state_pos_x) * sin(state_psi_cog)
-                + (target_pos_y - state_pos_y) * cos(state_psi_cog);
-
+              d_err_pos_curr_roll_ = target_pos_y - state_pos_y;
               d_err_vel_curr_roll_ = target_vel_y - state_vel_y;
 
               //**** Pの項
@@ -638,7 +651,6 @@ void PidController::pidFunction()
 
               //add to throttle
               flight_ctrl_input_->addFFValues(u_ff_pwm);
-
               ff_pub_.publish(ff_msg);
             }
 	}

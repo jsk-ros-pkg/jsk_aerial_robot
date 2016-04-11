@@ -158,6 +158,14 @@ namespace kf_base_plugin
       estimate_state_ = state;
     }
 
+    void resetState()
+    {
+      boost::lock_guard<boost::mutex> lock(kf_mutex_);
+      estimate_state_ = MatrixXd::Zero(state_dim_, 1);
+      correct_state_ = MatrixXd::Zero(state_dim_, 1);
+      predict_state_ = MatrixXd::Zero(state_dim_, 1);
+
+    }
 
     void setInputSigma( MatrixXd input_sigma) 
     {

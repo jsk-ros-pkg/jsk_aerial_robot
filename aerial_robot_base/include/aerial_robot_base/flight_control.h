@@ -25,14 +25,19 @@ public:
                    ros::NodeHandle nh_private,
                    BasicEstimator* estimator, Navigator* navigator, 
                    FlightCtrlInput* flight_ctrl_input);
-  virtual ~FlightController();
+  virtual ~FlightController(){};
 
-  float limit(float value, float limit);
+  inline float limit(float value, float limit)
+  {
+    if(value > limit) { return limit;}
+    else if(value < - limit) { return -limit; }
+    else return value;
+  }
+
 
   inline int getMotorNumber(){return motor_num_;}
 
-  const static uint8_t GROUND_TRUTH = 0;
-  const static uint8_t EGOMOTION_ESTIMATE = 1;
+
 
  protected:
   ros::NodeHandle nh_;
@@ -65,7 +70,7 @@ class PidController : public FlightController
                 BasicEstimator* estimator, Navigator* navigator,
                 FlightCtrlInput* flight_ctrl_input,
                 double ctrl_loop_rate);
-  ~PidController();
+  ~PidController(){};
 
   void pidFunction();
   void feedForwardFunction();

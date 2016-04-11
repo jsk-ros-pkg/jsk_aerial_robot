@@ -51,6 +51,59 @@ class Navigator
 
   inline bool getXyVelModePosCtrlTakeoff(){  return xy_vel_mode_pos_ctrl_takeoff_;}
 
+  inline float getStatePosX()
+  {  
+    if(state_mode_ == GROUND_TRUTH) return estimator_->getGTState(X_W, 0);
+    if(state_mode_ == EGOMOTION_ESTIMATE) return estimator_->getEEState(X_W, 0);
+  }
+  inline float getStateVelX()
+  {  
+    if(state_mode_ == GROUND_TRUTH) return estimator_->getGTState(X_W, 1);
+    if(state_mode_ == EGOMOTION_ESTIMATE) return estimator_->getEEState(X_W, 1);
+  }
+  inline float getStatePosY()
+  {  
+    if(state_mode_ == GROUND_TRUTH) return estimator_->getGTState(Y_W, 0);
+    if(state_mode_ == EGOMOTION_ESTIMATE) return estimator_->getEEState(Y_W, 0);
+  }
+  inline float getStateVelY()
+  {  
+    if(state_mode_ == GROUND_TRUTH) return estimator_->getGTState(Y_W, 1);
+    if(state_mode_ == EGOMOTION_ESTIMATE) return estimator_->getEEState(Y_W, 1);
+  }
+  inline float getStatePosZ()
+  {  
+    if(state_mode_ == GROUND_TRUTH) return estimator_->getGTState(Z_W, 0);
+    if(state_mode_ == EGOMOTION_ESTIMATE) return estimator_->getEEState(Z_W, 0);
+  }
+  inline float getStateVelZ()
+  {  
+    if(state_mode_ == GROUND_TRUTH) return estimator_->getGTState(Z_W, 1);
+    if(state_mode_ == EGOMOTION_ESTIMATE) return estimator_->getEEState(Z_W, 1);
+  }
+  inline float getStatePsiCog()
+  {  
+    if(state_mode_ == GROUND_TRUTH) return estimator_->getGTState(YAW_W_COG, 0);
+    if(state_mode_ == EGOMOTION_ESTIMATE) return estimator_->getEEState(YAW_W_COG, 0);
+  }
+  inline float getStateVelPsiCog()
+  {  
+    if(state_mode_ == GROUND_TRUTH) return estimator_->getGTState(YAW_W_COG, 1);
+    if(state_mode_ == EGOMOTION_ESTIMATE) return estimator_->getEEState(YAW_W_COG, 1);
+  }
+  inline float getStatePsiBoard()
+  {  
+    if(state_mode_ == GROUND_TRUTH) return estimator_->getGTState(YAW_W_B, 0);
+    if(state_mode_ == EGOMOTION_ESTIMATE) return estimator_->getEEState(YAW_W_B, 0);
+  }
+  inline float getStateVelPsiBoard()
+  {  
+    if(state_mode_ == GROUND_TRUTH) return estimator_->getGTState(YAW_W_B, 1);
+    if(state_mode_ == EGOMOTION_ESTIMATE) return estimator_->getEEState(YAW_W_B, 1);
+  }
+
+
+
 
   inline float getTargetPosX(){  return current_target_pos_x_;}
   inline void setTargetPosX( float value){  final_target_pos_x_ = value;}
@@ -87,6 +140,9 @@ class Navigator
 
   void tfPublish();
 
+  uint8_t getStateMode(){ return state_mode_;}
+  void setStateMode(uint8_t state_mode){ state_mode_ = state_mode;}
+
 
   const static uint8_t POS_CONTROL_COMMAND = 0;
   const static uint8_t VEL_CONTROL_COMMAND = 1;
@@ -108,8 +164,6 @@ class Navigator
   const static uint8_t LAND_MODE = 2;
   const static uint8_t NO_CONTROL_MODE = 3; 
   const static uint8_t RESET_MODE = 4;
-
-
 
 
   //for throwing
@@ -140,6 +194,9 @@ class Navigator
   const static uint8_t VEL_WORLD_BASED_CONTROL_MODE = 2;
   const static uint8_t VEL_LOCAL_BASED_CONTROL_MODE = 3;
 
+  const static uint8_t GROUND_TRUTH = 0;
+  const static uint8_t EGOMOTION_ESTIMATE = 1;
+
   protected:
     ros::NodeHandle nh_;
     ros::NodeHandle nhp_;
@@ -157,6 +214,7 @@ class Navigator
     int  xy_control_mode_;
     bool xy_vel_mode_pos_ctrl_takeoff_;
 
+    uint8_t state_mode_;
 
     //*** base navigation
 

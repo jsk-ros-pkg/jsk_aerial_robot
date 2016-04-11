@@ -60,6 +60,7 @@ snamespace sensor_plugin
       }
 
       ~Imu () { }
+      Imu () { }
 
       const static uint8_t D_BOARD = 0;
       const static uint8_t KDUINO = 1;
@@ -259,17 +260,17 @@ snamespace sensor_plugin
                             Eigen::Matrix<double, 2, 1> temp = Eigen::MatrixXd::Zero(2, 1); 
                             temp(1,0) = acc_bias_noise_sigma_;
                             ROS_WARN("this is bias mode");
-                            if((getFuserEgomotionId & (1 << X_W)) || (getFuserEgomotionId & (1 << X_B)))
+                            if((getFuserEgomotionId(i) & (1 << X_W)) || (getFuserEgomotionId(i) & (1 << X_B)))
                               {
                                 temp(0,0) = level_acc_noise_sigma_;
                                 getFuserEgomotion(i)->setInitState(acc_x_bias_, 2);
                               }
-                            else if((getFuserEgomotionId & (1 << Y_W)) || (getFuserEgomotionId & (1 << Y_B)))
+                            else if((getFuserEgomotionId(i) & (1 << Y_W)) || (getFuserEgomotionId(i) & (1 << Y_B)))
                               {
                                 temp(0,0) = level_acc_noise_sigma_;
                                 getFuserEgomotion(i)->setInitState(acc_y_bias_, 2);
                               }
-                            else if((getFuserEgomotionId & (1 << Z_W)))
+                            else if((getFuserEgomotionId(i) & (1 << Z_W)))
                               {
                                 temp(0,0) = z_acc_noise_sigma_;
                                 getFuserEgomotion(i)->setInitState(acc_z_bias_, 2);
@@ -280,10 +281,10 @@ snamespace sensor_plugin
                         if(getFuserEgomotionName(i) == "kalman_filter/kf_pose_vel_acc")
                           {//temporary
                             Eigen::Matrix<double, 1, 1> temp = Eigen::MatrixXd::Zero(1, 1); 
-                            if((getFuserEgomotionId & (1 << X_W)) || (getFuserEgomotionId & (1 << X_B))
-                               || (getFuserEgomotionId & (1 << Y_W)) || (getFuserEgomotionId & (1 << Y_B)))
+                            if((getFuserEgomotionId(i) & (1 << X_W)) || (getFuserEgomotionId(i) & (1 << X_B))
+                               || (getFuserEgomotionId(i) & (1 << Y_W)) || (getFuserEgomotionId(i) & (1 << Y_B)))
                                 temp(0,0) = level_acc_noise_sigma_;
-                            else if((getFuserEgomotionId & (1 << Z_W)))
+                            else if((getFuserEgomotionId(i) & (1 << Z_W)))
                                 temp(0,0) = z_acc_noise_sigma_;
                             getFuserEgomotion(i)->setInputSigma(temp);
                           }
@@ -302,17 +303,17 @@ snamespace sensor_plugin
                             Eigen::Matrix<double, 2, 1> temp = Eigen::MatrixXd::Zero(2, 1); 
                             temp(1,0) = acc_bias_noise_sigma_;
                             ROS_WARN("this is bias mode");
-                            if((getFuserExperimentId & (1 << X_W)) || (getFuserExperimentId & (1 << X_B)))
+                            if((getFuserExperimentId(i) & (1 << X_W)) || (getFuserExperimentId(i) & (1 << X_B)))
                               {
                                 temp(0,0) = level_acc_noise_sigma_;
                                 getFuserExperiment(i)->setInitState(acc_x_bias_, 2);
                               }
-                            else if((getFuserExperimentId & (1 << Y_W)) || (getFuserExperimentId & (1 << Y_B)))
+                            else if((getFuserExperimentId(i) & (1 << Y_W)) || (getFuserExperimentId(i) & (1 << Y_B)))
                               {
                                 temp(0,0) = level_acc_noise_sigma_;
                                 getFuserExperiment(i)->setInitState(acc_y_bias_, 2);
                               }
-                            else if((getFuserExperimentId & (1 << Z_W)))
+                            else if((getFuserExperimentId(i) & (1 << Z_W)))
                               {
                                 temp(0,0) = z_acc_noise_sigma_;
                                 getFuserExperiment(i)->setInitState(acc_z_bias_, 2);
@@ -321,10 +322,10 @@ snamespace sensor_plugin
                         if(getFuserExperimentName(i) == "kalman_filter/kf_pose_vel_acc")
                           {//temporary
                             Eigen::Matrix<double, 1, 1> temp = Eigen::MatrixXd::Zero(1, 1); 
-                            if((getFuserExperimentId & (1 << X_W)) || (getFuserExperimentId & (1 << X_B))
-                               || (getFuserExperimentId & (1 << Y_W)) || (getFuserExperimentId & (1 << Y_B)))
+                            if((getFuserExperimentId(i) & (1 << X_W)) || (getFuserExperimentId(i) & (1 << X_B))
+                               || (getFuserExperimentId(i) & (1 << Y_W)) || (getFuserExperimentId(i) & (1 << Y_B)))
                                 temp(0,0) = level_acc_noise_sigma_;
-                            else if((getFuserExperimentId & (1 << Z_W)))
+                            else if((getFuserExperimentId(i) & (1 << Z_W)))
                                 temp(0,0) = z_acc_noise_sigma_;
                             getFuserExperiment(i)->setInputSigma(temp);
                           }
@@ -360,30 +361,30 @@ snamespace sensor_plugin
                   {
                     if(getFuserEgomotionName(i) == "kalman_filter/kf_pose_vel_acc")
                       {//temporary
-                        if(getFuserEgomotionId & (1 << X_W)) 
+                        if(getFuserEgomotionId(i) & (1 << X_W)) 
                           temp(0, 0) = (double)acc_xw_non_bias_;
-                        else if(getFuserEgomotionId & (1 << X_B))
+                        else if(getFuserEgomotionId(i) & (1 << X_B))
                           temp(0, 0) = (double)acc_xi_;
-                        else if(getFuserEgomotionId & (1 << Y_W)) 
+                        else if(getFuserEgomotionId(i) & (1 << Y_W)) 
                           temp(0, 0) = (double)acc_yw_non_bias_;
-                        else if(getFuserEgomotionId & (1 << Y_B))
+                        else if(getFuserEgomotionId(i) & (1 << Y_B))
                           temp(0, 0) = (double)acc_yi_;
-                        else if(getFuserEgomotionId & (1 << Z_W))
+                        else if(getFuserEgomotionId(i) & (1 << Z_W))
                           temp(0, 0) = (double)acc_zw_non_bias_;
 
                         getFuserEgomotion(i)->prediction(temp);
                       }
                     if(getFuserEgomotionName(i) == "kalman_filter/kf_pose_vel_acc_bias")
                       {//temporary
-                        if(getFuserEgomotionId & (1 << X_W)) 
+                        if(getFuserEgomotionId(i) & (1 << X_W)) 
                           temp2(0, 0) = (double)acc_xw_;
-                        else if(getFuserEgomotionId & (1 << X_B))
+                        else if(getFuserEgomotionId(i) & (1 << X_B))
                           temp2(0, 0) = (double)acc_xi_;
-                        else if(getFuserEgomotionId & (1 << Y_W)) 
+                        else if(getFuserEgomotionId(i) & (1 << Y_W)) 
                           temp2(0, 0) = (double)acc_yw_;
-                        else if(getFuserEgomotionId & (1 << Y_B))
+                        else if(getFuserEgomotionId(i) & (1 << Y_B))
                           temp2(0, 0) = (double)acc_yi_;
-                        else if(getFuserEgomotionId & (1 << Z_W))
+                        else if(getFuserEgomotionId(i) & (1 << Z_W))
                           temp2(0, 0) = (double)acc_zw_;
 
                         getFuserEgomotion(i)->prediction(temp2);
@@ -418,15 +419,15 @@ snamespace sensor_plugin
                   {
                     if(getFuserExperimentName(i) == "kalman_filter/kf_pose_vel_acc")
                       {//temporary
-                        if(getFuserExperimentId & (1 << X_W)) 
+                        if(getFuserExperimentId(i) & (1 << X_W)) 
                           temp(0, 0) = (double)acc_xw_non_bias_;
-                        else if(getFuserExperimentId & (1 << X_B))
+                        else if(getFuserExperimentId(i) & (1 << X_B))
                           temp(0, 0) = (double)acc_xi_;
-                        else if(getFuserExperimentId & (1 << Y_W)) 
+                        else if(getFuserExperimentId(i) & (1 << Y_W)) 
                           temp(0, 0) = (double)acc_yw_non_bias_;
-                        else if(getFuserExperimentId & (1 << Y_B))
+                        else if(getFuserExperimentId(i) & (1 << Y_B))
                           temp(0, 0) = (double)acc_yi_;
-                        else if(getFuserExperimentId & (1 << Z_W))
+                        else if(getFuserExperimentId(i) & (1 << Z_W))
                           temp(0, 0) = (double)acc_zw_non_bias_;
 
                         getFuserExperiment(i)->prediction(temp);
@@ -434,15 +435,15 @@ snamespace sensor_plugin
 
                     if(getFuserExperimentName(i) == "kalman_filter/kf_pose_vel_acc_bias")
                       {//temporary
-                        if(getFuserExperimentId & (1 << X_W)) 
+                        if(getFuserExperimentId(i) & (1 << X_W)) 
                           temp2(0, 0) = (double)acc_xw_;
-                        else if(getFuserExperimentId & (1 << X_B))
+                        else if(getFuserExperimentId(i) & (1 << X_B))
                           temp2(0, 0) = (double)acc_xi_;
-                        else if(getFuserExperimentId & (1 << Y_W)) 
+                        else if(getFuserExperimentId(i) & (1 << Y_W)) 
                           temp2(0, 0) = (double)acc_yw_;
-                        else if(getFuserExperimentId & (1 << Y_B))
+                        else if(getFuserExperimentId(i) & (1 << Y_B))
                           temp2(0, 0) = (double)acc_yi_;
-                        else if(getFuserExperimentId & (1 << Z_W))
+                        else if(getFuserExperimentId(i) & (1 << Z_W))
                           temp2(0, 0) = (double)acc_zw_;
                         getFuserExperiment(i)->prediction(temp2);
                       }

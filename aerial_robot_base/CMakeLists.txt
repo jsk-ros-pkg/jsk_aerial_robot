@@ -19,8 +19,9 @@ find_package(catkin REQUIRED COMPONENTS
   dynamic_reconfigure
   aerial_robot_msgs
   kalman_filter
-jsk_stm
+  jsk_stm
   cmake_modules
+  pluginlib
 )
 
 
@@ -49,7 +50,7 @@ generate_dynamic_reconfigure_options(
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES ${PROJECT_NAME}
-  CATKIN_DEPENDS roscpp message_runtime aerial_robot_msgs std_msgs geometry_msgs visualization_msgs nav_msgs  sensor_msgs laser_geometry tf kalman_filter
+  CATKIN_DEPENDS roscpp message_runtime aerial_robot_msgs std_msgs geometry_msgs visualization_msgs nav_msgs  sensor_msgs laser_geometry tf kalman_filter pluginlib
   DEPENDS Eigen
 )
 
@@ -62,6 +63,10 @@ catkin_package(
 include_directories(
   include ${Boost_INCLUDE_DIR} ${catkin_INCLUDE_DIRS}
 )
+
+## pluginlib_tutorials library
+add_library(sensor_pluginlib src/sensor_plugin.cpp)
+target_link_libraries(sensor_pluginlib ${catkin_LIBRARIES})
 
 add_library (aerial_robot_base src/aerial_robot_base.cpp
   src/flight_navigation.cpp
@@ -78,11 +83,12 @@ target_link_libraries (aerial_robot_base_node ${catkin_LIBRARIES}  ${Boost_LIBRA
 #add_dependencies(aerial_robot_base_node aerial_robot_msgs_generate_message_cpp ${PROJECT_NAME}_generate_message_cpp ${PROJECT_NAME}_gencfg)
 add_dependencies(aerial_robot_base_node  ${PROJECT_NAME}_gencfg)
 
-add_executable(rotate_node src/rotate.cpp)
-target_link_libraries (rotate_node ${catkin_LIBRARIES}  ${Boost_LIBRARIES} aerial_robot_base) 
+#add_executable(rotate_node src/rotate.cpp)
+#target_link_libraries (rotate_node ${catkin_LIBRARIES}  ${Boost_LIBRARIES} aerial_robot_base) 
 
-add_executable(mocap_node src/mocap_node.cpp)
-target_link_libraries (mocap_node ${catkin_LIBRARIES}  ${Boost_LIBRARIES}) 
+#add_executable(mocap_node src/mocap_node.cpp)
+#target_link_libraries (mocap_node ${catkin_LIBRARIES}  ${Boost_LIBRARIES}) 
+
 
 
 

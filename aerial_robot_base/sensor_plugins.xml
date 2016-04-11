@@ -1,0 +1,23 @@
+<library path="lib/libsensor_pluginlib">
+  <class name="sensor_plugin/imu" type="sensor_plugin::Imu" base_class_type="sensor_base_plugin::SensorBase">
+    <description>IMU sensor plugin.</description>
+  </class>
+
+  <class name="sensor_plugin/optical_flow" type="sensor_plugin::OpticalFlow" base_class_type="sensor_base_plugin::SensorBase">
+    <description>Optical Flow sensor plugin.</description>
+  </class>
+
+  <class name="sensor_plugin/mocap" type="sensor_plugin::Mocap" base_class_type="sensor_base_plugin::SensorBase">
+    <description>Mocap sensor plugin.</description>
+  </class>
+
+  <class name="sensor_plugin/mirror" type="sensor_plugin::Mirror" base_class_type="sensor_base_plugin::SensorBase">
+    <description>Mirror sensor plugin.</description>
+  </class>
+
+  <class name="sensor_plugin/slam2d" type="sensor_plugin::Slam2D" base_class_type="sensor_base_plugin::SensorBase">
+    <description>Slam2d sensor plugin.</description>
+  </class>
+
+
+</library>
