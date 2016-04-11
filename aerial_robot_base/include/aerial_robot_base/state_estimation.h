@@ -5,29 +5,31 @@
 #include <ros/ros.h>
 
 #include <aerial_robot_base/basic_state_estimation.h>
-//* for state estimate
-#include <aerial_robot_base/sensor_base_plugin.h>
 
-//* filter
-#include <kalman_filter/kf_base_plugin.h>
-#include <kalman_filter/digital_filter.h>
+//* for state estimate
+#include <aerial_robot_base/sensor/sensor_base_plugin.h>
+
 
 class RigidEstimator : public BasicEstimator
 {
  public:
   RigidEstimator (ros::NodeHandle nh,
-                  ros::NodeHandle nh_private,
-                  bool simulation_flag);
+                  ros::NodeHandle nh_private);
   ~RigidEstimator ();
 
   void tfPublish();
-//float getLaserToImuDistance();
 
  private:
 
+  void statesBroadcast();
+
   void rosParamInit();
 
-  void statesBroadcast();
+
+  boost::shared_ptr< pluginlib::ClassLoader<sensor_base_plugin::SensorBase> > sensor_loader_ptr_;
+  int sensor_no_;
+  std::vector<std::string> sensor_plugin_name_;
+  std::vector< boost::shared_ptr<sensor_base_plugin::SensorBase> > sensors_;
 
 
 

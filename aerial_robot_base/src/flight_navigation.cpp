@@ -9,6 +9,8 @@
 
 #include "aerial_robot_base/flight_navigation.h"
 
+
+
 Navigator::Navigator(ros::NodeHandle nh, ros::NodeHandle nh_private, 
                      BasicEstimator* estimator, FlightCtrlInput* flight_ctrl_input,
                      int ctrl_loop_rate)

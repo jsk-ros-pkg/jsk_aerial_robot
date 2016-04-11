@@ -10,7 +10,8 @@
 
 #include <Eigen/Core>
 
-
+#include <kalman_filter/kf_base_plugin.h>
+#include <pluginlib/class_loader.h>
 
 class BasicEstimator
 {
@@ -19,6 +20,7 @@ class BasicEstimator
    : nh_(nh, "estimator"), nhp_(nh_private, "estimator")
     {
       full_states_pub_ = nh_.advertise<aerial_robot_base::States>("full_states", 1); 
+
 
       gt_state_.resize(9);
       ee_state_.resize(9);
@@ -42,7 +44,7 @@ class BasicEstimator
 
   virtual ~BasicEstimator(){}
 
-    //mode
+  //mode
   static const uint8_t X_W = 0; //x in world coord
   static const uint8_t Y_W = 1; //y in world coord
   static const uint8_t Z_W = 2; //z in world coord
@@ -65,21 +67,23 @@ class BasicEstimator
   inline float getEXState(int axis, int mode){ return (ex_state_[axis])[mode];}
   inline void setEXState(int axis, int mode, float value){ (ex_state_[axis])[mode] = value;}
 
-inline void setSensorFusionFlag(bool flag){sensor_fusion_flag_ = flag; }
-inline bool getSensorFusionFlag(){return sensor_fusion_flag_; }
+  inline void setSensorFusionFlag(bool flag){sensor_fusion_flag_ = flag; }
+  inline bool getSensorFusionFlag(){return sensor_fusion_flag_; }
 
   virtual float getPosZOffset() {  return  state_pos_z_offset_;}
   virtual void setPosZOffset(float pos_z_offset){  state_pos_z_offset_ = pos_z_offset;}
 
-inline boost::shared_ptr<kf_base_plugin::KalmanFilter> getFuserEgomotion(int no) { return fuser_egomotion_[no];}
-inline boost::shared_ptr<kf_base_plugin::KalmanFilter> getFuserExperiment(int no) { return fuser_experiment_[no];}
-inline std::string  getFuserEgomotionName(int no) { return fuser_egomotion_name_[no];}
-inline std::string  getFuserExperimentName(int no) { return fuser_experiment_name_[no];}
-inline std::string  getFuserEgomotionPluginName(int no) { return fuser_egomotion_plugin_name_[no];}
-inline std::string  getFuserExperimentPluginName(int no) { return fuser_experiment_plugin_name_[no];}
+  inline boost::shared_ptr<kf_base_plugin::KalmanFilter> getFuserEgomotion(int no) { return fuser_egomotion_[no];}
+  inline boost::shared_ptr<kf_base_plugin::KalmanFilter> getFuserExperiment(int no) { return fuser_experiment_[no];}
+  inline std::string  getFuserEgomotionName(int no) { return fuser_egomotion_name_[no];}
+  inline std::string  getFuserExperimentName(int no) { return fuser_experiment_name_[no];}
+  inline std::string  getFuserEgomotionPluginName(int no) { return fuser_egomotion_plugin_name_[no];}
+  inline std::string  getFuserExperimentPluginName(int no) { return fuser_experiment_plugin_name_[no];}
 
-inline std::string  getFuserEgomotionId(int no) { return fuser_egomotion_id_[no];}
-inline std::string  getFuserExperimentId(int no) { return fuser_experiment_id_[no];}
+  inline int  getFuserEgomotionId(int no) { return fuser_egomotion_id_[no];}
+  inline int  getFuserExperimentId(int no) { return fuser_experiment_id_[no];}
+  inline int  getFuserEgomotionNo() { return fuser_egomotion_no_;}
+  inline int  getFuserExperimentNo() { return fuser_experiment_no_;}
 
 
  protected:  
@@ -92,26 +96,28 @@ inline std::string  getFuserExperimentId(int no) { return fuser_experiment_id_[n
 
   // xw, yw, zw, rollw, pitchw, yaww of cog, xb, yb, yaww of board (9) 
   // (0): x, (1): dx, (2); ddx
-  std::vector< Eigen::Vector3d> > gt_state_; //ground truth
-  std::vector< Eigen::Vector3d> > ee_state_; //egomotion estimate in world coord
-  std::vector< Eigen::Vector3d> > ex_state_; //experiment in world coord
+  std::vector< Eigen::Vector3d>  gt_state_; //ground truth
+  std::vector< Eigen::Vector3d>  ee_state_; //egomotion estimate in world coord
+  std::vector< Eigen::Vector3d>  ex_state_; //experiment in world coord
 
   float state_pos_z_offset_; 
 
-//tf::TransformBroadcaster* br_;
-boost::shared_ptr< pluginlib::ClassLoader<kf_base_plugin::KalmanFilter> > sensor_fusion_loader_ptr_;
+  //tf::TransformBroadcaster* br_;
+  boost::shared_ptr< pluginlib::ClassLoader<kf_base_plugin::KalmanFilter> > sensor_fusion_loader_ptr_;
+  //pluginlib::ClassLoader<kf_base_plugin::KalmanFilter>  sensor_fusion_loader_;
 
-// sensor fusion
-bool sensor_fusion_flag_;
-int fuser_egomotion_no_, fuser_experiment_no_;
-std::vector<std::string> fuser_egomotion_plugin_name_;
-std::vector<std::string> fuser_experiment_plugin_name_;
-std::vector<std::string> fuser_egomotion_name_;
-std::vector<std::string> fuser_experiment_name_;
-std::vector<int> fuser_egomotion_id_;
-std::vector<int> fuser_experiment_id_;
-std::vector< boost::shared_ptr<kf_base_plugin::KalmanFilter> > fuser_egomotion_;
-std::vector< boost::shared_ptr<kf_base_plugin::KalmanFilter> > fuser_experiment_;
+
+  // sensor fusion
+  bool sensor_fusion_flag_;
+  int fuser_egomotion_no_, fuser_experiment_no_;
+  std::vector<std::string> fuser_egomotion_plugin_name_;
+  std::vector<std::string> fuser_experiment_plugin_name_;
+  std::vector<std::string> fuser_egomotion_name_;
+  std::vector<std::string> fuser_experiment_name_;
+  std::vector<int> fuser_egomotion_id_;
+  std::vector<int> fuser_experiment_id_;
+  std::vector< boost::shared_ptr<kf_base_plugin::KalmanFilter> > fuser_egomotion_;
+  std::vector< boost::shared_ptr<kf_base_plugin::KalmanFilter> > fuser_experiment_;
 
 
 };

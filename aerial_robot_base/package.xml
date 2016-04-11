@@ -53,7 +53,7 @@
   <run_depend>pluginlib</run_depend>
 
   <export>
-    <kalman_filter plugin="${prefix}/sensor_plugins.xml" /> 
+    <aerial_robot_base plugin="${prefix}/sensor_plugins.xml" /> 
   </export>
 
 

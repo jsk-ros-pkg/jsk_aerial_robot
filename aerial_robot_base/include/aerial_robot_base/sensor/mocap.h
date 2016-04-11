@@ -21,25 +21,25 @@
 #include <std_msgs/Float32.h>
 #include <geometry_msgs/PoseStamped.h>
 
-snamespace sensor_plugin
+namespace sensor_plugin
 {
 
   class Mocap :public sensor_base_plugin::SensorBase
   {
   public:
 
-    void initialize(ros::NodeHandle nh, ros::NodeHandle nhp, BasicEstimator* state_estimator)
+    void initialize(ros::NodeHandle nh, ros::NodeHandle nhp, BasicEstimator* estimator)
     {
       nh_ = ros::NodeHandle(nh, "mocap");
       nhp_ = ros::NodeHandle(nhp, "mocap");
       baseRosParamInit();
-      state_estimator_ = state_estimator;
+      estimator_ = estimator;
 
       rosParamInit();
 
-      mocap_sub_ = nh_.subscribe<geometry_msgs::PoseStamped>("/aerial_robot/pose", 1, &MocapData::poseCallback, this, ros::TransportHints().udp());
+      mocap_sub_ = nh_.subscribe<geometry_msgs::PoseStamped>("/aerial_robot/pose", 1, &Mocap::poseCallback, this, ros::TransportHints().udp());
 
-     cog_offset_sub_ = nh_.subscribe<std_msgs::Float32>(cog_rotate_sub_name_, 5, &MocapData::cogOffsetCallback, this, ros::TransportHints().tcpNoDelay()); 
+     cog_offset_sub_ = nh_.subscribe<std_msgs::Float32>(cog_rotate_sub_name_, 5, &Mocap::cogOffsetCallback, this, ros::TransportHints().tcpNoDelay()); 
 
 
       //debug, can be delete
@@ -144,16 +144,18 @@ snamespace sensor_plugin
           lpf_acc_z_.filterFunction(raw_acc_z, acc_z);
 
           //ground truth
-          estimator_->setGTState(X_W, 0, pos_x);
-          estimator_->setGTState(Y_W, 0, pos_y);
-          estimator_->setGTState(Z_W, 0, pos_z);
-          estimator_->setGTState(YAW_W_COG, 0, psi + cog_offset_angle_);
-          estimator_->setGTState(YAW_W_B, 0, psi);
-          estimator_->setGTState(X_W, 1, vel_x);
-          estimator_->setGTState(Y_W, 1, vel_y);
-          estimator_->setGTState(Z_W, 1, vel_z);
-          estimator_->setGTState(YAW_W_COG, 1, vel_psi);
-          estimator_->setGTState(YAW_W_B, 1, vel_psi);
+          estimator_->setGTState(BasicEstimator::X_W, 0, pos_x);
+          estimator_->setGTState(BasicEstimator::Y_W, 0, pos_y);
+          estimator_->setGTState(BasicEstimator::Z_W, 0, pos_z);
+          estimator_->setGTState(BasicEstimator::YAW_W_COG, 0, psi + cog_offset_angle_);
+          estimator_->setGTState(BasicEstimator::YAW_W_B, 0, psi);
+          estimator_->setGTState(BasicEstimator::X_W, 1, vel_x);
+          estimator_->setGTState(BasicEstimator::Y_W, 1, vel_y);
+          estimator_->setGTState(BasicEstimator::ROLL_W, 0, raw_phy);
+          estimator_->setGTState(BasicEstimator::PITCH_W, 0, raw_theta);
+          estimator_->setGTState(BasicEstimator::Z_W, 1, vel_z);
+          estimator_->setGTState(BasicEstimator::YAW_W_COG, 1, vel_psi);
+          estimator_->setGTState(BasicEstimator::YAW_W_B, 1, vel_psi);
 
           //publish for deubg, can delete
           aerial_robot_base::States ground_truth_pose;
@@ -208,68 +210,68 @@ snamespace sensor_plugin
 
           //experiment
           Eigen::Matrix<double, 1, 1> sigma_temp = Eigen::MatrixXd::Zero(1, 1);
-          Eigen::Matrix<double, 1, 1> temp = Eigen::MatrixXd::Zero(2, 1);
+          Eigen::Matrix<double, 1, 1> temp = Eigen::MatrixXd::Zero(1, 1);
 
           if(estimate_mode_ & (1 << EXPERIMENT_MODE))
             {
-              for(int i = 0; i < fuser_experiment_no_; i++)
+              for(int i = 0; i < estimator_->getFuserExperimentNo(); i++)
                 {
-                  if((getFuserExperimentId(i) & (1 << X_W)))
+                  if((estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::X_W)))
                     {
                       sigma_temp(0,0) = pos_noise_sigma_;
-                      getFuserExperiment(i)->setMeasureSigma(sigma_temp);
+                      estimator_->getFuserExperiment(i)->setMeasureSigma(sigma_temp);
 
                       temp(0, 0) = raw_pos_x;
-                      getFuserExperiment(i)->correction(temp);
+                      estimator_->getFuserExperiment(i)->correction(temp);
 
-                      x_state.reserves.push_back((getFuserExperiment(i)->getEstimateState())(0,0));
-                      x_state.reserves.push_back((getFuserExperiment(i)->getEstimateState())(1,0));
+                      x_state.reserves.push_back((estimator_->getFuserExperiment(i)->getEstimateState())(0,0));
+                      x_state.reserves.push_back((estimator_->getFuserExperiment(i)->getEstimateState())(1,0));
                     }
-                  else if((getFuserExperimentId(i) & (1 << Y_W)))
+                  else if((estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::Y_W)))
                     {
                       sigma_temp(0,0) = pos_noise_sigma_;
-                      getFuserExperiment(i)->setMeasureSigma(sigma_temp);
+                      estimator_->getFuserExperiment(i)->setMeasureSigma(sigma_temp);
 
                       temp(0, 0) = raw_pos_y;
-                      getFuserExperiment(i)->correction(temp);
+                      estimator_->getFuserExperiment(i)->correction(temp);
 
-                      y_state.reserves.push_back((getFuserExperiment(i)->getEstimateState())(0,0));
-                      y_state.reserves.push_back((getFuserExperiment(i)->getEstimateState())(1,0));
+                      y_state.reserves.push_back((estimator_->getFuserExperiment(i)->getEstimateState())(0,0));
+                      y_state.reserves.push_back((estimator_->getFuserExperiment(i)->getEstimateState())(1,0));
                     }
-                  else if((getFuserExperimentId(i) & (1 << Z_W)))
+                  else if((estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::Z_W)))
                     {
                       sigma_temp(0,0) = pos_noise_sigma_;
-                      getFuserExperiment(i)->setMeasureSigma(sigma_temp);
+                      estimator_->getFuserExperiment(i)->setMeasureSigma(sigma_temp);
 
                       temp(0, 0) = raw_pos_z;
-                      getFuserExperiment(i)->correction(temp);
+                      estimator_->getFuserExperiment(i)->correction(temp);
 
-                      z_state.reserves.push_back((getFuserExperiment(i)->getEstimateState())(0,0));
-                      z_state.reserves.push_back((getFuserExperiment(i)->getEstimateState())(1,0));
+                      z_state.reserves.push_back((estimator_->getFuserExperiment(i)->getEstimateState())(0,0));
+                      z_state.reserves.push_back((estimator_->getFuserExperiment(i)->getEstimateState())(1,0));
 
                     }
-                  else if((getFuserExperimentId(i) & (1 << YAW_W_COG)))
+                  else if((estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::YAW_W_COG)))
                     {
                       sigma_temp(0,0) = angle_noise_sigma_;
-                      getFuserExperiment(i)->setMeasureSigma(sigma_temp);
+                      estimator_->getFuserExperiment(i)->setMeasureSigma(sigma_temp);
 
                       temp(0, 0) = raw_psi + cog_offset_angle_ ;
-                      getFuserExperiment(i)->correction(temp);
+                      estimator_->getFuserExperiment(i)->correction(temp);
 
-                      yaw_state.reserves.push_back((getFuserExperiment(i)->getEstimateState())(0,0));
-                      yaw_state.reserves.push_back((getFuserExperiment(i)->getEstimateState())(1,0));
+                      yaw_state.reserves.push_back((estimator_->getFuserExperiment(i)->getEstimateState())(0,0));
+                      yaw_state.reserves.push_back((estimator_->getFuserExperiment(i)->getEstimateState())(1,0));
 
                     }
-                  else if((getFuserExperimentId(i) & (1 << YAW_W_B)))
+                  else if((estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::YAW_W_B)))
                     {
                       sigma_temp(0,0) = angle_noise_sigma_;
-                      getFuserExperiment(i)->setMeasureSigma(sigma_temp);
+                      estimator_->getFuserExperiment(i)->setMeasureSigma(sigma_temp);
 
                       temp(0, 0) = raw_psi;
-                      getFuserExperiment(i)->correction(temp);
+                      estimator_->getFuserExperiment(i)->correction(temp);
 
-                      yaw_state.reserves.push_back((getFuserExperiment(i)->getEstimateState())(0,0));
-                      yaw_state.reserves.push_back((getFuserExperiment(i)->getEstimateState())(1,0));
+                      yaw_state.reserves.push_back((estimator_->getFuserExperiment(i)->getEstimateState())(0,0));
+                      yaw_state.reserves.push_back((estimator_->getFuserExperiment(i)->getEstimateState())(1,0));
 
                     }
                 }
@@ -302,18 +304,24 @@ snamespace sensor_plugin
           if(estimate_mode_ & (1 << EXPERIMENT_MODE))
             {
               Eigen::Matrix<double, 1, 1> temp = Eigen::MatrixXd::Zero(1, 1); 
-              if((getFuserExperimentId(i) & (1 << X_W)) || (getFuserExperimentId(i) & (1 << Y_W)) || (getFuserExperimentId(i) & (1 << Z_W)))
+
+              for(int i = 0; i < estimator_->getFuserExperimentNo(); i++)
                 {
-                  temp(0,0) = pos_noise_sigma_;
-                  getFuserExperiment(i)->setMeasureSigma(temp);
-                  getFuserExperiment(i)->setMeasureFlag;
-                }
-              if((getFuserExperimentId(i) & (1 << YAW_W_COG)) ||
-                 (getFuserExperimentId(i) & (1 << YAW_W_B)))
-                {
-                  temp(0,0) = angle_noise_sigma_;
-                  getFuserExperiment(i)->setMeasureSigma(temp);
-                  getFuserExperiment(i)->setMeasureFlag;
+
+                  if((estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::X_W)) || (estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::Y_W)) || (estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::Z_W)))
+                    {
+                      temp(0,0) = pos_noise_sigma_;
+                      estimator_->getFuserExperiment(i)->setMeasureSigma(temp);
+                      estimator_->getFuserExperiment(i)->setMeasureFlag();
+                    }
+                  if((estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::YAW_W_COG)) ||
+                     (estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::YAW_W_B)))
+                    {
+                      temp(0,0) = angle_noise_sigma_;
+                      estimator_->getFuserExperiment(i)->setMeasureSigma(temp);
+                      estimator_->getFuserExperiment(i)->setMeasureFlag();
+                    }
+
                 }
             }
 
@@ -364,7 +372,7 @@ snamespace sensor_plugin
 
 
   };
-
+};
 #endif
 
 

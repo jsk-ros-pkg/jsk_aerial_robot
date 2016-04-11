@@ -12,18 +12,18 @@
 #include <aerial_robot_base/States.h>
 
 
-snamespace sensor_plugin
+namespace sensor_plugin
 {
 
   class Mirror :public sensor_base_plugin::SensorBase
   {
   public:
  
-    void initialize(ros::NodeHandle nh, ros::NodeHandle nhp, BasicEstimator* state_estimator)
+    void initialize(ros::NodeHandle nh, ros::NodeHandle nhp, BasicEstimator* estimator)
     {
       nh_ = ros::NodeHandle(nh, "mirror");
       nhp_ = ros::NodeHandle(nhp, "mirror");
-      state_estimator_ = state_estimator;
+      estimator_ = estimator;
 
       baseRosParamInit();
       rosParamInit();
@@ -32,7 +32,7 @@ snamespace sensor_plugin
       module_laser_boundary_pub_ = nh_.advertise<std_msgs::Int32>("laser_boundary_offset", 1); 
       module_laser_points_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("laser_reflcted_points", 1); 
       module_sub_ = 
-        nh_.subscribe("scan", 5, &MirrorModule::scanCallback, this, ros::TransportHints().tcpNoDelay());
+        nh_.subscribe("scan", 5, &Mirror::scanCallback, this, ros::TransportHints().tcpNoDelay());
 
       lpf_z_ =  IirFilter( (float)rx_freq_,
                            (float)cutoff_pos_freq_,
@@ -132,26 +132,26 @@ snamespace sensor_plugin
 
             if(estimate_mode_ & (1 << EGOMOTION_ESTIMATION_MODE))
               {
-                for(int i = 0; i < fuser_egomotion_no_; i++)
+                for(int i = 0; i < estimator_->getFuserEgomotionNo(); i++)
                   {
-                    if((getFuserEgomotionId(i) & (1 << Z_W)))
+                    if((estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::Z_W)))
                       {
                         temp(0,0) = pos_noise_sigma_;
-                        getFuserEgomotion(i)->setMeasureSigma(temp);
-                        getFuserEgomotion(i)->setMeasureFlag;
+                        estimator_->getFuserEgomotion(i)->setMeasureSigma(temp);
+                        estimator_->getFuserEgomotion(i)->setMeasureFlag();
                       }
                   }
               }
 
             if(estimate_mode_ & (1 << EXPERIMENT_MODE))
               {
-                for(int i = 0; i < fuser_experiment_no_; i++)
+                for(int i = 0; i < estimator_->getFuserExperimentNo(); i++)
                   {
-                    if((getFuserExperimentId(i) & (1 << Z_W)))
+                    if((estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::Z_W)))
                       {
                         temp(0,0) = pos_noise_sigma_;
-                        getFuserExperiment(i)->setMeasureSigma(temp);
-                        getFuserExperiment(i)->setMeasureFlag;
+                        estimator_->getFuserExperiment(i)->setMeasureSigma(temp);
+                        estimator_->getFuserExperiment(i)->setMeasureFlag();
                       }
                   }
               }
@@ -171,43 +171,49 @@ snamespace sensor_plugin
         raw_pos_z_ /= laser_reflected_;
         raw_pos_z_ = raw_pos_z;
 
+        aerial_robot_base::States state;
+        state.header.stamp = scan->header.stamp;
+
+        aerial_robot_base::State z_state;
+
+
         if(!first_time)
           {
-            aerial_robot_base::State state;
 
             raw_vel_z_ = (raw_pos_z_ - prev_raw_pos_z) /
               (current_secs - previous_secs);
 
             lpf_z_.filterFunction(raw_pos_z_, pos_z_, raw_vel_z_, vel_z_);
 
-
-            Eigen::MatrixXd temp(1,1);
+            Eigen::Matrix<double, 1, 1> temp = Eigen::MatrixXd::Zero(1, 1);
             temp(0, 0) = (double)(raw_pos_z_ - pos_z_mirror_offset_);
+            Eigen::Matrix<double, 1, 1> sigma_temp = Eigen::MatrixXd::Zero(1, 1);
+ 
             if(estimate_mode_ & (1 << EGOMOTION_ESTIMATION_MODE))
               {
-                for(int i = 0; i < fuser_egomotion_no_; i++)
+                for(int i = 0; i < estimator_->getFuserEgomotionNo(); i++)
                   {
-                    if((getFuserEgomotionId(i) & (1 << Z_W)))
+                    if((estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::Z_W)))
                       {
-                        temp(0,0) = pos_noise_sigma_;
-                        getFuserEgomotion(i)->setMeasureSigma(temp);
-                        getFuserExperiment(i)->correction(temp);
+                        sigma_temp(0,0) = pos_noise_sigma_;
+                        estimator_->getFuserEgomotion(i)->setMeasureSigma(sigma_temp);
+                        estimator_->getFuserExperiment(i)->correction(temp);
 
-                        if(getFuserEgomotionName(i) == "kalman_filter/kf_pose_vel_acc")
+                        if(estimator_->getFuserEgomotionName(i) == "kalman_filter/kf_pose_vel_acc")
 
                           {//temporary
-                            Eigen::Matrix<double,2,1> kf_z_state = getFuserEgomotion(i)->getEstimateState();
-                            estimator_->setEEState(Z_W, 0, kfb_y_state(0,0));
-                            estimator_->setEEState(Z_W, 1, kfb_y_state(1,0));
-                            state.kf_pos = kf_z_state(0, 0);
-                            state.kf_vel = kf_z_state(1, 0);
+                            Eigen::Matrix<double,2,1> kf_z_state = estimator_->getFuserEgomotion(i)->getEstimateState();
+                            estimator_->setEEState(BasicEstimator::Z_W, 0, kf_z_state(0,0));
+                            estimator_->setEEState(BasicEstimator::Z_W, 1, kf_z_state(1,0));
+                            z_state.kf_pos = kf_z_state(0, 0);
+                            z_state.kf_vel = kf_z_state(1, 0);
                           }
-                        if(getFuserEgomotionName(i) == "kalman_filter/kf_pose_vel_acc_bias") 
+                        if(estimator_->getFuserEgomotionName(i) == "kalman_filter/kf_pose_vel_acc_bias") 
                           {//temporary
-                            Eigen::Matrix<double,3,1> kfb_z_state = getFuserEgomotion(i)->getEstimateState();
-                            state.kfb_pos = kfb_z_state(0, 0);
-                            state.kfb_vel = kfb_z_state(1, 0);
-                            state.kfb_bias= kfb_z_state(2, 0);
+                            Eigen::Matrix<double,3,1> kfb_z_state = estimator_->getFuserEgomotion(i)->getEstimateState();
+                            z_state.kfb_pos = kfb_z_state(0, 0);
+                            z_state.kfb_vel = kfb_z_state(1, 0);
+                            z_state.kfb_bias= kfb_z_state(2, 0);
                           }
                       }
                   }
@@ -215,45 +221,43 @@ snamespace sensor_plugin
 
             if(estimate_mode_ & (1 << EXPERIMENT_MODE))
               {
-                for(int i = 0; i < fuser_experiment_no_; i++)
+                for(int i = 0; i < estimator_->getFuserExperimentNo(); i++)
                   {
-                    if((getFuserExperimentId(i) & (1 << Z_W)))
+                    if((estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::Z_W)))
                       {
-                        temp(0,0) = pos_noise_sigma_;
-                        getFuserExperiment(i)->setMeasureSigma(temp);
-                        getFuserExperiment(i)->correction(temp);
+                        sigma_temp(0,0) = pos_noise_sigma_;
+                        estimator_->getFuserExperiment(i)->setMeasureSigma(sigma_temp);
+                        estimator_->getFuserExperiment(i)->correction(temp);
 
-                        if(getFuserExperimentName(i) == "kalman_filter/kf_pose_vel_acc")
+                        if(estimator_->getFuserExperimentName(i) == "kalman_filter/kf_pose_vel_acc")
                           {//temporary
-                            Eigen::Matrix<double,2,1> kf_z_state = getFuserExperiment(i)->getEstimateState();
-                            estimator_->setEXState(Z_W, 0, kfb_y_state(0,0));
-                            estimator_->setEXState(Z_W, 1, kfb_y_state(1,0));
-                            state.reserves.push_back(kf_z_state(0, 0));
-                            state.reserves.push_back(kf_z_state(1, 0));
+                            Eigen::Matrix<double,2,1> kf_z_state = estimator_->getFuserExperiment(i)->getEstimateState();
+                            estimator_->setEXState(BasicEstimator::Z_W, 0, kf_z_state(0,0));
+                            estimator_->setEXState(BasicEstimator::Z_W, 1, kf_z_state(1,0));
+                            z_state.reserves.push_back(kf_z_state(0, 0));
+                            z_state.reserves.push_back(kf_z_state(1, 0));
                           }
-                        if(getFuserExperimentName(i) == "kalman_filter/kf_pose_vel_acc_bias")
+                        if(estimator_->getFuserExperimentName(i) == "kalman_filter/kf_pose_vel_acc_bias")
                           {//temporary
-                            Eigen::Matrix<double,3,1> kfb_z_state = getFuserExperiment(i)->getEstimateState();
-                            state.reserves.push_back(kfb_z_state(0, 0));
-                            state.reserves.push_back(kfb_z_state(1, 0));
-                            state.reserves.push_back(kfb_z_state(2, 0));
+                            Eigen::Matrix<double,3,1> kfb_z_state = estimator_->getFuserExperiment(i)->getEstimateState();
+                            z_state.reserves.push_back(kfb_z_state(0, 0));
+                            z_state.reserves.push_back(kfb_z_state(1, 0));
+                            z_state.reserves.push_back(kfb_z_state(2, 0));
                           }
                       }
                   }
               }
 
           }
-        aerial_robot_base::States height_state;
-        height_state.header.stamp = scan->header.stamp;
 
-        state.id = "z";
-        state.pos = pos_z_  - pos_z_mirror_offset_ ; //debug
-        state.raw_pos = raw_pos_z_ - pos_z_mirror_offset_;
-        state.vel = vel_z_;
-        state.raw_vel = raw_vel_z_;
+        z_state.id = "z";
+        z_state.pos = pos_z_  - pos_z_mirror_offset_ ; //debug
+        z_state.raw_pos = raw_pos_z_ - pos_z_mirror_offset_;
+        z_state.vel = vel_z_;
+        z_state.raw_vel = raw_vel_z_;
 
-        height_state.states.push_back(state);
-        state_pub_.publish( height_state );
+        state.states.push_back(z_state);
+        state_pub_.publish( state );
         module_laser_points_pub_.publish(reflected_points);
 
         // 更新

@@ -80,8 +80,8 @@ target_link_libraries (aerial_robot_base ${catkin_LIBRARIES}  ${Boost_LIBRARIES}
 
 add_executable(aerial_robot_base_node src/aerial_robot_base_node.cpp)
 target_link_libraries (aerial_robot_base_node ${catkin_LIBRARIES}  ${Boost_LIBRARIES} aerial_robot_base) 
-#add_dependencies(aerial_robot_base_node aerial_robot_msgs_generate_message_cpp ${PROJECT_NAME}_generate_message_cpp ${PROJECT_NAME}_gencfg)
-add_dependencies(aerial_robot_base_node  ${PROJECT_NAME}_gencfg)
+add_dependencies(aerial_robot_base_node aerial_robot_msgs_generate_message_cpp ${PROJECT_NAME}_generate_message_cpp ${PROJECT_NAME}_gencfg)
+#add_dependencies(aerial_robot_base_node  ${PROJECT_NAME}_gencfg)
 
 #add_executable(rotate_node src/rotate.cpp)
 #target_link_libraries (rotate_node ${catkin_LIBRARIES}  ${Boost_LIBRARIES} aerial_robot_base) 
@@ -90,6 +90,9 @@ add_dependencies(aerial_robot_base_node  ${PROJECT_NAME}_gencfg)
 #target_link_libraries (mocap_node ${catkin_LIBRARIES}  ${Boost_LIBRARIES}) 
 
 
+## sensor plugin_loader test
+#add_executable(sensor_plugin_test src/sensor_plugin_test.cpp)
+#target_link_libraries(sensor_plugin_test ${catkin_LIBRARIES})
 
 
 
@@ -110,10 +113,10 @@ install(PROGRAMS
 install(DIRECTORY launch
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
 
-install(TARGETS aerial_robot_base_node aerial_robot_base
-   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
- )
+#install(TARGETS aerial_robot_base_node aerial_robot_base
+#   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+#   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+#   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+# )
 
 

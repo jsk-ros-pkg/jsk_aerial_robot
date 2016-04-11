@@ -8,21 +8,21 @@
 #include <aerial_robot_base/OpticalFlow.h>
 #include <std_msgs/Int32.h>
 
-snamespace sensor_plugin
+namespace sensor_plugin
 {
-  class OpticalFLow :public sensor_base_plugin::SensorBase
+  class OpticalFlow :public sensor_base_plugin::SensorBase
   {
   public:
-      void initialize(ros::NodeHandle nh, ros::NodeHandle nhp, BasicEstimator* state_estimator)
+      void initialize(ros::NodeHandle nh, ros::NodeHandle nhp, BasicEstimator* estimator)
       {
         nh_ = ros::NodeHandle(nh, "optical_flow");
         nhp_ = ros::NodeHandle(nhp, "optical_flow");
-        state_estimator_ = state_estimator;
+        estimator_ = estimator;
         baseRosParamInit();
         rosParamInit();
 
         optical_flow_pub_ = nh_.advertise<aerial_robot_base::States>("data",10);
-        optical_flow_sub_ = nh_.subscribe<aerial_robot_base::OpticalFlow>("opt_flow", 1, &OpticalFlowData::opticalFlowCallback, this, ros::TransportHints().tcpNoDelay());
+        optical_flow_sub_ = nh_.subscribe<aerial_robot_base::OpticalFlow>("opt_flow", 1, &OpticalFlow::opticalFlowCallback, this, ros::TransportHints().tcpNoDelay());
 
         raw_pos_z_ = 0;
         pos_z_ = 0;
@@ -41,13 +41,12 @@ snamespace sensor_plugin
         }
 
     ~OpticalFlow() {}
-    OpticalFLow(){}
+
+    OpticalFlow() {}
   private:
     ros::Publisher optical_flow_pub_;
     ros::Subscriber optical_flow_sub_;
     ros::Time optical_flow_stamp_;
-
-    BasicEstimator* state_estimator_;
 
     double start_upper_thre_;
     double start_lower_thre_;
@@ -56,7 +55,7 @@ snamespace sensor_plugin
     double x_axis_direction_;
     double y_axis_direction_;
 
-    double sonar_noise_sigma_, 
+    double sonar_noise_sigma_, level_vel_noise_sigma_;
 
     float raw_pos_z_;
     float pos_z_;
@@ -92,78 +91,78 @@ snamespace sensor_plugin
         {
           if(raw_pos_z_ < start_upper_thre_ && raw_pos_z_ > start_lower_thre_ &&
              prev_raw_pos_z < start_lower_thre_ && 
-             prev_raw_pos_z > (start_lower_thre_ - 0.1) && !start_flag)
+             prev_raw_pos_z > (start_lower_thre_ - 0.1) )
             {//pose init
               //TODO: start flag fresh arm, or use air pressure => refined
               ROS_ERROR("optical flow: start sensor fusion, prev_raw_pos_z : %f", prev_raw_pos_z);
 
               if(estimate_mode_ & (1 << EGOMOTION_ESTIMATION_MODE))
                 {
-                  for(int i = 0; i < fuser_egomotion_no_; i++)
+                  for(int i = 0; i < estimator_->getFuserEgomotionNo(); i++)
                     {
                       Eigen::Matrix<double, 1, 1> temp = Eigen::MatrixXd::Zero(1, 1); 
-                      if((getFuserEgomotionId(i) & (1 << X_W)) || (getFuserEgomotionId(i) & (1 << X_B)))
+                      if((estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::X_W)) || (estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::X_B)))
                         {
                           temp(0,0) = level_vel_noise_sigma_;
-                          getFuserEgomotion(i)->setInitState(x_axis_direction_ * optical_flow_msg->flow_x /1000.0, 1);
-                          getFuserEgomotion(i)->setMeasureSigma(temp);
-                          getFuserEgomotion(i)->setMeasureFlag;
+                          estimator_->getFuserEgomotion(i)->setInitState(x_axis_direction_ * optical_flow_msg->flow_x /1000.0, 1);
+                          estimator_->getFuserEgomotion(i)->setMeasureSigma(temp);
+                          estimator_->getFuserEgomotion(i)->setMeasureFlag();
                         }
-                      else if((getFuserEgomotionId(i) & (1 << Y_W)) || (getFuserEgomotionId(i) & (1 << Y_B)))
+                      else if((estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::Y_W)) || (estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::Y_B)))
                         {
                           temp(0,0) = level_vel_noise_sigma_;
-                          getFuserEgomotion(i)->setInitState(y_axis_direction_ * optical_flow_msg->flow_y /1000.0 ,1);
-                          getFuserEgomotion(i)->setMeasureSigma(temp);
-                          getFuserEgomotion(i)->setMeasureFlag;
+                          estimator_->getFuserEgomotion(i)->setInitState(y_axis_direction_ * optical_flow_msg->flow_y /1000.0 ,1);
+                          estimator_->getFuserEgomotion(i)->setMeasureSigma(temp);
+                          estimator_->getFuserEgomotion(i)->setMeasureFlag();
                         }
-                      else if((getFuserEgomotionId(i) & (1 << Z_W)))
+                      else if((estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::Z_W)))
                         {
 
                           Eigen::Matrix<double, 2, 1> init_state2 = Eigen::MatrixXd::Zero(2, 1);
                           init_state2(0,0) = optical_flow_msg->ground_distance;
                           init_state2(1,0) = start_vel_;
-                          getFuserExperiment(i)->setInitState(init_state2);
+                          estimator_->getFuserEgomotion(i)->setInitState(init_state2);
 
                           temp(0,0) = sonar_noise_sigma_;
-                          getFuserEgomotion(i)->setMeasureSigma(temp);
-                          getFuserEgomotion(i)->setMeasureFlag;
+                          estimator_->getFuserEgomotion(i)->setMeasureSigma(temp);
+                          estimator_->getFuserEgomotion(i)->setMeasureFlag();
                         }
                     }
                 }
 
               if(estimate_mode_ & (1 << EXPERIMENT_MODE))
                 {
-                  for(int i = 0; i < fuser_experiment_no_; i++)
+                  for(int i = 0; i < estimator_->getFuserExperimentNo(); i++)
                     {
                       Eigen::Matrix<double, 1, 1> temp = Eigen::MatrixXd::Zero(1, 1); 
                       ROS_WARN("this is bias mode");
-                      if((getFuserExperimentId(i) & (1 << X_W)) || (getFuserExperimentId(i) & (1 << X_B)))
+                      if((estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::X_W)) || (estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::X_B)))
                         {
                           temp(0,0) = level_vel_noise_sigma_;
-                          getFuserExperiment(i)->setMeasureSigma(temp);
+                          estimator_->getFuserExperiment(i)->setMeasureSigma(temp);
 
-                          getFuserExperiment(i)->setInitState(x_axis_direction_ * optical_flow_msg->flow_x /1000.0, 1);
+                          estimator_->getFuserExperiment(i)->setInitState(x_axis_direction_ * optical_flow_msg->flow_x /1000.0, 1);
 
-                          getFuserExperiment(i)->setMeasureFlag;
+                          estimator_->getFuserExperiment(i)->setMeasureFlag();
                         }
-                      else if((getFuserExperimentId(i) & (1 << Y_W)) || (getFuserExperimentId(i) & (1 << Y_B)))
+                      else if((estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::Y_W)) || (estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::Y_B)))
                         {
                           temp(0,0) = level_vel_noise_sigma_;
-                          getFuserExperiment(i)->setMeasureSigma(temp);
+                          estimator_->getFuserExperiment(i)->setMeasureSigma(temp);
 
-                          getFuserExperiment(i)->setInitState(y_axis_direction_ * optical_flow_msg->flow_y /1000.0 ,1);
-                          getFuserExperiment(i)->setMeasureFlag;
+                          estimator_->getFuserExperiment(i)->setInitState(y_axis_direction_ * optical_flow_msg->flow_y /1000.0 ,1);
+                          estimator_->getFuserExperiment(i)->setMeasureFlag();
                         }
-                      else if((getFuserExperimentId(i) & (1 << Z_W)))
+                      else if((estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::Z_W)))
                         {
                           Eigen::Matrix<double, 2, 1> init_state2 = Eigen::MatrixXd::Zero(2, 1);
                           init_state2(0,0) = optical_flow_msg->ground_distance;
                           init_state2(1,0) = start_vel_;
-                          getFuserExperiment(i)->setInitState(init_state2);
+                          estimator_->getFuserExperiment(i)->setInitState(init_state2);
 
                           temp(0,0) = sonar_noise_sigma_;
-                          getFuserExperiment(i)->setMeasureSigma(temp);
-                          getFuserExperiment(i)->setMeasureFlag;
+                          estimator_->getFuserExperiment(i)->setMeasureSigma(temp);
+                          estimator_->getFuserExperiment(i)->setMeasureFlag();
                         }
                     }
                 }
@@ -173,15 +172,15 @@ snamespace sensor_plugin
           //temporariy for end pahse of landing
           if(estimate_mode_ & (1 << EGOMOTION_ESTIMATION_MODE))
             {
-              for(int i = 0; i < fuser_egomotion_no_; i++)
+              for(int i = 0; i < estimator_->getFuserEgomotionNo(); i++)
                 {
-                  if((getFuserEgomotionId(i) & (1 << Z_W)))
+                  if((estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::Z_W)))
                     {
-                      if(getFuserEgomotion(i)->getEstimateState(0,0) <=0 && getFuserEgomotion(i)->getFilteringFlag())
+                      if((estimator_->getFuserEgomotion(i)->getEstimateState())(0,0) <=0 && estimator_->getFuserEgomotion(i)->getFilteringFlag())
                         {
-                          ROS_WANR("optical flow: disable z mesaure flag");
-                          getFuserEgomotion(i)->setMeasureFlag(false);
-                          getFuserEgomotion(i)->resetState();
+                          ROS_WARN("optical flow: disable z mesaure flag");
+                          estimator_->getFuserEgomotion(i)->setMeasureFlag(false);
+                          estimator_->getFuserEgomotion(i)->resetState();
                         }
                     }
                 }
@@ -209,79 +208,78 @@ snamespace sensor_plugin
           filtered_vel_y_ = y_axis_direction_ * optical_flow_msg->flow_y /1000.0;
 
           Eigen::Matrix<double, 1, 1> sigma_temp = Eigen::MatrixXd::Zero(1, 1); 
-          Eigen::Matrix<double, 1, 1> temp = Eigen::MatrixXd::Zero(2, 1); 
+          Eigen::Matrix<double, 1, 1> temp = Eigen::MatrixXd::Zero(1, 1); 
 
           if(estimate_mode_ & (1 << EGOMOTION_ESTIMATION_MODE))
             {
-              for(int i = 0; i < fuser_egomotion_no_; i++)
+              for(int i = 0; i < estimator_->getFuserEgomotionNo(); i++)
                 {
-                  if((getFuserEgomotionId(i) & (1 << X_W)) || (getFuserEgomotionId(i) & (1 << X_B)))
+                  if((estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::X_W)) || (estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::X_B)))
                     {
                       sigma_temp(0,0) = level_vel_noise_sigma_;
-                      getFuserExperiment(i)->setMeasureSigma(sigma_temp);
+                      estimator_->getFuserEgomotion(i)->setMeasureSigma(sigma_temp);
                       if(optical_flow_msg->quality == 0 || raw_vel_x_ == 0 || raw_pos_z_ > 2.5)
                         temp(0, 0) = filtered_vel_x_;
                       else
                         temp(0, 0) = raw_vel_x_;
-                      getFuserEgomotion(i)->correction(temp);
+                      estimator_->getFuserEgomotion(i)->correction(temp);
                     }
-                  else if((getFuserEgomotionId(i) & (1 << Y_W)) || (getFuserEgomotionId(i) & (1 << Y_B)))
+                  else if((estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::Y_W)) || (estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::Y_B)))
                     {
                       sigma_temp(0,0) = level_vel_noise_sigma_;
-                      getFuserExperiment(i)->setMeasureSigma(sigma_temp);
+                      estimator_->getFuserEgomotion(i)->setMeasureSigma(sigma_temp);
 
                       if(optical_flow_msg->quality == 0 || raw_vel_y_ == 0 || raw_pos_z_ > 2.5)
                         temp(0, 0) = filtered_vel_y_;
                       else
                         temp(0, 0) = raw_vel_y_;
-                      getFuserEgomotion(i)->correction(temp);
+                      estimator_->getFuserEgomotion(i)->correction(temp);
                     }
-                  else if((getFuserEgomotionId(i) & (1 << Z_W)))
+                  else if((estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::Z_W)))
                     {
                       sigma_temp(0,0) = sonar_noise_sigma_;
-                      getFuserExperiment(i)->setMeasureSigma(sigma_temp);
+                      estimator_->getFuserEgomotion(i)->setMeasureSigma(sigma_temp);
 
-                      temp(raw_pos_z_ != prev_raw_pos_z && raw_pos_z_ < 2.5)
-                        temp(0, 0) = raw_pos_z_;
-                      getFuserEgomotion(i)->correction(temp);
+                      if(raw_pos_z_ != prev_raw_pos_z && raw_pos_z_ < 2.5) temp(0, 0) = raw_pos_z_;
+                      estimator_->getFuserEgomotion(i)->correction(temp);
                     }
                 }
             }
 
           if(estimate_mode_ & (1 << EXPERIMENT_MODE))
             {
-              for(int i = 0; i < fuser_experiment_no_; i++)
+              for(int i = 0; i < estimator_->getFuserExperimentNo(); i++)
                 {
-                  if((getFuserExperimentId(i) & (1 << X_W)) || (getFuserExperimentId(i) & (1 << X_B)))
+                  if((estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::X_W)) || (estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::X_B)))
                     {
                       sigma_temp(0,0) = level_vel_noise_sigma_;
-                      getFuserExperiment(i)->setMeasureSigma(sigma_temp);
+                      estimator_->getFuserExperiment(i)->setMeasureSigma(sigma_temp);
 
                       if(optical_flow_msg->quality == 0 || raw_vel_x_ == 0 || raw_pos_z_ > 2.5)
                         temp(0, 0) = filtered_vel_x_;
                       else
                         temp(0, 0) = raw_vel_x_;
-                      getFuserExperiment(i)->correction(temp);
+                      estimator_->getFuserExperiment(i)->correction(temp);
                     }
-                  else if((getFuserExperimentId(i) & (1 << Y_W)) || (getFuserExperimentId(i) & (1 << Y_B)))
+                  else if((estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::Y_W)) || (estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::Y_B)))
                     {
                       sigma_temp(0,0) = level_vel_noise_sigma_;
-                      getFuserExperiment(i)->setMeasureSigma(sigma_temp);
+                      estimator_->getFuserExperiment(i)->setMeasureSigma(sigma_temp);
 
                       if(optical_flow_msg->quality == 0 || raw_vel_y_ == 0 || raw_pos_z_ > 2.5)
                         temp(0, 0) = filtered_vel_y_;
                       else
                         temp(0, 0) = raw_vel_y_;
-                      getFuserExperiment(i)->correction(temp);
+                      estimator_->getFuserExperiment(i)->correction(temp);
                     }
-                  else if((getFuserExperimentId(i) & (1 << Z_W)))
+                  else if((estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::Z_W)))
                     {
                       sigma_temp(0,0) = sonar_noise_sigma_;
-                      getFuserExperiment(i)->setMeasureSigma(sigma_temp);
+                      estimator_->getFuserExperiment(i)->setMeasureSigma(sigma_temp);
 
                       if(raw_pos_z_ != prev_raw_pos_z && raw_pos_z_ < 2.5) //100Hz
                         temp(0, 0) = raw_pos_z_;
-                      getFuserExperiment(i)->correction(temp);
+                      estimator_->getFuserExperiment(i)->correction(temp);
                     }
                 }
             }
@@ -314,116 +312,116 @@ snamespace sensor_plugin
 
           if(estimate_mode_ & (1 << EGOMOTION_ESTIMATION_MODE))
             {
-              for(int i = 0; i < fuser_egomotion_no_; i++)
+              for(int i = 0; i < estimator_->getFuserEgomotionNo(); i++)
                 {
-                  if(getFuserEgomotionName(i) == "kalman_filter/kf_pose_vel_acc_bias")
+                  if(estimator_->getFuserEgomotionName(i) == "kalman_filter/kf_pose_vel_acc_bias")
                     {//temporary
-                      if((getFuserEgomotionId(i) & (1 << X_B))) 
+                      if((estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::X_B))) 
                         {
-                          kfb_x_state = getFuserEgomotion(i)->getEstimateState();
-                          estimator_->setEEState(X_B, 1, kfb_x_state(1,0));
+                          kfb_x_state = estimator_->getFuserEgomotion(i)->getEstimateState();
+                          estimator_->setEEState(BasicEstimator::X_B, 1, kfb_x_state(1,0));
                         }
-                      if((getFuserEgomotionId(i) & (1 << X_W))) 
+                      if((estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::X_W))) 
                         {
-                          kfb_x_state = getFuserEgomotion(i)->getEstimateState();
-                          estimator_->setEEState(X_W, 1, kfb_x_state(1,0));
+                          kfb_x_state = estimator_->getFuserEgomotion(i)->getEstimateState();
+                          estimator_->setEEState(BasicEstimator::X_W, 1, kfb_x_state(1,0));
                         }
-                      if((getFuserEgomotionId(i) & (1 << Y_B))) 
+                      if((estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::Y_B))) 
                         {
-                          kfb_y_state = getFuserEgomotion(i)->getEstimateState();
-                          estimator_->setEEState(Y_W, 1, kfb_y_state(1,0));
+                          kfb_y_state = estimator_->getFuserEgomotion(i)->getEstimateState();
+                          estimator_->setEEState(BasicEstimator::Y_W, 1, kfb_y_state(1,0));
                         }
-                      if((getFuserEgomotionId(i) & (1 << Y_W))) 
+                      if((estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::Y_W))) 
                         {
-                          kfb_y_state = getFuserEgomotion(i)->getEstimateState();
-                          estimator_->setEEState(Y_W, 1, kfb_y_state(1,0));
+                          kfb_y_state = estimator_->getFuserEgomotion(i)->getEstimateState();
+                          estimator_->setEEState(BasicEstimator::Y_W, 1, kfb_y_state(1,0));
                         }
                     }
-                  if(getFuserEgomotionName(i) == "kalman_filter/kf_pose_vel_acc")
+                  if(estimator_->getFuserEgomotionName(i) == "kalman_filter/kf_pose_vel_acc")
                     {//temporary
-                      if((getFuserEgomotionId(i) & (1 << X_B))) 
+                      if((estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::X_B))) 
                         {
-                          kf_x_state = getFuserEgomotion(i)->getEstimateState();
-                          estimator_->setEEState(X_B, 1, kf_x_state(1,0));
+                          kf_x_state = estimator_->getFuserEgomotion(i)->getEstimateState();
+                          estimator_->setEEState(BasicEstimator::X_B, 1, kf_x_state(1,0));
                         }
-                      if((getFuserEgomotionId(i) & (1 << X_W))) 
+                      if((estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::X_W))) 
                         {
-                          kf_x_state = getFuserEgomotion(i)->getEstimateState();
-                          estimator_->setEEState(X_W, 1, kf_x_state(1,0));
+                          kf_x_state = estimator_->getFuserEgomotion(i)->getEstimateState();
+                          estimator_->setEEState(BasicEstimator::X_W, 1, kf_x_state(1,0));
                         }
-                      if((getFuserEgomotionId(i) & (1 << Y_B))) 
+                      if((estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::Y_B))) 
                         {
-                          kf_y_state = getFuserEgomotion(i)->getEstimateState();
-                          estimator_->setEEState(Y_B, 1, kf_y_state(1,0));
+                          kf_y_state = estimator_->getFuserEgomotion(i)->getEstimateState();
+                          estimator_->setEEState(BasicEstimator::Y_B, 1, kf_y_state(1,0));
                         }
-                      if((getFuserEgomotionId(i) & (1 << Y_W))) 
+                      if((estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::Y_W))) 
                         {
-                          kf_y_state = getFuserEgomotion(i)->getEstimateState();
-                          estimator_->setEEState(Y_W, 1, kf_y_state(1,0));
+                          kf_y_state = estimator_->getFuserEgomotion(i)->getEstimateState();
+                          estimator_->setEEState(BasicEstimator::Y_W, 1, kf_y_state(1,0));
                         }
-                      if((getFuserEgomotionId(i) & (1 << Z_W))) 
+                      if((estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::Z_W))) 
                         {
-                          kf_z_state = getFuserEgomotion(i)->getEstimateState();
-                          estimator_->setEEState(Z_W, 0, kf_z_state(0,0));
-                          estimator_->setEEState(Z_W, 1, kf_z_state(1,0));
+                          kf_z_state = estimator_->getFuserEgomotion(i)->getEstimateState();
+                          estimator_->setEEState(BasicEstimator::Z_W, 0, kf_z_state(0,0));
+                          estimator_->setEEState(BasicEstimator::Z_W, 1, kf_z_state(1,0));
                         }
                     }
                 }
             }
           else if(estimate_mode_ & (1 << EXPERIMENT_MODE))
             {
-              for(int i = 0; i < fuser_egomotion_no_; i++)
+              for(int i = 0; i < estimator_->getFuserExperimentNo(); i++)
                 {
-                  if(getFuserEgomotionName(i) == "kalman_filter/kf_pose_vel_acc_bias")
+                  if(estimator_->getFuserExperimentName(i) == "kalman_filter/kf_pose_vel_acc_bias")
                     {//temporary
-                      if((getFuserExperimentId(i) & (1 << X_B))) 
+                      if((estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::X_B))) 
                         {
-                          kfb_x_state = getFuserExperiment(i)->getEstimateState();
-                          estimator_->setEXState(X_B, 1, kfb_x_state(1,0));
+                          kfb_x_state = estimator_->getFuserExperiment(i)->getEstimateState();
+                          estimator_->setEXState(BasicEstimator::X_B, 1, kfb_x_state(1,0));
                         }
-                      if((getFuserExperimentId(i) & (1 << X_W))) 
+                      if((estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::X_W))) 
                         {
-                          kfb_x_state = getFuserExperiment(i)->getEstimateState();
-                          estimator_->setEXState(X_W, 1, kfb_x_state(1,0));
+                          kfb_x_state = estimator_->getFuserExperiment(i)->getEstimateState();
+                          estimator_->setEXState(BasicEstimator::X_W, 1, kfb_x_state(1,0));
                         }
-                      if((getFuserExperimentId(i) & (1 << Y_B))) 
+                      if((estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::Y_B))) 
                         {
-                          kfb_y_state = getFuserExperiment(i)->getEstimateState();
-                          estimator_->setEEState(Y_B, 1, kfb_y_state(1,0));
+                          kfb_y_state = estimator_->getFuserExperiment(i)->getEstimateState();
+                          estimator_->setEEState(BasicEstimator::Y_B, 1, kfb_y_state(1,0));
                         }
-                      if((getFuserExperimentId(i) & (1 << Y_W))) 
+                      if((estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::Y_W))) 
                         {
-                          kfb_y_state = getFuserExperiment(i)->getEstimateState();
-                          estimator_->setEEState(Y_W, 1, kfb_y_state(1,0));
+                          kfb_y_state = estimator_->getFuserExperiment(i)->getEstimateState();
+                          estimator_->setEEState(BasicEstimator::Y_W, 1, kfb_y_state(1,0));
                         }
                     }
-                  if(getFuserEgomotionName(i) == "kalman_filter/kf_pose_vel_acc")
+                  if(estimator_->getFuserExperimentName(i) == "kalman_filter/kf_pose_vel_acc")
                     {//temporary
-                      if((getFuserExperimentId(i) & (1 << X_B))) 
+                      if((estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::X_B))) 
                         {
-                          kf_x_state = getFuserExperiment(i)->getEstimateState();
-                          estimator_->setEXState(X_B, 1, kf_x_state(1,0));
+                          kf_x_state = estimator_->getFuserExperiment(i)->getEstimateState();
+                          estimator_->setEXState(BasicEstimator::X_B, 1, kf_x_state(1,0));
                         }
-                      if((getFuserExperimentId(i) & (1 << X_W))) 
+                      if((estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::X_W))) 
                         {
-                          kf_x_state = getFuserExperiment(i)->getEstimateState();
-                          estimator_->setEXState(X_W, 1, kf_x_state(1,0));
+                          kf_x_state = estimator_->getFuserExperiment(i)->getEstimateState();
+                          estimator_->setEXState(BasicEstimator::X_W, 1, kf_x_state(1,0));
                         }
-                      if((getFuserExperimentId(i) & (1 << Y_B))) 
+                      if((estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::Y_B))) 
                         {
-                          kf_y_state = getFuserExperiment(i)->getEstimateState();
-                          estimator_->setEXState(Y_B, 1, kf_y_state(1,0));
+                          kf_y_state = estimator_->getFuserExperiment(i)->getEstimateState();
+                          estimator_->setEXState(BasicEstimator::Y_B, 1, kf_y_state(1,0));
                         }
-                      if((getFuserExperimentId(i) & (1 << Y_W))) 
+                      if((estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::Y_W))) 
                         {
-                          kf_y_state = getFuserExperiment(i)->getEstimateState();
-                          estimator_->setEXState(Y_W, 1, kf_y_state(1,0));
+                          kf_y_state = estimator_->getFuserExperiment(i)->getEstimateState();
+                          estimator_->setEXState(BasicEstimator::Y_W, 1, kf_y_state(1,0));
                         }
-                      if((getFuserExperimentId(i) & (1 << Z_W))) 
+                      if((estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::Z_W))) 
                         {
-                          kf_z_state = getFuserExperiment(i)->getEstimateState();
-                          estimator_->setEXState(Z_W, 0, kf_z_state(0,0));
-                          estimator_->setEXState(Z_W, 1, kf_z_state(1,0));
+                          kf_z_state = estimator_->getFuserExperiment(i)->getEstimateState();
+                          estimator_->setEXState(BasicEstimator::Z_W, 0, kf_z_state(0,0));
+                          estimator_->setEXState(BasicEstimator::Z_W, 1, kf_z_state(1,0));
                         }
                     }
                 }
