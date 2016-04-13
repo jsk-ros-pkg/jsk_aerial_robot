@@ -597,179 +597,187 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
          joy_msg->buttons[10] == 0 &&joy_msg->buttons[11] == 0 && gain_tunning_flag_)
         gain_tunning_flag_  = false;
 
-
-
-    }
-  else if(xy_control_mode_ == POS_WORLD_BASED_CONTROL_MODE || xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE)
-   {
-      //start 
+      //turn to xy_control_mode_ = POS_WORLD_BASED_CONTROL_MODE
+      if(joy_msg->buttons[14] == 1) gain_tunning_mode_ = 0;
+     }
+   else if(xy_control_mode_ == POS_WORLD_BASED_CONTROL_MODE || xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE)
+    {
+       //start 
       if(joy_msg->buttons[3] == 1 && getNaviCommand() != START_COMMAND)
-        {
-          setNaviCommand(START_COMMAND);
-          final_target_pos_x_= estimator_->getStatePosX();
-          final_target_pos_y_= estimator_->getStatePosY();
-          final_target_pos_z_ = takeoff_height_;  // 0.55m
-          final_target_psi_  = estimator_->getStatePsiBoard();
-          ROS_INFO("Start command");
-          return;
-        }
-      //halt
-      if(joy_msg->buttons[0] == 1)
-        {
-          setNaviCommand(STOP_COMMAND);
-          flight_mode_= RESET_MODE;
+         {
+           setNaviCommand(START_COMMAND);
+           final_target_pos_x_= estimator_->getStatePosX();
+           final_target_pos_y_= estimator_->getStatePosY();
+           final_target_pos_z_ = takeoff_height_;  // 0.55m
+           final_target_psi_  = estimator_->getStatePsiBoard();
+           ROS_INFO("Start command");
+           return;
+         }
+       //halt
+       if(joy_msg->buttons[0] == 1)
+         {
+           setNaviCommand(STOP_COMMAND);
+           flight_mode_= RESET_MODE;
 
-          setTargetPosX(estimator_->getStatePosX());
-          setTargetPosY(estimator_->getStatePosY());
-          setTargetPsi(estimator_->getStatePsiBoard());
+           setTargetPosX(estimator_->getStatePosX());
+           setTargetPosY(estimator_->getStatePosY());
+           setTargetPsi(estimator_->getStatePsiBoard());
 
 
-          if(xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE) xy_control_mode_ = POS_WORLD_BASED_CONTROL_MODE;
-          ROS_INFO("Halt command");
-          return;
-        }
-      //takeoff
-      if(joy_msg->buttons[7] == 1 && joy_msg->buttons[13] == 1)
-        {
+           if(xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE) xy_control_mode_ = POS_WORLD_BASED_CONTROL_MODE;
+           ROS_INFO("Halt command");
+           return;
+         }
+       //takeoff
+       if(joy_msg->buttons[7] == 1 && joy_msg->buttons[13] == 1)
+         {
 
-          if(getStartAble())  
-            {
-              if(xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE) xy_control_mode_ = POS_WORLD_BASED_CONTROL_MODE;
-              setNaviCommand(TAKEOFF_COMMAND);
-              ROS_INFO("Takeoff command");
-            }
-          else  stopFlight();
+           if(getStartAble())  
+             {
+               if(xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE) xy_control_mode_ = POS_WORLD_BASED_CONTROL_MODE;
+               setNaviCommand(TAKEOFF_COMMAND);
+               ROS_INFO("Takeoff command");
+             }
+           else  stopFlight();
 
-          return;
-        }
-      //landing
-      if(joy_msg->buttons[5] == 1 && joy_msg->buttons[15] == 1)
-        {
-          if(xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE) xy_control_mode_ = POS_WORLD_BASED_CONTROL_MODE;
+           return;
+         }
+       //landing
+       if(joy_msg->buttons[5] == 1 && joy_msg->buttons[15] == 1)
+         {
+           if(xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE) xy_control_mode_ = POS_WORLD_BASED_CONTROL_MODE;
 
-          setNaviCommand(LAND_COMMAND);
-          //更新
-          final_target_pos_x_= estimator_->getStatePosX();
-          final_target_pos_y_= estimator_->getStatePosY();
-          final_target_pos_z_= 0; 
-          final_target_psi_  = estimator_->getStatePsiBoard();
-          ROS_INFO("Land command");
+           setNaviCommand(LAND_COMMAND);
+           //更新
+           final_target_pos_x_= estimator_->getStatePosX();
+           final_target_pos_y_= estimator_->getStatePosY();
+           final_target_pos_z_= 0; 
+           final_target_psi_  = estimator_->getStatePsiBoard();
+           ROS_INFO("Land command");
 
-          return;
-        }
+           return;
+         }
 
-      //change to vel control mode
-      if(joy_msg->buttons[12] == 1 && !vel_control_flag_)
-        {
-          ROS_INFO("change to vel pos-based control");
-          vel_control_flag_ = true;
-          xy_control_mode_ = VEL_WORLD_BASED_CONTROL_MODE;
-          final_target_vel_x_= 0; current_target_vel_x_= 0;
-          final_target_vel_y_= 0; current_target_vel_y_= 0;
-        }
-      if(joy_msg->buttons[12] == 0 && vel_control_flag_)
-        vel_control_flag_ = false;
+       //change to vel control mode
+       if(joy_msg->buttons[12] == 1 && !vel_control_flag_)
+         {
+           ROS_INFO("change to vel pos-based control");
+           vel_control_flag_ = true;
+           xy_control_mode_ = VEL_WORLD_BASED_CONTROL_MODE;
+           final_target_vel_x_= 0; current_target_vel_x_= 0;
+           final_target_vel_y_= 0; current_target_vel_y_= 0;
 
-      //change to pos control mode
-      if(joy_msg->buttons[14] == 1 && !pos_control_flag_)
-        {
-          ROS_INFO("change to pos control");
-          pos_control_flag_ = true;
-          xy_control_mode_ = POS_WORLD_BASED_CONTROL_MODE;
-          final_target_pos_x_= estimator_->getStatePosX();
-          final_target_pos_y_= estimator_->getStatePosY();
-        }
-      if(joy_msg->buttons[14] == 0 && pos_control_flag_)
-        pos_control_flag_ = false;
+         }
+       if(joy_msg->buttons[12] == 0 && vel_control_flag_)
+         vel_control_flag_ = false;
 
-      //pitch && roll vel command for vel_mode
-      if(xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE && getNaviCommand() == HOVER_COMMAND)
-        {
-          if(joy_msg->buttons[1] == 0)
-            {//no push the left joysitck
-              final_target_vel_x_= joy_msg->axes[1] * fabs(joy_msg->axes[1]) * target_vel_rate_;
-              final_target_vel_y_= joy_msg->axes[0] * fabs(joy_msg->axes[0]) * target_vel_rate_;
-            }
-          if(joy_msg->buttons[1] == 1)
-            {//push the left joysitck
-              ROS_INFO("strong vel control");
-              final_target_vel_x_
-                = joy_msg->axes[1] * fabs(joy_msg->axes[1]) * target_vel_rate_ * cmd_vel_lev2_gain_;
-              final_target_vel_y_
-                = joy_msg->axes[0] * fabs(joy_msg->axes[0]) * target_vel_rate_ * cmd_vel_lev2_gain_;
-            }
-        }
+       //change to pos control mode
+       if(joy_msg->buttons[14] == 1 && !pos_control_flag_)
+         {
+           ROS_INFO("change to pos control");
+           pos_control_flag_ = true;
+           xy_control_mode_ = POS_WORLD_BASED_CONTROL_MODE;
+           final_target_pos_x_= estimator_->getStatePosX();
+           final_target_pos_y_= estimator_->getStatePosY();
+         }
+       if(joy_msg->buttons[14] == 0 && pos_control_flag_)
+         pos_control_flag_ = false;
 
-      //throttle, TODO: not good
-      if(fabs(joy_msg->axes[3]) > 0.2)
-        {
-          if(joy_msg->buttons[2] == 0 && getNaviCommand() == HOVER_COMMAND)
-            {//push the right joysitck
-              alt_control_flag_ = true;
-              if(joy_msg->axes[3] >= 0) 
-                final_target_pos_z_+= target_alt_interval_;
-              else 
-                final_target_pos_z_-= target_alt_interval_;
-              ROS_INFO("Thrust command");
-            }
-        }
-      else
-        {
-          if(alt_control_flag_)
-            {
-              alt_control_flag_= false;
-              final_target_pos_z_= estimator_->getStatePosZ();
-              ROS_INFO("Fixed Alt command, targetPosz_is %f",final_target_pos_z_);
-            }
-        }
+       //pitch && roll vel command for vel_mode
+       if(xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE && getNaviCommand() == HOVER_COMMAND)
+         {
+           if(joy_msg->buttons[1] == 0)
+             {//no push the left joysitck
+               final_target_vel_x_= joy_msg->axes[1] * fabs(joy_msg->axes[1]) * target_vel_rate_;
+               final_target_vel_y_= joy_msg->axes[0] * fabs(joy_msg->axes[0]) * target_vel_rate_;
+             }
+           if(joy_msg->buttons[1] == 1)
+             {//push the left joysitck
+               ROS_INFO("strong vel control");
+               final_target_vel_x_
+                 = joy_msg->axes[1] * fabs(joy_msg->axes[1]) * target_vel_rate_ * cmd_vel_lev2_gain_;
+               final_target_vel_y_
+                 = joy_msg->axes[0] * fabs(joy_msg->axes[0]) * target_vel_rate_ * cmd_vel_lev2_gain_;
+             }
+         }
 
-#if 0 //no yaw 90 control
-      //yaw
-      if(!yaw_control_flag_)
-        {
-          if(joy_msg->buttons[10] == 1 && getNaviCommand() == HOVER_COMMAND)
-            {//CCW
-              ROS_INFO("CCW, change to pos control mode");
-              yaw_control_flag_ = true;
-              xy_control_mode_ = POS_WORLD_BASED_CONTROL_MODE;
-              //final_target_psi_ += 3.1415/2.0; 
-              final_target_psi_ = estimator_->getStatePsiBoard() + M_PI/2.0; 
-              if(final_target_psi_ > M_PI) final_target_psi_ -= 2 * M_PI;
-              else if(final_target_psi_ < -M_PI) final_target_psi_ += 2 *M_PI;
+       //throttle, TODO: not good
+       if(fabs(joy_msg->axes[3]) > 0.2)
+         {
+           if(joy_msg->buttons[2] == 0 && getNaviCommand() == HOVER_COMMAND)
+             {//push the right joysitck
+               alt_control_flag_ = true;
+               if(joy_msg->axes[3] >= 0) 
+                 final_target_pos_z_+= target_alt_interval_;
+               else 
+                 final_target_pos_z_-= target_alt_interval_;
+               ROS_INFO("Thrust command");
+             }
+         }
+       else
+         {
+           if(alt_control_flag_)
+             {
+               alt_control_flag_= false;
+               final_target_pos_z_= estimator_->getStatePosZ();
+               ROS_INFO("Fixed Alt command, targetPosz_is %f",final_target_pos_z_);
+             }
+         }
 
-              final_target_pos_x_= estimator_->getStatePosX();
-              final_target_pos_y_= estimator_->getStatePosY();
-            }
-          if(joy_msg->buttons[11] == 1 && getNaviCommand() == HOVER_COMMAND)
-            {//CW
-              ROS_INFO("CW,, change to pos control mode");
-              yaw_control_flag_ = true;
-              xy_control_mode_ = POS_WORLD_BASED_CONTROL_MODE;
+ #if 0 //no yaw 90 control
+       //yaw
+       if(!yaw_control_flag_)
+         {
+           if(joy_msg->buttons[10] == 1 && getNaviCommand() == HOVER_COMMAND)
+             {//CCW
+               ROS_INFO("CCW, change to pos control mode");
+               yaw_control_flag_ = true;
+               xy_control_mode_ = POS_WORLD_BASED_CONTROL_MODE;
+               //final_target_psi_ += 3.1415/2.0; 
+               final_target_psi_ = estimator_->getStatePsiBoard() + M_PI/2.0; 
+               if(final_target_psi_ > M_PI) final_target_psi_ -= 2 * M_PI;
+               else if(final_target_psi_ < -M_PI) final_target_psi_ += 2 *M_PI;
 
-              final_target_psi_ = estimator_->getStatePsiBoard() - 3.1415/2.0; 
-              if(final_target_psi_ > M_PI) final_target_psi_ -= 2 * M_PI;
-              else if(final_target_psi_ < -M_PI) final_target_psi_ += 2 *M_PI;
+               final_target_pos_x_= estimator_->getStatePosX();
+               final_target_pos_y_= estimator_->getStatePosY();
+             }
+           if(joy_msg->buttons[11] == 1 && getNaviCommand() == HOVER_COMMAND)
+             {//CW
+               ROS_INFO("CW,, change to pos control mode");
+               yaw_control_flag_ = true;
+               xy_control_mode_ = POS_WORLD_BASED_CONTROL_MODE;
 
-              final_target_pos_x_= estimator_->getStatePosX();
-              final_target_pos_y_= estimator_->getStatePosY();
-            }
-        }
-      if(yaw_control_flag_ && joy_msg->buttons[10] == 0 && joy_msg->buttons[11] == 0)
-        {
-          yaw_control_flag_ = false;
-          ROS_INFO("stop yaw control");
-        }
-#endif 
-      if(joy_msg->buttons[2] == 1 && getNaviCommand() == HOVER_COMMAND)
-        {
-          if(fabs(joy_msg->axes[2]) > 0.05)
-            {
-              final_target_psi_ = estimator_->getStatePsiBoard() + joy_msg->axes[2] * target_yaw_rate_;
-              ROS_INFO("yaw control");
-            }
-          else
-            final_target_psi_ = estimator_->getStatePsiBoard();
-        }
+               final_target_psi_ = estimator_->getStatePsiBoard() - 3.1415/2.0; 
+               if(final_target_psi_ > M_PI) final_target_psi_ -= 2 * M_PI;
+               else if(final_target_psi_ < -M_PI) final_target_psi_ += 2 *M_PI;
+
+               final_target_pos_x_= estimator_->getStatePosX();
+               final_target_pos_y_= estimator_->getStatePosY();
+             }
+         }
+       if(yaw_control_flag_ && joy_msg->buttons[10] == 0 && joy_msg->buttons[11] == 0)
+         {
+           yaw_control_flag_ = false;
+           ROS_INFO("stop yaw control");
+         }
+ #endif 
+       if(joy_msg->buttons[2] == 1 && getNaviCommand() == HOVER_COMMAND)
+         {
+           if(fabs(joy_msg->axes[2]) > 0.05)
+             {
+               final_target_psi_ = estimator_->getStatePsiBoard() + joy_msg->axes[2] * target_yaw_rate_;
+               ROS_INFO("yaw control");
+             }
+           else
+             final_target_psi_ = estimator_->getStatePsiBoard();
+         }
+
+
+       if(joy_msg->buttons[6]==1) 
+         {
+           gain_tunning_mode_ = ATTITUDE_GAIN_TUNNING_MODE;
+           ROS_INFO("turn to gain tunning mode");
+         }
     }
   else if(xy_control_mode_ == VEL_LOCAL_BASED_CONTROL_MODE || xy_control_mode_ == POS_LOCAL_BASED_CONTROL_MODE)
     {
