@@ -67,6 +67,8 @@ namespace sensor_plugin
                               (float)cutoff_pos_freq_);
 
 
+      cog_offset_angle_ = 0;
+
     }
 
     ~Mocap() {}
