@@ -223,7 +223,6 @@ namespace sensor_plugin
 
                       temp(0, 0) = raw_pos_x;
                       estimator_->getFuserExperiment(i)->correction(temp);
-
                       x_state.reserves.push_back((estimator_->getFuserExperiment(i)->getEstimateState())(0,0));
                       x_state.reserves.push_back((estimator_->getFuserExperiment(i)->getEstimateState())(1,0));
                     }

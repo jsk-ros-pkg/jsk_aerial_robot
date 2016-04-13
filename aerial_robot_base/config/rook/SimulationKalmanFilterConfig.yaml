@@ -1,8 +1,0 @@
-# Kalman Filter Parameter for Simulation
-
-kalman_filter/Debug1/input_sigma : 0.16
-kalman_filter/Debug1/bias_sigma : 0.03  #<!-- 0.006 -->
-kalman_filter/Debug1/measure_sigma : 0.08
-kalman_filter/Debug2/input_sigma : 0.04
-kalman_filter/Debug2/bias_sigma : 0.03  #<!-- 0.006 -->
-kalman_filter/Debug2/measure_sigma : 0.04

@@ -19,8 +19,8 @@ controller/throttle/pos_i_limit: 800
 controller/throttle/pos_d_limit: 180
 
 # yaw 
-controller/yaw/pos_p_gain: 100.0 #0.1 * 1000
-controller/yaw/pos_i_gain: 0.1 #0.0001 * 1000
+controller/yaw/pos_p_gain: 450.0 #0.45 * 1000
+controller/yaw/pos_i_gain: 20.0 #0.02 * 1000
 controller/yaw/pos_d_gain: 0.0
 controller/yaw/pos_limit: 100
 controller/yaw/pos_p_limit: 100
@@ -30,31 +30,31 @@ controller/yaw/vel_value_limit: 0
 #controller/yaw/i_enable_limit: 0.25
 
 # pitch 
-controller/pitch/pos_p_gain: 100 #0.1 * 1000
-controller/pitch/pos_i_gain: 10 # 0.01 * 1000# old : 0.05
-controller/pitch/pos_i_gain_hover: 5 #0.005 * 1000
-controller/pitch/pos_d_gain: 400 #0.55 * 1000 for opt
-controller/pitch/vel_p_gain: 400 #0.55 * 1000 for opt
-controller/pitch/vel_i_gain: 5 #0.005 * 1000
+controller/pitch/pos_p_gain: 0.1 #0.11336  # 0.1 * 1000 * 0.001744 * 0.65
+controller/pitch/pos_i_gain: 0.011336 # 0.01 * 1000  * 0.001744 * 0.65 # old : 0.05 * 1000
+controller/pitch/pos_i_gain_hover: 0.005668 # 0.005 * 1000 * 0.001744 * 0.65
+controller/pitch/pos_d_gain: 0.45 #0.4 * 1000 * 0.001744 * 0.65 #for mocap: 0.5,  for opt 0.4
+controller/pitch/vel_p_gain: 0.45  #0.4 * 1000 * 0.001744 * 0.65 #for mocap: 0.48, for opt 0.4
+controller/pitch/vel_i_gain: 0.005668 #0.005 * 1000 * 0.001744 * 0.65
 controller/pitch/offset: 0
-controller/pitch/pos_limit: 200 # rook1: 200
-controller/pitch/pos_p_limit: 100 #rook1 :100
-controller/pitch/pos_i_limit: 100 #rook1 :100 
-controller/pitch/pos_d_limit: 100 #rook1 :100
+controller/pitch/pos_limit: 0.30 #rook1 : 200 * 0.001744 * 0.65
+controller/pitch/pos_p_limit: 0.20 #rook1 :100 * 0.001744 * 0.65
+controller/pitch/pos_i_limit: 0.15 #rook1 : 100 * 0.001744 * 0.65
+controller/pitch/pos_d_limit: 0.20 #rook1 : 100 * 0.001744 * 0.65
 controller/pitch/vel_value_limit: 0.8
 controller/pitch/i_enable_limit: 0.4
 
 #  roll 
-controller/roll/pos_p_gain: 100 #0.1 * 1000
-controller/roll/pos_i_gain: 10 #0.01 * 1000 #old : 0.05
-controller/roll/pos_i_gain_hover: 5 #0.005 * 1000
-controller/roll/pos_d_gain: 400 #0.55 * 1000 for opt
-controller/roll/vel_p_gain: 400 #0.55 * 1000 for opt
-controller/roll/vel_i_gain: 5 #0.005 * 1000
-controller/roll/pos_limit: 200 #rook1 : 200
-controller/roll/pos_p_limit: 100 #rook1 :100
-controller/roll/pos_i_limit: 100 #rook1 : 100
-controller/roll/pos_d_limit: 100 #rook1 : 100
+controller/roll/pos_p_gain: 0.1 #0.11336 #0.1 * 1000 * 0.001744 * 0.65
+controller/roll/pos_i_gain: 0.011336 #0.01 * 1000 * 0.001744 * 0.65 #old : 0.05 * 1000
+controller/roll/pos_i_gain_hover: 0.005668  #0.005 * 1000 * 0.001744 * 0.65
+controller/roll/pos_d_gain: 0.45 #0.4 * 1000 * 0.001744 * 0.65 # for mocap 0.5, for opt 0.4
+controller/roll/vel_p_gain: 0.45 #0.4 * 1000 * 0.001744 * 0.65 # for mocap 0.5, for opt 0.4
+controller/roll/vel_i_gain: 0.005668 #0.005 * 1000 * 0.001744 * 0.65
+controller/roll/pos_limit: 0.30 #rook1 : 200 * 0.001744 * 0.65
+controller/roll/pos_p_limit: 0.20 #rook1 :100 * 0.001744 * 0.65
+controller/roll/pos_i_limit: 0.15 #rook1 : 100 * 0.001744 * 0.65
+controller/roll/pos_d_limit: 0.20 #rook1 : 100 * 0.001744 * 0.65
 controller/roll/vel_value_limit: 0.8
 controller/roll/i_enable_limit: 0.4
 

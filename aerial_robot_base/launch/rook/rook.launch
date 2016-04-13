@@ -1,0 +1,58 @@
+<?xml version="1.0"?>
+<launch>
+
+  ############################# Global Param ###################################
+
+  <arg name="debug" default="false" />
+  <arg unless="$(arg debug)" name="launch_prefix" value="" />
+  <arg if="$(arg debug)" name="launch_prefix" value="gdb --ex run --args" />
+
+
+  <arg name="flight_pos_mode" value="false" /> <!-- pos mode -->
+  <arg name="flight_vel_mode" value="true" />  <!-- vel mode -->
+
+
+  ############### Sensors #############################
+  <include file="$(find aerial_robot_base)/launch/rook/rook_sensors.launch" />
+
+  ############################# Drone Platform ###################################
+  <node pkg="aerial_robot_base" type="aerial_robot_base_node" name="aerial_robot_base_node"  launch-prefix="$(arg launch_prefix)" output="screen" > 
+
+    ############### Basic Param  #####################
+    <param name="rx_loop_rate" type="double" value="110"/>
+    <param name="tx_loop_rate" type="double" value="40"/>
+    <param name="tf_pub_loop_rate" type="double" value="120"/>
+
+    <param name="motor_num" type="int" value="1"/>
+
+    <param if="$(arg flight_pos_mode)" name="navigator/xy_control_mode" type="int" value="0"/>
+    <param if="$(arg flight_vel_mode)" name="navigator/xy_control_mode" type="int" value="3"/> <!-- pos local vel -->
+
+    <!--degub -->
+    <param name="navigator/gain_tunning_mode" type="int" value="0"/>
+
+    ############### Sensor Fusion ######################
+    <rosparam file="$(find aerial_robot_base)/config/rook/SensorFusion.yaml" command="load" />
+    ############### PID Control ######################
+    <rosparam file="$(find aerial_robot_base)/config/rook/PidControlConfig.yaml" command="load" />
+    ############### Keyboard Navigation ##############
+    <rosparam file="$(find aerial_robot_base)/config/rook/TeleopNavigationConfig.yaml" command="load" />
+
+    ############### remap topic ######################
+    ### Joy Stick #################
+    <remap from="/navigator/joy_stick_command" to="/joy" />
+    ### Teleop Navigator ##########
+    <remap from="/navigator/teleop_command/land" to="/teleop_command/land" />
+    <remap from="/navigator/teleop_command/start" to="/teleop_command/start" />
+    <remap from="/navigator/teleop_command/halt" to="/teleop_command/halt" />
+    <remap from="/navigator/teleop_command/takeoff" to="/teleop_command/takeoff" />
+    <remap from="/navigator/teleop_command/roll" to="/teleop_command/roll" />
+    <remap from="/navigator/teleop_command/pitch" to="/teleop_command/pitch" />
+    <remap from="/navigator/teleop_command/yaw" to="/teleop_command/yaw" />
+    <remap from="/navigator/teleop_command/throttle" to="/teleop_command/throttle" />
+    <remap from="/navigator/teleop_command/ctrl_mode" to="/teleop_command/ctrl_mode" />
+  </node>
+</launch>
+
+
+

@@ -199,7 +199,7 @@ namespace sensor_plugin
                         estimator_->getFuserEgomotion(i)->setMeasureSigma(sigma_temp);
                         estimator_->getFuserExperiment(i)->correction(temp);
 
-                        if(estimator_->getFuserEgomotionName(i) == "kalman_filter/kf_pose_vel_acc")
+                        if(estimator_->getFuserEgomotionPluginName(i) == "kalman_filter/kf_pose_vel_acc")
 
                           {//temporary
                             Eigen::Matrix<double,2,1> kf_z_state = estimator_->getFuserEgomotion(i)->getEstimateState();
@@ -208,7 +208,7 @@ namespace sensor_plugin
                             z_state.kf_pos = kf_z_state(0, 0);
                             z_state.kf_vel = kf_z_state(1, 0);
                           }
-                        if(estimator_->getFuserEgomotionName(i) == "kalman_filter/kf_pose_vel_acc_bias") 
+                        if(estimator_->getFuserEgomotionPluginName(i) == "kalman_filter/kf_pose_vel_acc_bias") 
                           {//temporary
                             Eigen::Matrix<double,3,1> kfb_z_state = estimator_->getFuserEgomotion(i)->getEstimateState();
                             z_state.kfb_pos = kfb_z_state(0, 0);
@@ -229,7 +229,7 @@ namespace sensor_plugin
                         estimator_->getFuserExperiment(i)->setMeasureSigma(sigma_temp);
                         estimator_->getFuserExperiment(i)->correction(temp);
 
-                        if(estimator_->getFuserExperimentName(i) == "kalman_filter/kf_pose_vel_acc")
+                        if(estimator_->getFuserExperimentPluginName(i) == "kalman_filter/kf_pose_vel_acc")
                           {//temporary
                             Eigen::Matrix<double,2,1> kf_z_state = estimator_->getFuserExperiment(i)->getEstimateState();
                             estimator_->setEXState(BasicEstimator::Z_W, 0, kf_z_state(0,0));
@@ -237,7 +237,7 @@ namespace sensor_plugin
                             z_state.reserves.push_back(kf_z_state(0, 0));
                             z_state.reserves.push_back(kf_z_state(1, 0));
                           }
-                        if(estimator_->getFuserExperimentName(i) == "kalman_filter/kf_pose_vel_acc_bias")
+                        if(estimator_->getFuserExperimentPluginName(i) == "kalman_filter/kf_pose_vel_acc_bias")
                           {//temporary
                             Eigen::Matrix<double,3,1> kfb_z_state = estimator_->getFuserExperiment(i)->getEstimateState();
                             z_state.reserves.push_back(kfb_z_state(0, 0));

@@ -42,6 +42,7 @@ namespace sensor_base_plugin
     void baseRosParamInit()
     {
       std::string ns = nhp_.getNamespace();
+      ROS_WARN("load sensor plugin %s:", ns.c_str());
       if (!nhp_.getParam ("estimate_mode", estimate_mode_))
         ROS_ERROR("%s, can not get param about estimate mode", ns.c_str());
 

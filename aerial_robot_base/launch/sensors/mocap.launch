@@ -5,7 +5,7 @@
     respawn="false"
     launch-prefix=""
     required="true">
-    <rosparam file="$(find aerial_robot_base)/config/mocap.yaml" command="load" />
+    <rosparam file="$(find aerial_robot_base)/config/sensor/mocap.yaml" command="load" />
   </node>
 
 <!--

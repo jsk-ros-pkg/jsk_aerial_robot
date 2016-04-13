@@ -1,0 +1,8 @@
+sensor:
+        mocap:
+                # EGOMOTION_ESTIMATION_MODE = 0
+                # GROUND_TRUTH_MODE = 1
+                # EXPERIMENT_MODE = 2
+                estimate_mode: 5 #1<<0 + 1<< 2
+                pos_noise_sigma: 0.0005
+                angle_sigma: 0.005

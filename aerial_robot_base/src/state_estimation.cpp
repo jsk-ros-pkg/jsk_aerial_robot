@@ -133,6 +133,7 @@ void RigidEstimator::rosParamInit()
 {
 
   std::string ns = nhp_.getNamespace();
+  printf("%s\n", ns.c_str());
 
   sensor_fusion_loader_ptr_ = boost::shared_ptr< pluginlib::ClassLoader<kf_base_plugin::KalmanFilter> >(new pluginlib::ClassLoader<kf_base_plugin::KalmanFilter>("kalman_filter", "kf_base_plugin::KalmanFilter"));
 
@@ -142,6 +143,7 @@ void RigidEstimator::rosParamInit()
   printf("fuser_egomotion_no_ is %d\n", fuser_egomotion_no_);
   fuser_egomotion_.resize(fuser_egomotion_no_);
   fuser_egomotion_id_.resize(fuser_egomotion_no_);
+  fuser_egomotion_name_.resize(fuser_egomotion_no_);
   fuser_egomotion_plugin_name_.resize(fuser_egomotion_no_);
 
   if (!nhp_.getParam ("fuser_experiment_no", fuser_experiment_no_))
@@ -149,6 +151,7 @@ void RigidEstimator::rosParamInit()
   printf("fuser_experiment_no_ is %d\n", fuser_experiment_no_);
   fuser_experiment_.resize(fuser_experiment_no_);
   fuser_experiment_id_.resize(fuser_experiment_no_);
+  fuser_experiment_name_.resize(fuser_experiment_no_);
   fuser_experiment_plugin_name_.resize(fuser_experiment_no_);
 
   for(int i = 0; i < fuser_egomotion_no_; i++)
@@ -158,15 +161,15 @@ void RigidEstimator::rosParamInit()
 
       if (!nhp_.getParam ("fuser_egomotion_id" + fuser_no.str() , fuser_egomotion_id_[i]))
         ROS_ERROR("%d, no param in fuser egomotion id", i);
-      printf("fuser_egomotion_id_ is %d\n", fuser_egomotion_id_[i]);
+      printf("fuser_egomotion_id%d is %d\n", i + 1, fuser_egomotion_id_[i]);
 
       if (!nhp_.getParam ("fuser_egomotion_name" + fuser_no.str(), fuser_egomotion_name_[i]))
         ROS_ERROR("%d, no param in fuser egomotion name", i);
-      printf("fuser_egomotion_name_ is %s\n", fuser_egomotion_name_[i].c_str());
+      printf("fuser_egomotion_name%d is %s\n", i + 1, fuser_egomotion_name_[i].c_str());
 
       if (!nhp_.getParam ("fuser_egomotion_plugin_name" + fuser_no.str(), fuser_egomotion_plugin_name_[i]))
         ROS_ERROR("%d, no param in fuser egomotion plugin_name", i);
-      printf("fuser_egomotion_plugin_name_ is %s\n", fuser_egomotion_plugin_name_[i].c_str());
+      printf("fuser_egomotion_plugin_name%d is %s\n", i + 1, fuser_egomotion_plugin_name_[i].c_str());
 
       //fuser_egomotion_[i]  = sensor_fusion_loader_ptr_->createInstance(fuser_egomotion_plugin_name_[i]);
       fuser_egomotion_[i]  = sensor_fusion_loader_ptr_->createInstance(fuser_egomotion_plugin_name_[i]);
@@ -180,24 +183,25 @@ void RigidEstimator::rosParamInit()
 
       if (!nhp_.getParam ("fuser_experiment_id" + fuser_no.str(), fuser_experiment_id_[i]))
         ROS_ERROR("%d, no param in fuser experiment id", i);
-      printf("fuser_experiment_id_ is %d\n", fuser_experiment_id_[i]);
+      printf("fuser_experiment_id%d is %d\n", i+1, fuser_experiment_id_[i]);
 
       if (!nhp_.getParam ("fuser_experiment_name" + fuser_no.str(), fuser_experiment_name_[i]))
         ROS_ERROR("%d, no param in fuser experiment name", i);
-      printf("fuser_experiment_name_ is %s\n", fuser_experiment_name_[i].c_str());
+      printf("fuser_experiment_name%d is %s\n", i+1, fuser_experiment_name_[i].c_str());
 
-      if (!nhp_.getParam ("fuser_experiment_plugin_name" + fuser_no.str(), fuser_experiment_plugin_name_))
+      if (!nhp_.getParam ("fuser_experiment_plugin_name" + fuser_no.str(), fuser_experiment_plugin_name_[i]))
         ROS_ERROR("%d, no param in fuser experiment plugin_name", i);
-      printf("fuser_experiment_plugin_name_ is %s\n", fuser_experiment_plugin_name_[i].c_str());
+      printf("fuser_experiment_plugin_name%d is %s\n", i+1, fuser_experiment_plugin_name_[i].c_str());
 
       //fuser_experiment_[i]  = sensor_fusion_loader_ptr_->createInstance(fuser_experiment_plugin_name_);
       fuser_experiment_[i]  = sensor_fusion_loader_ptr_->createInstance(fuser_experiment_plugin_name_[i]);
       fuser_experiment_[i]->initialize(nh_, fuser_experiment_name_[i], fuser_experiment_id_[i]);
     }
 
-  sensor_loader_ptr_ =  boost::shared_ptr< pluginlib::ClassLoader<sensor_base_plugin::SensorBase> >( new pluginlib::ClassLoader<sensor_base_plugin::SensorBase>("aerial_robot", "sensor_base_plugin::SensorBase"));
+  sensor_loader_ptr_ =  boost::shared_ptr< pluginlib::ClassLoader<sensor_base_plugin::SensorBase> >( new pluginlib::ClassLoader<sensor_base_plugin::SensorBase>("aerial_robot_base", "sensor_base_plugin::SensorBase"));
 
-  if (!nhp_.getParam ("sensor_no", sensor_no_)) sensor_no_ = 0;
+
+  if (!nh_.getParam ("sensor_no", sensor_no_)) sensor_no_ = 0;
   printf("sensor_no_ is %d\n", sensor_no_);
   sensor_plugin_name_.resize(sensor_no_);
   sensors_.resize(sensor_no_);
@@ -207,13 +211,11 @@ void RigidEstimator::rosParamInit()
       std::stringstream sensor_no;
       sensor_no << i + 1;
 
-      if (!nhp_.getParam ("sensor_plugin_name" + sensor_no.str(), sensor_plugin_name_))
+      if (!nh_.getParam ("sensor_plugin_name" + sensor_no.str(), sensor_plugin_name_[i]))
         ROS_ERROR("%d, no param in sensor plugin_name", i);
-      printf("sensor_plugin_name_ is %s\n", sensor_plugin_name_[i].c_str());
+      printf("sensor_plugin_name%d is %s\n", i+1, sensor_plugin_name_[i].c_str());
 
       sensors_[i]  = sensor_loader_ptr_->createInstance(sensor_plugin_name_[i]);
-      sensors_[i]->initialize(nh_, nhp_, this);
+      sensors_[i]->initialize(nh_, ros::NodeHandle("sensor"), this);
     }
-
-
 }

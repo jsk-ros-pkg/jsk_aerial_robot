@@ -23,7 +23,7 @@ namespace kf_pos_vel_acc_plugin
   {
     correct_mode_ = correct_mode;
 
-    Matrix<double, 2 ,1>   observation_model;
+    Matrix<double, 1 ,2>   observation_model;
     if(correct_mode_ == CORRECT_POS) observation_model << 1, 0;
     else if(correct_mode_ == CORRECT_VEL) observation_model << 0, 1;
     setObservationModel(observation_model);
@@ -41,10 +41,25 @@ namespace kf_pos_vel_acc_plugin
     control_input_model << (dt_ * dt_)/2, dt_;
     setControlInputModel(control_input_model);
 
-    Matrix<double, 2 ,1>   observation_model;
+    Matrix<double, 1 ,2>   observation_model;
     if(correct_mode_ == CORRECT_POS) observation_model << 1, 0;
     else if(correct_mode_ == CORRECT_VEL) observation_model << 0, 1;
     setObservationModel(observation_model);
+
+
+    // std::cout << "estimate_state_" << std::endl <<  estimate_state_ << std::endl;
+    // std::cout << "kalman_gain_" << std::endl << kalman_gain_  << std::endl;
+
+    // std::cout << "prediction noise covariance_" << std::endl << prediction_noise_covariance_  << std::endl;
+
+    // std::cout << "state_transition_model_" << std::endl <<  state_transition_model_ << std::endl;
+    // std::cout << "control_input_model_" << std::endl << control_input_model_  << std::endl;
+    // std::cout << "observation_model_" << std::endl << observation_model_  << std::endl;
+
+    // std::cout << "estimate_covariance_" << std::endl << estimate_covariance_  << std::endl;
+    // std::cout << "measurement_noise_covariance_" << std::endl << measurement_noise_covariance_  << std::endl;
+    // std::cout << "inovation_covariance_" << std::endl << inovation_covariance_  << std::endl;
+
   }
 
   void KalmanFilterPosVelAcc::cfgCallback(kalman_filter::KalmanFilterPosVelAccConfig &config, uint32_t level)
@@ -90,7 +105,7 @@ namespace kf_pos_vel_acc_plugin
   {
     correct_mode_ = correct_mode;
 
-    Matrix<double, 3, 1> observation_model;
+    Matrix<double, 1, 3> observation_model;
     if(correct_mode_ == CORRECT_POS) observation_model << 1, 0, 0;
     else if(correct_mode_ == CORRECT_VEL) observation_model << 0, 1, 0;
     setObservationModel(observation_model);
@@ -108,10 +123,23 @@ namespace kf_pos_vel_acc_plugin
     control_input_model << (dt_ * dt_)/2, 0, dt_, 0, 0, 1;
     setControlInputModel(control_input_model);
 
-    Matrix<double, 3, 1> observation_model;
+    Matrix<double, 1, 3> observation_model;
     if(correct_mode_ == CORRECT_POS) observation_model << 1, 0, 0;
     else if(correct_mode_ == CORRECT_VEL) observation_model << 0, 1, 0;
     setObservationModel(observation_model);
+
+    //std::cout << "estimate_state_" << std::endl <<  estimate_state_ << std::endl;
+    // std::cout << "kalman_gain_" << std::endl << kalman_gain_  << std::endl;
+
+    // std::cout << "prediction noise covariance_" << std::endl << prediction_noise_covariance_  << std::endl;
+
+    // std::cout << "state_transition_model_" << std::endl <<  state_transition_model_ << std::endl;
+    // std::cout << "control_input_model_" << std::endl << control_input_model_  << std::endl;
+    // std::cout << "observation_model_" << std::endl << observation_model_  << std::endl;
+
+    // std::cout << "estimate_covariance_" << std::endl << estimate_covariance_  << std::endl;
+    // std::cout << "measurement_noise_covariance_" << std::endl << measurement_noise_covariance_  << std::endl;
+    // std::cout << "inovation_covariance_" << std::endl << inovation_covariance_  << std::endl;
 
   }
 

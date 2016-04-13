@@ -31,15 +31,16 @@ namespace sensor_plugin
 
         if(imu_board_ == D_BOARD)
           {
-            imu_sub_ = nh_.subscribe<jsk_stm::JskImu>("/imu", 1, &Imu::ImuCallback, this, ros::TransportHints().tcpNoDelay()); 
+            imu_sub_ = nh_.subscribe<jsk_stm::JskImu>(imu_topic_name_, 1, &Imu::ImuCallback, this, ros::TransportHints().tcpNoDelay()); 
           }
 
         if(imu_board_ == KDUINO)
           {
-            imu_pub_ = nh_.advertise<aerial_robot_base::ImuData>("data", 2); 
-            imu_sub_ = nh_.subscribe<aerial_robot_msgs::KduinoImu>("kduino/imu", 1, &Imu::kduinoImuCallback, this, ros::TransportHints().tcpNoDelay()); 
-            imu_simple_sub_ = nh_.subscribe<aerial_robot_msgs::KduinoSimpleImu>("kduino/simple_imu", 1, &Imu::kduinoSimpleImuCallback, this, ros::TransportHints().tcpNoDelay()); 
+            imu_sub_ = nh_.subscribe<aerial_robot_msgs::KduinoImu>(imu_topic_name_, 1, &Imu::kduinoImuCallback, this, ros::TransportHints().tcpNoDelay()); 
+            imu_simple_sub_ = nh_.subscribe<aerial_robot_msgs::KduinoSimpleImu>(imu_topic_name_ + "/simple", 1, &Imu::kduinoSimpleImuCallback, this, ros::TransportHints().tcpNoDelay()); 
           }
+
+        imu_pub_ = nh_.advertise<aerial_robot_base::ImuData>("data", 2); 
 
 
         acc_xb_ = 0, acc_yb_ = 0, acc_zb_ = 0,          
@@ -113,6 +114,7 @@ namespace sensor_plugin
       double acc_y_bias_;
       double acc_z_bias_;
 
+      std::string imu_topic_name_;
       int imu_board_;
 
       ros::Time imu_stamp_;
@@ -256,11 +258,10 @@ namespace sensor_plugin
                       {
                         estimator_->getFuserEgomotion(i)->updateModelFromDt(hz_calib);
 
-                        if(estimator_->getFuserEgomotionName(i) == "kalman_filter/kf_pose_vel_acc_bias")
+                        if(estimator_->getFuserEgomotionPluginName(i) == "kalman_filter/kf_pose_vel_acc_bias")
                           {//temporary
                             Eigen::Matrix<double, 2, 1> temp = Eigen::MatrixXd::Zero(2, 1); 
                             temp(1,0) = acc_bias_noise_sigma_;
-                            ROS_WARN("this is bias mode");
                             if((estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::X_W)) || (estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::X_B)))
                               {
                                 temp(0,0) = level_acc_noise_sigma_;
@@ -279,7 +280,7 @@ namespace sensor_plugin
                             estimator_->getFuserEgomotion(i)->setInputSigma(temp);
                           }
 
-                        if(estimator_->getFuserEgomotionName(i) == "kalman_filter/kf_pose_vel_acc")
+                        if(estimator_->getFuserEgomotionPluginName(i) == "kalman_filter/kf_pose_vel_acc")
                           {//temporary
                             Eigen::Matrix<double, 1, 1> temp = Eigen::MatrixXd::Zero(1, 1); 
                             if((estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::X_W)) || (estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::X_B))
@@ -299,11 +300,10 @@ namespace sensor_plugin
                       {
                         estimator_->getFuserExperiment(i)->updateModelFromDt(hz_calib);
 
-                        if(estimator_->getFuserExperimentName(i) == "kalman_filter/kf_pose_vel_acc_bias")
+                        if(estimator_->getFuserExperimentPluginName(i) == "kalman_filter/kf_pose_vel_acc_bias")
                           {//temporary
                             Eigen::Matrix<double, 2, 1> temp = Eigen::MatrixXd::Zero(2, 1); 
                             temp(1,0) = acc_bias_noise_sigma_;
-                            ROS_WARN("this is bias mode");
                             if((estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::X_W)) || (estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::X_B)))
                               {
                                 temp(0,0) = level_acc_noise_sigma_;
@@ -319,8 +319,9 @@ namespace sensor_plugin
                                 temp(0,0) = z_acc_noise_sigma_;
                                 estimator_->getFuserExperiment(i)->setInitState(acc_z_bias_, 2);
                               }
+                            estimator_->getFuserExperiment(i)->setInputSigma(temp);
                           }
-                        if(estimator_->getFuserExperimentName(i) == "kalman_filter/kf_pose_vel_acc")
+                        if(estimator_->getFuserExperimentPluginName(i) == "kalman_filter/kf_pose_vel_acc")
                           {//temporary
                             Eigen::Matrix<double, 1, 1> temp = Eigen::MatrixXd::Zero(1, 1); 
                             if((estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::X_W)) || (estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::X_B))
@@ -360,7 +361,7 @@ namespace sensor_plugin
 
                 for(int i = 0; i < estimator_->getFuserEgomotionNo(); i++)
                   {
-                    if(estimator_->getFuserEgomotionName(i) == "kalman_filter/kf_pose_vel_acc")
+                    if(estimator_->getFuserEgomotionPluginName(i) == "kalman_filter/kf_pose_vel_acc")
                       {//temporary
                         if(estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::X_W)) 
                           temp(0, 0) = (double)acc_xw_non_bias_;
@@ -375,7 +376,7 @@ namespace sensor_plugin
 
                         estimator_->getFuserEgomotion(i)->prediction(temp);
                       }
-                    if(estimator_->getFuserEgomotionName(i) == "kalman_filter/kf_pose_vel_acc_bias")
+                    if(estimator_->getFuserEgomotionPluginName(i) == "kalman_filter/kf_pose_vel_acc_bias")
                       {//temporary
                         if(estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::X_W)) 
                           temp2(0, 0) = (double)acc_xw_;
@@ -399,7 +400,7 @@ namespace sensor_plugin
                 if(yaw_acc_trans_for_experiment_estimation_ == EGOMOTION_ESTIMATION_MODE)
                   yaw2 = yaw_ee;
                 if(yaw_acc_trans_for_experiment_estimation_ == GROUND_TRUTH_MODE)
-                  yaw2 = yaw_gt;
+                    yaw2 = yaw_gt;
                 if(yaw_acc_trans_for_experiment_estimation_ == EXPERIMENT_MODE)
                   yaw2 = yaw_ex;
 
@@ -418,7 +419,7 @@ namespace sensor_plugin
 
                 for(int i = 0; i < estimator_->getFuserExperimentNo(); i++)
                   {
-                    if(estimator_->getFuserExperimentName(i) == "kalman_filter/kf_pose_vel_acc")
+                    if(estimator_->getFuserExperimentPluginName(i) == "kalman_filter/kf_pose_vel_acc")
                       {//temporary
                         if(estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::X_W)) 
                           temp(0, 0) = (double)acc_xw_non_bias_;
@@ -434,7 +435,7 @@ namespace sensor_plugin
                         estimator_->getFuserExperiment(i)->prediction(temp);
                       }
 
-                    if(estimator_->getFuserExperimentName(i) == "kalman_filter/kf_pose_vel_acc_bias")
+                    if(estimator_->getFuserExperimentPluginName(i) == "kalman_filter/kf_pose_vel_acc_bias")
                       {//temporary
                         if(estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::X_W)) 
                           temp2(0, 0) = (double)acc_xw_;
@@ -451,7 +452,7 @@ namespace sensor_plugin
                   }
               }
 
-            if(imu_board_ != D_BOARD) publishImuData(stamp);
+            publishImuData(stamp);
           }
         prev_time = imu_stamp_;
       }
@@ -474,7 +475,7 @@ namespace sensor_plugin
 
         imu_data.accelerometer.x = acc_xb_;
         imu_data.accelerometer.y = acc_yb_;
-        imu_data.accelerometer.z = acc_zb_;
+        imu_data.accelerometer.z = acc_zb_; // - g_value_;
 
         imu_data.gyrometer.x = gyro_xb_;
         imu_data.gyrometer.y = gyro_yb_;
@@ -505,6 +506,9 @@ namespace sensor_plugin
 
         nhp_.param("g_value", g_value_, 9.797 );
         printf(" g value is %f\n", g_value_);
+
+        nhp_.param("imu_topic_name", imu_topic_name_, std::string("imu"));
+        printf(" imu topic name is %f\n", imu_topic_name_.c_str());
 
         nhp_.param("level_acc_noise_sigma", level_acc_noise_sigma_, 0.01 );
         printf("level acc noise sigma  is %f\n", level_acc_noise_sigma_);

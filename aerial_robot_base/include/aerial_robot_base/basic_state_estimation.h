@@ -106,7 +106,6 @@ class BasicEstimator
   boost::shared_ptr< pluginlib::ClassLoader<kf_base_plugin::KalmanFilter> > sensor_fusion_loader_ptr_;
   //pluginlib::ClassLoader<kf_base_plugin::KalmanFilter>  sensor_fusion_loader_;
 
-
   // sensor fusion
   bool sensor_fusion_flag_;
   int fuser_egomotion_no_, fuser_experiment_no_;

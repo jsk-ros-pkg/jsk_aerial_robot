@@ -314,7 +314,7 @@ namespace sensor_plugin
             {
               for(int i = 0; i < estimator_->getFuserEgomotionNo(); i++)
                 {
-                  if(estimator_->getFuserEgomotionName(i) == "kalman_filter/kf_pose_vel_acc_bias")
+                  if(estimator_->getFuserEgomotionPluginName(i) == "kalman_filter/kf_pose_vel_acc_bias")
                     {//temporary
                       if((estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::X_B))) 
                         {
@@ -337,7 +337,7 @@ namespace sensor_plugin
                           estimator_->setEEState(BasicEstimator::Y_W, 1, kfb_y_state(1,0));
                         }
                     }
-                  if(estimator_->getFuserEgomotionName(i) == "kalman_filter/kf_pose_vel_acc")
+                  if(estimator_->getFuserEgomotionPluginName(i) == "kalman_filter/kf_pose_vel_acc")
                     {//temporary
                       if((estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::X_B))) 
                         {
@@ -372,7 +372,7 @@ namespace sensor_plugin
             {
               for(int i = 0; i < estimator_->getFuserExperimentNo(); i++)
                 {
-                  if(estimator_->getFuserExperimentName(i) == "kalman_filter/kf_pose_vel_acc_bias")
+                  if(estimator_->getFuserExperimentPluginName(i) == "kalman_filter/kf_pose_vel_acc_bias")
                     {//temporary
                       if((estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::X_B))) 
                         {
@@ -395,7 +395,7 @@ namespace sensor_plugin
                           estimator_->setEEState(BasicEstimator::Y_W, 1, kfb_y_state(1,0));
                         }
                     }
-                  if(estimator_->getFuserExperimentName(i) == "kalman_filter/kf_pose_vel_acc")
+                  if(estimator_->getFuserExperimentPluginName(i) == "kalman_filter/kf_pose_vel_acc")
                     {//temporary
                       if((estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::X_B))) 
                         {
@@ -480,7 +480,7 @@ namespace sensor_plugin
       printf("%s: x_axis_direction_ is %.3f\n", ns.c_str(), x_axis_direction_);
 
       if (!nhp_.getParam ("y_axis_direction", y_axis_direction_))
-        y_axis_direction_ = -1.0; //-1 is default
+        y_axis_direction_ = 1.0; //-1 is default
       printf("%s: y_axisDirection_ is %.3f\n", ns.c_str(), y_axis_direction_);
     }
   };

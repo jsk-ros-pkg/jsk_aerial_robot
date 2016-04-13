@@ -261,13 +261,13 @@ namespace sensor_plugin
                       temp(0, 0) = raw_pos_x_;
                       estimator_->getFuserEgomotion(i)->correction(temp);
 
-                      if(estimator_->getFuserEgomotionName(i) == "kalman_filter/kf_pose_vel_acc")
+                      if(estimator_->getFuserEgomotionPluginName(i) == "kalman_filter/kf_pose_vel_acc")
                         {//temporary
                           Eigen::MatrixXd state = estimator_->getFuserEgomotion(i)->getEstimateState();
                           x_state.kf_pos = state(0, 0);
                           x_state.kf_vel = state(1, 0);
                         }
-                      if(estimator_->getFuserEgomotionName(i) == "kalman_filter/kf_pose_vel_acc_bias")
+                      if(estimator_->getFuserEgomotionPluginName(i) == "kalman_filter/kf_pose_vel_acc_bias")
                         {//temporary
                           Eigen::MatrixXd state = estimator_->getFuserEgomotion(i)->getEstimateState();
                           estimator_->setEEState(BasicEstimator::X_W, 0, state(0,0));
@@ -285,13 +285,13 @@ namespace sensor_plugin
                       temp(0, 0) = raw_pos_y_;
                       estimator_->getFuserEgomotion(i)->correction(temp);
 
-                      if(estimator_->getFuserEgomotionName(i) == "kalman_filter/kf_pose_vel_acc")
+                      if(estimator_->getFuserEgomotionPluginName(i) == "kalman_filter/kf_pose_vel_acc")
                         {//temporary
                           Eigen::MatrixXd state = estimator_->getFuserEgomotion(i)->getEstimateState();
                           y_state.kf_pos = state(0, 0);
                           y_state.kf_vel = state(1, 0);
                         }
-                      if(estimator_->getFuserEgomotionName(i) == "kalman_filter/kf_pose_vel_acc_bias")
+                      if(estimator_->getFuserEgomotionPluginName(i) == "kalman_filter/kf_pose_vel_acc_bias")
                         {//temporary
                           Eigen::MatrixXd state = estimator_->getFuserEgomotion(i)->getEstimateState();
                           estimator_->setEEState(BasicEstimator::Y_W, 0, state(0,0));
@@ -309,7 +309,7 @@ namespace sensor_plugin
                       temp(0, 0) = raw_psi_ + cog_offset_angle_;
                       estimator_->getFuserEgomotion(i)->correction(temp);
 
-                      if(estimator_->getFuserEgomotionName(i) == "kalman_filter/kf_pose_vel_acc")
+                      if(estimator_->getFuserEgomotionPluginName(i) == "kalman_filter/kf_pose_vel_acc")
                         {//temporary
                           Eigen::MatrixXd state = estimator_->getFuserEgomotion(i)->getEstimateState();
                           estimator_->setEEState(BasicEstimator::YAW_W_COG, 0, state(0,0));
@@ -317,7 +317,7 @@ namespace sensor_plugin
                           yaw_state.kf_pos = state(0, 0);
                           yaw_state.kf_vel = state(1, 0);
                         }
-                      if(estimator_->getFuserEgomotionName(i) == "kalman_filter/kf_pose_vel_acc_bias")
+                      if(estimator_->getFuserEgomotionPluginName(i) == "kalman_filter/kf_pose_vel_acc_bias")
                         {//temporary
                           Eigen::MatrixXd state = estimator_->getFuserEgomotion(i)->getEstimateState();
                           yaw_state.kfb_pos = state(0, 0);
@@ -334,7 +334,7 @@ namespace sensor_plugin
                       temp(0, 0) = raw_psi_;
                       estimator_->getFuserEgomotion(i)->correction(temp);
 
-                      if(estimator_->getFuserEgomotionName(i) == "kalman_filter/kf_pose_vel_acc")
+                      if(estimator_->getFuserEgomotionPluginName(i) == "kalman_filter/kf_pose_vel_acc")
                         {//temporary
                           Eigen::MatrixXd state = estimator_->getFuserEgomotion(i)->getEstimateState();
                           estimator_->setEEState(BasicEstimator::YAW_W_B, 0, state(0,0));
@@ -342,7 +342,7 @@ namespace sensor_plugin
                           yaw_state.reserves.push_back(state(0, 0));
                           yaw_state.reserves.push_back(state(1, 0));
                         }
-                      if(estimator_->getFuserEgomotionName(i) == "kalman_filter/kf_pose_vel_acc_bias")
+                      if(estimator_->getFuserEgomotionPluginName(i) == "kalman_filter/kf_pose_vel_acc_bias")
                         {//temporary
                           Eigen::MatrixXd state = estimator_->getFuserEgomotion(i)->getEstimateState();
                           yaw_state.reserves.push_back(state(0, 0));
@@ -365,13 +365,13 @@ namespace sensor_plugin
                       temp(0, 0) = raw_pos_x_;
                       estimator_->getFuserExperiment(i)->correction(temp);
 
-                      if(estimator_->getFuserExperimentName(i) == "kalman_filter/kf_pose_vel_acc")
+                      if(estimator_->getFuserExperimentPluginName(i) == "kalman_filter/kf_pose_vel_acc")
                         {//temporary
                           Eigen::MatrixXd state = estimator_->getFuserExperiment(i)->getEstimateState();
                           x_state.reserves.push_back(state(0, 0));
                           x_state.reserves.push_back(state(1, 0));
                         }
-                      if(estimator_->getFuserExperimentName(i) == "kalman_filter/kf_pose_vel_acc_bias")
+                      if(estimator_->getFuserExperimentPluginName(i) == "kalman_filter/kf_pose_vel_acc_bias")
                         {//temporary
                           Eigen::MatrixXd state = estimator_->getFuserExperiment(i)->getEstimateState();
                           estimator_->setEXState(BasicEstimator::X_W, 0, state(0,0));
@@ -389,13 +389,13 @@ namespace sensor_plugin
                       temp(0, 0) = raw_pos_y_;
                       estimator_->getFuserExperiment(i)->correction(temp);
 
-                      if(estimator_->getFuserExperimentName(i) == "kalman_filter/kf_pose_vel_acc")
+                      if(estimator_->getFuserExperimentPluginName(i) == "kalman_filter/kf_pose_vel_acc")
                         {//temporary
                           Eigen::MatrixXd state = estimator_->getFuserExperiment(i)->getEstimateState();
                           y_state.reserves.push_back(state(0, 0));
                           y_state.reserves.push_back(state(1, 0));
                         }
-                      if(estimator_->getFuserExperimentName(i) == "kalman_filter/kf_pose_vel_acc_bias")
+                      if(estimator_->getFuserExperimentPluginName(i) == "kalman_filter/kf_pose_vel_acc_bias")
                         {//temporary
                           Eigen::MatrixXd state = estimator_->getFuserExperiment(i)->getEstimateState();
                           estimator_->setEXState(BasicEstimator::Y_W, 0, state(0,0));
@@ -413,7 +413,7 @@ namespace sensor_plugin
                       temp(0, 0) = raw_psi_ + cog_offset_angle_;
                       estimator_->getFuserExperiment(i)->correction(temp);
 
-                      if(estimator_->getFuserExperimentName(i) == "kalman_filter/kf_pose_vel_acc")
+                      if(estimator_->getFuserExperimentPluginName(i) == "kalman_filter/kf_pose_vel_acc")
                         {//temporary
                           Eigen::MatrixXd state = estimator_->getFuserExperiment(i)->getEstimateState();
                           estimator_->setEXState(BasicEstimator::YAW_W_COG, 0, state(0,0));
@@ -421,7 +421,7 @@ namespace sensor_plugin
                           yaw_state.reserves.push_back(state(0, 0));
                           yaw_state.reserves.push_back(state(1, 0));
                         }
-                      if(estimator_->getFuserExperimentName(i) == "kalman_filter/kf_pose_vel_acc_bias")
+                      if(estimator_->getFuserExperimentPluginName(i) == "kalman_filter/kf_pose_vel_acc_bias")
                         {//temporary
                           Eigen::MatrixXd state = estimator_->getFuserExperiment(i)->getEstimateState();
                           yaw_state.reserves.push_back(state(0, 0));
@@ -437,7 +437,7 @@ namespace sensor_plugin
                       temp(0, 0) = raw_psi_;
                       estimator_->getFuserExperiment(i)->correction(temp);
 
-                      if(estimator_->getFuserExperimentName(i) == "kalman_filter/kf_pose_vel_acc")
+                      if(estimator_->getFuserExperimentPluginName(i) == "kalman_filter/kf_pose_vel_acc")
                         {//temporary
                           Eigen::MatrixXd state = estimator_->getFuserExperiment(i)->getEstimateState();
                           estimator_->setEXState(BasicEstimator::YAW_W_B, 0, state(0,0));
@@ -445,7 +445,7 @@ namespace sensor_plugin
                           yaw_state.reserves.push_back(state(0, 0));
                           yaw_state.reserves.push_back(state(1, 0));
                         }
-                      if(estimator_->getFuserExperimentName(i) == "kalman_filter/kf_pose_vel_acc_bias")
+                      if(estimator_->getFuserExperimentPluginName(i) == "kalman_filter/kf_pose_vel_acc_bias")
                         {//temporary
                           Eigen::MatrixXd state = estimator_->getFuserExperiment(i)->getEstimateState();
                           yaw_state.reserves.push_back(state(0, 0));

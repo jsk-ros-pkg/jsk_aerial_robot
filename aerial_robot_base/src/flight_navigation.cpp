@@ -1121,7 +1121,7 @@ void TeleopNavigator::rosParamInit(ros::NodeHandle nh)
 
   if (!nh.getParam ("state_mode", state_mode_))
     state_mode_ = EGOMOTION_ESTIMATE;
-  printf("state_mode_ is %f\n", state_mode_);
+  printf("%s: state_mode_ is %d\n", ns.c_str(), state_mode_);
 
   //*** teleop navigation
   if (!nh.getParam ("takeoff_height", takeoff_height_))

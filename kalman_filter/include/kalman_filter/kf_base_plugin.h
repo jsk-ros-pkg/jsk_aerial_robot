@@ -34,7 +34,7 @@ namespace kf_base_plugin
     {
       id_ = id;
       nh_ = nh;
-      nhp_ = ros::NodeHandle(nh, suffix);
+      nhp_ = ros::NodeHandle(nh, "kf/" + suffix);
 
       state_transition_model_ = MatrixXd::Zero(state_dim_, state_dim_);
       control_input_model_ = MatrixXd::Zero(state_dim_, input_dim_);
@@ -57,8 +57,7 @@ namespace kf_base_plugin
       rosParamInit();
       kfModelInit();
 
-      std::string ns = nhp_.getNamespace();
-      ROS_ERROR("nhp namespace: %s", ns.c_str());
+
     }
 
     void kfModelInit()
@@ -73,7 +72,7 @@ namespace kf_base_plugin
       setPredictionNoiseCovariance();
       setMeasurementNoiseCovariance();
 
-
+      /*
       std::cout << "state_transition_model_" << std::endl <<  state_transition_model_ << std::endl;
       std::cout << "control_input_model_" << std::endl << control_input_model_  << std::endl;
       std::cout << "observation_model_" << std::endl << observation_model_  << std::endl;
@@ -83,7 +82,7 @@ namespace kf_base_plugin
       std::cout << "prediction_noise_covariance_" << std::endl << prediction_noise_covariance_  << std::endl;
 
       std::cout << "inovation_covariance_" << std::endl << inovation_covariance_  << std::endl;
-
+      */
     }
 
     virtual ~KalmanFilter(){}
@@ -122,13 +121,10 @@ namespace kf_base_plugin
 
           inovation_covariance_ = observation_model_ * estimate_covariance_ * observation_model_.transpose()
             + measurement_noise_covariance_;
-  
           kalman_gain_ = estimate_covariance_ * observation_model_.transpose() * inovation_covariance_.inverse();
-
           MatrixXd estimate_state = estimate_state_ + kalman_gain_ * (measurement - observation_model_ * estimate_state_);
           estimate_state_ = estimate_state;
           correct_state_ = estimate_state;
-
           MatrixXd I = MatrixXd::Identity(state_dim_, state_dim_);
           MatrixXd estimate_covariance_tmp = (I - kalman_gain_ * observation_model_) * estimate_covariance_;
           estimate_covariance_ = estimate_covariance_tmp;
@@ -184,6 +180,7 @@ namespace kf_base_plugin
       //wrong!!!!!!
       MatrixXd input_sigma_m = (input_sigma_.col(0)).asDiagonal();
       prediction_noise_covariance_ = control_input_model_ * (input_sigma_m * input_sigma_m) * control_input_model_.transpose();
+      //std::cout << "prediction noise covariance_" << std::endl << prediction_noise_covariance_  << std::endl;
     }
 
     void setMeasurementNoiseCovariance()
@@ -286,21 +283,22 @@ namespace kf_base_plugin
         correct_mode_ = 0;
       printf("%s: correct_mode  is %d\n", ns.c_str(), correct_mode_);
 
-
+      printf("%s: measure_dim  is %d\n", ns.c_str(), measure_dim_);
+      printf("%s: input_dim  is %d\n", ns.c_str(), input_dim_);
+      printf("%s: state_dim  is %d\n", ns.c_str(), state_dim_);
       /*
       if (!nhp_.getParam ("state_dim", state_dim_))
         state_dim_ = 2;
-      printf("%s: state_dim  is %d\n", ns.c_str(), state_dim_);
+
 
       if (!nhp_.getParam ("input_dim", input_dim_))
         input_dim_ = 2;
-      printf("%s: input_dim  is %d\n", ns.c_str(), input_dim_);
+        
 
       if (!nhp_.getParam ("measure_dim", measure_dim_))
         measure_dim_ = 2;
-      printf("%s: measure_dim  is %d\n", ns.c_str(), measure_dim_);
+        
       */
-
 
       for(int i = 0; i < input_dim_; i ++)
         {
@@ -308,7 +306,7 @@ namespace kf_base_plugin
           input_sigma_no << i + 1;
           if (!nhp_.getParam (std::string("input_sigma") + input_sigma_no.str(), input_sigma_(i,0)))
             input_sigma_(i,0) = 0.0;
-          printf("%s: input_sigma_ is %.4f\n", ns.c_str(), input_sigma_(i,0));
+          //printf("%s: input_sigma_ is %.4f\n", ns.c_str(), input_sigma_(i,0));
         }
 
       for(int i = 0; i < measure_dim_; i ++)
@@ -317,12 +315,12 @@ namespace kf_base_plugin
           measure_sigma_no << i + 1;
           if (!nhp_.getParam (std::string("measure_sigma") + measure_sigma_no.str(), measure_sigma_(i,0)))
             measure_sigma_(i,0) = 0.0;
-          printf("%s: measure_sigma_ is %.4f\n", ns.c_str(), measure_sigma_(i,0));
+          //printf("%s: measure_sigma_ is %.4f\n", ns.c_str(), measure_sigma_(i,0));
         }
 
       if (!nhp_.getParam ("input_hz", input_hz_))
         input_hz_ = 100.0;
-      printf("%s: input_hz_ is %.4f\n",nhp_.getNamespace().c_str(), input_hz_);
+      //printf("%s: input_hz_ is %.4f\n",nhp_.getNamespace().c_str(), input_hz_);
       dt_ = 1.0 / input_hz_;
     }
 
