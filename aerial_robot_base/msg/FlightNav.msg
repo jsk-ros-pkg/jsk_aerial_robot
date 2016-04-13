@@ -3,7 +3,6 @@ uint8 VEL_FLIGHT_MODE_COMMAND = 1
 uint8 POS_FLIGHT_MODE_COMMAND = 2
 
 
-
 Header header
 
 uint8 command_mode

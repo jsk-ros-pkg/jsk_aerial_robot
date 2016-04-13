@@ -28,35 +28,34 @@ RigidEstimator::RigidEstimator(ros::NodeHandle nh,
   //kalman filter
   if (kalman_filter_flag_)
     {
-      std::string x("X");
-      std::string y("Y");
-      std::string z("Z");
-      std::string x_vel("X_Vel");
-      std::string y_vel("Y_Vel");
-      std::string z2("Z2");
+      std::string x("x");
+      std::string y("y");
+      std::string z("z");
+      std::string x_vel("x_vel");
+      std::string y_vel("y_vel");
+      std::string z2("z2");
 
-      std::string debug1("Debug1");
-      std::string debug2("Debug2");
+      std::string debug1("debug1");
+      std::string debug2("debug2");
 
-      bool use_dynamic_reconfigure = true;
-      kf_x_ = new KalmanFilterPosVelAcc(nh, nh_private, x);
-      kf_y_ = new KalmanFilterPosVelAcc(nh, nh_private, y);
-      kf_z_ = new KalmanFilterPosVelAcc(nh, nh_private, z, use_dynamic_reconfigure);
-      kf_bias_x_ = new KalmanFilterPosVelAccBias(nh, nh_private, x, use_dynamic_reconfigure); 
-      kf_bias_y_ = new KalmanFilterPosVelAccBias(nh, nh_private, y, use_dynamic_reconfigure);
-      kf_bias_z_ = new KalmanFilterPosVelAccBias(nh, nh_private, z);
+      kf_x_ = new KalmanFilterPosVelAcc(nh, nh_private, x, CORRECT_POS);
+      kf_y_ = new KalmanFilterPosVelAcc(nh, nh_private, y, CORRECT_POS);
+      kf_z_ = new KalmanFilterPosVelAcc(nh, nh_private, z, CORRECT_POS);
+      kf_bias_x_ = new KalmanFilterPosVelAccBias(nh, nh_private, x, CORRECT_POS); 
+      kf_bias_y_ = new KalmanFilterPosVelAccBias(nh, nh_private, y, CORRECT_POS);
+      kf_bias_z_ = new KalmanFilterPosVelAccBias(nh, nh_private, z, CORRECT_POS);
 
       // for velocity
-      kf_vel_x_ = new KalmanFilterPosVelAcc(nh, nh_private,x_vel);
-      kf_vel_y_ = new KalmanFilterPosVelAcc(nh, nh_private,y_vel);
-      kf_pos_z2_ = new KalmanFilterPosVelAcc(nh, nh_private,z2);
-      kf_vel_bias_x_ = new KalmanFilterPosVelAccBias(nh, nh_private, x_vel, use_dynamic_reconfigure); 
-      kf_vel_bias_y_ = new KalmanFilterPosVelAccBias(nh, nh_private, y_vel, use_dynamic_reconfigure);
+      kf_vel_x_ = new KalmanFilterPosVelAcc(nh, nh_private,x_vel, CORRECT_VEL);
+      kf_vel_y_ = new KalmanFilterPosVelAcc(nh, nh_private,y_vel, CORRECT_VEL);
+      kf_pos_z2_ = new KalmanFilterPosVelAcc(nh, nh_private,z2, CORRECT_POS);
+      kf_vel_bias_x_ = new KalmanFilterPosVelAccBias(nh, nh_private, x_vel, CORRECT_VEL); 
+      kf_vel_bias_y_ = new KalmanFilterPosVelAccBias(nh, nh_private, y_vel, CORRECT_VEL);
 
       if (kalman_filter_debug_)
         {
-          kf1_ = new KalmanFilterPosVelAccBias(nh, nh_private, debug1, use_dynamic_reconfigure);
-          kf2_ = new KalmanFilterPosVelAccBias(nh, nh_private, debug2, use_dynamic_reconfigure);
+          kf1_ = new KalmanFilterPosVelAccBias(nh, nh_private, debug1);
+          kf2_ = new KalmanFilterPosVelAccBias(nh, nh_private, debug2);
         }
       else
         {

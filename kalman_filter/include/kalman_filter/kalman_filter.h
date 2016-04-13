@@ -27,9 +27,6 @@ template <size_t state_dim, size_t input_dim, size_t measure_dim>
 class KalmanFilter
 {
  public:
-#if 0
-  KalmanFilter(ros::NodeHandle nh, ros::NodeHandle nh_private);
-#else
   KalmanFilter(ros::NodeHandle nh, ros::NodeHandle nh_private)
     {
       dt_ = 1 / input_hz_;
@@ -47,16 +44,13 @@ class KalmanFilter
 
     }
 
-#endif
   ~KalmanFilter(){}
 
-#if 0
-  bool prediction(Matrix<double, input_dim, 1> input);
-#else
   bool prediction(Matrix<double, input_dim, 1> input)
   {
   if(getFilteringFlag())
     {
+
       boost::lock_guard<boost::mutex> lock(kf_mutex_);
 
       Matrix<double, state_dim, 1> estimate_hat_state = state_transition_model_ * estimate_state_ + control_input_model_ * input;
@@ -77,12 +71,8 @@ class KalmanFilter
     return false;
 
   }
-#endif
 
-#if 0
-  bool correction(Matrix<double, measure_dim, 1> measurement);
-#else
-  bool correction(Matrix<double, measure_dim, 1> measurement)
+  bool correction(Matrix<double, measure_dim, 1> measurement, bool debug = false)
   {
   if(getFilteringFlag())
     {
@@ -102,11 +92,25 @@ class KalmanFilter
       estimate_covariance_tmp = (I - kalman_gain_ * observation_model_) * estimate_covariance_;
       estimate_covariance_ = estimate_covariance_tmp;
 
+
+      if(debug)
+        {
+          std::cout << "estimate_state_" << std::endl <<  estimate_state_ << std::endl;
+          std::cout << "kalman_gain_" << std::endl << kalman_gain_  << std::endl;
+
+          std::cout << "state_transition_model_" << std::endl <<  state_transition_model_ << std::endl;
+          std::cout << "control_input_model_" << std::endl << control_input_model_  << std::endl;
+          std::cout << "observation_model_" << std::endl << observation_model_  << std::endl;
+
+          std::cout << "estimate_covariance_" << std::endl << estimate_covariance_  << std::endl;
+          std::cout << "measurement_noise_covariance_" << std::endl << measurement_noise_covariance_  << std::endl;
+          std::cout << "inovation_covariance_" << std::endl << inovation_covariance_  << std::endl;
+
+        }
       return true;
     }
     return false;
   }
-#endif
 
   void setEstimateState(const Matrix<double, state_dim, 1>& state)
   {
@@ -166,10 +170,6 @@ class KalmanFilter
     correct_state_(no,0) = state_value;
     predict_state_(no,0) = state_value;
   }
-
-#if 0
-  void setInitState(Matrix<double, state_dim, 1> init_state);
-#else
   void setInitState(Matrix<double, state_dim, 1> init_state)
   {
   boost::lock_guard<boost::mutex> lock(kf_mutex_);
@@ -178,7 +178,6 @@ class KalmanFilter
   predict_state_ = init_state;
 
   }
-#endif
 
  protected:
 
