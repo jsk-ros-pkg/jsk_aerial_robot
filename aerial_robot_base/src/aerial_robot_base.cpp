@@ -7,7 +7,7 @@ AerialRobotBase::AerialRobotBase(ros::NodeHandle nh, ros::NodeHandle nh_private)
   rosParamInit(nhp_);
 
   //*** estimator1
-  estimator_ = new RigidEstimator(nh_, nhp_, simulation_flag_);
+  estimator_ = new RigidEstimator(nh_, nhp_);
 
   if(!simulation_flag_)
     {

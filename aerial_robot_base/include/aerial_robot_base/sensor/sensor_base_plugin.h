@@ -10,7 +10,7 @@
 #include <Eigen/Dense>
 #include <iostream>
 
-#include <aerial_robot_base/state_estimation.h>
+#include <aerial_robot_base/basic_state_estimation.h>
 #include <kalman_filter/kf_base_plugin.h>
 #include <kalman_filter/digital_filter.h>
 
@@ -23,7 +23,7 @@ namespace sensor_base_plugin
   class SensorBase
   {
   public:
-    virtual void initialize(ros::NodeHandle nh, ros::NodeHandle nhp, BasicEstimator* state_estimator)  = 0;
+    virtual void initialize(ros::NodeHandle nh, ros::NodeHandle nhp, BasicEstimator* estimator)  = 0;
     virtual ~SensorBase(){}
 
     static const uint8_t EGOMOTION_ESTIMATION_MODE = 0;
@@ -34,7 +34,7 @@ namespace sensor_base_plugin
 
     ros::NodeHandle nh_;
     ros::NodeHandle nhp_;
-    BasicEstimator* state_estimator_;
+    BasicEstimator* estimator_;
     int estimate_mode_;
 
     SensorBase(){}
@@ -52,3 +52,5 @@ namespace sensor_base_plugin
   };
 
 };
+
+#endif

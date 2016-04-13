@@ -14,16 +14,16 @@
 #include <aerial_robot_msgs/KduinoSimpleImu.h>
 #include <jsk_stm/JskImu.h>
 
-snamespace sensor_plugin
+namespace sensor_plugin
 {
   class Imu  :public sensor_base_plugin::SensorBase
-    {
+  {
     public:
-      void initialize(ros::NodeHandle nh, ros::NodeHandle nhp, BasicEstimator* state_estimator)
+      void initialize(ros::NodeHandle nh, ros::NodeHandle nhp, BasicEstimator* estimator)
       {
         nh_ = ros::NodeHandle(nh, "imu");
         nhp_ = ros::NodeHandle(nhp, "imu");
-        state_estimator_ = state_estimator;
+        estimator_ = estimator;
 
         baseRosParamInit();
         rosParamInit();
@@ -31,14 +31,14 @@ snamespace sensor_plugin
 
         if(imu_board_ == D_BOARD)
           {
-            imu_sub_ = nh_.subscribe<jsk_stm::JskImu>("/imu", 1, &ImuData::ImuCallback, this, ros::TransportHints().tcpNoDelay()); 
+            imu_sub_ = nh_.subscribe<jsk_stm::JskImu>("/imu", 1, &Imu::ImuCallback, this, ros::TransportHints().tcpNoDelay()); 
           }
 
         if(imu_board_ == KDUINO)
           {
             imu_pub_ = nh_.advertise<aerial_robot_base::ImuData>("data", 2); 
-            imu_sub_ = nh_.subscribe<aerial_robot_msgs::KduinoImu>("kduino/imu", 1, &ImuData::kduinoImuCallback, this, ros::TransportHints().tcpNoDelay()); 
-            imu_simple_sub_ = nh_.subscribe<aerial_robot_msgs::KduinoSimpleImu>("kduino/simple_imu", 1, &ImuData::kduinoSimpleImuCallback, this, ros::TransportHints().tcpNoDelay()); 
+            imu_sub_ = nh_.subscribe<aerial_robot_msgs::KduinoImu>("kduino/imu", 1, &Imu::kduinoImuCallback, this, ros::TransportHints().tcpNoDelay()); 
+            imu_simple_sub_ = nh_.subscribe<aerial_robot_msgs::KduinoSimpleImu>("kduino/simple_imu", 1, &Imu::kduinoSimpleImuCallback, this, ros::TransportHints().tcpNoDelay()); 
           }
 
 
@@ -102,6 +102,7 @@ snamespace sensor_plugin
       //*** trans_acc with intermediate frame between world frame and board frame
       float acc_xi_, acc_yi_;
 
+      int yaw_acc_trans_for_experiment_estimation_;
 
       //***  world frame
       float acc_xw_, acc_xw_non_bias_;
@@ -125,7 +126,7 @@ snamespace sensor_plugin
       void ImuCallback(const jsk_stm::JskImuConstPtr& imu_msg)
       {
         imu_stamp_ = imu_msg->header.stamp;
-        state_estimator_->setSystemTimeStamp(imu_stamp_);
+        estimator_->setSystemTimeStamp(imu_stamp_);
 
         roll_  = imu_msg->angles.x;
         pitch_ = imu_msg->angles.y;
@@ -151,7 +152,7 @@ snamespace sensor_plugin
       void kduinoImuCallback(const aerial_robot_msgs::KduinoImuConstPtr& imu_msg)
       {
         imu_stamp_ = imu_msg->stamp;
-        state_estimator_->setSystemTimeStamp(imu_stamp_);
+        estimator_->setSystemTimeStamp(imu_stamp_);
 
         roll_  = M_PI * imu_msg->angle[0] / 10.0 / 180.0; //raw data is 10 times
         pitch_ = M_PI * imu_msg->angle[1] / 10.0 / 180.0; //raw data is 10 times
@@ -183,7 +184,7 @@ snamespace sensor_plugin
       void kduinoSimpleImuCallback(const aerial_robot_msgs::KduinoSimpleImuConstPtr& imu_msg)
       {
         imu_stamp_ = imu_msg->stamp;
-        state_estimator_->setSystemTimeStamp(imu_stamp_);
+        estimator_->setSystemTimeStamp(imu_stamp_);
 
         roll_  = M_PI * imu_msg->angle[0] / 10.0 / 180.0; //raw data is 10 times
         pitch_ = M_PI * imu_msg->angle[1] / 10.0 / 180.0; //raw data is 10 times
@@ -251,86 +252,86 @@ snamespace sensor_plugin
                 ROS_WARN("accX bias is %f, accY bias is %f, accZ bias is %f, hz is %f", acc_x_bias_, acc_y_bias_, acc_z_bias_, hz_calib);
                 if(estimate_mode_ & (1 << EGOMOTION_ESTIMATION_MODE))
                   {
-                    for(int i = 0; i < fuser_egomotion_no_; i++)
+                    for(int i = 0; i < estimator_->getFuserEgomotionNo(); i++)
                       {
-                        getFuserEgomotion(i)->updateModelFromDt(hz_calib);
+                        estimator_->getFuserEgomotion(i)->updateModelFromDt(hz_calib);
 
-                        if(getFuserEgomotionName(i) == "kalman_filter/kf_pose_vel_acc_bias")
+                        if(estimator_->getFuserEgomotionName(i) == "kalman_filter/kf_pose_vel_acc_bias")
                           {//temporary
                             Eigen::Matrix<double, 2, 1> temp = Eigen::MatrixXd::Zero(2, 1); 
                             temp(1,0) = acc_bias_noise_sigma_;
                             ROS_WARN("this is bias mode");
-                            if((getFuserEgomotionId(i) & (1 << X_W)) || (getFuserEgomotionId(i) & (1 << X_B)))
+                            if((estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::X_W)) || (estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::X_B)))
                               {
                                 temp(0,0) = level_acc_noise_sigma_;
-                                getFuserEgomotion(i)->setInitState(acc_x_bias_, 2);
+                                estimator_->getFuserEgomotion(i)->setInitState(acc_x_bias_, 2);
                               }
-                            else if((getFuserEgomotionId(i) & (1 << Y_W)) || (getFuserEgomotionId(i) & (1 << Y_B)))
+                            else if((estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::Y_W)) || (estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::Y_B)))
                               {
                                 temp(0,0) = level_acc_noise_sigma_;
-                                getFuserEgomotion(i)->setInitState(acc_y_bias_, 2);
+                                estimator_->getFuserEgomotion(i)->setInitState(acc_y_bias_, 2);
                               }
-                            else if((getFuserEgomotionId(i) & (1 << Z_W)))
+                            else if((estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::Z_W)))
                               {
                                 temp(0,0) = z_acc_noise_sigma_;
-                                getFuserEgomotion(i)->setInitState(acc_z_bias_, 2);
+                                estimator_->getFuserEgomotion(i)->setInitState(acc_z_bias_, 2);
                               }
-                            getFuserEgomotion(i)->setInputSigma(temp);
+                            estimator_->getFuserEgomotion(i)->setInputSigma(temp);
                           }
 
-                        if(getFuserEgomotionName(i) == "kalman_filter/kf_pose_vel_acc")
+                        if(estimator_->getFuserEgomotionName(i) == "kalman_filter/kf_pose_vel_acc")
                           {//temporary
                             Eigen::Matrix<double, 1, 1> temp = Eigen::MatrixXd::Zero(1, 1); 
-                            if((getFuserEgomotionId(i) & (1 << X_W)) || (getFuserEgomotionId(i) & (1 << X_B))
-                               || (getFuserEgomotionId(i) & (1 << Y_W)) || (getFuserEgomotionId(i) & (1 << Y_B)))
+                            if((estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::X_W)) || (estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::X_B))
+                               || (estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::Y_W)) || (estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::Y_B)))
                                 temp(0,0) = level_acc_noise_sigma_;
-                            else if((getFuserEgomotionId(i) & (1 << Z_W)))
+                            else if((estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::Z_W)))
                                 temp(0,0) = z_acc_noise_sigma_;
-                            getFuserEgomotion(i)->setInputSigma(temp);
+                            estimator_->getFuserEgomotion(i)->setInputSigma(temp);
                           }
-                        getFuserEgomotion(i)->setInputFlag;
+                        estimator_->getFuserEgomotion(i)->setInputFlag();
                       }
                   }
 
                 if(estimate_mode_ & (1 << EXPERIMENT_MODE))
                   {
-                    for(int i = 0; i < fuser_experiment_no_; i++)
+                    for(int i = 0; i < estimator_->getFuserExperimentNo(); i++)
                       {
-                        getFuserExperiment(i)->updateModelFromDt(hz_calib);
+                        estimator_->getFuserExperiment(i)->updateModelFromDt(hz_calib);
 
-                        if(getFuserExperimentName(i) == "kalman_filter/kf_pose_vel_acc_bias")
+                        if(estimator_->getFuserExperimentName(i) == "kalman_filter/kf_pose_vel_acc_bias")
                           {//temporary
                             Eigen::Matrix<double, 2, 1> temp = Eigen::MatrixXd::Zero(2, 1); 
                             temp(1,0) = acc_bias_noise_sigma_;
                             ROS_WARN("this is bias mode");
-                            if((getFuserExperimentId(i) & (1 << X_W)) || (getFuserExperimentId(i) & (1 << X_B)))
+                            if((estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::X_W)) || (estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::X_B)))
                               {
                                 temp(0,0) = level_acc_noise_sigma_;
-                                getFuserExperiment(i)->setInitState(acc_x_bias_, 2);
+                                estimator_->getFuserExperiment(i)->setInitState(acc_x_bias_, 2);
                               }
-                            else if((getFuserExperimentId(i) & (1 << Y_W)) || (getFuserExperimentId(i) & (1 << Y_B)))
+                            else if((estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::Y_W)) || (estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::Y_B)))
                               {
                                 temp(0,0) = level_acc_noise_sigma_;
-                                getFuserExperiment(i)->setInitState(acc_y_bias_, 2);
+                                estimator_->getFuserExperiment(i)->setInitState(acc_y_bias_, 2);
                               }
-                            else if((getFuserExperimentId(i) & (1 << Z_W)))
+                            else if((estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::Z_W)))
                               {
                                 temp(0,0) = z_acc_noise_sigma_;
-                                getFuserExperiment(i)->setInitState(acc_z_bias_, 2);
+                                estimator_->getFuserExperiment(i)->setInitState(acc_z_bias_, 2);
                               }
                           }
-                        if(getFuserExperimentName(i) == "kalman_filter/kf_pose_vel_acc")
+                        if(estimator_->getFuserExperimentName(i) == "kalman_filter/kf_pose_vel_acc")
                           {//temporary
                             Eigen::Matrix<double, 1, 1> temp = Eigen::MatrixXd::Zero(1, 1); 
-                            if((getFuserExperimentId(i) & (1 << X_W)) || (getFuserExperimentId(i) & (1 << X_B))
-                               || (getFuserExperimentId(i) & (1 << Y_W)) || (getFuserExperimentId(i) & (1 << Y_B)))
+                            if((estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::X_W)) || (estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::X_B))
+                               || (estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::Y_W)) || (estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::Y_B)))
                                 temp(0,0) = level_acc_noise_sigma_;
-                            else if((getFuserExperimentId(i) & (1 << Z_W)))
+                            else if((estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::Z_W)))
                                 temp(0,0) = z_acc_noise_sigma_;
-                            getFuserExperiment(i)->setInputSigma(temp);
+                            estimator_->getFuserExperiment(i)->setInputSigma(temp);
                           }
 
-                        getFuserExperiment(i)->setInputFlag;
+                        estimator_->getFuserExperiment(i)->setInputFlag();
                       }
                   }
               }
@@ -338,9 +339,9 @@ snamespace sensor_plugin
 
         if(bias_calib == calib_count_)
           {
-            float yaw_gt = state_estimator_->getGTState(YAW_W_B, 0);
-            float yaw_ee = state_estimator_->getEEState(YAW_W_B, 0);
-            float yaw_ex = state_estimator_->getEXState(YAW_W_B, 0);
+            float yaw_gt = estimator_->getGTState(BasicEstimator::YAW_W_B, 0);
+            float yaw_ee = estimator_->getEEState(BasicEstimator::YAW_W_B, 0);
+            float yaw_ex = estimator_->getEXState(BasicEstimator::YAW_W_B, 0);
 
             if(estimate_mode_ & (1 << EGOMOTION_ESTIMATION_MODE))
               {
@@ -357,37 +358,37 @@ snamespace sensor_plugin
                 Eigen::Matrix<double, 1, 1> temp = Eigen::MatrixXd::Zero(1, 1); 
                 Eigen::Matrix<double, 2, 1> temp2 = Eigen::MatrixXd::Zero(2, 1); 
 
-                for(int i = 0; i < fuser_egomotion_no_; i++)
+                for(int i = 0; i < estimator_->getFuserEgomotionNo(); i++)
                   {
-                    if(getFuserEgomotionName(i) == "kalman_filter/kf_pose_vel_acc")
+                    if(estimator_->getFuserEgomotionName(i) == "kalman_filter/kf_pose_vel_acc")
                       {//temporary
-                        if(getFuserEgomotionId(i) & (1 << X_W)) 
+                        if(estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::X_W)) 
                           temp(0, 0) = (double)acc_xw_non_bias_;
-                        else if(getFuserEgomotionId(i) & (1 << X_B))
+                        else if(estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::X_B))
                           temp(0, 0) = (double)acc_xi_;
-                        else if(getFuserEgomotionId(i) & (1 << Y_W)) 
+                        else if(estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::Y_W)) 
                           temp(0, 0) = (double)acc_yw_non_bias_;
-                        else if(getFuserEgomotionId(i) & (1 << Y_B))
+                        else if(estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::Y_B))
                           temp(0, 0) = (double)acc_yi_;
-                        else if(getFuserEgomotionId(i) & (1 << Z_W))
+                        else if(estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::Z_W))
                           temp(0, 0) = (double)acc_zw_non_bias_;
 
-                        getFuserEgomotion(i)->prediction(temp);
+                        estimator_->getFuserEgomotion(i)->prediction(temp);
                       }
-                    if(getFuserEgomotionName(i) == "kalman_filter/kf_pose_vel_acc_bias")
+                    if(estimator_->getFuserEgomotionName(i) == "kalman_filter/kf_pose_vel_acc_bias")
                       {//temporary
-                        if(getFuserEgomotionId(i) & (1 << X_W)) 
+                        if(estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::X_W)) 
                           temp2(0, 0) = (double)acc_xw_;
-                        else if(getFuserEgomotionId(i) & (1 << X_B))
+                        else if(estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::X_B))
                           temp2(0, 0) = (double)acc_xi_;
-                        else if(getFuserEgomotionId(i) & (1 << Y_W)) 
+                        else if(estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::Y_W)) 
                           temp2(0, 0) = (double)acc_yw_;
-                        else if(getFuserEgomotionId(i) & (1 << Y_B))
+                        else if(estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::Y_B))
                           temp2(0, 0) = (double)acc_yi_;
-                        else if(getFuserEgomotionId(i) & (1 << Z_W))
+                        else if(estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::Z_W))
                           temp2(0, 0) = (double)acc_zw_;
 
-                        getFuserEgomotion(i)->prediction(temp2);
+                        estimator_->getFuserEgomotion(i)->prediction(temp2);
                       }
                   }
               }
@@ -415,37 +416,37 @@ snamespace sensor_plugin
                 Eigen::Matrix<double, 1, 1> temp = Eigen::MatrixXd::Zero(1, 1); 
                 Eigen::Matrix<double, 2, 1> temp2 = Eigen::MatrixXd::Zero(2, 1); 
 
-                for(int i = 0; i < fuser_egomotion_no_; i++)
+                for(int i = 0; i < estimator_->getFuserExperimentNo(); i++)
                   {
-                    if(getFuserExperimentName(i) == "kalman_filter/kf_pose_vel_acc")
+                    if(estimator_->getFuserExperimentName(i) == "kalman_filter/kf_pose_vel_acc")
                       {//temporary
-                        if(getFuserExperimentId(i) & (1 << X_W)) 
+                        if(estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::X_W)) 
                           temp(0, 0) = (double)acc_xw_non_bias_;
-                        else if(getFuserExperimentId(i) & (1 << X_B))
+                        else if(estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::X_B))
                           temp(0, 0) = (double)acc_xi_;
-                        else if(getFuserExperimentId(i) & (1 << Y_W)) 
+                        else if(estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::Y_W)) 
                           temp(0, 0) = (double)acc_yw_non_bias_;
-                        else if(getFuserExperimentId(i) & (1 << Y_B))
+                        else if(estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::Y_B))
                           temp(0, 0) = (double)acc_yi_;
-                        else if(getFuserExperimentId(i) & (1 << Z_W))
+                        else if(estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::Z_W))
                           temp(0, 0) = (double)acc_zw_non_bias_;
 
-                        getFuserExperiment(i)->prediction(temp);
+                        estimator_->getFuserExperiment(i)->prediction(temp);
                       }
 
-                    if(getFuserExperimentName(i) == "kalman_filter/kf_pose_vel_acc_bias")
+                    if(estimator_->getFuserExperimentName(i) == "kalman_filter/kf_pose_vel_acc_bias")
                       {//temporary
-                        if(getFuserExperimentId(i) & (1 << X_W)) 
+                        if(estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::X_W)) 
                           temp2(0, 0) = (double)acc_xw_;
-                        else if(getFuserExperimentId(i) & (1 << X_B))
+                        else if(estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::X_B))
                           temp2(0, 0) = (double)acc_xi_;
-                        else if(getFuserExperimentId(i) & (1 << Y_W)) 
+                        else if(estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::Y_W)) 
                           temp2(0, 0) = (double)acc_yw_;
-                        else if(getFuserExperimentId(i) & (1 << Y_B))
+                        else if(estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::Y_B))
                           temp2(0, 0) = (double)acc_yi_;
-                        else if(getFuserExperimentId(i) & (1 << Z_W))
+                        else if(estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::Z_W))
                           temp2(0, 0) = (double)acc_zw_;
-                        getFuserExperiment(i)->prediction(temp2);
+                        estimator_->getFuserExperiment(i)->prediction(temp2);
                       }
                   }
               }
@@ -461,6 +462,11 @@ snamespace sensor_plugin
         imu_data.header.stamp = stamp;
 
         imu_data.height = height_;
+
+        estimator_->setEEState(BasicEstimator::ROLL_W, 0, roll_);
+        estimator_->setEEState(BasicEstimator::PITCH_W, 0, pitch_);
+        //estimator_->setEXState(BasicEstimator::YAW_W_COG, 0, yaw_);
+        //estimator_->setEXState(BasicEstimator::YAW_W_B, 0, yaw_);
 
         imu_data.angles.x = roll_;
         imu_data.angles.y = pitch_;
@@ -493,39 +499,39 @@ snamespace sensor_plugin
         imu_pub_.publish(imu_data);
       }
 
-      void rosParamInit(ros::NodeHandle nh)
+      void rosParamInit()
       {
-        std::string ns = nh.getNamespace();
+        std::string ns = nhp_.getNamespace();
 
-        nh.param("g_value", g_value_, 9.797 );
+        nhp_.param("g_value", g_value_, 9.797 );
         printf(" g value is %f\n", g_value_);
 
-        nh.param("level_acc_noise_sigma", level_acc_noise_sigma_, 0.01 );
+        nhp_.param("level_acc_noise_sigma", level_acc_noise_sigma_, 0.01 );
         printf("level acc noise sigma  is %f\n", level_acc_noise_sigma_);
 
-        nh.param("z_acc_noise_sigma", z_acc_noise_sigma_, 0.01 );
+        nhp_.param("z_acc_noise_sigma", z_acc_noise_sigma_, 0.01 );
         printf("z acc noise sigma  is %f\n", z_acc_noise_sigma_);
 
-        nh.param("acc_bias_noise_sigma", acc_bias_noise_sigma_, 0.01 );
+        nhp_.param("acc_bias_noise_sigma", acc_bias_noise_sigma_, 0.01 );
         printf("acc bias noise sigma  is %f\n", acc_bias_noise_sigma_);
 
-        nh.param("calib_time", calib_time_, 2.0 );
+        nhp_.param("calib_time", calib_time_, 2.0 );
         printf("%s,  imu calib time is %f\n", ns.c_str(),  calib_time_);
 
-        nh.param("yaw_acc_trans_for_experiment_estimation", yaw_acc_trans_for_experiment_estimation_, 0 );
+        nhp_.param("yaw_acc_trans_for_experiment_estimation", yaw_acc_trans_for_experiment_estimation_, 0 );
         printf("%s,  yaw acc trans for experiment estimation is %d\n", ns.c_str(),  yaw_acc_trans_for_experiment_estimation_);
 
-        nh.param("imu_board", imu_board_, 0);
+        nhp_.param("imu_board", imu_board_, 0);
         if(imu_board_ != D_BOARD)
           ROS_WARN(" imu board is %s\n", (imu_board_ == KDUINO)?"kduino":"other board");
 
         if(imu_board_ == KDUINO)
           {
-            nh.param("acc_scale", acc_scale_, g_value_ / 512.0);
+            nhp_.param("acc_scale", acc_scale_, g_value_ / 512.0);
             printf(" acc scale is %f\n", acc_scale_);
-            nh.param("gyro_scale", gyro_scale_, (2279 * M_PI)/((32767.0 / 4.0f ) * 180.0));
+            nhp_.param("gyro_scale", gyro_scale_, (2279 * M_PI)/((32767.0 / 4.0f ) * 180.0));
             printf(" gyro scale is %f\n", gyro_scale_);
-            nh.param("mag_scale", mag_scale_, 1200 / 32768.0);
+            nhp_.param("mag_scale", mag_scale_, 1200 / 32768.0);
             printf(" mag scale is %f\n", mag_scale_);
           }
       }
