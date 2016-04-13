@@ -7,4 +7,3 @@ estimator/base_footprint_frame: base_footprint
 estimator/laser_frame: laser
 estimator/camera_frame: camera
 
-imu/calib_count: 1000
