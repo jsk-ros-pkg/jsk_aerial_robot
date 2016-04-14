@@ -56,6 +56,10 @@
     <remap from="/navigator/teleop_command/yaw" to="/teleop_command/yaw" />
     <remap from="/navigator/teleop_command/throttle" to="/teleop_command/throttle" />
     <remap from="/navigator/teleop_command/ctrl_mode" to="/teleop_command/ctrl_mode" />
+
+    #####temporary
+    <remap from="/estimator/optical_flow/opt_flow" to="/px4flow/opt_flow" />
+
   </node>
 </launch>
 

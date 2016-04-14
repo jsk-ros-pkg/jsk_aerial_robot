@@ -45,7 +45,7 @@ namespace sensor_base_plugin
       ROS_WARN("load sensor plugin %s:", ns.c_str());
       if (!nhp_.getParam ("estimate_mode", estimate_mode_))
         ROS_ERROR("%s, can not get param about estimate mode", ns.c_str());
-
+      printf("%s,  estimate mode  is %d\n", ns.c_str(), estimate_mode_);
 
     }
 

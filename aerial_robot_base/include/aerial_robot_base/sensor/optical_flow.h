@@ -83,6 +83,7 @@ namespace sensor_plugin
       //**** Global Sensor Fusion Flag Check
       if(!estimator_->getSensorFusionFlag())  return;
 
+
       //**** 高さ方向情報の更新
       raw_pos_z_ = optical_flow_msg->ground_distance;
 
@@ -117,8 +118,11 @@ namespace sensor_plugin
                         }
                       else if((estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::Z_W)))
                         {
-
-                          Eigen::Matrix<double, 2, 1> init_state2 = Eigen::MatrixXd::Zero(2, 1);
+                          Eigen::MatrixXd init_state2;
+                          if(estimator_->getFuserEgomotionPluginName(i) == "kalman_filter/kf_pose_vel_acc")
+                            init_state2 = Eigen::MatrixXd::Zero(2, 1);
+                          if(estimator_->getFuserEgomotionPluginName(i) == "kalman_filter/kf_pose_vel_acc_bias")
+                            init_state2 = Eigen::MatrixXd::Zero(3, 1);
                           init_state2(0,0) = optical_flow_msg->ground_distance;
                           init_state2(1,0) = start_vel_;
                           estimator_->getFuserEgomotion(i)->setInitState(init_state2);
@@ -135,7 +139,6 @@ namespace sensor_plugin
                   for(int i = 0; i < estimator_->getFuserExperimentNo(); i++)
                     {
                       Eigen::Matrix<double, 1, 1> temp = Eigen::MatrixXd::Zero(1, 1); 
-                      ROS_WARN("this is bias mode");
                       if((estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::X_W)) || (estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::X_B)))
                         {
                           temp(0,0) = level_vel_noise_sigma_;
@@ -216,8 +219,10 @@ namespace sensor_plugin
                 {
                   if((estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::X_W)) || (estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::X_B)))
                     {
+
                       sigma_temp(0,0) = level_vel_noise_sigma_;
                       estimator_->getFuserEgomotion(i)->setMeasureSigma(sigma_temp);
+                      estimator_->getFuserEgomotion(i)->setCorrectMode(1);
                       if(optical_flow_msg->quality == 0 || raw_vel_x_ == 0 || raw_pos_z_ > 2.5)
                         temp(0, 0) = filtered_vel_x_;
                       else
@@ -228,6 +233,7 @@ namespace sensor_plugin
                     {
                       sigma_temp(0,0) = level_vel_noise_sigma_;
                       estimator_->getFuserEgomotion(i)->setMeasureSigma(sigma_temp);
+                      estimator_->getFuserEgomotion(i)->setCorrectMode(1);
 
                       if(optical_flow_msg->quality == 0 || raw_vel_y_ == 0 || raw_pos_z_ > 2.5)
                         temp(0, 0) = filtered_vel_y_;
@@ -239,9 +245,11 @@ namespace sensor_plugin
                     {
                       sigma_temp(0,0) = sonar_noise_sigma_;
                       estimator_->getFuserEgomotion(i)->setMeasureSigma(sigma_temp);
-
-                      if(raw_pos_z_ != prev_raw_pos_z && raw_pos_z_ < 2.5) temp(0, 0) = raw_pos_z_;
-                      estimator_->getFuserEgomotion(i)->correction(temp);
+                      if(raw_pos_z_ != prev_raw_pos_z && raw_pos_z_ < 2.5 && raw_pos_z_ > (start_lower_thre_ + 0.02)) 
+                        {//TODO: the condition is toorough
+                          temp(0, 0) = raw_pos_z_;
+                          estimator_->getFuserEgomotion(i)->correction(temp);
+                        }
                     }
                 }
             }
@@ -254,6 +262,7 @@ namespace sensor_plugin
                     {
                       sigma_temp(0,0) = level_vel_noise_sigma_;
                       estimator_->getFuserExperiment(i)->setMeasureSigma(sigma_temp);
+                      estimator_->getFuserExperiment(i)->setCorrectMode(1);
 
                       if(optical_flow_msg->quality == 0 || raw_vel_x_ == 0 || raw_pos_z_ > 2.5)
                         temp(0, 0) = filtered_vel_x_;
@@ -265,6 +274,7 @@ namespace sensor_plugin
                     {
                       sigma_temp(0,0) = level_vel_noise_sigma_;
                       estimator_->getFuserExperiment(i)->setMeasureSigma(sigma_temp);
+                      estimator_->getFuserExperiment(i)->setCorrectMode(1);
 
                       if(optical_flow_msg->quality == 0 || raw_vel_y_ == 0 || raw_pos_z_ > 2.5)
                         temp(0, 0) = filtered_vel_y_;
@@ -309,6 +319,7 @@ namespace sensor_plugin
           Eigen::Matrix<double,2,1> kf_z_state;
           Eigen::Matrix<double,3,1> kfb_x_state;
           Eigen::Matrix<double,3,1> kfb_y_state;
+          Eigen::Matrix<double,3,1> kfb_z_state;
 
           if(estimate_mode_ & (1 << EGOMOTION_ESTIMATION_MODE))
             {
@@ -329,12 +340,19 @@ namespace sensor_plugin
                       if((estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::Y_B))) 
                         {
                           kfb_y_state = estimator_->getFuserEgomotion(i)->getEstimateState();
-                          estimator_->setEEState(BasicEstimator::Y_W, 1, kfb_y_state(1,0));
+                          estimator_->setEEState(BasicEstimator::Y_B, 1, kfb_y_state(1,0));
                         }
                       if((estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::Y_W))) 
                         {
                           kfb_y_state = estimator_->getFuserEgomotion(i)->getEstimateState();
                           estimator_->setEEState(BasicEstimator::Y_W, 1, kfb_y_state(1,0));
+                        }
+                      if((estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::Z_W))) 
+                        {
+                          kfb_z_state = estimator_->getFuserEgomotion(i)->getEstimateState();
+                          estimator_->setEEState(BasicEstimator::Z_W, 0, kfb_z_state(0,0));
+                          estimator_->setEEState(BasicEstimator::Z_W, 1, kfb_z_state(1,0));
+                          
                         }
                     }
                   if(estimator_->getFuserEgomotionPluginName(i) == "kalman_filter/kf_pose_vel_acc")
@@ -441,6 +459,9 @@ namespace sensor_plugin
 
           z_state.kf_pos = kf_z_state(0, 0);
           z_state.kf_vel = kf_z_state(1, 0);
+          z_state.kfb_pos = kfb_z_state(0, 0);
+          z_state.kfb_vel = kfb_z_state(1, 0);
+
 
           opt_data.states.push_back(x_state);
           opt_data.states.push_back(y_state);
@@ -477,11 +498,11 @@ namespace sensor_plugin
       std::string ns = nhp_.getNamespace();
       if (!nhp_.getParam ("x_axis_direction", x_axis_direction_))
         x_axis_direction_ = 1.0;
-      printf("%s: x_axis_direction_ is %.3f\n", ns.c_str(), x_axis_direction_);
+      printf("%s: x_axis direction_ is %.3f\n", ns.c_str(), x_axis_direction_);
 
       if (!nhp_.getParam ("y_axis_direction", y_axis_direction_))
         y_axis_direction_ = 1.0; //-1 is default
-      printf("%s: y_axisDirection_ is %.3f\n", ns.c_str(), y_axis_direction_);
+      printf("%s: y_axis direction_ is %.3f\n", ns.c_str(), y_axis_direction_);
     }
   };
 

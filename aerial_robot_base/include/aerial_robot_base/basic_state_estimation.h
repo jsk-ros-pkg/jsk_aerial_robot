@@ -67,7 +67,7 @@ class BasicEstimator
   inline float getEXState(int axis, int mode){ return (ex_state_[axis])[mode];}
   inline void setEXState(int axis, int mode, float value){ (ex_state_[axis])[mode] = value;}
 
-  inline void setSensorFusionFlag(bool flag){sensor_fusion_flag_ = flag; }
+  inline void setSensorFusionFlag(bool flag){sensor_fusion_flag_ = flag;  }
   inline bool getSensorFusionFlag(){return sensor_fusion_flag_; }
 
   virtual float getPosZOffset() {  return  state_pos_z_offset_;}

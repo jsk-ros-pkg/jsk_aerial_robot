@@ -1,14 +1,9 @@
 sensor:
         imu:
-                # EGOMOTION_ESTIMATION_MODE = 0
-                # GROUND_TRUTH_MODE = 1
-                # EXPERIMENT_MODE = 2
-                estimate_mode: 4 # 1<< 2
-
                 imu_topic_name: /jsk_stm_serial_comm/jsk_imu
-                level_acc_noise_sigma: 0.05
-                z_acc_noise_sigma: 0.10
-                acc_bias_noise_sigma: 0.005#0.04
+                level_acc_noise_sigma: 0.06
+                z_acc_noise_sigma: 0.05 #real:0.05
+                acc_bias_noise_sigma: 0.001 #0.005#0.04
 
                 #when use mocap, please use mocap yaw for acc transform
                 yaw_acc_trans_for_experiment_estimation: 1

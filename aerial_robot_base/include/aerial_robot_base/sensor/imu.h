@@ -206,7 +206,7 @@ namespace sensor_plugin
         static ros::Time prev_time;
         static double hz_calib = 0;
         //* calculate accTran
-#if 0 // use x,y for factor4 and z for factor3
+#if 1 // use x,y for factor4 and z for factor3
         acc_xi_ = (acc_xb_) * cos(pitch_) + 
           (acc_yb_) * sin(pitch_) * sin(roll_) + 
           (acc_zb_) * sin(pitch_) * cos(roll_);
@@ -214,6 +214,7 @@ namespace sensor_plugin
         acc_zw_ = (acc_xb_) * (-sin(pitch_)) + 
           (acc_yb_) * cos(pitch_) * sin(roll_) + 
           (acc_zb_) * cos(pitch_) * cos(roll_) + (-g_value_);
+        acc_zw_ = (acc_zb_) * cos(pitch_) * cos(roll_) + (- g_value_);
 #else  // use approximation
         acc_xi_ =  (acc_zb_) * sin(pitch_) * cos(roll_);
         acc_yi_ =  - (acc_zb_) * sin(roll_);
@@ -372,7 +373,8 @@ namespace sensor_plugin
                         else if(estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::Y_B))
                           temp(0, 0) = (double)acc_yi_;
                         else if(estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::Z_W))
-                          temp(0, 0) = (double)acc_zw_non_bias_;
+                          //temp(0, 0) = (double)acc_zw_non_bias_;
+                          temp(0, 0) = (double)acc_zw_;
 
                         estimator_->getFuserEgomotion(i)->prediction(temp);
                       }
@@ -508,7 +510,7 @@ namespace sensor_plugin
         printf(" g value is %f\n", g_value_);
 
         nhp_.param("imu_topic_name", imu_topic_name_, std::string("imu"));
-        printf(" imu topic name is %f\n", imu_topic_name_.c_str());
+        printf(" imu topic name is %s\n", imu_topic_name_.c_str());
 
         nhp_.param("level_acc_noise_sigma", level_acc_noise_sigma_, 0.01 );
         printf("level acc noise sigma  is %f\n", level_acc_noise_sigma_);
