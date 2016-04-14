@@ -27,5 +27,7 @@
 
   <include file="$(find aerial_robot_base)/launch/sensors/joy_stick.launch" />
 
+  ################################# PX4Flow ######################################
+  <include file="$(find aerial_robot_base)/launch/sensors/px4flow.launch" />
 
 </launch>

@@ -1,0 +1,6 @@
+<launch> 
+<node name="px4flow" pkg="px4flow_node" type="px4flow_node" output="screen" respawn="true" clear_params="true">
+  <param name="baudrate" value="115200" />
+  <param name="serial_port" value="/dev/ttyUSB1" />
+</node>
+</launch> 
