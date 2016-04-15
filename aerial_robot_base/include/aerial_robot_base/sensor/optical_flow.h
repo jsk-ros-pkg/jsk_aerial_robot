@@ -82,7 +82,30 @@ namespace sensor_plugin
 
 
       //**** Global Sensor Fusion Flag Check
-      if(!estimator_->getSensorFusionFlag())  return;
+      if(!estimator_->getSensorFusionFlag())  
+        {
+          //this is for the repeat mode
+          init_flag = true;
+          
+          //this is for the halt mode
+          if(estimate_mode_ & (1 << EGOMOTION_ESTIMATION_MODE))
+            {
+              for(int i = 0; i < estimator_->getFuserEgomotionNo(); i++)
+                {
+                  estimator_->getFuserEgomotion(i)->setMeasureFlag(false);
+                  estimator_->getFuserEgomotion(i)->resetState();
+                }
+            }
+          if(estimate_mode_ & (1 << EXPERIMENT_MODE))
+            {
+              for(int i = 0; i < estimator_->getFuserExperimentNo(); i++)
+                {
+                  estimator_->getFuserExperiment(i)->setMeasureFlag(false);
+                  estimator_->getFuserExperiment(i)->resetState();
+                }
+            }
+          return;
+        }
 
       //**** Optical flow によるmeasuring flag のenable化
       if(init_flag)
@@ -107,6 +130,20 @@ namespace sensor_plugin
                 }
             }
           init_flag = false;
+        }
+
+      //final landing moment;
+      if(estimate_mode_ & (1 << EGOMOTION_ESTIMATION_MODE))
+        {//special process(1) for landing, two
+          if(estimator_->getLandedFlag())
+            {
+              ROS_WARN("optical flow: landed stop all measuring");
+              for(int i = 0; i < estimator_->getFuserEgomotionNo(); i++)
+                {
+                  estimator_->getFuserEgomotion(i)->setMeasureFlag(false);
+                  estimator_->getFuserEgomotion(i)->resetState();
+                }
+            }
         }
 
       //**** 高さ方向情報の更新
@@ -198,20 +235,6 @@ namespace sensor_plugin
                 }
               sensor_fusion_flag_ = true;
             }
-
-          //temporariy for end pahse of landing
-          if(estimate_mode_ & (1 << EGOMOTION_ESTIMATION_MODE))
-            {
-              if(estimator_->getLandedFlag())
-                {
-                  ROS_WARN("optical flow: landed stop all measuring");
-                  for(int i = 0; i < estimator_->getFuserEgomotionNo(); i++)
-                    {
-                      estimator_->getFuserEgomotion(i)->setMeasureFlag(false);
-                      estimator_->getFuserEgomotion(i)->resetState();
-                    }
-                }
-            }
         }
       else 
         {
@@ -219,7 +242,7 @@ namespace sensor_plugin
              prev_raw_pos_z < start_upper_thre_ &&
              prev_raw_pos_z > start_lower_thre_ &&
              raw_pos_z_ < start_lower_thre_ && raw_pos_z_ > (start_lower_thre_ - 0.1))
-            {//special process for landing
+            {//special process(1) for landing, this is not very good, as far, 1/10 fail
               sensor_fusion_flag_ = false;
               ROS_ERROR("optical flow sensor: stop sensor fusion");
               return;
