@@ -83,7 +83,6 @@ namespace sensor_plugin
       //**** Global Sensor Fusion Flag Check
       if(!estimator_->getSensorFusionFlag())  return;
 
-
       //**** 高さ方向情報の更新
       raw_pos_z_ = optical_flow_msg->ground_distance;
 
@@ -191,7 +190,8 @@ namespace sensor_plugin
         }
       else 
         {
-          if(prev_raw_pos_z < start_upper_thre_ &&
+          if(estimator_->getLandingMode() &&
+             prev_raw_pos_z < start_upper_thre_ &&
              prev_raw_pos_z > start_lower_thre_ &&
              raw_pos_z_ < start_lower_thre_ && raw_pos_z_ > (start_lower_thre_ - 0.1))
             {//special process for landing
@@ -352,7 +352,6 @@ namespace sensor_plugin
                           kfb_z_state = estimator_->getFuserEgomotion(i)->getEstimateState();
                           estimator_->setEEState(BasicEstimator::Z_W, 0, kfb_z_state(0,0));
                           estimator_->setEEState(BasicEstimator::Z_W, 1, kfb_z_state(1,0));
-                          
                         }
                     }
                   if(estimator_->getFuserEgomotionPluginName(i) == "kalman_filter/kf_pose_vel_acc")
