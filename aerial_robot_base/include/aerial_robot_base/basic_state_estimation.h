@@ -18,9 +18,11 @@ class BasicEstimator
  public:
  BasicEstimator(ros::NodeHandle nh, ros::NodeHandle nh_private)
    : nh_(nh, "estimator"), nhp_(nh_private, "estimator")
-    {
+  {
       full_states_pub_ = nh_.advertise<aerial_robot_base::States>("full_states", 1); 
 
+      landing_mode_flag_ = false;
+      landed_flag_ = false;
 
       gt_state_.resize(9);
       ee_state_.resize(9);
@@ -37,6 +39,8 @@ class BasicEstimator
         }
 
       state_pos_z_offset_ = 1.0; //1m
+      
+
       sys_stamp_ = ros::Time::now();//removed this
 
     }
@@ -61,11 +65,26 @@ class BasicEstimator
   inline float getGTState(int axis, int mode){ return (gt_state_[axis])[mode];}
   inline void setGTState(int axis, int mode, float value){ (gt_state_[axis])[mode] = value;}
 
-  inline float getEEState(int axis, int mode){ return (ee_state_[axis])[mode];}
-  inline void setEEState(int axis, int mode, float value){ (ee_state_[axis])[mode] = value;}
-
-  inline float getEXState(int axis, int mode){ return (ex_state_[axis])[mode];}
-  inline void setEXState(int axis, int mode, float value){ (ex_state_[axis])[mode] = value;}
+ float getEEState(int axis, int mode)
+  {
+    boost::lock_guard<boost::mutex> lock(ee_state_mutex_); 
+   return (ee_state_[axis])[mode];
+  }
+ void setEEState(int axis, int mode, float value)
+  { 
+    boost::lock_guard<boost::mutex> lock(ee_state_mutex_); 
+    (ee_state_[axis])[mode] = value;
+  }
+ float getEXState(int axis, int mode)
+  { 
+    boost::lock_guard<boost::mutex> lock(ex_state_mutex_); 
+    return (ex_state_[axis])[mode];
+  }
+ void setEXState(int axis, int mode, float value)
+  {
+    boost::lock_guard<boost::mutex> lock(ex_state_mutex_); 
+    (ex_state_[axis])[mode] = value;
+  }
 
   inline void setSensorFusionFlag(bool flag){sensor_fusion_flag_ = flag;  }
   inline bool getSensorFusionFlag(){return sensor_fusion_flag_; }
@@ -73,9 +92,12 @@ class BasicEstimator
   virtual float getPosZOffset() {  return  state_pos_z_offset_;}
   virtual void setPosZOffset(float pos_z_offset){  state_pos_z_offset_ = pos_z_offset;}
 
+  //start landing mode
   virtual bool getLandingMode() {  return  landing_mode_flag_;}
   virtual void setLandingMode(bool flag){  landing_mode_flag_ = flag;}
-
+  // landed flag (acc_z check, ground shock)
+  virtual bool getLandedFlag() {  return  landed_flag_;}
+  virtual void setLandedFlag(bool flag){  landed_flag_ = flag;}
 
   inline boost::shared_ptr<kf_base_plugin::KalmanFilter> getFuserEgomotion(int no) { return fuser_egomotion_[no];}
   inline boost::shared_ptr<kf_base_plugin::KalmanFilter> getFuserExperiment(int no) { return fuser_experiment_[no];}
@@ -97,6 +119,9 @@ class BasicEstimator
   ros::Publisher full_states_pub_;
 
   ros::Time sys_stamp_;
+
+  //for mutex
+  boost::mutex ee_state_mutex_, ex_state_mutex_;
 
   // xw, yw, zw, rollw, pitchw, yaww of cog, xb, yb, yaww of board (9) 
   // (0): x, (1): dx, (2); ddx
@@ -122,6 +147,7 @@ class BasicEstimator
   std::vector< boost::shared_ptr<kf_base_plugin::KalmanFilter> > fuser_egomotion_;
   std::vector< boost::shared_ptr<kf_base_plugin::KalmanFilter> > fuser_experiment_;
   bool landing_mode_flag_;
+  bool landed_flag_;
 
 };
 

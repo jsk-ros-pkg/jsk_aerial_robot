@@ -1054,7 +1054,7 @@ void TeleopNavigator::teleopNavigation()
     }
   else if(getNaviCommand() == LAND_COMMAND)
     {
-      ROS_WARN(" land command");
+      //ROS_WARN(" land command");
 
       //for estimator landing mode
       estimator_->setLandingMode(true);
@@ -1105,6 +1105,7 @@ void TeleopNavigator::teleopNavigation()
     {
       estimator_->setSensorFusionFlag(false);
       estimator_->setLandingMode(false);
+      estimator_->setLandedFlag(false);
 
       if(flight_mode_ != RESET_MODE)
         flight_mode_= NO_CONTROL_MODE;

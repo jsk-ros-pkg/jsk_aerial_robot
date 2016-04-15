@@ -222,7 +222,6 @@ namespace sensor_plugin
                     {
                       sigma_temp(0,0) = pos_noise_sigma_;
                       estimator_->getFuserExperiment(i)->setMeasureSigma(sigma_temp);
-
                       temp(0, 0) = raw_pos_x;
                       estimator_->getFuserExperiment(i)->correction(temp);
                       x_state.reserves.push_back((estimator_->getFuserExperiment(i)->getEstimateState())(0,0));

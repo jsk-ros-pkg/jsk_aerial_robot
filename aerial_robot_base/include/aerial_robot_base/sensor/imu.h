@@ -105,6 +105,8 @@ namespace sensor_plugin
 
       int yaw_acc_trans_for_experiment_estimation_;
 
+    double landing_shock_force_;
+
       //***  world frame
       float acc_xw_, acc_xw_non_bias_;
       float acc_yw_, acc_yw_non_bias_;
@@ -220,6 +222,11 @@ namespace sensor_plugin
         acc_yi_ =  - (acc_zb_) * sin(roll_);
         acc_zw_ = (acc_zb_) * cos(pitch_) * cos(roll_) + (- g_value_);
 #endif
+        if(estimator_->getLandingMode() && acc_zw_ > landing_shock_force_)
+          {
+            ROS_WARN("imu: touch to ground");
+            estimator_->setLandedFlag(true);
+          }
 
         //bais calibration
         if(bias_calib < calib_count_)
@@ -362,39 +369,73 @@ namespace sensor_plugin
 
                 for(int i = 0; i < estimator_->getFuserEgomotionNo(); i++)
                   {
+                    Eigen::MatrixXd egomotion_state;
+                    int axis;
+
                     if(estimator_->getFuserEgomotionPluginName(i) == "kalman_filter/kf_pose_vel_acc")
                       {//temporary
                         if(estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::X_W)) 
-                          temp(0, 0) = (double)acc_xw_non_bias_;
+                          {
+                            temp(0, 0) = (double)acc_xw_non_bias_;
+                            axis = BasicEstimator::X_W;
+                          }
                         else if(estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::X_B))
-                          temp(0, 0) = (double)acc_xi_;
+                          {
+                            temp(0, 0) = (double)acc_xi_;
+                            axis = BasicEstimator::X_B;
+                          }
                         else if(estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::Y_W)) 
-                          temp(0, 0) = (double)acc_yw_non_bias_;
+                          {
+                            temp(0, 0) = (double)acc_yw_non_bias_;
+                            axis = BasicEstimator::Y_W;
+                          }
                         else if(estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::Y_B))
-                          temp(0, 0) = (double)acc_yi_;
+                          {
+                            temp(0, 0) = (double)acc_yi_;
+                            axis = BasicEstimator::Y_B;
+                          }
                         else if(estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::Z_W))
-                          //temp(0, 0) = (double)acc_zw_non_bias_;
-                          temp(0, 0) = (double)acc_zw_;
-
+                          {
+                            temp(0, 0) = (double)acc_zw_non_bias_;
+                            axis = BasicEstimator::Z_W;
+                          }
                         estimator_->getFuserEgomotion(i)->prediction(temp);
                       }
                     if(estimator_->getFuserEgomotionPluginName(i) == "kalman_filter/kf_pose_vel_acc_bias")
                       {//temporary
                         if(estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::X_W)) 
-                          temp2(0, 0) = (double)acc_xw_;
+                          {
+                            temp2(0, 0) = (double)acc_xw_;
+                            axis = BasicEstimator::X_W;
+                          }
                         else if(estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::X_B))
-                          temp2(0, 0) = (double)acc_xi_;
+                          {
+                            temp2(0, 0) = (double)acc_xi_;
+                            axis = BasicEstimator::X_B;
+                          }
                         else if(estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::Y_W)) 
-                          temp2(0, 0) = (double)acc_yw_;
+                          {
+                            temp2(0, 0) = (double)acc_yw_;
+                            axis = BasicEstimator::Y_W;
+                          }
                         else if(estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::Y_B))
-                          temp2(0, 0) = (double)acc_yi_;
+                          {
+                            temp2(0, 0) = (double)acc_yi_;
+                            axis = BasicEstimator::Y_B;
+                          }
                         else if(estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::Z_W))
-                          temp2(0, 0) = (double)acc_zw_;
-
+                          {
+                            temp2(0, 0) = (double)acc_zw_;
+                            axis = BasicEstimator::Z_W;
+                          }
                         estimator_->getFuserEgomotion(i)->prediction(temp2);
                       }
+                    egomotion_state = estimator_->getFuserEgomotion(i)->getEstimateState();
+                    estimator_->setEEState(axis, 0, egomotion_state(0,0));
+                    estimator_->setEEState(axis, 1, egomotion_state(1,0));
                   }
               }
+            estimator_->setEEState(BasicEstimator::Z_W, 2, acc_zw_non_bias_);
 
             if(estimate_mode_ & (1 << EXPERIMENT_MODE))
               {
@@ -421,36 +462,70 @@ namespace sensor_plugin
 
                 for(int i = 0; i < estimator_->getFuserExperimentNo(); i++)
                   {
+                    Eigen::MatrixXd experiment_state;
+                    int axis;
+
                     if(estimator_->getFuserExperimentPluginName(i) == "kalman_filter/kf_pose_vel_acc")
                       {//temporary
                         if(estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::X_W)) 
-                          temp(0, 0) = (double)acc_xw_non_bias_;
+                          {
+                            temp(0, 0) = (double)acc_xw_non_bias_;
+                            axis = BasicEstimator::X_W;
+                          }
                         else if(estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::X_B))
-                          temp(0, 0) = (double)acc_xi_;
+                          {
+                            temp(0, 0) = (double)acc_xi_;
+                            axis = BasicEstimator::X_B;
+                          }
                         else if(estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::Y_W)) 
-                          temp(0, 0) = (double)acc_yw_non_bias_;
+                          {
+                            temp(0, 0) = (double)acc_yw_non_bias_;
+                            axis = BasicEstimator::Y_W;
+                          }
                         else if(estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::Y_B))
-                          temp(0, 0) = (double)acc_yi_;
+                          {
+                            temp(0, 0) = (double)acc_yi_;
+                            axis = BasicEstimator::Y_B;
+                          }
                         else if(estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::Z_W))
-                          temp(0, 0) = (double)acc_zw_non_bias_;
-
+                          {
+                            temp(0, 0) = (double)acc_zw_non_bias_;
+                            axis = BasicEstimator::Z_W;
+                          }
                         estimator_->getFuserExperiment(i)->prediction(temp);
                       }
-
                     if(estimator_->getFuserExperimentPluginName(i) == "kalman_filter/kf_pose_vel_acc_bias")
                       {//temporary
                         if(estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::X_W)) 
-                          temp2(0, 0) = (double)acc_xw_;
+                          {
+                            temp2(0, 0) = (double)acc_xw_;
+                            axis = BasicEstimator::X_W;
+                          }
                         else if(estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::X_B))
-                          temp2(0, 0) = (double)acc_xi_;
+                          {
+                            temp2(0, 0) = (double)acc_xi_;
+                            axis = BasicEstimator::X_B;
+                          }
                         else if(estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::Y_W)) 
-                          temp2(0, 0) = (double)acc_yw_;
+                          {
+                            temp2(0, 0) = (double)acc_yw_;
+                            axis = BasicEstimator::Y_W;
+                          }
                         else if(estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::Y_B))
-                          temp2(0, 0) = (double)acc_yi_;
+                          {
+                            temp2(0, 0) = (double)acc_yi_;
+                            axis = BasicEstimator::Y_B;
+                          }
                         else if(estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::Z_W))
-                          temp2(0, 0) = (double)acc_zw_;
+                          {
+                            temp2(0, 0) = (double)acc_zw_;
+                            axis = BasicEstimator::Z_W;
+                          }
                         estimator_->getFuserExperiment(i)->prediction(temp2);
                       }
+                    experiment_state = estimator_->getFuserExperiment(i)->getEstimateState();
+                    estimator_->setEXState(axis, 0, experiment_state(0,0));
+                    estimator_->setEXState(axis, 1, experiment_state(1,0));
                   }
               }
 
@@ -523,6 +598,9 @@ namespace sensor_plugin
 
         nhp_.param("calib_time", calib_time_, 2.0 );
         printf("%s,  imu calib time is %f\n", ns.c_str(),  calib_time_);
+
+        nhp_.param("landing_shock_force", landing_shock_force_, 5.0 );
+        printf("%s,  landing shock force is %f\n", ns.c_str(),  landing_shock_force_);
 
         nhp_.param("yaw_acc_trans_for_experiment_estimation", yaw_acc_trans_for_experiment_estimation_, 0 );
         printf("%s,  yaw acc trans for experiment estimation is %d\n", ns.c_str(),  yaw_acc_trans_for_experiment_estimation_);

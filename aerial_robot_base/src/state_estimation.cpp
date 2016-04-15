@@ -77,6 +77,11 @@ void RigidEstimator::statesBroadcast()
   x_state.raw_vel = getEEState(X_W, 1);
   x_state.kf_pos = getEXState(X_W, 0);
   x_state.kf_vel = getEXState(X_W, 1);
+  x_state.reserves.push_back(getEEState(X_B, 0));
+  x_state.reserves.push_back(getEEState(X_B, 1));
+  x_state.reserves.push_back(getEXState(X_B, 0));
+  x_state.reserves.push_back(getEXState(X_B, 1));
+
 
   aerial_robot_base::State y_state;
   y_state.id = "y";
@@ -86,6 +91,10 @@ void RigidEstimator::statesBroadcast()
   y_state.raw_vel = getEEState(Y_W, 1);
   y_state.kf_pos = getEXState(Y_W, 0);
   y_state.kf_vel = getEXState(Y_W, 1);
+  y_state.reserves.push_back(getEEState(Y_B, 0));
+  y_state.reserves.push_back(getEEState(Y_B, 1));
+  y_state.reserves.push_back(getEXState(Y_B, 0));
+  y_state.reserves.push_back(getEXState(Y_B, 1));
 
   aerial_robot_base::State z_state;
   z_state.id = "z";
@@ -95,6 +104,7 @@ void RigidEstimator::statesBroadcast()
   z_state.raw_vel = getEEState(Z_W, 1);
   z_state.kf_pos = getEXState(Z_W, 0);
   z_state.kf_vel = getEXState(Z_W, 1);
+  z_state.reserves.push_back(getEEState(Z_W, 2));
 
   aerial_robot_base::State yaw_state;
   yaw_state.id = "yaw";

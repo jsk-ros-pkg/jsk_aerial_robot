@@ -175,16 +175,13 @@ namespace sensor_plugin
           //temporariy for end pahse of landing
           if(estimate_mode_ & (1 << EGOMOTION_ESTIMATION_MODE))
             {
-              for(int i = 0; i < estimator_->getFuserEgomotionNo(); i++)
+              if(estimator_->getLandedFlag())
                 {
-                  if((estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::Z_W)))
+                  ROS_WARN("optical flow: landed stop all measuring");
+                  for(int i = 0; i < estimator_->getFuserEgomotionNo(); i++)
                     {
-                      if((estimator_->getFuserEgomotion(i)->getEstimateState())(0,0) <=0 && estimator_->getFuserEgomotion(i)->getFilteringFlag())
-                        {
-                          ROS_WARN("optical flow: disable z mesaure flag");
-                          estimator_->getFuserEgomotion(i)->setMeasureFlag(false);
-                          estimator_->getFuserEgomotion(i)->resetState();
-                        }
+                      estimator_->getFuserEgomotion(i)->setMeasureFlag(false);
+                      estimator_->getFuserEgomotion(i)->resetState();
                     }
                 }
             }
