@@ -72,8 +72,8 @@ namespace sensor_plugin
 
     void opticalFlowCallback(const aerial_robot_base::OpticalFlowConstPtr & optical_flow_msg)
     {
-      static int cnt = 0;
-      static int CNT = 0;
+      
+      static int init_flag = true;
       static float prev_raw_pos_z;
       static bool stop_flag = true;
       static double previous_secs;
@@ -83,6 +83,31 @@ namespace sensor_plugin
 
       //**** Global Sensor Fusion Flag Check
       if(!estimator_->getSensorFusionFlag())  return;
+
+      //**** Optical flow によるmeasuring flag のenable化
+      if(init_flag)
+        {
+          if(estimate_mode_ & (1 << EGOMOTION_ESTIMATION_MODE))
+            {
+              for(int i = 0; i < estimator_->getFuserEgomotionNo(); i++)
+
+                {
+                  if((estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::Z_W)))
+                    estimator_->getFuserEgomotion(i)->setMeasureFlag();
+                }
+            }
+          if(estimate_mode_ & (1 << EXPERIMENT_MODE))
+            {
+
+              for(int i = 0; i < estimator_->getFuserExperimentNo(); i++)
+                {
+                  if((estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::Z_W)))
+
+                    estimator_->getFuserExperiment(i)->setMeasureFlag();
+                }
+            }
+          init_flag = false;
+        }
 
       //**** 高さ方向情報の更新
       raw_pos_z_ = optical_flow_msg->ground_distance;
@@ -118,6 +143,7 @@ namespace sensor_plugin
                         }
                       else if((estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::Z_W)))
                         {
+                          /*
                           Eigen::MatrixXd init_state2;
                           if(estimator_->getFuserEgomotionPluginName(i) == "kalman_filter/kf_pose_vel_acc")
                             init_state2 = Eigen::MatrixXd::Zero(2, 1);
@@ -126,6 +152,8 @@ namespace sensor_plugin
                           init_state2(0,0) = optical_flow_msg->ground_distance;
                           init_state2(1,0) = start_vel_;
                           estimator_->getFuserEgomotion(i)->setInitState(init_state2);
+                          */
+                          estimator_->getFuserEgomotion(i)->setInitState(optical_flow_msg->ground_distance, 0);
 
                           temp(0,0) = sonar_noise_sigma_;
                           estimator_->getFuserEgomotion(i)->setMeasureSigma(temp);
@@ -143,26 +171,25 @@ namespace sensor_plugin
                         {
                           temp(0,0) = level_vel_noise_sigma_;
                           estimator_->getFuserExperiment(i)->setMeasureSigma(temp);
-
                           estimator_->getFuserExperiment(i)->setInitState(x_axis_direction_ * optical_flow_msg->flow_x /1000.0, 1);
-
                           estimator_->getFuserExperiment(i)->setMeasureFlag();
                         }
                       else if((estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::Y_W)) || (estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::Y_B)))
                         {
                           temp(0,0) = level_vel_noise_sigma_;
                           estimator_->getFuserExperiment(i)->setMeasureSigma(temp);
-
                           estimator_->getFuserExperiment(i)->setInitState(y_axis_direction_ * optical_flow_msg->flow_y /1000.0 ,1);
                           estimator_->getFuserExperiment(i)->setMeasureFlag();
                         }
                       else if((estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::Z_W)))
                         {
+                          /*
                           Eigen::Matrix<double, 2, 1> init_state2 = Eigen::MatrixXd::Zero(2, 1);
                           init_state2(0,0) = optical_flow_msg->ground_distance;
                           init_state2(1,0) = start_vel_;
                           estimator_->getFuserExperiment(i)->setInitState(init_state2);
-
+                          */
+                          estimator_->getFuserExperiment(i)->setInitState(optical_flow_msg->ground_distance, 0);
                           temp(0,0) = sonar_noise_sigma_;
                           estimator_->getFuserExperiment(i)->setMeasureSigma(temp);
                           estimator_->getFuserExperiment(i)->setMeasureFlag();
