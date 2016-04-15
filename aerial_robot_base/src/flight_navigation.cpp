@@ -263,6 +263,10 @@ void TeleopNavigator::haltCallback(const std_msgs::EmptyConstPtr & msg)
     setTargetPsi(getStatePsiBoard());
     setTargetPosZ(0);
 
+    estimator_->setSensorFusionFlag(false);
+    estimator_->setLandingMode(false);
+    estimator_->setLandedFlag(false);
+
     ROS_INFO("Halt command");
   }
 
@@ -475,6 +479,11 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
           flight_mode_= RESET_MODE;
           setTargetPsi(getStatePsiBoard());
 
+          estimator_->setSensorFusionFlag(false);
+          estimator_->setLandingMode(false);
+          estimator_->setLandedFlag(false);
+
+
           if(xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE) xy_control_mode_ = POS_WORLD_BASED_CONTROL_MODE;
           ROS_INFO("Halt command");
           return;
@@ -616,6 +625,9 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
           setTargetPosY(getStatePosY());
           setTargetPsi(getStatePsiBoard());
 
+          estimator_->setSensorFusionFlag(false);
+          estimator_->setLandingMode(false);
+          estimator_->setLandedFlag(false);
 
           if(xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE) xy_control_mode_ = POS_WORLD_BASED_CONTROL_MODE;
           ROS_INFO("Halt command");
@@ -786,6 +798,10 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
           setTargetPosX(getStatePosX());
           setTargetPosY(getStatePosY());
           setTargetPsi(getStatePsiBoard());
+
+          estimator_->setSensorFusionFlag(false);
+          estimator_->setLandingMode(false);
+          estimator_->setLandedFlag(false);
 
           ROS_INFO("Halt command");
           return;
@@ -1069,7 +1085,9 @@ void TeleopNavigator::teleopNavigation()
           setTargetPosY(getStatePosY());
           setTargetPsi(getStatePsiBoard());
 
+          estimator_->setSensorFusionFlag(false);
           estimator_->setLandingMode(false);
+          estimator_->setLandedFlag(false);
 
           if(xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE) xy_control_mode_ = POS_WORLD_BASED_CONTROL_MODE;
 	}
