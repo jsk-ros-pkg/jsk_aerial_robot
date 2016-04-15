@@ -8,8 +8,8 @@
   <arg if="$(arg debug)" name="launch_prefix" value="gdb --ex run --args" />
 
 
-  <arg name="flight_pos_mode" value="true" /> <!-- pos mode -->
-  <arg name="flight_vel_mode" value="false" />  <!-- vel mode -->
+  <arg name="flight_pos_mode" value="false" /> <!-- pos mode -->
+  <arg name="flight_vel_mode" value="true" />  <!-- vel mode -->
 
 
   ############### Sensors #############################
@@ -23,7 +23,7 @@
     <param name="tx_loop_rate" type="double" value="40"/>
     <param name="tf_pub_loop_rate" type="double" value="120"/>
 
-    <param name="navigator/state_mode" type="int" value= "0" />
+    <param name="navigator/state_mode" type="int" value= "1" />
     #GROUND_TRUTH = 0
     #EGOMOTION_ESTIMATE = 1
 
@@ -58,7 +58,7 @@
     <remap from="/navigator/teleop_command/ctrl_mode" to="/teleop_command/ctrl_mode" />
 
     #####temporary
-    <remap from="/estimator/optical_flow/opt_flow" to="/px4flow/opt_flow" />
+    <!--<remap from="/estimator/optical_flow/opt_flow" to="/px4flow/opt_flow" />-->
 
   </node>
 </launch>

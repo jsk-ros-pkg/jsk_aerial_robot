@@ -80,6 +80,7 @@ namespace sensor_plugin
       static double special_increment = 0;
       double current_secs = optical_flow_msg->header.stamp.toSec();
 
+
       //**** Global Sensor Fusion Flag Check
       if(!estimator_->getSensorFusionFlag())  return;
 
@@ -331,28 +332,31 @@ namespace sensor_plugin
                         {
                           kfb_x_state = estimator_->getFuserEgomotion(i)->getEstimateState();
                           estimator_->setEEState(BasicEstimator::X_B, 1, kfb_x_state(1,0));
+                          estimator_->setEEState(BasicEstimator::X_B, 0, kfb_x_state(0,0));
                         }
                       if((estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::X_W))) 
                         {
                           kfb_x_state = estimator_->getFuserEgomotion(i)->getEstimateState();
                           estimator_->setEEState(BasicEstimator::X_W, 1, kfb_x_state(1,0));
+                          estimator_->setEEState(BasicEstimator::X_W, 0, kfb_x_state(0,0));
                         }
                       if((estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::Y_B))) 
                         {
                           kfb_y_state = estimator_->getFuserEgomotion(i)->getEstimateState();
                           estimator_->setEEState(BasicEstimator::Y_B, 1, kfb_y_state(1,0));
+                          estimator_->setEEState(BasicEstimator::Y_B, 0, kfb_y_state(0,0));
                         }
                       if((estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::Y_W))) 
                         {
                           kfb_y_state = estimator_->getFuserEgomotion(i)->getEstimateState();
                           estimator_->setEEState(BasicEstimator::Y_W, 1, kfb_y_state(1,0));
+                          estimator_->setEEState(BasicEstimator::Y_W, 0, kfb_y_state(0,0));
                         }
                       if((estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::Z_W))) 
                         {
                           kfb_z_state = estimator_->getFuserEgomotion(i)->getEstimateState();
                           estimator_->setEEState(BasicEstimator::Z_W, 0, kfb_z_state(0,0));
                           estimator_->setEEState(BasicEstimator::Z_W, 1, kfb_z_state(1,0));
-                          
                         }
                     }
                   if(estimator_->getFuserEgomotionPluginName(i) == "kalman_filter/kf_pose_vel_acc")
@@ -361,21 +365,25 @@ namespace sensor_plugin
                         {
                           kf_x_state = estimator_->getFuserEgomotion(i)->getEstimateState();
                           estimator_->setEEState(BasicEstimator::X_B, 1, kf_x_state(1,0));
+                          estimator_->setEEState(BasicEstimator::X_B, 0, kf_x_state(0,0));
                         }
                       if((estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::X_W))) 
                         {
                           kf_x_state = estimator_->getFuserEgomotion(i)->getEstimateState();
                           estimator_->setEEState(BasicEstimator::X_W, 1, kf_x_state(1,0));
+                          estimator_->setEEState(BasicEstimator::X_W, 0, kf_x_state(0,0));
                         }
                       if((estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::Y_B))) 
                         {
                           kf_y_state = estimator_->getFuserEgomotion(i)->getEstimateState();
                           estimator_->setEEState(BasicEstimator::Y_B, 1, kf_y_state(1,0));
+                          estimator_->setEEState(BasicEstimator::X_W, 0, kf_x_state(0,0));
                         }
                       if((estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::Y_W))) 
                         {
                           kf_y_state = estimator_->getFuserEgomotion(i)->getEstimateState();
                           estimator_->setEEState(BasicEstimator::Y_W, 1, kf_y_state(1,0));
+                          estimator_->setEEState(BasicEstimator::Y_W, 0, kf_y_state(0,0));
                         }
                       if((estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::Z_W))) 
                         {
