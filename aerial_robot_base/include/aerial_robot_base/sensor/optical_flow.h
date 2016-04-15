@@ -84,7 +84,6 @@ namespace sensor_plugin
       //**** Global Sensor Fusion Flag Check
       if(!estimator_->getSensorFusionFlag())  return;
 
-
       //**** 高さ方向情報の更新
       raw_pos_z_ = optical_flow_msg->ground_distance;
 
@@ -192,7 +191,8 @@ namespace sensor_plugin
         }
       else 
         {
-          if(prev_raw_pos_z < start_upper_thre_ &&
+          if(estimator_->getLandingMode() &&
+             prev_raw_pos_z < start_upper_thre_ &&
              prev_raw_pos_z > start_lower_thre_ &&
              raw_pos_z_ < start_lower_thre_ && raw_pos_z_ > (start_lower_thre_ - 0.1))
             {//special process for landing

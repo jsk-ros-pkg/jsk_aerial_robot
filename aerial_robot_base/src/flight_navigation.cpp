@@ -1056,8 +1056,8 @@ void TeleopNavigator::teleopNavigation()
     {
       ROS_WARN(" land command");
 
-      //state correct flag(Kalman Filter, especially for px4flow
-      estimator_->setSensorFusionFlag(false);
+      //for estimator landing mode
+      estimator_->setLandingMode(true);
 
       if (!getFlightAble()  && getStartAble()) 
 	{
@@ -1069,6 +1069,7 @@ void TeleopNavigator::teleopNavigation()
           setTargetPosY(getStatePosY());
           setTargetPsi(getStatePsiBoard());
 
+          estimator_->setLandingMode(false);
 
           if(xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE) xy_control_mode_ = POS_WORLD_BASED_CONTROL_MODE;
 	}
@@ -1103,6 +1104,7 @@ void TeleopNavigator::teleopNavigation()
   else if(getNaviCommand() == STOP_COMMAND)
     {
       estimator_->setSensorFusionFlag(false);
+      estimator_->setLandingMode(false);
 
       if(flight_mode_ != RESET_MODE)
         flight_mode_= NO_CONTROL_MODE;
