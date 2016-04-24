@@ -1,0 +1,16 @@
+# Sensor Loader
+
+estimator:
+        sensor_no: 2
+        sensor_plugin_name1: sensor_plugin/imu
+        sensor_plugin_name2: sensor_plugin/mocap
+
+# EGOMOTION_ESTIMATION_MODE = 0
+# GROUND_TRUTH_MODE = 1
+# EXPERIMENT_MODE = 2
+
+sensor:
+        imu:
+                estimate_mode: 5 # 1<<0 + 1<< 2
+        mocap:
+                estimate_mode: 6 #1<<1+ 1<< 2

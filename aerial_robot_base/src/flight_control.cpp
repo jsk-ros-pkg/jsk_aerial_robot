@@ -925,7 +925,7 @@ void PidController::rosParamInit(ros::NodeHandle nh)
     {
       if (!nh.getParam ("land_gain_slow_rate", land_gain_slow_rate_))
         land_gain_slow_rate_ = 1.0;
-      printf(" land_gain_slow_rate_ is %.3f\n", land_gain_slow_rate_);
+      printf("%s: land_gain_slow_rate_ is %.3f\n", throttle_ns.c_str(), land_gain_slow_rate_);
 
       if (!throttle_node.getParam ("pos_p_gain", pos_p_gain_throttle_[0]))
         pos_p_gain_throttle_[0] = 0;

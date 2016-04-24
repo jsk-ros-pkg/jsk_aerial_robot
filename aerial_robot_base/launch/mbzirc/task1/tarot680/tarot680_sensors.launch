@@ -2,16 +2,16 @@
 <launch>
 
   #################################### sensor plugin config ###################################
-  <rosparam file="$(find aerial_robot_base)/config/rook/SensorLoader.yaml" command="load" />
+  <rosparam file="$(find aerial_robot_base)/config/mbzirc/task1/tarot680/SensorLoader.yaml" command="load" />
 
   ################################### sensor param ############################################
   <rosparam file="$(find aerial_robot_base)/config/sensor_plugin/d_imu.yaml" command="load" />
   <rosparam file="$(find aerial_robot_base)/config/sensor_plugin/mocap.yaml" command="load" />
-  <rosparam file="$(find aerial_robot_base)/config/sensor_plugin/optical_flow.yaml" command="load" />
 
   ################################### sensor module ############################################
 
 
+<!--
   ################################# jsk_stm ########################################
 
   <node name="jsk_stm" pkg="jsk_stm" type="jsk_stm_node" respawn="false"  output="screen">
@@ -21,15 +21,10 @@
     <remap from="/jsk_stm_serial_comm/config_cmd"  to="/config_cmd"/>
   </node>
 
-<!--
   ################################ mocap ##########################################
   <include file="$(find aerial_robot_base)/launch/sensors/mocap.launch" />
--->
+
   ################################# Joy Stick ######################################
-
   <include file="$(find aerial_robot_base)/launch/sensors/joy_stick.launch" />
-
-  ################################# PX4Flow ######################################
-  <include file="$(find aerial_robot_base)/launch/sensors/px4flow.launch" />
-
+-->
 </launch>
