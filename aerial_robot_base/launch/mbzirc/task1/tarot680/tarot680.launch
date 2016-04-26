@@ -7,8 +7,8 @@
   <arg unless="$(arg debug)" name="launch_prefix" value="" />
   <arg if="$(arg debug)" name="launch_prefix" value="gdb --ex run --args" />
 
-  <arg name="flight_pos_mode" value="false" /> <!-- pos mode -->
-  <arg name="flight_vel_mode" value="true" />  <!-- vel mode -->
+  <arg name="flight_pos_mode" value="true" /> <!-- pos mode -->
+  <arg name="flight_vel_mode" value="false" />  <!-- vel mode -->
 
   ############### Sensors #############################
   <include file="$(find aerial_robot_base)/launch/mbzirc/task1/tarot680/tarot680_sensors.launch" />
