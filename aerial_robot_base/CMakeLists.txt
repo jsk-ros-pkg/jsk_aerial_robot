@@ -19,7 +19,6 @@ find_package(catkin REQUIRED COMPONENTS
   dynamic_reconfigure
   aerial_robot_msgs
   kalman_filter
-  jsk_stm
   cmake_modules
   pluginlib
 )
