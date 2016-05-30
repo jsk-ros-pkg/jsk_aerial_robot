@@ -1,20 +1,20 @@
 /* 
-0. flightNavCallback => implementation
-1. the optical flow => indefference
+   0. flightNavCallback => implementation
+   1. the optical flow => indefference
 
-4. flight mode vs navi command => development
+   4. flight mode vs navi command => development
 
 
- */
+*/
 
 #include "aerial_robot_base/flight_navigation.h"
 
 Navigator::Navigator(ros::NodeHandle nh, ros::NodeHandle nh_private, 
                      BasicEstimator* estimator, FlightCtrlInput* flight_ctrl_input,
                      int ctrl_loop_rate)
- : nh_(nh, "navigator"),
-   nhp_(nh_private, "navigator"),
-   ctrl_loop_rate_(ctrl_loop_rate)
+  : nh_(nh, "navigator"),
+    nhp_(nh_private, "navigator"),
+    ctrl_loop_rate_(ctrl_loop_rate)
 {
   Navigator::rosParamInit(nhp_);
 
@@ -79,6 +79,7 @@ void Navigator::naviCallback(const aerial_robot_base::FlightNavConstPtr & msg)
 {
   //debug
   //ROS_WARN("navi cmd callback");
+
   //for x & y
   if(msg->command_mode == aerial_robot_base::FlightNav::VEL_FLIGHT_MODE_COMMAND)
     {
@@ -154,8 +155,6 @@ void Navigator::rosParamInit(ros::NodeHandle nh)
 }
 
 
-
-
 TeleopNavigator::TeleopNavigator(ros::NodeHandle nh, ros::NodeHandle nh_private,
                                  BasicEstimator* estimator, 
                                  FlightCtrlInput* flight_ctrl_input,
@@ -188,8 +187,8 @@ TeleopNavigator::TeleopNavigator(ros::NodeHandle nh, ros::NodeHandle nh_private,
     rc_cmd_pub_ = nh_.advertise<aerial_robot_msgs::FourAxisCommand>("/aerial_robot_control", 10); 
   else
     {
-    rc_cmd_pub_ = nh_.advertise<aerial_robot_msgs::RcData>("/kduino/rc_cmd", 10);
-    rc_cmd_pub2_ = nh_.advertise<aerial_robot_msgs::RcData2>("/aerial_robot_control", 10); 
+      rc_cmd_pub_ = nh_.advertise<aerial_robot_msgs::RcData>("/kduino/rc_cmd", 10);
+      rc_cmd_pub2_ = nh_.advertise<aerial_robot_msgs::RcData2>("/aerial_robot_control", 10); 
 
     } 
  
@@ -218,7 +217,7 @@ void TeleopNavigator::armingAckCallback(const std_msgs::Int8ConstPtr& ack_msg)
       setNaviCommand(IDLE_COMMAND);
     }
  
- if(ack_msg->data == 1)
+  if(ack_msg->data == 1)
     {//  arming on
       ROS_INFO("START RES From AERIAL ROBOT");
       startNavigation(); 
@@ -238,52 +237,52 @@ void TeleopNavigator::takeoffCallback(const std_msgs::EmptyConstPtr & msg){
 }
 
 void TeleopNavigator::startCallback(const std_msgs::EmptyConstPtr & msg)
-  {//すべて軸に対して、初期化
-    setNaviCommand(START_COMMAND);
-    final_target_pos_x_ = estimator_->getStatePosX();
-    final_target_pos_y_ = estimator_->getStatePosY();
-    final_target_pos_z_ = takeoff_height_;  // 0.55m
+{//すべて軸に対して、初期化
+  setNaviCommand(START_COMMAND);
+  final_target_pos_x_ = estimator_->getStatePosX();
+  final_target_pos_y_ = estimator_->getStatePosY();
+  final_target_pos_z_ = takeoff_height_;  // 0.55m
 
-    final_target_psi_ = estimator_->getStatePsiBoard();
-    ROS_INFO("Start command");
-  }
+  final_target_psi_ = estimator_->getStatePsiBoard();
+  ROS_INFO("Start command");
+}
 
 void TeleopNavigator::landCallback(const std_msgs::EmptyConstPtr & msg)
-  {
-    if(xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE) xy_control_mode_ = POS_WORLD_BASED_CONTROL_MODE;
-    setNaviCommand(LAND_COMMAND);
-    //更新
-    final_target_pos_x_ = estimator_->getStatePosX();
-    final_target_pos_y_ = estimator_->getStatePosY();
-    final_target_pos_z_ = 0; 
-    final_target_psi_  = estimator_->getStatePsiBoard();
-    ROS_INFO("Land command");
-  }
+{
+  if(xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE) xy_control_mode_ = POS_WORLD_BASED_CONTROL_MODE;
+  setNaviCommand(LAND_COMMAND);
+  //更新
+  final_target_pos_x_ = estimator_->getStatePosX();
+  final_target_pos_y_ = estimator_->getStatePosY();
+  final_target_pos_z_ = 0; 
+  final_target_psi_  = estimator_->getStatePsiBoard();
+  ROS_INFO("Land command");
+}
 
 void TeleopNavigator::haltCallback(const std_msgs::EmptyConstPtr & msg)
-  {
-    if(xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE) xy_control_mode_ = POS_WORLD_BASED_CONTROL_MODE;
-    setNaviCommand(STOP_COMMAND);
-    flight_mode_ = RESET_MODE;
+{
+  if(xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE) xy_control_mode_ = POS_WORLD_BASED_CONTROL_MODE;
+  setNaviCommand(STOP_COMMAND);
+  flight_mode_ = RESET_MODE;
 
-    setTargetPosX(estimator_->getStatePosX());
-    setTargetPosY(estimator_->getStatePosY());
-    setTargetPsi(estimator_->getStatePsiBoard());
+  setTargetPosX(estimator_->getStatePosX());
+  setTargetPosY(estimator_->getStatePosY());
+  setTargetPsi(estimator_->getStatePsiBoard());
 
-    ROS_INFO("Halt command");
-  }
+  ROS_INFO("Halt command");
+}
 
 void TeleopNavigator::rollCallback(const std_msgs::Int8ConstPtr & msg)
-  {// + : right ; - : left
-    if(getStartAble() && getFlightAble())
-      {
-	setNaviCommand(HOVER_COMMAND);
-	if(msg->data == 1){
-	  ROS_INFO("RIGHT");
-	  if(navi_frame_ == MAP_FRAME)
-	    final_target_pos_y_ -= even_move_distance_; //0.2m on now state
-	  else if(navi_frame_ == BODY_FRAME)
-	    {
+{// + : right ; - : left
+  if(getStartAble() && getFlightAble())
+    {
+      setNaviCommand(HOVER_COMMAND);
+      if(msg->data == 1){
+        ROS_INFO("RIGHT");
+        if(navi_frame_ == MAP_FRAME)
+          final_target_pos_y_ -= even_move_distance_; //0.2m on now state
+        else if(navi_frame_ == BODY_FRAME)
+          {
 	    if(fabs(cos(estimator_->getStatePsiBoard())) > 
 	       fabs(sin(estimator_->getStatePsiBoard())))
 	      {
@@ -299,31 +298,31 @@ void TeleopNavigator::rollCallback(const std_msgs::Int8ConstPtr & msg)
 		final_target_pos_y_= estimator_->getStatePosY();
 	      
 	      }
-	    }
-	}else{
-	  ROS_INFO("LEFT");
-	  if(navi_frame_ == MAP_FRAME)
-	    final_target_pos_y_+= even_move_distance_; //0.2m on now state
-	  else if(navi_frame_ == BODY_FRAME)
-	    {
-	      if(fabs(cos(estimator_->getStatePsiBoard())) >
-		 fabs(sin(estimator_->getStatePsiBoard())))
-		{
-		  final_target_pos_y_+= left_right_distance_ * 
-		    (fabs(cos(estimator_->getStatePsiBoard())) / cos(estimator_->getStatePsiBoard()));
-		  final_target_pos_x_= estimator_->getStatePosX();
-		}
-	      else if(fabs(cos(estimator_->getStatePsiBoard())) <
-		      fabs(sin(estimator_->getStatePsiBoard())))
-		{
-		  final_target_pos_x_-= left_right_distance_ * 
-		    (fabs(sin(estimator_->getStatePsiBoard())) / sin(estimator_->getStatePsiBoard()));
-		  final_target_pos_y_= estimator_->getStatePosY();
-		}
-	    }
-	}
+          }
+      }else{
+        ROS_INFO("LEFT");
+        if(navi_frame_ == MAP_FRAME)
+          final_target_pos_y_+= even_move_distance_; //0.2m on now state
+        else if(navi_frame_ == BODY_FRAME)
+          {
+            if(fabs(cos(estimator_->getStatePsiBoard())) >
+               fabs(sin(estimator_->getStatePsiBoard())))
+              {
+                final_target_pos_y_+= left_right_distance_ * 
+                  (fabs(cos(estimator_->getStatePsiBoard())) / cos(estimator_->getStatePsiBoard()));
+                final_target_pos_x_= estimator_->getStatePosX();
+              }
+            else if(fabs(cos(estimator_->getStatePsiBoard())) <
+                    fabs(sin(estimator_->getStatePsiBoard())))
+              {
+                final_target_pos_x_-= left_right_distance_ * 
+                  (fabs(sin(estimator_->getStatePsiBoard())) / sin(estimator_->getStatePsiBoard()));
+                final_target_pos_y_= estimator_->getStatePosY();
+              }
+          }
       }
-  }
+    }
+}
 
 void TeleopNavigator::pitchCallback(const std_msgs::Int8ConstPtr & msg)
 {// + : backward ; - : forward
@@ -331,11 +330,11 @@ void TeleopNavigator::pitchCallback(const std_msgs::Int8ConstPtr & msg)
     {
       setNaviCommand(HOVER_COMMAND);
       if(msg->data == 1)
-	{
+        {
 	  ROS_INFO("FORWARD");
 	  if(navi_frame_ == MAP_FRAME) final_target_pos_x_+= even_move_distance_; //0.2m
 	  else if(navi_frame_ == BODY_FRAME)
-	    {
+            {
 	      if(fabs(cos(estimator_->getStatePsiBoard())) >
 		 fabs(sin(estimator_->getStatePsiBoard()))){
 		final_target_pos_x_ += forward_backward_distance_ * 
@@ -425,7 +424,7 @@ void TeleopNavigator::throttleCallback(const std_msgs::Int8ConstPtr & msg)
 
 void TeleopNavigator::xyControlModeCallback(const std_msgs::Int8ConstPtr & msg)
 {
-    if(getStartAble())
+  if(getStartAble())
     {
       if(msg->data == 0)
         {
@@ -512,18 +511,18 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
 
       //pitch && roll angle command
       if(joy_msg->buttons[1] == 0)
-	{//no push the left joysitck
-	  target_pitch_angle_ = joy_msg->axes[1] * target_angle_rate_;
-	  target_roll_angle_ = - joy_msg->axes[0]  * target_angle_rate_;
-	}
+        {//no push the left joysitck
+          target_pitch_angle_ = joy_msg->axes[1] * target_angle_rate_;
+          target_roll_angle_ = - joy_msg->axes[0]  * target_angle_rate_;
+        }
       if(joy_msg->buttons[1] == 1)
-	{//push the left joysitck
-	  ROS_INFO("large angle");
-	  target_pitch_angle_
-	    = joy_msg->axes[1] * target_angle_rate_ * cmd_angle_lev2_gain_;
-	  target_roll_angle_
-	    = - joy_msg->axes[0] * target_angle_rate_ * cmd_angle_lev2_gain_;
-	}
+        {//push the left joysitck
+          ROS_INFO("large angle");
+          target_pitch_angle_
+            = joy_msg->axes[1] * target_angle_rate_ * cmd_angle_lev2_gain_;
+          target_roll_angle_
+            = - joy_msg->axes[0] * target_angle_rate_ * cmd_angle_lev2_gain_;
+        }
 
       //throttle, TODO: not good
       if(fabs(joy_msg->axes[3]) > 0.2)
@@ -559,6 +558,7 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
           else
             final_target_psi_ = estimator_->getStatePsiBoard();
         }
+    
 
       //gain tunning
       if(joy_msg->buttons[10] == 1 && !gain_tunning_flag_) //left up trigger
@@ -598,10 +598,9 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
         gain_tunning_flag_  = false;
 
 
-
     }
   else if(xy_control_mode_ == POS_WORLD_BASED_CONTROL_MODE || xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE)
-   {
+    {
       //start 
       if(joy_msg->buttons[3] == 1 && getNaviCommand() != START_COMMAND)
         {
@@ -682,93 +681,98 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
       if(joy_msg->buttons[14] == 0 && pos_control_flag_)
         pos_control_flag_ = false;
 
-      //pitch && roll vel command for vel_mode
-      if(xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE && getNaviCommand() == HOVER_COMMAND)
-        {
-          if(joy_msg->buttons[1] == 0)
-            {//no push the left joysitck
-              final_target_vel_x_= joy_msg->axes[1] * fabs(joy_msg->axes[1]) * target_vel_rate_;
-              final_target_vel_y_= joy_msg->axes[0] * fabs(joy_msg->axes[0]) * target_vel_rate_;
-            }
-          if(joy_msg->buttons[1] == 1)
-            {//push the left joysitck
-              ROS_INFO("strong vel control");
-              final_target_vel_x_
-                = joy_msg->axes[1] * fabs(joy_msg->axes[1]) * target_vel_rate_ * cmd_vel_lev2_gain_;
-              final_target_vel_y_
-                = joy_msg->axes[0] * fabs(joy_msg->axes[0]) * target_vel_rate_ * cmd_vel_lev2_gain_;
-            }
-        }
 
-      //throttle, TODO: not good
-      if(fabs(joy_msg->axes[3]) > 0.2)
-        {
-          if(joy_msg->buttons[2] == 0 && getNaviCommand() == HOVER_COMMAND)
-            {//push the right joysitck
-              alt_control_flag_ = true;
-              if(joy_msg->axes[3] >= 0) 
-                final_target_pos_z_+= target_alt_interval_;
-              else 
-                final_target_pos_z_-= target_alt_interval_;
-              ROS_INFO("Thrust command");
-            }
-        }
-      else
-        {
-          if(alt_control_flag_)
+      if(teleop_flag_)
+        {//x,y,z,yaw
+
+          //pitch && roll vel command for vel_mode
+          if(xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE && getNaviCommand() == HOVER_COMMAND)
             {
-              alt_control_flag_= false;
-              final_target_pos_z_= estimator_->getStatePosZ();
-              ROS_INFO("Fixed Alt command, targetPosz_is %f",final_target_pos_z_);
+              if(joy_msg->buttons[1] == 0)
+                {//no push the left joysitck
+                  final_target_vel_x_= joy_msg->axes[1] * fabs(joy_msg->axes[1]) * target_vel_rate_;
+                  final_target_vel_y_= joy_msg->axes[0] * fabs(joy_msg->axes[0]) * target_vel_rate_;
+                }
+              if(joy_msg->buttons[1] == 1)
+                {//push the left joysitck
+                  ROS_INFO("strong vel control");
+                  final_target_vel_x_
+                    = joy_msg->axes[1] * fabs(joy_msg->axes[1]) * target_vel_rate_ * cmd_vel_lev2_gain_;
+                  final_target_vel_y_
+                    = joy_msg->axes[0] * fabs(joy_msg->axes[0]) * target_vel_rate_ * cmd_vel_lev2_gain_;
+                }
             }
-        }
+
+          //throttle, TODO: not good
+          if(fabs(joy_msg->axes[3]) > 0.2)
+            {
+              if(joy_msg->buttons[2] == 0 && getNaviCommand() == HOVER_COMMAND)
+                {//push the right joysitck
+                  alt_control_flag_ = true;
+                  if(joy_msg->axes[3] >= 0) 
+                    final_target_pos_z_+= target_alt_interval_;
+                  else 
+                    final_target_pos_z_-= target_alt_interval_;
+                  ROS_INFO("Thrust command");
+                }
+            }
+          else
+            {
+              if(alt_control_flag_)
+                {
+                  alt_control_flag_= false;
+                  final_target_pos_z_= estimator_->getStatePosZ();
+                  ROS_INFO("Fixed Alt command, targetPosz_is %f",final_target_pos_z_);
+                }
+            }
 
 #if 0 //no yaw 90 control
       //yaw
-      if(!yaw_control_flag_)
-        {
-          if(joy_msg->buttons[10] == 1 && getNaviCommand() == HOVER_COMMAND)
-            {//CCW
-              ROS_INFO("CCW, change to pos control mode");
-              yaw_control_flag_ = true;
-              xy_control_mode_ = POS_WORLD_BASED_CONTROL_MODE;
-              //final_target_psi_ += 3.1415/2.0; 
-              final_target_psi_ = estimator_->getStatePsiBoard() + M_PI/2.0; 
-              if(final_target_psi_ > M_PI) final_target_psi_ -= 2 * M_PI;
-              else if(final_target_psi_ < -M_PI) final_target_psi_ += 2 *M_PI;
-
-              final_target_pos_x_= estimator_->getStatePosX();
-              final_target_pos_y_= estimator_->getStatePosY();
-            }
-          if(joy_msg->buttons[11] == 1 && getNaviCommand() == HOVER_COMMAND)
-            {//CW
-              ROS_INFO("CW,, change to pos control mode");
-              yaw_control_flag_ = true;
-              xy_control_mode_ = POS_WORLD_BASED_CONTROL_MODE;
-
-              final_target_psi_ = estimator_->getStatePsiBoard() - 3.1415/2.0; 
-              if(final_target_psi_ > M_PI) final_target_psi_ -= 2 * M_PI;
-              else if(final_target_psi_ < -M_PI) final_target_psi_ += 2 *M_PI;
-
-              final_target_pos_x_= estimator_->getStatePosX();
-              final_target_pos_y_= estimator_->getStatePosY();
-            }
-        }
-      if(yaw_control_flag_ && joy_msg->buttons[10] == 0 && joy_msg->buttons[11] == 0)
-        {
-          yaw_control_flag_ = false;
-          ROS_INFO("stop yaw control");
-        }
-#endif 
-      if(joy_msg->buttons[2] == 1 && getNaviCommand() == HOVER_COMMAND)
-        {
-          if(fabs(joy_msg->axes[2]) > 0.05)
+          if(!yaw_control_flag_)
             {
-              final_target_psi_ = estimator_->getStatePsiBoard() + joy_msg->axes[2] * target_yaw_rate_;
-              ROS_INFO("yaw control");
+              if(joy_msg->buttons[10] == 1 && getNaviCommand() == HOVER_COMMAND)
+                {//CCW
+                  ROS_INFO("CCW, change to pos control mode");
+                  yaw_control_flag_ = true;
+                  xy_control_mode_ = POS_WORLD_BASED_CONTROL_MODE;
+                  //final_target_psi_ += 3.1415/2.0; 
+                  final_target_psi_ = estimator_->getStatePsiBoard() + M_PI/2.0; 
+                  if(final_target_psi_ > M_PI) final_target_psi_ -= 2 * M_PI;
+                  else if(final_target_psi_ < -M_PI) final_target_psi_ += 2 *M_PI;
+
+                  final_target_pos_x_= estimator_->getStatePosX();
+                  final_target_pos_y_= estimator_->getStatePosY();
+                }
+              if(joy_msg->buttons[11] == 1 && getNaviCommand() == HOVER_COMMAND)
+                {//CW
+                  ROS_INFO("CW,, change to pos control mode");
+                  yaw_control_flag_ = true;
+                  xy_control_mode_ = POS_WORLD_BASED_CONTROL_MODE;
+
+                  final_target_psi_ = estimator_->getStatePsiBoard() - 3.1415/2.0; 
+                  if(final_target_psi_ > M_PI) final_target_psi_ -= 2 * M_PI;
+                  else if(final_target_psi_ < -M_PI) final_target_psi_ += 2 *M_PI;
+
+                  final_target_pos_x_= estimator_->getStatePosX();
+                  final_target_pos_y_= estimator_->getStatePosY();
+                }
             }
-          else
-            final_target_psi_ = estimator_->getStatePsiBoard();
+          if(yaw_control_flag_ && joy_msg->buttons[10] == 0 && joy_msg->buttons[11] == 0)
+            {
+              yaw_control_flag_ = false;
+              ROS_INFO("stop yaw control");
+            }
+#endif 
+          if(joy_msg->buttons[2] == 1 && getNaviCommand() == HOVER_COMMAND)
+            {
+              if(fabs(joy_msg->axes[2]) > 0.05)
+                {
+                  final_target_psi_ = estimator_->getStatePsiBoard() + joy_msg->axes[2] * target_yaw_rate_;
+                  ROS_INFO("yaw control");
+                }
+              else
+                final_target_psi_ = estimator_->getStatePsiBoard();
+            }
         }
     }
   else if(xy_control_mode_ == VEL_LOCAL_BASED_CONTROL_MODE || xy_control_mode_ == POS_LOCAL_BASED_CONTROL_MODE)
@@ -940,10 +944,10 @@ void TeleopNavigator::sendRcCmd()
 {
   if(getNaviCommand() == START_COMMAND)
     { 
-     ROS_INFO("START_COMMAND");
-     std_msgs::UInt16 start_cmd;
-     start_cmd.data = ARM_ON_CMD;
-     config_cmd_pub_.publish(start_cmd); 
+      ROS_INFO("START_COMMAND");
+      std_msgs::UInt16 start_cmd;
+      start_cmd.data = ARM_ON_CMD;
+      config_cmd_pub_.publish(start_cmd); 
     }
   else if(getNaviCommand() == STOP_COMMAND)
     { 
@@ -1024,7 +1028,7 @@ void TeleopNavigator::teleopNavigation()
         {
           //TODO => check same as pos_world_based_control_mode
           if (fabs(getTargetPosZ() - estimator_->getStatePosZ()) < POS_Z_THRE)
-              convergence_cnt++;
+            convergence_cnt++;
         }
 
       if (convergence_cnt > ctrl_loop_rate_) 
@@ -1086,13 +1090,13 @@ void TeleopNavigator::teleopNavigation()
 	{
 	  flight_mode_= LAND_MODE; //--> for control
 
-              if (fabs(getTargetPosZ() - estimator_->getStatePosZ()) < POS_Z_THRE)
-                convergence_cnt++;
-              if (convergence_cnt > ctrl_loop_rate_) 
-                { 
-                  convergence_cnt = 0;
-                  stopFlight();
-                }
+          if (fabs(getTargetPosZ() - estimator_->getStatePosZ()) < POS_Z_THRE)
+            convergence_cnt++;
+          if (convergence_cnt > ctrl_loop_rate_) 
+            { 
+              convergence_cnt = 0;
+              stopFlight();
+            }
 	} 
       else if (!getStartAble())
 	{
