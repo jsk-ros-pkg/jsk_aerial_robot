@@ -637,7 +637,7 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
       if(joy_msg->buttons[7] == 1 && joy_msg->buttons[13] == 1)
         {
 
-          if(getStartAble())  
+          if(getStartAble())
             {
               if(xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE) xy_control_mode_ = POS_WORLD_BASED_CONTROL_MODE;
               setNaviCommand(TAKEOFF_COMMAND);
@@ -661,6 +661,13 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
           ROS_INFO("Land command");
 
           return;
+        }
+
+      /* turn to ATTITUDE_GAIN_TUNNING_MODE */
+      if(joy_msg->buttons[6] == 1)
+        {
+          gain_tunning_mode_ = ATTITUDE_GAIN_TUNNING_MODE;
+          final_target_psi_  = 0; //because the init final_target_psi_ is sometimes not 0, especially using mocap
         }
 
       //change to vel control mode
@@ -731,43 +738,6 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
                 }
             }
 
-#if 0 //no yaw 90 control
-      //yaw
-          if(!yaw_control_flag_)
-            {
-              if(joy_msg->buttons[10] == 1 && getNaviCommand() == HOVER_COMMAND)
-                {//CCW
-                  ROS_INFO("CCW, change to pos control mode");
-                  yaw_control_flag_ = true;
-                  xy_control_mode_ = POS_WORLD_BASED_CONTROL_MODE;
-                  //final_target_psi_ += 3.1415/2.0; 
-                  final_target_psi_ = getStatePsiBoard() + M_PI/2.0; 
-                  if(final_target_psi_ > M_PI) final_target_psi_ -= 2 * M_PI;
-                  else if(final_target_psi_ < -M_PI) final_target_psi_ += 2 *M_PI;
-
-                  final_target_pos_x_= getStatePosX();
-                  final_target_pos_y_= getStatePosY();
-                }
-              if(joy_msg->buttons[11] == 1 && getNaviCommand() == HOVER_COMMAND)
-                {//CW
-                  ROS_INFO("CW,, change to pos control mode");
-                  yaw_control_flag_ = true;
-                  xy_control_mode_ = POS_WORLD_BASED_CONTROL_MODE;
-
-                  final_target_psi_ = getStatePsiBoard() - 3.1415/2.0; 
-                  if(final_target_psi_ > M_PI) final_target_psi_ -= 2 * M_PI;
-                  else if(final_target_psi_ < -M_PI) final_target_psi_ += 2 *M_PI;
-
-                  final_target_pos_x_= getStatePosX();
-                  final_target_pos_y_= getStatePosY();
-                }
-            }
-          if(yaw_control_flag_ && joy_msg->buttons[10] == 0 && joy_msg->buttons[11] == 0)
-            {
-              yaw_control_flag_ = false;
-              ROS_INFO("stop yaw control");
-            }
-#endif 
           if(joy_msg->buttons[2] == 1 && getNaviCommand() == HOVER_COMMAND)
             {
               if(fabs(joy_msg->axes[2]) > 0.05)
@@ -837,6 +807,13 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
           return;
         }
 
+      /* turn to ATTITUDE_GAIN_TUNNING_MODE */
+      if(joy_msg->buttons[6] == 1)
+        {
+          gain_tunning_mode_ = ATTITUDE_GAIN_TUNNING_MODE;
+          final_target_psi_  = 0; //because the init final_target_psi_ is sometimes not 0, especially using mocap
+        }
+
       if(getStartAble() && getFlightAble() && getNaviCommand() != LAND_COMMAND 
          && teleop_flag_)  
         {//start &  takeoff & !land
@@ -868,6 +845,7 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
             }
           if(final_target_pos_z_< 0.35) final_target_pos_z_= 0.35; // shuisei 
           if(final_target_pos_z_> 3) final_target_pos_z_= 3;
+
           //yaw 1
           final_target_psi_ = joy_msg->axes[2] * target_yaw_rate_;
           //yaw 2
