@@ -12,15 +12,12 @@
 
 
   ################################# jsk_stm ########################################
-
-  <node name="jsk_stm" pkg="jsk_stm" type="jsk_stm_node" respawn="false"  output="screen">
-    <param name="serial_port" value="/dev/ttyUSB0" />
-    <remap from="/jsk_stm_serial_comm/arming_ack"  to="/arming_ack"/>
-    <remap from="/jsk_stm_serial_comm/aerial_robot_control" to="/aerial_robot_control"/>
-    <remap from="/jsk_stm_serial_comm/config_cmd"  to="/config_cmd"/>
-  </node>
+  <include file="$(find aerial_robot_base)/launch/sensors/rosserial2.launch" >
+    <arg name="baud" value="921600" />
+  </include>
 
   ################################ mocap ##########################################
+
   <include file="$(find aerial_robot_base)/launch/sensors/mocap.launch" />
 
   ################################# Joy Stick ######################################
