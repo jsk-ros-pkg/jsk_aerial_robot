@@ -12,6 +12,7 @@
 #include <geometry_msgs/Vector3Stamped.h>
 #include <aerial_robot_base/FlightNav.h>
 #include <aerial_robot_base/FourAxisPid.h>
+#include <sensor_msgs/Joy.h>
 
 #include <Eigen/Core>
 #include <Eigen/Dense>
@@ -63,7 +64,6 @@ class GimbalControl
   static const uint8_t ABSOLUTE_ATTITUDE = 0x00;
   static const uint8_t RELATIVE_ATTITUDE = 0x01;
 
-
  private:
   ros::NodeHandle nh_;
   ros::NodeHandle nhp_;
@@ -72,6 +72,8 @@ class GimbalControl
   ros::Subscriber desire_attitude_sub_;
   ros::Subscriber attitude_command_sub_;
   ros::Publisher alt_control_pub_;
+  ros::Publisher stop_teleop_pub_;
+  ros::Subscriber joy_stick_sub_;
 
 //debug for passive att compare method
   ros::Publisher att_diff_pub_;
@@ -121,14 +123,27 @@ class GimbalControl
   double passive_loop_rate_;
   int passive_loop_cnt_;
 
+
+  //wall atack demo
+  bool wall_attack_flag_;
+  bool attack_back_level_flag_;
+  double attack_vel_x_;
+  double attack_vel_y_;
+  double attack_acc_thre_;
+  double attack_tilt_angle_;
+  double rebound_vel_y_;
+  double attack_back_level_interval_;
+  ros::Time attack_back_level_start_time_;
+
+
   void gimbalModulesInit();
   void controlFunc(const ros::TimerEvent & e);
   void servoCallback(const dynamixel_msgs::JointStateConstPtr& msg, int i, int j);
 
   void attitudeCallback(const jsk_stm::JskImuConstPtr& msg);
   void desireAttitudeCallback(const geometry_msgs::Vector3ConstPtr& msg);
-void attCommandCallback(const aerial_robot_base::FourAxisPidConstPtr& cmd_msg);
-
+  void attCommandCallback(const aerial_robot_base::FourAxisPidConstPtr& cmd_msg);
+  void joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg);
 
   void gimbalControl(Eigen::Quaternion<double> q_att);
 
