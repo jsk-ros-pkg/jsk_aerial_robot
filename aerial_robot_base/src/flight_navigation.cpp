@@ -1,5 +1,5 @@
-/* 
-   0. flightNavCallback => implementation
+/*
+  0. flightNavCallback => implementation
    1. the optical flow => indefference
 
    4. flight mode vs navi command => development
@@ -597,6 +597,8 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
          joy_msg->buttons[10] == 0 &&joy_msg->buttons[11] == 0 && gain_tunning_flag_)
         gain_tunning_flag_  = false;
 
+      /* turn to xy_control_mode_ = POS_WORLD_BASED_CONTROL_MODE */
+      if(joy_msg->buttons[14] == 1) gain_tunning_mode_ = 0;
 
     }
   else if(xy_control_mode_ == POS_WORLD_BASED_CONTROL_MODE || xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE)
@@ -681,7 +683,6 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
       if(joy_msg->buttons[14] == 0 && pos_control_flag_)
         pos_control_flag_ = false;
 
-
       if(teleop_flag_)
         {//x,y,z,yaw
 
@@ -726,43 +727,6 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
                 }
             }
 
-#if 0 //no yaw 90 control
-      //yaw
-          if(!yaw_control_flag_)
-            {
-              if(joy_msg->buttons[10] == 1 && getNaviCommand() == HOVER_COMMAND)
-                {//CCW
-                  ROS_INFO("CCW, change to pos control mode");
-                  yaw_control_flag_ = true;
-                  xy_control_mode_ = POS_WORLD_BASED_CONTROL_MODE;
-                  //final_target_psi_ += 3.1415/2.0; 
-                  final_target_psi_ = estimator_->getStatePsiBoard() + M_PI/2.0; 
-                  if(final_target_psi_ > M_PI) final_target_psi_ -= 2 * M_PI;
-                  else if(final_target_psi_ < -M_PI) final_target_psi_ += 2 *M_PI;
-
-                  final_target_pos_x_= estimator_->getStatePosX();
-                  final_target_pos_y_= estimator_->getStatePosY();
-                }
-              if(joy_msg->buttons[11] == 1 && getNaviCommand() == HOVER_COMMAND)
-                {//CW
-                  ROS_INFO("CW,, change to pos control mode");
-                  yaw_control_flag_ = true;
-                  xy_control_mode_ = POS_WORLD_BASED_CONTROL_MODE;
-
-                  final_target_psi_ = estimator_->getStatePsiBoard() - 3.1415/2.0; 
-                  if(final_target_psi_ > M_PI) final_target_psi_ -= 2 * M_PI;
-                  else if(final_target_psi_ < -M_PI) final_target_psi_ += 2 *M_PI;
-
-                  final_target_pos_x_= estimator_->getStatePosX();
-                  final_target_pos_y_= estimator_->getStatePosY();
-                }
-            }
-          if(yaw_control_flag_ && joy_msg->buttons[10] == 0 && joy_msg->buttons[11] == 0)
-            {
-              yaw_control_flag_ = false;
-              ROS_INFO("stop yaw control");
-            }
-#endif 
           if(joy_msg->buttons[2] == 1 && getNaviCommand() == HOVER_COMMAND)
             {
               if(fabs(joy_msg->axes[2]) > 0.05)
@@ -774,6 +738,12 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
                 final_target_psi_ = estimator_->getStatePsiBoard();
             }
         }
+
+       if(joy_msg->buttons[6]==1) 
+         {
+           gain_tunning_mode_ = ATTITUDE_GAIN_TUNNING_MODE;
+           ROS_INFO("turn to gain tunning mode");
+         }
     }
   else if(xy_control_mode_ == VEL_LOCAL_BASED_CONTROL_MODE || xy_control_mode_ == POS_LOCAL_BASED_CONTROL_MODE)
     {
