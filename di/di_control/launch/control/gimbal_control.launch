@@ -11,5 +11,7 @@
     <remap from="desire_tilt" to="/jsk_stm_serial_comm/desire_attitude" />
     <remap from="/flight_nav" to="/navigator/full_states" />
     <remap from="/attitude_command" to="/controller/debug" />
+    <remap from="/joy_stick_command" to="/joy" />
+    <remap from="/teleop_sub" to="/navigator/stop_teleop" />
   </node>
 </launch>
