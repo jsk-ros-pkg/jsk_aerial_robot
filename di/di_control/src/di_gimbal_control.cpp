@@ -13,6 +13,10 @@ GimbalControl::GimbalControl(ros::NodeHandle nh, ros::NodeHandle nhp): nh_(nh), 
 
   attitude_command_sub_ = nh_.subscribe<aerial_robot_base::FourAxisPid>("attitude_command", 1, &GimbalControl::attCommandCallback, this, ros::TransportHints().tcpNoDelay());
 
+  joy_stick_sub_ = nh_.subscribe<sensor_msgs::Joy>("joy_stick_command", 1, &GimbalControl::joyStickControl, this, ros::TransportHints().udp());
+
+  stop_teleop_pub_ = nh_.advertise<std_msgs::UInt8>("teleop_sub", 1);
+
   //debug for passive att compare method
   att_diff_pub_ = nh_.advertise<geometry_msgs::Vector3Stamped>("att_command_current_compare", 1);
 
@@ -64,8 +68,10 @@ void GimbalControl::gimbalModulesInit()
   nhp_.param("attitude_outlier_thre", attitude_outlier_thre_, 0.5);
   nhp_.param("passive_loop_rate", passive_loop_rate_, 20.0);
 
+
   passive_loop_cnt_ = control_rate_ / passive_loop_rate_;
   ROS_INFO("passive loop cnt: %d", passive_loop_cnt_);
+
 
   att_comp_duration_size_ = att_control_rate_ * att_comp_duration_;
 
@@ -83,6 +89,22 @@ void GimbalControl::gimbalModulesInit()
   pitch_diff_ = 0; 
   roll_delay_ = 0; 
   pitch_delay_ = 0; 
+
+
+  //attack mode
+  nhp_.param("attack_vel_y", attack_vel_y_, -0.3);
+  nhp_.param("attack_vel_x", attack_vel_x_, 0.0);
+  nhp_.param("rebound_vel_y", rebound_vel_y_, 0.1);
+  nhp_.param("attack_acc_thre", attack_acc_thre_, 2.5);
+  nhp_.param("attack_tilt_angle", attack_tilt_angle_, 0.17);
+  nhp_.param("attack_back_level_interval", attack_back_level_interval_, 10.0);
+
+
+  wall_attack_flag_ = false;
+  attack_back_level_flag_ = false;
+  attack_back_level_start_time_ = ros::Time::now();
+
+
 
   for(int i = 0; i < gimbal_module_num_; i++)
     {
@@ -154,6 +176,29 @@ void GimbalControl::desireAttitudeCallback(const geometry_msgs::Vector3ConstPtr&
 void GimbalControl::attitudeCallback(const jsk_stm::JskImuConstPtr& msg)
 {
   current_attitude_ = msg->angles;
+
+  if(wall_attack_flag_)
+    {
+      geometry_msgs::Vector3 current_acc_ = msg->acc_data;
+      //demo, temporary
+      if(current_acc_.y > attack_acc_thre_) 
+        {
+          ROS_WARN("Right Side Attack!!");
+          active_tilt_mode_ = true;
+          final_attitude_.x = attack_tilt_angle_;
+          final_attitude_.y = 0;
+          final_attitude_.z = 0;
+        }
+      if(current_acc_.y < -attack_acc_thre_) 
+        {
+          ROS_WARN("Left Side Attack!!");
+          active_tilt_mode_ = true;
+          final_attitude_.x = -attack_tilt_angle_;
+          final_attitude_.y = 0;
+          final_attitude_.z = 0;
+        }
+
+    }
 
   att_comp_time_ = msg->header.stamp;
 }
@@ -229,9 +274,45 @@ void GimbalControl::controlFunc(const ros::TimerEvent & e)
       return;
     }
 
+  //attack mode
+  if(wall_attack_flag_)
+    {
+      if(attack_back_level_flag_)
+        {
+          if(ros::Time::now().toSec() - attack_back_level_start_time_.toSec() 
+             > attack_back_level_interval_)
+            {
+              final_attitude_.x = 0;
+              final_attitude_.y = 0;
+              final_attitude_.z = 0;
+              active_tilt_mode_ = true;
+              attack_back_level_flag_ = false;
+              wall_attack_flag_ = false;
+              active_gimbal_tilt_duration_ *= 3;
+            }
+        }
+
+      //send vel command
+      aerial_robot_base::FlightNav flight_nav_msg;
+      flight_nav_msg.header.stamp = ros::Time::now();
+      flight_nav_msg.command_mode = aerial_robot_base::FlightNav::VEL_FLIGHT_MODE_COMMAND;
+      flight_nav_msg.target_vel_x = attack_vel_x_;
+      flight_nav_msg.target_vel_y = attack_vel_y_;
+      if(active_tilt_mode_ || attack_back_level_flag_)
+        {
+           flight_nav_msg.target_vel_x = 0;
+          // flight_nav_msg.target_vel_y = 0;
+           // demo temporary
+          flight_nav_msg.target_vel_y = rebound_vel_y_;
+        }
+      flight_nav_msg.pos_z_navi_mode = aerial_robot_base::FlightNav::NO_NAVIGATION;
+      alt_control_pub_.publish(flight_nav_msg);
+
+    }
 
   if(gimbal_mode_ == ACTIVE_GIMBAL_MODE || gimbal_mode_ == ACTIVE_GIMBAL_MODE + PASSIVE_GIMBAL_MODE)
     {
+
       if(!active_tilt_mode_) return;
 
       //duration processing => should be erro estimation processing
@@ -264,6 +345,13 @@ void GimbalControl::controlFunc(const ros::TimerEvent & e)
       if(desire_attitude_.y == final_attitude_.y && desire_attitude_.x == final_attitude_.x)
         {
           active_tilt_mode_ = false;
+
+          //attack mode
+          if(wall_attack_flag_ && !attack_back_level_flag_)
+            {
+              attack_back_level_flag_ = true;
+              attack_back_level_start_time_ = ros::Time::now();
+            }
 
           if(gimbal_mode_ == ACTIVE_GIMBAL_MODE + PASSIVE_GIMBAL_MODE)
             {
@@ -384,4 +472,46 @@ void GimbalControl::GimbalDynReconfCallback(di_control::GimbalDynReconfConfig &c
       active_gimbal_tilt_duration_ = config.active_gimbal_tilt_duration;
       ROS_WARN("new gimbal interval :%f, new gimbal duration :%f", active_gimbal_tilt_interval_, active_gimbal_tilt_duration_);
     }
+}
+
+void GimbalControl::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
+{
+    static bool attack_flag   = false;
+    static bool stop_attack_flag   = false;
+      if(joy_msg->buttons[4] == 1 && !attack_flag)
+        {
+          ROS_INFO("Start attack mode");
+          attack_flag = true;
+	  wall_attack_flag_ = true;
+
+	  //tilt mode change
+	  gimbal_mode_ = ACTIVE_GIMBAL_MODE;
+
+          //stop teleop
+          std_msgs::UInt8 stop_teleop_msg;
+          stop_teleop_msg.data = 1;
+          stop_teleop_pub_.publish(stop_teleop_msg);
+
+        }
+      if(joy_msg->buttons[4] == 0 && attack_flag)
+        attack_flag = false;
+
+
+      if(joy_msg->buttons[6] == 1 && !stop_attack_flag)
+        {
+          ROS_INFO("Stop attack mode");
+          stop_attack_flag = true;
+	  wall_attack_flag_ = false;
+
+	  //tilt mode change
+	  gimbal_mode_ = ACTIVE_GIMBAL_MODE;
+
+          //stop teleop
+          std_msgs::UInt8 start_teleop_msg;
+          start_teleop_msg.data = 0;
+          stop_teleop_pub_.publish(start_teleop_msg);
+
+        }
+      if(joy_msg->buttons[6] == 0 && stop_attack_flag)
+        stop_attack_flag = false;
 }

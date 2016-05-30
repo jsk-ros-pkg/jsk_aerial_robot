@@ -36,7 +36,7 @@ controller/pitch/pos_i_gain_hover: 0.005668 # 0.005 * 1000 * 0.001744 * 0.65
 controller/pitch/pos_d_gain: 0.18 #0.4 * 1000 * 0.001744 * 0.65 #for mocap: 0.5,  for opt 0.4
 controller/pitch/vel_p_gain: 0.18  #0.4 * 1000 * 0.001744 * 0.65 #for mocap: 0.48, for opt 0.4
 controller/pitch/vel_i_gain: 0.005668 #0.005 * 1000 * 0.001744 * 0.65
-controller/pitch/offset: 0  # -0.08 #0
+controller/pitch/offset: -0.025 
 controller/pitch/pos_limit: 0.30 #rook1 : 200 * 0.001744 * 0.65
 controller/pitch/pos_p_limit: 0.20 #rook1 :100 * 0.001744 * 0.65
 controller/pitch/pos_i_limit: 0.15 #rook1 : 100 * 0.001744 * 0.65
