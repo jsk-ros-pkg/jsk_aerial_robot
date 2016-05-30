@@ -266,9 +266,9 @@ void PidController::pidFunction()
               if(state_pos_z > 0.01) 
                 {
                   start_rp_integration_ = true;
-                  std_msgs::UInt16 integration_cmd;
+                  std_msgs::UInt8 integration_cmd;
                   integration_cmd.data = navigator_->ROS_INTEGRATE_CMD;
-                  navigator_->config_cmd_pub_.publish(integration_cmd);
+                  navigator_->flight_config_pub_.publish(integration_cmd);
                 }
             }
 

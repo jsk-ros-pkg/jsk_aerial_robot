@@ -12,7 +12,7 @@
 #include <aerial_robot_base/sensor/sensor_base_plugin.h>
 #include <aerial_robot_msgs/KduinoImu.h>
 #include <aerial_robot_msgs/KduinoSimpleImu.h>
-#include <jsk_stm/JskImu.h>
+#include <aerial_robot_msgs/JskImu.h>
 
 namespace sensor_plugin
 {
@@ -31,7 +31,7 @@ namespace sensor_plugin
 
         if(imu_board_ == D_BOARD)
           {
-            imu_sub_ = nh_.subscribe<jsk_stm::JskImu>(imu_topic_name_, 1, &Imu::ImuCallback, this, ros::TransportHints().tcpNoDelay()); 
+            imu_sub_ = nh_.subscribe<aerial_robot_msgs::JskImu>(imu_topic_name_, 1, &Imu::ImuCallback, this, ros::TransportHints().tcpNoDelay()); 
           }
 
         if(imu_board_ == KDUINO)
@@ -127,26 +127,25 @@ namespace sensor_plugin
       int calib_count_;
       double calib_time_;
 
-      void ImuCallback(const jsk_stm::JskImuConstPtr& imu_msg)
+      void ImuCallback(const aerial_robot_msgs::JskImuConstPtr& imu_msg)
       {
-        imu_stamp_ = imu_msg->header.stamp;
+        imu_stamp_ = imu_msg->stamp;
         estimator_->setSystemTimeStamp(imu_stamp_);
 
-        roll_  = imu_msg->angles.x;
-        pitch_ = imu_msg->angles.y;
-        yaw_   = imu_msg->angles.z;
+        roll_  = imu_msg->angles[0];
+        pitch_ = imu_msg->angles[1];
+        yaw_   = imu_msg->angles[2];
 
-        acc_xb_ = imu_msg->acc_data.x;
-        acc_yb_ = imu_msg->acc_data.y;
-        acc_zb_ = imu_msg->acc_data.z;
-        gyro_xb_ = imu_msg->gyro_data.x;
-        gyro_yb_ = imu_msg->gyro_data.y;
-        gyro_zb_ = imu_msg->gyro_data.z;
+        acc_xb_ = imu_msg->acc_data[0];
+        acc_yb_ = imu_msg->acc_data[1];
+        acc_zb_ = imu_msg->acc_data[2];
+        gyro_xb_ = imu_msg->gyro_data[0];
+        gyro_yb_ = imu_msg->gyro_data[1];
+        gyro_zb_ = imu_msg->gyro_data[2];
 
-        mag_xb_ = imu_msg->mag_data.x;
-        mag_yb_ = imu_msg->mag_data.y;
-        mag_zb_ = imu_msg->mag_data.z;
-        height_ = imu_msg->altitude;  //cm
+        mag_xb_ = imu_msg->mag_data[0];
+        mag_yb_ = imu_msg->mag_data[1];
+        mag_zb_ = imu_msg->mag_data[2];
 
         imuDataConverter(imu_stamp_);
 

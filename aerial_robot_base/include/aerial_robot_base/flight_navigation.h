@@ -18,18 +18,15 @@
 #include <aerial_robot_base/FlightNav.h>
 #include <sensor_msgs/Joy.h>
 
-
-
-
 class Navigator
 {
  public:
-  Navigator(ros::NodeHandle nh,	ros::NodeHandle nh_private, 
+  Navigator(ros::NodeHandle nh, ros::NodeHandle nh_private, 
             BasicEstimator* estimator, FlightCtrlInput* flight_ctrl_input,
             int ctrl_loop_rate);
   virtual ~Navigator();
 
-  ros::Publisher  config_cmd_pub_; //temporarily
+  ros::Publisher  flight_config_pub_;
 
   inline bool getStartAble(){  return start_able_;}
   inline void startNavigation(){  start_able_ = true;}

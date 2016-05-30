@@ -20,7 +20,7 @@ Navigator::Navigator(ros::NodeHandle nh, ros::NodeHandle nh_private,
 {
   Navigator::rosParamInit(nhp_);
 
-  navi_sub_ = nh_.subscribe<aerial_robot_base::FlightNav>("full_states", 1, &Navigator::naviCallback, this, ros::TransportHints().tcpNoDelay());
+  navi_sub_ = nh_.subscribe<aerial_robot_base::FlightNav, Navigator>("full_states", 1, &Navigator::naviCallback, this, ros::TransportHints().tcpNoDelay());
 
   estimator_ = estimator;
   flight_ctrl_input_ = flight_ctrl_input;
@@ -164,7 +164,7 @@ TeleopNavigator::TeleopNavigator(ros::NodeHandle nh, ros::NodeHandle nh_private,
   alt_control_flag_ = false;
   yaw_control_flag_ = false;
 
-  arming_ack_sub_ = nh_.subscribe<std_msgs::Int8>("/arming_ack", 1, &TeleopNavigator::armingAckCallback, this, ros::TransportHints().tcpNoDelay());
+  arming_ack_sub_ = nh_.subscribe<std_msgs::Int8>("/flight_config_ack", 1, &TeleopNavigator::armingAckCallback, this, ros::TransportHints().tcpNoDelay());
   takeoff_sub_ = nh_.subscribe<std_msgs::Empty>("teleop_command/takeoff", 1, &TeleopNavigator::takeoffCallback, this, ros::TransportHints().tcpNoDelay());
   halt_sub_ = nh_.subscribe<std_msgs::Empty>("teleop_command/halt", 1, &TeleopNavigator::haltCallback, this, ros::TransportHints().tcpNoDelay());
   land_sub_ = nh_.subscribe<std_msgs::Empty>("teleop_command/land", 1, &TeleopNavigator::landCallback, this, ros::TransportHints().tcpNoDelay());
@@ -189,7 +189,7 @@ TeleopNavigator::TeleopNavigator(ros::NodeHandle nh, ros::NodeHandle nh_private,
   stop_teleop_sub_ = nh_.subscribe<std_msgs::UInt8>("stop_teleop", 1, &TeleopNavigator::stopTeleopCallback, this, ros::TransportHints().tcpNoDelay());
   teleop_flag_ = true;
 
-  config_cmd_pub_ = nh_.advertise<std_msgs::UInt16>("/config_cmd", 10);
+  flight_config_pub_ = nh_.advertise<std_msgs::UInt8>("/flight_config_cmd", 10);
 
   //temporarily
   joints_ctrl_pub_= nh_.advertise<std_msgs::Int8>("/teleop_command/joints_ctrl", 2);
@@ -565,42 +565,39 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
       //gain tunning
       if(joy_msg->buttons[10] == 1 && !gain_tunning_flag_) //left up trigger
         {
-          std_msgs::UInt16 att_p_gain_cmd;
+          std_msgs::UInt8 att_p_gain_cmd;
           att_p_gain_cmd.data = 161;
-          config_cmd_pub_.publish(att_p_gain_cmd); 
+          flight_config_pub_.publish(att_p_gain_cmd); 
           gain_tunning_flag_ = true;
         }
       if(joy_msg->buttons[8] == 1 && !gain_tunning_flag_) //left down trigger
         {
-          std_msgs::UInt16 att_p_gain_cmd;
+          std_msgs::UInt8 att_p_gain_cmd;
           att_p_gain_cmd.data = 162;
-          config_cmd_pub_.publish(att_p_gain_cmd); 
+          flight_config_pub_.publish(att_p_gain_cmd); 
           gain_tunning_flag_ = true;
         }
       if(joy_msg->buttons[11] == 1 && !gain_tunning_flag_) //right up trigger
         {
-          std_msgs::UInt16 att_p_gain_cmd;
+          std_msgs::UInt8 att_p_gain_cmd;
           att_p_gain_cmd.data = 167;
-          config_cmd_pub_.publish(att_p_gain_cmd); 
+          flight_config_pub_.publish(att_p_gain_cmd); 
           att_p_gain_cmd.data = 163;
-          config_cmd_pub_.publish(att_p_gain_cmd); 
+          flight_config_pub_.publish(att_p_gain_cmd); 
           gain_tunning_flag_ = true;
         }
       if(joy_msg->buttons[9] == 1 && !gain_tunning_flag_) //right down trigger
         {
-          std_msgs::UInt16 att_p_gain_cmd;
+          std_msgs::UInt8 att_p_gain_cmd;
           att_p_gain_cmd.data = 168;
-          config_cmd_pub_.publish(att_p_gain_cmd); 
+          flight_config_pub_.publish(att_p_gain_cmd); 
           att_p_gain_cmd.data = 164;
-          config_cmd_pub_.publish(att_p_gain_cmd); 
+          flight_config_pub_.publish(att_p_gain_cmd); 
           gain_tunning_flag_ = true;
         }
       if(joy_msg->buttons[8] == 0 &&  joy_msg->buttons[9] == 0 &&
          joy_msg->buttons[10] == 0 &&joy_msg->buttons[11] == 0 && gain_tunning_flag_)
         gain_tunning_flag_  = false;
-
-
-
     }
   else if(xy_control_mode_ == POS_WORLD_BASED_CONTROL_MODE || xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE)
    {
@@ -659,7 +656,6 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
           final_target_pos_z_= 0; 
           final_target_psi_  = getStatePsiBoard();
           ROS_INFO("Land command");
-
           return;
         }
 
@@ -950,15 +946,15 @@ void TeleopNavigator::sendRcCmd()
   if(getNaviCommand() == START_COMMAND)
     { 
      ROS_INFO("START_COMMAND");
-     std_msgs::UInt16 start_cmd;
+     std_msgs::UInt8 start_cmd;
      start_cmd.data = ARM_ON_CMD;
-     config_cmd_pub_.publish(start_cmd); 
+     flight_config_pub_.publish(start_cmd); 
     }
   else if(getNaviCommand() == STOP_COMMAND)
     { 
-      std_msgs::UInt16 stop_cmd;
+      std_msgs::UInt8 stop_cmd;
       stop_cmd.data = ARM_OFF_CMD;
-      config_cmd_pub_.publish(stop_cmd);
+      flight_config_pub_.publish(stop_cmd);
     }
   else if(getNaviCommand() == TAKEOFF_COMMAND ||
           getNaviCommand() == LAND_COMMAND ||
@@ -985,7 +981,6 @@ void TeleopNavigator::sendRcCmd()
           rc_data.throttle = (flight_ctrl_input_->getThrottleValue())[0];
           rc_cmd_pub_.publish(rc_data);
 
-
           aerial_robot_msgs::RcData2 rc_data2;
           rc_data2.roll  =  flight_ctrl_input_->getRollValue();
           rc_data2.pitch =  flight_ctrl_input_->getPitchValue();
@@ -994,10 +989,6 @@ void TeleopNavigator::sendRcCmd()
           rc_cmd_pub2_.publish(rc_data2);
 
         }
-    }
-  else
-    {
-      //ROS_ERROR("ERROR PISITION COMMAND, CAN NOT BE SEND TO Quadcopter");
     }
 }
 
