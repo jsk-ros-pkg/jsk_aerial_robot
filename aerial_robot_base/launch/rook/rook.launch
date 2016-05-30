@@ -1,6 +1,9 @@
 <?xml version="1.0"?>
 <launch>
 
+  <!-- ground truth mode: flight_pos_mode: true, flight_vel_mode: false, navigator/state_mode: 0 -->
+  <!-- optical flow mode: flight_vel_mode: false, flight_vel_mode: true,  navigator/state_mode: 1 -->
+
   ############################# Global Param ###################################
 
   <arg name="debug" default="false" />
@@ -8,9 +11,8 @@
   <arg if="$(arg debug)" name="launch_prefix" value="gdb --ex run --args" />
 
 
-  <arg name="flight_pos_mode" value="false" /> <!-- pos mode -->
-  <arg name="flight_vel_mode" value="true" />  <!-- vel mode -->
-
+  <arg name="flight_pos_mode" value="true" /> <!-- pos mode -->
+  <arg name="flight_vel_mode" value="false" />  <!-- vel mode -->
 
   ############### Sensors #############################
   <include file="$(find aerial_robot_base)/launch/rook/rook_sensors.launch" />
@@ -23,7 +25,7 @@
     <param name="tx_loop_rate" type="double" value="40"/>
     <param name="tf_pub_loop_rate" type="double" value="120"/>
 
-    <param name="navigator/state_mode" type="int" value= "1" />
+    <param name="navigator/state_mode" type="int" value= "0" />
     #GROUND_TRUTH = 0
     #EGOMOTION_ESTIMATE = 1
 
