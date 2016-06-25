@@ -4,4 +4,8 @@
   <param name="serial_port" value="/dev/ttyUSB1" />
   <remap from="/px4flow/opt_flow" to="/estimator/optical_flow/opt_flow" />
 </node>
+
+<!-- TODO: should add a relay field -->
+
+
 </launch> 
