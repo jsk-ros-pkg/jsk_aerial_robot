@@ -15,7 +15,6 @@ find_package(catkin REQUIRED COMPONENTS
   laser_geometry
   visualization_msgs
   tf
-  dynamic_tf_publisher
   dynamic_reconfigure
   aerial_robot_msgs
   kalman_filter
