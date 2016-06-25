@@ -41,16 +41,11 @@ include_directories(
 add_executable(dynamicxel_bridge_node src/dynamicxel_bridge.cpp) 
 target_link_libraries (dynamicxel_bridge_node  ${catkin_LIBRARIES})
 
-#add_executable(demo_transform_node src/demo_transform.cpp )
-#target_link_libraries (demo_transform_node  ${catkin_LIBRARIES})
-#add_dependencies(demo_transform_node aerial_robot_msgs_generate_message_cpp)
-
 add_library (transform_control src/transform_control.cpp)
 target_link_libraries (transform_control ${catkin_LIBRARIES})
-add_dependencies(transform_control aerial_robot_msgs_generate_message_cpp)
+
 add_executable (hydra_transform_control_node src/hydra_transform_control_node.cpp)
 target_link_libraries (hydra_transform_control_node transform_control ${catkin_LIBRARIES})
-add_dependencies(hydra_transform_control_node aerial_robot_msgs_generate_message_cpp)
 
 install(PROGRAMS
   scripts/dynamixel_param.py
