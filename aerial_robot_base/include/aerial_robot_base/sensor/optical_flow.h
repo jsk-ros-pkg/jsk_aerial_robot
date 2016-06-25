@@ -5,7 +5,7 @@
 #include <aerial_robot_base/basic_state_estimation.h>
 #include <aerial_robot_base/sensor/sensor_base_plugin.h>
 #include <aerial_robot_base/States.h>
-#include <aerial_robot_base/OpticalFlow.h>
+#include <px_comm/OpticalFlow.h>
 #include <std_msgs/Int32.h>
 
 namespace sensor_plugin
@@ -22,7 +22,7 @@ namespace sensor_plugin
         rosParamInit();
 
         optical_flow_pub_ = nh_.advertise<aerial_robot_base::States>("data",10);
-        optical_flow_sub_ = nh_.subscribe<aerial_robot_base::OpticalFlow>("opt_flow", 1, &OpticalFlow::opticalFlowCallback, this, ros::TransportHints().tcpNoDelay());
+        optical_flow_sub_ = nh_.subscribe<px_comm::OpticalFlow>("opt_flow", 1, &OpticalFlow::opticalFlowCallback, this, ros::TransportHints().tcpNoDelay());
 
         raw_pos_z_ = 0;
         pos_z_ = 0;
@@ -70,7 +70,7 @@ namespace sensor_plugin
 
     bool sensor_fusion_flag_;
 
-    void opticalFlowCallback(const aerial_robot_base::OpticalFlowConstPtr & optical_flow_msg)
+    void opticalFlowCallback(const px_comm::OpticalFlowConstPtr & optical_flow_msg)
     {
       
       static int init_flag = true;

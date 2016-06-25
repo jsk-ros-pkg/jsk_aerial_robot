@@ -33,7 +33,6 @@ add_message_files(FILES
   FourAxisPid.msg
   ImuData.msg
   ImuQu.msg
-  OpticalFlow.msg
   Pid.msg
   State.msg
   States.msg
