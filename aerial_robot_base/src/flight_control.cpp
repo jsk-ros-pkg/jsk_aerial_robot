@@ -93,7 +93,7 @@ PidController::PidController(ros::NodeHandle nh,
   ff_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("ff", 10); 
 
   //subscriber
-  four_axis_gain_sub_ = nh_.subscribe<aerial_robot_base::YawThrottleGain>("yaw_throttle_gain", 1, &PidController::yawThrottleGainCallback, this, ros::TransportHints().tcpNoDelay());
+  four_axis_gain_sub_ = nh_.subscribe<aerial_robot_msgs::YawThrottleGain>("yaw_throttle_gain", 1, &PidController::yawThrottleGainCallback, this, ros::TransportHints().tcpNoDelay());
 
   //dynamic reconfigure server
   xy_pid_server_ = new dynamic_reconfigure::Server<aerial_robot_base::XYPidControlConfig>(ros::NodeHandle(nhp_, "pitch"));
@@ -103,11 +103,11 @@ PidController::PidController(ros::NodeHandle nh,
 }
 
 
-void PidController::yawThrottleGainCallback(const aerial_robot_base::YawThrottleGainConstPtr & msg)
+void PidController::yawThrottleGainCallback(const aerial_robot_msgs::YawThrottleGainConstPtr & msg)
 {
   if(msg->motor_num != motor_num_) 
     {
-      ROS_ERROR("the motor number is not correct, msg->motor_num:%d, motor_num_:%d", msg->motor_num, motor_num_);
+      ROS_FATAL("the motor number is not correct, msg->motor_num:%d, motor_num_:%d", msg->motor_num, motor_num_);
       return ;
     }
 

@@ -32,12 +32,10 @@ add_message_files(FILES
   FlightNav.msg
   FourAxisPid.msg
   ImuData.msg
-  ImuQu.msg
   Pid.msg
   State.msg
   States.msg
   Pwms.msg
-  YawThrottleGain.msg
   DesireCoord.msg
   )
 
