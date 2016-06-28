@@ -5,7 +5,7 @@
 
 //* for dynamic reconfigure
 #include <dynamic_reconfigure/server.h>
-#include <kalman_filter/KalmanFilterPosVelAccConf.h>
+//#include <kalman_filter/KalmanFilterPosVelAccConf.h>
 #include <kalman_filter/KalmanFilterPosVelAccConfig.h>
 #include <kalman_filter/KalmanFilterPosVelAccBiasConfig.h>
 

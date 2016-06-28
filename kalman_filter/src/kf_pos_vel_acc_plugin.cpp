@@ -70,12 +70,12 @@ namespace kf_pos_vel_acc_plugin
 
         switch(level)
           {
-          case kalman_filter::KalmanFilterPosVelAccConf::RECONFIGURE_INPUT_SIGMA:
+          case 1:  // INPUT_SIGMA = 1
             input_sigma_(0,0) = config.inputSigma;
             setPredictionNoiseCovariance();
             printf("change the input sigma\n");
             break;
-          case kalman_filter::KalmanFilterPosVelAccConf::RECONFIGURE_MEASURE_SIGMA:
+          case 3:  // MEASURE_SIGMA = 3
             measure_sigma_(0,0)  = config.measureSigma;
             setMeasurementNoiseCovariance();
             printf("change the measure sigma\n");
@@ -151,17 +151,17 @@ namespace kf_pos_vel_acc_plugin
 
         switch(level)
           {
-          case kalman_filter::KalmanFilterPosVelAccConf::RECONFIGURE_INPUT_SIGMA:
+          case 1:  // INPUT_SIGMA = 1
             input_sigma_(0,0) = config.input1Sigma;
             setPredictionNoiseCovariance();
             printf("change the input1 sigma\n");
             break;
-          case kalman_filter::KalmanFilterPosVelAccConf::RECONFIGURE_BIAS_SIGMA:
+          case 2:  // BIAS_SIGMA = 2
             input_sigma_(1,0) = config.input2Sigma;
             setPredictionNoiseCovariance();
             printf("change the input2 sigma\n");
             break;
-          case kalman_filter::KalmanFilterPosVelAccConf::RECONFIGURE_MEASURE_SIGMA:
+          case 3:  // MEASURE_SIGMA = 3
             measure_sigma_(0,0)  = config.measureSigma;
             setMeasurementNoiseCovariance();
             printf("change the measure sigma\n");
