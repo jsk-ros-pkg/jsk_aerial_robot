@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <launch>
 
-  <arg name="imu_board" default="1" />  <!-- 1: d imu board, 0: kduino board -->
+  <arg name="imu_board" default="0" />  <!-- 1: d imu board, 0: kduino board -->
 
   #################################### sensor plugin config ###################################
   <rosparam file="$(find hydrus_transform_control)/config/hydrus3/SensorLoader.yaml" command="load" />

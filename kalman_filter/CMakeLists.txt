@@ -32,7 +32,6 @@ generate_dynamic_reconfigure_options(
 ###################################
 catkin_package(
   INCLUDE_DIRS include
-  LIBRARIES  kf_pos_vel_acc
   CATKIN_DEPENDS roscpp std_msgs pluginlib
   DEPENDS Eigen
 )

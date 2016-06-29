@@ -19,7 +19,7 @@ controller/throttle/pos_d_limit: 9.0
 controller/throttle/const_i_ctrl_thre_land: -0.3
 
 
-//should multiply 1000
+#should multiply 1000
 # pitch 
 controller/pitch/pos_p_gain: 0.07 #0.054
 controller/pitch/pos_i_gain: 0.005
@@ -35,7 +35,7 @@ controller/pitch/vel_value_limit: 0.26 #0.8 * 0.325
 controller/pitch/i_enable_limit: 0.325 # 1.0 * 0.325
 controller/pitch/offset: 0
 
-//should multiply 1000
+#should multiply 1000
 #  roll 
 controller/roll/pos_p_gain: 0.07 
 controller/roll/pos_i_gain: 0.005 

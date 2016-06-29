@@ -61,6 +61,7 @@ public:
 
     nhp_.param("joint_num", joint_num_, 3); 
     servo_on_mask_ = 0;
+    servo_full_on_mask_ = 0;
 
     joints_info_.resize(joint_num_);
     //for(std::vector<JointInfo>::iterator joint_info = joints_info_.begin(); joint_info != joints_info_.end(); joint_info++)
@@ -165,10 +166,9 @@ public:
 
   void bridgeFunc(const ros::TimerEvent & e)
   {
+
     if(servo_on_mask_ != servo_full_on_mask_) return;
     
-    ROS_INFO("pub joint state");
-
     sensor_msgs::JointState hydra_joints_state;
     hydra_joints_state.header.stamp = ros::Time::now();
     hydra_joints_state.name.resize(joint_num_);

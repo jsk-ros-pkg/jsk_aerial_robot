@@ -17,7 +17,7 @@
   <arg name="motor_num" value="4" />  <!-- vel mode -->
 
   ############### Sensors #############################
-  <include file="$(find hydrus_transform_control)/launch/hydrus3/rook_sensors.launch" />
+  <include file="$(find hydrus_transform_control)/launch/hydrus3/hydrus3_sensors.launch" />
 
   ############################# Drone Platform ###################################
   <node pkg="aerial_robot_base" type="aerial_robot_base_node" name="aerial_robot_base_node"  launch-prefix="$(arg launch_prefix)" output="screen" > 
@@ -40,12 +40,12 @@
     <param name="navigator/gain_tunning_mode" type="int" value="0"/>
 
     ############### Sensor Fusion ######################
-    <rosparam file="$(find hydrus_robot_base)/config/hydrus3/SensorFusion.yaml" command="load" />
+    <rosparam file="$(find hydrus_transform_control)/config/hydrus3/SensorFusion.yaml" command="load" />
     ############### PID Control ######################
-    <rosparam file="$(find hydrus_robot_base)/config/hydrus3/PidControlConfig.yaml" command="load" />
+    <rosparam file="$(find hydrus_transform_control)/config/hydrus3/PidControlConfig.yaml" command="load" />
 
     ############### Keyboard Navigation ##############
-    <rosparam file="$(find hydrus_robot_base)/config/hydrus3/TeleopNavigationConfig.yaml" command="load" />
+    <rosparam file="$(find hydrus_transform_control)/config/hydrus3/TeleopNavigationConfig.yaml" command="load" />
 
     ############### remap topic ######################
     ### Joy Stick #################
@@ -64,10 +64,10 @@
   </node>
 
   ################################# Dynamixel  ######################################
-  <include file="$(find hydra_transform_control)/launch/hydrus3/hydrus3_dynamicxel_bridge.launch" />  
+  <include file="$(find hydrus_transform_control)/launch/hydrus3/hydrus3_dynamixel_bridge.launch" />  
 
   ################################# Robot Model  ######################################
-  <include file="$(find hydra_transform_control)/launch/hydrus3/hydrus3_robot_model.launch" />  
+  <include file="$(find hydrus_transform_control)/launch/hydrus3/hydrus3_robot_model.launch" />  
 
   ################################# Transform Control  ######################################
   <node pkg="hydrus_transform_control" type="transform_control_node" name="transform_control_node"  output="screen" > 

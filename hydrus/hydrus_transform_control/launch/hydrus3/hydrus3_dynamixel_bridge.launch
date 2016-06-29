@@ -13,6 +13,6 @@
                 j3_controller"
           output="screen"/>
 
-  <node pkg="hydrus3_transform_control" type="dynamicxel_bridge_node" name="dynamicxel_bridge"  output="screen" />
+  <node pkg="hydrus_transform_control" type="dynamicxel_bridge_node" name="dynamicxel_bridge"  output="screen" />
 
 </launch>
