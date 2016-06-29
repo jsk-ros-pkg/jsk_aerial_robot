@@ -1,0 +1,62 @@
+cmake_minimum_required(VERSION 2.8.3)
+project(hydrus_transform_control)
+
+## Find catkin macros and libraries
+## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
+## is used, also find other catkin packages
+find_package(catkin REQUIRED COMPONENTS
+  roscpp
+  aerial_robot_msgs
+  dynamixel_controllers
+  tf_conversions
+  cmake_modules
+)
+
+
+find_package(Eigen REQUIRED)
+include_directories(${EIGEN_INCLUDE_DIRS})
+add_definitions(${EIGEN_DEFINITIONS})
+
+
+catkin_package(
+  INCLUDE_DIRS include
+  LIBRARIES transform_control
+  CATKIN_DEPENDS roscpp   aerial_robot_msgs dynamixel_controllers tf_conversions
+  DEPENDS Eigen
+)
+
+###########
+## Build ##
+###########
+
+## Specify additional locations of header files
+## Your package locations should be listed before other locations
+# include_directories(include)
+include_directories(
+  include ${Boost_INCLUDE_DIR} ${catkin_INCLUDE_DIRS}
+)
+
+add_executable(dynamicxel_bridge_node src/dynamicxel_bridge.cpp) 
+target_link_libraries (dynamicxel_bridge_node  ${catkin_LIBRARIES})
+
+add_library (transform_control src/transform_control.cpp)
+target_link_libraries (transform_control ${catkin_LIBRARIES})
+
+add_executable (transform_control_node src/transform_control_node.cpp)
+target_link_libraries (transform_control_node transform_control ${catkin_LIBRARIES})
+
+install(PROGRAMS
+  scripts/dynamixel_param.py
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+install(DIRECTORY launch
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
+
+install(TARGETS transform_control transform_control_node
+   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+ )
+
+

@@ -1,0 +1,65 @@
+dynamixel_manager:
+        namespace: dxl_manager
+        serial_ports:
+                joints_port:
+                        port_name: "/dev/ttyUSB0"
+                        baud_rate: 1000000
+                        min_motor_id: 1
+                        max_motor_id: 25
+                        update_rate: 20
+
+j1_controller:
+    controller:
+        package: dynamixel_controllers
+        module: joint_position_controller
+        type: JointPositionController
+    joint_name: joint1
+    joint_speed: 0.1 #0.4 /0.6
+    motor:
+        id: 1
+        init: 0
+        min: 0
+        max: 1023
+
+j2_controller:
+    controller:
+        package: dynamixel_controllers
+        module: joint_position_controller
+        type: JointPositionController
+    joint_name: joint2
+    joint_speed: 0.1 #0.4 / 0.6
+    motor:
+        id: 2
+        init: 0
+        min: 0
+        max: 1023
+
+j3_controller:
+    controller:
+        package: dynamixel_controllers
+        module: joint_position_controller
+        type: JointPositionController
+    joint_name: joint3
+    joint_speed: 0.1 #0.4 /0.6
+    motor:
+        id: 3
+        init: 0
+        min: 0
+        max: 1023
+
+dynamicxel_bridge:
+    joint_num: 3
+    joint1_angle_max: 1.58
+    joint1_angle_min: -1.58
+    joint1_angle_sgn: -1
+    joint1_angle_offset: 2.6026
+
+    joint2_angle_max: 1.58
+    joint2_angle_min: -1.58
+    joint2_angle_sgn: -1
+    joint2_angle_offset: 2.612
+
+    joint3_angle_max: 1.58
+    joint3_angle_min: -1.58
+    joint3_angle_sgn: -1
+    joint3_angle_offset: 2.617
