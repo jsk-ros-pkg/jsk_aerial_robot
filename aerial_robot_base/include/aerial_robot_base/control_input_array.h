@@ -57,7 +57,7 @@ class FlightCtrlInput
   {  
     if(ff_value.size() != motor_num_) 
       {
-        ROS_ERROR("bad size matching for ff");
+        ROS_FATAL("bad size matching for ff");
         return;
       }
 

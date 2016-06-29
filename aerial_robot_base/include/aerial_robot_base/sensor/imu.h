@@ -10,8 +10,7 @@
 #include <aerial_robot_base/ImuData.h>
 #include <geometry_msgs/Vector3.h>
 #include <aerial_robot_base/sensor/sensor_base_plugin.h>
-#include <aerial_robot_msgs/KduinoImu.h>
-#include <aerial_robot_msgs/KduinoSimpleImu.h>
+#include <aerial_robot_msgs/SimpleImu.h>
 #include <aerial_robot_msgs/Imu.h>
 
 namespace sensor_plugin
@@ -36,8 +35,7 @@ namespace sensor_plugin
 
       if(imu_board_ == KDUINO)
         {
-          imu_sub_ = nh_.subscribe<aerial_robot_msgs::KduinoImu>(imu_topic_name_, 1, &Imu::kduinoImuCallback, this, ros::TransportHints().tcpNoDelay()); 
-          imu_simple_sub_ = nh_.subscribe<aerial_robot_msgs::KduinoSimpleImu>(imu_topic_name_ + "/simple", 1, &Imu::kduinoSimpleImuCallback, this, ros::TransportHints().tcpNoDelay()); 
+          imu_sub_ = nh_.subscribe<aerial_robot_msgs::SimpleImu>(imu_topic_name_, 1, &Imu::kduinoImuCallback, this, ros::TransportHints().tcpNoDelay()); 
         }
 
       imu_pub_ = nh_.advertise<aerial_robot_base::ImuData>("data", 2); 
@@ -63,8 +61,8 @@ namespace sensor_plugin
     ~Imu () { }
     Imu () { }
 
-    const static uint8_t D_BOARD = 0;
-    const static uint8_t KDUINO = 1;
+    const static uint8_t D_BOARD = 1;
+    const static uint8_t KDUINO = 0;
 
     inline void setPitch(float pitch_value) {   pitch_ = pitch_value;  }
     inline void setRoll(float roll_value) {    roll_ = roll_value;  }
@@ -150,40 +148,7 @@ namespace sensor_plugin
       imuDataConverter(imu_stamp_);
     }
 
-
-    void kduinoImuCallback(const aerial_robot_msgs::KduinoImuConstPtr& imu_msg)
-    {
-      imu_stamp_ = imu_msg->stamp;
-      estimator_->setSystemTimeStamp(imu_stamp_);
-
-      roll_  = M_PI * imu_msg->angle[0] / 10.0 / 180.0; //raw data is 10 times
-      pitch_ = M_PI * imu_msg->angle[1] / 10.0 / 180.0; //raw data is 10 times
-      yaw_   = M_PI * imu_msg->angle[2] / 180.0;
-
-      acc_xb_ = imu_msg->accData[0] * acc_scale_;
-      acc_yb_ = imu_msg->accData[1] * acc_scale_;
-      acc_zb_ = imu_msg->accData[2] * acc_scale_;
-      gyro_xb_ = imu_msg->gyroData[0] * gyro_scale_;
-      gyro_yb_ = imu_msg->gyroData[1] * gyro_scale_;
-      gyro_zb_ = imu_msg->gyroData[2] * gyro_scale_;
-
-      mag_xb_ = imu_msg->magData[0] * acc_scale_;
-      mag_yb_ = imu_msg->magData[1] * acc_scale_;
-      mag_zb_ = imu_msg->magData[2] * acc_scale_;
-
-      /*
-        mag_xb_ = imu_msg->magData[0] * mag_scale_;
-        mag_yb_ = imu_msg->magData[1] * mag_scale_;
-        mag_zb_ = imu_msg->magData[2] * mag_scale_;
-      */
-      //* height
-      //height_ = imu_msg->altitude / 100.0;  //cm
-      height_ = imu_msg->altitude;  //cm
-
-      imuDataConverter(imu_stamp_);
-    }
-
-    void kduinoSimpleImuCallback(const aerial_robot_msgs::KduinoSimpleImuConstPtr& imu_msg)
+    void kduinoImuCallback(const aerial_robot_msgs::SimpleImuConstPtr& imu_msg)
     {
       imu_stamp_ = imu_msg->stamp;
       estimator_->setSystemTimeStamp(imu_stamp_);

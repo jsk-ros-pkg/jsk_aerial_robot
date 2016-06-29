@@ -1,14 +1,8 @@
 /*
-  2015 05 16 
+  2016 05 16
   1. the prioripty of the sensor => 1) pluginazation, 2) order=> profile
   2. uniform the state(set, get , etc, no "sate_xc", no "outer state")
   3. independent catkin packgage for sensor modules(px_comm is bad )
-
-  +*+*+*+* 最重要事項：関数のstatic変数はすべて同じポインタに保存されるので、同じ関数を複数呼ぶ場合、中身のstatic変数はお互い
-  >  
-  1. kalman filters of optical flow(vel_x, vel_y, pos_z) do not use accurate timestamp => for throwing?
-  on the other hand, the kalman filters for laser-imu do use accurate timestamp => use queue
-  ==> the timestamp do not have any important effect on the accuracy of kalman filter, in the case of 100Hz   
 */
 
 #include "aerial_robot_base/state_estimation.h"

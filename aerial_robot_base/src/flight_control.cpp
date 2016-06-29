@@ -565,7 +565,7 @@ void PidController::pidFunction()
                   four_axis_pid_debug.yaw.d_term.push_back(pos_d_term_yaw_);
 
                   //*** 指令値代入(new*** )
-                  //flight_ctrl_input_->setYawValue(yaw_value / f_pwm_rate_ * pwm_rate_ * 10000, j); //f => pwm; x10000 //2015.12.20
+                  //flight_ctrl_input_->setYawValue(yaw_value / f_pwm_rate_ * pwm_rate_ * 10000, j); //f => pwm; x10000 //2016.6.30, have shifted to transform_control.cpp
                   flight_ctrl_input_->setYawValue(yaw_value / f_pwm_rate_ * pwm_rate_, j); //f => pwm;
                 }
             }
@@ -653,7 +653,7 @@ void PidController::pidFunction()
               flight_ctrl_input_->addFFValues(u_ff_pwm);
               ff_pub_.publish(ff_msg);
             }
-	}
+        }
 
       //*** 更新
       d_err_vel_prev_pitch_ =  d_err_vel_curr_pitch_;
