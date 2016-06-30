@@ -15,4 +15,7 @@
 
   <node pkg="hydrus_transform_control" type="dynamicxel_bridge_node" name="dynamicxel_bridge"  output="screen" />
 
+  <node pkg="hydrus_transform_control" type="hydrus3_dynamixel_param.py" name="param_configure"  output="screen" />
+
+
 </launch>

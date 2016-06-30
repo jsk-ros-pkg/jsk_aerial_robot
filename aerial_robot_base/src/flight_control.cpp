@@ -93,7 +93,7 @@ PidController::PidController(ros::NodeHandle nh,
   ff_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("ff", 10); 
 
   //subscriber
-  four_axis_gain_sub_ = nh_.subscribe<aerial_robot_msgs::YawThrottleGain>("yaw_throttle_gain", 1, &PidController::yawThrottleGainCallback, this, ros::TransportHints().tcpNoDelay());
+  four_axis_gain_sub_ = nh_.subscribe<aerial_robot_msgs::YawThrottleGain>("/yaw_throttle_gain", 1, &PidController::yawThrottleGainCallback, this, ros::TransportHints().tcpNoDelay());
 
   //dynamic reconfigure server
   xy_pid_server_ = new dynamic_reconfigure::Server<aerial_robot_base::XYPidControlConfig>(ros::NodeHandle(nhp_, "pitch"));
@@ -565,8 +565,10 @@ void PidController::pidFunction()
                   four_axis_pid_debug.yaw.d_term.push_back(pos_d_term_yaw_);
 
                   //*** 指令値代入(new*** )
-                  //flight_ctrl_input_->setYawValue(yaw_value / f_pwm_rate_ * pwm_rate_ * 10000, j); //f => pwm; x10000 //2016.6.30, have shifted to transform_control.cpp
                   flight_ctrl_input_->setYawValue(yaw_value / f_pwm_rate_ * pwm_rate_, j); //f => pwm;
+
+                  if(motor_num_ > 1)
+                    flight_ctrl_input_->setYawValue(yaw_value / f_pwm_rate_ * pwm_rate_ * 10000, j); //f => pwm; x10000 //for kduino
                 }
             }
 
@@ -640,6 +642,7 @@ void PidController::pidFunction()
               // feedfowd input
               Eigen::VectorXd u_ff = feedforward_matrix_  * r;
               //debug
+              //std::cout << "feedforward_matrix :\n" << feedforward_matrix_ << std::endl;
               //std::cout << "u_ff :\n" << u_ff << std::endl;
               std::vector<int16_t> u_ff_pwm;
               u_ff_pwm.resize(0);

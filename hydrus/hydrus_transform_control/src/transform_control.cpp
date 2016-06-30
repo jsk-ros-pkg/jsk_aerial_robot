@@ -876,9 +876,9 @@ void TransformController::param2contoller()
           yt_gain_msg.pos_d_gain_throttle.push_back(K12_(i,7));
           yt_gain_msg.pos_i_gain_throttle.push_back(K12_(i,11));
 
-          yt_gain_msg.pos_p_gain_yaw.push_back(K12_(i,4) * 10000);
-          yt_gain_msg.pos_d_gain_yaw.push_back(K12_(i,5) * 10000);
-          yt_gain_msg.pos_i_gain_yaw.push_back(K12_(i,10) * 10000);
+          yt_gain_msg.pos_p_gain_yaw.push_back(K12_(i,4));
+          yt_gain_msg.pos_d_gain_yaw.push_back(K12_(i,5));
+          yt_gain_msg.pos_i_gain_yaw.push_back(K12_(i,10));
 
           //to aerial_robot_base, feedforward
           yt_gain_msg.roll_vec.push_back(-K12_(i,0));
