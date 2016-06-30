@@ -181,7 +181,7 @@ TeleopNavigator::TeleopNavigator(ros::NodeHandle nh, ros::NodeHandle nh_private,
     rc_cmd_pub_ = nh_.advertise<aerial_robot_msgs::FourAxisCommand>("/aerial_robot_control", 10); 
   else
     {
-      rc_cmd_pub_ = nh_.advertise<aerial_robot_msgs::RcData>("/kduino/rc_cmd", 10);
+      rc_cmd_pub_ = nh_.advertise<aerial_robot_msgs::RcData>("/rc_cmd", 10);
       rc_cmd_pub2_ = nh_.advertise<aerial_robot_msgs::RcData2>("/aerial_robot_control", 10); 
 
     } 

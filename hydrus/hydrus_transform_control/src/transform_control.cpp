@@ -158,7 +158,7 @@ void TransformController::initParam()
   nh_private_.param("control_rate", control_rate_, 20.0);
   nh_private_.param("tf_pub_rate", tf_pub_rate_, 60.0);
 
-  nh_private_.param("rpy_gain_pub_name", rpy_gain_pub_name_, std::string("/kduino/rpy_gain"));
+  nh_private_.param("rpy_gain_pub_name", rpy_gain_pub_name_, std::string("/rpy_gain"));
 
   nh_private_.param("debug_log", debug_log_, false); 
   nh_private_.param("debug2_log", debug2_log_, false); 
