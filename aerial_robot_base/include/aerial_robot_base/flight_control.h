@@ -12,6 +12,7 @@
 #include <Eigen/Geometry>
 #include <aerial_robot_msgs/YawThrottleGain.h>
 #include <aerial_robot_base/FourAxisPid.h>
+#include <aerial_robot_base/MotorInfo.h>
 
 //* for dynamic reconfigure
 #include <dynamic_reconfigure/server.h>
@@ -55,7 +56,7 @@ public:
   //new param
   double f_pwm_rate_; //gain which convert f to pwm and also take the bit shift into account
   double f_pwm_offset_;
-
+  double m_f_rate_;
   double pwm_rate_; //percentage
 
   uint8_t state_mode_;
@@ -81,6 +82,7 @@ class PidController : public FlightController
  private:
   ros::Publisher  pid_pub_;
   ros::Publisher  ff_pub_;
+  ros::Publisher  motor_info_pub_;
   ros::Subscriber four_axis_gain_sub_;
 
   int pid_ctrl_loop_rate_;

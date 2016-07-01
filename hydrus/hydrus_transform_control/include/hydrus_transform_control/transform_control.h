@@ -15,6 +15,7 @@
 
 #include <aerial_robot_msgs/YawThrottleGain.h>
 #include <aerial_robot_msgs/RollPitchYawGain.h>
+#include <aerial_robot_base/DesireCoord.h>
 
 #include <string>
 //* for eigen cumputation 
@@ -305,7 +306,7 @@ private:
   std::vector<double> r_;
 
   //distance_thresold
-  double alfa_;
+  //double alfa_;
   double dist_thre_;
   double f_max_, f_min_;
 

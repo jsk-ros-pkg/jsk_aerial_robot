@@ -31,15 +31,14 @@ class FlightCtrlInput
   inline  void setPitchValue(float pitch_value){  pitch_ = pitch_value;}
   inline  void setRollValue(float roll_value){  roll_ = roll_value; }
   inline  void setYawValues(std::vector<float> yaw_value){  yaw_ = yaw_value; }
-  inline  void setThrottleValues(std::vector<uint16_t> throttle_value){  throttle_ = throttle_value;}
+  inline  void setThrottleValues(std::vector<float> throttle_value){  throttle_ = throttle_value;}
   inline  void setYawValue(float yaw_value, int motor_no){  yaw_[motor_no] = yaw_value; }
-  inline  void setThrottleValue(uint16_t throttle_value, int motor_no){  throttle_[motor_no] = throttle_value;}
-
+  inline  void setThrottleValue(float throttle_value, int motor_no){  throttle_[motor_no] = throttle_value;}
 
   inline  float getPitchValue(){ return pitch_;}
   inline  float getRollValue(){ return roll_;}
   inline  std::vector<float> getYawValue(){ return yaw_;}
-  inline  std::vector<uint16_t> getThrottleValue(){ return throttle_;}
+  inline  std::vector<float> getThrottleValue(){ return throttle_;}
 
   inline  int getMotorNumber(){return motor_num_;}
 
@@ -47,15 +46,14 @@ class FlightCtrlInput
   {
     pitch_ = 0;
     roll_ = 0;
-    std::vector<float> reset_data1(motor_num_, 0); 
-    std::vector<uint16_t> reset_data2(motor_num_, 0);  
-    yaw_ = reset_data1;
-    throttle_ = reset_data2;
+    std::vector<float> reset_data(motor_num_, 0);
+    yaw_ = reset_data;
+    throttle_ = reset_data;
   }
 
-  void addFFValues(std::vector<int16_t> ff_value)
-  {  
-    if(ff_value.size() != motor_num_) 
+  void addFFValues(std::vector<float> ff_value)
+  {
+    if(ff_value.size() != motor_num_)
       {
         ROS_FATAL("bad size matching for ff");
         return;
@@ -63,25 +61,32 @@ class FlightCtrlInput
 
     for(int i = 0; i < motor_num_; i++)
       {
-        int16_t tmp =  (int16_t)throttle_[i]  + ff_value[i];
-        //hard code
-        if(tmp < 1200 && tmp > 1800) 
+        float tmp =  throttle_[i]  + ff_value[i];
+#if 1 //F[N] based
+        if(tmp < 0)
           {
             ROS_ERROR("bad range matching for ff");
             return;
           }
+#else //pwm base
+        if(tmp < 1200 && tmp > 1800)
+          {
+            ROS_ERROR("bad range matching for ff");
+            return;
+          }
+#endif
       }
     for(int i = 0; i < motor_num_; i++)
-        throttle_[i]  += ff_value[i];
+      throttle_[i]  += ff_value[i];
   }
 
  private:
   int motor_num_;
 
-  float pitch_; //[0.1degree]
-  float roll_;  //[0.1degree]
-  std::vector<float> yaw_; //14bit shift, f[N]
-  std::vector<uint16_t> throttle_; //PWM (1000 ~ 2000, exaclty: 1300 ~ 1750)
+  float pitch_; //[rad]
+  float roll_;  //[rad]
+  std::vector<float> yaw_; //[N], Nm -> N conversio rate is contained in gain map
+  std::vector<float> throttle_; //[N]
 
 };
 

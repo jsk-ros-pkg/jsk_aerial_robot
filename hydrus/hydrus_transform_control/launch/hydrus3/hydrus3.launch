@@ -14,7 +14,7 @@
   <arg name="flight_pos_mode" value="true" /> <!-- pos mode -->
   <arg name="flight_vel_mode" value="false" />  <!-- vel mode -->
 
-  <arg name="motor_num" value="4" />  <!-- vel mode -->
+  <rosparam file="$(find hydrus_transform_control)/config/hydrus3/MotorInfo.yaml" command="load" /> <!-- basic motor info -->
 
   ############### Sensors #############################
   <include file="$(find hydrus_transform_control)/launch/hydrus3/hydrus3_sensors.launch" />
@@ -31,8 +31,6 @@
     #GROUND_TRUTH = 0
     #EGOMOTION_ESTIMATE = 1
 
-    <param name="motor_num" type="int" value="$(arg motor_num)"/>
-
     <param if="$(arg flight_pos_mode)" name="navigator/xy_control_mode" type="int" value="0"/>
     <param if="$(arg flight_vel_mode)" name="navigator/xy_control_mode" type="int" value="3"/> <!-- pos local vel -->
 
@@ -44,7 +42,7 @@
     ############### PID Control ######################
     <rosparam file="$(find hydrus_transform_control)/config/hydrus3/PidControlConfig.yaml" command="load" />
 
-    ############### Keyboard Navigation ##############
+v    ############### Keyboard Navigation ##############
     <rosparam file="$(find hydrus_transform_control)/config/hydrus3/TeleopNavigationConfig.yaml" command="load" />
 
     ############### remap topic ######################

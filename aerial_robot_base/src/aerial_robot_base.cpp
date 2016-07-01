@@ -87,14 +87,10 @@ void AerialRobotBase::rosParamInit(ros::NodeHandle nh)
     tf_pub_loop_rate_ = 0;
   printf("%s: tf_pub_loop_rate_ is %.3f\n", ns.c_str(),  tf_pub_loop_rate_);
 
-  if (!nh.getParam ("motor_num", motor_num_))
-    motor_num_ = 4;
+  ros::NodeHandle motor_info_node("motor_info");
+  if (!motor_info_node.getParam ("motor_num", motor_num_))
+    motor_num_ = 0;
   printf("motor_num_ is %d\n", motor_num_);
-
-  // if (!nh.getParam ("trackingFlag", trackingFlag_))
-  //   trackingFlag_ = false;
-  // printf("%s: trackingFlag is %s\n", ns.c_str(), trackingFlag_ ? ("true") : ("false"));
-
 }
 
 void AerialRobotBase::rxFunction(const ros::TimerEvent & e)
@@ -113,7 +109,7 @@ void AerialRobotBase::txFunction(const ros::TimerEvent & e)
       ////feed forward control
       ////controller_->feedForwardFunction();
 
-      navigator_->sendRcCmd();
+      navigator_->sendAttCmd();
     }
 }
 

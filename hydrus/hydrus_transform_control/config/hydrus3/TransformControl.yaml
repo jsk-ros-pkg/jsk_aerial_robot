@@ -26,13 +26,13 @@ propeller2_order: 1
 
 link3_base_rod_mass: 0.094  
 
-propeller3_direction: -1 #default :1
-propeller3_order: 3
+propeller3_direction: -1
+propeller3_order: 2
 
 link4_base_rod_mass: 0.094  
 
-propeller4_direction: 1
-propeller4_order: 2
+propeller4_direction: 1 #default :1
+propeller4_order: 3
 
 debug_log: false
 debug2_log: false

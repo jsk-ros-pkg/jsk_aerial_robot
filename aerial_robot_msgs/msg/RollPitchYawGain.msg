@@ -1,16 +1,13 @@
-#this is unofficial way to send 3 axis gain to controller1
-
-#rotate angle from imu board to cog
-int16 angle_cos
-int16 angle_sin
+#this is unofficial way to send 3 axis gain to flight controller
+# 4 x 6 x 7 = 168 byte 
 
 #gains
-int32[4] roll_p_gain #motor1->4
-int32[4] roll_i_gain #motor1->4
-int32[4] roll_d_gain #motor1->4
+float32[6] roll_p_gain #motor1->6
+float32[6] roll_i_gain #motor1->6
+float32[6] roll_d_gain #motor1->6
 
-int32[4] pitch_p_gain #motor1->4
-int32[4] pitch_i_gain #motor1->4
-int32[4] pitch_d_gain #motor1->4
+float32[6] pitch_p_gain #motor1->6
+float32[6] pitch_i_gain #motor1->6
+float32[6] pitch_d_gain #motor1->6
 
-int32[4] yaw_d_gain #motor1->4
+float32[6] yaw_d_gain #motor1->6

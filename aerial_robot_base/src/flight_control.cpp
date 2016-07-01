@@ -16,27 +16,32 @@ FlightController::FlightController(ros::NodeHandle nh,
 
   state_mode_ = navigator->getStateMode();
 
+
+  ros::NodeHandle motor_info_node("motor_info");
+  std::string ns = motor_info_node.getNamespace();
   //normal namespace
-  // if (!nh_private.getParam ("motor_num", motor_num_))
-  //   motor_num_ = 4;
   motor_num_ = flight_ctrl_input_->getMotorNumber();
-  printf("motor_num_ is %d\n", motor_num_);
+  printf("%s: motor_num_ is %d\n", ns.c_str(), motor_num_);
   //controller namespace
-  if (!nhp_.getParam ("f_pwm_rate", f_pwm_rate_))
+  if (!motor_info_node.getParam ("f_pwm_rate", f_pwm_rate_))
     f_pwm_rate_ = 1; //0.3029;
-  printf("f_pwm_rate_ is %f\n", f_pwm_rate_);
+  printf("%s: f_pwm_rate_ is %f\n", ns.c_str(), f_pwm_rate_);
 
-  if (!nhp_.getParam ("f_pwm_offset", f_pwm_offset_))
+  if (!motor_info_node.getParam ("m_f_rate", m_f_rate_))
+    m_f_rate_ = 0; 
+  printf("%s: m_f_rate_ is %.3f\n", ns.c_str(), m_f_rate_); //-0.016837, the sgn is right?, should be nagative
+
+  if (!motor_info_node.getParam ("f_pwm_offset", f_pwm_offset_))
     f_pwm_offset_ = 0; //-21.196;
-  printf("f_pwm_offset_ is %f\n", f_pwm_offset_);
+  printf("%s: f_pwm_offset_ is %f\n", ns.c_str(), f_pwm_offset_);
 
-  if (!nhp_.getParam ("pwm_rate", pwm_rate_))
+  if (!motor_info_node.getParam ("pwm_rate", pwm_rate_))
     pwm_rate_ = 1; //1800/100.0;
-  printf("pwm_rate_ is %f\n", pwm_rate_);
+  printf("%s: pwm_rate_ is %f\n", ns.c_str(), pwm_rate_);
 
   if (!nhp_.getParam ("feedforward_flag", feedforward_flag_))
-    feedforward_flag_ = true;
-  printf("feedforward_flag_ is %s\n", (feedforward_flag_)?"true":"false");
+    feedforward_flag_ = false;
+  printf("%s: feedforward_flag_ is %s\n", nhp_.getNamespace().c_str(), (feedforward_flag_)?"true":"false");
 
 }
 
@@ -91,6 +96,7 @@ PidController::PidController(ros::NodeHandle nh,
   //publish
   pid_pub_ = nh_.advertise<aerial_robot_base::FourAxisPid>("debug", 10); 
   ff_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("ff", 10); 
+  motor_info_pub_ = nh_.advertise<aerial_robot_base::MotorInfo>("/motor_info", 10);
 
   //subscriber
   four_axis_gain_sub_ = nh_.subscribe<aerial_robot_msgs::YawThrottleGain>("/yaw_throttle_gain", 1, &PidController::yawThrottleGainCallback, this, ros::TransportHints().tcpNoDelay());
@@ -254,10 +260,19 @@ void PidController::pidFunction()
 
       four_axis_pid_debug.header.stamp = ros::Time::now();
 
-      if (first_flag) 
-	first_flag = false;
+      if (first_flag)
+        {
+          first_flag = false;
+          /* send motor info to uav */
+          aerial_robot_base::MotorInfo motor_info_msg;
+          motor_info_msg.f_pwm_offset = f_pwm_offset_;
+          motor_info_msg.f_pwm_rate = f_pwm_rate_;
+          motor_info_msg.m_f_rate = m_f_rate_;
+          motor_info_msg.pwm_rate = pwm_rate_;
+          motor_info_pub_.publish(motor_info_msg);
+        }
       else
-	{
+        {
           float roll_value = 0, pitch_value = 0;
 
           //roll/pitch integration flag
@@ -607,7 +622,6 @@ void PidController::pidFunction()
                           //pos_p_term_throttle_ = limit(pos_p_gain_throttle_[j] * land_gain_slow_rate_ *  d_err_pos_curr_throttle_, pos_p_limit_throttle_); //half of the gain
                           //pos_d_term_throttle_ = limit(-pos_d_gain_throttle_[j] / land_gain_slow_rate_ * state_vel_z, pos_d_limit_throttle_); //twice
                           pos_p_term_throttle_ = 0;
-
                         }
                     }
 
@@ -619,8 +633,8 @@ void PidController::pidFunction()
                   four_axis_pid_debug.throttle.d_term.push_back(pos_d_term_throttle_);
 
                   //*** 指令値代入
-                  uint16_t throttle_value_16bit = (throttle_value - f_pwm_offset_) / f_pwm_rate_ * pwm_rate_;
-                  flight_ctrl_input_->setThrottleValue(throttle_value_16bit, j);
+                  //uint16_t throttle_value_16bit = (throttle_value - f_pwm_offset_) / f_pwm_rate_ * pwm_rate_;
+                  flight_ctrl_input_->setThrottleValue(throttle_value, j);
                 }
             }
           four_axis_pid_debug.throttle.pos_err_transform = target_pos_z;
@@ -628,32 +642,32 @@ void PidController::pidFunction()
           four_axis_pid_debug.throttle.vel_err_transform = state_vel_z;
           four_axis_pid_debug.throttle.vel_err_no_transform = state_vel_z;
 
-	  pid_pub_.publish(four_axis_pid_debug);
+          pid_pub_.publish(four_axis_pid_debug);
 
           if(feedforward_flag_)
             {
               std_msgs::Float32MultiArray ff_msg;
 
-              //roll & pitch : 0.1deg, yaw: rad
+              //roll & pitch : rad (old: 0.1deg); yaw: rad
               // ref set
               Eigen::Vector3d r;
-              r << roll_value / 10 /  180  * M_PI, pitch_value / 10 / 180  * M_PI, target_psi;
+              //r << roll_value / 10 /  180  * M_PI, pitch_value / 10 / 180  * M_PI, target_psi;
+              r << roll_value, pitch_value, target_psi;
 
               // feedfowd input
               Eigen::VectorXd u_ff = feedforward_matrix_  * r;
-              //debug
-              //std::cout << "feedforward_matrix :\n" << feedforward_matrix_ << std::endl;
-              //std::cout << "u_ff :\n" << u_ff << std::endl;
-              std::vector<int16_t> u_ff_pwm;
-              u_ff_pwm.resize(0);
+
+              //std::vector<int16_t> u_ff_pwm;
+              std::vector<float> u_ff_vec;
+              u_ff_vec.resize(0);
               for(int i = 0; i < u_ff.rows(); i++)
                 {
-                  u_ff_pwm.push_back( u_ff(i) / f_pwm_rate_ * pwm_rate_);
+                  //u_ff_pwm.push_back( u_ff(i) / f_pwm_rate_ * pwm_rate_);
+                  u_ff_vec.push_back(u_ff(i));
                   ff_msg.data.push_back(u_ff(i));
                 }
-
               //add to throttle
-              flight_ctrl_input_->addFFValues(u_ff_pwm);
+              flight_ctrl_input_->addFFValues(u_ff_vec);
               ff_pub_.publish(ff_msg);
             }
         }

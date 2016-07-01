@@ -178,14 +178,11 @@ TeleopNavigator::TeleopNavigator(ros::NodeHandle nh, ros::NodeHandle nh_private,
   joy_stick_sub_ = nh_.subscribe<sensor_msgs::Joy>("joy_stick_command", 1, &TeleopNavigator::joyStickControl, this, ros::TransportHints().udp());
 
   if(flight_ctrl_input_->getMotorNumber() > 1)
-    rc_cmd_pub_ = nh_.advertise<aerial_robot_msgs::FourAxisCommand>("/aerial_robot_control", 10); 
+    rc_cmd_pub_ = nh_.advertise<aerial_robot_msgs::FourAxisCommand>("/aerial_robot_control_four_axis", 10);
   else
-    {
-      rc_cmd_pub_ = nh_.advertise<aerial_robot_msgs::RcData>("/rc_cmd", 10);
-      rc_cmd_pub2_ = nh_.advertise<aerial_robot_msgs::RcData2>("/aerial_robot_control", 10); 
-
-    } 
- 
+    {/* TODO: should be deprecated */
+      rc_cmd_pub_ = nh_.advertise<aerial_robot_msgs::RcData>("/aerial_robot_control", 10);
+    }
   stop_teleop_sub_ = nh_.subscribe<std_msgs::UInt8>("stop_teleop", 1, &TeleopNavigator::stopTeleopCallback, this, ros::TransportHints().tcpNoDelay());
   teleop_flag_ = true;
 
@@ -927,7 +924,7 @@ void TeleopNavigator::targetValueCorrection()
 }
 
 
-void TeleopNavigator::sendRcCmd()
+void TeleopNavigator::sendAttCmd()
 {
   if(getNaviCommand() == START_COMMAND)
     { 
@@ -965,14 +962,6 @@ void TeleopNavigator::sendRcCmd()
           rc_data.yaw   =  (flight_ctrl_input_->getYawValue())[0];
           rc_data.throttle = (flight_ctrl_input_->getThrottleValue())[0];
           rc_cmd_pub_.publish(rc_data);
-
-
-          aerial_robot_msgs::RcData2 rc_data2;
-          rc_data2.roll  =  flight_ctrl_input_->getRollValue();
-          rc_data2.pitch =  flight_ctrl_input_->getPitchValue();
-          rc_data2.yaw   =  (flight_ctrl_input_->getYawValue())[0];
-          rc_data2.throttle = (flight_ctrl_input_->getThrottleValue())[0];
-          rc_cmd_pub2_.publish(rc_data2);
 
         }
     }

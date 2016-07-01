@@ -117,7 +117,7 @@ TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_
 
       principal_axis_pub_ = nh_.advertise<visualization_msgs::MarkerArray>("orientation_data", 1);
 
-      cog_rotate_pub_ = nh_.advertise<std_msgs::Float32>("/cog_rotate", 1); //absolute
+      cog_rotate_pub_ = nh_.advertise<aerial_robot_base::DesireCoord>("/desire_coordinate", 1); //absolute
 
       control_timer_ = nh_private_.createTimer(ros::Duration(1.0 / control_rate_),
                                                &TransformController::controlFunc, this);
@@ -241,13 +241,8 @@ void TransformController::initParam()
    f_min_ = 2.0;
   printf("f_min_ is %.3f\n", f_min_);
 
-
-
-
   //lqi
   r_.resize(link_num_);
-
-
 
   Eigen::Matrix3d zero_inertia = Eigen::Matrix3d::Zero(3,3);
   for(int i = 0; i < link_num_; i++)
@@ -300,7 +295,6 @@ void TransformController::initParam()
     }
 
 
-
   /// 3. controller
   Eigen::Vector3d offset_;
   offset_ << controller1_offset_, 0, 0;
@@ -314,17 +308,6 @@ void TransformController::initParam()
   controller_model_[1] = controller2_model;
 
   ROS_INFO("Mass :%f", all_mass_);
-
-  //dynamics
-  if (!nh_private_.getParam ("m_f_rate", m_f_rate_))
-    m_f_rate_ = -0.016837; //the sgn is right?, should be nagative
-  printf("m_f_rate_ is %.3f\n",m_f_rate_);
-  if (!nh_private_.getParam ("f_pwm_rate", f_pwm_rate_))
-    f_pwm_rate_ = 0.3029; // with the pwm percentage: x / 1800 * 100
-  printf("f_pwm_rate_ is %.3f\n",f_pwm_rate_);
-  if (!nh_private_.getParam ("f_pwm_offset", f_pwm_offset_))
-    f_pwm_offset_ = -21.196;  // with the pwm percentage: x / 1800 * 100
-  printf("f_pwm_offset_ is %.3f\n",f_pwm_offset_);
 
   //lqi
   if (!nh_private_.getParam ("lqi_thread_rate", lqi_thread_rate_))
@@ -368,22 +351,26 @@ void TransformController::initParam()
     q_z_i_ = 1.0;
   printf("Q: q_z_i_ is %.3f\n", q_z_i_);
 
-  if (!nh_private_.getParam ("alfa", alfa_))
-    alfa_ = 0.0;
-  printf("alfa_ is %.3f\n", alfa_);
 
-  if (!nh_private_.getParam ("f_pwm_rate", f_pwm_rate_))
-    f_pwm_rate_ = 0.3029;
-  printf("f_pwm_rate_ is %f\n", f_pwm_rate_);
+  /* TODO: shoudl be deprecated */
+  // if (!nh_private_.getParam ("alfa", alfa_))
+  //   alfa_ = 0.0;
+  // printf("alfa_ is %.3f\n", alfa_);
 
-  if (!nh_private_.getParam ("f_pwm_offset", f_pwm_offset_))
-    f_pwm_offset_ = -21.196;
-  printf("f_pwm_offset_ is %f\n", f_pwm_offset_);
-
-  if (!nh_private_.getParam ("pwm_rate", pwm_rate_))
-    pwm_rate_ = 1800/100.0;
+  //dynamics
+  ros::NodeHandle control_node("/motor_info");
+  if (!control_node.getParam ("pwm_rate", pwm_rate_))
+    pwm_rate_ = 0;
   printf("pwm_rate_ is %f\n", pwm_rate_);
-
+  if (!control_node.getParam ("m_f_rate", m_f_rate_))
+    m_f_rate_ = -0.016837; //the sgn is right?, should be nagative
+  printf("m_f_rate_ is %.3f\n",m_f_rate_);
+  if (!control_node.getParam ("f_pwm_rate", f_pwm_rate_))
+    f_pwm_rate_ = 0.3029; // with the pwm percentage: x / 1800 * 100
+  printf("f_pwm_rate_ is %.3f\n",f_pwm_rate_);
+  if (!control_node.getParam ("f_pwm_offset", f_pwm_offset_))
+    f_pwm_offset_ = -21.196;  // with the pwm percentage: x / 1800 * 100
+  printf("f_pwm_offset_ is %.3f\n",f_pwm_offset_);
 
 }
 
@@ -727,12 +714,12 @@ void TransformController::principalInertiaComputation(const std::vector<tf::Stam
   rotate_angle_ = atan2(rotate_matrix_tmp(1,0), rotate_matrix_tmp(0,0));
   //ROS_INFO("rotate angle is %f", rotate_angle_);
 
-  if(callback_flag_)
-    {
-      std_msgs::Float32 rotate_msg;
-      rotate_msg.data = rotate_angle_;
-      cog_rotate_pub_.publish(rotate_msg);
-    }
+  // if(callback_flag_)
+  //   {
+  //     std_msgs::Float32 rotate_msg;
+  //     rotate_msg.data = rotate_angle_;
+  //     cog_rotate_pub_.publish(rotate_msg);
+  //   }
 
 }
 
@@ -846,32 +833,34 @@ void TransformController::param2contoller()
 {
   aerial_robot_msgs::RollPitchYawGain rpy_gain_msg;
   aerial_robot_msgs::YawThrottleGain yt_gain_msg;
+  aerial_robot_base::DesireCoord desire_coord_msg;
 
-  rpy_gain_msg.angle_cos = (int16_t)(cog_matrix_(0, 0) * 1024);
-  rpy_gain_msg.angle_sin = (int16_t)(cog_matrix_(1, 0) * 1024);
+  desire_coord_msg.roll = 0;
+  desire_coord_msg.pitch = 0;
+  desire_coord_msg.yaw = rotate_angle_;
 
   yt_gain_msg.motor_num = link_num_;
 
-  double radian_convert_rate = M_PI/ 180 / 10 / f_pwm_rate_ * pwm_rate_ * 10000; 
+  //double radian_convert_rate = M_PI/ 180 / 10 / f_pwm_rate_ * pwm_rate_ * 10000;
   //0.1deg => rad:  M_PI/180/10; f=> pwm(no_offset); 1e4(10000)x
-  double omega_convert_rate = (2279 * M_PI)/((32767.0 / 4.0 ) * 180) / f_pwm_rate_ * pwm_rate_ * 10000;    //(2279 * M_PI)/((32767.0 / 4.0 ) * 180.0); f =>pwm
+  //double omega_convert_rate = (2279 * M_PI)/((32767.0 / 4.0 ) * 180) / f_pwm_rate_ * pwm_rate_ * 10000;    //(2279 * M_PI)/((32767.0 / 4.0 ) * 180.0); f =>pwm
 
   for(int i = 0; i < link_num_; i ++)
     {
       if(lqi_mode_ == LQI_FOUR_AXIS_MODE)
         {
-          //to kduino
-          rpy_gain_msg.roll_p_gain[i] = K12_(i,0) * radian_convert_rate;
-          rpy_gain_msg.roll_d_gain[i] = K12_(i,1) * omega_convert_rate;
-          rpy_gain_msg.roll_i_gain[i] = K12_(i,8) * radian_convert_rate;
+          /* to flight controller */
+          rpy_gain_msg.roll_p_gain[i] = K12_(i,0);
+          rpy_gain_msg.roll_d_gain[i] = K12_(i,1);
+          rpy_gain_msg.roll_i_gain[i] = K12_(i,8);
 
-          rpy_gain_msg.pitch_p_gain[i] = K12_(i,2) * radian_convert_rate;
-          rpy_gain_msg.pitch_d_gain[i] = K12_(i,3) * omega_convert_rate;
-          rpy_gain_msg.pitch_i_gain[i] = K12_(i,9) * radian_convert_rate;
+          rpy_gain_msg.pitch_p_gain[i] = K12_(i,2);
+          rpy_gain_msg.pitch_d_gain[i] = K12_(i,3);
+          rpy_gain_msg.pitch_i_gain[i] = K12_(i,9);
 
-          rpy_gain_msg.yaw_d_gain[i] = K12_(i,5) * omega_convert_rate;
+          rpy_gain_msg.yaw_d_gain[i] = K12_(i,5);
 
-          //to aerial_robot_base, feedback
+          /* to aerial_robot_base, feedback */
           yt_gain_msg.pos_p_gain_throttle.push_back(K12_(i,6));
           yt_gain_msg.pos_d_gain_throttle.push_back(K12_(i,7));
           yt_gain_msg.pos_i_gain_throttle.push_back(K12_(i,11));
@@ -880,7 +869,7 @@ void TransformController::param2contoller()
           yt_gain_msg.pos_d_gain_yaw.push_back(K12_(i,5));
           yt_gain_msg.pos_i_gain_yaw.push_back(K12_(i,10));
 
-          //to aerial_robot_base, feedforward
+          /* to aerial_robot_base, feedforward */
           yt_gain_msg.roll_vec.push_back(-K12_(i,0));
           yt_gain_msg.pitch_vec.push_back(-K12_(i,2));
           yt_gain_msg.yaw_vec.push_back(-K12_(i,4));
@@ -888,13 +877,13 @@ void TransformController::param2contoller()
         }
       else if(lqi_mode_ == LQI_THREE_AXIS_MODE)
         {
-          rpy_gain_msg.roll_p_gain[i] = K9_(i,0) * radian_convert_rate;
-          rpy_gain_msg.roll_d_gain[i] = K9_(i,1) * omega_convert_rate;
-          rpy_gain_msg.roll_i_gain[i] = K9_(i,6) * radian_convert_rate;
+          rpy_gain_msg.roll_p_gain[i] = K9_(i,0);
+          rpy_gain_msg.roll_d_gain[i] = K9_(i,1);
+          rpy_gain_msg.roll_i_gain[i] = K9_(i,6);
 
-          rpy_gain_msg.pitch_p_gain[i] = K9_(i,2) * radian_convert_rate;
-          rpy_gain_msg.pitch_d_gain[i] = K9_(i,3) * omega_convert_rate;
-          rpy_gain_msg.pitch_i_gain[i] = K9_(i,7) * radian_convert_rate;
+          rpy_gain_msg.pitch_p_gain[i] = K9_(i,2);
+          rpy_gain_msg.pitch_d_gain[i] = K9_(i,3);
+          rpy_gain_msg.pitch_i_gain[i] = K9_(i,7);
 
           rpy_gain_msg.yaw_d_gain[i] = 0;
 
@@ -913,6 +902,7 @@ void TransformController::param2contoller()
         }
     }
 
+  cog_rotate_pub_.publish(desire_coord_msg);
   rpy_gain_pub_.publish(rpy_gain_msg);
   yaw_throttle_gain_pub_.publish(yt_gain_msg);
 
