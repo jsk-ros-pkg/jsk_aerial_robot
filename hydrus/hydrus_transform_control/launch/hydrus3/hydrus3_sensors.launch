@@ -18,6 +18,7 @@
 <group if="$(arg imu_board)" >
   <include file="$(find aerial_robot_base)/launch/sensors/rosserial2.launch" >
     <arg name="baud" value="921600" />
+    <arg name="port" value="/dev/ttyUSB1" />
   </include>
 </group>
 

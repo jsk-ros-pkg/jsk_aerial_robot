@@ -17,7 +17,9 @@
   <rosparam file="$(find hydrus_transform_control)/config/hydrus3/MotorInfo.yaml" command="load" /> <!-- basic motor info -->
 
   ############### Sensors #############################
-  <include file="$(find hydrus_transform_control)/launch/hydrus3/hydrus3_sensors.launch" />
+  <include file="$(find hydrus_transform_control)/launch/hydrus3/hydrus3_sensors.launch" >
+    <arg name="imu_board" value="1" /> <!-- 1: d imu board, 0: kduino board -->
+  </include >
 
   ############################# Drone Platform ###################################
   <node pkg="aerial_robot_base" type="aerial_robot_base_node" name="aerial_robot_base_node"  launch-prefix="$(arg launch_prefix)" output="screen" > 

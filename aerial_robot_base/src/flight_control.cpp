@@ -23,6 +23,14 @@ FlightController::FlightController(ros::NodeHandle nh,
   motor_num_ = flight_ctrl_input_->getMotorNumber();
   printf("%s: motor_num_ is %d\n", ns.c_str(), motor_num_);
   //controller namespace
+  if (!motor_info_node.getParam ("min_pwm", min_pwm_))
+    min_pwm_ = 0.55; //0.55;
+  printf("%s: min_pwm_ is %f\n", ns.c_str(), min_pwm_);
+
+  if (!motor_info_node.getParam ("max_pwm", max_pwm_))
+    max_pwm_ = 0.55; //0.55;
+  printf("%s: max_pwm_ is %f\n", ns.c_str(), max_pwm_);
+
   if (!motor_info_node.getParam ("f_pwm_rate", f_pwm_rate_))
     f_pwm_rate_ = 1; //0.3029;
   printf("%s: f_pwm_rate_ is %f\n", ns.c_str(), f_pwm_rate_);
@@ -265,6 +273,8 @@ void PidController::pidFunction()
           first_flag = false;
           /* send motor info to uav */
           aerial_robot_base::MotorInfo motor_info_msg;
+          motor_info_msg.min_pwm = min_pwm_;
+          motor_info_msg.max_pwm = max_pwm_;
           motor_info_msg.f_pwm_offset = f_pwm_offset_;
           motor_info_msg.f_pwm_rate = f_pwm_rate_;
           motor_info_msg.m_f_rate = m_f_rate_;
@@ -580,10 +590,7 @@ void PidController::pidFunction()
                   four_axis_pid_debug.yaw.d_term.push_back(pos_d_term_yaw_);
 
                   //*** 指令値代入(new*** )
-                  flight_ctrl_input_->setYawValue(yaw_value / f_pwm_rate_ * pwm_rate_, j); //f => pwm;
-
-                  if(motor_num_ > 1)
-                    flight_ctrl_input_->setYawValue(yaw_value / f_pwm_rate_ * pwm_rate_ * 10000, j); //f => pwm; x10000 //for kduino
+                  flight_ctrl_input_->setYawValue(yaw_value, j); //f => pwm;
                 }
             }
 
@@ -667,7 +674,8 @@ void PidController::pidFunction()
                   ff_msg.data.push_back(u_ff(i));
                 }
               //add to throttle
-              flight_ctrl_input_->addFFValues(u_ff_vec);
+              bool force_add_flag = !start_rp_integration_; //takeoff sign
+              flight_ctrl_input_->addFFValues(u_ff_vec, force_add_flag);
               ff_pub_.publish(ff_msg);
             }
         }

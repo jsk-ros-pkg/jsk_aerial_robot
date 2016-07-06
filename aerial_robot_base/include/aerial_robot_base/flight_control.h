@@ -54,6 +54,7 @@ public:
   Eigen::MatrixXd feedforward_matrix_;
 
   //new param
+  double min_pwm_, max_pwm_;
   double f_pwm_rate_; //gain which convert f to pwm and also take the bit shift into account
   double f_pwm_offset_;
   double m_f_rate_;

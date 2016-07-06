@@ -1,5 +1,7 @@
 motor_info:
         motor_num: 4
+        min_pwm: 0.61
+        max_pwm: 0.9
         f_pwm_rate: 0.3029
         f_pwm_offset: -21.196
         m_f_rate: -0.016837

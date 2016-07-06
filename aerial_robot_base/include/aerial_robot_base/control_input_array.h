@@ -51,7 +51,7 @@ class FlightCtrlInput
     throttle_ = reset_data;
   }
 
-  void addFFValues(std::vector<float> ff_value)
+  void addFFValues(std::vector<float> ff_value, bool force_add_flag = false)
   {
     if(ff_value.size() != motor_num_)
       {
@@ -59,23 +59,23 @@ class FlightCtrlInput
         return;
       }
 
-    for(int i = 0; i < motor_num_; i++)
+    /* F[N] based */
+    /* chekck range */
+    if(!force_add_flag)
       {
-        float tmp =  throttle_[i]  + ff_value[i];
-#if 1 //F[N] based
-        if(tmp < 0)
+        for(int i = 0; i < motor_num_; i++)
           {
-            ROS_ERROR("bad range matching for ff");
-            return;
+            ROS_INFO("healthy check");
+            float tmp =  throttle_[i]  + ff_value[i];
+
+            if(tmp < 0)
+              {
+                ROS_ERROR("bad range matching for ff");
+                return;
+              }
           }
-#else //pwm base
-        if(tmp < 1200 && tmp > 1800)
-          {
-            ROS_ERROR("bad range matching for ff");
-            return;
-          }
-#endif
       }
+
     for(int i = 0; i < motor_num_; i++)
       throttle_[i]  += ff_value[i];
   }
