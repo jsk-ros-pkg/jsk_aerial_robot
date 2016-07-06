@@ -2,10 +2,10 @@
 
 link_joint_offset: 0.205
 
-link_base_center_mass: 0.238
+link_base_center_mass: 0.241  # 0.238 + 0.0032(new battery holder)
 
 link_joint_mass: 0.0785
-controller1_mass: 0.022
+controller1_mass: 0.022 # d_board is ligher than kduino(-2g)
 controller2_mass: 0.104 #old: 0.093Kg(93g)
 controller2_offset: 0.189 #old: 0.178
 
@@ -38,7 +38,7 @@ debug_log: false
 debug2_log: false
 
 
-lqi_thread_rate: 10.0
+lqi_thread_rate: 20.0
 q_roll: 200.0  #  100
 q_roll_d: 20.0  #  20
 q_roll_i: 10.0 #  20

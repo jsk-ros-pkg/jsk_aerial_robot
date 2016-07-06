@@ -360,16 +360,16 @@ void TransformController::initParam()
   //dynamics
   ros::NodeHandle control_node("/motor_info");
   if (!control_node.getParam ("pwm_rate", pwm_rate_))
-    pwm_rate_ = 0;
+    pwm_rate_ = 1.0;
   printf("pwm_rate_ is %f\n", pwm_rate_);
   if (!control_node.getParam ("m_f_rate", m_f_rate_))
-    m_f_rate_ = -0.016837; //the sgn is right?, should be nagative
+    m_f_rate_ = 0.01; //-0.016837; //the sgn is right?, should be nagative
   printf("m_f_rate_ is %.3f\n",m_f_rate_);
   if (!control_node.getParam ("f_pwm_rate", f_pwm_rate_))
-    f_pwm_rate_ = 0.3029; // with the pwm percentage: x / 1800 * 100
+    f_pwm_rate_ = 1.0; //0.3029; // with the pwm percentage: x / 1800 * 100
   printf("f_pwm_rate_ is %.3f\n",f_pwm_rate_);
   if (!control_node.getParam ("f_pwm_offset", f_pwm_offset_))
-    f_pwm_offset_ = -21.196;  // with the pwm percentage: x / 1800 * 100
+    f_pwm_offset_ = 0.0; // -21.196;  // with the pwm percentage: x / 1800 * 100
   printf("f_pwm_offset_ is %.3f\n",f_pwm_offset_);
 
 }
@@ -837,7 +837,7 @@ void TransformController::param2contoller()
 
   desire_coord_msg.roll = 0;
   desire_coord_msg.pitch = 0;
-  desire_coord_msg.yaw = rotate_angle_;
+  desire_coord_msg.yaw = -rotate_angle_;  // should be reverse
 
   yt_gain_msg.motor_num = link_num_;
 
@@ -1127,8 +1127,9 @@ void TransformController::lqi()
 
   while(ros::ok())
     {
-      if(lqi_flag_) 
+      if(lqi_flag_)
         {
+          double start_time = ros::Time::now().toSec();
           //check the thre check
             if(!distThreCheck()) //[m]
               {
@@ -1145,6 +1146,8 @@ void TransformController::lqi()
 
            //just do publishing when link number is 4
           if(link_num_ == 4) param2contoller();
+
+          //ROS_INFO("cal time is %f", ros::Time::now().toSec() - start_time);
         }
       loop_rate.sleep();
     }
