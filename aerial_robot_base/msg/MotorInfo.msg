@@ -1,3 +1,5 @@
+float32 min_pwm
+float32 max_pwm
 float32 f_pwm_rate
 float32 f_pwm_offset
 float32 m_f_rate
