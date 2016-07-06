@@ -1,5 +1,5 @@
 <launch>
-  <arg name="model" default="hydra3" />  
+  <arg name="model" default="hydrus3" />  
   <arg name="gui" default="True" />
   <arg name="rviz" default="False" />
   <arg name="tf_prefix" default="" />
