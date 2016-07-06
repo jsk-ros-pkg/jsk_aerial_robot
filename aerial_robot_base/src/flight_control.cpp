@@ -168,6 +168,18 @@ void PidController::pidFunction()
     }
   else if(navigator_->getFlightMode() == Navigator::NO_CONTROL_MODE)
     {
+      if(navigator_->getNaviCommand() == Navigator::START_COMMAND)
+        {
+          /* send motor info to uav */
+          aerial_robot_base::MotorInfo motor_info_msg;
+          motor_info_msg.min_pwm = min_pwm_;
+          motor_info_msg.max_pwm = max_pwm_;
+          motor_info_msg.f_pwm_offset = f_pwm_offset_;
+          motor_info_msg.f_pwm_rate = f_pwm_rate_;
+          motor_info_msg.m_f_rate = m_f_rate_;
+          motor_info_msg.pwm_rate = pwm_rate_;
+          motor_info_pub_.publish(motor_info_msg);
+        }
       return;
     }
   else
@@ -271,15 +283,6 @@ void PidController::pidFunction()
       if (first_flag)
         {
           first_flag = false;
-          /* send motor info to uav */
-          aerial_robot_base::MotorInfo motor_info_msg;
-          motor_info_msg.min_pwm = min_pwm_;
-          motor_info_msg.max_pwm = max_pwm_;
-          motor_info_msg.f_pwm_offset = f_pwm_offset_;
-          motor_info_msg.f_pwm_rate = f_pwm_rate_;
-          motor_info_msg.m_f_rate = m_f_rate_;
-          motor_info_msg.pwm_rate = pwm_rate_;
-          motor_info_pub_.publish(motor_info_msg);
         }
       else
         {
