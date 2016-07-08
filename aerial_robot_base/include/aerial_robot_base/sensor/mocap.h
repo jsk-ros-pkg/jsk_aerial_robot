@@ -10,6 +10,7 @@
 #include <ros/ros.h>
 #include <aerial_robot_base/basic_state_estimation.h>
 #include <aerial_robot_base/sensor/sensor_base_plugin.h>
+#include <aerial_robot_base/DesireCoord.h>
 #include <tf/transform_listener.h>
 
 
@@ -39,7 +40,7 @@ namespace sensor_plugin
 
       mocap_sub_ = nh_.subscribe<geometry_msgs::PoseStamped>("/aerial_robot/pose", 1, &Mocap::poseCallback, this, ros::TransportHints().udp());
 
-     cog_offset_sub_ = nh_.subscribe<std_msgs::Float32>(cog_rotate_sub_name_, 5, &Mocap::cogOffsetCallback, this, ros::TransportHints().tcpNoDelay()); 
+     cog_offset_sub_ = nh_.subscribe<aerial_robot_base::DesireCoord>(cog_rotate_sub_name_, 5, &Mocap::cogOffsetCallback, this, ros::TransportHints().tcpNoDelay()); 
 
 
       //debug, can be delete
@@ -344,10 +345,9 @@ namespace sensor_plugin
 
     }
 
-  
-    void cogOffsetCallback(std_msgs::Float32 offset_msg)
+    void cogOffsetCallback(aerial_robot_base::DesireCoord offset_msg)
     {
-      cog_offset_angle_ =  offset_msg.data;
+      cog_offset_angle_ =  - offset_msg.yaw; //temporarily, cog coord is parent
     }
 
 
@@ -362,7 +362,7 @@ namespace sensor_plugin
       printf("pos noise sigma  is %f\n", pos_noise_sigma_);
 
       nhp_.param("pub_name", pub_name_, std::string("ground_truth/pose"));
-      nhp_.param("cog_rotate_sub_name", cog_rotate_sub_name_, std::string("/cog_rotate"));
+      nhp_.param("cog_rotate_sub_name", cog_rotate_sub_name_, std::string("/desire_coordinate"));
 
       nhp_.param("rx_freq", rx_freq_, 100.0);
       nhp_.param("cutoff_pos_freq", cutoff_pos_freq_, 20.0);
