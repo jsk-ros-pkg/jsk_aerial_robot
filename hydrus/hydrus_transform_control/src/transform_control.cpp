@@ -837,7 +837,7 @@ void TransformController::param2contoller()
 
   desire_coord_msg.roll = 0;
   desire_coord_msg.pitch = 0;
-  desire_coord_msg.yaw = -rotate_angle_;  // should be reverse
+  desire_coord_msg.yaw = -rotate_angle_;  // should be reverse (cog coord is parent)
 
   yt_gain_msg.motor_num = link_num_;
 
