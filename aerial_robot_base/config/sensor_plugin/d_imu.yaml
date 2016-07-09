@@ -1,5 +1,6 @@
 sensor:
         imu:
+                imu_board: 1 #d_board
                 imu_topic_name: /imu
                 level_acc_noise_sigma: 0.06
                 z_acc_noise_sigma: 0.05 #real:0.05
