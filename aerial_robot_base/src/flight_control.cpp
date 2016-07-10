@@ -28,7 +28,7 @@ FlightController::FlightController(ros::NodeHandle nh,
   printf("%s: min_pwm_ is %f\n", ns.c_str(), min_pwm_);
 
   if (!motor_info_node.getParam ("max_pwm", max_pwm_))
-    max_pwm_ = 0.55; //0.55;
+    max_pwm_ = 0.95; //0.55;
   printf("%s: max_pwm_ is %f\n", ns.c_str(), max_pwm_);
 
   if (!motor_info_node.getParam ("f_pwm_rate", f_pwm_rate_))

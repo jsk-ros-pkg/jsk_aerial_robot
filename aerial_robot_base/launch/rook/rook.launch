@@ -14,6 +14,9 @@
   <arg name="flight_pos_mode" value="false" /> <!-- pos mode -->
   <arg name="flight_vel_mode" value="true" />  <!-- vel mode -->
 
+  ############## Motor Info ############################
+  <rosparam file="$(find aerial_robot_base)/config/rook/MotorInfo.yaml" command="load" /> 
+
   ############### Sensors #############################
   <include file="$(find aerial_robot_base)/launch/rook/rook_sensors.launch" />
 
@@ -28,8 +31,6 @@
     <param name="navigator/state_mode" type="int" value= "1" />
     #GROUND_TRUTH = 0
     #EGOMOTION_ESTIMATE = 1
-
-    <param name="/motor_info/motor_num" type="int" value="1"/>
 
     <param if="$(arg flight_pos_mode)" name="navigator/xy_control_mode" type="int" value="0"/>
     <param if="$(arg flight_vel_mode)" name="navigator/xy_control_mode" type="int" value="3"/> <!-- pos local vel -->

@@ -1,0 +1,4 @@
+motor_info:
+        motor_num: 1
+        min_pwm: 0.55
+        max_pwm: 0.95
