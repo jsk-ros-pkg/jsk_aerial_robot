@@ -167,6 +167,8 @@ TeleopNavigator::TeleopNavigator(ros::NodeHandle nh, ros::NodeHandle nh_private,
   arming_ack_sub_ = nh_.subscribe<std_msgs::UInt8>("/flight_config_ack", 1, &TeleopNavigator::armingAckCallback, this, ros::TransportHints().tcpNoDelay());
   takeoff_sub_ = nh_.subscribe<std_msgs::Empty>("teleop_command/takeoff", 1, &TeleopNavigator::takeoffCallback, this, ros::TransportHints().tcpNoDelay());
   halt_sub_ = nh_.subscribe<std_msgs::Empty>("teleop_command/halt", 1, &TeleopNavigator::haltCallback, this, ros::TransportHints().tcpNoDelay());
+  force_landing_sub_ = nh_.subscribe<std_msgs::Empty>("teleop_command/force_landing", 1, &TeleopNavigator::forceLandingCallback, this, ros::TransportHints().tcpNoDelay());
+  force_landing_flag_ = false;
   land_sub_ = nh_.subscribe<std_msgs::Empty>("teleop_command/land", 1, &TeleopNavigator::landCallback, this, ros::TransportHints().tcpNoDelay());
   start_sub_ = nh_.subscribe<std_msgs::Empty>("teleop_command/start", 1,&TeleopNavigator::startCallback, this, ros::TransportHints().tcpNoDelay());
   roll_sub_ = nh_.subscribe<std_msgs::Int8>("teleop_command/roll", 1, &TeleopNavigator::rollCallback, this, ros::TransportHints().tcpNoDelay());
@@ -186,11 +188,8 @@ TeleopNavigator::TeleopNavigator(ros::NodeHandle nh, ros::NodeHandle nh_private,
   stop_teleop_sub_ = nh_.subscribe<std_msgs::UInt8>("stop_teleop", 1, &TeleopNavigator::stopTeleopCallback, this, ros::TransportHints().tcpNoDelay());
   teleop_flag_ = true;
 
+
   flight_config_pub_ = nh_.advertise<std_msgs::UInt8>("/flight_config_cmd", 10);
-
-  //temporarily
-  joints_ctrl_pub_= nh_.advertise<std_msgs::Int8>("/teleop_command/joints_ctrl", 2);
-
 
 }
 
@@ -266,6 +265,16 @@ void TeleopNavigator::haltCallback(const std_msgs::EmptyConstPtr & msg)
 
   ROS_INFO("Halt command");
 }
+
+void TeleopNavigator::forceLandingCallback(const std_msgs::EmptyConstPtr & msg)
+{
+  std_msgs::UInt8 force_landing_cmd;
+  force_landing_cmd.data = FORCE_LANDING_CMD;
+  flight_config_pub_.publish(force_landing_cmd); 
+
+  ROS_INFO("Force Landing command");
+}
+
 
 void TeleopNavigator::rollCallback(const std_msgs::Int8ConstPtr & msg)
 {// + : right ; - : left
@@ -450,9 +459,6 @@ void TeleopNavigator::stopTeleopCallback(const std_msgs::UInt8ConstPtr & stop_ms
 
 void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
 { //botton assignment: http://wiki.ros.org/ps3joy
-  //temporary
-  static bool joint_ctrl_flag   = false;
-
 
   if(gain_tunning_mode_ == ATTITUDE_GAIN_TUNNING_MODE)
     {
@@ -468,20 +474,37 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
           ROS_INFO("Start command");
           return;
         }
-      //halt
+      //halt && force landing
       if(joy_msg->buttons[0] == 1)
         {
-          setNaviCommand(STOP_COMMAND);
-          flight_mode_= RESET_MODE;
-          setTargetPsi(getStatePsiBoard());
+          if(joy_msg->buttons[8] == 1)
+            {//Do Force Landing 
+              if( !force_landing_flag_)
+                {
+                  std_msgs::UInt8 force_landing_cmd;
+                  force_landing_cmd.data = FORCE_LANDING_CMD;
+                  flight_config_pub_.publish(force_landing_cmd); 
+                  force_landing_flag_ = true;
+                  ROS_INFO("Force Landing command");
+                }
+            }
+          else
+            {
+              setNaviCommand(STOP_COMMAND);
+              flight_mode_= RESET_MODE;
 
-          estimator_->setSensorFusionFlag(false);
-          estimator_->setLandingMode(false);
-          estimator_->setLandedFlag(false);
+              setTargetPosX(getStatePosX());
+              setTargetPosY(getStatePosY());
+              setTargetPsi(getStatePsiBoard());
 
+              estimator_->setSensorFusionFlag(false);
+              estimator_->setLandingMode(false);
+              estimator_->setLandedFlag(false);
 
-          if(xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE) xy_control_mode_ = POS_WORLD_BASED_CONTROL_MODE;
-          ROS_INFO("Halt command");
+              if(xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE) xy_control_mode_ = POS_WORLD_BASED_CONTROL_MODE;
+
+              ROS_INFO("Halt command");
+            }
           return;
         }
       //takeoff
@@ -612,22 +635,37 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
           ROS_INFO("Start command");
           return;
         }
-      //halt
+      //halt && force landing
       if(joy_msg->buttons[0] == 1)
         {
-          setNaviCommand(STOP_COMMAND);
-          flight_mode_= RESET_MODE;
+          if(joy_msg->buttons[8] == 1)
+            {//Do Force Landing 
+              if( !force_landing_flag_)
+                {
+                  std_msgs::UInt8 force_landing_cmd;
+                  force_landing_cmd.data = FORCE_LANDING_CMD;
+                  flight_config_pub_.publish(force_landing_cmd); 
+                  force_landing_flag_ = true;
+                  ROS_INFO("Force Landing command");
+                }
+            }
+          else
+            {
+              setNaviCommand(STOP_COMMAND);
+              flight_mode_= RESET_MODE;
 
-          setTargetPosX(getStatePosX());
-          setTargetPosY(getStatePosY());
-          setTargetPsi(getStatePsiBoard());
+              setTargetPosX(getStatePosX());
+              setTargetPosY(getStatePosY());
+              setTargetPsi(getStatePsiBoard());
 
-          estimator_->setSensorFusionFlag(false);
-          estimator_->setLandingMode(false);
-          estimator_->setLandedFlag(false);
+              estimator_->setSensorFusionFlag(false);
+              estimator_->setLandingMode(false);
+              estimator_->setLandedFlag(false);
 
-          if(xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE) xy_control_mode_ = POS_WORLD_BASED_CONTROL_MODE;
-          ROS_INFO("Halt command");
+              if(xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE) xy_control_mode_ = POS_WORLD_BASED_CONTROL_MODE;
+
+              ROS_INFO("Halt command");
+            }
           return;
         }
       //takeoff
@@ -760,21 +798,37 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
           ROS_INFO("Start command");
           return;
         }
-      //halt
+      //halt && force landing
       if(joy_msg->buttons[0] == 1)
         {
-          setNaviCommand(STOP_COMMAND);
-          flight_mode_= RESET_MODE;
+          if(joy_msg->buttons[8] == 1)
+            {//Do Force Landing 
+              if( !force_landing_flag_)
+                {
+                  std_msgs::UInt8 force_landing_cmd;
+                  force_landing_cmd.data = FORCE_LANDING_CMD;
+                  flight_config_pub_.publish(force_landing_cmd); 
+                  force_landing_flag_ = true;
+                  ROS_INFO("Force Landing command");
+                }
+            }
+          else
+            {
+              setNaviCommand(STOP_COMMAND);
+              flight_mode_= RESET_MODE;
 
-          setTargetPosX(getStatePosX());
-          setTargetPosY(getStatePosY());
-          setTargetPsi(getStatePsiBoard());
+              setTargetPosX(getStatePosX());
+              setTargetPosY(getStatePosY());
+              setTargetPsi(getStatePsiBoard());
 
-          estimator_->setSensorFusionFlag(false);
-          estimator_->setLandingMode(false);
-          estimator_->setLandedFlag(false);
+              estimator_->setSensorFusionFlag(false);
+              estimator_->setLandingMode(false);
+              estimator_->setLandedFlag(false);
 
-          ROS_INFO("Halt command");
+              if(xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE) xy_control_mode_ = POS_WORLD_BASED_CONTROL_MODE;
+
+              ROS_INFO("Halt command");
+            }
           return;
         }
       //takeoff
@@ -859,28 +913,6 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
 
         }
     }
-
-  if(!joint_ctrl_flag)
-    {//joints angle ctrl
-      if(joy_msg->buttons[8] == 1)
-        {
-          std_msgs::Int8 joints_ctrl_cmd;
-          joints_ctrl_cmd.data = 7;
-          joints_ctrl_pub_.publish(joints_ctrl_cmd);
-          joint_ctrl_flag = true;
-          ROS_INFO("to ku model");
-        }
-      if(joy_msg->buttons[10] == 1)
-        {
-          std_msgs::Int8 joints_ctrl_cmd;
-          joints_ctrl_cmd.data = 8;
-          joints_ctrl_pub_.publish(joints_ctrl_cmd);
-          joint_ctrl_flag = true;
-          ROS_INFO("to normal model");
-        }
-    }
-  if(joy_msg->buttons[8] == 0 && joy_msg->buttons[10] == 0 && joint_ctrl_flag)
-    joint_ctrl_flag = false;
 }
 
 

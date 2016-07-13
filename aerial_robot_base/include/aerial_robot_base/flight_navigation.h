@@ -176,6 +176,7 @@ class Navigator
   const static uint8_t ARM_ON_CMD = 0x00; //old: 150;
   const static uint8_t ARM_OFF_CMD = 0x01; //old: 151;
   const static uint8_t ROS_INTEGRATE_CMD = 160;
+  const static uint8_t FORCE_LANDING_CMD = 0x02; //force landing
 
   static const uint8_t X_AXIS = 1;
   static const uint8_t Y_AXIS = 2;
@@ -272,6 +273,7 @@ class TeleopNavigator :public Navigator
   void takeoffCallback(const std_msgs::EmptyConstPtr & msg);
   void startCallback(const std_msgs::EmptyConstPtr & msg);
   void haltCallback(const std_msgs::EmptyConstPtr &  msg);
+  void forceLandingCallback(const std_msgs::EmptyConstPtr &  msg);
   void landCallback(const std_msgs::EmptyConstPtr &  msg);
   void rollCallback(const std_msgs::Int8ConstPtr & msg);
   void pitchCallback(const std_msgs::Int8ConstPtr & ms);
@@ -315,6 +317,7 @@ class TeleopNavigator :public Navigator
     ros::Subscriber land_sub_;
     ros::Subscriber start_sub_;
     ros::Subscriber halt_sub_;
+    ros::Subscriber force_landing_sub_;
     ros::Subscriber roll_sub_;
     ros::Subscriber pitch_sub_;
     ros::Subscriber yaw_sub_;
@@ -345,6 +348,7 @@ class TeleopNavigator :public Navigator
     bool  yaw_control_flag_;
 
     bool teleop_flag_;
+  bool force_landing_flag_;
 
     void rosParamInit(ros::NodeHandle nh);
 };
