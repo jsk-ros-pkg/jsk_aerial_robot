@@ -1015,6 +1015,7 @@ void TeleopNavigator::teleopNavigation()
     { //takeoff phase
       flight_mode_= NO_CONTROL_MODE;
       estimator_->setSensorFusionFlag(true);
+      force_landing_flag_ = false; //is here good?
     }
   else if(getNaviCommand() == TAKEOFF_COMMAND)
     { //Take OFF Phase
