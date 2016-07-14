@@ -65,7 +65,6 @@ class FlightCtrlInput
       {
         for(int i = 0; i < motor_num_; i++)
           {
-            ROS_INFO("healthy check");
             float tmp =  throttle_[i]  + ff_value[i];
 
             if(tmp < 0)

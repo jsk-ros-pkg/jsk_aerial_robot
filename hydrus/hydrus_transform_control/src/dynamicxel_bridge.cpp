@@ -6,6 +6,7 @@
 #include <std_msgs/Float64.h>
 #include <dynamixel_msgs/JointState.h>
 #include <sensor_msgs/JointState.h>
+#include <dynamixel_controllers/TorqueEnable.h>
 #include <string>
 
 /*
@@ -37,8 +38,8 @@ protected:
   int joint_num_;
   std::vector<JointInfo> joints_info_;
 
-  std::string start_sub_name_, stop_sub_name_;
-  ros::Subscriber start_sub_, stop_sub_;
+  std::string joints_torque_control_srv_name_;
+  ros::ServiceServer joints_torque_control_srv_;
   ros::Publisher joints_state_pub_;
   ros::Subscriber joints_ctrl_sub_ ; //for manual transform
   std::string joints_ctrl_sub_name_;
@@ -90,13 +91,12 @@ public:
         servo_full_on_mask_ |= (1 << i);
       }
 
-    nhp_.param("start_sub_name", start_sub_name_, std::string("hydrus/joints_start"));
-    nhp_.param("stop_sub_name", stop_sub_name_, std::string("hydrus/joints_stop"));
+    nhp_.param("joints_torque_control_srv_name", joints_torque_control_srv_name_, std::string("/joints_controller/torque_enable"));
+    joints_torque_control_srv_ =  nh_.advertiseService(joints_torque_control_srv_name_, &HydraJoints::jointsTorqueEnableCallback, this);
+
     nhp_.param("joints_ctrl_sub_name", joints_ctrl_sub_name_, std::string("hydrus/joints_ctrl"));
     joints_state_pub_ = nh_.advertise<sensor_msgs::JointState>("joint_states", 1);
     joints_ctrl_sub_ = nh_.subscribe<sensor_msgs::JointState>(joints_ctrl_sub_name_, 1, &HydraJoints::jointsCtrlCallback, this, ros::TransportHints().tcpNoDelay());
-    start_sub_ = nh_.subscribe<std_msgs::Empty>(start_sub_name_, 1, &HydraJoints::startCallback, this, ros::TransportHints().tcpNoDelay());
-    stop_sub_ = nh_.subscribe<std_msgs::Empty>(stop_sub_name_, 1, &HydraJoints::stopCallback, this, ros::TransportHints().tcpNoDelay());
 
     nhp_.param("bridge_rate", bridge_rate_, 40.0);
     bridge_timer_ = nhp_.createTimer(ros::Duration(1.0 / bridge_rate_), &HydraJoints::bridgeFunc, this);
@@ -120,15 +120,6 @@ public:
     servo_on_mask_ |= (1 << i);
 
     joints_info_[i].current_angle = joints_info_[i].angle_sgn * (msg->current_pos - joints_info_[i].angle_offset);
-    //bad!!!
-#if 1 //the singular position(pi/2)
-    if(fabs(joints_info_[i].current_angle - M_PI/2) < 0.09) // 0.18 = 10 / 180 * pi ; 0.09 = 5 / 180 * pi
-      joints_info_[i].current_angle= M_PI/2;
-
-    if(fabs(joints_info_[i].current_angle + M_PI/2) < 0.09) // 0.18 = 10 / 180 * pi ; 0.09 = 5 / 180 * pi
-      joints_info_[i].current_angle= -M_PI/2;
-
-#endif
   }
 
 
@@ -150,18 +141,28 @@ public:
       }
   }
 
-
-  void startCallback(const std_msgs::EmptyConstPtr & msg)
+  bool jointsTorqueEnableCallback(dynamixel_controllers::TorqueEnable::Request &req, dynamixel_controllers::TorqueEnable::Response &res)
   {
-    ROS_INFO("start joints rotation");
-    start_flag_ = true;
-  }
+    for(int i = 0; i < joint_num_; i ++)
+      {
+        std::stringstream joint_no;
+        joint_no << i + 1;
 
-  void stopCallback(const std_msgs::EmptyConstPtr & msg)
-  {
-    ROS_INFO("stop joints rotation");
-    start_flag_ = false;
-    
+        std::string srv_name = std::string("/j") + joint_no.str()  + std::string("_controller/torque_enable");
+
+        ros::ServiceClient client = nh_.serviceClient<dynamixel_controllers::TorqueEnable>(srv_name);
+        dynamixel_controllers::TorqueEnable srv;
+        srv.request.torque_enable = req.torque_enable;
+        if (client.call(srv))
+          {
+            if(req.torque_enable) ROS_INFO("joint%d: enable torque", i+1);
+            else ROS_INFO("joint%d: disable torque", i+1);
+          }
+        else
+          {
+            ROS_ERROR("Failed to call service %s", srv_name.c_str());
+          }
+      }
   }
 
   void bridgeFunc(const ros::TimerEvent & e)
@@ -174,16 +175,32 @@ public:
     hydra_joints_state.name.resize(joint_num_);
     hydra_joints_state.position.resize(joint_num_);
     
+
+    /* normal-approximation: should be deprecated  */
+    bool normal_approximation = true;
+    for(int i = 0; i < joint_num_; i ++)
+      {
+        //the normal-approximation singular position(pi/2): only if all joints are with the 5deg range.
+        if(fabs(joints_info_[i].current_angle - M_PI/2) > 0.085 && fabs(joints_info_[i].current_angle + M_PI/2) > 0.085) // 0.18 = 10 / 180 * pi ; 0.085 = 5 / 180 * pi
+          normal_approximation = false;
+      }
+
     for(int i = 0; i < joint_num_; i ++)
       {
         hydra_joints_state.name[i] = joints_info_[i].joint_name;
-        hydra_joints_state.position[i] = joints_info_[i].current_angle;
-        //hydra_joints_state.position[i] = 1.57;
+        if(normal_approximation) 
+          {
+            if(fabs(joints_info_[i].current_angle - M_PI/2) < 0.085)
+              hydra_joints_state.position[i] = M_PI/2;
+            if(fabs(joints_info_[i].current_angle + M_PI/2) < 0.085)
+              hydra_joints_state.position[i] = -M_PI/2;
+          }
+        else
+          hydra_joints_state.position[i] = joints_info_[i].current_angle;
       }
 
     joints_state_pub_.publish(hydra_joints_state);
   }
-
 
   //temporary control
   const static  double transform_delta_angle_ = 0.1;
@@ -277,8 +294,6 @@ void jointsTempCtrlCallback(const std_msgs::Int8ConstPtr& msg)
       }
 
   }
-
-
 
 };
 
