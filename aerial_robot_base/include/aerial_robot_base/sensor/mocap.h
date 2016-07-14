@@ -118,10 +118,10 @@ namespace sensor_plugin
 
       if(!first_flag)
         {
-          raw_pos_x = msg->pose.position.x - pos_x_offset_;
+          raw_pos_x = msg->pose.position.x; //no offset: - pos_x_offset_;
           raw_vel_x = (msg->pose.position.x - prev_pos_x) / (msg->header.stamp.toSec() - previous_time.toSec());
           raw_acc_x = (raw_vel_x - prev_vel_x) / (msg->header.stamp.toSec() - previous_time.toSec());
-          raw_pos_y = msg->pose.position.y - pos_y_offset_;
+          raw_pos_y = msg->pose.position.y; //no offset: - pos_y_offset_;
           raw_vel_y = (msg->pose.position.y - prev_pos_y) / (msg->header.stamp.toSec() - previous_time.toSec());
           raw_acc_y = (raw_vel_y - prev_vel_y) / (msg->header.stamp.toSec() - previous_time.toSec());
           raw_pos_z = msg->pose.position.z - pos_z_offset_;
