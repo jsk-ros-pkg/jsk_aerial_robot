@@ -79,6 +79,26 @@ Navigator::~Navigator()
 
 void Navigator::naviCallback(const aerial_robot_base::FlightNavConstPtr & msg)
 {
+  //control mode change (pos/vel)
+  if(msg->command_mode == aerial_robot_base::FlightNav::VEL_FLIGHT_MODE_COMMAND)
+    {
+      //only change mode in world based control (only optical flow in forbidden)
+      if(xy_control_mode_ == POS_WORLD_BASED_CONTROL_MODE)
+        {
+          ROS_INFO("change to vel pos-based control");
+          xy_control_mode_ = VEL_WORLD_BASED_CONTROL_MODE;
+        }
+    }
+  if(msg->command_mode == aerial_robot_base::FlightNav::POS_FLIGHT_MODE_COMMAND)
+    {
+      //only change mode in world based control (only optical flow in forbidden)
+      if(xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE)
+        {
+          ROS_INFO("change to pos control");
+          xy_control_mode_ = POS_WORLD_BASED_CONTROL_MODE;
+        }
+    }
+
   //for x & y
   if(msg->command_mode == aerial_robot_base::FlightNav::VEL_FLIGHT_MODE_COMMAND)
     {
