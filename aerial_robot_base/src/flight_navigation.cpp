@@ -24,7 +24,6 @@ Navigator::Navigator(ros::NodeHandle nh, ros::NodeHandle nh_private,
 
   estimator_ = estimator;
   state_mode_ = estimator_->getStateMode();
-  ROS_ERROR("state_mode is %d", state_mode_);
   flight_ctrl_input_ = flight_ctrl_input;
 
   br_ =  new tf::TransformBroadcaster();
@@ -82,7 +81,7 @@ Navigator::~Navigator()
 void Navigator::naviCallback(const aerial_robot_base::FlightNavConstPtr & msg)
 {
   //control mode change (pos/vel)
-  if(msg->command_mode == aerial_robot_base::FlightNav::VEL_FLIGHT_MODE_COMMAND)
+  if(msg->pos_xy_nav_mode == aerial_robot_base::FlightNav::VEL_MODE)
     {
       //only change mode in world based control (only optical flow in forbidden)
       if(xy_control_mode_ == POS_WORLD_BASED_CONTROL_MODE)
@@ -91,7 +90,7 @@ void Navigator::naviCallback(const aerial_robot_base::FlightNavConstPtr & msg)
           xy_control_mode_ = VEL_WORLD_BASED_CONTROL_MODE;
         }
     }
-  if(msg->command_mode == aerial_robot_base::FlightNav::POS_FLIGHT_MODE_COMMAND)
+  if(msg->pos_xy_nav_mode == aerial_robot_base::FlightNav::POS_MODE)
     {
       //only change mode in world based control (only optical flow in forbidden)
       if(xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE)
@@ -102,30 +101,29 @@ void Navigator::naviCallback(const aerial_robot_base::FlightNavConstPtr & msg)
     }
 
   //for x & y
-  if(msg->command_mode == aerial_robot_base::FlightNav::VEL_FLIGHT_MODE_COMMAND)
+  if(msg->pos_xy_nav_mode == aerial_robot_base::FlightNav::VEL_MODE)
     {
       setTargetVelX(msg->target_vel_x);
       setTargetVelY(msg->target_vel_y);
     }
-  else if(msg->command_mode == aerial_robot_base::FlightNav::POS_FLIGHT_MODE_COMMAND)
+  else if(msg->pos_xy_nav_mode == aerial_robot_base::FlightNav::POS_MODE)
     {
       setTargetPosX(msg->target_pos_x);
       setTargetPosY(msg->target_pos_y);
     }
 
   //for z
-  if(msg->pos_z_navi_mode == aerial_robot_base::FlightNav::VEL_FLIGHT_MODE_COMMAND)
+  if(msg->pos_z_nav_mode == aerial_robot_base::FlightNav::VEL_MODE)
     {
       addTargetPosZ(msg->target_pos_diff_z);
     }
-  else if(msg->pos_z_navi_mode == aerial_robot_base::FlightNav::POS_FLIGHT_MODE_COMMAND)
+  else if(msg->pos_z_nav_mode == aerial_robot_base::FlightNav::POS_MODE)
     {
       setTargetPosZ(msg->target_pos_z);
     }
 
   //for psi
-  //not good, be careful
-  if(msg->command_mode != aerial_robot_base::FlightNav::NO_NAVIGATION)
+  if(msg->psi_nav_mode != aerial_robot_base::FlightNav::POS_MODE)
     {
       setTargetPsi(msg->target_psi);
     }
