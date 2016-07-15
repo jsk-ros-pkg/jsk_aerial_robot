@@ -4,6 +4,7 @@
 //* ros
 #include <ros/ros.h>
 #include <aerial_robot_base/States.h>
+#include <nav_msgs/Odometry.h>
 #include <tf/transform_broadcaster.h>
 #include <iostream>
 #include <vector>
@@ -19,9 +20,10 @@ class BasicEstimator
  BasicEstimator(ros::NodeHandle nh, ros::NodeHandle nh_private)
    : nh_(nh, "estimator"), nhp_(nh_private, "estimator")
   {
-      full_states_pub_ = nh_.advertise<aerial_robot_base::States>("full_states", 1); 
+    state_pub_ = nh_.advertise<nav_msgs::Odometry>("/uav/state", 1);
+    full_states_pub_ = nh_.advertise<aerial_robot_base::States>("/uav/full_states", 1);
 
-      landing_mode_flag_ = false;
+    landing_mode_flag_ = false;
       landed_flag_ = false;
 
       gt_state_.resize(9);
@@ -39,7 +41,6 @@ class BasicEstimator
         }
 
       state_pos_z_offset_ = 1.0; //1m
-      
 
       sys_stamp_ = ros::Time::now();//removed this
 
@@ -49,6 +50,9 @@ class BasicEstimator
   virtual ~BasicEstimator(){}
 
   //mode
+  const static uint8_t GROUND_TRUTH = 0;
+  const static uint8_t EGOMOTION_ESTIMATE = 1;
+
   static const uint8_t X_W = 0; //x in world coord
   static const uint8_t Y_W = 1; //y in world coord
   static const uint8_t Z_W = 2; //z in world coord
@@ -111,17 +115,22 @@ class BasicEstimator
   inline int  getFuserEgomotionNo() { return fuser_egomotion_no_;}
   inline int  getFuserExperimentNo() { return fuser_experiment_no_;}
 
+  inline int getStateMode() {return state_mode_;}
+  inline void setStateMode(int state_mode) {state_mode_ = state_mode;}
+
 
  protected:  
 
   ros::NodeHandle nh_;
   ros::NodeHandle nhp_;
-  ros::Publisher full_states_pub_;
+  ros::Publisher full_states_pub_, state_pub_;
 
   ros::Time sys_stamp_;
 
   //for mutex
   boost::mutex ee_state_mutex_, ex_state_mutex_;
+
+  int state_mode_;
 
   // xw, yw, zw, rollw, pitchw, yaww of cog, xb, yb, yaww of board (9) 
   // (0): x, (1): dx, (2); ddx

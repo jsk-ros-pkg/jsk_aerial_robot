@@ -20,9 +20,11 @@ Navigator::Navigator(ros::NodeHandle nh, ros::NodeHandle nh_private,
 {
   Navigator::rosParamInit(nhp_);
 
-  navi_sub_ = nh_.subscribe<aerial_robot_base::FlightNav>("full_states", 1, &Navigator::naviCallback, this, ros::TransportHints().tcpNoDelay());
+  navi_sub_ = nh_.subscribe<aerial_robot_base::FlightNav>("/uav/nav", 1, &Navigator::naviCallback, this, ros::TransportHints().tcpNoDelay());
 
   estimator_ = estimator;
+  state_mode_ = estimator_->getStateMode();
+  ROS_ERROR("state_mode is %d", state_mode_);
   flight_ctrl_input_ = flight_ctrl_input;
 
   br_ =  new tf::TransformBroadcaster();
@@ -1162,11 +1164,6 @@ void TeleopNavigator::teleopNavigation()
 void TeleopNavigator::rosParamInit(ros::NodeHandle nh)
 {
   std::string ns = nh.getNamespace();
-
-  if (!nh.getParam ("state_mode", state_mode_))
-    state_mode_ = EGOMOTION_ESTIMATE;
-  printf("%s: state_mode_ is %d\n", ns.c_str(), state_mode_);
-
   //*** teleop navigation
   if (!nh.getParam ("takeoff_height", takeoff_height_))
     takeoff_height_ = 0;

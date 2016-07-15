@@ -61,8 +61,14 @@ void RigidEstimator::tfPublish()
 void RigidEstimator::statesBroadcast()
 {
   aerial_robot_base::States full_states;
+  nav_msgs::Odometry states;
+
   //full_states.header.stamp = getSystemTimeStamp();
   full_states.header.stamp = ros::Time::now();
+  states.header.stamp = ros::Time::now();
+  states.header.frame_id = std::string("/nav"); //TOOD: use rosparam
+  states.child_frame_id = std::string("/bae_link"); //TOOD: use rosparam
+
   aerial_robot_base::State x_state;
   x_state.id = "x";
   x_state.pos = getGTState(X_W, 0);
@@ -75,7 +81,10 @@ void RigidEstimator::statesBroadcast()
   x_state.reserves.push_back(getEEState(X_B, 1));
   x_state.reserves.push_back(getEXState(X_B, 0));
   x_state.reserves.push_back(getEXState(X_B, 1));
-
+  states.pose.pose.position.x
+    = (state_mode_ == GROUND_TRUTH)?getGTState(X_W, 0):getEEState(X_W, 0);
+  states.twist.twist.linear.x
+    = (state_mode_ == GROUND_TRUTH)?getGTState(X_W, 1):getEEState(X_W, 1);
 
   aerial_robot_base::State y_state;
   y_state.id = "y";
@@ -89,6 +98,10 @@ void RigidEstimator::statesBroadcast()
   y_state.reserves.push_back(getEEState(Y_B, 1));
   y_state.reserves.push_back(getEXState(Y_B, 0));
   y_state.reserves.push_back(getEXState(Y_B, 1));
+  states.pose.pose.position.y
+    = (state_mode_ == GROUND_TRUTH)?getGTState(Y_W, 0):getEEState(Y_W, 0);
+  states.twist.twist.linear.y
+    = (state_mode_ == GROUND_TRUTH)?getGTState(Y_W, 1):getEEState(Y_W, 1);
 
   aerial_robot_base::State z_state;
   z_state.id = "z";
@@ -99,6 +112,30 @@ void RigidEstimator::statesBroadcast()
   z_state.kf_pos = getEXState(Z_W, 0);
   z_state.kf_vel = getEXState(Z_W, 1);
   z_state.reserves.push_back(getEEState(Z_W, 2));
+  states.pose.pose.position.z
+    = (state_mode_ == GROUND_TRUTH)?getGTState(Z_W, 0):getEEState(Z_W, 0);
+  states.twist.twist.linear.z
+    = (state_mode_ == GROUND_TRUTH)?getGTState(Z_W, 1):getEEState(Z_W, 1);
+
+  tf::Quaternion q;
+  if(state_mode_ == GROUND_TRUTH)
+    {
+      q.setEuler(getGTState(YAW_W_B, 0), getGTState(PITCH_W, 0), getGTState(ROLL_W, 0));
+      states.twist.twist.angular.x = getGTState(ROLL_W, 1);
+      states.twist.twist.angular.y = getGTState(PITCH_W, 1);
+      states.twist.twist.angular.z = getGTState(YAW_W_B, 1);
+    }
+  if(state_mode_ == EGOMOTION_ESTIMATE)
+    {
+      q.setEuler(getEEState(YAW_W_B, 0), getEEState(PITCH_W, 0), getEEState(ROLL_W, 0));
+      states.twist.twist.angular.x = getEEState(ROLL_W, 1);
+      states.twist.twist.angular.y = getEEState(PITCH_W, 1);
+      states.twist.twist.angular.z = getEEState(YAW_W_B, 1);
+    }
+  states.pose.pose.orientation.x = q.x();
+  states.pose.pose.orientation.y = q.y();
+  states.pose.pose.orientation.z = q.z();
+  states.pose.pose.orientation.w = q.w();
 
   aerial_robot_base::State yaw_state;
   yaw_state.id = "yaw";
@@ -130,14 +167,18 @@ void RigidEstimator::statesBroadcast()
 
 
   full_states_pub_.publish(full_states);
+
+  state_pub_.publish(states);
 }
 
 
 void RigidEstimator::rosParamInit()
 {
-
   std::string ns = nhp_.getNamespace();
   printf("%s\n", ns.c_str());
+  if (!nhp_.getParam ("state_mode", state_mode_))
+    state_mode_ = EGOMOTION_ESTIMATE;
+  printf("%s: state_mode_ is %d\n", ns.c_str(), state_mode_);
 
   sensor_fusion_loader_ptr_ = boost::shared_ptr< pluginlib::ClassLoader<kf_base_plugin::KalmanFilter> >(new pluginlib::ClassLoader<kf_base_plugin::KalmanFilter>("kalman_filter", "kf_base_plugin::KalmanFilter"));
 

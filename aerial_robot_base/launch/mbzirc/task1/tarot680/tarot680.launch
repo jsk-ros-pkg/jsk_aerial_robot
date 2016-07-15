@@ -21,7 +21,7 @@
     <param name="tx_loop_rate" type="double" value="40"/>
     <param name="tf_pub_loop_rate" type="double" value="120"/>
 
-    <param name="navigator/state_mode" type="int" value= "0" />
+    <param name="estimator/state_mode" type="int" value= "0" />
     #GROUND_TRUTH = 0
     #EGOMOTION_ESTIMATE = 1
 

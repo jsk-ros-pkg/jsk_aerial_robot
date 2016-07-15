@@ -50,53 +50,53 @@ class Navigator
 
   inline float getStatePosX()
   {  
-    if(state_mode_ == GROUND_TRUTH) return estimator_->getGTState(BasicEstimator::X_W, 0);
-    if(state_mode_ == EGOMOTION_ESTIMATE) return estimator_->getEEState(BasicEstimator::X_W, 0);
+    if(state_mode_ == BasicEstimator::GROUND_TRUTH) return estimator_->getGTState(BasicEstimator::X_W, 0);
+    if(state_mode_ == BasicEstimator::EGOMOTION_ESTIMATE) return estimator_->getEEState(BasicEstimator::X_W, 0);
   }
   inline float getStateVelX()
   {  
-    if(state_mode_ == GROUND_TRUTH) return estimator_->getGTState(BasicEstimator::X_W, 1);
-    if(state_mode_ == EGOMOTION_ESTIMATE) return estimator_->getEEState(BasicEstimator::X_W, 1);
+    if(state_mode_ == BasicEstimator::GROUND_TRUTH) return estimator_->getGTState(BasicEstimator::X_W, 1);
+    if(state_mode_ == BasicEstimator::EGOMOTION_ESTIMATE) return estimator_->getEEState(BasicEstimator::X_W, 1);
   }
   inline float getStatePosY()
   {  
-    if(state_mode_ == GROUND_TRUTH) return estimator_->getGTState(BasicEstimator::Y_W, 0);
-    if(state_mode_ == EGOMOTION_ESTIMATE) return estimator_->getEEState(BasicEstimator::Y_W, 0);
+    if(state_mode_ == BasicEstimator::GROUND_TRUTH) return estimator_->getGTState(BasicEstimator::Y_W, 0);
+    if(state_mode_ == BasicEstimator::EGOMOTION_ESTIMATE) return estimator_->getEEState(BasicEstimator::Y_W, 0);
   }
   inline float getStateVelY()
   {  
-    if(state_mode_ == GROUND_TRUTH) return estimator_->getGTState(BasicEstimator::Y_W, 1);
-    if(state_mode_ == EGOMOTION_ESTIMATE) return estimator_->getEEState(BasicEstimator::Y_W, 1);
+    if(state_mode_ == BasicEstimator::GROUND_TRUTH) return estimator_->getGTState(BasicEstimator::Y_W, 1);
+    if(state_mode_ == BasicEstimator::EGOMOTION_ESTIMATE) return estimator_->getEEState(BasicEstimator::Y_W, 1);
   }
   inline float getStatePosZ()
   {  
-    if(state_mode_ == GROUND_TRUTH) return estimator_->getGTState(BasicEstimator::Z_W, 0);
-    if(state_mode_ == EGOMOTION_ESTIMATE) return estimator_->getEEState(BasicEstimator::Z_W, 0);
+    if(state_mode_ == BasicEstimator::GROUND_TRUTH) return estimator_->getGTState(BasicEstimator::Z_W, 0);
+    if(state_mode_ == BasicEstimator::EGOMOTION_ESTIMATE) return estimator_->getEEState(BasicEstimator::Z_W, 0);
   }
   inline float getStateVelZ()
   {  
-    if(state_mode_ == GROUND_TRUTH) return estimator_->getGTState(BasicEstimator::Z_W, 1);
-    if(state_mode_ == EGOMOTION_ESTIMATE) return estimator_->getEEState(BasicEstimator::Z_W, 1);
+    if(state_mode_ == BasicEstimator::GROUND_TRUTH) return estimator_->getGTState(BasicEstimator::Z_W, 1);
+    if(state_mode_ == BasicEstimator::EGOMOTION_ESTIMATE) return estimator_->getEEState(BasicEstimator::Z_W, 1);
   }
   inline float getStatePsiCog()
   {  
-    if(state_mode_ == GROUND_TRUTH) return estimator_->getGTState(BasicEstimator::YAW_W_COG, 0);
-    if(state_mode_ == EGOMOTION_ESTIMATE) return estimator_->getEEState(BasicEstimator::YAW_W_COG, 0);
+    if(state_mode_ == BasicEstimator::GROUND_TRUTH) return estimator_->getGTState(BasicEstimator::YAW_W_COG, 0);
+    if(state_mode_ == BasicEstimator::EGOMOTION_ESTIMATE) return estimator_->getEEState(BasicEstimator::YAW_W_COG, 0);
   }
   inline float getStateVelPsiCog()
   {  
-    if(state_mode_ == GROUND_TRUTH) return estimator_->getGTState(BasicEstimator::YAW_W_COG, 1);
-    if(state_mode_ == EGOMOTION_ESTIMATE) return estimator_->getEEState(BasicEstimator::YAW_W_COG, 1);
+    if(state_mode_ == BasicEstimator::GROUND_TRUTH) return estimator_->getGTState(BasicEstimator::YAW_W_COG, 1);
+    if(state_mode_ == BasicEstimator::EGOMOTION_ESTIMATE) return estimator_->getEEState(BasicEstimator::YAW_W_COG, 1);
   }
   inline float getStatePsiBoard()
   {  
-    if(state_mode_ == GROUND_TRUTH) return estimator_->getGTState(BasicEstimator::YAW_W_B, 0);
-    if(state_mode_ == EGOMOTION_ESTIMATE) return estimator_->getEEState(BasicEstimator::YAW_W_B, 0);
+    if(state_mode_ == BasicEstimator::GROUND_TRUTH) return estimator_->getGTState(BasicEstimator::YAW_W_B, 0);
+    if(state_mode_ == BasicEstimator::EGOMOTION_ESTIMATE) return estimator_->getEEState(BasicEstimator::YAW_W_B, 0);
   }
   inline float getStateVelPsiBoard()
   {  
-    if(state_mode_ == GROUND_TRUTH) return estimator_->getGTState(BasicEstimator::YAW_W_B, 1);
-    if(state_mode_ == EGOMOTION_ESTIMATE) return estimator_->getEEState(BasicEstimator::YAW_W_B, 1);
+    if(state_mode_ == BasicEstimator::GROUND_TRUTH) return estimator_->getGTState(BasicEstimator::YAW_W_B, 1);
+    if(state_mode_ == BasicEstimator::EGOMOTION_ESTIMATE) return estimator_->getEEState(BasicEstimator::YAW_W_B, 1);
   }
 
 
@@ -190,8 +190,6 @@ class Navigator
   const static uint8_t VEL_WORLD_BASED_CONTROL_MODE = 2;
   const static uint8_t VEL_LOCAL_BASED_CONTROL_MODE = 3;
 
-  const static uint8_t GROUND_TRUTH = 0;
-  const static uint8_t EGOMOTION_ESTIMATE = 1;
 
   protected:
     ros::NodeHandle nh_;
@@ -347,7 +345,7 @@ class TeleopNavigator :public Navigator
     bool  alt_control_flag_;
     bool  yaw_control_flag_;
 
-    bool teleop_flag_;
+  bool teleop_flag_;
   bool force_landing_flag_;
 
     void rosParamInit(ros::NodeHandle nh);
