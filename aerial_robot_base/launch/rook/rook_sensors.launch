@@ -21,8 +21,9 @@
   <include file="$(find aerial_robot_base)/launch/sensors/mocap.launch" />
 -->
   ################################# Joy Stick ######################################
+<!--
   <include file="$(find aerial_robot_base)/launch/sensors/joy_stick.launch" />
-
+-->
   ################################# optical flow ###################################
 
   <include file="$(find aerial_robot_base)/launch/sensors/px4flow.launch" />
