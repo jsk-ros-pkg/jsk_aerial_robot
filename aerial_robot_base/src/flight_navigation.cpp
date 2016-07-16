@@ -753,21 +753,10 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
         {//x,y,z,yaw
 
           //pitch && roll vel command for vel_mode
-          if(xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE && getNaviCommand() == HOVER_COMMAND)
-            {
-              if(joy_msg->buttons[1] == 0)
-                {//no push the left joysitck
-                  final_target_vel_x_= joy_msg->axes[1] * fabs(joy_msg->axes[1]) * target_vel_rate_;
-                  final_target_vel_y_= joy_msg->axes[0] * fabs(joy_msg->axes[0]) * target_vel_rate_;
-                }
-              if(joy_msg->buttons[1] == 1)
-                {//push the left joysitck
-                  ROS_INFO("strong vel control");
-                  final_target_vel_x_
-                    = joy_msg->axes[1] * fabs(joy_msg->axes[1]) * target_vel_rate_ * cmd_vel_lev2_gain_;
-                  final_target_vel_y_
-                    = joy_msg->axes[0] * fabs(joy_msg->axes[0]) * target_vel_rate_ * cmd_vel_lev2_gain_;
-                }
+          if(xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE && joy_msg->buttons[1] == 1 && getNaviCommand() == HOVER_COMMAND)
+            {//only push the left joysitck will be active
+              final_target_vel_x_= joy_msg->axes[1] * fabs(joy_msg->axes[1]) * target_vel_rate_;
+              final_target_vel_y_= joy_msg->axes[0] * fabs(joy_msg->axes[0]) * target_vel_rate_;
             }
 
           //throttle, TODO: not good
@@ -1203,11 +1192,6 @@ void TeleopNavigator::rosParamInit(ros::NodeHandle nh)
     navi_frame_int_ = 0;
   printf("%s: navi_frame_int_ is %d\n", ns.c_str(), navi_frame_int_);
   navi_frame_ = navi_frame_int_;
-
-  //hidden variable
-  if (!nh.getParam ("cmd_vel_lev2_gain", cmd_vel_lev2_gain_))
-    cmd_vel_lev2_gain_ = 1.0;
-  printf("%s: cmd_vel_lev2_gain_ is %.3f\n", ns.c_str(), cmd_vel_lev2_gain_);
 
   if (!nh.getParam ("gain_tunning_mode", gain_tunning_mode_))
     gain_tunning_mode_ = 0;

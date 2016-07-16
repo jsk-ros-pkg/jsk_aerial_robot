@@ -336,7 +336,6 @@ class TeleopNavigator :public Navigator
     double target_alt_interval_;
     double target_yaw_rate_;
 
-    double cmd_vel_lev2_gain_;
     int navi_frame_int_;
     uint8_t navi_frame_;
 
