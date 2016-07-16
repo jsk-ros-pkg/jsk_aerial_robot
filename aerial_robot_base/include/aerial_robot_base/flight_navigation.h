@@ -341,6 +341,7 @@ class TeleopNavigator :public Navigator
 
     bool  vel_control_flag_;
     bool  pos_control_flag_;
+    bool  xy_control_flag_;
     bool  alt_control_flag_;
     bool  yaw_control_flag_;
 

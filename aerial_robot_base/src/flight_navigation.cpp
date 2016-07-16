@@ -181,6 +181,7 @@ TeleopNavigator::TeleopNavigator(ros::NodeHandle nh, ros::NodeHandle nh_private,
   //joystick init
   vel_control_flag_ = false;
   pos_control_flag_ = false;
+  xy_control_flag_ = false;
   alt_control_flag_ = false;
   yaw_control_flag_ = false;
 
@@ -757,7 +758,14 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
             {//only push the left joysitck will be active
               final_target_vel_x_= joy_msg->axes[1] * fabs(joy_msg->axes[1]) * target_vel_rate_;
               final_target_vel_y_= joy_msg->axes[0] * fabs(joy_msg->axes[0]) * target_vel_rate_;
+	      xy_control_flag_ = true;
             }
+	  if(xy_control_flag_ && joy_msg->buttons[1] == 0)
+	    {
+	      final_target_vel_x_ = 0;
+	      final_target_vel_y_ = 0;
+	      xy_control_flag_ = false;
+	    }
 
           //throttle, TODO: not good
           if(fabs(joy_msg->axes[3]) > 0.2)
@@ -879,10 +887,20 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
         {//start &  takeoff & !land
           setNaviCommand(HOVER_COMMAND);
 
-          //pitch
-          final_target_vel_x_= joy_msg->axes[1] * fabs(joy_msg->axes[1]) * target_vel_rate_;
-          //roll
-          final_target_vel_y_= joy_msg->axes[0] * fabs(joy_msg->axes[0]) * target_vel_rate_;
+          //xy
+	  if(joy_msg->buttons[1] == 1 )
+	    {
+	      final_target_vel_x_= joy_msg->axes[1] * fabs(joy_msg->axes[1]) * target_vel_rate_;
+	      final_target_vel_y_= joy_msg->axes[0] * fabs(joy_msg->axes[0]) * target_vel_rate_;
+	      xy_control_flag_ = true;
+	    }
+	  if(xy_control_flag_ && joy_msg->buttons[1] == 0)
+	    {
+	      final_target_vel_x_ = 0;
+	      final_target_vel_y_ = 0;
+	      xy_control_flag_ = false;
+	    }
+
           //throttle
           if(fabs(joy_msg->axes[3]) > 0.2)
             {
