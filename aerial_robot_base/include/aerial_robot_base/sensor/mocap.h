@@ -135,7 +135,12 @@ namespace sensor_plugin
           tf::Matrix3x3(q).getRPY(raw_phy, raw_theta, raw_psi);
           raw_vel_phy = (raw_phy - prev_phy) / (msg->header.stamp.toSec() - previous_time.toSec());
           raw_vel_theta = (raw_theta - prev_theta) / (msg->header.stamp.toSec() - previous_time.toSec());
-          raw_vel_psi = (raw_psi - prev_psi) / (msg->header.stamp.toSec() - previous_time.toSec());
+            if(raw_psi - prev_psi > M_PI)
+              raw_vel_psi = (- 2 * M_PI + raw_psi - prev_psi) / (msg->header.stamp.toSec() - previous_time.toSec());
+            else if(raw_psi - prev_psi < -M_PI)
+              raw_vel_psi = (2 * M_PI + raw_psi - prev_psi) / (msg->header.stamp.toSec() - previous_time.toSec());
+            else
+	      raw_vel_psi = (raw_psi - prev_psi) / (msg->header.stamp.toSec() - previous_time.toSec());
 
           lpf_pos_x_.filterFunction(raw_pos_x, pos_x, raw_vel_x, vel_x);
           lpf_pos_y_.filterFunction(raw_pos_y, pos_y, raw_vel_y, vel_y);
@@ -150,8 +155,9 @@ namespace sensor_plugin
           estimator_->setGTState(BasicEstimator::X_W, 0, pos_x);
           estimator_->setGTState(BasicEstimator::Y_W, 0, pos_y);
           estimator_->setGTState(BasicEstimator::Z_W, 0, pos_z);
-          estimator_->setGTState(BasicEstimator::YAW_W_COG, 0, psi + cog_offset_angle_);
-          estimator_->setGTState(BasicEstimator::YAW_W_B, 0, psi);
+	  //TODO: the yaw angle filtering has problem in M_PI
+          estimator_->setGTState(BasicEstimator::YAW_W_COG, 0, raw_psi + cog_offset_angle_);
+          estimator_->setGTState(BasicEstimator::YAW_W_B, 0, raw_psi);
           estimator_->setGTState(BasicEstimator::X_W, 1, vel_x);
           estimator_->setGTState(BasicEstimator::Y_W, 1, vel_y);
           estimator_->setGTState(BasicEstimator::ROLL_W, 0, raw_phy);
