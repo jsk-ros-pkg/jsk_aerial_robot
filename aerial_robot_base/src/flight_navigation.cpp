@@ -123,7 +123,7 @@ void Navigator::naviCallback(const aerial_robot_base::FlightNavConstPtr & msg)
     }
 
   //for psi
-  if(msg->psi_nav_mode != aerial_robot_base::FlightNav::POS_MODE)
+  if(msg->psi_nav_mode == aerial_robot_base::FlightNav::POS_MODE)
     {
       setTargetPsi(msg->target_psi);
     }
