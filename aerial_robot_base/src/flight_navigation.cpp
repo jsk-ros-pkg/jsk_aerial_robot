@@ -553,21 +553,9 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
         }
 
       //pitch && roll angle command
-      if(joy_msg->buttons[1] == 0)
-        {//no push the left joysitck
-          target_pitch_angle_ = joy_msg->axes[1] * target_angle_rate_;
-          target_roll_angle_ = - joy_msg->axes[0]  * target_angle_rate_;
-        }
-      if(joy_msg->buttons[1] == 1)
-        {//push the left joysitck
-          ROS_INFO("large angle");
-          target_pitch_angle_
-            = joy_msg->axes[1] * target_angle_rate_ * cmd_angle_lev2_gain_;
-          target_roll_angle_
-            = - joy_msg->axes[0] * target_angle_rate_ * cmd_angle_lev2_gain_;
-        }
+      target_pitch_angle_ = joy_msg->axes[1] * target_angle_rate_;
+      target_roll_angle_ = - joy_msg->axes[0]  * target_angle_rate_;
 
-      //throttle, TODO: not good
       if(fabs(joy_msg->axes[3]) > 0.2)
         {
           if(joy_msg->buttons[2] == 0 && getNaviCommand() == HOVER_COMMAND)
@@ -754,13 +742,13 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
         {//x,y,z,yaw
 
           //pitch && roll vel command for vel_mode
-          if(xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE && joy_msg->buttons[1] == 1 && getNaviCommand() == HOVER_COMMAND)
+          if(xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE && joy_msg->buttons[8] == 1 && getNaviCommand() == HOVER_COMMAND)
             {//only push the left joysitck will be active
               final_target_vel_x_= joy_msg->axes[1] * fabs(joy_msg->axes[1]) * target_vel_rate_;
               final_target_vel_y_= joy_msg->axes[0] * fabs(joy_msg->axes[0]) * target_vel_rate_;
 	      xy_control_flag_ = true;
             }
-	  if(xy_control_flag_ && joy_msg->buttons[1] == 0)
+	  if(xy_control_flag_ && joy_msg->buttons[8] == 0)
 	    {
 	      final_target_vel_x_ = 0;
 	      final_target_vel_y_ = 0;
@@ -888,13 +876,13 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
           setNaviCommand(HOVER_COMMAND);
 
           //xy
-	  if(joy_msg->buttons[1] == 1 )
+	  if(joy_msg->buttons[8] == 1 )
 	    {
 	      final_target_vel_x_= joy_msg->axes[1] * fabs(joy_msg->axes[1]) * target_vel_rate_;
 	      final_target_vel_y_= joy_msg->axes[0] * fabs(joy_msg->axes[0]) * target_vel_rate_;
 	      xy_control_flag_ = true;
 	    }
-	  if(xy_control_flag_ && joy_msg->buttons[1] == 0)
+	  if(xy_control_flag_ && joy_msg->buttons[8] == 0)
 	    {
 	      final_target_vel_x_ = 0;
 	      final_target_vel_y_ = 0;
