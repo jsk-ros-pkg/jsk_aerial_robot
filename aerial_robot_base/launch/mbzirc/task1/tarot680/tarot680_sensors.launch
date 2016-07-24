@@ -7,6 +7,9 @@
   ################################### sensor param ############################################
   <rosparam file="$(find aerial_robot_base)/config/sensor_plugin/d_imu.yaml" command="load" />
   <rosparam file="$(find aerial_robot_base)/config/sensor_plugin/mocap.yaml" command="load" />
+  <rosparam file="$(find aerial_robot_base)/config/sensor_plugin/leddarone.yaml" command="load" />
+  <rosparam file="$(find aerial_robot_base)/config/sensor_plugin/rtk_gps.yaml" command="load" />
+
 
   ################################### sensor module ############################################
 
@@ -14,13 +17,26 @@
   ################################# jsk_stm ########################################
   <include file="$(find aerial_robot_base)/launch/sensors/rosserial2.launch" >
     <arg name="baud" value="921600" />
+    <arg name="port" value="/dev/flight_controller" />
   </include>
 
+  ################################# leddar one ######################################
+  <include file="$(find aerial_robot_base)/launch/leddar_one.launch" />
+
+  ################################# rtk gps ######################################
+  <include file="$(find aerial_robot_base)/launch/rtk_gps.launch" />
+
+  ################################# camera ######################################
+  <include file="$(find netusb_camera_driver)/launch/camera.launch" />
+
+
   ################################ mocap ##########################################
-
+<!--
   <include file="$(find aerial_robot_base)/launch/sensors/mocap.launch" />
-
+-->
   ################################# Joy Stick ######################################
   <include file="$(find aerial_robot_base)/launch/sensors/joy_stick.launch" />
+
+
 
 </launch>

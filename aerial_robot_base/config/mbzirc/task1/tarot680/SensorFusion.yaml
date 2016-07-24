@@ -1,16 +1,16 @@
 # Sensor Fuser Loader
 estimator:
         # number of sensor fuser
-        fuser_egomotion_no: 0
+        fuser_egomotion_no: 3
         fuser_experiment_no: 3
 
         # specific id(int) of sensor fuser, axis for kf
-        fuser_egomotion_id1: 64 # 1 << 6 
-        fuser_egomotion_id2: 128 # 1 << 7
+        fuser_egomotion_id1: 1 # 1 << 0 
+        fuser_egomotion_id2: 2 # 1 << 1
         fuser_egomotion_id3: 4 # 1 << 2
         fuser_experiment_id1: 1 # 1 << 0
         fuser_experiment_id2: 2 # 1 << 1
-        fuser_experiment_id3: 4 # 1 << 4
+        fuser_experiment_id3: 4 # 1 << 2
 
         # specific name of sensor fuser
         fuser_egomotion_name1: /ee/x 
