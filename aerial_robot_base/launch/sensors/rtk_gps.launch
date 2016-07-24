@@ -1,0 +1,12 @@
+<launch>
+  <arg name="port" default="/dev/rtk_gps" />
+
+   <node pkg="swiftnav_piksi" type="piksi_node" name="piksi_node" output="screen">
+     <param name="port" value="$(arg port)" />
+   </node>
+   
+   <node pkg="diagnostic_aggregator" type="aggregator_node" name="diagnostic_aggregator" >
+     <rosparam command="delete" param="/diagnostic_aggregator" />
+     <rosparam command="load" file="$(find swiftnav_piksi)/config/swiftnav_piksi_diag.yaml" />
+   </node>
+</launch>
