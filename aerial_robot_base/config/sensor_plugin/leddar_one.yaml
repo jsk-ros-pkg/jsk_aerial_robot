@@ -1,0 +1,4 @@
+sensor:
+        range_sensor:
+                laser_noise_sigma:  0.005
+                range_sensor_sub_name: /distance

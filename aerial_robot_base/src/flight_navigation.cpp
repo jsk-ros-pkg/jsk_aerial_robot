@@ -490,8 +490,9 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
       if(joy_msg->buttons[3] == 1 && getNaviCommand() != START_COMMAND)
         {
           setNaviCommand(START_COMMAND);
-          final_target_pos_z_ = takeoff_height_;  // 0.55m
+          final_target_pos_z_ = takeoff_height_;
           final_target_psi_  = getStatePsiBoard();
+          ROS_WARN("final_target_psi_: %f", getStatePsiBoard());
           ROS_INFO("Start command");
           return;
         }
@@ -502,11 +503,11 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
             {//Do Force Landing 
               if( !force_landing_flag_)
                 {
+                  ROS_INFO("Force Landing command");
                   std_msgs::UInt8 force_landing_cmd;
                   force_landing_cmd.data = FORCE_LANDING_CMD;
                   flight_config_pub_.publish(force_landing_cmd); 
                   force_landing_flag_ = true;
-                  ROS_INFO("Force Landing command");
                 }
             }
           else
@@ -579,7 +580,8 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
         }
 
       //yaw
-      if(joy_msg->buttons[2] == 1 && getNaviCommand() == HOVER_COMMAND)
+#if 1 //pos based yaw control
+      if(joy_msg->buttons[2] == 1)
         {
           if(fabs(joy_msg->axes[2]) > 0.05)
             {
@@ -589,46 +591,9 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
           else
             final_target_psi_ = getStatePsiBoard();
         }
-
-      //gain tunning
-      if(joy_msg->buttons[10] == 1 && !gain_tunning_flag_) //left up trigger
-        {
-          std_msgs::UInt16 att_p_gain_cmd;
-          att_p_gain_cmd.data = 161;
-          flight_config_pub_.publish(att_p_gain_cmd); 
-          gain_tunning_flag_ = true;
-        }
-      if(joy_msg->buttons[8] == 1 && !gain_tunning_flag_) //left down trigger
-        {
-          std_msgs::UInt16 att_p_gain_cmd;
-          att_p_gain_cmd.data = 162;
-          flight_config_pub_.publish(att_p_gain_cmd); 
-          gain_tunning_flag_ = true;
-        }
-      if(joy_msg->buttons[11] == 1 && !gain_tunning_flag_) //right up trigger
-        {
-          std_msgs::UInt16 att_p_gain_cmd;
-          att_p_gain_cmd.data = 167;
-          flight_config_pub_.publish(att_p_gain_cmd); 
-          att_p_gain_cmd.data = 163;
-          flight_config_pub_.publish(att_p_gain_cmd); 
-          gain_tunning_flag_ = true;
-        }
-      if(joy_msg->buttons[9] == 1 && !gain_tunning_flag_) //right down trigger
-        {
-          std_msgs::UInt16 att_p_gain_cmd;
-          att_p_gain_cmd.data = 168;
-          flight_config_pub_.publish(att_p_gain_cmd); 
-          att_p_gain_cmd.data = 164;
-          flight_config_pub_.publish(att_p_gain_cmd); 
-          gain_tunning_flag_ = true;
-        }
-      if(joy_msg->buttons[8] == 0 &&  joy_msg->buttons[9] == 0 &&
-         joy_msg->buttons[10] == 0 &&joy_msg->buttons[11] == 0 && gain_tunning_flag_)
-        gain_tunning_flag_  = false;
-
-      /* turn to xy_control_mode_ = POS_WORLD_BASED_CONTROL_MODE */
-      if(joy_msg->buttons[14] == 1) gain_tunning_mode_ = 0;
+#else //joy based yaw control
+      final_target_psi_ = joy_msg->axes[2] * target_yaw_rate_;
+#endif
 
     }
   else if(xy_control_mode_ == POS_WORLD_BASED_CONTROL_MODE || xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE)
@@ -1009,7 +974,6 @@ void TeleopNavigator::sendAttCmd()
           rc_data.yaw   =  (flight_ctrl_input_->getYawValue())[0];
           rc_data.throttle = (flight_ctrl_input_->getThrottleValue())[0];
           rc_cmd_pub_.publish(rc_data);
-
         }
     }
   else

@@ -61,7 +61,6 @@ public:
   double pwm_rate_; //percentage
   double force_landing_pwm_; //pwm
   uint8_t state_mode_;
-
 };
 
 class PidController : public FlightController

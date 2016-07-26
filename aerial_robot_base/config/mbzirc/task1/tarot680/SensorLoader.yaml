@@ -4,7 +4,7 @@ estimator:
         sensor_no: 4
         sensor_plugin_name1: sensor_plugin/imu
         sensor_plugin_name2: sensor_plugin/mocap
-        sensor_plugin_name3: sensor_plugin/leddarone
+        sensor_plugin_name3: sensor_plugin/range_sensor
         sensor_plugin_name4: sensor_plugin/rtk_gps
 
 # EGOMOTION_ESTIMATION_MODE = 0
@@ -14,9 +14,9 @@ estimator:
 sensor:
         imu:
                 estimate_mode: 5 # 1<<0 + 1<< 2
-	leddarone:
-		estimate_mode: 5 # 1<<0 + 1<< 2
-	rtk_gps
-		estimate_mode: 5 # 1<<0 + 1<< 2			
+        range_sensor:
+                estimate_mode: 5 # 1<<0 + 1<< 2
+        rtk_gps:
+                estimate_mode: 5 # 1<<0 + 1<< 2
         mocap:
                 estimate_mode: 6 #1<<1+ 1<< 2

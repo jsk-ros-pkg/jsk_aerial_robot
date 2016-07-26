@@ -1,3 +1,0 @@
-sensor:
-        leddar_one:
-                laser_noise_sigma:  0.005

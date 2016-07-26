@@ -19,8 +19,8 @@ controller/throttle/pos_i_limit: 900
 controller/throttle/pos_d_limit: 180
 
 # yaw 
-controller/yaw/pos_p_gain: 450.0 #0.45 * 1000
-controller/yaw/pos_i_gain: 20.0 #0.02 * 1000
+controller/yaw/pos_p_gain: 200 #450.0 #0.45 * 1000, last is 50
+controller/yaw/pos_i_gain: 5.0 #20 = 0.02 * 1000, last is 2.0
 controller/yaw/pos_d_gain: 0.0
 controller/yaw/pos_limit: 100
 controller/yaw/pos_p_limit: 100

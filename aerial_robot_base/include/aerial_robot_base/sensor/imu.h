@@ -30,13 +30,19 @@ namespace sensor_plugin
 
       if(imu_board_ == D_BOARD)
         {
-          imu_sub_ = nh_.subscribe<aerial_robot_msgs::Imu>(imu_topic_name_, 1, &Imu::ImuCallback, this, ros::TransportHints().tcpNoDelay()); 
+          imu_sub_ = nh_.subscribe<aerial_robot_msgs::Imu>(imu_topic_name_, 1, boost::bind(&Imu::ImuCallback, this, _1, false)); 
         }
 
       if(imu_board_ == KDUINO)
         {
-          imu_sub_ = nh_.subscribe<aerial_robot_msgs::SimpleImu>(imu_topic_name_, 1, &Imu::kduinoImuCallback, this, ros::TransportHints().tcpNoDelay()); 
+          imu_sub_ = nh_.subscribe<aerial_robot_msgs::SimpleImu>(imu_topic_name_, 1, &Imu::kduinoImuCallback, this); 
         }
+
+      if(has_sub_imu_board_)
+        {
+          sub_imu_sub_ = nh_.subscribe<aerial_robot_msgs::Imu>(sub_imu_topic_name_, 1, boost::bind(&Imu::ImuCallback, this, _1, true)); 
+        }
+
 
       imu_pub_ = nh_.advertise<aerial_robot_base::ImuData>("data", 2); 
 
@@ -50,6 +56,7 @@ namespace sensor_plugin
       acc_xw_non_bias_ = 0;      acc_yw_non_bias_ = 0;      acc_zw_non_bias_ = 0;
 
       acc_x_bias_ = 0;      acc_y_bias_ = 0;      acc_z_bias_ = 0;
+      acc_xw_bias_ = 0;      acc_yw_bias_ = 0;      acc_zw_bias_ = 0;
 
       pitch_ = 0;      roll_ = 0;      yaw_ = 0;
       height_ = 0;
@@ -80,7 +87,7 @@ namespace sensor_plugin
 
   private:
     ros::Publisher  imu_pub_;
-    ros::Subscriber  imu_sub_;
+    ros::Subscriber  imu_sub_, sub_imu_sub_;
     ros::Subscriber  imu_simple_sub_;
 
     double level_acc_noise_sigma_, z_acc_noise_sigma_, acc_bias_noise_sigma_;
@@ -114,8 +121,16 @@ namespace sensor_plugin
     double acc_y_bias_;
     double acc_z_bias_;
 
+    double acc_xw_bias_;
+    double acc_yw_bias_;
+    double acc_zw_bias_;
+
     std::string imu_topic_name_;
     int imu_board_;
+
+    bool yaw_value_true_; //whether use yaw value from imu
+    bool has_sub_imu_board_;  //whether there is a sub imu board for mag estimation
+    std::string sub_imu_topic_name_;
 
     ros::Time imu_stamp_;
 
@@ -125,14 +140,20 @@ namespace sensor_plugin
     int calib_count_;
     double calib_time_;
 
-    void ImuCallback(const aerial_robot_msgs::ImuConstPtr& imu_msg)
+    void ImuCallback(const aerial_robot_msgs::ImuConstPtr& imu_msg, bool sub_imu_board)
     {
+      if(sub_imu_board) //use sub imu board for yaw estimation
+        {
+          yaw_   = imu_msg->angles[2];
+          return;
+        }
+
       imu_stamp_ = imu_msg->stamp;
       estimator_->setSystemTimeStamp(imu_stamp_);
 
       roll_  = imu_msg->angles[0];
       pitch_ = imu_msg->angles[1];
-      yaw_   = imu_msg->angles[2];
+      if(!has_sub_imu_board_) yaw_   = imu_msg->angles[2];
 
       acc_xb_ = imu_msg->acc_data[0];
       acc_yb_ = imu_msg->acc_data[1];
@@ -191,6 +212,15 @@ namespace sensor_plugin
           estimator_->setLandedFlag(true);
         }
 
+      /* check whether use imu yaw for control and estimation */
+      if(yaw_value_true_)
+        {
+          /* temporariry */
+          /* TODO: input to kalman filter */
+          estimator_->setEEState(BasicEstimator::YAW_W_COG, 0, yaw_);
+          estimator_->setEEState(BasicEstimator::YAW_W_B, 0, yaw_);
+        }
+
       //bais calibration
       if(bias_calib < calib_count_)
         {
@@ -204,6 +234,10 @@ namespace sensor_plugin
             {
               calib_count_ = calib_time_ / time_interval;
               ROS_WARN("calib count is %d, time interval is %f", calib_count_, time_interval);
+
+              /* check whether use imu yaw for contorl and estimation*/
+              if(yaw_value_true_) ROS_WARN("use imu yaw value for estimation and control");
+
             }
 
           //hz estimation
@@ -233,15 +267,29 @@ namespace sensor_plugin
                         {//temporary
                           Eigen::Matrix<double, 2, 1> temp = Eigen::MatrixXd::Zero(2, 1); 
                           temp(1,0) = acc_bias_noise_sigma_;
-                          if((estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::X_W)) || (estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::X_B)))
+                          if(estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::X_B))
                             {
                               temp(0,0) = level_acc_noise_sigma_;
                               estimator_->getFuserEgomotion(i)->setInitState(acc_x_bias_, 2);
                             }
-                          else if((estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::Y_W)) || (estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::Y_B)))
+                          else if(estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::X_W))
+                            {
+                              temp(0,0) = level_acc_noise_sigma_;
+                              float yaw = estimator_->getEEState(BasicEstimator::YAW_W_B, 0);
+                              float acc_xw_bias = cos(yaw) * acc_x_bias_ - sin(yaw) * acc_y_bias_;
+                              estimator_->getFuserEgomotion(i)->setInitState(acc_xw_bias_, 2);
+                            }
+                          else if(estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::Y_B))
                             {
                               temp(0,0) = level_acc_noise_sigma_;
                               estimator_->getFuserEgomotion(i)->setInitState(acc_y_bias_, 2);
+                            }
+                          else if(estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::Y_W))
+                            {
+                              temp(0,0) = level_acc_noise_sigma_;
+                              float yaw = estimator_->getEEState(BasicEstimator::YAW_W_B, 0);
+                              float acc_yw_bias = sin(yaw) * acc_x_bias_ + cos(yaw) * acc_y_bias_;
+                              estimator_->getFuserEgomotion(i)->setInitState(acc_yw_bias_, 2);
                             }
                           else if((estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::Z_W)))
                             {
@@ -275,15 +323,29 @@ namespace sensor_plugin
                         {//temporary
                           Eigen::Matrix<double, 2, 1> temp = Eigen::MatrixXd::Zero(2, 1); 
                           temp(1,0) = acc_bias_noise_sigma_;
-                          if((estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::X_W)) || (estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::X_B)))
+                          if(estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::X_B))
                             {
                               temp(0,0) = level_acc_noise_sigma_;
                               estimator_->getFuserExperiment(i)->setInitState(acc_x_bias_, 2);
                             }
-                          else if((estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::Y_W)) || (estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::Y_B)))
+                          else if(estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::X_W))
+                            {
+                              temp(0,0) = level_acc_noise_sigma_;
+                              float yaw = estimator_->getEXState(BasicEstimator::YAW_W_B, 0);
+                              acc_xw_bias_ = cos(yaw) * acc_x_bias_ - sin(yaw) * acc_y_bias_;
+                              estimator_->getFuserExperiment(i)->setInitState(acc_xw_bias_, 2);
+                            }
+                          else if (estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::Y_B))
                             {
                               temp(0,0) = level_acc_noise_sigma_;
                               estimator_->getFuserExperiment(i)->setInitState(acc_y_bias_, 2);
+                            }
+                          else if(estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::Y_W))
+                            {
+                              temp(0,0) = level_acc_noise_sigma_;
+                              float yaw = estimator_->getEXState(BasicEstimator::YAW_W_B, 0);
+                              acc_yw_bias_ = sin(yaw) * acc_x_bias_ + cos(yaw) * acc_y_bias_;
+                              estimator_->getFuserExperiment(i)->setInitState(acc_yw_bias_, 2);
                             }
                           else if((estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::Z_W)))
                             {
@@ -582,6 +644,16 @@ namespace sensor_plugin
 
       nhp_.param("yaw_acc_trans_for_experiment_estimation", yaw_acc_trans_for_experiment_estimation_, 0 );
       printf("%s,  yaw acc trans for experiment estimation is %d\n", ns.c_str(),  yaw_acc_trans_for_experiment_estimation_);
+
+      //mag for yaw control
+      nhp_.param("yaw_value_true", yaw_value_true_, false ); //whether use yaw estimated value from imu
+      printf("%s,  yaw value true is %s\n", ns.c_str(),  yaw_value_true_?std::string("true").c_str():std::string("false").c_str());
+
+      nhp_.param("has_sub_imu_board", has_sub_imu_board_, false ); //whether have a sub imu board for yaw
+      printf("%s, has sub imu mag board is %s\n", ns.c_str(),  has_sub_imu_board_?std::string("true").c_str():std::string("false").c_str());
+
+      nhp_.param("sub_imu_topic_name", sub_imu_topic_name_, std::string("/sub/imu"));
+      printf(" sub_imu topic name is %s\n", sub_imu_topic_name_.c_str());
 
       nhp_.param("imu_board", imu_board_, 0);
       if(imu_board_ != D_BOARD)

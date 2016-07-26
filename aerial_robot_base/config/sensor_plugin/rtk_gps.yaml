@@ -1,3 +1,6 @@
 sensor:
         rtk_gps:
-                gps_noise_sigma:  0.01
+                pos_noise_sigma:  0.01
+                rtk_gps_sub_name: /gps/rtkfix
+                
+                

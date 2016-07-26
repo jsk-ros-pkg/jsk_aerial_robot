@@ -273,7 +273,6 @@ void PidController::pidFunction()
       target_pos_x = navigator_->getTargetPosX();
       target_pos_y = navigator_->getTargetPosY();
 
-
       if(state_mode_ == BasicEstimator::GROUND_TRUTH)
         {
           state_pos_z = estimator_->getGTState(BasicEstimator::Z_W, 0);
@@ -301,6 +300,8 @@ void PidController::pidFunction()
       aerial_robot_base::FourAxisPid  four_axis_pid_debug;
 
       four_axis_pid_debug.header.stamp = ros::Time::now();
+
+
 
       if (first_flag)
         {
@@ -600,6 +601,7 @@ void PidController::pidFunction()
                   float yaw_value = limit(pos_p_term_yaw_ + pos_i_term_yaw_ + pos_d_term_yaw_, pos_limit_yaw_);
 
                   //**** attitude gain tunnign mode
+                  /*
                   if(navigator_->getGainTunningMode() == Navigator::ATTITUDE_GAIN_TUNNING_MODE)
                     {
                       yaw_value = limit(pos_p_gain_yaw_[j] * target_psi, pos_p_limit_yaw_);
@@ -607,8 +609,7 @@ void PidController::pidFunction()
                       pos_i_term_yaw_ =  0;
                       pos_d_term_yaw_ =  0;
                     }
-
-
+                  */
                   four_axis_pid_debug.yaw.total.push_back(yaw_value);
                   four_axis_pid_debug.yaw.p_term.push_back(pos_p_term_yaw_);
                   four_axis_pid_debug.yaw.i_term.push_back(pos_i_term_yaw_);

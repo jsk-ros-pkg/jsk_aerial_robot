@@ -9,6 +9,12 @@
 
   <arg name="flight_pos_mode" value="true" /> <!-- pos mode -->
   <arg name="flight_vel_mode" value="false" />  <!-- vel mode -->
+  <!-- for the outdoor experiment using magnetic -->
+  <param name="/sensor/imu/yaw_value_true" value="true"/>
+  <param name="/sensor/imu/has_sub_imu_board" value="true"/>
+
+  ############## Motor Info ############################
+  <rosparam file="$(find aerial_robot_base)/config/mbzirc/task1/tarot680/MotorInfo.yaml" command="load" /> 
 
   ############### Sensors #############################
   <include file="$(find aerial_robot_base)/launch/mbzirc/task1/tarot680/tarot680_sensors.launch" />
@@ -17,22 +23,19 @@
   <node pkg="aerial_robot_base" type="aerial_robot_base_node" name="aerial_robot_base_node"  launch-prefix="$(arg launch_prefix)" output="screen" > 
 
     ############### Basic Param  #####################
-    <param name="rx_loop_rate" type="double" value="110"/>
-    <param name="tx_loop_rate" type="double" value="40"/>
-    <param name="tf_pub_loop_rate" type="double" value="120"/>
-
-    <param name="estimator/state_mode" type="int" value= "0" />
+    <param name="estimator/state_mode" type="int" value= "1" />
     #GROUND_TRUTH = 0
     #EGOMOTION_ESTIMATE = 1
 
-    <param name="/motor_info/motor_num" type="int" value="1"/>
-
-
+    <!--debug -->
+    <param name="navigator/gain_tunning_mode" type="int" value="1"/>
+    
     <param if="$(arg flight_pos_mode)" name="navigator/xy_control_mode" type="int" value="0"/>
     <param if="$(arg flight_vel_mode)" name="navigator/xy_control_mode" type="int" value="3"/> <!-- pos local vel -->
 
-    <!--degub -->
-    <param name="navigator/gain_tunning_mode" type="int" value="0"/>
+    <param name="rx_loop_rate" type="double" value="110"/>
+    <param name="tx_loop_rate" type="double" value="40"/>
+    <param name="tf_pub_loop_rate" type="double" value="120"/>
 
     ############### Sensor Fusion ######################
     <rosparam file="$(find aerial_robot_base)/config/mbzirc/task1/tarot680/SensorFusion.yaml" command="load" />

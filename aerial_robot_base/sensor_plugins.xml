@@ -15,9 +15,18 @@
     <description>Mirror sensor plugin.</description>
   </class>
 
+  <class name="sensor_plugin/range_sensor" type="sensor_plugin::RangeSensor" base_class_type="sensor_base_plugin::SensorBase">
+    <description>Range_Sensor sensor plugin.</description>
+  </class>
+
   <class name="sensor_plugin/slam2d" type="sensor_plugin::Slam2D" base_class_type="sensor_base_plugin::SensorBase">
     <description>Slam2d sensor plugin.</description>
   </class>
+
+  <class name="sensor_plugin/rtk_gps" type="sensor_plugin::RtkGps" base_class_type="sensor_base_plugin::SensorBase">
+    <description>RTK GPS sensor plugin.</description>
+  </class>
+
 
 
 </library>

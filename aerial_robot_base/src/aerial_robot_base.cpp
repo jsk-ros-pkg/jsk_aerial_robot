@@ -108,7 +108,6 @@ void AerialRobotBase::txFunction(const ros::TimerEvent & e)
 
       ////feed forward control
       ////controller_->feedForwardFunction();
-
       navigator_->sendAttCmd();
     }
 }
