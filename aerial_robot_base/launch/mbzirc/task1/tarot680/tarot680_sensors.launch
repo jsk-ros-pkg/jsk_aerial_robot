@@ -1,5 +1,6 @@
 <?xml version="1.0"?>
 <launch>
+  <arg name="debug" default="false" />
 
   #################################### sensor plugin config ###################################
   <rosparam file="$(find aerial_robot_base)/config/mbzirc/task1/tarot680/SensorLoader.yaml" command="load" />
@@ -10,41 +11,40 @@
   <rosparam file="$(find aerial_robot_base)/config/sensor_plugin/leddar_one.yaml" command="load" />
   <rosparam file="$(find aerial_robot_base)/config/sensor_plugin/rtk_gps.yaml" command="load" />
 
-  ################################### sensor module ############################################
+  <group unless="$(arg debug)">
+    ################################### sensor module ############################################
 
-  ################################# jsk_stm ########################################
-  <include file="$(find aerial_robot_base)/launch/sensors/rosserial2.launch" >
-    <arg name="baud" value="921600" />
-    <arg name="port" value="/dev/flight_controller" />
-  </include>
-
-  ################################# leddar one ######################################
-  <include file="$(find aerial_robot_base)/launch/sensors/leddar_one.launch" />
-
-  ################################# rtk gps ######################################
-  <include file="$(find aerial_robot_base)/launch/sensors/rtk_gps.launch" />
-
-
-  ################################# sub imu ######################################
-  <group ns="sub">
+    ################################# jsk_stm ########################################
     <include file="$(find aerial_robot_base)/launch/sensors/rosserial2.launch" >
       <arg name="baud" value="921600" />
-      <arg name="port" value="/dev/mag" />
+      <arg name="port" value="/dev/flight_controller" />
     </include>
+
+    ################################# leddar one ######################################
+    <include file="$(find aerial_robot_base)/launch/sensors/leddar_one.launch" />
+
+    ################################# rtk gps ######################################
+    <include file="$(find aerial_robot_base)/launch/sensors/rtk_gps.launch" />
+
+
+    ################################# sub imu ######################################
+    <group ns="sub">
+      <include file="$(find aerial_robot_base)/launch/sensors/rosserial2.launch" >
+        <arg name="baud" value="921600" />
+        <arg name="port" value="/dev/mag" />
+      </include>
+    </group>
+
+    ################################# camera ######################################
+
+    <include file="$(find netusb_camera_driver)/launch/camera.launch" />
+
+    ################################ mocap ##########################################
+    <!--
+        <include file="$(find aerial_robot_base)/launch/sensors/mocap.launch" />
+    -->
+    ################################# Joy Stick ######################################
+    <include file="$(find aerial_robot_base)/launch/sensors/joy_stick.launch" />
   </group>
-
-
-  ################################# camera ######################################
-
-  <include file="$(find netusb_camera_driver)/launch/camera.launch" />
-
-  ################################ mocap ##########################################
-<!--
-  <include file="$(find aerial_robot_base)/launch/sensors/mocap.launch" />
--->
-  ################################# Joy Stick ######################################
-  <include file="$(find aerial_robot_base)/launch/sensors/joy_stick.launch" />
-
-
 
 </launch>

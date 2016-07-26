@@ -4,9 +4,6 @@
   ############################# Global Param ###################################
 
   <arg name="debug" default="false" />
-  <arg unless="$(arg debug)" name="launch_prefix" value="" />
-  <arg if="$(arg debug)" name="launch_prefix" value="gdb --ex run --args" />
-
   <arg name="flight_pos_mode" value="true" /> <!-- pos mode -->
   <arg name="flight_vel_mode" value="false" />  <!-- vel mode -->
   <!-- for the outdoor experiment using magnetic -->
@@ -17,10 +14,12 @@
   <rosparam file="$(find aerial_robot_base)/config/mbzirc/task1/tarot680/MotorInfo.yaml" command="load" /> 
 
   ############### Sensors #############################
-  <include file="$(find aerial_robot_base)/launch/mbzirc/task1/tarot680/tarot680_sensors.launch" />
+  <include file="$(find aerial_robot_base)/launch/mbzirc/task1/tarot680/tarot680_sensors.launch" >
+    <arg name="debug" value="$(arg debug)" />
+  </include>
 
   ############################# Drone Platform ###################################
-  <node pkg="aerial_robot_base" type="aerial_robot_base_node" name="aerial_robot_base_node"  launch-prefix="$(arg launch_prefix)" output="screen" > 
+  <node pkg="aerial_robot_base" type="aerial_robot_base_node" name="aerial_robot_base_node"  output="screen" > 
 
     ############### Basic Param  #####################
     <param name="estimator/state_mode" type="int" value= "1" />
@@ -29,7 +28,7 @@
 
     <!--debug -->
     <param name="navigator/gain_tunning_mode" type="int" value="1"/>
-    
+
     <param if="$(arg flight_pos_mode)" name="navigator/xy_control_mode" type="int" value="0"/>
     <param if="$(arg flight_vel_mode)" name="navigator/xy_control_mode" type="int" value="3"/> <!-- pos local vel -->
 
