@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<launch>
+
+  <node pkg="aerial_robot_base" type="telemetry_base" name="telemetry_base"  output="screen" > 
+    <param name="port" value="/dev/ttyUSB0"/>
+  </node>
+
+  <node pkg="joy" type="joy_node" name="joy_node"  output="screen" > 
+
+    <param name="dev" type="string" value="/dev/input/js0"/>
+  </node>
+
+
+</launch>

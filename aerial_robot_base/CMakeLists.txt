@@ -20,6 +20,7 @@ find_package(catkin REQUIRED COMPONENTS
   kalman_filter
   cmake_modules
   pluginlib
+  serial
 )
 
 
@@ -79,6 +80,13 @@ target_link_libraries (aerial_robot_base ${catkin_LIBRARIES}  ${Boost_LIBRARIES}
 add_executable(aerial_robot_base_node src/aerial_robot_base_node.cpp)
 target_link_libraries (aerial_robot_base_node ${catkin_LIBRARIES}  ${Boost_LIBRARIES} aerial_robot_base) 
 add_dependencies(aerial_robot_base_node aerial_robot_msgs_generate_message_cpp ${PROJECT_NAME}_generate_message_cpp ${PROJECT_NAME}_gencfg)
+
+add_executable(telemetry_base src/telemetry_base.cpp)
+target_link_libraries (telemetry_base ${catkin_LIBRARIES}  ${Boost_LIBRARIES})
+
+add_executable(telemetry_drone src/telemetry_drone.cpp)
+target_link_libraries (telemetry_drone ${catkin_LIBRARIES}  ${Boost_LIBRARIES}) 
+
 #add_dependencies(aerial_robot_base_node  ${PROJECT_NAME}_gencfg)
 
 #add_executable(rotate_node src/rotate.cpp)
