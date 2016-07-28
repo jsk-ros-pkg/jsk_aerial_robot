@@ -1,8 +1,9 @@
 <?xml version="1.0"?>
 <launch>
 
-  <node pkg="aerial_robot_base" type="telemetry_base" name="telemetry_base"  output="screen" > 
+  <node pkg="aerial_robot_base" type="telemetry_base" name="telemetry_base"  output="screen" >
     <param name="port" value="/dev/ttyUSB0"/>
+    <param name="pub_rate" value="0.05"/>
   </node>
 
   <node pkg="joy" type="joy_node" name="joy_node"  output="screen" > 
