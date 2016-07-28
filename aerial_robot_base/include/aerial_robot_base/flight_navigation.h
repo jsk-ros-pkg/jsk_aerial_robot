@@ -259,7 +259,7 @@ class Navigator
 
 class TeleopNavigator :public Navigator
 {
- public:
+public:
   TeleopNavigator(ros::NodeHandle nh,
                   ros::NodeHandle nh_private,
                   BasicEstimator* estimator,
@@ -305,50 +305,53 @@ class TeleopNavigator :public Navigator
   const static uint8_t BODY_FRAME = 1;
 
 
- private:
+private:
   ros::Publisher  rc_cmd_pub_;
-    //temporarily
+  //temporarily
   ros::Publisher  joints_ctrl_pub_;
 
-    ros::Subscriber arming_ack_sub_;
-    ros::Subscriber takeoff_sub_;
-    ros::Subscriber land_sub_;
-    ros::Subscriber start_sub_;
-    ros::Subscriber halt_sub_;
-    ros::Subscriber force_landing_sub_;
-    ros::Subscriber roll_sub_;
-    ros::Subscriber pitch_sub_;
-    ros::Subscriber yaw_sub_;
-    ros::Subscriber throttle_sub_;
-    ros::Subscriber ctrl_mode_sub_;
-    ros::Subscriber joy_stick_sub_;
-    ros::Subscriber flight_nav_sub_;
-    ros::Subscriber stop_teleop_sub_;
+  ros::Subscriber arming_ack_sub_;
+  ros::Subscriber takeoff_sub_;
+  ros::Subscriber land_sub_;
+  ros::Subscriber start_sub_;
+  ros::Subscriber halt_sub_;
+  ros::Subscriber force_landing_sub_;
+  ros::Subscriber roll_sub_;
+  ros::Subscriber pitch_sub_;
+  ros::Subscriber yaw_sub_;
+  ros::Subscriber throttle_sub_;
+  ros::Subscriber ctrl_mode_sub_;
+  ros::Subscriber joy_stick_sub_;
+  ros::Subscriber flight_nav_sub_;
+  ros::Subscriber stop_teleop_sub_;
 
-    //*** teleop navigation
-    double takeoff_height_;
-    double even_move_distance_;
-    double up_down_distance_;
-    double forward_backward_distance_;
-    double left_right_distance_;
-    double target_vel_rate_;
-    double target_pitch_roll_interval_;
-    double target_alt_interval_;
-    double target_yaw_rate_;
+  //*** teleop navigation
+  double takeoff_height_;
+  double even_move_distance_;
+  double up_down_distance_;
+  double forward_backward_distance_;
+  double left_right_distance_;
+  double target_vel_rate_;
+  double target_pitch_roll_interval_;
+  double target_alt_interval_;
+  double target_yaw_rate_;
 
-    int navi_frame_int_;
-    uint8_t navi_frame_;
+  int navi_frame_int_;
+  uint8_t navi_frame_;
 
-    bool  vel_control_flag_;
-    bool  pos_control_flag_;
-    bool  xy_control_flag_;
-    bool  alt_control_flag_;
-    bool  yaw_control_flag_;
+  bool  vel_control_flag_;
+  bool  pos_control_flag_;
+  bool  xy_control_flag_;
+  bool  alt_control_flag_;
+  bool  yaw_control_flag_;
 
   bool teleop_flag_;
   bool force_landing_flag_;
 
-    void rosParamInit(ros::NodeHandle nh);
+  ros::Time joy_stick_prev_time_;
+  double joy_stick_heart_beat_du_; 
+
+  void rosParamInit(ros::NodeHandle nh);
 };
 
 

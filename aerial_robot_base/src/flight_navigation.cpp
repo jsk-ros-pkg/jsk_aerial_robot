@@ -480,6 +480,7 @@ void TeleopNavigator::stopTeleopCallback(const std_msgs::UInt8ConstPtr & stop_ms
 
 void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
 { //botton assignment: http://wiki.ros.org/ps3joy
+  joy_stick_prev_time_ = ros::Time::now();
 
   if(gain_tunning_mode_ == ATTITUDE_GAIN_TUNNING_MODE)
     {
@@ -1096,6 +1097,19 @@ void TeleopNavigator::teleopNavigation()
   else if(getNaviCommand() == HOVER_COMMAND)
     {
       flight_mode_= FLIGHT_MODE;
+      /* check the joy stick heart beat */
+      if(ros::Time::now().toSec() - joy_stick_prev_time_.toSec() > joy_stick_heart_beat_du_)
+        {
+          ROS_ERROR("no control ever from joy stick");
+          if(gain_tunning_mode_ == ATTITUDE_GAIN_TUNNING_MODE)
+            {
+              ROS_ERROR("ATTITUDE_GAIN_TUNNING_MODE: Force Landing command");
+              std_msgs::UInt8 force_landing_cmd;
+              force_landing_cmd.data = FORCE_LANDING_CMD;
+              flight_config_pub_.publish(force_landing_cmd); 
+              force_landing_flag_ = true;
+            }
+        }
     }
   else if(getNaviCommand() == IDLE_COMMAND)
     {
@@ -1172,5 +1186,9 @@ void TeleopNavigator::rosParamInit(ros::NodeHandle nh)
   if (!nh.getParam ("cmd_angle_lev2_gain", cmd_angle_lev2_gain_))
     cmd_angle_lev2_gain_ = 1.0;
   printf("%s: cmd_angle_lev2_gain_ is %f\n", ns.c_str(), cmd_angle_lev2_gain_);
+
+  if (!nh.getParam ("joy_stick_heart_beat_du", joy_stick_heart_beat_du_))
+    joy_stick_heart_beat_du_ = 1.0;
+  printf("%s: joy_stick_heart_beat_du_ is %f\n", ns.c_str(), joy_stick_heart_beat_du_);
 
 }
