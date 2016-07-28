@@ -1050,6 +1050,18 @@ void TeleopNavigator::teleopNavigation()
                 }
             }
         }
+
+      if(ros::Time::now().toSec() - joy_stick_prev_time_.toSec() > joy_stick_heart_beat_du_)
+        {
+          if(gain_tunning_mode_ == ATTITUDE_GAIN_TUNNING_MODE && !force_landing_flag_)
+            {
+              ROS_ERROR("ATTITUDE_GAIN_TUNNING_MODE: Force Landing command");
+              std_msgs::UInt8 force_landing_cmd;
+              force_landing_cmd.data = FORCE_LANDING_CMD;
+              flight_config_pub_.publish(force_landing_cmd); 
+              force_landing_flag_ = true;
+            }
+        }
     }
   else if(getNaviCommand() == LAND_COMMAND)
     {
@@ -1100,8 +1112,7 @@ void TeleopNavigator::teleopNavigation()
       /* check the joy stick heart beat */
       if(ros::Time::now().toSec() - joy_stick_prev_time_.toSec() > joy_stick_heart_beat_du_)
         {
-          ROS_ERROR("no control ever from joy stick");
-          if(gain_tunning_mode_ == ATTITUDE_GAIN_TUNNING_MODE)
+          if(gain_tunning_mode_ == ATTITUDE_GAIN_TUNNING_MODE && !force_landing_flag_)
             {
               ROS_ERROR("ATTITUDE_GAIN_TUNNING_MODE: Force Landing command");
               std_msgs::UInt8 force_landing_cmd;
