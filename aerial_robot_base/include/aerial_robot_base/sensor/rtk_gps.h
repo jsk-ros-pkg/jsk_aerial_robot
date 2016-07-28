@@ -88,7 +88,12 @@ namespace sensor_plugin
                       {
                         temp(0,0) = pos_noise_sigma_;
                         estimator_->getFuserEgomotion(i)->setMeasureSigma(temp);
+                        if(estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::X_W))
+                          estimator_->getFuserEgomotion(i)->setInitState(rtk_gps_msg->pose.pose.position.y, 0);
+                        if(estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::Y_W))
+                            estimator_->getFuserEgomotion(i)->setInitState(-rtk_gps_msg->pose.pose.position.x, 0);
                         estimator_->getFuserEgomotion(i)->setMeasureFlag();
+                        Eigen::MatrixXd state = estimator_->getFuserEgomotion(i)->getEstimateState();
                       }
                   }
               }
@@ -101,6 +106,11 @@ namespace sensor_plugin
                       {
                         temp(0,0) = pos_noise_sigma_;
                         estimator_->getFuserExperiment(i)->setMeasureSigma(temp);
+                        if(estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::X_W))
+                          estimator_->getFuserExperiment(i)->setInitState(rtk_gps_msg->pose.pose.position.y, 0);
+                        if(estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::Y_W))
+                          estimator_->getFuserExperiment(i)->setInitState(-rtk_gps_msg->pose.pose.position.x, 0);
+
                         estimator_->getFuserExperiment(i)->setMeasureFlag();
                       }
                   }
@@ -109,10 +119,10 @@ namespace sensor_plugin
         else
           {
             //**** 位置情報の更新
-            raw_pos_x_ = rtk_gps_msg->pose.pose.position.x;
-            raw_pos_y_ = rtk_gps_msg->pose.pose.position.y;
-            raw_vel_x_ = rtk_gps_msg->twist.twist.linear.x;
-            raw_vel_y_ = rtk_gps_msg->twist.twist.linear.y;
+            raw_pos_x_ = rtk_gps_msg->pose.pose.position.y;
+            raw_pos_y_ = -rtk_gps_msg->pose.pose.position.x;
+            raw_vel_x_ = rtk_gps_msg->twist.twist.linear.y;
+            raw_vel_y_ = -rtk_gps_msg->twist.twist.linear.x;
 
             aerial_robot_base::States rtk_gps_state;
             rtk_gps_state.header.stamp = rtk_gps_msg->header.stamp;
@@ -200,6 +210,7 @@ namespace sensor_plugin
 
                       if(estimator_->getFuserExperimentPluginName(i) == "kalman_filter/kf_pose_vel_acc")
                         {//temporary
+
                           Eigen::MatrixXd state = estimator_->getFuserExperiment(i)->getEstimateState();
                           x_state.reserves.push_back(state(0, 0));
                           x_state.reserves.push_back(state(1, 0));
