@@ -1,0 +1,9 @@
+<launch>
+  <node name="netusbcam" pkg="netusbcam" type="netusbtest_node" output="screen" >
+    <param name="fps" value="40" />
+  </node>
+</launch>
+
+
+
+
