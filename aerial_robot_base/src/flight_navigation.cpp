@@ -1,15 +1,4 @@
-/* 
-   0. flightNavCallback => implementation
-   1. the optical flow => indefference
-
-   4. flight mode vs navi command => development
-
-
-*/
-
 #include "aerial_robot_base/flight_navigation.h"
-
-
 
 Navigator::Navigator(ros::NodeHandle nh, ros::NodeHandle nh_private, 
                      BasicEstimator* estimator, FlightCtrlInput* flight_ctrl_input,
@@ -63,13 +52,10 @@ Navigator::Navigator(ros::NodeHandle nh, ros::NodeHandle nh_private,
   stopFlight();
   setNaviCommand( IDLE_COMMAND );
 
-
   //base navigation mode init
   flight_mode_ = NO_CONTROL_MODE;
 
-
   gain_tunning_mode_ = 0; //no tunning mode
-
 }
 
 Navigator::~Navigator()
@@ -129,19 +115,17 @@ void Navigator::naviCallback(const aerial_robot_base::FlightNavConstPtr & msg)
     }
 }
 
-
 void Navigator::tfPublish()
 {
   //TODO mutex
   tf::Transform map_to_target;
   tf::Quaternion tmp;
-  
+
   map_to_target.setOrigin(tf::Vector3(current_target_pos_x_, current_target_pos_y_, current_target_pos_z_));
   tmp.setRPY(0.0, 0.0, current_target_psi_); 
   map_to_target.setRotation(tmp);
   ros::Time tm = ros::Time::now();
   br_->sendTransform(tf::StampedTransform(map_to_target, tm, map_frame_, target_frame_));
-
 }
 
 void Navigator::rosParamInit(ros::NodeHandle nh)
@@ -166,7 +150,6 @@ void Navigator::rosParamInit(ros::NodeHandle nh)
   if (!nh.getParam ("xy_vel_mode_pos_ctrl_takeoff", xy_vel_mode_pos_ctrl_takeoff_))
     xy_vel_mode_pos_ctrl_takeoff_ = true;
   printf("%s: xy_vel_mode_pos_ctrl_takeoff is %s\n", ns.c_str(), xy_vel_mode_pos_ctrl_takeoff_ ? ("true") : ("false"));
-
 }
 
 TeleopNavigator::TeleopNavigator(ros::NodeHandle nh, ros::NodeHandle nh_private,
@@ -176,7 +159,6 @@ TeleopNavigator::TeleopNavigator(ros::NodeHandle nh, ros::NodeHandle nh_private,
   :Navigator(nh, nh_private, estimator, flight_ctrl_input, ctrl_loop_rate)
 {
   TeleopNavigator::rosParamInit(nhp_);
-
 
   //joystick init
   vel_control_flag_ = false;
@@ -192,10 +174,6 @@ TeleopNavigator::TeleopNavigator(ros::NodeHandle nh, ros::NodeHandle nh_private,
   force_landing_flag_ = false;
   land_sub_ = nh_.subscribe<std_msgs::Empty>("teleop_command/land", 1, &TeleopNavigator::landCallback, this, ros::TransportHints().tcpNoDelay());
   start_sub_ = nh_.subscribe<std_msgs::Empty>("teleop_command/start", 1,&TeleopNavigator::startCallback, this, ros::TransportHints().tcpNoDelay());
-  roll_sub_ = nh_.subscribe<std_msgs::Int8>("teleop_command/roll", 1, &TeleopNavigator::rollCallback, this, ros::TransportHints().tcpNoDelay());
-  pitch_sub_ = nh_.subscribe<std_msgs::Int8>("teleop_command/pitch", 1, &TeleopNavigator::pitchCallback, this, ros::TransportHints().tcpNoDelay());
-  yaw_sub_ = nh_.subscribe<std_msgs::Int8>("teleop_command/yaw", 1, &TeleopNavigator::yawCallback, this, ros::TransportHints().tcpNoDelay());
-  throttle_sub_ = nh_.subscribe<std_msgs::Int8>("teleop_command/throttle", 1, &TeleopNavigator::throttleCallback, this, ros::TransportHints().tcpNoDelay());
   ctrl_mode_sub_ = nh_.subscribe<std_msgs::Int8>("teleop_command/ctrl_mode", 1, &TeleopNavigator::xyControlModeCallback, this, ros::TransportHints().tcpNoDelay());
 
   joy_stick_sub_ = nh_.subscribe<sensor_msgs::Joy>("joy_stick_command", 1, &TeleopNavigator::joyStickControl, this, ros::TransportHints().udp());
@@ -209,9 +187,7 @@ TeleopNavigator::TeleopNavigator(ros::NodeHandle nh, ros::NodeHandle nh_private,
   stop_teleop_sub_ = nh_.subscribe<std_msgs::UInt8>("stop_teleop", 1, &TeleopNavigator::stopTeleopCallback, this, ros::TransportHints().tcpNoDelay());
   teleop_flag_ = true;
 
-
   flight_config_pub_ = nh_.advertise<std_msgs::UInt8>("/flight_config_cmd", 10);
-
 }
 
 TeleopNavigator::~TeleopNavigator()
@@ -235,7 +211,6 @@ void TeleopNavigator::armingAckCallback(const std_msgs::UInt8ConstPtr& ack_msg)
       setNaviCommand(IDLE_COMMAND);
     }
 }
-
 
 void TeleopNavigator::takeoffCallback(const std_msgs::EmptyConstPtr & msg){
   if(getStartAble())  
@@ -283,6 +258,7 @@ void TeleopNavigator::haltCallback(const std_msgs::EmptyConstPtr & msg)
   estimator_->setSensorFusionFlag(false);
   estimator_->setLandingMode(false);
   estimator_->setLandedFlag(false);
+  estimator_->setFlyingFlag(false);
 
   ROS_INFO("Halt command");
 }
@@ -294,156 +270,6 @@ void TeleopNavigator::forceLandingCallback(const std_msgs::EmptyConstPtr & msg)
   flight_config_pub_.publish(force_landing_cmd); 
 
   ROS_INFO("Force Landing command");
-}
-
-
-void TeleopNavigator::rollCallback(const std_msgs::Int8ConstPtr & msg)
-{// + : right ; - : left
-  if(getStartAble() && getFlightAble())
-    {
-      setNaviCommand(HOVER_COMMAND);
-      if(msg->data == 1){
-        ROS_INFO("RIGHT");
-        if(navi_frame_ == MAP_FRAME)
-          final_target_pos_y_ -= even_move_distance_; //0.2m on now state
-        else if(navi_frame_ == BODY_FRAME)
-          {
-            if(fabs(cos(getStatePsiBoard())) > 
-               fabs(sin(getStatePsiBoard())))
-              {
-                final_target_pos_y_-= left_right_distance_ *
-                  (fabs(cos(getStatePsiBoard()))/cos(getStatePsiBoard()));
-                final_target_pos_x_ = getStatePosX();
-              }
-            else if(fabs(cos(getStatePsiBoard())) <
-                    fabs(sin(getStatePsiBoard())))
-              {
-                final_target_pos_x_ += left_right_distance_ *
-                  (fabs(sin(getStatePsiBoard()))/sin(getStatePsiBoard()));
-                final_target_pos_y_= getStatePosY();
-              }
-          }
-      }else{
-        ROS_INFO("LEFT");
-        if(navi_frame_ == MAP_FRAME)
-          final_target_pos_y_+= even_move_distance_; //0.2m on now state
-        else if(navi_frame_ == BODY_FRAME)
-          {
-            if(fabs(cos(getStatePsiBoard())) >
-               fabs(sin(getStatePsiBoard())))
-              {
-                final_target_pos_y_+= left_right_distance_ * 
-                  (fabs(cos(getStatePsiBoard())) / cos(getStatePsiBoard()));
-                final_target_pos_x_= getStatePosX();
-              }
-            else if(fabs(cos(getStatePsiBoard())) <
-                    fabs(sin(getStatePsiBoard())))
-              {
-                final_target_pos_x_-= left_right_distance_ * 
-                  (fabs(sin(getStatePsiBoard())) / sin(getStatePsiBoard()));
-                final_target_pos_y_= getStatePosY();
-              }
-          }
-      }
-    }
-}
-
-void TeleopNavigator::pitchCallback(const std_msgs::Int8ConstPtr & msg)
-{// + : backward ; - : forward
-  if(getStartAble() && getFlightAble())  
-    {
-      setNaviCommand(HOVER_COMMAND);
-      if(msg->data == 1)
-        {
-          ROS_INFO("FORWARD");
-          if(navi_frame_ == MAP_FRAME) final_target_pos_x_+= even_move_distance_; //0.2m
-          else if(navi_frame_ == BODY_FRAME)
-            {
-              if(fabs(cos(getStatePsiBoard())) >
-                 fabs(sin(getStatePsiBoard()))){
-                final_target_pos_x_ += forward_backward_distance_ * 
-                  (fabs(cos(getStatePsiBoard())) / cos(getStatePsiBoard()));
-                //final_target_pos_y_ = getStatePosy_();
-              }
-              else if(fabs(cos(getStatePsiBoard())) <
-                      fabs(sin(getStatePsiBoard()))){
-                //final_target_pos_x_= getStatePosX();
-                final_target_pos_y_ += forward_backward_distance_ * 
-                  (fabs(sin(getStatePsiBoard())) / sin(getStatePsiBoard()));
-              }
-            }
-        }
-      else
-        {
-          ROS_INFO("BACKFORWARD");
-          if(navi_frame_ == MAP_FRAME) final_target_pos_x_-= even_move_distance_; //0.2m
-          else if(navi_frame_ == BODY_FRAME)
-            {
-              //bad
-              final_target_pos_x_= getStatePosX();
-              final_target_pos_y_ = getStatePosY();
-            }
-        }
-    }
-}
-
-
-void TeleopNavigator::yawCallback(const std_msgs::Int8ConstPtr & msg)
-{
-  if(getStartAble() && getFlightAble())  
-    { 
-      setNaviCommand(HOVER_COMMAND);
-
-      if(navi_frame_ == BODY_FRAME)
-        {
-          final_target_pos_x_ = getStatePosX();
-          final_target_pos_y_ = getStatePosY();
-        }
-
-
-      if(msg->data == -1){
-        final_target_psi_ = getStatePsiBoard() - M_PI/2.0; 
-        ROS_INFO("CW");
-      }else if(msg->data == 1){
-        final_target_psi_ = getStatePsiBoard() + M_PI/2.0; 
-        ROS_INFO("CCW");
-      }
-
-      if(msg->data == -2){
-        //final_target_psi_ = getStatePsi() - 0.1; //5 degree 
-        final_target_psi_ -= 0.1; //bad method
-        ROS_INFO("delta:CW");
-      }else if(msg->data == 2){
-        //final_target_psi_ = getStatePsi() + 0.1;  //5 degree
-        final_target_psi_ += 0.1; //bad method
-        ROS_INFO("delta:CCW");
-      }
-      else
-        {
-          //nothing
-        }
-      //yaw_finalTargetの補正
-      if(final_target_psi_ > M_PI) final_target_psi_ -= 2 * M_PI;
-      else if(final_target_psi_ < -M_PI) final_target_psi_ += 2 *M_PI;
-    }
-
-}
-
-void TeleopNavigator::throttleCallback(const std_msgs::Int8ConstPtr & msg)
-{
-  if(getStartAble() && getFlightAble())  
-    { 
-      setNaviCommand(HOVER_COMMAND);
-
-      if(msg->data == 1){
-        final_target_pos_z_ += up_down_distance_; 
-        ROS_INFO("incremental UP");
-      }else if (msg->data == -1){
-        final_target_pos_z_ -= up_down_distance_; 
-        ROS_INFO("incremental DOWN");
-      }
-    }
-  //ROS_INFO("Thrust command");
 }
 
 void TeleopNavigator::xyControlModeCallback(const std_msgs::Int8ConstPtr & msg)
@@ -476,7 +302,6 @@ void TeleopNavigator::stopTeleopCallback(const std_msgs::UInt8ConstPtr & stop_ms
       teleop_flag_ = true;
     }
 }
-
 
 void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
 { //botton assignment: http://wiki.ros.org/ps3joy
@@ -523,6 +348,7 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
               estimator_->setSensorFusionFlag(false);
               estimator_->setLandingMode(false);
               estimator_->setLandedFlag(false);
+              estimator_->setFlyingFlag(false);
 
               if(xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE) xy_control_mode_ = POS_WORLD_BASED_CONTROL_MODE;
 
@@ -636,6 +462,7 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
               estimator_->setSensorFusionFlag(false);
               estimator_->setLandingMode(false);
               estimator_->setLandedFlag(false);
+              estimator_->setFlyingFlag(false);
 
               if(xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE) xy_control_mode_ = POS_WORLD_BASED_CONTROL_MODE;
 
@@ -795,6 +622,7 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
               estimator_->setSensorFusionFlag(false);
               estimator_->setLandingMode(false);
               estimator_->setLandedFlag(false);
+              estimator_->setFlyingFlag(false);
 
               if(xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE) xy_control_mode_ = POS_WORLD_BASED_CONTROL_MODE;
 
@@ -896,10 +724,8 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
     }
 }
 
-
 void TeleopNavigator::targetValueCorrection()
 {
-
   //no keystone correction
   current_target_pos_x_  = final_target_pos_x_;
   current_target_pos_y_= final_target_pos_y_;
@@ -933,9 +759,7 @@ void TeleopNavigator::targetValueCorrection()
   current_target_vel_x_ = final_target_vel_x_;
   current_target_vel_y_ = final_target_vel_y_;
 #endif 
-
 }
-
 
 void TeleopNavigator::sendAttCmd()
 {
@@ -1019,6 +843,8 @@ void TeleopNavigator::teleopNavigation()
 
       if (convergence_cnt > ctrl_loop_rate_) 
         { //*** 安定収束した 20 ~ 40
+          estimator_->setFlyingFlag(true); //set flying flag for state estimation
+
           if(xy_control_mode_ == POS_WORLD_BASED_CONTROL_MODE)
             {
               convergence_cnt = 0;
@@ -1065,14 +891,12 @@ void TeleopNavigator::teleopNavigation()
     }
   else if(getNaviCommand() == LAND_COMMAND)
     {
-      //ROS_WARN(" land command");
-
       //for estimator landing mode
       estimator_->setLandingMode(true);
 
       if (!getFlightAble()  && getStartAble()) 
         {
-          ROS_ERROR(" land land mode mode");
+          ROS_ERROR("disarm motors");
           setNaviCommand(STOP_COMMAND);
           flight_mode_= RESET_MODE;
 
@@ -1083,6 +907,7 @@ void TeleopNavigator::teleopNavigation()
           estimator_->setSensorFusionFlag(false);
           estimator_->setLandingMode(false);
           estimator_->setLandedFlag(false);
+          estimator_->setFlyingFlag(false);
 
           if(xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE) xy_control_mode_ = POS_WORLD_BASED_CONTROL_MODE;
         }
@@ -1094,11 +919,11 @@ void TeleopNavigator::teleopNavigation()
           if (fabs(getTargetPosZ() - getStatePosZ()) < POS_Z_THRE)
             convergence_cnt++;
           if (convergence_cnt > ctrl_loop_rate_) 
-            { 
+            {
               convergence_cnt = 0;
               stopFlight();
             }
-        } 
+        }
       else if (!getStartAble())
         {
           flight_mode_= NO_CONTROL_MODE;
@@ -1131,6 +956,7 @@ void TeleopNavigator::teleopNavigation()
       estimator_->setSensorFusionFlag(false);
       estimator_->setLandingMode(false);
       estimator_->setLandedFlag(false);
+      estimator_->setFlyingFlag(false);
 
       if(flight_mode_ != RESET_MODE)
         flight_mode_= NO_CONTROL_MODE;
@@ -1141,7 +967,6 @@ void TeleopNavigator::teleopNavigation()
       ROS_WARN("ERROR COMMAND, CAN NOT BE SEND TO AERIAL ROBOT");
     }
 }
-
 
 void TeleopNavigator::rosParamInit(ros::NodeHandle nh)
 {
@@ -1194,12 +1019,8 @@ void TeleopNavigator::rosParamInit(ros::NodeHandle nh)
   if (!nh.getParam ("target_angle_rate", target_angle_rate_))
     target_angle_rate_ = 1.0;
   printf("%s: target_angle_rate_ is %f\n", ns.c_str(), target_angle_rate_);
-  if (!nh.getParam ("cmd_angle_lev2_gain", cmd_angle_lev2_gain_))
-    cmd_angle_lev2_gain_ = 1.0;
-  printf("%s: cmd_angle_lev2_gain_ is %f\n", ns.c_str(), cmd_angle_lev2_gain_);
 
   if (!nh.getParam ("joy_stick_heart_beat_du", joy_stick_heart_beat_du_))
     joy_stick_heart_beat_du_ = 1.0;
   printf("%s: joy_stick_heart_beat_du_ is %f\n", ns.c_str(), joy_stick_heart_beat_du_);
-
 }

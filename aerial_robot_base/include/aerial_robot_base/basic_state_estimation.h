@@ -97,6 +97,9 @@ class BasicEstimator
   virtual float getPosZOffset() {  return  state_pos_z_offset_;}
   virtual void setPosZOffset(float pos_z_offset){  state_pos_z_offset_ = pos_z_offset;}
 
+  //start flying flag (~takeoff)
+  virtual bool getFlyingFlag() {  return  flying_flag_;}
+  virtual void setFlyingFlag(bool flag){  flying_flag_ = flag;}
   //start landing mode
   virtual bool getLandingMode() {  return  landing_mode_flag_;}
   virtual void setLandingMode(bool flag){  landing_mode_flag_ = flag;}
@@ -158,6 +161,7 @@ class BasicEstimator
   std::vector<int> fuser_experiment_id_;
   std::vector< boost::shared_ptr<kf_base_plugin::KalmanFilter> > fuser_egomotion_;
   std::vector< boost::shared_ptr<kf_base_plugin::KalmanFilter> > fuser_experiment_;
+  bool flying_flag_;
   bool landing_mode_flag_;
   bool landed_flag_;
   bool un_descend_flag_;

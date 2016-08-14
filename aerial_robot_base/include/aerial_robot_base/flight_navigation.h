@@ -273,10 +273,6 @@ public:
   void haltCallback(const std_msgs::EmptyConstPtr &  msg);
   void forceLandingCallback(const std_msgs::EmptyConstPtr &  msg);
   void landCallback(const std_msgs::EmptyConstPtr &  msg);
-  void rollCallback(const std_msgs::Int8ConstPtr & msg);
-  void pitchCallback(const std_msgs::Int8ConstPtr & ms);
-  void yawCallback(const std_msgs::Int8ConstPtr & msg);
-  void throttleCallback(const std_msgs::Int8ConstPtr & msg);
 
   void joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg);
 
