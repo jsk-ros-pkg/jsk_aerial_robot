@@ -111,6 +111,8 @@ TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_
   rpy_gain_pub_ = nh_.advertise<aerial_robot_msgs::RollPitchYawGain>(rpy_gain_pub_name_, 1);
   yaw_throttle_gain_pub_ = nh_.advertise<aerial_robot_msgs::YawThrottleGain>("yaw_throttle_gain", 1);
 
+  yaw_gain_sub_ = nh_.subscribe<std_msgs::UInt8>("yaw_pos_gain", 1, &TransformController::yawGainCallback, this, ros::TransportHints().tcpNoDelay());
+
   if(callback_flag_)
     {// the name callback flag is not correct
       realtime_control_sub_ = nh_.subscribe<std_msgs::UInt8>("realtime_control", 1, &TransformController::realtimeControlCallback, this, ros::TransportHints().tcpNoDelay());
@@ -162,6 +164,7 @@ void TransformController::initParam()
 
   nh_private_.param("debug_log", debug_log_, false); 
   nh_private_.param("debug2_log", debug2_log_, false); 
+
 
   nh_private_.param("link_num", link_num_, 4);
   links_name_.resize(link_num_); 
@@ -325,11 +328,12 @@ void TransformController::initParam()
   if (!nh_private_.getParam ("q_pitch_d", q_pitch_d_))
     q_pitch_d_ = 1.0;
   printf("Q: q_pitch_d_ is %.3f\n", q_pitch_d_);
-  if (!nh_private_.getParam ("q_yaw", q_yaw_))
-    q_yaw_ = 1.0;
-  printf("Q: q_yaw_ is %.3f\n", q_yaw_);
+  if (!nh_private_.getParam ("strong_q_yaw", strong_q_yaw_))
+    strong_q_yaw_ = 1.0;
+  printf("Q: strong_q_yaw_ is %.3f\n", strong_q_yaw_);
   if (!nh_private_.getParam ("q_yaw_d", q_yaw_d_))
     q_yaw_d_ = 1.0;
+  nh_private_.param("strong_yaw_gain", strong_yaw_gain_, 10.0); 
   printf("Q: q_yaw_d_ is %.3f\n", q_yaw_d_);
   if (!nh_private_.getParam ("q_z", q_z_))
     q_z_ = 1.0;
@@ -1338,4 +1342,17 @@ bool TransformController::hamiltonMatrixSolver(uint8_t lqi_mode)
       // ROS_INFO("A dash: %f\n", ros::Time::now().toSec() - start_time.toSec());
     }
   return true;
+}
+
+void TransformController::yawGainCallback(const std_msgs::UInt8ConstPtr & msg)
+{
+  if(msg->data == 1)
+    {/* change to strong one */
+      Q12_(4,4) = strong_q_yaw_;
+    }
+  else
+    {/* back to week one */
+      Q12_(4,4) = q_yaw_;
+    }
+  std::cout << "Q12:"  << std::endl << Q12_ << std::endl;
 }

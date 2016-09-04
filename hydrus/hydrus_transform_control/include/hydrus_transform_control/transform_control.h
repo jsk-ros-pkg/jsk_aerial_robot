@@ -63,6 +63,7 @@ public:
   ~TransformController();
 
   void realtimeControlCallback(const std_msgs::UInt8ConstPtr & msg);
+  void yawGainCallback(const std_msgs::UInt8ConstPtr & msg);
 
   void cogComputation(const std::vector<tf::StampedTransform>& transforms);
   void principalInertiaComputation(const std::vector<tf::StampedTransform>& transforms, bool continuous_flag = true);
@@ -186,6 +187,7 @@ private:
   ros::Publisher principal_axis_pub_;
   ros::Publisher cog_rotate_pub_; //for position control => to mocap
   ros::Subscriber realtime_control_sub_;
+  ros::Subscriber yaw_gain_sub_;
 
   boost::mutex rm_mutex_, cog_mutex_, origins_mutex_, inertia_mutex_;
 
@@ -243,7 +245,6 @@ private:
   std::vector<ElementModel> link_joint_model_;
   std::vector<ElementModel> controller_model_;
 
-
   std::string root_link_name_;
   int root_link_;
   std::vector<std::string> links_name_;
@@ -256,7 +257,6 @@ private:
   Eigen::Matrix3d rotate_matrix_;
   Eigen::Matrix3d cog_matrix_;
   double rotate_angle_;
-
 
   void controlFunc(const ros::TimerEvent & e);  
   void tfPubFunc(const ros::TimerEvent & e);
@@ -299,7 +299,7 @@ private:
   Eigen::MatrixXd K9_;
 
   //Q
-  double q_roll_,q_roll_d_,q_pitch_,q_pitch_d_,q_yaw_,q_yaw_d_,q_z_,q_z_d_;
+  double q_roll_,q_roll_d_,q_pitch_,q_pitch_d_,q_yaw_,strong_q_yaw_, q_yaw_d_,q_z_,q_z_d_;
   double q_roll_i_,q_pitch_i_,q_yaw_i_,q_z_i_;
 
   //R
