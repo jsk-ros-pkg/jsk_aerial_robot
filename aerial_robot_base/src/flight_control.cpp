@@ -108,6 +108,9 @@ PidController::PidController(ros::NodeHandle nh,
 
   //subscriber
   four_axis_gain_sub_ = nh_.subscribe<aerial_robot_msgs::YawThrottleGain>("/yaw_throttle_gain", 1, &PidController::yawThrottleGainCallback, this, ros::TransportHints().tcpNoDelay());
+  /* for weak control for xy velocirt movement? necessary */
+  xy_vel_weak_gain_sub_ = nh_.subscribe<std_msgs::UInt8>("xy_vel_weak_gain", 1, &PidController::xyVelWeakGainCallback, this, ros::TransportHints().tcpNoDelay());
+  
 
   //dynamic reconfigure server
   xy_pid_server_ = new dynamic_reconfigure::Server<aerial_robot_base::XYPidControlConfig>(ros::NodeHandle(nhp_, "pitch"));
@@ -139,6 +142,22 @@ void PidController::yawThrottleGainCallback(const aerial_robot_msgs::YawThrottle
       feedforward_matrix_(i, 1) = msg->pitch_vec[i];
       feedforward_matrix_(i, 2) = msg->yaw_vec[i];
     }
+}
+
+void PidController::xyVelWeakGainCallback(const std_msgs::UInt8ConstPtr & msg)
+{
+  ROS_INFO("xyVelWeakGainCallback: gain from %f", vel_p_gain_roll_);
+  if(msg->data == 1)
+    {/* weak control gain */
+      vel_p_gain_roll_ *= xy_vel_weak_rate_;
+      vel_p_gain_pitch_ *= xy_vel_weak_rate_;
+    }
+  else
+    {/* return usual control gain*/
+      vel_p_gain_roll_ /= xy_vel_weak_rate_;
+      vel_p_gain_pitch_ /= xy_vel_weak_rate_;
+    }
+  ROS_INFO("xyVelWeakGainCallback: gain to %f", vel_p_gain_roll_);
 }
 
 void PidController::pidFunction()
@@ -388,7 +407,6 @@ void PidController::pidFunction()
                   //**** Dの項
                   pos_d_term_pitch_ = 0;
                 }
-
             }
           else
             ROS_ERROR("wrong control mode");
@@ -920,6 +938,11 @@ void PidController::rosParamInit(ros::NodeHandle nh)
     pos_d_limit_roll_ = 0;
   printf("%s: pos_d_limit_ is %f\n", roll_ns.c_str(), pos_d_limit_roll_);
 
+  //**** pitch & roll
+  if (!nh.getParam ("xy_vel_weak_rate", xy_vel_weak_rate_))
+    xy_vel_weak_rate_ = 0.2; //20%
+  printf("%s: xy_vel_weak_rate_ is %f\n", xy_vel_weak_rate_);
+
   //**** yaw
   if (!yaw_node.getParam ("ctrl_loop_rate", yaw_ctrl_loop_rate_))
     yaw_ctrl_loop_rate_ = 0;
@@ -978,7 +1001,6 @@ void PidController::rosParamInit(ros::NodeHandle nh)
       if (!yaw_node.getParam ("pos_d_gain", pos_d_gain_yaw_[0]))
         pos_d_gain_yaw_[0] = 0;
       printf("%s: pos_d_gain_ is %.3f\n", yaw_ns.c_str(), pos_d_gain_yaw_[0]);
-      
     }
   else
     {//transformable

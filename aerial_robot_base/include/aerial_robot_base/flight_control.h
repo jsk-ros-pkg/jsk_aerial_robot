@@ -126,8 +126,8 @@ class PidController : public FlightController
  double pos_i_gain_pitch_;
  double pos_d_gain_pitch_;
  double pos_i_gain_pitch_hover_;
- double vel_p_gain_pitch_; 
- double vel_i_gain_pitch_; 
+ double vel_p_gain_pitch_;
+ double vel_i_gain_pitch_;
  double offset_pitch_;
  double pos_limit_pitch_;
  double pos_p_limit_pitch_;
@@ -150,6 +150,9 @@ class PidController : public FlightController
  double pos_d_limit_roll_;
  //double vel_value_limit_roll_;
  double i_enable_limit_roll_;
+
+  //*** pitch and roll
+  double xy_vel_weak_rate_;
 
  //**** yaw
  std::vector<double> pos_p_gain_yaw_;
