@@ -85,6 +85,7 @@ class PidController : public FlightController
   ros::Publisher  ff_pub_;
   ros::Publisher  motor_info_pub_;
   ros::Subscriber four_axis_gain_sub_;
+  ros::Subscriber xy_vel_weak_gain_sub_;
 
   int pid_ctrl_loop_rate_;
   int pitch_ctrl_cnt;
@@ -197,6 +198,7 @@ class PidController : public FlightController
 
  //callback
  void yawThrottleGainCallback(const aerial_robot_msgs::YawThrottleGainConstPtr & msg);
+  void xyVelWeakGainCallback(const std_msgs::UInt8ConstPtr & msg);
 
  //dynamic reconfigure
  dynamic_reconfigure::Server<aerial_robot_base::XYPidControlConfig>* xy_pid_server_;

@@ -941,7 +941,7 @@ void PidController::rosParamInit(ros::NodeHandle nh)
   //**** pitch & roll
   if (!nh.getParam ("xy_vel_weak_rate", xy_vel_weak_rate_))
     xy_vel_weak_rate_ = 0.2; //20%
-  printf("%s: xy_vel_weak_rate_ is %f\n", xy_vel_weak_rate_);
+  printf("xy_vel_weak_rate_ is %f\n", xy_vel_weak_rate_);
 
   //**** yaw
   if (!yaw_node.getParam ("ctrl_loop_rate", yaw_ctrl_loop_rate_))
