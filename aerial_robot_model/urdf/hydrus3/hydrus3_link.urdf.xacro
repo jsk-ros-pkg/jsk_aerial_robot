@@ -17,7 +17,7 @@
         <visual>
           <origin rpy="0 0 ${pi}" xyz="0 0 0"/>
           <geometry>
-            <mesh filename="package://aerial_robot_model/urdf/hydrus3/mesh/hydrus3_link1.stl" scale=".001 .001 .001"/>
+            <mesh filename="package://aerial_robot_model/urdf/hydrus3/mesh/hydrus3_link1.dae"/>
           </geometry>
           <xacro:link_color /> 
         </visual>
@@ -84,7 +84,7 @@
           <visual>
             <origin rpy="0 0 ${pi}" xyz="0 0 0"/>
             <geometry>
-              <mesh filename="package://aerial_robot_model/urdf/hydrus3/mesh/hydrus3_link4.stl" scale=".001 .001 .001"/>
+              <mesh filename="package://aerial_robot_model/urdf/hydrus3/mesh/hydrus3_link4.dae" />
             </geometry>
             <xacro:link_color /> 
           </visual>
@@ -114,7 +114,7 @@
             <visual>
               <origin rpy="0 0 ${pi}" xyz="0 0 0"/>
               <geometry>
-                <mesh filename="package://aerial_robot_model/urdf/hydrus3/mesh/hydrus3_link2.stl" scale=".001 .001 .001"/>
+                <mesh filename="package://aerial_robot_model/urdf/hydrus3/mesh/hydrus3_link2.dae"/>
               </geometry>
               <xacro:link_color /> 
             </visual>
@@ -143,7 +143,7 @@
             <visual>
               <origin rpy="0 0 ${pi}" xyz="0 0 0"/>
               <geometry>
-                <mesh filename="package://aerial_robot_model/urdf/hydrus3/mesh/hydrus3_link3.stl" scale=".001 .001 .001"/>
+                <mesh filename="package://aerial_robot_model/urdf/hydrus3/mesh/hydrus3_link3.dae"/>
               </geometry>
               <xacro:link_color /> 
             </visual>
