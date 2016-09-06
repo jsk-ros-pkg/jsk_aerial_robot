@@ -333,6 +333,7 @@ void TransformController::initParam()
   printf("Q: strong_q_yaw_ is %.3f\n", strong_q_yaw_);
   if (!nh_private_.getParam ("q_yaw_d", q_yaw_d_))
     q_yaw_d_ = 1.0;
+  nh_private_.param("strong_yaw_gain", strong_yaw_gain_, 10.0); 
   printf("Q: q_yaw_d_ is %.3f\n", q_yaw_d_);
   if (!nh_private_.getParam ("q_z", q_z_))
     q_z_ = 1.0;
