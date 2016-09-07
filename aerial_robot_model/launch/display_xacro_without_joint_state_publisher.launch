@@ -1,16 +1,21 @@
 <launch>
 
-  <arg name="model" default="hydra3" />  
+  <arg name="model" default="hydrus3" />
   <arg name="gui" default="False" />
+  <arg name="rviz" default="False" />
+  <arg name="tf_prefix" default="" />
 
   <param name="robot_description"
          command="$(find xacro)/xacro.py '$(find aerial_robot_model)/robots/$(arg model).urdf.xacro'" />
 
-  <node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher" />
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher" >
+    <param name="tf_prefix" value="$(arg tf_prefix)" />
+  </node>
 
 
+  <group if="$(arg rviz)">
   <node name="rviz" pkg="rviz" type="rviz"
         args="-d $(find aerial_robot_model)/launch/rviz_$(env ROS_DISTRO)_config" respawn="true" />
-
+  </group>
 
 </launch>
