@@ -111,7 +111,7 @@ TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_
   rpy_gain_pub_ = nh_.advertise<aerial_robot_msgs::RollPitchYawGain>(rpy_gain_pub_name_, 1);
   yaw_throttle_gain_pub_ = nh_.advertise<aerial_robot_msgs::YawThrottleGain>("yaw_throttle_gain", 1);
 
-  yaw_gain_sub_ = nh_.subscribe<std_msgs::UInt8>("yaw_pos_gain", 1, &TransformController::yawGainCallback, this, ros::TransportHints().tcpNoDelay());
+  yaw_gain_sub_ = nh_.subscribe<std_msgs::UInt8>(yaw_pos_gain_sub_name_, 1, &TransformController::yawGainCallback, this, ros::TransportHints().tcpNoDelay());
 
   if(callback_flag_)
     {// the name callback flag is not correct
@@ -161,6 +161,8 @@ void TransformController::initParam()
   nh_private_.param("tf_pub_rate", tf_pub_rate_, 60.0);
 
   nh_private_.param("rpy_gain_pub_name", rpy_gain_pub_name_, std::string("/rpy_gain"));
+  nh_private_.param("yaw_pos_gain_sub_name", yaw_pos_gain_sub_name_, std::string("/yaw_pos_gain"));
+
 
   nh_private_.param("debug_log", debug_log_, false); 
   nh_private_.param("debug2_log", debug2_log_, false); 
@@ -328,6 +330,9 @@ void TransformController::initParam()
   if (!nh_private_.getParam ("q_pitch_d", q_pitch_d_))
     q_pitch_d_ = 1.0;
   printf("Q: q_pitch_d_ is %.3f\n", q_pitch_d_);
+  if (!nh_private_.getParam ("q_yaw", q_yaw_))
+    q_yaw_ = 1.0;
+  printf("Q: q_yaw_ is %.3f\n", q_yaw_);
   if (!nh_private_.getParam ("strong_q_yaw", strong_q_yaw_))
     strong_q_yaw_ = 1.0;
   printf("Q: strong_q_yaw_ is %.3f\n", strong_q_yaw_);

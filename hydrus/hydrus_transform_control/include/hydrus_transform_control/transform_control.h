@@ -214,6 +214,7 @@ private:
   std::vector<int> propeller_order_;
 
   std::string rpy_gain_pub_name_;
+  std::string yaw_pos_gain_sub_name_;
 
   //dynamics config
   double m_f_rate_; //moment / force rate

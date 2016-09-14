@@ -47,6 +47,7 @@ q_pitch_d: 20.0  #  20
 q_pitch_i: 10.0 #  20
 
 q_yaw: 1 # 10 
+strong_q_yaw: 10.0 # 10 
 q_yaw_d: 10.0 #  10
 q_yaw_i: 1 # 1
 
@@ -62,3 +63,5 @@ r4: 1.0
 dist_thre: 0.04 # 0.04 is enough to calculate the planning, resulting in 0.07 ~ 0.08
 f_max: 1000000.0#8.2
 f_min: 0.0#2.0
+
+yaw_pos_gain_sub_name: /velocity_control_gain_change
