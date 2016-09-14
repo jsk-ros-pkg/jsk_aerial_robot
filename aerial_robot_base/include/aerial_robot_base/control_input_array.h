@@ -65,7 +65,7 @@ class FlightCtrlInput
       {
         for(int i = 0; i < motor_num_; i++)
           {
-            float tmp =  throttle_[i]  + ff_value[i];
+            float tmp = throttle_[i] + yaw_[i] + ff_value[i];
 
             if(tmp < 0)
               {
