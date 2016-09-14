@@ -120,14 +120,14 @@ void RigidEstimator::statesBroadcast()
   tf::Quaternion q;
   if(state_mode_ == GROUND_TRUTH)
     {
-      q.setEuler(getGTState(YAW_W_B, 0), getGTState(PITCH_W, 0), getGTState(ROLL_W, 0));
+      q.setRPY(getGTState(ROLL_W, 0), getGTState(PITCH_W, 0), getGTState(YAW_W_B, 0));
       states.twist.twist.angular.x = getGTState(ROLL_W, 1);
       states.twist.twist.angular.y = getGTState(PITCH_W, 1);
       states.twist.twist.angular.z = getGTState(YAW_W_B, 1);
     }
   if(state_mode_ == EGOMOTION_ESTIMATE)
     {
-      q.setEuler(getEEState(YAW_W_B, 0), getEEState(PITCH_W, 0), getEEState(ROLL_W, 0));
+      q.setRPY(getEEState(ROLL_W, 0), getEEState(PITCH_W, 0), getEEState(YAW_W_B, 0));
       states.twist.twist.angular.x = getEEState(ROLL_W, 1);
       states.twist.twist.angular.y = getEEState(PITCH_W, 1);
       states.twist.twist.angular.z = getEEState(YAW_W_B, 1);
