@@ -59,7 +59,7 @@ public:
   double f_pwm_offset_;
   double m_f_rate_;
   double pwm_rate_; //percentage
-
+  double force_landing_pwm_; //pwm
   uint8_t state_mode_;
 
 };
@@ -153,7 +153,8 @@ class PidController : public FlightController
  double i_enable_limit_roll_;
 
   //*** pitch and roll
-  double xy_vel_weak_rate_;
+ std::string xy_vel_weak_gain_sub_name_;
+ double xy_vel_weak_rate_;
 
  //**** yaw
  std::vector<double> pos_p_gain_yaw_;

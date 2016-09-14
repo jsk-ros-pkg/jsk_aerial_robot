@@ -47,6 +47,10 @@ FlightController::FlightController(ros::NodeHandle nh,
     pwm_rate_ = 1; //1800/100.0;
   printf("%s: pwm_rate_ is %f\n", ns.c_str(), pwm_rate_);
 
+  if (!motor_info_node.getParam ("force_landing_pwm", force_landing_pwm_))
+    force_landing_pwm_ = 0.75; //1500;
+  printf("%s: force_landing_pwm_ is %f\n", ns.c_str(), force_landing_pwm_);
+
   if (!nhp_.getParam ("feedforward_flag", feedforward_flag_))
     feedforward_flag_ = false;
   printf("%s: feedforward_flag_ is %s\n", nhp_.getNamespace().c_str(), (feedforward_flag_)?"true":"false");
@@ -109,9 +113,7 @@ PidController::PidController(ros::NodeHandle nh,
   //subscriber
   four_axis_gain_sub_ = nh_.subscribe<aerial_robot_msgs::YawThrottleGain>("/yaw_throttle_gain", 1, &PidController::yawThrottleGainCallback, this, ros::TransportHints().tcpNoDelay());
   /* for weak control for xy velocirt movement? necessary */
-  xy_vel_weak_gain_sub_ = nh_.subscribe<std_msgs::UInt8>("xy_vel_weak_gain", 1, &PidController::xyVelWeakGainCallback, this, ros::TransportHints().tcpNoDelay());
-  
-
+  xy_vel_weak_gain_sub_ = nh_.subscribe<std_msgs::UInt8>(xy_vel_weak_gain_sub_name_, 1, &PidController::xyVelWeakGainCallback, this, ros::TransportHints().tcpNoDelay());
   //dynamic reconfigure server
   xy_pid_server_ = new dynamic_reconfigure::Server<aerial_robot_base::XYPidControlConfig>(ros::NodeHandle(nhp_, "pitch"));
   dynamic_reconf_func_xy_pid_ = boost::bind(&PidController::cfgXYPidCallback, this, _1, _2);
@@ -197,6 +199,7 @@ void PidController::pidFunction()
           motor_info_msg.f_pwm_rate = f_pwm_rate_;
           motor_info_msg.m_f_rate = m_f_rate_;
           motor_info_msg.pwm_rate = pwm_rate_;
+          motor_info_msg.force_landing_pwm = force_landing_pwm_;
           motor_info_pub_.publish(motor_info_msg);
         }
       return;
@@ -316,6 +319,7 @@ void PidController::pidFunction()
                   std_msgs::UInt8 integration_cmd;
                   integration_cmd.data = navigator_->ROS_INTEGRATE_CMD;
                   navigator_->flight_config_pub_.publish(integration_cmd);
+                  ROS_WARN("start rp integration");
                 }
             }
 
@@ -939,6 +943,9 @@ void PidController::rosParamInit(ros::NodeHandle nh)
   printf("%s: pos_d_limit_ is %f\n", roll_ns.c_str(), pos_d_limit_roll_);
 
   //**** pitch & roll
+  if (!nh.getParam ("xy_vel_weak_gain_sub_name", xy_vel_weak_gain_sub_name_))
+    xy_vel_weak_gain_sub_name_ = std::string("xy_vel_weak_gain"); //20%
+  printf("xy_vel_weak_gain_sub_name_ is %s\n", xy_vel_weak_gain_sub_name_.c_str());
   if (!nh.getParam ("xy_vel_weak_rate", xy_vel_weak_rate_))
     xy_vel_weak_rate_ = 0.2; //20%
   printf("xy_vel_weak_rate_ is %f\n", xy_vel_weak_rate_);
