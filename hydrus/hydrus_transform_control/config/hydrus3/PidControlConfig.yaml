@@ -17,11 +17,11 @@ controller/throttle/pos_d_limit: 9.0
 controller/throttle/const_i_ctrl_thre_land: -0.3
 
 # pitch [rad]
-controller/pitch/pos_p_gain: 0.2 #0.12 #70 * PI / 10 / 180
-controller/pitch/pos_i_gain: 0.01 #5 * PI / 10 / 180
+controller/pitch/pos_p_gain: 0.3 #0.12 #70 * PI / 10 / 180
+controller/pitch/pos_i_gain: 0.03 #
 controller/pitch/pos_i_gain_hover: 0.005 #1.625 * PI / 10 / 180
-controller/pitch/pos_d_gain: 0.52 #300  * PI / 10 / 180
-controller/pitch/vel_p_gain: 0.52 #300  * PI / 10 / 180
+controller/pitch/pos_d_gain: 0.52 #0.4
+controller/pitch/vel_p_gain: 0.52 #0.4
 controller/pitch/vel_i_gain: 0.005 #1.625 * PI / 10 / 180
 controller/pitch/pos_limit: 0.3  # 17[deg]
 controller/pitch/pos_p_limit: 0.2 
@@ -31,8 +31,8 @@ controller/pitch/offset: 0
 
 
 #  roll [rad]
-controller/roll/pos_p_gain: 0.2 #0.12
-controller/roll/pos_i_gain: 0.01
+controller/roll/pos_p_gain: 0.3 #0.12
+controller/roll/pos_i_gain: 0.03
 controller/roll/pos_i_gain_hover: 0.005
 controller/roll/pos_d_gain: 0.52
 controller/roll/vel_p_gain: 0.52
