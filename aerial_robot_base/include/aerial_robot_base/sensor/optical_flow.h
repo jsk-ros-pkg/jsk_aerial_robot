@@ -107,7 +107,7 @@ namespace sensor_plugin
           return;
         }
 
-      //**** Optical flow によるmeasuring flag のenable化
+      //**** Optical flow によるmeasuring flag のinit enable化
       if(init_flag)
         {
           if(estimate_mode_ & (1 << EGOMOTION_ESTIMATION_MODE))
@@ -235,8 +235,27 @@ namespace sensor_plugin
                 }
               sensor_fusion_flag_ = true;
             }
+          else
+            {
+              /* the takeoff phase before reach the hover point */
+              /* the velocity should not below than 0 */
+              if(estimate_mode_ & (1 << EGOMOTION_ESTIMATION_MODE))
+                {
+                  if(estimator_->getEEState(BasicEstimator::Z_W, 1) < 0)
+                    estimator_->setEEState(BasicEstimator::Z_W, 1, 0);
+                  if(estimator_->getEEState(BasicEstimator::Z_W, 0) < 0)
+                    estimator_->setEEState(BasicEstimator::Z_W, 0, 0);
+                }
+              if(estimate_mode_ & (1 << EXPERIMENT_MODE))
+                {
+                  if(estimator_->getEXState(BasicEstimator::Z_W, 1) < 0)
+                    estimator_->setEXState(BasicEstimator::Z_W, 1, 0);
+                  if(estimator_->getEXState(BasicEstimator::Z_W, 0) < 0)
+                    estimator_->setEXState(BasicEstimator::Z_W, 0, 0);
+                }
+            }
         }
-      else 
+      else
         {
           if(estimator_->getLandingMode() &&
              prev_raw_pos_z < start_upper_thre_ &&
