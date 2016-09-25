@@ -32,6 +32,23 @@
 #include <boost/thread/mutex.hpp>
 #include <boost/thread.hpp>
 
+//* for dynamic reconfigure
+#include <dynamic_reconfigure/server.h>
+#include <hydrus_transform_control/LQIConfig.h>
+#define LQI_GAIN_FLAG 0
+#define LQI_RP_P_GAIN 1
+#define LQI_RP_I_GAIN 2
+#define LQI_RP_D_GAIN 3
+#define LQI_Y_P_GAIN 4
+#define LQI_Y_I_GAIN 5
+#define LQI_Y_D_GAIN 6
+#define LQI_Z_P_GAIN 7
+#define LQI_Z_I_GAIN 8
+#define LQI_Z_D_GAIN 9
+
+
+
+
 class ElementModel{
 public:
   ElementModel(){}
@@ -267,6 +284,9 @@ private:
   void cogCoordPublish();
   void initParam();
 
+  //dynamic reconfigure
+  void cfgLQICallback(hydrus_transform_control::LQIConfig &config, uint32_t level);
+
   //lqi
   boost::thread lqi_thread_;
   bool lqi_flag_;
@@ -314,6 +334,9 @@ private:
   uint8_t lqi_mode_;
 
 
+  //dynamic reconfigure
+  dynamic_reconfigure::Server<hydrus_transform_control::LQIConfig>* lqi_server_;
+  dynamic_reconfigure::Server<hydrus_transform_control::LQIConfig>::CallbackType dynamic_reconf_func_lqi_;
 
 };
 

@@ -113,6 +113,11 @@ TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_
 
   yaw_gain_sub_ = nh_.subscribe<std_msgs::UInt8>(yaw_pos_gain_sub_name_, 1, &TransformController::yawGainCallback, this, ros::TransportHints().tcpNoDelay());
 
+  //dynamic reconfigure server
+  lqi_server_ = new dynamic_reconfigure::Server<hydrus_transform_control::LQIConfig>(nh_private_);
+  dynamic_reconf_func_lqi_ = boost::bind(&TransformController::cfgLQICallback, this, _1, _2);
+  lqi_server_->setCallback(dynamic_reconf_func_lqi_);
+
   if(callback_flag_)
     {// the name callback flag is not correct
       realtime_control_sub_ = nh_.subscribe<std_msgs::UInt8>("realtime_control", 1, &TransformController::realtimeControlCallback, this, ros::TransportHints().tcpNoDelay());
@@ -1360,3 +1365,58 @@ void TransformController::yawGainCallback(const std_msgs::UInt8ConstPtr & msg)
     }
   std::cout << "Q12:"  << std::endl << Q12_ << std::endl;
 }
+
+
+void TransformController::cfgLQICallback(hydrus_transform_control::LQIConfig &config, uint32_t level)
+{
+  if(config.lqi_gain_flag)
+    {
+      printf("LQI Param:");
+      switch(level)
+        {
+        case LQI_RP_P_GAIN:
+          q_roll_ = config.q_roll;
+          q_pitch_ = config.q_roll;
+          printf("change the gain of lqi roll and pitch p gain: %f\n", q_roll_);
+          break;
+        case LQI_RP_I_GAIN:
+          q_roll_i_ = config.q_roll_i;
+          q_pitch_i_ = config.q_roll_i;
+          printf("change the gain of lqi roll and pitch i gain: %f\n", q_roll_i_);
+          break;
+        case LQI_RP_D_GAIN:
+          q_roll_d_ = config.q_roll_d;
+          q_pitch_d_ = config.q_roll_d;
+          printf("change the gain of lqi roll and pitch d gain:%f\n", q_roll_d_);
+          break;
+        case LQI_Y_P_GAIN:
+          q_yaw_ = config.q_yaw;
+          printf("change the gain of lqi yaw p gain:%f\n", q_yaw_);
+          break;
+        case LQI_Y_I_GAIN:
+          q_yaw_i_ = config.q_yaw_i;
+          printf("change the gain of lqi yaw i gain:%f\n", q_yaw_i_);
+          break;
+        case LQI_Y_D_GAIN:
+          q_yaw_d_ = config.q_yaw_d;
+          printf("change the gain of lqi yaw d gain:%f\n", q_yaw_d_);
+          break;
+        case LQI_Z_P_GAIN:
+          q_z_ = config.q_z;
+          printf("change the gain of lqi z p gain:%f\n", q_z_);
+          break;
+        case LQI_Z_I_GAIN:
+          q_z_i_ = config.q_z_i;
+          printf("change the gain of lqi z i gain:%f\n", q_z_i_);
+          break;
+        case LQI_Z_D_GAIN:
+          q_z_d_ = config.q_z_d;
+          printf("change the gain of lqi z d gain:%f\n", q_z_d_);
+          break;
+        default :
+          printf("\n");
+          break;
+        }
+    }
+}
+

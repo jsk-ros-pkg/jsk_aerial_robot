@@ -10,12 +10,17 @@ find_package(catkin REQUIRED COMPONENTS
   dynamixel_controllers
   tf_conversions
   cmake_modules
+  dynamic_reconfigure
 )
 
 
 find_package(Eigen REQUIRED)
 include_directories(${EIGEN_INCLUDE_DIRS})
 add_definitions(${EIGEN_DEFINITIONS})
+
+
+generate_dynamic_reconfigure_options(
+  cfg/LQI.cfg)
 
 
 catkin_package(
