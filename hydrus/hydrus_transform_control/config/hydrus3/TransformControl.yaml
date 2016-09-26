@@ -46,10 +46,10 @@ q_pitch: 200.0  #  100
 q_pitch_d: 20.0  #  20
 q_pitch_i: 10.0 #  20
 
-q_yaw: 1 # 10 
+q_yaw: 50 # 10 
 strong_q_yaw: 10.0 # 10 
-q_yaw_d: 10.0 #  10
-q_yaw_i: 1 # 1
+q_yaw_d: 50.0 #  10
+q_yaw_i: 0.4 # 1
 
 q_z: 10.0
 q_z_d: 10.0
