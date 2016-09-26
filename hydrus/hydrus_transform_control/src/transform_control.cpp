@@ -1417,6 +1417,9 @@ void TransformController::cfgLQICallback(hydrus_transform_control::LQIConfig &co
           printf("\n");
           break;
         }
+      Eigen::VectorXd  q12_diagonal(12);
+      q12_diagonal << q_roll_,q_roll_d_,q_pitch_,q_pitch_d_,q_yaw_,q_yaw_d_,q_z_,q_z_d_, q_roll_i_,q_pitch_i_,q_yaw_i_,q_z_i_;
+      Q12_ = q12_diagonal.asDiagonal();
     }
 }
 
