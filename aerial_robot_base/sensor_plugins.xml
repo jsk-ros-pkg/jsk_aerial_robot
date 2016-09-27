@@ -27,6 +27,8 @@
     <description>RTK GPS sensor plugin.</description>
   </class>
 
-
+  <class name="sensor_plugin/barometer" type="sensor_plugin::Barometer" base_class_type="sensor_base_plugin::SensorBase">
+    <description>Barometer plugin.</description>
+  </class>
 
 </library>

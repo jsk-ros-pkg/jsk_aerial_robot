@@ -70,6 +70,10 @@ namespace sensor_plugin
 
       cog_offset_angle_ = 0;
 
+
+      /* set the barometer to the mode of sensor-fusion mode(range-sensor dominant) */
+      estimator_->setHeightEstimateMode(BasicEstimator::WITHOUT_BARO_MODE);
+
     }
 
     ~Mocap() {}

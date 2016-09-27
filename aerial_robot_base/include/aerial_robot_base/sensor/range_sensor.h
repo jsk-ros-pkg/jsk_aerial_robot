@@ -29,6 +29,9 @@ namespace sensor_plugin
 
       height_offset_ = 0;
 
+      /* set the barometer to the mode of sensor-fusion mode(range-sensor dominant) */
+      //estimator_->setRangeSenorFlag(true);
+      estimator_->setHeightEstimateMode(BasicEstimator::WITHOUT_BARO_MODE);
     }
 
     ~RangeSensor() {}
@@ -97,6 +100,17 @@ namespace sensor_plugin
             }
           return;
         }
+
+      /* check the height of the sensor to switch the estimate mode */
+      if(range_msg->range > range_msg->max_range)
+        estimator_->setHeightEstimateMode(BasicEstimator::ONLY_BARO_MODE);
+      else
+        estimator_->setHeightEstimateMode(BasicEstimator::WITHOUT_BARO_MODE);
+
+      /* TODO: we have to consider more deeply, since if we use several sensor,
+         the estimate mode should be more comprecated. */
+      if(estimator_->getHeightEstimateMode() == BasicEstimator::ONLY_BARO_MODE)
+        return;
 
       //**** 高さ方向情報の更新
       raw_pos_z_ = range_msg->range - height_offset_;

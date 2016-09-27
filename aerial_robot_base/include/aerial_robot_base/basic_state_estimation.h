@@ -24,27 +24,29 @@ class BasicEstimator
     full_states_pub_ = nh_.advertise<aerial_robot_base::States>("/uav/full_states", 1);
 
     landing_mode_flag_ = false;
-      landed_flag_ = false;
-      un_descend_flag_ = false;
 
-      gt_state_.resize(9);
-      ee_state_.resize(9);
-      ex_state_.resize(9);
+    landed_flag_ = false;
+    un_descend_flag_ = false;
 
-      for(int i = 0; i < 9; i ++)
-        {
-          for(int j = 0; j < 3; j++)
-            {            
-              (gt_state_[i])[j] = 0; //ground truth
-              (ee_state_[i])[j] = 0; //egomtion estimate
-              (ex_state_[i])[j] = 0; //experiment
-            }
-        }
+    gt_state_.resize(9);
+    ee_state_.resize(9);
+    ex_state_.resize(9);
 
-      state_pos_z_offset_ = 1.0; //1m
+    for(int i = 0; i < 9; i ++)
+      {
+        for(int j = 0; j < 3; j++)
+          {            
+            (gt_state_[i])[j] = 0; //ground truth
+            (ee_state_[i])[j] = 0; //egomtion estimate
+            (ex_state_[i])[j] = 0; //experiment
+          }
+      }
 
-      sys_stamp_ = ros::Time::now();//removed this
+    state_pos_z_offset_ = 1.0; //1m
 
+    sys_stamp_ = ros::Time::now();//removed this
+
+    setHeightEstimateMode(ONLY_BARO_MODE);
     }
 
 
@@ -124,8 +126,15 @@ class BasicEstimator
   inline int getStateMode() {return state_mode_;}
   inline void setStateMode(int state_mode) {state_mode_ = state_mode;}
 
+  /* the height estimation related funrction */
+  const static uint8_t ONLY_BARO_MODE = 0; //we estimate the height only based the baro, but the bias of baro is constant(keep the last eistamted value)
+  const static uint8_t WITH_BARO_MODE = 1; //we estimate the height using range sensor etc. without the baro, but we are estimate the bias of baro
+  const static uint8_t WITHOUT_BARO_MODE = 2; //we estimate the height using range sensor etc. with the baro, also estimating the bias of baro
 
- protected:  
+  inline void setHeightEstimateMode(uint8_t height_estimate_mode){ height_estimate_mode_ = height_estimate_mode;}
+  inline int  getHeightEstimateMode(){return height_estimate_mode_;}
+
+ protected:
 
   ros::NodeHandle nh_;
   ros::NodeHandle nhp_;
@@ -165,6 +174,8 @@ class BasicEstimator
   bool landing_mode_flag_;
   bool landed_flag_;
   bool un_descend_flag_;
+  uint8_t height_estimate_mode_;
+
 };
 
 

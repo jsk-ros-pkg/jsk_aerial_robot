@@ -44,7 +44,9 @@ add_message_files(FILES
 generate_messages(DEPENDENCIES std_msgs geometry_msgs)
 
 generate_dynamic_reconfigure_options(
-  cfg/XYPidControl.cfg)
+  cfg/XYPidControl.cfg
+  cfg/KalmanFilterBaroBias.cfg
+  )
 
 catkin_package(
   INCLUDE_DIRS include
@@ -66,6 +68,9 @@ include_directories(
 ## pluginlib_tutorials library
 add_library(sensor_pluginlib src/sensor_plugin.cpp)
 target_link_libraries(sensor_pluginlib ${catkin_LIBRARIES})
+
+add_library(kf_baro_bias_pluginlib src/kf/baro_bias_plugin.cpp)
+target_link_libraries(kf_baro_bias_pluginlib ${catkin_LIBRARIES})
 
 add_library (aerial_robot_base src/aerial_robot_base.cpp
   src/flight_navigation.cpp

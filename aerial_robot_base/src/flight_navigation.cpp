@@ -633,7 +633,7 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
       //takeoff
       if(joy_msg->buttons[7] == 1 && joy_msg->buttons[13] == 1)
         {
-          if(getStartAble())  
+          if(getStartAble())
             {
               setNaviCommand(TAKEOFF_COMMAND);
               ROS_INFO("Takeoff command");
@@ -822,7 +822,10 @@ void TeleopNavigator::teleopNavigation()
       force_landing_flag_ = false; //is here good?
     }
   else if(getNaviCommand() == TAKEOFF_COMMAND)
-    { //Take OFF Phase
+    { //Takeoff Phase
+      /* set flying flag to true once */
+      if(!estimator_->getFlyingFlag())
+        estimator_->setFlyingFlag(true);
 
       flight_mode_= TAKEOFF_MODE;
 
@@ -843,8 +846,6 @@ void TeleopNavigator::teleopNavigation()
 
       if (convergence_cnt > ctrl_loop_rate_) 
         { //*** 安定収束した 20 ~ 40
-          estimator_->setFlyingFlag(true); //set flying flag for state estimation
-
           if(xy_control_mode_ == POS_WORLD_BASED_CONTROL_MODE)
             {
               convergence_cnt = 0;
