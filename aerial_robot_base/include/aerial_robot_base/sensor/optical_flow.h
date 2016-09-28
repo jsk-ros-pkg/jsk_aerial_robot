@@ -129,6 +129,10 @@ namespace sensor_plugin
                     estimator_->getFuserExperiment(i)->setMeasureFlag();
                 }
             }
+
+	  /* enable the non-descending mode  */
+	  estimator_->setUnDescendMode(true);
+
           init_flag = false;
         }
 
@@ -158,6 +162,9 @@ namespace sensor_plugin
             {//pose init
               //TODO: start flag fresh arm, or use air pressure => refined
               ROS_ERROR("optical flow: start sensor fusion, prev_raw_pos_z : %f", prev_raw_pos_z);
+
+	      /* release the non-descending mode  */
+	      estimator_->setUnDescendMode(false);
 
               if(estimate_mode_ & (1 << EGOMOTION_ESTIMATION_MODE))
                 {
@@ -234,25 +241,6 @@ namespace sensor_plugin
                     }
                 }
               sensor_fusion_flag_ = true;
-            }
-          else
-            {
-              /* the takeoff phase before reach the hover point */
-              /* the velocity should not below than 0 */
-              if(estimate_mode_ & (1 << EGOMOTION_ESTIMATION_MODE))
-                {
-                  if(estimator_->getEEState(BasicEstimator::Z_W, 1) < 0)
-                    estimator_->setEEState(BasicEstimator::Z_W, 1, 0);
-                  if(estimator_->getEEState(BasicEstimator::Z_W, 0) < 0)
-                    estimator_->setEEState(BasicEstimator::Z_W, 0, 0);
-                }
-              if(estimate_mode_ & (1 << EXPERIMENT_MODE))
-                {
-                  if(estimator_->getEXState(BasicEstimator::Z_W, 1) < 0)
-                    estimator_->setEXState(BasicEstimator::Z_W, 1, 0);
-                  if(estimator_->getEXState(BasicEstimator::Z_W, 0) < 0)
-                    estimator_->setEXState(BasicEstimator::Z_W, 0, 0);
-                }
             }
         }
       else

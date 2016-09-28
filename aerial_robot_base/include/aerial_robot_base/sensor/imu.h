@@ -361,6 +361,9 @@ namespace sensor_plugin
                         {
                           temp(0, 0) = (double)acc_zw_non_bias_;
                           axis = BasicEstimator::Z_W;
+			  /* considering the undescend mode, such as the phase of takeoff, the velocity should not below than 0*/
+			  if(estimator_->getUnDescendMode() && (estimator_->getFuserEgomotion(i)->getEstimateState())(1,0) < 0)
+			    estimator_->getFuserEgomotion(i)->resetState();  
                         }
                       estimator_->getFuserEgomotion(i)->prediction(temp);
                     }
@@ -390,8 +393,13 @@ namespace sensor_plugin
                         {
                           temp2(0, 0) = (double)acc_zw_;
                           axis = BasicEstimator::Z_W;
+			  /* considering the undescend mode, such as the phase of takeoff, the velocity should not below than 0*/
+			  if(estimator_->getUnDescendMode() && (estimator_->getFuserEgomotion(i)->getEstimateState())(1,0) < 0)
+			    estimator_->getFuserEgomotion(i)->resetState();  
+
                         }
                       estimator_->getFuserEgomotion(i)->prediction(temp2);
+
                     }
                   egomotion_state = estimator_->getFuserEgomotion(i)->getEstimateState();
                   estimator_->setEEState(axis, 0, egomotion_state(0,0));
@@ -399,6 +407,7 @@ namespace sensor_plugin
                 }
             }
           estimator_->setEEState(BasicEstimator::Z_W, 2, acc_zw_non_bias_);
+
 
           if(estimate_mode_ & (1 << EXPERIMENT_MODE))
             {
@@ -454,6 +463,9 @@ namespace sensor_plugin
                         {
                           temp(0, 0) = (double)acc_zw_non_bias_;
                           axis = BasicEstimator::Z_W;
+			  /* considering the undescend mode, such as the phase of takeoff, the velocity should not below than 0*/
+			  if(estimator_->getUnDescendMode() && (estimator_->getFuserEgomotion(i)->getEstimateState())(1,0) < 0)
+			    estimator_->getFuserEgomotion(i)->resetState();  
                         }
                       estimator_->getFuserExperiment(i)->prediction(temp);
                     }
@@ -483,6 +495,9 @@ namespace sensor_plugin
                         {
                           temp2(0, 0) = (double)acc_zw_;
                           axis = BasicEstimator::Z_W;
+			  /* considering the undescend mode, such as the phase of takeoff, the velocity should not below than 0*/
+			  if(estimator_->getUnDescendMode() && (estimator_->getFuserEgomotion(i)->getEstimateState())(1,0) < 0)
+			    estimator_->getFuserEgomotion(i)->resetState();  
                         }
                       estimator_->getFuserExperiment(i)->prediction(temp2);
                     }

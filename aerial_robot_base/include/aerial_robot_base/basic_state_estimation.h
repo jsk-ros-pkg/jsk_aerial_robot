@@ -25,6 +25,7 @@ class BasicEstimator
 
     landing_mode_flag_ = false;
       landed_flag_ = false;
+      un_descend_flag_ = false;
 
       gt_state_.resize(9);
       ee_state_.resize(9);
@@ -102,6 +103,8 @@ class BasicEstimator
   // landed flag (acc_z check, ground shock)
   virtual bool getLandedFlag() {  return  landed_flag_;}
   virtual void setLandedFlag(bool flag){  landed_flag_ = flag;}
+  inline void setUnDescendMode(bool flag){un_descend_flag_ = flag;  }
+  inline bool getUnDescendMode(){return un_descend_flag_; }
 
   inline boost::shared_ptr<kf_base_plugin::KalmanFilter> getFuserEgomotion(int no) { return fuser_egomotion_[no];}
   inline boost::shared_ptr<kf_base_plugin::KalmanFilter> getFuserExperiment(int no) { return fuser_experiment_[no];}
@@ -157,7 +160,7 @@ class BasicEstimator
   std::vector< boost::shared_ptr<kf_base_plugin::KalmanFilter> > fuser_experiment_;
   bool landing_mode_flag_;
   bool landed_flag_;
-
+  bool un_descend_flag_;
 };
 
 
