@@ -9,7 +9,7 @@
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include <iostream>
-
+#include <aerial_robot_msgs/BoolFlag.h>
 #include <aerial_robot_base/basic_state_estimation.h>
 #include <kalman_filter/kf_base_plugin.h>
 #include <kalman_filter/digital_filter.h>
@@ -34,13 +34,27 @@ namespace sensor_base_plugin
 
     ros::NodeHandle nh_;
     ros::NodeHandle nhp_;
+    ros::ServiceServer estimate_flag_service_;
     BasicEstimator* estimator_;
     int estimate_mode_;
+
+    double sensor_hz_; // hz  of the sensor
+    vector<int> estimate_indices_; // the fuser_egomation index
+    vector<int> experiment_indices_; // the fuser_experiment indices
+
+    int estimate_flag_;
 
     SensorBase(){}
 
     void baseRosParamInit()
     {
+      estimate_flag_ = true;
+      sensor_hz_ = 0;
+      estimate_indices_.resize(0);
+      experiment_indices_.resize(0);
+
+      estimate_flag_service_ = nh_.advertiseService("estimate_flag", &SensorBase::estimateFlag, this);
+
       std::string ns = nhp_.getNamespace();
       ROS_WARN("load sensor plugin %s:", ns.c_str());
       if (!nhp_.getParam ("estimate_mode", estimate_mode_))
@@ -49,6 +63,15 @@ namespace sensor_base_plugin
 
     }
 
+    virtual void estimateProcess(){};
+
+    bool estimateFlag(aerial_robot_msgs::BoolFlag::Request  &req,
+                      aerial_robot_msgs::BoolFlag::Response &res)
+    {
+      std::string ns = nhp_.getNamespace();
+      estimate_flag_ = req.flag;
+      ROS_INFO("%s: %s", ns.c_str(), estimate_flag_?std::string("enable the estimate flag").c_str():std::string("disable the estimate flag").c_str());
+    }
 
   };
 

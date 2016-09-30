@@ -11,6 +11,7 @@
 
 #include <Eigen/Core>
 
+#include <std_msgs/UInt8.h>
 #include <kalman_filter/kf_base_plugin.h>
 #include <pluginlib/class_loader.h>
 
@@ -22,7 +23,9 @@ class BasicEstimator
   {
     state_pub_ = nh_.advertise<nav_msgs::Odometry>("/uav/state", 1);
     full_states_pub_ = nh_.advertise<aerial_robot_base::States>("/uav/full_states", 1);
+    estimate_height_mode_sub_ = nh_.subscribe<std_msgs::UInt8>("/estimate_height_mode", 1, &BasicEstimator::heightEstimateModeCallback, this, ros::TransportHints().tcpNoDelay());
 
+    flying_flag_ = false;
     landing_mode_flag_ = false;
 
     landed_flag_ = false;
@@ -35,7 +38,7 @@ class BasicEstimator
     for(int i = 0; i < 9; i ++)
       {
         for(int j = 0; j < 3; j++)
-          {            
+          {
             (gt_state_[i])[j] = 0; //ground truth
             (ee_state_[i])[j] = 0; //egomtion estimate
             (ex_state_[i])[j] = 0; //experiment
@@ -47,8 +50,8 @@ class BasicEstimator
     sys_stamp_ = ros::Time::now();//removed this
 
     setHeightEstimateMode(ONLY_BARO_MODE);
-    }
-
+    landing_height_ = 0;
+  }
 
   virtual ~BasicEstimator(){}
 
@@ -108,8 +111,14 @@ class BasicEstimator
   // landed flag (acc_z check, ground shock)
   virtual bool getLandedFlag() {  return  landed_flag_;}
   virtual void setLandedFlag(bool flag){  landed_flag_ = flag;}
+
+  /* when takeoff, should use the undescend mode be true */
   inline void setUnDescendMode(bool flag){un_descend_flag_ = flag;  }
   inline bool getUnDescendMode(){return un_descend_flag_; }
+
+  /* landing height is set for landing to different terrain */
+  virtual void setLandingHeight(float landing_height){ landing_height_ = landing_height;}
+  virtual float getLandingHeight(){ return landing_height_;}
 
   inline boost::shared_ptr<kf_base_plugin::KalmanFilter> getFuserEgomotion(int no) { return fuser_egomotion_[no];}
   inline boost::shared_ptr<kf_base_plugin::KalmanFilter> getFuserExperiment(int no) { return fuser_experiment_[no];}
@@ -132,13 +141,14 @@ class BasicEstimator
   const static uint8_t WITHOUT_BARO_MODE = 2; //we estimate the height using range sensor etc. with the baro, also estimating the bias of baro
 
   inline void setHeightEstimateMode(uint8_t height_estimate_mode){ height_estimate_mode_ = height_estimate_mode;}
-  inline int  getHeightEstimateMode(){return height_estimate_mode_;}
+  inline int getHeightEstimateMode(){return height_estimate_mode_;}
 
  protected:
 
   ros::NodeHandle nh_;
   ros::NodeHandle nhp_;
   ros::Publisher full_states_pub_, state_pub_;
+  ros::Subscriber estimate_height_mode_sub_;
 
   ros::Time sys_stamp_;
 
@@ -153,7 +163,7 @@ class BasicEstimator
   std::vector< Eigen::Vector3d>  ee_state_; //egomotion estimate in world coord
   std::vector< Eigen::Vector3d>  ex_state_; //experiment in world coord
 
-  float state_pos_z_offset_; 
+  float state_pos_z_offset_;
 
   //tf::TransformBroadcaster* br_;
   boost::shared_ptr< pluginlib::ClassLoader<kf_base_plugin::KalmanFilter> > sensor_fusion_loader_ptr_;
@@ -175,6 +185,14 @@ class BasicEstimator
   bool landed_flag_;
   bool un_descend_flag_;
   uint8_t height_estimate_mode_;
+  float landing_height_; //we have to consider the terrain change during the flight,then the landing height is no longer 0.
+
+  /* force to change the estimate mode */
+  void heightEstimateModeCallback(const std_msgs::UInt8ConstPtr & mode_msg)
+  {
+    height_estimate_mode_ = mode_msg->data;
+    ROS_INFO("change the height estimate mode: %d", height_estimate_mode_);
+  }
 
 };
 

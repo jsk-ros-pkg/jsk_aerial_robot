@@ -27,7 +27,6 @@ namespace sensor_plugin
       baseRosParamInit();
       rosParamInit();
 
-
       if(imu_board_ == D_BOARD)
         {
           imu_sub_ = nh_.subscribe<aerial_robot_msgs::Imu>(imu_topic_name_, 1, boost::bind(&Imu::ImuCallback, this, _1, false)); 
@@ -43,9 +42,7 @@ namespace sensor_plugin
           sub_imu_sub_ = nh_.subscribe<aerial_robot_msgs::Imu>(sub_imu_topic_name_, 1, boost::bind(&Imu::ImuCallback, this, _1, true)); 
         }
 
-
       imu_pub_ = nh_.advertise<aerial_robot_base::ImuData>("data", 2); 
-
 
       acc_xb_ = 0, acc_yb_ = 0, acc_zb_ = 0;
       gyro_xb_ = 0, gyro_yb_ = 0, gyro_zb_ = 0;
@@ -185,12 +182,11 @@ namespace sensor_plugin
       imuDataConverter(imu_stamp_);
     }
 
-
     void imuDataConverter(ros::Time stamp)
     {
       static int bias_calib = 0;
       static ros::Time prev_time;
-      static double hz_calib = 0;
+      static double sensor_hz_ = 0;
       //* calculate accTran
 #if 1 // use x,y for factor4 and z for factor3
       acc_xi_ = (acc_xb_) * cos(pitch_) + 
@@ -208,8 +204,11 @@ namespace sensor_plugin
 #endif
       if(estimator_->getLandingMode() && acc_zw_ > landing_shock_force_)
         {
-          ROS_WARN("imu: touch to ground");
-          estimator_->setLandedFlag(true);
+          if(!estimator_->getLandedFlag())
+            {
+              ROS_WARN("imu: touch to ground");
+              estimator_->setLandedFlag(true);
+            }
         }
 
       /* check whether use imu yaw for control and estimation */
@@ -241,7 +240,7 @@ namespace sensor_plugin
             }
 
           //hz estimation
-          hz_calib += time_interval;
+          sensor_hz_ += time_interval;
 
           //acc bias
           acc_x_bias_ += acc_xi_;
@@ -254,17 +253,17 @@ namespace sensor_plugin
               acc_y_bias_ /= calib_count_;
               acc_z_bias_ /= calib_count_;
 
-              hz_calib /= (calib_count_ - 1 );
+              sensor_hz_ /= (calib_count_ - 1 );
 
-              ROS_WARN("accX bias is %f, accY bias is %f, accZ bias is %f, hz is %f", acc_x_bias_, acc_y_bias_, acc_z_bias_, hz_calib);
+              ROS_WARN("accX bias is %f, accY bias is %f, accZ bias is %f, hz is %f", acc_x_bias_, acc_y_bias_, acc_z_bias_, sensor_hz_);
               if(estimate_mode_ & (1 << EGOMOTION_ESTIMATION_MODE))
                 {
                   for(int i = 0; i < estimator_->getFuserEgomotionNo(); i++)
                     {
-                      estimator_->getFuserEgomotion(i)->updateModelFromDt(hz_calib);
+                      estimator_->getFuserEgomotion(i)->updateModelFromDt(sensor_hz_);
 
                       if(estimator_->getFuserEgomotionPluginName(i) == "kalman_filter/kf_pose_vel_acc_bias")
-                        {//temporary
+                        {
                           Eigen::Matrix<double, 2, 1> temp = Eigen::MatrixXd::Zero(2, 1); 
                           temp(1,0) = acc_bias_noise_sigma_;
                           if(estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::X_B))
@@ -317,11 +316,11 @@ namespace sensor_plugin
                 {
                   for(int i = 0; i < estimator_->getFuserExperimentNo(); i++)
                     {
-                      estimator_->getFuserExperiment(i)->updateModelFromDt(hz_calib);
+                      estimator_->getFuserExperiment(i)->updateModelFromDt(sensor_hz_);
 
                       if(estimator_->getFuserExperimentPluginName(i) == "kalman_filter/kf_pose_vel_acc_bias")
                         {//temporary
-                          Eigen::Matrix<double, 2, 1> temp = Eigen::MatrixXd::Zero(2, 1); 
+                          Eigen::Matrix<double, 2, 1> temp = Eigen::MatrixXd::Zero(2, 1);
                           temp(1,0) = acc_bias_noise_sigma_;
                           if(estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::X_B))
                             {
@@ -557,9 +556,9 @@ namespace sensor_plugin
                         {
                           temp2(0, 0) = (double)acc_zw_;
                           axis = BasicEstimator::Z_W;
-			  /* considering the undescend mode, such as the phase of takeoff, the velocity should not below than 0*/
-			  if(estimator_->getUnDescendMode() && (estimator_->getFuserEgomotion(i)->getEstimateState())(1,0) < 0)
-			    estimator_->getFuserEgomotion(i)->resetState();  
+                          /* considering the undescend mode, such as the phase of takeoff, the velocity should not below than 0*/
+                          if(estimator_->getUnDescendMode() && (estimator_->getFuserEgomotion(i)->getEstimateState())(1,0) < 0)
+                            estimator_->getFuserEgomotion(i)->resetState();  
                         }
                       estimator_->getFuserExperiment(i)->prediction(temp2);
                     }

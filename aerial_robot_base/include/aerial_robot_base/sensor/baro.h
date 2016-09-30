@@ -51,6 +51,9 @@ namespace sensor_plugin
     ros::Subscriber barometer_sub_;
     ros::Publisher barometer_pub_;
 
+    aerial_robot_base::States baro_data_;
+    aerial_robot_base::State z_state_;
+
     std::string barometer_sub_name_;
     double baro_noise_sigma_, baro_bias_noise_sigma_;
 
@@ -93,8 +96,8 @@ namespace sensor_plugin
 
       /* the true initial phase for baro based estimattion for inflight state */
       /* since the value of pressure will decrease during the rising of the propeller rotation speed */
-      if(estimator_->getFlyingFlag() && high_filtered_vel_z_ > 0)
-        {
+      if(estimator_->getFlyingFlag() && high_filtered_vel_z_ > 0.1 && !inflight_state_)
+        {//the inflight state should be with the velocity of 0.1(up)
           inflight_state_ = true;
           ROS_WARN("barometer: start the inflight barometer height estimation");
 
@@ -102,9 +105,38 @@ namespace sensor_plugin
           Eigen::Matrix<double, 1, 1> temp = Eigen::MatrixXd::Zero(1, 1); 
           temp(0,0) = baro_bias_noise_sigma_;
           baro_bias_kf_->setInputSigma(temp);
+          baro_bias_kf_->setInputFlag();
           baro_bias_kf_->setMeasureFlag();
           baro_bias_kf_->setInitState(-pos_z_, 0);
         }
+
+      if(inflight_state_) estimateProcess();
+
+      //publish
+      baro_data_.header.stamp = baro_msg->stamp;
+      z_state_.id = "z";
+      z_state_.raw_pos = raw_pos_z_;
+      z_state_.raw_vel = raw_vel_z_;
+      z_state_.pos = pos_z_;
+      z_state_.vel = vel_z_;
+      z_state_.reserves.resize(0);
+      z_state_.reserves.push_back(high_filtered_pos_z_);
+      z_state_.reserves.push_back(high_filtered_vel_z_);
+      z_state_.reserves.push_back(estimator_->getEEState(BasicEstimator::Z_W, 0) - pos_z_);
+      baro_data_.states.resize(0);
+      baro_data_.states.push_back(z_state_);
+      barometer_pub_.publish(baro_data_);
+
+      //update
+      previous_secs = current_secs;
+      prev_raw_pos_z_ = raw_pos_z_;
+      prev_pos_z_ = pos_z_;
+      prev_high_filtered_pos_z_ = high_filtered_pos_z_;
+    }
+
+    void estimateProcess()
+    {
+      if(!estimate_flag_) return;
 
       /* the estimate phase: bias or height estimate */
       Eigen::Matrix<double, 1, 1> sigma_temp = Eigen::MatrixXd::Zero(1, 1);
@@ -134,25 +166,8 @@ namespace sensor_plugin
                       estimator_->getFuserEgomotion(i)->correction(temp);
 
                       /* set the state */
-                      if(estimator_->getFuserEgomotionPluginName(i) == "kalman_filter/kf_pose_vel_acc_bias")
-                        {
-                          if((estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::Z_W))) 
-                            {
-                              kfb_z_state = estimator_->getFuserEgomotion(i)->getEstimateState();
-                              estimator_->setEEState(BasicEstimator::Z_W, 0, kfb_z_state(0,0));
-                              estimator_->setEEState(BasicEstimator::Z_W, 1, kfb_z_state(1,0));
-                            }
-                        }
-                      if(estimator_->getFuserEgomotionPluginName(i) == "kalman_filter/kf_pose_vel_acc")
-                        {
-                          if((estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::Z_W))) 
-                            {
-                              kf_z_state = estimator_->getFuserEgomotion(i)->getEstimateState();
-                              estimator_->setEEState(BasicEstimator::Z_W, 0, kf_z_state(0,0));
-                              estimator_->setEEState(BasicEstimator::Z_W, 1, kf_z_state(1,0));
-                            }
-                        }
-
+                      estimator_->setEEState(BasicEstimator::Z_W, 0, (estimator_->getFuserEgomotion(i)->getEstimateState())(0,0));
+                      estimator_->setEEState(BasicEstimator::Z_W, 1, (estimator_->getFuserEgomotion(i)->getEstimateState())(1,0));
                     }
                 }
             }
@@ -173,20 +188,14 @@ namespace sensor_plugin
                       temp(0, 0) = pos_z_ + (baro_bias_kf_->getEstimateState())(0,0);
                       estimator_->getFuserExperiment(i)->correction(temp);
 
-                      if(estimator_->getFuserExperimentPluginName(i) == "kalman_filter/kf_pose_vel_acc")
-                        {
-                          if((estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::Z_W))) 
-                            {
-                              kf_z_state = estimator_->getFuserExperiment(i)->getEstimateState();
-                              estimator_->setEXState(BasicEstimator::Z_W, 0, kf_z_state(0,0));
-                              estimator_->setEXState(BasicEstimator::Z_W, 1, kf_z_state(1,0));
-                            }
-                        }
+                      estimator_->setEXState(BasicEstimator::Z_W, 0, (estimator_->getFuserExperiment(i)->getEstimateState())(0,0));
+                      estimator_->setEXState(BasicEstimator::Z_W, 1,  (estimator_->getFuserExperiment(i)->getEstimateState())(1,0));
                     }
                 }
             }
           break;
         case(BasicEstimator::WITHOUT_BARO_MODE):
+          //baro_bias_kf_->prediction(Eigen::MatrixXd::Zero(1, 1));
           baro_bias_kf_->prediction(Eigen::MatrixXd::Zero(1, 1));
           temp(0, 0) = estimator_->getEEState(BasicEstimator::Z_W, 0) - pos_z_;
           baro_bias_kf_->correction(temp);
@@ -199,36 +208,16 @@ namespace sensor_plugin
           break;
         }
 
-      //publish
-      aerial_robot_base::States baro_data;
-      baro_data.header.stamp = baro_msg->stamp;
-
-      aerial_robot_base::State z_state;
-      z_state.id = "z";
-      z_state.raw_pos = raw_pos_z_;
-      z_state.raw_vel = raw_vel_z_;
-      z_state.pos = pos_z_;
-      z_state.vel = vel_z_;
-      z_state.kf_pos = kf_z_state(0, 0);
-      z_state.kf_vel = kf_z_state(1, 0);
-      z_state.kfb_pos = kfb_z_state(0, 0);
-      z_state.kfb_vel = kfb_z_state(1, 0);
-      z_state.kfb_bias = (baro_bias_kf_->getEstimateState())(0,0);
-      z_state.reserves.push_back(high_filtered_pos_z_);
-      z_state.reserves.push_back(high_filtered_vel_z_);
-      baro_data.states.push_back(z_state);
-      barometer_pub_.publish(baro_data);
-
-      //更新
-      previous_secs = current_secs;
-      prev_raw_pos_z_ = raw_pos_z_;
-      prev_pos_z_ = pos_z_;
-      prev_high_filtered_pos_z_ = high_filtered_pos_z_;
+      z_state_.kf_pos = kf_z_state(0, 0);
+      z_state_.kf_vel = kf_z_state(1, 0);
+      z_state_.kfb_pos = kfb_z_state(0, 0);
+      z_state_.kfb_vel = kfb_z_state(1, 0);
+      z_state_.kfb_bias = (baro_bias_kf_->getEstimateState())(0,0);
     }
 
     void rosParamInit()
     {
-      nhp_.param("barometer_sub_name", barometer_sub_name_, std::string("distance"));
+      nhp_.param("barometer_sub_name", barometer_sub_name_, std::string("/baro"));
       printf("barometer sub name is %s\n", barometer_sub_name_.c_str());
 
       nhp_.param("baro_noise_sigma", baro_noise_sigma_, 0.05 );

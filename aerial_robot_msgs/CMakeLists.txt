@@ -7,6 +7,8 @@ find_package(catkin REQUIRED COMPONENTS roscpp std_msgs geometry_msgs message_ge
 ## Declare ROS messages and services
 add_message_files(FILES  DynamicReconfigureLevels.msg SimpleImu.msg  RollPitchYawGain.msg FourAxisCommand.msg  ControlTerm.msg RcData.msg  Imu.msg Barometer.msg Gps.msg YawThrottleGain.msg)
 
+add_service_files(FILES BoolFlag.srv)
+
 ## Generate added messages and services
 generate_messages(DEPENDENCIES std_msgs std_msgs geometry_msgs)
 

@@ -87,7 +87,7 @@ namespace kf_base_plugin
 
     virtual ~KalmanFilter(){}
 
-    bool prediction(MatrixXd  input)
+    bool prediction(MatrixXd  input, bool debug = false)
     {
       if(getFilteringFlag())
         {
@@ -105,6 +105,12 @@ namespace kf_base_plugin
           MatrixXd predict_hat_state
             = state_transition_model_ * predict_state_ + control_input_model_ * input ;
           predict_state_ = predict_hat_state;
+
+          if(debug)
+            {
+              std::cout << "estimate_hat_state" << estimate_hat_state << std::endl;
+              std::cout << "estimate_bar_covariance" << estimate_bar_covariance << std::endl;
+            }
 
           return true;
         }

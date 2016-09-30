@@ -241,7 +241,7 @@ void TeleopNavigator::landCallback(const std_msgs::EmptyConstPtr & msg)
   final_target_pos_x_ = getStatePosX();
   final_target_pos_y_ = getStatePosY();
   final_target_psi_   = getStatePsiBoard();
-  final_target_pos_z_ = 0;
+  final_target_pos_z_ = estimator_->getLandingHeight();
   ROS_INFO("Land command");
 }
 
@@ -253,7 +253,7 @@ void TeleopNavigator::haltCallback(const std_msgs::EmptyConstPtr & msg)
   setTargetPosX(getStatePosX());
   setTargetPosY(getStatePosY());
   setTargetPsi(getStatePsiBoard());
-  setTargetPosZ(0);
+  setTargetPosZ(estimator_->getLandingHeight());
 
   estimator_->setSensorFusionFlag(false);
   estimator_->setLandingMode(false);
@@ -373,7 +373,7 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
         {
           setNaviCommand(LAND_COMMAND);
           //更新
-          final_target_pos_z_= 0; 
+          final_target_pos_z_= estimator_->getLandingHeight();
           final_target_psi_  = getStatePsiBoard();
           ROS_INFO("Land command");
 
@@ -493,7 +493,7 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
           //更新
           final_target_pos_x_= getStatePosX();
           final_target_pos_y_= getStatePosY();
-          final_target_pos_z_= 0; 
+          final_target_pos_z_= estimator_->getLandingHeight();
           final_target_psi_  = getStatePsiBoard();
           ROS_INFO("Land command");
 
@@ -650,7 +650,7 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
           //更新
           final_target_pos_x_= getStatePosX();
           final_target_pos_y_= getStatePosY();
-          final_target_pos_z_= 0; 
+          final_target_pos_z_= estimator_->getLandingHeight();
           final_target_psi_  = getStatePsiBoard();
           ROS_INFO("Land command");
 
@@ -858,7 +858,7 @@ void TeleopNavigator::teleopNavigation()
               if(xy_vel_mode_pos_ctrl_takeoff_)
                 {
                   clock_cnt++;
-                  ROS_WARN(" stable, clock_cnt: %d ", clock_cnt);
+                  if(clock_cnt % 2 == 0) ROS_INFO("stable, clock_cnt: %.0f%% ", (float)clock_cnt / (ctrl_loop_rate_ * TAKEOFF_COUNT) * 100);
                   if(clock_cnt > (ctrl_loop_rate_ * TAKEOFF_COUNT))
                     {
                       clock_cnt = 0;

@@ -14,14 +14,9 @@ namespace kf_baro_bias_plugin
     server_ = new dynamic_reconfigure::Server<aerial_robot_base::KalmanFilterBaroBiasConfig>(nhp_);
     dynamic_reconf_func_ = boost::bind(&KalmanFilterBaroBias::cfgCallback, this, _1, _2);
     server_->setCallback(dynamic_reconf_func_);
-  }
-
-  void KalmanFilterBaroBias::updateModelFromDt(double dt)
-  {
-    dt_ = dt;
 
     Matrix<double, 1, 1> state_transition_model;
-    state_transition_model << 0;
+    state_transition_model << 1;
     setStateTransitionModel(state_transition_model);
 
     Matrix<double, 1, 1> control_input_model;
@@ -31,20 +26,11 @@ namespace kf_baro_bias_plugin
     Matrix<double, 1, 1> observation_model;
     observation_model << 1;
     setObservationModel(observation_model);
+  }
 
-    // std::cout << "estimate_state_" << std::endl <<  estimate_state_ << std::endl;
-    // std::cout << "kalman_gain_" << std::endl << kalman_gain_  << std::endl;
-
-    // std::cout << "prediction noise covariance_" << std::endl << prediction_noise_covariance_  << std::endl;
-
-    // std::cout << "state_transition_model_" << std::endl <<  state_transition_model_ << std::endl;
-    // std::cout << "control_input_model_" << std::endl << control_input_model_  << std::endl;
-    // std::cout << "observation_model_" << std::endl << observation_model_  << std::endl;
-
-    // std::cout << "estimate_covariance_" << std::endl << estimate_covariance_  << std::endl;
-    // std::cout << "measurement_noise_covariance_" << std::endl << measurement_noise_covariance_  << std::endl;
-    // std::cout << "inovation_covariance_" << std::endl << inovation_covariance_  << std::endl;
-
+  void KalmanFilterBaroBias::updateModelFromDt(double dt)
+  {
+    dt_ = dt;
   }
 
   void KalmanFilterBaroBias::cfgCallback(aerial_robot_base::KalmanFilterBaroBiasConfig &config, uint32_t level)

@@ -49,6 +49,7 @@
   <run_depend>serial</run_depend>
 
   <export>
+    <kalman_filter plugin="${prefix}/kf_plugins.xml" /> 
     <aerial_robot_base plugin="${prefix}/sensor_plugins.xml" /> 
   </export>
 
