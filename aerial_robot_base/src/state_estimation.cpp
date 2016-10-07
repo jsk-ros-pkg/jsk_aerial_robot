@@ -180,6 +180,10 @@ void RigidEstimator::rosParamInit()
     state_mode_ = EGOMOTION_ESTIMATE;
   printf("%s: state_mode_ is %d\n", ns.c_str(), state_mode_);
 
+  if (!nhp_.getParam ("only_imu_yaw", only_imu_yaw_))
+    only_imu_yaw_ = false;
+  printf("%s: only_imu_yaw_ is %s\n", ns.c_str(), only_imu_yaw_?std::string("true").c_str():std::string("false").c_str());
+
   sensor_fusion_loader_ptr_ = boost::shared_ptr< pluginlib::ClassLoader<kf_base_plugin::KalmanFilter> >(new pluginlib::ClassLoader<kf_base_plugin::KalmanFilter>("kalman_filter", "kf_base_plugin::KalmanFilter"));
 
 

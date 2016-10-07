@@ -212,9 +212,8 @@ namespace sensor_plugin
         }
 
       /* check whether use imu yaw for control and estimation */
-      if(yaw_value_true_)
+      if(estimator_->onlyImuYaw())
         {
-          /* temporariry */
           /* TODO: input to kalman filter */
           estimator_->setEEState(BasicEstimator::YAW_W_COG, 0, yaw_);
           estimator_->setEEState(BasicEstimator::YAW_W_B, 0, yaw_);

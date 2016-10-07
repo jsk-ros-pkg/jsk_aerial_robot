@@ -30,9 +30,6 @@ class Navigator
   inline bool getStartAble(){  return start_able_;}
   inline void startNavigation(){  start_able_ = true;}
   inline void stopNavigation() {  start_able_ = false;}
-  inline bool getFlightAble(){  return flight_able_;}
-  inline void startFlight(){  flight_able_ = true;}
-  inline void stopFlight(){  flight_able_ = false;}
 
   inline uint8_t getFlightMode(){  return flight_mode_;}
   inline void setFlightMode(uint8_t flight_mode){ flight_mode_ = flight_mode;}
@@ -144,9 +141,6 @@ class Navigator
   const static uint8_t POS_CONTROL_COMMAND = 0;
   const static uint8_t VEL_CONTROL_COMMAND = 1;
 
-  //gain tunning mode
-  static const uint8_t ATTITUDE_GAIN_TUNNING_MODE = 1;//also can operate in joystick
-
   // navi command
   static const uint8_t START_COMMAND = 0x00;
   static const uint8_t STOP_COMMAND = 0x01;
@@ -161,16 +155,6 @@ class Navigator
   const static uint8_t LAND_MODE = 2;
   const static uint8_t NO_CONTROL_MODE = 3; 
   const static uint8_t RESET_MODE = 4;
-
-
-  //for throwing
-  const static uint8_t THROWING_START_STANDBY = 0x31;
-  const static uint8_t THROWING_START_ARMINGON = 0x32;
-  const static uint8_t THROWING_START_ALT_HOLD = 0x33;
-
-  const static uint8_t GOOD_XY_TRACKING = 0x01;
-  const static uint8_t ZERO_XY_TRACKING = 0x02;
-  const static uint8_t RECOVER_XY_TRACKING = 0x03;
 
   //for ros arm/disarm cmd
   const static uint8_t ARM_ON_CMD = 0x00; //old: 150;
@@ -189,6 +173,7 @@ class Navigator
   const static uint8_t POS_LOCAL_BASED_CONTROL_MODE = 1;
   const static uint8_t VEL_WORLD_BASED_CONTROL_MODE = 2;
   const static uint8_t VEL_LOCAL_BASED_CONTROL_MODE = 3;
+  const static uint8_t ATT_CONTROL_MODE = 4;
 
 
   protected:
@@ -201,7 +186,6 @@ class Navigator
     FlightCtrlInput* flight_ctrl_input_;
 
     bool start_able_;
-    bool flight_able_;
     uint8_t navi_command_;
     uint8_t flight_mode_; //important
 
@@ -344,8 +328,9 @@ private:
   bool teleop_flag_;
   bool force_landing_flag_;
 
-  ros::Time joy_stick_prev_time_;
+  double joy_stick_prev_time_;
   double joy_stick_heart_beat_du_; 
+  double force_landing_to_halt_du_;
 
   void rosParamInit(ros::NodeHandle nh);
 };

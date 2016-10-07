@@ -143,6 +143,8 @@ class BasicEstimator
   inline void setHeightEstimateMode(uint8_t height_estimate_mode){ height_estimate_mode_ = height_estimate_mode;}
   inline int getHeightEstimateMode(){return height_estimate_mode_;}
 
+  inline bool onlyImuYaw(){return only_imu_yaw_;}
+
  protected:
 
   ros::NodeHandle nh_;
@@ -186,6 +188,9 @@ class BasicEstimator
   bool un_descend_flag_;
   uint8_t height_estimate_mode_;
   float landing_height_; //we have to consider the terrain change during the flight,then the landing height is no longer 0.
+
+  /* the only imu yaw flag */
+  bool only_imu_yaw_;
 
   /* force to change the estimate mode */
   void heightEstimateModeCallback(const std_msgs::UInt8ConstPtr & mode_msg)

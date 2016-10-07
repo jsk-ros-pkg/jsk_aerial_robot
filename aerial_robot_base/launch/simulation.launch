@@ -1,17 +1,17 @@
 <?xml version="1.0"?>
 <launch>
-
-  <!-- ground truth mode: flight_pos_mode: true, flight_vel_mode: false, navigator/state_mode: 0 -->
-  <!-- optical flow mode: flight_vel_mode: false, flight_vel_mode: true,  navigator/state_mode: 1 -->
-
   ############################# Global Param ###################################
 
   <arg name="debug" default="false" />
-  <arg unless="$(arg debug)" name="launch_prefix" value="" />
-  <arg if="$(arg debug)" name="launch_prefix" value="gdb --ex run --args" />
 
-  <arg name="flight_pos_mode" value="false" /> <!-- pos mode -->
-  <arg name="flight_vel_mode" value="true" />  <!-- vel mode -->
+  <!-- estimate mode: 0: ground truth, 1: estimate mode -->
+  <param name="aerial_robot_base_node/estimator/state_mode" type="int" value= "1" />
+  #GROUND_TRUTH = 0
+  #EGOMOTION_ESTIMATE = 1
+  <!-- flight control mode: should only be one true flag -->
+  <arg name="pos_control_mode" value="true" /> <!-- pos mode -->
+  <arg name="vel_control_mode" value="false" />  <!-- vel mode -->
+  <arg name="att_control_mode" value="false" />  <!-- att mode -->
 
   ############## Motor Info ############################
   <rosparam file="$(find aerial_robot_base)/config/simulation/MotorInfo.yaml" command="load" /> 
@@ -31,19 +31,13 @@
   <node pkg="aerial_robot_base" type="aerial_robot_base_node" name="aerial_robot_base_node"  launch-prefix="$(arg launch_prefix)" output="screen" > 
 
     ############### Basic Param  #####################
+    <param if="$(arg pos_control_mode)" name="navigator/xy_control_mode" type="int" value="0"/>
+    <param if="$(arg vel_control_mode)" name="navigator/xy_control_mode" type="int" value="3"/>
+    <param if="$(arg att_control_mode)" name="navigator/xy_control_mode" type="int" value="4"/>
+
     <param name="rx_loop_rate" type="double" value="110"/>
     <param name="tx_loop_rate" type="double" value="40"/>
     <param name="tf_pub_loop_rate" type="double" value="120"/>
-
-    <param name="estimator/state_mode" type="int" value= "0" />
-    #GROUND_TRUTH = 0
-    #EGOMOTION_ESTIMATE = 1
-
-    <param if="$(arg flight_pos_mode)" name="navigator/xy_control_mode" type="int" value="0"/>
-    <param if="$(arg flight_vel_mode)" name="navigator/xy_control_mode" type="int" value="3"/> <!-- pos local vel -->
-
-    <!--debug -->
-    <param name="navigator/gain_tunning_mode" type="int" value="0"/>
 
     ############### Sensor Fusion ######################
     <rosparam file="$(find aerial_robot_base)/config/simulation/SensorFusion.yaml" command="load" />
@@ -51,18 +45,6 @@
     <rosparam file="$(find aerial_robot_base)/config/simulation/PidControlConfig.yaml" command="load" />
     ############### Keyboard Navigation ##############
     <rosparam file="$(find aerial_robot_base)/config/simulation/TeleopNavigationConfig.yaml" command="load" />
-
-    ############### remap topic ######################
-    <remap from="/navigator/joy_stick_command" to="/joy" />
-    <remap from="/estimator/imu/data" to="/simulation/estimator/imu/data" />
-    <remap from="/estimator/barometer/data" to="/simulation/estimator/barometer/data" />
-    <remap from="/estimator/range_sensor/data" to="/simulation/estimator/range_sensor/data" />
-    <remap from="/estimator/mocap/ground_truth/pose" to="/simulation/estimator/mocap/ground_truth/pose" />
-    <remap from="/estimator/optical_flow/data" to="/simulation/estimator/optical_flow/data" />
-    <remap from="/estimator/rtk_gps/state" to="/simulation/estimator/rtk_gps/state" />
-    <remap from="/uav/full_states" to="/simulation/uav/full_states" />
-    <remap from="/uav/state" to="/simulation/uav/state" />
-
   </node>
 
 </launch>

@@ -1,8 +1,3 @@
-/*
-I_y * dot(w_y) = - x * F => Q (符号の話)
-varphi_des = - 1/g * y_des => (roll軸制御　反転の話) 
- */
-
 #include "aerial_robot_base/flight_control.h"
 
 FlightController::FlightController(ros::NodeHandle nh,
@@ -420,8 +415,8 @@ void PidController::pidFunction()
           //*** 指令値算出
           pitch_value = limit(pos_p_term_pitch_ + pos_i_term_pitch_ + pos_d_term_pitch_ + offset_pitch_, pos_limit_pitch_);
 
-          //**** attitude gain tunnign mode
-          if(navigator_->getGainTunningMode() == Navigator::ATTITUDE_GAIN_TUNNING_MODE)
+          //**** attitude control mode
+          if(navigator_->getXyControlMode() == Navigator::ATT_CONTROL_MODE)
             {
               pitch_value = navigator_->getTargetAnglePitch();
               pos_p_term_pitch_ =  0;
@@ -442,7 +437,6 @@ void PidController::pidFunction()
           four_axis_pid_debug.pitch.pos_err_no_transform = target_pos_x - state_pos_x;
           four_axis_pid_debug.pitch.vel_err_transform = target_vel_x;
           four_axis_pid_debug.pitch.vel_err_no_transform = target_vel_x -state_vel_x;
-
 
           //roll
           if(navigator_->getXyControlMode() == Navigator::POS_WORLD_BASED_CONTROL_MODE)
@@ -541,8 +535,8 @@ void PidController::pidFunction()
           //**** 指令値反転
           roll_value = - roll_value;
 
-          //**** attitude gain tunnign mode
-          if(navigator_->getGainTunningMode() == Navigator::ATTITUDE_GAIN_TUNNING_MODE)
+          //**** attitude control mode
+          if(navigator_->getXyControlMode() == Navigator::ATT_CONTROL_MODE)
             {
               roll_value = navigator_->getTargetAngleRoll();
               pos_p_term_roll_ =  0;
@@ -572,52 +566,31 @@ void PidController::pidFunction()
           //error i
           error_i_yaw_ += d_err_pos_curr_yaw_ * (1 / (float)yaw_ctrl_loop_rate_); 
 
-
-          if(navigator_->getXyControlMode() == Navigator::POS_WORLD_BASED_CONTROL_MODE ||
-             navigator_->getXyControlMode() == Navigator::POS_LOCAL_BASED_CONTROL_MODE || 
-             navigator_->getXyControlMode() == Navigator::VEL_WORLD_BASED_CONTROL_MODE ||
-             navigator_->getXyControlMode() == Navigator::VEL_LOCAL_BASED_CONTROL_MODE)
+          for(int j = 0; j < motor_num_; j++)
             {
+              //**** Pの項
+              pos_p_term_yaw_ = limit(pos_p_gain_yaw_[j] * state_psi_board, pos_p_limit_yaw_);
+              if(motor_num_ == 1)
+                pos_p_term_yaw_ = limit(pos_p_gain_yaw_[j] * d_err_pos_curr_yaw_, pos_p_limit_yaw_);
 
-              for(int j = 0; j < motor_num_; j++)
-                {
-                  //**** Pの項
-                  pos_p_term_yaw_ = limit(pos_p_gain_yaw_[j] * state_psi_board, pos_p_limit_yaw_);
-                  //**** Iの項 : deprecated
-                  if(motor_num_ == 1)
-                    {
-                      //temporarily to fix the devergence problem of 
-                      error_i_yaw_ = limit(error_i_yaw_, pos_i_limit_yaw_ / pos_i_gain_yaw_[j]);
-                    }
-                  pos_i_term_yaw_ = limit(pos_i_gain_yaw_[j] * error_i_yaw_, pos_i_limit_yaw_);
-                  //***** Dの項 // to think about d term, now in kduino controller
-                  pos_d_term_yaw_ = 0;
+              //**** Iの項 : deprecated
+              if(motor_num_ == 1)
+                error_i_yaw_ = limit(error_i_yaw_, pos_i_limit_yaw_ / pos_i_gain_yaw_[j]);
+              pos_i_term_yaw_ = limit(pos_i_gain_yaw_[j] * error_i_yaw_, pos_i_limit_yaw_);
 
-                  if(motor_num_ == 1)
-                    {
-                      pos_p_term_yaw_ = limit(pos_p_gain_yaw_[j] * d_err_pos_curr_yaw_, pos_p_limit_yaw_);
-                    }
-                  //*** each motor command value for log
-                  float yaw_value = limit(pos_p_term_yaw_ + pos_i_term_yaw_ + pos_d_term_yaw_, pos_limit_yaw_);
+              //***** Dの項 : is in the flight board
+              pos_d_term_yaw_ = 0;
 
-                  //**** attitude gain tunnign mode
-                  /*
-                  if(navigator_->getGainTunningMode() == Navigator::ATTITUDE_GAIN_TUNNING_MODE)
-                    {
-                      yaw_value = limit(pos_p_gain_yaw_[j] * target_psi, pos_p_limit_yaw_);
-                      pos_p_term_yaw_ =  0;
-                      pos_i_term_yaw_ =  0;
-                      pos_d_term_yaw_ =  0;
-                    }
-                  */
-                  four_axis_pid_debug.yaw.total.push_back(yaw_value);
-                  four_axis_pid_debug.yaw.p_term.push_back(pos_p_term_yaw_);
-                  four_axis_pid_debug.yaw.i_term.push_back(pos_i_term_yaw_);
-                  four_axis_pid_debug.yaw.d_term.push_back(pos_d_term_yaw_);
+              //*** each motor command value for log
+              float yaw_value = limit(pos_p_term_yaw_ + pos_i_term_yaw_ + pos_d_term_yaw_, pos_limit_yaw_);
 
-                  //*** 指令値代入(new*** )
-                  flight_ctrl_input_->setYawValue(yaw_value, j); //f => pwm;
-                }
+              four_axis_pid_debug.yaw.total.push_back(yaw_value);
+              four_axis_pid_debug.yaw.p_term.push_back(pos_p_term_yaw_);
+              four_axis_pid_debug.yaw.i_term.push_back(pos_i_term_yaw_);
+              four_axis_pid_debug.yaw.d_term.push_back(pos_d_term_yaw_);
+
+              //*** 指令値代入(new*** )
+              flight_ctrl_input_->setYawValue(yaw_value, j); //f => pwm;
             }
 
           //**** ros pub
@@ -1023,5 +996,4 @@ void PidController::rosParamInit(ros::NodeHandle nh)
           pos_d_gain_throttle_[i] = 0;
         }
     }
-
 }

@@ -49,13 +49,10 @@ Navigator::Navigator(ros::NodeHandle nh, ros::NodeHandle nh_private,
 
 
   stopNavigation();
-  stopFlight();
   setNaviCommand( IDLE_COMMAND );
 
   //base navigation mode init
   flight_mode_ = NO_CONTROL_MODE;
-
-  gain_tunning_mode_ = 0; //no tunning mode
 }
 
 Navigator::~Navigator()
@@ -168,15 +165,15 @@ TeleopNavigator::TeleopNavigator(ros::NodeHandle nh, ros::NodeHandle nh_private,
   yaw_control_flag_ = false;
 
   arming_ack_sub_ = nh_.subscribe<std_msgs::UInt8>("/flight_config_ack", 1, &TeleopNavigator::armingAckCallback, this, ros::TransportHints().tcpNoDelay());
-  takeoff_sub_ = nh_.subscribe<std_msgs::Empty>("teleop_command/takeoff", 1, &TeleopNavigator::takeoffCallback, this, ros::TransportHints().tcpNoDelay());
-  halt_sub_ = nh_.subscribe<std_msgs::Empty>("teleop_command/halt", 1, &TeleopNavigator::haltCallback, this, ros::TransportHints().tcpNoDelay());
-  force_landing_sub_ = nh_.subscribe<std_msgs::Empty>("teleop_command/force_landing", 1, &TeleopNavigator::forceLandingCallback, this, ros::TransportHints().tcpNoDelay());
+  takeoff_sub_ = nh_.subscribe<std_msgs::Empty>("/teleop_command/takeoff", 1, &TeleopNavigator::takeoffCallback, this, ros::TransportHints().tcpNoDelay());
+  halt_sub_ = nh_.subscribe<std_msgs::Empty>("/teleop_command/halt", 1, &TeleopNavigator::haltCallback, this, ros::TransportHints().tcpNoDelay());
+  force_landing_sub_ = nh_.subscribe<std_msgs::Empty>("/teleop_command/force_landing", 1, &TeleopNavigator::forceLandingCallback, this, ros::TransportHints().tcpNoDelay());
   force_landing_flag_ = false;
-  land_sub_ = nh_.subscribe<std_msgs::Empty>("teleop_command/land", 1, &TeleopNavigator::landCallback, this, ros::TransportHints().tcpNoDelay());
-  start_sub_ = nh_.subscribe<std_msgs::Empty>("teleop_command/start", 1,&TeleopNavigator::startCallback, this, ros::TransportHints().tcpNoDelay());
-  ctrl_mode_sub_ = nh_.subscribe<std_msgs::Int8>("teleop_command/ctrl_mode", 1, &TeleopNavigator::xyControlModeCallback, this, ros::TransportHints().tcpNoDelay());
+  land_sub_ = nh_.subscribe<std_msgs::Empty>("/teleop_command/land", 1, &TeleopNavigator::landCallback, this, ros::TransportHints().tcpNoDelay());
+  start_sub_ = nh_.subscribe<std_msgs::Empty>("/teleop_command/start", 1,&TeleopNavigator::startCallback, this, ros::TransportHints().tcpNoDelay());
+  ctrl_mode_sub_ = nh_.subscribe<std_msgs::Int8>("/teleop_command/ctrl_mode", 1, &TeleopNavigator::xyControlModeCallback, this, ros::TransportHints().tcpNoDelay());
 
-  joy_stick_sub_ = nh_.subscribe<sensor_msgs::Joy>("joy_stick_command", 1, &TeleopNavigator::joyStickControl, this, ros::TransportHints().udp());
+  joy_stick_sub_ = nh_.subscribe<sensor_msgs::Joy>("/joy", 1, &TeleopNavigator::joyStickControl, this, ros::TransportHints().udp());
 
   if(flight_ctrl_input_->getMotorNumber() > 1)
     rc_cmd_pub_ = nh_.advertise<aerial_robot_msgs::FourAxisCommand>("/aerial_robot_control_four_axis", 10);
@@ -188,6 +185,8 @@ TeleopNavigator::TeleopNavigator(ros::NodeHandle nh, ros::NodeHandle nh_private,
   teleop_flag_ = true;
 
   flight_config_pub_ = nh_.advertise<std_msgs::UInt8>("/flight_config_cmd", 10);
+
+  joy_stick_prev_time_ = 0;
 }
 
 TeleopNavigator::~TeleopNavigator()
@@ -213,13 +212,12 @@ void TeleopNavigator::armingAckCallback(const std_msgs::UInt8ConstPtr& ack_msg)
 }
 
 void TeleopNavigator::takeoffCallback(const std_msgs::EmptyConstPtr & msg){
-  if(getStartAble())  
+  if(getStartAble())
     {
       if(xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE) xy_control_mode_ = POS_WORLD_BASED_CONTROL_MODE;
       setNaviCommand(TAKEOFF_COMMAND);
       ROS_INFO("Takeoff command");
     }
-  else  stopFlight();
 }
 
 void TeleopNavigator::startCallback(const std_msgs::EmptyConstPtr & msg)
@@ -247,7 +245,9 @@ void TeleopNavigator::landCallback(const std_msgs::EmptyConstPtr & msg)
 
 void TeleopNavigator::haltCallback(const std_msgs::EmptyConstPtr & msg)
 {
-  if(xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE) xy_control_mode_ = POS_WORLD_BASED_CONTROL_MODE;
+  if(xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE) 
+    xy_control_mode_ = POS_WORLD_BASED_CONTROL_MODE;
+
   setNaviCommand(STOP_COMMAND);
   flight_mode_ = RESET_MODE;
   setTargetPosX(getStatePosX());
@@ -304,210 +304,187 @@ void TeleopNavigator::stopTeleopCallback(const std_msgs::UInt8ConstPtr & stop_ms
 }
 
 void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
-{ //botton assignment: http://wiki.ros.org/ps3joy
-  joy_stick_prev_time_ = ros::Time::now();
+{
+  /* ps3 joy bottons assignment: http://wiki.ros.org/ps3joy */
+  joy_stick_prev_time_ = ros::Time::now().toSec();
 
-  if(gain_tunning_mode_ == ATTITUDE_GAIN_TUNNING_MODE)
+  /* common command */
+  /* start */
+  if(joy_msg->buttons[3] == 1 && getNaviCommand() != START_COMMAND)
     {
-      static bool gain_tunning_flag_  = false;
-      //ROS_INFO("ATTITUDE_GAIN_TUNNING_MODE");
+      setNaviCommand(START_COMMAND);
+      final_target_pos_x_ = getStatePosX();
+      final_target_pos_y_ = getStatePosY();
+      final_target_pos_z_ = takeoff_height_ + getStatePosZ();
+      final_target_psi_ = getStatePsiBoard();
+      ROS_WARN("Joy Control: Start command,  final_target_pos_x_: %f, final_target_pos_y_: %f, final_target_pos_z_: %f, final_target_psi_: %f", final_target_pos_x_, final_target_pos_y_, final_target_pos_z_, final_target_psi_);
+      return;
+    }
 
-      //start 
-      if(joy_msg->buttons[3] == 1 && getNaviCommand() != START_COMMAND)
+  /* force landing && halt */
+  static ros::Time force_landing_start_time_ = ros::Time::now();
+  if(joy_msg->buttons[0] == 1)
+    {
+      /* Force Landing in inflight mode: TAKEOFF_COMMAND/LAND_COMMAND/HOVER_COMMAND */
+      if(!force_landing_flag_ && (getNaviCommand() == TAKEOFF_COMMAND || getNaviCommand() == LAND_COMMAND || getNaviCommand() == HOVER_COMMAND))
         {
-          setNaviCommand(START_COMMAND);
-          final_target_pos_z_ = takeoff_height_;
-          final_target_psi_  = getStatePsiBoard();
-          ROS_WARN("final_target_psi_: %f", getStatePsiBoard());
-          ROS_INFO("Start command");
-          return;
+          ROS_WARN("Joy Control: force landing command");
+          std_msgs::UInt8 force_landing_cmd;
+          force_landing_cmd.data = FORCE_LANDING_CMD;
+          flight_config_pub_.publish(force_landing_cmd);
+          force_landing_flag_ = true;
+
+          /* update the force landing stamp for the halt process*/
+          force_landing_start_time_ = joy_msg->header.stamp;
         }
-      //halt && force landing
-      if(joy_msg->buttons[0] == 1)
+
+      /* Halt mode */
+      if(joy_msg->header.stamp.toSec() - force_landing_start_time_.toSec() > force_landing_to_halt_du_)
         {
-          if(joy_msg->buttons[8] == 1)
-            {//Do Force Landing 
-              if( !force_landing_flag_)
-                {
-                  ROS_INFO("Force Landing command");
-                  std_msgs::UInt8 force_landing_cmd;
-                  force_landing_cmd.data = FORCE_LANDING_CMD;
-                  flight_config_pub_.publish(force_landing_cmd); 
-                  force_landing_flag_ = true;
-                }
-            }
+          ROS_ERROR("Joy Control: Halt!");
+
+          setNaviCommand(STOP_COMMAND);
+          flight_mode_= RESET_MODE;
+
+          /* update the target pos(maybe not necessary) */
+          setTargetPosX(getStatePosX());
+          setTargetPosY(getStatePosY());
+          setTargetPsi(getStatePsiBoard());
+
+          /* several flag should be false */
+          estimator_->setSensorFusionFlag(false);
+          estimator_->setLandingMode(false);
+          estimator_->setLandedFlag(false);
+          estimator_->setFlyingFlag(false);
+
+          /* the pos-vel mode update */
+          if(xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE)
+            xy_control_mode_ = POS_WORLD_BASED_CONTROL_MODE;
+        }
+      return;
+    }
+  else
+    {
+      /* update the halt process */
+      force_landing_start_time_ = joy_msg->header.stamp;
+    }
+
+  /* takeoff */
+  if(joy_msg->buttons[7] == 1 && joy_msg->buttons[13] == 1)
+    {
+      if(getStartAble())
+        {
+          if(xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE)
+            xy_control_mode_ = POS_WORLD_BASED_CONTROL_MODE;
+
+          setNaviCommand(TAKEOFF_COMMAND);
+          ROS_INFO("Joy Control: Takeoff command");
+        }
+      return;
+    }
+
+  /* landing */
+  if(joy_msg->buttons[5] == 1 && joy_msg->buttons[15] == 1)
+    {
+      if(xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE)
+        xy_control_mode_ = POS_WORLD_BASED_CONTROL_MODE;
+
+      if(xy_control_mode_ == VEL_LOCAL_BASED_CONTROL_MODE ||
+         xy_control_mode_ == POS_LOCAL_BASED_CONTROL_MODE)
+        xy_control_mode_ = VEL_LOCAL_BASED_CONTROL_MODE;
+
+      setNaviCommand(LAND_COMMAND);
+      //update
+      final_target_pos_x_= getStatePosX();
+      final_target_pos_y_= getStatePosY();
+      final_target_pos_z_= estimator_->getLandingHeight();
+      final_target_psi_  = getStatePsiBoard();
+      ROS_INFO("Joy Control: Land command");
+
+      return;
+    }
+
+  /* Motion: Up/Down */
+  if(fabs(joy_msg->axes[3]) > 0.2)
+    {
+      if(getNaviCommand() == HOVER_COMMAND)
+        {
+          alt_control_flag_ = true;
+          if(joy_msg->axes[3] >= 0)
+            final_target_pos_z_+= target_alt_interval_;
           else
-            {
-              setNaviCommand(STOP_COMMAND);
-              flight_mode_= RESET_MODE;
-
-              setTargetPosX(getStatePosX());
-              setTargetPosY(getStatePosY());
-              setTargetPsi(getStatePsiBoard());
-
-              estimator_->setSensorFusionFlag(false);
-              estimator_->setLandingMode(false);
-              estimator_->setLandedFlag(false);
-              estimator_->setFlyingFlag(false);
-
-              if(xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE) xy_control_mode_ = POS_WORLD_BASED_CONTROL_MODE;
-
-              ROS_INFO("Halt command");
-            }
-          return;
+            final_target_pos_z_-= target_alt_interval_;
+          ROS_INFO("Joy Control: Thrust command");
         }
-      //takeoff
-      if(joy_msg->buttons[7] == 1 && joy_msg->buttons[13] == 1)
+    }
+  else
+    {
+      if(alt_control_flag_)
         {
-          if(getStartAble())  
-            {
-              setNaviCommand(TAKEOFF_COMMAND);
-              ROS_INFO("Takeoff command");
-            }
-          else  stopFlight();
-
-          return;
+          alt_control_flag_= false;
+          final_target_pos_z_= getStatePosZ();
+          ROS_INFO("Joy Control: Fixed Alt command, targetPosz_is %f",final_target_pos_z_);
         }
-      //landing
-      if(joy_msg->buttons[5] == 1 && joy_msg->buttons[15] == 1)
-        {
-          setNaviCommand(LAND_COMMAND);
-          //更新
-          final_target_pos_z_= estimator_->getLandingHeight();
-          final_target_psi_  = getStatePsiBoard();
-          ROS_INFO("Land command");
+    }
 
-          return;
-        }
-
-      //pitch && roll angle command
-      target_pitch_angle_ = joy_msg->axes[1] * target_angle_rate_;
-      target_roll_angle_ = - joy_msg->axes[0]  * target_angle_rate_;
-
-      if(fabs(joy_msg->axes[3]) > 0.2)
-        {
-          if(joy_msg->buttons[2] == 0 && getNaviCommand() == HOVER_COMMAND)
-            {//push the right joysitck
-              alt_control_flag_ = true;
-              if(joy_msg->axes[3] >= 0) 
-                final_target_pos_z_+= target_alt_interval_;
-              else 
-                final_target_pos_z_-= target_alt_interval_;
-              ROS_INFO("Thrust command");
-            }
-        }
-      else
-        {
-          if(alt_control_flag_)
-            {
-              alt_control_flag_= false;
-              final_target_pos_z_= getStatePosZ();
-              ROS_INFO("Fixed Alt command, targetPosz_is %f",final_target_pos_z_);
-            }
-        }
-
-      //yaw
-#if 1 //pos based yaw control
+  /* Motion: Yaw */
+  /* this is the yaw_angle control */
+  if(getStatePsiBoard() != 0 ||
+     xy_control_mode_ == POS_WORLD_BASED_CONTROL_MODE ||
+     xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE)
+    {
       if(joy_msg->buttons[2] == 1)
         {
           if(fabs(joy_msg->axes[2]) > 0.05)
             {
               final_target_psi_ = getStatePsiBoard() + joy_msg->axes[2] * target_yaw_rate_;
-              ROS_INFO("yaw control");
+              if(final_target_psi_ > M_PI)  final_target_psi_ -= 2 * M_PI;
+              else if(final_target_psi_ < -M_PI)  final_target_psi_ += 2 * M_PI;
+              ROS_WARN("Joy Control: yaw control based on angle control only");
             }
           else
             final_target_psi_ = getStatePsiBoard();
         }
-#else //joy based yaw control
-      final_target_psi_ = joy_msg->axes[2] * target_yaw_rate_;
-#endif
+    }
+  /* this is the non yaw_angle control(that is vel control) */
+  if(getStatePsiBoard() == 0)
+    {
+      if(xy_control_mode_ == ATT_CONTROL_MODE ||
+         xy_control_mode_ == VEL_LOCAL_BASED_CONTROL_MODE ||
+         xy_control_mode_ == POS_LOCAL_BASED_CONTROL_MODE)
+        {
+          ROS_WARN("Joy Control: yaw control based on velocity(gyro) control only");
+          final_target_psi_ = joy_msg->axes[2] * target_yaw_rate_;
+        }
+    }
+
+  /* turn to ATT_CONTROL_MODE */
+  if(joy_msg->buttons[6] == 1)
+    {
+      if(xy_control_mode_ == POS_WORLD_BASED_CONTROL_MODE ||
+         xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE ||
+         xy_control_mode_ == VEL_LOCAL_BASED_CONTROL_MODE ||
+         xy_control_mode_ == POS_LOCAL_BASED_CONTROL_MODE)
+        {
+          ROS_WARN("Joy Control: Change to ATT_CONTROL_MODE");
+          xy_control_mode_ == ATT_CONTROL_MODE;
+          final_target_psi_  = 0; //because the init final_target_psi_ is sometimes not 0, especially using mocap
+        }
+    }
+
+  /* mode oriented command */
+  if(xy_control_mode_ == ATT_CONTROL_MODE)
+    {
+      static bool gain_tunning_flag_  = false;
+
+      /* pitch && roll angle command */
+      target_pitch_angle_ = joy_msg->axes[1] * target_angle_rate_;
+      target_roll_angle_ = - joy_msg->axes[0]  * target_angle_rate_;
 
     }
   else if(xy_control_mode_ == POS_WORLD_BASED_CONTROL_MODE || xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE)
     {
-      //start 
-      if(joy_msg->buttons[3] == 1 && getNaviCommand() != START_COMMAND)
-        {
-          setNaviCommand(START_COMMAND);
-          final_target_pos_x_= getStatePosX();
-          final_target_pos_y_= getStatePosY();
-          final_target_pos_z_ = takeoff_height_;  // 0.55m
-          final_target_psi_  = getStatePsiBoard();
-          ROS_INFO("Start command");
-          return;
-        }
-      //halt && force landing
-      if(joy_msg->buttons[0] == 1)
-        {
-          if(joy_msg->buttons[8] == 1)
-            {//Do Force Landing 
-              if( !force_landing_flag_)
-                {
-                  std_msgs::UInt8 force_landing_cmd;
-                  force_landing_cmd.data = FORCE_LANDING_CMD;
-                  flight_config_pub_.publish(force_landing_cmd); 
-                  force_landing_flag_ = true;
-                  ROS_INFO("Force Landing command");
-                }
-            }
-          else
-            {
-              setNaviCommand(STOP_COMMAND);
-              flight_mode_= RESET_MODE;
-
-              setTargetPosX(getStatePosX());
-              setTargetPosY(getStatePosY());
-              setTargetPsi(getStatePsiBoard());
-
-              estimator_->setSensorFusionFlag(false);
-              estimator_->setLandingMode(false);
-              estimator_->setLandedFlag(false);
-              estimator_->setFlyingFlag(false);
-
-              if(xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE) xy_control_mode_ = POS_WORLD_BASED_CONTROL_MODE;
-
-              ROS_INFO("Halt command");
-            }
-          return;
-        }
-      //takeoff
-      if(joy_msg->buttons[7] == 1 && joy_msg->buttons[13] == 1)
-        {
-
-          if(getStartAble())
-            {
-              if(xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE) xy_control_mode_ = POS_WORLD_BASED_CONTROL_MODE;
-              setNaviCommand(TAKEOFF_COMMAND);
-              ROS_INFO("Takeoff command");
-            }
-          else  stopFlight();
-
-          return;
-        }
-      //landing
-      if(joy_msg->buttons[5] == 1 && joy_msg->buttons[15] == 1)
-        {
-          if(xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE) xy_control_mode_ = POS_WORLD_BASED_CONTROL_MODE;
-
-          setNaviCommand(LAND_COMMAND);
-          //更新
-          final_target_pos_x_= getStatePosX();
-          final_target_pos_y_= getStatePosY();
-          final_target_pos_z_= estimator_->getLandingHeight();
-          final_target_psi_  = getStatePsiBoard();
-          ROS_INFO("Land command");
-
-          return;
-        }
-
-      /* turn to ATTITUDE_GAIN_TUNNING_MODE */
-      if(joy_msg->buttons[6] == 1)
-        {
-          gain_tunning_mode_ = ATTITUDE_GAIN_TUNNING_MODE;
-          final_target_psi_  = 0; //because the init final_target_psi_ is sometimes not 0, especially using mocap
-        }
-
-      //change to vel control mode
+      /* change to vel control mode */
       if(joy_msg->buttons[12] == 1 && !vel_control_flag_)
         {
           ROS_INFO("change to vel pos-based control");
@@ -519,7 +496,7 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
       if(joy_msg->buttons[12] == 0 && vel_control_flag_)
         vel_control_flag_ = false;
 
-      //change to pos control mode
+      /* change to pos control mode */
       if(joy_msg->buttons[14] == 1 && !pos_control_flag_)
         {
           ROS_INFO("change to pos control");
@@ -531,195 +508,40 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
       if(joy_msg->buttons[14] == 0 && pos_control_flag_)
         pos_control_flag_ = false;
 
-      if(teleop_flag_)
-        {//x,y,z,yaw
-
-          //pitch && roll vel command for vel_mode
-          if(xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE && joy_msg->buttons[8] == 1 && getNaviCommand() == HOVER_COMMAND)
+      if(getNaviCommand() == HOVER_COMMAND && teleop_flag_)
+        {
+          /* pitch && roll vel command for vel_mode */
+          if(xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE && joy_msg->buttons[8] == 1)
             {//only push the left joysitck will be active
               final_target_vel_x_= joy_msg->axes[1] * fabs(joy_msg->axes[1]) * target_vel_rate_;
               final_target_vel_y_= joy_msg->axes[0] * fabs(joy_msg->axes[0]) * target_vel_rate_;
-	      xy_control_flag_ = true;
+              xy_control_flag_ = true;
             }
-	  if(xy_control_flag_ && joy_msg->buttons[8] == 0)
-	    {
-	      final_target_vel_x_ = 0;
-	      final_target_vel_y_ = 0;
-	      xy_control_flag_ = false;
-	    }
-
-          //throttle, TODO: not good
-          if(fabs(joy_msg->axes[3]) > 0.2)
+          if(xy_control_flag_ && joy_msg->buttons[8] == 0)
             {
-              if(joy_msg->buttons[2] == 0 && getNaviCommand() == HOVER_COMMAND)
-                {//push the right joysitck
-                  alt_control_flag_ = true;
-                  if(joy_msg->axes[3] >= 0) 
-                    final_target_pos_z_+= target_alt_interval_;
-                  else 
-                    final_target_pos_z_-= target_alt_interval_;
-                  ROS_INFO("Thrust command");
-                }
-            }
-          else
-            {
-              if(alt_control_flag_)
-                {
-                  alt_control_flag_= false;
-                  final_target_pos_z_= getStatePosZ();
-                  ROS_INFO("Fixed Alt command, targetPosz_is %f",final_target_pos_z_);
-                }
-            }
-
-          if(joy_msg->buttons[2] == 1 && getNaviCommand() == HOVER_COMMAND)
-            {
-              if(fabs(joy_msg->axes[2]) > 0.05)
-                {
-                  final_target_psi_ = getStatePsiBoard() + joy_msg->axes[2] * target_yaw_rate_;
-                  ROS_INFO("yaw control");
-                }
-              else
-                final_target_psi_ = getStatePsiBoard();
+              final_target_vel_x_ = 0;
+              final_target_vel_y_ = 0;
+              xy_control_flag_ = false;
             }
         }
     }
   else if(xy_control_mode_ == VEL_LOCAL_BASED_CONTROL_MODE || xy_control_mode_ == POS_LOCAL_BASED_CONTROL_MODE)
     {
-      //start 
-      if(joy_msg->buttons[3] == 1 && getNaviCommand() != START_COMMAND)
+      if(getNaviCommand() == HOVER_COMMAND && teleop_flag_)
         {
-          setNaviCommand(START_COMMAND);
-          final_target_pos_x_= getStatePosX();
-          final_target_pos_y_= getStatePosY();
-          final_target_pos_z_= takeoff_height_;  // 0.55m
-          final_target_psi_  = getStatePsiBoard();
-          ROS_INFO("Start command");
-          return;
-        }
-      //halt && force landing
-      if(joy_msg->buttons[0] == 1)
-        {
+          /* horizontal move */
           if(joy_msg->buttons[8] == 1)
-            {//Do Force Landing 
-              if( !force_landing_flag_)
-                {
-                  std_msgs::UInt8 force_landing_cmd;
-                  force_landing_cmd.data = FORCE_LANDING_CMD;
-                  flight_config_pub_.publish(force_landing_cmd); 
-                  force_landing_flag_ = true;
-                  ROS_INFO("Force Landing command");
-                }
-            }
-          else
             {
-              setNaviCommand(STOP_COMMAND);
-              flight_mode_= RESET_MODE;
-
-              setTargetPosX(getStatePosX());
-              setTargetPosY(getStatePosY());
-              setTargetPsi(getStatePsiBoard());
-
-              estimator_->setSensorFusionFlag(false);
-              estimator_->setLandingMode(false);
-              estimator_->setLandedFlag(false);
-              estimator_->setFlyingFlag(false);
-
-              if(xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE) xy_control_mode_ = POS_WORLD_BASED_CONTROL_MODE;
-
-              ROS_INFO("Halt command");
+              final_target_vel_x_= joy_msg->axes[1] * fabs(joy_msg->axes[1]) * target_vel_rate_;
+              final_target_vel_y_= joy_msg->axes[0] * fabs(joy_msg->axes[0]) * target_vel_rate_;
+              xy_control_flag_ = true;
             }
-          return;
-        }
-      //takeoff
-      if(joy_msg->buttons[7] == 1 && joy_msg->buttons[13] == 1)
-        {
-          if(getStartAble())
+          if(xy_control_flag_ && joy_msg->buttons[8] == 0)
             {
-              setNaviCommand(TAKEOFF_COMMAND);
-              ROS_INFO("Takeoff command");
+              final_target_vel_x_ = 0;
+              final_target_vel_y_ = 0;
+              xy_control_flag_ = false;
             }
-          else  stopFlight();
-
-          return;
-        }
-      //landing
-      if(joy_msg->buttons[5] == 1 && joy_msg->buttons[15] == 1)
-        {
-          xy_control_mode_ = VEL_LOCAL_BASED_CONTROL_MODE;
-          setNaviCommand(LAND_COMMAND);
-          //更新
-          final_target_pos_x_= getStatePosX();
-          final_target_pos_y_= getStatePosY();
-          final_target_pos_z_= estimator_->getLandingHeight();
-          final_target_psi_  = getStatePsiBoard();
-          ROS_INFO("Land command");
-
-          return;
-        }
-
-      /* turn to ATTITUDE_GAIN_TUNNING_MODE */
-      if(joy_msg->buttons[6] == 1)
-        {
-          gain_tunning_mode_ = ATTITUDE_GAIN_TUNNING_MODE;
-          final_target_psi_  = 0; //because the init final_target_psi_ is sometimes not 0, especially using mocap
-        }
-
-      if(getStartAble() && getFlightAble() && getNaviCommand() != LAND_COMMAND 
-         && teleop_flag_)  
-        {//start &  takeoff & !land
-          setNaviCommand(HOVER_COMMAND);
-
-          //xy
-	  if(joy_msg->buttons[8] == 1 )
-	    {
-	      final_target_vel_x_= joy_msg->axes[1] * fabs(joy_msg->axes[1]) * target_vel_rate_;
-	      final_target_vel_y_= joy_msg->axes[0] * fabs(joy_msg->axes[0]) * target_vel_rate_;
-	      xy_control_flag_ = true;
-	    }
-	  if(xy_control_flag_ && joy_msg->buttons[8] == 0)
-	    {
-	      final_target_vel_x_ = 0;
-	      final_target_vel_y_ = 0;
-	      xy_control_flag_ = false;
-	    }
-
-          //throttle
-          if(fabs(joy_msg->axes[3]) > 0.2)
-            {
-              alt_control_flag_ = true;
-              if(joy_msg->axes[3] >= 0) 
-                final_target_pos_z_+= target_alt_interval_;
-              else 
-                final_target_pos_z_-= target_alt_interval_;
-
-              ROS_INFO("Thrust command");
-            }
-          else
-            {
-              if(alt_control_flag_)
-                {
-                  alt_control_flag_= false;
-                  final_target_pos_z_= getStatePosZ();
-                  ROS_INFO("Fixed Alt command, targetPosz_is %f",final_target_pos_z_);
-                }
-            }
-          if(final_target_pos_z_< 0.35) final_target_pos_z_= 0.35; // shuisei 
-          if(final_target_pos_z_> 3) final_target_pos_z_= 3;
-
-          //yaw 1
-          final_target_psi_ = joy_msg->axes[2] * target_yaw_rate_;
-          //yaw 2
-          if(joy_msg->buttons[10] == 1)
-            {
-              ROS_INFO("CCW");
-              final_target_psi_ = target_yaw_rate_;
-            }
-          if(joy_msg->buttons[11] == 1)
-            {
-              ROS_INFO("CW");
-              final_target_psi_ = - target_yaw_rate_;
-            }
-
         }
     }
 }
@@ -850,7 +672,6 @@ void TeleopNavigator::teleopNavigation()
             {
               convergence_cnt = 0;
               setNaviCommand(HOVER_COMMAND); 
-              startFlight();
               ROS_WARN(" x/y pos stable hovering POS_WORLD_BASED_CONTROL_MODE");
             }
           else if(xy_control_mode_ == VEL_LOCAL_BASED_CONTROL_MODE)
@@ -864,7 +685,6 @@ void TeleopNavigator::teleopNavigation()
                       clock_cnt = 0;
                       convergence_cnt = 0;
                       setNaviCommand(HOVER_COMMAND); 
-                      startFlight();
                       ROS_WARN(" x/y pos stable hovering VEL_LOCAL_BASED_CONTROL_MODE");
                     }
                 }
@@ -872,21 +692,23 @@ void TeleopNavigator::teleopNavigation()
                 {
                   convergence_cnt = 0;
                   setNaviCommand(HOVER_COMMAND); 
-                  startFlight();
                   ROS_WARN(" no x/y pos stable hovering ");
                 }
             }
         }
 
-      if(ros::Time::now().toSec() - joy_stick_prev_time_.toSec() > joy_stick_heart_beat_du_)
+      /* check the joy stick heart beat */
+      if(joy_stick_prev_time_ != 0 && ros::Time::now().toSec() - joy_stick_prev_time_ > joy_stick_heart_beat_du_)
         {
-          if(gain_tunning_mode_ == ATTITUDE_GAIN_TUNNING_MODE && !force_landing_flag_)
+          if(gain_tunning_mode_ == ATT_CONTROL_MODE)
             {
-              ROS_ERROR("ATTITUDE_GAIN_TUNNING_MODE: Force Landing command");
-              std_msgs::UInt8 force_landing_cmd;
-              force_landing_cmd.data = FORCE_LANDING_CMD;
-              flight_config_pub_.publish(force_landing_cmd); 
-              force_landing_flag_ = true;
+              ROS_ERROR("Force Landing: att control mode, because no joy control");
+
+              setNaviCommand(LAND_COMMAND);
+              final_target_pos_x_= getStatePosX();
+              final_target_pos_y_= getStatePosY();
+              final_target_pos_z_= estimator_->getLandingHeight();
+              final_target_psi_  = getStatePsiBoard();
             }
         }
     }
@@ -895,56 +717,56 @@ void TeleopNavigator::teleopNavigation()
       //for estimator landing mode
       estimator_->setLandingMode(true);
 
-      if (!getFlightAble()  && getStartAble()) 
-        {
-          ROS_ERROR("disarm motors");
-          setNaviCommand(STOP_COMMAND);
-          flight_mode_= RESET_MODE;
-
-          setTargetPosX(getStatePosX());
-          setTargetPosY(getStatePosY());
-          setTargetPsi(getStatePsiBoard());
-
-          estimator_->setSensorFusionFlag(false);
-          estimator_->setLandingMode(false);
-          estimator_->setLandedFlag(false);
-          estimator_->setFlyingFlag(false);
-
-          if(xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE) xy_control_mode_ = POS_WORLD_BASED_CONTROL_MODE;
-        }
-
-      else if (getFlightAble()  && getStartAble())
+      if (getStartAble())
         {
           flight_mode_= LAND_MODE; //--> for control
 
           if (fabs(getTargetPosZ() - getStatePosZ()) < POS_Z_THRE)
             convergence_cnt++;
-          if (convergence_cnt > ctrl_loop_rate_) 
+
+          if (convergence_cnt > ctrl_loop_rate_)
             {
               convergence_cnt = 0;
-              stopFlight();
+
+              ROS_ERROR("disarm motors");
+              setNaviCommand(STOP_COMMAND);
+              flight_mode_= RESET_MODE;
+
+              setTargetPosX(getStatePosX());
+              setTargetPosY(getStatePosY());
+              setTargetPsi(getStatePsiBoard());
+
+              estimator_->setSensorFusionFlag(false);
+              estimator_->setLandingMode(false);
+              estimator_->setLandedFlag(false);
+              estimator_->setFlyingFlag(false);
+
+              if(xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE)
+                xy_control_mode_ = POS_WORLD_BASED_CONTROL_MODE;
             }
         }
-      else if (!getStartAble())
+      else
         {
           flight_mode_= NO_CONTROL_MODE;
           setNaviCommand(IDLE_COMMAND);
-
         }
     }
   else if(getNaviCommand() == HOVER_COMMAND)
     {
       flight_mode_= FLIGHT_MODE;
+
       /* check the joy stick heart beat */
-      if(ros::Time::now().toSec() - joy_stick_prev_time_.toSec() > joy_stick_heart_beat_du_)
+      if(joy_stick_prev_time_ != 0 && ros::Time::now().toSec() - joy_stick_prev_time_ > joy_stick_heart_beat_du_)
         {
-          if(gain_tunning_mode_ == ATTITUDE_GAIN_TUNNING_MODE && !force_landing_flag_)
+          if(gain_tunning_mode_ == ATT_CONTROL_MODE)
             {
-              ROS_ERROR("ATTITUDE_GAIN_TUNNING_MODE: Force Landing command");
-              std_msgs::UInt8 force_landing_cmd;
-              force_landing_cmd.data = FORCE_LANDING_CMD;
-              flight_config_pub_.publish(force_landing_cmd); 
-              force_landing_flag_ = true;
+              ROS_ERROR("Force Landing: att control mode, because no joy control");
+
+              setNaviCommand(LAND_COMMAND);
+              final_target_pos_x_= getStatePosX();
+              final_target_pos_y_= getStatePosY();
+              final_target_pos_z_= estimator_->getLandingHeight();
+              final_target_psi_  = getStatePsiBoard();
             }
         }
     }
@@ -1024,4 +846,9 @@ void TeleopNavigator::rosParamInit(ros::NodeHandle nh)
   if (!nh.getParam ("joy_stick_heart_beat_du", joy_stick_heart_beat_du_))
     joy_stick_heart_beat_du_ = 1.0;
   printf("%s: joy_stick_heart_beat_du_ is %f\n", ns.c_str(), joy_stick_heart_beat_du_);
+
+  if (!nh.getParam ("force_landing_to_halt_du", force_landing_to_halt_du_))
+    force_landing_to_halt_du_ = 1.0;
+  printf("%s: force_landing_to_halt_du_ is %f\n", ns.c_str(), force_landing_to_halt_du_);
+
 }
