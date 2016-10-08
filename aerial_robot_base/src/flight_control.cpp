@@ -201,21 +201,21 @@ void PidController::pidFunction()
     }
   else
     {
-      float state_pos_x;
-      float state_vel_x;
-      float state_pos_y;
-      float state_vel_y;
+      float state_pos_x = 0;
+      float state_vel_x = 0;
+      float state_pos_y = 0;
+      float state_vel_y = 0;
 
-      float target_pos_x;
-      float target_pos_y;
-      float target_vel_x;
-      float target_vel_y;
+      float target_pos_x = 0;
+      float target_pos_y = 0;
+      float target_vel_x = 0;
+      float target_vel_y = 0;
 
-      float state_pos_z;
-      float state_vel_z;
-      float state_psi_cog;
-      float state_psi_board;
-      float state_vel_psi;
+      float state_pos_z = 0;
+      float state_vel_z = 0;
+      float state_psi_cog = 0;
+      float state_psi_board = 0;
+      float state_vel_psi = 0;
 
       if(navigator_->getXyControlMode() == Navigator::POS_WORLD_BASED_CONTROL_MODE ||
          navigator_->getXyControlMode() == Navigator::VEL_WORLD_BASED_CONTROL_MODE) 
@@ -254,14 +254,6 @@ void PidController::pidFunction()
               state_vel_y = estimator_->getEEState(BasicEstimator::Y_B, 1);
             }
         }
-      else
-        {
-          ROS_ERROR("wrong xy control mode ");
-          state_pos_x = 0;
-          state_vel_x = 0;
-          state_pos_y = 0;
-          state_vel_y = 0;
-        }
 
       target_vel_x = navigator_->getTargetVelX();
       target_vel_y = navigator_->getTargetVelY();
@@ -288,15 +280,12 @@ void PidController::pidFunction()
           state_vel_psi = estimator_->getEEState(BasicEstimator::YAW_W_B, 1);
         }
 
-
       float target_pos_z = navigator_->getTargetPosZ();
       float target_psi = navigator_->getTargetPsi();
 
       aerial_robot_base::FourAxisPid  four_axis_pid_debug;
 
       four_axis_pid_debug.header.stamp = ros::Time::now();
-
-
 
       if (first_flag)
         {
@@ -408,21 +397,16 @@ void PidController::pidFunction()
                   pos_d_term_pitch_ = 0;
                 }
             }
-          else
-            ROS_ERROR("wrong control mode");
-
-
           //*** 指令値算出
           pitch_value = limit(pos_p_term_pitch_ + pos_i_term_pitch_ + pos_d_term_pitch_ + offset_pitch_, pos_limit_pitch_);
 
-          //**** attitude control mode
-          if(navigator_->getXyControlMode() == Navigator::ATT_CONTROL_MODE)
-            {
+	  //**** attitude control mode
+	  if(navigator_->getXyControlMode() == Navigator::ATT_CONTROL_MODE)
+            {	   
               pitch_value = navigator_->getTargetAnglePitch();
               pos_p_term_pitch_ =  0;
               pos_i_term_pitch_ =  0;
               pos_d_term_pitch_ =  0;
-
             }
 
           //*** 指令値代入
@@ -527,15 +511,12 @@ void PidController::pidFunction()
                   pos_d_term_roll_ = 0;
                 }
             }
-          else
-            ROS_ERROR("wrong control mode");
-
           //*** 指令値算出
           roll_value = limit(pos_p_term_roll_ + pos_i_term_roll_ + pos_d_term_roll_ + offset_roll_, pos_limit_roll_);
           //**** 指令値反転
           roll_value = - roll_value;
 
-          //**** attitude control mode
+	  //**** attitude control mode
           if(navigator_->getXyControlMode() == Navigator::ATT_CONTROL_MODE)
             {
               roll_value = navigator_->getTargetAngleRoll();
@@ -556,7 +537,6 @@ void PidController::pidFunction()
           four_axis_pid_debug.roll.pos_err_no_transform = target_pos_y - state_pos_y;
           four_axis_pid_debug.roll.vel_err_transform = target_vel_y;
           four_axis_pid_debug.roll.vel_err_no_transform = target_vel_y - state_vel_y;
-
 
           //yaw => refer to the board frame angle(psi_board)
           //error p

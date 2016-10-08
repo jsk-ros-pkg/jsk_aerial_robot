@@ -40,9 +40,6 @@ class Navigator
   inline uint8_t getXyControlMode(){  return (uint8_t)xy_control_mode_;}
   inline void setXyControlMode(uint8_t mode){  xy_control_mode_ = mode;}
 
-  inline uint8_t getGainTunningMode(){  return (uint8_t)gain_tunning_mode_;}
-  inline void setGainTunningMode(uint8_t mode){  gain_tunning_mode_ = mode;}
-
   inline bool getXyVelModePosCtrlTakeoff(){  return xy_vel_mode_pos_ctrl_takeoff_;}
 
   inline float getStatePosX()
@@ -95,8 +92,6 @@ class Navigator
     if(state_mode_ == BasicEstimator::GROUND_TRUTH) return estimator_->getGTState(BasicEstimator::YAW_W_B, 1);
     if(state_mode_ == BasicEstimator::EGOMOTION_ESTIMATE) return estimator_->getEEState(BasicEstimator::YAW_W_B, 1);
   }
-
-
 
 
   inline float getTargetPosX(){  return current_target_pos_x_;}
@@ -180,6 +175,7 @@ class Navigator
     ros::NodeHandle nh_;
     ros::NodeHandle nhp_;
     ros::Subscriber navi_sub_;
+    ros::Subscriber battery_sub_;
     tf::TransformBroadcaster* br_ ; 
 
     BasicEstimator* estimator_;
@@ -193,8 +189,8 @@ class Navigator
     bool xy_vel_mode_pos_ctrl_takeoff_;
 
     int state_mode_;
-
-    //*** base navigation
+    int low_voltage_thre_;
+    bool low_voltage_flag_;
 
     // final target value
     float final_target_pos_x_;
@@ -224,8 +220,7 @@ class Navigator
     float current_target_psi_;
     float current_target_vel_psi_;
 
-    // gain tunning mode
-    int gain_tunning_mode_; //for attitude gain
+    //att_control_mode
     double target_angle_rate_;
     double cmd_angle_lev2_gain_;
     float target_pitch_angle_;
@@ -238,7 +233,7 @@ class Navigator
     void rosParamInit(ros::NodeHandle nh);
 
     void naviCallback(const aerial_robot_base::FlightNavConstPtr & msg);
-
+    void batteryCheckCallback(const std_msgs::UInt8ConstPtr &msg);
 };
 
 class TeleopNavigator :public Navigator

@@ -3,7 +3,7 @@ estimator:
         sensor_no: 4
 
         sensor_plugin_name1: sensor_plugin/imu
-        sensor_plugin_name2: sensor_plugin/baromter
+        sensor_plugin_name2: sensor_plugin/barometer
         sensor_plugin_name3: sensor_plugin/mocap
         sensor_plugin_name4: sensor_plugin/optical_flow
 

@@ -11,6 +11,8 @@ Navigator::Navigator(ros::NodeHandle nh, ros::NodeHandle nh_private,
 
   navi_sub_ = nh_.subscribe<aerial_robot_base::FlightNav>("/uav/nav", 1, &Navigator::naviCallback, this, ros::TransportHints().tcpNoDelay());
 
+  battery_sub_ = nh_.subscribe<std_msgs::UInt8>("/battery_voltage_status", 1, &Navigator::batteryCheckCallback, this, ros::TransportHints().tcpNoDelay());
+
   estimator_ = estimator;
   state_mode_ = estimator_->getStateMode();
   flight_ctrl_input_ = flight_ctrl_input;
@@ -53,6 +55,7 @@ Navigator::Navigator(ros::NodeHandle nh, ros::NodeHandle nh_private,
 
   //base navigation mode init
   flight_mode_ = NO_CONTROL_MODE;
+  low_voltage_flag_ = false;
 }
 
 Navigator::~Navigator()
@@ -112,6 +115,23 @@ void Navigator::naviCallback(const aerial_robot_base::FlightNavConstPtr & msg)
     }
 }
 
+void Navigator::batteryCheckCallback(const std_msgs::UInt8ConstPtr &msg)
+{
+  static double low_voltage_start_time = ros::Time::now().toSec();
+  if(msg->data < low_voltage_thre_)
+    {
+      if(ros::Time::now().toSec() - low_voltage_start_time > 10.0)//10sec
+	{
+	  ROS_WARN("low voltage!");
+	  low_voltage_flag_  = true;	  
+	}
+    }
+  else
+    {
+      low_voltage_start_time = ros::Time::now().toSec();
+    }
+}
+
 void Navigator::tfPublish()
 {
   //TODO mutex
@@ -142,6 +162,10 @@ void Navigator::rosParamInit(ros::NodeHandle nh)
   if (!nh.getParam ("xy_control_mode", xy_control_mode_))
     xy_control_mode_ = 0;
   printf("%s: xy_control_mode_ is %d\n", ns.c_str(), xy_control_mode_);
+
+  if (!nh.getParam ("low_voltage_thre", low_voltage_thre_))
+    low_voltage_thre_ = 10; //10%
+  printf("%s: low_voltage_thre_ is %d\n", ns.c_str(), low_voltage_thre_);
 
   //hidden variable
   if (!nh.getParam ("xy_vel_mode_pos_ctrl_takeoff", xy_vel_mode_pos_ctrl_takeoff_))
@@ -310,7 +334,7 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
 
   /* common command */
   /* start */
-  if(joy_msg->buttons[3] == 1 && getNaviCommand() != START_COMMAND)
+  if(joy_msg->buttons[3] == 1 && !getStartAble())
     {
       setNaviCommand(START_COMMAND);
       final_target_pos_x_ = getStatePosX();
@@ -339,7 +363,7 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
         }
 
       /* Halt mode */
-      if(joy_msg->header.stamp.toSec() - force_landing_start_time_.toSec() > force_landing_to_halt_du_)
+      if(joy_msg->header.stamp.toSec() - force_landing_start_time_.toSec() > force_landing_to_halt_du_ && getStartAble())
         {
           ROS_ERROR("Joy Control: Halt!");
 
@@ -372,6 +396,7 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
   /* takeoff */
   if(joy_msg->buttons[7] == 1 && joy_msg->buttons[13] == 1)
     {
+      if(getNaviCommand() == TAKEOFF_COMMAND) return;
       if(getStartAble())
         {
           if(xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE)
@@ -386,6 +411,8 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
   /* landing */
   if(joy_msg->buttons[5] == 1 && joy_msg->buttons[15] == 1)
     {
+      if(getNaviCommand() == LAND_COMMAND) return;
+
       if(xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE)
         xy_control_mode_ = POS_WORLD_BASED_CONTROL_MODE;
 
@@ -453,12 +480,13 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
          xy_control_mode_ == VEL_LOCAL_BASED_CONTROL_MODE ||
          xy_control_mode_ == POS_LOCAL_BASED_CONTROL_MODE)
         {
-          ROS_WARN("Joy Control: yaw control based on velocity(gyro) control only");
+	  /*ROS_WARN("Joy Control: yaw control based on velocity(gyro) control only");*/
           final_target_psi_ = joy_msg->axes[2] * target_yaw_rate_;
         }
     }
 
   /* turn to ATT_CONTROL_MODE */
+  static uint8_t prev_control_mode = 0;
   if(joy_msg->buttons[6] == 1)
     {
       if(xy_control_mode_ == POS_WORLD_BASED_CONTROL_MODE ||
@@ -467,20 +495,25 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
          xy_control_mode_ == POS_LOCAL_BASED_CONTROL_MODE)
         {
           ROS_WARN("Joy Control: Change to ATT_CONTROL_MODE");
-          xy_control_mode_ == ATT_CONTROL_MODE;
-          final_target_psi_  = 0; //because the init final_target_psi_ is sometimes not 0, especially using mocap
+          prev_control_mode = xy_control_mode_;
+          xy_control_mode_ = ATT_CONTROL_MODE;
+        }
+    }
+  if(joy_msg->buttons[4] == 1)
+    {
+      if(xy_control_mode_ == ATT_CONTROL_MODE)
+        {
+          ROS_WARN("Joy Control: Change to NON_ATT_CONTROL_MODE");
+          xy_control_mode_ = prev_control_mode;
         }
     }
 
   /* mode oriented command */
   if(xy_control_mode_ == ATT_CONTROL_MODE)
     {
-      static bool gain_tunning_flag_  = false;
-
       /* pitch && roll angle command */
       target_pitch_angle_ = joy_msg->axes[1] * target_angle_rate_;
       target_roll_angle_ = - joy_msg->axes[0]  * target_angle_rate_;
-
     }
   else if(xy_control_mode_ == POS_WORLD_BASED_CONTROL_MODE || xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE)
     {
@@ -642,6 +675,10 @@ void TeleopNavigator::teleopNavigation()
       flight_mode_= NO_CONTROL_MODE;
       estimator_->setSensorFusionFlag(true);
       force_landing_flag_ = false; //is here good?
+
+      /* low voltage */
+      if(low_voltage_flag_) setNaviCommand(IDLE_COMMAND);
+
     }
   else if(getNaviCommand() == TAKEOFF_COMMAND)
     { //Takeoff Phase
@@ -659,7 +696,8 @@ void TeleopNavigator::teleopNavigation()
               fabs(getTargetPosY() - getStatePosY()) < POS_Y_THRE)
             convergence_cnt++;
         }
-      else if(xy_control_mode_ == VEL_LOCAL_BASED_CONTROL_MODE)
+      else if(xy_control_mode_ == VEL_LOCAL_BASED_CONTROL_MODE ||
+	      xy_control_mode_ == ATT_CONTROL_MODE)
         {
           //TODO => check same as pos_world_based_control_mode
           if (fabs(getTargetPosZ() - getStatePosZ()) < POS_Z_THRE)
@@ -668,11 +706,12 @@ void TeleopNavigator::teleopNavigation()
 
       if (convergence_cnt > ctrl_loop_rate_) 
         { //*** 安定収束した 20 ~ 40
-          if(xy_control_mode_ == POS_WORLD_BASED_CONTROL_MODE)
+          if(xy_control_mode_ == POS_WORLD_BASED_CONTROL_MODE ||
+	     xy_control_mode_ == ATT_CONTROL_MODE)
             {
               convergence_cnt = 0;
               setNaviCommand(HOVER_COMMAND); 
-              ROS_WARN(" x/y pos stable hovering POS_WORLD_BASED_CONTROL_MODE");
+              ROS_WARN("Hovering!");
             }
           else if(xy_control_mode_ == VEL_LOCAL_BASED_CONTROL_MODE)
             {
@@ -685,31 +724,39 @@ void TeleopNavigator::teleopNavigation()
                       clock_cnt = 0;
                       convergence_cnt = 0;
                       setNaviCommand(HOVER_COMMAND); 
-                      ROS_WARN(" x/y pos stable hovering VEL_LOCAL_BASED_CONTROL_MODE");
+                      ROS_WARN("Hovering!");
                     }
                 }
               else
                 {
                   convergence_cnt = 0;
                   setNaviCommand(HOVER_COMMAND); 
-                  ROS_WARN(" no x/y pos stable hovering ");
+                  ROS_WARN("Hovering!");
                 }
             }
         }
 
       /* check the joy stick heart beat */
-      if(joy_stick_prev_time_ != 0 && ros::Time::now().toSec() - joy_stick_prev_time_ > joy_stick_heart_beat_du_)
-        {
-          if(gain_tunning_mode_ == ATT_CONTROL_MODE)
-            {
-              ROS_ERROR("Force Landing: att control mode, because no joy control");
+      bool force_land = false;
+      if(joy_stick_prev_time_ != 0 && ros::Time::now().toSec() - joy_stick_prev_time_ > joy_stick_heart_beat_du_ && xy_control_mode_ == ATT_CONTROL_MODE)
+	{
+	  ROS_ERROR("Force Landing: att control mode, because no joy control");
+	  force_land = true;
+	}
 
-              setNaviCommand(LAND_COMMAND);
-              final_target_pos_x_= getStatePosX();
-              final_target_pos_y_= getStatePosY();
-              final_target_pos_z_= estimator_->getLandingHeight();
-              final_target_psi_  = getStatePsiBoard();
-            }
+      if(low_voltage_flag_)
+        {
+	  ROS_ERROR("Force Landing: low battery");
+	  force_land = true;
+	}
+
+      if(force_land)
+	{
+	  setNaviCommand(LAND_COMMAND);
+	  final_target_pos_x_ = getStatePosX();
+	  final_target_pos_y_ = getStatePosY();
+	  final_target_pos_z_ = estimator_->getLandingHeight();
+	  final_target_psi_   = getStatePsiBoard();
         }
     }
   else if(getNaviCommand() == LAND_COMMAND)
@@ -755,19 +802,28 @@ void TeleopNavigator::teleopNavigation()
     {
       flight_mode_= FLIGHT_MODE;
 
-      /* check the joy stick heart beat */
-      if(joy_stick_prev_time_ != 0 && ros::Time::now().toSec() - joy_stick_prev_time_ > joy_stick_heart_beat_du_)
-        {
-          if(gain_tunning_mode_ == ATT_CONTROL_MODE)
-            {
-              ROS_ERROR("Force Landing: att control mode, because no joy control");
 
-              setNaviCommand(LAND_COMMAND);
-              final_target_pos_x_= getStatePosX();
-              final_target_pos_y_= getStatePosY();
-              final_target_pos_z_= estimator_->getLandingHeight();
-              final_target_psi_  = getStatePsiBoard();
-            }
+      /* check the joy stick heart beat */
+      bool force_land = false;
+      if(joy_stick_prev_time_ != 0 && ros::Time::now().toSec() - joy_stick_prev_time_ > joy_stick_heart_beat_du_ && xy_control_mode_ == ATT_CONTROL_MODE)
+	{
+	  ROS_ERROR("Force Landing: att control mode, because no joy control");
+	  force_land = true;
+	}
+
+      if(low_voltage_flag_)
+        {
+	  ROS_ERROR("Force Landing: low battery");
+	  force_land = true;
+	}
+
+      if(force_land)
+	{
+	  setNaviCommand(LAND_COMMAND);
+	  final_target_pos_x_ = getStatePosX();
+	  final_target_pos_y_ = getStatePosY();
+	  final_target_pos_z_ = estimator_->getLandingHeight();
+	  final_target_psi_   = getStatePsiBoard();
         }
     }
   else if(getNaviCommand() == IDLE_COMMAND)
@@ -836,9 +892,6 @@ void TeleopNavigator::rosParamInit(ros::NodeHandle nh)
   printf("%s: navi_frame_int_ is %d\n", ns.c_str(), navi_frame_int_);
   navi_frame_ = navi_frame_int_;
 
-  if (!nh.getParam ("gain_tunning_mode", gain_tunning_mode_))
-    gain_tunning_mode_ = 0;
-  printf("%s: gain_tunning_mode_ is %d\n", ns.c_str(), gain_tunning_mode_);
   if (!nh.getParam ("target_angle_rate", target_angle_rate_))
     target_angle_rate_ = 1.0;
   printf("%s: target_angle_rate_ is %f\n", ns.c_str(), target_angle_rate_);

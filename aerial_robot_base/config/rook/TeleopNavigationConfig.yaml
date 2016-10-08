@@ -23,3 +23,6 @@ navigator/cmd_vel_lev2_gain : 1.5
 navigator/xy_vel_mode_pos_ctrl_takeoff : true
 
 navigator/target_angle_rate: 0.12
+navigator/force_landing_to_halt_du: 0.8 #[sec]
+
+navigator/low_voltage_thre: 5 #%

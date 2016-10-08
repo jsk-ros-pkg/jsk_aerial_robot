@@ -33,7 +33,7 @@
     <param if="$(arg vel_control_mode)" name="navigator/xy_control_mode" type="int" value="3"/>
     <param if="$(arg att_control_mode)" name="navigator/xy_control_mode" type="int" value="4"/>
 
-    <param name="estimator/state_mode" value= "$(state_mode)" />
+    <param name="estimator/state_mode" value= "$(arg state_mode)" />
     <param name="estimator/only_imu_yaw" value="$(arg only_imu_yaw)"/>
 
     <param name="rx_loop_rate" type="double" value="110"/>

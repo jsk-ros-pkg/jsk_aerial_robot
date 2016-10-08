@@ -63,7 +63,7 @@ namespace sensor_plugin
         std::string ns = nhp_.getNamespace();
 
         nhp_.param("rtk_gps_sub_name", rtk_gps_sub_name_, std::string("/rtk_gps"));
-        printf("rtk gps  is %f\n", pos_noise_sigma_);
+	std::cout << "rtk gps sub_name is:" << rtk_gps_sub_name_ << std::endl;
 
         nhp_.param("pos_noise_sigma", pos_noise_sigma_, 0.001 );
         printf("pos noise sigma  is %f\n", pos_noise_sigma_);
