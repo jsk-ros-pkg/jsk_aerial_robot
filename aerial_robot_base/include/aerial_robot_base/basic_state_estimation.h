@@ -58,6 +58,7 @@ class BasicEstimator
   //mode
   const static uint8_t GROUND_TRUTH = 0;
   const static uint8_t EGOMOTION_ESTIMATE = 1;
+  const static uint8_t EXPERIMENT_ESTIMATE = 2;
 
   static const uint8_t X_W = 0; //x in world coord
   static const uint8_t Y_W = 1; //y in world coord

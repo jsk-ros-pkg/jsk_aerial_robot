@@ -45,6 +45,17 @@
     <rosparam file="$(find aerial_robot_base)/config/simulation/PidControlConfig.yaml" command="load" />
     ############### Keyboard Navigation ##############
     <rosparam file="$(find aerial_robot_base)/config/simulation/TeleopNavigationConfig.yaml" command="load" />
+
+
+    <remap from="/estimator/imu/data" to="/simulation/estimator/imu/data" />
+    <remap from="/estimator/barometer/data" to="/simulation/estimator/barometer/data" />
+    <remap from="/estimator/range_sensor/data" to="/simulation/estimator/range_sensor/data" />
+    <remap from="/estimator/mocap/ground_truth/pose" to="/simulation/estimator/mocap/ground_truth/pose" />
+    <remap from="/estimator/optical_flow/data" to="/simulation/estimator/optical_flow/data" />
+    <remap from="/estimator/rtk_gps/state" to="/simulation/estimator/rtk_gps/state" />
+    <remap from="/uav/full_states" to="/simulation/uav/full_states" />
+    <remap from="/uav/state" to="/simulation/uav/state" />
+
   </node>
 
 </launch>

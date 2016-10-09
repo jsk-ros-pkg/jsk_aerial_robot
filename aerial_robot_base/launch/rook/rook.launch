@@ -11,6 +11,7 @@
   <arg name="state_mode" value="1" />
   <!-- GROUND_TRUTH = 0 -->
   <!-- EGOMOTION_ESTIMATE = 1 -->
+  <!-- EXPERIMENT_ESTIMATE = 1 -->
   <!-- for the outdoor experiment using magnetic, should not be here -->
   <arg name="only_imu_yaw" value="false" />
 

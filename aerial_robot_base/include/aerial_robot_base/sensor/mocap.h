@@ -354,7 +354,7 @@ namespace sensor_plugin
               z_state_.reserves.push_back((estimator_->getFuserExperiment(*it)->getEstimateState())(0,0));
               z_state_.reserves.push_back((estimator_->getFuserExperiment(*it)->getEstimateState())(1,0));
               estimator_->setEXState(BasicEstimator::Z_W, 0, (estimator_->getFuserExperiment(*it)->getEstimateState())(0,0));
-              estimator_->setEXState(BasicEstimator::Z_W, 1, (estimator_->getFuserExperiment(*it)->getEstimateState())(0,0));
+              estimator_->setEXState(BasicEstimator::Z_W, 1, (estimator_->getFuserExperiment(*it)->getEstimateState())(1,0));
             }
           else if((estimator_->getFuserExperimentId(*it) & (1 << BasicEstimator::YAW_W_COG)))
             {
