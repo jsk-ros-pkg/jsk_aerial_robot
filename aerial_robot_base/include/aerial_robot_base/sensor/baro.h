@@ -156,7 +156,7 @@ namespace sensor_plugin
                     {
                       if(!estimator_->getFuserEgomotion(i)->getFilteringFlag())
                         {
-                          ROS_FATAL("baro: can not estiamte the height by baro(ONLY_BARO_MODE), because the filtering flag is not activated");
+                          //ROS_FATAL("baro: can not estiamte the height by baro(ONLY_BARO_MODE), because the filtering flag is not activated");
                           return;
                         }
                       /* We should set the sigma every time, since we may have several different sensors to correct the kalman filter(e.g. vo + opti, laser + baro) */
