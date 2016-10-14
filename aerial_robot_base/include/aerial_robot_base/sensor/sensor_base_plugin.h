@@ -23,12 +23,14 @@ namespace sensor_base_plugin
   class SensorBase
   {
   public:
-    virtual void initialize(ros::NodeHandle nh, ros::NodeHandle nhp, BasicEstimator* estimator)  = 0;
+    virtual void initialize(ros::NodeHandle nh, ros::NodeHandle nhp, BasicEstimator* estimator, std::vector< boost::shared_ptr<sensor_base_plugin::SensorBase> > sensors, std::vector<std::string> sensor_names, int sensor_index)  = 0;
     virtual ~SensorBase(){}
 
     static const uint8_t EGOMOTION_ESTIMATION_MODE = 0;
     static const uint8_t GROUND_TRUTH_MODE = 1;
     static const uint8_t EXPERIMENT_MODE = 2;
+
+    inline std::string getSensorName(){return sensor_name_;}
 
   protected:
 
@@ -36,7 +38,11 @@ namespace sensor_base_plugin
     ros::NodeHandle nhp_;
     ros::ServiceServer estimate_flag_service_;
     BasicEstimator* estimator_;
+    std::string sensor_name_;
+    int sensor_index_;
     int estimate_mode_;
+
+    //std::vector< boost::shared_ptr<sensor_base_plugin::SensorBase> > sensors_;
 
     double sensor_hz_; // hz  of the sensor
     vector<int> estimate_indices_; // the fuser_egomation index
@@ -46,8 +52,15 @@ namespace sensor_base_plugin
 
     SensorBase(){}
 
-    void baseRosParamInit()
+    void baseParamInit(ros::NodeHandle nh, ros::NodeHandle nhp, BasicEstimator* estimator, std::string sensor_name, int sensor_index)
     {
+      sensor_name_ = sensor_name;
+      sensor_index_ = sensor_index;
+      estimator_ = estimator;
+
+      nh_ = ros::NodeHandle(nh, sensor_name_);
+      nhp_ = ros::NodeHandle(nhp, sensor_name_);
+
       estimate_flag_ = true;
       sensor_hz_ = 0;
       estimate_indices_.resize(0);

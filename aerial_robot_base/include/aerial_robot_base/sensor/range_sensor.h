@@ -14,12 +14,9 @@ namespace sensor_plugin
   class RangeSensor :public sensor_base_plugin::SensorBase
   {
   public:
-    void initialize(ros::NodeHandle nh, ros::NodeHandle nhp, BasicEstimator* estimator)
+    void initialize(ros::NodeHandle nh, ros::NodeHandle nhp, BasicEstimator* estimator, std::vector< boost::shared_ptr<sensor_base_plugin::SensorBase> > sensors, std::vector<std::string> sensor_names, int sensor_index)
     {
-      nh_ = ros::NodeHandle(nh, "range_sensor");
-      nhp_ = ros::NodeHandle(nhp, "range_sensor");
-      estimator_ = estimator;
-      baseRosParamInit();
+      baseParamInit(nh, nhp, estimator, sensor_names[sensor_index], sensor_index);
       rosParamInit();
 
       range_sensor_pub_ = nh_.advertise<aerial_robot_base::States>("data",10);
@@ -37,8 +34,13 @@ namespace sensor_plugin
       hardware_height_offset_ = 0;
       sensor_hz_ = 0;
 
+      sensor_sanity_ = TOTAL_SANE;
+
+      min_range_ = 0;
+      max_range_ = 0;
+
       /* set the barometer to the mode of sensor-fusion mode(range-sensor dominant) */
-      //estimator_->setRangeSenorFlag(true);
+      /* TODO: this is not good, because we will appy vo */
       estimator_->setHeightEstimateMode(BasicEstimator::WITHOUT_BARO_MODE);
     }
 
@@ -46,11 +48,20 @@ namespace sensor_plugin
 
     RangeSensor() {}
 
+    int getSensorSanity(){return sensor_sanity_;}
+    int getValueState(){return state_;}
+
 
     /* the state of the height sensor value in terms of estimation  */
     const static uint8_t NORMAL = 0;
     const static uint8_t ABNORMAL = 1;
     const static uint8_t MAX_EXCEED = 2;
+
+    /* the criteria to express the sanity of the sensor */
+    /* e.g. the sonar which is attached at the bottom of the uav can not measure the distance at the moment before takeoff and after landing. so the sensr(value) is insane. Also, we have to consider that the sensor may become insane at the moment of landing or to low. */
+    const static int TOTAL_INSANE = -1; // the state before takeoff and after landing
+    const static int POTENTIALLY_INSANE = 0; // the inflight state which can be insane potentially
+    const static int TOTAL_SANE = 1; // the totally sane state.
 
   private:
     ros::Subscriber range_sensor_sub_;
@@ -58,10 +69,17 @@ namespace sensor_plugin
 
     string range_sensor_sub_name_;
 
+    double min_range_, max_range_;
+
     double range_noise_sigma_;
     float raw_pos_z_, prev_raw_pos_z_;
     float raw_vel_z_;
     int calibrate_cnt_;
+
+    /* for the (initial) sanity of the senser in terms of the attachment hardware */
+    int sensor_sanity_;
+    double ascending_check_range_;
+
 
     /* for terrain check */
     bool terrain_check_; // the flag to enable or disable the terrain check
@@ -93,54 +111,147 @@ namespace sensor_plugin
 
           if(calibrate_cnt == 0)
             {
+              /* set the range of the sensor value */
+              max_range_ = range_msg->max_range;
+              min_range_ = range_msg->min_range;
+
               sensor_hz_ /= (float)(calibrate_cnt_ - 1);
               hardware_height_offset_ /= (float)calibrate_cnt_;
               /* the initial height offset is equal with the hardware initial height offset */
               height_offset_ = hardware_height_offset_;
-              ROS_WARN("range_sensor: the hardware height offset: %f, the hz is %f", hardware_height_offset_, 1.0 / sensor_hz_);
 
-              if(estimate_mode_ & (1 << EGOMOTION_ESTIMATION_MODE))
+              ROS_WARN("%s: the hardware height offset: %f, initial sanity: %s, the hz is %f", 
+                       (range_msg->radiation_type == sensor_msgs::Range::ULTRASOUND)?std::string("sonar sensor").c_str():std::string("infrared sensor").c_str(), hardware_height_offset_, sensor_sanity_?std::string("true").c_str():std::string("false").c_str(), 1.0 / sensor_hz_);
+            }
+        }
+
+      if(calibrate_cnt == 0)
+        {
+          /* is equaly to "init" flag  */
+          calibrate_cnt--;
+
+          /* check the sanity of the first height */
+          if(-height_offset_ < min_range_ || -height_offset_ > max_range_)
+            {
+              /* the sensor is attach close to the ground */
+              sensor_sanity_ = TOTAL_INSANE;
+
+              /* the offset (init) should be 0 */
+              height_offset_ = 0;
+              hardware_height_offset_ = 0;
+
+              /* set the undescending mode */
+              estimator_->setUnDescendMode(true);
+            }
+
+          if(estimate_mode_ & (1 << EGOMOTION_ESTIMATION_MODE))
+            {
+              for(int i = 0; i < estimator_->getFuserEgomotionNo(); i++)
                 {
-                  for(int i = 0; i < estimator_->getFuserEgomotionNo(); i++)
+                  if((estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::Z_W)))
                     {
-                      if((estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::Z_W)))
-                        {
-                          estimator_->getFuserEgomotion(i)->setMeasureFlag();
-                          estimate_indices_.push_back(i);
-                        }
+                      estimator_->getFuserEgomotion(i)->setMeasureFlag();
+                      estimate_indices_.push_back(i);
                     }
                 }
-              if(estimate_mode_ & (1 << EXPERIMENT_MODE))
+            }
+          if(estimate_mode_ & (1 << EXPERIMENT_MODE))
+            {
+              for(int i = 0; i < estimator_->getFuserExperimentNo(); i++)
                 {
-                  for(int i = 0; i < estimator_->getFuserExperimentNo(); i++)
+                  if((estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::Z_W)))
                     {
-                      if((estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::Z_W)))
-                        {
-                          estimator_->getFuserExperiment(i)->setMeasureFlag();
-                          experiment_indices_.push_back(i);
-                        }
+                      estimator_->getFuserExperiment(i)->setMeasureFlag();
+                      experiment_indices_.push_back(i);
                     }
                 }
             }
         }
 
-      //**** update  phase
+      /* update  phase */
       raw_pos_z_ = range_msg->range + height_offset_;
       raw_vel_z_ = (raw_pos_z_ - prev_raw_pos_z_) / (current_secs - previous_secs);
       if(!terrain_check_) state_ = NORMAL;
-
-      /* update */
       previous_secs = current_secs;
       prev_raw_pos_z_ = raw_pos_z_;
       if(calibrate_cnt > 0) return;
 
-      /* flow chat 2 */
+      /* for the insanity sensor: preparation */
+      /* Global Sensor Fusion Flag Check for the takeoff and landing */
+      switch(sensor_sanity_)
+        {
+        case TOTAL_INSANE:
+          if(!estimator_->getSensorFusionFlag() || estimator_->getLandedFlag())
+            {
+              //this is for the repeat mode
+              if(!estimator_->getSensorFusionFlag()) calibrate_cnt = 0;
+
+              //this is for the halt mode
+              for(vector<int>::iterator  it = estimate_indices_.begin(); it != estimate_indices_.end(); ++it )
+                {
+                  estimator_->getFuserEgomotion(*it)->setMeasureFlag(false);
+                  estimator_->getFuserEgomotion(*it)->resetState();
+                }
+              for(vector<int>::iterator  it = experiment_indices_.begin(); it != experiment_indices_.end(); ++it )
+                {
+                  estimator_->getFuserExperiment(*it)->setMeasureFlag(false);
+                  estimator_->getFuserExperiment(*it)->resetState();
+                }
+              return;
+            }
+
+          /* first ascending phase */
+          if(raw_pos_z_ < min_range_ + ascending_check_range_ && raw_pos_z_ > min_range_ &&
+             prev_raw_pos_z_ < min_range_ && prev_raw_pos_z_ > min_range_ - ascending_check_range_)
+            {
+              ROS_WARN("insanity %s: confirm ascending to sanity height, start sf correction process, previous height: %f", (range_msg->radiation_type == sensor_msgs::Range::ULTRASOUND)?std::string("sonar sensor").c_str():std::string("infrared sensor").c_str(), prev_raw_pos_z_);
+
+              /* release the non-descending mode */
+              estimator_->setUnDescendMode(false);
+
+              Eigen::Matrix<double, 1, 1> temp = Eigen::MatrixXd::Zero(1, 1); 
+              temp(0,0) = range_noise_sigma_;
+              for(vector<int>::iterator  it = estimate_indices_.begin(); it != estimate_indices_.end(); ++it )
+                {
+                  ROS_INFO("sonar: init test:");
+                  estimator_->getFuserEgomotion(*it)->setInitState(raw_pos_z_, 0);
+                  estimator_->getFuserEgomotion(*it)->setMeasureSigma(temp);
+                  estimator_->getFuserEgomotion(*it)->setMeasureFlag();
+                }
+              for(vector<int>::iterator  it = experiment_indices_.begin(); it != experiment_indices_.end(); ++it )
+                {
+                  estimator_->getFuserExperiment(*it)->setInitState(raw_pos_z_, 0);
+                  estimator_->getFuserExperiment(*it)->setMeasureSigma(temp);
+                  estimator_->getFuserExperiment(*it)->setMeasureFlag();
+                }
+              sensor_sanity_ = POTENTIALLY_INSANE;
+            }
+          //we do not use the value of insane sensor.
+          return;
+        case POTENTIALLY_INSANE:
+
+          if(estimator_->getLandingMode() &&
+             prev_raw_pos_z_ < min_range_ + ascending_check_range_ && prev_raw_pos_z_ > min_range_
+             && raw_pos_z_ < min_range_ && raw_pos_z_ > min_range_ - ascending_check_range_)
+            {
+              ROS_WARN("potential insane %s: confirm descending to insace zone, stop sf correction process, previous height: %f", (range_msg->radiation_type == sensor_msgs::Range::ULTRASOUND)?std::string("sonar sensor").c_str():std::string("infrared sensor").c_str(), prev_raw_pos_z_);
+
+              sensor_sanity_ = TOTAL_INSANE;
+              return;
+            }
+          break;
+        default:
+          break;
+        }
+
+
+      /* terrain check and height estimate */
       switch(state_)
         {
         case NORMAL:
           /* flow chat 1 */
-          /* check the height of the sensor when the height exceeds the max value */
-          if(range_msg->range > range_msg->max_range && terrain_check_)
+          /* check the height of the sensor when the height exceeds the max value*/
+          if((range_msg->range < range_msg->min_range || range_msg->range > range_msg->max_range) && terrain_check_)
             {
               state_ = MAX_EXCEED;
               estimator_->setHeightEstimateMode(BasicEstimator::ONLY_BARO_MODE);
@@ -268,6 +379,10 @@ namespace sensor_plugin
 
       nhp_.param("calibrate_cnt", calibrate_cnt_, 100);
       printf("check duration  is %d\n", calibrate_cnt_); 
+
+      /* first ascending process: check range */
+      nhp_.param("ascending_check_range", ascending_check_range_, 0.1); // [m]
+      cout << "ascending check range is " << ascending_check_range_ << endl;
 
       /* for terrain and outlier check */
       nhp_.param("terrain_check", terrain_check_, false);

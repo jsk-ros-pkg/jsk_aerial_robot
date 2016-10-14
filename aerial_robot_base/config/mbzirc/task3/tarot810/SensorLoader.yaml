@@ -9,7 +9,7 @@ estimator:
 # GROUND_TRUTH_MODE = 1
 # EXPERIMENT_MODE = 2
 
-sensor:
+sensor_plugin:
         imu:
                 estimate_mode: 5 # 1<<0 + 1<< 2
         mocap:

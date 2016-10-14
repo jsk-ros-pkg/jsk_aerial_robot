@@ -18,13 +18,9 @@ namespace sensor_plugin
   class Imu  :public sensor_base_plugin::SensorBase
   {
   public:
-    void initialize(ros::NodeHandle nh, ros::NodeHandle nhp, BasicEstimator* estimator)
+    void initialize(ros::NodeHandle nh, ros::NodeHandle nhp, BasicEstimator* estimator, std::vector< boost::shared_ptr<sensor_base_plugin::SensorBase> > sensors, std::vector<std::string> sensor_names, int sensor_index)
     {
-      nh_ = ros::NodeHandle(nh, "imu");
-      nhp_ = ros::NodeHandle(nhp, "imu");
-      estimator_ = estimator;
-
-      baseRosParamInit();
+      baseParamInit(nh, nhp, estimator, sensor_names[sensor_index], sensor_index);
       rosParamInit();
 
       if(imu_board_ == D_BOARD)
@@ -125,7 +121,6 @@ namespace sensor_plugin
     std::string imu_topic_name_;
     int imu_board_;
 
-    bool yaw_value_true_; //whether use yaw value from imu
     bool has_sub_imu_board_;  //whether there is a sub imu board for mag estimation
     std::string sub_imu_topic_name_;
 
@@ -234,7 +229,7 @@ namespace sensor_plugin
               ROS_WARN("calib count is %d, time interval is %f", calib_count_, time_interval);
 
               /* check whether use imu yaw for contorl and estimation*/
-              if(yaw_value_true_) ROS_WARN("use imu yaw value for estimation and control");
+              if(estimator_->onlyImuYaw()) ROS_WARN("use imu mag-based yaw value only for estimation and control");
 
             }
 
@@ -643,9 +638,6 @@ namespace sensor_plugin
       nhp_.param("yaw_acc_trans_for_experiment_estimation", yaw_acc_trans_for_experiment_estimation_, 0 );
       printf("%s,  yaw acc trans for experiment estimation is %d\n", ns.c_str(),  yaw_acc_trans_for_experiment_estimation_);
 
-      //mag for yaw control
-      nhp_.param("yaw_value_true", yaw_value_true_, false ); //whether use yaw estimated value from imu
-      printf("%s,  yaw value true is %s\n", ns.c_str(),  yaw_value_true_?std::string("true").c_str():std::string("false").c_str());
 
       nhp_.param("has_sub_imu_board", has_sub_imu_board_, false ); //whether have a sub imu board for yaw
       printf("%s, has sub imu mag board is %s\n", ns.c_str(),  has_sub_imu_board_?std::string("true").c_str():std::string("false").c_str());

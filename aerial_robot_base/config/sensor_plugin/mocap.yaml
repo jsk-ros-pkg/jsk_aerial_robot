@@ -1,4 +1,4 @@
-sensor:
+sensor_plugin:
         mocap:
                 pos_noise_sigma: 0.0005
                 angle_sigma: 0.005

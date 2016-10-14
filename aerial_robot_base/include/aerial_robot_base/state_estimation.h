@@ -9,6 +9,8 @@
 //* for state estimate
 #include <aerial_robot_base/sensor/sensor_base_plugin.h>
 
+//* for search
+#include <algorithm>
 
 class RigidEstimator : public BasicEstimator
 {
@@ -30,7 +32,6 @@ class RigidEstimator : public BasicEstimator
   int sensor_no_;
   std::vector<std::string> sensor_plugin_name_;
   std::vector< boost::shared_ptr<sensor_base_plugin::SensorBase> > sensors_;
-
 
 
 };

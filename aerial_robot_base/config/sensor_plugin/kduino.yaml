@@ -1,4 +1,4 @@
-sensor:
+sensor_plugin:
         imu:
                 imu_topic_name: /imu
                 imu_board: 0 # 0: kduino, 1: d_imu

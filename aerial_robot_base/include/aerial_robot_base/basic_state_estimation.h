@@ -133,10 +133,11 @@ class BasicEstimator
   inline int  getFuserEgomotionNo() { return fuser_egomotion_no_;}
   inline int  getFuserExperimentNo() { return fuser_experiment_no_;}
 
+  //???
   inline int getStateMode() {return state_mode_;}
   inline void setStateMode(int state_mode) {state_mode_ = state_mode;}
 
-  /* the height estimation related funrction */
+  /* the height estimation related function */
   const static uint8_t ONLY_BARO_MODE = 0; //we estimate the height only based the baro, but the bias of baro is constant(keep the last eistamted value)
   const static uint8_t WITH_BARO_MODE = 1; //we estimate the height using range sensor etc. without the baro, but we are estimate the bias of baro
   const static uint8_t WITHOUT_BARO_MODE = 2; //we estimate the height using range sensor etc. with the baro, also estimating the bias of baro
@@ -144,6 +145,7 @@ class BasicEstimator
   inline void setHeightEstimateMode(uint8_t height_estimate_mode){ height_estimate_mode_ = height_estimate_mode;}
   inline int getHeightEstimateMode(){return height_estimate_mode_;}
 
+  /* the yaw state related function */
   inline bool onlyImuYaw(){return only_imu_yaw_;}
 
  protected:
@@ -186,11 +188,12 @@ class BasicEstimator
   bool flying_flag_;
   bool landing_mode_flag_;
   bool landed_flag_;
+
+  /* height related var */
   bool un_descend_flag_;
   uint8_t height_estimate_mode_;
   float landing_height_; //we have to consider the terrain change during the flight,then the landing height is no longer 0.
-
-  /* the only imu yaw flag */
+  /* the only imu yaw var */
   bool only_imu_yaw_;
 
   /* force to change the estimate mode */

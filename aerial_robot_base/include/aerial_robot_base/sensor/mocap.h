@@ -29,11 +29,9 @@ namespace sensor_plugin
   {
   public:
 
-    void initialize(ros::NodeHandle nh, ros::NodeHandle nhp, BasicEstimator* estimator)
+    void initialize(ros::NodeHandle nh, ros::NodeHandle nhp, BasicEstimator* estimator, std::vector< boost::shared_ptr<sensor_base_plugin::SensorBase> > sensors, std::vector<std::string> sensor_names, int sensor_index)
     {
-      nh_ = ros::NodeHandle(nh, "mocap");
-      nhp_ = ros::NodeHandle(nhp, "mocap");
-      baseRosParamInit();
+      baseParamInit(nh, nhp, estimator, sensor_names[sensor_index], sensor_index);
       estimator_ = estimator;
 
       rosParamInit();

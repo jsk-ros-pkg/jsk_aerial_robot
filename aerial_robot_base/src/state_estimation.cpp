@@ -1,10 +1,3 @@
-/*
-  2016 05 16
-  1. the prioripty of the sensor => 1) pluginazation, 2) order=> profile
-  2. uniform the state(set, get , etc, no "sate_xc", no "outer state")
-  3. independent catkin packgage for sensor modules(px_comm is bad )
-*/
-
 #include "aerial_robot_base/state_estimation.h"
 
 RigidEstimator::RigidEstimator(ros::NodeHandle nh, ros::NodeHandle nh_private) : BasicEstimator(nh, nh_private)
@@ -255,6 +248,7 @@ void RigidEstimator::rosParamInit()
   sensor_plugin_name_.resize(sensor_no_);
   sensors_.resize(sensor_no_);
 
+  /* we have to fill all the sensor instance first */
   for(int i = 0; i < sensor_no_; i++)
     {
       std::stringstream sensor_no;
@@ -263,8 +257,12 @@ void RigidEstimator::rosParamInit()
       if (!nh_.getParam ("sensor_plugin_name" + sensor_no.str(), sensor_plugin_name_[i]))
         ROS_ERROR("%d, no param in sensor plugin_name", i);
       printf("sensor_plugin_name%d is %s\n", i+1, sensor_plugin_name_[i].c_str());
-
       sensors_[i]  = sensor_loader_ptr_->createInstance(sensor_plugin_name_[i]);
-      sensors_[i]->initialize(nh_, ros::NodeHandle("sensor"), this);
     }
+
+  /* initialize all sensor plugins */
+  for(int i = 0; i < sensor_no_; i++)
+    sensors_[i]->initialize(nh_, ros::NodeHandle(""), this, sensors_, sensor_plugin_name_, i);
+
+
 }

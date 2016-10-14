@@ -1,22 +1,25 @@
 # Sensor Loader
 estimator:
-        sensor_no: 4
+        sensor_no: 5
 
         sensor_plugin_name1: sensor_plugin/imu
         sensor_plugin_name2: sensor_plugin/barometer
         sensor_plugin_name3: sensor_plugin/mocap
-        sensor_plugin_name4: sensor_plugin/optical_flow
+        sensor_plugin_name4: sensor_plugin/range_sensor
+        sensor_plugin_name5: sensor_plugin/optical_flow
 
 # EGOMOTION_ESTIMATION_MODE = 0
 # GROUND_TRUTH_MODE = 1
 # EXPERIMENT_MODE = 2
 
-sensor:
+sensor_plugin:
         imu:
                 estimate_mode: 5 # 1<<0 + 1<< 2
         barometer:
                 estimate_mode: 5 # 1<<0 + 1<< 2
         mocap:
                 estimate_mode: 6 #1<<1+ 1<< 2
+        range_sensor:
+                estimate_mode: 1 # 1< <0
         optical_flow:
                 estimate_mode: 1 # 1 << 0

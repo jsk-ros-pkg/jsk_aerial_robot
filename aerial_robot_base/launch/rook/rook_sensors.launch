@@ -7,6 +7,7 @@
   ################################### sensor param ############################################
   <rosparam file="$(find aerial_robot_base)/config/sensor_plugin/d_imu.yaml" command="load" />
   <rosparam file="$(find aerial_robot_base)/config/sensor_plugin/mocap.yaml" command="load" />
+  <rosparam file="$(find aerial_robot_base)/config/sensor_plugin/sonar.yaml" command="load" />
   <rosparam file="$(find aerial_robot_base)/config/sensor_plugin/optical_flow.yaml" command="load" />
 
   ################################### sensor module ############################################
@@ -25,8 +26,7 @@
   <include file="$(find aerial_robot_base)/launch/sensors/joy_stick.launch" />
 -->
   ################################# optical flow ###################################
-
-  <include file="$(find aerial_robot_base)/launch/sensors/px4flow.launch" />
+  <include file="$(find aerial_robot_base)/launch/sensors/px4flow.launch" /> 
 
 
 </launch>
