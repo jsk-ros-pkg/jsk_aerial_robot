@@ -1,9 +1,13 @@
 #include <ros/ros.h>
 #include <std_msgs/Int32MultiArray.h>
 #include <std_msgs/UInt16.h>
+#include <std_msgs/Float32.h>
 #include <std_msgs/Empty.h>
 #include <std_srvs/Empty.h>
 #include <takasako_sps/PowerInfo.h>
+
+#define PWM_DU 2000.0f
+#define STOP_PWM 0.5f // 1000 / 2000
 
 class MotorTest
 {
@@ -20,7 +24,7 @@ public:
     nhp_.param("duration", duration_, 4.0);
     nhp_.param("pwm_incremental_value", pwm_incremental_value_, 50);
     nhp_.param("min_pwm_value", min_pwm_value_, 1100);
-    nhp_.param("max_pwm_value", max_pwm_value_, 1800);
+    nhp_.param("max_pwm_value", max_pwm_value_, 1950);
 
     fp_ = fopen("motor_test.txt", "a+");
     if( fp_ == NULL ) {
@@ -42,7 +46,7 @@ public:
       }
     else
       {
-        motor_pwm_pub_ = nh_.advertise<std_msgs::UInt16>(motor_pwm_sub_name_,1);
+        motor_pwm_pub_ = nh_.advertise<std_msgs::Float32>(motor_pwm_sub_name_,1);
       }
 
     ros::ServiceClient calib_client = nh_.serviceClient<std_srvs::Empty>("/cfs_sensor_calib");
@@ -104,8 +108,8 @@ private:
     log_flag_ = 1;
 
     pwm_value_ = min_pwm_value_;
-    std_msgs::UInt16 cmd_msg;
-    cmd_msg.data = pwm_value_;
+    std_msgs::Float32 cmd_msg;
+    cmd_msg.data = pwm_value_  / PWM_DU;
     motor_pwm_pub_.publish(cmd_msg);
     init_time_ = ros::Time::now();
     ROS_INFO("first time");
@@ -149,16 +153,16 @@ private:
 
         if(pwm_value_ > max_pwm_value_)
           {
-            std_msgs::UInt16 cmd_msg;
-            cmd_msg.data = 1000;
+            std_msgs::Float32 cmd_msg;
+            cmd_msg.data = STOP_PWM;
             motor_pwm_pub_.publish(cmd_msg);
 
             ROS_WARN("stop incremental");
             ros::shutdown();
           }
 
-        std_msgs::UInt16 cmd_msg;
-        cmd_msg.data = pwm_value_;
+        std_msgs::Float32 cmd_msg;
+        cmd_msg.data = pwm_value_ / PWM_DU;
         motor_pwm_pub_.publish(cmd_msg);
         log_flag_ = 1;
         init_time_ = ros::Time::now();
@@ -168,7 +172,6 @@ private:
     if(ros::Time::now().toSec() - init_time_.toSec() > 1.0)
       {
         if(log_flag_ == 1)  log_flag_ = 2;
-          
       }
 
   }
