@@ -141,7 +141,7 @@ if __name__=="__main__":
                                 print "only baro mode"
                                 estimate_mode.data = 0
                                 estimate_mode_pub.publish(estimate_mode)
-
+                                '''
                                 print "set the range_sensor estimate to FALSE"
                                 rospy.wait_for_service('/estimator/range_sensor/estimate_flag')
                                 try:
@@ -149,8 +149,9 @@ if __name__=="__main__":
                                         resp = bool_flag(False)
                                 except rospy.ServiceException, e:
                                         print "Service call failed: %s" %e
+                                '''
                                 print "set the mocap estimate to FALSE"
-                                rospy.wait_for_service('/estimator/mocap/estimate_flag')
+                                rospy.wait_for_service('/estimator/mocap/estimate_flag', 1.0)
                                 try:
                                         bool_flag = rospy.ServiceProxy('/estimator/mocap/estimate_flag', BoolFlag)
                                         resp = bool_flag(False)
@@ -160,7 +161,7 @@ if __name__=="__main__":
                                 print "without baro mode"
                                 estimate_mode.data = 2
                                 estimate_mode_pub.publish(estimate_mode)
-
+                                '''
                                 print "set the range_sensor estimate to TRUE"
                                 rospy.wait_for_service('/estimator/range_sensor/estimate_flag')
                                 try:
@@ -168,6 +169,7 @@ if __name__=="__main__":
                                         resp = bool_flag(True)
                                 except rospy.ServiceException, e:
                                         print "Service call failed: %s" %e
+                                '''
                                 print "set the mocap estimate to TRUE"
                                 rospy.wait_for_service('/estimator/mocap/estimate_flag')
                                 try:
