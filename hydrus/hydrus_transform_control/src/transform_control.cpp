@@ -863,15 +863,15 @@ void TransformController::param2contoller()
       if(lqi_mode_ == LQI_FOUR_AXIS_MODE)
         {
           /* to flight controller */
-          rpy_gain_msg.roll_p_gain[i] = K12_(i,0);
-          rpy_gain_msg.roll_d_gain[i] = K12_(i,1);
-          rpy_gain_msg.roll_i_gain[i] = K12_(i,8);
+          rpy_gain_msg.roll_p_gain[i] = K12_(i,0) * 1000; //scale: x 1000
+          rpy_gain_msg.roll_d_gain[i] = K12_(i,1)) * 1000;  //scale: x 1000
+          rpy_gain_msg.roll_i_gain[i] = K12_(i,8)) * 1000; //scale: x 1000
 
-          rpy_gain_msg.pitch_p_gain[i] = K12_(i,2);
-          rpy_gain_msg.pitch_d_gain[i] = K12_(i,3);
-          rpy_gain_msg.pitch_i_gain[i] = K12_(i,9);
+          rpy_gain_msg.pitch_p_gain[i] = K12_(i,2)) * 1000; //scale: x 1000
+          rpy_gain_msg.pitch_d_gain[i] = K12_(i,3)) * 1000; //scale: x 1000
+          rpy_gain_msg.pitch_i_gain[i] = K12_(i,9)) * 1000; //scale: x 1000
 
-          rpy_gain_msg.yaw_d_gain[i] = K12_(i,5);
+          rpy_gain_msg.yaw_d_gain[i] = K12_(i,5)) * 1000; //scale: x 1000
 
           /* to aerial_robot_base, feedback */
           yt_gain_msg.pos_p_gain_throttle.push_back(K12_(i,6));
@@ -890,13 +890,13 @@ void TransformController::param2contoller()
         }
       else if(lqi_mode_ == LQI_THREE_AXIS_MODE)
         {
-          rpy_gain_msg.roll_p_gain[i] = K9_(i,0);
-          rpy_gain_msg.roll_d_gain[i] = K9_(i,1);
-          rpy_gain_msg.roll_i_gain[i] = K9_(i,6);
+          rpy_gain_msg.roll_p_gain[i] = K9_(i,0) * 1000; //scale: x 1000
+          rpy_gain_msg.roll_d_gain[i] = K9_(i,1) * 1000; //scale: x 1000
+          rpy_gain_msg.roll_i_gain[i] = K9_(i,6) * 1000; //scale: x 1000
 
-          rpy_gain_msg.pitch_p_gain[i] = K9_(i,2);
-          rpy_gain_msg.pitch_d_gain[i] = K9_(i,3);
-          rpy_gain_msg.pitch_i_gain[i] = K9_(i,7);
+          rpy_gain_msg.pitch_p_gain[i] = K9_(i,2) * 1000; //scale: x 1000
+          rpy_gain_msg.pitch_d_gain[i] = K9_(i,3) * 1000; //scale: x 1000
+          rpy_gain_msg.pitch_i_gain[i] = K9_(i,7) * 1000; //scale: x 1000
 
           rpy_gain_msg.yaw_d_gain[i] = 0;
 
