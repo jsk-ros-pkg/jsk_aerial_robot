@@ -1,22 +1,19 @@
 <?xml version="1.0"?>
 <launch>
+
+  <!-- configurable paramter -->
+  <!-- ground truth mode: flight_pos_mode: true, flight_vel_mode: false, navigator/state_mode: 0 -->
+  <!-- optical flow mode: flight_vel_mode: false, flight_vel_mode: true,  navigator/state_mode: 1 -->
+
   ############################# Global Param ###################################
 
   <arg name="debug" default="false" />
+  <arg unless="$(arg debug)" name="launch_prefix" value="" />
+  <arg if="$(arg debug)" name="launch_prefix" value="gdb --ex run --args" />
 
-  <!-- estimate mode -->
-  <arg name="state_mode" value="0" />
-  #GROUND_TRUTH = 0
-  #EGOMOTION_ESTIMATE = 1
-  <!-- for the outdoor experiment using magnetic, should not be here -->
-  <arg name="only_imu_yaw" value="false" />
+  <arg name="flight_pos_mode" value="true" /> <!-- pos mode -->
+  <arg name="flight_vel_mode" value="false" />  <!-- vel mode -->
 
-  <!-- flight control mode: should only be one true flag -->
-  <arg name="pos_control_mode" value="true" /> <!-- pos mode -->
-  <arg name="vel_control_mode" value="false" />  <!-- vel mode -->
-  <arg name="att_control_mode" value="false" />  <!-- att mode -->
-
-  ############## Motor Info ############################
   <rosparam file="$(find hydrus_transform_control)/config/hydrus3/MotorInfo.yaml" command="load" /> <!-- basic motor info -->
 
   ############### Sensors #############################
@@ -28,16 +25,19 @@
   <node pkg="aerial_robot_base" type="aerial_robot_base_node" name="aerial_robot_base_node"  launch-prefix="$(arg launch_prefix)" output="screen" > 
 
     ############### Basic Param  #####################
-    <param if="$(arg pos_control_mode)" name="navigator/xy_control_mode" type="int" value="0"/>
-    <param if="$(arg vel_control_mode)" name="navigator/xy_control_mode" type="int" value="3"/>
-    <param if="$(arg att_control_mode)" name="navigator/xy_control_mode" type="int" value="4"/>
-
-    <param name="estimator/state_mode" value= "$(state_mode)" />
-    <param name="estimator/only_imu_yaw" value="$(arg only_imu_yaw)"/>
-
     <param name="rx_loop_rate" type="double" value="110"/>
     <param name="tx_loop_rate" type="double" value="40"/>
     <param name="tf_pub_loop_rate" type="double" value="120"/>
+
+    <param name="estimator/state_mode" type="int" value= "0" />
+    #GROUND_TRUTH = 0
+    #EGOMOTION_ESTIMATE = 1
+
+    <param if="$(arg flight_pos_mode)" name="navigator/xy_control_mode" type="int" value="0"/>
+    <param if="$(arg flight_vel_mode)" name="navigator/xy_control_mode" type="int" value="3"/> <!-- pos local vel -->
+
+    <!--degub -->
+    <param name="navigator/gain_tunning_mode" type="int" value="0"/>
 
     ############### Sensor Fusion ######################
     <rosparam file="$(find hydrus_transform_control)/config/hydrus3/SensorFusion.yaml" command="load" />
@@ -46,6 +46,21 @@
 
 v    ############### Keyboard Navigation ##############
     <rosparam file="$(find hydrus_transform_control)/config/hydrus3/TeleopNavigationConfig.yaml" command="load" />
+
+    ############### remap topic ######################
+    ### Joy Stick #################
+    <remap from="/navigator/joy_stick_command" to="/joy" />
+    ### Teleop Navigator ##########
+    <remap from="/navigator/teleop_command/land" to="/teleop_command/land" />
+    <remap from="/navigator/teleop_command/start" to="/teleop_command/start" />
+    <remap from="/navigator/teleop_command/halt" to="/teleop_command/halt" />
+    <remap from="/navigator/teleop_command/takeoff" to="/teleop_command/takeoff" />
+    <remap from="/navigator/teleop_command/roll" to="/teleop_command/roll" />
+    <remap from="/navigator/teleop_command/pitch" to="/teleop_command/pitch" />
+    <remap from="/navigator/teleop_command/yaw" to="/teleop_command/yaw" />
+    <remap from="/navigator/teleop_command/throttle" to="/teleop_command/throttle" />
+    <remap from="/navigator/teleop_command/ctrl_mode" to="/teleop_command/ctrl_mode" />
+
   </node>
 
   ################################# Dynamixel  ######################################
