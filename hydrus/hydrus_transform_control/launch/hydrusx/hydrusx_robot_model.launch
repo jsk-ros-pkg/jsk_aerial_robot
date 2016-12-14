@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+
+<launch>
+  <arg name="visualize" default="false" /> 
+  <arg name="model" default="hydrus3" /> 
+
+
+  <param name="robot_description" 
+         command="$(find xacro)/xacro.py '$(find aerial_robot_model)/robots/$(arg model).urdf.xacro'" />
+
+
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" output="screen" />
+
+
+
+<group if="$(arg visualize)">
+ <node name="rviz" pkg="rviz" type="rviz"
+        args="-d $(find aerial_robot_model)/launch/rviz_$(env ROS_DISTRO)_config" respawn="true" />
+</group>
+
+</launch>
