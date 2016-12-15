@@ -1,0 +1,43 @@
+<?xml version="1.0"?>
+<launch>
+
+  <arg name="imu_board" default="1" />  <!-- 1: d imu board, 0: kduino board -->
+  <arg name="use_mocap" default="0" />
+  <arg name="use_joy" default="0" />
+  <arg name="use_opti" default="0" />
+
+  ################################# imu ########################################
+  <group if="$(arg imu_board)" >
+    <include file="$(find aerial_robot_base)/launch/sensors/rosserial2.launch" >
+      <arg name="baud" value="921600" />
+      <arg name="port" value="/dev/ttyUSB1" />
+    </include>
+  </group>
+  <rosparam file="$(find aerial_robot_base)/config/sensor_plugin/d_imu.yaml" command="load" if="$(arg imu_board)"/>
+
+  <group unless="$(arg imu_board)" >
+    <node pkg="rosserial_python" type="serial_node.py" name="serial_node" output="screen">
+      <param name="baud" value="115200" />
+      <param name="port" value="/dev/ttyUSB1" />
+    </node>
+  </group>
+  <rosparam file="$(find aerial_robot_base)/config/sensor_plugin/kduino.yaml" command="load" unless="$(arg imu_board)"/>
+
+  ################################ mocap ##########################################
+  <group if="$(arg use_mocap)">
+    <include file="$(find aerial_robot_base)/launch/sensors/mocap.launch" />
+  </group>
+  <rosparam file="$(find aerial_robot_base)/config/sensor_plugin/mocap.yaml" command="load" />
+
+  ################################# optical flow ###################################
+  <group if="$(arg use_opti)">
+    <include file="$(find aerial_robot_base)/launch/sensors/px4flow.launch" />
+  </group>
+  <rosparam file="$(find aerial_robot_base)/config/sensor_plugin/optical_flow.yaml" command="load" />
+
+  ################################# Joy Stick ######################################
+  <group if="$(arg use_joy)">
+    <include file="$(find aerial_robot_base)/launch/sensors/joy_stick.launch" />
+  </group>
+
+</launch>
