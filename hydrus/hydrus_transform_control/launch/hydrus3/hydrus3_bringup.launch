@@ -1,0 +1,74 @@
+<?xml version="1.0"?>
+<launch>
+  ###########  launch config  ###########
+  <arg name="simulation" default="False" />
+  <arg name="headless" default="True" />
+
+  # GROUND_TRUTH = 0
+  # EGOMOTION_ESTIMATE = 1
+  <arg name="state_mode"  value= "0" />
+  # ground truth mode: flight_pos_mode: true, flight_vel_mode: false, navigator/state_mode: 0
+  # optical flow mode: flight_vel_mode: false, flight_vel_mode: true,  navigator/state_mode: 1
+  <arg name="flight_pos_mode" value="true" /> <!-- pos mode -->
+  <arg name="flight_vel_mode" value="false" />  <!-- vel mode -->
+  <arg name="att_control_mode" value="false" />  <!-- att mode -->
+  <!-- for the outdoor experiment using magnetic, should not be here -->
+  <arg name="only_imu_yaw" value="false" />
+
+  ###########  Base Platform  ###########
+  <node pkg="aerial_robot_base" type="aerial_robot_base_node" name="aerial_robot_base_node" output="screen" >
+
+    ###########  Basic Param  ###########
+    <param name="estimator/state_mode" type="int" value= "$(arg state_mode)" />
+    <param if="$(arg flight_pos_mode)" name="navigator/xy_control_mode" type="int" value="0"/>
+    <param if="$(arg flight_vel_mode)" name="navigator/xy_control_mode" type="int" value="3"/>
+    <param if="$(arg att_control_mode)" name="navigator/xy_control_mode" type="int" value="4"/>
+    <param unless="$(arg state_mode)" name="navigator/xy_control_mode" type="int" value="0"/>
+    <param name="estimator/only_imu_yaw" value="$(arg only_imu_yaw)"/>
+
+    <param name="rx_loop_rate" type="double" value="110"/>
+    <param name="tx_loop_rate" type="double" value="40"/>
+    <param name="tf_pub_loop_rate" type="double" value="120"/>
+
+    ###########  Motor Config  ###########
+    <rosparam file="$(find hydrus_transform_control)/config/hydrus3/MotorInfo.yaml" command="load" />
+
+    ###########  Sensor Fusion  ###########
+    <rosparam file="$(find hydrus_transform_control)/config/hydrus3/SensorFusion.yaml" command="load" />
+    ###########  PID Control  ###########
+    <rosparam file="$(find hydrus_transform_control)/config/hydrus3/PidControlConfig.yaml" command="load" />
+    ###########  Teleop  ###########
+    <rosparam file="$(find hydrus_transform_control)/config/hydrus3/TeleopNavigationConfig.yaml" command="load" />
+  </node>
+
+  ###########  Sensors  ###########
+  <group unless="$(arg simulation)">
+    <include file="$(find aerial_robot_base)/launch/sensors/onboard_sensors.launch" >
+      <arg name="imu_board" value="1" />  <!-- 1: d imu board, 0: kduino board -->
+      <arg name="use_mocap" value="1" />
+      <arg name="use_joy" value="0" />
+      <arg name="use_opti" value="0" />
+    </include >
+  </group>
+
+  ###########  Dynamixel  ###########
+  <group unless="$(arg simulation)">
+    <include file="$(find hydrus_transform_control)/launch/hydrus3/hydrus3_dynamixel_bridge.launch" />
+  </group>
+
+  ###########  Robot Model  ###########
+  <include file="$(find aerial_robot_model)/launch/aerial_robot_model.launch">
+    <arg name="model" value="hydrus3"/>
+    <arg name="headless" value="$(arg headless)" />
+    <arg name="simulation" value="$(arg simulation)" />
+  </include >
+
+  ###########  Transform Control  ###########
+  <node pkg="hydrus_transform_control" type="transform_control_node" name="transform_control_node"  output="screen" >
+    <rosparam file="$(find hydrus_transform_control)/config/hydrus3/TransformControl.yaml" command="load" />
+  </node>
+
+</launch>
+
+
+
