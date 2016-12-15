@@ -1,8 +1,0 @@
-<launch>
-
-  <arg name="model" default="hydra3" />  
-
-  <param name="robot_description"
-         command="$(find xacro)/xacro.py '$(find aerial_robot_model)/robots/$(arg model).urdf.xacro'" />
-
-</launch>
