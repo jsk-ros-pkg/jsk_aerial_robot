@@ -35,9 +35,6 @@ link6_base_rod_mass: 0.094
 propeller6_direction: 1
 propeller6_order: 5
 
-debug_log: true
-debug2_log: false
-
 lqi_thread_rate: 10.0
 q_roll: 100.0  #  100
 q_roll_d: 100.0  #  100

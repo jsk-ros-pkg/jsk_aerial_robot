@@ -169,8 +169,8 @@ void TransformController::initParam()
   nh_private_.param("yaw_pos_gain_sub_name", yaw_pos_gain_sub_name_, std::string("/yaw_pos_gain"));
 
 
-  nh_private_.param("debug_log", debug_log_, false); 
-  nh_private_.param("debug2_log", debug2_log_, false); 
+  nh_private_.param("control_verbose", control_verbose_, false); 
+  nh_private_.param("kinetic_verbose", kinetic_verbose_, false); 
 
 
   nh_private_.param("link_num", link_num_, 4);
@@ -517,14 +517,6 @@ void TransformController::principalInertiaComputation(const std::vector<tf::Stam
       Eigen::Matrix3d links_inertia_tmp = links_inertia;
       links_inertia = links_inertia_tmp + link_rotated_inertia + link_offset_inertia;
 
-      // if(debug_log_)
-      //   {
-      //     std::cout << " link_rotated_inertia :\n" << link_rotated_inertia << std::endl;
-      //     std::cout << " link_offset_inertia :\n" << link_offset_inertia << std::endl;
-      //   }
-
-
-
       //2. link joint model
       if(i > 0)
         {
@@ -592,7 +584,7 @@ void TransformController::principalInertiaComputation(const std::vector<tf::Stam
   links_inertia_ = links_inertia;
 
 
-  if(debug2_log_)
+  if(kinetic_verbose_)
      std::cout << "links inertia :\n" << links_inertia_ << std::endl;
 
 
@@ -700,40 +692,26 @@ void TransformController::principalInertiaComputation(const std::vector<tf::Stam
     }
 
 
-  if(debug2_log_)
+  if(kinetic_verbose_)
      std::cout << "pricipal inertia :\n" << getPrincipalInertia() << std::endl;
 
 
   //rotate the link origins from cog
   cog_matrix_ = getRotateMatrix().transpose();
-  //std::cout << "cog matrix :\n" << cog_matrix_ << std::endl;
 
   std::vector<Eigen::Vector3d > links_origin_from_principal_cog;
   links_origin_from_principal_cog.resize(link_num_);
   for(int i = 0; i < link_num_; i ++)
     {
       links_origin_from_principal_cog[i] = cog_matrix_ * links_origin_from_cog[i];
-       if(debug2_log_)
+       if(kinetic_verbose_)
          std::cout << "link" << i + 1 <<"origin :\n" << links_origin_from_principal_cog[i] << std::endl;
 
     }
   setLinksOriginFromCog(links_origin_from_principal_cog);
 
-
-
-
-
   Eigen::Matrix3d rotate_matrix_tmp = getRotateMatrix();
   rotate_angle_ = atan2(rotate_matrix_tmp(1,0), rotate_matrix_tmp(0,0));
-  //ROS_INFO("rotate angle is %f", rotate_angle_);
-
-  // if(callback_flag_)
-  //   {
-  //     std_msgs::Float32 rotate_msg;
-  //     rotate_msg.data = rotate_angle_;
-  //     cog_rotate_pub_.publish(rotate_msg);
-  //   }
-
 }
 
 void TransformController::cogCoordPublish()
@@ -1011,18 +989,12 @@ bool TransformController::distThreCheck()
         y_minus_max_dist = links_origin_from_cog[i](1);
     }
   i = 0;
-  
 
   if(x_plus_max_dist < dist_thre_ || -x_minus_max_dist < dist_thre_ ||
      y_plus_max_dist < dist_thre_ || -y_minus_max_dist < dist_thre_ ) //[m]
     {
-      // ROS_WARN("x_plus:%f, x_minus:%f, y_plus:%f, y_minus:%f", x_plus_max_dist, x_minus_max_dist, y_plus_max_dist, y_minus_max_dist);
-
       return false;
     }
-
-  // ROS_INFO("x_plus:%f, x_minus:%f, y_plus:%f, y_minus:%f", x_plus_max_dist, x_minus_max_dist, y_plus_max_dist, y_minus_max_dist);
-
   return true;
 }
 
@@ -1035,13 +1007,11 @@ bool TransformController::distThreCheckFromJointValues(const std::vector<double>
   return distThreCheck();
 }
 
-bool  TransformController::stabilityCheck(bool debug)
+bool  TransformController::stabilityCheck(bool verbose)
 {
   std::vector<Eigen::Vector3d> links_origin_from_cog(link_num_);
   getLinksOriginFromCog(links_origin_from_cog);
   Eigen::Matrix3d links_principal_inertia = getPrincipalInertia();
-  
-  //std::cout << "inertia :\n" << links_principal_inertia << std::endl;
 
   Eigen::VectorXd x;
   x.resize(link_num_);
@@ -1059,7 +1029,7 @@ bool  TransformController::stabilityCheck(bool debug)
       p_c(order) = propeller_direction_[i] * m_f_rate_ ;
       p_m(order) = 1 / all_mass_;
 
-      if(debug_log_ || debug)
+      if(control_verbose_ || verbose)
         std::cout << "link" << i + 1 <<"origin :\n" << links_origin_from_cog[i] << std::endl;
     }
   i = 0;
@@ -1068,7 +1038,7 @@ bool  TransformController::stabilityCheck(bool debug)
   U_.row(1) = p_x / links_principal_inertia(1,1);
   U_.row(2) = p_c / links_principal_inertia(2,2);
   U_.row(3) = p_m;
-  if(debug_log_ || debug)
+  if(control_verbose_ || verbose)
     std::cout << "U_:"  << std::endl << U_ << std::endl;
 
       ros::Time start_time = ros::Time::now();
@@ -1077,7 +1047,7 @@ bool  TransformController::stabilityCheck(bool debug)
       Eigen::FullPivLU<Eigen::MatrixXd> solver(U_);
 
       x = solver.solve(g);
-      if(debug_log_)
+      if(control_verbose_)
         std::cout << "U det:"  << std::endl << U_.determinant() << std::endl;
     }
   else
@@ -1092,21 +1062,20 @@ bool  TransformController::stabilityCheck(bool debug)
       lamda = solver.solve(g);
       x = U_.transpose() * lamda;
 
-      if(debug_log_)
+      if(control_verbose_)
         std::cout << "U det:"  << std::endl << (U_ * U_.transpose()).determinant() << std::endl;
     }
 
-  if(debug_log_)
+  if(control_verbose_)
     ROS_INFO("U solver is: %f\n", ros::Time::now().toSec() - start_time.toSec());
 
-  if(debug_log_ || debug)
+  if(control_verbose_ || verbose)
     std::cout << "x:"  << std::endl << x << std::endl;
 
   if(x.maxCoeff() > f_max_ || x.minCoeff() < f_min_)
     {
       lqi_mode_ = LQI_THREE_AXIS_MODE;
 
-      //debug
 #if 1
       //no yaw constraint
       Eigen::MatrixXd U_dash = Eigen::MatrixXd::Zero(3, link_num_);
@@ -1119,7 +1088,7 @@ bool  TransformController::stabilityCheck(bool debug)
       Eigen::VectorXd lamda;
       lamda = solver.solve(g3);
       x = U_dash.transpose() * lamda;
-      if(debug_log_)
+      if(control_verbose_)
         std::cout << "x:"  << std::endl << x << std::endl;
 
 #endif
@@ -1152,7 +1121,7 @@ void TransformController::lqi()
               }
 
           //check the stability within the range of the motor force
-          if(!stabilityCheck()) 
+          if(!stabilityCheck())
             ROS_ERROR("can not be four axis stable, switch to three axis stable mode");
 
           if(!hamiltonMatrixSolver(lqi_mode_)){ continue;}
@@ -1181,7 +1150,7 @@ bool TransformController::hamiltonMatrixSolver(uint8_t lqi_mode)
       B8_.row(3) = U_.row(1);
       B8_.row(5) = U_.row(2);
       B8_.row(7) = U_.row(3);
-      if(debug_log_)
+      if(control_verbose_)
         std::cout << "B8:"  << std::endl << B8_ << std::endl;
 
       B12_aug_ = Eigen::MatrixXd::Zero(12, link_num_);
@@ -1204,10 +1173,8 @@ bool TransformController::hamiltonMatrixSolver(uint8_t lqi_mode)
       Eigen::ComplexEigenSolver<Eigen::MatrixXcd> ces;
       ces.compute(H);
 
-      if(debug_log_)
+      if(control_verbose_)
         ROS_INFO("h eigen time is: %f\n", ros::Time::now().toSec() - start_time.toSec());
-      //std::cout << "The eigenvalues of H are:" << std::endl << ces.eigenvalues() << std::endl;
-      //std::cout << "The eigenvalues vector of H are:" << std::endl << es.eigenvectors() << std::endl;
 
       Eigen::MatrixXcd phy = Eigen::MatrixXcd::Zero(24,12);
       int j = 0;
@@ -1217,7 +1184,7 @@ bool TransformController::hamiltonMatrixSolver(uint8_t lqi_mode)
         {
           if(ces.eigenvalues()[i].real() < 0)
             {
-              if(j > 11) 
+              if(j > 11)
                 {
                   ROS_ERROR("nagativa sigular amount is larger");
                   return false;
@@ -1240,7 +1207,7 @@ bool TransformController::hamiltonMatrixSolver(uint8_t lqi_mode)
 
       start_time = ros::Time::now();
       Eigen::MatrixXcd f_inv  = f.inverse();
-      if(debug_log_)
+      if(control_verbose_)
         ROS_INFO("f inverse: %f\n", ros::Time::now().toSec() - start_time.toSec());
 
 
@@ -1249,7 +1216,7 @@ bool TransformController::hamiltonMatrixSolver(uint8_t lqi_mode)
       //K
       K12_ = -R_inv * B12_aug_.transpose() * P.real();
 
-      if(debug_log_)
+      if(control_verbose_)
         std::cout << "K is:" << std::endl << K12_ << std::endl;
 
       //check the eigen of new A
@@ -1257,7 +1224,7 @@ bool TransformController::hamiltonMatrixSolver(uint8_t lqi_mode)
       A12_dash = A12_aug_ + B12_aug_ * K12_;
       // start_time = ros::Time::now();
       Eigen::EigenSolver<Eigen::MatrixXd> esa(A12_dash);
-      if(debug_log_)
+      if(control_verbose_)
         std::cout << "The eigenvalues of A_hash are:" << std::endl << esa.eigenvalues() << std::endl;
       // ROS_INFO("A dash: %f\n", ros::Time::now().toSec() - start_time.toSec());
 
@@ -1268,7 +1235,7 @@ bool TransformController::hamiltonMatrixSolver(uint8_t lqi_mode)
       B6_.row(1) = U_.row(0);
       B6_.row(3) = U_.row(1);
       B6_.row(5) = U_.row(3);
-      if(debug_log_)
+      if(control_verbose_)
         std::cout << "B6:"  << std::endl << B6_ << std::endl;
 
       B9_aug_ = Eigen::MatrixXd::Zero(9, link_num_);
@@ -1284,17 +1251,13 @@ bool TransformController::hamiltonMatrixSolver(uint8_t lqi_mode)
       H.block<9,9>(0,9) = - (B9_aug_ * R_inv * B9_aug_.transpose()).cast<std::complex<double> >();
       H.block<9,9>(9,9) = - (A9_aug_.transpose()).cast<std::complex<double> >();
 
-      //std::cout << " H  is:" << std::endl << H << std::endl;
-
       //eigen solving
       ros::Time start_time = ros::Time::now();
       Eigen::ComplexEigenSolver<Eigen::MatrixXcd> ces;
       ces.compute(H);
 
-      if(debug_log_)
+      if(control_verbose_)
         ROS_INFO("h eigen time is: %f\n", ros::Time::now().toSec() - start_time.toSec());
-      //std::cout << "The eigenvalues of H are:" << std::endl << ces.eigenvalues() << std::endl;
-      //std::cout << "The eigenvalues vector of H are:" << std::endl << es.eigenvectors() << std::endl;
 
       Eigen::MatrixXcd phy = Eigen::MatrixXcd::Zero(18,9);
       int j = 0;
@@ -1327,28 +1290,24 @@ bool TransformController::hamiltonMatrixSolver(uint8_t lqi_mode)
 
       start_time = ros::Time::now();
       Eigen::MatrixXcd f_inv  = f.inverse();
-      if(debug_log_)
+      if(control_verbose_)
         ROS_INFO("f inverse: %f\n", ros::Time::now().toSec() - start_time.toSec());
-
 
       Eigen::MatrixXcd P = g * f_inv;
 
       //K
       K9_ = -R_inv * B9_aug_.transpose() * P.real();
 
-      if(debug_log_)
+      if(control_verbose_)
         std::cout << "K is:" << std::endl << K9_ << std::endl;
-
-
 
       //check the eigen of new A
       Eigen::MatrixXd A9_dash = Eigen::MatrixXd::Zero(9, 9);
       A9_dash = A9_aug_ + B9_aug_ * K9_;
       // start_time = ros::Time::now();
       Eigen::EigenSolver<Eigen::MatrixXd> esa(A9_dash);
-      if(debug_log_)
+      if(control_verbose_)
         std::cout << "The eigenvalues of A_hash are:" << std::endl << esa.eigenvalues() << std::endl;
-      // ROS_INFO("A dash: %f\n", ros::Time::now().toSec() - start_time.toSec());
     }
   return true;
 }

@@ -48,7 +48,6 @@
 
 
 
-
 class ElementModel{
 public:
   ElementModel(){}
@@ -89,13 +88,12 @@ public:
   bool distThreCheckFromJointValues(const std::vector<double>& joint_values, int joint_offset = 0,bool continous_flag = true);
   std::vector<tf::StampedTransform> transformsFromJointValues(const std::vector<double>& joint_values, int joint_offset = 0);
 
-  bool stabilityCheck(bool debug = false); //lagrange method
+  bool stabilityCheck(bool verbose = false); //lagrange method
 
   bool hamiltonMatrixSolver(uint8_t lqi_mode);
 
   inline double getLinkLength(){return link_length_;}
   inline int getLinkNum(){return link_num_;}
-
 
   void getLinksOriginFromCog(std::vector<Eigen::Vector3d>& links_origin_from_cog)
   {
@@ -122,7 +120,6 @@ public:
     boost::lock_guard<boost::mutex> lock(inertia_mutex_);
     links_principal_inertia_ = principal_inertia;
   }
-
 
   Eigen::Matrix3d getRotateMatrix()
   {
@@ -187,7 +184,7 @@ public:
     angle_cos = cog_matrix_(0, 0);
     angle_sin = cog_matrix_(1, 0);
   }
-  
+
   void param2contoller();
 
   //only for link4
@@ -221,8 +218,8 @@ private:
   bool callback_flag_;
   //bool multi_thread_flag_;
 
-  bool debug_log_;
-  bool debug2_log_;
+  bool kinetic_verbose_;
+  bool control_verbose_;
 
   //base model config
 
