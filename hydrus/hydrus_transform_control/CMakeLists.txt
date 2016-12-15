@@ -11,6 +11,7 @@ find_package(catkin REQUIRED COMPONENTS
   tf_conversions
   cmake_modules
   dynamic_reconfigure
+  message_runtime
 )
 
 
@@ -18,6 +19,15 @@ find_package(Eigen REQUIRED)
 include_directories(${EIGEN_INCLUDE_DIRS})
 add_definitions(${EIGEN_DEFINITIONS})
 
+add_service_files(
+  FILES
+  AddExtraModule.srv
+)
+
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+)
 
 generate_dynamic_reconfigure_options(
   cfg/LQI.cfg)

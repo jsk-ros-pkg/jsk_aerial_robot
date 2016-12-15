@@ -1,18 +1,16 @@
 #Hydrus3 config
 
+link_num: 4
+root_link: 2
+
+
 link_joint_offset: 0.205
 
 link_base_center_mass: 0.241  # 0.238 + 0.0032(new battery holder)
 
 link_joint_mass: 0.0785
-controller1_mass: 0.022 # d_board is ligher than kduino(-2g)
-controller2_mass: 0.104 #old: 0.093Kg(93g)
-controller2_offset: 0.189 #old: 0.178
 
-link_base_two_end_mass: 0.047 # 0.053 - 0.006(2leg)
-link_num: 4
-
-root_link: 2
+link_base_two_ring_holder_mass: 0.047 # 0.053 - 0.006(2leg)
 
 link1_base_rod_mass: 0.105 
 
@@ -33,6 +31,16 @@ link4_base_rod_mass: 0.094
 
 propeller4_direction: 1 #default :1
 propeller4_order: 3
+
+# Extra Module
+# MCU: d_board is ligher than kduino(-2g)
+extra_module1_link: 1
+extra_module1_offset: -0.166
+extra_module1_mass: 0.022
+# PC: Odroid U3
+extra_module2_link: 0
+extra_module2_offset: 0.189 #old: 0.178
+extra_module2_mass: 0.104 #old: 0.093[Kg] (93[g])
 
 lqi_thread_rate: 20.0
 q_roll: 200.0  #  100

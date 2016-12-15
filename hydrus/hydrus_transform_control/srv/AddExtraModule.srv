@@ -1,0 +1,5 @@
+uint8 extra_module_link
+float32 extra_module_mass
+float32 extra_module_offset
+---
+bool status
