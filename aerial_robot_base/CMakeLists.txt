@@ -32,7 +32,6 @@ add_message_files(FILES
   AerialRobotStatus.msg
   FlightNav.msg
   FourAxisPid.msg
-  ImuData.msg
   Pid.msg
   State.msg
   States.msg
