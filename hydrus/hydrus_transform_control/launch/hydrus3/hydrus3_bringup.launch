@@ -15,6 +15,9 @@
   <!-- for the outdoor experiment using magnetic, should not be here -->
   <arg name="only_imu_yaw" value="false" />
 
+  ###########  Motor Config  ###########
+  <rosparam file="$(find hydrus_transform_control)/config/hydrus3/MotorInfo.yaml" command="load" />
+
   ###########  Base Platform  ###########
   <node pkg="aerial_robot_base" type="aerial_robot_base_node" name="aerial_robot_base_node" output="screen" >
 
@@ -29,9 +32,6 @@
     <param name="rx_loop_rate" type="double" value="110"/>
     <param name="tx_loop_rate" type="double" value="40"/>
     <param name="tf_pub_loop_rate" type="double" value="120"/>
-
-    ###########  Motor Config  ###########
-    <rosparam file="$(find hydrus_transform_control)/config/hydrus3/MotorInfo.yaml" command="load" />
 
     ###########  Sensor Fusion  ###########
     <rosparam file="$(find hydrus_transform_control)/config/hydrus3/SensorFusion.yaml" command="load" />
@@ -66,6 +66,8 @@
   ###########  Transform Control  ###########
   <node pkg="hydrus_transform_control" type="transform_control_node" name="transform_control_node"  output="screen" >
     <rosparam file="$(find hydrus_transform_control)/config/hydrus3/TransformControl.yaml" command="load" />
+    <param name="kinetic_verbose" value="false" />
+    <param name="control_verbose" value="false" />
   </node>
 
 </launch>
