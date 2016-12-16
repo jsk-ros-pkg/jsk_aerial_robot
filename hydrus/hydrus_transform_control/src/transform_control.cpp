@@ -1,9 +1,4 @@
-/***
-1. the model of quad-rotor is too wrong, especially the position from propeller to joint
- ***/
-
 #include <hydrus_transform_control/transform_control.h>
-
 
 TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_private, bool callback_flag): nh_(nh),nh_private_(nh_private)
 {
@@ -111,8 +106,6 @@ TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_
   rpy_gain_pub_ = nh_.advertise<aerial_robot_msgs::RollPitchYawGain>(rpy_gain_pub_name_, 1);
   yaw_throttle_gain_pub_ = nh_.advertise<aerial_robot_msgs::YawThrottleGain>("yaw_throttle_gain", 1);
 
-  yaw_gain_sub_ = nh_.subscribe<std_msgs::UInt8>(yaw_pos_gain_sub_name_, 1, &TransformController::yawGainCallback, this, ros::TransportHints().tcpNoDelay());
-
   //dynamic reconfigure server
   lqi_server_ = new dynamic_reconfigure::Server<hydrus_transform_control::LQIConfig>(nh_private_);
   dynamic_reconf_func_lqi_ = boost::bind(&TransformController::cfgLQICallback, this, _1, _2);
@@ -124,10 +117,14 @@ TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_
 
       principal_axis_pub_ = nh_.advertise<visualization_msgs::MarkerArray>("orientation_data", 1);
 
+      yaw_gain_sub_ = nh_.subscribe<std_msgs::UInt8>(yaw_pos_gain_sub_name_, 1, &TransformController::yawGainCallback, this, ros::TransportHints().tcpNoDelay());
+
+      add_extra_module_service_ = nh_.advertiseService("add_extra_module", &TransformController::addExtraModuleCallback, this);
+
       cog_rotate_pub_ = nh_.advertise<aerial_robot_base::DesireCoord>("/desire_coordinate", 1); //absolute
 
-      control_timer_ = nh_private_.createTimer(ros::Duration(1.0 / control_rate_),
-                                               &TransformController::controlFunc, this);
+      kinetic_timer_ = nh_private_.createTimer(ros::Duration(1.0 / control_rate_),
+                                               &TransformController::kineticFunc, this);
 
       tf_pub_timer_ = nh_private_.createTimer(ros::Duration(1.0 / tf_pub_rate_),
                                               &TransformController::tfPubFunc, this);
@@ -168,223 +165,175 @@ void TransformController::initParam()
   nh_private_.param("rpy_gain_pub_name", rpy_gain_pub_name_, std::string("/rpy_gain"));
   nh_private_.param("yaw_pos_gain_sub_name", yaw_pos_gain_sub_name_, std::string("/yaw_pos_gain"));
 
+  nh_private_.param("control_verbose", control_verbose_, false);
+  nh_private_.param("kinetic_verbose", kinetic_verbose_, false);
 
-  nh_private_.param("control_verbose", control_verbose_, false); 
-  nh_private_.param("kinetic_verbose", kinetic_verbose_, false); 
-
-
+  /* number of links */
   nh_private_.param("link_num", link_num_, 4);
-  links_name_.resize(link_num_); 
+  std::cout << " link num: " << link_num_ << std::endl;
+
+  /* lqi */
+  r_.resize(link_num_);
+  for(int i = 0; i < link_num_; i++)
+    {
+      std::stringstream ss;
+      ss << i + 1;
+      nh_private_.param(std::string("r") + ss.str(), r_[i], 1.0);
+    }
+
+  nh_private_.param ("dist_thre", dist_thre_, 0.05);
+  std::cout << "dist_thre: " << std::setprecision(3) << dist_thre_ << std::endl;
+  nh_private_.param ("f_max", f_max_, 8.6);
+  std::cout << "f_max: " << std::setprecision(3) << f_max_ << std::endl;
+  nh_private_.param ("f_min", f_min_, 2.0);
+  std::cout << "f_min: " << std::setprecision(3) << f_min_ << std::endl;
+
+  nh_private_.param ("lqi_thread_rate", lqi_thread_rate_, 10.0);
+  std::cout << "lqi_thread_rate: " << std::setprecision(3) << lqi_thread_rate_ << std::endl;
+  nh_private_.param ("q_roll", q_roll_, 1.0);
+  std::cout << "Q: q_roll: " << std::setprecision(3) << q_roll_ << std::endl;
+  nh_private_.param ("q_roll_d", q_roll_d_, 1.0);
+  std::cout << "Q: q_roll_d: " << std::setprecision(3) << q_roll_d_ << std::endl;
+  nh_private_.param ("q_pitch", q_pitch_, 1.0);
+  std::cout << "Q: q_pitch: " << std::setprecision(3) << q_pitch_ << std::endl;
+  nh_private_.param ("q_pitch_d", q_pitch_d_,  1.0);
+  std::cout << "Q: q_pitch_d: " << std::setprecision(3) << q_pitch_d_ << std::endl;
+  nh_private_.param ("q_yaw", q_yaw_, 1.0);
+  std::cout << "Q: q_yaw: " << std::setprecision(3) << q_yaw_ << std::endl;
+  nh_private_.param ("strong_q_yaw", strong_q_yaw_, 1.0);
+  std::cout << "Q: strong_q_yaw: " << std::setprecision(3) << strong_q_yaw_ << std::endl;
+  nh_private_.param ("q_yaw_d", q_yaw_d_, 1.0);
+  std::cout << "Q: q_yaw_d: " << std::setprecision(3) << q_yaw_d_ << std::endl;
+  nh_private_.param ("q_z", q_z_, 1.0);
+  std::cout << "Q: q_z: " << std::setprecision(3) << q_z_ << std::endl;
+  nh_private_.param ("q_z_d", q_z_d_, 1.0);
+  std::cout << "Q: q_z_d: " << std::setprecision(3) << q_z_d_ << std::endl;
+
+  nh_private_.param ("q_roll_i", q_roll_i_, 1.0);
+  std::cout << "Q: q_roll_i: " << std::setprecision(3) << q_roll_i_ << std::endl;
+  nh_private_.param ("q_pitch_i", q_pitch_i_, 1.0);
+  std::cout << "Q: q_pitch_i: " << std::setprecision(3) << q_pitch_i_ << std::endl;
+  nh_private_.param ("q_yaw_i", q_yaw_i_, 1.0);
+  std::cout << "Q: q_yaw_i: " << std::setprecision(3) << q_yaw_i_ << std::endl;
+  nh_private_.param ("q_z_i", q_z_i_, 1.0);
+  std::cout << "Q: q_z_i: " << std::setprecision(3) << q_z_i_ << std::endl;
+
+  /* dynamics */
+  ros::NodeHandle control_node("/motor_info");
+  control_node.param("pwm_rate", pwm_rate_, 1.0);
+  std::cout << "pwm_rate: " << std::setprecision(3) << pwm_rate_ << std::endl;
+  control_node.param("m_f_rate", m_f_rate_, 0.01); //-0.016837; //the sgn is right?, should be nagative
+  std::cout << "m_f_rate: " << std::setprecision(3) << m_f_rate_ << std::endl;
+  control_node.param("f_pwm_rate", f_pwm_rate_, 1.0); //0.3029; // with the pwm percentage: x / 1800 * 100
+  std::cout << "f_pwm_rate: " << std::setprecision(3) << f_pwm_rate_ << std::endl;
+  control_node.param("f_pwm_offset", f_pwm_offset_, 0.0); // -21.196;  // with the pwm percentage: x / 1800 * 100
+  std::cout << "f_pwm_offset: " << std::setprecision(3) <<f_pwm_offset_ << std::endl;
+
+  /* kinematics */
+  links_name_.resize(link_num_);
   propeller_direction_.resize(link_num_);
   propeller_order_.resize(link_num_);
   link_base_model_.resize(link_num_);
   link_base_rod_mass_.resize(link_num_);
   link_joint_model_.resize(link_num_ -1);
-  controller_model_.resize(2); //controller1 + controller2
   all_mass_ = 0;
 
-
+  /* root link */
   nh_private_.param("root_link", root_link_, 3);
   std::stringstream ss;
   ss << root_link_;
   root_link_name_ = std::string("/link") + ss.str();
-  printf(" root_link_name_ is %s\n", root_link_name_.c_str());
+  std::cout << " root_link_name_: " << root_link_name_ << std::endl;
 
-  //position(m)
-  if (!nh_private_.getParam ("link_length", link_length_))
-    link_length_ = 0.44;
-  printf("link_length_ is %.3f\n", link_length_);
-  if (!nh_private_.getParam ("link_base_rod_length", link_base_rod_length_))
-    link_base_rod_length_ = 0.4;
-  printf("link_base_rod_length_ is %.3f\n", link_base_rod_length_);
-  if (!nh_private_.getParam ("link_base_two_end_offset", link_base_two_end_offset_))
-    link_base_two_end_offset_ = 0.1425; //
-  printf("link_base_two_end_offset_ is %.3f\n", link_base_two_end_offset_);
-  if (!nh_private_.getParam ("link_joint_offset", link_joint_offset_))
-    link_joint_offset_ = 0.22;
-  printf("link_joint_offset_ is %.3f\n", link_joint_offset_);
-  if (!nh_private_.getParam ("controller1_offset", controller1_offset_))
-    controller1_offset_ = -0.166; //please check
-  printf("controller1_offset_ is %.3f\n", controller1_offset_);
-  if (!nh_private_.getParam ("controller2_offset", controller2_offset_))
-    controller2_offset_ = 0.178;
-  printf("controller2_offset_ is %.3f\n", controller2_offset_);
-  if (!nh_private_.getParam ("controller2_link", controller2_link_))
-    controller2_link_ = 0;
-  printf("controller2_link_ is %d\n", controller2_link_);
-  if (!nh_private_.getParam ("controller1_link", controller1_link_))
-    controller1_link_ = 1;
-  printf("controller1_link_ is %d\n", controller1_link_);
+  /* base components position [m] */
+  nh_private_.param ("link_length", link_length_, 0.44);
+  std::cout << "link_length" << std::setprecision(3) << link_length_ << std::endl;
+  nh_private_.param ("link_base_rod_length", link_base_rod_length_, 0.4);
+  std::cout << "link_base_rod_length" << std::setprecision(3) << link_base_rod_length_ << std::endl;
+  nh_private_.param ("ring_radius", ring_radius_, 0.1425);
+  std::cout << "ring_radius" << std::setprecision(3) << ring_radius_ << std::endl;
+  nh_private_.param ("link_joint_offset", link_joint_offset_, 0.22);
+  std::cout << "link_joint_offset: " << std::setprecision(3) << link_joint_offset_ << std::endl;
 
-  //mass(Kg)
- if (!nh_private_.getParam ("link_base_rod_mid_mass", link_base_rod_mid_mass_))
-    link_base_rod_mid_mass_ = 0.1;
-  printf("link_base_rod_mid_mass_ is %.3f\n", link_base_rod_mid_mass_);
- if (!nh_private_.getParam ("link_base_ring_mass", link_base_ring_mass_))
-    link_base_ring_mass_ = 0.048;
-  printf("link_base_ring_mass_ is %.3f\n", link_base_ring_mass_);
- if (!nh_private_.getParam ("link_base_two_end_mass", link_base_two_end_mass_))
-   link_base_two_end_mass_ = 0.053; //0.0265 * 2
-  printf("link_base_two_end_mass_ is %.3f\n", link_base_two_end_mass_);
- if (!nh_private_.getParam ("link_base_center_mass", link_base_center_mass_))
-   link_base_center_mass_ = 0.238; // 
-  printf("link_base_center_mass_ is %.3f\n", link_base_center_mass_);
- if (!nh_private_.getParam ("link_joint_mass", link_joint_mass_))
-    link_joint_mass_ = 0.0785;
-  printf("link_joint_mass_ is %.3f\n", link_joint_mass_);
- if (!nh_private_.getParam ("controller1_mass", controller1_mass_))
-    controller1_mass_ = 0.022;
-  printf("controller1_mass_ is %.3f\n", controller1_mass_);
- if (!nh_private_.getParam ("controller2_mass", controller2_mass_))
-    controller2_mass_ = 0.093;
-  printf("controller2_mass_ is %.3f\n", controller2_mass_);
-
- if (!nh_private_.getParam ("dist_thre", dist_thre_))
-    dist_thre_ = 0.05;
-  printf("dist_thre_ is %.3f\n", dist_thre_);
-
- if (!nh_private_.getParam ("f_max", f_max_))
-    f_max_ = 8.6;
-  printf("f_max_ is %.3f\n", f_max_);
-
- if (!nh_private_.getParam ("f_min", f_min_))
-   f_min_ = 2.0;
-  printf("f_min_ is %.3f\n", f_min_);
-
-  //lqi
-  r_.resize(link_num_);
+  /* base components mass [Kg] */
+  nh_private_.param ("link_base_rod_mid_mass", link_base_rod_mid_mass_, 0.1);
+  std::cout << "link_base_rod_mid_mass_; " << std::setprecision(3) << link_base_rod_mid_mass_ << std::endl;
+  nh_private_.param ("link_base_ring_mass", link_base_ring_mass_, 0.048);
+  std::cout << "link_base_ring_mass_: " << std::setprecision(3) << link_base_ring_mass_ << std::endl;
+  nh_private_.param ("link_base_two_ring_holder_mass", link_base_two_ring_holder_mass_, 0.053);
+  std::cout << "link_base_two_ring_holder_mass_: " << std::setprecision(3) << link_base_two_ring_holder_mass_ << std::endl;
+  nh_private_.param ("link_base_center_mass", link_base_center_mass_, 0.238);
+  std::cout << "link_base_center_mass_: " << std::setprecision(3) << link_base_center_mass_ << std::endl;
+  nh_private_.param ("link_joint_mass", link_joint_mass_,0.0785);
+  std::cout << "link_joint_mass_: " << std::setprecision(3) << link_joint_mass_ << std::endl;
 
   Eigen::Matrix3d zero_inertia = Eigen::Matrix3d::Zero(3,3);
   for(int i = 0; i < link_num_; i++)
     {
-
       std::stringstream ss;
       ss << i + 1;
       links_name_[i] = std::string("/link") + ss.str(); //link name
 
+      nh_private_.param(std::string("link") + ss.str() + std::string("_base_rod_mass"), link_base_rod_mass_[i], link_base_rod_mid_mass_);
+      std::cout << "link " << i + 1 << "_base_rod_mass:" << std::setprecision(3) << link_base_rod_mass_[i] << std::endl;
 
-      if (!nh_private_.getParam (std::string("link") + ss.str() + std::string("_base_rod_mass"), link_base_rod_mass_[i]))
-        link_base_rod_mass_[i] = link_base_rod_mid_mass_;
-      printf("link%d_base_rod_mass_ is %.3f\n", i+1, link_base_rod_mass_[i]);
-
-      //model
-      /// 1. link base model
-      float link_base_model_weight = link_base_rod_mass_[i] + link_base_ring_mass_ + link_base_two_end_mass_ + link_base_center_mass_;
+      /* model */
+      /* 1. link base model */
+      float link_base_model_weight = link_base_rod_mass_[i] + link_base_ring_mass_ + link_base_two_ring_holder_mass_ + link_base_center_mass_;
 
       Eigen::Matrix3d link_base_model_inertia;
-      //ring model + two_end model + rod model
-      link_base_model_inertia << 
-        link_base_ring_mass_ / 2 * link_base_two_end_offset_ * link_base_two_end_offset_, 0, 0, 
-         0, (link_base_ring_mass_/2 + link_base_two_end_mass_) * link_base_two_end_offset_ * link_base_two_end_offset_ + link_base_rod_mass_[i] * link_base_rod_length_ * link_base_rod_length_ / 12, 0,
-         0, 0, (link_base_ring_mass_ + link_base_two_end_mass_) * link_base_two_end_offset_ * link_base_two_end_offset_ + link_base_rod_mass_[i] * link_base_rod_length_ * link_base_rod_length_ / 12;
-      //std::cout << "link base model inertia" << link_base_model_inertia << std::endl;
+      /* ring model + two_end model + rod model */
+      link_base_model_inertia <<
+        link_base_ring_mass_ / 2 * ring_radius_ * ring_radius_, 0, 0,
+         0, (link_base_ring_mass_/2 + link_base_two_ring_holder_mass_) * ring_radius_ * ring_radius_ + link_base_rod_mass_[i] * link_base_rod_length_ * link_base_rod_length_ / 12, 0,
+         0, 0, (link_base_ring_mass_ + link_base_two_ring_holder_mass_) * ring_radius_ * ring_radius_ + link_base_rod_mass_[i] * link_base_rod_length_ * link_base_rod_length_ / 12;
 
-      ElementModel link_base_model(nh_, nh_private_, link_base_model_weight, link_base_model_inertia);
+      ElementModel link_base_model(i, link_base_model_weight, link_base_model_inertia);
       link_base_model_[i] = link_base_model;
       all_mass_ += link_base_model.getWeight();
 
-      /// 2. link joint model
+      /* 2. link joint model */
       if(i+1 < link_num_)
         {
           Eigen::Vector3d offset_;
           offset_ << link_joint_offset_, 0, 0;
-          ElementModel link_joint_model(nh_, nh_private_, link_joint_mass_, zero_inertia, offset_);
+          ElementModel link_joint_model(i + 1, link_joint_mass_, zero_inertia, offset_);
           link_joint_model_[i] = link_joint_model;
           all_mass_ += link_joint_model.getWeight();
         }
 
-      //propeller
+      /* propeller */
       nh_private_.param(std::string("propeller") + ss.str() + std::string("_direction"), propeller_direction_[i], 1);
       nh_private_.param(std::string("propeller") + ss.str() + std::string("_order"), propeller_order_[i], i);
-
-
-      //lqi
-      if (!nh_private_.getParam (std::string("r") + ss.str(), r_[i]))
-        r_[i] = 1.0;
-      printf("R: r_%d is %.3f\n", i, r_[i]);
     }
 
+  /* 3. extra module */
+  nh_private_.param ("extra_module_num", extra_module_num_, 2); //default: MCU + PC
+  std::cout << "extra_module_num_: " << extra_module_num_ << std::endl;
+  extra_module_model_.resize(extra_module_num_);
 
-  /// 3. controller
-  Eigen::Vector3d offset_;
-  offset_ << controller1_offset_, 0, 0;
-  ElementModel controller1_model(nh_, nh_private_, controller1_mass_, zero_inertia, offset_);
-  all_mass_ += controller1_model.getWeight();
-  controller_model_[0] = controller1_model;
+  for(int i = 0; i < extra_module_num_; i++)
+    {
+      std::stringstream ss;
+      ss << i + 1;
 
-  offset_ << controller2_offset_, 0, 0;
-  ElementModel controller2_model(nh_, nh_private_, controller2_mass_, zero_inertia, offset_);
-  all_mass_ += controller2_model.getWeight();
-  controller_model_[1] = controller2_model;
+      double extra_module_offset;
+      int extra_module_link;
+      double extra_module_mass;
+      nh_private_.param (std::string("extra_module") + ss.str() + std::string("_link"), extra_module_link, link_num_ / 2 - 1);
+      std::cout << std::string("extra_module") + ss.str() + std::string("_link: ") << extra_module_link << std::endl;
+      nh_private_.param (std::string("extra_module") + ss.str() + std::string("_mass"), extra_module_mass, 0.0);
+      std::cout << std::string("extra_module") + ss.str() + std::string("_mass: ") << std::setprecision(3) << extra_module_mass << std::endl;
+      nh_private_.param (std::string("extra_module") + ss.str() + std::string("_offset"), extra_module_offset, 0.0);
+      std::cout << std::string("extra_module") + ss.str() + std::string("_offset: ") << std::setprecision(3) << extra_module_offset << std::endl;
 
+      Eigen::Vector3d offset;
+      offset << extra_module_offset, 0, 0;
+      ElementModel extra_module_model(extra_module_link, extra_module_mass, zero_inertia, offset);
+      all_mass_ += extra_module_model.getWeight();
+      extra_module_model_[i] = extra_module_model;
+    }
   ROS_INFO("Mass :%f", all_mass_);
-
-  //lqi
-  if (!nh_private_.getParam ("lqi_thread_rate", lqi_thread_rate_))
-    lqi_thread_rate_ = 10.0;
-  printf("lqi_thread_rate_ is %.3f\n", lqi_thread_rate_);
-  if (!nh_private_.getParam ("q_roll", q_roll_))
-    q_roll_ = 1.0;
-  printf("Q: q_roll_ is %.3f\n", q_roll_);
-  if (!nh_private_.getParam ("q_roll_d", q_roll_d_))
-    q_roll_d_ = 1.0;
-  printf("Q: q_roll_d_ is %.3f\n", q_roll_d_);
-  if (!nh_private_.getParam ("q_pitch", q_pitch_))
-    q_pitch_ = 1.0;
-  printf("Q: q_pitch_ is %.3f\n", q_pitch_);
-  if (!nh_private_.getParam ("q_pitch_d", q_pitch_d_))
-    q_pitch_d_ = 1.0;
-  printf("Q: q_pitch_d_ is %.3f\n", q_pitch_d_);
-  if (!nh_private_.getParam ("q_yaw", q_yaw_))
-    q_yaw_ = 1.0;
-  printf("Q: q_yaw_ is %.3f\n", q_yaw_);
-  if (!nh_private_.getParam ("strong_q_yaw", strong_q_yaw_))
-    strong_q_yaw_ = 1.0;
-  printf("Q: strong_q_yaw_ is %.3f\n", strong_q_yaw_);
-  if (!nh_private_.getParam ("q_yaw_d", q_yaw_d_))
-    q_yaw_d_ = 1.0;
-  printf("Q: q_yaw_d_ is %.3f\n", q_yaw_d_);
-  if (!nh_private_.getParam ("q_z", q_z_))
-    q_z_ = 1.0;
-  printf("Q: q_z_ is %.3f\n", q_z_);
-  if (!nh_private_.getParam ("q_z_d", q_z_d_))
-    q_z_d_ = 1.0;
-  printf("Q: q_z_d_ is %.3f\n", q_z_d_);
-
-  if (!nh_private_.getParam ("q_roll_i", q_roll_i_))
-    q_roll_i_ = 1.0;
-  printf("Q: q_roll_i_ is %.3f\n", q_roll_i_);
-  if (!nh_private_.getParam ("q_pitch_i", q_pitch_i_))
-    q_pitch_i_ = 1.0;
-  printf("Q: q_pitch_i_ is %.3f\n", q_pitch_i_);
-  if (!nh_private_.getParam ("q_yaw_i", q_yaw_i_))
-    q_yaw_i_ = 1.0;
-  printf("Q: q_yaw_i_ is %.3f\n", q_yaw_i_);
-  if (!nh_private_.getParam ("q_z_i", q_z_i_))
-    q_z_i_ = 1.0;
-  printf("Q: q_z_i_ is %.3f\n", q_z_i_);
-
-
-  /* TODO: shoudl be deprecated */
-  // if (!nh_private_.getParam ("alfa", alfa_))
-  //   alfa_ = 0.0;
-  // printf("alfa_ is %.3f\n", alfa_);
-
-  //dynamics
-  ros::NodeHandle control_node("/motor_info");
-  if (!control_node.getParam ("pwm_rate", pwm_rate_))
-    pwm_rate_ = 1.0;
-  printf("pwm_rate_ is %f\n", pwm_rate_);
-  if (!control_node.getParam ("m_f_rate", m_f_rate_))
-    m_f_rate_ = 0.01; //-0.016837; //the sgn is right?, should be nagative
-  printf("m_f_rate_ is %.3f\n",m_f_rate_);
-  if (!control_node.getParam ("f_pwm_rate", f_pwm_rate_))
-    f_pwm_rate_ = 1.0; //0.3029; // with the pwm percentage: x / 1800 * 100
-  printf("f_pwm_rate_ is %.3f\n",f_pwm_rate_);
-  if (!control_node.getParam ("f_pwm_offset", f_pwm_offset_))
-    f_pwm_offset_ = 0.0; // -21.196;  // with the pwm percentage: x / 1800 * 100
-  printf("f_pwm_offset_ is %.3f\n",f_pwm_offset_);
-
 }
 
 void TransformController::tfPubFunc(const ros::TimerEvent & e)
@@ -392,7 +341,7 @@ void TransformController::tfPubFunc(const ros::TimerEvent & e)
   cogCoordPublish();
 }
 
-void TransformController::controlFunc(const ros::TimerEvent & e)
+void TransformController::kineticFunc(const ros::TimerEvent & e)
 {
   if(realtime_control_flag_)
     {
@@ -426,6 +375,29 @@ void TransformController::controlFunc(const ros::TimerEvent & e)
     }
 }
 
+bool TransformController::addExtraModuleCallback(hydrus_transform_control::AddExtraModule::Request  &req,
+                                                 hydrus_transform_control::AddExtraModule::Response &res)
+{
+  addExtraModule(req.extra_module_link, req.extra_module_mass, req.extra_module_offset); 
+  res.status = true;
+  return true;
+}
+
+
+void TransformController::addExtraModule(int extra_module_link, float extra_module_mass, float extra_module_offset)
+{
+  Eigen::Vector3d offset;
+  offset << extra_module_offset, 0, 0;
+  Eigen::Matrix3d zero_inertia = Eigen::Matrix3d::Zero(3,3);
+  ElementModel extra_module_model(extra_module_link, extra_module_mass, zero_inertia, offset);
+  all_mass_ += extra_module_model.getWeight();
+  extra_module_num_++;
+  extra_module_model_.push_back(extra_module_model);
+
+  ROS_INFO("Add extra module, link: %d, mass: %f, offset: %f",
+           extra_module_link, extra_module_mass, extra_module_offset);
+}
+
 void TransformController::cogComputation(const std::vector<tf::StampedTransform>& transforms)
 {
   Eigen::Vector3d cog_n  = Eigen::Vector3d::Zero();
@@ -435,39 +407,34 @@ void TransformController::cogComputation(const std::vector<tf::StampedTransform>
       Eigen::Vector3d link_origin;
       tf::vectorTFToEigen(transforms[i].getOrigin(), link_origin);
 
-
       Eigen::Quaterniond q;
       tf::quaternionTFToEigen(transforms[i].getRotation(), q);
       Eigen::Matrix3d link_rotate(q);
 
-
-      //1. link base model
-      //std::cout << "link" << i + 1 << "_origin :\n" << link_origin << std::endl;
-      cog_n += link_origin * link_base_model_[i].getWeight(); 
+      /* 1. link base model */
+      cog_n += link_origin * link_base_model_[i].getWeight();
       if(i > 0)
         {
-          //2. link joint model
-          // 座標変換
+          /* 2. link joint model */
+          /* transformation */
           Eigen::Vector3d joint_origin = link_rotate * link_joint_model_[i -1].getOffset()  + link_origin;
           cog_n += joint_origin * link_joint_model_[i - 1].getWeight();
         }
+    }
 
-      //3. controlers
-      //if(i == 0)
-      if(i == controller2_link_)
-        {// controller2
-          Eigen::Vector3d controller_origin = link_rotate * controller_model_[1].getOffset()  + link_origin;
-          cog_n += controller_origin * controller_model_[1].getWeight(); 
-        }
+  /* 3. extra module */
+  for(int i = 0; i < extra_module_num_; i++)
+    {
+      int link_no = extra_module_model_[i].getLink();
+      Eigen::Vector3d link_origin;
+      tf::vectorTFToEigen(transforms[link_no].getOrigin(), link_origin);
 
-      //if(i == 1)
-      if(i == controller1_link_)
-        {// controller1
-          Eigen::Vector3d controller_origin = link_rotate * controller_model_[0].getOffset()  + link_origin;
-          //std::cout << "controller1 :\n" << controller_origin << std::endl;
-          cog_n += controller_origin * controller_model_[0].getWeight(); 
-        }
+      Eigen::Quaterniond q;
+      tf::quaternionTFToEigen(transforms[link_no].getRotation(), q);
+      Eigen::Matrix3d link_rotate(q);
 
+      Eigen::Vector3d extra_module_origin = link_rotate * extra_module_model_[i].getOffset()  + link_origin;
+      cog_n += extra_module_origin * extra_module_model_[i].getWeight();
     }
 
   Eigen::Vector3d cog = cog_n / all_mass_;
@@ -483,17 +450,17 @@ void TransformController::principalInertiaComputation(const std::vector<tf::Stam
   links_origin_from_cog.resize(link_num_);
   for(int i = 0; i < link_num_; i ++)
     {
-      //offset
+      /* offset */
       Eigen::Vector3d origin_from_root_link;
       tf::vectorTFToEigen(transforms[i].getOrigin(), origin_from_root_link);
 
-      //rotate
+      /* rotate */
       Eigen::Quaterniond q;
       tf::quaternionTFToEigen(transforms[i].getRotation(), q);
       Eigen::Matrix3d rotate_m(q);
 
-      //1. link base model
-      //rotate(R_t * I * R)
+      /* 1. link base model */
+      /* rotate(R_t * I * R) */
       Eigen::Vector3d origin_from_cog = origin_from_root_link - getCog();
       links_origin_from_cog[i] = origin_from_cog;
 
@@ -503,7 +470,7 @@ void TransformController::principalInertiaComputation(const std::vector<tf::Stam
       Eigen::Matrix3d link_offset_inertia;
       float link_mass = link_base_model_[i].getWeight();
 
-      link_offset_inertia << 
+      link_offset_inertia <<
         link_mass * origin_from_cog(1) * origin_from_cog(1),
         link_mass * (-origin_from_cog(0) * origin_from_cog(1)),
         0,
@@ -517,14 +484,14 @@ void TransformController::principalInertiaComputation(const std::vector<tf::Stam
       Eigen::Matrix3d links_inertia_tmp = links_inertia;
       links_inertia = links_inertia_tmp + link_rotated_inertia + link_offset_inertia;
 
-      //2. link joint model
+      /* 2. link joint model */
       if(i > 0)
         {
-          origin_from_cog = rotate_m * link_joint_model_[i -1].getOffset()  + origin_from_root_link - getCog();
+          origin_from_cog = rotate_m * link_joint_model_[i - 1].getOffset()  + origin_from_root_link - getCog();
 
           float joint_mass = link_joint_model_[i - 1].getWeight();
-          Eigen::Matrix3d link_offset_inertia;
-          link_offset_inertia << 
+          Eigen::Matrix3d joint_offset_inertia;
+          joint_offset_inertia <<
             joint_mass * origin_from_cog(1) * origin_from_cog(1),
             joint_mass * (-origin_from_cog(0) * origin_from_cog(1)),
             0,
@@ -536,74 +503,58 @@ void TransformController::principalInertiaComputation(const std::vector<tf::Stam
             joint_mass * (origin_from_cog(0) * origin_from_cog(0) + origin_from_cog(1) * origin_from_cog(1));
 
           Eigen::Matrix3d links_inertia_tmp = links_inertia;
-          links_inertia = links_inertia_tmp + link_offset_inertia;
+          links_inertia = links_inertia_tmp + joint_offset_inertia;
         }
-      //controller
-      if(i == controller2_link_)
-      //if(i == 0)
-        {// controller2
-          origin_from_cog = rotate_m * controller_model_[1].getOffset() + origin_from_root_link - getCog();
-          float controller_mass = controller_model_[1].getWeight();
-          Eigen::Matrix3d link_offset_inertia;
-          link_offset_inertia << 
-            controller_mass * origin_from_cog(1) * origin_from_cog(1),
-            controller_mass * (-origin_from_cog(0) * origin_from_cog(1)),
-            0,
-            controller_mass * (-origin_from_cog(0) * origin_from_cog(1)),
-            controller_mass * origin_from_cog(0) * origin_from_cog(0),
-            0,
-            0,
-            0,
-            controller_mass * (origin_from_cog(0) * origin_from_cog(0) + origin_from_cog(1) * origin_from_cog(1));
-
-          Eigen::Matrix3d links_inertia_tmp = links_inertia;
-          links_inertia = links_inertia_tmp + link_offset_inertia;
-        }
-      if(i == controller1_link_)
-      //if(i == 1)
-        {// controller1
-          origin_from_cog = rotate_m * controller_model_[0].getOffset() + origin_from_root_link - getCog();
-          float controller_mass = controller_model_[0].getWeight();
-          Eigen::Matrix3d link_offset_inertia;
-          link_offset_inertia << 
-            controller_mass * origin_from_cog(1) * origin_from_cog(1),
-            controller_mass * (-origin_from_cog(0) * origin_from_cog(1)),
-            0,
-            controller_mass * (-origin_from_cog(0) * origin_from_cog(1)),
-            controller_mass * origin_from_cog(0) * origin_from_cog(0),
-            0,
-            0,
-            0,
-            controller_mass * (origin_from_cog(0) * origin_from_cog(0) + origin_from_cog(1) * origin_from_cog(1));
-
-          Eigen::Matrix3d links_inertia_tmp = links_inertia;
-          links_inertia = links_inertia_tmp + link_offset_inertia;
-        }
-
     }
+
+  /* 3. extra module model */
+  for(int i = 0; i < extra_module_num_; i++)
+    {
+      int link_no = extra_module_model_[i].getLink();
+
+      /* offset */
+      Eigen::Vector3d origin_from_root_link;
+      tf::vectorTFToEigen(transforms[link_no].getOrigin(), origin_from_root_link);
+
+      /* rotate */
+      Eigen::Quaterniond q;
+      tf::quaternionTFToEigen(transforms[link_no].getRotation(), q);
+      Eigen::Matrix3d rotate_m(q);
+
+      /* 1. link base model */
+      /* rotate(R_t * I * R) */
+      Eigen::Vector3d origin_from_cog = rotate_m * extra_module_model_[i].getOffset() + origin_from_root_link - getCog();
+      float controller_mass = extra_module_model_[i].getWeight();
+      Eigen::Matrix3d extra_module_offset_inertia;
+      extra_module_offset_inertia <<
+        controller_mass * origin_from_cog(1) * origin_from_cog(1),
+        controller_mass * (-origin_from_cog(0) * origin_from_cog(1)),
+        0,
+        controller_mass * (-origin_from_cog(0) * origin_from_cog(1)),
+        controller_mass * origin_from_cog(0) * origin_from_cog(0),
+        0,
+        0,
+        0,
+        controller_mass * (origin_from_cog(0) * origin_from_cog(0) + origin_from_cog(1) * origin_from_cog(1));
+
+      Eigen::Matrix3d links_inertia_tmp = links_inertia;
+      links_inertia = links_inertia_tmp + extra_module_offset_inertia;
+    }
+
   links_inertia_ = links_inertia;
 
 
   if(kinetic_verbose_)
      std::cout << "links inertia :\n" << links_inertia_ << std::endl;
 
-
-  //pricipal inertia
-  //eigen solver
+  /* pricipal inertia */
+  /* eigen solver */
   ros::Time start_time = ros::Time::now();
   Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> eig(links_inertia_);
-  //printf("inertia eigen time is: %f\n", ros::Time::now().toSec() - start_time.toSec());
-  //std::cout << "The eigenvalues of inertia is:\n"  << eig.eigenvalues() << std::endl;
-  //std::cout << "The diagonal is:\n"  << eig.eigenvalues().asDiagonal() << std::endl;
-
   Eigen::Matrix3d links_principal_inertia = eig.eigenvalues().asDiagonal();
-
   Eigen::Matrix3d rotate_matrix = eig.eigenvectors();
 
-  //std::cout << "rotate_matrix :\n" << rotate_matrix << std::endl;
-
-
-  //the reorder of the inertia and rotate matrix (just for 2D)!!
+  /* the reorder of the inertia and rotate matrix (just for 2D)!! */
   if(sgn(rotate_matrix(0,0)) != sgn(rotate_matrix(1,1)))
     {
       rotate_matrix.col(0).swap(rotate_matrix.col(1));
@@ -679,10 +630,8 @@ void TransformController::principalInertiaComputation(const std::vector<tf::Stam
                 }
             }
 
-
           setRotateMatrix(rotate_matrix_candidates[no]);
           setPrincipalInertia(links_principal_inertia_candidates[no]);
-
         }
     }
   else
@@ -691,12 +640,10 @@ void TransformController::principalInertiaComputation(const std::vector<tf::Stam
       setRotateMatrix(rotate_matrix);
     }
 
-
   if(kinetic_verbose_)
      std::cout << "pricipal inertia :\n" << getPrincipalInertia() << std::endl;
 
-
-  //rotate the link origins from cog
+  /* rotate the link origins from cog */
   cog_matrix_ = getRotateMatrix().transpose();
 
   std::vector<Eigen::Vector3d > links_origin_from_principal_cog;
@@ -719,7 +666,6 @@ void TransformController::cogCoordPublish()
 
   tf::TransformBroadcaster br;
   tf::Transform transform;
-
 
   Eigen::Vector3d cog = getCog();
   Eigen::Matrix3d rotate_matrix = getRotateMatrix();

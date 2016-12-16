@@ -1,6 +1,38 @@
-/*
-  1. the std::vector should be sent by reference(getLinksOriginFromCog)
-*/
+// -*- mode: c++ -*-
+/*********************************************************************
+ * Software License Agreement (BSD License)
+ *
+ *  Copyright (c) 2016, JSK Lab
+ *  All rights reserved.
+ *
+ *  Redistribution and use in source and binary forms, with or without
+ *  modification, are permitted provided that the following conditions
+ *  are met:
+ *
+ *   * Redistributions of source code must retain the above copyright
+ *     notice, this list of conditions and the following disclaimer.
+ *   * Redistributions in binary form must reproduce the above
+ *     copyright notice, this list of conditions and the following
+ *     disclaimer in the documentation and/o2r other materials provided
+ *     with the distribution.
+ *   * Neither the name of the JSK Lab nor the names of its
+ *     contributors may be used to endorse or promote products derived
+ *     from this software without specific prior written permission.
+ *
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ *  FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ *  COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ *  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ *  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ *  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ *  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ *  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ *  POSSIBILITY OF SUCH DAMAGE.
+ *********************************************************************/
+
 
 #ifndef TRANSFORM_CONTROL_H
 #define TRANSFORM_CONTROL_H
@@ -12,17 +44,19 @@
 #include <visualization_msgs/Marker.h>
 #include <visualization_msgs/MarkerArray.h>
 #include <iostream>
+#include <iomanip>
 
 #include <aerial_robot_msgs/YawThrottleGain.h>
 #include <aerial_robot_msgs/RollPitchYawGain.h>
 #include <aerial_robot_base/DesireCoord.h>
+#include <hydrus_transform_control/AddExtraModule.h>
 
 #include <string>
-//* for eigen cumputation 
+//* for eigen cumputation
 #include <Eigen/Core>
 #include <Eigen/LU>
 #include <Eigen/Dense>
-#include <Eigen/Geometry> 
+#include <Eigen/Geometry>
 #include <Eigen/Eigenvalues>
 
 #include <std_msgs/UInt16.h>
@@ -46,16 +80,15 @@
 #define LQI_Z_I_GAIN 8
 #define LQI_Z_D_GAIN 9
 
-
-
 class ElementModel{
 public:
   ElementModel(){}
-  ElementModel(ros::NodeHandle nh, ros::NodeHandle nh_private, float weight, Eigen::Matrix3d inertia, Eigen::Vector3d origin_offset = Eigen::Vector3d::Zero()) : nh_(nh), nhp_(nh_private)
+  ElementModel(int link, float weight, Eigen::Matrix3d inertia, Eigen::Vector3d origin_offset = Eigen::Vector3d::Zero())
   {
     weight_ = weight;
     inertia_ = inertia;
     origin_offset_ = origin_offset;
+    link_ = link;
   }
   ~ElementModel(){}
 
@@ -64,13 +97,14 @@ public:
   inline  void setOrigin(Eigen::Vector3d origin){origin_ = origin;}
   inline Eigen::Vector3d getOffset(){return origin_offset_;}
   inline Eigen::Vector3d getOrigin(){return origin_;}
+  inline int getLink(){return link_;}
 
 protected:
-  ros::NodeHandle nh_, nhp_;
   float weight_;
   Eigen::Matrix3d inertia_;
   Eigen::Vector3d origin_;
   Eigen::Vector3d origin_offset_;
+  int link_;
 };
 
 class TransformController{
@@ -81,6 +115,7 @@ public:
   void realtimeControlCallback(const std_msgs::UInt8ConstPtr & msg);
   void yawGainCallback(const std_msgs::UInt8ConstPtr & msg);
 
+  void addExtraModule(int extra_module_link, float extra_module_mass, float extra_module_offset);
   void cogComputation(const std::vector<tf::StampedTransform>& transforms);
   void principalInertiaComputation(const std::vector<tf::StampedTransform>& transforms, bool continuous_flag = true);
 
@@ -208,7 +243,7 @@ private:
   tf::TransformListener tf_;
   double control_rate_;
   double tf_pub_rate_;
-  ros::Timer  control_timer_;
+  ros::Timer  kinetic_timer_;
   ros::Timer  tf_pub_timer_;
 
   ros::Time system_tf_time_;
@@ -216,13 +251,11 @@ private:
   bool realtime_control_flag_;
 
   bool callback_flag_;
-  //bool multi_thread_flag_;
 
   bool kinetic_verbose_;
   bool control_verbose_;
 
-  //base model config
-
+  /* base model config */
   int link_num_;
   std::vector<int> propeller_direction_;
   std::vector<int> propeller_order_;
@@ -236,29 +269,23 @@ private:
   double f_pwm_offset_; //force / pwm offset
   double pwm_rate_; //percentage
 
-
   double link_length_;
   double link_base_rod_length_; //the length of the lik base rod
   //double link_ring_diameter_; //the diameter of the protector
-  double link_base_two_end_offset_; //the offset from the center of link base to the protector_end
+  double ring_radius_; //the offset from the center of link base to the protector_end
   double link_joint_offset_; //the offset from the center of joint to the mass center of joint
-  double controller1_offset_; //the offset from the pos of controller1 to the root link
-  double controller2_offset_; //the offset from the pos of controller2 to the related link
-  int controller1_link_;
-  int controller2_link_;
 
   double link_base_rod_mid_mass_; //protector ring
   std::vector<double> link_base_rod_mass_; //each weight of link base rod is different
   double link_base_ring_mass_; //protector ring
-  double link_base_two_end_mass_; //protector holder
+  double link_base_two_ring_holder_mass_; //protector holder
   double link_base_center_mass_; //motor+esc+battery+etc
   double link_joint_mass_; //two_holder + servo motor
-  double controller1_mass_; //kduino
-  double controller2_mass_; //odroid
   double all_mass_;
+  int extra_module_num_;
   std::vector<ElementModel> link_base_model_;
   std::vector<ElementModel> link_joint_model_;
-  std::vector<ElementModel> controller_model_;
+  std::vector<ElementModel> extra_module_model_;
 
   std::string root_link_name_;
   int root_link_;
@@ -273,7 +300,7 @@ private:
   Eigen::Matrix3d cog_matrix_;
   double rotate_angle_;
 
-  void controlFunc(const ros::TimerEvent & e);  
+  void kineticFunc(const ros::TimerEvent & e);  
   void tfPubFunc(const ros::TimerEvent & e);
   void visualization();
   int sgn(double value){ return  (value / fabs(value));}
@@ -284,12 +311,15 @@ private:
   //dynamic reconfigure
   void cfgLQICallback(hydrus_transform_control::LQIConfig &config, uint32_t level);
 
+  //service
+  bool addExtraModuleCallback(hydrus_transform_control::AddExtraModule::Request  &req,
+                      hydrus_transform_control::AddExtraModule::Response &res);
+
   //lqi
   boost::thread lqi_thread_;
   bool lqi_flag_;
   double lqi_thread_rate_;
   void lqi();
-
 
   //8/12:r,r_d, p, p_d, y, y_d, z. z_d, r_i, p_i, y_i, z_i
   //6/9:r,r_d, p, p_d, z. z_d, r_i, p_i, z_i
@@ -322,9 +352,6 @@ private:
 
   //R
   std::vector<double> r_;
-
-  //distance_thresold
-  //double alfa_;
   double dist_thre_;
   double f_max_, f_min_;
 
@@ -335,6 +362,8 @@ private:
   dynamic_reconfigure::Server<hydrus_transform_control::LQIConfig>* lqi_server_;
   dynamic_reconfigure::Server<hydrus_transform_control::LQIConfig>::CallbackType dynamic_reconf_func_lqi_;
 
+  //service
+  ros::ServiceServer add_extra_module_service_;
 };
 
 
