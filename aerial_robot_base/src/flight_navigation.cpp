@@ -121,10 +121,10 @@ void Navigator::batteryCheckCallback(const std_msgs::UInt8ConstPtr &msg)
   if(msg->data < low_voltage_thre_)
     {
       if(ros::Time::now().toSec() - low_voltage_start_time > 10.0)//10sec
-	{
-	  ROS_WARN("low voltage!");
-	  low_voltage_flag_  = true;	  
-	}
+        {
+          ROS_WARN("low voltage!");
+          low_voltage_flag_  = true;
+        }
     }
   else
     {
@@ -139,7 +139,7 @@ void Navigator::tfPublish()
   tf::Quaternion tmp;
 
   map_to_target.setOrigin(tf::Vector3(current_target_pos_x_, current_target_pos_y_, current_target_pos_z_));
-  tmp.setRPY(0.0, 0.0, current_target_psi_); 
+  tmp.setRPY(0.0, 0.0, current_target_psi_);
   map_to_target.setRotation(tmp);
   ros::Time tm = ros::Time::now();
   br_->sendTransform(tf::StampedTransform(map_to_target, tm, map_frame_, target_frame_));
@@ -199,12 +199,8 @@ TeleopNavigator::TeleopNavigator(ros::NodeHandle nh, ros::NodeHandle nh_private,
 
   joy_stick_sub_ = nh_.subscribe<sensor_msgs::Joy>("/joy", 1, &TeleopNavigator::joyStickControl, this, ros::TransportHints().udp());
 
-  if(flight_ctrl_input_->getMotorNumber() > 1)
-    rc_cmd_pub_ = nh_.advertise<aerial_robot_msgs::FourAxisCommand>("/aerial_robot_control_four_axis", 10);
-  else
-    {/* TODO: should be deprecated */
-      rc_cmd_pub_ = nh_.advertise<aerial_robot_msgs::RcData>("/aerial_robot_control", 10);
-    }
+  rc_cmd_pub_ = nh_.advertise<aerial_robot_msgs::FourAxisCommand>("/aerial_robot_control_four_axis", 10);
+
   stop_teleop_sub_ = nh_.subscribe<std_msgs::UInt8>("stop_teleop", 1, &TeleopNavigator::stopTeleopCallback, this, ros::TransportHints().tcpNoDelay());
   teleop_flag_ = true;
 
@@ -223,14 +219,14 @@ void TeleopNavigator::armingAckCallback(const std_msgs::UInt8ConstPtr& ack_msg)
   if(ack_msg->data == ARM_OFF_CMD)
     {//  arming off
       ROS_INFO("STOP RES From AERIAL ROBOT");
-      stopNavigation(); 
+      stopNavigation();
       setNaviCommand(IDLE_COMMAND);
     }
- 
+
   if(ack_msg->data == ARM_ON_CMD)
     {//  arming on
       ROS_INFO("START RES From AERIAL ROBOT");
-      startNavigation(); 
+      startNavigation();
       setNaviCommand(IDLE_COMMAND);
     }
 }
@@ -480,7 +476,7 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
          xy_control_mode_ == VEL_LOCAL_BASED_CONTROL_MODE ||
          xy_control_mode_ == POS_LOCAL_BASED_CONTROL_MODE)
         {
-	  /*ROS_WARN("Joy Control: yaw control based on velocity(gyro) control only");*/
+          /*ROS_WARN("Joy Control: yaw control based on velocity(gyro) control only");*/
           final_target_psi_ = joy_msg->axes[2] * target_yaw_rate_;
         }
     }
@@ -634,9 +630,18 @@ void TeleopNavigator::sendAttCmd()
           getNaviCommand() == LAND_COMMAND ||
           getNaviCommand() == HOVER_COMMAND)
     {
+      aerial_robot_msgs::FourAxisCommand rc_command_data;
+      rc_command_data.angles[0]  =  flight_ctrl_input_->getRollValue();
+      rc_command_data.angles[1] =  flight_ctrl_input_->getPitchValue();
+      for(int i = 0; i < flight_ctrl_input_->getMotorNumber(); i++)
+        rc_command_data.base_throttle[i] = (flight_ctrl_input_->getYawValue())[i] + (flight_ctrl_input_->getThrottleValue())[i];
+      rc_cmd_pub_.publish(rc_command_data);
+
+
+#if 0 //old send method
       if(flight_ctrl_input_->getMotorNumber() > 1)
         {
-          aerial_robot_msgs::FourAxisCommand four_axis_command_data;
+          aerial_robot_msgs::FourAxisCommand flight_command_data;
           four_axis_command_data.angles[0]  =  flight_ctrl_input_->getRollValue();
           four_axis_command_data.angles[1] =  flight_ctrl_input_->getPitchValue();
           for(int i =0; i < flight_ctrl_input_->getMotorNumber(); i++)
@@ -655,6 +660,7 @@ void TeleopNavigator::sendAttCmd()
           rc_data.throttle = (flight_ctrl_input_->getThrottleValue())[0];
           rc_cmd_pub_.publish(rc_data);
         }
+#endif
     }
   else
     {

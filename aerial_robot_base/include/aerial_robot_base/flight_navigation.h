@@ -12,7 +12,6 @@
 #include <std_msgs/Int32.h>
 #include <std_msgs/Empty.h>
 #include <aerial_robot_msgs/FourAxisCommand.h>
-#include <aerial_robot_msgs/RcData.h> 
 #include <tf/transform_broadcaster.h>
 #include <aerial_robot_base/FlightNav.h>
 #include <sensor_msgs/Joy.h>
