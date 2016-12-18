@@ -19,6 +19,13 @@ find_package(Eigen REQUIRED)
 include_directories(${EIGEN_INCLUDE_DIRS})
 add_definitions(${EIGEN_DEFINITIONS})
 
+add_message_files(
+  FILES
+  RollPitchYawGain.msg
+  ServoState.msg
+  ServoControl.msg
+)
+
 add_service_files(
   FILES
   AddExtraModule.srv
