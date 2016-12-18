@@ -7,6 +7,8 @@
   <!-- uav mode: hex_h or hex_p -->
   <arg name="transformable_mode" default="true" />
 
+  <arg name="model" default="hex" />
+
   # GROUND_TRUTH = 0
   # EGOMOTION_ESTIMATE = 1
   <arg name="state_mode"  value= "0" />
@@ -63,20 +65,20 @@
   <group if="$(arg transformable_mode)">
     ###########  Robot Model  ###########
     <include file="$(find aerial_robot_model)/launch/aerial_robot_model.launch">
-      <arg name="model" value="hydrusx/hydrus3_hex"/>
+      <arg name="model" value="hydrusx/hydrus3_$(arg model)"/>
       <arg name="headless" value="$(arg headless)" />
       <arg name="simulation" value="$(arg simulation)" />
     </include >
 
     ###########  Transform Control  ###########
     <node pkg="hydrus_transform_control" type="transform_control_node" name="transform_control_node"  output="screen" >
-      <rosparam file="$(find hydrus_transform_control)/config/hydrusx/Hydrus_hex.yaml" command="load" />
+      <rosparam file="$(find hydrus_transform_control)/config/hydrusx/Hydrus_$(arg model).yaml" command="load" />
       <param name="kinetic_verbose" value="false" />
       <param name="control_verbose" value="false" />
     </node>
   </group>
 
-  ###########  General Hex Model  ###########
+  ###########  General Copter Model  ###########
   <group unless="$(arg transformable_mode)">
     <node pkg="rostopic" type="rostopic" name="cog_yaw_frame" args="pub -r 1 /desire_coordinate aerial_robot_base/DesireCoord '{yaw: -2.09333333333}'" output="screen"/>
   </group>
