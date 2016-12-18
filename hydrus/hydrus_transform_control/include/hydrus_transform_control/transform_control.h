@@ -46,9 +46,9 @@
 #include <iostream>
 #include <iomanip>
 
-#include <aerial_robot_msgs/YawThrottleGain.h>
-#include <aerial_robot_msgs/RollPitchYawGain.h>
 #include <aerial_robot_base/DesireCoord.h>
+#include <aerial_robot_msgs/FourAxisGain.h>
+#include <hydrus_transform_control/RollPitchYawGain.h>
 #include <hydrus_transform_control/AddExtraModule.h>
 
 #include <string>
@@ -232,7 +232,7 @@ private:
 
   ros::NodeHandle nh_,nh_private_;
   ros::Publisher rpy_gain_pub_;
-  ros::Publisher yaw_throttle_gain_pub_;
+  ros::Publisher four_axis_gain_pub_;
   ros::Publisher principal_axis_pub_;
   ros::Publisher cog_rotate_pub_; //for position control => to mocap
   ros::Subscriber realtime_control_sub_;

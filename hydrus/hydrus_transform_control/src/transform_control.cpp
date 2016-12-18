@@ -103,8 +103,8 @@ TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_
   lqi_mode_ = LQI_FOUR_AXIS_MODE;
 
   //those publisher is published from func param2controller
-  rpy_gain_pub_ = nh_.advertise<aerial_robot_msgs::RollPitchYawGain>(rpy_gain_pub_name_, 1);
-  yaw_throttle_gain_pub_ = nh_.advertise<aerial_robot_msgs::YawThrottleGain>("yaw_throttle_gain", 1);
+  rpy_gain_pub_ = nh_.advertise<hydrus_transform_control::RollPitchYawGain>(rpy_gain_pub_name_, 1);
+  four_axis_gain_pub_ = nh_.advertise<aerial_robot_msgs::FourAxisGain>("four_axis_gain", 1);
 
   //dynamic reconfigure server
   lqi_server_ = new dynamic_reconfigure::Server<hydrus_transform_control::LQIConfig>(nh_private_);
@@ -768,19 +768,15 @@ void TransformController::visualization()
 
 void TransformController::param2contoller()
 {
-  aerial_robot_msgs::RollPitchYawGain rpy_gain_msg;
-  aerial_robot_msgs::YawThrottleGain yt_gain_msg;
   aerial_robot_base::DesireCoord desire_coord_msg;
+  aerial_robot_msgs::FourAxisGain four_axis_gain_msg;
+  hydrus_transform_control::RollPitchYawGain rpy_gain_msg;
 
   desire_coord_msg.roll = 0;
   desire_coord_msg.pitch = 0;
   desire_coord_msg.yaw = -rotate_angle_;  // should be reverse (cog coord is parent)
 
-  yt_gain_msg.motor_num = link_num_;
-
-  //double radian_convert_rate = M_PI/ 180 / 10 / f_pwm_rate_ * pwm_rate_ * 10000;
-  //0.1deg => rad:  M_PI/180/10; f=> pwm(no_offset); 1e4(10000)x
-  //double omega_convert_rate = (2279 * M_PI)/((32767.0 / 4.0 ) * 180) / f_pwm_rate_ * pwm_rate_ * 10000;    //(2279 * M_PI)/((32767.0 / 4.0 ) * 180.0); f =>pwm
+  four_axis_gain_msg.motor_num = link_num_;
 
   for(int i = 0; i < link_num_; i ++)
     {
@@ -798,18 +794,26 @@ void TransformController::param2contoller()
           rpy_gain_msg.yaw_d_gain[i] = K12_(i,5) * 1000; //scale: x 1000
 
           /* to aerial_robot_base, feedback */
-          yt_gain_msg.pos_p_gain_throttle.push_back(K12_(i,6));
-          yt_gain_msg.pos_d_gain_throttle.push_back(K12_(i,7));
-          yt_gain_msg.pos_i_gain_throttle.push_back(K12_(i,11));
+          four_axis_gain_msg.pos_p_gain_roll.push_back(K12_(i,0));
+          four_axis_gain_msg.pos_d_gain_roll.push_back(K12_(i,1));
+          four_axis_gain_msg.pos_i_gain_roll.push_back(K12_(i,8));
 
-          yt_gain_msg.pos_p_gain_yaw.push_back(K12_(i,4));
-          yt_gain_msg.pos_d_gain_yaw.push_back(K12_(i,5));
-          yt_gain_msg.pos_i_gain_yaw.push_back(K12_(i,10));
+          four_axis_gain_msg.pos_p_gain_pitch.push_back(K12_(i,2));
+          four_axis_gain_msg.pos_d_gain_pitch.push_back(K12_(i,3));
+          four_axis_gain_msg.pos_i_gain_pitch.push_back(K12_(i,9));
+
+          four_axis_gain_msg.pos_p_gain_throttle.push_back(K12_(i,6));
+          four_axis_gain_msg.pos_d_gain_throttle.push_back(K12_(i,7));
+          four_axis_gain_msg.pos_i_gain_throttle.push_back(K12_(i,11));
+
+          four_axis_gain_msg.pos_p_gain_yaw.push_back(K12_(i,4));
+          four_axis_gain_msg.pos_d_gain_yaw.push_back(K12_(i,5));
+          four_axis_gain_msg.pos_i_gain_yaw.push_back(K12_(i,10));
 
           /* to aerial_robot_base, feedforward */
-          yt_gain_msg.roll_vec.push_back(-K12_(i,0));
-          yt_gain_msg.pitch_vec.push_back(-K12_(i,2));
-          yt_gain_msg.yaw_vec.push_back(-K12_(i,4));
+          four_axis_gain_msg.ff_roll_vec.push_back(-K12_(i,0));
+          four_axis_gain_msg.ff_pitch_vec.push_back(-K12_(i,2));
+          four_axis_gain_msg.ff_yaw_vec.push_back(-K12_(i,4));
 
         }
       else if(lqi_mode_ == LQI_THREE_AXIS_MODE)
@@ -824,24 +828,33 @@ void TransformController::param2contoller()
 
           rpy_gain_msg.yaw_d_gain[i] = 0;
 
-          yt_gain_msg.pos_p_gain_throttle.push_back(K9_(i,4));
-          yt_gain_msg.pos_d_gain_throttle.push_back(K9_(i,5));
-          yt_gain_msg.pos_i_gain_throttle.push_back(K9_(i,8));
+          /* to aerial_robot_base, feedback */
+          four_axis_gain_msg.pos_p_gain_roll.push_back(K9_(i,0));
+          four_axis_gain_msg.pos_d_gain_roll.push_back(K9_(i,1));
+          four_axis_gain_msg.pos_i_gain_roll.push_back(K9_(i,6));
 
-          yt_gain_msg.pos_p_gain_yaw.push_back(0.0);
-          yt_gain_msg.pos_d_gain_yaw.push_back(0.0);
-          yt_gain_msg.pos_i_gain_yaw.push_back(0.0);
+          four_axis_gain_msg.pos_p_gain_pitch.push_back(K9_(i,2));
+          four_axis_gain_msg.pos_d_gain_pitch.push_back(K9_(i,3));
+          four_axis_gain_msg.pos_i_gain_pitch.push_back(K9_(i,7));
+
+          four_axis_gain_msg.pos_p_gain_throttle.push_back(K9_(i,4));
+          four_axis_gain_msg.pos_d_gain_throttle.push_back(K9_(i,5));
+          four_axis_gain_msg.pos_i_gain_throttle.push_back(K9_(i,8));
+
+          four_axis_gain_msg.pos_p_gain_yaw.push_back(0.0);
+          four_axis_gain_msg.pos_d_gain_yaw.push_back(0.0);
+          four_axis_gain_msg.pos_i_gain_yaw.push_back(0.0);
 
           //to aerial_robot_base, feedforward
-          yt_gain_msg.roll_vec.push_back(-K9_(i,0));
-          yt_gain_msg.pitch_vec.push_back(-K9_(i,2));
-          yt_gain_msg.yaw_vec.push_back(0);
+          four_axis_gain_msg.ff_roll_vec.push_back(-K9_(i,0));
+          four_axis_gain_msg.ff_pitch_vec.push_back(-K9_(i,2));
+          four_axis_gain_msg.ff_yaw_vec.push_back(0);
         }
     }
 
   cog_rotate_pub_.publish(desire_coord_msg);
   rpy_gain_pub_.publish(rpy_gain_msg);
-  yaw_throttle_gain_pub_.publish(yt_gain_msg);
+  four_axis_gain_pub_.publish(four_axis_gain_msg);
 
 }
 
@@ -1059,12 +1072,12 @@ void TransformController::lqi()
         {
           double start_time = ros::Time::now().toSec();
           //check the thre check
-            if(!distThreCheck()) //[m]
-              {
-                ROS_ERROR("(singular pose, can not resolve the lqi control problem");
-                loop_rate.sleep();
-                continue;
-              }
+          if(!distThreCheck()) //[m]
+            {
+              ROS_ERROR("(singular pose, can not resolve the lqi control problem");
+              loop_rate.sleep();
+              continue;
+            }
 
           //check the stability within the range of the motor force
           if(!stabilityCheck())
@@ -1072,8 +1085,7 @@ void TransformController::lqi()
 
           if(!hamiltonMatrixSolver(lqi_mode_)){ continue;}
 
-           //just do publishing when link number is 4
-          if(link_num_ == 4) param2contoller();
+          param2contoller();
 
           //ROS_INFO("cal time is %f", ros::Time::now().toSec() - start_time);
         }

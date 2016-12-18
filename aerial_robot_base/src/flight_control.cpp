@@ -106,7 +106,7 @@ PidController::PidController(ros::NodeHandle nh,
   motor_info_pub_ = nh_.advertise<aerial_robot_base::MotorInfo>("/motor_info", 10);
 
   //subscriber
-  four_axis_gain_sub_ = nh_.subscribe<aerial_robot_msgs::YawThrottleGain>("/yaw_throttle_gain", 1, &PidController::yawThrottleGainCallback, this, ros::TransportHints().tcpNoDelay());
+  four_axis_gain_sub_ = nh_.subscribe<aerial_robot_msgs::FourAxisGain>("/four_axis_gain", 1, &PidController::fourAxisGainCallback, this, ros::TransportHints().tcpNoDelay());
   /* for weak control for xy velocirt movement? necessary */
   xy_vel_weak_gain_sub_ = nh_.subscribe<std_msgs::UInt8>(xy_vel_weak_gain_sub_name_, 1, &PidController::xyVelWeakGainCallback, this, ros::TransportHints().tcpNoDelay());
   //dynamic reconfigure server
@@ -117,9 +117,9 @@ PidController::PidController(ros::NodeHandle nh,
 }
 
 
-void PidController::yawThrottleGainCallback(const aerial_robot_msgs::YawThrottleGainConstPtr & msg)
+void PidController::fourAxisGainCallback(const aerial_robot_msgs::FourAxisGainConstPtr & msg)
 {
-  if(msg->motor_num != motor_num_) 
+  if(msg->motor_num != motor_num_)
     {
       ROS_FATAL("the motor number is not correct, msg->motor_num:%d, motor_num_:%d", msg->motor_num, motor_num_);
       return ;
@@ -135,9 +135,9 @@ void PidController::yawThrottleGainCallback(const aerial_robot_msgs::YawThrottle
       pos_i_gain_throttle_[i] = msg->pos_i_gain_throttle[i];
       pos_d_gain_throttle_[i] = msg->pos_d_gain_throttle[i];
 
-      feedforward_matrix_(i, 0) = msg->roll_vec[i];
-      feedforward_matrix_(i, 1) = msg->pitch_vec[i];
-      feedforward_matrix_(i, 2) = msg->yaw_vec[i];
+      feedforward_matrix_(i, 0) = msg->ff_roll_vec[i];
+      feedforward_matrix_(i, 1) = msg->ff_pitch_vec[i];
+      feedforward_matrix_(i, 2) = msg->ff_yaw_vec[i];
     }
 }
 
