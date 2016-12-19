@@ -83,6 +83,16 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
           Value: true
+        joint4:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        joint5:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
         link1:
           Alpha: 1
           Show Axes: false
@@ -99,6 +109,16 @@ Visualization Manager:
           Show Trail: false
           Value: true
         link4:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        link5:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        link6:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -128,7 +148,9 @@ Visualization Manager:
       Marker Topic: /orientation_data
       Name: MarkerArray
       Namespaces:
-        {}
+        cog: true
+        inertia_x: true
+        inertia_y: true
       Queue Size: 100
       Value: true
     - Class: rviz/InteractiveMarkers
@@ -214,22 +236,22 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 2.28487
+      Distance: 2.11853
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -0.66805
-        Y: -0.492867
-        Z: -0.187547
+        X: -0.701096
+        Y: -0.493377
+        Z: -0.429063
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.664796
+      Pitch: 0.469796
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 0.51542
+      Yaw: 0.135419
     Saved: ~
 Window Geometry:
   Displays:

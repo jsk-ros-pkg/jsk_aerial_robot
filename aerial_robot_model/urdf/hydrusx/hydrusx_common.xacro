@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<robot
+    xmlns:xacro="http://www.ros.org/wiki/xacro" name="hydrusx_common" >
+
+  <xacro:property name="pi" value="3.1415926535897931" />
+  <xacro:property name="link_length" value=".6" />
+  <xacro:property name="protector_radius" value=".2" />
+
+
+  <xacro:macro name="link_color">
+    <material name="color">
+      <color rgba="0.75 .5 .2 1"/>
+    </material>
+  </xacro:macro>
+
+</robot>
