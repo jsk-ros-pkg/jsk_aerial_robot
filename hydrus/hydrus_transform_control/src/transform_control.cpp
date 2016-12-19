@@ -218,7 +218,7 @@ void TransformController::initParam()
   nh_private_.param ("q_z_i", q_z_i_, 1.0);
   std::cout << "Q: q_z_i: " << std::setprecision(3) << q_z_i_ << std::endl;
 
-  /* dynamics */
+  /* dynamics: motor */
   ros::NodeHandle control_node("/motor_info");
   control_node.param("pwm_rate", pwm_rate_, 1.0);
   std::cout << "pwm_rate: " << std::setprecision(3) << pwm_rate_ << std::endl;
@@ -247,25 +247,25 @@ void TransformController::initParam()
 
   /* base components position [m] */
   nh_private_.param ("link_length", link_length_, 0.44);
-  std::cout << "link_length" << std::setprecision(3) << link_length_ << std::endl;
+  std::cout << "link_length: " << std::setprecision(3) << link_length_ << std::endl;
   nh_private_.param ("link_base_rod_length", link_base_rod_length_, 0.4);
-  std::cout << "link_base_rod_length" << std::setprecision(3) << link_base_rod_length_ << std::endl;
+  std::cout << "link_base_rod_length: " << std::setprecision(3) << link_base_rod_length_ << std::endl;
   nh_private_.param ("ring_radius", ring_radius_, 0.1425);
-  std::cout << "ring_radius" << std::setprecision(3) << ring_radius_ << std::endl;
+  std::cout << "ring_radius: " << std::setprecision(3) << ring_radius_ << std::endl;
   nh_private_.param ("link_joint_offset", link_joint_offset_, 0.22);
   std::cout << "link_joint_offset: " << std::setprecision(3) << link_joint_offset_ << std::endl;
 
   /* base components mass [Kg] */
   nh_private_.param ("link_base_rod_mid_mass", link_base_rod_mid_mass_, 0.1);
-  std::cout << "link_base_rod_mid_mass_; " << std::setprecision(3) << link_base_rod_mid_mass_ << std::endl;
+  std::cout << "link_base_rod_mid_mass: " << std::setprecision(3) << link_base_rod_mid_mass_ << std::endl;
   nh_private_.param ("link_base_ring_mass", link_base_ring_mass_, 0.048);
-  std::cout << "link_base_ring_mass_: " << std::setprecision(3) << link_base_ring_mass_ << std::endl;
+  std::cout << "link_base_ring_mass: " << std::setprecision(3) << link_base_ring_mass_ << std::endl;
   nh_private_.param ("link_base_two_ring_holder_mass", link_base_two_ring_holder_mass_, 0.053);
-  std::cout << "link_base_two_ring_holder_mass_: " << std::setprecision(3) << link_base_two_ring_holder_mass_ << std::endl;
+  std::cout << "link_base_two_ring_holder_mass: " << std::setprecision(3) << link_base_two_ring_holder_mass_ << std::endl;
   nh_private_.param ("link_base_center_mass", link_base_center_mass_, 0.238);
-  std::cout << "link_base_center_mass_: " << std::setprecision(3) << link_base_center_mass_ << std::endl;
+  std::cout << "link_base_center_mass: " << std::setprecision(3) << link_base_center_mass_ << std::endl;
   nh_private_.param ("link_joint_mass", link_joint_mass_,0.0785);
-  std::cout << "link_joint_mass_: " << std::setprecision(3) << link_joint_mass_ << std::endl;
+  std::cout << "link_joint_mass: " << std::setprecision(3) << link_joint_mass_ << std::endl;
 
   Eigen::Matrix3d zero_inertia = Eigen::Matrix3d::Zero(3,3);
   for(int i = 0; i < link_num_; i++)
@@ -309,7 +309,7 @@ void TransformController::initParam()
 
   /* 3. extra module */
   nh_private_.param ("extra_module_num", extra_module_num_, 2); //default: MCU + PC
-  std::cout << "extra_module_num_: " << extra_module_num_ << std::endl;
+  std::cout << "extra_module_num: " << extra_module_num_ << std::endl;
   extra_module_model_.resize(extra_module_num_);
 
   for(int i = 0; i < extra_module_num_; i++)
