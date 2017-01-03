@@ -633,8 +633,17 @@ void TeleopNavigator::sendAttCmd()
       aerial_robot_msgs::FourAxisCommand rc_command_data;
       rc_command_data.angles[0]  =  flight_ctrl_input_->getRollValue();
       rc_command_data.angles[1] =  flight_ctrl_input_->getPitchValue();
-      for(int i = 0; i < flight_ctrl_input_->getMotorNumber(); i++)
-        rc_command_data.base_throttle[i] = (flight_ctrl_input_->getYawValue())[i] + (flight_ctrl_input_->getThrottleValue())[i];
+
+      if(flight_ctrl_input_->getMotorNumber() == 1)
+        {/* general multirotor */
+          rc_command_data.angles[2] = (flight_ctrl_input_->getYawValue())[0];
+          rc_command_data.base_throttle[0] =  (flight_ctrl_input_->getThrottleValue())[0];
+        }
+      else
+        {/* transformable multirotor */
+          for(int i = 0; i < flight_ctrl_input_->getMotorNumber(); i++)
+            rc_command_data.base_throttle[i] = (flight_ctrl_input_->getYawValue())[i] + (flight_ctrl_input_->getThrottleValue())[i];
+        }
       rc_cmd_pub_.publish(rc_command_data);
 
 

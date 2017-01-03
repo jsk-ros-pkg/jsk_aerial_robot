@@ -95,7 +95,7 @@ PidController::PidController(ros::NodeHandle nh,
   error_i_yaw_ = 0;
 
 
-  feedforward_matrix_ = Eigen::MatrixXd::Zero(motor_num_, 3);
+  feedforward_matrix_ = Eigen::MatrixXd::Zero(motor_num_, 2);
 
   //roll/pitch integration start
   start_rp_integration_ = false;
@@ -137,7 +137,6 @@ void PidController::fourAxisGainCallback(const aerial_robot_msgs::FourAxisGainCo
 
       feedforward_matrix_(i, 0) = msg->ff_roll_vec[i];
       feedforward_matrix_(i, 1) = msg->ff_pitch_vec[i];
-      feedforward_matrix_(i, 2) = msg->ff_yaw_vec[i];
     }
 }
 
@@ -324,7 +323,7 @@ void PidController::pidFunction()
           //roll/pitch integration flag
           if(!start_rp_integration_)
             {
-              if(state_pos_z > 0.01) 
+              if(state_pos_z > 0.01)
                 {
                   start_rp_integration_ = true;
                   std_msgs::UInt8 integration_cmd;
@@ -378,8 +377,8 @@ void PidController::pidFunction()
             {
               //** 座標変換
               d_err_vel_curr_pitch_ 
-                = (target_vel_x - state_vel_x) * cos(state_psi_cog) 
-                + (target_vel_y - state_vel_y) * sin(state_psi_cog); 
+                = (target_vel_x - state_vel_x) * cos(state_psi_cog)
+                + (target_vel_y - state_vel_y) * sin(state_psi_cog);
 
               //**** Pの項
               pos_p_term_pitch_ = limit(vel_p_gain_pitch_ * d_err_vel_curr_pitch_, pos_d_limit_pitch_);
@@ -428,7 +427,7 @@ void PidController::pidFunction()
 
 	  //**** attitude control mode
 	  if(navigator_->getXyControlMode() == Navigator::ATT_CONTROL_MODE)
-            {	   
+            {
               pitch_value = navigator_->getTargetAnglePitch();
               pos_p_term_pitch_ =  0;
               pos_i_term_pitch_ =  0;
@@ -542,7 +541,7 @@ void PidController::pidFunction()
           //**** 指令値反転
           roll_value = - roll_value;
 
-	  //**** attitude control mode
+          //**** attitude control mode
           if(navigator_->getXyControlMode() == Navigator::ATT_CONTROL_MODE)
             {
               roll_value = navigator_->getTargetAngleRoll();
@@ -567,24 +566,24 @@ void PidController::pidFunction()
           //yaw => refer to the board frame angle(psi_board)
           //error p
           d_err_pos_curr_yaw_ = target_psi - state_psi_board;
-          if(d_err_pos_curr_yaw_ > M_PI)  d_err_pos_curr_yaw_ -= 2 * M_PI; 
+          if(d_err_pos_curr_yaw_ > M_PI)  d_err_pos_curr_yaw_ -= 2 * M_PI;
           else if(d_err_pos_curr_yaw_ < -M_PI)  d_err_pos_curr_yaw_ += 2 * M_PI;
           //error i
-          error_i_yaw_ += d_err_pos_curr_yaw_ * (1 / (float)yaw_ctrl_loop_rate_); 
+          error_i_yaw_ += d_err_pos_curr_yaw_ * (1 / (float)yaw_ctrl_loop_rate_);
 
           for(int j = 0; j < motor_num_; j++)
             {
-              //**** Pの項
-              pos_p_term_yaw_ = limit(pos_p_gain_yaw_[j] * state_psi_board, pos_p_limit_yaw_);
-              if(motor_num_ == 1)
-                pos_p_term_yaw_ = limit(pos_p_gain_yaw_[j] * d_err_pos_curr_yaw_, pos_p_limit_yaw_);
+              //**** P term
+              pos_p_term_yaw_ = limit(pos_p_gain_yaw_[j] * (-d_err_pos_curr_yaw_), pos_p_limit_yaw_);
+              // if(motor_num_ == 1)
+              //   pos_p_term_yaw_ = limit(pos_p_gain_yaw_[j] * , pos_p_limit_yaw_);
 
-              //**** Iの項 : deprecated
+              //**** I term: deprecated
               if(motor_num_ == 1)
                 error_i_yaw_ = limit(error_i_yaw_, pos_i_limit_yaw_ / pos_i_gain_yaw_[j]);
               pos_i_term_yaw_ = limit(pos_i_gain_yaw_[j] * error_i_yaw_, pos_i_limit_yaw_);
 
-              //***** Dの項 : is in the flight board
+              //***** D term: is in the flight board
               pos_d_term_yaw_ = 0;
 
               //*** each motor command value for log
@@ -595,7 +594,6 @@ void PidController::pidFunction()
               four_axis_pid_debug.yaw.i_term.push_back(pos_i_term_yaw_);
               four_axis_pid_debug.yaw.d_term.push_back(pos_d_term_yaw_);
 
-              //*** 指令値代入(new*** )
               flight_ctrl_input_->setYawValue(yaw_value, j); //f => pwm;
             }
 
@@ -607,7 +605,7 @@ void PidController::pidFunction()
 
           //throttle
           d_err_pos_curr_throttle_ = target_pos_z - state_pos_z;
-          // land時,iterm は特殊
+          // I term is special in landing mode
           if(navigator_->getFlightMode() == Navigator::LAND_MODE)
             d_err_pos_curr_throttle_ += const_i_ctrl_thre_throttle_land_;
           error_i_throttle_ += d_err_pos_curr_throttle_ * (1 / (float)throttle_ctrl_loop_rate_);
@@ -617,17 +615,17 @@ void PidController::pidFunction()
             {
               for(int j = 0; j < motor_num_; j++)
                 {
-                  //**** Pの項
-                  pos_p_term_throttle_ = limit(pos_p_gain_throttle_[j] * state_pos_z, pos_p_limit_throttle_);
-                  //**** Iの項
+                  //**** P Term (+ feed forward term)
+                  pos_p_term_throttle_ = limit(pos_p_gain_throttle_[j] * (-d_err_pos_curr_throttle_), pos_p_limit_throttle_); // the err is reversed
+                  //**** I Term
                   pos_i_term_throttle_ = limit(pos_i_gain_throttle_[j] * error_i_throttle_, pos_i_limit_throttle_);
-                  //***** Dの項
+                  //***** D Term
                   pos_d_term_throttle_ = limit(pos_d_gain_throttle_[j] * state_vel_z, pos_d_limit_throttle_);
 
                   if(motor_num_ == 1)
                     {
-                      pos_p_term_throttle_ = limit(pos_p_gain_throttle_[j] * d_err_pos_curr_throttle_, pos_p_limit_throttle_); //P term for pid
-                      pos_d_term_throttle_ = limit(-pos_d_gain_throttle_[j] * state_vel_z, pos_d_limit_throttle_);
+                      //pos_p_term_throttle_ = limit(pos_p_gain_throttle_[j] * d_err_pos_curr_throttle_, pos_p_limit_throttle_); //P term for pid
+                      //pos_d_term_throttle_ = limit(-pos_d_gain_throttle_[j] * state_vel_z, pos_d_limit_throttle_);
 
                       if(navigator_->getFlightMode() == Navigator::LAND_MODE)
                         pos_p_term_throttle_ = 0;
@@ -640,7 +638,6 @@ void PidController::pidFunction()
                   four_axis_pid_debug.throttle.i_term.push_back(pos_i_term_throttle_);
                   four_axis_pid_debug.throttle.d_term.push_back(pos_d_term_throttle_);
 
-                  //*** 指令値代入
                   //uint16_t throttle_value_16bit = (throttle_value - f_pwm_offset_) / f_pwm_rate_ * pwm_rate_;
                   flight_ctrl_input_->setThrottleValue(throttle_value, j);
                 }
@@ -656,21 +653,19 @@ void PidController::pidFunction()
             {
               std_msgs::Float32MultiArray ff_msg;
 
-              //roll & pitch : rad (old: 0.1deg); yaw: rad
+              //roll & pitch
               // ref set
-              Eigen::Vector3d r;
-              //r << roll_value / 10 /  180  * M_PI, pitch_value / 10 / 180  * M_PI, target_psi;
-              r << roll_value, pitch_value, target_psi;
+              Eigen::Vector2d r;
+              r << roll_value, pitch_value;
 
               // feedfowd input
-              Eigen::VectorXd u_ff = feedforward_matrix_  * r;
+              Eigen::VectorXd u_ff = feedforward_matrix_ * r;
 
               //std::vector<int16_t> u_ff_pwm;
               std::vector<float> u_ff_vec;
               u_ff_vec.resize(0);
               for(int i = 0; i < u_ff.rows(); i++)
                 {
-                  //u_ff_pwm.push_back( u_ff(i) / f_pwm_rate_ * pwm_rate_);
                   u_ff_vec.push_back(u_ff(i));
                   ff_msg.data.push_back(u_ff(i));
                 }
@@ -681,7 +676,7 @@ void PidController::pidFunction()
             }
         }
 
-      //*** 更新
+      //*** Update
       d_err_vel_prev_pitch_ =  d_err_vel_curr_pitch_;
       d_err_vel_prev_roll_ =  d_err_vel_curr_roll_;
       d_err_vel_prev_throttle_ = d_err_vel_curr_throttle_;
