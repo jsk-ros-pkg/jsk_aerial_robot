@@ -243,7 +243,7 @@ void RigidEstimator::rosParamInit()
   sensor_loader_ptr_ =  boost::shared_ptr< pluginlib::ClassLoader<sensor_base_plugin::SensorBase> >( new pluginlib::ClassLoader<sensor_base_plugin::SensorBase>("aerial_robot_base", "sensor_base_plugin::SensorBase"));
 
 
-  if (!nh_.getParam ("sensor_no", sensor_no_)) sensor_no_ = 0;
+  if (!nhp_.getParam ("sensor_no", sensor_no_)) sensor_no_ = 0;
   printf("sensor_no_ is %d\n", sensor_no_);
   sensor_plugin_name_.resize(sensor_no_);
   sensors_.resize(sensor_no_);
@@ -254,7 +254,7 @@ void RigidEstimator::rosParamInit()
       std::stringstream sensor_no;
       sensor_no << i + 1;
 
-      if (!nh_.getParam ("sensor_plugin_name" + sensor_no.str(), sensor_plugin_name_[i]))
+      if (!nhp_.getParam ("sensor_plugin_name" + sensor_no.str(), sensor_plugin_name_[i]))
         ROS_ERROR("%d, no param in sensor plugin_name", i);
       printf("sensor_plugin_name%d is %s\n", i+1, sensor_plugin_name_[i].c_str());
       sensors_[i]  = sensor_loader_ptr_->createInstance(sensor_plugin_name_[i]);
