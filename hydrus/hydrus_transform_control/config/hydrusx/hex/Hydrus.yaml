@@ -1,7 +1,7 @@
 #HydrusX Hex config
 
 link_num: 6
-root_link: 3
+root_link: 4 #from 1
 
 link_length: 0.6
 link_base_rod_length: 0.528
@@ -18,13 +18,13 @@ link_joint_mass: 0.2075
 extra_module_num: 4
 
 # MCU: d_board
-extra_module1_link: 2
-extra_module1_offset: -0.227
-extra_module1_mass: 0.022
+extra_module1_link: 3
+extra_module1_offset: 0.233
+extra_module1_mass: 0.040
 # PC
-extra_module2_link: 3
-extra_module2_offset: 0.233
-extra_module2_mass: 0.100 # Odroid XU4
+extra_module2_link: 2
+extra_module2_offset: -0.227
+extra_module2_mass: 0.001 #0.100 # Odroid XU4
 
 # Additional Leg
 extra_module3_link: 5
@@ -54,20 +54,21 @@ propeller6_direction: 1
 propeller6_order: 5
 
 lqi_thread_rate: 20.0
-q_roll: 100.0  #  100
-q_roll_d: 100.0  #  100
-q_roll_i: 10.0 #  10
-q_pitch: 100.0  #  100
-q_pitch_d: 100.0  #  100
-q_pitch_i: 10.0 #  10
+q_roll: 400 
+q_roll_d: 40.0
+q_roll_i: 10.0
+q_pitch: 400 
+q_pitch_d: 40.0
+q_pitch_i: 10.0
 
-q_yaw: 10.0 # 10 
-q_yaw_d: 10.0 #  10
-q_yaw_i: 1 # 1
+q_yaw: 100
+strong_q_yaw: 200
+q_yaw_d: 100.0
+q_yaw_i: 0.4
 
-q_z: 1.0
-q_z_d: 1.0
-q_z_i: 1.0
+q_z: 10.0
+q_z_d: 10.0
+q_z_i: 10.0
 
 r1: 1.0
 r2: 1.0
