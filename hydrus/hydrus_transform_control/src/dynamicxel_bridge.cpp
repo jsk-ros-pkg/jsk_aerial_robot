@@ -37,7 +37,7 @@ protected:
 
   int joint_num_;
   int  bridge_mode_;
-  std::vector<JointInfo> joint_module;
+  std::vector<JointInfo> joint_module_;
 
   std::string joints_torque_control_srv_name_;
   ros::ServiceServer joints_torque_control_srv_;
@@ -72,30 +72,30 @@ public:
     servo_full_on_mask_ = 0;
     torque_flag_ = true;
 
-    joint_module.resize(joint_num_);
+    joint_module_.resize(joint_num_);
 
     for(int i = 0; i < joint_num_; i++)
       {
         std::stringstream joint_no;
         joint_no << i + 1;
 
-        nhp_.param(std::string("joint") + joint_no.str() + std::string("_angle_max"), joint_module[i].angle_max, 1.57); //real angle
-        nhp_.param(std::string("joint") + joint_no.str() + std::string("_angle_min"), joint_module[i].angle_min, -1.57); //real angle
-        nhp_.param(std::string("joint") + joint_no.str() + std::string("_angle_sgn"), joint_module[i].angle_sgn, 1);
-        nhp_.param(std::string("joint") + joint_no.str() + std::string("_angle_offset"), joint_module[i].angle_offset, 0.0);
-        nhp_.param(std::string("joint") + joint_no.str() + std::string("_angle_scale"), joint_module[i].angle_scale, 1.0);
+        nhp_.param(std::string("joint") + joint_no.str() + std::string("_angle_max"), joint_module_[i].angle_max, 1.57); //real angle
+        nhp_.param(std::string("joint") + joint_no.str() + std::string("_angle_min"), joint_module_[i].angle_min, -1.57); //real angle
+        nhp_.param(std::string("joint") + joint_no.str() + std::string("_angle_sgn"), joint_module_[i].angle_sgn, 1);
+        nhp_.param(std::string("joint") + joint_no.str() + std::string("_angle_offset"), joint_module_[i].angle_offset, 0.0);
+        nhp_.param(std::string("joint") + joint_no.str() + std::string("_angle_scale"), joint_module_[i].angle_scale, 1.0);
 
-        nhp_.param(std::string("joint") + joint_no.str() + std::string("_name"), joint_module[i].joint_name, std::string("joint") + joint_no.str());
+        nhp_.param(std::string("joint") + joint_no.str() + std::string("_name"), joint_module_[i].joint_name, std::string("joint") + joint_no.str());
 
-        ROS_INFO("joint%d attribute: angle_max: %f, angle_min: %f, angle_sng: %d, angle_offset: %f", i + 1, joint_module[i].angle_max, joint_module[i].angle_min, joint_module[i].angle_sgn, joint_module[i].angle_offset);
+        ROS_INFO("joint%d attribute: angle_max: %f, angle_min: %f, angle_scale: %f, angle_sng: %d, angle_offset: %f", i + 1, joint_module_[i].angle_max, joint_module_[i].angle_min, joint_module_[i].angle_scale, joint_module_[i].angle_sgn, joint_module_[i].angle_offset);
 
         if(bridge_mode_ == DYNAMIXEL_HUB_MODE)
           {
-            joint_module[i].joint_ctrl_pub_name = std::string("/j") + joint_no.str()  + std::string("_controller/command");
-            joint_module[i].joint_ctrl_pub = nh_.advertise<std_msgs::Float64>(joint_module[i].joint_ctrl_pub_name, 1);
+            joint_module_[i].joint_ctrl_pub_name = std::string("/j") + joint_no.str()  + std::string("_controller/command");
+            joint_module_[i].joint_ctrl_pub = nh_.advertise<std_msgs::Float64>(joint_module_[i].joint_ctrl_pub_name, 1);
 
-            joint_module[i].joint_state_sub_name = std::string("/j") + joint_no.str()  + std::string("_controller/state");
-            joint_module[i].joint_state_sub = nh_.subscribe<dynamixel_msgs::JointState>(joint_module[i].joint_state_sub_name, 1, boost::bind(&HydrusJoints::jointCallback, this, _1, i));
+            joint_module_[i].joint_state_sub_name = std::string("/j") + joint_no.str()  + std::string("_controller/state");
+            joint_module_[i].joint_state_sub = nh_.subscribe<dynamixel_msgs::JointState>(joint_module_[i].joint_state_sub_name, 1, boost::bind(&HydrusJoints::jointCallback, this, _1, i));
           }
 
         servo_full_on_mask_ |= (1 << i);
@@ -129,12 +129,13 @@ public:
 
   void setCurrentAngle(double curr_angle, int i)
   {
-    joint_module[i].current_angle = joint_module[i].angle_scale * joint_module[i].angle_sgn * (curr_angle - joint_module[i].angle_offset);
+    servo_on_mask_ |= (1 << i);
+
+    joint_module_[i].current_angle = joint_module_[i].angle_scale * joint_module_[i].angle_sgn * (curr_angle - joint_module_[i].angle_offset);
   }
 
   void jointCallback(const dynamixel_msgs::JointStateConstPtr& msg, int i)
   {
-    servo_on_mask_ |= (1 << i);
     setCurrentAngle(msg->current_pos, i);
   }
 
@@ -150,14 +151,15 @@ public:
 
     for(int i = 0; i < joint_num_; i ++)
       {
-        joint_module[i].target_joint_angle = joints_ctrl_msg->position[i];
-        double target_angle = (joint_module[i].target_joint_angle + joint_module[i].angle_offset) * joint_module[i].angle_sgn / joint_module[i].angle_scale;
+        joint_module_[i].target_joint_angle = joints_ctrl_msg->position[i];
+        /* TODO: please confirm hydrus3 model */
+        double target_angle = joint_module_[i].target_joint_angle * joint_module_[i].angle_sgn / joint_module_[i].angle_scale  + joint_module_[i].angle_offset;
 
         if(bridge_mode_ == DYNAMIXEL_HUB_MODE)
           {
             std_msgs::Float64 command;
             command.data = target_angle;
-            joint_module[i].joint_ctrl_pub.publish(command);
+            joint_module_[i].joint_ctrl_pub.publish(command);
           }
         else if(bridge_mode_ == MCU_MODE)
           target_angle_msg.angle[i] = target_angle;
@@ -184,10 +186,12 @@ public:
               {
                 if(req.torque_enable) ROS_INFO("joint%d: enable torque", i+1);
                 else ROS_INFO("joint%d: disable torque", i+1);
+                return true;
               }
             else
               {
                 ROS_ERROR("Failed to call service %s", srv_name.c_str());
+                return false;
               }
           }
       }
@@ -197,7 +201,9 @@ public:
         if(req.torque_enable) enable_torque.data = 1;
         else enable_torque.data = 0;
         servo_config_cmd_pub_.publish(enable_torque);
+        return true;
       }
+
   }
 
   void bridgeFunc(const ros::TimerEvent & e)
@@ -220,23 +226,24 @@ public:
       {
         for(int i = 0; i < joint_num_; i ++)
           {
-            if(fabs(joint_module[i].current_angle - M_PI/2) > 0.085 && fabs(joint_module[i].current_angle + M_PI/2) > 0.085)
+            if(fabs(joint_module_[i].current_angle - M_PI/2) > 0.085 && fabs(joint_module_[i].current_angle + M_PI/2) > 0.085)
               normal_approximation = false;
           }
       }
+    else normal_approximation = false;
 
     for(int i = 0; i < joint_num_; i ++)
       {
-        hydrus_joints_state.name[i] = joint_module[i].joint_name;
+        hydrus_joints_state.name[i] = joint_module_[i].joint_name;
         if(normal_approximation)
           {
-            if(fabs(joint_module[i].current_angle - M_PI/2) < 0.085)
+            if(fabs(joint_module_[i].current_angle - M_PI/2) < 0.085)
               hydrus_joints_state.position[i] = M_PI/2;
-            if(fabs(joint_module[i].current_angle + M_PI/2) < 0.085)
+            if(fabs(joint_module_[i].current_angle + M_PI/2) < 0.085)
               hydrus_joints_state.position[i] = -M_PI/2;
           }
         else
-          hydrus_joints_state.position[i] = joint_module[i].current_angle;
+          hydrus_joints_state.position[i] = joint_module_[i].current_angle;
       }
 
     joints_state_pub_.publish(hydrus_joints_state);
