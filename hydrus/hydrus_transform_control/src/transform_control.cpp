@@ -434,7 +434,7 @@ void TransformController::cogComputation(const std::vector<tf::StampedTransform>
       Eigen::Matrix3d link_rotate(q);
 
       Eigen::Vector3d extra_module_origin = link_rotate * extra_module_model_[i].getOffset()  + link_origin;
-      cog_n += extra_module_origin * extra_module_model_[i].getWeight();
+      cog_n += (extra_module_origin * extra_module_model_[i].getWeight());
     }
 
   Eigen::Vector3d cog = cog_n / all_mass_;
@@ -512,10 +512,6 @@ void TransformController::principalInertiaComputation(const std::vector<tf::Stam
     {
       int link_no = extra_module_model_[i].getLink();
 
-      /* offset */
-      Eigen::Vector3d origin_from_root_link;
-      tf::vectorTFToEigen(transforms[link_no].getOrigin(), origin_from_root_link);
-
       /* rotate */
       Eigen::Quaterniond q;
       tf::quaternionTFToEigen(transforms[link_no].getRotation(), q);
@@ -523,7 +519,8 @@ void TransformController::principalInertiaComputation(const std::vector<tf::Stam
 
       /* 1. link base model */
       /* rotate(R_t * I * R) */
-      Eigen::Vector3d origin_from_cog = rotate_m * extra_module_model_[i].getOffset() + origin_from_root_link - getCog();
+      Eigen::Vector3d origin_from_cog = rotate_m * extra_module_model_[i].getOffset() + links_origin_from_cog[link_no];
+
       float controller_mass = extra_module_model_[i].getWeight();
       Eigen::Matrix3d extra_module_offset_inertia;
       extra_module_offset_inertia <<
