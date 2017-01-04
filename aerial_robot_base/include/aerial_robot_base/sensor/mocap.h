@@ -18,7 +18,6 @@
 #include <kalman_filter/digital_filter.h>
 
 #include <aerial_robot_base/States.h>
-#include <aerial_robot_base/ImuData.h>
 #include <std_msgs/Float32.h>
 #include <geometry_msgs/PoseStamped.h>
 

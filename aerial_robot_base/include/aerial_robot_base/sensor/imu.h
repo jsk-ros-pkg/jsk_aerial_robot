@@ -7,7 +7,7 @@
 
 #include <ros/ros.h>
 
-#include <aerial_robot_base/ImuData.h>
+#include <aerial_robot_base/Acc.h>
 #include <geometry_msgs/Vector3.h>
 #include <aerial_robot_base/sensor/sensor_base_plugin.h>
 #include <aerial_robot_msgs/SimpleImu.h>
@@ -38,7 +38,7 @@ namespace sensor_plugin
           sub_imu_sub_ = nh_.subscribe<aerial_robot_msgs::Imu>(sub_imu_topic_name_, 1, boost::bind(&Imu::ImuCallback, this, _1, true)); 
         }
 
-      imu_pub_ = nh_.advertise<aerial_robot_base::ImuData>("data", 2); 
+      acc_pub_ = nh_.advertise<aerial_robot_base::Acc>("acc", 2); 
 
       acc_xb_ = 0, acc_yb_ = 0, acc_zb_ = 0;
       gyro_xb_ = 0, gyro_yb_ = 0, gyro_zb_ = 0;
@@ -79,7 +79,7 @@ namespace sensor_plugin
     inline ros::Time getImuStamp(){return imu_stamp_;}
 
   private:
-    ros::Publisher  imu_pub_;
+    ros::Publisher  acc_pub_;
     ros::Subscriber  imu_sub_, sub_imu_sub_;
     ros::Subscriber  imu_simple_sub_;
 
@@ -562,52 +562,33 @@ namespace sensor_plugin
                 }
             }
 
-          publishImuData(stamp);
+          publishAccData(stamp);
         }
       prev_time = imu_stamp_;
     }
 
-    void publishImuData(ros::Time stamp)
+    void publishAccData(ros::Time stamp)
     {
-      aerial_robot_base::ImuData imu_data;
-      imu_data.header.stamp = stamp;
+      aerial_robot_base::Acc acc_data;
+      acc_data.header.stamp = stamp;
 
-      imu_data.height = height_;
+      acc_data.acc_raw.x = acc_xb_;
+      acc_data.acc_raw.y = acc_yb_;
+      acc_data.acc_raw.z = acc_zb_; // - g_value_;
 
-      estimator_->setEEState(BasicEstimator::ROLL_W, 0, roll_);
-      estimator_->setEEState(BasicEstimator::PITCH_W, 0, pitch_);
-      //estimator_->setEXState(BasicEstimator::YAW_W_COG, 0, yaw_);
-      //estimator_->setEXState(BasicEstimator::YAW_W_B, 0, yaw_);
+      acc_data.acc_body_frame.x = acc_xi_;
+      acc_data.acc_body_frame.y = acc_yi_; 
+      acc_data.acc_body_frame.z = acc_zw_;
 
-      imu_data.angles.x = roll_;
-      imu_data.angles.y = pitch_;
-      imu_data.angles.z = yaw_;
+      acc_data.acc_world_frame.x = acc_xw_;
+      acc_data.acc_world_frame.y = acc_yw_; 
+      acc_data.acc_world_frame.z = acc_zw_;
 
-      imu_data.accelerometer.x = acc_xb_;
-      imu_data.accelerometer.y = acc_yb_;
-      imu_data.accelerometer.z = acc_zb_; // - g_value_;
+      acc_data.acc_non_bias_world_frame.x = acc_xw_non_bias_;
+      acc_data.acc_non_bias_world_frame.y = acc_yw_non_bias_;
+      acc_data.acc_non_bias_world_frame.z = acc_zw_non_bias_;
 
-      imu_data.gyrometer.x = gyro_xb_;
-      imu_data.gyrometer.y = gyro_yb_;
-      imu_data.gyrometer.z = gyro_zb_;
-
-      imu_data.magnetometer.x = mag_xb_;
-      imu_data.magnetometer.y = mag_yb_;
-      imu_data.magnetometer.z = mag_zb_;
-
-      imu_data.acc_body_frame.x = acc_xi_;
-      imu_data.acc_body_frame.y = acc_yi_; 
-      imu_data.acc_body_frame.z = acc_zw_;
-
-      imu_data.acc_world_frame.x = acc_xw_;
-      imu_data.acc_world_frame.y = acc_yw_; 
-      imu_data.acc_world_frame.z = acc_zw_;
-
-      imu_data.acc_non_bias_world_frame.x = acc_xw_non_bias_;
-      imu_data.acc_non_bias_world_frame.y = acc_yw_non_bias_;
-      imu_data.acc_non_bias_world_frame.z = acc_zw_non_bias_;
-
-      imu_pub_.publish(imu_data);
+      acc_pub_.publish(acc_data);
     }
 
     void rosParamInit()
