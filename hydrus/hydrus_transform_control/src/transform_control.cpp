@@ -338,18 +338,18 @@ void TransformController::control()
         {
           /* Kinematics calculation */
           if(debug_verbose_) ROS_ERROR("start kinematics");
-           kinematics();
+          bool get_kinematics = kinematics();
           if(debug_verbose_) ROS_ERROR("finish kinematics");
           /* LQI parameter calculation */
           if(debug_verbose_) ROS_ERROR("start lqi");
-          lqi();
+          if(get_kinematics) lqi();
           if(debug_verbose_) ROS_ERROR("finish lqi");
         }
       loop_rate.sleep();
     }
 }
 
-void TransformController::kinematics()
+bool TransformController::kinematics()
 {
   //get transform;
   std::vector<tf::StampedTransform>  transforms;
@@ -368,6 +368,7 @@ void TransformController::kinematics()
           catch (tf::TransformException ex)
             {
               ROS_ERROR("%s",ex.what());
+              return false;
             }
         }
       if(debug_verbose_) ROS_WARN(" finish tf listening");
@@ -384,7 +385,10 @@ void TransformController::kinematics()
       if(debug_verbose_) ROS_WARN(" start visualize");
       visualization();
       if(debug_verbose_) ROS_WARN(" finish visualize");
+
+      return true;
     }
+  return false;
 }
 
 bool TransformController::addExtraModuleCallback(hydrus_transform_control::AddExtraModule::Request  &req,
@@ -577,7 +581,7 @@ void TransformController::principalInertiaComputation(const std::vector<tf::Stam
 
       if(!init_flag)
         {
-          ROS_ERROR("start");
+          ROS_ERROR("transform control: start");
           setRotateMatrix(rotate_matrix);
           setPrincipalInertia(links_principal_inertia);
 

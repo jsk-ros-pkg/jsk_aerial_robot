@@ -304,7 +304,7 @@ private:
   /* main control func */
   void control();
   /* kinematics calculation */
-  void kinematics();
+  bool kinematics();
   /* LQI parameter calculation */
   void lqi();
 
