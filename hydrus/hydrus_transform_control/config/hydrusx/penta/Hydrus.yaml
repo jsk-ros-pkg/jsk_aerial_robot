@@ -1,5 +1,7 @@
 #HydraX Penta config
 
+lqi_thread_rate: 15.0
+
 link_num: 5
 root_link: 3
 
@@ -39,8 +41,6 @@ propeller4_order: 3
 propeller5_direction: -1
 propeller5_order: 4
 
-
-lqi_thread_rate: 20.0
 q_roll: 100.0  #  100
 q_roll_d: 100.0  #  100
 q_roll_i: 10.0 #  10

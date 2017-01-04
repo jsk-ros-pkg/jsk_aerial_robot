@@ -1,5 +1,7 @@
 #HydrusX Hex config
 
+control_rate: 15.0
+
 link_num: 6
 root_link: 4 #from 1
 
@@ -53,7 +55,6 @@ propeller5_order: 4
 propeller6_direction: 1
 propeller6_order: 5
 
-lqi_thread_rate: 20.0
 q_roll: 400 
 q_roll_d: 40.0
 q_roll_i: 10.0
