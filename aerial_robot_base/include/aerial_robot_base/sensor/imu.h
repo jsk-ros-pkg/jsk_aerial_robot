@@ -159,6 +159,7 @@ namespace sensor_plugin
       mag_zb_ = imu_msg->mag_data[2];
 
       imuDataConverter(imu_stamp_);
+      updateHealthStamp(imu_msg->stamp.toSec());
     }
 
     void kduinoImuCallback(const aerial_robot_msgs::SimpleImuConstPtr& imu_msg)

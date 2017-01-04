@@ -685,6 +685,17 @@ void TeleopNavigator::teleopNavigation()
   //keystron correction / target value process
   targetValueCorrection();
 
+  /* sensor health check */
+  if(estimator_->getUnhealthLevel() == BasicEstimator::UNHEALTH_LEVEL3 && !force_landing_flag_)
+    {
+      if(getNaviCommand() == TAKEOFF_COMMAND || getNaviCommand() == HOVER_COMMAND  || getNaviCommand() == LAND_COMMAND)
+      ROS_WARN("Sensor Unhealth Level%d: force landing command", estimator_->getUnhealthLevel());
+      std_msgs::UInt8 force_landing_cmd;
+      force_landing_cmd.data = FORCE_LANDING_CMD;
+      flight_config_pub_.publish(force_landing_cmd);
+      force_landing_flag_ = true;
+    }
+
   if(getNaviCommand() == START_COMMAND)
     { //takeoff phase
       flight_mode_= NO_CONTROL_MODE;

@@ -51,6 +51,10 @@ class BasicEstimator
 
     setHeightEstimateMode(ONLY_BARO_MODE);
     landing_height_ = 0;
+
+
+    /* TODO: represented sensors unhealth level */
+    unhealth_level_ = 0;
   }
 
   virtual ~BasicEstimator(){}
@@ -142,11 +146,31 @@ class BasicEstimator
   const static uint8_t WITH_BARO_MODE = 1; //we estimate the height using range sensor etc. without the baro, but we are estimate the bias of baro
   const static uint8_t WITHOUT_BARO_MODE = 2; //we estimate the height using range sensor etc. with the baro, also estimating the bias of baro
 
+  /* sensor unhealth level */
+  static const uint8_t UNHEALTH_LEVEL1 = 1; // do nothing
+  static const uint8_t UNHEALTH_LEVEL2 = 2; // change estimation mode
+  static const uint8_t UNHEALTH_LEVEL3 = 3; // force landing
+
+
   inline void setHeightEstimateMode(uint8_t height_estimate_mode){ height_estimate_mode_ = height_estimate_mode;}
   inline int getHeightEstimateMode(){return height_estimate_mode_;}
 
   /* the yaw state related function */
   inline bool onlyImuYaw(){return only_imu_yaw_;}
+
+  /* set unhealth level */
+  void setUnhealthLevel(uint8_t unhealth_level)
+  {
+    if(unhealth_level > unhealth_level_)
+      unhealth_level_ = unhealth_level;
+
+    /* TODO: should write the solution for the unhealth sensor  */
+  }
+
+  inline uint8_t getUnhealthLevel()
+  {
+    return unhealth_level_;
+  }
 
  protected:
 
@@ -195,6 +219,9 @@ class BasicEstimator
   float landing_height_; //we have to consider the terrain change during the flight,then the landing height is no longer 0.
   /* the only imu yaw var */
   bool only_imu_yaw_;
+
+  /* sensor (un)health level */
+  uint8_t unhealth_level_;
 
   /* force to change the estimate mode */
   void heightEstimateModeCallback(const std_msgs::UInt8ConstPtr & mode_msg)

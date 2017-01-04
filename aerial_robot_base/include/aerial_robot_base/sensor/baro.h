@@ -129,6 +129,7 @@ namespace sensor_plugin
       prev_raw_pos_z_ = raw_pos_z_;
       prev_pos_z_ = pos_z_;
       prev_high_filtered_pos_z_ = high_filtered_pos_z_;
+      updateHealthStamp(current_secs);
     }
 
     void estimateProcess()

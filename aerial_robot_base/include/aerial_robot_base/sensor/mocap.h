@@ -285,6 +285,7 @@ namespace sensor_plugin
       prev_phy = raw_phy;
       prev_psi = raw_psi;
       previous_time = msg->header.stamp;
+      updateHealthStamp(msg->header.stamp.toSec());
 
     }
 
