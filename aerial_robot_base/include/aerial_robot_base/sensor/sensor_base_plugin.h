@@ -73,7 +73,7 @@ namespace sensor_base_plugin
       sensor_hz_ = 0;
       estimate_indices_.resize(0);
       experiment_indices_.resize(0);
-      health_ = true;
+      health_ = false;
 
       estimate_flag_service_ = nh_.advertiseService("estimate_flag", &SensorBase::estimateFlag, this);
 
@@ -96,9 +96,10 @@ namespace sensor_base_plugin
     /* check whether we get sensor data */
     void healthCheck(const ros::TimerEvent & e)
     {
+      /* this will call only once, no recovery */
       if(ros::Time::now().toSec() - health_stamp_ > health_timeout_ && health_)
         {
-          ROS_ERROR("%s: can not get fresh sensor data for %f[sec]", nhp_.getNamespace().c_str(), health_timeout_);
+          ROS_ERROR("%s: can not get fresh sensor data for %f[sec]", nhp_.getNamespace().c_str(), ros::Time::now().toSec() - health_stamp_);
           /* TODO: the solution to unhealth should be more clever */
           estimator_->setUnhealthLevel(unhealth_level_);
           health_ = false;
@@ -115,6 +116,11 @@ namespace sensor_base_plugin
 
     inline void updateHealthStamp(double stamp)
     {
+      if(!health_)
+        {
+          health_ = true;
+          ROS_WARN("%s: get sensor data, du: %f", nhp_.getNamespace().c_str(), stamp - health_stamp_);
+        }
       health_stamp_ = stamp;
     }
 
