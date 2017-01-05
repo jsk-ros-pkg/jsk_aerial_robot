@@ -49,7 +49,6 @@ Navigator::Navigator(ros::NodeHandle nh, ros::NodeHandle nh_private,
   target_pitch_angle_ = 0;
   target_roll_angle_ = 0;
 
-
   stopNavigation();
   setNaviCommand( IDLE_COMMAND );
 
@@ -206,6 +205,7 @@ TeleopNavigator::TeleopNavigator(ros::NodeHandle nh, ros::NodeHandle nh_private,
 
   flight_config_pub_ = nh_.advertise<std_msgs::UInt8>("/flight_config_cmd", 10);
 
+  joy_stick_heart_beat_ = false;
   joy_stick_prev_time_ = 0;
 }
 
@@ -326,6 +326,7 @@ void TeleopNavigator::stopTeleopCallback(const std_msgs::UInt8ConstPtr & stop_ms
 void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
 {
   /* ps3 joy bottons assignment: http://wiki.ros.org/ps3joy */
+  if(!joy_stick_heart_beat_) joy_stick_heart_beat_ = true;
   joy_stick_prev_time_ = ros::Time::now().toSec();
 
   /* common command */
@@ -638,6 +639,7 @@ void TeleopNavigator::sendAttCmd()
         {/* general multirotor */
           rc_command_data.angles[2] = (flight_ctrl_input_->getYawValue())[0];
           rc_command_data.base_throttle[0] =  (flight_ctrl_input_->getThrottleValue())[0];
+          if((flight_ctrl_input_->getThrottleValue())[0] == 0) return; // do not publish the empty flight command => the force landing flag will be activate
         }
       else
         {/* transformable multirotor */
@@ -645,31 +647,6 @@ void TeleopNavigator::sendAttCmd()
             rc_command_data.base_throttle[i] = (flight_ctrl_input_->getYawValue())[i] + (flight_ctrl_input_->getThrottleValue())[i];
         }
       rc_cmd_pub_.publish(rc_command_data);
-
-
-#if 0 //old send method
-      if(flight_ctrl_input_->getMotorNumber() > 1)
-        {
-          aerial_robot_msgs::FourAxisCommand flight_command_data;
-          four_axis_command_data.angles[0]  =  flight_ctrl_input_->getRollValue();
-          four_axis_command_data.angles[1] =  flight_ctrl_input_->getPitchValue();
-          for(int i =0; i < flight_ctrl_input_->getMotorNumber(); i++)
-            {
-              four_axis_command_data.yaw_pi_term[i]   =  (flight_ctrl_input_->getYawValue())[i];
-              four_axis_command_data.throttle_pid_term[i] = (flight_ctrl_input_->getThrottleValue())[i] ;
-            }
-          rc_cmd_pub_.publish(four_axis_command_data);
-        }
-      else
-        {
-          aerial_robot_msgs::RcData rc_data;
-          rc_data.roll  =  flight_ctrl_input_->getRollValue();
-          rc_data.pitch =  flight_ctrl_input_->getPitchValue();
-          rc_data.yaw   =  (flight_ctrl_input_->getYawValue())[0];
-          rc_data.throttle = (flight_ctrl_input_->getThrottleValue())[0];
-          rc_cmd_pub_.publish(rc_data);
-        }
-#endif
     }
   else
     {
@@ -694,6 +671,35 @@ void TeleopNavigator::teleopNavigation()
       force_landing_cmd.data = FORCE_LANDING_CMD;
       flight_config_pub_.publish(force_landing_cmd);
       force_landing_flag_ = true;
+    }
+
+  if(getNaviCommand() == TAKEOFF_COMMAND || getNaviCommand() == HOVER_COMMAND)
+    {
+      bool normal_land = false;
+
+      /* joystick heartbeat check */
+      if(joy_stick_heart_beat_ &&
+         ros::Time::now().toSec() - joy_stick_prev_time_ > joy_stick_heart_beat_du_)
+        {
+          normal_land = true;
+          ROS_ERROR("Normal Landing: att control mode, because no joy control");
+        }
+
+      /* low voltage flag */
+      if(low_voltage_flag_)
+        {
+          normal_land = true;
+          ROS_ERROR("Normal Landing: low battery");
+        }
+
+      if(normal_land)
+        {
+          setNaviCommand(LAND_COMMAND);
+          final_target_pos_x_ = getStatePosX();
+          final_target_pos_y_ = getStatePosY();
+          final_target_pos_z_ = estimator_->getLandingHeight();
+          final_target_psi_   = getStatePsiBoard();
+        }
     }
 
   if(getNaviCommand() == START_COMMAND)
@@ -723,17 +729,17 @@ void TeleopNavigator::teleopNavigation()
             convergence_cnt++;
         }
       else if(xy_control_mode_ == VEL_LOCAL_BASED_CONTROL_MODE ||
-	      xy_control_mode_ == ATT_CONTROL_MODE)
+              xy_control_mode_ == ATT_CONTROL_MODE)
         {
           //TODO => check same as pos_world_based_control_mode
           if (fabs(getTargetPosZ() - getStatePosZ()) < POS_Z_THRE)
             convergence_cnt++;
         }
 
-      if (convergence_cnt > ctrl_loop_rate_) 
-        { //*** 安定収束した 20 ~ 40
+      if (convergence_cnt > ctrl_loop_rate_)
+        {
           if(xy_control_mode_ == POS_WORLD_BASED_CONTROL_MODE ||
-	     xy_control_mode_ == ATT_CONTROL_MODE)
+             xy_control_mode_ == ATT_CONTROL_MODE)
             {
               convergence_cnt = 0;
               setNaviCommand(HOVER_COMMAND); 
@@ -760,29 +766,6 @@ void TeleopNavigator::teleopNavigation()
                   ROS_WARN("Hovering!");
                 }
             }
-        }
-
-      /* check the joy stick heart beat */
-      bool force_land = false;
-      if(joy_stick_prev_time_ != 0 && ros::Time::now().toSec() - joy_stick_prev_time_ > joy_stick_heart_beat_du_ && xy_control_mode_ == ATT_CONTROL_MODE)
-	{
-	  ROS_ERROR("Force Landing: att control mode, because no joy control");
-	  force_land = true;
-	}
-
-      if(low_voltage_flag_)
-        {
-	  ROS_ERROR("Force Landing: low battery");
-	  force_land = true;
-	}
-
-      if(force_land)
-	{
-	  setNaviCommand(LAND_COMMAND);
-	  final_target_pos_x_ = getStatePosX();
-	  final_target_pos_y_ = getStatePosY();
-	  final_target_pos_z_ = estimator_->getLandingHeight();
-	  final_target_psi_   = getStatePsiBoard();
         }
     }
   else if(getNaviCommand() == LAND_COMMAND)
@@ -827,30 +810,6 @@ void TeleopNavigator::teleopNavigation()
   else if(getNaviCommand() == HOVER_COMMAND)
     {
       flight_mode_= FLIGHT_MODE;
-
-
-      /* check the joy stick heart beat */
-      bool force_land = false;
-      if(joy_stick_prev_time_ != 0 && ros::Time::now().toSec() - joy_stick_prev_time_ > joy_stick_heart_beat_du_ && xy_control_mode_ == ATT_CONTROL_MODE)
-	{
-	  ROS_ERROR("Force Landing: att control mode, because no joy control");
-	  force_land = true;
-	}
-
-      if(low_voltage_flag_)
-        {
-	  ROS_ERROR("Force Landing: low battery");
-	  force_land = true;
-	}
-
-      if(force_land)
-	{
-	  setNaviCommand(LAND_COMMAND);
-	  final_target_pos_x_ = getStatePosX();
-	  final_target_pos_y_ = getStatePosY();
-	  final_target_pos_z_ = estimator_->getLandingHeight();
-	  final_target_psi_   = getStatePsiBoard();
-        }
     }
   else if(getNaviCommand() == IDLE_COMMAND)
     {
@@ -923,7 +882,7 @@ void TeleopNavigator::rosParamInit(ros::NodeHandle nh)
   printf("%s: target_angle_rate_ is %f\n", ns.c_str(), target_angle_rate_);
 
   if (!nh.getParam ("joy_stick_heart_beat_du", joy_stick_heart_beat_du_))
-    joy_stick_heart_beat_du_ = 1.0;
+    joy_stick_heart_beat_du_ = 2.0;
   printf("%s: joy_stick_heart_beat_du_ is %f\n", ns.c_str(), joy_stick_heart_beat_du_);
 
   if (!nh.getParam ("force_landing_to_halt_du", force_landing_to_halt_du_))

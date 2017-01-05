@@ -353,8 +353,9 @@ private:
   bool teleop_flag_;
   bool force_landing_flag_;
 
+  bool joy_stick_heart_beat_;
   double joy_stick_prev_time_;
-  double joy_stick_heart_beat_du_; 
+  double joy_stick_heart_beat_du_;
   double force_landing_to_halt_du_;
 
   void rosParamInit(ros::NodeHandle nh);
