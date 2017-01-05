@@ -22,11 +22,11 @@ extra_module_num: 4
 # MCU: d_board
 extra_module1_link: 3
 extra_module1_offset: 0.233
-extra_module1_mass: 0.040
+extra_module1_mass: 0.055 #board: 0.045, usb-cable: 0.01
 # PC
 extra_module2_link: 2
 extra_module2_offset: -0.227
-extra_module2_mass: 0.001 #0.100 # Odroid XU4
+extra_module2_mass: 0.1 #0.100 # Odroid XU4
 
 # Additional Leg
 extra_module3_link: 5
