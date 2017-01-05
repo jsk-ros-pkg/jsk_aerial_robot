@@ -101,8 +101,8 @@ PidController::PidController(ros::NodeHandle nh,
   start_rp_integration_ = false;
 
   //publish
-  pid_pub_ = nh_.advertise<aerial_robot_base::FourAxisPid>("debug", 10); 
-  ff_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("ff", 10); 
+  pid_pub_ = nh_.advertise<aerial_robot_base::FourAxisPid>("debug", 10);
+  ff_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("ff", 10);
   motor_info_pub_ = nh_.advertise<aerial_robot_base::MotorInfo>("/motor_info", 10);
 
   //subscriber
@@ -235,11 +235,10 @@ void PidController::pidFunction()
             }
           else if(state_mode_ == BasicEstimator::EXPERIMENT_ESTIMATE)
             {
-              /* temp */
-              state_pos_x = estimator_->getGTState(BasicEstimator::X_W, 0);
-              state_vel_x = estimator_->getGTState(BasicEstimator::X_W, 1);
-              state_pos_y = estimator_->getGTState(BasicEstimator::Y_W, 0);
-              state_vel_y = estimator_->getGTState(BasicEstimator::Y_W, 1);
+              state_pos_x = estimator_->getEXState(BasicEstimator::X_W, 0);
+              state_vel_x = estimator_->getEXState(BasicEstimator::X_W, 1);
+              state_pos_y = estimator_->getEXState(BasicEstimator::Y_W, 0);
+              state_vel_y = estimator_->getEXState(BasicEstimator::Y_W, 1);
             }
 
         }
@@ -262,11 +261,10 @@ void PidController::pidFunction()
             }
           else if(state_mode_ == BasicEstimator::EXPERIMENT_ESTIMATE)
             {
-              /* temp */
-              state_pos_x = estimator_->getGTState(BasicEstimator::X_B, 0);
-              state_vel_x = estimator_->getGTState(BasicEstimator::X_B, 1);
-              state_pos_y = estimator_->getGTState(BasicEstimator::Y_B, 0);
-              state_vel_y = estimator_->getGTState(BasicEstimator::Y_B, 1);
+              state_pos_x = estimator_->getEXState(BasicEstimator::X_B, 0);
+              state_vel_x = estimator_->getEXState(BasicEstimator::X_B, 1);
+              state_pos_y = estimator_->getEXState(BasicEstimator::Y_B, 0);
+              state_vel_y = estimator_->getEXState(BasicEstimator::Y_B, 1);
             }
         }
 
@@ -300,6 +298,7 @@ void PidController::pidFunction()
           state_pos_z = estimator_->getEXState(BasicEstimator::Z_W, 0);
           state_vel_z = estimator_->getEXState(BasicEstimator::Z_W, 1);
 
+          /* TODO: change to EX state */
           state_psi_cog = estimator_->getGTState(BasicEstimator::YAW_W_COG, 0);
           state_psi_board = estimator_->getGTState(BasicEstimator::YAW_W_B, 0);
           state_vel_psi = estimator_->getGTState(BasicEstimator::YAW_W_B, 1);
