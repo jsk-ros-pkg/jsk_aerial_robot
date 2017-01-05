@@ -12,7 +12,7 @@ controller/throttle/pos_p_gain: -250.0  #0.25 * 1000
 controller/throttle/pos_i_gain: 250.0 #250.0  #0.25 * 1000
 controller/throttle/pos_d_gain: -280.0  #0.28 * 1000
 controller/throttle/const_i_ctrl_thre_land: 0.0
-controller/throttle/offset: 1000
+controller/throttle/offset: 1100
 controller/throttle/pos_limit: 2000
 controller/throttle/pos_p_limit: 150
 controller/throttle/pos_i_limit: 900
