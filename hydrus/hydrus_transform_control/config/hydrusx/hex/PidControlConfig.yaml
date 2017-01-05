@@ -14,7 +14,7 @@ controller/throttle/pos_limit: 16.5
 controller/throttle/pos_p_limit: 16.5
 controller/throttle/pos_i_limit: 16.5
 controller/throttle/pos_d_limit: 16.5
-controller/throttle/const_i_ctrl_thre_land: -0.3
+controller/throttle/const_i_ctrl_thre_land: -0.01
 
 # pitch [rad]
 controller/pitch/pos_p_gain: 0.1 #0.2 
