@@ -3,3 +3,4 @@ sensor_plugin:
                 pos_noise_sigma: 0.0005
                 angle_sigma: 0.005
                 unhealth_level: 3
+                health_timeout: 0.5
