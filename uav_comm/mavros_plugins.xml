@@ -1,0 +1,5 @@
+<library path="lib/libuav_comm_mavros_plugins">
+  <class name="joy_control" type="mavplugin::JoyControlPlugin" base_class_type="mavplugin::MavRosPlugin">
+    <description>Bi-direction joystick command trnasmission.</description>
+  </class>
+</library>
