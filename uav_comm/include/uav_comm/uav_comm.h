@@ -33,6 +33,8 @@ private:
 
   //*** xbee gneneral library
   XBee* xbee_handler_;
+  XBeeAddress64 addr64_;
+  uint16_t addr16_;
 
   //*** ROS param
   std::string port_;
