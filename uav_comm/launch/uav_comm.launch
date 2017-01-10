@@ -14,29 +14,30 @@
   <!-- mavlink bridge -->
   <arg name="gcs_url" default="udp://@127.0.0.1:14550" />
   <arg name="tgt_system" default="1" />
-  <arg name="tgt_component" default="1" />
+  <arg name="tgt_component" default="240" />
 
   <!-- xbee ros interface -->
   <node  pkg="uav_comm" type="uav_comm_node" name="uav_comm" required="true" clear_params="true" output="$(arg log_output)">
     <param name="mode" value="$(arg mode)" />
     <param name="port" value="$(arg port)" />
     <param name="baudrate" value="$(arg baudrate)" />
-    <param name="rssi_rate" value="0.5" />
+    <param name="rssi_rate" value="0.1" />
     <param name="debug_verbose" value="$(arg debug_verbose)" />
     <param name="tx_debug" value="$(arg tx_debug)" />
     <param name="gcs_debug" value="$(arg gcs_debug)" />
   </node>
 
   <!-- mavlink bridge -->
-  <group unless="$(arg tx_debug)">
+  <group unless="$(arg tx_debug)"> 
+<!--<group unless="1"> -->
     <node pkg="uav_comm" type="uav_comm_mavros_node" name="mavros" required="true" clear_params="true" output="$(arg log_output)">
       <param name="gcs_url" value="$(arg gcs_url)" />
       <param name="target_system_id" value="$(arg tgt_system)" />
       <param name="target_component_id" value="$(arg tgt_component)" />
 
       <!-- load blacklist, config -->
-      <rosparam command="load" file="$(find uav_comm)/config/pluginlists.yaml" />
-      <rosparam command="load" file="$(find uav_comm)/config/uav_comm.yaml" />
+      <rosparam command="load" file="$(find uav_comm)/config/uav_plugins.yaml" unless="$(arg mode)"/> <!-- uav side -->
+      <rosparam command="load" file="$(find uav_comm)/config/gcs_plugins.yaml" if="$(arg mode)"/> <!-- gcs side -->
 
       <!-- joy plugin -->
       <param name="mode" value="$(arg mode)" />
