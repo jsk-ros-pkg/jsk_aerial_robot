@@ -1,3 +1,15 @@
+plugin_blacklist:
+# common
+- safety_area
+- sys_time
+# extras
+- image_pub
+- vibration
+- distance_sensor
+
+plugin_whitelist: []
+#- 'sys_*'
+
 # Common configuration for xbee based comm
 #
 # node:
@@ -15,11 +27,6 @@ conn:
 sys:
   min_voltage: 10.0   # diagnostics min voltage
   disable_diag: false # disable all sys_status diagnostics, except heartbeat
-
-# sys_time
-time:
-  time_ref_source: "fcu"  # time_reference source
-  timesync_avg_alpha: 0.6 # timesync averaging factor
 
 # --- mavros plugins (alphabetical order) ---
 
@@ -108,3 +115,4 @@ setpoint_position:
 # waypoint
 mission:
   pull_after_gcs: true  # update mission if gcs updates
+
