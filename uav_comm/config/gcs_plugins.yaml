@@ -1,11 +1,13 @@
 plugin_blacklist:
 # common
+- command
 - safety_area
 - sys_time
 # extras
 - image_pub
 - vibration
 - distance_sensor
+- param
 
 plugin_whitelist: []
 #- 'sys_*'
@@ -38,8 +40,8 @@ tdr_radio:
 # None
 
 # command
-cmd:
-  use_comp_id_system_control: false # quirk for some old FCUs
+#cmd:
+#  use_comp_id_system_control: false # quirk for some old FCUs
 
 # dummy
 # None

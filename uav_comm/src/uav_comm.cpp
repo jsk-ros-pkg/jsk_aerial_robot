@@ -82,7 +82,7 @@ void UavComm::mavlinkCb(const mavros_msgs::Mavlink::ConstPtr &rmsg)
       if(rmsg->sysid == 255 && rmsg->compid == 0 && rmsg->msgid < MAVLINK_MSG_ID_PARAM_VALUE)
         return;
 
-      ROS_INFO("seq:%d, sysid: %d, compid:%d, msgid:%d, len:%d", rmsg->seq, rmsg->sysid, rmsg->compid, rmsg->msgid, rmsg->len);
+      //ROS_INFO("seq:%d, sysid: %d, compid:%d, msgid:%d, len:%d", rmsg->seq, rmsg->sysid, rmsg->compid, rmsg->msgid, rmsg->len);
 
 
       //XBeeAddress64 addr64 = RemoteAtCommandRequest::broadcastAddress64;
