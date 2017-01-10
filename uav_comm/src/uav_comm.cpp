@@ -29,7 +29,7 @@ UavComm::UavComm(ros::NodeHandle nh, ros::NodeHandle nhp):
 
   if(mode_ == GC_MODE)
     {
-      rssi_pub_ = nh_.advertise<mavros_msgs::RadioStatus>("radio_status", 10);
+      rssi_pub_ = nh_.advertise<mavros_msgs::RadioStatus>("/mavlink/radio_status", 10);
       if(rssi_rate_ != 0)
         rssi_timer_ = nhp_.createTimer (ros::Duration(1.0), &UavComm::rssiCheck, this);
     }
