@@ -1,11 +1,13 @@
 plugin_blacklist:
 # common
+- command
 - safety_area
 - sys_time
 # extras
 - image_pub
 - vibration
 - distance_sensor
+- param
 
 plugin_whitelist: []
 #- 'sys_*'
