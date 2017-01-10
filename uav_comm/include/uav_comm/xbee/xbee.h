@@ -557,7 +557,9 @@ namespace xbee{
      */
     ZBTxRequest(XBeeAddress64 &addr64, uint16_t addr16, uint8_t broadcastRadius, uint8_t option, uint8_t *payload, uint8_t payloadLength, uint8_t frameId);
     ZBTxRequest(uint8_t *payload, uint8_t payloadLength);
-    ZBTxRequest(XBeeAddress64 &addr64, uint16_t addr16,uint8_t *payload, uint8_t payloadLength);
+    ZBTxRequest(uint16_t addr16,uint8_t *payload, uint8_t payloadLength);
+    ZBTxRequest(XBeeAddress64 &addr64, uint8_t *payload, uint8_t payloadLength);
+    ZBTxRequest(XBeeAddress64 &addr64, uint16_t addr16, uint8_t *payload, uint8_t payloadLength);
     /**
      * Creates a default instance of this class.  At a minimum you must specify
      * a payload, payload length and a destination address before sending this request.

@@ -487,12 +487,28 @@ namespace xbee
     _option = DISABLE_ACK_OPTION;
   }
 
-  ZBTxRequest::ZBTxRequest(XBeeAddress64 &addr64, uint16_t addr16 , uint8_t *data, uint8_t dataLength): PayloadRequest(ZB_TX_REQUEST, NO_RESPONSE_FRAME_ID, data, dataLength) {
-    _addr64 = RemoteAtCommandRequest::broadcastAddress64;
+  ZBTxRequest::ZBTxRequest(uint16_t addr16, uint8_t *data, uint8_t dataLength): PayloadRequest(ZB_TX_REQUEST, NO_RESPONSE_FRAME_ID, data, dataLength) {
+    _addr64 = XBeeAddress64(0xFFFFFFFF, 0xFFFFFFFF);;
     _addr16 = addr16;
     _broadcastRadius = ZB_BROADCAST_RADIUS_MAX_HOPS;
     _option = DISABLE_ACK_OPTION;
   }
+
+
+  ZBTxRequest::ZBTxRequest(XBeeAddress64 &addr64, uint16_t addr16, uint8_t *data, uint8_t dataLength): PayloadRequest(ZB_TX_REQUEST, NO_RESPONSE_FRAME_ID, data, dataLength) {
+    _addr64 = addr64;
+    _addr16 = addr16;
+    _broadcastRadius = ZB_BROADCAST_RADIUS_MAX_HOPS;
+    _option = DISABLE_ACK_OPTION;
+  }
+
+  ZBTxRequest::ZBTxRequest(XBeeAddress64 &addr64, uint8_t *data, uint8_t dataLength): PayloadRequest(ZB_TX_REQUEST, NO_RESPONSE_FRAME_ID, data, dataLength) {
+    _addr64 = addr64;
+    _addr16 = ZB_BROADCAST_ADDRESS;
+    _broadcastRadius = ZB_BROADCAST_RADIUS_MAX_HOPS;
+    _option = DISABLE_ACK_OPTION;
+  }
+
 
 
   uint8_t ZBTxRequest::getFrameData(uint8_t pos) {
@@ -705,7 +721,7 @@ namespace xbee
   }
 
   RemoteAtCommandRequest::RemoteAtCommandRequest(uint16_t remoteAddress16, uint8_t *command, uint8_t *commandValue, uint8_t commandValueLength) : AtCommandRequest(command, commandValue, commandValueLength) {
-    _remoteAddress64 = broadcastAddress64;
+    _remoteAddress64 = XBeeAddress64(0xFFFFFFFF, 0xFFFFFFFF);
     _remoteAddress16 = remoteAddress16;
     _applyChanges = true;
     setApiId(REMOTE_AT_REQUEST);
@@ -722,7 +738,7 @@ namespace xbee
   RemoteAtCommandRequest::RemoteAtCommandRequest(uint16_t remoteAddress16, uint8_t *command) : AtCommandRequest(command, NULL, 0) {
     _remoteAddress64 = broadcastAddress64;
     _remoteAddress16 = remoteAddress16;
-    _applyChanges = false;
+    _applyChanges = true;
     setApiId(REMOTE_AT_REQUEST);
   }
 
@@ -895,6 +911,7 @@ XBee::XBee (std::string port, uint32_t baudrate): port_(port), baudrate_(baudrat
   }
 
   void XBee::sendByte(uint8_t b, bool escape) {
+    //ROS_INFO("0x%x", b);
 
     if (escape && (b == START_BYTE || b == ESCAPE || b == XON || b == XOFF)) {
 
