@@ -193,21 +193,23 @@ void UavComm::rxSpin(const ros::TimerEvent & e)
               {
                 //uint16_t address = remote_at_res.getRemoteAddress16();
                 XBeeAddress64 address = remote_at_res.getRemoteAddress64();
-                uint8_t rssi = remote_at_res.getValue()[0];
+                int rssi = -remote_at_res.getValue()[0];
                 if(debug_verbose_)
                   ROS_INFO("Get DB Response from 0x%x , rssi is %d", address.getLsb(), rssi);
 
                 /* publish the rssi */
                 mavros_msgs::RadioStatus rssi_msg;
                 rssi_msg.header.stamp = ros::Time::now();
-                rssi_msg.rssi = rssi;
-                rssi_msg.remrssi = rssi;
-                rssi_msg.rssi_dbm = -rssi;
+                rssi_msg.rssi = 0;
+                rssi_msg.remrssi = 0;
+                rssi_msg.rssi_dbm = rssi;
                 rssi_pub_.publish(rssi_msg);
 
                 /* publish to the mavros (gcs_link) */
                 mavlink_message_t mmsg;
-                mavlink_msg_radio_status_pack(mav_sys_id_, mav_comp_id_, &mmsg, rssi, rssi, 0, 0, 0, 0, 0);
+                //uint8_t rssi_3dr = (rssi + 127) * 1.9; // convert to 3dr rule
+                uint8_t rssi_3dr = rssi; // convert to 3dr rule
+                mavlink_msg_radio_status_pack(mav_sys_id_, mav_comp_id_, &mmsg, rssi_3dr, rssi_3dr, 0, 0, 0, 0, 0);
                 mavros_msgs::Mavlink rmsg;
                 mavros_msgs::mavlink::convert(mmsg, rmsg);
                 msg_from_uav_pub_.publish(rmsg);

@@ -21,7 +21,7 @@
     <param name="mode" value="$(arg mode)" />
     <param name="port" value="$(arg port)" />
     <param name="baudrate" value="$(arg baudrate)" />
-    <param name="rssi_rate" value="0.1" />
+    <param name="rssi_rate" value="0.25" />
     <param name="debug_verbose" value="$(arg debug_verbose)" />
     <param name="tx_debug" value="$(arg tx_debug)" />
     <param name="gcs_debug" value="$(arg gcs_debug)" />
