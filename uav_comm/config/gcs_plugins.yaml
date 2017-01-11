@@ -119,3 +119,6 @@ setpoint_position:
 mission:
   pull_after_gcs: true  # update mission if gcs updates
 
+# ps3 joy 
+joy:
+  throttle: 10.0

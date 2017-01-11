@@ -85,7 +85,7 @@ namespace mavplugin {
 
     void test(const ros::TimerEvent & e)
     {
-      ROS_WARN("mav odom: dummy pub");
+      //ROS_WARN("mav odom: dummy pub");
       mavlink_message_t mav_msg;
       mavlink_msg_local_position_ned_system_global_offset_pack_chan(UAS_PACK_CHAN(uas),
                                                                     &mav_msg,

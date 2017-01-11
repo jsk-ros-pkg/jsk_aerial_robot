@@ -1049,7 +1049,6 @@ XBee::XBee (std::string port, uint32_t baudrate): port_(port), baudrate_(baudrat
                       response_.setAvailable(true);
 
                       response_.setErrorCode(NO_ERROR);
-                      ROS_INFO("XBEE Serial RX DEBUG: receive the packet");
                     } else {
                       // checksum failed
                       response_.setErrorCode(CHECKSUM_FAILURE);
