@@ -84,10 +84,10 @@ private:
         mavlink_msg_manual_control_pack_chan(UAS_PACK_CHAN(uas),
                                              &mav_msg,
                                              0,
-                                             msg->axes[0] / 1000.0,
-                                             msg->axes[1] / 1000.0,
-                                             msg->axes[2] / 1000.0,
-                                             msg->axes[3] / 1000.0,
+                                             msg->axes[0] * 1000.0,
+                                             msg->axes[1] * 1000.0,
+                                             msg->axes[2] * 1000.0,
+                                             msg->axes[3] * 1000.0,
                                              buttons
                                              );
         UAS_FCU(uas)->send_message(&mav_msg);
@@ -108,7 +108,7 @@ private:
 
         ros_msg->buttons.resize(16);
         for(int i = 0; i < 16; i++)
-          ros_msg->buttons[i] = joy_control.buttons & (1 << i);
+          ros_msg->buttons[i] = (joy_control.buttons & (1 << i))?1:0;
 
         joy_pub.publish(ros_msg);
     }
