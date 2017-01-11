@@ -13,6 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   sensor_msgs
   serial
+  aerial_robot_base
 )
 
 ## System dependencies are found with CMake's conventions
@@ -128,7 +129,9 @@ include_directories(
 )
 
 ## Declare a C++ library
-add_library(uav_comm_mavros_plugins src/mavlink_plugins/ps3joy.cpp)
+add_library(uav_comm_mavros_plugins
+  src/mavlink_plugins/ps3joy.cpp
+  src/mavlink_plugins/odom.cpp)
 target_link_libraries(uav_comm_mavros_plugins ${catkin_LIBRARIES} ${Boost_LIBRARIES})
 
 add_library(xbee src/xbee/xbee.cpp)
@@ -148,6 +151,15 @@ target_link_libraries(uav_comm_mavros ${catkin_LIBRARIES} ${Boost_LIBRARIES} lib
 
 add_executable(uav_comm_mavros_node src/mavros/mavros_node.cpp)
 target_link_libraries(uav_comm_mavros_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} uav_comm_mavros)
+
+add_library(uav_comm_aerial_robot_plugins
+  src/aerial_robot_plugins/gps.cpp
+  src/aerial_robot_plugins/battery.cpp
+  src/aerial_robot_plugins/heartbeat.cpp)
+target_link_libraries(uav_comm_aerial_robot_plugins ${catkin_LIBRARIES} ${Boost_LIBRARIES})
+
+add_executable(aerial_robot_bridge src/aerial_robot_bridge.cpp)
+target_link_libraries(aerial_robot_bridge ${catkin_LIBRARIES} ${Boost_LIBRARIES})
 
 
 
