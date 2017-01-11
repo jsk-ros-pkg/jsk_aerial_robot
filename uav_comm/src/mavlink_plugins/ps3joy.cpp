@@ -37,8 +37,8 @@ public:
     {
         uas = &uas_;
         nh.param("mode", mode_, 0);
-        ROS_INFO("MAV joy: mode is %d", mode_);
-        nh.param("joy_throttle", joy_throttle_, 15.0); // Hz
+        //ROS_INFO("MAV joy: mode is %d", mode_);
+        nh.param("joy/throttle", joy_throttle_, 15.0); // Hz
         if(mode_ == UAV_MODE)
           joy_pub = nh.advertise<sensor_msgs::Joy>("/joy", 10);
         else if(mode_ == GC_MODE)

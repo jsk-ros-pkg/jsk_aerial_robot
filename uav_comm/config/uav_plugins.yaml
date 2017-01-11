@@ -124,3 +124,6 @@ setpoint_position:
 mission:
   pull_after_gcs: true  # update mission if gcs updates
 
+# odom
+odom: 
+  test: true  # publish dummy mavlink message
