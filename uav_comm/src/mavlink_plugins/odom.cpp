@@ -164,7 +164,7 @@ namespace mavplugin {
 #else
 
       mavlink_msg_global_position_int_pack_chan(UAS_PACK_CHAN(uas), &mav_msg,
-                                                odom.time_boot_ms, gps_msg_.latitude * 1e7, gps_msg_.longitude * 1e7,  gps_msg_.altitude * 1e3, gps_msg_.altitude * 1e3, 0, 0, 0, odom.yaw * 100 * 180 / M_PI);
+                                                odom.time_boot_ms, gps_msg_.latitude * 1e7, gps_msg_.longitude * 1e7,  odom.z * 1e3, odom.z * 1e3, 0, 0, 0, odom.yaw * 100 * 180 / M_PI);
 #endif
       UAS_FCU(uas)->message_received(&mav_msg, mav_msg.sysid, mav_msg.compid);
     }
