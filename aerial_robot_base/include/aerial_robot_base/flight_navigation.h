@@ -163,42 +163,42 @@ class Navigator
   void setStateMode(uint8_t state_mode){ state_mode_ = state_mode;}
 
 
-  const static uint8_t POS_CONTROL_COMMAND = 0;
-  const static uint8_t VEL_CONTROL_COMMAND = 1;
+  static constexpr uint8_t POS_CONTROL_COMMAND = 0;
+  static constexpr uint8_t VEL_CONTROL_COMMAND = 1;
 
   // navi command
-  static const uint8_t START_COMMAND = 0x00;
-  static const uint8_t STOP_COMMAND = 0x01;
-  static const uint8_t IDLE_COMMAND = 0x02;
-  static const uint8_t TAKEOFF_COMMAND = 0x03;
-  static const uint8_t LAND_COMMAND = 0x04;
-  static const uint8_t HOVER_COMMAND= 0x05;
+  static constexpr uint8_t START_COMMAND = 0x00;
+  static constexpr uint8_t STOP_COMMAND = 0x01;
+  static constexpr uint8_t IDLE_COMMAND = 0x02;
+  static constexpr uint8_t TAKEOFF_COMMAND = 0x03;
+  static constexpr uint8_t LAND_COMMAND = 0x04;
+  static constexpr uint8_t HOVER_COMMAND= 0x05;
 
   //flight mode
-  const static uint8_t TAKEOFF_MODE = 0;
-  const static uint8_t FLIGHT_MODE = 1;
-  const static uint8_t LAND_MODE = 2;
-  const static uint8_t NO_CONTROL_MODE = 3; 
-  const static uint8_t RESET_MODE = 4;
+  static constexpr uint8_t TAKEOFF_MODE = 0;
+  static constexpr uint8_t FLIGHT_MODE = 1;
+  static constexpr uint8_t LAND_MODE = 2;
+  static constexpr uint8_t NO_CONTROL_MODE = 3; 
+  static constexpr uint8_t RESET_MODE = 4;
 
   //for ros arm/disarm cmd
-  const static uint8_t ARM_ON_CMD = 0x00; //old: 150;
-  const static uint8_t ARM_OFF_CMD = 0x01; //old: 151;
-  const static uint8_t ROS_INTEGRATE_CMD = 160;
-  const static uint8_t FORCE_LANDING_CMD = 0x02; //force landing
+  static constexpr uint8_t ARM_ON_CMD = 0x00; //old: 150;
+  static constexpr uint8_t ARM_OFF_CMD = 0x01; //old: 151;
+  static constexpr uint8_t ROS_INTEGRATE_CMD = 160;
+  static constexpr uint8_t FORCE_LANDING_CMD = 0x02; //force landing
 
-  static const uint8_t X_AXIS = 1;
-  static const uint8_t Y_AXIS = 2;
-  static const uint8_t Z_AXIS = 4;
-  static const uint8_t PITCH_AXIS = 8;
-  static const uint8_t ROLL_AXIS = 16;
-  static const uint8_t YAW_AXIS = 32;
+  static constexpr uint8_t X_AXIS = 1;
+  static constexpr uint8_t Y_AXIS = 2;
+  static constexpr uint8_t Z_AXIS = 4;
+  static constexpr uint8_t PITCH_AXIS = 8;
+  static constexpr uint8_t ROLL_AXIS = 16;
+  static constexpr uint8_t YAW_AXIS = 32;
 
-  const static uint8_t POS_WORLD_BASED_CONTROL_MODE = 0;
-  const static uint8_t POS_LOCAL_BASED_CONTROL_MODE = 1;
-  const static uint8_t VEL_WORLD_BASED_CONTROL_MODE = 2;
-  const static uint8_t VEL_LOCAL_BASED_CONTROL_MODE = 3;
-  const static uint8_t ATT_CONTROL_MODE = 4;
+  static constexpr uint8_t POS_WORLD_BASED_CONTROL_MODE = 0;
+  static constexpr uint8_t POS_LOCAL_BASED_CONTROL_MODE = 1;
+  static constexpr uint8_t VEL_WORLD_BASED_CONTROL_MODE = 2;
+  static constexpr uint8_t VEL_LOCAL_BASED_CONTROL_MODE = 3;
+  static constexpr uint8_t ATT_CONTROL_MODE = 4;
 
 
   protected:
@@ -298,16 +298,16 @@ public:
   void sendAttCmd();
 
 
-  const static int TAKEOFF_COUNT = 8;
+  static constexpr int TAKEOFF_COUNT = 8;
 
   //for hovering convergence
-  const static float POS_X_THRE = 0.15; //m
-  const static float POS_Y_THRE = 0.15; //m
-  const static float POS_Z_THRE = 0.05; //m
+  static constexpr float POS_X_THRE = 0.15; //m
+  static constexpr float POS_Y_THRE = 0.15; //m
+  static constexpr float POS_Z_THRE = 0.05; //m
 
 
-  const static uint8_t MAP_FRAME = 0;
-  const static uint8_t BODY_FRAME = 1;
+  static constexpr uint8_t MAP_FRAME = 0;
+  static constexpr uint8_t BODY_FRAME = 1;
 
 
 private:

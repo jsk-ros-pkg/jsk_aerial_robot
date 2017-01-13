@@ -53,7 +53,7 @@ class FlightCtrlInput
 
   void addFFValues(std::vector<float> ff_value, bool force_add_flag = false)
   {
-    if(ff_value.size() != motor_num_)
+    if(ff_value.size() != (size_t)motor_num_)
       {
         ROS_FATAL("bad size matching for ff");
         return;
