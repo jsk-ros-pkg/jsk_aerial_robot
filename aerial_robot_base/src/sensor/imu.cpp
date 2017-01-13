@@ -148,8 +148,6 @@ namespace sensor_plugin
           acc_b_[i] = imu_msg->acc_data[i];
           gyro_b_[i] = imu_msg->gyro_data[i];
           mag_b_[i] = imu_msg->mag_data[i];
-
-          if(i == 2) acc_b_[i] -= G;
         }
 
       imuDataConverter(imu_stamp_);
@@ -170,7 +168,6 @@ namespace sensor_plugin
           if(i == 2)
             {
               euler_[i] = M_PI * imu_msg->angle[2] / 180.0;
-              acc_b_[i] -= G;
             }
           else /* raw data is 10 times */
             euler_[0]  = M_PI * imu_msg->angle[0] / 10.0 / 180.0;
@@ -187,12 +184,12 @@ namespace sensor_plugin
       /* calculate accTran */
 #if 1 // use x,y for factor4 and z for factor3
       tf::Matrix3x3 orientation;
-      orientation.setRPY(euler_.x(), euler_.y(), 0);
+      orientation.setRPY(euler_[0], euler_[1], 0);
       acc_l_ = orientation * acc_b_;
-      acc_l_.setZ((orientation * tf::Vector3(0, 0, acc_b_.z())).z());
+      acc_l_.setZ((orientation * tf::Vector3(0, 0, acc_b_.z())).z() - G);
 
 #else  // use approximation
-      acc_l_ = orientation * tf::Vector3(0, 0, acc_b_.z());
+      acc_l_ = orientation * tf::Vector3(0, 0, acc_b_.z()) - tf::Vector3(0, 0, G);
 #endif
 
       if(estimator_->getLandingMode() &&
