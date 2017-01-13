@@ -16,38 +16,6 @@ void RigidEstimator::tfPublish()
 {
   //set the states broadcast
   statesBroadcast();
-  //TODO mutex
-
-#if 0
-  //ros::Time sys_stamp = getSystemTimeStamp();
-  ros::Time sys_stamp = ros::Time::now();
-
-  tf::Transform laser_to_baselink;
-  tf::Transform footprint_to_laser;
-  tf::Transform laser_to_camera;
-  tf::Quaternion tmp;
-
-  //send the laser -> quadcopter_base
-  laser_to_baselink.setOrigin(tf::Vector3(0.0, 0.0, laser_to_baselink_distance_));
-  tmp.setRPY(0.0 , 0.0 , 0.0);
-  laser_to_baselink.setRotation(tmp);
-  br_->sendTransform(tf::StampedTransform(laser_to_baselink, sys_stamp, laser_frame_,
-                                          baselink_frame_));
-
-  //send the laser -> camera
-  laser_to_camera.setOrigin(tf::Vector3(0.02, 0.0, -0.04));
-  tmp.setRPY(0.0 , 0.0 , 0.0);
-  laser_to_camera.setRotation(tmp);
-  br_->sendTransform(tf::StampedTransform(laser_to_camera, sys_stamp, laser_frame_,
-                                          camera_frame_));
-
-  tmp.setRPY((getStatePhy()), getStateTheta(), 0); 
-  footprint_to_laser.setRotation(tmp);
-  footprint_to_laser.setOrigin(tf::Vector3(0.0, 0.0, getStatePosZ() + getPosZOffset() - mirror_module_arm_length_));
-
-  br_->sendTransform(tf::StampedTransform(footprint_to_laser, sys_stamp,
-                                          base_footprint_frame_, laser_frame_));
-#endif
 }
 
 
@@ -240,7 +208,7 @@ void RigidEstimator::rosParamInit()
       fuser_experiment_[i]->initialize(nh_, fuser_experiment_name_[i], fuser_experiment_id_[i]);
     }
 
-  sensor_loader_ptr_ =  boost::shared_ptr< pluginlib::ClassLoader<sensor_base_plugin::SensorBase> >( new pluginlib::ClassLoader<sensor_base_plugin::SensorBase>("aerial_robot_base", "sensor_base_plugin::SensorBase"));
+  sensor_loader_ptr_ =  boost::shared_ptr< pluginlib::ClassLoader<sensor_plugin::SensorBase> >( new pluginlib::ClassLoader<sensor_plugin::SensorBase>("aerial_robot_base", "sensor_plugin::SensorBase"));
 
 
   if (!nhp_.getParam ("sensor_no", sensor_no_)) sensor_no_ = 0;

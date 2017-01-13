@@ -7,7 +7,7 @@
 #include <aerial_robot_base/sensor/rtk_gps.h>
 #include <aerial_robot_base/sensor/baro.h>
 
-PLUGINLIB_EXPORT_CLASS(sensor_plugin::Imu, sensor_base_plugin::SensorBase);
+
 PLUGINLIB_EXPORT_CLASS(sensor_plugin::OpticalFlow, sensor_base_plugin::SensorBase);
 PLUGINLIB_EXPORT_CLASS(sensor_plugin::Mocap, sensor_base_plugin::SensorBase);
 PLUGINLIB_EXPORT_CLASS(sensor_plugin::RangeSensor, sensor_base_plugin::SensorBase);

@@ -1,25 +1,25 @@
 <library path="lib/libsensor_pluginlib">
-  <class name="sensor_plugin/imu" type="sensor_plugin::Imu" base_class_type="sensor_base_plugin::SensorBase">
+  <class name="sensor_plugin/imu" type="sensor_plugin::Imu" base_class_type="sensor_plugin::SensorBase">
     <description>IMU sensor plugin.</description>
   </class>
 
-  <class name="sensor_plugin/optical_flow" type="sensor_plugin::OpticalFlow" base_class_type="sensor_base_plugin::SensorBase">
+  <class name="sensor_plugin/optical_flow" type="sensor_plugin::OpticalFlow" base_class_type="sensor_plugin::SensorBase">
     <description>Optical Flow sensor plugin.</description>
   </class>
 
-  <class name="sensor_plugin/mocap" type="sensor_plugin::Mocap" base_class_type="sensor_base_plugin::SensorBase">
+  <class name="sensor_plugin/mocap" type="sensor_plugin::Mocap" base_class_type="sensor_plugin::SensorBase">
     <description>Mocap sensor plugin.</description>
   </class>
 
-  <class name="sensor_plugin/range_sensor" type="sensor_plugin::RangeSensor" base_class_type="sensor_base_plugin::SensorBase">
-    <description>Range_Sensor sensor plugin.</description>
+  <class name="sensor_plugin/range" type="sensor_plugin::Range" base_class_type="sensor_plugin::SensorBase">
+    <description>Range sensor sensor plugin.</description>
   </class>
 
-  <class name="sensor_plugin/rtk_gps" type="sensor_plugin::RtkGps" base_class_type="sensor_base_plugin::SensorBase">
-    <description>RTK GPS sensor plugin.</description>
+  <class name="sensor_plugin/gps" type="sensor_plugin::Gps" base_class_type="sensor_plugin::SensorBase">
+    <description>GPS sensor plugin.</description>
   </class>
 
-  <class name="sensor_plugin/barometer" type="sensor_plugin::Barometer" base_class_type="sensor_base_plugin::SensorBase">
+  <class name="sensor_plugin/barometer" type="sensor_plugin::Barometer" base_class_type="sensor_plugin::SensorBase">
     <description>Barometer plugin.</description>
   </class>
 
