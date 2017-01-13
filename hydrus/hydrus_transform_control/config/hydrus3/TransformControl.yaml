@@ -1,8 +1,9 @@
 #Hydrus3 config
 
+control_rate: 10.0
+
 link_num: 4
 root_link: 2
-
 
 link_joint_offset: 0.205
 
@@ -42,18 +43,17 @@ extra_module2_link: 0
 extra_module2_offset: 0.189 #old: 0.178
 extra_module2_mass: 0.104 #old: 0.093[Kg] (93[g])
 
-lqi_thread_rate: 20.0
-q_roll: 200.0  #  100
-q_roll_d: 20.0  #  20
-q_roll_i: 10.0 #  20
-q_pitch: 200.0  #  100
-q_pitch_d: 20.0  #  20
-q_pitch_i: 10.0 #  20
+q_roll: 200.0
+q_roll_d: 20.0
+q_roll_i: 10.0
+q_pitch: 200.0
+q_pitch_d: 20.0
+q_pitch_i: 10.0
 
-q_yaw: 50 # 10 
-strong_q_yaw: 10.0 # 10 
-q_yaw_d: 50.0 #  10
-q_yaw_i: 0.4 # 1
+q_yaw: 50
+strong_q_yaw: 100
+q_yaw_d: 50.0
+q_yaw_i: 0.4
 
 q_z: 10.0
 q_z_d: 10.0

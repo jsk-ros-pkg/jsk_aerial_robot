@@ -36,6 +36,7 @@ namespace sensor_base_plugin
 
     ros::NodeHandle nh_;
     ros::NodeHandle nhp_;
+    ros::Timer  health_check_timer_;
     ros::ServiceServer estimate_flag_service_;
     BasicEstimator* estimator_;
     std::string sensor_name_;
@@ -49,6 +50,13 @@ namespace sensor_base_plugin
     vector<int> experiment_indices_; // the fuser_experiment indices
 
     int estimate_flag_;
+
+    /* health check */
+    bool health_;
+    double health_check_rate_;
+    double health_timeout_;
+    int unhealth_level_;
+    double health_stamp_;
 
     SensorBase(){}
 
@@ -65,6 +73,7 @@ namespace sensor_base_plugin
       sensor_hz_ = 0;
       estimate_indices_.resize(0);
       experiment_indices_.resize(0);
+      health_ = false;
 
       estimate_flag_service_ = nh_.advertiseService("estimate_flag", &SensorBase::estimateFlag, this);
 
@@ -74,9 +83,28 @@ namespace sensor_base_plugin
         ROS_ERROR("%s, can not get param about estimate mode", ns.c_str());
       printf("%s,  estimate mode  is %d\n", ns.c_str(), estimate_mode_);
 
+      nhp_.param("health_timeout", health_timeout_, 0.5);
+      nhp_.param("unhealth_level", unhealth_level_, 0);
+      nhp_.param("health_check_rate", health_check_rate_, 100.0);
+      health_stamp_ =  ros::Time::now().toSec();
+
+      health_check_timer_ = nhp_.createTimer(ros::Duration(1.0 / health_check_rate_), &SensorBase::healthCheck,this);
+
     }
 
     virtual void estimateProcess(){};
+    /* check whether we get sensor data */
+    void healthCheck(const ros::TimerEvent & e)
+    {
+      /* this will call only once, no recovery */
+      if(ros::Time::now().toSec() - health_stamp_ > health_timeout_ && health_)
+        {
+          ROS_ERROR("%s: can not get fresh sensor data for %f[sec]", nhp_.getNamespace().c_str(), ros::Time::now().toSec() - health_stamp_);
+          /* TODO: the solution to unhealth should be more clever */
+          estimator_->setUnhealthLevel(unhealth_level_);
+          health_ = false;
+        }
+    }
 
     bool estimateFlag(aerial_robot_msgs::BoolFlag::Request  &req,
                       aerial_robot_msgs::BoolFlag::Response &res)
@@ -84,6 +112,16 @@ namespace sensor_base_plugin
       std::string ns = nhp_.getNamespace();
       estimate_flag_ = req.flag;
       ROS_INFO("%s: %s", ns.c_str(), estimate_flag_?std::string("enable the estimate flag").c_str():std::string("disable the estimate flag").c_str());
+    }
+
+    inline void updateHealthStamp(double stamp)
+    {
+      if(!health_)
+        {
+          health_ = true;
+          ROS_WARN("%s: get sensor data, du: %f", nhp_.getNamespace().c_str(), stamp - health_stamp_);
+        }
+      health_stamp_ = stamp;
     }
 
   };

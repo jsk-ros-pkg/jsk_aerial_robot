@@ -10,7 +10,7 @@
   <group if="$(arg imu_board)" >
     <include file="$(find aerial_robot_base)/launch/sensors/rosserial2.launch" >
       <arg name="baud" value="921600" />
-      <arg name="port" value="/dev/ttyUSB1" />
+      <arg name="port" value="/dev/ttyUSB0" />
     </include>
   </group>
   <rosparam file="$(find aerial_robot_base)/config/sensor_plugin/d_imu.yaml" command="load" if="$(arg imu_board)"/>

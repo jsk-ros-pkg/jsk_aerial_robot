@@ -150,6 +150,7 @@ namespace sensor_plugin
         previous_secs = current_secs;
         prev_raw_pos_x_ = raw_pos_x_;
         prev_raw_pos_y_ = raw_pos_y_;
+        updateHealthStamp(current_secs);
       }
 
       void estimateProcess()

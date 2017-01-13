@@ -19,9 +19,6 @@ TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_
   rotate_matrix_ = Eigen::Matrix3d::Identity();
   cog_matrix_ = Eigen::Matrix3d::Identity();
 
-  //lqi
-  lqi_flag_ = false;
-
   //U
   U_ = Eigen::MatrixXd::Zero(4,link_num_); //4 is the link number, should change!!
 
@@ -103,8 +100,8 @@ TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_
   lqi_mode_ = LQI_FOUR_AXIS_MODE;
 
   //those publisher is published from func param2controller
-  rpy_gain_pub_ = nh_.advertise<aerial_robot_msgs::RollPitchYawGain>(rpy_gain_pub_name_, 1);
-  yaw_throttle_gain_pub_ = nh_.advertise<aerial_robot_msgs::YawThrottleGain>("yaw_throttle_gain", 1);
+  rpy_gain_pub_ = nh_.advertise<hydrus_transform_control::RollPitchYawGain>(rpy_gain_pub_name_, 1);
+  four_axis_gain_pub_ = nh_.advertise<aerial_robot_msgs::FourAxisGain>("four_axis_gain", 1);
 
   //dynamic reconfigure server
   lqi_server_ = new dynamic_reconfigure::Server<hydrus_transform_control::LQIConfig>(nh_private_);
@@ -123,13 +120,7 @@ TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_
 
       cog_rotate_pub_ = nh_.advertise<aerial_robot_base::DesireCoord>("/desire_coordinate", 1); //absolute
 
-      kinetic_timer_ = nh_private_.createTimer(ros::Duration(1.0 / control_rate_),
-                                               &TransformController::kineticFunc, this);
-
-      tf_pub_timer_ = nh_private_.createTimer(ros::Duration(1.0 / tf_pub_rate_),
-                                              &TransformController::tfPubFunc, this);
-
-      lqi_thread_ = boost::thread(boost::bind(&TransformController::lqi, this));
+      control_thread_ = boost::thread(boost::bind(&TransformController::control, this));
     }
 
 }
@@ -137,8 +128,8 @@ TransformController::~TransformController()
 {
   if(callback_flag_)
     {
-      lqi_thread_.interrupt();
-      lqi_thread_.join();
+      control_thread_.interrupt();
+      control_thread_.join();
     }
 }
 
@@ -146,27 +137,28 @@ void TransformController::realtimeControlCallback(const std_msgs::UInt8ConstPtr 
 {
   if(msg->data == 1)
     {
-      ROS_WARN("start realtime control");
+      if(debug_verbose_) ROS_WARN("start realtime control");
       realtime_control_flag_ = true;
     }
   else if(msg->data == 0)
     {
-      ROS_WARN("stop realtime control");
+      if(debug_verbose_) ROS_WARN("stop realtime control");
       realtime_control_flag_ = false;
-      lqi_flag_ = false;
     }
 }
 
 void TransformController::initParam()
 {
-  nh_private_.param("control_rate", control_rate_, 20.0);
-  nh_private_.param("tf_pub_rate", tf_pub_rate_, 60.0);
+  nh_private_.param("control_rate", control_rate_, 15.0);
+  std::cout << "control_rate: " << std::setprecision(3) << control_rate_ << std::endl;
 
   nh_private_.param("rpy_gain_pub_name", rpy_gain_pub_name_, std::string("/rpy_gain"));
   nh_private_.param("yaw_pos_gain_sub_name", yaw_pos_gain_sub_name_, std::string("/yaw_pos_gain"));
 
   nh_private_.param("control_verbose", control_verbose_, false);
-  nh_private_.param("kinetic_verbose", kinetic_verbose_, false);
+  nh_private_.param("kinematic_verbose", kinematic_verbose_, false);
+  nh_private_.param("debug_verbose", debug_verbose_, false);
+  nh_private_.param("a_dash_eigen_calc_flag", a_dash_eigen_calc_flag_, false);
 
   /* number of links */
   nh_private_.param("link_num", link_num_, 4);
@@ -188,8 +180,6 @@ void TransformController::initParam()
   nh_private_.param ("f_min", f_min_, 2.0);
   std::cout << "f_min: " << std::setprecision(3) << f_min_ << std::endl;
 
-  nh_private_.param ("lqi_thread_rate", lqi_thread_rate_, 10.0);
-  std::cout << "lqi_thread_rate: " << std::setprecision(3) << lqi_thread_rate_ << std::endl;
   nh_private_.param ("q_roll", q_roll_, 1.0);
   std::cout << "Q: q_roll: " << std::setprecision(3) << q_roll_ << std::endl;
   nh_private_.param ("q_roll_d", q_roll_d_, 1.0);
@@ -218,7 +208,7 @@ void TransformController::initParam()
   nh_private_.param ("q_z_i", q_z_i_, 1.0);
   std::cout << "Q: q_z_i: " << std::setprecision(3) << q_z_i_ << std::endl;
 
-  /* dynamics */
+  /* dynamics: motor */
   ros::NodeHandle control_node("/motor_info");
   control_node.param("pwm_rate", pwm_rate_, 1.0);
   std::cout << "pwm_rate: " << std::setprecision(3) << pwm_rate_ << std::endl;
@@ -247,25 +237,25 @@ void TransformController::initParam()
 
   /* base components position [m] */
   nh_private_.param ("link_length", link_length_, 0.44);
-  std::cout << "link_length" << std::setprecision(3) << link_length_ << std::endl;
+  std::cout << "link_length: " << std::setprecision(3) << link_length_ << std::endl;
   nh_private_.param ("link_base_rod_length", link_base_rod_length_, 0.4);
-  std::cout << "link_base_rod_length" << std::setprecision(3) << link_base_rod_length_ << std::endl;
+  std::cout << "link_base_rod_length: " << std::setprecision(3) << link_base_rod_length_ << std::endl;
   nh_private_.param ("ring_radius", ring_radius_, 0.1425);
-  std::cout << "ring_radius" << std::setprecision(3) << ring_radius_ << std::endl;
+  std::cout << "ring_radius: " << std::setprecision(3) << ring_radius_ << std::endl;
   nh_private_.param ("link_joint_offset", link_joint_offset_, 0.22);
   std::cout << "link_joint_offset: " << std::setprecision(3) << link_joint_offset_ << std::endl;
 
   /* base components mass [Kg] */
   nh_private_.param ("link_base_rod_mid_mass", link_base_rod_mid_mass_, 0.1);
-  std::cout << "link_base_rod_mid_mass_; " << std::setprecision(3) << link_base_rod_mid_mass_ << std::endl;
+  std::cout << "link_base_rod_mid_mass: " << std::setprecision(3) << link_base_rod_mid_mass_ << std::endl;
   nh_private_.param ("link_base_ring_mass", link_base_ring_mass_, 0.048);
-  std::cout << "link_base_ring_mass_: " << std::setprecision(3) << link_base_ring_mass_ << std::endl;
+  std::cout << "link_base_ring_mass: " << std::setprecision(3) << link_base_ring_mass_ << std::endl;
   nh_private_.param ("link_base_two_ring_holder_mass", link_base_two_ring_holder_mass_, 0.053);
-  std::cout << "link_base_two_ring_holder_mass_: " << std::setprecision(3) << link_base_two_ring_holder_mass_ << std::endl;
+  std::cout << "link_base_two_ring_holder_mass: " << std::setprecision(3) << link_base_two_ring_holder_mass_ << std::endl;
   nh_private_.param ("link_base_center_mass", link_base_center_mass_, 0.238);
-  std::cout << "link_base_center_mass_: " << std::setprecision(3) << link_base_center_mass_ << std::endl;
+  std::cout << "link_base_center_mass: " << std::setprecision(3) << link_base_center_mass_ << std::endl;
   nh_private_.param ("link_joint_mass", link_joint_mass_,0.0785);
-  std::cout << "link_joint_mass_: " << std::setprecision(3) << link_joint_mass_ << std::endl;
+  std::cout << "link_joint_mass: " << std::setprecision(3) << link_joint_mass_ << std::endl;
 
   Eigen::Matrix3d zero_inertia = Eigen::Matrix3d::Zero(3,3);
   for(int i = 0; i < link_num_; i++)
@@ -309,7 +299,7 @@ void TransformController::initParam()
 
   /* 3. extra module */
   nh_private_.param ("extra_module_num", extra_module_num_, 2); //default: MCU + PC
-  std::cout << "extra_module_num_: " << extra_module_num_ << std::endl;
+  std::cout << "extra_module_num: " << extra_module_num_ << std::endl;
   extra_module_model_.resize(extra_module_num_);
 
   for(int i = 0; i < extra_module_num_; i++)
@@ -336,43 +326,69 @@ void TransformController::initParam()
   ROS_INFO("Mass :%f", all_mass_);
 }
 
-void TransformController::tfPubFunc(const ros::TimerEvent & e)
+void TransformController::control()
 {
-  cogCoordPublish();
+  ros::Rate loop_rate(control_rate_);
+  static int i = 0;
+  static int cnt = 0;
+
+  while(ros::ok())
+    {
+      if(realtime_control_flag_)
+        {
+          /* Kinematics calculation */
+          if(debug_verbose_) ROS_ERROR("start kinematics");
+          bool get_kinematics = kinematics();
+          if(debug_verbose_) ROS_ERROR("finish kinematics");
+          /* LQI parameter calculation */
+          if(debug_verbose_) ROS_ERROR("start lqi");
+          if(get_kinematics) lqi();
+          if(debug_verbose_) ROS_ERROR("finish lqi");
+        }
+      loop_rate.sleep();
+    }
 }
 
-void TransformController::kineticFunc(const ros::TimerEvent & e)
+bool TransformController::kinematics()
 {
-  if(realtime_control_flag_)
+  //get transform;
+  std::vector<tf::StampedTransform>  transforms;
+  transforms.resize(link_num_);
+
+  ros::Duration dur (0.02);
+  if (tf_.waitForTransform(root_link_name_, links_name_[link_num_ - 1], ros::Time(0),dur))
     {
-      //get transform;
-      std::vector<tf::StampedTransform>  transforms;
-      transforms.resize(link_num_);
-
-      ros::Duration dur (0.02);
-      if (tf_.waitForTransform(root_link_name_, links_name_[link_num_ - 1], ros::Time(0),dur))
+      if(debug_verbose_) ROS_WARN(" start tf listening");
+      for(int i = 0; i < link_num_; i++)
         {
-          for(int i = 0; i < link_num_; i++)
+          try
             {
-              try
-                {
-                  tf_.lookupTransform(root_link_name_, links_name_[i], ros::Time(0), transforms[i]);
-                }
-              catch (tf::TransformException ex)
-                {
-                  ROS_ERROR("%s",ex.what());
-                }
+              tf_.lookupTransform(root_link_name_, links_name_[i], ros::Time(0), transforms[i]);
             }
-          //time set
-          system_tf_time_  = transforms[0].stamp_;
-
-          cogComputation(transforms);
-          principalInertiaComputation(transforms);
-          visualization();
-
-          if(!lqi_flag_) lqi_flag_ = true;
+          catch (tf::TransformException ex)
+            {
+              ROS_ERROR("%s",ex.what());
+              return false;
+            }
         }
+      if(debug_verbose_) ROS_WARN(" finish tf listening");
+
+      if(debug_verbose_) ROS_WARN(" start cog compute");
+      cogComputation(transforms);
+      if(debug_verbose_) ROS_WARN(" finish cog compute");
+      if(debug_verbose_) ROS_WARN(" start inertial compute");
+      principalInertiaComputation(transforms);
+      if(debug_verbose_) ROS_WARN(" finish inertial compute");
+      if(debug_verbose_) ROS_WARN(" start cog coord pub");
+      cogCoordPublish();
+      if(debug_verbose_) ROS_WARN(" finsih cog coord pub");
+      if(debug_verbose_) ROS_WARN(" start visualize");
+      visualization();
+      if(debug_verbose_) ROS_WARN(" finish visualize");
+
+      return true;
     }
+  return false;
 }
 
 bool TransformController::addExtraModuleCallback(hydrus_transform_control::AddExtraModule::Request  &req,
@@ -434,7 +450,7 @@ void TransformController::cogComputation(const std::vector<tf::StampedTransform>
       Eigen::Matrix3d link_rotate(q);
 
       Eigen::Vector3d extra_module_origin = link_rotate * extra_module_model_[i].getOffset()  + link_origin;
-      cog_n += extra_module_origin * extra_module_model_[i].getWeight();
+      cog_n += (extra_module_origin * extra_module_model_[i].getWeight());
     }
 
   Eigen::Vector3d cog = cog_n / all_mass_;
@@ -512,10 +528,6 @@ void TransformController::principalInertiaComputation(const std::vector<tf::Stam
     {
       int link_no = extra_module_model_[i].getLink();
 
-      /* offset */
-      Eigen::Vector3d origin_from_root_link;
-      tf::vectorTFToEigen(transforms[link_no].getOrigin(), origin_from_root_link);
-
       /* rotate */
       Eigen::Quaterniond q;
       tf::quaternionTFToEigen(transforms[link_no].getRotation(), q);
@@ -523,7 +535,8 @@ void TransformController::principalInertiaComputation(const std::vector<tf::Stam
 
       /* 1. link base model */
       /* rotate(R_t * I * R) */
-      Eigen::Vector3d origin_from_cog = rotate_m * extra_module_model_[i].getOffset() + origin_from_root_link - getCog();
+      Eigen::Vector3d origin_from_cog = rotate_m * extra_module_model_[i].getOffset() + links_origin_from_cog[link_no];
+
       float controller_mass = extra_module_model_[i].getWeight();
       Eigen::Matrix3d extra_module_offset_inertia;
       extra_module_offset_inertia <<
@@ -544,7 +557,7 @@ void TransformController::principalInertiaComputation(const std::vector<tf::Stam
   links_inertia_ = links_inertia;
 
 
-  if(kinetic_verbose_)
+  if(kinematic_verbose_)
      std::cout << "links inertia :\n" << links_inertia_ << std::endl;
 
   /* pricipal inertia */
@@ -568,7 +581,7 @@ void TransformController::principalInertiaComputation(const std::vector<tf::Stam
 
       if(!init_flag)
         {
-          ROS_ERROR("start");
+          ROS_ERROR("transform control: start");
           setRotateMatrix(rotate_matrix);
           setPrincipalInertia(links_principal_inertia);
 
@@ -640,7 +653,7 @@ void TransformController::principalInertiaComputation(const std::vector<tf::Stam
       setRotateMatrix(rotate_matrix);
     }
 
-  if(kinetic_verbose_)
+  if(kinematic_verbose_)
      std::cout << "pricipal inertia :\n" << getPrincipalInertia() << std::endl;
 
   /* rotate the link origins from cog */
@@ -651,7 +664,7 @@ void TransformController::principalInertiaComputation(const std::vector<tf::Stam
   for(int i = 0; i < link_num_; i ++)
     {
       links_origin_from_principal_cog[i] = cog_matrix_ * links_origin_from_cog[i];
-       if(kinetic_verbose_)
+       if(kinematic_verbose_)
          std::cout << "link" << i + 1 <<"origin :\n" << links_origin_from_principal_cog[i] << std::endl;
 
     }
@@ -768,19 +781,15 @@ void TransformController::visualization()
 
 void TransformController::param2contoller()
 {
-  aerial_robot_msgs::RollPitchYawGain rpy_gain_msg;
-  aerial_robot_msgs::YawThrottleGain yt_gain_msg;
   aerial_robot_base::DesireCoord desire_coord_msg;
+  aerial_robot_msgs::FourAxisGain four_axis_gain_msg;
+  hydrus_transform_control::RollPitchYawGain rpy_gain_msg;
 
   desire_coord_msg.roll = 0;
   desire_coord_msg.pitch = 0;
   desire_coord_msg.yaw = -rotate_angle_;  // should be reverse (cog coord is parent)
 
-  yt_gain_msg.motor_num = link_num_;
-
-  //double radian_convert_rate = M_PI/ 180 / 10 / f_pwm_rate_ * pwm_rate_ * 10000;
-  //0.1deg => rad:  M_PI/180/10; f=> pwm(no_offset); 1e4(10000)x
-  //double omega_convert_rate = (2279 * M_PI)/((32767.0 / 4.0 ) * 180) / f_pwm_rate_ * pwm_rate_ * 10000;    //(2279 * M_PI)/((32767.0 / 4.0 ) * 180.0); f =>pwm
+  four_axis_gain_msg.motor_num = link_num_;
 
   for(int i = 0; i < link_num_; i ++)
     {
@@ -798,18 +807,26 @@ void TransformController::param2contoller()
           rpy_gain_msg.yaw_d_gain[i] = K12_(i,5) * 1000; //scale: x 1000
 
           /* to aerial_robot_base, feedback */
-          yt_gain_msg.pos_p_gain_throttle.push_back(K12_(i,6));
-          yt_gain_msg.pos_d_gain_throttle.push_back(K12_(i,7));
-          yt_gain_msg.pos_i_gain_throttle.push_back(K12_(i,11));
+          four_axis_gain_msg.pos_p_gain_roll.push_back(K12_(i,0));
+          four_axis_gain_msg.pos_d_gain_roll.push_back(K12_(i,1));
+          four_axis_gain_msg.pos_i_gain_roll.push_back(K12_(i,8));
 
-          yt_gain_msg.pos_p_gain_yaw.push_back(K12_(i,4));
-          yt_gain_msg.pos_d_gain_yaw.push_back(K12_(i,5));
-          yt_gain_msg.pos_i_gain_yaw.push_back(K12_(i,10));
+          four_axis_gain_msg.pos_p_gain_pitch.push_back(K12_(i,2));
+          four_axis_gain_msg.pos_d_gain_pitch.push_back(K12_(i,3));
+          four_axis_gain_msg.pos_i_gain_pitch.push_back(K12_(i,9));
+
+          four_axis_gain_msg.pos_p_gain_throttle.push_back(K12_(i,6));
+          four_axis_gain_msg.pos_d_gain_throttle.push_back(K12_(i,7));
+          four_axis_gain_msg.pos_i_gain_throttle.push_back(K12_(i,11));
+
+          four_axis_gain_msg.pos_p_gain_yaw.push_back(K12_(i,4));
+          four_axis_gain_msg.pos_d_gain_yaw.push_back(K12_(i,5));
+          four_axis_gain_msg.pos_i_gain_yaw.push_back(K12_(i,10));
 
           /* to aerial_robot_base, feedforward */
-          yt_gain_msg.roll_vec.push_back(-K12_(i,0));
-          yt_gain_msg.pitch_vec.push_back(-K12_(i,2));
-          yt_gain_msg.yaw_vec.push_back(-K12_(i,4));
+          four_axis_gain_msg.ff_roll_vec.push_back(-K12_(i,0));
+          four_axis_gain_msg.ff_pitch_vec.push_back(-K12_(i,2));
+          four_axis_gain_msg.ff_yaw_vec.push_back(-K12_(i,4));
 
         }
       else if(lqi_mode_ == LQI_THREE_AXIS_MODE)
@@ -824,24 +841,33 @@ void TransformController::param2contoller()
 
           rpy_gain_msg.yaw_d_gain[i] = 0;
 
-          yt_gain_msg.pos_p_gain_throttle.push_back(K9_(i,4));
-          yt_gain_msg.pos_d_gain_throttle.push_back(K9_(i,5));
-          yt_gain_msg.pos_i_gain_throttle.push_back(K9_(i,8));
+          /* to aerial_robot_base, feedback */
+          four_axis_gain_msg.pos_p_gain_roll.push_back(K9_(i,0));
+          four_axis_gain_msg.pos_d_gain_roll.push_back(K9_(i,1));
+          four_axis_gain_msg.pos_i_gain_roll.push_back(K9_(i,6));
 
-          yt_gain_msg.pos_p_gain_yaw.push_back(0.0);
-          yt_gain_msg.pos_d_gain_yaw.push_back(0.0);
-          yt_gain_msg.pos_i_gain_yaw.push_back(0.0);
+          four_axis_gain_msg.pos_p_gain_pitch.push_back(K9_(i,2));
+          four_axis_gain_msg.pos_d_gain_pitch.push_back(K9_(i,3));
+          four_axis_gain_msg.pos_i_gain_pitch.push_back(K9_(i,7));
+
+          four_axis_gain_msg.pos_p_gain_throttle.push_back(K9_(i,4));
+          four_axis_gain_msg.pos_d_gain_throttle.push_back(K9_(i,5));
+          four_axis_gain_msg.pos_i_gain_throttle.push_back(K9_(i,8));
+
+          four_axis_gain_msg.pos_p_gain_yaw.push_back(0.0);
+          four_axis_gain_msg.pos_d_gain_yaw.push_back(0.0);
+          four_axis_gain_msg.pos_i_gain_yaw.push_back(0.0);
 
           //to aerial_robot_base, feedforward
-          yt_gain_msg.roll_vec.push_back(-K9_(i,0));
-          yt_gain_msg.pitch_vec.push_back(-K9_(i,2));
-          yt_gain_msg.yaw_vec.push_back(0);
+          four_axis_gain_msg.ff_roll_vec.push_back(-K9_(i,0));
+          four_axis_gain_msg.ff_pitch_vec.push_back(-K9_(i,2));
+          four_axis_gain_msg.ff_yaw_vec.push_back(0);
         }
     }
 
   cog_rotate_pub_.publish(desire_coord_msg);
   rpy_gain_pub_.publish(rpy_gain_msg);
-  yaw_throttle_gain_pub_.publish(yt_gain_msg);
+  four_axis_gain_pub_.publish(four_axis_gain_msg);
 
 }
 
@@ -943,7 +969,6 @@ bool TransformController::distThreCheck()
     }
   return true;
 }
-
 
 bool TransformController::distThreCheckFromJointValues(const std::vector<double>& joint_values, int joint_offset, bool continous_flag)
 {
@@ -1048,37 +1073,30 @@ bool  TransformController::stabilityCheck(bool verbose)
 
 void TransformController::lqi()
 {
-  // x = [roll, roll_d, pitch, pitch_d, yaw, yaw_d, z, z_d]
-  ros::Rate loop_rate(lqi_thread_rate_);
-  static int i = 0;
-  static int cnt = 0;
-
-  while(ros::ok())
+  //check the thre check
+  if(debug_verbose_) ROS_WARN(" start dist thre check");
+  if(!distThreCheck()) //[m]
     {
-      if(lqi_flag_)
-        {
-          double start_time = ros::Time::now().toSec();
-          //check the thre check
-            if(!distThreCheck()) //[m]
-              {
-                ROS_ERROR("(singular pose, can not resolve the lqi control problem");
-                loop_rate.sleep();
-                continue;
-              }
-
-          //check the stability within the range of the motor force
-          if(!stabilityCheck())
-            ROS_ERROR("can not be four axis stable, switch to three axis stable mode");
-
-          if(!hamiltonMatrixSolver(lqi_mode_)){ continue;}
-
-           //just do publishing when link number is 4
-          if(link_num_ == 4) param2contoller();
-
-          //ROS_INFO("cal time is %f", ros::Time::now().toSec() - start_time);
-        }
-      loop_rate.sleep();
+      ROS_ERROR("LQI: singular pose, can not resolve the lqi control problem");
+      return;
     }
+  if(debug_verbose_) ROS_WARN(" finish dist thre check");
+
+  //check the stability within the range of the motor force
+  if(debug_verbose_) ROS_WARN(" start stability check");
+  if(!stabilityCheck())
+    ROS_ERROR("can not be four axis stable, switch to three axis stable mode");
+  if(debug_verbose_) ROS_WARN(" finish stability check");
+
+  if(debug_verbose_) ROS_WARN(" start hamilton calc");
+  if(!hamiltonMatrixSolver(lqi_mode_))
+    {
+      ROS_ERROR("LQI: can not solve hamilton matrix");
+      return;
+    }
+  if(debug_verbose_) ROS_WARN(" finish hamilton calc");
+
+  param2contoller();
 }
 
 bool TransformController::hamiltonMatrixSolver(uint8_t lqi_mode)
@@ -1087,7 +1105,6 @@ bool TransformController::hamiltonMatrixSolver(uint8_t lqi_mode)
   Eigen::MatrixXd R_inv  = Eigen::MatrixXd::Zero(link_num_, link_num_);
   for(int i = 0; i < link_num_; i ++)
     R_inv(i,i) = 1/r_[i];
-
 
   // hamilton matrix
   if(lqi_mode_ == LQI_FOUR_AXIS_MODE)
@@ -1113,11 +1130,12 @@ bool TransformController::hamiltonMatrixSolver(uint8_t lqi_mode)
       H.block<12,12>(12,12) = - (A12_aug_.transpose()).cast<std::complex<double> >();
 
       //std::cout << " H  is:" << std::endl << H << std::endl;
-
+      if(debug_verbose_) ROS_INFO("  start H eigen compute");
       //eigen solving
       ros::Time start_time = ros::Time::now();
       Eigen::ComplexEigenSolver<Eigen::MatrixXcd> ces;
       ces.compute(H);
+      if(debug_verbose_) ROS_INFO("  finish H eigen compute");
 
       if(control_verbose_)
         ROS_INFO("h eigen time is: %f\n", ros::Time::now().toSec() - start_time.toSec());
@@ -1151,11 +1169,14 @@ bool TransformController::hamiltonMatrixSolver(uint8_t lqi_mode)
       Eigen::MatrixXcd f = phy.block<12,12>(0,0);
       Eigen::MatrixXcd g = phy.block<12,12>(12,0);
 
+
+      if(debug_verbose_) ROS_INFO("  start calculate f inv");
       start_time = ros::Time::now();
       Eigen::MatrixXcd f_inv  = f.inverse();
       if(control_verbose_)
         ROS_INFO("f inverse: %f\n", ros::Time::now().toSec() - start_time.toSec());
 
+      if(debug_verbose_) ROS_INFO("  finish calculate f inv");
 
       Eigen::MatrixXcd P = g * f_inv;
 
@@ -1165,15 +1186,18 @@ bool TransformController::hamiltonMatrixSolver(uint8_t lqi_mode)
       if(control_verbose_)
         std::cout << "K is:" << std::endl << K12_ << std::endl;
 
-      //check the eigen of new A
-      Eigen::MatrixXd A12_dash = Eigen::MatrixXd::Zero(12, 12);
-      A12_dash = A12_aug_ + B12_aug_ * K12_;
-      // start_time = ros::Time::now();
-      Eigen::EigenSolver<Eigen::MatrixXd> esa(A12_dash);
-      if(control_verbose_)
-        std::cout << "The eigenvalues of A_hash are:" << std::endl << esa.eigenvalues() << std::endl;
-      // ROS_INFO("A dash: %f\n", ros::Time::now().toSec() - start_time.toSec());
-
+      if(a_dash_eigen_calc_flag_)
+        {
+          if(debug_verbose_) ROS_INFO("  start A eigen compute");
+          //check the eigen of new A
+          Eigen::MatrixXd A12_dash = Eigen::MatrixXd::Zero(12, 12);
+          A12_dash = A12_aug_ + B12_aug_ * K12_;
+          // start_time = ros::Time::now();
+          Eigen::EigenSolver<Eigen::MatrixXd> esa(A12_dash);
+          if(debug_verbose_) ROS_INFO("  finish A eigen compute");
+          if(control_verbose_)
+            std::cout << "The eigenvalues of A_hash are:" << std::endl << esa.eigenvalues() << std::endl;
+        }
     }
   
   if(lqi_mode_ == LQI_THREE_AXIS_MODE)
@@ -1247,13 +1271,16 @@ bool TransformController::hamiltonMatrixSolver(uint8_t lqi_mode)
       if(control_verbose_)
         std::cout << "K is:" << std::endl << K9_ << std::endl;
 
-      //check the eigen of new A
-      Eigen::MatrixXd A9_dash = Eigen::MatrixXd::Zero(9, 9);
-      A9_dash = A9_aug_ + B9_aug_ * K9_;
-      // start_time = ros::Time::now();
-      Eigen::EigenSolver<Eigen::MatrixXd> esa(A9_dash);
-      if(control_verbose_)
-        std::cout << "The eigenvalues of A_hash are:" << std::endl << esa.eigenvalues() << std::endl;
+      if(a_dash_eigen_calc_flag_)
+        {
+          //check the eigen of new A
+          Eigen::MatrixXd A9_dash = Eigen::MatrixXd::Zero(9, 9);
+          A9_dash = A9_aug_ + B9_aug_ * K9_;
+          // start_time = ros::Time::now();
+          Eigen::EigenSolver<Eigen::MatrixXd> esa(A9_dash);
+          if(control_verbose_)
+            std::cout << "The eigenvalues of A_hash are:" << std::endl << esa.eigenvalues() << std::endl;
+        }
     }
   return true;
 }

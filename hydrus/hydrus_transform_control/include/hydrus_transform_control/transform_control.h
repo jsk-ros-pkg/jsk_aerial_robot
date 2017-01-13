@@ -46,9 +46,9 @@
 #include <iostream>
 #include <iomanip>
 
-#include <aerial_robot_msgs/YawThrottleGain.h>
-#include <aerial_robot_msgs/RollPitchYawGain.h>
 #include <aerial_robot_base/DesireCoord.h>
+#include <aerial_robot_msgs/FourAxisGain.h>
+#include <hydrus_transform_control/RollPitchYawGain.h>
 #include <hydrus_transform_control/AddExtraModule.h>
 
 #include <string>
@@ -232,7 +232,7 @@ private:
 
   ros::NodeHandle nh_,nh_private_;
   ros::Publisher rpy_gain_pub_;
-  ros::Publisher yaw_throttle_gain_pub_;
+  ros::Publisher four_axis_gain_pub_;
   ros::Publisher principal_axis_pub_;
   ros::Publisher cog_rotate_pub_; //for position control => to mocap
   ros::Subscriber realtime_control_sub_;
@@ -241,19 +241,17 @@ private:
   boost::mutex rm_mutex_, cog_mutex_, origins_mutex_, inertia_mutex_;
 
   tf::TransformListener tf_;
-  double control_rate_;
-  double tf_pub_rate_;
-  ros::Timer  kinetic_timer_;
-  ros::Timer  tf_pub_timer_;
-
-  ros::Time system_tf_time_;
+  bool callback_flag_;
 
   bool realtime_control_flag_;
 
-  bool callback_flag_;
-
-  bool kinetic_verbose_;
+  bool kinematic_verbose_;
   bool control_verbose_;
+  bool debug_verbose_;
+
+  /* control */
+  boost::thread control_thread_;
+  double control_rate_;
 
   /* base model config */
   int link_num_;
@@ -262,6 +260,7 @@ private:
 
   std::string rpy_gain_pub_name_;
   std::string yaw_pos_gain_sub_name_;
+
 
   //dynamics config
   double m_f_rate_; //moment / force rate
@@ -300,26 +299,26 @@ private:
   Eigen::Matrix3d cog_matrix_;
   double rotate_angle_;
 
-  void kineticFunc(const ros::TimerEvent & e);  
-  void tfPubFunc(const ros::TimerEvent & e);
-  void visualization();
-  int sgn(double value){ return  (value / fabs(value));}
-
-  void cogCoordPublish();
+  /* ros param init */
   void initParam();
+  /* main control func */
+  void control();
+  /* kinematics calculation */
+  bool kinematics();
+  /* LQI parameter calculation */
+  void lqi();
 
-  //dynamic reconfigure
+  void visualization();
+  void cogCoordPublish();
+
+  /* dynamic reconfigure */
   void cfgLQICallback(hydrus_transform_control::LQIConfig &config, uint32_t level);
 
-  //service
+  /* service */
   bool addExtraModuleCallback(hydrus_transform_control::AddExtraModule::Request  &req,
                       hydrus_transform_control::AddExtraModule::Response &res);
 
-  //lqi
-  boost::thread lqi_thread_;
-  bool lqi_flag_;
-  double lqi_thread_rate_;
-  void lqi();
+  int sgn(double value){ return  (value / fabs(value));}
 
   //8/12:r,r_d, p, p_d, y, y_d, z. z_d, r_i, p_i, y_i, z_i
   //6/9:r,r_d, p, p_d, z. z_d, r_i, p_i, z_i
@@ -356,6 +355,7 @@ private:
   double f_max_, f_min_;
 
   uint8_t lqi_mode_;
+  bool a_dash_eigen_calc_flag_;
 
 
   //dynamic reconfigure

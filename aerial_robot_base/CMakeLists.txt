@@ -38,6 +38,7 @@ add_message_files(FILES
   Pwms.msg
   MotorInfo.msg
   DesireCoord.msg
+  Acc.msg
   )
 
 generate_messages(DEPENDENCIES std_msgs geometry_msgs)
@@ -67,6 +68,7 @@ include_directories(
 ## pluginlib_tutorials library
 add_library(sensor_pluginlib src/sensor_plugin.cpp)
 target_link_libraries(sensor_pluginlib ${catkin_LIBRARIES})
+add_dependencies(sensor_pluginlib ${PROJECT_NAME}_gencpp)
 
 add_library(kf_baro_bias_pluginlib src/kf/baro_bias_plugin.cpp)
 target_link_libraries(kf_baro_bias_pluginlib ${catkin_LIBRARIES})

@@ -1,8 +1,0 @@
-motor_info:
-        motor_num: 6
-        min_pwm: 0.55
-        max_pwm: 0.92
-        f_pwm_rate: 0.3029
-        f_pwm_offset: -21.196
-        m_f_rate: -0.016837
-        pwm_rate: 18.0  #1800/100.0

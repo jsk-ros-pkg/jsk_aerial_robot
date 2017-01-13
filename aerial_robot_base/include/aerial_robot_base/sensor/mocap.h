@@ -18,7 +18,6 @@
 #include <kalman_filter/digital_filter.h>
 
 #include <aerial_robot_base/States.h>
-#include <aerial_robot_base/ImuData.h>
 #include <std_msgs/Float32.h>
 #include <geometry_msgs/PoseStamped.h>
 
@@ -38,7 +37,7 @@ namespace sensor_plugin
 
       mocap_sub_ = nh_.subscribe<geometry_msgs::PoseStamped>("/aerial_robot/pose", 1, &Mocap::poseCallback, this, ros::TransportHints().udp());
 
-     cog_offset_sub_ = nh_.subscribe<aerial_robot_base::DesireCoord>(cog_rotate_sub_name_, 5, &Mocap::cogOffsetCallback, this, ros::TransportHints().tcpNoDelay()); 
+      cog_offset_sub_ = nh_.subscribe<aerial_robot_base::DesireCoord>(cog_rotate_sub_name_, 5, &Mocap::cogOffsetCallback, this, ros::TransportHints().tcpNoDelay()); 
 
 
       //debug, can be delete
@@ -286,6 +285,7 @@ namespace sensor_plugin
       prev_phy = raw_phy;
       prev_psi = raw_psi;
       previous_time = msg->header.stamp;
+      updateHealthStamp(ros::Time::now().toSec()); //consider the remote wirleess transmission, we use the local time server
 
     }
 

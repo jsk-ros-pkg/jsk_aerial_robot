@@ -10,7 +10,7 @@
 #include <std_msgs/Float32MultiArray.h>
 #include <Eigen/Core>
 #include <Eigen/Geometry>
-#include <aerial_robot_msgs/YawThrottleGain.h>
+#include <aerial_robot_msgs/FourAxisGain.h>
 #include <aerial_robot_base/FourAxisPid.h>
 #include <aerial_robot_base/MotorInfo.h>
 
@@ -79,7 +79,7 @@ class PidController : public FlightController
   //dynamic reconfigure
   void cfgXYPidCallback(aerial_robot_base::XYPidControlConfig &config, uint32_t level);
 
- private:
+private:
   ros::Publisher  pid_pub_;
   ros::Publisher  ff_pub_;
   ros::Publisher  motor_info_pub_;
@@ -197,8 +197,8 @@ class PidController : public FlightController
  bool start_rp_integration_;
 
  //callback
- void yawThrottleGainCallback(const aerial_robot_msgs::YawThrottleGainConstPtr & msg);
-  void xyVelWeakGainCallback(const std_msgs::UInt8ConstPtr & msg);
+ void fourAxisGainCallback(const aerial_robot_msgs::FourAxisGainConstPtr & msg);
+ void xyVelWeakGainCallback(const std_msgs::UInt8ConstPtr & msg);
 
  //dynamic reconfigure
  dynamic_reconfigure::Server<aerial_robot_base::XYPidControlConfig>* xy_pid_server_;

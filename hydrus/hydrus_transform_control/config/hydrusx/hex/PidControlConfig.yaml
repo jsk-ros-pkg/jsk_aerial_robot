@@ -1,0 +1,51 @@
+### PID control for quadcopter
+
+controller/feedforward_flag: true
+controller/xy_vel_weak_gain_sub_name: /velocity_control_gain_change
+
+controller/pitch/ctrl_loop_rate: 40
+controller/roll/ctrl_loop_rate: 40
+controller/throttle/ctrl_loop_rate: 40
+controller/yaw/ctrl_loop_rate: 40
+
+# throttle [N]
+controller/throttle/offset: 0
+controller/throttle/pos_limit: 16.5
+controller/throttle/pos_p_limit: 16.5
+controller/throttle/pos_i_limit: 16.5
+controller/throttle/pos_d_limit: 16.5
+controller/throttle/const_i_ctrl_thre_land: -0.01
+
+# pitch [rad]
+controller/pitch/pos_p_gain: 0.1 #0.2 
+controller/pitch/pos_i_gain: 0.002 #
+controller/pitch/pos_i_gain_hover: 0.001 #1.625 * PI / 10 / 180
+controller/pitch/pos_d_gain: 0.2 #0.4
+controller/pitch/vel_p_gain: 0.2 #0.4
+controller/pitch/vel_i_gain: 0.005 #1.625 * PI / 10 / 180
+controller/pitch/pos_limit: 0.3  # 17[deg]
+controller/pitch/pos_p_limit: 0.2 
+controller/pitch/pos_i_limit: 0.15
+controller/pitch/pos_d_limit: 0.2
+controller/pitch/offset: 0
+
+
+#  roll [rad]
+controller/roll/pos_p_gain: 0.1 #0.2 
+controller/roll/pos_i_gain: 0.002
+controller/roll/pos_i_gain_hover: 0.001
+controller/roll/pos_d_gain: 0.2
+controller/roll/vel_p_gain: 0.2
+controller/roll/vel_i_gain: 0.002
+controller/roll/pos_limit: 0.3
+controller/roll/pos_p_limit: 0.2
+controller/roll/pos_i_limit: 0.15
+controller/roll/pos_d_limit: 0.2
+controller/roll/offset: 0 
+
+# yaw [N]
+controller/yaw/pos_limit: 10.0 #should be big enough
+controller/yaw/pos_p_limit: 10.0
+controller/yaw/pos_i_limit: 10.0
+controller/yaw/pos_d_limit: 10.0
+

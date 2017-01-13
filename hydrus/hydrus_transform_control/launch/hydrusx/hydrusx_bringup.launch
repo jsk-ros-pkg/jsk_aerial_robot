@@ -7,9 +7,12 @@
   <!-- uav mode: hex_h or hex_p -->
   <arg name="transformable_mode" default="true" />
 
+  <arg name="model" default="hex" />
+
   # GROUND_TRUTH = 0
   # EGOMOTION_ESTIMATE = 1
-  <arg name="state_mode"  value= "0" />
+  # EXPERIMENT_ESTIMATE = 2. for unstable mocap, use this mode
+  <arg name="state_mode"  value= "2" />
 
   <!-- flight control mode: should only be one true flag -->
   <arg name="pos_control_mode" value="true" /> <!-- pos mode -->
@@ -19,8 +22,8 @@
   <arg name="only_imu_yaw" value="false" />
 
   ###########  Motor Config  ###########
-  <rosparam file="$(find hydrus_transform_control)/config/hydrusx/MotorInfo.yaml" command="load" if="$(arg transformable_mode)"/>
-  <rosparam file="$(find hydrus_transform_control)/config/hydrusx/GeneralMotorInfo.yaml" command="load" unless="$(arg transformable_mode)"/>
+  <rosparam file="$(find hydrus_transform_control)/config/hydrusx/$(arg model)/MotorInfo.yaml" command="load" if="$(arg transformable_mode)"/>
+  <rosparam file="$(find hydrus_transform_control)/config/hydrusx/general/MotorInfo.yaml" command="load" unless="$(arg transformable_mode)"/>
 
   ###########  Base Platform  ###########
   <node pkg="aerial_robot_base" type="aerial_robot_base_node" name="aerial_robot_base_node" output="screen" >
@@ -30,7 +33,6 @@
     <param if="$(arg pos_control_mode)" name="navigator/xy_control_mode" type="int" value="0"/>
     <param if="$(arg vel_control_mode)" name="navigator/xy_control_mode" type="int" value="3"/>
     <param if="$(arg att_control_mode)" name="navigator/xy_control_mode" type="int" value="4"/>
-    <param unless="$(arg state_mode)" name="navigator/xy_control_mode" type="int" value="0"/>
     <param name="estimator/only_imu_yaw" value="$(arg only_imu_yaw)"/>
 
     <param name="rx_loop_rate" type="double" value="110"/>
@@ -38,47 +40,51 @@
     <param name="tf_pub_loop_rate" type="double" value="120"/>
 
     ###########  Sensor Fusion  ###########
-    <rosparam file="$(find hydrus_transform_control)/config/hydrus3/SensorFusion.yaml" command="load" />
+    <rosparam file="$(find hydrus_transform_control)/config/hydrusx/SensorFusion.yaml" command="load" />
 
     ###########  PID Control  ###########
-    <rosparam file="$(find hydrus_transform_control)/config/hydrusx/PidControlConfig.yaml" command="load" if="$(arg transformable_mode)"/>
-    <rosparam file="$(find hydrus_transform_control)/config/hydrusx/GeneralPidControlConfig.yaml" command="load" unless="$(arg transformable_mode)"/>
+    <rosparam file="$(find hydrus_transform_control)/config/hydrusx/$(arg model)/PidControlConfig.yaml" command="load" if="$(arg transformable_mode)"/>
+    <rosparam file="$(find hydrus_transform_control)/config/hydrusx/general/PidControlConfig.yaml" command="load" unless="$(arg transformable_mode)"/>
 
     ###########  Teleop  ###########
     <rosparam file="$(find hydrus_transform_control)/config/hydrusx/TeleopNavigationConfig.yaml" command="load" />
   </node>
 
-  ###########  Sensors  ###########
   <group unless="$(arg simulation)">
+    ###########  Sensors  ###########
     <include file="$(find aerial_robot_base)/launch/sensors/onboard_sensors.launch" >
       <arg name="imu_board" value="1" />  <!-- 1: d imu board, 0: kduino board -->
-      <arg name="use_mocap" value="1" />
+      <arg name="use_mocap" value="0" />
       <arg name="use_joy" value="0" />
       <arg name="use_opti" value="0" />
     </include >
+
+    ###########  Servo Bridge  ###########
+    <node pkg="hydrus_transform_control" type="dynamicxel_bridge_node" name="servo_bridge"  output="screen" >
+      <rosparam file="$(find hydrus_transform_control)/config/hydrusx/$(arg model)/Servo.yaml" command="load" />
+    </node>
   </group>
 
+  ###########  Robot Model  ###########
+  <include file="$(find aerial_robot_model)/launch/aerial_robot_model.launch">
+    <arg name="model" value="hydrusx/hydrusx_$(arg model)"/>
+    <arg name="headless" value="$(arg headless)" />
+    <arg name="simulation" value="$(arg simulation)" />
+  </include >
 
   ###########  Transformable Model  ###########
   <group if="$(arg transformable_mode)">
-    ###########  Robot Model  ###########
-    <include file="$(find aerial_robot_model)/launch/aerial_robot_model.launch">
-      <arg name="model" value="hydrusx/hydrus3_hex"/>
-      <arg name="headless" value="$(arg headless)" />
-      <arg name="simulation" value="$(arg simulation)" />
-    </include >
-
     ###########  Transform Control  ###########
     <node pkg="hydrus_transform_control" type="transform_control_node" name="transform_control_node"  output="screen" >
-      <rosparam file="$(find hydrus_transform_control)/config/hydrusx/Hydrus_hex.yaml" command="load" />
+      <rosparam file="$(find hydrus_transform_control)/config/hydrusx/$(arg model)/Hydrus.yaml" command="load" />
       <param name="kinetic_verbose" value="false" />
       <param name="control_verbose" value="false" />
     </node>
   </group>
 
-  ###########  General Hex Model  ###########
+  ###########  General Copter Model  ###########
   <group unless="$(arg transformable_mode)">
-    <node pkg="rostopic" type="rostopic" name="cog_yaw_frame" args="pub -r 1 /desire_coordinate aerial_robot_base/DesireCoord '{yaw: -2.09333333333}'" output="screen"/>
+    <node pkg="rostopic" type="rostopic" name="cog_yaw_frame" args="pub -r 1 /desire_coordinate aerial_robot_base/DesireCoord '{yaw: -1.0472}'" output="screen"/>
   </group>
 
 </launch>

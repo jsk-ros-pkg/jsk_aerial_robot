@@ -8,18 +8,18 @@ controller/throttle/ctrl_loop_rate: 40
 controller/yaw/ctrl_loop_rate: 40
 
 # throttle 
-controller/throttle/pos_p_gain: 250.0  #0.25 * 1000
+controller/throttle/pos_p_gain: -250.0  #0.25 * 1000
 controller/throttle/pos_i_gain: 250.0 #250.0  #0.25 * 1000
-controller/throttle/pos_d_gain: 280.0  #0.28 * 1000
+controller/throttle/pos_d_gain: -280.0  #0.28 * 1000
 controller/throttle/const_i_ctrl_thre_land: 0.0
-controller/throttle/offset: 1000
+controller/throttle/offset: 1100
 controller/throttle/pos_limit: 1800
 controller/throttle/pos_p_limit: 150
 controller/throttle/pos_i_limit: 800
 controller/throttle/pos_d_limit: 180
 
 # yaw 
-controller/yaw/pos_p_gain: 450.0 #0.45 * 1000
+controller/yaw/pos_p_gain: -450.0 #0.45 * 1000
 controller/yaw/pos_i_gain: 20.0 #0.02 * 1000
 controller/yaw/pos_d_gain: 0.0
 controller/yaw/pos_limit: 100

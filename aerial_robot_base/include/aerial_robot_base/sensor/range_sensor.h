@@ -344,6 +344,7 @@ namespace sensor_plugin
 
       range_data.states.push_back(z_state);
       range_sensor_pub_.publish(range_data);
+      updateHealthStamp(current_secs);
     }
 
     void estimateProcess()

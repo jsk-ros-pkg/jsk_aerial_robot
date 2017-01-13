@@ -275,6 +275,7 @@ namespace sensor_plugin
 
       //update
       previous_secs = current_secs;
+      updateHealthStamp(current_secs);
     }
 
     void estimateProcess()

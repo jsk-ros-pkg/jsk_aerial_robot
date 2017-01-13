@@ -43,9 +43,9 @@ controller/roll/pos_i_limit: 0.15
 controller/roll/pos_d_limit: 0.2
 controller/roll/offset: 0 
 
-# yaw [Nm]
-controller/yaw/pos_limit: 20.0 #should be 1?
-controller/yaw/pos_p_limit: 20.0
-controller/yaw/pos_i_limit: 10.0
-controller/yaw/pos_d_limit: 20.0
+# yaw [N]
+controller/yaw/pos_limit: 5.0
+controller/yaw/pos_p_limit: 5.0
+controller/yaw/pos_i_limit: 5.0
+controller/yaw/pos_d_limit: 5.0
 

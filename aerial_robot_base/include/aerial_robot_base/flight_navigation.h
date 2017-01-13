@@ -12,7 +12,6 @@
 #include <std_msgs/Int32.h>
 #include <std_msgs/Empty.h>
 #include <aerial_robot_msgs/FourAxisCommand.h>
-#include <aerial_robot_msgs/RcData.h> 
 #include <tf/transform_broadcaster.h>
 #include <aerial_robot_base/FlightNav.h>
 #include <sensor_msgs/Joy.h>
@@ -354,8 +353,9 @@ private:
   bool teleop_flag_;
   bool force_landing_flag_;
 
+  bool joy_stick_heart_beat_;
   double joy_stick_prev_time_;
-  double joy_stick_heart_beat_du_; 
+  double joy_stick_heart_beat_du_;
   double force_landing_to_halt_du_;
 
   void rosParamInit(ros::NodeHandle nh);
