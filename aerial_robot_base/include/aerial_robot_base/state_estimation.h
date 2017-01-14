@@ -10,7 +10,7 @@
 #include <aerial_robot_base/sensor_base_plugin.h>
 
 //* for search
-#include <algorithm>
+#include <fnmatch.h>
 
 class RigidEstimator : public BasicEstimator
 {
@@ -27,11 +27,10 @@ class RigidEstimator : public BasicEstimator
 
   void rosParamInit();
 
+bool pattern_match(std::string &pl, std::string &pl_candidate);
 
-  boost::shared_ptr< pluginlib::ClassLoader<sensor_plugin::SensorBase> > sensor_loader_ptr_;
-  int sensor_no_;
-  std::vector<std::string> sensor_plugin_name_;
-  std::vector< boost::shared_ptr<sensor_plugin::SensorBase> > sensors_;
+vector< boost::shared_ptr<sensor_plugin::SensorBase> > sensors_;
+  boost::shared_ptr< pluginlib::ClassLoader<sensor_plugin::SensorBase> > sensor_plugin_ptr_;
 
 
 };

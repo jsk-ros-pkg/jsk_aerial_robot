@@ -271,7 +271,7 @@ namespace sensor_plugin
             {
               Eigen::Matrix<double, 1, 1> temp = Eigen::MatrixXd::Zero(1, 1);
 
-              for(int i = 0; i < estimator_->getFuserExperimentNo(); i++)
+              for(int i = 0; i < estimator_->getFuserExperimentNum(); i++)
                 {
                   if((estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::X_W)) ||
                      (estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::Y_W)) ||
@@ -290,7 +290,6 @@ namespace sensor_plugin
                       estimator_->getFuserExperiment(i)->setMeasureSigma(temp);
                       estimator_->getFuserExperiment(i)->setMeasureFlag();
                     }
-
                 }
             }
           first_flag = false;
@@ -331,6 +330,7 @@ namespace sensor_plugin
     void estimateProcess()
     {
       if(!estimate_flag_) return;
+
 
       Eigen::Matrix<double, 1, 1> sigma_temp = Eigen::MatrixXd::Zero(1, 1);
       Eigen::Matrix<double, 1, 1> temp = Eigen::MatrixXd::Zero(1, 1);

@@ -1,20 +1,15 @@
 #include "aerial_robot_base/state_estimation.h"
 
-RigidEstimator::RigidEstimator(ros::NodeHandle nh, ros::NodeHandle nh_private) : BasicEstimator(nh, nh_private)
+RigidEstimator::RigidEstimator(ros::NodeHandle nh, ros::NodeHandle nh_private) :
+  BasicEstimator(nh, nh_private)
 {
   rosParamInit();
-  //br_ = new tf::TransformBroadcaster();
 }
 
-RigidEstimator::~RigidEstimator()
-{
-  //delete br_;
-
-}
+RigidEstimator::~RigidEstimator() {}
 
 void RigidEstimator::tfPublish()
 {
-  //set the states broadcast
   statesBroadcast();
 }
 
@@ -122,115 +117,136 @@ void RigidEstimator::statesBroadcast()
   full_states.states.push_back(x_state);
   full_states.states.push_back(y_state);
   full_states.states.push_back(z_state);
-  full_states.states.push_back(roll_state);  
+  full_states.states.push_back(roll_state);
   full_states.states.push_back(pitch_state);
   full_states.states.push_back(yaw_state);
-
 
   full_states_pub_.publish(full_states);
 
   state_pub_.publish(states);
 }
 
+bool RigidEstimator::pattern_match(std::string &pl, std::string &pl_candidate)
+{
+  int cmp = fnmatch(pl.c_str(), pl_candidate.c_str(), FNM_CASEFOLD);
+  if (cmp == 0)
+    return true;
+  else if (cmp != FNM_NOMATCH) {
+    // never see that, i think that it is fatal error.
+    ROS_FATAL("Plugin list check error! fnmatch('%s', '%s', FNM_CASEFOLD) -> %d",
+              pl.c_str(), pl_candidate.c_str(), cmp);
+    ros::shutdown();
+  }
+  return false;
+}
+
 
 void RigidEstimator::rosParamInit()
 {
   std::string ns = nhp_.getNamespace();
-  printf("%s\n", ns.c_str());
-  if (!nhp_.getParam ("state_mode", state_mode_))
-    state_mode_ = EGOMOTION_ESTIMATE;
-  printf("%s: state_mode_ is %d\n", ns.c_str(), state_mode_);
+  nhp_.param ("state_mode", state_mode_, 1); //EGOMOTION_ESTIMATE: 1
+  if(param_verbose_) cout << ns <<": state_mode is " << state_mode_ << endl;
 
-  if (!nhp_.getParam ("only_imu_yaw", only_imu_yaw_))
-    only_imu_yaw_ = false;
-  printf("%s: only_imu_yaw_ is %s\n", ns.c_str(), only_imu_yaw_?std::string("true").c_str():std::string("false").c_str());
+  /* kalman filter egomotion plugin list */
+  ros::V_string egomotion_list{};
+  nhp_.getParam("egomotion_list", egomotion_list);
 
   sensor_fusion_loader_ptr_ = boost::shared_ptr< pluginlib::ClassLoader<kf_base_plugin::KalmanFilter> >(new pluginlib::ClassLoader<kf_base_plugin::KalmanFilter>("kalman_filter", "kf_base_plugin::KalmanFilter"));
 
-
-  if (!nhp_.getParam ("fuser_egomotion_no", fuser_egomotion_no_))
-    fuser_egomotion_no_ = 0;
-  printf("fuser_egomotion_no_ is %d\n", fuser_egomotion_no_);
-  fuser_egomotion_.resize(fuser_egomotion_no_);
-  fuser_egomotion_id_.resize(fuser_egomotion_no_);
-  fuser_egomotion_name_.resize(fuser_egomotion_no_);
-  fuser_egomotion_plugin_name_.resize(fuser_egomotion_no_);
-
-  if (!nhp_.getParam ("fuser_experiment_no", fuser_experiment_no_))
-    fuser_experiment_no_ = 0;
-  printf("fuser_experiment_no_ is %d\n", fuser_experiment_no_);
-  fuser_experiment_.resize(fuser_experiment_no_);
-  fuser_experiment_id_.resize(fuser_experiment_no_);
-  fuser_experiment_name_.resize(fuser_experiment_no_);
-  fuser_experiment_plugin_name_.resize(fuser_experiment_no_);
-
-  for(int i = 0; i < fuser_egomotion_no_; i++)
+  int index = 0;
+  for (auto &egomotion_plugin_name : egomotion_list)
     {
-      std::stringstream fuser_no;
-      fuser_no << i + 1;
+      for (auto &name : sensor_fusion_loader_ptr_->getDeclaredClasses())
+        {
+          if(!pattern_match(egomotion_plugin_name, name)) continue;
 
-      if (!nhp_.getParam ("fuser_egomotion_id" + fuser_no.str() , fuser_egomotion_id_[i]))
-        ROS_ERROR("%d, no param in fuser egomotion id", i);
-      printf("fuser_egomotion_id%d is %d\n", i + 1, fuser_egomotion_id_[i]);
+          fuser_egomotion_plugin_name_.push_back(egomotion_plugin_name);
 
-      if (!nhp_.getParam ("fuser_egomotion_name" + fuser_no.str(), fuser_egomotion_name_[i]))
-        ROS_ERROR("%d, no param in fuser egomotion name", i);
-      printf("fuser_egomotion_name%d is %s\n", i + 1, fuser_egomotion_name_[i].c_str());
+          std::stringstream fuser_no;
+          fuser_no << index + 1;
 
-      if (!nhp_.getParam ("fuser_egomotion_plugin_name" + fuser_no.str(), fuser_egomotion_plugin_name_[i]))
-        ROS_ERROR("%d, no param in fuser egomotion plugin_name", i);
-      printf("fuser_egomotion_plugin_name%d is %s\n", i + 1, fuser_egomotion_plugin_name_[i].c_str());
+          int fuser_egomotion_id;
+          string fuser_egomotion_name;
 
-      //fuser_egomotion_[i]  = sensor_fusion_loader_ptr_->createInstance(fuser_egomotion_plugin_name_[i]);
-      fuser_egomotion_[i]  = sensor_fusion_loader_ptr_->createInstance(fuser_egomotion_plugin_name_[i]);
-      fuser_egomotion_[i]->initialize(nh_, fuser_egomotion_name_[i], fuser_egomotion_id_[i]);
+          if (!nhp_.getParam ("fuser_egomotion_id" + fuser_no.str(), fuser_egomotion_id))
+            ROS_ERROR("%d, no param in fuser egomotion id", index);
+          if(param_verbose_) cout << "fuser_egomotion_id" << index + 1 << " is " << fuser_egomotion_id << endl;
+          fuser_egomotion_id_.push_back(fuser_egomotion_id);
+
+          if (!nhp_.getParam ("fuser_egomotion_name" + fuser_no.str(), fuser_egomotion_name))
+            ROS_ERROR("%d, no param in fuser egomotion name", index);
+          if(param_verbose_) cout << "fuser_egomotion_name" << index + 1 << " is " << fuser_egomotion_name << endl;
+
+          fuser_egomotion_.push_back(sensor_fusion_loader_ptr_->createInstance(name));
+          fuser_egomotion_[index]->initialize(nh_, fuser_egomotion_name, fuser_egomotion_id_[index]);
+
+          index ++;
+          break;
+        }
+    }
+  assert((fuser_egomotion_plugin_name_.size() == index) && (fuser_egomotion_id_.size() == index));
+
+  /* kalman filter egomotion plugin list */
+  ros::V_string experiment_list{};
+  nhp_.getParam("experiment_list", experiment_list);
+
+  index = 0;
+  for (auto &experiment_plugin_name : experiment_list)
+    {
+      for (auto &name : sensor_fusion_loader_ptr_->getDeclaredClasses())
+        {
+          if(!pattern_match(experiment_plugin_name, name)) continue;
+          fuser_experiment_plugin_name_.push_back(experiment_plugin_name);
+
+          std::stringstream fuser_no;
+          fuser_no << index + 1;
+
+          int fuser_experiment_id;
+          string fuser_experiment_name;
+
+          if (!nhp_.getParam ("fuser_experiment_id" + fuser_no.str(), fuser_experiment_id))
+            ROS_ERROR("%d, no param in fuser experiment id", index);
+          if(param_verbose_) cout << "fuser_experiment_id" << index + 1 << " is " << fuser_experiment_id << endl;
+          fuser_experiment_id_.push_back(fuser_experiment_id);
+
+          if (!nhp_.getParam ("fuser_experiment_name" + fuser_no.str(), fuser_experiment_name))
+            ROS_ERROR("%d, no param in fuser experiment name", index);
+          if(param_verbose_) cout << "fuser_experiment_name" << index + 1 << " is " << fuser_experiment_name << endl;
+
+          fuser_experiment_.push_back(sensor_fusion_loader_ptr_->createInstance(name));
+          fuser_experiment_[index]->initialize(nh_, fuser_experiment_name, fuser_experiment_id_[index]);
+
+          index ++;
+          break;
+        }
+    }
+  assert((fuser_experiment_plugin_name_.size() == index) && (fuser_experiment_id_.size() == index));
+
+  sensor_plugin_ptr_ =  boost::shared_ptr< pluginlib::ClassLoader<sensor_plugin::SensorBase> >( new pluginlib::ClassLoader<sensor_plugin::SensorBase>("aerial_robot_base", "sensor_plugin::SensorBase"));
+
+  ros::V_string sensor_list{};
+  nhp_.getParam("sensor_list", sensor_list);
+
+  index = 0;
+  for (auto &sensor_plugin_name : sensor_list)
+    {
+      for (auto &name : sensor_plugin_ptr_->getDeclaredClasses())
+        {
+          if(!pattern_match(sensor_plugin_name, name)) continue;
+
+          std::stringstream sensor_no;
+          sensor_no << index + 1;
+
+          sensors_.push_back(sensor_plugin_ptr_->createInstance(name));
+          index ++;
+          break;
+        }
     }
 
-  for(int i = 0; i < fuser_experiment_no_; i++)
-    {
-      std::stringstream fuser_no;
-      fuser_no << i + 1;
+  assert((sensors_.size() == index) && (sensor_list.size() == index));
 
-      if (!nhp_.getParam ("fuser_experiment_id" + fuser_no.str(), fuser_experiment_id_[i]))
-        ROS_ERROR("%d, no param in fuser experiment id", i);
-      printf("fuser_experiment_id%d is %d\n", i+1, fuser_experiment_id_[i]);
-
-      if (!nhp_.getParam ("fuser_experiment_name" + fuser_no.str(), fuser_experiment_name_[i]))
-        ROS_ERROR("%d, no param in fuser experiment name", i);
-      printf("fuser_experiment_name%d is %s\n", i+1, fuser_experiment_name_[i].c_str());
-
-      if (!nhp_.getParam ("fuser_experiment_plugin_name" + fuser_no.str(), fuser_experiment_plugin_name_[i]))
-        ROS_ERROR("%d, no param in fuser experiment plugin_name", i);
-      printf("fuser_experiment_plugin_name%d is %s\n", i+1, fuser_experiment_plugin_name_[i].c_str());
-
-      //fuser_experiment_[i]  = sensor_fusion_loader_ptr_->createInstance(fuser_experiment_plugin_name_);
-      fuser_experiment_[i]  = sensor_fusion_loader_ptr_->createInstance(fuser_experiment_plugin_name_[i]);
-      fuser_experiment_[i]->initialize(nh_, fuser_experiment_name_[i], fuser_experiment_id_[i]);
-    }
-
-  sensor_loader_ptr_ =  boost::shared_ptr< pluginlib::ClassLoader<sensor_plugin::SensorBase> >( new pluginlib::ClassLoader<sensor_plugin::SensorBase>("aerial_robot_base", "sensor_plugin::SensorBase"));
-
-
-  if (!nhp_.getParam ("sensor_no", sensor_no_)) sensor_no_ = 0;
-  printf("sensor_no_ is %d\n", sensor_no_);
-  sensor_plugin_name_.resize(sensor_no_);
-  sensors_.resize(sensor_no_);
-
-  /* we have to fill all the sensor instance first */
-  for(int i = 0; i < sensor_no_; i++)
-    {
-      std::stringstream sensor_no;
-      sensor_no << i + 1;
-
-      if (!nhp_.getParam ("sensor_plugin_name" + sensor_no.str(), sensor_plugin_name_[i]))
-        ROS_ERROR("%d, no param in sensor plugin_name", i);
-      printf("sensor_plugin_name%d is %s\n", i+1, sensor_plugin_name_[i].c_str());
-      sensors_[i]  = sensor_loader_ptr_->createInstance(sensor_plugin_name_[i]);
-    }
-
-  /* initialize all sensor plugins */
-  for(int i = 0; i < sensor_no_; i++)
-    sensors_[i]->initialize(nh_, ros::NodeHandle(""), this, sensors_, sensor_plugin_name_, i);
-
+  /* initilaize in the same time */
+  for(size_t i = 0; i < sensors_.size(); i++)
+    sensors_[i]->initialize(nh_, ros::NodeHandle(""), this, sensors_, sensor_list, (int)i);
 
 }

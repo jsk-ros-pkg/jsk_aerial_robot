@@ -15,21 +15,33 @@
 #include <std_msgs/UInt8.h>
 #include <kalman_filter/kf_base_plugin.h>
 #include <pluginlib/class_loader.h>
+#include <assert.h>
+
+using namespace std;
 
 class BasicEstimator
 {
  public:
  BasicEstimator(ros::NodeHandle nh, ros::NodeHandle nh_private)
    : nh_(nh, "estimator"), nhp_(nh_private, "estimator"),
+     fuser_egomotion_(0),
+     fuser_experiment_(0),
+     fuser_egomotion_plugin_name_(0),
+     fuser_experiment_plugin_name_(0),
+     fuser_egomotion_id_(0),
+     fuser_experiment_id_(0),
+     sensor_fusion_flag_(false),
      flying_flag_(false),
      landing_mode_flag_(false),
      landed_flag_(false),
      un_descend_flag_(false)
   {
+    /* ros param */
+    nhp_.param ("param_verbose", param_verbose_, true);
+
     state_pub_ = nh_.advertise<nav_msgs::Odometry>("/uav/state", 1);
     full_states_pub_ = nh_.advertise<aerial_robot_base::States>("/uav/full_states", 1);
     estimate_height_mode_sub_ = nh_.subscribe<std_msgs::UInt8>("/estimate_height_mode", 1, &BasicEstimator::heightEstimateModeCallback, this, ros::TransportHints().tcpNoDelay());
-
 
     for(int i = 0; i < STATE_NUM; i ++)
       {
@@ -92,22 +104,22 @@ class BasicEstimator
 
  float getEEState(int axis, int mode)
   {
-    boost::lock_guard<boost::mutex> lock(ee_state_mutex_); 
+    boost::lock_guard<boost::mutex> lock(ee_state_mutex_);
    return (ee_state_[axis])[mode];
   }
  void setEEState(int axis, int mode, float value)
-  { 
-    boost::lock_guard<boost::mutex> lock(ee_state_mutex_); 
+  {
+    boost::lock_guard<boost::mutex> lock(ee_state_mutex_);
     (ee_state_[axis])[mode] = value;
   }
  float getEXState(int axis, int mode)
-  { 
-    boost::lock_guard<boost::mutex> lock(ex_state_mutex_); 
+  {
+    boost::lock_guard<boost::mutex> lock(ex_state_mutex_);
     return (ex_state_[axis])[mode];
   }
  void setEXState(int axis, int mode, float value)
   {
-    boost::lock_guard<boost::mutex> lock(ex_state_mutex_); 
+    boost::lock_guard<boost::mutex> lock(ex_state_mutex_);
     (ex_state_[axis])[mode] = value;
   }
 
@@ -137,15 +149,14 @@ class BasicEstimator
 
   inline boost::shared_ptr<kf_base_plugin::KalmanFilter> getFuserEgomotion(int no) { return fuser_egomotion_[no];}
   inline boost::shared_ptr<kf_base_plugin::KalmanFilter> getFuserExperiment(int no) { return fuser_experiment_[no];}
-  inline std::string  getFuserEgomotionName(int no) { return fuser_egomotion_name_[no];}
-  inline std::string  getFuserExperimentName(int no) { return fuser_experiment_name_[no];}
-  inline std::string  getFuserEgomotionPluginName(int no) { return fuser_egomotion_plugin_name_[no];}
-  inline std::string  getFuserExperimentPluginName(int no) { return fuser_experiment_plugin_name_[no];}
+  inline string  getFuserEgomotionPluginName(int no) { return fuser_egomotion_plugin_name_[no];}
+  inline string  getFuserExperimentPluginName(int no) { return fuser_experiment_plugin_name_[no];}
 
   inline int  getFuserEgomotionId(int no) { return fuser_egomotion_id_[no];}
   inline int  getFuserExperimentId(int no) { return fuser_experiment_id_[no];}
-  inline int  getFuserEgomotionNo() { return fuser_egomotion_no_;}
-  inline int  getFuserExperimentNo() { return fuser_experiment_no_;}
+
+  inline int  getFuserEgomotionNum() { return fuser_egomotion_id_.size();}
+  inline int  getFuserExperimentNum() { return fuser_experiment_id_.size();}
 
   //???
   inline int getStateMode() {return state_mode_;}
@@ -191,32 +202,28 @@ class BasicEstimator
   //for mutex
   boost::mutex ee_state_mutex_, ex_state_mutex_;
 
+  /* ros param */
+  bool param_verbose_;
+
   int state_mode_;
 
   // xw, yw, zw, rollw, pitchw, yaww of cog, xb, yb, yaww of board (9) 
   // (0): x, (1): dx, (2); ddx
-  std::array< int, STATE_NUM > state_status_;
-  std::array< Eigen::Vector3d, STATE_NUM>  gt_state_; //ground truth
-  std::array< Eigen::Vector3d, STATE_NUM>  ee_state_; //egomotion estimate in world coord
-  std::array< Eigen::Vector3d, STATE_NUM>  ex_state_; //experiment in world coord
+  array< int, STATE_NUM > state_status_;
+  array< Eigen::Vector3d, STATE_NUM>  gt_state_; //ground truth
+  array< Eigen::Vector3d, STATE_NUM>  ee_state_; //egomotion estimate in world coord
+  array< Eigen::Vector3d, STATE_NUM>  ex_state_; //experiment in world coord
 
   float state_pos_z_offset_;
 
-  //tf::TransformBroadcaster* br_;
   boost::shared_ptr< pluginlib::ClassLoader<kf_base_plugin::KalmanFilter> > sensor_fusion_loader_ptr_;
-  //pluginlib::ClassLoader<kf_base_plugin::KalmanFilter>  sensor_fusion_loader_;
 
   // sensor fusion
   bool sensor_fusion_flag_;
-  int fuser_egomotion_no_, fuser_experiment_no_;
-  std::vector<std::string> fuser_egomotion_plugin_name_;
-  std::vector<std::string> fuser_experiment_plugin_name_;
-  std::vector<std::string> fuser_egomotion_name_;
-  std::vector<std::string> fuser_experiment_name_;
-  std::vector<int> fuser_egomotion_id_;
-  std::vector<int> fuser_experiment_id_;
-  std::vector< boost::shared_ptr<kf_base_plugin::KalmanFilter> > fuser_egomotion_;
-  std::vector< boost::shared_ptr<kf_base_plugin::KalmanFilter> > fuser_experiment_;
+  vector<string> fuser_egomotion_plugin_name_, fuser_experiment_plugin_name_;
+  vector<int> fuser_egomotion_id_, fuser_experiment_id_;
+  vector< boost::shared_ptr<kf_base_plugin::KalmanFilter> > fuser_egomotion_;
+  vector< boost::shared_ptr<kf_base_plugin::KalmanFilter> > fuser_experiment_;
 
   bool flying_flag_;
   bool landing_mode_flag_;

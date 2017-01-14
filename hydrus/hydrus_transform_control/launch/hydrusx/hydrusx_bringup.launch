@@ -36,10 +36,7 @@
     <param if="$(arg vel_control_mode)" name="navigator/xy_control_mode" type="int" value="3"/>
     <param if="$(arg att_control_mode)" name="navigator/xy_control_mode" type="int" value="4"/>
 
-
-    <param name="rx_loop_rate" type="double" value="110"/>
-    <param name="tx_loop_rate" type="double" value="40"/>
-    <param name="tf_pub_loop_rate" type="double" value="120"/>
+    <param name="main_rate" type="double" value="40"/>
 
     ###########  Sensor Fusion  ###########
     <rosparam file="$(find hydrus_transform_control)/config/hydrusx/SensorFusion.yaml" command="load" />

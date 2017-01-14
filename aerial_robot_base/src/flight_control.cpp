@@ -9,7 +9,7 @@ FlightController::FlightController(ros::NodeHandle nh,
   navigator_ = navigator;
   flight_ctrl_input_ = flight_ctrl_input;
 
-  state_mode_ = navigator->getStateMode();
+  state_mode_ = estimator_->getStateMode();
 
 
   ros::NodeHandle motor_info_node("motor_info");

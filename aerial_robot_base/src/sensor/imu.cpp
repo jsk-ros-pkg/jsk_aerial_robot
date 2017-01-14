@@ -250,7 +250,7 @@ namespace sensor_plugin
                   orientation.setRPY(0, 0, estimator_->getEEState(BasicEstimator::YAW_W_COG, 0));
                   acc_bias_w_ = orientation * acc_bias_l_;
 
-                  for(int i = 0; i < estimator_->getFuserEgomotionNo(); i++)
+                  for(int i = 0; i < estimator_->getFuserEgomotionNum(); i++)
                     {
                       estimator_->getFuserEgomotion(i)->updateModelFromDt(sensor_hz_);
 
@@ -307,7 +307,7 @@ namespace sensor_plugin
                   orientation.setRPY(0, 0, estimator_->getEXState(BasicEstimator::YAW_W_COG, 0));
                   acc_bias_w_ = orientation * acc_bias_l_;
 
-                  for(int i = 0; i < estimator_->getFuserExperimentNo(); i++)
+                  for(int i = 0; i < estimator_->getFuserExperimentNum(); i++)
                     {
                       estimator_->getFuserExperiment(i)->updateModelFromDt(sensor_hz_);
 
@@ -372,7 +372,7 @@ namespace sensor_plugin
               Matrix<double, 1, 1> temp = MatrixXd::Zero(1, 1);
               Matrix<double, 2, 1> temp2 = MatrixXd::Zero(2, 1);
 
-              for(int i = 0; i < estimator_->getFuserEgomotionNo(); i++)
+              for(int i = 0; i < estimator_->getFuserEgomotionNum(); i++)
                 {
                   MatrixXd egomotion_state;
                   int axis;
@@ -467,7 +467,7 @@ namespace sensor_plugin
               Matrix<double, 1, 1> temp = MatrixXd::Zero(1, 1);
               Matrix<double, 2, 1> temp2 = MatrixXd::Zero(2, 1);
 
-              for(int i = 0; i < estimator_->getFuserExperimentNo(); i++)
+              for(int i = 0; i < estimator_->getFuserExperimentNum(); i++)
                 {
                   MatrixXd experiment_state;
                   int axis;
@@ -589,7 +589,7 @@ namespace sensor_plugin
       if(param_verbose_) cout << "imu calib time is " << calib_time_ << endl;
 
       nhp_.param("landing_shock_force_thre", landing_shock_force_thre_, 5.0 );
-      if(param_verbose_) cout << "landing shock force_thre is " << landing_shock_force_thre_;
+      if(param_verbose_) cout << "landing shock force_thre is " << landing_shock_force_thre_ << endl;
 
       nhp_.param("cog_rotate_sub_name", cog_rotate_sub_name_, std::string("/desire_coordinate"));
 
