@@ -54,8 +54,6 @@
 /* ros msg */
 #include <aerial_robot_msgs/BoolFlag.h>
 
-
-
 /* utils */
 #include <iostream>
 
@@ -67,14 +65,8 @@ namespace sensor_plugin
   class SensorBase
   {
   public:
-    virtual void initialize(ros::NodeHandle nh, ros::NodeHandle nhp, BasicEstimator* estimator, vector< boost::shared_ptr<sensor_plugin::SensorBase> > sensors, vector<string> sensor_names, int sensor_index)  = 0;
+    virtual void initialize(ros::NodeHandle nh, ros::NodeHandle nhp, BasicEstimator* estimator, string sensor_name)  = 0;
     virtual ~SensorBase(){}
-
-    static const uint8_t EGOMOTION_ESTIMATION_MODE = 0;
-    static const uint8_t GROUND_TRUTH_MODE = 1;
-    static const uint8_t EXPERIMENT_MODE = 2;
-
-    inline string getSensorName(){return sensor_name_;}
 
   protected:
 
@@ -83,8 +75,6 @@ namespace sensor_plugin
     ros::Timer  health_check_timer_;
     ros::ServiceServer estimate_flag_service_;
     BasicEstimator* estimator_;
-    string sensor_name_;
-    int sensor_index_;
     int estimate_mode_;
 
     bool simulation_;
@@ -100,28 +90,31 @@ namespace sensor_plugin
     int estimate_flag_;
 
     /* health check */
-    bool health_;
+    vector<bool> health_;
+    vector<double> health_stamp_;
     double health_check_rate_;
     double health_timeout_;
     int unhealth_level_;
-    double health_stamp_;
+
 
     SensorBase(){}
 
-    void baseParamInit(ros::NodeHandle nh, ros::NodeHandle nhp, BasicEstimator* estimator, string sensor_name, int sensor_index)
+    inline bool getFuserActivate(uint8_t mode)
     {
-      sensor_name_ = sensor_name;
-      sensor_index_ = sensor_index;
+      return (estimate_mode_ & (1 << mode));
+    }
+
+    void baseParamInit(ros::NodeHandle nh, ros::NodeHandle nhp, BasicEstimator* estimator, string sensor_name)
+    {
       estimator_ = estimator;
 
-      nh_ = ros::NodeHandle(nh, sensor_name_);
-      nhp_ = ros::NodeHandle(nhp, sensor_name_);
+      nh_ = ros::NodeHandle(nh, sensor_name);
+      nhp_ = ros::NodeHandle(nhp, sensor_name);
 
       estimate_flag_ = true;
       sensor_hz_ = 0;
-      estimate_indices_.resize(0);
-      experiment_indices_.resize(0);
-      health_ = false;
+      health_.resize(1, false);
+      health_stamp_.resize(1, ros::Time::now().toSec());
 
       estimate_flag_service_ = nh_.advertiseService("estimate_flag", &SensorBase::estimateFlag, this);
 
@@ -134,29 +127,30 @@ namespace sensor_plugin
       nhp_.param("health_timeout", health_timeout_, 0.5);
       nhp_.param("unhealth_level", unhealth_level_, 0);
       nhp_.param("health_check_rate", health_check_rate_, 100.0);
-      health_stamp_ =  ros::Time::now().toSec();
 
       ros::NodeHandle nh_global("~");
       nh_global.param("simulation", simulation_, false);
       nh_global.param("param_verbose", param_verbose_, false);
       nh_global.param("debug_verbose", debug_verbose_, false);
 
-
       health_check_timer_ = nhp_.createTimer(ros::Duration(1.0 / health_check_rate_), &SensorBase::healthCheck,this);
-
     }
 
     virtual void estimateProcess(){};
+
     /* check whether we get sensor data */
     void healthCheck(const ros::TimerEvent & e)
     {
       /* this will call only once, no recovery */
-      if(ros::Time::now().toSec() - health_stamp_ > health_timeout_ && health_ && !simulation_)
+      for(int i = 0; i < health_.size(); i++)
         {
-          ROS_ERROR("%s: can not get fresh sensor data for %f[sec]", nhp_.getNamespace().c_str(), ros::Time::now().toSec() - health_stamp_);
-          /* TODO: the solution to unhealth should be more clever */
-          estimator_->setUnhealthLevel(unhealth_level_);
-          health_ = false;
+          if(ros::Time::now().toSec() - health_stamp_[i] > health_timeout_ && health_[i] && !simulation_)
+            {
+              ROS_ERROR("[%s, chan%d]: can not get fresh sensor data for %f[sec]", nhp_.getNamespace().c_str(), i, ros::Time::now().toSec() - health_stamp_[i]);
+              /* TODO: the solution to unhealth should be more clever */
+              estimator_->setUnhealthLevel(unhealth_level_);
+              health_[i] = false;
+            }
         }
     }
 
@@ -169,14 +163,22 @@ namespace sensor_plugin
       return true;
     }
 
-    inline void updateHealthStamp(double stamp)
+    void setHealthChanNum(uint8_t chan_num)
     {
-      if(!health_)
+      assert(chan_num > 0);
+
+      health_.resize(chan_num, false);
+      health_stamp_.resize(chan_num, ros::Time::now().toSec());
+    }
+
+    void updateHealthStamp(double stamp, uint8_t chan = 0)
+    {
+      if(!health_[chan])
         {
-          health_ = true;
-          ROS_WARN("%s: get sensor data, du: %f", nhp_.getNamespace().c_str(), stamp - health_stamp_);
+          health_[chan] = true;
+          ROS_WARN("%s: get sensor data, du: %f", nhp_.getNamespace().c_str(), stamp - health_stamp_[chan]);
         }
-      health_stamp_ = stamp;
+      health_stamp_[chan] = stamp;
     }
 
   };

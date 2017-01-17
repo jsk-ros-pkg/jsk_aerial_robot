@@ -14,7 +14,7 @@ Navigator::Navigator(ros::NodeHandle nh, ros::NodeHandle nh_private,
   battery_sub_ = nh_.subscribe<std_msgs::UInt8>("/battery_voltage_status", 1, &Navigator::batteryCheckCallback, this, ros::TransportHints().tcpNoDelay());
 
   estimator_ = estimator;
-  state_mode_ = estimator_->getStateMode();
+  estimate_mode_ = estimator_->getEstimateMode();
   flight_ctrl_input_ = flight_ctrl_input;
 
   br_ =  new tf::TransformBroadcaster();

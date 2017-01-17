@@ -2,15 +2,14 @@
 
 FlightController::FlightController(ros::NodeHandle nh,
                                    ros::NodeHandle nh_private,
-                                   BasicEstimator* estimator, Navigator* navigator, 
+                                   BasicEstimator* estimator, Navigator* navigator,
                                    FlightCtrlInput* flight_ctrl_input): nh_(nh, "controller"), nhp_(nh_private, "controller")
 {
   estimator_ = estimator;
   navigator_ = navigator;
   flight_ctrl_input_ = flight_ctrl_input;
 
-  state_mode_ = estimator_->getStateMode();
-
+  estimate_mode_ = estimator_->getEstimateMode();
 
   ros::NodeHandle motor_info_node("motor_info");
   std::string ns = motor_info_node.getNamespace();
@@ -55,7 +54,7 @@ FlightController::FlightController(ros::NodeHandle nh,
 PidController::PidController(ros::NodeHandle nh,
                              ros::NodeHandle nh_private,
                              BasicEstimator* estimator,
-                             Navigator* navigator,  
+                             Navigator* navigator,
                              FlightCtrlInput* flight_ctrl_input,
                              double ctrl_loop_rate)
   : FlightController(nh, nh_private, estimator, navigator, flight_ctrl_input)
@@ -160,8 +159,8 @@ void PidController::pidFunction()
 {
   static bool first_flag = true;
 
-  //*** リセット
-  if (navigator_->getFlightMode() == Navigator::RESET_MODE) 
+  /* Reset */
+  if (navigator_->getFlightMode() == Navigator::RESET_MODE)
     {
       //ROS_ERROR("ok");
       first_flag = true;
@@ -217,55 +216,21 @@ void PidController::pidFunction()
       float state_vel_psi = 0;
 
       if(navigator_->getXyControlMode() == Navigator::POS_WORLD_BASED_CONTROL_MODE ||
-         navigator_->getXyControlMode() == Navigator::VEL_WORLD_BASED_CONTROL_MODE) 
+         navigator_->getXyControlMode() == Navigator::VEL_WORLD_BASED_CONTROL_MODE)
         {
-          if(state_mode_ == BasicEstimator::GROUND_TRUTH)
-            {
-              state_pos_x = estimator_->getGTState(BasicEstimator::X_W, 0);
-              state_vel_x = estimator_->getGTState(BasicEstimator::X_W, 1);
-              state_pos_y = estimator_->getGTState(BasicEstimator::Y_W, 0);
-              state_vel_y = estimator_->getGTState(BasicEstimator::Y_W, 1);
-            }
-          else if(state_mode_ == BasicEstimator::EGOMOTION_ESTIMATE)
-            {
-              state_pos_x = estimator_->getEEState(BasicEstimator::X_W, 0);
-              state_vel_x = estimator_->getEEState(BasicEstimator::X_W, 1);
-              state_pos_y = estimator_->getEEState(BasicEstimator::Y_W, 0);
-              state_vel_y = estimator_->getEEState(BasicEstimator::Y_W, 1);
-            }
-          else if(state_mode_ == BasicEstimator::EXPERIMENT_ESTIMATE)
-            {
-              state_pos_x = estimator_->getEXState(BasicEstimator::X_W, 0);
-              state_vel_x = estimator_->getEXState(BasicEstimator::X_W, 1);
-              state_pos_y = estimator_->getEXState(BasicEstimator::Y_W, 0);
-              state_vel_y = estimator_->getEXState(BasicEstimator::Y_W, 1);
-            }
+          state_pos_x = estimator_->getState(BasicEstimator::X_W, estimate_mode_)[0];
+          state_vel_x = estimator_->getState(BasicEstimator::X_W, estimate_mode_)[1];
+          state_pos_y = estimator_->getState(BasicEstimator::Y_W, estimate_mode_)[0];
+          state_vel_y = estimator_->getState(BasicEstimator::Y_W, estimate_mode_)[1];
 
         }
       else if(navigator_->getXyControlMode() == navigator_->POS_LOCAL_BASED_CONTROL_MODE ||
               navigator_->getXyControlMode() == navigator_->VEL_LOCAL_BASED_CONTROL_MODE)
         {
-          if(state_mode_ == BasicEstimator::GROUND_TRUTH)
-            {
-              state_pos_x = estimator_->getGTState(BasicEstimator::X_B, 0);
-              state_vel_x = estimator_->getGTState(BasicEstimator::X_B, 1);
-              state_pos_y = estimator_->getGTState(BasicEstimator::Y_B, 0);
-              state_vel_y = estimator_->getGTState(BasicEstimator::Y_B, 1);
-            }
-          else if(state_mode_ == BasicEstimator::EGOMOTION_ESTIMATE)
-            {
-              state_pos_x = estimator_->getEEState(BasicEstimator::X_B, 0);
-              state_vel_x = estimator_->getEEState(BasicEstimator::X_B, 1);
-              state_pos_y = estimator_->getEEState(BasicEstimator::Y_B, 0);
-              state_vel_y = estimator_->getEEState(BasicEstimator::Y_B, 1);
-            }
-          else if(state_mode_ == BasicEstimator::EXPERIMENT_ESTIMATE)
-            {
-              state_pos_x = estimator_->getEXState(BasicEstimator::X_B, 0);
-              state_vel_x = estimator_->getEXState(BasicEstimator::X_B, 1);
-              state_pos_y = estimator_->getEXState(BasicEstimator::Y_B, 0);
-              state_vel_y = estimator_->getEXState(BasicEstimator::Y_B, 1);
-            }
+          state_pos_x = estimator_->getState(BasicEstimator::X_B, estimate_mode_)[0];
+          state_vel_x = estimator_->getState(BasicEstimator::X_B, estimate_mode_)[1];
+          state_pos_y = estimator_->getState(BasicEstimator::Y_B, estimate_mode_)[0];
+          state_vel_y = estimator_->getState(BasicEstimator::Y_B, estimate_mode_)[1];
         }
 
       target_vel_x = navigator_->getTargetVelX();
@@ -273,36 +238,12 @@ void PidController::pidFunction()
       target_pos_x = navigator_->getTargetPosX();
       target_pos_y = navigator_->getTargetPosY();
 
-      if(state_mode_ == BasicEstimator::GROUND_TRUTH)
-        {
-          state_pos_z = estimator_->getGTState(BasicEstimator::Z_W, 0);
-          state_vel_z = estimator_->getGTState(BasicEstimator::Z_W, 1);
+      state_pos_z = estimator_->getState(BasicEstimator::Z_W, estimate_mode_)[0];
+      state_vel_z = estimator_->getState(BasicEstimator::Z_W, estimate_mode_)[1];
 
-          state_psi_cog = estimator_->getGTState(BasicEstimator::YAW_W_COG, 0);
-          state_psi_board = estimator_->getGTState(BasicEstimator::YAW_W_B, 0);
-          state_vel_psi = estimator_->getGTState(BasicEstimator::YAW_W_B, 1);
-        }
-
-      if(state_mode_ == BasicEstimator::EGOMOTION_ESTIMATE)
-        {
-          state_pos_z = estimator_->getEEState(BasicEstimator::Z_W, 0);
-          state_vel_z = estimator_->getEEState(BasicEstimator::Z_W, 1);
-
-          state_psi_cog = estimator_->getEEState(BasicEstimator::YAW_W_COG, 0);
-          state_psi_board = estimator_->getEEState(BasicEstimator::YAW_W_B, 0);
-          state_vel_psi = estimator_->getEEState(BasicEstimator::YAW_W_B, 1);
-        }
-
-      if(state_mode_ == BasicEstimator::EXPERIMENT_ESTIMATE)
-        {
-          state_pos_z = estimator_->getEXState(BasicEstimator::Z_W, 0);
-          state_vel_z = estimator_->getEXState(BasicEstimator::Z_W, 1);
-
-          /* TODO: change to EX state */
-          state_psi_cog = estimator_->getGTState(BasicEstimator::YAW_W_COG, 0);
-          state_psi_board = estimator_->getGTState(BasicEstimator::YAW_W_B, 0);
-          state_vel_psi = estimator_->getGTState(BasicEstimator::YAW_W_B, 1);
-        }
+      state_psi_cog = estimator_->getState(BasicEstimator::YAW_W, estimate_mode_)[0];
+      state_vel_psi = estimator_->getState(BasicEstimator::YAW_W, estimate_mode_)[1];
+      state_psi_board = estimator_->getState(BasicEstimator::YAW_W_B, estimate_mode_)[0];
 
       float target_pos_z = navigator_->getTargetPosZ();
       float target_psi = navigator_->getTargetPsi();
@@ -763,7 +704,7 @@ void PidController::cfgXYPidCallback(aerial_robot_base::XYPidControlConfig &conf
           i_enable_limit_pitch_ = config.i_enable_limit;
           printf("change the i enable limit\n");
           break;
-        default :   
+        default :
           printf("\n");
           break;
         }
