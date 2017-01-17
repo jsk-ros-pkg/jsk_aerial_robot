@@ -4,6 +4,7 @@ estimator:
         sensor_list:
         - sensor_plugin/imu
         - sensor_plugin/mocap
+        
 
         # egomotion estimation
         egomotion_list:
@@ -18,8 +19,8 @@ estimator:
         - kalman_filter/kf_pose_vel_acc_bias
 
         # specific id(int) of sensor fuser, axis for kf
-        fuser_egomotion_id1: 64 # 1 << 6 
-        fuser_egomotion_id2: 128 # 1 << 7
+        fuser_egomotion_id1: 1 # 1 << 0 
+        fuser_egomotion_id2: 2 # 1 << 1
         fuser_egomotion_id3: 4 # 1 << 2
         fuser_experiment_id1: 1 # 1 << 0
         fuser_experiment_id2: 2 # 1 << 1
@@ -35,11 +36,11 @@ estimator:
 
 
 # EGOMOTION_ESTIMATION_MODE = 0
-# GROUND_TRUTH_MODE = 1
-# EXPERIMENT_MODE = 2
+# EXPERIMENT_MODE = 1
+# GROUND_TRUTH_MODE = 2
 
 /sensor_plugin:
         imu:
-                estimate_mode: 5 # 1<<0 + 1<< 2
+                estimate_mode: 3 # 1<<0 + 1<<1
         mocap:
-                estimate_mode: 6 #1<<1+ 1<< 2
+                estimate_mode: 6 # 1<<1 + 1<<2

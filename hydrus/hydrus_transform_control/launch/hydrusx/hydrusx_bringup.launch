@@ -9,10 +9,10 @@
 
   <arg name="model" default="hex" />
 
-  # GROUND_TRUTH = 0
-  # EGOMOTION_ESTIMATE = 1
-  # EXPERIMENT_ESTIMATE = 2. for unstable mocap, use this mode
-  <arg name="state_mode"  value= "2" />
+  # EGOMOTION_ESTIMATE = 0
+  # EXPERIMENT_ESTIMATE = 1. for unstable mocap, use this mode
+  # GROUND_TRUTH = 2
+  <arg name="estimate_mode"  value= "1" />
 
   <!-- flight control mode: should only be one true flag -->
   <arg name="pos_control_mode" value="true" /> <!-- pos mode -->
@@ -28,7 +28,7 @@
   <node pkg="aerial_robot_base" type="aerial_robot_base_node" name="aerial_robot_base_node" output="screen" >
 
     ###########  Basic Param  ###########
-    <param name="estimator/state_mode" value= "$(arg state_mode)" />
+    <param name="estimator/estimate_mode" value= "$(arg estimate_mode)" />
     <param name="simulation" value= "true" />
     <param name="param_verbose" value= "true" />
 
