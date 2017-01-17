@@ -1,279 +1,252 @@
-#ifndef OPTICAL_FLOW_MODULE_H
-#define OPTICAL_FLOW_MODULE_H
+// -*- mode: c++ -*-
+/*********************************************************************
+ * Software License Agreement (BSD License)
+ *
+ *  Copyright (c) 2017, JSK Lab
+ *  All rights reserved.
+ *
+ *  Redistribution and use in source and binary forms, with or without
+ *  modification, are permitted provided that the following conditions
+ *  are met:
+ *
+ *   * Redistributions of source code must retain the above copyright
+ *     notice, this list of conditions and the following disclaimer.
+ *   * Redistributions in binary form must reproduce the above
+ *     copyright notice, this list of conditions and the following
+ *     disclaimer in the documentation and/o2r other materials provided
+ *     with the distribution.
+ *   * Neither the name of the JSK Lab nor the names of its
+ *     contributors may be used to endorse or promote products derived
+ *     from this software without specific prior written permission.
+ *
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ *  FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ *  COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ *  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ *  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ *  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ *  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ *  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ *  POSSIBILITY OF SUCH DAMAGE.
+ *********************************************************************/
 
+/* ros */
 #include <ros/ros.h>
-#include <aerial_robot_base/basic_state_estimation.h>
-#include <aerial_robot_base/sensor/sensor_base_plugin.h>
-#include <aerial_robot_base/sensor/range_sensor.h>
+
+/* base class */
+#include <aerial_robot_base/sensor_base_plugin.h>
+
+/* message filter */
+#include <message_filters/subscriber.h>
+#include <message_filters/synchronizer.h>
+#include <message_filters/sync_policies/approximate_time.h>
+
+/* ros msg */
+#include <sensor_msgs/Range.h>
 #include <aerial_robot_base/States.h>
 #include <geometry_msgs/TwistStamped.h>
-#include <std_msgs/Int32.h>
 
 namespace sensor_plugin
 {
-  class OpticalFlow :public sensor_base_plugin::SensorBase
+  class OpticalFlow :public sensor_plugin::SensorBase
   {
   public:
-    void initialize(ros::NodeHandle nh, ros::NodeHandle nhp, BasicEstimator* estimator, std::vector< boost::shared_ptr<sensor_base_plugin::SensorBase> > sensors, std::vector<std::string> sensor_names, int sensor_index)
-    {
-      baseParamInit(nh, nhp, estimator, sensor_names[sensor_index], sensor_index);
 
+    typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Range, geometry_msgs::TwistStamped> SyncPolicy;
+
+
+    void initialize(ros::NodeHandle nh, ros::NodeHandle nhp, BasicEstimator* estimator, string sensor_name)
+    {
+
+      baseParamInit(nh, nhp, estimator, sensor_name);
       rosParamInit();
 
-      optical_flow_pub_ = nh_.advertise<aerial_robot_base::States>("data",10);
-      optical_flow_sub_ = nh_.subscribe<geometry_msgs::TwistStamped>("/opt_flow", 1, &OpticalFlow::opticalFlowCallback, this, ros::TransportHints().tcpNoDelay());
+      /* ros publisher of aerial_robot_base::State */
+      opt_state_pub_ = nh_.advertise<aerial_robot_base::States>("data",10);
 
-      vel_x_ = 0;
-      flow_x_ = 0;
+      /* message filter for synchronize two message : optical flow and range */
+      range_sub_.subscribe(nh, range_sub_topic_name_, 1);
+      opt_sub_.subscribe(nh, opt_sub_topic_name_, 1);
 
-      vel_y_ = 0;
-      flow_y_ = 0;
-
-      quality_ = 0;
-      metric_scale_ = 0;
-
-      /* find the range sensor */
-      std::vector< boost::shared_ptr<sensor_base_plugin::SensorBase> >::iterator it = sensors.begin();
-      while(it != sensors.end())
-        {
-          size_t i = std::distance(sensors.begin(), it);
-          if(sensor_names[i] == std::string("sensor_plugin/range_sensor"))
-            {
-              range_sensor_ = boost::static_pointer_cast< sensor_plugin::RangeSensor >(*it);
-              ROS_WARN("optical flow: find the range sensor");
-            }
-          it++;
-        }
-
-      /* if we can not find range sensor, we stop optical flow */
-      if(range_sensor_ == NULL)
-        {
-          ROS_FATAL("can not start since we do not have range sensor");
-          optical_flow_sub_.shutdown();
-        }
-
-      sensor_correction_flag_ = false;
-
+      sync_ = boost::shared_ptr<message_filters::Synchronizer<SyncPolicy> >(new message_filters::Synchronizer<SyncPolicy>(SyncPolicy(100)));
+      sync_->connectInput(range_sub_, opt_sub_);
+      sync_->registerCallback(&OpticalFlow::sensorCallback, this);
     }
 
     ~OpticalFlow() {}
+    OpticalFlow():
+      vel_w_(0, 0, 0),
+      flow_w_(0, 0, 0),
+      vel_b_(0, 0, 0),
+      flow_b_(0, 0, 0),
+      pos_z_(0),
+      quality_(0),
+      metric_scale_(0),
+      sensor_correction_flag_(false)
+    {
+      opt_state_.states.resize(2);
+      opt_state_.states[0].id = "x";
+      opt_state_.states[0].state.resize(3);
+      opt_state_.states[1].id = "y";
+      opt_state_.states[1].state.resize(3);
+    }
 
-    OpticalFlow() {}
+    static constexpr int SPECIAL_SCALE = -1;
+    static constexpr int ABSOLUTE_SCALE = 0;
+
   private:
-    ros::Publisher optical_flow_pub_;
-    ros::Subscriber optical_flow_sub_;
-    ros::Time optical_flow_stamp_;
+    /* ros */
+    boost::shared_ptr< message_filters::Synchronizer<SyncPolicy> > sync_;
+    message_filters::Subscriber<sensor_msgs::Range> range_sub_;
+    message_filters::Subscriber<geometry_msgs::TwistStamped> opt_sub_;
+    ros::Publisher opt_state_pub_;
 
-    double x_axis_direction_;
-    double y_axis_direction_;
-
+    /* ros param */
+    string range_sub_topic_name_, opt_sub_topic_name_;
+    tf::Matrix3x3 frame_orientation_;
     double opt_noise_sigma_;
+    double range_min_margin_;
 
-    float vel_x_;
-    float flow_x_;
-
-    float vel_y_;
-    float flow_y_;
-
+    /* base var */
+    ros::Time opt_stamp_;
+    tf::Vector3 vel_b_, vel_w_;
+    tf::Vector3 flow_b_, flow_w_;
+    float pos_z_;
     float quality_;
     float metric_scale_;
-
     bool sensor_correction_flag_;
 
-    geometry_msgs::TwistStamped optical_flow_msg_;
+    aerial_robot_base::States opt_state_;
 
-    boost::shared_ptr<sensor_plugin::RangeSensor> range_sensor_;
-
-    void opticalFlowCallback(const geometry_msgs::TwistStampedConstPtr & optical_flow_msg)
+    void sensorCallback(const sensor_msgs::Range::ConstPtr & range_msg, const geometry_msgs::TwistStamped::ConstPtr & opt_msg)
     {
-
-      static int init_flag = true;
-
-      static bool stop_flag = true;
       static double previous_secs;
-      static double special_increment = 0;
-      optical_flow_msg_ = *optical_flow_msg;
-      double current_secs = optical_flow_msg_.header.stamp.toSec();
 
-      //**** Global Sensor Fusion Flag Check
-      //** the correction will continue after the range sensor become insane (landing phase.) 
-      //** should change?
-      if(range_sensor_->getSensorSanity() == sensor_plugin::RangeSensor::TOTAL_INSANE && sensor_correction_flag_ && (estimator_->getLandedFlag() || !estimator_->getSensorFusionFlag()))
+      double current_secs = opt_msg->header.stamp.toSec();
+
+      /* range sensor */
+      /* consider the orientation of the uav */
+      float roll_b = (estimator_->getState(BasicEstimator::ROLL_W, 0))[0];
+      float pitch_b = (estimator_->getState(BasicEstimator::PITCH_W, 0))[0];
+      float yaw_b = (estimator_->getState(BasicEstimator::YAW_W, 0))[0];
+      ROS_INFO("range debug: uav orientation is [%f, %f, %f]", roll_b, pitch_b, yaw_b);
+      pos_z_ = cos(roll_b) * cos(pitch_b) * range_msg->range;
+      bool range_sanity = (range_msg->min_range + range_min_margin_ < range_msg->range && range_msg->max_range > range_msg->range)?true:false;
+
+      /* optical flow */
+      metric_scale_ = opt_msg->twist.angular.z;
+      if(metric_scale_ < SPECIAL_SCALE)
+        {
+          ROS_ERROR("unknonw scale for optical flow ");
+          return;
+        }
+      quality_ = opt_msg->twist.linear.z;
+      /* twist.linear: optical_flow; twist.angular: velocity */
+      /* twist.linear.z: quality; twist.angular.z: matric_scale */
+      flow_b_ = frame_orientation_ * tf::Vector3(opt_msg->twist.angular.x, opt_msg->twist.angular.y, 0);
+      if(metric_scale_ == ABSOLUTE_SCALE || metric_scale_ == SPECIAL_SCALE)
+        vel_b_ = frame_orientation_ * tf::Vector3(opt_msg->twist.linear.x, opt_msg->twist.linear.y, 0);
+      else
+        vel_b_ = frame_orientation_ * tf::Vector3(opt_msg->twist.linear.x, opt_msg->twist.linear.y, 0) * metric_scale_ / pos_z_;
+
+      /* for general optical flow model */
+
+      tf::Matrix3x3 yaw_orientation;
+      yaw_orientation.setRPY(0, 0, yaw_b);
+      flow_w_ = yaw_orientation * flow_b_;
+      vel_w_ = yaw_orientation * vel_b_;
+
+      /* reset to false */
+      if(!range_sanity && sensor_correction_flag_ &&
+         (estimator_->getLandedFlag() || !estimator_->getSensorFusionFlag()))
         {
           ROS_INFO("optical flow: stop correciton");
-          for(vector<int>::iterator  it = estimate_indices_.begin(); it != estimate_indices_.end(); ++it )
+
+          for(int mode = 0; mode < 2; mode++)
             {
-              estimator_->getFuserEgomotion(*it)->setMeasureFlag(false);
-              estimator_->getFuserEgomotion(*it)->resetState();
-            }
-          for(vector<int>::iterator  it = experiment_indices_.begin(); it != experiment_indices_.end(); ++it )
-            {
-              estimator_->getFuserExperiment(*it)->setMeasureFlag(false);
-              estimator_->getFuserExperiment(*it)->resetState();
+              if(!getFuserActivate(mode)) continue;
+
+              for(auto& fuser : estimator_->getFuser(mode))
+                {
+                  boost::shared_ptr<kf_base_plugin::KalmanFilter> kf = fuser.second;
+                  int id = kf->getId();
+                  /* do not reset x_w and y_w which is estimated by other sensr such as rtk-gps */
+                  if((id & (1 << BasicEstimator::X_B)) || (id & (1 << BasicEstimator::Y_B)))
+                    {
+                      kf->setMeasureFlag(false);
+                      kf->resetState();
+                    }
+                }
             }
           sensor_correction_flag_ = false;
         }
 
-      //* update here
-      metric_scale_ = optical_flow_msg_.twist.angular.z;
-      quality_ = optical_flow_msg_.twist.linear.z;
-
-
-      if(metric_scale_ == 0) //have abosolte scale, dont need calculation
-        {
-          vel_x_ = x_axis_direction_ * optical_flow_msg_.twist.angular.x;
-          vel_y_ = y_axis_direction_ * optical_flow_msg_.twist.angular.y;
-        }
-      else
-        {//TODO!: this is scaling, but we lack the compensation of gyro.
-          vel_x_ = x_axis_direction_ * optical_flow_msg_.twist.linear.x * metric_scale_;
-          vel_y_ = y_axis_direction_ * optical_flow_msg_.twist.linear.y * metric_scale_;
-        }
-
-      flow_x_ = x_axis_direction_ * optical_flow_msg_.twist.linear.x;
-      flow_y_ = y_axis_direction_ * optical_flow_msg_.twist.linear.y;
-
-
       /*  start sensor fusion condition */
-      if(range_sensor_->getSensorSanity() > sensor_plugin::RangeSensor::TOTAL_INSANE && !sensor_correction_flag_)
+      if(range_sanity && !sensor_correction_flag_)
         {
           Eigen::Matrix<double, 1, 1> temp = Eigen::MatrixXd::Zero(1, 1);
           temp(0,0) = opt_noise_sigma_;
-          if(estimate_mode_ & (1 << EGOMOTION_ESTIMATION_MODE))
+
+          for(int mode = 0; mode < 2; mode++)
             {
-              for(int i = 0; i < estimator_->getFuserEgomotionNo(); i++)
+              if(!getFuserActivate(mode)) continue;
+
+              for(auto& fuser : estimator_->getFuser(mode))
                 {
-                  if((estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::X_W)) || (estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::X_B)))
-                    {
-                      estimate_indices_.push_back(i);
-                      //specila process for px4flow
-                      if(metric_scale_ == 0) 
-                        estimator_->getFuserEgomotion(i)->setInitState(flow_x_, 1);
-                      else
-                        estimator_->getFuserEgomotion(i)->setInitState(vel_x_, 1);
+                  boost::shared_ptr<kf_base_plugin::KalmanFilter> kf = fuser.second;
+                  int id = kf->getId();
 
-                      estimator_->getFuserEgomotion(i)->setMeasureSigma(temp);
-                      estimator_->getFuserEgomotion(i)->setMeasureFlag();
-                    }
-                  else if((estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::Y_W)) || (estimator_->getFuserEgomotionId(i) & (1 << BasicEstimator::Y_B)))
+                  if((id & (1 << BasicEstimator::X_W)) ||
+                     (id & (1 << BasicEstimator::Y_W)) ||
+                     (id & (1 << BasicEstimator::X_B)) ||
+                     (id & (1 << BasicEstimator::Y_B)) )
                     {
-                      estimate_indices_.push_back(i);
-                      //specila process for py4flow
-                      if(metric_scale_ == 0)
-                        estimator_->getFuserEgomotion(i)->setInitState(flow_y_, 1);
-                      else
-                        estimator_->getFuserEgomotion(i)->setInitState(vel_y_, 1);
+                      uint8_t b_shift = 0;
+                      tf::Vector3 vel, flow;
 
-                      estimator_->getFuserEgomotion(i)->setMeasureSigma(temp);
-                      estimator_->getFuserEgomotion(i)->setMeasureFlag();
-                    }
-                }
-            }
+                      if(id <= (1 << BasicEstimator::Y_W)) /* world frame */
+                        {
+                          vel = vel_w_;
+                          flow = flow_w_;
+                          b_shift = BasicEstimator::Y_W;
+                        }
+                      else  /* board frame */
+                        {
+                          vel = vel_b_;
+                          flow = flow_b_;
+                          b_shift = BasicEstimator::Y_B;
+                        }
 
-          if(estimate_mode_ & (1 << EXPERIMENT_MODE))
-            {
-              for(int i = 0; i < estimator_->getFuserExperimentNo(); i++)
-                {
-                  if((estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::X_W)) || (estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::X_B)))
-                    {
-                      experiment_indices_.push_back(i);
-                      estimator_->getFuserExperiment(i)->setMeasureSigma(temp);
-                      //specila process for px4flow
-                      if(metric_scale_ == 0) 
-                        estimator_->getFuserEgomotion(i)->setInitState(flow_x_, 1);
+                      /* specila process for px4flow */
+                      if(metric_scale_ == SPECIAL_SCALE)
+                        kf->setInitState(flow[id >> b_shift], 1);
                       else
-                        estimator_->getFuserEgomotion(i)->setInitState(vel_x_, 1);
-                      estimator_->getFuserExperiment(i)->setMeasureFlag();
-                    }
-                  else if((estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::Y_W)) || (estimator_->getFuserExperimentId(i) & (1 << BasicEstimator::Y_B)))
-                    {
-                      experiment_indices_.push_back(i);
-                      estimator_->getFuserExperiment(i)->setMeasureSigma(temp);
-                      //specila process for py4flow
-                      if(metric_scale_ == 0)
-                        estimator_->getFuserEgomotion(i)->setInitState(flow_y_, 1);
-                      else
-                        estimator_->getFuserEgomotion(i)->setInitState(vel_y_, 1);
-                      estimator_->getFuserExperiment(i)->setMeasureFlag();
+                        kf->setInitState(vel[id >> b_shift], 1);
+
+                      kf->setMeasureSigma(temp);
+                      kf->setMeasureFlag();
                     }
                 }
             }
           sensor_correction_flag_ = true;
         }
 
-      //** the condition which we can correction */
-      if(!sensor_correction_flag_) return;
-      /* not sure whether this is right */
-      if(range_sensor_->getValueState() != sensor_plugin::RangeSensor::NORMAL) return;
-
       estimateProcess();
 
-      //publish
-      aerial_robot_base::States opt_data;
-      opt_data.header.stamp = optical_flow_msg_.header.stamp;
+      /* publish */
+      opt_state_.header.stamp = opt_msg->header.stamp;
 
-      aerial_robot_base::State x_state;
-      x_state.id = "x";
-      x_state.raw_vel = vel_x_;
-      x_state.vel = flow_x_;
-
-      aerial_robot_base::State y_state;
-      y_state.id = "y";
-      y_state.raw_vel = vel_y_;
-      y_state.vel = flow_y_;
-
-      for(vector<int>::iterator  it = estimate_indices_.begin(); it != estimate_indices_.end(); ++it )
+      for(int axis = 0; axis < 2; axis++)
         {
-          if((estimator_->getFuserEgomotionId(*it) & (1 << BasicEstimator::X_B))) 
-            {
-              estimator_->setEEState(BasicEstimator::X_B, 1, (estimator_->getFuserEgomotion(*it)->getEstimateState())(1,0));
-              estimator_->setEEState(BasicEstimator::X_B, 0, (estimator_->getFuserEgomotion(*it)->getEstimateState())(0,0));
-            }
-          if((estimator_->getFuserEgomotionId(*it) & (1 << BasicEstimator::X_W))) 
-            {
-              estimator_->setEEState(BasicEstimator::X_W, 1, (estimator_->getFuserEgomotion(*it)->getEstimateState())(1,0));
-              estimator_->setEEState(BasicEstimator::X_W, 0, (estimator_->getFuserEgomotion(*it)->getEstimateState())(0,0));
-            }
-          if((estimator_->getFuserEgomotionId(*it) & (1 << BasicEstimator::Y_B))) 
-            {
-              estimator_->setEEState(BasicEstimator::Y_B, 1, (estimator_->getFuserEgomotion(*it)->getEstimateState())(1,0));
-              estimator_->setEEState(BasicEstimator::Y_B, 0,  (estimator_->getFuserEgomotion(*it)->getEstimateState())(0,0));
-            }
-          if((estimator_->getFuserEgomotionId(*it) & (1 << BasicEstimator::Y_W))) 
-            {
-              estimator_->setEEState(BasicEstimator::Y_W, 1, (estimator_->getFuserEgomotion(*it)->getEstimateState())(1,0));
-              estimator_->setEEState(BasicEstimator::Y_W, 0, (estimator_->getFuserEgomotion(*it)->getEstimateState())(0,0));
-            }
+          opt_state_.states[axis].state[0].x = vel_b_[axis];
+          opt_state_.states[axis].state[0].y = vel_w_[axis];
         }
-      for(vector<int>::iterator  it = experiment_indices_.begin(); it != experiment_indices_.end(); ++it )
-        {
-          if((estimator_->getFuserExperimentId(*it) & (1 << BasicEstimator::X_B))) 
-            estimator_->setEXState(BasicEstimator::X_B, 1, (estimator_->getFuserExperiment(*it)->getEstimateState())(1,0));
-          if((estimator_->getFuserExperimentId(*it) & (1 << BasicEstimator::X_W))) 
-            estimator_->setEXState(BasicEstimator::X_W, 1, (estimator_->getFuserExperiment(*it)->getEstimateState())(1,0));
-          if((estimator_->getFuserExperimentId(*it) & (1 << BasicEstimator::Y_B))) 
-            estimator_->setEXState(BasicEstimator::Y_B, 1, (estimator_->getFuserExperiment(*it)->getEstimateState())(1,0));
-          if((estimator_->getFuserExperimentId(*it) & (1 << BasicEstimator::Y_W))) 
-            estimator_->setEXState(BasicEstimator::Y_W, 1, (estimator_->getFuserExperiment(*it)->getEstimateState())(1,0));
-        }
+      opt_state_pub_.publish(opt_state_);
 
-      x_state.kf_pos = estimator_->getEEState(BasicEstimator::X_W, 0);
-      x_state.kf_vel = estimator_->getEEState(BasicEstimator::X_W, 1);
-      x_state.kfb_pos = estimator_->getEEState(BasicEstimator::X_B, 0);
-      x_state.kfb_vel = estimator_->getEEState(BasicEstimator::X_B, 1);
-
-      y_state.kf_pos = estimator_->getEEState(BasicEstimator::Y_W, 0);
-      y_state.kf_vel = estimator_->getEEState(BasicEstimator::Y_W, 1);
-      y_state.kfb_pos = estimator_->getEEState(BasicEstimator::Y_B, 0);
-      y_state.kfb_vel = estimator_->getEEState(BasicEstimator::Y_B, 1);
-
-
-      opt_data.states.push_back(x_state);
-      opt_data.states.push_back(y_state);
-
-      optical_flow_pub_.publish(opt_data);
-
-      //update
+      /* update */
       previous_secs = current_secs;
       updateHealthStamp(current_secs);
     }
@@ -282,101 +255,89 @@ namespace sensor_plugin
     {
       if(!estimate_flag_) return;
 
+      //** the condition which we can correction */
+      if(!sensor_correction_flag_) return;
+
       Eigen::Matrix<double, 1, 1> sigma_temp = Eigen::MatrixXd::Zero(1, 1); 
       sigma_temp(0,0) = opt_noise_sigma_;
       Eigen::Matrix<double, 1, 1> temp = Eigen::MatrixXd::Zero(1, 1); 
 
-      for(vector<int>::iterator  it = estimate_indices_.begin(); it != estimate_indices_.end(); ++it )
+      for(int mode = 0; mode < 2; mode++)
         {
-          if((estimator_->getFuserEgomotionId(*it) & (1 << BasicEstimator::X_W)) || (estimator_->getFuserEgomotionId(*it) & (1 << BasicEstimator::X_B)))
+          if(!getFuserActivate(mode)) continue;
+
+          for(auto& fuser : estimator_->getFuser(mode))
             {
-              estimator_->getFuserEgomotion(*it)->setMeasureSigma(sigma_temp);
-              estimator_->getFuserEgomotion(*it)->setCorrectMode(1);
+              boost::shared_ptr<kf_base_plugin::KalmanFilter> kf = fuser.second;
+              int id = kf->getId();
 
-              if(metric_scale_ == 0)
+              if((id & (1 << BasicEstimator::X_W)) ||
+                 (id & (1 << BasicEstimator::Y_W)) ||
+                 (id & (1 << BasicEstimator::X_B)) ||
+                 (id & (1 << BasicEstimator::Y_B)) )
                 {
-                  //we have absolute scale for optical flow, like px4flow using sonar
-                  ROS_INFO("Oko");
-                  if(quality_ == 0 || vel_x_ == 0) temp(0, 0) = flow_x_;
-                  else temp(0, 0) = vel_x_;
+                  kf->setMeasureSigma(sigma_temp);
+                  kf->setCorrectMode(1);
+
+                  uint8_t b_shift = 0;
+                  tf::Vector3 vel, flow;
+                  if(id <= (1 << BasicEstimator::Y_W)) /* world frame */
+                    {
+                      vel = vel_w_;
+                      flow = flow_w_;
+                      b_shift = BasicEstimator::Y_W;
+                    }
+                  else  /* board frame */
+                    {
+                      vel = vel_b_;
+                      flow = flow_b_;
+                      b_shift = BasicEstimator::Y_B;
+                    }
+
+                  /* special process for px4flow */
+                  if((metric_scale_ == SPECIAL_SCALE) &&
+                     (quality_ == 0 || vel[id >> b_shift] == 0))
+                    temp(0, 0) = flow[id >> b_shift];
+                  else temp(0, 0) = vel[id >> b_shift];
+
+                  kf->correction(temp);
+
+                  MatrixXd state = kf->getEstimateState();
+
+                  /* set data */
+                  estimator_->setState(id >> b_shift, mode, 0, state(0,0));
+                  estimator_->setState(id >> b_shift, mode, 1, state(1,0));
+                  opt_state_.states[id >> b_shift].state[mode + 1].x = state(0, 0);
+                  opt_state_.states[id >> b_shift].state[mode + 1].y = state(1, 0);
                 }
-              else
-                temp(0, 0) = vel_x_;
-
-              estimator_->getFuserEgomotion(*it)->correction(temp);
-            }
-          else if((estimator_->getFuserEgomotionId(*it) & (1 << BasicEstimator::Y_W)) || (estimator_->getFuserEgomotionId(*it) & (1 << BasicEstimator::Y_B)))
-            {
-              estimator_->getFuserEgomotion(*it)->setMeasureSigma(sigma_temp);
-              estimator_->getFuserEgomotion(*it)->setCorrectMode(1);
-
-              if(metric_scale_ == 0)
-                {
-                  //we have absolute scale for optical flow, like px4flow using sonar
-                  if(quality_ == 0 || vel_y_ == 0) temp(0, 0) = flow_y_;
-                  else temp(0, 0) = vel_y_;
-                }
-              else
-                temp(0, 0) = vel_y_;
-
-              estimator_->getFuserEgomotion(*it)->correction(temp);
-            }
-        }
-      for(vector<int>::iterator  it = experiment_indices_.begin(); it != experiment_indices_.end(); ++it )
-        {
-          if((estimator_->getFuserExperimentId(*it) & (1 << BasicEstimator::X_W)) || (estimator_->getFuserExperimentId(*it) & (1 << BasicEstimator::X_B)))
-            {
-              estimator_->getFuserExperiment(*it)->setMeasureSigma(sigma_temp);
-              estimator_->getFuserExperiment(*it)->setCorrectMode(1);
-
-              if(metric_scale_ == 0)
-                {
-                  if(quality_ == 0 || vel_x_ == 0) temp(0, 0) = flow_x_;
-                  else temp(0, 0) = vel_x_;
-                }
-              else
-                temp(0, 0) = vel_x_;
-
-              estimator_->getFuserExperiment(*it)->correction(temp);
-            }
-          else if((estimator_->getFuserExperimentId(*it) & (1 << BasicEstimator::Y_W)) || (estimator_->getFuserExperimentId(*it) & (1 << BasicEstimator::Y_B)))
-            {
-              estimator_->getFuserExperiment(*it)->setMeasureSigma(sigma_temp);
-              estimator_->getFuserExperiment(*it)->setCorrectMode(1);
-
-              if(metric_scale_ == 0)
-                {
-                  if(quality_ == 0 || vel_y_ == 0) temp(0, 0) = flow_y_;
-                  else temp(0, 0) = vel_y_;
-                }
-              else
-                temp(0, 0) = vel_y_;
-
-              estimator_->getFuserExperiment(*it)->correction(temp);
             }
         }
     }
 
-  void rosParamInit()
+    void rosParamInit()
     {
+      std::string ns = nhp_.getNamespace();
+      nhp_.param("range_min_margin", range_min_margin_, 0.0);
 
-    nhp_.param("opt_noise_sigma", opt_noise_sigma_, 0.01 );
-    printf("level vel noise sigma  is %f\n", opt_noise_sigma_);
+      double frame_roll, frame_pitch, frame_yaw;
+      nhp_.param("frame_roll", frame_roll, 0.0);
+      nhp_.param("frame_pitch", frame_pitch, 0.0);
+      nhp_.param("frame_yaw", frame_yaw, 0.0);
+      if(param_verbose_) cout << ns << ": frame rpy: [" << frame_roll << ", " << frame_pitch << ", " << frame_yaw << "]"  << endl;
+      frame_orientation_.setRPY(frame_roll, frame_pitch, frame_yaw);
 
-    std::string ns = nhp_.getNamespace();
-    if (!nhp_.getParam ("x_axis_direction", x_axis_direction_))
-      x_axis_direction_ = 1.0;
-    printf("%s: x_axis direction_ is %.3f\n", ns.c_str(), x_axis_direction_);
+      nhp_.param("opt_noise_sigma", opt_noise_sigma_, 0.01 );
+      if(param_verbose_) cout << ns << ": level vel noise sigma is " <<  opt_noise_sigma_ << endl;
 
-    if (!nhp_.getParam ("y_axis_direction", y_axis_direction_))
-      y_axis_direction_ = 1.0; //-1 is default
-    printf("%s: y_axis direction_ is %.3f\n", ns.c_str(), y_axis_direction_);
+      nhp_.param("range_sub_topic_name", range_sub_topic_name_, string("range") );
+      if(param_verbose_) cout << ns << ": range sub topic name is " <<  range_sub_topic_name_ << endl;
+      nhp_.param("opt_sub_topic_name", opt_sub_topic_name_, string("opt") );
+      if(param_verbose_) cout << ns << ": opt sub topic name is " <<  opt_sub_topic_name_ << endl;
+    }
+  };
 
-  }
 };
 
-};
-#endif
 
 
 
