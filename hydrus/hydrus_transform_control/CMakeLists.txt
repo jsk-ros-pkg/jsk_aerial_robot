@@ -24,6 +24,7 @@ add_message_files(
   RollPitchYawGain.msg
   ServoState.msg
   ServoControl.msg
+  Gyro.msg
 )
 
 add_service_files(
