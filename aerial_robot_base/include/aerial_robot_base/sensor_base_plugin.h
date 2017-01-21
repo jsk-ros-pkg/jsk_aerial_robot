@@ -130,6 +130,7 @@ namespace sensor_plugin
 
       ros::NodeHandle nh_global("~");
       nh_global.param("simulation", simulation_, false);
+      cout << nh_global.getNamespace() << ",  simulaiton  is " << simulation_ << endl;
       nh_global.param("param_verbose", param_verbose_, false);
       nh_global.param("debug_verbose", debug_verbose_, false);
 
