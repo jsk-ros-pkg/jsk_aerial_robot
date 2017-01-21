@@ -827,6 +827,7 @@ void TransformController::param2contoller()
           rpy_gain_msg.pitch_i_gain[i] = K12_(i,9) * 1000; //scale: x 1000
 
           rpy_gain_msg.yaw_d_gain[i] = K12_(i,5) * 1000; //scale: x 1000
+          //rpy_gain_msg.yaw_d_gain[i] = 0; //scale: x 1000
 
           /* to aerial_robot_base, feedback */
           four_axis_gain_msg.pos_p_gain_roll.push_back(K12_(i,0));
@@ -845,10 +846,15 @@ void TransformController::param2contoller()
           four_axis_gain_msg.pos_d_gain_yaw.push_back(K12_(i,5));
           four_axis_gain_msg.pos_i_gain_yaw.push_back(K12_(i,10));
 
+          // four_axis_gain_msg.pos_p_gain_yaw.push_back(0);
+          // four_axis_gain_msg.pos_d_gain_yaw.push_back(0);
+          // four_axis_gain_msg.pos_i_gain_yaw.push_back(0);
+
           /* to aerial_robot_base, feedforward */
           four_axis_gain_msg.ff_roll_vec.push_back(-K12_(i,0));
           four_axis_gain_msg.ff_pitch_vec.push_back(-K12_(i,2));
           four_axis_gain_msg.ff_yaw_vec.push_back(-K12_(i,4));
+          //four_axis_gain_msg.ff_yaw_vec.push_back(0);
 
         }
       else if(lqi_mode_ == LQI_THREE_AXIS_MODE)
