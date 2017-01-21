@@ -73,7 +73,7 @@
   ###########  Transformable Model  ###########
   <group if="$(arg transformable_mode)">
     ###########  Transform Control  ###########
-    <node pkg="hydrus_transform_control" type="transform_control_node" name="transform_control_node"  output="screen" >
+    <node pkg="hydrus_transform_control" type="transform_control_node" name="transform_control_node"  output="screen" respawn="true">
       <rosparam file="$(find hydrus_transform_control)/config/hydrusx/$(arg model)/Hydrus.yaml" command="load" />
       <param name="kinetic_verbose" value="false" />
       <param name="control_verbose" value="false" />
