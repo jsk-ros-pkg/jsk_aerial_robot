@@ -5,16 +5,16 @@ joint1_angle_max: 1.58
 joint1_angle_min: -1.58
 joint1_angle_sgn: 1
 joint1_angle_scale: 0.001534
-joint1_angle_offset: 2074
+joint1_angle_offset: 2047
 
 joint2_angle_max: 1.58
 joint2_angle_min: -1.58
 joint2_angle_sgn: 1
 joint2_angle_scale: 0.001534
-joint2_angle_offset: 2073
+joint2_angle_offset: 1968
 
 joint3_angle_max: 1.58
 joint3_angle_min: -1.58
 joint3_angle_sgn: 1
 joint3_angle_scale: 0.001534
-joint3_angle_offset: 1984
+joint3_angle_offset: 2036

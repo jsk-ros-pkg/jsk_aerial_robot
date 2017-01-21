@@ -6,4 +6,4 @@ motor_info:
         f_pwm_offset: -30.593
         m_f_rate: -0.01676 
         pwm_rate: 18.5  # 1850/100.0
-        force_landing_pwm: 0.73
+        force_landing_pwm: 0.7
