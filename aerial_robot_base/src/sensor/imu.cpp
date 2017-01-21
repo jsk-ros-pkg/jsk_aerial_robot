@@ -73,9 +73,6 @@ namespace sensor_plugin
           imu_sub_ = nh_.subscribe<aerial_robot_msgs::SimpleImu>(imu_topic_name_, 1, &Imu::kduinoImuCallback, this);
         }
 
-      ROS_WARN("size of ee fuser: %d", (int)(estimator_->getFuser(BasicEstimator::EGOMOTION_ESTIMATE)).size());
-      ROS_WARN("size of ex fuser: %d", (int)(estimator_->getFuser(BasicEstimator::EXPERIMENT_ESTIMATE)).size());
-
     }
 
     ~Imu () {}
