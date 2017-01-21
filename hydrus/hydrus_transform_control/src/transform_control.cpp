@@ -791,6 +791,28 @@ void TransformController::param2contoller()
 
   four_axis_gain_msg.motor_num = link_num_;
 
+#if 0
+  /* temp */
+  if (std::signbit(K12_(0,0)) != std::signbit(K12_(5,0)))
+    {
+      K12_(0,0) = 0;
+      K12_(5,0) = 0;
+      K12_(0,1) = 0;
+      K12_(5,1) = 0;
+      K12_(0,8) = 0;
+      K12_(5,8) = 0;
+    }
+  else
+    {
+      K12_(0,2) = 0;
+      K12_(5,2) = 0;
+      K12_(0,3) = 0;
+      K12_(5,3) = 0;
+      K12_(0,9) = 0;
+      K12_(5,9) = 0;
+    }
+#endif
+
   for(int i = 0; i < link_num_; i ++)
     {
       if(lqi_mode_ == LQI_FOUR_AXIS_MODE)

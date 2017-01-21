@@ -45,6 +45,7 @@
 #include <visualization_msgs/MarkerArray.h>
 #include <iostream>
 #include <iomanip>
+#include <cmath>
 
 #include <aerial_robot_base/DesireCoord.h>
 #include <aerial_robot_msgs/FourAxisGain.h>
