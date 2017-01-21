@@ -29,8 +29,8 @@
 
     ###########  Basic Param  ###########
     <param name="estimator/estimate_mode" value= "$(arg estimate_mode)" />
-    <param name="simulation" value= "true" />
     <param name="param_verbose" value= "true" />
+    <param name="simulation" value="$(arg simulation)" /> <!-- for sensor plugin -->
 
     <param if="$(arg pos_control_mode)" name="navigator/xy_control_mode" type="int" value="0"/>
     <param if="$(arg vel_control_mode)" name="navigator/xy_control_mode" type="int" value="3"/>
@@ -53,7 +53,7 @@
     <include file="$(find aerial_robot_base)/launch/sensors/onboard_sensors.launch" >
       <arg name="simulation" value="$(arg simulation)" />
       <arg name="imu_board" value="1" />  <!-- 1: d imu board, 0: kduino board -->
-      <arg name="use_mocap" value="1" />
+      <arg name="use_mocap" value="0" />
       <arg name="use_joy" value="0" />
       <arg name="use_opti" value="0" />
     </include >
