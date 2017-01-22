@@ -7,6 +7,7 @@ project(hydrus_transform_control)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   aerial_robot_msgs
+  aerial_robot_base
   dynamixel_controllers
   tf_conversions
   cmake_modules
