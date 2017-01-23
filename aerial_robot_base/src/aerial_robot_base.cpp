@@ -56,7 +56,7 @@ void AerialRobotBase::rosParamInit()
   nhp_.param ("main_rate", main_rate_, 0.0);
   if(param_verbose) cout << nhp_.getNamespace() << ": main_rate is " << main_rate_ << endl;
 
-  nhp_.param ("tf_pub_rate", tf_pub_rate_, 50.0);
+  nhp_.param ("tf_pub_rate", tf_pub_rate_, 100.0);
   if(param_verbose) cout << nhp_.getNamespace() << ": tf_pub_rate is " << tf_pub_rate_ << endl;
 
   ros::NodeHandle motor_info_node("motor_info");
@@ -79,7 +79,7 @@ void AerialRobotBase::tfPubFunc()
   while(ros::ok())
     {
       estimator_->tfPublish();
-      navigator_->tfPublish();
+      //navigator_->tfPublish();
 
       ros::spinOnce();
       loop_rate.sleep();
