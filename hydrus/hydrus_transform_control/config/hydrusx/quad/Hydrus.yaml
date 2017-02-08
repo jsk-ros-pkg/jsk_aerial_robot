@@ -12,35 +12,35 @@ link_joint_offset: 0.3
 link_base_rod_mid_mass: 0.099
 link_base_ring_mass: 0.05 
 link_base_two_ring_holder_mass: 0.0386
-link_base_center_mass: 0.2106 # 210.6[g], no battery
+link_base_center_mass: 0.4046 # 210.6[g], no battery; bat1300mAh: 194[g]
 link_joint_mass: 0.2075
 
 # Extra Module
-extra_module_num: 9
+extra_module_num: 4
 
 # MCU: d_board
 extra_module1_link: 2
 extra_module1_offset: 0.240
-extra_module1_mass: 0.052 #board: 0.045, usb-cable: 0.0072
+extra_module1_mass: 0.055 #board: 0.045, odroid-usb-cable: 0.01; tx1-usb-cable: 0.0072
 
 # PC
 extra_module2_link: 1
 extra_module2_offset: -0.220
-extra_module2_mass: 0.240 # TX1 Orbitty Carrier Board
-
-# Camera
-extra_module3_link: 2
-extra_module3_offset: 0.245
-extra_module3_mass: 0.147 # PointGrey Fisheye
+extra_module2_mass: 0.100 # TX1 Orbitty Carrier Board 0.24, Odroid: 0.1
 
 # Additional Leg
-extra_module4_link: 3
-extra_module4_offset: -0.235
-extra_module4_mass: 0.1123 # add magnet(50[g]) for balance the quad model
+extra_module3_link: 3
+extra_module3_offset: -0.235
+extra_module3_mass: 0.0623
 
-extra_module5_link: 0
-extra_module5_offset: 0.247
-extra_module5_mass: 0.1123 # add magnet(50[g]) for balance the quad model
+extra_module4_link: 0
+extra_module4_offset: 0.247
+extra_module4_mass: 0.0623
+
+# Camera
+extra_module5_link: 2
+extra_module5_offset: 0.245
+extra_module5_mass: 0.147 # PointGrey Fisheye
 
 # Leg shift at center joint
 extra_module6_link: 2
@@ -50,16 +50,6 @@ extra_module6_mass: -0.04
 extra_module7_link: 1
 extra_module7_offset: -0.155
 extra_module7_mass: 0.0623
-
-# Battery
-extra_module8_link: 0
-extra_module8_offset: 0
-extra_module8_mass: 0.3657
-
-extra_module9_link: 3
-extra_module9_offset: 0
-extra_module9_mass: 0.3657
-
 
 propeller1_direction: -1
 propeller1_order: 0
