@@ -8,6 +8,7 @@
 #include <dynamixel_msgs/JointState.h>
 #include <sensor_msgs/JointState.h>
 #include <dynamixel_controllers/TorqueEnable.h>
+#include <dynamixel_msgs/MotorStateList.h>
 #include <hydrus_transform_control/ServoState.h>
 #include <hydrus_transform_control/ServoControl.h>
 #include <string>
@@ -26,6 +27,11 @@ typedef struct{
   double angle_scale;
   double angle_max;
   double angle_min;
+  uint16_t prev_servo_angle; /* the previous servo angle in 14bit */
+  bool moving; /* for dynamixel_msgs */
+  uint8_t load; /* for dynamixel_msgs */
+  uint8_t temp; /* for dynamixel_msgs */
+  uint8_t error; /* for dynamixel_msgs */
 }JointInfo;
 
 
@@ -51,9 +57,15 @@ protected:
   ros::Subscriber joints_ctrl_sub_;
   std::string joints_ctrl_sub_name_;
 
+  ros::Publisher dynamixel_msg_pub_;
+  std::string dynamixel_msg_pub_name_;
+
   bool torque_flag_;
   bool start_flag_;
   uint16_t servo_on_mask_, servo_full_on_mask_;
+
+  double moving_check_rate_;
+  int moving_angle_thresh_;
 
   double bridge_rate_;
   ros::Timer  bridge_timer_;
@@ -114,9 +126,15 @@ public:
         nhp_.param("servo_pub_name", servo_pub_name_, std::string("target_servo_states"));
         nhp_.param("servo_config_cmd_pub_name", servo_config_cmd_pub_name_, std::string("servo_config_cmd"));
 
+        nhp_.param("moving_check_rate", moving_check_rate_, 10.0);
+        nhp_.param("moving_angle_thresh", moving_angle_thresh_, 2);
+        nhp_.param("dynamixel_msg_pub_name", dynamixel_msg_pub_name_, std::string("/joint_motors"));
+
         servo_angle_sub_ = nh_.subscribe<hydrus_transform_control::ServoState>(servo_sub_name_, 1, &HydrusJoints::servoStateCallback, this, ros::TransportHints().tcpNoDelay());
         servo_ctrl_pub_ = nh_.advertise<hydrus_transform_control::ServoControl>(servo_pub_name_, 1);
         servo_config_cmd_pub_ = nh_.advertise<std_msgs::UInt8>(servo_config_cmd_pub_name_, 1);
+
+        dynamixel_msg_pub_ = nh_.advertise<dynamixel_msgs::MotorStateList>(dynamixel_msg_pub_name_, 1);
       }
 
     nhp_.param("bridge_rate", bridge_rate_, 40.0);
@@ -141,8 +159,30 @@ public:
 
   void servoStateCallback(const hydrus_transform_control::ServoStateConstPtr& state_msg)
   {
+    static ros::Time prev_time = ros::Time::now();
     for(int i = 0; i < joint_num_; i ++)
-      setCurrentAngle(state_msg->angle[i], i);
+      {
+        setCurrentAngle(state_msg->angle[i], i);
+        joint_module_[i].error = state_msg->error[i];
+        joint_module_[i].temp = state_msg->temp[i];
+        joint_module_[i].load = state_msg->load[i];
+      }
+
+    /* check moving */
+    if(ros::Time::now().toSec() - prev_time.toSec() > (1 / moving_check_rate_))
+      {
+        for(int i = 0; i < joint_num_; i ++)
+          {
+            if(abs(state_msg->angle[i] - joint_module_[i].prev_servo_angle) > moving_angle_thresh_)
+              {
+                joint_module_[i].moving = true;
+                joint_module_[i].prev_servo_angle = state_msg->angle[i];
+              }
+            else joint_module_[i].moving = false;
+          }
+
+        prev_time = ros::Time::now();
+      }
   }
 
   void jointsCtrlCallback(const sensor_msgs::JointStateConstPtr& joints_ctrl_msg)
@@ -203,7 +243,6 @@ public:
         servo_config_cmd_pub_.publish(enable_torque);
         return true;
       }
-
   }
 
   void bridgeFunc(const ros::TimerEvent & e)
@@ -211,7 +250,6 @@ public:
     if(servo_on_mask_ != servo_full_on_mask_) return;
     jointStatePublish();
   }
-
 
   void jointStatePublish()
   {
@@ -247,6 +285,25 @@ public:
       }
 
     joints_state_pub_.publish(hydrus_joints_state);
+
+    /* need to publish dynamixel msg */
+    if(bridge_mode_ == MCU_MODE)
+      {
+        dynamixel_msgs::MotorStateList dynamixel_msg;
+        for(int i = 0; i < joint_num_; i ++)
+          {
+            dynamixel_msgs::MotorState motor_msg;
+            motor_msg.timestamp = ros::Time::now().toSec();
+            motor_msg.id = i;
+            motor_msg.error = joint_module_[i].error;
+            motor_msg.load = joint_module_[i].load;
+            motor_msg.moving = joint_module_[i].moving;
+            motor_msg.temperature = joint_module_[i].temp;
+            dynamixel_msg.motor_states.push_back(motor_msg);
+          }
+
+        dynamixel_msg_pub_.publish(dynamixel_msg);
+      }
   }
 };
 
