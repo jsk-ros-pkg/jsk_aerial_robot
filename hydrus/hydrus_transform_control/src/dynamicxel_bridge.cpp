@@ -5,6 +5,7 @@
 #include <std_msgs/Int8.h>
 #include <std_msgs/Empty.h>
 #include <std_msgs/Float64.h>
+#include <std_srvs/SetBool.h>
 #include <dynamixel_msgs/JointState.h>
 #include <sensor_msgs/JointState.h>
 #include <dynamixel_controllers/TorqueEnable.h>
@@ -47,6 +48,7 @@ protected:
 
   std::string joints_torque_control_srv_name_;
   ros::ServiceServer joints_torque_control_srv_;
+  ros::ServiceClient joints_torque_control_client_;
 
   ros::Subscriber servo_angle_sub_; //current servo angles from MCU
   ros::Publisher servo_ctrl_pub_; //target servo angles to MCU
@@ -60,6 +62,9 @@ protected:
   ros::Publisher dynamixel_msg_pub_;
   std::string dynamixel_msg_pub_name_;
 
+  ros::ServiceServer overload_check_activate_srv_;
+  std::string overload_check_activate_srv_name_;
+
   bool torque_flag_;
   bool start_flag_;
   uint16_t servo_on_mask_, servo_full_on_mask_;
@@ -67,12 +72,15 @@ protected:
   double moving_check_rate_;
   int moving_angle_thresh_;
 
+  bool overload_check_;
+
   double bridge_rate_;
   ros::Timer  bridge_timer_;
 
 public:
   static const uint8_t DYNAMIXEL_HUB_MODE = 0;
   static const uint8_t MCU_MODE = 1;
+  static const uint8_t OVERLOAD_FLAG = 0x20;
 
   HydrusJoints(ros::NodeHandle nh, ros::NodeHandle nhp)
     : nh_(nh),nhp_(nhp)
@@ -83,6 +91,8 @@ public:
     servo_on_mask_ = 0;
     servo_full_on_mask_ = 0;
     torque_flag_ = true;
+
+    overload_check_ = true; /* check overload automatically */
 
     joint_module_.resize(joint_num_);
 
@@ -115,6 +125,7 @@ public:
 
     nhp_.param("joints_torque_control_srv_name", joints_torque_control_srv_name_, std::string("/joints_controller/torque_enable"));
     joints_torque_control_srv_ =  nh_.advertiseService(joints_torque_control_srv_name_, &HydrusJoints::jointsTorqueEnableCallback, this);
+    joints_torque_control_client_ = nh_.serviceClient<dynamixel_controllers::TorqueEnable>(joints_torque_control_srv_name_);
 
     nhp_.param("joints_ctrl_sub_name", joints_ctrl_sub_name_, std::string("hydrus/joints_ctrl"));
     joints_ctrl_sub_ = nh_.subscribe<sensor_msgs::JointState>(joints_ctrl_sub_name_, 1, &HydrusJoints::jointsCtrlCallback, this, ros::TransportHints().tcpNoDelay());
@@ -128,13 +139,19 @@ public:
 
         nhp_.param("moving_check_rate", moving_check_rate_, 10.0);
         nhp_.param("moving_angle_thresh", moving_angle_thresh_, 2);
-        nhp_.param("dynamixel_msg_pub_name", dynamixel_msg_pub_name_, std::string("/joint_motors"));
+        nhp_.param("dynamixel_msg_pub_name", dynamixel_msg_pub_name_, std::string("joint_motors"));
+        nhp_.param("overload_check_activate_srv_name", overload_check_activate_srv_name_, std::string("overload_check_activate"));
 
         servo_angle_sub_ = nh_.subscribe<hydrus_transform_control::ServoState>(servo_sub_name_, 1, &HydrusJoints::servoStateCallback, this, ros::TransportHints().tcpNoDelay());
         servo_ctrl_pub_ = nh_.advertise<hydrus_transform_control::ServoControl>(servo_pub_name_, 1);
         servo_config_cmd_pub_ = nh_.advertise<std_msgs::UInt8>(servo_config_cmd_pub_name_, 1);
 
+        /* dynamixel msg */
         dynamixel_msg_pub_ = nh_.advertise<dynamixel_msgs::MotorStateList>(dynamixel_msg_pub_name_, 1);
+
+        /* overload check activate flag */
+        overload_check_activate_srv_ = nh_.advertiseService(overload_check_activate_srv_name_, &HydrusJoints::overloadCheckActivateCallback, this);
+
       }
 
     nhp_.param("bridge_rate", bridge_rate_, 40.0);
@@ -182,6 +199,25 @@ public:
           }
 
         prev_time = ros::Time::now();
+      }
+
+    /* check overload */
+    if(overload_check_)
+      {
+        for(int i = 0; i < joint_num_; i ++)
+          {
+            if(OVERLOAD_FLAG & state_msg->error[i])
+              {
+                ROS_WARN("motor: %d, overload", i+1);
+
+                dynamixel_controllers::TorqueEnable srv;
+                srv.request.torque_enable = false;
+                if (joints_torque_control_client_.call(srv))
+                  return;
+                else
+                  ROS_ERROR("Failed to call service joints_torque_control_client");
+              }
+          }
       }
   }
 
@@ -243,6 +279,14 @@ public:
         servo_config_cmd_pub_.publish(enable_torque);
         return true;
       }
+  }
+
+  bool overloadCheckActivateCallback(std_srvs::SetBool::Request &req, std_srvs::SetBool::Response &res)
+  {
+    overload_check_ = req.data;
+
+    res.success = true;
+    return true;
   }
 
   void bridgeFunc(const ros::TimerEvent & e)
