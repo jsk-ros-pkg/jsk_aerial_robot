@@ -139,8 +139,8 @@ public:
 
         nhp_.param("moving_check_rate", moving_check_rate_, 10.0);
         nhp_.param("moving_angle_thresh", moving_angle_thresh_, 2);
-        nhp_.param("dynamixel_msg_pub_name", dynamixel_msg_pub_name_, std::string("joint_motors"));
-        nhp_.param("overload_check_activate_srv_name", overload_check_activate_srv_name_, std::string("overload_check_activate"));
+        nhp_.param("dynamixel_msg_pub_name", dynamixel_msg_pub_name_, std::string("/motor_states/joints_port"));
+        nhp_.param("overload_check_activate_srv_name", overload_check_activate_srv_name_, std::string("/overload_check_activate"));
 
         servo_angle_sub_ = nh_.subscribe<hydrus_transform_control::ServoState>(servo_sub_name_, 1, &HydrusJoints::servoStateCallback, this, ros::TransportHints().tcpNoDelay());
         servo_ctrl_pub_ = nh_.advertise<hydrus_transform_control::ServoControl>(servo_pub_name_, 1);
@@ -340,7 +340,7 @@ public:
             motor_msg.timestamp = ros::Time::now().toSec();
             motor_msg.id = i;
             motor_msg.error = joint_module_[i].error;
-            motor_msg.load = joint_module_[i].load;
+            motor_msg.load = joint_module_[i].load / 255.0f;
             motor_msg.moving = joint_module_[i].moving;
             motor_msg.temperature = joint_module_[i].temp;
             dynamixel_msg.motor_states.push_back(motor_msg);
