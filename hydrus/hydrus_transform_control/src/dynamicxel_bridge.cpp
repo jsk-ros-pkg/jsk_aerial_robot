@@ -48,7 +48,6 @@ protected:
 
   std::string joints_torque_control_srv_name_;
   ros::ServiceServer joints_torque_control_srv_;
-  ros::ServiceClient joints_torque_control_client_;
 
   ros::Subscriber servo_angle_sub_; //current servo angles from MCU
   ros::Publisher servo_ctrl_pub_; //target servo angles to MCU
@@ -125,7 +124,6 @@ public:
 
     nhp_.param("joints_torque_control_srv_name", joints_torque_control_srv_name_, std::string("/joints_controller/torque_enable"));
     joints_torque_control_srv_ =  nh_.advertiseService(joints_torque_control_srv_name_, &HydrusJoints::jointsTorqueEnableCallback, this);
-    joints_torque_control_client_ = nh_.serviceClient<dynamixel_controllers::TorqueEnable>(joints_torque_control_srv_name_);
 
     nhp_.param("joints_ctrl_sub_name", joints_ctrl_sub_name_, std::string("hydrus/joints_ctrl"));
     joints_ctrl_sub_ = nh_.subscribe<sensor_msgs::JointState>(joints_ctrl_sub_name_, 1, &HydrusJoints::jointsCtrlCallback, this, ros::TransportHints().tcpNoDelay());
@@ -210,12 +208,10 @@ public:
               {
                 ROS_WARN("motor: %d, overload", i+1);
 
-                dynamixel_controllers::TorqueEnable srv;
-                srv.request.torque_enable = false;
-                if (joints_torque_control_client_.call(srv))
-                  return;
-                else
-                  ROS_ERROR("Failed to call service joints_torque_control_client");
+                /* direct send torque control flag */
+                std_msgs::UInt8 enable_torque;
+                enable_torque.data = 0;
+                servo_config_cmd_pub_.publish(enable_torque);
               }
           }
       }
