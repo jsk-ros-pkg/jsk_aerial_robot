@@ -94,12 +94,11 @@ void RigidEstimator::statesBroadcast()
           if(axis == Y_W) state_temp = getState(Y_B);
           if(axis == YAW_W) state_temp = getState(YAW_W_B);
 
-          r_state.reserves.push_back(state_temp[GROUND_TRUTH][0]);
-          r_state.reserves.push_back(state_temp[GROUND_TRUTH][1]);
-          r_state.reserves.push_back(state_temp[EGOMOTION_ESTIMATE][0]);
-          r_state.reserves.push_back(state_temp[EGOMOTION_ESTIMATE][1]);
-          r_state.reserves.push_back(state_temp[EXPERIMENT_ESTIMATE][0]);
-          r_state.reserves.push_back(state_temp[EXPERIMENT_ESTIMATE][1]);
+          for(int mode = 0; mode < 3; mode++)
+            {
+              r_state.reserves.push_back(state_temp[mode][0]);
+              r_state.reserves.push_back(state_temp[mode][1]);
+            }
         }
 
       full_state.states.push_back(r_state);
