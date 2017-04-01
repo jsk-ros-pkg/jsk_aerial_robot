@@ -132,8 +132,11 @@ void DragonLQIGimbalController::gimbalControl()
     }
 
   Eigen::VectorXd f_xy;
-  double target_linear_acc_x = pid_controllers_.at(X).result();
-  double target_linear_acc_y = pid_controllers_.at(Y).result();
+  tf::Vector3 target_linear_acc_w(pid_controllers_.at(X).result(),
+                                  pid_controllers_.at(Y).result(),
+                                  pid_controllers_.at(Z).result());
+  tf::Vector3 target_linear_acc_cog = (tf::Matrix3x3(tf::createQuaternionFromYaw(rpy_.z()))).inverse() * target_linear_acc_w;
+
   double target_ang_acc_x = pid_controllers_.at(ROLL).result();
   double target_ang_acc_y = pid_controllers_.at(PITCH).result();
   double target_ang_acc_z = pid_controllers_.at(YAW).result();
@@ -161,7 +164,7 @@ void DragonLQIGimbalController::gimbalControl()
       P.block(0, 0, 1, motor_num_ * 2) = P_att.block(2, 0, 1, motor_num_ * 2);
       P.block(1, 0, 2, motor_num_ * 2) = P_xy_ / robot_model_->getMass();
 
-      f_xy = pseudoinverse(P) * Eigen::Vector3d(target_ang_acc_z, target_linear_acc_x - (rpy_.y() * acc_z), target_linear_acc_y - (-rpy_.x() * acc_z));
+      f_xy = pseudoinverse(P) * Eigen::Vector3d(target_ang_acc_z, target_linear_acc_cog.x() - (rpy_.y() * acc_z), target_linear_acc_cog.y() - (-rpy_.x() * acc_z));
 
       // reset  roll pitch control
       pid_controllers_.at(ROLL).reset();
@@ -199,7 +202,7 @@ void DragonLQIGimbalController::gimbalControl()
 
       Eigen::VectorXd pid_values(5);
       /* F = P# * [roll_pid, pitch_pid, yaw_pid, x_pid, y_pid] */
-      pid_values << target_ang_acc_x, target_ang_acc_y, target_ang_acc_z, target_linear_acc_x - (rpy_.y() * acc_z), target_linear_acc_y - (-rpy_.x() * acc_z);
+      pid_values << target_ang_acc_x, target_ang_acc_y, target_ang_acc_z, target_linear_acc_cog.x() - (rpy_.y() * acc_z), target_linear_acc_cog.y() - (-rpy_.x() * acc_z);
       f_xy = pseudoinverse(P) * pid_values;
     }
 
