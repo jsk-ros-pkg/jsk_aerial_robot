@@ -28,9 +28,9 @@ controller:
     landing_err_z: -0.4
 
   roll_pitch:
-    p_gain: 20
+    p_gain: 10
     i_gain: 1.0
-    d_gain: 5
+    d_gain: 2.5 # 5: deverge
     limit_sum: 10
     limit_p: 10
     limit_i: 10
