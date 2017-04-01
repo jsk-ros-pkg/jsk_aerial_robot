@@ -29,7 +29,7 @@ void DragonFullVectoringController::initialize(ros::NodeHandle nh, ros::NodeHand
   target_vectoring_force_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("debug/target_vectoring_force", 1);
   estimate_external_wrench_pub_ = nh_.advertise<geometry_msgs::WrenchStamped>("estimated_external_wrench", 1);
   rotor_interfere_wrench_pub_ = nh_.advertise<geometry_msgs::WrenchStamped>("rotor_interfere_wrench", 1);
-  rotor_interfere_force_pub_ = nh_.advertise<sensor_msgs::Joy>("rotor_interfere_forces", 1);
+  interfrence_marker_pub_ = nh_.advertise<visualization_msgs::MarkerArray>("interference_markers", 1);
 
   rotor_interfere_comp_wrench_ = Eigen::VectorXd::Zero(6); // reset
   est_external_wrench_ = Eigen::VectorXd::Zero(6);
@@ -403,6 +403,67 @@ void DragonFullVectoringController::rotorInterfereCompensation()
 
       ROS_DEBUG_STREAM("rotor_interfere_wrench: " << -rotor_interfere_comp_wrench_.segment(2, 3).transpose());
     }
+
+  // visualize the interference
+  visualization_msgs::MarkerArray interference_marker_msg;
+  if(overlap_positions_.size() > 0)
+    {
+      int id = 0;
+      for(int i = 0; i < overlap_positions_.size(); i++)
+        {
+          visualization_msgs::Marker segment_sphere;
+          segment_sphere.header.stamp = ros::Time::now();
+          segment_sphere.header.frame_id = nh_.getNamespace() + std::string("/cog"); //overlap_segments_.at(i);
+          segment_sphere.id = id++;
+          segment_sphere.action = visualization_msgs::Marker::ADD;
+          segment_sphere.type = visualization_msgs::Marker::SPHERE;
+          segment_sphere.pose.position.x = overlap_positions_.at(i).x();
+          segment_sphere.pose.position.y = overlap_positions_.at(i).y();
+          segment_sphere.pose.position.z = overlap_positions_.at(i).z();
+          segment_sphere.pose.orientation.w = 1;
+          segment_sphere.scale.x = 0.15;
+          segment_sphere.scale.y = 0.15;
+          segment_sphere.scale.z = 0.15;
+          segment_sphere.color.g = 1.0;
+          segment_sphere.color.a = 0.5;
+
+          interference_marker_msg.markers.push_back(segment_sphere);
+
+          visualization_msgs::Marker force_arrow;
+          force_arrow.header.stamp = ros::Time::now();
+          force_arrow.header.frame_id = nh_.getNamespace() + std::string("/cog"); //overlap_segments_.at(i);
+          force_arrow.id = id++;
+          force_arrow.action = visualization_msgs::Marker::ADD;
+          force_arrow.type = visualization_msgs::Marker::ARROW;
+          force_arrow.pose.position.x = overlap_positions_.at(i).x();
+          force_arrow.pose.position.y = overlap_positions_.at(i).y();
+          force_arrow.pose.position.z = overlap_positions_.at(i).z() - 0.02;
+          force_arrow.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, -M_PI/2, 0);
+          force_arrow.scale.x = rotor_interfere_force_(i) / 10.0;
+          force_arrow.scale.y = 0.02;
+          force_arrow.scale.z = 0.02;
+          force_arrow.color.g = 1.0;
+          force_arrow.color.a = 0.5;
+
+          interference_marker_msg.markers.push_back(force_arrow);
+        }
+
+      // remove the old marker
+      visualization_msgs::Marker delete_operation;
+      delete_operation.id = id++;
+      delete_operation.action = visualization_msgs::Marker::DELETE;
+      interference_marker_msg.markers.push_back(delete_operation);
+      delete_operation.id = id++;
+      interference_marker_msg.markers.push_back(delete_operation);
+    }
+  else
+    {
+      visualization_msgs::Marker delete_operation;
+      delete_operation.action = visualization_msgs::Marker::DELETEALL;
+      interference_marker_msg.markers.push_back(delete_operation);
+    }
+
+  interfrence_marker_pub_.publish(interference_marker_msg);
 }
 
 void DragonFullVectoringController::controlCore()
@@ -454,7 +515,11 @@ void DragonFullVectoringController::controlCore()
   rotor_interfere_comp_acc(2) = mass_inv * rotor_interfere_comp_wrench_(2);
 
   bool torque_comp = false;
-  if(overlap_positions_.size() == 1) torque_comp = true;
+  if(overlap_positions_.size() == 1)
+    {
+      ROS_INFO_STREAM("compsensate the torque resulted from rotor interference: " << overlap_rotors_.at(0) << " to " << overlap_segments_.at(0));
+      torque_comp = true;
+    }
 
   if(overlap_positions_.size() == 2)
     {
@@ -467,9 +532,9 @@ void DragonFullVectoringController::controlCore()
 
   if(torque_comp)
     {
-      ROS_WARN("compsensate the torque resulted from rotor interference");
       rotor_interfere_comp_acc.tail(3) = inertia_inv * rotor_interfere_comp_wrench_.tail(3);
     }
+
   if(rotor_interfere_compensate_) // TODO move this scope
     target_wrench_acc_cog += rotor_interfere_comp_acc;
 
