@@ -44,6 +44,7 @@
 #include <std_msgs/Float32MultiArray.h>
 #include <tf_conversions/tf_eigen.h>
 #include <aerial_robot_estimation/sensor/imu.h>
+#include <visualization_msgs/MarkerArray.h>
 
 namespace aerial_robot_control
 {
@@ -70,7 +71,7 @@ namespace aerial_robot_control
     ros::Publisher target_vectoring_force_pub_;
     ros::Publisher estimate_external_wrench_pub_;
     ros::Publisher rotor_interfere_wrench_pub_;
-    ros::Publisher rotor_interfere_force_pub_;
+    ros::Publisher interfrence_marker_pub_;
 
     boost::shared_ptr<Dragon::FullVectoringRobotModel> dragon_robot_model_;
     boost::shared_ptr<aerial_robot_model::RobotModel> robot_model_for_control_;
