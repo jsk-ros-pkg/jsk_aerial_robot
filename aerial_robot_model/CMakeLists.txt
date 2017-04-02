@@ -38,11 +38,6 @@ add_executable(joint_state_publisher_node src/joint_state_publisher_node.cpp)
 target_link_libraries(joint_state_publisher_node joint_state_publisher ${catkin_LIBRARIES})
 
 
-add_executable(traj_motion_node src/traj_motion.cpp)
-target_link_libraries(traj_motion_node ${catkin_LIBRARIES})
-
-
-
 add_executable(interactive_marker src/interactive_marker.cpp)
 target_link_libraries(interactive_marker ${catkin_LIBRARIES})
 
