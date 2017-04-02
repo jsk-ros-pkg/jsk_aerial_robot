@@ -7,7 +7,7 @@ GimbalControl::GimbalControl(ros::NodeHandle nh, ros::NodeHandle nhp): nh_(nh), 
   alt_control_pub_ = nh_.advertise<aerial_robot_base::FlightNav>("flight_nav", 1);
   desire_tilt_pub_ = nh_.advertise<geometry_msgs::Vector3>("desire_tilt", 1);
 
-  attitude_sub_ = nh_.subscribe<jsk_stm::JskImu>("imu", 1, &GimbalControl::attitudeCallback, this, ros::TransportHints().tcpNoDelay());
+  attitude_sub_ = nh_.subscribe<aerial_robot_msgs::Imu>("imu", 1, &GimbalControl::attitudeCallback, this, ros::TransportHints().tcpNoDelay());
 
   desire_attitude_sub_ = nh_.subscribe<geometry_msgs::Vector3>("desire_attitude", 1, &GimbalControl::desireAttitudeCallback, this, ros::TransportHints().tcpNoDelay());
 
@@ -173,13 +173,19 @@ void GimbalControl::desireAttitudeCallback(const geometry_msgs::Vector3ConstPtr&
   active_tilt_mode_ = true;
 }
 
-void GimbalControl::attitudeCallback(const jsk_stm::JskImuConstPtr& msg)
+void GimbalControl::attitudeCallback(const aerial_robot_msgs::ImuConstPtr& msg)
 {
-  current_attitude_ = msg->angles;
+  current_attitude_.x = msg->angles[0];
+  current_attitude_.y = msg->angles[1];
+  current_attitude_.z = msg->angles[2];
+  geometry_msgs::Vector3 current_acc_;
+  current_acc_.x = msg->acc_data[0];
+  current_acc_.y = msg->acc_data[1];
+  current_acc_.z = msg->acc_data[2];
 
   if(wall_attack_flag_)
     {
-      geometry_msgs::Vector3 current_acc_ = msg->acc_data;
+
       //demo, temporary
       if(current_acc_.y > attack_acc_thre_) 
         {
@@ -200,7 +206,7 @@ void GimbalControl::attitudeCallback(const jsk_stm::JskImuConstPtr& msg)
 
     }
 
-  att_comp_time_ = msg->header.stamp;
+  att_comp_time_ = msg->stamp;
 }
 
 
@@ -247,13 +253,13 @@ void GimbalControl::gimbalControl(Eigen::Quaternion<double> q_att)
 
   aerial_robot_base::FlightNav flight_nav_msg;
   flight_nav_msg.header.stamp = ros::Time::now();
-  flight_nav_msg.command_mode = aerial_robot_base::FlightNav::NO_NAVIGATION;
-  flight_nav_msg.pos_z_navi_mode = aerial_robot_base::FlightNav::VEL_FLIGHT_MODE_COMMAND;
+  flight_nav_msg.pos_xy_nav_mode = aerial_robot_base::FlightNav::NO_NAVIGATION;
+  flight_nav_msg.psi_nav_mode = aerial_robot_base::FlightNav::NO_NAVIGATION;
+  flight_nav_msg.pos_z_nav_mode = aerial_robot_base::FlightNav::VEL_MODE;
   flight_nav_msg.target_pos_diff_z = body_diameter_ / 2 * (alt_tilt - prev_alt_tilt);
   alt_control_pub_.publish(flight_nav_msg);
 
   tilt_alt_sum += flight_nav_msg.target_pos_diff_z;
-
 
   //ROS_INFO("tilt_alt: %f, sum: %f", flight_nav_msg.target_pos_diff_z, tilt_alt_sum);
 
@@ -295,7 +301,7 @@ void GimbalControl::controlFunc(const ros::TimerEvent & e)
       //send vel command
       aerial_robot_base::FlightNav flight_nav_msg;
       flight_nav_msg.header.stamp = ros::Time::now();
-      flight_nav_msg.command_mode = aerial_robot_base::FlightNav::VEL_FLIGHT_MODE_COMMAND;
+      flight_nav_msg.pos_xy_nav_mode = aerial_robot_base::FlightNav::VEL_MODE;
       flight_nav_msg.target_vel_x = attack_vel_x_;
       flight_nav_msg.target_vel_y = attack_vel_y_;
       if(active_tilt_mode_ || attack_back_level_flag_)
@@ -305,7 +311,7 @@ void GimbalControl::controlFunc(const ros::TimerEvent & e)
            // demo temporary
           flight_nav_msg.target_vel_y = rebound_vel_y_;
         }
-      flight_nav_msg.pos_z_navi_mode = aerial_robot_base::FlightNav::NO_NAVIGATION;
+      flight_nav_msg.pos_z_nav_mode = aerial_robot_base::FlightNav::NO_NAVIGATION;
       alt_control_pub_.publish(flight_nav_msg);
 
     }
