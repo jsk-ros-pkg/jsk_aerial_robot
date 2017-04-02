@@ -6,11 +6,21 @@
   <xacro:property name="link_length" value=".44" />
   <xacro:property name="protector_radius" value=".155" />
 
+  <xacro:macro name="link_model" params="self">
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <cylinder length="${protector_radius}" radius="0.1"/>
+      </geometry>
+    </collision>
 
-  <xacro:macro name="link_color">
-    <material name="color">
-      <color rgba="0.75 .5 .2 1"/>
-    </material>
+    <visual>
+      <origin rpy="${-pi/2} 0 ${pi}" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://aerial_robot_model/urdf/hydrus3/mesh/hydrus3_link${self}.dae"/>
+      </geometry>
+    </visual>
   </xacro:macro>
+
 
 </robot>
