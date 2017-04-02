@@ -3,8 +3,6 @@
   <arg name="simulation" default="True" /> <!-- simulation: use virtual joint_state publisher for display the robot model -->
   <arg name="headless" default="False" />
 
-  <!-- for simulation -->
-  <param name="use_gui" value="$(arg simulation)" unless="$(arg headless)"/>
 
   <param name="robot_description"
          command="$(find xacro)/xacro.py '$(find aerial_robot_model)/robots/$(arg model).urdf.xacro'" />
@@ -12,7 +10,9 @@
   <node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher" />
 
   <group if="$(arg simulation)">
-    <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" />
+    <!-- for simulation -->
+    <param name="use_gui" value="true" />
+    <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" unless = "$(arg headless)"/>
   </group>
 
   <group unless="$(arg headless)">

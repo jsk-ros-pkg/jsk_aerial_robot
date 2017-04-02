@@ -1,268 +1,222 @@
+// -*- mode: c++ -*-
+/*********************************************************************
+ * Software License Agreement (BSD License)
+ *
+ *  Copyright (c) 2017, JSK Lab
+ *  All rights reserved.
+ *
+ *  Redistribution and use in source and binary forms, with or without
+ *  modification, are permitted provided that the following conditions
+ *  are met:
+ *
+ *   * Redistributions of source code must retain the above copyright
+ *     notice, this list of conditions and the following disclaimer.
+ *   * Redistributions in binary form must reproduce the above
+ *     copyright notice, this list of conditions and the following
+ *     disclaimer in the documentation and/o2r other materials provided
+ *     with the distribution.
+ *   * Neither the name of the JSK Lab nor the names of its
+ *     contributors may be used to endorse or promote products derived
+ *     from this software without specific prior written permission.
+ *
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ *  FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ *  COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ *  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ *  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ *  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ *  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ *  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ *  POSSIBILITY OF SUCH DAMAGE.
+ *********************************************************************/
+
 #include "aerial_robot_base/state_estimation.h"
 
-RigidEstimator::RigidEstimator(ros::NodeHandle nh, ros::NodeHandle nh_private) : BasicEstimator(nh, nh_private)
+RigidEstimator::RigidEstimator(ros::NodeHandle nh, ros::NodeHandle nh_private) :
+  BasicEstimator(nh, nh_private)
 {
   rosParamInit();
-  //br_ = new tf::TransformBroadcaster();
 }
 
-RigidEstimator::~RigidEstimator()
-{
-  //delete br_;
-
-}
+RigidEstimator::~RigidEstimator() {}
 
 void RigidEstimator::tfPublish()
 {
-  //set the states broadcast
   statesBroadcast();
-  //TODO mutex
-
-#if 0
-  //ros::Time sys_stamp = getSystemTimeStamp();
-  ros::Time sys_stamp = ros::Time::now();
-
-  tf::Transform laser_to_baselink;
-  tf::Transform footprint_to_laser;
-  tf::Transform laser_to_camera;
-  tf::Quaternion tmp;
-
-  //send the laser -> quadcopter_base
-  laser_to_baselink.setOrigin(tf::Vector3(0.0, 0.0, laser_to_baselink_distance_));
-  tmp.setRPY(0.0 , 0.0 , 0.0);
-  laser_to_baselink.setRotation(tmp);
-  br_->sendTransform(tf::StampedTransform(laser_to_baselink, sys_stamp, laser_frame_,
-                                          baselink_frame_));
-
-  //send the laser -> camera
-  laser_to_camera.setOrigin(tf::Vector3(0.02, 0.0, -0.04));
-  tmp.setRPY(0.0 , 0.0 , 0.0);
-  laser_to_camera.setRotation(tmp);
-  br_->sendTransform(tf::StampedTransform(laser_to_camera, sys_stamp, laser_frame_,
-                                          camera_frame_));
-
-  tmp.setRPY((getStatePhy()), getStateTheta(), 0); 
-  footprint_to_laser.setRotation(tmp);
-  footprint_to_laser.setOrigin(tf::Vector3(0.0, 0.0, getStatePosZ() + getPosZOffset() - mirror_module_arm_length_));
-
-  br_->sendTransform(tf::StampedTransform(footprint_to_laser, sys_stamp,
-                                          base_footprint_frame_, laser_frame_));
-#endif
 }
 
 
 void RigidEstimator::statesBroadcast()
 {
-  aerial_robot_base::States full_states;
-  nav_msgs::Odometry states;
+  aerial_robot_base::States full_state;
+  full_state.header.stamp = ros::Time::now();
 
-  //full_states.header.stamp = getSystemTimeStamp();
-  full_states.header.stamp = ros::Time::now();
-  states.header.stamp = ros::Time::now();
-  states.header.frame_id = std::string("/nav"); //TOOD: use rosparam
-  states.child_frame_id = std::string("/bae_link"); //TOOD: use rosparam
+  for(int axis = 0; axis < STATE_NUM - 3; axis++)
+    {
+      aerial_robot_base::State r_state;
+      State3Mode state = getState(axis);
 
-  aerial_robot_base::State x_state;
-  x_state.id = "x";
-  x_state.pos = getGTState(X_W, 0);
-  x_state.vel = getGTState(X_W, 1);
-  x_state.raw_pos = getEEState(X_W, 0);
-  x_state.raw_vel = getEEState(X_W, 1);
-  x_state.kf_pos = getEXState(X_W, 0);
-  x_state.kf_vel = getEXState(X_W, 1);
-  x_state.reserves.push_back(getEEState(X_B, 0));
-  x_state.reserves.push_back(getEEState(X_B, 1));
-  x_state.reserves.push_back(getEXState(X_B, 0));
-  x_state.reserves.push_back(getEXState(X_B, 1));
-  states.pose.pose.position.x
-    = (state_mode_ == GROUND_TRUTH)?getGTState(X_W, 0):getEEState(X_W, 0);
-  states.twist.twist.linear.x
-    = (state_mode_ == GROUND_TRUTH)?getGTState(X_W, 1):getEEState(X_W, 1);
+      switch(axis)
+        {
+        case X_W:
+          r_state.id = "x";
+          break;
+        case Y_W:
+          r_state.id = "y";
+          break;
+        case Z_W:
+          r_state.id = "z";
+          break;
+        case ROLL_W:
+          r_state.id = "roll";
+          break;
+        case PITCH_W:
+          r_state.id = "pitch";
+          break;
+        case YAW_W:
+          r_state.id = "yaw";
+          break;
+        default:
+          break;
+        }
 
-  aerial_robot_base::State y_state;
-  y_state.id = "y";
-  y_state.pos = getGTState(Y_W, 0);
-  y_state.vel = getGTState(Y_W, 1);
-  y_state.raw_pos = getEEState(Y_W, 0);
-  y_state.raw_vel = getEEState(Y_W, 1);
-  y_state.kf_pos = getEXState(Y_W, 0);
-  y_state.kf_vel = getEXState(Y_W, 1);
-  y_state.reserves.push_back(getEEState(Y_B, 0));
-  y_state.reserves.push_back(getEEState(Y_B, 1));
-  y_state.reserves.push_back(getEXState(Y_B, 0));
-  y_state.reserves.push_back(getEXState(Y_B, 1));
-  states.pose.pose.position.y
-    = (state_mode_ == GROUND_TRUTH)?getGTState(Y_W, 0):getEEState(Y_W, 0);
-  states.twist.twist.linear.y
-    = (state_mode_ == GROUND_TRUTH)?getGTState(Y_W, 1):getEEState(Y_W, 1);
+      r_state.state.resize(3);
+      for(int mode = 0; mode < 3; mode++)
+        tf::vector3TFToMsg(state[mode], r_state.state[mode]);
 
-  aerial_robot_base::State z_state;
-  z_state.id = "z";
-  z_state.pos = getGTState(Z_W, 0);
-  z_state.vel = getGTState(Z_W, 1);
-  z_state.raw_pos = getEEState(Z_W, 0);
-  z_state.raw_vel = getEEState(Z_W, 1);
-  z_state.kf_pos = getEXState(Z_W, 0);
-  z_state.kf_vel = getEXState(Z_W, 1);
-  z_state.reserves.push_back(getEEState(Z_W, 2));
-  states.pose.pose.position.z
-    = (state_mode_ == GROUND_TRUTH)?getGTState(Z_W, 0):getEEState(Z_W, 0);
-  states.twist.twist.linear.z
-    = (state_mode_ == GROUND_TRUTH)?getGTState(Z_W, 1):getEEState(Z_W, 1);
+      if(axis == X_W || axis == Y_W || axis == YAW_W)
+        {
+          State3Mode state_temp;
+          if(axis == X_W) state_temp = getState(X_B);
+          if(axis == Y_W) state_temp = getState(Y_B);
+          if(axis == YAW_W) state_temp = getState(YAW_W_B);
 
+          for(int mode = 0; mode < 3; mode++)
+            {
+              r_state.reserves.push_back(state_temp[mode][0]);
+              r_state.reserves.push_back(state_temp[mode][1]);
+            }
+        }
+
+      full_state.states.push_back(r_state);
+    }
+  full_state_pub_.publish(full_state);
+
+  nav_msgs::Odometry odom_state;
+  odom_state.header.stamp = ros::Time::now();
+  odom_state.header.frame_id = std::string("/nav");
+  odom_state.child_frame_id = std::string("/bae_link");
+
+  tf::Point pos;
+  tf::Vector3 vel;
   tf::Quaternion q;
-  if(state_mode_ == GROUND_TRUTH)
-    {
-      q.setRPY(getGTState(ROLL_W, 0), getGTState(PITCH_W, 0), getGTState(YAW_W_B, 0));
-      states.twist.twist.angular.x = getGTState(ROLL_W, 1);
-      states.twist.twist.angular.y = getGTState(PITCH_W, 1);
-      states.twist.twist.angular.z = getGTState(YAW_W_B, 1);
-    }
-  if(state_mode_ == EGOMOTION_ESTIMATE)
-    {
-      q.setRPY(getEEState(ROLL_W, 0), getEEState(PITCH_W, 0), getEEState(YAW_W_B, 0));
-      states.twist.twist.angular.x = getEEState(ROLL_W, 1);
-      states.twist.twist.angular.y = getEEState(PITCH_W, 1);
-      states.twist.twist.angular.z = getEEState(YAW_W_B, 1);
-    }
-  states.pose.pose.orientation.x = q.x();
-  states.pose.pose.orientation.y = q.y();
-  states.pose.pose.orientation.z = q.z();
-  states.pose.pose.orientation.w = q.w();
+  tf::Vector3 omega;
 
-  aerial_robot_base::State yaw_state;
-  yaw_state.id = "yaw";
-  yaw_state.pos = getGTState(YAW_W_B, 0);
-  yaw_state.vel = getGTState(YAW_W_B, 1);
-  yaw_state.raw_pos = getEEState(YAW_W_B, 0);
-  yaw_state.raw_vel = getEEState(YAW_W_B, 1);
-  yaw_state.kf_pos = getEXState(YAW_W_B, 0);
-  yaw_state.kf_vel = getEXState(YAW_W_B, 1);
-  yaw_state.reserves.push_back(getGTState(YAW_W_COG, 0));
-  yaw_state.reserves.push_back(getGTState(YAW_W_COG, 1));
-  yaw_state.reserves.push_back(getEEState(YAW_W_COG, 0));
-  yaw_state.reserves.push_back(getEEState(YAW_W_COG, 1));
-  aerial_robot_base::State pitch_state;
-  pitch_state.id = "pitch";
-  pitch_state.pos = getGTState(PITCH_W, 0);
-  pitch_state.raw_pos = getEEState(PITCH_W, 0);
-  aerial_robot_base::State roll_state;
-  roll_state.id = "roll";
-  roll_state.pos = getGTState(ROLL_W, 0);
-  roll_state.raw_pos = getEEState(ROLL_W, 0);
+  pos.setValue(full_state.states[X_W].state[estimate_mode_].x,
+               full_state.states[Y_W].state[estimate_mode_].x,
+               full_state.states[Z_W].state[estimate_mode_].x);
+  tf::pointTFToMsg(pos, odom_state.pose.pose.position);
 
-  full_states.states.push_back(x_state);
-  full_states.states.push_back(y_state);
-  full_states.states.push_back(z_state);
-  full_states.states.push_back(roll_state);  
-  full_states.states.push_back(pitch_state);
-  full_states.states.push_back(yaw_state);
+  vel.setValue(full_state.states[X_W].state[estimate_mode_].y,
+               full_state.states[Y_W].state[estimate_mode_].y,
+               full_state.states[Z_W].state[estimate_mode_].y);
+  tf::vector3TFToMsg(vel, odom_state.twist.twist.linear);
 
+  /* cog frame */
+  q.setRPY(full_state.states[ROLL_W].state[estimate_mode_].x,
+           full_state.states[PITCH_W].state[estimate_mode_].x,
+           full_state.states[YAW_W].state[estimate_mode_].x);
+  tf::quaternionTFToMsg(q, odom_state.pose.pose.orientation);
 
-  full_states_pub_.publish(full_states);
+  omega.setValue(full_state.states[ROLL_W].state[estimate_mode_].y,
+                 full_state.states[PITCH_W].state[estimate_mode_].y,
+                 full_state.states[YAW_W].state[estimate_mode_].y);
+  tf::vector3TFToMsg(omega, odom_state.twist.twist.angular);
 
-  state_pub_.publish(states);
+  odom_state_pub_.publish(odom_state);
 }
 
+
+bool RigidEstimator::pattern_match(std::string &pl, std::string &pl_candidate)
+{
+  int cmp = fnmatch(pl.c_str(), pl_candidate.c_str(), FNM_CASEFOLD);
+  if (cmp == 0)
+    return true;
+  else if (cmp != FNM_NOMATCH) {
+    // never see that, i think that it is fatal error.
+    ROS_FATAL("Plugin list check error! fnmatch('%s', '%s', FNM_CASEFOLD) -> %d",
+              pl.c_str(), pl_candidate.c_str(), cmp);
+    ros::shutdown();
+  }
+  return false;
+}
 
 void RigidEstimator::rosParamInit()
 {
   std::string ns = nhp_.getNamespace();
-  printf("%s\n", ns.c_str());
-  if (!nhp_.getParam ("state_mode", state_mode_))
-    state_mode_ = EGOMOTION_ESTIMATE;
-  printf("%s: state_mode_ is %d\n", ns.c_str(), state_mode_);
-
-  if (!nhp_.getParam ("only_imu_yaw", only_imu_yaw_))
-    only_imu_yaw_ = false;
-  printf("%s: only_imu_yaw_ is %s\n", ns.c_str(), only_imu_yaw_?std::string("true").c_str():std::string("false").c_str());
 
   sensor_fusion_loader_ptr_ = boost::shared_ptr< pluginlib::ClassLoader<kf_base_plugin::KalmanFilter> >(new pluginlib::ClassLoader<kf_base_plugin::KalmanFilter>("kalman_filter", "kf_base_plugin::KalmanFilter"));
 
-
-  if (!nhp_.getParam ("fuser_egomotion_no", fuser_egomotion_no_))
-    fuser_egomotion_no_ = 0;
-  printf("fuser_egomotion_no_ is %d\n", fuser_egomotion_no_);
-  fuser_egomotion_.resize(fuser_egomotion_no_);
-  fuser_egomotion_id_.resize(fuser_egomotion_no_);
-  fuser_egomotion_name_.resize(fuser_egomotion_no_);
-  fuser_egomotion_plugin_name_.resize(fuser_egomotion_no_);
-
-  if (!nhp_.getParam ("fuser_experiment_no", fuser_experiment_no_))
-    fuser_experiment_no_ = 0;
-  printf("fuser_experiment_no_ is %d\n", fuser_experiment_no_);
-  fuser_experiment_.resize(fuser_experiment_no_);
-  fuser_experiment_id_.resize(fuser_experiment_no_);
-  fuser_experiment_name_.resize(fuser_experiment_no_);
-  fuser_experiment_plugin_name_.resize(fuser_experiment_no_);
-
-  for(int i = 0; i < fuser_egomotion_no_; i++)
+  /* kalman filter egomotion plugin initialization for 0: egomotion, 1: experiment */
+  for (int i = 0; i < 2; i++)
     {
-      std::stringstream fuser_no;
-      fuser_no << i + 1;
+      /* kalman filter egomotion plugin list */
+      ros::V_string pl_list{};
+      string prefix;
+      if(i == EGOMOTION_ESTIMATE) prefix = string("egomotion");
+      else if(i == EXPERIMENT_ESTIMATE) prefix = string("experiment");
 
-      if (!nhp_.getParam ("fuser_egomotion_id" + fuser_no.str() , fuser_egomotion_id_[i]))
-        ROS_ERROR("%d, no param in fuser egomotion id", i);
-      printf("fuser_egomotion_id%d is %d\n", i + 1, fuser_egomotion_id_[i]);
+      nhp_.getParam(prefix + "_list", pl_list);
 
-      if (!nhp_.getParam ("fuser_egomotion_name" + fuser_no.str(), fuser_egomotion_name_[i]))
-        ROS_ERROR("%d, no param in fuser egomotion name", i);
-      printf("fuser_egomotion_name%d is %s\n", i + 1, fuser_egomotion_name_[i].c_str());
+      for (auto &pl_name : pl_list)
+        {
+          for (auto &name : sensor_fusion_loader_ptr_->getDeclaredClasses())
+            {
+              if(!pattern_match(pl_name, name)) continue;
 
-      if (!nhp_.getParam ("fuser_egomotion_plugin_name" + fuser_no.str(), fuser_egomotion_plugin_name_[i]))
-        ROS_ERROR("%d, no param in fuser egomotion plugin_name", i);
-      printf("fuser_egomotion_plugin_name%d is %s\n", i + 1, fuser_egomotion_plugin_name_[i].c_str());
+              std::stringstream fuser_no;
+              fuser_no << fuser_[i].size() + 1;
 
-      //fuser_egomotion_[i]  = sensor_fusion_loader_ptr_->createInstance(fuser_egomotion_plugin_name_[i]);
-      fuser_egomotion_[i]  = sensor_fusion_loader_ptr_->createInstance(fuser_egomotion_plugin_name_[i]);
-      fuser_egomotion_[i]->initialize(nh_, fuser_egomotion_name_[i], fuser_egomotion_id_[i]);
+              int fuser_id;
+              string fuser_name;
+
+              if (!nhp_.getParam ("fuser_" + prefix + "_id" + fuser_no.str(), fuser_id))
+                ROS_ERROR("%s, no param in fuser %s id", prefix.c_str(), fuser_no.str().c_str());
+              if(param_verbose_) cout << "fuser_"  << prefix << "_id" << fuser_no.str() << " is " << fuser_id << endl;
+
+              if (!nhp_.getParam ("fuser_" + prefix + "_name" + fuser_no.str(), fuser_name))
+                ROS_ERROR("%s, no param in fuser %s name", prefix.c_str(), fuser_no.str().c_str());
+              if(param_verbose_) cout << "fuser_"  << prefix << "_name" << fuser_no.str() << " is " << fuser_name << endl;
+
+              boost::shared_ptr<kf_base_plugin::KalmanFilter> plugin_ptr = sensor_fusion_loader_ptr_->createInstance(name);
+              plugin_ptr->initialize(nh_, fuser_name, fuser_id);
+              fuser_[i].push_back(make_pair(name, plugin_ptr));
+
+              break;
+            }
+        }
     }
 
-  for(int i = 0; i < fuser_experiment_no_; i++)
+  sensor_plugin_ptr_ =  boost::shared_ptr< pluginlib::ClassLoader<sensor_plugin::SensorBase> >( new pluginlib::ClassLoader<sensor_plugin::SensorBase>("aerial_robot_base", "sensor_plugin::SensorBase"));
+
+  ros::V_string sensor_list{};
+  nhp_.getParam("sensor_list", sensor_list);
+
+  for (auto &sensor_plugin_name : sensor_list)
     {
-      std::stringstream fuser_no;
-      fuser_no << i + 1;
+      for (auto &name : sensor_plugin_ptr_->getDeclaredClasses())
+        {
+          if(!pattern_match(sensor_plugin_name, name)) continue;
 
-      if (!nhp_.getParam ("fuser_experiment_id" + fuser_no.str(), fuser_experiment_id_[i]))
-        ROS_ERROR("%d, no param in fuser experiment id", i);
-      printf("fuser_experiment_id%d is %d\n", i+1, fuser_experiment_id_[i]);
-
-      if (!nhp_.getParam ("fuser_experiment_name" + fuser_no.str(), fuser_experiment_name_[i]))
-        ROS_ERROR("%d, no param in fuser experiment name", i);
-      printf("fuser_experiment_name%d is %s\n", i+1, fuser_experiment_name_[i].c_str());
-
-      if (!nhp_.getParam ("fuser_experiment_plugin_name" + fuser_no.str(), fuser_experiment_plugin_name_[i]))
-        ROS_ERROR("%d, no param in fuser experiment plugin_name", i);
-      printf("fuser_experiment_plugin_name%d is %s\n", i+1, fuser_experiment_plugin_name_[i].c_str());
-
-      //fuser_experiment_[i]  = sensor_fusion_loader_ptr_->createInstance(fuser_experiment_plugin_name_);
-      fuser_experiment_[i]  = sensor_fusion_loader_ptr_->createInstance(fuser_experiment_plugin_name_[i]);
-      fuser_experiment_[i]->initialize(nh_, fuser_experiment_name_[i], fuser_experiment_id_[i]);
+          sensors_.push_back(sensor_plugin_ptr_->createInstance(name));
+          break;
+        }
     }
 
-  sensor_loader_ptr_ =  boost::shared_ptr< pluginlib::ClassLoader<sensor_base_plugin::SensorBase> >( new pluginlib::ClassLoader<sensor_base_plugin::SensorBase>("aerial_robot_base", "sensor_base_plugin::SensorBase"));
-
-
-  if (!nhp_.getParam ("sensor_no", sensor_no_)) sensor_no_ = 0;
-  printf("sensor_no_ is %d\n", sensor_no_);
-  sensor_plugin_name_.resize(sensor_no_);
-  sensors_.resize(sensor_no_);
-
-  /* we have to fill all the sensor instance first */
-  for(int i = 0; i < sensor_no_; i++)
-    {
-      std::stringstream sensor_no;
-      sensor_no << i + 1;
-
-      if (!nhp_.getParam ("sensor_plugin_name" + sensor_no.str(), sensor_plugin_name_[i]))
-        ROS_ERROR("%d, no param in sensor plugin_name", i);
-      printf("sensor_plugin_name%d is %s\n", i+1, sensor_plugin_name_[i].c_str());
-      sensors_[i]  = sensor_loader_ptr_->createInstance(sensor_plugin_name_[i]);
-    }
-
-  /* initialize all sensor plugins */
-  for(int i = 0; i < sensor_no_; i++)
-    sensors_[i]->initialize(nh_, ros::NodeHandle(""), this, sensors_, sensor_plugin_name_, i);
-
-
+  /* initilaize in the same time */
+  for(size_t i = 0; i < sensors_.size(); i++)
+    sensors_[i]->initialize(nh_, ros::NodeHandle(""), this, sensor_list[i]);
 }

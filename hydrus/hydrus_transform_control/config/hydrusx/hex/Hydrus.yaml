@@ -37,6 +37,12 @@ extra_module4_link: 0
 extra_module4_offset: 0.247
 extra_module4_mass: 0.0623
 
+# Additional Object (including the suction mudole for mbzirc task3)
+extra_module5_link: 3
+extra_module5_offset: 0.3 #0.24
+extra_module5_mass: 0.55 #1.327   #1.15 + 0.177
+
+
 propeller1_direction: -1
 propeller1_order: 0
 
@@ -55,16 +61,16 @@ propeller5_order: 4
 propeller6_direction: 1
 propeller6_order: 5
 
-q_roll: 400 
-q_roll_d: 40.0
+q_roll: 400
+q_roll_d: 40
 q_roll_i: 10.0
-q_pitch: 400 
-q_pitch_d: 40.0
+q_pitch: 400
+q_pitch_d: 40
 q_pitch_i: 10.0
 
-q_yaw: 100
+q_yaw: 10
 strong_q_yaw: 200
-q_yaw_d: 100.0
+q_yaw_d:  4
 q_yaw_i: 0.4
 
 q_z: 10.0
@@ -78,6 +84,6 @@ r4: 1.0
 r5: 1.0
 r6: 1.0
 
-dist_thre: 0.17 # 0.17 is max now for planning, 0.06 is enough for l, s pose
+dist_thre: 0.15 # 0.17 is max now for planning, 0.06 is enough for l, s pose
 f_max: 16.5
 f_min: 2.0

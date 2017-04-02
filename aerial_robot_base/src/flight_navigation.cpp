@@ -14,7 +14,7 @@ Navigator::Navigator(ros::NodeHandle nh, ros::NodeHandle nh_private,
   battery_sub_ = nh_.subscribe<std_msgs::UInt8>("/battery_voltage_status", 1, &Navigator::batteryCheckCallback, this, ros::TransportHints().tcpNoDelay());
 
   estimator_ = estimator;
-  state_mode_ = estimator_->getStateMode();
+  estimate_mode_ = estimator_->getEstimateMode();
   flight_ctrl_input_ = flight_ctrl_input;
 
   br_ =  new tf::TransformBroadcaster();
@@ -119,7 +119,7 @@ void Navigator::batteryCheckCallback(const std_msgs::UInt8ConstPtr &msg)
   static double low_voltage_start_time = ros::Time::now().toSec();
   if(msg->data < low_voltage_thre_)
     {
-      if(ros::Time::now().toSec() - low_voltage_start_time > 10.0)//10sec
+      if(ros::Time::now().toSec() - low_voltage_start_time > 1.0)//1sec
         {
           ROS_WARN("low voltage!");
           low_voltage_flag_  = true;
@@ -163,7 +163,7 @@ void Navigator::rosParamInit(ros::NodeHandle nh)
   printf("%s: xy_control_mode_ is %d\n", ns.c_str(), xy_control_mode_);
 
   if (!nh.getParam ("low_voltage_thre", low_voltage_thre_))
-    low_voltage_thre_ = 10; //10%
+    low_voltage_thre_ = 105; //[10 * voltage]
   printf("%s: low_voltage_thre_ is %d\n", ns.c_str(), low_voltage_thre_);
 
   //hidden variable

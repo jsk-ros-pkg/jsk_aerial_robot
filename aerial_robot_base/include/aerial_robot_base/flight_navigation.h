@@ -41,88 +41,18 @@ class Navigator
 
   inline bool getXyVelModePosCtrlTakeoff(){  return xy_vel_mode_pos_ctrl_takeoff_;}
 
-  inline float getStatePosX()
-  {  
-    if(state_mode_ == BasicEstimator::GROUND_TRUTH) return estimator_->getGTState(BasicEstimator::X_W, 0);
-    if(state_mode_ == BasicEstimator::EGOMOTION_ESTIMATE) return estimator_->getEEState(BasicEstimator::X_W, 0);
 
-    /* temp */
-    if(state_mode_ == BasicEstimator::EXPERIMENT_ESTIMATE) return estimator_->getGTState(BasicEstimator::X_W, 0);
-  }
-  inline float getStateVelX()
-  {  
-    if(state_mode_ == BasicEstimator::GROUND_TRUTH) return estimator_->getGTState(BasicEstimator::X_W, 1);
-    if(state_mode_ == BasicEstimator::EGOMOTION_ESTIMATE) return estimator_->getEEState(BasicEstimator::X_W, 1);
-
-    /* temp */
-    if(state_mode_ == BasicEstimator::EXPERIMENT_ESTIMATE) return estimator_->getGTState(BasicEstimator::X_W, 1);
-  }
-  inline float getStatePosY()
-  {  
-    if(state_mode_ == BasicEstimator::GROUND_TRUTH) return estimator_->getGTState(BasicEstimator::Y_W, 0);
-    if(state_mode_ == BasicEstimator::EGOMOTION_ESTIMATE) return estimator_->getEEState(BasicEstimator::Y_W, 0);
-
-    /* temp */
-    if(state_mode_ == BasicEstimator::EXPERIMENT_ESTIMATE) return estimator_->getGTState(BasicEstimator::Y_W, 0);
-  }
-  inline float getStateVelY()
-  {  
-    if(state_mode_ == BasicEstimator::GROUND_TRUTH) return estimator_->getGTState(BasicEstimator::Y_W, 1);
-    if(state_mode_ == BasicEstimator::EGOMOTION_ESTIMATE) return estimator_->getEEState(BasicEstimator::Y_W, 1);
-
-    /* temp */
-    if(state_mode_ == BasicEstimator::EXPERIMENT_ESTIMATE) return estimator_->getGTState(BasicEstimator::Y_W, 1);
-  }
-  inline float getStatePosZ()
-  {  
-    if(state_mode_ == BasicEstimator::GROUND_TRUTH) return estimator_->getGTState(BasicEstimator::Z_W, 0);
-    if(state_mode_ == BasicEstimator::EGOMOTION_ESTIMATE) return estimator_->getEEState(BasicEstimator::Z_W, 0);
-
-    if(state_mode_ == BasicEstimator::EXPERIMENT_ESTIMATE) return estimator_->getEXState(BasicEstimator::Z_W, 0);
-  }
-  inline float getStateVelZ()
-  {  
-    if(state_mode_ == BasicEstimator::GROUND_TRUTH) return estimator_->getGTState(BasicEstimator::Z_W, 1);
-    if(state_mode_ == BasicEstimator::EGOMOTION_ESTIMATE) return estimator_->getEEState(BasicEstimator::Z_W, 1);
-
-    if(state_mode_ == BasicEstimator::EXPERIMENT_ESTIMATE) return estimator_->getEXState(BasicEstimator::Z_W, 1);
-
-  }
-  inline float getStatePsiCog()
-  {  
-    if(state_mode_ == BasicEstimator::GROUND_TRUTH) return estimator_->getGTState(BasicEstimator::YAW_W_COG, 0);
-    if(state_mode_ == BasicEstimator::EGOMOTION_ESTIMATE) return estimator_->getEEState(BasicEstimator::YAW_W_COG, 0);
-
-    /* temp */
-    if(state_mode_ == BasicEstimator::EXPERIMENT_ESTIMATE) return estimator_->getGTState(BasicEstimator::YAW_W_COG, 0);
-
-  }
-  inline float getStateVelPsiCog()
-  {  
-    if(state_mode_ == BasicEstimator::GROUND_TRUTH) return estimator_->getGTState(BasicEstimator::YAW_W_COG, 1);
-    if(state_mode_ == BasicEstimator::EGOMOTION_ESTIMATE) return estimator_->getEEState(BasicEstimator::YAW_W_COG, 1);
-
-    /* temp */
-    if(state_mode_ == BasicEstimator::EXPERIMENT_ESTIMATE) return estimator_->getGTState(BasicEstimator::YAW_W_COG, 1);
-
-  }
-  inline float getStatePsiBoard()
-  {  
-    if(state_mode_ == BasicEstimator::GROUND_TRUTH) return estimator_->getGTState(BasicEstimator::YAW_W_B, 0);
-    if(state_mode_ == BasicEstimator::EGOMOTION_ESTIMATE) return estimator_->getEEState(BasicEstimator::YAW_W_B, 0);
-
-    /* temp */
-    if(state_mode_ == BasicEstimator::EXPERIMENT_ESTIMATE) return estimator_->getGTState(BasicEstimator::YAW_W_B, 0);
-
-  }
-  inline float getStateVelPsiBoard()
-  {  
-    if(state_mode_ == BasicEstimator::GROUND_TRUTH) return estimator_->getGTState(BasicEstimator::YAW_W_B, 1);
-    if(state_mode_ == BasicEstimator::EGOMOTION_ESTIMATE) return estimator_->getEEState(BasicEstimator::YAW_W_B, 1);
-
-    /* temp */
-    if(state_mode_ == BasicEstimator::EXPERIMENT_ESTIMATE) return estimator_->getGTState(BasicEstimator::YAW_W_B, 1);
-  }
+  /* temporary */
+  inline float getStatePosX() { return estimator_->getState(BasicEstimator::X_W, estimate_mode_)[0]; }
+  inline float getStateVelX() { return estimator_->getState(BasicEstimator::X_W, estimate_mode_)[1]; }
+  inline float getStatePosY() { return estimator_->getState(BasicEstimator::Y_W, estimate_mode_)[0]; }
+  inline float getStateVelY() { return estimator_->getState(BasicEstimator::Y_W, estimate_mode_)[1]; }
+  inline float getStatePosZ() { return estimator_->getState(BasicEstimator::Z_W, estimate_mode_)[0]; }
+  inline float getStateVelZ() { return estimator_->getState(BasicEstimator::Z_W, estimate_mode_)[1]; }
+  inline float getStatePsiCog() { return estimator_->getState(BasicEstimator::YAW_W, estimate_mode_)[0]; }
+  inline float getStateVelPsiCog() { return estimator_->getState(BasicEstimator::YAW_W, estimate_mode_)[1]; }
+  inline float getStatePsiBoard() { return estimator_->getState(BasicEstimator::YAW_W_B, estimate_mode_)[0]; }
+  inline float getStateVelPsiBoard() { return estimator_->getState(BasicEstimator::YAW_W_B, estimate_mode_)[1]; }
 
   inline float getTargetPosX(){  return current_target_pos_x_;}
   inline void setTargetPosX( float value){  final_target_pos_x_ = value;}
@@ -155,50 +85,47 @@ class Navigator
   inline float getTargetAnglePitch(){  return target_pitch_angle_;}
   inline float getTargetAngleRoll(){  return target_roll_angle_;}
 
-  void throwingModeNavi();
-
   void tfPublish();
 
-  uint8_t getStateMode(){ return state_mode_;}
-  void setStateMode(uint8_t state_mode){ state_mode_ = state_mode;}
+  uint8_t getEstimateMode(){ return estimate_mode_;}
+  void setEstimateMode(uint8_t estimate_mode){ estimate_mode_ = estimate_mode;}
 
-
-  const static uint8_t POS_CONTROL_COMMAND = 0;
-  const static uint8_t VEL_CONTROL_COMMAND = 1;
+  static constexpr uint8_t POS_CONTROL_COMMAND = 0;
+  static constexpr uint8_t VEL_CONTROL_COMMAND = 1;
 
   // navi command
-  static const uint8_t START_COMMAND = 0x00;
-  static const uint8_t STOP_COMMAND = 0x01;
-  static const uint8_t IDLE_COMMAND = 0x02;
-  static const uint8_t TAKEOFF_COMMAND = 0x03;
-  static const uint8_t LAND_COMMAND = 0x04;
-  static const uint8_t HOVER_COMMAND= 0x05;
+  static constexpr uint8_t START_COMMAND = 0x00;
+  static constexpr uint8_t STOP_COMMAND = 0x01;
+  static constexpr uint8_t IDLE_COMMAND = 0x02;
+  static constexpr uint8_t TAKEOFF_COMMAND = 0x03;
+  static constexpr uint8_t LAND_COMMAND = 0x04;
+  static constexpr uint8_t HOVER_COMMAND= 0x05;
 
   //flight mode
-  const static uint8_t TAKEOFF_MODE = 0;
-  const static uint8_t FLIGHT_MODE = 1;
-  const static uint8_t LAND_MODE = 2;
-  const static uint8_t NO_CONTROL_MODE = 3; 
-  const static uint8_t RESET_MODE = 4;
+  static constexpr uint8_t TAKEOFF_MODE = 0;
+  static constexpr uint8_t FLIGHT_MODE = 1;
+  static constexpr uint8_t LAND_MODE = 2;
+  static constexpr uint8_t NO_CONTROL_MODE = 3; 
+  static constexpr uint8_t RESET_MODE = 4;
 
   //for ros arm/disarm cmd
-  const static uint8_t ARM_ON_CMD = 0x00; //old: 150;
-  const static uint8_t ARM_OFF_CMD = 0x01; //old: 151;
-  const static uint8_t ROS_INTEGRATE_CMD = 160;
-  const static uint8_t FORCE_LANDING_CMD = 0x02; //force landing
+  static constexpr uint8_t ARM_ON_CMD = 0x00; //old: 150;
+  static constexpr uint8_t ARM_OFF_CMD = 0x01; //old: 151;
+  static constexpr uint8_t ROS_INTEGRATE_CMD = 160;
+  static constexpr uint8_t FORCE_LANDING_CMD = 0x02; //force landing
 
-  static const uint8_t X_AXIS = 1;
-  static const uint8_t Y_AXIS = 2;
-  static const uint8_t Z_AXIS = 4;
-  static const uint8_t PITCH_AXIS = 8;
-  static const uint8_t ROLL_AXIS = 16;
-  static const uint8_t YAW_AXIS = 32;
+  static constexpr uint8_t X_AXIS = 1;
+  static constexpr uint8_t Y_AXIS = 2;
+  static constexpr uint8_t Z_AXIS = 4;
+  static constexpr uint8_t PITCH_AXIS = 8;
+  static constexpr uint8_t ROLL_AXIS = 16;
+  static constexpr uint8_t YAW_AXIS = 32;
 
-  const static uint8_t POS_WORLD_BASED_CONTROL_MODE = 0;
-  const static uint8_t POS_LOCAL_BASED_CONTROL_MODE = 1;
-  const static uint8_t VEL_WORLD_BASED_CONTROL_MODE = 2;
-  const static uint8_t VEL_LOCAL_BASED_CONTROL_MODE = 3;
-  const static uint8_t ATT_CONTROL_MODE = 4;
+  static constexpr uint8_t POS_WORLD_BASED_CONTROL_MODE = 0;
+  static constexpr uint8_t POS_LOCAL_BASED_CONTROL_MODE = 1;
+  static constexpr uint8_t VEL_WORLD_BASED_CONTROL_MODE = 2;
+  static constexpr uint8_t VEL_LOCAL_BASED_CONTROL_MODE = 3;
+  static constexpr uint8_t ATT_CONTROL_MODE = 4;
 
 
   protected:
@@ -218,7 +145,7 @@ class Navigator
     int  xy_control_mode_;
     bool xy_vel_mode_pos_ctrl_takeoff_;
 
-    int state_mode_;
+    int estimate_mode_;
     int low_voltage_thre_;
     bool low_voltage_flag_;
 
@@ -298,16 +225,16 @@ public:
   void sendAttCmd();
 
 
-  const static int TAKEOFF_COUNT = 8;
+  static constexpr int TAKEOFF_COUNT = 8;
 
   //for hovering convergence
-  const static float POS_X_THRE = 0.15; //m
-  const static float POS_Y_THRE = 0.15; //m
-  const static float POS_Z_THRE = 0.05; //m
+  static constexpr float POS_X_THRE = 0.15; //m
+  static constexpr float POS_Y_THRE = 0.15; //m
+  static constexpr float POS_Z_THRE = 0.05; //m
 
 
-  const static uint8_t MAP_FRAME = 0;
-  const static uint8_t BODY_FRAME = 1;
+  static constexpr uint8_t MAP_FRAME = 0;
+  static constexpr uint8_t BODY_FRAME = 1;
 
 
 private:
