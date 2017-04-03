@@ -3,21 +3,42 @@
   <arg name="simulation" default="True" /> <!-- simulation: use virtual joint_state publisher for display the robot model -->
   <arg name="headless" default="False" />
 
+  <arg name="gazebo" default="False" />
 
   <param name="robot_description"
          command="$(find xacro)/xacro.py '$(find aerial_robot_model)/robots/$(arg model).urdf.xacro'" />
 
-  <node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher" />
+  <group if="$(arg gazebo)" >
+    <include file="$(find gazebo_ros)/launch/empty_world.launch">
+      <arg name="world_name" value="worlds/empty.world"/>
+      <arg name="debug" value="false" />
+      <arg name="gui" value="true" />
+      <arg name="paused" value="false"/>
+      <arg name="use_sim_time" value="true"/>
+      <arg name="headless" value="false"/>
+    </include>
 
-  <group if="$(arg simulation)">
-    <!-- for simulation -->
-    <param name="use_gui" value="true" />
-    <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" unless = "$(arg headless)"/>
+    <!-- Run a python script to the send a service call to gazebo_ros to spawn a URDF robot -->
+    <node name="urdf_spawner" pkg="gazebo_ros" type="spawn_model" respawn="false" output="screen"
+          args="-urdf -model rrbot -param robot_description"/>
+
+
   </group>
 
-  <group unless="$(arg headless)">
-    <node name="rviz" pkg="rviz" type="rviz"
-          args="-d $(find aerial_robot_model)/launch/rviz_config" respawn="true" />
+  <group unless="$(arg gazebo)" >
+    <node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher" />
+
+    <group if="$(arg simulation)">
+      <!-- for simulation -->
+      <param name="use_gui" value="true" />
+      <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" unless = "$(arg headless)"/>
+    </group>
+
+    <group unless="$(arg headless)">
+      <node name="rviz" pkg="rviz" type="rviz"
+            args="-d $(find aerial_robot_model)/launch/rviz_config" respawn="true" />
+    </group>
+
   </group>
 
 </launch>
