@@ -1,4 +1,4 @@
-<library path="lib/libuav_comm_aerial_robot_plugins">
+<library path="lib/libaerial_robot_comm_aerial_robot_plugins">
   <class name="gps" type="aerial_robot_plugin::Gps" base_class_type="aerial_robot_plugin::Base">
     <description>Convert from aerial_robot_base::Gps to mavlink</description>
   </class>

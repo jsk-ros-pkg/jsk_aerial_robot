@@ -12,7 +12,7 @@
  * in the top-level LICENSE file of the mavros repository.
  */
 
-#include <uav_comm/mavros/mavros.h>
+#include <aerial_robot_comm/mavros/mavros.h>
 
 int main(int argc, char *argv[])
 {

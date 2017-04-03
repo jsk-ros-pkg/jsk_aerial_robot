@@ -18,7 +18,7 @@
 #include <console_bridge/console.h>
 
 #include <mavconn/thread_utils.h>
-#include <uav_comm/libmavconn/ros.h>
+#include <aerial_robot_comm/libmavconn/ros.h>
 
 namespace mavconn {
 
@@ -29,9 +29,9 @@ namespace mavconn {
   {
     logInform(PFXd "device: ros based interface");
 
-    /* mavlink message from ros based interface (e.g. xbee of uav_comm) */
+    /* mavlink message from ros based interface (e.g. xbee of aerial_robot_comm) */
     msg_to_ros_pub_ = nh_.advertise<mavros_msgs::Mavlink>("xbee/to", 5);
-    /* mavlink message to ros based interface(e.g. xbee of uav_comm) */
+    /* mavlink message to ros based interface(e.g. xbee of aerial_robot_comm) */
     msg_from_ros_sub_ = nh_.subscribe("xbee/from", 10, &MAVConnRos::mavlinkCb, this,
                                       ros::TransportHints().tcpNoDelay());
   }

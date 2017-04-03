@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(uav_comm)
+project(aerial_robot_comm)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -109,7 +109,7 @@ include(MavrosMavlink)
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
   INCLUDE_DIRS include
-#  LIBRARIES uav_comm
+#  LIBRARIES aerial_robot_comm
   CATKIN_DEPENDS mavros pluginlib roscpp rospy sensor_msgs mavros_msgs serial
   DEPENDS Boost mavlink
 )
@@ -129,34 +129,34 @@ include_directories(
 )
 
 ## Declare a C++ library
-add_library(uav_comm_mavros_plugins
+add_library(aerial_robot_comm_mavros_plugins
   src/mavlink_plugins/ps3joy.cpp
   src/mavlink_plugins/odom.cpp)
-target_link_libraries(uav_comm_mavros_plugins ${catkin_LIBRARIES} ${Boost_LIBRARIES})
+target_link_libraries(aerial_robot_comm_mavros_plugins ${catkin_LIBRARIES} ${Boost_LIBRARIES})
 
 add_library(xbee src/xbee/xbee.cpp)
 target_link_libraries(xbee ${catkin_LIBRARIES} ${Boost_LIBRARIES})
 
-add_library(uav_comm src/uav_comm.cpp)
-target_link_libraries(uav_comm ${catkin_LIBRARIES} ${Boost_LIBRARIES} xbee)
+add_library(aerial_robot_comm src/aerial_robot_comm.cpp)
+target_link_libraries(aerial_robot_comm ${catkin_LIBRARIES} ${Boost_LIBRARIES} xbee)
 
-add_executable(uav_comm_node src/uav_comm_node.cpp)
-target_link_libraries(uav_comm_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} uav_comm xbee)
+add_executable(aerial_robot_comm_node src/aerial_robot_comm_node.cpp)
+target_link_libraries(aerial_robot_comm_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} aerial_robot_comm xbee)
 
 add_library(libmavconn_ros src/libmavconn/ros.cpp)
 target_link_libraries(libmavconn_ros ${catkin_LIBRARIES} ${Boost_LIBRARIES})
 
-add_library(uav_comm_mavros src/mavros/mavros.cpp)
-target_link_libraries(uav_comm_mavros ${catkin_LIBRARIES} ${Boost_LIBRARIES} libmavconn_ros)
+add_library(aerial_robot_comm_mavros src/mavros/mavros.cpp)
+target_link_libraries(aerial_robot_comm_mavros ${catkin_LIBRARIES} ${Boost_LIBRARIES} libmavconn_ros)
 
-add_executable(uav_comm_mavros_node src/mavros/mavros_node.cpp)
-target_link_libraries(uav_comm_mavros_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} uav_comm_mavros)
+add_executable(aerial_robot_comm_mavros_node src/mavros/mavros_node.cpp)
+target_link_libraries(aerial_robot_comm_mavros_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} aerial_robot_comm_mavros)
 
-add_library(uav_comm_aerial_robot_plugins
+add_library(aerial_robot_comm_aerial_robot_plugins
   src/aerial_robot_plugins/gps.cpp
   src/aerial_robot_plugins/battery.cpp
   src/aerial_robot_plugins/heartbeat.cpp)
-target_link_libraries(uav_comm_aerial_robot_plugins ${catkin_LIBRARIES} ${Boost_LIBRARIES})
+target_link_libraries(aerial_robot_comm_aerial_robot_plugins ${catkin_LIBRARIES} ${Boost_LIBRARIES})
 
 add_executable(aerial_robot_bridge src/aerial_robot_bridge.cpp)
 target_link_libraries(aerial_robot_bridge ${catkin_LIBRARIES} ${Boost_LIBRARIES})
@@ -167,17 +167,17 @@ target_link_libraries(aerial_robot_bridge ${catkin_LIBRARIES} ${Boost_LIBRARIES}
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
 ## either from message generation or dynamic reconfigure
-# add_dependencies(uav_comm ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+# add_dependencies(aerial_robot_comm ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Declare a C++ executable
-# add_executable(uav_comm_node src/uav_comm_node.cpp)
+# add_executable(aerial_robot_comm_node src/aerial_robot_comm_node.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
-# add_dependencies(uav_comm_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+# add_dependencies(aerial_robot_comm_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-# target_link_libraries(uav_comm_node
+# target_link_libraries(aerial_robot_comm_node
 #   ${catkin_LIBRARIES}
 # )
 
@@ -196,7 +196,7 @@ target_link_libraries(aerial_robot_bridge ${catkin_LIBRARIES} ${Boost_LIBRARIES}
 # )
 
 ## Mark executables and/or libraries for installation
-# install(TARGETS uav_comm uav_comm_node
+# install(TARGETS aerial_robot_comm aerial_robot_comm_node
 #   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
@@ -221,7 +221,7 @@ target_link_libraries(aerial_robot_bridge ${catkin_LIBRARIES} ${Boost_LIBRARIES}
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_uav_comm.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_aerial_robot_comm.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()

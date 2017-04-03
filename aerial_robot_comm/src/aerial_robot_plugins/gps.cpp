@@ -1,4 +1,4 @@
-#include <uav_comm/aerial_robot_plugins/aerial_robot_base_plugin.h>
+#include <aerial_robot_comm/aerial_robot_plugins/aerial_robot_base_plugin.h>
 #include <aerial_robot_msgs/Gps.h>
 
 using namespace std;

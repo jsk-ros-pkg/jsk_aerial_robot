@@ -12,7 +12,7 @@
  * in the top-level LICENSE file of the mavros repository.
  */
 
-#include <uav_comm/mavros/mavros.h>
+#include <aerial_robot_comm/mavros/mavros.h>
 #include <ros/console.h>
 #include <mavros/utils.h>
 #include <fnmatch.h>
@@ -258,4 +258,4 @@ void MavRos2::log_connect_change(bool connected) {
 		ROS_WARN("CON: Lost connection, HEARTBEAT timed out.");
 }
 
-}; //namepsace uav_comm
+}; //namepsace aerial_robot_comm

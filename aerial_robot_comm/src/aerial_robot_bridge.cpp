@@ -1,6 +1,6 @@
 #include <ros/ros.h>
 #include <pluginlib/class_loader.h>
-#include <uav_comm/aerial_robot_plugins/aerial_robot_base_plugin.h>
+#include <aerial_robot_comm/aerial_robot_plugins/aerial_robot_base_plugin.h>
 
 class AerialRobotBridge
 {
@@ -8,7 +8,7 @@ public:
 
   AerialRobotBridge(ros::NodeHandle nh, ros::NodeHandle nhp)
   {
-    plugin_loader_ =  boost::shared_ptr< pluginlib::ClassLoader<aerial_robot_plugin::Base> >( new pluginlib::ClassLoader<aerial_robot_plugin::Base>("uav_comm", "aerial_robot_plugin::Base"));
+    plugin_loader_ =  boost::shared_ptr< pluginlib::ClassLoader<aerial_robot_plugin::Base> >( new pluginlib::ClassLoader<aerial_robot_plugin::Base>("aerial_robot_comm", "aerial_robot_plugin::Base"));
 
 
     for (auto &pl_name : plugin_loader_->getDeclaredClasses())
