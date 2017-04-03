@@ -10,3 +10,8 @@
     uri: https://github.com/tongtybj/rosserial.git
     version: master
 
+# the sensor interface
+- git:
+    local-name: sensor_interface
+    uri: https://github.com/tongtybj/sensor_interface.git
+    version: master
