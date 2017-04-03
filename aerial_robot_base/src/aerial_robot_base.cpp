@@ -79,7 +79,6 @@ void AerialRobotBase::tfPubFunc()
   while(ros::ok())
     {
       estimator_->tfPublish();
-      //navigator_->tfPublish();
 
       ros::spinOnce();
       loop_rate.sleep();

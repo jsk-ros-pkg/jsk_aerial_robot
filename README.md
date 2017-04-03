@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/tongtybj/aerial_robot.svg?branch=devel)](https://travis-ci.org/tongtybj/aerial_robot)
+
 # This is for aerial robot.
 
 ## how to compile

@@ -39,7 +39,7 @@ before_script:
   # source dependencies: install using wstool.
   - cd ~/catkin_ws/src
   - wstool init
-  - wstool merge $CI_SOURCE_PATH/mbzirc.rosinstall
+  - wstool merge $CI_SOURCE_PATH/aerial_robot.rosinstall
   - wstool up
 
   # package depdencies: install using rosdep.
