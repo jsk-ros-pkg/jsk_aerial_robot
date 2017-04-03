@@ -21,7 +21,7 @@
 #include <mavros/mavros_plugin.h>
 #include <mavros/mavlink_diag.h>
 #include <mavros/utils.h>
-#include <uav_comm/libmavconn/ros.h>
+#include <aerial_robot_comm/libmavconn/ros.h>
 
 
 namespace mavros {
@@ -73,5 +73,5 @@ private:
 	void startup_px4_usb_quirk(void);
 	void log_connect_change(bool connected);
 };
-};	// namespace uav_comm
+};	// namespace aerial_robot_comm
 

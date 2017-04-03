@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package>
-  <name>uav_comm</name>
+  <name>aerial_robot_comm</name>
   <version>0.0.0</version>
-  <description>The uav_comm package</description>
+  <description>The aerial_robot_comm package</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag --> 
   <!-- Example:  -->
@@ -19,7 +19,7 @@
   <!-- Url tags are optional, but mutiple are allowed, one per tag -->
   <!-- Optional attribute type can be: website, bugtracker, or repository -->
   <!-- Example: -->
-  <!-- <url type="website">http://wiki.ros.org/uav_comm</url> -->
+  <!-- <url type="website">http://wiki.ros.org/aerial_robot_comm</url> -->
 
 
   <!-- Author tags are optional, mutiple are allowed, one per tag -->
@@ -63,7 +63,7 @@
   <!-- The export tag contains other, unspecified, tags -->
   <export>
     <mavros plugin="${prefix}/mavros_plugins.xml" />
-    <uav_comm plugin="${prefix}/aerial_robot_plugins.xml" />
+    <aerial_robot_comm plugin="${prefix}/aerial_robot_plugins.xml" />
     <!-- Other tools can request additional information be placed here -->
 
   </export>
