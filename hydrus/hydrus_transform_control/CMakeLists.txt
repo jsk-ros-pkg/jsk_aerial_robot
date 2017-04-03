@@ -11,6 +11,7 @@ find_package(catkin REQUIRED COMPONENTS
   dynamixel_controllers
   tf_conversions
   cmake_modules
+  std_srvs
   dynamic_reconfigure
   message_runtime
 )
