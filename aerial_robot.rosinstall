@@ -1,0 +1,17 @@
+# the serial interface rosserial_stm
+- git:
+    local-name: rosserial
+    uri: https://github.com/tongtybj/rosserial.git
+    version: master
+#
+- git:
+    local-name: husky
+    uri: https://github.com/k-okada/husky.git
+    version: 137294a
+# https://github.com/husky/husky_simulator/pull/24
+# https://github.com/husky/husky_simulator/pull/25
+# https://github.com/husky/husky_simulator/pull/26
+- git:
+    local-name: husky_simulator
+    uri: https://github.com/k-okada/husky_simulator.git
+    version: f8a670d1578254ef6d5c7627ea6f7ac6b8d99a15
