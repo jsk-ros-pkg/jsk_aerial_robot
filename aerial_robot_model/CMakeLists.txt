@@ -58,7 +58,7 @@ install(DIRECTORY launch
 
 
 ## Mark executables and/or libraries for installation
-install(TARGETS joint_state_publisher joint_state_publisher traj_motion_node interactive_marker
+install(TARGETS joint_state_publisher joint_state_publisher interactive_marker
    ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
    LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
    RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
