@@ -21,7 +21,6 @@
   <build_depend>visualization_msgs</build_depend>
   <build_depend>tf</build_depend>
   <build_depend>dynamic_reconfigure</build_depend>
-  <build_depend>jsk_recognition_msgs</build_depend>
   <build_depend>kalman_filter</build_depend>
   <build_depend>aerial_robot_msgs</build_depend>
   <build_depend>cmake_modules</build_depend>
@@ -41,7 +40,6 @@
   <run_depend>visualization_msgs</run_depend>
   <run_depend>tf</run_depend>
   <run_depend>dynamic_reconfigure</run_depend>
-  <run_depend>jsk_recognition_msgs</run_depend>
   <run_depend>kalman_filter</run_depend>
   <run_depend>aerial_robot_msgs</run_depend>
   <run_depend>pluginlib</run_depend>
