@@ -5,7 +5,7 @@
 #include <ros/ros.h>
 
 /* XBEE Lib */
-#include <uav_comm/xbee/xbee.h>
+#include <aerial_robot_comm/xbee/xbee.h>
 
 /* MAVLINK */
 #include <mavros_msgs/mavlink_convert.h>
