@@ -63,12 +63,15 @@ include_directories(
 
 add_executable(dynamicxel_bridge_node src/dynamicxel_bridge.cpp) 
 target_link_libraries (dynamicxel_bridge_node  ${catkin_LIBRARIES})
+add_dependencies(dynamicxel_bridge_node ${PROJECT_NAME}_gencpp)
 
 add_library (transform_control src/transform_control.cpp)
 target_link_libraries (transform_control ${catkin_LIBRARIES})
+add_dependencies(transform_control ${PROJECT_NAME}_gencpp)
 
 add_executable (transform_control_node src/transform_control_node.cpp)
 target_link_libraries (transform_control_node transform_control ${catkin_LIBRARIES})
+add_dependencies(transform_control_node ${PROJECT_NAME}_gencpp)
 
 install(PROGRAMS
   scripts/dynamixel_param.py
