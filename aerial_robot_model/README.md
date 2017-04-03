@@ -21,3 +21,8 @@ $ roslaunch aerial_robot_model aerial_robot_model.launch model:=hydrusx/hydrus3_
 $ roslaunch aerial_robot_model aerial_robot_model.launch model:=dragon2
 ```
 We have to change the "Fix Frame" in rviz.
+
+- gazebo:
+```
+$ roslaunch aerial_robot_model aerial_robot_model.launch gazebo:=true
+```
