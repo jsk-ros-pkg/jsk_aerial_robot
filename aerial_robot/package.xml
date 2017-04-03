@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<package>
+  <name>aerial_robot</name>
+  <version>1.0.0</version>
+  <description>Software of JSK lab for aerial robot</description>
+
+  <maintainer email="chou@jsk.imi.i.u-tokyo.ac.jp">Moju Zhao</maintainer>
+
+  <license>TODO</license>
+
+  <url type="website">http://www.jsk.t.u-tokyo.ac.jp/</url>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <run_depend>aeiral_robot_msgs</run_depend>
+  <run_depend>aeiral_robot_model</run_depend>
+  <run_depend>aeiral_robot_base</run_depend>
+  <run_depend>aerial_robot_comm</run_depend>
+  <run_depend>hydrus</run_depend>
+  <run_depend>di</run_depend>
+  <run_depend>motor_test</run_depend>
+
+  <!-- The export tag contains other, unspecified, tags -->
+  <export>
+    <metapackage/>
+  </export>
+</package>
