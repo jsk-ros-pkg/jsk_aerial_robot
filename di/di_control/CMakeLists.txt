@@ -10,7 +10,6 @@ find_package(catkin REQUIRED COMPONENTS
   aerial_robot_base
   dynamixel_msgs
   dynamixel_controllers
-  jsk_stm
   cmake_modules
   dynamic_reconfigure
 )
