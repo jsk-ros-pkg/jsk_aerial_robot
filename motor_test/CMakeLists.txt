@@ -8,6 +8,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   std_msgs
   std_srvs
+  takasako_sps
 )
 
 ## System dependencies are found with CMake's conventions
@@ -82,7 +83,6 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
 #  LIBRARIES force_sensor_log
   CATKIN_DEPENDS roscpp std_msgs std_srvs
-  DEPENDS system_lib
 )
 
 ###########
