@@ -13,7 +13,7 @@
   <!-- gazebo elements: hw interface -->
   <gazebo>
     <plugin name="gazebo_ros_control" filename="libgazebo_ros_control.so">
-      <robotNamespace>/hydra3</robotNamespace>
+      <robotNamespace>/hydrus3</robotNamespace>
       <robotSimType>gazebo_ros_control/DefaultRobotHWSim</robotSimType>
     </plugin>
   </gazebo>
