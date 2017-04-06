@@ -8,6 +8,8 @@
   <param name="robot_description"
          command="$(find xacro)/xacro.py '$(find aerial_robot_model)/robots/$(arg model).urdf.xacro'" />
 
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher" />
+
   <group if="$(arg gazebo)" >
     <include file="$(find gazebo_ros)/launch/empty_world.launch">
       <arg name="world_name" value="worlds/empty.world"/>
@@ -26,7 +28,6 @@
   </group>
 
   <group unless="$(arg gazebo)" >
-    <node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher" />
 
     <group if="$(arg simulation)">
       <!-- for simulation -->
