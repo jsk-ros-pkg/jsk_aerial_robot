@@ -15,3 +15,15 @@
     local-name: sensor_interface
     uri: https://github.com/tongtybj/sensor_interface.git
     version: master
+
+# mavlink
+# This should be temporary link, since this is fixed to be indigo version
+- git:
+    local-name: mavlink
+    uri: https://github.com/mavlink/mavlink-gbp-release.git
+    version: release/indigo/mavlink/2016.5.20-0
+
+- git:
+    local-name: mavros
+    uri: https://github.com/mavlink/mavros.git
+    version: 0.17.5
