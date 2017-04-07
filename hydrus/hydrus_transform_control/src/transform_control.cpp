@@ -791,6 +791,17 @@ void TransformController::param2contoller()
 
   four_axis_gain_msg.motor_num = link_num_;
 
+  /* TODO:
+     The size of "aerial_robot_msgs::FourAxisGain" and "hydrus_transform_control::RollPitchYawGain" 
+     is fixed to be 6.
+     So the model with more than 6 links(i.e. hex) is not suitable for this message.
+     If we have to fix this problem, we have to change the message structure of those message.
+     However, the increase of the elements of those message affects the bandwidth of serial communication
+     between pc and fcu.
+     Right now, only a hardcoding for the octo model is implemented.
+  */
+  if(link_num_ > 6) return;
+
 #if 0
   /* temp */
   if (std::signbit(K12_(0,0)) != std::signbit(K12_(5,0)))
@@ -827,7 +838,6 @@ void TransformController::param2contoller()
           rpy_gain_msg.pitch_i_gain[i] = K12_(i,9) * 1000; //scale: x 1000
 
           rpy_gain_msg.yaw_d_gain[i] = K12_(i,5) * 1000; //scale: x 1000
-          //rpy_gain_msg.yaw_d_gain[i] = 0; //scale: x 1000
 
           /* to aerial_robot_base, feedback */
           four_axis_gain_msg.pos_p_gain_roll.push_back(K12_(i,0));
@@ -845,10 +855,6 @@ void TransformController::param2contoller()
           four_axis_gain_msg.pos_p_gain_yaw.push_back(K12_(i,4));
           four_axis_gain_msg.pos_d_gain_yaw.push_back(K12_(i,5));
           four_axis_gain_msg.pos_i_gain_yaw.push_back(K12_(i,10));
-
-          // four_axis_gain_msg.pos_p_gain_yaw.push_back(0);
-          // four_axis_gain_msg.pos_d_gain_yaw.push_back(0);
-          // four_axis_gain_msg.pos_i_gain_yaw.push_back(0);
 
           /* to aerial_robot_base, feedforward */
           four_axis_gain_msg.ff_roll_vec.push_back(-K12_(i,0));
@@ -1125,6 +1131,7 @@ void TransformController::lqi()
   if(debug_verbose_) ROS_WARN(" finish hamilton calc");
 
   param2contoller();
+  if(debug_verbose_) ROS_WARN(" finish param2controller");
 }
 
 bool TransformController::hamiltonMatrixSolver(uint8_t lqi_mode)
