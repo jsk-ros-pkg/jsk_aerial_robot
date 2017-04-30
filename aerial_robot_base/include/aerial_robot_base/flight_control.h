@@ -13,6 +13,7 @@
 #include <aerial_robot_msgs/FourAxisGain.h>
 #include <aerial_robot_base/FourAxisPid.h>
 #include <aerial_robot_base/MotorInfo.h>
+#include <aerial_robot_base/GetMotorNum.h>
 
 //* for dynamic reconfigure
 #include <dynamic_reconfigure/server.h>
@@ -41,10 +42,11 @@ public:
   inline int getMotorNumber(){return motor_num_;}
 
 
-
  protected:
   ros::NodeHandle nh_;
   ros::NodeHandle nhp_;
+
+  ros::ServiceServer motor_num_srv_;
 
   Navigator* navigator_;
   BasicEstimator* estimator_;
@@ -63,6 +65,13 @@ public:
   double pwm_rate_; //percentage
   double force_landing_pwm_; //pwm
   int estimate_mode_;
+  std::string motor_num_srv_name_;
+
+  bool motorNumCallback(aerial_robot_base::GetMotorNum::Request &req, aerial_robot_base::GetMotorNum::Response &res)
+  {
+    res.number = motor_num_;
+    return true;
+  }
 };
 
 class PidController : public FlightController
