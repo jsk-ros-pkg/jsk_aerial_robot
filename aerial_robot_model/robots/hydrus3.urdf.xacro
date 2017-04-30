@@ -10,12 +10,4 @@
   <xacro:hydrus3_link self="3" child="4" head="false" tail="false" imu="false"/>
   <xacro:hydrus3_link self="4" child="5" head="false" tail="true" imu="false"/>
 
-  <!-- gazebo elements: hw interface -->
-  <gazebo>
-    <plugin name="gazebo_ros_control" filename="libgazebo_ros_control.so">
-      <robotNamespace>/hydrus3</robotNamespace>
-      <robotSimType>gazebo_ros_control/DefaultRobotHWSim</robotSimType>
-    </plugin>
-  </gazebo>
-
 </robot>

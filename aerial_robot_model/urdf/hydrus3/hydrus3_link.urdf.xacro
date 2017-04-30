@@ -146,10 +146,9 @@
 
     </xacro:unless> <!-- var_head -->
 
-    <!-- gazebo elements -->
-    <!-- transmission interface -->
+    <!-- hardware interface -->
     <xacro:unless value="${tail}">
-      <transmission name="tran${self}">
+      <transmission name="joint_tran${self}">
         <type>transmission_interface/SimpleTransmission</type>
         <joint name="joint${self}">
           <!-- TODO: effort is torque, maybe position is enough -->
@@ -162,8 +161,6 @@
         </actuator>
       </transmission>
     </xacro:unless> <!-- var_tail -->
-
-
   </xacro:macro>
 
 </robot>
