@@ -162,7 +162,9 @@ void TransformController::initParam()
 
   /* number of links */
   nh_private_.param("link_num", link_num_, 4);
+  nh_private_.param("joint_num", joint_num_, link_num_ - 1);
   std::cout << " link num: " << link_num_ << std::endl;
+  std::cout << " joint num: " << joint_num_ << std::endl;
 
   /* lqi */
   r_.resize(link_num_);
@@ -221,8 +223,7 @@ void TransformController::initParam()
 
   /* kinematics */
   links_name_.resize(link_num_);
-  propeller_direction_.resize(link_num_);
-  propeller_order_.resize(link_num_);
+  rotor_direction_.resize(link_num_);
   link_base_model_.resize(link_num_);
   link_base_rod_mass_.resize(link_num_);
   link_joint_model_.resize(link_num_ -1);
@@ -232,7 +233,7 @@ void TransformController::initParam()
   nh_private_.param("root_link", root_link_, 3);
   std::stringstream ss;
   ss << root_link_;
-  root_link_name_ = std::string("/link") + ss.str();
+  root_link_name_ = std::string("/link") + ss.str() + std::string("_center");
   std::cout << " root_link_name_: " << root_link_name_ << std::endl;
 
   /* base components position [m] */
@@ -258,17 +259,19 @@ void TransformController::initParam()
   std::cout << "link_joint_mass: " << std::setprecision(3) << link_joint_mass_ << std::endl;
 
   Eigen::Matrix3d zero_inertia = Eigen::Matrix3d::Zero(3,3);
+
+  /* 1. link base model */
   for(int i = 0; i < link_num_; i++)
     {
       std::stringstream ss;
       ss << i + 1;
-      links_name_[i] = std::string("/link") + ss.str(); //link name
+      links_name_[i] = std::string("/link") + ss.str() + std::string("_center"); //link name
 
       nh_private_.param(std::string("link") + ss.str() + std::string("_base_rod_mass"), link_base_rod_mass_[i], link_base_rod_mid_mass_);
       std::cout << "link " << i + 1 << "_base_rod_mass:" << std::setprecision(3) << link_base_rod_mass_[i] << std::endl;
 
       /* model */
-      /* 1. link base model */
+
       float link_base_model_weight = link_base_rod_mass_[i] + link_base_ring_mass_ + link_base_two_ring_holder_mass_ + link_base_center_mass_;
 
       Eigen::Matrix3d link_base_model_inertia;
@@ -282,19 +285,24 @@ void TransformController::initParam()
       link_base_model_[i] = link_base_model;
       all_mass_ += link_base_model.getWeight();
 
-      /* 2. link joint model */
-      if(i+1 < link_num_)
-        {
-          Eigen::Vector3d offset_;
-          offset_ << link_joint_offset_, 0, 0;
-          ElementModel link_joint_model(i + 1, link_joint_mass_, zero_inertia, offset_);
-          link_joint_model_[i] = link_joint_model;
-          all_mass_ += link_joint_model.getWeight();
-        }
-
       /* propeller */
-      nh_private_.param(std::string("propeller") + ss.str() + std::string("_direction"), propeller_direction_[i], 1);
-      nh_private_.param(std::string("propeller") + ss.str() + std::string("_order"), propeller_order_[i], i);
+      nh_private_.param(std::string("rotor") + ss.str() + std::string("_direction"), rotor_direction_[i], 1);
+    }
+
+  /* 2. link joint model */
+  for(int j = 0; j < joint_num_; j++)
+    {
+      int joint_base_link;
+      std::stringstream ss;
+      ss << j + 1;
+      nh_private_.param (std::string("joint") + ss.str() + std::string("_base_link"), joint_base_link, j);
+      std::cout << std::string("joint") + ss.str() + std::string("_base_link: ") << joint_base_link << std::endl;
+
+      Eigen::Vector3d offset_;
+      offset_ << link_joint_offset_, 0, 0;
+      ElementModel link_joint_model(joint_base_link, link_joint_mass_, zero_inertia, offset_);
+      link_joint_model_[j] = link_joint_model;
+      all_mass_ += link_joint_model.getWeight();
     }
 
   /* 3. extra module */
@@ -418,6 +426,7 @@ void TransformController::cogComputation(const std::vector<tf::StampedTransform>
 {
   Eigen::Vector3d cog_n  = Eigen::Vector3d::Zero();
 
+  /* 1. link base model */
   for(int i = 0; i < link_num_; i++)
     {
       Eigen::Vector3d link_origin;
@@ -427,15 +436,24 @@ void TransformController::cogComputation(const std::vector<tf::StampedTransform>
       tf::quaternionTFToEigen(transforms[i].getRotation(), q);
       Eigen::Matrix3d link_rotate(q);
 
-      /* 1. link base model */
+
       cog_n += link_origin * link_base_model_[i].getWeight();
-      if(i > 0)
-        {
-          /* 2. link joint model */
-          /* transformation */
-          Eigen::Vector3d joint_origin = link_rotate * link_joint_model_[i -1].getOffset()  + link_origin;
-          cog_n += joint_origin * link_joint_model_[i - 1].getWeight();
-        }
+    }
+
+  /* 2. link joint model */
+  for(int j = 0; j < joint_num_; j++)
+    {
+      int link_no = link_joint_model_[j].getLink();
+      Eigen::Vector3d link_origin;
+      tf::vectorTFToEigen(transforms[link_no].getOrigin(), link_origin);
+
+      Eigen::Quaterniond q;
+      tf::quaternionTFToEigen(transforms[link_no].getRotation(), q);
+      Eigen::Matrix3d link_rotate(q);
+
+      Eigen::Vector3d joint_origin = link_rotate * link_joint_model_[j].getOffset()  + link_origin;
+      cog_n += joint_origin * link_joint_model_[j].getWeight();
+
     }
 
   /* 3. extra module */
@@ -454,6 +472,7 @@ void TransformController::cogComputation(const std::vector<tf::StampedTransform>
     }
 
   Eigen::Vector3d cog = cog_n / all_mass_;
+
   setCog(cog);
 }
 
@@ -475,8 +494,6 @@ void TransformController::principalInertiaComputation(const std::vector<tf::Stam
       tf::quaternionTFToEigen(transforms[i].getRotation(), q);
       Eigen::Matrix3d rotate_m(q);
 
-      /* 1. link base model */
-      /* rotate(R_t * I * R) */
       Eigen::Vector3d origin_from_cog = origin_from_root_link - getCog();
       links_origin_from_cog[i] = origin_from_cog;
 
@@ -499,28 +516,36 @@ void TransformController::principalInertiaComputation(const std::vector<tf::Stam
 
       Eigen::Matrix3d links_inertia_tmp = links_inertia;
       links_inertia = links_inertia_tmp + link_rotated_inertia + link_offset_inertia;
+    }
 
-      /* 2. link joint model */
-      if(i > 0)
-        {
-          origin_from_cog = rotate_m * link_joint_model_[i - 1].getOffset()  + origin_from_root_link - getCog();
 
-          float joint_mass = link_joint_model_[i - 1].getWeight();
-          Eigen::Matrix3d joint_offset_inertia;
-          joint_offset_inertia <<
-            joint_mass * origin_from_cog(1) * origin_from_cog(1),
-            joint_mass * (-origin_from_cog(0) * origin_from_cog(1)),
-            0,
-            joint_mass * (-origin_from_cog(0) * origin_from_cog(1)),
-            joint_mass * origin_from_cog(0) * origin_from_cog(0),
-            0,
-            0,
-            0,
-            joint_mass * (origin_from_cog(0) * origin_from_cog(0) + origin_from_cog(1) * origin_from_cog(1));
+  /* 2. link joint model */
+  for(int j = 0; j < joint_num_; j ++)
+    {
+      int link_no = link_joint_model_[j].getLink();
 
-          Eigen::Matrix3d links_inertia_tmp = links_inertia;
-          links_inertia = links_inertia_tmp + joint_offset_inertia;
-        }
+      /* rotate */
+      Eigen::Quaterniond q;
+      tf::quaternionTFToEigen(transforms[link_no].getRotation(), q);
+      Eigen::Matrix3d rotate_m(q);
+
+      Eigen::Vector3d origin_from_cog = rotate_m * link_joint_model_[j].getOffset() + links_origin_from_cog[link_no];
+
+      float joint_mass = link_joint_model_[j].getWeight();
+      Eigen::Matrix3d joint_offset_inertia;
+      joint_offset_inertia <<
+        joint_mass * origin_from_cog(1) * origin_from_cog(1),
+        joint_mass * (-origin_from_cog(0) * origin_from_cog(1)),
+        0,
+        joint_mass * (-origin_from_cog(0) * origin_from_cog(1)),
+        joint_mass * origin_from_cog(0) * origin_from_cog(0),
+        0,
+        0,
+        0,
+        joint_mass * (origin_from_cog(0) * origin_from_cog(0) + origin_from_cog(1) * origin_from_cog(1));
+
+      Eigen::Matrix3d links_inertia_tmp = links_inertia;
+      links_inertia = links_inertia_tmp + joint_offset_inertia;
     }
 
   /* 3. extra module model */
@@ -533,8 +558,6 @@ void TransformController::principalInertiaComputation(const std::vector<tf::Stam
       tf::quaternionTFToEigen(transforms[link_no].getRotation(), q);
       Eigen::Matrix3d rotate_m(q);
 
-      /* 1. link base model */
-      /* rotate(R_t * I * R) */
       Eigen::Vector3d origin_from_cog = rotate_m * extra_module_model_[i].getOffset() + links_origin_from_cog[link_no];
 
       float controller_mass = extra_module_model_[i].getWeight();
@@ -943,32 +966,6 @@ std::vector<tf::StampedTransform> TransformController::transformsFromJointValues
       theta1 += joint_values[i+joint_offset -1];
     }
 
-
-  //for transform from link1
-
-#if 0
-  for(int i = 0; i < link_num_; i ++)
-    {
-      if(i == 0)
-        {
-          transforms[0].setOrigin( tf::Vector3(0, 0, 0) );
-
-          q.setRPY(0, 0, 0);
-          transforms[0].setRotation(q);
-        }
-      else
-        {
-          theta2 += joint_values[i+joint_offset -1];
-          transforms[i].setOrigin( tf::Vector3(transforms[i-1].getOrigin().getX() - link_length_ / 2 * cos(theta1) - link_length_ / 2 * cos(theta2),
-                                               transforms[i-1].getOrigin().getY() - link_length_ / 2 * sin(theta1) - link_length_ / 2 * sin(theta2),
-                                               0) );
-          q.setRPY(0, 0, theta2);
-          transforms[i].setRotation(q);
-          theta1 += joint_values[i+joint_offset -1];
-        }
-    }
-#endif
-
   return transforms;
 }
 
@@ -1028,11 +1025,10 @@ bool  TransformController::stabilityCheck(bool verbose)
 
   for(; i < link_num_; i++)
     {
-      int order = propeller_order_[i];
-      p_y(order) =  links_origin_from_cog[i](1);
-      p_x(order) = -links_origin_from_cog[i](0);
-      p_c(order) = propeller_direction_[i] * m_f_rate_ ;
-      p_m(order) = 1 / all_mass_;
+      p_y(i) =  links_origin_from_cog[i](1);
+      p_x(i) = -links_origin_from_cog[i](0);
+      p_c(i) = rotor_direction_[i] * m_f_rate_ ;
+      p_m(i) = 1 / all_mass_;
 
       if(control_verbose_ || verbose)
         std::cout << "link" << i + 1 <<"origin :\n" << links_origin_from_cog[i] << std::endl;

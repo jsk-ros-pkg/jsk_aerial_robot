@@ -256,8 +256,8 @@ private:
 
   /* base model config */
   int link_num_;
-  std::vector<int> propeller_direction_;
-  std::vector<int> propeller_order_;
+  int joint_num_;
+  std::vector<int> rotor_direction_;
 
   std::string rpy_gain_pub_name_;
   std::string yaw_pos_gain_sub_name_;
