@@ -1,19 +1,29 @@
 <launch>
   <arg name="model" default="hydrus3" />
-  <arg name="simulation" default="True" /> <!-- simulation: use virtual joint_state publisher for display the robot model -->
   <arg name="headless" default="False" />
-  <arg name="need_description" default="true" />
-  <arg name="ns" default="/" />
+  <arg name="description_path" default="$(find aerial_robot_model)/robots"/>
+  <arg name="description_mode" default="urdf"/>
+  <arg name="need_joint_state" default="true" />
 
+  <!-- not good -->
+  <!-- global namespace -->
   <param name="robot_description"
-         command="$(find xacro)/xacro.py '$(find aerial_robot_model)/robots/$(arg model).urdf.xacro'" if="$(arg need_description)"/>
+         command="$(find xacro)/xacro.py '$(arg description_path)/$(arg model).$(arg description_mode).xacro'" />
 
-  <node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher" ns="$(arg ns)"/>
+  <group ns="$(arg model)" >
 
-  <group if="$(arg simulation)">
-    <!-- for simulation -->
-    <param name="use_gui" value="true" />
-    <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" unless = "$(arg headless)" ns="$(arg ns)" />
+    <node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher"/>
+
+    <rosparam file = "$(find aerial_robot_model)/config/$(arg model)_init.yaml" command="load" />
+    <group if="$(arg need_joint_state)">
+      <!-- for simulation -->
+      <param name="use_gui" value="true" />
+      <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" >
+        <param name="robot_description"
+               command="$(find xacro)/xacro.py '$(find aerial_robot_model)/robots/$(arg model).urdf.xacro'" />
+      </node >
+    </group>
+
   </group>
 
   <group unless="$(arg headless)">
