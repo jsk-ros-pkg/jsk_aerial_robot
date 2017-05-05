@@ -5,9 +5,9 @@
   <xacro:include filename="$(find aerial_robot_model)/urdf/hydrus3/hydrus3_common.xacro" />
   <xacro:include filename="$(find aerial_robot_model)/urdf/hydrus3/hydrus3_link.urdf.xacro" />
 
-  <xacro:hydrus3_link self="1" child="2" head="true" tail="false" imu="false"/>
-  <xacro:hydrus3_link self="2" child="3" head="false" tail="false" imu="true"/>
-  <xacro:hydrus3_link self="3" child="4" head="false" tail="false" imu="false"/>
-  <xacro:hydrus3_link self="4" child="5" head="false" tail="true" imu="false"/>
+  <xacro:hydrus3_link self="1" child="2" head="true" tail="false" imu="false" m_link="0.607" i_xx="${protector_inertia * .5}" i_yy="${joint_inertia + pc_inertia + rod_inertia + protector_inertia * .5}" i_zz="${joint_inertia + pc_inertia + rod_inertia + protector_inertia}" />
+  <xacro:hydrus3_link self="2" child="3" head="false" tail="false" imu="true" m_link="0.557" i_xx="${protector_inertia * .5}" i_yy="${joint_inertia + rod_inertia + protector_inertia * .5}" i_zz="${joint_inertia + rod_inertia + protector_inertia}"/>
+  <xacro:hydrus3_link self="3" child="4" head="false" tail="false" imu="false" m_link="0.487" i_xx="${protector_inertia * .5}" i_yy="${joint_inertia + rod_inertia + protector_inertia * .5}" i_zz="${joint_inertia + rod_inertia + protector_inertia}"/>
+  <xacro:hydrus3_link self="4" child="5" head="false" tail="true" imu="false" m_link="0.45" i_xx="${protector_inertia * .5}" i_yy="${rod_inertia + protector_inertia * .5}" i_zz="${rod_inertia + protector_inertia}"/>
 
 </robot>

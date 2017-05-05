@@ -5,22 +5,45 @@
   <xacro:property name="pi" value="3.1415926535897931" />
   <xacro:property name="link_length" value=".44" />
   <xacro:property name="protector_radius" value=".155" />
+  <xacro:property name="protector_mass" value=".05" />
+  <xacro:property name="pc_mass" value=".1" />
+  <xacro:property name="rotor_mass" value=".05" /> <!-- [g] -->
+  <xacro:property name="rotor_radius" value=".015" /> <!-- [g] -->
+  <xacro:property name="rotor_height" value=".05" /> <!-- [m] -->
+  <xacro:property name="max_force" value="100" /> <!-- [m] -->
+  <xacro:property name="joint_inertia" value="${.0785 * .205 * .205}" /> <!-- mass * dist * dist -->
+  <xacro:property name="rod_inertia" value="${link_length * link_length * 0.1 /12}" /> <!-- mass * dist * dist -->
+  <xacro:property name="pc_inertia" value="${pc_mass * .189 * .189}" /> <!-- mass * dist * dist -->
+  <xacro:property name="protector_inertia" value="${protector_mass * protector_radius * protector_radius}" /> <!-- mass * dist * dist -->
 
   <xacro:macro name="link_model" params="self">
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <geometry>
-        <cylinder length="${protector_radius}" radius="0.1"/>
+        <cylinder length="${protector_radius}" radius="0.09"/>
       </geometry>
     </collision>
 
     <visual>
-      <origin rpy="${-pi/2} 0 ${pi}" xyz="0 0 0"/>
+      <origin rpy="${-pi/2} 0 0" xyz="${link_length*.5} 0 0"/>
       <geometry>
         <mesh filename="package://aerial_robot_model/urdf/hydrus3/mesh/hydrus3_link${self}.dae"/>
       </geometry>
     </visual>
   </xacro:macro>
 
+  <!-- friction -->
+  <xacro:macro name="friction" params="self">
+    <gazebo reference="link${self}">
+      <mu1>0.0001</mu1>
+      <mu2>0.0001</mu2>
+    </gazebo>
+  </xacro:macro>
+
+  <xacro:macro name="damping_factor" params="link">
+    <gazebo reference="${link}">
+      <dampingFactor>0.00</dampingFactor>
+    </gazebo>
+  </xacro:macro>
 
 </robot>
