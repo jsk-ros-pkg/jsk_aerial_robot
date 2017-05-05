@@ -5,10 +5,10 @@
     version: master
 
 # the serial interface rosserial_stm
-#- git:
-#    local-name: rosserial
-#    uri: https://github.com/tongtybj/rosserial.git
-#    version: master
+- git:
+    local-name: rosserial
+    uri: https://github.com/tongtybj/rosserial.git
+    version: master
 
 # the sensor interface
 - git:
