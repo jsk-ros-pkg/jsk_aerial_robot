@@ -505,7 +505,7 @@ void AerialRobotHWSim::writeSim(ros::Time time, ros::Duration period)
 
               //std::cout << child_link->GetName() << ": force: " << rotor.getForce() << std::endl;
               /* add force and torque, need to check */
-              child_link->AddLinkForce(gazebo::math::Vector3(0, 0, rotor.getForce()));
+              child_link->AddRelativeForce(gazebo::math::Vector3(0, 0, rotor.getForce()));
               parent_link->AddRelativeTorque(gazebo::math::Vector3(0, 0, rotor.getTorque()));
             }
         }
