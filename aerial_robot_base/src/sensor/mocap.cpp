@@ -55,7 +55,7 @@ namespace sensor_plugin
   public:
     void initialize(ros::NodeHandle nh, ros::NodeHandle nhp, BasicEstimator* estimator, string sensor_name)
     {
-      baseParamInit(nh, nhp, estimator, sensor_name);
+      SensorBase::initialize(nh, nhp, estimator, sensor_name);
       rosParamInit();
 
       //low pass filter
@@ -65,7 +65,6 @@ namespace sensor_plugin
       for(size_t i = 0; i < lpf_acc_.size(); i ++)
         lpf_acc_[i] = IirFilter((float)rx_freq_, (float)cutoff_pos_freq_);
 
-      cog_offset_sub_ = nh_.subscribe(cog_rotate_sub_name_, 5, &Mocap::cogOffsetCallback, this);
       pose_stamped_pub_ = nh_.advertise<aerial_robot_base::States>(pub_name_, 5);
       mocap_sub_ = nh_.subscribe("/aerial_robot/pose", 1, &Mocap::poseCallback, this, ros::TransportHints().udp());
     }
@@ -86,8 +85,7 @@ namespace sensor_plugin
       prev_raw_pos_(0, 0, 0),
       prev_raw_vel_(0, 0, 0),
       prev_raw_euler_(0, 0, 0),
-      pos_offset_(0, 0, 0),
-      cog_offset_angle_(0)
+      pos_offset_(0, 0, 0)
     {
       ground_truth_pose_.states.resize(6);
       ground_truth_pose_.states[0].id = "x";
@@ -110,14 +108,12 @@ private:
   /* ros */
   ros::Publisher  pose_stamped_pub_;
   ros::Subscriber mocap_sub_;
-  ros::Subscriber cog_offset_sub_;
 
   /* ros param */
   double rx_freq_;
   double cutoff_pos_freq_;
   double cutoff_vel_freq_;
   std::string pub_name_;
-  std::string cog_rotate_sub_name_;
 
   double pos_noise_sigma_, angle_noise_sigma_;
 
@@ -129,7 +125,6 @@ private:
 
   tf::Vector3 prev_raw_pos_, prev_raw_vel_, prev_raw_euler_;
   tf::Vector3 pos_offset_;
-  float cog_offset_angle_;
 
   /* ros msg */
   aerial_robot_base::States ground_truth_pose_;
@@ -173,9 +168,15 @@ private:
         estimator_->setState(BasicEstimator::Y_W, BasicEstimator::GROUND_TRUTH, 0, pos_.y());
         estimator_->setState(BasicEstimator::Z_W, BasicEstimator::GROUND_TRUTH, 0, pos_.z());
 
-        float yaw_cog = raw_euler_[2] + cog_offset_angle_;
+        tf::Matrix3x3 r_b;
+        r_b.setRPY(raw_euler_[0], raw_euler_[1], raw_euler_[2]);
+        tf::Matrix3x3 r_cog = r_b * transform_.getBasis().transpose();
+        tfScalar roll_cog = 0, pitch_cog = 0, yaw_cog = 0;
         if (yaw_cog > M_PI) yaw_cog -= 2 * M_PI;
         if (yaw_cog < -M_PI) yaw_cog += 2 * M_PI;
+        r_cog.getRPY(roll_cog, pitch_cog, yaw_cog);
+        tf::Vector3 omega_cog = transform_.getBasis() * omega_;
+
         estimator_->setState(BasicEstimator::YAW_W, BasicEstimator::GROUND_TRUTH, 0, yaw_cog);
         estimator_->setState(BasicEstimator::YAW_W_B, BasicEstimator::GROUND_TRUTH, 0, raw_euler_[2]);
 
@@ -183,7 +184,7 @@ private:
           {
             estimator_->setState(BasicEstimator::YAW_W, BasicEstimator::EXPERIMENT_ESTIMATE, 0, yaw_cog);
             estimator_->setState(BasicEstimator::YAW_W_B, BasicEstimator::EXPERIMENT_ESTIMATE, 0, raw_euler_[2]);
-            estimator_->setState(BasicEstimator::YAW_W, BasicEstimator::EXPERIMENT_ESTIMATE, 1, omega_[2]);
+            estimator_->setState(BasicEstimator::YAW_W, BasicEstimator::EXPERIMENT_ESTIMATE, 1, omega_cog[2]);
             estimator_->setState(BasicEstimator::YAW_W_B, BasicEstimator::EXPERIMENT_ESTIMATE, 1, omega_[2]);
           }
 
@@ -265,11 +266,6 @@ private:
     updateHealthStamp(ros::Time::now().toSec());
   }
 
-  void cogOffsetCallback(aerial_robot_base::DesireCoord offset_msg)
-  {
-    cog_offset_angle_ =  - offset_msg.yaw; //temporarily, cog coord is parent, board to cog
-  }
-
   void rosParamInit()
   {
     std::string ns = nhp_.getNamespace();
@@ -281,7 +277,6 @@ private:
     if(param_verbose_) cout << "pos noise sigma  is " << pos_noise_sigma_ << endl;
 
     nhp_.param("pub_name", pub_name_, std::string("ground_truth/pose"));
-    nhp_.param("cog_rotate_sub_name", cog_rotate_sub_name_, std::string("/desire_coordinate"));
 
     nhp_.param("rx_freq", rx_freq_, 100.0);
     nhp_.param("cutoff_pos_freq", cutoff_pos_freq_, 20.0);
@@ -320,7 +315,7 @@ private:
           }
       }
   }
-};
+  };
 };
 
 /* plugin registration */
