@@ -66,7 +66,7 @@ namespace sensor_plugin
     public:
       void initialize(ros::NodeHandle nh, ros::NodeHandle nhp, BasicEstimator* estimator, string sensor_name)
       {
-        baseParamInit(nh, nhp, estimator, sensor_name);
+        SensorBase::initialize(nh, nhp, estimator, sensor_name);
         rosParamInit();
 
         /* ros publisher of aerial_robot_base::State */
