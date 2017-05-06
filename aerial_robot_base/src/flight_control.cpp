@@ -281,7 +281,7 @@ void PidController::pidFunction()
                 = (target_pos_x - state_pos_x) * cos(state_psi_cog)
                 + (target_pos_y - state_pos_y) * sin(state_psi_cog);
 
-              d_err_vel_curr_pitch_ = - (state_vel_x * cos(state_psi_cog) + state_vel_y * sin(state_psi_cog)); 
+              d_err_vel_curr_pitch_ = - (state_vel_x * cos(state_psi_cog) + state_vel_y * sin(state_psi_cog));
 
               //**** Pの項
               pos_p_term_pitch_ =
@@ -505,7 +505,11 @@ void PidController::pidFunction()
 
           //yaw => refer to the board frame angle(psi_board)
           //error p
-          d_err_pos_curr_yaw_ = target_psi - state_psi_board;
+          if(yaw_control_frame_ == Frame::BODY)
+            d_err_pos_curr_yaw_ = target_psi - state_psi_board;
+          else if(yaw_control_frame_ == Frame::COG)
+            d_err_pos_curr_yaw_ = target_psi - state_psi_cog;
+
           if(d_err_pos_curr_yaw_ > M_PI)  d_err_pos_curr_yaw_ -= 2 * M_PI;
           else if(d_err_pos_curr_yaw_ < -M_PI)  d_err_pos_curr_yaw_ += 2 * M_PI;
           //error i
@@ -915,6 +919,10 @@ void PidController::rosParamInit(ros::NodeHandle nh)
       if (!yaw_node.getParam ("pos_d_gain", pos_d_gain_yaw_[0]))
         pos_d_gain_yaw_[0] = 0;
       printf("%s: pos_d_gain_ is %.3f\n", yaw_ns.c_str(), pos_d_gain_yaw_[0]);
+
+      if (!yaw_node.getParam ("yaw_control_frame", yaw_control_frame_))
+        yaw_control_frame_ = Frame::BODY;
+      printf("%s: yaw_control_frame_ is %d\n", yaw_ns.c_str(), yaw_control_frame_);
     }
   else
     {//transformable

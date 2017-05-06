@@ -95,7 +95,7 @@ private:
   int throttle_ctrl_loop_rate_;
   int yaw_ctrl_cnt;
   int yaw_ctrl_loop_rate_;
-  
+
   //**** throttle
   std::vector<double>  pos_p_gain_throttle_;
   std::vector<double>  pos_i_gain_throttle_;
@@ -163,6 +163,7 @@ private:
  int pos_p_limit_yaw_;
  int pos_i_limit_yaw_;
  int pos_d_limit_yaw_;
+ int yaw_control_frame_;
  //double vel_value_limit_yaw_;
  //double i_enable_limit_yaw_;
 
