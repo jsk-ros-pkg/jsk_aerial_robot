@@ -16,6 +16,11 @@
     uri: https://github.com/tongtybj/sensor_interface.git
     version: master
 
+# motion capture(optitrack)
+- git:
+    local-name: mocap_optitrack
+    uri: https://github.com/ros-drivers/mocap_optitrack.git
+    version: master
 # mavlink
 # This should be temporary link, since this is fixed to be indigo version
 - git:
@@ -27,3 +32,4 @@
     local-name: mavros
     uri: https://github.com/mavlink/mavros.git
     version: 0.17.5
+
