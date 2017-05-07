@@ -13,7 +13,6 @@ find_package(catkin REQUIRED COMPONENTS
   cmake_modules
   std_srvs
   dynamic_reconfigure
-  message_runtime
 )
 
 
@@ -46,7 +45,7 @@ generate_dynamic_reconfigure_options(
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES transform_control
-  CATKIN_DEPENDS roscpp   aerial_robot_msgs dynamixel_controllers tf_conversions
+  CATKIN_DEPENDS roscpp message_runtime aerial_robot_msgs dynamixel_controllers tf_conversions
   DEPENDS Eigen
 )
 
@@ -63,15 +62,15 @@ include_directories(
 
 add_executable(dynamicxel_bridge_node src/dynamicxel_bridge.cpp) 
 target_link_libraries (dynamicxel_bridge_node  ${catkin_LIBRARIES})
-add_dependencies(dynamicxel_bridge_node ${PROJECT_NAME}_gencpp)
+add_dependencies(dynamicxel_bridge_node aerial_robot_msgs_generate_messages_cpp aerial_robot_base_generate_messages_cpp ${PROJECT_NAME}_generate_messages_cpp ${PROJECT_NAME}_gencfg)
 
 add_library (transform_control src/transform_control.cpp)
 target_link_libraries (transform_control ${catkin_LIBRARIES})
-add_dependencies(transform_control ${PROJECT_NAME}_gencpp)
+add_dependencies(transform_control aerial_robot_msgs_generate_messages_cpp aerial_robot_base_generate_messages_cpp ${PROJECT_NAME}_generate_messages_cpp ${PROJECT_NAME}_gencfg)
 
 add_executable (transform_control_node src/transform_control_node.cpp)
 target_link_libraries (transform_control_node transform_control ${catkin_LIBRARIES})
-add_dependencies(transform_control_node ${PROJECT_NAME}_gencpp)
+add_dependencies(transform_control_node aerial_robot_msgs_generate_messages_cpp aerial_robot_base_generate_messages_cpp ${PROJECT_NAME}_generate_messages_cpp ${PROJECT_NAME}_gencfg)
 
 install(PROGRAMS
   scripts/dynamixel_param.py

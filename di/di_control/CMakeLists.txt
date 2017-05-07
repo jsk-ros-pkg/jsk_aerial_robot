@@ -128,11 +128,11 @@ include_directories(
    src/di_gimbal_control.cpp
  )
 target_link_libraries (di_gimbal_control ${catkin_LIBRARIES})
-add_dependencies(di_gimbal_control  ${PROJECT_NAME}_gencpp)
+add_dependencies(di_gimbal_control aerial_robot_base_generate_messages_cpp ${PROJECT_NAME}_gencfg)
 
 add_executable(di_gimbal_control_node src/di_gimbal_control_node.cpp)
 target_link_libraries (di_gimbal_control_node di_gimbal_control ${catkin_LIBRARIES})
-add_dependencies(di_gimbal_control_node  ${PROJECT_NAME}_gencfg)
+add_dependencies(di_gimbal_control_node  aerial_robot_base_generate_messages_cpp ${PROJECT_NAME}_gencfg)
 
 ## Specify libraries to link a library or executable target against
 # target_link_libraries(di_control_node
