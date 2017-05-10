@@ -183,7 +183,7 @@ namespace sensor_plugin
       omega_[Frame::COG] = transform_.getBasis() * omega_[Frame::BODY];
       mag_[Frame::COG] = transform_.getBasis() * mag_[Frame::BODY];
 
-      /* calculate accTran */
+      /* project acc onto level frame using body frame value */
 #if 1 // use x,y for factor4 and z for factor3
       tf::Matrix3x3 orientation;
       orientation.setRPY(euler_[Frame::BODY][0], euler_[Frame::BODY][1], 0);
@@ -273,7 +273,7 @@ namespace sensor_plugin
                   if(!getFuserActivate(mode)) continue;
 
                   tf::Matrix3x3 orientation;
-                  orientation.setRPY(0, 0, (estimator_->getState(BasicEstimator::YAW_W, mode))[0]);
+                  orientation.setRPY(0, 0, (estimator_->getState(BasicEstimator::YAW_W_B, mode))[0]);
                   tf::Vector3 acc_bias_w_ = orientation * acc_bias_l_;
 
                   for(auto& fuser : estimator_->getFuser(mode))
@@ -345,7 +345,7 @@ namespace sensor_plugin
               if(getFuserActivate(mode))
                 {
                   tf::Matrix3x3 orientation;
-                  orientation.setRPY(0, 0, (estimator_->getState(BasicEstimator::YAW_W, mode))[0]);
+                  orientation.setRPY(0, 0, (estimator_->getState(BasicEstimator::YAW_W_B, mode))[0]);
 
                   acc_w_ = orientation * acc_l_;
                   acc_non_bias_w_ = orientation * (acc_l_ - acc_bias_l_);
