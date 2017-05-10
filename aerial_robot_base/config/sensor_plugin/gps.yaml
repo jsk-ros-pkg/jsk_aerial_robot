@@ -1,0 +1,6 @@
+sensor_plugin:
+        gps: #single GPS
+                min_est_sat_num: 7
+                vel_noise_sigma:  0.1
+                wp_ctrl_rate: 0
+                frame_roll: 3.1415926
