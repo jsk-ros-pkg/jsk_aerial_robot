@@ -54,11 +54,11 @@ namespace kf_plugin
 
     void initialize(ros::NodeHandle nh, string suffix, int id)
     {
-      baseInit(nh, suffix, id);
-
       state_dim_ = 1;
       input_dim_ = 1;
       measure_dim_ = 1;
+
+      KalmanFilter::initialize(nh, suffix, id);
 
       //cfg init
       server_ = new dynamic_reconfigure::Server<aerial_robot_base::KalmanFilterBaroBiasConfig>(nhp_);
