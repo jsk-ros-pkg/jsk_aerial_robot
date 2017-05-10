@@ -70,7 +70,9 @@ namespace sensor_plugin
       estimate_flag_(true),
       sensor_hz_(0),
       transform_()
-    {}
+    {
+      transform_.setIdentity();
+    }
 
     virtual void initialize(ros::NodeHandle nh, ros::NodeHandle nhp, BasicEstimator* estimator, string sensor_name)
     {
