@@ -44,7 +44,6 @@
 #include <geometry_msgs/Vector3.h>
 #include <aerial_robot_msgs/SimpleImu.h>
 #include <aerial_robot_msgs/Imu.h>
-#include <aerial_robot_base/DesireCoord.h>
 
 using namespace Eigen;
 using namespace std;
@@ -56,12 +55,10 @@ namespace sensor_plugin
   public:
     void initialize(ros::NodeHandle nh, ros::NodeHandle nhp, BasicEstimator* estimator, string sensor_name)
     {
-      baseParamInit(nh, nhp, estimator, sensor_name);
+      SensorBase::initialize(nh, nhp, estimator, sensor_name);
       rosParamInit();
 
       acc_pub_ = nh_.advertise<aerial_robot_base::Acc>("acc", 2);
-
-      cog_offset_sub_ = nh_.subscribe(cog_rotate_sub_name_, 5, &Imu::cogOffsetCallback, this);
 
       if(imu_board_ == D_BOARD)
         {
@@ -78,22 +75,21 @@ namespace sensor_plugin
     ~Imu () {}
     Imu ():
       calib_count_(100),
-      euler_(0, 0, 0),
-      acc_b_(0, 0, 0),
+      euler_(),
+      acc_(),
+      omega_(),
+      mag_(),
       acc_l_(0, 0, 0),
       acc_w_(0, 0, 0),
       acc_non_bias_w_(0, 0, 0),
       acc_bias_l_(0, 0, 0),
-      acc_bias_w_(0, 0, 0),
-      omega_(0, 0, 0),
-      mag_(0, 0, 0),
-      cog_offset_angle_(0)
+      acc_bias_w_(0, 0, 0)
     { }
 
     const static uint8_t D_BOARD = 1;
     const static uint8_t KDUINO = 0;
 
-    inline tf::Vector3 getEuler()  { return euler_; }
+    inline tf::Vector3 getAttitude(uint8_t frame)  { return euler_[frame]; }
     inline ros::Time getStamp(){return imu_stamp_;}
 
     static constexpr float G = 9.797;
@@ -102,11 +98,9 @@ namespace sensor_plugin
     ros::Publisher  acc_pub_;
     ros::Subscriber  imu_sub_, sub_imu_sub_;
     ros::Subscriber  imu_simple_sub_;
-    ros::Subscriber cog_offset_sub_;
 
     /* rosparam */
     string imu_topic_name_;
-    std::string cog_rotate_sub_name_;
     int imu_board_;
 
     int calib_count_;
@@ -114,10 +108,12 @@ namespace sensor_plugin
     double level_acc_noise_sigma_, z_acc_noise_sigma_, acc_bias_noise_sigma_; /* sigma for kf */
     double landing_shock_force_thre_;     /* force */
 
-    /* angle */
-    tf::Vector3 euler_; /* the euler angle of cog frame: roll, pitch, yaw */
+    /* imu */
+    array<tf::Vector3, 2> euler_; /* the euler angle of body/cog frame */
+    array<tf::Vector3, 2> omega_; /* the omega in body/cog frame */
+    array<tf::Vector3, 2> mag_; /* the magnetometer value in body/cog frame */
     /* acc */
-    tf::Vector3 acc_b_; /* the acceleration in body frame(cog) */
+    array<tf::Vector3, 2> acc_; /* the acceleration in body/cog frame */
     tf::Vector3 acc_l_; /* the acceleration in level frame as to body frame(cog): previously is acc_i */
     tf::Vector3 acc_w_; /* the acceleration in world frame */
     tf::Vector3 acc_non_bias_w_; /* the acceleration without bias in world frame */
@@ -125,11 +121,7 @@ namespace sensor_plugin
     tf::Vector3 acc_bias_l_; /* the acceleration bias in level frame as to body frame: previously is acc_i */
     tf::Vector3 acc_bias_w_; /* the acceleration bias in world frame */
 
-    /* other imu sensor values */
-    tf::Vector3 omega_; /* the omega in cog frame */
-    tf::Vector3 mag_; /* the magnetometer value in cog frame */
     double calib_time_;
-    float cog_offset_angle_; /* the offset between cog coord and frame coord */
 
     ros::Time imu_stamp_;
 
@@ -139,10 +131,10 @@ namespace sensor_plugin
 
       for(int i = 0; i < 3; i++)
         {
-          euler_[i] = imu_msg->angles[i];
-          acc_b_[i] = imu_msg->acc_data[i];
-          omega_[i] = imu_msg->gyro_data[i];
-          mag_[i] = imu_msg->mag_data[i];
+          euler_[Frame::BODY][i] = imu_msg->angles[i];
+          acc_[Frame::BODY][i] = imu_msg->acc_data[i];
+          omega_[Frame::BODY][i] = imu_msg->gyro_data[i];
+          mag_[Frame::BODY][i] = imu_msg->mag_data[i];
         }
 
       imuDataConverter(imu_stamp_);
@@ -156,15 +148,15 @@ namespace sensor_plugin
       for(int i = 0; i < 3; i++)
         {
           /* acc */
-          acc_b_[i] = imu_msg->accData[i] * acc_scale_;
+          acc_[Frame::BODY][i] = imu_msg->accData[i] * acc_scale_;
 
           /* euler */
           if(i == 2)
             {
-              euler_[i] = M_PI * imu_msg->angle[2] / 180.0;
+              euler_[Frame::BODY][i] = M_PI * imu_msg->angle[2] / 180.0;
             }
           else /* raw data is 10 times */
-            euler_[0]  = M_PI * imu_msg->angle[0] / 10.0 / 180.0;
+            euler_[Frame::BODY][0]  = M_PI * imu_msg->angle[0] / 10.0 / 180.0;
         }
 
       imuDataConverter(imu_stamp_);
@@ -175,15 +167,31 @@ namespace sensor_plugin
       static int bias_calib = 0;
       static ros::Time prev_time;
       static double sensor_hz_ = 0;
-      /* calculate accTran */
+
+      /* get the vectors of CoG frame */
+      tf::Matrix3x3 r_b;
+      r_b.setRPY(euler_[Frame::BODY][0], euler_[Frame::BODY][1], euler_[Frame::BODY][2]);
+      tf::Matrix3x3 r_cog = r_b * transform_.getBasis().transpose();
+      tfScalar roll_cog = 0, pitch_cog = 0, yaw_cog = 0;
+      if (yaw_cog > M_PI) yaw_cog -= 2 * M_PI;
+      if (yaw_cog < -M_PI) yaw_cog += 2 * M_PI;
+      r_cog.getRPY(roll_cog, pitch_cog, yaw_cog);
+
+      /* 2017/05/05 TODO: the transformation is static, no extra dynamic elem for acc, omega in CoG frame */
+      euler_[Frame::COG].setValue(roll_cog, pitch_cog, yaw_cog);
+      acc_[Frame::COG] = transform_.getBasis() * acc_[Frame::BODY];
+      omega_[Frame::COG] = transform_.getBasis() * omega_[Frame::BODY];
+      mag_[Frame::COG] = transform_.getBasis() * mag_[Frame::BODY];
+
+      /* project acc onto level frame using body frame value */
 #if 1 // use x,y for factor4 and z for factor3
       tf::Matrix3x3 orientation;
-      orientation.setRPY(euler_[0], euler_[1], 0);
-      acc_l_ = orientation * acc_b_;
-      acc_l_.setZ((orientation * tf::Vector3(0, 0, acc_b_.z())).z() - G);
+      orientation.setRPY(euler_[Frame::BODY][0], euler_[Frame::BODY][1], 0);
+      acc_l_ = orientation * acc_[Frame::BODY];
+      acc_l_.setZ((orientation * tf::Vector3(0, 0, acc_[Frame::BODY].z())).z() - G);
 
 #else  // use approximation
-      acc_l_ = orientation * tf::Vector3(0, 0, acc_b_.z()) - tf::Vector3(0, 0, G);
+      acc_l_ = orientation * tf::Vector3(0, 0, acc_[Frame::BODY].z()) - tf::Vector3(0, 0, G);
 #endif
 
       if(estimator_->getLandingMode() &&
@@ -195,28 +203,39 @@ namespace sensor_plugin
         }
 
       /* roll & pitch */
-      estimator_->setState(BasicEstimator::ROLL_W, BasicEstimator::EGOMOTION_ESTIMATE, 0, euler_[0]);
-      estimator_->setState(BasicEstimator::ROLL_W, BasicEstimator::EXPERIMENT_ESTIMATE, 0, euler_[0]);
-      estimator_->setState(BasicEstimator::ROLL_W, BasicEstimator::EGOMOTION_ESTIMATE, 1, omega_[0]);
-      estimator_->setState(BasicEstimator::ROLL_W, BasicEstimator::EXPERIMENT_ESTIMATE, 1, omega_[0]);
-      estimator_->setState(BasicEstimator::PITCH_W, BasicEstimator::EGOMOTION_ESTIMATE, 0, euler_[1]);
-      estimator_->setState(BasicEstimator::PITCH_W, BasicEstimator::EXPERIMENT_ESTIMATE, 0, euler_[1]);
-      estimator_->setState(BasicEstimator::PITCH_W, BasicEstimator::EGOMOTION_ESTIMATE, 1, omega_[1]);
-      estimator_->setState(BasicEstimator::PITCH_W, BasicEstimator::EXPERIMENT_ESTIMATE, 1, omega_[1]);
+      estimator_->setState(BasicEstimator::ROLL_W, BasicEstimator::EGOMOTION_ESTIMATE, 0, euler_[Frame::COG][0]);
+      estimator_->setState(BasicEstimator::ROLL_W, BasicEstimator::EXPERIMENT_ESTIMATE, 0, euler_[Frame::COG][0]);
+      estimator_->setState(BasicEstimator::ROLL_W, BasicEstimator::EGOMOTION_ESTIMATE, 1, omega_[Frame::COG][0]);
+      estimator_->setState(BasicEstimator::ROLL_W, BasicEstimator::EXPERIMENT_ESTIMATE, 1, omega_[Frame::COG][0]);
+      estimator_->setState(BasicEstimator::PITCH_W, BasicEstimator::EGOMOTION_ESTIMATE, 0, euler_[Frame::COG][1]);
+      estimator_->setState(BasicEstimator::PITCH_W, BasicEstimator::EXPERIMENT_ESTIMATE, 0, euler_[Frame::COG][1]);
+      estimator_->setState(BasicEstimator::PITCH_W, BasicEstimator::EGOMOTION_ESTIMATE, 1, omega_[Frame::COG][1]);
+      estimator_->setState(BasicEstimator::PITCH_W, BasicEstimator::EXPERIMENT_ESTIMATE, 1, omega_[Frame::COG][1]);
+      estimator_->setState(BasicEstimator::ROLL_W_B, BasicEstimator::EGOMOTION_ESTIMATE, 0, euler_[Frame::BODY][0]);
+      estimator_->setState(BasicEstimator::ROLL_W_B, BasicEstimator::EXPERIMENT_ESTIMATE, 0, euler_[Frame::BODY][0]);
+      estimator_->setState(BasicEstimator::ROLL_W_B, BasicEstimator::EGOMOTION_ESTIMATE, 1, omega_[Frame::BODY][0]);
+      estimator_->setState(BasicEstimator::ROLL_W_B, BasicEstimator::EXPERIMENT_ESTIMATE, 1, omega_[Frame::BODY][0]);
+      estimator_->setState(BasicEstimator::PITCH_W_B, BasicEstimator::EGOMOTION_ESTIMATE, 0, euler_[Frame::BODY][1]);
+      estimator_->setState(BasicEstimator::PITCH_W_B, BasicEstimator::EXPERIMENT_ESTIMATE, 0, euler_[Frame::BODY][1]);
+      estimator_->setState(BasicEstimator::PITCH_W_B, BasicEstimator::EGOMOTION_ESTIMATE, 1, omega_[Frame::BODY][1]);
+      estimator_->setState(BasicEstimator::PITCH_W_B, BasicEstimator::EXPERIMENT_ESTIMATE, 1, omega_[Frame::BODY][1]);
 
       /* yaw */
       if(estimator_->getStateStatus(BasicEstimator::YAW_W) == BasicEstimator::RAW)
         {
-          ROS_WARN("debug: use mcu imu yaw for cog");
-          estimator_->setState(BasicEstimator::YAW_W, BasicEstimator::EGOMOTION_ESTIMATE, 0, euler_[2]);
-          estimator_->setState(BasicEstimator::YAW_W, BasicEstimator::EXPERIMENT_ESTIMATE, 0, euler_[2]);
+          estimator_->setState(BasicEstimator::YAW_W, BasicEstimator::EGOMOTION_ESTIMATE, 0, euler_[Frame::COG][2]);
+          estimator_->setState(BasicEstimator::YAW_W, BasicEstimator::EXPERIMENT_ESTIMATE, 0, euler_[Frame::COG][2]);
         }
       if(estimator_->getStateStatus(BasicEstimator::YAW_W_B) == BasicEstimator::RAW)
         {
-          ROS_WARN("debug: use mcu imu yaw for board");
-          estimator_->setState(BasicEstimator::YAW_W_B, BasicEstimator::EGOMOTION_ESTIMATE, 0, euler_[2] + cog_offset_angle_);
-          estimator_->setState(BasicEstimator::YAW_W_B, BasicEstimator::EXPERIMENT_ESTIMATE, 0, euler_[2] + cog_offset_angle_);
+          estimator_->setState(BasicEstimator::YAW_W_B, BasicEstimator::EGOMOTION_ESTIMATE, 0, euler_[Frame::BODY][2]);
+          estimator_->setState(BasicEstimator::YAW_W_B, BasicEstimator::EXPERIMENT_ESTIMATE, 0, euler_[Frame::BODY][2]);
         }
+
+      /* z(altitude) */
+      /* check whether there is the fusion for the altitude */
+      if(estimator_->getStateStatus(BasicEstimator::Z_W) == BasicEstimator::RAW)
+        ROS_ERROR_THROTTLE(0.5, "IMU: No correct sensor fusion for z(altitude)");
 
       /* bais calibration */
       if(bias_calib < calib_count_)
@@ -233,7 +252,7 @@ namespace sensor_plugin
 
               /* check whether use imu yaw for contorl and estimation */
               if(estimator_->getStateStatus(BasicEstimator::YAW_W) == BasicEstimator::RAW || estimator_->getStateStatus(BasicEstimator::YAW_W_B) == BasicEstimator::RAW)
-                ROS_WARN("use imu mag-based yaw value for estimation and control");
+                ROS_WARN("IMU: use imu mag-based yaw value for estimation and control");
             }
 
           /* hz estimation */
@@ -254,7 +273,7 @@ namespace sensor_plugin
                   if(!getFuserActivate(mode)) continue;
 
                   tf::Matrix3x3 orientation;
-                  orientation.setRPY(0, 0, (estimator_->getState(BasicEstimator::YAW_W, mode))[0]);
+                  orientation.setRPY(0, 0, (estimator_->getState(BasicEstimator::YAW_W_B, mode))[0]);
                   tf::Vector3 acc_bias_w_ = orientation * acc_bias_l_;
 
                   for(auto& fuser : estimator_->getFuser(mode))
@@ -326,7 +345,7 @@ namespace sensor_plugin
               if(getFuserActivate(mode))
                 {
                   tf::Matrix3x3 orientation;
-                  orientation.setRPY(0, 0, (estimator_->getState(BasicEstimator::YAW_W, mode))[0]);
+                  orientation.setRPY(0, 0, (estimator_->getState(BasicEstimator::YAW_W_B, mode))[0]);
 
                   acc_w_ = orientation * acc_l_;
                   acc_non_bias_w_ = orientation * (acc_l_ - acc_bias_l_);
@@ -432,7 +451,7 @@ namespace sensor_plugin
       aerial_robot_base::Acc acc_data;
       acc_data.header.stamp = stamp;
 
-      tf::vector3TFToMsg(acc_b_, acc_data.acc_body_frame);
+      tf::vector3TFToMsg(acc_[Frame::BODY], acc_data.acc_body_frame);
       tf::vector3TFToMsg(acc_w_, acc_data.acc_world_frame);
       tf::vector3TFToMsg(acc_non_bias_w_, acc_data.acc_non_bias_world_frame);
 
@@ -460,8 +479,6 @@ namespace sensor_plugin
       nhp_.param("landing_shock_force_thre", landing_shock_force_thre_, 5.0 );
       if(param_verbose_) cout << "landing shock force_thre is " << landing_shock_force_thre_ << endl;
 
-      nhp_.param("cog_rotate_sub_name", cog_rotate_sub_name_, std::string("/desire_coordinate"));
-
       nhp_.param("imu_board", imu_board_, 1);
       if(imu_board_ != D_BOARD)
         ROS_WARN(" imu board is %s\n", (imu_board_ == KDUINO)?"kduino":"other board");
@@ -474,11 +491,6 @@ namespace sensor_plugin
           nhp_.param("mag_scale", mag_scale_, 1200 / 32768.0);
           if(param_verbose_) cout << "mag scale is" << mag_scale_ << endl;
         }
-    }
-
-    void cogOffsetCallback(aerial_robot_base::DesireCoord offset_msg)
-    {
-      cog_offset_angle_ = offset_msg.yaw; //offset is from cog to board
     }
 
   };

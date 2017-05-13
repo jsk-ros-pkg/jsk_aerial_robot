@@ -1,5 +1,7 @@
 #include "aerial_robot_base/flight_control.h"
 
+using boost::algorithm::clamp;
+
 FlightController::FlightController(ros::NodeHandle nh,
                                    ros::NodeHandle nh_private,
                                    BasicEstimator* estimator, Navigator* navigator,
@@ -222,7 +224,6 @@ void PidController::pidFunction()
           state_vel_x = estimator_->getState(BasicEstimator::X_W, estimate_mode_)[1];
           state_pos_y = estimator_->getState(BasicEstimator::Y_W, estimate_mode_)[0];
           state_vel_y = estimator_->getState(BasicEstimator::Y_W, estimate_mode_)[1];
-
         }
       else if(navigator_->getXyControlMode() == navigator_->POS_LOCAL_BASED_CONTROL_MODE ||
               navigator_->getXyControlMode() == navigator_->VEL_LOCAL_BASED_CONTROL_MODE)
@@ -281,7 +282,7 @@ void PidController::pidFunction()
                 = (target_pos_x - state_pos_x) * cos(state_psi_cog)
                 + (target_pos_y - state_pos_y) * sin(state_psi_cog);
 
-              d_err_vel_curr_pitch_ = - (state_vel_x * cos(state_psi_cog) + state_vel_y * sin(state_psi_cog)); 
+              d_err_vel_curr_pitch_ = - (state_vel_x * cos(state_psi_cog) + state_vel_y * sin(state_psi_cog));
 
               //**** Pの項
               pos_p_term_pitch_ =
@@ -505,7 +506,11 @@ void PidController::pidFunction()
 
           //yaw => refer to the board frame angle(psi_board)
           //error p
-          d_err_pos_curr_yaw_ = target_psi - state_psi_board;
+          if(yaw_control_frame_ == Frame::BODY)
+            d_err_pos_curr_yaw_ = target_psi - state_psi_board;
+          else if(yaw_control_frame_ == Frame::COG)
+            d_err_pos_curr_yaw_ = target_psi - state_psi_cog;
+
           if(d_err_pos_curr_yaw_ > M_PI)  d_err_pos_curr_yaw_ -= 2 * M_PI;
           else if(d_err_pos_curr_yaw_ < -M_PI)  d_err_pos_curr_yaw_ += 2 * M_PI;
           //error i
@@ -544,7 +549,7 @@ void PidController::pidFunction()
           four_axis_pid_debug.yaw.vel_err_no_transform = state_vel_psi;
 
           //throttle
-          d_err_pos_curr_throttle_ = target_pos_z - state_pos_z;
+          d_err_pos_curr_throttle_ = clamp(target_pos_z - state_pos_z, -pos_err_thresh_, pos_err_thresh_);
           // I term is special in landing mode
           if(navigator_->getFlightMode() == Navigator::LAND_MODE)
             d_err_pos_curr_throttle_ += const_i_ctrl_thre_throttle_land_;
@@ -562,14 +567,8 @@ void PidController::pidFunction()
                   //***** D Term
                   pos_d_term_throttle_ = limit(pos_d_gain_throttle_[j] * state_vel_z, pos_d_limit_throttle_);
 
-                  if(motor_num_ == 1)
-                    {
-                      //pos_p_term_throttle_ = limit(pos_p_gain_throttle_[j] * d_err_pos_curr_throttle_, pos_p_limit_throttle_); //P term for pid
-                      //pos_d_term_throttle_ = limit(-pos_d_gain_throttle_[j] * state_vel_z, pos_d_limit_throttle_);
-
-                      if(navigator_->getFlightMode() == Navigator::LAND_MODE)
-                        pos_p_term_throttle_ = 0;
-                    }
+                  if(navigator_->getFlightMode() == Navigator::LAND_MODE)
+                    pos_p_term_throttle_ = 0;
 
                   //*** each motor command value for log
                   float throttle_value = limit(pos_p_term_throttle_ + pos_i_term_throttle_ + pos_d_term_throttle_ + offset_throttle_, pos_limit_throttle_);
@@ -753,6 +752,10 @@ void PidController::rosParamInit(ros::NodeHandle nh)
     pos_d_limit_throttle_ = 0;
   printf("%s: pos_d_limit_ is %d\n", throttle_ns.c_str(), pos_d_limit_throttle_);
 
+  if (!throttle_node.getParam ("pos_err_thresh", pos_err_thresh_))
+    pos_err_thresh_ = 1.0;
+  printf("%s: pos_err_thresh_ is %f\n", throttle_ns.c_str(), pos_err_thresh_);
+
 
   //**** pitch
   if (!pitch_node.getParam ("ctrl_loop_rate", pitch_ctrl_loop_rate_))
@@ -880,6 +883,10 @@ void PidController::rosParamInit(ros::NodeHandle nh)
   if (!yaw_node.getParam ("pos_d_limit", pos_d_limit_yaw_))
     pos_d_limit_yaw_ = 0;
   printf("%s: pos_d_limit_ is %d\n", yaw_ns.c_str(), pos_d_limit_yaw_);
+
+  if (!yaw_node.getParam ("yaw_control_frame", yaw_control_frame_))
+    yaw_control_frame_ = Frame::BODY;
+  printf("%s: yaw_control_frame_ is %d\n", yaw_ns.c_str(), yaw_control_frame_);
 
   pos_p_gain_yaw_.resize(motor_num_);
   pos_i_gain_yaw_.resize(motor_num_);

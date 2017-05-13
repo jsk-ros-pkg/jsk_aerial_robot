@@ -66,7 +66,7 @@ namespace sensor_plugin
     public:
       void initialize(ros::NodeHandle nh, ros::NodeHandle nhp, BasicEstimator* estimator, string sensor_name)
       {
-        baseParamInit(nh, nhp, estimator, sensor_name);
+        SensorBase::initialize(nh, nhp, estimator, sensor_name);
         rosParamInit();
 
         /* ros publisher of aerial_robot_base::State */
@@ -220,14 +220,21 @@ namespace sensor_plugin
 
         /* frame conversion */
         /* UTM */
-        geodesy::fromMsg(geodesy::toMsg(gps_msg->location[0], gps_msg->location[0]), utm_pos_);
+        /* raw data about alt/lon from gps is * 10e7 */
+        geodesy::fromMsg(geodesy::toMsg(gps_msg->location[0] / 1e7, gps_msg->location[1] / 1e7), utm_pos_);
+
         raw_pos_ = gps_convert_ * tf::Vector3(utm_pos_.northing - home_utm_pos_.northing, utm_pos_.easting - home_utm_pos_.easting, 0);
         tf::Vector3 raw_vel_temp(gps_msg->velocity[0], gps_msg->velocity[1], 0);
         raw_vel_ = gps_convert_ * raw_vel_temp;
 
+
         /* fusion process */
         /* quit if the satellite number is too low */
-        if(gps_msg->sat_num < min_est_sat_num_) return;
+        if(gps_msg->sat_num < min_est_sat_num_)
+          {
+            ROS_WARN_THROTTLE(1, "the satellite is not enough: %d", gps_msg->sat_num);
+            return;
+          }
         gps_state_.header.stamp = gps_msg->stamp;
 
         if(first_flag)
@@ -236,6 +243,7 @@ namespace sensor_plugin
 
             /* set home position */
             home_utm_pos_ = utm_pos_;
+            ROS_WARN("home position from gps: UTM zone: %d, [%f, %f]", home_utm_pos_.zone, home_utm_pos_.northing, home_utm_pos_.easting);
 
             /* fuser for 0: egomotion, 1: experiment */
             for(int mode = 0; mode < 2; mode++)
@@ -255,7 +263,7 @@ namespace sensor_plugin
                         kf->setCorrectMode(1);
                         temp(0,0) = pos_noise_sigma_;
                         kf->setMeasureSigma(temp);
-                        kf->setInitState(raw_pos_[id], 0);
+                        kf->setInitState(0, 0);
                         kf->setMeasureFlag();
                       }
                   }
@@ -313,7 +321,7 @@ namespace sensor_plugin
         if(gps_msg->sat_num > min_wp_sat_num_)
           {
             pos_ = raw_pos_;
-            ROS_INFO("gps pos: [%f, %f]", pos_[0], pos_[1]);
+            //ROS_INFO("gps pos: [%f, %f]", pos_[0], pos_[1]);
           }
       }
 

@@ -57,12 +57,13 @@ namespace sensor_plugin
   public:
     void initialize(ros::NodeHandle nh, ros::NodeHandle nhp, BasicEstimator* estimator, string sensor_name)
     {
-      baseParamInit(nh, nhp, estimator, sensor_name);
+      SensorBase::initialize(nh, nhp, estimator, sensor_name);
       rosParamInit();
 
       kf_loader_ptr_ = boost::shared_ptr< pluginlib::ClassLoader<kf_base_plugin::KalmanFilter> >(new pluginlib::ClassLoader<kf_base_plugin::KalmanFilter>("kalman_filter", "kf_base_plugin::KalmanFilter"));
       baro_bias_kf_  = kf_loader_ptr_->createInstance("aerial_robot_base/kf_baro_bias");
       baro_bias_kf_->initialize(nh_, string(""), 0);
+
 
       iir_filter_ = IirFilter((float)rx_freq_, (float)cutoff_freq_);
       iir_high_filter_ = IirFilter((float)rx_freq_, (float)high_cutoff_freq_);
@@ -70,7 +71,7 @@ namespace sensor_plugin
       /* terrain check */
       if(!terrain_check_) state_on_terrain_ = NORMAL;
 
-      alt_pub_ = nh_.advertise<aerial_robot_base::States>("alt/data",10);
+      alt_pub_ = nh_.advertise<aerial_robot_base::States>("data",10);
 
       /* set the only barometer initially */
       alt_mode_sub_ = nh_.subscribe("/estimate_alt_mode", 1, &Alt::altEstimateModeCallback, this);
@@ -117,7 +118,7 @@ namespace sensor_plugin
     {
       alt_state_.states.resize(2);
       alt_state_.states[0].id = "range_sensor_with_kf";
-      alt_state_.states[0].state.resize(2);
+      alt_state_.states[0].state.resize(3);
       alt_state_.states[1].id = "baro";
       alt_state_.states[1].state.resize(3);
 
@@ -159,6 +160,7 @@ namespace sensor_plugin
     /* range sensor */
     string range_sensor_sub_name_;
     tf::Vector3 range_origin_; /* the origin of range based on cog of UAV */
+    bool no_height_offset_;
     double range_noise_sigma_;
     int calibrate_cnt_;
     /* barometer */
@@ -210,10 +212,11 @@ namespace sensor_plugin
       double current_secs = range_msg->header.stamp.toSec();
 
       /* consider the orientation of the uav */
-      float roll = (estimator_->getState(BasicEstimator::ROLL_W, 0))[0];
-      float pitch = (estimator_->getState(BasicEstimator::PITCH_W, 0))[0];
-      ROS_INFO("range debug: roll and pitch is [%f, %f]", roll, pitch);
+      float roll = (estimator_->getState(BasicEstimator::ROLL_W, BasicEstimator::EGOMOTION_ESTIMATE))[0];
+      float pitch = (estimator_->getState(BasicEstimator::PITCH_W, BasicEstimator::EGOMOTION_ESTIMATE))[0];
+      //ROS_INFO("range debug: roll and pitch is [%f, %f]", roll, pitch);
       raw_range_sensor_value_ = cos(roll) * cos(pitch) * range_msg->range;
+      //raw_range_sensor_value_ = range_msg->range;
 
       /* calibrate phase */
       if(calibrate_cnt > 0)
@@ -258,6 +261,13 @@ namespace sensor_plugin
                   estimator_->setUnDescendMode(true);
                 }
 
+              /* set the height offset to be zero, if the sensor is too closed to the ground */
+              if(no_height_offset_)
+                {
+                  height_offset_ = 0;
+                  range_sensor_offset_ = 0;
+                }
+
               /* fuser for 0: egomotion, 1: experiment */
               for(int mode = 0; mode < 2; mode++)
                 {
@@ -267,12 +277,20 @@ namespace sensor_plugin
                     {
                       boost::shared_ptr<kf_base_plugin::KalmanFilter> kf = fuser.second;
                       int id = kf->getId();
-                      if(id & (1 << BasicEstimator::Z_W)) kf->setMeasureFlag();
+                      if(id & (1 << BasicEstimator::Z_W))
+                        {
+                          kf->setMeasureFlag();
+                          kf->setInitState(raw_range_sensor_value_ + height_offset_, 0);
+                        }
                     }
                 }
 
               /* change the alt estimate mode */
               alt_estimate_mode_ = WITHOUT_BARO_MODE;
+
+
+              /* set the status for Z (altitude) */
+              estimator_->setStateStatus(BasicEstimator::Z_W, BasicEstimator::EGOMOTION_ESTIMATE);
 
               ROS_WARN("%s: the range sensor offset: %f, initial sanity: %s, the hz is %f, estimate mode is %d",
                        (range_msg->radiation_type == sensor_msgs::Range::ULTRASOUND)?string("sonar sensor").c_str():string("infrared sensor").c_str(), range_sensor_offset_, range_sensor_sanity_?string("true").c_str():string("false").c_str(), 1.0 / sensor_hz_, alt_estimate_mode_);
@@ -383,7 +401,6 @@ namespace sensor_plugin
       for(int mode = 0; mode < 2; mode++)
         {
           if(!getFuserActivate(mode)) continue;
-
           for(auto& fuser : estimator_->getFuser(mode))
             {
               boost::shared_ptr<kf_base_plugin::KalmanFilter> kf = fuser.second;
@@ -394,8 +411,8 @@ namespace sensor_plugin
                   estimator_->setState(BasicEstimator::Z_W, mode, 0, state(0,0));
                   estimator_->setState(BasicEstimator::Z_W, mode, 1, state(1,0));
 
-                  alt_state_.states[0].state[1].x = state(0,0);
-                  alt_state_.states[0].state[1].y = state(1,0);
+                  alt_state_.states[0].state[1 + mode].x = state(0,0);
+                  alt_state_.states[0].state[1 + mode].y = state(1,0);
                 }
             }
         }
@@ -536,8 +553,9 @@ namespace sensor_plugin
 
       /* the true initial phase for baro based estimattion for inflight state */
       /* since the value of pressure will decrease during the rising of the propeller rotation speed */
-      if(alt_estimate_mode_ == ONLY_BARO_MODE ||
-         (estimator_->getFlyingFlag() && high_filtered_baro_vel_z_ > 0.1 && !inflight_state_))
+      if(((alt_estimate_mode_ == ONLY_BARO_MODE  && high_filtered_baro_vel_z_ > 0.1)
+          || alt_estimate_mode_ == WITHOUT_BARO_MODE)
+         && estimator_->getFlyingFlag() && !inflight_state_)
         {//the inflight state should be with the velocity of 0.1(up)
           inflight_state_ = true;
           ROS_WARN("barometer: start the inflight barometer height estimation");
@@ -552,7 +570,6 @@ namespace sensor_plugin
         }
       /* reset */
       if(estimator_->getLandedFlag()) inflight_state_ = false;
-
       baroEstimateProcess();
 
       /* publish */
@@ -646,14 +663,17 @@ namespace sensor_plugin
     void rosParamInit()
     {
       /* range sensor */
-      nhp_.param("range_sensor_sub_name", range_sensor_sub_name_, string("distance"));
+      nhp_.param("range_sensor_sub_name", range_sensor_sub_name_, string("/distance"));
       if(param_verbose_) cout << "range noise sigma is " << range_sensor_sub_name_ << endl;
 
       nhp_.param("range_noise_sigma", range_noise_sigma_, 0.005 );
       if(param_verbose_) cout << "range noise sigma is " <<  range_noise_sigma_ << endl;
 
       nhp_.param("calibrate_cnt", calibrate_cnt_, 100);
-      printf("check duration  is %d\n", calibrate_cnt_); 
+      printf("check duration  is %d\n", calibrate_cnt_);
+
+      nhp_.param("no_height_offset", no_height_offset_, false);
+      printf("no height offset  is %s\n", no_height_offset_?(std::string("true")).c_str():(std::string("false")).c_str());
 
       /* first ascending process: check range */
       nhp_.param("ascending_check_range", ascending_check_range_, 0.1); // [m]

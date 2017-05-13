@@ -49,10 +49,11 @@
 /* algebra */
 #include <Eigen/Core>
 #include <Eigen/Dense>
-#include <tf/transform_listener.h>
+#include <tf/LinearMath/Transform.h>
 
 /* ros msg */
 #include <aerial_robot_msgs/BoolFlag.h>
+#include <aerial_robot_base/DesireCoord.h>
 
 /* utils */
 #include <iostream>
@@ -65,54 +66,21 @@ namespace sensor_plugin
   class SensorBase
   {
   public:
-    virtual void initialize(ros::NodeHandle nh, ros::NodeHandle nhp, BasicEstimator* estimator, string sensor_name)  = 0;
-    virtual ~SensorBase(){}
-
-  protected:
-
-    ros::NodeHandle nh_;
-    ros::NodeHandle nhp_;
-    ros::Timer  health_check_timer_;
-    ros::ServiceServer estimate_flag_service_;
-    BasicEstimator* estimator_;
-    int estimate_mode_;
-
-    bool simulation_;
-    bool param_verbose_;
-    bool debug_verbose_;
-
-    //vector< boost::shared_ptr<sensor_base_plugin::SensorBase> > sensors_;
-
-    double sensor_hz_; // hz  of the sensor
-    vector<int> estimate_indices_; // the fuser_egomation index
-    vector<int> experiment_indices_; // the fuser_experiment indices
-
-    int estimate_flag_;
-
-    /* health check */
-    vector<bool> health_;
-    vector<double> health_stamp_;
-    double health_check_rate_;
-    double health_timeout_;
-    int unhealth_level_;
-
-
-    SensorBase(){}
-
-    inline bool getFuserActivate(uint8_t mode)
+    SensorBase():
+      estimate_flag_(true),
+      sensor_hz_(0),
+      transform_()
     {
-      return (estimate_mode_ & (1 << mode));
+      transform_.setIdentity();
     }
 
-    void baseParamInit(ros::NodeHandle nh, ros::NodeHandle nhp, BasicEstimator* estimator, string sensor_name)
+    virtual void initialize(ros::NodeHandle nh, ros::NodeHandle nhp, BasicEstimator* estimator, string sensor_name)
     {
       estimator_ = estimator;
 
       nh_ = ros::NodeHandle(nh, sensor_name);
       nhp_ = ros::NodeHandle(nhp, sensor_name);
 
-      estimate_flag_ = true;
-      sensor_hz_ = 0;
       health_.resize(1, false);
       health_stamp_.resize(1, ros::Time::now().toSec());
 
@@ -128,13 +96,58 @@ namespace sensor_plugin
       nhp_.param("unhealth_level", unhealth_level_, 0);
       nhp_.param("health_check_rate", health_check_rate_, 100.0);
 
+      nhp_.param("transform_sub_name", transform_sub_name_, std::string("/desire_coordinate"));
+
       ros::NodeHandle nh_global("~");
       nh_global.param("simulation", simulation_, false);
       cout << nh_global.getNamespace() << ",  simulaiton  is " << simulation_ << endl;
       nh_global.param("param_verbose", param_verbose_, false);
       nh_global.param("debug_verbose", debug_verbose_, false);
 
+      transform_sub_ = nh_.subscribe(transform_sub_name_, 5, &SensorBase::transformCallback, this);
+
       health_check_timer_ = nhp_.createTimer(ros::Duration(1.0 / health_check_rate_), &SensorBase::healthCheck,this);
+    }
+
+    virtual ~SensorBase(){}
+
+  protected:
+
+    ros::NodeHandle nh_;
+    ros::NodeHandle nhp_;
+    ros::Timer  health_check_timer_;
+    ros::Subscriber transform_sub_;
+    ros::ServiceServer estimate_flag_service_;
+    BasicEstimator* estimator_;
+    int estimate_mode_;
+
+    string transform_sub_name_;
+    bool simulation_;
+    bool param_verbose_;
+    bool debug_verbose_;
+
+    //vector< boost::shared_ptr<sensor_base_plugin::SensorBase> > sensors_;
+
+    double sensor_hz_; // hz  of the sensor
+    vector<int> estimate_indices_; // the fuser_egomation index
+    vector<int> experiment_indices_; // the fuser_experiment indices
+
+    int estimate_flag_;
+
+    /* the transformation between CoG frame and Body frame */
+    tf::Transform transform_;
+
+    /* health check */
+    vector<bool> health_;
+    vector<double> health_stamp_;
+    double health_check_rate_;
+    double health_timeout_;
+    int unhealth_level_;
+
+
+    inline bool getFuserActivate(uint8_t mode)
+    {
+      return (estimate_mode_ & (1 << mode));
     }
 
     virtual void estimateProcess(){};
@@ -181,6 +194,14 @@ namespace sensor_plugin
         }
       health_stamp_[chan] = stamp;
     }
+
+  void transformCallback(aerial_robot_base::DesireCoord offset_msg)
+  {
+    tf::Matrix3x3 r;
+    r.setRPY(offset_msg.roll, offset_msg.pitch, offset_msg.yaw);
+    transform_.setBasis(r);
+  }
+
 
   };
 

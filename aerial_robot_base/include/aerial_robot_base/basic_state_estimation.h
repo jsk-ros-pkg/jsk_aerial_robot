@@ -67,6 +67,11 @@ using State3Mode = std::array<tf::Vector3, 3>;
 using StateWithStatus = std::pair<int, std::array<tf::Vector3, 3> >;
 using SensorFuser = std::vector< std::pair<std::string, boost::shared_ptr<kf_base_plugin::KalmanFilter> > >;
 
+namespace Frame
+{
+  enum {BODY = 0, COG = 1,};
+};
+
 class BasicEstimator
 {
 
@@ -111,7 +116,7 @@ public:
   static constexpr int EXPERIMENT_ESTIMATE = 1;
   static constexpr int GROUND_TRUTH = 2;
 
-  static constexpr uint8_t STATE_NUM = 9;
+  static constexpr uint8_t STATE_NUM = 11;
   static constexpr uint8_t X_W = 0; //x in world coord
   static constexpr uint8_t Y_W = 1; //y in world coord
   static constexpr uint8_t Z_W = 2; //z in world coord
@@ -120,7 +125,9 @@ public:
   static constexpr uint8_t YAW_W = 5; //yaw of cog in world coord
   static constexpr uint8_t X_B = 6; //x in board coord
   static constexpr uint8_t Y_B = 7; //y in board coord
-  static constexpr uint8_t YAW_W_B = 8; //yaw of mcu board in world coord
+  static constexpr uint8_t ROLL_W_B = 8; //roll of mcu board in world coord
+  static constexpr uint8_t PITCH_W_B = 9; //pitch of mcu board in world coord
+  static constexpr uint8_t YAW_W_B = 10; //yaw of mcu board in world coord
 
    int getStateStatus( uint8_t axis)
   {
@@ -136,7 +143,7 @@ public:
     state_[axis].first = status;
   }
 
-  /* axis: state axis (9) */
+  /* axis: state axis (11) */
    State3Mode getState( uint8_t axis)
   {
     boost::lock_guard<boost::mutex> lock(state_mutex_);
@@ -144,7 +151,7 @@ public:
     return state_[axis].second;
   }
   /*
-    axis: state axis (9)
+    axis: state axis (11)
     estimate_mode: egomotion/experiment/ground_truth
   */
    tf::Vector3 getState( uint8_t axis,  uint8_t estimate_mode)
@@ -235,7 +242,7 @@ protected:
   int estimate_mode_; /* main estimte mode */
 
   /* 9: x_w, y_w, z_w, roll_w, pitch_w, yaw_cog_w, x_b, y_b, yaw_board_w */
-  array<StateWithStatus, 9> state_;
+  array<StateWithStatus, 11> state_;
 
   /* sensor fusion */
   boost::shared_ptr< pluginlib::ClassLoader<kf_base_plugin::KalmanFilter> > sensor_fusion_loader_ptr_;
