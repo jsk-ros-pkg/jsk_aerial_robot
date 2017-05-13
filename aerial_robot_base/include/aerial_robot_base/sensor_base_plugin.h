@@ -158,7 +158,7 @@ namespace sensor_plugin
       /* this will call only once, no recovery */
       for(int i = 0; i < health_.size(); i++)
         {
-          if(ros::Time::now().toSec() - health_stamp_[i] > health_timeout_ && health_[i])
+          if(ros::Time::now().toSec() - health_stamp_[i] > health_timeout_ && health_[i] && !simulation_)
             {
               ROS_ERROR("[%s, chan%d]: can not get fresh sensor data for %f[sec]", nhp_.getNamespace().c_str(), i, ros::Time::now().toSec() - health_stamp_[i]);
               /* TODO: the solution to unhealth should be more clever */
