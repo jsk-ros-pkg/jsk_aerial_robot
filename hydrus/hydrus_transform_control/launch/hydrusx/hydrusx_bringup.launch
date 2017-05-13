@@ -12,12 +12,13 @@
   # EGOMOTION_ESTIMATE = 0
   # EXPERIMENT_ESTIMATE = 1. for unstable mocap, use this mode
   # GROUND_TRUTH = 2
-  <arg name="estimate_mode"  value= "1" />
+  <arg name="estimate_mode"  default= "0" />
 
-  <!-- flight control mode: should only be one true flag -->
-  <arg name="pos_control_mode" value="true" /> <!-- pos mode -->
-  <arg name="vel_control_mode" value="false" />  <!-- vel mode -->
-  <arg name="att_control_mode" value="false" />  <!-- att mode -->
+  <!-- flight control mode: 0: global-pos; 1: local-pos; 2: global-vel; 3: local-vel; 4: att -->
+  <arg name="control_mode" default="0" /> <!-- pos mode -->
+
+  <!-- sensors(fusion) special parameters -->
+  <param name="/sensor_plugin/altitude/no_height_offset" value="true" />
 
   ###########  Motor Config  ###########
   <rosparam file="$(find hydrus_transform_control)/config/hydrusx/$(arg model)/MotorInfo.yaml" command="load" if="$(arg transformable_mode)"/>
@@ -32,9 +33,7 @@
     <param name="param_verbose" value= "true" />
     <param name="simulation" value="$(arg simulation)" /> <!-- for sensor plugin -->
 
-    <param if="$(arg pos_control_mode)" name="navigator/xy_control_mode" type="int" value="0"/>
-    <param if="$(arg vel_control_mode)" name="navigator/xy_control_mode" type="int" value="3"/>
-    <param if="$(arg att_control_mode)" name="navigator/xy_control_mode" type="int" value="4"/>
+    <param name="navigator/xy_control_mode"  value="$(arg control_mode)"/>
 
     <param name="main_rate" type="double" value="40"/>
 
@@ -53,9 +52,12 @@
     <include file="$(find aerial_robot_base)/launch/sensors/onboard_sensors.launch" >
       <arg name="simulation" value="$(arg simulation)" />
       <arg name="imu_board" value="1" />  <!-- 1: d imu board, 0: kduino board -->
+      <arg name="use_alt" value="1" />
       <arg name="use_mocap" value="0" />
       <arg name="use_joy" value="0" />
       <arg name="use_opti" value="0" />
+      <arg name="imu_port" value="/dev/flight_controller" />
+      <arg name="alt_port" value="/dev/leddar_one" />
     </include >
 
     ###########  Servo Bridge  ###########
