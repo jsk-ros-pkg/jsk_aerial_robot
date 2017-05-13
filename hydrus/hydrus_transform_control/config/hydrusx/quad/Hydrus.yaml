@@ -16,7 +16,7 @@ link_base_center_mass: 0.4046 # 210.6[g], no battery; bat1300mAh: 194[g]
 link_joint_mass: 0.2075
 
 # Extra Module
-extra_module_num: 4
+extra_module_num: 5
 
 # MCU: d_board
 extra_module1_link: 2
@@ -37,19 +37,24 @@ extra_module4_link: 0
 extra_module4_offset: 0.247
 extra_module4_mass: 0.0623
 
-# Camera
 extra_module5_link: 2
-extra_module5_offset: 0.245
-extra_module5_mass: 0.147 # PointGrey Fisheye
+extra_module5_offset: 0.215
+extra_module5_mass: 0.05
+
+
+# Camera
+extra_module6_link: 2
+extra_module6_offset: 0.245
+extra_module6_mass: 0.147 # PointGrey Fisheye
 
 # Leg shift at center joint
-extra_module6_link: 2
-extra_module6_offset: 0.240
-extra_module6_mass: -0.04
+extra_module7_link: 2
+extra_module7_offset: 0.240
+extra_module7_mass: -0.04
 
-extra_module7_link: 1
-extra_module7_offset: -0.155
-extra_module7_mass: 0.0623
+extra_module8_link: 1
+extra_module8_offset: -0.155
+extra_module8_mass: 0.0623
 
 propeller1_direction: -1
 propeller1_order: 0
