@@ -160,6 +160,7 @@ namespace sensor_plugin
     /* range sensor */
     string range_sensor_sub_name_;
     tf::Vector3 range_origin_; /* the origin of range based on cog of UAV */
+    bool no_height_offset_;
     double range_noise_sigma_;
     int calibrate_cnt_;
     /* barometer */
@@ -260,6 +261,13 @@ namespace sensor_plugin
                   estimator_->setUnDescendMode(true);
                 }
 
+              /* set the height offset to be zero, if the sensor is too closed to the ground */
+              if(no_height_offset_)
+                {
+                  height_offset_ = 0;
+                  range_sensor_offset_ = 0;
+                }
+
               /* fuser for 0: egomotion, 1: experiment */
               for(int mode = 0; mode < 2; mode++)
                 {
@@ -269,7 +277,11 @@ namespace sensor_plugin
                     {
                       boost::shared_ptr<kf_base_plugin::KalmanFilter> kf = fuser.second;
                       int id = kf->getId();
-                      if(id & (1 << BasicEstimator::Z_W)) kf->setMeasureFlag();
+                      if(id & (1 << BasicEstimator::Z_W))
+                        {
+                          kf->setMeasureFlag();
+                          kf->setInitState(raw_range_sensor_value_ + height_offset_, 0);
+                        }
                     }
                 }
 
@@ -658,7 +670,10 @@ namespace sensor_plugin
       if(param_verbose_) cout << "range noise sigma is " <<  range_noise_sigma_ << endl;
 
       nhp_.param("calibrate_cnt", calibrate_cnt_, 100);
-      printf("check duration  is %d\n", calibrate_cnt_); 
+      printf("check duration  is %d\n", calibrate_cnt_);
+
+      nhp_.param("no_height_offset", no_height_offset_, false);
+      printf("no height offset  is %s\n", no_height_offset_?(std::string("true")).c_str():(std::string("false")).c_str());
 
       /* first ascending process: check range */
       nhp_.param("ascending_check_range", ascending_check_range_, 0.1); // [m]
