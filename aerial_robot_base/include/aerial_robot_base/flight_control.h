@@ -19,6 +19,8 @@
 #include <aerial_robot_msgs/DynamicReconfigureLevels.h>
 #include <aerial_robot_base/XYPidControlConfig.h>
 
+#include <boost/algorithm/clamp.hpp>
+
 class FlightController
 {
 public:
@@ -100,26 +102,14 @@ private:
   std::vector<double>  pos_p_gain_throttle_;
   std::vector<double>  pos_i_gain_throttle_;
   std::vector<double>  pos_d_gain_throttle_;
-  /* std::vector<double>  pos_p_gain_throttle_land_; */
-  /* std::vector<double>  pos_i_gain_throttle_land_; */
-  /* std::vector<double>  pos_d_gain_throttle_land_; */
-  //double const_p_ctrl_thre_throttle_land_; 
-  //double const_p_term_lev1_value_throttle_land_;
-  //double const_p_term_lev2_value_throttle_land_;
-  double const_i_ctrl_thre_throttle_land_; 
-  //double const_i_term_value_throttle_land_; 
+  double const_i_ctrl_thre_throttle_land_;
   double offset_throttle_;
   int pos_limit_throttle_;
   double land_gain_slow_rate_;
   int pos_p_limit_throttle_;
   int pos_i_limit_throttle_;
   int pos_d_limit_throttle_;
- //int pos_p_limit_throttle_hover_;  
- //double vel_value_limit_throttle_hover_;
- //double i_enable_limit_throttle_hover_; 
- //int  free_fall_step_value_;
- // int  motor_stop_value_;
- //int throwing_mode_init_value_from_rocket_start_;
+  double pos_err_thresh_;
 
  //**** pitch
  double pos_p_gain_pitch_;

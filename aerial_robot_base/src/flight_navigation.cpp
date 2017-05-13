@@ -234,7 +234,6 @@ void TeleopNavigator::armingAckCallback(const std_msgs::UInt8ConstPtr& ack_msg)
 void TeleopNavigator::takeoffCallback(const std_msgs::EmptyConstPtr & msg){
   if(getStartAble())
     {
-      if(xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE) xy_control_mode_ = POS_WORLD_BASED_CONTROL_MODE;
       setNaviCommand(TAKEOFF_COMMAND);
       ROS_INFO("Takeoff command");
     }
@@ -252,8 +251,6 @@ void TeleopNavigator::startCallback(const std_msgs::EmptyConstPtr & msg)
 
 void TeleopNavigator::landCallback(const std_msgs::EmptyConstPtr & msg)
 {
-  if(xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE) 
-    xy_control_mode_ = POS_WORLD_BASED_CONTROL_MODE;
   setNaviCommand(LAND_COMMAND);
   //更新
   final_target_pos_x_ = getStatePosX();
@@ -265,9 +262,6 @@ void TeleopNavigator::landCallback(const std_msgs::EmptyConstPtr & msg)
 
 void TeleopNavigator::haltCallback(const std_msgs::EmptyConstPtr & msg)
 {
-  if(xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE) 
-    xy_control_mode_ = POS_WORLD_BASED_CONTROL_MODE;
-
   setNaviCommand(STOP_COMMAND);
   flight_mode_ = RESET_MODE;
   setTargetPosX(getStatePosX());
@@ -378,9 +372,6 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
           estimator_->setLandedFlag(false);
           estimator_->setFlyingFlag(false);
 
-          /* the pos-vel mode update */
-          if(xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE)
-            xy_control_mode_ = POS_WORLD_BASED_CONTROL_MODE;
         }
       return;
     }
@@ -396,9 +387,6 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
       if(getNaviCommand() == TAKEOFF_COMMAND) return;
       if(getStartAble())
         {
-          if(xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE)
-            xy_control_mode_ = POS_WORLD_BASED_CONTROL_MODE;
-
           setNaviCommand(TAKEOFF_COMMAND);
           ROS_INFO("Joy Control: Takeoff command");
         }
@@ -409,13 +397,6 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
   if(joy_msg->buttons[5] == 1 && joy_msg->buttons[15] == 1)
     {
       if(getNaviCommand() == LAND_COMMAND) return;
-
-      if(xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE)
-        xy_control_mode_ = POS_WORLD_BASED_CONTROL_MODE;
-
-      if(xy_control_mode_ == VEL_LOCAL_BASED_CONTROL_MODE ||
-         xy_control_mode_ == POS_LOCAL_BASED_CONTROL_MODE)
-        xy_control_mode_ = VEL_LOCAL_BASED_CONTROL_MODE;
 
       setNaviCommand(LAND_COMMAND);
       //update
@@ -728,7 +709,8 @@ void TeleopNavigator::teleopNavigation()
               fabs(getTargetPosY() - getStatePosY()) < POS_Y_THRE)
             convergence_cnt++;
         }
-      else if(xy_control_mode_ == VEL_LOCAL_BASED_CONTROL_MODE ||
+      else if(xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE ||
+              xy_control_mode_ == VEL_LOCAL_BASED_CONTROL_MODE ||
               xy_control_mode_ == ATT_CONTROL_MODE)
         {
           //TODO => check same as pos_world_based_control_mode
@@ -739,10 +721,11 @@ void TeleopNavigator::teleopNavigation()
       if (convergence_cnt > ctrl_loop_rate_)
         {
           if(xy_control_mode_ == POS_WORLD_BASED_CONTROL_MODE ||
+             xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE ||
              xy_control_mode_ == ATT_CONTROL_MODE)
             {
               convergence_cnt = 0;
-              setNaviCommand(HOVER_COMMAND); 
+              setNaviCommand(HOVER_COMMAND);
               ROS_WARN("Hovering!");
             }
           else if(xy_control_mode_ == VEL_LOCAL_BASED_CONTROL_MODE)
@@ -796,9 +779,6 @@ void TeleopNavigator::teleopNavigation()
               estimator_->setLandingMode(false);
               estimator_->setLandedFlag(false);
               estimator_->setFlyingFlag(false);
-
-              if(xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE)
-                xy_control_mode_ = POS_WORLD_BASED_CONTROL_MODE;
             }
         }
       else
