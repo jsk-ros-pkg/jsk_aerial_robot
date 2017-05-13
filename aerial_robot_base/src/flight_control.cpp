@@ -224,7 +224,6 @@ void PidController::pidFunction()
           state_vel_x = estimator_->getState(BasicEstimator::X_W, estimate_mode_)[1];
           state_pos_y = estimator_->getState(BasicEstimator::Y_W, estimate_mode_)[0];
           state_vel_y = estimator_->getState(BasicEstimator::Y_W, estimate_mode_)[1];
-
         }
       else if(navigator_->getXyControlMode() == navigator_->POS_LOCAL_BASED_CONTROL_MODE ||
               navigator_->getXyControlMode() == navigator_->VEL_LOCAL_BASED_CONTROL_MODE)
@@ -885,6 +884,10 @@ void PidController::rosParamInit(ros::NodeHandle nh)
     pos_d_limit_yaw_ = 0;
   printf("%s: pos_d_limit_ is %d\n", yaw_ns.c_str(), pos_d_limit_yaw_);
 
+  if (!yaw_node.getParam ("yaw_control_frame", yaw_control_frame_))
+    yaw_control_frame_ = Frame::BODY;
+  printf("%s: yaw_control_frame_ is %d\n", yaw_ns.c_str(), yaw_control_frame_);
+
   pos_p_gain_yaw_.resize(motor_num_);
   pos_i_gain_yaw_.resize(motor_num_);
   pos_d_gain_yaw_.resize(motor_num_);
@@ -919,10 +922,6 @@ void PidController::rosParamInit(ros::NodeHandle nh)
       if (!yaw_node.getParam ("pos_d_gain", pos_d_gain_yaw_[0]))
         pos_d_gain_yaw_[0] = 0;
       printf("%s: pos_d_gain_ is %.3f\n", yaw_ns.c_str(), pos_d_gain_yaw_[0]);
-
-      if (!yaw_node.getParam ("yaw_control_frame", yaw_control_frame_))
-        yaw_control_frame_ = Frame::BODY;
-      printf("%s: yaw_control_frame_ is %d\n", yaw_ns.c_str(), yaw_control_frame_);
     }
   else
     {//transformable
