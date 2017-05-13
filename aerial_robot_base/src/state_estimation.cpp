@@ -108,7 +108,7 @@ void RigidEstimator::statesBroadcast()
   nav_msgs::Odometry odom_state;
   odom_state.header.stamp = ros::Time::now();
   odom_state.header.frame_id = std::string("/nav");
-  odom_state.child_frame_id = std::string("/bae_link");
+  odom_state.child_frame_id = std::string("/base_link");
 
   tf::Point pos;
   tf::Vector3 vel;
