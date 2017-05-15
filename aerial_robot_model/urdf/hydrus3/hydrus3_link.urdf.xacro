@@ -4,10 +4,16 @@
 
   <!-- D-H kai description(different from prof.nakamura) -->
 
-  <xacro:macro name="hydrus3_link" params="self child head tail imu m_link i_xx i_yy i_zz">
+  <xacro:macro name="hydrus3_link" params="self child head tail imu">
 
     <!-- link -->
     <link name="link${self}">
+      <!-- inertial -->
+      <inertial>
+        <origin xyz="${link_length*.5} 0 0" rpy="0 0 0"/>
+        <xacro:link_inertial head = "${head}" tail = "${tail}" imu = "${imu}" />
+      </inertial>
+
       <!-- visual & collisiont -->
       <xacro:if value="${head}">
         <xacro:link_model self="1" />
@@ -25,21 +31,6 @@
           </xacro:unless>
         </xacro:unless>
       </xacro:unless>
-      <inertial>
-        <origin xyz="${link_length*.5} 0 0" rpy="0 0 0"/>
-        <mass value="${m_link}"/>
-<!--
-        <inertia
-            ixx="0.0001" ixy="0.0" ixz="0.0"
-            iyy="0.005" iyz="0.0"
-            izz="0.0051"/>
-            </inertial>
--->
-        <inertia
-            ixx="${i_xx}" ixy="0.0" ixz="0.0"
-            iyy="${i_yy}" iyz="0.0"
-            izz="${i_zz}"/>
-            </inertial>
     </link>
     <xacro:damping_factor link ="link${self}"/>
 
@@ -97,16 +88,8 @@
         <origin rpy="0 0 0" xyz="${link_length} 0 0"/>
         <axis xyz="0 0 1"/>
         <dynamics damping="0.8" friction="0.05"/>
-        </joint>
-<!--
-      <joint name="joint${self}" type="fixed">
-        <parent link="link${self}"/>
-        <child link="link${child}"/>
-        <origin rpy="0 0 ${pi/2}" xyz="${link_length} 0 0"/>
-        <axis xyz="0 0 1"/>
-        </joint>
--->
-</xacro:unless> <!-- var_tail -->
+      </joint>
+    </xacro:unless> <!-- var_tail -->
 
     <!-- hardware interface -->
     <xacro:unless value="${tail}">

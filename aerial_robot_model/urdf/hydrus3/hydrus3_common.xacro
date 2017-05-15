@@ -3,24 +3,42 @@
     xmlns:xacro="http://www.ros.org/wiki/xacro" name="hydrus3_common" >
 
   <xacro:property name="pi" value="3.1415926535897931" />
+  <!-- kinematics [m] -->
   <xacro:property name="link_length" value=".44" />
-  <xacro:property name="protector_radius" value=".155" />
-  <xacro:property name="protector_mass" value=".05" />
-  <xacro:property name="pc_mass" value=".1" />
-  <xacro:property name="rotor_mass" value=".05" /> <!-- [g] -->
-  <xacro:property name="rotor_radius" value=".015" /> <!-- [g] -->
+  <xacro:property name="link_rod_length" value=".4" />
+  <xacro:property name="protector_radius" value=".1425" />
+  <xacro:property name="link_joint_offset" value="-0.205" /> <!-- [m] -->
+  <xacro:property name="rotor_radius" value=".015" /> <!-- [m] -->
   <xacro:property name="rotor_height" value=".05" /> <!-- [m] -->
-  <xacro:property name="max_force" value="100" /> <!-- [m] -->
-  <xacro:property name="joint_inertia" value="${.0785 * .205 * .205}" /> <!-- mass * dist * dist -->
-  <xacro:property name="rod_inertia" value="${link_length * link_length * 0.1 /12}" /> <!-- mass * dist * dist -->
-  <xacro:property name="pc_inertia" value="${pc_mass * .189 * .189}" /> <!-- mass * dist * dist -->
+  <xacro:property name="pc_offset" value="-0.189" /> <!-- [m] -->
+  <xacro:property name="fc_offset" value="0.166" /> <!-- [m] -->
+
+  <!-- dynamics [Kg] -->
+  <xacro:property name="link_rod_mass" value="0.1" />
+  <xacro:property name="link_center_mass" value=".241" />
+  <xacro:property name="joint_mass" value=".0785" />
+  <xacro:property name="protector_mass" value=".048" />
+  <xacro:property name="protector_holder_mass" value=".047" />
+  <xacro:property name="fc_mass" value=".022" />
+  <xacro:property name="pc_mass" value=".104" />
+  <xacro:property name="rotor_mass" value=".05" /> <!-- exclude from center mass -->
+
+  <xacro:property name="max_force" value="10" /> <!-- [m] -->
+
+  <xacro:property name="joint_inertia" value="${joint_mass * link_joint_offset * link_joint_offset}" /> <!-- mass * dist * dist -->
+  <xacro:property name="link_rod_inertia" value="${link_rod_mass * link_rod_length * link_rod_length /12}" /> <!-- mass * dist * dist -->
+
+  <xacro:property name="pc_inertia" value="${pc_mass * pc_offset * pc_offset}" /> <!-- mass * dist * dist -->
+  <xacro:property name="fc_inertia" value="${fc_mass * fc_offset * fc_offset}" /> <!-- mass * dist * dist -->
+
   <xacro:property name="protector_inertia" value="${protector_mass * protector_radius * protector_radius}" /> <!-- mass * dist * dist -->
+  <xacro:property name="protector_holder_inertia" value="${protector_holder_mass * protector_radius * protector_radius}" /> <!-- mass * dist * dist -->
 
   <xacro:macro name="link_model" params="self">
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <geometry>
-        <cylinder length="${protector_radius}" radius="0.09"/>
+        <cylinder length="0.13" radius="${protector_radius}"/>
       </geometry>
     </collision>
 
@@ -30,6 +48,32 @@
         <mesh filename="package://aerial_robot_model/urdf/hydrus3/mesh/hydrus3_link${self}.dae"/>
       </geometry>
     </visual>
+  </xacro:macro>
+
+  <xacro:macro name="link_inertial" params="head tail imu">
+    <xacro:if value="${head}">
+      <mass value="${link_rod_mass + link_center_mass + protector_mass + protector_holder_mass + pc_mass - rotor_mass}"/>
+      <inertia
+          ixx="${protector_inertia / 2 }" ixy="0.0" ixz="0.0"
+          iyy="${link_rod_inertia + protector_holder_inertia + protector_inertia /2 + pc_inertia}" iyz="0.0"
+          izz="${link_rod_inertia + protector_holder_inertia + protector_inertia + pc_inertia}"/>
+    </xacro:if>
+    <xacro:unless value="${head}">
+      <xacro:if value="${imu}">
+      <mass value="${link_rod_mass + link_center_mass + joint_mass + protector_mass + protector_holder_mass + fc_mass - rotor_mass}"/>
+      <inertia
+          ixx="${protector_inertia / 2 }" ixy="0.0" ixz="0.0"
+          iyy="${joint_inertia + link_rod_inertia + protector_holder_inertia + protector_inertia /2 + fc_inertia}" iyz="0.0"
+          izz="${joint_inertia + link_rod_inertia + protector_holder_inertia + protector_inertia + fc_inertia}"/>
+      </xacro:if>
+      <xacro:unless value="${imu}">
+        <mass value="${link_rod_mass + link_center_mass + joint_mass + protector_mass + protector_holder_mass - rotor_mass}"/>
+        <inertia
+            ixx="${protector_inertia / 2 }" ixy="0.0" ixz="0.0"
+            iyy="${joint_inertia + link_rod_inertia + protector_holder_inertia + protector_inertia /2}" iyz="0.0"
+            izz="${joint_inertia + link_rod_inertia + protector_holder_inertia + protector_inertia}"/>
+      </xacro:unless>
+    </xacro:unless>
   </xacro:macro>
 
   <!-- friction -->
