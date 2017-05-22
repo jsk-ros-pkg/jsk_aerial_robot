@@ -275,7 +275,7 @@ private:
   double ring_radius_; //the offset from the center of link base to the protector_end
   double link_joint_offset_; //the offset from the center of joint to the mass center of joint
 
-  double link_base_rod_mid_mass_; //protector ring
+  double link_base_rod_common_mass_; //link rod
   std::vector<double> link_base_rod_mass_; //each weight of link base rod is different
   double link_base_ring_mass_; //protector ring
   double link_base_two_ring_holder_mass_; //protector holder

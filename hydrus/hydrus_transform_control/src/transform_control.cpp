@@ -247,8 +247,8 @@ void TransformController::initParam()
   std::cout << "link_joint_offset: " << std::setprecision(3) << link_joint_offset_ << std::endl;
 
   /* base components mass [Kg] */
-  nh_private_.param ("link_base_rod_mid_mass", link_base_rod_mid_mass_, 0.1);
-  std::cout << "link_base_rod_mid_mass: " << std::setprecision(3) << link_base_rod_mid_mass_ << std::endl;
+  nh_private_.param ("link_base_rod_common_mass", link_base_rod_common_mass_, 0.1);
+  std::cout << "link_base_rod_common_mass: " << std::setprecision(3) << link_base_rod_common_mass_ << std::endl;
   nh_private_.param ("link_base_ring_mass", link_base_ring_mass_, 0.048);
   std::cout << "link_base_ring_mass: " << std::setprecision(3) << link_base_ring_mass_ << std::endl;
   nh_private_.param ("link_base_two_ring_holder_mass", link_base_two_ring_holder_mass_, 0.053);
@@ -267,7 +267,7 @@ void TransformController::initParam()
       ss << i + 1;
       links_name_[i] = std::string("/link") + ss.str() + std::string("_center"); //link name
 
-      nh_private_.param(std::string("link") + ss.str() + std::string("_base_rod_mass"), link_base_rod_mass_[i], link_base_rod_mid_mass_);
+      nh_private_.param(std::string("link") + ss.str() + std::string("_base_rod_mass"), link_base_rod_mass_[i], link_base_rod_common_mass_);
       std::cout << "link " << i + 1 << "_base_rod_mass:" << std::setprecision(3) << link_base_rod_mass_[i] << std::endl;
 
       /* model */
