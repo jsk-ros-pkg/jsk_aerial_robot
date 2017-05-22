@@ -1,5 +1,8 @@
 #Hydrus3 config
 
+/motor_info:
+        motor_num: 4
+
 control_rate: 10.0
 root_link: 2
 
