@@ -97,8 +97,8 @@ public:
         std::cout << weight_ << std::endl;
         std::cout << "inertia:" << std::endl;
         std::cout << inertia_ << std::endl;
-        std::cout << "inertia:" << std::endl;
-        std::cout << inertia_ << std::endl;
+        std::cout << "offset:" << std::endl;
+        std::cout << origin_offset_ << std::endl;
       }
   }
   ~ElementModel(){}
