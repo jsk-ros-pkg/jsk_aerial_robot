@@ -2,236 +2,157 @@
 <robot
     xmlns:xacro="http://www.ros.org/wiki/xacro" name="hydrusx_link" >
 
-  <xacro:macro name="hydrusx_link" params="self child head tail imu pc">
+  <!-- D-H kai description(different from prof.nakamura) -->
+  <xacro:macro name="hydrusx_link" params="self child general fc pc">
 
-    <xacro:if value="${head}">
-      <link name="link${self}">
-        <collision>
-          <origin xyz="0 0 0" rpy="0 0 0"/>
-          <geometry>
-          <cylinder length="0.1" radius="${protector_radius}"/>
-          </geometry>
-        </collision>
+    <!-- link -->
+    <link name="link${self}">
+      <!-- common inertial -->
+      <inertial>
+        <origin xyz="${link_length*.5} 0 0" rpy="0 0 0"/>
+        <!-- mass and inertia -->
 
-        <visual>
-          <origin rpy="0 0 0" xyz="0 0 0"/>
-          <geometry>
-            <mesh filename="package://aerial_robot_model/urdf/hydrusx/mesh/hydrusx_link1.dae"/>
-          </geometry>
-          <xacro:link_color />
-        </visual>
-
-        <inertial>
-          <origin xyz="0 0 0" rpy="0 0 0"/>
-          <mass value="0.5"/>
-          <inertia
-	      ixx="0.1" ixy="0.0" ixz="0.0"
-	      iyy="0.01" iyz="0.0"
-	      izz="0.11"/>
-        </inertial>
-      </link>
-
-      <joint name="joint${self}" type="revolute">
-        <limit effort="100.0" lower="-1.57" upper="1.57" velocity="0.5"/>
-        <parent link="link${self}"/>
-        <child link="joint${self}"/>
-        <origin rpy="0 0 0" xyz="-${link_length*.5} 0 0"/>
-        <axis xyz="0 0 1"/>
-        <dynamics damping="0.8"/>
-      </joint>
-
-      <link name="joint${self}">
-        <collision>
-          <origin rpy="0 0 0" xyz="0 0 0"/>
-          <geometry>
-            <cylinder length="0.05" radius="0.02"/>
-          </geometry>
-        </collision>
-        <visual>
-          <origin rpy="0 0 0" xyz="0 0 0"/>
-          <geometry>
-            <cylinder length="0.001" radius="0.001"/>
-          </geometry>
-          <material name="color">
-            <color rgba="0.75 .5 .2 1"/>
-          </material>
-        </visual>
-        <inertial>
-          <origin rpy="0 0 0" xyz="0 0 0"/>
-          <mass value="0.1"/>
-          <inertia ixx="0.00005" ixy="0.0" ixz="0.0" iyy="0.00005" iyz="0.0" izz="0.0001"/>
-        </inertial>
-      </link>
-
-      <joint name="joint${self}_link${child}" type="fixed">
-        <parent link="joint${self}"/>
-        <child link="link${child}"/>
-        <origin rpy="0 0 0" xyz="-${link_length*.5} 0 0"/> 
-      </joint>
-
-    </xacro:if>
-    <xacro:unless value="${head}">
-      <xacro:if value="${tail}">
-        <link name="link${self}">
-          <collision>
-            <origin xyz="0 0 0" rpy="0 0 0"/>
-            <geometry>
-              <cylinder length="${protector_radius}" radius="0.1"/>
-            </geometry>
-          </collision>
-
-          <visual>
-            <origin rpy="0 0 0" xyz="0 0 0"/>
-            <geometry>
-              <mesh filename="package://aerial_robot_model/urdf/hydrusx/mesh/hydrusx_link5.dae" />
-            </geometry>
-            <xacro:link_color /> 
-          </visual>
-
-          <inertial>
-            <origin xyz="0 0 0" rpy="0 0 0"/>
-            <mass value="0.5"/>
-            <inertia
-	        ixx="0.1" ixy="0.0" ixz="0.0"
-	        iyy="0.01" iyz="0.0"
-	        izz="0.11"/>
-          </inertial>
-        </link>
-
-      </xacro:if>
-      <xacro:unless value="${tail}">
-        <xacro:if value="${imu}">
-
-          <link name="link${self}">
-            <collision>
-              <origin xyz="0 0 0" rpy="0 0 0"/>
-              <geometry>
-                <cylinder length="${protector_radius}" radius="0.1"/>
-              </geometry>
-            </collision>
-
-            <visual>
-              <origin rpy="0 0 0" xyz="0 0 0"/>
-              <geometry>
-                <mesh filename="package://aerial_robot_model/urdf/hydrusx/mesh/hydrusx_link4.dae"/>
-              </geometry>
-              <xacro:link_color /> 
-            </visual>
-
-            <inertial>
-              <origin xyz="0 0 0" rpy="0 0 0"/>
-              <mass value="0.5"/>
-              <inertia
-	          ixx="0.1" ixy="0.0" ixz="0.0"
-	          iyy="0.01" iyz="0.0"
-	          izz="0.11"/>
-            </inertial>
-          </link>
-
+        <!-- head -->
+        <xacro:if value="${self == 1}">
+          <xacro:link_inertial extra_mass = "${head_leg_mass}" extra_ixx = "0" extra_iyy = "${head_leg_inertia}" extra_izz = "${head_leg_inertia}" />
         </xacro:if>
-        <xacro:unless value="${imu}">
 
-          <xacro:if value="${pc}">
+        <!-- tail -->
+        <xacro:if value="${self == child}">
+          <xacro:link_inertial extra_mass = "${tail_leg_mass}" extra_ixx = "0" extra_iyy = "${tail_leg_inertia}" extra_izz = "${tail_leg_inertia}" />
+        </xacro:if>
 
-            <link name="link${self}">
-              <collision>
-                <origin xyz="0 0 0" rpy="0 0 0"/>
-                <geometry>
-                  <cylinder length="${protector_radius}" radius="0.1"/>
-                </geometry>
-              </collision>
+        <!-- fc -->
+        <xacro:if value="${fc}">
+          <xacro:link_inertial extra_mass = "${sensor_mass + fc_mass}" extra_ixx = "0" extra_iyy = "${sensor_inertia + fc_inertia}" extra_izz = "${sensor_inertia + fc_inertia}" />
+        </xacro:if>
 
-              <visual>
-                <origin rpy="0 0 0" xyz="0 0 0"/>
-                <geometry>
-                  <mesh filename="package://aerial_robot_model/urdf/hydrusx/mesh/hydrusx_link3.dae"/>
-                </geometry>
-                <xacro:link_color /> 
-              </visual>
+        <!-- pc: -->
+        <xacro:if value="${pc}">
+          <xacro:link_inertial extra_mass = "${pc_mass}" extra_ixx = "0" extra_iyy = "${pc_inertia}" extra_izz = "${pc_inertia}" />
+        </xacro:if>
 
-              <inertial>
-                <origin xyz="0 0 0" rpy="0 0 0"/>
-                <mass value="0.5"/>
-                <inertia
-	            ixx="0.1" ixy="0.0" ixz="0.0"
-	            iyy="0.01" iyz="0.0"
-	            izz="0.11"/>
-              </inertial>
-            </link>
+        <!-- general -->
+        <xacro:if value="${general}">
+          <xacro:link_inertial extra_mass = "0" extra_ixx = "0" extra_iyy = "0" extra_izz = "0" />
+        </xacro:if>
+      </inertial>
 
-          </xacro:if>
+      <!-- sepcial inertia & visual & collision -->
+      <!-- head -->
+      <xacro:if value="${self == 1}">
+        <xacro:link_model type="1" />
+      </xacro:if>
 
-          <xacro:unless value="${pc}">
+      <!-- tail -->
+      <xacro:if value="${self == child}">
+        <xacro:link_model type="4" />
+      </xacro:if>
 
-            <link name="link${self}">
-              <collision>
-                <origin xyz="0 0 0" rpy="0 0 0"/>
-                <geometry>
-                  <cylinder length="0.1" radius="${protector_radius}"/>
-                </geometry>
-              </collision>
+      <!-- fc -->
+      <xacro:if value="${fc}">
+        <xacro:link_model type="3" />
+      </xacro:if>
 
-              <visual>
-                <origin rpy="0 0 0" xyz="0 0 0"/>
-                <geometry>
-                  <mesh filename="package://aerial_robot_model/urdf/hydrusx/mesh/hydrusx_link2.dae"/>
-                </geometry>
-                <xacro:link_color /> 
-              </visual>
+      <!-- pc: -->
+      <xacro:if value="${pc}">
+        <xacro:link_model type="2" />
+      </xacro:if>
 
-              <inertial>
-                <origin xyz="0 0 0" rpy="0 0 0"/>
-                <mass value="0.5"/>
-                <inertia
-	            ixx="0.1" ixy="0.0" ixz="0.0"
-	            iyy="0.01" iyz="0.0"
-	            izz="0.11"/>
-              </inertial>
-            </link>
+      <!-- general -->
+      <xacro:if value="${general}">
+        <xacro:link_model type="5" />
+      </xacro:if>
+    </link>
 
-          </xacro:unless>
-        </xacro:unless>
+    <xacro:damping_factor link ="link${self}"/>
 
-        <joint name="joint${self}" type="revolute">
-          <limit effort="100.0" lower="-1.57" upper="1.57" velocity="0.5"/>
-          <parent link="link${self}"/>
-          <child link="joint${self}"/>
-          <origin rpy="0 0 0" xyz="-${link_length*.5} 0 0"/>
-          <axis xyz="0 0 1"/>
-          <dynamics damping="0.7"/>
-        </joint>
+    <!-- link center(virtual) -->
+    <!-- not good -->
+    <joint name="center${self}" type="fixed">
+      <parent link="link${self}"/>
+      <child link="link${self}_center"/>
+      <origin rpy="0 0 0" xyz="${link_length*.5} 0 0"/>
+      <axis xyz="0 0 1"/>
+    </joint>
 
-        <link name="joint${self}"> 
-          <collision>
-            <origin rpy="0 0 0" xyz="0 0 0"/>
-            <geometry>
-              <cylinder length="0.05" radius="0.02"/>
-            </geometry>
-          </collision>
-          <visual>
-            <origin rpy="0 0 0" xyz="0 0 0"/>
-            <geometry>
-              <cylinder length="0.001" radius="0.001"/>
-            </geometry>
-            <material name="color">
-              <color rgba="0.75 .5 .2 1"/>
-            </material>
-          </visual>
-          <inertial>
-            <origin rpy="0 0 0" xyz="0 0 0"/>
-            <mass value="0.1"/>
-            <inertia ixx="0.00005" ixy="0.0" ixz="0.0" iyy="0.00005" iyz="0.0" izz="0.0001"/>
-          </inertial>
-        </link>
+    <link name="link${self}_center">
+      <!-- visual & collisiont -->
+      <inertial>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <mass value="0.001"/>
+        <inertia
+            ixx="0.00000001" ixy="0.0" ixz="0.0"
+            iyy="0.00000001" iyz="0.0"
+            izz="0.00000002"/>
+      </inertial>
+    </link>
+    <xacro:damping_factor link ="link${self}_center"/>
 
-        <joint name="joint${self}_link${child}" type="fixed">
-          <parent link="joint${self}"/>
-          <child link="link${child}"/>
-          <origin rpy="0 0 0" xyz="-${link_length*.5} 0 0"/> 
-        </joint>
+    <!-- rotor -->
+    <joint name="rotor${self}" type="continuous">
+      <limit effort="100.0" lower="0" upper="${max_force}" velocity="0.5"/> <!-- force range -->
+      <parent link="link${self}"/>
+      <child link="propeller${self}"/>
+      <origin rpy="0 0 0" xyz="${link_length*.5} 0 0"/>
+      <axis xyz="0 0 1"/>
+    </joint>
 
-      </xacro:unless>
+    <link name="propeller${self}">
+      <!-- visual & collisiont -->
+      <inertial>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <mass value="${rotor_mass}"/>
+        <inertia
+            ixx="${rotor_mass * .25 * rotor_radius * rotor_radius}" ixy="0.0" ixz="0.0"
+            iyy="${rotor_mass * .25 * rotor_radius * rotor_radius}" iyz="0.0"
+            izz="${rotor_mass * .5 * rotor_radius * rotor_radius}"/>
+      </inertial>
+    </link>
+    <xacro:damping_factor link ="propeller${self}"/>
+
+    <!-- joint -->>
+    <xacro:unless value="${self == child}">
+      <joint name="joint${self}" type="revolute">
+        <limit effort="3.1" lower="-1.57" upper="1.57" velocity="0.5"/>
+        <parent link="link${self}"/>
+        <child link="link${child}"/>
+        <origin rpy="0 0 0" xyz="${link_length} 0 0"/>
+        <axis xyz="0 0 1"/>
+        <dynamics damping="0.8" friction="0.05"/>
+      </joint>
     </xacro:unless>
+
+    <!-- hardware interface -->
+    <xacro:unless value="${self == child}">
+      <transmission name="joint_tran${self}">
+        <type>transmission_interface/SimpleTransmission</type>
+        <joint name="joint${self}">
+          <!-- TODO: effort is torque, maybe position is enough -->
+          <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+        </joint>
+        <actuator name="servo{self}">
+          <!-- TODO: effort is torque, maybe position is enough -->
+          <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+          <mechanicalReduction>1</mechanicalReduction>
+        </actuator>
+      </transmission>
+    </xacro:unless>
+
+    <transmission name="rotor_tran${self}">
+      <type>transmission_interface/SimpleTransmission</type>
+      <joint name="rotor${self}">
+        <!-- TODO: effort is torque, maybe position is enough -->
+        <hardwareInterface>RotorInterface</hardwareInterface>
+      </joint>
+      <actuator name="rotor${self}">
+        <!-- TODO: effort is torque, maybe position is enough -->
+        <hardwareInterface>RotorInterface</hardwareInterface>
+        <mechanicalReduction>1</mechanicalReduction>
+      </actuator>
+    </transmission>
+
+    <xacro:friction self ="${self}"/>
 
   </xacro:macro>
 

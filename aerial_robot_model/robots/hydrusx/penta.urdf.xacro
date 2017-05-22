@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<robot
+    xmlns:xacro="http://www.ros.org/wiki/xacro" name="hydrusx" >
+
+  <xacro:include filename="$(find aerial_robot_model)/urdf/hydrusx/hydrusx_common.xacro" />
+  <xacro:include filename="$(find aerial_robot_model)/urdf/hydrusx/hydrusx_link.urdf.xacro" />
+
+  <xacro:hydrusx_link self="1" child="2" general="false" fc="false" pc="false"/>
+  <xacro:hydrusx_link self="2" child="3" general="false" fc="false" pc="true"/>
+  <xacro:hydrusx_link self="3" child="4" general="false" fc="true" pc="false"/>
+  <xacro:hydrusx_link self="4" child="5" general="true" fc="false" pc="false"/>
+  <xacro:hydrusx_link self="5" child="5" general="false" fc="false" pc="false"/>
+
+</robot>
