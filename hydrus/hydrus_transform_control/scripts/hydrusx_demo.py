@@ -18,7 +18,7 @@ if __name__ == "__main__":
     joint = JointState()
     joint.position = []
     for i in range(0, link_num - 1):
-        joint.position.append(math.pi * (link_num -2) / link_num)
+        joint.position.append(2 * math.pi / link_num)
     while not rospy.is_shutdown():
 
         for i in range(0, link_num - 1):
