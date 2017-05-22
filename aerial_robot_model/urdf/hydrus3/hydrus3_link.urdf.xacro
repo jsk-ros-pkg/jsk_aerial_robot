@@ -4,33 +4,60 @@
 
   <!-- D-H kai description(different from prof.nakamura) -->
 
-  <xacro:macro name="hydrus3_link" params="self child head tail imu">
+  <xacro:macro name="hydrus3_link" params="self child general fc pc">
 
     <!-- link -->
     <link name="link${self}">
-      <!-- inertial -->
+      <!-- common inertial -->
       <inertial>
         <origin xyz="${link_length*.5} 0 0" rpy="0 0 0"/>
-        <xacro:link_inertial head = "${head}" tail = "${tail}" imu = "${imu}" />
+        <!-- mass and inertia -->
+
+        <!-- head -->
+        <xacro:if value="${self == 1}">
+          <xacro:link_inertial extra_mass = "${pc_mass}" extra_ixx = "0" extra_iyy = "${pc_inertia}" extra_izz = "${pc_inertia}" />
+        </xacro:if>
+
+        <!-- tail -->
+        <xacro:if value="${self == child}">
+          <xacro:link_inertial extra_mass = "0" extra_ixx = "0" extra_iyy = "0" extra_izz = "0" />
+        </xacro:if>
+
+        <!-- fc -->
+        <xacro:if value="${fc}">
+          <xacro:link_inertial extra_mass = "${fc_mass}" extra_ixx = "0" extra_iyy = "${fc_inertia}" extra_izz = "${fc_inertia}" />
+        </xacro:if>
+
+        <!-- pc: no -->
+
+        <!-- general -->
+        <xacro:if value="${general}">
+          <xacro:link_inertial extra_mass = "0" extra_ixx = "0" extra_iyy = "0" extra_izz = "0" />
+        </xacro:if>
       </inertial>
 
-      <!-- visual & collisiont -->
-      <xacro:if value="${head}">
-        <xacro:link_model self="1" />
+      <!-- sepcial inertia & visual & collision -->
+      <!-- head -->
+      <xacro:if value="${self == 1}">
+        <xacro:link_model type="1" />
       </xacro:if>
-      <xacro:unless value="${head}">
-        <xacro:if value="${imu}">
-          <xacro:link_model self="2" />
-        </xacro:if>
-        <xacro:unless value="${imu}">
-          <xacro:if value="${tail}">
-            <xacro:link_model self="4" />
-          </xacro:if>
-          <xacro:unless value="${tail}">
-            <xacro:link_model self="3" />
-          </xacro:unless>
-        </xacro:unless>
-      </xacro:unless>
+
+      <!-- tail -->
+      <xacro:if value="${self == child}">
+        <xacro:link_model type="4" />
+      </xacro:if>
+
+      <!-- fc -->
+      <xacro:if value="${fc}">
+        <xacro:link_model type="2" />
+      </xacro:if>
+
+      <!-- pc: no -->
+
+      <!-- general -->
+      <xacro:if value="${general}">
+        <xacro:link_model type="3" />
+      </xacro:if>
     </link>
     <xacro:damping_factor link ="link${self}"/>
 
@@ -79,8 +106,7 @@
     <xacro:damping_factor link ="propeller${self}"/>
 
     <!-- joint -->>
-    <xacro:unless value="${tail}">
-
+    <xacro:unless value="${self == child}">
       <joint name="joint${self}" type="revolute">
         <limit effort="3.1" lower="-1.57" upper="1.57" velocity="0.5"/>
         <parent link="link${self}"/>
@@ -89,10 +115,10 @@
         <axis xyz="0 0 1"/>
         <dynamics damping="0.8" friction="0.05"/>
       </joint>
-    </xacro:unless> <!-- var_tail -->
+    </xacro:unless> 
 
     <!-- hardware interface -->
-    <xacro:unless value="${tail}">
+    <xacro:unless value="${self == child}">
       <transmission name="joint_tran${self}">
         <type>transmission_interface/SimpleTransmission</type>
         <joint name="joint${self}">
@@ -105,7 +131,7 @@
           <mechanicalReduction>1</mechanicalReduction>
         </actuator>
       </transmission>
-    </xacro:unless> <!-- var_tail -->
+    </xacro:unless>
 
     <transmission name="rotor_tran${self}">
       <type>transmission_interface/SimpleTransmission</type>
