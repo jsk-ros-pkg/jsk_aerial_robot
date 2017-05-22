@@ -84,12 +84,22 @@
 class ElementModel{
 public:
   ElementModel(){}
-  ElementModel(int link, float weight, Eigen::Matrix3d inertia, Eigen::Vector3d origin_offset = Eigen::Vector3d::Zero())
+  ElementModel(int link, float weight, Eigen::Matrix3d inertia, Eigen::Vector3d origin_offset = Eigen::Vector3d::Zero(), bool verbose = false)
   {
     weight_ = weight;
     inertia_ = inertia;
     origin_offset_ = origin_offset;
     link_ = link;
+
+    if(verbose)
+      {
+        std::cout << "weight:" << std::endl;
+        std::cout << weight_ << std::endl;
+        std::cout << "inertia:" << std::endl;
+        std::cout << inertia_ << std::endl;
+        std::cout << "offset:" << std::endl;
+        std::cout << origin_offset_ << std::endl;
+      }
   }
   ~ElementModel(){}
 

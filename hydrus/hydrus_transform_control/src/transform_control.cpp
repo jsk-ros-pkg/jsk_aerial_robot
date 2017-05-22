@@ -310,16 +310,25 @@ void TransformController::initParam()
       double extra_module_offset;
       int extra_module_link;
       double extra_module_mass;
+      double extra_module_ixx, extra_module_iyy, extra_module_izz;
       nh_private_.param (std::string("extra_module") + ss.str() + std::string("_link"), extra_module_link, link_num_ / 2 - 1);
       std::cout << std::string("extra_module") + ss.str() + std::string("_link: ") << extra_module_link << std::endl;
       nh_private_.param (std::string("extra_module") + ss.str() + std::string("_mass"), extra_module_mass, 0.0);
       std::cout << std::string("extra_module") + ss.str() + std::string("_mass: ") << std::setprecision(3) << extra_module_mass << std::endl;
       nh_private_.param (std::string("extra_module") + ss.str() + std::string("_offset"), extra_module_offset, 0.0);
       std::cout << std::string("extra_module") + ss.str() + std::string("_offset: ") << std::setprecision(3) << extra_module_offset << std::endl;
+      nh_private_.param (std::string("extra_module") + ss.str() + std::string("_ixx"), extra_module_ixx, 0.0);
+      std::cout << std::string("extra_module") + ss.str() + std::string("_ixx: ") << std::setprecision(3) << extra_module_ixx << std::endl;
+      nh_private_.param (std::string("extra_module") + ss.str() + std::string("_iyy"), extra_module_iyy, 0.0);
+      std::cout << std::string("extra_module") + ss.str() + std::string("_iyy: ") << std::setprecision(3) << extra_module_iyy << std::endl;
+      nh_private_.param (std::string("extra_module") + ss.str() + std::string("_izz"), extra_module_izz, 0.0);
+      std::cout << std::string("extra_module") + ss.str() + std::string("_izz: ") << std::setprecision(3) << extra_module_izz << std::endl;
+      Eigen::Vector3d extra_module_i_diagnoal;
+      extra_module_i_diagnoal << extra_module_ixx, extra_module_iyy, extra_module_izz;
 
       Eigen::Vector3d offset;
       offset << extra_module_offset, 0, 0;
-      ElementModel extra_module_model(extra_module_link, extra_module_mass, zero_inertia, offset);
+      ElementModel extra_module_model(extra_module_link, extra_module_mass, extra_module_i_diagnoal.asDiagonal(), offset, true);
       all_mass_ += extra_module_model.getWeight();
       extra_module_model_[i] = extra_module_model;
     }
@@ -482,7 +491,7 @@ void TransformController::principalInertiaComputation(const std::vector<tf::Stam
 
       Eigen::Matrix3d link_rotated_inertia = rotate_m.transpose() *  link_base_model_[i].getInertia() * rotate_m;
 
-      //offset http://homepage2.nifty.com/eman/dynamics/mom_tensor.html
+      //offset http://eman-physics.net/dynamics/mom_tensor.html
       Eigen::Matrix3d link_offset_inertia;
       float link_mass = link_base_model_[i].getWeight();
 
