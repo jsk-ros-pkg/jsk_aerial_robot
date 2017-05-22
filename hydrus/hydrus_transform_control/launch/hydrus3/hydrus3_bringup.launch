@@ -4,6 +4,7 @@
   <arg name="real_machine" default="True" />
   <arg name="simulation" default="False" />
   <arg name="control_mode" default="0" /> <!-- pos mode: 0, vel mode: 3, att mode: 4 -->
+  <arg name="type" default="quad" />
 
   <arg name="headless" default="True" />
   ###########  Motor Config  ###########
@@ -37,7 +38,7 @@
   </node>
 
   ###########  Sensors  ###########
-  <include file="$(find aerial_robot_base)/launch/sensors/onboard_sensors.launch" if="$(arg real_machine)">
+  <include file="$(find aerial_robot_base)/launch/sensors/onboard_sensors.launch" if="$(arg real_machine)" >
     <arg name="imu_board" value="1" />  <!-- 1: d imu board, 0: kduino board -->
     <arg name="use_mocap" value="1" />
     <arg name="use_joy" value="0" />
@@ -45,27 +46,31 @@
   </include >
 
   ###########  Dynamixel  ###########
-  <include file="$(find hydrus_transform_control)/launch/hydrus3/hydrus3_dynamixel_bridge.launch" if="$(arg real_machine)" />
+  <include file="$(find hydrus_transform_control)/launch/hydrus3/hydrus3_dynamixel_bridge.launch" if="$(arg real_machine)" >
+    <arg name="type" value="$(arg type)" />
+  </include>
 
 
   ###########  Robot Model  ###########
   <include file="$(find aerial_robot_model)/launch/aerial_robot_model.launch" unless="$(arg simulation)">
     <arg name="model" value="hydrus3"/>
+    <arg name="type" value="$(arg type)" />
     <arg name="headless" value="$(arg headless)" />
     <arg name="need_joint_state" value="false" if="$(arg real_machine)"/>
   </include >
 
   ###########  Transform Control  ###########
   <node pkg="hydrus_transform_control" type="transform_control_node" name="hydrus3"  output="screen" >
-    <rosparam file="$(find hydrus_transform_control)/config/hydrus3/Hydrus.yaml" command="load" />
+    <rosparam file="$(find hydrus_transform_control)/config/hydrus3/$(arg type)/Hydrus.yaml" command="load" />
     <param name="kinematic_verbose" value="false" />
     <param name="control_verbose" value="false" />
   </node>
 
   ########## Simulation in Gazebo #########
-  <rosparam file="$(find hydrus_transform_control)/config/hydrus3/SimulationControl.yaml" command="load"/>
+  <rosparam file="$(find hydrus_transform_control)/config/hydrus3/$(arg type)/SimulationControl.yaml" command="load"/>
   <include file="$(find aerial_robot_simulation)/launch/simulation.launch" if = "$(arg simulation)" >
     <arg name="model" default="hydrus3" />
+    <arg name="type" value="$(arg type)" />
     <arg name="gui" default="false" if="$(arg headless)" />
     <arg name="headless" default="$(arg headless)" />
     </include>
