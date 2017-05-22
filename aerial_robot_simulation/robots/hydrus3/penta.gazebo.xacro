@@ -2,7 +2,7 @@
 <robot
     xmlns:xacro="http://www.ros.org/wiki/xacro" name="hydrus3" >
 
-  <xacro:include filename="$(find aerial_robot_model)/robots/hydrus3.urdf.xacro" />
+  <xacro:include filename="$(find aerial_robot_model)/robots/hydrus3/penta.urdf.xacro" />
 
   <!-- gazebo elements: hw interface -->
   <gazebo>
