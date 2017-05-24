@@ -659,12 +659,12 @@ void TeleopNavigator::teleopNavigation()
       bool normal_land = false;
 
       /* joystick heartbeat check */
-      if(joy_stick_heart_beat_ &&
-         ros::Time::now().toSec() - joy_stick_prev_time_ > joy_stick_heart_beat_du_)
-        {
-          normal_land = true;
-          ROS_ERROR("Normal Landing: att control mode, because no joy control");
-        }
+       if(check_joy_stick_heart_beat_ && joy_stick_heart_beat_ &&
+          ros::Time::now().toSec() - joy_stick_prev_time_ > joy_stick_heart_beat_du_)
+         {
+           normal_land = true;
+           ROS_ERROR("Normal Landing: att control mode, because no joy control");
+         }
 
       /* low voltage flag */
       if(low_voltage_flag_)
@@ -868,5 +868,9 @@ void TeleopNavigator::rosParamInit(ros::NodeHandle nh)
   if (!nh.getParam ("force_landing_to_halt_du", force_landing_to_halt_du_))
     force_landing_to_halt_du_ = 1.0;
   printf("%s: force_landing_to_halt_du_ is %f\n", ns.c_str(), force_landing_to_halt_du_);
+
+  if (!nh.getParam ("check_joy_stick_heart_beat", check_joy_stick_heart_beat_))
+    check_joy_stick_heart_beat_ = false;
+  printf("%s: check_joy_stick_heart_beat_ is %s\n", ns.c_str(), check_joy_stick_heart_beat_?std::string("true").c_str():std::string("false").c_str());
 
 }

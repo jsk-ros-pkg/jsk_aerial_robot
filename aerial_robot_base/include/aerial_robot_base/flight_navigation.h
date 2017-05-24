@@ -280,6 +280,7 @@ private:
   bool teleop_flag_;
   bool force_landing_flag_;
 
+  bool check_joy_stick_heart_beat_;
   bool joy_stick_heart_beat_;
   double joy_stick_prev_time_;
   double joy_stick_heart_beat_du_;
