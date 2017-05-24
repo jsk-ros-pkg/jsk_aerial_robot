@@ -1,6 +1,6 @@
 sensor_plugin:
         mocap:
-                pos_noise_sigma: 0.0005
+                pos_noise_sigma: 0.0002
                 angle_sigma: 0.005
                 unhealth_level: 3
                 health_timeout: 0.5
