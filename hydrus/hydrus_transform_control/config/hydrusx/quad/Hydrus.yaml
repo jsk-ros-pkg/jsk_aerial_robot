@@ -43,14 +43,15 @@ extra_module2_mass: 0.24 # TX1 Orbitty Carrier Board 0.24, Odroid: 0.1
 # tail
 extra_module3_link: 3
 extra_module3_offset: 0.235
-extra_module3_mass: 0.0623
+extra_module3_mass: 0.09 # 0.0623 + alpha(DC-DC)
+
 
 # head
 extra_module4_link: 0
 extra_module4_offset: -0.247
 extra_module4_mass: 0.0623
 
-# sensors (gps, leddarone, zed )
+# Sensors
 extra_module5_link: 2
 extra_module5_offset: -0.215
 extra_module5_mass: 0.06
