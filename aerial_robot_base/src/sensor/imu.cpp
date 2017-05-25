@@ -44,6 +44,7 @@
 #include <geometry_msgs/Vector3.h>
 #include <aerial_robot_msgs/SimpleImu.h>
 #include <aerial_robot_msgs/Imu.h>
+#include <sensor_msgs/Imu.h>
 
 using namespace Eigen;
 using namespace std;
@@ -59,6 +60,7 @@ namespace sensor_plugin
       rosParamInit();
 
       acc_pub_ = nh_.advertise<aerial_robot_base::Acc>("acc", 2);
+      imu_pub_ = nh_.advertise<sensor_msgs::Imu>(imu_pub_topic_name_, 1);
 
       if(imu_board_ == D_BOARD)
         {
@@ -96,11 +98,13 @@ namespace sensor_plugin
 
   private:
     ros::Publisher  acc_pub_;
+    ros::Publisher  imu_pub_;
     ros::Subscriber  imu_sub_, sub_imu_sub_;
     ros::Subscriber  imu_simple_sub_;
 
     /* rosparam */
     string imu_topic_name_;
+    string imu_pub_topic_name_;
     int imu_board_;
 
     int calib_count_;
@@ -442,6 +446,7 @@ namespace sensor_plugin
           estimator_->setState(BasicEstimator::Z_W, BasicEstimator::EXPERIMENT_ESTIMATE, 2, acc_non_bias_w_.z());
 
           publishAccData(stamp);
+	  publishFilteredImuData(stamp);
         }
       prev_time = imu_stamp_;
     }
@@ -456,6 +461,15 @@ namespace sensor_plugin
       tf::vector3TFToMsg(acc_non_bias_w_, acc_data.acc_non_bias_world_frame);
 
       acc_pub_.publish(acc_data);
+    }
+
+    void publishFilteredImuData(ros::Time stamp)
+    {
+      sensor_msgs::Imu imu_data;
+      imu_data.header.stamp = stamp;
+      tf::vector3TFToMsg(omega_[Frame::BODY], imu_data.angular_velocity);
+      tf::vector3TFToMsg(acc_[Frame::BODY], imu_data.linear_acceleration);
+      imu_pub_.publish(imu_data);
     }
 
     void rosParamInit()
@@ -491,6 +505,7 @@ namespace sensor_plugin
           nhp_.param("mag_scale", mag_scale_, 1200 / 32768.0);
           if(param_verbose_) cout << "mag scale is" << mag_scale_ << endl;
         }
+      nhp_.param("imu_pub_topic_name_", imu_pub_topic_name_, string("imu_filtered"));
     }
 
   };
