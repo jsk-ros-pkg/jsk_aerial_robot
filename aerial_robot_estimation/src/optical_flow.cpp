@@ -39,6 +39,7 @@ nh_(nh), nhp_(nhp), camera_info_update_(false), imu_update_(false), image_stamp_
   nhp_.param("max_count", max_count_, 100);
   nhp_.param("use_sonar", use_sonar_, false);
   nhp_.param("sonar_offset", sonar_offset_, 0.0);
+  nhp_.param("image_crop_scale", image_crop_scale_, 1.0);
 
   //imu(base)->camera
   //sim
@@ -66,6 +67,12 @@ nh_(nh), nhp_(nhp), camera_info_update_(false), imu_update_(false), image_stamp_
   
   camera_rotation_mat_.setRPY(camera_roll_, camera_pitch_, camera_yaw_); //imu->camera
   camera_rotation_mat_inv_ = camera_rotation_mat_.inverse(); //camera->imu
+
+#if USE_GPU
+  ROS_WARN("optical flow gpu mode");
+#else
+  ROS_WARN("optical flow no gpu mode");
+#endif
 }
 
 void OpticalFlow::downwardCameraImageCallback(const sensor_msgs::ImageConstPtr& msg)
@@ -77,6 +84,9 @@ void OpticalFlow::downwardCameraImageCallback(const sensor_msgs::ImageConstPtr& 
   }
   tf::Vector3 ang_vel = camera_rotation_mat_inv_ * ang_vel_;
   cv::Mat src_img = cv_bridge::toCvCopy(msg, msg->encoding)->image;
+  
+  src_img = src_img(cv::Range(src_img.rows * (1 - image_crop_scale_) / 2, src_img.rows * (1 + image_crop_scale_) / 2), cv::Range(src_img.cols * (1 - image_crop_scale_) / 2, src_img.cols * (1 + image_crop_scale_) / 2));
+
   cv::Mat gray_img;
   if (src_img.channels() > 1) {
     cv::cvtColor(src_img, gray_img, cv::COLOR_BGR2GRAY);
@@ -204,7 +214,7 @@ void OpticalFlow::sonarCallback(const sensor_msgs::RangeConstPtr& msg)
 {
   double sonar_val = msg->range - sonar_offset_;
   if (sonar_ != -1.0) {
-    sonar_vel_ = (sonar_val - sonar_) / (msg->header.stamp - sonar_prev_stamp_).toSec();
+    sonar_vel_ = -(sonar_val - sonar_) / (msg->header.stamp - sonar_prev_stamp_).toSec();
     sonar_update_ = true;  
   }
   sonar_ = sonar_val;

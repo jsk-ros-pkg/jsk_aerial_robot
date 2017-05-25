@@ -115,6 +115,7 @@ private:
   ros::Time sonar_prev_stamp_;
   tf::Matrix3x3 camera_rotation_mat_, camera_rotation_mat_inv_;
   double camera_roll_, camera_pitch_, camera_yaw_;
+  double image_crop_scale_;
 };
 
 #endif
