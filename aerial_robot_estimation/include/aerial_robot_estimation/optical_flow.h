@@ -106,7 +106,7 @@ private:
   bool sonar_update_;
   bool use_sonar_;
   double camera_f_, camera_cx_, camera_cy_;
-  double sonar_, sonar_vel_, prev_sonar_, sonar_offset_;
+  double sonar_, sonar_vel_, sonar_offset_;
   tf::Vector3 ang_vel_;
   cv::Mat prev_gray_img_;
   std::vector<cv::Point2f> points_[2];
@@ -114,7 +114,7 @@ private:
   ros::Time prev_stamp_;
   ros::Time sonar_prev_stamp_;
   tf::Matrix3x3 camera_rotation_mat_, camera_rotation_mat_inv_;
-  double camera_roll_, camera_pitch_, camera_yaw_, camera_x_, camera_y_, camera_z_;
+  double camera_roll_, camera_pitch_, camera_yaw_;
 };
 
 #endif

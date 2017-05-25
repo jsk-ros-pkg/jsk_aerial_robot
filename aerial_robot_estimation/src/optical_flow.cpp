@@ -27,7 +27,7 @@ nh_(nh), nhp_(nhp), camera_info_update_(false), imu_update_(false), image_stamp_
   nhp_.param("downward_camera_info_topic_name", downward_camera_info_topic_name_, std::string("/zed/left/camera_info"));
  
   //nhp_.param("imu_topic_name", imu_topic_name_, std::string("/raw_imu"));
-  nhp_.param("imu_topic_name", imu_topic_name_, std::string("/imu"));
+  nhp_.param("imu_topic_name", imu_topic_name_, std::string("/estimator/sensor_plugin/imu/imu_filtered"));
   //nhp_.param("odometry_topic_name", odometry_topic_name_, std::string("/ground_truth/state"));
   nhp_.param("odometry_topic_name", odometry_topic_name_, std::string("/uav/state"));
 
@@ -41,12 +41,15 @@ nh_(nh), nhp_(nhp), camera_info_update_(false), imu_update_(false), image_stamp_
   nhp_.param("sonar_offset", sonar_offset_, 0.0);
 
   //imu(base)->camera
-  nhp_.param("camera_roll_offset", camera_roll_, M_PI);
+  //sim
+  /*nhp_.param("camera_roll_offset", camera_roll_, M_PI);
   nhp_.param("camera_pitch_offset", camera_pitch_, 0.0);
-  nhp_.param("camera_yaw_offset", camera_yaw_, -M_PI / 2);
-  nhp_.param("camera_x_offset", camera_x_, 0.0);
-  nhp_.param("camera_y_offset", camera_y_, 0.0);
-  nhp_.param("camera_z_offset", camera_z_, 0.0);
+  nhp_.param("camera_yaw_offset", camera_yaw_, -M_PI / 2);*/
+
+  //hydrus
+  nhp_.param("camera_roll_offset", camera_roll_, 0.0);
+  nhp_.param("camera_pitch_offset", camera_pitch_, M_PI);
+  nhp_.param("camera_yaw_offset", camera_yaw_, 0.0);
 
   /* subscriber */
   downward_camera_image_sub_ = nh_.subscribe(downward_camera_image_topic_name_, 1, &OpticalFlow::downwardCameraImageCallback, this);
@@ -190,21 +193,20 @@ void OpticalFlow::odometryCallback(const nav_msgs::OdometryConstPtr& msg)
   tf::Matrix3x3 uav_rotation_mat_(uav_q);
   double r, p, y;
   uav_rotation_mat_.getRPY(r, p, y);
-  sensor_msgs::Range sonar_msg;
-  sonar_msg.header = msg->header;
-  sonar_msg.range = msg->pose.pose.position.z;
-  sensor_msgs::RangeConstPtr msg_ptr(&sonar_msg);
-  sonarCallback(msg_ptr);
+  
+  sensor_msgs::RangePtr sonar_msg(new sensor_msgs::Range);
+  sonar_msg->header = msg->header;
+  sonar_msg->range = msg->pose.pose.position.z / (cos(r) * cos(p));
+  sonarCallback(sonar_msg);
 }
 
 void OpticalFlow::sonarCallback(const sensor_msgs::RangeConstPtr& msg)
 {
   double sonar_val = msg->range - sonar_offset_;
   if (sonar_ != -1.0) {
-    sonar_vel_ = (sonar_val - prev_sonar_) / (msg->header.stamp - sonar_prev_stamp_).toSec();
+    sonar_vel_ = (sonar_val - sonar_) / (msg->header.stamp - sonar_prev_stamp_).toSec();
     sonar_update_ = true;  
   }
   sonar_ = sonar_val;
   sonar_prev_stamp_ = msg->header.stamp;
-  prev_sonar_ = msg->range;
 }
