@@ -263,6 +263,7 @@ private:
   /* control */
   boost::thread control_thread_;
   double control_rate_;
+  bool only_three_axis_mode_;
 
   /* base model config */
   int link_num_;
