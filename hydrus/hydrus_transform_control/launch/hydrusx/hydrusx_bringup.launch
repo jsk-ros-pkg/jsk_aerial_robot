@@ -68,7 +68,6 @@
     <arg name="need_joint_state" value="false" if="$(arg real_machine)"/>
   </include >
 
-
   ###########  Transform Control  ###########
   <node pkg="hydrus_transform_control" type="transform_control_node" name="hydrusx"  output="screen" respawn="true">
     <rosparam file="$(find hydrus_transform_control)/config/hydrusx/$(arg type)/Hydrus.yaml" command="load" />
@@ -84,7 +83,6 @@
     <arg name="gui" default="false" if="$(arg headless)" />
     <arg name="headless" default="$(arg headless)" />
     </include>
-
 </launch>
 
 
