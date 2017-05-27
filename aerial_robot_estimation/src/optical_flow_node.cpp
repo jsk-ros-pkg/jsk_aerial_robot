@@ -2,7 +2,7 @@
 
 int main(int argc, char** argv)
 {
-  ros::init(argc, argv, "lk_flow");
+  ros::init(argc, argv, "optical_flow");
   ros::NodeHandle nh;
   ros::NodeHandle nh_private("~");
   OpticalFlow* optical_flow_node = new OpticalFlow(nh, nh_private);

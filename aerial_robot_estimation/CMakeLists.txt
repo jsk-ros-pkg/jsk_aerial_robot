@@ -12,11 +12,11 @@ find_package(catkin REQUIRED COMPONENTS
 )
 
 find_package(OpenCV REQUIRED)
+message(WARNING "OPENCV ${OpenCV_VERSION} FOUND")
+
 catkin_package(
   INCLUDE_DIRS include
-#  LIBRARIES aerial_robot_estimation
   CATKIN_DEPENDS cv_bridge geometry_msgs nav_msgs roscpp rospy sensor_msgs std_msgs
-#  DEPENDS system_lib
 )
 
 include_directories(
@@ -24,7 +24,8 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
 )
 
-set(USE_GPU OFF)
+set(USE_GPU ON)
+set(CMAKE_BUILD_TYPE Release)
 
 if(USE_GPU)
   add_definitions(-DUSE_GPU)

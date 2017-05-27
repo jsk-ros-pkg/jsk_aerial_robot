@@ -116,6 +116,10 @@ private:
   tf::Matrix3x3 camera_rotation_mat_, camera_rotation_mat_inv_;
   double camera_roll_, camera_pitch_, camera_yaw_;
   double image_crop_scale_;
+  int image_cut_pixel_;
+#if USE_GPU
+  cv::gpu::GpuMat d_frame0Gray, d_frame1Gray;
+#endif
 };
 
 #endif
