@@ -8,12 +8,18 @@ root_link: 2
 
 #  Link
 link_num: 4
+link_lenght: 0.44
+link_base_rod_length: 0.4
 link_base_center_mass: 0.241  # 0.238 + 0.0032(new battery holder)
-link_base_two_ring_holder_mass: 0.047 # 0.053 - 0.006(2leg)
 link1_base_rod_mass: 0.105 
 link2_base_rod_mass: 0.1 
 link3_base_rod_mass: 0.094  
 link4_base_rod_mass: 0.094  
+
+# Protector
+ring_radius: 0.1425
+link_base_two_ring_holder_mass: 0.047 # 0.053 - 0.006(2leg)
+link_base_ring_mass: 0.048
 
 # Joint
 joint_num: 3
