@@ -51,9 +51,9 @@
 
   <xacro:macro name="link_model" params="type">
     <collision>
-      <origin xyz="0 0 0" rpy="${link_length*.5} 0 0"/>
+      <origin rpy="0 0 0" xyz="${link_length*.5} 0 -0.03"/>
       <geometry>
-        <cylinder length="0.10" radius="${protector_radius}"/>
+        <cylinder length="0.15" radius="${protector_radius}"/>
       </geometry>
     </collision>
 

@@ -1,10 +1,14 @@
 #HydrusX Hex config
 
+
+/motor_info:
+        motor_num: 6
+
 control_rate: 15.0
 
-link_num: 6
 root_link: 4 #from 1
-
+# Link
+link_num: 6
 link_length: 0.6
 link_base_rod_length: 0.528
 ring_radius: 0.1925
@@ -42,24 +46,12 @@ extra_module5_link: 3
 extra_module5_offset: 0.3 #0.24
 extra_module5_mass: 0.55 #1.327   #1.15 + 0.177
 
-
-propeller1_direction: -1
-propeller1_order: 0
-
-propeller2_direction: 1
-propeller2_order: 1
-
-propeller3_direction: -1
-propeller3_order: 2
-
-propeller4_direction: 1
-propeller4_order: 3
-
-propeller5_direction: -1
-propeller5_order: 4
-
-propeller6_direction: 1
-propeller6_order: 5
+rotor1_direction: -1
+rotor2_direction: 1
+rotor3_direction: -1
+rotor4_direction: 1
+rotor5_direction: -1
+rotor6_direction: 1
 
 q_roll: 400
 q_roll_d: 40
