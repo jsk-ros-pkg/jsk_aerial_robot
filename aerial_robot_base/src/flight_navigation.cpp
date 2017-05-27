@@ -85,6 +85,14 @@ void Navigator::naviCallback(const aerial_robot_base::FlightNavConstPtr & msg)
         }
     }
 
+  if(msg->pos_xy_nav_mode == aerial_robot_base::FlightNav::ATT_MODE)
+    {
+      xy_control_mode_ = ATT_CONTROL_MODE;
+      target_roll_angle_ = msg->target_att_r;
+      target_pitch_angle_ = msg->target_att_p;
+      setTargetPsi(msg->target_att_y);
+    }
+
   //for x & y
   if(msg->pos_xy_nav_mode == aerial_robot_base::FlightNav::VEL_MODE)
     {

@@ -11,6 +11,7 @@
   <author >Moju Zhao</author>
 
   <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>gazebo_ros</build_depend>
   <build_depend>gazebo_ros_control</build_depend>
   <build_depend>roscpp</build_depend>
   <build_depend>aerial_robot_msgs</build_depend>
@@ -26,10 +27,13 @@
   <run_depend>aerial_robot_base</run_depend>
   <run_depend>hydrus_transform_control</run_depend>
   <run_depend>tf</run_depend>
+  <run_depend>gazebo_plugins</run_depend>
+  <run_depend>gazebo_ros</run_depend>
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>
     <gazebo_ros_control plugin="${prefix}/aerial_robot_hw_sim_plugins.xml"/>
     <controller_interface plugin="${prefix}/flight_controllers_plugins.xml"/>
+    <gazebo_ros gazebo_model_path="${prefix}/gazebo_model/models" />
   </export>
 </package>

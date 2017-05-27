@@ -24,6 +24,9 @@
     <arg name="headless" value="false"/>
   </include>
 
+  <node name="tf_world_frame" pkg="aerial_robot_simulation" type="gazebo_add_world_frame.py" />
+  <node pkg="tf" type="static_transform_publisher" name="link5_broadcaster" args="0.44 0 0 0 0 0 link4 link5 100"/>
+
   <node name="urdf_spawner" pkg="gazebo_ros" type="spawn_model" respawn="false" output="screen"
         args="-urdf -model $(arg model) -param robot_description"/>
 

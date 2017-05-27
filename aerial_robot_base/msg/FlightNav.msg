@@ -1,6 +1,7 @@
 uint8 NO_NAVIGATION = 0
 uint8 VEL_MODE = 1
 uint8 POS_MODE = 2
+uint8 ATT_MODE = 3
 
 
 Header header
@@ -11,6 +12,10 @@ float32 target_vel_x
 
 float32 target_pos_y
 float32 target_vel_y
+
+float32 target_att_r
+float32 target_att_p
+float32 target_att_y
 
 uint8 psi_nav_mode
 

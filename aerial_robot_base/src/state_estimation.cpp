@@ -128,7 +128,7 @@ void RigidEstimator::statesBroadcast()
   /* cog frame */
   q.setRPY(full_state.states[ROLL_W].state[estimate_mode_].x,
            full_state.states[PITCH_W].state[estimate_mode_].x,
-           full_state.states[YAW_W].state[estimate_mode_].x);
+           full_state.states[YAW_W].reserves[estimate_mode_ * 2]);
   tf::quaternionTFToMsg(q, odom_state.pose.pose.orientation);
 
   omega.setValue(full_state.states[ROLL_W].state[estimate_mode_].y,
