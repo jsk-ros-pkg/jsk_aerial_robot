@@ -171,17 +171,17 @@ namespace sensor_plugin
       /* get the vectors of CoG frame */
       tf::Matrix3x3 r_b;
       r_b.setRPY(euler_[Frame::BODY][0], euler_[Frame::BODY][1], euler_[Frame::BODY][2]);
-      tf::Matrix3x3 r_cog = r_b * transform_.getBasis().transpose();
+      tf::Matrix3x3 r_cog = r_b * cog_transform_.getBasis().transpose();
       tfScalar roll_cog = 0, pitch_cog = 0, yaw_cog = 0;
+      r_cog.getRPY(roll_cog, pitch_cog, yaw_cog);
       if (yaw_cog > M_PI) yaw_cog -= 2 * M_PI;
       if (yaw_cog < -M_PI) yaw_cog += 2 * M_PI;
-      r_cog.getRPY(roll_cog, pitch_cog, yaw_cog);
 
       /* 2017/05/05 TODO: the transformation is static, no extra dynamic elem for acc, omega in CoG frame */
       euler_[Frame::COG].setValue(roll_cog, pitch_cog, yaw_cog);
-      acc_[Frame::COG] = transform_.getBasis() * acc_[Frame::BODY];
-      omega_[Frame::COG] = transform_.getBasis() * omega_[Frame::BODY];
-      mag_[Frame::COG] = transform_.getBasis() * mag_[Frame::BODY];
+      acc_[Frame::COG] = cog_transform_.getBasis() * acc_[Frame::BODY];
+      omega_[Frame::COG] = cog_transform_.getBasis() * omega_[Frame::BODY];
+      mag_[Frame::COG] = cog_transform_.getBasis() * mag_[Frame::BODY];
 
       /* project acc onto level frame using body frame value */
 #if 1 // use x,y for factor4 and z for factor3
@@ -221,21 +221,14 @@ namespace sensor_plugin
       estimator_->setState(BasicEstimator::PITCH_W_B, BasicEstimator::EXPERIMENT_ESTIMATE, 1, omega_[Frame::BODY][1]);
 
       /* yaw */
-      if(estimator_->getStateStatus(BasicEstimator::YAW_W) == BasicEstimator::RAW)
-        {
-          estimator_->setState(BasicEstimator::YAW_W, BasicEstimator::EGOMOTION_ESTIMATE, 0, euler_[Frame::COG][2]);
-          estimator_->setState(BasicEstimator::YAW_W, BasicEstimator::EXPERIMENT_ESTIMATE, 0, euler_[Frame::COG][2]);
-        }
-      if(estimator_->getStateStatus(BasicEstimator::YAW_W_B) == BasicEstimator::RAW)
-        {
-          estimator_->setState(BasicEstimator::YAW_W_B, BasicEstimator::EGOMOTION_ESTIMATE, 0, euler_[Frame::BODY][2]);
-          estimator_->setState(BasicEstimator::YAW_W_B, BasicEstimator::EXPERIMENT_ESTIMATE, 0, euler_[Frame::BODY][2]);
-        }
-
-      /* z(altitude) */
-      /* check whether there is the fusion for the altitude */
-      if(estimator_->getStateStatus(BasicEstimator::Z_W) == BasicEstimator::RAW)
-        ROS_ERROR_THROTTLE(0.5, "IMU: No correct sensor fusion for z(altitude)");
+      if(!estimator_->getStateStatus(BasicEstimator::YAW_W, BasicEstimator::EGOMOTION_ESTIMATE))
+        estimator_->setState(BasicEstimator::YAW_W, BasicEstimator::EGOMOTION_ESTIMATE, 0, euler_[Frame::COG][2]);
+      if(!estimator_->getStateStatus(BasicEstimator::YAW_W, BasicEstimator::EXPERIMENT_ESTIMATE))
+        estimator_->setState(BasicEstimator::YAW_W, BasicEstimator::EXPERIMENT_ESTIMATE, 0, euler_[Frame::COG][2]);
+      if(!estimator_->getStateStatus(BasicEstimator::YAW_W_B, BasicEstimator::EGOMOTION_ESTIMATE))
+        estimator_->setState(BasicEstimator::YAW_W_B, BasicEstimator::EGOMOTION_ESTIMATE, 0, euler_[Frame::BODY][2]);
+      if(!estimator_->getStateStatus(BasicEstimator::YAW_W_B, BasicEstimator::EXPERIMENT_ESTIMATE))
+        estimator_->setState(BasicEstimator::YAW_W_B, BasicEstimator::EXPERIMENT_ESTIMATE, 0, euler_[Frame::BODY][2]);
 
       /* bais calibration */
       if(bias_calib < calib_count_)
@@ -251,7 +244,7 @@ namespace sensor_plugin
               ROS_WARN("calib count is %d, time interval is %f", calib_count_, time_interval);
 
               /* check whether use imu yaw for contorl and estimation */
-              if(estimator_->getStateStatus(BasicEstimator::YAW_W) == BasicEstimator::RAW || estimator_->getStateStatus(BasicEstimator::YAW_W_B) == BasicEstimator::RAW)
+              if(!estimator_->getStateStatus(BasicEstimator::YAW_W, estimator_->getEstimateMode()) || !estimator_->getStateStatus(BasicEstimator::YAW_W_B, estimator_->getEstimateMode()))
                 ROS_WARN("IMU: use imu mag-based yaw value for estimation and control");
             }
 

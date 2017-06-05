@@ -142,10 +142,6 @@ namespace sensor_plugin
 
       double pos_noise_sigma_, vel_noise_sigma_;
       int min_est_sat_num_;
-      double frame_roll_, frame_pitch_, frame_yaw_; /* the coordinate from right-hand frame(NWU) to singlegps frame */
-      double rtk_frame_roll_, rtk_frame_pitch_, rtk_frame_yaw_; /* the coordinate from right-hand frame(NWU) to rtk gps frame */
-      tf::Matrix3x3 gps_convert_, rtk_gps_convert_;
-
 
       aerial_robot_base::States gps_state_;
 
@@ -189,26 +185,10 @@ namespace sensor_plugin
         nhp_.param("vel_nav_gain", nav_vel_gain_, 1.0);
         if(param_verbose_) cout << "vel nav gain is " << nav_vel_gain_ << endl;
 
-
         nhp_.param("pos_noise_sigma", pos_noise_sigma_, 0.001);
         if(param_verbose_) cout << "pos noise sigma is " << pos_noise_sigma_ << endl;
         nhp_.param("vel_noise_sigma", vel_noise_sigma_, 0.1);
         if(param_verbose_) cout << "vel noise sigma is " << vel_noise_sigma_ << endl;
-
-        nhp_.param("frame_roll", frame_roll_, 0.0);
-        nhp_.param("frame_pitch", frame_pitch_, 0.0);
-        nhp_.param("frame_yaw", frame_yaw_, 0.0);
-        if(param_verbose_)  cout << "frame rpy is [" << frame_roll_ << ", " << frame_pitch_ << ", " << frame_yaw_ << "]" << endl;
-
-        gps_convert_.setRPY(frame_roll_, frame_pitch_, frame_yaw_);
-
-        nhp_.param("rtk_frame_roll", rtk_frame_roll_, 0.0);
-        nhp_.param("rtk_frame_pitch", rtk_frame_pitch_, 0.0);
-        nhp_.param("rtk_frame_yaw", rtk_frame_yaw_, 0.0);
-        if(param_verbose_)  cout << "rtk_frame rpy is [" << rtk_frame_roll_ << ", " << rtk_frame_pitch_ << ", " << rtk_frame_yaw_ << "]" << endl;
-
-        rtk_gps_convert_.setRPY(rtk_frame_roll_, rtk_frame_pitch_, rtk_frame_yaw_);
-
       }
 
       void gpsCallback(const aerial_robot_msgs::Gps::ConstPtr & gps_msg)
@@ -223,51 +203,66 @@ namespace sensor_plugin
         /* raw data about alt/lon from gps is * 10e7 */
         geodesy::fromMsg(geodesy::toMsg(gps_msg->location[0] / 1e7, gps_msg->location[1] / 1e7), utm_pos_);
 
-        raw_pos_ = gps_convert_ * tf::Vector3(utm_pos_.northing - home_utm_pos_.northing, utm_pos_.easting - home_utm_pos_.easting, 0);
+        raw_pos_ = baselink_transform_.getBasis() * tf::Vector3(utm_pos_.northing - home_utm_pos_.northing, utm_pos_.easting - home_utm_pos_.easting, 0);
         tf::Vector3 raw_vel_temp(gps_msg->velocity[0], gps_msg->velocity[1], 0);
-        raw_vel_ = gps_convert_ * raw_vel_temp;
+        raw_vel_ = baselink_transform_.getBasis() * raw_vel_temp;
 
+        gps_state_.header.stamp = gps_msg->stamp;
 
         /* fusion process */
         /* quit if the satellite number is too low */
         if(gps_msg->sat_num < min_est_sat_num_)
           {
             ROS_WARN_THROTTLE(1, "the satellite is not enough: %d", gps_msg->sat_num);
+            if(!first_flag)
+              {
+                /* set the status */
+                estimator_->setStateStatus(BasicEstimator::X_W, BasicEstimator::EGOMOTION_ESTIMATE, false);
+                estimator_->setStateStatus(BasicEstimator::Y_W, BasicEstimator::EGOMOTION_ESTIMATE, false);
+                first_flag = true;
+              }
             return;
           }
-        gps_state_.header.stamp = gps_msg->stamp;
 
         if(first_flag)
           {
             first_flag = false;
+            ROS_WARN("GPS: start/restart");
+
+            if(!estimator_->getStateStatus(BasicEstimator::X_W, BasicEstimator::EGOMOTION_ESTIMATE) ||
+               !estimator_->getStateStatus(BasicEstimator::Y_W, BasicEstimator::EGOMOTION_ESTIMATE))
+              {
+                ROS_WARN("GPS: start/restart gps kalman filter");
+
+                /* fuser for 0: egomotion, 1: experiment */
+                for(int mode = 0; mode < 2; mode++)
+                  {
+                    if(!getFuserActivate(mode)) continue;
+
+                    for(auto& fuser : estimator_->getFuser(mode))
+                      {
+                        boost::shared_ptr<kf_base_plugin::KalmanFilter> kf = fuser.second;
+                        int id = kf->getId();
+
+                        //if((id & (1 << BasicEstimator::X_W)) || id & (1 << BasicEstimator::Y_W)))
+                        if(id <= 2) // equal to the previous condition
+                          {
+                            /* set velocity correction mode */
+                            kf->setInitState(raw_vel_[id >> 1], 1);
+                            kf->setMeasureFlag();
+                          }
+                      }
+                  }
+              }
 
             /* set home position */
             home_utm_pos_ = utm_pos_;
             ROS_WARN("home position from gps: UTM zone: %d, [%f, %f]", home_utm_pos_.zone, home_utm_pos_.northing, home_utm_pos_.easting);
 
-            /* fuser for 0: egomotion, 1: experiment */
-            for(int mode = 0; mode < 2; mode++)
-              {
-                if(!getFuserActivate(mode)) continue;
+            /* set the status */
+            estimator_->setStateStatus(BasicEstimator::X_W, BasicEstimator::EGOMOTION_ESTIMATE, true);
+            estimator_->setStateStatus(BasicEstimator::Y_W, BasicEstimator::EGOMOTION_ESTIMATE, true);
 
-                for(auto& fuser : estimator_->getFuser(mode))
-                  {
-                    string plugin_name = fuser.first;
-                    boost::shared_ptr<kf_base_plugin::KalmanFilter> kf = fuser.second;
-                    int id = kf->getId();
-
-                    //if((id & (1 << BasicEstimator::X_W)) || id & (1 << BasicEstimator::Y_W)))
-                    if(id <= 2) // equal to the previous condition
-                      {
-                        /* set velocity correction mode */
-                        kf->setCorrectMode(1);
-                        temp(0,0) = pos_noise_sigma_;
-                        kf->setMeasureSigma(temp);
-                        kf->setInitState(0, 0);
-                        kf->setMeasureFlag();
-                      }
-                  }
-              }
           }
         else
           {
@@ -283,7 +278,6 @@ namespace sensor_plugin
 
                 for(auto& fuser : estimator_->getFuser(mode))
                   {
-                    string plugin_name = fuser.first;
                     boost::shared_ptr<kf_base_plugin::KalmanFilter> kf = fuser.second;
                     int id = kf->getId();
 
@@ -336,8 +330,8 @@ namespace sensor_plugin
         tf::Vector3 raw_rtk_pos_temp, raw_rtk_vel_temp;
         tf::pointMsgToTF(rtk_gps_msg->pose.pose.position, raw_rtk_pos_temp);
         tf::vector3MsgToTF(rtk_gps_msg->twist.twist.linear, raw_rtk_vel_temp);
-        raw_rtk_pos_ = rtk_gps_convert_ * raw_rtk_pos_temp;
-        raw_rtk_vel_ = rtk_gps_convert_ * raw_rtk_vel_temp;
+        raw_rtk_pos_ = baselink_transform_.getBasis() * raw_rtk_pos_temp;
+        raw_rtk_vel_ = baselink_transform_.getBasis() * raw_rtk_vel_temp;
 
         gps_state_.header.stamp = rtk_gps_msg->header.stamp;
 
@@ -352,7 +346,6 @@ namespace sensor_plugin
 
                   for(auto& fuser : estimator_->getFuser(mode))
                     {
-                      string plugin_name = fuser.first;
                       boost::shared_ptr<kf_base_plugin::KalmanFilter> kf = fuser.second;
                       int id = kf->getId();
 
@@ -383,7 +376,6 @@ namespace sensor_plugin
 
                 for(auto& fuser : estimator_->getFuser(mode))
                   {
-                    string plugin_name = fuser.first;
                     boost::shared_ptr<kf_base_plugin::KalmanFilter> kf = fuser.second;
                     int id = kf->getId();
 
@@ -441,7 +433,7 @@ namespace sensor_plugin
         geodesy::fromMsg(geodesy::toMsg(msg->waypoints[0].x_lat, msg->waypoints[0].y_long, msg->waypoints[0].z_alt), target_utm_pos);
 
         /* TODO: the process for different zone */
-        tf::Vector3 target_pos = gps_convert_ * tf::Vector3(target_utm_pos.northing - home_utm_pos_.northing, target_utm_pos.easting - home_utm_pos_.easting, 0);
+        tf::Vector3 target_pos = baselink_transform_.getBasis() * tf::Vector3(target_utm_pos.northing - home_utm_pos_.northing, target_utm_pos.easting - home_utm_pos_.easting, 0);
 
         /* threshold */
         if(target_pos.length() < wp_dist_thre_ && target_utm_pos.altitude < wp_alt_thre_)

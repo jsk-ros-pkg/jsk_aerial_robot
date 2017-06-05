@@ -290,7 +290,7 @@ namespace sensor_plugin
 
 
               /* set the status for Z (altitude) */
-              estimator_->setStateStatus(BasicEstimator::Z_W, BasicEstimator::EGOMOTION_ESTIMATE);
+              estimator_->setStateStatus(BasicEstimator::Z_W, BasicEstimator::EGOMOTION_ESTIMATE, true);
 
               ROS_WARN("%s: the range sensor offset: %f, initial sanity: %s, the hz is %f, estimate mode is %d",
                        (range_msg->radiation_type == sensor_msgs::Range::ULTRASOUND)?string("sonar sensor").c_str():string("infrared sensor").c_str(), range_sensor_offset_, range_sensor_sanity_?string("true").c_str():string("false").c_str(), 1.0 / sensor_hz_, alt_estimate_mode_);

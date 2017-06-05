@@ -105,218 +105,227 @@ namespace sensor_plugin
 
     static constexpr int TIME_SYNC_CALIB_COUNT = 10;
 
-private:
-  /* ros */
-  ros::Publisher  pose_stamped_pub_;
-  ros::Subscriber mocap_sub_;
+  private:
+    /* ros */
+    ros::Publisher  pose_stamped_pub_;
+    ros::Subscriber mocap_sub_;
 
-  /* ros param */
-  double rx_freq_;
-  double cutoff_pos_freq_;
-  double cutoff_vel_freq_;
-  std::string sub_name_, pub_name_;
 
-  double pos_noise_sigma_, angle_noise_sigma_;
+    /* ros param */
+    double rx_freq_;
+    double cutoff_pos_freq_;
+    double cutoff_vel_freq_;
+    std::string sub_name_, pub_name_;
 
-  array<IirFilter, 4> lpf_pos_vel_; /* x, y, z, yaw */
-  array<IirFilter, 3> lpf_acc_;
 
-  tf::Vector3 raw_pos_, raw_vel_, raw_acc_, raw_euler_, raw_omega_;
-  tf::Vector3 pos_, vel_, acc_, euler_, omega_;
+    double pos_noise_sigma_, angle_noise_sigma_;
 
-  tf::Vector3 prev_raw_pos_, prev_raw_vel_, prev_raw_euler_;
-  tf::Vector3 pos_offset_;
+    array<IirFilter, 4> lpf_pos_vel_; /* x, y, z, yaw */
+    array<IirFilter, 3> lpf_acc_;
 
-  /* ros msg */
-  aerial_robot_base::States ground_truth_pose_;
+    tf::Vector3 raw_pos_, raw_vel_, raw_acc_, raw_euler_, raw_omega_;
+    tf::Vector3 pos_, vel_, acc_, euler_, omega_;
 
-  void poseCallback(const geometry_msgs::PoseStampedConstPtr & msg)
-  {
-    static bool first_flag = true;
-    static ros::Time previous_time;
+    tf::Vector3 prev_raw_pos_, prev_raw_vel_, prev_raw_euler_;
+    tf::Vector3 pos_offset_;
 
-    if(!first_flag)
-      {
-        float delta_t = msg->header.stamp.toSec() - previous_time.toSec();
-        raw_pos_ = tf::Vector3(msg->pose.position.x, msg->pose.position.y,
-                               msg->pose.position.z - pos_offset_.z());
-        raw_vel_ = (raw_pos_ - prev_raw_pos_) / delta_t;
-        raw_acc_ = (raw_vel_ - prev_raw_vel_) / delta_t;
+    /* ros msg */
+    aerial_robot_base::States ground_truth_pose_;
 
-        tf::Quaternion q;
-        tf::quaternionMsgToTF(msg->pose.orientation, q);
-        tfScalar r = 0, p = 0, y = 0;
-        tf::Matrix3x3(q).getRPY(r, p, y);
-        raw_euler_.setValue(r, p, y);
+    void poseCallback(const geometry_msgs::PoseStampedConstPtr & msg)
+    {
+      static bool first_flag = true;
+      static ros::Time previous_time;
 
-        float y_offset = 0;
-        if(raw_euler_[2] - prev_raw_euler_[2] > M_PI) y_offset = -2 * M_PI;
-        else if(raw_euler_[2] - prev_raw_euler_[2] < -M_PI) y_offset = 2 * M_PI;
+      if(!first_flag)
+        {
+          float delta_t = msg->header.stamp.toSec() - previous_time.toSec();
+          raw_pos_ = tf::Vector3(msg->pose.position.x, msg->pose.position.y,
+                                 msg->pose.position.z - pos_offset_.z());
+          raw_vel_ = (raw_pos_ - prev_raw_pos_) / delta_t;
+          raw_acc_ = (raw_vel_ - prev_raw_vel_) / delta_t;
 
-        raw_omega_ = (raw_euler_ + tf::Vector3(0, 0, y_offset) - prev_raw_euler_) / delta_t;
+          tf::Quaternion q;
+          tf::quaternionMsgToTF(msg->pose.orientation, q);
+          tfScalar r = 0, p = 0, y = 0;
+          tf::Matrix3x3(q).getRPY(r, p, y);
+          raw_euler_.setValue(r, p, y);
 
-        for(int i = 0; i < 4; i++)
-          {
-            if(i == 3) /* yaw */
-              lpf_pos_vel_[i].filterFunction(raw_euler_[2], euler_[2], raw_omega_[2], omega_[2]);
-            else
-              lpf_pos_vel_[i].filterFunction(raw_pos_[i], pos_[i], raw_vel_[i], vel_[i]);
-          }
-        for(int i = 0; i < 3; i++)
-          lpf_acc_[i].filterFunction(raw_acc_[i], acc_[i]);
+          float y_offset = 0;
+          if(raw_euler_[2] - prev_raw_euler_[2] > M_PI) y_offset = -2 * M_PI;
+          else if(raw_euler_[2] - prev_raw_euler_[2] < -M_PI) y_offset = 2 * M_PI;
 
-        estimator_->setState(BasicEstimator::X_W, BasicEstimator::GROUND_TRUTH, 0, pos_.x());
-        estimator_->setState(BasicEstimator::Y_W, BasicEstimator::GROUND_TRUTH, 0, pos_.y());
-        estimator_->setState(BasicEstimator::Z_W, BasicEstimator::GROUND_TRUTH, 0, pos_.z());
+          raw_omega_ = (raw_euler_ + tf::Vector3(0, 0, y_offset) - prev_raw_euler_) / delta_t;
 
-        tf::Matrix3x3 r_b;
-        r_b.setRPY(raw_euler_[0], raw_euler_[1], raw_euler_[2]);
-        tf::Matrix3x3 r_cog = r_b * transform_.getBasis().transpose();
-        tfScalar roll_cog = 0, pitch_cog = 0, yaw_cog = 0;
-        if (yaw_cog > M_PI) yaw_cog -= 2 * M_PI;
-        if (yaw_cog < -M_PI) yaw_cog += 2 * M_PI;
-        r_cog.getRPY(roll_cog, pitch_cog, yaw_cog);
-        tf::Vector3 omega_cog = transform_.getBasis() * omega_;
+          for(int i = 0; i < 4; i++)
+            {
+              if(i == 3) /* yaw */
+                lpf_pos_vel_[i].filterFunction(raw_euler_[2], euler_[2], raw_omega_[2], omega_[2]);
+              else
+                lpf_pos_vel_[i].filterFunction(raw_pos_[i], pos_[i], raw_vel_[i], vel_[i]);
+            }
+          for(int i = 0; i < 3; i++)
+            lpf_acc_[i].filterFunction(raw_acc_[i], acc_[i]);
 
-        estimator_->setState(BasicEstimator::YAW_W, BasicEstimator::GROUND_TRUTH, 0, yaw_cog);
-        estimator_->setState(BasicEstimator::YAW_W_B, BasicEstimator::GROUND_TRUTH, 0, raw_euler_[2]);
+          estimator_->setState(BasicEstimator::X_W, BasicEstimator::GROUND_TRUTH, 0, pos_.x());
+          estimator_->setState(BasicEstimator::Y_W, BasicEstimator::GROUND_TRUTH, 0, pos_.y());
+          estimator_->setState(BasicEstimator::Z_W, BasicEstimator::GROUND_TRUTH, 0, pos_.z());
 
-        if(estimate_mode_ & (1 << BasicEstimator::EXPERIMENT_ESTIMATE))
-          {
-            estimator_->setState(BasicEstimator::YAW_W, BasicEstimator::EXPERIMENT_ESTIMATE, 0, yaw_cog);
-            estimator_->setState(BasicEstimator::YAW_W_B, BasicEstimator::EXPERIMENT_ESTIMATE, 0, raw_euler_[2]);
-            estimator_->setState(BasicEstimator::YAW_W, BasicEstimator::EXPERIMENT_ESTIMATE, 1, omega_cog[2]);
-            estimator_->setState(BasicEstimator::YAW_W_B, BasicEstimator::EXPERIMENT_ESTIMATE, 1, omega_[2]);
-          }
+          tf::Matrix3x3 r_b;
+          r_b.setRPY(raw_euler_[0], raw_euler_[1], raw_euler_[2]);
+          tf::Matrix3x3 r_cog = r_b * cog_transform_.getBasis().transpose();
+          tfScalar roll_cog = 0, pitch_cog = 0, yaw_cog = 0;
+          if (yaw_cog > M_PI) yaw_cog -= 2 * M_PI;
+          if (yaw_cog < -M_PI) yaw_cog += 2 * M_PI;
+          r_cog.getRPY(roll_cog, pitch_cog, yaw_cog);
+          tf::Vector3 omega_cog = cog_transform_.getBasis() * omega_;
 
-        estimator_->setState(BasicEstimator::X_W, BasicEstimator::GROUND_TRUTH, 1, vel_.x());
-        estimator_->setState(BasicEstimator::Y_W, BasicEstimator::GROUND_TRUTH, 1, vel_.y());
-        estimator_->setState(BasicEstimator::ROLL_W, BasicEstimator::GROUND_TRUTH, 0, raw_euler_[0]);
-        estimator_->setState(BasicEstimator::PITCH_W, BasicEstimator::GROUND_TRUTH, 0, raw_euler_[1]);
-        estimator_->setState(BasicEstimator::Z_W, BasicEstimator::GROUND_TRUTH, 1, vel_.z());
-        estimator_->setState(BasicEstimator::YAW_W, BasicEstimator::GROUND_TRUTH, 1, omega_[2]); //bad!!
-        estimator_->setState(BasicEstimator::YAW_W_B, BasicEstimator::GROUND_TRUTH, 1, omega_[2]);
+          estimator_->setState(BasicEstimator::YAW_W, BasicEstimator::GROUND_TRUTH, 0, yaw_cog);
+          estimator_->setState(BasicEstimator::YAW_W_B, BasicEstimator::GROUND_TRUTH, 0, raw_euler_[2]);
 
-        ground_truth_pose_.header.stamp = msg->header.stamp;
+          if(estimate_mode_ & (1 << BasicEstimator::EXPERIMENT_ESTIMATE))
+            {
+              estimator_->setState(BasicEstimator::YAW_W, BasicEstimator::EXPERIMENT_ESTIMATE, 0, yaw_cog);
+              estimator_->setState(BasicEstimator::YAW_W_B, BasicEstimator::EXPERIMENT_ESTIMATE, 0, raw_euler_[2]);
+              estimator_->setState(BasicEstimator::YAW_W, BasicEstimator::EXPERIMENT_ESTIMATE, 1, omega_cog[2]);
+              estimator_->setState(BasicEstimator::YAW_W_B, BasicEstimator::EXPERIMENT_ESTIMATE, 1, omega_[2]);
+            }
 
-        for(int i = 0; i < 6; i++)
-          {
-            if(i < 3)
-              {
-                ground_truth_pose_.states[i].state[0].x = raw_pos_[i];
-                ground_truth_pose_.states[i].state[0].y = raw_vel_[i];
-                ground_truth_pose_.states[i].state[0].z = raw_acc_[i];
-                ground_truth_pose_.states[i].state[1].x = pos_[i];
-                ground_truth_pose_.states[i].state[1].y = vel_[i];
-                ground_truth_pose_.states[i].state[1].z = acc_[i];
-              }
-            else
-              {
-                ground_truth_pose_.states[i].state[0].x = raw_euler_[i - 3];
-                ground_truth_pose_.states[i].state[0].y = raw_omega_[i - 3];
-                ground_truth_pose_.states[i].state[1].x = euler_[i - 3];
-                ground_truth_pose_.states[i].state[1].y = omega_[i - 3];
-              }
-          }
+          estimator_->setState(BasicEstimator::X_W, BasicEstimator::GROUND_TRUTH, 1, vel_.x());
+          estimator_->setState(BasicEstimator::Y_W, BasicEstimator::GROUND_TRUTH, 1, vel_.y());
+          estimator_->setState(BasicEstimator::ROLL_W, BasicEstimator::GROUND_TRUTH, 0, raw_euler_[0]);
+          estimator_->setState(BasicEstimator::PITCH_W, BasicEstimator::GROUND_TRUTH, 0, raw_euler_[1]);
+          estimator_->setState(BasicEstimator::Z_W, BasicEstimator::GROUND_TRUTH, 1, vel_.z());
+          estimator_->setState(BasicEstimator::YAW_W, BasicEstimator::GROUND_TRUTH, 1, omega_[2]); //bad!!
+          estimator_->setState(BasicEstimator::YAW_W_B, BasicEstimator::GROUND_TRUTH, 1, omega_[2]);
 
-        /* estimation */
-        estimateProcess();
-        pose_stamped_pub_.publish(ground_truth_pose_);
-      }
+          ground_truth_pose_.header.stamp = msg->header.stamp;
 
-    if(first_flag)
-      {
-        tf::pointMsgToTF(msg->pose.position, prev_raw_pos_);
-        tf::pointMsgToTF(msg->pose.position, pos_offset_);
+          for(int i = 0; i < 6; i++)
+            {
+              if(i < 3)
+                {
+                  ground_truth_pose_.states[i].state[0].x = raw_pos_[i];
+                  ground_truth_pose_.states[i].state[0].y = raw_vel_[i];
+                  ground_truth_pose_.states[i].state[0].z = raw_acc_[i];
+                  ground_truth_pose_.states[i].state[1].x = pos_[i];
+                  ground_truth_pose_.states[i].state[1].y = vel_[i];
+                  ground_truth_pose_.states[i].state[1].z = acc_[i];
+                }
+              else
+                {
+                  ground_truth_pose_.states[i].state[0].x = raw_euler_[i - 3];
+                  ground_truth_pose_.states[i].state[0].y = raw_omega_[i - 3];
+                  ground_truth_pose_.states[i].state[1].x = euler_[i - 3];
+                  ground_truth_pose_.states[i].state[1].y = omega_[i - 3];
+                }
+            }
 
-        /* set ground truth */
-        estimator_->setStateStatus(BasicEstimator::X_W, BasicEstimator::GROUND_TRUTH);
-        estimator_->setStateStatus(BasicEstimator::Y_W, BasicEstimator::GROUND_TRUTH);
-        estimator_->setStateStatus(BasicEstimator::Z_W, BasicEstimator::GROUND_TRUTH);
-        estimator_->setStateStatus(BasicEstimator::YAW_W, BasicEstimator::GROUND_TRUTH);
-        estimator_->setStateStatus(BasicEstimator::YAW_W_B, BasicEstimator::GROUND_TRUTH);
+          /* estimation */
+          estimateProcess();
+          pose_stamped_pub_.publish(ground_truth_pose_);
+        }
 
-        if(estimate_mode_ & (1 << BasicEstimator::EXPERIMENT_ESTIMATE))
-          {
-            Eigen::Matrix<double, 1, 1> temp = Eigen::MatrixXd::Zero(1, 1);
+      if(first_flag)
+        {
+          tf::pointMsgToTF(msg->pose.position, prev_raw_pos_);
+          tf::pointMsgToTF(msg->pose.position, pos_offset_);
 
-            for(auto& fuser : estimator_->getFuser(BasicEstimator::EXPERIMENT_ESTIMATE))
-              {
-                string plugin_name = fuser.first;
-                boost::shared_ptr<kf_base_plugin::KalmanFilter> kf = fuser.second;
-                kf->updateModelFromDt(sensor_hz_);
-                int id = kf->getId();
+          /* set ground truth */
+          estimator_->setStateStatus(BasicEstimator::X_W, BasicEstimator::GROUND_TRUTH, true);
+          estimator_->setStateStatus(BasicEstimator::Y_W, BasicEstimator::GROUND_TRUTH, true);
+          estimator_->setStateStatus(BasicEstimator::Z_W, BasicEstimator::GROUND_TRUTH, true);
+          estimator_->setStateStatus(BasicEstimator::YAW_W, BasicEstimator::GROUND_TRUTH, true);
+          estimator_->setStateStatus(BasicEstimator::YAW_W_B, BasicEstimator::GROUND_TRUTH, true);
 
-                if(id < (1 << BasicEstimator::ROLL_W))
-                  {
-                    temp(0,0) = pos_noise_sigma_;
-                    kf->setMeasureSigma(temp);
-                    kf->setMeasureFlag();
-                  }
-              }
-          }
-        first_flag = false;
-      }
+          if(estimate_mode_ & (1 << BasicEstimator::EXPERIMENT_ESTIMATE))
+            {
+              /* set ground truth */
+              estimator_->setStateStatus(BasicEstimator::X_W, BasicEstimator::EXPERIMENT_ESTIMATE, true);
+              estimator_->setStateStatus(BasicEstimator::Y_W, BasicEstimator::EXPERIMENT_ESTIMATE, true);
+              estimator_->setStateStatus(BasicEstimator::Z_W, BasicEstimator::EXPERIMENT_ESTIMATE, true);
+              estimator_->setStateStatus(BasicEstimator::YAW_W, BasicEstimator::EXPERIMENT_ESTIMATE, true);
+              estimator_->setStateStatus(BasicEstimator::YAW_W_B, BasicEstimator::EXPERIMENT_ESTIMATE, true);
 
-    prev_raw_pos_ = raw_pos_;
-    prev_raw_vel_ = raw_vel_;
-    prev_raw_euler_ = raw_euler_;
+              Eigen::Matrix<double, 1, 1> temp = Eigen::MatrixXd::Zero(1, 1);
 
-    previous_time = msg->header.stamp;
-    /* consider the remote wirleess transmission, we use the local time server */
-    updateHealthStamp(ros::Time::now().toSec());
-  }
+              for(auto& fuser : estimator_->getFuser(BasicEstimator::EXPERIMENT_ESTIMATE))
+                {
+                  string plugin_name = fuser.first;
+                  boost::shared_ptr<kf_base_plugin::KalmanFilter> kf = fuser.second;
+                  kf->updateModelFromDt(sensor_hz_);
+                  int id = kf->getId();
 
-  void rosParamInit()
-  {
-    std::string ns = nhp_.getNamespace();
+                  if(id < (1 << BasicEstimator::ROLL_W))
+                    {
+                      temp(0,0) = pos_noise_sigma_;
+                      kf->setMeasureSigma(temp);
+                      kf->setMeasureFlag();
+                    }
+                }
+            }
+          first_flag = false;
+        }
 
-    nhp_.param("pos_noise_sigma", pos_noise_sigma_, 0.001 );
-    if(param_verbose_) cout << "pos noise sigma  is " << pos_noise_sigma_ << endl;
+      prev_raw_pos_ = raw_pos_;
+      prev_raw_vel_ = raw_vel_;
+      prev_raw_euler_ = raw_euler_;
 
-    nhp_.param("angle_sigma", pos_noise_sigma_, 0.001 );
-    if(param_verbose_) cout << "pos noise sigma  is " << pos_noise_sigma_ << endl;
+      previous_time = msg->header.stamp;
+      /* consider the remote wirleess transmission, we use the local time server */
+      updateHealthStamp(ros::Time::now().toSec());
+    }
 
-    nhp_.param("sub_name", sub_name_, std::string("/aerial_pose/pose"));
-    nhp_.param("pub_name", pub_name_, std::string("ground_truth/pose"));
+    void rosParamInit()
+    {
+      std::string ns = nhp_.getNamespace();
 
-    nhp_.param("rx_freq", rx_freq_, 100.0);
-    nhp_.param("cutoff_pos_freq", cutoff_pos_freq_, 20.0);
-    nhp_.param("cutoff_vel_freq", cutoff_vel_freq_, 20.0);
-  }
+      nhp_.param("pos_noise_sigma", pos_noise_sigma_, 0.001 );
+      if(param_verbose_) cout << "pos noise sigma  is " << pos_noise_sigma_ << endl;
 
-  void estimateProcess()
-  {
-    if(!estimate_flag_) return;
+      nhp_.param("angle_sigma", pos_noise_sigma_, 0.001 );
+      if(param_verbose_) cout << "pos noise sigma  is " << pos_noise_sigma_ << endl;
 
-    Eigen::Matrix<double, 1, 1> sigma_temp = Eigen::MatrixXd::Zero(1, 1);
-    Eigen::Matrix<double, 1, 1> temp = Eigen::MatrixXd::Zero(1, 1);
+      nhp_.param("sub_name", sub_name_, std::string("/aerial_pose/pose"));
+      nhp_.param("pub_name", pub_name_, std::string("ground_truth/pose"));
 
-    /* start experiment estimation */
-    if(!(estimate_mode_ & (1 << BasicEstimator::EXPERIMENT_ESTIMATE))) return;
+      nhp_.param("rx_freq", rx_freq_, 100.0);
+      nhp_.param("cutoff_pos_freq", cutoff_pos_freq_, 20.0);
+      nhp_.param("cutoff_vel_freq", cutoff_vel_freq_, 20.0);
+    }
 
-    for(auto& fuser : estimator_->getFuser(BasicEstimator::EXPERIMENT_ESTIMATE))
-      {
-        string plugin_name = fuser.first;
-        boost::shared_ptr<kf_base_plugin::KalmanFilter> kf = fuser.second;
-        int id = kf->getId();
+    void estimateProcess()
+    {
+      if(!estimate_flag_) return;
 
-        /* x_w, y_w, z_w */
-        if(id < (1 << BasicEstimator::ROLL_W))
-          {
-            sigma_temp(0,0) = pos_noise_sigma_;
-            temp(0, 0) = raw_pos_[id >> 1]; // temporarily index setting
+      Eigen::Matrix<double, 1, 1> sigma_temp = Eigen::MatrixXd::Zero(1, 1);
+      Eigen::Matrix<double, 1, 1> temp = Eigen::MatrixXd::Zero(1, 1);
 
-            kf->setMeasureSigma(sigma_temp);
-            kf->correction(temp);
-            MatrixXd state = kf->getEstimateState();
-            estimator_->setState(id >> 1, BasicEstimator::EXPERIMENT_ESTIMATE, 0, state(0,0));
-            estimator_->setState(id >> 1, BasicEstimator::EXPERIMENT_ESTIMATE, 1, state(1,0));
-            ground_truth_pose_.states[id >> 1].state[2].x = state(0,0);
-            ground_truth_pose_.states[id >> 1].state[2].y = state(1,0);
-          }
-      }
-  }
+      /* start experiment estimation */
+      if(!(estimate_mode_ & (1 << BasicEstimator::EXPERIMENT_ESTIMATE))) return;
+
+      for(auto& fuser : estimator_->getFuser(BasicEstimator::EXPERIMENT_ESTIMATE))
+        {
+          string plugin_name = fuser.first;
+          boost::shared_ptr<kf_base_plugin::KalmanFilter> kf = fuser.second;
+          int id = kf->getId();
+
+          /* x_w, y_w, z_w */
+          if(id < (1 << BasicEstimator::ROLL_W))
+            {
+              sigma_temp(0,0) = pos_noise_sigma_;
+              temp(0, 0) = raw_pos_[id >> 1]; // temporarily index setting
+
+              kf->setMeasureSigma(sigma_temp);
+              kf->correction(temp);
+              MatrixXd state = kf->getEstimateState();
+              estimator_->setState(id >> 1, BasicEstimator::EXPERIMENT_ESTIMATE, 0, state(0,0));
+              estimator_->setState(id >> 1, BasicEstimator::EXPERIMENT_ESTIMATE, 1, state(1,0));
+              ground_truth_pose_.states[id >> 1].state[2].x = state(0,0);
+              ground_truth_pose_.states[id >> 1].state[2].y = state(1,0);
+            }
+        }
+    }
   };
 };
 
