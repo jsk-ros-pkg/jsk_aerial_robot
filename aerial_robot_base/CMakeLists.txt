@@ -26,6 +26,8 @@ find_package(catkin REQUIRED COMPONENTS
 )
 
 
+FIND_PACKAGE(MRPT REQUIRED slam;vision;gui;topography)
+
 find_package(Eigen REQUIRED)
 include_directories(${EIGEN_INCLUDE_DIRS})
 add_definitions(${EIGEN_DEFINITIONS})
@@ -78,6 +80,7 @@ include_directories(
 ### sensor plugin
 add_library(sensor_pluginlib
   src/sensor/optical_flow.cpp
+  src/sensor/vo.cpp
   src/sensor/altitude.cpp
   src/sensor/mocap.cpp
   src/sensor/gps.cpp

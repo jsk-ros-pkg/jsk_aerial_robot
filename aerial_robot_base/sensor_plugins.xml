@@ -20,4 +20,8 @@
     <description>GPS sensor plugin.</description>
   </class>
 
+  <class name="sensor_plugin/vo" type="sensor_plugin::VisualOdometry" base_class_type="sensor_plugin::SensorBase">
+    <description>Visual Odometry sensor plugin.</description>
+  </class>
+
 </library>

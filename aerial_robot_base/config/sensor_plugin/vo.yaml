@@ -1,0 +1,6 @@
+sensor_plugin:
+        vo:
+                opt_noise_sigma: 0.08
+                vo_sub_topic_name: /vo
+                frame_yaw: -1.57079632679
+                frame_pitch: 1.57079632679
