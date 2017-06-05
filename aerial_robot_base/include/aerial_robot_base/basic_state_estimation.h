@@ -59,12 +59,12 @@
 
 using namespace std;
 
-/* int: state_estimate_status (EGOMOTION_ESTIMATE or Experiment or ground truth )
+/* bool: status(activate or not)
    tf::Vector3:  [x, dx, ddx]
-   3:  0: egomotion estiamte, 1: experiment, 2: ground truth
 */
-using State3Mode = std::array<tf::Vector3, 3>;
-using StateWithStatus = std::pair<int, std::array<tf::Vector3, 3> >;
+using StateWithStatus = std::pair<int, tf::Vector3>;
+/* egomotion, experiment, ground truth */
+using AxisState = std::array<StateWithStatus, 3>;
 using SensorFuser = std::vector< std::pair<std::string, boost::shared_ptr<kf_base_plugin::KalmanFilter> > >;
 
 namespace Frame
@@ -100,8 +100,11 @@ public:
 
     for(int i = 0; i < STATE_NUM; i ++)
       {
-        state_[i].first = RAW;
-        for(int j = 0; j < 3; j++) (state_[i].second)[j] = tf::Vector3(0, 0, 0);
+        for(int j = 0; j < 3; j++)
+          {
+            state_[i][j].first = 0;
+            state_[i][j].second = tf::Vector3(0, 0, 0);
+          }
       }
 
     /* TODO: represented sensors unhealth level */
@@ -111,7 +114,7 @@ public:
   virtual ~BasicEstimator(){}
 
   //mode
-  static constexpr int RAW = -1;
+  static constexpr int NONE = -1;
   static constexpr int EGOMOTION_ESTIMATE = 0;
   static constexpr int EXPERIMENT_ESTIMATE = 1;
   static constexpr int GROUND_TRUTH = 2;
@@ -129,27 +132,35 @@ public:
   static constexpr uint8_t PITCH_W_B = 9; //pitch of mcu board in world coord
   static constexpr uint8_t YAW_W_B = 10; //yaw of mcu board in world coord
 
-   int getStateStatus( uint8_t axis)
+  int getStateStatus(uint8_t axis, uint8_t estimate_mode)
   {
     boost::lock_guard<boost::mutex> lock(state_mutex_);
     assert(axis < STATE_NUM);
-    return state_[axis].first;
+    return state_[axis][estimate_mode].first;
   }
 
-  void setStateStatus( uint8_t axis,  int status)
+  void setStateStatus( uint8_t axis, uint8_t estimate_mode, bool status)
   {
     boost::lock_guard<boost::mutex> lock(state_mutex_);
     assert(axis < STATE_NUM);
-    state_[axis].first = status;
+    if(status) state_[axis][estimate_mode].first ++;
+    else
+      {
+        if(state_[axis][estimate_mode].first > 0)
+          state_[axis][estimate_mode].first --;
+        else
+          ROS_ERROR("wrong status update for axis: %d, estimate mode: %d", axis, estimate_mode);
+      }
   }
 
   /* axis: state axis (11) */
-   State3Mode getState( uint8_t axis)
+  AxisState getState( uint8_t axis)
   {
     boost::lock_guard<boost::mutex> lock(state_mutex_);
     assert(axis < STATE_NUM);
-    return state_[axis].second;
+    return state_[axis];
   }
+
   /*
     axis: state axis (11)
     estimate_mode: egomotion/experiment/ground_truth
@@ -160,7 +171,7 @@ public:
 
     assert(estimate_mode == EGOMOTION_ESTIMATE || estimate_mode == EXPERIMENT_ESTIMATE || estimate_mode == GROUND_TRUTH);
 
-    return state_[axis].second[estimate_mode];
+    return state_[axis][estimate_mode].second;
   }
   void setState( uint8_t axis,  int estimate_mode,  tf::Vector3 state)
   {
@@ -168,7 +179,7 @@ public:
 
     assert(estimate_mode == EGOMOTION_ESTIMATE || estimate_mode == EXPERIMENT_ESTIMATE || estimate_mode == GROUND_TRUTH);
 
-    state_[axis].second[estimate_mode] = state;
+    state_[axis][estimate_mode].second = state;
   }
 
   void setState( uint8_t axis,  int estimate_mode,  uint8_t state_mode,  float value)
@@ -176,9 +187,8 @@ public:
     boost::lock_guard<boost::mutex> lock(state_mutex_);
 
     assert(estimate_mode == EGOMOTION_ESTIMATE || estimate_mode == EXPERIMENT_ESTIMATE || estimate_mode == GROUND_TRUTH);
-    assert(state_mode <= GROUND_TRUTH && state_mode >= EGOMOTION_ESTIMATE);
 
-    (state_[axis].second[estimate_mode])[state_mode] = value;
+    (state_[axis][estimate_mode].second)[state_mode] = value;
   }
 
 
@@ -242,7 +252,7 @@ protected:
   int estimate_mode_; /* main estimte mode */
 
   /* 9: x_w, y_w, z_w, roll_w, pitch_w, yaw_cog_w, x_b, y_b, yaw_board_w */
-  array<StateWithStatus, 11> state_;
+  array<AxisState, 11> state_;
 
   /* sensor fusion */
   boost::shared_ptr< pluginlib::ClassLoader<kf_base_plugin::KalmanFilter> > sensor_fusion_loader_ptr_;
