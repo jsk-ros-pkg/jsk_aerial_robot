@@ -39,15 +39,8 @@
 /* base class */
 #include <aerial_robot_base/sensor_base_plugin.h>
 
-/* message filter */
-#include <message_filters/subscriber.h>
-#include <message_filters/synchronizer.h>
-#include <message_filters/sync_policies/approximate_time.h>
-
 /* ros msg */
-#include <sensor_msgs/Range.h>
-#include <aerial_robot_base/States.h>
-#include <geometry_msgs/TwistStamped.h>
+#include <geometry_msgs/Vector3Stamped.h>
 
 namespace sensor_plugin
 {
@@ -55,194 +48,120 @@ namespace sensor_plugin
   {
   public:
 
-    typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Range, geometry_msgs::TwistStamped> SyncPolicy;
-
-
     void initialize(ros::NodeHandle nh, ros::NodeHandle nhp, BasicEstimator* estimator, string sensor_name)
     {
       SensorBase::initialize(nh, nhp, estimator, sensor_name);
       rosParamInit();
 
-      /* ros publisher of aerial_robot_base::State */
+      /* ros subscriber: optical flow */
+      opt_sub_ = nh_.subscribe(opt_sub_topic_name_, 1, &OpticalFlow::optCallback, this);
+
+      /* ros publisher: aerial_robot_base::State */
       opt_state_pub_ = nh_.advertise<aerial_robot_base::States>("data",10);
-
-      /* message filter for synchronize two message : optical flow and range */
-      range_sub_.subscribe(nh, range_sub_topic_name_, 1);
-      opt_sub_.subscribe(nh, opt_sub_topic_name_, 1);
-
-      sync_ = boost::shared_ptr<message_filters::Synchronizer<SyncPolicy> >(new message_filters::Synchronizer<SyncPolicy>(SyncPolicy(100)));
-      sync_->connectInput(range_sub_, opt_sub_);
-      sync_->registerCallback(&OpticalFlow::sensorCallback, this);
     }
 
     ~OpticalFlow() {}
     OpticalFlow():
-      vel_w_(0, 0, 0),
-      flow_w_(0, 0, 0),
-      vel_b_(0, 0, 0),
-      flow_b_(0, 0, 0),
-      pos_z_(0),
-      quality_(0),
-      metric_scale_(0),
-      sensor_correction_flag_(false)
+      vel_(0, 0, 0), quality_(0)
     {
       opt_state_.states.resize(2);
       opt_state_.states[0].id = "x";
-      opt_state_.states[0].state.resize(3);
+      opt_state_.states[0].state.resize(2);
       opt_state_.states[1].id = "y";
-      opt_state_.states[1].state.resize(3);
+      opt_state_.states[1].state.resize(2);
     }
-
-    static constexpr int SPECIAL_SCALE = -1;
-    static constexpr int ABSOLUTE_SCALE = 0;
 
   private:
     /* ros */
-    boost::shared_ptr< message_filters::Synchronizer<SyncPolicy> > sync_;
-    message_filters::Subscriber<sensor_msgs::Range> range_sub_;
-    message_filters::Subscriber<geometry_msgs::TwistStamped> opt_sub_;
+    ros::Subscriber opt_sub_;
     ros::Publisher opt_state_pub_;
 
     /* ros param */
-    string range_sub_topic_name_, opt_sub_topic_name_;
-    tf::Matrix3x3 frame_orientation_;
+    string opt_sub_topic_name_;
     double opt_noise_sigma_;
-    double range_min_margin_;
+    double height_thresh_;
+    double vel_thresh_;
 
     /* base var */
-    ros::Time opt_stamp_;
-    tf::Vector3 vel_b_, vel_w_;
-    tf::Vector3 flow_b_, flow_w_;
-    float pos_z_;
     float quality_;
-    float metric_scale_;
-    bool sensor_correction_flag_;
+    tf::Vector3 vel_;
 
     aerial_robot_base::States opt_state_;
 
-    void sensorCallback(const sensor_msgs::Range::ConstPtr & range_msg, const geometry_msgs::TwistStamped::ConstPtr & opt_msg)
+    void optCallback(const geometry_msgs::Vector3Stamped::ConstPtr & opt_msg)
     {
       static double previous_secs;
-
+      static bool first_flag = true;
       double current_secs = opt_msg->header.stamp.toSec();
 
-      /* range sensor */
-      /* consider the orientation of the uav */
-      float roll_b = (estimator_->getState(BasicEstimator::ROLL_W, 0))[0];
-      float pitch_b = (estimator_->getState(BasicEstimator::PITCH_W, 0))[0];
-      float yaw_b = (estimator_->getState(BasicEstimator::YAW_W, 0))[0];
-      ROS_INFO("range debug: uav orientation is [%f, %f, %f]", roll_b, pitch_b, yaw_b);
-      pos_z_ = cos(roll_b) * cos(pitch_b) * range_msg->range;
-      bool range_sanity = (range_msg->min_range + range_min_margin_ < range_msg->range && range_msg->max_range > range_msg->range)?true:false;
-
-      /* optical flow */
-      metric_scale_ = opt_msg->twist.angular.z;
-      if(metric_scale_ < SPECIAL_SCALE)
+      /* only do egmotion estimate mode */
+      if(!getFuserActivate(BasicEstimator::EGOMOTION_ESTIMATE))
         {
-          ROS_ERROR("unknonw scale for optical flow ");
+          ROS_WARN_THROTTLE(1,"Optical Flow: no egmotion estimate mode");
           return;
         }
-      quality_ = opt_msg->twist.linear.z;
-      /* twist.linear: optical_flow; twist.angular: velocity */
-      /* twist.linear.z: quality; twist.angular.z: matric_scale */
-      flow_b_ = frame_orientation_ * tf::Vector3(opt_msg->twist.angular.x, opt_msg->twist.angular.y, 0);
-      if(metric_scale_ == ABSOLUTE_SCALE || metric_scale_ == SPECIAL_SCALE)
-        vel_b_ = frame_orientation_ * tf::Vector3(opt_msg->twist.linear.x, opt_msg->twist.linear.y, 0);
-      else
-        vel_b_ = frame_orientation_ * tf::Vector3(opt_msg->twist.linear.x, opt_msg->twist.linear.y, 0) * metric_scale_ / pos_z_;
 
-      /* for general optical flow model */
-
-      tf::Matrix3x3 yaw_orientation;
-      yaw_orientation.setRPY(0, 0, yaw_b);
-      flow_w_ = yaw_orientation * flow_b_;
-      vel_w_ = yaw_orientation * vel_b_;
-
-      /* reset to false */
-      if(!range_sanity && sensor_correction_flag_ &&
-         (estimator_->getLandedFlag() || !estimator_->getSensorFusionFlag()))
+      /* update/check the state status of the xy state */
+      if(estimator_->getState(BasicEstimator::Z_W, BasicEstimator::EGOMOTION_ESTIMATE)[0] < height_thresh_)
         {
-          ROS_INFO("optical flow: stop correciton");
+          ROS_WARN_THROTTLE(1,"Optical Flow: bad height to use opticla flow");
 
-          for(int mode = 0; mode < 2; mode++)
+          /* stop kalman filter */
+          if(!first_flag)
             {
-              if(!getFuserActivate(mode)) continue;
+              estimator_->setStateStatus(BasicEstimator::X_W, BasicEstimator::EGOMOTION_ESTIMATE, false);
+              estimator_->setStateStatus(BasicEstimator::Y_W, BasicEstimator::EGOMOTION_ESTIMATE, false);
 
-              for(auto& fuser : estimator_->getFuser(mode))
-                {
-                  boost::shared_ptr<kf_base_plugin::KalmanFilter> kf = fuser.second;
-                  int id = kf->getId();
-                  /* do not reset x_w and y_w which is estimated by other sensr such as rtk-gps */
-                  if((id & (1 << BasicEstimator::X_B)) || (id & (1 << BasicEstimator::Y_B)))
-                    {
-                      kf->setMeasureFlag(false);
-                      kf->resetState();
-                    }
-                }
+              first_flag = true;
             }
-          sensor_correction_flag_ = false;
+          return;
         }
 
-      /*  start sensor fusion condition */
-      if(range_sanity && !sensor_correction_flag_)
+      if(first_flag)
         {
-          Eigen::Matrix<double, 1, 1> temp = Eigen::MatrixXd::Zero(1, 1);
-          temp(0,0) = opt_noise_sigma_;
+          first_flag = false;
+          ROS_WARN("Optical Flow: start/restart, height: %f", height_thresh_);
 
-          for(int mode = 0; mode < 2; mode++)
+          if(!estimator_->getStateStatus(BasicEstimator::X_W, BasicEstimator::EGOMOTION_ESTIMATE) ||
+             !estimator_->getStateStatus(BasicEstimator::Y_W, BasicEstimator::EGOMOTION_ESTIMATE))
             {
-              if(!getFuserActivate(mode)) continue;
+              ROS_WARN("Optical Flow: start/restart kalman filter");
 
-              for(auto& fuser : estimator_->getFuser(mode))
+              for(auto& fuser : estimator_->getFuser(BasicEstimator::EGOMOTION_ESTIMATE))
                 {
                   boost::shared_ptr<kf_base_plugin::KalmanFilter> kf = fuser.second;
                   int id = kf->getId();
 
-                  if((id & (1 << BasicEstimator::X_W)) ||
-                     (id & (1 << BasicEstimator::Y_W)) ||
-                     (id & (1 << BasicEstimator::X_B)) ||
-                     (id & (1 << BasicEstimator::Y_B)) )
+                  if((id & (1 << BasicEstimator::X_W)) || (id & (1 << BasicEstimator::Y_W)) )
                     {
-                      uint8_t b_shift = 0;
-                      tf::Vector3 vel, flow;
-
-                      if(id <= (1 << BasicEstimator::Y_W)) /* world frame */
-                        {
-                          vel = vel_w_;
-                          flow = flow_w_;
-                          b_shift = BasicEstimator::Y_W;
-                        }
-                      else  /* board frame */
-                        {
-                          vel = vel_b_;
-                          flow = flow_b_;
-                          b_shift = BasicEstimator::Y_B;
-                        }
-
-                      /* specila process for px4flow */
-                      if(metric_scale_ == SPECIAL_SCALE)
-                        kf->setInitState(flow[id >> b_shift], 1);
-                      else
-                        kf->setInitState(vel[id >> b_shift], 1);
-
-                      kf->setMeasureSigma(temp);
+                      kf->setInitState(vel_[id >> 1], 1);
                       kf->setMeasureFlag();
                     }
                 }
             }
-          sensor_correction_flag_ = true;
+
+          /* set the status */
+          estimator_->setStateStatus(BasicEstimator::X_W, BasicEstimator::EGOMOTION_ESTIMATE, true);
+          estimator_->setStateStatus(BasicEstimator::Y_W, BasicEstimator::EGOMOTION_ESTIMATE, true);
         }
+
+      quality_ = opt_msg->vector.z;
+
+      /* get the optical flow frame orientation towards the world frame */
+      tf::Matrix3x3 orien;
+      orien.setRPY(estimator_->getState(BasicEstimator::ROLL_W_B, BasicEstimator::EGOMOTION_ESTIMATE)[0],
+                   estimator_->getState(BasicEstimator::PITCH_W_B, BasicEstimator::EGOMOTION_ESTIMATE)[0],
+                   estimator_->getState(BasicEstimator::YAW_W_B, BasicEstimator::EGOMOTION_ESTIMATE)[0]);
+      /* change the velocity based on the world frame  */
+      vel_ = orien * baselink_transform_.getBasis() * tf::Vector3(opt_msg->vector.x, opt_msg->vector.y, 0);
 
       estimateProcess();
-
       /* publish */
       opt_state_.header.stamp = opt_msg->header.stamp;
+      //tf::Vector3 vel = vel_;
+      //vel_ = orien.transpose() * vel;
 
-      for(int axis = 0; axis < 2; axis++)
-        {
-          opt_state_.states[axis].state[0].x = vel_b_[axis];
-          opt_state_.states[axis].state[0].y = vel_w_[axis];
-        }
+      for(int axis = 0; axis < 2; axis++) opt_state_.states[axis].state[0].y = vel_[axis];
       opt_state_pub_.publish(opt_state_);
 
       /* update */
@@ -252,84 +171,56 @@ namespace sensor_plugin
 
     void estimateProcess()
     {
-      if(!estimate_flag_) return;
+      static tf::Vector3 prev_vel = vel_;
 
-      //** the condition which we can correction */
-      if(!sensor_correction_flag_) return;
-
-      Eigen::Matrix<double, 1, 1> sigma_temp = Eigen::MatrixXd::Zero(1, 1); 
-      sigma_temp(0,0) = opt_noise_sigma_;
-      Eigen::Matrix<double, 1, 1> temp = Eigen::MatrixXd::Zero(1, 1); 
-
-      for(int mode = 0; mode < 2; mode++)
+      if((vel_ - prev_vel).length() > vel_thresh_)
         {
-          if(!getFuserActivate(mode)) continue;
+          ROS_WARN("Optical Flow: bad vel estimate, since the diff is too big: %f", (vel_ - prev_vel).length());
+          return;
+        }
 
-          for(auto& fuser : estimator_->getFuser(mode))
+      Eigen::Matrix<double, 1, 1> sigma_temp = Eigen::MatrixXd::Zero(1, 1);
+      sigma_temp(0,0) = opt_noise_sigma_;
+      Eigen::Matrix<double, 1, 1> temp = Eigen::MatrixXd::Zero(1, 1);
+
+      for(auto& fuser : estimator_->getFuser(BasicEstimator::EGOMOTION_ESTIMATE))
+        {
+          boost::shared_ptr<kf_base_plugin::KalmanFilter> kf = fuser.second;
+          int id = kf->getId();
+
+          if((id & (1 << BasicEstimator::X_W)) || (id & (1 << BasicEstimator::Y_W)))
             {
-              boost::shared_ptr<kf_base_plugin::KalmanFilter> kf = fuser.second;
-              int id = kf->getId();
+              kf->setMeasureSigma(sigma_temp);
+              kf->setCorrectMode(1);
 
-              if((id & (1 << BasicEstimator::X_W)) ||
-                 (id & (1 << BasicEstimator::Y_W)) ||
-                 (id & (1 << BasicEstimator::X_B)) ||
-                 (id & (1 << BasicEstimator::Y_B)) )
-                {
-                  kf->setMeasureSigma(sigma_temp);
-                  kf->setCorrectMode(1);
-
-                  uint8_t b_shift = 0;
-                  tf::Vector3 vel, flow;
-                  if(id <= (1 << BasicEstimator::Y_W)) /* world frame */
-                    {
-                      vel = vel_w_;
-                      flow = flow_w_;
-                      b_shift = BasicEstimator::Y_W;
-                    }
-                  else  /* board frame */
-                    {
-                      vel = vel_b_;
-                      flow = flow_b_;
-                      b_shift = BasicEstimator::Y_B;
-                    }
-
-                  /* special process for px4flow */
-                  if((metric_scale_ == SPECIAL_SCALE) &&
-                     (quality_ == 0 || vel[id >> b_shift] == 0))
-                    temp(0, 0) = flow[id >> b_shift];
-                  else temp(0, 0) = vel[id >> b_shift];
-
-                  kf->correction(temp);
-
-                  MatrixXd state = kf->getEstimateState();
-
-                  /* set data */
-                  estimator_->setState(id >> b_shift, mode, 0, state(0,0));
-                  estimator_->setState(id >> b_shift, mode, 1, state(1,0));
-                  opt_state_.states[id >> b_shift].state[mode + 1].x = state(0, 0);
-                  opt_state_.states[id >> b_shift].state[mode + 1].y = state(1, 0);
-                }
+              temp(0, 0) = vel_[id >> 1];
+              kf->correction(temp);
+              MatrixXd state = kf->getEstimateState();
+              /* temp */
+              //vel_[id >> 1] = state(1,0);
+              /* set data */
+              estimator_->setState(id >> 1, BasicEstimator::EGOMOTION_ESTIMATE, 0, state(0,0));
+              estimator_->setState(id >> 1, BasicEstimator::EGOMOTION_ESTIMATE, 1, state(1,0));
+              opt_state_.states[id >> 1].state[1].x = state(0, 0);
+              opt_state_.states[id >> 1].state[1].y = state(1, 0);
             }
         }
+
+      prev_vel = vel_;
     }
 
     void rosParamInit()
     {
       std::string ns = nhp_.getNamespace();
-      nhp_.param("range_min_margin", range_min_margin_, 0.0);
-
-      double frame_roll, frame_pitch, frame_yaw;
-      nhp_.param("frame_roll", frame_roll, 0.0);
-      nhp_.param("frame_pitch", frame_pitch, 0.0);
-      nhp_.param("frame_yaw", frame_yaw, 0.0);
-      if(param_verbose_) cout << ns << ": frame rpy: [" << frame_roll << ", " << frame_pitch << ", " << frame_yaw << "]"  << endl;
-      frame_orientation_.setRPY(frame_roll, frame_pitch, frame_yaw);
-
       nhp_.param("opt_noise_sigma", opt_noise_sigma_, 0.01 );
       if(param_verbose_) cout << ns << ": level vel noise sigma is " <<  opt_noise_sigma_ << endl;
 
-      nhp_.param("range_sub_topic_name", range_sub_topic_name_, string("range") );
-      if(param_verbose_) cout << ns << ": range sub topic name is " <<  range_sub_topic_name_ << endl;
+      nhp_.param("height_thresh", height_thresh_, 0.4 );
+      if(param_verbose_) cout << ns << ": height thresh is " <<  height_thresh_ << endl;
+
+      nhp_.param("vel_thresh", vel_thresh_, 1.0);
+      if(param_verbose_) cout << ns << ": vel thresh is " <<  vel_thresh_ << endl;
+
       nhp_.param("opt_sub_topic_name", opt_sub_topic_name_, string("opt") );
       if(param_verbose_) cout << ns << ": opt sub topic name is " <<  opt_sub_topic_name_ << endl;
     }
@@ -337,6 +228,9 @@ namespace sensor_plugin
 
 };
 
+/* plugin registration */
+#include <pluginlib/class_list_macros.h>
+PLUGINLIB_EXPORT_CLASS(sensor_plugin::OpticalFlow, sensor_plugin::SensorBase);
 
 
 
