@@ -18,7 +18,7 @@
 
 class Navigator
 {
- public:
+public:
   Navigator(ros::NodeHandle nh, ros::NodeHandle nh_private, 
             BasicEstimator* estimator, FlightCtrlInput* flight_ctrl_input,
             int ctrl_loop_rate);
@@ -127,70 +127,101 @@ class Navigator
   static constexpr uint8_t VEL_LOCAL_BASED_CONTROL_MODE = 3;
   static constexpr uint8_t ATT_CONTROL_MODE = 4;
 
+protected:
+  ros::NodeHandle nh_;
+  ros::NodeHandle nhp_;
+  ros::Subscriber navi_sub_;
+  ros::Subscriber battery_sub_;
+  tf::TransformBroadcaster* br_ ; 
 
-  protected:
-    ros::NodeHandle nh_;
-    ros::NodeHandle nhp_;
-    ros::Subscriber navi_sub_;
-    ros::Subscriber battery_sub_;
-    tf::TransformBroadcaster* br_ ; 
+  BasicEstimator* estimator_;
+  FlightCtrlInput* flight_ctrl_input_;
 
-    BasicEstimator* estimator_;
-    FlightCtrlInput* flight_ctrl_input_;
+  bool start_able_;
+  uint8_t navi_command_;
+  uint8_t flight_mode_; //important
 
-    bool start_able_;
-    uint8_t navi_command_;
-    uint8_t flight_mode_; //important
+  int  xy_control_mode_;
+  int  prev_xy_control_mode_;
+  bool xy_vel_mode_pos_ctrl_takeoff_;
 
-    int  xy_control_mode_;
-    bool xy_vel_mode_pos_ctrl_takeoff_;
+  int estimate_mode_;
+  int low_voltage_thre_;
+  bool low_voltage_flag_;
 
-    int estimate_mode_;
-    int low_voltage_thre_;
-    bool low_voltage_flag_;
+  // final target value
+  double takeoff_height_;
+  float final_target_pos_x_;
+  float final_target_vel_x_;
+  float final_target_pos_y_;
+  float final_target_vel_y_;
+  float final_target_pos_z_;
+  float final_target_vel_z_;
+  float final_target_theta_;
+  float final_target_vel_theta_;
+  float final_target_phy_;
+  float final_target_vel_phy_;
+  float final_target_psi_;
+  float final_target_vel_psi_;
 
-    // final target value
-    float final_target_pos_x_;
-    float final_target_vel_x_;
-    float final_target_pos_y_;
-    float final_target_vel_y_;
-    float final_target_pos_z_;
-    float final_target_vel_z_;
-    float final_target_theta_;
-    float final_target_vel_theta_;
-    float final_target_phy_;
-    float final_target_vel_phy_;
-    float final_target_psi_;
-    float final_target_vel_psi_;
+  //current target value
+  float current_target_pos_x_;
+  float current_target_vel_x_;
+  float current_target_pos_y_;
+  float current_target_vel_y_;
+  float current_target_pos_z_;
+  float current_target_vel_z_;
+  float current_target_theta_;
+  float current_target_vel_theta_;
+  float current_target_phy_;
+  float current_target_vel_phy_;
+  float current_target_psi_;
+  float current_target_vel_psi_;
 
-    //current target value
-    float current_target_pos_x_;
-    float current_target_vel_x_;
-    float current_target_pos_y_;
-    float current_target_vel_y_;
-    float current_target_pos_z_;
-    float current_target_vel_z_;
-    float current_target_theta_;
-    float current_target_vel_theta_;
-    float current_target_phy_;
-    float current_target_vel_phy_;
-    float current_target_psi_;
-    float current_target_vel_psi_;
+  //att_control_mode
+  double target_angle_rate_;
+  double cmd_angle_lev2_gain_;
+  float target_pitch_angle_;
+  float target_roll_angle_;
 
-    //att_control_mode
-    double target_angle_rate_;
-    double cmd_angle_lev2_gain_;
-    float target_pitch_angle_;
-    float target_roll_angle_;
+  int ctrl_loop_rate_;
+  std::string map_frame_;
+  std::string target_frame_;
 
-    int ctrl_loop_rate_;
-    std::string map_frame_;
-    std::string target_frame_;
+  void rosParamInit(ros::NodeHandle nh);
 
-    void rosParamInit(ros::NodeHandle nh);
+  void naviCallback(const aerial_robot_base::FlightNavConstPtr & msg);
+  void batteryCheckCallback(const std_msgs::UInt8ConstPtr &msg);
 
-    void naviCallback(const aerial_robot_base::FlightNavConstPtr & msg);
-    void batteryCheckCallback(const std_msgs::UInt8ConstPtr &msg);
+  void startTakeoff()
+  {
+    if(getNaviCommand() == TAKEOFF_COMMAND) return;
+
+    if(getStartAble())
+      {
+        setNaviCommand(TAKEOFF_COMMAND);
+        ROS_INFO("Takeoff command");
+      }
+  }
+
+  void motorArming()
+  {
+    /* z(altitude) */
+    /* check whether there is the fusion for the altitude */
+    if(!estimator_->getStateStatus(BasicEstimator::Z_W, estimate_mode_))
+      {
+        ROS_ERROR("Flight Navigation: No correct sensor fusion for z(altitude), can not fly");
+        return;
+      }
+
+    setNaviCommand(START_COMMAND);
+    final_target_pos_x_ = getStatePosX();
+    final_target_pos_y_ = getStatePosY();
+    final_target_psi_   = getStatePsiBoard();
+    final_target_pos_z_ = takeoff_height_;
+    ROS_INFO("Start command");
+  }
+
 };
 
 class TeleopNavigator :public Navigator
@@ -202,7 +233,6 @@ public:
                   FlightCtrlInput* flight_ctrl_input,
                   int ctrl_loop_rate);
   virtual ~TeleopNavigator();
-
 
   void takeoffCallback(const std_msgs::EmptyConstPtr & msg);
   void startCallback(const std_msgs::EmptyConstPtr & msg);
@@ -258,7 +288,6 @@ private:
   ros::Subscriber stop_teleop_sub_;
 
   //*** teleop navigation
-  double takeoff_height_;
   double even_move_distance_;
   double up_down_distance_;
   double forward_backward_distance_;
@@ -273,6 +302,7 @@ private:
 
   bool  vel_control_flag_;
   bool  pos_control_flag_;
+  bool  force_att_control_flag_;
   bool  xy_control_flag_;
   bool  alt_control_flag_;
   bool  yaw_control_flag_;
