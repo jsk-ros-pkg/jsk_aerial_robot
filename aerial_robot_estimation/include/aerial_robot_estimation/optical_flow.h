@@ -34,11 +34,12 @@
  *********************************************************************/
 
 
-#ifndef OPTICAL_FLOW_H_
-#define OPTICAL_FLOW_H_
+#ifndef AERIAL_ROBOT_ESTIMATION_OPTICAL_FLOW_H_
+#define AERIAL_ROBOT_ESTIMATION_OPTICAL_FLOW_H_
 
 /* ros */
 #include <ros/ros.h>
+#include <nodelet/nodelet.h>
 
 /* ros msg/srv */
 #include <sensor_msgs/Image.h>
@@ -60,66 +61,71 @@
 #include "opencv2/gpu/gpu.hpp"
 #include <cv_bridge/cv_bridge.h>
 
-class OpticalFlow
+namespace aerial_robot_estimation
 {
-public:
-  OpticalFlow(ros::NodeHandle nh, ros::NodeHandle nhp);
-  ~OpticalFlow(){}
-
-private:
-  /* ros */
-  ros::NodeHandle nh_;
-  ros::NodeHandle nhp_;
+  class OpticalFlow : public nodelet::Nodelet
+  {
+  public:
+    OpticalFlow(){}
+    ~OpticalFlow(){}
+    virtual void onInit();
   
-  /* subscriber */
-  ros::Subscriber downward_camera_image_sub_;
-  ros::Subscriber downward_camera_info_sub_;
-  ros::Subscriber imu_sub_;
-  ros::Subscriber odometry_sub_;
-  ros::Subscriber sonar_sub_;
+  private:
+    /* ros */
+    ros::NodeHandle nh_;
+    ros::NodeHandle nhp_;
+    
+    /* subscriber */
+    ros::Subscriber downward_camera_image_sub_;
+    ros::Subscriber downward_camera_info_sub_;
+    ros::Subscriber imu_sub_;
+    ros::Subscriber odometry_sub_;
+    ros::Subscriber sonar_sub_;
+    
+    /* publisher */
+    ros::Publisher camera_vel_pub_;
+    ros::Publisher optical_flow_image_pub_;
+    
+    /* topic name */
+    std::string downward_camera_image_topic_name_;
+    std::string downward_camera_info_topic_name_;
+    std::string imu_topic_name_;
+    std::string odometry_topic_name_;
+    std::string camera_vel_topic_name_;
+    std::string optical_flow_image_topic_name_;
+    std::string sonar_topic_name_;
+      
+    /* callback function */
+    void downwardCameraImageCallback(const sensor_msgs::ImageConstPtr& msg);
+    void downwardCameraInfoCallback(const sensor_msgs::CameraInfoConstPtr& msg);
+    void imuCallback(const sensor_msgs::ImuConstPtr& msg);
+    void odometryCallback(const nav_msgs::OdometryConstPtr& msg);
+    void sonarCallback(const sensor_msgs::RangeConstPtr& msg);
 
-  /* publisher */
-  ros::Publisher camera_vel_pub_;
-  ros::Publisher optical_flow_image_pub_;
-  
-  /* topic name */
-  std::string downward_camera_image_topic_name_;
-  std::string downward_camera_info_topic_name_;
-  std::string imu_topic_name_;
-  std::string odometry_topic_name_;
-  std::string camera_vel_topic_name_;
-  std::string optical_flow_image_topic_name_;
-  std::string sonar_topic_name_;
-
-  /* callback function */
-  void downwardCameraImageCallback(const sensor_msgs::ImageConstPtr& msg);
-  void downwardCameraInfoCallback(const sensor_msgs::CameraInfoConstPtr& msg);
-  void imuCallback(const sensor_msgs::ImuConstPtr& msg);
-  void odometryCallback(const nav_msgs::OdometryConstPtr& msg);
-  void sonarCallback(const sensor_msgs::RangeConstPtr& msg);
-
-  /* member variable */
-  bool verbose_;
-  bool camera_info_update_;
-  bool imu_update_;
-  bool image_stamp_update_;
-  bool sonar_update_;
-  bool use_sonar_;
-  double camera_f_, camera_cx_, camera_cy_;
-  double sonar_, sonar_vel_, sonar_offset_;
-  tf::Vector3 ang_vel_;
-  cv::Mat prev_gray_img_;
-  std::vector<cv::Point2f> points_[2];
-  int max_count_;
-  ros::Time prev_stamp_;
-  ros::Time sonar_prev_stamp_;
-  tf::Matrix3x3 camera_rotation_mat_, camera_rotation_mat_inv_;
-  double camera_roll_, camera_pitch_, camera_yaw_;
-  double image_crop_scale_;
-  int image_cut_pixel_;
+    /* member variable */
+    bool verbose_;
+    bool camera_info_update_;
+    bool imu_update_;
+    bool image_stamp_update_;
+    bool sonar_update_;
+    bool use_sonar_;
+    double camera_f_, camera_cx_, camera_cy_;
+    double sonar_, sonar_vel_, sonar_offset_;
+    tf::Vector3 ang_vel_;
+    cv::Mat prev_gray_img_;
+    std::vector<cv::Point2f> points_[2];
+    int max_count_;
+    ros::Time prev_stamp_;
+    ros::Time sonar_prev_stamp_;
+    tf::Matrix3x3 camera_rotation_mat_, camera_rotation_mat_inv_;
+    double camera_roll_, camera_pitch_, camera_yaw_;
+    double image_crop_scale_;
+    int image_cut_pixel_;
 #if USE_GPU
-  cv::gpu::GpuMat d_frame0Gray, d_frame1Gray;
+    cv::gpu::GpuMat d_frame0Gray, d_frame1Gray;
 #endif
-};
+  };
+
+} //namespace aerial_robot_estimation
 
 #endif
