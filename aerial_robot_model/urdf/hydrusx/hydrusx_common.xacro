@@ -3,14 +3,87 @@
     xmlns:xacro="http://www.ros.org/wiki/xacro" name="hydrusx_common" >
 
   <xacro:property name="pi" value="3.1415926535897931" />
+  <!-- kinematics [m] -->
   <xacro:property name="link_length" value=".6" />
-  <xacro:property name="protector_radius" value=".2" />
+  <xacro:property name="link_rod_length" value=".528" />
+  <xacro:property name="protector_radius" value=".1925" />
+  <xacro:property name="link_joint_offset" value="0.3" /> <!-- [m] -->
+  <xacro:property name="rotor_radius" value=".02" /> <!-- [m] -->
+  <xacro:property name="rotor_height" value=".05" /> <!-- [m] -->
+  <xacro:property name="pc_offset" value="0.22" /> <!-- [m] -->
+  <xacro:property name="fc_offset" value="-0.28" /> <!-- [m] -->
+  <xacro:property name="tail_leg_offset" value="0.235" /> <!-- [m] -->
+  <xacro:property name="head_leg_offset" value="-0.247" /> <!-- [m] -->
+  <xacro:property name="sensor_offset" value="-0.215" /> <!-- [m] -->
 
+  <!-- inertial paramters -->
+  <!-- mass [Kg] -->
+  <xacro:property name="link_center_mass" value=".4046" />
+  <xacro:property name="joint_mass" value=".2075" />
+  <xacro:property name="link_rod_mass" value="0.099" />
+  <xacro:property name="protector_mass" value=".05" />
+  <xacro:property name="protector_holder_mass" value=".0386" />
+  <xacro:property name="fc_mass" value=".03" />
+  <xacro:property name="pc_mass" value=".24" />
+  <xacro:property name="tail_leg_mass" value="0.0623" />
+  <xacro:property name="head_leg_mass" value="0.0623" />
+  <xacro:property name="sensor_mass" value="0.06" />
+  <xacro:property name="rotor_mass" value=".05" /> <!-- exclude from center mass -->
+  <xacro:property name="base_mass" value="${link_rod_mass + link_center_mass + joint_mass + protector_mass + protector_holder_mass - rotor_mass}" /> <!-- exclude from center mass -->
 
-  <xacro:macro name="link_color">
-    <material name="color">
-      <color rgba="0.75 .5 .2 1"/>
-    </material>
+  <!-- inertial [N*m*m] -->
+  <xacro:property name="joint_inertia" value="${joint_mass * link_joint_offset * link_joint_offset}" /> <!-- mass * dist * dist -->
+  <xacro:property name="link_rod_inertia" value="${link_rod_mass * link_rod_length * link_rod_length /12}" /> <!-- mass * dist * dist -->
+
+  <xacro:property name="pc_inertia" value="${pc_mass * pc_offset * pc_offset}" /> <!-- mass * dist * dist -->
+  <xacro:property name="fc_inertia" value="${fc_mass * fc_offset * fc_offset}" /> <!-- mass * dist * dist -->
+  <xacro:property name="sensor_inertia" value="${sensor_mass * sensor_offset * sensor_offset}" /> <!-- mass * dist * dist -->
+  <xacro:property name="head_leg_inertia" value="${head_leg_mass * head_leg_offset * head_leg_offset}" /> <!-- mass * dist * dist -->
+  <xacro:property name="tail_leg_inertia" value="${tail_leg_mass * tail_leg_offset * tail_leg_offset}" /> <!-- mass * dist * dist -->
+  <xacro:property name="protector_inertia" value="${protector_mass * protector_radius * protector_radius}" /> <!-- mass * dist * dist -->
+  <xacro:property name="protector_holder_inertia" value="${protector_holder_mass * protector_radius * protector_radius}" /> <!-- mass * dist * dist -->
+  <xacro:property name="base_ixx" value="${protector_inertia / 2}" />
+  <xacro:property name="base_iyy" value="${joint_inertia + link_rod_inertia + protector_holder_inertia + protector_inertia /2}" />
+  <xacro:property name="base_izz" value="${joint_inertia + link_rod_inertia + protector_holder_inertia + protector_inertia}" />
+
+  <!-- dynamics -->
+  <xacro:property name="max_force" value="18" /> <!-- [N] -->
+
+  <xacro:macro name="link_model" params="type">
+    <collision>
+      <origin rpy="0 0 0" xyz="${link_length*.5} 0 -0.03"/>
+      <geometry>
+        <cylinder length="0.15" radius="${protector_radius}"/>
+      </geometry>
+    </collision>
+
+    <visual>
+      <origin rpy="${-pi/2} 0 0" xyz="${link_length*.5} 0 0"/>
+      <geometry>
+        <mesh filename="package://aerial_robot_model/urdf/hydrusx/mesh/hydrusx_link${type}.dae"/>
+      </geometry>
+    </visual>
   </xacro:macro>
 
+  <xacro:macro name="link_inertial" params="extra_mass extra_ixx extra_iyy extra_izz">
+    <mass value="${base_mass + extra_mass}"/>
+        <inertia
+            ixx="${base_ixx + extra_ixx}" ixy="0.0" ixz="0.0"
+            iyy="${base_iyy + extra_iyy}" iyz="0.0"
+            izz="${base_izz + extra_izz}"/>
+  </xacro:macro>
+
+  <!-- friction -->
+  <xacro:macro name="friction" params="self">
+    <gazebo reference="link${self}">
+      <mu1>0.0001</mu1>
+      <mu2>0.0001</mu2>
+    </gazebo>
+  </xacro:macro>
+
+  <xacro:macro name="damping_factor" params="link">
+    <gazebo reference="${link}">
+      <dampingFactor>0.00</dampingFactor>
+    </gazebo>
+  </xacro:macro>
 </robot>

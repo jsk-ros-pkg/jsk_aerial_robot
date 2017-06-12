@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<robot
+    xmlns:xacro="http://www.ros.org/wiki/xacro" name="hydrus3" >
+
+  <xacro:include filename="$(find aerial_robot_model)/robots/hydrus3/penta.urdf.xacro" />
+
+  <!-- gazebo elements: hw interface -->
+  <gazebo>
+    <plugin name="gazebo_ros_control" filename="libgazebo_ros_control.so">
+      <robotNamespace>/hydrus3</robotNamespace>
+      <!-- <robotSimType>gazebo_ros_control/DefaultRobotHWSim</robotSimType> -->
+      <robotSimType>gazebo_ros_control/AerialRobotHWSim</robotSimType>
+    </plugin>
+  </gazebo>
+
+</robot>

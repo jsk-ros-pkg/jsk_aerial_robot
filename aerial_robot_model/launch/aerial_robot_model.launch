@@ -1,45 +1,35 @@
 <launch>
   <arg name="model" default="hydrus3" />
-  <arg name="simulation" default="True" /> <!-- simulation: use virtual joint_state publisher for display the robot model -->
+  <arg name="type" default="quad" />
   <arg name="headless" default="False" />
+  <arg name="description_path" default="$(find aerial_robot_model)/robots"/>
+  <arg name="description_mode" default="urdf"/>
+  <arg name="need_joint_state" default="true" />
 
-  <arg name="gazebo" default="False" />
-
+  <!-- not good -->
+  <!-- global namespace -->
   <param name="robot_description"
-         command="$(find xacro)/xacro.py '$(find aerial_robot_model)/robots/$(arg model).urdf.xacro'" />
+         command="$(find xacro)/xacro.py '$(arg description_path)/$(arg model)/$(arg type).$(arg description_mode).xacro'" />
 
-  <node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher" />
+  <group ns="$(arg model)" >
 
-  <group if="$(arg gazebo)" >
-    <include file="$(find gazebo_ros)/launch/empty_world.launch">
-      <arg name="world_name" value="worlds/empty.world"/>
-      <arg name="debug" value="false" />
-      <arg name="gui" value="true" />
-      <arg name="paused" value="false"/>
-      <arg name="use_sim_time" value="true"/>
-      <arg name="headless" value="false"/>
-    </include>
+    <node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher"/>
 
-    <!-- Run a python script to the send a service call to gazebo_ros to spawn a URDF robot -->
-    <node name="urdf_spawner" pkg="gazebo_ros" type="spawn_model" respawn="false" output="screen"
-          args="-urdf -model rrbot -param robot_description"/>
-
+    <rosparam file = "$(find aerial_robot_model)/config/$(arg model)/$(arg type)_init.yaml" command="load" />
+    <group if="$(arg need_joint_state)">
+      <!-- for simulation -->
+      <param name="use_gui" value="true" />
+      <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" >
+        <param name="robot_description"
+               command="$(find xacro)/xacro.py '$(find aerial_robot_model)/robots/$(arg model)/$(arg type).urdf.xacro'" />
+      </node >
+    </group>
 
   </group>
 
-  <group unless="$(arg gazebo)" >
-
-    <group if="$(arg simulation)">
-      <!-- for simulation -->
-      <param name="use_gui" value="true" />
-      <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" unless = "$(arg headless)"/>
-    </group>
-
-    <group unless="$(arg headless)">
-      <node name="rviz" pkg="rviz" type="rviz"
-            args="-d $(find aerial_robot_model)/launch/rviz_config" respawn="true" />
-    </group>
-
+  <group unless="$(arg headless)">
+    <node name="rviz" pkg="rviz" type="rviz"
+          args="-d $(find aerial_robot_model)/launch/rviz_config" respawn="true" />
   </group>
 
 </launch>

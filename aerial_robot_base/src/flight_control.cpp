@@ -51,6 +51,8 @@ FlightController::FlightController(ros::NodeHandle nh,
     feedforward_flag_ = false;
   printf("%s: feedforward_flag_ is %s\n", nhp_.getNamespace().c_str(), (feedforward_flag_)?"true":"false");
 
+  nhp_.param("motor_num_srv_name", motor_num_srv_name_, std::string("/get_motor_num"));
+  motor_num_srv_ =  nh_.advertiseService(motor_num_srv_name_, &FlightController::motorNumCallback, this);
 }
 
 PidController::PidController(ros::NodeHandle nh,

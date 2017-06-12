@@ -1,21 +1,28 @@
 # Sensor Fuser Loader
 estimator:
-        # nunmber of sensors
-        sensor_no: 3
-        sensor_plugin_name1: sensor_plugin/imu
-        sensor_plugin_name2: sensor_plugin/mocap
-        sensor_plugin_name3: sensor_plugin/optical_flow
+        # sensor plugin
+        sensor_list:
+        - sensor_plugin/imu
+        - sensor_plugin/mocap
 
-        # number of sensor fuser
-        fuser_egomotion_no: 3
-        fuser_experiment_no: 3
+        # egomotion estimation
+        egomotion_list:
+        - kalman_filter/kf_pose_vel_acc_bias
+        - kalman_filter/kf_pose_vel_acc_bias
+        - kalman_filter/kf_pose_vel_acc_bias
+
+        # experiment estimation
+        experiment_list:
+        - kalman_filter/kf_pose_vel_acc_bias
+        - kalman_filter/kf_pose_vel_acc_bias
+        - kalman_filter/kf_pose_vel_acc_bias
 
         # specific id(int) of sensor fuser, axis for kf
         fuser_egomotion_id1: 64 # 1 << 6 
         fuser_egomotion_id2: 128 # 1 << 7
         fuser_egomotion_id3: 4 # 1 << 2
-        fuser_experiment_id1: 1 # 1 << 0
-        fuser_experiment_id2: 2 # 1 << 1
+        fuser_experiment_id1: 64 # 1 << 6
+        fuser_experiment_id2: 128 # 1 << 7
         fuser_experiment_id3: 4 # 1 << 4
 
         # specific name of sensor fuser
@@ -26,13 +33,6 @@ estimator:
         fuser_experiment_name2: /ex/y
         fuser_experiment_name3: /ex/z
 
-        # plugin name of sensor fuser
-        fuser_egomotion_plugin_name1: kalman_filter/kf_pose_vel_acc_bias 
-        fuser_egomotion_plugin_name2: kalman_filter/kf_pose_vel_acc_bias
-        fuser_egomotion_plugin_name3: kalman_filter/kf_pose_vel_acc_bias
-        fuser_experiment_plugin_name1: kalman_filter/kf_pose_vel_acc_bias
-        fuser_experiment_plugin_name2: kalman_filter/kf_pose_vel_acc_bias
-        fuser_experiment_plugin_name3: kalman_filter/kf_pose_vel_acc_bias
 
 # EGOMOTION_ESTIMATION_MODE = 0
 # GROUND_TRUTH_MODE = 1

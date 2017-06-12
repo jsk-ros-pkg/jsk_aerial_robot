@@ -1,0 +1,34 @@
+<launch>
+  <arg name="model" />
+  <arg name="type" />
+  <arg name="gui" default="true" />
+  <arg name="headless" default="false" />
+
+  <!-- robot model -->
+  <include file="$(find aerial_robot_model)/launch/aerial_robot_model.launch">
+    <arg name="model" value="$(arg model)"/>
+    <arg name="type" value="$(arg type)"/>
+    <arg name="description_path" value="$(find aerial_robot_simulation)/robots"/>
+    <arg name="description_mode" value="gazebo"/>
+    <arg name="need_joint_state" value="false"/>
+    <arg name="headless" value="$(arg headless)" />
+  </include>
+
+  <!-- gazebo world -->
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="world_name" value="$(find aerial_robot_simulation)/gazebo_model/world/empty.world"/>
+    <arg name="debug" value="false" />
+    <arg name="gui" value="$(arg gui)" />
+    <arg name="paused" value="false"/>
+    <arg name="use_sim_time" value="true"/>
+    <arg name="headless" value="false"/>
+  </include>
+
+  <node name="urdf_spawner" pkg="gazebo_ros" type="spawn_model" respawn="false" output="screen"
+        args="-urdf -model $(arg model) -param robot_description"/>
+
+  <!-- control -->
+  <node name="controller_spawner" pkg="controller_manager" type="spawner" respawn="false"
+        output="screen" ns="$(arg model)" args="joint_state_controller attitude_controller"/>
+  <node name="control_bridge" pkg="aerial_robot_simulation" type="gazebo_control_bridge.py" output="screen" ns="$(arg model)" />
+</launch>

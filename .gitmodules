@@ -1,0 +1,3 @@
+[submodule "aerial_robot_simulation/d_board"]
+	path = aerial_robot_simulation/d_board
+	url = https://github.com/tongtybj/d_board.git

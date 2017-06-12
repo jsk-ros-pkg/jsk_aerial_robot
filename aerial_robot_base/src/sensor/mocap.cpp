@@ -66,7 +66,8 @@ namespace sensor_plugin
         lpf_acc_[i] = IirFilter((float)rx_freq_, (float)cutoff_pos_freq_);
 
       pose_stamped_pub_ = nh_.advertise<aerial_robot_base::States>(pub_name_, 5);
-      mocap_sub_ = nh_.subscribe("/aerial_robot/pose", 1, &Mocap::poseCallback, this, ros::TransportHints().udp());
+
+      mocap_sub_ = nh_.subscribe(sub_name_, 1, &Mocap::poseCallback, this, ros::TransportHints().udp());
     }
 
     ~Mocap() {}
@@ -113,7 +114,7 @@ private:
   double rx_freq_;
   double cutoff_pos_freq_;
   double cutoff_vel_freq_;
-  std::string pub_name_;
+  std::string sub_name_, pub_name_;
 
   double pos_noise_sigma_, angle_noise_sigma_;
 
@@ -276,6 +277,7 @@ private:
     nhp_.param("angle_sigma", pos_noise_sigma_, 0.001 );
     if(param_verbose_) cout << "pos noise sigma  is " << pos_noise_sigma_ << endl;
 
+    nhp_.param("sub_name", sub_name_, std::string("/aerial_pose/pose"));
     nhp_.param("pub_name", pub_name_, std::string("ground_truth/pose"));
 
     nhp_.param("rx_freq", rx_freq_, 100.0);

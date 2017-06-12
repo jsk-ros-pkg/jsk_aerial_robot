@@ -266,8 +266,8 @@ private:
 
   /* base model config */
   int link_num_;
-  std::vector<int> propeller_direction_;
-  std::vector<int> propeller_order_;
+  int joint_num_;
+  std::vector<int> rotor_direction_;
 
   std::string rpy_gain_pub_name_;
   std::string yaw_pos_gain_sub_name_;
@@ -285,7 +285,7 @@ private:
   double ring_radius_; //the offset from the center of link base to the protector_end
   double link_joint_offset_; //the offset from the center of joint to the mass center of joint
 
-  double link_base_rod_mid_mass_; //protector ring
+  double link_base_rod_common_mass_; //link rod
   std::vector<double> link_base_rod_mass_; //each weight of link base rod is different
   double link_base_ring_mass_; //protector ring
   double link_base_two_ring_holder_mass_; //protector holder

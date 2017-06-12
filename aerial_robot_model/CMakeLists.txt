@@ -9,14 +9,14 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   sensor_msgs
   geometry_msgs
-  interactive_markers 
+  interactive_markers
   visualization_msgs
   tf
 )
 
 catkin_package(
   INCLUDE_DIRS include
-  LIBRARIES ${PROJECT_NAME}
+  LIBRARIES rotor_interface
   CATKIN_DEPENDS roscpp  std_msgs  sensor_msgs geometry_msgs tf interactive_markers visualization_msgs
 #  DEPENDS system_lib
 )
@@ -25,12 +25,17 @@ catkin_package(
 ## Build ##
 ###########
 
+
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 # include_directories(include)
 include_directories(
   include ${Boost_INCLUDE_DIR} ${catkin_INCLUDE_DIRS}
 )
+
+
+add_library(rotor_interface src/rotor_interface.cpp)
+target_link_libraries(rotor_interface ${catkin_LIBRARIES})
 
 add_library(joint_state_publisher src/joint_state_publisher.cpp)
 target_link_libraries(joint_state_publisher  ${catkin_LIBRARIES})

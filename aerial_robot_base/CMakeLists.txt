@@ -45,6 +45,12 @@ add_message_files(FILES
   Acc.msg
   )
 
+add_service_files(
+  FILES
+  GetMotorNum.srv
+)
+
+
 generate_messages(DEPENDENCIES std_msgs geometry_msgs)
 
 generate_dynamic_reconfigure_options(

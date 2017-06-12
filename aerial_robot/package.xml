@@ -16,6 +16,7 @@
   <run_depend>aeiral_robot_model</run_depend>
   <run_depend>aeiral_robot_base</run_depend>
   <run_depend>aerial_robot_comm</run_depend>
+  <run_depend>aerial_robot_simulation</run_depend>
   <run_depend>hydrus_transform_control</run_depend>
   <run_depend>hydrus_moveit_config</run_depend>
   <run_depend>di_control</run_depend>
