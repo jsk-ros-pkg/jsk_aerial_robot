@@ -25,9 +25,6 @@ find_package(catkin REQUIRED COMPONENTS
   mavros_msgs
 )
 
-
-FIND_PACKAGE(MRPT REQUIRED slam;vision;gui;topography)
-
 find_package(Eigen REQUIRED)
 include_directories(${EIGEN_INCLUDE_DIRS})
 add_definitions(${EIGEN_DEFINITIONS})
