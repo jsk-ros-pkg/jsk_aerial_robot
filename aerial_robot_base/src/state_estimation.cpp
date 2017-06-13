@@ -39,6 +39,7 @@ RigidEstimator::RigidEstimator(ros::NodeHandle nh, ros::NodeHandle nh_private) :
   BasicEstimator(nh, nh_private)
 {
   rosParamInit();
+
 }
 
 RigidEstimator::~RigidEstimator() {}
@@ -57,7 +58,7 @@ void RigidEstimator::statesBroadcast()
   for(int axis = 0; axis < STATE_NUM - 3; axis++)
     {
       aerial_robot_base::State r_state;
-      State3Mode state = getState(axis);
+      AxisState state = getState(axis);
 
       switch(axis)
         {
@@ -85,19 +86,19 @@ void RigidEstimator::statesBroadcast()
 
       r_state.state.resize(3);
       for(int mode = 0; mode < 3; mode++)
-        tf::vector3TFToMsg(state[mode], r_state.state[mode]);
+        tf::vector3TFToMsg(state[mode].second, r_state.state[mode]);
 
       if(axis == X_W || axis == Y_W || axis == YAW_W)
         {
-          State3Mode state_temp;
+          AxisState state_temp;
           if(axis == X_W) state_temp = getState(X_B);
           if(axis == Y_W) state_temp = getState(Y_B);
           if(axis == YAW_W) state_temp = getState(YAW_W_B);
 
           for(int mode = 0; mode < 3; mode++)
             {
-              r_state.reserves.push_back(state_temp[mode][0]);
-              r_state.reserves.push_back(state_temp[mode][1]);
+              r_state.reserves.push_back(state_temp[mode].second[0]);
+              r_state.reserves.push_back(state_temp[mode].second[1]);
             }
         }
 

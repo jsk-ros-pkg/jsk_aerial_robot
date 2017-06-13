@@ -8,32 +8,31 @@
 
     <!-- link -->
     <link name="link${self}">
-      <!-- common inertial -->
       <inertial>
-        <origin xyz="${link_length*.5} 0 0" rpy="0 0 0"/>
-        <!-- mass and inertia -->
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <mass value="0.0000001"/>
+        <inertia
+            ixx="0.00000001" ixy="0.0" ixz="0.0"
+            iyy="0.00000001" iyz="0.0"
+            izz="0.00000002"/>
+      </inertial>
+    </link>
 
-        <!-- head -->
-        <xacro:if value="${self == 1}">
-          <xacro:link_inertial extra_mass = "${pc_mass}" extra_ixx = "0" extra_iyy = "${pc_inertia}" extra_izz = "${pc_inertia}" />
-        </xacro:if>
+    <joint name="link${self}2center" type="fixed">
+      <parent link="link${self}"/>
+      <child link="link${self}_center"/>
+      <origin rpy="0 0 0" xyz="${link_length* 0.5} 0 0"/>
+      <axis xyz="0 0 1"/>
+    </joint>
 
-        <!-- tail -->
-        <xacro:if value="${self == child}">
-          <xacro:link_inertial extra_mass = "0" extra_ixx = "0" extra_iyy = "0" extra_izz = "0" />
-        </xacro:if>
-
-        <!-- fc -->
-        <xacro:if value="${fc}">
-          <xacro:link_inertial extra_mass = "${fc_mass}" extra_ixx = "0" extra_iyy = "${fc_inertia}" extra_izz = "${fc_inertia}" />
-        </xacro:if>
-
-        <!-- pc: no -->
-
-        <!-- general -->
-        <xacro:if value="${general}">
-          <xacro:link_inertial extra_mass = "0" extra_ixx = "0" extra_iyy = "0" extra_izz = "0" />
-        </xacro:if>
+    <link name="link${self}_center">
+      <inertial>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <mass value="${link_rod_mass + link_center_mass + protector_mass + protector_holder_mass - rotor_mass}" /> <!-- exclude from center mass -->
+        <inertia
+            ixx="${protector_inertia / 2}" ixy="0.0" ixz="0.0"
+            iyy="${link_rod_inertia + protector_holder_inertia + protector_inertia /2}" iyz="0.0"
+            izz="${link_rod_inertia + protector_holder_inertia + protector_inertia}"/>
       </inertial>
 
       <!-- sepcial inertia & visual & collision -->
@@ -61,34 +60,12 @@
     </link>
     <xacro:damping_factor link ="link${self}"/>
 
-    <!-- link center(virtual) -->
-    <!-- not good -->
-    <joint name="center${self}" type="fixed">
-      <parent link="link${self}"/>
-      <child link="link${self}_center"/>
-      <origin rpy="0 0 0" xyz="${link_length*.5} 0 0"/>
-      <axis xyz="0 0 1"/>
-    </joint>
-
-    <link name="link${self}_center">
-      <!-- visual & collisiont -->
-      <inertial>
-        <origin xyz="0 0 0" rpy="0 0 0"/>
-        <mass value="0.001"/>
-        <inertia
-            ixx="0.00000001" ixy="0.0" ixz="0.0"
-            iyy="0.00000001" iyz="0.0"
-            izz="0.00000002"/>
-      </inertial>
-    </link>
-    <xacro:damping_factor link ="link${self}_center"/>
-
     <!-- rotor -->
     <joint name="rotor${self}" type="continuous">
       <limit effort="100.0" lower="0" upper="${max_force}" velocity="0.5"/> <!-- force range -->
-      <parent link="link${self}"/>
+      <parent link="link${self}_center"/>
       <child link="propeller${self}"/>
-      <origin rpy="0 0 0" xyz="${link_length*.5} 0 0"/>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
       <axis xyz="0 0 1"/>
     </joint>
 
@@ -105,7 +82,18 @@
     </link>
     <xacro:damping_factor link ="propeller${self}"/>
 
-    <!-- joint -->>
+    <!-- extra module -->
+    <!-- pc -->
+    <xacro:if value="${pc}">
+      <xacro:extra_module name = "pc" parent = "${self}" mass = "${pc_mass}" offset = "${link_length* 0.5 + pc_offset}" />
+    </xacro:if>
+
+    <!-- fc -->
+    <xacro:if value="${fc}">
+      <xacro:extra_module name = "fc" parent = "${self}" mass = "${fc_mass}" offset = "${link_length* 0.5 + fc_offset}" />
+    </xacro:if>
+
+    <!-- joint -->
     <xacro:unless value="${self == child}">
       <joint name="joint${self}" type="revolute">
         <limit effort="3.1" lower="-1.57" upper="1.57" velocity="0.5"/>
@@ -115,7 +103,9 @@
         <axis xyz="0 0 1"/>
         <dynamics damping="0.8" friction="0.05"/>
       </joint>
-    </xacro:unless> 
+
+      <xacro:extra_module name = "joint${self}_module" parent = "${child}" mass = "${joint_mass}" offset = "${link_length* 0.5 + link_joint_offset}" /> <!-- special -->
+    </xacro:unless>
 
     <!-- hardware interface -->
     <xacro:unless value="${self == child}">

@@ -54,6 +54,7 @@
 /* ros msg */
 #include <aerial_robot_msgs/BoolFlag.h>
 #include <aerial_robot_base/DesireCoord.h>
+#include <aerial_robot_base/States.h>
 
 /* utils */
 #include <iostream>
@@ -68,10 +69,10 @@ namespace sensor_plugin
   public:
     SensorBase():
       estimate_flag_(true),
-      sensor_hz_(0),
-      transform_()
+      sensor_hz_(0)
     {
-      transform_.setIdentity();
+      baselink_transform_.setIdentity();
+      cog_transform_.setIdentity();
     }
 
     virtual void initialize(ros::NodeHandle nh, ros::NodeHandle nhp, BasicEstimator* estimator, string sensor_name)
@@ -96,7 +97,17 @@ namespace sensor_plugin
       nhp_.param("unhealth_level", unhealth_level_, 0);
       nhp_.param("health_check_rate", health_check_rate_, 100.0);
 
-      nhp_.param("transform_sub_name", transform_sub_name_, std::string("/desire_coordinate"));
+      nhp_.param("cog_transform_sub_name", cog_transform_sub_name_, std::string("/desire_coordinate"));
+
+      double frame_roll, frame_pitch, frame_yaw;
+      nhp_.param("frame_roll", frame_roll, 0.0);
+      nhp_.param("frame_pitch", frame_pitch, 0.0);
+      nhp_.param("frame_yaw", frame_yaw, 0.0);
+      tf::Quaternion q;
+      q.setRPY(frame_roll, frame_pitch, frame_yaw);
+      baselink_transform_.setRotation(q);
+      cout << nhp_.getNamespace() << ", baselink frame transform: [" << frame_roll << ", " << frame_pitch << ", " << frame_yaw << "]" << endl;
+
 
       ros::NodeHandle nh_global("~");
       nh_global.param("simulation", simulation_, false);
@@ -104,7 +115,7 @@ namespace sensor_plugin
       nh_global.param("param_verbose", param_verbose_, false);
       nh_global.param("debug_verbose", debug_verbose_, false);
 
-      transform_sub_ = nh_.subscribe(transform_sub_name_, 5, &SensorBase::transformCallback, this);
+      cog_transform_sub_ = nh_.subscribe(cog_transform_sub_name_, 5, &SensorBase::transformCallback, this);
 
       health_check_timer_ = nhp_.createTimer(ros::Duration(1.0 / health_check_rate_), &SensorBase::healthCheck,this);
     }
@@ -116,12 +127,12 @@ namespace sensor_plugin
     ros::NodeHandle nh_;
     ros::NodeHandle nhp_;
     ros::Timer  health_check_timer_;
-    ros::Subscriber transform_sub_;
+    ros::Subscriber cog_transform_sub_;
     ros::ServiceServer estimate_flag_service_;
     BasicEstimator* estimator_;
     int estimate_mode_;
 
-    string transform_sub_name_;
+    string cog_transform_sub_name_;
     bool simulation_;
     bool param_verbose_;
     bool debug_verbose_;
@@ -134,8 +145,10 @@ namespace sensor_plugin
 
     int estimate_flag_;
 
-    /* the transformation between CoG frame and Body frame */
-    tf::Transform transform_;
+    /* the transformation between sensor frame and baselink frame */
+    tf::Transform baselink_transform_;
+    /* the transformation between baselink frame and CoG frame */
+    tf::Transform cog_transform_;
 
     /* health check */
     vector<bool> health_;
@@ -199,9 +212,8 @@ namespace sensor_plugin
   {
     tf::Matrix3x3 r;
     r.setRPY(offset_msg.roll, offset_msg.pitch, offset_msg.yaw);
-    transform_.setBasis(r);
+    cog_transform_.setBasis(r);
   }
-
 
   };
 

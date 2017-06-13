@@ -11,10 +11,11 @@ if __name__ == "__main__":
     rospy.init_node("hydrus_demo")
 
     link_num = rospy.get_param("~link_num", 4)
+    duration = rospy.get_param("~duration", 8)
     joint_control_topic_name = rospy.get_param("~joint_control_topic_name", "joints_ctrl")
     pub = rospy.Publisher(joint_control_topic_name, JointState, queue_size=10)
 
-    time.sleep(5)
+    time.sleep(1)
     joint = JointState()
     joint.position = []
     for i in range(0, link_num - 1):
@@ -25,4 +26,4 @@ if __name__ == "__main__":
             joint.position[i] = -joint.position[i]
             pub.publish(joint)
             print joint.position
-            time.sleep(5)
+            time.sleep(duration)

@@ -4,15 +4,14 @@
   ############## Motor Info ############################
   <rosparam file="$(find aerial_robot_base)/config/simulation/MotorInfo.yaml" command="load" />
 
-  ############## sensor plugin config ##################
-  <rosparam file="$(find aerial_robot_base)/config/simulation/SensorLoader.yaml" command="load" />
-
   ############## sensor param ##########################
   <rosparam file="$(find aerial_robot_base)/config/sensor_plugin/d_imu.yaml" command="load" />
   <rosparam file="$(find aerial_robot_base)/config/sensor_plugin/mocap.yaml" command="load" />
   <rosparam file="$(find aerial_robot_base)/config/sensor_plugin/leddar_one.yaml" command="load" />
   <rosparam file="$(find aerial_robot_base)/config/sensor_plugin/gps.yaml" command="load" />
   <rosparam file="$(find aerial_robot_base)/config/sensor_plugin/baro.yaml" command="load" />
+  <rosparam file="$(find aerial_robot_base)/config/sensor_plugin/optical_flow.yaml" command="load" />
+  <rosparam file="$(find aerial_robot_base)/config/sensor_plugin/vo.yaml" command="load" />
 
   ############################# Drone Platform ###################################
   <node pkg="aerial_robot_base" type="aerial_robot_base_node" name="aerial_robot_base_node"  output="screen" >
@@ -27,12 +26,13 @@
     ############### Sensor Fusion ######################
     <rosparam file="$(find aerial_robot_base)/config/simulation/SensorFusion.yaml" command="load" />
 
-    <remap from="/estimator/imu/data" to="/simulation/estimator/imu/data" />
-    <remap from="/estimator/barometer/data" to="/simulation/estimator/barometer/data" />
-    <remap from="/estimator/range_sensor/data" to="/simulation/estimator/range_sensor/data" />
-    <remap from="/estimator/mocap/ground_truth/pose" to="/simulation/estimator/mocap/ground_truth/pose" />
-    <remap from="/estimator/optical_flow/data" to="/simulation/estimator/optical_flow/data" />
-    <remap from="/estimator/rtk_gps/state" to="/simulation/estimator/rtk_gps/state" />
+    <remap from="/estimator/sensor_plugin/imu/acc" to="/simulation/estimator/sensor_plugin/imu/acc" />
+    <remap from="/estimator/sensor_plugin/alt/data" to="/simulation/estimator/sensor_plugin/alt/data" />
+    <remap from="/estimator/sensor_plugin/gps/data" to="/simulation/estimator/sensor_plugin/gps/data" />
+    <remap from="/estimator/sensor_plugin/mocap/ground_truth/pose" to="/simulation/estimator/sensor_plugin/mocap/ground_truth/pose" />
+    <remap from="/estimator/sensor_plugin/optical_flow/data" to="/simulation/estimator/sensor_plugin/optical_flow/data" />
+    <remap from="/estimator/sensor_plugin/vo/data" to="/simulation/estimator/sensor_plugin/vo/data" />
+    <remap from="/estimator/sensor_plugin/rtk_gps/state" to="/simulation/estimator/sensor_plugin/rtk_gps/state" />
     <remap from="/uav/full_states" to="/simulation/uav/full_states" />
     <remap from="/uav/state" to="/simulation/uav/state" />
 

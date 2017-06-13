@@ -6,6 +6,8 @@ estimator:
         - sensor_plugin/mocap
         - sensor_plugin/gps
         - sensor_plugin/alt
+        - sensor_plugin/optical_flow
+        - sensor_plugin/vo
 
         # egomotion estimation
         egomotion_list:
@@ -44,8 +46,12 @@ estimator:
         imu:
                 estimate_mode: 3 # 1<<0 + 1<<1
         alt:
-                estimate_mode: 3 # 1<<0 + 1<<1
+                estimate_mode: 1 # 1<<0
         gps:
-                estimate_mode: 3 # 1<<0 + 1<<1                
+                estimate_mode: 1 # 1<<0
+        optical_flow:
+                estimate_mode: 1 # 1<<0
+        vo:
+                estimate_mode: 1 # 1<<0
         mocap:
                 estimate_mode: 6 # 1<<1 + 1<<2

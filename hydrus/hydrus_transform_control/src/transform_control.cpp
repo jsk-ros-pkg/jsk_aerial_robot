@@ -155,10 +155,12 @@ void TransformController::initParam()
   nh_private_.param("rpy_gain_pub_name", rpy_gain_pub_name_, std::string("/rpy_gain"));
   nh_private_.param("yaw_pos_gain_sub_name", yaw_pos_gain_sub_name_, std::string("/yaw_pos_gain"));
 
+  nh_private_.param("only_three_axis_mode", only_three_axis_mode_, false);
   nh_private_.param("control_verbose", control_verbose_, false);
   nh_private_.param("kinematic_verbose", kinematic_verbose_, false);
   nh_private_.param("debug_verbose", debug_verbose_, false);
   nh_private_.param("a_dash_eigen_calc_flag", a_dash_eigen_calc_flag_, false);
+
 
   /* number of links */
   nh_private_.param("link_num", link_num_, 4);
@@ -1106,7 +1108,9 @@ bool  TransformController::stabilityCheck(bool verbose)
       return false; //can not be stable
     }
 
-  lqi_mode_ = LQI_FOUR_AXIS_MODE;
+  if(only_three_axis_mode_)lqi_mode_ = LQI_THREE_AXIS_MODE;
+  else lqi_mode_ = LQI_FOUR_AXIS_MODE;
+
   return true;
 }
 
