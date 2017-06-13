@@ -10,7 +10,6 @@ link_num: 4
 root_link: 3 #from 1
 
 # Link
-link_num: 4
 link_length: 0.6
 link_base_rod_length: 0.528
 link_base_center_mass: 0.211 #no battery, motor, propeller etc
@@ -34,7 +33,7 @@ extra_module_num: 10
 
 # MCU: d_board
 extra_module1_link: 2
-extra_module1_offset: -0.240
+extra_module1_offset: -0.260
 extra_module1_mass: 0.03
 
 # PC(hydrus_c: odroid xu4)
@@ -52,13 +51,15 @@ extra_module4_offset: 0.0
 extra_module4_mass: 0.411 # bat1300mAh: 193[g]; bat3000mAh: 411[g]
 
 # Additional Leg
-extra_module5_link: 3
-extra_module5_offset: 0.235
-extra_module5_mass: 0.09 # 0.0623 + 5V DC-DC converter
+## HEAD
+extra_module5_link: 0
+extra_module5_offset: -0.25
+extra_module5_mass: 0.0623
 
-extra_module6_link: 0
-extra_module6_offset: -0.247
-extra_module6_mass: 0.0623
+## TAIL
+extra_module6_link: 3
+extra_module6_offset: 0.235
+extra_module6_mass: 0.09 # 0.0623 + 5V DC-DC converter
 
 # Sensors
 ## GPS + Leddar One
