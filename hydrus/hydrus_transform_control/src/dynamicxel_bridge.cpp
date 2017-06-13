@@ -125,15 +125,15 @@ public:
     nhp_.param("joints_torque_control_srv_name", joints_torque_control_srv_name_, std::string("/joints_controller/torque_enable"));
     joints_torque_control_srv_ =  nh_.advertiseService(joints_torque_control_srv_name_, &HydrusJoints::jointsTorqueEnableCallback, this);
 
-    nhp_.param("joints_ctrl_sub_name", joints_ctrl_sub_name_, std::string("hydrus/joints_ctrl"));
+    nhp_.param("joints_ctrl_sub_name", joints_ctrl_sub_name_, std::string("joints_ctrl"));
     joints_ctrl_sub_ = nh_.subscribe<sensor_msgs::JointState>(joints_ctrl_sub_name_, 1, &HydrusJoints::jointsCtrlCallback, this, ros::TransportHints().tcpNoDelay());
     joints_state_pub_ = nh_.advertise<sensor_msgs::JointState>("joint_states", 1);
 
     if(bridge_mode_ == MCU_MODE)
       {
-        nhp_.param("servo_sub_name", servo_sub_name_, std::string("servo_states"));
-        nhp_.param("servo_pub_name", servo_pub_name_, std::string("target_servo_states"));
-        nhp_.param("servo_config_cmd_pub_name", servo_config_cmd_pub_name_, std::string("servo_config_cmd"));
+        nhp_.param("servo_sub_name", servo_sub_name_, std::string("/servo_states"));
+        nhp_.param("servo_pub_name", servo_pub_name_, std::string("/target_servo_states"));
+        nhp_.param("servo_config_cmd_pub_name", servo_config_cmd_pub_name_, std::string("/servo_config_cmd"));
 
         nhp_.param("moving_check_rate", moving_check_rate_, 10.0);
         nhp_.param("moving_angle_thresh", moving_angle_thresh_, 2);
