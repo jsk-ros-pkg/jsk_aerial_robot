@@ -286,7 +286,7 @@ namespace sensor_plugin
       nhp_.param("angle_sigma", pos_noise_sigma_, 0.001 );
       if(param_verbose_) cout << "pos noise sigma  is " << pos_noise_sigma_ << endl;
 
-      nhp_.param("sub_name", sub_name_, std::string("/aerial_pose/pose"));
+      nhp_.param("sub_name", sub_name_, std::string("/aerial_robot/pose"));
       nhp_.param("pub_name", pub_name_, std::string("ground_truth/pose"));
 
       nhp_.param("rx_freq", rx_freq_, 100.0);
