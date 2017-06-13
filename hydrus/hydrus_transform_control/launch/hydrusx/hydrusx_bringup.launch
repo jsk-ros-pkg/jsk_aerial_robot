@@ -56,7 +56,7 @@
   </include >
 
   ###########  Servo Bridge  ###########
-  <node pkg="hydrus_transform_control" type="dynamicxel_bridge_node" name="servo_bridge"  output="screen"  if="$(arg real_machine)" >
+  <node pkg="hydrus_transform_control" type="dynamicxel_bridge_node" name="servo_bridge"  output="screen"  ns="hydrusx" if="$(arg real_machine)" >
     <rosparam file="$(find hydrus_transform_control)/config/hydrusx/$(arg type)/Servo.yaml" command="load" />
   </node>
 
