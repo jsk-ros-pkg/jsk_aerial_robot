@@ -228,7 +228,7 @@ namespace sensor_plugin
 
       if(first_flag)
         {
-          tf::pointMsgToTF(msg->pose.position, prev_raw_pos_);
+          tf::pointMsgToTF(msg->pose.position, raw_pos_);
           tf::pointMsgToTF(msg->pose.position, pos_offset_);
 
           /* set ground truth */
@@ -253,13 +253,14 @@ namespace sensor_plugin
                 {
                   string plugin_name = fuser.first;
                   boost::shared_ptr<kf_base_plugin::KalmanFilter> kf = fuser.second;
-                  kf->updateModelFromDt(sensor_hz_);
                   int id = kf->getId();
 
                   if(id < (1 << BasicEstimator::ROLL_W))
                     {
                       temp(0,0) = pos_noise_sigma_;
                       kf->setMeasureSigma(temp);
+                      if(id < (1 << BasicEstimator::Z_W))
+                        kf->setInitState(raw_pos_[id >> 1], 0);
                       kf->setMeasureFlag();
                     }
                 }
