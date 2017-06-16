@@ -1,46 +1,16 @@
 <?xml version="1.0"?>
 <launch>
-  #simulation
-  <arg name="downward_camera_image_topic_name" default="/downward_cam/camera/image" />
-  <arg name="downward_camera_info_topic_name" default="/downward_cam/camera/camera_info" />
-  <arg name="imu_topic_name" default="/raw_imu" />
-  <arg name="sonar_topic_name" default="/sonar_height" />
-  <arg name="odometry_topic_name" default="/ground_truth/state" />
-  <arg name="camera_roll_offset" default="3.1415" />
-  <arg name="camera_pitch_offset" default="0.0" />
-  <arg name="camera_yaw_offset" default="-1.5707" />
-  <arg name="use_sonar" default="false" />
+  # machine
+  <arg name="model" default ="hydrusx" />
 
-  #hydrus
-  <!--arg name="downward_camera_image_topic_name" default="/zed/left/image_rect" />
-  <arg name="downward_camera_info_topic_name" default="/zed/left/camera_info" />
-  <arg name="imu_topic_name" default="/estimator/sensor_plugin/imu/imu_filtered" />
-  <arg name="odometry_topic_name" default="/uav/state" />
-  <arg name="camera_roll_offset" default="0.0" />
-  <arg name="camera_pitch_offset" default="3.1415" />
-  <arg name="camera_yaw_offset" default="0.0" />
-  <arg name="use_sonar" default="false" /-->
+  # sensor
+  <arg name="use_zed" default ="true" />
 
-  <arg name="verbose" default="false" />
-  <arg name="max_count" default="200" />
-  <arg name="sonar_offset" default="0.0" />
-  <arg name="image_crop_scale" default="0.8" />
-  <arg name="image_cut_pixel" default="30" />
-  
-  <node pkg="nodelet" type="nodelet" args="standalone aerial_robot_estimation/OpticalFlow" name="optical_flow" output="screen">   
-    <param name="downward_camera_image_topic_name" value="$(arg downward_camera_image_topic_name)" />
-    <param name="downward_camera_info_topic_name" value="$(arg downward_camera_info_topic_name)" />
-    <param name="imu_topic_name" value="$(arg imu_topic_name)" />
-    <param name="sonar_topic_name" value="$(arg sonar_topic_name)" if="$(arg use_sonar)"/>
-    <param name="odometry_topic_name" value="$(arg odometry_topic_name)" />
-    <param name="camera_roll_offset" value="$(arg camera_roll_offset)" />
-    <param name="camera_pitch_offset" value="$(arg camera_pitch_offset)" />
-    <param name="camera_yaw_offset" value="$(arg camera_yaw_offset)" />
-    <param name="use_sonar" value="$(arg use_sonar)"/>
-    <param name="verbose" value="$(arg verbose)" />
-    <param name="max_count" value="$(arg max_count)" />
-    <param name="sonar_offset" value="$(arg sonar_offset)" />
-    <param name="image_crop_scale" value="$(arg image_crop_scale)" />
-    <param name="image_cut_pixel" value="$(arg image_cut_pixel)" />
+  <group if="$(arg use_zed)">
+    <include file="$(find zed_wrapper)/launch/zed.launch" />
+  </group>
+
+  <node pkg="nodelet" type="nodelet" args="standalone aerial_robot_estimation/OpticalFlow" name="optical_flow" output="screen">
+      <rosparam file="$(find aerial_robot_estimation)/config/$(arg model)/OpticalFlow.yaml" command="load" />
   </node>
 </launch>
