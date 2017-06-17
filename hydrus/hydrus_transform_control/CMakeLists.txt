@@ -23,7 +23,9 @@ add_definitions(${EIGEN_DEFINITIONS})
 add_message_files(
   FILES
   RollPitchYawGain.msg
+  RollPitchYawGains.msg
   ServoState.msg
+  ServoStates.msg
   ServoControl.msg
   Gyro.msg
 )

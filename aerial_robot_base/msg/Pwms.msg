@@ -1,1 +1,1 @@
-uint16[8] motor_value
+uint16[] motor_value

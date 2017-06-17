@@ -1,13 +1,14 @@
-#this is unofficial way to send 3 axis gain to flight controller
-# 2 x 6 x 7 = 84 byte
+#gain: only roll, pitch, yaw_d (throttle and yaw pi is calculated in PC side)
 
-#gains
-int16[6] roll_p_gain #motor1->6
-int16[6] roll_i_gain #motor1->6
-int16[6] roll_d_gain #motor1->6
+# roll
+int16 roll_p
+int16 roll_i
+int16 roll_d
 
-int16[6] pitch_p_gain #motor1->6
-int16[6] pitch_i_gain #motor1->6
-int16[6] pitch_d_gain #motor1->6
+# pitch
+int16 pitch_p
+int16 pitch_i
+int16 pitch_d
 
-int16[6] yaw_d_gain #motor1->6
+# yaw
+int16 yaw_d

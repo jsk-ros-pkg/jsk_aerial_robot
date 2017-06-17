@@ -100,7 +100,7 @@ TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_
   lqi_mode_ = LQI_FOUR_AXIS_MODE;
 
   //those publisher is published from func param2controller
-  rpy_gain_pub_ = nh_.advertise<hydrus_transform_control::RollPitchYawGain>(rpy_gain_pub_name_, 1);
+  rpy_gain_pub_ = nh_.advertise<hydrus_transform_control::RollPitchYawGains>(rpy_gain_pub_name_, 1);
   four_axis_gain_pub_ = nh_.advertise<aerial_robot_msgs::FourAxisGain>("four_axis_gain", 1);
 
   //dynamic reconfigure server
@@ -817,7 +817,7 @@ void TransformController::param2contoller()
 {
   aerial_robot_base::DesireCoord desire_coord_msg;
   aerial_robot_msgs::FourAxisGain four_axis_gain_msg;
-  hydrus_transform_control::RollPitchYawGain rpy_gain_msg;
+  hydrus_transform_control::RollPitchYawGains rpy_gain_msg; //for rosserial
 
   desire_coord_msg.roll = 0;
   desire_coord_msg.pitch = 0;
@@ -825,53 +825,20 @@ void TransformController::param2contoller()
 
   four_axis_gain_msg.motor_num = link_num_;
 
-  /* TODO:
-     The size of "aerial_robot_msgs::FourAxisGain" and "hydrus_transform_control::RollPitchYawGain" 
-     is fixed to be 6.
-     So the model with more than 6 links(i.e. hex) is not suitable for this message.
-     If we have to fix this problem, we have to change the message structure of those message.
-     However, the increase of the elements of those message affects the bandwidth of serial communication
-     between pc and fcu.
-     Right now, only a hardcoding for the octo model is implemented.
-  */
-  if(link_num_ > 6) return;
-
-#if 0
-  /* temp */
-  if (std::signbit(K12_(0,0)) != std::signbit(K12_(5,0)))
-    {
-      K12_(0,0) = 0;
-      K12_(5,0) = 0;
-      K12_(0,1) = 0;
-      K12_(5,1) = 0;
-      K12_(0,8) = 0;
-      K12_(5,8) = 0;
-    }
-  else
-    {
-      K12_(0,2) = 0;
-      K12_(5,2) = 0;
-      K12_(0,3) = 0;
-      K12_(5,3) = 0;
-      K12_(0,9) = 0;
-      K12_(5,9) = 0;
-    }
-#endif
-
   for(int i = 0; i < link_num_; i ++)
     {
       if(lqi_mode_ == LQI_FOUR_AXIS_MODE)
         {
-          /* to flight controller */
-          rpy_gain_msg.roll_p_gain[i] = K12_(i,0) * 1000; //scale: x 1000
-          rpy_gain_msg.roll_d_gain[i] = K12_(i,1) * 1000;  //scale: x 1000
-          rpy_gain_msg.roll_i_gain[i] = K12_(i,8) * 1000; //scale: x 1000
+          /* to flight controller via rosserial */
+          rpy_gain_msg.motors[i].roll_p = K12_(i,0) * 1000; //scale: x 1000
+          rpy_gain_msg.motors[i].roll_d = K12_(i,1) * 1000;  //scale: x 1000
+          rpy_gain_msg.motors[i].roll_i = K12_(i,8) * 1000; //scale: x 1000
 
-          rpy_gain_msg.pitch_p_gain[i] = K12_(i,2) * 1000; //scale: x 1000
-          rpy_gain_msg.pitch_d_gain[i] = K12_(i,3) * 1000; //scale: x 1000
-          rpy_gain_msg.pitch_i_gain[i] = K12_(i,9) * 1000; //scale: x 1000
+          rpy_gain_msg.motors[i].pitch_p = K12_(i,2) * 1000; //scale: x 1000
+          rpy_gain_msg.motors[i].pitch_d = K12_(i,3) * 1000; //scale: x 1000
+          rpy_gain_msg.motors[i].pitch_i = K12_(i,9) * 1000; //scale: x 1000
 
-          rpy_gain_msg.yaw_d_gain[i] = K12_(i,5) * 1000; //scale: x 1000
+          rpy_gain_msg.motors[i].yaw_d = K12_(i,5) * 1000; //scale: x 1000
 
           /* to aerial_robot_base, feedback */
           four_axis_gain_msg.pos_p_gain_roll.push_back(K12_(i,0));
@@ -899,15 +866,15 @@ void TransformController::param2contoller()
         }
       else if(lqi_mode_ == LQI_THREE_AXIS_MODE)
         {
-          rpy_gain_msg.roll_p_gain[i] = K9_(i,0) * 1000; //scale: x 1000
-          rpy_gain_msg.roll_d_gain[i] = K9_(i,1) * 1000; //scale: x 1000
-          rpy_gain_msg.roll_i_gain[i] = K9_(i,6) * 1000; //scale: x 1000
+          rpy_gain_msg.motors[i].roll_p = K9_(i,0) * 1000; //scale: x 1000
+          rpy_gain_msg.motors[i].roll_d = K9_(i,1) * 1000; //scale: x 1000
+          rpy_gain_msg.motors[i].roll_i = K9_(i,6) * 1000; //scale: x 1000
 
-          rpy_gain_msg.pitch_p_gain[i] = K9_(i,2) * 1000; //scale: x 1000
-          rpy_gain_msg.pitch_d_gain[i] = K9_(i,3) * 1000; //scale: x 1000
-          rpy_gain_msg.pitch_i_gain[i] = K9_(i,7) * 1000; //scale: x 1000
+          rpy_gain_msg.motors[i].pitch_p = K9_(i,2) * 1000; //scale: x 1000
+          rpy_gain_msg.motors[i].pitch_d = K9_(i,3) * 1000; //scale: x 1000
+          rpy_gain_msg.motors[i].pitch_i = K9_(i,7) * 1000; //scale: x 1000
 
-          rpy_gain_msg.yaw_d_gain[i] = 0;
+          rpy_gain_msg.motors[i].yaw_d = 0;
 
           /* to aerial_robot_base, feedback */
           four_axis_gain_msg.pos_p_gain_roll.push_back(K9_(i,0));

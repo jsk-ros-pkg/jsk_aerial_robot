@@ -10,7 +10,7 @@
 #include <sensor_msgs/JointState.h>
 #include <dynamixel_controllers/TorqueEnable.h>
 #include <dynamixel_msgs/MotorStateList.h>
-#include <hydrus_transform_control/ServoState.h>
+#include <hydrus_transform_control/ServoStates.h>
 #include <hydrus_transform_control/ServoControl.h>
 #include <string>
 
@@ -140,7 +140,7 @@ public:
         nhp_.param("dynamixel_msg_pub_name", dynamixel_msg_pub_name_, std::string("/motor_states/joints_port"));
         nhp_.param("overload_check_activate_srv_name", overload_check_activate_srv_name_, std::string("/overload_check_activate"));
 
-        servo_angle_sub_ = nh_.subscribe<hydrus_transform_control::ServoState>(servo_sub_name_, 1, &HydrusJoints::servoStateCallback, this, ros::TransportHints().tcpNoDelay());
+        servo_angle_sub_ = nh_.subscribe<hydrus_transform_control::ServoStates>(servo_sub_name_, 1, &HydrusJoints::servoStatesCallback, this, ros::TransportHints().tcpNoDelay());
         servo_ctrl_pub_ = nh_.advertise<hydrus_transform_control::ServoControl>(servo_pub_name_, 1);
         servo_config_cmd_pub_ = nh_.advertise<std_msgs::UInt8>(servo_config_cmd_pub_name_, 1);
 
@@ -172,15 +172,18 @@ public:
     setCurrentAngle(msg->current_pos, i);
   }
 
-  void servoStateCallback(const hydrus_transform_control::ServoStateConstPtr& state_msg)
+  void servoStatesCallback(const hydrus_transform_control::ServoStatesConstPtr& state_msg)
   {
+    /* the joint_num_ should be equal with the mcu information */
+    assert(state_msg->servos.size() == joint_num_);
+
     static ros::Time prev_time = ros::Time::now();
     for(int i = 0; i < joint_num_; i ++)
       {
-        setCurrentAngle(state_msg->angle[i], i);
-        joint_module_[i].error = state_msg->error[i];
-        joint_module_[i].temp = state_msg->temp[i];
-        joint_module_[i].load = state_msg->load[i];
+        setCurrentAngle(state_msg->servos[i].angle, i);
+        joint_module_[i].error = state_msg->servos[i].error;
+        joint_module_[i].temp = state_msg->servos[i].temp;
+        joint_module_[i].load = state_msg->servos[i].load;
       }
 
     /* check moving */
@@ -188,10 +191,10 @@ public:
       {
         for(int i = 0; i < joint_num_; i ++)
           {
-            if(abs(state_msg->angle[i] - joint_module_[i].prev_servo_angle) > moving_angle_thresh_)
+            if(abs(state_msg->servos[i].angle - joint_module_[i].prev_servo_angle) > moving_angle_thresh_)
               {
                 joint_module_[i].moving = true;
-                joint_module_[i].prev_servo_angle = state_msg->angle[i];
+                joint_module_[i].prev_servo_angle = state_msg->servos[i].angle;
               }
             else joint_module_[i].moving = false;
           }
@@ -204,7 +207,7 @@ public:
       {
         for(int i = 0; i < joint_num_; i ++)
           {
-            if(OVERLOAD_FLAG & state_msg->error[i])
+            if(OVERLOAD_FLAG & state_msg->servos[i].error)
               {
                 ROS_WARN("motor: %d, overload", i+1);
 
@@ -220,6 +223,7 @@ public:
   void jointsCtrlCallback(const sensor_msgs::JointStateConstPtr& joints_ctrl_msg)
   {
     hydrus_transform_control::ServoControl target_angle_msg;
+    target_angle_msg.angles.resize(joint_num_);
 
     for(int i = 0; i < joint_num_; i ++)
       {
@@ -234,7 +238,7 @@ public:
             joint_module_[i].joint_ctrl_pub.publish(command);
           }
         else if(bridge_mode_ == MCU_MODE)
-          target_angle_msg.angle[i] = target_angle;
+          target_angle_msg.angles[i] = target_angle;
       }
 
     if(bridge_mode_ == MCU_MODE) servo_ctrl_pub_.publish(target_angle_msg);

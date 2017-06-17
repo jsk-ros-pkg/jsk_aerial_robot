@@ -50,6 +50,7 @@
 #include <aerial_robot_base/DesireCoord.h>
 #include <aerial_robot_msgs/FourAxisGain.h>
 #include <hydrus_transform_control/RollPitchYawGain.h>
+#include <hydrus_transform_control/RollPitchYawGains.h>
 #include <hydrus_transform_control/AddExtraModule.h>
 
 #include <string>
