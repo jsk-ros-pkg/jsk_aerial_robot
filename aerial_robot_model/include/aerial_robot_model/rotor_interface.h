@@ -93,6 +93,19 @@ namespace hardware_interface
     inline tf::Quaternion getRootLinkOrientation() {return q_; }
     inline tf::Vector3 getRootLinkAngular() {return w_;}
 
+    /* temporary implementation */
+    uint8_t getRootLinkNo()
+    {
+      for(uint8_t i = 0; i < getNames().size(); i++)
+        {
+          std::stringstream link_no;
+          link_no << i + 1;
+          if(root_link_name_ == std::string("link") + link_no.str())
+            return i;
+        }
+      return 255;
+    }
+
   private:
     uint8_t joint_num_;
     bool found_root_link_;
