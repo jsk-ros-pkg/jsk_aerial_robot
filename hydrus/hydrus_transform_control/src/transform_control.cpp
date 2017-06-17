@@ -100,7 +100,7 @@ TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_
   lqi_mode_ = LQI_FOUR_AXIS_MODE;
 
   //those publisher is published from func param2controller
-  rpy_gain_pub_ = nh_.advertise<hydrus_transform_control::RollPitchYawGains>(rpy_gain_pub_name_, 1);
+  rpy_gain_pub_ = nh_.advertise<aerial_robot_msgs::RollPitchYawTerms>(rpy_gain_pub_name_, 1);
   four_axis_gain_pub_ = nh_.advertise<aerial_robot_msgs::FourAxisGain>("four_axis_gain", 1);
 
   //dynamic reconfigure server
@@ -817,7 +817,7 @@ void TransformController::param2contoller()
 {
   aerial_robot_base::DesireCoord desire_coord_msg;
   aerial_robot_msgs::FourAxisGain four_axis_gain_msg;
-  hydrus_transform_control::RollPitchYawGains rpy_gain_msg; //for rosserial
+  aerial_robot_msgs::RollPitchYawTerms rpy_gain_msg; //for rosserial
 
   desire_coord_msg.roll = 0;
   desire_coord_msg.pitch = 0;
