@@ -824,6 +824,7 @@ void TransformController::param2contoller()
   desire_coord_msg.yaw = -rotate_angle_;  // should be reverse (cog coord is parent)
 
   four_axis_gain_msg.motor_num = link_num_;
+  rpy_gain_msg.motors.resize(link_num_);
 
   for(int i = 0; i < link_num_; i ++)
     {
