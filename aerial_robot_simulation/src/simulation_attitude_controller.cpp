@@ -55,6 +55,7 @@ bool SimulationAttitudeController::init(hardware_interface::RotorInterface *robo
   motor_num_ = rotor_interface_->getNames().size();
   joint_num_ = rotor_interface_->getJointNum();
 
+
   controller_core_->init(&n);
 
   // Set the control gains if necessary
@@ -101,15 +102,24 @@ bool SimulationAttitudeController::init(hardware_interface::RotorInterface *robo
 void SimulationAttitudeController::starting(const ros::Time& time)
 {
   /* set the uav type to the control core */
-  int uav_type = motor_num_ * 16;
-  uav_type += ((joint_num_ > 0)?10:0);
-  std_msgs::UInt8 uav_type_msg;
-  uav_type_msg.data = uav_type;
+  aerial_robot_base::UavType uav_type_msg;
+  uav_type_msg.motor_num = motor_num_;
+
+  if(joint_num_ == 0)
+    uav_type_msg.uav_model = aerial_robot_base::UavType::DRONE;
+  else if(joint_num_ == motor_num_ - 1 )
+    uav_type_msg.uav_model = aerial_robot_base::UavType::HYDRUS;
+  else if(joint_num_ == motor_num_)
+    uav_type_msg.uav_model = aerial_robot_base::UavType::RING;
+  else if(joint_num_ == (motor_num_ -1) * 2 )
+    uav_type_msg.uav_model = aerial_robot_base::UavType::DRAGON;
+
+  uav_type_msg.root_link = rotor_interface_->getRootLinkNo();
 
   ros::NodeHandle n;
-  ros::Publisher uav_config_pub = n.advertise<std_msgs::UInt8>("/uav_type_config", 1);
+  ros::Publisher uav_config_pub = n.advertise<aerial_robot_base::UavType>("/uav_type_config", 1);
   uav_config_pub.publish(uav_type_msg);
-  ROS_WARN("motor_num: %d, uav_type is %d", motor_num_, uav_type);
+  ROS_WARN("motor_num: %d, root link: %s", motor_num_, rotor_interface_->getRootLinkName().c_str());
 }
 
 void SimulationAttitudeController::update(const ros::Time& time, const ros::Duration& period)
