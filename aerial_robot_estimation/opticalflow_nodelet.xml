@@ -1,0 +1,7 @@
+<library path="lib/liboptical_flow">
+  <class name="aerial_robot_estimation/OpticalFlow" type="aerial_robot_estimation::OpticalFlow" base_class_type="nodelet::Nodelet">
+    <description>
+      Nodelet for Optical Flow
+    </description>
+  </class>
+</library>

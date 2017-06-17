@@ -1,0 +1,16 @@
+verbose: false
+
+downward_camera_image_topic_name: /zed/left/image_rect_color
+downward_camera_info_topic_name: /zed/left/camera_info
+imu_topic_name: /estimator/sensor_plugin/imu/imu_filtered
+odometry_topic_name: /uav/state
+
+image_crop_scale: 0.7
+image_cut_pixel: 10
+max_count: 200
+camera_roll_offset: -3.1415
+camera_pitch_offset: 0.0
+camera_yaw_offset: 0.0
+
+use_sonar: false
+sonar_offset: 0.0

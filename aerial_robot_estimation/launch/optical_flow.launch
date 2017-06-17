@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<launch>
+  # machine
+  <arg name="model" default ="hydrusx" />
+
+  # sensor
+  <arg name="use_zed" default ="true" />
+
+  <group if="$(arg use_zed)">
+    <include file="$(find zed_wrapper)/launch/zed.launch" />
+  </group>
+
+  <node pkg="nodelet" type="nodelet" args="standalone aerial_robot_estimation/OpticalFlow" name="optical_flow" output="screen">
+      <rosparam file="$(find aerial_robot_estimation)/config/$(arg model)/OpticalFlow.yaml" command="load" />
+  </node>
+</launch>
