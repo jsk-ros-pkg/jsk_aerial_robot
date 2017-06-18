@@ -109,32 +109,32 @@ void RigidEstimator::statesBroadcast()
   nav_msgs::Odometry odom_state;
   odom_state.header.stamp = ros::Time::now();
   odom_state.header.frame_id = std::string("/nav");
-  odom_state.child_frame_id = std::string("/base_link");
+  odom_state.child_frame_id = std::string("/root_link");
 
   tf::Point pos;
   tf::Vector3 vel;
   tf::Quaternion q;
   tf::Vector3 omega;
 
-  pos.setValue(full_state.states[X_W].state[estimate_mode_].x,
-               full_state.states[Y_W].state[estimate_mode_].x,
-               full_state.states[Z_W].state[estimate_mode_].x);
+  pos.setValue(getState(X_W)[estimate_mode_].second.x(),
+               getState(Y_W)[estimate_mode_].second.x(),
+               getState(Z_W)[estimate_mode_].second.x());
   tf::pointTFToMsg(pos, odom_state.pose.pose.position);
 
-  vel.setValue(full_state.states[X_W].state[estimate_mode_].y,
-               full_state.states[Y_W].state[estimate_mode_].y,
-               full_state.states[Z_W].state[estimate_mode_].y);
+  vel.setValue(getState(X_W)[estimate_mode_].second.y(),
+               getState(Y_W)[estimate_mode_].second.y(),
+               getState(Z_W)[estimate_mode_].second.y());
   tf::vector3TFToMsg(vel, odom_state.twist.twist.linear);
 
   /* cog frame */
-  q.setRPY(full_state.states[ROLL_W].state[estimate_mode_].x,
-           full_state.states[PITCH_W].state[estimate_mode_].x,
-           full_state.states[YAW_W].state[estimate_mode_].x);
+  q.setRPY(getState(ROLL_W_B)[estimate_mode_].second.x(),
+           getState(PITCH_W_B)[estimate_mode_].second.x(),
+           getState(YAW_W_B)[estimate_mode_].second.x());
   tf::quaternionTFToMsg(q, odom_state.pose.pose.orientation);
 
-  omega.setValue(full_state.states[ROLL_W].state[estimate_mode_].y,
-                 full_state.states[PITCH_W].state[estimate_mode_].y,
-                 full_state.states[YAW_W].state[estimate_mode_].y);
+  omega.setValue(getState(ROLL_W_B)[estimate_mode_].second.y(),
+                 getState(PITCH_W_B)[estimate_mode_].second.y(),
+                 getState(YAW_W_B)[estimate_mode_].second.y());
   tf::vector3TFToMsg(omega, odom_state.twist.twist.angular);
 
   odom_state_pub_.publish(odom_state);

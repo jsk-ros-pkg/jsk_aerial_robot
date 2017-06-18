@@ -13,16 +13,13 @@ navigator/forward_backward_distance: 0
 navigator/left_right_distance: 0
 
 # Keyboard _teleop
-navigator/target_vel_rate: 0.5
-navigator/target_pitch_roll_interval: 0.005  # 0.2 / 20 = 0.01, 0.005 ~ 0.01  m/s
-navigator/target_alt_interval: 0.02
-navigator/target_yaw_rate: 0.1 #  0.05 
+navigator/max_target_vel: 0.5
+navigator/joy_target_vel_interval: 0.005  # 0.2 / 20 = 0.01, 0.005 ~ 0.01  m/s
+navigator/joy_target_alt_interval: 0.02
+navigator/max_target_yaw_rate: 0.3 #  0.05 
 navigator/cmd_vel_lev2_gain : 2.0
-
-# for optical flow control
-#navigator/xy_vel_mode_pos_ctrl_takeoff : false
 
 # attitude tunning mode in joystick mode
 navigator/gain_tunning_mode: 0
-navigator/target_angle_rate: 0.2
+navigator/max_target_tilt_angle: 0.2
 navigator/cmd_angle_lev2_gain : 1.5

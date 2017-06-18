@@ -94,8 +94,6 @@ namespace sensor_plugin
     inline tf::Vector3 getAttitude(uint8_t frame)  { return euler_[frame]; }
     inline ros::Time getStamp(){return imu_stamp_;}
 
-    static constexpr float G = 9.797;
-
   private:
     ros::Publisher  acc_pub_;
     ros::Publisher  imu_pub_;
@@ -175,7 +173,7 @@ namespace sensor_plugin
       /* get the vectors of CoG frame */
       tf::Matrix3x3 r_b;
       r_b.setRPY(euler_[Frame::BODY][0], euler_[Frame::BODY][1], euler_[Frame::BODY][2]);
-      tf::Matrix3x3 r_cog = r_b * cog_transform_.getBasis().transpose();
+      tf::Matrix3x3 r_cog = r_b * estimator_->getRRootlink2Cog();
       tfScalar roll_cog = 0, pitch_cog = 0, yaw_cog = 0;
       r_cog.getRPY(roll_cog, pitch_cog, yaw_cog);
       if (yaw_cog > M_PI) yaw_cog -= 2 * M_PI;
@@ -183,19 +181,19 @@ namespace sensor_plugin
 
       /* 2017/05/05 TODO: the transformation is static, no extra dynamic elem for acc, omega in CoG frame */
       euler_[Frame::COG].setValue(roll_cog, pitch_cog, yaw_cog);
-      acc_[Frame::COG] = cog_transform_.getBasis() * acc_[Frame::BODY];
-      omega_[Frame::COG] = cog_transform_.getBasis() * omega_[Frame::BODY];
-      mag_[Frame::COG] = cog_transform_.getBasis() * mag_[Frame::BODY];
+      acc_[Frame::COG] = estimator_->getRCog2Rootlink() * acc_[Frame::BODY];
+      omega_[Frame::COG] = estimator_->getRCog2Rootlink() * omega_[Frame::BODY];
+      mag_[Frame::COG] = estimator_->getRCog2Rootlink() * mag_[Frame::BODY];
 
       /* project acc onto level frame using body frame value */
 #if 1 // use x,y for factor4 and z for factor3
       tf::Matrix3x3 orientation;
       orientation.setRPY(euler_[Frame::BODY][0], euler_[Frame::BODY][1], 0);
       acc_l_ = orientation * acc_[Frame::BODY];
-      acc_l_.setZ((orientation * tf::Vector3(0, 0, acc_[Frame::BODY].z())).z() - G);
+      acc_l_.setZ((orientation * tf::Vector3(0, 0, acc_[Frame::BODY].z())).z() - BasicEstimator::G);
 
 #else  // use approximation
-      acc_l_ = orientation * tf::Vector3(0, 0, acc_[Frame::BODY].z()) - tf::Vector3(0, 0, G);
+      acc_l_ = orientation * tf::Vector3(0, 0, acc_[Frame::BODY].z()) - tf::Vector3(0, 0, BasicEstimator::G);
 #endif
 
       if(estimator_->getLandingMode() &&
@@ -491,7 +489,7 @@ namespace sensor_plugin
         ROS_WARN(" imu board is %s\n", (imu_board_ == KDUINO)?"kduino":"other board");
       if(imu_board_ == KDUINO)
         {
-          nhp_.param("acc_scale", acc_scale_, G / 512.0);
+          nhp_.param("acc_scale", acc_scale_, BasicEstimator::G / 512.0);
           if(param_verbose_) cout << "acc scale is" << acc_scale_ << endl;
           nhp_.param("gyro_scale", gyro_scale_, (2279 * M_PI)/((32767.0 / 4.0f ) * 180.0));
           if(param_verbose_) cout << "gyro scale is" << gyro_scale_ << endl;
