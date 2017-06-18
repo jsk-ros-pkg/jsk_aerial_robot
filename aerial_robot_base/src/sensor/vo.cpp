@@ -113,7 +113,7 @@ namespace sensor_plugin
                                          vo_msg->pose.pose.orientation.w));
       r_b_ = init_orien_ * raw_r;
       r_b_ = raw_r;
-      r_cog_ = r_b_ * cog_transform_.getBasis().transpose();
+      r_cog_ = r_b_ * estimator_->getRRootlink2Cog();
 
       tfScalar r,p,y;
       r_b_.getRPY(r,p,y);

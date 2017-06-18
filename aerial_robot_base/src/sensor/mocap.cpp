@@ -173,12 +173,12 @@ namespace sensor_plugin
 
           tf::Matrix3x3 r_b;
           r_b.setRPY(raw_euler_[0], raw_euler_[1], raw_euler_[2]);
-          tf::Matrix3x3 r_cog = r_b * cog_transform_.getBasis().transpose();
+          tf::Matrix3x3 r_cog = r_b * estimator_->getRRootlink2Cog();
           tfScalar roll_cog = 0, pitch_cog = 0, yaw_cog = 0;
           if (yaw_cog > M_PI) yaw_cog -= 2 * M_PI;
           if (yaw_cog < -M_PI) yaw_cog += 2 * M_PI;
           r_cog.getRPY(roll_cog, pitch_cog, yaw_cog);
-          tf::Vector3 omega_cog = cog_transform_.getBasis() * omega_;
+          tf::Vector3 omega_cog = estimator_->getRCog2Rootlink() * omega_;
 
           estimator_->setState(BasicEstimator::YAW_W, BasicEstimator::GROUND_TRUTH, 0, yaw_cog);
           estimator_->setState(BasicEstimator::YAW_W_B, BasicEstimator::GROUND_TRUTH, 0, raw_euler_[2]);

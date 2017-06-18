@@ -175,7 +175,7 @@ namespace sensor_plugin
       /* get the vectors of CoG frame */
       tf::Matrix3x3 r_b;
       r_b.setRPY(euler_[Frame::BODY][0], euler_[Frame::BODY][1], euler_[Frame::BODY][2]);
-      tf::Matrix3x3 r_cog = r_b * cog_transform_.getBasis().transpose();
+      tf::Matrix3x3 r_cog = r_b * estimator_->getRRootlink2Cog();
       tfScalar roll_cog = 0, pitch_cog = 0, yaw_cog = 0;
       r_cog.getRPY(roll_cog, pitch_cog, yaw_cog);
       if (yaw_cog > M_PI) yaw_cog -= 2 * M_PI;
@@ -183,9 +183,9 @@ namespace sensor_plugin
 
       /* 2017/05/05 TODO: the transformation is static, no extra dynamic elem for acc, omega in CoG frame */
       euler_[Frame::COG].setValue(roll_cog, pitch_cog, yaw_cog);
-      acc_[Frame::COG] = cog_transform_.getBasis() * acc_[Frame::BODY];
-      omega_[Frame::COG] = cog_transform_.getBasis() * omega_[Frame::BODY];
-      mag_[Frame::COG] = cog_transform_.getBasis() * mag_[Frame::BODY];
+      acc_[Frame::COG] = estimator_->getRCog2Rootlink() * acc_[Frame::BODY];
+      omega_[Frame::COG] = estimator_->getRCog2Rootlink() * omega_[Frame::BODY];
+      mag_[Frame::COG] = estimator_->getRCog2Rootlink() * mag_[Frame::BODY];
 
       /* project acc onto level frame using body frame value */
 #if 1 // use x,y for factor4 and z for factor3

@@ -48,6 +48,7 @@
 #include <nav_msgs/Odometry.h>
 #include <tf/transform_broadcaster.h>
 #include <std_msgs/UInt8.h>
+#include <aerial_robot_base/DesireCoord.h>
 
 /* util */
 #include <assert.h>
@@ -88,12 +89,14 @@ public:
   {
     /* ros param */
     nhp_.param ("param_verbose", param_verbose_, true);
-
     nhp_.param ("estimate_mode", estimate_mode_, 0); //EGOMOTION_ESTIMATE: 0
+    nhp_.param("cog2rootlink_transform_sub_name", cog2rootlink_transform_sub_name_, std::string("/desire_coordinate"));
     ROS_WARN("estimate_mode is %s", (estimate_mode_ == EGOMOTION_ESTIMATE)?string("EGOMOTION_ESTIMATE").c_str():((estimate_mode_ == EXPERIMENT_ESTIMATE)?string("EXPERIMENT_ESTIMATE").c_str():((estimate_mode_ == GROUND_TRUTH)?string("GROUND_TRUTH").c_str():string("WRONG_MODE").c_str())));
 
     odom_state_pub_ = nh_.advertise<nav_msgs::Odometry>("/uav/state", 1);
     full_state_pub_ = nh_.advertise<aerial_robot_base::States>("/uav/full_state", 1);
+    cog2rootlink_transform_sub_ = nh_.subscribe(cog2rootlink_transform_sub_name_, 5, &BasicEstimator::transformCallback, this);
+
     fuser_[0].resize(0);
     fuser_[1].resize(0);
 
@@ -106,6 +109,8 @@ public:
             state_[i][j].second = tf::Vector3(0, 0, 0);
           }
       }
+
+    cog2rootlink_transform_.setIdentity();
 
     /* TODO: represented sensors unhealth level */
     unhealth_level_ = 0;
@@ -211,6 +216,9 @@ public:
   virtual void setLandingHeight(float landing_height){ landing_height_ = landing_height;}
   virtual float getLandingHeight(){ return landing_height_;}
 
+  inline tf::Matrix3x3 getRCog2Rootlink(){return cog2rootlink_transform_.getBasis();}
+  inline tf::Matrix3x3 getRRootlink2Cog(){return cog2rootlink_transform_.getBasis().transpose();}
+
   const SensorFuser& getFuser(int mode)
   {
     assert(mode >= 0 && mode < 2);
@@ -243,13 +251,17 @@ protected:
   ros::NodeHandle nh_;
   ros::NodeHandle nhp_;
   ros::Publisher full_state_pub_, odom_state_pub_;
+  ros::Subscriber cog2rootlink_transform_sub_;
   ros::Subscriber estimate_height_mode_sub_;
 
   boost::mutex state_mutex_;   /* mutex */
   /* ros param */
   bool param_verbose_;
-
   int estimate_mode_; /* main estimte mode */
+  string cog2rootlink_transform_sub_name_;
+
+  /* the transformation between baselink frame and CoG frame */
+  tf::Transform cog2rootlink_transform_;
 
   /* 9: x_w, y_w, z_w, roll_w, pitch_w, yaw_cog_w, x_b, y_b, yaw_board_w */
   array<AxisState, 11> state_;
@@ -268,6 +280,15 @@ protected:
   bool landed_flag_;
   bool un_descend_flag_;
   float landing_height_;
+
+  void transformCallback(aerial_robot_base::DesireCoord offset_msg)
+  {
+    /* get the transform from CoG to root_link: {CoG} -> {root_link} */
+    tf::Matrix3x3 r;
+    r.setRPY(offset_msg.roll, offset_msg.pitch, offset_msg.yaw);
+    cog2rootlink_transform_.setBasis(r);
+  }
+
 };
 
 
