@@ -6,7 +6,8 @@ estimator:
         - sensor_plugin/mocap
         - sensor_plugin/alt
         - sensor_plugin/gps        
-
+        - sensor_plugin/optical_flow
+        
         # egomotion estimation
         egomotion_list:
         - kalman_filter/kf_pose_vel_acc_bias
@@ -47,5 +48,8 @@ estimator:
                 estimate_mode: 6 # 1<<1 + 1<<2
         alt:
                 estimate_mode: 1 # 1<<0
+        optical_flow:
+                estimate_mode: 1 # 1<<0
+
         gps:
                 estimate_mode: 1 # 1<<0

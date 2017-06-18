@@ -154,6 +154,7 @@ namespace sensor_plugin
                    estimator_->getState(BasicEstimator::YAW_W_B, BasicEstimator::EGOMOTION_ESTIMATE)[0]);
       /* change the velocity based on the world frame  */
       vel_ = orien * baselink_transform_.getBasis() * tf::Vector3(opt_msg->vector.x, opt_msg->vector.y, 0);
+      vel_.setZ(0);
 
       estimateProcess();
       /* publish */
@@ -171,11 +172,13 @@ namespace sensor_plugin
 
     void estimateProcess()
     {
-      static tf::Vector3 prev_vel = vel_;
+      tf::Vector3 estimate_vel(estimator_->getState(BasicEstimator::X_W, BasicEstimator::EGOMOTION_ESTIMATE)[1],
+                               estimator_->getState(BasicEstimator::Y_W, BasicEstimator::EGOMOTION_ESTIMATE)[1],
+                               0);
 
-      if((vel_ - prev_vel).length() > vel_thresh_)
+      if((vel_ - estimate_vel).length() > vel_thresh_)
         {
-          ROS_WARN("Optical Flow: bad vel estimate, since the diff is too big: %f", (vel_ - prev_vel).length());
+          ROS_WARN("Optical Flow: bad vel estimate, since the diff is too big: %f, curr: [%f, %f, %f] vs prev: [%f, %f, %f]", (vel_ - estimate_vel).length(), vel_.x(), vel_.y(), vel_.z(), estimate_vel.x(), estimate_vel.y(), estimate_vel.z());
           return;
         }
 
@@ -206,7 +209,6 @@ namespace sensor_plugin
             }
         }
 
-      prev_vel = vel_;
     }
 
     void rosParamInit()
