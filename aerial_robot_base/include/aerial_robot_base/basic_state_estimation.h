@@ -137,6 +137,8 @@ public:
   static constexpr uint8_t PITCH_W_B = 9; //pitch of mcu board in world coord
   static constexpr uint8_t YAW_W_B = 10; //yaw of mcu board in world coord
 
+  static constexpr float G = 9.797;
+
   int getStateStatus(uint8_t axis, uint8_t estimate_mode)
   {
     boost::lock_guard<boost::mutex> lock(state_mutex_);

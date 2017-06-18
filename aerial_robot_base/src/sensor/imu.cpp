@@ -94,8 +94,6 @@ namespace sensor_plugin
     inline tf::Vector3 getAttitude(uint8_t frame)  { return euler_[frame]; }
     inline ros::Time getStamp(){return imu_stamp_;}
 
-    static constexpr float G = 9.797;
-
   private:
     ros::Publisher  acc_pub_;
     ros::Publisher  imu_pub_;
@@ -192,10 +190,10 @@ namespace sensor_plugin
       tf::Matrix3x3 orientation;
       orientation.setRPY(euler_[Frame::BODY][0], euler_[Frame::BODY][1], 0);
       acc_l_ = orientation * acc_[Frame::BODY];
-      acc_l_.setZ((orientation * tf::Vector3(0, 0, acc_[Frame::BODY].z())).z() - G);
+      acc_l_.setZ((orientation * tf::Vector3(0, 0, acc_[Frame::BODY].z())).z() - BasicEstimator::G);
 
 #else  // use approximation
-      acc_l_ = orientation * tf::Vector3(0, 0, acc_[Frame::BODY].z()) - tf::Vector3(0, 0, G);
+      acc_l_ = orientation * tf::Vector3(0, 0, acc_[Frame::BODY].z()) - tf::Vector3(0, 0, BasicEstimator::G);
 #endif
 
       if(estimator_->getLandingMode() &&
@@ -491,7 +489,7 @@ namespace sensor_plugin
         ROS_WARN(" imu board is %s\n", (imu_board_ == KDUINO)?"kduino":"other board");
       if(imu_board_ == KDUINO)
         {
-          nhp_.param("acc_scale", acc_scale_, G / 512.0);
+          nhp_.param("acc_scale", acc_scale_, BasicEstimator::G / 512.0);
           if(param_verbose_) cout << "acc scale is" << acc_scale_ << endl;
           nhp_.param("gyro_scale", gyro_scale_, (2279 * M_PI)/((32767.0 / 4.0f ) * 180.0));
           if(param_verbose_) cout << "gyro scale is" << gyro_scale_ << endl;
