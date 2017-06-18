@@ -93,7 +93,7 @@ public:
     nhp_.param("cog2rootlink_transform_sub_name", cog2rootlink_transform_sub_name_, std::string("/desire_coordinate"));
     ROS_WARN("estimate_mode is %s", (estimate_mode_ == EGOMOTION_ESTIMATE)?string("EGOMOTION_ESTIMATE").c_str():((estimate_mode_ == EXPERIMENT_ESTIMATE)?string("EXPERIMENT_ESTIMATE").c_str():((estimate_mode_ == GROUND_TRUTH)?string("GROUND_TRUTH").c_str():string("WRONG_MODE").c_str())));
 
-    odom_state_pub_ = nh_.advertise<nav_msgs::Odometry>("/uav/state", 1);
+    odom_state_pub_ = nh_.advertise<nav_msgs::Odometry>("/uav/root_link/odom", 1);
     full_state_pub_ = nh_.advertise<aerial_robot_base::States>("/uav/full_state", 1);
     cog2rootlink_transform_sub_ = nh_.subscribe(cog2rootlink_transform_sub_name_, 5, &BasicEstimator::transformCallback, this);
 
