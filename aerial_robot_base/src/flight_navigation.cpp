@@ -19,35 +19,16 @@ Navigator::Navigator(ros::NodeHandle nh, ros::NodeHandle nh_private,
 
   br_ =  new tf::TransformBroadcaster();
 
-  final_target_pos_x_ = 0;
-  final_target_vel_x_ = 0;
-  final_target_pos_y_ = 0;
-  final_target_vel_y_ = 0;
-  final_target_pos_z_ = 0;
-  final_target_vel_z_ = 0;
-  final_target_theta_ = 0;
-  final_target_vel_theta_ = 0;
-  final_target_phy_ = 0;
-  final_target_vel_phy_ = 0;
-  final_target_psi_ = 0;
-  final_target_vel_psi_ = 0;
-
-  //current target value
-  current_target_pos_x_ = 0;
-  current_target_vel_x_ = 0;
-  current_target_pos_y_ = 0;
-  current_target_vel_y_ = 0;
-  current_target_pos_z_ = 0;
-  current_target_vel_z_ = 0;
-  current_target_theta_ = 0;
-  current_target_vel_theta_ = 0;
-  current_target_phy_ = 0;
-  current_target_vel_phy_ = 0;
-  current_target_psi_ = 0;
-  current_target_vel_psi_ = 0;
-
-  target_pitch_angle_ = 0;
-  target_roll_angle_ = 0;
+  target_pos_x_ = 0;
+  target_vel_x_ = 0;
+  target_acc_x_ = 0;
+  target_pos_y_ = 0;
+  target_vel_y_ = 0;
+  target_acc_y_ = 0;
+  target_pos_z_ = 0;
+  target_vel_z_ = 0;
+  target_psi_ = 0;
+  target_vel_psi_ = 0;
 
   stopNavigation();
   setNaviCommand( IDLE_COMMAND );
@@ -57,7 +38,7 @@ Navigator::Navigator(ros::NodeHandle nh, ros::NodeHandle nh_private,
   //base navigation mode init
   flight_mode_ = NO_CONTROL_MODE;
   low_voltage_flag_ = false;
-  prev_xy_control_mode_ = ATT_CONTROL_MODE;
+  prev_xy_control_mode_ = flight_nav::ACC_CONTROL_MODE;
 }
 
 Navigator::~Navigator()
@@ -68,39 +49,75 @@ Navigator::~Navigator()
 
 void Navigator::naviCallback(const aerial_robot_base::FlightNavConstPtr & msg)
 {
+  /* xy control */
   switch(msg->pos_xy_nav_mode)
     {
-    case aerial_robot_base::FlightNav::VEL_MODE:
-      {
-        // ROS_INFO("change to vel control");
-        force_att_control_flag_ = false;
-        xy_control_mode_ = VEL_WORLD_BASED_CONTROL_MODE;
-        setTargetVelX(msg->target_vel_x);
-        setTargetVelY(msg->target_vel_y);
-        break;
-      }
     case aerial_robot_base::FlightNav::POS_MODE:
       {
         // ROS_INFO("change to pos control");
         force_att_control_flag_ = false;
-        xy_control_mode_ = POS_WORLD_BASED_CONTROL_MODE;
+        xy_control_mode_ = flight_nav::POS_CONTROL_MODE;
         setTargetPosX(msg->target_pos_x);
         setTargetPosY(msg->target_pos_y);
         break;
       }
-    case aerial_robot_base::FlightNav::ATT_MODE:
+    case aerial_robot_base::FlightNav::VEL_MODE:
+      {
+        // ROS_INFO("change to vel control");
+        force_att_control_flag_ = false;
+        xy_control_mode_ = flight_nav::VEL_CONTROL_MODE;
+        switch(msg->control_frame)
+          {
+          case flight_nav::WORLD_FRAME:
+            {
+              setTargetVelX(msg->target_vel_x);
+              setTargetVelY(msg->target_vel_y);
+              break;
+            }
+          case flight_nav::LOCAL_FRAME:
+            {
+              tf::Vector3 target_vel = frameConversion(tf::Vector3(msg->target_vel_x, msg->target_vel_y, 0),  estimator_->getState(BasicEstimator::YAW_W_B, estimate_mode_)[0]);
+              setTargetVelX(target_vel.x());
+              setTargetVelY(target_vel.y());
+              break;
+            }
+          default:
+            {
+              break;
+            }
+          }
+        break;
+      }
+    case aerial_robot_base::FlightNav::ACC_MODE:
       {
         // ROS_INFO("change to att control");
         force_att_control_flag_ = true;
-        xy_control_mode_ = ATT_CONTROL_MODE;
-        target_roll_angle_ = msg->target_att_r;
-        target_pitch_angle_ = msg->target_att_p;
-        setTargetPsi(msg->target_att_y);
+        xy_control_mode_ = flight_nav::ACC_CONTROL_MODE;
+        switch(msg->control_frame)
+          {
+          case flight_nav::WORLD_FRAME:
+            {
+              setTargetAccX(msg->target_acc_x);
+              setTargetAccY(msg->target_acc_y);
+              break;
+            }
+          case flight_nav::LOCAL_FRAME:
+            {
+              tf::Vector3 target_acc = frameConversion(tf::Vector3(msg->target_acc_x, msg->target_acc_y, 0),  estimator_->getState(BasicEstimator::YAW_W_B, estimate_mode_)[0]);
+              setTargetAccX(target_acc.x());
+              setTargetAccY(target_acc.y());
+              break;
+            }
+          default:
+            {
+              break;
+            }
+          }
         break;
       }
     }
 
-  //for z
+  /* z */
   if(msg->pos_z_nav_mode == aerial_robot_base::FlightNav::VEL_MODE)
     {
       addTargetPosZ(msg->target_pos_diff_z);
@@ -110,7 +127,7 @@ void Navigator::naviCallback(const aerial_robot_base::FlightNavConstPtr & msg)
       setTargetPosZ(msg->target_pos_z);
     }
 
-  //for psi
+  /* yaw */
   if(msg->psi_nav_mode == aerial_robot_base::FlightNav::POS_MODE)
     {
       setTargetPsi(msg->target_psi);
@@ -140,8 +157,8 @@ void Navigator::tfPublish()
   tf::Transform map_to_target;
   tf::Quaternion tmp;
 
-  map_to_target.setOrigin(tf::Vector3(current_target_pos_x_, current_target_pos_y_, current_target_pos_z_));
-  tmp.setRPY(0.0, 0.0, current_target_psi_);
+  map_to_target.setOrigin(tf::Vector3(target_pos_x_, target_pos_y_, target_pos_z_));
+  tmp.setRPY(0.0, 0.0, target_psi_);
   map_to_target.setRotation(tmp);
   ros::Time tm = ros::Time::now();
   br_->sendTransform(tf::StampedTransform(map_to_target, tm, map_frame_, target_frame_));
@@ -173,10 +190,18 @@ void Navigator::rosParamInit(ros::NodeHandle nh)
     takeoff_height_ = 0;
   printf("%s: takeoff_height_ is %.3f\n", ns.c_str(), takeoff_height_);
 
-  //hidden variable
-  if (!nh.getParam ("xy_vel_mode_pos_ctrl_takeoff", xy_vel_mode_pos_ctrl_takeoff_))
-    xy_vel_mode_pos_ctrl_takeoff_ = true;
-  printf("%s: xy_vel_mode_pos_ctrl_takeoff is %s\n", ns.c_str(), xy_vel_mode_pos_ctrl_takeoff_ ? ("true") : ("false"));
+  if (!nh.getParam ("max_target_vel", max_target_vel_))
+    max_target_vel_ = 0;
+  printf("%s: max_target_vel_ is %.3f\n", ns.c_str(), max_target_vel_);
+
+  if (!nh.getParam ("max_target_yaw_rate", max_target_yaw_rate_))
+    max_target_yaw_rate_ = 0;
+  printf("%s: max_target_yaw_rate_ is %.3f\n", ns.c_str(), max_target_yaw_rate_);
+
+  if (!nh.getParam ("max_target_tilt_angle", max_target_tilt_angle_))
+    max_target_tilt_angle_ = 1.0;
+  printf("%s: max_target_tilt_angle_ is %f\n", ns.c_str(), max_target_tilt_angle_);
+
 }
 
 TeleopNavigator::TeleopNavigator(ros::NodeHandle nh, ros::NodeHandle nh_private,
@@ -214,6 +239,7 @@ TeleopNavigator::TeleopNavigator(ros::NodeHandle nh, ros::NodeHandle nh_private,
 
   joy_stick_heart_beat_ = false;
   joy_stick_prev_time_ = 0;
+
 }
 
 TeleopNavigator::~TeleopNavigator()
@@ -252,10 +278,10 @@ void TeleopNavigator::landCallback(const std_msgs::EmptyConstPtr & msg)
 {
   setNaviCommand(LAND_COMMAND);
   //更新
-  final_target_pos_x_ = getStatePosX();
-  final_target_pos_y_ = getStatePosY();
-  final_target_psi_   = getStatePsiBoard();
-  final_target_pos_z_ = estimator_->getLandingHeight();
+  target_pos_x_ = getStatePosX();
+  target_pos_y_ = getStatePosY();
+  target_psi_   = getStatePsiBoard();
+  target_pos_z_ = estimator_->getLandingHeight();
   ROS_INFO("Land command");
 }
 
@@ -291,12 +317,12 @@ void TeleopNavigator::xyControlModeCallback(const std_msgs::Int8ConstPtr & msg)
     {
       if(msg->data == 0)
         {
-          xy_control_mode_ = POS_WORLD_BASED_CONTROL_MODE;
+          xy_control_mode_ = flight_nav::POS_CONTROL_MODE;
           ROS_INFO("x/y position control mode");
         }
       if(msg->data == 1)
         {
-          xy_control_mode_ = VEL_LOCAL_BASED_CONTROL_MODE;
+          xy_control_mode_ = flight_nav::VEL_CONTROL_MODE;
           ROS_INFO("x/y velocity control mode");
         }
     }
@@ -309,7 +335,7 @@ void TeleopNavigator::stopTeleopCallback(const std_msgs::UInt8ConstPtr & stop_ms
       ROS_WARN("stop teleop control");
       teleop_flag_ = false;
     }
-  else if(stop_msg->data == 0) 
+  else if(stop_msg->data == 0)
     {
       ROS_WARN("start teleop control");
       teleop_flag_ = true;
@@ -389,10 +415,10 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
 
       setNaviCommand(LAND_COMMAND);
       //update
-      final_target_pos_x_= getStatePosX();
-      final_target_pos_y_= getStatePosY();
-      final_target_pos_z_= estimator_->getLandingHeight();
-      final_target_psi_  = getStatePsiBoard();
+      target_pos_x_= getStatePosX();
+      target_pos_y_= getStatePosY();
+      target_pos_z_= estimator_->getLandingHeight();
+      target_psi_  = getStatePsiBoard();
       ROS_INFO("Joy Control: Land command");
 
       return;
@@ -405,9 +431,9 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
         {
           alt_control_flag_ = true;
           if(joy_msg->axes[3] >= 0)
-            final_target_pos_z_+= target_alt_interval_;
+            target_pos_z_+= joy_target_alt_interval_;
           else
-            final_target_pos_z_-= target_alt_interval_;
+            target_pos_z_-= joy_target_alt_interval_;
           ROS_INFO("Joy Control: Thrust command");
         }
     }
@@ -416,48 +442,32 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
       if(alt_control_flag_)
         {
           alt_control_flag_= false;
-          final_target_pos_z_= getStatePosZ();
-          ROS_INFO("Joy Control: Fixed Alt command, targetPosz_is %f",final_target_pos_z_);
+          target_pos_z_= getStatePosZ();
+          ROS_INFO("Joy Control: Fixed Alt command, targetPosz_is %f",target_pos_z_);
         }
     }
 
   /* Motion: Yaw */
   /* this is the yaw_angle control */
-  if(getStatePsiBoard() != 0 ||
-     xy_control_mode_ == POS_WORLD_BASED_CONTROL_MODE ||
-     xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE)
+  if(joy_msg->buttons[2] == 1)
     {
-      if(joy_msg->buttons[2] == 1)
+      if(fabs(joy_msg->axes[2]) > 0.05)
         {
-          if(fabs(joy_msg->axes[2]) > 0.05)
-            {
-              final_target_psi_ = getStatePsiBoard() + joy_msg->axes[2] * target_yaw_rate_;
-              if(final_target_psi_ > M_PI)  final_target_psi_ -= 2 * M_PI;
-              else if(final_target_psi_ < -M_PI)  final_target_psi_ += 2 * M_PI;
-              ROS_WARN("Joy Control: yaw control based on angle control only");
-            }
-          else
-            final_target_psi_ = getStatePsiBoard();
+          target_psi_ = getStatePsiBoard() + joy_msg->axes[2] * max_target_yaw_rate_;
+          if(target_psi_ > M_PI)  target_psi_ -= 2 * M_PI;
+          else if(target_psi_ < -M_PI)  target_psi_ += 2 * M_PI;
+          ROS_WARN("Joy Control: yaw control based on angle control only");
         }
-    }
-  /* this is the non yaw_angle control(that is vel control) */
-  if(getStatePsiBoard() == 0)
-    {
-      if(xy_control_mode_ == ATT_CONTROL_MODE ||
-         xy_control_mode_ == VEL_LOCAL_BASED_CONTROL_MODE ||
-         xy_control_mode_ == POS_LOCAL_BASED_CONTROL_MODE)
-        {
-          /*ROS_WARN("Joy Control: yaw control based on velocity(gyro) control only");*/
-          final_target_psi_ = joy_msg->axes[2] * target_yaw_rate_;
-        }
+      else
+        target_psi_ = getStatePsiBoard();
     }
 
-  /* turn to ATT_CONTROL_MODE */
+  /* turn to ACC_CONTROL_MODE */
   if(joy_msg->buttons[6] == 1)
     {
       ROS_WARN("Change to attitude control");
       force_att_control_flag_ = true;
-      xy_control_mode_ = ATT_CONTROL_MODE;
+      xy_control_mode_ = flight_nav::ACC_CONTROL_MODE;
     }
 
   /* change to vel control mode */
@@ -466,9 +476,9 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
       ROS_INFO("change to vel pos-based control");
       vel_control_flag_ = true;
       force_att_control_flag_ = false;
-      xy_control_mode_ = VEL_WORLD_BASED_CONTROL_MODE;
-      final_target_vel_x_= 0; current_target_vel_x_= 0;
-      final_target_vel_y_= 0; current_target_vel_y_= 0;
+      xy_control_mode_ = flight_nav::VEL_CONTROL_MODE;
+      target_vel_x_= 0;
+      target_vel_y_= 0;
     }
   if(joy_msg->buttons[12] == 0 && vel_control_flag_)
     vel_control_flag_ = false;
@@ -479,95 +489,75 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
       ROS_INFO("change to pos control");
       pos_control_flag_ = true;
       force_att_control_flag_ = false;
-      xy_control_mode_ = POS_WORLD_BASED_CONTROL_MODE;
-      final_target_pos_x_= getStatePosX();
-      final_target_pos_y_= getStatePosY();
+      xy_control_mode_ = flight_nav::POS_CONTROL_MODE;
+      target_pos_x_= getStatePosX();
+      target_pos_y_= getStatePosY();
     }
   if(joy_msg->buttons[14] == 0 && pos_control_flag_)
     pos_control_flag_ = false;
 
   /* mode oriented command */
-  if(xy_control_mode_ == ATT_CONTROL_MODE)
+  switch (xy_control_mode_)
     {
-      /* pitch && roll angle command */
-      target_pitch_angle_ = joy_msg->axes[1] * target_angle_rate_;
-      target_roll_angle_ = - joy_msg->axes[0]  * target_angle_rate_;
-    }
-  else if(xy_control_mode_ == POS_WORLD_BASED_CONTROL_MODE || xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE)
-    {
-      if(getNaviCommand() == HOVER_COMMAND && teleop_flag_)
-        {
-          /* pitch && roll vel command for vel_mode */
-          if(xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE && joy_msg->buttons[8] == 1)
-            {//only push the left joysitck will be active
-              final_target_vel_x_= joy_msg->axes[1] * fabs(joy_msg->axes[1]) * target_vel_rate_;
-              final_target_vel_y_= joy_msg->axes[0] * fabs(joy_msg->axes[0]) * target_vel_rate_;
-              xy_control_flag_ = true;
-            }
-          if(xy_control_flag_ && joy_msg->buttons[8] == 0)
-            {
-              final_target_vel_x_ = 0;
-              final_target_vel_y_ = 0;
-              xy_control_flag_ = false;
-            }
-        }
-    }
-  else if(xy_control_mode_ == VEL_LOCAL_BASED_CONTROL_MODE || xy_control_mode_ == POS_LOCAL_BASED_CONTROL_MODE)
-    {
-      if(getNaviCommand() == HOVER_COMMAND && teleop_flag_)
-        {
-          /* horizontal move */
-          if(joy_msg->buttons[8] == 1)
-            {
-              final_target_vel_x_= joy_msg->axes[1] * fabs(joy_msg->axes[1]) * target_vel_rate_;
-              final_target_vel_y_= joy_msg->axes[0] * fabs(joy_msg->axes[0]) * target_vel_rate_;
-              xy_control_flag_ = true;
-            }
-          if(xy_control_flag_ && joy_msg->buttons[8] == 0)
-            {
-              final_target_vel_x_ = 0;
-              final_target_vel_y_ = 0;
-              xy_control_flag_ = false;
-            }
-        }
-    }
-}
+    case flight_nav::ACC_CONTROL_MODE:
+      {
+        control_frame_ = flight_nav::WORLD_FRAME;
+        if(joy_msg->buttons[8]) control_frame_ = flight_nav::LOCAL_FRAME;
 
-void TeleopNavigator::targetValueCorrection()
-{
-  //no keystone correction
-  current_target_pos_x_  = final_target_pos_x_;
-  current_target_pos_y_= final_target_pos_y_;
-  current_target_pos_z_  = final_target_pos_z_;
-  current_target_vel_z_  = final_target_vel_z_;
-  current_target_theta_ = final_target_theta_;
-  current_target_vel_theta_ = final_target_vel_theta_;
+        /* pitch && roll angle command */
+        target_acc_x_ = joy_msg->axes[1] * max_target_tilt_angle_ * BasicEstimator::G;
+        target_acc_y_ = joy_msg->axes[0] * max_target_tilt_angle_ * BasicEstimator::G;
 
-  current_target_phy_ = final_target_phy_;
-  current_target_vel_phy_ = final_target_vel_phy_;
-  current_target_psi_ = final_target_psi_;
-  current_target_vel_psi_ = final_target_vel_psi_;
 
-#if 1 //keystone
-  // for pitch and roll velocity control
-  //pitch
-  if(final_target_vel_x_ - current_target_vel_x_ > target_pitch_roll_interval_)
-    current_target_vel_x_ += target_pitch_roll_interval_;
-  else if (final_target_vel_x_ - current_target_vel_x_ < - target_pitch_roll_interval_)
-    current_target_vel_x_ -= target_pitch_roll_interval_;
-  else
-    current_target_vel_x_ = final_target_vel_x_;
-  //roll
-  if(final_target_vel_y_ - current_target_vel_y_ > target_pitch_roll_interval_)
-    current_target_vel_y_ += target_pitch_roll_interval_;
-  else if (final_target_vel_y_ - current_target_vel_y_ < - target_pitch_roll_interval_)
-    current_target_vel_y_ -= target_pitch_roll_interval_;
-  else
-    current_target_vel_y_ = final_target_vel_y_;
-#else
-  current_target_vel_x_ = final_target_vel_x_;
-  current_target_vel_y_ = final_target_vel_y_;
-#endif 
+        if(control_frame_ == flight_nav::LOCAL_FRAME)
+          {
+            tf::Vector3 target_acc = frameConversion(tf::Vector3(target_acc_x_, target_acc_y_, 0),  estimator_->getState(BasicEstimator::YAW_W_B, estimate_mode_)[0]);
+            target_acc_x_ = target_acc.x();
+            target_acc_y_ = target_acc.y();
+          }
+
+        break;
+      }
+    case flight_nav::VEL_CONTROL_MODE:
+      {
+        if(teleop_flag_)
+          {
+            control_frame_ = flight_nav::WORLD_FRAME;
+            if(joy_msg->buttons[8]) control_frame_ = flight_nav::LOCAL_FRAME;
+
+            float joy_target_vel_x= joy_msg->axes[1] * fabs(joy_msg->axes[1]) * max_target_vel_;
+            float joy_target_vel_y = joy_msg->axes[0] * fabs(joy_msg->axes[0]) * max_target_vel_;
+
+            /* defualt: world frame control */
+            /* L2 trigger: fc(body frame) frame control */
+            if(control_frame_ == flight_nav::LOCAL_FRAME)
+              {
+                tf::Vector3 joy_target_vel = frameConversion(tf::Vector3(joy_target_vel_x, joy_target_vel_y, 0),  estimator_->getState(BasicEstimator::YAW_W_B, estimate_mode_)[0]);
+                joy_target_vel_x = joy_target_vel.x();
+                joy_target_vel_y = joy_target_vel.y();
+              }
+
+            /* interpolation for vel target */
+            if(joy_target_vel_x - target_vel_x_> joy_target_vel_interval_)
+              target_vel_x_ += joy_target_vel_interval_;
+            else if (joy_target_vel_x - target_vel_x_ < - joy_target_vel_interval_)
+              target_vel_x_ -= joy_target_vel_interval_;
+            else
+              target_vel_x_ = joy_target_vel_x;
+            if(joy_target_vel_y - target_vel_y_ > joy_target_vel_interval_)
+              target_vel_y_ += joy_target_vel_interval_;
+            else if (joy_target_vel_y - target_vel_y_ < - joy_target_vel_interval_)
+              target_vel_y_ -= joy_target_vel_interval_;
+            else
+              target_vel_y_ = joy_target_vel_y;
+          }
+        break;
+      }
+    default:
+      {
+        break;
+      }
+    }
 }
 
 void TeleopNavigator::sendAttCmd()
@@ -616,26 +606,23 @@ void TeleopNavigator::teleopNavigation()
   static int convergence_cnt = 0;
   static int clock_cnt = 0; //mainly for velocity control takeoff
 
-  /* keystron correction / target value process */
-  targetValueCorrection();
-
   /* check the xy estimation status, if not ready, change to att_control_mode */
   if(!force_att_control_flag_)
     {
       if(!estimator_->getStateStatus(BasicEstimator::X_W, estimate_mode_) || !estimator_->getStateStatus(BasicEstimator::Y_W, estimate_mode_))
         {
-          if(xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE ||
-             xy_control_mode_ == POS_WORLD_BASED_CONTROL_MODE)
+          if(xy_control_mode_ == flight_nav::VEL_CONTROL_MODE ||
+             xy_control_mode_ == flight_nav::POS_CONTROL_MODE)
             {
               ROS_ERROR("No estimation for X, Y state, change to attitude control mode");
               prev_xy_control_mode_ = xy_control_mode_;
-              xy_control_mode_ = ATT_CONTROL_MODE;
+              xy_control_mode_ = flight_nav::ACC_CONTROL_MODE;
             }
         }
       else
         {
-          if(xy_control_mode_ == ATT_CONTROL_MODE &&
-             prev_xy_control_mode_ != ATT_CONTROL_MODE)
+          if(xy_control_mode_ == flight_nav::ACC_CONTROL_MODE &&
+             prev_xy_control_mode_ != flight_nav::ACC_CONTROL_MODE)
             {
               ROS_ERROR("Estimation for X, Y state is established, siwtch back to the xy control mode");
               xy_control_mode_ = prev_xy_control_mode_;
@@ -676,10 +663,10 @@ void TeleopNavigator::teleopNavigation()
       if(normal_land)
         {
           setNaviCommand(LAND_COMMAND);
-          final_target_pos_x_ = getStatePosX();
-          final_target_pos_y_ = getStatePosY();
-          final_target_pos_z_ = estimator_->getLandingHeight();
-          final_target_psi_   = getStatePsiBoard();
+          target_pos_x_ = getStatePosX();
+          target_pos_y_ = getStatePosY();
+          target_pos_z_ = estimator_->getLandingHeight();
+          target_psi_   = getStatePsiBoard();
         }
     }
 
@@ -701,17 +688,14 @@ void TeleopNavigator::teleopNavigation()
 
       flight_mode_= TAKEOFF_MODE;
 
-      //TODO convergenceFunction();
-      if(xy_control_mode_ == POS_WORLD_BASED_CONTROL_MODE)
+      if(xy_control_mode_ == flight_nav::POS_CONTROL_MODE)
         {
           if (fabs(getTargetPosZ() - getStatePosZ()) < POS_Z_THRE &&
               fabs(getTargetPosX() - getStatePosX()) < POS_X_THRE &&
               fabs(getTargetPosY() - getStatePosY()) < POS_Y_THRE)
             convergence_cnt++;
         }
-      else if(xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE ||
-              xy_control_mode_ == VEL_LOCAL_BASED_CONTROL_MODE ||
-              xy_control_mode_ == ATT_CONTROL_MODE)
+      else
         {
           //TODO => check same as pos_world_based_control_mode
           if (fabs(getTargetPosZ() - getStatePosZ()) < POS_Z_THRE)
@@ -720,35 +704,9 @@ void TeleopNavigator::teleopNavigation()
 
       if (convergence_cnt > ctrl_loop_rate_)
         {
-          if(xy_control_mode_ == POS_WORLD_BASED_CONTROL_MODE ||
-             xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE ||
-             xy_control_mode_ == ATT_CONTROL_MODE)
-            {
-              convergence_cnt = 0;
-              setNaviCommand(HOVER_COMMAND);
-              ROS_WARN("Hovering!");
-            }
-          else if(xy_control_mode_ == VEL_LOCAL_BASED_CONTROL_MODE)
-            {
-              if(xy_vel_mode_pos_ctrl_takeoff_)
-                {
-                  clock_cnt++;
-                  if(clock_cnt % 2 == 0) ROS_INFO("stable, clock_cnt: %.0f%% ", (float)clock_cnt / (ctrl_loop_rate_ * TAKEOFF_COUNT) * 100);
-                  if(clock_cnt > (ctrl_loop_rate_ * TAKEOFF_COUNT))
-                    {
-                      clock_cnt = 0;
-                      convergence_cnt = 0;
-                      setNaviCommand(HOVER_COMMAND); 
-                      ROS_WARN("Hovering!");
-                    }
-                }
-              else
-                {
-                  convergence_cnt = 0;
-                  setNaviCommand(HOVER_COMMAND); 
-                  ROS_WARN("Hovering!");
-                }
-            }
+          convergence_cnt = 0;
+          setNaviCommand(HOVER_COMMAND);
+          ROS_WARN("Hovering!");
         }
     }
   else if(getNaviCommand() == LAND_COMMAND)
@@ -832,30 +790,18 @@ void TeleopNavigator::rosParamInit(ros::NodeHandle nh)
     left_right_distance_ = 0;
   printf("%s: left_right_distance_ is %.3f\n", ns.c_str(), left_right_distance_);
 
-  if (!nh.getParam ("target_vel_rate", target_vel_rate_))
-    target_vel_rate_ = 0;
-  printf("%s: target_vel_rate_ is %.3f\n", ns.c_str(), target_vel_rate_);
+  if (!nh.getParam ("joy_target_vel_interval", joy_target_vel_interval_))
+    joy_target_vel_interval_ = 0;
+  printf("%s: joy_target_vel_interval_ is %.3f\n", ns.c_str(), joy_target_vel_interval_);
 
-  if (!nh.getParam ("target_pitch_roll_interval", target_pitch_roll_interval_))
-    target_pitch_roll_interval_ = 0;
-  printf("%s: target_pitch_roll_interval_ is %.3f\n", ns.c_str(), target_pitch_roll_interval_);
-
-  if (!nh.getParam ("target_alt_interval", target_alt_interval_))
-    target_alt_interval_ = 0;
-  printf("%s: target_alt_interval_ is %.3f\n", ns.c_str(), target_alt_interval_);
-
-  if (!nh.getParam ("target_yaw_rate", target_yaw_rate_))
-    target_yaw_rate_ = 0;
-  printf("%s: target_yaw_rate_ is %.3f\n", ns.c_str(), target_yaw_rate_);
+  if (!nh.getParam ("joy_target_alt_interval", joy_target_alt_interval_))
+    joy_target_alt_interval_ = 0;
+  printf("%s: joy_target_alt_interval_ is %.3f\n", ns.c_str(), joy_target_alt_interval_);
 
   if (!nh.getParam ("navi_frame_int", navi_frame_int_))
     navi_frame_int_ = 0;
   printf("%s: navi_frame_int_ is %d\n", ns.c_str(), navi_frame_int_);
   navi_frame_ = navi_frame_int_;
-
-  if (!nh.getParam ("target_angle_rate", target_angle_rate_))
-    target_angle_rate_ = 1.0;
-  printf("%s: target_angle_rate_ is %f\n", ns.c_str(), target_angle_rate_);
 
   if (!nh.getParam ("joy_stick_heart_beat_du", joy_stick_heart_beat_du_))
     joy_stick_heart_beat_du_ = 2.0;

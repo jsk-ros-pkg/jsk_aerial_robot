@@ -16,10 +16,27 @@
 #include <aerial_robot_base/FlightNav.h>
 #include <sensor_msgs/Joy.h>
 
+namespace flight_nav
+{
+  /* control mode */
+  enum control_mode
+    {
+      POS_CONTROL_MODE,
+      VEL_CONTROL_MODE,
+      ACC_CONTROL_MODE
+    };
+  /* control frame */
+  enum control_frame
+    {
+      WORLD_FRAME, /* global frame, e.g. NEU, mocap */
+      LOCAL_FRAME /* head frame which is identical with imu head direction */
+    };
+};
+
 class Navigator
 {
 public:
-  Navigator(ros::NodeHandle nh, ros::NodeHandle nh_private, 
+  Navigator(ros::NodeHandle nh, ros::NodeHandle nh_private,
             BasicEstimator* estimator, FlightCtrlInput* flight_ctrl_input,
             int ctrl_loop_rate);
   virtual ~Navigator();
@@ -39,6 +56,9 @@ public:
   inline uint8_t getXyControlMode(){  return (uint8_t)xy_control_mode_;}
   inline void setXyControlMode(uint8_t mode){  xy_control_mode_ = mode;}
 
+  inline uint8_t getControlframe(){  return (uint8_t)control_frame_;}
+  inline void setControlframe(uint8_t frame_type){  control_frame_ = frame_type;}
+
   inline bool getXyVelModePosCtrlTakeoff(){  return xy_vel_mode_pos_ctrl_takeoff_;}
 
 
@@ -54,36 +74,27 @@ public:
   inline float getStatePsiBoard() { return estimator_->getState(BasicEstimator::YAW_W_B, estimate_mode_)[0]; }
   inline float getStateVelPsiBoard() { return estimator_->getState(BasicEstimator::YAW_W_B, estimate_mode_)[1]; }
 
-  inline float getTargetPosX(){  return current_target_pos_x_;}
-  inline void setTargetPosX( float value){  final_target_pos_x_ = value;}
-  inline void addTargetPosX( float value){  final_target_pos_x_ += value;}
-  inline float getTargetVelX(){  return current_target_vel_x_;}
-  inline void setTargetVelX( float value){  final_target_vel_x_= value;}
-  inline float getTargetPosY(){  return current_target_pos_y_;}
-  inline void setTargetPosY( float value){  final_target_pos_y_ = value;}
-  inline void addTargetPosY( float value){  final_target_pos_y_ += value;}
-  inline float getTargetVelY(){  return current_target_vel_y_;}
-  inline void setTargetVelY( float value){  final_target_vel_y_ = value;}
-  inline float getTargetPosZ(){  return current_target_pos_z_;}
-  inline void setTargetPosZ( float value){  final_target_pos_z_ = value;}
-  inline void addTargetPosZ( float value){  final_target_pos_z_ += value;}
-  inline float getTargetVelZ(){  return current_target_vel_z_;}
-  inline void setTargetVelZ( float value){  final_target_vel_z_ = value;}
-  inline float getTargetTheta(){  return current_target_theta_;}
-  inline void setTargetTheta( float value){  final_target_theta_ = value;}
-  inline float getTargetVelTheta(){  return current_target_vel_theta_; }
-  inline void setTargetVelTheta( float value){  final_target_vel_theta_ = value;}
-  inline float getTargetPhy(){  return current_target_phy_;}
-  inline void setTargetPhy( float value){  final_target_phy_ = value;}
-  inline float getTargetVelPhy(){  return current_target_vel_phy_;}
-  inline void setTargetVelPhy( float value){  final_target_vel_phy_ = value;}
-  inline float getTargetPsi(){  return current_target_psi_;}
-  inline void setTargetPsi( float value){  final_target_psi_ = value;}
-  inline float getTargetVelPsi(){  return current_target_vel_psi_;}
-  inline void setTargetVelPsi( float value){  final_target_vel_psi_ = value;}
-
-  inline float getTargetAnglePitch(){  return target_pitch_angle_;}
-  inline float getTargetAngleRoll(){  return target_roll_angle_;}
+  inline float getTargetPosX(){  return target_pos_x_;}
+  inline void setTargetPosX( float value){  target_pos_x_ = value;}
+  inline float getTargetVelX(){  return target_vel_x_;}
+  inline void setTargetVelX( float value){  target_vel_x_= value;}
+  inline float getTargetAccX(){  return target_acc_x_;}
+  inline void setTargetAccX( float value){  target_acc_x_= value;}
+  inline float getTargetPosY(){  return target_pos_y_;}
+  inline void setTargetPosY( float value){  target_pos_y_ = value;}
+  inline float getTargetVelY(){  return target_vel_y_;}
+  inline void setTargetVelY( float value){  target_vel_y_ = value;}
+  inline float getTargetAccY(){  return target_acc_y_;}
+  inline void setTargetAccY( float value){  target_acc_y_ = value;}
+  inline float getTargetPosZ(){  return target_pos_z_;}
+  inline void setTargetPosZ( float value){  target_pos_z_ = value;}
+  inline void addTargetPosZ( float value){  target_pos_z_ += value;}
+  inline float getTargetVelZ(){  return target_vel_z_;}
+  inline void setTargetVelZ( float value){  target_vel_z_ = value;}
+  inline float getTargetPsi(){  return target_psi_;}
+  inline void setTargetPsi( float value){  target_psi_ = value;}
+  inline float getTargetVelPsi(){  return target_vel_psi_;}
+  inline void setTargetVelPsi( float value){  target_vel_psi_ = value;}
 
   void tfPublish();
 
@@ -121,12 +132,6 @@ public:
   static constexpr uint8_t ROLL_AXIS = 16;
   static constexpr uint8_t YAW_AXIS = 32;
 
-  static constexpr uint8_t POS_WORLD_BASED_CONTROL_MODE = 0;
-  static constexpr uint8_t POS_LOCAL_BASED_CONTROL_MODE = 1;
-  static constexpr uint8_t VEL_WORLD_BASED_CONTROL_MODE = 2;
-  static constexpr uint8_t VEL_LOCAL_BASED_CONTROL_MODE = 3;
-  static constexpr uint8_t ATT_CONTROL_MODE = 4;
-
 protected:
   ros::NodeHandle nh_;
   ros::NodeHandle nhp_;
@@ -145,45 +150,32 @@ protected:
   int  prev_xy_control_mode_;
   bool xy_vel_mode_pos_ctrl_takeoff_;
 
+  int  control_frame_;
+
   int estimate_mode_;
   int low_voltage_thre_;
   bool low_voltage_flag_;
   bool  force_att_control_flag_;
 
-  // final target value
+  //target value
+  float target_pos_x_;
+  float target_vel_x_;
+  float target_pos_y_;
+  float target_vel_y_;
+  float target_pos_z_;
+  float target_vel_z_;
+  float target_acc_x_;
+  float target_acc_y_;
+  float target_vel_theta_;
+  float target_vel_phy_;
+  float target_psi_;
+  float target_vel_psi_;
+
   double takeoff_height_;
-  float final_target_pos_x_;
-  float final_target_vel_x_;
-  float final_target_pos_y_;
-  float final_target_vel_y_;
-  float final_target_pos_z_;
-  float final_target_vel_z_;
-  float final_target_theta_;
-  float final_target_vel_theta_;
-  float final_target_phy_;
-  float final_target_vel_phy_;
-  float final_target_psi_;
-  float final_target_vel_psi_;
 
-  //current target value
-  float current_target_pos_x_;
-  float current_target_vel_x_;
-  float current_target_pos_y_;
-  float current_target_vel_y_;
-  float current_target_pos_z_;
-  float current_target_vel_z_;
-  float current_target_theta_;
-  float current_target_vel_theta_;
-  float current_target_phy_;
-  float current_target_vel_phy_;
-  float current_target_psi_;
-  float current_target_vel_psi_;
-
-  //att_control_mode
-  double target_angle_rate_;
-  double cmd_angle_lev2_gain_;
-  float target_pitch_angle_;
-  float target_roll_angle_;
+  double max_target_vel_;
+  double max_target_tilt_angle_;
+  double max_target_yaw_rate_;
 
   int ctrl_loop_rate_;
   std::string map_frame_;
@@ -216,13 +208,19 @@ protected:
       }
 
     setNaviCommand(START_COMMAND);
-    final_target_pos_x_ = getStatePosX();
-    final_target_pos_y_ = getStatePosY();
-    final_target_psi_   = getStatePsiBoard();
-    final_target_pos_z_ = takeoff_height_;
+    target_pos_x_ = getStatePosX();
+    target_pos_y_ = getStatePosY();
+    target_psi_   = getStatePsiBoard();
+    target_pos_z_ = takeoff_height_;
     ROS_INFO("Start command");
   }
 
+  tf::Vector3 frameConversion(tf::Vector3 origin_val, float yaw)
+  {
+    tf::Matrix3x3 orien;
+    orien.setRPY(0, 0, yaw);
+    return orien * origin_val;
+  }
 };
 
 class TeleopNavigator :public Navigator
@@ -251,7 +249,6 @@ public:
 
   void stopTeleopCallback(const std_msgs::UInt8ConstPtr & stop_msg);
 
-  void targetValueCorrection();
   void teleopNavigation();
   void sendAttCmd();
 
@@ -293,10 +290,9 @@ private:
   double up_down_distance_;
   double forward_backward_distance_;
   double left_right_distance_;
-  double target_vel_rate_;
-  double target_pitch_roll_interval_;
-  double target_alt_interval_;
-  double target_yaw_rate_;
+
+  double joy_target_vel_interval_;
+  double joy_target_alt_interval_;
 
   int navi_frame_int_;
   uint8_t navi_frame_;

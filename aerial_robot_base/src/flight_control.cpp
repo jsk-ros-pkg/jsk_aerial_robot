@@ -32,7 +32,7 @@ FlightController::FlightController(ros::NodeHandle nh,
   printf("%s: f_pwm_rate_ is %f\n", ns.c_str(), f_pwm_rate_);
 
   if (!motor_info_node.getParam ("m_f_rate", m_f_rate_))
-    m_f_rate_ = 0; 
+    m_f_rate_ = 0;
   printf("%s: m_f_rate_ is %.3f\n", ns.c_str(), m_f_rate_); //-0.016837, the sgn is right?, should be nagative
 
   if (!motor_info_node.getParam ("f_pwm_offset", f_pwm_offset_))
@@ -208,10 +208,13 @@ void PidController::pidFunction()
       float state_pos_y = 0;
       float state_vel_y = 0;
 
+
       float target_pos_x = 0;
       float target_pos_y = 0;
       float target_vel_x = 0;
       float target_vel_y = 0;
+      float target_acc_x = 0;
+      float target_acc_y = 0;
 
       float state_pos_z = 0;
       float state_vel_z = 0;
@@ -219,27 +222,17 @@ void PidController::pidFunction()
       float state_psi_board = 0;
       float state_vel_psi = 0;
 
-      if(navigator_->getXyControlMode() == Navigator::POS_WORLD_BASED_CONTROL_MODE ||
-         navigator_->getXyControlMode() == Navigator::VEL_WORLD_BASED_CONTROL_MODE)
-        {
-          state_pos_x = estimator_->getState(BasicEstimator::X_W, estimate_mode_)[0];
-          state_vel_x = estimator_->getState(BasicEstimator::X_W, estimate_mode_)[1];
-          state_pos_y = estimator_->getState(BasicEstimator::Y_W, estimate_mode_)[0];
-          state_vel_y = estimator_->getState(BasicEstimator::Y_W, estimate_mode_)[1];
-        }
-      else if(navigator_->getXyControlMode() == navigator_->POS_LOCAL_BASED_CONTROL_MODE ||
-              navigator_->getXyControlMode() == navigator_->VEL_LOCAL_BASED_CONTROL_MODE)
-        {
-          state_pos_x = estimator_->getState(BasicEstimator::X_B, estimate_mode_)[0];
-          state_vel_x = estimator_->getState(BasicEstimator::X_B, estimate_mode_)[1];
-          state_pos_y = estimator_->getState(BasicEstimator::Y_B, estimate_mode_)[0];
-          state_vel_y = estimator_->getState(BasicEstimator::Y_B, estimate_mode_)[1];
-        }
+      state_pos_x = estimator_->getState(BasicEstimator::X_W, estimate_mode_)[0];
+      state_vel_x = estimator_->getState(BasicEstimator::X_W, estimate_mode_)[1];
+      state_pos_y = estimator_->getState(BasicEstimator::Y_W, estimate_mode_)[0];
+      state_vel_y = estimator_->getState(BasicEstimator::Y_W, estimate_mode_)[1];
 
       target_vel_x = navigator_->getTargetVelX();
       target_vel_y = navigator_->getTargetVelY();
       target_pos_x = navigator_->getTargetPosX();
       target_pos_y = navigator_->getTargetPosY();
+      target_acc_x = navigator_->getTargetAccX();
+      target_acc_y = navigator_->getTargetAccY();
 
       state_pos_z = estimator_->getState(BasicEstimator::Z_W, estimate_mode_)[0];
       state_vel_z = estimator_->getState(BasicEstimator::Z_W, estimate_mode_)[1];
@@ -277,105 +270,60 @@ void PidController::pidFunction()
             }
 
           //pitch
-          if(navigator_->getXyControlMode() == Navigator::POS_WORLD_BASED_CONTROL_MODE)
+          switch(navigator_->getXyControlMode())
             {
-              //** 座標変換
-              d_err_pos_curr_pitch_
-                = (target_pos_x - state_pos_x) * cos(state_psi_cog)
-                + (target_pos_y - state_pos_y) * sin(state_psi_cog);
+            case flight_nav::POS_CONTROL_MODE:
+              {
+                /* convert from world frame to CoG frame */
+                d_err_pos_curr_pitch_
+                  = (target_pos_x - state_pos_x) * cos(state_psi_cog)
+                  + (target_pos_y - state_pos_y) * sin(state_psi_cog);
 
-              d_err_vel_curr_pitch_ = - (state_vel_x * cos(state_psi_cog) + state_vel_y * sin(state_psi_cog));
+                d_err_vel_curr_pitch_ = - (state_vel_x * cos(state_psi_cog) + state_vel_y * sin(state_psi_cog));
+                /* P */
+                pos_p_term_pitch_ =
+                  limit(pos_p_gain_pitch_ * d_err_pos_curr_pitch_,  pos_p_limit_pitch_);
 
-              //**** Pの項
-              pos_p_term_pitch_ =
-                limit(pos_p_gain_pitch_ * d_err_pos_curr_pitch_,  pos_p_limit_pitch_);
+                /* I */
+                if(navigator_->getFlightMode() == Navigator::TAKEOFF_MODE || navigator_->getFlightMode() == Navigator::LAND_MODE) //takeoff or land
+                  pos_i_term_pitch_ += d_err_pos_curr_pitch_ * (1 / (float)pitch_ctrl_loop_rate_) * pos_i_gain_pitch_;
+                else if(navigator_->getFlightMode() == Navigator::FLIGHT_MODE) //hover or land
+                  pos_i_term_pitch_ += d_err_pos_curr_pitch_ * (1 / (float)pitch_ctrl_loop_rate_) * pos_i_gain_pitch_hover_;
+                pos_i_term_pitch_ = limit(pos_i_term_pitch_, pos_i_limit_pitch_);
 
-              //**** Iの項
-              if(navigator_->getFlightMode() == Navigator::TAKEOFF_MODE || navigator_->getFlightMode() == Navigator::LAND_MODE) //takeoff or land
-                pos_i_term_pitch_ += d_err_pos_curr_pitch_ * (1 / (float)pitch_ctrl_loop_rate_) * pos_i_gain_pitch_;
-              //else if(navigator_->getFlightMode() == Navigator::FLIGHT_MODE && fabs(d_err_pos_curr_pitch_) < i_enable_limit_pitch_) //hover or land
-              else if(navigator_->getFlightMode() == Navigator::FLIGHT_MODE) //hover or land
-                pos_i_term_pitch_ += d_err_pos_curr_pitch_ * (1 / (float)pitch_ctrl_loop_rate_) * pos_i_gain_pitch_hover_;
-              pos_i_term_pitch_ = limit(pos_i_term_pitch_, pos_i_limit_pitch_);
+                /* D */
+                pos_d_term_pitch_ = limit(pos_d_gain_pitch_ * d_err_vel_curr_pitch_, pos_d_limit_pitch_);
+                break;
+              }
+            case flight_nav::VEL_CONTROL_MODE:
+              {
+                /* convert from world frame to CoG frame */
+                d_err_vel_curr_pitch_
+                  = (target_vel_x - state_vel_x) * cos(state_psi_cog)
+                  + (target_vel_y - state_vel_y) * sin(state_psi_cog);
 
-              //***** Dの項
-              pos_d_term_pitch_ = limit(pos_d_gain_pitch_ * d_err_vel_curr_pitch_, pos_d_limit_pitch_);
+                /* P */
+                pos_p_term_pitch_ = limit(vel_p_gain_pitch_ * d_err_vel_curr_pitch_, pos_d_limit_pitch_);
+                pos_d_term_pitch_ =  0;
 
-            }
-          else if(navigator_->getXyControlMode() == Navigator::POS_LOCAL_BASED_CONTROL_MODE)
-            {
-              //** 座標変換
-              d_err_pos_curr_pitch_ = target_pos_x - state_pos_x;
-              d_err_vel_curr_pitch_ = target_vel_x - state_vel_x;
-
-              //**** Pの項
-              pos_p_term_pitch_ =
-                limit(pos_p_gain_pitch_ * d_err_pos_curr_pitch_, pos_p_limit_pitch_);
-              //**** Dの項
-              pos_d_term_pitch_ =
-                limit(pos_d_gain_pitch_ * d_err_vel_curr_pitch_, pos_d_limit_pitch_);
-
-            }
-          else if(navigator_->getXyControlMode() == Navigator::VEL_WORLD_BASED_CONTROL_MODE)
-            {
-              //** 座標変換
-              d_err_vel_curr_pitch_ 
-                = (target_vel_x - state_vel_x) * cos(state_psi_cog)
-                + (target_vel_y - state_vel_y) * sin(state_psi_cog);
-
-              //**** Pの項
-              pos_p_term_pitch_ = limit(vel_p_gain_pitch_ * d_err_vel_curr_pitch_, pos_d_limit_pitch_);
-              pos_d_term_pitch_ =  0;
-            }
-          else if(navigator_->getXyControlMode() == Navigator::VEL_LOCAL_BASED_CONTROL_MODE)
-            {
-              if(navigator_->getFlightMode() == Navigator::TAKEOFF_MODE)
-                {// special mode for velocity control
-                  if(navigator_->getXyVelModePosCtrlTakeoff())
-                    {
-                      //**** Pの項
-                      d_err_pos_curr_pitch_ = target_pos_x - state_pos_x;
-                      d_err_vel_curr_pitch_ = target_vel_x - state_vel_x;
-
-                      pos_p_term_pitch_ = limit(pos_p_gain_pitch_ * d_err_pos_curr_pitch_,  pos_p_limit_pitch_);
-
-                      pos_i_term_pitch_ += d_err_pos_curr_pitch_ * (1 / (float)pitch_ctrl_loop_rate_) * pos_i_gain_pitch_;
-                      pos_i_term_pitch_ = limit(pos_i_term_pitch_, pos_i_limit_pitch_);
-
-                      pos_d_term_pitch_ = limit(pos_d_gain_pitch_ * d_err_vel_curr_pitch_, pos_d_limit_pitch_);
-                    }
-                  else
-                    {
-                      d_err_vel_curr_pitch_ = target_vel_x - state_vel_x;
-                      //**** Pの項
-                      pos_p_term_pitch_ = limit(vel_p_gain_pitch_ * d_err_vel_curr_pitch_, pos_d_limit_pitch_);
-                      //**** Iの項
-                      pos_i_term_pitch_ = 0;
-                      //**** Dの項
-                      pos_d_term_pitch_ = 0;
-                    }
-                }
-              else
-                { // other flight mode except takeoff
-                  d_err_vel_curr_pitch_ = target_vel_x - state_vel_x;
-                  //**** Pの項
-                  pos_p_term_pitch_ = limit(vel_p_gain_pitch_ * d_err_vel_curr_pitch_, pos_d_limit_pitch_);
-
-                  //**** Dの項
-                  pos_d_term_pitch_ = 0;
-                }
+                break;
+              }
+            case flight_nav::ACC_CONTROL_MODE:
+              {
+                /* convert from world frame to CoG frame */
+                pos_p_term_pitch_ = (target_acc_x * cos(state_psi_cog)
+                                     + target_acc_y * sin(state_psi_cog))  / BasicEstimator::G;
+                pos_i_term_pitch_ =  0;
+                pos_d_term_pitch_ =  0;
+                break;
+              }
+            default:
+              {
+                break;
+              }
             }
           //*** 指令値算出
           pitch_value = limit(pos_p_term_pitch_ + pos_i_term_pitch_ + pos_d_term_pitch_ + offset_pitch_, pos_limit_pitch_);
-
-	  //**** attitude control mode
-	  if(navigator_->getXyControlMode() == Navigator::ATT_CONTROL_MODE)
-            {
-              pitch_value = navigator_->getTargetAnglePitch();
-              pos_p_term_pitch_ =  0;
-              pos_i_term_pitch_ =  0;
-              pos_d_term_pitch_ =  0;
-            }
 
           //*** 指令値代入
           flight_ctrl_input_->setPitchValue(pitch_value);
@@ -387,111 +335,69 @@ void PidController::pidFunction()
           four_axis_pid_debug.pitch.d_term.push_back(pos_d_term_pitch_);
           four_axis_pid_debug.pitch.pos_err_transform = d_err_pos_curr_pitch_;
           four_axis_pid_debug.pitch.pos_err_no_transform = target_pos_x - state_pos_x;
-          four_axis_pid_debug.pitch.vel_err_transform = target_vel_x;
-          four_axis_pid_debug.pitch.vel_err_no_transform = target_vel_x -state_vel_x;
+          four_axis_pid_debug.pitch.vel_err_transform = d_err_vel_curr_pitch_;
+          four_axis_pid_debug.pitch.vel_err_no_transform = target_vel_x;
 
           //roll
-          if(navigator_->getXyControlMode() == Navigator::POS_WORLD_BASED_CONTROL_MODE)
+          switch(navigator_->getXyControlMode())
             {
-              //** 座標変換
-              d_err_pos_curr_roll_ 
-                = - (target_pos_x - state_pos_x) * sin(state_psi_cog)
-                + (target_pos_y - state_pos_y) * cos(state_psi_cog);
+            case flight_nav::POS_CONTROL_MODE:
+              {
+                /* convert from world frame to CoG frame */
 
-              d_err_vel_curr_roll_ = - (- state_vel_x * sin(state_psi_cog) + state_vel_y * cos(state_psi_cog));
+                d_err_pos_curr_roll_
+                  = - (target_pos_x - state_pos_x) * sin(state_psi_cog)
+                  + (target_pos_y - state_pos_y) * cos(state_psi_cog);
 
-              //**** Pの項
-              pos_p_term_roll_ = limit(pos_p_gain_roll_ * d_err_pos_curr_roll_, pos_p_limit_roll_);
+                d_err_vel_curr_roll_ = - (- state_vel_x * sin(state_psi_cog) + state_vel_y * cos(state_psi_cog));
 
-              //**** Iの項
-              if(navigator_->getFlightMode() == Navigator::TAKEOFF_MODE || navigator_->getFlightMode() == Navigator::LAND_MODE) //takeoff or land
-                pos_i_term_roll_ += d_err_pos_curr_roll_ * (1 / (float)roll_ctrl_loop_rate_) * pos_i_gain_roll_;
-              //else if(navigator_->getFlightMode() == Navigator::FLIGHT_MODE && fabs(d_err_pos_curr_roll_) < i_enable_limit_roll_) //hover
-              else if(navigator_->getFlightMode() == Navigator::FLIGHT_MODE) //hover
-                pos_i_term_roll_ += d_err_pos_curr_roll_ * (1 / (float)roll_ctrl_loop_rate_) * pos_i_gain_roll_hover_;
-              pos_i_term_roll_ = limit(pos_i_term_roll_, pos_i_limit_roll_);
+                //**** Pの項
+                pos_p_term_roll_ = limit(pos_p_gain_roll_ * d_err_pos_curr_roll_, pos_p_limit_roll_);
 
-              //***** Dの項
-              pos_d_term_roll_ = limit(pos_d_gain_roll_ * d_err_vel_curr_roll_, pos_d_limit_roll_);
+                //**** Iの項
+                if(navigator_->getFlightMode() == Navigator::TAKEOFF_MODE || navigator_->getFlightMode() == Navigator::LAND_MODE) //takeoff or land
+                  pos_i_term_roll_ += d_err_pos_curr_roll_ * (1 / (float)roll_ctrl_loop_rate_) * pos_i_gain_roll_;
 
+                else if(navigator_->getFlightMode() == Navigator::FLIGHT_MODE) //hover
+                  pos_i_term_roll_ += d_err_pos_curr_roll_ * (1 / (float)roll_ctrl_loop_rate_) * pos_i_gain_roll_hover_;
+                pos_i_term_roll_ = limit(pos_i_term_roll_, pos_i_limit_roll_);
 
-            }
-          else if(navigator_->getXyControlMode() == Navigator::POS_LOCAL_BASED_CONTROL_MODE)
-            {
-              //** 座標変換
-              d_err_pos_curr_roll_ = target_pos_y - state_pos_y;
-              d_err_vel_curr_roll_ = target_vel_y - state_vel_y;
+                /* D */
+                pos_d_term_roll_ = limit(pos_d_gain_roll_ * d_err_vel_curr_roll_, pos_d_limit_roll_);
 
-              //**** Pの項
-              pos_p_term_roll_ = limit(pos_p_gain_roll_ * d_err_pos_curr_roll_, pos_p_limit_roll_);
+                break;
+              }
+            case flight_nav::VEL_CONTROL_MODE:
+              {
+                /* convert from world frame to CoG frame */
+                d_err_vel_curr_roll_
+                  = -(target_vel_x - state_vel_x) * sin(state_psi_cog)
+                  + (target_vel_y - state_vel_y)  * cos(state_psi_cog);
 
-              //**** Dの項
-              pos_d_term_roll_ = limit(pos_d_gain_roll_ * d_err_vel_curr_roll_, pos_d_limit_roll_);
+                /* P */
+                pos_p_term_roll_ = limit(vel_p_gain_roll_ * d_err_vel_curr_roll_, pos_d_limit_roll_);
+                pos_d_term_roll_ = 0;
+                break;
+              }
+            case flight_nav::ACC_CONTROL_MODE:
+              {
+                /* convert from world frame to CoG frame */
+                pos_p_term_roll_ =  (-target_acc_x * sin(state_psi_cog)
+                                     + target_acc_y * cos(state_psi_cog)) / BasicEstimator::G;
+                pos_i_term_roll_ =  0;
+                pos_d_term_roll_ =  0;
 
-            }
-          else if(navigator_->getXyControlMode() == Navigator::VEL_WORLD_BASED_CONTROL_MODE)
-            {
-              d_err_vel_curr_roll_ 
-                = -(target_vel_x - state_vel_x) * sin(state_psi_cog)
-                + (target_vel_y - state_vel_y)  * cos(state_psi_cog);
-
-              //**** Pの項
-              pos_p_term_roll_ = limit(vel_p_gain_roll_ * d_err_vel_curr_roll_, pos_d_limit_roll_);
-              pos_d_term_roll_ = 0;
-            }
-          else if(navigator_->getXyControlMode() == Navigator::VEL_LOCAL_BASED_CONTROL_MODE)
-            {
-              if(navigator_->getFlightMode() == Navigator::TAKEOFF_MODE)
-                {// special mode for velocity control
-                  if(navigator_->getXyVelModePosCtrlTakeoff())
-                    {
-                      //**** Pの項
-                      d_err_pos_curr_roll_ = target_pos_y - state_pos_y;
-                      d_err_vel_curr_roll_ = target_vel_y - state_vel_y;
-
-                      pos_p_term_roll_ = limit(pos_p_gain_roll_ * d_err_pos_curr_roll_,  pos_p_limit_roll_);
-
-                      pos_i_term_roll_ += d_err_pos_curr_roll_ * (1 / (float)roll_ctrl_loop_rate_) * pos_i_gain_roll_;
-                      pos_i_term_roll_ = limit(pos_i_term_roll_, pos_i_limit_roll_);
-
-                      pos_d_term_roll_ = limit(pos_d_gain_roll_ * d_err_vel_curr_roll_, pos_d_limit_roll_);
-                    }
-                  else
-                    {
-                      d_err_vel_curr_roll_ = target_vel_y - state_vel_y;
-                      //**** Pの項
-                      pos_p_term_roll_ = limit(vel_p_gain_roll_ * d_err_vel_curr_roll_, pos_d_limit_roll_);
-                      //**** Iの項
-                      pos_i_term_roll_ = 0;
-                      //**** Dの項
-                      pos_d_term_roll_ = 0;
-                    }
-
-                }
-              else
-                {
-                  d_err_vel_curr_roll_ = target_vel_y - state_vel_y;
-                  //**** Pの項
-                  pos_p_term_roll_ = limit(vel_p_gain_roll_ * d_err_vel_curr_roll_, pos_d_limit_roll_);
-
-
-                  //**** Dの項
-                  pos_d_term_roll_ = 0;
-                }
+                break;
+              }
+            default:
+              {
+                break;
+              }
             }
           //*** 指令値算出
           roll_value = limit(pos_p_term_roll_ + pos_i_term_roll_ + pos_d_term_roll_ + offset_roll_, pos_limit_roll_);
           //**** 指令値反転
           roll_value = - roll_value;
-
-          //**** attitude control mode
-          if(navigator_->getXyControlMode() == Navigator::ATT_CONTROL_MODE)
-            {
-              roll_value = navigator_->getTargetAngleRoll();
-              pos_p_term_roll_ =  0;
-              pos_i_term_roll_ =  0;
-              pos_d_term_roll_ =  0;
-            }
 
           //*** 指令値代入
           flight_ctrl_input_->setRollValue(roll_value);
@@ -503,8 +409,8 @@ void PidController::pidFunction()
           four_axis_pid_debug.roll.d_term.push_back(pos_d_term_roll_);
           four_axis_pid_debug.roll.pos_err_transform = d_err_pos_curr_roll_;
           four_axis_pid_debug.roll.pos_err_no_transform = target_pos_y - state_pos_y;
-          four_axis_pid_debug.roll.vel_err_transform = target_vel_y;
-          four_axis_pid_debug.roll.vel_err_no_transform = target_vel_y - state_vel_y;
+          four_axis_pid_debug.roll.vel_err_transform = d_err_vel_curr_roll_;
+          four_axis_pid_debug.roll.vel_err_no_transform = target_vel_y;
 
           //yaw => refer to the board frame angle(psi_board)
           //error p
