@@ -148,6 +148,7 @@ protected:
   int estimate_mode_;
   int low_voltage_thre_;
   bool low_voltage_flag_;
+  bool  force_att_control_flag_;
 
   // final target value
   double takeoff_height_;
@@ -302,7 +303,6 @@ private:
 
   bool  vel_control_flag_;
   bool  pos_control_flag_;
-  bool  force_att_control_flag_;
   bool  xy_control_flag_;
   bool  alt_control_flag_;
   bool  yaw_control_flag_;

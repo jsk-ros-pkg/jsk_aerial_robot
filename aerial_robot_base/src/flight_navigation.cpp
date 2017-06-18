@@ -52,6 +52,8 @@ Navigator::Navigator(ros::NodeHandle nh, ros::NodeHandle nh_private,
   stopNavigation();
   setNaviCommand( IDLE_COMMAND );
 
+  force_att_control_flag_ = false;
+
   //base navigation mode init
   flight_mode_ = NO_CONTROL_MODE;
   low_voltage_flag_ = false;
@@ -66,36 +68,36 @@ Navigator::~Navigator()
 
 void Navigator::naviCallback(const aerial_robot_base::FlightNavConstPtr & msg)
 {
-  //control mode change (pos/vel)
-  if(msg->pos_xy_nav_mode == aerial_robot_base::FlightNav::VEL_MODE)
+  switch(msg->pos_xy_nav_mode)
     {
-      //only change mode in world based control (only optical flow in forbidden)
-      if(xy_control_mode_ == POS_WORLD_BASED_CONTROL_MODE)
-        {
-          ROS_INFO("change to vel pos-based control");
-          xy_control_mode_ = VEL_WORLD_BASED_CONTROL_MODE;
-        }
-    }
-  if(msg->pos_xy_nav_mode == aerial_robot_base::FlightNav::POS_MODE)
-    {
-      //only change mode in world based control (only optical flow in forbidden)
-      if(xy_control_mode_ == VEL_WORLD_BASED_CONTROL_MODE)
-        {
-          ROS_INFO("change to pos control");
-          xy_control_mode_ = POS_WORLD_BASED_CONTROL_MODE;
-        }
-    }
-
-  //for x & y
-  if(msg->pos_xy_nav_mode == aerial_robot_base::FlightNav::VEL_MODE)
-    {
-      setTargetVelX(msg->target_vel_x);
-      setTargetVelY(msg->target_vel_y);
-    }
-  else if(msg->pos_xy_nav_mode == aerial_robot_base::FlightNav::POS_MODE)
-    {
-      setTargetPosX(msg->target_pos_x);
-      setTargetPosY(msg->target_pos_y);
+    case aerial_robot_base::FlightNav::VEL_MODE:
+      {
+        // ROS_INFO("change to vel control");
+        force_att_control_flag_ = false;
+        xy_control_mode_ = VEL_WORLD_BASED_CONTROL_MODE;
+        setTargetVelX(msg->target_vel_x);
+        setTargetVelY(msg->target_vel_y);
+        break;
+      }
+    case aerial_robot_base::FlightNav::POS_MODE:
+      {
+        // ROS_INFO("change to pos control");
+        force_att_control_flag_ = false;
+        xy_control_mode_ = POS_WORLD_BASED_CONTROL_MODE;
+        setTargetPosX(msg->target_pos_x);
+        setTargetPosY(msg->target_pos_y);
+        break;
+      }
+    case aerial_robot_base::FlightNav::ATT_MODE:
+      {
+        // ROS_INFO("change to att control");
+        force_att_control_flag_ = true;
+        xy_control_mode_ = ATT_CONTROL_MODE;
+        target_roll_angle_ = msg->target_att_r;
+        target_pitch_angle_ = msg->target_att_p;
+        setTargetPsi(msg->target_att_y);
+        break;
+      }
     }
 
   //for z
@@ -191,7 +193,6 @@ TeleopNavigator::TeleopNavigator(ros::NodeHandle nh, ros::NodeHandle nh_private,
   xy_control_flag_ = false;
   alt_control_flag_ = false;
   yaw_control_flag_ = false;
-  force_att_control_flag_ = false;
 
   arming_ack_sub_ = nh_.subscribe<std_msgs::UInt8>("/flight_config_ack", 1, &TeleopNavigator::armingAckCallback, this, ros::TransportHints().tcpNoDelay());
   takeoff_sub_ = nh_.subscribe<std_msgs::Empty>("/teleop_command/takeoff", 1, &TeleopNavigator::takeoffCallback, this, ros::TransportHints().tcpNoDelay());

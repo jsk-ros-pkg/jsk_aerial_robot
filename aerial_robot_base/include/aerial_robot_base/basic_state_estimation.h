@@ -92,7 +92,7 @@ public:
     nhp_.param ("estimate_mode", estimate_mode_, 0); //EGOMOTION_ESTIMATE: 0
     ROS_WARN("estimate_mode is %s", (estimate_mode_ == EGOMOTION_ESTIMATE)?string("EGOMOTION_ESTIMATE").c_str():((estimate_mode_ == EXPERIMENT_ESTIMATE)?string("EXPERIMENT_ESTIMATE").c_str():((estimate_mode_ == GROUND_TRUTH)?string("GROUND_TRUTH").c_str():string("WRONG_MODE").c_str())));
 
-    odom_state_pub_ = nh_.advertise<nav_msgs::Odometry>("/uav/state", 1);
+    odom_state_pub_ = nh_.advertise<nav_msgs::Odometry>("/uav/root_link/odom", 1);
     full_state_pub_ = nh_.advertise<aerial_robot_base::States>("/uav/full_state", 1);
     fuser_[0].resize(0);
     fuser_[1].resize(0);
