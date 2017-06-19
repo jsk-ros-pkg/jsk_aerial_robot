@@ -2,6 +2,7 @@
 #include <pluginlib/class_list_macros.h>
 
 namespace {
+#if USE_GPU
   void download(const cv::gpu::GpuMat& d_mat, std::vector<cv::Point2f>& vec)
   {
     vec.resize(d_mat.cols);
@@ -15,6 +16,7 @@ namespace {
     cv::Mat mat(1, d_mat.cols, CV_8UC1, (void*)&vec[0]);
     d_mat.download(mat);
   }
+#endif
 }
 
 namespace aerial_robot_estimation

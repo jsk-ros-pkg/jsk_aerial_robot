@@ -58,7 +58,9 @@
 #include "opencv2/imgproc/imgproc.hpp"
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/video/video.hpp"
+#if USE_GPU
 #include "opencv2/gpu/gpu.hpp"
+#endif
 #include <cv_bridge/cv_bridge.h>
 
 namespace aerial_robot_estimation
