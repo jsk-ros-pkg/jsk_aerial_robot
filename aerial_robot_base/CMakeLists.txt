@@ -42,6 +42,7 @@ add_message_files(FILES
   MotorInfo.msg
   DesireCoord.msg
   Acc.msg
+  UavType.msg
   )
 
 add_service_files(

@@ -582,14 +582,17 @@ void TeleopNavigator::sendAttCmd()
       rc_command_data.angles[0]  =  flight_ctrl_input_->getRollValue();
       rc_command_data.angles[1] =  flight_ctrl_input_->getPitchValue();
 
+      rc_command_data.base_throttle.resize(flight_ctrl_input_->getMotorNumber());
       if(flight_ctrl_input_->getMotorNumber() == 1)
-        {/* general multirotor */
+        {
+          /* Simple PID based attitude/altitude control */
           rc_command_data.angles[2] = (flight_ctrl_input_->getYawValue())[0];
           rc_command_data.base_throttle[0] =  (flight_ctrl_input_->getThrottleValue())[0];
           if((flight_ctrl_input_->getThrottleValue())[0] == 0) return; // do not publish the empty flight command => the force landing flag will be activate
         }
       else
-        {/* transformable multirotor */
+        {
+          /* LQI based attitude/altitude control */
           for(int i = 0; i < flight_ctrl_input_->getMotorNumber(); i++)
             rc_command_data.base_throttle[i] = (flight_ctrl_input_->getYawValue())[i] + (flight_ctrl_input_->getThrottleValue())[i];
         }
