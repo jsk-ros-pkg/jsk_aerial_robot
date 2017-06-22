@@ -84,6 +84,7 @@ namespace sensor_plugin
       acc_l_(0, 0, 0),
       acc_w_(0, 0, 0),
       acc_non_bias_w_(0, 0, 0),
+      acc_bias_b_(0, 0, 0),
       acc_bias_l_(0, 0, 0),
       acc_bias_w_(0, 0, 0)
     { }
@@ -120,6 +121,7 @@ namespace sensor_plugin
     tf::Vector3 acc_w_; /* the acceleration in world frame */
     tf::Vector3 acc_non_bias_w_; /* the acceleration without bias in world frame */
     /* acc bias */
+    tf::Vector3 acc_bias_b_; /* the acceleration bias in body frame, only use z axis  */
     tf::Vector3 acc_bias_l_; /* the acceleration bias in level frame as to body frame: previously is acc_i */
     tf::Vector3 acc_bias_w_; /* the acceleration bias in world frame */
 
@@ -186,12 +188,11 @@ namespace sensor_plugin
       mag_[Frame::COG] = estimator_->getRCog2Rootlink() * mag_[Frame::BODY];
 
       /* project acc onto level frame using body frame value */
-#if 1 // use x,y for factor4 and z for factor3
       tf::Matrix3x3 orientation;
       orientation.setRPY(euler_[Frame::BODY][0], euler_[Frame::BODY][1], 0);
-      acc_l_ = orientation * acc_[Frame::BODY];
-      acc_l_.setZ((orientation * tf::Vector3(0, 0, acc_[Frame::BODY].z())).z() - BasicEstimator::G);
-
+#if 1
+      acc_l_ = orientation * acc_[Frame::BODY]  - tf::Vector3(0, 0, BasicEstimator::G); /* use x,y for factor4 and z for factor3 */
+      //acc_l_.setZ((orientation * tf::Vector3(0, 0, acc_[Frame::BODY].z())).z() - BasicEstimator::G);
 #else  // use approximation
       acc_l_ = orientation * tf::Vector3(0, 0, acc_[Frame::BODY].z()) - tf::Vector3(0, 0, BasicEstimator::G);
 #endif
@@ -269,7 +270,7 @@ namespace sensor_plugin
 
                   tf::Matrix3x3 orientation;
                   orientation.setRPY(0, 0, (estimator_->getState(BasicEstimator::YAW_W_B, mode))[0]);
-                  tf::Vector3 acc_bias_w_ = orientation * acc_bias_l_;
+                  acc_bias_w_ = orientation * acc_bias_l_;
 
                   for(auto& fuser : estimator_->getFuser(mode))
                     {
@@ -364,20 +365,10 @@ namespace sensor_plugin
                               temp(0, 0) = (double)acc_non_bias_w_.x();
                               axis = BasicEstimator::X_W;
                             }
-                          else if(id & (1 << BasicEstimator::X_B))
-                            {
-                              temp(0, 0) = (double)acc_l_.x();
-                              axis = BasicEstimator::X_B;
-                            }
                           else if(id & (1 << BasicEstimator::Y_W))
                             {
                               temp(0, 0) = (double)acc_non_bias_w_.y();
                               axis = BasicEstimator::Y_W;
-                            }
-                          else if(id & (1 << BasicEstimator::Y_B))
-                            {
-                              temp(0, 0) = (double)acc_l_.y();
-                              axis = BasicEstimator::Y_B;
                             }
                           else if(id & (1 << BasicEstimator::Z_W))
                             {
@@ -387,6 +378,7 @@ namespace sensor_plugin
                               /* considering the undescend mode, such as the phase of takeoff, the velocity should not below than 0 */
                               if(estimator_->getUnDescendMode() && (kf->getEstimateState())(1,0) < 0)
                                 kf->resetState();
+
                             }
                           kf->prediction(temp);
                         }
@@ -395,7 +387,7 @@ namespace sensor_plugin
                         {
                           if(id & (1 << BasicEstimator::X_W))
                             {
-                              temp2(0, 0) = (double)acc_w_.x();
+                              temp2(0, 0) = acc_w_.x();
                               axis = BasicEstimator::X_W;
                             }
                           else if(id & (1 << BasicEstimator::X_B))
@@ -421,6 +413,11 @@ namespace sensor_plugin
                               /* considering the undescend mode, such as the phase of takeoff, the velocity should not below than 0 */
                               if(estimator_->getUnDescendMode() && (kf->getEstimateState())(1,0) < 0)
                                 kf->resetState();
+
+                              /* get the estiamted offset(bias) */
+                              tf::Matrix3x3 orientation;
+                              orientation.setRPY(euler_[Frame::BODY][0], euler_[Frame::BODY][1], (estimator_->getState(BasicEstimator::YAW_W_B, mode))[0]);
+                              acc_bias_b_.setZ((kf->getEstimateState())(2,0));
 
                             }
                           kf->prediction(temp2);
