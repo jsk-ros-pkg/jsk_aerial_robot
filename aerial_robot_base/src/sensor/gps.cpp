@@ -39,6 +39,9 @@
 /* base class */
 #include <aerial_robot_base/sensor_base_plugin.h>
 
+/* kalman filters */
+#include <kalman_filter/kf_pos_vel_acc_plugin.h>
+
 /* gps convert */
 #include <geodesy/utm.h>
 
@@ -196,7 +199,6 @@ namespace sensor_plugin
         static bool first_flag = true;
         double current_secs = gps_msg->stamp.toSec();
 
-        Matrix<double, 1, 1> temp = MatrixXd::Zero(1, 1);
 
         /* frame conversion */
         /* UTM */
@@ -241,7 +243,7 @@ namespace sensor_plugin
 
                     for(auto& fuser : estimator_->getFuser(mode))
                       {
-                        boost::shared_ptr<kf_base_plugin::KalmanFilter> kf = fuser.second;
+                        boost::shared_ptr<kf_plugin::KalmanFilter> kf = fuser.second;
                         int id = kf->getId();
 
                         //if((id & (1 << BasicEstimator::X_W)) || id & (1 << BasicEstimator::Y_W)))
@@ -268,9 +270,6 @@ namespace sensor_plugin
           {
             if(!estimate_flag_) return;
 
-            Matrix<double, 1, 1> temp = MatrixXd::Zero(1, 1);
-            Matrix<double, 1, 1> sigma_temp = MatrixXd::Zero(1, 1);
-
             /* fuser for 0: egomotion, 1: experiment */
             for(int mode = 0; mode < 2; mode++)
               {
@@ -278,26 +277,27 @@ namespace sensor_plugin
 
                 for(auto& fuser : estimator_->getFuser(mode))
                   {
-                    boost::shared_ptr<kf_base_plugin::KalmanFilter> kf = fuser.second;
+                    string plugin_name = fuser.first;
+                    boost::shared_ptr<kf_plugin::KalmanFilter> kf = fuser.second;
                     int id = kf->getId();
 
                     if(id <= 2)
                       {
-                        /* set velocity correction mode */
-                        kf->setCorrectMode(1);
+                        VectorXd measure_sigma(1);
+                        measure_sigma << vel_noise_sigma_;
+                        std::vector<double> meas = {raw_vel_[id >> 1]}; // temporarily index setting
+                        kf->setMeasureSigma(measure_sigma);
+                        if(plugin_name == "kalman_filter/kf_pos_vel_acc")
+                          (boost::static_pointer_cast<kf_plugin::KalmanFilterPosVelAcc>(kf))->correction(meas, kf_plugin::VEL);
+                        if(plugin_name == "kalman_filter/kf_pos_vel_acc_bias")
+                          (boost::static_pointer_cast<kf_plugin::KalmanFilterPosVelAccBias>(kf))->correction(meas, kf_plugin::VEL);
 
-                        sigma_temp(0,0) = vel_noise_sigma_;
-                        kf->setMeasureSigma(sigma_temp);
-
-                        temp(0, 0) = raw_vel_[id >> 1];
-                        kf->correction(temp);
-
-                        MatrixXd state = kf->getEstimateState();
+                        VectorXd state = kf->getEstimateState();
                         /* do not use the position data */
-                        estimator_->setState(id >> 1, mode, 1, state(1,0));
+                        estimator_->setState(id >> 1, mode, 1, state(1));
 
-                        gps_state_.states[id >> 1].state[mode + 1].x = state(0, 0);
-                        gps_state_.states[id >> 1].state[mode + 1].y = state(1, 0);
+                        gps_state_.states[id >> 1].state[mode + 1].x = state(0);
+                        gps_state_.states[id >> 1].state[mode + 1].y = state(1);
 
                         gps_state_.states[id >> 1].state[0].x = raw_pos_[id >> 1];
                         gps_state_.states[id >> 1].state[0].y = raw_vel_[id >> 1];
@@ -324,7 +324,6 @@ namespace sensor_plugin
         static bool rtk_first_flag = true;
         double current_secs = rtk_gps_msg->header.stamp.toSec();
 
-        Matrix<double, 1, 1> temp = MatrixXd::Zero(1, 1);
 
         /* frame conversion */
         tf::Vector3 raw_rtk_pos_temp, raw_rtk_vel_temp;
@@ -346,16 +345,13 @@ namespace sensor_plugin
 
                   for(auto& fuser : estimator_->getFuser(mode))
                     {
-                      boost::shared_ptr<kf_base_plugin::KalmanFilter> kf = fuser.second;
+                      boost::shared_ptr<kf_plugin::KalmanFilter> kf = fuser.second;
                       int id = kf->getId();
 
                       //if((id & (1 << BasicEstimator::X_W)) || id & (1 << BasicEstimator::Y_W)))
                       if(id <= 2) // equal to the previous condition
                         {
                           /* position correction mode */
-                          kf->setCorrectMode(0);
-                          temp(0,0) = pos_noise_sigma_;
-                          kf->setMeasureSigma(temp);
                           kf->setInitState(raw_rtk_pos_[id], 0);
                           kf->setMeasureFlag();
                         }
@@ -366,9 +362,6 @@ namespace sensor_plugin
           {
             if(!estimate_flag_) return;
 
-            Matrix<double, 1, 1> temp = MatrixXd::Zero(1, 1);
-            Matrix<double, 1, 1> sigma_temp = MatrixXd::Zero(1, 1);
-
             /* fuser for 0: egomotion, 1: experiment */
             for(int mode = 0; mode < 2; mode++)
               {
@@ -376,26 +369,28 @@ namespace sensor_plugin
 
                 for(auto& fuser : estimator_->getFuser(mode))
                   {
-                    boost::shared_ptr<kf_base_plugin::KalmanFilter> kf = fuser.second;
+                    string plugin_name = fuser.first;
+                    boost::shared_ptr<kf_plugin::KalmanFilter> kf = fuser.second;
                     int id = kf->getId();
 
                     if(id <= 2)
                       {
-                        /* set position correction mode */
-                        kf->setCorrectMode(0);
+                        VectorXd measure_sigma(1);
+                        measure_sigma << pos_noise_sigma_;
+                        std::vector<double> meas = {raw_rtk_pos_[id >> 1]}; // temporarily index setting
 
-                        sigma_temp(0,0) = pos_noise_sigma_;
-                        kf->setMeasureSigma(sigma_temp);
+                        kf->setMeasureSigma(measure_sigma);
+                        if(plugin_name == "kalman_filter/kf_pos_vel_acc")
+                          (boost::static_pointer_cast<kf_plugin::KalmanFilterPosVelAcc>(kf))->correction(meas, kf_plugin::POS);
+                        if(plugin_name == "kalman_filter/kf_pos_vel_acc_bias")
+                          (boost::static_pointer_cast<kf_plugin::KalmanFilterPosVelAccBias>(kf))->correction(meas, kf_plugin::POS);
+                        VectorXd state = kf->getEstimateState();
 
-                        temp(0, 0) = raw_rtk_pos_[id >> 1];
-                        kf->correction(temp);
+                        estimator_->setState(id >> 1, mode, 0, state(0));
+                        estimator_->setState(id >> 1, mode, 1, state(1));
 
-                        MatrixXd state = kf->getEstimateState();
-                        estimator_->setState(id >> 1, mode, 0, state(0,0));
-                        estimator_->setState(id >> 1, mode, 1, state(1,0));
-
-                        gps_state_.states[id >> 1 + 2].state[mode + 1].x = state(0, 0);
-                        gps_state_.states[id >> 1 + 2].state[mode + 1].y = state(1, 0);
+                        gps_state_.states[id >> 1 + 2].state[mode + 1].x = state(0);
+                        gps_state_.states[id >> 1 + 2].state[mode + 1].y = state(1);
 
                         gps_state_.states[id >> 1 + 2].state[0].x = raw_rtk_pos_[id >> 1];
                         gps_state_.states[id >> 1 + 2].state[0].y = raw_rtk_vel_[id >> 1];

@@ -39,6 +39,9 @@
 /* base class */
 #include <aerial_robot_base/sensor_base_plugin.h>
 
+/* kalman filters */
+#include <kalman_filter/kf_pos_vel_acc_plugin.h>
+
 /* ros msg */
 #include <geometry_msgs/Vector3Stamped.h>
 #include <nav_msgs/Odometry.h>
@@ -135,7 +138,7 @@ namespace sensor_plugin
 
               for(auto& fuser : estimator_->getFuser(BasicEstimator::EGOMOTION_ESTIMATE))
                 {
-                  boost::shared_ptr<kf_base_plugin::KalmanFilter> kf = fuser.second;
+                  boost::shared_ptr<kf_plugin::KalmanFilter> kf = fuser.second;
                   int id = kf->getId();
                   if((id & (1 << BasicEstimator::X_W)) || (id & (1 << BasicEstimator::Y_W)) )
                     {
@@ -171,30 +174,31 @@ namespace sensor_plugin
       r_cog_.getRPY(r,p,y);
       estimator_->setState(BasicEstimator::YAW_W, BasicEstimator::EGOMOTION_ESTIMATE, 0, y);
 
-      Eigen::Matrix<double, 1, 1> sigma_temp = Eigen::MatrixXd::Zero(1, 1);
-      sigma_temp(0,0) = vo_noise_sigma_;
-      Eigen::Matrix<double, 1, 1> temp = Eigen::MatrixXd::Zero(1, 1);
-
       for(auto& fuser : estimator_->getFuser(BasicEstimator::EGOMOTION_ESTIMATE))
         {
-          boost::shared_ptr<kf_base_plugin::KalmanFilter> kf = fuser.second;
+          string plugin_name = fuser.first;
+          boost::shared_ptr<kf_plugin::KalmanFilter> kf = fuser.second;
           int id = kf->getId();
 
           if((id & (1 << BasicEstimator::X_W)) || (id & (1 << BasicEstimator::Y_W)))
             {
-              kf->setMeasureSigma(sigma_temp);
-              kf->setCorrectMode(0);
+              VectorXd measure_sigma(1);
+              measure_sigma << vo_noise_sigma_;
+              std::vector<double> meas = {pos_[id >> 1]}; // temporarily index setting
 
-              temp(0, 0) = pos_[id >> 1];
-              kf->correction(temp);
+              kf->setMeasureSigma(measure_sigma);
+              if(plugin_name == "kalman_filter/kf_pos_vel_acc")
+                (boost::static_pointer_cast<kf_plugin::KalmanFilterPosVelAcc>(kf))->correction(meas, kf_plugin::POS);
+              if(plugin_name == "kalman_filter/kf_pos_vel_acc_bias")
+                (boost::static_pointer_cast<kf_plugin::KalmanFilterPosVelAccBias>(kf))->correction(meas, kf_plugin::POS);
 
-              MatrixXd state = kf->getEstimateState();
+              VectorXd state = kf->getEstimateState();
 
               /* set data */
-              estimator_->setState(id >> 1, BasicEstimator::EGOMOTION_ESTIMATE, 0, state(0,0));
-              estimator_->setState(id >> 1, BasicEstimator::EGOMOTION_ESTIMATE, 1, state(1,0));
-              vo_state_.states[id >> 1].state[1].x = state(0, 0);
-              vo_state_.states[id >> 1].state[1].y = state(1, 0);
+              estimator_->setState(id >> 1, BasicEstimator::EGOMOTION_ESTIMATE, 0, state(0));
+              estimator_->setState(id >> 1, BasicEstimator::EGOMOTION_ESTIMATE, 1, state(1));
+              vo_state_.states[id >> 1].state[1].x = state(0);
+              vo_state_.states[id >> 1].state[1].y = state(1);
             }
         }
     }

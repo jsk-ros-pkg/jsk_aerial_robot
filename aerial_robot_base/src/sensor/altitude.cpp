@@ -42,6 +42,10 @@
 /* filtering */
 #include <kalman_filter/digital_filter.h>
 
+/* kalman filters */
+#include <kalman_filter/kf_pos_vel_acc_plugin.h>
+
+
 /* ros msg */
 #include <sensor_msgs/Range.h>
 #include <aerial_robot_msgs/Barometer.h>
@@ -60,7 +64,7 @@ namespace sensor_plugin
       SensorBase::initialize(nh, nhp, estimator, sensor_name);
       rosParamInit();
 
-      kf_loader_ptr_ = boost::shared_ptr< pluginlib::ClassLoader<kf_base_plugin::KalmanFilter> >(new pluginlib::ClassLoader<kf_base_plugin::KalmanFilter>("kalman_filter", "kf_base_plugin::KalmanFilter"));
+      kf_loader_ptr_ = boost::shared_ptr< pluginlib::ClassLoader<kf_plugin::KalmanFilter> >(new pluginlib::ClassLoader<kf_plugin::KalmanFilter>("kalman_filter", "kf_plugin::KalmanFilter"));
       baro_bias_kf_  = kf_loader_ptr_->createInstance("aerial_robot_base/kf_baro_bias");
       baro_bias_kf_->initialize(nh_, string(""), 0);
 
@@ -181,8 +185,8 @@ namespace sensor_plugin
 
     /* barometer */
     /* the kalman filter for the baro bias estimation */
-    boost::shared_ptr< pluginlib::ClassLoader<kf_base_plugin::KalmanFilter> > kf_loader_ptr_;
-    boost::shared_ptr<kf_base_plugin::KalmanFilter> baro_bias_kf_;
+    boost::shared_ptr< pluginlib::ClassLoader<kf_plugin::KalmanFilter> > kf_loader_ptr_;
+    boost::shared_ptr<kf_plugin::KalmanFilter> baro_bias_kf_;
     IirFilter iir_filter_, iir_high_filter_;
     bool inflight_state_; //the flag for the inflight state
     double raw_baro_pos_z_, baro_pos_z_, prev_raw_baro_pos_z_, prev_baro_pos_z_;
@@ -275,7 +279,7 @@ namespace sensor_plugin
 
                   for(auto& fuser : estimator_->getFuser(mode))
                     {
-                      boost::shared_ptr<kf_base_plugin::KalmanFilter> kf = fuser.second;
+                      boost::shared_ptr<kf_plugin::KalmanFilter> kf = fuser.second;
                       int id = kf->getId();
                       if(id & (1 << BasicEstimator::Z_W))
                         {
@@ -325,7 +329,7 @@ namespace sensor_plugin
 
                   for(auto& fuser : estimator_->getFuser(mode))
                     {
-                      boost::shared_ptr<kf_base_plugin::KalmanFilter> kf = fuser.second;
+                      boost::shared_ptr<kf_plugin::KalmanFilter> kf = fuser.second;
                       int id = kf->getId();
                       if(id & (1 << BasicEstimator::Z_W))
                         {
@@ -349,8 +353,6 @@ namespace sensor_plugin
               /* release the non-descending mode, use the range sensor for z(alt) estimation */
               estimator_->setUnDescendMode(false);
 
-              Matrix<double, 1, 1> temp = MatrixXd::Zero(1, 1);
-              temp(0,0) = range_noise_sigma_;
               for(int mode = 0; mode < 2; mode++)
                 {
                   if(!getFuserActivate(mode)) continue;
@@ -358,12 +360,11 @@ namespace sensor_plugin
                   for(auto& fuser : estimator_->getFuser(mode))
                     {
                       ROS_INFO("debug sonar: init test:");
-                      boost::shared_ptr<kf_base_plugin::KalmanFilter> kf = fuser.second;
+                      boost::shared_ptr<kf_plugin::KalmanFilter> kf = fuser.second;
                       int id = kf->getId();
                       if(id & (1 << BasicEstimator::Z_W))
                         {
                           kf->setInitState(raw_range_pos_z_, 0);
-                          kf->setMeasureSigma(temp);
                           kf->setMeasureFlag();
                         }
                     }
@@ -390,7 +391,7 @@ namespace sensor_plugin
         }
 
       /* terrain check and height estimate */
-      if(terrainProcess(current_secs)) rangeEstimateProcess();
+      if(terrainProcess(current_secs)) rangeEstimateProcess(range_msg->header.stamp);
 
       /* publish phase */
       alt_state_.header.stamp = range_msg->header.stamp;
@@ -403,16 +404,16 @@ namespace sensor_plugin
           if(!getFuserActivate(mode)) continue;
           for(auto& fuser : estimator_->getFuser(mode))
             {
-              boost::shared_ptr<kf_base_plugin::KalmanFilter> kf = fuser.second;
+              boost::shared_ptr<kf_plugin::KalmanFilter> kf = fuser.second;
               int id = kf->getId();
               if(id & (1 << BasicEstimator::Z_W))
                 {
-                  MatrixXd state = kf->getEstimateState();
-                  estimator_->setState(BasicEstimator::Z_W, mode, 0, state(0,0));
-                  estimator_->setState(BasicEstimator::Z_W, mode, 1, state(1,0));
+                  VectorXd state = kf->getEstimateState();
+                  estimator_->setState(BasicEstimator::Z_W, mode, 0, state(0));
+                  estimator_->setState(BasicEstimator::Z_W, mode, 1, state(1));
 
-                  alt_state_.states[0].state[1 + mode].x = state(0,0);
-                  alt_state_.states[0].state[1 + mode].y = state(1,0);
+                  alt_state_.states[0].state[1 + mode].x = state(0);
+                  alt_state_.states[0].state[1 + mode].y = state(1);
                 }
             }
         }
@@ -421,11 +422,10 @@ namespace sensor_plugin
       updateHealthStamp(current_secs, 1); //channel: 1
     }
 
-    void rangeEstimateProcess()
+    void rangeEstimateProcess(ros::Time stamp)
     {
       if(!estimate_flag_) return;
 
-      Matrix<double, 1, 1> sigma_temp = MatrixXd::Zero(1, 1);
       Matrix<double, 1, 1> temp = MatrixXd::Zero(1, 1);
 
       for(int mode = 0; mode < 2; mode++)
@@ -434,14 +434,24 @@ namespace sensor_plugin
 
           for(auto& fuser : estimator_->getFuser(mode))
             {
-              boost::shared_ptr<kf_base_plugin::KalmanFilter> kf = fuser.second;
+              string plugin_name = fuser.first;
+              boost::shared_ptr<kf_plugin::KalmanFilter> kf = fuser.second;
               int id = kf->getId();
               if(id & (1 << BasicEstimator::Z_W))
                 {
-                  sigma_temp(0,0) = range_noise_sigma_;
-                  kf->setMeasureSigma(sigma_temp);
-                  temp(0, 0) = raw_range_pos_z_;
-                  kf->correction(temp);
+                  if(plugin_name == "kalman_filter/kf_pos_vel_acc" ||
+                     plugin_name == "kalman_filter/kf_pos_vel_acc_bias")
+                    {
+                      /* set noise sigma */
+                      VectorXd measure_sigma(1); measure_sigma << range_noise_sigma_;
+                      kf->setMeasureSigma(measure_sigma);
+
+                      /* correction */
+                      VectorXd meas(1); meas <<  raw_range_pos_z_;
+                      vector<double> params = {kf_plugin::POS};
+
+                      kf->correction(meas, params, stamp.toSec());
+                    }
                 }
             }
         }
@@ -451,7 +461,7 @@ namespace sensor_plugin
     {
       if(!terrain_check_) return true;
 
-      boost::shared_ptr<kf_base_plugin::KalmanFilter> kf;
+      boost::shared_ptr<kf_plugin::KalmanFilter> kf;
       if(!getFuserActivate(BasicEstimator::EGOMOTION_ESTIMATE)) return true;
 
       for(auto& fuser : estimator_->getFuser(BasicEstimator::EGOMOTION_ESTIMATE))
@@ -477,13 +487,13 @@ namespace sensor_plugin
 
           /* flow chat 2 */
           /* check the difference between the estimated value and */
-          if(fabs((kf->getEstimateState())(0,0) - raw_range_pos_z_) > outlier_noise_)
+          if(fabs((kf->getEstimateState())(0) - raw_range_pos_z_) > outlier_noise_)
             {
               t_ab_ = current_secs;
               t_ab_incre_ = current_secs;
               first_outlier_val_ = raw_range_sensor_value_;
               state_on_terrain_ = ABNORMAL;
-              ROS_WARN("range sensor: we find the outlier value in NORMAL mode, switch to ABNORMAL mode, the sensor value is %f, the estimator value is %f, the first outlier value is %f", raw_range_pos_z_, (kf->getEstimateState())(0,0), first_outlier_val_);
+              ROS_WARN("range sensor: we find the outlier value in NORMAL mode, switch to ABNORMAL mode, the sensor value is %f, the estimator value is %f, the first outlier value is %f", raw_range_pos_z_, (kf->getEstimateState())(0), first_outlier_val_);
               //break;
               return false;
             }
@@ -504,7 +514,7 @@ namespace sensor_plugin
             {
               /* the first level to check the outlier: recover to the last normal mode */
               /* we don't have to update the height_offset */
-              if(fabs((kf->getEstimateState())(0,0) - raw_range_pos_z_) < inlier_noise_)
+              if(fabs((kf->getEstimateState())(0) - raw_range_pos_z_) < inlier_noise_)
                 {
                   state_on_terrain_ = NORMAL;
                   return true;
@@ -516,7 +526,7 @@ namespace sensor_plugin
               if(current_secs - t_ab_incre_ > check_du2_)
                 {
                   state_on_terrain_ = NORMAL;
-                  height_offset_ = (kf->getEstimateState())(0,0) - raw_range_sensor_value_;
+                  height_offset_ = (kf->getEstimateState())(0) - raw_range_sensor_value_;
                   /* also update the landing height */
                   estimator_->setLandingHeight(height_offset_ - range_sensor_offset_);
                   ROS_WARN("We we find the new terrain, the new height_offset is %f", height_offset_);
@@ -561,16 +571,16 @@ namespace sensor_plugin
           ROS_WARN("barometer: start the inflight barometer height estimation");
 
           /* the initialization of the baro bias kf filter */
-          Matrix<double, 1, 1> temp = MatrixXd::Zero(1, 1);
-          temp(0,0) = baro_bias_noise_sigma_;
-          baro_bias_kf_->setInputSigma(temp);
+          VectorXd input_sigma(1); input_sigma << baro_bias_noise_sigma_;
+          baro_bias_kf_->setInputSigma(input_sigma);
+          /* do not set the mesaure sigma, since the sigma should be 0 */
           baro_bias_kf_->setInputFlag();
           baro_bias_kf_->setMeasureFlag();
           baro_bias_kf_->setInitState(-baro_pos_z_, 0);
         }
       /* reset */
       if(estimator_->getLandedFlag()) inflight_state_ = false;
-      baroEstimateProcess();
+      baroEstimateProcess(baro_msg->stamp);
 
       /* publish */
       alt_state_.header.stamp = baro_msg->stamp;
@@ -591,18 +601,11 @@ namespace sensor_plugin
       updateHealthStamp(current_secs, 0); //channel: 0
     }
 
-    void baroEstimateProcess()
+    void baroEstimateProcess(ros::Time stamp)
     {
       if(!estimate_flag_) return;
 
       if(!inflight_state_) return;
-
-      /* the estimate phase: bias or height estimate */
-      Matrix<double, 1, 1> sigma_temp = MatrixXd::Zero(1, 1);
-      Matrix<double, 1, 1> temp = MatrixXd::Zero(1, 1);
-
-      Matrix<double,2,1> kf_z_state;
-      Matrix<double,3,1> kfb_z_state;
 
       switch(alt_estimate_mode_)
         {
@@ -613,7 +616,8 @@ namespace sensor_plugin
 
               for(auto& fuser : estimator_->getFuser(mode))
                 {
-                  boost::shared_ptr<kf_base_plugin::KalmanFilter> kf = fuser.second;
+                  string plugin_name = fuser.first;
+                  boost::shared_ptr<kf_plugin::KalmanFilter> kf = fuser.second;
                   int id = kf->getId();
                   if(id & (1 << BasicEstimator::Z_W))
                     {
@@ -623,26 +627,40 @@ namespace sensor_plugin
                           return;
                         }
                       /* We should set the sigma every time, since we may have several different sensors to correct the kalman filter(e.g. vo + opti, laser + baro) */
-                      sigma_temp(0,0) = baro_noise_sigma_;
-                      kf->setMeasureSigma(sigma_temp);
-                      temp(0, 0) = baro_pos_z_ + (baro_bias_kf_->getEstimateState())(0,0);
-                      kf->correction(temp);
+
+                      if(plugin_name == "kalman_filter/kf_pos_vel_acc" ||
+                         plugin_name == "kalman_filter/kf_pos_vel_acc_bias")
+                        {
+                          /* set noise sigma */
+                          VectorXd measure_sigma(1);
+                          measure_sigma << baro_noise_sigma_;
+                          kf->setMeasureSigma(measure_sigma);
+
+                          /* correction */
+                          VectorXd meas(1); meas <<  baro_pos_z_ + (baro_bias_kf_->getEstimateState())(0);
+                          vector<double> params = {kf_plugin::POS};
+                          kf->correction(meas, params, stamp.toSec());
+
+                        }
 
                       /* set the state */
-                      MatrixXd state = kf->getEstimateState();
-                      estimator_->setState(BasicEstimator::Z_W, mode, 0, state(0,0));
-                      estimator_->setState(BasicEstimator::Z_W, mode, 1, state(1,0));
-                      alt_state_.states[0].state[1].x = state(0,0);
-                      alt_state_.states[0].state[1].y = state(1,0);
-                      alt_state_.states[0].state[1].z = (baro_bias_kf_->getEstimateState())(0,0);
+                      VectorXd state = kf->getEstimateState();
+                      estimator_->setState(BasicEstimator::Z_W, mode, 0, state(0));
+                      estimator_->setState(BasicEstimator::Z_W, mode, 1, state(1));
+                      alt_state_.states[0].state[1].x = state(0);
+                      alt_state_.states[0].state[1].y = state(1);
+                      alt_state_.states[0].state[1].z = (baro_bias_kf_->getEstimateState())(0);
+
                     }
                 }
             }
           break;
         case WITHOUT_BARO_MODE:
-          baro_bias_kf_->prediction(MatrixXd::Zero(1, 1));
-          temp(0, 0) = (estimator_->getState(BasicEstimator::Z_W, 0))[0] - baro_pos_z_;
-          baro_bias_kf_->correction(temp);
+          {
+            baro_bias_kf_->prediction(VectorXd::Zero(1));
+            VectorXd meas(1);  meas << (estimator_->getState(BasicEstimator::Z_W, 0))[0] - baro_pos_z_;
+            baro_bias_kf_->correction(meas);
+          }
           break;
         case WITH_BARO_MODE:
           //TODO: this is another part, maybe we have to use another package:

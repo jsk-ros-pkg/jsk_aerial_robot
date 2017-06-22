@@ -5,3 +5,4 @@ sensor_plugin:
                 level_acc_noise_sigma: 0.06
                 z_acc_noise_sigma: 0.05 #real:0.05
                 acc_bias_noise_sigma: 0.001 #0.005#0.04
+                calib_time: 0.5

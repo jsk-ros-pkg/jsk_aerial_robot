@@ -10,15 +10,15 @@ estimator:
         
         # egomotion estimation
         egomotion_list:
-        - kalman_filter/kf_pose_vel_acc_bias
-        - kalman_filter/kf_pose_vel_acc_bias
-        - kalman_filter/kf_pose_vel_acc_bias
+        - kalman_filter/kf_pos_vel_acc_bias
+        - kalman_filter/kf_pos_vel_acc_bias
+        - kalman_filter/kf_pos_vel_acc_bias
 
         # experiment estimation
         experiment_list:
-        - kalman_filter/kf_pose_vel_acc_bias
-        - kalman_filter/kf_pose_vel_acc_bias
-        - kalman_filter/kf_pose_vel_acc_bias
+        - kalman_filter/kf_pos_vel_acc_bias
+        - kalman_filter/kf_pos_vel_acc_bias
+        - kalman_filter/kf_pos_vel_acc_bias
 
         # specific id(int) of sensor fuser, axis for kf
         fuser_egomotion_id1: 1 # 1 << 0 

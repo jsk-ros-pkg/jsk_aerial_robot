@@ -39,6 +39,9 @@
 /* base class */
 #include <aerial_robot_base/sensor_base_plugin.h>
 
+/* kalman filters */
+#include <kalman_filter/kf_pos_vel_acc_plugin.h>
+
 /* ros msg */
 #include <aerial_robot_base/DesireCoord.h>
 #include <aerial_robot_base/States.h>
@@ -247,20 +250,22 @@ namespace sensor_plugin
               estimator_->setStateStatus(BasicEstimator::YAW_W, BasicEstimator::EXPERIMENT_ESTIMATE, true);
               estimator_->setStateStatus(BasicEstimator::YAW_W_B, BasicEstimator::EXPERIMENT_ESTIMATE, true);
 
-              Eigen::Matrix<double, 1, 1> temp = Eigen::MatrixXd::Zero(1, 1);
 
               for(auto& fuser : estimator_->getFuser(BasicEstimator::EXPERIMENT_ESTIMATE))
                 {
                   string plugin_name = fuser.first;
-                  boost::shared_ptr<kf_base_plugin::KalmanFilter> kf = fuser.second;
+                  boost::shared_ptr<kf_plugin::KalmanFilter> kf = fuser.second;
                   int id = kf->getId();
 
+                  /* x, y, z */
                   if(id < (1 << BasicEstimator::ROLL_W))
                     {
-                      temp(0,0) = pos_noise_sigma_;
-                      kf->setMeasureSigma(temp);
-                      if(id < (1 << BasicEstimator::Z_W))
-                        kf->setInitState(raw_pos_[id >> 1], 0);
+                      if(plugin_name == "kalman_filter/kf_pos_vel_acc_bias" ||
+                         plugin_name == "kalman_filter/kf_pos_vel_acc")
+                        {
+                          if(id < (1 << BasicEstimator::Z_W))
+                            kf->setInitState(raw_pos_[id >> 1], 0);
+                        }
                       kf->setMeasureFlag();
                     }
                 }
@@ -299,31 +304,33 @@ namespace sensor_plugin
     {
       if(!estimate_flag_) return;
 
-      Eigen::Matrix<double, 1, 1> sigma_temp = Eigen::MatrixXd::Zero(1, 1);
-      Eigen::Matrix<double, 1, 1> temp = Eigen::MatrixXd::Zero(1, 1);
-
       /* start experiment estimation */
       if(!(estimate_mode_ & (1 << BasicEstimator::EXPERIMENT_ESTIMATE))) return;
 
       for(auto& fuser : estimator_->getFuser(BasicEstimator::EXPERIMENT_ESTIMATE))
         {
           string plugin_name = fuser.first;
-          boost::shared_ptr<kf_base_plugin::KalmanFilter> kf = fuser.second;
+          boost::shared_ptr<kf_plugin::KalmanFilter> kf = fuser.second;
           int id = kf->getId();
 
           /* x_w, y_w, z_w */
           if(id < (1 << BasicEstimator::ROLL_W))
             {
-              sigma_temp(0,0) = pos_noise_sigma_;
-              temp(0, 0) = raw_pos_[id >> 1]; // temporarily index setting
+              VectorXd measure_sigma(1);
+              measure_sigma << pos_noise_sigma_;
+              std::vector<double> meas = {raw_pos_[id >> 1]}; // temporarily index setting
 
-              kf->setMeasureSigma(sigma_temp);
-              kf->correction(temp);
-              MatrixXd state = kf->getEstimateState();
-              estimator_->setState(id >> 1, BasicEstimator::EXPERIMENT_ESTIMATE, 0, state(0,0));
-              estimator_->setState(id >> 1, BasicEstimator::EXPERIMENT_ESTIMATE, 1, state(1,0));
-              ground_truth_pose_.states[id >> 1].state[2].x = state(0,0);
-              ground_truth_pose_.states[id >> 1].state[2].y = state(1,0);
+              kf->setMeasureSigma(measure_sigma);
+              if(plugin_name == "kalman_filter/kf_pos_vel_acc")
+                (boost::static_pointer_cast<kf_plugin::KalmanFilterPosVelAcc>(kf))->correction(meas, kf_plugin::POS);
+              if(plugin_name == "kalman_filter/kf_pos_vel_acc_bias")
+                (boost::static_pointer_cast<kf_plugin::KalmanFilterPosVelAccBias>(kf))->correction(meas, kf_plugin::POS);
+
+              VectorXd state = kf->getEstimateState();
+              estimator_->setState(id >> 1, BasicEstimator::EXPERIMENT_ESTIMATE, 0, state(0));
+              estimator_->setState(id >> 1, BasicEstimator::EXPERIMENT_ESTIMATE, 1, state(1));
+              ground_truth_pose_.states[id >> 1].state[2].x = state(0);
+              ground_truth_pose_.states[id >> 1].state[2].y = state(1);
             }
         }
     }
