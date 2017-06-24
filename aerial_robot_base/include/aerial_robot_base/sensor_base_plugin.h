@@ -104,6 +104,10 @@ namespace sensor_plugin
       baselink_transform_.setRotation(q);
       cout << nhp_.getNamespace() << ", baselink frame transform: [" << frame_roll << ", " << frame_pitch << ", " << frame_yaw << "]" << endl;
 
+      /* time sync for sensor fusion */
+      nhp_.param("delay", delay_, 0.0);
+      nhp_.param("time_sync", time_sync_, false);
+      cout << nhp_.getNamespace() << ", time_sync: " << time_sync_ << ", delay: " << delay_ << endl;
 
       ros::NodeHandle nh_global("~");
       nh_global.param("simulation", simulation_, false);
@@ -128,6 +132,9 @@ namespace sensor_plugin
     bool simulation_;
     bool param_verbose_;
     bool debug_verbose_;
+
+    bool time_sync_;
+    double delay_;
 
     //vector< boost::shared_ptr<sensor_base_plugin::SensorBase> > sensors_;
 

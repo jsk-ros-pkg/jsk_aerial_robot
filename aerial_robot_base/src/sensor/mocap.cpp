@@ -225,7 +225,7 @@ namespace sensor_plugin
             }
 
           /* estimation */
-          estimateProcess();
+          estimateProcess(msg->header.stamp);
           pose_stamped_pub_.publish(ground_truth_pose_);
         }
 
@@ -264,7 +264,10 @@ namespace sensor_plugin
                          plugin_name == "kalman_filter/kf_pos_vel_acc")
                         {
                           if(id < (1 << BasicEstimator::Z_W))
-                            kf->setInitState(raw_pos_[id >> 1], 0);
+                            {
+                              if(time_sync_) kf->setTimeSync(true);
+                              kf->setInitState(raw_pos_[id >> 1], 0);
+                            }
                         }
                       kf->setMeasureFlag();
                     }
@@ -300,7 +303,7 @@ namespace sensor_plugin
       nhp_.param("cutoff_vel_freq", cutoff_vel_freq_, 20.0);
     }
 
-    void estimateProcess()
+    void estimateProcess(ros::Time stamp)
     {
       if(!estimate_flag_) return;
 
@@ -316,16 +319,20 @@ namespace sensor_plugin
           /* x_w, y_w, z_w */
           if(id < (1 << BasicEstimator::ROLL_W))
             {
-              VectorXd measure_sigma(1);
-              measure_sigma << pos_noise_sigma_;
-              std::vector<double> meas = {raw_pos_[id >> 1]}; // temporarily index setting
+              if(plugin_name == "kalman_filter/kf_pos_vel_acc" ||
+                 plugin_name == "kalman_filter/kf_pos_vel_acc_bias")
+                {
+                  /* set noise sigma */
+                  VectorXd measure_sigma(1);
+                  measure_sigma << pos_noise_sigma_;
+                  kf->setMeasureSigma(measure_sigma);
 
-              kf->setMeasureSigma(measure_sigma);
-              if(plugin_name == "kalman_filter/kf_pos_vel_acc")
-                (boost::static_pointer_cast<kf_plugin::KalmanFilterPosVelAcc>(kf))->correction(meas, kf_plugin::POS);
-              if(plugin_name == "kalman_filter/kf_pos_vel_acc_bias")
-                (boost::static_pointer_cast<kf_plugin::KalmanFilterPosVelAccBias>(kf))->correction(meas, kf_plugin::POS);
+                  /* correction */
+                  VectorXd meas(1); meas <<  raw_pos_[id >> 1];
+                  vector<double> params = {kf_plugin::POS};
+                  kf->correction(meas, params, stamp.toSec());
 
+                }
               VectorXd state = kf->getEstimateState();
               estimator_->setState(id >> 1, BasicEstimator::EXPERIMENT_ESTIMATE, 0, state(0));
               estimator_->setState(id >> 1, BasicEstimator::EXPERIMENT_ESTIMATE, 1, state(1));

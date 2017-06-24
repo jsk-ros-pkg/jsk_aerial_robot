@@ -137,6 +137,8 @@ namespace sensor_plugin
 
                   if((id & (1 << BasicEstimator::X_W)) || (id & (1 << BasicEstimator::Y_W)) )
                     {
+                      if(time_sync_) kf->setTimeSync(true);
+
                       kf->setInitState(vel_[id >> 1], 1);
                       kf->setMeasureFlag();
                     }
@@ -159,9 +161,9 @@ namespace sensor_plugin
       vel_ = orien * baselink_transform_.getBasis() * tf::Vector3(opt_msg->vector.x, opt_msg->vector.y, 0);
       vel_.setZ(0);
 
-      estimateProcess();
       /* publish */
       opt_state_.header.stamp = opt_msg->header.stamp;
+      estimateProcess(opt_state_.header.stamp);
       //tf::Vector3 vel = vel_;
       //vel_ = orien.transpose() * vel;
 
@@ -173,7 +175,7 @@ namespace sensor_plugin
       updateHealthStamp(current_secs);
     }
 
-    void estimateProcess()
+    void estimateProcess(ros::Time stamp)
     {
       tf::Vector3 estimate_vel(estimator_->getState(BasicEstimator::X_W, BasicEstimator::EGOMOTION_ESTIMATE)[1],
                                estimator_->getState(BasicEstimator::Y_W, BasicEstimator::EGOMOTION_ESTIMATE)[1],
@@ -185,9 +187,6 @@ namespace sensor_plugin
           return;
         }
 
-      VectorXd measure_sigma(1);
-      measure_sigma << opt_noise_sigma_;
-
       for(auto& fuser : estimator_->getFuser(BasicEstimator::EGOMOTION_ESTIMATE))
         {
           boost::shared_ptr<kf_plugin::KalmanFilter> kf = fuser.second;
@@ -196,12 +195,22 @@ namespace sensor_plugin
 
           if((id & (1 << BasicEstimator::X_W)) || (id & (1 << BasicEstimator::Y_W)))
             {
-              kf->setMeasureSigma(measure_sigma);
-              std::vector<double> meas = {vel_[id >> 1]};
-              if(plugin_name == "kalman_filter/kf_pos_vel_acc")
-                (boost::static_pointer_cast<kf_plugin::KalmanFilterPosVelAcc>(kf))->correction(meas, kf_plugin::VEL);
-              if(plugin_name == "kalman_filter/kf_pos_vel_acc_bias")
-                (boost::static_pointer_cast<kf_plugin::KalmanFilterPosVelAccBias>(kf))->correction(meas, kf_plugin::VEL);
+              if(plugin_name == "kalman_filter/kf_pos_vel_acc" ||
+                 plugin_name == "kalman_filter/kf_pos_vel_acc_bias")
+                {
+                  /* set noise sigma */
+                  VectorXd measure_sigma(1);
+                  measure_sigma << opt_noise_sigma_;
+                  kf->setMeasureSigma(measure_sigma);
+
+                  /* correction */
+                  VectorXd meas(1); meas <<  vel_[id >> 1];
+                  vector<double> params = {kf_plugin::VEL};
+                  /* time sync and delay process: get from kf time stamp */
+                  if(time_sync_) stamp.fromSec(kf->getTimestamp() + delay_);
+                  //ROS_INFO("opt stamp: %f, imu stamp: %f", stamp.toSec(), kf->getTimestamp());
+                  kf->correction(meas, params, stamp.toSec());
+                }
 
               VectorXd state = kf->getEstimateState();
               /* temp */

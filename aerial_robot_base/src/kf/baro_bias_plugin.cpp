@@ -61,41 +61,6 @@ namespace kf_plugin
     setObservationModel(observation_model);
   }
 
-  bool KalmanFilterBaroBias::prediction()
-  {
-    VectorXd zero_input;
-    zero_input << 0;
-
-    /* defualt process since linear property */
-    return KalmanFilter::prediction(zero_input);
-  }
-
-  bool KalmanFilterBaroBias::correction(double bias)
-  {
-    VectorXd meas;
-    meas << bias;
-
-    /* defualt process since linear property */
-    return KalmanFilter::correction(meas);
-  }
-
-  void KalmanFilterBaroBias::setInputSigma(double sigma)
-  {
-    VectorXd sigma_v;
-    sigma_v << sigma;
-
-    KalmanFilter::setInputSigma(sigma_v);
-  }
-
-  void KalmanFilterBaroBias::setMeasureSigma(double sigma)
-  {
-    VectorXd sigma_v;
-    sigma_v << sigma;
-
-    KalmanFilter::setMeasureSigma(sigma_v);
-  }
-
-
   void KalmanFilterBaroBias::cfgCallback(aerial_robot_base::KalmanFilterBaroBiasConfig &config, uint32_t level)
   {
     if(config.kalman_filter_flag == true)

@@ -142,6 +142,8 @@ namespace sensor_plugin
                   int id = kf->getId();
                   if((id & (1 << BasicEstimator::X_W)) || (id & (1 << BasicEstimator::Y_W)) )
                     {
+                      if(time_sync_) kf->setTimeSync(true);
+
                       kf->setInitState(pos_[id >> 1], 0);
                       kf->setMeasureFlag();
                     }
@@ -153,7 +155,7 @@ namespace sensor_plugin
           estimator_->setStateStatus(BasicEstimator::YAW_W_B, BasicEstimator::EGOMOTION_ESTIMATE, true);
         }
 
-      estimateProcess();
+      estimateProcess(vo_msg->header.stamp);
 
       /* publish */
       vo_state_.header.stamp = vo_msg->header.stamp;
@@ -165,7 +167,7 @@ namespace sensor_plugin
       updateHealthStamp(vo_msg->header.stamp.toSec());
     }
 
-    void estimateProcess()
+    void estimateProcess(ros::Time stamp)
     {
       tfScalar r,p,y;
       r_b_.getRPY(r,p,y);
@@ -182,15 +184,22 @@ namespace sensor_plugin
 
           if((id & (1 << BasicEstimator::X_W)) || (id & (1 << BasicEstimator::Y_W)))
             {
-              VectorXd measure_sigma(1);
-              measure_sigma << vo_noise_sigma_;
-              std::vector<double> meas = {pos_[id >> 1]}; // temporarily index setting
+              if(plugin_name == "kalman_filter/kf_pos_vel_acc" ||
+                 plugin_name == "kalman_filter/kf_pos_vel_acc_bias")
+                {
+                  /* set noise sigma */
+                  VectorXd measure_sigma(1);
+                  measure_sigma << vo_noise_sigma_;
+                  kf->setMeasureSigma(measure_sigma);
 
-              kf->setMeasureSigma(measure_sigma);
-              if(plugin_name == "kalman_filter/kf_pos_vel_acc")
-                (boost::static_pointer_cast<kf_plugin::KalmanFilterPosVelAcc>(kf))->correction(meas, kf_plugin::POS);
-              if(plugin_name == "kalman_filter/kf_pos_vel_acc_bias")
-                (boost::static_pointer_cast<kf_plugin::KalmanFilterPosVelAccBias>(kf))->correction(meas, kf_plugin::POS);
+                  /* correction */
+                  VectorXd meas(1); meas <<  pos_[id >> 1];
+                  vector<double> params = {kf_plugin::POS};
+                  /* time sync and delay process: get from kf time stamp */
+                  if(time_sync_ && delay_ < 0)
+                    stamp.fromSec(kf->getTimestamp() + delay_);
+                  kf->correction(meas, params, stamp.toSec());
+                }
 
               VectorXd state = kf->getEstimateState();
 

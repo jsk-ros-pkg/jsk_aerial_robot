@@ -56,13 +56,9 @@ namespace kf_plugin
 
     void initialize(ros::NodeHandle nh, string suffix, int id);
 
-    bool prediction();
-
-    bool correction(double bias);
-
-    void setInputSigma(double sigma);
-
-    void setMeasureSigma(double sigma);
+    /* be sure that the first parma should be timestamp */
+    void updatePredictModel(const vector<double>& params = vector<double>(0)){}
+    void updateCorrectModel(const vector<double>& params = vector<double>(0)){}
 
   private:
     //dynamic reconfigure

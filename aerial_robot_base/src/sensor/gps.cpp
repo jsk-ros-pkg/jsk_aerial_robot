@@ -142,7 +142,6 @@ namespace sensor_plugin
       double nav_vel_limit_;
       double nav_vel_gain_;
 
-
       double pos_noise_sigma_, vel_noise_sigma_;
       int min_est_sat_num_;
 
@@ -250,6 +249,8 @@ namespace sensor_plugin
                         if(id <= 2) // equal to the previous condition
                           {
                             /* set velocity correction mode */
+                            if(time_sync_) kf->setTimeSync(true);
+
                             kf->setInitState(raw_vel_[id >> 1], 1);
                             kf->setMeasureFlag();
                           }
@@ -283,14 +284,25 @@ namespace sensor_plugin
 
                     if(id <= 2)
                       {
-                        VectorXd measure_sigma(1);
-                        measure_sigma << vel_noise_sigma_;
-                        std::vector<double> meas = {raw_vel_[id >> 1]}; // temporarily index setting
-                        kf->setMeasureSigma(measure_sigma);
-                        if(plugin_name == "kalman_filter/kf_pos_vel_acc")
-                          (boost::static_pointer_cast<kf_plugin::KalmanFilterPosVelAcc>(kf))->correction(meas, kf_plugin::VEL);
-                        if(plugin_name == "kalman_filter/kf_pos_vel_acc_bias")
-                          (boost::static_pointer_cast<kf_plugin::KalmanFilterPosVelAccBias>(kf))->correction(meas, kf_plugin::VEL);
+                        if(plugin_name == "kalman_filter/kf_pos_vel_acc" ||
+                           plugin_name == "kalman_filter/kf_pos_vel_acc_bias")
+                          {
+                            /* set noise sigma */
+                            VectorXd measure_sigma(1);
+                            measure_sigma << vel_noise_sigma_;
+                            kf->setMeasureSigma(measure_sigma);
+
+                            /* correction */
+                            VectorXd meas(1); meas <<  raw_vel_[id >> 1];
+                            vector<double> params = {kf_plugin::VEL};
+                            /* time sync and delay process: get from kf timestamp */
+                            if(time_sync_ && delay_ < 0)
+                              {
+                                current_secs = kf->getTimestamp() + delay_;
+                                gps_state_.header.stamp.fromSec(current_secs);
+                              }
+                            kf->correction(meas, params, current_secs);
+                          }
 
                         VectorXd state = kf->getEstimateState();
                         /* do not use the position data */
@@ -324,7 +336,6 @@ namespace sensor_plugin
         static bool rtk_first_flag = true;
         double current_secs = rtk_gps_msg->header.stamp.toSec();
 
-
         /* frame conversion */
         tf::Vector3 raw_rtk_pos_temp, raw_rtk_vel_temp;
         tf::pointMsgToTF(rtk_gps_msg->pose.pose.position, raw_rtk_pos_temp);
@@ -352,6 +363,8 @@ namespace sensor_plugin
                       if(id <= 2) // equal to the previous condition
                         {
                           /* position correction mode */
+                          if(time_sync_) kf->setTimeSync(true);
+
                           kf->setInitState(raw_rtk_pos_[id], 0);
                           kf->setMeasureFlag();
                         }
@@ -375,15 +388,27 @@ namespace sensor_plugin
 
                     if(id <= 2)
                       {
-                        VectorXd measure_sigma(1);
-                        measure_sigma << pos_noise_sigma_;
-                        std::vector<double> meas = {raw_rtk_pos_[id >> 1]}; // temporarily index setting
 
-                        kf->setMeasureSigma(measure_sigma);
-                        if(plugin_name == "kalman_filter/kf_pos_vel_acc")
-                          (boost::static_pointer_cast<kf_plugin::KalmanFilterPosVelAcc>(kf))->correction(meas, kf_plugin::POS);
-                        if(plugin_name == "kalman_filter/kf_pos_vel_acc_bias")
-                          (boost::static_pointer_cast<kf_plugin::KalmanFilterPosVelAccBias>(kf))->correction(meas, kf_plugin::POS);
+                      if(plugin_name == "kalman_filter/kf_pos_vel_acc" ||
+                         plugin_name == "kalman_filter/kf_pos_vel_acc_bias")
+                        {
+                          /* set noise sigma */
+                          VectorXd measure_sigma(1);
+                          measure_sigma << pos_noise_sigma_;
+                          kf->setMeasureSigma(measure_sigma);
+
+                          /* correction */
+                          VectorXd meas(1); meas <<  raw_rtk_pos_[id >> 1];
+                          vector<double> params = {kf_plugin::POS};
+                          /* time sync and delay process: get from kf time stamp */
+                          if(time_sync_ && delay_ < 0)
+                            {
+                              current_secs = kf->getTimestamp() + delay_;
+                              gps_state_.header.stamp.fromSec(current_secs);
+                            }
+                          kf->correction(meas, params, current_secs);
+                        }
+
                         VectorXd state = kf->getEstimateState();
 
                         estimator_->setState(id >> 1, mode, 0, state(0));
