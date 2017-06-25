@@ -269,6 +269,17 @@ namespace sensor_plugin
                               kf->setInitState(raw_pos_[id >> 1], 0);
                             }
                         }
+
+                      if(plugin_name == "aerial_robot_base/kf_xy_roll_pitch_bias")
+                        {
+                          if((id & (1 << BasicEstimator::X_W)) &&
+                             (id & (1 << BasicEstimator::Y_W)))
+                            {
+                              VectorXd init_state(6);
+                              init_state << raw_pos_[0], 0, raw_pos_[1], 0, 0, 0;
+                              kf->setInitState(init_state);
+                            }
+                        }
                       kf->setMeasureFlag();
                     }
                 }
@@ -332,12 +343,46 @@ namespace sensor_plugin
                   vector<double> params = {kf_plugin::POS};
                   kf->correction(meas, params, stamp.toSec());
 
+                  VectorXd state = kf->getEstimateState();
+                  estimator_->setState(id >> 1, BasicEstimator::EXPERIMENT_ESTIMATE, 0, state(0));
+                  estimator_->setState(id >> 1, BasicEstimator::EXPERIMENT_ESTIMATE, 1, state(1));
+                  ground_truth_pose_.states[id >> 1].state[2].x = state(0);
+                  ground_truth_pose_.states[id >> 1].state[2].y = state(1);
+
                 }
-              VectorXd state = kf->getEstimateState();
-              estimator_->setState(id >> 1, BasicEstimator::EXPERIMENT_ESTIMATE, 0, state(0));
-              estimator_->setState(id >> 1, BasicEstimator::EXPERIMENT_ESTIMATE, 1, state(1));
-              ground_truth_pose_.states[id >> 1].state[2].x = state(0);
-              ground_truth_pose_.states[id >> 1].state[2].y = state(1);
+
+              if(plugin_name == "aerial_robot_base/kf_xy_roll_pitch_bias")
+                {
+                  if((id & (1 << BasicEstimator::X_W)) &&
+                     (id & (1 << BasicEstimator::Y_W)))
+                    {
+                      /* set noise sigma */
+                      VectorXd measure_sigma(2);
+                      measure_sigma << pos_noise_sigma_, pos_noise_sigma_;
+                      kf->setMeasureSigma(measure_sigma);
+
+                      /* correction */
+                      VectorXd meas(2); meas <<  raw_pos_[0], raw_pos_[1];
+                      vector<double> params = {kf_plugin::POS};
+                      /* time sync and delay process: get from kf time stamp */
+                      kf->correction(meas, params, stamp.toSec());
+
+                      VectorXd state = kf->getEstimateState();
+                      /* temp */
+                      estimator_->setState(0, BasicEstimator::EXPERIMENT_ESTIMATE, 0, state(0));
+                      estimator_->setState(0, BasicEstimator::EXPERIMENT_ESTIMATE, 1, state(1));
+                      estimator_->setState(1, BasicEstimator::EXPERIMENT_ESTIMATE, 0, state(2));
+                      estimator_->setState(1, BasicEstimator::EXPERIMENT_ESTIMATE, 1, state(3));
+
+                      ground_truth_pose_.states[0].state[2].x = state(0);
+                      ground_truth_pose_.states[0].state[2].y = state(1);
+                      ground_truth_pose_.states[0].state[2].z = state(4);
+
+                      ground_truth_pose_.states[1].state[2].x = state(2);
+                      ground_truth_pose_.states[1].state[2].y = state(3);
+                      ground_truth_pose_.states[1].state[2].z = state(5);
+                    }
+                }
             }
         }
     }
