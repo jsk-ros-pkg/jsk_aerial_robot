@@ -398,6 +398,9 @@ namespace sensor_plugin
 
                             }
                           kf->prediction(intput_val, params, imu_stamp_.toSec());
+                          VectorXd estimate_state = kf->getEstimateState();
+                          estimator_->setState(axis, mode, 0, estimate_state(0));
+                          estimator_->setState(axis, mode, 1, estimate_state(1));
                         }
 
                       if(plugin_name == "kalman_filter/kf_pos_vel_acc_bias")
@@ -428,6 +431,9 @@ namespace sensor_plugin
                               acc_bias_b_.setZ((kf->getEstimateState())(2));
                             }
                           kf->prediction(intput_val, params, imu_stamp_.toSec());
+                          VectorXd estimate_state = kf->getEstimateState();
+                          estimator_->setState(axis, mode, 0, estimate_state(0));
+                          estimator_->setState(axis, mode, 1, estimate_state(1));
                         }
 
                       if(plugin_name == "aerial_robot_base/kf_xy_roll_pitch_bias")
@@ -450,12 +456,14 @@ namespace sensor_plugin
                                 0;
 
                               kf->prediction(intput_val, params, imu_stamp_.toSec());
+                              VectorXd estimate_state = kf->getEstimateState();
+                              estimator_->setState(BasicEstimator::X_W, mode, 0, estimate_state(0));
+                              estimator_->setState(BasicEstimator::X_W, mode, 1, estimate_state(1));
+                              estimator_->setState(BasicEstimator::Y_W, mode, 0, estimate_state(2));
+                              estimator_->setState(BasicEstimator::Y_W, mode, 1, estimate_state(3));
+
                             }
                         }
-
-                      VectorXd estimate_state = kf->getEstimateState();
-                      estimator_->setState(axis, mode, 0, estimate_state(0));
-                      estimator_->setState(axis, mode, 1, estimate_state(1));
                     }
                 }
             }
