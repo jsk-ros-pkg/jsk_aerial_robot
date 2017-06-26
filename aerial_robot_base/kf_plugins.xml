@@ -1,5 +1,8 @@
 <library path="lib/libkf_baro_bias_pluginlib">
-  <class name="aerial_robot_base/kf_baro_bias" type="kf_plugin::KalmanFilterBaroBias" base_class_type="kf_base_plugin::KalmanFilter">
+  <class name="aerial_robot_base/kf_baro_bias" type="kf_plugin::KalmanFilterBaroBias" base_class_type="kf_plugin::KalmanFilter">
+    <description>This is a kf for baro bias plugin.</description>
+  </class>
+  <class name="aerial_robot_base/kf_xy_roll_pitch_bias" type="kf_plugin::KalmanFilterXYBias" base_class_type="kf_plugin::KalmanFilter">
     <description>This is a kf for baro bias plugin.</description>
   </class>
 </library>

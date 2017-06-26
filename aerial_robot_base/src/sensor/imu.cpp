@@ -39,6 +39,9 @@
 /* base class */
 #include <aerial_robot_base/sensor_base_plugin.h>
 
+/* kalman filters */
+#include <kalman_filter/kf_pos_vel_acc_plugin.h>
+
 /* ros msg */
 #include <aerial_robot_base/Acc.h>
 #include <geometry_msgs/Vector3.h>
@@ -84,8 +87,10 @@ namespace sensor_plugin
       acc_l_(0, 0, 0),
       acc_w_(0, 0, 0),
       acc_non_bias_w_(0, 0, 0),
+      acc_bias_b_(0, 0, 0),
       acc_bias_l_(0, 0, 0),
-      acc_bias_w_(0, 0, 0)
+      acc_bias_w_(0, 0, 0),
+      sensor_dt_(0)
     { }
 
     const static uint8_t D_BOARD = 1;
@@ -107,8 +112,11 @@ namespace sensor_plugin
 
     int calib_count_;
     double acc_scale_, gyro_scale_, mag_scale_; /* the scale of sensor value */
-    double level_acc_noise_sigma_, z_acc_noise_sigma_, acc_bias_noise_sigma_; /* sigma for kf */
+    double level_acc_noise_sigma_, z_acc_noise_sigma_, acc_bias_noise_sigma_, angle_bias_noise_sigma_; /* sigma for kf */
     double landing_shock_force_thre_;     /* force */
+
+    /* sensor internal */
+    double sensor_dt_;
 
     /* imu */
     array<tf::Vector3, 2> euler_; /* the euler angle of body/cog frame */
@@ -120,6 +128,7 @@ namespace sensor_plugin
     tf::Vector3 acc_w_; /* the acceleration in world frame */
     tf::Vector3 acc_non_bias_w_; /* the acceleration without bias in world frame */
     /* acc bias */
+    tf::Vector3 acc_bias_b_; /* the acceleration bias in body frame, only use z axis  */
     tf::Vector3 acc_bias_l_; /* the acceleration bias in level frame as to body frame: previously is acc_i */
     tf::Vector3 acc_bias_w_; /* the acceleration bias in world frame */
 
@@ -139,7 +148,7 @@ namespace sensor_plugin
           mag_[Frame::BODY][i] = imu_msg->mag_data[i];
         }
 
-      imuDataConverter(imu_stamp_);
+      imuDataConverter();
       updateHealthStamp(imu_msg->stamp.toSec());
     }
 
@@ -161,14 +170,23 @@ namespace sensor_plugin
             euler_[Frame::BODY][0]  = M_PI * imu_msg->angle[0] / 10.0 / 180.0;
         }
 
-      imuDataConverter(imu_stamp_);
+      imuDataConverter();
     }
 
-    void imuDataConverter(ros::Time stamp)
+    void imuDataConverter()
     {
       static int bias_calib = 0;
       static ros::Time prev_time;
-      static double sensor_hz_ = 0;
+
+      if(imu_stamp_.toSec() <= prev_time.toSec())
+        {
+          ROS_WARN("IMU: bad timestamp. curr time stamp: %f, prev time stamp: %f",
+                   imu_stamp_.toSec(), prev_time.toSec());
+          return;
+        }
+
+      /* set the time internal */
+      sensor_dt_ = imu_stamp_.toSec() - prev_time.toSec();
 
       /* get the vectors of CoG frame */
       tf::Matrix3x3 r_b;
@@ -186,12 +204,11 @@ namespace sensor_plugin
       mag_[Frame::COG] = estimator_->getRCog2Rootlink() * mag_[Frame::BODY];
 
       /* project acc onto level frame using body frame value */
-#if 1 // use x,y for factor4 and z for factor3
       tf::Matrix3x3 orientation;
       orientation.setRPY(euler_[Frame::BODY][0], euler_[Frame::BODY][1], 0);
-      acc_l_ = orientation * acc_[Frame::BODY];
-      acc_l_.setZ((orientation * tf::Vector3(0, 0, acc_[Frame::BODY].z())).z() - BasicEstimator::G);
-
+#if 1
+      acc_l_ = orientation * acc_[Frame::BODY]  - tf::Vector3(0, 0, BasicEstimator::G); /* use x,y for factor4 and z for factor3 */
+      //acc_l_.setZ((orientation * tf::Vector3(0, 0, acc_[Frame::BODY].z())).z() - BasicEstimator::G);
 #else  // use approximation
       acc_l_ = orientation * tf::Vector3(0, 0, acc_[Frame::BODY].z()) - tf::Vector3(0, 0, BasicEstimator::G);
 #endif
@@ -237,21 +254,18 @@ namespace sensor_plugin
         {
           bias_calib ++;
 
-          if(bias_calib == 1) prev_time = imu_stamp_;
+          /* no need */
+          //if(bias_calib == 1) prev_time = imu_stamp_;
 
-          double time_interval = imu_stamp_.toSec() - prev_time.toSec();
           if(bias_calib == 2)
             {
-              calib_count_ = calib_time_ / time_interval;
-              ROS_WARN("calib count is %d, time interval is %f", calib_count_, time_interval);
+              calib_count_ = calib_time_ / sensor_dt_;
+              ROS_WARN("calib count is %d", calib_count_);
 
               /* check whether use imu yaw for contorl and estimation */
               if(!estimator_->getStateStatus(BasicEstimator::YAW_W, estimator_->getEstimateMode()) || !estimator_->getStateStatus(BasicEstimator::YAW_W_B, estimator_->getEstimateMode()))
                 ROS_WARN("IMU: use imu mag-based yaw value for estimation and control");
             }
-
-          /* hz estimation */
-          sensor_hz_ += time_interval;
 
           /* acc bias */
           acc_bias_l_ += acc_l_;
@@ -259,8 +273,7 @@ namespace sensor_plugin
           if(bias_calib == calib_count_)
             {
               acc_bias_l_ /= calib_count_;
-              sensor_hz_ /= (calib_count_ - 1 );
-              ROS_WARN("accX bias is %f, accY bias is %f, accZ bias is %f, hz is %f", acc_bias_l_.x(), acc_bias_l_.y(), acc_bias_l_.z(), sensor_hz_);
+              ROS_WARN("accX bias is %f, accY bias is %f, accZ bias is %f, dt is %f[sec]", acc_bias_l_.x(), acc_bias_l_.y(), acc_bias_l_.z(), sensor_dt_);
 
               /* fuser for 0: egomotion, 1: experiment */
               for(int mode = 0; mode < 2; mode++)
@@ -269,64 +282,70 @@ namespace sensor_plugin
 
                   tf::Matrix3x3 orientation;
                   orientation.setRPY(0, 0, (estimator_->getState(BasicEstimator::YAW_W_B, mode))[0]);
-                  tf::Vector3 acc_bias_w_ = orientation * acc_bias_l_;
+                  acc_bias_w_ = orientation * acc_bias_l_;
 
                   for(auto& fuser : estimator_->getFuser(mode))
                     {
                       string plugin_name = fuser.first;
-                      boost::shared_ptr<kf_base_plugin::KalmanFilter> kf = fuser.second;
-                      kf->updateModelFromDt(sensor_hz_);
+                      boost::shared_ptr<kf_plugin::KalmanFilter> kf = fuser.second;
                       int id = kf->getId();
 
-                      if(plugin_name == "kalman_filter/kf_pose_vel_acc_bias")
+                      bool start_predict = false;
+
+                      if(plugin_name == "kalman_filter/kf_pos_vel_acc_bias")
                         {
-                          Matrix<double, 2, 1> temp = MatrixXd::Zero(2, 1);
-                          temp(1,0) = acc_bias_noise_sigma_;
-                          if(id & (1 << BasicEstimator::X_B))
+                          VectorXd intput_noise_sigma(2);
+
+                          /* do not update model here */
+                          /* (boost::static_pointer_cast<kf_plugin::KalmanFilterPosVelAccBias>(kf))->updatePredictModel(sensor_dt_); */
+
+                          if(id & (1 << BasicEstimator::X_W))
                             {
-                              temp(0,0) = level_acc_noise_sigma_;
-                              kf->setInitState(acc_bias_l_.x(), 2);
-                            }
-                          else if(id & (1 << BasicEstimator::X_W))
-                            {
-                              temp(0,0) = level_acc_noise_sigma_;
+                              intput_noise_sigma << level_acc_noise_sigma_, acc_bias_noise_sigma_;
                               kf->setInitState(acc_bias_w_.x(), 2);
-                            }
-                          else if(id & (1 << BasicEstimator::Y_B))
-                            {
-                              temp(0,0) = level_acc_noise_sigma_;
-                              kf->setInitState(acc_bias_l_.y(), 2);
                             }
                           else if(id & (1 << BasicEstimator::Y_W))
                             {
+                              intput_noise_sigma << level_acc_noise_sigma_, acc_bias_noise_sigma_;
                               kf->setInitState(acc_bias_w_.y(), 2);
                             }
                           else if((id & (1 << BasicEstimator::Z_W)))
                             {
-                              temp(0,0) = z_acc_noise_sigma_;
+                              intput_noise_sigma << z_acc_noise_sigma_, acc_bias_noise_sigma_;
                               kf->setInitState(acc_bias_w_.z(), 2);
                             }
-                          kf->setInputSigma(temp);
+                          kf->setInputSigma(intput_noise_sigma);
+                          start_predict = true;
                         }
 
-                      if(plugin_name == "kalman_filter/kf_pose_vel_acc")
+                      if(plugin_name == "kalman_filter/kf_pos_vel_acc")
                         {
-                          Matrix<double, 1, 1> temp = MatrixXd::Zero(1, 1);
-
-                          if((id & (1 << BasicEstimator::X_W)) ||
-                             (id & (1 << BasicEstimator::X_B)) ||
-                             (id & (1 << BasicEstimator::Y_W)) ||
-                             (id & (1 << BasicEstimator::Y_B)))
-                            {
-                              temp(0,0) = level_acc_noise_sigma_;
-                            }
+                          VectorXd intput_noise_sigma(1);
+                          if((id & (1 << BasicEstimator::X_W)) || (id & (1 << BasicEstimator::Y_W)))
+                            intput_noise_sigma << level_acc_noise_sigma_;
                           else if((id & (1 << BasicEstimator::Z_W)))
-                            {
-                              temp(0,0) = z_acc_noise_sigma_;
-                            }
-                          kf->setInputSigma(temp);
+                            intput_noise_sigma << z_acc_noise_sigma_;
+                          kf->setInputSigma(intput_noise_sigma);
+                          start_predict = true;
                         }
-                      kf->setInputFlag();
+
+                      if(plugin_name == "aerial_robot_base/kf_xy_roll_pitch_bias")
+                        {
+                          if((id & (1 << BasicEstimator::X_W)) && (id & (1 << BasicEstimator::Y_W)))
+                            {
+                              VectorXd intput_noise_sigma(5);
+                              intput_noise_sigma <<
+                                level_acc_noise_sigma_,
+                                level_acc_noise_sigma_,
+                                level_acc_noise_sigma_,
+                                angle_bias_noise_sigma_,
+                                angle_bias_noise_sigma_;
+                              kf->setInputSigma(intput_noise_sigma);
+                              start_predict = true;
+                            }
+                        }
+
+                      if(start_predict) kf->setInputFlag();
                     }
                 }
             }
@@ -345,89 +364,106 @@ namespace sensor_plugin
                   acc_w_ = orientation * acc_l_;
                   acc_non_bias_w_ = orientation * (acc_l_ - acc_bias_l_);
 
-                  Matrix<double, 1, 1> temp = MatrixXd::Zero(1, 1);
-                  Matrix<double, 2, 1> temp2 = MatrixXd::Zero(2, 1);
-
                   for(auto& fuser : estimator_->getFuser(mode))
                     {
                       string plugin_name = fuser.first;
-                      boost::shared_ptr<kf_base_plugin::KalmanFilter> kf = fuser.second;
+                      boost::shared_ptr<kf_plugin::KalmanFilter> kf = fuser.second;
                       int id = kf->getId();
+                      vector<double> params = {sensor_dt_};
 
-                      MatrixXd estimate_state;
                       int axis;
+                      bool predict = false;
 
-                      if(plugin_name == "kalman_filter/kf_pose_vel_acc")
+                      if(plugin_name == "kalman_filter/kf_pos_vel_acc")
                         {
+                          VectorXd intput_val(1);
                           if(id & (1 << BasicEstimator::X_W))
                             {
-                              temp(0, 0) = (double)acc_non_bias_w_.x();
+                              intput_val << (double)acc_non_bias_w_.x();
                               axis = BasicEstimator::X_W;
-                            }
-                          else if(id & (1 << BasicEstimator::X_B))
-                            {
-                              temp(0, 0) = (double)acc_l_.x();
-                              axis = BasicEstimator::X_B;
                             }
                           else if(id & (1 << BasicEstimator::Y_W))
                             {
-                              temp(0, 0) = (double)acc_non_bias_w_.y();
+                              intput_val << (double)acc_non_bias_w_.y();
                               axis = BasicEstimator::Y_W;
-                            }
-                          else if(id & (1 << BasicEstimator::Y_B))
-                            {
-                              temp(0, 0) = (double)acc_l_.y();
-                              axis = BasicEstimator::Y_B;
                             }
                           else if(id & (1 << BasicEstimator::Z_W))
                             {
-                              temp(0, 0) = (double)acc_non_bias_w_.z();
+                              intput_val << (double)acc_non_bias_w_.z();
                               axis = BasicEstimator::Z_W;
 
                               /* considering the undescend mode, such as the phase of takeoff, the velocity should not below than 0 */
-                              if(estimator_->getUnDescendMode() && (kf->getEstimateState())(1,0) < 0)
+                              if(estimator_->getUnDescendMode() && (kf->getEstimateState())(1) < 0)
                                 kf->resetState();
+
                             }
-                          kf->prediction(temp);
+                          kf->prediction(intput_val, params, imu_stamp_.toSec());
+                          VectorXd estimate_state = kf->getEstimateState();
+                          estimator_->setState(axis, mode, 0, estimate_state(0));
+                          estimator_->setState(axis, mode, 1, estimate_state(1));
                         }
 
-                      if(plugin_name == "kalman_filter/kf_pose_vel_acc_bias")
+                      if(plugin_name == "kalman_filter/kf_pos_vel_acc_bias")
                         {
+                          VectorXd intput_val(2);
                           if(id & (1 << BasicEstimator::X_W))
                             {
-                              temp2(0, 0) = (double)acc_w_.x();
+                              intput_val << acc_w_.x(), 0;
                               axis = BasicEstimator::X_W;
-                            }
-                          else if(id & (1 << BasicEstimator::X_B))
-                            {
-                              temp2(0, 0) = (double)acc_l_.x();
-                              axis = BasicEstimator::X_B;
                             }
                           else if(id & (1 << BasicEstimator::Y_W))
                             {
-                              temp2(0, 0) = (double)acc_w_.y();
+                              intput_val << acc_w_.y(), 0;
                               axis = BasicEstimator::Y_W;
-                            }
-                          else if(id & (1 << BasicEstimator::Y_B))
-                            {
-                              temp2(0, 0) = (double)acc_l_.y();
-                              axis = BasicEstimator::Y_B;
                             }
                           else if(id & (1 << BasicEstimator::Z_W))
                             {
-                              temp2(0, 0) = (double)acc_w_.z();
+                              intput_val << acc_w_.z(), 0;
                               axis = BasicEstimator::Z_W;
 
                               /* considering the undescend mode, such as the phase of takeoff, the velocity should not below than 0 */
-                              if(estimator_->getUnDescendMode() && (kf->getEstimateState())(1,0) < 0)
+                              if(estimator_->getUnDescendMode() && (kf->getEstimateState())(1) < 0)
                                 kf->resetState();
 
+                              /* get the estiamted offset(bias) */
+                              tf::Matrix3x3 orientation;
+                              orientation.setRPY(euler_[Frame::BODY][0], euler_[Frame::BODY][1], (estimator_->getState(BasicEstimator::YAW_W_B, mode))[0]);
+                              acc_bias_b_.setZ((kf->getEstimateState())(2));
                             }
-                          kf->prediction(temp2);
+                          kf->prediction(intput_val, params, imu_stamp_.toSec());
+                          VectorXd estimate_state = kf->getEstimateState();
+                          estimator_->setState(axis, mode, 0, estimate_state(0));
+                          estimator_->setState(axis, mode, 1, estimate_state(1));
                         }
-                      estimate_state = kf->getEstimateState();
-                      estimator_->setState(axis, mode, 0, estimate_state(0,0));
-                      estimator_->setState(axis, mode, 1, estimate_state(1,0));
+
+                      if(plugin_name == "aerial_robot_base/kf_xy_roll_pitch_bias")
+                        {
+                          if(id & (1 << BasicEstimator::X_W) && (id & (1 << BasicEstimator::Y_W)))
+                            {
+                              params.push_back(euler_[Frame::BODY][0]);
+                              params.push_back(euler_[Frame::BODY][1]);
+                              params.push_back(euler_[Frame::BODY][2]);
+                              params.push_back(acc_[Frame::BODY][0]);
+                              params.push_back(acc_[Frame::BODY][1]);
+                              params.push_back(acc_[Frame::BODY][2] - acc_bias_b_.z());
+
+                              VectorXd intput_val(5);
+                              intput_val <<
+                                acc_[Frame::BODY][0],
+                                acc_[Frame::BODY][1],
+                                acc_[Frame::BODY][2] - acc_bias_b_.z(),
+                                0,
+                                0;
+
+                              kf->prediction(intput_val, params, imu_stamp_.toSec());
+                              VectorXd estimate_state = kf->getEstimateState();
+                              estimator_->setState(BasicEstimator::X_W, mode, 0, estimate_state(0));
+                              estimator_->setState(BasicEstimator::X_W, mode, 1, estimate_state(1));
+                              estimator_->setState(BasicEstimator::Y_W, mode, 0, estimate_state(2));
+                              estimator_->setState(BasicEstimator::Y_W, mode, 1, estimate_state(3));
+
+                            }
+                        }
                     }
                 }
             }
@@ -436,16 +472,16 @@ namespace sensor_plugin
           estimator_->setState(BasicEstimator::Z_W, BasicEstimator::EGOMOTION_ESTIMATE, 2, acc_non_bias_w_.z());
           estimator_->setState(BasicEstimator::Z_W, BasicEstimator::EXPERIMENT_ESTIMATE, 2, acc_non_bias_w_.z());
 
-          publishAccData(stamp);
-	  publishFilteredImuData(stamp);
+          publishAccData();
+          publishFilteredImuData();
         }
       prev_time = imu_stamp_;
     }
 
-    void publishAccData(ros::Time stamp)
+    void publishAccData()
     {
       aerial_robot_base::Acc acc_data;
-      acc_data.header.stamp = stamp;
+      acc_data.header.stamp = imu_stamp_;
 
       tf::vector3TFToMsg(acc_[Frame::BODY], acc_data.acc_body_frame);
       tf::vector3TFToMsg(acc_w_, acc_data.acc_world_frame);
@@ -454,10 +490,10 @@ namespace sensor_plugin
       acc_pub_.publish(acc_data);
     }
 
-    void publishFilteredImuData(ros::Time stamp)
+    void publishFilteredImuData()
     {
       sensor_msgs::Imu imu_data;
-      imu_data.header.stamp = stamp;
+      imu_data.header.stamp = imu_stamp_;
       tf::vector3TFToMsg(omega_[Frame::BODY], imu_data.angular_velocity);
       tf::vector3TFToMsg(acc_[Frame::BODY], imu_data.linear_acceleration);
       imu_pub_.publish(imu_data);
@@ -477,6 +513,10 @@ namespace sensor_plugin
 
       nhp_.param("acc_bias_noise_sigma", acc_bias_noise_sigma_, 0.01 );
       if(param_verbose_) cout << "acc bias noise sigma  is " << acc_bias_noise_sigma_ << endl;
+
+      nhp_.param("angle_bias_noise_sigma", angle_bias_noise_sigma_, 0.001 );
+      if(param_verbose_) cout << "angle bias noise sigma  is " << angle_bias_noise_sigma_ << endl;
+
 
       nhp_.param("calib_time", calib_time_, 2.0 );
       if(param_verbose_) cout << "imu calib time is " << calib_time_ << endl;

@@ -39,6 +39,9 @@
 /* base class */
 #include <aerial_robot_base/sensor_base_plugin.h>
 
+/* kalman filters */
+#include <kalman_filter/kf_pos_vel_acc_plugin.h>
+
 /* ros msg */
 #include <geometry_msgs/Vector3Stamped.h>
 #include <nav_msgs/Odometry.h>
@@ -135,10 +138,12 @@ namespace sensor_plugin
 
               for(auto& fuser : estimator_->getFuser(BasicEstimator::EGOMOTION_ESTIMATE))
                 {
-                  boost::shared_ptr<kf_base_plugin::KalmanFilter> kf = fuser.second;
+                  boost::shared_ptr<kf_plugin::KalmanFilter> kf = fuser.second;
                   int id = kf->getId();
                   if((id & (1 << BasicEstimator::X_W)) || (id & (1 << BasicEstimator::Y_W)) )
                     {
+                      if(time_sync_) kf->setTimeSync(true);
+
                       kf->setInitState(pos_[id >> 1], 0);
                       kf->setMeasureFlag();
                     }
@@ -150,7 +155,7 @@ namespace sensor_plugin
           estimator_->setStateStatus(BasicEstimator::YAW_W_B, BasicEstimator::EGOMOTION_ESTIMATE, true);
         }
 
-      estimateProcess();
+      estimateProcess(vo_msg->header.stamp);
 
       /* publish */
       vo_state_.header.stamp = vo_msg->header.stamp;
@@ -162,7 +167,7 @@ namespace sensor_plugin
       updateHealthStamp(vo_msg->header.stamp.toSec());
     }
 
-    void estimateProcess()
+    void estimateProcess(ros::Time stamp)
     {
       tfScalar r,p,y;
       r_b_.getRPY(r,p,y);
@@ -171,30 +176,38 @@ namespace sensor_plugin
       r_cog_.getRPY(r,p,y);
       estimator_->setState(BasicEstimator::YAW_W, BasicEstimator::EGOMOTION_ESTIMATE, 0, y);
 
-      Eigen::Matrix<double, 1, 1> sigma_temp = Eigen::MatrixXd::Zero(1, 1);
-      sigma_temp(0,0) = vo_noise_sigma_;
-      Eigen::Matrix<double, 1, 1> temp = Eigen::MatrixXd::Zero(1, 1);
-
       for(auto& fuser : estimator_->getFuser(BasicEstimator::EGOMOTION_ESTIMATE))
         {
-          boost::shared_ptr<kf_base_plugin::KalmanFilter> kf = fuser.second;
+          string plugin_name = fuser.first;
+          boost::shared_ptr<kf_plugin::KalmanFilter> kf = fuser.second;
           int id = kf->getId();
 
           if((id & (1 << BasicEstimator::X_W)) || (id & (1 << BasicEstimator::Y_W)))
             {
-              kf->setMeasureSigma(sigma_temp);
-              kf->setCorrectMode(0);
+              if(plugin_name == "kalman_filter/kf_pos_vel_acc" ||
+                 plugin_name == "kalman_filter/kf_pos_vel_acc_bias")
+                {
+                  /* set noise sigma */
+                  VectorXd measure_sigma(1);
+                  measure_sigma << vo_noise_sigma_;
+                  kf->setMeasureSigma(measure_sigma);
 
-              temp(0, 0) = pos_[id >> 1];
-              kf->correction(temp);
+                  /* correction */
+                  VectorXd meas(1); meas <<  pos_[id >> 1];
+                  vector<double> params = {kf_plugin::POS};
+                  /* time sync and delay process: get from kf time stamp */
+                  if(time_sync_ && delay_ < 0)
+                    stamp.fromSec(kf->getTimestamp() + delay_);
+                  kf->correction(meas, params, stamp.toSec());
+                }
 
-              MatrixXd state = kf->getEstimateState();
+              VectorXd state = kf->getEstimateState();
 
               /* set data */
-              estimator_->setState(id >> 1, BasicEstimator::EGOMOTION_ESTIMATE, 0, state(0,0));
-              estimator_->setState(id >> 1, BasicEstimator::EGOMOTION_ESTIMATE, 1, state(1,0));
-              vo_state_.states[id >> 1].state[1].x = state(0, 0);
-              vo_state_.states[id >> 1].state[1].y = state(1, 0);
+              estimator_->setState(id >> 1, BasicEstimator::EGOMOTION_ESTIMATE, 0, state(0));
+              estimator_->setState(id >> 1, BasicEstimator::EGOMOTION_ESTIMATE, 1, state(1));
+              vo_state_.states[id >> 1].state[1].x = state(0);
+              vo_state_.states[id >> 1].state[1].y = state(1);
             }
         }
     }

@@ -21,9 +21,9 @@ estimator:
         fuser_experiment_name3: /ex/z
 
         # plugin name of sensor fuser
-        fuser_egomotion_plugin_name1: kalman_filter/kf_pose_vel_acc_bias 
-        fuser_egomotion_plugin_name2: kalman_filter/kf_pose_vel_acc_bias
-        fuser_egomotion_plugin_name3: kalman_filter/kf_pose_vel_acc_bias
-        fuser_experiment_plugin_name1: kalman_filter/kf_pose_vel_acc_bias
-        fuser_experiment_plugin_name2: kalman_filter/kf_pose_vel_acc_bias
-        fuser_experiment_plugin_name3: kalman_filter/kf_pose_vel_acc_bias
+        fuser_egomotion_plugin_name1: kalman_filter/kf_pos_vel_acc_bias 
+        fuser_egomotion_plugin_name2: kalman_filter/kf_pos_vel_acc_bias
+        fuser_egomotion_plugin_name3: kalman_filter/kf_pos_vel_acc_bias
+        fuser_experiment_plugin_name1: kalman_filter/kf_pos_vel_acc_bias
+        fuser_experiment_plugin_name2: kalman_filter/kf_pos_vel_acc_bias
+        fuser_experiment_plugin_name3: kalman_filter/kf_pos_vel_acc_bias

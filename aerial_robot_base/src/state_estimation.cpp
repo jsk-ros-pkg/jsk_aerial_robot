@@ -159,7 +159,7 @@ void RigidEstimator::rosParamInit()
 {
   std::string ns = nhp_.getNamespace();
 
-  sensor_fusion_loader_ptr_ = boost::shared_ptr< pluginlib::ClassLoader<kf_base_plugin::KalmanFilter> >(new pluginlib::ClassLoader<kf_base_plugin::KalmanFilter>("kalman_filter", "kf_base_plugin::KalmanFilter"));
+  sensor_fusion_loader_ptr_ = boost::shared_ptr< pluginlib::ClassLoader<kf_plugin::KalmanFilter> >(new pluginlib::ClassLoader<kf_plugin::KalmanFilter>("kalman_filter", "kf_plugin::KalmanFilter"));
 
   /* kalman filter egomotion plugin initialization for 0: egomotion, 1: experiment */
   for (int i = 0; i < 2; i++)
@@ -192,7 +192,7 @@ void RigidEstimator::rosParamInit()
                 ROS_ERROR("%s, no param in fuser %s name", prefix.c_str(), fuser_no.str().c_str());
               if(param_verbose_) cout << "fuser_"  << prefix << "_name" << fuser_no.str() << " is " << fuser_name << endl;
 
-              boost::shared_ptr<kf_base_plugin::KalmanFilter> plugin_ptr = sensor_fusion_loader_ptr_->createInstance(name);
+              boost::shared_ptr<kf_plugin::KalmanFilter> plugin_ptr = sensor_fusion_loader_ptr_->createInstance(name);
               plugin_ptr->initialize(nh_, fuser_name, fuser_id);
               fuser_[i].push_back(make_pair(name, plugin_ptr));
 

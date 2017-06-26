@@ -34,59 +34,38 @@
  *********************************************************************/
 
 /* base class */
-#include <aerial_robot_base/kf/baro_bias_plugin.h>
+#include <kalman_filter/kf_base_plugin.h>
 
+/* plugin */
+#include <pluginlib/class_list_macros.h>
+
+/* for dynamic reconfigure */
+#include <dynamic_reconfigure/server.h>
+#include <aerial_robot_base/KalmanFilterBaroBiasConfig.h>
 
 namespace kf_plugin
 {
-  void KalmanFilterBaroBias::initialize(ros::NodeHandle nh, string suffix, int id)
+  class KalmanFilterBaroBias : public kf_plugin::KalmanFilter
   {
-    KalmanFilter::initialize(nh, suffix, id);
+  public:
+    KalmanFilterBaroBias(): KalmanFilter(1 /* state dim */,
+                                         1 /* input dim */,
+                                         1 /* measure dim */) {}
 
-    /* cfg init */
-    server_ = new dynamic_reconfigure::Server<aerial_robot_base::KalmanFilterBaroBiasConfig>(nhp_);
-    dynamic_reconf_func_ = boost::bind(&KalmanFilterBaroBias::cfgCallback, this, _1, _2);
-    server_->setCallback(dynamic_reconf_func_);
+    ~KalmanFilterBaroBias() {}
 
-    Matrix<double, 1, 1> state_transition_model;
-    state_transition_model << 1;
-    setStateTransitionModel(state_transition_model);
+    void initialize(ros::NodeHandle nh, string suffix, int id);
 
-    Matrix<double, 1, 1> control_input_model;
-    control_input_model << 1;
-    setControlInputModel(control_input_model);
+    /* be sure that the first parma should be timestamp */
+    void updatePredictModel(const vector<double>& params = vector<double>(0)){}
+    void updateCorrectModel(const vector<double>& params = vector<double>(0)){}
 
-    Matrix<double, 1, 1> observation_model;
-    observation_model << 1;
-    setObservationModel(observation_model);
-  }
+  private:
+    //dynamic reconfigure
+    dynamic_reconfigure::Server<aerial_robot_base::KalmanFilterBaroBiasConfig>* server_;
+    dynamic_reconfigure::Server<aerial_robot_base::KalmanFilterBaroBiasConfig>::CallbackType dynamic_reconf_func_;
 
-  void KalmanFilterBaroBias::cfgCallback(aerial_robot_base::KalmanFilterBaroBiasConfig &config, uint32_t level)
-  {
-    if(config.kalman_filter_flag == true)
-      {
-        printf("cfg update, node: %s ", (nhp_.getNamespace()).c_str());
+    void cfgCallback(aerial_robot_base::KalmanFilterBaroBiasConfig &config, uint32_t level);
 
-        switch(level)
-          {
-          case 1:  // INPUT_SIGMA = 1
-            input_sigma_(0) = config.input_sigma;
-            setPredictionNoiseCovariance();
-            printf("change the input sigma\n");
-            break;
-          case 2:  // MEASURE_SIGMA = 2
-            measure_sigma_(0)  = config.measure_sigma;
-            setMeasurementNoiseCovariance();
-            printf("change the measure sigma\n");
-            break;
-          default :
-            printf("\n");
-            break;
-          }
-      }
-  }
-
-
+  };
 };
-
-PLUGINLIB_EXPORT_CLASS(kf_plugin::KalmanFilterBaroBias, kf_plugin::KalmanFilter);

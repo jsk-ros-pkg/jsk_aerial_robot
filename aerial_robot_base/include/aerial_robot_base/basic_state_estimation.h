@@ -66,7 +66,7 @@ using namespace std;
 using StateWithStatus = std::pair<int, tf::Vector3>;
 /* egomotion, experiment, ground truth */
 using AxisState = std::array<StateWithStatus, 3>;
-using SensorFuser = std::vector< std::pair<std::string, boost::shared_ptr<kf_base_plugin::KalmanFilter> > >;
+using SensorFuser = std::vector< std::pair<std::string, boost::shared_ptr<kf_plugin::KalmanFilter> > >;
 
 namespace Frame
 {
@@ -269,7 +269,7 @@ protected:
   array<AxisState, 11> state_;
 
   /* sensor fusion */
-  boost::shared_ptr< pluginlib::ClassLoader<kf_base_plugin::KalmanFilter> > sensor_fusion_loader_ptr_;
+  boost::shared_ptr< pluginlib::ClassLoader<kf_plugin::KalmanFilter> > sensor_fusion_loader_ptr_;
   bool sensor_fusion_flag_;
   array<SensorFuser, 2> fuser_; //0: egomotion; 1: experiment
 

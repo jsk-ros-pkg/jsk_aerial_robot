@@ -56,6 +56,7 @@ generate_messages(DEPENDENCIES std_msgs geometry_msgs)
 generate_dynamic_reconfigure_options(
   cfg/XYPidControl.cfg
   cfg/KalmanFilterBaroBias.cfg
+  cfg/KalmanFilterXYBias.cfg
   )
 
 catkin_package(
@@ -87,7 +88,9 @@ target_link_libraries(sensor_pluginlib ${catkin_LIBRARIES})
 add_dependencies(sensor_pluginlib aerial_robot_msgs_generate_messages_cpp ${PROJECT_NAME}_generate_messages_cpp ${PROJECT_NAME}_gencfg)
 
 ### kf plugin
-add_library(kf_baro_bias_pluginlib src/kf/baro_bias_plugin.cpp)
+add_library(kf_baro_bias_pluginlib
+  src/kf/baro_bias_plugin.cpp
+  src/kf/xy_roll_pitch_bias_plugin.cpp)
 target_link_libraries(kf_baro_bias_pluginlib ${catkin_LIBRARIES})
 
 add_library (aerial_robot_base src/aerial_robot_base.cpp
