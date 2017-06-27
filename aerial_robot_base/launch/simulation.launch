@@ -33,8 +33,8 @@
     <remap from="/estimator/sensor_plugin/optical_flow/data" to="/simulation/estimator/sensor_plugin/optical_flow/data" />
     <remap from="/estimator/sensor_plugin/vo/data" to="/simulation/estimator/sensor_plugin/vo/data" />
     <remap from="/estimator/sensor_plugin/rtk_gps/state" to="/simulation/estimator/sensor_plugin/rtk_gps/state" />
-    <remap from="/uav/full_states" to="/simulation/uav/full_states" />
-    <remap from="/uav/state" to="/simulation/uav/state" />
+    <remap from="/uav/full_state" to="/simulation/uav/full_state" />
+    <remap from="/uav/root_link/odom" to="/simulation/uav/root_link/odom" />
 
   </node>
 
