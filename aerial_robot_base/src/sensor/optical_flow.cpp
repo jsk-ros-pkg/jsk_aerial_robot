@@ -57,7 +57,7 @@ namespace sensor_plugin
       rosParamInit();
 
       /* ros subscriber: optical flow */
-      opt_sub_ = nh_.subscribe(opt_sub_topic_name_, 1, &OpticalFlow::optCallback, this);
+      opt_sub_ = nh_.subscribe(opt_sub_topic_name_, 1, &OpticalFlow::optCallback, this, ros::TransportHints().udp());
 
       /* ros publisher: aerial_robot_base::State */
       opt_state_pub_ = nh_.advertise<aerial_robot_base::States>("data",10);
@@ -96,6 +96,8 @@ namespace sensor_plugin
       static double previous_secs;
       static bool first_flag = true;
       double current_secs = opt_msg->header.stamp.toSec();
+
+      //ROS_INFO("optical flow time: %f", opt_msg->header.stamp.toSec());
 
       /* only do egmotion estimate mode */
       if(!getFuserActivate(BasicEstimator::EGOMOTION_ESTIMATE))
@@ -204,7 +206,7 @@ namespace sensor_plugin
           ROS_WARN("Optical Flow: bad vel estimate, since the diff is too big: %f, curr: [%f, %f, %f] vs prev: [%f, %f, %f]", (vel_ - estimate_vel).length(), vel_.x(), vel_.y(), vel_.z(), estimate_vel.x(), estimate_vel.y(), estimate_vel.z());
           return;
         }
-
+      //double t = ros::Time::now().toSec();
       for(auto& fuser : estimator_->getFuser(BasicEstimator::EGOMOTION_ESTIMATE))
         {
           boost::shared_ptr<kf_plugin::KalmanFilter> kf = fuser.second;
@@ -276,7 +278,7 @@ namespace sensor_plugin
                 }
             }
         }
-
+      //ROS_INFO("opt correciton: %f", ros::Time::now().toSec() - t)
     }
 
     void rosParamInit()
