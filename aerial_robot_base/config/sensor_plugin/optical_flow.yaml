@@ -1,6 +1,7 @@
 sensor_plugin:
         optical_flow:
-                opt_noise_sigma: 0.03 #LKF: 0.01, EKF: 0.03
+                opt_noise_sigma: 0.01 #LKF: 0.01, EKF: 0.03
                 opt_sub_topic_name: /camera_velocity
-                time_sync: true
+                time_sync: flase
                 delay: -0.15 #LKF: -0.1, EKF: -0.15
+                height_thresh: 0.4
