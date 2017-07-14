@@ -1,12 +1,11 @@
 sudo: required
 dist: trusty
 language: generic
+group: deprecated-2017Q3
 env:
   - ROS_DISTRO=indigo
-  - ROS_DISTRO=jade
 matrix:
   allow_failures:
-    - env: ROS_DISTRO=jade
 # Install system dependencies, namely ROS.
 before_install:
   # Define some config vars.
