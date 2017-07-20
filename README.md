@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/tongtybj/aerial_robot.svg?branch=devel)](https://travis-ci.org/tongtybj/aerial_robot)
+[![Build Status](https://travis-ci.com/tongtybj/aerial_robot.svg?branch=devel)](https://travis-ci.com/tongtybj/aerial_robot)
 
 # This is for aerial robot.
 
