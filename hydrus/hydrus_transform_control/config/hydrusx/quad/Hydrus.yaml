@@ -3,7 +3,7 @@
 /motor_info:
         motor_num: 4
 
-control_rate: 10.0
+control_rate: 15.0
 
 only_three_axis_mode: false
 link_num: 4
@@ -97,13 +97,13 @@ q_pitch: 400
 q_pitch_d: 40
 q_pitch_i: 10.0
 
-q_yaw: 200
+q_yaw: 100
 strong_q_yaw: 200
 q_yaw_d:  100
 q_yaw_i: 0.1
 
 q_z: 10.0
-q_z_d: 10.0
+q_z_d: 20.0
 q_z_i: 10.0
 
 r1: 1.0

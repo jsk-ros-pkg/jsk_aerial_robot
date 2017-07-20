@@ -6,6 +6,8 @@
 control_rate: 10.0
 root_link: 2
 
+only_three_axis_mode: true
+
 #  Link
 link_num: 4
 link_lenght: 0.44
