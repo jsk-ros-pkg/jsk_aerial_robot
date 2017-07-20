@@ -230,7 +230,6 @@ private:
 
   double link_length_;
   double link_base_rod_length_; //the length of the lik base rod
-  //double link_ring_diameter_; //the diameter of the protector
   double ring_radius_; //the offset from the center of link base to the protector_end
   double link_joint_offset_; //the offset from the center of joint to the mass center of joint
 
