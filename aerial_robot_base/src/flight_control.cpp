@@ -138,8 +138,8 @@ void PidController::fourAxisGainCallback(const aerial_robot_msgs::FourAxisGainCo
       pos_i_gain_throttle_[i] = msg->pos_i_gain_throttle[i];
       pos_d_gain_throttle_[i] = msg->pos_d_gain_throttle[i];
 
-      feedforward_matrix_(i, 0) = msg->ff_roll_vec[i];
-      feedforward_matrix_(i, 1) = msg->ff_pitch_vec[i];
+      feedforward_matrix_(i, 0) = -msg->pos_p_gain_roll[i];
+      feedforward_matrix_(i, 1) = -msg->pos_p_gain_pitch[i];
     }
 }
 
