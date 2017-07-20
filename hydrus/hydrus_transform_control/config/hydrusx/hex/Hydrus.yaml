@@ -109,9 +109,9 @@ q_pitch: 400
 q_pitch_d: 40
 q_pitch_i: 10.0
 
-q_yaw: 10
+q_yaw: 50
 strong_q_yaw: 200
-q_yaw_d:  4
+q_yaw_d:  100
 q_yaw_i: 0.4
 
 q_z: 10.0

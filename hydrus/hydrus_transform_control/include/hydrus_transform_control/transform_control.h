@@ -124,11 +124,8 @@ public:
   ~TransformController();
 
   void realtimeControlCallback(const std_msgs::UInt8ConstPtr & msg);
-  void yawGainCallback(const std_msgs::UInt8ConstPtr & msg);
 
   void addExtraModule(int extra_module_link, float extra_module_mass, float extra_module_offset);
-  void cogComputation(const std::vector<tf::StampedTransform>& transforms);
-  void principalInertiaComputation(const std::vector<tf::StampedTransform>& transforms, bool continuous_flag = true);
 
   bool distThreCheck();
   bool distThreCheckFromJointValues(const std::vector<double>& joint_values, int joint_offset = 0,bool continous_flag = true);
@@ -147,7 +144,6 @@ public:
     int size = links_origin_from_cog_.size();
     for(int i=0; i< size; i++)
       links_origin_from_cog = links_origin_from_cog_;
-
   }
 
   void setLinksOriginFromCog(const std::vector<Eigen::Vector3d>& links_origin_from_cog)
@@ -156,27 +152,15 @@ public:
     links_origin_from_cog_ = links_origin_from_cog;
   }
 
-  Eigen::Matrix3d getPrincipalInertia()
+  Eigen::Matrix3d getInertia()
   {
     boost::lock_guard<boost::mutex> lock(inertia_mutex_);
-    return links_principal_inertia_;
+    return links_inertia_;
   }
-  void setPrincipalInertia(Eigen::Matrix3d principal_inertia)
+  void setInertia(Eigen::Matrix3d link_inertia)
   {
     boost::lock_guard<boost::mutex> lock(inertia_mutex_);
-    links_principal_inertia_ = principal_inertia;
-  }
-
-  Eigen::Matrix3d getRotateMatrix()
-  {
-    boost::lock_guard<boost::mutex> lock(rm_mutex_);
-    return rotate_matrix_;
-  }
-
-  void setRotateMatrix(Eigen::Matrix3d rotate_matrix)
-  {
-    boost::lock_guard<boost::mutex> lock(rm_mutex_);
-    rotate_matrix_ = rotate_matrix;
+    links_inertia_ = link_inertia;
   }
 
   Eigen::Vector3d getCog()
@@ -191,53 +175,18 @@ public:
     cog_ = cog;
   }
 
-  Eigen::MatrixXd getU()
-  {
-    return U_;
-  }
-
-  Eigen::MatrixXd getK()
-  {
-    if(lqi_mode_ == LQI_THREE_AXIS_MODE) return K9_; 
-    if(lqi_mode_ == LQI_FOUR_AXIS_MODE) return K12_; 
-  }
-
-  void setK(Eigen::MatrixXd K, uint8_t lqi_mode)
-  {
-    lqi_mode_ = lqi_mode;
-    if(lqi_mode_ == LQI_THREE_AXIS_MODE) K9_ = K; 
-    if(lqi_mode_ == LQI_FOUR_AXIS_MODE) K12_ = K; 
-  }
-
-  inline uint8_t getLqiMode()
-  {
-    return lqi_mode_;
-  }
-
-  void setLqiMode(uint8_t lqi_mode)
-  {
-    lqi_mode_ = lqi_mode;
-  }
-
-  //really  bad!!
-  void setRotateAngle(float angle_cos, float angle_sin)
-  {
-    cog_matrix_(0, 0) = angle_cos;
-    cog_matrix_(1, 0) = angle_sin;
-  }
-  void getRotateAngle(float& angle_cos, float& angle_sin)
-  {
-    angle_cos = cog_matrix_(0, 0);
-    angle_sin = cog_matrix_(1, 0);
-  }
+  inline Eigen::MatrixXd getP() { return P_; }
+  inline Eigen::MatrixXd getK() { return K_; }
+  inline uint8_t getLqiMode() { return lqi_mode_; }
+  inline void setLqiMode(uint8_t lqi_mode) { lqi_mode_ = lqi_mode; }
 
   void param2contoller();
 
-  //only for link4
-  double getUDeterminant(){return U_.determinant();}
+  //only for quad type
+  double getPDeterminant(){return P_.determinant();}
 
-  const static uint8_t LQI_FOUR_AXIS_MODE = 0;
-  const static uint8_t LQI_THREE_AXIS_MODE = 1;
+  static constexpr uint8_t LQI_THREE_AXIS_MODE = 3;
+  static constexpr uint8_t LQI_FOUR_AXIS_MODE = 4;
 
 private:
 
@@ -247,11 +196,11 @@ private:
   ros::Publisher principal_axis_pub_;
   ros::Publisher cog_rotate_pub_; //for position control => to mocap
   ros::Subscriber realtime_control_sub_;
-  ros::Subscriber yaw_gain_sub_;
 
   boost::mutex rm_mutex_, cog_mutex_, origins_mutex_, inertia_mutex_;
 
   tf::TransformListener tf_;
+  tf::TransformBroadcaster br_;
   bool callback_flag_;
 
   bool realtime_control_flag_;
@@ -273,7 +222,6 @@ private:
   std::string rpy_gain_pub_name_;
   std::string yaw_pos_gain_sub_name_;
 
-
   //dynamics config
   double m_f_rate_; //moment / force rate
   double f_pwm_rate_; //force / pwm rate
@@ -282,7 +230,6 @@ private:
 
   double link_length_;
   double link_base_rod_length_; //the length of the lik base rod
-  //double link_ring_diameter_; //the diameter of the protector
   double ring_radius_; //the offset from the center of link base to the protector_end
   double link_joint_offset_; //the offset from the center of joint to the mass center of joint
 
@@ -303,13 +250,8 @@ private:
   std::vector<std::string> links_name_;
 
   Eigen::Vector3d cog_;
-  std::vector<Eigen::Vector3d> links_origin_from_cog_; 
-
-  Eigen::Matrix3d links_inertia_, links_principal_inertia_;
-
-  Eigen::Matrix3d rotate_matrix_;
-  Eigen::Matrix3d cog_matrix_;
-  double rotate_angle_;
+  std::vector<Eigen::Vector3d> links_origin_from_cog_;
+  Eigen::Matrix3d links_inertia_;
 
   /* ros param init */
   void initParam();
@@ -317,11 +259,9 @@ private:
   void control();
   /* kinematics calculation */
   bool kinematics();
+  void inertiaParams(std::vector<tf::StampedTransform>  transforms);
   /* LQI parameter calculation */
   void lqi();
-
-  void visualization();
-  void cogCoordPublish();
 
   /* dynamic reconfigure */
   void cfgLQICallback(hydrus_transform_control::LQIConfig &config, uint32_t level);
@@ -330,34 +270,13 @@ private:
   bool addExtraModuleCallback(hydrus_transform_control::AddExtraModule::Request  &req,
                       hydrus_transform_control::AddExtraModule::Response &res);
 
-  int sgn(double value){ return  (value / fabs(value));}
-
-  //8/12:r,r_d, p, p_d, y, y_d, z. z_d, r_i, p_i, y_i, z_i
-  //6/9:r,r_d, p, p_d, z. z_d, r_i, p_i, z_i
-  Eigen::MatrixXd U_;
-
-  Eigen::MatrixXd A8_;
-  Eigen::MatrixXd B8_;
-  Eigen::MatrixXd C8_;
-  Eigen::MatrixXd A12_aug_;
-  Eigen::MatrixXd B12_aug_;
-  Eigen::MatrixXd C12_aug_;
-  Eigen::MatrixXd Q12_;
-
-  Eigen::MatrixXd A6_;
-  Eigen::MatrixXd B6_;
-  Eigen::MatrixXd C6_;
-  Eigen::MatrixXd A9_aug_;
-  Eigen::MatrixXd B9_aug_;
-  Eigen::MatrixXd C9_aug_;
-  Eigen::MatrixXd Q9_;
-
-  Eigen::MatrixXd R_;
-
-  Eigen::MatrixXd K12_;
-  Eigen::MatrixXd K9_;
+  Eigen::MatrixXd P_;
+  Eigen::MatrixXd K_;
 
   //Q
+//8/12:r,r_d, p, p_d, y, y_d, z. z_d, r_i, p_i, y_i, z_i
+  //6/9:r,r_d, p, p_d, z. z_d, r_i, p_i, z_i
+  Eigen::VectorXd q_diagonal_;
   double q_roll_,q_roll_d_,q_pitch_,q_pitch_d_,q_yaw_,strong_q_yaw_, q_yaw_d_,q_z_,q_z_d_;
   double q_roll_i_,q_pitch_i_,q_yaw_i_,q_z_i_;
 
@@ -368,7 +287,6 @@ private:
 
   uint8_t lqi_mode_;
   bool a_dash_eigen_calc_flag_;
-
 
   //dynamic reconfigure
   dynamic_reconfigure::Server<hydrus_transform_control::LQIConfig>* lqi_server_;
