@@ -80,7 +80,7 @@ namespace hardware_interface
       ROS_ERROR("Cannot get pwm_rate from ros nodehandle: %s", nh.getNamespace().c_str());
   }
 
-  RotorInterface::RotorInterface(): root_link_name_("base_link"), q_(), joint_num_(0), found_root_link_(false) {}
+  RotorInterface::RotorInterface(): baselink_name_("baselink"), q_(), joint_num_(0), found_baselink_(false) {}
 };
 
 namespace rotor_limits_interface

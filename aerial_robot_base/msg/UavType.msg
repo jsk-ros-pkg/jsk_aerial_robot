@@ -6,4 +6,4 @@ uint8 DRAGON = 4 # 3 dimensional aerial robot
 
 uint8 motor_num # equal with link number
 uint8 uav_model # drone/hydrus/ring/star/dragon
-uint8 root_link # the link attached with flight controller board
+uint8 baselink # the link attached with flight controller board
