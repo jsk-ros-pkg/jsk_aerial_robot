@@ -10,7 +10,7 @@ AerialRobotBase::AerialRobotBase(ros::NodeHandle nh, ros::NodeHandle nh_private)
   estimator_ = new RigidEstimator(nh_, nhp_);
 
   //*** control input
-  flight_ctrl_input_ = new FlightCtrlInput(motor_num_);
+  flight_ctrl_input_ = new FlightCtrlInput();
 
   //*** teleop navigation
   navigator_ = new TeleopNavigator(nh_, nhp_, estimator_, flight_ctrl_input_, main_rate_);
@@ -48,7 +48,6 @@ AerialRobotBase::~AerialRobotBase()
 
 void AerialRobotBase::rosParamInit()
 {
-
   ros::NodeHandle nh("~");
   bool param_verbose;
   nh.param ("param_verbose", param_verbose, true);
@@ -58,10 +57,6 @@ void AerialRobotBase::rosParamInit()
 
   nhp_.param ("tf_pub_rate", tf_pub_rate_, 100.0);
   if(param_verbose) cout << nhp_.getNamespace() << ": tf_pub_rate is " << tf_pub_rate_ << endl;
-
-  ros::NodeHandle motor_info_node("motor_info");
-  motor_info_node.param ("motor_num", motor_num_, 0);
-  if(param_verbose) cout << motor_info_node.getNamespace() << ": motor_num is " << motor_num_ << endl;
 }
 
 void AerialRobotBase::mainFunc(const ros::TimerEvent & e)
