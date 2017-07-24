@@ -37,37 +37,41 @@
 #ifndef TRANSFORM_CONTROL_H
 #define TRANSFORM_CONTROL_H
 
+/* ros */
 #include <ros/ros.h>
-#include <tf/transform_listener.h>
-#include <tf/transform_broadcaster.h>
-#include "tf_conversions/tf_eigen.h"
-#include <visualization_msgs/Marker.h>
-#include <visualization_msgs/MarkerArray.h>
-#include <iostream>
-#include <iomanip>
-#include <cmath>
 
-#include <aerial_robot_base/DesireCoord.h>
 #include <aerial_robot_msgs/FourAxisGain.h>
 #include <aerial_robot_msgs/RollPitchYawTerms.h>
+#include <sensor_msgs/JointState.h>
 #include <hydrus_transform_control/AddExtraModule.h>
+#include <std_msgs/UInt8.h>
+#include <tf/transform_broadcaster.h>
+#include <tf_conversions/tf_kdl.h>
 
-#include <string>
-//* for eigen cumputation
+
+/* robot model */
+#include <urdf/model.h>
+#include <kdl/tree.hpp>
+#include <kdl_parser/kdl_parser.hpp>
+#include <kdl/treefksolverpos_recursive.hpp>
+
+/* for eigen cumputation */
 #include <Eigen/Core>
 #include <Eigen/LU>
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
 #include <Eigen/Eigenvalues>
 
-#include <std_msgs/UInt16.h>
-#include <std_msgs/UInt8.h>
-
-#include <std_msgs/Float32.h>
+/* util */
 #include <boost/thread/mutex.hpp>
 #include <boost/thread.hpp>
+#include <string>
+#include <iostream>
+#include <iomanip>
+#include <cmath>
 
-//* for dynamic reconfigure
+
+/* for dynamic reconfigure */
 #include <dynamic_reconfigure/server.h>
 #include <hydrus_transform_control/LQIConfig.h>
 #define LQI_GAIN_FLAG 0
@@ -81,75 +85,34 @@
 #define LQI_Z_I_GAIN 8
 #define LQI_Z_D_GAIN 9
 
-class ElementModel{
-public:
-  ElementModel(){}
-  ElementModel(int link, float weight, Eigen::Matrix3d inertia, Eigen::Vector3d origin_offset = Eigen::Vector3d::Zero(), bool verbose = false)
-  {
-    weight_ = weight;
-    inertia_ = inertia;
-    origin_offset_ = origin_offset;
-    link_ = link;
-
-    if(verbose)
-      {
-        std::cout << "weight:" << std::endl;
-        std::cout << weight_ << std::endl;
-        std::cout << "inertia:" << std::endl;
-        std::cout << inertia_ << std::endl;
-        std::cout << "offset:" << std::endl;
-        std::cout << origin_offset_ << std::endl;
-      }
-  }
-  ~ElementModel(){}
-
-  inline float getWeight(){return weight_;}
-  inline Eigen::Matrix3d getInertia(){return inertia_;}
-  inline  void setOrigin(Eigen::Vector3d origin){origin_ = origin;}
-  inline Eigen::Vector3d getOffset(){return origin_offset_;}
-  inline Eigen::Vector3d getOrigin(){return origin_;}
-  inline int getLink(){return link_;}
-
-protected:
-  float weight_;
-  Eigen::Matrix3d inertia_;
-  Eigen::Vector3d origin_;
-  Eigen::Vector3d origin_offset_;
-  int link_;
-};
 
 class TransformController{
 public:
   TransformController(ros::NodeHandle nh, ros::NodeHandle nh_private, bool callback_flag = true);
   ~TransformController();
 
-  void realtimeControlCallback(const std_msgs::UInt8ConstPtr & msg);
-
-  void addExtraModule(int extra_module_link, float extra_module_mass, float extra_module_offset);
+  bool addExtraModule(int extra_module_link, float extra_module_mass, float extra_module_offset);
 
   bool distThreCheck();
-  bool distThreCheckFromJointValues(const std::vector<double>& joint_values, int joint_offset = 0,bool continous_flag = true);
-  std::vector<tf::StampedTransform> transformsFromJointValues(const std::vector<double>& joint_values, int joint_offset = 0);
-
-  bool stabilityCheck(bool verbose = false); //lagrange method
+  bool modelling(bool verbose = false); //lagrange method
 
   bool hamiltonMatrixSolver(uint8_t lqi_mode);
 
-  inline double getLinkLength(){return link_length_;}
-  inline int getLinkNum(){return link_num_;}
+  inline int getRotorNum(){return rotor_num_;}
 
-  void getLinksOriginFromCog(std::vector<Eigen::Vector3d>& links_origin_from_cog)
+  void getRotorsFromCog(std::vector<Eigen::Vector3d>& rotors_origin_from_cog)
   {
     boost::lock_guard<boost::mutex> lock(origins_mutex_);
-    int size = links_origin_from_cog_.size();
+    int size = rotors_origin_from_cog_.size();
     for(int i=0; i< size; i++)
-      links_origin_from_cog = links_origin_from_cog_;
+      rotors_origin_from_cog = rotors_origin_from_cog_;
   }
 
-  void setLinksOriginFromCog(const std::vector<Eigen::Vector3d>& links_origin_from_cog)
+  void setRotorsFromCog(const std::vector<Eigen::Vector3d>& rotors_origin_from_cog)
   {
     boost::lock_guard<boost::mutex> lock(origins_mutex_);
-    links_origin_from_cog_ = links_origin_from_cog;
+    assert(rotors_origin_from_cog_.size() == rotors_origin_from_cog.size());
+    rotors_origin_from_cog_ = rotors_origin_from_cog;
   }
 
   Eigen::Matrix3d getInertia()
@@ -163,13 +126,25 @@ public:
     links_inertia_ = link_inertia;
   }
 
-  Eigen::Vector3d getCog()
+  double getMass()
+  {
+    boost::lock_guard<boost::mutex> lock(mass_mutex_);
+    return mass_;
+  }
+
+  void setMass(double mass)
+  {
+    boost::lock_guard<boost::mutex> lock(mass_mutex_);
+    mass_ = mass;
+  }
+
+  tf::Transform getCog()
   {
     boost::lock_guard<boost::mutex> lock(cog_mutex_);
     return cog_;
   }
 
-  void setCog(Eigen::Vector3d cog)
+  void setCog(tf::Transform cog)
   {
     boost::lock_guard<boost::mutex> lock(cog_mutex_);
     cog_ = cog;
@@ -195,19 +170,25 @@ private:
   ros::Publisher four_axis_gain_pub_;
   ros::Publisher principal_axis_pub_;
   ros::Publisher cog_rotate_pub_; //for position control => to mocap
+  ros::Subscriber joint_state_sub_;
   ros::Subscriber realtime_control_sub_;
 
-  boost::mutex rm_mutex_, cog_mutex_, origins_mutex_, inertia_mutex_;
+  boost::mutex mass_mutex_, cog_mutex_, origins_mutex_, inertia_mutex_;
 
-  tf::TransformListener tf_;
   tf::TransformBroadcaster br_;
   bool callback_flag_;
 
   bool realtime_control_flag_;
+  bool kinematics_flag_;
 
   bool kinematic_verbose_;
   bool control_verbose_;
   bool debug_verbose_;
+
+  /* robot model, kinematics */
+  urdf::Model model_;
+  KDL::Tree tree_;
+  std::map<std::string, KDL::RigidBodyInertia> inertia_map_;
 
   /* control */
   boost::thread control_thread_;
@@ -215,42 +196,20 @@ private:
   bool only_three_axis_mode_;
 
   /* base model config */
-  int link_num_;
-  int joint_num_;
+  int rotor_num_;
+  std::string baselink_;
+
+  /* dynamics */
   std::vector<int> rotor_direction_;
-
-  std::string rpy_gain_pub_name_;
-  std::string yaw_pos_gain_sub_name_;
-
-  //dynamics config
   double m_f_rate_; //moment / force rate
   double f_pwm_rate_; //force / pwm rate
   double f_pwm_offset_; //force / pwm offset
   double pwm_rate_; //percentage
 
-  double link_length_;
-  double link_base_rod_length_; //the length of the lik base rod
-  double ring_radius_; //the offset from the center of link base to the protector_end
-  double link_joint_offset_; //the offset from the center of joint to the mass center of joint
-
-  double link_base_rod_common_mass_; //link rod
-  std::vector<double> link_base_rod_mass_; //each weight of link base rod is different
-  double link_base_ring_mass_; //protector ring
-  double link_base_two_ring_holder_mass_; //protector holder
-  double link_base_center_mass_; //motor+esc+battery+etc
-  double link_joint_mass_; //two_holder + servo motor
-  double all_mass_;
-  int extra_module_num_;
-  std::vector<ElementModel> link_base_model_;
-  std::vector<ElementModel> link_joint_model_;
-  std::vector<ElementModel> extra_module_model_;
-
-  std::string root_link_name_;
-  int root_link_;
-  std::vector<std::string> links_name_;
-
-  Eigen::Vector3d cog_;
-  std::vector<Eigen::Vector3d> links_origin_from_cog_;
+  /* kinematics */
+  double mass_;
+  tf::Transform cog_;
+  std::vector<Eigen::Vector3d> rotors_origin_from_cog_;
   Eigen::Matrix3d links_inertia_;
 
   /* ros param init */
@@ -258,8 +217,7 @@ private:
   /* main control func */
   void control();
   /* kinematics calculation */
-  bool kinematics();
-  void inertiaParams(std::vector<tf::StampedTransform>  transforms);
+  void kinematics(sensor_msgs::JointState state);
   /* LQI parameter calculation */
   void lqi();
 
@@ -269,6 +227,9 @@ private:
   /* service */
   bool addExtraModuleCallback(hydrus_transform_control::AddExtraModule::Request  &req,
                       hydrus_transform_control::AddExtraModule::Response &res);
+
+  void realtimeControlCallback(const std_msgs::UInt8ConstPtr & msg);
+  void jointStatecallback(const sensor_msgs::JointStateConstPtr& state);
 
   Eigen::MatrixXd P_;
   Eigen::MatrixXd K_;
@@ -294,6 +255,8 @@ private:
 
   //service
   ros::ServiceServer add_extra_module_service_;
+
+  void addChildren(const KDL::SegmentMap::const_iterator segment);
 };
 
 
