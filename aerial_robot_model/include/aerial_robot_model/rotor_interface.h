@@ -54,7 +54,7 @@ namespace hardware_interface
   {
   public:
     RotorHandle():force_(new double(0)) {}
-    RotorHandle(ros::NodeHandle nh, const std::string& name);
+    RotorHandle(ros::NodeHandle nh, urdf::JointConstSharedPtr urdf_joint);
 
     inline std::string getName() const {return name_;}
     inline double getForce()    const {return *force_;}

@@ -185,10 +185,11 @@ bool AerialRobotHWSim::initSim(
         vj_interface_.registerHandle(joint_handle);
       }
     else if(hardware_interface == "RotorInterface")
-      {    /* rotor interface */
-        //TODO
+      {
+        /* rotor interface */
         joint_control_methods_[j] = ROTOR;
-        rotor_handle = hardware_interface::RotorHandle(model_nh, joint_names_[j]);
+        const urdf::JointConstSharedPtr urdf_joint = urdf_model->getJoint(joint_names_[j]);
+        rotor_handle = hardware_interface::RotorHandle(model_nh, urdf_joint);
         rotor_interface_.registerHandle(rotor_handle);
       }
     else
@@ -213,7 +214,6 @@ bool AerialRobotHWSim::initSim(
     sim_joints_.push_back(joint);
 
     /* Aerial Robot */
-    /* TODO: rotor limit interface */
     if(hardware_interface == "RotorInterface")
       {
         const urdf::JointConstSharedPtr urdf_joint = urdf_model->getJoint(joint_names_[j]);

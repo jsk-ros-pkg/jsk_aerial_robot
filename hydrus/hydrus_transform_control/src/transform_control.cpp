@@ -117,6 +117,10 @@ void TransformController::addChildren(const KDL::SegmentMap::const_iterator segm
             std::map<std::string, KDL::RigidBodyInertia>::iterator it = inertia_map_.find(parent);
             KDL::RigidBodyInertia parent_prev_inertia = it->second;
             inertia_map_[parent] = child.getFrameToTip() * child.getInertia() + parent_prev_inertia;
+
+            /* add the rotor direction */
+            ROS_WARN("%s, rototation is %f", child.getJoint().getName().c_str(), child.getJoint().JointAxis().z());
+            rotor_direction_.insert(std::make_pair(std::atoi(child.getJoint().getName().substr(5).c_str()), child.getJoint().JointAxis().z()));
           }
       }
 
@@ -165,15 +169,12 @@ void TransformController::initParam()
   std::cout << "baselink: " << baselink_ << std::endl;
   /* propeller direction and lqi R */
   r_.resize(rotor_num_);
-  rotor_direction_.resize(rotor_num_);
   for(int i = 0; i < rotor_num_; i++)
     {
       std::stringstream ss;
       ss << i + 1;
       /* R */
       nh_private_.param(std::string("r") + ss.str(), r_[i], 1.0);
-      /* propeller */
-      nh_private_.param(std::string("rotor") + ss.str() + std::string("_direction"), rotor_direction_[i], 1);
     }
 
   nh_private_.param ("dist_thre", dist_thre_, 0.05);
@@ -424,7 +425,7 @@ bool  TransformController::modelling(bool verbose)
     {
       p_y(i) =  rotors_origin_from_cog[i](1);
       p_x(i) = -rotors_origin_from_cog[i](0);
-      p_c(i) = rotor_direction_[i] * m_f_rate_ ;
+      p_c(i) = rotor_direction_.at(i + 1) * m_f_rate_ ;
       p_m(i) = 1 / getMass();
       if(kinematic_verbose_ || verbose)
         std::cout << "link" << i + 1 <<"origin :\n" << rotors_origin_from_cog[i] << std::endl;

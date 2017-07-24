@@ -200,7 +200,7 @@ private:
   std::string baselink_;
 
   /* dynamics */
-  std::vector<int> rotor_direction_;
+  std::map<int, int> rotor_direction_;
   double m_f_rate_; //moment / force rate
   double f_pwm_rate_; //force / pwm rate
   double f_pwm_offset_; //force / pwm offset
