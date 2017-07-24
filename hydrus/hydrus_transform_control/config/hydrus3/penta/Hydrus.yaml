@@ -6,12 +6,6 @@ baselink: link3
 
 only_three_axis_mode: false
 
-rotor1_direction: -1 #default: -1
-rotor2_direction: 1 #default: 1
-rotor3_direction: -1
-rotor4_direction: 1 #default :1
-rotor5_direction: -1 #default :1
-
 q_roll: 400.0
 q_roll_d: 40.0
 q_roll_i: 10.0

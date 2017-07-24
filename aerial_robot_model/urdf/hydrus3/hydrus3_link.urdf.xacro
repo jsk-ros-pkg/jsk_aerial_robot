@@ -3,7 +3,7 @@
     xmlns:xacro="http://www.ros.org/wiki/xacro" name="hydrus3_link" >
 
   <!-- D-H kai description(different from prof.nakamura) -->
-  <xacro:macro name="hydrus3_link" params="self child general fc pc">
+  <xacro:macro name="hydrus3_link" params="self child rotor_direction general fc pc">
 
     <!-- link -->
     <link name="link${self}">
@@ -48,7 +48,7 @@
       <parent link="link${self}"/>
       <child link="propeller${self}"/>
       <origin rpy="0 0 0" xyz="${link_length* 0.5} 0 0"/>
-      <axis xyz="0 0 1"/>
+      <axis xyz="0 0 ${rotor_direction}"/>
     </joint>
 
     <link name="propeller${self}">
