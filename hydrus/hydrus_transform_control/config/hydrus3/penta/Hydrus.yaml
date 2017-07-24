@@ -1,43 +1,10 @@
 #Hydrus3 config
+joint_state_sub_name: /hydrus3/joint_states
 
-/motor_info:
-        motor_num: 5
+control_rate: 15.0
+baselink: link3
 
-control_rate: 10.0
-root_link: 3
-
-#  Link
-link_num: 5
-link_length: 0.44
-link_base_rod_length: 0.4
-link_base_center_mass: 0.241  # 0.238 + 0.0032(new battery holder)
-link_base_two_ring_holder_mass: 0.047 # 0.053 - 0.006(2leg)
-link_base_rod_common_mass: 0.1 
-
-# Protector
-ring_radius: 0.1425
-link_base_two_ring_holder_mass: 0.047 # 0.053 - 0.006(2leg)
-link_base_ring_mass: 0.048
-
-# Joint
-joint_num: 4
-link_joint_offset: -0.205 # special: we set the joint_1 in link_1, but
-link_joint_mass: 0.0785
-joint1_base_link: 1 #link2
-joint2_base_link: 2 #link3
-joint3_base_link: 3 #link4
-joint4_base_link: 4 #link5
-
-# Extra Module
-extra_module_num: 2
-# MCU: d_board is ligher than kduino(-2g)
-extra_module1_link: 1
-extra_module1_offset: 0.166
-extra_module1_mass: 0.022
-# PC: Odroid U3
-extra_module2_link: 2
-extra_module2_offset: -0.189 #old: 0.178
-extra_module2_mass: 0.104 #old: 0.093[Kg] (93[g])
+only_three_axis_mode: false
 
 rotor1_direction: -1 #default: -1
 rotor2_direction: 1 #default: 1

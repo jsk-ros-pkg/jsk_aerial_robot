@@ -14,7 +14,6 @@ find_package(catkin REQUIRED COMPONENTS
   tf
   tf2_ros
   tf2_kdl
-  robot_state_publisher
   kdl_parser
 )
 

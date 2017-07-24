@@ -73,6 +73,7 @@
     <rosparam file="$(find hydrus_transform_control)/config/hydrusx/$(arg type)/Hydrus.yaml" command="load" />
     <param name="kinematic_verbose" value="false" />
     <param name="control_verbose" value="false" />
+    <param name="debug_verbose" value="false" />
   </node>
 
   ########## Simulation in Gazebo #########

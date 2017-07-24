@@ -11,7 +11,7 @@ hydrus3:
         init_angle: 1.257
 
     # test for non-attitude control mode
-    root_link_name: link3
+    baselink_name: link3
 
     joint_state_controller:
         type: joint_state_controller/JointStateController

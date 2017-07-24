@@ -1,89 +1,12 @@
 #HydrusX Quad config
 
-/motor_info:
-        motor_num: 4
+joint_state_sub_name: /hydrusx/joint_states
 
 control_rate: 15.0
 
+baselink: link3
+
 only_three_axis_mode: false
-link_num: 4
-root_link: 3 #from 1
-
-# Link
-link_length: 0.6
-link_base_rod_length: 0.528
-link_base_center_mass: 0.211 #no battery, motor, propeller etc
-link_base_rod_common_mass: 0.099
-
-# Protector
-ring_radius: 0.1925
-link_base_two_ring_holder_mass: 0.0386
-link_base_ring_mass: 0.05 
-
-# Joint
-joint_num: 3
-link_joint_offset: -0.3
-link_joint_mass: 0.2075
-joint1_base_link: 1 #link2
-joint2_base_link: 2 #link3
-joint3_base_link: 3 #link4
-
-# Extra Module
-extra_module_num: 10
-
-# MCU: d_board
-extra_module1_link: 2
-extra_module1_offset: -0.260
-extra_module1_mass: 0.03
-
-# PC(hydrus_c: odroid xu4)
-extra_module2_link: 1
-extra_module2_offset: 0.220
-extra_module2_mass: 0.1
-
-# Batteries (two)
-extra_module3_link: 0
-extra_module3_offset: 0.0 
-extra_module3_mass: 0.411 # bat1300mAh: 193[g]; bat3000mAh: 411[g]
-
-extra_module4_link: 3
-extra_module4_offset: 0.0 
-extra_module4_mass: 0.411 # bat1300mAh: 193[g]; bat3000mAh: 411[g]
-
-# Additional Leg
-## HEAD
-extra_module5_link: 0
-extra_module5_offset: -0.25
-extra_module5_mass: 0.0623
-
-## TAIL
-extra_module6_link: 3
-extra_module6_offset: 0.235
-extra_module6_mass: 0.09 # 0.0623 + 5V DC-DC converter
-
-# Sensors
-## GPS + Leddar One
-extra_module7_link: 2
-extra_module7_offset: -0.215
-extra_module7_mass: 0.065 
-
-## ZED Stereo
-extra_module8_link: 2
-extra_module8_offset: -0.01
-extra_module8_mass: 0.18 # 0.196 - 0.016(usb cable)
-
-## PC(hydrus_v: tx1)
-extra_module9_link: 1
-extra_module9_offset: -0.2
-extra_module9_mass: 0.24 
-
-## CABLES(hydrus_c - hydrus_v: usb, eth)
-extra_module10_link: 1
-extra_module10_offset: 0.0
-extra_module10_mass: 0.03
-extra_module10_iyy: 0.001
-extra_module10_izz: 0.001
-
 
 rotor1_direction: -1 #default: -1
 rotor2_direction: 1 #default: 1
@@ -97,9 +20,9 @@ q_pitch: 400
 q_pitch_d: 40
 q_pitch_i: 10.0
 
-q_yaw: 100
+q_yaw: 50
 strong_q_yaw: 200
-q_yaw_d:  100
+q_yaw_d:  50
 q_yaw_i: 0.1
 
 q_z: 10.0
