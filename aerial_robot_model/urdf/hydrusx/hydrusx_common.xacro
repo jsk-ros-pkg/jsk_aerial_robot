@@ -48,14 +48,14 @@
 
   <xacro:macro name="link_model" params="type">
     <collision>
-      <origin rpy="0 0 0" xyz="0 0 -0.03"/>
+      <origin rpy="0 0 0" xyz="${link_length* 0.5} 0 -0.03"/>
       <geometry>
         <cylinder length="0.15" radius="${protector_radius}"/>
       </geometry>
     </collision>
 
     <visual>
-      <origin rpy="${-pi/2} 0 0" xyz="0 0 0"/>
+      <origin rpy="${-pi/2} 0 0" xyz="${link_length* 0.5} 0 0"/>
       <geometry>
         <mesh filename="package://aerial_robot_model/urdf/hydrusx/mesh/hydrusx_link${type}.dae"/>
       </geometry>

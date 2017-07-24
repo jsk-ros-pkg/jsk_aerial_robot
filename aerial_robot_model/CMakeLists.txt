@@ -12,7 +12,19 @@ find_package(catkin REQUIRED COMPONENTS
   interactive_markers
   visualization_msgs
   tf
+  tf2_ros
+  tf2_kdl
+  robot_state_publisher
+  kdl_parser
 )
+
+find_package(orocos_kdl REQUIRED)
+find_package(urdfdom_headers REQUIRED)
+
+include_directories(${orocos_kdl_INCLUDE_DIRS} ${urdfdom_headers_INCLUDE_DIRS})
+link_directories(${orocos_kdl_LIBRARY_DIRS})
+
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
 catkin_package(
   INCLUDE_DIRS include
@@ -37,11 +49,8 @@ include_directories(
 add_library(rotor_interface src/rotor_interface.cpp)
 target_link_libraries(rotor_interface ${catkin_LIBRARIES})
 
-add_library(joint_state_publisher src/joint_state_publisher.cpp)
-target_link_libraries(joint_state_publisher  ${catkin_LIBRARIES})
-add_executable(joint_state_publisher_node src/joint_state_publisher_node.cpp)
-target_link_libraries(joint_state_publisher_node joint_state_publisher ${catkin_LIBRARIES})
-
+add_executable(rotor_tf_publisher src/rotor_tf_publisher.cpp)
+target_link_libraries(rotor_tf_publisher  ${catkin_LIBRARIES} ${orocos_kdl_LIBRARIES})
 
 add_executable(interactive_marker src/interactive_marker.cpp)
 target_link_libraries(interactive_marker ${catkin_LIBRARIES})
@@ -63,7 +72,7 @@ install(DIRECTORY launch
 
 
 ## Mark executables and/or libraries for installation
-install(TARGETS joint_state_publisher joint_state_publisher interactive_marker
+install(TARGETS interactive_marker
    ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
    LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
    RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}

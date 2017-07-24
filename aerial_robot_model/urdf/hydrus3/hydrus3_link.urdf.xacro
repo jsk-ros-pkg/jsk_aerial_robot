@@ -3,31 +3,13 @@
     xmlns:xacro="http://www.ros.org/wiki/xacro" name="hydrus3_link" >
 
   <!-- D-H kai description(different from prof.nakamura) -->
-
   <xacro:macro name="hydrus3_link" params="self child general fc pc">
 
     <!-- link -->
     <link name="link${self}">
+      <!-- common inertial -->
       <inertial>
-        <origin xyz="0 0 0" rpy="0 0 0"/>
-        <mass value="0.0000001"/>
-        <inertia
-            ixx="0.00000001" ixy="0.0" ixz="0.0"
-            iyy="0.00000001" iyz="0.0"
-            izz="0.00000002"/>
-      </inertial>
-    </link>
-
-    <joint name="link${self}2center" type="fixed">
-      <parent link="link${self}"/>
-      <child link="link${self}_center"/>
-      <origin rpy="0 0 0" xyz="${link_length* 0.5} 0 0"/>
-      <axis xyz="0 0 1"/>
-    </joint>
-
-    <link name="link${self}_center">
-      <inertial>
-        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <origin xyz="${link_length* 0.5} 0 0" rpy="0 0 0"/>
         <mass value="${link_rod_mass + link_center_mass + protector_mass + protector_holder_mass - rotor_mass}" /> <!-- exclude from center mass -->
         <inertia
             ixx="${protector_inertia / 2}" ixy="0.0" ixz="0.0"
@@ -63,9 +45,9 @@
     <!-- rotor -->
     <joint name="rotor${self}" type="continuous">
       <limit effort="100.0" lower="0" upper="${max_force}" velocity="0.5"/> <!-- force range -->
-      <parent link="link${self}_center"/>
+      <parent link="link${self}"/>
       <child link="propeller${self}"/>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <origin rpy="0 0 0" xyz="${link_length* 0.5} 0 0"/>
       <axis xyz="0 0 1"/>
     </joint>
 
@@ -83,6 +65,27 @@
     <xacro:damping_factor link ="propeller${self}"/>
 
     <!-- extra module -->
+    <!-- head -->
+    <xacro:if value="${self == 1}">
+      <!-- dummy root link for KDL -->
+      <link name="root">
+        <inertial>
+          <origin xyz="0 0 0" rpy="0 0 0"/>
+          <mass value="0.00001"/>
+          <inertia
+              ixx="0.000001" ixy="0.0" ixz="0.0"
+              iyy="0.000001" iyz="0.0"
+              izz="0.000002"/>
+        </inertial>
+      </link>
+      <joint name="root_joint" type="fixed">
+        <parent link="root"/>
+        <child link="link${self}"/>
+        <origin rpy="0 0 0" xyz="0 0 0"/>
+        <axis xyz="0 0 1"/>
+      </joint>
+    </xacro:if>
+
     <!-- pc -->
     <xacro:if value="${pc}">
       <xacro:extra_module name = "pc" parent = "${self}" mass = "${pc_mass}" offset = "${link_length* 0.5 + pc_offset}" />

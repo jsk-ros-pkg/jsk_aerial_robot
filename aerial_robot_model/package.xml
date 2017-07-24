@@ -21,6 +21,11 @@
   <build_depend>visualization_msgs</build_depend>
   <build_depend>std_msgs</build_depend>
   <build_depend>tf</build_depend>
+  <build_depend>tf2_ros</build_depend>
+  <build_depend>tf2_kdl</build_depend>
+  <build_depend>orocos_kdl</build_depend>
+  <build_depend>kdl_parser</build_depend>
+  <build_depend>liburdfdom-headers-dev</build_depend>
 
   <run_depend>roscpp</run_depend>
   <run_depend>sensor_msgs</run_depend>
@@ -32,5 +37,9 @@
   <run_depend>visualization_msgs</run_depend>
   <run_depend>std_msgs</run_depend>
   <run_depend>tf</run_depend>
+  <run_depend>tf2_ros</run_depend>
+  <run_depend>tf2_kdl</run_depend>
+  <run_depend>kdl_parser</run_depend>
+  <run_depend>orocos_kdl</run_depend>
 
 </package>
