@@ -13,7 +13,7 @@ AerialRobotBase::AerialRobotBase(ros::NodeHandle nh, ros::NodeHandle nh_private)
   flight_ctrl_input_ = new FlightCtrlInput();
 
   //*** teleop navigation
-  navigator_ = new TeleopNavigator(nh_, nhp_, estimator_, flight_ctrl_input_, main_rate_);
+  navigator_ = new Navigator(nh_, nhp_, estimator_, flight_ctrl_input_, main_rate_);
 
   //*** pid controller
   controller_ = new PidController(nh_, nhp_, estimator_, navigator_, flight_ctrl_input_, main_rate_);
@@ -61,7 +61,7 @@ void AerialRobotBase::rosParamInit()
 
 void AerialRobotBase::mainFunc(const ros::TimerEvent & e)
 {
-  navigator_->teleopNavigation();
+  navigator_->navigation();
   controller_->pidFunction();
   navigator_->sendAttCmd();
 }

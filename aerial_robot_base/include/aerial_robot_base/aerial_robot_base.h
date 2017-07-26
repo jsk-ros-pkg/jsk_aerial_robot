@@ -35,7 +35,7 @@ class AerialRobotBase
   FlightCtrlInput* flight_ctrl_input_;
   PidController* controller_;
   RigidEstimator*  estimator_;
-  TeleopNavigator* navigator_;
+  Navigator* navigator_;
 
 };
 

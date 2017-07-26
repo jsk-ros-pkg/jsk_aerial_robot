@@ -14,6 +14,7 @@
 #include <aerial_robot_base/FourAxisPid.h>
 #include <aerial_robot_base/MotorInfo.h>
 #include <aerial_robot_base/GetMotorNum.h>
+#include <tf/transform_datatypes.h>
 
 //* for dynamic reconfigure
 #include <dynamic_reconfigure/server.h>
@@ -27,7 +28,7 @@ class FlightController
 public:
   FlightController(ros::NodeHandle nh,
                    ros::NodeHandle nh_private,
-                   BasicEstimator* estimator, Navigator* navigator, 
+                   BasicEstimator* estimator, Navigator* navigator,
                    FlightCtrlInput* flight_ctrl_input);
   virtual ~FlightController(){};
 

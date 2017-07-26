@@ -232,13 +232,12 @@ void PidController::pidFunction()
       state_vel_x = estimator_->getState(State::X_COG, estimate_mode_)[1];
       state_pos_y = estimator_->getState(State::Y_COG, estimate_mode_)[0];
       state_vel_y = estimator_->getState(State::Y_COG, estimate_mode_)[1];
-
-      target_vel_x = navigator_->getTargetVelX();
-      target_vel_y = navigator_->getTargetVelY();
-      target_pos_x = navigator_->getTargetPosX();
-      target_pos_y = navigator_->getTargetPosY();
-      target_acc_x = navigator_->getTargetAccX();
-      target_acc_y = navigator_->getTargetAccY();
+      target_vel_x = navigator_->getTargetVel().x();
+      target_vel_y = navigator_->getTargetVel().y();
+      target_pos_x = navigator_->getTargetPos().x();
+      target_pos_y = navigator_->getTargetPos().y();
+      target_acc_x = navigator_->getTargetAcc().x();
+      target_acc_y = navigator_->getTargetAcc().y();
 
       state_pos_z = estimator_->getState(State::Z_COG, estimate_mode_)[0];
       state_vel_z = estimator_->getState(State::Z_COG, estimate_mode_)[1];
@@ -246,7 +245,7 @@ void PidController::pidFunction()
       state_psi = estimator_->getState(State::YAW, estimate_mode_)[0];
       state_vel_psi = estimator_->getState(State::YAW, estimate_mode_)[1];
 
-      float target_pos_z = navigator_->getTargetPosZ();
+      float target_pos_z = navigator_->getTargetPos().z();
       float target_psi = navigator_->getTargetPsi();
 
       aerial_robot_base::FourAxisPid  four_axis_pid_debug;
