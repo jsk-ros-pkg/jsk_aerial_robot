@@ -7,6 +7,7 @@
   <arg name="type" default="hex" />
   <arg name="estimate_mode"  default= "0" />
   <arg name="headless" default="True" />
+  <arg name="worldtype" default="empty" />
 
   <!-- sensors(fusion) special parameters -->
   <param name="/sensor_plugin/altitude/no_height_offset" value="true" />
@@ -83,6 +84,7 @@
     <arg name="type" value="$(arg type)" />
     <arg name="gui" default="false" if="$(arg headless)" />
     <arg name="headless" default="$(arg headless)" />
+    <arg name="worldtype" value="$(arg worldtype)" />
     </include>
 </launch>
 
