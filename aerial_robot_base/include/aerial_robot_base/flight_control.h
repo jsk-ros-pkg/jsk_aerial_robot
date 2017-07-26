@@ -162,7 +162,6 @@ private:
  int pos_p_limit_yaw_;
  int pos_i_limit_yaw_;
  int pos_d_limit_yaw_;
- int yaw_control_frame_;
  //double vel_value_limit_yaw_;
  //double i_enable_limit_yaw_;
 

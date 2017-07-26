@@ -63,16 +63,14 @@ public:
 
 
   /* temporary */
-  inline float getStatePosX() { return estimator_->getState(BasicEstimator::X_W, estimate_mode_)[0]; }
-  inline float getStateVelX() { return estimator_->getState(BasicEstimator::X_W, estimate_mode_)[1]; }
-  inline float getStatePosY() { return estimator_->getState(BasicEstimator::Y_W, estimate_mode_)[0]; }
-  inline float getStateVelY() { return estimator_->getState(BasicEstimator::Y_W, estimate_mode_)[1]; }
-  inline float getStatePosZ() { return estimator_->getState(BasicEstimator::Z_W, estimate_mode_)[0]; }
-  inline float getStateVelZ() { return estimator_->getState(BasicEstimator::Z_W, estimate_mode_)[1]; }
-  inline float getStatePsiCog() { return estimator_->getState(BasicEstimator::YAW_W, estimate_mode_)[0]; }
-  inline float getStateVelPsiCog() { return estimator_->getState(BasicEstimator::YAW_W, estimate_mode_)[1]; }
-  inline float getStatePsiBoard() { return estimator_->getState(BasicEstimator::YAW_W_B, estimate_mode_)[0]; }
-  inline float getStateVelPsiBoard() { return estimator_->getState(BasicEstimator::YAW_W_B, estimate_mode_)[1]; }
+  inline float getStatePosX(int frame) { return estimator_->getState(State::X_COG + frame * 3, estimate_mode_)[0]; }
+  inline float getStateVelX(int frame) { return estimator_->getState(State::X_COG + frame * 3, estimate_mode_)[1]; }
+  inline float getStatePosY(int frame) { return estimator_->getState(State::Y_COG + frame * 3, estimate_mode_)[0]; }
+  inline float getStateVelY(int frame) { return estimator_->getState(State::Y_COG + frame * 3, estimate_mode_)[1]; }
+  inline float getStatePosZ(int frame) { return estimator_->getState(State::Z_COG + frame * 3, estimate_mode_)[0]; }
+  inline float getStateVelZ(int frame) { return estimator_->getState(State::Z_COG + frame * 3, estimate_mode_)[1]; }
+  inline float getStatePsi() { return estimator_->getState(State::YAW, estimate_mode_)[0]; }
+  inline float getStateVelPsi() { return estimator_->getState(State::YAW, estimate_mode_)[1]; }
 
   inline float getTargetPosX(){  return target_pos_x_;}
   inline void setTargetPosX( float value){  target_pos_x_ = value;}
@@ -137,7 +135,7 @@ protected:
   ros::NodeHandle nhp_;
   ros::Subscriber navi_sub_;
   ros::Subscriber battery_sub_;
-  tf::TransformBroadcaster* br_ ; 
+  tf::TransformBroadcaster* br_ ;
 
   BasicEstimator* estimator_;
   FlightCtrlInput* flight_ctrl_input_;
@@ -201,16 +199,16 @@ protected:
   {
     /* z(altitude) */
     /* check whether there is the fusion for the altitude */
-    if(!estimator_->getStateStatus(BasicEstimator::Z_W, estimate_mode_))
+    if(!estimator_->getStateStatus(State::Z_BASE, estimate_mode_))
       {
         ROS_ERROR("Flight Navigation: No correct sensor fusion for z(altitude), can not fly");
         return;
       }
 
     setNaviCommand(START_COMMAND);
-    target_pos_x_ = getStatePosX();
-    target_pos_y_ = getStatePosY();
-    target_psi_   = getStatePsiBoard();
+    target_pos_x_ = getStatePosX(Frame::COG);
+    target_pos_y_ = getStatePosY(Frame::COG);
+    target_psi_   = getStatePsi();
     target_pos_z_ = takeoff_height_;
     ROS_INFO("Start command");
   }

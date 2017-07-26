@@ -63,7 +63,7 @@ void Navigator::naviCallback(const aerial_robot_base::FlightNavConstPtr & msg)
       }
     case aerial_robot_base::FlightNav::VEL_MODE:
       {
-        // ROS_INFO("change to vel control");
+        /* should be in COG frame */
         force_att_control_flag_ = false;
         xy_control_mode_ = flight_nav::VEL_CONTROL_MODE;
         switch(msg->control_frame)
@@ -76,7 +76,7 @@ void Navigator::naviCallback(const aerial_robot_base::FlightNavConstPtr & msg)
             }
           case flight_nav::LOCAL_FRAME:
             {
-              tf::Vector3 target_vel = frameConversion(tf::Vector3(msg->target_vel_x, msg->target_vel_y, 0),  estimator_->getState(BasicEstimator::YAW_W_B, estimate_mode_)[0]);
+              tf::Vector3 target_vel = frameConversion(tf::Vector3(msg->target_vel_x, msg->target_vel_y, 0),  estimator_->getState(State::YAW, estimate_mode_)[0]);
               setTargetVelX(target_vel.x());
               setTargetVelY(target_vel.y());
               break;
@@ -90,7 +90,7 @@ void Navigator::naviCallback(const aerial_robot_base::FlightNavConstPtr & msg)
       }
     case aerial_robot_base::FlightNav::ACC_MODE:
       {
-        // ROS_INFO("change to att control");
+        /* should be in COG frame */
         force_att_control_flag_ = true;
         xy_control_mode_ = flight_nav::ACC_CONTROL_MODE;
         switch(msg->control_frame)
@@ -103,7 +103,7 @@ void Navigator::naviCallback(const aerial_robot_base::FlightNavConstPtr & msg)
             }
           case flight_nav::LOCAL_FRAME:
             {
-              tf::Vector3 target_acc = frameConversion(tf::Vector3(msg->target_acc_x, msg->target_acc_y, 0),  estimator_->getState(BasicEstimator::YAW_W_B, estimate_mode_)[0]);
+              tf::Vector3 target_acc = frameConversion(tf::Vector3(msg->target_acc_x, msg->target_acc_y, 0),  estimator_->getState(State::YAW, estimate_mode_)[0]);
               setTargetAccX(target_acc.x());
               setTargetAccY(target_acc.y());
               break;
@@ -278,9 +278,9 @@ void TeleopNavigator::landCallback(const std_msgs::EmptyConstPtr & msg)
 {
   setNaviCommand(LAND_COMMAND);
   //更新
-  target_pos_x_ = getStatePosX();
-  target_pos_y_ = getStatePosY();
-  target_psi_   = getStatePsiBoard();
+  target_pos_x_ = getStatePosX(Frame::COG);
+  target_pos_y_ = getStatePosY(Frame::COG);
+  target_psi_   = getStatePsi();
   target_pos_z_ = estimator_->getLandingHeight();
   ROS_INFO("Land command");
 }
@@ -289,9 +289,9 @@ void TeleopNavigator::haltCallback(const std_msgs::EmptyConstPtr & msg)
 {
   setNaviCommand(STOP_COMMAND);
   flight_mode_ = RESET_MODE;
-  setTargetPosX(getStatePosX());
-  setTargetPosY(getStatePosY());
-  setTargetPsi(getStatePsiBoard());
+  setTargetPosX(getStatePosX(Frame::COG));
+  setTargetPosY(getStatePosY(Frame::COG));
+  setTargetPsi(getStatePsi());
   setTargetPosZ(estimator_->getLandingHeight());
 
   estimator_->setSensorFusionFlag(false);
@@ -382,9 +382,9 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
           flight_mode_= RESET_MODE;
 
           /* update the target pos(maybe not necessary) */
-          setTargetPosX(getStatePosX());
-          setTargetPosY(getStatePosY());
-          setTargetPsi(getStatePsiBoard());
+          setTargetPosX(getStatePosX(Frame::COG));
+          setTargetPosY(getStatePosY(Frame::COG));
+          setTargetPsi(getStatePsi());
 
           /* several flag should be false */
           estimator_->setSensorFusionFlag(false);
@@ -415,10 +415,10 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
 
       setNaviCommand(LAND_COMMAND);
       //update
-      target_pos_x_= getStatePosX();
-      target_pos_y_= getStatePosY();
+      target_pos_x_= getStatePosX(Frame::COG);
+      target_pos_y_= getStatePosY(Frame::COG);
       target_pos_z_= estimator_->getLandingHeight();
-      target_psi_  = getStatePsiBoard();
+      target_psi_  = getStatePsi();
       ROS_INFO("Joy Control: Land command");
 
       return;
@@ -442,7 +442,7 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
       if(alt_control_flag_)
         {
           alt_control_flag_= false;
-          target_pos_z_= getStatePosZ();
+          target_pos_z_= getStatePosZ(Frame::COG);
           ROS_INFO("Joy Control: Fixed Alt command, targetPosz_is %f",target_pos_z_);
         }
     }
@@ -453,13 +453,13 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
     {
       if(fabs(joy_msg->axes[2]) > 0.05)
         {
-          target_psi_ = getStatePsiBoard() + joy_msg->axes[2] * max_target_yaw_rate_;
+          target_psi_ = getStatePsi() + joy_msg->axes[2] * max_target_yaw_rate_;
           if(target_psi_ > M_PI)  target_psi_ -= 2 * M_PI;
           else if(target_psi_ < -M_PI)  target_psi_ += 2 * M_PI;
           ROS_WARN("Joy Control: yaw control based on angle control only");
         }
       else
-        target_psi_ = getStatePsiBoard();
+        target_psi_ = getStatePsi();
     }
 
   /* turn to ACC_CONTROL_MODE */
@@ -490,8 +490,8 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
       pos_control_flag_ = true;
       force_att_control_flag_ = false;
       xy_control_mode_ = flight_nav::POS_CONTROL_MODE;
-      target_pos_x_= getStatePosX();
-      target_pos_y_= getStatePosY();
+      target_pos_x_= getStatePosX(Frame::COG);
+      target_pos_y_= getStatePosY(Frame::COG);
     }
   if(joy_msg->buttons[14] == 0 && pos_control_flag_)
     pos_control_flag_ = false;
@@ -511,7 +511,7 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
 
         if(control_frame_ == flight_nav::LOCAL_FRAME)
           {
-            tf::Vector3 target_acc = frameConversion(tf::Vector3(target_acc_x_, target_acc_y_, 0),  estimator_->getState(BasicEstimator::YAW_W_B, estimate_mode_)[0]);
+            tf::Vector3 target_acc = frameConversion(tf::Vector3(target_acc_x_, target_acc_y_, 0),  estimator_->getState(State::YAW, estimate_mode_)[0]);
             target_acc_x_ = target_acc.x();
             target_acc_y_ = target_acc.y();
           }
@@ -529,10 +529,10 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
             float joy_target_vel_y = joy_msg->axes[0] * fabs(joy_msg->axes[0]) * max_target_vel_;
 
             /* defualt: world frame control */
-            /* L2 trigger: fc(body frame) frame control */
+            /* L2 trigger: fc(cog/ baselink frame) frame control */
             if(control_frame_ == flight_nav::LOCAL_FRAME)
               {
-                tf::Vector3 joy_target_vel = frameConversion(tf::Vector3(joy_target_vel_x, joy_target_vel_y, 0),  estimator_->getState(BasicEstimator::YAW_W_B, estimate_mode_)[0]);
+                tf::Vector3 joy_target_vel = frameConversion(tf::Vector3(joy_target_vel_x, joy_target_vel_y, 0),  estimator_->getState(State::YAW, estimate_mode_)[0]);
                 joy_target_vel_x = joy_target_vel.x();
                 joy_target_vel_y = joy_target_vel.y();
               }
@@ -563,13 +563,13 @@ void TeleopNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
 void TeleopNavigator::sendAttCmd()
 {
   if(getNaviCommand() == START_COMMAND)
-    { 
+    {
       std_msgs::UInt8 start_cmd;
       start_cmd.data = ARM_ON_CMD;
-      flight_config_pub_.publish(start_cmd); 
+      flight_config_pub_.publish(start_cmd);
     }
   else if(getNaviCommand() == STOP_COMMAND)
-    { 
+    {
       std_msgs::UInt8 stop_cmd;
       stop_cmd.data = ARM_OFF_CMD;
       flight_config_pub_.publish(stop_cmd);
@@ -612,7 +612,7 @@ void TeleopNavigator::teleopNavigation()
   /* check the xy estimation status, if not ready, change to att_control_mode */
   if(!force_att_control_flag_)
     {
-      if(!estimator_->getStateStatus(BasicEstimator::X_W, estimate_mode_) || !estimator_->getStateStatus(BasicEstimator::Y_W, estimate_mode_))
+      if(!estimator_->getStateStatus(State::X_BASE, estimate_mode_) || !estimator_->getStateStatus(State::Y_BASE, estimate_mode_))
         {
           if(xy_control_mode_ == flight_nav::VEL_CONTROL_MODE ||
              xy_control_mode_ == flight_nav::POS_CONTROL_MODE)
@@ -637,7 +637,7 @@ void TeleopNavigator::teleopNavigation()
   if(estimator_->getUnhealthLevel() == BasicEstimator::UNHEALTH_LEVEL3 && !force_landing_flag_)
     {
       if(getNaviCommand() == TAKEOFF_COMMAND || getNaviCommand() == HOVER_COMMAND  || getNaviCommand() == LAND_COMMAND)
-      ROS_WARN("Sensor Unhealth Level%d: force landing command", estimator_->getUnhealthLevel());
+        ROS_WARN("Sensor Unhealth Level%d: force landing command", estimator_->getUnhealthLevel());
       std_msgs::UInt8 force_landing_cmd;
       force_landing_cmd.data = FORCE_LANDING_CMD;
       flight_config_pub_.publish(force_landing_cmd);
@@ -649,12 +649,12 @@ void TeleopNavigator::teleopNavigation()
       bool normal_land = false;
 
       /* joystick heartbeat check */
-       if(check_joy_stick_heart_beat_ && joy_stick_heart_beat_ &&
-          ros::Time::now().toSec() - joy_stick_prev_time_ > joy_stick_heart_beat_du_)
-         {
-           normal_land = true;
-           ROS_ERROR("Normal Landing: att control mode, because no joy control");
-         }
+      if(check_joy_stick_heart_beat_ && joy_stick_heart_beat_ &&
+         ros::Time::now().toSec() - joy_stick_prev_time_ > joy_stick_heart_beat_du_)
+        {
+          normal_land = true;
+          ROS_ERROR("Normal Landing: att control mode, because no joy control");
+        }
 
       /* low voltage flag */
       if(low_voltage_flag_)
@@ -666,10 +666,10 @@ void TeleopNavigator::teleopNavigation()
       if(normal_land)
         {
           setNaviCommand(LAND_COMMAND);
-          target_pos_x_ = getStatePosX();
-          target_pos_y_ = getStatePosY();
+          target_pos_x_ = getStatePosX(Frame::COG);
+          target_pos_y_ = getStatePosY(Frame::COG);
           target_pos_z_ = estimator_->getLandingHeight();
-          target_psi_   = getStatePsiBoard();
+          target_psi_   = getStatePsi();
         }
     }
 
@@ -693,15 +693,15 @@ void TeleopNavigator::teleopNavigation()
 
       if(xy_control_mode_ == flight_nav::POS_CONTROL_MODE)
         {
-          if (fabs(getTargetPosZ() - getStatePosZ()) < POS_Z_THRE &&
-              fabs(getTargetPosX() - getStatePosX()) < POS_X_THRE &&
-              fabs(getTargetPosY() - getStatePosY()) < POS_Y_THRE)
+          if (fabs(getTargetPosZ() - getStatePosZ(Frame::COG)) < POS_Z_THRE &&
+              fabs(getTargetPosX() - getStatePosX(Frame::COG)) < POS_X_THRE &&
+              fabs(getTargetPosY() - getStatePosY(Frame::COG)) < POS_Y_THRE)
             convergence_cnt++;
         }
       else
         {
           //TODO => check same as pos_world_based_control_mode
-          if (fabs(getTargetPosZ() - getStatePosZ()) < POS_Z_THRE)
+          if (fabs(getTargetPosZ() - getStatePosZ(Frame::COG)) < POS_Z_THRE)
             convergence_cnt++;
         }
 
@@ -721,7 +721,7 @@ void TeleopNavigator::teleopNavigation()
         {
           flight_mode_= LAND_MODE; //--> for control
 
-          if (fabs(getTargetPosZ() - getStatePosZ()) < POS_Z_THRE)
+          if (fabs(getTargetPosZ() - getStatePosZ(Frame::COG)) < POS_Z_THRE)
             convergence_cnt++;
 
           if (convergence_cnt > ctrl_loop_rate_)
@@ -732,9 +732,9 @@ void TeleopNavigator::teleopNavigation()
               setNaviCommand(STOP_COMMAND);
               flight_mode_= RESET_MODE;
 
-              setTargetPosX(getStatePosX());
-              setTargetPosY(getStatePosY());
-              setTargetPsi(getStatePsiBoard());
+              setTargetPosX(getStatePosX(Frame::COG));
+              setTargetPosY(getStatePosY(Frame::COG));
+              setTargetPsi(getStatePsi());
 
               estimator_->setSensorFusionFlag(false);
               estimator_->setLandingMode(false);
