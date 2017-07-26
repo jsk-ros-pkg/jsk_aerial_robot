@@ -46,8 +46,9 @@
 #include <hydrus_transform_control/AddExtraModule.h>
 #include <std_msgs/UInt8.h>
 #include <tf/transform_broadcaster.h>
+#include <geometry_msgs/TransformStamped.h>
 #include <tf_conversions/tf_kdl.h>
-
+#include <eigen_conversions/eigen_msg.h>
 
 /* robot model */
 #include <urdf/model.h>
@@ -115,6 +116,12 @@ public:
     rotors_origin_from_cog_ = rotors_origin_from_cog;
   }
 
+  Eigen::Vector3d getCog2Baselink()
+  {
+    assert(baselink_.find("link") != std::string::npos);
+    return rotors_origin_from_cog_[std::atoi(baselink_.substr(4).c_str())];
+  }
+
   Eigen::Matrix3d getInertia()
   {
     boost::lock_guard<boost::mutex> lock(inertia_mutex_);
@@ -155,7 +162,7 @@ public:
   inline uint8_t getLqiMode() { return lqi_mode_; }
   inline void setLqiMode(uint8_t lqi_mode) { lqi_mode_ = lqi_mode; }
 
-  void param2contoller();
+  void param2controller();
 
   //only for quad type
   double getPDeterminant(){return P_.determinant();}
@@ -170,6 +177,7 @@ private:
   ros::Publisher four_axis_gain_pub_;
   ros::Publisher principal_axis_pub_;
   ros::Publisher cog_rotate_pub_; //for position control => to mocap
+  ros::Publisher transform_pub_;
   ros::Subscriber joint_state_sub_;
   ros::Subscriber realtime_control_sub_;
 
@@ -211,6 +219,7 @@ private:
   tf::Transform cog_;
   std::vector<Eigen::Vector3d> rotors_origin_from_cog_;
   Eigen::Matrix3d links_inertia_;
+  ros::Time joint_state_stamp_;
 
   /* ros param init */
   void initParam();

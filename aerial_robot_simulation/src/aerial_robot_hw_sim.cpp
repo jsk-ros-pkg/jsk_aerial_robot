@@ -281,8 +281,8 @@ bool AerialRobotHWSim::initSim(
   cmd_vel_sub_ = model_nh.subscribe("/cmd_vel", 1, &AerialRobotHWSim::cmdVelCallback, this);
   cmd_pos_sub_ = model_nh.subscribe("/cmd_pos", 1, &AerialRobotHWSim::cmdPosCallback, this);
   model_nh.param("ground_truth_pub_rate", ground_truth_pub_rate_, 0.01); // [sec]
-  //ground_truth_pub_ = model_nh.advertise<nav_msgs::Odometry>("ground_truth", 1);
-  ground_truth_pub_ = model_nh.advertise<geometry_msgs::PoseStamped>("ground_truth", 1);
+  ground_truth_pub_ = model_nh.advertise<nav_msgs::Odometry>("ground_truth", 1);
+  //ground_truth_pub_ = model_nh.advertise<geometry_msgs::PoseStamped>("ground_truth", 1);
 
   // Initialize the emergency stop code.
   e_stop_active_ = false;
@@ -328,7 +328,7 @@ void AerialRobotHWSim::readSim(ros::Time time, ros::Duration period)
 
       if(time.toSec() - last_time.toSec() > ground_truth_pub_rate_)
         {
-#if 0 //odometry
+#if 1 //odometry
           nav_msgs::Odometry pose_msg;
           pose_msg.header.stamp = time;
           pose_msg.pose.pose.position.x = baselink->GetWorldPose().pos.x;
@@ -341,6 +341,12 @@ void AerialRobotHWSim::readSim(ros::Time time, ros::Duration period)
           pose_msg.twist.twist.linear.x = baselink->GetWorldLinearVel().x;
           pose_msg.twist.twist.linear.y = baselink->GetWorldLinearVel().y;
           pose_msg.twist.twist.linear.z = baselink->GetWorldLinearVel().z;
+
+          /* CAUTION! the angular is describe in the link frame */
+          pose_msg.twist.twist.angular.x = baselink->GetRelativeAngularVel().x;
+          pose_msg.twist.twist.angular.y = baselink->GetRelativeAngularVel().y;
+          pose_msg.twist.twist.angular.z = baselink->GetRelativeAngularVel().z;
+
 #else
           geometry_msgs::PoseStamped pose_msg;
           pose_msg.header.stamp = time;

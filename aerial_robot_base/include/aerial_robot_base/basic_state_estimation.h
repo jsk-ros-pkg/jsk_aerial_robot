@@ -49,6 +49,8 @@
 #include <tf/transform_broadcaster.h>
 #include <std_msgs/UInt8.h>
 #include <aerial_robot_base/DesireCoord.h>
+#include <geometry_msgs/TransformStamped.h>
+#include <tf/transform_datatypes.h>
 
 /* util */
 #include <assert.h>
@@ -70,7 +72,24 @@ using SensorFuser = std::vector< std::pair<std::string, boost::shared_ptr<kf_plu
 
 namespace Frame
 {
-  enum {BODY = 0, COG = 1,};
+  enum {COG = 0, BASELINK = 1,};
+};
+
+namespace State
+{
+  enum
+    {
+      X_COG, //x axis of COG
+      Y_COG, //y axis of COG
+      Z_COG, //z axis of COG
+      X_BASE, //x axis of Baselink
+      Y_BASE, //y axis of Baselink
+      Z_BASE, //y axis of Baselink
+      ROLL, //roll of baselink/CoG in world coord
+      PITCH, //pitch of baselink/CoG in world coord
+      YAW, //yaw of baselink/CoG in world coord
+      TOTAL_NUM,
+    };
 };
 
 class BasicEstimator
@@ -90,10 +109,11 @@ public:
     /* ros param */
     nhp_.param ("param_verbose", param_verbose_, true);
     nhp_.param ("estimate_mode", estimate_mode_, 0); //EGOMOTION_ESTIMATE: 0
-    nhp_.param("cog2baselink_transform_sub_name", cog2baselink_transform_sub_name_, std::string("/desire_coordinate"));
+    nhp_.param("cog2baselink_transform_sub_name", cog2baselink_transform_sub_name_, std::string("/cog2baselink"));
     ROS_WARN("estimate_mode is %s", (estimate_mode_ == EGOMOTION_ESTIMATE)?string("EGOMOTION_ESTIMATE").c_str():((estimate_mode_ == EXPERIMENT_ESTIMATE)?string("EXPERIMENT_ESTIMATE").c_str():((estimate_mode_ == GROUND_TRUTH)?string("GROUND_TRUTH").c_str():string("WRONG_MODE").c_str())));
 
-    odom_state_pub_ = nh_.advertise<nav_msgs::Odometry>("/uav/baselink/odom", 1);
+    baselink_odom_pub_ = nh_.advertise<nav_msgs::Odometry>("/uav/baselink/odom", 1);
+    cog_odom_pub_ = nh_.advertise<nav_msgs::Odometry>("/uav/cog/odom", 1);
     full_state_pub_ = nh_.advertise<aerial_robot_base::States>("/uav/full_state", 1);
     cog2baselink_transform_sub_ = nh_.subscribe(cog2baselink_transform_sub_name_, 5, &BasicEstimator::transformCallback, this);
 
@@ -101,7 +121,7 @@ public:
     fuser_[1].resize(0);
 
 
-    for(int i = 0; i < STATE_NUM; i ++)
+    for(int i = 0; i < State::TOTAL_NUM; i ++)
       {
         for(int j = 0; j < 3; j++)
           {
@@ -124,32 +144,19 @@ public:
   static constexpr int EXPERIMENT_ESTIMATE = 1;
   static constexpr int GROUND_TRUTH = 2;
 
-  static constexpr uint8_t STATE_NUM = 11;
-  static constexpr uint8_t X_W = 0; //x in world coord
-  static constexpr uint8_t Y_W = 1; //y in world coord
-  static constexpr uint8_t Z_W = 2; //z in world coord
-  static constexpr uint8_t ROLL_W = 3; //roll of cog in world coord
-  static constexpr uint8_t PITCH_W = 4; //pitch of cog in world coord
-  static constexpr uint8_t YAW_W = 5; //yaw of cog in world coord
-  static constexpr uint8_t X_B = 6; //x in board coord
-  static constexpr uint8_t Y_B = 7; //y in board coord
-  static constexpr uint8_t ROLL_W_B = 8; //roll of mcu board in world coord
-  static constexpr uint8_t PITCH_W_B = 9; //pitch of mcu board in world coord
-  static constexpr uint8_t YAW_W_B = 10; //yaw of mcu board in world coord
-
   static constexpr float G = 9.797;
 
   int getStateStatus(uint8_t axis, uint8_t estimate_mode)
   {
     boost::lock_guard<boost::mutex> lock(state_mutex_);
-    assert(axis < STATE_NUM);
+    assert(axis < State::TOTAL_NUM);
     return state_[axis][estimate_mode].first;
   }
 
   void setStateStatus( uint8_t axis, uint8_t estimate_mode, bool status)
   {
     boost::lock_guard<boost::mutex> lock(state_mutex_);
-    assert(axis < STATE_NUM);
+    assert(axis < State::TOTAL_NUM);
     if(status) state_[axis][estimate_mode].first ++;
     else
       {
@@ -164,7 +171,7 @@ public:
   AxisState getState( uint8_t axis)
   {
     boost::lock_guard<boost::mutex> lock(state_mutex_);
-    assert(axis < STATE_NUM);
+    assert(axis < State::TOTAL_NUM);
     return state_[axis];
   }
 
@@ -198,6 +205,60 @@ public:
     (state_[axis][estimate_mode].second)[state_mode] = value;
   }
 
+  tf::Vector3 getPos(int frame, int estimate_mode)
+  {
+    return tf::Vector3((state_[State::X_COG + frame * 3][estimate_mode].second)[0],
+                       (state_[State::Y_COG + frame * 3][estimate_mode].second)[0],
+                       (state_[State::Z_COG + frame * 3][estimate_mode].second)[0]);
+  }
+  void setPos(int frame, int estimate_mode, tf::Vector3 pos)
+  {
+    for(int i = 0; i < 3; i ++ )
+      (state_[i + frame * 3][estimate_mode].second)[0] = pos[i];
+  }
+
+  tf::Vector3 getVel(int frame, int estimate_mode)
+  {
+    return tf::Vector3((state_[State::X_COG + frame * 3][estimate_mode].second)[1],
+                       (state_[State::Y_COG + frame * 3][estimate_mode].second)[1],
+                       (state_[State::Z_COG + frame * 3][estimate_mode].second)[1]);
+  }
+
+  void setVel(int frame, int estimate_mode, tf::Vector3 vel)
+  {
+    for(int i = 0; i < 3; i ++ )
+      (state_[i + frame * 3][estimate_mode].second)[1] = vel[i];
+  }
+
+  tf::Matrix3x3 getOrientation(int estimate_mode)
+  {
+    tf::Matrix3x3 r;
+    r.setRPY((state_[State::ROLL][estimate_mode].second)[0],
+               (state_[State::PITCH][estimate_mode].second)[0],
+               (state_[State::YAW][estimate_mode].second)[0]);
+    return r;
+  }
+
+  void setEuler(int estimate_mode, tf::Vector3 euler)
+  {
+    (state_[State::ROLL][estimate_mode].second)[0] = euler[0];
+    (state_[State::PITCH][estimate_mode].second)[0] = euler[1];
+    (state_[State::YAW][estimate_mode].second)[0] = euler[2];
+  }
+
+  tf::Vector3 getAngularVel(int estimate_mode)
+  {
+    return tf::Vector3((state_[State::ROLL][estimate_mode].second)[1],
+                       (state_[State::PITCH][estimate_mode].second)[1],
+                       (state_[State::YAW][estimate_mode].second)[1]);
+  }
+
+  void setAngularVel(int estimate_mode, tf::Vector3 omega)
+  {
+    (state_[State::ROLL][estimate_mode].second)[1] = omega[0];
+    (state_[State::PITCH][estimate_mode].second)[1] = omega[1];
+    (state_[State::YAW][estimate_mode].second)[1] = omega[2];
+  }
 
   inline void setSensorFusionFlag(bool flag){sensor_fusion_flag_ = flag;  }
   inline bool getSensorFusionFlag(){return sensor_fusion_flag_; }
@@ -218,8 +279,8 @@ public:
   virtual void setLandingHeight(float landing_height){ landing_height_ = landing_height;}
   virtual float getLandingHeight(){ return landing_height_;}
 
-  inline tf::Matrix3x3 getRCog2Baselink(){return cog2baselink_transform_.getBasis();}
-  inline tf::Matrix3x3 getRBaselink2Cog(){return cog2baselink_transform_.getBasis().transpose();}
+  inline tf::Transform getCog2Baselink(){return cog2baselink_transform_;}
+  inline tf::Transform getBaselink2Cog(){return cog2baselink_transform_.inverse();}
 
   const SensorFuser& getFuser(int mode)
   {
@@ -252,7 +313,7 @@ protected:
 
   ros::NodeHandle nh_;
   ros::NodeHandle nhp_;
-  ros::Publisher full_state_pub_, odom_state_pub_;
+  ros::Publisher full_state_pub_, baselink_odom_pub_, cog_odom_pub_;
   ros::Subscriber cog2baselink_transform_sub_;
   ros::Subscriber estimate_height_mode_sub_;
 
@@ -283,12 +344,12 @@ protected:
   bool un_descend_flag_;
   float landing_height_;
 
-  void transformCallback(aerial_robot_base::DesireCoord offset_msg)
+  /* use subscribe method to get the cog-baselink offset */
+  /* only the position offset, no vel and acc */
+  void transformCallback(const geometry_msgs::TransformStampedConstPtr & msg)
   {
     /* get the transform from CoG to base_link: {CoG} -> {baselink} */
-    tf::Matrix3x3 r;
-    r.setRPY(offset_msg.roll, offset_msg.pitch, offset_msg.yaw);
-    cog2baselink_transform_.setBasis(r);
+    tf::transformMsgToTF(msg->transform, cog2baselink_transform_);
   }
 
 };

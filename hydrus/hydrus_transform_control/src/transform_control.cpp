@@ -37,7 +37,8 @@ TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_
   std::string rpy_gain_pub_name;
   nh_private_.param("rpy_gain_pub_name", rpy_gain_pub_name, std::string("/rpy_gain"));
   rpy_gain_pub_ = nh_.advertise<aerial_robot_msgs::RollPitchYawTerms>(rpy_gain_pub_name, 1);
-  four_axis_gain_pub_ = nh_.advertise<aerial_robot_msgs::FourAxisGain>("four_axis_gain", 1);
+  four_axis_gain_pub_ = nh_.advertise<aerial_robot_msgs::FourAxisGain>("/four_axis_gain", 1);
+  transform_pub_ = nh_.advertise<geometry_msgs::TransformStamped>("/cog2baselink", 1);
 
   //dynamic reconfigure server
   lqi_server_ = new dynamic_reconfigure::Server<hydrus_transform_control::LQIConfig>(nh_private_);
@@ -245,6 +246,8 @@ void TransformController::control()
 
 void TransformController::jointStatecallback(const sensor_msgs::JointStateConstPtr& state)
 {
+  joint_state_stamp_ = state->header.stamp;
+
   if(debug_verbose_) ROS_ERROR("start kinematics");
   kinematics(*state);
   if(debug_verbose_) ROS_ERROR("finish kinematics");
@@ -376,7 +379,7 @@ void TransformController::lqi()
     }
   if(debug_verbose_) ROS_WARN(" finish ARE calc");
 
-  param2contoller();
+  param2controller();
   if(debug_verbose_) ROS_WARN(" finish param2controller");
 }
 
@@ -616,13 +619,22 @@ bool TransformController::hamiltonMatrixSolver(uint8_t lqi_mode)
   return true;
 }
 
-void TransformController::param2contoller()
+void TransformController::param2controller()
 {
   aerial_robot_msgs::FourAxisGain four_axis_gain_msg;
   aerial_robot_msgs::RollPitchYawTerms rpy_gain_msg; //for rosserial
+  geometry_msgs::TransformStamped transform_msg; //for rosserial
 
   four_axis_gain_msg.motor_num = rotor_num_;
   rpy_gain_msg.motors.resize(rotor_num_);
+
+  /* the transform from cog to baselink */
+  transform_msg.header.stamp = joint_state_stamp_;
+  transform_msg.header.frame_id = std::string("cog");
+  transform_msg.child_frame_id = baselink_;
+  tf::vectorEigenToMsg(getCog2Baselink(), transform_msg.transform.translation);
+  transform_msg.transform.rotation.w = 1;
+  transform_pub_.publish(transform_msg);
 
   for(int i = 0; i < rotor_num_; i ++)
     {

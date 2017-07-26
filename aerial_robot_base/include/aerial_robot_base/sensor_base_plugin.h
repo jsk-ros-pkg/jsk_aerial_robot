@@ -95,7 +95,10 @@ namespace sensor_plugin
       nhp_.param("unhealth_level", unhealth_level_, 0);
       nhp_.param("health_check_rate", health_check_rate_, 100.0);
 
-      double frame_roll, frame_pitch, frame_yaw;
+      double frame_x, frame_y, frame_z, frame_roll, frame_pitch, frame_yaw;
+      nhp_.param("frame_x", frame_x, 0.0);
+      nhp_.param("frame_y", frame_y, 0.0);
+      nhp_.param("frame_z", frame_z, 0.0);
       nhp_.param("frame_roll", frame_roll, 0.0);
       nhp_.param("frame_pitch", frame_pitch, 0.0);
       nhp_.param("frame_yaw", frame_yaw, 0.0);
@@ -202,6 +205,11 @@ namespace sensor_plugin
           ROS_WARN("%s: get sensor data, du: %f", nhp_.getNamespace().c_str(), stamp - health_stamp_[chan]);
         }
       health_stamp_[chan] = stamp;
+    }
+
+    inline tf::Transform getBaseLink2SensorTransform()
+    {
+      return baselink_transform_;
     }
 
   };

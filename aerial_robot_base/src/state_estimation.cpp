@@ -55,52 +55,46 @@ void RigidEstimator::statesBroadcast()
   aerial_robot_base::States full_state;
   full_state.header.stamp = ros::Time::now();
 
-  for(int axis = 0; axis < STATE_NUM - 3; axis++)
+  for(int axis = 0; axis < State::TOTAL_NUM - 3; axis++)
     {
       aerial_robot_base::State r_state;
       AxisState state = getState(axis);
 
       switch(axis)
         {
-        case X_W:
-          r_state.id = "x";
+        case State::X_COG:
+          r_state.id = "x_cog";
           break;
-        case Y_W:
-          r_state.id = "y";
+        case State::Y_COG:
+          r_state.id = "y_cog";
           break;
-        case Z_W:
-          r_state.id = "z";
+        case State::Z_COG:
+          r_state.id = "z_cog";
           break;
-        case ROLL_W:
+        case State::X_BASE:
+          r_state.id = "x_b";
+          break;
+        case State::Y_BASE:
+          r_state.id = "y_b";
+          break;
+        case State::Z_BASE:
+          r_state.id = "z_b";
+          break;
+        case State::ROLL:
           r_state.id = "roll";
           break;
-        case PITCH_W:
+        case State::PITCH:
           r_state.id = "pitch";
           break;
-        case YAW_W:
+        case State::YAW:
           r_state.id = "yaw";
           break;
         default:
           break;
         }
-
       r_state.state.resize(3);
       for(int mode = 0; mode < 3; mode++)
         tf::vector3TFToMsg(state[mode].second, r_state.state[mode]);
-
-      if(axis == X_W || axis == Y_W || axis == YAW_W)
-        {
-          AxisState state_temp;
-          if(axis == X_W) state_temp = getState(X_B);
-          if(axis == Y_W) state_temp = getState(Y_B);
-          if(axis == YAW_W) state_temp = getState(YAW_W_B);
-
-          for(int mode = 0; mode < 3; mode++)
-            {
-              r_state.reserves.push_back(state_temp[mode].second[0]);
-              r_state.reserves.push_back(state_temp[mode].second[1]);
-            }
-        }
 
       full_state.states.push_back(r_state);
     }
@@ -109,35 +103,24 @@ void RigidEstimator::statesBroadcast()
   nav_msgs::Odometry odom_state;
   odom_state.header.stamp = ros::Time::now();
   odom_state.header.frame_id = std::string("/nav");
-  odom_state.child_frame_id = std::string("/baselink");
 
-  tf::Point pos;
-  tf::Vector3 vel;
-  tf::Quaternion q;
-  tf::Vector3 omega;
-
-  pos.setValue(getState(X_W)[estimate_mode_].second.x(),
-               getState(Y_W)[estimate_mode_].second.x(),
-               getState(Z_W)[estimate_mode_].second.x());
-  tf::pointTFToMsg(pos, odom_state.pose.pose.position);
-
-  vel.setValue(getState(X_W)[estimate_mode_].second.y(),
-               getState(Y_W)[estimate_mode_].second.y(),
-               getState(Z_W)[estimate_mode_].second.y());
-  tf::vector3TFToMsg(vel, odom_state.twist.twist.linear);
-
-  /* cog frame */
-  q.setRPY(getState(ROLL_W_B)[estimate_mode_].second.x(),
-           getState(PITCH_W_B)[estimate_mode_].second.x(),
-           getState(YAW_W_B)[estimate_mode_].second.x());
+  /* Rotation */
+  tf::Quaternion q; getOrientation(estimate_mode_).getRotation(q);
   tf::quaternionTFToMsg(q, odom_state.pose.pose.orientation);
+  tf::vector3TFToMsg(getAngularVel(estimate_mode_), odom_state.twist.twist.angular);
 
-  omega.setValue(getState(ROLL_W_B)[estimate_mode_].second.y(),
-                 getState(PITCH_W_B)[estimate_mode_].second.y(),
-                 getState(YAW_W_B)[estimate_mode_].second.y());
-  tf::vector3TFToMsg(omega, odom_state.twist.twist.angular);
+  /* Translation */
+  /* COG */
+  odom_state.child_frame_id = std::string("/cog");
+  tf::pointTFToMsg(getPos(Frame::COG, estimate_mode_), odom_state.pose.pose.position);
+  tf::vector3TFToMsg(getVel(Frame::COG, estimate_mode_), odom_state.twist.twist.linear);
+  cog_odom_pub_.publish(odom_state);
 
-  odom_state_pub_.publish(odom_state);
+  /* Baselink */
+  odom_state.child_frame_id = std::string("/baselink");
+  tf::pointTFToMsg(getPos(Frame::BASELINK, estimate_mode_), odom_state.pose.pose.position);
+  tf::vector3TFToMsg(getVel(Frame::BASELINK, estimate_mode_), odom_state.twist.twist.linear);
+  baselink_odom_pub_.publish(odom_state);
 }
 
 
