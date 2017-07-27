@@ -105,6 +105,12 @@
      </plugin>
    </model>
 
-   
+   <model name="dropping_zone_box" > 
+     <pose>-30 20 0 0 0 0</pose>
+     <include> 
+       <uri>model://dropping_zone_box</uri>
+     </include>
+   </model>
+
   </world>
 </sdf>
