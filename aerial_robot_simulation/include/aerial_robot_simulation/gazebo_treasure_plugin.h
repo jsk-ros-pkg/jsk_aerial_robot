@@ -42,6 +42,7 @@
 #include <gazebo/common/common.hh>
 #include <gazebo_msgs/ModelStates.h>
 #include <gazebo_msgs/ModelState.h>
+#include <gazebo_msgs/LinkStates.h>
 #include <std_msgs/Bool.h>
 
 #include <stdio.h>
@@ -49,6 +50,7 @@
 #include <ros/ros.h>
 #include <std_msgs/String.h>
 #include <string>
+#include <geometry_msgs/Point.h>
 
 namespace gazebo
 {
@@ -82,10 +84,12 @@ private:
   //treasure plugin for attaching the object to uav
   ros::Subscriber gazebo_model_sub; //get the model states
   ros::Subscriber magnet_release_sub; //release the object(disable attach)
+  ros::Subscriber link_state_sub_;
   ros::Publisher pub_magnet_get;
   ros::Publisher gazebo_model_pub_;
 
   gazebo_msgs::ModelStates gazebo_models; //model states...
+  gazebo_msgs::LinkStates link_states;
   std_msgs::Bool magnet_on;
   std_msgs::Bool gettrue; //get the object
 
@@ -93,15 +97,23 @@ private:
   common::Time last_time_;
   bool terminated_;
   bool static_object_;
-
+  bool first_attach_flag_;
+  geometry_msgs::Point uav_object_offset_;
+  
   //renew the data of the gazebo objects
   void gazebocallback(const gazebo_msgs::ModelStates gazebo_model_states)
   {
-        this->gazebo_models = gazebo_model_states;
+    this->gazebo_models = gazebo_model_states;
   }
+
+  void linkStateCallback(const gazebo_msgs::LinkStates msg)
+  {
+    this->link_states = msg;
+  }
+ 
   void magnetcallback(const std_msgs::Bool on)
   {
-        this->magnet_on = on;
+    this->magnet_on = on;
   }
 };
 
