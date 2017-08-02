@@ -93,6 +93,8 @@ public:
 
   bool addExtraModule(int extra_module_link, float extra_module_mass, float extra_module_offset);
 
+  /* kinematics calculation */
+  void kinematics(sensor_msgs::JointState state);
   bool distThreCheck();
   bool modelling(bool verbose = false); //lagrange method
 
@@ -216,8 +218,6 @@ private:
   void initParam();
   /* main control func */
   void control();
-  /* kinematics calculation */
-  void kinematics(sensor_msgs::JointState state);
   /* LQI parameter calculation */
   void lqi();
 
