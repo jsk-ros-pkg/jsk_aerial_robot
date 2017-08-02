@@ -34,73 +34,62 @@
      <uri>model://sun</uri>
    </include>
    
-   <model name="cylinder_1" > 
-     <pose>1 0 0.2 0 0 0</pose>
+   <model name="disk_1" > 
+     <pose>1 0 0.005 0 0 0</pose>
      <include> 
-       <uri>model://cylinder_object</uri>
+       <uri>model://disk_object</uri>
      </include>
-     <plugin name="gazebo_treasure_plugin_cylinder_1" filename="libgazebo_treasure_plugin.so">
+     <plugin name="gazebo_treasure_plugin_disk_1" filename="libgazebo_treasure_plugin.so">
        <staticObject>true</staticObject>
      </plugin>
    </model>
 
-
-   <model name="cylinder_2" > 
-     <pose>1 0 0.2 0 0 0</pose>
+   <model name="disk_2" > 
+     <pose>1 0 0.005 0 0 0</pose>
      <include> 
-       <uri>model://cylinder_object</uri>
+       <uri>model://disk_object</uri>
      </include>
-     <plugin name="gazebo_treasure_plugin_cylinder_2" filename="libgazebo_treasure_plugin.so">
+     <plugin name="gazebo_treasure_plugin_disk_2" filename="libgazebo_treasure_plugin.so">
        <staticObject>true</staticObject>
      </plugin>
    </model>
 
-   <model name="cylinder_3" > 
-     <pose>1 0 0.2 0 0 0</pose>
+   <model name="disk_3" > 
+     <pose>1 0 0.005 0 0 0</pose>
      <include> 
-       <uri>model://cylinder_object</uri>
+       <uri>model://disk_object</uri>
      </include>
-     <plugin name="gazebo_treasure_plugin_cylinder_3" filename="libgazebo_treasure_plugin.so">
+     <plugin name="gazebo_treasure_plugin_disk_3" filename="libgazebo_treasure_plugin.so">
        <staticObject>true</staticObject>
      </plugin>
    </model>
 
-   <model name="cylinder_4" > 
-     <pose>1 0 0.2 0 0 0</pose>
+   <model name="disk_4" > 
+     <pose>1 0 0.005 0 0 0</pose>
      <include> 
-       <uri>model://cylinder_object</uri>
+       <uri>model://disk_object</uri>
      </include>
-     <plugin name="gazebo_treasure_plugin_cylinder_4" filename="libgazebo_treasure_plugin.so">
+     <plugin name="gazebo_treasure_plugin_disk_4" filename="libgazebo_treasure_plugin.so">
        <staticObject>true</staticObject>
      </plugin>
    </model>
 
-   <model name="cylinder_5" > 
-     <pose>1 0 0.2 0 0 0</pose>
+   <model name="disk_5" > 
+     <pose>1 0 0.005 0 0 0</pose>
      <include> 
-       <uri>model://cylinder_object</uri>
+       <uri>model://disk_object</uri>
      </include>
-     <plugin name="gazebo_treasure_plugin_cylinder_5" filename="libgazebo_treasure_plugin.so">
+     <plugin name="gazebo_treasure_plugin_disk_5" filename="libgazebo_treasure_plugin.so">
        <staticObject>true</staticObject>
      </plugin>
    </model>
 
-   <model name="cylinder_6" > 
-     <pose>1 0 0.2 0 0 0</pose>
+   <model name="disk_6" > 
+     <pose>1 0 0.005 0 0 0</pose>
      <include> 
-       <uri>model://cylinder_object</uri>
+       <uri>model://disk_object</uri>
      </include>
-     <plugin name="gazebo_treasure_plugin_cylinder_6" filename="libgazebo_treasure_plugin.so">
-       <staticObject>true</staticObject>
-     </plugin>
-   </model>
-
-   <model name="cylinder_7" > 
-     <pose>1 0 0.2 0 0 0</pose>
-     <include> 
-       <uri>model://cylinder_object</uri>
-     </include>
-     <plugin name="gazebo_treasure_plugin_cylinder_7" filename="libgazebo_treasure_plugin.so">
+     <plugin name="gazebo_treasure_plugin_disk_6" filename="libgazebo_treasure_plugin.so">
        <staticObject>true</staticObject>
      </plugin>
    </model>
