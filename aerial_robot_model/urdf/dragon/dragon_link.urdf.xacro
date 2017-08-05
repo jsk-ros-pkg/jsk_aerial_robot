@@ -1,0 +1,254 @@
+<?xml version="1.0"?>
+<robot
+    xmlns:xacro="http://www.ros.org/wiki/xacro" name="dragon_link" >
+
+  <!-- D-H kai description(different from prof.nakamura) -->
+  <xacro:macro name="dragon_module" params="self child baselink">
+
+    <!-- link -->
+    <link name="link${self}">
+      <!-- head -->
+      <xacro:if value="${self == 1}">
+        <inertial>
+          <origin xyz="${link_length* 0.5 + 89.07 * 0.001} ${-6.90 * 0.001} ${-25.71 * 0.001}" rpy="0 0 0"/>
+          <mass value="0.7694" />
+          <inertia
+              ixx="0.0014" iyy="0.0144" izz="0.0137"
+              ixy="-0.0009" ixz="-0.0018" iyz="0.0"/>
+        </inertial>
+        <xacro:link_model type="head_link" />
+      </xacro:if>
+      <xacro:unless value="${self == 1}">
+
+        <!-- tail -->
+        <xacro:if value="${self == child}">
+          <inertial>
+            <origin xyz="${link_length* 0.5 + 24.31 * 0.001} ${-0.12 * 0.001} ${-18.98 * 0.001}" rpy="0 0 0"/>
+            <mass value="0.7669" />
+            <inertia
+                ixx="0.0014" iyy="0.0146" izz="0.0134"
+                ixy="0.0" ixz="-0.0029" iyz="0.0"/>
+          </inertial>
+          <xacro:link_model type="end_link" />
+        </xacro:if>
+        <xacro:unless value="${self == child}">
+          <!-- baselink -->
+          <xacro:if value="${baselink}">
+            <inertial>
+            <origin xyz="${link_length* 0.5 + 34.31 * 0.001} ${-1.41 * 0.001} ${-12.73 * 0.001}" rpy="0 0 0"/>
+            <mass value="1.0337" />
+            <inertia
+                ixx="0.0019" iyy="0.0206" izz="0.0197"
+                ixy="-0.0014" ixz="-0.0027" iyz="0.0"/>
+            </inertial>
+            <xacro:link_model type="baselink" />
+          </xacro:if>
+          <!-- general -->
+          <xacro:unless value="${baselink}">
+            <inertial>
+              <origin xyz="${link_length* 0.5 + 48.08 * 0.001} ${-5.92 * 0.001} ${-15.22 * 0.001}" rpy="0 0 0"/>
+              <mass value="0.9099" />
+              <inertia
+                  ixx="0.0017" iyy="0.0188" izz="0.0179"
+                  ixy="-0.0009" ixz="-0.0028" iyz="0.0"/>
+            </inertial>
+            <xacro:link_model type="general_link" />
+          </xacro:unless>
+        </xacro:unless>
+      </xacro:unless>
+    </link>
+    <xacro:damping_factor link ="link${self}"/>
+
+    <!-- gimbal roll -->
+    <joint name="gimbal${self}_roll" type="revolute">
+      <limit effort="3" lower="-3.14" upper="3.14" velocity="12.5"/>
+      <parent link="link${self}"/>
+      <child link="gimbal${self}_roll_module"/>
+      <origin rpy="0 0 0" xyz="${link_length/2} 0 0"/>
+      <axis xyz="1 0 0"/>
+      <dynamics damping="0.8" friction="0.05"/>
+    </joint>
+
+    <link name="gimbal${self}_roll_module">
+      <!-- common inertial -->
+      <inertial>
+        <origin xyz="${gimbal_roll_x_offset - 17.20968 * 0.001} ${0.41439 * 0.001} ${15.61551 * 0.001}" rpy="0 0 0"/>
+        <mass value="0.44011" />
+        <inertia
+            ixx="0.0005" iyy="0.0007" izz="0.0003"
+            ixy="0" ixz="-0.0002" iyz="0.0"/>
+      </inertial>
+
+      <collision>
+        <origin xyz="${gimbal_roll_x_offset} 0 0" rpy="0 0 0"/>
+        <geometry>
+          <cylinder length="150" radius="0.05"/>
+        </geometry>
+      </collision>
+
+      <visual>
+        <origin xyz="${gimbal_roll_x_offset} 0 0" rpy="${-pi/2} 0 0"/>
+        <geometry>
+          <mesh filename="package://aerial_robot_model/urdf/dragon/mesh/ducted_fan_gimbal_roll.dae"/>
+        </geometry>
+      </visual>
+    </link>
+
+    <!-- gimbal pitch -->
+    <joint name="gimbal${self}_pitch" type="revolute">
+      <limit effort="3" lower="-3.14" upper="3.14" velocity="12.5"/>
+      <parent link="gimbal${self}_roll_module"/>
+      <child link="gimbal${self}_pitch_module"/>
+      <origin rpy="0 0 0" xyz="0 0 ${gimbal_pitch_z_offset}"/>
+      <axis xyz="0 1 0"/>
+      <dynamics damping="0.8" friction="0.05"/>
+    </joint>
+
+    <link name="gimbal${self}_pitch_module">
+      <!-- common inertial -->
+      <inertial>
+        <origin xyz="0 0.47 -7.38" rpy="0 0 0"/>
+        <mass value=".4187" />
+        <inertia
+            ixx="0.0047" iyy="0.0002" izz="0.0047"
+            ixy="0" ixz="0.0" iyz="0.0"/>
+      </inertial>
+
+      <collision>
+        <origin xyz="0 0 0" rpy="${pi/2} 0 0"/>
+        <geometry>
+          <cylinder length="0.3" radius="0.05"/>
+        </geometry>
+      </collision>
+
+      <visual>
+        <origin xyz="0 0 0" rpy="${-pi/2} 0 0"/>
+        <geometry>
+          <mesh filename="package://aerial_robot_model/urdf/dragon/mesh/ducted_fan_gimbal_pitch.dae"/>
+        </geometry>
+      </visual>
+    </link>
+
+    <!-- rotor -->
+    <joint name="rotor${self}" type="continuous">
+      <limit effort="100.0" lower="0" upper="${max_force}" velocity="0.5"/> <!-- force range -->
+      <parent link="gimbal${self}_pitch_module"/>
+      <child link="propeller${self}"/>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <axis xyz="0 0 1"/>
+    </joint>
+
+    <link name="propeller${self}">
+      <inertial>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <mass value="0.000001"/>
+        <inertia
+            ixx="0.000001" ixy="0.0" ixz="0.0"
+            iyy="0.000001" iyz="0.0"
+            izz="0.000002"/>
+      </inertial>
+    </link>
+    <xacro:damping_factor link ="propeller${self}"/>
+
+    <!-- joint -->>
+    <xacro:unless value="${self == child}">
+      <joint name="joint${self}_pitch" type="revolute">
+        <limit effort="10.0" lower="-1.57" upper="1.57" velocity="0.5"/>
+        <parent link="link${self}"/>
+        <child link="inter_joint${self}"/>
+        <origin rpy="0 0 0" xyz="${link_length} 0 0"/>
+        <axis xyz="0 1 0"/>
+        <dynamics damping="0.8" friction="0.05"/>
+      </joint>
+
+      <!-- inter joint -->
+      <link name="inter_joint${self}">
+        <!-- common inertial -->
+        <inertial>
+          <origin xyz="${inter_joint_x_offset + 3.43 * 0.001} ${-4.27 * 0.001} ${-1.55 * 0.001}" rpy="0 0 0"/>
+          <mass value="0.1329" />
+          <inertia
+              ixx="0.0001" iyy="0.0001" izz="0.0001"
+              ixy="0" ixz="0.0" iyz="0.0"/>
+        </inertial>
+
+        <collision>
+          <origin rpy="0 0 0" xyz="${inter_joint_x_offset} 0 0"/>
+          <geometry>
+            <cylinder length="0.15" radius="0.15"/>
+          </geometry>
+        </collision>
+
+        <visual>
+          <origin rpy="${-pi/2} 0 0" xyz="${inter_joint_x_offset} 0 0"/>
+          <geometry>
+            <mesh filename="package://aerial_robot_model/urdf/dragon/mesh/inter_joint_junction.dae"/>
+          </geometry>
+        </visual>
+      </link>
+
+      <joint name="joint${self}_yaw" type="revolute">
+        <limit effort="10.0" lower="-1.57" upper="1.57" velocity="0.5"/>
+        <parent link="inter_joint${self}"/>
+        <child link="link${child}"/>
+        <origin rpy="0 0 0" xyz="${2 * inter_joint_x_offset} 0 0"/>
+        <axis xyz="0 0 1"/>
+        <dynamics damping="0.8" friction="0.05"/>
+      </joint>
+    </xacro:unless>
+
+    <xacro:if value="${self == 1}">
+      <!-- dummy root link for KDL -->
+      <link name="root">
+        <inertial>
+          <origin xyz="0 0 0" rpy="0 0 0"/>
+          <mass value="0.00001"/>
+          <inertia
+              ixx="0.000001" ixy="0.0" ixz="0.0"
+              iyy="0.000001" iyz="0.0"
+              izz="0.000002"/>
+        </inertial>
+      </link>
+      <joint name="root_joint" type="fixed">
+        <parent link="root"/>
+        <child link="link${self}"/>
+        <origin rpy="0 0 0" xyz="0 0 0"/>
+        <axis xyz="0 0 1"/>
+      </joint>
+
+    </xacro:if>
+
+    <!-- hardware interface -->
+    <xacro:unless value="${self == child}">
+      <transmission name="joint_tran${self}">
+        <type>transmission_interface/SimpleTransmission</type>
+        <joint name="joint${self}">
+          <!-- TODO: effort is torque, maybe position is enough -->
+          <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+        </joint>
+        <actuator name="servo{self}">
+          <!-- TODO: effort is torque, maybe position is enough -->
+          <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+          <mechanicalReduction>1</mechanicalReduction>
+        </actuator>
+      </transmission>
+    </xacro:unless>
+
+    <transmission name="rotor_tran${self}">
+      <type>transmission_interface/SimpleTransmission</type>
+      <joint name="rotor${self}">
+        <!-- TODO: effort is torque, maybe position is enough -->
+        <hardwareInterface>RotorInterface</hardwareInterface>
+      </joint>
+      <actuator name="rotor${self}">
+        <!-- TODO: effort is torque, maybe position is enough -->
+        <hardwareInterface>RotorInterface</hardwareInterface>
+        <mechanicalReduction>1</mechanicalReduction>
+      </actuator>
+    </transmission>
+
+    <xacro:friction self ="${self}"/>
+
+  </xacro:macro>
+
+</robot>
