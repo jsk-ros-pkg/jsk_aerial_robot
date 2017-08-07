@@ -754,7 +754,9 @@ void TransformController::lqi()
   //check the stability within the range of the motor force
   if(debug_verbose_) ROS_WARN(" start stability check");
   if(!stabilityCheck())
-    ROS_ERROR("LQI: invalid pose, can not be four axis stable, switch to three axis stable mode");
+    {
+      if(!only_three_axis_mode_)  ROS_ERROR("LQI: invalid pose, can not be four axis stable, switch to three axis stable mode");
+    }
   if(debug_verbose_) ROS_WARN(" finish stability check");
 
   if(debug_verbose_) ROS_WARN(" start hamilton calc");
