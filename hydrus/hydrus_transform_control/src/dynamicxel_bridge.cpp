@@ -302,30 +302,10 @@ public:
     hydrus_joints_state.name.resize(joint_num_);
     hydrus_joints_state.position.resize(joint_num_);
 
-    /* four link: the normal-approximation singular position(pi/2): only if all joints are within 5[deg] range. */
-    bool normal_approximation = true;
-    if(joint_num_ == 3)
-      {
-        for(int i = 0; i < joint_num_; i ++)
-          {
-            if(fabs(joint_module_[i].current_angle - M_PI/2) > 0.085 && fabs(joint_module_[i].current_angle + M_PI/2) > 0.085)
-              normal_approximation = false;
-          }
-      }
-    else normal_approximation = false;
-
     for(int i = 0; i < joint_num_; i ++)
       {
         hydrus_joints_state.name[i] = joint_module_[i].joint_name;
-        if(normal_approximation)
-          {
-            if(fabs(joint_module_[i].current_angle - M_PI/2) < 0.085)
-              hydrus_joints_state.position[i] = M_PI/2;
-            if(fabs(joint_module_[i].current_angle + M_PI/2) < 0.085)
-              hydrus_joints_state.position[i] = -M_PI/2;
-          }
-        else
-          hydrus_joints_state.position[i] = joint_module_[i].current_angle;
+        hydrus_joints_state.position[i] = joint_module_[i].current_angle;
       }
 
     joints_state_pub_.publish(hydrus_joints_state);
