@@ -13,4 +13,4 @@ estimator:
                 estimate_mode: 2 #1 << 1
                 unhealth_level: 3
                 health_timeout: 0.5
-                sub_name: /hydrusx/ground_truth
+                ground_truth_sub_name: /hydrusx/ground_truth
