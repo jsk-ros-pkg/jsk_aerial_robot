@@ -55,7 +55,7 @@ void RigidEstimator::statesBroadcast()
   aerial_robot_base::States full_state;
   full_state.header.stamp = ros::Time::now();
 
-  for(int axis = 0; axis < State::TOTAL_NUM - 3; axis++)
+  for(int axis = 0; axis < State::TOTAL_NUM; axis++)
     {
       aerial_robot_base::State r_state;
       AxisState state = getState(axis);
