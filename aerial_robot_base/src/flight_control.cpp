@@ -338,7 +338,7 @@ void PidController::pidFunction()
           four_axis_pid_debug.pitch.i_term.push_back(pos_i_term_pitch_);
           four_axis_pid_debug.pitch.d_term.push_back(pos_d_term_pitch_);
           four_axis_pid_debug.pitch.pos_err_transform = d_err_pos_curr_pitch_;
-          four_axis_pid_debug.pitch.pos_err_no_transform = target_pos_x - state_pos_x;
+          four_axis_pid_debug.pitch.pos_err_no_transform = target_pos_x;
           four_axis_pid_debug.pitch.vel_err_transform = d_err_vel_curr_pitch_;
           four_axis_pid_debug.pitch.vel_err_no_transform = target_vel_x;
 
@@ -412,7 +412,7 @@ void PidController::pidFunction()
           four_axis_pid_debug.roll.i_term.push_back(pos_i_term_roll_);
           four_axis_pid_debug.roll.d_term.push_back(pos_d_term_roll_);
           four_axis_pid_debug.roll.pos_err_transform = d_err_pos_curr_roll_;
-          four_axis_pid_debug.roll.pos_err_no_transform = target_pos_y - state_pos_y;
+          four_axis_pid_debug.roll.pos_err_no_transform = target_pos_y;
           four_axis_pid_debug.roll.vel_err_transform = d_err_vel_curr_roll_;
           four_axis_pid_debug.roll.vel_err_no_transform = target_vel_y;
 
