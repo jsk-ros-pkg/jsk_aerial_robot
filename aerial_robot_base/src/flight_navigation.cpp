@@ -530,7 +530,7 @@ void Navigator::navigation()
           delta.setZ(0); // we do not need z
           if(delta.length() > vel_nav_threshold_)
             {
-              ROS_INFO("debug: vel based waypoint");
+              //ROS_INFO("debug: vel based waypoint");
               tf::Vector3 nav_vel = delta * vel_nav_gain_;
 
               double speed = nav_vel.length();
@@ -543,6 +543,7 @@ void Navigator::navigation()
             {
               ROS_WARN("back to pos nav control for way point");
               xy_control_mode_ = flight_nav::POS_CONTROL_MODE;
+              vel_based_waypoint_ = false;
             }
         }
       flight_mode_= FLIGHT_MODE;
