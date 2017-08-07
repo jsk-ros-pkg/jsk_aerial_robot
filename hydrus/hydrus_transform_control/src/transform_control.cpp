@@ -308,7 +308,7 @@ void TransformController::kinematics(sensor_msgs::JointState state)
       KDL::Frame f;
       int status = fk_solver.JntToCart(jointpositions, f, rotor);
       //ROS_ERROR(" %s status is : %d, [%f, %f, %f]", rotor.c_str(), status, f.p.x(), f.p.y(), f.p.z());
-      f_rotors.push_back((Eigen::Map<const Eigen::Vector3d>((cog_frame.Inverse() * f).p.data)));
+      f_rotors.push_back(Eigen::Map<const Eigen::Vector3d>((cog_frame.Inverse() * f).p.data));
 
       //std::cout << f_rotors[i] << std::endl;
     }
@@ -316,6 +316,12 @@ void TransformController::kinematics(sensor_msgs::JointState state)
   setRotorsFromCog(f_rotors);
   KDL::RigidBodyInertia link_inertia_from_cog = cog_frame.Inverse() * link_inertia;
   setInertia(Eigen::Map<const Eigen::Matrix3d>(link_inertia_from_cog.getRotationalInertia().data));
+
+
+  /* find the transform from cog to baselink */
+  KDL::Frame f;
+  int status = fk_solver.JntToCart(jointpositions, f, baselink_);
+  setCog2Baselink(Eigen::Map<const Eigen::Vector3d>((cog_frame.Inverse() * f).p.data));
 }
 
 bool TransformController::addExtraModuleCallback(hydrus_transform_control::AddExtraModule::Request  &req,
@@ -471,8 +477,9 @@ bool  TransformController::modelling(bool verbose)
   lamda = solver.solve(g);
   x = P_.transpose() * lamda;
 
+  double P_det = (P_ * P_.transpose()).determinant();
   if(control_verbose_)
-    std::cout << "P det:"  << std::endl << (P_ * P_.transpose()).determinant() << std::endl;
+    std::cout << "P det:"  << std::endl << P_det << std::endl;
 
   if(control_verbose_)
     ROS_INFO("P solver is: %f\n", ros::Time::now().toSec() - start_time.toSec());
@@ -480,7 +487,7 @@ bool  TransformController::modelling(bool verbose)
   if(control_verbose_ || verbose)
     std::cout << "x:"  << std::endl << x << std::endl;
 
-  if(x.maxCoeff() > f_max_ || x.minCoeff() < f_min_)
+  if(x.maxCoeff() > f_max_ || x.minCoeff() < f_min_ || P_det < 1e-6 || only_three_axis_mode_)
     {
       lqi_mode_ = LQI_THREE_AXIS_MODE;
 
@@ -501,7 +508,6 @@ bool  TransformController::modelling(bool verbose)
       return false; //can not be stable
     }
 
-  if(only_three_axis_mode_)lqi_mode_ = LQI_THREE_AXIS_MODE;
   else lqi_mode_ = LQI_FOUR_AXIS_MODE;
 
   return true;

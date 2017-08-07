@@ -116,10 +116,14 @@ public:
     rotors_origin_from_cog_ = rotors_origin_from_cog;
   }
 
+  void setCog2Baselink(Eigen::Vector3d transform)
+  {
+    cog2baselink_transform_ = transform;
+  }
+
   Eigen::Vector3d getCog2Baselink()
   {
-    assert(baselink_.find("link") != std::string::npos);
-    return rotors_origin_from_cog_[std::atoi(baselink_.substr(4).c_str())];
+    return cog2baselink_transform_;
   }
 
   Eigen::Matrix3d getInertia()
@@ -197,6 +201,7 @@ private:
   urdf::Model model_;
   KDL::Tree tree_;
   std::map<std::string, KDL::RigidBodyInertia> inertia_map_;
+  Eigen::Vector3d cog2baselink_transform_;
 
   /* control */
   boost::thread control_thread_;
