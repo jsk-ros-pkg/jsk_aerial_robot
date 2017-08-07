@@ -201,24 +201,26 @@ namespace sensor_plugin
 
     void groundTruthCallback(const nav_msgs::OdometryConstPtr & msg)
     {
-      tf::pointMsgToTF(msg->pose.pose.position, raw_pos_);
+      tf::pointMsgToTF(msg->pose.pose.position, pos_);
       static bool first_flag = true;
 
       if(!first_flag)
         {
           pos_ -= tf::Vector3(0, 0, pos_offset_.z());
           tf::vector3MsgToTF(msg->twist.twist.linear, vel_);
-
           tf::Quaternion q;
           tf::quaternionMsgToTF(msg->pose.pose.orientation, q);
           tfScalar r = 0, p = 0, y = 0;
           tf::Matrix3x3(q).getRPY(r, p, y);
           euler_.setValue(r, p, y);
+          tf::Vector3 omega;
+          tf::vector3MsgToTF(msg->twist.twist.angular, omega);
 
           /* base link */
           estimator_->setPos(Frame::BASELINK, BasicEstimator::GROUND_TRUTH, pos_);
           estimator_->setVel(Frame::BASELINK, BasicEstimator::GROUND_TRUTH, vel_);
           estimator_->setEuler(BasicEstimator::GROUND_TRUTH, euler_);
+          estimator_->setAngularVel(BasicEstimator::GROUND_TRUTH, omega);
 
           /* CoG */
           /* 2017.7.25: calculate the state in COG frame using the Baselink frame */
