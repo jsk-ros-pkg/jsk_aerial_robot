@@ -5,12 +5,7 @@ navigator/navi_frame_int: 0  # deprecated?  map frame: 0, body frame: 1
 navigator/map_frame: map
 navigator/target_frame: target
 
-# Keyboard _teleop
-
-navigator/even_move_distance: 0.1
-navigator/up_down_distance: 0.1
-navigator/forward_backward_distance: 0
-navigator/left_right_distance: 0
+navigator/nav_vel_limit: 0.5
 
 # Keyboard _teleop
 navigator/max_target_vel: 0.5
@@ -20,6 +15,5 @@ navigator/max_target_yaw_rate: 0.3 #  0.05
 navigator/cmd_vel_lev2_gain : 2.0
 
 # attitude tunning mode in joystick mode
-navigator/gain_tunning_mode: 0
 navigator/max_target_tilt_angle: 0.2
 navigator/cmd_angle_lev2_gain : 1.5
