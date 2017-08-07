@@ -114,25 +114,25 @@ void SimulationAttitudeController::starting(const ros::Time& time)
   else if(joint_num_ == (motor_num_ -1) * 2 )
     uav_type_msg.uav_model = aerial_robot_base::UavType::DRAGON;
 
-  uav_type_msg.root_link = rotor_interface_->getRootLinkNo();
+  uav_type_msg.baselink = rotor_interface_->getBaseLinkNo();
 
   ros::NodeHandle n;
   ros::Publisher uav_config_pub = n.advertise<aerial_robot_base::UavType>("/uav_type_config", 1);
   uav_config_pub.publish(uav_type_msg);
-  ROS_WARN("motor_num: %d, root link: %s", motor_num_, rotor_interface_->getRootLinkName().c_str());
+  ROS_WARN("motor_num: %d, baselink: %s", motor_num_, rotor_interface_->getBaseLinkName().c_str());
 }
 
 void SimulationAttitudeController::update(const ros::Time& time, const ros::Duration& period)
 {
-  if(!rotor_interface_->foundRootLink()) return;
+  if(!rotor_interface_->foundBaseLink()) return;
   /* update the control coordinate */
-  tf::Matrix3x3 orientation = tf::Matrix3x3(rotor_interface_->getRootLinkOrientation()) * desire_coord_.transpose();
+  tf::Matrix3x3 orientation = tf::Matrix3x3(rotor_interface_->getBaseLinkOrientation()) * desire_coord_.transpose();
   //ROS_INFO("[%f, %f, %f], [%f, %f, %f], [%f, %f, %f]", orientation.getRow(0).x(), orientation.getRow(0).y(), orientation.getRow(0).z(),orientation.getRow(1).x(), orientation.getRow(1).y(), orientation.getRow(1).z(), orientation.getRow(2).x(), orientation.getRow(2).y(), orientation.getRow(2).z());
 
   tfScalar r = 0,p = 0, y = 0;
   orientation.getRPY(r,p,y);
   controller_core_->getAttController().setRPY(r,p,y);
-  tf::Vector3 w = desire_coord_ * rotor_interface_->getRootLinkAngular();
+  tf::Vector3 w = desire_coord_ * rotor_interface_->getBaseLinkAngular();
   controller_core_->getAttController().setAngular(w.x(), w.y(), w.z());
 
 

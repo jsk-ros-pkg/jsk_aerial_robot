@@ -35,17 +35,13 @@ namespace hardware_interface
 {
 
   /** A handle used to read the state of a single joint. */
-  RotorHandle::RotorHandle(ros::NodeHandle nh, const std::string& name): name_(name), force_(new double(0)), max_pwm_(2000)
+  RotorHandle::RotorHandle(ros::NodeHandle nh,  urdf::JointConstSharedPtr urdf_joint):  force_(new double(0)), max_pwm_(2000)
   {
-    std::string full_name;
-    if (nh.searchParam(name + "_direction", full_name))
-      {
-        nh.getParam(full_name, direction_);
-        ROS_INFO("get %s_direction: %d", name_.c_str(), direction_);
-      }
-    else
-      ROS_ERROR("Cannot get %s_direction from ros nodehandle: %s", name.c_str(), nh.getNamespace().c_str());
+    name_ = urdf_joint->name;
+    direction_ = urdf_joint->axis.z;
+    ROS_WARN("[%s], direction: %d", name_.c_str(), direction_);
 
+    std::string full_name;
     ros::NodeHandle motor_nh("/motor_info");
     if (motor_nh.searchParam("f_pwm_rate", full_name))
       {
@@ -80,7 +76,7 @@ namespace hardware_interface
       ROS_ERROR("Cannot get pwm_rate from ros nodehandle: %s", nh.getNamespace().c_str());
   }
 
-  RotorInterface::RotorInterface(): root_link_name_("base_link"), q_(), joint_num_(0), found_root_link_(false) {}
+  RotorInterface::RotorInterface(): baselink_name_("baselink"), q_(), joint_num_(0), found_baselink_(false) {}
 };
 
 namespace rotor_limits_interface

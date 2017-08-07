@@ -185,10 +185,11 @@ bool AerialRobotHWSim::initSim(
         vj_interface_.registerHandle(joint_handle);
       }
     else if(hardware_interface == "RotorInterface")
-      {    /* rotor interface */
-        //TODO
+      {
+        /* rotor interface */
         joint_control_methods_[j] = ROTOR;
-        rotor_handle = hardware_interface::RotorHandle(model_nh, joint_names_[j]);
+        const urdf::JointConstSharedPtr urdf_joint = urdf_model->getJoint(joint_names_[j]);
+        rotor_handle = hardware_interface::RotorHandle(model_nh, urdf_joint);
         rotor_interface_.registerHandle(rotor_handle);
       }
     else
@@ -213,7 +214,6 @@ bool AerialRobotHWSim::initSim(
     sim_joints_.push_back(joint);
 
     /* Aerial Robot */
-    /* TODO: rotor limit interface */
     if(hardware_interface == "RotorInterface")
       {
         const urdf::JointConstSharedPtr urdf_joint = urdf_model->getJoint(joint_names_[j]);
@@ -267,22 +267,15 @@ bool AerialRobotHWSim::initSim(
   /* Aerial Robot */
   /* Temporary: get the motor attribute from rosparam */
   /* We need a better location and method to do this */
-  int motor_num = 0;
-  if (!model_nh.getParam("/motor_info/motor_num", motor_num))
-    ROS_ERROR("Cannot get motor_num from ros nodehandle: %s", model_nh.getNamespace().c_str());
-
   registerInterface(&rotor_interface_);
   rotor_interface_.setJointNum(js_interface_.getNames().size());
   if(rotor_interface_.getJointNum() > 0)
     {
-      std::string root_link_name;
-      if(model_nh.getParam("root_link_name", root_link_name))
-        rotor_interface_.setRootLinkName(root_link_name);
+      std::string baselink_name;
+      if(model_nh.getParam("baselink_name", baselink_name))
+        rotor_interface_.setBaseLinkName(baselink_name);
       else
-        ROS_FATAL("aerial_robot_hw_sim: can not get the root link name for transformable robot");
-
-      if(motor_num > 1 && motor_num != rotor_interface_.getNames().size())
-        ROS_FATAL("the motor number in urdf model and control model are different, control: %d, urdf: %d", motor_num, rotor_interface_.getNames().size());
+        ROS_FATAL("aerial_robot_hw_sim: can not get the baselink name for transformable robot");
     }
   flight_mode_ = CONTROL_MODE;
   cmd_vel_sub_ = model_nh.subscribe("/cmd_vel", 1, &AerialRobotHWSim::cmdVelCallback, this);
@@ -318,42 +311,42 @@ void AerialRobotHWSim::readSim(ros::Time time, ros::Duration period)
   }
 
   /* Aerial Robot */
-  /* [Ground Truth] set the orientation of root link for attitude control */
-  const gazebo::physics::LinkPtr root_link = parent_model_->GetLink(rotor_interface_.getRootLinkName());
-  if(root_link != NULL)
+  /* [Ground Truth] set the orientation of baselink for attitude control */
+  const gazebo::physics::LinkPtr baselink = parent_model_->GetLink(rotor_interface_.getBaseLinkName());
+  if(baselink != NULL)
     {
-      if(!rotor_interface_.foundRootLink()) rotor_interface_.setRootLink();
+      if(!rotor_interface_.foundBaseLink()) rotor_interface_.setBaseLink();
 
       /* please check whether this is same with IMU process */
       /* orientation should calculate the rpy in world frame,
          and angular velocity should show the value in board(body) frame */
-      /* set orientation and angular of root link */
-      gazebo::math::Quaternion q = root_link->GetWorldPose().rot;
-      rotor_interface_.setRootLinkOrientation(q.x, q.y, q.z, q.w);
-      gazebo::math::Vector3 w = root_link->GetRelativeAngularVel();
-      rotor_interface_.setRootLinkAngular(w.x, w.y, w.z);
+      /* set orientation and angular of baselink */
+      gazebo::math::Quaternion q = baselink->GetWorldPose().rot;
+      rotor_interface_.setBaseLinkOrientation(q.x, q.y, q.z, q.w);
+      gazebo::math::Vector3 w = baselink->GetRelativeAngularVel();
+      rotor_interface_.setBaseLinkAngular(w.x, w.y, w.z);
 
       if(time.toSec() - last_time.toSec() > ground_truth_pub_rate_)
         {
 #if 0 //odometry
           nav_msgs::Odometry pose_msg;
           pose_msg.header.stamp = time;
-          pose_msg.pose.pose.position.x = root_link->GetWorldPose().pos.x;
-          pose_msg.pose.pose.position.y = root_link->GetWorldPose().pos.y;
-          pose_msg.pose.pose.position.z = root_link->GetWorldPose().pos.z;
+          pose_msg.pose.pose.position.x = baselink->GetWorldPose().pos.x;
+          pose_msg.pose.pose.position.y = baselink->GetWorldPose().pos.y;
+          pose_msg.pose.pose.position.z = baselink->GetWorldPose().pos.z;
           pose_msg.pose.pose.orientation.x = q.x;
           pose_msg.pose.pose.orientation.y = q.y;
           pose_msg.pose.pose.orientation.z = q.z;
           pose_msg.pose.pose.orientation.w = q.w;
-          pose_msg.twist.twist.linear.x = root_link->GetWorldLinearVel().x;
-          pose_msg.twist.twist.linear.y = root_link->GetWorldLinearVel().y;
-          pose_msg.twist.twist.linear.z = root_link->GetWorldLinearVel().z;
+          pose_msg.twist.twist.linear.x = baselink->GetWorldLinearVel().x;
+          pose_msg.twist.twist.linear.y = baselink->GetWorldLinearVel().y;
+          pose_msg.twist.twist.linear.z = baselink->GetWorldLinearVel().z;
 #else
           geometry_msgs::PoseStamped pose_msg;
           pose_msg.header.stamp = time;
-          pose_msg.pose.position.x = root_link->GetWorldPose().pos.x;
-          pose_msg.pose.position.y = root_link->GetWorldPose().pos.y;
-          pose_msg.pose.position.z = root_link->GetWorldPose().pos.z;
+          pose_msg.pose.position.x = baselink->GetWorldPose().pos.x;
+          pose_msg.pose.position.y = baselink->GetWorldPose().pos.y;
+          pose_msg.pose.position.z = baselink->GetWorldPose().pos.z;
           pose_msg.pose.orientation.x = q.x;
           pose_msg.pose.orientation.y = q.y;
           pose_msg.pose.orientation.z = q.z;
@@ -365,7 +358,7 @@ void AerialRobotHWSim::readSim(ros::Time time, ros::Duration period)
     }
   else
     {
-      //ROS_WARN("the root link does not exist");
+      //ROS_WARN("the baselink does not exist");
     }
 
 }
@@ -396,16 +389,16 @@ void AerialRobotHWSim::writeSim(ros::Time time, ros::Duration period)
 
   /* Aerial Robot */
   er_sat_interface_.enforceLimits(period);
-  const gazebo::physics::LinkPtr root_link = parent_model_->GetLink(rotor_interface_.getRootLinkName());
-  if(root_link != NULL)
+  const gazebo::physics::LinkPtr baselink = parent_model_->GetLink(rotor_interface_.getBaseLinkName());
+  if(baselink != NULL)
     {
 
       if (flight_mode_ == CMD_VEL_MODE)
         {
-          root_link->SetLinearVel(gazebo::math::Vector3(cmd_vel_.twist.linear.x,
+          baselink->SetLinearVel(gazebo::math::Vector3(cmd_vel_.twist.linear.x,
                                                         cmd_vel_.twist.linear.y,
                                                         cmd_vel_.twist.linear.z));
-          root_link->SetAngularVel(gazebo::math::Vector3(cmd_vel_.twist.angular.x,
+          baselink->SetAngularVel(gazebo::math::Vector3(cmd_vel_.twist.angular.x,
                                                          cmd_vel_.twist.angular.y,
                                                          cmd_vel_.twist.angular.z));
           //flight_mode_ = CONTROL_MODE;
@@ -413,7 +406,7 @@ void AerialRobotHWSim::writeSim(ros::Time time, ros::Duration period)
 
       if (flight_mode_ == CMD_POS_MODE)
         {
-          root_link->SetWorldPose(gazebo::math::Pose(
+          baselink->SetWorldPose(gazebo::math::Pose(
                                                        gazebo::math::Vector3(cmd_pos_.pose.position.x,
                                                                              cmd_pos_.pose.position.y,
                                                                              cmd_pos_.pose.position.z),

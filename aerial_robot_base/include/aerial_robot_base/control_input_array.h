@@ -8,18 +8,10 @@
 class FlightCtrlInput
 {
  public:
-  FlightCtrlInput (int motor_num)
+  FlightCtrlInput (): motor_num_(1)
 {
-  motor_num_ = motor_num;
-
   yaw_.resize(motor_num_);
   throttle_.resize(motor_num_);
-
-  for(int i = 0; i < motor_num_; i++)
-    {
-      yaw_[i] = 0;
-      throttle_[i] = 0;
-    }
 
   pitch_ = 0;
   roll_ = 0;
@@ -42,8 +34,11 @@ class FlightCtrlInput
 
   inline  int getMotorNumber(){return motor_num_;}
 
-  void reset()
+  void reset(int motor_num = 0)
   {
+    /* change the motor num */
+    if(motor_num > 0) motor_num_ = motor_num;
+
     pitch_ = 0;
     roll_ = 0;
     std::vector<float> reset_data(motor_num_, 0);
@@ -53,12 +48,6 @@ class FlightCtrlInput
 
   void addFFValues(std::vector<float> ff_value, bool force_add_flag = false)
   {
-    if(ff_value.size() != (size_t)motor_num_)
-      {
-        ROS_FATAL("bad size matching for ff");
-        return;
-      }
-
     /* F[N] based */
     /* chekck range */
     if(!force_add_flag)

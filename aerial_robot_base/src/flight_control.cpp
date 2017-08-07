@@ -5,20 +5,18 @@ using boost::algorithm::clamp;
 FlightController::FlightController(ros::NodeHandle nh,
                                    ros::NodeHandle nh_private,
                                    BasicEstimator* estimator, Navigator* navigator,
-                                   FlightCtrlInput* flight_ctrl_input): nh_(nh, "controller"), nhp_(nh_private, "controller")
+                                   FlightCtrlInput* flight_ctrl_input):
+  nh_(nh, "controller"), nhp_(nh_private, "controller"),
+  estimator_(estimator),
+  navigator_(navigator),
+  flight_ctrl_input_(flight_ctrl_input),
+  motor_num_(1)
 {
-  estimator_ = estimator;
-  navigator_ = navigator;
-  flight_ctrl_input_ = flight_ctrl_input;
-
   estimate_mode_ = estimator_->getEstimateMode();
 
+  //controller namespace
   ros::NodeHandle motor_info_node("motor_info");
   std::string ns = motor_info_node.getNamespace();
-  //normal namespace
-  motor_num_ = flight_ctrl_input_->getMotorNumber();
-  printf("%s: motor_num_ is %d\n", ns.c_str(), motor_num_);
-  //controller namespace
   if (!motor_info_node.getParam ("min_pwm", min_pwm_))
     min_pwm_ = 0.55; //0.55;
   printf("%s: min_pwm_ is %f\n", ns.c_str(), min_pwm_);
@@ -97,9 +95,6 @@ PidController::PidController(ros::NodeHandle nh,
   error_i_throttle_ = 0;
   error_i_yaw_ = 0;
 
-
-  feedforward_matrix_ = Eigen::MatrixXd::Zero(motor_num_, 2);
-
   //roll/pitch integration start
   start_rp_integration_ = false;
 
@@ -119,13 +114,25 @@ PidController::PidController(ros::NodeHandle nh,
 
 }
 
-
 void PidController::fourAxisGainCallback(const aerial_robot_msgs::FourAxisGainConstPtr & msg)
 {
-  if(msg->motor_num != motor_num_)
+  /* update the motor number */
+  if(motor_num_ == 1)
     {
-      ROS_FATAL("the motor number is not correct, msg->motor_num:%d, motor_num_:%d", msg->motor_num, motor_num_);
-      return ;
+      motor_num_ = msg->motor_num;
+      flight_ctrl_input_->reset(motor_num_);
+      
+      pos_p_gain_yaw_.resize(motor_num_);
+      pos_i_gain_yaw_.resize(motor_num_);
+      pos_d_gain_yaw_.resize(motor_num_);
+
+      pos_p_gain_throttle_.resize(motor_num_);
+      pos_i_gain_throttle_.resize(motor_num_);
+      pos_d_gain_throttle_.resize(motor_num_);
+
+      feedforward_matrix_ = Eigen::MatrixXd::Zero(motor_num_, 2);
+
+      ROS_WARN("flight control: update the motor number: %d", motor_num_);
     }
 
   for(int i = 0; i < msg->motor_num; i++)
@@ -796,52 +803,35 @@ void PidController::rosParamInit(ros::NodeHandle nh)
     yaw_control_frame_ = Frame::BODY;
   printf("%s: yaw_control_frame_ is %d\n", yaw_ns.c_str(), yaw_control_frame_);
 
-  pos_p_gain_yaw_.resize(motor_num_);
-  pos_i_gain_yaw_.resize(motor_num_);
-  pos_d_gain_yaw_.resize(motor_num_);
+  pos_p_gain_throttle_.resize(1);
+  pos_i_gain_throttle_.resize(1);
+  pos_d_gain_throttle_.resize(1);
+  pos_p_gain_yaw_.resize(1);
+  pos_i_gain_yaw_.resize(1);
+  pos_d_gain_yaw_.resize(1);
 
-  pos_p_gain_throttle_.resize(motor_num_);
-  pos_i_gain_throttle_.resize(motor_num_);
-  pos_d_gain_throttle_.resize(motor_num_);
+  if (!throttle_node.getParam ("pos_p_gain", pos_p_gain_throttle_[0]))
+    pos_p_gain_throttle_[0] = 0;
+  printf("%s: pos_p_gain_ is %.3f\n", throttle_ns.c_str(), pos_p_gain_throttle_[0]);
 
+  if (!throttle_node.getParam ("pos_i_gain", pos_i_gain_throttle_[0]))
+    pos_i_gain_throttle_[0] = 0;
+  printf("%s: pos_i_gain_ is %.3f\n", throttle_ns.c_str(), pos_i_gain_throttle_[0]);
 
-  if(motor_num_ == 1)//general multirot
-    {
-      if (!throttle_node.getParam ("pos_p_gain", pos_p_gain_throttle_[0]))
-        pos_p_gain_throttle_[0] = 0;
-      printf("%s: pos_p_gain_ is %.3f\n", throttle_ns.c_str(), pos_p_gain_throttle_[0]);
+  if (!throttle_node.getParam ("pos_d_gain", pos_d_gain_throttle_[0]))
+    pos_d_gain_throttle_[0] = 0;
+  printf("%s: pos_d_gain_ is %.3f\n", throttle_ns.c_str(), pos_d_gain_throttle_[0]);
 
-      if (!throttle_node.getParam ("pos_i_gain", pos_i_gain_throttle_[0]))
-        pos_i_gain_throttle_[0] = 0;
-      printf("%s: pos_i_gain_ is %.3f\n", throttle_ns.c_str(), pos_i_gain_throttle_[0]);
+  if (!yaw_node.getParam ("pos_p_gain", pos_p_gain_yaw_[0]))
+    pos_p_gain_yaw_[0] = 0;
+  printf("%s: pos_p_gain_ is %.3f\n", yaw_ns.c_str(), pos_p_gain_yaw_[0]);
 
-      if (!throttle_node.getParam ("pos_d_gain", pos_d_gain_throttle_[0]))
-        pos_d_gain_throttle_[0] = 0;
-      printf("%s: pos_d_gain_ is %.3f\n", throttle_ns.c_str(), pos_d_gain_throttle_[0]);
+  if (!yaw_node.getParam ("pos_i_gain", pos_i_gain_yaw_[0]))
+    pos_i_gain_yaw_[0] = 0;
+  printf("%s: pos_i_gain_ is %.3f\n", yaw_ns.c_str(), pos_i_gain_yaw_[0]);
 
-      if (!yaw_node.getParam ("pos_p_gain", pos_p_gain_yaw_[0]))
-        pos_p_gain_yaw_[0] = 0;
-      printf("%s: pos_p_gain_ is %.3f\n", yaw_ns.c_str(), pos_p_gain_yaw_[0]);
+  if (!yaw_node.getParam ("pos_d_gain", pos_d_gain_yaw_[0]))
+    pos_d_gain_yaw_[0] = 0;
+  printf("%s: pos_d_gain_ is %.3f\n", yaw_ns.c_str(), pos_d_gain_yaw_[0]);
 
-      if (!yaw_node.getParam ("pos_i_gain", pos_i_gain_yaw_[0]))
-        pos_i_gain_yaw_[0] = 0;
-      printf("%s: pos_i_gain_ is %.3f\n", yaw_ns.c_str(), pos_i_gain_yaw_[0]);
-
-      if (!yaw_node.getParam ("pos_d_gain", pos_d_gain_yaw_[0]))
-        pos_d_gain_yaw_[0] = 0;
-      printf("%s: pos_d_gain_ is %.3f\n", yaw_ns.c_str(), pos_d_gain_yaw_[0]);
-    }
-  else
-    {//transformable
-      for(int i = 0; i < motor_num_; i++)
-        {
-          pos_p_gain_yaw_[i] = 0;
-          pos_i_gain_yaw_[i] = 0;
-          pos_d_gain_yaw_[i] = 0;
-
-          pos_p_gain_throttle_[i] = 0;
-          pos_i_gain_throttle_[i] = 0;
-          pos_d_gain_throttle_[i] = 0;
-        }
-    }
 }

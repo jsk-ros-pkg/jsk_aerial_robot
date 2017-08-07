@@ -5,10 +5,10 @@
   <xacro:include filename="$(find aerial_robot_model)/urdf/hydrus3/hydrus3_common.xacro" />
   <xacro:include filename="$(find aerial_robot_model)/urdf/hydrus3/hydrus3_link.urdf.xacro" />
 
-  <xacro:hydrus3_link self="1" child="2" general="false" fc="false" pc="true"  />
-  <xacro:hydrus3_link self="2" child="3" general="true" fc="false" pc="false" />
-  <xacro:hydrus3_link self="3" child="4" general="false" fc="true" pc="false" />
-  <xacro:hydrus3_link self="4" child="5" general="true" fc="false" pc="false" />
-  <xacro:hydrus3_link self="5" child="5" general="false" fc="false" pc="false" />
+  <xacro:hydrus3_link self="1" child="2" rotor_direction="-1" general="false" fc="false" pc="true"  />
+  <xacro:hydrus3_link self="2" child="3" rotor_direction="1" general="true" fc="false" pc="false" />
+  <xacro:hydrus3_link self="3" child="4" rotor_direction="-1" general="false" fc="true" pc="false" />
+  <xacro:hydrus3_link self="4" child="5" rotor_direction="1" general="true" fc="false" pc="false" />
+  <xacro:hydrus3_link self="5" child="5" rotor_direction="-1" general="false" fc="false" pc="false" />
 
 </robot>

@@ -13,12 +13,18 @@ find_package(catkin REQUIRED COMPONENTS
   cmake_modules
   std_srvs
   dynamic_reconfigure
-)
+  kdl_parser
+  )
 
+find_package(orocos_kdl REQUIRED)
+find_package(urdfdom_headers REQUIRED)
 
 find_package(Eigen REQUIRED)
 include_directories(${EIGEN_INCLUDE_DIRS})
 add_definitions(${EIGEN_DEFINITIONS})
+
+include_directories(${orocos_kdl_INCLUDE_DIRS} ${urdfdom_headers_INCLUDE_DIRS})
+link_directories(${orocos_kdl_LIBRARY_DIRS})
 
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
@@ -74,16 +80,16 @@ include_directories(
   include ${Boost_INCLUDE_DIR} ${catkin_INCLUDE_DIRS}
 )
 
-add_executable(dynamicxel_bridge_node src/dynamicxel_bridge.cpp) 
+add_executable(dynamicxel_bridge_node src/dynamicxel_bridge.cpp)
 target_link_libraries (dynamicxel_bridge_node  ${catkin_LIBRARIES})
 add_dependencies(dynamicxel_bridge_node aerial_robot_msgs_generate_messages_cpp aerial_robot_base_generate_messages_cpp ${PROJECT_NAME}_generate_messages_cpp ${PROJECT_NAME}_gencfg)
 
 add_library (transform_control src/transform_control.cpp)
-target_link_libraries (transform_control ${catkin_LIBRARIES})
+target_link_libraries (transform_control ${catkin_LIBRARIES} ${orocos_kdl_LIBRARIES})
 add_dependencies(transform_control aerial_robot_msgs_generate_messages_cpp aerial_robot_base_generate_messages_cpp ${PROJECT_NAME}_generate_messages_cpp ${PROJECT_NAME}_gencfg)
 
 add_executable (transform_control_node src/transform_control_node.cpp)
-target_link_libraries (transform_control_node transform_control ${catkin_LIBRARIES})
+target_link_libraries (transform_control_node transform_control ${catkin_LIBRARIES} ${orocos_kdl_LIBRARIES})
 add_dependencies(transform_control_node aerial_robot_msgs_generate_messages_cpp aerial_robot_base_generate_messages_cpp ${PROJECT_NAME}_generate_messages_cpp ${PROJECT_NAME}_gencfg)
 
 install(PROGRAMS

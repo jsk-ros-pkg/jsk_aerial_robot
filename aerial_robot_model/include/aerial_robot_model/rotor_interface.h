@@ -54,7 +54,7 @@ namespace hardware_interface
   {
   public:
     RotorHandle():force_(new double(0)) {}
-    RotorHandle(ros::NodeHandle nh, const std::string& name);
+    RotorHandle(ros::NodeHandle nh, urdf::JointConstSharedPtr urdf_joint);
 
     inline std::string getName() const {return name_;}
     inline double getForce()    const {return *force_;}
@@ -81,26 +81,26 @@ namespace hardware_interface
   public:
     RotorInterface();
 
-    inline std::string getRootLinkName() {return root_link_name_;}
-    inline void setRootLinkName(std::string root_link_name) { root_link_name_ = root_link_name; }
-    inline void setRootLinkOrientation(double qx, double qy, double qz, double qw) { q_.setValue(qx, qy, qz, qw); }
-    inline void setRootLinkAngular(double wx, double wy, double wz) { w_.setValue(wx, wy, wz); }
-    inline void setRootLink() {found_root_link_ = true; }
-    inline bool foundRootLink() {return found_root_link_; }
+    inline std::string getBaseLinkName() {return baselink_name_;}
+    inline void setBaseLinkName(std::string baselink_name) { baselink_name_ = baselink_name; }
+    inline void setBaseLinkOrientation(double qx, double qy, double qz, double qw) { q_.setValue(qx, qy, qz, qw); }
+    inline void setBaseLinkAngular(double wx, double wy, double wz) { w_.setValue(wx, wy, wz); }
+    inline void setBaseLink() {found_baselink_ = true; }
+    inline bool foundBaseLink() {return found_baselink_; }
 
     inline void setJointNum(uint8_t joint_num) {joint_num_ = joint_num; }
     inline uint8_t getJointNum() {return joint_num_; }
-    inline tf::Quaternion getRootLinkOrientation() {return q_; }
-    inline tf::Vector3 getRootLinkAngular() {return w_;}
+    inline tf::Quaternion getBaseLinkOrientation() {return q_; }
+    inline tf::Vector3 getBaseLinkAngular() {return w_;}
 
     /* temporary implementation */
-    uint8_t getRootLinkNo()
+    uint8_t getBaseLinkNo()
     {
       for(uint8_t i = 0; i < getNames().size(); i++)
         {
           std::stringstream link_no;
           link_no << i + 1;
-          if(root_link_name_ == std::string("link") + link_no.str())
+          if(baselink_name_ == std::string("link") + link_no.str())
             return i;
         }
       return 255;
@@ -108,8 +108,8 @@ namespace hardware_interface
 
   private:
     uint8_t joint_num_;
-    bool found_root_link_;
-    std::string root_link_name_;
+    bool found_baselink_;
+    std::string baselink_name_;
     tf::Quaternion q_;
     tf::Vector3 w_;
   };
