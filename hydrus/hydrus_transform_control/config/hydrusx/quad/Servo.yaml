@@ -11,7 +11,7 @@ joint2_angle_max: 1.58
 joint2_angle_min: -1.58
 joint2_angle_sgn: 1
 joint2_angle_scale: 0.001534
-joint2_angle_offset: 2060
+joint2_angle_offset: 2040
 
 joint3_angle_max: 1.58
 joint3_angle_min: -1.58

@@ -5,7 +5,7 @@ estimator:
         - sensor_plugin/imu
         - sensor_plugin/mocap
         - sensor_plugin/alt
-        - sensor_plugin/gps
+        #- sensor_plugin/gps
         - sensor_plugin/optical_flow
 
         # egomotion estimation
