@@ -66,11 +66,10 @@
       <child link="gimbal${self}_roll_module"/>
       <origin rpy="0 0 0" xyz="${link_length/2} 0 0"/>
       <axis xyz="1 0 0"/>
-      <dynamics damping="0.8" friction="0.05"/>
+      <dynamics damping="0.1" friction="0.0"/>
     </joint>
 
     <link name="gimbal${self}_roll_module">
-      <!-- common inertial -->
       <inertial>
         <origin xyz="${gimbal_roll_x_offset - 17.20968 * 0.001} ${0.41439 * 0.001} ${15.61551 * 0.001}" rpy="0 0 0"/>
         <mass value="0.44011" />
@@ -78,21 +77,16 @@
             ixx="0.0005" iyy="0.0007" izz="0.0003"
             ixy="0" ixz="-0.0002" iyz="0.0"/>
       </inertial>
-
-      <collision>
+      <visual>
         <origin xyz="${gimbal_roll_x_offset} 0 0" rpy="0 0 0"/>
         <geometry>
-          <cylinder length="150" radius="0.05"/>
-        </geometry>
-      </collision>
-
-      <visual>
-        <origin xyz="${gimbal_roll_x_offset} 0 0" rpy="${-pi/2} 0 0"/>
-        <geometry>
-          <mesh filename="package://aerial_robot_model/urdf/dragon/mesh/ducted_fan_gimbal_roll.dae"/>
+          <mesh filename="package://aerial_robot_model/urdf/dragon/mesh/ducted_fan_gimbal_roll.stl" scale="0.001 0.001 0.001"/>
         </geometry>
       </visual>
     </link>
+    <gazebo reference="gimbal${self}_roll_module">
+      <material>Gazebo/Red</material>
+    </gazebo>
 
     <!-- gimbal pitch -->
     <joint name="gimbal${self}_pitch" type="revolute">
@@ -101,37 +95,31 @@
       <child link="gimbal${self}_pitch_module"/>
       <origin rpy="0 0 0" xyz="0 0 ${gimbal_pitch_z_offset}"/>
       <axis xyz="0 1 0"/>
-      <dynamics damping="0.8" friction="0.05"/>
+      <dynamics damping="0.1" friction="0.0"/>
     </joint>
 
     <link name="gimbal${self}_pitch_module">
-      <!-- common inertial -->
       <inertial>
-        <origin xyz="0 0.47 -7.38" rpy="0 0 0"/>
+        <origin xyz="0 ${0.47 * 0.001}  ${-7.38 * 0.001}" rpy="0 0 0"/>
         <mass value=".4187" />
         <inertia
             ixx="0.0047" iyy="0.0002" izz="0.0047"
             ixy="0" ixz="0.0" iyz="0.0"/>
       </inertial>
-
-      <collision>
-        <origin xyz="0 0 0" rpy="${pi/2} 0 0"/>
-        <geometry>
-          <cylinder length="0.3" radius="0.05"/>
-        </geometry>
-      </collision>
-
       <visual>
-        <origin xyz="0 0 0" rpy="${-pi/2} 0 0"/>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
         <geometry>
-          <mesh filename="package://aerial_robot_model/urdf/dragon/mesh/ducted_fan_gimbal_pitch.dae"/>
+          <mesh filename="package://aerial_robot_model/urdf/dragon/mesh/ducted_fan_gimbal_pitch.stl" scale="0.001 0.001 0.001"/>
         </geometry>
       </visual>
     </link>
+    <gazebo reference="gimbal${self}_pitch_module">
+      <material>Gazebo/Black</material>
+    </gazebo>
 
     <!-- rotor -->
     <joint name="rotor${self}" type="continuous">
-      <limit effort="100.0" lower="0" upper="${max_force}" velocity="0.5"/> <!-- force range -->
+      <limit effort="100.0" lower="0" upper="${max_force}" velocity="0.5"/>
       <parent link="gimbal${self}_pitch_module"/>
       <child link="propeller${self}"/>
       <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -140,17 +128,16 @@
 
     <link name="propeller${self}">
       <inertial>
-        <origin xyz="0 0 0" rpy="0 0 0"/>
-        <mass value="0.000001"/>
+        <origin xyz="0 0 0.1" rpy="0 0 0"/>
+        <mass value="0.0001"/>
         <inertia
-            ixx="0.000001" ixy="0.0" ixz="0.0"
-            iyy="0.000001" iyz="0.0"
-            izz="0.000002"/>
+            ixx="0.00001" ixy="0.0" ixz="0.0"
+            iyy="0.00001" iyz="0.0"
+            izz="0.00002"/>
       </inertial>
     </link>
     <xacro:damping_factor link ="propeller${self}"/>
-
-    <!-- joint -->>
+    <!-- joint -->
     <xacro:unless value="${self == child}">
       <joint name="joint${self}_pitch" type="revolute">
         <limit effort="10.0" lower="-1.57" upper="1.57" velocity="0.5"/>
@@ -171,18 +158,16 @@
               ixx="0.0001" iyy="0.0001" izz="0.0001"
               ixy="0" ixz="0.0" iyz="0.0"/>
         </inertial>
-
         <collision>
-          <origin rpy="0 0 0" xyz="${inter_joint_x_offset} 0 0"/>
+          <origin rpy="0 0 0" xyz="${2 * inter_joint_x_offset} 0 0"/>
           <geometry>
-            <cylinder length="0.15" radius="0.15"/>
+            <cylinder length="0.1686" radius="0.011"/>
           </geometry>
         </collision>
-
         <visual>
-          <origin rpy="${-pi/2} 0 0" xyz="${inter_joint_x_offset} 0 0"/>
+          <origin rpy="0 0 0" xyz="${inter_joint_x_offset} 0 0"/>
           <geometry>
-            <mesh filename="package://aerial_robot_model/urdf/dragon/mesh/inter_joint_junction.dae"/>
+            <mesh filename="package://aerial_robot_model/urdf/dragon/mesh/inter_joint_junction.stl" scale="0.001 0.001 0.001"/>
           </geometry>
         </visual>
       </link>
@@ -195,6 +180,13 @@
         <axis xyz="0 0 1"/>
         <dynamics damping="0.8" friction="0.05"/>
       </joint>
+
+      <gazebo reference="inter_joint${self}">
+        <mu1>0.2</mu1>
+        <mu2>0.2</mu2>
+        <material>Gazebo/Red</material>
+      </gazebo>
+
     </xacro:unless>
 
     <xacro:if value="${self == 1}">
@@ -220,13 +212,25 @@
 
     <!-- hardware interface -->
     <xacro:unless value="${self == child}">
-      <transmission name="joint_tran${self}">
+      <transmission name="joint${self}_pitch_tran">
         <type>transmission_interface/SimpleTransmission</type>
-        <joint name="joint${self}">
+        <joint name="joint${self}_pitch">
           <!-- TODO: effort is torque, maybe position is enough -->
           <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
         </joint>
-        <actuator name="servo{self}">
+        <actuator name="joint_servo{self}_pitch">
+          <!-- TODO: effort is torque, maybe position is enough -->
+          <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+          <mechanicalReduction>1</mechanicalReduction>
+        </actuator>
+      </transmission>
+      <transmission name="joint${self}_yaw_tran">
+        <type>transmission_interface/SimpleTransmission</type>
+        <joint name="joint${self}_yaw">
+          <!-- TODO: effort is torque, maybe position is enough -->
+          <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+        </joint>
+        <actuator name="joint_servo{self}_yaw">
           <!-- TODO: effort is torque, maybe position is enough -->
           <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
           <mechanicalReduction>1</mechanicalReduction>
@@ -234,19 +238,37 @@
       </transmission>
     </xacro:unless>
 
-    <transmission name="rotor_tran${self}">
+    <transmission name="gimbal${self}_roll_tran">
       <type>transmission_interface/SimpleTransmission</type>
-      <joint name="rotor${self}">
-        <!-- TODO: effort is torque, maybe position is enough -->
-        <hardwareInterface>RotorInterface</hardwareInterface>
+      <joint name="gimbal${self}_roll">
+        <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
       </joint>
-      <actuator name="rotor${self}">
-        <!-- TODO: effort is torque, maybe position is enough -->
-        <hardwareInterface>RotorInterface</hardwareInterface>
+      <actuator name="gimbal_servo{self}_roll">
+        <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+        <mechanicalReduction>1</mechanicalReduction>
+      </actuator>
+    </transmission>
+    <transmission name="gimbal${self}_pitch_tran">
+      <type>transmission_interface/SimpleTransmission</type>
+      <joint name="gimbal${self}_pitch">
+        <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+      </joint>
+      <actuator name="gimbal_servo{self}_pitch">
+        <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
         <mechanicalReduction>1</mechanicalReduction>
       </actuator>
     </transmission>
 
+    <transmission name="rotor${self}_tran">
+      <type>transmission_interface/SimpleTransmission</type>
+      <joint name="rotor${self}">
+        <hardwareInterface>RotorInterface</hardwareInterface>
+      </joint>
+      <actuator name="rotor${self}">
+        <hardwareInterface>RotorInterface</hardwareInterface>
+        <mechanicalReduction>1</mechanicalReduction>
+      </actuator>
+      </transmission>
     <xacro:friction self ="${self}"/>
 
   </xacro:macro>
