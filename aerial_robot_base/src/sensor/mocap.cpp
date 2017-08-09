@@ -342,8 +342,8 @@ namespace sensor_plugin
                   kf->correction(meas, params, stamp.toSec());
 
                   VectorXd state = kf->getEstimateState();
-                  estimator_->setState(index, BasicEstimator::EXPERIMENT_ESTIMATE, 0, state(0));
-                  estimator_->setState(index, BasicEstimator::EXPERIMENT_ESTIMATE, 1, state(1));
+                  estimator_->setState(index + 3, BasicEstimator::EXPERIMENT_ESTIMATE, 0, state(0));
+                  estimator_->setState(index + 3, BasicEstimator::EXPERIMENT_ESTIMATE, 1, state(1));
                   ground_truth_pose_.states[index].state[2].x = state(0);
                   ground_truth_pose_.states[index].state[2].y = state(1);
                 }

@@ -230,8 +230,8 @@ namespace sensor_plugin
                   kf->correction(meas, params, stamp.toSec());
 
                   VectorXd state = kf->getEstimateState();
-                  estimator_->setState(index, BasicEstimator::EGOMOTION_ESTIMATE, 0, state(0));
-                  estimator_->setState(index, BasicEstimator::EGOMOTION_ESTIMATE, 1, state(1));
+                  estimator_->setState(index + 3, BasicEstimator::EGOMOTION_ESTIMATE, 0, state(0));
+                  estimator_->setState(index + 3, BasicEstimator::EGOMOTION_ESTIMATE, 1, state(1));
                   opt_state_.states[index].state[1].x = state(0);
                   opt_state_.states[index].state[1].y = state(1);
 

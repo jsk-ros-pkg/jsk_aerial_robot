@@ -310,7 +310,7 @@ namespace sensor_plugin
 
                             VectorXd state = kf->getEstimateState();
                             /* do not use the position data */
-                            estimator_->setState(index, mode, 1, state(1));
+                            estimator_->setState(index + 3, mode, 1, state(1));
 
                             gps_state_.states[index].state[mode + 1].x = state(0);
                             gps_state_.states[index].state[mode + 1].y = state(1);
@@ -416,8 +416,8 @@ namespace sensor_plugin
 
                             VectorXd state = kf->getEstimateState();
 
-                            estimator_->setState(index, mode, 0, state(0));
-                            estimator_->setState(index, mode, 1, state(1));
+                            estimator_->setState(index + 3, mode, 0, state(0));
+                            estimator_->setState(index + 3, mode, 1, state(1));
 
                             gps_state_.states[index + 2].state[mode + 1].x = state(0);
                             gps_state_.states[index + 2].state[mode + 1].y = state(1);
