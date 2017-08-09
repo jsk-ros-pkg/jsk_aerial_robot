@@ -368,9 +368,9 @@ void Navigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
               target_vel_.setX(target_vel.x());
 
             if(target_vel.y() - target_vel_.y() > joy_target_vel_interval_)
-              target_vel_ += tf::Vector3(joy_target_vel_interval_, 0, 0);
+              target_vel_ += tf::Vector3(0, joy_target_vel_interval_, 0);
             else if (target_vel.y() - target_vel_.y() < - joy_target_vel_interval_)
-              target_vel_ -= tf::Vector3(joy_target_vel_interval_, 0, 0);
+              target_vel_ -= tf::Vector3(0, joy_target_vel_interval_, 0);
             else
               target_vel_.setY(target_vel.y());
           }
