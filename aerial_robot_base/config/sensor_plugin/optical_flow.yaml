@@ -2,6 +2,7 @@ sensor_plugin:
         optical_flow:
                 opt_noise_sigma: 0.01 #LKF: 0.01, EKF: 0.03
                 opt_sub_topic_name: /camera_velocity
-                time_sync: flase
-                delay: -0.15 #LKF: -0.1, EKF: -0.15
+                time_sync: true # should be true! otherwise, we are sure we can ignore the delay of the optical process
+                #time sync true, then check if can not get real timestamp of opticla flow, then set a manual following delay
+                delay: 0 #auto time sync: 0; manual delay setting: LKF: -0.1, EKF: -0.15
                 height_thresh: 0.4

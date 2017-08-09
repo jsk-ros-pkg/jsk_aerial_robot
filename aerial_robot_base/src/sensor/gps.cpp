@@ -218,8 +218,8 @@ namespace sensor_plugin
             if(!first_flag)
               {
                 /* set the status */
-                estimator_->setStateStatus(BasicEstimator::X_W, BasicEstimator::EGOMOTION_ESTIMATE, false);
-                estimator_->setStateStatus(BasicEstimator::Y_W, BasicEstimator::EGOMOTION_ESTIMATE, false);
+                estimator_->setStateStatus(State::X_BASE, BasicEstimator::EGOMOTION_ESTIMATE, false);
+                estimator_->setStateStatus(State::Y_BASE, BasicEstimator::EGOMOTION_ESTIMATE, false);
                 first_flag = true;
               }
             return;
@@ -230,8 +230,8 @@ namespace sensor_plugin
             first_flag = false;
             ROS_WARN("GPS: start/restart");
 
-            if(!estimator_->getStateStatus(BasicEstimator::X_W, BasicEstimator::EGOMOTION_ESTIMATE) ||
-               !estimator_->getStateStatus(BasicEstimator::Y_W, BasicEstimator::EGOMOTION_ESTIMATE))
+            if(!estimator_->getStateStatus(State::X_BASE, BasicEstimator::EGOMOTION_ESTIMATE) ||
+               !estimator_->getStateStatus(State::Y_BASE, BasicEstimator::EGOMOTION_ESTIMATE))
               {
                 ROS_WARN("GPS: start/restart gps kalman filter");
 
@@ -245,14 +245,18 @@ namespace sensor_plugin
                         boost::shared_ptr<kf_plugin::KalmanFilter> kf = fuser.second;
                         int id = kf->getId();
 
-                        //if((id & (1 << BasicEstimator::X_W)) || id & (1 << BasicEstimator::Y_W)))
-                        if(id <= 2) // equal to the previous condition
+                        string plugin_name = fuser.first;
+                        if((id & (1 << State::X_BASE)) || (id & (1 << State::Y_BASE)))
                           {
-                            /* set velocity correction mode */
-                            if(time_sync_) kf->setTimeSync(true);
+                            if(plugin_name == "kalman_filter/kf_pos_vel_acc" ||
+                               plugin_name == "kalman_filter/kf_pos_vel_acc_bias")
+                              {
+                                /* set velocity correction mode */
+                                if(time_sync_) kf->setTimeSync(true);
 
-                            kf->setInitState(raw_vel_[id >> 1], 1);
-                            kf->setMeasureFlag();
+                                kf->setInitState(raw_vel_[id >> (State::X_BASE + 1)], 1);
+                                kf->setMeasureFlag();
+                              }
                           }
                       }
                   }
@@ -263,9 +267,8 @@ namespace sensor_plugin
             ROS_WARN("home position from gps: UTM zone: %d, [%f, %f]", home_utm_pos_.zone, home_utm_pos_.northing, home_utm_pos_.easting);
 
             /* set the status */
-            estimator_->setStateStatus(BasicEstimator::X_W, BasicEstimator::EGOMOTION_ESTIMATE, true);
-            estimator_->setStateStatus(BasicEstimator::Y_W, BasicEstimator::EGOMOTION_ESTIMATE, true);
-
+            estimator_->setStateStatus(State::X_BASE, BasicEstimator::EGOMOTION_ESTIMATE, true);
+            estimator_->setStateStatus(State::Y_BASE, BasicEstimator::EGOMOTION_ESTIMATE, true);
           }
         else
           {
@@ -280,9 +283,9 @@ namespace sensor_plugin
                   {
                     string plugin_name = fuser.first;
                     boost::shared_ptr<kf_plugin::KalmanFilter> kf = fuser.second;
-                    int id = kf->getId();
 
-                    if(id <= 2)
+                    int id = kf->getId();
+                    if((id & (1 << State::X_BASE)) || (id & (1 << State::Y_BASE)))
                       {
                         if(plugin_name == "kalman_filter/kf_pos_vel_acc" ||
                            plugin_name == "kalman_filter/kf_pos_vel_acc_bias")
@@ -293,7 +296,8 @@ namespace sensor_plugin
                             kf->setMeasureSigma(measure_sigma);
 
                             /* correction */
-                            VectorXd meas(1); meas <<  raw_vel_[id >> 1];
+                            int index = id >> (State::X_BASE + 1);
+                            VectorXd meas(1); meas <<  raw_vel_[index];
                             vector<double> params = {kf_plugin::VEL};
                             /* time sync and delay process: get from kf timestamp */
                             if(time_sync_ && delay_ < 0)
@@ -302,17 +306,18 @@ namespace sensor_plugin
                                 gps_state_.header.stamp.fromSec(current_secs);
                               }
                             kf->correction(meas, params, current_secs);
+
+
+                            VectorXd state = kf->getEstimateState();
+                            /* do not use the position data */
+                            estimator_->setState(index + 3, mode, 1, state(1));
+
+                            gps_state_.states[index].state[mode + 1].x = state(0);
+                            gps_state_.states[index].state[mode + 1].y = state(1);
+
+                            gps_state_.states[index].state[0].x = raw_pos_[index];
+                            gps_state_.states[index].state[0].y = raw_vel_[index];
                           }
-
-                        VectorXd state = kf->getEstimateState();
-                        /* do not use the position data */
-                        estimator_->setState(id >> 1, mode, 1, state(1));
-
-                        gps_state_.states[id >> 1].state[mode + 1].x = state(0);
-                        gps_state_.states[id >> 1].state[mode + 1].y = state(1);
-
-                        gps_state_.states[id >> 1].state[0].x = raw_pos_[id >> 1];
-                        gps_state_.states[id >> 1].state[0].y = raw_vel_[id >> 1];
                       }
                   }
               }
@@ -359,17 +364,16 @@ namespace sensor_plugin
                       boost::shared_ptr<kf_plugin::KalmanFilter> kf = fuser.second;
                       int id = kf->getId();
 
-                      //if((id & (1 << BasicEstimator::X_W)) || id & (1 << BasicEstimator::Y_W)))
-                      if(id <= 2) // equal to the previous condition
+                      if((id & (1 << State::X_BASE)) || (id & (1 << State::Y_BASE)))
                         {
                           /* position correction mode */
                           if(time_sync_) kf->setTimeSync(true);
 
-                          kf->setInitState(raw_rtk_pos_[id], 0);
+                          kf->setInitState(raw_rtk_pos_[id >> (State::X_BASE + 1)], 0);
                           kf->setMeasureFlag();
                         }
                     }
-              }
+                }
           }
         else
           {
@@ -386,44 +390,45 @@ namespace sensor_plugin
                     boost::shared_ptr<kf_plugin::KalmanFilter> kf = fuser.second;
                     int id = kf->getId();
 
-                    if(id <= 2)
+                    if((id & (1 << State::X_BASE)) || (id & (1 << State::Y_BASE)))
                       {
+                        if(plugin_name == "kalman_filter/kf_pos_vel_acc" ||
+                           plugin_name == "kalman_filter/kf_pos_vel_acc_bias")
+                          {
 
-                      if(plugin_name == "kalman_filter/kf_pos_vel_acc" ||
-                         plugin_name == "kalman_filter/kf_pos_vel_acc_bias")
-                        {
-                          /* set noise sigma */
-                          VectorXd measure_sigma(1);
-                          measure_sigma << pos_noise_sigma_;
-                          kf->setMeasureSigma(measure_sigma);
+                            /* set noise sigma */
+                            int index = id >> (State::X_BASE + 1);
+                            VectorXd measure_sigma(1);
+                            measure_sigma << pos_noise_sigma_;
+                            kf->setMeasureSigma(measure_sigma);
 
-                          /* correction */
-                          VectorXd meas(1); meas <<  raw_rtk_pos_[id >> 1];
-                          vector<double> params = {kf_plugin::POS};
-                          /* time sync and delay process: get from kf time stamp */
-                          if(time_sync_ && delay_ < 0)
-                            {
-                              current_secs = kf->getTimestamp() + delay_;
-                              gps_state_.header.stamp.fromSec(current_secs);
-                            }
-                          kf->correction(meas, params, current_secs);
-                        }
+                            /* correction */
+                            VectorXd meas(1); meas <<  raw_rtk_pos_[index];
+                            vector<double> params = {kf_plugin::POS};
+                            /* time sync and delay process: get from kf time stamp */
+                            if(time_sync_ && delay_ < 0)
+                              {
+                                current_secs = kf->getTimestamp() + delay_;
+                                gps_state_.header.stamp.fromSec(current_secs);
+                              }
+                            kf->correction(meas, params, current_secs);
 
-                        VectorXd state = kf->getEstimateState();
 
-                        estimator_->setState(id >> 1, mode, 0, state(0));
-                        estimator_->setState(id >> 1, mode, 1, state(1));
+                            VectorXd state = kf->getEstimateState();
 
-                        gps_state_.states[id >> 1 + 2].state[mode + 1].x = state(0);
-                        gps_state_.states[id >> 1 + 2].state[mode + 1].y = state(1);
+                            estimator_->setState(index + 3, mode, 0, state(0));
+                            estimator_->setState(index + 3, mode, 1, state(1));
 
-                        gps_state_.states[id >> 1 + 2].state[0].x = raw_rtk_pos_[id >> 1];
-                        gps_state_.states[id >> 1 + 2].state[0].y = raw_rtk_vel_[id >> 1];
-                        /* for wp control, not good */
-                        pos_[id >> 1] = state(0, 0);
-                        //ROS_INFO("rtk gps pos%d: %d", id >> 1, pos_[id >> 1]);
+                            gps_state_.states[index + 2].state[mode + 1].x = state(0);
+                            gps_state_.states[index + 2].state[mode + 1].y = state(1);
+
+                            gps_state_.states[index + 2].state[0].x = raw_rtk_pos_[index];
+                            gps_state_.states[index + 2].state[0].y = raw_rtk_vel_[index];
+                            /* for wp control, not good */
+                            pos_[index] = state(0, 0);
+                            //ROS_INFO("rtk gps pos%d: %d", index, pos_[index]);
+                          }
                       }
-
                   }
               }
             state_pub_.publish(gps_state_);

@@ -225,30 +225,27 @@ void PidController::pidFunction()
 
       float state_pos_z = 0;
       float state_vel_z = 0;
-      float state_psi_cog = 0;
-      float state_psi_board = 0;
+      float state_psi = 0;
       float state_vel_psi = 0;
 
-      state_pos_x = estimator_->getState(BasicEstimator::X_W, estimate_mode_)[0];
-      state_vel_x = estimator_->getState(BasicEstimator::X_W, estimate_mode_)[1];
-      state_pos_y = estimator_->getState(BasicEstimator::Y_W, estimate_mode_)[0];
-      state_vel_y = estimator_->getState(BasicEstimator::Y_W, estimate_mode_)[1];
+      state_pos_x = estimator_->getState(State::X_COG, estimate_mode_)[0];
+      state_vel_x = estimator_->getState(State::X_COG, estimate_mode_)[1];
+      state_pos_y = estimator_->getState(State::Y_COG, estimate_mode_)[0];
+      state_vel_y = estimator_->getState(State::Y_COG, estimate_mode_)[1];
+      target_vel_x = navigator_->getTargetVel().x();
+      target_vel_y = navigator_->getTargetVel().y();
+      target_pos_x = navigator_->getTargetPos().x();
+      target_pos_y = navigator_->getTargetPos().y();
+      target_acc_x = navigator_->getTargetAcc().x();
+      target_acc_y = navigator_->getTargetAcc().y();
 
-      target_vel_x = navigator_->getTargetVelX();
-      target_vel_y = navigator_->getTargetVelY();
-      target_pos_x = navigator_->getTargetPosX();
-      target_pos_y = navigator_->getTargetPosY();
-      target_acc_x = navigator_->getTargetAccX();
-      target_acc_y = navigator_->getTargetAccY();
+      state_pos_z = estimator_->getState(State::Z_COG, estimate_mode_)[0];
+      state_vel_z = estimator_->getState(State::Z_COG, estimate_mode_)[1];
 
-      state_pos_z = estimator_->getState(BasicEstimator::Z_W, estimate_mode_)[0];
-      state_vel_z = estimator_->getState(BasicEstimator::Z_W, estimate_mode_)[1];
+      state_psi = estimator_->getState(State::YAW, estimate_mode_)[0];
+      state_vel_psi = estimator_->getState(State::YAW, estimate_mode_)[1];
 
-      state_psi_cog = estimator_->getState(BasicEstimator::YAW_W, estimate_mode_)[0];
-      state_vel_psi = estimator_->getState(BasicEstimator::YAW_W, estimate_mode_)[1];
-      state_psi_board = estimator_->getState(BasicEstimator::YAW_W_B, estimate_mode_)[0];
-
-      float target_pos_z = navigator_->getTargetPosZ();
+      float target_pos_z = navigator_->getTargetPos().z();
       float target_psi = navigator_->getTargetPsi();
 
       aerial_robot_base::FourAxisPid  four_axis_pid_debug;
@@ -283,10 +280,10 @@ void PidController::pidFunction()
               {
                 /* convert from world frame to CoG frame */
                 d_err_pos_curr_pitch_
-                  = (target_pos_x - state_pos_x) * cos(state_psi_cog)
-                  + (target_pos_y - state_pos_y) * sin(state_psi_cog);
+                  = (target_pos_x - state_pos_x) * cos(state_psi)
+                  + (target_pos_y - state_pos_y) * sin(state_psi);
 
-                d_err_vel_curr_pitch_ = - (state_vel_x * cos(state_psi_cog) + state_vel_y * sin(state_psi_cog));
+                d_err_vel_curr_pitch_ = - (state_vel_x * cos(state_psi) + state_vel_y * sin(state_psi));
                 /* P */
                 pos_p_term_pitch_ =
                   limit(pos_p_gain_pitch_ * d_err_pos_curr_pitch_,  pos_p_limit_pitch_);
@@ -306,8 +303,8 @@ void PidController::pidFunction()
               {
                 /* convert from world frame to CoG frame */
                 d_err_vel_curr_pitch_
-                  = (target_vel_x - state_vel_x) * cos(state_psi_cog)
-                  + (target_vel_y - state_vel_y) * sin(state_psi_cog);
+                  = (target_vel_x - state_vel_x) * cos(state_psi)
+                  + (target_vel_y - state_vel_y) * sin(state_psi);
 
                 /* P */
                 pos_p_term_pitch_ = limit(vel_p_gain_pitch_ * d_err_vel_curr_pitch_, pos_d_limit_pitch_);
@@ -318,8 +315,8 @@ void PidController::pidFunction()
             case flight_nav::ACC_CONTROL_MODE:
               {
                 /* convert from world frame to CoG frame */
-                pos_p_term_pitch_ = (target_acc_x * cos(state_psi_cog)
-                                     + target_acc_y * sin(state_psi_cog))  / BasicEstimator::G;
+                pos_p_term_pitch_ = (target_acc_x * cos(state_psi)
+                                     + target_acc_y * sin(state_psi))  / BasicEstimator::G;
                 pos_i_term_pitch_ =  0;
                 pos_d_term_pitch_ =  0;
                 break;
@@ -341,7 +338,7 @@ void PidController::pidFunction()
           four_axis_pid_debug.pitch.i_term.push_back(pos_i_term_pitch_);
           four_axis_pid_debug.pitch.d_term.push_back(pos_d_term_pitch_);
           four_axis_pid_debug.pitch.pos_err_transform = d_err_pos_curr_pitch_;
-          four_axis_pid_debug.pitch.pos_err_no_transform = target_pos_x - state_pos_x;
+          four_axis_pid_debug.pitch.pos_err_no_transform = target_pos_x;
           four_axis_pid_debug.pitch.vel_err_transform = d_err_vel_curr_pitch_;
           four_axis_pid_debug.pitch.vel_err_no_transform = target_vel_x;
 
@@ -353,10 +350,10 @@ void PidController::pidFunction()
                 /* convert from world frame to CoG frame */
 
                 d_err_pos_curr_roll_
-                  = - (target_pos_x - state_pos_x) * sin(state_psi_cog)
-                  + (target_pos_y - state_pos_y) * cos(state_psi_cog);
+                  = - (target_pos_x - state_pos_x) * sin(state_psi)
+                  + (target_pos_y - state_pos_y) * cos(state_psi);
 
-                d_err_vel_curr_roll_ = - (- state_vel_x * sin(state_psi_cog) + state_vel_y * cos(state_psi_cog));
+                d_err_vel_curr_roll_ = - (- state_vel_x * sin(state_psi) + state_vel_y * cos(state_psi));
 
                 //**** Pの項
                 pos_p_term_roll_ = limit(pos_p_gain_roll_ * d_err_pos_curr_roll_, pos_p_limit_roll_);
@@ -378,8 +375,8 @@ void PidController::pidFunction()
               {
                 /* convert from world frame to CoG frame */
                 d_err_vel_curr_roll_
-                  = -(target_vel_x - state_vel_x) * sin(state_psi_cog)
-                  + (target_vel_y - state_vel_y)  * cos(state_psi_cog);
+                  = -(target_vel_x - state_vel_x) * sin(state_psi)
+                  + (target_vel_y - state_vel_y)  * cos(state_psi);
 
                 /* P */
                 pos_p_term_roll_ = limit(vel_p_gain_roll_ * d_err_vel_curr_roll_, pos_d_limit_roll_);
@@ -389,8 +386,8 @@ void PidController::pidFunction()
             case flight_nav::ACC_CONTROL_MODE:
               {
                 /* convert from world frame to CoG frame */
-                pos_p_term_roll_ =  (-target_acc_x * sin(state_psi_cog)
-                                     + target_acc_y * cos(state_psi_cog)) / BasicEstimator::G;
+                pos_p_term_roll_ =  (-target_acc_x * sin(state_psi)
+                                     + target_acc_y * cos(state_psi)) / BasicEstimator::G;
                 pos_i_term_roll_ =  0;
                 pos_d_term_roll_ =  0;
 
@@ -415,16 +412,13 @@ void PidController::pidFunction()
           four_axis_pid_debug.roll.i_term.push_back(pos_i_term_roll_);
           four_axis_pid_debug.roll.d_term.push_back(pos_d_term_roll_);
           four_axis_pid_debug.roll.pos_err_transform = d_err_pos_curr_roll_;
-          four_axis_pid_debug.roll.pos_err_no_transform = target_pos_y - state_pos_y;
+          four_axis_pid_debug.roll.pos_err_no_transform = target_pos_y;
           four_axis_pid_debug.roll.vel_err_transform = d_err_vel_curr_roll_;
           four_axis_pid_debug.roll.vel_err_no_transform = target_vel_y;
 
-          //yaw => refer to the board frame angle(psi_board)
+          //yaw
           //error p
-          if(yaw_control_frame_ == Frame::BODY)
-            d_err_pos_curr_yaw_ = target_psi - state_psi_board;
-          else if(yaw_control_frame_ == Frame::COG)
-            d_err_pos_curr_yaw_ = target_psi - state_psi_cog;
+          d_err_pos_curr_yaw_ = target_psi - state_psi;
 
           if(d_err_pos_curr_yaw_ > M_PI)  d_err_pos_curr_yaw_ -= 2 * M_PI;
           else if(d_err_pos_curr_yaw_ < -M_PI)  d_err_pos_curr_yaw_ += 2 * M_PI;
@@ -798,10 +792,6 @@ void PidController::rosParamInit(ros::NodeHandle nh)
   if (!yaw_node.getParam ("pos_d_limit", pos_d_limit_yaw_))
     pos_d_limit_yaw_ = 0;
   printf("%s: pos_d_limit_ is %d\n", yaw_ns.c_str(), pos_d_limit_yaw_);
-
-  if (!yaw_node.getParam ("yaw_control_frame", yaw_control_frame_))
-    yaw_control_frame_ = Frame::BODY;
-  printf("%s: yaw_control_frame_ is %d\n", yaw_ns.c_str(), yaw_control_frame_);
 
   pos_p_gain_throttle_.resize(1);
   pos_i_gain_throttle_.resize(1);

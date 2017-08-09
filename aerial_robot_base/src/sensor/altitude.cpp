@@ -216,11 +216,15 @@ namespace sensor_plugin
       double current_secs = range_msg->header.stamp.toSec();
 
       /* consider the orientation of the uav */
-      float roll = (estimator_->getState(BasicEstimator::ROLL_W, BasicEstimator::EGOMOTION_ESTIMATE))[0];
-      float pitch = (estimator_->getState(BasicEstimator::PITCH_W, BasicEstimator::EGOMOTION_ESTIMATE))[0];
+      float roll = (estimator_->getState(State::ROLL, BasicEstimator::EGOMOTION_ESTIMATE))[0];
+      float pitch = (estimator_->getState(State::PITCH, BasicEstimator::EGOMOTION_ESTIMATE))[0];
       //ROS_INFO("range debug: roll and pitch is [%f, %f]", roll, pitch);
       raw_range_sensor_value_ = cos(roll) * cos(pitch) * range_msg->range;
-      //raw_range_sensor_value_ = range_msg->range;
+      //raw_range_sensor_value_ = range_msg->range; // depreacated
+
+      /* add the offset from the base_link to the sensor */
+      tf::Matrix3x3 tilt_r; tilt_r.setRPY(roll, pitch, 0);
+      raw_range_sensor_value_ -= (tilt_r * baselink_transform_.getOrigin()).z();
 
       /* calibrate phase */
       if(calibrate_cnt > 0)
@@ -281,7 +285,7 @@ namespace sensor_plugin
                     {
                       boost::shared_ptr<kf_plugin::KalmanFilter> kf = fuser.second;
                       int id = kf->getId();
-                      if(id & (1 << BasicEstimator::Z_W))
+                      if(id & (1 << State::Z_BASE))
                         {
                           kf->setMeasureFlag();
                           kf->setInitState(raw_range_sensor_value_ + height_offset_, 0);
@@ -294,7 +298,7 @@ namespace sensor_plugin
 
 
               /* set the status for Z (altitude) */
-              estimator_->setStateStatus(BasicEstimator::Z_W, BasicEstimator::EGOMOTION_ESTIMATE, true);
+              estimator_->setStateStatus(State::Z_BASE, BasicEstimator::EGOMOTION_ESTIMATE, true);
 
               ROS_WARN("%s: the range sensor offset: %f, initial sanity: %s, the hz is %f, estimate mode is %d",
                        (range_msg->radiation_type == sensor_msgs::Range::ULTRASOUND)?string("sonar sensor").c_str():string("infrared sensor").c_str(), range_sensor_offset_, range_sensor_sanity_?string("true").c_str():string("false").c_str(), 1.0 / sensor_hz_, alt_estimate_mode_);
@@ -331,7 +335,7 @@ namespace sensor_plugin
                     {
                       boost::shared_ptr<kf_plugin::KalmanFilter> kf = fuser.second;
                       int id = kf->getId();
-                      if(id & (1 << BasicEstimator::Z_W))
+                      if(id & (1 << State::Z_BASE))
                         {
                           kf->setMeasureFlag(false);
                           kf->resetState();
@@ -362,7 +366,7 @@ namespace sensor_plugin
                       ROS_INFO("debug sonar: init test:");
                       boost::shared_ptr<kf_plugin::KalmanFilter> kf = fuser.second;
                       int id = kf->getId();
-                      if(id & (1 << BasicEstimator::Z_W))
+                      if(id & (1 << State::Z_BASE))
                         {
                           kf->setInitState(raw_range_pos_z_, 0);
                           kf->setMeasureFlag();
@@ -406,11 +410,11 @@ namespace sensor_plugin
             {
               boost::shared_ptr<kf_plugin::KalmanFilter> kf = fuser.second;
               int id = kf->getId();
-              if(id & (1 << BasicEstimator::Z_W))
+              if(id & (1 << State::Z_BASE))
                 {
                   VectorXd state = kf->getEstimateState();
-                  estimator_->setState(BasicEstimator::Z_W, mode, 0, state(0));
-                  estimator_->setState(BasicEstimator::Z_W, mode, 1, state(1));
+                  estimator_->setState(State::Z_BASE, mode, 0, state(0));
+                  estimator_->setState(State::Z_BASE, mode, 1, state(1));
 
                   alt_state_.states[0].state[1 + mode].x = state(0);
                   alt_state_.states[0].state[1 + mode].y = state(1);
@@ -437,7 +441,7 @@ namespace sensor_plugin
               string plugin_name = fuser.first;
               boost::shared_ptr<kf_plugin::KalmanFilter> kf = fuser.second;
               int id = kf->getId();
-              if(id & (1 << BasicEstimator::Z_W))
+              if(id & (1 << State::Z_BASE))
                 {
                   if(plugin_name == "kalman_filter/kf_pos_vel_acc" ||
                      plugin_name == "kalman_filter/kf_pos_vel_acc_bias")
@@ -466,7 +470,7 @@ namespace sensor_plugin
 
       for(auto& fuser : estimator_->getFuser(BasicEstimator::EGOMOTION_ESTIMATE))
         {
-          if(fuser.second->getId() & (1 << BasicEstimator::Z_W))
+          if(fuser.second->getId() & (1 << State::Z_BASE))
             kf = fuser.second;
         }
 
@@ -619,7 +623,7 @@ namespace sensor_plugin
                   string plugin_name = fuser.first;
                   boost::shared_ptr<kf_plugin::KalmanFilter> kf = fuser.second;
                   int id = kf->getId();
-                  if(id & (1 << BasicEstimator::Z_W))
+                  if(id & (1 << State::Z_BASE))
                     {
                       if(!kf->getFilteringFlag())
                         {
@@ -645,8 +649,8 @@ namespace sensor_plugin
 
                       /* set the state */
                       VectorXd state = kf->getEstimateState();
-                      estimator_->setState(BasicEstimator::Z_W, mode, 0, state(0));
-                      estimator_->setState(BasicEstimator::Z_W, mode, 1, state(1));
+                      estimator_->setState(State::Z_BASE, mode, 0, state(0));
+                      estimator_->setState(State::Z_BASE, mode, 1, state(1));
                       alt_state_.states[0].state[1].x = state(0);
                       alt_state_.states[0].state[1].y = state(1);
                       alt_state_.states[0].state[1].z = (baro_bias_kf_->getEstimateState())(0);
@@ -658,7 +662,7 @@ namespace sensor_plugin
         case WITHOUT_BARO_MODE:
           {
             baro_bias_kf_->prediction(VectorXd::Zero(1));
-            VectorXd meas(1);  meas << (estimator_->getState(BasicEstimator::Z_W, 0))[0] - baro_pos_z_;
+            VectorXd meas(1);  meas << (estimator_->getState(State::Z_BASE, 0))[0] - baro_pos_z_;
             baro_bias_kf_->correction(meas);
           }
           break;

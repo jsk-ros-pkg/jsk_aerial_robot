@@ -1,6 +1,6 @@
 # Teleop Basic Param
 
-navigator/takeoff_height: 0.4
+navigator/takeoff_height: 0.5
 navigator/navi_frame_int: 0  # deprecated?  map frame: 0, body frame: 1 
 navigator/map_frame: map
 navigator/target_frame: target

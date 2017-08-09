@@ -37,7 +37,8 @@ TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_
   std::string rpy_gain_pub_name;
   nh_private_.param("rpy_gain_pub_name", rpy_gain_pub_name, std::string("/rpy_gain"));
   rpy_gain_pub_ = nh_.advertise<aerial_robot_msgs::RollPitchYawTerms>(rpy_gain_pub_name, 1);
-  four_axis_gain_pub_ = nh_.advertise<aerial_robot_msgs::FourAxisGain>("four_axis_gain", 1);
+  four_axis_gain_pub_ = nh_.advertise<aerial_robot_msgs::FourAxisGain>("/four_axis_gain", 1);
+  transform_pub_ = nh_.advertise<geometry_msgs::TransformStamped>("/cog2baselink", 1);
 
   //dynamic reconfigure server
   lqi_server_ = new dynamic_reconfigure::Server<hydrus_transform_control::LQIConfig>(nh_private_);
@@ -245,6 +246,8 @@ void TransformController::control()
 
 void TransformController::jointStatecallback(const sensor_msgs::JointStateConstPtr& state)
 {
+  joint_state_stamp_ = state->header.stamp;
+
   if(debug_verbose_) ROS_ERROR("start kinematics");
   kinematics(*state);
   if(debug_verbose_) ROS_ERROR("finish kinematics");
@@ -305,7 +308,7 @@ void TransformController::kinematics(sensor_msgs::JointState state)
       KDL::Frame f;
       int status = fk_solver.JntToCart(jointpositions, f, rotor);
       //ROS_ERROR(" %s status is : %d, [%f, %f, %f]", rotor.c_str(), status, f.p.x(), f.p.y(), f.p.z());
-      f_rotors.push_back((Eigen::Map<const Eigen::Vector3d>((cog_frame.Inverse() * f).p.data)));
+      f_rotors.push_back(Eigen::Map<const Eigen::Vector3d>((cog_frame.Inverse() * f).p.data));
 
       //std::cout << f_rotors[i] << std::endl;
     }
@@ -313,6 +316,12 @@ void TransformController::kinematics(sensor_msgs::JointState state)
   setRotorsFromCog(f_rotors);
   KDL::RigidBodyInertia link_inertia_from_cog = cog_frame.Inverse() * link_inertia;
   setInertia(Eigen::Map<const Eigen::Matrix3d>(link_inertia_from_cog.getRotationalInertia().data));
+
+
+  /* find the transform from cog to baselink */
+  KDL::Frame f;
+  int status = fk_solver.JntToCart(jointpositions, f, baselink_);
+  setCog2Baselink(Eigen::Map<const Eigen::Vector3d>((cog_frame.Inverse() * f).p.data));
 }
 
 bool TransformController::addExtraModuleCallback(hydrus_transform_control::AddExtraModule::Request  &req,
@@ -376,7 +385,7 @@ void TransformController::lqi()
     }
   if(debug_verbose_) ROS_WARN(" finish ARE calc");
 
-  param2contoller();
+  param2controller();
   if(debug_verbose_) ROS_WARN(" finish param2controller");
 }
 
@@ -468,8 +477,9 @@ bool  TransformController::modelling(bool verbose)
   lamda = solver.solve(g);
   x = P_.transpose() * lamda;
 
+  double P_det = (P_ * P_.transpose()).determinant();
   if(control_verbose_)
-    std::cout << "P det:"  << std::endl << (P_ * P_.transpose()).determinant() << std::endl;
+    std::cout << "P det:"  << std::endl << P_det << std::endl;
 
   if(control_verbose_)
     ROS_INFO("P solver is: %f\n", ros::Time::now().toSec() - start_time.toSec());
@@ -477,7 +487,7 @@ bool  TransformController::modelling(bool verbose)
   if(control_verbose_ || verbose)
     std::cout << "x:"  << std::endl << x << std::endl;
 
-  if(x.maxCoeff() > f_max_ || x.minCoeff() < f_min_)
+  if(x.maxCoeff() > f_max_ || x.minCoeff() < f_min_ || P_det < 1e-6 || only_three_axis_mode_)
     {
       lqi_mode_ = LQI_THREE_AXIS_MODE;
 
@@ -498,7 +508,6 @@ bool  TransformController::modelling(bool verbose)
       return false; //can not be stable
     }
 
-  if(only_three_axis_mode_)lqi_mode_ = LQI_THREE_AXIS_MODE;
   else lqi_mode_ = LQI_FOUR_AXIS_MODE;
 
   return true;
@@ -616,13 +625,22 @@ bool TransformController::hamiltonMatrixSolver(uint8_t lqi_mode)
   return true;
 }
 
-void TransformController::param2contoller()
+void TransformController::param2controller()
 {
   aerial_robot_msgs::FourAxisGain four_axis_gain_msg;
   aerial_robot_msgs::RollPitchYawTerms rpy_gain_msg; //for rosserial
+  geometry_msgs::TransformStamped transform_msg; //for rosserial
 
   four_axis_gain_msg.motor_num = rotor_num_;
   rpy_gain_msg.motors.resize(rotor_num_);
+
+  /* the transform from cog to baselink */
+  transform_msg.header.stamp = joint_state_stamp_;
+  transform_msg.header.frame_id = std::string("cog");
+  transform_msg.child_frame_id = baselink_;
+  tf::vectorEigenToMsg(getCog2Baselink(), transform_msg.transform.translation);
+  transform_msg.transform.rotation.w = 1;
+  transform_pub_.publish(transform_msg);
 
   for(int i = 0; i < rotor_num_; i ++)
     {

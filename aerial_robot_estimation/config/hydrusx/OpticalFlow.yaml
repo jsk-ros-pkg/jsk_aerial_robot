@@ -3,7 +3,7 @@ verbose: false
 downward_camera_image_topic_name: /zed/left/image_rect_color
 downward_camera_info_topic_name: /zed/left/camera_info
 imu_topic_name: /estimator/sensor_plugin/imu/imu_filtered
-odometry_topic_name: /uav/root_link/odom
+odometry_topic_name: /uav/baselink/odom
 
 image_crop_scale: 0.7
 image_cut_pixel: 10

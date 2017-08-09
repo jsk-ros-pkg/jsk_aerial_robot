@@ -9,6 +9,7 @@ find_package(catkin REQUIRED COMPONENTS
   aerial_robot_msgs
   aerial_robot_base
   dynamixel_controllers
+  eigen_conversions
   tf_conversions
   cmake_modules
   std_srvs
