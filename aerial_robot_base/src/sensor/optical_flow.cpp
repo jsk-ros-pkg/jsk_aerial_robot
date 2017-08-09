@@ -145,7 +145,7 @@ namespace sensor_plugin
                         {
                           if(time_sync_) kf->setTimeSync(true);
 
-                          kf->setInitState(vel_[id >> (1 << State::X_BASE + 1)], 1);
+                          kf->setInitState(vel_[id >> (State::X_BASE + 1)], 1);
                           kf->setMeasureFlag();
                         }
                     }
@@ -225,8 +225,8 @@ namespace sensor_plugin
                   VectorXd meas(1); meas <<  vel_[index];
                   vector<double> params = {kf_plugin::VEL};
                   /* time sync and delay process: get from kf time stamp */
-                  if(time_sync_) stamp.fromSec(kf->getTimestamp() + delay_);
-                  //ROS_INFO("opt stamp: %f, imu stamp: %f", stamp.toSec(), kf->getTimestamp());
+                  if(time_sync_ && delay_ < 0) stamp.fromSec(kf->getTimestamp() + delay_);
+                  //ROS_INFO("opt stamp: %f, imu stamp: %f, diff: %f", stamp.toSec(), kf->getTimestamp(), kf->getTimestamp() - stamp.toSec());
                   kf->correction(meas, params, stamp.toSec());
 
                   VectorXd state = kf->getEstimateState();
@@ -253,8 +253,7 @@ namespace sensor_plugin
                   VectorXd meas(2); meas <<  vel_[0], vel_[1];
                   vector<double> params = {kf_plugin::VEL};
                   /* time sync and delay process: get from kf time stamp */
-                  if(time_sync_) stamp.fromSec(kf->getTimestamp() + delay_);
-
+                  if(time_sync_ && delay_ < 0) stamp.fromSec(kf->getTimestamp() + delay_);
                   kf->correction(meas, params, stamp.toSec());
 
                   VectorXd state = kf->getEstimateState();
