@@ -17,7 +17,7 @@
   <node pkg="aerial_robot_base" type="aerial_robot_base_node" name="aerial_robot_base_node"  output="screen" >
 
     ############### Basic Param  #####################
-    <param name="estimator/state_mode" value= "0" />
+    <param name="estimator/estimate_mode" value= "1" />
     <param name="navigator/xy_control_mode" value="0"/>
     <param name="main_rate" value="40"/>
     <param name="simulation" value="true" />
