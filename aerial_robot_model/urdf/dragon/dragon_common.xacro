@@ -14,6 +14,15 @@
   <xacro:property name="gimbal_roll_x_offset" value="-0.01" />
   <xacro:property name="gimbal_pitch_z_offset" value="0.037" />
 
+  <!-- material color for rviz -->
+  <material name="black">
+    <color rgba="0 0 0 1"/>
+  </material>
+
+  <material name="red">
+    <color rgba="1 0 0 1"/>
+  </material>
+
   <!-- dynamics -->
   <xacro:property name="max_force" value="30" /> <!-- [N] -->
 
@@ -30,6 +39,7 @@
       <geometry>
         <mesh filename="package://aerial_robot_model/urdf/dragon/mesh/ducted_fan_${type}.stl" scale="0.001 0.001 0.001"/>
       </geometry>
+      <material name="black"/>
     </visual>
   </xacro:macro>
 

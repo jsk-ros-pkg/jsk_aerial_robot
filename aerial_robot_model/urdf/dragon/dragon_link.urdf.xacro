@@ -81,6 +81,7 @@
         <origin xyz="${gimbal_roll_x_offset} 0 0" rpy="0 0 0"/>
         <geometry>
           <mesh filename="package://aerial_robot_model/urdf/dragon/mesh/ducted_fan_gimbal_roll.stl" scale="0.001 0.001 0.001"/>
+          <material name="red"/>
         </geometry>
       </visual>
     </link>
@@ -111,6 +112,7 @@
         <geometry>
           <mesh filename="package://aerial_robot_model/urdf/dragon/mesh/ducted_fan_gimbal_pitch.stl" scale="0.001 0.001 0.001"/>
         </geometry>
+        <material name="black"/>
       </visual>
     </link>
     <gazebo reference="gimbal${self}_pitch_module">
@@ -169,6 +171,7 @@
           <geometry>
             <mesh filename="package://aerial_robot_model/urdf/dragon/mesh/inter_joint_junction.stl" scale="0.001 0.001 0.001"/>
           </geometry>
+          <material name="red"/>
         </visual>
       </link>
 
