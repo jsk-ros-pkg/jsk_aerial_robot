@@ -87,7 +87,6 @@ namespace sensor_plugin
       euler_(0, 0, 0),
       prev_raw_pos_(0, 0, 0),
       prev_raw_vel_(0, 0, 0),
-      prev_raw_euler_(0, 0, 0),
       pos_offset_(0, 0, 0)
     {
       ground_truth_pose_.states.resize(6);
@@ -119,12 +118,12 @@ namespace sensor_plugin
 
     double pos_noise_sigma_, angle_noise_sigma_;
 
-    array<IirFilter, 4> lpf_pos_vel_; /* x, y, z, yaw */
+    array<IirFilter, 3> lpf_pos_vel_; /* x, y, z */
 
     tf::Vector3 raw_pos_, raw_vel_, raw_euler_;
     tf::Vector3 pos_, vel_, euler_;
 
-    tf::Vector3 prev_raw_pos_, prev_raw_vel_, prev_raw_euler_;
+    tf::Vector3 prev_raw_pos_, prev_raw_vel_;
     tf::Vector3 pos_offset_;
 
     /* ros msg */
@@ -149,16 +148,11 @@ namespace sensor_plugin
           tf::Matrix3x3(q).getRPY(r, p, y);
           raw_euler_.setValue(r, p, y);
 
-          for(int i = 0; i < 4; i++)
-            {
-              if(i == 3) /* yaw */
-                lpf_pos_vel_[i].filterFunction(raw_euler_[2], euler_[2]);
-              else
-                lpf_pos_vel_[i].filterFunction(raw_pos_[i], pos_[i], raw_vel_[i], vel_[i]);
-            }
+          for(int i = 0; i < 3; i++)
+            lpf_pos_vel_[i].filterFunction(raw_pos_[i], pos_[i], raw_vel_[i], vel_[i]);
 
           if(estimate_mode_ & (1 << BasicEstimator::EXPERIMENT_ESTIMATE))
-            estimator_->setState(State::YAW, BasicEstimator::EXPERIMENT_ESTIMATE, 0, euler_[2]);
+            estimator_->setState(State::YAW, BasicEstimator::EXPERIMENT_ESTIMATE, 0, raw_euler_[2]);
 
           ground_truth_pose_.header.stamp = msg->header.stamp;
 
@@ -172,10 +166,7 @@ namespace sensor_plugin
                   ground_truth_pose_.states[i].state[1].y = vel_[i];
                 }
               else
-                {
                   ground_truth_pose_.states[i].state[0].x = raw_euler_[i - 3];
-                  ground_truth_pose_.states[i].state[1].x = euler_[i - 3];
-                }
             }
 
           /* estimation */
@@ -192,7 +183,6 @@ namespace sensor_plugin
 
       prev_raw_pos_ = raw_pos_;
       prev_raw_vel_ = raw_vel_;
-      prev_raw_euler_ = raw_euler_;
 
       previous_time = msg->header.stamp;
       /* consider the remote wirleess transmission, we use the local time server */
