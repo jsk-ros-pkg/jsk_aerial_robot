@@ -1,0 +1,8 @@
+motor_info:
+        min_pwm: 0.65
+        max_pwm: 0.82
+        f_pwm_rate: 0.875 # 0.4375 x 2
+        f_pwm_offset: -46.83 # -23.415 x 2
+        m_f_rate: 0
+        pwm_rate: 20.0  # 2000/100.0 (double ducted fan)
+        force_landing_pwm: 0.75
