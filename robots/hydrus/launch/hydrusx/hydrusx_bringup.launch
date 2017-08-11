@@ -61,11 +61,13 @@
   </node>
 
   ###########  Robot Model  ###########
-  <include file="$(find aerial_robot_model)/launch/aerial_robot_model.launch" unless="$(arg simulation)">
+  <include file="$(find hydrus)/launch/robot_model.launch" >
     <arg name="model" value="hydrusx"/>
     <arg name="type" value="$(arg type)" />
     <arg name="headless" value="$(arg headless)" />
     <arg name="need_joint_state" value="false" if="$(arg real_machine)"/>
+    <arg name="need_joint_state" value="false" if="$(arg simulation)"/>
+    <arg name="description_mode" value="gazebo" if="$(arg simulation)"/>
   </include >
 
   ###########  Transform Control  ###########
@@ -80,7 +82,6 @@
   <rosparam file="$(find hydrus)/config/hydrusx/$(arg type)/SimulationControl.yaml" command="load"/>
   <include file="$(find aerial_robot_simulation)/launch/simulation.launch" if = "$(arg simulation)" >
     <arg name="model" default="hydrusx" />
-    <arg name="type" value="$(arg type)" />
     <arg name="gui" default="false" if="$(arg headless)" />
     <arg name="headless" default="$(arg headless)" />
     </include>

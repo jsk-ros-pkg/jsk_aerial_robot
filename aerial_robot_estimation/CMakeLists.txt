@@ -26,7 +26,7 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
 )
 
-set(USE_GPU ON)
+set(USE_GPU OFF)
 set(CMAKE_BUILD_TYPE Release)
 
 if(USE_GPU)

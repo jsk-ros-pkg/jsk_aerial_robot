@@ -1,33 +1,11 @@
 <launch>
-  <arg name="model" default="hydrus3" />
-  <arg name="type" default="quad" />
   <arg name="headless" default="False" />
-  <arg name="description_path" default="$(find aerial_robot_model)/robots"/>
-  <arg name="description_mode" default="urdf"/>
-  <arg name="need_joint_state" default="true" />
+  <arg name="robot_model" />
 
   <!-- not good -->
   <!-- global namespace -->
   <param name="robot_description"
-         command="$(find xacro)/xacro.py '$(arg description_path)/$(arg model)/$(arg type).$(arg description_mode).xacro'" />
-
-  <group ns="$(arg model)" >
-
-    <node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher" />
-
-    <rosparam file = "$(find aerial_robot_model)/config/$(arg model)/$(arg type)_init.yaml" command="load" />
-    <group if="$(arg need_joint_state)">
-      <!-- for simulation -->
-      <param name="use_gui" value="true" />
-      <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" >
-        <param name="robot_description"
-               command="$(find xacro)/xacro.py '$(find aerial_robot_model)/robots/$(arg model)/$(arg type).urdf.xacro'" />
-      </node >
-    </group>
-
-    <node name="aerial_robot_model" pkg="aerial_robot_model" type="rotor_tf_publisher" unless="$(arg need_joint_state)"/>
-
-  </group>
+         command="$(find xacro)/xacro.py '$(arg robot_model)'" />
 
   <group unless="$(arg headless)">
     <node name="rviz" pkg="rviz" type="rviz"
