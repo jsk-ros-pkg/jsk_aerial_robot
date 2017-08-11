@@ -1,12 +1,12 @@
 <?xml version="1.0"?>
 <package>
-  <name>hydrus_transform_control</name>
+  <name>hydrus</name>
   <version>0.1.0</version>
-  <description>The transform controller for hydrus</description>
+  <description>The basic packages for hydrus</description>
 
-  <maintainer email="chou@jsk.imi.i.u-tokyo.ac.jp">Bakui Chou</maintainer> 
+  <maintainer email="chou@jsk.imi.i.u-tokyo.ac.jp">Bakui Chou</maintainer>
   <license>BSD</license>
-  <url type="website">http://wiki.ros.org/beginner_tutorials</url> 
+  <url type="website">https://github.com/tongtybj/aerial_robot</url>
   <author email="chou@jsk.imi.i.u-tokyo.ac.jp">Bakui Chou</author>
 
   <buildtool_depend>catkin</buildtool_depend>

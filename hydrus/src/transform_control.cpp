@@ -1,4 +1,4 @@
-#include <hydrus_transform_control/transform_control.h>
+#include <hydrus/transform_control.h>
 
 TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_private, bool callback_flag):
   nh_(nh), nh_private_(nh_private),
@@ -41,7 +41,7 @@ TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_
   transform_pub_ = nh_.advertise<geometry_msgs::TransformStamped>("/cog2baselink", 1);
 
   //dynamic reconfigure server
-  lqi_server_ = new dynamic_reconfigure::Server<hydrus_transform_control::LQIConfig>(nh_private_);
+  lqi_server_ = new dynamic_reconfigure::Server<hydrus::LQIConfig>(nh_private_);
   dynamic_reconf_func_lqi_ = boost::bind(&TransformController::cfgLQICallback, this, _1, _2);
   lqi_server_->setCallback(dynamic_reconf_func_lqi_);
 
@@ -324,8 +324,8 @@ void TransformController::kinematics(sensor_msgs::JointState state)
   setCog2Baselink(Eigen::Map<const Eigen::Vector3d>((cog_frame.Inverse() * f).p.data));
 }
 
-bool TransformController::addExtraModuleCallback(hydrus_transform_control::AddExtraModule::Request  &req,
-                                                 hydrus_transform_control::AddExtraModule::Response &res)
+bool TransformController::addExtraModuleCallback(hydrus::AddExtraModule::Request  &req,
+                                                 hydrus::AddExtraModule::Response &res)
 {
   res.status = addExtraModule(req.extra_module_link, req.extra_module_mass, req.extra_module_offset);
   return true;
@@ -691,7 +691,7 @@ void TransformController::param2controller()
   four_axis_gain_pub_.publish(four_axis_gain_msg);
 }
 
-void TransformController::cfgLQICallback(hydrus_transform_control::LQIConfig &config, uint32_t level)
+void TransformController::cfgLQICallback(hydrus::LQIConfig &config, uint32_t level)
 {
   if(config.lqi_gain_flag)
     {

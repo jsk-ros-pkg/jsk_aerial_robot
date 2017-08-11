@@ -9,7 +9,7 @@
   <arg name="headless" default="True" />
 
   ###########  Motor Config  ###########
-  <rosparam file="$(find hydrus_transform_control)/config/hydrus3/MotorInfo.yaml" command="load" />
+  <rosparam file="$(find hydrus)/config/hydrus3/MotorInfo.yaml" command="load" />
 
   ###########  Base Platform  ###########
   <node pkg="aerial_robot_base" type="aerial_robot_base_node" name="aerial_robot_base_node" output="screen" >
@@ -31,12 +31,12 @@
     <param name="main_rate" type="double" value="40"/>
 
     ###########  Sensor Fusion  ###########
-    <rosparam file="$(find hydrus_transform_control)/config/hydrus3/SensorFusion.yaml" command="load" if="$(arg real_machine)"/>
-    <rosparam file="$(find hydrus_transform_control)/config/hydrus3/SensorSimulation.yaml" command="load" if="$(arg simulation)"/>
+    <rosparam file="$(find hydrus)/config/hydrus3/SensorFusion.yaml" command="load" if="$(arg real_machine)"/>
+    <rosparam file="$(find hydrus)/config/hydrus3/SensorSimulation.yaml" command="load" if="$(arg simulation)"/>
     ###########  PID Control  ###########
-    <rosparam file="$(find hydrus_transform_control)/config/hydrus3/$(arg type)/PidControlConfig.yaml" command="load" />
+    <rosparam file="$(find hydrus)/config/hydrus3/$(arg type)/PidControlConfig.yaml" command="load" />
     ###########  Teleop  ###########
-    <rosparam file="$(find hydrus_transform_control)/config/hydrus3/TeleopNavigationConfig.yaml" command="load" />
+    <rosparam file="$(find hydrus)/config/hydrus3/TeleopNavigationConfig.yaml" command="load" />
   </node>
 
   ###########  Sensors  ###########
@@ -48,7 +48,7 @@
   </include >
 
   ###########  Dynamixel  ###########
-  <include file="$(find hydrus_transform_control)/launch/hydrus3/hydrus3_dynamixel_bridge.launch" if="$(arg real_machine)" >
+  <include file="$(find hydrus)/launch/hydrus3/hydrus3_dynamixel_bridge.launch" if="$(arg real_machine)" >
     <arg name="type" value="$(arg type)" />
   </include>
 
@@ -62,14 +62,14 @@
   </include >
 
   ###########  Transform Control  ###########
-  <node pkg="hydrus_transform_control" type="transform_control_node" name="hydrus3"  output="screen" >
-    <rosparam file="$(find hydrus_transform_control)/config/hydrus3/$(arg type)/Hydrus.yaml" command="load" />
+  <node pkg="hydrus" type="transform_control_node" name="hydrus3"  output="screen" >
+    <rosparam file="$(find hydrus)/config/hydrus3/$(arg type)/Hydrus.yaml" command="load" />
     <param name="kinematic_verbose" value="false" />
     <param name="control_verbose" value="false" />
   </node>
 
   ########## Simulation in Gazebo #########
-  <rosparam file="$(find hydrus_transform_control)/config/hydrus3/$(arg type)/SimulationControl.yaml" command="load"/>
+  <rosparam file="$(find hydrus)/config/hydrus3/$(arg type)/SimulationControl.yaml" command="load"/>
   <include file="$(find aerial_robot_simulation)/launch/simulation.launch" if = "$(arg simulation)" >
     <arg name="model" default="hydrus3" />
     <arg name="type" value="$(arg type)" />
