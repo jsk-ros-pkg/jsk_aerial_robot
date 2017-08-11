@@ -8,8 +8,6 @@
 #include <aerial_robot_base/flight_navigation.h>
 
 #include <std_msgs/Float32MultiArray.h>
-#include <Eigen/Core>
-#include <Eigen/Geometry>
 #include <aerial_robot_msgs/FourAxisGain.h>
 #include <aerial_robot_base/FourAxisPid.h>
 #include <aerial_robot_base/MotorInfo.h>
@@ -32,17 +30,6 @@ public:
                    FlightCtrlInput* flight_ctrl_input);
   virtual ~FlightController(){};
 
-  inline float limit(float value, float limit)
-  {
-    if(value > limit) { return limit;}
-    else if(value < - limit) { return -limit; }
-    else return value;
-  }
-
-
-  inline int getMotorNumber(){return motor_num_;}
-
-
  protected:
   ros::NodeHandle nh_;
   ros::NodeHandle nhp_;
@@ -54,9 +41,6 @@ public:
   FlightCtrlInput* flight_ctrl_input_;
 
   int motor_num_;
-
-  bool feedforward_flag_;
-  Eigen::MatrixXd feedforward_matrix_;
 
   //new param
   double min_pwm_, max_pwm_;
@@ -86,7 +70,6 @@ class PidController : public FlightController
   ~PidController(){};
 
   void pidFunction();
-  void feedForwardFunction();
 
   //dynamic reconfigure
   void cfgXYPidCallback(aerial_robot_base::XYPidControlConfig &config, uint32_t level);

@@ -45,10 +45,6 @@ FlightController::FlightController(ros::NodeHandle nh,
     force_landing_pwm_ = 0.75; //1500;
   printf("%s: force_landing_pwm_ is %f\n", ns.c_str(), force_landing_pwm_);
 
-  if (!nhp_.getParam ("feedforward_flag", feedforward_flag_))
-    feedforward_flag_ = false;
-  printf("%s: feedforward_flag_ is %s\n", nhp_.getNamespace().c_str(), (feedforward_flag_)?"true":"false");
-
   nhp_.param("motor_num_srv_name", motor_num_srv_name_, std::string("/get_motor_num"));
   motor_num_srv_ =  nh_.advertiseService(motor_num_srv_name_, &FlightController::motorNumCallback, this);
 }
@@ -130,7 +126,6 @@ void PidController::fourAxisGainCallback(const aerial_robot_msgs::FourAxisGainCo
       pos_i_gain_throttle_.resize(motor_num_);
       pos_d_gain_throttle_.resize(motor_num_);
 
-      feedforward_matrix_ = Eigen::MatrixXd::Zero(motor_num_, 2);
 
       ROS_WARN("flight control: update the motor number: %d", motor_num_);
     }
@@ -145,8 +140,6 @@ void PidController::fourAxisGainCallback(const aerial_robot_msgs::FourAxisGainCo
       pos_i_gain_throttle_[i] = msg->pos_i_gain_throttle[i];
       pos_d_gain_throttle_[i] = msg->pos_d_gain_throttle[i];
 
-      feedforward_matrix_(i, 0) = -msg->pos_p_gain_roll[i];
-      feedforward_matrix_(i, 1) = -msg->pos_p_gain_pitch[i];
     }
 }
 
@@ -286,17 +279,17 @@ void PidController::pidFunction()
                 d_err_vel_curr_pitch_ = - (state_vel_x * cos(state_psi) + state_vel_y * sin(state_psi));
                 /* P */
                 pos_p_term_pitch_ =
-                  limit(pos_p_gain_pitch_ * d_err_pos_curr_pitch_,  pos_p_limit_pitch_);
+                  clamp(pos_p_gain_pitch_ * d_err_pos_curr_pitch_,  -pos_p_limit_pitch_, pos_p_limit_pitch_);
 
                 /* I */
                 if(navigator_->getFlightMode() == Navigator::TAKEOFF_MODE || navigator_->getFlightMode() == Navigator::LAND_MODE) //takeoff or land
                   pos_i_term_pitch_ += d_err_pos_curr_pitch_ * (1 / (float)pitch_ctrl_loop_rate_) * pos_i_gain_pitch_;
                 else if(navigator_->getFlightMode() == Navigator::FLIGHT_MODE) //hover or land
                   pos_i_term_pitch_ += d_err_pos_curr_pitch_ * (1 / (float)pitch_ctrl_loop_rate_) * pos_i_gain_pitch_hover_;
-                pos_i_term_pitch_ = limit(pos_i_term_pitch_, pos_i_limit_pitch_);
+                pos_i_term_pitch_ = clamp(pos_i_term_pitch_, -pos_i_limit_pitch_, pos_i_limit_pitch_);
 
                 /* D */
-                pos_d_term_pitch_ = limit(pos_d_gain_pitch_ * d_err_vel_curr_pitch_, pos_d_limit_pitch_);
+                pos_d_term_pitch_ = clamp(pos_d_gain_pitch_ * d_err_vel_curr_pitch_, -pos_d_limit_pitch_, pos_d_limit_pitch_);
                 break;
               }
             case flight_nav::VEL_CONTROL_MODE:
@@ -307,7 +300,7 @@ void PidController::pidFunction()
                   + (target_vel_y - state_vel_y) * sin(state_psi);
 
                 /* P */
-                pos_p_term_pitch_ = limit(vel_p_gain_pitch_ * d_err_vel_curr_pitch_, pos_d_limit_pitch_);
+                pos_p_term_pitch_ = clamp(vel_p_gain_pitch_ * d_err_vel_curr_pitch_, -pos_d_limit_pitch_, pos_d_limit_pitch_);
                 pos_d_term_pitch_ =  0;
 
                 break;
@@ -327,7 +320,7 @@ void PidController::pidFunction()
               }
             }
           //*** 指令値算出
-          pitch_value = limit(pos_p_term_pitch_ + pos_i_term_pitch_ + pos_d_term_pitch_ + offset_pitch_, pos_limit_pitch_);
+          pitch_value = clamp(pos_p_term_pitch_ + pos_i_term_pitch_ + pos_d_term_pitch_ + offset_pitch_, -pos_limit_pitch_, pos_limit_pitch_);
 
           //*** 指令値代入
           flight_ctrl_input_->setPitchValue(pitch_value);
@@ -356,7 +349,7 @@ void PidController::pidFunction()
                 d_err_vel_curr_roll_ = - (- state_vel_x * sin(state_psi) + state_vel_y * cos(state_psi));
 
                 //**** Pの項
-                pos_p_term_roll_ = limit(pos_p_gain_roll_ * d_err_pos_curr_roll_, pos_p_limit_roll_);
+                pos_p_term_roll_ = clamp(pos_p_gain_roll_ * d_err_pos_curr_roll_, -pos_p_limit_roll_, pos_p_limit_roll_);
 
                 //**** Iの項
                 if(navigator_->getFlightMode() == Navigator::TAKEOFF_MODE || navigator_->getFlightMode() == Navigator::LAND_MODE) //takeoff or land
@@ -364,10 +357,10 @@ void PidController::pidFunction()
 
                 else if(navigator_->getFlightMode() == Navigator::FLIGHT_MODE) //hover
                   pos_i_term_roll_ += d_err_pos_curr_roll_ * (1 / (float)roll_ctrl_loop_rate_) * pos_i_gain_roll_hover_;
-                pos_i_term_roll_ = limit(pos_i_term_roll_, pos_i_limit_roll_);
+                pos_i_term_roll_ = clamp(pos_i_term_roll_, -pos_i_limit_roll_, pos_i_limit_roll_);
 
                 /* D */
-                pos_d_term_roll_ = limit(pos_d_gain_roll_ * d_err_vel_curr_roll_, pos_d_limit_roll_);
+                pos_d_term_roll_ = clamp(pos_d_gain_roll_ * d_err_vel_curr_roll_, -pos_d_limit_roll_, pos_d_limit_roll_);
 
                 break;
               }
@@ -379,7 +372,7 @@ void PidController::pidFunction()
                   + (target_vel_y - state_vel_y)  * cos(state_psi);
 
                 /* P */
-                pos_p_term_roll_ = limit(vel_p_gain_roll_ * d_err_vel_curr_roll_, pos_d_limit_roll_);
+                pos_p_term_roll_ = clamp(vel_p_gain_roll_ * d_err_vel_curr_roll_, -pos_d_limit_roll_, pos_d_limit_roll_);
                 pos_d_term_roll_ = 0;
                 break;
               }
@@ -399,7 +392,7 @@ void PidController::pidFunction()
               }
             }
           //*** 指令値算出
-          roll_value = limit(pos_p_term_roll_ + pos_i_term_roll_ + pos_d_term_roll_ + offset_roll_, pos_limit_roll_);
+          roll_value = clamp(pos_p_term_roll_ + pos_i_term_roll_ + pos_d_term_roll_ + offset_roll_, -pos_limit_roll_, pos_limit_roll_);
           //**** 指令値反転
           roll_value = - roll_value;
 
@@ -428,20 +421,20 @@ void PidController::pidFunction()
           for(int j = 0; j < motor_num_; j++)
             {
               //**** P term
-              pos_p_term_yaw_ = limit(pos_p_gain_yaw_[j] * (-d_err_pos_curr_yaw_), pos_p_limit_yaw_);
+              pos_p_term_yaw_ = clamp(pos_p_gain_yaw_[j] * (-d_err_pos_curr_yaw_), -pos_p_limit_yaw_, pos_p_limit_yaw_);
               // if(motor_num_ == 1)
-              //   pos_p_term_yaw_ = limit(pos_p_gain_yaw_[j] * , pos_p_limit_yaw_);
+              //   pos_p_term_yaw_ = clamp(pos_p_gain_yaw_[j] * , pos_p_limit_yaw_);
 
               //**** I term: deprecated
               if(motor_num_ == 1)
-                error_i_yaw_ = limit(error_i_yaw_, pos_i_limit_yaw_ / pos_i_gain_yaw_[j]);
-              pos_i_term_yaw_ = limit(pos_i_gain_yaw_[j] * error_i_yaw_, pos_i_limit_yaw_);
+                error_i_yaw_ = clamp(error_i_yaw_, -pos_i_limit_yaw_ / pos_i_gain_yaw_[j], pos_i_limit_yaw_ / pos_i_gain_yaw_[j]);
+              pos_i_term_yaw_ = clamp(pos_i_gain_yaw_[j] * error_i_yaw_, -pos_i_limit_yaw_, pos_i_limit_yaw_);
 
               //***** D term: is in the flight board
               pos_d_term_yaw_ = 0;
 
               //*** each motor command value for log
-              float yaw_value = limit(pos_p_term_yaw_ + pos_i_term_yaw_ + pos_d_term_yaw_, pos_limit_yaw_);
+              float yaw_value = clamp(pos_p_term_yaw_ + pos_i_term_yaw_ + pos_d_term_yaw_, -pos_limit_yaw_, pos_limit_yaw_);
 
               four_axis_pid_debug.yaw.total.push_back(yaw_value);
               four_axis_pid_debug.yaw.p_term.push_back(pos_p_term_yaw_);
@@ -469,18 +462,18 @@ void PidController::pidFunction()
             {
               for(int j = 0; j < motor_num_; j++)
                 {
-                  //**** P Term (+ feed forward term)
-                  pos_p_term_throttle_ = limit(pos_p_gain_throttle_[j] * (-d_err_pos_curr_throttle_), pos_p_limit_throttle_); // the err is reversed
+                  //**** P Term
+                  pos_p_term_throttle_ = clamp(pos_p_gain_throttle_[j] * (-d_err_pos_curr_throttle_), -pos_p_limit_throttle_, pos_p_limit_throttle_); // the err is reversed
                   //**** I Term
-                  pos_i_term_throttle_ = limit(pos_i_gain_throttle_[j] * error_i_throttle_, pos_i_limit_throttle_);
+                  pos_i_term_throttle_ = clamp(pos_i_gain_throttle_[j] * error_i_throttle_, -pos_i_limit_throttle_, pos_i_limit_throttle_);
                   //***** D Term
-                  pos_d_term_throttle_ = limit(pos_d_gain_throttle_[j] * state_vel_z, pos_d_limit_throttle_);
+                  pos_d_term_throttle_ = clamp(pos_d_gain_throttle_[j] * state_vel_z, -pos_d_limit_throttle_, pos_d_limit_throttle_);
 
                   if(navigator_->getFlightMode() == Navigator::LAND_MODE)
                     pos_p_term_throttle_ = 0;
 
                   //*** each motor command value for log
-                  float throttle_value = limit(pos_p_term_throttle_ + pos_i_term_throttle_ + pos_d_term_throttle_ + offset_throttle_, pos_limit_throttle_);
+                  float throttle_value = clamp(pos_p_term_throttle_ + pos_i_term_throttle_ + pos_d_term_throttle_ + offset_throttle_, -pos_limit_throttle_, pos_limit_throttle_);
                   four_axis_pid_debug.throttle.total.push_back(throttle_value);
                   four_axis_pid_debug.throttle.p_term.push_back(pos_p_term_throttle_);
                   four_axis_pid_debug.throttle.i_term.push_back(pos_i_term_throttle_);
@@ -496,32 +489,6 @@ void PidController::pidFunction()
           four_axis_pid_debug.throttle.vel_err_no_transform = state_vel_z;
 
           pid_pub_.publish(four_axis_pid_debug);
-
-          if(feedforward_flag_)
-            {
-              std_msgs::Float32MultiArray ff_msg;
-
-              //roll & pitch
-              // ref set
-              Eigen::Vector2d r;
-              r << roll_value, pitch_value;
-
-              // feedfowd input
-              Eigen::VectorXd u_ff = feedforward_matrix_ * r;
-
-              //std::vector<int16_t> u_ff_pwm;
-              std::vector<float> u_ff_vec;
-              u_ff_vec.resize(0);
-              for(int i = 0; i < u_ff.rows(); i++)
-                {
-                  u_ff_vec.push_back(u_ff(i));
-                  ff_msg.data.push_back(u_ff(i));
-                }
-              //add to throttle
-              bool force_add_flag = !start_rp_integration_; //takeoff sign
-              flight_ctrl_input_->addFFValues(u_ff_vec, force_add_flag);
-              ff_pub_.publish(ff_msg);
-            }
         }
 
       //*** Update
@@ -532,11 +499,6 @@ void PidController::pidFunction()
 
       return;
     }
-}
-
-void PidController::feedForwardFunction()
-{
-  //do nothing
 }
 
 
