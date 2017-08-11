@@ -63,15 +63,16 @@
   -->
 
   ###########  Robot Model  ###########
-  <include file="$(find aerial_robot_model)/launch/aerial_robot_model.launch" unless="$(arg simulation)">
-    <arg name="model" value="dragon"/>
+  <include file="$(find dragon)/launch/robot_model.launch">
     <arg name="type" value="$(arg type)" />
     <arg name="headless" value="$(arg headless)" />
     <arg name="need_joint_state" value="false" if="$(arg real_machine)"/>
+    <arg name="need_joint_state" value="false" if="$(arg simulation)"/>
+    <arg name="description_mode" value="gazebo" if="$(arg simulation)"/>
   </include >
 
   ###########  Transform Control  ###########
-  <node pkg="hydrus_transform_control" type="transform_control_node" name="dragon"  output="screen" respawn="true">
+  <node pkg="hydrus" type="transform_control_node" name="dragon"  output="screen" respawn="true">
     <rosparam file="$(find dragon)/config/$(arg type)/AttitudeControl.yaml" command="load" />
     <param name="kinematic_verbose" value="false" />
     <param name="control_verbose" value="false" />
@@ -82,10 +83,9 @@
   <rosparam file="$(find dragon)/config/$(arg type)/SimulationControl.yaml" command="load"/>
   <include file="$(find aerial_robot_simulation)/launch/simulation.launch" if = "$(arg simulation)" >
     <arg name="model" default="dragon" />
-    <arg name="type" value="$(arg type)" />
     <arg name="gui" default="false" if="$(arg headless)" />
     <arg name="headless" default="$(arg headless)" />
-    </include>
+  </include>
 </launch>
 
 

@@ -37,7 +37,7 @@
     <visual>
       <origin rpy="0 0 0" xyz="${link_length* 0.5} 0 0"/>
       <geometry>
-        <mesh filename="package://aerial_robot_model/urdf/dragon/mesh/ducted_fan_${type}.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://dragon/urdf/mesh/ducted_fan_${type}.stl" scale="0.001 0.001 0.001"/>
       </geometry>
       <material name="black"/>
     </visual>
