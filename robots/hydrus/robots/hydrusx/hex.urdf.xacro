@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<robot
+    xmlns:xacro="http://www.ros.org/wiki/xacro" name="hydrusx" >
+
+  <xacro:include filename="$(find hydrus)/urdf/hydrusx/hydrusx_common.xacro" />
+  <xacro:include filename="$(find hydrus)/urdf/hydrusx/hydrusx_link.urdf.xacro" />
+
+  <xacro:hydrusx_link self="1" child="2" rotor_direction="-1" general="false" fc="false" pc="false"/>
+  <xacro:hydrusx_link self="2" child="3" rotor_direction="1"  general="true"  fc="false" pc="false"/>
+  <xacro:hydrusx_link self="3" child="4" rotor_direction="-1" general="false" fc="false" pc="true"/>
+  <xacro:hydrusx_link self="4" child="5" rotor_direction="1"  general="false" fc="true"  pc="false"/>
+  <xacro:hydrusx_link self="5" child="6" rotor_direction="-1" general="true"  fc="false" pc="false"/>
+  <xacro:hydrusx_link self="6" child="6" rotor_direction="1"  general="false" fc="false" pc="false"/>
+
+</robot>

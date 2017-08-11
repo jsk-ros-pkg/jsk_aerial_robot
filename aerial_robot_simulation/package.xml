@@ -16,7 +16,7 @@
   <build_depend>aerial_robot_msgs</build_depend>
   <build_depend>aerial_robot_model</build_depend>
   <build_depend>aerial_robot_base</build_depend>
-  <build_depend>hydrus_transform_control</build_depend>
+  <build_depend>hydrus</build_depend>
   <build_depend>tf</build_depend>
   <run_depend>gazebo_ros_control</run_depend>
   <run_depend>controller_interface</run_depend> <!-- please write the dependency of the controller interface -->
@@ -24,7 +24,7 @@
   <run_depend>aerial_robot_msgs</run_depend>
   <run_depend>aerial_robot_model</run_depend>
   <run_depend>aerial_robot_base</run_depend>
-  <run_depend>hydrus_transform_control</run_depend>
+  <run_depend>hydrus</run_depend>
   <run_depend>tf</run_depend>
 
   <!-- The export tag contains other, unspecified, tags -->
