@@ -11,7 +11,7 @@ GimbalControl::GimbalControl(ros::NodeHandle nh, ros::NodeHandle nhp): nh_(nh), 
 
   desire_attitude_sub_ = nh_.subscribe<geometry_msgs::Vector3>("desire_attitude", 1, &GimbalControl::desireAttitudeCallback, this, ros::TransportHints().tcpNoDelay());
 
-  attitude_command_sub_ = nh_.subscribe<aerial_robot_base::FourAxisPid>("attitude_command", 1, &GimbalControl::attCommandCallback, this, ros::TransportHints().tcpNoDelay());
+  attitude_command_sub_ = nh_.subscribe("attitude_command", 1, &GimbalControl::attCommandCallback, this, ros::TransportHints().tcpNoDelay());
 
   joy_stick_sub_ = nh_.subscribe<sensor_msgs::Joy>("joy_stick_command", 1, &GimbalControl::joyStickControl, this, ros::TransportHints().udp());
 
@@ -151,7 +151,7 @@ void GimbalControl::gimbalModulesInit()
 
 }
 
-void GimbalControl::attCommandCallback(const aerial_robot_base::FourAxisPidConstPtr& cmd_msg)
+void GimbalControl::attCommandCallback(const aerial_robot_base::FlatnessPidConstPtr& cmd_msg)
 {
   boost::lock_guard<boost::mutex> lock(queue_mutex_);
   while (att_command_qu_.size() >= att_comp_duration_size_)

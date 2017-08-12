@@ -55,11 +55,9 @@ class RigidEstimator : public BasicEstimator
                   ros::NodeHandle nh_private);
   ~RigidEstimator ();
 
-  void tfPublish();
-
  private:
 
-  void statesBroadcast();
+  void statePublish();
 
   void rosParamInit();
 

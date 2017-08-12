@@ -33,8 +33,8 @@
     ###########  Sensor Fusion  ###########
     <rosparam file="$(find hydrus)/config/hydrus3/SensorFusion.yaml" command="load" if="$(arg real_machine)"/>
     <rosparam file="$(find hydrus)/config/hydrus3/SensorSimulation.yaml" command="load" if="$(arg simulation)"/>
-    ###########  PID Control  ###########
-    <rosparam file="$(find hydrus)/config/hydrus3/$(arg type)/PidControlConfig.yaml" command="load" />
+    ###########  Differential Flatness PID Control  ###########
+    <rosparam file="$(find hydrus)/config/hydrus3/$(arg type)/DifferentialFlatnessPidControlConfig.yaml" command="load" />
     ###########  Teleop  ###########
     <rosparam file="$(find hydrus)/config/hydrus3/TeleopNavigationConfig.yaml" command="load" />
   </node>

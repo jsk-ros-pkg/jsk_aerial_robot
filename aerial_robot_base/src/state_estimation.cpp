@@ -44,13 +44,7 @@ RigidEstimator::RigidEstimator(ros::NodeHandle nh, ros::NodeHandle nh_private) :
 
 RigidEstimator::~RigidEstimator() {}
 
-void RigidEstimator::tfPublish()
-{
-  statesBroadcast();
-}
-
-
-void RigidEstimator::statesBroadcast()
+void RigidEstimator::statePublish()
 {
   aerial_robot_base::States full_state;
   full_state.header.stamp = ros::Time::now();

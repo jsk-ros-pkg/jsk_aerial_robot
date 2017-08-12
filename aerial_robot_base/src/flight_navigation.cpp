@@ -1,17 +1,14 @@
 #include "aerial_robot_base/flight_navigation.h"
 
-Navigator::Navigator(ros::NodeHandle nh, ros::NodeHandle nh_private, 
-                     BasicEstimator* estimator, FlightCtrlInput* flight_ctrl_input,
-                     int ctrl_loop_rate)
+Navigator::Navigator(ros::NodeHandle nh, ros::NodeHandle nh_private,
+                     BasicEstimator* estimator)
   : nh_(nh, "navigator"),
     nhp_(nh_private, "navigator"),
-    ctrl_loop_rate_(ctrl_loop_rate),
     target_pos_(0, 0, 0),
     target_vel_(0, 0, 0),
     target_acc_(0, 0, 0),
     target_psi_(0), target_vel_psi_(0),
     force_att_control_flag_(false),
-    flight_mode_(NO_CONTROL_MODE),
     low_voltage_flag_(false),
     prev_xy_control_mode_(flight_nav::ACC_CONTROL_MODE),
     vel_control_flag_(false),
@@ -40,8 +37,6 @@ Navigator::Navigator(ros::NodeHandle nh, ros::NodeHandle nh_private,
 
   joy_stick_sub_ = nh_.subscribe<sensor_msgs::Joy>("/joy", 1, &Navigator::joyStickControl, this, ros::TransportHints().udp());
 
-  rc_cmd_pub_ = nh_.advertise<aerial_robot_msgs::FourAxisCommand>("/aerial_robot_control_four_axis", 10);
-
   stop_teleop_sub_ = nh_.subscribe<std_msgs::UInt8>("stop_teleop", 1, &Navigator::stopTeleopCallback, this, ros::TransportHints().tcpNoDelay());
   teleop_flag_ = true;
 
@@ -49,9 +44,7 @@ Navigator::Navigator(ros::NodeHandle nh, ros::NodeHandle nh_private,
 
   estimator_ = estimator;
   estimate_mode_ = estimator_->getEstimateMode();
-  flight_ctrl_input_ = flight_ctrl_input;
-  stopNavigation();
-  setNaviCommand( IDLE_COMMAND );
+  setNaviState( ARM_OFF_STATE );
 }
 
 Navigator::~Navigator()
@@ -178,7 +171,7 @@ void Navigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
 
   /* common command */
   /* start */
-  if(joy_msg->buttons[3] == 1 && !getStartAble())
+  if(joy_msg->buttons[3] == 1 && getNaviState() == ARM_OFF_STATE)
     {
       motorArming();
       return;
@@ -188,10 +181,10 @@ void Navigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
   static ros::Time force_landing_start_time_ = ros::Time::now();
   if(joy_msg->buttons[0] == 1)
     {
-      /* Force Landing in inflight mode: TAKEOFF_COMMAND/LAND_COMMAND/HOVER_COMMAND */
-      if(!force_landing_flag_ && (getNaviCommand() == TAKEOFF_COMMAND || getNaviCommand() == LAND_COMMAND || getNaviCommand() == HOVER_COMMAND))
+      /* Force Landing in inflight mode: TAKEOFF_STATE/LAND_STATE/HOVER_STATE */
+      if(!force_landing_flag_ && (getNaviState() == TAKEOFF_STATE || getNaviState() == LAND_STATE || getNaviState() == HOVER_STATE))
         {
-          ROS_WARN("Joy Control: force landing command");
+          ROS_WARN("Joy Control: force landing state");
           std_msgs::UInt8 force_landing_cmd;
           force_landing_cmd.data = FORCE_LANDING_CMD;
           flight_config_pub_.publish(force_landing_cmd);
@@ -202,12 +195,11 @@ void Navigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
         }
 
       /* Halt mode */
-      if(joy_msg->header.stamp.toSec() - force_landing_start_time_.toSec() > force_landing_to_halt_du_ && getStartAble())
+      if(joy_msg->header.stamp.toSec() - force_landing_start_time_.toSec() > force_landing_to_halt_du_ && getNaviState() > START_STATE)
         {
           ROS_ERROR("Joy Control: Halt!");
 
-          setNaviCommand(STOP_COMMAND);
-          flight_mode_= RESET_MODE;
+          setNaviState(STOP_STATE);
 
           /* update the target pos(maybe not necessary) */
           setTargetXyFromCurrentState();
@@ -238,14 +230,14 @@ void Navigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
   /* landing */
   if(joy_msg->buttons[5] == 1 && joy_msg->buttons[15] == 1)
     {
-      if(getNaviCommand() == LAND_COMMAND) return;
+      if(getNaviState() == LAND_STATE) return;
 
-      setNaviCommand(LAND_COMMAND);
+      setNaviState(LAND_STATE);
       //update
       setTargetXyFromCurrentState();
       setTargetPsiFromCurrentState();
       setTargetPosZ(estimator_->getLandingHeight());
-      ROS_INFO("Joy Control: Land command");
+      ROS_INFO("Joy Control: Land state");
 
       return;
     }
@@ -253,14 +245,14 @@ void Navigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
   /* Motion: Up/Down */
   if(fabs(joy_msg->axes[3]) > 0.2)
     {
-      if(getNaviCommand() == HOVER_COMMAND)
+      if(getNaviState() == HOVER_STATE)
         {
           alt_control_flag_ = true;
           if(joy_msg->axes[3] >= 0)
             addTargetPosZ(joy_target_alt_interval_);
           else
             addTargetPosZ(-joy_target_alt_interval_);
-          ROS_INFO("Joy Control: Thrust command");
+          ROS_INFO("Joy Control: Thrust state");
         }
     }
   else
@@ -269,7 +261,7 @@ void Navigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
         {
           alt_control_flag_= false;
           setTargetZFromCurrentState();
-          ROS_INFO("Joy Control: Fixed Alt command, targetPosz_is %f",target_pos_.z());
+          ROS_INFO("Joy Control: Fixed Alt state, targetPosz_is %f",target_pos_.z());
         }
     }
 
@@ -321,7 +313,7 @@ void Navigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
   if(joy_msg->buttons[14] == 0 && pos_control_flag_)
     pos_control_flag_ = false;
 
-  /* mode oriented command */
+  /* mode oriented state */
   switch (xy_control_mode_)
     {
     case flight_nav::ACC_CONTROL_MODE:
@@ -329,7 +321,7 @@ void Navigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
         control_frame_ = flight_nav::WORLD_FRAME;
         if(joy_msg->buttons[8]) control_frame_ = flight_nav::LOCAL_FRAME;
 
-        /* pitch && roll angle command */
+        /* acc command */
         target_acc_.setValue(joy_msg->axes[1] * max_target_tilt_angle_ * BasicEstimator::G,
                              joy_msg->axes[0] * max_target_tilt_angle_ * BasicEstimator::G, 0);
 
@@ -383,10 +375,8 @@ void Navigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
     }
 }
 
-void Navigator::navigation()
+void Navigator::update()
 {
-  static int convergence_cnt = 0;
-  static int clock_cnt = 0; //mainly for velocity control takeoff
 
   tf::Vector3 delta = target_pos_ - estimator_->getPos(Frame::COG, estimate_mode_);
 
@@ -417,15 +407,15 @@ void Navigator::navigation()
   /* sensor health check */
   if(estimator_->getUnhealthLevel() == BasicEstimator::UNHEALTH_LEVEL3 && !force_landing_flag_)
     {
-      if(getNaviCommand() == TAKEOFF_COMMAND || getNaviCommand() == HOVER_COMMAND  || getNaviCommand() == LAND_COMMAND)
-        ROS_WARN("Sensor Unhealth Level%d: force landing command", estimator_->getUnhealthLevel());
+      if(getNaviState() == TAKEOFF_STATE || getNaviState() == HOVER_STATE  || getNaviState() == LAND_STATE)
+        ROS_WARN("Sensor Unhealth Level%d: force landing state", estimator_->getUnhealthLevel());
       std_msgs::UInt8 force_landing_cmd;
       force_landing_cmd.data = FORCE_LANDING_CMD;
       flight_config_pub_.publish(force_landing_cmd);
       force_landing_flag_ = true;
     }
 
-  if(getNaviCommand() == TAKEOFF_COMMAND || getNaviCommand() == HOVER_COMMAND)
+  if(getNaviState() == TAKEOFF_STATE || getNaviState() == HOVER_STATE)
     {
       bool normal_land = false;
 
@@ -446,170 +436,132 @@ void Navigator::navigation()
 
       if(normal_land)
         {
-          setNaviCommand(LAND_COMMAND);
+          setNaviState(LAND_STATE);
           setTargetXyFromCurrentState();
           setTargetPsiFromCurrentState();
           setTargetPosZ(estimator_->getLandingHeight());
         }
     }
 
-  if(getNaviCommand() == START_COMMAND)
-    { //takeoff phase
-      flight_mode_= NO_CONTROL_MODE;
-      estimator_->setSensorFusionFlag(true);
-      force_landing_flag_ = false; //is here good?
-
-      /* low voltage */
-      if(low_voltage_flag_) setNaviCommand(IDLE_COMMAND);
-
-    }
-  else if(getNaviCommand() == TAKEOFF_COMMAND)
-    { //Takeoff Phase
-      /* set flying flag to true once */
-      if(!estimator_->getFlyingFlag())
-        estimator_->setFlyingFlag(true);
-
-      flight_mode_= TAKEOFF_MODE;
-
-      if(xy_control_mode_ == flight_nav::POS_CONTROL_MODE)
-        {
-          if (fabs(delta.z() < POS_Z_THRE && fabs(delta.x()) < POS_X_THRE && fabs(delta.x()) < POS_Y_THRE))
-              convergence_cnt++;
-        }
-      else
-        {
-          if (fabs(delta.z()) < POS_Z_THRE) convergence_cnt++;
-        }
-
-      if (convergence_cnt > ctrl_loop_rate_)
-        {
-          convergence_cnt = 0;
-          setNaviCommand(HOVER_COMMAND);
-          ROS_WARN("Hovering!");
-        }
-    }
-  else if(getNaviCommand() == LAND_COMMAND)
+  switch(getNaviState())
     {
-      //for estimator landing mode
-      estimator_->setLandingMode(true);
+    case START_STATE:
+      {
+        /* low voltage */
+        if(low_voltage_flag_)
+          {
+            setNaviState(ARM_OFF_STATE);
+            break;
+          }
 
-      if (getStartAble())
-        {
-          flight_mode_= LAND_MODE; //--> for control
+        estimator_->setSensorFusionFlag(true);
+        force_landing_flag_ = false; //is here good?
 
-          if (fabs(delta.z()) < POS_Z_THRE) convergence_cnt++;
+        std_msgs::UInt8 start_cmd;
+        start_cmd.data = ARM_ON_CMD;
+        flight_config_pub_.publish(start_cmd);
 
-          if (convergence_cnt > ctrl_loop_rate_)
-            {
-              convergence_cnt = 0;
+        break;
+      }
+    case TAKEOFF_STATE:
+      { //Takeoff Phase
 
-              ROS_ERROR("disarm motors");
-              setNaviCommand(STOP_COMMAND);
-              flight_mode_= RESET_MODE;
+        /* set flying flag to true once */
+        if(!estimator_->getFlyingFlag())
+          estimator_->setFlyingFlag(true);
 
-              setTargetXyFromCurrentState();
-              setTargetPsiFromCurrentState();
+        if(xy_control_mode_ == flight_nav::POS_CONTROL_MODE)
+          {
+            if (fabs(delta.z() > alt_convergent_thresh_ || fabs(delta.x()) > xy_convergent_thresh_ || fabs(delta.y()) > xy_convergent_thresh_))
+              convergent_start_time_ = ros::Time::now().toSec();
+          }
+        else
+          {
+            if (fabs(delta.z()) > alt_convergent_thresh_) convergent_start_time_ = ros::Time::now().toSec();
+          }
+        if (ros::Time::now().toSec() - convergent_start_time_ > convergent_duration_)
+          {
+            convergent_start_time_ = ros::Time::now().toSec();
+            setNaviState(HOVER_STATE);
+            ROS_WARN("Hovering!");
 
-              estimator_->setSensorFusionFlag(false);
-              estimator_->setLandingMode(false);
-              estimator_->setLandedFlag(false);
-              estimator_->setFlyingFlag(false);
-            }
-        }
-      else
-        {
-          flight_mode_= NO_CONTROL_MODE;
-          setNaviCommand(IDLE_COMMAND);
-        }
-    }
-  else if(getNaviCommand() == HOVER_COMMAND)
-    {
-      if(vel_based_waypoint_)
-        {
-          /* vel nav */
-          delta.setZ(0); // we do not need z
-          if(delta.length() > vel_nav_threshold_)
-            {
-              //ROS_INFO("debug: vel based waypoint");
-              tf::Vector3 nav_vel = delta * vel_nav_gain_;
+          }
+        break;
+      }
+    case LAND_STATE:
+      {
+        //for estimator landing mode
+        estimator_->setLandingMode(true);
 
-              double speed = nav_vel.length();
-              if(speed  > nav_vel_limit_) nav_vel *= (nav_vel_limit_ / speed);
+        if (getNaviState() > START_STATE)
+          {
+            if (fabs(delta.z()) > alt_convergent_thresh_) convergent_start_time_ = ros::Time::now().toSec();
 
-              setTargetVelX(nav_vel.x());
-              setTargetVelY(nav_vel.y());
-            }
-          else
-            {
-              ROS_WARN("back to pos nav control for way point");
-              xy_control_mode_ = flight_nav::POS_CONTROL_MODE;
-              vel_based_waypoint_ = false;
-            }
-        }
-      flight_mode_= FLIGHT_MODE;
-    }
-  else if(getNaviCommand() == IDLE_COMMAND)
-    {
-      flight_mode_= NO_CONTROL_MODE;
-    }
-  else if(getNaviCommand() == STOP_COMMAND)
-    {
-      estimator_->setSensorFusionFlag(false);
-      estimator_->setLandingMode(false);
-      estimator_->setLandedFlag(false);
-      estimator_->setFlyingFlag(false);
+            if (ros::Time::now().toSec() - convergent_start_time_ > convergent_duration_)
+              {
+                convergent_start_time_ = ros::Time::now().toSec();
 
-      if(flight_mode_ != RESET_MODE)
-        flight_mode_= NO_CONTROL_MODE;
-    }
-  else
-    {
-      flight_mode_= NO_CONTROL_MODE;
-      ROS_WARN("ERROR COMMAND, CAN NOT BE SEND TO AERIAL ROBOT");
-    }
-}
+                ROS_ERROR("disarm motors");
+                setNaviState(STOP_STATE);
 
-void Navigator::sendAttCmd()
-{
-  if(getNaviCommand() == START_COMMAND)
-    {
-      std_msgs::UInt8 start_cmd;
-      start_cmd.data = ARM_ON_CMD;
-      flight_config_pub_.publish(start_cmd);
-    }
-  else if(getNaviCommand() == STOP_COMMAND)
-    {
-      std_msgs::UInt8 stop_cmd;
-      stop_cmd.data = ARM_OFF_CMD;
-      flight_config_pub_.publish(stop_cmd);
-    }
-  else if(getNaviCommand() == TAKEOFF_COMMAND ||
-          getNaviCommand() == LAND_COMMAND ||
-          getNaviCommand() == HOVER_COMMAND)
-    {
-      aerial_robot_msgs::FourAxisCommand rc_command_data;
-      rc_command_data.angles[0]  =  flight_ctrl_input_->getRollValue();
-      rc_command_data.angles[1] =  flight_ctrl_input_->getPitchValue();
+                setTargetXyFromCurrentState();
+                setTargetPsiFromCurrentState();
 
-      rc_command_data.base_throttle.resize(flight_ctrl_input_->getMotorNumber());
-      if(flight_ctrl_input_->getMotorNumber() == 1)
-        {
-          /* Simple PID based attitude/altitude control */
-          rc_command_data.angles[2] = (flight_ctrl_input_->getYawValue())[0];
-          rc_command_data.base_throttle[0] =  (flight_ctrl_input_->getThrottleValue())[0];
-          if((flight_ctrl_input_->getThrottleValue())[0] == 0) return; // do not publish the empty flight command => the force landing flag will be activate
-        }
-      else
-        {
-          /* LQI based attitude/altitude control */
-          for(int i = 0; i < flight_ctrl_input_->getMotorNumber(); i++)
-            rc_command_data.base_throttle[i] = (flight_ctrl_input_->getYawValue())[i] + (flight_ctrl_input_->getThrottleValue())[i];
-        }
-      rc_cmd_pub_.publish(rc_command_data);
-    }
-  else
-    {
-      //ROS_ERROR("ERROR PISITION COMMAND, CAN NOT BE SEND TO Quadcopter");
+                estimator_->setSensorFusionFlag(false);
+                estimator_->setLandingMode(false);
+                estimator_->setLandedFlag(false);
+                estimator_->setFlyingFlag(false);
+              }
+          }
+        else
+          {
+            setNaviState(ARM_OFF_STATE);
+          }
+        break;
+      }
+    case HOVER_STATE:
+      {
+        if(vel_based_waypoint_)
+          {
+            /* vel nav */
+            delta.setZ(0); // we do not need z
+            if(delta.length() > vel_nav_threshold_)
+              {
+                //ROS_INFO("debug: vel based waypoint");
+                tf::Vector3 nav_vel = delta * vel_nav_gain_;
+
+                double speed = nav_vel.length();
+                if(speed  > nav_vel_limit_) nav_vel *= (nav_vel_limit_ / speed);
+
+                setTargetVelX(nav_vel.x());
+                setTargetVelY(nav_vel.y());
+              }
+            else
+              {
+                ROS_WARN("back to pos nav control for way point");
+                xy_control_mode_ = flight_nav::POS_CONTROL_MODE;
+                vel_based_waypoint_ = false;
+              }
+          }
+        break;
+      }
+    case STOP_STATE:
+      {
+        estimator_->setSensorFusionFlag(false);
+        estimator_->setLandingMode(false);
+        estimator_->setLandedFlag(false);
+        estimator_->setFlyingFlag(false);
+
+        std_msgs::UInt8 stop_cmd;
+        stop_cmd.data = ARM_OFF_CMD;
+        flight_config_pub_.publish(stop_cmd);
+
+        break;
+      }
+    default:
+      {
+        break;
+      }
     }
 }
 
@@ -629,6 +581,18 @@ void Navigator::rosParamInit(ros::NodeHandle nh)
   if (!nh.getParam ("takeoff_height", takeoff_height_))
     takeoff_height_ = 0;
   printf("%s: takeoff_height_ is %.3f\n", ns.c_str(), takeoff_height_);
+
+  if (!nh.getParam ("convergent_duration", convergent_duration_))
+    convergent_duration_ = 1.0; //sec
+  printf("%s: convergent_duration_ is %.3f\n", ns.c_str(), convergent_duration_);
+
+  if (!nh.getParam ("alt_convergent_thresh", alt_convergent_thresh_))
+    alt_convergent_thresh_ = 0.05; //m
+  printf("%s: alt_convergent_thresh_ is %.3f\n", ns.c_str(), alt_convergent_thresh_);
+
+  if (!nh.getParam ("xy_convergent_thresh", xy_convergent_thresh_))
+    xy_convergent_thresh_ = 0.15; //m
+  printf("%s: xy_convergent_thresh_ is %.3f\n", ns.c_str(), xy_convergent_thresh_);
 
   if (!nh.getParam ("max_target_vel", max_target_vel_))
     max_target_vel_ = 0;

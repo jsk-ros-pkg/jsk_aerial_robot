@@ -18,11 +18,11 @@ controller/throttle/const_i_ctrl_thre_land: -0.2
 
 # pitch [rad]
 controller/pitch/pos_p_gain: 0.1
-controller/pitch/pos_i_gain: 0.002 #
-controller/pitch/pos_i_gain_hover: 0.001 #1.625 * PI / 10 / 180
+controller/pitch/pos_i_gain: 0.002
+controller/pitch/pos_i_gain_hover: 0.001
 controller/pitch/pos_d_gain: 0.4 #0.8: GPS-pos-control(2017/5/12 kashiwa), also ok for mocap
 controller/pitch/vel_p_gain: 0.4 #0.8: GPS-pos-control(2017/5/12 kashiwa), also ok for mocap
-controller/pitch/vel_i_gain: 0.005 #1.625 * PI / 10 / 180
+controller/pitch/vel_i_gain: 0.005
 controller/pitch/pos_limit: 0.3  # 17[deg]
 controller/pitch/pos_p_limit: 0.2 
 controller/pitch/pos_i_limit: 0.15
