@@ -34,7 +34,7 @@ SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 add_message_files(FILES
   AerialRobotStatus.msg
   FlightNav.msg
-  FourAxisPid.msg
+  FlatnessPid.msg
   Pid.msg
   State.msg
   States.msg
@@ -93,9 +93,14 @@ add_library(kf_baro_bias_pluginlib
   src/kf/xy_roll_pitch_bias_plugin.cpp)
 target_link_libraries(kf_baro_bias_pluginlib ${catkin_LIBRARIES})
 
+### flight control plugin
+add_library(flight_control_pluginlib
+  src/control/flatness_pid_controller.cpp)
+target_link_libraries(flight_control_pluginlib ${catkin_LIBRARIES})
+add_dependencies(flight_control_pluginlib aerial_robot_msgs_generate_messages_cpp ${PROJECT_NAME}_generate_messages_cpp ${PROJECT_NAME}_gencfg)
+
 add_library (aerial_robot_base src/aerial_robot_base.cpp
   src/flight_navigation.cpp
-  src/flight_control.cpp
   src/state_estimation.cpp
 )
 add_dependencies(aerial_robot_base aerial_robot_msgs_generate_messages_cpp ${PROJECT_NAME}_generate_messages_cpp ${PROJECT_NAME}_gencfg)

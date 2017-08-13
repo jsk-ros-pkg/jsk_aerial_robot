@@ -1,213 +1,134 @@
-#ifndef FLIGHT_CONTROLLER_H
-#define FLIGHT_CONTROLLER_H
+// -*- mode: c++ -*-
+/*********************************************************************
+ * Software License Agreement (BSD License)
+ *
+ *  Copyright (c) 2017, JSK Lab
+ *  All rights reserved.
+ *
+ *  Redistribution and use in source and binary forms, with or without
+ *  modification, are permitted provided that the following conditions
+ *  are met:
+ *
+ *   * Redistributions of source code must retain the above copyright
+ *     notice, this list of conditions and the following disclaimer.
+ *   * Redistributions in binary form must reproduce the above
+ *     copyright notice, this list of conditions and the following
+ *     disclaimer in the documentation and/o2r other materials provided
+ *     with the distribution.
+ *   * Neither the name of the JSK Lab nor the names of its
+ *     contributors may be used to endorse or promote products derived
+ *     from this software without specific prior written permission.
+ *
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ *  FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ *  COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ *  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ *  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ *  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ *  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ *  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ *  POSSIBILITY OF SUCH DAMAGE.
+ *********************************************************************/
 
-//* ros
+#ifndef FLIGHT_CONTROLLER_BASE_PLUGIN_H
+#define FLIGHT_CONTROLLER_BASE_PLUGIN_H
+
+/* ros */
 #include <ros/ros.h>
+
+/* basic instance */
 #include <aerial_robot_base/basic_state_estimation.h>
 #include <aerial_robot_base/control_input_array.h>
 #include <aerial_robot_base/flight_navigation.h>
 
-#include <std_msgs/Float32MultiArray.h>
-#include <Eigen/Core>
-#include <Eigen/Geometry>
-#include <aerial_robot_msgs/FourAxisGain.h>
-#include <aerial_robot_base/FourAxisPid.h>
+/* ros msg */
 #include <aerial_robot_base/MotorInfo.h>
-#include <aerial_robot_base/GetMotorNum.h>
+
+/* util */
+#include <boost/algorithm/clamp.hpp>
 #include <tf/transform_datatypes.h>
 
-//* for dynamic reconfigure
-#include <dynamic_reconfigure/server.h>
-#include <aerial_robot_msgs/DynamicReconfigureLevels.h>
-#include <aerial_robot_base/XYPidControlConfig.h>
+using namespace std;
 
-#include <boost/algorithm/clamp.hpp>
-
-class FlightController
+namespace control_plugin
 {
-public:
-  FlightController(ros::NodeHandle nh,
-                   ros::NodeHandle nh_private,
-                   BasicEstimator* estimator, Navigator* navigator,
-                   FlightCtrlInput* flight_ctrl_input);
-  virtual ~FlightController(){};
-
-  inline float limit(float value, float limit)
+  class ControlBase
   {
-    if(value > limit) { return limit;}
-    else if(value < - limit) { return -limit; }
-    else return value;
-  }
+  public:
+    ControlBase():
+      motor_num_(1),
+      control_timestamp_(-1)
+    {}
 
+    virtual ~ControlBase(){}
+    void virtual initialize(ros::NodeHandle nh,
+               ros::NodeHandle nhp,
+               BasicEstimator* estimator,
+               Navigator* navigator,
+               double ctrl_loop_rate)
+    {
+      nh_ = ros::NodeHandle(nh, "controller");
+      nhp_ = ros::NodeHandle(nhp,  "controller");
 
-  inline int getMotorNumber(){return motor_num_;}
+      estimator_ = estimator;
+      navigator_ = navigator;
 
+      ctrl_loop_rate_ = ctrl_loop_rate;
 
- protected:
-  ros::NodeHandle nh_;
-  ros::NodeHandle nhp_;
+      estimate_mode_ = estimator_->getEstimateMode();
 
-  ros::ServiceServer motor_num_srv_;
+      nhp_.param("verbose", verbose_, true);
 
-  Navigator* navigator_;
-  BasicEstimator* estimator_;
-  FlightCtrlInput* flight_ctrl_input_;
+      ros::NodeHandle motor_info_node("motor_info");
+      std::string ns = motor_info_node.getNamespace();
 
-  int motor_num_;
+      motor_info_node.param("min_pwm", min_pwm_, 0.0);
+      if(verbose_) cout << ns  << ": min_pwm_ is "  <<  min_pwm_ << endl;
+      motor_info_node.param("max_pwm", max_pwm_, 0.0);
+      if(verbose_) cout << ns  << ": max_pwm_ is "  <<  max_pwm_ << endl;
+      motor_info_node.param("f_pwm_rate", f_pwm_rate_, 1.0);
+      if(verbose_) cout << ns  << ": f_pwm_rate_ is "  <<  f_pwm_rate_ << endl;
+      motor_info_node.param("m_f_rate", m_f_rate_, 0.0);
+      if(verbose_) cout << ns  << ": m_f_rate_ is %.3f\n"  <<  m_f_rate_ << endl;
+      motor_info_node.param("f_pwm_offset", f_pwm_offset_, 0.0);
+      if(verbose_) cout << ns  << ": f_pwm_offset_ is "  <<  f_pwm_offset_ << endl;
+      motor_info_node.param("pwm_rate", pwm_rate_, 1.0);
+      if(verbose_) cout << ns  << ": pwm_rate_ is "  <<  pwm_rate_ << endl;
+      motor_info_node.param("force_landing_pwm", force_landing_pwm_, 0.5);
+      if(verbose_) cout << ns  << ": force_landing_pwm_ is "  <<  force_landing_pwm_ << endl;
+    }
 
-  bool feedforward_flag_;
-  Eigen::MatrixXd feedforward_matrix_;
+    virtual void update() {}
 
-  //new param
-  double min_pwm_, max_pwm_;
-  double f_pwm_rate_; //gain which convert f to pwm and also take the bit shift into account
-  double f_pwm_offset_;
-  double m_f_rate_;
-  double pwm_rate_; //percentage
-  double force_landing_pwm_; //pwm
-  int estimate_mode_;
-  std::string motor_num_srv_name_;
+    virtual void activate() {}
+    virtual void reset() {}
 
-  bool motorNumCallback(aerial_robot_base::GetMotorNum::Request &req, aerial_robot_base::GetMotorNum::Response &res)
-  {
-    res.number = motor_num_;
-    return true;
-  }
-};
+  protected:
+    ros::NodeHandle nh_;
+    ros::NodeHandle nhp_;
 
-class PidController : public FlightController
-{
- public:
-  PidController(ros::NodeHandle nh,
-                ros::NodeHandle nh_private,
-                BasicEstimator* estimator, Navigator* navigator,
-                FlightCtrlInput* flight_ctrl_input,
-                double ctrl_loop_rate);
-  ~PidController(){};
+    Navigator* navigator_;
+    BasicEstimator* estimator_;
+    FlightCtrlInput* flight_ctrl_input_;
 
-  void pidFunction();
-  void feedForwardFunction();
+    double ctrl_loop_rate_;
+    double control_timestamp_;
+    int motor_num_;
 
-  //dynamic reconfigure
-  void cfgXYPidCallback(aerial_robot_base::XYPidControlConfig &config, uint32_t level);
+    /* new param */
+    double min_pwm_, max_pwm_;
+    double f_pwm_rate_; //gain which convert f to pwm and also take the bit shift into account
+    double f_pwm_offset_;
+    double m_f_rate_;
+    double pwm_rate_; //percentage
+    double force_landing_pwm_; //pwm
+    int estimate_mode_;
 
-private:
-  ros::Publisher  pid_pub_;
-  ros::Publisher  ff_pub_;
-  ros::Publisher  motor_info_pub_;
-  ros::Subscriber four_axis_gain_sub_;
-  ros::Subscriber xy_vel_weak_gain_sub_;
-
-  int pid_ctrl_loop_rate_;
-  int pitch_ctrl_cnt;
-  int pitch_ctrl_loop_rate_;
-  int roll_ctrl_cnt;
-  int roll_ctrl_loop_rate_;
-  int throttle_ctrl_cnt;
-  int throttle_ctrl_loop_rate_;
-  int yaw_ctrl_cnt;
-  int yaw_ctrl_loop_rate_;
-
-  //**** throttle
-  std::vector<double>  pos_p_gain_throttle_;
-  std::vector<double>  pos_i_gain_throttle_;
-  std::vector<double>  pos_d_gain_throttle_;
-  double const_i_ctrl_thre_throttle_land_;
-  double offset_throttle_;
-  int pos_limit_throttle_;
-  double land_gain_slow_rate_;
-  int pos_p_limit_throttle_;
-  int pos_i_limit_throttle_;
-  int pos_d_limit_throttle_;
-  double pos_err_thresh_;
-
- //**** pitch
- double pos_p_gain_pitch_;
- double pos_i_gain_pitch_;
- double pos_d_gain_pitch_;
- double pos_i_gain_pitch_hover_;
- double vel_p_gain_pitch_;
- double vel_i_gain_pitch_;
- double offset_pitch_;
- double pos_limit_pitch_;
- double pos_p_limit_pitch_;
- double pos_i_limit_pitch_;
- double pos_d_limit_pitch_;
- //double vel_value_limit_pitch_;
- double i_enable_limit_pitch_;
-
- //**** roll
- double pos_p_gain_roll_;
- double pos_i_gain_roll_;
- double pos_d_gain_roll_;
- double pos_i_gain_roll_hover_;
- double vel_p_gain_roll_; 
- double vel_i_gain_roll_; 
- double offset_roll_;
- double pos_limit_roll_;
- double pos_p_limit_roll_;
- double pos_i_limit_roll_;
- double pos_d_limit_roll_;
- //double vel_value_limit_roll_;
- double i_enable_limit_roll_;
-
-  //*** pitch and roll
- std::string xy_vel_weak_gain_sub_name_;
- double xy_vel_weak_rate_;
-
- //**** yaw
- std::vector<double> pos_p_gain_yaw_;
- std::vector<double> pos_i_gain_yaw_;
- std::vector<double>  pos_d_gain_yaw_;
- int pos_limit_yaw_;
- int pos_p_limit_yaw_;
- int pos_i_limit_yaw_;
- int pos_d_limit_yaw_;
- //double vel_value_limit_yaw_;
- //double i_enable_limit_yaw_;
-
- float d_err_pos_curr_pitch_;
- float d_err_pos_curr_roll_;
- float d_err_pos_curr_throttle_;
- float d_err_pos_curr_yaw_;
-
- float d_err_vel_curr_roll_;
- float d_err_vel_curr_pitch_;
- float d_err_vel_curr_yaw_;
- float d_err_vel_curr_throttle_;
- float d_err_vel_prev_roll_;
- float d_err_vel_prev_pitch_;
- float d_err_vel_prev_yaw_;
- float d_err_vel_prev_throttle_;
-
- float pos_i_term_roll_;
- float pos_i_term_pitch_;
- float pos_i_term_yaw_;
- float pos_i_term_throttle_;
- float pos_p_term_roll_;
- float pos_p_term_pitch_;
- float pos_p_term_yaw_;
- float pos_p_term_throttle_;
- float pos_d_term_roll_;
- float pos_d_term_pitch_;
- float pos_d_term_yaw_;
- float pos_d_term_throttle_;
- float error_i_throttle_, error_i_yaw_;
-
- bool start_rp_integration_;
-
- //callback
- void fourAxisGainCallback(const aerial_robot_msgs::FourAxisGainConstPtr & msg);
- void xyVelWeakGainCallback(const std_msgs::UInt8ConstPtr & msg);
-
- //dynamic reconfigure
- dynamic_reconfigure::Server<aerial_robot_base::XYPidControlConfig>* xy_pid_server_;
-
- dynamic_reconfigure::Server<aerial_robot_base::XYPidControlConfig>::CallbackType dynamic_reconf_func_xy_pid_;
- void rosParamInit(ros::NodeHandle nh);
+    bool verbose_;
+  };
 
 };
-
-
-
 #endif

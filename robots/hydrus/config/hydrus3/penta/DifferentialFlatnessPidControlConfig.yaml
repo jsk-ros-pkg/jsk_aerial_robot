@@ -1,0 +1,29 @@
+### Differential Flatness PID control for hydrus3 quad type
+
+# alt [N]
+controller/alt/offset: 0
+controller/alt/limit: 9.0
+controller/alt/p_term_limit: 9.0
+controller/alt/i_term_limit: 9.0
+controller/alt/d_term_limit: 9.0
+controller/alt/alt_landing_const_i_ctrl_thresh: -0.1
+
+# xy [rad]
+controller/xy/p_gain: 0.2 #0.12 #70 * PI / 10 / 180
+controller/xy/i_gain: 0.03 #
+controller/xy/hovering_i_gain: 0.005 #1.625 * PI / 10 / 180
+controller/xy/d_gain: 0.35 #0.4
+controller/xy/limit: 0.3  # 17[deg]
+controller/xy/p_term_limit: 0.2 
+controller/xy/i_term_limit: 0.15
+controller/xy/d_term_limit: 0.2
+controller/xy/x_offset: 0
+controller/xy/y_offset: 0
+controller/xy/xy_vel_weak_gain_sub_name: /velocity_control_gain_change
+
+# yaw [N]
+controller/yaw/limit: 5.0
+controller/yaw/p_term_limit: 5.0
+controller/yaw/i_term_limit: 5.0
+controller/yaw/d_term_limit: 5.0
+

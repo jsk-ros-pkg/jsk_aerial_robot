@@ -2,6 +2,7 @@
 #define AERIAL_ROBOT_BASE_H
 
 #include <ros/ros.h>
+#include <pluginlib/class_loader.h>
 #include <aerial_robot_base/flight_control.h>
 #include <aerial_robot_base/flight_navigation.h>
 #include <aerial_robot_base/state_estimation.h>
@@ -16,26 +17,18 @@ class AerialRobotBase
   AerialRobotBase(ros::NodeHandle nh, ros::NodeHandle nh_private);
   ~ AerialRobotBase();
 
-  void rosParamInit();
   void mainFunc(const ros::TimerEvent & e);
-  void tfPubFunc(); //for thread
-
 
  private:
   ros::NodeHandle nh_;
   ros::NodeHandle nhp_;
   ros::Timer  main_timer_;
-
   double main_rate_;
-  double tf_pub_rate_;
-  int motor_num_;
 
-  boost::thread tf_thread_;
-
-  FlightCtrlInput* flight_ctrl_input_;
-  PidController* controller_;
   RigidEstimator*  estimator_;
   Navigator* navigator_;
+  boost::shared_ptr< pluginlib::ClassLoader<control_plugin::ControlBase> > controller_loader_ptr_;
+  boost::shared_ptr<control_plugin::ControlBase> controller_;
 
 };
 

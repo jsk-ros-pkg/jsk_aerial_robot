@@ -662,9 +662,9 @@ void TransformController::param2controller()
       four_axis_gain_msg.pos_d_gain_pitch.push_back(K_(i,3));
       four_axis_gain_msg.pos_i_gain_pitch.push_back(K_(i,lqi_mode_ * 2 + 1));
 
-      four_axis_gain_msg.pos_p_gain_throttle.push_back(K_(i,4));
-      four_axis_gain_msg.pos_d_gain_throttle.push_back(K_(i,5));
-      four_axis_gain_msg.pos_i_gain_throttle.push_back(K_(i, lqi_mode_ * 2 + 2));
+      four_axis_gain_msg.pos_p_gain_alt.push_back(K_(i,4));
+      four_axis_gain_msg.pos_d_gain_alt.push_back(K_(i,5));
+      four_axis_gain_msg.pos_i_gain_alt.push_back(K_(i, lqi_mode_ * 2 + 2));
 
       if(lqi_mode_ == LQI_FOUR_AXIS_MODE)
         {

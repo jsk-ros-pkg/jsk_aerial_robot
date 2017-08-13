@@ -46,7 +46,7 @@
 #include <geometry_msgs/Vector3.h>
 #include <geometry_msgs/Vector3Stamped.h>
 #include <aerial_robot_base/FlightNav.h>
-#include <aerial_robot_base/FourAxisPid.h>
+#include <aerial_robot_base/FlatnessPid.h>
 #include <sensor_msgs/Joy.h>
 
 #include <Eigen/Core>
@@ -177,7 +177,7 @@ class GimbalControl
 
   void attitudeCallback(const aerial_robot_msgs::ImuConstPtr& msg);
   void desireAttitudeCallback(const geometry_msgs::Vector3ConstPtr& msg);
-  void attCommandCallback(const aerial_robot_base::FourAxisPidConstPtr& cmd_msg);
+  void attCommandCallback(const aerial_robot_base::FlatnessPidConstPtr& cmd_msg);
   void joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg);
 
   void gimbalControl(Eigen::Quaternion<double> q_att);

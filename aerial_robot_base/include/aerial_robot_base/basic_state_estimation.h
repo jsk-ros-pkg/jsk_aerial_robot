@@ -134,9 +134,16 @@ public:
 
     /* TODO: represented sensors unhealth level */
     unhealth_level_ = 0;
+
+    nhp_.param ("update_rate", update_rate_, 100.0); //100Hz
+    update_thread_ = boost::thread(boost::bind(&BasicEstimator::update, this));
   }
 
-  virtual ~BasicEstimator(){}
+  virtual ~BasicEstimator()
+  {
+    update_thread_.interrupt();
+    update_thread_.join();
+  }
 
   //mode
   static constexpr int NONE = -1;
@@ -175,10 +182,6 @@ public:
     return state_[axis];
   }
 
-  /*
-    axis: state axis (11)
-    estimate_mode: egomotion/experiment/ground_truth
-  */
    tf::Vector3 getState( uint8_t axis,  uint8_t estimate_mode)
   {
     boost::lock_guard<boost::mutex> lock(state_mutex_);
@@ -213,12 +216,14 @@ public:
   }
   void setPos(int frame, int estimate_mode, tf::Vector3 pos)
   {
+    boost::lock_guard<boost::mutex> lock(state_mutex_);
     for(int i = 0; i < 3; i ++ )
       (state_[i + frame * 3][estimate_mode].second)[0] = pos[i];
   }
 
   tf::Vector3 getVel(int frame, int estimate_mode)
   {
+    boost::lock_guard<boost::mutex> lock(state_mutex_);
     return tf::Vector3((state_[State::X_COG + frame * 3][estimate_mode].second)[1],
                        (state_[State::Y_COG + frame * 3][estimate_mode].second)[1],
                        (state_[State::Z_COG + frame * 3][estimate_mode].second)[1]);
@@ -226,12 +231,14 @@ public:
 
   void setVel(int frame, int estimate_mode, tf::Vector3 vel)
   {
+    boost::lock_guard<boost::mutex> lock(state_mutex_);
     for(int i = 0; i < 3; i ++ )
       (state_[i + frame * 3][estimate_mode].second)[1] = vel[i];
   }
 
   tf::Matrix3x3 getOrientation(int estimate_mode)
   {
+    boost::lock_guard<boost::mutex> lock(state_mutex_);
     tf::Matrix3x3 r;
     r.setRPY((state_[State::ROLL][estimate_mode].second)[0],
                (state_[State::PITCH][estimate_mode].second)[0],
@@ -241,6 +248,7 @@ public:
 
   void setEuler(int estimate_mode, tf::Vector3 euler)
   {
+    boost::lock_guard<boost::mutex> lock(state_mutex_);
     (state_[State::ROLL][estimate_mode].second)[0] = euler[0];
     (state_[State::PITCH][estimate_mode].second)[0] = euler[1];
     (state_[State::YAW][estimate_mode].second)[0] = euler[2];
@@ -248,6 +256,7 @@ public:
 
   tf::Vector3 getAngularVel(int estimate_mode)
   {
+    boost::lock_guard<boost::mutex> lock(state_mutex_);
     return tf::Vector3((state_[State::ROLL][estimate_mode].second)[1],
                        (state_[State::PITCH][estimate_mode].second)[1],
                        (state_[State::YAW][estimate_mode].second)[1]);
@@ -255,6 +264,7 @@ public:
 
   void setAngularVel(int estimate_mode, tf::Vector3 omega)
   {
+    boost::lock_guard<boost::mutex> lock(state_mutex_);
     (state_[State::ROLL][estimate_mode].second)[1] = omega[0];
     (state_[State::PITCH][estimate_mode].second)[1] = omega[1];
     (state_[State::YAW][estimate_mode].second)[1] = omega[2];
@@ -317,11 +327,14 @@ protected:
   ros::Subscriber cog2baselink_transform_sub_;
   ros::Subscriber estimate_height_mode_sub_;
 
+  boost::thread update_thread_;
+
   boost::mutex state_mutex_;   /* mutex */
   /* ros param */
   bool param_verbose_;
   int estimate_mode_; /* main estimte mode */
   string cog2baselink_transform_sub_name_;
+  double update_rate_;
 
   /* the transformation between baselink frame and CoG frame */
   tf::Transform cog2baselink_transform_;
@@ -352,6 +365,18 @@ protected:
     tf::transformMsgToTF(msg->transform, cog2baselink_transform_);
   }
 
+  virtual void statePublish(){}
+
+  void update()
+  {
+    ros::Rate loop_rate(update_rate_);
+    while(ros::ok())
+      {
+        statePublish();
+        ros::spinOnce();
+        loop_rate.sleep();
+      }
+  }
 };
 
 
