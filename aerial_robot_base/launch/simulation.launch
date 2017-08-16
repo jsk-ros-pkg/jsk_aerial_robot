@@ -1,6 +1,9 @@
 <?xml version="1.0"?>
 <launch>
 
+  ###########  launch config  ###########
+  <arg name="estimate_mode"  default= "0" />
+
   ############## Motor Info ############################
   <rosparam file="$(find aerial_robot_base)/config/simulation/MotorInfo.yaml" command="load" />
 
@@ -17,7 +20,7 @@
   <node pkg="aerial_robot_base" type="aerial_robot_base_node" name="aerial_robot_base_node"  output="screen" >
 
     ############### Basic Param  #####################
-    <param name="estimator/estimate_mode" value= "1" />
+    <param name="estimator/estimate_mode" value= "$(arg estimate_mode)" />
     <param name="navigator/xy_control_mode" value="0"/>
     <param name="main_rate" value="40"/>
     <param name="simulation" value="true" />
