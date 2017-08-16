@@ -47,11 +47,11 @@
   ###########  Sensors  ###########
   <include file="$(find aerial_robot_base)/launch/sensors/onboard_sensors.launch"  if="$(arg real_machine)" >
     <arg name="imu_board" value="1" />  <!-- 1: d imu board, 0: kduino board -->
-    <arg name="use_alt" value="1" />
-    <arg name="use_mocap" value="0" />
-    <arg name="use_joy" value="0" />
+    <arg name="use_alt" value="0" />
+    <arg name="use_mocap" value="1" />
+    <arg name="use_joy" value="1" />
     <arg name="use_opti" value="0" />
-    <arg name="imu_port" value="/dev/flight_controller" />
+    <arg name="imu_port" value="/dev/ttyUSB0" />
     <arg name="alt_port" value="/dev/leddar_one" />
   </include >
 

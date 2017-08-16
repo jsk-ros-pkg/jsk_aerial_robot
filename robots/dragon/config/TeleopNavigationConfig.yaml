@@ -1,6 +1,6 @@
 # Teleop Basic Param
 
-navigator/takeoff_height: 0.5
+navigator/takeoff_height: 0.2
 navigator/navi_frame_int: 0  # deprecated?  map frame: 0, body frame: 1 
 navigator/map_frame: map
 navigator/target_frame: target
@@ -25,4 +25,4 @@ navigator/max_target_tilt_angle: 0.2
 navigator/cmd_angle_lev2_gain : 1.5
 
 # battery fail safe
-navigator/low_voltage_thre: 216 # 21.6V
+navigator/low_voltage_thre: 0 # 21.6V
