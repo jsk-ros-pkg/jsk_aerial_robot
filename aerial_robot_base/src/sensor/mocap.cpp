@@ -189,6 +189,27 @@ namespace sensor_plugin
       updateHealthStamp(ros::Time::now().toSec());
     }
 
+    void groundTruthProcess()
+    {
+      /* base link */
+      estimator_->setPos(Frame::BASELINK, BasicEstimator::GROUND_TRUTH, pos_);
+      estimator_->setVel(Frame::BASELINK, BasicEstimator::GROUND_TRUTH, vel_);
+
+      /* CoG */
+      /* 2017.7.25: calculate the state in COG frame using the Baselink frame */
+      /* pos_cog = pos_baselink - R * pos_cog2baselink */
+      int estimate_mode = BasicEstimator::GROUND_TRUTH;
+      estimator_->setPos(Frame::COG, estimate_mode,
+                         estimator_->getPos(Frame::BASELINK, estimate_mode)
+                         - estimator_->getOrientation(estimate_mode)
+                         * estimator_->getCog2Baselink().getOrigin());
+      /* vel_cog = vel_baselink - R * (w x pos_cog2baselink) */
+      estimator_->setVel(Frame::COG, estimate_mode,
+                         estimator_->getVel(Frame::BASELINK, estimate_mode)
+                         - estimator_->getOrientation(estimate_mode)
+                         * (estimator_->getAngularVel(estimate_mode).cross(estimator_->getCog2Baselink().getOrigin())));
+    }
+
     void groundTruthCallback(const nav_msgs::OdometryConstPtr & msg)
     {
       tf::pointMsgToTF(msg->pose.pose.position, pos_);
@@ -205,26 +226,10 @@ namespace sensor_plugin
           euler_.setValue(r, p, y);
           tf::Vector3 omega;
           tf::vector3MsgToTF(msg->twist.twist.angular, omega);
-
-          /* base link */
-          estimator_->setPos(Frame::BASELINK, BasicEstimator::GROUND_TRUTH, pos_);
-          estimator_->setVel(Frame::BASELINK, BasicEstimator::GROUND_TRUTH, vel_);
           estimator_->setEuler(BasicEstimator::GROUND_TRUTH, euler_);
           estimator_->setAngularVel(BasicEstimator::GROUND_TRUTH, omega);
 
-          /* CoG */
-          /* 2017.7.25: calculate the state in COG frame using the Baselink frame */
-          /* pos_cog = pos_baselink - R * pos_cog2baselink */
-          int estimate_mode = BasicEstimator::GROUND_TRUTH;
-          estimator_->setPos(Frame::COG, estimate_mode,
-                             estimator_->getPos(Frame::BASELINK, estimate_mode)
-                             - estimator_->getOrientation(estimate_mode)
-                             * estimator_->getCog2Baselink().getOrigin());
-          /* vel_cog = vel_baselink - R * (w x pos_cog2baselink) */
-          estimator_->setVel(Frame::COG, estimate_mode,
-                             estimator_->getVel(Frame::BASELINK, estimate_mode)
-                             - estimator_->getOrientation(estimate_mode)
-                             * (estimator_->getAngularVel(estimate_mode).cross(estimator_->getCog2Baselink().getOrigin())));
+          groundTruthProcess();
         }
 
       if(first_flag)
@@ -305,8 +310,19 @@ namespace sensor_plugin
     {
       if(!estimate_flag_) return;
 
+      if((estimate_mode_ & (1 << BasicEstimator::GROUND_TRUTH)))
+        {
+          groundTruthProcess();
+          for(int i = 0; i < 3; i ++)
+            {
+              ground_truth_pose_.states[i].state[2].x = pos_[i];
+              ground_truth_pose_.states[i].state[2].y = vel_[i];
+            }
+        }
+
       /* start experiment estimation */
       if(!(estimate_mode_ & (1 << BasicEstimator::EXPERIMENT_ESTIMATE))) return;
+
 
       for(auto& fuser : estimator_->getFuser(BasicEstimator::EXPERIMENT_ESTIMATE))
         {
