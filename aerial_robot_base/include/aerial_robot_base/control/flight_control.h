@@ -41,7 +41,6 @@
 
 /* basic instance */
 #include <aerial_robot_base/basic_state_estimation.h>
-#include <aerial_robot_base/control_input_array.h>
 #include <aerial_robot_base/flight_navigation.h>
 
 /* ros msg */
@@ -112,7 +111,6 @@ namespace control_plugin
 
     Navigator* navigator_;
     BasicEstimator* estimator_;
-    FlightCtrlInput* flight_ctrl_input_;
 
     double ctrl_loop_rate_;
     double control_timestamp_;

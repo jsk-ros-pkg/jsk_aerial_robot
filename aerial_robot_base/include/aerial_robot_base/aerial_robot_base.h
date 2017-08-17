@@ -3,7 +3,7 @@
 
 #include <ros/ros.h>
 #include <pluginlib/class_loader.h>
-#include <aerial_robot_base/flight_control.h>
+#include <aerial_robot_base/control/flight_control.h>
 #include <aerial_robot_base/flight_navigation.h>
 #include <aerial_robot_base/state_estimation.h>
 #include <boost/thread.hpp>
