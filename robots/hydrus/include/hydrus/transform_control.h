@@ -42,6 +42,7 @@
 
 #include <aerial_robot_msgs/FourAxisGain.h>
 #include <aerial_robot_msgs/RollPitchYawTerms.h>
+#include <aerial_robot_base/DesireCoord.h>
 #include <sensor_msgs/JointState.h>
 #include <hydrus/AddExtraModule.h>
 #include <std_msgs/UInt8.h>
@@ -116,12 +117,12 @@ public:
     rotors_origin_from_cog_ = rotors_origin_from_cog;
   }
 
-  void setCog2Baselink(Eigen::Vector3d transform)
+  void setCog2Baselink(tf::Transform transform)
   {
     cog2baselink_transform_ = transform;
   }
 
-  Eigen::Vector3d getCog2Baselink()
+  tf::Transform getCog2Baselink()
   {
     return cog2baselink_transform_;
   }
@@ -183,6 +184,7 @@ private:
   ros::Publisher cog_rotate_pub_; //for position control => to mocap
   ros::Publisher transform_pub_;
   ros::Subscriber joint_state_sub_;
+  ros::Subscriber desire_coordinate_sub_;
   ros::Subscriber realtime_control_sub_;
 
   boost::mutex mass_mutex_, cog_mutex_, origins_mutex_, inertia_mutex_;
@@ -201,7 +203,8 @@ private:
   urdf::Model model_;
   KDL::Tree tree_;
   std::map<std::string, KDL::RigidBodyInertia> inertia_map_;
-  Eigen::Vector3d cog2baselink_transform_;
+  tf::Transform cog2baselink_transform_;
+  std::map<std::string, uint32_t> joint_map_;
 
   /* control */
   boost::thread control_thread_;
@@ -243,7 +246,9 @@ private:
                       hydrus::AddExtraModule::Response &res);
 
   void realtimeControlCallback(const std_msgs::UInt8ConstPtr & msg);
-  void jointStatecallback(const sensor_msgs::JointStateConstPtr& state);
+
+  void desireCoordinateCallback(const aerial_robot_base::DesireCoordConstPtr & msg);
+  virtual void jointStateCallback(const sensor_msgs::JointStateConstPtr& state);
 
   Eigen::MatrixXd P_;
   Eigen::MatrixXd K_;
@@ -262,6 +267,10 @@ private:
 
   uint8_t lqi_mode_;
   bool a_dash_eigen_calc_flag_;
+
+
+  //cog desire orientation
+  KDL::Rotation cog_desire_orientation_;
 
   //dynamic reconfigure
   dynamic_reconfigure::Server<hydrus::LQIConfig>* lqi_server_;

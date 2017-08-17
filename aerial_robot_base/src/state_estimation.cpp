@@ -98,23 +98,32 @@ void RigidEstimator::statePublish()
   odom_state.header.stamp = ros::Time::now();
   odom_state.header.frame_id = std::string("/nav");
 
+  /* Baselink */
   /* Rotation */
-  tf::Quaternion q; getOrientation(estimate_mode_).getRotation(q);
-  tf::quaternionTFToMsg(q, odom_state.pose.pose.orientation);
+  tf::Quaternion q_baselink; getOrientation(estimate_mode_).getRotation(q_baselink);
+  tf::quaternionTFToMsg(q_baselink, odom_state.pose.pose.orientation);
   tf::vector3TFToMsg(getAngularVel(estimate_mode_), odom_state.twist.twist.angular);
 
   /* Translation */
+  odom_state.child_frame_id = std::string("/baselink");
+  tf::pointTFToMsg(getPos(Frame::BASELINK, estimate_mode_), odom_state.pose.pose.position);
+  tf::vector3TFToMsg(getVel(Frame::BASELINK, estimate_mode_), odom_state.twist.twist.linear);
+  baselink_odom_pub_.publish(odom_state);
+
+
   /* COG */
+  /* Rotation */
+  tf::Quaternion q_cog;
+  (getOrientation(estimate_mode_) * getCog2Baselink().getBasis().inverse()).getRotation(q_cog);
+  tf::quaternionTFToMsg(q_cog, odom_state.pose.pose.orientation);
+  tf::vector3TFToMsg(getCog2Baselink().getBasis() * getAngularVel(estimate_mode_), odom_state.twist.twist.angular);
+
+  /* Translation */
   odom_state.child_frame_id = std::string("/cog");
   tf::pointTFToMsg(getPos(Frame::COG, estimate_mode_), odom_state.pose.pose.position);
   tf::vector3TFToMsg(getVel(Frame::COG, estimate_mode_), odom_state.twist.twist.linear);
   cog_odom_pub_.publish(odom_state);
 
-  /* Baselink */
-  odom_state.child_frame_id = std::string("/baselink");
-  tf::pointTFToMsg(getPos(Frame::BASELINK, estimate_mode_), odom_state.pose.pose.position);
-  tf::vector3TFToMsg(getVel(Frame::BASELINK, estimate_mode_), odom_state.twist.twist.linear);
-  baselink_odom_pub_.publish(odom_state);
 }
 
 
