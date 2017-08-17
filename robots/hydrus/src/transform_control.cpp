@@ -45,13 +45,18 @@ TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_
   dynamic_reconf_func_lqi_ = boost::bind(&TransformController::cfgLQICallback, this, _1, _2);
   lqi_server_->setCallback(dynamic_reconf_func_lqi_);
 
+  /* ros service for extra module */
+  add_extra_module_service_ = nh_.advertiseService("add_extra_module", &TransformController::addExtraModuleCallback, this);
+
+  /* defualt callback */
+  desire_coordinate_sub_ = nh_.subscribe("/desire_coordinate", 1, &TransformController::desireCoordinateCallback, this);
+
   if(callback_flag_)
     {
-      realtime_control_sub_ = nh_.subscribe<std_msgs::UInt8>("realtime_control", 1, &TransformController::realtimeControlCallback, this, ros::TransportHints().tcpNoDelay());
+      realtime_control_sub_ = nh_.subscribe("realtime_control", 1, &TransformController::realtimeControlCallback, this, ros::TransportHints().tcpNoDelay());
       std::string joint_state_sub_name;
       nh_private_.param("joint_state_sub_name", joint_state_sub_name, std::string("joint_state"));
-      joint_state_sub_ = nh_.subscribe(joint_state_sub_name, 1, &TransformController::jointStatecallback, this);
-      add_extra_module_service_ = nh_.advertiseService("add_extra_module", &TransformController::addExtraModuleCallback, this);
+      joint_state_sub_ = nh_.subscribe(joint_state_sub_name, 1, &TransformController::jointStateCallback, this);
 
       control_thread_ = boost::thread(boost::bind(&TransformController::control, this));
     }
@@ -243,6 +248,10 @@ void TransformController::control()
     }
 }
 
+void TransformController::desireCoordinateCallback(const aerial_robot_base::DesireCoordConstPtr & msg)
+{
+  cog_desire_orientation_ = KDL::Rotation::RPY(msg->roll, msg->pitch, msg->yaw);
+}
 
 void TransformController::jointStatecallback(const sensor_msgs::JointStateConstPtr& state)
 {
@@ -288,7 +297,7 @@ void TransformController::kinematics(sensor_msgs::JointState state)
       link_inertia = link_inertia_tmp + f * it->second;
 
       /* CoG */
-      if(it->first == baselink_) cog_frame.M = f.M;
+      if(it->first == baselink_) cog_frame.M = f.M * cog_desire_orientation_.Inverse();
     }
   cog_frame.p = link_inertia.getCOG();
   tf::Transform cog_transform;
@@ -297,7 +306,6 @@ void TransformController::kinematics(sensor_msgs::JointState state)
   setMass(link_inertia.getMass());
 
   /* rotor(propeller) based on COG */
-  //std::vector<KDL::Frame> f_rotors;
   std::vector<Eigen::Vector3d> f_rotors;
   for(int i = 0; i < rotor_num_; i++)
     {
@@ -310,7 +318,7 @@ void TransformController::kinematics(sensor_msgs::JointState state)
       //ROS_ERROR(" %s status is : %d, [%f, %f, %f]", rotor.c_str(), status, f.p.x(), f.p.y(), f.p.z());
       f_rotors.push_back(Eigen::Map<const Eigen::Vector3d>((cog_frame.Inverse() * f).p.data));
 
-      //std::cout << f_rotors[i] << std::endl;
+      //std::cout << "rotor" << i + 1 << ": \n"<< f_rotors[i] << std::endl;
     }
 
   setRotorsFromCog(f_rotors);
@@ -321,7 +329,11 @@ void TransformController::kinematics(sensor_msgs::JointState state)
   /* find the transform from cog to baselink */
   KDL::Frame f;
   int status = fk_solver.JntToCart(jointpositions, f, baselink_);
-  setCog2Baselink(Eigen::Map<const Eigen::Vector3d>((cog_frame.Inverse() * f).p.data));
+
+  //setCog2Baselink(Eigen::Map<const Eigen::Vector3d>((cog_frame.Inverse() * f).p.data));
+  tf::Transform cog2baselink_transform;
+  tf::transformKDLToTF(cog_frame.Inverse() * f, cog2baselink_transform);
+  setCog2Baselink(cog2baselink_transform);
 }
 
 bool TransformController::addExtraModuleCallback(hydrus::AddExtraModule::Request  &req,
@@ -638,8 +650,7 @@ void TransformController::param2controller()
   transform_msg.header.stamp = joint_state_stamp_;
   transform_msg.header.frame_id = std::string("cog");
   transform_msg.child_frame_id = baselink_;
-  tf::vectorEigenToMsg(getCog2Baselink(), transform_msg.transform.translation);
-  transform_msg.transform.rotation.w = 1;
+  tf::transformTFToMsg(getCog2Baselink(), transform_msg.transform);
   transform_pub_.publish(transform_msg);
 
   for(int i = 0; i < rotor_num_; i ++)
