@@ -201,13 +201,13 @@ namespace sensor_plugin
       int estimate_mode = BasicEstimator::GROUND_TRUTH;
       estimator_->setPos(Frame::COG, estimate_mode,
                          estimator_->getPos(Frame::BASELINK, estimate_mode)
-                         - estimator_->getOrientation(estimate_mode)
-                         * estimator_->getCog2Baselink().getOrigin());
+                         + estimator_->getOrientation(estimate_mode)
+                         * estimator_->getCog2Baselink().inverse().getOrigin());
       /* vel_cog = vel_baselink - R * (w x pos_cog2baselink) */
       estimator_->setVel(Frame::COG, estimate_mode,
                          estimator_->getVel(Frame::BASELINK, estimate_mode)
-                         - estimator_->getOrientation(estimate_mode)
-                         * (estimator_->getAngularVel(estimate_mode).cross(estimator_->getCog2Baselink().getOrigin())));
+                         + estimator_->getOrientation(estimate_mode)
+                         * (estimator_->getAngularVel(estimate_mode).cross(estimator_->getCog2Baselink().inverse().getOrigin())));
     }
 
     void groundTruthCallback(const nav_msgs::OdometryConstPtr & msg)
