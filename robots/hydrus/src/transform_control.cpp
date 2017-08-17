@@ -116,6 +116,7 @@ void TransformController::addChildren(const KDL::SegmentMap::const_iterator segm
           {
             /* create a new inertia base link */
             inertia_map_.insert(std::make_pair(child.getName(), child.getInertia()));
+            joint_map_.insert(std::make_pair(child.getJoint().getName(), children[i]->second.q_nr));
             ROS_WARN("Add new inertia base link: %s", child.getName().c_str());
           }
         else
@@ -279,13 +280,9 @@ void TransformController::kinematics(sensor_msgs::JointState state)
   unsigned int j = 0;
   for(unsigned int i = 0; i < state.position.size(); i++)
     {
-      if(state.name[i].find("joint") != std::string::npos)
-        {
-          jointpositions(j) = state.position[i];
-          j++;
-        }
+      std::map<std::string, uint32_t>::iterator itr = joint_map_.find(state.name[i]);
+      if(itr != joint_map_.end())  jointpositions(joint_map_.find(state.name[i])->second) = state.position[i];
     }
-
   KDL::RigidBodyInertia link_inertia = KDL::RigidBodyInertia::Zero();
   KDL::Frame cog_frame;
   for(auto it = inertia_map_.begin(); it != inertia_map_.end(); ++it)
@@ -461,7 +458,7 @@ bool  TransformController::modelling(bool verbose)
 
   Eigen::MatrixXd P_att_tmp = P_att;
   P_att = links_inertia.inverse() * P_att_tmp;
-  if(kinematic_verbose_)
+  if(control_verbose_)
     std::cout << "links_inertia inverse:"  << std::endl << links_inertia.inverse() << std::endl;
 
   // P_.row(0) = p_y / links_principal_inertia(0,0);
@@ -496,9 +493,6 @@ bool  TransformController::modelling(bool verbose)
   if(control_verbose_)
     ROS_INFO("P solver is: %f\n", ros::Time::now().toSec() - start_time.toSec());
 
-  if(control_verbose_ || verbose)
-    std::cout << "x:"  << std::endl << x << std::endl;
-
   if(x.maxCoeff() > f_max_ || x.minCoeff() < f_min_ || P_det < 1e-6 || only_three_axis_mode_)
     {
       lqi_mode_ = LQI_THREE_AXIS_MODE;
@@ -507,7 +501,7 @@ bool  TransformController::modelling(bool verbose)
       Eigen::MatrixXd P_dash = Eigen::MatrixXd::Zero(3, rotor_num_);
       P_dash.row(0) = P_.row(0);
       P_dash.row(1) = P_.row(1);
-      P_dash.row(2) = P_.row(3);
+      P_dash.row(2) = P_.row(2);
       Eigen::VectorXd g3(3);
       g3 << 0, 0, 9.8;
       Eigen::FullPivLU<Eigen::MatrixXd> solver((P_dash * P_dash.transpose()));
@@ -515,10 +509,13 @@ bool  TransformController::modelling(bool verbose)
       lamda = solver.solve(g3);
       x = P_dash.transpose() * lamda;
       if(control_verbose_)
-        std::cout << "x:"  << std::endl << x << std::endl;
+        std::cout << "three axis mode: x:"  << std::endl << x << std::endl;
 
       return false; //can not be stable
     }
+
+  if(control_verbose_ || verbose)
+    std::cout << "four axis mode x:"  << std::endl << x << std::endl;
 
   else lqi_mode_ = LQI_FOUR_AXIS_MODE;
 
