@@ -253,7 +253,7 @@ void TransformController::desireCoordinateCallback(const aerial_robot_base::Desi
   cog_desire_orientation_ = KDL::Rotation::RPY(msg->roll, msg->pitch, msg->yaw);
 }
 
-void TransformController::jointStatecallback(const sensor_msgs::JointStateConstPtr& state)
+void TransformController::jointStateCallback(const sensor_msgs::JointStateConstPtr& state)
 {
   joint_state_stamp_ = state->header.stamp;
 
