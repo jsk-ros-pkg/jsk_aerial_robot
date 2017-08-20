@@ -17,11 +17,18 @@ AerialRobotBase::AerialRobotBase(ros::NodeHandle nh, ros::NodeHandle nh_private)
   navigator_ = new Navigator(nh_, nhp_, estimator_);
 
   //*** flight controller
-  controller_loader_ptr_ =  boost::shared_ptr< pluginlib::ClassLoader<control_plugin::ControlBase> >( new pluginlib::ClassLoader<control_plugin::ControlBase>("aerial_robot_base", "control_plugin::ControlBase"));
-  std::string control_plugin_name;
-  nhp_.param ("control_plugin_name", control_plugin_name, std::string("control_plugin/flatness_pid"));
-  controller_ = controller_loader_ptr_->createInstance(control_plugin_name);
-  controller_->initialize(nh_, nhp_, estimator_, navigator_, main_rate_);
+  try
+    {
+      controller_loader_ptr_ =  boost::shared_ptr< pluginlib::ClassLoader<control_plugin::ControlBase> >( new pluginlib::ClassLoader<control_plugin::ControlBase>("aerial_robot_base", "control_plugin::ControlBase"));
+      std::string control_plugin_name;
+      nhp_.param ("control_plugin_name", control_plugin_name, std::string("control_plugin/flatness_pid"));
+      controller_ = controller_loader_ptr_->createInstance(control_plugin_name);
+      controller_->initialize(nh_, nhp_, estimator_, navigator_, main_rate_);
+    }
+  catch(pluginlib::PluginlibException& ex)
+    {
+      ROS_ERROR("The plugin failed to load for some reason. Error: %s", ex.what());
+    }
 
   if(main_rate_ <= 0)
     ROS_ERROR("Disable the tx function\n");

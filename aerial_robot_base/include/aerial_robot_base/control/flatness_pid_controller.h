@@ -80,16 +80,26 @@ namespace control_plugin
       reset();
     }
 
-    void reset()
+    virtual void reset()
     {
       control_timestamp_ = -1;
       start_rp_integration_ = false;
       alt_i_term_.assign(motor_num_, 0);
       yaw_i_term_.assign(motor_num_, 0);
+
       xy_i_term_.setValue(0,0,0);
+
+      target_throttle_.assign(motor_num_, 0);
+      target_yaw_.assign(motor_num_, 0);
+      target_roll_ = 0;
+      target_pitch_ = 0;
     }
 
     virtual void update();
+
+    virtual void stateError();
+    virtual bool pidUpdate();
+    virtual void sendCmd();
 
   protected:
     ros::Publisher  pid_pub_;
@@ -107,9 +117,13 @@ namespace control_plugin
     tf::Vector3 pos_err_;
     tf::Vector3 vel_err_;
     double state_psi_;
+    double state_psi_vel_;
     double target_psi_;
     double psi_err_;
 
+    double target_pitch_, target_roll_;
+    std::vector<double> target_throttle_;
+    std::vector<double> target_yaw_;
     //**** altitude
     std::vector<tf::Vector3>  alt_gains_;
     double alt_err_thresh_;
@@ -140,7 +154,7 @@ namespace control_plugin
     dynamic_reconfigure::Server<aerial_robot_base::XYPidControlConfig>* xy_pid_server_;
     dynamic_reconfigure::Server<aerial_robot_base::XYPidControlConfig>::CallbackType dynamic_reconf_func_xy_pid_;
 
-    void fourAxisGainCallback(const aerial_robot_msgs::FourAxisGainConstPtr & msg);
+    virtual void fourAxisGainCallback(const aerial_robot_msgs::FourAxisGainConstPtr & msg);
     void xyVelWeakGainCallback(const std_msgs::UInt8ConstPtr & msg);
     void cfgXYPidCallback(aerial_robot_base::XYPidControlConfig &config, uint32_t level);
     virtual void rosParamInit();
