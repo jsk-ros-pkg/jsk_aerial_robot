@@ -68,19 +68,7 @@ Visualization Manager:
         Expand Link Details: false
         Expand Tree: false
         Link Tree Style: Links in Alphabetic Order
-        bat1:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        bat4:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
         fc:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        head:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -116,15 +104,7 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
           Value: true
-        pc_c:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        pc_v:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        pcs_cable:
+        pc:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -145,18 +125,6 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
         root:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        sensor_c:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        sensor_v:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        tail:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -171,15 +139,9 @@ Visualization Manager:
       Frame Timeout: 15
       Frames:
         All Enabled: true
-        bat1:
-          Value: true
-        bat4:
-          Value: true
         cog:
           Value: true
         fc:
-          Value: true
-        head:
           Value: true
         joint1_module:
           Value: true
@@ -195,11 +157,7 @@ Visualization Manager:
           Value: true
         link4:
           Value: true
-        pc_c:
-          Value: true
-        pc_v:
-          Value: true
-        pcs_cable:
+        pc:
           Value: true
         propeller1:
           Value: true
@@ -211,12 +169,6 @@ Visualization Manager:
           Value: true
         root:
           Value: true
-        sensor_c:
-          Value: true
-        sensor_v:
-          Value: true
-        tail:
-          Value: true
       Marker Scale: 0.5
       Name: TF
       Show Arrows: true
@@ -227,41 +179,25 @@ Visualization Manager:
           cog:
             {}
           link1:
-            bat1:
-              {}
-            head:
-              {}
-            joint1_module:
-              {}
             link2:
-              joint2_module:
+              fc:
+                {}
+              joint1_module:
                 {}
               link3:
-                fc:
-                  {}
-                joint3_module:
+                joint2_module:
                   {}
                 link4:
-                  bat4:
+                  joint3_module:
                     {}
                   propeller4:
                     {}
-                  tail:
-                    {}
                 propeller3:
                   {}
-                sensor_c:
-                  {}
-                sensor_v:
-                  {}
-              pc_c:
-                {}
-              pc_v:
-                {}
-              pcs_cable:
-                {}
               propeller2:
                 {}
+            pc:
+              {}
             propeller1:
               {}
       Update Interval: 0
@@ -336,7 +272,7 @@ Visualization Manager:
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
-    Fixed Frame: link1
+    Fixed Frame: cog
     Frame Rate: 30
   Name: root
   Tools:
@@ -364,17 +300,17 @@ Visualization Manager:
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0.340694934
-        Y: 0.203675538
-        Z: -0.0205052048
+        X: 0.0261927117
+        Y: 0.0339445397
+        Z: -0.144058079
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.0500000007
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: 1.27479494
+      Pitch: 0.894795299
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 2.70542312
+      Yaw: 2.51042223
     Saved: ~
 Window Geometry:
   Displays:
