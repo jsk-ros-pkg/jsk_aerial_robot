@@ -7,6 +7,8 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   std_msgs
   cmake_modules
+  aerial_robot_msgs
+  aerial_robot_base
   hydrus
 )
 
@@ -44,13 +46,18 @@ include_directories(
 )
 
 ## Declare a C++ library
-add_library(dragon_control
-  src/dragon_control.cpp
-  )
-target_link_libraries (dragon_control ${catkin_LIBRARIES})
-add_dependencies(dragon_control aerial_robot_msgs_generate_messages_cpp aerial_robot_base_generate_messages_cpp hydrus_generate_messages_cpp hydrus_gencfg)
+add_library(dragon_transform_control
+  src/transform_control.cpp
+)
+target_link_libraries (dragon_transform_control ${catkin_LIBRARIES})
+add_dependencies(dragon_transform_control aerial_robot_msgs_generate_messages_cpp aerial_robot_base_generate_messages_cpp hydrus_generate_messages_cpp hydrus_gencfg)
 
 
-add_executable (dragon_control_node src/dragon_control_node.cpp)
-target_link_libraries (dragon_control_node ${catkin_LIBRARIES} dragon_control)
-add_dependencies(dragon_control_node aerial_robot_msgs_generate_messages_cpp aerial_robot_base_generate_messages_cpp hydrus_generate_messages_cpp hydrus_gencfg)
+add_executable (dragon_transform_control_node src/transform_control_node.cpp)
+target_link_libraries (dragon_transform_control_node ${catkin_LIBRARIES} dragon_transform_control)
+add_dependencies(dragon_transform_control_node aerial_robot_msgs_generate_messages_cpp aerial_robot_base_generate_messages_cpp hydrus_generate_messages_cpp hydrus_gencfg)
+
+
+add_library(dragon_control_pluginlib src/gimbal_control.cpp)
+target_link_libraries (dragon_control_pluginlib ${catkin_LIBRARIES} dragon_transform_control)
+add_dependencies(dragon_control_pluginlib aerial_robot_msgs_generate_messages_cpp aerial_robot_base_generate_messages_cpp hydrus_generate_messages_cpp hydrus_gencfg)

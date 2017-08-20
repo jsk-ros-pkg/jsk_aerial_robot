@@ -34,51 +34,39 @@
  *********************************************************************/
 
 
-#ifndef DRAGON_CONTROL_H
-#define DRAGON_CONTROL_H
+#ifndef DRAGON_TRANSFORM_CONTROL_H
+#define DRAGON_TRANSFORM_CONTROL_H
 
 /* ros */
 #include <ros/ros.h>
 
-/* ros msg */
-#include <std_msgs/UInt8.h>
-#include <dynamixel_controllers/TorqueEnable.h>
-#include <nav_msgs/Odometry.h>
-
 /* basic transform control */
 #include <hydrus/transform_control.h>
 
-/* flight navigation */
-#include <aerial_robot_base/flight_navigation.h>
-
 using namespace std;
 
-class DragonController : public TransformController
+class DragonTransformController : public TransformController
 {
 public:
-  DragonController(ros::NodeHandle nh, ros::NodeHandle nh_private, bool callback_flag = true);
-  ~DragonController(){}
+  DragonTransformController(ros::NodeHandle nh, ros::NodeHandle nh_private, bool callback_flag = true);
+  ~DragonTransformController(){}
+
+  void gimbalProcess(sensor_msgs::JointState& state);
+
+  void getLinksOrientation(std::vector<KDL::Rotation>& links_frame_from_cog)
+  {
+    links_frame_from_cog = links_frame_from_cog_;
+  }
 
 private:
+  ros::Publisher gimbal_control_pub_;
 
-  ros::Subscriber uav_odom_sub_;
-  ros::Subscriber flight_command_sub_;
+  bool gimbal_control_;
 
-  void control();
-  void flightCommandCallback(const std_msgs::UInt8ConstPtr& flight_command);
+  std::vector<KDL::Rotation> links_frame_from_cog_;
+
+  void initParam();
   void jointStateCallback(const sensor_msgs::JointStateConstPtr& state);
-  void uavOdomCallback(const nav_msgs::OdometryConstPtr& odom);
-
-  bool real_machine_;
-
-  bool servo_torque_;
-  bool landing_process_;
-
-  double height_thresh_;
-  string joints_torque_control_srv_name_;
-
-  tf::Vector3 uav_pos_;
 };
-
 
 #endif
