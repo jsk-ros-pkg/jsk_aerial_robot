@@ -65,6 +65,7 @@ namespace sensor_plugin
       //low pass filter
       for(size_t i = 0; i < lpf_pos_vel_.size(); i ++)
         lpf_pos_vel_[i] = IirFilter((float)rx_freq_, (float)cutoff_pos_freq_,(float)cutoff_vel_freq_);
+      lpf_psi_ = IirFilter((float)rx_freq_, (float)cutoff_vel_freq_);
 
       std::string topic_name;
 
@@ -81,12 +82,11 @@ namespace sensor_plugin
     Mocap():
       raw_pos_(0, 0, 0),
       raw_vel_(0, 0, 0),
-      raw_euler_(0, 0, 0),
       pos_(0, 0, 0),
       vel_(0, 0, 0),
-      euler_(0, 0, 0),
       prev_raw_pos_(0, 0, 0),
       prev_raw_vel_(0, 0, 0),
+      prev_psi_(0),
       pos_offset_(0, 0, 0)
     {
       ground_truth_pose_.states.resize(6);
@@ -119,9 +119,11 @@ namespace sensor_plugin
     double pos_noise_sigma_, angle_noise_sigma_;
 
     array<IirFilter, 3> lpf_pos_vel_; /* x, y, z */
+    IirFilter lpf_psi_;
 
-    tf::Vector3 raw_pos_, raw_vel_, raw_euler_;
-    tf::Vector3 pos_, vel_, euler_;
+    tf::Vector3 raw_pos_, raw_vel_;
+    tf::Vector3 pos_, vel_;
+    double prev_psi_;
 
     tf::Vector3 prev_raw_pos_, prev_raw_vel_;
     tf::Vector3 pos_offset_;
@@ -136,23 +138,33 @@ namespace sensor_plugin
 
       tf::pointMsgToTF(msg->pose.position, raw_pos_);
 
+      tf::Quaternion q;
+      tf::quaternionMsgToTF(msg->pose.orientation, q);
+      tfScalar r = 0, p = 0, y = 0;
+      tf::Matrix3x3(q).getRPY(r, p, y);
+      tf::Vector3 euler = tf::Vector3(r, p, y);
+
       if(!first_flag)
         {
           float delta_t = msg->header.stamp.toSec() - previous_time.toSec();
           raw_pos_ -= tf::Vector3(0, 0, pos_offset_.z());
           raw_vel_ = (raw_pos_ - prev_raw_pos_) / delta_t;
+          double raw_psi_vel = (euler[2] - prev_psi_) / delta_t;
+          if(raw_psi_vel > M_PI)  raw_psi_vel -= 2 * M_PI;
+          else if(raw_psi_vel < -M_PI)  raw_psi_vel += 2 * M_PI;
 
-          tf::Quaternion q;
-          tf::quaternionMsgToTF(msg->pose.orientation, q);
-          tfScalar r = 0, p = 0, y = 0;
-          tf::Matrix3x3(q).getRPY(r, p, y);
-          raw_euler_.setValue(r, p, y);
+          double psi_vel = 0;
 
+          /* pos */
           for(int i = 0; i < 3; i++)
             lpf_pos_vel_[i].filterFunction(raw_pos_[i], pos_[i], raw_vel_[i], vel_[i]);
 
+          lpf_psi_.filterFunction(raw_psi_vel, psi_vel);
+
+          /* euler */
+          estimator_->setState(State::YAW_BASE, BasicEstimator::GROUND_TRUTH, 0, euler[2]);
           if(estimate_mode_ & (1 << BasicEstimator::EXPERIMENT_ESTIMATE))
-            estimator_->setState(State::YAW, BasicEstimator::EXPERIMENT_ESTIMATE, 0, raw_euler_[2]);
+            estimator_->setState(State::YAW_BASE, BasicEstimator::EXPERIMENT_ESTIMATE, 0, euler[2]);
 
           ground_truth_pose_.header.stamp = msg->header.stamp;
 
@@ -166,7 +178,10 @@ namespace sensor_plugin
                   ground_truth_pose_.states[i].state[1].y = vel_[i];
                 }
               else
-                  ground_truth_pose_.states[i].state[0].x = raw_euler_[i - 3];
+                {
+                  ground_truth_pose_.states[i].state[0].x = euler[i - 3];
+                  if(i == 5) ground_truth_pose_.states[i].state[0].y = psi_vel;
+                }
             }
 
           /* estimation */
@@ -183,6 +198,7 @@ namespace sensor_plugin
 
       prev_raw_pos_ = raw_pos_;
       prev_raw_vel_ = raw_vel_;
+      prev_psi_ = euler[2];
 
       previous_time = msg->header.stamp;
       /* consider the remote wirleess transmission, we use the local time server */
@@ -201,13 +217,13 @@ namespace sensor_plugin
       int estimate_mode = BasicEstimator::GROUND_TRUTH;
       estimator_->setPos(Frame::COG, estimate_mode,
                          estimator_->getPos(Frame::BASELINK, estimate_mode)
-                         + estimator_->getOrientation(estimate_mode)
+                         + estimator_->getOrientation(Frame::BASELINK, estimate_mode)
                          * estimator_->getCog2Baselink().inverse().getOrigin());
       /* vel_cog = vel_baselink - R * (w x pos_cog2baselink) */
       estimator_->setVel(Frame::COG, estimate_mode,
                          estimator_->getVel(Frame::BASELINK, estimate_mode)
-                         + estimator_->getOrientation(estimate_mode)
-                         * (estimator_->getAngularVel(estimate_mode).cross(estimator_->getCog2Baselink().inverse().getOrigin())));
+                         + estimator_->getOrientation(Frame::BASELINK, estimate_mode)
+                         * (estimator_->getAngularVel(Frame::BASELINK, estimate_mode).cross(estimator_->getCog2Baselink().inverse().getOrigin())));
     }
 
     void groundTruthCallback(const nav_msgs::OdometryConstPtr & msg)
@@ -219,15 +235,23 @@ namespace sensor_plugin
         {
           pos_ -= tf::Vector3(0, 0, pos_offset_.z());
           tf::vector3MsgToTF(msg->twist.twist.linear, vel_);
+
+          /* baselink */
           tf::Quaternion q;
           tf::quaternionMsgToTF(msg->pose.pose.orientation, q);
           tfScalar r = 0, p = 0, y = 0;
           tf::Matrix3x3(q).getRPY(r, p, y);
-          euler_.setValue(r, p, y);
+          tf::Vector3 euler = tf::Vector3(r, p, y);
           tf::Vector3 omega;
           tf::vector3MsgToTF(msg->twist.twist.angular, omega);
-          estimator_->setEuler(BasicEstimator::GROUND_TRUTH, euler_);
-          estimator_->setAngularVel(BasicEstimator::GROUND_TRUTH, omega);
+          estimator_->setEuler(Frame::BASELINK, BasicEstimator::GROUND_TRUTH, euler);
+          estimator_->setAngularVel(Frame::BASELINK, BasicEstimator::GROUND_TRUTH, omega);
+
+          /* cog */
+          (tf::Matrix3x3(q) * estimator_->getCog2Baselink().getBasis().inverse()).getRPY(r, p, y);
+          euler.setValue(r, p, y);
+          estimator_->setEuler(Frame::COG, BasicEstimator::GROUND_TRUTH, euler);
+          estimator_->setAngularVel(Frame::COG, BasicEstimator::GROUND_TRUTH, estimator_->getCog2Baselink().getBasis() * omega);
 
           groundTruthProcess();
         }
@@ -265,14 +289,16 @@ namespace sensor_plugin
       estimator_->setStateStatus(State::X_BASE, BasicEstimator::GROUND_TRUTH, true);
       estimator_->setStateStatus(State::Y_BASE, BasicEstimator::GROUND_TRUTH, true);
       estimator_->setStateStatus(State::Z_BASE, BasicEstimator::GROUND_TRUTH, true);
-      estimator_->setStateStatus(State::YAW, BasicEstimator::GROUND_TRUTH, true);
+      estimator_->setStateStatus(State::YAW_BASE, BasicEstimator::GROUND_TRUTH, true);
+      estimator_->setStateStatus(State::YAW_COG, BasicEstimator::GROUND_TRUTH, true);
 
       if(estimate_mode_ & (1 << BasicEstimator::EXPERIMENT_ESTIMATE))
         {
           estimator_->setStateStatus(State::X_BASE, BasicEstimator::EXPERIMENT_ESTIMATE, true);
           estimator_->setStateStatus(State::Y_BASE, BasicEstimator::EXPERIMENT_ESTIMATE, true);
           estimator_->setStateStatus(State::Z_BASE, BasicEstimator::EXPERIMENT_ESTIMATE, true);
-          estimator_->setStateStatus(State::YAW, BasicEstimator::EXPERIMENT_ESTIMATE, true);
+          estimator_->setStateStatus(State::YAW_BASE, BasicEstimator::EXPERIMENT_ESTIMATE, true);
+          estimator_->setStateStatus(State::YAW_COG, BasicEstimator::EXPERIMENT_ESTIMATE, true);
 
           for(auto& fuser : estimator_->getFuser(BasicEstimator::EXPERIMENT_ESTIMATE))
             {
@@ -284,7 +310,7 @@ namespace sensor_plugin
               if(plugin_name == "kalman_filter/kf_pos_vel_acc_bias" ||
                  plugin_name == "kalman_filter/kf_pos_vel_acc")
                 {
-                  if(id < (1 << State::ROLL))
+                  if(id < (1 << State::ROLL_COG))
                     {
                       if(time_sync_) kf->setTimeSync(true);
                       if(id & (1 << State::Z_BASE)) kf->setInitState(0, 0);
@@ -331,7 +357,7 @@ namespace sensor_plugin
           int id = kf->getId();
 
           /* x_w, y_w, z_w */
-          if(id < (1 << State::ROLL))
+          if(id < (1 << State::ROLL_COG))
             {
               if(plugin_name == "kalman_filter/kf_pos_vel_acc" ||
                  plugin_name == "kalman_filter/kf_pos_vel_acc_bias")
