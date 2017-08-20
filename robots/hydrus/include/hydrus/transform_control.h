@@ -162,10 +162,15 @@ public:
     cog_ = cog;
   }
 
+  inline void setStableState(Eigen::VectorXd x) {stable_x_ = x;}
+  inline Eigen::VectorXd getStableState() {return stable_x_;}
+
   inline Eigen::MatrixXd getP() { return P_; }
   inline Eigen::MatrixXd getK() { return K_; }
   inline uint8_t getLqiMode() { return lqi_mode_; }
   inline void setLqiMode(uint8_t lqi_mode) { lqi_mode_ = lqi_mode; }
+
+  void kinematics(sensor_msgs::JointState state);
 
   void param2controller();
 
@@ -175,7 +180,7 @@ public:
   static constexpr uint8_t LQI_THREE_AXIS_MODE = 3;
   static constexpr uint8_t LQI_FOUR_AXIS_MODE = 4;
 
-private:
+protected:
 
   ros::NodeHandle nh_,nh_private_;
   ros::Publisher rpy_gain_pub_;
@@ -198,6 +203,7 @@ private:
   bool kinematic_verbose_;
   bool control_verbose_;
   bool debug_verbose_;
+  bool verbose_;
 
   /* robot model, kinematics */
   urdf::Model model_;
@@ -232,9 +238,8 @@ private:
   /* ros param init */
   void initParam();
   /* main control func */
-  void control();
+  virtual void control();
   /* kinematics calculation */
-  void kinematics(sensor_msgs::JointState state);
   /* LQI parameter calculation */
   void lqi();
 
@@ -246,10 +251,8 @@ private:
                       hydrus::AddExtraModule::Response &res);
 
   void realtimeControlCallback(const std_msgs::UInt8ConstPtr & msg);
-
   void desireCoordinateCallback(const aerial_robot_base::DesireCoordConstPtr & msg);
   virtual void jointStateCallback(const sensor_msgs::JointStateConstPtr& state);
-
   Eigen::MatrixXd P_;
   Eigen::MatrixXd K_;
 
@@ -268,6 +271,8 @@ private:
   uint8_t lqi_mode_;
   bool a_dash_eigen_calc_flag_;
 
+  //stable state
+  Eigen::VectorXd stable_x_;
 
   //cog desire orientation
   KDL::Rotation cog_desire_orientation_;

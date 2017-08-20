@@ -13,9 +13,9 @@ TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_
   if (!kdl_parser::treeFromUrdfModel(model_, tree_))
     ROS_ERROR("Failed to extract kdl tree from xml robot description");
 
-  /* debug */
-  //ROS_ERROR("root link: %s", GetTreeElementSegment(tree_.getRootSegment()->second).getName().c_str());
-  //ROS_ERROR("joint num: %d", tree_.getNrOfJoints());
+  nh_private_.param("verbose", verbose_, false);
+  ROS_ERROR("ns is %s", nh_private_.getNamespace().c_str());
+
   addChildren(tree_.getRootSegment());
   ROS_ERROR("rotor num; %d", rotor_num_);
 
@@ -75,17 +75,17 @@ void TransformController::addChildren(const KDL::SegmentMap::const_iterator segm
 
       if (child.getJoint().getType() == KDL::Joint::None) {
         if (model_.getJoint(child.getJoint().getName()) && model_.getJoint(child.getJoint().getName())->type == urdf::Joint::FLOATING) {
-          ROS_INFO("Floating joint. Not adding segment from %s to %s. This TF can not be published based on joint_states info", parent.c_str(), child.getName().c_str());
+          if(verbose_) ROS_INFO("Floating joint. Not adding segment from %s to %s. This TF can not be published based on joint_states info", parent.c_str(), child.getName().c_str());
         }
         else {
-          ROS_INFO("Adding fixed segment from %s to %s, joint: %s, [%f, %f, %f], q_nr: %d", parent.c_str(), child.getName().c_str(), child.getJoint().getName().c_str(), child.getFrameToTip().p.x(), child.getFrameToTip().p.y(), child.getFrameToTip().p.z(), children[i]->second.q_nr);
+          if(verbose_) ROS_INFO("Adding fixed segment from %s to %s, joint: %s, [%f, %f, %f], q_nr: %d", parent.c_str(), child.getName().c_str(), child.getJoint().getName().c_str(), child.getFrameToTip().p.x(), child.getFrameToTip().p.y(), child.getFrameToTip().p.z(), children[i]->second.q_nr);
         }
 
         /* for the most parent link, e.g. link1 */
         if(inertia_map_.size() == 0 && parent.find("root") != std::string::npos)
           {
             inertia_map_.insert(std::make_pair(child.getName(), child.getInertia()));
-            ROS_WARN("Add new inertia base link: %s", child.getName().c_str());
+            if(verbose_) ROS_WARN("Add new inertia base link: %s", child.getName().c_str());
             /*
             std::cout << "m: " << inertia_map_.find(child.getName())->second.getMass() << std::endl;
             std::cout << "p: \n" << Eigen::Map<const Eigen::Vector3d>(inertia_map_.find(child.getName())->second.getCOG().data) << std::endl;
@@ -108,7 +108,7 @@ void TransformController::addChildren(const KDL::SegmentMap::const_iterator segm
           }
       }
       else {
-        ROS_INFO("Adding moving segment from %s to %s, joint: %s,  [%f, %f, %f], q_nr: %d", parent.c_str(), child.getName().c_str(), child.getJoint().getName().c_str(), child.getFrameToTip().p.x(), child.getFrameToTip().p.y(), child.getFrameToTip().p.z(), children[i]->second.q_nr);
+        if(verbose_) ROS_INFO("Adding moving segment from %s to %s, joint: %s,  [%f, %f, %f], q_nr: %d", parent.c_str(), child.getName().c_str(), child.getJoint().getName().c_str(), child.getFrameToTip().p.x(), child.getFrameToTip().p.y(), child.getFrameToTip().p.z(), children[i]->second.q_nr);
 
 
         /* add the new inertia base (child) link if the joint is not a rotor */
@@ -117,7 +117,7 @@ void TransformController::addChildren(const KDL::SegmentMap::const_iterator segm
             /* create a new inertia base link */
             inertia_map_.insert(std::make_pair(child.getName(), child.getInertia()));
             joint_map_.insert(std::make_pair(child.getJoint().getName(), children[i]->second.q_nr));
-            ROS_WARN("Add new inertia base link: %s", child.getName().c_str());
+            if(verbose_) ROS_WARN("Add new inertia base link: %s", child.getName().c_str());
           }
         else
           {
@@ -126,7 +126,7 @@ void TransformController::addChildren(const KDL::SegmentMap::const_iterator segm
             inertia_map_[parent] = child.getFrameToTip() * child.getInertia() + parent_prev_inertia;
 
             /* add the rotor direction */
-            ROS_WARN("%s, rototation is %f", child.getJoint().getName().c_str(), child.getJoint().JointAxis().z());
+            if(verbose_) ROS_WARN("%s, rototation is %f", child.getJoint().getName().c_str(), child.getJoint().JointAxis().z());
             rotor_direction_.insert(std::make_pair(std::atoi(child.getJoint().getName().substr(5).c_str()), child.getJoint().JointAxis().z()));
           }
       }
@@ -163,7 +163,7 @@ void TransformController::realtimeControlCallback(const std_msgs::UInt8ConstPtr 
 void TransformController::initParam()
 {
   nh_private_.param("control_rate", control_rate_, 15.0);
-  std::cout << "control_rate: " << std::setprecision(3) << control_rate_ << std::endl;
+  if(verbose_) std::cout << "control_rate: " << std::setprecision(3) << control_rate_ << std::endl;
 
   nh_private_.param("only_three_axis_mode", only_three_axis_mode_, false);
   nh_private_.param("control_verbose", control_verbose_, false);
@@ -173,7 +173,7 @@ void TransformController::initParam()
 
   /* base link */
   nh_private_.param("baselink", baselink_, std::string("link1"));
-  std::cout << "baselink: " << baselink_ << std::endl;
+  if(verbose_) std::cout << "baselink: " << baselink_ << std::endl;
   /* propeller direction and lqi R */
   r_.resize(rotor_num_);
   for(int i = 0; i < rotor_num_; i++)
@@ -185,50 +185,50 @@ void TransformController::initParam()
     }
 
   nh_private_.param ("dist_thre", dist_thre_, 0.05);
-  std::cout << "dist_thre: " << std::setprecision(3) << dist_thre_ << std::endl;
+  if(verbose_) std::cout << "dist_thre: " << std::setprecision(3) << dist_thre_ << std::endl;
   nh_private_.param ("f_max", f_max_, 8.6);
-  std::cout << "f_max: " << std::setprecision(3) << f_max_ << std::endl;
+  if(verbose_) std::cout << "f_max: " << std::setprecision(3) << f_max_ << std::endl;
   nh_private_.param ("f_min", f_min_, 2.0);
-  std::cout << "f_min: " << std::setprecision(3) << f_min_ << std::endl;
+  if(verbose_) std::cout << "f_min: " << std::setprecision(3) << f_min_ << std::endl;
 
   nh_private_.param ("q_roll", q_roll_, 1.0);
-  std::cout << "Q: q_roll: " << std::setprecision(3) << q_roll_ << std::endl;
+  if(verbose_) std::cout << "Q: q_roll: " << std::setprecision(3) << q_roll_ << std::endl;
   nh_private_.param ("q_roll_d", q_roll_d_, 1.0);
-  std::cout << "Q: q_roll_d: " << std::setprecision(3) << q_roll_d_ << std::endl;
+  if(verbose_) std::cout << "Q: q_roll_d: " << std::setprecision(3) << q_roll_d_ << std::endl;
   nh_private_.param ("q_pitch", q_pitch_, 1.0);
-  std::cout << "Q: q_pitch: " << std::setprecision(3) << q_pitch_ << std::endl;
+  if(verbose_) std::cout << "Q: q_pitch: " << std::setprecision(3) << q_pitch_ << std::endl;
   nh_private_.param ("q_pitch_d", q_pitch_d_,  1.0);
-  std::cout << "Q: q_pitch_d: " << std::setprecision(3) << q_pitch_d_ << std::endl;
+  if(verbose_) std::cout << "Q: q_pitch_d: " << std::setprecision(3) << q_pitch_d_ << std::endl;
   nh_private_.param ("q_yaw", q_yaw_, 1.0);
-  std::cout << "Q: q_yaw: " << std::setprecision(3) << q_yaw_ << std::endl;
+  if(verbose_) std::cout << "Q: q_yaw: " << std::setprecision(3) << q_yaw_ << std::endl;
   nh_private_.param ("strong_q_yaw", strong_q_yaw_, 1.0);
-  std::cout << "Q: strong_q_yaw: " << std::setprecision(3) << strong_q_yaw_ << std::endl;
+  if(verbose_) std::cout << "Q: strong_q_yaw: " << std::setprecision(3) << strong_q_yaw_ << std::endl;
   nh_private_.param ("q_yaw_d", q_yaw_d_, 1.0);
-  std::cout << "Q: q_yaw_d: " << std::setprecision(3) << q_yaw_d_ << std::endl;
+  if(verbose_) std::cout << "Q: q_yaw_d: " << std::setprecision(3) << q_yaw_d_ << std::endl;
   nh_private_.param ("q_z", q_z_, 1.0);
-  std::cout << "Q: q_z: " << std::setprecision(3) << q_z_ << std::endl;
+  if(verbose_) std::cout << "Q: q_z: " << std::setprecision(3) << q_z_ << std::endl;
   nh_private_.param ("q_z_d", q_z_d_, 1.0);
-  std::cout << "Q: q_z_d: " << std::setprecision(3) << q_z_d_ << std::endl;
+  if(verbose_) std::cout << "Q: q_z_d: " << std::setprecision(3) << q_z_d_ << std::endl;
 
   nh_private_.param ("q_roll_i", q_roll_i_, 1.0);
-  std::cout << "Q: q_roll_i: " << std::setprecision(3) << q_roll_i_ << std::endl;
+  if(verbose_) std::cout << "Q: q_roll_i: " << std::setprecision(3) << q_roll_i_ << std::endl;
   nh_private_.param ("q_pitch_i", q_pitch_i_, 1.0);
-  std::cout << "Q: q_pitch_i: " << std::setprecision(3) << q_pitch_i_ << std::endl;
+  if(verbose_) std::cout << "Q: q_pitch_i: " << std::setprecision(3) << q_pitch_i_ << std::endl;
   nh_private_.param ("q_yaw_i", q_yaw_i_, 1.0);
-  std::cout << "Q: q_yaw_i: " << std::setprecision(3) << q_yaw_i_ << std::endl;
+  if(verbose_) std::cout << "Q: q_yaw_i: " << std::setprecision(3) << q_yaw_i_ << std::endl;
   nh_private_.param ("q_z_i", q_z_i_, 1.0);
-  std::cout << "Q: q_z_i: " << std::setprecision(3) << q_z_i_ << std::endl;
+  if(verbose_) std::cout << "Q: q_z_i: " << std::setprecision(3) << q_z_i_ << std::endl;
 
   /* dynamics: motor */
   ros::NodeHandle control_node("/motor_info");
   control_node.param("pwm_rate", pwm_rate_, 1.0);
-  std::cout << "pwm_rate: " << std::setprecision(3) << pwm_rate_ << std::endl;
+  if(verbose_) std::cout << "pwm_rate: " << std::setprecision(3) << pwm_rate_ << std::endl;
   control_node.param("m_f_rate", m_f_rate_, 0.01); //-0.016837; //the sgn is right?, should be nagative
-  std::cout << "m_f_rate: " << std::setprecision(3) << m_f_rate_ << std::endl;
+  if(verbose_) std::cout << "m_f_rate: " << std::setprecision(3) << m_f_rate_ << std::endl;
   control_node.param("f_pwm_rate", f_pwm_rate_, 1.0); //0.3029; // with the pwm percentage: x / 1800 * 100
-  std::cout << "f_pwm_rate: " << std::setprecision(3) << f_pwm_rate_ << std::endl;
+  if(verbose_) std::cout << "f_pwm_rate: " << std::setprecision(3) << f_pwm_rate_ << std::endl;
   control_node.param("f_pwm_offset", f_pwm_offset_, 0.0); // -21.196;  // with the pwm percentage: x / 1800 * 100
-  std::cout << "f_pwm_offset: " << std::setprecision(3) <<f_pwm_offset_ << std::endl;
+  if(verbose_) std::cout << "f_pwm_offset: " << std::setprecision(3) <<f_pwm_offset_ << std::endl;
 
 }
 
@@ -434,8 +434,6 @@ bool  TransformController::modelling(bool verbose)
   getRotorsFromCog(rotors_origin_from_cog);
   Eigen::Matrix3d links_inertia = getInertia();
 
-  Eigen::VectorXd x;
-  x.resize(rotor_num_);
   Eigen::VectorXd g(4);
   g << 0, 0, 9.8, 0;
 
@@ -484,7 +482,7 @@ bool  TransformController::modelling(bool verbose)
   Eigen::FullPivLU<Eigen::MatrixXd> solver((P_ * P_.transpose()));
   Eigen::VectorXd lamda;
   lamda = solver.solve(g);
-  x = P_.transpose() * lamda;
+  stable_x_ = P_.transpose() * lamda;
 
   double P_det = (P_ * P_.transpose()).determinant();
   if(control_verbose_)
@@ -493,7 +491,7 @@ bool  TransformController::modelling(bool verbose)
   if(control_verbose_)
     ROS_INFO("P solver is: %f\n", ros::Time::now().toSec() - start_time.toSec());
 
-  if(x.maxCoeff() > f_max_ || x.minCoeff() < f_min_ || P_det < 1e-6 || only_three_axis_mode_)
+  if(stable_x_.maxCoeff() > f_max_ || stable_x_.minCoeff() < f_min_ || P_det < 1e-6 || only_three_axis_mode_)
     {
       lqi_mode_ = LQI_THREE_AXIS_MODE;
 
@@ -507,15 +505,15 @@ bool  TransformController::modelling(bool verbose)
       Eigen::FullPivLU<Eigen::MatrixXd> solver((P_dash * P_dash.transpose()));
       Eigen::VectorXd lamda;
       lamda = solver.solve(g3);
-      x = P_dash.transpose() * lamda;
+      stable_x_ = P_dash.transpose() * lamda;
       if(control_verbose_)
-        std::cout << "three axis mode: x:"  << std::endl << x << std::endl;
+        std::cout << "three axis mode: stable_x_:"  << std::endl << stable_x_ << std::endl;
 
       return false; //can not be stable
     }
 
   if(control_verbose_ || verbose)
-    std::cout << "four axis mode x:"  << std::endl << x << std::endl;
+    std::cout << "four axis mode stable_x_:"  << std::endl << stable_x_ << std::endl;
 
   else lqi_mode_ = LQI_FOUR_AXIS_MODE;
 

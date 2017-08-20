@@ -53,12 +53,18 @@ namespace control_plugin
     pos_err_(0, 0, 0),
     vel_err_(0, 0, 0),
     state_psi_(0),
+    state_psi_vel_(0),
     target_psi_(0),
-    psi_err_(0)
+    psi_err_(0),
+    target_pitch_(0),
+    target_roll_(0)
   {
     xy_offset_[2] = 0;
     alt_i_term_.resize(motor_num_);
     yaw_i_term_.resize(motor_num_);
+
+    target_throttle_.resize(motor_num_);
+    target_yaw_.resize(motor_num_);
   }
 
   void FlatnessPid::initialize(ros::NodeHandle nh,
@@ -89,6 +95,12 @@ namespace control_plugin
 
   void FlatnessPid::update()
   {
+    stateError();
+    if(pidUpdate()) sendCmd();
+  }
+
+  void FlatnessPid::stateError()
+  {
     state_pos_ = estimator_->getPos(Frame::COG, estimate_mode_);
     state_vel_ = estimator_->getVel(Frame::COG, estimate_mode_);
     target_vel_ = navigator_->getTargetVel();
@@ -96,11 +108,15 @@ namespace control_plugin
     target_acc_ = navigator_->getTargetAcc();
 
     state_psi_ = estimator_->getState(State::YAW_COG, estimate_mode_)[0];
+    state_psi_vel_ = estimator_->getState(State::YAW_COG, estimate_mode_)[1];
     target_psi_ = navigator_->getTargetPsi();
     psi_err_ = target_psi_ - state_psi_;
     if(psi_err_ > M_PI)  psi_err_ -= 2 * M_PI;
     else if(psi_err_ < -M_PI)  psi_err_ += 2 * M_PI;
+  }
 
+  bool FlatnessPid::pidUpdate()
+  {
     aerial_robot_base::FlatnessPid pid_msg;
     pid_msg.header.stamp = ros::Time::now();
 
@@ -119,7 +135,7 @@ namespace control_plugin
             reset();
             control_timestamp_ = ros::Time::now().toSec();
           }
-        else return;
+        else return false;
       }
 
     /* roll/pitch integration flag */
@@ -188,12 +204,12 @@ namespace control_plugin
       }
 
     tf::Vector3 xy_total_term = xy_p_term + xy_i_term_ + xy_d_term + xy_offset_;
-    double target_pitch = clamp(xy_total_term[0], -xy_limit_, xy_limit_);
-    double target_roll = clamp(-xy_total_term[1], -xy_limit_, xy_limit_);
+    target_pitch_ = clamp(xy_total_term[0], -xy_limit_, xy_limit_);
+    target_roll_ = clamp(xy_total_term[1], -xy_limit_, xy_limit_);
 
     /* ros pub */
-    pid_msg.pitch.total.push_back(target_pitch);
-    pid_msg.roll.total.push_back(target_roll);
+    pid_msg.pitch.total.push_back(target_pitch_);
+    pid_msg.roll.total.push_back(target_roll_);
     pid_msg.pitch.p_term.push_back(xy_p_term[0]);
     pid_msg.pitch.i_term.push_back(xy_i_term_[0]);
     pid_msg.pitch.d_term.push_back(xy_d_term[0]);
@@ -208,8 +224,6 @@ namespace control_plugin
     pid_msg.roll.target_vel = target_vel_[1];
 
     /* yaw */
-    std::vector<double> target_yaw(motor_num_);
-
     for(int j = 0; j < motor_num_; j++)
       {
         //**** P term
@@ -219,14 +233,23 @@ namespace control_plugin
         yaw_i_term_[j] += (psi_err_ * du * yaw_gains_[j][1]);
         yaw_i_term_[j] = clamp(yaw_i_term_[j], -yaw_terms_limits_[1], yaw_terms_limits_[1]);
 
-        //***** D term: is in the flight board
+        //***** D term: usaully it is in the flight board
+        /* but for the gimbal control, we need the d term,
+           so, set 0 if it is not gimbal type */
+        double yaw_d_term = 0;
+        if(motor_num_ != 1 && yaw_gains_.size() == 1)
+          yaw_d_term = clamp(yaw_gains_[j][2] * (-state_psi_vel_), -yaw_terms_limits_[2], yaw_terms_limits_[2]);
 
         //*** each motor command value for log
-        target_yaw[j] = clamp(yaw_p_term + yaw_i_term_[j], -yaw_limit_, yaw_limit_);
+        target_yaw_[j] = clamp(yaw_p_term + yaw_i_term_[j] + yaw_d_term, -yaw_limit_, yaw_limit_);
 
-        pid_msg.yaw.total.push_back(target_yaw[j]);
+        pid_msg.yaw.total.push_back(target_yaw_[j]);
         pid_msg.yaw.p_term.push_back(yaw_p_term);
         pid_msg.yaw.i_term.push_back(yaw_i_term_[j]);
+        pid_msg.yaw.d_term.push_back(yaw_d_term);
+
+        /* special process for gimbal type */
+        if(motor_num_ != 1 && yaw_gains_.size() == 1) break;
       }
 
     //**** ros pub
@@ -234,7 +257,6 @@ namespace control_plugin
     pid_msg.yaw.pos_err = psi_err_;
 
     /* throttle */
-    std::vector<double> target_throttle(motor_num_);
     double alt_err = clamp(pos_err_.z(), -alt_err_thresh_, alt_err_thresh_);
 
     for(int j = 0; j < motor_num_; j++)
@@ -252,8 +274,8 @@ namespace control_plugin
         double alt_d_term = clamp(alt_gains_[j][2] * state_vel_.z(), -alt_terms_limit_[2], alt_terms_limit_[2]);
 
         //*** each motor command value for log
-        target_throttle[j] = clamp(alt_p_term + + alt_i_term + alt_d_term + alt_offset_, -alt_limit_, alt_limit_);
-        pid_msg.throttle.total.push_back(target_throttle[j]);
+        target_throttle_[j] = clamp(alt_p_term + + alt_i_term + alt_d_term + alt_offset_, -alt_limit_, alt_limit_);
+        pid_msg.throttle.total.push_back(target_throttle_[j]);
         pid_msg.throttle.p_term.push_back(alt_p_term);
         pid_msg.throttle.i_term.push_back(alt_i_term);
         pid_msg.throttle.d_term.push_back(alt_d_term);
@@ -266,31 +288,35 @@ namespace control_plugin
     /* ros publish */
     pid_pub_.publish(pid_msg);
 
+    /* update */
+    control_timestamp_ = ros::Time::now().toSec();
+
+    return true;
+  }
+
+  void FlatnessPid::sendCmd()
+  {
     /* send flight command */
     aerial_robot_msgs::FourAxisCommand flight_command_data;
-    flight_command_data.angles[0] =  target_roll;
-    flight_command_data.angles[1] =  target_pitch;
+    flight_command_data.angles[0] =  -target_roll_;
+    flight_command_data.angles[1] =  target_pitch_;
 
     flight_command_data.base_throttle.resize(motor_num_);
     if(motor_num_ == 1)
       {
         /* Simple PID based attitude/altitude control */
-        flight_command_data.angles[2] = target_yaw[0];
-        flight_command_data.base_throttle[0] =  target_throttle[0];
-        if(target_throttle[0] == 0) return; // do not publish the empty flight command => the force landing flag will be activate
+        flight_command_data.angles[2] = target_yaw_[0];
+        flight_command_data.base_throttle[0] =  target_throttle_[0];
+        if(target_throttle_[0] == 0) return; // do not publish the empty flight command => the force landing flag will be activate
       }
     else
       {
         /* LQI based attitude/altitude control */
         for(int i = 0; i < motor_num_; i++)
-          flight_command_data.base_throttle[i] = target_throttle[i] + target_yaw[i];
+          flight_command_data.base_throttle[i] = target_throttle_[i] + target_yaw_[i];
       }
     flight_cmd_pub_.publish(flight_command_data);
-
-    /* update */
-    control_timestamp_ = ros::Time::now().toSec();
   }
-
 
   void FlatnessPid::fourAxisGainCallback(const aerial_robot_msgs::FourAxisGainConstPtr & msg)
   {
@@ -303,6 +329,9 @@ namespace control_plugin
         yaw_gains_.resize(motor_num_);
         alt_i_term_.resize(motor_num_);
         alt_gains_.resize(motor_num_);
+
+        target_throttle_.resize(motor_num_);
+        target_yaw_.resize(motor_num_);
 
         ROS_WARN("flight control: update the motor number: %d", motor_num_);
       }
