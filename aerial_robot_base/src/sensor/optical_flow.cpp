@@ -173,7 +173,7 @@ namespace sensor_plugin
       quality_ = opt_msg->vector.z;
 
       /* get the optical flow frame orientation towards the world frame */
-      tf::Matrix3x3 orien = estimator_->getOrientation(BasicEstimator::EGOMOTION_ESTIMATE);
+      tf::Matrix3x3 orien = estimator_->getOrientation(Frame::BASELINK, BasicEstimator::EGOMOTION_ESTIMATE);
       /* change the velocity based on the world frame  */
       vel_ = orien * baselink_transform_.getBasis() * tf::Vector3(opt_msg->vector.x, opt_msg->vector.y, 0);
       vel_.setZ(0);

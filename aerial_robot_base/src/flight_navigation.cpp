@@ -113,7 +113,7 @@ void Navigator::naviCallback(const aerial_robot_base::FlightNavConstPtr & msg)
             }
           case flight_nav::LOCAL_FRAME:
             {
-              tf::Vector3 target_vel = frameConversion(tf::Vector3(msg->target_vel_x, msg->target_vel_y, 0),  estimator_->getState(State::YAW, estimate_mode_)[0]);
+              tf::Vector3 target_vel = frameConversion(tf::Vector3(msg->target_vel_x, msg->target_vel_y, 0),  estimator_->getState(State::YAW_COG, estimate_mode_)[0]);
               setTargetVelX(target_vel.x());
               setTargetVelY(target_vel.y());
               break;
@@ -140,7 +140,7 @@ void Navigator::naviCallback(const aerial_robot_base::FlightNavConstPtr & msg)
           case flight_nav::LOCAL_FRAME:
             {
               tf::Vector3 target_acc = target_acc_;
-              target_acc_ = frameConversion(target_acc,  estimator_->getState(State::YAW, estimate_mode_)[0]);
+              target_acc_ = frameConversion(target_acc,  estimator_->getState(State::YAW_COG, estimate_mode_)[0]);
               break;
             }
           default:
@@ -271,7 +271,7 @@ void Navigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
     {
       if(fabs(joy_msg->axes[2]) > 0.05)
         {
-          float  state_psi = estimator_->getState(State::YAW, estimate_mode_)[0];
+          float  state_psi = estimator_->getState(State::YAW_COG, estimate_mode_)[0];
           target_psi_ = state_psi + joy_msg->axes[2] * max_target_yaw_rate_;
           if(target_psi_ > M_PI)  target_psi_ -= 2 * M_PI;
           else if(target_psi_ < -M_PI)  target_psi_ += 2 * M_PI;
@@ -328,7 +328,7 @@ void Navigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
         if(control_frame_ == flight_nav::LOCAL_FRAME)
           {
             tf::Vector3 target_acc = target_acc_;
-            target_acc_ = frameConversion(target_acc,  estimator_->getState(State::YAW, estimate_mode_)[0]);
+            target_acc_ = frameConversion(target_acc,  estimator_->getState(State::YAW_COG, estimate_mode_)[0]);
           }
 
         break;
@@ -348,7 +348,7 @@ void Navigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
             if(control_frame_ == flight_nav::LOCAL_FRAME)
               {
                 tf::Vector3 target_vel_tmp = target_vel;
-                target_vel = frameConversion(target_vel_tmp,  estimator_->getState(State::YAW, estimate_mode_)[0]);
+                target_vel = frameConversion(target_vel_tmp,  estimator_->getState(State::YAW_COG, estimate_mode_)[0]);
               }
 
             /* interpolation for vel target */
@@ -377,7 +377,6 @@ void Navigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
 
 void Navigator::update()
 {
-
   tf::Vector3 delta = target_pos_ - estimator_->getPos(Frame::COG, estimate_mode_);
 
   /* check the xy estimation status, if not ready, change to att_control_mode */

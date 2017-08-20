@@ -216,8 +216,8 @@ namespace sensor_plugin
       double current_secs = range_msg->header.stamp.toSec();
 
       /* consider the orientation of the uav */
-      float roll = (estimator_->getState(State::ROLL, BasicEstimator::EGOMOTION_ESTIMATE))[0];
-      float pitch = (estimator_->getState(State::PITCH, BasicEstimator::EGOMOTION_ESTIMATE))[0];
+      float roll = (estimator_->getState(State::ROLL_BASE, BasicEstimator::EGOMOTION_ESTIMATE))[0];
+      float pitch = (estimator_->getState(State::PITCH_BASE, BasicEstimator::EGOMOTION_ESTIMATE))[0];
       //ROS_INFO("range debug: roll and pitch is [%f, %f]", roll, pitch);
       raw_range_sensor_value_ = cos(roll) * cos(pitch) * range_msg->range;
       //raw_range_sensor_value_ = range_msg->range; // depreacated
