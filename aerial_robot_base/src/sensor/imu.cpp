@@ -208,19 +208,43 @@ namespace sensor_plugin
           estimator_->setLandedFlag(true);
         }
 
+      /* base link */
       /* roll & pitch */
-      estimator_->setState(State::ROLL, BasicEstimator::EGOMOTION_ESTIMATE, 0, euler_[0]);
-      estimator_->setState(State::ROLL, BasicEstimator::EXPERIMENT_ESTIMATE, 0, euler_[0]);
-      estimator_->setState(State::PITCH, BasicEstimator::EGOMOTION_ESTIMATE, 0, euler_[1]);
-      estimator_->setState(State::PITCH, BasicEstimator::EXPERIMENT_ESTIMATE, 0, euler_[1]);
-      estimator_->setAngularVel(BasicEstimator::EGOMOTION_ESTIMATE, omega_);
-      estimator_->setAngularVel(BasicEstimator::EXPERIMENT_ESTIMATE, omega_);
+      estimator_->setState(State::ROLL_BASE, BasicEstimator::EGOMOTION_ESTIMATE, 0, euler_[0]);
+      estimator_->setState(State::PITCH_BASE, BasicEstimator::EGOMOTION_ESTIMATE, 0, euler_[1]);
+      estimator_->setState(State::ROLL_BASE, BasicEstimator::EXPERIMENT_ESTIMATE, 0, euler_[0]);
+      estimator_->setState(State::PITCH_BASE, BasicEstimator::EXPERIMENT_ESTIMATE, 0, euler_[1]);
+      /* not good for ground truth mode, but do temporarily */
+      estimator_->setState(State::ROLL_BASE, BasicEstimator::GROUND_TRUTH, 0, euler_[0]);
+      estimator_->setState(State::PITCH_BASE, BasicEstimator::GROUND_TRUTH, 0, euler_[1]);
 
       /* yaw */
-      if(!estimator_->getStateStatus(State::YAW, BasicEstimator::EGOMOTION_ESTIMATE))
-        estimator_->setState(State::YAW, BasicEstimator::EGOMOTION_ESTIMATE, 0, euler_[2]);
-      if(!estimator_->getStateStatus(State::YAW, BasicEstimator::EXPERIMENT_ESTIMATE))
-        estimator_->setState(State::YAW, BasicEstimator::EXPERIMENT_ESTIMATE, 0, euler_[2]);
+      if(!estimator_->getStateStatus(State::YAW_BASE, BasicEstimator::EGOMOTION_ESTIMATE))
+        estimator_->setState(State::YAW_BASE, BasicEstimator::EGOMOTION_ESTIMATE, 0, euler_[2]);
+
+      if(!estimator_->getStateStatus(State::YAW_BASE, BasicEstimator::EXPERIMENT_ESTIMATE))
+        estimator_->setState(State::YAW_BASE, BasicEstimator::EXPERIMENT_ESTIMATE, 0, euler_[2]);
+
+      estimator_->setAngularVel(Frame::BASELINK, BasicEstimator::EGOMOTION_ESTIMATE, omega_);
+      estimator_->setAngularVel(Frame::BASELINK, BasicEstimator::EXPERIMENT_ESTIMATE, omega_);
+      /* not good for ground truth mode, but do temporarily */
+      estimator_->setAngularVel(Frame::BASELINK, BasicEstimator::GROUND_TRUTH, omega_);
+
+      /* COG */
+      /* only imu can assign to cog state for estimate mode and experiment mode */
+      double roll, pitch, yaw;
+      (estimator_->getOrientation(Frame::BASELINK, BasicEstimator::EGOMOTION_ESTIMATE) * estimator_->getCog2Baselink().getBasis().inverse()).getRPY(roll, pitch, yaw);
+      estimator_->setEuler(Frame::COG, BasicEstimator::EGOMOTION_ESTIMATE, tf::Vector3(roll, pitch, yaw));
+      estimator_->setAngularVel(Frame::COG, BasicEstimator::EGOMOTION_ESTIMATE, estimator_->getCog2Baselink().getBasis() * omega_);
+
+      (estimator_->getOrientation(Frame::BASELINK, BasicEstimator::EXPERIMENT_ESTIMATE) * estimator_->getCog2Baselink().getBasis().inverse()).getRPY(roll, pitch, yaw);
+      estimator_->setEuler(Frame::COG, BasicEstimator::EXPERIMENT_ESTIMATE, tf::Vector3(roll, pitch, yaw));
+      estimator_->setAngularVel(Frame::COG, BasicEstimator::EXPERIMENT_ESTIMATE, estimator_->getCog2Baselink().getBasis() * omega_);
+
+      /* not good for ground truth mode, but do temporarily */
+      (estimator_->getOrientation(Frame::BASELINK, BasicEstimator::GROUND_TRUTH) * estimator_->getCog2Baselink().getBasis().inverse()).getRPY(roll, pitch, yaw);
+      estimator_->setEuler(Frame::COG, BasicEstimator::GROUND_TRUTH, tf::Vector3(roll, pitch, yaw));
+      estimator_->setAngularVel(Frame::COG, BasicEstimator::GROUND_TRUTH, estimator_->getCog2Baselink().getBasis() * omega_);
 
       /* bais calibration */
       if(bias_calib < calib_count_)
@@ -233,8 +257,8 @@ namespace sensor_plugin
               ROS_WARN("calib count is %d", calib_count_);
 
               /* check whether use imu yaw for contorl and estimation */
-              if(!estimator_->getStateStatus(State::YAW, estimator_->getEstimateMode()))
-                ROS_WARN("IMU: use imu mag-based yaw value for estimation and control");
+              if(!estimator_->getStateStatus(State::YAW_BASE, estimator_->getEstimateMode()))
+                ROS_WARN("IMU: use imu mag-based yaw value for estimation");
             }
 
           /* acc bias */
@@ -251,7 +275,7 @@ namespace sensor_plugin
                   if(!getFuserActivate(mode)) continue;
 
                   tf::Matrix3x3 orientation;
-                  orientation.setRPY(0, 0, (estimator_->getState(State::YAW, mode))[0]);
+                  orientation.setRPY(0, 0, (estimator_->getState(State::YAW_BASE, mode))[0]);
                   acc_bias_w_ = orientation * acc_bias_l_;
 
                   for(auto& fuser : estimator_->getFuser(mode))
@@ -329,7 +353,7 @@ namespace sensor_plugin
               if(getFuserActivate(mode))
                 {
                   tf::Matrix3x3 orientation;
-                  orientation.setRPY(0, 0, (estimator_->getState(State::YAW, mode))[0]);
+                  orientation.setRPY(0, 0, (estimator_->getState(State::YAW_BASE, mode))[0]);
 
                   acc_w_ = orientation * acc_l_;
                   acc_non_bias_w_ = orientation * (acc_l_ - acc_bias_l_);
@@ -444,24 +468,24 @@ namespace sensor_plugin
           int estimate_mode = BasicEstimator::EGOMOTION_ESTIMATE;
           estimator_->setPos(Frame::COG, estimate_mode,
                              estimator_->getPos(Frame::BASELINK, estimate_mode)
-                             + estimator_->getOrientation(estimate_mode)
+                             + estimator_->getOrientation(Frame::BASELINK, estimate_mode)
                              * estimator_->getCog2Baselink().inverse().getOrigin());
           /* vel_cog = vel_baselink - R * (w x pos_cog2baselink) */
           estimator_->setVel(Frame::COG, estimate_mode,
                              estimator_->getVel(Frame::BASELINK, estimate_mode)
-                             + estimator_->getOrientation(estimate_mode)
-                             * (estimator_->getAngularVel(estimate_mode).cross(estimator_->getCog2Baselink().inverse().getOrigin())));
+                             + estimator_->getOrientation(Frame::BASELINK, estimate_mode)
+                             * (estimator_->getAngularVel(Frame::BASELINK, estimate_mode).cross(estimator_->getCog2Baselink().inverse().getOrigin())));
 
 
           estimate_mode = BasicEstimator::EXPERIMENT_ESTIMATE;
           estimator_->setPos(Frame::COG, estimate_mode,
                                estimator_->getPos(Frame::BASELINK, estimate_mode)
-                               + estimator_->getOrientation(estimate_mode)
+                               + estimator_->getOrientation(Frame::BASELINK, estimate_mode)
                                * estimator_->getCog2Baselink().inverse().getOrigin());
           estimator_->setVel(Frame::COG, estimate_mode,
                              estimator_->getVel(Frame::BASELINK, estimate_mode)
-                             + estimator_->getOrientation(estimate_mode)
-                             * (estimator_->getAngularVel(estimate_mode).cross(estimator_->getCog2Baselink().inverse().getOrigin())));
+                             + estimator_->getOrientation(Frame::BASELINK, estimate_mode)
+                             * (estimator_->getAngularVel(Frame::BASELINK, estimate_mode).cross(estimator_->getCog2Baselink().inverse().getOrigin())));
 
           /* no acc, we do not have the angular acceleration */
 

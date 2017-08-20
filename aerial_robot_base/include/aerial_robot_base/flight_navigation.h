@@ -54,6 +54,7 @@ public:
   inline void setControlframe(uint8_t frame_type){  control_frame_ = frame_type;}
 
   inline bool getXyVelModePosCtrlTakeoff(){  return xy_vel_mode_pos_ctrl_takeoff_;}
+  inline bool getForceLandingFlag() {return force_landing_flag_;}
 
   inline tf::Vector3 getTargetPos() {return target_pos_;}
   inline tf::Vector3 getTargetVel() {return target_vel_;}
@@ -334,7 +335,7 @@ protected:
 
   void setTargetPsiFromCurrentState()
   {
-    target_psi_ = estimator_->getState(State::YAW, estimate_mode_)[0];
+    target_psi_ = estimator_->getState(State::YAW_COG, estimate_mode_)[0];
   }
 };
 

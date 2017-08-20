@@ -74,14 +74,23 @@ void RigidEstimator::statePublish()
         case State::Z_BASE:
           r_state.id = "z_b";
           break;
-        case State::ROLL:
-          r_state.id = "roll";
+        case State::ROLL_COG:
+          r_state.id = "roll_cog";
           break;
-        case State::PITCH:
-          r_state.id = "pitch";
+        case State::PITCH_COG:
+          r_state.id = "pitch_cog";
           break;
-        case State::YAW:
-          r_state.id = "yaw";
+        case State::YAW_COG:
+          r_state.id = "yaw_cog";
+          break;
+        case State::ROLL_BASE:
+          r_state.id = "roll_b";
+          break;
+        case State::PITCH_BASE:
+          r_state.id = "pitch_b";
+          break;
+        case State::YAW_BASE:
+          r_state.id = "yaw_b";
           break;
         default:
           break;
@@ -100,9 +109,9 @@ void RigidEstimator::statePublish()
 
   /* Baselink */
   /* Rotation */
-  tf::Quaternion q_baselink; getOrientation(estimate_mode_).getRotation(q_baselink);
-  tf::quaternionTFToMsg(q_baselink, odom_state.pose.pose.orientation);
-  tf::vector3TFToMsg(getAngularVel(estimate_mode_), odom_state.twist.twist.angular);
+  tf::Quaternion q; getOrientation(Frame::BASELINK, estimate_mode_).getRotation(q);
+  tf::quaternionTFToMsg(q, odom_state.pose.pose.orientation);
+  tf::vector3TFToMsg(getAngularVel(Frame::BASELINK, estimate_mode_), odom_state.twist.twist.angular);
 
   /* Translation */
   odom_state.child_frame_id = std::string("/baselink");
@@ -113,11 +122,9 @@ void RigidEstimator::statePublish()
 
   /* COG */
   /* Rotation */
-  tf::Quaternion q_cog;
-  (getOrientation(estimate_mode_) * getCog2Baselink().getBasis().inverse()).getRotation(q_cog);
-  tf::quaternionTFToMsg(q_cog, odom_state.pose.pose.orientation);
-  tf::vector3TFToMsg(getCog2Baselink().getBasis() * getAngularVel(estimate_mode_), odom_state.twist.twist.angular);
-
+  getOrientation(Frame::BASELINK, estimate_mode_).getRotation(q);
+  tf::quaternionTFToMsg(q, odom_state.pose.pose.orientation);
+  tf::vector3TFToMsg(getAngularVel(Frame::COG, estimate_mode_), odom_state.twist.twist.angular);
   /* Translation */
   odom_state.child_frame_id = std::string("/cog");
   tf::pointTFToMsg(getPos(Frame::COG, estimate_mode_), odom_state.pose.pose.position);

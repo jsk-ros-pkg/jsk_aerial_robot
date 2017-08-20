@@ -120,7 +120,7 @@ namespace sensor_plugin
           init_time_ = false;
 
           /* record the init state from the baselink(CoG) of UAV */
-          init_orien_ = estimator_->getOrientation(BasicEstimator::EGOMOTION_ESTIMATE);
+          init_orien_ = estimator_->getOrientation(Frame::BASELINK, BasicEstimator::EGOMOTION_ESTIMATE);
           if(relative_odom_)
             pos_ = init_orien_ * baselink_transform_.getBasis() * raw_pos; //do again
 
@@ -145,7 +145,7 @@ namespace sensor_plugin
             }
           estimator_->setStateStatus(State::X_BASE, BasicEstimator::EGOMOTION_ESTIMATE, true);
           estimator_->setStateStatus(State::Y_BASE, BasicEstimator::EGOMOTION_ESTIMATE, true);
-          estimator_->setStateStatus(State::YAW, BasicEstimator::EGOMOTION_ESTIMATE, true);
+          estimator_->setStateStatus(State::YAW_BASE, BasicEstimator::EGOMOTION_ESTIMATE, true);
 
         }
 
@@ -165,7 +165,7 @@ namespace sensor_plugin
     {
       tfScalar r,p,y;
       r_.getRPY(r,p,y);
-      estimator_->setState(State::YAW, BasicEstimator::EGOMOTION_ESTIMATE, 0, y);
+      estimator_->setState(State::YAW_BASE, BasicEstimator::EGOMOTION_ESTIMATE, 0, y);
 
       for(auto& fuser : estimator_->getFuser(BasicEstimator::EGOMOTION_ESTIMATE))
         {
@@ -226,7 +226,7 @@ namespace sensor_plugin
               start_vo = false;
               estimator_->setStateStatus(State::X_BASE, BasicEstimator::EGOMOTION_ESTIMATE, false);
               estimator_->setStateStatus(State::Y_BASE, BasicEstimator::EGOMOTION_ESTIMATE, false);
-              estimator_->setStateStatus(State::YAW, BasicEstimator::EGOMOTION_ESTIMATE, false);
+              estimator_->setStateStatus(State::YAW_BASE, BasicEstimator::EGOMOTION_ESTIMATE, false);
               /* stop subscribe */
               vo_sub_.shutdown();
               ROS_WARN("VO: shutdown the subscribe");

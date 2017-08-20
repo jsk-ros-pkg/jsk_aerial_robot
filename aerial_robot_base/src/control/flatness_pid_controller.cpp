@@ -95,7 +95,7 @@ namespace control_plugin
     target_pos_ = navigator_->getTargetPos();
     target_acc_ = navigator_->getTargetAcc();
 
-    state_psi_ = estimator_->getState(State::YAW, estimate_mode_)[0];
+    state_psi_ = estimator_->getState(State::YAW_COG, estimate_mode_)[0];
     target_psi_ = navigator_->getTargetPsi();
     psi_err_ = target_psi_ - state_psi_;
     if(psi_err_ > M_PI)  psi_err_ -= 2 * M_PI;
