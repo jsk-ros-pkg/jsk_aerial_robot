@@ -85,9 +85,12 @@ namespace State
       X_BASE, //x axis of Baselink
       Y_BASE, //y axis of Baselink
       Z_BASE, //y axis of Baselink
-      ROLL, //roll of baselink/CoG in world coord
-      PITCH, //pitch of baselink/CoG in world coord
-      YAW, //yaw of baselink/CoG in world coord
+      ROLL_COG, //roll of CoG in world coord
+      PITCH_COG, //pitch of CoG in world coord
+      YAW_COG, //yaw of CoG in world coord
+      ROLL_BASE, //roll of baselink in world coord
+      PITCH_BASE, //pitch of baselink in world coord
+      YAW_BASE, //yaw of baselink in world coord
       TOTAL_NUM,
     };
 };
@@ -236,38 +239,38 @@ public:
       (state_[i + frame * 3][estimate_mode].second)[1] = vel[i];
   }
 
-  tf::Matrix3x3 getOrientation(int estimate_mode)
+  tf::Matrix3x3 getOrientation(int frame, int estimate_mode)
   {
     boost::lock_guard<boost::mutex> lock(state_mutex_);
     tf::Matrix3x3 r;
-    r.setRPY((state_[State::ROLL][estimate_mode].second)[0],
-               (state_[State::PITCH][estimate_mode].second)[0],
-               (state_[State::YAW][estimate_mode].second)[0]);
+    r.setRPY((state_[State::ROLL_COG + frame * 3][estimate_mode].second)[0],
+               (state_[State::PITCH_COG + frame * 3][estimate_mode].second)[0],
+               (state_[State::YAW_COG + frame * 3][estimate_mode].second)[0]);
     return r;
   }
 
-  void setEuler(int estimate_mode, tf::Vector3 euler)
+  void setEuler(int frame, int estimate_mode, tf::Vector3 euler)
   {
     boost::lock_guard<boost::mutex> lock(state_mutex_);
-    (state_[State::ROLL][estimate_mode].second)[0] = euler[0];
-    (state_[State::PITCH][estimate_mode].second)[0] = euler[1];
-    (state_[State::YAW][estimate_mode].second)[0] = euler[2];
+    (state_[State::ROLL_COG + frame * 3][estimate_mode].second)[0] = euler[0];
+    (state_[State::PITCH_COG + frame * 3][estimate_mode].second)[0] = euler[1];
+    (state_[State::YAW_COG + frame * 3][estimate_mode].second)[0] = euler[2];
   }
 
-  tf::Vector3 getAngularVel(int estimate_mode)
+  tf::Vector3 getAngularVel(int frame, int estimate_mode)
   {
     boost::lock_guard<boost::mutex> lock(state_mutex_);
-    return tf::Vector3((state_[State::ROLL][estimate_mode].second)[1],
-                       (state_[State::PITCH][estimate_mode].second)[1],
-                       (state_[State::YAW][estimate_mode].second)[1]);
+    return tf::Vector3((state_[State::ROLL_COG + frame * 3][estimate_mode].second)[1],
+                       (state_[State::PITCH_COG + frame * 3][estimate_mode].second)[1],
+                       (state_[State::YAW_COG + frame * 3][estimate_mode].second)[1]);
   }
 
-  void setAngularVel(int estimate_mode, tf::Vector3 omega)
+  void setAngularVel(int frame, int estimate_mode, tf::Vector3 omega)
   {
     boost::lock_guard<boost::mutex> lock(state_mutex_);
-    (state_[State::ROLL][estimate_mode].second)[1] = omega[0];
-    (state_[State::PITCH][estimate_mode].second)[1] = omega[1];
-    (state_[State::YAW][estimate_mode].second)[1] = omega[2];
+    (state_[State::ROLL_COG + frame * 3][estimate_mode].second)[1] = omega[0];
+    (state_[State::PITCH_COG + frame * 3][estimate_mode].second)[1] = omega[1];
+    (state_[State::YAW_COG + frame * 3][estimate_mode].second)[1] = omega[2];
   }
 
   inline void setSensorFusionFlag(bool flag){sensor_fusion_flag_ = flag;  }
@@ -340,7 +343,7 @@ protected:
   tf::Transform cog2baselink_transform_;
 
   /* 9: x_w, y_w, z_w, roll_w, pitch_w, yaw_cog_w, x_b, y_b, yaw_board_w */
-  array<AxisState, 11> state_;
+  array<AxisState, State::TOTAL_NUM> state_;
 
   /* sensor fusion */
   boost::shared_ptr< pluginlib::ClassLoader<kf_plugin::KalmanFilter> > sensor_fusion_loader_ptr_;
