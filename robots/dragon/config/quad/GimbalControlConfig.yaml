@@ -1,0 +1,39 @@
+### Gimbal PID control for dragon quad type
+
+# general parameter
+controller/baselink: link2
+controller/verbose: false
+controller/real_machine: false
+controller/gimbal_control_topic_name: /dragon/gimbals_ctrl
+controller/joint_state_sub_name: /dragon/joint_states
+controller/control_verbose: true
+
+# throttle [N]
+controller/throttle/offset: 0
+controller/throttle/pos_limit: 28
+controller/throttle/pos_p_limit: 28
+controller/throttle/pos_i_limit: 28
+controller/throttle/pos_d_limit: 28
+controller/throttle/const_i_ctrl_thre_land: -0.2
+
+# xy [rad]
+controller/xy/p_gain: 10 # 20
+controller/xy/i_gain: 0.5
+controller/xy/hovering_i_gain: 0.5
+controller/xy/d_gain: 20.0 # 40
+controller/xy/limit: 100 
+controller/xy/p_term_limit: 100
+controller/xy/i_term_limit: 100
+controller/xy/d_term_limit: 100
+controller/xy/x_offset: 0
+controller/xy/y_offset: 0
+controller/xy/xy_vel_weak_gain_sub_name: /velocity_control_gain_change
+
+# yaw [N]
+controller/yaw/limit: 10.0
+controller/yaw/p_term_limit: 10.0
+controller/yaw/i_term_limit: 10.0
+controller/yaw/d_term_limit: 10.0
+controller/yaw/p_gain: -10 # should be negative
+controller/yaw/i_gain: 0.1
+controller/yaw/d_gain: 10

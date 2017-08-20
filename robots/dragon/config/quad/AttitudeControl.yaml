@@ -2,6 +2,7 @@
 
 joint_state_sub_name: /dragon/joint_states
 
+verbose: false
 control_rate: 15.0
 
 baselink: link2

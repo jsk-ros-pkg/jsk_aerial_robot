@@ -24,10 +24,6 @@
     <param name="estimator/estimate_mode" value= "$(arg estimate_mode)" if="$(arg real_machine)"/>
     <param name="estimator/estimate_mode" value= "2" if="$(arg simulation)" />
 
-    # World Pos Control Mode: 0
-    # World Vel Control Mode: 2
-    # Local Vel Control Mode: 3
-    # Attitude Control Mode: 4
     <param name="navigator/xy_control_mode"  value="$(arg control_mode)"/>
 
     <param name="simulation" value="$(arg simulation)" /> <!-- for sensor plugin -->
@@ -37,8 +33,9 @@
     ###########  Sensor Fusion  ###########
     <rosparam file="$(find dragon)/config/SensorFusion.yaml" command="load" if="$(arg real_machine)"/>
     <rosparam file="$(find dragon)/config/SensorSimulation.yaml" command="load" if="$(arg simulation)"/>
-    ###########  PID Control  ###########
-    <rosparam file="$(find dragon)/config/$(arg type)/PidControlConfig.yaml" command="load" />
+    ###########  Gimbal Control  ###########
+    <param name="control_plugin_name" value ="control_plugin/dragon_gimbal" />
+    <rosparam file="$(find dragon)/config/$(arg type)/GimbalControlConfig.yaml" command="load" />
 
     ###########  Teleop  ###########
     <rosparam file="$(find dragon)/config/TeleopNavigationConfig.yaml" command="load" />
@@ -72,12 +69,14 @@
   </include >
 
   ###########  Transform Control  ###########
-  <node pkg="dragon" type="dragon_control_node" name="dragon_control"  output="screen" respawn="true">
+  <node pkg="dragon" type="dragon_transform_control_node" name="dragon_transformcontrol"  output="screen" respawn="true">
     <rosparam file="$(find dragon)/config/$(arg type)/AttitudeControl.yaml" command="load" />
     <param name="kinematic_verbose" value="false" />
     <param name="control_verbose" value="false" />
     <param name="debug_verbose" value="false" />
     <param name="real_machine" value="$(arg real_machine)" />
+    <param name="gimbal_control" value="false" />
+    <param name="gimbal_control_topic_name" value="/dragon/gimbals_ctrl" />
   </node>
 
   ########## Simulation in Gazebo #########
