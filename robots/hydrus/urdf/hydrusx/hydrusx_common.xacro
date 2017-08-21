@@ -11,11 +11,11 @@
   <xacro:property name="rotor_radius" value=".02" />
   <xacro:property name="rotor_height" value=".05" />
   <xacro:property name="bat_offset" value="0.0" />
-  <xacro:property name="pc_c_offset" value="0.22" />
-  <xacro:property name="pc_v_offset" value="-0.2" />
+  <xacro:property name="pc_c_offset" value="0.0" />  <!-- odroid u4: 0.22, euclid: 0 -->
+  <xacro:property name="pc_v_offset" value="0.2" />  <!-- odroid u4: -0.2, euclid: 0.2 -->
   <xacro:property name="pcs_cable_offset" value="0.0" />
   <xacro:property name="fc_offset" value="-0.26" />
-  <xacro:property name="sensor_c_offset" value="-0.215" />
+  <xacro:property name="sensor_c_offset" value="-0.215" /> 
   <xacro:property name="sensor_v_offset" value="-0.01" />
   <xacro:property name="head_leg_offset" value="-0.25" />
   <xacro:property name="tail_leg_offset" value="0.235" />
@@ -27,9 +27,9 @@
   <xacro:property name="joint_mass" value=".2075" />
   <xacro:property name="protector_mass" value=".05" />
   <xacro:property name="protector_holder_mass" value=".0386" />
-  <xacro:property name="bat_mass" value="0.41" />
+  <xacro:property name="bat_mass" value="0.364" /> <!-- hyperon: 0.41, white: 0.364 -->
   <xacro:property name="fc_mass" value=".03" />
-  <xacro:property name="pc_c_mass" value=".1" />
+  <xacro:property name="pc_c_mass" value=".13" /> <!-- odoroid u4: 0.1, euclid: 0.13 -->
   <xacro:property name="pc_v_mass" value=".24" />
   <xacro:property name="pcs_cable_mass" value=".03" />
   <xacro:property name="head_leg_mass" value="0.0623" />

@@ -105,18 +105,8 @@
       <xacro:extra_module name = "fc" parent = "${self}" mass = "${fc_mass}" offset = "${link_length * 0.5 + fc_offset}" />
       <!-- sensor for control -->
       <xacro:extra_module name = "sensor_c" parent = "${self}" mass = "${sensor_c_mass}" offset = "${link_length * 0.5 + sensor_c_offset}" />
-      <!-- sensor for vision -->
-      <xacro:extra_module name = "sensor_v" parent = "${self}" mass = "${sensor_v_mass}" offset = "${link_length * 0.5 + sensor_v_offset}" />
-    </xacro:if>
-
-    <!-- pc -->
-    <xacro:if value="${pc}">
       <!-- control side -->
       <xacro:extra_module name = "pc_c" parent = "${self}" mass = "${pc_c_mass}" offset = "${link_length * 0.5 + pc_c_offset}" />
-      <!-- visual side -->
-      <xacro:extra_module name = "pc_v" parent = "${self}" mass = "${pc_v_mass}" offset = "${link_length * 0.5 + pc_v_offset}" />
-      <!-- pcs calble -->
-      <xacro:extra_module name = "pcs_cable" parent = "${self}" mass = "${pcs_cable_mass}" offset = "${link_length * 0.5 + pcs_cable_offset}" />
     </xacro:if>
 
     <!-- general -->
