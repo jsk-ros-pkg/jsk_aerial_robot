@@ -15,7 +15,7 @@
                 j3_controller"
           output="screen"/>
 
-  <node pkg="hydrus" type="dynamicxel_bridge_node" name="dynamicxel_bridge"  output="screen" />
+  <node pkg="hydrus" type="dynamixel_bridge_node" name="dynamixel_bridge"  output="screen" />
 
   <node pkg="hydrus" type="hydrus3_dynamixel_param.py" name="param_configure"  output="screen" />
 
