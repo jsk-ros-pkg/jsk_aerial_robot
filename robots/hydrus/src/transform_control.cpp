@@ -130,7 +130,6 @@ void TransformController::addChildren(const KDL::SegmentMap::const_iterator segm
             rotor_direction_.insert(std::make_pair(std::atoi(child.getJoint().getName().substr(5).c_str()), child.getJoint().JointAxis().z()));
           }
       }
-
       /* count the rotor */
       if(child.getName().find("propeller") != std::string::npos) rotor_num_++;
       addChildren(children[i]);
@@ -294,9 +293,12 @@ void TransformController::kinematics(sensor_msgs::JointState state)
       KDL::RigidBodyInertia link_inertia_tmp = link_inertia;
       link_inertia = link_inertia_tmp + f * it->second;
 
-      /* CoG */
-      if(it->first == baselink_) cog_frame.M = f.M * cog_desire_orientation_.Inverse();
     }
+  /* CoG */
+  KDL::Frame f_baselink;
+  int status = fk_solver.JntToCart(jointpositions, f_baselink, baselink_);
+  if(status < 0) ROS_ERROR("can not get FK to the baselink: %s", baselink_.c_str());
+  cog_frame.M = f_baselink.M * cog_desire_orientation_.Inverse();
   cog_frame.p = link_inertia.getCOG();
   tf::Transform cog_transform;
   tf::transformKDLToTF(cog_frame, cog_transform);
@@ -323,14 +325,8 @@ void TransformController::kinematics(sensor_msgs::JointState state)
   KDL::RigidBodyInertia link_inertia_from_cog = cog_frame.Inverse() * link_inertia;
   setInertia(Eigen::Map<const Eigen::Matrix3d>(link_inertia_from_cog.getRotationalInertia().data));
 
-
-  /* find the transform from cog to baselink */
-  KDL::Frame f;
-  int status = fk_solver.JntToCart(jointpositions, f, baselink_);
-
-  //setCog2Baselink(Eigen::Map<const Eigen::Vector3d>((cog_frame.Inverse() * f).p.data));
   tf::Transform cog2baselink_transform;
-  tf::transformKDLToTF(cog_frame.Inverse() * f, cog2baselink_transform);
+  tf::transformKDLToTF(cog_frame.Inverse() * f_baselink, cog2baselink_transform);
   setCog2Baselink(cog2baselink_transform);
 }
 
