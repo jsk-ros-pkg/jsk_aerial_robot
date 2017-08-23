@@ -281,7 +281,7 @@ void TransformController::kinematics(sensor_msgs::JointState state)
     {
       std::map<std::string, uint32_t>::iterator itr = joint_map_.find(state.name[i]);
       if(itr != joint_map_.end())  jointpositions(joint_map_.find(state.name[i])->second) = state.position[i];
-      else ROS_FATAL("transform_control: no matching joint called %s", state.name[i].c_str());
+      //else ROS_FATAL("transform_control: no matching joint called %s", state.name[i].c_str());
     }
   KDL::RigidBodyInertia link_inertia = KDL::RigidBodyInertia::Zero();
   KDL::Frame cog_frame;
