@@ -36,6 +36,9 @@ namespace control_plugin
     nhp_.param("gimbal_control_topic_name", pub_name, string("gimbals_ctrl"));
     gimbal_control_pub_ = nh_.advertise<sensor_msgs::JointState>(pub_name, 1);
 
+    nhp_.param("gimbal_target_force_topic_name", pub_name, string("gimbals_target_force"));
+    gimbal_target_force_pub_ = nh_.advertise<std_msgs::Float32MultiArray>(pub_name, 1);
+
     string joint_state_sub_name;
     nhp_.param("joint_state_sub_name", joint_state_sub_name, std::string("joint_state"));
     joint_state_sub_ = nh_.subscribe(joint_state_sub_name, 1, &DragonGimbal::jointStateCallback, this);
@@ -105,9 +108,9 @@ namespace control_plugin
         std::cout << "P det:"  << std::endl << P_det << std::endl;
       }
 
-     Eigen::VectorXd f;
+    Eigen::VectorXd f;
 
-     if(P_det < 1e-3)
+    if(P_det < 1e-3)
       { // bad pitch roll
         if(control_verbose_) ROS_ERROR("bad P_det: %f", P_det);
         P = Eigen::MatrixXd::Zero(3, rotor_num  * 2);
@@ -126,13 +129,15 @@ namespace control_plugin
         f = pseudoinverse(P) * pid_values;
       }
 
-     if(control_verbose_)
+    if(control_verbose_)
       {
         std::cout << "gimbal P_pseudo_inverse:"  << std::endl << pseudoinverse(P) << std::endl;
         std::cout << "gimbal P * P_pseudo_inverse:"  << std::endl << P * pseudoinverse(P) << std::endl;
         //std::cout << "pid values:"  << std::endl << pid_values << std::endl;
         //std::cout << "gimbal f:"  << std::endl << f << std::endl;
       }
+
+    std_msgs::Float32MultiArray target_force_msg;
 
     for(int i = 0; i < rotor_num; i++)
       {
@@ -164,6 +169,10 @@ namespace control_plugin
 
         if(control_verbose_) std::cout << "gimbal" << i + 1 <<"r & p: " << gimbal_i_roll << ", "<< gimbal_i_pitch  << std::endl;
 
+        /* ros publish */
+        target_force_msg.data.push_back(f(2 * i));
+        target_force_msg.data.push_back(f(2 * i + 1));
+        gimbal_target_force_pub_.publish(target_force_msg);
       }
   }
 

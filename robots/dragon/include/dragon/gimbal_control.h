@@ -44,6 +44,7 @@
 #include <std_msgs/UInt8.h>
 #include <dynamixel_controllers/TorqueEnable.h>
 #include <nav_msgs/Odometry.h>
+#include <std_msgs/Float32MultiArray.h>
 
 /* basic transform control */
 #include <dragon/transform_control.h>
@@ -65,7 +66,6 @@ namespace control_plugin
 
      void reset()
     {
-      ROS_WARN("gimbal control debug: reset");
       FlatnessPid::reset();
       //yaw_i_term_.resize(1);
       //target_yaw_.resize(1);
@@ -79,6 +79,7 @@ namespace control_plugin
   private:
     boost::shared_ptr<DragonTransformController> kinematics_;
     ros::Publisher gimbal_control_pub_;
+    ros::Publisher gimbal_target_force_pub_;
     ros::Subscriber joint_state_sub_;
 
     void control();
