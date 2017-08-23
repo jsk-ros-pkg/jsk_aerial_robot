@@ -3,7 +3,7 @@
 joint_state_sub_name: /hydrusx/joint_states
 control_rate: 15.0
 
-baselink: link4
+baselink: fc
 
 only_three_axis_mode: false
 
