@@ -5,7 +5,9 @@ using namespace std;
 namespace control_plugin
 {
   DragonGimbal::DragonGimbal():
-    servo_torque_(false)
+    servo_torque_(false),
+    curr_desire_tilt_(0, 0, 0),
+    final_desire_tilt_(0, 0, 0)
   {
   }
 
@@ -36,12 +38,17 @@ namespace control_plugin
     nhp_.param("gimbal_control_topic_name", pub_name, string("gimbals_ctrl"));
     gimbal_control_pub_ = nh_.advertise<sensor_msgs::JointState>(pub_name, 1);
 
+    nhp_.param("current_desire_tilt_topic_name", pub_name, string("/desire_coordinate"));
+    curr_desire_tilt_pub_ = nh_.advertise<aerial_robot_base::DesireCoord>(pub_name, 1);
+
     nhp_.param("gimbal_target_force_topic_name", pub_name, string("gimbals_target_force"));
     gimbal_target_force_pub_ = nh_.advertise<std_msgs::Float32MultiArray>(pub_name, 1);
 
-    string joint_state_sub_name;
-    nhp_.param("joint_state_sub_name", joint_state_sub_name, std::string("joint_state"));
-    joint_state_sub_ = nh_.subscribe(joint_state_sub_name, 1, &DragonGimbal::jointStateCallback, this);
+    string sub_name;
+    nhp_.param("joint_state_sub_name", sub_name, std::string("joint_state"));
+    joint_state_sub_ = nh_.subscribe(sub_name, 1, &DragonGimbal::jointStateCallback, this);
+    nhp_.param("final_desire_tilt_sub_name", sub_name, std::string("/final_desire_tilt"));
+    final_desire_tilt_sub_ = nh_.subscribe(sub_name, 1, &DragonGimbal::baselinkTiltCallback, this);
 
   }
 
@@ -64,12 +71,18 @@ namespace control_plugin
       alt_gains_[i].setValue(msg->pos_p_gain_alt[i], msg->pos_i_gain_alt[i], msg->pos_d_gain_alt[i]);
   }
 
+  void DragonGimbal::baselinkTiltCallback(const aerial_robot_base::DesireCoordConstPtr & msg)
+  {
+    final_desire_tilt_.setValue(msg->roll, msg->pitch, msg->yaw);
+  }
+
   void DragonGimbal::update()
   {
     servoTorqueProcess();
     stateError();
     if(!pidUpdate()) return;
     gimbalControl();
+    desireTilt();
     sendCmd();
   }
 
@@ -173,6 +186,29 @@ namespace control_plugin
         target_force_msg.data.push_back(f(2 * i));
         target_force_msg.data.push_back(f(2 * i + 1));
         gimbal_target_force_pub_.publish(target_force_msg);
+      }
+  }
+
+  void DragonGimbal::desireTilt()
+  {
+    static ros::Time prev_stamp = ros::Time::now();
+    if(curr_desire_tilt_ == final_desire_tilt_) return;
+
+    //ROS_INFO("current desire_tilt_: [%f, %f, %f], final_desire_tilt_: [%f, %f, %f]", curr_desire_tilt_.x(), curr_desire_tilt_.y(), curr_desire_tilt_.z(), final_desire_tilt_.x(), final_desire_tilt_.y(), final_desire_tilt_.z());
+
+    if(ros::Time::now().toSec() - prev_stamp.toSec() > tilt_pub_interval_)
+      {
+        if((final_desire_tilt_- curr_desire_tilt_).length() > tilt_thresh_)
+          curr_desire_tilt_ += ((final_desire_tilt_ - curr_desire_tilt_).normalize() * tilt_thresh_);
+        else
+          curr_desire_tilt_ = final_desire_tilt_;
+
+        aerial_robot_base::DesireCoord desire_tilt_msg;
+        desire_tilt_msg.roll = curr_desire_tilt_.x();
+        desire_tilt_msg.pitch = curr_desire_tilt_.y();
+        curr_desire_tilt_pub_.publish(desire_tilt_msg);
+
+        prev_stamp = ros::Time::now();
       }
   }
 
@@ -280,5 +316,13 @@ namespace control_plugin
     /* height threshold to disable the joint servo when landing */
     nhp_.param("height_thresh", height_thresh_, 0.1);
     if(verbose_) cout << ns << ": height_thresh is " << height_thresh_ << endl;
+
+    /* the threshold to tilt smoothly */
+    nhp_.param("tilt_thresh", tilt_thresh_, 0.02);
+    if(verbose_) cout << ns << ": tilt_thresh is " << tilt_thresh_ << endl;
+
+    /* the rate to pub target tilt  command */
+    nhp_.param("tilt_pub_interval", tilt_pub_interval_, 0.1);
+    if(verbose_) cout << ns << ": tilt_pub_interval is " << tilt_pub_interval_ << endl;
   }
 };

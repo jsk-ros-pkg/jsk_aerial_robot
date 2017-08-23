@@ -45,6 +45,7 @@
 #include <dynamixel_controllers/TorqueEnable.h>
 #include <nav_msgs/Odometry.h>
 #include <std_msgs/Float32MultiArray.h>
+#include <aerial_robot_base/DesireCoord.h>
 
 /* basic transform control */
 #include <dragon/transform_control.h>
@@ -80,27 +81,35 @@ namespace control_plugin
     boost::shared_ptr<DragonTransformController> kinematics_;
     ros::Publisher gimbal_control_pub_;
     ros::Publisher gimbal_target_force_pub_;
+    ros::Publisher curr_desire_tilt_pub_;
     ros::Subscriber joint_state_sub_;
+    ros::Subscriber final_desire_tilt_sub_;
 
     void control();
     void servoTorqueProcess();
     void gimbalControl();
+    void desireTilt();
     void jointStateCallback(const sensor_msgs::JointStateConstPtr& state);
     void rosParamInit();
 
+    void baselinkTiltCallback(const aerial_robot_base::DesireCoordConstPtr & msg);
     void fourAxisGainCallback(const aerial_robot_msgs::FourAxisGainConstPtr & msg);
 
     Eigen::MatrixXd P_xy_;
 
     std::vector<double> target_gimbal_angles_;
+    tf::Vector3 curr_desire_tilt_, final_desire_tilt_;
+
     bool real_machine_;
     bool servo_torque_;
 
     bool control_verbose_;
 
-    /* rosparma */
+    /* rosparam */
     double height_thresh_;
     string joints_torque_control_srv_name_;
+    double tilt_thresh_;
+    double tilt_pub_interval_;
 
     /* psuedo inverse */
     /* https://gist.github.com/javidcf/25066cf85e71105d57b6 */

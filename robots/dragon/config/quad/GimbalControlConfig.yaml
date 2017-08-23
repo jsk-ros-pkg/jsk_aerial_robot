@@ -2,19 +2,19 @@
 
 # general parameter
 controller/baselink: fc
-controller/verbose: false
+controller/verbose: true
 controller/real_machine: false
 controller/gimbal_control_topic_name: /dragon/gimbals_ctrl
 controller/joint_state_sub_name: /dragon/joint_states
 controller/control_verbose: false
 
-# throttle [N]
-controller/throttle/offset: 0
-controller/throttle/pos_limit: 28
-controller/throttle/pos_p_limit: 28
-controller/throttle/pos_i_limit: 28
-controller/throttle/pos_d_limit: 28
-controller/throttle/const_i_ctrl_thre_land: -0.2
+# alt [N]
+controller/alt/offset: 0
+controller/alt/limit: 28
+controller/alt/p_term_limit: 28
+controller/alt/i_term_limit: 28
+controller/alt/d_term_limit: 28
+controller/alt/alt_landing_const_i_ctrl_thresh: -0.2
 
 # xy [rad]
 controller/xy/p_gain: 15 #10: sucess in real machine, but weak
@@ -37,3 +37,6 @@ controller/yaw/d_term_limit: 10.0
 controller/yaw/p_gain: -10 # should be negative
 controller/yaw/i_gain: 0.1
 controller/yaw/d_gain: 5
+
+# desire tilt
+controller/tilt_pub_interval: 0.2
