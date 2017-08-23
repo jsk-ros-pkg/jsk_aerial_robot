@@ -67,6 +67,8 @@
 
 // URDF
 #include <urdf/model.h>
+#include <kdl/tree.hpp>
+#include <kdl_parser/kdl_parser.hpp>
 
 // Rotor Simlation
 #include <aerial_robot_model/rotor_interface.h>
@@ -154,6 +156,12 @@ protected:
 
   geometry_msgs::TwistStamped cmd_vel_;
   geometry_msgs::PoseStamped cmd_pos_;
+
+  /* baselink */
+  gazebo::math::Vector3 base_link_offset_;
+  std::string base_link_parent_;
+
+  void findBaselink(const KDL::SegmentMap::const_iterator segment);
 
   void cmdVelCallback(const geometry_msgs::TwistStampedConstPtr& cmd_vel)
   {
