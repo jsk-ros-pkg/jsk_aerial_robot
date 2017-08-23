@@ -64,7 +64,6 @@ namespace control_plugin
                     BasicEstimator* estimator, Navigator* navigator,
                     double ctrl_loop_rate);
     void update();
-
      void reset()
     {
       FlatnessPid::reset();
@@ -73,13 +72,15 @@ namespace control_plugin
 
       yaw_i_term_.assign(1, 0);
       target_yaw_.assign(1, 0);
+
+      level_flag_ = false;
+      landing_flag_ = false;
     }
-
     void sendCmd();
-
   private:
     boost::shared_ptr<DragonTransformController> kinematics_;
     ros::Publisher gimbal_control_pub_;
+    ros::Publisher joint_control_pub_;
     ros::Publisher gimbal_target_force_pub_;
     ros::Publisher curr_desire_tilt_pub_;
     ros::Subscriber joint_state_sub_;
@@ -87,6 +88,7 @@ namespace control_plugin
 
     void control();
     void servoTorqueProcess();
+    void landingProcess();
     void gimbalControl();
     void desireTilt();
     void jointStateCallback(const sensor_msgs::JointStateConstPtr& state);
@@ -95,10 +97,16 @@ namespace control_plugin
     void baselinkTiltCallback(const aerial_robot_base::DesireCoordConstPtr & msg);
     void fourAxisGainCallback(const aerial_robot_msgs::FourAxisGainConstPtr & msg);
 
+    sensor_msgs::JointState joint_state_;
     Eigen::MatrixXd P_xy_;
 
+    /* desire tilt */
     std::vector<double> target_gimbal_angles_;
     tf::Vector3 curr_desire_tilt_, final_desire_tilt_;
+
+    /* landing process */
+    bool level_flag_;
+    bool landing_flag_;
 
     bool real_machine_;
     bool servo_torque_;

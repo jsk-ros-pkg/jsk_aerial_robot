@@ -5,7 +5,7 @@ using namespace std;
 namespace control_plugin
 {
   DragonGimbal::DragonGimbal():
-    servo_torque_(false),
+    servo_torque_(false), level_flag_(false), landing_flag_(false),
     curr_desire_tilt_(0, 0, 0),
     final_desire_tilt_(0, 0, 0)
   {
@@ -37,6 +37,9 @@ namespace control_plugin
     string pub_name;
     nhp_.param("gimbal_control_topic_name", pub_name, string("gimbals_ctrl"));
     gimbal_control_pub_ = nh_.advertise<sensor_msgs::JointState>(pub_name, 1);
+
+    nhp_.param("joint_control_topic_name", pub_name, string("joints_ctrl"));
+    joint_control_pub_ = nh_.advertise<sensor_msgs::JointState>(pub_name, 1);
 
     nhp_.param("current_desire_tilt_topic_name", pub_name, string("/desire_coordinate"));
     curr_desire_tilt_pub_ = nh_.advertise<aerial_robot_base::DesireCoord>(pub_name, 1);
@@ -80,10 +83,73 @@ namespace control_plugin
   {
     servoTorqueProcess();
     stateError();
+
+    landingProcess();
+
     if(!pidUpdate()) return;
     gimbalControl();
     desireTilt();
     sendCmd();
+  }
+
+  void DragonGimbal::landingProcess()
+  {
+
+    sensor_msgs::JointState joint_control_msg;
+    for(int i = 0; i < joint_state_.position.size(); i++)
+      {
+        if(joint_state_.name[i].find("joint") != std::string::npos)
+          {
+            double target_cmd;
+            if(joint_state_.name[i].find("pitch") != std::string::npos)
+              target_cmd = 0;
+            else target_cmd = joint_state_.position[i];
+
+            joint_control_msg.position.push_back(target_cmd);
+
+          }
+      }
+
+    if(navigator_->getForceLandingFlag() || navigator_->getNaviState() == Navigator::LAND_STATE)
+      {
+        if(!level_flag_)
+          {
+            joint_control_pub_.publish(joint_control_msg);
+            final_desire_tilt_.setValue(0, 0, 0);
+          }
+
+        level_flag_ = true;
+
+        if(navigator_->getNaviState() == Navigator::LAND_STATE && !landing_flag_)
+          {
+            landing_flag_ = true;
+            navigator_->setTargetPosZ(estimator_->getState(State::Z_COG, estimate_mode_)[0]);
+            navigator_->setNaviState(Navigator::HOVER_STATE);
+          }
+      }
+
+    /* back to landing process */
+    if(landing_flag_)
+      {
+        bool already_level = true;
+        for(int i = 0; i < joint_state_.position.size(); i++)
+          {
+            if(joint_state_.name[i].find("joint") != std::string::npos
+               && joint_state_.name[i].find("pitch") != std::string::npos)
+              {
+                if(fabs(joint_state_.position[i]) > 0.085) already_level = false;
+              }
+          }
+        //ROS_INFO("curr_desire_tilt: [%f, %f], nomr: %f", curr_desire_tilt_.x(), curr_desire_tilt_.y(), curr_desire_tilt_.length());
+        if(curr_desire_tilt_.length()) already_level = false;
+
+        if(already_level && navigator_->getNaviState() == Navigator::HOVER_STATE)
+          {
+            ROS_WARN("gimbal control: back to land state");
+            navigator_->setNaviState(Navigator::LAND_STATE);
+            navigator_->setTargetPosZ(estimator_->getLandingHeight());
+          }
+      }
   }
 
   void DragonGimbal::gimbalControl()
@@ -297,9 +363,9 @@ namespace control_plugin
 
   void DragonGimbal::jointStateCallback(const sensor_msgs::JointStateConstPtr& state)
   {
-    sensor_msgs::JointState js = *state;
-    kinematics_->gimbalProcess(js);
-    kinematics_->kinematics(js);
+    joint_state_ = *state;
+    kinematics_->gimbalProcess(joint_state_);
+    kinematics_->kinematics(joint_state_);
   }
 
   void DragonGimbal::rosParamInit()
