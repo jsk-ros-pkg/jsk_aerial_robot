@@ -1,7 +1,7 @@
 ### Gimbal PID control for dragon quad type
 
 # general parameter
-controller/baselink: link2
+controller/baselink: fc
 controller/verbose: false
 controller/real_machine: false
 controller/gimbal_control_topic_name: /dragon/gimbals_ctrl

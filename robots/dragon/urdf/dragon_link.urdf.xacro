@@ -210,7 +210,26 @@
         <origin rpy="0 0 0" xyz="0 0 0"/>
         <axis xyz="0 0 1"/>
       </joint>
+    </xacro:if>
 
+    <!-- set the fcu frame -->
+    <xacro:if value="${baselink}">
+      <link name="fc">
+        <inertial>
+          <origin xyz="0 0 0" rpy="0 0 0"/>
+          <mass value="0.00001"/>
+          <inertia
+              ixx="0.000001" ixy="0.0" ixz="0.0"
+              iyy="0.000001" iyz="0.0"
+              izz="0.000002"/>
+        </inertial>
+      </link>
+      <joint name="fc_joint" type="fixed">
+        <child link="fc"/>
+        <parent link="link${self}"/>
+        <origin rpy="0 0 0" xyz="0.343 0 0.034"/>
+        <axis xyz="0 0 1"/>
+      </joint>
     </xacro:if>
 
     <!-- hardware interface -->

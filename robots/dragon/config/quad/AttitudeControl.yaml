@@ -5,7 +5,7 @@ joint_state_sub_name: /dragon/joint_states
 verbose: false
 control_rate: 15.0
 
-baselink: link2
+baselink: fc
 
 only_three_axis_mode: true
 
