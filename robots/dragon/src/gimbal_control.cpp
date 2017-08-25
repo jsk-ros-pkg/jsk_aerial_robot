@@ -123,6 +123,7 @@ namespace control_plugin
         if(navigator_->getNaviState() == Navigator::LAND_STATE && !landing_flag_)
           {
             landing_flag_ = true;
+            navigator_->setTeleopFlag(false);
             navigator_->setTargetPosZ(estimator_->getState(State::Z_COG, estimate_mode_)[0]);
             navigator_->setNaviState(Navigator::HOVER_STATE);
           }
@@ -148,6 +149,7 @@ namespace control_plugin
             ROS_WARN("gimbal control: back to land state");
             navigator_->setNaviState(Navigator::LAND_STATE);
             navigator_->setTargetPosZ(estimator_->getLandingHeight());
+            navigator_->setTeleopFlag(true);
           }
       }
   }
