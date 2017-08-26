@@ -1,21 +1,10 @@
 <?xml version="1.0"?>
 <launch>
   <arg name="model" />
-  <arg name="type" />
   <arg name="gui" default="true" />
   <arg name="headless" default="false" />
   <arg name="worldtype" default="empty" />
   
-  <!-- robot model -->
-  <include file="$(find aerial_robot_model)/launch/aerial_robot_model.launch">
-    <arg name="model" value="$(arg model)"/>
-    <arg name="type" value="$(arg type)"/>
-    <arg name="description_path" value="$(find aerial_robot_simulation)/robots"/>
-    <arg name="description_mode" value="gazebo"/>
-    <arg name="need_joint_state" value="false"/>
-    <arg name="headless" value="$(arg headless)" />
-  </include>
-
   <!-- gazebo world -->
   <include file="$(find gazebo_ros)/launch/empty_world.launch">
     <arg name="world_name" value="$(find aerial_robot_simulation)/gazebo_model/world/$(arg worldtype).world"/>

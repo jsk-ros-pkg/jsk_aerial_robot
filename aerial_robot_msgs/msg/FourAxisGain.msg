@@ -9,15 +9,10 @@ float32[] pos_p_gain_roll
 float32[] pos_i_gain_roll
 float32[] pos_d_gain_roll
 
-float32[] pos_p_gain_throttle
-float32[] pos_i_gain_throttle
-float32[] pos_d_gain_throttle
+float32[] pos_p_gain_alt
+float32[] pos_i_gain_alt
+float32[] pos_d_gain_alt
 
 float32[] pos_p_gain_yaw
 float32[] pos_i_gain_yaw
 float32[] pos_d_gain_yaw
-
-#feedforward gain
-float32[] ff_roll_vec
-float32[] ff_pitch_vec
-float32[] ff_yaw_vec

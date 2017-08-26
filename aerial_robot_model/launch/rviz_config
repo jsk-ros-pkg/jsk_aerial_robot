@@ -68,39 +68,43 @@ Visualization Manager:
         Expand Link Details: false
         Expand Tree: false
         Link Tree Style: Links in Alphabetic Order
+        fc:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        joint1_module:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        joint2_module:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        joint3_module:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
         link1:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        link1_center:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
         link2:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        link2_center:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
         link3:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        link3_center:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
         link4:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        link4_center:
+        pc:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -120,6 +124,10 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
+        root:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
       Name: RobotModel
       Robot Description: robot_description
       TF Prefix: ""
@@ -127,27 +135,79 @@ Visualization Manager:
       Value: true
       Visual Enabled: true
     - Class: rviz/TF
-      Enabled: false
+      Enabled: true
       Frame Timeout: 15
       Frames:
         All Enabled: true
-      Marker Scale: 1
+        cog:
+          Value: true
+        fc:
+          Value: true
+        joint1_module:
+          Value: true
+        joint2_module:
+          Value: true
+        joint3_module:
+          Value: true
+        link1:
+          Value: true
+        link2:
+          Value: true
+        link3:
+          Value: true
+        link4:
+          Value: true
+        pc:
+          Value: true
+        propeller1:
+          Value: true
+        propeller2:
+          Value: true
+        propeller3:
+          Value: true
+        propeller4:
+          Value: true
+        root:
+          Value: true
+      Marker Scale: 0.5
       Name: TF
       Show Arrows: true
       Show Axes: true
       Show Names: true
       Tree:
-        {}
+        root:
+          cog:
+            {}
+          link1:
+            link2:
+              fc:
+                {}
+              joint1_module:
+                {}
+              link3:
+                joint2_module:
+                  {}
+                link4:
+                  joint3_module:
+                    {}
+                  propeller4:
+                    {}
+                propeller3:
+                  {}
+              propeller2:
+                {}
+            pc:
+              {}
+            propeller1:
+              {}
       Update Interval: 0
-      Value: false
+      Value: true
     - Class: rviz/MarkerArray
       Enabled: true
       Marker Topic: /orientation_data
       Name: MarkerArray
       Namespaces:
-        cog: true
-        inertia_x: true
-        inertia_y: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/InteractiveMarkers
@@ -212,7 +272,7 @@ Visualization Manager:
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
-    Fixed Frame: link1
+    Fixed Frame: cog
     Frame Rate: 30
   Name: root
   Tools:
@@ -240,17 +300,17 @@ Visualization Manager:
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0.340694934
-        Y: 0.203675538
-        Z: -0.0205052048
+        X: 0.0261927117
+        Y: 0.0339445397
+        Z: -0.144058079
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.0500000007
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: 0.859795272
+      Pitch: 0.894795299
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 2.28542185
+      Yaw: 2.51042223
     Saved: ~
 Window Geometry:
   Displays:

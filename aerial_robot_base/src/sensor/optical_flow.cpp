@@ -107,15 +107,15 @@ namespace sensor_plugin
         }
 
       /* update/check the state status of the xy state */
-      if(estimator_->getState(BasicEstimator::Z_W, BasicEstimator::EGOMOTION_ESTIMATE)[0] < height_thresh_)
+      if(estimator_->getState(State::Z_BASE, BasicEstimator::EGOMOTION_ESTIMATE)[0] < height_thresh_)
         {
           ROS_WARN_THROTTLE(1,"Optical Flow: bad height to use opticla flow");
 
           /* stop kalman filter */
           if(!first_flag)
             {
-              estimator_->setStateStatus(BasicEstimator::X_W, BasicEstimator::EGOMOTION_ESTIMATE, false);
-              estimator_->setStateStatus(BasicEstimator::Y_W, BasicEstimator::EGOMOTION_ESTIMATE, false);
+              estimator_->setStateStatus(State::X_BASE, BasicEstimator::EGOMOTION_ESTIMATE, false);
+              estimator_->setStateStatus(State::Y_BASE, BasicEstimator::EGOMOTION_ESTIMATE, false);
 
               first_flag = true;
             }
@@ -127,8 +127,8 @@ namespace sensor_plugin
           first_flag = false;
           ROS_WARN("Optical Flow: start/restart, height: %f", height_thresh_);
 
-          if(!estimator_->getStateStatus(BasicEstimator::X_W, BasicEstimator::EGOMOTION_ESTIMATE) ||
-             !estimator_->getStateStatus(BasicEstimator::Y_W, BasicEstimator::EGOMOTION_ESTIMATE))
+          if(!estimator_->getStateStatus(State::X_BASE, BasicEstimator::EGOMOTION_ESTIMATE) ||
+             !estimator_->getStateStatus(State::Y_BASE, BasicEstimator::EGOMOTION_ESTIMATE))
             {
               ROS_WARN("Optical Flow: start/restart kalman filter");
 
@@ -141,18 +141,18 @@ namespace sensor_plugin
                   if(plugin_name == "kalman_filter/kf_pos_vel_acc_bias" ||
                     plugin_name == "kalman_filter/kf_pos_vel_acc")
                     {
-                      if((id & (1 << BasicEstimator::X_W)) || (id & (1 << BasicEstimator::Y_W)) )
+                      if((id & (1 << State::X_BASE)) || (id & (1 << State::Y_BASE)) )
                         {
                           if(time_sync_) kf->setTimeSync(true);
 
-                          kf->setInitState(vel_[id >> 1], 1);
+                          kf->setInitState(vel_[id >> (State::X_BASE + 1)], 1);
                           kf->setMeasureFlag();
                         }
                     }
 
                   if(plugin_name == "aerial_robot_base/kf_xy_roll_pitch_bias")
                     {
-                      if((id & (1 << BasicEstimator::X_W)) && (id & (1 << BasicEstimator::Y_W)))
+                      if((id & (1 << State::X_BASE)) && (id & (1 << State::Y_BASE)) )
                         {
                           if(time_sync_) kf->setTimeSync(true);
                           VectorXd init_state(6);
@@ -166,17 +166,14 @@ namespace sensor_plugin
             }
 
           /* set the status */
-          estimator_->setStateStatus(BasicEstimator::X_W, BasicEstimator::EGOMOTION_ESTIMATE, true);
-          estimator_->setStateStatus(BasicEstimator::Y_W, BasicEstimator::EGOMOTION_ESTIMATE, true);
+          estimator_->setStateStatus(State::X_BASE, BasicEstimator::EGOMOTION_ESTIMATE, true);
+          estimator_->setStateStatus(State::Y_BASE, BasicEstimator::EGOMOTION_ESTIMATE, true);
         }
 
       quality_ = opt_msg->vector.z;
 
       /* get the optical flow frame orientation towards the world frame */
-      tf::Matrix3x3 orien;
-      orien.setRPY(estimator_->getState(BasicEstimator::ROLL_W_B, BasicEstimator::EGOMOTION_ESTIMATE)[0],
-                   estimator_->getState(BasicEstimator::PITCH_W_B, BasicEstimator::EGOMOTION_ESTIMATE)[0],
-                   estimator_->getState(BasicEstimator::YAW_W_B, BasicEstimator::EGOMOTION_ESTIMATE)[0]);
+      tf::Matrix3x3 orien = estimator_->getOrientation(Frame::BASELINK, BasicEstimator::EGOMOTION_ESTIMATE);
       /* change the velocity based on the world frame  */
       vel_ = orien * baselink_transform_.getBasis() * tf::Vector3(opt_msg->vector.x, opt_msg->vector.y, 0);
       vel_.setZ(0);
@@ -197,8 +194,8 @@ namespace sensor_plugin
 
     void estimateProcess(ros::Time stamp)
     {
-      tf::Vector3 estimate_vel(estimator_->getState(BasicEstimator::X_W, BasicEstimator::EGOMOTION_ESTIMATE)[1],
-                               estimator_->getState(BasicEstimator::Y_W, BasicEstimator::EGOMOTION_ESTIMATE)[1],
+      tf::Vector3 estimate_vel(estimator_->getState(State::X_BASE, BasicEstimator::EGOMOTION_ESTIMATE)[1],
+                               estimator_->getState(State::Y_BASE, BasicEstimator::EGOMOTION_ESTIMATE)[1],
                                0);
 
       if((vel_ - estimate_vel).length() > vel_thresh_)
@@ -216,8 +213,7 @@ namespace sensor_plugin
           if(plugin_name == "kalman_filter/kf_pos_vel_acc" ||
              plugin_name == "kalman_filter/kf_pos_vel_acc_bias")
             {
-              if((id & (1 << BasicEstimator::X_W)) ||
-                 (id & (1 << BasicEstimator::Y_W)))
+              if((id & (1 << State::X_BASE)) ||  (id & (1 << State::Y_BASE)))
                 {
                   /* set noise sigma */
                   VectorXd measure_sigma(1);
@@ -225,28 +221,28 @@ namespace sensor_plugin
                   kf->setMeasureSigma(measure_sigma);
 
                   /* correction */
-                  VectorXd meas(1); meas <<  vel_[id >> 1];
+                  int index = id >> (State::X_BASE + 1);
+                  VectorXd meas(1); meas <<  vel_[index];
                   vector<double> params = {kf_plugin::VEL};
                   /* time sync and delay process: get from kf time stamp */
-                  if(time_sync_) stamp.fromSec(kf->getTimestamp() + delay_);
-                  //ROS_INFO("opt stamp: %f, imu stamp: %f", stamp.toSec(), kf->getTimestamp());
+                  if(time_sync_ && delay_ < 0) stamp.fromSec(kf->getTimestamp() + delay_);
+                  //ROS_INFO("opt stamp: %f, imu stamp: %f, diff: %f", stamp.toSec(), kf->getTimestamp(), kf->getTimestamp() - stamp.toSec());
                   kf->correction(meas, params, stamp.toSec());
 
                   VectorXd state = kf->getEstimateState();
-                  estimator_->setState(id >> 1, BasicEstimator::EGOMOTION_ESTIMATE, 0, state(0));
-                  estimator_->setState(id >> 1, BasicEstimator::EGOMOTION_ESTIMATE, 1, state(1));
-                  opt_state_.states[id >> 1].state[1].x = state(0);
-                  opt_state_.states[id >> 1].state[1].y = state(1);
+                  estimator_->setState(index + 3, BasicEstimator::EGOMOTION_ESTIMATE, 0, state(0));
+                  estimator_->setState(index + 3, BasicEstimator::EGOMOTION_ESTIMATE, 1, state(1));
+                  opt_state_.states[index].state[1].x = state(0);
+                  opt_state_.states[index].state[1].y = state(1);
 
                   if(plugin_name == "kalman_filter/kf_pos_vel_acc_bias")
-                    opt_state_.states[id >> 1].state[1].z = state(2); /* bias */
+                    opt_state_.states[index].state[1].z = state(2); /* bias */
                 }
             }
 
           if(plugin_name == "aerial_robot_base/kf_xy_roll_pitch_bias")
             {
-              if((id & (1 << BasicEstimator::X_W)) &&
-                 (id & (1 << BasicEstimator::Y_W)))
+              if((id & (1 << State::X_BASE)) && (id & (1 << State::Y_BASE)))
                 {
                   /* set noise sigma */
                   VectorXd measure_sigma(2);
@@ -257,16 +253,15 @@ namespace sensor_plugin
                   VectorXd meas(2); meas <<  vel_[0], vel_[1];
                   vector<double> params = {kf_plugin::VEL};
                   /* time sync and delay process: get from kf time stamp */
-                  if(time_sync_) stamp.fromSec(kf->getTimestamp() + delay_);
-
+                  if(time_sync_ && delay_ < 0) stamp.fromSec(kf->getTimestamp() + delay_);
                   kf->correction(meas, params, stamp.toSec());
 
                   VectorXd state = kf->getEstimateState();
                   /* temp */
-                  estimator_->setState(0, BasicEstimator::EGOMOTION_ESTIMATE, 0, state(0));
-                  estimator_->setState(0, BasicEstimator::EGOMOTION_ESTIMATE, 1, state(1));
-                  estimator_->setState(1, BasicEstimator::EGOMOTION_ESTIMATE, 0, state(2));
-                  estimator_->setState(1, BasicEstimator::EGOMOTION_ESTIMATE, 1, state(3));
+                  estimator_->setState(State::X_BASE, BasicEstimator::EGOMOTION_ESTIMATE, 0, state(0));
+                  estimator_->setState(State::X_BASE, BasicEstimator::EGOMOTION_ESTIMATE, 1, state(1));
+                  estimator_->setState(State::Y_BASE, BasicEstimator::EGOMOTION_ESTIMATE, 0, state(2));
+                  estimator_->setState(State::Y_BASE, BasicEstimator::EGOMOTION_ESTIMATE, 1, state(3));
 
                   opt_state_.states[0].state[1].x = state(0);
                   opt_state_.states[0].state[1].y = state(1);

@@ -14,7 +14,7 @@ find_package(catkin REQUIRED COMPONENTS
   aerial_robot_model
   aerial_robot_base
   tf
-  hydrus_transform_control
+  hydrus
 )
 
 find_package(Boost REQUIRED COMPONENTS thread random)

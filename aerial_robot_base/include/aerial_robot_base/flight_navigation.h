@@ -1,11 +1,11 @@
 #ifndef FLIGHT_NAVIGATION_H
 #define FLIGHT_NAVIGATION_H
 
-//* ros
+/* ros */
 #include <ros/ros.h>
 #include <aerial_robot_base/basic_state_estimation.h>
-#include <aerial_robot_base/control_input_array.h>
 
+/* ros msg */
 #include <std_msgs/Int8.h>
 #include <std_msgs/UInt8.h>
 #include <std_msgs/UInt16.h>
@@ -37,21 +37,15 @@ class Navigator
 {
 public:
   Navigator(ros::NodeHandle nh, ros::NodeHandle nh_private,
-            BasicEstimator* estimator, FlightCtrlInput* flight_ctrl_input,
-            int ctrl_loop_rate);
+            BasicEstimator* estimator);
   virtual ~Navigator();
 
   ros::Publisher  flight_config_pub_;
 
-  inline bool getStartAble(){  return start_able_;}
-  inline void startNavigation(){  start_able_ = true;}
-  inline void stopNavigation() {  start_able_ = false;}
+  void update();
 
-  inline uint8_t getFlightMode(){  return flight_mode_;}
-  inline void setFlightMode(uint8_t flight_mode){ flight_mode_ = flight_mode;}
-
-  inline uint8_t getNaviCommand(){  return navi_command_;}
-  inline void setNaviCommand(const uint8_t  command){ navi_command_ = command;}
+  inline uint8_t getNaviState(){  return navi_state_;}
+  inline void setNaviState(const uint8_t  state){ navi_state_ = state;}
 
   inline uint8_t getXyControlMode(){  return (uint8_t)xy_control_mode_;}
   inline void setXyControlMode(uint8_t mode){  xy_control_mode_ = mode;}
@@ -60,41 +54,25 @@ public:
   inline void setControlframe(uint8_t frame_type){  control_frame_ = frame_type;}
 
   inline bool getXyVelModePosCtrlTakeoff(){  return xy_vel_mode_pos_ctrl_takeoff_;}
+  inline bool getForceLandingFlag() {return force_landing_flag_;}
 
+  inline tf::Vector3 getTargetPos() {return target_pos_;}
+  inline tf::Vector3 getTargetVel() {return target_vel_;}
+  inline tf::Vector3 getTargetAcc() {return target_acc_;}
+  inline float getTargetPsi() {return target_psi_;}
 
-  /* temporary */
-  inline float getStatePosX() { return estimator_->getState(BasicEstimator::X_W, estimate_mode_)[0]; }
-  inline float getStateVelX() { return estimator_->getState(BasicEstimator::X_W, estimate_mode_)[1]; }
-  inline float getStatePosY() { return estimator_->getState(BasicEstimator::Y_W, estimate_mode_)[0]; }
-  inline float getStateVelY() { return estimator_->getState(BasicEstimator::Y_W, estimate_mode_)[1]; }
-  inline float getStatePosZ() { return estimator_->getState(BasicEstimator::Z_W, estimate_mode_)[0]; }
-  inline float getStateVelZ() { return estimator_->getState(BasicEstimator::Z_W, estimate_mode_)[1]; }
-  inline float getStatePsiCog() { return estimator_->getState(BasicEstimator::YAW_W, estimate_mode_)[0]; }
-  inline float getStateVelPsiCog() { return estimator_->getState(BasicEstimator::YAW_W, estimate_mode_)[1]; }
-  inline float getStatePsiBoard() { return estimator_->getState(BasicEstimator::YAW_W_B, estimate_mode_)[0]; }
-  inline float getStateVelPsiBoard() { return estimator_->getState(BasicEstimator::YAW_W_B, estimate_mode_)[1]; }
-
-  inline float getTargetPosX(){  return target_pos_x_;}
-  inline void setTargetPosX( float value){  target_pos_x_ = value;}
-  inline float getTargetVelX(){  return target_vel_x_;}
-  inline void setTargetVelX( float value){  target_vel_x_= value;}
-  inline float getTargetAccX(){  return target_acc_x_;}
-  inline void setTargetAccX( float value){  target_acc_x_= value;}
-  inline float getTargetPosY(){  return target_pos_y_;}
-  inline void setTargetPosY( float value){  target_pos_y_ = value;}
-  inline float getTargetVelY(){  return target_vel_y_;}
-  inline void setTargetVelY( float value){  target_vel_y_ = value;}
-  inline float getTargetAccY(){  return target_acc_y_;}
-  inline void setTargetAccY( float value){  target_acc_y_ = value;}
-  inline float getTargetPosZ(){  return target_pos_z_;}
-  inline void setTargetPosZ( float value){  target_pos_z_ = value;}
-  inline void addTargetPosZ( float value){  target_pos_z_ += value;}
-  inline float getTargetVelZ(){  return target_vel_z_;}
-  inline void setTargetVelZ( float value){  target_vel_z_ = value;}
-  inline float getTargetPsi(){  return target_psi_;}
-  inline void setTargetPsi( float value){  target_psi_ = value;}
-  inline float getTargetVelPsi(){  return target_vel_psi_;}
-  inline void setTargetVelPsi( float value){  target_vel_psi_ = value;}
+  inline void setTargetPsi(float value) { target_psi_ = value; }
+  inline void setTargetVelPsi(float value) { target_vel_psi_ = value; }
+  inline void setTargetPosX( float value){  target_pos_.setX(value);}
+  inline void setTargetVelX( float value){  target_vel_.setX(value);}
+  inline void setTargetAccX( float value){  target_acc_.setX(value);}
+  inline void setTargetPosY( float value){  target_pos_.setY(value);}
+  inline void setTargetVelY( float value){  target_vel_.setY(value);}
+  inline void setTargetAccY( float value){  target_acc_.setY(value);}
+  inline void setTargetPosZ( float value){  target_pos_.setZ(value);}
+  inline void setTargetVelZ( float value){  target_vel_.setZ(value);}
+  inline void setTargetAccZ( float value){  target_acc_.setZ(value);}
+  inline void addTargetPosZ( float value){  target_pos_ += tf::Vector3(0, 0, value);}
 
   void tfPublish();
 
@@ -104,20 +82,14 @@ public:
   static constexpr uint8_t POS_CONTROL_COMMAND = 0;
   static constexpr uint8_t VEL_CONTROL_COMMAND = 1;
 
-  // navi command
-  static constexpr uint8_t START_COMMAND = 0x00;
-  static constexpr uint8_t STOP_COMMAND = 0x01;
-  static constexpr uint8_t IDLE_COMMAND = 0x02;
-  static constexpr uint8_t TAKEOFF_COMMAND = 0x03;
-  static constexpr uint8_t LAND_COMMAND = 0x04;
-  static constexpr uint8_t HOVER_COMMAND= 0x05;
-
-  //flight mode
-  static constexpr uint8_t TAKEOFF_MODE = 0;
-  static constexpr uint8_t FLIGHT_MODE = 1;
-  static constexpr uint8_t LAND_MODE = 2;
-  static constexpr uint8_t NO_CONTROL_MODE = 3; 
-  static constexpr uint8_t RESET_MODE = 4;
+  // navi state
+  static constexpr uint8_t ARM_OFF_STATE = 0x00;
+  static constexpr uint8_t START_STATE = 0x01;
+  static constexpr uint8_t ARM_ON_STATE = 0x02;
+  static constexpr uint8_t TAKEOFF_STATE = 0x03;
+  static constexpr uint8_t LAND_STATE = 0x04;
+  static constexpr uint8_t HOVER_STATE= 0x05;
+  static constexpr uint8_t STOP_STATE = 0x06;
 
   //for ros arm/disarm cmd
   static constexpr uint8_t ARM_ON_CMD = 0x00; //old: 150;
@@ -125,26 +97,27 @@ public:
   static constexpr uint8_t ROS_INTEGRATE_CMD = 160;
   static constexpr uint8_t FORCE_LANDING_CMD = 0x02; //force landing
 
-  static constexpr uint8_t X_AXIS = 1;
-  static constexpr uint8_t Y_AXIS = 2;
-  static constexpr uint8_t Z_AXIS = 4;
-  static constexpr uint8_t PITCH_AXIS = 8;
-  static constexpr uint8_t ROLL_AXIS = 16;
-  static constexpr uint8_t YAW_AXIS = 32;
-
 protected:
   ros::NodeHandle nh_;
   ros::NodeHandle nhp_;
+
   ros::Subscriber navi_sub_;
   ros::Subscriber battery_sub_;
-  tf::TransformBroadcaster* br_ ; 
+  ros::Subscriber arming_ack_sub_;
+  ros::Subscriber takeoff_sub_;
+  ros::Subscriber land_sub_;
+  ros::Subscriber start_sub_;
+  ros::Subscriber halt_sub_;
+  ros::Subscriber force_landing_sub_;
+  ros::Subscriber ctrl_mode_sub_;
+  ros::Subscriber joy_stick_sub_;
+  ros::Subscriber flight_nav_sub_;
+  ros::Subscriber stop_teleop_sub_;
 
   BasicEstimator* estimator_;
-  FlightCtrlInput* flight_ctrl_input_;
 
   bool start_able_;
-  uint8_t navi_command_;
-  uint8_t flight_mode_; //important
+  uint8_t navi_state_;
 
   int  xy_control_mode_;
   int  prev_xy_control_mode_;
@@ -157,19 +130,14 @@ protected:
   bool low_voltage_flag_;
   bool  force_att_control_flag_;
 
+  double convergent_start_time_;
+  double convergent_duration_;
+  double alt_convergent_thresh_;
+  double xy_convergent_thresh_;
+
   //target value
-  float target_pos_x_;
-  float target_vel_x_;
-  float target_pos_y_;
-  float target_vel_y_;
-  float target_pos_z_;
-  float target_vel_z_;
-  float target_acc_x_;
-  float target_acc_y_;
-  float target_vel_theta_;
-  float target_vel_phy_;
-  float target_psi_;
-  float target_vel_psi_;
+  tf::Vector3 target_pos_, target_vel_, target_acc_;
+  float target_psi_, target_vel_psi_;
 
   double takeoff_height_;
 
@@ -177,120 +145,14 @@ protected:
   double max_target_tilt_angle_;
   double max_target_yaw_rate_;
 
-  int ctrl_loop_rate_;
-  std::string map_frame_;
-  std::string target_frame_;
 
-  void rosParamInit(ros::NodeHandle nh);
+  /* auto vel nav */
+  bool vel_based_waypoint_;
+  double nav_vel_limit_; // the vel limitation
+  double vel_nav_threshold_; // the range (board) to siwtch between vel_nav and pos_nav
+  double vel_nav_gain_;
 
-  void naviCallback(const aerial_robot_base::FlightNavConstPtr & msg);
-  void batteryCheckCallback(const std_msgs::UInt8ConstPtr &msg);
-
-  void startTakeoff()
-  {
-    if(getNaviCommand() == TAKEOFF_COMMAND) return;
-
-    if(getStartAble())
-      {
-        setNaviCommand(TAKEOFF_COMMAND);
-        ROS_INFO("Takeoff command");
-      }
-  }
-
-  void motorArming()
-  {
-    /* z(altitude) */
-    /* check whether there is the fusion for the altitude */
-    if(!estimator_->getStateStatus(BasicEstimator::Z_W, estimate_mode_))
-      {
-        ROS_ERROR("Flight Navigation: No correct sensor fusion for z(altitude), can not fly");
-        return;
-      }
-
-    setNaviCommand(START_COMMAND);
-    target_pos_x_ = getStatePosX();
-    target_pos_y_ = getStatePosY();
-    target_psi_   = getStatePsiBoard();
-    target_pos_z_ = takeoff_height_;
-    ROS_INFO("Start command");
-  }
-
-  tf::Vector3 frameConversion(tf::Vector3 origin_val, float yaw)
-  {
-    tf::Matrix3x3 orien;
-    orien.setRPY(0, 0, yaw);
-    return orien * origin_val;
-  }
-};
-
-class TeleopNavigator :public Navigator
-{
-public:
-  TeleopNavigator(ros::NodeHandle nh,
-                  ros::NodeHandle nh_private,
-                  BasicEstimator* estimator,
-                  FlightCtrlInput* flight_ctrl_input,
-                  int ctrl_loop_rate);
-  virtual ~TeleopNavigator();
-
-  void takeoffCallback(const std_msgs::EmptyConstPtr & msg);
-  void startCallback(const std_msgs::EmptyConstPtr & msg);
-  void haltCallback(const std_msgs::EmptyConstPtr &  msg);
-  void forceLandingCallback(const std_msgs::EmptyConstPtr &  msg);
-  void landCallback(const std_msgs::EmptyConstPtr &  msg);
-
-  void joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg);
-
-  void xyControlModeCallback(const std_msgs::Int8ConstPtr & msg);
-  void armingAckCallback(const std_msgs::UInt8ConstPtr& ack_msg);
-
-  //for navigation => TODO
-  void flightNavCallback(const aerial_robot_base::FlightNavConstPtr& msg);
-
-  void stopTeleopCallback(const std_msgs::UInt8ConstPtr & stop_msg);
-
-  void teleopNavigation();
-  void sendAttCmd();
-
-
-  static constexpr int TAKEOFF_COUNT = 8;
-
-  //for hovering convergence
-  static constexpr float POS_X_THRE = 0.15; //m
-  static constexpr float POS_Y_THRE = 0.15; //m
-  static constexpr float POS_Z_THRE = 0.05; //m
-
-
-  static constexpr uint8_t MAP_FRAME = 0;
-  static constexpr uint8_t BODY_FRAME = 1;
-
-
-private:
-  ros::Publisher  rc_cmd_pub_;
-  //temporarily
-  ros::Publisher  joints_ctrl_pub_;
-
-  ros::Subscriber arming_ack_sub_;
-  ros::Subscriber takeoff_sub_;
-  ros::Subscriber land_sub_;
-  ros::Subscriber start_sub_;
-  ros::Subscriber halt_sub_;
-  ros::Subscriber force_landing_sub_;
-  ros::Subscriber roll_sub_;
-  ros::Subscriber pitch_sub_;
-  ros::Subscriber yaw_sub_;
-  ros::Subscriber throttle_sub_;
-  ros::Subscriber ctrl_mode_sub_;
-  ros::Subscriber joy_stick_sub_;
-  ros::Subscriber flight_nav_sub_;
-  ros::Subscriber stop_teleop_sub_;
-
-  //*** teleop navigation
-  double even_move_distance_;
-  double up_down_distance_;
-  double forward_backward_distance_;
-  double left_right_distance_;
-
+  /* teleop */
   double joy_target_vel_interval_;
   double joy_target_alt_interval_;
 
@@ -313,6 +175,168 @@ private:
   double force_landing_to_halt_du_;
 
   void rosParamInit(ros::NodeHandle nh);
+  void naviCallback(const aerial_robot_base::FlightNavConstPtr & msg);
+  void joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg);
+
+  void startTakeoff()
+  {
+    if(getNaviState() == TAKEOFF_STATE) return;
+
+    if(getNaviState() == ARM_ON_STATE)
+      {
+        setNaviState(TAKEOFF_STATE);
+        ROS_INFO("Takeoff state");
+      }
+  }
+
+  void motorArming()
+  {
+    /* z(altitude) */
+    /* check whether there is the fusion for the altitude */
+    if(!estimator_->getStateStatus(State::Z_BASE, estimate_mode_))
+      {
+        ROS_ERROR("Flight Navigation: No correct sensor fusion for z(altitude), can not fly");
+        return;
+      }
+
+    setNaviState(START_STATE);
+    setTargetXyFromCurrentState();
+    setTargetPosZ(takeoff_height_);
+    setTargetPsiFromCurrentState();
+
+    ROS_INFO("Start state");
+  }
+
+  tf::Vector3 frameConversion(tf::Vector3 origin_val, float yaw)
+  {
+    tf::Matrix3x3 orien;
+    orien.setRPY(0, 0, yaw);
+    return orien * origin_val;
+  }
+
+  void armingAckCallback(const std_msgs::UInt8ConstPtr& ack_msg)
+  {
+    if(ack_msg->data == ARM_OFF_CMD)
+      {//  arming off
+        ROS_INFO("STOP RES From AERIAL ROBOT");
+        setNaviState(ARM_OFF_STATE);
+      }
+
+    if(ack_msg->data == ARM_ON_CMD)
+      {//  arming on
+        ROS_INFO("START RES From AERIAL ROBOT");
+        setNaviState(ARM_ON_STATE);
+      }
+  }
+
+  void takeoffCallback(const std_msgs::EmptyConstPtr & msg)
+  {
+    startTakeoff();
+  }
+
+  void startCallback(const std_msgs::EmptyConstPtr & msg)
+  {
+    motorArming();
+  }
+
+  void landCallback(const std_msgs::EmptyConstPtr & msg)
+  {
+    setNaviState(LAND_STATE);
+    //更新
+    setTargetXyFromCurrentState();
+    setTargetPsiFromCurrentState();
+    setTargetPosZ(estimator_->getLandingHeight());
+    ROS_INFO("Land state");
+  }
+
+  void haltCallback(const std_msgs::EmptyConstPtr & msg)
+  {
+    setNaviState(STOP_STATE);
+    setTargetXyFromCurrentState();
+    setTargetPsiFromCurrentState();
+    setTargetPosZ(estimator_->getLandingHeight());
+
+    estimator_->setSensorFusionFlag(false);
+    estimator_->setLandingMode(false);
+    estimator_->setLandedFlag(false);
+    estimator_->setFlyingFlag(false);
+
+    ROS_INFO("Halt state");
+  }
+
+  void forceLandingCallback(const std_msgs::EmptyConstPtr & msg)
+  {
+    std_msgs::UInt8 force_landing_cmd;
+    force_landing_cmd.data = FORCE_LANDING_CMD;
+    flight_config_pub_.publish(force_landing_cmd); 
+
+    ROS_INFO("Force Landing state");
+  }
+
+  void xyControlModeCallback(const std_msgs::Int8ConstPtr & msg)
+  {
+    if(getNaviState() > START_STATE)
+    {
+      if(msg->data == 0)
+        {
+          xy_control_mode_ = flight_nav::POS_CONTROL_MODE;
+          ROS_INFO("x/y position control mode");
+        }
+      if(msg->data == 1)
+        {
+          xy_control_mode_ = flight_nav::VEL_CONTROL_MODE;
+          ROS_INFO("x/y velocity control mode");
+        }
+    }
+  }
+
+  void stopTeleopCallback(const std_msgs::UInt8ConstPtr & stop_msg)
+  {
+    if(stop_msg->data == 1)
+      {
+        ROS_WARN("stop teleop control");
+        teleop_flag_ = false;
+      }
+    else if(stop_msg->data == 0)
+      {
+        ROS_WARN("start teleop control");
+        teleop_flag_ = true;
+      }
+  }
+
+  void batteryCheckCallback(const std_msgs::UInt8ConstPtr &msg)
+  {
+    static double low_voltage_start_time = ros::Time::now().toSec();
+    if(msg->data < low_voltage_thre_)
+      {
+        if(ros::Time::now().toSec() - low_voltage_start_time > 1.0)//1sec
+          {
+            ROS_WARN("low voltage!");
+            low_voltage_flag_  = true;
+          }
+      }
+    else
+      {
+        low_voltage_start_time = ros::Time::now().toSec();
+      }
+  }
+
+  void setTargetXyFromCurrentState()
+  {
+    tf::Vector3 pos_cog = estimator_->getPos(Frame::COG, estimate_mode_);
+    target_pos_.setX(pos_cog.x());
+    target_pos_.setY(pos_cog.y());
+  }
+
+  void setTargetZFromCurrentState()
+  {
+    target_pos_.setZ(estimator_->getPos(Frame::COG, estimate_mode_).z());
+  }
+
+  void setTargetPsiFromCurrentState()
+  {
+    target_psi_ = estimator_->getState(State::YAW_COG, estimate_mode_)[0];
+  }
 };
 
 

@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="type" />
+
+  <rosparam file="$(find hydrus)/config/hydrus3/$(arg type)/DynamixelConfig.yaml" command="load"/>
+
+  <node name="dynamixel_manager" pkg="dynamixel_controllers" type="controller_manager.py" required="true" output="screen"/>
+
+    <node name="tilt_controller_spawner" pkg="dynamixel_controllers" type="controller_spawner.py"
+          args="--manager=dxl_manager
+                --port joints_port
+                --type simple
+                j1_controller
+                j2_controller
+                j3_controller"
+          output="screen"/>
+
+  <node pkg="hydrus" type="dynamixel_bridge_node" name="dynamixel_bridge"  output="screen" />
+
+  <node pkg="hydrus" type="hydrus3_dynamixel_param.py" name="param_configure"  output="screen" />
+
+
+</launch>

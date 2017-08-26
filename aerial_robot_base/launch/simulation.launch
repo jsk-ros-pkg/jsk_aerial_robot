@@ -1,6 +1,9 @@
 <?xml version="1.0"?>
 <launch>
 
+  ###########  launch config  ###########
+  <arg name="estimate_mode"  default= "0" />
+
   ############## Motor Info ############################
   <rosparam file="$(find aerial_robot_base)/config/simulation/MotorInfo.yaml" command="load" />
 
@@ -17,7 +20,7 @@
   <node pkg="aerial_robot_base" type="aerial_robot_base_node" name="aerial_robot_base_node"  output="screen" >
 
     ############### Basic Param  #####################
-    <param name="estimator/state_mode" value= "0" />
+    <param name="estimator/estimate_mode" value= "$(arg estimate_mode)" />
     <param name="navigator/xy_control_mode" value="0"/>
     <param name="main_rate" value="40"/>
     <param name="simulation" value="true" />
@@ -29,12 +32,13 @@
     <remap from="/estimator/sensor_plugin/imu/acc" to="/simulation/estimator/sensor_plugin/imu/acc" />
     <remap from="/estimator/sensor_plugin/alt/data" to="/simulation/estimator/sensor_plugin/alt/data" />
     <remap from="/estimator/sensor_plugin/gps/data" to="/simulation/estimator/sensor_plugin/gps/data" />
-    <remap from="/estimator/sensor_plugin/mocap/ground_truth/pose" to="/simulation/estimator/sensor_plugin/mocap/ground_truth/pose" />
+    <remap from="/estimator/sensor_plugin/mocap/data" to="/simulation/estimator/sensor_plugin/mocap/data" />
     <remap from="/estimator/sensor_plugin/optical_flow/data" to="/simulation/estimator/sensor_plugin/optical_flow/data" />
     <remap from="/estimator/sensor_plugin/vo/data" to="/simulation/estimator/sensor_plugin/vo/data" />
     <remap from="/estimator/sensor_plugin/rtk_gps/state" to="/simulation/estimator/sensor_plugin/rtk_gps/state" />
     <remap from="/uav/full_state" to="/simulation/uav/full_state" />
     <remap from="/uav/baselink/odom" to="/simulation/uav/baselink/odom" />
+    <remap from="/uav/cog/odom" to="/simulation/uav/cog/odom" />
 
   </node>
 

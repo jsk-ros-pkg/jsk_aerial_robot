@@ -277,18 +277,60 @@ bool AerialRobotHWSim::initSim(
       else
         ROS_FATAL("aerial_robot_hw_sim: can not get the baselink name for transformable robot");
     }
+
+  /* calculate the baselink offset */
+  base_link_parent_ = std::string("none");
+  KDL::Tree tree;
+  if (!kdl_parser::treeFromUrdfModel(*urdf_model, tree))
+    ROS_ERROR("Failed to extract kdl tree from xml robot description");
+  findBaselink(tree.getRootSegment());
+  if(base_link_parent_ == std::string("none"))
+    {
+      ROS_FATAL("can not find baselink: %s",  base_link_parent_.c_str());
+     return false;
+    }
   flight_mode_ = CONTROL_MODE;
   cmd_vel_sub_ = model_nh.subscribe("/cmd_vel", 1, &AerialRobotHWSim::cmdVelCallback, this);
   cmd_pos_sub_ = model_nh.subscribe("/cmd_pos", 1, &AerialRobotHWSim::cmdPosCallback, this);
   model_nh.param("ground_truth_pub_rate", ground_truth_pub_rate_, 0.01); // [sec]
-  //ground_truth_pub_ = model_nh.advertise<nav_msgs::Odometry>("ground_truth", 1);
-  ground_truth_pub_ = model_nh.advertise<geometry_msgs::PoseStamped>("ground_truth", 1);
+  ground_truth_pub_ = model_nh.advertise<nav_msgs::Odometry>("ground_truth", 1);
+  //ground_truth_pub_ = model_nh.advertise<geometry_msgs::PoseStamped>("ground_truth", 1);
 
   // Initialize the emergency stop code.
   e_stop_active_ = false;
   last_e_stop_active_ = false;
 
   return true;
+}
+
+void AerialRobotHWSim::findBaselink(const KDL::SegmentMap::const_iterator segment)
+{
+  const std::string& parent = GetTreeElementSegment(segment->second).getName();
+
+  const std::vector<KDL::SegmentMap::const_iterator>& children = GetTreeElementChildren(segment->second);
+
+  for (unsigned int i=0; i<children.size(); i++)
+    {
+      const KDL::Segment& child = GetTreeElementSegment(children[i]->second);
+
+      if (child.getJoint().getType() == KDL::Joint::None)
+        {
+          /* have offset */
+          if(child.getName()  == rotor_interface_.getBaseLinkName())
+            {
+              base_link_parent_ = parent;
+              base_link_offset_.Set(child.getFrameToTip().p.x(), child.getFrameToTip().p.y(), child.getFrameToTip().p.z());
+              ROS_WARN("Find baselink %s from %s, offset is [%f, %f, %f]", child.getName().c_str(), parent.c_str(), child.getFrameToTip().p.x(), child.getFrameToTip().p.y(), child.getFrameToTip().p.z());
+            }
+          if(parent  == rotor_interface_.getBaseLinkName())
+            {
+              base_link_parent_ = parent;
+              base_link_offset_.Set(0, 0, 0);
+              ROS_WARN("Find baselink %s is itsself, offset is [0, 0, 0]", parent.c_str());
+            }
+        }
+      findBaselink(children[i]);
+    }
 }
 
 void AerialRobotHWSim::readSim(ros::Time time, ros::Duration period)
@@ -312,8 +354,9 @@ void AerialRobotHWSim::readSim(ros::Time time, ros::Duration period)
 
   /* Aerial Robot */
   /* [Ground Truth] set the orientation of baselink for attitude control */
-  const gazebo::physics::LinkPtr baselink = parent_model_->GetLink(rotor_interface_.getBaseLinkName());
-  if(baselink != NULL)
+  const gazebo::physics::LinkPtr baselink_parent = parent_model_->GetLink(base_link_parent_);
+
+  if(baselink_parent != NULL)
     {
       if(!rotor_interface_.foundBaseLink()) rotor_interface_.setBaseLink();
 
@@ -321,46 +364,42 @@ void AerialRobotHWSim::readSim(ros::Time time, ros::Duration period)
       /* orientation should calculate the rpy in world frame,
          and angular velocity should show the value in board(body) frame */
       /* set orientation and angular of baselink */
-      gazebo::math::Quaternion q = baselink->GetWorldPose().rot;
+      gazebo::math::Quaternion q = baselink_parent->GetWorldPose().rot;
       rotor_interface_.setBaseLinkOrientation(q.x, q.y, q.z, q.w);
-      gazebo::math::Vector3 w = baselink->GetRelativeAngularVel();
+      gazebo::math::Vector3 w = baselink_parent->GetRelativeAngularVel();
       rotor_interface_.setBaseLinkAngular(w.x, w.y, w.z);
 
       if(time.toSec() - last_time.toSec() > ground_truth_pub_rate_)
         {
-#if 0 //odometry
           nav_msgs::Odometry pose_msg;
           pose_msg.header.stamp = time;
-          pose_msg.pose.pose.position.x = baselink->GetWorldPose().pos.x;
-          pose_msg.pose.pose.position.y = baselink->GetWorldPose().pos.y;
-          pose_msg.pose.pose.position.z = baselink->GetWorldPose().pos.z;
+
+          gazebo::math::Vector3 baselink_pos = baselink_parent->GetWorldPose().pos + baselink_parent->GetWorldPose().rot * base_link_offset_;
+          pose_msg.pose.pose.position.x = baselink_pos.x;
+          pose_msg.pose.pose.position.y = baselink_pos.y;
+          pose_msg.pose.pose.position.z = baselink_pos.z;
           pose_msg.pose.pose.orientation.x = q.x;
           pose_msg.pose.pose.orientation.y = q.y;
           pose_msg.pose.pose.orientation.z = q.z;
           pose_msg.pose.pose.orientation.w = q.w;
-          pose_msg.twist.twist.linear.x = baselink->GetWorldLinearVel().x;
-          pose_msg.twist.twist.linear.y = baselink->GetWorldLinearVel().y;
-          pose_msg.twist.twist.linear.z = baselink->GetWorldLinearVel().z;
-#else
-          geometry_msgs::PoseStamped pose_msg;
-          pose_msg.header.stamp = time;
-          pose_msg.pose.position.x = baselink->GetWorldPose().pos.x;
-          pose_msg.pose.position.y = baselink->GetWorldPose().pos.y;
-          pose_msg.pose.position.z = baselink->GetWorldPose().pos.z;
-          pose_msg.pose.orientation.x = q.x;
-          pose_msg.pose.orientation.y = q.y;
-          pose_msg.pose.orientation.z = q.z;
-          pose_msg.pose.orientation.w = q.w;
-#endif
+
+          gazebo::math::Vector3 baselink_vel = baselink_parent->GetWorldLinearVel(base_link_offset_);
+          pose_msg.twist.twist.linear.x = baselink_vel.x;
+          pose_msg.twist.twist.linear.y = baselink_vel.y;
+          pose_msg.twist.twist.linear.z = baselink_vel.z;
+
+          /* CAUTION! the angular is describe in the link frame */
+          pose_msg.twist.twist.angular.x = baselink_parent->GetRelativeAngularVel().x;
+          pose_msg.twist.twist.angular.y = baselink_parent->GetRelativeAngularVel().y;
+          pose_msg.twist.twist.angular.z = baselink_parent->GetRelativeAngularVel().z;
+
           ground_truth_pub_.publish(pose_msg);
-          last_time = time;
         }
     }
   else
     {
-      //ROS_WARN("the baselink does not exist");
+      ROS_ERROR("the baselink does not exist: %s", rotor_interface_.getBaseLinkName().c_str());
     }
-
 }
 
 void AerialRobotHWSim::writeSim(ros::Time time, ros::Duration period)

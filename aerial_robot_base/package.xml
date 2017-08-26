@@ -47,10 +47,12 @@
   <run_depend>serial</run_depend>
   <run_depend>geodesy</run_depend>
   <run_depend>mavros_msgs</run_depend>
+  <run_depend>joy</run_depend>
 
   <export>
-    <kalman_filter plugin="${prefix}/kf_plugins.xml" /> 
-    <aerial_robot_base plugin="${prefix}/sensor_plugins.xml" /> 
+    <kalman_filter plugin="${prefix}/kf_plugins.xml" />
+    <aerial_robot_base plugin="${prefix}/sensor_plugins.xml" />
+    <aerial_robot_base plugin="${prefix}/flight_control_plugins.xml" />
   </export>
 
 </package>
