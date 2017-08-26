@@ -15,7 +15,7 @@ navigator/left_right_distance: 0
 # Keyboard _teleop
 navigator/max_target_vel: 0.5
 navigator/joy_target_vel_interval: 0.005  # 0.2 / 20 = 0.01, 0.005 ~ 0.01  m/s
-navigator/joy_target_alt_interval: 0.02
+navigator/joy_target_alt_interval: 0.005
 navigator/max_target_yaw_rate: 0.1 #  0.05 
 navigator/cmd_vel_lev2_gain : 2.0
 
