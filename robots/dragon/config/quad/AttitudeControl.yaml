@@ -9,12 +9,12 @@ baselink: fc
 
 only_three_axis_mode: true
 
-q_roll: 400
-q_roll_d: 40
-q_roll_i: 10.0
-q_pitch: 400
-q_pitch_d: 40
-q_pitch_i: 10.0
+q_roll: 800
+q_roll_d: 80
+q_roll_i: 20.0
+q_pitch: 800
+q_pitch_d: 80
+q_pitch_i: 20.0
 
 q_yaw: 50
 strong_q_yaw: 200
