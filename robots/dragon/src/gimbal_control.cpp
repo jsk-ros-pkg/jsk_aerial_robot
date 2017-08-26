@@ -81,10 +81,10 @@ namespace control_plugin
 
   void DragonGimbal::update()
   {
+    landingProcess();
+
     servoTorqueProcess();
     stateError();
-
-    landingProcess();
 
     if(!pidUpdate()) return;
     gimbalControl();
@@ -157,6 +157,21 @@ namespace control_plugin
   void DragonGimbal::gimbalControl()
   {
     if (control_timestamp_ < 0) return;
+
+    /* do not do gimbal control in the early stage of takeoff phase */
+    if(navigator_->getNaviState() == Navigator::TAKEOFF_STATE)
+      {
+        double total_thrust  = 0;
+        for(int j = 0; j < motor_num_; j++)
+          total_thrust += target_throttle_[j];
+
+        if(kinematics_->getMass() * 0.75 > total_thrust / 10)
+          {
+            //ROS_INFO("force is to small, mass: %f, force: %f", kinematics_->getMass(), total_thrust / 10);
+            return;
+          }
+
+      }
 
     int rotor_num = kinematics_->getRotorNum();
 
@@ -329,6 +344,7 @@ namespace control_plugin
               }
           }
 
+        /*
         if(navigator_->getForceLandingFlag() == true)
           {
             srv.request.torque_enable = false;
@@ -343,6 +359,7 @@ namespace control_plugin
                 ROS_ERROR("Failed to call service %s", joints_torque_control_srv_name_.c_str());
               }
           }
+        */
       }
     else
       {
