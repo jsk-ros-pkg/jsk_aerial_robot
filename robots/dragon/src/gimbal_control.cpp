@@ -86,6 +86,9 @@ namespace control_plugin
     servoTorqueProcess();
     stateError();
 
+    /* not good, but stable for gazebo */
+   if(simulation_) state_vel_ = estimator_->getVel(Frame::BASELINK, estimate_mode_);
+
     if(!pidUpdate()) return;
     gimbalControl();
     desireTilt();
@@ -390,6 +393,10 @@ namespace control_plugin
   void DragonGimbal::rosParamInit()
   {
     FlatnessPid::rosParamInit();
+
+    ros::NodeHandle nh_global("~");
+    nh_global.param("simulation", simulation_, false);
+    cout << nh_global.getNamespace() << ",  simulaiton  is " << simulation_ << endl;
 
     string ns = nhp_.getNamespace();
     nhp_.param("control_verbose", control_verbose_, false);

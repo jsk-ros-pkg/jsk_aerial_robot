@@ -104,6 +104,8 @@ namespace control_plugin
     std::vector<double> target_gimbal_angles_;
     tf::Vector3 curr_desire_tilt_, final_desire_tilt_;
 
+    bool simulation_;
+
     /* landing process */
     bool level_flag_;
     bool landing_flag_;
