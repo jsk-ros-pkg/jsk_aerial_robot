@@ -744,6 +744,6 @@ void TransformController::cfgLQICallback(hydrus::LQIConfig &config, uint32_t lev
           printf("\n");
           break;
         }
-      q_diagonal_ << q_roll_,q_roll_d_,q_pitch_,q_pitch_d_,q_yaw_,q_yaw_d_,q_z_,q_z_d_, q_roll_i_,q_pitch_i_,q_yaw_i_,q_z_i_;
+      q_diagonal_ << q_roll_,q_roll_d_,q_pitch_,q_pitch_d_,q_z_,q_z_d_,q_yaw_,q_yaw_d_, q_roll_i_,q_pitch_i_,q_z_i_,q_yaw_i_;
     }
 }
