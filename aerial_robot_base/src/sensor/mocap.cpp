@@ -244,6 +244,14 @@ namespace sensor_plugin
           tf::Vector3 euler = tf::Vector3(r, p, y);
           tf::Vector3 omega;
           tf::vector3MsgToTF(msg->twist.twist.angular, omega);
+
+          for(int i = 0; i < 3; i++)
+            {
+              float angle = euler[i];
+              float vel = omega[i];
+              lpf_pos_vel_[i].filterFunction(angle, euler[i], vel, omega[i]);
+            }
+
           estimator_->setEuler(Frame::BASELINK, BasicEstimator::GROUND_TRUTH, euler);
           estimator_->setAngularVel(Frame::BASELINK, BasicEstimator::GROUND_TRUTH, omega);
 
