@@ -10,6 +10,7 @@
 
   <!-- sensors(fusion) special parameters -->
   <param name="/sensor_plugin/altitude/no_height_offset" value="true" />
+  <param name="/sensor_plugin/mocap/cutoff_vel_freq" value="10" />
 
   ###########  Motor Config  ###########
   <rosparam file="$(find dragon)/config/MotorInfo.yaml" command="load" />
@@ -45,8 +46,8 @@
   <include file="$(find aerial_robot_base)/launch/sensors/onboard_sensors.launch"  if="$(arg real_machine)" >
     <arg name="imu_board" value="1" />  <!-- 1: d imu board, 0: kduino board -->
     <arg name="use_alt" value="0" />
-    <arg name="use_mocap" value="1" />
-    <arg name="use_joy" value="1" />
+    <arg name="use_mocap" value="0" />
+    <arg name="use_joy" value="0" />
     <arg name="use_opti" value="0" />
     <arg name="imu_port" value="/dev/ttyUSB0" />
     <arg name="alt_port" value="/dev/leddar_one" />
