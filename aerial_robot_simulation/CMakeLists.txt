@@ -17,8 +17,6 @@ find_package(catkin REQUIRED COMPONENTS
   hydrus
 )
 
-find_package(Boost REQUIRED COMPONENTS thread random)
-
 # Depend on system install of Gazebo
 find_package(GAZEBO REQUIRED)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GAZEBO_CXX_FLAGS}")
@@ -70,19 +68,10 @@ target_link_libraries(flight_controllers ${catkin_LIBRARIES})
 add_library(aerial_robot_hw_sim src/aerial_robot_hw_sim.cpp)
 target_link_libraries(aerial_robot_hw_sim ${catkin_LIBRARIES} ${GAZEBO_LIBRARIES})
 
-add_library(gazebo_treasure_plugin src/gazebo_treasure_plugin.cpp)
-target_link_libraries(gazebo_treasure_plugin ${catkin_LIBRARIES} ${GAZEBO_LIBRARIES} ${Boost_LIBRARIES})
-
-
 #############
 ## Install ##
 #############
 
-install(TARGETS
-  gazebo_treasure_plugin
-  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  )
 #############
 ## Testing ##
 #############
