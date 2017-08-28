@@ -7,7 +7,7 @@
   <arg name="type" default="hex" />
   <arg name="estimate_mode"  default= "0" />
   <arg name="headless" default="True" />
-  <arg name="worldtype" default="empty" />
+  <arg name="worldtype" default="$(find aerial_robot_simulation)/gazebo_model/world/empty.world" />
   <arg name="direct_model" default="False" />
   <arg name="direct_model_name" />
 
@@ -92,6 +92,3 @@
     <arg name="worldtype" value="$(arg worldtype)" />
     </include>
 </launch>
-
-
-

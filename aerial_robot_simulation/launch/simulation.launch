@@ -3,11 +3,11 @@
   <arg name="model" />
   <arg name="gui" default="true" />
   <arg name="headless" default="false" />
-  <arg name="worldtype" default="empty" />
-  
+  <arg name="worldtype" default="$(find aerial_robot_simulation)/gazebo_model/world/empty.world" />
+
   <!-- gazebo world -->
   <include file="$(find gazebo_ros)/launch/empty_world.launch">
-    <arg name="world_name" value="$(find aerial_robot_simulation)/gazebo_model/world/$(arg worldtype).world"/>
+    <arg name="world_name" value="$(arg worldtype)"/>
     <arg name="debug" value="false" />
     <arg name="gui" value="$(arg gui)" />
     <arg name="paused" value="false"/>
