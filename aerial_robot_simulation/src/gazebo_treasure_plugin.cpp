@@ -76,13 +76,16 @@ void GazeboTreasure::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf)
       static_object_ = _sdf->GetElement("staticObject")->Get<std::string>() == "true"?true:false;
     }
 
-  // boost::random::mt19937 rng;
-  boost::random::random_device rng;
-  boost::random::uniform_int_distribution<> x_rand(-5, 5);
-  boost::random::uniform_int_distribution<> y_rand(-5, 5);
-  double x = x_rand(rng);
-  double y = y_rand(rng);
-  model_->SetLinkWorldPose(math::Pose(x, y, 0.2, 0, 0, 0), link_);
+  if (_sdf->HasElement("randomPose") && _sdf->GetElement("randomPose")->GetValue() && _sdf->GetElement("randomPose")->Get<std::string>() == "true")
+    {
+      boost::random::random_device rng;
+      boost::random::uniform_int_distribution<> x_rand(-10, 10);
+      boost::random::uniform_int_distribution<> y_rand(-10, 10);
+      double x = x_rand(rng);
+      double y = y_rand(rng);
+      model_->SetLinkWorldPose(math::Pose(x, y, 0.2, 0, 0, 0), link_);
+    }
+
 
   if (!link)
   {
