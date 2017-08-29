@@ -39,5 +39,15 @@ controller/yaw/p_gain: -10 # should be negative
 controller/yaw/i_gain: 0.1
 controller/yaw/d_gain: 5
 
+# pitch & roll
+controller/pitch_roll/control_rate_thresh: 0.5
+controller/pitch_roll/limit: 10.0
+controller/pitch_roll/p_term_limit: 10.0
+controller/pitch_roll/i_term_limit: 10.0
+controller/pitch_roll/d_term_limit: 10.0
+controller/pitch_roll/p_gain: 2
+controller/pitch_roll/i_gain: 0 #0.01
+controller/pitch_roll/d_gain: 5
+
 # desire tilt
 controller/tilt_pub_interval: 0.2
