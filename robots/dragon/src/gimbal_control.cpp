@@ -7,7 +7,8 @@ namespace control_plugin
   DragonGimbal::DragonGimbal():
     servo_torque_(false), level_flag_(false), landing_flag_(false),
     curr_desire_tilt_(0, 0, 0),
-    final_desire_tilt_(0, 0, 0)
+    final_desire_tilt_(0, 0, 0),
+    roll_i_term_(0), pitch_i_term_(0)
   {
   }
 
@@ -47,11 +48,19 @@ namespace control_plugin
     nhp_.param("gimbal_target_force_topic_name", pub_name, string("gimbals_target_force"));
     gimbal_target_force_pub_ = nh_.advertise<std_msgs::Float32MultiArray>(pub_name, 1);
 
+    nhp_.param("roll_pitch_gimbal_topic_name", pub_name, string("roll_pitch_gimbal_control"));
+    roll_pitch_pid_pub_ = nh_.advertise<aerial_robot_base::FlatnessPid>(pub_name, 1);
+
     string sub_name;
     nhp_.param("joint_state_sub_name", sub_name, std::string("joint_state"));
     joint_state_sub_ = nh_.subscribe(sub_name, 1, &DragonGimbal::jointStateCallback, this);
     nhp_.param("final_desire_tilt_sub_name", sub_name, std::string("/final_desire_tilt"));
     final_desire_tilt_sub_ = nh_.subscribe(sub_name, 1, &DragonGimbal::baselinkTiltCallback, this);
+
+    //dynamic reconfigure server
+    roll_pitch_pid_server_ = new dynamic_reconfigure::Server<aerial_robot_base::XYPidControlConfig>(ros::NodeHandle(nhp_, "pitch_roll"));
+    dynamic_reconf_func_roll_pitch_pid_ = boost::bind(&DragonGimbal::cfgPitchRollPidCallback, this, _1, _2);
+    roll_pitch_pid_server_->setCallback(dynamic_reconf_func_roll_pitch_pid_);
 
   }
 
@@ -182,6 +191,11 @@ namespace control_plugin
     kinematics_->getRotorsFromCog(rotors_origin_from_cog);
     Eigen::Matrix3d links_inertia = kinematics_->getInertia();
 
+    /* roll pitch condition */
+    double max_x = 1e-6;
+    double max_y = 1e-6;
+    double max_z = 1e-6;
+
     Eigen::MatrixXd P_att = Eigen::MatrixXd::Zero(3, rotor_num  * 2);
     for(int i = 0; i < rotor_num; i++)
       {
@@ -189,10 +203,15 @@ namespace control_plugin
         P_att(1, 2 * i) = rotors_origin_from_cog[i](2); //y(pitch)
         P_att(2, 2 * i) = -rotors_origin_from_cog[i](1);
         P_att(2, 2 * i + 1) = rotors_origin_from_cog[i](0);
+
+        /* roll pitch condition */
+        if(fabs(rotors_origin_from_cog[i](0)) > max_x) max_x = fabs(rotors_origin_from_cog[i](0));
+        if(fabs(rotors_origin_from_cog[i](1)) > max_y) max_y = fabs(rotors_origin_from_cog[i](1));
+        if(fabs(rotors_origin_from_cog[i](2)) > max_z) max_z = fabs(rotors_origin_from_cog[i](2));
       }
 
-    Eigen::MatrixXd P_att_tmp = P_att;
-    P_att = links_inertia.inverse() * P_att_tmp;
+    Eigen::MatrixXd P_att_orig = P_att;
+    P_att = links_inertia.inverse() * P_att_orig;
 
 
     Eigen::MatrixXd P = Eigen::MatrixXd::Zero(5, rotor_num  * 2);
@@ -202,7 +221,7 @@ namespace control_plugin
 
     if(control_verbose_)
       {
-        std::cout << "gimbal P original :"  << std::endl << P_att_tmp << std::endl;
+        std::cout << "gimbal P original :"  << std::endl << P_att_orig << std::endl;
         std::cout << "gimbal P:"  << std::endl << P << std::endl;
         std::cout << "P det:"  << std::endl << P_det << std::endl;
       }
@@ -222,9 +241,88 @@ namespace control_plugin
       }
     else
       {
+        /* roll & pitch gimbal additional control */
+        double target_gimbal_roll = 0, target_gimbal_pitch = 0;
+        double du = ros::Time::now().toSec() - control_timestamp_;
+
+        /* ros pub */
+        aerial_robot_base::FlatnessPid pid_msg;
+        pid_msg.header.stamp = ros::Time::now();
+
+        //ROS_WARN("max_x: %f, max_y: %f, max_z: %f", max_x, max_y, max_z);
+
+        /* roll addition control */
+        if(max_z > pitch_roll_control_rate_thresh_ * max_y)
+          {
+            if(control_verbose_)
+              ROS_WARN("roll gimbal control, max_z: %f, max_y: %f", max_z, max_y);
+
+            double p_term, d_term;
+            double state_phy = estimator_->getState(State::ROLL_COG, estimate_mode_)[0];
+            double state_phy_vel = estimator_->getState(State::ROLL_COG, estimate_mode_)[1];
+
+            /* P */
+            p_term = clamp(pitch_roll_gains_[0] * (-state_phy),  -pitch_roll_terms_limits_[0], pitch_roll_terms_limits_[0]);
+
+            /* I */
+            roll_i_term_ += (-state_phy * du * pitch_roll_gains_[1]);
+            roll_i_term_ = clamp(roll_i_term_, -pitch_roll_terms_limits_[1], pitch_roll_terms_limits_[1]);
+
+            /* D */
+            d_term = clamp(pitch_roll_gains_[2] * state_phy_vel,  -pitch_roll_terms_limits_[2], pitch_roll_terms_limits_[2]);
+
+            target_gimbal_roll = clamp(p_term + roll_i_term_ + d_term, -pitch_roll_limit_, pitch_roll_limit_);
+
+            pid_msg.roll.total.push_back(target_gimbal_roll);
+            pid_msg.roll.p_term.push_back(p_term);
+            pid_msg.roll.i_term.push_back(roll_i_term_);
+            pid_msg.roll.d_term.push_back(d_term);
+
+            pid_msg.roll.pos_err = state_phy;
+            pid_msg.roll.target_pos = 0;
+            pid_msg.roll.vel_err = state_phy_vel;
+            pid_msg.roll.target_vel = 0;
+
+          }
+
+        /* pitch addition control */
+        if(max_z > pitch_roll_control_rate_thresh_ * max_x)
+          {
+            if(control_verbose_)
+              ROS_WARN("pitch gimbal control, max_z: %f, max_x: %f", max_z, max_y);
+
+            double p_term, d_term;
+            double state_theta = estimator_->getState(State::PITCH_COG, estimate_mode_)[0];
+            double state_theta_vel = estimator_->getState(State::PITCH_COG, estimate_mode_)[1];
+
+            /* P */
+            p_term = clamp(pitch_roll_gains_[0] * (-state_theta),  -pitch_roll_terms_limits_[0], pitch_roll_terms_limits_[0]);
+
+            /* I */
+            pitch_i_term_ += (-state_theta * du * pitch_roll_gains_[1]);
+            pitch_i_term_ = clamp(pitch_i_term_, -pitch_roll_terms_limits_[1], pitch_roll_terms_limits_[1]);
+
+            /* D */
+            d_term = clamp(pitch_roll_gains_[2] * state_theta_vel,  -pitch_roll_terms_limits_[2], pitch_roll_terms_limits_[2]);
+
+            target_gimbal_pitch = clamp(p_term + pitch_i_term_ + d_term, -pitch_roll_limit_, pitch_roll_limit_);
+
+            pid_msg.pitch.total.push_back(target_gimbal_pitch);
+            pid_msg.pitch.p_term.push_back(p_term);
+            pid_msg.pitch.i_term.push_back(pitch_i_term_);
+            pid_msg.pitch.d_term.push_back(d_term);
+
+            pid_msg.pitch.pos_err = state_theta;
+            pid_msg.pitch.target_pos = 0;
+            pid_msg.pitch.vel_err = state_theta_vel;
+            pid_msg.pitch.target_vel = 0;
+          }
+
+        roll_pitch_pid_pub_.publish(pid_msg);
+
         Eigen::VectorXd pid_values(5);
-        /* F = P# * [0, 0, yaw_pid, x_pid, y_pid] */
-        pid_values << 0, 0, target_yaw_[0], target_pitch_, target_roll_;
+        /* F = P# * [roll_pid, pitch_pid, yaw_pid, x_pid, y_pid] */
+        pid_values << target_gimbal_roll, target_gimbal_pitch, target_yaw_[0], target_pitch_, target_roll_;
         f = pseudoinverse(P) * pid_values;
       }
 
@@ -390,6 +488,48 @@ namespace control_plugin
     kinematics_->kinematics(joint_state_);
   }
 
+  void DragonGimbal::cfgPitchRollPidCallback(aerial_robot_base::XYPidControlConfig &config, uint32_t level)
+  {
+    if(config.xy_pid_control_flag)
+      {
+        printf("Pitch Roll Pid Param:");
+        switch(level)
+          {
+          case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_P_GAIN:
+            pitch_roll_gains_[0] = config.p_gain;
+            printf("change the p gain\n");
+            break;
+          case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_I_GAIN:
+            pitch_roll_gains_[1] = config.i_gain;
+            printf("change the i gain\n");
+            break;
+          case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_D_GAIN:
+            pitch_roll_gains_[2] = config.d_gain;
+            printf("change the d gain\n");
+            break;
+          case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_LIMIT:
+            pitch_roll_limit_ = config.limit;
+            printf("change the limit\n");
+            break;
+          case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_P_LIMIT:
+            pitch_roll_terms_limits_[0] = config.p_limit;
+            printf("change the p limit\n");
+            break;
+          case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_I_LIMIT:
+            pitch_roll_terms_limits_[1] = config.i_limit;
+            printf("change the i limit\n");
+            break;
+          case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_D_LIMIT:
+            pitch_roll_terms_limits_[2] = config.d_limit;
+            printf("change the d limit\n");
+            break;
+          default :
+            printf("\n");
+            break;
+          }
+      }
+  }
+
   void DragonGimbal::rosParamInit()
   {
     FlatnessPid::rosParamInit();
@@ -416,5 +556,27 @@ namespace control_plugin
     /* the rate to pub target tilt  command */
     nhp_.param("tilt_pub_interval", tilt_pub_interval_, 0.1);
     if(verbose_) cout << ns << ": tilt_pub_interval is " << tilt_pub_interval_ << endl;
+
+
+    /* pitch roll control */
+    ros::NodeHandle pitch_roll_node(nhp_, "pitch_roll");
+    string pitch_roll_ns = pitch_roll_node.getNamespace();
+    pitch_roll_node.param("control_rate_thresh", pitch_roll_control_rate_thresh_, 1.0);
+    if(verbose_) cout << pitch_roll_ns << ": pos_limit_ is " <<  pitch_roll_control_rate_thresh_ << endl;
+    pitch_roll_node.param("limit", pitch_roll_limit_, 1.0e6);
+    if(verbose_) cout << pitch_roll_ns << ": pos_limit_ is " <<  pitch_roll_limit_ << endl;
+    pitch_roll_node.param("p_term_limit", pitch_roll_terms_limits_[0], 1.0e6);
+    if(verbose_) cout << pitch_roll_ns << ": pos_p_limit_ is " <<  pitch_roll_terms_limits_[0] << endl;
+    pitch_roll_node.param("i_term_limit", pitch_roll_terms_limits_[1], 1.0e6);
+    if(verbose_) cout << pitch_roll_ns << ": pos_i_limit_ is " <<  pitch_roll_terms_limits_[1] << endl;
+    pitch_roll_node.param("d_term_limit", pitch_roll_terms_limits_[2], 1.0e6);
+    if(verbose_) cout << pitch_roll_ns << ": pos_d_limit_ is " <<  pitch_roll_terms_limits_[2] << endl;
+    pitch_roll_node.param("p_gain", pitch_roll_gains_[0], 0.0);
+    if(verbose_) cout << pitch_roll_ns << ": p_gain_ is " << pitch_roll_gains_[0] << endl;
+    pitch_roll_node.param("i_gain", pitch_roll_gains_[1], 0.0);
+    if(verbose_) cout << pitch_roll_ns << ": i_gain_ is " << pitch_roll_gains_[1] << endl;
+    pitch_roll_node.param("d_gain", pitch_roll_gains_[2], 0.0);
+    if(verbose_) cout << pitch_roll_ns << ": d_gain_ is " << pitch_roll_gains_[2] << endl;
+
   }
 };

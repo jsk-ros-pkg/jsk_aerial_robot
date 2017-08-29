@@ -83,6 +83,7 @@ namespace control_plugin
     ros::Publisher joint_control_pub_;
     ros::Publisher gimbal_target_force_pub_;
     ros::Publisher curr_desire_tilt_pub_;
+    ros::Publisher  roll_pitch_pid_pub_;
     ros::Subscriber joint_state_sub_;
     ros::Subscriber final_desire_tilt_sub_;
 
@@ -106,6 +107,13 @@ namespace control_plugin
 
     bool simulation_;
 
+    /* pitch roll control */
+    double pitch_roll_control_rate_thresh_;
+    tf::Vector3 pitch_roll_gains_;
+    double pitch_roll_limit_;
+    tf::Vector3 pitch_roll_terms_limits_;
+    double roll_i_term_, pitch_i_term_;
+
     /* landing process */
     bool level_flag_;
     bool landing_flag_;
@@ -120,6 +128,11 @@ namespace control_plugin
     string joints_torque_control_srv_name_;
     double tilt_thresh_;
     double tilt_pub_interval_;
+
+    /* cfg */
+    dynamic_reconfigure::Server<aerial_robot_base::XYPidControlConfig>* roll_pitch_pid_server_;
+    dynamic_reconfigure::Server<aerial_robot_base::XYPidControlConfig>::CallbackType dynamic_reconf_func_roll_pitch_pid_;
+    void cfgPitchRollPidCallback(aerial_robot_base::XYPidControlConfig &config, uint32_t level);
 
     /* psuedo inverse */
     /* https://gist.github.com/javidcf/25066cf85e71105d57b6 */
