@@ -113,6 +113,7 @@ namespace control_plugin
     double pitch_roll_limit_;
     tf::Vector3 pitch_roll_terms_limits_;
     double roll_i_term_, pitch_i_term_;
+    double gimbal_control_stamp_;
 
     /* landing process */
     bool level_flag_;

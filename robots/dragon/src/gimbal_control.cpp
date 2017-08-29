@@ -8,7 +8,7 @@ namespace control_plugin
     servo_torque_(false), level_flag_(false), landing_flag_(false),
     curr_desire_tilt_(0, 0, 0),
     final_desire_tilt_(0, 0, 0),
-    roll_i_term_(0), pitch_i_term_(0)
+    roll_i_term_(0), pitch_i_term_(0), gimbal_control_stamp_(0)
   {
   }
 
@@ -243,7 +243,8 @@ namespace control_plugin
       {
         /* roll & pitch gimbal additional control */
         double target_gimbal_roll = 0, target_gimbal_pitch = 0;
-        double du = ros::Time::now().toSec() - control_timestamp_;
+        if(gimbal_control_stamp_ == 0) gimbal_control_stamp_ = ros::Time::now().toSec();
+        double du = ros::Time::now().toSec() - gimbal_control_stamp_;
 
         /* ros pub */
         aerial_robot_base::FlatnessPid pid_msg;
@@ -269,7 +270,7 @@ namespace control_plugin
             roll_i_term_ = clamp(roll_i_term_, -pitch_roll_terms_limits_[1], pitch_roll_terms_limits_[1]);
 
             /* D */
-            d_term = clamp(pitch_roll_gains_[2] * state_phy_vel,  -pitch_roll_terms_limits_[2], pitch_roll_terms_limits_[2]);
+            d_term = clamp(pitch_roll_gains_[2] * (-state_phy_vel),  -pitch_roll_terms_limits_[2], pitch_roll_terms_limits_[2]);
 
             target_gimbal_roll = clamp(p_term + roll_i_term_ + d_term, -pitch_roll_limit_, pitch_roll_limit_);
 
@@ -303,7 +304,7 @@ namespace control_plugin
             pitch_i_term_ = clamp(pitch_i_term_, -pitch_roll_terms_limits_[1], pitch_roll_terms_limits_[1]);
 
             /* D */
-            d_term = clamp(pitch_roll_gains_[2] * state_theta_vel,  -pitch_roll_terms_limits_[2], pitch_roll_terms_limits_[2]);
+            d_term = clamp(pitch_roll_gains_[2] * (-state_theta_vel),  -pitch_roll_terms_limits_[2], pitch_roll_terms_limits_[2]);
 
             target_gimbal_pitch = clamp(p_term + pitch_i_term_ + d_term, -pitch_roll_limit_, pitch_roll_limit_);
 
@@ -319,6 +320,7 @@ namespace control_plugin
           }
 
         roll_pitch_pid_pub_.publish(pid_msg);
+        gimbal_control_stamp_ = ros::Time::now().toSec();
 
         Eigen::VectorXd pid_values(5);
         /* F = P# * [roll_pid, pitch_pid, yaw_pid, x_pid, y_pid] */
@@ -329,9 +331,8 @@ namespace control_plugin
     if(control_verbose_)
       {
         std::cout << "gimbal P_pseudo_inverse:"  << std::endl << pseudoinverse(P) << std::endl;
-        std::cout << "gimbal P * P_pseudo_inverse:"  << std::endl << P * pseudoinverse(P) << std::endl;
-        //std::cout << "pid values:"  << std::endl << pid_values << std::endl;
-        //std::cout << "gimbal f:"  << std::endl << f << std::endl;
+        //std::cout << "gimbal P * P_pseudo_inverse:"  << std::endl << P * pseudoinverse(P) << std::endl;
+        std::cout << "gimbal f:"  << std::endl << f << std::endl;
       }
 
     std_msgs::Float32MultiArray target_force_msg;
