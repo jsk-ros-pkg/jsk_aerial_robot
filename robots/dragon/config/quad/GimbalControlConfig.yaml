@@ -18,9 +18,9 @@ controller/alt/d_term_limit: 28
 controller/alt/alt_landing_const_i_ctrl_thresh: -0.3
 
 # xy [rad]
-controller/xy/p_gain: 15 #10: sucess in real machine, but weak
-controller/xy/i_gain: 0.1
-controller/xy/hovering_i_gain: 0.05
+controller/xy/p_gain: 18 #10: sucess in real machine, but weak
+controller/xy/i_gain: 0.2
+controller/xy/hovering_i_gain: 0.2
 controller/xy/d_gain: 30 #40.0 # 20: sucess in real machine, but weak
 controller/xy/limit: 100 
 controller/xy/p_term_limit: 100
