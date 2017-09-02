@@ -197,6 +197,8 @@ void Navigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
       /* Halt mode */
       if(joy_msg->header.stamp.toSec() - force_landing_start_time_.toSec() > force_landing_to_halt_du_ && getNaviState() > START_STATE)
         {
+          //if(!teleop_flag_) return; /* can not do the process if other processs are running */
+
           ROS_ERROR("Joy Control: Halt!");
 
           setNaviState(STOP_STATE);
@@ -231,6 +233,7 @@ void Navigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
   if(joy_msg->buttons[5] == 1 && joy_msg->buttons[15] == 1)
     {
       if(getNaviState() == LAND_STATE) return;
+      if(!teleop_flag_) return; /* can not do the process if other processs are running */
 
       setNaviState(LAND_STATE);
       //update
@@ -318,19 +321,22 @@ void Navigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
     {
     case flight_nav::ACC_CONTROL_MODE:
       {
-        control_frame_ = flight_nav::WORLD_FRAME;
-        if(joy_msg->buttons[8]) control_frame_ = flight_nav::LOCAL_FRAME;
-
-        /* acc command */
-        target_acc_.setValue(joy_msg->axes[1] * max_target_tilt_angle_ * BasicEstimator::G,
-                             joy_msg->axes[0] * max_target_tilt_angle_ * BasicEstimator::G, 0);
-
-        if(control_frame_ == flight_nav::LOCAL_FRAME)
+        if(teleop_flag_)
           {
-            tf::Vector3 target_acc = target_acc_;
-            target_acc_ = frameConversion(target_acc,  estimator_->getState(State::YAW_COG, estimate_mode_)[0]);
-          }
 
+            control_frame_ = flight_nav::WORLD_FRAME;
+            if(joy_msg->buttons[8]) control_frame_ = flight_nav::LOCAL_FRAME;
+
+            /* acc command */
+            target_acc_.setValue(joy_msg->axes[1] * max_target_tilt_angle_ * BasicEstimator::G,
+                                 joy_msg->axes[0] * max_target_tilt_angle_ * BasicEstimator::G, 0);
+
+            if(control_frame_ == flight_nav::LOCAL_FRAME)
+              {
+                tf::Vector3 target_acc = target_acc_;
+                target_acc_ = frameConversion(target_acc,  estimator_->getState(State::YAW_COG, estimate_mode_)[0]);
+              }
+          }
         break;
       }
     case flight_nav::VEL_CONTROL_MODE:

@@ -281,7 +281,7 @@ void TransformController::kinematics(sensor_msgs::JointState state)
     {
       std::map<std::string, uint32_t>::iterator itr = joint_map_.find(state.name[i]);
       if(itr != joint_map_.end())  jointpositions(joint_map_.find(state.name[i])->second) = state.position[i];
-      else ROS_FATAL("transform_control: no matching joint called %s", state.name[i].c_str());
+      //else ROS_FATAL("transform_control: no matching joint called %s", state.name[i].c_str());
     }
   KDL::RigidBodyInertia link_inertia = KDL::RigidBodyInertia::Zero();
   KDL::Frame cog_frame;
@@ -744,6 +744,6 @@ void TransformController::cfgLQICallback(hydrus::LQIConfig &config, uint32_t lev
           printf("\n");
           break;
         }
-      q_diagonal_ << q_roll_,q_roll_d_,q_pitch_,q_pitch_d_,q_yaw_,q_yaw_d_,q_z_,q_z_d_, q_roll_i_,q_pitch_i_,q_yaw_i_,q_z_i_;
+      q_diagonal_ << q_roll_,q_roll_d_,q_pitch_,q_pitch_d_,q_z_,q_z_d_,q_yaw_,q_yaw_d_, q_roll_i_,q_pitch_i_,q_z_i_,q_yaw_i_;
     }
 }
