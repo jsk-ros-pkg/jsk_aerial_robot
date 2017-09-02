@@ -44,7 +44,7 @@ namespace hydrus
   JointInterface::JointInterface(ros::NodeHandle nh, ros::NodeHandle nhp)
     : nh_(nh),nhp_(nhp),
       joints_(0), servo_on_mask_(0), servo_full_on_mask_(0),
-      torque_flag_(true), overload_check_(true)
+      start_joint_control_(false), send_init_joint_pose_(false)
   {
     nhp_.param("joint_num", joint_num_, 3);
     nhp_.param("bridge_mode", bridge_mode_, 0);
@@ -83,6 +83,7 @@ namespace hydrus
       }
 
     nhp_.param("bridge_rate", bridge_rate_, 40.0);
+    send_init_joint_pose_cnt_ = bridge_rate_;
     bridge_timer_ = nhp_.createTimer(ros::Duration(1.0 / bridge_rate_), &JointInterface::bridgeFunc, this);
   }
 
@@ -202,5 +203,42 @@ namespace hydrus
         dynamixel_msg_pub_.publish(dynamixel_msg);
       }
   }
+
+  void JointInterface::bridgeFunc(const ros::TimerEvent & e)
+    {
+      if(servo_on_mask_ != servo_full_on_mask_) return;
+
+      if(!start_joint_control_)
+        {
+          /* send control enable flag */
+         if(send_init_joint_pose_)
+            {
+              hydrus::ServoConfigCmd control_msg;
+              control_msg.command = CONTROL_ON;
+              servo_config_cmd_pub_.publish(control_msg);
+
+              start_joint_control_ = true;
+            }
+
+          /* send initial joint state */
+          if(!send_init_joint_pose_)
+            {
+              hydrus::ServoControl target_angle_msg;
+              for(int i = 0; i < joint_num_; i ++)
+                {
+                  joints_[i]->setTargetVal(joints_[i]->getCurrentVal());
+                  target_angle_msg.angles.push_back(joints_[i]->getTargetVal());
+                }
+              servo_ctrl_pub_.publish(target_angle_msg);
+
+              if(send_init_joint_pose_cnt_ == 0)
+                send_init_joint_pose_ = true;
+
+              send_init_joint_pose_cnt_--;
+            }
+        }
+      jointStatePublish();
+    }
+
 };
 

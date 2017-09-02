@@ -111,7 +111,7 @@ void SimulationAttitudeController::starting(const ros::Time& time)
     uav_type_msg.uav_model = aerial_robot_base::UavType::HYDRUS;
   else if(joint_num_ == motor_num_)
     uav_type_msg.uav_model = aerial_robot_base::UavType::RING;
-  else if(joint_num_ == (motor_num_ -1) * 2 )
+  else if(joint_num_ == motor_num_  * 4 - 2 )
     uav_type_msg.uav_model = aerial_robot_base::UavType::DRAGON;
 
   uav_type_msg.baselink = rotor_interface_->getBaseLinkNo();
@@ -134,7 +134,6 @@ void SimulationAttitudeController::update(const ros::Time& time, const ros::Dura
   controller_core_->getAttController().setRPY(r,p,y);
   tf::Vector3 w = desire_coord_ * rotor_interface_->getBaseLinkAngular();
   controller_core_->getAttController().setAngular(w.x(), w.y(), w.z());
-
 
   if(debug_mode_)
     {
