@@ -27,7 +27,7 @@
   <xacro:property name="joint_mass" value=".2075" />
   <xacro:property name="protector_mass" value=".05" />
   <xacro:property name="protector_holder_mass" value=".0386" />
-  <xacro:property name="bat_mass" value="0.364" /> <!-- hyperon: 0.41, white: 0.364 -->
+  <xacro:property name="bat_mass" value="0.192" /> <!-- hyperon: 0.41, white(big): 0.364, white(small): 0.192 -->
   <xacro:property name="fc_mass" value=".03" />
   <xacro:property name="pc_c_mass" value=".13" /> <!-- odoroid u4: 0.1, euclid: 0.13 -->
   <xacro:property name="pc_v_mass" value=".24" />
