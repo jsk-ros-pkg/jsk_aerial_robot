@@ -131,6 +131,9 @@ void RigidEstimator::statePublish()
   tf::vector3TFToMsg(getVel(Frame::COG, estimate_mode_), odom_state.twist.twist.linear);
   cog_odom_pub_.publish(odom_state);
 
+  tf::Transform wrold2cog_transform_;
+  tf::poseMsgToTF(odom_state.pose.pose, wrold2cog_transform_);
+  br_.sendTransform(tf::StampedTransform(wrold2cog_transform_.inverse(), ros::Time::now(), "cog", "world"));
 }
 
 
