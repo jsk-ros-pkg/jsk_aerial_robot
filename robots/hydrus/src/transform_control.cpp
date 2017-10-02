@@ -183,8 +183,10 @@ void TransformController::initParam()
       nh_private_.param(std::string("r") + ss.str(), r_[i], 1.0);
     }
 
-  nh_private_.param ("dist_thre", dist_thre_, 0.05);
-  if(verbose_) std::cout << "dist_thre: " << std::setprecision(3) << dist_thre_ << std::endl;
+  nh_private_.param ("correlation_thre", correlation_thre_, 0.9);
+  if(verbose_) std::cout << "correlation_thre: " << std::setprecision(3) << correlation_thre_ << std::endl;
+    nh_private_.param ("var_thre", var_thre_, 0.01);
+  if(verbose_) std::cout << "var_thre: " << std::setprecision(3) << var_thre_ << std::endl;
   nh_private_.param ("f_max", f_max_, 8.6);
   if(verbose_) std::cout << "f_max: " << std::setprecision(3) << f_max_ << std::endl;
   nh_private_.param ("f_min", f_min_, 2.0);
@@ -395,34 +397,45 @@ void TransformController::lqi()
   if(debug_verbose_) ROS_WARN(" finish param2controller");
 }
 
-bool TransformController::distThreCheck()
+double TransformController::distThreCheck()
 {
-  float x_minus_max_dist = 0, x_plus_max_dist = 0;
-  float y_minus_max_dist = 0, y_plus_max_dist = 0;
+  double average_x = 0, average_y = 0;
 
+  std::vector<Eigen::Vector3d> rotors_origin_from_cog(rotor_num_);
+  getRotorsFromCog(rotors_origin_from_cog);
+
+  /* calcuate the average */
   for(int i = 0; i < rotor_num_; i++)
     {
-
-      std::vector<Eigen::Vector3d> rotors_origin_from_cog(rotor_num_);
-      getRotorsFromCog(rotors_origin_from_cog);
-      //x
-      if(rotors_origin_from_cog[i](0) > 0 && rotors_origin_from_cog[i](0) > x_plus_max_dist)
-        x_plus_max_dist = rotors_origin_from_cog[i](0);
-      if(rotors_origin_from_cog[i](0) < 0 && rotors_origin_from_cog[i](0) < x_minus_max_dist)
-        x_minus_max_dist = rotors_origin_from_cog[i](0);
-      //y
-      if(rotors_origin_from_cog[i](1) > 0 && rotors_origin_from_cog[i](1) > y_plus_max_dist)
-        y_plus_max_dist = rotors_origin_from_cog[i](1);
-      if(rotors_origin_from_cog[i](1) < 0 && rotors_origin_from_cog[i](1) < y_minus_max_dist)
-        y_minus_max_dist = rotors_origin_from_cog[i](1);
+      average_x += rotors_origin_from_cog[i](0);
+      average_y += rotors_origin_from_cog[i](1);
     }
+  average_x /= rotor_num_;
+  average_y /= rotor_num_;
 
-  if(x_plus_max_dist < dist_thre_ || -x_minus_max_dist < dist_thre_ ||
-     y_plus_max_dist < dist_thre_ || -y_minus_max_dist < dist_thre_ ) //[m]
+  double s_xy =0, s_xx = 0, s_yy =0;
+  for(int i = 0; i < rotor_num_; i++)
     {
-      return false;
+      s_xy += ((rotors_origin_from_cog[i](0) - average_x) * (rotors_origin_from_cog[i](1) - average_y));
+      s_xx += ((rotors_origin_from_cog[i](0) - average_x) * (rotors_origin_from_cog[i](0) - average_x));
+      s_yy += ((rotors_origin_from_cog[i](1) - average_y) * (rotors_origin_from_cog[i](1) - average_y));
     }
+
+  Eigen::Matrix2d S;
+  S << s_xx / rotor_num_, s_xy / rotor_num_, s_xy / rotor_num_, s_yy / rotor_num_;
+  Eigen::SelfAdjointEigenSolver<Eigen::Matrix2d> es(S);
+  double link_len = (rotors_origin_from_cog[1] - rotors_origin_from_cog[0]).norm();
+  //std::cout << "link len: " << link_len << "eigen value PCA: \n" << es.eigenvalues() / link_len<< std::endl;
+  if(es.eigenvalues()[0] / link_len  < var_thre_ ) return 0;
+  return es.eigenvalues()[0] / link_len;
+
+#if 0 // correlation coefficient
+  double correlation_coefficient = fabs(s_xy / sqrt(s_xx * s_yy));
+  //ROS_INFO("correlation_coefficient: %f", correlation_coefficient);
+
+  if(correlation_coefficient > correlation_thre_ ) return false;
   return true;
+#endif
 }
 
 bool  TransformController::modelling(bool verbose)
@@ -512,7 +525,7 @@ bool  TransformController::modelling(bool verbose)
   if(control_verbose_ || verbose)
     std::cout << "four axis mode stable_x_:"  << std::endl << stable_x_ << std::endl;
 
-  else lqi_mode_ = LQI_FOUR_AXIS_MODE;
+  lqi_mode_ = LQI_FOUR_AXIS_MODE;
 
   return true;
 }

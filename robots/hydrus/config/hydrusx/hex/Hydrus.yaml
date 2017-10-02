@@ -30,6 +30,7 @@ r4: 1.0
 r5: 1.0
 r6: 1.0
 
-dist_thre: 0.15 # 0.17 is max now for planning, 0.06 is enough for l, s pose
+var_thre: 0.10
+
 f_max: 16.5
 f_min: 2.0
