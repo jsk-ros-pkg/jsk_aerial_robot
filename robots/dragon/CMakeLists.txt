@@ -31,7 +31,7 @@ find_package(Boost REQUIRED COMPONENTS system)
 
 catkin_package(
   INCLUDE_DIRS include
-  LIBRARIES dragon
+  LIBRARIES dragon_transform_control
   CATKIN_DEPENDS roscpp std_msgs
   DEPENDS system_lib Eigen
 )
