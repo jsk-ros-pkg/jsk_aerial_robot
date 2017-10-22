@@ -95,7 +95,7 @@ public:
 
   bool addExtraModule(int extra_module_link, float extra_module_mass, float extra_module_offset);
 
-  double distThreCheck();
+  double distThreCheck(bool verbose = false);
   bool modelling(bool verbose = false); //lagrange method
 
   bool hamiltonMatrixSolver(uint8_t lqi_mode);
@@ -170,9 +170,15 @@ public:
   inline uint8_t getLqiMode() { return lqi_mode_; }
   inline void setLqiMode(uint8_t lqi_mode) { lqi_mode_ = lqi_mode; }
 
+  void setCogDesireOrientation(KDL::Rotation cog_desire_orientation)
+  {
+    cog_desire_orientation_ = cog_desire_orientation;
+  }
+
   void kinematics(sensor_msgs::JointState state);
 
   void param2controller();
+
 
   static constexpr uint8_t LQI_THREE_AXIS_MODE = 3;
   static constexpr uint8_t LQI_FOUR_AXIS_MODE = 4;

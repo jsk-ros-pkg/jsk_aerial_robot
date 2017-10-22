@@ -252,7 +252,7 @@ void TransformController::control()
 
 void TransformController::desireCoordinateCallback(const aerial_robot_base::DesireCoordConstPtr & msg)
 {
-  cog_desire_orientation_ = KDL::Rotation::RPY(msg->roll, msg->pitch, msg->yaw);
+  setCogDesireOrientation(KDL::Rotation::RPY(msg->roll, msg->pitch, msg->yaw));
 }
 
 void TransformController::jointStateCallback(const sensor_msgs::JointStateConstPtr& state)
@@ -282,6 +282,7 @@ void TransformController::kinematics(sensor_msgs::JointState state)
   for(unsigned int i = 0; i < state.position.size(); i++)
     {
       std::map<std::string, uint32_t>::iterator itr = joint_map_.find(state.name[i]);
+
       if(itr != joint_map_.end())  jointpositions(joint_map_.find(state.name[i])->second) = state.position[i];
       //else ROS_FATAL("transform_control: no matching joint called %s", state.name[i].c_str());
     }
@@ -317,7 +318,7 @@ void TransformController::kinematics(sensor_msgs::JointState state)
 
       KDL::Frame f;
       int status = fk_solver.JntToCart(jointpositions, f, rotor);
-      //ROS_ERROR(" %s status is : %d, [%f, %f, %f]", rotor.c_str(), status, f.p.x(), f.p.y(), f.p.z());
+      //if(verbose) ROS_WARN(" %s status is : %d, [%f, %f, %f]", rotor.c_str(), status, f.p.x(), f.p.y(), f.p.z());
       f_rotors.push_back(Eigen::Map<const Eigen::Vector3d>((cog_frame.Inverse() * f).p.data));
 
       //std::cout << "rotor" << i + 1 << ": \n"<< f_rotors[i] << std::endl;
@@ -380,9 +381,8 @@ void TransformController::lqi()
   /* modelling the multilink based on the inertia assumption */
   if(debug_verbose_) ROS_WARN(" start modelling");
   if(!modelling())
-    {
-      if(!only_three_axis_mode_)  ROS_ERROR("LQI: invalid pose, can not be four axis stable, switch to three axis stable mode");
-    }
+      ROS_ERROR("LQI: invalid pose, can not be four axis stable, switch to three axis stable mode");
+
   if(debug_verbose_) ROS_WARN(" finish modelling");
 
   if(debug_verbose_) ROS_WARN(" start ARE calc");
@@ -397,7 +397,7 @@ void TransformController::lqi()
   if(debug_verbose_) ROS_WARN(" finish param2controller");
 }
 
-double TransformController::distThreCheck()
+double TransformController::distThreCheck(bool verbose)
 {
   double average_x = 0, average_y = 0;
 
@@ -409,6 +409,8 @@ double TransformController::distThreCheck()
     {
       average_x += rotors_origin_from_cog[i](0);
       average_y += rotors_origin_from_cog[i](1);
+      if(verbose)
+        ROS_INFO("rotor%d x: %f, y: %f", i + 1, rotors_origin_from_cog[i](0), rotors_origin_from_cog[i](1));
     }
   average_x /= rotor_num_;
   average_y /= rotor_num_;
@@ -426,6 +428,7 @@ double TransformController::distThreCheck()
   Eigen::SelfAdjointEigenSolver<Eigen::Matrix2d> es(S);
   double link_len = (rotors_origin_from_cog[1] - rotors_origin_from_cog[0]).norm();
   //std::cout << "link len: " << link_len << "eigen value PCA: \n" << es.eigenvalues() / link_len<< std::endl;
+  if(verbose) ROS_INFO("var: %f", es.eigenvalues()[0] / link_len);
   if(es.eigenvalues()[0] / link_len  < var_thre_ ) return 0;
   return es.eigenvalues()[0] / link_len;
 
@@ -446,7 +449,6 @@ bool  TransformController::modelling(bool verbose)
 
   Eigen::VectorXd g(4);
   g << 0, 0, 9.8, 0;
-
   Eigen::VectorXd p_x(rotor_num_), p_y(rotor_num_), p_c(rotor_num_), p_m(rotor_num_);
 
   for(int i = 0; i < rotor_num_; i++)
@@ -519,7 +521,14 @@ bool  TransformController::modelling(bool verbose)
       if(control_verbose_)
         std::cout << "three axis mode: stable_x_:"  << std::endl << stable_x_ << std::endl;
 
-      return false; //can not be stable
+      /* if we do the 4dof underactuated control */
+      if(!only_three_axis_mode_) return false;
+
+      /* if we only do the 3dof control, we still need to check the steady state validation */
+      if(stable_x_.maxCoeff() > f_max_ || stable_x_.minCoeff() < f_min_ )
+        return false;
+
+      return true;
     }
 
   if(control_verbose_ || verbose)
