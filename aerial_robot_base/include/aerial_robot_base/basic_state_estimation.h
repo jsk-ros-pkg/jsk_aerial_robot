@@ -329,6 +329,7 @@ protected:
   ros::Publisher full_state_pub_, baselink_odom_pub_, cog_odom_pub_;
   ros::Subscriber cog2baselink_transform_sub_;
   ros::Subscriber estimate_height_mode_sub_;
+  tf::TransformBroadcaster br_;
 
   boost::thread update_thread_;
 

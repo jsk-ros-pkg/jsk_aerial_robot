@@ -64,6 +64,14 @@
             iyy="${rotor_mass * .25 * rotor_radius * rotor_radius}" iyz="0.0"
             izz="${rotor_mass * .5 * rotor_radius * rotor_radius}"/>
       </inertial>
+
+      <collision>
+        <origin rpy="0 0 0" xyz="0 0 -0.03"/>
+        <geometry>
+          <cylinder length="0.15" radius="${protector_radius + 0.01}"/>
+        </geometry>
+        </collision>
+
     </link>
     <xacro:damping_factor link ="propeller${self}"/>
 

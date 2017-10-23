@@ -259,15 +259,17 @@ namespace control_plugin
     /* throttle */
     double alt_err = clamp(pos_err_.z(), -alt_err_thresh_, alt_err_thresh_);
 
+
+    if(navigator_->getNaviState() == Navigator::LAND_STATE) alt_err += alt_landing_const_i_ctrl_thresh_;
+
     for(int j = 0; j < motor_num_; j++)
       {
         //**** P Term
         double alt_p_term = clamp(-alt_gains_[j][0] * alt_err, -alt_terms_limit_[0], alt_terms_limit_[0]);
         if(navigator_->getNaviState() == Navigator::LAND_STATE) alt_p_term = 0;
 
-        //**** I Term
-        if(navigator_->getNaviState() == Navigator::LAND_STATE) alt_err += alt_landing_const_i_ctrl_thresh_;
         /* two way to calculate the alt i term */
+        //**** I Term
         alt_i_term_[j] +=  alt_err * du;
         double alt_i_term = clamp(alt_gains_[j][1] * alt_i_term_[j], -alt_terms_limit_[1], alt_terms_limit_[1]);
         //***** D Term

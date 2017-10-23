@@ -95,9 +95,9 @@ public:
 
   bool addExtraModule(int extra_module_link, float extra_module_mass, float extra_module_offset);
 
-  /* kinematics calculation */
   void kinematics(sensor_msgs::JointState state);
-  bool distThreCheck();
+  double distThreCheck();
+
   bool modelling(bool verbose = false); //lagrange method
 
   bool hamiltonMatrixSolver(uint8_t lqi_mode);
@@ -173,9 +173,6 @@ public:
   inline void setLqiMode(uint8_t lqi_mode) { lqi_mode_ = lqi_mode; }
 
   void param2controller();
-
-  //only for quad type
-  double getPDeterminant(){return P_.determinant();}
 
   static constexpr uint8_t LQI_THREE_AXIS_MODE = 3;
   static constexpr uint8_t LQI_FOUR_AXIS_MODE = 4;
@@ -264,7 +261,8 @@ protected:
 
   //R
   std::vector<double> r_;
-  double dist_thre_;
+  double var_thre_;
+  double correlation_thre_;
   double f_max_, f_min_;
 
   uint8_t lqi_mode_;
