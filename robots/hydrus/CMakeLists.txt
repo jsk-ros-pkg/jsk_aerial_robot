@@ -31,10 +31,13 @@ SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
 add_message_files(
   FILES
-  ServoConfigCmd.msg
+  BoardConfigCmd.msg
+  BoardInfo.msg
+  ServoInfo.msg
   ServoState.msg
   ServoStates.msg
-  ServoControl.msg
+  ServoControlCmd.msg
+  ServoTorqueCmd.msg
   Gyro.msg
 )
 
@@ -82,13 +85,13 @@ include_directories(
   include ${Boost_INCLUDE_DIR} ${catkin_INCLUDE_DIRS}
 )
 
-add_library (dynamixel_bridge src/dynamixel_bridge.cpp)
-target_link_libraries (dynamixel_bridge ${catkin_LIBRARIES})
-add_dependencies(dynamixel_bridge aerial_robot_msgs_generate_messages_cpp aerial_robot_base_generate_messages_cpp ${PROJECT_NAME}_generate_messages_cpp ${PROJECT_NAME}_gencfg)
+#add_library (dynamixel_bridge src/dynamixel_bridge.cpp)
+#target_link_libraries (dynamixel_bridge ${catkin_LIBRARIES})
+#add_dependencies(dynamixel_bridge aerial_robot_msgs_generate_messages_cpp aerial_robot_base_generate_messages_cpp ${PROJECT_NAME}_generate_messages_cpp ${PROJECT_NAME}_gencfg)
 
-add_executable(dynamixel_bridge_node src/dynamixel_bridge_node.cpp)
-target_link_libraries (dynamixel_bridge_node  ${catkin_LIBRARIES} dynamixel_bridge)
-add_dependencies(dynamixel_bridge_node aerial_robot_msgs_generate_messages_cpp aerial_robot_base_generate_messages_cpp ${PROJECT_NAME}_generate_messages_cpp ${PROJECT_NAME}_gencfg)
+#add_executable(dynamixel_bridge_node src/dynamixel_bridge_node.cpp)
+#target_link_libraries (dynamixel_bridge_node  ${catkin_LIBRARIES} dynamixel_bridge)
+#add_dependencies(dynamixel_bridge_node aerial_robot_msgs_generate_messages_cpp aerial_robot_base_generate_messages_cpp ${PROJECT_NAME}_generate_messages_cpp ${PROJECT_NAME}_gencfg)
 
 add_library (transform_control src/transform_control.cpp)
 target_link_libraries (transform_control ${catkin_LIBRARIES} ${orocos_kdl_LIBRARIES})
