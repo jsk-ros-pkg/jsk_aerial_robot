@@ -95,7 +95,9 @@ public:
 
   bool addExtraModule(int extra_module_link, float extra_module_mass, float extra_module_offset);
 
+  void kinematics(sensor_msgs::JointState state);
   double distThreCheck();
+
   bool modelling(bool verbose = false); //lagrange method
 
   bool hamiltonMatrixSolver(uint8_t lqi_mode);
@@ -170,8 +172,6 @@ public:
   inline uint8_t getLqiMode() { return lqi_mode_; }
   inline void setLqiMode(uint8_t lqi_mode) { lqi_mode_ = lqi_mode; }
 
-  void kinematics(sensor_msgs::JointState state);
-
   void param2controller();
 
   static constexpr uint8_t LQI_THREE_AXIS_MODE = 3;
@@ -236,7 +236,6 @@ protected:
   void initParam();
   /* main control func */
   virtual void control();
-  /* kinematics calculation */
   /* LQI parameter calculation */
   void lqi();
 

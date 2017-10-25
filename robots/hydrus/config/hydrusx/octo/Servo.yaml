@@ -1,0 +1,44 @@
+bridge_rate: 50
+joint_num: 7
+bridge_mode: 1
+joint1_angle_max: 1.58
+joint1_angle_min: -1.58
+joint1_angle_sgn: 1
+joint1_angle_scale: 0.001534
+joint1_angle_offset: 2048
+
+joint2_angle_max: 1.58
+joint2_angle_min: -1.58
+joint2_angle_sgn: 1
+joint2_angle_scale: 0.001534
+joint2_angle_offset: 2048
+
+joint3_angle_max: 1.58
+joint3_angle_min: -1.58
+joint3_angle_sgn: 1
+joint3_angle_scale: 0.001534
+joint3_angle_offset: 2048
+
+joint4_angle_max: 1.58
+joint4_angle_min: -1.58
+joint4_angle_sgn: 1
+joint4_angle_scale: 0.001534
+joint4_angle_offset: 2048
+
+joint5_angle_max: 1.58
+joint5_angle_min: -1.58
+joint5_angle_sgn: 1
+joint5_angle_scale: 0.001534
+joint5_angle_offset: 2048
+
+joint6_angle_max: 1.58
+joint6_angle_min: -1.58
+joint6_angle_sgn: 1
+joint6_angle_scale: 0.001534
+joint6_angle_offset: 2048
+
+joint7_angle_max: 1.58
+joint7_angle_min: -1.58
+joint7_angle_sgn: 1
+joint7_angle_scale: 0.001534
+joint7_angle_offset: 2048

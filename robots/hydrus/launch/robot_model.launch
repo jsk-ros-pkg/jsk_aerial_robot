@@ -1,4 +1,6 @@
 <launch>
+  <arg name="direct_model" default="false" />
+  <arg name="direct_model_name" />
   <arg name="model" default="hydrus3" />
   <arg name="type" default="quad" />
   <arg name="headless" default="False" />
@@ -23,7 +25,8 @@
 
   <include file="$(find aerial_robot_model)/launch/aerial_robot_model.launch" >
     <arg name="headless" value="$(arg headless)" />
-    <arg name="robot_model" value="$(find hydrus)/robots/$(arg model)/$(arg type).$(arg description_mode).xacro" />
+    <arg name="robot_model" value="$(find hydrus)/robots/$(arg model)/$(arg type).$(arg description_mode).xacro" unless="$(arg direct_model)"/>
+    <arg name="robot_model" value="$(arg direct_model_name)" if="$(arg direct_model)"/>
   </include>
 
 </launch>

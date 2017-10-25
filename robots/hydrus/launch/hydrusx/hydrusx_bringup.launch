@@ -7,6 +7,9 @@
   <arg name="type" default="hex" />
   <arg name="estimate_mode"  default= "0" />
   <arg name="headless" default="True" />
+  <arg name="worldtype" default="$(find aerial_robot_simulation)/gazebo_model/world/empty.world" />
+  <arg name="direct_model" default="False" />
+  <arg name="direct_model_name" />
 
   <!-- sensors(fusion) special parameters -->
   <param name="/sensor_plugin/altitude/no_height_offset" value="true" />
@@ -68,6 +71,8 @@
     <arg name="need_joint_state" value="false" if="$(arg real_machine)"/>
     <arg name="need_joint_state" value="false" if="$(arg simulation)"/>
     <arg name="description_mode" value="gazebo" if="$(arg simulation)"/>
+    <arg name="direct_model" value="$(arg direct_model)" />
+    <arg name="direct_model_name" value="$(arg direct_model_name)" if="$(arg direct_model)"/>
   </include >
 
   ###########  Transform Control  ###########
@@ -84,8 +89,6 @@
     <arg name="model" default="hydrusx" />
     <arg name="gui" default="false" if="$(arg headless)" />
     <arg name="headless" default="$(arg headless)" />
+    <arg name="worldtype" value="$(arg worldtype)" />
     </include>
 </launch>
-
-
-
