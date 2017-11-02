@@ -30,7 +30,7 @@ r4: 1.0
 r5: 1.0
 r6: 1.0
 
-var_thre: 0.10
+var_thre: 0.35
 
 f_max: 16.5
 f_min: 2.0
