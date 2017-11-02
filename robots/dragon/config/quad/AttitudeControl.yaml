@@ -2,7 +2,7 @@
 
 joint_state_sub_name: /dragon/joint_states
 
-verbose: false
+verbose: true
 control_rate: 15.0
 
 baselink: fc
@@ -30,6 +30,7 @@ r2: 1.0
 r3: 1.0
 r4: 1.0
 
-var_thre: 0.007
+var_thre: 0.18
 f_max: 30.0
 f_min: 10.0
+edf_max_tilt: 0.18
