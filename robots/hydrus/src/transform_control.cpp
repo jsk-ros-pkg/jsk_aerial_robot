@@ -16,6 +16,12 @@ TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_
   nh_private_.param("verbose", verbose_, false);
   ROS_ERROR("ns is %s", nh_private_.getNamespace().c_str());
 
+  /* base link */
+  nh_private_.param("baselink", baselink_, std::string("link1"));
+  if(verbose_) std::cout << "baselink: " << baselink_ << std::endl;
+  nh_private_.param("thrust_link", thrust_link_, std::string("thrust"));
+  if(verbose_) std::cout << "thrust_link: " << thrust_link_ << std::endl;
+
   addChildren(tree_.getRootSegment());
   ROS_ERROR("rotor num; %d", rotor_num_);
 
@@ -131,7 +137,7 @@ void TransformController::addChildren(const KDL::SegmentMap::const_iterator segm
           }
       }
       /* count the rotor */
-      if(child.getName().find("propeller") != std::string::npos) rotor_num_++;
+      if(child.getName().find(thrust_link_.c_str()) != std::string::npos) rotor_num_++;
       addChildren(children[i]);
     }
 }
@@ -170,9 +176,6 @@ void TransformController::initParam()
   nh_private_.param("debug_verbose", debug_verbose_, false);
   nh_private_.param("a_dash_eigen_calc_flag", a_dash_eigen_calc_flag_, false);
 
-  /* base link */
-  nh_private_.param("baselink", baselink_, std::string("link1"));
-  if(verbose_) std::cout << "baselink: " << baselink_ << std::endl;
   /* propeller direction and lqi R */
   r_.resize(rotor_num_);
   for(int i = 0; i < rotor_num_; i++)
@@ -286,6 +289,7 @@ void TransformController::kinematics(sensor_msgs::JointState state)
       if(itr != joint_map_.end())  jointpositions(joint_map_.find(state.name[i])->second) = state.position[i];
       //else ROS_FATAL("transform_control: no matching joint called %s", state.name[i].c_str());
     }
+
   KDL::RigidBodyInertia link_inertia = KDL::RigidBodyInertia::Zero();
   KDL::Frame cog_frame;
   for(auto it = inertia_map_.begin(); it != inertia_map_.end(); ++it)
@@ -308,13 +312,13 @@ void TransformController::kinematics(sensor_msgs::JointState state)
   setCog(cog_transform);
   setMass(link_inertia.getMass());
 
-  /* rotor(propeller) based on COG */
+  /* thrust point based on COG */
   std::vector<Eigen::Vector3d> f_rotors;
   for(int i = 0; i < rotor_num_; i++)
     {
       std::stringstream ss;
       ss << i + 1;
-      std::string rotor = std::string("propeller") + ss.str();
+      std::string rotor = thrust_link_ + ss.str();
 
       KDL::Frame f;
       int status = fk_solver.JntToCart(jointpositions, f, rotor);
@@ -373,7 +377,16 @@ void TransformController::lqi()
   if(debug_verbose_) ROS_WARN(" start dist thre check");
   if(!distThreCheck()) //[m]
     {
-      ROS_ERROR("LQI: invalid pose, can pass the distance thresh check");
+      ROS_ERROR("LQI: invalid pose, cannot pass the distance thresh check");
+      return;
+    }
+  if(debug_verbose_) ROS_WARN(" finish dist thre check");
+
+  /* check the propeller overlap */
+  if(debug_verbose_) ROS_WARN(" start overlap check");
+  if(!overlapCheck()) //[m]
+    {
+      ROS_ERROR("LQI: invalid pose, some propellers overlap");
       return;
     }
   if(debug_verbose_) ROS_WARN(" finish dist thre check");
@@ -427,10 +440,10 @@ double TransformController::distThreCheck(bool verbose)
   S << s_xx / rotor_num_, s_xy / rotor_num_, s_xy / rotor_num_, s_yy / rotor_num_;
   Eigen::SelfAdjointEigenSolver<Eigen::Matrix2d> es(S);
   double link_len = (rotors_origin_from_cog[1] - rotors_origin_from_cog[0]).norm();
-  //std::cout << "link len: " << link_len << "eigen value PCA: \n" << es.eigenvalues() / link_len<< std::endl;
-  if(verbose) ROS_INFO("var: %f", es.eigenvalues()[0] / link_len);
-  if(es.eigenvalues()[0] / link_len  < var_thre_ ) return 0;
-  return es.eigenvalues()[0] / link_len;
+  float var = sqrt(es.eigenvalues()[0]) / link_len;
+  if(verbose) ROS_INFO("var: %f", var);
+  if( var < var_thre_ ) return 0;
+  return var;
 
 #if 0 // correlation coefficient
   double correlation_coefficient = fabs(s_xy / sqrt(s_xx * s_yy));

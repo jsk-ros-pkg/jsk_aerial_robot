@@ -175,10 +175,10 @@ public:
     cog_desire_orientation_ = cog_desire_orientation;
   }
 
-  void kinematics(sensor_msgs::JointState state);
-
+  virtual void kinematics(sensor_msgs::JointState state);
   void param2controller();
 
+  virtual bool overlapCheck(bool verbose = false){return true; }
 
   static constexpr uint8_t LQI_THREE_AXIS_MODE = 3;
   static constexpr uint8_t LQI_FOUR_AXIS_MODE = 4;
@@ -223,6 +223,7 @@ protected:
   /* base model config */
   int rotor_num_;
   std::string baselink_;
+  std::string thrust_link_;
 
   /* dynamics */
   std::map<int, int> rotor_direction_;
