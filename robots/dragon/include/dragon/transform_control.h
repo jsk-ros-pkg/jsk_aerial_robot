@@ -42,6 +42,7 @@
 
 /* basic transform control */
 #include <hydrus/transform_control.h>
+#include <unordered_map>
 
 using namespace std;
 
@@ -58,15 +59,41 @@ public:
     links_frame_from_cog = links_frame_from_cog_;
   }
 
+  void kinematics(sensor_msgs::JointState state);
+
+  void setEdfsFromCog(const std::vector<Eigen::Vector3d>& edfs_origin_from_cog)
+  {
+    boost::lock_guard<boost::mutex> lock(origins_mutex_);
+    assert(edfs_origin_from_cog_.size() == edfs_origin_from_cog.size());
+    edfs_origin_from_cog_ = edfs_origin_from_cog;
+  }
+
+  void getEdfsFromCog(std::vector<Eigen::Vector3d>& edfs_origin_from_cog)
+  {
+    boost::lock_guard<boost::mutex> lock(origins_mutex_);
+    int size = edfs_origin_from_cog_.size();
+    for(int i=0; i< size; i++)
+      edfs_origin_from_cog = edfs_origin_from_cog_;
+  }
+
+  bool overlapCheck(bool verbose = false);
+
+  std::vector<double>& getGimbalNominalAngles() {return gimbal_nominal_angles_;}
 private:
   ros::Publisher gimbal_control_pub_;
 
   bool gimbal_control_;
 
   std::vector<KDL::Rotation> links_frame_from_cog_;
+  std::vector<Eigen::Vector3d> edfs_origin_from_cog_;
+
+  /* check the relative horizontal distance between propellers */
+  double edf_radius_; // the radius of EDF
+  double edf_max_tilt_;
 
   void initParam();
-  void jointStateCallback(const sensor_msgs::JointStateConstPtr& state);
+
+  std::vector<double> gimbal_nominal_angles_;
 };
 
 #endif
