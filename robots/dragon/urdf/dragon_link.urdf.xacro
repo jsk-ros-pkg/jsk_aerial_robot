@@ -131,12 +131,12 @@
     <joint name="rotor${self}" type="continuous">
       <limit effort="100.0" lower="0" upper="${max_force}" velocity="0.5"/>
       <parent link="gimbal${self}_pitch_module"/>
-      <child link="propeller${self}"/>
+      <child link="thrust${self}"/>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <axis xyz="0 0 1"/>
     </joint>
 
-    <link name="propeller${self}">
+    <link name="thrust${self}">
       <inertial>
         <origin xyz="0 0 0.1" rpy="0 0 0"/>
         <mass value="0.0001"/>
@@ -146,7 +146,42 @@
             izz="0.00002"/>
       </inertial>
     </link>
-    <xacro:damping_factor link ="propeller${self}"/>
+
+    <!-- special part of duct fun -->
+    <joint name="edf${self}_left_mount" type="fixed">
+      <child link="edf${self}_left"/>
+      <parent link="gimbal${self}_pitch_module"/>
+      <origin rpy="0 0 0" xyz="0 0.1115 0 "/>
+      <axis xyz="0 0 1"/>
+    </joint>
+    <link name="edf${self}_left">
+      <inertial>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <mass value="0.00001"/>
+        <inertia
+            ixx="0.000001" ixy="0.0" ixz="0.0"
+            iyy="0.000001" iyz="0.0"
+            izz="0.000002"/>
+      </inertial>
+    </link>
+    <joint name="edf${self}_right_mount" type="fixed">
+      <child link="edf${self}_right"/>
+      <parent link="gimbal${self}_pitch_module"/>
+      <origin rpy="0 0 0" xyz="0 -0.1115 0 "/>
+      <axis xyz="0 0 1"/>
+    </joint>
+    <link name="edf${self}_right">
+      <inertial>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <mass value="0.00001"/>
+        <inertia
+            ixx="0.000001" ixy="0.0" ixz="0.0"
+            iyy="0.000001" iyz="0.0"
+            izz="0.000002"/>
+      </inertial>
+    </link>
+
+    <xacro:damping_factor link ="thrust${self}"/>
     <!-- joint -->
     <xacro:unless value="${self == child}">
       <joint name="joint${self}_pitch" type="revolute">
