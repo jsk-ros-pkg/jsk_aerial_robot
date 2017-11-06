@@ -39,6 +39,8 @@ add_message_files(
   ServoControlCmd.msg
   ServoTorqueCmd.msg
   Gyro.msg
+  PMatrixPseudoInverseUnit.msg
+  PMatrixPseudoInverseWithInertia.msg
 )
 
 add_service_files(

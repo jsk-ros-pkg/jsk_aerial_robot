@@ -45,6 +45,7 @@ TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_
   rpy_gain_pub_ = nh_.advertise<aerial_robot_msgs::RollPitchYawTerms>(rpy_gain_pub_name, 1);
   four_axis_gain_pub_ = nh_.advertise<aerial_robot_msgs::FourAxisGain>("/four_axis_gain", 1);
   transform_pub_ = nh_.advertise<geometry_msgs::TransformStamped>("/cog2baselink", 1);
+  p_matrix_pseudo_inverse_inertia_pub_ = nh_.advertise<hydrus::PMatrixPseudoInverseWithInertia>("p_matrix_pseudo_inverse_inertia", 1);
 
   //dynamic reconfigure server
   lqi_server_ = new dynamic_reconfigure::Server<hydrus::LQIConfig>(nh_private_);
@@ -171,6 +172,7 @@ void TransformController::initParam()
   if(verbose_) std::cout << "control_rate: " << std::setprecision(3) << control_rate_ << std::endl;
 
   nh_private_.param("only_three_axis_mode", only_three_axis_mode_, false);
+  nh_private_.param("gyro_moment_compensation", gyro_moment_compensation_, false);
   nh_private_.param("control_verbose", control_verbose_, false);
   nh_private_.param("kinematic_verbose", kinematic_verbose_, false);
   nh_private_.param("debug_verbose", debug_verbose_, false);
@@ -534,6 +536,16 @@ bool  TransformController::modelling(bool verbose)
       if(control_verbose_)
         std::cout << "three axis mode: stable_x_:"  << std::endl << stable_x_ << std::endl;
 
+      /* calculate the P_orig(without inverse inertia) peusdo inverse */
+      P_dash.row(0) = p_y;
+      P_dash.row(1) = p_x;
+      P_dash.row(2) = p_m;
+      Eigen::MatrixXd P_dash_pseudo_inverse = P_dash.transpose() * (P_dash * P_dash.transpose()).inverse();
+      P_orig_pseudo_inverse_ = Eigen::MatrixXd::Zero(rotor_num_, 4);
+      P_orig_pseudo_inverse_.block(0, 0, rotor_num_, 3) = P_dash_pseudo_inverse;
+      if(control_verbose_)
+        std::cout << "P orig_pseudo inverse for three axis mode:"  << std::endl << P_orig_pseudo_inverse_ << std::endl;
+
       /* if we do the 4dof underactuated control */
       if(!only_three_axis_mode_) return false;
 
@@ -543,6 +555,17 @@ bool  TransformController::modelling(bool verbose)
 
       return true;
     }
+
+  /* calculate the P_orig(without inverse inertia) peusdo inverse */
+  Eigen::MatrixXd P_dash = Eigen::MatrixXd::Zero(4,rotor_num_);
+  P_dash.row(0) = p_y;
+  P_dash.row(1) = p_x;
+  P_dash.row(2) = p_m;
+  P_dash.row(3) = p_c;
+
+  P_orig_pseudo_inverse_ = P_dash.transpose() * (P_dash * P_dash.transpose()).inverse();
+  if(control_verbose_)
+    std::cout << "P orig_pseudo inverse for four axis mode:" << std::endl << P_orig_pseudo_inverse_ << std::endl;
 
   if(control_verbose_ || verbose)
     std::cout << "four axis mode stable_x_:"  << std::endl << stable_x_ << std::endl;
@@ -669,9 +692,11 @@ void TransformController::param2controller()
   aerial_robot_msgs::FourAxisGain four_axis_gain_msg;
   aerial_robot_msgs::RollPitchYawTerms rpy_gain_msg; //for rosserial
   geometry_msgs::TransformStamped transform_msg; //for rosserial
+  hydrus::PMatrixPseudoInverseWithInertia p_pseudo_inverse_with_inertia_msg;
 
   four_axis_gain_msg.motor_num = rotor_num_;
   rpy_gain_msg.motors.resize(rotor_num_);
+  p_pseudo_inverse_with_inertia_msg.pseudo_inverse.resize(rotor_num_);
 
   /* the transform from cog to baselink */
   transform_msg.header.stamp = joint_state_stamp_;
@@ -724,9 +749,27 @@ void TransformController::param2controller()
           four_axis_gain_msg.pos_d_gain_yaw.push_back(0.0);
           four_axis_gain_msg.pos_i_gain_yaw.push_back(0.0);
         }
+
+      /* the p matrix pseudo inverse and inertia */
+      p_pseudo_inverse_with_inertia_msg.pseudo_inverse[i].r = P_orig_pseudo_inverse_(i, 0) * 1000;
+      p_pseudo_inverse_with_inertia_msg.pseudo_inverse[i].p = P_orig_pseudo_inverse_(i, 1) * 1000;
+      p_pseudo_inverse_with_inertia_msg.pseudo_inverse[i].y = P_orig_pseudo_inverse_(i, 3) * 1000;
     }
   rpy_gain_pub_.publish(rpy_gain_msg);
   four_axis_gain_pub_.publish(four_axis_gain_msg);
+
+
+  /* the multilink inertia */
+  Eigen::Matrix3d inertia = getInertia();
+  p_pseudo_inverse_with_inertia_msg.inertia[0] = inertia(0, 0) * 1000;
+  p_pseudo_inverse_with_inertia_msg.inertia[1] = inertia(1, 1) * 1000;
+  p_pseudo_inverse_with_inertia_msg.inertia[2] = inertia(2, 2) * 1000;
+  p_pseudo_inverse_with_inertia_msg.inertia[3] = inertia(0, 1) * 1000;
+  p_pseudo_inverse_with_inertia_msg.inertia[4] = inertia(1, 2) * 1000;
+  p_pseudo_inverse_with_inertia_msg.inertia[5] = inertia(0, 2) * 1000;
+
+  if(gyro_moment_compensation_)
+    p_matrix_pseudo_inverse_inertia_pub_.publish(p_pseudo_inverse_with_inertia_msg);
 }
 
 void TransformController::cfgLQICallback(hydrus::LQIConfig &config, uint32_t level)

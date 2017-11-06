@@ -45,6 +45,7 @@
 #include <aerial_robot_base/DesireCoord.h>
 #include <sensor_msgs/JointState.h>
 #include <hydrus/AddExtraModule.h>
+#include <hydrus/PMatrixPseudoInverseWithInertia.h>
 #include <std_msgs/UInt8.h>
 #include <tf/transform_broadcaster.h>
 #include <geometry_msgs/TransformStamped.h>
@@ -191,6 +192,7 @@ protected:
   ros::Publisher principal_axis_pub_;
   ros::Publisher cog_rotate_pub_; //for position control => to mocap
   ros::Publisher transform_pub_;
+  ros::Publisher p_matrix_pseudo_inverse_inertia_pub_;
   ros::Subscriber joint_state_sub_;
   ros::Subscriber desire_coordinate_sub_;
   ros::Subscriber realtime_control_sub_;
@@ -219,6 +221,7 @@ protected:
   boost::thread control_thread_;
   double control_rate_;
   bool only_three_axis_mode_;
+  bool gyro_moment_compensation_;
 
   /* base model config */
   int rotor_num_;
@@ -259,6 +262,7 @@ protected:
   virtual void jointStateCallback(const sensor_msgs::JointStateConstPtr& state);
   Eigen::MatrixXd P_;
   Eigen::MatrixXd K_;
+  Eigen::MatrixXd P_orig_pseudo_inverse_; // for compensation of cross term in the rotional dynamics
 
   //Q
 //8/12:r,r_d, p, p_d, y, y_d, z. z_d, r_i, p_i, y_i, z_i
