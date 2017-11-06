@@ -12,6 +12,10 @@
   <param name="/sensor_plugin/altitude/no_height_offset" value="true" />
   <param name="/sensor_plugin/mocap/cutoff_vel_freq" value="10" />
 
+  ###########  UAV Config  ###########
+  # DRAGON = 32 # 0x20, dragon type with full/over actuated property
+  <param name="/uav_info/uav_model" value= "32" />
+
   ###########  Motor Config  ###########
   <rosparam file="$(find dragon)/config/MotorInfo.yaml" command="load" />
 
