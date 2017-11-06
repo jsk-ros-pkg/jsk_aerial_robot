@@ -1,0 +1,28 @@
+<launch>
+  <arg name="type" default="octo" />
+  <arg name="headless" default="False" />
+  <arg name="description_mode" default="urdf"/>
+  <arg name="need_joint_state" default="true" />
+
+  <group ns="hydrus_xi" >
+    <node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher" />
+
+    <rosparam file = "$(find hydrus_xi)/config/$(arg type)/RvizInit.yaml" command="load" />
+    <group if="$(arg need_joint_state)">
+      <param name="use_gui" value="true" />
+      <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" >
+        <param name="robot_description"
+               command="$(find xacro)/xacro.py '$(find hydrus_xi)/robots/$(arg type).urdf.xacro'" />
+      </node >
+    </group>
+
+    <node name="aerial_robot_model" pkg="aerial_robot_model" type="rotor_tf_publisher" unless="$(arg need_joint_state)"/>
+
+  </group>
+
+  <include file="$(find aerial_robot_model)/launch/aerial_robot_model.launch" >
+    <arg name="headless" value="$(arg headless)" />
+    <arg name="robot_model" value="$(find hydrus_xi)/robots/$(arg type).$(arg description_mode).xacro" />
+  </include>
+
+</launch>
