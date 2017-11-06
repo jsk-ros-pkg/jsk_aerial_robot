@@ -60,29 +60,11 @@ namespace control_plugin
                     BasicEstimator* estimator, Navigator* navigator,
                     double ctrl_loop_rate);
 
-    void activate()
-    {
-      static ros::Time activate_timestamp = ros::Time::now();
-      if(ros::Time::now().toSec() - activate_timestamp.toSec()  > 0.1)
-        {
-          /* send motor info to uav, about 10Hz */
-          aerial_robot_base::MotorInfo motor_info_msg;
-          motor_info_msg.min_pwm = min_pwm_;
-          motor_info_msg.max_pwm = max_pwm_;
-          motor_info_msg.f_pwm_offset = f_pwm_offset_;
-          motor_info_msg.f_pwm_rate = f_pwm_rate_;
-          motor_info_msg.m_f_rate = m_f_rate_;
-          motor_info_msg.pwm_rate = pwm_rate_;
-          motor_info_msg.force_landing_pwm = force_landing_pwm_;
-          motor_info_pub_.publish(motor_info_msg);
-          activate_timestamp = ros::Time::now();
-        }
-      reset();
-    }
 
     virtual void reset()
     {
-      control_timestamp_ = -1;
+      ControlBase::reset();
+
       start_rp_integration_ = false;
       alt_i_term_.assign(motor_num_, 0);
       yaw_i_term_.assign(motor_num_, 0);
@@ -95,15 +77,14 @@ namespace control_plugin
       target_pitch_ = 0;
     }
 
-    virtual void update();
+    virtual bool update();
 
     virtual void stateError();
-    virtual bool pidUpdate();
+    virtual void pidUpdate();
     virtual void sendCmd();
 
   protected:
     ros::Publisher  pid_pub_;
-    ros::Publisher  motor_info_pub_;
     ros::Publisher  flight_cmd_pub_;
     ros::Subscriber four_axis_gain_sub_;
     ros::Subscriber xy_vel_weak_gain_sub_;
@@ -142,14 +123,14 @@ namespace control_plugin
     tf::Vector3 xy_offset_;
     std::string xy_vel_weak_gain_sub_name_;
     double xy_vel_weak_rate_;
+    bool start_rp_integration_;
 
     //**** yaw
     std::vector<tf::Vector3> yaw_gains_;
     double yaw_limit_;
     tf::Vector3 yaw_terms_limits_;
     std::vector<double>  yaw_i_term_;
-
-    bool start_rp_integration_;
+    bool need_yaw_d_control_;
 
     dynamic_reconfigure::Server<aerial_robot_base::XYPidControlConfig>* xy_pid_server_;
     dynamic_reconfigure::Server<aerial_robot_base::XYPidControlConfig>::CallbackType dynamic_reconf_func_xy_pid_;

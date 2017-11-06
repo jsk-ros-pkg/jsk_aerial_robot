@@ -5,11 +5,13 @@ using namespace std;
 namespace control_plugin
 {
   DragonGimbal::DragonGimbal():
+    FlatnessPid(),
     servo_torque_(false), level_flag_(false), landing_flag_(false),
     curr_desire_tilt_(0, 0, 0),
     final_desire_tilt_(0, 0, 0),
     roll_i_term_(0), pitch_i_term_(0), gimbal_control_stamp_(0)
   {
+    need_yaw_d_control_ = true;
   }
 
   void DragonGimbal::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
@@ -30,7 +32,6 @@ namespace control_plugin
         P_xy_(1, 1 + i * 2) = 1;
       }
     //std::cout << "P_xy :"  << std::endl << P_xy_ << std::endl;
-
 
     /* initialize the gimbal target angles */
     target_gimbal_angles_.resize(kinematics_->getRotorNum() * 2, 0);
@@ -67,7 +68,7 @@ namespace control_plugin
   void DragonGimbal::fourAxisGainCallback(const aerial_robot_msgs::FourAxisGainConstPtr & msg)
   {
     /* update the motor number */
-    if(motor_num_ == 1)
+    if(motor_num_ == 0)
       {
         motor_num_ = msg->motor_num;
 
@@ -88,18 +89,20 @@ namespace control_plugin
     final_desire_tilt_.setValue(msg->roll, msg->pitch, msg->yaw);
   }
 
-  void DragonGimbal::update()
+  bool DragonGimbal::update()
   {
+    if(!ControlBase::update()) return false;
+
     landingProcess();
 
     servoTorqueProcess();
     stateError();
 
     /* not good, but stable for gazebo */
-   if(simulation_) state_vel_ = estimator_->getVel(Frame::BASELINK, estimate_mode_);
+    if(simulation_) state_vel_ = estimator_->getVel(Frame::BASELINK, estimate_mode_);
 
-    if(!pidUpdate()) return;
-    gimbalControl();
+    pidUpdate(); //LQI thrust control
+    gimbalControl(); //gimbal vectoring control
     desireTilt();
     sendCmd();
   }
