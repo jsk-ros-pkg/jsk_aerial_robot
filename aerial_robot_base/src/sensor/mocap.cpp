@@ -149,10 +149,11 @@ namespace sensor_plugin
           float delta_t = msg->header.stamp.toSec() - previous_time.toSec();
           raw_pos_ -= tf::Vector3(0, 0, pos_offset_.z());
           raw_vel_ = (raw_pos_ - prev_raw_pos_) / delta_t;
-          double raw_psi_vel = (euler[2] - prev_psi_) / delta_t;
-          if(raw_psi_vel > M_PI)  raw_psi_vel -= 2 * M_PI;
-          else if(raw_psi_vel < -M_PI)  raw_psi_vel += 2 * M_PI;
-
+          double psi_err = euler[2] - prev_psi_;
+          if(psi_err > M_PI)  psi_err -= 2 * M_PI;
+          else if(psi_err < -M_PI)  psi_err += 2 * M_PI;
+          double raw_psi_vel = psi_err / delta_t;
+ 
           double psi_vel = 0;
 
           /* pos */
@@ -250,6 +251,9 @@ namespace sensor_plugin
               float angle = euler[i];
               float vel = omega[i];
               lpf_pos_vel_[i].filterFunction(angle, euler[i], vel, omega[i]);
+
+              /* only yaw can not use the LPF */
+              if(i == 2) euler[2] = angle;
             }
 
           estimator_->setEuler(Frame::BASELINK, BasicEstimator::GROUND_TRUTH, euler);
