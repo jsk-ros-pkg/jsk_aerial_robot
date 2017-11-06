@@ -46,16 +46,19 @@ namespace dragon
   {
     nhp_.param("gimbal_num", gimbal_num_, 8);
 
+    /* update the servo id of joints */
+    for(int i = 0; i < joint_num_; i++)
+      joints_[i]->setId(i + (i / 2) * 2);
+
     for(int i = 0; i < gimbal_num_; i++)
-      gimbals_.push_back(JointHandlePtr(new JointHandle(ros::NodeHandle(nh, "gimbal"), ros::NodeHandle(nhp, "gimbal"), i)));
+      {
+        gimbals_.push_back(JointHandlePtr(new JointHandle(ros::NodeHandle(nh, "gimbal"), ros::NodeHandle(nhp, "gimbal"), i)));
+        /* update the id after the definition of pub/sub */
+        gimbals_[i]->setId(i + (i / 2 + 1) * 2);
+      }
 
     string topic_name;
     gimbal_ctrl_sub_ = nh_.subscribe("gimbals_ctrl", 1, &JointInterface::gimbalsCtrlCallback, this) ;
-    nhp_.param("gimbal_pub_name", topic_name, std::string("/target_gimbal_states"));
-    gimbal_ctrl_pub_ = nh_.advertise<hydrus::ServoControl>(topic_name, 1);
-    nhp_.param("gimbal_config_cmd_pub_name", topic_name, std::string("/gimbal_config_cmd"));
-    gimbal_config_cmd_pub_ = nh_.advertise<hydrus::ServoConfigCmd>(topic_name, 1);
-
 
     gimbals_torque_control_srv_ =  nh_.advertiseService("/gimbals_controller/torque_enable", &JointInterface::gimbalsTorqueEnableCallback, this);
 
@@ -65,24 +68,29 @@ namespace dragon
   {
     assert(gimbals_ctrl_msg->position.size() == gimbal_num_);
 
-    hydrus::ServoControl target_angle_msg;
+    hydrus::ServoControlCmd target_angle_msg;
 
     for(int i = 0; i < gimbal_num_; i ++)
       {
-        // TODO: right now it is reverse, change back to the correct order
-        gimbals_[i]->setTargetVal(gimbals_ctrl_msg->position[(i + 1 )%2 + (i/2) * 2 ]);
+        // TODO: check the order of the gimbal servo
+        gimbals_[i]->setTargetVal(gimbals_ctrl_msg->position[i]);
+        target_angle_msg.index.push_back(gimbals_[i]->getId());
         target_angle_msg.angles.push_back(gimbals_[i]->getTargetVal());
       }
 
-    gimbal_ctrl_pub_.publish(target_angle_msg);
+    servo_ctrl_pub_.publish(target_angle_msg);
   }
 
   bool JointInterface::gimbalsTorqueEnableCallback(dynamixel_controllers::TorqueEnable::Request &req, dynamixel_controllers::TorqueEnable::Response &res)
   {
     /* direct send torque control flag */
-    hydrus::ServoConfigCmd torque_control_msg;
-    torque_control_msg.command = req.torque_enable;
-    gimbal_config_cmd_pub_.publish(torque_control_msg);
+    hydrus::ServoTorqueCmd torque_off_msg;
+    for(auto it = joints_.begin(); it != joints_.end(); ++it)
+      {
+        torque_off_msg.index.push_back((*it)->getId());
+        torque_off_msg.torque_enable.push_back(req.torque_enable);
+      }
+    servo_torque_cmd_pub_.publish(torque_off_msg);
 
     return true;
   }
@@ -95,7 +103,7 @@ namespace dragon
     for(int i = 0; i < joint_num_; i ++)
       {
         joints_state_msg.name.push_back(joints_[i]->getName());
-        joints_state_msg.position.push_back(joints_[i]->getCurrentVal());
+        joints_state_msg.position.push_back(joints_[i]->getTargetVal());
       }
 
     for(int i = 0; i < gimbal_num_; i ++)
@@ -124,21 +132,5 @@ namespace dragon
         dynamixel_msg_pub_.publish(dynamixel_msg);
       }
   }
-
-    void JointInterface::bridgeFunc(const ros::TimerEvent & e)
-    {
-      hydrus::JointInterface::bridgeFunc(e);
-
-      if(send_init_joint_pose_cnt_ > 0) return;
-      if(!start_gimbal_control_)
-        {
-          /* send control enable flag */
-          hydrus::ServoConfigCmd control_msg;
-          control_msg.command = CONTROL_ON;
-          gimbal_config_cmd_pub_.publish(control_msg);
-
-          start_gimbal_control_ = true;
-        }
-    }
 };
 

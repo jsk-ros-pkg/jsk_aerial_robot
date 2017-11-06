@@ -49,9 +49,9 @@
 #include <std_msgs/Float64.h>
 #include <std_srvs/SetBool.h>
 #include <sensor_msgs/JointState.h>
-#include <hydrus/ServoConfigCmd.h>
 #include <hydrus/ServoStates.h>
-#include <hydrus/ServoControl.h>
+#include <hydrus/ServoControlCmd.h>
+#include <hydrus/ServoTorqueCmd.h>
 #include <dynamixel_msgs/JointState.h>
 #include <dynamixel_controllers/TorqueEnable.h>
 #include <dynamixel_msgs/MotorStateList.h>
@@ -216,7 +216,7 @@ namespace hydrus
     ros::Subscriber servo_angle_sub_; //current servo angles from MCU
     ros::Subscriber joints_ctrl_sub_;
     ros::Publisher servo_ctrl_pub_; //target servo angles to MCU
-    ros::Publisher servo_config_cmd_pub_; //config command to MCU
+    ros::Publisher servo_torque_cmd_pub_; //torque enable/disable to MCU
     ros::Publisher joints_state_pub_;
     ros::Publisher dynamixel_msg_pub_;
 
@@ -240,10 +240,6 @@ namespace hydrus
     static const uint8_t DYNAMIXEL_HUB_MODE = 0;
     static const uint8_t MCU_MODE = 1;
     static const uint8_t OVERLOAD_FLAG = 0x20;
-
-    static const uint8_t TORQUE_OFF = 0x00;
-    static const uint8_t TORQUE_ON = 0x01;
-    static const uint8_t CONTROL_ON = 0x02;
 
     JointInterface(ros::NodeHandle nh, ros::NodeHandle nhp);
     virtual ~JointInterface()  {}
