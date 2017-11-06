@@ -44,8 +44,6 @@ namespace dragon
   {
   protected:
     ros::Subscriber gimbal_ctrl_sub_; //target gimbal angles from ros
-    ros::Publisher gimbal_ctrl_pub_; //target gimbal angles to MCU
-    ros::Publisher gimbal_config_cmd_pub_; //config command to MCU
     ros::ServiceServer gimbals_torque_control_srv_;
 
     vector<JointHandlePtr> gimbals_;
@@ -55,7 +53,6 @@ namespace dragon
     void gimbalsCtrlCallback(const sensor_msgs::JointStateConstPtr& gimbals_ctrl_msg);
     bool gimbalsTorqueEnableCallback(dynamixel_controllers::TorqueEnable::Request &req, dynamixel_controllers::TorqueEnable::Response &res);
 
-    void bridgeFunc(const ros::TimerEvent & e);
   public:
     JointInterface(ros::NodeHandle nh, ros::NodeHandle nhp);
 

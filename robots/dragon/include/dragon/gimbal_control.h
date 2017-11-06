@@ -63,8 +63,8 @@ namespace control_plugin
     void initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
                     BasicEstimator* estimator, Navigator* navigator,
                     double ctrl_loop_rate);
-    void update();
-     void reset()
+    bool update();
+    void reset()
     {
       FlatnessPid::reset();
       //yaw_i_term_.resize(1);
@@ -87,7 +87,6 @@ namespace control_plugin
     ros::Subscriber joint_state_sub_;
     ros::Subscriber final_desire_tilt_sub_;
 
-    void control();
     void servoTorqueProcess();
     void landingProcess();
     void gimbalControl();

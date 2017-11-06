@@ -9,7 +9,7 @@ controller/alt/d_term_limit: 16.5
 controller/alt/alt_landing_const_i_ctrl_thresh: -0.2
 
 # xy [rad]
-controller/xy/p_gain: 0.1 
+controller/xy/p_gain: 0.2 
 controller/xy/i_gain: 0.002
 controller/xy/hovering_i_gain: 0.001
 controller/xy/d_gain: 0.4

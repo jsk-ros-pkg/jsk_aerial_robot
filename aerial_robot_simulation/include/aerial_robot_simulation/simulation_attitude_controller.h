@@ -48,7 +48,6 @@
 
 /* msg / srv */
 #include <std_msgs/Float64.h>
-#include <aerial_robot_base/UavType.h>
 #include <aerial_robot_base/GetMotorNum.h>
 #include <aerial_robot_base/DesireCoord.h>
 

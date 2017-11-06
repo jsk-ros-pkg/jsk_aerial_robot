@@ -57,14 +57,14 @@ namespace control_plugin
     target_psi_(0),
     psi_err_(0),
     target_pitch_(0),
-    target_roll_(0)
+    target_roll_(0),
+    alt_i_term_(0),
+    yaw_i_term_(0),
+    target_throttle_(0),
+    target_yaw_(0),
+    need_yaw_d_control_(false)
   {
     xy_offset_[2] = 0;
-    alt_i_term_.resize(motor_num_);
-    yaw_i_term_.resize(motor_num_);
-
-    target_throttle_.resize(motor_num_);
-    target_yaw_.resize(motor_num_);
   }
 
   void FlatnessPid::initialize(ros::NodeHandle nh,
@@ -75,28 +75,31 @@ namespace control_plugin
   {
     ControlBase::initialize(nh, nhp, estimator, navigator, ctrl_loop_rate);
 
+
     rosParamInit();
 
     //publish
     flight_cmd_pub_ = nh_.advertise<aerial_robot_msgs::FourAxisCommand>("/aerial_robot_control_four_axis", 10);
     pid_pub_ = nh_.advertise<aerial_robot_base::FlatnessPid>("debug", 10);
-    motor_info_pub_ = nh_.advertise<aerial_robot_base::MotorInfo>("/motor_info", 10);
 
     //subscriber
     four_axis_gain_sub_ = nh_.subscribe<aerial_robot_msgs::FourAxisGain>("/four_axis_gain", 1, &FlatnessPid::fourAxisGainCallback, this, ros::TransportHints().tcpNoDelay());
     /* for weak control for xy velocirt movement? necessary */
+
     xy_vel_weak_gain_sub_ = nh_.subscribe<std_msgs::UInt8>(xy_vel_weak_gain_sub_name_, 1, &FlatnessPid::xyVelWeakGainCallback, this, ros::TransportHints().tcpNoDelay());
     //dynamic reconfigure server
     xy_pid_server_ = new dynamic_reconfigure::Server<aerial_robot_base::XYPidControlConfig>(ros::NodeHandle(nhp_, "pitch"));
     dynamic_reconf_func_xy_pid_ = boost::bind(&FlatnessPid::cfgXYPidCallback, this, _1, _2);
     xy_pid_server_->setCallback(dynamic_reconf_func_xy_pid_);
-
   }
 
-  void FlatnessPid::update()
+  bool FlatnessPid::update()
   {
+    if(!ControlBase::update()) return false;
+
     stateError();
-    if(pidUpdate()) sendCmd();
+    pidUpdate();
+    sendCmd();
   }
 
   void FlatnessPid::stateError()
@@ -115,28 +118,10 @@ namespace control_plugin
     else if(psi_err_ < -M_PI)  psi_err_ += 2 * M_PI;
   }
 
-  bool FlatnessPid::pidUpdate()
+  void FlatnessPid::pidUpdate()
   {
     aerial_robot_base::FlatnessPid pid_msg;
     pid_msg.header.stamp = ros::Time::now();
-
-    /* motor related info */
-    /* initialize setting */
-    if(navigator_->getNaviState() == Navigator::ARM_ON_STATE) activate();
-    if(navigator_->getNaviState() == Navigator::ARM_OFF_STATE && control_timestamp_ > 0)
-      {
-        reset();
-      }
-
-    if (control_timestamp_ < 0)
-      {
-        if (navigator_->getNaviState() == Navigator::TAKEOFF_STATE)
-          {
-            reset();
-            control_timestamp_ = ros::Time::now().toSec();
-          }
-        else return false;
-      }
 
     /* roll/pitch integration flag */
     if(!start_rp_integration_)
@@ -234,10 +219,9 @@ namespace control_plugin
         yaw_i_term_[j] = clamp(yaw_i_term_[j], -yaw_terms_limits_[1], yaw_terms_limits_[1]);
 
         //***** D term: usaully it is in the flight board
-        /* but for the gimbal control, we need the d term,
-           so, set 0 if it is not gimbal type */
+        /* but for the gimbal control, we need the d term, set 0 if it is not gimbal type */
         double yaw_d_term = 0;
-        if(motor_num_ != 1 && yaw_gains_.size() == 1)
+        if(need_yaw_d_control_)
           yaw_d_term = clamp(yaw_gains_[j][2] * (-state_psi_vel_), -yaw_terms_limits_[2], yaw_terms_limits_[2]);
 
         //*** each motor command value for log
@@ -248,8 +232,7 @@ namespace control_plugin
         pid_msg.yaw.i_term.push_back(yaw_i_term_[j]);
         pid_msg.yaw.d_term.push_back(yaw_d_term);
 
-        /* special process for gimbal type */
-        if(motor_num_ != 1 && yaw_gains_.size() == 1) break;
+        if(yaw_gains_.size() == 1) break;
       }
 
     //**** ros pub
@@ -281,6 +264,8 @@ namespace control_plugin
         pid_msg.throttle.p_term.push_back(alt_p_term);
         pid_msg.throttle.i_term.push_back(alt_i_term);
         pid_msg.throttle.d_term.push_back(alt_d_term);
+
+        if(alt_gains_.size() == 1) break;
       }
 
     pid_msg.throttle.target_pos = target_pos_.z();
@@ -292,8 +277,6 @@ namespace control_plugin
 
     /* update */
     control_timestamp_ = ros::Time::now().toSec();
-
-    return true;
   }
 
   void FlatnessPid::sendCmd()
@@ -304,7 +287,7 @@ namespace control_plugin
     flight_command_data.angles[1] =  target_pitch_;
 
     flight_command_data.base_throttle.resize(motor_num_);
-    if(motor_num_ == 1)
+    if(uav_model_ == aerial_robot_base::UavInfo::DRONE)
       {
         /* Simple PID based attitude/altitude control */
         flight_command_data.angles[2] = target_yaw_[0];
@@ -323,7 +306,7 @@ namespace control_plugin
   void FlatnessPid::fourAxisGainCallback(const aerial_robot_msgs::FourAxisGainConstPtr & msg)
   {
     /* update the motor number */
-    if(motor_num_ == 1)
+    if(motor_num_ == 0)
       {
         motor_num_ = msg->motor_num;
 
