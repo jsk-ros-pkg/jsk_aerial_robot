@@ -101,6 +101,7 @@ bool SimulationAttitudeController::init(hardware_interface::RotorInterface *robo
 
 void SimulationAttitudeController::starting(const ros::Time& time)
 {
+#if 0
   /* set the uav type to the control core */
   aerial_robot_base::UavType uav_type_msg;
   uav_type_msg.motor_num = motor_num_;
@@ -120,6 +121,7 @@ void SimulationAttitudeController::starting(const ros::Time& time)
   ros::Publisher uav_config_pub = n.advertise<aerial_robot_base::UavType>("/uav_type_config", 1);
   uav_config_pub.publish(uav_type_msg);
   ROS_WARN("motor_num: %d, baselink: %s", motor_num_, rotor_interface_->getBaseLinkName().c_str());
+#endif
 }
 
 void SimulationAttitudeController::update(const ros::Time& time, const ros::Duration& period)
