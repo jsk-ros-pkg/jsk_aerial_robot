@@ -45,6 +45,7 @@
 #include <aerial_robot_base/DesireCoord.h>
 #include <sensor_msgs/JointState.h>
 #include <hydrus/AddExtraModule.h>
+#include <hydrus/PMatrixPseudoInverseWithInertia.h>
 #include <std_msgs/UInt8.h>
 #include <tf/transform_broadcaster.h>
 #include <geometry_msgs/TransformStamped.h>
@@ -95,7 +96,7 @@ public:
 
   bool addExtraModule(int extra_module_link, float extra_module_mass, float extra_module_offset);
 
-  bool distThreCheck();
+  double distThreCheck(bool verbose = false);
   bool modelling(bool verbose = false); //lagrange method
 
   bool hamiltonMatrixSolver(uint8_t lqi_mode);
@@ -170,10 +171,15 @@ public:
   inline uint8_t getLqiMode() { return lqi_mode_; }
   inline void setLqiMode(uint8_t lqi_mode) { lqi_mode_ = lqi_mode; }
 
+  void setCogDesireOrientation(KDL::Rotation cog_desire_orientation)
+  {
+    cog_desire_orientation_ = cog_desire_orientation;
+  }
+
+  virtual void kinematics(sensor_msgs::JointState state);
   void param2controller();
 
-  //only for quad type
-  double getPDeterminant(){return P_.determinant();}
+  virtual bool overlapCheck(bool verbose = false){return true; }
 
   static constexpr uint8_t LQI_THREE_AXIS_MODE = 3;
   static constexpr uint8_t LQI_FOUR_AXIS_MODE = 4;
@@ -186,6 +192,7 @@ protected:
   ros::Publisher principal_axis_pub_;
   ros::Publisher cog_rotate_pub_; //for position control => to mocap
   ros::Publisher transform_pub_;
+  ros::Publisher p_matrix_pseudo_inverse_inertia_pub_;
   ros::Subscriber joint_state_sub_;
   ros::Subscriber desire_coordinate_sub_;
   ros::Subscriber realtime_control_sub_;
@@ -214,10 +221,12 @@ protected:
   boost::thread control_thread_;
   double control_rate_;
   bool only_three_axis_mode_;
+  bool gyro_moment_compensation_;
 
   /* base model config */
   int rotor_num_;
   std::string baselink_;
+  std::string thrust_link_;
 
   /* dynamics */
   std::map<int, int> rotor_direction_;
@@ -252,6 +261,7 @@ protected:
   virtual void jointStateCallback(const sensor_msgs::JointStateConstPtr& state);
   Eigen::MatrixXd P_;
   Eigen::MatrixXd K_;
+  Eigen::MatrixXd P_orig_pseudo_inverse_; // for compensation of cross term in the rotional dynamics
 
   //Q
 //8/12:r,r_d, p, p_d, y, y_d, z. z_d, r_i, p_i, y_i, z_i
@@ -262,7 +272,8 @@ protected:
 
   //R
   std::vector<double> r_;
-  double dist_thre_;
+  double var_thre_;
+  double correlation_thre_;
   double f_max_, f_min_;
 
   uint8_t lqi_mode_;

@@ -44,7 +44,7 @@ namespace hydrus
   JointInterface::JointInterface(ros::NodeHandle nh, ros::NodeHandle nhp)
     : nh_(nh),nhp_(nhp),
       joints_(0), servo_on_mask_(0), servo_full_on_mask_(0),
-      torque_flag_(true), overload_check_(true)
+      start_joint_control_(false), send_init_joint_pose_(false)
   {
     nhp_.param("joint_num", joint_num_, 3);
     nhp_.param("bridge_mode", bridge_mode_, 0);
@@ -65,12 +65,12 @@ namespace hydrus
         nhp_.param("moving_angle_thresh", moving_angle_thresh_, 0.005); //[rad]
 
         string topic_name;
-        nhp_.param("servo_sub_name", topic_name, std::string("/servo_states"));
+        nhp_.param("servo_sub_name", topic_name, std::string("/servo/states"));
         servo_angle_sub_ = nh_.subscribe(topic_name, 1, &JointInterface::servoStatesCallback, this, ros::TransportHints().tcpNoDelay());
-        nhp_.param("servo_pub_name", topic_name, std::string("/target_servo_states"));
-        servo_ctrl_pub_ = nh_.advertise<hydrus::ServoControl>(topic_name, 1);
-        nhp_.param("servo_config_cmd_pub_name", topic_name, std::string("/servo_config_cmd"));
-        servo_config_cmd_pub_ = nh_.advertise<hydrus::ServoConfigCmd>(topic_name, 1);
+        nhp_.param("servo_pub_name", topic_name, std::string("/servo/target_states"));
+        servo_ctrl_pub_ = nh_.advertise<hydrus::ServoControlCmd>(topic_name, 1);
+        nhp_.param("servo_torque_cmd_pub_name", topic_name, std::string("/servo/torque_enable"));
+        servo_torque_cmd_pub_ = nh_.advertise<hydrus::ServoTorqueCmd>(topic_name, 1);
 
         /* overload check activate flag */
         nhp_.param("overload_check_activate_srv_name", topic_name, std::string("/overload_check_activate"));
@@ -83,6 +83,7 @@ namespace hydrus
       }
 
     nhp_.param("bridge_rate", bridge_rate_, 40.0);
+    send_init_joint_pose_cnt_ = bridge_rate_;
     bridge_timer_ = nhp_.createTimer(ros::Duration(1.0 / bridge_rate_), &JointInterface::bridgeFunc, this);
   }
 
@@ -95,11 +96,23 @@ namespace hydrus
     for(auto it = joints_.begin(); it != joints_.end(); ++it)
       {
         size_t index = distance(joints_.begin(), it);
-        servo_on_mask_ |= (1 << index);
         (*it)->setCurrentVal(state_msg->servos[index].angle);
         (*it)->setError(state_msg->servos[index].error);
         (*it)->setTemp(state_msg->servos[index].temp);
         (*it)->setLoad(state_msg->servos[index].load);
+
+        if(!(servo_on_mask_ & (1 << index)))
+          {
+            ROS_WARN("[dynamixel bridge] set the initial target angle to current angle");
+            (*it)->setTargetVal((*it)->getCurrentVal());
+          }
+
+        servo_on_mask_ |= (1 << index);
+
+        /* rough check for the index match */
+        if(state_msg->servos[index].index != (*it)->getId())
+          ROS_ERROR("[dynamixel bridge] the servo id does not match, d_board: %d, ros: %d",
+                    state_msg->servos[index].index, (*it)->getId());
       }
 
     /* check moving */
@@ -127,9 +140,10 @@ namespace hydrus
                 ROS_WARN("motor: %d, overload", i+1);
 
                 /* direct send torque control flag */
-                hydrus::ServoConfigCmd torque_off_msg;
-                torque_off_msg.command = TORQUE_OFF;
-                servo_config_cmd_pub_.publish(torque_off_msg);
+                hydrus::ServoTorqueCmd torque_off_msg;
+                torque_off_msg.index.push_back(joints_[i]->getId());
+                torque_off_msg.torque_enable.push_back(false);
+                servo_torque_cmd_pub_.publish(torque_off_msg);
               }
           }
       }
@@ -140,7 +154,7 @@ namespace hydrus
     /* the joint control size should be equal with joint_num_ */
     assert(joints_ctrl_msg.position.state_msg->servos.size() == joint_num_);
 
-    hydrus::ServoControl target_angle_msg;
+    hydrus::ServoControlCmd target_angle_msg;
 
     for(int i = 0; i < joint_num_; i ++)
       {
@@ -149,7 +163,10 @@ namespace hydrus
         if(bridge_mode_ == DYNAMIXEL_HUB_MODE)
           joints_[i]->pubTarget();
         else if(bridge_mode_ == MCU_MODE)
-          target_angle_msg.angles.push_back(joints_[i]->getTargetVal());
+          {
+            target_angle_msg.index.push_back(joints_[i]->getId());
+            target_angle_msg.angles.push_back(joints_[i]->getTargetVal());
+          }
       }
 
     if(bridge_mode_ == MCU_MODE) servo_ctrl_pub_.publish(target_angle_msg);
@@ -163,10 +180,13 @@ namespace hydrus
       }
     else if(bridge_mode_ == MCU_MODE)
       {
-        /* direct send torque control flag */
-        hydrus::ServoConfigCmd torque_control_msg;
-        torque_control_msg.command = req.torque_enable;
-        servo_config_cmd_pub_.publish(torque_control_msg);
+        hydrus::ServoTorqueCmd torque_off_msg;
+        for(auto it = joints_.begin(); it != joints_.end(); ++it)
+          {
+            torque_off_msg.index.push_back((*it)->getId());
+            torque_off_msg.torque_enable.push_back(req.torque_enable);
+          }
+        servo_torque_cmd_pub_.publish(torque_off_msg);
       }
     return true;
   }
@@ -202,5 +222,13 @@ namespace hydrus
         dynamixel_msg_pub_.publish(dynamixel_msg);
       }
   }
+
+  void JointInterface::bridgeFunc(const ros::TimerEvent & e)
+  {
+    if(servo_on_mask_ != servo_full_on_mask_) return;
+
+    jointStatePublish();
+  }
+
 };
 

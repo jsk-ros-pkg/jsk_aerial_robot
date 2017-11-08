@@ -74,6 +74,9 @@ public:
   inline void setTargetAccZ( float value){  target_acc_.setZ(value);}
   inline void addTargetPosZ( float value){  target_pos_ += tf::Vector3(0, 0, value);}
 
+  inline void setTeleopFlag(bool teleop_flag) { teleop_flag_ = teleop_flag; }
+  inline bool getTeleopFlag() { return teleop_flag_; }
+
   void tfPublish();
 
   uint8_t getEstimateMode(){ return estimate_mode_;}
@@ -129,6 +132,7 @@ protected:
   int low_voltage_thre_;
   bool low_voltage_flag_;
   bool  force_att_control_flag_;
+  bool lock_teleop_;
 
   double convergent_start_time_;
   double convergent_duration_;
@@ -241,6 +245,8 @@ protected:
 
   void landCallback(const std_msgs::EmptyConstPtr & msg)
   {
+    if(!teleop_flag_) return;
+
     setNaviState(LAND_STATE);
     //更新
     setTargetXyFromCurrentState();
@@ -251,6 +257,8 @@ protected:
 
   void haltCallback(const std_msgs::EmptyConstPtr & msg)
   {
+    if(!teleop_flag_) return;
+
     setNaviState(STOP_STATE);
     setTargetXyFromCurrentState();
     setTargetPsiFromCurrentState();
@@ -268,7 +276,7 @@ protected:
   {
     std_msgs::UInt8 force_landing_cmd;
     force_landing_cmd.data = FORCE_LANDING_CMD;
-    flight_config_pub_.publish(force_landing_cmd); 
+    flight_config_pub_.publish(force_landing_cmd);
 
     ROS_INFO("Force Landing state");
   }
@@ -337,6 +345,7 @@ protected:
   {
     target_psi_ = estimator_->getState(State::YAW_COG, estimate_mode_)[0];
   }
+
 };
 
 

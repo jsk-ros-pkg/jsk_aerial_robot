@@ -49,9 +49,9 @@
 #include <std_msgs/Float64.h>
 #include <std_srvs/SetBool.h>
 #include <sensor_msgs/JointState.h>
-#include <hydrus/ServoConfigCmd.h>
 #include <hydrus/ServoStates.h>
-#include <hydrus/ServoControl.h>
+#include <hydrus/ServoControlCmd.h>
+#include <hydrus/ServoTorqueCmd.h>
 #include <dynamixel_msgs/JointState.h>
 #include <dynamixel_controllers/TorqueEnable.h>
 #include <dynamixel_msgs/MotorStateList.h>
@@ -200,45 +200,33 @@ namespace hydrus
 
     vector<JointHandlePtr> joints_;
 
-    bool torque_flag_;
-    bool start_flag_;
     uint16_t servo_on_mask_, servo_full_on_mask_;
     double moving_check_rate_;
     double moving_angle_thresh_;
     bool overload_check_;  /* check overload automatically */
+    bool start_joint_control_;
+    bool send_init_joint_pose_;
     int joint_num_;
     int  bridge_mode_;
+    int send_init_joint_pose_cnt_;
 
     double bridge_rate_;
-    ros::Timer  bridge_timer_;
+    ros::Timer bridge_timer_;
 
     ros::Subscriber servo_angle_sub_; //current servo angles from MCU
     ros::Subscriber joints_ctrl_sub_;
     ros::Publisher servo_ctrl_pub_; //target servo angles to MCU
-    ros::Publisher servo_config_cmd_pub_; //config command to MCU
+    ros::Publisher servo_torque_cmd_pub_; //torque enable/disable to MCU
     ros::Publisher joints_state_pub_;
     ros::Publisher dynamixel_msg_pub_;
 
     ros::ServiceServer joints_torque_control_srv_;
     ros::ServiceServer overload_check_activate_srv_;
 
-  public:
-    static const uint8_t DYNAMIXEL_HUB_MODE = 0;
-    static const uint8_t MCU_MODE = 1;
-    static const uint8_t OVERLOAD_FLAG = 0x20;
-
-    static const uint8_t TORQUE_OFF = 0x00;
-    static const uint8_t TORQUE_ON = 0x01;
-    static const uint8_t CONTROL_OFF = 0x02;
-
-    JointInterface(ros::NodeHandle nh, ros::NodeHandle nhp);
-
-    ~JointInterface()  { }
-
     virtual void servoStatesCallback(const hydrus::ServoStatesConstPtr& state_msg);
     virtual void jointsCtrlCallback(const sensor_msgs::JointStateConstPtr& joints_ctrl_msg);
     virtual bool jointsTorqueEnableCallback(dynamixel_controllers::TorqueEnable::Request &req, dynamixel_controllers::TorqueEnable::Response &res);
-    virtual void jointStatePublish();
+    virtual void bridgeFunc(const ros::TimerEvent & e);
 
     virtual bool overloadCheckActivateCallback(std_srvs::SetBool::Request &req, std_srvs::SetBool::Response &res)
     {
@@ -248,12 +236,14 @@ namespace hydrus
       return true;
     }
 
-    virtual void bridgeFunc(const ros::TimerEvent & e)
-    {
-      if(servo_on_mask_ != servo_full_on_mask_) return;
-      jointStatePublish();
-    }
+  public:
+    static const uint8_t DYNAMIXEL_HUB_MODE = 0;
+    static const uint8_t MCU_MODE = 1;
+    static const uint8_t OVERLOAD_FLAG = 0x20;
 
+    JointInterface(ros::NodeHandle nh, ros::NodeHandle nhp);
+    virtual ~JointInterface()  {}
+    virtual void jointStatePublish();
 
   };
 };

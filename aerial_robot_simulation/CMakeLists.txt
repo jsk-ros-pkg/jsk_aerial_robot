@@ -60,10 +60,17 @@ include_directories(
 
 
 add_definitions(-DSIMULATION)
+
+add_library(d_board_math
+  d_board/Jsk_Lib/math/AP_Math.cpp
+  d_board/Jsk_Lib/math/matrix3.cpp
+  d_board/Jsk_Lib/math/vector3.cpp
+  d_board/Jsk_Lib/math/quaternion.cpp)
+
 add_library(flight_controllers
   d_board/Jsk_Lib/flight_control/attitude/attitude_control.cpp
   src/simulation_attitude_controller.cpp)
-target_link_libraries(flight_controllers ${catkin_LIBRARIES})
+target_link_libraries(flight_controllers ${catkin_LIBRARIES} d_board_math)
 
 add_library(aerial_robot_hw_sim src/aerial_robot_hw_sim.cpp)
 target_link_libraries(aerial_robot_hw_sim ${catkin_LIBRARIES} ${GAZEBO_LIBRARIES})

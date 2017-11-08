@@ -14,6 +14,10 @@
   <!-- sensors(fusion) special parameters -->
   <param name="/sensor_plugin/altitude/no_height_offset" value="true" />
 
+  ###########  UAV Config  ###########
+  # HYDRUS = 16 # 0x10, hydrus type with  4dof underactuated property
+  <param name="/uav_info/uav_model" value= "16" />
+
   ###########  Motor Config  ###########
   <rosparam file="$(find hydrus)/config/hydrusx/MotorInfo.yaml" command="load" />
 

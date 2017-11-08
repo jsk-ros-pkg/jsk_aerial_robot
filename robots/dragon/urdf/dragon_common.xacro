@@ -1,0 +1,60 @@
+<?xml version="1.0"?>
+<robot
+    xmlns:xacro="http://www.ros.org/wiki/xacro" name="dragon_common" >
+
+  <!--  model type 1: head-->
+  <!--  model type 2: baselink (attached with imu, pc)-->
+  <!--  model type 3: general -->
+  <!--  model type 4: end -->
+
+  <xacro:property name="pi" value="3.1415926535897931" />
+  <!-- kinematics [m] -->
+  <xacro:property name="link_length" value=".424" />
+  <xacro:property name="inter_joint_x_offset" value=".02575" />
+  <xacro:property name="gimbal_roll_x_offset" value="-0.01" />
+  <xacro:property name="gimbal_pitch_z_offset" value="0.037" />
+
+  <!-- material color for rviz -->
+  <material name="black">
+    <color rgba="0 0 0 1"/>
+  </material>
+
+  <material name="red">
+    <color rgba="1 0 0 1"/>
+  </material>
+
+  <!-- dynamics -->
+  <xacro:property name="max_force" value="30" /> <!-- [N] -->
+
+  <xacro:macro name="link_model" params="type">
+    <collision>
+      <origin rpy="0 0 0" xyz="${link_length* 0.5} 0 0"/>
+      <geometry>
+        <box size="${link_length} 0.1 0.1686"/>
+      </geometry>
+    </collision>
+
+    <visual>
+      <origin rpy="0 0 0" xyz="${link_length* 0.5} 0 0"/>
+      <geometry>
+        <mesh filename="package://dragon/urdf/mesh/ducted_fan_${type}.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="black"/>
+    </visual>
+  </xacro:macro>
+
+  <!-- friction -->
+  <xacro:macro name="friction" params="self">
+    <gazebo reference="link${self}">
+      <mu1>0.0001</mu1>
+      <mu2>0.0001</mu2>
+      <material>Gazebo/Black</material>
+    </gazebo>
+  </xacro:macro>
+
+  <xacro:macro name="damping_factor" params="link">
+    <gazebo reference="${link}">
+      <dampingFactor>0.00</dampingFactor>
+    </gazebo>
+  </xacro:macro>
+</robot>

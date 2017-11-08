@@ -16,6 +16,12 @@ TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_
   nh_private_.param("verbose", verbose_, false);
   ROS_ERROR("ns is %s", nh_private_.getNamespace().c_str());
 
+  /* base link */
+  nh_private_.param("baselink", baselink_, std::string("link1"));
+  if(verbose_) std::cout << "baselink: " << baselink_ << std::endl;
+  nh_private_.param("thrust_link", thrust_link_, std::string("thrust"));
+  if(verbose_) std::cout << "thrust_link: " << thrust_link_ << std::endl;
+
   addChildren(tree_.getRootSegment());
   ROS_ERROR("rotor num; %d", rotor_num_);
 
@@ -39,6 +45,7 @@ TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_
   rpy_gain_pub_ = nh_.advertise<aerial_robot_msgs::RollPitchYawTerms>(rpy_gain_pub_name, 1);
   four_axis_gain_pub_ = nh_.advertise<aerial_robot_msgs::FourAxisGain>("/four_axis_gain", 1);
   transform_pub_ = nh_.advertise<geometry_msgs::TransformStamped>("/cog2baselink", 1);
+  p_matrix_pseudo_inverse_inertia_pub_ = nh_.advertise<hydrus::PMatrixPseudoInverseWithInertia>("p_matrix_pseudo_inverse_inertia", 1);
 
   //dynamic reconfigure server
   lqi_server_ = new dynamic_reconfigure::Server<hydrus::LQIConfig>(nh_private_);
@@ -131,7 +138,7 @@ void TransformController::addChildren(const KDL::SegmentMap::const_iterator segm
           }
       }
       /* count the rotor */
-      if(child.getName().find("propeller") != std::string::npos) rotor_num_++;
+      if(child.getName().find(thrust_link_.c_str()) != std::string::npos) rotor_num_++;
       addChildren(children[i]);
     }
 }
@@ -165,14 +172,12 @@ void TransformController::initParam()
   if(verbose_) std::cout << "control_rate: " << std::setprecision(3) << control_rate_ << std::endl;
 
   nh_private_.param("only_three_axis_mode", only_three_axis_mode_, false);
+  nh_private_.param("gyro_moment_compensation", gyro_moment_compensation_, false);
   nh_private_.param("control_verbose", control_verbose_, false);
   nh_private_.param("kinematic_verbose", kinematic_verbose_, false);
   nh_private_.param("debug_verbose", debug_verbose_, false);
   nh_private_.param("a_dash_eigen_calc_flag", a_dash_eigen_calc_flag_, false);
 
-  /* base link */
-  nh_private_.param("baselink", baselink_, std::string("link1"));
-  if(verbose_) std::cout << "baselink: " << baselink_ << std::endl;
   /* propeller direction and lqi R */
   r_.resize(rotor_num_);
   for(int i = 0; i < rotor_num_; i++)
@@ -183,8 +188,10 @@ void TransformController::initParam()
       nh_private_.param(std::string("r") + ss.str(), r_[i], 1.0);
     }
 
-  nh_private_.param ("dist_thre", dist_thre_, 0.05);
-  if(verbose_) std::cout << "dist_thre: " << std::setprecision(3) << dist_thre_ << std::endl;
+  nh_private_.param ("correlation_thre", correlation_thre_, 0.9);
+  if(verbose_) std::cout << "correlation_thre: " << std::setprecision(3) << correlation_thre_ << std::endl;
+    nh_private_.param ("var_thre", var_thre_, 0.01);
+  if(verbose_) std::cout << "var_thre: " << std::setprecision(3) << var_thre_ << std::endl;
   nh_private_.param ("f_max", f_max_, 8.6);
   if(verbose_) std::cout << "f_max: " << std::setprecision(3) << f_max_ << std::endl;
   nh_private_.param ("f_min", f_min_, 2.0);
@@ -250,7 +257,7 @@ void TransformController::control()
 
 void TransformController::desireCoordinateCallback(const aerial_robot_base::DesireCoordConstPtr & msg)
 {
-  cog_desire_orientation_ = KDL::Rotation::RPY(msg->roll, msg->pitch, msg->yaw);
+  setCogDesireOrientation(KDL::Rotation::RPY(msg->roll, msg->pitch, msg->yaw));
 }
 
 void TransformController::jointStateCallback(const sensor_msgs::JointStateConstPtr& state)
@@ -280,9 +287,11 @@ void TransformController::kinematics(sensor_msgs::JointState state)
   for(unsigned int i = 0; i < state.position.size(); i++)
     {
       std::map<std::string, uint32_t>::iterator itr = joint_map_.find(state.name[i]);
+
       if(itr != joint_map_.end())  jointpositions(joint_map_.find(state.name[i])->second) = state.position[i];
-      else ROS_FATAL("transform_control: no matching joint called %s", state.name[i].c_str());
+      //else ROS_FATAL("transform_control: no matching joint called %s", state.name[i].c_str());
     }
+
   KDL::RigidBodyInertia link_inertia = KDL::RigidBodyInertia::Zero();
   KDL::Frame cog_frame;
   for(auto it = inertia_map_.begin(); it != inertia_map_.end(); ++it)
@@ -305,17 +314,17 @@ void TransformController::kinematics(sensor_msgs::JointState state)
   setCog(cog_transform);
   setMass(link_inertia.getMass());
 
-  /* rotor(propeller) based on COG */
+  /* thrust point based on COG */
   std::vector<Eigen::Vector3d> f_rotors;
   for(int i = 0; i < rotor_num_; i++)
     {
       std::stringstream ss;
       ss << i + 1;
-      std::string rotor = std::string("propeller") + ss.str();
+      std::string rotor = thrust_link_ + ss.str();
 
       KDL::Frame f;
       int status = fk_solver.JntToCart(jointpositions, f, rotor);
-      //ROS_ERROR(" %s status is : %d, [%f, %f, %f]", rotor.c_str(), status, f.p.x(), f.p.y(), f.p.z());
+      //if(verbose) ROS_WARN(" %s status is : %d, [%f, %f, %f]", rotor.c_str(), status, f.p.x(), f.p.y(), f.p.z());
       f_rotors.push_back(Eigen::Map<const Eigen::Vector3d>((cog_frame.Inverse() * f).p.data));
 
       //std::cout << "rotor" << i + 1 << ": \n"<< f_rotors[i] << std::endl;
@@ -370,7 +379,16 @@ void TransformController::lqi()
   if(debug_verbose_) ROS_WARN(" start dist thre check");
   if(!distThreCheck()) //[m]
     {
-      ROS_ERROR("LQI: invalid pose, can pass the distance thresh check");
+      ROS_ERROR("LQI: invalid pose, cannot pass the distance thresh check");
+      return;
+    }
+  if(debug_verbose_) ROS_WARN(" finish dist thre check");
+
+  /* check the propeller overlap */
+  if(debug_verbose_) ROS_WARN(" start overlap check");
+  if(!overlapCheck()) //[m]
+    {
+      ROS_ERROR("LQI: invalid pose, some propellers overlap");
       return;
     }
   if(debug_verbose_) ROS_WARN(" finish dist thre check");
@@ -378,9 +396,8 @@ void TransformController::lqi()
   /* modelling the multilink based on the inertia assumption */
   if(debug_verbose_) ROS_WARN(" start modelling");
   if(!modelling())
-    {
-      if(!only_three_axis_mode_)  ROS_ERROR("LQI: invalid pose, can not be four axis stable, switch to three axis stable mode");
-    }
+      ROS_ERROR("LQI: invalid pose, can not be four axis stable, switch to three axis stable mode");
+
   if(debug_verbose_) ROS_WARN(" finish modelling");
 
   if(debug_verbose_) ROS_WARN(" start ARE calc");
@@ -395,34 +412,48 @@ void TransformController::lqi()
   if(debug_verbose_) ROS_WARN(" finish param2controller");
 }
 
-bool TransformController::distThreCheck()
+double TransformController::distThreCheck(bool verbose)
 {
-  float x_minus_max_dist = 0, x_plus_max_dist = 0;
-  float y_minus_max_dist = 0, y_plus_max_dist = 0;
+  double average_x = 0, average_y = 0;
 
+  std::vector<Eigen::Vector3d> rotors_origin_from_cog(rotor_num_);
+  getRotorsFromCog(rotors_origin_from_cog);
+
+  /* calcuate the average */
   for(int i = 0; i < rotor_num_; i++)
     {
-
-      std::vector<Eigen::Vector3d> rotors_origin_from_cog(rotor_num_);
-      getRotorsFromCog(rotors_origin_from_cog);
-      //x
-      if(rotors_origin_from_cog[i](0) > 0 && rotors_origin_from_cog[i](0) > x_plus_max_dist)
-        x_plus_max_dist = rotors_origin_from_cog[i](0);
-      if(rotors_origin_from_cog[i](0) < 0 && rotors_origin_from_cog[i](0) < x_minus_max_dist)
-        x_minus_max_dist = rotors_origin_from_cog[i](0);
-      //y
-      if(rotors_origin_from_cog[i](1) > 0 && rotors_origin_from_cog[i](1) > y_plus_max_dist)
-        y_plus_max_dist = rotors_origin_from_cog[i](1);
-      if(rotors_origin_from_cog[i](1) < 0 && rotors_origin_from_cog[i](1) < y_minus_max_dist)
-        y_minus_max_dist = rotors_origin_from_cog[i](1);
+      average_x += rotors_origin_from_cog[i](0);
+      average_y += rotors_origin_from_cog[i](1);
+      if(verbose)
+        ROS_INFO("rotor%d x: %f, y: %f", i + 1, rotors_origin_from_cog[i](0), rotors_origin_from_cog[i](1));
     }
+  average_x /= rotor_num_;
+  average_y /= rotor_num_;
 
-  if(x_plus_max_dist < dist_thre_ || -x_minus_max_dist < dist_thre_ ||
-     y_plus_max_dist < dist_thre_ || -y_minus_max_dist < dist_thre_ ) //[m]
+  double s_xy =0, s_xx = 0, s_yy =0;
+  for(int i = 0; i < rotor_num_; i++)
     {
-      return false;
+      s_xy += ((rotors_origin_from_cog[i](0) - average_x) * (rotors_origin_from_cog[i](1) - average_y));
+      s_xx += ((rotors_origin_from_cog[i](0) - average_x) * (rotors_origin_from_cog[i](0) - average_x));
+      s_yy += ((rotors_origin_from_cog[i](1) - average_y) * (rotors_origin_from_cog[i](1) - average_y));
     }
+
+  Eigen::Matrix2d S;
+  S << s_xx / rotor_num_, s_xy / rotor_num_, s_xy / rotor_num_, s_yy / rotor_num_;
+  Eigen::SelfAdjointEigenSolver<Eigen::Matrix2d> es(S);
+  double link_len = (rotors_origin_from_cog[1] - rotors_origin_from_cog[0]).norm();
+  float var = sqrt(es.eigenvalues()[0]) / link_len;
+  if(verbose) ROS_INFO("var: %f", var);
+  if( var < var_thre_ ) return 0;
+  return var;
+
+#if 0 // correlation coefficient
+  double correlation_coefficient = fabs(s_xy / sqrt(s_xx * s_yy));
+  //ROS_INFO("correlation_coefficient: %f", correlation_coefficient);
+
+  if(correlation_coefficient > correlation_thre_ ) return false;
   return true;
+#endif
 }
 
 bool  TransformController::modelling(bool verbose)
@@ -433,7 +464,6 @@ bool  TransformController::modelling(bool verbose)
 
   Eigen::VectorXd g(4);
   g << 0, 0, 9.8, 0;
-
   Eigen::VectorXd p_x(rotor_num_), p_y(rotor_num_), p_c(rotor_num_), p_m(rotor_num_);
 
   for(int i = 0; i < rotor_num_; i++)
@@ -506,13 +536,41 @@ bool  TransformController::modelling(bool verbose)
       if(control_verbose_)
         std::cout << "three axis mode: stable_x_:"  << std::endl << stable_x_ << std::endl;
 
-      return false; //can not be stable
+      /* calculate the P_orig(without inverse inertia) peusdo inverse */
+      P_dash.row(0) = p_y;
+      P_dash.row(1) = p_x;
+      P_dash.row(2) = p_m;
+      Eigen::MatrixXd P_dash_pseudo_inverse = P_dash.transpose() * (P_dash * P_dash.transpose()).inverse();
+      P_orig_pseudo_inverse_ = Eigen::MatrixXd::Zero(rotor_num_, 4);
+      P_orig_pseudo_inverse_.block(0, 0, rotor_num_, 3) = P_dash_pseudo_inverse;
+      if(control_verbose_)
+        std::cout << "P orig_pseudo inverse for three axis mode:"  << std::endl << P_orig_pseudo_inverse_ << std::endl;
+
+      /* if we do the 4dof underactuated control */
+      if(!only_three_axis_mode_) return false;
+
+      /* if we only do the 3dof control, we still need to check the steady state validation */
+      if(stable_x_.maxCoeff() > f_max_ || stable_x_.minCoeff() < f_min_ )
+        return false;
+
+      return true;
     }
+
+  /* calculate the P_orig(without inverse inertia) peusdo inverse */
+  Eigen::MatrixXd P_dash = Eigen::MatrixXd::Zero(4,rotor_num_);
+  P_dash.row(0) = p_y;
+  P_dash.row(1) = p_x;
+  P_dash.row(2) = p_m;
+  P_dash.row(3) = p_c;
+
+  P_orig_pseudo_inverse_ = P_dash.transpose() * (P_dash * P_dash.transpose()).inverse();
+  if(control_verbose_)
+    std::cout << "P orig_pseudo inverse for four axis mode:" << std::endl << P_orig_pseudo_inverse_ << std::endl;
 
   if(control_verbose_ || verbose)
     std::cout << "four axis mode stable_x_:"  << std::endl << stable_x_ << std::endl;
 
-  else lqi_mode_ = LQI_FOUR_AXIS_MODE;
+  lqi_mode_ = LQI_FOUR_AXIS_MODE;
 
   return true;
 }
@@ -634,9 +692,11 @@ void TransformController::param2controller()
   aerial_robot_msgs::FourAxisGain four_axis_gain_msg;
   aerial_robot_msgs::RollPitchYawTerms rpy_gain_msg; //for rosserial
   geometry_msgs::TransformStamped transform_msg; //for rosserial
+  hydrus::PMatrixPseudoInverseWithInertia p_pseudo_inverse_with_inertia_msg;
 
   four_axis_gain_msg.motor_num = rotor_num_;
   rpy_gain_msg.motors.resize(rotor_num_);
+  p_pseudo_inverse_with_inertia_msg.pseudo_inverse.resize(rotor_num_);
 
   /* the transform from cog to baselink */
   transform_msg.header.stamp = joint_state_stamp_;
@@ -689,9 +749,27 @@ void TransformController::param2controller()
           four_axis_gain_msg.pos_d_gain_yaw.push_back(0.0);
           four_axis_gain_msg.pos_i_gain_yaw.push_back(0.0);
         }
+
+      /* the p matrix pseudo inverse and inertia */
+      p_pseudo_inverse_with_inertia_msg.pseudo_inverse[i].r = P_orig_pseudo_inverse_(i, 0) * 1000;
+      p_pseudo_inverse_with_inertia_msg.pseudo_inverse[i].p = P_orig_pseudo_inverse_(i, 1) * 1000;
+      p_pseudo_inverse_with_inertia_msg.pseudo_inverse[i].y = P_orig_pseudo_inverse_(i, 3) * 1000;
     }
   rpy_gain_pub_.publish(rpy_gain_msg);
   four_axis_gain_pub_.publish(four_axis_gain_msg);
+
+
+  /* the multilink inertia */
+  Eigen::Matrix3d inertia = getInertia();
+  p_pseudo_inverse_with_inertia_msg.inertia[0] = inertia(0, 0) * 1000;
+  p_pseudo_inverse_with_inertia_msg.inertia[1] = inertia(1, 1) * 1000;
+  p_pseudo_inverse_with_inertia_msg.inertia[2] = inertia(2, 2) * 1000;
+  p_pseudo_inverse_with_inertia_msg.inertia[3] = inertia(0, 1) * 1000;
+  p_pseudo_inverse_with_inertia_msg.inertia[4] = inertia(1, 2) * 1000;
+  p_pseudo_inverse_with_inertia_msg.inertia[5] = inertia(0, 2) * 1000;
+
+  if(gyro_moment_compensation_)
+    p_matrix_pseudo_inverse_inertia_pub_.publish(p_pseudo_inverse_with_inertia_msg);
 }
 
 void TransformController::cfgLQICallback(hydrus::LQIConfig &config, uint32_t level)
@@ -744,6 +822,6 @@ void TransformController::cfgLQICallback(hydrus::LQIConfig &config, uint32_t lev
           printf("\n");
           break;
         }
-      q_diagonal_ << q_roll_,q_roll_d_,q_pitch_,q_pitch_d_,q_yaw_,q_yaw_d_,q_z_,q_z_d_, q_roll_i_,q_pitch_i_,q_yaw_i_,q_z_i_;
+      q_diagonal_ << q_roll_,q_roll_d_,q_pitch_,q_pitch_d_,q_z_,q_z_d_,q_yaw_,q_yaw_d_, q_roll_i_,q_pitch_i_,q_z_i_,q_yaw_i_;
     }
 }

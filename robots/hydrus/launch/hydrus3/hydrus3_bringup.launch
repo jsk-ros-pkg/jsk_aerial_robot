@@ -8,6 +8,10 @@
   <arg name="estimate_mode"  default= "0" />
   <arg name="headless" default="True" />
 
+  ###########  UAV Config  ###########
+  # HYDRUS = 16 # 0x10, hydrus type with  4dof underactuated property
+  <param name="/uav_info/uav_model" value= "16" />
+
   ###########  Motor Config  ###########
   <rosparam file="$(find hydrus)/config/hydrus3/MotorInfo.yaml" command="load" />
 
@@ -15,6 +19,7 @@
   <node pkg="aerial_robot_base" type="aerial_robot_base_node" name="aerial_robot_base_node" output="screen" >
 
     ###########  Basic Param  ###########
+
     # EGOMOTION_ESTIMATE = 0
     # EXPERIMENT_ESTIMATE = 1. for unstable mocap, use this mode
     # GROUND_TRUTH = 2

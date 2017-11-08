@@ -31,11 +31,16 @@ SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
 add_message_files(
   FILES
-  ServoConfigCmd.msg
+  BoardConfigCmd.msg
+  BoardInfo.msg
+  ServoInfo.msg
   ServoState.msg
   ServoStates.msg
-  ServoControl.msg
+  ServoControlCmd.msg
+  ServoTorqueCmd.msg
   Gyro.msg
+  PMatrixPseudoInverseUnit.msg
+  PMatrixPseudoInverseWithInertia.msg
 )
 
 add_service_files(
