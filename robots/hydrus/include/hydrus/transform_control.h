@@ -103,7 +103,7 @@ public:
 
   inline int getRotorNum(){return rotor_num_;}
 
-  void getRotorsFromCog(std::vector<Eigen::Vector3d>& rotors_origin_from_cog)
+  void getRotorsOriginFromCog(std::vector<Eigen::Vector3d>& rotors_origin_from_cog)
   {
     boost::lock_guard<boost::mutex> lock(origins_mutex_);
     int size = rotors_origin_from_cog_.size();
@@ -111,11 +111,26 @@ public:
       rotors_origin_from_cog = rotors_origin_from_cog_;
   }
 
-  void setRotorsFromCog(const std::vector<Eigen::Vector3d>& rotors_origin_from_cog)
+  void setRotorsOriginFromCog(const std::vector<Eigen::Vector3d>& rotors_origin_from_cog)
   {
     boost::lock_guard<boost::mutex> lock(origins_mutex_);
     assert(rotors_origin_from_cog_.size() == rotors_origin_from_cog.size());
     rotors_origin_from_cog_ = rotors_origin_from_cog;
+  }
+
+  void getRotorsNormalFromCog(std::vector<Eigen::Vector3d>& rotors_normal_from_cog)
+  {
+    boost::lock_guard<boost::mutex> lock(normals_mutex_);
+    int size = rotors_normal_from_cog_.size();
+    for(int i=0; i< size; i++)
+      rotors_normal_from_cog = rotors_normal_from_cog_;
+  }
+
+  void setRotorsNormalFromCog(const std::vector<Eigen::Vector3d>& rotors_normal_from_cog)
+  {
+    boost::lock_guard<boost::mutex> lock(normals_mutex_);
+    assert(rotors_normal_from_cog_.size() == rotors_normal_from_cog.size());
+    rotors_normal_from_cog_ = rotors_normal_from_cog;
   }
 
   void setCog2Baselink(tf::Transform transform)
@@ -170,6 +185,8 @@ public:
   inline Eigen::MatrixXd getK() { return K_; }
   inline uint8_t getLqiMode() { return lqi_mode_; }
   inline void setLqiMode(uint8_t lqi_mode) { lqi_mode_ = lqi_mode; }
+  inline void setRealtimeControlFlag(bool flag){realtime_control_flag_ = flag; }
+  inline bool getRealtimeControlFlag(){return realtime_control_flag_; }
 
   void setCogDesireOrientation(KDL::Rotation cog_desire_orientation)
   {
@@ -197,7 +214,7 @@ protected:
   ros::Subscriber desire_coordinate_sub_;
   ros::Subscriber realtime_control_sub_;
 
-  boost::mutex mass_mutex_, cog_mutex_, origins_mutex_, inertia_mutex_;
+  boost::mutex mass_mutex_, cog_mutex_, origins_mutex_, normals_mutex_, inertia_mutex_;
 
   tf::TransformBroadcaster br_;
   bool callback_flag_;
@@ -239,6 +256,7 @@ protected:
   double mass_;
   tf::Transform cog_;
   std::vector<Eigen::Vector3d> rotors_origin_from_cog_;
+  std::vector<Eigen::Vector3d> rotors_normal_from_cog_;
   Eigen::Matrix3d links_inertia_;
   ros::Time joint_state_stamp_;
 

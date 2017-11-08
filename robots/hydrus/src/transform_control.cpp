@@ -157,12 +157,12 @@ void TransformController::realtimeControlCallback(const std_msgs::UInt8ConstPtr 
   if(msg->data == 1)
     {
       if(debug_verbose_) ROS_WARN("start realtime control");
-      realtime_control_flag_ = true;
+      setRealtimeControlFlag(true);
     }
   else if(msg->data == 0)
     {
       if(debug_verbose_) ROS_WARN("stop realtime control");
-      realtime_control_flag_ = false;
+      setRealtimeControlFlag(false);
     }
 }
 
@@ -244,9 +244,10 @@ void TransformController::control()
   static int i = 0;
   static int cnt = 0;
 
-  if(!realtime_control_flag_) return;
   while(ros::ok())
     {
+      if(!getRealtimeControlFlag()) return;
+
       if(debug_verbose_) ROS_ERROR("start lqi");
       lqi();
       if(debug_verbose_) ROS_ERROR("finish lqi");
@@ -315,7 +316,8 @@ void TransformController::kinematics(sensor_msgs::JointState state)
   setMass(link_inertia.getMass());
 
   /* thrust point based on COG */
-  std::vector<Eigen::Vector3d> f_rotors;
+  std::vector<Eigen::Vector3d> f_rotors_origin;
+  std::vector<Eigen::Vector3d> f_rotors_normal;
   for(int i = 0; i < rotor_num_; i++)
     {
       std::stringstream ss;
@@ -325,12 +327,13 @@ void TransformController::kinematics(sensor_msgs::JointState state)
       KDL::Frame f;
       int status = fk_solver.JntToCart(jointpositions, f, rotor);
       //if(verbose) ROS_WARN(" %s status is : %d, [%f, %f, %f]", rotor.c_str(), status, f.p.x(), f.p.y(), f.p.z());
-      f_rotors.push_back(Eigen::Map<const Eigen::Vector3d>((cog_frame.Inverse() * f).p.data));
-
-      //std::cout << "rotor" << i + 1 << ": \n"<< f_rotors[i] << std::endl;
+      f_rotors_origin.push_back(Eigen::Map<const Eigen::Vector3d>((cog_frame.Inverse() * f).p.data));
+      f_rotors_normal.push_back(Eigen::Map<const Eigen::Vector3d>(((cog_frame.Inverse() * f).M * KDL::Vector(0, 0, 1)).data));
+      //std::cout << "rotor" << i + 1 << "_normal: \n"<< f_rotors_normal[i] << std::endl;
     }
 
-  setRotorsFromCog(f_rotors);
+  setRotorsOriginFromCog(f_rotors_origin);
+  setRotorsNormalFromCog(f_rotors_normal);
   KDL::RigidBodyInertia link_inertia_from_cog = cog_frame.Inverse() * link_inertia;
   setInertia(Eigen::Map<const Eigen::Matrix3d>(link_inertia_from_cog.getRotationalInertia().data));
 
@@ -417,7 +420,7 @@ double TransformController::distThreCheck(bool verbose)
   double average_x = 0, average_y = 0;
 
   std::vector<Eigen::Vector3d> rotors_origin_from_cog(rotor_num_);
-  getRotorsFromCog(rotors_origin_from_cog);
+  getRotorsOriginFromCog(rotors_origin_from_cog);
 
   /* calcuate the average */
   for(int i = 0; i < rotor_num_; i++)
@@ -459,7 +462,7 @@ double TransformController::distThreCheck(bool verbose)
 bool  TransformController::modelling(bool verbose)
 {
   std::vector<Eigen::Vector3d> rotors_origin_from_cog(rotor_num_);
-  getRotorsFromCog(rotors_origin_from_cog);
+  getRotorsOriginFromCog(rotors_origin_from_cog);
   Eigen::Matrix3d links_inertia = getInertia();
 
   Eigen::VectorXd g(4);
