@@ -28,9 +28,19 @@ message(STATUS "CMAKE_CXX_FLAGS_DEBUG:          ${CMAKE_CXX_FLAGS_DEBUG}")
 
 find_package(Boost REQUIRED COMPONENTS system)
 
+add_message_files(
+  FILES
+  QMatrixPseudoInverseInertia.msg
+)
+
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+)
+
 catkin_package(
-  #INCLUDE_DIRS include
-  #LIBRARIES hydrusxi_transform_control
+  INCLUDE_DIRS include
+  LIBRARIES hydrus_xi
   CATKIN_DEPENDS roscpp std_msgs
   DEPENDS system_lib Eigen
 )
@@ -40,6 +50,11 @@ catkin_package(
 ###########
 
 include_directories(
-#  include
+  include
   ${catkin_INCLUDE_DIRS}
-)
+  )
+
+add_library(full_over_actuated_controller_pluginlib src/full_over_actuated_controller.cpp)
+target_link_libraries (full_over_actuated_controller_pluginlib ${catkin_LIBRARIES})
+add_dependencies(full_over_actuated_controller_pluginlib aerial_robot_msgs_generate_messages_cpp aerial_robot_base_generate_messages_cpp hydrus_generate_messages_cpp hydrus_gencfg)
+
