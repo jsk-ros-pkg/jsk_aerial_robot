@@ -1,5 +1,7 @@
 #include "aerial_robot_base/flight_navigation.h"
 
+using namespace std;
+
 Navigator::Navigator(ros::NodeHandle nh, ros::NodeHandle nh_private,
                      BasicEstimator* estimator)
   : nh_(nh, "navigator"),
@@ -24,7 +26,7 @@ Navigator::Navigator(ros::NodeHandle nh, ros::NodeHandle nh_private,
 
   navi_sub_ = nh_.subscribe<aerial_robot_base::FlightNav>("/uav/nav", 1, &Navigator::naviCallback, this, ros::TransportHints().tcpNoDelay());
 
-  battery_sub_ = nh_.subscribe<std_msgs::UInt8>("/battery_voltage_status", 1, &Navigator::batteryCheckCallback, this, ros::TransportHints().tcpNoDelay());
+  battery_sub_ = nh_.subscribe<std_msgs::Float32>("/battery_voltage_status", 1, &Navigator::batteryCheckCallback, this, ros::TransportHints().tcpNoDelay());
 
   arming_ack_sub_ = nh_.subscribe<std_msgs::UInt8>("/flight_config_ack", 1, &Navigator::armingAckCallback, this, ros::TransportHints().tcpNoDelay());
   takeoff_sub_ = nh_.subscribe<std_msgs::Empty>("/teleop_command/takeoff", 1, &Navigator::takeoffCallback, this, ros::TransportHints().tcpNoDelay());
@@ -41,6 +43,7 @@ Navigator::Navigator(ros::NodeHandle nh, ros::NodeHandle nh_private,
   teleop_flag_ = true;
 
   flight_config_pub_ = nh_.advertise<std_msgs::UInt8>("/flight_config_cmd", 10);
+  power_info_pub_ = nh_.advertise<geometry_msgs::Vector3Stamped>("/uav_power", 10);
 
   estimator_ = estimator;
   estimate_mode_ = estimator_->getEstimateMode();
@@ -50,6 +53,53 @@ Navigator::Navigator(ros::NodeHandle nh, ros::NodeHandle nh_private,
 Navigator::~Navigator()
 {
   printf(" deleted navigator!\n");
+}
+
+void Navigator::batteryCheckCallback(const std_msgs::Float32ConstPtr &msg)
+{
+  if(bat_cell_ == 0)
+    {
+      ROS_WARN("No correct battery information, cell is 0");
+      return;
+    }
+
+  float voltage = msg->data;
+  /* consider the voltage drop */
+  if(getNaviState() == TAKEOFF_STATE || getNaviState() == HOVER_STATE)
+    voltage += (bat_resistance_ * hovering_current_);
+
+  float average_voltage = voltage / bat_cell_;
+  float percentage = 0;
+  if(average_voltage  > VOLTAGE_90P) percentage = (average_voltage - VOLTAGE_90P) / (VOLTAGE_100P - VOLTAGE_90P) * 10 + 90;
+  else if (average_voltage  > VOLTAGE_80P) percentage = (average_voltage - VOLTAGE_80P) / (VOLTAGE_90P - VOLTAGE_80P) * 10 + 80;
+  else if (average_voltage  > VOLTAGE_70P) percentage = (average_voltage - VOLTAGE_70P) / (VOLTAGE_80P - VOLTAGE_70P) * 10 + 70;
+  else if (average_voltage  > VOLTAGE_60P) percentage = (average_voltage - VOLTAGE_60P) / (VOLTAGE_70P - VOLTAGE_60P) * 10 + 60;
+  else if (average_voltage  > VOLTAGE_50P) percentage = (average_voltage - VOLTAGE_50P) / (VOLTAGE_60P - VOLTAGE_50P) * 10 + 50;
+  else if (average_voltage  > VOLTAGE_40P) percentage = (average_voltage - VOLTAGE_40P) / (VOLTAGE_50P - VOLTAGE_40P) * 10 + 40;
+  else if (average_voltage  > VOLTAGE_30P) percentage = (average_voltage - VOLTAGE_30P) / (VOLTAGE_40P - VOLTAGE_30P) * 10 + 30;
+  else if (average_voltage  > VOLTAGE_20P) percentage = (average_voltage - VOLTAGE_20P) / (VOLTAGE_30P - VOLTAGE_20P) * 10 + 20;
+  else if (average_voltage  > VOLTAGE_10P) percentage = (average_voltage - VOLTAGE_10P) / (VOLTAGE_20P - VOLTAGE_10P) * 10 + 10;
+  else percentage = (average_voltage - VOLTAGE_0P) / (VOLTAGE_10P - VOLTAGE_0P) * 10;
+
+  if (percentage > 100) percentage = 100;
+  if(percentage < 0)
+    {
+      /* can remove this information */
+      ROS_WARN("no correct voltage information from spinal");
+      return;
+    }
+
+  if(percentage < low_voltage_thre_)
+    {
+      low_voltage_flag_  = true;
+      ROS_WARN_THROTTLE(1,"low voltage!");
+    }
+
+  geometry_msgs::Vector3Stamped power_info_msgs;
+  power_info_msgs.header.stamp = ros::Time::now();
+  power_info_msgs.vector.x = voltage;
+  power_info_msgs.vector.y = percentage;
+  power_info_pub_.publish(power_info_msgs);
 }
 
 void Navigator::naviCallback(const aerial_robot_base::FlightNavConstPtr & msg)
@@ -579,10 +629,6 @@ void Navigator::rosParamInit(ros::NodeHandle nh)
     xy_control_mode_ = 0;
   printf("%s: xy_control_mode_ is %d\n", ns.c_str(), xy_control_mode_);
 
-  if (!nh.getParam ("low_voltage_thre", low_voltage_thre_))
-    low_voltage_thre_ = 105; //[10 * voltage]
-  printf("%s: low_voltage_thre_ is %d\n", ns.c_str(), low_voltage_thre_);
-
   if (!nh.getParam ("takeoff_height", takeoff_height_))
     takeoff_height_ = 0;
   printf("%s: takeoff_height_ is %.3f\n", ns.c_str(), takeoff_height_);
@@ -645,5 +691,14 @@ void Navigator::rosParamInit(ros::NodeHandle nh)
     check_joy_stick_heart_beat_ = false;
   printf("%s: check_joy_stick_heart_beat_ is %s\n", ns.c_str(), check_joy_stick_heart_beat_?std::string("true").c_str():std::string("false").c_str());
 
+  ros::NodeHandle bat_info_node("bat_info");
+  bat_info_node.param("bat_cell", bat_cell_, 0); // Lipo battery cell
+  cout << ns  << ": bat_cell_ is "  <<  bat_cell_ << endl;
+  bat_info_node.param("low_voltage_thre", low_voltage_thre_, 0.1); // Lipo battery cell
+  cout << ns  << ": low_voltage_thre_ is "  <<  low_voltage_thre_ << endl;
+  bat_info_node.param("bat_resistance", bat_resistance_, 0.0); //Battery internal resistance
+  cout << ns  << ": bat_resistance_ is "  <<  bat_resistance_ << endl;
+  bat_info_node.param("hovering_current", hovering_current_, 0.0); // current at hovering state
+  cout << ns  << ": hovering_current_ is "  <<  hovering_current_ << endl;
 }
 
