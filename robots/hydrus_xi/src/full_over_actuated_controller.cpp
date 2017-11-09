@@ -226,7 +226,7 @@ namespace control_plugin
           {
             for (unsigned int j = 0; j < 3; j++)
               {
-          q_matrix_pseudo_inverse_inertia_msg.Q_matrix_pseudo_inverse.at(0) = Q_pseudo_inv_torque(i, j);
+          q_matrix_pseudo_inverse_inertia_msg.Q_matrix_pseudo_inverse.at(i * 3 + j) = Q_pseudo_inv_torque(i, j);
               }
           }
       q_matrix_pseudo_inverse_inertia_pub_.publish(q_matrix_pseudo_inverse_inertia_msg);
