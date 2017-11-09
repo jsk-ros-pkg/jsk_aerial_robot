@@ -5,7 +5,7 @@ project(aerial_robot_msgs)
 find_package(catkin REQUIRED COMPONENTS roscpp std_msgs geometry_msgs message_generation)
 
 ## Declare ROS messages and services
-add_message_files(FILES  DynamicReconfigureLevels.msg SimpleImu.msg FourAxisCommand.msg Imu.msg Barometer.msg Gps.msg FourAxisGain.msg RollPitchYawTerm.msg RollPitchYawTerms.msg
+add_message_files(FILES  DynamicReconfigureLevels.msg SimpleImu.msg FourAxisCommand.msg Imu.msg Barometer.msg Gps.msg FourAxisGain.msg RollPitchYawTerm.msg RollPitchYawTerms.msg MotorInfo.msg PwmInfo.msg
 )
 
 add_service_files(FILES BoolFlag.srv)

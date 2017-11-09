@@ -39,7 +39,6 @@ add_message_files(FILES
   State.msg
   States.msg
   Pwms.msg
-  MotorInfo.msg
   DesireCoord.msg
   Acc.msg
   UavInfo.msg
