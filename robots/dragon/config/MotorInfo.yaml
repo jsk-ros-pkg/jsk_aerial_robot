@@ -1,8 +1,36 @@
 motor_info:
-        min_pwm: 0.65
-        max_pwm: 0.83
-        f_pwm_rate: 0.875 # 0.4375 x 2
-        f_pwm_offset: -46.83 # -23.415 x 2
-        m_f_rate: 0
-        pwm_rate: 20.0  # 2000/100.0 (double ducted fan)
-        force_landing_pwm: 0.75
+        min_thrust: 1 #[N]
+        max_thrust: 16 #[N], affected by voltage
+        abs_max_pwm: 0.86 # Not affected by voltage
+        force_landing_thrust: 7 #[N]
+        m_f_rate: -0.01636
+        pwm_conversion_mode: 1 # Polynominal Mode
+        vel_ref_num: 4
+        ref1:        
+                voltage: 25.2
+                polynominal4: -5.7063259 # x 10^4
+                polynominal3: 15.577885 # x10^3
+                polynominal2: -8.8434316 # x10^2
+                polynominal1: 13.882688 # x10
+                polynominal0: 58.697129 # x1
+        ref2:
+                voltage: 24.2
+                polynominal4: -8.9762987 # x 10^4
+                polynominal3: 25.174311 # x10^3
+                polynominal2: -18.136790 # x10^2
+                polynominal1: 18.573183 # x10
+                polynominal0: 58.265334 # x1
+        ref3:        
+                voltage: 23.2
+                polynominal4: -9.9940524 # x 10^4
+                polynominal3: 25.287343 # x10^3
+                polynominal2: -14.915788 # x10^2
+                polynominal1: 17.404827 # x10
+                polynominal0: 58.512989 # x1
+        ref4:        
+                voltage: 22.2
+                polynominal4: -14.725489 # x 10^4
+                polynominal3: 35.482073 # x10^3
+                polynominal2: -21.115724 # x10^2
+                polynominal1: 19.991898 # x10
+                polynominal0: 58.454254 # x1

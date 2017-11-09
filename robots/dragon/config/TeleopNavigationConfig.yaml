@@ -23,6 +23,3 @@ navigator/cmd_vel_lev2_gain : 2.0
 navigator/gain_tunning_mode: 0
 navigator/max_target_tilt_angle: 0.2
 navigator/cmd_angle_lev2_gain : 1.5
-
-# battery fail safe
-navigator/low_voltage_thre: 0 # 21.6V

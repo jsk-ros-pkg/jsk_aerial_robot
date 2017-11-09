@@ -231,9 +231,6 @@ protected:
   /* dynamics */
   std::map<int, int> rotor_direction_;
   double m_f_rate_; //moment / force rate
-  double f_pwm_rate_; //force / pwm rate
-  double f_pwm_offset_; //force / pwm offset
-  double pwm_rate_; //percentage
 
   /* kinematics */
   double mass_;
