@@ -98,30 +98,8 @@ bool SimulationAttitudeController::init(hardware_interface::RotorInterface *robo
   return true;
 }
 
-
 void SimulationAttitudeController::starting(const ros::Time& time)
 {
-#if 0
-  /* set the uav type to the control core */
-  aerial_robot_base::UavType uav_type_msg;
-  uav_type_msg.motor_num = motor_num_;
-
-  if(joint_num_ == 0)
-    uav_type_msg.uav_model = aerial_robot_base::UavType::DRONE;
-  else if(joint_num_ == motor_num_ - 1 )
-    uav_type_msg.uav_model = aerial_robot_base::UavType::HYDRUS;
-  else if(joint_num_ == motor_num_)
-    uav_type_msg.uav_model = aerial_robot_base::UavType::RING;
-  else if(joint_num_ == motor_num_  * 4 - 2 )
-    uav_type_msg.uav_model = aerial_robot_base::UavType::DRAGON;
-
-  uav_type_msg.baselink = rotor_interface_->getBaseLinkNo();
-
-  ros::NodeHandle n;
-  ros::Publisher uav_config_pub = n.advertise<aerial_robot_base::UavType>("/uav_type_config", 1);
-  uav_config_pub.publish(uav_type_msg);
-  ROS_WARN("motor_num: %d, baselink: %s", motor_num_, rotor_interface_->getBaseLinkName().c_str());
-#endif
 }
 
 void SimulationAttitudeController::update(const ros::Time& time, const ros::Duration& period)
@@ -160,7 +138,7 @@ void SimulationAttitudeController::update(const ros::Time& time, const ros::Dura
       std::stringstream joint_no;
       joint_no << i + 1;
       hardware_interface::RotorHandle rotor = rotor_interface_->getHandle(std::string("rotor") + joint_no.str());
-      rotor.setCommand(controller_core_->getAttController().getPwm(i));
+      rotor.setForce(controller_core_->getAttController().getForce(i));
     }
 }
 
