@@ -114,7 +114,18 @@
       <!-- sensor for control -->
       <xacro:extra_module name = "sensor_c" parent = "${self}" mass = "${sensor_c_mass}" offset = "${link_length * 0.5 + sensor_c_offset}" />
       <!-- control side -->
+      <!--
       <xacro:extra_module name = "pc_c" parent = "${self}" mass = "${pc_c_mass}" offset = "${link_length * 0.5 + pc_c_offset}" />
+      -->
+      <!-- battery -->
+      <xacro:extra_module name = "bat${self}" parent = "${self}" mass = "${bat_mass}" offset = "${link_length * 0.5 + bat_offset}" />
+    </xacro:if>
+
+    <!-- pc -->
+    <xacro:if value="${pc}">
+      <xacro:extra_module name = "pc_c" parent = "${self}" mass = "${pc_c_mass}" offset = "${link_length * 0.5 + pc_c_offset}" />
+      <!-- battery -->
+      <xacro:extra_module name = "bat${self}" parent = "${self}" mass = "${bat_mass}" offset = "${link_length * 0.5 + bat_offset}" />
     </xacro:if>
 
     <!-- general -->
