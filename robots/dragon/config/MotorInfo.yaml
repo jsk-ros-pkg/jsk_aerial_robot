@@ -3,7 +3,7 @@ motor_info:
         max_thrust: 16 #[N], affected by voltage
         abs_max_pwm: 0.86 # Not affected by voltage
         force_landing_thrust: 7 #[N]
-        m_f_rate: -0.01636
+        m_f_rate: 0 # should be zero, because of the dual rotor
         pwm_conversion_mode: 1 # Polynominal Mode
         vel_ref_num: 4
         ref1:        
