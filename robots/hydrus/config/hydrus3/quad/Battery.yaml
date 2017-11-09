@@ -1,0 +1,5 @@
+bat_info:
+        bat_cell: 3
+        bat_resistance: 0.05 # [m Ohm]
+        hovering_current: 10 #[A], MN3510, prop14inch, 3 ~ 4.5
+        low_voltage_thre: 10 #[100%]        

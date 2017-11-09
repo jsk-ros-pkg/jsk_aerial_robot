@@ -60,9 +60,7 @@ namespace hardware_interface
     inline double getForce()    const {return *force_;}
     inline double setForce(double force)    {*force_ = force;}
     inline double getTorque()    const {return getForce() * direction_ * m_f_rate_;}
-    inline void setCommand(double command) {
-      *force_ = (command * max_pwm_ / pwm_rate_ * f_pwm_rate_ + f_pwm_offset_);
-    } // pwm to force
+    inline void setCommand(double command); //no implement here
 
   private:
     std::string name_;

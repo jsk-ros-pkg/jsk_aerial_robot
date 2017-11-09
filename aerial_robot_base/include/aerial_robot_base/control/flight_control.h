@@ -44,7 +44,7 @@
 #include <aerial_robot_base/flight_navigation.h>
 
 /* ros msg */
-#include <aerial_robot_base/MotorInfo.h>
+#include <aerial_robot_msgs/PwmInfo.h>
 #include <aerial_robot_base/UavInfo.h>
 
 /* util */
@@ -71,7 +71,7 @@ namespace control_plugin
       nh_ = ros::NodeHandle(nh, "controller");
       nhp_ = ros::NodeHandle(nhp,  "controller");
 
-      motor_info_pub_ = nh_.advertise<aerial_robot_base::MotorInfo>("/motor_info", 10);
+      motor_info_pub_ = nh_.advertise<aerial_robot_msgs::PwmInfo>("/motor_info", 10);
       uav_info_pub_ = nh_.advertise<aerial_robot_base::UavInfo>("/uav_info", 10);
 
       estimator_ = estimator;
@@ -86,28 +86,49 @@ namespace control_plugin
       ros::NodeHandle motor_info_node("motor_info");
       std::string ns = motor_info_node.getNamespace();
 
-      motor_info_node.param("min_pwm", min_pwm_, 0.0);
-      if(verbose_) cout << ns  << ": min_pwm_ is "  <<  min_pwm_ << endl;
-      motor_info_node.param("max_pwm", max_pwm_, 0.0);
-      if(verbose_) cout << ns  << ": max_pwm_ is "  <<  max_pwm_ << endl;
-      motor_info_node.param("f_pwm_rate", f_pwm_rate_, 1.0);
-      if(verbose_) cout << ns  << ": f_pwm_rate_ is "  <<  f_pwm_rate_ << endl;
+      motor_info_node.param("min_thrust", min_thrust_, 0.0);
+      if(verbose_) cout << ns  << ": min_thrust_ is "  <<  min_thrust_ << endl;
+      motor_info_node.param("max_thrust", max_thrust_, 0.0);
+      if(verbose_) cout << ns  << ": max_thrust_ is "  <<  max_thrust_ << endl;
+      motor_info_node.param("abs_max_pwm", abs_max_pwm_, 0.0);
+      if(verbose_) cout << ns  << ": abs_max_pwm_ is "  <<  abs_max_pwm_ << endl;
+      motor_info_node.param("force_landing_thrust", force_landing_thrust_, 0.0);
+      if(verbose_) cout << ns  << ": force_landing_thrust_ is "  <<  force_landing_thrust_ << endl;
       motor_info_node.param("m_f_rate", m_f_rate_, 0.0);
-      if(verbose_) cout << ns  << ": m_f_rate_ is %.3f\n"  <<  m_f_rate_ << endl;
-      motor_info_node.param("f_pwm_offset", f_pwm_offset_, 0.0);
-      if(verbose_) cout << ns  << ": f_pwm_offset_ is "  <<  f_pwm_offset_ << endl;
-      motor_info_node.param("pwm_rate", pwm_rate_, 1.0);
-      if(verbose_) cout << ns  << ": pwm_rate_ is "  <<  pwm_rate_ << endl;
-      motor_info_node.param("force_landing_pwm", force_landing_pwm_, 0.5);
-      if(verbose_) cout << ns  << ": force_landing_pwm_ is "  <<  force_landing_pwm_ << endl;
+      if(verbose_) cout << ns  << ": m_f_rate_ is "  <<  m_f_rate_ << endl;
+      motor_info_node.param("pwm_conversion_mode", pwm_conversion_mode_, -1);
+      if(verbose_) cout << ns  << ": pwm_conversion_mode_ is "  <<  pwm_conversion_mode_ << endl;
+      int vel_ref_num;
+      motor_info_node.param("vel_ref_num", vel_ref_num, 0);
+      if(verbose_) cout << ns  << ": vel_ref_num is "  <<  vel_ref_num << endl;
+      motor_info_.resize(vel_ref_num);
+      for(int i = 0; i < vel_ref_num; i++)
+        {
+          std::stringstream ss;
+          ss << i + 1;
+          double val;
+          ros::NodeHandle nh(motor_info_node, "ref" + ss.str());
+          nh.param("voltage", val, 0.0);
+          motor_info_[i].voltage = val;
+          if(verbose_) cout << nh.getNamespace()  << ": voltage is "  <<  val << endl;
+          /* hardcode: up to 4 dimension */
+          for(int j = 0; j < 5; j++)
+            {
+              std::stringstream ss2;
+              ss2 << j;
+              nh.param("polynominal" + ss2.str(), val, 0.0);
+              motor_info_[i].polynominal[j] = val;
+              if(verbose_) cout << nh.getNamespace() << ": polynominal" << j << " is "  <<  val << endl;
+            }
+        }
 
       ros::NodeHandle uav_info_node("uav_info");
       ns = uav_info_node.getNamespace();
-      uav_info_node.param("motor_num", motor_num_, 0);
-      if(verbose_) cout << ns  << ": motor_num_ is "  <<  motor_num_ << endl;
       uav_info_node.param("uav_model", uav_model_, 0); //0: DRONE
       if(verbose_) cout << ns  << ": uav_model_ is "  <<  uav_model_ << endl;
-
+      /* the motor number can be calculated from ros model(KDL), so this is not necessary */
+      uav_info_node.param("motor_num", motor_num_, 0);
+      if(verbose_) cout << ns  << ": motor_num_ is "  <<  motor_num_ << endl;
     }
 
     virtual bool update()
@@ -142,14 +163,15 @@ namespace control_plugin
       if(ros::Time::now().toSec() - activate_timestamp.toSec()  > 0.1)
         {
           /* send motor and uav info to uav, about 10Hz */
-          aerial_robot_base::MotorInfo motor_info_msg;
-          motor_info_msg.min_pwm = min_pwm_;
-          motor_info_msg.max_pwm = max_pwm_;
-          motor_info_msg.f_pwm_offset = f_pwm_offset_;
-          motor_info_msg.f_pwm_rate = f_pwm_rate_;
-          motor_info_msg.m_f_rate = m_f_rate_;
-          motor_info_msg.pwm_rate = pwm_rate_;
-          motor_info_msg.force_landing_pwm = force_landing_pwm_;
+          aerial_robot_msgs::PwmInfo motor_info_msg;
+          motor_info_msg.min_thrust = min_thrust_;
+          motor_info_msg.max_thrust = max_thrust_;
+          motor_info_msg.abs_max_pwm = abs_max_pwm_;
+          motor_info_msg.force_landing_thrust = force_landing_thrust_;
+          motor_info_msg.pwm_conversion_mode = pwm_conversion_mode_;
+          motor_info_msg.motor_info.resize(0);
+          for(int i = 0; i < motor_info_.size(); i++)
+            motor_info_msg.motor_info.push_back(motor_info_[i]);
           motor_info_pub_.publish(motor_info_msg);
 
           aerial_robot_base::UavInfo uav_info_msg;
@@ -183,12 +205,13 @@ namespace control_plugin
     int uav_model_;
 
     /* new param */
-    double min_pwm_, max_pwm_;
-    double f_pwm_rate_; //gain which convert f to pwm and also take the bit shift into account
-    double f_pwm_offset_;
+    double min_thrust_, max_thrust_;
+    double abs_max_pwm_;
     double m_f_rate_;
-    double pwm_rate_; //percentage
-    double force_landing_pwm_; //pwm
+    double force_landing_thrust_; //pwm
+    int pwm_conversion_mode_;
+    std::vector<aerial_robot_msgs::MotorInfo> motor_info_;
+
     int estimate_mode_;
 
     bool verbose_;

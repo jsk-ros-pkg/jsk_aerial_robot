@@ -43,21 +43,6 @@ namespace hardware_interface
 
     std::string full_name;
     ros::NodeHandle motor_nh("/motor_info");
-    if (motor_nh.searchParam("f_pwm_rate", full_name))
-      {
-        motor_nh.getParam(full_name, f_pwm_rate_);
-        ROS_INFO(" f_pwm_rate: %f", f_pwm_rate_);
-      }
-    else
-      ROS_ERROR("Cannot get f_pwm_rate from ros nodehandle: %s", nh.getNamespace().c_str());
-
-    if (motor_nh.searchParam("f_pwm_offset", full_name))
-      {
-        motor_nh.getParam(full_name, f_pwm_offset_);
-        ROS_INFO(" f_pwm_offset: %f", f_pwm_offset_);
-      }
-    else
-      ROS_ERROR("Cannot get f_pwm_offset from ros nodehandle: %s", nh.getNamespace().c_str());
 
     if (motor_nh.searchParam("m_f_rate", full_name))
       {
@@ -66,14 +51,6 @@ namespace hardware_interface
       }
     else
       ROS_ERROR("Cannot get m_f_rate from ros nodehandle: %s", nh.getNamespace().c_str());
-
-    if (motor_nh.searchParam("pwm_rate", full_name))
-      {
-        motor_nh.getParam(full_name, pwm_rate_);
-        ROS_INFO(" pwm_rate: %f", pwm_rate_);
-      }
-    else
-      ROS_ERROR("Cannot get pwm_rate from ros nodehandle: %s", nh.getNamespace().c_str());
   }
 
   RotorInterface::RotorInterface(): baselink_name_("baselink"), q_(), joint_num_(0), found_baselink_(false) {}

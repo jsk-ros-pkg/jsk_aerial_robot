@@ -7,10 +7,11 @@
 
 /* ros msg */
 #include <std_msgs/Int8.h>
-#include <std_msgs/UInt8.h>
+#include <std_msgs/Float32.h>
 #include <std_msgs/UInt16.h>
 #include <std_msgs/Int32.h>
 #include <std_msgs/Empty.h>
+#include <geometry_msgs/Vector3Stamped.h>
 #include <aerial_robot_msgs/FourAxisCommand.h>
 #include <tf/transform_broadcaster.h>
 #include <aerial_robot_base/FlightNav.h>
@@ -41,6 +42,7 @@ public:
   virtual ~Navigator();
 
   ros::Publisher  flight_config_pub_;
+  ros::Publisher  power_info_pub_;
 
   void update();
 
@@ -100,6 +102,19 @@ public:
   static constexpr uint8_t ROS_INTEGRATE_CMD = 160;
   static constexpr uint8_t FORCE_LANDING_CMD = 0x02; //force landing
 
+  // battery check
+  static constexpr float VOLTAGE_100P =  4.2;
+  static constexpr float VOLTAGE_90P =  4.085;
+  static constexpr float VOLTAGE_80P =  3.999;
+  static constexpr float VOLTAGE_70P =  3.936;
+  static constexpr float VOLTAGE_60P =  3.883;
+  static constexpr float VOLTAGE_50P =  3.839;
+  static constexpr float VOLTAGE_40P =  3.812;
+  static constexpr float VOLTAGE_30P =  3.791;
+  static constexpr float VOLTAGE_20P =  3.747;
+  static constexpr float VOLTAGE_10P =  3.683;
+  static constexpr float VOLTAGE_0P =  3.209;
+
 protected:
   ros::NodeHandle nh_;
   ros::NodeHandle nhp_;
@@ -129,8 +144,6 @@ protected:
   int  control_frame_;
 
   int estimate_mode_;
-  int low_voltage_thre_;
-  bool low_voltage_flag_;
   bool  force_att_control_flag_;
   bool lock_teleop_;
 
@@ -178,9 +191,17 @@ protected:
   double joy_stick_heart_beat_du_;
   double force_landing_to_halt_du_;
 
+  /* battery info */
+  double low_voltage_thre_;
+  bool low_voltage_flag_;
+  int bat_cell_;
+  double bat_resistance_;
+  double hovering_current_;
+
   void rosParamInit(ros::NodeHandle nh);
   void naviCallback(const aerial_robot_base::FlightNavConstPtr & msg);
   void joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg);
+  void batteryCheckCallback(const std_msgs::Float32ConstPtr &msg);
 
   void startTakeoff()
   {
@@ -309,23 +330,6 @@ protected:
       {
         ROS_WARN("start teleop control");
         teleop_flag_ = true;
-      }
-  }
-
-  void batteryCheckCallback(const std_msgs::UInt8ConstPtr &msg)
-  {
-    static double low_voltage_start_time = ros::Time::now().toSec();
-    if(msg->data < low_voltage_thre_)
-      {
-        if(ros::Time::now().toSec() - low_voltage_start_time > 1.0)//1sec
-          {
-            ROS_WARN("low voltage!");
-            low_voltage_flag_  = true;
-          }
-      }
-    else
-      {
-        low_voltage_start_time = ros::Time::now().toSec();
       }
   }
 

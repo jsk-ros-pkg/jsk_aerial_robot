@@ -227,15 +227,8 @@ void TransformController::initParam()
 
   /* dynamics: motor */
   ros::NodeHandle control_node("/motor_info");
-  control_node.param("pwm_rate", pwm_rate_, 1.0);
-  if(verbose_) std::cout << "pwm_rate: " << std::setprecision(3) << pwm_rate_ << std::endl;
-  control_node.param("m_f_rate", m_f_rate_, 0.01); //-0.016837; //the sgn is right?, should be nagative
+  control_node.param("m_f_rate", m_f_rate_, 0.01);
   if(verbose_) std::cout << "m_f_rate: " << std::setprecision(3) << m_f_rate_ << std::endl;
-  control_node.param("f_pwm_rate", f_pwm_rate_, 1.0); //0.3029; // with the pwm percentage: x / 1800 * 100
-  if(verbose_) std::cout << "f_pwm_rate: " << std::setprecision(3) << f_pwm_rate_ << std::endl;
-  control_node.param("f_pwm_offset", f_pwm_offset_, 0.0); // -21.196;  // with the pwm percentage: x / 1800 * 100
-  if(verbose_) std::cout << "f_pwm_offset: " << std::setprecision(3) <<f_pwm_offset_ << std::endl;
-
 }
 
 void TransformController::control()
