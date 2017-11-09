@@ -259,7 +259,7 @@ namespace control_plugin
         double alt_d_term = clamp(alt_gains_[j][2] * state_vel_.z(), -alt_terms_limit_[2], alt_terms_limit_[2]);
 
         //*** each motor command value for log
-        target_throttle_[j] = clamp(alt_p_term + + alt_i_term + alt_d_term + alt_offset_, -alt_limit_, alt_limit_);
+        target_throttle_[j] = clamp(alt_p_term + alt_i_term + alt_d_term + alt_offset_, -alt_limit_, alt_limit_);
         pid_msg.throttle.total.push_back(target_throttle_[j]);
         pid_msg.throttle.p_term.push_back(alt_p_term);
         pid_msg.throttle.i_term.push_back(alt_i_term);
