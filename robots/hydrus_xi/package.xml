@@ -27,4 +27,8 @@
   <run_depend>aerial_robot_base</run_depend>
   <run_depend>pluginlib</run_depend>
 
+  <export>
+    <aerial_robot_base plugin="${prefix}/flight_control_plugins.xml" />
+  </export>
+
 </package>
