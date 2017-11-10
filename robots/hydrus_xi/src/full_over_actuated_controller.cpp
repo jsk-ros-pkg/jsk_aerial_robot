@@ -213,12 +213,12 @@ namespace control_plugin
       {
         hydrus_xi::QMatrixPseudoInverseInertia q_matrix_pseudo_inverse_inertia_msg;
         Eigen::Matrix3d uav_inertia = transform_controller_->getInertia();
-        q_matrix_pseudo_inverse_inertia_msg.inertia[0] = uav_inertia(0, 0);
-        q_matrix_pseudo_inverse_inertia_msg.inertia[1] = uav_inertia(1, 1);
-        q_matrix_pseudo_inverse_inertia_msg.inertia[2] = uav_inertia(2, 2);
-        q_matrix_pseudo_inverse_inertia_msg.inertia[3] = uav_inertia(0, 1);
-        q_matrix_pseudo_inverse_inertia_msg.inertia[4] = uav_inertia(1, 2);
-        q_matrix_pseudo_inverse_inertia_msg.inertia[5] = uav_inertia(0, 2);
+        q_matrix_pseudo_inverse_inertia_msg.inertia[0] = uav_inertia(0, 0) * 1000;
+        q_matrix_pseudo_inverse_inertia_msg.inertia[1] = uav_inertia(1, 1) * 1000;
+        q_matrix_pseudo_inverse_inertia_msg.inertia[2] = uav_inertia(2, 2) * 1000;
+        q_matrix_pseudo_inverse_inertia_msg.inertia[3] = uav_inertia(0, 1) * 1000;
+        q_matrix_pseudo_inverse_inertia_msg.inertia[4] = uav_inertia(1, 2) * 1000;
+        q_matrix_pseudo_inverse_inertia_msg.inertia[5] = uav_inertia(0, 2) * 1000;
 
         q_matrix_pseudo_inverse_inertia_msg.Q_matrix_pseudo_inverse.resize(3 * motor_num_);
         Eigen::MatrixXd Q_pseudo_inv_torque = Q_pseudo_inv_.block(3, 0, motor_num_, 3);
@@ -226,10 +226,10 @@ namespace control_plugin
           {
             for (unsigned int j = 0; j < 3; j++)
               {
-          q_matrix_pseudo_inverse_inertia_msg.Q_matrix_pseudo_inverse.at(i * 3 + j) = Q_pseudo_inv_torque(i, j);
+                q_matrix_pseudo_inverse_inertia_msg.Q_matrix_pseudo_inverse.at(i * 3 + j) = Q_pseudo_inv_torque(i, j) * 1000;
               }
           }
-      q_matrix_pseudo_inverse_inertia_pub_.publish(q_matrix_pseudo_inverse_inertia_msg);
+        q_matrix_pseudo_inverse_inertia_pub_.publish(q_matrix_pseudo_inverse_inertia_msg);
       }
     else
       {
