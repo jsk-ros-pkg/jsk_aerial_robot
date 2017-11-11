@@ -40,7 +40,7 @@ generate_messages(
 
 catkin_package(
   INCLUDE_DIRS include
-  LIBRARIES hydrus_xi
+  LIBRARIES
   CATKIN_DEPENDS roscpp std_msgs
   DEPENDS system_lib Eigen
 )
@@ -56,5 +56,5 @@ include_directories(
 
 add_library(full_over_actuated_controller_pluginlib src/full_over_actuated_controller.cpp)
 target_link_libraries (full_over_actuated_controller_pluginlib ${catkin_LIBRARIES})
-add_dependencies(full_over_actuated_controller_pluginlib aerial_robot_msgs_generate_messages_cpp aerial_robot_base_generate_messages_cpp ${PROJECT_NAME}_generate_messages_cpp ${PROJECT_NAME}_gencfg)
+add_dependencies(full_over_actuated_controller_pluginlib aerial_robot_msgs_generate_messages_cpp aerial_robot_base_generate_messages_cpp ${PROJECT_NAME}_generate_messages_cpp)
 
