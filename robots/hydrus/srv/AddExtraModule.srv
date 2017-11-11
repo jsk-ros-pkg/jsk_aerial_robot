@@ -1,5 +1,10 @@
-uint8 extra_module_link
-float32 extra_module_mass
-float32 extra_module_offset
+int8 ADD = 1
+int8 REMOVE = -1
+
+int8 action # 1: add, -1: remove
+string module_name
+string parent_link_name
+geometry_msgs/Transform transform
+geometry_msgs/Inertia inertia
 ---
 bool status

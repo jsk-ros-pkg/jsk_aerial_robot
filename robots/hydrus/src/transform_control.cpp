@@ -295,6 +295,17 @@ void TransformController::kinematics(sensor_msgs::JointState state)
       KDL::RigidBodyInertia link_inertia_tmp = link_inertia;
       link_inertia = link_inertia_tmp + f * it->second;
 
+      /* process for the extra module */
+      for(std::map<std::string, KDL::Segment>::iterator it_extra = extra_module_map_.begin(); it_extra != extra_module_map_.end(); it_extra++)
+        {
+          if(it_extra->second.getName() == it->first)
+            {
+              //ROS_INFO("[kinematics]: find the extra module %s", it_extra->second.getName().c_str());
+              KDL::RigidBodyInertia link_inertia_tmp = link_inertia;
+              link_inertia = link_inertia_tmp + f *  (it_extra->second.getFrameToTip() * it_extra->second.getInertia());
+            }
+        }
+
     }
   /* CoG */
   KDL::Frame f_baselink;
@@ -335,33 +346,81 @@ void TransformController::kinematics(sensor_msgs::JointState state)
 bool TransformController::addExtraModuleCallback(hydrus::AddExtraModule::Request  &req,
                                                  hydrus::AddExtraModule::Response &res)
 {
-  res.status = addExtraModule(req.extra_module_link, req.extra_module_mass, req.extra_module_offset);
-  return true;
+  return addExtraModule(req.action, req.module_name, req.parent_link_name, req.transform, req.inertia);
 }
 
 
-bool TransformController::addExtraModule(int extra_module_link, float extra_module_mass, float extra_module_offset)
+bool TransformController::addExtraModule(int action, std::string module_name, std::string parent_link_name, geometry_msgs::Transform transform, geometry_msgs::Inertia inertia)
 {
-  std::stringstream ss;
-  ss << extra_module_link;
-  std::string parent = std::string("link") + ss.str();
-
-  KDL::RigidBodyInertia extra_inertia(extra_module_mass, KDL::Vector(extra_module_offset, 0, 0), KDL::RotationalInertia::Zero());
-
-  std::map<std::string, KDL::RigidBodyInertia>::iterator it = inertia_map_.find(parent);
-  if(it == inertia_map_.end())
+  switch(action)
     {
-      ROS_ERROR("add extra module: can not find the base link: %s", parent.c_str());
-      return false;
+    case hydrus::AddExtraModule::Request::ADD:
+      {
+        std::map<std::string, KDL::Segment>::iterator it = extra_module_map_.find(module_name);
+        if(it == extra_module_map_.end())
+          {
+            if(inertia_map_.find(parent_link_name) == inertia_map_.end())
+              {
+                ROS_WARN("[extra module]: fail to add new extra module %s, becuase it's parent link (%s) is invalid", module_name.c_str(), parent_link_name.c_str());
+                return false;
+              }
+
+
+            if(fabs(1 - tf::Quaternion(transform.rotation.x, transform.rotation.y, transform.rotation.z, transform.rotation.w).length2()) > 1e-6)
+              {
+                ROS_WARN("[extra module]: fail to add new extra module %s, becuase the orientation is invalid", module_name.c_str());
+                return false;
+              }
+
+            if(inertia.m <= 0)
+              {
+                ROS_WARN("[extra module]: fail to add new extra module %s, becuase the mass %f is invalid", module_name.c_str(), inertia.m);
+                return false;
+              }
+
+            KDL::Frame f;
+            tf::transformMsgToKDL(transform, f);
+            KDL::RigidBodyInertia rigid_body_inertia(inertia.m, KDL::Vector(inertia.com.x, inertia.com.y, inertia.com.z),
+                                                     KDL::RotationalInertia(inertia.ixx, inertia.iyy,
+                                                                            inertia.izz, inertia.ixy,
+                                                                            inertia.ixz, inertia.iyz));
+            KDL::Segment extra_module(parent_link_name, KDL::Joint(KDL::Joint::None), f, rigid_body_inertia);
+            extra_module_map_.insert(std::make_pair(module_name, extra_module));
+            ROS_INFO("[extra module]: succeed to add new extra module %s", module_name.c_str());
+            return true;
+          }
+        else
+          {
+            ROS_WARN("[extra module]: fail to add new extra module %s, becuase it already exists", module_name.c_str());
+            return false;
+          }
+        break;
+      }
+    case hydrus::AddExtraModule::Request::REMOVE:
+      {
+        std::map<std::string, KDL::Segment>::iterator it = extra_module_map_.find(module_name);
+        if(it == extra_module_map_.end())
+          {
+            ROS_WARN("[extra module]: fail to remove the extra module %s, becuase it does not exists", module_name.c_str());
+            return false;
+          }
+        else
+          {
+            extra_module_map_.erase(module_name);
+            ROS_INFO("[extra module]: suscced to remove the extra module %s", module_name.c_str());
+            return true;
+          }
+        break;
+      }
+    default:
+      {
+        ROS_WARN("[extra module]: wrong action %d", action);
+        return false;
+        break;
+      }
     }
-
-  KDL::RigidBodyInertia parent_prev_inertia = it->second;
-  inertia_map_[parent] = extra_inertia + parent_prev_inertia;
-
-  ROS_INFO("Add extra module, %s, mass: %f, offset: %f",
-           parent.c_str(), extra_module_mass, extra_module_offset);
-
-  return true;
+  ROS_ERROR("[extra module]: should not reach here ");
+  return false;
 }
 
 void TransformController::lqi()
