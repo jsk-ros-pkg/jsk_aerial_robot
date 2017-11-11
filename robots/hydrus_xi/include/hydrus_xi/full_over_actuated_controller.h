@@ -97,4 +97,8 @@ namespace control_plugin
   };
 } //namespace control_plugin
 
+/* plugin registration */
+#include <pluginlib/class_list_macros.h>
+PLUGINLIB_EXPORT_CLASS(control_plugin::FullOverActuatedController, control_plugin::ControlBase);
+
 #endif //ifndef OVER_FULL_ACTUATED_CONTROLLER
