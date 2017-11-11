@@ -2,9 +2,9 @@
 <robot
     xmlns:xacro="http://www.ros.org/wiki/xacro" name="dragon_common" >
 
-  <!--  model type 1: baselink (attached with imu, pc): fixed_p-->
-  <!--  model type 2: fixed_n_link -->
-  <!--  model type 3: fixed_p_link -->
+  <!--  model type 1: baselink (attached with imu, pc): fixed_n-->
+  <!--  model type 2: fixed_p_link -->
+  <!--  model type 3: fixed_n_link -->
 
   <!-- kinematics [m] -->
   <xacro:property name="link_length" value=".6" />
