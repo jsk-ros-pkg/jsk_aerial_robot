@@ -16,6 +16,7 @@ namespace control_plugin
 
     transform_controller_ = std::shared_ptr<TransformController>(new TransformController(nh_, nhp_, true));
     transform_controller_->setRealtimeControlFlag(false); //do not solve LQI
+    motor_num_ = transform_controller_->getRotorNum();
 
     nhp_.param("msg_pub_prescaler", msg_pub_prescaler_, 2);
     Q_pseudo_inv_ = Eigen::MatrixXd(motor_num_, 8);
