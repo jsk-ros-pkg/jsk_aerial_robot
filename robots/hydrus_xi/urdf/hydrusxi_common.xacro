@@ -3,13 +3,14 @@
     xmlns:xacro="http://www.ros.org/wiki/xacro" name="dragon_common" >
 
   <!--  model type 1: baselink (attached with imu, pc): fixed_p-->
-  <!--  model type 2: fixed_p_link -->
-  <!--  model type 3: fixed_n_link -->
+  <!--  model type 2: fixed_n_link -->
+  <!--  model type 3: fixed_p_link -->
 
-  <xacro:property name="pi" value="3.1415926535897931" />
   <!-- kinematics [m] -->
   <xacro:property name="link_length" value=".6" />
   <xacro:property name="protector_radius" value=".1925" />
+  <xacro:property name="fc_x_offset" value=".566" />
+  <xacro:property name="fc_z_offset" value="-0.021" />
   <xacro:property name="thrust_z_offset" value="0.0642" />
   <xacro:property name="thrust_tilt_angle" value="0.17453292519" />
   <xacro:property name="rotor_radius" value=".02" />
