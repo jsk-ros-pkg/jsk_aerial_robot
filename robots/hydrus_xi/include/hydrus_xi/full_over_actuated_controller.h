@@ -51,7 +51,7 @@ namespace control_plugin
   {
   public:
     FullOverActuatedController();
-    ~FullOverActuatedController();
+    ~FullOverActuatedController(){}
 
     void initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
                     BasicEstimator* estimator, Navigator* navigator,
