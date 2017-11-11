@@ -43,10 +43,7 @@
     <rosparam file="$(find hydrus_xi)/config/SensorSimulation.yaml" command="load" if="$(arg simulation)"/>
 
     ###########  Overactuated PID Control with Transform Control ############
-    <!--param name="control_plugin_name" value="control_plugin/full_over_actuated" /-->
-    <!--rosparam file="$(find hydrus_xi)/config/$(arg type)/HydrusXI.yaml" command="load" />
-    <param name="kinematic_verbose" value="false" />    <param name="control_verbose" value="false" />
-    <param name="debug_verbose" value="false" /-->
+    <param name="control_plugin_name" value="control_plugin/full_over_actuated" />
     <rosparam file="$(find hydrus_xi)/config/$(arg type)/DifferentialFlatnessPidControlConfig.yaml" command="load" />
 
     ###########  Teleop  ###########
@@ -77,14 +74,6 @@
     <arg name="need_joint_state" value="false" if="$(arg simulation)"/>
     <arg name="description_mode" value="gazebo" if="$(arg simulation)"/>
   </include >
-
-  ###########  Transform Control  ###########
-  <node pkg="hydrus" type="transform_control_node" name="hydrus_xi"  output="screen" respawn="true">
-    <rosparam file="$(find hydrus_xi)/config/$(arg type)/HydrusXI.yaml" command="load" />
-    <param name="kinematic_verbose" value="false" />
-    <param name="control_verbose" value="false" />
-    <param name="debug_verbose" value="false" />
-  </node>
 
   ########## Simulation in Gazebo #########
   <rosparam file="$(find hydrus_xi)/config/$(arg type)/SimulationControl.yaml" command="load"/>
