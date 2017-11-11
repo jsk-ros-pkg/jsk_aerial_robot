@@ -10,37 +10,37 @@
       <!-- baselink -->
       <xacro:if value="${link_type == 1}">
         <inertial>
-          <origin xyz="${link_length* 0.5 + (-1.64) * 0.001} 0 ${4.59 * 0.001}" rpy="0 0 0"/>
-          <mass value="${0.85055 - rotor_mass}" />
+          <origin xyz="${link_length* 0.5 + 2.39 * 0.001} 0 ${0.06 * 0.001}" rpy="0 0 0"/>
+          <mass value="${.90875 - rotor_mass}" />
           <inertia
-              ixx="0.00247" iyy="0.02724" izz="0.02737"
-              ixy="0.00019" ixz="0.00209" iyz="0.0"/>
+              ixx="0.00273" iyy="0.02744" izz="0.02733"
+              ixy="0.00019" ixz="-0.00214" iyz="0.0"/>
         </inertial>
         <xacro:link_model type="baselink" />
       </xacro:if>
 
-      <!-- fixed_p_link -->
+      <!-- fixed_n_link -->
       <xacro:if value="${link_type == 2}">
         <inertial>
-          <origin xyz="${link_length* 0.5 + 7.33 * 0.001} 0 ${0.79 * 0.001}" rpy="0 0 0"/>
+          <origin xyz="${link_length * 0.5 + (-7.33) * 0.001} 0 ${0.79 * 0.001}" rpy="0 0 0"/>
           <mass value="${0.87477 - rotor_mass}" />
           <inertia
               ixx="0.00289" iyy="0.02535" izz="0.02542"
               ixy="0.00006" ixz="0.00198" iyz="0.0"/>
         </inertial>
-        <xacro:link_model type="fixed_tilt_p_link" />
+        <xacro:link_model type="fixed_tilt_n_link" />
       </xacro:if>
 
-      <!-- fixed_n_link -->
+      <!-- fixed_p_link -->
       <xacro:if value="${link_type == 3}">
         <inertial>
-          <origin xyz="${link_length* 0.5 + (8.53) * 0.001} 0 ${0.8 * 0.001}" rpy="0 0 0"/>
+          <origin xyz="${link_length * 0.5 + (-8.53) * 0.001} 0 ${0.8 * 0.001}" rpy="0 0 0"/>
           <mass value="${0.87512 - rotor_mass}" />
           <inertia
               ixx="0.00289" iyy="0.02534" izz="0.02541"
-              ixy="0.00006" ixz="0.00202" iyz="0.0"/>
+              ixy="0.00006" ixz="-0.00202" iyz="0.0"/>
         </inertial>
-        <xacro:link_model type="fixed_tilt_n_link" />
+        <xacro:link_model type="fixed_tilt_p_link" />
       </xacro:if>
     </link>
     <xacro:damping_factor link ="link${self}"/>
@@ -51,13 +51,13 @@
       <parent link="link${self}"/>
       <child link="thrust${self}"/>
       <xacro:if value="${link_type == 1}" >
-        <origin rpy="0 ${thrust_tilt_angle} 0" xyz="${link_length* 0.5} 0 ${thrust_z_offset}"/>
+        <origin rpy="0 ${-thrust_tilt_angle} 0" xyz="${link_length* 0.5} 0 ${thrust_z_offset}"/>
       </xacro:if>
       <xacro:if value="${link_type == 2}" >
-        <origin rpy="0 ${thrust_tilt_angle} 0" xyz="${link_length* 0.5} 0 ${thrust_z_offset}"/>
+        <origin rpy="0 ${-thrust_tilt_angle} 0" xyz="${link_length* 0.5} 0 ${thrust_z_offset}"/>
       </xacro:if>
       <xacro:if value="${link_type == 3}" >
-        <origin rpy="0 ${-thrust_tilt_angle} 0" xyz="${link_length* 0.5} 0 ${thrust_z_offset}"/>
+        <origin rpy="0 ${thrust_tilt_angle} 0" xyz="${link_length* 0.5} 0 ${thrust_z_offset}"/>
       </xacro:if>
       <axis xyz="0 0 ${rotor_direction}"/>
     </joint>
@@ -115,7 +115,7 @@
       <joint name="fc_joint" type="fixed">
         <child link="fc"/>
         <parent link="link${self}"/>
-        <origin rpy="0 0 0" xyz="0.042 0 -0.021"/>
+        <origin rpy="0 0 0" xyz="${fc_x_offset} 0 ${fc_z_offset}"/>
         <axis xyz="0 0 1"/>
       </joint>
     </xacro:if>
