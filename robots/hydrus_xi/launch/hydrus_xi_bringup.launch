@@ -13,10 +13,13 @@
 
   ###########  UAV Config  ###########
   # HYDRUS_XI = 17 # 0x11, hydrus type with 8dof overactuated property
-  <param name="/uav_info/uav_model" value= "16" />
+  <param name="/uav_info/uav_model" value= "17" />
 
   ###########  Motor Config  ###########
   <rosparam file="$(find hydrus_xi)/config/MotorInfo.yaml" command="load" />
+
+  ###########  Battery Config  ###########
+  <rosparam file="$(find hydrus_xi)/config/$(arg type)/Battery.yaml" command="load" />
 
   ###########  Base Platform  ###########
   <node pkg="aerial_robot_base" type="aerial_robot_base_node" name="aerial_robot_base_node" output="screen" >
