@@ -1,4 +1,4 @@
-<library path="lib/full_over_actuated_controller_pluginlib">
+<library path="lib/libfull_over_actuated_controller_pluginlib">
   <class name="control_plugin/full_over_actuated" type="control_plugin::FullOverActuatedController" base_class_type="control_plugin::ControlBase">
     <description>full or over actuated controller with dynamic inversion</description>
   </class>
