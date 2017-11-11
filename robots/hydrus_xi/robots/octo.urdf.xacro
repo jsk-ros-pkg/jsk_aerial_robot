@@ -2,8 +2,8 @@
 <robot
     xmlns:xacro="http://www.ros.org/wiki/xacro" name="hydrus_xi" >
 
-  <xacro:include filename="$(find hydrus_xi)/urdf/hydrusxi_common.xacro" />
-  <xacro:include filename="$(find hydrus_xi)/urdf/hydrusxi_link.urdf.xacro" />
+  <xacro:include filename="$(find hydrus_xi)/urdf/hydrus_xi_common.xacro" />
+  <xacro:include filename="$(find hydrus_xi)/urdf/hydrus_xi_link.urdf.xacro" />
 
   <!--  model type 1: baselink (attached with imu, pc): fixed_n-->
   <!--  model type 2: fixed_p_link -->
