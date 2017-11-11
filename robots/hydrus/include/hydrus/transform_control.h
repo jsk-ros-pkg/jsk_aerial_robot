@@ -94,7 +94,7 @@ public:
   TransformController(ros::NodeHandle nh, ros::NodeHandle nh_private, bool callback_flag = true);
   ~TransformController();
 
-  bool addExtraModule(int extra_module_link, float extra_module_mass, float extra_module_offset);
+  bool addExtraModule(int action, std::string module_name, std::string parent_link_name, geometry_msgs::Transform transform, geometry_msgs::Inertia inertia);
 
   double distThreCheck(bool verbose = false);
   bool modelling(bool verbose = false); //lagrange method
@@ -216,6 +216,7 @@ protected:
   std::map<std::string, KDL::RigidBodyInertia> inertia_map_;
   tf::Transform cog2baselink_transform_;
   std::map<std::string, uint32_t> joint_map_;
+  std::map<std::string /* module_name */, KDL::Segment> extra_module_map_;
 
   /* control */
   boost::thread control_thread_;
