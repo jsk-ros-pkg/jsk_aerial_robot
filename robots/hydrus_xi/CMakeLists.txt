@@ -31,6 +31,7 @@ find_package(Boost REQUIRED COMPONENTS system)
 add_message_files(
   FILES
   QMatrixPseudoInverseInertia.msg
+  AttitudePidGains.msg
 )
 
 generate_messages(

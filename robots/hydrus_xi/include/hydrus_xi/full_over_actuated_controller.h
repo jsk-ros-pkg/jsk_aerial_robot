@@ -39,6 +39,8 @@
 #include <ros/ros.h>
 #include <hydrus/transform_control.h>
 #include <hydrus_xi/QMatrixPseudoInverseInertia.h>
+#include <hydrus_xi/AttitudePidGains.h>
+#include <std_msgs/UInt8.h>
 
 #include <memory>
 
@@ -66,10 +68,22 @@ namespace control_plugin
     void calcForceVector(std::vector<float>& force);
 
     std::string q_matrix_pseudo_inverse_inertia_pub_topic_name_;
+    std::string attitude_gain_pub_topic_name_;
+    std::string flight_config_sub_topic_name_;
     ros::Publisher q_matrix_pseudo_inverse_inertia_pub_;
+    ros::Publisher attitude_gain_pub_;
+    ros::Subscriber flight_config_sub_;
+
+    void flightConfigCallback(const std_msgs::UInt8& msg);
 
     int msg_pub_prescaler_;
     int msg_pub_cnt_;
+
+    double roll_pitch_limit_;
+    tf::Vector3 roll_pitch_gains_;
+    tf::Vector3 roll_pitch_terms_limits_;
+
+    void rosParamInit() override;
 
     /* psuedo inverse */
     /* https://gist.github.com/javidcf/25066cf85e71105d57b6 */

@@ -2,6 +2,8 @@
 
 #include <hydrus_xi/full_over_actuated_controller.h>
 
+//This program does not support LQI method
+
 namespace control_plugin
 {
   FullOverActuatedController::FullOverActuatedController():
@@ -23,6 +25,12 @@ namespace control_plugin
 
     nhp_.param("q_matrix_pseudo_inverse_inertia_pub_topic_name", q_matrix_pseudo_inverse_inertia_pub_topic_name_, std::string("/q_matrix_pseudo_inverse_inertia"));
     q_matrix_pseudo_inverse_inertia_pub_ = nh_.advertise<hydrus_xi::QMatrixPseudoInverseInertia>(q_matrix_pseudo_inverse_inertia_pub_topic_name_, 1);
+
+    nhp_.param("attitude_gain_pub_topic_name", attitude_gain_pub_topic_name_, std::string("/attitude_gain"));
+    attitude_gain_pub_ = nh_.advertise<hydrus_xi::AttitudePidGains>(attitude_gain_pub_topic_name_, 1);
+
+    nhp_.param("flight_config_sub_topic_name", flight_config_sub_topic_name_, std::string("/flight_config_cmd"));
+    flight_config_sub_ = nh_.subscribe(flight_config_sub_topic_name_, 1, &FullOverActuatedController::flightConfigCallback, this);
   }
 
   void FullOverActuatedController::pidUpdate() //override
@@ -121,32 +129,26 @@ namespace control_plugin
     pid_msg.pitch.target_vel = target_vel_[0];
     pid_msg.roll.target_vel = target_vel_[1];
 
-    /* yaw */
-    for(int j = 0; j < motor_num_; j++)
-      {
-        //**** P term
-        double yaw_p_term = clamp(-yaw_gains_[j][0] * psi_err_, -yaw_terms_limits_[0], yaw_terms_limits_[0]);
+    //**** P term
+    double yaw_p_term = clamp(yaw_gains_[0][0] * psi_err_, -yaw_terms_limits_[0], yaw_terms_limits_[0]);
 
-        //**** I term:
-        yaw_i_term_[j] += (psi_err_ * du * yaw_gains_[j][1]);
-        yaw_i_term_[j] = clamp(yaw_i_term_[j], -yaw_terms_limits_[1], yaw_terms_limits_[1]);
+    //**** I term:
+    yaw_i_term_[0] += (psi_err_ * du * yaw_gains_[0][1]);
+    yaw_i_term_[0] = clamp(yaw_i_term_[0], -yaw_terms_limits_[1], yaw_terms_limits_[1]);
 
-        //***** D term: usaully it is in the flight board
-        /* but for the gimbal control, we need the d term, set 0 if it is not gimbal type */
-        double yaw_d_term = 0;
-        if(need_yaw_d_control_)
-          yaw_d_term = clamp(yaw_gains_[j][2] * (-state_psi_vel_), -yaw_terms_limits_[2], yaw_terms_limits_[2]);
+    //***** D term: usaully it is in the flight board
+    /* but for the gimbal control, we need the d term, set 0 if it is not gimbal type */
+    double yaw_d_term = 0;
+    if(need_yaw_d_control_)
+      yaw_d_term = clamp(yaw_gains_[0][2] * (-state_psi_vel_), -yaw_terms_limits_[2], yaw_terms_limits_[2]);
 
-        //*** each motor command value for log
-        target_yaw_[j] = clamp(yaw_p_term + yaw_i_term_[j] + yaw_d_term, -yaw_limit_, yaw_limit_);
+    //*** each motor command value for log
+    target_yaw_[0] = clamp(yaw_p_term + yaw_i_term_[0] + yaw_d_term, -yaw_limit_, yaw_limit_);
 
-        pid_msg.yaw.total.push_back(target_yaw_[j]);
-        pid_msg.yaw.p_term.push_back(yaw_p_term);
-        pid_msg.yaw.i_term.push_back(yaw_i_term_[j]);
-        pid_msg.yaw.d_term.push_back(yaw_d_term);
-
-        if(yaw_gains_.size() == 1) break;
-      }
+    pid_msg.yaw.total.push_back(target_yaw_[0]);
+    pid_msg.yaw.p_term.push_back(yaw_p_term);
+    pid_msg.yaw.i_term.push_back(yaw_i_term_[0]);
+    pid_msg.yaw.d_term.push_back(yaw_d_term);
 
     //**** ros pub
     pid_msg.yaw.target_pos = target_psi_;
@@ -158,28 +160,23 @@ namespace control_plugin
 
     if(navigator_->getNaviState() == Navigator::LAND_STATE) alt_err += alt_landing_const_i_ctrl_thresh_;
 
-    for(int j = 0; j < motor_num_; j++)
-      {
-        //**** P Term
-        double alt_p_term = clamp(-alt_gains_[j][0] * alt_err, -alt_terms_limit_[0], alt_terms_limit_[0]);
-        if(navigator_->getNaviState() == Navigator::LAND_STATE) alt_p_term = 0;
+    //**** P Term
+    double alt_p_term = clamp(alt_gains_[0][0] * alt_err, -alt_terms_limit_[0], alt_terms_limit_[0]);
+    if(navigator_->getNaviState() == Navigator::LAND_STATE) alt_p_term = 0;
 
-        /* two way to calculate the alt i term */
-        //**** I Term
-        alt_i_term_[j] +=  alt_err * du;
-        double alt_i_term = clamp(alt_gains_[j][1] * alt_i_term_[j], -alt_terms_limit_[1], alt_terms_limit_[1]);
-        //***** D Term
-        double alt_d_term = clamp(alt_gains_[j][2] * state_vel_.z(), -alt_terms_limit_[2], alt_terms_limit_[2]);
+    /* two way to calculate the alt i term */
+    //**** I Term
+    alt_i_term_[0] +=  alt_err * du;
+    double alt_i_term = clamp(alt_gains_[0][1] * alt_i_term_[0], -alt_terms_limit_[1], alt_terms_limit_[1]);
+    //***** D Term
+    double alt_d_term = clamp(alt_gains_[0][2] * -state_vel_.z(), -alt_terms_limit_[2], alt_terms_limit_[2]);
 
-        //*** each motor command value for log
-        target_throttle_[j] = clamp(alt_p_term + alt_i_term + alt_d_term + alt_offset_, -alt_limit_, alt_limit_);
-        pid_msg.throttle.total.push_back(target_throttle_[j]);
-        pid_msg.throttle.p_term.push_back(alt_p_term);
-        pid_msg.throttle.i_term.push_back(alt_i_term);
-        pid_msg.throttle.d_term.push_back(alt_d_term);
-
-        if(alt_gains_.size() == 1) break;
-      }
+    //*** each motor command value for log
+    target_throttle_[0] = clamp(alt_p_term + alt_i_term + alt_d_term + alt_offset_, -alt_limit_, alt_limit_);
+    pid_msg.throttle.total.push_back(target_throttle_[0]);
+    pid_msg.throttle.p_term.push_back(alt_p_term);
+    pid_msg.throttle.i_term.push_back(alt_i_term);
+    pid_msg.throttle.d_term.push_back(alt_d_term);
 
     pid_msg.throttle.target_pos = target_pos_.z();
     pid_msg.throttle.pos_err = alt_err;
@@ -222,7 +219,7 @@ namespace control_plugin
         q_matrix_pseudo_inverse_inertia_msg.inertia[5] = uav_inertia(0, 2) * 1000;
 
         q_matrix_pseudo_inverse_inertia_msg.Q_matrix_pseudo_inverse.resize(3 * motor_num_);
-        Eigen::MatrixXd Q_pseudo_inv_torque = Q_pseudo_inv_.block(3, 0, motor_num_, 3);
+        Eigen::MatrixXd Q_pseudo_inv_torque = Q_pseudo_inv_.block(0, 3, motor_num_, 3);
         for (unsigned int i = 0; i < motor_num_; i++)
           {
             for (unsigned int j = 0; j < 3; j++)
@@ -265,6 +262,44 @@ namespace control_plugin
     Eigen::VectorXd propeller_force = Q_pseudo_inv_force * target_force;
     for (unsigned int i = 0; i < force.size(); i++)
       force.at(i) = propeller_force[i];
+  }
+
+  void FullOverActuatedController::rosParamInit() //override
+  {
+    FlatnessPid::rosParamInit();
+
+    /* pitch roll control */
+    ros::NodeHandle roll_pitch_node(nhp_, "roll_pitch");
+    string roll_pitch_ns = roll_pitch_node.getNamespace();
+    roll_pitch_node.param("limit", roll_pitch_limit_, 1.0e6);
+    if(verbose_) cout << roll_pitch_ns << ": pos_limit_ is " << roll_pitch_limit_ << endl;
+    roll_pitch_node.param("p_term_limit", roll_pitch_terms_limits_[0], 1.0e6);
+    if(verbose_) cout << roll_pitch_ns << ": pos_p_limit_ is " << roll_pitch_terms_limits_[0] << endl;
+    roll_pitch_node.param("i_term_limit", roll_pitch_terms_limits_[1], 1.0e6);
+    if(verbose_) cout << roll_pitch_ns << ": pos_i_limit_ is " << roll_pitch_terms_limits_[1] << endl;
+    roll_pitch_node.param("d_term_limit", roll_pitch_terms_limits_[2], 1.0e6);
+    if(verbose_) cout << roll_pitch_ns << ": pos_d_limit_ is " << roll_pitch_terms_limits_[2] << endl;
+    roll_pitch_node.param("p_gain", roll_pitch_gains_[0], 0.0);
+    if(verbose_) cout << roll_pitch_ns << ": p_gain_ is " << roll_pitch_gains_[0] << endl;
+    roll_pitch_node.param("i_gain", roll_pitch_gains_[1], 0.0);
+    if(verbose_) cout << roll_pitch_ns << ": i_gain_ is " << roll_pitch_gains_[1] << endl;
+    roll_pitch_node.param("d_gain", roll_pitch_gains_[2], 0.0);
+    if(verbose_) cout << roll_pitch_ns << ": d_gain_ is " << roll_pitch_gains_[2] << endl;
+  }
+
+  void FullOverActuatedController::flightConfigCallback(const std_msgs::UInt8& msg)
+  {
+    hydrus_xi::AttitudePidGains gain_msg;
+    gain_msg.roll_pitch_p = roll_pitch_gains_[0];
+    gain_msg.roll_pitch_i = roll_pitch_gains_[1];
+    gain_msg.roll_pitch_d = roll_pitch_gains_[2];
+    gain_msg.yaw_d = yaw_gains_[0][2];
+    gain_msg.roll_pitch_p_limit = roll_pitch_terms_limits_[0];
+    gain_msg.roll_pitch_i_limit = roll_pitch_terms_limits_[1];
+    gain_msg.roll_pitch_d_limit = roll_pitch_terms_limits_[2];
+    gain_msg.yaw_d_limit = yaw_terms_limits_[2];
+
+    attitude_gain_pub_.publish(gain_msg);
   }
 
 } //namespace control_plugin
