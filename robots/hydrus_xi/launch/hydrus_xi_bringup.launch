@@ -47,7 +47,7 @@
 
     ###########  Overactuated PID Control with Transform Control ############
     <param name="control_plugin_name" value="control_plugin/full_over_actuated" />
-    <rosparam file="$(find hydrus_xi)/config/$(arg type)/DifferentialFlatnessPidControlConfig.yaml" command="load" />
+    <rosparam file="$(find hydrus_xi)/config/$(arg type)/FullOverActuatedPidControlConfig.yaml" command="load" />
 
     ###########  Teleop  ###########
     <rosparam file="$(find hydrus_xi)/config/TeleopNavigationConfig.yaml" command="load" />
