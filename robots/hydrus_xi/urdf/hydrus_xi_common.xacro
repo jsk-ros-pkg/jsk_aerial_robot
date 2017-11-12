@@ -1,0 +1,66 @@
+<?xml version="1.0"?>
+<robot
+    xmlns:xacro="http://www.ros.org/wiki/xacro" name="hydrus_xi_common" >
+
+  <!--  model type 1: baselink (attached with imu, pc): fixed_n-->
+  <!--  model type 2: fixed_p_link -->
+  <!--  model type 3: fixed_n_link -->
+
+  <!-- kinematics [m] -->
+  <xacro:property name="link_length" value=".6" />
+  <xacro:property name="protector_radius" value=".1925" />
+  <xacro:property name="fc_x_offset" value=".566" />
+  <xacro:property name="fc_z_offset" value="-0.021" />
+  <xacro:property name="thrust_z_offset" value="0.0642" />
+  <xacro:property name="thrust_tilt_angle" value="0.17453292519" />
+  <xacro:property name="rotor_radius" value=".02" />
+
+  <!-- mass [Kg] -->
+  <xacro:property name="rotor_mass" value=".05" /> <!-- exclude from center mass -->
+
+  <!-- material color for rviz -->
+  <material name="black">
+    <color rgba="0 0 0 1"/>
+  </material>
+
+  <material name="red">
+    <color rgba="1 0 0 1"/>
+  </material>
+
+  <!-- dynamics -->
+  <xacro:property name="max_force" value="18.5" /> <!-- [N] -->
+
+  <xacro:macro name="link_model" params="type">
+    <collision>
+      <origin rpy="0 0 0" xyz="${link_length* 0.5} 0 0"/>
+      <geometry>
+        <box size="${link_length} 0.05 0.15"/>
+      </geometry>
+    </collision>
+
+    <visual>
+      <!--<origin rpy="${- pi / 2} 0 0" xyz="${link_length* 0.5} 0 0"/> -->
+      <origin rpy="0 0 0" xyz="${link_length* 0.5} 0 0"/>
+      <geometry>
+        <!--<mesh filename="package://hydrus_xi/urdf/mesh/${type}.dae"/> -->
+        <mesh filename="package://hydrus_xi/urdf/mesh/${type}.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="black"/>
+    </visual>
+  </xacro:macro>
+
+  <!-- friction -->
+  <xacro:macro name="friction" params="self">
+    <gazebo reference="link${self}">
+      <mu1>0.0001</mu1>
+      <mu2>0.0001</mu2>
+      <material>Gazebo/Black</material>
+    </gazebo>
+  </xacro:macro>
+
+  <xacro:macro name="damping_factor" params="link">
+    <gazebo reference="${link}">
+      <dampingFactor>0.00</dampingFactor>
+    </gazebo>
+  </xacro:macro>
+</robot>

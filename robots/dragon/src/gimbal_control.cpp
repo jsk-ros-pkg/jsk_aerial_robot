@@ -191,7 +191,7 @@ namespace control_plugin
     int rotor_num = kinematics_->getRotorNum();
 
     std::vector<Eigen::Vector3d> rotors_origin_from_cog(rotor_num);
-    kinematics_->getRotorsFromCog(rotors_origin_from_cog);
+    kinematics_->getRotorsOriginFromCog(rotors_origin_from_cog);
     Eigen::Matrix3d links_inertia = kinematics_->getInertia();
 
     /* roll pitch condition */

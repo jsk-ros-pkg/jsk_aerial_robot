@@ -321,6 +321,9 @@ void AerialRobotHWSim::findBaselink(const KDL::SegmentMap::const_iterator segmen
               base_link_parent_ = parent;
               base_link_offset_.Set(child.getFrameToTip().p.x(), child.getFrameToTip().p.y(), child.getFrameToTip().p.z());
               ROS_WARN("Find baselink %s from %s, offset is [%f, %f, %f]", child.getName().c_str(), parent.c_str(), child.getFrameToTip().p.x(), child.getFrameToTip().p.y(), child.getFrameToTip().p.z());
+
+              /* special process for the link1, under the condition that link1 == root */
+              if(base_link_parent_ == std::string("link1")) base_link_parent_ = std::string("root");
             }
           if(parent  == rotor_interface_.getBaseLinkName())
             {

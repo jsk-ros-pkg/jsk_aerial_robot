@@ -1,0 +1,189 @@
+<?xml version="1.0"?>
+<robot
+    xmlns:xacro="http://www.ros.org/wiki/xacro" name="hydrus_xi_link" >
+
+  <!-- D-H kai description(different from prof.nakamura) -->
+  <xacro:macro name="hydrus_xi_module" params="self child rotor_direction link_type">
+
+    <!-- link -->
+    <link name="link${self}">
+      <!-- baselink -->
+      <xacro:if value="${link_type == 1}">
+        <inertial>
+          <origin xyz="${link_length* 0.5 + 2.39 * 0.001} 0 ${0.06 * 0.001}" rpy="0 0 0"/>
+          <mass value="${.90875 - rotor_mass}" />
+          <inertia
+              ixx="0.00273" iyy="0.02744" izz="0.02733"
+              ixy="0.00019" ixz="-0.00214" iyz="0.0"/>
+        </inertial>
+        <xacro:link_model type="baselink" />
+
+        <link name="fc">
+          <inertial>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <mass value="0.00001"/>
+            <inertia
+                ixx="0.000001" ixy="0.0" ixz="0.0"
+                iyy="0.000001" iyz="0.0"
+                izz="0.000002"/>
+          </inertial>
+        </link>
+        <joint name="fc_joint" type="fixed">
+          <child link="fc"/>
+          <parent link="link${self}"/>
+          <origin rpy="0 0 0" xyz="${fc_x_offset} 0 ${fc_z_offset}"/>
+          <axis xyz="0 0 1"/>
+        </joint>
+
+      </xacro:if>
+
+      <!-- fixed_n_link -->
+      <xacro:if value="${link_type == 2}">
+        <inertial>
+          <origin xyz="${link_length * 0.5 + (-7.33) * 0.001} 0 ${0.79 * 0.001}" rpy="0 0 0"/>
+          <mass value="${0.87477 - rotor_mass}" />
+          <inertia
+              ixx="0.00289" iyy="0.02535" izz="0.02542"
+              ixy="0.00006" ixz="0.00198" iyz="0.0"/>
+        </inertial>
+        <xacro:link_model type="fixed_tilt_n_link" />
+      </xacro:if>
+
+      <!-- fixed_p_link -->
+      <xacro:if value="${link_type == 3}">
+        <inertial>
+          <origin xyz="${link_length * 0.5 + (-8.53) * 0.001} 0 ${0.8 * 0.001}" rpy="0 0 0"/>
+          <mass value="${0.87512 - rotor_mass}" />
+          <inertia
+              ixx="0.00289" iyy="0.02534" izz="0.02541"
+              ixy="0.00006" ixz="-0.00202" iyz="0.0"/>
+        </inertial>
+        <xacro:link_model type="fixed_tilt_p_link" />
+      </xacro:if>
+    </link>
+    <xacro:damping_factor link ="link${self}"/>
+
+    <!-- rotor -->
+    <joint name="rotor${self}" type="continuous">
+      <limit effort="100.0" lower="0" upper="${max_force}" velocity="0.5"/> <!-- force range -->
+      <parent link="link${self}"/>
+      <child link="thrust${self}"/>
+      <xacro:if value="${link_type == 1}" >
+        <origin rpy="0 ${-thrust_tilt_angle} 0" xyz="${link_length* 0.5} 0 ${thrust_z_offset}"/>
+      </xacro:if>
+      <xacro:if value="${link_type == 2}" >
+        <origin rpy="0 ${-thrust_tilt_angle} 0" xyz="${link_length* 0.5} 0 ${thrust_z_offset}"/>
+      </xacro:if>
+      <xacro:if value="${link_type == 3}" >
+        <origin rpy="0 ${thrust_tilt_angle} 0" xyz="${link_length* 0.5} 0 ${thrust_z_offset}"/>
+      </xacro:if>
+      <axis xyz="0 0 ${rotor_direction}"/>
+    </joint>
+
+    <link name="thrust${self}">
+      <!-- visual & collisiont -->
+      <inertial>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <mass value="${rotor_mass}"/>
+        <inertia
+            ixx="${rotor_mass * .25 * rotor_radius * rotor_radius}" ixy="0.0" ixz="0.0"
+            iyy="${rotor_mass * .25 * rotor_radius * rotor_radius}" iyz="0.0"
+            izz="${rotor_mass * .5 * rotor_radius * rotor_radius}"/>
+      </inertial>
+
+      <collision>
+        <origin rpy="0 0 0" xyz="0 0 -0.03"/>
+        <geometry>
+          <cylinder length="0.15" radius="${protector_radius + 0.01}"/>
+        </geometry>
+        </collision>
+
+    </link>
+    <xacro:damping_factor link ="thrust${self}"/>
+
+    <xacro:if value="${self == 1}">
+      <!-- dummy root link for KDL -->
+      <link name="root">
+        <inertial>
+          <origin xyz="0 0 0" rpy="0 0 0"/>
+          <mass value="0.00001"/>
+          <inertia
+              ixx="0.000001" ixy="0.0" ixz="0.0"
+              iyy="0.000001" iyz="0.0"
+              izz="0.000002"/>
+        </inertial>
+      </link>
+      <joint name="root_joint" type="fixed">
+        <parent link="root"/>
+        <child link="link${self}"/>
+        <origin rpy="0 0 0" xyz="0 0 0"/>
+        <axis xyz="0 0 1"/>
+      </joint>
+    </xacro:if>
+
+    <!-- joint -->>
+    <xacro:unless value="${self == child}">
+      <joint name="joint${self}" type="revolute">
+        <limit effort="3.1" lower="-1.57" upper="1.57" velocity="0.5"/>
+        <parent link="link${self}"/>
+        <child link="link${child}"/>
+        <origin rpy="0 0 0" xyz="${link_length} 0 0"/>
+        <axis xyz="0 0 1"/>
+        <dynamics damping="0.8" friction="0.05"/>
+      </joint>
+    </xacro:unless>
+
+    <!-- fc -->
+    <xacro:if value="${link_type == 1}">
+      <link name="fc">
+        <inertial>
+          <origin xyz="0 0 0" rpy="0 0 0"/>
+          <mass value="0.00001"/>
+          <inertia
+              ixx="0.000001" ixy="0.0" ixz="0.0"
+              iyy="0.000001" iyz="0.0"
+              izz="0.000002"/>
+        </inertial>
+      </link>
+      <joint name="fc_joint" type="fixed">
+        <child link="fc"/>
+        <parent link="link${self}"/>
+        <origin rpy="0 0 0" xyz="${fc_x_offset} 0 ${fc_z_offset}"/>
+        <axis xyz="0 0 1"/>
+      </joint>
+    </xacro:if>
+
+    <!-- hardware interface -->
+    <xacro:unless value="${self == child}">
+      <transmission name="joint_tran${self}">
+        <type>transmission_interface/SimpleTransmission</type>
+        <joint name="joint${self}">
+          <!-- TODO: effort is torque, maybe position is enough -->
+          <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+        </joint>
+        <actuator name="servo{self}">
+          <!-- TODO: effort is torque, maybe position is enough -->
+          <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+          <mechanicalReduction>1</mechanicalReduction>
+        </actuator>
+      </transmission>
+    </xacro:unless>
+
+    <transmission name="rotor_tran${self}">
+      <type>transmission_interface/SimpleTransmission</type>
+      <joint name="rotor${self}">
+        <!-- TODO: effort is torque, maybe position is enough -->
+        <hardwareInterface>RotorInterface</hardwareInterface>
+      </joint>
+      <actuator name="rotor${self}">
+        <!-- TODO: effort is torque, maybe position is enough -->
+        <hardwareInterface>RotorInterface</hardwareInterface>
+        <mechanicalReduction>1</mechanicalReduction>
+      </actuator>
+    </transmission>
+
+    <xacro:friction self ="${self}"/>
+
+  </xacro:macro>
+
+</robot>

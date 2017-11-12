@@ -1,0 +1,28 @@
+# Teleop Basic Param
+
+navigator/takeoff_height: 0.5
+navigator/navi_frame_int: 0  # deprecated?  map frame: 0, body frame: 1 
+navigator/map_frame: map
+navigator/target_frame: target
+
+# Keyboard _teleop
+
+navigator/even_move_distance: 0.1
+navigator/up_down_distance: 0.1
+navigator/forward_backward_distance: 0
+navigator/left_right_distance: 0
+
+# Keyboard _teleop
+navigator/max_target_vel: 0.5
+navigator/joy_target_vel_interval: 0.005  # 0.2 / 20 = 0.01, 0.005 ~ 0.01  m/s
+navigator/joy_target_alt_interval: 0.02
+navigator/max_target_yaw_rate: 0.1 #  0.05 
+navigator/cmd_vel_lev2_gain : 2.0
+
+# attitude tunning mode in joystick mode
+navigator/gain_tunning_mode: 0
+navigator/max_target_tilt_angle: 0.2
+navigator/cmd_angle_lev2_gain : 1.5
+
+# battery fail safe
+navigator/low_voltage_thre: 216 # 21.6V

@@ -15,6 +15,7 @@ find_package(catkin REQUIRED COMPONENTS
   aerial_robot_base
   tf
   hydrus
+  hydrus_xi
 )
 
 # Depend on system install of Gazebo
