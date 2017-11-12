@@ -6,8 +6,8 @@
   <xacro:include filename="$(find hydrus_xi)/urdf/hydrus_xi_link.urdf.xacro" />
 
   <!--  model type 1: baselink (attached with imu, pc): fixed_n-->
-  <!--  model type 2: fixed_p_link -->
-  <!--  model type 3: fixed_n_link -->
+  <!--  model type 2: fixed_n_link -->
+  <!--  model type 3: fixed_p_link -->
   <xacro:hydrus_xi_module self="1" child="2" rotor_direction="-1"  link_type="1" />
   <xacro:hydrus_xi_module self="2" child="3" rotor_direction="1"  link_type="3" />
   <xacro:hydrus_xi_module self="3" child="4" rotor_direction="-1"  link_type="2" />

@@ -39,15 +39,13 @@
     </collision>
 
     <visual>
-      <origin rpy="${- pi / 2} 0 0" xyz="${link_length* 0.5} 0 0"/> 
-      <!-- <origin rpy="0 0 0" xyz="${link_length* 0.5} 0 0"/>  STL-->
+      <!--<origin rpy="${- pi / 2} 0 0" xyz="${link_length* 0.5} 0 0"/> -->
+      <origin rpy="0 0 0" xyz="${link_length* 0.5} 0 0"/>
       <geometry>
-        <mesh filename="package://hydrus_xi/urdf/mesh/${type}.dae"/>
-        <!-- STL
-            <mesh filename="package://hydrus_xi/urdf/mesh/${type}.stl" scale="0.001 0.001 0.001"/>
-        -->
+        <!--<mesh filename="package://hydrus_xi/urdf/mesh/${type}.dae"/> -->
+        <mesh filename="package://hydrus_xi/urdf/mesh/${type}.stl" scale="0.001 0.001 0.001"/>
       </geometry>
-      <!-- <material name="black"/> STL-->
+      <material name="black"/>
     </visual>
   </xacro:macro>
 

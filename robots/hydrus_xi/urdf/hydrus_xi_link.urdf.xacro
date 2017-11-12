@@ -17,6 +17,24 @@
               ixy="0.00019" ixz="-0.00214" iyz="0.0"/>
         </inertial>
         <xacro:link_model type="baselink" />
+
+        <link name="fc">
+          <inertial>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <mass value="0.00001"/>
+            <inertia
+                ixx="0.000001" ixy="0.0" ixz="0.0"
+                iyy="0.000001" iyz="0.0"
+                izz="0.000002"/>
+          </inertial>
+        </link>
+        <joint name="fc_joint" type="fixed">
+          <child link="fc"/>
+          <parent link="link${self}"/>
+          <origin rpy="0 0 0" xyz="${fc_x_offset} 0 ${fc_z_offset}"/>
+          <axis xyz="0 0 1"/>
+        </joint>
+
       </xacro:if>
 
       <!-- fixed_n_link -->
@@ -101,7 +119,22 @@
         <origin rpy="0 0 0" xyz="0 0 0"/>
         <axis xyz="0 0 1"/>
       </joint>
+    </xacro:if>
 
+    <!-- joint -->>
+    <xacro:unless value="${self == child}">
+      <joint name="joint${self}" type="revolute">
+        <limit effort="3.1" lower="-1.57" upper="1.57" velocity="0.5"/>
+        <parent link="link${self}"/>
+        <child link="link${child}"/>
+        <origin rpy="0 0 0" xyz="${link_length} 0 0"/>
+        <axis xyz="0 0 1"/>
+        <dynamics damping="0.8" friction="0.05"/>
+      </joint>
+    </xacro:unless>
+
+    <!-- fc -->
+    <xacro:if value="${link_type == 1}">
       <link name="fc">
         <inertial>
           <origin xyz="0 0 0" rpy="0 0 0"/>
@@ -119,19 +152,6 @@
         <axis xyz="0 0 1"/>
       </joint>
     </xacro:if>
-
-    <!-- joint -->>
-    <xacro:unless value="${self == child}">
-      <joint name="joint${self}" type="revolute">
-        <limit effort="3.1" lower="-1.57" upper="1.57" velocity="0.5"/>
-        <parent link="link${self}"/>
-        <child link="link${child}"/>
-        <origin rpy="0 0 0" xyz="${link_length} 0 0"/>
-        <axis xyz="0 0 1"/>
-        <dynamics damping="0.8" friction="0.05"/>
-      </joint>
-    </xacro:unless>
-
 
     <!-- hardware interface -->
     <xacro:unless value="${self == child}">
