@@ -170,6 +170,8 @@ public:
   inline Eigen::MatrixXd getK() { return K_; }
   inline uint8_t getLqiMode() { return lqi_mode_; }
   inline void setLqiMode(uint8_t lqi_mode) { lqi_mode_ = lqi_mode; }
+  inline double getFMax() {return f_max_;}
+  inline double getFMin() {return f_min_;}
 
   void setCogDesireOrientation(KDL::Rotation cog_desire_orientation)
   {
