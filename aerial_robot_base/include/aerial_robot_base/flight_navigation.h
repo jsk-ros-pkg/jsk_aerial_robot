@@ -15,6 +15,7 @@
 #include <aerial_robot_msgs/FourAxisCommand.h>
 #include <tf/transform_broadcaster.h>
 #include <aerial_robot_base/FlightNav.h>
+#include <aerial_robot_base/FlightConfigCmd.h>
 #include <sensor_msgs/Joy.h>
 
 namespace flight_nav
@@ -95,12 +96,6 @@ public:
   static constexpr uint8_t LAND_STATE = 0x04;
   static constexpr uint8_t HOVER_STATE= 0x05;
   static constexpr uint8_t STOP_STATE = 0x06;
-
-  //for ros arm/disarm cmd
-  static constexpr uint8_t ARM_ON_CMD = 0x00; //old: 150;
-  static constexpr uint8_t ARM_OFF_CMD = 0x01; //old: 151;
-  static constexpr uint8_t ROS_INTEGRATE_CMD = 160;
-  static constexpr uint8_t FORCE_LANDING_CMD = 0x02; //force landing
 
   // battery check
   static constexpr float VOLTAGE_100P =  4.2;
@@ -241,13 +236,13 @@ protected:
 
   void armingAckCallback(const std_msgs::UInt8ConstPtr& ack_msg)
   {
-    if(ack_msg->data == ARM_OFF_CMD)
+    if(ack_msg->data == aerial_robot_base::FlightConfigCmd::ARM_OFF_CMD)
       {//  arming off
         ROS_INFO("STOP RES From AERIAL ROBOT");
         setNaviState(ARM_OFF_STATE);
       }
 
-    if(ack_msg->data == ARM_ON_CMD)
+    if(ack_msg->data == aerial_robot_base::FlightConfigCmd::ARM_ON_CMD)
       {//  arming on
         ROS_INFO("START RES From AERIAL ROBOT");
         setNaviState(ARM_ON_STATE);
@@ -295,9 +290,10 @@ protected:
 
   void forceLandingCallback(const std_msgs::EmptyConstPtr & msg)
   {
-    std_msgs::UInt8 force_landing_cmd;
-    force_landing_cmd.data = FORCE_LANDING_CMD;
-    flight_config_pub_.publish(force_landing_cmd);
+    aerial_robot_base::FlightConfigCmd flight_config_cmd;
+    flight_config_cmd.cmd = aerial_robot_base::FlightConfigCmd::FORCE_LANDING_CMD;
+    flight_config_pub_.publish(flight_config_cmd);
+    force_landing_flag_ = true;
 
     ROS_INFO("Force Landing state");
   }
