@@ -129,9 +129,9 @@ namespace control_plugin
         if(state_pos_.z() > 0.01)
           {
             start_rp_integration_ = true;
-            std_msgs::UInt8 integration_cmd;
-            integration_cmd.data = navigator_->ROS_INTEGRATE_CMD;
-            navigator_->flight_config_pub_.publish(integration_cmd);
+            aerial_robot_base::FlightConfigCmd flight_config_cmd;
+            flight_config_cmd.cmd = aerial_robot_base::FlightConfigCmd::INTEGRATION_CONTROL_ON_CMD;
+            navigator_->flight_config_pub_.publish(flight_config_cmd);
             ROS_WARN("start rp integration");
           }
       }

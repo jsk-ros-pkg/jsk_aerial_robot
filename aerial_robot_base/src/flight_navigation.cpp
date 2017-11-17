@@ -42,7 +42,7 @@ Navigator::Navigator(ros::NodeHandle nh, ros::NodeHandle nh_private,
   stop_teleop_sub_ = nh_.subscribe<std_msgs::UInt8>("stop_teleop", 1, &Navigator::stopTeleopCallback, this, ros::TransportHints().tcpNoDelay());
   teleop_flag_ = true;
 
-  flight_config_pub_ = nh_.advertise<std_msgs::UInt8>("/flight_config_cmd", 10);
+  flight_config_pub_ = nh_.advertise<aerial_robot_base::FlightConfigCmd>("/flight_config_cmd", 10);
   power_info_pub_ = nh_.advertise<geometry_msgs::Vector3Stamped>("/uav_power", 10);
 
   estimator_ = estimator;
@@ -235,9 +235,9 @@ void Navigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
       if(!force_landing_flag_ && (getNaviState() == TAKEOFF_STATE || getNaviState() == LAND_STATE || getNaviState() == HOVER_STATE))
         {
           ROS_WARN("Joy Control: force landing state");
-          std_msgs::UInt8 force_landing_cmd;
-          force_landing_cmd.data = FORCE_LANDING_CMD;
-          flight_config_pub_.publish(force_landing_cmd);
+          aerial_robot_base::FlightConfigCmd flight_config_cmd;
+          flight_config_cmd.cmd = aerial_robot_base::FlightConfigCmd::FORCE_LANDING_CMD;
+          flight_config_pub_.publish(flight_config_cmd);
           force_landing_flag_ = true;
 
           /* update the force landing stamp for the halt process*/
@@ -464,9 +464,9 @@ void Navigator::update()
     {
       if(getNaviState() == TAKEOFF_STATE || getNaviState() == HOVER_STATE  || getNaviState() == LAND_STATE)
         ROS_WARN("Sensor Unhealth Level%d: force landing state", estimator_->getUnhealthLevel());
-      std_msgs::UInt8 force_landing_cmd;
-      force_landing_cmd.data = FORCE_LANDING_CMD;
-      flight_config_pub_.publish(force_landing_cmd);
+      aerial_robot_base::FlightConfigCmd flight_config_cmd;
+      flight_config_cmd.cmd = aerial_robot_base::FlightConfigCmd::FORCE_LANDING_CMD;
+      flight_config_pub_.publish(flight_config_cmd);
       force_landing_flag_ = true;
     }
 
@@ -512,9 +512,9 @@ void Navigator::update()
         estimator_->setSensorFusionFlag(true);
         force_landing_flag_ = false; //is here good?
 
-        std_msgs::UInt8 start_cmd;
-        start_cmd.data = ARM_ON_CMD;
-        flight_config_pub_.publish(start_cmd);
+        aerial_robot_base::FlightConfigCmd flight_config_cmd;
+        flight_config_cmd.cmd = aerial_robot_base::FlightConfigCmd::ARM_ON_CMD;
+        flight_config_pub_.publish(flight_config_cmd);
 
         break;
       }
@@ -607,9 +607,9 @@ void Navigator::update()
         estimator_->setLandedFlag(false);
         estimator_->setFlyingFlag(false);
 
-        std_msgs::UInt8 stop_cmd;
-        stop_cmd.data = ARM_OFF_CMD;
-        flight_config_pub_.publish(stop_cmd);
+        aerial_robot_base::FlightConfigCmd flight_config_cmd;
+        flight_config_cmd.cmd = aerial_robot_base::FlightConfigCmd::ARM_OFF_CMD;
+        flight_config_pub_.publish(flight_config_cmd);
 
         break;
       }

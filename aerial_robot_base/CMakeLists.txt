@@ -42,6 +42,7 @@ add_message_files(FILES
   DesireCoord.msg
   Acc.msg
   UavInfo.msg
+  FlightConfigCmd.msg
   )
 
 add_service_files(
