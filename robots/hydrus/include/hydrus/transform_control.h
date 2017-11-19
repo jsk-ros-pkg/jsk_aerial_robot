@@ -103,15 +103,19 @@ public:
 
   inline int getRotorNum(){return rotor_num_;}
 
-  void getRotorsFromCog(std::vector<Eigen::Vector3d>& rotors_origin_from_cog)
+  const Eigen::Vector3d& getRotorOirginFromCog(int index)
   {
     boost::lock_guard<boost::mutex> lock(origins_mutex_);
-    int size = rotors_origin_from_cog_.size();
-    for(int i=0; i< size; i++)
-      rotors_origin_from_cog = rotors_origin_from_cog_;
+    return rotors_origin_from_cog_.at(index);
   }
 
-  void setRotorsFromCog(const std::vector<Eigen::Vector3d>& rotors_origin_from_cog)
+  const std::vector<Eigen::Vector3d>& getRotorsOriginFromCog()
+  {
+    boost::lock_guard<boost::mutex> lock(origins_mutex_);
+    return rotors_origin_from_cog_;
+  }
+
+  void setRotorsOriginFromCog(const std::vector<Eigen::Vector3d>& rotors_origin_from_cog)
   {
     boost::lock_guard<boost::mutex> lock(origins_mutex_);
     assert(rotors_origin_from_cog_.size() == rotors_origin_from_cog.size());
@@ -164,10 +168,10 @@ public:
   }
 
   inline void setStableState(Eigen::VectorXd x) {stable_x_ = x;}
-  inline Eigen::VectorXd getStableState() {return stable_x_;}
+  const Eigen::VectorXd& getStableState() const {return stable_x_;}
 
-  inline Eigen::MatrixXd getP() { return P_; }
-  inline Eigen::MatrixXd getK() { return K_; }
+  const Eigen::MatrixXd& getP() const  { return P_; }
+  const Eigen::MatrixXd& getK() const { return K_; }
   inline uint8_t getLqiMode() { return lqi_mode_; }
   inline void setLqiMode(uint8_t lqi_mode) { lqi_mode_ = lqi_mode; }
   inline double getFMax() {return f_max_;}

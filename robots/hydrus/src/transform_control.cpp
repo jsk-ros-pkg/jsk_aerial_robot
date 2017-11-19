@@ -334,7 +334,7 @@ void TransformController::kinematics(sensor_msgs::JointState state)
       //std::cout << "rotor" << i + 1 << ": \n"<< f_rotors[i] << std::endl;
     }
 
-  setRotorsFromCog(f_rotors);
+  setRotorsOriginFromCog(f_rotors);
   KDL::RigidBodyInertia link_inertia_from_cog = cog_frame.Inverse() * link_inertia;
   setInertia(Eigen::Map<const Eigen::Matrix3d>(link_inertia_from_cog.getRotationalInertia().data));
 
@@ -468,8 +468,7 @@ double TransformController::distThreCheck(bool verbose)
 {
   double average_x = 0, average_y = 0;
 
-  std::vector<Eigen::Vector3d> rotors_origin_from_cog(rotor_num_);
-  getRotorsFromCog(rotors_origin_from_cog);
+  std::vector<Eigen::Vector3d> rotors_origin_from_cog = getRotorsOriginFromCog();
 
   /* calcuate the average */
   for(int i = 0; i < rotor_num_; i++)
@@ -510,8 +509,7 @@ double TransformController::distThreCheck(bool verbose)
 
 bool  TransformController::modelling(bool verbose)
 {
-  std::vector<Eigen::Vector3d> rotors_origin_from_cog(rotor_num_);
-  getRotorsFromCog(rotors_origin_from_cog);
+  std::vector<Eigen::Vector3d> rotors_origin_from_cog = getRotorsOriginFromCog();
   Eigen::Matrix3d links_inertia = getInertia();
 
   Eigen::VectorXd g(4);
