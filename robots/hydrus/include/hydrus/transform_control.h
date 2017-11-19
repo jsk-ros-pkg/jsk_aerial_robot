@@ -246,7 +246,6 @@ protected:
   void initParam();
   /* main control func */
   virtual void control();
-  /* kinematics calculation */
   /* LQI parameter calculation */
   void lqi();
 

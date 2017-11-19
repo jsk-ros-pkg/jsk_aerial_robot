@@ -7,6 +7,7 @@ controller/alt/p_term_limit: 16.5
 controller/alt/i_term_limit: 16.5
 controller/alt/d_term_limit: 16.5
 controller/alt/alt_landing_const_i_ctrl_thresh: -0.2
+controller/alt/err_thresh: 0.5
 
 # xy [rad]
 controller/xy/p_gain: 0.1 
