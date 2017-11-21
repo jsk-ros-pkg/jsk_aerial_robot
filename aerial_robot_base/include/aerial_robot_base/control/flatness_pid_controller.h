@@ -129,6 +129,7 @@ namespace control_plugin
     std::vector<tf::Vector3> yaw_gains_;
     double yaw_limit_;
     tf::Vector3 yaw_terms_limits_;
+    double yaw_err_thresh_;
     std::vector<double>  yaw_i_term_;
     bool need_yaw_d_control_;
 

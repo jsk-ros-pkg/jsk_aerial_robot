@@ -107,7 +107,11 @@ void Navigator::naviCallback(const aerial_robot_base::FlightNavConstPtr & msg)
   /* yaw */
   if(msg->psi_nav_mode == aerial_robot_base::FlightNav::POS_MODE)
     {
-      setTargetPsi(msg->target_psi);
+      double target_psi = msg->target_psi;
+      if(target_psi > M_PI)  target_psi -= (2 * M_PI);
+      else if(target_psi < -M_PI)  target_psi += (2 * M_PI);
+
+      setTargetPsi(target_psi);
     }
 
   /* xy control */

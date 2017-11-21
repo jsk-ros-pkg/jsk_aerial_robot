@@ -114,8 +114,8 @@ namespace control_plugin
     state_psi_vel_ = estimator_->getState(State::YAW_COG, estimate_mode_)[1];
     target_psi_ = navigator_->getTargetPsi();
     psi_err_ = target_psi_ - state_psi_;
-    if(psi_err_ > M_PI)  psi_err_ -= 2 * M_PI;
-    else if(psi_err_ < -M_PI)  psi_err_ += 2 * M_PI;
+    if(psi_err_ > M_PI)  psi_err_ -= (2 * M_PI);
+    else if(psi_err_ < -M_PI)  psi_err_ += (2 * M_PI);
   }
 
   void FlatnessPid::pidUpdate()
@@ -209,13 +209,14 @@ namespace control_plugin
     pid_msg.roll.target_vel = target_vel_[1];
 
     /* yaw */
+    double psi_err = clamp(psi_err_, -yaw_err_thresh_, yaw_err_thresh_);
     for(int j = 0; j < motor_num_; j++)
       {
         //**** P term
-        double yaw_p_term = clamp(-yaw_gains_[j][0] * psi_err_, -yaw_terms_limits_[0], yaw_terms_limits_[0]);
+        double yaw_p_term = clamp(-yaw_gains_[j][0] * psi_err, -yaw_terms_limits_[0], yaw_terms_limits_[0]);
 
         //**** I term:
-        yaw_i_term_[j] += (psi_err_ * du * yaw_gains_[j][1]);
+        yaw_i_term_[j] += (psi_err * du * yaw_gains_[j][1]);
         yaw_i_term_[j] = clamp(yaw_i_term_[j], -yaw_terms_limits_[1], yaw_terms_limits_[1]);
 
         //***** D term: usaully it is in the flight board
@@ -458,5 +459,7 @@ namespace control_plugin
     if(verbose_) cout << yaw_ns << ": i_gain_ is " << yaw_gains_[0][1] << endl;
     yaw_node.param("d_gain", yaw_gains_[0][2], 0.0);
     if(verbose_) cout << yaw_ns << ": d_gain_ is " << yaw_gains_[0][2] << endl;
+    yaw_node.param("err_thresh", yaw_err_thresh_, 0.4);
+    if(verbose_) cout << yaw_ns << ": yaw_err_thresh_ is " << yaw_err_thresh_ << endl;
   }
 };
