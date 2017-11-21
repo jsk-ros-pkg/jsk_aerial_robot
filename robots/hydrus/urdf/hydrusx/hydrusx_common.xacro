@@ -34,7 +34,7 @@
   <xacro:property name="pcs_cable_mass" value=".03" />
   <xacro:property name="head_leg_mass" value="0.0623" />
   <xacro:property name="tail_leg_mass" value="0.09" />
-  <xacro:property name="sensor_c_mass" value="0.065" />
+  <xacro:property name="sensor_c_mass" value="0.03" /> <!-- gps: 0.43 -->
   <xacro:property name="sensor_v_mass" value="0.18" />
   <xacro:property name="rotor_mass" value=".05" /> <!-- exclude from center mass -->
 
