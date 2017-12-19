@@ -45,7 +45,7 @@ TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_
   rpy_gain_pub_ = nh_.advertise<aerial_robot_msgs::RollPitchYawTerms>(rpy_gain_pub_name, 1);
   four_axis_gain_pub_ = nh_.advertise<aerial_robot_msgs::FourAxisGain>("/four_axis_gain", 1);
   transform_pub_ = nh_.advertise<geometry_msgs::TransformStamped>("/cog2baselink", 1);
-  p_matrix_pseudo_inverse_inertia_pub_ = nh_.advertise<hydrus::PMatrixPseudoInverseWithInertia>("p_matrix_pseudo_inverse_inertia", 1);
+  p_matrix_pseudo_inverse_inertia_pub_ = nh_.advertise<spinal::PMatrixPseudoInverseWithInertia>("p_matrix_pseudo_inverse_inertia", 1);
 
   //dynamic reconfigure server
   lqi_server_ = new dynamic_reconfigure::Server<hydrus::LQIConfig>(nh_private_);
@@ -742,7 +742,7 @@ void TransformController::param2controller()
   aerial_robot_msgs::FourAxisGain four_axis_gain_msg;
   aerial_robot_msgs::RollPitchYawTerms rpy_gain_msg; //for rosserial
   geometry_msgs::TransformStamped transform_msg; //for rosserial
-  hydrus::PMatrixPseudoInverseWithInertia p_pseudo_inverse_with_inertia_msg;
+  spinal::PMatrixPseudoInverseWithInertia p_pseudo_inverse_with_inertia_msg;
 
   four_axis_gain_msg.motor_num = rotor_num_;
   rpy_gain_msg.motors.resize(rotor_num_);

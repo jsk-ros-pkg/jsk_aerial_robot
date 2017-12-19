@@ -45,7 +45,7 @@
 #include <aerial_robot_base/DesireCoord.h>
 #include <sensor_msgs/JointState.h>
 #include <hydrus/AddExtraModule.h>
-#include <hydrus/PMatrixPseudoInverseWithInertia.h>
+#include <spinal/PMatrixPseudoInverseWithInertia.h>
 #include <std_msgs/UInt8.h>
 #include <tf/transform_broadcaster.h>
 #include <geometry_msgs/TransformStamped.h>

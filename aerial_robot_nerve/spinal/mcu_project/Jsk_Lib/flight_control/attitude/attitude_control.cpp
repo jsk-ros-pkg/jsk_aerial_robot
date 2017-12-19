@@ -605,7 +605,7 @@ void AttitudeController::pwmTestCallback(const std_msgs::Float32& pwm_msg)
 }
 
 
-void AttitudeController::pMatrixInertiaCallback(const hydrus::PMatrixPseudoInverseWithInertia& msg)
+void AttitudeController::pMatrixInertiaCallback(const spinal::PMatrixPseudoInverseWithInertia& msg)
 {
 #ifdef SIMULATION
   if(msg.pseudo_inverse.size() != motor_number_)

@@ -39,7 +39,7 @@
 #include <aerial_robot_msgs/PwmInfo.h>
 #include <aerial_robot_base/UavInfo.h>
 #include <std_msgs/Float32MultiArray.h>
-#include <hydrus/PMatrixPseudoInverseWithInertia.h>
+#include <spinal/PMatrixPseudoInverseWithInertia.h>
 
 #define MAX_PWM  54000
 #define IDLE_DUTY 0.5f
@@ -202,7 +202,7 @@ private:
   void pwmInfoCallback( const aerial_robot_msgs::PwmInfo &info_msg);
   void rpyGainCallback( const aerial_robot_msgs::RollPitchYawTerms &gain_msg);
   void pwmTestCallback(const std_msgs::Float32& pwm_msg);
-  void pMatrixInertiaCallback(const hydrus::PMatrixPseudoInverseWithInertia& msg);
+  void pMatrixInertiaCallback(const spinal::PMatrixPseudoInverseWithInertia& msg);
 
   float pwmConversion(float thrust);
   void pwmsControl(void);
