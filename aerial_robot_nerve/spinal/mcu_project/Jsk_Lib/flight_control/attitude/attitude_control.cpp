@@ -68,7 +68,7 @@ void AttitudeController::init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2
   nh_->subscribe< ros::Subscriber<aerial_robot_msgs::PwmInfo, AttitudeController> >(pwm_info_sub_);
   nh_->subscribe< ros::Subscriber<aerial_robot_msgs::RollPitchYawTerms, AttitudeController> >(rpy_gain_sub_);
   nh_->subscribe< ros::Subscriber<std_msgs::Float32, AttitudeController> >(pwm_test_sub_);
-  nh_->subscribe< ros::Subscriber<hydrus::PMatrixPseudoInverseWithInertia, AttitudeController> >(p_matrix_pseudo_inverse_inertia_sub_);
+  nh_->subscribe< ros::Subscriber<spinal::PMatrixPseudoInverseWithInertia, AttitudeController> >(p_matrix_pseudo_inverse_inertia_sub_);
 
   baseInit();
 }

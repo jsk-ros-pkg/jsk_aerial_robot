@@ -134,7 +134,7 @@ private:
   ros::Subscriber<aerial_robot_msgs::PwmInfo, AttitudeController> pwm_info_sub_;
   ros::Subscriber<aerial_robot_msgs::RollPitchYawTerms, AttitudeController> rpy_gain_sub_;
   ros::Subscriber<std_msgs::Float32, AttitudeController> pwm_test_sub_;
-  ros::Subscriber<hydrus::PMatrixPseudoInverseWithInertia, AttitudeController> p_matrix_pseudo_inverse_inertia_sub_;
+  ros::Subscriber<spinal::PMatrixPseudoInverseWithInertia, AttitudeController> p_matrix_pseudo_inverse_inertia_sub_;
 
   StateEstimate* estimator_;
   BatteryStatus* bat_;
