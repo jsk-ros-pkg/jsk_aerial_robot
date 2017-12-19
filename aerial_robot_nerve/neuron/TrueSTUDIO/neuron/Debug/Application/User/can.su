@@ -1,0 +1,3 @@
+can.c:47:6:void MX_CAN_Init()	16	static
+can.c:69:6:void HAL_CAN_MspInit(CAN_HandleTypeDef*)	40	static
+can.c:104:6:void HAL_CAN_MspDeInit(CAN_HandleTypeDef*)	8	static

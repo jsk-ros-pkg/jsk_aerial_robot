@@ -1,0 +1,36 @@
+stm32f1xx_hal_uart.c:1873:13:void UART_SetConfig(UART_HandleTypeDef*)	32	static
+stm32f1xx_hal_uart.c:1656:26:HAL_StatusTypeDef UART_WaitOnFlagUntilTimeout(UART_HandleTypeDef*, uint32_t, FlagStatus, uint32_t)	24	static
+stm32f1xx_hal_uart.c:539:14:void HAL_UART_MspInit(UART_HandleTypeDef*)	0	static
+stm32f1xx_hal_uart.c:251:19:HAL_StatusTypeDef HAL_UART_Init(UART_HandleTypeDef*)	16	static
+stm32f1xx_hal_uart.c:313:19:HAL_StatusTypeDef HAL_HalfDuplex_Init(UART_HandleTypeDef*)	16	static
+stm32f1xx_hal_uart.c:373:19:HAL_StatusTypeDef HAL_LIN_Init(UART_HandleTypeDef*, uint32_t)	24	static
+stm32f1xx_hal_uart.c:439:19:HAL_StatusTypeDef HAL_MultiProcessor_Init(UART_HandleTypeDef*, uint8_t, uint32_t)	24	static
+stm32f1xx_hal_uart.c:554:14:void HAL_UART_MspDeInit(UART_HandleTypeDef*)	0	static
+stm32f1xx_hal_uart.c:501:19:HAL_StatusTypeDef HAL_UART_DeInit(UART_HandleTypeDef*)	16	static
+stm32f1xx_hal_uart.c:633:19:HAL_StatusTypeDef HAL_UART_Transmit(UART_HandleTypeDef*, uint8_t*, uint16_t, uint32_t)	16	static
+stm32f1xx_hal_uart.c:727:19:HAL_StatusTypeDef HAL_UART_Receive(UART_HandleTypeDef*, uint8_t*, uint16_t, uint32_t)	16	static
+stm32f1xx_hal_uart.c:826:19:HAL_StatusTypeDef HAL_UART_Transmit_IT(UART_HandleTypeDef*, uint8_t*, uint16_t)	4	static
+stm32f1xx_hal_uart.c:878:19:HAL_StatusTypeDef HAL_UART_Receive_IT(UART_HandleTypeDef*, uint8_t*, uint16_t)	4	static
+stm32f1xx_hal_uart.c:936:19:HAL_StatusTypeDef HAL_UART_Transmit_DMA(UART_HandleTypeDef*, uint8_t*, uint16_t)	24	static
+stm32f1xx_hal_uart.c:1008:19:HAL_StatusTypeDef HAL_UART_Receive_DMA(UART_HandleTypeDef*, uint8_t*, uint16_t)	24	static
+stm32f1xx_hal_uart.c:1072:19:HAL_StatusTypeDef HAL_UART_DMAPause(UART_HandleTypeDef*)	0	static
+stm32f1xx_hal_uart.c:1112:19:HAL_StatusTypeDef HAL_UART_DMAResume(UART_HandleTypeDef*)	8	static
+stm32f1xx_hal_uart.c:1156:19:HAL_StatusTypeDef HAL_UART_DMAStop(UART_HandleTypeDef*)	8	static
+stm32f1xx_hal_uart.c:1265:14:void HAL_UART_TxCpltCallback(UART_HandleTypeDef*)	0	static
+stm32f1xx_hal_uart.c:1552:13:void UART_DMATransmitCplt(DMA_HandleTypeDef*)	8	static
+stm32f1xx_hal_uart.c:1280:14:void HAL_UART_TxHalfCpltCallback(UART_HandleTypeDef*)	0	static
+stm32f1xx_hal_uart.c:1580:13:void UART_DMATxHalfCplt(DMA_HandleTypeDef*)	8	static
+stm32f1xx_hal_uart.c:1295:13:void HAL_UART_RxCpltCallback(UART_HandleTypeDef*)	0	static
+stm32f1xx_hal_uart.c:1593:13:void UART_DMAReceiveCplt(DMA_HandleTypeDef*)	8	static
+stm32f1xx_hal_uart.c:1310:13:void HAL_UART_RxHalfCpltCallback(UART_HandleTypeDef*)	0	static
+stm32f1xx_hal_uart.c:1624:13:void UART_DMARxHalfCplt(DMA_HandleTypeDef*)	8	static
+stm32f1xx_hal_uart.c:1325:14:void HAL_UART_ErrorCallback(UART_HandleTypeDef*)	0	static
+stm32f1xx_hal_uart.c:1637:13:void UART_DMAError(DMA_HandleTypeDef*)	8	static
+stm32f1xx_hal_uart.c:1189:6:void HAL_UART_IRQHandler(UART_HandleTypeDef*)	16	static
+stm32f1xx_hal_uart.c:1363:19:HAL_StatusTypeDef HAL_LIN_SendBreak(UART_HandleTypeDef*)	8	static
+stm32f1xx_hal_uart.c:1390:19:HAL_StatusTypeDef HAL_MultiProcessor_EnterMuteMode(UART_HandleTypeDef*)	8	static
+stm32f1xx_hal_uart.c:1417:19:HAL_StatusTypeDef HAL_MultiProcessor_ExitMuteMode(UART_HandleTypeDef*)	8	static
+stm32f1xx_hal_uart.c:1444:19:HAL_StatusTypeDef HAL_HalfDuplex_EnableTransmitter(UART_HandleTypeDef*)	8	static
+stm32f1xx_hal_uart.c:1470:19:HAL_StatusTypeDef HAL_HalfDuplex_EnableReceiver(UART_HandleTypeDef*)	8	static
+stm32f1xx_hal_uart.c:1518:23:HAL_UART_StateTypeDef HAL_UART_GetState(UART_HandleTypeDef*)	0	static
+stm32f1xx_hal_uart.c:1529:10:uint32_t HAL_UART_GetError(UART_HandleTypeDef*)	0	static

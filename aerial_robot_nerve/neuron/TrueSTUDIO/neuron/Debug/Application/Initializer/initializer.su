@@ -1,0 +1,2 @@
+initializer.cpp:11:6:virtual void Initializer::sendData()	0	static
+initializer.cpp:16:6:virtual void Initializer::receiveDataCallback(uint8_t, uint32_t, uint8_t*)	40	static

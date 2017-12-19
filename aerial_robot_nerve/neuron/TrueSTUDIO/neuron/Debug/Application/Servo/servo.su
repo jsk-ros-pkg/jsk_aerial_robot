@@ -1,0 +1,4 @@
+servo.cpp:21:6:virtual void Servo::sendData()	64	static
+servo.cpp:37:6:virtual void Servo::receiveDataCallback(uint8_t, uint32_t, uint8_t*)	24	static
+servo.cpp:11:6:void Servo::init(UART_HandleTypeDef*)	0	static
+servo.cpp:16:6:void Servo::update()	0	static

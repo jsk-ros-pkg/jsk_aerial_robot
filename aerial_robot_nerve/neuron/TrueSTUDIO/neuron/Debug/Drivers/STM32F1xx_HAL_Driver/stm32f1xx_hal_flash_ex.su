@@ -1,0 +1,8 @@
+stm32f1xx_hal_flash_ex.c:899:26:HAL_StatusTypeDef FLASH_OB_RDP_LevelConfig(uint8_t)	16	static
+stm32f1xx_hal_flash_ex.c:176:19:HAL_StatusTypeDef HAL_FLASHEx_Erase(FLASH_EraseInitTypeDef*, uint32_t*)	32	static
+stm32f1xx_hal_flash_ex.c:336:19:HAL_StatusTypeDef HAL_FLASHEx_Erase_IT(FLASH_EraseInitTypeDef*)	12	static
+stm32f1xx_hal_flash_ex.c:414:19:HAL_StatusTypeDef HAL_FLASHEx_OBErase()	16	static
+stm32f1xx_hal_flash_ex.c:463:19:HAL_StatusTypeDef HAL_FLASHEx_OBProgram(FLASH_OBProgramInitTypeDef*)	32	static
+stm32f1xx_hal_flash_ex.c:544:6:void HAL_FLASHEx_OBGetConfig(FLASH_OBProgramInitTypeDef*)	0	static
+stm32f1xx_hal_flash_ex.c:566:10:uint32_t HAL_FLASHEx_OBGetUserData(uint32_t)	0	static
+stm32f1xx_hal_flash_ex.c:1102:6:void FLASH_PageErase(uint32_t)	0	static

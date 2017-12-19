@@ -1,0 +1,5 @@
+main.cpp:75:6:void HAL_SYSTICK_Callback()	8	static
+main.cpp:88:6:void CANDeviceManager::userReceiveMessagesCallback(uint8_t, uint8_t, uint8_t, uint32_t, uint8_t*)	0	static
+main.cpp:165:6:void SystemClock_Config()	80	static
+main.cpp:96:5:int main()	360	static
+main.cpp:211:6:void Error_Handler()	0	static
