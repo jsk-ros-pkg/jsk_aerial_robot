@@ -51,7 +51,7 @@ public:
     imu_pub_("imu", &imu_msg_),
 	attitude_pub_("attitude", &attitude_msg_),
     desire_coord_sub_("/desire_coordinate", &AttitudeEstimate::desireCoordCallback, this ),
-	//test_rosservice_("/test_rosservice_server", &AttitudeEstimate::testRosseriveCallback,this),
+	test_rosservice_("/test_rosservice_server", &AttitudeEstimate::testRosseriveCallback,this),
 	imu_list_(1),
 	imu_weights_(1,1)
   {}
@@ -65,7 +65,7 @@ public:
     nh_->subscribe< ros::Subscriber<aerial_robot_base::DesireCoord, AttitudeEstimate> >(desire_coord_sub_);
 
     /* rosserive server test */
-    //nh_->advertiseService< std_srvs::Trigger::Request, std_srvs::Trigger::Response, AttitudeEstimate> (test_rosservice_);
+    nh_->advertiseService< std_srvs::Trigger::Request, std_srvs::Trigger::Response, AttitudeEstimate> (test_rosservice_);
 
     imu_list_[0] = imu;
 
@@ -185,7 +185,7 @@ private:
   geometry_msgs::Vector3Stamped attitude_msg_;
 
   ros::Subscriber<aerial_robot_base::DesireCoord, AttitudeEstimate> desire_coord_sub_;
-  //ros::ServiceServer<std_srvs::Trigger::Request, std_srvs::Trigger::Response, AttitudeEstimate> test_rosservice_; /* test rosserive server without class */
+  ros::ServiceServer<std_srvs::Trigger::Request, std_srvs::Trigger::Response, AttitudeEstimate> test_rosservice_; /* test rosserive server without class */
 
   EstimatorAlgorithm* estimator_;
   std::vector< IMU* > imu_list_;
@@ -202,7 +202,7 @@ private:
   void testRosseriveCallback(const std_srvs::Trigger::Request & req, std_srvs::Trigger::Response & res)
   {
 	  res.success = true;
-	  res.message = "aotti";
+	  res.message = "aotti~";
   }
 
 };

@@ -48,6 +48,7 @@
 
 #include "spinal_ros_bridge/async_read_buffer.h"
 #include "spinal_ros_bridge/topic_handlers.h"
+#include "spinal_ros_bridge/SerializedMessage.h"
 
 #define BURST_MODE 1
 #define BURST_SIZE 16
@@ -92,6 +93,10 @@ public:
     callbacks_[rosserial_msgs::TopicInfo::ID_TIME]
         = boost::bind(&Session::handle_time, this, _1);
 
+    /* for rosserive server */
+    serialized_msg_pub_ = nh_.advertise<spinal_ros_bridge::SerializedMessage>("/serialized_msg", 10);
+    serialized_srv_req_sub_ = nh_.subscribe("/serialized_srv_req", 1, &Session::serialized_srv_req_callback, this);
+
     signal(SIGINT, &Session::signal_catch);
   }
 
@@ -123,9 +128,33 @@ public:
   static bool terminate_start_flag_;
 
 private:
+    void serialized_msg_publish(uint16_t topic_id, ros::serialization::IStream& stream)
+    {
+      spinal_ros_bridge::SerializedMessage serialized_msg;
+
+      serialized_msg.id = topic_id;
+
+      /* bad implementation */
+      for(int i = 0; i < stream.getLength(); i++)
+        serialized_msg.body.push_back(stream.getData()[i]);
+
+      serialized_msg_pub_.publish(serialized_msg);
+
+      //ROS_INFO("[session]: publish serialzed msg, id: %d", topic_id);
+    }
+
+  void serialized_srv_req_callback(spinal_ros_bridge::SerializedMessageConstPtr serialized_msg)
+  {
+    std::vector<uint8_t> buffer(serialized_msg->body.size());
+    /* bad implementation */
+    for(int i = 0; i < serialized_msg->body.size(); i++)
+      buffer.at(i) = serialized_msg->body.at(i);
+
+    write_message(buffer, serialized_msg->id, client_version);
+  }
+
   //// RECEIVING MESSAGES ////
   // TODO: Total message timeout, implement primarily in ReadBuffer.
-
   void read_sync_header() {
     // Stop the tx from MCU, not sure whether the process should be here
     if(terminate_start_flag_ )
@@ -472,7 +501,7 @@ private:
 
     set_sync_timeout(timeout_interval_);
 
-    ROS_INFO("publisher name: %s, type: %s", topic_info.topic_name.c_str(), topic_info.message_type.c_str());
+    ROS_INFO("publisher name: %s, type: %s, id: %d", topic_info.topic_name.c_str(), topic_info.message_type.c_str(), topic_info.topic_id);
   }
 
   void setup_subscriber(ros::serialization::IStream& stream) {
@@ -485,52 +514,34 @@ private:
 
     set_sync_timeout(timeout_interval_);
 
-    ROS_INFO("subscirber name: %s, type: %s", topic_info.topic_name.c_str(), topic_info.message_type.c_str());
+    ROS_INFO("subscirber name: %s, type: %s, id: %d", topic_info.topic_name.c_str(), topic_info.message_type.c_str(), topic_info.topic_id);
 
   }
 
-
-  /* new: 2017.12.19 */
   void setup_service_server_publisher(ros::serialization::IStream& stream) {
+    /* set to rosserive_server_manager.py */
+    serialized_msg_publish(rosserial_msgs::TopicInfo::ID_SERVICE_SERVER+rosserial_msgs::TopicInfo::ID_PUBLISHER, stream);
+
     rosserial_msgs::TopicInfo topic_info;
     ros::serialization::Serializer<rosserial_msgs::TopicInfo>::read(stream, topic_info);
 
-    if (!services_server_.count(topic_info.topic_name)) {
-      ROS_DEBUG("Creating service server for topic %s",topic_info.topic_name.c_str());
-      ServiceServerPtr srv(new ServiceServer(
-        nh_,topic_info,boost::bind(&Session::write_message, this, _1, _2, client_version)));
-      services_server_[topic_info.topic_name] = srv;
-      callbacks_[topic_info.topic_id] = boost::bind(&ServiceServer::handle, srv, _1);
+    //ROS_ERROR("new rosserive server: name: %s, id: %d", topic_info.topic_name.c_str(), topic_info.topic_id);
+
+    if (!callbacks_.count(topic_info.topic_id)) {
+      ROS_INFO("Creating service server callback for %s",topic_info.topic_name.c_str());
+      callbacks_[topic_info.topic_id] = boost::bind(&Session::serialized_msg_publish, this, topic_info.topic_id, _1);
     }
-    if (services_server_[topic_info.topic_name]->getRequestMessageMD5() != topic_info.md5sum) {
-      ROS_WARN("Service client setup: Request message MD5 mismatch between rosserial client and ROS");
-    } else {
-      ROS_DEBUG("Service client %s: request message MD5 successfully validated as %s",
-        topic_info.topic_name.c_str(),topic_info.md5sum.c_str());
-    }
+
     set_sync_timeout(timeout_interval_);
   }
 
   void setup_service_server_subscriber(ros::serialization::IStream& stream) {
-    rosserial_msgs::TopicInfo topic_info;
-    ros::serialization::Serializer<rosserial_msgs::TopicInfo>::read(stream, topic_info);
+    /* set to rosserive_server_manager.py */
+    serialized_msg_publish(rosserial_msgs::TopicInfo::ID_SERVICE_SERVER+rosserial_msgs::TopicInfo::ID_SUBSCRIBER, stream);
 
-    if (!services_server_.count(topic_info.topic_name)) {
-      ROS_DEBUG("Creating service client for topic %s",topic_info.topic_name.c_str());
-      ServiceServerPtr srv(new ServiceServer(
-        nh_,topic_info,boost::bind(&Session::write_message, this, _1, _2, client_version)));
-      services_server_[topic_info.topic_name] = srv;
-      callbacks_[topic_info.topic_id] = boost::bind(&ServiceServer::handle, srv, _1);
-    }
-    // see above comment regarding the service client callback for why we set topic_id here
-    services_server_[topic_info.topic_name]->setTopicId(topic_info.topic_id);
-    if (services_server_[topic_info.topic_name]->getResponseMessageMD5() != topic_info.md5sum) {
-      ROS_WARN("Service client setup: Response message MD5 mismatch between rosserial client and ROS");
-    } else {
-      ROS_DEBUG("Service client %s: response message MD5 successfully validated as %s",
-        topic_info.topic_name.c_str(),topic_info.md5sum.c_str());
-    }
-    set_sync_timeout(timeout_interval_);
+    //rosserial_msgs::TopicInfo topic_info;
+    //ros::serialization::Serializer<rosserial_msgs::TopicInfo>::read(stream, topic_info);
+    //ROS_ERROR("new rosserive server: name: %s, id: %d", topic_info.topic_name.c_str(), topic_info.topic_id);
   }
 
   // When the rosserial client creates a ServiceClient object (and/or when it registers that object with the NodeHandle)
@@ -612,6 +623,8 @@ private:
   AsyncReadBuffer<Socket> async_read_buffer_;
   enum { buffer_max = 1023 };
   ros::NodeHandle nh_;
+  ros::Publisher serialized_msg_pub_;
+  ros::Subscriber serialized_srv_req_sub_;
 
   Session::Version client_version;
   Session::Version client_version_try;
@@ -625,7 +638,6 @@ private:
   std::map<uint16_t, PublisherPtr> publishers_;
   std::map<uint16_t, SubscriberPtr> subscribers_;
   std::map<std::string, ServiceClientPtr> services_client_;
-  std::map<std::string, ServiceServerPtr> services_server_;
 };
 
 template<typename Socket>  bool Session<Socket>::terminate_start_flag_ = false;

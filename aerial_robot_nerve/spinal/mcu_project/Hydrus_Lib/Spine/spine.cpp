@@ -42,7 +42,7 @@ namespace Spine
     ros::Subscriber<hydrus::BoardConfigCmd> board_config_sub_("/board_config", boardConfigCallback);
 
     /* test rosserive server without class */
-    //ros::ServiceServer<std_srvs::Trigger::Request, std_srvs::Trigger::Response> test_rosservice("test_rosservice", testRosseriveCallback);
+    ros::ServiceServer<std_srvs::Trigger::Request, std_srvs::Trigger::Response> test_rosservice("/test_rosservice_server2", testRosseriveCallback);
 
     ros::NodeHandle* nh_;
     uint32_t last_pub_time_;
@@ -54,7 +54,7 @@ namespace Spine
   void testRosseriveCallback(const std_srvs::Trigger::Request & req, std_srvs::Trigger::Response & res)
   {
 	  res.success = true;
-	  res.message = "hoge";
+	  res.message = "nenetti~";
   }
 
   void boardInfoRequestCallback(const std_msgs::Empty& msg)
@@ -127,7 +127,7 @@ namespace Spine
     nh_->subscribe< ros::Subscriber<hydrus::BoardConfigCmd> >(board_config_sub_);
 
     /* speical template: https://qiita.com/narumi_/items/f656678c78d50c40bc1c */
-    //nh_->advertiseService< std_srvs::Trigger::Request, std_srvs::Trigger::Response > (test_rosservice);
+    nh_->advertiseService< std_srvs::Trigger::Request, std_srvs::Trigger::Response > (test_rosservice);
 
     HAL_Delay(3000); //wait neuron initialization
     CANDeviceManager::addDevice(can_initializer_);

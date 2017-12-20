@@ -7,12 +7,24 @@ find_package(catkin REQUIRED COMPONENTS
   rosserial_server
   std_msgs
   topic_tools
+  message_generation
 )
 
 find_package(Boost REQUIRED COMPONENTS
   system
   thread
 )
+
+add_message_files(
+  FILES
+  SerializedMessage.msg
+)
+
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+)
+
 
 catkin_package(
   INCLUDE_DIRS include
