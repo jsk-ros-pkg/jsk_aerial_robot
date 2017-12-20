@@ -1,3 +1,3 @@
 #!/bin/sh
 
-TrueSTUDIO ../mcu_project/TrueSTUDIO/spinal/.project
+TrueSTUDIO `rospack find spinal`/mcu_project/TrueSTUDIO/spinal/.project
