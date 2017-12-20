@@ -267,6 +267,7 @@ int main(void){
 #endif
 
   start_processing_flag_ = true;
+  uint32_t now_time = HAL_GetTick();
 
   /* USER CODE END 2 */
 
@@ -282,6 +283,17 @@ int main(void){
       	  battery_status_.update();
 	  #endif
 
+
+#if 0
+      /* test logging: 1Hz */
+      if(HAL_GetTick() - now_time > 1000)
+      {
+    	  char s[20] = {'\0'};
+    	  snprintf(s, 20, "time is %d", now_time);
+    	  nh_.logwarn(s);
+    	  now_time = HAL_GetTick();
+      }
+#endif
     }
 
   /* USER CODE END 3 */
