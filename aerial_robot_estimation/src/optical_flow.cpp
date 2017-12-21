@@ -113,7 +113,7 @@ namespace aerial_robot_estimation
 
     cv::TermCriteria termcrit(cv::TermCriteria::MAX_ITER + cv::TermCriteria::EPS, 20, 0.03);
     cv::Size subPixWinSize(10,10), winSize(31,31);
-    cv::goodFeaturesToTrack(gray_img, points[0], max_count_, 0.01, 10, cv::Mat(), 3, 0, 0.04);
+    cv::goodFeaturesToTrack(gray_img, points[0], max_count_, 0.01, 10, cv::Mat(), 3, false, 0.04);
     cv::cornerSubPix(gray_img, points[0], subPixWinSize, cv::Size(-1,-1), termcrit);
 #endif
 
