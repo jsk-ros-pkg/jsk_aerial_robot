@@ -24,7 +24,7 @@
   <!-- mass [Kg] -->
   <xacro:property name="link_rod_mass" value="0.099" />
   <xacro:property name="link_center_mass" value=".211" />
-  <xacro:property name="joint_mass" value=".2075" />
+  <xacro:property name="joint_mass" value=".19" /> <!-- rollor: 0.15 -->
   <xacro:property name="protector_mass" value=".05" />
   <xacro:property name="protector_holder_mass" value=".0386" />
   <xacro:property name="bat_mass" value="0.193" /> <!-- hyperon: 0.41, white(2700mAh): 0.364, white(1300mAh): 0.193 -->
@@ -32,8 +32,8 @@
   <xacro:property name="pc_c_mass" value=".14" /> <!-- odoroid u4: 0.1, euclid: 0.13 -->
   <xacro:property name="pc_v_mass" value=".24" />
   <xacro:property name="pcs_cable_mass" value=".03" />
-  <xacro:property name="head_leg_mass" value="0.0623" />
-  <xacro:property name="tail_leg_mass" value="0.09" />
+  <xacro:property name="head_leg_mass" value="0.045" /> <!-- rollor: 0.017 -->
+  <xacro:property name="tail_leg_mass" value="0.073" /> <!-- rollor: 0.017 -->
   <xacro:property name="sensor_c_mass" value="0.03" /> <!-- gps: 0.43 -->
   <xacro:property name="sensor_v_mass" value="0.18" />
   <xacro:property name="rotor_mass" value=".05" /> <!-- exclude from center mass -->
