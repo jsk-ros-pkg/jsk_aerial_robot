@@ -189,17 +189,17 @@
 
 //instruction frequency: 0 means no process
 #define SET_POS_DU 20 //[msec], 20ms => 50Hz
-#define SET_POS_OFFSET 2 // offset from SET_POS
+#define SET_POS_OFFSET 0 // offset from SET_POS
 #define GET_POS_DU 20 //[msec], 20ms => 50Hz
-#define GET_POS_OFFSET 0 //offset from GET_POS
+#define GET_POS_OFFSET 10 //offset from GET_POS
 #define GET_LOAD_DU 200 //[msec], 200ms => 5Hz
-#define GET_LOAD_OFFSET 20 //offset from GET_LOAD
+#define GET_LOAD_OFFSET 45 //offset from GET_LOAD
 #define GET_TEMP_DU 200 //[msec], 200ms => 5Hz
-#define GET_TEMP_OFFSET 40 //offset from GET_TEMP
+#define GET_TEMP_OFFSET 85 //offset from GET_TEMP
 #define GET_MOVE_DU 200 //[msec], 200ms => 5Hz
-#define GET_MOVE_OFFSET 60 //offset from GET_MOVE
+#define GET_MOVE_OFFSET 125 //offset from GET_MOVE
 #define GET_HARDWARE_ERROR_STATUS_DU 200 //[msec], 200ms => 5Hz
-#define GET_HARDWARE_ERROR_STATUS_OFFSET 80
+#define GET_HARDWARE_ERROR_STATUS_OFFSET 165
 
 /* please define the gpio which control the IO direction */
 #define WE HAL_GPIO_WritePin(RS485EN_GPIO_Port, RS485EN_Pin, GPIO_PIN_SET);
