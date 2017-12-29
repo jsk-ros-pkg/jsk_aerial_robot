@@ -347,8 +347,7 @@ namespace control_plugin
       {
         /* normalized vector */
         /* 1: use state_x */
-        double base_throttle = (target_throttle_[i] > 0)?target_throttle_[i]:1;
-        tf::Vector3 f_i = tf::Vector3(f(2 * i), f(2 * i + 1), base_throttle);
+        tf::Vector3 f_i = tf::Vector3(f(2 * i), f(2 * i + 1), kinematics_->getStableState()[i]);
         /* 2: use target_throttle */
         //tf::Vector3 f_i = tf::Vector3(f(2 * i), f(2 * i + 1), kinematics_->(getStableState())(i));
 
@@ -493,6 +492,7 @@ namespace control_plugin
     joint_state_ = *state;
     kinematics_->gimbalProcess(joint_state_);
     kinematics_->kinematics(joint_state_);
+    kinematics_->modelling();
   }
 
   void DragonGimbal::cfgPitchRollPidCallback(aerial_robot_base::XYPidControlConfig &config, uint32_t level)
