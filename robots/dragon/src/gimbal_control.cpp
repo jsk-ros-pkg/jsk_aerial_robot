@@ -31,7 +31,6 @@ namespace control_plugin
         P_xy_(0, i * 2) = 1;
         P_xy_(1, 1 + i * 2) = 1;
       }
-    //std::cout << "P_xy :"  << std::endl << P_xy_ << std::endl;
 
     /* initialize the gimbal target angles */
     target_gimbal_angles_.resize(kinematics_->getRotorNum() * 2, 0);
@@ -218,7 +217,8 @@ namespace control_plugin
 
     Eigen::MatrixXd P = Eigen::MatrixXd::Zero(5, rotor_num  * 2);
     P.block(0, 0, 3, rotor_num * 2) = P_att;
-    P.block(3, 0, 2, rotor_num * 2) = P_xy_;
+    P.block(3, 0, 2, rotor_num * 2) = P_xy_ / kinematics_->getMass();
+
     double P_det = (P * P.transpose()).determinant();
 
     if(control_verbose_)
@@ -235,11 +235,9 @@ namespace control_plugin
         if(control_verbose_) ROS_ERROR("bad P_det: %f", P_det);
         P = Eigen::MatrixXd::Zero(3, rotor_num  * 2);
         P.block(0, 0, 1, rotor_num * 2) = P_att.block(2, 0, 1, rotor_num * 2);
-        P.block(1, 0, 2, rotor_num * 2) = P_xy_;
+        P.block(1, 0, 2, rotor_num * 2) = P_xy_ / kinematics_->getMass();
 
-        Eigen::VectorXd pid_values(3);
-        pid_values << target_yaw_[0], target_pitch_, target_roll_;
-        f = pseudoinverse(P) * pid_values;
+        f = pseudoinverse(P) * Eigen::Vector3d(target_yaw_[0], target_pitch_, target_roll_);
       }
     else
       {
