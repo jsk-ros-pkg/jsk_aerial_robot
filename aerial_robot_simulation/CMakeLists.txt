@@ -13,13 +13,18 @@ find_package(catkin REQUIRED COMPONENTS
   aerial_robot_msgs
   aerial_robot_model
   aerial_robot_base
-  tf
-  hydrus
+  spinal
+  kdl_parser
 )
 
 # Depend on system install of Gazebo
 find_package(GAZEBO REQUIRED)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GAZEBO_CXX_FLAGS}")
+
+find_package(orocos_kdl REQUIRED)
+find_package(urdfdom_headers REQUIRED)
+include_directories(${orocos_kdl_INCLUDE_DIRS} ${urdfdom_headers_INCLUDE_DIRS})
+link_directories(${orocos_kdl_LIBRARY_DIRS})
 
 ################################################
 ## Declare ROS messages, services and actions ##
@@ -36,44 +41,28 @@ catkin_package(
   INCLUDE_DIRS include
   LIBRARIES aerial_robot_hw_sim flight_controllers
   CATKIN_DEPENDS gazebo_ros_control roscpp
-#  DEPENDS system_lib
+  DEPENDS orocos_kdl urdfdom_headers
 )
 
 ###########
 ## Build ##
 ###########
-find_path(D_BOARD_ATTITUDE_CONTROL_DIRS attitude_control.h ${PROJECT_SOURCE_DIR}/d_board/Jsk_Lib/flight_control/attitude)
-#message(WARNING ${D_BOARD_INCLUDE_DIRS})
-
-if(NOT D_BOARD_ATTITUDE_CONTROL_DIRS)
-  message(FATAL_ERROR "can not find the headerpath for the d_board attitude control")
-else()
-  set(D_BOARD_INCLUDE_DIRS d_board/Jsk_Lib)
-endif()
 
 include_directories(
   ${catkin_INCLUDE_DIRS}
   ${GAZEBO_INCLUDE_DIRS}
-  ${D_BOARD_INCLUDE_DIRS}
   include
   )
 
-
 add_definitions(-DSIMULATION)
 
-add_library(d_board_math
-  d_board/Jsk_Lib/math/AP_Math.cpp
-  d_board/Jsk_Lib/math/matrix3.cpp
-  d_board/Jsk_Lib/math/vector3.cpp
-  d_board/Jsk_Lib/math/quaternion.cpp)
-
 add_library(flight_controllers
-  d_board/Jsk_Lib/flight_control/attitude/attitude_control.cpp
   src/simulation_attitude_controller.cpp)
-target_link_libraries(flight_controllers ${catkin_LIBRARIES} d_board_math)
+target_link_libraries(flight_controllers ${catkin_LIBRARIES})
+add_dependencies(flight_controllers spinal_generate_messages_cpp)
 
 add_library(aerial_robot_hw_sim src/aerial_robot_hw_sim.cpp)
-target_link_libraries(aerial_robot_hw_sim ${catkin_LIBRARIES} ${GAZEBO_LIBRARIES})
+target_link_libraries(aerial_robot_hw_sim ${catkin_LIBRARIES} ${GAZEBO_LIBRARIES} ${orocos_kdl_LIBRARIES})
 
 #############
 ## Install ##

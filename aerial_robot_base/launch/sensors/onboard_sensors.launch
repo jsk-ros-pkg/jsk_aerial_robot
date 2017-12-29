@@ -13,7 +13,7 @@
 
   ################################# imu ########################################
   <group unless="$(arg simulation)">
-    <include file="$(find aerial_robot_base)/launch/sensors/rosserial2.launch" if="$(arg imu_board)">
+    <include file="$(find spinal_ros_bridge)/launch/serial.launch" if="$(arg imu_board)">
       <arg name="baud" value="921600" />
       <arg name="port" value="$(arg imu_port)" />
     </include>

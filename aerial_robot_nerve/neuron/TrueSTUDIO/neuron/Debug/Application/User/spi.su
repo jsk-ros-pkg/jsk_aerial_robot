@@ -1,0 +1,3 @@
+spi.c:47:6:void MX_SPI1_Init()	24	static
+spi.c:69:6:void HAL_SPI_MspInit(SPI_HandleTypeDef*)	40	static
+spi.c:104:6:void HAL_SPI_MspDeInit(SPI_HandleTypeDef*)	0	static

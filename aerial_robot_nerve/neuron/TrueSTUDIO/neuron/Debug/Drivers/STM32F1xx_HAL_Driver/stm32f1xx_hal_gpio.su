@@ -1,0 +1,8 @@
+stm32f1xx_hal_gpio.c:196:6:void HAL_GPIO_Init(GPIO_TypeDef*, GPIO_InitTypeDef*)	56	static
+stm32f1xx_hal_gpio.c:367:6:void HAL_GPIO_DeInit(GPIO_TypeDef*, uint32_t)	48	static
+stm32f1xx_hal_gpio.c:447:15:GPIO_PinState HAL_GPIO_ReadPin(GPIO_TypeDef*, uint16_t)	0	static
+stm32f1xx_hal_gpio.c:481:6:void HAL_GPIO_WritePin(GPIO_TypeDef*, uint16_t, GPIO_PinState)	0	static
+stm32f1xx_hal_gpio.c:503:6:void HAL_GPIO_TogglePin(GPIO_TypeDef*, uint16_t)	0	static
+stm32f1xx_hal_gpio.c:521:19:HAL_StatusTypeDef HAL_GPIO_LockPin(GPIO_TypeDef*, uint16_t)	8	static
+stm32f1xx_hal_gpio.c:570:13:void HAL_GPIO_EXTI_Callback(uint16_t)	0	static
+stm32f1xx_hal_gpio.c:555:6:void HAL_GPIO_EXTI_IRQHandler(uint16_t)	8	static

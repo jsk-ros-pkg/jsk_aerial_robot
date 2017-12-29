@@ -1,0 +1,52 @@
+cmake_minimum_required(VERSION 2.8.3)
+project(spinal)
+
+
+## Compile as C++11, supported in ROS Kinetic and newer
+add_compile_options(-std=c++11)
+
+find_package(catkin REQUIRED COMPONENTS
+  roscpp
+  std_srvs
+  aerial_robot_msgs
+  aerial_robot_base
+  message_generation
+)
+
+add_message_files(
+  FILES
+  PMatrixPseudoInverseUnit.msg
+  PMatrixPseudoInverseWithInertia.msg
+)
+
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+)
+
+set(SPINAL_DIRS mcu_project/Jsk_Lib)
+
+catkin_package(
+  INCLUDE_DIRS  ${SPINAL_DIRS}
+  LIBRARIES spinal_flight_controller spinal_math
+  CATKIN_DEPENDS roscpp
+#  DEPENDS system_lib
+)
+
+include_directories(
+  ${SPINAL_DIRS}
+  ${catkin_INCLUDE_DIRS}
+)
+
+add_definitions(-DSIMULATION)
+
+add_library(spinal_math
+  ${SPINAL_DIRS}/math/AP_Math.cpp
+  ${SPINAL_DIRS}/math/matrix3.cpp
+  ${SPINAL_DIRS}/math/vector3.cpp
+  ${SPINAL_DIRS}/math/quaternion.cpp)
+
+add_library(spinal_flight_controller
+  ${SPINAL_DIRS}/flight_control/attitude/attitude_control.cpp)
+target_link_libraries(spinal_flight_controller ${catkin_LIBRARIES} spinal_math)
+add_dependencies(spinal_flight_controller ${PROJECT_NAME}_generate_messages_cpp)

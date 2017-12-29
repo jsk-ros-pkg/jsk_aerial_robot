@@ -1,0 +1,4 @@
+motor.cpp:18:6:virtual void Motor::sendData()	0	static
+motor.cpp:23:6:virtual void Motor::receiveDataCallback(uint8_t, uint32_t, uint8_t*)	8	static
+motor.cpp:12:6:void Motor::init(TIM_HandleTypeDef*)	0	static
+motor.cpp:51:6:void Motor::setPwm(uint16_t)	8	static

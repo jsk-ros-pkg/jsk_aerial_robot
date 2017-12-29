@@ -16,21 +16,27 @@
   <build_depend>aerial_robot_msgs</build_depend>
   <build_depend>aerial_robot_model</build_depend>
   <build_depend>aerial_robot_base</build_depend>
+  <build_depend>spinal</build_depend>
   <build_depend>ros_control</build_depend>
   <build_depend>ros_control</build_depend>
   <build_depend>ros_controllers</build_depend>
-  <build_depend>hydrus</build_depend>
   <build_depend>tf</build_depend>
+  <build_depend>orocos_kdl</build_depend>
+  <build_depend>kdl_parser</build_depend>
+  <build_depend>liburdfdom-headers-dev</build_depend>
   <run_depend>gazebo_ros_control</run_depend>
   <run_depend>controller_interface</run_depend> <!-- please write the dependency of the controller interface -->
   <run_depend>roscpp</run_depend>
   <run_depend>aerial_robot_msgs</run_depend>
   <run_depend>aerial_robot_model</run_depend>
   <run_depend>aerial_robot_base</run_depend>
-  <run_depend>hydrus</run_depend>
+  <run_depend>spinal</run_depend>
   <run_depend>tf</run_depend>
+  <run_depend>kdl_parser</run_depend>
+  <run_depend>orocos_kdl</run_depend>
   <run_depend>ros_control</run_depend>
   <run_depend>ros_controllers</run_depend>
+
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>
