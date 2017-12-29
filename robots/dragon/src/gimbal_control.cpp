@@ -172,7 +172,12 @@ namespace control_plugin
   {
     if (control_timestamp_ < 0) return;
 
+    /* get roll/pitch angle */
+    double roll_angle = estimator_->getState(State::ROLL_COG, estimate_mode_)[0];
+    double pitch_angle = estimator_->getState(State::PITCH_COG, estimate_mode_)[0];
+
     /* do not do gimbal control in the early stage of takeoff phase */
+    /*
     if(navigator_->getNaviState() == Navigator::TAKEOFF_STATE)
       {
         double total_thrust  = 0;
@@ -186,6 +191,7 @@ namespace control_plugin
           }
 
       }
+    */
 
     int rotor_num = kinematics_->getRotorNum();
 
@@ -237,7 +243,7 @@ namespace control_plugin
         P.block(0, 0, 1, rotor_num * 2) = P_att.block(2, 0, 1, rotor_num * 2);
         P.block(1, 0, 2, rotor_num * 2) = P_xy_ / kinematics_->getMass();
 
-        f = pseudoinverse(P) * Eigen::Vector3d(target_yaw_[0], target_pitch_, target_roll_);
+        f = pseudoinverse(P) * Eigen::Vector3d(target_yaw_[0], target_pitch_ - (pitch_angle * 9.8), target_roll_ - (-roll_angle * 9.8));
       }
     else
       {
@@ -324,7 +330,7 @@ namespace control_plugin
 
         Eigen::VectorXd pid_values(5);
         /* F = P# * [roll_pid, pitch_pid, yaw_pid, x_pid, y_pid] */
-        pid_values << target_gimbal_roll, target_gimbal_pitch, target_yaw_[0], target_pitch_, target_roll_;
+        pid_values << target_gimbal_roll, target_gimbal_pitch, target_yaw_[0], target_pitch_ - (pitch_angle * 9.8), target_roll_ - (-roll_angle * 9.8);
         f = pseudoinverse(P) * pid_values;
       }
 
