@@ -63,6 +63,9 @@ namespace control_plugin
     dynamic_reconf_func_roll_pitch_pid_ = boost::bind(&DragonGimbal::cfgPitchRollPidCallback, this, _1, _2);
     roll_pitch_pid_server_->setCallback(dynamic_reconf_func_roll_pitch_pid_);
 
+    yaw_pid_server_ = new dynamic_reconfigure::Server<aerial_robot_base::XYPidControlConfig>(ros::NodeHandle(nhp_, "yaw"));
+    dynamic_reconf_func_yaw_pid_ = boost::bind(&DragonGimbal::cfgYawPidCallback, this, _1, _2);
+    yaw_pid_server_->setCallback(dynamic_reconf_func_yaw_pid_);
   }
 
   void DragonGimbal::fourAxisGainCallback(const aerial_robot_msgs::FourAxisGainConstPtr & msg)
@@ -524,6 +527,48 @@ namespace control_plugin
             break;
           case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_D_LIMIT:
             pitch_roll_terms_limits_[2] = config.d_limit;
+            printf("change the d limit\n");
+            break;
+          default :
+            printf("\n");
+            break;
+          }
+      }
+  }
+
+  void DragonGimbal::cfgYawPidCallback(aerial_robot_base::XYPidControlConfig &config, uint32_t level)
+  {
+    if(config.xy_pid_control_flag)
+      {
+        printf("Yaw Pid Param:");
+        switch(level)
+          {
+          case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_P_GAIN:
+            yaw_gains_[0][0] = -config.p_gain;
+            printf("change the p gain\n");
+            break;
+          case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_I_GAIN:
+            yaw_gains_[0][1] = config.i_gain;
+            printf("change the i gain\n");
+            break;
+          case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_D_GAIN:
+            yaw_gains_[0][2] = config.d_gain;
+            printf("change the d gain\n");
+            break;
+          case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_LIMIT:
+            yaw_limit_ = config.limit;
+            printf("change the limit\n");
+            break;
+          case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_P_LIMIT:
+            yaw_terms_limits_[0] = config.p_limit;
+            printf("change the p limit\n");
+            break;
+          case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_I_LIMIT:
+            yaw_terms_limits_[1] = config.i_limit;
+            printf("change the i limit\n");
+            break;
+          case aerial_robot_msgs::DynamicReconfigureLevels::RECONFIGURE_D_LIMIT:
+            yaw_terms_limits_[2] = config.d_limit;
             printf("change the d limit\n");
             break;
           default :
