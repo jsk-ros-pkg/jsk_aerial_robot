@@ -53,7 +53,8 @@ public:
     desire_coord_sub_("/desire_coordinate", &AttitudeEstimate::desireCoordCallback, this ),
 	test_rosservice_("/test_rosservice_server", &AttitudeEstimate::testRosseriveCallback,this),
 	imu_list_(1),
-	imu_weights_(1,1)
+	imu_weights_(1,1),
+	pub_smoothing_gyro_flag_(false)
   {}
   ~AttitudeEstimate(){}
 
@@ -136,9 +137,12 @@ public:
         imu_msg_.stamp = nh_->now();
         for(int i = 0; i < 3 ; i ++)
           {
-            //TODO: https://github.com/tongtybj/d_board/issues/38
-            //imu_msg_.gyro_data[i] = estimator_->getSmoothAngular(Frame::BODY)[i];
-            imu_msg_.gyro_data[i] = estimator_->getAngular(Frame::BODY)[i];
+        	if(pub_smoothing_gyro_flag_)
+        	{
+        		imu_msg_.gyro_data[i] = estimator_->getSmoothAngular(Frame::BODY)[i];
+        	}
+        	else
+        		imu_msg_.gyro_data[i] = estimator_->getAngular(Frame::BODY)[i];
             imu_msg_.mag_data[i] = estimator_->getMag(Frame::BODY)[i];
             imu_msg_.acc_data[i] = estimator_->getAcc(Frame::BODY)[i];
 
@@ -172,7 +176,7 @@ public:
   inline const Vector3f getAttitude(uint8_t frame)  { return estimator_->getAttitude(frame); }
   inline const Vector3f getAngular(uint8_t frame) { return estimator_->getAngular(frame); }
   inline const Vector3f getSmoothAngular(uint8_t frame) { return estimator_->getSmoothAngular(frame); }
-
+  inline void setGyroSmoothFlag(bool flag) { pub_smoothing_gyro_flag_ = flag; }
 
   static const uint8_t IMU_PUB_INTERVAL = 5; //10-> 100Hz, 2 -> 500Hz
   static const uint8_t ATTITUDE_PUB_INTERVAL = 100; //100 -> 10Hz
@@ -183,6 +187,7 @@ private:
 
   aerial_robot_msgs::Imu imu_msg_;
   geometry_msgs::Vector3Stamped attitude_msg_;
+  bool pub_smoothing_gyro_flag_;
 
   ros::Subscriber<aerial_robot_base::DesireCoord, AttitudeEstimate> desire_coord_sub_;
   ros::ServiceServer<std_srvs::Trigger::Request, std_srvs::Trigger::Response, AttitudeEstimate> test_rosservice_; /* test rosserive server without class */
