@@ -41,39 +41,35 @@ using namespace std;
 namespace dragon
 {
 
-  JointInterface::JointInterface(ros::NodeHandle nh, ros::NodeHandle nhp)
-    : hydrus::JointInterface(nh, nhp), gimbals_(0), start_gimbal_control_(false)
+  ServoInterface::ServoInterface(ros::NodeHandle nh, ros::NodeHandle nhp)
+    : hydrus::JointInterface(nh, nhp), gimbals_(0)
   {
-    nhp_.param("gimbal_num", gimbal_num_, 8);
-
-    /* update the servo id of joints */
-    for(int i = 0; i < joint_num_; i++)
-      joints_[i]->setId(i + (i / 2) * 2);
-
+    nhp_.param("gimbal_num", gimbal_num_, 0);
     for(int i = 0; i < gimbal_num_; i++)
       {
-        gimbals_.push_back(JointHandlePtr(new JointHandle(ros::NodeHandle(nh, "gimbal"), ros::NodeHandle(nhp, "gimbal"), i)));
-        /* update the id after the definition of pub/sub */
-        gimbals_[i]->setId(i + (i / 2 + 1) * 2);
+        gimbals_.push_back(ServoHandlePtr(new ServoHandle(nh, ros::NodeHandle(nhp, "gimbal"), i, false)));
       }
 
-    string topic_name;
-    gimbal_ctrl_sub_ = nh_.subscribe("gimbals_ctrl", 1, &JointInterface::gimbalsCtrlCallback, this) ;
+    gimbal_ctrl_sub_ = nh_.subscribe("gimbals_ctrl", 1, &ServoInterface::gimbalsCtrlCallback, this) ;
 
-    gimbals_torque_control_srv_ =  nh_.advertiseService("/gimbals_controller/torque_enable", &JointInterface::gimbalsTorqueEnableCallback, this);
+    gimbals_torque_control_srv_ =  nh_.advertiseService("/gimbals/torque_enable", &ServoInterface::gimbalsTorqueEnableCallback, this);
 
   }
 
-  void JointInterface::gimbalsCtrlCallback(const sensor_msgs::JointStateConstPtr& gimbals_ctrl_msg)
+  void ServoInterface::gimbalsCtrlCallback(const sensor_msgs::JointStateConstPtr& gimbals_ctrl_msg)
   {
-    assert(gimbals_ctrl_msg->position.size() == gimbal_num_);
+    if(gimbals_ctrl_msg->position.size() != gimbal_num_)
+      {
+        ROS_ERROR("[dynamixel bridge, gimbal control]: the gimbal num from rosparam %d is not equal with ros msgs %d", gimbal_num_, (int)gimbals_ctrl_msg->position.size());
+        return;
+      }
 
     hydrus::ServoControlCmd target_angle_msg;
 
     for(int i = 0; i < gimbal_num_; i ++)
       {
-        // TODO: check the order of the gimbal servo
         gimbals_[i]->setTargetVal(gimbals_ctrl_msg->position[i]);
+        gimbals_[i]->setConvertedCurrentVal(gimbals_ctrl_msg->position[i]); /* fedd-forward mode */
         target_angle_msg.index.push_back(gimbals_[i]->getId());
         target_angle_msg.angles.push_back(gimbals_[i]->getTargetVal());
       }
@@ -81,11 +77,11 @@ namespace dragon
     servo_ctrl_pub_.publish(target_angle_msg);
   }
 
-  bool JointInterface::gimbalsTorqueEnableCallback(dynamixel_controllers::TorqueEnable::Request &req, dynamixel_controllers::TorqueEnable::Response &res)
+  bool ServoInterface::gimbalsTorqueEnableCallback(dynamixel_controllers::TorqueEnable::Request &req, dynamixel_controllers::TorqueEnable::Response &res)
   {
     /* direct send torque control flag */
     hydrus::ServoTorqueCmd torque_off_msg;
-    for(auto it = joints_.begin(); it != joints_.end(); ++it)
+    for(auto it = gimbals_.begin(); it != gimbals_.end(); ++it)
       {
         torque_off_msg.index.push_back((*it)->getId());
         torque_off_msg.torque_enable.push_back(req.torque_enable);
@@ -95,21 +91,23 @@ namespace dragon
     return true;
   }
 
-  void JointInterface::jointStatePublish()
+  void ServoInterface::jointStatePublish()
   {
     sensor_msgs::JointState joints_state_msg;
     joints_state_msg.header.stamp = ros::Time::now();
 
-    for(int i = 0; i < joint_num_; i ++)
+    /* joints */
+    for(auto it = joints_.begin(); it != joints_.end(); ++it)
       {
-        joints_state_msg.name.push_back(joints_[i]->getName());
-        joints_state_msg.position.push_back(joints_[i]->getTargetVal());
+        joints_state_msg.name.push_back((*it)->getName());
+        joints_state_msg.position.push_back((*it)->getCurrentVal());
       }
 
-    for(int i = 0; i < gimbal_num_; i ++)
+    /* gimbals */
+    for(auto it = gimbals_.begin(); it != gimbals_.end(); ++it)
       {
-        joints_state_msg.name.push_back(gimbals_[i]->getName());
-        joints_state_msg.position.push_back(gimbals_[i]->getCurrentVal());
+        joints_state_msg.name.push_back((*it)->getName());
+        joints_state_msg.position.push_back((*it)->getCurrentVal());
       }
 
     joints_state_pub_.publish(joints_state_msg);

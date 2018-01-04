@@ -1,112 +1,119 @@
 bridge_rate: 50
 bridge_mode: 1
 
-servo_sub_name: /joint_servo/states
-servo_pub_name: /joint_servo/target_states
-servo_config_cmd_pub_name: /joint_servo/config_cmd
-gimbal_pub_name: /gimbal_servo/target_states
-gimbal_config_cmd_pub_name: /gimbal_servo/config_cmd
-
-
 # joint servo
 joint_num: 6
-joint1_name: joint1_pitch
-joint1_angle_max: 1.58
-joint1_angle_min: -1.58
-joint1_angle_sgn: 1
-joint1_angle_scale: 0.00076699
-joint1_angle_offset: 2047
+# need to be ordered as the serial link
+joint/1/id: 1
+joint/1/name: joint1_pitch
+joint/1/angle_max: 1.58
+joint/1/angle_min: -1.58
+joint/1/angle_sgn: 1
+joint/1/angle_scale: 0.00076699
+joint/1/angle_offset: 2047
 
-joint2_name: joint1_yaw
-joint2_angle_max: 1.58
-joint2_angle_min: -1.58
-joint2_angle_sgn: 1
-joint2_angle_scale: 0.00076699
-joint2_angle_offset: 2047
+joint/2/id: 0
+joint/2/name: joint1_yaw
+joint/2/angle_max: 1.58
+joint/2/angle_min: -1.58
+joint/2/angle_sgn: 1
+joint/2/angle_scale: 0.00076699
+joint/2/angle_offset: 2047
 
-joint3_name: joint2_pitch
-joint3_angle_max: 1.58
-joint3_angle_min: -1.58
-joint3_angle_sgn: 1
-joint3_angle_scale: 0.00076699
-joint3_angle_offset: 2047
+joint/3/id: 5
+joint/3/name: joint2_pitch
+joint/3/angle_max: 1.58
+joint/3/angle_min: -1.58
+joint/3/angle_sgn: 1
+joint/3/angle_scale: 0.00076699
+joint/3/angle_offset: 2047
 
-joint4_name: joint2_yaw
-joint4_angle_max: 1.58
-joint4_angle_min: -1.58
-joint4_angle_sgn: 1
-joint4_angle_scale: 0.00076699
-joint4_angle_offset: 2047
+joint/4/id: 4
+joint/4/name: joint2_yaw
+joint/4/angle_max: 1.58
+joint/4/angle_min: -1.58
+joint/4/angle_sgn: 1
+joint/4/angle_scale: 0.00076699
+joint/4/angle_offset: 2047
 
-joint5_name: joint3_pitch
-joint5_angle_max: 1.58
-joint5_angle_min: -1.58
-joint5_angle_sgn: 1
-joint5_angle_scale: 0.00076699
-joint5_angle_offset: 2047
+joint/5/id: 9
+joint/5/name: joint3_pitch
+joint/5/angle_max: 1.58
+joint/5/angle_min: -1.58
+joint/5/angle_sgn: 1
+joint/5/angle_scale: 0.00076699
+joint/5/angle_offset: 2047
 
-joint6_name: joint3_yaw
-joint6_angle_max: 1.58
-joint6_angle_min: -1.58
-joint6_angle_sgn: 1
-joint6_angle_scale: 0.00076699
-joint6_angle_offset: 2047
+joint/6/id: 8
+joint/6/name: joint3_yaw
+joint/6/angle_max: 1.58
+joint/6/angle_min: -1.58
+joint/6/angle_sgn: 1
+joint/6/angle_scale: 0.00076699
+joint/6/angle_offset: 2047
 
 # gimbal servo
-# TODO: the order is reverse
 gimbal_num: 8
-gimbal/joint1_name: gimbal1_pitch
-gimbal/joint1_angle_max: 1.58
-gimbal/joint1_angle_min: -1.58
-gimbal/joint1_angle_sgn: 1
-gimbal/joint1_angle_scale: 0.001534
-gimbal/joint1_angle_offset: 2047
+gimbal/1/name: gimbal1_pitch
+gimbal/1/id: 2
+gimbal/1/angle_max: 1.58
+gimbal/1/angle_min: -1.58
+gimbal/1/angle_sgn: 1
+gimbal/1/angle_scale: 0.001534
+gimbal/1/angle_offset: 2047
 
-gimbal/joint2_name: gimbal1_roll
-gimbal/joint2_angle_max: 1.58
-gimbal/joint2_angle_min: -1.58
-gimbal/joint2_angle_sgn: 1
-gimbal/joint2_angle_scale: 0.001534
-gimbal/joint2_angle_offset: 2047
+gimbal/2/name: gimbal1_roll
+gimbal/2/id: 3
+gimbal/2/angle_max: 1.58
+gimbal/2/angle_min: -1.58
+gimbal/2/angle_sgn: 1
+gimbal/2/angle_scale: 0.001534
+gimbal/2/angle_offset: 2047
 
-gimbal/joint3_name: gimbal2_pitch
-gimbal/joint3_angle_max: 1.58
-gimbal/joint3_angle_min: -1.58
-gimbal/joint3_angle_sgn: 1
-gimbal/joint3_angle_scale: 0.001534
-gimbal/joint3_angle_offset: 2047
+gimbal/3/name: gimbal2_pitch
+gimbal/3/id: 6
+gimbal/3/angle_max: 1.58
+gimbal/3/angle_min: -1.58
+gimbal/3/angle_sgn: 1
+gimbal/3/angle_scale: 0.001534
+gimbal/3/angle_offset: 2047
 
-gimbal/joint4_name: gimbal2_roll
-gimbal/joint4_angle_max: 1.58
-gimbal/joint4_angle_min: -1.58
-gimbal/joint4_angle_sgn: 1
-gimbal/joint4_angle_scale: 0.001534
-gimbal/joint4_angle_offset: 2047
+gimbal/4/name: gimbal2_roll
+gimbal/4/id: 7
+gimbal/4/angle_max: 1.58
+gimbal/4/angle_min: -1.58
+gimbal/4/angle_sgn: 1
+gimbal/4/angle_scale: 0.001534
+gimbal/4/angle_offset: 2047
 
-gimbal/joint5_name: gimbal3_pitch
-gimbal/joint5_angle_max: 1.58
-gimbal/joint5_angle_min: -1.58
-gimbal/joint5_angle_sgn: 1
-gimbal/joint5_angle_scale: 0.001534
-gimbal/joint5_angle_offset: 2047
+gimbal/5/name: gimbal3_pitch
+gimbal/5/id: 10
+gimbal/5/angle_max: 1.58
+gimbal/5/angle_min: -1.58
+gimbal/5/angle_sgn: 1
+gimbal/5/angle_scale: 0.001534
+gimbal/5/angle_offset: 2047
 
-gimbal/joint6_name: gimbal3_roll
-gimbal/joint6_angle_max: 1.58
-gimbal/joint6_angle_min: -1.58
-gimbal/joint6_angle_sgn: 1
-gimbal/joint6_angle_scale: 0.001534
-gimbal/joint6_angle_offset: 2047
+gimbal/6/name: gimbal3_roll
+gimbal/6/id: 11
+gimbal/6/angle_max: 1.58
+gimbal/6/angle_min: -1.58
+gimbal/6/angle_sgn: 1
+gimbal/6/angle_scale: 0.001534
+gimbal/6/angle_offset: 2047
 
-gimbal/joint7_name: gimbal4_pitch
-gimbal/joint7_angle_max: 1.58
-gimbal/joint7_angle_min: -1.58
-gimbal/joint7_angle_sgn: 1
-gimbal/joint7_angle_scale: 0.001534
-gimbal/joint7_angle_offset: 2047
+gimbal/7/name: gimbal4_pitch
+gimbal/7/id: 12
+gimbal/7/angle_max: 1.58
+gimbal/7/angle_min: -1.58
+gimbal/7/angle_sgn: 1
+gimbal/7/angle_scale: 0.001534
+gimbal/7/angle_offset: 2047
 
-gimbal/joint8_name: gimbal4_roll
-gimbal/joint8_angle_max: 1.58
-gimbal/joint8_angle_min: -1.58
-gimbal/joint8_angle_sgn: 1
-gimbal/joint8_angle_scale: 0.001534
-gimbal/joint8_angle_offset: 2047
+gimbal/8/name: gimbal4_roll
+gimbal/8/id: 13
+gimbal/8/angle_max: 1.58
+gimbal/8/angle_min: -1.58
+gimbal/8/angle_sgn: 1
+gimbal/8/angle_scale: 0.001534
+gimbal/8/angle_offset: 2047

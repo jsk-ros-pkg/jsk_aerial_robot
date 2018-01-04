@@ -42,9 +42,9 @@ int main(int argc, char** argv)
   ros::NodeHandle n;
   ros::NodeHandle np("~");
 
-  dragon::JointInterface *joint_interface = new dragon::JointInterface(n,np);
+  dragon::ServoInterface *servo_interface = new dragon::ServoInterface(n,np);
   ros::spin();
-  delete joint_interface;
+  delete servo_interface;
 
   return 0;
 }
