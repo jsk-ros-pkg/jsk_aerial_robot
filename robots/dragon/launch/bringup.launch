@@ -5,7 +5,7 @@
   <arg name="simulation" default="False" />
   <arg name="control_mode" default="0" />
   <arg name="type" default="quad" />
-  <arg name="estimate_mode"  default= "0" />
+  <arg name="estimate_mode"  default= "2" />
   <arg name="headless" default="True" />
 
   <!-- sensors(fusion) special parameters -->
