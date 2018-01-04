@@ -52,10 +52,10 @@ namespace hydrus
     for(int i = 0; i < joint_num_; i++)
       {
         servo_full_on_mask_ |= (1 << i);
-        joints_.push_back(JointHandlePtr(new JointHandle(nh, nhp, i)));
+        joints_.push_back(ServoHandlePtr(new ServoHandle(nh, ros::NodeHandle(nhp, "joint"), i)));
       }
 
-    joints_torque_control_srv_ =  nh_.advertiseService("/joints_controller/torque_enable", &JointInterface::jointsTorqueEnableCallback, this);
+    joints_torque_control_srv_ =  nh_.advertiseService("/joints/torque_enable", &JointInterface::jointsTorqueEnableCallback, this);
     joints_ctrl_sub_ = nh_.subscribe("joints_ctrl", 1, &JointInterface::jointsCtrlCallback, this, ros::TransportHints().tcpNoDelay());
     joints_state_pub_ = nh_.advertise<sensor_msgs::JointState>("joint_states", 1);
 
@@ -66,7 +66,7 @@ namespace hydrus
 
         string topic_name;
         nhp_.param("servo_sub_name", topic_name, std::string("/servo/states"));
-        servo_angle_sub_ = nh_.subscribe(topic_name, 1, &JointInterface::servoStatesCallback, this, ros::TransportHints().tcpNoDelay());
+        servo_angle_sub_ = nh_.subscribe(topic_name, 1, &JointInterface::jointStatesCallback, this, ros::TransportHints().tcpNoDelay());
         nhp_.param("servo_pub_name", topic_name, std::string("/servo/target_states"));
         servo_ctrl_pub_ = nh_.advertise<hydrus::ServoControlCmd>(topic_name, 1);
         nhp_.param("servo_torque_cmd_pub_name", topic_name, std::string("/servo/torque_enable"));
@@ -87,32 +87,36 @@ namespace hydrus
     bridge_timer_ = nhp_.createTimer(ros::Duration(1.0 / bridge_rate_), &JointInterface::bridgeFunc, this);
   }
 
-  void JointInterface::servoStatesCallback(const hydrus::ServoStatesConstPtr& state_msg)
+  void JointInterface::jointStatesCallback(const hydrus::ServoStatesConstPtr& state_msg)
   {
     /* the joint_num_ should be equal with the mcu information */
-    assert(state_msg->servos.size() == joint_num_);
+    if(state_msg->servos.size() != joints_.size())
+      {
+        ROS_ERROR("[dynamixel bridge, joint state]: the joint num from rosparam %d is not equal with ros msgs %d", (int)joints_.size(), (int)state_msg->servos.size());
+        return;
+      }
 
     static ros::Time prev_time = ros::Time::now();
-    for(auto it = joints_.begin(); it != joints_.end(); ++it)
+    for(auto it = state_msg->servos.begin(); it != state_msg->servos.end(); ++it)
       {
-        size_t index = distance(joints_.begin(), it);
-        (*it)->setCurrentVal(state_msg->servos[index].angle);
-        (*it)->setError(state_msg->servos[index].error);
-        (*it)->setTemp(state_msg->servos[index].temp);
-        (*it)->setLoad(state_msg->servos[index].load);
-
-        if(!(servo_on_mask_ & (1 << index)))
+        auto joint_handler = find_if(joints_.begin(), joints_.end(), [&](ServoHandlePtr s) {return it->index == s->getId();} );
+        if(joint_handler == joints_.end())
           {
-            ROS_WARN("[dynamixel bridge] set the initial target angle to current angle");
-            (*it)->setTargetVal((*it)->getCurrentVal());
+            ROS_ERROR("[dynamixel bridge]: no matching joint handler for servo index %d", it->index);
+            continue;
           }
 
-        servo_on_mask_ |= (1 << index);
+        (*joint_handler)->setCurrentVal(it->angle);
+        (*joint_handler)->setError(it->error);
+        (*joint_handler)->setTemp(it->temp);
+        (*joint_handler)->setLoad(it->load);
 
-        /* rough check for the index match */
-        if(state_msg->servos[index].index != (*it)->getId())
-          ROS_ERROR("[dynamixel bridge] the servo id does not match, d_board: %d, ros: %d",
-                    state_msg->servos[index].index, (*it)->getId());
+        if(!(servo_on_mask_ & (1 << (distance(joints_.begin(), joint_handler)))))
+          {
+            ROS_WARN("[dynamixel bridge] set the initial target angle to current angle");
+            (*joint_handler)->setTargetVal((*joint_handler)->getCurrentVal());
+          }
+        servo_on_mask_ |= (1 << (distance(joints_.begin(), joint_handler)));
       }
 
     /* check moving */
@@ -130,18 +134,17 @@ namespace hydrus
         prev_time = ros::Time::now();
       }
 
-    /* check overload */
+    /* check223 overload */
     if(overload_check_)
       {
-        for(int i = 0; i < joint_num_; i ++)
+        for(auto it = state_msg->servos.begin(); it != state_msg->servos.end(); ++it)
           {
-            if(OVERLOAD_FLAG & state_msg->servos[i].error)
+            if(OVERLOAD_FLAG & it->error)
               {
-                ROS_WARN("motor: %d, overload", i+1);
-
+                ROS_WARN("[dynamixel bridge]: motor: %d, overload", (int)distance(state_msg->servos.begin(), it) + 1);
                 /* direct send torque control flag */
                 hydrus::ServoTorqueCmd torque_off_msg;
-                torque_off_msg.index.push_back(joints_[i]->getId());
+                torque_off_msg.index.push_back(it->index);
                 torque_off_msg.torque_enable.push_back(false);
                 servo_torque_cmd_pub_.publish(torque_off_msg);
               }
@@ -152,21 +155,26 @@ namespace hydrus
   void JointInterface::jointsCtrlCallback(const sensor_msgs::JointStateConstPtr& joints_ctrl_msg)
   {
     /* the joint control size should be equal with joint_num_ */
-    assert(joints_ctrl_msg.position.state_msg->servos.size() == joint_num_);
+    if(joints_ctrl_msg->position.size() != joints_.size())
+      {
+        ROS_ERROR("[dynamixel bridge, joint control]: the joint num from rosparam %d is not equal with ros msgs %d", (int)joints_.size(), (int)joints_ctrl_msg->position.size());
+        return;
+      }
 
     hydrus::ServoControlCmd target_angle_msg;
 
+    auto joint_handler = joints_.begin();
     for(int i = 0; i < joint_num_; i ++)
       {
-        joints_[i]->setTargetVal(joints_ctrl_msg->position[i]);
-
+        (*joint_handler)->setTargetVal(joints_ctrl_msg->position[i]);
         if(bridge_mode_ == DYNAMIXEL_HUB_MODE)
-          joints_[i]->pubTarget();
+          (*joint_handler)->pubTarget();
         else if(bridge_mode_ == MCU_MODE)
           {
-            target_angle_msg.index.push_back(joints_[i]->getId());
-            target_angle_msg.angles.push_back(joints_[i]->getTargetVal());
+            target_angle_msg.index.push_back((*joint_handler)->getId());
+            target_angle_msg.angles.push_back((*joint_handler)->getTargetVal());
           }
+        joint_handler++;
       }
 
     if(bridge_mode_ == MCU_MODE) servo_ctrl_pub_.publish(target_angle_msg);
@@ -196,10 +204,10 @@ namespace hydrus
     sensor_msgs::JointState joints_state_msg;
     joints_state_msg.header.stamp = ros::Time::now();
 
-    for(int i = 0; i < joint_num_; i ++)
+    for(auto it = joints_.begin(); it != joints_.end(); ++it)
       {
-        joints_state_msg.name.push_back(joints_[i]->getName());
-        joints_state_msg.position.push_back(joints_[i]->getCurrentVal());
+        joints_state_msg.name.push_back((*it)->getName());
+        joints_state_msg.position.push_back((*it)->getCurrentVal());
       }
 
     joints_state_pub_.publish(joints_state_msg);
