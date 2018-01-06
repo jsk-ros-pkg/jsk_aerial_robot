@@ -20,7 +20,7 @@
   <rosparam file="$(find dragon)/config/MotorInfo.yaml" command="load" />
 
   ###########  Battery Config  ###########
-  <rosparam file="$(find hydrus)/config/hydrusx/$(arg type)/Battery.yaml" command="load" />
+  <rosparam file="$(find dragon)/config/$(arg type)/Battery.yaml" command="load" />
 
   ###########  Base Platform  ###########
   <node pkg="aerial_robot_base" type="aerial_robot_base_node" name="aerial_robot_base_node" output="screen" >
