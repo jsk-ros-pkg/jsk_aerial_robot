@@ -2,6 +2,7 @@
 
 # general parameter
 controller/baselink: fc
+controller/only_three_axis_mode: true
 controller/verbose: true
 controller/real_machine: false
 controller/gimbal_control_topic_name: /dragon/gimbals_ctrl
@@ -18,17 +19,16 @@ controller/alt/d_term_limit: 28
 controller/alt/alt_landing_const_i_ctrl_thresh: -0.3
 
 # xy [rad]
-controller/xy/p_gain: 18 #10: sucess in real machine, but weak
-controller/xy/i_gain: 0.2
-controller/xy/hovering_i_gain: 0.2
-controller/xy/d_gain: 30 #40.0 # 20: sucess in real machine, but weak
-controller/xy/limit: 100 
-controller/xy/p_term_limit: 100
-controller/xy/i_term_limit: 100
-controller/xy/d_term_limit: 100
+controller/xy/p_gain: 2.5 # 10 / 7.38: sucess in real machine, but weak; divided by mass
+controller/xy/i_gain: 0.03 # divided by mass
+controller/xy/hovering_i_gain: 0.03 # divided by mass
+controller/xy/d_gain: 4 # 40.0 / 7.38 # 20 / 7.38: sucess in real machine, but weak; divided by mass
+controller/xy/limit: 100 # divided by mass
+controller/xy/p_term_limit: 10 # [m/s^2] divided by mass
+controller/xy/i_term_limit: 10 # [m/s^2] divided by mass
+controller/xy/d_term_limit: 10 # [m/s^2] divided by mass
 controller/xy/x_offset: 0
 controller/xy/y_offset: 0
-controller/xy/xy_vel_weak_gain_sub_name: /velocity_control_gain_change
 
 # yaw [N]
 controller/yaw/limit: 10.0

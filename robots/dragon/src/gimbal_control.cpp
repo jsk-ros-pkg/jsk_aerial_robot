@@ -31,7 +31,6 @@ namespace control_plugin
         P_xy_(0, i * 2) = 1;
         P_xy_(1, 1 + i * 2) = 1;
       }
-    //std::cout << "P_xy :"  << std::endl << P_xy_ << std::endl;
 
     /* initialize the gimbal target angles */
     target_gimbal_angles_.resize(kinematics_->getRotorNum() * 2, 0);
@@ -173,7 +172,12 @@ namespace control_plugin
   {
     if (control_timestamp_ < 0) return;
 
+    /* get roll/pitch angle */
+    double roll_angle = estimator_->getState(State::ROLL_COG, estimate_mode_)[0];
+    double pitch_angle = estimator_->getState(State::PITCH_COG, estimate_mode_)[0];
+
     /* do not do gimbal control in the early stage of takeoff phase */
+    /*
     if(navigator_->getNaviState() == Navigator::TAKEOFF_STATE)
       {
         double total_thrust  = 0;
@@ -187,6 +191,7 @@ namespace control_plugin
           }
 
       }
+    */
 
     int rotor_num = kinematics_->getRotorNum();
 
@@ -218,7 +223,8 @@ namespace control_plugin
 
     Eigen::MatrixXd P = Eigen::MatrixXd::Zero(5, rotor_num  * 2);
     P.block(0, 0, 3, rotor_num * 2) = P_att;
-    P.block(3, 0, 2, rotor_num * 2) = P_xy_;
+    P.block(3, 0, 2, rotor_num * 2) = P_xy_ / kinematics_->getMass();
+
     double P_det = (P * P.transpose()).determinant();
 
     if(control_verbose_)
@@ -235,11 +241,9 @@ namespace control_plugin
         if(control_verbose_) ROS_ERROR("bad P_det: %f", P_det);
         P = Eigen::MatrixXd::Zero(3, rotor_num  * 2);
         P.block(0, 0, 1, rotor_num * 2) = P_att.block(2, 0, 1, rotor_num * 2);
-        P.block(1, 0, 2, rotor_num * 2) = P_xy_;
+        P.block(1, 0, 2, rotor_num * 2) = P_xy_ / kinematics_->getMass();
 
-        Eigen::VectorXd pid_values(3);
-        pid_values << target_yaw_[0], target_pitch_, target_roll_;
-        f = pseudoinverse(P) * pid_values;
+        f = pseudoinverse(P) * Eigen::Vector3d(target_yaw_[0], target_pitch_ - (pitch_angle * 9.8), target_roll_ - (-roll_angle * 9.8));
       }
     else
       {
@@ -326,7 +330,7 @@ namespace control_plugin
 
         Eigen::VectorXd pid_values(5);
         /* F = P# * [roll_pid, pitch_pid, yaw_pid, x_pid, y_pid] */
-        pid_values << target_gimbal_roll, target_gimbal_pitch, target_yaw_[0], target_pitch_, target_roll_;
+        pid_values << target_gimbal_roll, target_gimbal_pitch, target_yaw_[0], target_pitch_ - (pitch_angle * 9.8), target_roll_ - (-roll_angle * 9.8);
         f = pseudoinverse(P) * pid_values;
       }
 
@@ -343,8 +347,7 @@ namespace control_plugin
       {
         /* normalized vector */
         /* 1: use state_x */
-        double base_throttle = (target_throttle_[i] > 0)?target_throttle_[i]:1;
-        tf::Vector3 f_i = tf::Vector3(f(2 * i), f(2 * i + 1), base_throttle);
+        tf::Vector3 f_i = tf::Vector3(f(2 * i), f(2 * i + 1), kinematics_->getStableState()[i]);
         /* 2: use target_throttle */
         //tf::Vector3 f_i = tf::Vector3(f(2 * i), f(2 * i + 1), kinematics_->(getStableState())(i));
 
@@ -489,6 +492,7 @@ namespace control_plugin
     joint_state_ = *state;
     kinematics_->gimbalProcess(joint_state_);
     kinematics_->kinematics(joint_state_);
+    kinematics_->modelling();
   }
 
   void DragonGimbal::cfgPitchRollPidCallback(aerial_robot_base::XYPidControlConfig &config, uint32_t level)
