@@ -61,44 +61,49 @@
 
 using namespace std;
 
-class JointHandle
+class ServoHandle
 {
 public:
-  JointHandle(ros::NodeHandle nh, ros::NodeHandle nhp, int id):
-    nh_(nh), nhp_(nhp),
-    id_(id), current_val_(0), prev_val_(0), target_val_(0),
+  ServoHandle(ros::NodeHandle nh, ros::NodeHandle nhp, int id, bool dynamixel_flag = true):
+    nh_(nh), id_(id), current_val_(0), prev_val_(0), target_val_(0),
     sgn_(0), offset_(0), scale_(0), max_(0), min_(0),
     moving_(0), load_(0), temp_(0), error_(0)
   {
     std::stringstream id_str;
     id_str << id_ + 1;
 
-    string joint_id =  std::string("joint") + id_str.str();
+    nhp_ = ros::NodeHandle(nhp, id_str.str());
 
-    nhp_.param(joint_id + std::string("_angle_max"), max_, 1.57); //real angle
-    nhp_.param(joint_id + std::string("_angle_min"), min_, -1.57); //real angle
-    nhp_.param(joint_id + std::string("_angle_sgn"), sgn_, 1);
-    nhp_.param(joint_id + std::string("_angle_offset"), offset_, 0.0);
-    nhp_.param(joint_id + std::string("_angle_scale"), scale_, 1.0);
-    nhp_.param(joint_id + std::string("_name"), name_, joint_id);
+    nhp_.param(std::string("angle_max"), max_, 1.57); //real angle
+    nhp_.param(std::string("angle_min"), min_, -1.57); //real angle
+    nhp_.param(std::string("angle_sgn"), sgn_, 1);
+    nhp_.param(std::string("angle_offset"), offset_, 0.0);
+    nhp_.param(std::string("angle_scale"), scale_, 1.0);
+    nhp_.param(std::string("name"), name_, std::string("unknown"));
 
-    ROS_INFO("%s attribute: angle_max: %f, angle_min: %f, angle_scale: %f, angle_sng: %d, angle_offset: %f",
-             name_.c_str(), max_, min_, scale_, sgn_, offset_);
+    if(nhp_.hasParam(std::string("id")))
+      nhp_.getParam(std::string("id"), id_);
+
+    ROS_INFO("[%s] name: %s  id: %d, angle_max: %f, angle_min: %f, angle_scale: %f, angle_sng: %d, angle_offset: %f",
+             nhp_.getNamespace().c_str(), name_.c_str(), id_, max_, min_, scale_, sgn_, offset_);
 
     /* special pub/sub for ros::dynamixel system */
-    string topic_name;
-    topic_name = std::string("/j") + id_str.str()  + std::string("_controller/command");
-    joint_ctrl_pub_ = nh_.advertise<std_msgs::Float64>(topic_name, 1);
+    if (dynamixel_flag)
+      {
+        string topic_name;
+        topic_name = std::string("/j") + id_str.str()  + std::string("_controller/command");
+        joint_ctrl_pub_ = nh_.advertise<std_msgs::Float64>(topic_name, 1);
 
-    topic_name = std::string("/j") + id_str.str()  + std::string("_controller/state");
-    joint_state_sub_ = nh_.subscribe(topic_name, 1, &JointHandle::jointCallback, this);
-
+        topic_name = std::string("/j") + id_str.str()  + std::string("_controller/state");
+        joint_state_sub_ = nh_.subscribe(topic_name, 1, &ServoHandle::jointCallback, this);
+      }
   };
-  ~JointHandle() {};
+  ~ServoHandle() {};
 
-  boost::shared_ptr<JointHandle> getHandle() { return boost::shared_ptr<JointHandle>(this); }
+  boost::shared_ptr<ServoHandle> getHandle() { return boost::shared_ptr<ServoHandle>(this); }
 
   inline void setCurrentVal(const double& val) { current_val_ = scale_ * sgn_ * (val - offset_); } //scaling
+  inline void setConvertedCurrentVal(const double& val) { current_val_ = val; }
   inline void setPrevVal(const double& val){ prev_val_ = val; }
   inline void setTargetVal(const double& val){ target_val_ = val; }
   inline void setName(const string& name){ name_ = name; }
@@ -188,7 +193,7 @@ private:
 
 };
 
-typedef boost::shared_ptr<JointHandle> JointHandlePtr;
+typedef boost::shared_ptr<ServoHandle> ServoHandlePtr;
 
 namespace hydrus
 {
@@ -198,7 +203,7 @@ namespace hydrus
     ros::NodeHandle nh_;
     ros::NodeHandle nhp_;
 
-    vector<JointHandlePtr> joints_;
+    vector<ServoHandlePtr> joints_;
 
     uint16_t servo_on_mask_, servo_full_on_mask_;
     double moving_check_rate_;
@@ -223,7 +228,7 @@ namespace hydrus
     ros::ServiceServer joints_torque_control_srv_;
     ros::ServiceServer overload_check_activate_srv_;
 
-    virtual void servoStatesCallback(const hydrus::ServoStatesConstPtr& state_msg);
+    virtual void jointStatesCallback(const hydrus::ServoStatesConstPtr& state_msg);
     virtual void jointsCtrlCallback(const sensor_msgs::JointStateConstPtr& joints_ctrl_msg);
     virtual bool jointsTorqueEnableCallback(dynamixel_controllers::TorqueEnable::Request &req, dynamixel_controllers::TorqueEnable::Response &res);
     virtual void bridgeFunc(const ros::TimerEvent & e);

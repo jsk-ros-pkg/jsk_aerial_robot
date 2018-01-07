@@ -10,12 +10,21 @@
       <!-- head -->
       <xacro:if value="${self == 1}">
         <inertial>
-          <origin xyz="${link_length* 0.5 + 89.07 * 0.001} ${-6.90 * 0.001} ${-25.71 * 0.001}" rpy="0 0 0"/>
-          <mass value="0.7746" />
+          <origin xyz="${link_length* 0.5 + 14.03 * 0.001} ${-7.10 * 0.001} ${-24.66 * 0.001}" rpy="0 0 0"/>
+          <mass value="0.7485" />
           <inertia
-              ixx="0.0014" iyy="0.0139" izz="0.0132"
-              ixy="-0.0009" ixz="-0.0017" iyz="0.0"/>
+              ixx="0.0014" iyy="0.0154" izz="0.0147"
+              ixy="-0.0008" ixz="0.0006" iyz="0.0"/>
         </inertial>
+        <!-- old: zippy 3000mAh type
+             <inertial>
+             <origin xyz="${link_length* 0.5 + 89.07 * 0.001} ${-6.90 * 0.001} ${-25.71 * 0.001}" rpy="0 0 0"/>
+             <mass value="0.7746" />
+             <inertia
+             ixx="0.0014" iyy="0.0139" izz="0.0132"
+             ixy="-0.0009" ixz="-0.0017" iyz="0.0"/>
+             </inertial>
+        -->
         <xacro:link_model type="head_link" />
       </xacro:if>
       <xacro:unless value="${self == 1}">
@@ -23,35 +32,62 @@
         <!-- tail -->
         <xacro:if value="${self == child}">
           <inertial>
-            <origin xyz="${link_length* 0.5 + 24.31 * 0.001} ${-0.12 * 0.001} ${-18.98 * 0.001}" rpy="0 0 0"/>
-            <mass value="0.7721" />
+            <origin xyz="${link_length* 0.5 - 47.26 * 0.001} ${-0.12 * 0.001} ${-17.74 * 0.001}" rpy="0 0 0"/>
+            <mass value="0.7460" />
             <inertia
-                ixx="0.0014" iyy="0.0142" izz="0.0129"
-                ixy="0.0" ixz="-0.0028" iyz="0.0"/>
+                ixx="0.0014" iyy="0.0158" izz="0.0145"
+                ixy="0.0" ixz="-0.0006" iyz="0.0"/>
           </inertial>
+          <!-- old: zippy 3000mAh type
+               <inertial>
+               <origin xyz="${link_length* 0.5 + 24.31 * 0.001} ${-0.12 * 0.001} ${-18.98 * 0.001}" rpy="0 0 0"/>
+               <mass value="0.7721" />
+               <inertia
+               ixx="0.0014" iyy="0.0142" izz="0.0129"
+               ixy="0.0" ixz="-0.0028" iyz="0.0"/>
+               </inertial>
+          -->
           <xacro:link_model type="end_link" />
         </xacro:if>
         <xacro:unless value="${self == child}">
           <!-- baselink -->
           <xacro:if value="${baselink}">
             <inertial>
-            <origin xyz="${link_length* 0.5 + 34.31 * 0.001} ${-1.41 * 0.001} ${-12.73 * 0.001}" rpy="0 0 0"/>
-            <mass value="1.0861" />
-            <inertia
-                ixx="0.0022" iyy="0.0234" izz="0.0224"
-                ixy="-0.0016" ixz="-0.0036" iyz="0.0001"/>
+              <origin xyz="${link_length* 0.5 + 18.74 * 0.001} ${-5.98 * 0.001} ${-17.04 * 0.001}" rpy="0 0 0"/>
+              <mass value="1.0717" />
+              <inertia
+                  ixx="0.0021" iyy="0.0253" izz="0.0242"
+                  ixy="-0.0011" ixz="-0.0015" iyz="0.0"/>
             </inertial>
+            <!-- old: zippy 3000mAh type
+                 <inertial>
+                 <origin xyz="${link_length* 0.5 + 34.31 * 0.001} ${-1.41 * 0.001} ${-12.73 * 0.001}" rpy="0 0 0"/>
+                 <mass value="1.0861" />
+                 <inertia
+                 ixx="0.0022" iyy="0.0234" izz="0.0224"
+                 ixy="-0.0016" ixz="-0.0036" iyz="0.0001"/>
+                 </inertial>
+            -->
             <xacro:link_model type="baselink" />
           </xacro:if>
           <!-- general -->
           <xacro:unless value="${baselink}">
             <inertial>
-              <origin xyz="${link_length* 0.5 + 48.08 * 0.001} ${-5.92 * 0.001} ${-15.22 * 0.001}" rpy="0 0 0"/>
-              <mass value="0.9151" />
+              <origin xyz="${link_length* 0.5 - 11.42 * 0.001} ${-6.06 * 0.001} ${-14.09 * 0.001}" rpy="0 0 0"/>
+              <mass value="0.8890" />
               <inertia
-                  ixx="0.0017" iyy="0.0184" izz="0.0174"
-                  ixy="-0.0009" ixz="-0.0027" iyz="0.0"/>
+                  ixx="0.0017" iyy="0.02" izz="0.019"
+                  ixy="-0.0009" ixz="-0.0004" iyz="0.0"/>
             </inertial>
+            <!-- old: zippy 3000mAh type
+                 <inertial>
+                 <origin xyz="${link_length* 0.5 + 48.08 * 0.001} ${-5.92 * 0.001} ${-15.22 * 0.001}" rpy="0 0 0"/>
+                 <mass value="0.9151" />
+                 <inertia
+                 ixx="0.0017" iyy="0.0184" izz="0.0174"
+                 ixy="-0.0009" ixz="-0.0027" iyz="0.0"/>
+                 </inertial>
+            -->
             <xacro:link_model type="general_link" />
           </xacro:unless>
         </xacro:unless>
@@ -71,12 +107,21 @@
 
     <link name="gimbal${self}_roll_module">
       <inertial>
-        <origin xyz="${gimbal_roll_x_offset - 17.20968 * 0.001} ${0.41439 * 0.001} ${15.61551 * 0.001}" rpy="0 0 0"/>
-        <mass value="0.44011" />
+        <origin xyz="${gimbal_roll_x_offset - 17.46431 * 0.001} ${0.42738 * 0.001} ${15.47344 * 0.001}" rpy="0 0 0"/>
+        <mass value="0.45058" />
         <inertia
-            ixx="0.0005" iyy="0.0007" izz="0.0003"
+            ixx="0.0005" iyy="0.0007" izz="0.0004"
             ixy="0" ixz="-0.0002" iyz="0.0"/>
       </inertial>
+      <!-- old: zippy 3000mAh type
+           <inertial>
+           <origin xyz="${gimbal_roll_x_offset - 17.20968 * 0.001} ${0.41439 * 0.001} ${15.61551 * 0.001}" rpy="0 0 0"/>
+           <mass value="0.44011" />
+           <inertia
+           ixx="0.0005" iyy="0.0007" izz="0.0003"
+           ixy="0" ixz="-0.0002" iyz="0.0"/>
+           </inertial>
+      -->
       <visual>
         <origin xyz="${gimbal_roll_x_offset} 0 0" rpy="0 0 0"/>
         <geometry>

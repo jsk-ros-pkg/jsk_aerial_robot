@@ -40,23 +40,22 @@
 
 namespace dragon
 {
-  class JointInterface: public hydrus::JointInterface
+  class ServoInterface: public hydrus::JointInterface
   {
   protected:
-    ros::Subscriber gimbal_ctrl_sub_; //target gimbal angles from ros
+    ros::Subscriber gimbal_ctrl_sub_;
     ros::ServiceServer gimbals_torque_control_srv_;
 
-    vector<JointHandlePtr> gimbals_;
+    vector<ServoHandlePtr> gimbals_;
     int gimbal_num_;
-    bool start_gimbal_control_;
 
     void gimbalsCtrlCallback(const sensor_msgs::JointStateConstPtr& gimbals_ctrl_msg);
     bool gimbalsTorqueEnableCallback(dynamixel_controllers::TorqueEnable::Request &req, dynamixel_controllers::TorqueEnable::Response &res);
 
   public:
-    JointInterface(ros::NodeHandle nh, ros::NodeHandle nhp);
+    ServoInterface(ros::NodeHandle nh, ros::NodeHandle nhp);
 
-    ~JointInterface() {}
+    ~ServoInterface() {}
 
     void jointStatePublish();
   };

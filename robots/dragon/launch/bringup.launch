@@ -5,7 +5,7 @@
   <arg name="simulation" default="False" />
   <arg name="control_mode" default="0" />
   <arg name="type" default="quad" />
-  <arg name="estimate_mode"  default= "0" />
+  <arg name="estimate_mode"  default= "2" />
   <arg name="headless" default="True" />
 
   <!-- sensors(fusion) special parameters -->
@@ -18,6 +18,9 @@
 
   ###########  Motor Config  ###########
   <rosparam file="$(find dragon)/config/MotorInfo.yaml" command="load" />
+
+  ###########  Battery Config  ###########
+  <rosparam file="$(find dragon)/config/$(arg type)/Battery.yaml" command="load" />
 
   ###########  Base Platform  ###########
   <node pkg="aerial_robot_base" type="aerial_robot_base_node" name="aerial_robot_base_node" output="screen" >

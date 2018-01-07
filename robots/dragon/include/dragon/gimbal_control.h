@@ -134,6 +134,10 @@ namespace control_plugin
     dynamic_reconfigure::Server<aerial_robot_base::XYPidControlConfig>::CallbackType dynamic_reconf_func_roll_pitch_pid_;
     void cfgPitchRollPidCallback(aerial_robot_base::XYPidControlConfig &config, uint32_t level);
 
+    dynamic_reconfigure::Server<aerial_robot_base::XYPidControlConfig>* yaw_pid_server_;
+    dynamic_reconfigure::Server<aerial_robot_base::XYPidControlConfig>::CallbackType dynamic_reconf_func_yaw_pid_;
+    void cfgYawPidCallback(aerial_robot_base::XYPidControlConfig &config, uint32_t level);
+
     /* psuedo inverse */
     /* https://gist.github.com/javidcf/25066cf85e71105d57b6 */
     template <class MatT>

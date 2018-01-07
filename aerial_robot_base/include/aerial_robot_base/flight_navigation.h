@@ -191,6 +191,7 @@ protected:
   bool low_voltage_flag_;
   int bat_cell_;
   double bat_resistance_;
+  double bat_resistance_voltage_rate_;
   double hovering_current_;
 
   void rosParamInit(ros::NodeHandle nh);
