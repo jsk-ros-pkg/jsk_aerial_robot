@@ -66,7 +66,7 @@ void Navigator::batteryCheckCallback(const std_msgs::Float32ConstPtr &msg)
   float voltage = msg->data;
   /* consider the voltage drop */
   if(getNaviState() == TAKEOFF_STATE || getNaviState() == HOVER_STATE)
-    voltage += (bat_resistance_ * hovering_current_);
+    voltage += ( (bat_resistance_voltage_rate_ * voltage +  bat_resistance_) * hovering_current_);
 
   float average_voltage = voltage / bat_cell_;
   float percentage = 0;
@@ -702,6 +702,8 @@ void Navigator::rosParamInit(ros::NodeHandle nh)
   cout << ns  << ": low_voltage_thre_ is "  <<  low_voltage_thre_ << endl;
   bat_info_node.param("bat_resistance", bat_resistance_, 0.0); //Battery internal resistance
   cout << ns  << ": bat_resistance_ is "  <<  bat_resistance_ << endl;
+  bat_info_node.param("bat_resistance_voltage_rate", bat_resistance_voltage_rate_, 0.0); //Battery internal resistance_voltage_rate
+  cout << ns  << ": bat_resistance_voltage_rate_ is "  <<  bat_resistance_voltage_rate_ << endl;
   bat_info_node.param("hovering_current", hovering_current_, 0.0); // current at hovering state
   cout << ns  << ": hovering_current_ is "  <<  hovering_current_ << endl;
 }
