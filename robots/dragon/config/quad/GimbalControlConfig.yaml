@@ -37,7 +37,7 @@ controller/yaw/i_term_limit: 10.0
 controller/yaw/d_term_limit: 10.0
 controller/yaw/p_gain: -10 # should be negative
 controller/yaw/i_gain: 0.1
-controller/yaw/d_gain: 5
+controller/yaw/d_gain: -5 # should be negative
 
 # pitch & roll
 controller/pitch_roll/control_rate_thresh: 0.35 #0.4 OK!

@@ -113,6 +113,15 @@ void Navigator::naviCallback(const aerial_robot_base::FlightNavConstPtr & msg)
 
       setTargetPsi(target_psi);
     }
+  if(msg->psi_nav_mode == aerial_robot_base::FlightNav::POS_VEL_MODE)
+    {
+      double target_psi = msg->target_psi;
+      if(target_psi > M_PI)  target_psi -= (2 * M_PI);
+      else if(target_psi < -M_PI)  target_psi += (2 * M_PI);
+
+      setTargetPsi(target_psi);
+      setTargetPsiVel(msg->target_vel_psi);
+    }
 
   /* xy control */
   switch(msg->pos_xy_nav_mode)
@@ -179,6 +188,24 @@ void Navigator::naviCallback(const aerial_robot_base::FlightNavConstPtr & msg)
           }
         break;
       }
+    case aerial_robot_base::FlightNav::POS_VEL_MODE:
+      {
+        force_att_control_flag_ = false;
+
+        if(msg->target == aerial_robot_base::FlightNav::BASELINK)
+          {
+            ROS_ERROR("[Flight nav] can not do pos_vel nav for baselink");
+            return;
+          }
+
+        xy_control_mode_ = flight_nav::POS_CONTROL_MODE;
+        setTargetPosX(msg->target_pos_x);
+        setTargetPosY(msg->target_pos_y);
+        setTargetVelX(msg->target_vel_x);
+        setTargetVelY(msg->target_vel_y);
+
+        break;
+      }
     case aerial_robot_base::FlightNav::ACC_MODE:
       {
         /* should be in COG frame */
@@ -209,11 +236,17 @@ void Navigator::naviCallback(const aerial_robot_base::FlightNavConstPtr & msg)
   /* z */
   if(msg->pos_z_nav_mode == aerial_robot_base::FlightNav::VEL_MODE)
     {
+      /* special */
       addTargetPosZ(msg->target_pos_diff_z);
     }
   else if(msg->pos_z_nav_mode == aerial_robot_base::FlightNav::POS_MODE)
     {
       setTargetPosZ(msg->target_pos_z);
+    }
+  else if(msg->pos_z_nav_mode == aerial_robot_base::FlightNav::POS_VEL_MODE)
+    {
+      setTargetPosZ(msg->target_pos_z);
+      setTargetVelZ(msg->target_vel_z);
     }
 }
 
@@ -600,6 +633,9 @@ void Navigator::update()
                 ROS_WARN("back to pos nav control for way point");
                 xy_control_mode_ = flight_nav::POS_CONTROL_MODE;
                 vel_based_waypoint_ = false;
+                setTargetVelX(0);
+                setTargetVelY(0);
+                setTargetVelZ(0);
               }
           }
         break;
