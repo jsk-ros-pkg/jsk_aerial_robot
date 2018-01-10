@@ -43,8 +43,11 @@ add_definitions(-DSIMULATION)
 add_library(spinal_math
   ${SPINAL_DIRS}/math/AP_Math.cpp
   ${SPINAL_DIRS}/math/matrix3.cpp
+  ${SPINAL_DIRS}/math/vector2.cpp
   ${SPINAL_DIRS}/math/vector3.cpp
-  ${SPINAL_DIRS}/math/quaternion.cpp)
+  ${SPINAL_DIRS}/math/quaternion.cpp
+  ${SPINAL_DIRS}/math/location.cpp
+  )
 
 add_library(spinal_flight_controller
   ${SPINAL_DIRS}/flight_control/attitude/attitude_control.cpp)
