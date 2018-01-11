@@ -55,6 +55,7 @@ namespace control_plugin
     state_psi_(0),
     state_psi_vel_(0),
     target_psi_(0),
+    target_psi_vel_(0),
     psi_err_(0),
     target_pitch_(0),
     target_roll_(0),
@@ -113,6 +114,7 @@ namespace control_plugin
     state_psi_ = estimator_->getState(State::YAW_COG, estimate_mode_)[0];
     state_psi_vel_ = estimator_->getState(State::YAW_COG, estimate_mode_)[1];
     target_psi_ = navigator_->getTargetPsi();
+    target_psi_vel_ = navigator_->getTargetPsiVel();
     psi_err_ = target_psi_ - state_psi_;
     if(psi_err_ > M_PI)  psi_err_ -= (2 * M_PI);
     else if(psi_err_ < -M_PI)  psi_err_ += (2 * M_PI);
@@ -141,15 +143,14 @@ namespace control_plugin
 
     /* xy */
     tf::Vector3 xy_p_term, xy_d_term;
+    /* convert from world frame to CoG frame */
     pos_err_ = tf::Matrix3x3(tf::createQuaternionFromYaw(-state_psi_)) * (target_pos_ - state_pos_);
+    vel_err_ = tf::Matrix3x3(tf::createQuaternionFromYaw(-state_psi_)) * (target_vel_ - state_vel_);
 
     switch(navigator_->getXyControlMode())
       {
       case flight_nav::POS_CONTROL_MODE:
         {
-          /* convert from world frame to CoG frame */
-          vel_err_ = tf::Matrix3x3(tf::createQuaternionFromYaw(-state_psi_)) * (-state_vel_);
-
           /* P */
           xy_p_term = clampV(xy_gains_[0] * pos_err_,  -xy_terms_limits_[0], xy_terms_limits_[0]);
 
@@ -166,9 +167,6 @@ namespace control_plugin
         }
       case flight_nav::VEL_CONTROL_MODE:
         {
-          /* convert from world frame to CoG frame */
-          vel_err_ = tf::Matrix3x3(tf::createQuaternionFromYaw(-state_psi_)) * (target_vel_ - state_vel_);
-
           /* P */
           xy_p_term = clampV(xy_gains_[2] * vel_err_,  -xy_terms_limits_[0], xy_terms_limits_[0]);
           xy_d_term.setValue(0, 0, 0);
@@ -207,6 +205,8 @@ namespace control_plugin
     pid_msg.roll.target_pos = target_pos_[1];
     pid_msg.pitch.target_vel = target_vel_[0];
     pid_msg.roll.target_vel = target_vel_[1];
+    pid_msg.pitch.vel_err = vel_err_[0];
+    pid_msg.roll.vel_err = vel_err_[1];
 
     /* yaw */
     double psi_err = clamp(psi_err_, -yaw_err_thresh_, yaw_err_thresh_);
@@ -221,9 +221,10 @@ namespace control_plugin
 
         //***** D term: usaully it is in the flight board
         /* but for the gimbal control, we need the d term, set 0 if it is not gimbal type */
-        double yaw_d_term = 0;
+        double yaw_d_term = -yaw_gains_[j][2] * target_psi_vel_;
+
         if(need_yaw_d_control_)
-          yaw_d_term = clamp(yaw_gains_[j][2] * (-state_psi_vel_), -yaw_terms_limits_[2], yaw_terms_limits_[2]);
+          yaw_d_term += clamp(-yaw_gains_[j][2] * (-state_psi_vel_), -yaw_terms_limits_[2], yaw_terms_limits_[2]);
 
         //*** each motor command value for log
         target_yaw_[j] = clamp(yaw_p_term + yaw_i_term_[j] + yaw_d_term, -yaw_limit_, yaw_limit_);
@@ -239,25 +240,26 @@ namespace control_plugin
     //**** ros pub
     pid_msg.yaw.target_pos = target_psi_;
     pid_msg.yaw.pos_err = psi_err_;
+    pid_msg.yaw.target_vel = target_psi_vel_;
 
     /* throttle */
-    double alt_err = clamp(pos_err_.z(), -alt_err_thresh_, alt_err_thresh_);
+    double alt_pos_err = clamp(pos_err_.z(), -alt_err_thresh_, alt_err_thresh_);
+    double alt_vel_err = target_vel_.z() - state_vel_.z();
 
-
-    if(navigator_->getNaviState() == Navigator::LAND_STATE) alt_err += alt_landing_const_i_ctrl_thresh_;
+    if(navigator_->getNaviState() == Navigator::LAND_STATE) alt_pos_err += alt_landing_const_i_ctrl_thresh_;
 
     for(int j = 0; j < motor_num_; j++)
       {
         //**** P Term
-        double alt_p_term = clamp(-alt_gains_[j][0] * alt_err, -alt_terms_limit_[0], alt_terms_limit_[0]);
+        double alt_p_term = clamp(-alt_gains_[j][0] * alt_pos_err, -alt_terms_limit_[0], alt_terms_limit_[0]);
         if(navigator_->getNaviState() == Navigator::LAND_STATE) alt_p_term = 0;
 
         /* two way to calculate the alt i term */
         //**** I Term
-        alt_i_term_[j] +=  alt_err * du;
+        alt_i_term_[j] +=  alt_pos_err * du;
         double alt_i_term = clamp(alt_gains_[j][1] * alt_i_term_[j], -alt_terms_limit_[1], alt_terms_limit_[1]);
         //***** D Term
-        double alt_d_term = clamp(alt_gains_[j][2] * state_vel_.z(), -alt_terms_limit_[2], alt_terms_limit_[2]);
+        double alt_d_term = clamp(-alt_gains_[j][2] * alt_vel_err, -alt_terms_limit_[2], alt_terms_limit_[2]);
 
         //*** each motor command value for log
         target_throttle_[j] = clamp(alt_p_term + alt_i_term + alt_d_term + alt_offset_, -alt_limit_, alt_limit_);
@@ -270,8 +272,9 @@ namespace control_plugin
       }
 
     pid_msg.throttle.target_pos = target_pos_.z();
-    pid_msg.throttle.pos_err = alt_err;
-    pid_msg.throttle.vel_err = state_vel_.z();
+    pid_msg.throttle.pos_err = alt_pos_err;
+    pid_msg.throttle.target_vel = target_vel_.z();
+    pid_msg.throttle.vel_err = alt_vel_err;
 
     /* ros publish */
     pid_pub_.publish(pid_msg);

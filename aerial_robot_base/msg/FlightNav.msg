@@ -2,6 +2,7 @@ uint8 NO_NAVIGATION = 0
 uint8 VEL_MODE = 1
 uint8 POS_MODE = 2
 uint8 ACC_MODE = 3
+uint8 POS_VEL_MODE = 4
 
 uint8 WORLD_FRAME = 0
 uint8 LOCAL_FRAME = 1
@@ -30,5 +31,6 @@ float32 target_psi
 uint8 pos_z_nav_mode
 
 float32 target_pos_z
+float32 target_vel_z
 float32 target_pos_diff_z
 

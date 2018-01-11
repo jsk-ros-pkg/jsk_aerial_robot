@@ -63,9 +63,10 @@ public:
   inline tf::Vector3 getTargetVel() {return target_vel_;}
   inline tf::Vector3 getTargetAcc() {return target_acc_;}
   inline float getTargetPsi() {return target_psi_;}
+  inline float getTargetPsiVel() {return target_vel_psi_;}
 
   inline void setTargetPsi(float value) { target_psi_ = value; }
-  inline void setTargetVelPsi(float value) { target_vel_psi_ = value; }
+  inline void setTargetPsiVel(float value) { target_vel_psi_ = value; }
   inline void setTargetPosX( float value){  target_pos_.setX(value);}
   inline void setTargetVelX( float value){  target_vel_.setX(value);}
   inline void setTargetAccX( float value){  target_acc_.setX(value);}

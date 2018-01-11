@@ -100,6 +100,7 @@ namespace control_plugin
     double state_psi_;
     double state_psi_vel_;
     double target_psi_;
+    double target_psi_vel_;
     double psi_err_;
 
     double target_pitch_, target_roll_;
