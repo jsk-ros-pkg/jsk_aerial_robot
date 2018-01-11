@@ -104,6 +104,8 @@ void Navigator::batteryCheckCallback(const std_msgs::Float32ConstPtr &msg)
 
 void Navigator::naviCallback(const aerial_robot_base::FlightNavConstPtr & msg)
 {
+  if(getNaviState() == TAKEOFF_STATE || getNaviState() == LAND_STATE) return;
+
   /* yaw */
   if(msg->psi_nav_mode == aerial_robot_base::FlightNav::POS_MODE)
     {
@@ -470,8 +472,6 @@ void Navigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
 
 void Navigator::update()
 {
-  tf::Vector3 delta = target_pos_ - estimator_->getPos(Frame::COG, estimate_mode_);
-
   /* check the xy estimation status, if not ready, change to att_control_mode */
   if(!force_att_control_flag_)
     {
@@ -534,6 +534,8 @@ void Navigator::update()
           setTargetPosZ(estimator_->getLandingHeight());
         }
     }
+
+  tf::Vector3 delta = target_pos_ - estimator_->getPos(Frame::COG, estimate_mode_);
 
   switch(getNaviState())
     {
