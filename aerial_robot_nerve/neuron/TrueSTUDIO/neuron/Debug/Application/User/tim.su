@@ -1,5 +1,0 @@
-tim.c:124:6:void HAL_TIM_MspPostInit(TIM_HandleTypeDef*)	24	static
-tim.c:45:6:void MX_TIM1_Init()	96	static
-tim.c:109:6:void HAL_TIM_Base_MspInit(TIM_HandleTypeDef*)	8	static
-tim.c:124:6:void HAL_TIM_MspPostInit(TIM_HandleTypeDef*)	0	static
-tim.c:149:6:void HAL_TIM_Base_MspDeInit(TIM_HandleTypeDef*)	0	static

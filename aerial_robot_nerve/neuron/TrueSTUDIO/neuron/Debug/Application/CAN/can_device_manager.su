@@ -1,8 +1,0 @@
-can_device_manager.cpp:21:7:void CANDeviceManager::init(CAN_HandleTypeDef*, uint8_t, GPIO_TypeDef*, uint16_t)	16	static
-can_device_manager.cpp:28:6:int CANDeviceManager::makeCommunicationId(uint8_t, uint8_t)	0	static
-can_device_manager.cpp:33:7:void CANDeviceManager::addDevice(CANDevice*)	0	static
-can_device_manager.cpp:38:7:void CANDeviceManager::tick(int)	0	static
-can_device_manager.cpp:53:7:void CANDeviceManager::Receive_IT()	8	static
-can_device_manager.cpp:58:14:void CANDeviceManager::userSendMessages()	0	static
-can_device_manager.cpp:63:14:void CANDeviceManager::userReceiveMessagesCallback(uint8_t, uint8_t, uint8_t, uint32_t, uint8_t*)	0	static
-can_device_manager.cpp:69:6:void HAL_CAN_RxCpltCallback(CAN_HandleTypeDef*)	24	static

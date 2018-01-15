@@ -1,3 +1,0 @@
-usart.c:48:6:void MX_USART2_UART_Init()	16	static
-usart.c:66:6:void HAL_UART_MspInit(UART_HandleTypeDef*)	40	static
-usart.c:101:6:void HAL_UART_MspDeInit(UART_HandleTypeDef*)	8	static

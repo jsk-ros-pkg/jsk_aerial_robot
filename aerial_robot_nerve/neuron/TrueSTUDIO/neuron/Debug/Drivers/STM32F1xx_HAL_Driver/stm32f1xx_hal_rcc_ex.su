@@ -1,3 +1,0 @@
-stm32f1xx_hal_rcc_ex.c:118:19:HAL_StatusTypeDef HAL_RCCEx_PeriphCLKConfig(RCC_PeriphCLKInitTypeDef*)	32	static
-stm32f1xx_hal_rcc_ex.c:295:6:void HAL_RCCEx_GetPeriphCLKConfig(RCC_PeriphCLKInitTypeDef*)	0	static
-stm32f1xx_hal_rcc_ex.c:388:10:uint32_t HAL_RCCEx_GetPeriphCLKFreq(uint32_t)	40	static

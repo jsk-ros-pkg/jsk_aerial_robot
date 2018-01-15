@@ -41,15 +41,23 @@ void Motor::receiveDataCallback(uint8_t message_id, uint32_t DLC, uint8_t* data)
 			return 0;
 		}
 	};
+
 	if (message_id == CAN::MESSAGEID_RECEIVE_PWM_0_5 && 1 <= m_slave_id && m_slave_id <= 6) {
 		setPwm(getPwmFromData(m_slave_id));
 	} else if (message_id == CAN::MESSAGEID_RECEIVE_PWM_6_11 && 7 <= m_slave_id && m_slave_id <= 12) {
 		setPwm(getPwmFromData(m_slave_id - 6));
-	}	
+	}
 }
 
 void Motor::setPwm(uint16_t pwm)
 {
 	pwm_htim_->Instance->CCR1 = (uint32_t)((pwm + 1000.0f) / 2000.0f *  MAX_PWM);
 	return;
+}
+
+void Motor::update()
+{
+	if (CANDeviceManager::isTimeout()) {
+		setPwm(0); //force stop
+	}
 }
