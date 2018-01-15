@@ -100,7 +100,7 @@ class ServiceServer:
         r.deserialize(data)
         self.response = r
 
-class RosseriveServerManager:
+class RosserviceServerManager:
     def __init__(self):
         self.pub_serialized_srv_req = rospy.Publisher('/serialized_srv_req', SerializedMessage, queue_size=10)
         self.sub_serialized_msg = rospy.Subscriber('/serialized_msg', SerializedMessage, self.serializedMsgsCallback)
@@ -157,6 +157,6 @@ class RosseriveServerManager:
 
 if __name__=="__main__":
 
-    rospy.init_node("rosserive_server_manager")
-    manager = RosseriveServerManager()
+    rospy.init_node("rosservice_server_manager")
+    manager = RosserviceServerManager()
     rospy.spin()
