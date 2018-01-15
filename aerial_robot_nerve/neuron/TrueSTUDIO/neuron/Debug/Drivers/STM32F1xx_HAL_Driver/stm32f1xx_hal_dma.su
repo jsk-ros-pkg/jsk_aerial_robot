@@ -1,9 +1,0 @@
-stm32f1xx_hal_dma.c:170:19:HAL_StatusTypeDef HAL_DMA_Init(DMA_HandleTypeDef*)	16	static
-stm32f1xx_hal_dma.c:231:19:HAL_StatusTypeDef HAL_DMA_DeInit(DMA_HandleTypeDef*)	4	static
-stm32f1xx_hal_dma.c:312:19:HAL_StatusTypeDef HAL_DMA_Start(DMA_HandleTypeDef*, uint32_t, uint32_t, uint32_t)	16	static
-stm32f1xx_hal_dma.c:344:19:HAL_StatusTypeDef HAL_DMA_Start_IT(DMA_HandleTypeDef*, uint32_t, uint32_t, uint32_t)	16	static
-stm32f1xx_hal_dma.c:388:19:HAL_StatusTypeDef HAL_DMA_Abort(DMA_HandleTypeDef*)	16	static
-stm32f1xx_hal_dma.c:433:19:HAL_StatusTypeDef HAL_DMA_PollForTransfer(DMA_HandleTypeDef*, uint32_t, uint32_t)	48	static
-stm32f1xx_hal_dma.c:522:6:void HAL_DMA_IRQHandler(DMA_HandleTypeDef*)	24	static
-stm32f1xx_hal_dma.c:634:22:HAL_DMA_StateTypeDef HAL_DMA_GetState(DMA_HandleTypeDef*)	0	static
-stm32f1xx_hal_dma.c:645:10:uint32_t HAL_DMA_GetError(DMA_HandleTypeDef*)	0	static

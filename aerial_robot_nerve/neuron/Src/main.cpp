@@ -59,8 +59,9 @@
 namespace {
 	bool start_process_flag_ = false;
 	bool receive_flag_ = false;
-	IMU* p_imu_;
-	Servo* p_servo_;
+	Motor motor_;
+	IMU imu_;
+	Servo servo_;
 }
 
 /* USER CODE END PV */
@@ -76,8 +77,9 @@ void HAL_SYSTICK_Callback(void)
 {
   if (!start_process_flag_) return;
   CANDeviceManager::tick(1);
-  p_imu_->update();
-  p_servo_->update();
+  motor_.update();
+  imu_.update();
+  servo_.update();
 }
 
 /* USER CODE END PFP */
@@ -126,18 +128,18 @@ int main(void)
 	  Flashmemory::write();
 	  return 0;
   }
-  Motor motor(slave_id);
-  IMU imu(slave_id); p_imu_= &imu;
-  Servo servo(slave_id); p_servo_ = &servo;
-  Initializer initializer(slave_id, servo, imu);
-  motor.init(&htim1);
+  motor_ = Motor(slave_id);
+  imu_ = IMU(slave_id);
+  servo_ = Servo(slave_id);
+  Initializer initializer(slave_id, servo_, imu_);
+  motor_.init(&htim1);
   HAL_Delay(300); //wait servo init
-  servo.init(&huart2);
-  imu.init(&hspi1);
+  servo_.init(&huart2);
+  imu_.init(&hspi1);
   CANDeviceManager::init(&hcan, slave_id, GPIOC, GPIO_PIN_13);
-  CANDeviceManager::addDevice(&motor);
-  CANDeviceManager::addDevice(&imu);
-  CANDeviceManager::addDevice(&servo);
+  CANDeviceManager::addDevice(&motor_);
+  CANDeviceManager::addDevice(&imu_);
+  CANDeviceManager::addDevice(&servo_);
   CANDeviceManager::addDevice(&initializer);
 
   start_process_flag_ = true;
@@ -152,8 +154,8 @@ int main(void)
     if (receive_flag_)
     {
     	receive_flag_ = false;
-    	servo.sendData();
-    	imu.sendData();
+    	servo_.sendData();
+    	imu_.sendData();
     }
     CANDeviceManager::Receive_IT();
   }

@@ -1,2 +1,0 @@
-stm32f1xx_hal_spi_ex.c:98:19:HAL_StatusTypeDef HAL_SPI_Init(SPI_HandleTypeDef*)	24	static
-stm32f1xx_hal_spi_ex.c:187:9:uint8_t SPI_ISCRCErrorValid(SPI_HandleTypeDef*)	0	static

@@ -55,6 +55,11 @@ namespace CANDeviceManager
 		CAN::Receive_IT();
 	}
 
+	bool isTimeout()
+	{
+		return can_timeout_count > CAN_MAX_TIMEOUT_COUNT;
+	}
+
 	__weak void userSendMessages()
 	{
 

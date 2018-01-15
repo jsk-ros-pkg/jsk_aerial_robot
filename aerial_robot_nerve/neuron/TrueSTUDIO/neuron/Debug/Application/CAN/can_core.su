@@ -1,3 +1,0 @@
-can_core.cpp:20:7:void CAN::init(CAN_HandleTypeDef*, uint8_t)	64	static
-can_core.cpp:58:21:CAN_HandleTypeDef* CAN::getHcanInstance()	0	static
-can_core.cpp:63:7:void CAN::setMessage(uint8_t, uint8_t, uint8_t, uint32_t, uint8_t*)	8	static

@@ -1,3 +1,0 @@
-stm32f1xx_it.c:53:6:void SysTick_Handler()	8	static
-stm32f1xx_it.c:75:6:void CAN1_RX1_IRQHandler()	0	static
-stm32f1xx_it.c:89:6:void USART2_IRQHandler()	0	static

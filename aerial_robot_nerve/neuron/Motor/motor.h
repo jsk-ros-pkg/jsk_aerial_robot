@@ -9,7 +9,7 @@
 #ifndef APPLICATION_MOTOR_TEMP_MOTOR_H_
 #define APPLICATION_MOTOR_TEMP_MOTOR_H_
 
-#include "can_device.h"
+#include "can_device_manager.h"
 
 #define MAX_PWM  36000
 #define IDLE_DUTY 0.5f // 1000[usec] / 2000[usec]
@@ -25,6 +25,7 @@ public:
 	Motor(){}
 	Motor(uint8_t slave_id):CANDevice(CAN::DEVICEID_MOTOR, slave_id){}
 	void init(TIM_HandleTypeDef* htim);
+	void update();
 	void sendData() override;
 	void receiveDataCallback(uint8_t message_id, uint32_t DLC, uint8_t* data) override;
 };

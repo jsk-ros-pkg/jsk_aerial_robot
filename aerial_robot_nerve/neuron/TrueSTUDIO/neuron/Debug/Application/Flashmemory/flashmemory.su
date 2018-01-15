@@ -1,5 +1,0 @@
-flashmemory.cpp:31:7:void Flashmemory::init(uint32_t)	0	static
-flashmemory.cpp:35:7:void Flashmemory::addValue(void*, size_t)	12	static
-flashmemory.cpp:40:7:void Flashmemory::read()	24	static
-flashmemory.cpp:55:7:void Flashmemory::erase()	32	static
-flashmemory.cpp:72:7:void Flashmemory::write()	32	static
