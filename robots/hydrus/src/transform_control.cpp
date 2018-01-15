@@ -349,7 +349,6 @@ bool TransformController::addExtraModuleCallback(hydrus::AddExtraModule::Request
   return addExtraModule(req.action, req.module_name, req.parent_link_name, req.transform, req.inertia);
 }
 
-
 bool TransformController::addExtraModule(int action, std::string module_name, std::string parent_link_name, geometry_msgs::Transform transform, geometry_msgs::Inertia inertia)
 {
   switch(action)
@@ -875,3 +874,26 @@ void TransformController::cfgLQICallback(hydrus::LQIConfig &config, uint32_t lev
       q_diagonal_ << q_roll_,q_roll_d_,q_pitch_,q_pitch_d_,q_z_,q_z_d_,q_yaw_,q_yaw_d_, q_roll_i_,q_pitch_i_,q_z_i_,q_yaw_i_;
     }
 }
+
+tf::Transform TransformController::getRoot2Link(std::string link, sensor_msgs::JointState state)
+{
+  KDL::TreeFkSolverPos_recursive fk_solver(tree_);
+  unsigned int nj = tree_.getNrOfJoints();
+  KDL::JntArray jointpositions(nj);
+
+  unsigned int j = 0;
+  for(unsigned int i = 0; i < state.position.size(); i++)
+    {
+      std::map<std::string, uint32_t>::iterator itr = joint_map_.find(state.name[i]);
+      if(itr != joint_map_.end())  jointpositions(joint_map_.find(state.name[i])->second) = state.position[i];
+    }
+
+  KDL::Frame f;
+  tf::Transform  link_f;
+  int status = fk_solver.JntToCart(jointpositions, f, link);
+  tf::transformKDLToTF(f, link_f);
+
+  return link_f;
+}
+
+

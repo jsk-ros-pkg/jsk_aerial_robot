@@ -132,6 +132,10 @@ public:
     return cog2baselink_transform_;
   }
 
+  tf::Transform getRoot2Link(std::string link, sensor_msgs::JointState state);
+
+  inline void setBaselink(std::string baselink) { baselink_ = baselink;}
+
   Eigen::Matrix3d getInertia()
   {
     boost::lock_guard<boost::mutex> lock(inertia_mutex_);
