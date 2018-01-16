@@ -1,6 +1,7 @@
 <launch>
   <arg name="headless" default="False" />
   <arg name="robot_model" />
+  <arg name="node_suffix" default= "" />
 
   <!-- not good -->
   <!-- global namespace -->
@@ -8,7 +9,7 @@
          command="$(find xacro)/xacro.py '$(arg robot_model)'" />
 
   <group unless="$(arg headless)">
-    <node name="rviz" pkg="rviz" type="rviz"
+    <node name="rviz_$(arg node_suffix)" pkg="rviz" type="rviz"
           args="-d $(find aerial_robot_model)/launch/rviz_config" respawn="true" />
   </group>
 
