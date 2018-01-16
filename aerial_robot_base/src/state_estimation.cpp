@@ -122,7 +122,7 @@ void RigidEstimator::statePublish()
 
   /* COG */
   /* Rotation */
-  getOrientation(Frame::BASELINK, estimate_mode_).getRotation(q);
+  getOrientation(Frame::COG, estimate_mode_).getRotation(q);
   tf::quaternionTFToMsg(q, odom_state.pose.pose.orientation);
   tf::vector3TFToMsg(getAngularVel(Frame::COG, estimate_mode_), odom_state.twist.twist.angular);
   /* Translation */
