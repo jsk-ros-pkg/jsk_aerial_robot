@@ -133,6 +133,9 @@ namespace control_plugin
           {
             joint_control_pub_.publish(joint_control_msg);
             final_desire_tilt_.setValue(0, 0, 0);
+
+            /* force set the current deisre tilt to current estimated tilt */
+            curr_desire_tilt_.setValue(estimator_->getState(State::ROLL_BASE, estimate_mode_)[0], estimator_->getState(State::PITCH_BASE, estimate_mode_)[0], 0);
           }
 
         level_flag_ = true;
