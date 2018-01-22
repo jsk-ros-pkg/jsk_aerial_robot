@@ -5,7 +5,7 @@
  *      Author: anzai
  */
 
-#include <CANDevice/initializer/can_initalizer.h>
+#include <CANDevice/initializer/can_initializer.h>
 
 void CANInitializer::sendData()
 {
