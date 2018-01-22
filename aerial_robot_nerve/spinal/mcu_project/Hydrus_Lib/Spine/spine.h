@@ -22,14 +22,13 @@
 
 /* ros */
 #include <std_msgs/Empty.h>
-#include <std_srvs/Trigger.h>
 #include <aerial_robot_base/UavInfo.h>
 #include <hydrus/BoardConfigCmd.h>
-#include <hydrus/BoardInfo.h>
 #include <hydrus/ServoStates.h>
 #include <hydrus/ServoControlCmd.h>
 #include <hydrus/ServoTorqueCmd.h>
 #include <hydrus/Gyro.h>
+#include <spinal/GetBoardInfo.h>
 
 /* STL */
 #include <algorithm>
@@ -47,12 +46,10 @@ namespace Spine
   void convertGyroFromJointvalues();
   uint8_t getSlaveNum();
   int8_t getUavModel();
-  void boardInfoRequestCallback(const std_msgs::Empty& msg);
+  void boardConfigCallback(const hydrus::BoardConfigCmd& config_msg);
   void servoControlCallback(const hydrus::ServoControlCmd& control_msg);
   void servoTorqueControlCallback(const hydrus::ServoTorqueCmd& control_msg);
-  void boardConfigCallback(const hydrus::BoardConfigCmd& config_msg);
-
-  void testRosseriveCallback(const std_srvs::Trigger::Request & req, std_srvs::Trigger::Response & res);
+  void boardInfoCallback(const spinal::GetBoardInfo::Request&, spinal::GetBoardInfo::Response&);
 };
 
 #endif
