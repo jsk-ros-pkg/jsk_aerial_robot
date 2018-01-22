@@ -10,7 +10,7 @@
 
 #include "CAN/can_device.h"
 #include "Neuron/neuron.h"
-#include <hydrus/BoardConfigCmd.h>
+#include <spinal/SetBoardConfig.h>
 #include <vector>
 #include <algorithm>
 
@@ -21,7 +21,7 @@ private:
 public:
 	CANInitializer(std::vector<Neuron>& neuron):CANDevice(CAN::DEVICEID_INITIALIZER, CAN::MASTER_ID), neuron_(neuron){}
 	void initDevices();
-	void configDevice(const hydrus::BoardConfigCmd& config_msg);
+	void configDevice(const spinal::SetBoardConfig::Request& req);
 	void sendData() override;
 	void receiveDataCallback(uint8_t slave_id, uint8_t message_id, uint32_t DLC, uint8_t* data) override;
 };

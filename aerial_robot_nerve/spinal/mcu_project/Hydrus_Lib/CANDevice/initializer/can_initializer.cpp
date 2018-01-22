@@ -25,13 +25,13 @@ void CANInitializer::initDevices()
 	}
 }
 
-void CANInitializer::configDevice(const hydrus::BoardConfigCmd& config_msg)
+void CANInitializer::configDevice(const spinal::SetBoardConfig::Request& req)
 {
-	uint8_t slave_id = static_cast<uint8_t>(config_msg.data[0]);
-	switch (config_msg.command) {
-		case hydrus::BoardConfigCmd::SET_SLAVE_ID:
+	uint8_t slave_id = static_cast<uint8_t>(req.data[0]);
+	switch (req.command) {
+		case spinal::SetBoardConfig::Request::SET_SLAVE_ID:
 		{
-			uint8_t new_slave_id = static_cast<uint8_t>(config_msg.data[1]);
+			uint8_t new_slave_id = static_cast<uint8_t>(req.data[1]);
 			uint8_t send_data[2];
 			send_data[0] = CAN::BOARD_CONFIG_SET_SLAVE_ID;
 			send_data[1] = new_slave_id;
@@ -39,9 +39,9 @@ void CANInitializer::configDevice(const hydrus::BoardConfigCmd& config_msg)
 			sendMessage(1);
 			break;
 		}
-		case hydrus::BoardConfigCmd::SET_IMU_SEND_FLAG:
+		case spinal::SetBoardConfig::Request::SET_IMU_SEND_FLAG:
 		{
-			uint8_t imu_send_data_flag = static_cast<uint8_t>(config_msg.data[1]);
+			uint8_t imu_send_data_flag = static_cast<uint8_t>(req.data[1]);
 			uint8_t send_data[2];
 			send_data[0] = CAN::BOARD_CONFIG_SET_IMU_SEND_FLAG;
 			send_data[1] = imu_send_data_flag;
@@ -49,10 +49,10 @@ void CANInitializer::configDevice(const hydrus::BoardConfigCmd& config_msg)
 			sendMessage(1);
 			break;
 		}
-		case hydrus::BoardConfigCmd::SET_SERVO_HOMING_OFFSET:
+		case spinal::SetBoardConfig::Request::SET_SERVO_HOMING_OFFSET:
 		{
-			uint8_t servo_index = static_cast<uint8_t>(config_msg.data[1]);
-			int32_t joint_offset = config_msg.data[2];
+			uint8_t servo_index = static_cast<uint8_t>(req.data[1]);
+			int32_t joint_offset = req.data[2];
 			uint8_t send_data[6];
 			send_data[0] = CAN::BOARD_CONFIG_SET_SERVO_HOMING_OFFSET;
 			send_data[1] = servo_index;
@@ -64,12 +64,12 @@ void CANInitializer::configDevice(const hydrus::BoardConfigCmd& config_msg)
 			sendMessage(1);
 			break;
 		}
-		case hydrus::BoardConfigCmd::SET_SERVO_PID_GAIN:
+		case spinal::SetBoardConfig::Request::SET_SERVO_PID_GAIN:
 		{
-			uint8_t servo_index = static_cast<uint8_t>(config_msg.data[1]);
-			int16_t p_gain = static_cast<uint16_t>(config_msg.data[2]);
-			int16_t i_gain = static_cast<uint16_t>(config_msg.data[3]);
-			int16_t d_gain = static_cast<uint16_t>(config_msg.data[4]);
+			uint8_t servo_index = static_cast<uint8_t>(req.data[1]);
+			int16_t p_gain = static_cast<uint16_t>(req.data[2]);
+			int16_t i_gain = static_cast<uint16_t>(req.data[3]);
+			int16_t d_gain = static_cast<uint16_t>(req.data[4]);
 			uint8_t send_data[8];
 			send_data[0] = CAN::BOARD_CONFIG_SET_SERVO_PID_GAIN;
 			send_data[1] = servo_index;
@@ -83,10 +83,10 @@ void CANInitializer::configDevice(const hydrus::BoardConfigCmd& config_msg)
 			sendMessage(1);
 			break;
 		}
-		case hydrus::BoardConfigCmd::SET_SERVO_PROFILE_VEL:
+		case spinal::SetBoardConfig::Request::SET_SERVO_PROFILE_VEL:
 		{
-			uint8_t servo_index = static_cast<uint8_t>(config_msg.data[1]);
-			int16_t profile_vel = static_cast<uint16_t>(config_msg.data[2]);
+			uint8_t servo_index = static_cast<uint8_t>(req.data[1]);
+			int16_t profile_vel = static_cast<uint16_t>(req.data[2]);
 			uint8_t send_data[4];
 			send_data[0] = CAN::BOARD_CONFIG_SET_SERVO_PROFILE_VEL;
 			send_data[1] = servo_index;
@@ -96,10 +96,10 @@ void CANInitializer::configDevice(const hydrus::BoardConfigCmd& config_msg)
 			sendMessage(1);
 			break;
 		}
-		case hydrus::BoardConfigCmd::SET_SERVO_SEND_DATA_FLAG:
+		case spinal::SetBoardConfig::Request::SET_SERVO_SEND_DATA_FLAG:
 		{
-			uint8_t servo_index = static_cast<uint8_t>(config_msg.data[1]);
-			uint8_t servo_send_data_flag = static_cast<uint8_t>(config_msg.data[2]);
+			uint8_t servo_index = static_cast<uint8_t>(req.data[1]);
+			uint8_t servo_send_data_flag = static_cast<uint8_t>(req.data[2]);
 			uint8_t send_data[3];
 			send_data[0] = CAN::BOARD_CONFIG_SET_SEND_DATA_FLAG;
 			send_data[1] = servo_index;
@@ -108,10 +108,10 @@ void CANInitializer::configDevice(const hydrus::BoardConfigCmd& config_msg)
 			sendMessage(1);
 			break;
 		}
-		case hydrus::BoardConfigCmd::SET_SERVO_CURRENT_LIMIT:
+		case spinal::SetBoardConfig::Request::SET_SERVO_CURRENT_LIMIT:
 		{
-			uint8_t servo_index = static_cast<uint8_t>(config_msg.data[1]);
-			int16_t current_limit = static_cast<uint16_t>(config_msg.data[2]);
+			uint8_t servo_index = static_cast<uint8_t>(req.data[1]);
+			int16_t current_limit = static_cast<uint16_t>(req.data[2]);
 			uint8_t send_data[4];
 			send_data[0] = CAN::BOARD_CONFIG_SET_SERVO_CURRENT_LIMIT;
 			send_data[1] = servo_index;

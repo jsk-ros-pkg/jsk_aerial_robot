@@ -36,10 +36,11 @@ namespace Spine
 #endif
     ros::Subscriber<hydrus::ServoControlCmd> servo_ctrl_sub_("/servo/target_states", servoControlCallback);
     ros::Subscriber<hydrus::ServoTorqueCmd> servo_torque_ctrl_sub_("/servo/torque_enable", servoTorqueControlCallback);
-    ros::Subscriber<hydrus::BoardConfigCmd> board_config_sub_("/board_config", boardConfigCallback);
 
-    ros::ServiceServer<spinal::GetBoardInfo::Request, spinal::GetBoardInfo::Response> board_info_srv("/get_board_info", boardInfoCallback);
-    spinal::GetBoardInfo::Response board_info_res;
+    ros::ServiceServer<spinal::GetBoardInfo::Request, spinal::GetBoardInfo::Response> board_info_srv_("/get_board_info", boardInfoCallback);
+    ros::ServiceServer<spinal::SetBoardConfig::Request, spinal::SetBoardConfig::Response> board_config_srv_("/set_board_config", boardConfigCallback);
+
+    spinal::GetBoardInfo::Response board_info_res_;
 
     ros::NodeHandle* nh_;
     uint32_t last_pub_time_;
@@ -48,7 +49,7 @@ namespace Spine
 
   void boardInfoCallback(const spinal::GetBoardInfo::Request& req, spinal::GetBoardInfo::Response& res)
   {
-	  res = board_info_res;
+	  res = board_info_res_;
   }
 
   void servoControlCallback(const hydrus::ServoControlCmd& control_msg)
@@ -70,10 +71,11 @@ namespace Spine
 	  }
   }
 
-  void boardConfigCallback(const hydrus::BoardConfigCmd& config_msg)
+  void boardConfigCallback(const spinal::SetBoardConfig::Request& req, spinal::SetBoardConfig::Response& res)
   {
 	  can_idle_count_ = 2000;
-	  can_initializer_.configDevice(config_msg);
+	  can_initializer_.configDevice(req);
+	  res.success = true;
   }
 
   void init(CAN_HandleTypeDef* hcan, ros::NodeHandle* nh, StateEstimate* estimator, GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin)
@@ -93,9 +95,9 @@ namespace Spine
 
     nh_->subscribe< ros::Subscriber<hydrus::ServoControlCmd> >(servo_ctrl_sub_);
     nh_->subscribe< ros::Subscriber<hydrus::ServoTorqueCmd> >(servo_torque_ctrl_sub_);
-    nh_->subscribe< ros::Subscriber<hydrus::BoardConfigCmd> >(board_config_sub_);
 
-    nh_->advertiseService(board_info_srv);
+    nh_->advertiseService(board_info_srv_);
+    nh_->advertiseService(board_config_srv_);
 
     HAL_Delay(3000); //wait neuron initialization
     CANDeviceManager::addDevice(can_initializer_);
@@ -158,11 +160,11 @@ namespace Spine
     }
 
     //set response for get_board_info
-    board_info_res.boards_length = slave_num_;
-    board_info_res.boards = new spinal::BoardInfo[slave_num_];
+    board_info_res_.boards_length = slave_num_;
+    board_info_res_.boards = new spinal::BoardInfo[slave_num_];
     for (unsigned int i = 0; i < slave_num_; i++) {
     	Neuron& neuron = neuron_.at(i);
-    	spinal::BoardInfo& board = board_info_res.boards[i];
+    	spinal::BoardInfo& board = board_info_res_.boards[i];
     	board.imu_send_data_flag = neuron.can_imu_.getSendDataFlag() ? 1 : 0;
     	board.slave_id = neuron.getSlaveId();
     	board.servos_length = neuron.can_servo_.servo_.size();
