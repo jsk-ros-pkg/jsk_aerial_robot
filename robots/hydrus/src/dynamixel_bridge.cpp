@@ -68,9 +68,9 @@ namespace hydrus
         nhp_.param("servo_sub_name", topic_name, std::string("/servo/states"));
         servo_angle_sub_ = nh_.subscribe(topic_name, 1, &JointInterface::jointStatesCallback, this, ros::TransportHints().tcpNoDelay());
         nhp_.param("servo_pub_name", topic_name, std::string("/servo/target_states"));
-        servo_ctrl_pub_ = nh_.advertise<hydrus::ServoControlCmd>(topic_name, 1);
+        servo_ctrl_pub_ = nh_.advertise<spinal::ServoControlCmd>(topic_name, 1);
         nhp_.param("servo_torque_cmd_pub_name", topic_name, std::string("/servo/torque_enable"));
-        servo_torque_cmd_pub_ = nh_.advertise<hydrus::ServoTorqueCmd>(topic_name, 1);
+        servo_torque_cmd_pub_ = nh_.advertise<spinal::ServoTorqueCmd>(topic_name, 1);
 
         /* overload check activate flag */
         nhp_.param("overload_check_activate_srv_name", topic_name, std::string("/overload_check_activate"));
@@ -87,7 +87,7 @@ namespace hydrus
     bridge_timer_ = nhp_.createTimer(ros::Duration(1.0 / bridge_rate_), &JointInterface::bridgeFunc, this);
   }
 
-  void JointInterface::jointStatesCallback(const hydrus::ServoStatesConstPtr& state_msg)
+  void JointInterface::jointStatesCallback(const spinal::ServoStatesConstPtr& state_msg)
   {
     /* the joint_num_ should be equal with the mcu information */
     if(state_msg->servos.size() != joints_.size())
@@ -143,7 +143,7 @@ namespace hydrus
               {
                 ROS_WARN("[dynamixel bridge]: motor: %d, overload", (int)distance(state_msg->servos.begin(), it) + 1);
                 /* direct send torque control flag */
-                hydrus::ServoTorqueCmd torque_off_msg;
+                spinal::ServoTorqueCmd torque_off_msg;
                 torque_off_msg.index.push_back(it->index);
                 torque_off_msg.torque_enable.push_back(false);
                 servo_torque_cmd_pub_.publish(torque_off_msg);
@@ -161,7 +161,7 @@ namespace hydrus
         return;
       }
 
-    hydrus::ServoControlCmd target_angle_msg;
+    spinal::ServoControlCmd target_angle_msg;
 
     auto joint_handler = joints_.begin();
     for(int i = 0; i < joint_num_; i ++)
@@ -188,7 +188,7 @@ namespace hydrus
       }
     else if(bridge_mode_ == MCU_MODE)
       {
-        hydrus::ServoTorqueCmd torque_off_msg;
+        spinal::ServoTorqueCmd torque_off_msg;
         for(auto it = joints_.begin(); it != joints_.end(); ++it)
           {
             torque_off_msg.index.push_back((*it)->getId());
