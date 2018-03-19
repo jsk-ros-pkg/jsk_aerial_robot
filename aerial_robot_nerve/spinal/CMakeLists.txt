@@ -19,6 +19,11 @@ add_message_files(
   PMatrixPseudoInverseWithInertia.msg
   ServoInfo.msg
   BoardInfo.msg
+  ServoState.msg
+  ServoStates.msg
+  ServoControlCmd.msg
+  ServoTorqueCmd.msg
+  Gyro.msg
 )
 
 add_service_files(
@@ -26,7 +31,6 @@ add_service_files(
   GetBoardInfo.srv
   SetBoardConfig.srv
 )
-
 
 generate_messages(
   DEPENDENCIES
