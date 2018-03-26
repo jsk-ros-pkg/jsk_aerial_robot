@@ -465,12 +465,7 @@ private:
   GPS_Status next_fix;
 
   uint32_t _last_5hz_time;
-  uint32_t _last_update_time;
-  uint32_t _init_time;
-  bool _warmup_flag;
-
   bool _cfg_needs_save;
-
 
 
   bool noReceivedHdop;

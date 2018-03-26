@@ -61,41 +61,30 @@ void GPS::init(UART_HandleTypeDef *huart, ros::NodeHandle* nh)
 
   CLEAR_BIT(huart_->Instance->CR1, USART_CR1_RE);
   _last_5hz_time = millis();
-  _last_update_time = millis();
-  _init_time = millis();
-  _warmup_flag = true;
-}
 
-void
-GPS::_request_next_config(void)
-{
+  /* change the rate */
+  //STEP_RATE_NAV:
+  _configure_rate();
+  HAL_Delay(100);
+  //STEP_RATE_POSLLH:
+  _configure_message_rate(CLASS_NAV, MSG_POSLLH, RATE_POSLLH);
+  HAL_Delay(100);
+  //STEP_RATE_VELNED:
+  _configure_message_rate(CLASS_NAV, MSG_VELNED, RATE_VELNED);
+  HAL_Delay(100);
+  //STEP_RATE_SOL:
+  _configure_message_rate(CLASS_NAV, MSG_SOL, RATE_SOL);
+  HAL_Delay(100);
+  //STEP_RATE_PVT:
+  _configure_message_rate(CLASS_NAV, MSG_PVT, RATE_PVT);
+  HAL_Delay(100);
 
-  if (_auto_config == 0) {
-    return;
-  }
-
-  if(millis() - _last_update_time < UPDATE_INTERVAL) return;
-  _last_update_time = millis();
-
-  switch (_next_message++) {
-  case STEP_RATE_NAV:
-    _configure_rate();
-    break;
-  case STEP_RATE_POSLLH:
-    _configure_message_rate(CLASS_NAV, MSG_POSLLH, RATE_POSLLH);
-    break;
-  case STEP_RATE_VELNED:
-    _configure_message_rate(CLASS_NAV, MSG_VELNED, RATE_VELNED);
-    break;
-  case STEP_RATE_SOL:
-    _configure_message_rate(CLASS_NAV, MSG_SOL, RATE_SOL);
-    break;
-  case STEP_RATE_PVT:
-    _configure_message_rate(CLASS_NAV, MSG_PVT, RATE_PVT);
-  default:
-    _auto_config = 0;
-    break;
-  }
+  //DMA
+  //start usart revceive dma interrupt
+  HAL_UART_Receive_DMA(huart_, getRxPointer(), getRxSize());
+  huart_->hdmarx->XferCpltCallback = UBLOX_UART_DMAReceiveCpltUBLOX; //change the registerred func
+  __HAL_UART_DISABLE_IT(huart_, UART_IT_RXNE);
+  SET_BIT(huart_->Instance->CR1, USART_CR1_RE);
 }
 
 void
@@ -175,40 +164,23 @@ GPS::_request_port(void)
 void
 GPS::update()
 {
-  if((millis() - _init_time > WARMUP_TIME) && _warmup_flag) 
-    {
-      _warmup_flag = false;
-
-      //DMA
-      //start usart revceive dma interrupt
-      HAL_UART_Receive_DMA(huart_, getRxPointer(), getRxSize());
-      huart_->hdmarx->XferCpltCallback = UBLOX_UART_DMAReceiveCpltUBLOX; //change the registerred func
-      __HAL_UART_DISABLE_IT(huart_, UART_IT_RXNE);
-      SET_BIT(huart_->Instance->CR1, USART_CR1_RE);	
-    }
-
-  if(!_warmup_flag)
-    {
-      uint8_t data = 0;
-      while (available() > 0) {
-        pop(data);
-        read(data);
-      }
-    }
+ uint8_t data = 0;
+ while (available() > 0)
+ {
+	 pop(data);
+	 read(data);
+ }
 
 #ifdef RESET_CONFIG
   _reset_config();
   return;
 #endif
 
-  _request_next_config();
-
 #ifdef SAVE_CONFIG
 
   _save_cfg(); 
   return;
 #endif
-
 
 }
 
@@ -293,7 +265,6 @@ GPS::read(uint8_t data)
     if (_ck_b != data) {
       break;                                                  // bad checksum
     } 
-           
 
     if (_parse_gps()) {
       parsed = true;
