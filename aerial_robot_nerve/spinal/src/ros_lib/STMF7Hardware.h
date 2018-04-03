@@ -14,7 +14,7 @@
 #include "stm32f7xx_hal_dma.h"
 
 #define TX_BUFFER_SIZE 50
-#define TX_BUFFER_WIDTH 250
+#define TX_BUFFER_WIDTH 512
 #define RX_BUFFER_SIZE 400
 #define RX_PACKET_SIZE 16
 

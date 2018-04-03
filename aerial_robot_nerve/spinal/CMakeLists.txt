@@ -17,7 +17,16 @@ add_message_files(
   FILES
   PMatrixPseudoInverseUnit.msg
   PMatrixPseudoInverseWithInertia.msg
+  ServoInfo.msg
+  BoardInfo.msg
 )
+
+add_service_files(
+  FILES
+  GetBoardInfo.srv
+  SetBoardConfig.srv
+)
+
 
 generate_messages(
   DEPENDENCIES

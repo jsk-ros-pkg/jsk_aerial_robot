@@ -93,7 +93,7 @@ public:
     callbacks_[rosserial_msgs::TopicInfo::ID_TIME]
         = boost::bind(&Session::handle_time, this, _1);
 
-    /* for rosserive server */
+    /* for rosservice server */
     serialized_msg_pub_ = nh_.advertise<spinal_ros_bridge::SerializedMessage>("/serialized_msg", 10);
     serialized_srv_req_sub_ = nh_.subscribe("/serialized_srv_req", 1, &Session::serialized_srv_req_callback, this);
 
@@ -519,13 +519,13 @@ private:
   }
 
   void setup_service_server_publisher(ros::serialization::IStream& stream) {
-    /* set to rosserive_server_manager.py */
+    /* set to rosservice_server_manager.py */
     serialized_msg_publish(rosserial_msgs::TopicInfo::ID_SERVICE_SERVER+rosserial_msgs::TopicInfo::ID_PUBLISHER, stream);
 
     rosserial_msgs::TopicInfo topic_info;
     ros::serialization::Serializer<rosserial_msgs::TopicInfo>::read(stream, topic_info);
 
-    //ROS_ERROR("new rosserive server: name: %s, id: %d", topic_info.topic_name.c_str(), topic_info.topic_id);
+    //ROS_ERROR("new rosservice server: name: %s, id: %d", topic_info.topic_name.c_str(), topic_info.topic_id);
 
     if (!callbacks_.count(topic_info.topic_id)) {
       ROS_INFO("Creating service server callback for %s",topic_info.topic_name.c_str());
@@ -536,12 +536,12 @@ private:
   }
 
   void setup_service_server_subscriber(ros::serialization::IStream& stream) {
-    /* set to rosserive_server_manager.py */
+    /* set to rosservice_server_manager.py */
     serialized_msg_publish(rosserial_msgs::TopicInfo::ID_SERVICE_SERVER+rosserial_msgs::TopicInfo::ID_SUBSCRIBER, stream);
 
     //rosserial_msgs::TopicInfo topic_info;
     //ros::serialization::Serializer<rosserial_msgs::TopicInfo>::read(stream, topic_info);
-    //ROS_ERROR("new rosserive server: name: %s, id: %d", topic_info.topic_name.c_str(), topic_info.topic_id);
+    //ROS_ERROR("new rosservice server: name: %s, id: %d", topic_info.topic_name.c_str(), topic_info.topic_id);
   }
 
   // When the rosserial client creates a ServiceClient object (and/or when it registers that object with the NodeHandle)
