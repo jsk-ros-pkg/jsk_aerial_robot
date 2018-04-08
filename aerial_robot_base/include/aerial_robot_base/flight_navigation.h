@@ -14,7 +14,7 @@
 #include <geometry_msgs/Vector3Stamped.h>
 #include <spinal/FlightConfigCmd.h>
 #include <tf/transform_broadcaster.h>
-#include <aerial_robot_base/FlightNav.h>
+#include <aerial_robot_msgs/FlightNav.h>
 
 #include <sensor_msgs/Joy.h>
 
@@ -196,7 +196,7 @@ protected:
   double hovering_current_;
 
   void rosParamInit(ros::NodeHandle nh);
-  void naviCallback(const aerial_robot_base::FlightNavConstPtr & msg);
+  void naviCallback(const aerial_robot_msgs::FlightNavConstPtr & msg);
   void joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg);
   void batteryCheckCallback(const std_msgs::Float32ConstPtr &msg);
 

@@ -4,7 +4,7 @@ GimbalControl::GimbalControl(ros::NodeHandle nh, ros::NodeHandle nhp): nh_(nh), 
 {
   gimbalModulesInit();
 
-  alt_control_pub_ = nh_.advertise<aerial_robot_base::FlightNav>("flight_nav", 1);
+  alt_control_pub_ = nh_.advertise<aerial_robot_msgs::FlightNav>("flight_nav", 1);
   desire_tilt_pub_ = nh_.advertise<geometry_msgs::Vector3>("desire_tilt", 1);
 
   attitude_sub_ = nh_.subscribe<spinal::Imu>("imu", 1, &GimbalControl::attitudeCallback, this, ros::TransportHints().tcpNoDelay());
@@ -151,7 +151,7 @@ void GimbalControl::gimbalModulesInit()
 
 }
 
-void GimbalControl::attCommandCallback(const aerial_robot_base::FlatnessPidConstPtr& cmd_msg)
+void GimbalControl::attCommandCallback(const aerial_robot_msgs::FlatnessPidConstPtr& cmd_msg)
 {
   boost::lock_guard<boost::mutex> lock(queue_mutex_);
   while (att_command_qu_.size() >= att_comp_duration_size_)
@@ -251,11 +251,11 @@ void GimbalControl::gimbalControl(Eigen::Quaternion<double> q_att)
   float alt_tilt = sqrt(r(0,2) * r(0,2)  + r(1,2) * r(1,2));
   float prev_alt_tilt = sqrt(prev_r(0,2) * prev_r(0,2)  + prev_r(1,2) * prev_r(1,2));
 
-  aerial_robot_base::FlightNav flight_nav_msg;
+  aerial_robot_msgs::FlightNav flight_nav_msg;
   flight_nav_msg.header.stamp = ros::Time::now();
-  flight_nav_msg.pos_xy_nav_mode = aerial_robot_base::FlightNav::NO_NAVIGATION;
-  flight_nav_msg.psi_nav_mode = aerial_robot_base::FlightNav::NO_NAVIGATION;
-  flight_nav_msg.pos_z_nav_mode = aerial_robot_base::FlightNav::VEL_MODE;
+  flight_nav_msg.pos_xy_nav_mode = aerial_robot_msgs::FlightNav::NO_NAVIGATION;
+  flight_nav_msg.psi_nav_mode = aerial_robot_msgs::FlightNav::NO_NAVIGATION;
+  flight_nav_msg.pos_z_nav_mode = aerial_robot_msgs::FlightNav::VEL_MODE;
   flight_nav_msg.target_pos_diff_z = body_diameter_ / 2 * (alt_tilt - prev_alt_tilt);
   alt_control_pub_.publish(flight_nav_msg);
 
@@ -299,9 +299,9 @@ void GimbalControl::controlFunc(const ros::TimerEvent & e)
         }
 
       //send vel command
-      aerial_robot_base::FlightNav flight_nav_msg;
+      aerial_robot_msgs::FlightNav flight_nav_msg;
       flight_nav_msg.header.stamp = ros::Time::now();
-      flight_nav_msg.pos_xy_nav_mode = aerial_robot_base::FlightNav::VEL_MODE;
+      flight_nav_msg.pos_xy_nav_mode = aerial_robot_msgs::FlightNav::VEL_MODE;
       flight_nav_msg.target_vel_x = attack_vel_x_;
       flight_nav_msg.target_vel_y = attack_vel_y_;
       if(active_tilt_mode_ || attack_back_level_flag_)
@@ -311,7 +311,7 @@ void GimbalControl::controlFunc(const ros::TimerEvent & e)
            // demo temporary
           flight_nav_msg.target_vel_y = rebound_vel_y_;
         }
-      flight_nav_msg.pos_z_nav_mode = aerial_robot_base::FlightNav::NO_NAVIGATION;
+      flight_nav_msg.pos_z_nav_mode = aerial_robot_msgs::FlightNav::NO_NAVIGATION;
       alt_control_pub_.publish(flight_nav_msg);
 
     }

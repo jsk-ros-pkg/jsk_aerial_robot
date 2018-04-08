@@ -52,7 +52,7 @@
 #include <tf/LinearMath/Transform.h>
 
 /* ros msg */
-#include <aerial_robot_base/States.h>
+#include <aerial_robot_msgs/States.h>
 #include <std_srvs/SetBool.h>
 
 /* utils */

@@ -33,18 +33,6 @@ add_definitions(${EIGEN_DEFINITIONS})
 
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
-add_message_files(FILES
-  AerialRobotStatus.msg
-  FlightNav.msg
-  FlatnessPid.msg
-  Pid.msg
-  State.msg
-  States.msg
-  Acc.msg
-  )
-
-generate_messages(DEPENDENCIES std_msgs geometry_msgs)
-
 generate_dynamic_reconfigure_options(
   cfg/XYPidControl.cfg
   cfg/KalmanFilterBaroBias.cfg

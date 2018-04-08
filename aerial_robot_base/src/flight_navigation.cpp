@@ -24,7 +24,7 @@ Navigator::Navigator(ros::NodeHandle nh, ros::NodeHandle nh_private,
 {
   rosParamInit(nhp_);
 
-  navi_sub_ = nh_.subscribe<aerial_robot_base::FlightNav>("/uav/nav", 1, &Navigator::naviCallback, this, ros::TransportHints().tcpNoDelay());
+  navi_sub_ = nh_.subscribe<aerial_robot_msgs::FlightNav>("/uav/nav", 1, &Navigator::naviCallback, this, ros::TransportHints().tcpNoDelay());
 
   battery_sub_ = nh_.subscribe<std_msgs::Float32>("/battery_voltage_status", 1, &Navigator::batteryCheckCallback, this, ros::TransportHints().tcpNoDelay());
 
@@ -102,12 +102,12 @@ void Navigator::batteryCheckCallback(const std_msgs::Float32ConstPtr &msg)
   power_info_pub_.publish(power_info_msgs);
 }
 
-void Navigator::naviCallback(const aerial_robot_base::FlightNavConstPtr & msg)
+void Navigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & msg)
 {
   if(getNaviState() == TAKEOFF_STATE || getNaviState() == LAND_STATE) return;
 
   /* yaw */
-  if(msg->psi_nav_mode == aerial_robot_base::FlightNav::POS_MODE)
+  if(msg->psi_nav_mode == aerial_robot_msgs::FlightNav::POS_MODE)
     {
       double target_psi = msg->target_psi;
       if(target_psi > M_PI)  target_psi -= (2 * M_PI);
@@ -115,7 +115,7 @@ void Navigator::naviCallback(const aerial_robot_base::FlightNavConstPtr & msg)
 
       setTargetPsi(target_psi);
     }
-  if(msg->psi_nav_mode == aerial_robot_base::FlightNav::POS_VEL_MODE)
+  if(msg->psi_nav_mode == aerial_robot_msgs::FlightNav::POS_VEL_MODE)
     {
       double target_psi = msg->target_psi;
       if(target_psi > M_PI)  target_psi -= (2 * M_PI);
@@ -128,12 +128,12 @@ void Navigator::naviCallback(const aerial_robot_base::FlightNavConstPtr & msg)
   /* xy control */
   switch(msg->pos_xy_nav_mode)
     {
-    case aerial_robot_base::FlightNav::POS_MODE:
+    case aerial_robot_msgs::FlightNav::POS_MODE:
       {
         force_att_control_flag_ = false;
 
         tf::Vector3 target_cog_pos(msg->target_pos_x, msg->target_pos_y, 0);
-        if(msg->target == aerial_robot_base::FlightNav::BASELINK)
+        if(msg->target == aerial_robot_msgs::FlightNav::BASELINK)
           {
             /* check the transformation */
             target_cog_pos -= tf::Matrix3x3(tf::createQuaternionFromYaw(getTargetPsi()))
@@ -158,9 +158,9 @@ void Navigator::naviCallback(const aerial_robot_base::FlightNavConstPtr & msg)
 
         break;
       }
-    case aerial_robot_base::FlightNav::VEL_MODE:
+    case aerial_robot_msgs::FlightNav::VEL_MODE:
       {
-        if(msg->target == aerial_robot_base::FlightNav::BASELINK)
+        if(msg->target == aerial_robot_msgs::FlightNav::BASELINK)
           {
             ROS_ERROR("[Flight nav] can not do vel nav for baselink");
             return;
@@ -190,11 +190,11 @@ void Navigator::naviCallback(const aerial_robot_base::FlightNavConstPtr & msg)
           }
         break;
       }
-    case aerial_robot_base::FlightNav::POS_VEL_MODE:
+    case aerial_robot_msgs::FlightNav::POS_VEL_MODE:
       {
         force_att_control_flag_ = false;
 
-        if(msg->target == aerial_robot_base::FlightNav::BASELINK)
+        if(msg->target == aerial_robot_msgs::FlightNav::BASELINK)
           {
             ROS_ERROR("[Flight nav] can not do pos_vel nav for baselink");
             return;
@@ -208,7 +208,7 @@ void Navigator::naviCallback(const aerial_robot_base::FlightNavConstPtr & msg)
 
         break;
       }
-    case aerial_robot_base::FlightNav::ACC_MODE:
+    case aerial_robot_msgs::FlightNav::ACC_MODE:
       {
         /* should be in COG frame */
         force_att_control_flag_ = true;
@@ -236,16 +236,16 @@ void Navigator::naviCallback(const aerial_robot_base::FlightNavConstPtr & msg)
     }
 
   /* z */
-  if(msg->pos_z_nav_mode == aerial_robot_base::FlightNav::VEL_MODE)
+  if(msg->pos_z_nav_mode == aerial_robot_msgs::FlightNav::VEL_MODE)
     {
       /* special */
       addTargetPosZ(msg->target_pos_diff_z);
     }
-  else if(msg->pos_z_nav_mode == aerial_robot_base::FlightNav::POS_MODE)
+  else if(msg->pos_z_nav_mode == aerial_robot_msgs::FlightNav::POS_MODE)
     {
       setTargetPosZ(msg->target_pos_z);
     }
-  else if(msg->pos_z_nav_mode == aerial_robot_base::FlightNav::POS_VEL_MODE)
+  else if(msg->pos_z_nav_mode == aerial_robot_msgs::FlightNav::POS_VEL_MODE)
     {
       setTargetPosZ(msg->target_pos_z);
       setTargetVelZ(msg->target_vel_z);

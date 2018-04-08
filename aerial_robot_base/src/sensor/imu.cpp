@@ -43,7 +43,7 @@
 #include <kalman_filter/kf_pos_vel_acc_plugin.h>
 
 /* ros msg */
-#include <aerial_robot_base/Acc.h>
+#include <aerial_robot_msgs/Acc.h>
 #include <geometry_msgs/Vector3.h>
 #include <spinal/SimpleImu.h>
 #include <spinal/Imu.h>
@@ -62,7 +62,7 @@ namespace sensor_plugin
       SensorBase::initialize(nh, nhp, estimator, sensor_name);
       rosParamInit();
 
-      acc_pub_ = nh_.advertise<aerial_robot_base::Acc>("acc", 2);
+      acc_pub_ = nh_.advertise<aerial_robot_msgs::Acc>("acc", 2);
       imu_pub_ = nh_.advertise<sensor_msgs::Imu>(imu_pub_topic_name_, 1);
 
       if(imu_board_ == D_BOARD)
@@ -497,7 +497,7 @@ namespace sensor_plugin
 
     void publishAccData()
     {
-      aerial_robot_base::Acc acc_data;
+      aerial_robot_msgs::Acc acc_data;
       acc_data.header.stamp = imu_stamp_;
 
       tf::vector3TFToMsg(acc_b_, acc_data.acc_body_frame);

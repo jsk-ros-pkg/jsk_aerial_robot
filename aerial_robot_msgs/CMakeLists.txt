@@ -5,7 +5,16 @@ project(aerial_robot_msgs)
 find_package(catkin REQUIRED COMPONENTS roscpp std_msgs geometry_msgs message_generation)
 
 ## Declare ROS messages and services
-add_message_files(FILES  DynamicReconfigureLevels.msg FourAxisGain.msg
+add_message_files(FILES
+  DynamicReconfigureLevels.msg
+  FourAxisGain.msg
+  AerialRobotStatus.msg
+  FlightNav.msg
+  FlatnessPid.msg
+  Pid.msg
+  State.msg
+  States.msg
+  Acc.msg
 )
 
 ## Generate added messages and services

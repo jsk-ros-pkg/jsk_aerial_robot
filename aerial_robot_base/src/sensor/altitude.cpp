@@ -49,7 +49,6 @@
 /* ros msg */
 #include <sensor_msgs/Range.h>
 #include <spinal/Barometer.h>
-#include <aerial_robot_base/States.h>
 
 using namespace Eigen;
 using namespace std;
@@ -75,7 +74,7 @@ namespace sensor_plugin
       /* terrain check */
       if(!terrain_check_) state_on_terrain_ = NORMAL;
 
-      alt_pub_ = nh_.advertise<aerial_robot_base::States>("data",10);
+      alt_pub_ = nh_.advertise<aerial_robot_msgs::States>("data",10);
 
       /* set the only barometer initially */
       alt_mode_sub_ = nh_.subscribe("/estimate_alt_mode", 1, &Alt::altEstimateModeCallback, this);
@@ -207,7 +206,7 @@ namespace sensor_plugin
     double first_outlier_val_; // the first sensor value during the check_du2_;
     float height_offset_; /* general offset between esimated height and range sensor value, maybe change beacause of the terrain */
 
-    aerial_robot_base::States alt_state_;
+    aerial_robot_msgs::States alt_state_;
 
     void rangeCallback(const sensor_msgs::RangeConstPtr & range_msg)
     {

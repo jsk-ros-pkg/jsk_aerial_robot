@@ -47,8 +47,7 @@
 
 /* ros msg */
 #include <spinal/Gps.h>
-#include <aerial_robot_base/States.h>
-#include <aerial_robot_base/FlightNav.h>
+#include <aerial_robot_msgs/FlightNav.h>
 #include <nav_msgs/Odometry.h>
 #include <sensor_msgs/NavSatFix.h>
 #include <mavros_msgs/WaypointList.h> /* temporarily */
@@ -73,7 +72,7 @@ namespace sensor_plugin
         rosParamInit();
 
         /* ros publisher of aerial_robot_base::State */
-        state_pub_ = nh_.advertise<aerial_robot_base::States>("data", 10);
+        state_pub_ = nh_.advertise<aerial_robot_msgs::States>("data", 10);
         /* ros publisher of sensor_msgs::NavSatFix */
         gps_pub_ = nh_.advertise<sensor_msgs::NavSatFix>("/single_gps", 2);
         /* ros subscriber for single gps */
@@ -82,7 +81,7 @@ namespace sensor_plugin
         rtk_gps_sub_ = nh_.subscribe(rtk_gps_sub_name_, 5, &Gps::rtkGpsCallback, this);
         /* ros publisher / subscriber for waypoint, the message type is not good rightnow */
         wp_sub_ = nh_.subscribe(wp_sub_name_, 5, &Gps::wpCallback, this);
-        nav_pub_ = nh_.advertise<aerial_robot_base::FlightNav>(nav_pub_name_, 1);
+        nav_pub_ = nh_.advertise<aerial_robot_msgs::FlightNav>(nav_pub_name_, 1);
 
         /* waypoint control timer init */
         if(wp_ctrl_rate_ > 0)
@@ -145,7 +144,7 @@ namespace sensor_plugin
       double pos_noise_sigma_, vel_noise_sigma_;
       int min_est_sat_num_;
 
-      aerial_robot_base::States gps_state_;
+      aerial_robot_msgs::States gps_state_;
 
       geodesy::UTMPoint home_utm_pos_, utm_pos_;
       tf::Vector3 pos_, raw_pos_, prev_raw_pos_;
@@ -483,13 +482,13 @@ namespace sensor_plugin
         double speed = nav_vel.length();
         if(speed  > nav_vel_limit_) nav_vel *= (nav_vel_limit_ / speed);
 
-        aerial_robot_base::FlightNav nav_msg;
-        nav_msg.pos_xy_nav_mode = aerial_robot_base::FlightNav::VEL_MODE;
+        aerial_robot_msgs::FlightNav nav_msg;
+        nav_msg.pos_xy_nav_mode = aerial_robot_msgs::FlightNav::VEL_MODE;
         nav_msg.target_vel_x = nav_vel.x();
         nav_msg.target_vel_y = nav_vel.y();
-        nav_msg.pos_z_nav_mode = aerial_robot_base::FlightNav::POS_MODE;
+        nav_msg.pos_z_nav_mode = aerial_robot_msgs::FlightNav::POS_MODE;
         nav_msg.target_pos_z = target_pos_.z();
-        nav_msg.psi_nav_mode = aerial_robot_base::FlightNav::NO_NAVIGATION;
+        nav_msg.psi_nav_mode = aerial_robot_msgs::FlightNav::NO_NAVIGATION;
         nav_pub_.publish(nav_msg);
       }
 

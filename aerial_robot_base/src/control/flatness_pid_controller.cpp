@@ -81,7 +81,7 @@ namespace control_plugin
 
     //publish
     flight_cmd_pub_ = nh_.advertise<spinal::FourAxisCommand>("/aerial_robot_control_four_axis", 10);
-    pid_pub_ = nh_.advertise<aerial_robot_base::FlatnessPid>("debug", 10);
+    pid_pub_ = nh_.advertise<aerial_robot_msgs::FlatnessPid>("debug", 10);
 
     //subscriber
     four_axis_gain_sub_ = nh_.subscribe<aerial_robot_msgs::FourAxisGain>("/four_axis_gain", 1, &FlatnessPid::fourAxisGainCallback, this, ros::TransportHints().tcpNoDelay());
@@ -122,7 +122,7 @@ namespace control_plugin
 
   void FlatnessPid::pidUpdate()
   {
-    aerial_robot_base::FlatnessPid pid_msg;
+    aerial_robot_msgs::FlatnessPid pid_msg;
     pid_msg.header.stamp = ros::Time::now();
 
     /* roll/pitch integration flag */

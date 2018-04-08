@@ -49,7 +49,7 @@ namespace control_plugin
     gimbal_target_force_pub_ = nh_.advertise<std_msgs::Float32MultiArray>(pub_name, 1);
 
     nhp_.param("roll_pitch_gimbal_topic_name", pub_name, string("roll_pitch_gimbal_control"));
-    roll_pitch_pid_pub_ = nh_.advertise<aerial_robot_base::FlatnessPid>(pub_name, 1);
+    roll_pitch_pid_pub_ = nh_.advertise<aerial_robot_msgs::FlatnessPid>(pub_name, 1);
 
     string sub_name;
     nhp_.param("joint_state_sub_name", sub_name, std::string("joint_state"));
@@ -259,7 +259,7 @@ namespace control_plugin
         double du = ros::Time::now().toSec() - gimbal_control_stamp_;
 
         /* ros pub */
-        aerial_robot_base::FlatnessPid pid_msg;
+        aerial_robot_msgs::FlatnessPid pid_msg;
         pid_msg.header.stamp = ros::Time::now();
 
         //ROS_WARN("max_x: %f, max_y: %f, max_z: %f", max_x, max_y, max_z);

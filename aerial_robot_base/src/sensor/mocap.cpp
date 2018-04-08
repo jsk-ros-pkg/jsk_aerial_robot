@@ -43,7 +43,6 @@
 #include <kalman_filter/kf_pos_vel_acc_plugin.h>
 
 /* ros msg */
-#include <aerial_robot_base/States.h>
 #include <std_msgs/Float32.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <nav_msgs/Odometry.h>
@@ -69,7 +68,7 @@ namespace sensor_plugin
       std::string topic_name;
 
       nhp_.param("mocap_pub_name", topic_name, std::string("data"));
-      pose_stamped_pub_ = nh_.advertise<aerial_robot_base::States>(topic_name, 5);
+      pose_stamped_pub_ = nh_.advertise<aerial_robot_msgs::States>(topic_name, 5);
       nhp_.param("mocap_sub_name", topic_name, std::string("/aerial_robot/pose"));
       mocap_sub_ = nh_.subscribe(topic_name, 1, &Mocap::poseCallback, this, ros::TransportHints().udp());
       nhp_.param("ground_truth_sub_name", topic_name, std::string("ground_truth"));
@@ -128,7 +127,7 @@ namespace sensor_plugin
     tf::Vector3 pos_offset_;
 
     /* ros msg */
-    aerial_robot_base::States ground_truth_pose_;
+    aerial_robot_msgs::States ground_truth_pose_;
 
     void poseCallback(const geometry_msgs::PoseStampedConstPtr & msg)
     {
