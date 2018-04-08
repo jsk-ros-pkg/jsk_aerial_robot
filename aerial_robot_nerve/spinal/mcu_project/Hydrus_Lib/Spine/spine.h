@@ -21,7 +21,7 @@
 
 /* ros */
 #include <std_msgs/Empty.h>
-#include <aerial_robot_base/UavInfo.h>
+#include <spinal/UavInfo.h>
 #include <CANDevice/initializer/can_initializer.h>
 #include <spinal/ServoStates.h>
 #include <spinal/ServoControlCmd.h>

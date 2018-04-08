@@ -48,7 +48,7 @@
 
 /* ros msg */
 #include <sensor_msgs/Range.h>
-#include <aerial_robot_msgs/Barometer.h>
+#include <spinal/Barometer.h>
 #include <aerial_robot_base/States.h>
 
 using namespace Eigen;
@@ -81,7 +81,7 @@ namespace sensor_plugin
       alt_mode_sub_ = nh_.subscribe("/estimate_alt_mode", 1, &Alt::altEstimateModeCallback, this);
 
       /* barometer */
-      barometer_sub_ = nh_.subscribe<aerial_robot_msgs::Barometer>(barometer_sub_name_, 1, &Alt::baroCallback, this, ros::TransportHints().tcpNoDelay());
+      barometer_sub_ = nh_.subscribe<spinal::Barometer>(barometer_sub_name_, 1, &Alt::baroCallback, this, ros::TransportHints().tcpNoDelay());
 
       /* range sensor */
       range_sensor_sub_ = nh_.subscribe(range_sensor_sub_name_, 1, &Alt::rangeCallback, this);
@@ -548,7 +548,7 @@ namespace sensor_plugin
     }
 
 
-    void baroCallback(const aerial_robot_msgs::BarometerConstPtr & baro_msg)
+    void baroCallback(const spinal::BarometerConstPtr & baro_msg)
     {
       static double baro_previous_secs;
       double current_secs = baro_msg->stamp.toSec();

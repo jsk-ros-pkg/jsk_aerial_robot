@@ -48,7 +48,7 @@
 #include <nav_msgs/Odometry.h>
 #include <tf/transform_broadcaster.h>
 #include <std_msgs/UInt8.h>
-#include <aerial_robot_base/DesireCoord.h>
+//#include <spinal/DesireCoord.h>
 #include <geometry_msgs/TransformStamped.h>
 #include <tf/transform_datatypes.h>
 

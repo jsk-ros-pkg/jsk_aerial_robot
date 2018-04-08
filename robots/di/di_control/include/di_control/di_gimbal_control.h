@@ -35,7 +35,7 @@
 
 #include <ros/ros.h>
 
-#include <aerial_robot_msgs/Imu.h>
+#include <spinal/Imu.h>
 #include <std_msgs/UInt16.h>
 #include <std_msgs/UInt8.h>
 
@@ -175,7 +175,7 @@ class GimbalControl
   void controlFunc(const ros::TimerEvent & e);
   void servoCallback(const dynamixel_msgs::JointStateConstPtr& msg, int i, int j);
 
-  void attitudeCallback(const aerial_robot_msgs::ImuConstPtr& msg);
+  void attitudeCallback(const spinal::ImuConstPtr& msg);
   void desireAttitudeCallback(const geometry_msgs::Vector3ConstPtr& msg);
   void attCommandCallback(const aerial_robot_base::FlatnessPidConstPtr& cmd_msg);
   void joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg);

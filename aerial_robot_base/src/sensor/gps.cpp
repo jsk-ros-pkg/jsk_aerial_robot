@@ -46,11 +46,11 @@
 #include <geodesy/utm.h>
 
 /* ros msg */
-#include <aerial_robot_msgs/Gps.h>
+#include <spinal/Gps.h>
 #include <aerial_robot_base/States.h>
+#include <aerial_robot_base/FlightNav.h>
 #include <nav_msgs/Odometry.h>
 #include <sensor_msgs/NavSatFix.h>
-#include <aerial_robot_base/FlightNav.h>
 #include <mavros_msgs/WaypointList.h> /* temporarily */
 
 using namespace Eigen;
@@ -193,7 +193,7 @@ namespace sensor_plugin
         if(param_verbose_) cout << "vel noise sigma is " << vel_noise_sigma_ << endl;
       }
 
-      void gpsCallback(const aerial_robot_msgs::Gps::ConstPtr & gps_msg)
+      void gpsCallback(const spinal::Gps::ConstPtr & gps_msg)
       {
         static bool first_flag = true;
         double current_secs = gps_msg->stamp.toSec();

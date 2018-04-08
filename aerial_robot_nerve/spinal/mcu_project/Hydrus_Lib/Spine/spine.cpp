@@ -124,16 +124,16 @@ namespace Spine
     uint8_t gimbal_servo_num = servo_.size() - servo_with_send_flag_.size();
       if(gimbal_servo_num == 0)
         {
-          if(slave_num_ < 6) uav_model_ = aerial_robot_base::UavInfo::HYDRUS; // less than hex
-          else uav_model_ = aerial_robot_base::UavInfo::HYDRUS_XI;
+          if(slave_num_ < 6) uav_model_ = spinal::UavInfo::HYDRUS; // less than hex
+          else uav_model_ = spinal::UavInfo::HYDRUS_XI;
         }
       if(gimbal_servo_num  == slave_num_)
         {
-          uav_model_ = aerial_robot_base::UavInfo::HYDRUS_XI;
+          uav_model_ = spinal::UavInfo::HYDRUS_XI;
         }
       if(gimbal_servo_num  == 2 * slave_num_)
         {
-          uav_model_ = aerial_robot_base::UavInfo::DRAGON;
+          uav_model_ = spinal::UavInfo::DRAGON;
           /* special smoothing flag for dragon */
           estimator_->getAttEstimator()->setGyroSmoothFlag(true);
         }

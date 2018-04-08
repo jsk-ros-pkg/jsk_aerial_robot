@@ -45,7 +45,7 @@
 #include <dynamixel_controllers/TorqueEnable.h>
 #include <nav_msgs/Odometry.h>
 #include <std_msgs/Float32MultiArray.h>
-#include <aerial_robot_base/DesireCoord.h>
+#include <spinal/DesireCoord.h>
 
 /* basic transform control */
 #include <dragon/transform_control.h>
@@ -94,7 +94,7 @@ namespace control_plugin
     void jointStateCallback(const sensor_msgs::JointStateConstPtr& state);
     void rosParamInit();
 
-    void baselinkTiltCallback(const aerial_robot_base::DesireCoordConstPtr & msg);
+    void baselinkTiltCallback(const spinal::DesireCoordConstPtr & msg);
     void fourAxisGainCallback(const aerial_robot_msgs::FourAxisGainConstPtr & msg);
 
     sensor_msgs::JointState joint_state_;

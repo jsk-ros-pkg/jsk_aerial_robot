@@ -42,7 +42,7 @@ Navigator::Navigator(ros::NodeHandle nh, ros::NodeHandle nh_private,
   stop_teleop_sub_ = nh_.subscribe<std_msgs::UInt8>("stop_teleop", 1, &Navigator::stopTeleopCallback, this, ros::TransportHints().tcpNoDelay());
   teleop_flag_ = true;
 
-  flight_config_pub_ = nh_.advertise<aerial_robot_base::FlightConfigCmd>("/flight_config_cmd", 10);
+  flight_config_pub_ = nh_.advertise<spinal::FlightConfigCmd>("/flight_config_cmd", 10);
   power_info_pub_ = nh_.advertise<geometry_msgs::Vector3Stamped>("/uav_power", 10);
 
   estimator_ = estimator;
@@ -274,8 +274,8 @@ void Navigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
       if(!force_landing_flag_ && (getNaviState() == TAKEOFF_STATE || getNaviState() == LAND_STATE || getNaviState() == HOVER_STATE))
         {
           ROS_WARN("Joy Control: force landing state");
-          aerial_robot_base::FlightConfigCmd flight_config_cmd;
-          flight_config_cmd.cmd = aerial_robot_base::FlightConfigCmd::FORCE_LANDING_CMD;
+          spinal::FlightConfigCmd flight_config_cmd;
+          flight_config_cmd.cmd = spinal::FlightConfigCmd::FORCE_LANDING_CMD;
           flight_config_pub_.publish(flight_config_cmd);
           force_landing_flag_ = true;
 
@@ -501,8 +501,8 @@ void Navigator::update()
     {
       if(getNaviState() == TAKEOFF_STATE || getNaviState() == HOVER_STATE  || getNaviState() == LAND_STATE)
         ROS_WARN("Sensor Unhealth Level%d: force landing state", estimator_->getUnhealthLevel());
-      aerial_robot_base::FlightConfigCmd flight_config_cmd;
-      flight_config_cmd.cmd = aerial_robot_base::FlightConfigCmd::FORCE_LANDING_CMD;
+      spinal::FlightConfigCmd flight_config_cmd;
+      flight_config_cmd.cmd = spinal::FlightConfigCmd::FORCE_LANDING_CMD;
       flight_config_pub_.publish(flight_config_cmd);
       force_landing_flag_ = true;
     }
@@ -551,8 +551,8 @@ void Navigator::update()
         estimator_->setSensorFusionFlag(true);
         force_landing_flag_ = false; //is here good?
 
-        aerial_robot_base::FlightConfigCmd flight_config_cmd;
-        flight_config_cmd.cmd = aerial_robot_base::FlightConfigCmd::ARM_ON_CMD;
+        spinal::FlightConfigCmd flight_config_cmd;
+        flight_config_cmd.cmd = spinal::FlightConfigCmd::ARM_ON_CMD;
         flight_config_pub_.publish(flight_config_cmd);
 
         break;
@@ -649,8 +649,8 @@ void Navigator::update()
         estimator_->setLandedFlag(false);
         estimator_->setFlyingFlag(false);
 
-        aerial_robot_base::FlightConfigCmd flight_config_cmd;
-        flight_config_cmd.cmd = aerial_robot_base::FlightConfigCmd::ARM_OFF_CMD;
+        spinal::FlightConfigCmd flight_config_cmd;
+        flight_config_cmd.cmd = spinal::FlightConfigCmd::ARM_OFF_CMD;
         flight_config_pub_.publish(flight_config_cmd);
 
         break;

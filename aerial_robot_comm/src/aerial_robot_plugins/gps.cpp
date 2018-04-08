@@ -1,5 +1,5 @@
 #include <aerial_robot_comm/aerial_robot_plugins/aerial_robot_base_plugin.h>
-#include <aerial_robot_msgs/Gps.h>
+#include <spinal/Gps.h>
 
 using namespace std;
 
@@ -23,7 +23,7 @@ namespace aerial_robot_plugin
                                        0, 0, 0, 0, 0, 13);
         }
 
-      gps_sub_= nh_.subscribe<aerial_robot_msgs::Gps>(topic_name_, 5, &Gps::gpsCb, this);
+      gps_sub_= nh_.subscribe<spinal::Gps>(topic_name_, 5, &Gps::gpsCb, this);
 
 
     }
@@ -42,7 +42,7 @@ namespace aerial_robot_plugin
     }
 
 
-    void gpsCb(const aerial_robot_msgs::GpsConstPtr & rmsg)
+    void gpsCb(const spinal::GpsConstPtr & rmsg)
     {
       mavlink_msg_gps_raw_int_pack(system_id_, component_id_, &mav_msg_,
                                    rmsg->stamp.toNSec(), 3,

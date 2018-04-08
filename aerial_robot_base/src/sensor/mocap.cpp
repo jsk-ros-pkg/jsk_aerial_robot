@@ -43,7 +43,6 @@
 #include <kalman_filter/kf_pos_vel_acc_plugin.h>
 
 /* ros msg */
-#include <aerial_robot_base/DesireCoord.h>
 #include <aerial_robot_base/States.h>
 #include <std_msgs/Float32.h>
 #include <geometry_msgs/PoseStamped.h>

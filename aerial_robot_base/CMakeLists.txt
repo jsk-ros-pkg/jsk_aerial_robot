@@ -9,6 +9,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
+  std_srvs
   nav_msgs
   geometry_msgs
   sensor_msgs
@@ -17,6 +18,7 @@ find_package(catkin REQUIRED COMPONENTS
   tf
   dynamic_reconfigure
   aerial_robot_msgs
+  spinal
   kalman_filter
   cmake_modules
   pluginlib
@@ -38,18 +40,8 @@ add_message_files(FILES
   Pid.msg
   State.msg
   States.msg
-  Pwms.msg
-  DesireCoord.msg
   Acc.msg
-  UavInfo.msg
-  FlightConfigCmd.msg
   )
-
-add_service_files(
-  FILES
-  GetMotorNum.srv
-)
-
 
 generate_messages(DEPENDENCIES std_msgs geometry_msgs)
 
@@ -62,7 +54,7 @@ generate_dynamic_reconfigure_options(
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES ${PROJECT_NAME} flight_control_pluginlib
-  CATKIN_DEPENDS roscpp message_runtime aerial_robot_msgs std_msgs geometry_msgs visualization_msgs nav_msgs  sensor_msgs laser_geometry tf kalman_filter pluginlib geodesy mavros_msgs
+  CATKIN_DEPENDS roscpp message_runtime aerial_robot_msgs std_msgs geometry_msgs visualization_msgs nav_msgs  sensor_msgs laser_geometry tf kalman_filter pluginlib geodesy mavros_msgs spinal
   DEPENDS Eigen
 )
 

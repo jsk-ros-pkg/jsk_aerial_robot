@@ -7,7 +7,7 @@ GimbalControl::GimbalControl(ros::NodeHandle nh, ros::NodeHandle nhp): nh_(nh), 
   alt_control_pub_ = nh_.advertise<aerial_robot_base::FlightNav>("flight_nav", 1);
   desire_tilt_pub_ = nh_.advertise<geometry_msgs::Vector3>("desire_tilt", 1);
 
-  attitude_sub_ = nh_.subscribe<aerial_robot_msgs::Imu>("imu", 1, &GimbalControl::attitudeCallback, this, ros::TransportHints().tcpNoDelay());
+  attitude_sub_ = nh_.subscribe<spinal::Imu>("imu", 1, &GimbalControl::attitudeCallback, this, ros::TransportHints().tcpNoDelay());
 
   desire_attitude_sub_ = nh_.subscribe<geometry_msgs::Vector3>("desire_attitude", 1, &GimbalControl::desireAttitudeCallback, this, ros::TransportHints().tcpNoDelay());
 
@@ -173,7 +173,7 @@ void GimbalControl::desireAttitudeCallback(const geometry_msgs::Vector3ConstPtr&
   active_tilt_mode_ = true;
 }
 
-void GimbalControl::attitudeCallback(const aerial_robot_msgs::ImuConstPtr& msg)
+void GimbalControl::attitudeCallback(const spinal::ImuConstPtr& msg)
 {
   current_attitude_.x = msg->angles[0];
   current_attitude_.y = msg->angles[1];

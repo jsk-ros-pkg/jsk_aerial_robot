@@ -12,10 +12,10 @@
 #include <std_msgs/Int32.h>
 #include <std_msgs/Empty.h>
 #include <geometry_msgs/Vector3Stamped.h>
-#include <aerial_robot_msgs/FourAxisCommand.h>
+#include <spinal/FlightConfigCmd.h>
 #include <tf/transform_broadcaster.h>
 #include <aerial_robot_base/FlightNav.h>
-#include <aerial_robot_base/FlightConfigCmd.h>
+
 #include <sensor_msgs/Joy.h>
 
 namespace flight_nav
@@ -238,13 +238,13 @@ protected:
 
   void armingAckCallback(const std_msgs::UInt8ConstPtr& ack_msg)
   {
-    if(ack_msg->data == aerial_robot_base::FlightConfigCmd::ARM_OFF_CMD)
+    if(ack_msg->data == spinal::FlightConfigCmd::ARM_OFF_CMD)
       {//  arming off
         ROS_INFO("STOP RES From AERIAL ROBOT");
         setNaviState(ARM_OFF_STATE);
       }
 
-    if(ack_msg->data == aerial_robot_base::FlightConfigCmd::ARM_ON_CMD)
+    if(ack_msg->data == spinal::FlightConfigCmd::ARM_ON_CMD)
       {//  arming on
         ROS_INFO("START RES From AERIAL ROBOT");
         setNaviState(ARM_ON_STATE);
@@ -292,8 +292,8 @@ protected:
 
   void forceLandingCallback(const std_msgs::EmptyConstPtr & msg)
   {
-    aerial_robot_base::FlightConfigCmd flight_config_cmd;
-    flight_config_cmd.cmd = aerial_robot_base::FlightConfigCmd::FORCE_LANDING_CMD;
+    spinal::FlightConfigCmd flight_config_cmd;
+    flight_config_cmd.cmd = spinal::FlightConfigCmd::FORCE_LANDING_CMD;
     flight_config_pub_.publish(flight_config_cmd);
     force_landing_flag_ = true;
 

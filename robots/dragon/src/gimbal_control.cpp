@@ -43,7 +43,7 @@ namespace control_plugin
     joint_control_pub_ = nh_.advertise<sensor_msgs::JointState>(pub_name, 1);
 
     nhp_.param("current_desire_tilt_topic_name", pub_name, string("/desire_coordinate"));
-    curr_desire_tilt_pub_ = nh_.advertise<aerial_robot_base::DesireCoord>(pub_name, 1);
+    curr_desire_tilt_pub_ = nh_.advertise<spinal::DesireCoord>(pub_name, 1);
 
     nhp_.param("gimbal_target_force_topic_name", pub_name, string("gimbals_target_force"));
     gimbal_target_force_pub_ = nh_.advertise<std_msgs::Float32MultiArray>(pub_name, 1);
@@ -86,7 +86,7 @@ namespace control_plugin
       alt_gains_[i].setValue(msg->pos_p_gain_alt[i], msg->pos_i_gain_alt[i], msg->pos_d_gain_alt[i]);
   }
 
-  void DragonGimbal::baselinkTiltCallback(const aerial_robot_base::DesireCoordConstPtr & msg)
+  void DragonGimbal::baselinkTiltCallback(const spinal::DesireCoordConstPtr & msg)
   {
     final_desire_tilt_.setValue(msg->roll, msg->pitch, msg->yaw);
   }
@@ -399,7 +399,7 @@ namespace control_plugin
         else
           curr_desire_tilt_ = final_desire_tilt_;
 
-        aerial_robot_base::DesireCoord desire_tilt_msg;
+        spinal::DesireCoord desire_tilt_msg;
         desire_tilt_msg.roll = curr_desire_tilt_.x();
         desire_tilt_msg.pitch = curr_desire_tilt_.y();
         curr_desire_tilt_pub_.publish(desire_tilt_msg);
@@ -411,7 +411,7 @@ namespace control_plugin
   void DragonGimbal::sendCmd()
   {
     /* send base throttle command */
-    aerial_robot_msgs::FourAxisCommand flight_command_data;
+    spinal::FourAxisCommand flight_command_data;
     flight_command_data.angles[0] =  0;
     flight_command_data.angles[1] =  0;
 

@@ -80,7 +80,7 @@ namespace control_plugin
     rosParamInit();
 
     //publish
-    flight_cmd_pub_ = nh_.advertise<aerial_robot_msgs::FourAxisCommand>("/aerial_robot_control_four_axis", 10);
+    flight_cmd_pub_ = nh_.advertise<spinal::FourAxisCommand>("/aerial_robot_control_four_axis", 10);
     pid_pub_ = nh_.advertise<aerial_robot_base::FlatnessPid>("debug", 10);
 
     //subscriber
@@ -131,8 +131,8 @@ namespace control_plugin
         if(state_pos_.z() > 0.01)
           {
             start_rp_integration_ = true;
-            aerial_robot_base::FlightConfigCmd flight_config_cmd;
-            flight_config_cmd.cmd = aerial_robot_base::FlightConfigCmd::INTEGRATION_CONTROL_ON_CMD;
+            spinal::FlightConfigCmd flight_config_cmd;
+            flight_config_cmd.cmd = spinal::FlightConfigCmd::INTEGRATION_CONTROL_ON_CMD;
             navigator_->flight_config_pub_.publish(flight_config_cmd);
             ROS_WARN("start rp integration");
           }
@@ -286,12 +286,12 @@ namespace control_plugin
   void FlatnessPid::sendCmd()
   {
     /* send flight command */
-    aerial_robot_msgs::FourAxisCommand flight_command_data;
+    spinal::FourAxisCommand flight_command_data;
     flight_command_data.angles[0] =  -target_roll_;
     flight_command_data.angles[1] =  target_pitch_;
 
     flight_command_data.base_throttle.resize(motor_num_);
-    if(uav_model_ == aerial_robot_base::UavInfo::DRONE)
+    if(uav_model_ == spinal::UavInfo::DRONE)
       {
         /* Simple PID based attitude/altitude control */
         flight_command_data.angles[2] = target_yaw_[0];

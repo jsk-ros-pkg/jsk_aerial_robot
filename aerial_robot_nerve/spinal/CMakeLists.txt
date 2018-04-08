@@ -8,8 +8,6 @@ add_compile_options(-std=c++11)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   std_srvs
-  aerial_robot_msgs
-  aerial_robot_base
   message_generation
 )
 
@@ -24,7 +22,19 @@ add_message_files(
   ServoControlCmd.msg
   ServoTorqueCmd.msg
   Gyro.msg
-)
+  SimpleImu.msg
+  FourAxisCommand.msg
+  Imu.msg Barometer.msg
+  Gps.msg
+  RollPitchYawTerm.msg
+  RollPitchYawTerms.msg
+  MotorInfo.msg
+  PwmInfo.msg
+  Pwms.msg
+  UavInfo.msg
+  DesireCoord.msg
+  FlightConfigCmd.msg
+  )
 
 add_service_files(
   FILES

@@ -19,9 +19,8 @@
 
 /* ros */
 #include <ros.h>
-#include <std_srvs/Trigger.h>
-#include <aerial_robot_msgs/Imu.h>
-#include <aerial_robot_base/DesireCoord.h>
+#include <spinal/Imu.h>
+#include <spinal/DesireCoord.h>
 #include <geometry_msgs/Vector3Stamped.h>
 
 /* sensors */
@@ -49,12 +48,11 @@ class AttitudeEstimate
 public:
   AttitudeEstimate():
     imu_pub_("imu", &imu_msg_),
-	attitude_pub_("attitude", &attitude_msg_),
+    attitude_pub_("attitude", &attitude_msg_),
     desire_coord_sub_("/desire_coordinate", &AttitudeEstimate::desireCoordCallback, this ),
-	test_rosservice_("/test_rosservice_server", &AttitudeEstimate::testRosseriveCallback,this),
-	imu_list_(1),
-	imu_weights_(1,1),
-	pub_smoothing_gyro_flag_(false)
+    imu_list_(1),
+    imu_weights_(1,1),
+    pub_smoothing_gyro_flag_(false)
   {}
   ~AttitudeEstimate(){}
 
@@ -63,10 +61,7 @@ public:
     nh_ = nh;
     nh_->advertise(imu_pub_);
     nh_->advertise(attitude_pub_);
-    nh_->subscribe< ros::Subscriber<aerial_robot_base::DesireCoord, AttitudeEstimate> >(desire_coord_sub_);
-
-    /* rosserive server test */
-    nh_->advertiseService< std_srvs::Trigger::Request, std_srvs::Trigger::Response, AttitudeEstimate> (test_rosservice_);
+    nh_->subscribe< ros::Subscriber<spinal::DesireCoord, AttitudeEstimate> >(desire_coord_sub_);
 
     imu_list_[0] = imu;
 
@@ -185,12 +180,11 @@ private:
   ros::NodeHandle* nh_;
   ros::Publisher imu_pub_, attitude_pub_;
 
-  aerial_robot_msgs::Imu imu_msg_;
+  spinal::Imu imu_msg_;
   geometry_msgs::Vector3Stamped attitude_msg_;
   bool pub_smoothing_gyro_flag_;
 
-  ros::Subscriber<aerial_robot_base::DesireCoord, AttitudeEstimate> desire_coord_sub_;
-  ros::ServiceServer<std_srvs::Trigger::Request, std_srvs::Trigger::Response, AttitudeEstimate> test_rosservice_; /* test rosserive server without class */
+  ros::Subscriber<spinal::DesireCoord, AttitudeEstimate> desire_coord_sub_;
 
   EstimatorAlgorithm* estimator_;
   std::vector< IMU* > imu_list_;
@@ -198,17 +192,9 @@ private:
 
   uint32_t last_imu_pub_time_, last_attitude_pub_time_;
 
-  void desireCoordCallback(const aerial_robot_base::DesireCoord& coord_msg)
+  void desireCoordCallback(const spinal::DesireCoord& coord_msg)
   {
     estimator_->coordinateUpdate(coord_msg.roll, coord_msg.pitch, coord_msg.yaw);
   }
-
-  /* rosserive test */
-  void testRosseriveCallback(const std_srvs::Trigger::Request & req, std_srvs::Trigger::Response & res)
-  {
-	  res.success = true;
-	  res.message = "aotti~";
-  }
-
 };
 #endif
