@@ -103,7 +103,7 @@ class GazeboControlBridge:
 
     def jointCtrlCallback(self, msg):
         if len(msg.position) != self.joint_num:
-            rospy.err("the motor num is not equal with joint control number")
+            rospy.logerr("the motor num is not equal with joint control number")
             return
 
         for i in range(0, self.joint_num):
@@ -111,7 +111,7 @@ class GazeboControlBridge:
 
     def gimbalCtrlCallback(self, msg):
         if len(msg.position) != self.gimbal_num:
-            rospy.err("the motor num is not equal with joint control number")
+            rospy.logerr("the motor num is not equal with joint control number")
             return
 
         for i in range(0, self.gimbal_num):
