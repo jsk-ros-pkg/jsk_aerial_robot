@@ -71,8 +71,6 @@ public:
   void init(UART_HandleTypeDef *huart, ros::NodeHandle* nh);
   void update();
 
-  static void UBLOX_UART_DMAReceiveCpltUBLOX(DMA_HandleTypeDef *hdma);
-
 private:
   // u-blox UBX protocol essentials
   struct PACKED ubx_header {

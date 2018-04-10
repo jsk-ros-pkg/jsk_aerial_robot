@@ -41,7 +41,7 @@ struct GPS_State {
   int32_t ground_course_cd;           ///< ground course in 100ths of a degree
   uint16_t hdop;                      ///< horizontal dilution of precision in cm
   uint16_t vdop;                      ///< vertical dilution of precision in cm
-  uint8_t num_sats;                   ///< Number of visible satelites        
+  uint8_t num_sats;                   ///< Number of visible satelites
   Vector3f velocity;                  ///< 3D velocitiy in m/s, in NED format
   float speed_accuracy;
   float horizontal_accuracy;
@@ -63,8 +63,12 @@ struct GPS_timing {
 class GPS_Backend
 {
 public:
-  GPS_Backend(): gps_config_sub_("/gps_config_cmd", &GPS_Backend::gpsConfigCallback, this)
-  {}
+  GPS_Backend():
+    gps_config_sub_("/gps_config_cmd", &GPS_Backend::gpsConfigCallback, this),
+    update_(false)
+  {
+    state_.status = NO_FIX;
+  }
 
   virtual ~GPS_Backend(void) {}
 
@@ -83,8 +87,8 @@ public:
   uint32_t last_fix_time_ms() const { return timing_.last_fix_time_ms; }
   uint32_t last_message_time_ms() const { return timing_.last_message_time_ms; }
 
-
-  uint16_t available() { return gps_rx_buf_.length(); }   //UART Part
+  void startReceiveDMA();
+  uint16_t available();
 
   void write(const uint8_t data_byte)
   {
@@ -98,23 +102,16 @@ public:
     HAL_UART_Transmit(huart_, (uint8_t *)data_byte, size, 100); //timeout: 100[ms]
   }
 
-  bool pop(uint8_t& pop_value)
-  {
-    bool is_valid = gps_rx_buf_.pop(pop_value);
-    return is_valid;
-  }
+  bool pop(uint8_t& pop_value);
+  uint8_t* getRxPointer();
 
   UART_HandleTypeDef* getHuart() { return huart_; }
-  uint8_t* getRxPointer() { return gps_rx_value_; }
   uint16_t getRxSize() { return (uint16_t)GPS_RX_SIZE; }
 
   bool getUpdate() { return update_; }
   void setUpdate(bool update) { update_ = update; }
 
-  //uart rx part
-  static RingBufferFiFo<uint8_t, RING_BUFFER_SIZE> gps_rx_buf_;
-  static uint8_t gps_rx_value_[GPS_RX_SIZE];
-  static uint16_t gps_rx_size_;
+  static void UBLOX_UART_DMAReceiveCpltUBLOX(DMA_HandleTypeDef *hdma);
 
 protected:
 
@@ -126,21 +123,7 @@ protected:
   GPS_timing timing_;
   bool update_;
 
-  void init(UART_HandleTypeDef* huart, ros::NodeHandle* nh)
-  {
-    huart_ =huart;
-    nh_ = nh;
-    nh_->subscribe< ros::Subscriber<std_msgs::UInt8, GPS_Backend> >(gps_config_sub_);
-
-    state_.status = NO_FIX;
-
-    //UART part
-    gps_rx_buf_.init();
-    gps_rx_size_ = GPS_RX_SIZE;
-
-    update_ = false;
-  }
-
+  void init(UART_HandleTypeDef* huart, ros::NodeHandle* nh);
   virtual bool parsePacket() = 0;
   virtual bool read(uint8_t data) = 0;
 

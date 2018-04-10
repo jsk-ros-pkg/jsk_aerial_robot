@@ -27,20 +27,14 @@ GPS::GPS():
 
 void GPS::init(UART_HandleTypeDef *huart, ros::NodeHandle* nh)
 {
-  GPS_Backend::init (huart, nh);
+  GPS_Backend::init(huart, nh);
 
   /* change the rate */
   configureRate(INIT_RATE);
-  CLEAR_BIT(huart_->Instance->CR1, USART_CR1_RE);
   HAL_Delay(100);
 
-  //DMA
-  //start usart revceive dma interrupt
-  HAL_UART_Receive_DMA(huart_, getRxPointer(), getRxSize());
-  huart_->hdmarx->XferCpltCallback = UBLOX_UART_DMAReceiveCpltUBLOX; //change the registerred func
-  __HAL_UART_DISABLE_IT(huart_, UART_IT_RXNE);
-  SET_BIT(huart_->Instance->CR1, USART_CR1_RE);
-  huart_->State = HAL_UART_STATE_READY;
+  /* start usart revceive dma interrupt */
+  startReceiveDMA();
 }
 
 void GPS::update()
@@ -254,35 +248,3 @@ void GPS::configureRate(uint16_t rate)
   sendMessage(CLASS_CFG, MSG_CFG_RATE, &msg, sizeof(msg));
 }
 
-
-void
-GPS::UBLOX_UART_DMAReceiveCpltUBLOX(DMA_HandleTypeDef *hdma)
-{
-  UART_HandleTypeDef* huart = ( UART_HandleTypeDef* )((DMA_HandleTypeDef* )hdma)->Parent;
-
-  /* DMA Normal mode */
-  if((hdma->Instance->CR & DMA_SxCR_CIRC) == 0)
-    {
-      huart->RxXferCount = 0;
-
-      /* Disable the DMA transfer for the receiver request by setting the DMAR bit 
-         in the UART CR3 register */
-      huart->Instance->CR3 &= (uint32_t)~((uint32_t)USART_CR3_DMAR);
-
-      /* Check if a transmit Process is ongoing or not */
-      if(huart->State == HAL_UART_STATE_BUSY_TX_RX)
-        {
-          huart->State = HAL_UART_STATE_BUSY_TX;
-        }
-      else
-        {
-          huart->State = HAL_UART_STATE_READY;
-        }
-    }
-
-  for(std::size_t i = 0; i < gps_rx_size_; i++)
-    {
-      if(!gps_rx_buf_.push(gps_rx_value_[i]))
-        return;
-    }
-}
