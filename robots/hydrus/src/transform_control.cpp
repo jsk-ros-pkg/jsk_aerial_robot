@@ -42,7 +42,7 @@ TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_
   //those publisher is published from func param2controller
   std::string rpy_gain_pub_name;
   nh_private_.param("rpy_gain_pub_name", rpy_gain_pub_name, std::string("/rpy_gain"));
-  rpy_gain_pub_ = nh_.advertise<aerial_robot_msgs::RollPitchYawTerms>(rpy_gain_pub_name, 1);
+  rpy_gain_pub_ = nh_.advertise<spinal::RollPitchYawTerms>(rpy_gain_pub_name, 1);
   four_axis_gain_pub_ = nh_.advertise<aerial_robot_msgs::FourAxisGain>("/four_axis_gain", 1);
   transform_pub_ = nh_.advertise<geometry_msgs::TransformStamped>("/cog2baselink", 1);
   p_matrix_pseudo_inverse_inertia_pub_ = nh_.advertise<spinal::PMatrixPseudoInverseWithInertia>("p_matrix_pseudo_inverse_inertia", 1);
@@ -248,7 +248,7 @@ void TransformController::control()
     }
 }
 
-void TransformController::desireCoordinateCallback(const aerial_robot_base::DesireCoordConstPtr & msg)
+void TransformController::desireCoordinateCallback(const spinal::DesireCoordConstPtr & msg)
 {
   setCogDesireOrientation(KDL::Rotation::RPY(msg->roll, msg->pitch, msg->yaw));
 }
@@ -739,7 +739,7 @@ bool TransformController::hamiltonMatrixSolver(uint8_t lqi_mode)
 void TransformController::param2controller()
 {
   aerial_robot_msgs::FourAxisGain four_axis_gain_msg;
-  aerial_robot_msgs::RollPitchYawTerms rpy_gain_msg; //for rosserial
+  spinal::RollPitchYawTerms rpy_gain_msg; //for rosserial
   geometry_msgs::TransformStamped transform_msg; //for rosserial
   spinal::PMatrixPseudoInverseWithInertia p_pseudo_inverse_with_inertia_msg;
 

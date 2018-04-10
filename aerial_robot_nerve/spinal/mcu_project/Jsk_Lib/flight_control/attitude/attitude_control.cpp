@@ -18,14 +18,14 @@ void AttitudeController::init(ros::NodeHandle* nh)
 {
   nh_ = nh;
 
-  pwms_pub_ = nh_->advertise<aerial_robot_base::Pwms>("/motor_pwms", 1);
-  control_term_pub_ = nh_->advertise<aerial_robot_msgs::RollPitchYawTerms>("/control_terms", 1);
+  pwms_pub_ = nh_->advertise<spinal::Pwms>("/motor_pwms", 1);
+  control_term_pub_ = nh_->advertise<spinal::RollPitchYawTerms>("/control_terms", 1);
   anti_gyro_pub_ = nh_->advertise<std_msgs::Float32MultiArray>("/gyro_moment_compensation", 1);
   four_axis_cmd_sub_ = nh_->subscribe("/aerial_robot_control_four_axis", 1, &AttitudeController::fourAxisCommandCallback, this);
   pwm_info_sub_ = nh_->subscribe("/motor_info", 1, &AttitudeController::pwmInfoCallback, this);
   rpy_gain_sub_ = nh_->subscribe("/rpy_gain", 1, &AttitudeController::rpyGainCallback, this);
-  pwm_test_sub_ = nh_->subscribe("/pwm_test", 1, &AttitudeController::pwmTestCallback, this);
   p_matrix_pseudo_inverse_inertia_sub_ = nh_->subscribe("/p_matrix_pseudo_inverse_inertia", 1, &AttitudeController::pMatrixInertiaCallback, this);
+  pwm_test_sub_ = nh_->subscribe("/pwm_test", 1, &AttitudeController::pwmTestCallback, this);
   baseInit();
 }
 
@@ -37,8 +37,8 @@ AttitudeController::AttitudeController():
   four_axis_cmd_sub_("/aerial_robot_control_four_axis", &AttitudeController::fourAxisCommandCallback, this ),
   pwm_info_sub_("/motor_info", &AttitudeController::pwmInfoCallback, this),
   rpy_gain_sub_("/rpy_gain", &AttitudeController::rpyGainCallback, this),
-  pwm_test_sub_("/pwm_test", &AttitudeController::pwmTestCallback, this ),
-  p_matrix_pseudo_inverse_inertia_sub_("/p_matrix_pseudo_inverse_inertia", &AttitudeController::pMatrixInertiaCallback, this)
+  p_matrix_pseudo_inverse_inertia_sub_("/p_matrix_pseudo_inverse_inertia", &AttitudeController::pMatrixInertiaCallback, this),
+  pwm_test_sub_("/pwm_test", &AttitudeController::pwmTestCallback, this )
 {
 }
 
@@ -64,9 +64,9 @@ void AttitudeController::init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2
   nh_->advertise(pwms_pub_);
   nh_->advertise(control_term_pub_);
 
-  nh_->subscribe< ros::Subscriber<aerial_robot_msgs::FourAxisCommand, AttitudeController> >(four_axis_cmd_sub_);
-  nh_->subscribe< ros::Subscriber<aerial_robot_msgs::PwmInfo, AttitudeController> >(pwm_info_sub_);
-  nh_->subscribe< ros::Subscriber<aerial_robot_msgs::RollPitchYawTerms, AttitudeController> >(rpy_gain_sub_);
+  nh_->subscribe< ros::Subscriber<spinal::FourAxisCommand, AttitudeController> >(four_axis_cmd_sub_);
+  nh_->subscribe< ros::Subscriber<spinal::PwmInfo, AttitudeController> >(pwm_info_sub_);
+  nh_->subscribe< ros::Subscriber<spinal::RollPitchYawTerms, AttitudeController> >(rpy_gain_sub_);
   nh_->subscribe< ros::Subscriber<std_msgs::Float32, AttitudeController> >(pwm_test_sub_);
   nh_->subscribe< ros::Subscriber<spinal::PMatrixPseudoInverseWithInertia, AttitudeController> >(p_matrix_pseudo_inverse_inertia_sub_);
 
@@ -126,7 +126,7 @@ void AttitudeController::pwmsControl(void)
     {
       float target_thrust = target_thrust_[i];
       /* for dragon, we use dual rotor, so devide into two */
-      if(uav_model_ == aerial_robot_base::UavInfo::DRAGON) target_thrust /= 2;
+      if(uav_model_ == spinal::UavInfo::DRAGON) target_thrust /= 2;
 
       if(start_control_flag_)
         {
@@ -392,7 +392,7 @@ void AttitudeController::inversionMapping(void)
 {
   switch (uav_model_)
     {
-    case aerial_robot_base::UavInfo::DRONE:
+    case spinal::UavInfo::DRONE:
       {
         auto underActuatedInversion = [this](float x, float y, float z) -> float {
           return target_cog_force_[Z] + target_cog_torque_[X] * x  + target_cog_torque_[Y] * y + target_cog_torque_[Z] * z;
@@ -417,7 +417,7 @@ void AttitudeController::inversionMapping(void)
           }
         break;
       }
-    case aerial_robot_base::UavInfo::HYDRUS_XI:
+    case spinal::UavInfo::HYDRUS_XI:
       {
         //Anzai TODO:
         break;
@@ -455,7 +455,7 @@ void AttitudeController::reset(void)
   flight_command_last_stamp_ = HAL_GetTick();
 }
 
-void AttitudeController::fourAxisCommandCallback( const aerial_robot_msgs::FourAxisCommand &cmd_msg)
+void AttitudeController::fourAxisCommandCallback( const spinal::FourAxisCommand &cmd_msg)
 {
   if(!start_control_flag_ || force_landing_flag_) return; //do not receive command
 
@@ -516,7 +516,7 @@ void AttitudeController::fourAxisCommandCallback( const aerial_robot_msgs::FourA
     { /* dynamics inversion */
       switch (uav_model_)
         {
-        case aerial_robot_base::UavInfo::DRONE:
+        case spinal::UavInfo::DRONE:
           {
             /* failsafe2-2: the output(z + yaw) difference between motors are too big, start force landing */
             if(abs(cmd_msg.angles[Z]) + cmd_msg.base_throttle[Z]  > max_thrust_ ||
@@ -532,7 +532,7 @@ void AttitudeController::fourAxisCommandCallback( const aerial_robot_msgs::FourA
             target_thrust_[Z] = cmd_msg.base_throttle[0]; //no good name
             break;
           }
-        case aerial_robot_base::UavInfo::HYDRUS_XI:
+        case spinal::UavInfo::HYDRUS_XI:
           {
             //Anzai TODO:
             break;
@@ -545,7 +545,7 @@ void AttitudeController::fourAxisCommandCallback( const aerial_robot_msgs::FourA
     }
 }
 
-void AttitudeController::pwmInfoCallback( const aerial_robot_msgs::PwmInfo &info_msg)
+void AttitudeController::pwmInfoCallback( const spinal::PwmInfo &info_msg)
 {
   min_thrust_ = info_msg.min_thrust;
   max_thrust_ = info_msg.max_thrust;
@@ -570,7 +570,7 @@ void AttitudeController::pwmInfoCallback( const aerial_robot_msgs::PwmInfo &info
   //ROS_ERROR("[d_board]: min_thrust: %f, max_thrust: %f, min_duty: %f, max_duty: %f, abs_max_duty: %f", min_thrust_, max_thrust_, min_duty_, max_duty_, abs_max_duty_);
 }
 
-void AttitudeController::rpyGainCallback( const aerial_robot_msgs::RollPitchYawTerms &gain_msg)
+void AttitudeController::rpyGainCallback( const spinal::RollPitchYawTerms &gain_msg)
 {
   if(motor_number_ == 0) return; //not be activated
 
@@ -657,7 +657,7 @@ void AttitudeController::setMotorNumber(uint8_t motor_number)
       pwms_msg_.motor_value_length = motor_number;
       control_term_msg_.motors_length = motor_number;
       pwms_msg_.motor_value = new uint16_t[motor_number];
-      control_term_msg_.motors = new aerial_robot_msgs::RollPitchYawTerm[motor_number];
+      control_term_msg_.motors = new spinal::RollPitchYawTerm[motor_number];
 #endif
       for(int i = 0; i < motor_number; i++) pwms_msg_.motor_value[i] = 0;
 
@@ -681,8 +681,8 @@ void  AttitudeController::setUavModel(int8_t uav_model)
     {
       uav_model_ = uav_model;
 
-      if(uav_model_ == aerial_robot_base::UavInfo::HYDRUS ||
-         uav_model_ == aerial_robot_base::UavInfo::DRAGON)
+      if(uav_model_ == spinal::UavInfo::HYDRUS ||
+         uav_model_ == spinal::UavInfo::DRAGON)
         lqi_mode_ = true;
     }
 }
@@ -690,7 +690,7 @@ void  AttitudeController::setUavModel(int8_t uav_model)
 bool AttitudeController::activated()
 {
   /* uav model check and motor property */
-  if(motor_number_ > 0 && uav_model_ >= aerial_robot_base::UavInfo::DRONE && max_duty_ > min_duty_) return true;
+  if(motor_number_ > 0 && uav_model_ >= spinal::UavInfo::DRONE && max_duty_ > min_duty_) return true;
   else return false;
 }
 
@@ -721,13 +721,13 @@ float AttitudeController::pwmConversion(float thrust)
 
       switch(pwm_conversion_mode_)
         {
-        case aerial_robot_msgs::MotorInfo::SQRT_MODE:
+        case spinal::MotorInfo::SQRT_MODE:
           {
             /* pwm = F_inv[(V_ref / V)^2 f] */
             v_factor_ = (motor_info_[motor_ref_index_].voltage / voltage) *  (motor_info_[motor_ref_index_].voltage / voltage) ;
             break;
           }
-        case aerial_robot_msgs::MotorInfo::POLYNOMINAL_MODE:
+        case spinal::MotorInfo::POLYNOMINAL_MODE:
           {
             /* pwm = F_inv[(V_ref / V)^1.5 f] */
             v_factor_ = motor_info_[motor_ref_index_].voltage / voltage * inv_sqrt(voltage / motor_info_[motor_ref_index_].voltage);
@@ -746,14 +746,14 @@ float AttitudeController::pwmConversion(float thrust)
   float target_pwm = IDLE_DUTY;
   switch(pwm_conversion_mode_)
     {
-    case aerial_robot_msgs::MotorInfo::SQRT_MODE:
+    case spinal::MotorInfo::SQRT_MODE:
       {
         /* pwm = F_inv[(V_ref / V)^2 f] */
         float sqrt_tmp = motor_info_[motor_ref_index_].polynominal[1] * motor_info_[motor_ref_index_].polynominal[1] - 4 * 10 * motor_info_[motor_ref_index_].polynominal[2] * (motor_info_[motor_ref_index_].polynominal[0] - v_factor_ * thrust); //special decimal order shift (x10)
         target_pwm = (-motor_info_[motor_ref_index_].polynominal[1] + sqrt_tmp * inv_sqrt(sqrt_tmp)) / (2 * motor_info_[motor_ref_index_].polynominal[2]);
         break;
       }
-    case aerial_robot_msgs::MotorInfo::POLYNOMINAL_MODE:
+    case spinal::MotorInfo::POLYNOMINAL_MODE:
       {
         /* pwm = F_inv[(V_ref / V)^1.5 f] */
         float v_factor_thrust_decimal = v_factor_ * thrust * 0.1f; //special decimal order shift (x0.1)

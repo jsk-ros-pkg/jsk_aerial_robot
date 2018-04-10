@@ -21,12 +21,12 @@
 
 /* ros */
 #include <std_msgs/Empty.h>
-#include <aerial_robot_base/UavInfo.h>
+#include <spinal/UavInfo.h>
 #include <CANDevice/initializer/can_initializer.h>
-#include <hydrus/ServoStates.h>
-#include <hydrus/ServoControlCmd.h>
-#include <hydrus/ServoTorqueCmd.h>
-#include <hydrus/Gyro.h>
+#include <spinal/ServoStates.h>
+#include <spinal/ServoControlCmd.h>
+#include <spinal/ServoTorqueCmd.h>
+#include <spinal/Gyro.h>
 #include <spinal/GetBoardInfo.h>
 #include <spinal/SetBoardConfig.h>
 
@@ -46,8 +46,8 @@ namespace Spine
   void convertGyroFromJointvalues();
   uint8_t getSlaveNum();
   int8_t getUavModel();
-  void servoControlCallback(const hydrus::ServoControlCmd& control_msg);
-  void servoTorqueControlCallback(const hydrus::ServoTorqueCmd& control_msg);
+  void servoControlCallback(const spinal::ServoControlCmd& control_msg);
+  void servoTorqueControlCallback(const spinal::ServoTorqueCmd& control_msg);
   void boardInfoCallback(const spinal::GetBoardInfo::Request& req, spinal::GetBoardInfo::Response& res);
   void boardConfigCallback(const spinal::SetBoardConfig::Request& req, spinal::SetBoardConfig::Response& res);
 };

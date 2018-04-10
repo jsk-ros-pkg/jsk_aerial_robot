@@ -38,7 +38,7 @@
 
 /* ros msg */
 #include <aerial_robot_msgs/FourAxisGain.h>
-#include <aerial_robot_base/FlatnessPid.h>
+#include <aerial_robot_msgs/FlatnessPid.h>
 
 //* for dynamic reconfigure
 #include <dynamic_reconfigure/server.h>

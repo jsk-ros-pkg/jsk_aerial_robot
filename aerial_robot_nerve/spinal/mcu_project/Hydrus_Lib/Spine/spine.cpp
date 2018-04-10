@@ -28,14 +28,14 @@ namespace Spine
 
   /* ros */
     constexpr uint8_t SERVO_PUB_INTERVAL = 20; //[ms]
-    hydrus::ServoStates servo_state_msg_;
+    spinal::ServoStates servo_state_msg_;
     ros::Publisher servo_state_pub_("/servo/states", &servo_state_msg_);
 #if SEND_GYRO
     hydrus::Gyro gyro_msg_;
     ros::Publisher gyro_pub_("/hydrus_gyro", &gyro_msg_);
 #endif
-    ros::Subscriber<hydrus::ServoControlCmd> servo_ctrl_sub_("/servo/target_states", servoControlCallback);
-    ros::Subscriber<hydrus::ServoTorqueCmd> servo_torque_ctrl_sub_("/servo/torque_enable", servoTorqueControlCallback);
+    ros::Subscriber<spinal::ServoControlCmd> servo_ctrl_sub_("/servo/target_states", servoControlCallback);
+    ros::Subscriber<spinal::ServoTorqueCmd> servo_torque_ctrl_sub_("/servo/torque_enable", servoTorqueControlCallback);
 
     ros::ServiceServer<spinal::GetBoardInfo::Request, spinal::GetBoardInfo::Response> board_info_srv_("/get_board_info", boardInfoCallback);
     ros::ServiceServer<spinal::SetBoardConfig::Request, spinal::SetBoardConfig::Response> board_config_srv_("/set_board_config", boardConfigCallback);
@@ -52,7 +52,7 @@ namespace Spine
 	  res = board_info_res_;
   }
 
-  void servoControlCallback(const hydrus::ServoControlCmd& control_msg)
+  void servoControlCallback(const spinal::ServoControlCmd& control_msg)
   {
 	  if (control_msg.index_length != control_msg.angles_length) return;
 	  for (unsigned int i = 0; i < control_msg.index_length; i++) {
@@ -60,7 +60,7 @@ namespace Spine
 	  }
   }
 
-  void servoTorqueControlCallback(const hydrus::ServoTorqueCmd& control_msg)
+  void servoTorqueControlCallback(const spinal::ServoTorqueCmd& control_msg)
   {
 	  if (control_msg.index_length != control_msg.torque_enable_length) return;
 	  for (unsigned int i = 0; i < control_msg.index_length; i++) {
@@ -93,8 +93,8 @@ namespace Spine
     nh_->advertise(gyro_pub_);
 #endif
 
-    nh_->subscribe< ros::Subscriber<hydrus::ServoControlCmd> >(servo_ctrl_sub_);
-    nh_->subscribe< ros::Subscriber<hydrus::ServoTorqueCmd> >(servo_torque_ctrl_sub_);
+    nh_->subscribe< ros::Subscriber<spinal::ServoControlCmd> >(servo_ctrl_sub_);
+    nh_->subscribe< ros::Subscriber<spinal::ServoTorqueCmd> >(servo_torque_ctrl_sub_);
 
     nh_->advertiseService(board_info_srv_);
     nh_->advertiseService(board_config_srv_);
@@ -124,22 +124,22 @@ namespace Spine
     uint8_t gimbal_servo_num = servo_.size() - servo_with_send_flag_.size();
       if(gimbal_servo_num == 0)
         {
-          if(slave_num_ < 6) uav_model_ = aerial_robot_base::UavInfo::HYDRUS; // less than hex
-          else uav_model_ = aerial_robot_base::UavInfo::HYDRUS_XI;
+          if(slave_num_ < 6) uav_model_ = spinal::UavInfo::HYDRUS; // less than hex
+          else uav_model_ = spinal::UavInfo::HYDRUS_XI;
         }
       if(gimbal_servo_num  == slave_num_)
         {
-          uav_model_ = aerial_robot_base::UavInfo::HYDRUS_XI;
+          uav_model_ = spinal::UavInfo::HYDRUS_XI;
         }
       if(gimbal_servo_num  == 2 * slave_num_)
         {
-          uav_model_ = aerial_robot_base::UavInfo::DRAGON;
+          uav_model_ = spinal::UavInfo::DRAGON;
           /* special smoothing flag for dragon */
           estimator_->getAttEstimator()->setGyroSmoothFlag(true);
         }
 
     servo_state_msg_.servos_length = servo_with_send_flag_.size();
-    servo_state_msg_.servos = new hydrus::ServoState[servo_with_send_flag_.size()];
+    servo_state_msg_.servos = new spinal::ServoState[servo_with_send_flag_.size()];
 
     /* other component */
     imu_weight_.resize(slave_num_ + 1);
@@ -215,7 +215,7 @@ namespace Spine
     	servo_state_msg_.stamp = nh_->now();
         for (unsigned int i = 0; i < servo_with_send_flag_.size(); i++)
           {
-        	hydrus::ServoState servo;
+        	spinal::ServoState servo;
 
         	servo.index = servo_with_send_flag_.at(i).get().getIndex();
             servo.angle = servo_with_send_flag_.at(i).get().getPresentPosition();
