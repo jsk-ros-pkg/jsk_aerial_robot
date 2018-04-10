@@ -5,7 +5,7 @@ import time
 import rospy
 import math
 from sensor_msgs.msg import JointState
-from aerial_robot_base.msg import DesireCoord
+from spinal.msg import DesireCoord
 
 rospy.init_node("dragon_transformation_demo")
 

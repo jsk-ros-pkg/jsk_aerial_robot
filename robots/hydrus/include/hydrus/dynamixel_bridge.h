@@ -49,9 +49,9 @@
 #include <std_msgs/Float64.h>
 #include <std_srvs/SetBool.h>
 #include <sensor_msgs/JointState.h>
-#include <hydrus/ServoStates.h>
-#include <hydrus/ServoControlCmd.h>
-#include <hydrus/ServoTorqueCmd.h>
+#include <spinal/ServoStates.h>
+#include <spinal/ServoControlCmd.h>
+#include <spinal/ServoTorqueCmd.h>
 #include <dynamixel_msgs/JointState.h>
 #include <dynamixel_controllers/TorqueEnable.h>
 #include <dynamixel_msgs/MotorStateList.h>
@@ -228,7 +228,7 @@ namespace hydrus
     ros::ServiceServer joints_torque_control_srv_;
     ros::ServiceServer overload_check_activate_srv_;
 
-    virtual void jointStatesCallback(const hydrus::ServoStatesConstPtr& state_msg);
+    virtual void jointStatesCallback(const spinal::ServoStatesConstPtr& state_msg);
     virtual void jointsCtrlCallback(const sensor_msgs::JointStateConstPtr& joints_ctrl_msg);
     virtual bool jointsTorqueEnableCallback(dynamixel_controllers::TorqueEnable::Request &req, dynamixel_controllers::TorqueEnable::Response &res);
     virtual void bridgeFunc(const ros::TimerEvent & e);

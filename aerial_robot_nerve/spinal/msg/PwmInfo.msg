@@ -3,4 +3,4 @@ float32 max_thrust
 float32 abs_max_pwm
 float32 force_landing_thrust
 uint8 pwm_conversion_mode
-aerial_robot_msgs/MotorInfo[] motor_info
+spinal/MotorInfo[] motor_info

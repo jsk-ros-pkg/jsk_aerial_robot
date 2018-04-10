@@ -1,4 +1,6 @@
 #commands
+## slave_id is from 1
+## servo_index is from 0
 uint8 SET_SLAVE_ID = 0
 # [slave_id, new_slave_id]
 uint8 SET_IMU_SEND_FLAG = 1

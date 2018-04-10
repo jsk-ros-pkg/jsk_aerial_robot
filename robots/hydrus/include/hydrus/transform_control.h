@@ -40,11 +40,11 @@
 /* ros */
 #include <ros/ros.h>
 
+#include <spinal/RollPitchYawTerms.h>
 #include <aerial_robot_msgs/FourAxisGain.h>
-#include <aerial_robot_msgs/RollPitchYawTerms.h>
-#include <aerial_robot_base/DesireCoord.h>
 #include <sensor_msgs/JointState.h>
 #include <hydrus/AddExtraModule.h>
+#include <spinal/DesireCoord.h>
 #include <spinal/PMatrixPseudoInverseWithInertia.h>
 #include <std_msgs/UInt8.h>
 #include <tf/transform_broadcaster.h>
@@ -265,7 +265,7 @@ protected:
                       hydrus::AddExtraModule::Response &res);
 
   void realtimeControlCallback(const std_msgs::UInt8ConstPtr & msg);
-  void desireCoordinateCallback(const aerial_robot_base::DesireCoordConstPtr & msg);
+  void desireCoordinateCallback(const spinal::DesireCoordConstPtr & msg);
   virtual void jointStateCallback(const sensor_msgs::JointStateConstPtr& state);
   Eigen::MatrixXd P_;
   Eigen::MatrixXd K_;

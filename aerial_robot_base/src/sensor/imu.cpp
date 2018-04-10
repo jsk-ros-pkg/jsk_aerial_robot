@@ -43,10 +43,10 @@
 #include <kalman_filter/kf_pos_vel_acc_plugin.h>
 
 /* ros msg */
-#include <aerial_robot_base/Acc.h>
+#include <aerial_robot_msgs/Acc.h>
 #include <geometry_msgs/Vector3.h>
-#include <aerial_robot_msgs/SimpleImu.h>
-#include <aerial_robot_msgs/Imu.h>
+#include <spinal/SimpleImu.h>
+#include <spinal/Imu.h>
 #include <sensor_msgs/Imu.h>
 
 using namespace Eigen;
@@ -62,17 +62,17 @@ namespace sensor_plugin
       SensorBase::initialize(nh, nhp, estimator, sensor_name);
       rosParamInit();
 
-      acc_pub_ = nh_.advertise<aerial_robot_base::Acc>("acc", 2);
+      acc_pub_ = nh_.advertise<aerial_robot_msgs::Acc>("acc", 2);
       imu_pub_ = nh_.advertise<sensor_msgs::Imu>(imu_pub_topic_name_, 1);
 
       if(imu_board_ == D_BOARD)
         {
-          imu_sub_ = nh_.subscribe<aerial_robot_msgs::Imu>(imu_topic_name_, 1, boost::bind(&Imu::ImuCallback, this, _1, false));
+          imu_sub_ = nh_.subscribe<spinal::Imu>(imu_topic_name_, 1, boost::bind(&Imu::ImuCallback, this, _1, false));
         }
 
       if(imu_board_ == KDUINO)
         {
-          imu_sub_ = nh_.subscribe<aerial_robot_msgs::SimpleImu>(imu_topic_name_, 1, &Imu::kduinoImuCallback, this);
+          imu_sub_ = nh_.subscribe<spinal::SimpleImu>(imu_topic_name_, 1, &Imu::kduinoImuCallback, this);
         }
 
     }
@@ -136,7 +136,7 @@ namespace sensor_plugin
 
     ros::Time imu_stamp_;
 
-    void ImuCallback(const aerial_robot_msgs::ImuConstPtr& imu_msg, bool sub_imu_board)
+    void ImuCallback(const spinal::ImuConstPtr& imu_msg, bool sub_imu_board)
     {
       imu_stamp_ = imu_msg->stamp;
 
@@ -152,7 +152,7 @@ namespace sensor_plugin
       updateHealthStamp(imu_msg->stamp.toSec());
     }
 
-    void kduinoImuCallback(const aerial_robot_msgs::SimpleImuConstPtr& imu_msg)
+    void kduinoImuCallback(const spinal::SimpleImuConstPtr& imu_msg)
     {
       imu_stamp_ = imu_msg->stamp;
 
@@ -497,7 +497,7 @@ namespace sensor_plugin
 
     void publishAccData()
     {
-      aerial_robot_base::Acc acc_data;
+      aerial_robot_msgs::Acc acc_data;
       acc_data.header.stamp = imu_stamp_;
 
       tf::vector3TFToMsg(acc_b_, acc_data.acc_body_frame);

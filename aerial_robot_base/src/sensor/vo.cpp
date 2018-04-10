@@ -58,7 +58,7 @@ namespace sensor_plugin
       rosParamInit();
 
       /* ros publisher: aerial_robot_base::State */
-      vo_state_pub_ = nh_.advertise<aerial_robot_base::States>("data",10);
+      vo_state_pub_ = nh_.advertise<aerial_robot_msgs::States>("data",10);
 
       control_timer_ = nhp_.createTimer(ros::Duration(1.0 / control_rate_), &VisualOdometry::controlFunc,this);
     }
@@ -94,7 +94,7 @@ namespace sensor_plugin
     tf::Matrix3x3 r_, init_orien_;
     bool init_time_;
 
-    aerial_robot_base::States vo_state_;
+    aerial_robot_msgs::States vo_state_;
 
     void voCallback(const nav_msgs::Odometry::ConstPtr & vo_msg)
     {

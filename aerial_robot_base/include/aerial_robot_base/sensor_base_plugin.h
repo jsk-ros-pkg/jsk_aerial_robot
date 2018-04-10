@@ -52,8 +52,8 @@
 #include <tf/LinearMath/Transform.h>
 
 /* ros msg */
-#include <aerial_robot_msgs/BoolFlag.h>
-#include <aerial_robot_base/States.h>
+#include <aerial_robot_msgs/States.h>
+#include <std_srvs/SetBool.h>
 
 /* utils */
 #include <iostream>
@@ -180,11 +180,11 @@ namespace sensor_plugin
         }
     }
 
-    bool estimateFlag(aerial_robot_msgs::BoolFlag::Request  &req,
-                      aerial_robot_msgs::BoolFlag::Response &res)
+    bool estimateFlag(std_srvs::SetBool::Request  &req,
+                      std_srvs::SetBool::Response &res)
     {
       string ns = nhp_.getNamespace();
-      estimate_flag_ = req.flag;
+      estimate_flag_ = req.data;
       ROS_INFO("%s: %s", ns.c_str(), estimate_flag_?string("enable the estimate flag").c_str():string("disable the estimate flag").c_str());
       return true;
     }
