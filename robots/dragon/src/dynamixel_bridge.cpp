@@ -64,7 +64,7 @@ namespace dragon
         return;
       }
 
-    hydrus::ServoControlCmd target_angle_msg;
+    spinal::ServoControlCmd target_angle_msg;
 
     for(int i = 0; i < gimbal_num_; i ++)
       {
@@ -80,7 +80,7 @@ namespace dragon
   bool ServoInterface::gimbalsTorqueEnableCallback(dynamixel_controllers::TorqueEnable::Request &req, dynamixel_controllers::TorqueEnable::Response &res)
   {
     /* direct send torque control flag */
-    hydrus::ServoTorqueCmd torque_off_msg;
+    spinal::ServoTorqueCmd torque_off_msg;
     for(auto it = gimbals_.begin(); it != gimbals_.end(); ++it)
       {
         torque_off_msg.index.push_back((*it)->getId());

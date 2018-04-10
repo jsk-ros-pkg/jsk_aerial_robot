@@ -48,8 +48,7 @@
 
 /* msg / srv */
 #include <std_msgs/Float64.h>
-#include <aerial_robot_base/GetMotorNum.h>
-#include <aerial_robot_base/DesireCoord.h>
+#include <spinal/DesireCoord.h>
 
 /* d_board part */
 #include <flight_control/flight_control.h>
@@ -103,7 +102,7 @@ private:
   bool debug_mode_;
   float debug_force_;
 
-  void desireCoordCallback(const aerial_robot_base::DesireCoord& coord_msg)
+  void desireCoordCallback(const spinal::DesireCoord& coord_msg)
   {
     desire_coord_.setRPY(coord_msg.roll, coord_msg.pitch, coord_msg.yaw);
   }

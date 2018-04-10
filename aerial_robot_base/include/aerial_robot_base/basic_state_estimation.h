@@ -44,11 +44,10 @@
 #include <kalman_filter/kf_base_plugin.h>
 
 /* ros msg */
-#include <aerial_robot_base/States.h>
+#include <aerial_robot_msgs/States.h>
 #include <nav_msgs/Odometry.h>
 #include <tf/transform_broadcaster.h>
 #include <std_msgs/UInt8.h>
-#include <aerial_robot_base/DesireCoord.h>
 #include <geometry_msgs/TransformStamped.h>
 #include <tf/transform_datatypes.h>
 
@@ -117,7 +116,7 @@ public:
 
     baselink_odom_pub_ = nh_.advertise<nav_msgs::Odometry>("/uav/baselink/odom", 1);
     cog_odom_pub_ = nh_.advertise<nav_msgs::Odometry>("/uav/cog/odom", 1);
-    full_state_pub_ = nh_.advertise<aerial_robot_base::States>("/uav/full_state", 1);
+    full_state_pub_ = nh_.advertise<aerial_robot_msgs::States>("/uav/full_state", 1);
     cog2baselink_transform_sub_ = nh_.subscribe(cog2baselink_transform_sub_name_, 5, &BasicEstimator::transformCallback, this);
 
     fuser_[0].resize(0);

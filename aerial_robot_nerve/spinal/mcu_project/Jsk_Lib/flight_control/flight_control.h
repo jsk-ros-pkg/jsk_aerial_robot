@@ -32,8 +32,8 @@
 #include "flight_control/attitude/attitude_control.h"
 
 /* ros */
-#include <aerial_robot_base/FlightConfigCmd.h>
-#include <aerial_robot_base/UavInfo.h>
+#include <spinal/FlightConfigCmd.h>
+#include <spinal/UavInfo.h>
 
 class FlightControl
 {
@@ -75,9 +75,9 @@ public:
     /* config ack to ROS */
     nh_->advertise(config_ack_pub_);
     /* uav & motor type */
-    nh_->subscribe< ros::Subscriber<aerial_robot_base::UavInfo, FlightControl> >(uav_info_sub_);
+    nh_->subscribe< ros::Subscriber<spinal::UavInfo, FlightControl> >(uav_info_sub_);
     /* flight control base config */
-    nh_->subscribe< ros::Subscriber<aerial_robot_base::FlightConfigCmd, FlightControl> >(flight_config_sub_);
+    nh_->subscribe< ros::Subscriber<spinal::FlightConfigCmd, FlightControl> >(flight_config_sub_);
 
     estimator_ = estimator;
 
@@ -124,8 +124,8 @@ private:
   ros::Subscriber uav_info_sub_;
   ros::Subscriber flight_config_sub_;
 #else
-  ros::Subscriber<aerial_robot_base::UavInfo, FlightControl> uav_info_sub_;
-  ros::Subscriber<aerial_robot_base::FlightConfigCmd, FlightControl> flight_config_sub_;
+  ros::Subscriber<spinal::UavInfo, FlightControl> uav_info_sub_;
+  ros::Subscriber<spinal::FlightConfigCmd, FlightControl> flight_config_sub_;
 #endif
 
   bool start_control_flag_;
@@ -141,11 +141,11 @@ private:
   TIM_HandleTypeDef*  pwm_htim2_;
 #endif
 
-  void flightConfigCallback(const aerial_robot_base::FlightConfigCmd& config_msg)
+  void flightConfigCallback(const spinal::FlightConfigCmd& config_msg)
   {
     switch(config_msg.cmd)
       {
-      case aerial_robot_base::FlightConfigCmd::ARM_ON_CMD:
+      case spinal::FlightConfigCmd::ARM_ON_CMD:
 
         /* check whether motor_number is assigned */
         if(!att_controller_.activated()) break;
@@ -162,7 +162,7 @@ private:
         estimator_->getAttEstimator()->getEstimator()->gyroIntegralAmp(true);
 #endif
         /* ack to ROS */
-        config_ack_msg_.data = aerial_robot_base::FlightConfigCmd::ARM_ON_CMD;
+        config_ack_msg_.data = spinal::FlightConfigCmd::ARM_ON_CMD;
 #ifdef SIMULATION
         ROS_ERROR("[d_board] motor armed, motor number is %d", att_controller_.getMotorNumber());
         config_ack_pub_.publish(config_ack_msg_);
@@ -170,12 +170,12 @@ private:
         config_ack_pub_.publish(&config_ack_msg_);
 #endif
         break;
-      case aerial_robot_base::FlightConfigCmd::ARM_OFF_CMD:
+      case spinal::FlightConfigCmd::ARM_OFF_CMD:
         start_control_flag_ = false;
         att_controller_.setStartControlFlag(start_control_flag_);
 
         /* ack to ROS */
-        config_ack_msg_.data = aerial_robot_base::FlightConfigCmd::ARM_OFF_CMD;
+        config_ack_msg_.data = spinal::FlightConfigCmd::ARM_OFF_CMD;
 #ifdef SIMULATION
         config_ack_pub_.publish(config_ack_msg_);
 #else
@@ -190,15 +190,15 @@ private:
         estimator_->getAttEstimator()->getEstimator()->gyroIntegralAmp(false);
 #endif
         break;
-      case aerial_robot_base::FlightConfigCmd::FORCE_LANDING_CMD:
+      case spinal::FlightConfigCmd::FORCE_LANDING_CMD:
         force_landing_flag_ = true;
         att_controller_.setForceLandingFlag(force_landing_flag_);
         break;
-      case aerial_robot_base::FlightConfigCmd::INTEGRATION_CONTROL_ON_CMD:
+      case spinal::FlightConfigCmd::INTEGRATION_CONTROL_ON_CMD:
         integrate_flag_ = true;
         att_controller_.setIntegrateFlag(integrate_flag_);
         break;
-      case aerial_robot_base::FlightConfigCmd::INTEGRATION_CONTROL_OFF_CMD:
+      case spinal::FlightConfigCmd::INTEGRATION_CONTROL_OFF_CMD:
         integrate_flag_ = false;
         att_controller_.setIntegrateFlag(integrate_flag_);
         break;
@@ -208,7 +208,7 @@ private:
   }
 
 /* get the UAV type from ros, which is necessary for simulation and general multirotor */
-void uavInfoConfigCallback(const aerial_robot_base::UavInfo& config_msg)
+void uavInfoConfigCallback(const spinal::UavInfo& config_msg)
   {
     setMotorNumber(config_msg.motor_num);
     setUavModel(config_msg.uav_model);

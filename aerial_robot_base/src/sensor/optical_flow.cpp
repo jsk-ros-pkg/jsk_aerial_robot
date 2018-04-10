@@ -60,7 +60,7 @@ namespace sensor_plugin
       opt_sub_ = nh_.subscribe(opt_sub_topic_name_, 1, &OpticalFlow::optCallback, this, ros::TransportHints().udp());
 
       /* ros publisher: aerial_robot_base::State */
-      opt_state_pub_ = nh_.advertise<aerial_robot_base::States>("data",10);
+      opt_state_pub_ = nh_.advertise<aerial_robot_msgs::States>("data",10);
     }
 
     ~OpticalFlow() {}
@@ -89,7 +89,7 @@ namespace sensor_plugin
     float quality_;
     tf::Vector3 vel_;
 
-    aerial_robot_base::States opt_state_;
+    aerial_robot_msgs::States opt_state_;
 
     void optCallback(const geometry_msgs::Vector3Stamped::ConstPtr & opt_msg)
     {

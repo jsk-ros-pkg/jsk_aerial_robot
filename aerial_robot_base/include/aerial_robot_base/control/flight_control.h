@@ -43,9 +43,10 @@
 #include <aerial_robot_base/basic_state_estimation.h>
 #include <aerial_robot_base/flight_navigation.h>
 
-/* ros msg */
-#include <aerial_robot_msgs/PwmInfo.h>
-#include <aerial_robot_base/UavInfo.h>
+/* ros msg to Spinal */
+#include <spinal/PwmInfo.h>
+#include <spinal/UavInfo.h>
+#include <spinal/FourAxisCommand.h>
 
 /* util */
 #include <boost/algorithm/clamp.hpp>
@@ -71,8 +72,8 @@ namespace control_plugin
       nh_ = ros::NodeHandle(nh, "controller");
       nhp_ = ros::NodeHandle(nhp,  "controller");
 
-      motor_info_pub_ = nh_.advertise<aerial_robot_msgs::PwmInfo>("/motor_info", 10);
-      uav_info_pub_ = nh_.advertise<aerial_robot_base::UavInfo>("/uav_info", 10);
+      motor_info_pub_ = nh_.advertise<spinal::PwmInfo>("/motor_info", 10);
+      uav_info_pub_ = nh_.advertise<spinal::UavInfo>("/uav_info", 10);
 
       estimator_ = estimator;
       navigator_ = navigator;
@@ -163,7 +164,7 @@ namespace control_plugin
       if(ros::Time::now().toSec() - activate_timestamp.toSec()  > 0.1)
         {
           /* send motor and uav info to uav, about 10Hz */
-          aerial_robot_msgs::PwmInfo motor_info_msg;
+          spinal::PwmInfo motor_info_msg;
           motor_info_msg.min_thrust = min_thrust_;
           motor_info_msg.max_thrust = max_thrust_;
           motor_info_msg.abs_max_pwm = abs_max_pwm_;
@@ -174,7 +175,7 @@ namespace control_plugin
             motor_info_msg.motor_info.push_back(motor_info_[i]);
           motor_info_pub_.publish(motor_info_msg);
 
-          aerial_robot_base::UavInfo uav_info_msg;
+          spinal::UavInfo uav_info_msg;
           uav_info_msg.motor_num = motor_num_;
           uav_info_msg.uav_model = uav_model_;
           uav_info_pub_.publish(uav_info_msg);
@@ -210,7 +211,7 @@ namespace control_plugin
     double m_f_rate_;
     double force_landing_thrust_; //pwm
     int pwm_conversion_mode_;
-    std::vector<aerial_robot_msgs::MotorInfo> motor_info_;
+    std::vector<spinal::MotorInfo> motor_info_;
 
     int estimate_mode_;
 

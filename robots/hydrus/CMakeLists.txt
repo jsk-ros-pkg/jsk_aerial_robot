@@ -30,18 +30,6 @@ link_directories(${orocos_kdl_LIBRARY_DIRS})
 
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
-add_message_files(
-  FILES
-  BoardConfigCmd.msg
-  BoardInfo.msg
-  ServoInfo.msg
-  ServoState.msg
-  ServoStates.msg
-  ServoControlCmd.msg
-  ServoTorqueCmd.msg
-  Gyro.msg
-)
-
 add_service_files(
   FILES
   AddExtraModule.srv

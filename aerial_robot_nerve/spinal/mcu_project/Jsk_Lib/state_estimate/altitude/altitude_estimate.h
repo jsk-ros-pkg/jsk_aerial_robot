@@ -16,7 +16,7 @@
 #include "config.h"
 /*  #include "arm_math.h" */
 #include <ros.h>
-#include <aerial_robot_msgs/Barometer.h>
+#include <spinal/Barometer.h>
 
 /* sensors */
 ////////////////////////////////////////
@@ -83,7 +83,7 @@ public:
 private:
   ros::NodeHandle* nh_;
   ros::Publisher baro_pub_;
-  aerial_robot_msgs::Barometer baro_msg_;
+  spinal::Barometer baro_msg_;
 
   IMU* imu_;
   Baro* baro_;

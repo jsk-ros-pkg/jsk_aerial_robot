@@ -33,13 +33,15 @@
 
 #include <std_msgs/UInt8.h>
 #include <std_msgs/Float32.h>
-#include <aerial_robot_base/Pwms.h>
-#include <aerial_robot_msgs/FourAxisCommand.h>
-#include <aerial_robot_msgs/RollPitchYawTerms.h>
-#include <aerial_robot_msgs/PwmInfo.h>
-#include <aerial_robot_base/UavInfo.h>
 #include <std_msgs/Float32MultiArray.h>
+#include <spinal/Pwms.h>
+#include <spinal/FourAxisCommand.h>
+#include <spinal/RollPitchYawTerms.h>
+#include <spinal/PwmInfo.h>
+#include <spinal/UavInfo.h>
 #include <spinal/PMatrixPseudoInverseWithInertia.h>
+
+
 
 #define MAX_PWM  54000
 #define IDLE_DUTY 0.5f
@@ -119,8 +121,8 @@ private:
 
   ros::Publisher pwms_pub_;
   ros::Publisher control_term_pub_;
-  aerial_robot_base::Pwms pwms_msg_;
-  aerial_robot_msgs::RollPitchYawTerms control_term_msg_;
+  spinal::Pwms pwms_msg_;
+  spinal::RollPitchYawTerms control_term_msg_;
 
 #ifdef SIMULATION
   ros::Subscriber four_axis_cmd_sub_;
@@ -130,11 +132,11 @@ private:
   ros::Subscriber p_matrix_pseudo_inverse_inertia_sub_;
   ros::Publisher anti_gyro_pub_;
 #else
-  ros::Subscriber<aerial_robot_msgs::FourAxisCommand, AttitudeController> four_axis_cmd_sub_;
-  ros::Subscriber<aerial_robot_msgs::PwmInfo, AttitudeController> pwm_info_sub_;
-  ros::Subscriber<aerial_robot_msgs::RollPitchYawTerms, AttitudeController> rpy_gain_sub_;
-  ros::Subscriber<std_msgs::Float32, AttitudeController> pwm_test_sub_;
+  ros::Subscriber<spinal::FourAxisCommand, AttitudeController> four_axis_cmd_sub_;
+  ros::Subscriber<spinal::PwmInfo, AttitudeController> pwm_info_sub_;
+  ros::Subscriber<spinal::RollPitchYawTerms, AttitudeController> rpy_gain_sub_;
   ros::Subscriber<spinal::PMatrixPseudoInverseWithInertia, AttitudeController> p_matrix_pseudo_inverse_inertia_sub_;
+  ros::Subscriber<std_msgs::Float32, AttitudeController> pwm_test_sub_;
 
   StateEstimate* estimator_;
   BatteryStatus* bat_;
@@ -186,7 +188,7 @@ private:
   float min_thrust_;
   float force_landing_thrust_;
   int8_t pwm_conversion_mode_;
-  std::vector<aerial_robot_msgs::MotorInfo> motor_info_;
+  std::vector<spinal::MotorInfo> motor_info_;
   uint8_t motor_ref_index_;
   float v_factor_;
   uint32_t voltage_update_last_time_;
@@ -198,11 +200,11 @@ private:
   bool failsafe_;
   uint32_t flight_command_last_stamp_;
 
-  void fourAxisCommandCallback( const aerial_robot_msgs::FourAxisCommand &cmd_msg);
-  void pwmInfoCallback( const aerial_robot_msgs::PwmInfo &info_msg);
-  void rpyGainCallback( const aerial_robot_msgs::RollPitchYawTerms &gain_msg);
-  void pwmTestCallback(const std_msgs::Float32& pwm_msg);
+  void fourAxisCommandCallback( const spinal::FourAxisCommand &cmd_msg);
+  void pwmInfoCallback( const spinal::PwmInfo &info_msg);
+  void rpyGainCallback( const spinal::RollPitchYawTerms &gain_msg);
   void pMatrixInertiaCallback(const spinal::PMatrixPseudoInverseWithInertia& msg);
+  void pwmTestCallback(const std_msgs::Float32& pwm_msg);
 
   float pwmConversion(float thrust);
   void pwmsControl(void);

@@ -16,7 +16,7 @@
 #include "config.h"
 /* #include "arm_math.h" */
 #include <ros.h>
-#include <aerial_robot_msgs/Gps.h>
+#include <spinal/Gps.h>
 
 /* sensors */
 ////////////////////////////////////////
@@ -57,7 +57,7 @@ public:
 private:
   ros::NodeHandle* nh_;
   ros::Publisher gps_pub_;
-  aerial_robot_msgs::Gps gps_msg_;
+  spinal::Gps gps_msg_;
 
   IMU* imu_;
   GPS* gps_;
