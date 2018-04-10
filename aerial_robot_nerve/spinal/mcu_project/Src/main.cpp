@@ -213,6 +213,10 @@ int main(void){
   FlashMemory::init(0x08080000, FLASH_SECTOR_6);
 
   /* Sensors */
+#if GPS_FLAG
+  gps_.init(&huart3, &nh_);
+#endif
+
 #if IMU_FLAG
   /* we need to put IMU second, because of the unknown reason abou the ublox m8n compass/gps disconnect problem */
   imu_.init(&hspi1, &hi2c2, &nh_);
@@ -224,9 +228,6 @@ int main(void){
   baro_.init(&hi2c1, &nh_);
 #endif
 
-#if GPS_FLAG
-  gps_.init(&huart3, &nh_);
-#endif
 
   /* State Estimation */
 #if ATTITUDE_ESTIMATE_FLAG //imu condition

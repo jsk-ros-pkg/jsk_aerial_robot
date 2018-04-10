@@ -27,6 +27,7 @@
 #define UBX_MSG_TYPES 2
 
 #define UBLOX_MAX_PORTS 6
+#define INIT_RATE 1000	 //200: 200ms
 #define MEASURE_RATE 100	 //200: 200ms
 
 #define RATE_PVT 1
@@ -79,14 +80,6 @@ public:
   // Methods
   virtual bool read(uint8_t data);
   virtual void update();
-
-  virtual bool is_configured(void) {
-    if (!_auto_config) {
-      return true;
-    } else {
-      return !_unconfigured_messages;
-    }
-  }
 
   static void UBLOX_UART_DMAReceiveCpltUBLOX(DMA_HandleTypeDef *hdma);
 
@@ -464,18 +457,19 @@ private:
   // used to update fix between status and position packets
   GPS_Status next_fix;
 
+  uint32_t _last_update_time;
   uint32_t _last_5hz_time;
   bool _cfg_needs_save;
+  bool _receive_data;
 
 
   bool noReceivedHdop;
 
   bool        _configure_message_rate(uint8_t msg_class, uint8_t msg_id, uint8_t rate);
-  void        _configure_rate(void);
+  void        _configure_rate(uint16_t rate);
   void        _configure_sbas(bool enable);
   void        _update_checksum(uint8_t *data, uint16_t len, uint8_t &ck_a, uint8_t &ck_b);
   void        _send_message(uint8_t msg_class, uint8_t msg_id, void *msg, uint16_t size);
-  void   send_next_rate_update(void);
   bool        _request_message_rate(uint8_t msg_class, uint8_t msg_id);
   void        _request_navigation_rate(void);
   void        _request_port(void);

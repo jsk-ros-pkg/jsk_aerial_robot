@@ -20,23 +20,18 @@
 //the connection with FCU
 //ublox: I2C SLC(RED,COMPASS), I2C SDA(COMPASS), VCC (5V) RX, TX, GNG
 
-//reset:
-//1. change to 9600 baud-rate,  uncomment the RESET_CONFIG
-//2. comment the RESET_CONFIG, back to baudrate 57600, uncomment SAVE_CONFIG, change MEASURE_RATE to 10000(ms),  push reset button of board for several times
-//3. comment SAVE_CONFIG, back MEASURE_RATE to 100ms
-//#define RESET_CONFIG
-//#define SAVE_CONFIG
-
-//still have bug
-//timer2 should have slower rate(e.g. 40[ms]= 40000, 20[ms]= 20000 may cause some freeze problem for some gps module, can not figure out the reason!)
-
 
 GPS::GPS():GPS_Backend(){}
 
 void GPS::init(UART_HandleTypeDef *huart, ros::NodeHandle* nh)
 {
   baseInit (huart, nh);
+
+  /* change the rate */
+  _configure_rate(INIT_RATE);
+
   _step = 0;
+  _last_update_time = 0;
   _msg_id = 0;
   _payload_length = 0;
   _payload_counter = 0;
@@ -46,7 +41,6 @@ void GPS::init(UART_HandleTypeDef *huart, ros::NodeHandle* nh)
   _num_cfg_save_tries = 0;
   _last_config_time = 0;
   _delay_time = 0;
-  _next_message = STEP_RATE_NAV;
   _ublox_port = 255;
   _have_version = false;
   _unconfigured_messages = CONFIG_ALL;
@@ -58,25 +52,10 @@ void GPS::init(UART_HandleTypeDef *huart, ros::NodeHandle* nh)
   _last_5hz_time = 0;
   _cfg_needs_save = false;
   noReceivedHdop = true;
+  _receive_data = false;
 
   CLEAR_BIT(huart_->Instance->CR1, USART_CR1_RE);
   _last_5hz_time = millis();
-
-  /* change the rate */
-  //STEP_RATE_NAV:
-  _configure_rate();
-  HAL_Delay(100);
-  //STEP_RATE_POSLLH:
-  _configure_message_rate(CLASS_NAV, MSG_POSLLH, RATE_POSLLH);
-  HAL_Delay(100);
-  //STEP_RATE_VELNED:
-  _configure_message_rate(CLASS_NAV, MSG_VELNED, RATE_VELNED);
-  HAL_Delay(100);
-  //STEP_RATE_SOL:
-  _configure_message_rate(CLASS_NAV, MSG_SOL, RATE_SOL);
-  HAL_Delay(100);
-  //STEP_RATE_PVT:
-  _configure_message_rate(CLASS_NAV, MSG_PVT, RATE_PVT);
   HAL_Delay(100);
 
   //DMA
@@ -85,6 +64,7 @@ void GPS::init(UART_HandleTypeDef *huart, ros::NodeHandle* nh)
   huart_->hdmarx->XferCpltCallback = UBLOX_UART_DMAReceiveCpltUBLOX; //change the registerred func
   __HAL_UART_DISABLE_IT(huart_, UART_IT_RXNE);
   SET_BIT(huart_->Instance->CR1, USART_CR1_RE);
+  huart_->State = HAL_UART_STATE_READY;
 }
 
 void
@@ -428,7 +408,6 @@ GPS::_parse_gps(void)
       if(_buffer.nav_rate.measure_rate_ms != MEASURE_RATE ||
          _buffer.nav_rate.nav_rate != 1 ||
          _buffer.nav_rate.timeref != 0) {
-        _configure_rate();
         _unconfigured_messages |= CONFIG_RATE_NAV;
         _cfg_needs_save = true;
       } else {
@@ -482,8 +461,15 @@ GPS::_parse_gps(void)
     state.hdop        = _buffer.pvt.position_DOP;
     state.num_sats    = _buffer.pvt.satellites;
 
-    /* not synchronized update */
+    // change the rate
+    if(HAL_GetTick() - _last_update_time > (INIT_RATE + MEASURE_RATE) / 2 )
+    	_configure_rate(MEASURE_RATE);
+    _last_update_time  = HAL_GetTick();
+
+    /* asynchronized update */
     update_ = true;
+
+
 
     return true;
   case MSG_POSLLH:
@@ -498,8 +484,6 @@ GPS::_parse_gps(void)
     state.vertical_accuracy = _buffer.posllh.vertical_accuracy*1.0e-3f;
     state.have_horizontal_accuracy = true;
     state.have_vertical_accuracy = true;
-    /* not synchronized update */
-    update_ = true;
 
     return true;
     //break;
@@ -669,10 +653,10 @@ GPS::_request_version(void)
 }
 
 void
-GPS::_configure_rate(void)
+GPS::_configure_rate(uint16_t rate)
 {
   struct ubx_cfg_nav_rate msg;
-  msg.measure_rate_ms = MEASURE_RATE;
+  msg.measure_rate_ms = rate; // MEASURE_RATE;
   msg.nav_rate        = 1;
   msg.timeref         = 0;     // UTC time
   _send_message(CLASS_CFG, MSG_CFG_RATE, &msg, sizeof(msg));

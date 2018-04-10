@@ -295,8 +295,6 @@ protected:
   int8_t _min_elevation;
   int8_t _raw_data;
   int8_t _gnss_mode;
-  int8_t _save_config;
-  int8_t _auto_config;
 
   bool update_;
 
@@ -317,8 +315,6 @@ protected:
     _sbas_mode = 2;
     _min_elevation = -100;
     _raw_data = 0;
-    _save_config = 0;
-    _auto_config = 1;
 
     _navfilter = GPS_ENGINE_AIRBORNE_4G;
     _sbp_logmask = 0xFF00;
@@ -332,6 +328,8 @@ protected:
     //UART part
     gps_rx_buf_.init();
     gps_rx_size_ = GPS_RX_SIZE;
+
+    update_ = false;
   }
 
   // common utility functions
