@@ -13,11 +13,6 @@
 
 #include "sensors/gps/gps_backend.h"
 
-//#define UBLOX_SET_BINARY "\265\142\006\001\003\000\001\006\001\022\117$PUBX,41,1,0003,0001,38400,0*26\r\n"
-#define UBLOX_SET_BINARY "\265\142\006\001\003\000\001\006\001\022\117$PUBX,41,1,0003,0001,57600,0*2D\r\n"
-#define UBLOX_SET_BINARY_RAW_BAUD "\265\142\006\001\003\000\001\006\001\022\117$PUBX,41,1,0003,0001,115200,0*1E\r\n"
-
-//** bakui #define UBLOX_RXM_RAW_LOGGING 1
 #define UBLOX_RXM_RAW_LOGGING 0
 #define UBLOX_MAX_RXM_RAW_SATS 22
 #define UBLOX_MAX_RXM_RAWX_SATS 32
@@ -27,6 +22,7 @@
 #define UBX_MSG_TYPES 2
 
 #define UBLOX_MAX_PORTS 6
+#define INIT_RATE 1000	 //200: 200ms
 #define MEASURE_RATE 100	 //200: 200ms
 
 #define RATE_PVT 1
@@ -73,22 +69,7 @@ class GPS : public GPS_Backend
 public:
   GPS();
   void init(UART_HandleTypeDef *huart, ros::NodeHandle* nh);
-  void _reset_config(void);
-  void _request_next_config(void);
-
-  // Methods
-  virtual bool read(uint8_t data);
-  virtual void update();
-
-  virtual bool is_configured(void) {
-    if (!_auto_config) {
-      return true;
-    } else {
-      return !_unconfigured_messages;
-    }
-  }
-
-  static void UBLOX_UART_DMAReceiveCpltUBLOX(DMA_HandleTypeDef *hdma);
+  void update();
 
 private:
   // u-blox UBX protocol essentials
@@ -321,42 +302,11 @@ private:
     uint8_t msgID;
   };
 
-
   struct PACKED ubx_cfg_cfg {
     uint32_t clearMask;
     uint32_t saveMask;
     uint32_t loadMask;
   };
-
-  // Receive buffer
-  union PACKED{
-    ubx_nav_posllh posllh;
-    ubx_nav_status status;
-    ubx_nav_dop dop;
-    ubx_nav_solution solution;
-    ubx_nav_pvt pvt;
-    ubx_nav_velned velned;
-    ubx_cfg_msg_rate msg_rate;
-    ubx_cfg_msg_rate_6 msg_rate_6;
-    ubx_cfg_nav_settings nav_settings;
-    ubx_cfg_nav_rate nav_rate;
-    ubx_cfg_prt prt;
-    ubx_mon_hw_60 mon_hw_60;
-    ubx_mon_hw_68 mon_hw_68;
-    ubx_mon_hw2 mon_hw2;
-    ubx_mon_ver mon_ver;
-#if UBLOX_GNSS_SETTINGS
-    ubx_cfg_gnss gnss;
-#endif
-    ubx_cfg_sbas sbas;
-    ubx_nav_svinfo_header svinfo_header;
-#if UBLOX_RXM_RAW_LOGGING
-    ubx_rxm_raw rxm_raw;
-    ubx_rxm_rawx rxm_rawx;
-#endif
-    ubx_ack_ack ack;
-    uint8_t bytes[110];
-  }_buffer;
 
   enum ubs_protocol_bytes {
     PREAMBLE1 = 0xb5,
@@ -372,7 +322,7 @@ private:
     MSG_STATUS = 0x3,
     MSG_DOP = 0x4,
     MSG_SOL = 0x6,
-	MSG_PVT = 0x07,
+    MSG_PVT = 0x07,
     MSG_VELNED = 0x12,
     MSG_CFG_CFG = 0x09,
     MSG_CFG_RATE = 0x08,
@@ -417,79 +367,46 @@ private:
     UBLOX_M8
   };
 
-  enum config_step {
-    STEP_RATE_NAV = 0,
-    STEP_RATE_POSLLH,
-    STEP_RATE_VELNED,
-    STEP_RATE_SOL,
-	STEP_RATE_PVT,
-  };
+  // Receive buffer
+  union PACKED{
+    ubx_nav_posllh posllh;
+    ubx_nav_status status;
+    ubx_nav_dop dop;
+    ubx_nav_solution solution;
+    ubx_nav_pvt pvt;
+    ubx_nav_velned velned;
+    ubx_cfg_msg_rate msg_rate;
+    ubx_cfg_msg_rate_6 msg_rate_6;
+    ubx_cfg_nav_settings nav_settings;
+    ubx_cfg_nav_rate nav_rate;
+    ubx_cfg_prt prt;
+    ubx_mon_hw_60 mon_hw_60;
+    ubx_mon_hw_68 mon_hw_68;
+    ubx_mon_hw2 mon_hw2;
+    ubx_mon_ver mon_ver;
+    ubx_cfg_gnss gnss;
+    ubx_cfg_sbas sbas;
+    ubx_nav_svinfo_header svinfo_header;
+    ubx_ack_ack ack;
+    uint8_t bytes[110];
+  }buffer_;
+  /* State machine state for parsing gps packet */
+  uint8_t step_;
+  uint8_t msg_id_;
+  uint16_t payload_length_;
+  uint16_t payload_counter_;
+  uint8_t ck_a_;
+  uint8_t ck_b_;
+  uint8_t class_;
+  uint32_t last_update_time_;
 
-  // Packet checksum accumulators
-  uint8_t         _ck_a;
-  uint8_t         _ck_b;
+  void updateChecksum(uint8_t *data, uint16_t len, uint8_t &ck_a, uint8_t &ck_b);
+  void sendMessage(uint8_t msg_class, uint8_t msg_id, void *msg, uint16_t size);
+  void configureRate(uint16_t rate);
+  bool configureMessageRate(uint8_t msg_class, uint8_t msg_id, uint8_t rate);
 
-  // State machine state
-  uint8_t         _step;
-  uint8_t         _msg_id;
-  uint16_t        _payload_length;
-  uint16_t        _payload_counter;
-
-  uint8_t         _class;
-  bool            _cfg_saved;
-
-  uint32_t        _last_vel_time;
-  uint32_t        _last_pos_time;
-  uint32_t        _last_cfg_sent_time;
-  uint8_t         _num_cfg_save_tries;
-  uint32_t        _last_config_time;
-  uint16_t        _delay_time;
-  uint8_t         _next_message;
-  uint8_t         _ublox_port;
-  bool            _have_version;
-  uint32_t        _unconfigured_messages;
-  uint8_t         _hardware_generation;
-
-
-  // do we have new position information?
-  bool            _new_position:1;
-  // do we have new speed information?
-  bool            _new_speed:1;
-
-  uint8_t         _disable_counter;
-
-  // Buffer parse & GPS state update
-  bool        _parse_gps();
-
-  // used to update fix between status and position packets
-  GPS_Status next_fix;
-
-  uint32_t _last_5hz_time;
-  uint32_t _last_update_time;
-  uint32_t _init_time;
-  bool _warmup_flag;
-
-  bool _cfg_needs_save;
-
-
-
-  bool noReceivedHdop;
-
-  bool        _configure_message_rate(uint8_t msg_class, uint8_t msg_id, uint8_t rate);
-  void        _configure_rate(void);
-  void        _configure_sbas(bool enable);
-  void        _update_checksum(uint8_t *data, uint16_t len, uint8_t &ck_a, uint8_t &ck_b);
-  void        _send_message(uint8_t msg_class, uint8_t msg_id, void *msg, uint16_t size);
-  void   send_next_rate_update(void);
-  bool        _request_message_rate(uint8_t msg_class, uint8_t msg_id);
-  void        _request_navigation_rate(void);
-  void        _request_port(void);
-  void        _request_version(void);
-  void        _save_cfg(void);
-  void        _verify_rate(uint8_t msg_class, uint8_t msg_id, uint8_t rate);
-
-  void unexpected_message(void);
-  void write_logging_headers(void);
+  bool parsePacket();
+  bool read(uint8_t data);
 
 };
 

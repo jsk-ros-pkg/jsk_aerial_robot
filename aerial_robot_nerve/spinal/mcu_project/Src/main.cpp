@@ -214,8 +214,7 @@ int main(void){
 
   /* Sensors */
 #if GPS_FLAG
-  /* we need to put GPS first, because of the unknown reason abou the ublox m8n compass/gps disconnect problem */
- gps_.init(&huart3, &nh_);
+  gps_.init(&huart3, &nh_);
 #endif
 
 #if IMU_FLAG
@@ -228,6 +227,7 @@ int main(void){
 #if BARO_FLAG
   baro_.init(&hi2c1, &nh_);
 #endif
+
 
   /* State Estimation */
 #if ATTITUDE_ESTIMATE_FLAG //imu condition
