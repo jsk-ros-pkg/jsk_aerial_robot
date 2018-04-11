@@ -36,7 +36,7 @@
 #include "stm32f7xx_it.h"
 
 /* USER CODE BEGIN 0 */
-
+#include "it.h"
 /* USER CODE END 0 */
 
 /* External variables --------------------------------------------------------*/
@@ -108,7 +108,7 @@ void DMA2_Stream2_IRQHandler(void)
   /* USER CODE END DMA2_Stream2_IRQn 0 */
   HAL_DMA_IRQHandler(&hdma_usart1_rx);
   /* USER CODE BEGIN DMA2_Stream2_IRQn 1 */
-
+  Rosserial_RxCpltCallback(( UART_HandleTypeDef* )((DMA_HandleTypeDef* )(&hdma_usart1_rx))->Parent );
   /* USER CODE END DMA2_Stream2_IRQn 1 */
 }
 
