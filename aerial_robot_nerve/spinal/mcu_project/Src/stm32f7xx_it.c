@@ -4,7 +4,7 @@
   * @brief   Interrupt Service Routines.
   ******************************************************************************
   *
-  * COPYRIGHT(c) 2017 STMicroelectronics
+  * COPYRIGHT(c) 2018 STMicroelectronics
   *
   * Redistribution and use in source and binary forms, with or without modification,
   * are permitted provided that the following conditions are met:
@@ -50,7 +50,7 @@ typedef struct
 /* External variables --------------------------------------------------------*/
 extern CAN_HandleTypeDef hcan1;
 extern DMA_HandleTypeDef hdma_usart1_rx;
-extern DMA_HandleTypeDef hdma_usart3_rx;
+extern UART_HandleTypeDef huart3;
 
 /******************************************************************************/
 /*            Cortex-M7 Processor Interruption and Exception Handlers         */ 
@@ -79,20 +79,6 @@ void SysTick_Handler(void)
 /******************************************************************************/
 
 /**
-* @brief This function handles DMA1 stream1 global interrupt.
-*/
-void DMA1_Stream1_IRQHandler(void)
-{
-  /* USER CODE BEGIN DMA1_Stream1_IRQn 0 */
-
-  /* USER CODE END DMA1_Stream1_IRQn 0 */
-  HAL_DMA_IRQHandler(&hdma_usart3_rx);
-  /* USER CODE BEGIN DMA1_Stream1_IRQn 1 */
-
-  /* USER CODE END DMA1_Stream1_IRQn 1 */
-}
-
-/**
 * @brief This function handles CAN1 RX1 interrupt.
 */
 void CAN1_RX1_IRQHandler(void)
@@ -107,6 +93,23 @@ void CAN1_RX1_IRQHandler(void)
 }
 
 /**
+* @brief This function handles USART3 global interrupt.
+*/
+void USART3_IRQHandler(void)
+{
+  /* USER CODE BEGIN USART3_IRQn 0 */
+
+  /* USER CODE END USART3_IRQn 0 */
+  HAL_UART_IRQHandler(&huart3);
+  /* USER CODE BEGIN USART3_IRQn 1 */
+  /* recovery */
+  if(huart3.ErrorCode != HAL_UART_ERROR_NONE) GPS_ErrorCpltCallback(&huart3);
+  /* rx callback */
+  if(huart3.RxXferCount == 0) GPS_RxCpltCallback(&huart3);
+  /* USER CODE END USART3_IRQn 1 */
+}
+
+/**
 * @brief This function handles DMA2 stream2 global interrupt.
 */
 void DMA2_Stream2_IRQHandler(void)
@@ -115,7 +118,7 @@ void DMA2_Stream2_IRQHandler(void)
   DMA_Base_Registers *regs;
   regs = (DMA_Base_Registers *)(hdma_usart1_rx.StreamBaseAddress);
   if ((regs->ISR & (DMA_FLAG_TCIF0_4 << hdma_usart1_rx.StreamIndex)) != RESET)
-	 Rosserial_RxCpltCallback(( UART_HandleTypeDef* )((DMA_HandleTypeDef* )(&hdma_usart1_rx))->Parent );
+    Rosserial_RxCpltCallback(( UART_HandleTypeDef* )((DMA_HandleTypeDef* )(&hdma_usart1_rx))->Parent );
 
   /* USER CODE END DMA2_Stream2_IRQn 0 */
   HAL_DMA_IRQHandler(&hdma_usart1_rx);
