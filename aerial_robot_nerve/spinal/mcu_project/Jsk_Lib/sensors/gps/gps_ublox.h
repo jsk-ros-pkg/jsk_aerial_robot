@@ -13,6 +13,10 @@
 
 #include "sensors/gps/gps_backend.h"
 
+#define UBLOX_PACKET_MAX_SIZE 110
+#define PREAMBLE1 0xb5
+#define PREAMBLE2 0x62
+
 #define UBLOX_RXM_RAW_LOGGING 0
 #define UBLOX_MAX_RXM_RAW_SATS 22
 #define UBLOX_MAX_RXM_RAWX_SATS 32
@@ -61,7 +65,6 @@
 #define SAVE_CFG_ANT    (1<<10)
 #define SAVE_CFG_ALL    (SAVE_CFG_IO|SAVE_CFG_MSG|SAVE_CFG_INF|SAVE_CFG_NAV|SAVE_CFG_RXM|SAVE_CFG_RINV|SAVE_CFG_ANT)
 
-#define UPDATE_INTERVAL 500 //ms
 #define WARMUP_TIME 2000 //ms
 
 class GPS : public GPS_Backend
@@ -309,8 +312,6 @@ private:
   };
 
   enum ubs_protocol_bytes {
-    PREAMBLE1 = 0xb5,
-    PREAMBLE2 = 0x62,
     CLASS_NAV = 0x01,
     CLASS_ACK = 0x05,
     CLASS_CFG = 0x06,
@@ -388,25 +389,14 @@ private:
     ubx_cfg_sbas sbas;
     ubx_nav_svinfo_header svinfo_header;
     ubx_ack_ack ack;
-    uint8_t bytes[110];
-  }buffer_;
-  /* State machine state for parsing gps packet */
-  uint8_t step_;
-  uint8_t msg_id_;
-  uint16_t payload_length_;
-  uint16_t payload_counter_;
-  uint8_t ck_a_;
-  uint8_t ck_b_;
-  uint8_t class_;
-  uint32_t last_update_time_;
+    uint8_t bytes[UBLOX_PACKET_MAX_SIZE];
+  }raw_packet_;
+
 
   void updateChecksum(uint8_t *data, uint16_t len, uint8_t &ck_a, uint8_t &ck_b);
   void sendMessage(uint8_t msg_class, uint8_t msg_id, void *msg, uint16_t size);
   void configureRate(uint16_t rate);
   bool configureMessageRate(uint8_t msg_class, uint8_t msg_id, uint8_t rate);
-
-  bool parsePacket();
-  bool read(uint8_t data);
 
 };
 

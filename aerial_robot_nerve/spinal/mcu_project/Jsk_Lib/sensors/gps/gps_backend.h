@@ -87,9 +87,13 @@ public:
   uint32_t last_fix_time_ms() const { return timing_.last_fix_time_ms; }
   uint32_t last_message_time_ms() const { return timing_.last_message_time_ms; }
 
-  void startReceiveDMA();
-  uint16_t available();
+  /* UART */
+  UART_HandleTypeDef* getHuart() { return huart_; }
+  /* RX */
+  void startReceive();
+  static uint8_t* getRxBuf();
 
+  /* TX */
   void write(const uint8_t data_byte)
   {
     uint8_t data[1];
@@ -102,16 +106,9 @@ public:
     HAL_UART_Transmit(huart_, (uint8_t *)data_byte, size, 100); //timeout: 100[ms]
   }
 
-  bool pop(uint8_t& pop_value);
-  uint8_t* getRxPointer();
-
-  UART_HandleTypeDef* getHuart() { return huart_; }
-  uint16_t getRxSize() { return (uint16_t)GPS_RX_SIZE; }
-
+  /* flag  */
   bool getUpdate() { return update_; }
   void setUpdate(bool update) { update_ = update; }
-
-  static void UBLOX_UART_DMAReceiveCpltUBLOX(DMA_HandleTypeDef *hdma);
 
 protected:
 
@@ -124,13 +121,8 @@ protected:
   bool update_;
 
   void init(UART_HandleTypeDef* huart, ros::NodeHandle* nh);
-  virtual bool parsePacket() = 0;
-  virtual bool read(uint8_t data) = 0;
 
-  void gpsConfigCallback(const std_msgs::UInt8& config_msg)
-  {
-    //TODO
-  }
+  void gpsConfigCallback(const std_msgs::UInt8& config_msg){}
 
 };
 
