@@ -16,10 +16,8 @@ find_package(catkin REQUIRED COMPONENTS
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
-find_package(Eigen REQUIRED)
-include_directories(${EIGEN_INCLUDE_DIRS})
-add_definitions(${EIGEN_DEFINITIONS})
-
+find_package(PkgConfig)
+pkg_search_module(Eigen3 REQUIRED eigen3)
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -109,8 +107,10 @@ catkin_package(
   INCLUDE_DIRS include
   LIBRARIES di_gimbal_control
   CATKIN_DEPENDS roscpp
-  DEPENDS Eigen
+  DEPENDS Eigen3
 )
+
+cmake_policy(SET CMP0046 OLD)
 
 ###########
 ## Build ##
@@ -120,18 +120,18 @@ catkin_package(
 ## Your package locations should be listed before other locations
 # include_directories(include)
 include_directories(
-  include ${Boost_INCLUDE_DIR}  ${catkin_INCLUDE_DIRS}
+  include ${Boost_INCLUDE_DIR}  ${catkin_INCLUDE_DIRS} ${Eigen3_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
  add_library(di_gimbal_control
    src/di_gimbal_control.cpp
  )
-target_link_libraries (di_gimbal_control ${catkin_LIBRARIES})
+target_link_libraries (di_gimbal_control ${catkin_LIBRARIES} ${Eigen3_LIBRARIES})
 add_dependencies(di_gimbal_control aerial_robot_base_generate_messages_cpp ${PROJECT_NAME}_gencfg)
 
 add_executable(di_gimbal_control_node src/di_gimbal_control_node.cpp)
-target_link_libraries (di_gimbal_control_node di_gimbal_control ${catkin_LIBRARIES})
+target_link_libraries (di_gimbal_control_node di_gimbal_control ${catkin_LIBRARIES} ${Eigen3_LIBRARIES})
 add_dependencies(di_gimbal_control_node  aerial_robot_base_generate_messages_cpp ${PROJECT_NAME}_gencfg)
 
 ## Specify libraries to link a library or executable target against

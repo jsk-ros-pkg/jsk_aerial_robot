@@ -84,7 +84,7 @@ namespace kf_plugin
     void updatePredictModel(const vector<double>& params)
     {
       if(params.size() != 7)
-        ROS_INFO("params.size is: %d", params.size());
+        ROS_INFO("params.size is: %d", (int)params.size());
       assert(params.size() == 7);
 
       float dt = params[0];

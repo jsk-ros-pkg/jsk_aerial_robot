@@ -12,9 +12,8 @@ find_package(catkin REQUIRED COMPONENTS
   hydrus
 )
 
-find_package(Eigen REQUIRED)
-include_directories(${EIGEN_INCLUDE_DIRS})
-add_definitions(${EIGEN_DEFINITIONS})
+find_package(PkgConfig)
+pkg_search_module(Eigen3 REQUIRED eigen3)
 # Eigen requires optimization to get good performance
 # http://eigen.tuxfamily.org/index.php?title=FAQ#Optimization
 if(NOT CMAKE_BUILD_TYPE)
@@ -33,8 +32,10 @@ catkin_package(
   INCLUDE_DIRS include
   LIBRARIES dragon_transform_control
   CATKIN_DEPENDS roscpp std_msgs
-  DEPENDS system_lib Eigen
+  DEPENDS Eigen3
 )
+
+cmake_policy(SET CMP0046 OLD)
 
 ###########
 ## Build ##
@@ -43,27 +44,28 @@ catkin_package(
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
+  $
 )
 
 ## Declare a C++ library
 add_library(dragon_transform_control
   src/transform_control.cpp
 )
-target_link_libraries (dragon_transform_control ${catkin_LIBRARIES})
+target_link_libraries (dragon_transform_control ${catkin_LIBRARIES} ${Eigen3_LIBRARIES})
 add_dependencies(dragon_transform_control aerial_robot_msgs_generate_messages_cpp aerial_robot_base_generate_messages_cpp hydrus_generate_messages_cpp hydrus_gencfg)
 
 
 add_executable (dragon_transform_control_node src/transform_control_node.cpp)
-target_link_libraries (dragon_transform_control_node ${catkin_LIBRARIES} dragon_transform_control)
+target_link_libraries (dragon_transform_control_node ${catkin_LIBRARIES} ${Eigen3_LIBRARIES} dragon_transform_control)
 add_dependencies(dragon_transform_control_node aerial_robot_msgs_generate_messages_cpp aerial_robot_base_generate_messages_cpp hydrus_generate_messages_cpp hydrus_gencfg)
 
 
 add_library(dragon_control_pluginlib src/gimbal_control.cpp)
-target_link_libraries (dragon_control_pluginlib ${catkin_LIBRARIES} dragon_transform_control)
+target_link_libraries (dragon_control_pluginlib ${catkin_LIBRARIES} ${Eigen3_LIBRARIES} dragon_transform_control)
 add_dependencies(dragon_control_pluginlib aerial_robot_msgs_generate_messages_cpp aerial_robot_base_generate_messages_cpp hydrus_generate_messages_cpp hydrus_gencfg)
 
 add_library (dragon_dynamixel_bridge src/dynamixel_bridge.cpp)
-target_link_libraries (dragon_dynamixel_bridge ${catkin_LIBRARIES})
+target_link_libraries (dragon_dynamixel_bridge ${catkin_LIBRARIES} ${Eigen3_LIBRARIES})
 add_dependencies(dragon_dynamixel_bridge aerial_robot_msgs_generate_messages_cpp aerial_robot_base_generate_messages_cpp ${PROJECT_NAME}_generate_messages_cpp ${PROJECT_NAME}_gencfg)
 
 add_executable(dynamixel_bridge_node src/dynamixel_bridge_node.cpp)

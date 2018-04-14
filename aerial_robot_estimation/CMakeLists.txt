@@ -13,7 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
 )
 
 find_package(OpenCV REQUIRED)
-message(WARNING "OPENCV ${OpenCV_VERSION} FOUND")
+#message(WARNING "OPENCV ${OpenCV_VERSION} FOUND")
 
 catkin_package(
   INCLUDE_DIRS include
