@@ -10,5 +10,5 @@ paper: https://ieeexplore.ieee.org/document/8258850/
 
 **real machine**: ``` $ roslaunch dragon bringup.launch ```
 
-**simulation**: ``` $ roslaunch dragon^Cringup.launch real_machine:=false simulation:=true headless:=false ```
+**simulation**: ``` $ roslaunch dragon bringup.launch real_machine:=false simulation:=true headless:=false ```
 
