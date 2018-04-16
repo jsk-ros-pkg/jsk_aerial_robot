@@ -5,7 +5,7 @@ TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_
   realtime_control_flag_(true),
   callback_flag_(callback_flag),
   kinematics_flag_(false),
-  rotor_num_(0)
+  rotor_num_(0), link_length_(0)
 {
   /* robot model */
   if (!model_.initParam("robot_description"))
@@ -23,6 +23,7 @@ TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_
   if(verbose_) std::cout << "thrust_link: " << thrust_link_ << std::endl;
 
   addChildren(tree_.getRootSegment());
+  getLinkLength();
   ROS_ERROR("rotor num; %d", rotor_num_);
 
   initParam();
@@ -141,6 +142,18 @@ void TransformController::addChildren(const KDL::SegmentMap::const_iterator segm
       if(child.getName().find(thrust_link_.c_str()) != std::string::npos) rotor_num_++;
       addChildren(children[i]);
     }
+}
+
+void TransformController::getLinkLength()
+{
+  unsigned int nj = tree_.getNrOfJoints();
+  KDL::JntArray jointpositions(nj);
+  KDL::TreeFkSolverPos_recursive fk_solver(tree_);
+  KDL::Frame f_link2, f_link3;
+  fk_solver.JntToCart(jointpositions, f_link2, "link2"); //hard coding
+  fk_solver.JntToCart(jointpositions, f_link3, "link3"); //hard coding
+  link_length_ = (f_link3.p - f_link2.p).Norm();
+  //ROS_ERROR("Update link length: %f", link_length_);
 }
 
 TransformController::~TransformController()
@@ -492,7 +505,9 @@ double TransformController::distThreCheck(bool verbose)
   S << s_xx / rotor_num_, s_xy / rotor_num_, s_xy / rotor_num_, s_yy / rotor_num_;
   Eigen::SelfAdjointEigenSolver<Eigen::Matrix2d> es(S);
   double link_len = (rotors_origin_from_cog[1] - rotors_origin_from_cog[0]).norm();
-  float var = sqrt(es.eigenvalues()[0]) / link_len;
+
+  assert(link_length_ > 0);
+  float var = sqrt(es.eigenvalues()[0]) / link_length_;
   if(verbose) ROS_INFO("var: %f", var);
   if( var < var_thre_ ) return 0;
   return var;
