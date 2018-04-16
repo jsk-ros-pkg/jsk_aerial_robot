@@ -245,6 +245,7 @@ protected:
 
   /* kinematics */
   double mass_;
+  double link_length_;
   tf::Transform cog_;
   std::vector<Eigen::Vector3d> rotors_origin_from_cog_;
   Eigen::Matrix3d links_inertia_;
@@ -301,6 +302,7 @@ protected:
   ros::ServiceServer add_extra_module_service_;
 
   void addChildren(const KDL::SegmentMap::const_iterator segment);
+  void getLinkLength();
 };
 
 
