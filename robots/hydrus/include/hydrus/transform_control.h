@@ -57,6 +57,7 @@
 #include <kdl/tree.hpp>
 #include <kdl_parser/kdl_parser.hpp>
 #include <kdl/treefksolverpos_recursive.hpp>
+#include <kdl/chainjnttojacsolver.hpp>
 
 /* for eigen cumputation */
 #include <Eigen/Core>
@@ -193,6 +194,8 @@ public:
 
   static constexpr uint8_t LQI_THREE_AXIS_MODE = 3;
   static constexpr uint8_t LQI_FOUR_AXIS_MODE = 4;
+
+  void calcJacobian(sensor_msgs::JointState state, bool full_body = false);
 
 protected:
 

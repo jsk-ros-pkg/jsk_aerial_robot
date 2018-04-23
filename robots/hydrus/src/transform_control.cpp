@@ -354,6 +354,47 @@ void TransformController::kinematics(sensor_msgs::JointState state)
   tf::Transform cog2baselink_transform;
   tf::transformKDLToTF(cog_frame.Inverse() * f_baselink, cog2baselink_transform);
   setCog2Baselink(cog2baselink_transform);
+
+  /* test */
+  calcJacobian(state);
+}
+
+void TransformController::calcJacobian(sensor_msgs::JointState state, bool full_body)
+{
+  KDL::Chain chain;
+  std::stringstream ss;
+  ss << rotor_num_;
+  tree_.getChain("root", std::string("link") + ss.str(), chain);
+
+  /* fill the joint state */
+  KDL::JntArray jointpositions(chain.getNrOfJoints());
+  for(unsigned int i = 0; i < state.position.size(); i++)
+    {
+      for(unsigned int j = 0; j < rotor_num_; j++)
+        {
+          std::stringstream ss2;
+          ss2 << j + 1;
+          if(state.name[i] == std::string("joint") + ss2.str())
+            {
+              jointpositions(j) = state.position[i];
+              //ROS_INFO("calc jacobian: joint %f", state.position[i]);
+            }
+        }
+    }
+
+  /* definition of end coords */
+  KDL::Segment ee_seg(std::string("end_coords"),
+                      KDL::Joint(KDL::Joint::None),
+                      KDL::Frame(KDL::Vector(link_length_, 0, 0)));
+  chain.addSegment(ee_seg);
+
+
+  /* calculate the jacobian */
+  KDL::ChainJntToJacSolver jac_solver_(chain);
+  KDL::Jacobian jac(chain.getNrOfJoints());
+  int err = jac_solver_.JntToJac(jointpositions, jac);
+  //ROS_INFO("jac calc: %s", jac_solver_.strError(err));
+  std::cout << "jacobian: \n" << jac.data << std::endl;
 }
 
 bool TransformController::addExtraModuleCallback(hydrus::AddExtraModule::Request  &req,
