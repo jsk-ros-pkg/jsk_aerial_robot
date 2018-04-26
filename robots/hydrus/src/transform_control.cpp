@@ -5,7 +5,8 @@ TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_
   realtime_control_flag_(true),
   callback_flag_(callback_flag),
   kinematics_flag_(false),
-  rotor_num_(0), link_length_(0)
+  rotor_num_(0), link_length_(0),
+  ik_mode_(false), multilink_type_(MULTILINK_TYPE_SE2)
 {
   /* robot model */
   if (!model_.initParam("robot_description"))
@@ -24,12 +25,28 @@ TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_
 
   addChildren(tree_.getRootSegment());
   getLinkLength();
-  ROS_ERROR("rotor num; %d", rotor_num_);
+
+  /* for inverse kinematics */
+  for(auto itr = model_.joints_.begin(); itr != model_.joints_.end(); itr++)
+    {
+      if(itr->first.find("joint1") != std::string::npos)
+        {
+          joint_angle_min_ = itr->second->limits->lower;
+          joint_angle_max_ = itr->second->limits->upper;
+          ROS_WARN("the angle range: [%f, %f]", joint_angle_min_, joint_angle_max_);
+          break;
+        }
+
+      if(itr->second->axis.z == 0) multilink_type_ = MULTILINK_TYPE_SE3;
+    }
+
+  ROS_ERROR("[kinematics] rotor num; %d, link model", rotor_num_, multilink_type_);
 
   initParam();
 
   rotors_origin_from_cog_.resize(rotor_num_);
 
+  /* Linear Quadratic Control */
   //U
   P_ = Eigen::MatrixXd::Zero(4,rotor_num_);
 
@@ -55,6 +72,7 @@ TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_
 
   /* ros service for extra module */
   add_extra_module_service_ = nh_.advertiseService("add_extra_module", &TransformController::addExtraModuleCallback, this);
+  end_effector_ik_service_ = nh_.advertiseService("end_effector_ik", &TransformController::endEffectorIkCallback, this);
 
   /* defualt callback */
   desire_coordinate_sub_ = nh_.subscribe("/desire_coordinate", 1, &TransformController::desireCoordinateCallback, this);
@@ -124,7 +142,7 @@ void TransformController::addChildren(const KDL::SegmentMap::const_iterator segm
           {
             /* create a new inertia base link */
             inertia_map_.insert(std::make_pair(child.getName(), child.getInertia()));
-            joint_map_.insert(std::make_pair(child.getJoint().getName(), children[i]->second.q_nr));
+            actuator_map_.insert(std::make_pair(child.getJoint().getName(), children[i]->second.q_nr));
             if(verbose_) ROS_WARN("Add new inertia base link: %s", child.getName().c_str());
           }
         else
@@ -147,11 +165,11 @@ void TransformController::addChildren(const KDL::SegmentMap::const_iterator segm
 void TransformController::getLinkLength()
 {
   unsigned int nj = tree_.getNrOfJoints();
-  KDL::JntArray jointpositions(nj);
+  KDL::JntArray joint_positions(nj);
   KDL::TreeFkSolverPos_recursive fk_solver(tree_);
   KDL::Frame f_link2, f_link3;
-  fk_solver.JntToCart(jointpositions, f_link2, "link2"); //hard coding
-  fk_solver.JntToCart(jointpositions, f_link3, "link3"); //hard coding
+  fk_solver.JntToCart(joint_positions, f_link2, "link2"); //hard coding
+  fk_solver.JntToCart(joint_positions, f_link3, "link3"); //hard coding
   link_length_ = (f_link3.p - f_link2.p).Norm();
   //ROS_ERROR("Update link length: %f", link_length_);
 }
@@ -238,6 +256,16 @@ void TransformController::initParam()
   nh_private_.param ("q_z_i", q_z_i_, 1.0);
   if(verbose_) std::cout << "Q: q_z_i: " << std::setprecision(3) << q_z_i_ << std::endl;
 
+  /* inverse kinematics */
+  nh_private_.param ("ee_pos_err_thre", ee_pos_err_thre_, 0.001); //[m]
+  if(verbose_) std::cout << "ee_pos_err_thre: " << std::setprecision(3) << ee_pos_err_thre_ << std::endl;
+  nh_private_.param ("ee_rot_err_thre", ee_rot_err_thre_, 0.017); //[rad]
+  if(verbose_) std::cout << "ee_rot_err_thre: " << std::setprecision(3) << ee_rot_err_thre_ << std::endl;
+  nh_private_.param ("ee_pos_err_max", ee_pos_err_max_, 0.1); //[m]
+  if(verbose_) std::cout << "ee_pos_err_max: " << std::setprecision(3) << ee_pos_err_max_ << std::endl;
+  nh_private_.param ("ee_rot_err_max", ee_rot_err_max_, 0.17); //[rad]
+  if(verbose_) std::cout << "ee_rot_err_max: " << std::setprecision(3) << ee_rot_err_max_ << std::endl;
+
   /* dynamics: motor */
   ros::NodeHandle control_node("/motor_info");
   control_node.param("m_f_rate", m_f_rate_, 0.01);
@@ -253,6 +281,22 @@ void TransformController::control()
   if(!realtime_control_flag_) return;
   while(ros::ok())
     {
+      if(ik_mode_)
+        {
+          /* publish joint angle and tf */
+          ros::Time now_time = ros::Time::now();
+          br_.sendTransform(tf::StampedTransform(target_root_pose_, now_time, "ik_world", "root"));
+          br_.sendTransform(tf::StampedTransform(target_ee_pose_, now_time, "ik_world", "target_ee"));
+
+          tf::Transform end_link_ee_tf;
+          end_link_ee_tf.setIdentity();
+          end_link_ee_tf.setOrigin(tf::Vector3(link_length_, 0, 0));
+          std::stringstream ss; ss << rotor_num_;
+          br_.sendTransform(tf::StampedTransform(end_link_ee_tf, now_time, std::string("link") + ss.str(), "ee"));
+          target_joint_vector_.header.stamp = now_time;
+          joint_state_pub_.publish(target_joint_vector_);
+        }
+
       if(debug_verbose_) ROS_ERROR("start lqi");
       lqi();
       if(debug_verbose_) ROS_ERROR("finish lqi");
@@ -269,9 +313,10 @@ void TransformController::desireCoordinateCallback(const spinal::DesireCoordCons
 void TransformController::jointStateCallback(const sensor_msgs::JointStateConstPtr& state)
 {
   joint_state_stamp_ = state->header.stamp;
+  current_joint_state_ = *state;
 
   if(debug_verbose_) ROS_ERROR("start kinematics");
-  kinematics(*state);
+  forwardKinematics(current_joint_state_);
   if(debug_verbose_) ROS_ERROR("finish kinematics");
 
   br_.sendTransform(tf::StampedTransform(getCog(), state->header.stamp, GetTreeElementSegment(tree_.getRootSegment()->second).getName(), "cog"));
@@ -283,18 +328,17 @@ void TransformController::jointStateCallback(const sensor_msgs::JointStateConstP
     }
 }
 
-void TransformController::kinematics(sensor_msgs::JointState state)
+void TransformController::forwardKinematics(sensor_msgs::JointState state)
 {
   KDL::TreeFkSolverPos_recursive fk_solver(tree_);
-  unsigned int nj = tree_.getNrOfJoints();
-  KDL::JntArray jointpositions(nj);
+  KDL::JntArray joint_positions(tree_.getNrOfJoints());   /* set joint array */
 
   unsigned int j = 0;
   for(unsigned int i = 0; i < state.position.size(); i++)
     {
-      std::map<std::string, uint32_t>::iterator itr = joint_map_.find(state.name[i]);
+      std::map<std::string, uint32_t>::iterator itr = actuator_map_.find(state.name[i]);
 
-      if(itr != joint_map_.end())  jointpositions(joint_map_.find(state.name[i])->second) = state.position[i];
+      if(itr != actuator_map_.end())  joint_positions(actuator_map_.find(state.name[i])->second) = state.position[i];
       //else ROS_FATAL("transform_control: no matching joint called %s", state.name[i].c_str());
     }
 
@@ -303,7 +347,7 @@ void TransformController::kinematics(sensor_msgs::JointState state)
   for(auto it = inertia_map_.begin(); it != inertia_map_.end(); ++it)
     {
       KDL::Frame f;
-      int status = fk_solver.JntToCart(jointpositions, f, it->first);
+      int status = fk_solver.JntToCart(joint_positions, f, it->first);
       //ROS_ERROR(" %s status is : %d, [%f, %f, %f]", it->first.c_str(), status, f.p.x(), f.p.y(), f.p.z());
       KDL::RigidBodyInertia link_inertia_tmp = link_inertia;
       link_inertia = link_inertia_tmp + f * it->second;
@@ -322,7 +366,7 @@ void TransformController::kinematics(sensor_msgs::JointState state)
     }
   /* CoG */
   KDL::Frame f_baselink;
-  int status = fk_solver.JntToCart(jointpositions, f_baselink, baselink_);
+  int status = fk_solver.JntToCart(joint_positions, f_baselink, baselink_);
   if(status < 0) ROS_ERROR("can not get FK to the baselink: %s", baselink_.c_str());
   cog_frame.M = f_baselink.M * cog_desire_orientation_.Inverse();
   cog_frame.p = link_inertia.getCOG();
@@ -340,7 +384,7 @@ void TransformController::kinematics(sensor_msgs::JointState state)
       std::string rotor = thrust_link_ + ss.str();
 
       KDL::Frame f;
-      int status = fk_solver.JntToCart(jointpositions, f, rotor);
+      int status = fk_solver.JntToCart(joint_positions, f, rotor);
       //if(verbose) ROS_WARN(" %s status is : %d, [%f, %f, %f]", rotor.c_str(), status, f.p.x(), f.p.y(), f.p.z());
       f_rotors.push_back(Eigen::Map<const Eigen::Vector3d>((cog_frame.Inverse() * f).p.data));
 
@@ -354,47 +398,289 @@ void TransformController::kinematics(sensor_msgs::JointState state)
   tf::Transform cog2baselink_transform;
   tf::transformKDLToTF(cog_frame.Inverse() * f_baselink, cog2baselink_transform);
   setCog2Baselink(cog2baselink_transform);
-
-  /* test */
-  calcJacobian(state);
 }
 
-void TransformController::calcJacobian(sensor_msgs::JointState state, bool full_body)
+
+bool TransformController::endEffectorIkCallback(hydrus::TargetPose::Request  &req,
+                                                hydrus::TargetPose::Response &res)
 {
+  /* stop joint_state publisher */
+  std::string joint_state_publisher_node_name = joint_state_sub_.getTopic().substr(0, joint_state_sub_.getTopic().find("/joint")) + std::string("/joint_state_publisher_");
+  std::string command_string = std::string("rosnode kill ") + joint_state_publisher_node_name.c_str();
+  //system("rosnode kill fdati");
+  system(command_string.c_str());
+  joint_state_sub_.shutdown();
+  joint_state_pub_ = nh_.advertise<sensor_msgs::JointState>(joint_state_sub_.getTopic().substr(0, joint_state_sub_.getTopic().find("/joint")) + std::string("/joint_states"), 1);
+
+
+  /* start IK */
+  target_root_pose_.setIdentity();
+  tf::Quaternion q; q.setRPY(req.target_rot.x, req.target_rot.y, req.target_rot.z);
+  target_ee_pose_ = tf::Transform (q, tf::Vector3(req.target_pos.x, req.target_pos.y, req.target_pos.z));
+  if(!inverseKinematics(target_ee_pose_,
+                        target_joint_vector_, target_root_pose_,
+                        req.orientation, req.full_body, req.debug))
+    return false;
+
+  ik_mode_ = true;
+
+  return true;
+}
+
+
+
+bool TransformController::inverseKinematics(tf::Transform target_ee_pose, sensor_msgs::JointState& target_joint_vector, tf::Transform& target_root_pose, bool orientation, bool full_body, bool debug)
+{
+  /* get initial joint state from sensor_msgs::State */
+  target_joint_vector = current_joint_state_;
+
+  /* CAUTION: be sure thath the joint is in order !!!!!!! */
+  std::vector<double> real_joints; // considering other type of joint (e.g. gimbal)
+  for(auto itr = target_joint_vector.name.begin(); itr != target_joint_vector.name.end(); ++itr)
+    {
+      if(itr->find("joint") != std::string::npos)
+        real_joints.push_back(target_joint_vector.position.at(std::distance(target_joint_vector.name.begin(), itr)));
+    }
+  Eigen::VectorXd real_joint_vector = Eigen::Map<Eigen::VectorXd>(&real_joints[0], real_joints.size());
+
+  Eigen::MatrixXd jacobian;
+
+  /* get link list */
   KDL::Chain chain;
   std::stringstream ss;
   ss << rotor_num_;
-  tree_.getChain("root", std::string("link") + ss.str(), chain);
-
-  /* fill the joint state */
-  KDL::JntArray jointpositions(chain.getNrOfJoints());
-  for(unsigned int i = 0; i < state.position.size(); i++)
-    {
-      for(unsigned int j = 0; j < rotor_num_; j++)
-        {
-          std::stringstream ss2;
-          ss2 << j + 1;
-          if(state.name[i] == std::string("joint") + ss2.str())
-            {
-              jointpositions(j) = state.position[i];
-              //ROS_INFO("calc jacobian: joint %f", state.position[i]);
-            }
-        }
-    }
-
+  tree_.getChain(std::string("root"), std::string("link") + ss.str(), chain);
   /* definition of end coords */
-  KDL::Segment ee_seg(std::string("end_coords"),
+  /* the end point of the end link */
+  KDL::Segment ee_seg(std::string("end_effector"),
                       KDL::Joint(KDL::Joint::None),
                       KDL::Frame(KDL::Vector(link_length_, 0, 0)));
   chain.addSegment(ee_seg);
 
+  if(!full_body) target_root_pose.setIdentity();
+
+  /* inverse kinematics loop */
+  int max_loop_count = 50;
+  for(int i = 0; i < max_loop_count; i++)
+    {
+      /*
+        1.
+         update the current kinematics by forward kinematics
+      */
+      KDL::Frame ee_frame;
+      KDL::ChainFkSolverPos_recursive fk_solver(chain);
+      KDL::JntArray joint_positions(chain.getNrOfJoints());
+      joint_positions.data = real_joint_vector;
+      fk_solver.JntToCart(joint_positions, ee_frame);
+
+      /*
+         2.
+         calcualte the cartesian error and check the congergence
+      */
+      tf::Transform ee_tf;
+      tf::transformKDLToTF(ee_frame, ee_tf);
+      ROS_WARN("ee x: %f,  y: %f, yaw: %f, target x: %f, y: %f, yaw: %f", ee_tf.getOrigin().x(), ee_tf.getOrigin().y(), getYaw(ee_tf.getRotation()), target_ee_pose.getOrigin().x(), target_ee_pose.getOrigin().y(), getYaw(target_ee_pose.getRotation()));
+      tf::Transform ee_err_tf =  (target_root_pose * ee_tf).inverse() * target_ee_pose;
+      double ee_pos_err = ee_err_tf.getOrigin().length();
+      double ee_rot_err = fabs(ee_err_tf.getRotation().getAngleShortestPath());
+      /* debug */
+      ROS_INFO("err pos, rot(angle): %f, %f, err pos vec: [%f, %f]", ee_pos_err, ee_rot_err, ee_err_tf.getOrigin().x(), ee_err_tf.getOrigin().y());
+
+      if(ee_pos_err < ee_pos_err_thre_ ) /* position convergence */
+        {
+          if(!orientation) return true;
+          else
+            if(ee_rot_err < ee_rot_err_thre_) return true;
+        }
+
+      /* transform the cartesian err to the root link frame */
+      if(ee_pos_err > ee_pos_err_max_) ee_pos_err = ee_pos_err_max_;
+      if(ee_rot_err > ee_rot_err_max_) ee_rot_err = ee_rot_err_max_;
+
+      tf::Vector3 ee_target_pos_err_root_link = ee_tf.getBasis() * ee_err_tf.getOrigin().normalize() * ee_pos_err;
+      tf::Vector3 ee_target_rot_err_root_link = ee_tf.getBasis() * ee_err_tf.getRotation().getAxis() * ee_rot_err;
+
+      Eigen::VectorXd delta_cartesian = Eigen::VectorXd::Zero(6);
+      Eigen::Vector3d temp_vec;
+      tf::vectorTFToEigen(ee_target_pos_err_root_link, temp_vec);
+      delta_cartesian.head(3) = temp_vec;
+      tf::vectorTFToEigen(ee_target_rot_err_root_link, temp_vec);
+      delta_cartesian.tail(3) = temp_vec;
+
+      if(multilink_type_ == MULTILINK_TYPE_SE2)
+        {
+          if(!orientation) delta_cartesian.conservativeResize(2);
+          else
+            {
+              delta_cartesian(2) = delta_cartesian(5);
+              delta_cartesian.conservativeResize(3);
+            }
+        }
+      else
+        {
+          if(!orientation) delta_cartesian.conservativeResize(3);
+        }
+
+      /* debug */
+      std::cout << "delta cartesian: \n" << delta_cartesian << std::endl;
+      /*
+         3.
+         calculate joint jacobian
+      */
+      if(!calcJointJacobian(chain, real_joint_vector, jacobian, orientation, full_body))
+        return false;
+
+      /*
+        4.
+        calcualte the delta joint angle vector
+       */
+
+      /* 4.1 pseudo inverse calculation */
+      Eigen::VectorXd delta_joint_vector;
+      /* check manipulability to decide wether use SR inverse */
+      //Eigen::VectorXd delta_joint_vector = pseudoinverse(jacobian) * delta_cartesian;
+      //if(sqrt((jacobian * jacobian.transpose()).determinant()) < 0.001)
+        {
+          ROS_ERROR("manipulability: %f", sqrt((jacobian * jacobian.transpose()).determinant()));
+          delta_joint_vector = jacobian.transpose() *
+            (jacobian * jacobian.transpose() +  0.001 * Eigen::MatrixXd::Identity(jacobian.rows(), jacobian.rows())).inverse()  * delta_cartesian;
+        }
+
+      /* debug */
+      std::cout << "delta joint vector: \n" << delta_joint_vector << std::endl;
+
+      /* 4.2 : QP */
+
+      /*
+         5.
+         update kinematics and root link transformation
+      */
+      if(full_body)
+        {
+          if(multilink_type_ == MULTILINK_TYPE_SE2)
+            {
+              assert(delta_joint_vector.size() == chain.getNrOfJoints() + 3);
+
+              /* root link incremental transformation: */
+              target_root_pose *= tf::Transform(tf::createQuaternionFromYaw(delta_joint_vector(2)),
+                                                tf::Vector3(delta_joint_vector(0), delta_joint_vector(1), 0));
+              /* joint */
+              real_joint_vector += delta_joint_vector.tail(delta_joint_vector.size() - 3);
+            }
+          else //  multilink_type_ == MULTILINK_TYPE_SE2
+            {
+              assert(delta_joint_vector.size() == chain.getNrOfJoints() + 6);
+
+              /* root link incremental transformation: */
+              tf::Vector3 delta_pos_from_root_link;
+              tf::vectorEigenToTF(delta_joint_vector.head(3), delta_pos_from_root_link);
+              tf::Vector3 delta_rot_from_root_link;
+              tf::vectorEigenToTF(delta_joint_vector.segment(3, 3), delta_rot_from_root_link);
+
+              target_root_pose *= tf::Transform(tf::Quaternion(delta_rot_from_root_link, delta_rot_from_root_link.length()), delta_pos_from_root_link);
+
+              /* joint */
+              real_joint_vector += delta_joint_vector.tail(delta_joint_vector.size() - 6);
+            }
+
+        }
+      else
+        real_joint_vector += delta_joint_vector;
+
+      /* clip */
+      for(int index = 0; index < real_joint_vector.size(); index++)
+        {
+          if(real_joint_vector[index] < joint_angle_min_) real_joint_vector[index] = joint_angle_min_;
+          if(real_joint_vector[index] > joint_angle_max_) real_joint_vector[index] = joint_angle_max_;
+        }
+
+      std::cout << "real joint vector: \n" << real_joint_vector << std::endl;
+
+      /* udpate the joint angles */
+      int j = 0;
+      for(auto itr = target_joint_vector.name.begin(); itr != target_joint_vector.name.end(); ++itr)
+        {
+          if(itr->find("joint") != std::string::npos)
+            target_joint_vector.position.at(std::distance(target_joint_vector.name.begin(), itr)) = real_joint_vector(j++);
+        }
+    }
+
+  ROS_WARN("can not resolve inverse kinematics with the max loop count %d", max_loop_count);
+  return false;
+}
+
+bool TransformController::calcJointJacobian(const KDL::Chain& chain, const Eigen::VectorXd& angle_vector, Eigen::MatrixXd& jacobian,  bool orientation, bool full_body)
+  {
+  /* fill the joint state */
+  KDL::JntArray joint_positions(chain.getNrOfJoints());
+  joint_positions.data = angle_vector;
 
   /* calculate the jacobian */
   KDL::ChainJntToJacSolver jac_solver_(chain);
   KDL::Jacobian jac(chain.getNrOfJoints());
-  int err = jac_solver_.JntToJac(jointpositions, jac);
-  //ROS_INFO("jac calc: %s", jac_solver_.strError(err));
-  std::cout << "jacobian: \n" << jac.data << std::endl;
+  if(jac_solver_.JntToJac(joint_positions, jac) == KDL::SolverI::E_NOERROR)
+    {
+      /* consider root is attached with a 6Dof free joint */
+      if(full_body)
+        {
+          /* get ee position from root */
+          KDL::Frame ee_frame;
+          KDL::ChainFkSolverPos_recursive fk_solver(chain);
+          fk_solver.JntToCart(joint_positions, ee_frame);
+          /* debug */
+          ROS_INFO("ee pose: [%f %f %f]", ee_frame.p.x(), ee_frame.p.y(), ee_frame.p.z());
+
+          /* fill the 6x6 matrix */
+          jacobian = Eigen::MatrixXd::Zero(6, 6 + jac.data.cols());
+          /* root link */
+          jacobian.block(0, 0, 6, 6) = Eigen::MatrixXd::Identity(6, 6);
+          jacobian.block(0, 3, 3, 1) = (Eigen::Vector3d(1, 0, 0)).cross(Eigen::Vector3d(ee_frame.p.data));
+          jacobian.block(0, 4, 3, 1) = (Eigen::Vector3d(0, 1, 0)).cross(Eigen::Vector3d(ee_frame.p.data));
+          jacobian.block(0, 5, 3, 1) = (Eigen::Vector3d(0, 0, 1)).cross(Eigen::Vector3d(ee_frame.p.data));
+
+          /* joint part */
+          jacobian.block(0, 6, 6, jac.data.cols()) = jac.data;
+        }
+      else
+        jacobian = jac.data;
+
+      /* debug */
+      //std::cout << "raw jacobian: \n" << jacobian << std::endl;
+
+      /* resize */
+      if(multilink_type_ == MULTILINK_TYPE_SE2)
+        {
+          /* row process */
+          if(!orientation)
+            {
+              jacobian.conservativeResize(2, jacobian.cols());
+            }
+          else
+            {
+              jacobian.row(2) = jacobian.row(5);
+              jacobian.conservativeResize(3, jacobian.cols());
+            }
+
+          /* col process */
+          if(full_body)
+            {
+              jacobian.block(0, 2, jacobian.rows(),  chain.getNrOfJoints() + 1)
+                = jacobian.block(0, 5, jacobian.rows(),  chain.getNrOfJoints() + 1);
+              jacobian.conservativeResize(jacobian.rows(), chain.getNrOfJoints() + 3);
+            }
+        }
+      else
+        {
+          /* row process */
+          if(!orientation) jacobian.conservativeResize(3, jacobian.cols()); //only position
+        }
+
+
+      /* debug */
+      std::cout << "jacobian: \n" << jacobian << std::endl;
+      return true;
+    }
+  return false; //else
 }
 
 bool TransformController::addExtraModuleCallback(hydrus::AddExtraModule::Request  &req,
@@ -935,18 +1221,18 @@ tf::Transform TransformController::getRoot2Link(std::string link, sensor_msgs::J
 {
   KDL::TreeFkSolverPos_recursive fk_solver(tree_);
   unsigned int nj = tree_.getNrOfJoints();
-  KDL::JntArray jointpositions(nj);
+  KDL::JntArray joint_positions(nj);
 
   unsigned int j = 0;
   for(unsigned int i = 0; i < state.position.size(); i++)
     {
-      std::map<std::string, uint32_t>::iterator itr = joint_map_.find(state.name[i]);
-      if(itr != joint_map_.end())  jointpositions(joint_map_.find(state.name[i])->second) = state.position[i];
+      std::map<std::string, uint32_t>::iterator itr = actuator_map_.find(state.name[i]);
+      if(itr != actuator_map_.end())  joint_positions(actuator_map_.find(state.name[i])->second) = state.position[i];
     }
 
   KDL::Frame f;
   tf::Transform  link_f;
-  int status = fk_solver.JntToCart(jointpositions, f, link);
+  int status = fk_solver.JntToCart(joint_positions, f, link);
   tf::transformKDLToTF(f, link_f);
 
   return link_f;

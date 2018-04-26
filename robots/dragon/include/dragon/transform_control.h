@@ -59,7 +59,7 @@ public:
     links_frame_from_cog = links_frame_from_cog_;
   }
 
-  void kinematics(sensor_msgs::JointState state);
+  void forwardKinematics(sensor_msgs::JointState state);
 
   void setEdfsFromCog(const std::vector<Eigen::Vector3d>& edfs_origin_from_cog)
   {

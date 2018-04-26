@@ -44,18 +44,21 @@
 #include <aerial_robot_msgs/FourAxisGain.h>
 #include <sensor_msgs/JointState.h>
 #include <hydrus/AddExtraModule.h>
+#include <hydrus/TargetPose.h>
 #include <spinal/DesireCoord.h>
 #include <spinal/PMatrixPseudoInverseWithInertia.h>
 #include <std_msgs/UInt8.h>
 #include <tf/transform_broadcaster.h>
 #include <geometry_msgs/TransformStamped.h>
 #include <tf_conversions/tf_kdl.h>
+#include <tf_conversions/tf_eigen.h>
 #include <eigen_conversions/eigen_msg.h>
 
 /* robot model */
 #include <urdf/model.h>
 #include <kdl/tree.hpp>
 #include <kdl_parser/kdl_parser.hpp>
+#include <kdl/chainfksolverpos_recursive.hpp>
 #include <kdl/treefksolverpos_recursive.hpp>
 #include <kdl/chainjnttojacsolver.hpp>
 
@@ -74,6 +77,9 @@
 #include <iomanip>
 #include <cmath>
 
+/* for QP solution for force-closure */
+#include <qpOASES.hpp>
+USING_NAMESPACE_QPOASES
 
 /* for dynamic reconfigure */
 #include <dynamic_reconfigure/server.h>
@@ -187,15 +193,19 @@ public:
     cog_desire_orientation_ = cog_desire_orientation;
   }
 
-  virtual void kinematics(sensor_msgs::JointState state);
+  virtual void forwardKinematics(sensor_msgs::JointState state);
+  bool inverseKinematics(tf::Transform target_ee_pose, sensor_msgs::JointState& target_joint_vector, tf::Transform& target_root_pose, bool orientation = true, bool full_body = false, bool debug = false);
+  bool calcJointJacobian(const KDL::Chain& chain, const Eigen::VectorXd& angle_vector, Eigen::MatrixXd& jacobian,  bool orientation = true, bool full_body = false);
+
   void param2controller();
 
   virtual bool overlapCheck(bool verbose = false){return true; }
 
+  static constexpr uint8_t MULTILINK_TYPE_SE2 = 0;
+  static constexpr uint8_t MULTILINK_TYPE_SE3 = 1;
+
   static constexpr uint8_t LQI_THREE_AXIS_MODE = 3;
   static constexpr uint8_t LQI_FOUR_AXIS_MODE = 4;
-
-  void calcJacobian(sensor_msgs::JointState state, bool full_body = false);
 
 protected:
 
@@ -206,6 +216,7 @@ protected:
   ros::Publisher cog_rotate_pub_; //for position control => to mocap
   ros::Publisher transform_pub_;
   ros::Publisher p_matrix_pseudo_inverse_inertia_pub_;
+  ros::Publisher joint_state_pub_;
   ros::Subscriber joint_state_sub_;
   ros::Subscriber desire_coordinate_sub_;
   ros::Subscriber realtime_control_sub_;
@@ -228,7 +239,7 @@ protected:
   KDL::Tree tree_;
   std::map<std::string, KDL::RigidBodyInertia> inertia_map_;
   tf::Transform cog2baselink_transform_;
-  std::map<std::string, uint32_t> joint_map_;
+  std::map<std::string, uint32_t> actuator_map_; // regarding to KDL tree
   std::map<std::string /* module_name */, KDL::Segment> extra_module_map_;
 
   /* control */
@@ -247,12 +258,38 @@ protected:
   double m_f_rate_; //moment / force rate
 
   /* kinematics */
+  uint8_t multilink_type_;
   double mass_;
   double link_length_;
   tf::Transform cog_;
+  sensor_msgs::JointState current_joint_state_;
   std::vector<Eigen::Vector3d> rotors_origin_from_cog_;
   Eigen::Matrix3d links_inertia_;
   ros::Time joint_state_stamp_;
+
+  /* inverse kinematics  */
+  bool ik_mode_;
+  sensor_msgs::JointState target_joint_vector_;
+  tf::Transform target_root_pose_, target_ee_pose_;
+  double joint_angle_max_;
+  double joint_angle_min_;
+  double ee_pos_err_thre_;
+  double ee_rot_err_thre_;
+  double ee_pos_err_max_;
+  double ee_rot_err_max_;
+
+  /* the QP solver variables */
+  boost::shared_ptr<SQProblem> qp_solver_;
+  bool qp_init_flag_;
+  Eigen::MatrixXd H_;
+  Eigen::MatrixXd A_;
+  Eigen::MatrixXd g_;
+  Eigen::VectorXd lb_;
+  Eigen::VectorXd ub_;
+  Eigen::VectorXd lA_;
+  Eigen::VectorXd uA_;
+  int n_wsr_;
+  //Options qp_options_;
 
   /* ros param init */
   void initParam();
@@ -267,6 +304,8 @@ protected:
   /* service */
   bool addExtraModuleCallback(hydrus::AddExtraModule::Request  &req,
                       hydrus::AddExtraModule::Response &res);
+  bool endEffectorIkCallback(hydrus::TargetPose::Request  &req,
+                      hydrus::TargetPose::Response &res);
 
   void realtimeControlCallback(const std_msgs::UInt8ConstPtr & msg);
   void desireCoordinateCallback(const spinal::DesireCoordConstPtr & msg);
@@ -303,9 +342,33 @@ protected:
 
   //service
   ros::ServiceServer add_extra_module_service_;
+  ros::ServiceServer end_effector_ik_service_;
 
   void addChildren(const KDL::SegmentMap::const_iterator segment);
   void getLinkLength();
+
+  template <class MatT>
+  Eigen::Matrix<typename MatT::Scalar, MatT::ColsAtCompileTime, MatT::RowsAtCompileTime>
+  pseudoinverse(const MatT &mat, typename MatT::Scalar tolerance = typename MatT::Scalar{1e-4}) // choose appropriately
+  {
+    typedef typename MatT::Scalar Scalar;
+    auto svd = mat.jacobiSvd(Eigen::ComputeFullU | Eigen::ComputeFullV);
+    const auto &singularValues = svd.singularValues();
+    Eigen::Matrix<Scalar, MatT::ColsAtCompileTime, MatT::RowsAtCompileTime> singularValuesInv(mat.cols(), mat.rows());
+    singularValuesInv.setZero();
+    for (unsigned int i = 0; i < singularValues.size(); ++i) {
+      if (singularValues(i) > tolerance)
+        {
+          singularValuesInv(i, i) = Scalar{1} / singularValues(i);
+        }
+      else
+        {
+          singularValuesInv(i, i) = Scalar{0};
+        }
+    }
+    return svd.matrixV() * singularValuesInv * svd.matrixU().adjoint();
+  }
+
 };
 
 

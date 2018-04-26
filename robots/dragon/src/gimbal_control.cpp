@@ -497,7 +497,7 @@ namespace control_plugin
   {
     joint_state_ = *state;
     kinematics_->gimbalProcess(joint_state_);
-    kinematics_->kinematics(joint_state_);
+    kinematics_->forwardKinematics(joint_state_);
     kinematics_->modelling();
   }
 

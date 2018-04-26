@@ -18,6 +18,11 @@ find_package(catkin REQUIRED COMPONENTS
   kdl_parser
   )
 
+add_subdirectory(qpOASES)
+link_directories(${CMAKE_CURRENT_BINARY_DIR}/qpOASES/qpOASES-3.0/bin)
+include_directories(${CMAKE_CURRENT_BINARY_DIR}/qpOASES/qpOASES-3.0/include)
+add_definitions(-DUSE_QPOASES)
+
 find_package(orocos_kdl REQUIRED)
 find_package(urdfdom_headers REQUIRED)
 
@@ -32,6 +37,7 @@ SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 add_service_files(
   FILES
   AddExtraModule.srv
+  TargetPose.srv
 )
 
 generate_messages(
