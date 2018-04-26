@@ -194,8 +194,8 @@ public:
   }
 
   virtual void forwardKinematics(sensor_msgs::JointState state);
-  bool inverseKinematics(tf::Transform target_ee_pose, sensor_msgs::JointState& target_joint_vector, tf::Transform& target_root_pose, bool orientation = true, bool full_body = false, bool debug = false);
-  bool calcJointJacobian(const KDL::Chain& chain, const Eigen::VectorXd& angle_vector, Eigen::MatrixXd& jacobian,  bool orientation = true, bool full_body = false);
+  bool inverseKinematics(tf::Transform target_ee_pose, sensor_msgs::JointState& target_joint_vector, tf::Transform& target_root_pose, int ik_algorithm, bool orientation = true, bool full_body = false, bool debug = false);
+  bool calcJointJacobian(const KDL::Chain& chain, const Eigen::VectorXd& angle_vector, Eigen::MatrixXd& jacobian,  bool orientation = true, bool full_body = false, bool debug = false);
 
   void param2controller();
 
@@ -203,6 +203,8 @@ public:
 
   static constexpr uint8_t MULTILINK_TYPE_SE2 = 0;
   static constexpr uint8_t MULTILINK_TYPE_SE3 = 1;
+  static constexpr uint8_t IK_INVERSE_JACOBIAN = 0;
+  static constexpr uint8_t IK_QP = 1;
 
   static constexpr uint8_t LQI_THREE_AXIS_MODE = 3;
   static constexpr uint8_t LQI_FOUR_AXIS_MODE = 4;
@@ -268,9 +270,10 @@ protected:
   ros::Time joint_state_stamp_;
 
   /* inverse kinematics  */
-  bool ik_mode_;
+  bool ik_result_;
   sensor_msgs::JointState target_joint_vector_;
   tf::Transform target_root_pose_, target_ee_pose_;
+  int differential_motion_count_;
   double joint_angle_max_;
   double joint_angle_min_;
   double ee_pos_err_thre_;
@@ -278,18 +281,13 @@ protected:
   double ee_pos_err_max_;
   double ee_rot_err_max_;
 
-  /* the QP solver variables */
-  boost::shared_ptr<SQProblem> qp_solver_;
-  bool qp_init_flag_;
-  Eigen::MatrixXd H_;
-  Eigen::MatrixXd A_;
-  Eigen::MatrixXd g_;
-  Eigen::VectorXd lb_;
-  Eigen::VectorXd ub_;
-  Eigen::VectorXd lA_;
-  Eigen::VectorXd uA_;
-  int n_wsr_;
-  //Options qp_options_;
+  double w_ik_constraint_;
+  double w_joint_vel_;
+  double w_root_vel_;
+  double thre_joint_vel_;
+  double thre_root_vel_;
+  double joint_vel_constraint_range_;
+  double joint_vel_forbidden_range_;
 
   /* ros param init */
   void initParam();

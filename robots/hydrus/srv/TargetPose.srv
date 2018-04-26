@@ -1,8 +1,11 @@
+uint8 INVERSE_JACOBIAN = 0
+uint8 QP = 1
 #geometry_msgs/Transform target_pose
 geometry_msgs/Vector3 target_pos
 geometry_msgs/Vector3 target_rot
 bool orientation
 bool full_body
+uint8 ik_algorithm
 bool debug
 ---
 bool status
