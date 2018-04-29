@@ -27,7 +27,7 @@ r2: 1.0
 r3: 1.0
 r4: 1.0
 
-var_thre: 0.2
+stability_margin_thre: 0.2
 f_max: 1000000.0#8.2
 f_min: 0.0#2.0
 

@@ -6,6 +6,7 @@ TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_
   callback_flag_(callback_flag),
   kinematics_flag_(false),
   rotor_num_(0), link_length_(0),
+  p_det_(0), stability_margin_(0),
   ik_result_(false), multilink_type_(MULTILINK_TYPE_SE2)
 {
   /* robot model */
@@ -219,10 +220,10 @@ void TransformController::initParam()
       nh_private_.param(std::string("r") + ss.str(), r_[i], 1.0);
     }
 
-  nh_private_.param ("correlation_thre", correlation_thre_, 0.9);
-  if(verbose_) std::cout << "correlation_thre: " << std::setprecision(3) << correlation_thre_ << std::endl;
-    nh_private_.param ("var_thre", var_thre_, 0.01);
-  if(verbose_) std::cout << "var_thre: " << std::setprecision(3) << var_thre_ << std::endl;
+    nh_private_.param ("stability_margin_thre", stability_margin_thre_, 0.01);
+  if(verbose_) std::cout << "stability margin thre: " << std::setprecision(3) << stability_margin_thre_ << std::endl;
+  nh_private_.param ("p_determinant_thre", p_det_thre_, 1e-6);
+  if(verbose_) std::cout << "p determinant thre: " << std::setprecision(3) << p_det_thre_ << std::endl;
   nh_private_.param ("f_max", f_max_, 8.6);
   if(verbose_) std::cout << "f_max: " << std::setprecision(3) << f_max_ << std::endl;
   nh_private_.param ("f_min", f_min_, 2.0);
@@ -282,7 +283,6 @@ void TransformController::initParam()
   if(verbose_) std::cout << "joint_vel_constraint_range: " << std::setprecision(3) << joint_vel_constraint_range_ << std::endl;
   nh_private_.param ("joint_vel_forbidden_range", joint_vel_forbidden_range_, 0.1);
   if(verbose_) std::cout << "joint_vel_forbidden_range: " << std::setprecision(3) << joint_vel_forbidden_range_ << std::endl;
-
 
   /* dynamics: motor */
   ros::NodeHandle control_node("/motor_info");
@@ -491,7 +491,8 @@ bool TransformController::inverseKinematics(tf::Transform target_ee_pose, sensor
      3. the matrix in Eigen library is colunm-major, so use transpose to get row-major data.
         Plus, (A.transpose()).data is still column-mojar, please assign to a new matrix
   */
-  boost::shared_ptr<SQProblem> qp_solver(new SQProblem(jacobian.cols(), rotor_num_)); //temp
+  boost::shared_ptr<SQProblem> qp_solver(new SQProblem(jacobian.cols(), rotor_num_ + 2));
+  // constraint: 1: stability margin: 1; 2: p determinant thre;  3 flight statibility: rotor_num
   bool qp_init_flag = true;
   Eigen::MatrixXd qp_H = Eigen::MatrixXd::Identity(jacobian.cols(), jacobian.cols());
   Eigen::MatrixXd qp_g = Eigen::VectorXd::Zero(jacobian.cols());
@@ -540,7 +541,8 @@ bool TransformController::inverseKinematics(tf::Transform target_ee_pose, sensor
       tf::quaternionTFToKDL(target_root_pose.getRotation(), root_att);
       setCogDesireOrientation(root_att);
       forwardKinematics(target_joint_vector);
-      if(!modelling()) ROS_ERROR("[ik] update modelling, bad stability ");
+      if(!stabilityMarginCheck()) ROS_ERROR("[ik] update modelling, bad stability margin ");
+      if(!modelling()) ROS_ERROR("[ik] update modelling, bad stability from force");
 
       /*
          2.
@@ -629,7 +631,9 @@ bool TransformController::inverseKinematics(tf::Transform target_ee_pose, sensor
             }
           */
 
-          /* 1. joint velocity constraint */
+          /*************************************************************************************
+           1. joint velocity constraint
+          ****************************************************************************************/
           for(int i = 0; i < chain.getNrOfJoints(); i ++)
             {
               qp_lb(jacobian.cols() - chain.getNrOfJoints() + i)= -thre_joint_vel_;
@@ -645,90 +649,169 @@ bool TransformController::inverseKinematics(tf::Transform target_ee_pose, sensor
                   (joint_angle_max_ - real_joint_vector(i) - joint_vel_forbidden_range_) / (joint_vel_constraint_range_ - joint_vel_forbidden_range_);
             }
 
-          /* 2. optimal hovering thrust constraint */
-          /* f_min < F + delta_f < f_max =>   delta_f =  (f(q + d_q) - f(q)) / d_q * delta_q */
-          /* TODO: use virutal state (beta) to maximize the flight stability */
+          /*************************************************************************************
+           2. stability margin
+          ****************************************************************************************/
+          Eigen::MatrixXd margin_att_jacobian = Eigen::MatrixXd::Zero(1, 2); /* roll pitch */
+          Eigen::MatrixXd margin_joint_jacobian = Eigen::MatrixXd::Zero(1, chain.getNrOfJoints()); /* joint */
+          double stability_margin = getStabilityMargin();
+          /* fill the fixed size bounder lA */
+          qp_lA(0) =  stability_margin_thre_ - stability_margin;
+          if(debug) std::cout << "stability margin: " << stability_margin << std::endl;
+
+          /*************************************************************************************
+           2. singularity
+          ****************************************************************************************/
+          Eigen::MatrixXd det_att_jacobian = Eigen::MatrixXd::Zero(1, 2); /* roll pitch */
+          Eigen::MatrixXd det_joint_jacobian = Eigen::MatrixXd::Zero(1, chain.getNrOfJoints()); /* joint */
+          double p_det = getPdeterminant();
+          /* fill the fixed size bounder lA */
+          qp_lA(1) =  p_det_thre_ - p_det;
+          if(debug) std::cout << "singularity: " << p_det << std::endl;
+
+          /*************************************************************************************
+           4. optimal hovering thrust constraint (including singularity check)
+           f_min < F + delta_f < f_max =>   delta_f =  (f(q + d_q) - f(q)) / d_q * delta_q
+           TODO: use virutal state (beta) to maximize the flight stability
+          ****************************************************************************************/
           Eigen::MatrixXd f_att_jacobian = Eigen::MatrixXd::Zero(rotor_num_, 2); /* roll pitch */
           Eigen::MatrixXd f_joint_jacobian = Eigen::MatrixXd::Zero(rotor_num_, chain.getNrOfJoints()); /* joint */
           double delta_angle = 0.001; // [rad]
-          Eigen::VectorXd stable_f =  getStableState();
-          if(debug) std::cout << "stable f: " << stable_f.transpose() << std::endl;
+          Eigen::VectorXd hovering_f =  getOptimalHoveringThrust();
+          if(debug) std::cout << "hovering f: " << hovering_f.transpose() << std::endl;
           /* fill the fixed size bounder lA/uA */
-          qp_lA.head(rotor_num_) = Eigen::VectorXd::Constant(rotor_num_, f_min_) - stable_f;
-          qp_uA.head(rotor_num_) = Eigen::VectorXd::Constant(rotor_num_, f_max_) - stable_f;
+          qp_lA.segment(2, rotor_num_) = Eigen::VectorXd::Constant(rotor_num_, f_min_) - hovering_f;
+          qp_uA.segment(2, rotor_num_) = Eigen::VectorXd::Constant(rotor_num_, f_max_) - hovering_f;
 
-          /* 2.1 joint */
+          /* joint */
           for(int index = 0; index < chain.getNrOfJoints(); index++)
             {
               sensor_msgs::JointState joint_state = target_joint_vector;
               joint_state.position.at(joints_map.at(index)) += delta_angle;
               forwardKinematics(joint_state);
+              if(!stabilityMarginCheck())
+                ROS_ERROR("[optimal hovering thrust constraint] delta joint, bad margin ");
               if(!modelling())
                 ROS_ERROR("[optimal hovering thrust constraint] delta joint, bad stability ");
-              f_joint_jacobian.block(0, index, rotor_num_, 1) = (getStableState() - stable_f) / delta_angle;
+
+              /* stability margin */
+              margin_joint_jacobian(0, index) = (getStabilityMargin() - stability_margin) /delta_angle;
+              /* singularity */
+              det_joint_jacobian(0, index) = (getPdeterminant() - p_det) /delta_angle;
+              /* hovering thrust */
+              f_joint_jacobian.block(0, index, rotor_num_, 1) = (getOptimalHoveringThrust() - hovering_f) / delta_angle;
+
             }
           /* fill the constraint matrix A */
-          qp_A.block(0, jacobian.cols() - chain.getNrOfJoints(), rotor_num_, chain.getNrOfJoints()) = f_joint_jacobian;
+          qp_A.block(0, jacobian.cols() - chain.getNrOfJoints(), 1, chain.getNrOfJoints()) = margin_joint_jacobian;
+          qp_A.block(1, jacobian.cols() - chain.getNrOfJoints(), 1, chain.getNrOfJoints()) = det_joint_jacobian;
+          qp_A.block(2, jacobian.cols() - chain.getNrOfJoints(), rotor_num_, chain.getNrOfJoints()) = f_joint_jacobian;
 
 #if 0
           /* debug */
           std::cout << "delta angle 0.01, f_d_joint jacobian \n" << f_joint_jacobian << std::endl;
-          delta_angle = -0.01; // [rad]
+          std::cout << "delta angle 0.01, margin_d_joint jacobian \n" << margin_joint_jacobian << std::endl;
+          std::cout << "delta angle 0.01, det_d_joint jacobian \n" << det_joint_jacobian << std::endl;
+
+          delta_angle = -0.001; // [rad]
           for(int index = 0; index < chain.getNrOfJoints(); index++)
             {
               sensor_msgs::JointState joint_state = target_joint_vector;
               joint_state.position.at(joints_map.at(index)) += delta_angle;
               forwardKinematics(joint_state);
+
+              if(!stabilityMarginCheck())
+                ROS_ERROR("[optimal hovering thrust constraint] delta joint, bad margin ");
               if(!modelling())
                 ROS_ERROR("[optimal hovering thrust constraint] delta joint, bad stability ");
-              f_joint_jacobian.block(0, index, rotor_num_, 1) = (getStableState() - stable_f) / delta_angle;
+
+              /* stability margin */
+              margin_joint_jacobian(0, index) = (getStabilityMargin() - stability_margin) / delta_angle;
+              /* singularity */
+              det_joint_jacobian(0, index) = (getPdeterminant() - p_det) /delta_angle;
+              /* hovering thrust */
+              f_joint_jacobian.block(0, index, rotor_num_, 1) = (getOptimalHoveringThrust() - hovering_f) / delta_angle;
             }
-          std::cout << "delta angle -0.01, f_d_joint jacobian \n" << f_joint_jacobian << std::endl;
+          //std::cout << "delta angle -0.01, f_d_joint jacobian \n" << f_joint_jacobian << std::endl;
+          std::cout << "delta angle -0.01, margin_d_joint jacobian \n" << margin_joint_jacobian << std::endl;
+          std::cout << "delta angle -0.01, det_d_joint jacobian \n" << det_joint_jacobian << std::endl;
 #endif
 
-          /* 2.2 att */
+          /* att */
           if(multilink_type_ == MULTILINK_TYPE_SE3 && full_body)
             {
               /* reset joint vector */
               /* 2.2.1 roll */
               setCogDesireOrientation(root_att * KDL::Rotation::RPY(delta_angle, 0, 0));
               forwardKinematics(target_joint_vector);
+              if(!stabilityMarginCheck())
+                ROS_ERROR("[optimal hovering thrust constraint] delta joint, bad margin ");
               if(!modelling())
                 ROS_ERROR("[optimal hovering thrust constraint] delta roll, bad stability ");
-              f_att_jacobian.block(0, 0, rotor_num_, 1) = (getStableState() - stable_f) / delta_angle;
+
+              /* stability margin */
+              margin_att_jacobian(0, 0) = (getStabilityMargin() - stability_margin) / delta_angle;
+              /* singularity */
+              det_att_jacobian(0, 0) = (getPdeterminant() - p_det) /delta_angle;
+              /* hovering thrust */
+              f_att_jacobian.block(0, 0, rotor_num_, 1) = (getOptimalHoveringThrust() - hovering_f) / delta_angle;
 
               /* 2.2.2 pitch */
               setCogDesireOrientation(root_att * KDL::Rotation::RPY(0, delta_angle, 0));
               forwardKinematics(target_joint_vector);
+              if(!stabilityMarginCheck())
+                ROS_ERROR("[optimal hovering thrust constraint] delta roll, bad stability ");
               if(!modelling())
                 ROS_ERROR("[optimal hovering thrust constraint] delta roll, bad stability ");
-              f_att_jacobian.block(0, 1, rotor_num_, 1) = (getStableState() - stable_f) / delta_angle;
+
+              /* stability margin */
+              margin_att_jacobian(0, 1) = (getStabilityMargin() - stability_margin) / delta_angle;
+              /* singularity */
+              det_att_jacobian(0, 1) = (getPdeterminant() - p_det) /delta_angle;
+              /* hovering thrust */
+              f_att_jacobian.block(0, 1, rotor_num_, 1) = (getOptimalHoveringThrust() - hovering_f) / delta_angle;
 
               /* fill the constraint matrix A */
-              qp_A.block(0, 3, rotor_num_, 2) = f_att_jacobian;
+              qp_A.block(0, 3, 0, 2) = margin_att_jacobian;
+              qp_A.block(1, 3, 0, 2) = det_att_jacobian;
+              qp_A.block(2, 3, rotor_num_, 2) = f_att_jacobian;
 
 #if 0
               /* debug */
               std::cout << "delta angle 0.01, f_d_att jacobian \n" << f_att_jacobian << std::endl;
+              std::cout << "delta angle 0.01, margin_d_att jacobian \n" << margin_att_jacobian << std::endl;
+              std::cout << "delta angle 0.01, det_d_att jacobian \n" << det_att_jacobian << std::endl;
               delta_angle = -0.01; // [rad]
               setCogDesireOrientation(root_att * KDL::Rotation::RPY(delta_angle, 0, 0));
               forwardKinematics(target_joint_vector);
               if(!modelling())
                 ROS_ERROR("[optimal hovering thrust constraint] delta roll, bad stability ");
-              f_att_jacobian.block(0, 0, rotor_num_, 1) = (getStableState() - stable_f) / delta_angle;
+              if(!modelling())
+                ROS_ERROR("[optimal hovering thrust constraint] delta roll, bad stability ");
+
+              margin_att_jacobian(0, 0) = (getStabilityMargin() - stability_margin) / delta_angle;
+              det_att_jacobian(0, 0) = (getPdeterminant() - p_det) /delta_angle;
+              f_att_jacobian.block(0, 0, rotor_num_, 1) = (getOptimalHoveringThrust() - hovering_f) / delta_angle;
+
               setCogDesireOrientation(root_att * KDL::Rotation::RPY(0, delta_angle, 0));
               forwardKinematics(target_joint_vector);
               if(!modelling())
                 ROS_ERROR("[optimal hovering thrust constraint] delta roll, bad stability ");
-              f_att_jacobian.block(0, 1, rotor_num_, 1) = (getStableState() - stable_f) / delta_angle;
-              std::cout << "delta angle -0.01, f_d_att jacobian \n" << f_att_jacobian << std::endl;
+              if(!modelling())
+                ROS_ERROR("[optimal hovering thrust constraint] delta roll, bad stability ");
+              margin_att_jacobian(0, 1) = (getStabilityMargin() - stability_margin) / delta_angle;
+              det_att_jacobian(0, 1) = (getPdeterminant() - p_det) /delta_angle;
+              f_att_jacobian.block(0, 1, rotor_num_, 1) = (getOptimalHoveringThrust() - hovering_f) / delta_angle;
+              //std::cout << "delta angle -0.01, f_d_att jacobian \n" << f_att_jacobian << std::endl;
+              //std::cout << "delta angle 0.01, margin_d_att jacobian \n" << margin_att_jacobian << std::endl;
+              //std::cout << "delta angle 0.01, det_d_att jacobian \n" << det_att_jacobian << std::endl;
 #endif
             }
-          /*
-          std::cout << "qp A \n" << qp_A << std::endl; //debug
+
+          //std::cout << "qp A \n" << qp_A << std::endl; //debug
           std::cout << "qp lA \n" << qp_lA.transpose() << std::endl; //debug
           std::cout << "qp uA \n" << qp_uA.transpose() << std::endl; //debug
-          */
+
           int solver_result;
           n_wsr = 100; /* this value have to be updated every time, otherwise it will decrease every loop */
           Eigen::MatrixXd qp_At = qp_A.transpose();
@@ -985,7 +1068,7 @@ void TransformController::lqi()
 
   /* check the thre check */
   if(debug_verbose_) ROS_WARN(" start dist thre check");
-  if(!distThreCheck()) //[m]
+  if(!stabilityMarginCheck()) //[m]
     {
       ROS_ERROR("LQI: invalid pose, cannot pass the distance thresh check");
       return;
@@ -1020,7 +1103,7 @@ void TransformController::lqi()
   if(debug_verbose_) ROS_WARN(" finish param2controller");
 }
 
-double TransformController::distThreCheck(bool verbose)
+bool TransformController::stabilityMarginCheck(bool verbose)
 {
   double average_x = 0, average_y = 0;
 
@@ -1051,10 +1134,10 @@ double TransformController::distThreCheck(bool verbose)
   double link_len = (rotors_origin_from_cog[1] - rotors_origin_from_cog[0]).norm();
 
   assert(link_length_ > 0);
-  float var = sqrt(es.eigenvalues()[0]) / link_length_;
-  if(verbose) ROS_INFO("var: %f", var);
-  if( var < var_thre_ ) return 0;
-  return var;
+  stability_margin_ = sqrt(es.eigenvalues()[0]) / link_length_;
+  if(verbose) ROS_INFO("stability_margin: %f", stability_margin_);
+  if( stability_margin_ < stability_margin_thre_ ) return false;
+  return true;
 
 #if 0 // correlation coefficient
   double correlation_coefficient = fabs(s_xy / sqrt(s_xx * s_yy));
@@ -1117,16 +1200,16 @@ bool  TransformController::modelling(bool verbose)
   Eigen::FullPivLU<Eigen::MatrixXd> solver((P_ * P_.transpose()));
   Eigen::VectorXd lamda;
   lamda = solver.solve(g);
-  stable_x_ = P_.transpose() * lamda;
+  optimal_hovering_f_ = P_.transpose() * lamda;
 
-  double P_det = (P_ * P_.transpose()).determinant();
+  p_det_ = (P_ * P_.transpose()).determinant();
   if(control_verbose_)
-    std::cout << "P det:"  << std::endl << P_det << std::endl;
+    std::cout << "P det:"  << std::endl << p_det_ << std::endl;
 
   if(control_verbose_)
     ROS_INFO("P solver is: %f\n", ros::Time::now().toSec() - start_time.toSec());
 
-  if(stable_x_.maxCoeff() > f_max_ || stable_x_.minCoeff() < f_min_ || P_det < 1e-6 || only_three_axis_mode_)
+  if(optimal_hovering_f_.maxCoeff() > f_max_ || optimal_hovering_f_.minCoeff() < f_min_ || p_det_ < p_det_thre_ || only_three_axis_mode_)
     {
       lqi_mode_ = LQI_THREE_AXIS_MODE;
 
@@ -1140,9 +1223,9 @@ bool  TransformController::modelling(bool verbose)
       Eigen::FullPivLU<Eigen::MatrixXd> solver((P_dash * P_dash.transpose()));
       Eigen::VectorXd lamda;
       lamda = solver.solve(g3);
-      stable_x_ = P_dash.transpose() * lamda;
+      optimal_hovering_f_ = P_dash.transpose() * lamda;
       if(control_verbose_)
-        std::cout << "three axis mode: stable_x_:"  << std::endl << stable_x_ << std::endl;
+        std::cout << "three axis mode: optimal_hovering_f_:"  << std::endl << optimal_hovering_f_ << std::endl;
 
       /* calculate the P_orig(without inverse inertia) peusdo inverse */
       P_dash.row(0) = p_y;
@@ -1157,8 +1240,11 @@ bool  TransformController::modelling(bool verbose)
       /* if we do the 4dof underactuated control */
       if(!only_three_axis_mode_) return false;
 
+      p_det_ = (P_dash * P_dash.transpose()).determinant();
+
       /* if we only do the 3dof control, we still need to check the steady state validation */
-      if(stable_x_.maxCoeff() > f_max_ || stable_x_.minCoeff() < f_min_ )
+      if(optimal_hovering_f_.maxCoeff() > f_max_ || optimal_hovering_f_.minCoeff() < f_min_
+         || p_det_ < p_det_thre_)
         return false;
 
       return true;
@@ -1176,7 +1262,7 @@ bool  TransformController::modelling(bool verbose)
     std::cout << "P orig_pseudo inverse for four axis mode:" << std::endl << P_orig_pseudo_inverse_ << std::endl;
 
   if(control_verbose_ || verbose)
-    std::cout << "four axis mode stable_x_:"  << std::endl << stable_x_ << std::endl;
+    std::cout << "four axis mode optimal_hovering_f_:"  << std::endl << optimal_hovering_f_ << std::endl;
 
   lqi_mode_ = LQI_FOUR_AXIS_MODE;
 
@@ -1454,6 +1540,3 @@ tf::Transform TransformController::getRoot2Link(std::string link, sensor_msgs::J
 
   return link_f;
 }
-
-
- 
