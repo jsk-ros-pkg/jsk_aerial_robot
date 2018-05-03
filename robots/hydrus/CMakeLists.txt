@@ -51,7 +51,7 @@ generate_dynamic_reconfigure_options(
 
 catkin_package(
   INCLUDE_DIRS include ${CMAKE_CURRENT_BINARY_DIR}/qpOASES/qpOASES-3.0/include
-  LIBRARIES transform_control dynamixel_bridge
+  LIBRARIES transform_control dynamixel_bridge differential_kinematics_planner_core end_effector_ik_solver_core
   CATKIN_DEPENDS roscpp message_runtime aerial_robot_msgs aerial_robot_base spinal dynamixel_controllers tf_conversions eigen_conversions kdl_parser
   DEPENDS Eigen3 orocos_kdl urdfdom_headers
 )
@@ -90,12 +90,32 @@ target_link_libraries (dynamixel_bridge_node  ${catkin_LIBRARIES} dynamixel_brid
 add_dependencies(dynamixel_bridge_node aerial_robot_msgs_generate_messages_cpp aerial_robot_base_generate_messages_cpp ${PROJECT_NAME}_generate_messages_cpp ${PROJECT_NAME}_gencfg)
 
 add_library (transform_control src/transform_control.cpp)
-target_link_libraries (transform_control ${catkin_LIBRARIES} ${orocos_kdl_LIBRARIES}  ${Eigen3_LIBRARIES} qpOASES)
-add_dependencies(transform_control aerial_robot_msgs_generate_messages_cpp aerial_robot_base_generate_messages_cpp spinal_generate_messages_cpp ${PROJECT_NAME}_generate_messages_cpp ${PROJECT_NAME}_gencfg)
+target_link_libraries (transform_control ${catkin_LIBRARIES} ${orocos_kdl_LIBRARIES}  ${Eigen3_LIBRARIES})
+add_dependencies(transform_control aerial_robot_msgs_generate_messages_cpp spinal_generate_messages_cpp ${PROJECT_NAME}_generate_messages_cpp ${PROJECT_NAME}_gencfg)
 
 add_executable (transform_control_node src/transform_control_node.cpp)
-target_link_libraries (transform_control_node transform_control ${catkin_LIBRARIES} ${orocos_kdl_LIBRARIES}  ${Eigen3_LIBRARIES} qpOASES)
-add_dependencies(transform_control_node aerial_robot_msgs_generate_messages_cpp aerial_robot_base_generate_messages_cpp spinal_generate_messages_cpp ${PROJECT_NAME}_generate_messages_cpp ${PROJECT_NAME}_gencfg)
+target_link_libraries (transform_control_node transform_control ${catkin_LIBRARIES} ${orocos_kdl_LIBRARIES}  ${Eigen3_LIBRARIES})
+add_dependencies(transform_control_node aerial_robot_msgs_generate_messages_cpp spinal_generate_messages_cpp ${PROJECT_NAME}_generate_messages_cpp ${PROJECT_NAME}_gencfg)
+
+add_library (differential_kinematics_cost_pluginlib
+  src/differential_kinematics/cost/cartesian_constraint.cpp
+  src/differential_kinematics/cost/state_vel.cpp)
+target_link_libraries (differential_kinematics_cost_pluginlib ${catkin_LIBRARIES} ${orocos_kdl_LIBRARIES}  ${Eigen3_LIBRARIES})
+
+add_library (differential_kinematics_constraint_pluginlib
+  src/differential_kinematics/constraint/stability.cpp
+  src/differential_kinematics/constraint/state_limit.cpp)
+target_link_libraries (differential_kinematics_constraint_pluginlib ${catkin_LIBRARIES} ${orocos_kdl_LIBRARIES}  ${Eigen3_LIBRARIES})
+
+add_library (differential_kinematics_planner_core src/differential_kinematics/planner_core.cpp)
+target_link_libraries (differential_kinematics_planner_core ${catkin_LIBRARIES} ${orocos_kdl_LIBRARIES} ${Eigen3_LIBRARIES} transform_control qpOASES)
+
+add_library (end_effector_ik_solver_core src/differential_kinematics/sample/end_effector_ik_solver_core.cpp)
+target_link_libraries (end_effector_ik_solver_core ${catkin_LIBRARIES} ${orocos_kdl_LIBRARIES} ${Eigen3_LIBRARIES} differential_kinematics_planner_core)
+add_dependencies(end_effector_ik_solver_core ${PROJECT_NAME}_generate_messages_cpp)
+
+add_executable (end_effector_ik_node src/end_effector_ik_node.cpp)
+target_link_libraries (end_effector_ik_node ${catkin_LIBRARIES} ${orocos_kdl_LIBRARIES}  ${Eigen3_LIBRARIES} end_effector_ik_solver_core)
 
 install(PROGRAMS
   scripts/dynamixel_param.py

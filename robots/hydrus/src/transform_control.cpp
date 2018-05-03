@@ -2,12 +2,10 @@
 
 TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_private, bool callback_flag):
   nh_(nh), nh_private_(nh_private),
-  realtime_control_flag_(true),
   callback_flag_(callback_flag),
   kinematics_flag_(false),
   rotor_num_(0), link_length_(0),
-  p_det_(0), stability_margin_(0),
-  ik_result_(false), multilink_type_(MULTILINK_TYPE_SE2)
+  p_det_(0), stability_margin_(0)
 {
   /* robot model */
   if (!model_.initParam("robot_description"))
@@ -25,7 +23,7 @@ TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_
   if(verbose_) std::cout << "thrust_link: " << thrust_link_ << std::endl;
 
   addChildren(tree_.getRootSegment());
-  getLinkLength();
+  resolveLinkLength();
 
   /* for inverse kinematics */
   for(auto itr = model_.joints_.begin(); itr != model_.joints_.end(); itr++)
@@ -37,11 +35,9 @@ TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_
           ROS_WARN("the angle range: [%f, %f]", joint_angle_min_, joint_angle_max_);
           break;
         }
-
-      if(itr->second->axis.z == 0) multilink_type_ = MULTILINK_TYPE_SE3;
     }
 
-  ROS_ERROR("[kinematics] rotor num; %d, link model: %d", rotor_num_, multilink_type_);
+  ROS_ERROR("[kinematics] rotor num; %d", rotor_num_);
 
   initParam();
 
@@ -73,17 +69,15 @@ TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_
 
   /* ros service for extra module */
   add_extra_module_service_ = nh_.advertiseService("add_extra_module", &TransformController::addExtraModuleCallback, this);
-  end_effector_ik_service_ = nh_.advertiseService("end_effector_ik", &TransformController::endEffectorIkCallback, this);
 
   /* defualt callback */
   desire_coordinate_sub_ = nh_.subscribe("/desire_coordinate", 1, &TransformController::desireCoordinateCallback, this);
 
   if(callback_flag_)
     {
-      realtime_control_sub_ = nh_.subscribe("realtime_control", 1, &TransformController::realtimeControlCallback, this, ros::TransportHints().tcpNoDelay());
-      std::string joint_state_sub_name;
-      nh_private_.param("joint_state_sub_name", joint_state_sub_name, std::string("joint_state"));
-      joint_state_sub_ = nh_.subscribe(joint_state_sub_name, 1, &TransformController::jointStateCallback, this);
+      std::string actuator_state_sub_name;
+      nh_private_.param("actuator_state_sub_name", actuator_state_sub_name, std::string("joint_state"));
+      actuator_state_sub_ = nh_.subscribe(actuator_state_sub_name, 1, &TransformController::actuatorStateCallback, this);
 
       control_thread_ = boost::thread(boost::bind(&TransformController::control, this));
     }
@@ -163,7 +157,7 @@ void TransformController::addChildren(const KDL::SegmentMap::const_iterator segm
     }
 }
 
-void TransformController::getLinkLength()
+void TransformController::resolveLinkLength()
 {
   unsigned int nj = tree_.getNrOfJoints();
   KDL::JntArray joint_positions(nj);
@@ -181,20 +175,6 @@ TransformController::~TransformController()
     {
       control_thread_.interrupt();
       control_thread_.join();
-    }
-}
-
-void TransformController::realtimeControlCallback(const std_msgs::UInt8ConstPtr & msg)
-{
-  if(msg->data == 1)
-    {
-      if(debug_verbose_) ROS_WARN("start realtime control");
-      realtime_control_flag_ = true;
-    }
-  else if(msg->data == 0)
-    {
-      if(debug_verbose_) ROS_WARN("stop realtime control");
-      realtime_control_flag_ = false;
     }
 }
 
@@ -257,33 +237,6 @@ void TransformController::initParam()
   nh_private_.param ("q_z_i", q_z_i_, 1.0);
   if(verbose_) std::cout << "Q: q_z_i: " << std::setprecision(3) << q_z_i_ << std::endl;
 
-  /* inverse kinematics */
-  nh_private_.param ("differential_motion_count", differential_motion_count_, 100);
-  if(verbose_) std::cout << "differential_motion_count: " << differential_motion_count_ << std::endl;
-  nh_private_.param ("ee_pos_err_thre", ee_pos_err_thre_, 0.001); //[m]
-  if(verbose_) std::cout << "ee_pos_err_thre: " << std::setprecision(3) << ee_pos_err_thre_ << std::endl;
-  nh_private_.param ("ee_rot_err_thre", ee_rot_err_thre_, 0.017); //[rad]
-  if(verbose_) std::cout << "ee_rot_err_thre: " << std::setprecision(3) << ee_rot_err_thre_ << std::endl;
-  nh_private_.param ("ee_pos_err_max", ee_pos_err_max_, 0.1); //[m]
-  if(verbose_) std::cout << "ee_pos_err_max: " << std::setprecision(3) << ee_pos_err_max_ << std::endl;
-  nh_private_.param ("ee_rot_err_max", ee_rot_err_max_, 0.17); //[rad]
-  if(verbose_) std::cout << "ee_rot_err_max: " << std::setprecision(3) << ee_rot_err_max_ << std::endl;
-  nh_private_.param ("w_ik_constraint", w_ik_constraint_, 1.0);
-  if(verbose_) std::cout << "w_ik_constraint: " << std::setprecision(3) << w_ik_constraint_ << std::endl;
-  nh_private_.param ("w_joint_vel", w_joint_vel_, 0.001);
-  if(verbose_) std::cout << "w_joint_vel: " << std::setprecision(3) << w_joint_vel_ << std::endl;
-  nh_private_.param ("w_root_vel", w_root_vel_, 0.001);
-  if(verbose_) std::cout << "w_root_vel: " << std::setprecision(3) << w_root_vel_ << std::endl;
-  nh_private_.param ("thre_joint_vel", thre_joint_vel_, 0.1);
-  if(verbose_) std::cout << "thre_joint_vel: " << std::setprecision(3) << thre_joint_vel_ << std::endl;
-  nh_private_.param ("thre_root_vel", thre_root_vel_, 0.1);
-  if(verbose_) std::cout << "thre_root_vel: " << std::setprecision(3) << thre_root_vel_ << std::endl;
-
-  nh_private_.param ("joint_vel_constraint_range", joint_vel_constraint_range_, 0.2);
-  if(verbose_) std::cout << "joint_vel_constraint_range: " << std::setprecision(3) << joint_vel_constraint_range_ << std::endl;
-  nh_private_.param ("joint_vel_forbidden_range", joint_vel_forbidden_range_, 0.1);
-  if(verbose_) std::cout << "joint_vel_forbidden_range: " << std::setprecision(3) << joint_vel_forbidden_range_ << std::endl;
-
   /* dynamics: motor */
   ros::NodeHandle control_node("/motor_info");
   control_node.param("m_f_rate", m_f_rate_, 0.01);
@@ -296,25 +249,8 @@ void TransformController::control()
   static int i = 0;
   static int cnt = 0;
 
-  if(!realtime_control_flag_) return;
   while(ros::ok())
     {
-      if(ik_result_)
-        {
-          /* publish joint angle and tf */
-          ros::Time now_time = ros::Time::now();
-          br_.sendTransform(tf::StampedTransform(target_root_pose_, now_time, "ik_world", "root"));
-          br_.sendTransform(tf::StampedTransform(target_ee_pose_, now_time, "ik_world", "target_ee"));
-
-          tf::Transform end_link_ee_tf;
-          end_link_ee_tf.setIdentity();
-          end_link_ee_tf.setOrigin(tf::Vector3(link_length_, 0, 0));
-          std::stringstream ss; ss << rotor_num_;
-          br_.sendTransform(tf::StampedTransform(end_link_ee_tf, now_time, std::string("link") + ss.str(), "ee"));
-          target_joint_vector_.header.stamp = now_time;
-          joint_state_pub_.publish(target_joint_vector_);
-        }
-
       if(debug_verbose_) ROS_ERROR("start lqi");
       lqi();
       if(debug_verbose_) ROS_ERROR("finish lqi");
@@ -328,13 +264,14 @@ void TransformController::desireCoordinateCallback(const spinal::DesireCoordCons
   setCogDesireOrientation(KDL::Rotation::RPY(msg->roll, msg->pitch, msg->yaw));
 }
 
-void TransformController::jointStateCallback(const sensor_msgs::JointStateConstPtr& state)
+void TransformController::actuatorStateCallback(const sensor_msgs::JointStateConstPtr& state)
 {
-  joint_state_stamp_ = state->header.stamp;
-  current_joint_state_ = *state;
+  current_actuator_state_ = *state;
+
+  if(actuator_joint_map_.size() == 0) setActuatorJointMap(current_actuator_state_);
 
   if(debug_verbose_) ROS_ERROR("start kinematics");
-  forwardKinematics(current_joint_state_);
+  forwardKinematics(current_actuator_state_);
   if(debug_verbose_) ROS_ERROR("finish kinematics");
 
   br_.sendTransform(tf::StampedTransform(getCog(), state->header.stamp, GetTreeElementSegment(tree_.getRootSegment()->second).getName(), "cog"));
@@ -418,570 +355,6 @@ void TransformController::forwardKinematics(sensor_msgs::JointState state)
   setCog2Baselink(cog2baselink_transform);
 }
 
-
-bool TransformController::endEffectorIkCallback(hydrus::TargetPose::Request  &req,
-                                                hydrus::TargetPose::Response &res)
-{
-  /* stop rosnode: joint_state_publisher, and publisher from this node instead */
-  std::string joint_state_publisher_node_name = joint_state_sub_.getTopic().substr(0, joint_state_sub_.getTopic().find("/joint")) + std::string("/joint_state_publisher_");
-  std::string command_string = std::string("rosnode kill ") + joint_state_publisher_node_name.c_str();
-  system(command_string.c_str());
-  joint_state_sub_.shutdown();
-  joint_state_pub_ = nh_.advertise<sensor_msgs::JointState>(joint_state_sub_.getTopic().substr(0, joint_state_sub_.getTopic().find("/joint")) + std::string("/joint_states"), 1);
-
-
-  /* start IK */
-  target_root_pose_.setIdentity();
-  tf::Quaternion q; q.setRPY(req.target_rot.x, req.target_rot.y, req.target_rot.z);
-  target_ee_pose_ = tf::Transform (q, tf::Vector3(req.target_pos.x, req.target_pos.y, req.target_pos.z));
-  if(!inverseKinematics(target_ee_pose_, target_joint_vector_, target_root_pose_,
-                        req.ik_algorithm, req.orientation, req.full_body, req.debug))
-    return false;
-
-  /* ik visualization */
-  ik_result_ = true;
-
-  return true;
-}
-
-bool TransformController::inverseKinematics(tf::Transform target_ee_pose, sensor_msgs::JointState& target_joint_vector, tf::Transform& target_root_pose, int ik_algorithm, bool orientation, bool full_body, bool debug)
-{
-  /* get initial joint state from sensor_msgs::State and kinematics and modelling */
-  target_joint_vector = current_joint_state_;
-
-  /* CAUTION: be sure that the joints are in order !!!!!!! */
-  std::vector<double> real_joints; // considering other type of joint (e.g. gimbal)
-  std::vector<int> joints_map; // joint index map, temp
-  for(auto itr = target_joint_vector.name.begin(); itr != target_joint_vector.name.end(); ++itr)
-    {
-      if(itr->find("joint") != std::string::npos)
-        {
-          real_joints.push_back(target_joint_vector.position.at(std::distance(target_joint_vector.name.begin(), itr)));
-          joints_map.push_back(std::distance(target_joint_vector.name.begin(), itr));
-        }
-    }
-  Eigen::VectorXd real_joint_vector = Eigen::Map<Eigen::VectorXd>(&real_joints[0], real_joints.size());
-
-  /* get link list */
-  KDL::Chain chain;
-  std::stringstream ss;
-  ss << rotor_num_;
-  tree_.getChain(std::string("root"), std::string("link") + ss.str(), chain);
-  /* definition of end coords */
-  /* the end point of the end link */
-  KDL::Segment ee_seg(std::string("end_effector"),
-                      KDL::Joint(KDL::Joint::None),
-                      KDL::Frame(KDL::Vector(link_length_, 0, 0)));
-  chain.addSegment(ee_seg);
-
-  /* set the link1(root) as the base link */
-  baselink_ = std::string("link1");
-
-  Eigen::MatrixXd jacobian;
-  calcJointJacobian(chain, real_joint_vector, jacobian, orientation, full_body, false); // calc the first jacobian with init jont vector
-
-  /* initialize the root pose if necessary */
-  if(!full_body) target_root_pose.setIdentity();
-
-  /* QP */
-  /*
-     1. QP cost function in qp Oases is : 1/2 * x^T H x + g^T x
-        - so the hessian Matrix H shoube be multiplied by 2, or gradian g shoud be half.
-     2. n_wrs is a total number in whole sequnece process, the value decrease every loop.
-     3. the matrix in Eigen library is colunm-major, so use transpose to get row-major data.
-        Plus, (A.transpose()).data is still column-mojar, please assign to a new matrix
-  */
-  boost::shared_ptr<SQProblem> qp_solver(new SQProblem(jacobian.cols(), rotor_num_ + 2));
-  // constraint: 1: stability margin: 1; 2: p determinant thre;  3 flight statibility: rotor_num
-  bool qp_init_flag = true;
-  Eigen::MatrixXd qp_H = Eigen::MatrixXd::Identity(jacobian.cols(), jacobian.cols());
-  Eigen::MatrixXd qp_g = Eigen::VectorXd::Zero(jacobian.cols());
-  Eigen::VectorXd qp_lb = Eigen::VectorXd::Constant(jacobian.cols(), -1);
-  Eigen::VectorXd qp_ub = Eigen::VectorXd::Constant(jacobian.cols(),  1);
-  qp_lb.head(jacobian.cols() - chain.getNrOfJoints()) *= thre_root_vel_;
-  qp_lb.tail(chain.getNrOfJoints()) *= thre_joint_vel_;
-  qp_ub.head(jacobian.cols() - chain.getNrOfJoints()) *= thre_root_vel_;
-  qp_ub.tail(chain.getNrOfJoints()) *= thre_joint_vel_;
-
-  Eigen::MatrixXd qp_A = Eigen::MatrixXd::Zero(qp_solver->getNC(), jacobian.cols());
-  Eigen::VectorXd qp_lA = Eigen::VectorXd::Constant(qp_solver->getNC(), -INFTY);
-  Eigen::VectorXd qp_uA = Eigen::VectorXd::Constant(qp_solver->getNC(), INFTY);
-
-  Eigen::MatrixXd W_ik_constraint = Eigen::MatrixXd::Identity(jacobian.rows(), jacobian.rows()) * w_ik_constraint_;
-  Eigen::MatrixXd W_vel = Eigen::MatrixXd::Identity(jacobian.cols(), jacobian.cols()) * w_joint_vel_; /* for joint motion constraint */
-  W_vel.block(0, 0, jacobian.cols() - chain.getNrOfJoints(), jacobian.cols() - chain.getNrOfJoints()) *= (w_root_vel_ / w_joint_vel_); /* for root motion constraint */
-
-  if(debug) std::cout << "the Weight Matrix of vel: \n" << W_vel << std::endl;
-  if(debug) std::cout << "the Weight Matrix of ik constraint: \n" << W_ik_constraint << std::endl;
-  if(debug) std::cout << "the qp lb is: \n" << qp_lb << std::endl;
-  if(debug) std::cout << "the qp ub is: \n" << qp_ub << std::endl;
-
-  int n_wsr = 100;
-  Options qp_options;
-  qp_options.enableEqualities = BT_TRUE;
-  qp_options.printLevel = PL_LOW;
-  qp_solver->setOptions(qp_options);
-
-  /* inverse kinematics loop */
-  for(int l = 0; l < differential_motion_count_; l++)
-    {
-      /*
-        1.
-         update the current kinematics by forward kinematics, along with the modelling
-      */
-
-      KDL::Frame ee_frame;
-      KDL::ChainFkSolverPos_recursive fk_solver(chain);
-      KDL::JntArray joint_positions(chain.getNrOfJoints());
-      joint_positions.data = real_joint_vector;
-      fk_solver.JntToCart(joint_positions, ee_frame);
-
-      /* update the modelling */
-      KDL::Rotation root_att;
-      tf::quaternionTFToKDL(target_root_pose.getRotation(), root_att);
-      setCogDesireOrientation(root_att);
-      forwardKinematics(target_joint_vector);
-      if(!stabilityMarginCheck()) ROS_ERROR("[ik] update modelling, bad stability margin ");
-      if(!modelling()) ROS_ERROR("[ik] update modelling, bad stability from force");
-
-      /*
-         2.
-         calcualte the cartesian error and check the congergence
-      */
-      tf::Transform ee_tf;
-      tf::transformKDLToTF(ee_frame, ee_tf);
-      if(debug)
-        ROS_WARN("ee x: %f,  y: %f, yaw: %f, target x: %f, y: %f, yaw: %f", ee_tf.getOrigin().x(), ee_tf.getOrigin().y(), getYaw(ee_tf.getRotation()), target_ee_pose.getOrigin().x(), target_ee_pose.getOrigin().y(), getYaw(target_ee_pose.getRotation()));
-      tf::Transform ee_err_tf =  (target_root_pose * ee_tf).inverse() * target_ee_pose;
-      double ee_pos_err = ee_err_tf.getOrigin().length();
-      double ee_rot_err = fabs(ee_err_tf.getRotation().getAngleShortestPath());
-      if(debug)
-        ROS_INFO("ee err pos, rot(angle): %f[m], %f[rad], err pos vec from ee tf : [%f, %f, %f]", ee_pos_err, ee_rot_err, ee_err_tf.getOrigin().x(), ee_err_tf.getOrigin().y(), ee_err_tf.getOrigin().z());
-
-      if(ee_pos_err < ee_pos_err_thre_ ) /* position convergence */
-        {
-          if(!orientation) return true;
-          else
-            if(ee_rot_err < ee_rot_err_thre_) return true;
-        }
-
-      /* transform the cartesian err to the root link frame */
-      if(ee_pos_err > ee_pos_err_max_) ee_pos_err = ee_pos_err_max_;
-      if(ee_rot_err > ee_rot_err_max_) ee_rot_err = ee_rot_err_max_;
-
-      tf::Vector3 ee_target_pos_err_root_link = ee_tf.getBasis() * ee_err_tf.getOrigin().normalize() * ee_pos_err;
-      tf::Vector3 ee_target_rot_err_root_link = ee_tf.getBasis() * ee_err_tf.getRotation().getAxis() * ee_rot_err;
-
-      Eigen::VectorXd delta_cartesian = Eigen::VectorXd::Zero(6);
-      Eigen::Vector3d temp_vec;
-      tf::vectorTFToEigen(ee_target_pos_err_root_link, temp_vec);
-      delta_cartesian.head(3) = temp_vec;
-      tf::vectorTFToEigen(ee_target_rot_err_root_link, temp_vec);
-      delta_cartesian.tail(3) = temp_vec;
-
-      if(multilink_type_ == MULTILINK_TYPE_SE2)
-        {
-          if(!orientation) delta_cartesian.conservativeResize(2);
-          else
-            {
-              delta_cartesian(2) = delta_cartesian(5);
-              delta_cartesian.conservativeResize(3);
-            }
-        }
-      else
-        {
-          if(!orientation) delta_cartesian.conservativeResize(3);
-        }
-
-      if(debug) std::cout << "delta cartesian: \n" << delta_cartesian << std::endl;
-
-      /*
-         3.
-         calculate joint jacobian
-      */
-      if(!calcJointJacobian(chain, real_joint_vector, jacobian, orientation, full_body, debug))
-        return false;
-
-      /*
-        4.
-        calcualte the delta joint angle vector
-       */
-      Eigen::VectorXd delta_joint_vector = Eigen::VectorXd::Zero(jacobian.cols());
-      if(ik_algorithm == IK_INVERSE_JACOBIAN)
-        {
-          //delta_joint_vector = pseudoinverse(jacobian) * delta_cartesian; // simple pseudo inverse
-          delta_joint_vector = jacobian.transpose() *
-            (jacobian * jacobian.transpose() +  0.001 * Eigen::MatrixXd::Identity(jacobian.rows(), jacobian.rows())).inverse()  * delta_cartesian;
-        }
-      else if(ik_algorithm == IK_QP)
-        {
-          /*
-            QP:
-            - cost function : (J dq - dx)^T W1 (J dq - dx) + dq^T W2 dq  :  The least square error term for equality conditions(e.g. IK)  + vel (i.e. joint, root) penality
-            - dq^T (J^T W1 J + W2) dq - 2 dx^T W1 J dq + hoge
-            - since:-2 dx^T W1 J = -2 (J^T W1^T dx)^T = -2 (J^T W1 dx)^T
-          */
-          qp_H = jacobian.transpose() * W_ik_constraint * jacobian + W_vel;
-          qp_g = - delta_cartesian.transpose()  * W_ik_constraint * jacobian;
-          /*
-          if(debug)
-            {
-              std::cout << "qp H: \n" << qp_H << std::endl;
-              std::cout << "qp g: \n" << qp_g << std::endl;
-            }
-          */
-
-          /*************************************************************************************
-           1. joint velocity constraint
-          ****************************************************************************************/
-          for(int i = 0; i < chain.getNrOfJoints(); i ++)
-            {
-              qp_lb(jacobian.cols() - chain.getNrOfJoints() + i)= -thre_joint_vel_;
-              qp_ub(jacobian.cols() - chain.getNrOfJoints() + i)=  thre_joint_vel_;
-
-              /* min */
-              if(real_joint_vector(i) - joint_angle_min_ < joint_vel_constraint_range_)
-                qp_lb(jacobian.cols() - chain.getNrOfJoints() + i) *=
-                  (real_joint_vector(i) - joint_angle_min_ - joint_vel_forbidden_range_) / (joint_vel_constraint_range_ - joint_vel_forbidden_range_);
-              /* max */
-              if(joint_angle_max_ - real_joint_vector(i)  < joint_vel_constraint_range_)
-                qp_ub(jacobian.cols() - chain.getNrOfJoints() + i) *=
-                  (joint_angle_max_ - real_joint_vector(i) - joint_vel_forbidden_range_) / (joint_vel_constraint_range_ - joint_vel_forbidden_range_);
-            }
-
-          /*************************************************************************************
-           2. stability margin
-          ****************************************************************************************/
-          Eigen::MatrixXd margin_att_jacobian = Eigen::MatrixXd::Zero(1, 2); /* roll pitch */
-          Eigen::MatrixXd margin_joint_jacobian = Eigen::MatrixXd::Zero(1, chain.getNrOfJoints()); /* joint */
-          double stability_margin = getStabilityMargin();
-          /* fill the fixed size bounder lA */
-          qp_lA(0) =  stability_margin_thre_ - stability_margin;
-          if(debug) std::cout << "stability margin: " << stability_margin << std::endl;
-
-          /*************************************************************************************
-           2. singularity
-          ****************************************************************************************/
-          Eigen::MatrixXd det_att_jacobian = Eigen::MatrixXd::Zero(1, 2); /* roll pitch */
-          Eigen::MatrixXd det_joint_jacobian = Eigen::MatrixXd::Zero(1, chain.getNrOfJoints()); /* joint */
-          double p_det = getPdeterminant();
-          /* fill the fixed size bounder lA */
-          qp_lA(1) =  p_det_thre_ - p_det;
-          if(debug) std::cout << "singularity: " << p_det << std::endl;
-
-          /*************************************************************************************
-           4. optimal hovering thrust constraint (including singularity check)
-           f_min < F + delta_f < f_max =>   delta_f =  (f(q + d_q) - f(q)) / d_q * delta_q
-           TODO: use virutal state (beta) to maximize the flight stability
-          ****************************************************************************************/
-          Eigen::MatrixXd f_att_jacobian = Eigen::MatrixXd::Zero(rotor_num_, 2); /* roll pitch */
-          Eigen::MatrixXd f_joint_jacobian = Eigen::MatrixXd::Zero(rotor_num_, chain.getNrOfJoints()); /* joint */
-          double delta_angle = 0.001; // [rad]
-          Eigen::VectorXd hovering_f =  getOptimalHoveringThrust();
-          if(debug) std::cout << "hovering f: " << hovering_f.transpose() << std::endl;
-          /* fill the fixed size bounder lA/uA */
-          qp_lA.segment(2, rotor_num_) = Eigen::VectorXd::Constant(rotor_num_, f_min_) - hovering_f;
-          qp_uA.segment(2, rotor_num_) = Eigen::VectorXd::Constant(rotor_num_, f_max_) - hovering_f;
-
-          /* joint */
-          for(int index = 0; index < chain.getNrOfJoints(); index++)
-            {
-              sensor_msgs::JointState joint_state = target_joint_vector;
-              joint_state.position.at(joints_map.at(index)) += delta_angle;
-              forwardKinematics(joint_state);
-              if(!stabilityMarginCheck())
-                ROS_ERROR("[optimal hovering thrust constraint] delta joint, bad margin ");
-              if(!modelling())
-                ROS_ERROR("[optimal hovering thrust constraint] delta joint, bad stability ");
-
-              /* stability margin */
-              margin_joint_jacobian(0, index) = (getStabilityMargin() - stability_margin) /delta_angle;
-              /* singularity */
-              det_joint_jacobian(0, index) = (getPdeterminant() - p_det) /delta_angle;
-              /* hovering thrust */
-              f_joint_jacobian.block(0, index, rotor_num_, 1) = (getOptimalHoveringThrust() - hovering_f) / delta_angle;
-
-            }
-          /* fill the constraint matrix A */
-          qp_A.block(0, jacobian.cols() - chain.getNrOfJoints(), 1, chain.getNrOfJoints()) = margin_joint_jacobian;
-          qp_A.block(1, jacobian.cols() - chain.getNrOfJoints(), 1, chain.getNrOfJoints()) = det_joint_jacobian;
-          qp_A.block(2, jacobian.cols() - chain.getNrOfJoints(), rotor_num_, chain.getNrOfJoints()) = f_joint_jacobian;
-
-#if 0
-          /* debug */
-          std::cout << "delta angle 0.01, f_d_joint jacobian \n" << f_joint_jacobian << std::endl;
-          std::cout << "delta angle 0.01, margin_d_joint jacobian \n" << margin_joint_jacobian << std::endl;
-          std::cout << "delta angle 0.01, det_d_joint jacobian \n" << det_joint_jacobian << std::endl;
-
-          delta_angle = -0.001; // [rad]
-          for(int index = 0; index < chain.getNrOfJoints(); index++)
-            {
-              sensor_msgs::JointState joint_state = target_joint_vector;
-              joint_state.position.at(joints_map.at(index)) += delta_angle;
-              forwardKinematics(joint_state);
-
-              if(!stabilityMarginCheck())
-                ROS_ERROR("[optimal hovering thrust constraint] delta joint, bad margin ");
-              if(!modelling())
-                ROS_ERROR("[optimal hovering thrust constraint] delta joint, bad stability ");
-
-              /* stability margin */
-              margin_joint_jacobian(0, index) = (getStabilityMargin() - stability_margin) / delta_angle;
-              /* singularity */
-              det_joint_jacobian(0, index) = (getPdeterminant() - p_det) /delta_angle;
-              /* hovering thrust */
-              f_joint_jacobian.block(0, index, rotor_num_, 1) = (getOptimalHoveringThrust() - hovering_f) / delta_angle;
-            }
-          //std::cout << "delta angle -0.01, f_d_joint jacobian \n" << f_joint_jacobian << std::endl;
-          std::cout << "delta angle -0.01, margin_d_joint jacobian \n" << margin_joint_jacobian << std::endl;
-          std::cout << "delta angle -0.01, det_d_joint jacobian \n" << det_joint_jacobian << std::endl;
-#endif
-
-          /* att */
-          if(multilink_type_ == MULTILINK_TYPE_SE3 && full_body)
-            {
-              /* reset joint vector */
-              /* 2.2.1 roll */
-              setCogDesireOrientation(root_att * KDL::Rotation::RPY(delta_angle, 0, 0));
-              forwardKinematics(target_joint_vector);
-              if(!stabilityMarginCheck())
-                ROS_ERROR("[optimal hovering thrust constraint] delta joint, bad margin ");
-              if(!modelling())
-                ROS_ERROR("[optimal hovering thrust constraint] delta roll, bad stability ");
-
-              /* stability margin */
-              margin_att_jacobian(0, 0) = (getStabilityMargin() - stability_margin) / delta_angle;
-              /* singularity */
-              det_att_jacobian(0, 0) = (getPdeterminant() - p_det) /delta_angle;
-              /* hovering thrust */
-              f_att_jacobian.block(0, 0, rotor_num_, 1) = (getOptimalHoveringThrust() - hovering_f) / delta_angle;
-
-              /* 2.2.2 pitch */
-              setCogDesireOrientation(root_att * KDL::Rotation::RPY(0, delta_angle, 0));
-              forwardKinematics(target_joint_vector);
-              if(!stabilityMarginCheck())
-                ROS_ERROR("[optimal hovering thrust constraint] delta roll, bad stability ");
-              if(!modelling())
-                ROS_ERROR("[optimal hovering thrust constraint] delta roll, bad stability ");
-
-              /* stability margin */
-              margin_att_jacobian(0, 1) = (getStabilityMargin() - stability_margin) / delta_angle;
-              /* singularity */
-              det_att_jacobian(0, 1) = (getPdeterminant() - p_det) /delta_angle;
-              /* hovering thrust */
-              f_att_jacobian.block(0, 1, rotor_num_, 1) = (getOptimalHoveringThrust() - hovering_f) / delta_angle;
-
-              /* fill the constraint matrix A */
-              qp_A.block(0, 3, 0, 2) = margin_att_jacobian;
-              qp_A.block(1, 3, 0, 2) = det_att_jacobian;
-              qp_A.block(2, 3, rotor_num_, 2) = f_att_jacobian;
-
-#if 0
-              /* debug */
-              std::cout << "delta angle 0.01, f_d_att jacobian \n" << f_att_jacobian << std::endl;
-              std::cout << "delta angle 0.01, margin_d_att jacobian \n" << margin_att_jacobian << std::endl;
-              std::cout << "delta angle 0.01, det_d_att jacobian \n" << det_att_jacobian << std::endl;
-              delta_angle = -0.01; // [rad]
-              setCogDesireOrientation(root_att * KDL::Rotation::RPY(delta_angle, 0, 0));
-              forwardKinematics(target_joint_vector);
-              if(!modelling())
-                ROS_ERROR("[optimal hovering thrust constraint] delta roll, bad stability ");
-              if(!modelling())
-                ROS_ERROR("[optimal hovering thrust constraint] delta roll, bad stability ");
-
-              margin_att_jacobian(0, 0) = (getStabilityMargin() - stability_margin) / delta_angle;
-              det_att_jacobian(0, 0) = (getPdeterminant() - p_det) /delta_angle;
-              f_att_jacobian.block(0, 0, rotor_num_, 1) = (getOptimalHoveringThrust() - hovering_f) / delta_angle;
-
-              setCogDesireOrientation(root_att * KDL::Rotation::RPY(0, delta_angle, 0));
-              forwardKinematics(target_joint_vector);
-              if(!modelling())
-                ROS_ERROR("[optimal hovering thrust constraint] delta roll, bad stability ");
-              if(!modelling())
-                ROS_ERROR("[optimal hovering thrust constraint] delta roll, bad stability ");
-              margin_att_jacobian(0, 1) = (getStabilityMargin() - stability_margin) / delta_angle;
-              det_att_jacobian(0, 1) = (getPdeterminant() - p_det) /delta_angle;
-              f_att_jacobian.block(0, 1, rotor_num_, 1) = (getOptimalHoveringThrust() - hovering_f) / delta_angle;
-              //std::cout << "delta angle -0.01, f_d_att jacobian \n" << f_att_jacobian << std::endl;
-              //std::cout << "delta angle 0.01, margin_d_att jacobian \n" << margin_att_jacobian << std::endl;
-              //std::cout << "delta angle 0.01, det_d_att jacobian \n" << det_att_jacobian << std::endl;
-#endif
-            }
-
-          //std::cout << "qp A \n" << qp_A << std::endl; //debug
-          std::cout << "qp lA \n" << qp_lA.transpose() << std::endl; //debug
-          std::cout << "qp uA \n" << qp_uA.transpose() << std::endl; //debug
-
-          int solver_result;
-          n_wsr = 100; /* this value have to be updated every time, otherwise it will decrease every loop */
-          Eigen::MatrixXd qp_At = qp_A.transpose();
-          if(qp_init_flag)
-            { /* first time */
-              qp_init_flag = false;
-
-              solver_result = qp_solver->init(qp_H.data(), qp_g.data(),
-                                              qp_At.data(), /* CAUTION: eigen is col-major order array in default! */
-                                              qp_lb.data(), qp_ub.data(),
-                                              qp_lA.data(), qp_uA.data(), n_wsr);
-            }
-          else
-            {
-              solver_result = qp_solver->hotstart(qp_H.data(), qp_g.data(),
-                                                  qp_At.data(),
-                                                  qp_lb.data(), qp_ub.data(),
-                                                  qp_lA.data(), qp_uA.data(), n_wsr);
-            }
-          if(solver_result != 0)
-            {
-              ROS_ERROR("can not solve QP the solver_result is %d", solver_result);
-              return false;
-            }
-
-          qp_solver->getPrimalSolution(delta_joint_vector.data());
-        }
-      else
-        {
-          ROS_ERROR("invalid ik algorithm %d", ik_algorithm);
-          return false;
-        }
-
-      if(debug) std::cout << "delta joint vector: \n" << delta_joint_vector << std::endl;
-
-      std::cout << "delta f \n" << (qp_A *  delta_joint_vector).transpose() << std::endl; //debug
-
-      /*
-         5.
-         update kinematics, root link transformation
-      */
-      if(full_body)
-        {
-          if(multilink_type_ == MULTILINK_TYPE_SE2)
-            {
-              assert(delta_joint_vector.size() == chain.getNrOfJoints() + 3);
-
-              /* root link incremental transformation: */
-              target_root_pose *= tf::Transform(tf::createQuaternionFromYaw(delta_joint_vector(2)),
-                                                tf::Vector3(delta_joint_vector(0), delta_joint_vector(1), 0));
-              /* joint */
-              real_joint_vector += delta_joint_vector.tail(delta_joint_vector.size() - 3);
-            }
-          else //  multilink_type_ == MULTILINK_TYPE_SE3
-            {
-              assert(delta_joint_vector.size() == chain.getNrOfJoints() + 6);
-
-              /* root link incremental transformation: */
-              tf::Vector3 delta_pos_from_root_link;
-              tf::vectorEigenToTF(delta_joint_vector.head(3), delta_pos_from_root_link);
-              tf::Vector3 delta_rot_from_root_link;
-              tf::vectorEigenToTF(delta_joint_vector.segment(3, 3), delta_rot_from_root_link);
-
-              target_root_pose *= tf::Transform(tf::Quaternion(delta_rot_from_root_link, delta_rot_from_root_link.length()), delta_pos_from_root_link);
-
-              /* joint */
-              real_joint_vector += delta_joint_vector.tail(delta_joint_vector.size() - 6);
-            }
-
-        }
-      else
-        real_joint_vector += delta_joint_vector;
-
-      /* clip */
-      for(int index = 0; index < real_joint_vector.size(); index++)
-        {
-          if(real_joint_vector[index] < joint_angle_min_)
-            {
-              ROS_ERROR("joint%d should be not exceed: %f", index, real_joint_vector[index]);
-              real_joint_vector[index] = joint_angle_min_;
-            }
-          if(real_joint_vector[index] > joint_angle_max_)
-            {
-              ROS_ERROR("joint%d should be not exceed: %f", index, real_joint_vector[index]);
-              real_joint_vector[index] = joint_angle_max_;
-            }
-        }
-
-      if(debug)  std::cout << "real joint vector: \n" << real_joint_vector << std::endl;
-
-      /* udpate the joint angles */
-      for(auto itr = joints_map.begin(); itr != joints_map.end(); ++itr)
-        target_joint_vector.position.at(*itr) = real_joint_vector(std::distance(joints_map.begin(), itr));
-    }
-
-  ROS_WARN("can not resolve inverse kinematics with the max loop count %d", differential_motion_count_);
-  return false;
-}
-
-bool TransformController::calcJointJacobian(const KDL::Chain& chain, const Eigen::VectorXd& angle_vector, Eigen::MatrixXd& jacobian,  bool orientation, bool full_body, bool debug)
-{
-  /* fill the joint state */
-  KDL::JntArray joint_positions(chain.getNrOfJoints());
-  joint_positions.data = angle_vector;
-
-  /* calculate the jacobian */
-  KDL::ChainJntToJacSolver jac_solver_(chain);
-  KDL::Jacobian jac(chain.getNrOfJoints());
-  if(jac_solver_.JntToJac(joint_positions, jac) == KDL::SolverI::E_NOERROR)
-    {
-      /* consider root is attached with a 6Dof free joint */
-      if(full_body)
-        {
-          /* get ee position from root */
-          KDL::Frame ee_frame;
-          KDL::ChainFkSolverPos_recursive fk_solver(chain);
-          fk_solver.JntToCart(joint_positions, ee_frame);
-          /* debug */
-          ROS_INFO("ee pose: [%f %f %f]", ee_frame.p.x(), ee_frame.p.y(), ee_frame.p.z());
-
-          /* fill the 6x6 matrix */
-          jacobian = Eigen::MatrixXd::Zero(6, 6 + jac.data.cols());
-          /* root link */
-          jacobian.block(0, 0, 6, 6) = Eigen::MatrixXd::Identity(6, 6);
-          jacobian.block(0, 3, 3, 1) = (Eigen::Vector3d(1, 0, 0)).cross(Eigen::Vector3d(ee_frame.p.data));
-          jacobian.block(0, 4, 3, 1) = (Eigen::Vector3d(0, 1, 0)).cross(Eigen::Vector3d(ee_frame.p.data));
-          jacobian.block(0, 5, 3, 1) = (Eigen::Vector3d(0, 0, 1)).cross(Eigen::Vector3d(ee_frame.p.data));
-
-          /* joint part */
-          jacobian.block(0, 6, 6, jac.data.cols()) = jac.data;
-        }
-      else
-        jacobian = jac.data;
-
-      /* debug */
-      //std::cout << "raw jacobian: \n" << jacobian << std::endl;
-
-      /* resize */
-      if(multilink_type_ == MULTILINK_TYPE_SE2)
-        {
-          /* row process */
-          if(!orientation)
-            {
-              jacobian.conservativeResize(2, jacobian.cols());
-            }
-          else
-            {
-              jacobian.row(2) = jacobian.row(5);
-              jacobian.conservativeResize(3, jacobian.cols());
-            }
-
-          /* col process */
-          if(full_body)
-            {
-              jacobian.block(0, 2, jacobian.rows(),  chain.getNrOfJoints() + 1)
-                = jacobian.block(0, 5, jacobian.rows(),  chain.getNrOfJoints() + 1);
-              jacobian.conservativeResize(jacobian.rows(), chain.getNrOfJoints() + 3);
-            }
-        }
-      else
-        {
-          /* row process */
-          if(!orientation) jacobian.conservativeResize(3, jacobian.cols()); //only position
-        }
-
-      if(debug) std::cout << "jacobian: \n" << jacobian << std::endl;
-      return true;
-    }
-  return false; //else
-}
 
 bool TransformController::addExtraModuleCallback(hydrus::AddExtraModule::Request  &req,
                                                  hydrus::AddExtraModule::Response &res)
@@ -1393,7 +766,7 @@ void TransformController::param2controller()
   p_pseudo_inverse_with_inertia_msg.pseudo_inverse.resize(rotor_num_);
 
   /* the transform from cog to baselink */
-  transform_msg.header.stamp = joint_state_stamp_;
+  transform_msg.header.stamp = current_actuator_state_.header.stamp;
   transform_msg.header.frame_id = std::string("cog");
   transform_msg.child_frame_id = baselink_;
   tf::transformTFToMsg(getCog2Baselink(), transform_msg.transform);
@@ -1539,4 +912,15 @@ tf::Transform TransformController::getRoot2Link(std::string link, sensor_msgs::J
   tf::transformKDLToTF(f, link_f);
 
   return link_f;
+}
+
+void TransformController::setActuatorJointMap(const sensor_msgs::JointState& actuator_state)
+{
+  /* CAUTION: be sure that the joints are in order !!!!!!! */
+  for(auto itr = actuator_state.name.begin(); itr != actuator_state.name.end(); ++itr)
+    {
+      if(itr->find("joint") != std::string::npos)
+        actuator_joint_map_.push_back(std::distance(actuator_state.name.begin(), itr));
+    }
+
 }

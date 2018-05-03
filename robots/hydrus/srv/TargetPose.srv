@@ -5,7 +5,6 @@ geometry_msgs/Vector3 target_pos
 geometry_msgs/Vector3 target_rot
 bool orientation
 bool full_body
-uint8 ik_algorithm
 bool debug
 ---
 bool status
