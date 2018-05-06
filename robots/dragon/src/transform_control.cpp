@@ -78,7 +78,7 @@ void DragonTransformController::initParam()
 }
 
 
-void DragonTransformController::forwardKinematics(sensor_msgs::JointState state)
+void DragonTransformController::forwardKinematics(sensor_msgs::JointState& state)
 {
   /* special process */
   gimbalProcess(state);

@@ -53,6 +53,7 @@ EndEffectorIKSolverCore::EndEffectorIKSolverCore(ros::NodeHandle nh, ros::NodeHa
 
     end_effector_ik_service_ = nh_.advertiseService("end_effector_ik", &EndEffectorIKSolverCore::endEffectorIkCallback, this);
     actuator_state_sub_ = nh_.subscribe(actuator_state_sub_name, 1, &EndEffectorIKSolverCore::actuatorStateCallback, this);
+    env_collision_sub_ = nh_.subscribe("/env_collision", 1, &EndEffectorIKSolverCore::envCollision, this);
   }
 
 bool EndEffectorIKSolverCore::endEffectorIkCallback(hydrus::TargetPose::Request  &req,
@@ -63,20 +64,31 @@ bool EndEffectorIKSolverCore::endEffectorIkCallback(hydrus::TargetPose::Request 
   std::string command_string = std::string("rosnode kill ") + actuator_state_publisher_node_name.c_str();
   system(command_string.c_str());
 
+  collision_avoidance_ = req.collision_avoidance;
   /* start IK */
   tf::Quaternion q; q.setRPY(req.target_rot.x, req.target_rot.y, req.target_rot.z);
   target_ee_pose_ = tf::Transform (q, tf::Vector3(req.target_pos.x, req.target_pos.y, req.target_pos.z));
 
   tf::Transform init_root_pose;
   init_root_pose.setIdentity();
+
+  /* debug */
+  // init_root_pose.setRotation(tf::createQuaternionFromYaw(-M_PI/2));
+  // init_root_pose.setOrigin(tf::Vector3(0.0, 0.6, 0.0));
+
   if(!inverseKinematics(target_ee_pose_, init_actuator_vector_, init_root_pose,
-                        req.orientation, req.full_body, req.debug))
+                        req.orientation, req.full_body, req.collision_avoidance, req.debug))
     return false;
 
   return true;
 }
 
-bool EndEffectorIKSolverCore::inverseKinematics(const tf::Transform& target_ee_pose, const sensor_msgs::JointState& init_actuator_vector, const tf::Transform& init_root_pose, bool orientation, bool full_body, bool debug)
+void EndEffectorIKSolverCore::envCollision(const visualization_msgs::MarkerArrayConstPtr& env_msg)
+{
+  env_collision_ = *env_msg;
+}
+
+bool EndEffectorIKSolverCore::inverseKinematics(const tf::Transform& target_ee_pose, const sensor_msgs::JointState& init_actuator_vector, const tf::Transform& init_root_pose, bool orientation, bool full_body, bool collision_avoidance, bool debug)
 {
 
   /* declare the differential kinemtiacs const */
@@ -93,10 +105,12 @@ bool EndEffectorIKSolverCore::inverseKinematics(const tf::Transform& target_ee_p
   cost_container.back()->initialize(nh_, nhp_, planner_core_ptr_, "differential_kinematics_cost/cartesian_constraint", orientation, full_body);
 
   /* special process: definition of end coords */
-  KDL::Chain chain;
   std::stringstream ss;
   ss << planner_core_ptr_->getRobotModelPtr()->getRotorNum();
   boost::dynamic_pointer_cast<cost::CartersianConstraint<Planner> >(cost_container.back())->updateChain("root", std::string("link") + ss.str(), KDL::Segment(std::string("end_effector"), KDL::Joint(KDL::Joint::None), KDL::Frame(KDL::Vector(planner_core_ptr_->getRobotModelPtr()->getLinkLength(), 0, 0))));
+  /* following end effector is not valid for full-body ik solution, can not figure the reason */
+  //boost::dynamic_pointer_cast<cost::CartersianConstraint<Planner> >(cost_container.back())->updateChain("root", std::string("link3"), KDL::Segment(std::string("end_effector"), KDL::Joint(KDL::Joint::None), KDL::Frame(KDL::Vector(planner_core_ptr_->getRobotModelPtr()->getLinkLength(), 0, 0))));
+
   boost::dynamic_pointer_cast<cost::CartersianConstraint<Planner> >(cost_container.back())->updateTargetFrame(target_ee_pose_);
 
   /* declare the differential kinemtiacs constraint */
@@ -108,6 +122,13 @@ bool EndEffectorIKSolverCore::inverseKinematics(const tf::Transform& target_ee_p
   /* 2.  stability */
   constraint_container.push_back(constraint_plugin_loader.createInstance("differential_kinematics_constraint/stability"));
   constraint_container.back()->initialize(nh_, nhp_, planner_core_ptr_, "differential_kinematics_constraint/stability", orientation, full_body);
+  /* 3. collision avoidance */
+  if(collision_avoidance)
+    {
+      constraint_container.push_back(constraint_plugin_loader.createInstance("differential_kinematics_constraint/collision_avoidance"));
+      constraint_container.back()->initialize(nh_, nhp_, planner_core_ptr_, "differential_kinematics_constraint/collision_avoidance", orientation, full_body);
+      boost::dynamic_pointer_cast<constraint::CollisionAvoidance<Planner> >(constraint_container.back())->setEnv(env_collision_);
+    }
 
   /* reset the init joint(actuator) state the init root pose for planner */
   planner_core_ptr_->setInitRootPose(init_root_pose);

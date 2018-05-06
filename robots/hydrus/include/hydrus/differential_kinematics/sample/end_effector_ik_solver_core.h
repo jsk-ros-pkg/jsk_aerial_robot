@@ -39,8 +39,10 @@
 #include <hydrus/differential_kinematics/planner_core.h>
 
 #include <pluginlib/class_loader.h>
-/* special cost for cartesian constraint */
+/* special cost plugin for cartesian constraint */
 #include <hydrus/differential_kinematics/cost/cartesian_constraint.h>
+/* special constraint plugin for collision avoidance */
+#include <hydrus/differential_kinematics/constraint/collision_avoidance.h>
 
 using namespace differential_kinematics;
 
@@ -57,6 +59,7 @@ private:
   ros::NodeHandle nhp_;
   ros::ServiceServer end_effector_ik_service_;
   ros::Subscriber actuator_state_sub_;
+  ros::Subscriber env_collision_sub_;
   tf::TransformBroadcaster br_;
 
   boost::shared_ptr<Planner> planner_core_ptr_;
@@ -64,11 +67,16 @@ private:
   tf::Transform target_ee_pose_;
   sensor_msgs::JointState init_actuator_vector_;
 
-  bool inverseKinematics(const tf::Transform& target_ee_pose, const sensor_msgs::JointState& init_actuator_vector, const tf::Transform& init_root_pose, bool orientation, bool full_body, bool debug);
+  /* collision avoidance */
+  bool collision_avoidance_;
+  visualization_msgs::MarkerArray env_collision_;
+
+  bool inverseKinematics(const tf::Transform& target_ee_pose, const sensor_msgs::JointState& init_actuator_vector, const tf::Transform& init_root_pose, bool orientation, bool full_body, bool collision_avoidance, bool debug);
 
   void actuatorStateCallback(const sensor_msgs::JointStateConstPtr& state);
   bool endEffectorIkCallback(hydrus::TargetPose::Request  &req,
                              hydrus::TargetPose::Response &res);
+  void envCollision(const visualization_msgs::MarkerArrayConstPtr& env_msg);
 
   void motionFunc();
 };

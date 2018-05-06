@@ -81,7 +81,8 @@ namespace differential_kinematics
       double rot_convergence_thre_;
       double pos_err_max_;
       double rot_err_max_;
-      double w_cartesian_err_constraint_;
+      double w_pos_err_constraint_;
+      double w_att_err_constraint_;
 
       KDL::Chain chain_;
       Eigen::MatrixXd W_cartesian_err_constraint_;

@@ -5,6 +5,7 @@ geometry_msgs/Vector3 target_pos
 geometry_msgs/Vector3 target_rot
 bool orientation
 bool full_body
+bool collision_avoidance
 bool debug
 ---
 bool status

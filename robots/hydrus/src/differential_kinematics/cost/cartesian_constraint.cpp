@@ -21,11 +21,15 @@ namespace differential_kinematics
       if(Base<motion_planner>::verbose_) std::cout << "pos_err_max: " << std::setprecision(3) << pos_err_max_ << std::endl;
       Base<motion_planner>::nhp_.param ("rot_err_max", rot_err_max_, 0.17); //[rad]
       if(Base<motion_planner>::verbose_) std::cout << "rot_err_max: " << std::setprecision(3) << rot_err_max_ << std::endl;
-      Base<motion_planner>::nhp_.param ("w_cartesian_err_constraint", w_cartesian_err_constraint_, 1.0);
-      if(Base<motion_planner>::verbose_) std::cout << "w_cartesian_err_constraint: " << std::setprecision(3) << w_cartesian_err_constraint_ << std::endl;
+      Base<motion_planner>::nhp_.param ("w_pos_err_constraint", w_pos_err_constraint_, 1.0);
+      if(Base<motion_planner>::verbose_) std::cout << "w_pos_err_constraint: " << std::setprecision(3) << w_pos_err_constraint_ << std::endl;
+      Base<motion_planner>::nhp_.param ("w_att_err_constraint", w_att_err_constraint_, 1.0);
+      if(Base<motion_planner>::verbose_) std::cout << "w_att_err_constraint: " << std::setprecision(3) << w_att_err_constraint_ << std::endl;
 
-      W_cartesian_err_constraint_ = Eigen::MatrixXd::Identity(6, 6) * w_cartesian_err_constraint_;
-      if(!Base<motion_planner>::orientation_) W_cartesian_err_constraint_.block(3, 3, 3, 3) = Eigen::MatrixXd::Zero(3, 3);
+      W_cartesian_err_constraint_ = Eigen::MatrixXd::Identity(6, 6);
+      W_cartesian_err_constraint_.block(0, 0, 3, 3) *=  w_pos_err_constraint_;
+      if(Base<motion_planner>::orientation_) W_cartesian_err_constraint_.block(3, 3, 3, 3) *= w_att_err_constraint_;
+      else W_cartesian_err_constraint_.block(3, 3, 3, 3) = Eigen::MatrixXd::Zero(3, 3);
     }
 
     template <class motion_planner>
@@ -36,7 +40,7 @@ namespace differential_kinematics
       KDL::Frame end_frame;
       KDL::ChainFkSolverPos_recursive fk_solver(chain_);
       KDL::JntArray joint_positions(chain_.getNrOfJoints());
-      joint_positions.data = Base<motion_planner>::planner_->getTargetJointVector();
+      joint_positions.data = Base<motion_planner>::planner_->getTargetJointVector().head(chain_.getNrOfJoints());
       fk_solver.JntToCart(joint_positions, end_frame);
 
       tf::Transform end_tf;
@@ -112,65 +116,64 @@ namespace differential_kinematics
     template <class motion_planner>
     bool CartersianConstraint<motion_planner>::calcJointJacobian(Eigen::MatrixXd& jacobian, bool debug)
     {
-      jacobian = Eigen::MatrixXd::Zero(6, chain_.getNrOfJoints() + 6);
+      jacobian = Eigen::MatrixXd::Zero(6, Base<motion_planner>::j_ndof_ + 6);
 
       /* fill the joint state */
       KDL::JntArray joint_positions(chain_.getNrOfJoints());
-      joint_positions.data = Base<motion_planner>::planner_->getTargetJointVector();
+      joint_positions.data = (Base<motion_planner>::planner_->getTargetJointVector()).head(chain_.getNrOfJoints());
 
-      /* calculate the jacobian */
-      KDL::ChainJntToJacSolver jac_solver(chain_);
-      KDL::Jacobian jac(chain_.getNrOfJoints());
-      if(jac_solver.JntToJac(joint_positions, jac) == KDL::SolverI::E_NOERROR)
+      if(chain_.getNrOfJoints() > 0 )
         {
-#if 0 
-          if(1)
-#else
-            if(Base<motion_planner>::full_body_)
-#endif
-              {
-                /* consider root is attached with a 6Dof free joint */
-
-                /* get end frame position from root */
-                KDL::Frame end_frame;
-                KDL::ChainFkSolverPos_recursive fk_solver(chain_);
-                fk_solver.JntToCart(joint_positions, end_frame);
-
-                if(debug)
-                  ROS_INFO("end pose: [%f %f %f]", end_frame.p.x(), end_frame.p.y(), end_frame.p.z());
-
-                /* root link */
-                jacobian.block(0, 0, 6, 6) = Eigen::MatrixXd::Identity(6, 6);
-                jacobian.block(0, 3, 3, 1) = (Eigen::Vector3d(1, 0, 0)).cross(Eigen::Vector3d(end_frame.p.data));
-                jacobian.block(0, 4, 3, 1) = (Eigen::Vector3d(0, 1, 0)).cross(Eigen::Vector3d(end_frame.p.data));
-                jacobian.block(0, 5, 3, 1) = (Eigen::Vector3d(0, 0, 1)).cross(Eigen::Vector3d(end_frame.p.data));
-              }
-
-          /* joint part */
-          jacobian.block(0, 6, 6, jac.data.cols()) = jac.data;
-
-#if 1
-          /* special */
-          if(Base<motion_planner>::planner_->getMultilinkType() == motion_planner::MULTILINK_TYPE_SE2)
+          /* calculate the jacobian */
+          KDL::ChainJntToJacSolver jac_solver(chain_);
+          KDL::Jacobian jac(chain_.getNrOfJoints());
+          if(jac_solver.JntToJac(joint_positions, jac) == KDL::SolverI::E_NOERROR)
             {
-              if(!Base<motion_planner>::orientation_)
-                jacobian.block(2, 0, 4, jacobian.cols()) = Eigen::MatrixXd::Zero(4, jacobian.cols());
-              else
-                jacobian.block(2, 0, 3, jacobian.cols()) = Eigen::MatrixXd::Zero(3, jacobian.cols());
+              /* joint part */
+              jacobian.block(0, 6, 6, jac.data.cols()) = jac.data;
             }
           else
             {
-              if(!Base<motion_planner>::orientation_)
-                jacobian.block(3, 0, 3, jacobian.cols()) = Eigen::MatrixXd::Zero(3, jacobian.cols());
+              ROS_WARN("cost (%s) can not calculate the jacobian", Base<motion_planner>::cost_name_.c_str());
+              return false;
             }
-#endif
-
-          if(debug) std::cout << "jacobian: \n" << jacobian << std::endl;
-          return true;
         }
 
-      ROS_WARN("cost (%s) can not calculate the jacobian", Base<motion_planner>::cost_name_.c_str());
-      return false;
+      if(Base<motion_planner>::full_body_)
+        {
+          /* consider root is attached with a 6Dof free joint */
+
+          /* get end frame position from root */
+          KDL::Frame end_frame;
+          KDL::ChainFkSolverPos_recursive fk_solver(chain_);
+          fk_solver.JntToCart(joint_positions, end_frame);
+
+          if(debug)
+            ROS_INFO("end pose: [%f %f %f]", end_frame.p.x(), end_frame.p.y(), end_frame.p.z());
+
+          /* root link */
+          jacobian.block(0, 0, 6, 6) = Eigen::MatrixXd::Identity(6, 6);
+          jacobian.block(0, 3, 3, 1) = (Eigen::Vector3d(1, 0, 0)).cross(Eigen::Vector3d(end_frame.p.data));
+          jacobian.block(0, 4, 3, 1) = (Eigen::Vector3d(0, 1, 0)).cross(Eigen::Vector3d(end_frame.p.data));
+          jacobian.block(0, 5, 3, 1) = (Eigen::Vector3d(0, 0, 1)).cross(Eigen::Vector3d(end_frame.p.data));
+        }
+
+      /* special */
+      if(Base<motion_planner>::planner_->getMultilinkType() == motion_planner::MULTILINK_TYPE_SE2)
+        {
+          if(!Base<motion_planner>::orientation_)
+            jacobian.block(2, 0, 4, jacobian.cols()) = Eigen::MatrixXd::Zero(4, jacobian.cols());
+          else
+            jacobian.block(2, 0, 3, jacobian.cols()) = Eigen::MatrixXd::Zero(3, jacobian.cols());
+        }
+      else
+        {
+          if(!Base<motion_planner>::orientation_)
+            jacobian.block(3, 0, 3, jacobian.cols()) = Eigen::MatrixXd::Zero(3, jacobian.cols());
+        }
+
+      if(debug) std::cout << "jacobian: \n" << jacobian << std::endl;
+      return true;
     }
   };
 };

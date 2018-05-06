@@ -66,6 +66,7 @@ namespace differential_kinematics
     target_actuator_vector_sequence_.resize(0);
     target_root_pose_sequence_.resize(0);
     sequence_ = 0;
+    double start_time = ros::Time::now().toSec();
 
     int total_nc = 0;
     for(auto itr = constraint_container.begin(); itr != constraint_container.end(); itr ++)
@@ -111,15 +112,19 @@ namespace differential_kinematics
         // if(debug) std::cout << "the init qp lb is: \n" << qp_lb << std::endl;
         // if(debug) std::cout << "the init qp ub is: \n" << qp_ub << std::endl;
 
-
         /* step1: update the kinematics by forward kinemtiacs, along with the modelling with current kinematics  */
         KDL::Rotation root_att;
         tf::quaternionTFToKDL(target_root_pose_.getRotation(), root_att);
-        //robot_model_ptr_->setCogDesireOrientation(root_att);
+        robot_model_ptr_->setCogDesireOrientation(root_att);
         robot_model_ptr_->forwardKinematics(target_actuator_vector_);
         if(!robot_model_ptr_->stabilityMarginCheck()) ROS_ERROR("[differential kinematics] update modelling, bad stability margin ");
         if(!robot_model_ptr_->modelling()) ROS_ERROR("[differential kinematics] update modelling, bad stability from force");
         if(!robot_model_ptr_->overlapCheck()) ROS_ERROR("[differential kinematics] update overlap check, detect overlap iwth this form");
+
+        /* considering the non-joint modules such as gimbal are updated after forward-kinemtics */
+        /* the correct target_actuator vector should be added here */
+        target_root_pose_sequence_.push_back(target_root_pose_);
+        target_actuator_vector_sequence_.push_back(target_actuator_vector_);
 
         /* step2: check convergence & update Hessian and Gradient */
         bool convergence = true;
@@ -138,7 +143,8 @@ namespace differential_kinematics
 
         if(convergence)
           {
-            ROS_INFO("convergence to target state with %d times", l);
+            ROS_INFO("convergence to target state with %d times with %f[sec]", l, ros::Time::now().toSec() - start_time);
+            for(auto itr: constraint_container) itr->result();
             solved_ = true;
             return true;
           }
@@ -151,7 +157,11 @@ namespace differential_kinematics
             Eigen::VectorXd single_lb;
             Eigen::VectorXd single_ub;
 
-            (*itr)->getConstraint(single_A, single_lb, single_ub, debug);
+            if(!(*itr)->getConstraint(single_A, single_lb, single_ub, debug))
+              {
+                ROS_ERROR("constraint: %s is invlid", (*itr)->getConstraintName().c_str());
+                return false;
+              }
 
             if((*itr)->directConstraint()) /* without constraint matrix */
               {
@@ -230,12 +240,10 @@ namespace differential_kinematics
           target_root_pose_ *= tf::Transform(tf::Quaternion(0, 0, 0, 1), delta_pos_from_root_link);
         else
           target_root_pose_ *= tf::Transform(tf::Quaternion(delta_rot_from_root_link, delta_rot_from_root_link.length()), delta_pos_from_root_link);
-        target_root_pose_sequence_.push_back(target_root_pose_);
 
         /* udpate the joint angles */
         for(size_t i = 0; i < robot_model_ptr_->getActuatorJointMap().size(); i++)
           target_actuator_vector_.position.at(robot_model_ptr_->getActuatorJointMap().at(i)) += delta_state_vector(i + 6);
-        target_actuator_vector_sequence_.push_back(target_actuator_vector_);
 
         /* step6: update each cost or constraint (e.g. changable ik), if necessary */
         for(auto func_itr = update_func_vector_.begin(); func_itr != update_func_vector_.end(); func_itr++)

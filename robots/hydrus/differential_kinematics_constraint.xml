@@ -5,4 +5,8 @@
   <class name="differential_kinematics_constraint/stability" type="differential_kinematics::constraint::Stability&lt;differential_kinematics::Planner&gt;" base_class_type="differential_kinematics::constraint::Base&lt;differential_kinematics::Planner&gt;">
     <description>This is a constraint plugin for flight stability </description>
   </class>
+  <class name="differential_kinematics_constraint/collision_avoidance" type="differential_kinematics::constraint::CollisionAvoidance&lt;differential_kinematics::Planner&gt;" base_class_type="differential_kinematics::constraint::Base&lt;differential_kinematics::Planner&gt;">
+    <description>This is a constraint plugin for  collision avoidance </description>
+  </class>
+
 </library>

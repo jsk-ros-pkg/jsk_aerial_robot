@@ -1,6 +1,6 @@
 #HydrusX Quad config
 
-joint_state_sub_name: /hydrusx/joint_states
+actuator_state_sub_name: /hydrusx/joint_states
 
 control_rate: 15.0
 

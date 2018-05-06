@@ -1,5 +1,5 @@
 #Hydrus3 config
-joint_state_sub_name: /hydrus3/joint_states
+actuator_state_sub_name: /hydrus3/joint_states
 
 control_rate: 15.0
 baselink: fc

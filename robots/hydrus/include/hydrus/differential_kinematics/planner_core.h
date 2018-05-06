@@ -102,7 +102,6 @@ namespace differential_kinematics
     std::vector<sensor_msgs::JointState> target_actuator_vector_sequence_;
     std::vector<tf::Transform> target_root_pose_sequence_;
 
-
     /* update function for each loop of the differential kinematics */
     std::vector< std::function<void(void)> > update_func_vector_;
     /* update function for the result motion, mainly for visualization */

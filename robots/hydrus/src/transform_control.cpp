@@ -1,5 +1,7 @@
 #include <hydrus/transform_control.h>
 
+using namespace fcl;
+
 TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_private, bool callback_flag):
   nh_(nh), nh_private_(nh_private),
   callback_flag_(callback_flag),
@@ -13,6 +15,44 @@ TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_
   if (!kdl_parser::treeFromUrdfModel(model_, tree_))
     ROS_ERROR("Failed to extract kdl tree from xml robot description");
 
+
+#if 0 // FCL test
+
+  DistanceResult<double> result;
+  double distance;
+  //Box<double> box(0.6, 0.05, 0.15); // not good!!
+
+  std::shared_ptr< CollisionGeometry<double> > cgeomSphere_(new Sphere<double>(0.05));
+  std::shared_ptr< CollisionGeometry<double> > cgeomBox_(new Box<double>(0.6, 0.05, 0.15));
+  std::shared_ptr< CollisionGeometry<double> > cgeomCylinder_(new Cylinder<double>(0.05, 0.3));
+
+  CollisionObject<double> objSphere(cgeomSphere_, Eigen::Matrix3d::Identity(), Eigen::Vector3d(0.3, 0.3, 0.0));
+   CollisionObject<double> objBox(cgeomBox_, Eigen::Matrix3d::Identity(), Eigen::Vector3d(0.3, 0, -0.03));
+   CollisionObject<double> objCylinder(cgeomCylinder_, Eigen::Matrix3d::Identity(), Eigen::Vector3d(0.3, 0.3, 0));
+
+   boost::shared_ptr<BroadPhaseCollisionManager<double> > collision_manager(new DynamicAABBTreeCollisionManager<double>());
+   collision_manager->registerObject(&objSphere);
+  //collision_manager->registerObject(&objBox);
+
+
+  result.clear();
+  DistanceRequest<double> request(true);
+   /*
+  fcl::distance(&objBox, &objCylinder, request, result);
+  std::cout << "distance = " << result.min_distance << std::endl;
+  std::cout << " point on manager: x = " << result.nearest_points[0](0) << " y = " << result.nearest_points[0](1) << " z = " << result.nearest_points[0](2) << std::endl;
+  std::cout << " point on manager: x = " << result.nearest_points[1](0) << " y = " << result.nearest_points[1](1) << " z = " << result.nearest_points[1](2) << std::endl;
+
+   */
+
+   DistanceData distance_data;
+   distance_data.request = request;
+   collision_manager->distance(&objBox, &distance_data, TransformController::defaultDistanceFunction);
+   std::cout << "distance = " << distance_data.result.min_distance << std::endl;
+   std::cout << " point on manager: x = " << distance_data.result.nearest_points[0](0) << " y = " << distance_data.result.nearest_points[0](1) << " z = " << distance_data.result.nearest_points[0](2) << std::endl;
+   std::cout << " point on manager: x = " << distance_data.result.nearest_points[1](0) << " y = " << distance_data.result.nearest_points[1](1) << " z = " << distance_data.result.nearest_points[1](2) << std::endl;
+
+#endif
   nh_private_.param("verbose", verbose_, false);
   ROS_ERROR("ns is %s", nh_private_.getNamespace().c_str());
 
@@ -25,7 +65,6 @@ TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_
   addChildren(tree_.getRootSegment());
   resolveLinkLength();
 
-  /* for inverse kinematics */
   for(auto itr = model_.joints_.begin(); itr != model_.joints_.end(); itr++)
     {
       if(itr->first.find("joint1") != std::string::npos)
@@ -36,6 +75,8 @@ TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_
           break;
         }
     }
+
+  //for(auto it: actuator_map_) ROS_ERROR("%d: %s", it.second, it.first.c_str());
 
   ROS_ERROR("[kinematics] rotor num; %d", rotor_num_);
 
@@ -281,14 +322,56 @@ void TransformController::actuatorStateCallback(const sensor_msgs::JointStateCon
       ROS_ERROR("the total mass is %f", getMass());
       kinematics_flag_ = true;
     }
+
+
+  /* jacobian test */
+#if 0
+  KDL::Chain chain;
+  tree_.getChain("root", "link4", chain);
+  KDL::JntArray joint_positions(chain.getNrOfJoints());
+  joint_positions.data = Eigen::VectorXd::Constant(chain.getNrOfJoints(), M_PI/2);
+  KDL::ChainJntToJacSolver jac_solver(chain);
+  KDL::Jacobian jac(chain.getNrOfJoints());
+  jac_solver.JntToJac(joint_positions, jac);
+  std::cout << "link4 jacobian: \n" << jac.data << std::endl;
+
+  KDL::Segment ee_seg(std::string("end_effector"), KDL::Joint(KDL::Joint::None), KDL::Frame(KDL::Vector(link_length_, 0, 0)));
+
+  /* CAUTION: if use changeRefPoint, pluase conver to the root (base) frame */
+  /* USE tree */
+  KDL::JntArray joint_positions_tree(tree_.getNrOfJoints());
+  for(size_t i = 0; i < current_actuator_state_.position.size(); i++)
+    {
+      auto itr = actuator_map_.find(current_actuator_state_.name.at(i));
+      if(itr != actuator_map_.end())  joint_positions_tree(actuator_map_.find(current_actuator_state_.name.at(i))->second) = current_actuator_state_.position.at(i);
+    }
+  KDL::Frame end_frame;
+  KDL::TreeFkSolverPos_recursive fk_solver_tree(tree_);
+  fk_solver_tree.JntToCart(joint_positions_tree, end_frame, "link4");
+  KDL::TreeJntToJacSolver jac_tree_solver(tree_);
+  KDL::Jacobian jac_tree(tree_.getNrOfJoints());
+  jac_tree_solver.JntToJac(joint_positions_tree, jac_tree, "link4");
+  jac_tree.changeRefPoint(end_frame.M * ee_seg.getFrameToTip().p);
+  std::cout << "link4 jacobian with change ref point tree : \n" << jac_tree.data << std::endl;
+
+  /* USE chain */
+  //jac.changeRefPoint(ee_seg.getFrameToTip().p);
+  jac.changeRefPoint(end_frame.M * ee_seg.getFrameToTip().p);
+  std::cout << "link4 jacobian with change ref point : \n" << jac.data << std::endl;
+
+  chain.addSegment(ee_seg);
+  KDL::ChainJntToJacSolver jac_solver2(chain);
+  jac_solver2.JntToJac(joint_positions, jac);
+  std::cout << "end effector jacobian: \n" << jac.data << std::endl;
+#endif
 }
 
-void TransformController::forwardKinematics(sensor_msgs::JointState state)
+void TransformController::forwardKinematics(sensor_msgs::JointState& state)
 {
   KDL::TreeFkSolverPos_recursive fk_solver(tree_);
   KDL::JntArray joint_positions(tree_.getNrOfJoints());   /* set joint array */
 
-  unsigned int j = 0;
+  //unsigned int j = 0;
   for(unsigned int i = 0; i < state.position.size(); i++)
     {
       std::map<std::string, uint32_t>::iterator itr = actuator_map_.find(state.name[i]);
@@ -924,3 +1007,21 @@ void TransformController::setActuatorJointMap(const sensor_msgs::JointState& act
     }
 
 }
+
+bool TransformController::defaultDistanceFunction(CollisionObject<double>* o1, CollisionObject<double>* o2, void* cdata_, double& dist)
+  {
+    auto* cdata = static_cast<DistanceData*>(cdata_);
+    const DistanceRequest<double>& request = cdata->request;
+    DistanceResult<double>& result = cdata->result;
+
+    if(cdata->done) { dist = result.min_distance; return true; }
+
+    distance(o1, o2, request, result);
+
+    dist = result.min_distance;
+
+    if(dist <= 0) return true; // in collision or in touch
+
+    return cdata->done;
+  }
+

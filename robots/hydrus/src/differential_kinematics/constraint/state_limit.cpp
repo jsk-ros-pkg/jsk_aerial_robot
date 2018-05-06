@@ -70,7 +70,7 @@ namespace differential_kinematics
 
       bool getConstraint(Eigen::MatrixXd& A, Eigen::VectorXd& lb, Eigen::VectorXd& ub, bool debug = false)
       {
-        A = Eigen::MatrixXd::Zero(Base<motion_planner>::nc_, Base<motion_planner>::nc_);
+        A = Eigen::MatrixXd::Zero(Base<motion_planner>::nc_, Base<motion_planner>::j_ndof_ + 6);
         lb = Eigen::VectorXd::Constant(Base<motion_planner>::nc_, 1);
         ub = Eigen::VectorXd::Constant(Base<motion_planner>::nc_, 1);
 
@@ -115,7 +115,10 @@ namespace differential_kinematics
             std::cout << "constraint name: " << Base<motion_planner>::constraint_name_ << ", lb: \n" << lb.transpose() << std::endl;
             std::cout << "constraint name: " << Base<motion_planner>::constraint_name_ << ", ub: \n" << ub.transpose() << std::endl;
           }
+        return true;
       }
+
+      void result() {}
 
       bool directConstraint(){return true;}
 

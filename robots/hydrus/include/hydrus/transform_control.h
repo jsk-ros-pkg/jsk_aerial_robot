@@ -59,6 +59,9 @@
 #include <kdl/tree.hpp>
 #include <kdl_parser/kdl_parser.hpp>
 #include <kdl/treefksolverpos_recursive.hpp>
+#include <kdl/treejnttojacsolver.hpp>
+#include <kdl/chainfksolverpos_recursive.hpp>
+#include <kdl/chainjnttojacsolver.hpp>
 
 /* for eigen cumputation */
 #include <Eigen/Core>
@@ -66,6 +69,15 @@
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
 #include <Eigen/Eigenvalues>
+
+/* for collision detection */
+#include <fcl/fcl.h>
+//#include <fcl/collision_object.h>
+//#include <fcl/shape/geometric_shapes.h>
+//#include <fcl/collision_data.h>
+//#include <fcl/distance.h>
+//#include <fcl/broadphase/broadphase_dynamic_AABB_tree.h>
+using namespace fcl;
 
 /* util */
 #include <boost/thread/mutex.hpp>
@@ -98,7 +110,7 @@ public:
   virtual void actuatorStateCallback(const sensor_msgs::JointStateConstPtr& state);
   bool addExtraModule(int action, std::string module_name, std::string parent_link_name, geometry_msgs::Transform transform, geometry_msgs::Inertia inertia);
 
-  virtual void forwardKinematics(sensor_msgs::JointState state);
+  virtual void forwardKinematics(sensor_msgs::JointState& state);
   bool stabilityMarginCheck(bool verbose = false);
   virtual bool overlapCheck(bool verbose = false){return true; }
   bool modelling(bool verbose = false); //lagrange method
@@ -108,6 +120,7 @@ public:
   inline const KDL::Tree& getModelTree(){return tree_;}
   inline int getRotorNum(){return rotor_num_;}
   inline double getLinkLength(){return link_length_;}
+  const std::map<std::string, uint32_t> & getActuatorMap() {return actuator_map_;}
   const std::vector<int>& getActuatorJointMap() {return actuator_joint_map_;}
   void setActuatorJointMap(const sensor_msgs::JointState& actuator_state);
 
@@ -306,6 +319,26 @@ protected:
   //dynamic reconfigure
   dynamic_reconfigure::Server<hydrus::LQIConfig>* lqi_server_;
   dynamic_reconfigure::Server<hydrus::LQIConfig>::CallbackType dynamic_reconf_func_lqi_;
+
+  static bool defaultDistanceFunction(CollisionObject<double>* o1, CollisionObject<double>* o2, void* cdata_, double& dist);
+
+  struct DistanceData
+  {
+    DistanceData()
+    {
+      done = false;
+    }
+
+    /// @brief Distance request
+    DistanceRequest<double> request;
+
+    /// @brief Distance result
+    DistanceResult<double> result;
+
+    /// @brief Whether the distance iteration can stop
+    bool done;
+
+  };
 
 };
 

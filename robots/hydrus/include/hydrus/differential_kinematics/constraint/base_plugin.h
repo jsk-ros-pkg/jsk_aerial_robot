@@ -73,6 +73,7 @@ namespace differential_kinematics
       int getNc() {return nc_;}
       std::string getConstraintName() {return constraint_name_;}
 
+      virtual void result() = 0;
     protected:
 
       ros::NodeHandle nh_;
