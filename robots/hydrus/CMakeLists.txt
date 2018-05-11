@@ -29,12 +29,13 @@ find_package(urdfdom_headers REQUIRED)
 find_package(PkgConfig)
 pkg_search_module(Eigen3 REQUIRED eigen3)
 
-#pkg_check_modules(LIBFCL REQUIRED fcl)
-#find_library(LIBFCL_LIBRARIES_FULL ${LIBFCL_LIBRARIES} ${LIBFCL_LIBRARY_DIRS})
-#set(LIBFCL_LIBRARIES "${LIBFCL_LIBRARIES_FULL}")
-#include_directories(${LIBFCL_INCLUDE_DIRS})
-include_directories(fcl/build/include)
-link_directories(fcl/build/lib)
+SET(FCL_BUILD_TESTS OFF CACHE BOOL "Build FCL tests")
+if (NOT EXISTS ${CMAKE_CURRENT_BINARY_DIR}/fcl)
+  add_subdirectory(fcl)
+endif()
+include_directories(fcl/include
+  ${CMAKE_CURRENT_BINARY_DIR}/fcl/include)
+link_directories(${CMAKE_CURRENT_BINARY_DIR}/fcl/lib)
 
 include_directories(${orocos_kdl_INCLUDE_DIRS} ${urdfdom_headers_INCLUDE_DIRS})
 link_directories(${orocos_kdl_LIBRARY_DIRS})
@@ -57,7 +58,7 @@ generate_dynamic_reconfigure_options(
   cfg/LQI.cfg)
 
 catkin_package(
-  INCLUDE_DIRS include ${CMAKE_CURRENT_BINARY_DIR}/qpOASES/qpOASES-3.0/include
+  INCLUDE_DIRS include ${CMAKE_CURRENT_BINARY_DIR}/qpOASES/qpOASES-3.0/include fcl/include ${CMAKE_CURRENT_BINARY_DIR}/fcl/include
   LIBRARIES transform_control dynamixel_bridge differential_kinematics_planner_core end_effector_ik_solver_core
   CATKIN_DEPENDS roscpp message_runtime aerial_robot_msgs aerial_robot_base spinal dynamixel_controllers tf_conversions eigen_conversions kdl_parser
   DEPENDS Eigen3 orocos_kdl urdfdom_headers
