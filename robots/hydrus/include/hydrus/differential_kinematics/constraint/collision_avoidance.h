@@ -90,8 +90,8 @@ namespace differential_kinematics
 
         for(auto obj : env_collision.markers)
           {
-            assert(0.99f < obj.pose.orientation.w^2 + obj.pose.orientation.x^2
-                   + obj.pose.orientation.y^2 + obj.pose.orientation.z^2);
+            assert(0.99f < obj.pose.orientation.w * obj.pose.orientation.w + obj.pose.orientation.x * obj.pose.orientation.x
+                   + obj.pose.orientation.y * obj.pose.orientation.y + obj.pose.orientation.z * obj.pose.orientation.z);
 
             collision_manager_->registerObject(new fcl::CollisionObject<double>(createGeometryObject(obj), Eigen::Quaternion<double>(obj.pose.orientation.w, obj.pose.orientation.x, obj.pose.orientation.y, obj.pose.orientation.z).matrix(), Eigen::Vector3d(obj.pose.position.x, obj.pose.position.y, obj.pose.position.z)));
           }
