@@ -105,20 +105,22 @@ add_executable (transform_control_node src/transform_control_node.cpp)
 target_link_libraries (transform_control_node transform_control ${catkin_LIBRARIES} ${orocos_kdl_LIBRARIES}  ${Eigen3_LIBRARIES})
 add_dependencies(transform_control_node aerial_robot_msgs_generate_messages_cpp spinal_generate_messages_cpp ${PROJECT_NAME}_generate_messages_cpp ${PROJECT_NAME}_gencfg)
 
+add_library (differential_kinematics_planner_core src/differential_kinematics/planner_core.cpp)
+target_link_libraries (differential_kinematics_planner_core ${catkin_LIBRARIES} ${orocos_kdl_LIBRARIES} ${Eigen3_LIBRARIES} transform_control qpOASES)
+add_dependencies(differential_kinematics_planner_core aerial_robot_msgs_generate_messages_cpp spinal_generate_messages_cpp ${PROJECT_NAME}_generate_messages_cpp ${PROJECT_NAME}_gencfg)
+
 add_library (differential_kinematics_cost_pluginlib
   src/differential_kinematics/cost/cartesian_constraint.cpp
   src/differential_kinematics/cost/state_vel.cpp)
 target_link_libraries (differential_kinematics_cost_pluginlib ${catkin_LIBRARIES} ${orocos_kdl_LIBRARIES}  ${Eigen3_LIBRARIES})
+add_dependencies(differential_kinematics_cost_pluginlib ${PROJECT_NAME}_generate_messages_cpp)
 
 add_library (differential_kinematics_constraint_pluginlib
   src/differential_kinematics/constraint/stability.cpp
   src/differential_kinematics/constraint/collision_avoidance.cpp
   src/differential_kinematics/constraint/state_limit.cpp)
 target_link_libraries (differential_kinematics_constraint_pluginlib ${catkin_LIBRARIES} ${orocos_kdl_LIBRARIES}  ${Eigen3_LIBRARIES} fcl)
-
-add_library (differential_kinematics_planner_core src/differential_kinematics/planner_core.cpp)
-target_link_libraries (differential_kinematics_planner_core ${catkin_LIBRARIES} ${orocos_kdl_LIBRARIES} ${Eigen3_LIBRARIES} transform_control qpOASES)
-add_dependencies(differential_kinematics_planner_core aerial_robot_msgs_generate_messages_cpp spinal_generate_messages_cpp ${PROJECT_NAME}_generate_messages_cpp ${PROJECT_NAME}_gencfg)
+add_dependencies(differential_kinematics_constraint_pluginlib ${PROJECT_NAME}_generate_messages_cpp)
 
 add_library (end_effector_ik_solver_core src/differential_kinematics/sample/end_effector_ik_solver_core.cpp)
 target_link_libraries (end_effector_ik_solver_core ${catkin_LIBRARIES} ${orocos_kdl_LIBRARIES} ${Eigen3_LIBRARIES} differential_kinematics_planner_core)
