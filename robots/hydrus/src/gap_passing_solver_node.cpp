@@ -33,20 +33,20 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 
-#include <hydrus/differential_kinematics/sample/end_effector_ik_solver_core.h>
+#include <hydrus/differential_kinematics/sample/gap_passing_solver_core.h>
 #include <hydrus/transform_control.h>
 
 int main(int argc, char **argv)
 {
-  ros::init (argc, argv, "differential_motion_planner");
+  ros::init (argc, argv, "gap_passing");
 
   ros::NodeHandle nh;
   ros::NodeHandle nhp("~");
-  EndEffectorIKSolverCore *ik_solver = new EndEffectorIKSolverCore(nh,nhp, boost::shared_ptr<TransformController>(new TransformController(nh, nhp, false)));
+  GapPassingSolver *gap_passing_solver = new GapPassingSolver(nh, nhp, boost::shared_ptr<TransformController>(new TransformController(nh, nhp, false)));
   ros::spin();
 
   ros::shutdown();
-  delete ik_solver;
+  delete gap_passing_solver;
 
   return 0;
 }

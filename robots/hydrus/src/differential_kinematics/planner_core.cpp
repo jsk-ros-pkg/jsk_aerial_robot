@@ -45,7 +45,8 @@ namespace differential_kinematics
   {
     for(auto itr = robot_model_ptr_->getRobotModel().joints_.begin(); itr != robot_model_ptr_->getRobotModel().joints_.end(); itr++)
       {
-        if(itr->second->axis.z == 0) multilink_type_ = MULTILINK_TYPE_SE3;
+        if(itr->second->type != urdf::Joint::FIXED && itr->second->axis.z == 0)
+          multilink_type_ = MULTILINK_TYPE_SE3;
       }
 
     nhp_.param ("differential_kinematics_count", differential_kinematics_count_, 100);
@@ -100,6 +101,7 @@ namespace differential_kinematics
     /* inverse kinematics loop */
     for(int l = 0; l < differential_kinematics_count_; l++)
       {
+        if(debug) ROS_WARN("loop: %d", l);
         Eigen::MatrixXd qp_H = Eigen::MatrixXd::Zero(qp_solver->getNV(), qp_solver->getNV());
         Eigen::MatrixXd qp_g = Eigen::VectorXd::Zero(qp_solver->getNV());
         Eigen::VectorXd qp_lb = Eigen::VectorXd::Constant(qp_solver->getNV(), -INFTY);
@@ -117,9 +119,9 @@ namespace differential_kinematics
         tf::quaternionTFToKDL(target_root_pose_.getRotation(), root_att);
         robot_model_ptr_->setCogDesireOrientation(root_att);
         robot_model_ptr_->forwardKinematics(target_actuator_vector_);
-        if(!robot_model_ptr_->stabilityMarginCheck()) ROS_ERROR("[differential kinematics] update modelling, bad stability margin ");
+        if(!robot_model_ptr_->stabilityMarginCheck()) ROS_ERROR("[differential kinematics] update modelling, bad stability margin: %f (thre: %f)", robot_model_ptr_->getStabilityMargin(), robot_model_ptr_->stability_margin_thre_);
         if(!robot_model_ptr_->modelling()) ROS_ERROR("[differential kinematics] update modelling, bad stability from force");
-        if(!robot_model_ptr_->overlapCheck()) ROS_ERROR("[differential kinematics] update overlap check, detect overlap iwth this form");
+        if(!robot_model_ptr_->overlapCheck()) ROS_ERROR("[differential kinematics] update overlap check, detect overlap with this form");
 
         /* considering the non-joint modules such as gimbal are updated after forward-kinemtics */
         /* the correct target_actuator vector should be added here */
@@ -218,6 +220,7 @@ namespace differential_kinematics
         if(solver_result != 0)
           {
             ROS_ERROR("can not solve QP the solver_result is %d", solver_result);
+            solved_ = true; //debug
             return false;
           }
 
@@ -247,7 +250,14 @@ namespace differential_kinematics
 
         /* step6: update each cost or constraint (e.g. changable ik), if necessary */
         for(auto func_itr = update_func_vector_.begin(); func_itr != update_func_vector_.end(); func_itr++)
-          (*func_itr)();
+          {
+          if(!(*func_itr)())
+            {
+              ROS_ERROR("update function fail");
+              //solved_ = true; //debug
+              return false;
+            }
+          }
 
         if(debug)
           {
@@ -257,6 +267,7 @@ namespace differential_kinematics
       }
 
     ROS_WARN("can not solve the differential kinematics based planning with %d", differential_kinematics_count_);
+    //solved_ = true; //debug
     return false;
   }
 
@@ -265,7 +276,7 @@ namespace differential_kinematics
     motion_func_vector_.push_back(new_func);
   }
 
-  void Planner::registerUpdateFunc(std::function<void(void)> new_func)
+  void Planner::registerUpdateFunc(std::function<bool(void)> new_func)
   {
     update_func_vector_.push_back(new_func);
   }

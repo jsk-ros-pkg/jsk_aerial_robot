@@ -65,7 +65,7 @@ namespace differential_kinematics
 
     bool solver(CostContainer cost_container, ConstraintContainer constraint_container, bool debug);
 
-    void registerUpdateFunc(std::function<void(void)> new_func);
+    void registerUpdateFunc(std::function<bool(void)> new_func);
     void registerMotionFunc(std::function<void(void)> new_func);
 
     static constexpr uint8_t MULTILINK_TYPE_SE2 = 0;
@@ -103,7 +103,7 @@ namespace differential_kinematics
     std::vector<tf::Transform> target_root_pose_sequence_;
 
     /* update function for each loop of the differential kinematics */
-    std::vector< std::function<void(void)> > update_func_vector_;
+    std::vector< std::function<bool(void)> > update_func_vector_;
     /* update function for the result motion, mainly for visualization */
     std::vector< std::function<void(void)> > motion_func_vector_;
 

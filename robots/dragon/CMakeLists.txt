@@ -44,7 +44,6 @@ cmake_policy(SET CMP0046 OLD)
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
-  $
 )
 
 ## Declare a C++ library
@@ -73,3 +72,7 @@ add_dependencies(dynamixel_bridge_node aerial_robot_msgs_generate_messages_cpp a
 
 add_executable (end_effector_ik_node src/end_effector_ik_node.cpp)
 target_link_libraries (end_effector_ik_node ${catkin_LIBRARIES} ${orocos_kdl_LIBRARIES}  ${Eigen3_LIBRARIES} dragon_transform_control)
+
+# gap passing, temporary
+add_executable (gap_passing_solver_node  src/gap_passing_solver_node.cpp)
+target_link_libraries (gap_passing_solver_node ${catkin_LIBRARIES} ${orocos_kdl_LIBRARIES} ${Eigen3_LIBRARIES} dragon_transform_control)

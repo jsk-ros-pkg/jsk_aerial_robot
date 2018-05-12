@@ -173,7 +173,9 @@ namespace differential_kinematics
 
           /* get collision model offset tf in world frame */
           KDL::Frame f_collision_obj = f_root * f_link * f_collision_obj_offset;
-          //ROS_INFO("link name: %s, collision position: [%f, %f, %f]", link_info.name.c_str(), f_collision_obj.p.x(), f_collision_obj.p.y(), f_collision_obj.p.z());
+          double qx, qy, qz, qw;
+          f_collision_obj.M.GetQuaternion(qx, qy, qz, qw);
+          //ROS_INFO("link name: %s, collision position: [%f, %f, %f], orientation: [%f, %f, %f, %f]", link_info.name.c_str(), f_collision_obj.p.x(), f_collision_obj.p.y(), f_collision_obj.p.z(), qx, qy, qz, qw);
 
           /* convert from KDL to FCL and update collision object */
           Eigen::Affine3d tf_obj;
@@ -190,15 +192,65 @@ namespace differential_kinematics
           distance_data.request = request;
           collision_manager_->distance((*it), &distance_data, CollisionAvoidance::defaultDistanceFunction);
 
+          if(boost::math::isnan(distance_data.result.nearest_points[0](0)) ||
+             boost::math::isnan(distance_data.result.nearest_points[0](1)) ||
+             boost::math::isnan(distance_data.result.nearest_points[0](2)))
+            {
+              ROS_WARN("broadphase distance process causes  nan");
+              //ROS_ERROR("distance: %f is nan, link name: %s, collision position: [%f, %f, %f], orientation: [%f, %f, %f, %f]", distance_data.result.min_distance, link_info.name.c_str(), f_collision_obj.p.x(), f_collision_obj.p.y(), f_collision_obj.p.z(), qx, qy, qz, qw);
+              //std::cout << " point of env in local frame: x = " << distance_data.result.nearest_points[0](0) << " y = " << distance_data.result.nearest_points[0](1) << " z = " << distance_data.result.nearest_points[0](2) << std::endl;
+              //std::cout << " point on robot in local frame: x = " << distance_data.result.nearest_points[1](0) << " y = " << distance_data.result.nearest_points[1](1) << " z = " << distance_data.result.nearest_points[1](2) << std::endl;
+
+              /* special process */
+              std::vector< fcl::CollisionObject<double> * > env_objs;
+              collision_manager_->getObjects (env_objs);
+
+              fcl::DistanceResult<double> result;
+              fcl::DistanceRequest<double> request(true);
+              double distance = 1e6;
+              for(auto env_obj: env_objs)
+                {
+                  result.clear();
+                  double distance_temp = fcl::distance(env_obj, (*it), request, result);
+                  // std::cout << "\n" << "distance is: " << distance << std::endl;
+                  // std::cout << " point of env in local frame: x = " << result.nearest_points[0](0) << " y = " << result.nearest_points[0](1) << " z = " << result.nearest_points[0](2) << std::endl;
+                  // std::cout << " point on robot in local frame: x = " << result.nearest_points[1](0) << " y = " << result.nearest_points[1](1) << " z = " << result.nearest_points[1](2) << std::endl;
+
+                  if(!boost::math::isnan(result.nearest_points[0](0)) &&
+                     !boost::math::isnan(result.nearest_points[0](1)) &&
+                     !boost::math::isnan(result.nearest_points[0](2)) &&
+                     !boost::math::isnan(result.nearest_points[1](0)) &&
+                     !boost::math::isnan(result.nearest_points[1](1)) &&
+                     !boost::math::isnan(result.nearest_points[1](2)))
+                    {
+                      if(distance_temp < distance && distance_temp > 0)
+                        {
+                          distance_data.result = result;
+                          distance_data.result.min_distance = distance_temp;
+                          distance = distance_temp;
+                        }
+                    }
+                }
+
+              if(distance == 1e6)
+                {
+                  ROS_WARN("all narrowphase distance process cause nan");
+                  return false;
+                }
+
+            }
+
           /* closest points in local object frame */
-          // ROS_WARN("distance = %f", distance_data.result.min_distance);
-          // std::cout << " point of env in local frame: x = " << distance_data.result.nearest_points[0](0) << " y = " << distance_data.result.nearest_points[0](1) << " z = " << distance_data.result.nearest_points[0](2) << std::endl;
-          // std::cout << " point on robot in local frame: x = " << distance_data.result.nearest_points[1](0) << " y = " << distance_data.result.nearest_points[1](1) << " z = " << distance_data.result.nearest_points[1](2) << std::endl;
+          //ROS_WARN("distance = %f", distance_data.result.min_distance);
+          //std::cout << " point of env in local frame: x = " << distance_data.result.nearest_points[0](0) << " y = " << distance_data.result.nearest_points[0](1) << " z = " << distance_data.result.nearest_points[0](2) << std::endl;
+          //std::cout << " point on robot in local frame: x = " << distance_data.result.nearest_points[1](0) << " y = " << distance_data.result.nearest_points[1](1) << " z = " << distance_data.result.nearest_points[1](2) << std::endl;
+
           if(distance_data.result.min_distance <= 0)
             {
-              ROS_ERROR("distance: %f is invliad", distance_data.result.min_distance);
+              ROS_ERROR("distance: %f is negative", distance_data.result.min_distance);
               return false;
             }
+
           /* update the min distance */
           if(distance_data.result.min_distance < min_dist_)
             {
@@ -324,7 +376,7 @@ namespace differential_kinematics
     void CollisionAvoidance<motion_planner>::result()
     {
       std::cout << Base<motion_planner>::constraint_name_ << "min distance: "
-                << min_dist_ << ", at " << min_dist_link_;
+                << min_dist_ << ", at " << min_dist_link_ << std::endl;
     }
       };
 };

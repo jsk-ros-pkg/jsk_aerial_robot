@@ -59,7 +59,7 @@ generate_dynamic_reconfigure_options(
 
 catkin_package(
   INCLUDE_DIRS include ${CMAKE_CURRENT_BINARY_DIR}/qpOASES/qpOASES-3.0/include fcl/include ${CMAKE_CURRENT_BINARY_DIR}/fcl/include
-  LIBRARIES transform_control dynamixel_bridge differential_kinematics_planner_core end_effector_ik_solver_core
+  LIBRARIES transform_control dynamixel_bridge differential_kinematics_planner_core end_effector_ik_solver_core gap_passing_solver_core
   CATKIN_DEPENDS roscpp message_runtime aerial_robot_msgs aerial_robot_base spinal dynamixel_controllers tf_conversions eigen_conversions kdl_parser
   DEPENDS Eigen3 orocos_kdl urdfdom_headers
 )
@@ -128,6 +128,13 @@ add_dependencies(end_effector_ik_solver_core ${PROJECT_NAME}_generate_messages_c
 
 add_executable (end_effector_ik_node src/end_effector_ik_node.cpp)
 target_link_libraries (end_effector_ik_node ${catkin_LIBRARIES} ${orocos_kdl_LIBRARIES}  ${Eigen3_LIBRARIES} end_effector_ik_solver_core)
+
+# gap passing, temporary
+add_library (gap_passing_solver_core  src/differential_kinematics/sample/gap_passing_solver_core.cpp)
+target_link_libraries (gap_passing_solver_core ${catkin_LIBRARIES}  ${Eigen3_LIBRARIES} differential_kinematics_planner_core)
+add_executable (gap_passing_solver_node  src/gap_passing_solver_node.cpp)
+target_link_libraries (gap_passing_solver_node ${catkin_LIBRARIES} ${orocos_kdl_LIBRARIES} ${Eigen3_LIBRARIES} gap_passing_solver_core)
+
 
 install(PROGRAMS
   scripts/dynamixel_param.py
