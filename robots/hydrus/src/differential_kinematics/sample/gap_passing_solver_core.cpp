@@ -160,7 +160,7 @@ GapPassingSolver::GapPassingSolver(ros::NodeHandle nh, ros::NodeHandle nhp, boos
         wall.pose.position.y = 0;
         wall.scale.x = env_width;
         wall.scale.y = env_width;
-        wall.pose.position.z = openning_height + 0.5;
+        wall.pose.position.z = openning_height + 0.45; // + 0.5
         env_collision_.markers.push_back(wall);
 
         openning_center_frame_.setOrigin(tf::Vector3(0, 0, openning_height));
@@ -200,15 +200,42 @@ bool GapPassingSolver::solver(bool debug)
   /* 1.  state_limit */
   constraint_container.push_back(constraint_plugin_loader.createInstance("differential_kinematics_constraint/state_limit"));
   constraint_container.back()->initialize(nh_, nhp_, planner_core_ptr_, "differential_kinematics_constraint/state_limit", true /* orientation */, true /* full_body */);
-#if 1
   /* 2.  stability */
   constraint_container.push_back(constraint_plugin_loader.createInstance("differential_kinematics_constraint/stability"));
   constraint_container.back()->initialize(nh_, nhp_, planner_core_ptr_, "differential_kinematics_constraint/stability", true /* orientation */, true /* full_body */);
-#endif
   /* 3. collision avoidance */
   constraint_container.push_back(constraint_plugin_loader.createInstance("differential_kinematics_constraint/collision_avoidance"));
   constraint_container.back()->initialize(nh_, nhp_, planner_core_ptr_, "differential_kinematics_constraint/collision_avoidance", true /* orientation */, true /* full_body */);
   boost::dynamic_pointer_cast<constraint::CollisionAvoidance<Planner> >(constraint_container.back())->setEnv(env_collision_);
+
+  /* 4. additional plugins for cost and constraint, if necessary */
+  auto pattern_match = [&](std::string &pl, std::string &pl_candidate) -> bool
+    {
+      int cmp = fnmatch(pl.c_str(), pl_candidate.c_str(), FNM_CASEFOLD);
+      if (cmp == 0)
+        return true;
+      else if (cmp != FNM_NOMATCH) {
+        // never see that, i think that it is fatal error.
+        ROS_FATAL("Plugin list check error! fnmatch('%s', '%s', FNM_CASEFOLD) -> %d",
+                  pl.c_str(), pl_candidate.c_str(), cmp);
+        ros::shutdown();
+      }
+      return false;
+    };
+
+  ros::V_string additional_constraint_list{};
+  nhp_.getParam("additional_constraint_list", additional_constraint_list);
+  for (auto &plugin_name : additional_constraint_list)
+    {
+      for (auto &name : constraint_plugin_loader.getDeclaredClasses())
+        {
+          if(!pattern_match(plugin_name, name)) continue;
+
+          constraint_container.push_back(constraint_plugin_loader.createInstance(name));
+          constraint_container.back()->initialize(nh_, nhp_, planner_core_ptr_, name, true, true);
+          break;
+        }
+    }
 
   /* reset the init joint(actuator) state the init root pose for planner */
   planner_core_ptr_->setInitRootPose(init_root_pose_);

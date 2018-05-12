@@ -1,0 +1,5 @@
+<library path="lib/libdragon_differential_kinematics_constraint_pluginlib">
+  <class name="differential_kinematics_constraint/link_attitude" type="differential_kinematics::constraint::LinkAttitude&lt;differential_kinematics::Planner&gt;" base_class_type="differential_kinematics::constraint::Base&lt;differential_kinematics::Planner&gt;">
+    <description>This is a constraint plugin for link attitude (pitch, roll) limitation </description>
+  </class>
+</library>

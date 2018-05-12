@@ -46,6 +46,7 @@
 
 /* utils */
 #include <tf_conversions/tf_kdl.h>
+#include <fnmatch.h>
 
 using namespace differential_kinematics;
 

@@ -29,6 +29,7 @@
 
   <export>
     <aerial_robot_base plugin="${prefix}/flight_control_plugins.xml" />
+    <hydrus plugin="${prefix}/differential_kinematics_constraint.xml" />
   </export>
 
 </package>

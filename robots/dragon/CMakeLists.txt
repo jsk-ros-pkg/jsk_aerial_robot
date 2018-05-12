@@ -73,6 +73,11 @@ add_dependencies(dynamixel_bridge_node aerial_robot_msgs_generate_messages_cpp a
 add_executable (end_effector_ik_node src/end_effector_ik_node.cpp)
 target_link_libraries (end_effector_ik_node ${catkin_LIBRARIES} ${orocos_kdl_LIBRARIES}  ${Eigen3_LIBRARIES} dragon_transform_control)
 
+# dragon specified differential kinematics constraints
+add_library (dragon_differential_kinematics_constraint_pluginlib
+  src/differential_kinematics/constraint/link_attitude.cpp)
+target_link_libraries (dragon_differential_kinematics_constraint_pluginlib ${catkin_LIBRARIES} ${orocos_kdl_LIBRARIES}  ${Eigen3_LIBRARIES})
+
 # gap passing, temporary
 add_executable (gap_passing_solver_node  src/gap_passing_solver_node.cpp)
 target_link_libraries (gap_passing_solver_node ${catkin_LIBRARIES} ${orocos_kdl_LIBRARIES} ${Eigen3_LIBRARIES} dragon_transform_control)

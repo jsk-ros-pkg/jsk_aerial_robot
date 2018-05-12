@@ -50,11 +50,6 @@
 
 /* for collision detection */
 #include <fcl/fcl.h>
-// #include <fcl/collision_object.h>
-// #include <fcl/shape/geometric_shapes.h>
-// #include <fcl/collision_data.h>
-// #include <fcl/distance.h>
-// #include <fcl/broadphase/broadphase_dynamic_AABB_tree.h>
 
 /* uitls */
 #include <tf_conversions/tf_kdl.h>

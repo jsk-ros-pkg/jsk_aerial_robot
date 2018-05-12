@@ -36,6 +36,10 @@ differential_kinematics_constraint:
                 verbose: true
                 collision_distance_constraint_range: 0.08 #0.05
                 collision_distance_forbidden_range: 0.05 #0.02
+        link_attitude:
+                verbose: true
+additional_constraint_list:
+        - differential_kinematics_constraint/link_attitude
 stability_margin_thre: 0.3
 f_max: 22.0
 f_min: 10.0
