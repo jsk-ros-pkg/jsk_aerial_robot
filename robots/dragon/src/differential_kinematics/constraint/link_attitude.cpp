@@ -80,7 +80,7 @@ namespace differential_kinematics
               }
           }
 
-        Base<motion_planner>::nhp_.param ("roll_angle_thre", roll_angle_thre_, 1.);
+        Base<motion_planner>::nhp_.param ("roll_angle_thre", roll_angle_thre_, 1.0);
         if(Base<motion_planner>::verbose_) std::cout << "roll_angle_thre: " << std::setprecision(3) << roll_angle_thre_ << std::endl;
         Base<motion_planner>::nhp_.param ("pitch_angle_thre", pitch_angle_thre_, 1.0);
         if(Base<motion_planner>::verbose_) std::cout << "pitch_angle_thre: " << std::setprecision(3) << pitch_angle_thre_ << std::endl;

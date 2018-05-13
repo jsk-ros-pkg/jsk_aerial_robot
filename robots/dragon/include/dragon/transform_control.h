@@ -79,6 +79,11 @@ public:
   bool overlapCheck(bool verbose = false);
 
   std::vector<double>& getGimbalNominalAngles() {return gimbal_nominal_angles_;}
+
+  /* check the relative horizontal distance between propellers */
+  double edf_radius_; // the radius of EDF
+  double edf_max_tilt_;
+
 private:
   ros::Publisher gimbal_control_pub_;
 
@@ -86,10 +91,6 @@ private:
 
   std::vector<KDL::Rotation> links_frame_from_cog_;
   std::vector<Eigen::Vector3d> edfs_origin_from_cog_;
-
-  /* check the relative horizontal distance between propellers */
-  double edf_radius_; // the radius of EDF
-  double edf_max_tilt_;
 
   void initParam();
 

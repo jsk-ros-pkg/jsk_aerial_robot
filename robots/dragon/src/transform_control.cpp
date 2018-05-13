@@ -97,6 +97,7 @@ void DragonTransformController::forwardKinematics(sensor_msgs::JointState& state
       if(itr != actuator_map_.end())  jointpositions(actuator_map_.find(state.name[i])->second) = state.position[i];
     }
 
+  /* set the edf position w.r.t CoG frame */
   KDL::Frame cog_frame;
   tf::transformTFToKDL(cog_, cog_frame);
   std::vector<Eigen::Vector3d> f_edfs;

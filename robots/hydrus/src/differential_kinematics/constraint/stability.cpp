@@ -95,15 +95,10 @@ namespace differential_kinematics
          if(nominal_stability_margin - stability_margin_thre_   < stability_margin_constraint_range_)
          lb(0) *=  ((nominal_stability_margin - stability_margin_thre_ - stability_margin_forbidden_range_) / (stability_margin_constraint_range_ - stability_margin_forbidden_range_));
 
-         //lb(0) = -1e6;
-         //ub(0) = 1e6;
         /* 2. singularity */
         double nominal_p_det = Base<motion_planner>::planner_->getRobotModelPtr()->getPdeterminant();
         /* fill ub */
         lb(1) =  p_det_thre_ - nominal_p_det;
-
-        //lb(1) = -1e6;
-        //ub(1) = 1e6;
 
         /*************************************************************************************
         3. optimal hovering thrust constraint (including singularity check)

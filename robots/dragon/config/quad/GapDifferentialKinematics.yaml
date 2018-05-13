@@ -38,8 +38,13 @@ differential_kinematics_constraint:
                 collision_distance_forbidden_range: 0.05 #0.02
         link_attitude:
                 verbose: true
+                roll_angle_thre: 1.5
+                pitch_angle_thre: 1.0
+        overlap:
+                verbose: true
 additional_constraint_list:
         - differential_kinematics_constraint/link_attitude
+        - differential_kinematics_constraint/overlap
 stability_margin_thre: 0.3
 f_max: 22.0
 f_min: 10.0

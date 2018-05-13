@@ -267,7 +267,7 @@ namespace differential_kinematics
       }
 
     ROS_WARN("can not solve the differential kinematics based planning with %d", differential_kinematics_count_);
-    //solved_ = true; //debug
+    solved_ = true; //debug
     return false;
   }
 

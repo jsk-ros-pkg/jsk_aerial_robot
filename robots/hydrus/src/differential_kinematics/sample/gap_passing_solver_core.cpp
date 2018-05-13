@@ -257,7 +257,7 @@ bool GapPassingSolver::updatePinchPoint()
   KDL::JntArray joint_positions(robot_model_ptr_->getModelTree().getNrOfJoints());
 
   /* case3 */
-  if(fabs((openning_center_frame_.inverse() * planner_core_ptr_->getTargetRootPose()).getOrigin().z()) < 0.01)
+  if((openning_center_frame_.inverse() * planner_core_ptr_->getTargetRootPose()).getOrigin().z() > -0.01)
     {
       if(phase_ < CASE2_2)
         {
