@@ -216,6 +216,29 @@ namespace differential_kinematics
                   // std::cout << " point of env in local frame: x = " << result.nearest_points[0](0) << " y = " << result.nearest_points[0](1) << " z = " << result.nearest_points[0](2) << std::endl;
                   // std::cout << " point on robot in local frame: x = " << result.nearest_points[1](0) << " y = " << result.nearest_points[1](1) << " z = " << result.nearest_points[1](2) << std::endl;
 
+                  if(boost::math::isnan(result.nearest_points[0](0)))
+                    {
+                      std::cout << "\n" << "object type1: " << env_obj->getNodeType() <<  "; object type2: " << (*it)->getNodeType() << std::endl;
+
+                      if(env_obj->getNodeType()  == fcl::GEOM_BOX && (*it)->getNodeType()  == fcl::GEOM_BOX)
+                        {
+                          const fcl::Box<double>* obj1_ptr = dynamic_cast<const fcl::Box<double>* >((env_obj->getCollisionGeometry()));
+                          const fcl::Box<double>* obj2_ptr = dynamic_cast<const fcl::Box<double>* >(((*it)->getCollisionGeometry()));
+                          ROS_INFO("distance: %f", distance_temp);
+                          ROS_INFO("obj1: size: [%f, %f, %f], pos: [%f, %f, %f], rot: [%f %f, %f, %f]",
+                                   obj1_ptr->side[0], obj1_ptr->side[1], obj1_ptr->side[2],
+                                   env_obj->getTranslation()[0], env_obj->getTranslation()[1], env_obj->getTranslation()[2],
+                                   env_obj->getQuatRotation().x(), env_obj->getQuatRotation().y(), env_obj->getQuatRotation().z(), env_obj->getQuatRotation().w());
+                          ROS_INFO("obj2: size: [%f, %f, %f], pos: [%f, %f, %f], rot: [%f, %f, %f, %f]",
+                                   obj2_ptr->side[0], obj2_ptr->side[1], obj2_ptr->side[2],
+                                   (*it)->getTranslation()[0], (*it)->getTranslation()[1], (*it)->getTranslation()[2],
+                                   (*it)->getQuatRotation().x(), (*it)->getQuatRotation().y(), (*it)->getQuatRotation().z(), (*it)->getQuatRotation().w());
+
+                          //std::cout << " point of env in local frame: x = " << result.nearest_points[0](0) << " y = " << result.nearest_points[0](1) << " z = " << result.nearest_points[0](2) << std::endl;
+                          //std::cout << " point on robot in local frame: x = " << result.nearest_points[1](0) << " y = " << result.nearest_points[1](1) << " z = " << result.nearest_points[1](2) << std::endl;
+                        }
+                    }
+
                   if(!boost::math::isnan(result.nearest_points[0](0)) &&
                      !boost::math::isnan(result.nearest_points[0](1)) &&
                      !boost::math::isnan(result.nearest_points[0](2)) &&
