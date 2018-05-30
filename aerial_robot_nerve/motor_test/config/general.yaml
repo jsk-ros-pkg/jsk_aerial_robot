@@ -1,0 +1,5 @@
+pwm_incremental_value: 25
+duration: 6.0
+min_pwm_value: 1100
+max_pwm_value: 1900
+

@@ -6,16 +6,13 @@
 
   <node name="forces_node" pkg="cfs_sensor" type="cfs_node"  output="screen"/>
 
-  <include file="$(find rosserial_stm)/launch/rosserial.launch" />
+  <include file="$(find spinal_ros_bridge)/launch/serial.launch" >
+    <arg name="baud" value="921600" />
+  </include>
 
   <node name="motor_test_node" pkg="motor_test" type="motor_test_node"  output="screen">
-    <param name="pwm_incremental_value" value="25" />
-    <param name="duration" value="3.0" />
-    <param name="min_pwm_value" value="1175" />
-    <param name="max_pwm_value" value="1800" />
-
+    <rosparam file="$(find motor_test)/config/hydrus_t_motor_mn3510_afro_hv_esc.yaml" command="load" />
     <remap from="/forces" to="/cfs/forces" />
     <remap from="/power_pwm" to="/pwm_test" />
-
   </node>
 </launch>

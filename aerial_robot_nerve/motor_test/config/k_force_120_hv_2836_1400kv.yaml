@@ -1,0 +1,6 @@
+# calib: min: 0.5, max: 0.05 reverted!!!!!
+pwm_incremental_value: -25
+duration: 3.0
+min_pwm_value: 900
+max_pwm_value: 100
+
