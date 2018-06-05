@@ -43,9 +43,9 @@
   </xacro:sonar_sensor>
 
   <!-- 3. downward camera -->
-<xacro:include filename="$(find hector_sensors_description)/urdf/generic_camera.urdf.xacro" />
-  <xacro:generic_camera name="downwards_cam" parent="link3" ros_topic="/camera/image" cam_info_topic="/camera/camera_info" update_rate="30" res_x="640" res_y="480" image_format="R8G8B8" hfov="54">
-    <origin xyz="0.1 0.0 -0.05" rpy="0 ${90*pi/180} 0"/>
+  <xacro:include filename="$(find hector_sensors_description)/urdf/generic_camera.urdf.xacro" />
+  <xacro:generic_camera name="downwards_cam" parent="link3" ros_topic="/camera/image" cam_info_topic="/camera/camera_info" update_rate="20" res_x="640" res_y="480" image_format="R8G8B8" hfov="54">
+    <origin xyz="0.1 0.0 -0.05" rpy="0 ${pi/2} 0"/>
   </xacro:generic_camera>
 
 </robot>

@@ -4,7 +4,7 @@
   <arg name="model" default ="hydrusx" />
 
   # sensor
-  <arg name="use_zed" default ="true" />
+  <arg name="use_zed" default ="false" />
 
   <group if="$(arg use_zed)">
     <include file="$(find zed_wrapper)/launch/zed.launch" />
