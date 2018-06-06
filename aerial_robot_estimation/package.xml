@@ -16,6 +16,8 @@
   <build_depend>sensor_msgs</build_depend>
   <build_depend>std_msgs</build_depend>
   <build_depend>nodelet</build_depend>
+  <build_depend>tf_conversions</build_depend>
+  <build_depend>mrpt</build_depend>
 
   <run_depend>cv_bridge</run_depend>
   <run_depend>geometry_msgs</run_depend>
@@ -25,6 +27,8 @@
   <run_depend>sensor_msgs</run_depend>
   <run_depend>std_msgs</run_depend>
   <run_depend>nodelet</run_depend>
+  <run_depend>tf_conversions</run_depend>
+  <run_depend>mrpt</run_depend>
 
   <export>
     <nodelet plugin="${prefix}/opticalflow_nodelet.xml"/>

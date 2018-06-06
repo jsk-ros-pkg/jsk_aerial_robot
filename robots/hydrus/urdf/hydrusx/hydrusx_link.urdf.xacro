@@ -96,42 +96,64 @@
         <axis xyz="0 0 1"/>
       </joint>
 
-      <xacro:extra_module name = "head" parent = "${self}" mass = "${head_leg_mass}" offset = "${link_length * 0.5 + head_leg_offset}" />
+      <xacro:extra_module name = "head" parent = "${self}" mass = "${head_leg_mass}" >
+        <origin xyz="${link_length * 0.5 + head_leg_offset} 0.0 0.0" rpy="0 0 0"/>
+      </xacro:extra_module>
+
       <!-- battery -->
-      <xacro:extra_module name = "bat${self}" parent = "${self}" mass = "${bat_mass}" offset = "${link_length * 0.5 + bat_offset}" />
+      <xacro:extra_module name = "bat${self}" parent = "${self}" mass = "${bat_mass}" >
+        <origin xyz="${link_length * 0.5 + bat_offset} 0.0 0.0" rpy="0 0 0"/>
+      </xacro:extra_module>
+
     </xacro:if>
 
     <!-- tail -->
     <xacro:if value="${self == child}">
-      <xacro:extra_module name = "tail" parent = "${self}" mass = "${tail_leg_mass}" offset = "${link_length * 0.5 + tail_leg_offset}" />
+      <xacro:extra_module name = "tail" parent = "${self}" mass = "${tail_leg_mass}" >
+        <origin xyz="${link_length * 0.5 + tail_leg_offset} 0.0 0.0" rpy="0 0 0"/>
+      </xacro:extra_module>
+
       <!-- battery -->
-      <xacro:extra_module name = "bat${self}" parent = "${self}" mass = "${bat_mass}" offset = "${link_length * 0.5 + bat_offset}" />
+      <xacro:extra_module name = "bat${self}" parent = "${self}" mass = "${bat_mass}" >
+        <origin xyz="${link_length * 0.5 + bat_offset} 0.0 0.0" rpy="0 0 0"/>
+      </xacro:extra_module>
     </xacro:if>
 
     <!-- fc -->
     <xacro:if value="${fc}">
-      <xacro:extra_module name = "fc" parent = "${self}" mass = "${fc_mass}" offset = "${link_length * 0.5 + fc_offset}" />
+      <xacro:extra_module name = "fc" parent = "${self}" mass = "${fc_mass}" >
+        <origin xyz="${link_length * 0.5 + fc_offset} 0.0 0.035" rpy="0 0 0"/>
+      </xacro:extra_module>
+
       <!-- sensor for control -->
-      <xacro:extra_module name = "sensor_c" parent = "${self}" mass = "${sensor_c_mass}" offset = "${link_length * 0.5 + sensor_c_offset}" />
-      <!-- control side -->
-      <!--
-      <xacro:extra_module name = "pc_c" parent = "${self}" mass = "${pc_c_mass}" offset = "${link_length * 0.5 + pc_c_offset}" />
-      -->
+      <xacro:extra_module name = "sensor_c" parent = "${self}" mass = "${sensor_c_mass}" >
+        <origin xyz="${link_length * 0.5 + sensor_c_offset} 0.0 0.0" rpy="0 0 0"/>
+      </xacro:extra_module>
+
       <!-- battery -->
-      <xacro:extra_module name = "bat${self}" parent = "${self}" mass = "${bat_mass}" offset = "${link_length * 0.5 + bat_offset}" />
+      <xacro:extra_module name = "bat${self}" parent = "${self}" mass = "${bat_mass}" >
+        <origin xyz="${link_length * 0.5 + bat_offset} 0.0 0.0" rpy="0 0 0"/>
+      </xacro:extra_module>
     </xacro:if>
 
     <!-- pc -->
     <xacro:if value="${pc}">
-      <xacro:extra_module name = "pc_c" parent = "${self}" mass = "${pc_c_mass}" offset = "${link_length * 0.5 + pc_c_offset}" />
+      <xacro:extra_module name = "pc_c" parent = "${self}" mass = "${pc_c_mass}" >
+        <origin xyz="${link_length * 0.5 + pc_c_offset} 0.0 0.0" rpy="0 0 0"/>
+      </xacro:extra_module>
+
       <!-- battery -->
-      <xacro:extra_module name = "bat${self}" parent = "${self}" mass = "${bat_mass}" offset = "${link_length * 0.5 + bat_offset}" />
+      <xacro:extra_module name = "bat${self}" parent = "${self}" mass = "${bat_mass}" >
+        <origin xyz="${link_length * 0.5 + bat_offset} 0.0 0.0" rpy="0 0 0"/>
+      </xacro:extra_module>
     </xacro:if>
 
     <!-- general -->
     <xacro:if value="${general}">
       <!-- battery -->
-      <xacro:extra_module name = "bat${self}" parent = "${self}" mass = "${bat_mass}" offset = "${link_length * 0.5 + bat_offset}" />
+      <xacro:extra_module name = "bat${self}" parent = "${self}" mass = "${bat_mass}" >
+        <origin xyz="${link_length * 0.5 + bat_offset} 0.0 0.0" rpy="0 0 0"/>
+      </xacro:extra_module>
     </xacro:if>
 
     <!-- joint -->>
@@ -145,7 +167,9 @@
         <dynamics damping="0.8" friction="0.05"/>
       </joint>
 
-      <xacro:extra_module name = "joint${self}_module" parent = "${self}" mass = "${joint_mass}" offset = "${link_length* 0.5 + link_joint_offset}" />
+      <xacro:extra_module name = "joint${self}_module" parent = "${self}" mass = "${joint_mass}" >
+        <origin xyz="${link_length* 0.5 + link_joint_offset} 0.0 0.0" rpy="0 0 0"/>
+      </xacro:extra_module>
     </xacro:unless>
 
     <!-- hardware interface -->

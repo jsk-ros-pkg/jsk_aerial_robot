@@ -63,11 +63,11 @@
     </visual>
   </xacro:macro>
 
-  <xacro:macro name="extra_module" params="name parent mass offset">
+  <xacro:macro name="extra_module" params="name *origin parent mass">
     <joint name="link2${name}" type="fixed">
+      <xacro:insert_block name="origin" />
       <parent link="link${parent}"/>
       <child link="${name}"/>
-      <origin rpy="0 0 0" xyz="${offset} 0 0"/>
       <axis xyz="0 0 1"/>
     </joint>
     <link name="${name}">
@@ -88,6 +88,12 @@
       <mu1>0.1</mu1>
       <mu2>0.1</mu2>
     </gazebo>
+
+    <gazebo reference="rotor{self}">
+      <mu1>0.1</mu1>
+      <mu2>0.1</mu2>
+    </gazebo>
+
   </xacro:macro>
 
   <xacro:macro name="damping_factor" params="link">

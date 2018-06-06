@@ -120,18 +120,22 @@ namespace Spine
     }
     slave_num_ = neuron_.size();
 
+    if(slave_num_  == 0) return;
+
     /* uav model: special rule based on the number of gimbals (no send data flag servos) */
     uint8_t gimbal_servo_num = servo_.size() - servo_with_send_flag_.size();
-      if(gimbal_servo_num == 0)
+
+    /* Tongtybj: TODO not good case processing */
+    if(gimbal_servo_num == 0)
         {
           if(slave_num_ < 6) uav_model_ = spinal::UavInfo::HYDRUS; // less than hex
           else uav_model_ = spinal::UavInfo::HYDRUS_XI;
         }
-      if(gimbal_servo_num  == slave_num_)
+   if(gimbal_servo_num  == slave_num_)
         {
           uav_model_ = spinal::UavInfo::HYDRUS_XI;
         }
-      if(gimbal_servo_num  == 2 * slave_num_)
+    if(gimbal_servo_num  == 2 * slave_num_)
         {
           uav_model_ = spinal::UavInfo::DRAGON;
           /* special smoothing flag for dragon */

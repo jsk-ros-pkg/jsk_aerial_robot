@@ -13,4 +13,39 @@
     </plugin>
   </gazebo>
 
+  <!-- sensor plugins -->
+
+  <!-- 1. imu -->
+  <gazebo reference="fc">
+    <gravity>true</gravity>
+    <sensor name="imu_sensor" type="imu">
+      <always_on>true</always_on>
+      <update_rate>200</update_rate>
+      <visualize>true</visualize>
+      <topic>imu_test</topic>
+      <plugin filename="libgazebo_ros_imu_sensor.so" name="imu_plugin">
+        <topicName>imu</topicName>
+        <bodyName>imu_link</bodyName>
+        <updateRateHZ>200.0</updateRateHZ>
+        <gaussianNoise>0.001</gaussianNoise>
+        <xyzOffset>0 0 0</xyzOffset>
+        <rpyOffset>0 0 0</rpyOffset>
+        <frameName>imu_link</frameName>
+      </plugin>
+      <pose>0 0 0 0 0 0</pose>
+    </sensor>
+  </gazebo>
+
+  <!-- 2. one point laser sensor: leddarone -->
+  <xacro:include filename="$(find hector_sensors_description)/urdf/sonar_sensor.urdf.xacro" />
+  <xacro:sonar_sensor name="leddarone" parent="link3" ros_topic="leddarone_temp" update_rate="30" min_range="0.05" max_range="20.0" field_of_view="0" ray_count="1">
+    <origin xyz="0.073 0.03 -0.02" rpy="0 ${90*pi/180} 0"/>  <!-- y is for the avoidance of ray with the parent link collision model -->
+  </xacro:sonar_sensor>
+
+  <!-- 3. downward camera -->
+  <xacro:include filename="$(find hector_sensors_description)/urdf/generic_camera.urdf.xacro" />
+  <xacro:generic_camera name="downwards_cam" parent="link3" ros_topic="/camera/image" cam_info_topic="/camera/camera_info" update_rate="20" res_x="640" res_y="480" image_format="R8G8B8" hfov="54">
+    <origin xyz="0.1 0.0 -0.05" rpy="0 ${pi/2} 0"/>
+  </xacro:generic_camera>
+
 </robot>

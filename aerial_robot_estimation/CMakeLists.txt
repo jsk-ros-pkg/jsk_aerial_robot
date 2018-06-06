@@ -10,10 +10,13 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   std_msgs
   nodelet
+  tf_conversions
 )
 
 find_package(OpenCV REQUIRED)
 #message(WARNING "OPENCV ${OpenCV_VERSION} FOUND")
+
+find_package(MRPT REQUIRED slam;vision;gui;topography)
 
 catkin_package(
   INCLUDE_DIRS include
@@ -24,6 +27,7 @@ catkin_package(
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
+  ${OpenCV_INCLUDE_DIRS}
 )
 
 set(USE_GPU OFF)
@@ -34,4 +38,4 @@ if(USE_GPU)
 endif()
 
 add_library(optical_flow src/optical_flow.cpp)
-target_link_libraries(optical_flow ${catkin_LIBRARIES})
+target_link_libraries(optical_flow ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${MRPT_LIBS})

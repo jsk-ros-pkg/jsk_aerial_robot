@@ -36,7 +36,8 @@
   <run_depend>orocos_kdl</run_depend>
   <run_depend>ros_control</run_depend>
   <run_depend>ros_controllers</run_depend>
-
+  <run_depend>hector_sensors_description</run_depend>
+  <run_depend>hector_gazebo</run_depend>
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>

@@ -1,6 +1,113 @@
 #include "aerial_robot_estimation/optical_flow.h"
 #include <pluginlib/class_list_macros.h>
 
+namespace
+{
+  Eigen::Matrix3d delta_r_;
+  tf::Matrix3x3 prev_r_;
+  tf::Vector3 prev_ang_vel_;
+  double prev_z_pos_;
+  double prev_z_vel_;
+  ros::Time prev_stamp_;
+  void  epipolarFit(const CMatrixDouble  &allData,
+                    const vector_size_t  &useIndices,
+                    std::vector< CMatrixDouble > &fitModels )
+  {
+    ASSERT_(useIndices.size() == 2);
+
+    Eigen::Vector3d p_1_orig; p_1_orig << allData(0, useIndices[0]), allData(1, useIndices[0]), 1;
+    Eigen::Vector3d p_2_orig; p_2_orig << allData(0, useIndices[1]), allData(1, useIndices[1]), 1;
+
+    Eigen::Vector3d p_dash_1; p_dash_1 << allData(2, useIndices[0]), allData(3, useIndices[0]), 1;
+    Eigen::Vector3d p_dash_2; p_dash_2 << allData(2, useIndices[1]), allData(3, useIndices[1]), 1;
+    Eigen::Vector3d p_dash_1_orig = delta_r_ * p_dash_1;
+    Eigen::Vector3d p_dash_2_orig = delta_r_ * p_dash_2;
+
+    // std::cout << "p_1_orig: \n" << p_1_orig << std::endl;
+    // std::cout << "p_2_orig: \n" << p_2_orig << std::endl;
+    // std::cout << "p_dash_1: \n" << p_dash_1 << std::endl;
+    // std::cout << "p_dash_2: \n" << p_dash_2 << std::endl;
+    // std::cout << "p_dash_1_orig: \n" << p_dash_1_orig << std::endl;
+    // std::cout << "p_dash_2_orig: \n" << p_dash_2_orig << std::endl;
+
+    try
+      {
+        fitModels.resize(1);
+        CMatrixDouble &M = fitModels[0];
+        M.setSize(1,3);
+
+        Eigen::Vector3d p1_cross = (p_1_orig.cross(p_dash_1_orig));
+        Eigen::Vector3d p2_cross = (p_2_orig.cross(p_dash_2_orig));
+        Eigen::Vector3d delta_t = p1_cross.cross(p2_cross);
+        //std::cout << "dleta_t: \n" << delta_t << std::endl;
+        delta_t.normalize();
+        M(0, 0) = delta_t(0);
+        M(0, 1) = delta_t(1);
+        M(0, 2) = delta_t(2);
+
+      }
+    catch(std::exception &)
+      {
+        fitModels.clear();
+        return;
+      }
+  }
+
+  void epipolarDistance(const CMatrixDouble &allData,
+                        const std::vector< CMatrixDouble > & testModels,
+                        const double distanceThreshold,
+                        unsigned int & out_bestModelIndex,
+                        vector_size_t & out_inlierIndices )
+  {
+    ASSERT_(testModels.size() == 1)
+      out_bestModelIndex = 0;
+    const CMatrixDouble &M = testModels[0];
+
+    const size_t N = allData.cols();
+    out_inlierIndices.clear();
+    out_inlierIndices.reserve(100);
+
+    /* t = (t_x, t_y, 1) */
+    Eigen::Matrix3d delta_t_cross;
+    delta_t_cross << 0, -M(0, 2), M(0, 1), M(0, 2), 0, -M(0, 0), -M(0, 1), M(0, 0), 0;
+    Eigen::Matrix3d E =  delta_t_cross * delta_r_;
+
+    for (size_t i = 0; i < N; i++)
+      {
+        Eigen::Vector3d x1;
+        x1 << allData.get_unsafe(0, i), allData.get_unsafe(1, i), 1.;
+        Eigen::Vector3d x2;
+        x2 << allData.get_unsafe(2, i), allData.get_unsafe(3, i), 1.;
+
+        Eigen::Vector3d Ex2 = E * x2;
+        Eigen::Vector3d Etx1 = E.transpose() * x1;
+        double x1tEx2 = x1.dot(Ex2);
+
+        double a = Ex2[0] * Ex2[0];
+        double b = Ex2[1] * Ex2[1];
+        double c = Etx1[0] * Etx1[0];
+        double d = Etx1[1] * Etx1[1];
+
+        const double d_normailized_square = x1tEx2 * x1tEx2 / (a + b + c + d);
+
+        if (d_normailized_square < distanceThreshold * distanceThreshold)
+          {
+            //printf("d_normailized_square: %f, distanceThreshold: %f \n", d_normailized_square, distanceThreshold);
+            out_inlierIndices.push_back(i);
+          }
+      }
+  }
+
+  /** Return "true" if the selected points are a degenerate (invalid) case.
+   */
+  bool epipolarDegenerate(const CMatrixDouble &allData,
+                          const mrpt::vector_size_t &useIndices )
+  {
+    return false;
+  }
+
+};
+
 namespace {
 #if USE_GPU
   void download(const cv::gpu::GpuMat& d_mat, std::vector<cv::Point2f>& vec)
@@ -9,7 +116,7 @@ namespace {
     cv::Mat mat(1, d_mat.cols, CV_32FC2, (void*)&vec[0]);
     d_mat.download(mat);
   }
-  
+
   void download(const cv::gpu::GpuMat& d_mat, std::vector<uchar>& vec)
   {
     vec.resize(d_mat.cols);
@@ -25,47 +132,29 @@ namespace aerial_robot_estimation
   {
     nh_ = this->getNodeHandle();
     nhp_ = this->getPrivateNodeHandle();
-    
-    camera_info_update_ = false;
-    imu_update_ = false;
-    image_stamp_update_ = false;
-    sonar_ = -1.0;
 
     /* ros param */
     nhp_.param("downward_camera_image_topic_name", downward_camera_image_topic_name_, std::string("/downward_cam/camera/image"));
     nhp_.param("downward_camera_info_topic_name", downward_camera_info_topic_name_, std::string("/downward_cam/camera/camera_info"));
-    nhp_.param("imu_topic_name", imu_topic_name_, std::string("/raw_imu"));
-    nhp_.param("sonar_topic_name", sonar_topic_name_, std::string("sonar_height"));
     nhp_.param("odometry_topic_name", odometry_topic_name_, std::string("/ground_truth/state"));
     nhp_.param("camera_vel_topic_name", camera_vel_topic_name_, std::string("camera_velocity"));
     nhp_.param("optical_flow_image_topic_name", optical_flow_image_topic_name_, std::string("optical_flow_image"));
 
-    //imu(base)->camera
-    nhp_.param("camera_roll_offset", camera_roll_, M_PI);
-    nhp_.param("camera_pitch_offset", camera_pitch_, 0.0);
-    nhp_.param("camera_yaw_offset", camera_yaw_, -M_PI / 2);
-    nhp_.param("verbose", verbose_, false);
+    nhp_.param("debug", debug_, false);
     nhp_.param("max_count", max_count_, 100);
-    nhp_.param("use_sonar", use_sonar_, false);
-    nhp_.param("sonar_offset", sonar_offset_, 0.0);
+    nhp_.param("alt_offset", alt_offset_, 0.0);
     nhp_.param("image_crop_scale", image_crop_scale_, 1.0);
-    nhp_.param("image_cut_pixel", image_cut_pixel_, 10);
+    nhp_.param("epipolar_thresh", epipolar_thresh_, 1.0);
 
     /* subscriber */
     downward_camera_image_sub_ = nh_.subscribe(downward_camera_image_topic_name_, 1, &OpticalFlow::downwardCameraImageCallback, this);
     downward_camera_info_sub_ = nh_.subscribe(downward_camera_info_topic_name_, 1, &OpticalFlow::downwardCameraInfoCallback, this);
-    imu_sub_ = nh_.subscribe(imu_topic_name_, 1, &OpticalFlow::imuCallback, this);
-    if (use_sonar_)
-      sonar_sub_ = nh_.subscribe(sonar_topic_name_, 1, &OpticalFlow::sonarCallback, this);
-    else
-      odometry_sub_ = nh_.subscribe(odometry_topic_name_, 1, &OpticalFlow::odometryCallback, this);
+    odometry_sub_ = nh_.subscribe(odometry_topic_name_, 1, &OpticalFlow::odometryCallback, this);
 
     /* publisher */
     camera_vel_pub_ = nh_.advertise<geometry_msgs::Vector3Stamped>(camera_vel_topic_name_, 10);
+    baselink_vel_pub_ = nh_.advertise<geometry_msgs::Vector3Stamped>("baselink_vel", 10);
     optical_flow_image_pub_ = nh_.advertise<sensor_msgs::Image>(optical_flow_image_topic_name_, 1);
-
-    camera_rotation_mat_.setRPY(camera_roll_, camera_pitch_, camera_yaw_); //imu->camera
-    camera_rotation_mat_inv_ = camera_rotation_mat_.inverse(); //camera->imu
 
 #if USE_GPU
     ROS_WARN("optical flow gpu mode");
@@ -76,33 +165,63 @@ namespace aerial_robot_estimation
 
   void OpticalFlow::downwardCameraImageCallback(const sensor_msgs::ImageConstPtr& msg)
   {
-    if (!camera_info_update_ || !imu_update_ || !image_stamp_update_) {
+    //if (!camera_info_update_ || !imu_update_ || !image_stamp_update_) {
+    if (!camera_info_update_ || !image_stamp_update_) {
+      prev_r_ = uav_rotation_mat_;
+      prev_ang_vel_ = ang_vel_;
+      prev_z_vel_ = z_vel_;
       prev_stamp_ = msg->header.stamp;
+
+      /* TODO: should be merge into the sensor fusion */
+      /* obtain the transform from baselink to optical flow sensor */
+      try
+        {
+          std::string camera_frame, baselink_frame;
+          nhp_.param("camera_frame", camera_frame, std::string("downwards_cam_optical_frame"));
+          nhp_.param("baselink_frame", baselink_frame, std::string("fc"));
+
+          tf::TransformListener listener;
+          listener.waitForTransform(camera_frame, baselink_frame, ros::Time(0), ros::Duration(10.0) );
+          listener.lookupTransform(camera_frame, baselink_frame, ros::Time(0), tf_fc2camera_);
+        } catch (tf::TransformException ex)
+        {
+          ROS_ERROR("%s",ex.what());
+        }
+
       image_stamp_update_ = true;
       return;
     }
-    tf::Vector3 ang_vel = camera_rotation_mat_inv_ * ang_vel_;
-    cv::Mat src_img = cv_bridge::toCvCopy(msg, msg->encoding)->image;
 
+    ros::Time start_time = ros::Time().now();
+    cv::Mat src_img = cv_bridge::toCvCopy(msg, msg->encoding)->image;
+    if(debug_)  ROS_INFO("image copy: %f[sec]", ros::Time().now().toSec() - start_time.toSec());
+
+    start_time = ros::Time().now();
     if (image_crop_scale_ != 1.0) {
       src_img = src_img(cv::Range(src_img.rows * (1 - image_crop_scale_) / 2, src_img.rows * (1 + image_crop_scale_) / 2), cv::Range(src_img.cols * (1 - image_crop_scale_) / 2, src_img.cols * (1 + image_crop_scale_) / 2));
     }
+    if(debug_) ROS_INFO("image cropping: %f[sec]", ros::Time().now().toSec() - start_time.toSec());
     std::vector<cv::Point2f> points[2];
 
     //calc features
 #if USE_GPU
+    start_time = ros::Time().now();
     cv::gpu::GpuMat d_src_img(src_img);
     if (src_img.channels() > 1) {
       cv::gpu::cvtColor(d_src_img, d_frame1Gray, cv::COLOR_BGR2GRAY);
     } else {
       d_frame1Gray = d_src_img;
     }
+    if(debug_)  ROS_INFO("image convert color: %f[sec]", ros::Time().now().toSec() - start_time.toSec());
 
+    start_time = ros::Time().now();
     if (d_frame0Gray.empty()) d_frame1Gray.copyTo(d_frame0Gray);
     cv::gpu::GoodFeaturesToTrackDetector_GPU detector(max_count_, 0.01, 10, 5, false, 0.04);
     cv::gpu::GpuMat d_prevPts;
     detector(d_frame0Gray, d_prevPts);
+    if(debug_)  ROS_INFO("image find features: %f[sec]", ros::Time().now().toSec() - start_time.toSec());
 #else
+    start_time = ros::Time().now();
     cv::Mat gray_img;
     if (src_img.channels() > 1) {
       cv::cvtColor(src_img, gray_img, cv::COLOR_BGR2GRAY);
@@ -110,19 +229,19 @@ namespace aerial_robot_estimation
       src_img.copyTo(gray_img);
     }
     if(prev_gray_img_.empty()) gray_img.copyTo(prev_gray_img_);
+    if(debug_) ROS_INFO("image convert color: %f[sec]", ros::Time().now().toSec() - start_time.toSec());
 
+    start_time = ros::Time().now();
     cv::TermCriteria termcrit(cv::TermCriteria::MAX_ITER + cv::TermCriteria::EPS, 20, 0.03);
     cv::Size subPixWinSize(10,10), winSize(31,31);
-    cv::goodFeaturesToTrack(gray_img, points[0], max_count_, 0.01, 10, cv::Mat(), 3, false, 0.04);
-    cv::cornerSubPix(gray_img, points[0], subPixWinSize, cv::Size(-1,-1), termcrit);
+    cv::goodFeaturesToTrack(prev_gray_img_, points[0], max_count_, 0.01, 10, cv::Mat(), 3, false, 0.04);
+    //cv::cornerSubPix(prev_gray_img_, points[0], subPixWinSize, cv::Size(-1,-1), termcrit);
+    if(debug_)  ROS_INFO("image find features: %f[sec]", ros::Time().now().toSec() - start_time.toSec());
 #endif
 
-    double time = (msg->header.stamp - prev_stamp_).toSec();
-    prev_stamp_ = msg->header.stamp;
-
-    std::vector<uchar> status;
-
     //calc optical flow
+    std::vector<uchar> status;
+    start_time = ros::Time().now();
 #if USE_GPU
     cv::gpu::PyrLKOpticalFlow d_pyrLK;
 
@@ -148,44 +267,144 @@ namespace aerial_robot_estimation
     if (!points[0].empty())
       cv::calcOpticalFlowPyrLK(prev_gray_img_, gray_img, points[0], points[1], status, err, winSize, 3, termcrit, 0, 0.001);
 #endif
+    if(debug_) ROS_INFO("image feature matching by PyrLK : %f[sec]", ros::Time().now().toSec() - start_time.toSec());
+
+    /* ransac filter based on the epipolar constraint */
+    start_time = ros::Time().now();
+    //cv::Mat mask;
+    //cv::Mat essential_matrix = cv::findEssentialMat(points[0], points[1], camera_f_, cv::Point2d(camera_cx_, camera_cy_), cv::LMEDS, 0.999, 3.0, mask);
+    //int cnt = 0;
+    //for(int i = 0; i < (int)mask.size(); i ++)
+      //{
+      //if(mask[i] == 1) cnt ++;
+    //}
+    //ROS_INFO("whole point: %d, valid point: %d, ratio: %f", mask.size(), cnt, cnt / mask.size());
+    //std::cout << "mask: \n" << mask  << std::endl;
+    //cv::SVD essential_matrix_svd(essential_matrix);
+    //std::cout << "essential_matrix: \n" << essential_matrix << std::endl;
+    //std::cout << "essential_matrix U: \n" << essential_matrix_svd.u << std::endl;
+    //std::cout << "essential_matrix W: \n" << essential_matrix_svd.w << std::endl;
+    //std::cout << "essential_matrix V: \n" << essential_matrix_svd.vt << std::endl;
+    //cv::Mat w_dash = (cv::Mat_<double>(3,3) << 0, -1, 0, 1, 0, 0, 0, 0, 1);
+    //std::cout << "delta R: \n" << essential_matrix_svd.u * w_dash * essential_matrix_svd.vt  << std::endl;
+    //cv::Mat R, t;
+    //recoverPose(essential_matrix, points[0], points[1], R, t, camera_f_, cv::Point2d(camera_cx_, camera_cy_), mask);
+    //std::cout << "delta R: \n" << R  << std::endl;
+    //std::cout << "delta t: \n" << t  << std::endl;
+
+    /* start translation only RANSAC */
+    tf::matrixTFToEigen(prev_r_.inverse() * uav_rotation_mat_, delta_r_);
+    CMatrixDouble all_data(4, points[0].size());
+
+    for(int i = 0; i < all_data.cols(); i++)
+      {
+        all_data(0, i) = (points[0].at(i).x - camera_cx_) / camera_f_;
+        all_data(1, i) = (points[0].at(i).y - camera_cy_) / camera_f_;
+        all_data(2, i) = (points[1].at(i).x - camera_cx_) / camera_f_;
+        all_data(3, i) = (points[1].at(i).y - camera_cy_) / camera_f_;
+      }
+
+    double tx, ty, tz;
+    vector_size_t best_inliers;
+    ransac(all_data, tx, ty, tz, best_inliers);
+
+    if(debug_)  ROS_INFO("image epipolar ransac : %f[sec]", ros::Time().now().toSec() - start_time.toSec());
+
+
+    double time = (msg->header.stamp - prev_stamp_).toSec();
+    prev_stamp_ = msg->header.stamp;
+#if 0 // differential motion based BAD!!!
+    tf::Vector3 camera_vel(tx / tz, ty / tz, 1);
+    camera_vel *= ((-z_pos_ + prev_z_pos_) / time);
+
+#else // optical based vel calculation
+    tf::Vector3 local_ang_vel = tf_fc2camera_.getBasis().inverse() * ( ang_vel_ + prev_ang_vel_) / 2;
+    local_ang_vel = tf_fc2camera_.getBasis().inverse() * ang_vel_;
     tf::Vector3 camera_vel;
     double camera_x_vel = 0.0, camera_y_vel = 0.0;
-    size_t valid_point = 0;
-    for(size_t i = 0; i < points[0].size(); i++) {
-      if(!status[i]) continue;
+    for(size_t i = 0; i < best_inliers.size(); i++)
+      {
+        double x = points[1][best_inliers.at(i)].x - camera_cx_, prev_x = points[0][best_inliers.at(i)].x - camera_cx_;
+        double y = points[1][best_inliers.at(i)].y - camera_cy_, prev_y = points[0][best_inliers.at(i)].y - camera_cy_;
 
-      double x = points[1][i].x - camera_cx_, prev_x = points[0][i].x - camera_cx_;
-      double y = points[1][i].y - camera_cy_, prev_y = points[0][i].y - camera_cy_;
-
-      if(fabs(x) > (camera_cx_ - image_cut_pixel_)  || fabs(y) > (camera_cy_ - image_cut_pixel_)) continue;
-
-      camera_x_vel += sonar_vel_ * x / camera_f_ + (-(x - prev_x) / time - ang_vel.y() * camera_f_ + ang_vel.z() * y + (ang_vel.x() * x * y - ang_vel.y() * x * x) / camera_f_) * sonar_ / camera_f_;
-      camera_y_vel += sonar_vel_ * y / camera_f_ + (-(y - prev_y) / time + ang_vel.x() * camera_f_ - ang_vel.z() * x + (ang_vel.x() * y * y - ang_vel.y() * x * y) / camera_f_) * sonar_ / camera_f_;
-      valid_point++;
-      if (verbose_) {
-	cv::circle(src_img, points[0][i], 3, cv::Scalar(0,255,0), -1, 8);
-	cv::line(src_img, points[1][i], points[0][i], cv::Scalar(0,255,0), 1, 8, 0);
-      }
+        camera_x_vel += z_vel_ * x / camera_f_ + (-(x - prev_x) / time - local_ang_vel.y() * camera_f_ + local_ang_vel.z() * y + (local_ang_vel.x() * x * y - local_ang_vel.y() * x * x) / camera_f_) * z_pos_ / camera_f_;
+        camera_y_vel += z_vel_ * y / camera_f_ + (-(y - prev_y) / time + local_ang_vel.x() * camera_f_ - local_ang_vel.z() * x + (local_ang_vel.x() * y * y - local_ang_vel.y() * x * y) / camera_f_) * z_pos_ / camera_f_;
+        if (debug_)
+          {
+            cv::circle(src_img, points[0][best_inliers.at(i)], 3, cv::Scalar(0,255,0), -1, 8);
+            cv::line(src_img, points[1][best_inliers.at(i)], points[0][best_inliers.at(i)], cv::Scalar(0,255,0), 1, 8, 0);
+          }
     }
 
-    if (valid_point != 0) camera_vel.setValue(camera_x_vel / valid_point, camera_y_vel / valid_point, sonar_vel_);
+    if (best_inliers.size() != 0) camera_vel.setValue(camera_x_vel / best_inliers.size(), camera_y_vel / best_inliers.size(), z_vel_);
     else camera_vel.setValue(0.0, 0.0, 0.0);
 
-    camera_vel = camera_rotation_mat_ * camera_vel;
-
-    if (verbose_)
-      optical_flow_image_pub_.publish(cv_bridge::CvImage(msg->header, msg->encoding, src_img).toImageMsg());
-#if USE_GPU
-    d_frame0Gray.swap(d_frame1Gray);
-#else
-    cv::swap(prev_gray_img_, gray_img);
 #endif
+
+    /* TODO: should be merge into the sensor fusion */
+    /* camera frame vel w.r.t world */
+    camera_vel = uav_rotation_mat_ * tf_fc2camera_.getBasis() * camera_vel;
+
+    /* baselink frame vel w.r.t world */
+    tf::Vector3 baselink_vel = camera_vel - uav_rotation_mat_ * ang_vel_.cross(tf_fc2camera_.getOrigin());
+
+    if (debug_)
+      optical_flow_image_pub_.publish(cv_bridge::CvImage(msg->header, msg->encoding, src_img).toImageMsg());
+
     geometry_msgs::Vector3Stamped camera_vel_msg;
     camera_vel_msg.header = msg->header;
     camera_vel_msg.vector.x = camera_vel.x();
     camera_vel_msg.vector.y = camera_vel.y();
     camera_vel_msg.vector.z = camera_vel.z();
     camera_vel_pub_.publish(camera_vel_msg);
+
+    geometry_msgs::Vector3Stamped baselink_vel_msg;
+    baselink_vel_msg.header = msg->header;
+    baselink_vel_msg.vector.x = baselink_vel.x();
+    baselink_vel_msg.vector.y = baselink_vel.y();
+    baselink_vel_msg.vector.z = baselink_vel.z();
+    baselink_vel_pub_.publish(baselink_vel_msg);
+
+
+    start_time = ros::Time().now();
+#if USE_GPU
+    d_frame0Gray.swap(d_frame1Gray);
+#else
+    cv::swap(prev_gray_img_, gray_img);
+#endif
+    if(debug_)  ROS_INFO("image swapping : %f[sec]", ros::Time().now().toSec() - start_time.toSec());
+
+    prev_r_ = uav_rotation_mat_;
+    prev_ang_vel_ = ang_vel_;
+    prev_z_vel_ = z_vel_;
+    prev_z_pos_ = z_pos_;
+  }
+
+  void OpticalFlow::ransac(const CMatrixDouble& all_data, double& t_x, double& t_y, double& t_z, vector_size_t& best_inliers)
+  {
+    CMatrixDouble best_model;
+
+    double start_t = ros::Time::now().toSec();
+
+    ransac_.execute(all_data,
+                    epipolarFit,
+                    epipolarDistance,
+                    epipolarDegenerate,
+                    epipolar_thresh_ / camera_f_,
+                    2,  // Minimum set of points
+                    best_inliers,
+                    best_model,
+                    debug_);
+
+    if(size(best_model,1) !=1 && size(best_model,2) !=3) return;
+
+    if(debug_)
+      std::cout << "RANSAC finished in " << ros::Time::now().toSec() - start_t
+                << "[sec]: Best model: " << best_model << "; inlier size: "<< best_inliers.size() << std::endl;
+
+    t_x = best_model(0,0);
+    t_y = best_model(0,1);
+    t_z = best_model(0,2);
   }
 
   void OpticalFlow::downwardCameraInfoCallback(const sensor_msgs::CameraInfoConstPtr& msg)
@@ -199,38 +418,29 @@ namespace aerial_robot_estimation
     }
   }
 
-  void OpticalFlow::imuCallback(const sensor_msgs::ImuConstPtr& msg)
-  {
-    tf::vector3MsgToTF(msg->angular_velocity, ang_vel_);
-    imu_update_ = true;
-  }
-
   void OpticalFlow::odometryCallback(const nav_msgs::OdometryConstPtr& msg)
   {
     tf::Quaternion uav_q(msg->pose.pose.orientation.x,
-			 msg->pose.pose.orientation.y,
-			 msg->pose.pose.orientation.z,
-			 msg->pose.pose.orientation.w);
-    tf::Matrix3x3 uav_rotation_mat_(uav_q);
+                         msg->pose.pose.orientation.y,
+                         msg->pose.pose.orientation.z,
+                         msg->pose.pose.orientation.w);
+    uav_rotation_mat_.setRotation(uav_q);
     double r, p, y;
     uav_rotation_mat_.getRPY(r, p, y);
 
     sensor_msgs::RangePtr sonar_msg(new sensor_msgs::Range);
-    sonar_msg->header = msg->header;
     sonar_msg->range = msg->pose.pose.position.z / (cos(r) * cos(p));
-    sonarCallback(sonar_msg);
-    sonar_vel_ = -msg->twist.twist.linear.z; //overwrite
+    altCallback(sonar_msg);
+    z_vel_ = -msg->twist.twist.linear.z;
+
+    tf::vector3MsgToTF(msg->twist.twist.angular, ang_vel_);
+
+    odom_update_ = true;
   }
 
-  void OpticalFlow::sonarCallback(const sensor_msgs::RangeConstPtr& msg)
+  void OpticalFlow::altCallback(const sensor_msgs::RangeConstPtr& msg)
   {
-    double sonar_val = msg->range - sonar_offset_;
-    if (sonar_ != -1.0) {
-      sonar_vel_ = -(sonar_val - sonar_) / (msg->header.stamp - sonar_prev_stamp_).toSec();
-      sonar_update_ = true;
-    }
-    sonar_ = sonar_val;
-    sonar_prev_stamp_ = msg->header.stamp;
+    z_pos_ = msg->range - alt_offset_;
   }
 } //namespace aerial_robot_estimation
 
