@@ -132,16 +132,17 @@ public:
         imu_msg_.stamp = nh_->now();
         for(int i = 0; i < 3 ; i ++)
           {
-        	if(pub_smoothing_gyro_flag_)
-        	{
-        		imu_msg_.gyro_data[i] = estimator_->getSmoothAngular(Frame::BODY)[i];
-        	}
-        	else
-        		imu_msg_.gyro_data[i] = estimator_->getAngular(Frame::BODY)[i];
             imu_msg_.mag_data[i] = estimator_->getMag(Frame::BODY)[i];
             imu_msg_.acc_data[i] = estimator_->getAcc(Frame::BODY)[i];
 
-#if ESTIMATE_TYPE == COMPLEMENTARY
+            if(pub_smoothing_gyro_flag_)
+              {
+                imu_msg_.gyro_data[i] = estimator_->getSmoothAngular(Frame::BODY)[i];
+                imu_msg_.mag_data[i] = estimator_->getAngular(Frame::BODY)[i]; // for debug
+              }
+            else
+              imu_msg_.gyro_data[i] = estimator_->getAngular(Frame::BODY)[i];
+ #if ESTIMATE_TYPE == COMPLEMENTARY
             imu_msg_.angles[i] = estimator_->getAttitude(Frame::BODY)[i]; // get the attitude at body frame
 #endif
           }
