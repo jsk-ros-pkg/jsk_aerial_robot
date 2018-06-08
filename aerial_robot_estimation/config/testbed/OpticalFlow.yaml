@@ -1,0 +1,17 @@
+downward_camera_image_topic_name: /pointgrey_camera/image_mono
+downward_camera_info_topic_name: /pointgrey_camera/camera_info
+odometry_topic_name: /uav/baselink/odom
+imu_topic_name: /estimator/sensor_plugin/imu/imu_filtered
+
+image_crop_scale: 0.3
+image_cut_pixel: 10
+max_count: 200
+
+epipolar_thresh: 1
+inlier_rate: 0.2 #0.4
+
+debug: false
+
+camera_frame: camera_optical_frame
+
+baselink_frame: baselink 

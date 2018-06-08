@@ -45,11 +45,8 @@
   </node>
 
   ###########  Sensors  ###########
-  <include file="$(find aerial_robot_base)/launch/sensors/onboard_sensors.launch" if="$(arg real_machine)" >
-    <arg name="imu_board" value="1" />  <!-- 1: d imu board, 0: kduino board -->
-    <arg name="use_mocap" value="1" />
-    <arg name="use_joy" value="0" />
-    <arg name="use_opti" value="0" />
+  <include file="$(find aerial_robot_base)/launch/sensors/onboard_sensors.launch" >
+    <arg name="simulation" value="$(arg simulation)" />
   </include >
 
   ###########  Dynamixel  ###########

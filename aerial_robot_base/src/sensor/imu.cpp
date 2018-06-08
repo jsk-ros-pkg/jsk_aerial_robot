@@ -513,6 +513,8 @@ namespace sensor_plugin
       imu_data.header.stamp = imu_stamp_;
       tf::vector3TFToMsg(omega_, imu_data.angular_velocity);
       tf::vector3TFToMsg(acc_b_, imu_data.linear_acceleration);
+      tf::Quaternion q = tf::createQuaternionFromRPY(euler_.x(), euler_.y(), euler_.z());
+      tf::quaternionTFToMsg(q, imu_data.orientation);
       imu_pub_.publish(imu_data);
     }
 

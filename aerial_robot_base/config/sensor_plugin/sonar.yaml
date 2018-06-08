@@ -1,7 +1,0 @@
-sensor_plugin:
-        range_sensor:
-                range_noise_sigma:  0.02
-                range_sensor_sub_name: /sonar
-                ascending_check_range: 0.095                  
-                calibrate_cnt: 10
-                

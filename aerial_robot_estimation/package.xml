@@ -29,6 +29,7 @@
   <run_depend>nodelet</run_depend>
   <run_depend>tf_conversions</run_depend>
   <run_depend>mrpt</run_depend>
+  <run_depend>pointgrey_camera_driver</run_depend>
 
   <export>
     <nodelet plugin="${prefix}/opticalflow_nodelet.xml"/>

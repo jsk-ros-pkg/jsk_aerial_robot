@@ -1,17 +1,15 @@
-verbose: false
-
-downward_camera_image_topic_name: /downward_cam/camera/image
-downward_camera_info_topic_name: /downward_cam/camera/camera_info
-imu_topic_name: /raw_imu
-sonar_topic_name: /sonar_height
-odometry_topic_name: /ground_truth/state
+downward_camera_image_topic_name: /camera/image
+downward_camera_info_topic_name: /camera/camera_info
+imu_topic_name: /imu
+odometry_topic_name: /hydrusx/ground_truth # /uav/baselink/odom CAUTION: the alt offset is not removed #
 
 image_crop_scale: 0.7
-image_cut_pixel: 10
 max_count: 200
-camera_roll_offset: 3.1415
-camera_pitch_offset: 0.0
-camera_yaw_offset: -1.5707
 
-use_sonar: false
-sonar_offset: 0.0
+epipolar_thresh: 1
+inlier_rate: 0.4
+
+debug: false
+
+camera_frame: downwards_cam_optical_frame
+baselink_frame: fc

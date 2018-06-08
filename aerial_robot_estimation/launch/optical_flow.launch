@@ -1,16 +1,21 @@
 <?xml version="1.0"?>
 <launch>
-  # machine
-  <arg name="model" default ="hydrusx" />
+  <arg name="camera_name" default="camera" />
+  <arg name="optical_flow_nodelet" default="true" />
+  <arg name="optical_flow_config_file" default="$(find aerial_robot_estimation)/config/testbed/OpticalFlow.yaml"/>
 
-  # sensor
-  <arg name="use_zed" default ="false" />
-
-  <group if="$(arg use_zed)">
-    <include file="$(find zed_wrapper)/launch/zed.launch" />
+  <group if="$(arg optical_flow_nodelet)">
+    <group ns="$(arg camera_name)">
+      <node pkg="nodelet" type="nodelet" args="load aerial_robot_estimation/OpticalFlow camera_nodelet_manager" name="optical_flow" output="screen">
+        <rosparam file="$(arg optical_flow_config_file)" command="load" />
+      </node>
+    </group>
   </group>
 
-  <node pkg="nodelet" type="nodelet" args="standalone aerial_robot_estimation/OpticalFlow" name="optical_flow" output="screen">
-      <rosparam file="$(find aerial_robot_estimation)/config/$(arg model)/OpticalFlow.yaml" command="load" />
-  </node>
+  <group unless="$(arg optical_flow_nodelet)">
+    <node pkg="nodelet" type="nodelet" args="standalone aerial_robot_estimation/OpticalFlow" name="optical_flow" output="screen">
+      <rosparam file="$(arg optical_flow_config_file)" command="load" />
+    </node>
+  </group>
+
 </launch>

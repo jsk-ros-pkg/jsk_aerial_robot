@@ -1,0 +1,37 @@
+<?xml version="1.0"?>
+<launch>
+
+  ###########  Base Platform  ###########
+  <node pkg="aerial_robot_base" type="aerial_robot_base_node" name="aerial_robot_base_node" output="screen" >
+
+    ###########  Basic Param  ###########
+    <param name="estimator/estimate_mode" value= "0" />
+    <param name="param_verbose" value= "true" />
+    <param name="main_rate" type="double" value="40"/>
+
+    ###########  Sensor Fusion  ###########
+    <rosparam file="$(find aerial_robot_estimation)/config/testbed/SensorFusion.yaml" command="load" />
+
+    ########### Remap ###################
+    <remap from="/battery_voltage_status" to="/battery_voltage_status_deprecated" />
+  </node>
+
+  ###########  Sensors  ###########
+  <include file="$(find aerial_robot_base)/launch/sensors/onboard_sensors.launch" >
+    <arg name="spinal_port" value="/dev/spinal" />
+    <arg name="altimeter" value="true" />
+    <arg name="alt_port" value="/dev/leddar_one" />
+    <arg name="mono_camera" value="true" />
+    <arg name="camera_name" value="pointgrey_camera" />
+    <arg name="camera_config_file" value="$(find aerial_robot_estimation)/config/testbed/Pointgrey.yaml" />
+    <arg name="optical_flow" value="true" />
+    <arg name="optical_flow_nodelet" value="false" />
+    <arg name="optical_flow_config_file" value="$(find aerial_robot_estimation)/config/testbed/OpticalFlow.yaml" />
+  </include >
+
+  ######### Static TF for sensors ###########
+  <node pkg="tf" type="static_transform_publisher" name="cog2base_broadcaster" args="0 0 0 0 0 0 cog baselink 100" />
+  <node pkg="tf" type="static_transform_publisher" name="base2cam_broadcaster" args="0 0 -0.038 -1.570796 0 3.1415927  baselink camera_optical_frame 100" />
+  <node pkg="tf" type="static_transform_publisher" name="base2alt_broadcaster" args="0.047 0 -0.031 0 1.570796 0 baselink altimeter 100" />
+
+</launch>

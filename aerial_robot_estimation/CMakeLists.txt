@@ -13,8 +13,10 @@ find_package(catkin REQUIRED COMPONENTS
   tf_conversions
 )
 
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+
 find_package(OpenCV REQUIRED)
-#message(WARNING "OPENCV ${OpenCV_VERSION} FOUND")
+message(WARNING "OPENCV ${OpenCV_VERSION} FOUND")
 
 find_package(MRPT REQUIRED slam;vision;gui;topography)
 
@@ -38,4 +40,4 @@ if(USE_GPU)
 endif()
 
 add_library(optical_flow src/optical_flow.cpp)
-target_link_libraries(optical_flow ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${MRPT_LIBS})
+target_link_libraries(optical_flow ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${MRPT_LIBS} pthread)
