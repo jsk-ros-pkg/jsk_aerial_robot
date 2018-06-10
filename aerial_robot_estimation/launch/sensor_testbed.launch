@@ -25,7 +25,7 @@
     <arg name="camera_name" value="pointgrey_camera" />
     <arg name="camera_config_file" value="$(find aerial_robot_estimation)/config/testbed/Pointgrey.yaml" />
     <arg name="optical_flow" value="true" />
-    <arg name="optical_flow_nodelet" value="false" />
+    <arg name="optical_flow_nodelet" value="false" /> <!-- nodelet is worse, why? -->
     <arg name="optical_flow_config_file" value="$(find aerial_robot_estimation)/config/testbed/OpticalFlow.yaml" />
   </include >
 
