@@ -7,6 +7,7 @@
 
 #include "STMF7Hardware.h"
 #include <string.h>
+#include "it.h"
 
 /* RX */
 namespace
@@ -37,7 +38,7 @@ namespace rx
 };
 
 
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+void Rosserial_RxCpltCallback(UART_HandleTypeDef *huart)
 {
   for(int i = 0; i < RX_PACKET_SIZE; i++)
     rx_buf_.push(rx_value_[i]);

@@ -36,6 +36,14 @@
 #include "stm32f7xx_it.h"
 
 /* USER CODE BEGIN 0 */
+#include "it.h"
+
+typedef struct
+{
+  __IO uint32_t ISR;   /*!< DMA interrupt status register */
+  __IO uint32_t Reserved0;
+  __IO uint32_t IFCR;  /*!< DMA interrupt flag clear register */
+} DMA_Base_Registers;
 
 /* USER CODE END 0 */
 
@@ -104,6 +112,10 @@ void CAN1_RX1_IRQHandler(void)
 void DMA2_Stream2_IRQHandler(void)
 {
   /* USER CODE BEGIN DMA2_Stream2_IRQn 0 */
+  DMA_Base_Registers *regs;
+  regs = (DMA_Base_Registers *)(hdma_usart1_rx.StreamBaseAddress);
+  if ((regs->ISR & (DMA_FLAG_TCIF0_4 << hdma_usart1_rx.StreamIndex)) != RESET)
+	 Rosserial_RxCpltCallback(( UART_HandleTypeDef* )((DMA_HandleTypeDef* )(&hdma_usart1_rx))->Parent );
 
   /* USER CODE END DMA2_Stream2_IRQn 0 */
   HAL_DMA_IRQHandler(&hdma_usart1_rx);
