@@ -37,7 +37,6 @@ namespace rx
   uint8_t* getRxValueP() { return rx_value_; }
 };
 
-
 void Rosserial_RxCpltCallback(UART_HandleTypeDef *huart)
 {
   for(int i = 0; i < RX_PACKET_SIZE; i++)

@@ -12,192 +12,103 @@
 #include "sensors/gps/gps_ublox.h"
 #include "config.h"
 
-GPS::GPS():
-  GPS_Backend(),
-  step_(0),
-  msg_id_(0),
-  payload_length_(0),
-  payload_counter_(0),
-  ck_a_(0),
-  ck_b_(0),
-  class_(0),
-  last_update_time_(0)
+namespace
+{
+  /* State machine state for parsing gps packet */
+  uint8_t step_ = 0;
+  uint8_t msg_id_ = 0;
+  uint16_t payload_length_ = 0;
+  uint16_t payload_counter_ = 0;
+  uint8_t ck_a_ = 0;
+  uint8_t ck_b_ = 0;
+  uint8_t class_ = 0;
+
+  bool receive_packet_ = false;
+  uint8_t packet_buf_[UBLOX_PACKET_MAX_SIZE];
+}
+
+GPS::GPS(): GPS_Backend()
 {
 }
 
 void GPS::init(UART_HandleTypeDef *huart, ros::NodeHandle* nh)
 {
   GPS_Backend::init(huart, nh);
-
-  /* change the rate */
-  configureRate(INIT_RATE);
-  HAL_Delay(100);
-
-  /* start usart revceive dma interrupt */
-  startReceiveDMA();
 }
 
 void GPS::update()
 {
-  uint8_t data = 0;
-  while (available() > 0)
-    {
-      pop(data);
-      read(data);
-    }
-}
+  LED2_L;
 
-bool GPS::read(uint8_t data)
-{
-  bool parsed = false;
+  if(!receive_packet_) return;
 
-  LED2_L; //debug
+  /* date copy */
+  memcpy(raw_packet_.bytes, packet_buf_, UBLOX_PACKET_MAX_SIZE);
 
- reset:
-  switch(step_)
-    {
-    case 1:
-      if (PREAMBLE2 == data) {
-        step_++;
-        break;
-      }
-      step_ = 0;
-      /* no break */
-    case 0:
-      if(PREAMBLE1 == data)
-        step_++;
-      break;
-
-    case 2:
-      step_++;
-      class_ = data;
-      ck_b_ = ck_a_ = data;                               // reset the checksum accumulators
-      break;
-    case 3:
-      step_++;
-      ck_b_ += (ck_a_ += data);                   // checksum byte
-      msg_id_ = data;
-      break;
-    case 4:
-      step_++;
-      ck_b_ += (ck_a_ += data);                   // checksum byte
-      payload_length_ = data;                             // payload length low byte
-      break;
-    case 5:
-      step_++;
-      ck_b_ += (ck_a_ += data);                   // checksum byte
-
-      payload_length_ += (uint16_t)(data<<8);
-      if (payload_length_ > sizeof(buffer_))
-      {
-        // assume any payload bigger then what we know about is noise
-        payload_length_ = 0;
-        step_ = 0;
-        goto reset;
-      }
-      payload_counter_ = 0; // prepare to receive payload
-      break;
-    case 6: /* Receive message data */
-      ck_b_ += (ck_a_ += data); // checksum byte
-      if (payload_counter_ < sizeof(buffer_))
-        buffer_.bytes[payload_counter_] = data;
-
-      if (++payload_counter_ == payload_length_) step_++;
-      break;
-    case 7:     /* Checksum and message processing */
-      step_++;
-      if (ck_a_ != data) {
-        step_ = 0;
-        goto reset;
-      }
-      break;
-    case 8:
-      step_ = 0;
-      if (ck_b_ != data) {
-        break; // bad checksum
-      }
-
-      /* receive some package */
-      parsed = true;
-      parsePacket();
-
-      break;
-    }
-  return parsed;
-}
-
-bool GPS::parsePacket(void)
-{
   switch (msg_id_)
     {
     case MSG_PVT:
       {
         LED2_H;
-        state_.location.lng    = buffer_.pvt.longitude;
-        state_.location.lat    = buffer_.pvt.latitude;
-        state_.location.alt    = buffer_.pvt.altitude_msl / 10;
+        state_.location.lng    = raw_packet_.pvt.longitude;
+        state_.location.lat    = raw_packet_.pvt.latitude;
+        state_.location.alt    = raw_packet_.pvt.altitude_msl / 10;
 
-        state_.status = buffer_.pvt.fix_type;
+        state_.status = raw_packet_.pvt.fix_type;
 
-        state_.horizontal_accuracy = buffer_.pvt.horizontal_accuracy*1.0e-3f;
-        state_.vertical_accuracy = buffer_.pvt.vertical_accuracy*1.0e-3f;
+        state_.horizontal_accuracy = raw_packet_.pvt.horizontal_accuracy*1.0e-3f;
+        state_.vertical_accuracy = raw_packet_.pvt.vertical_accuracy*1.0e-3f;
         state_.have_horizontal_accuracy = true;
         state_.have_vertical_accuracy = true;
 
-        state_.ground_speed     = buffer_.pvt.speed_2d*0.001f;          // m/s
-        state_.ground_course_cd = (buffer_.pvt.heading_2d / 1000);       // Heading 2D deg * 100000 rescaled to deg * 100
+        state_.ground_speed     = raw_packet_.pvt.speed_2d*0.001f;          // m/s
+        state_.ground_course_cd = (raw_packet_.pvt.heading_2d / 1000);       // Heading 2D deg * 100000 rescaled to deg * 100
         state_.have_vertical_velocity = true;
-        state_.velocity.x = buffer_.pvt.ned_north * 0.001f;
-        state_.velocity.y = buffer_.pvt.ned_east * 0.001f;
-        state_.velocity.z = buffer_.pvt.ned_down * 0.001f;
+        state_.velocity.x = raw_packet_.pvt.ned_north * 0.001f;
+        state_.velocity.y = raw_packet_.pvt.ned_east * 0.001f;
+        state_.velocity.z = raw_packet_.pvt.ned_down * 0.001f;
         state_.have_speed_accuracy = true;
-        state_.speed_accuracy = buffer_.pvt.speed_accuracy*0.001f;
-        state_.hdop        = buffer_.pvt.position_DOP;
-        state_.num_sats    = buffer_.pvt.satellites;
-
-        // change the rate
-        if(HAL_GetTick() - last_update_time_ > (INIT_RATE + MEASURE_RATE) / 2 )
-          configureRate(MEASURE_RATE);
-
-        last_update_time_  = HAL_GetTick();
+        state_.speed_accuracy = raw_packet_.pvt.speed_accuracy*0.001f;
+        state_.hdop        = raw_packet_.pvt.position_DOP;
+        state_.num_sats    = raw_packet_.pvt.satellites;
 
         /* asynchronized update */
         update_ = true;
 
-        return true;
+        break;
       }
     case MSG_POSLLH:
       {
-        state_.location.lng    = buffer_.posllh.longitude;
-        state_.location.lat    = buffer_.posllh.latitude;
-        state_.location.alt    = buffer_.posllh.altitude_msl / 10;
-        state_.horizontal_accuracy = buffer_.posllh.horizontal_accuracy*1.0e-3f;
-        state_.vertical_accuracy = buffer_.posllh.vertical_accuracy*1.0e-3f;
+        state_.location.lng    = raw_packet_.posllh.longitude;
+        state_.location.lat    = raw_packet_.posllh.latitude;
+        state_.location.alt    = raw_packet_.posllh.altitude_msl / 10;
+        state_.horizontal_accuracy = raw_packet_.posllh.horizontal_accuracy*1.0e-3f;
+        state_.vertical_accuracy = raw_packet_.posllh.vertical_accuracy*1.0e-3f;
         state_.have_horizontal_accuracy = true;
         state_.have_vertical_accuracy = true;
 
-        return true;
-        //break;
+        break;
       }
     case MSG_VELNED:
       {
-        state_.ground_speed     = buffer_.velned.speed_2d*0.01f;          // m/s
-        state_.ground_course_cd = (buffer_.velned.heading_2d / 1000);       // Heading 2D deg * 100000 rescaled to deg * 100
+        state_.ground_speed     = raw_packet_.velned.speed_2d*0.01f;          // m/s
+        state_.ground_course_cd = (raw_packet_.velned.heading_2d / 1000);       // Heading 2D deg * 100000 rescaled to deg * 100
         state_.have_vertical_velocity = true;
-        state_.velocity.x = buffer_.velned.ned_east * 0.01f;
-        state_.velocity.y = buffer_.velned.ned_east * 0.01f;
-        state_.velocity.z = buffer_.velned.ned_down * 0.01f;
+        state_.velocity.x = raw_packet_.velned.ned_east * 0.01f;
+        state_.velocity.y = raw_packet_.velned.ned_east * 0.01f;
+        state_.velocity.z = raw_packet_.velned.ned_down * 0.01f;
         state_.have_speed_accuracy = true;
-        state_.speed_accuracy = buffer_.velned.speed_accuracy*0.01f;
+        state_.speed_accuracy = raw_packet_.velned.speed_accuracy*0.01f;
 
-        return true;
-        // break;
+        break;
       }
     default:
       {
         break;
       }
     }
+
+  receive_packet_ = false;
 }
 
 void GPS::updateChecksum(uint8_t *data, uint16_t len, uint8_t &ck_a, uint8_t &ck_b)
@@ -246,5 +157,83 @@ void GPS::configureRate(uint16_t rate)
   msg.nav_rate        = 1;
   msg.timeref         = 0;     // UTC time
   sendMessage(CLASS_CFG, MSG_CFG_RATE, &msg, sizeof(msg));
+}
+
+void GPS_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+  //LED0_L; //debug
+  for(std::size_t i = 0; i < GPS_RX_SIZE; i++)
+    {
+      uint8_t data = (GPS_Backend::getRxBuf())[i];
+
+      switch(step_)
+        {
+        case 1:
+          if (PREAMBLE2 == data) {
+            step_++;
+            break;
+          }
+          step_ = 0;
+          /* no break */
+        case 0:
+          if(PREAMBLE1 == data)
+            {
+              step_++;
+            }
+          break;
+        case 2:
+          step_++;
+          class_ = data;
+          ck_b_ = ck_a_ = data;  // reset the checksum accumulators
+          break;
+        case 3:
+          step_++;
+          ck_b_ += (ck_a_ += data);  // checksum byte
+          msg_id_ = data;
+          break;
+        case 4:
+          step_++;
+          ck_b_ += (ck_a_ += data);  // checksum byte
+          payload_length_ = data;   // payload length low byte
+          break;
+        case 5:
+          step_++;
+          ck_b_ += (ck_a_ += data);   // checksum byte
+
+          payload_length_ += (uint16_t)(data<<8);
+          if (payload_length_ > sizeof(packet_buf_))
+            {
+              // assume any payload bigger then what we know about is noise
+              payload_length_ = 0;
+              step_ = 0;
+            }
+          payload_counter_ = 0; // prepare to receive payload
+          break;
+        case 6: /* Receive message data */
+          ck_b_ += (ck_a_ += data); // checksum byte
+          if (payload_counter_ < sizeof(packet_buf_))
+            packet_buf_[payload_counter_] = data;
+
+          if (++payload_counter_ == payload_length_) step_++;
+          break;
+        case 7:     /* Checksum and message processing */
+          step_++;
+          if (ck_a_ != data) {
+            step_ = 0;
+          }
+          break;
+        case 8:
+          step_ = 0;
+          if (ck_b_ != data) {
+            break; // bad checksum
+          }
+          /* receive some package */
+          receive_packet_= true;
+          //LED0_H; //debug
+          break;
+        }
+    }
+
+  HAL_UART_Receive_IT(huart, GPS_Backend::getRxBuf() , GPS_RX_SIZE);
 }
 

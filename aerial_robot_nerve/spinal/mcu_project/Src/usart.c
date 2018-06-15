@@ -5,7 +5,7 @@
   *                      of the USART instances.
   ******************************************************************************
   *
-  * COPYRIGHT(c) 2017 STMicroelectronics
+  * COPYRIGHT(c) 2018 STMicroelectronics
   *
   * Redistribution and use in source and binary forms, with or without modification,
   * are permitted provided that the following conditions are met:
@@ -46,7 +46,6 @@ UART_HandleTypeDef huart4;
 UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart3;
 DMA_HandleTypeDef hdma_usart1_rx;
-DMA_HandleTypeDef hdma_usart3_rx;
 
 /* UART4 init function */
 void MX_UART4_Init(void)
@@ -89,7 +88,7 @@ void MX_USART3_UART_Init(void)
 {
 
   huart3.Instance = USART3;
-  huart3.Init.BaudRate = 57600;
+  huart3.Init.BaudRate = 19200;
   huart3.Init.WordLength = UART_WORDLENGTH_8B;
   huart3.Init.StopBits = UART_STOPBITS_1;
   huart3.Init.Parity = UART_PARITY_NONE;
@@ -190,25 +189,9 @@ void HAL_UART_MspInit(UART_HandleTypeDef* huart)
     GPIO_InitStruct.Alternate = GPIO_AF7_USART3;
     HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 
-    /* Peripheral DMA init*/
-  
-    hdma_usart3_rx.Instance = DMA1_Stream1;
-    hdma_usart3_rx.Init.Channel = DMA_CHANNEL_4;
-    hdma_usart3_rx.Init.Direction = DMA_PERIPH_TO_MEMORY;
-    hdma_usart3_rx.Init.PeriphInc = DMA_PINC_DISABLE;
-    hdma_usart3_rx.Init.MemInc = DMA_MINC_ENABLE;
-    hdma_usart3_rx.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
-    hdma_usart3_rx.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
-    hdma_usart3_rx.Init.Mode = DMA_CIRCULAR;
-    hdma_usart3_rx.Init.Priority = DMA_PRIORITY_VERY_HIGH;
-    hdma_usart3_rx.Init.FIFOMode = DMA_FIFOMODE_ENABLE;
-    hdma_usart3_rx.Init.FIFOThreshold = DMA_FIFO_THRESHOLD_1QUARTERFULL;
-    hdma_usart3_rx.Init.MemBurst = DMA_MBURST_INC4;
-    hdma_usart3_rx.Init.PeriphBurst = DMA_PBURST_SINGLE;
-    HAL_DMA_Init(&hdma_usart3_rx);
-
-    __HAL_LINKDMA(huart,hdmarx,hdma_usart3_rx);
-
+    /* Peripheral interrupt init */
+    HAL_NVIC_SetPriority(USART3_IRQn, 0, 1);
+    HAL_NVIC_EnableIRQ(USART3_IRQn);
   /* USER CODE BEGIN USART3_MspInit 1 */
 
   /* USER CODE END USART3_MspInit 1 */
@@ -270,8 +253,9 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef* huart)
     */
     HAL_GPIO_DeInit(GPIOD, GPIO_PIN_8|GPIO_PIN_9);
 
-    /* Peripheral DMA DeInit*/
-    HAL_DMA_DeInit(huart->hdmarx);
+    /* Peripheral interrupt Deinit*/
+    HAL_NVIC_DisableIRQ(USART3_IRQn);
+
   /* USER CODE BEGIN USART3_MspDeInit 1 */
 
   /* USER CODE END USART3_MspDeInit 1 */
