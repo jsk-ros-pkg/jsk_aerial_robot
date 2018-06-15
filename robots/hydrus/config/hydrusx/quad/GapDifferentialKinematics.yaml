@@ -1,0 +1,40 @@
+# inverse kinematics
+differential_kinematics_count: 450
+actuator_state_sub_name: /hydrusx/joint_states
+actuator_state_pub_name: /hydrusx/joint_states
+
+debug: false
+init_pos_x: -0.6
+init_pos_y: 0
+init_att_y: 3.14
+openning_width: 0.5
+
+# cost
+differential_kinematics_cost:
+        cartesian_constraint:
+                verbose: true
+        state_vel:
+                verbose: true
+                w_joint_vel: 0.001
+                w_root_translational_vel: 0.005 #0.001
+                w_root_rotational_vel: 0.005 #0.001
+
+# constraint
+differential_kinematics_constraint:
+        state_limit:
+                verbose: true
+                joint_vel_thre: 0.01 # 0.17
+                root_translational_vel_thre: 0.01 # 0.1
+                root_rotational_vel_thre: 0.01 #0.17
+                joint_vel_constraint_range: 0.11
+                joint_vel_forbidden_range: 0.02
+                vebose: true
+        stability:
+                verbose: true
+        collision_avoidance:
+                verbose: true
+                collision_distance_constraint_range: 0.05 #0.05
+                collision_distance_forbidden_range: 0.02 #0.02
+
+#Test(flight stability) f_max: 9.29
+stability_margin_thre: 0.35

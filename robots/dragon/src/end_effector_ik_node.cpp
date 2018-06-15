@@ -2,7 +2,7 @@
 /*********************************************************************
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2016, JSK Lab
+ *  Copyright (c) 2017, JSK Lab
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -33,68 +33,21 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 
+#include <hydrus/differential_kinematics/sample/end_effector_ik_solver_core.h>
+#include <dragon/transform_control.h>
 
-#ifndef DRAGON_TRANSFORM_CONTROL_H
-#define DRAGON_TRANSFORM_CONTROL_H
-
-/* ros */
-#include <ros/ros.h>
-
-/* basic transform control */
-#include <hydrus/transform_control.h>
-#include <unordered_map>
-
-using namespace std;
-
-class DragonTransformController : public TransformController
+int main(int argc, char **argv)
 {
-public:
-  DragonTransformController(ros::NodeHandle nh, ros::NodeHandle nh_private, bool callback_flag = true);
-  ~DragonTransformController(){}
+  ros::init (argc, argv, "differential_motion_planner");
 
-  void gimbalProcess(sensor_msgs::JointState& state);
+  ros::NodeHandle nh;
+  ros::NodeHandle nhp("~");
+  EndEffectorIKSolverCore *ik_solver = new EndEffectorIKSolverCore(nh,nhp, boost::shared_ptr<TransformController>(new DragonTransformController(nh, nhp, false)));
+  ros::spin();
 
-  void getLinksOrientation(std::vector<KDL::Rotation>& links_frame_from_cog)
-  {
-    links_frame_from_cog = links_frame_from_cog_;
-  }
+  ros::shutdown();
+  delete ik_solver;
 
-  void forwardKinematics(sensor_msgs::JointState& state);
 
-  void setEdfsFromCog(const std::vector<Eigen::Vector3d>& edfs_origin_from_cog)
-  {
-    boost::lock_guard<boost::mutex> lock(origins_mutex_);
-    assert(edfs_origin_from_cog_.size() == edfs_origin_from_cog.size());
-    edfs_origin_from_cog_ = edfs_origin_from_cog;
-  }
-
-  void getEdfsFromCog(std::vector<Eigen::Vector3d>& edfs_origin_from_cog)
-  {
-    boost::lock_guard<boost::mutex> lock(origins_mutex_);
-    int size = edfs_origin_from_cog_.size();
-    for(int i=0; i< size; i++)
-      edfs_origin_from_cog = edfs_origin_from_cog_;
-  }
-
-  bool overlapCheck(bool verbose = false);
-
-  std::vector<double>& getGimbalNominalAngles() {return gimbal_nominal_angles_;}
-
-  /* check the relative horizontal distance between propellers */
-  double edf_radius_; // the radius of EDF
-  double edf_max_tilt_;
-
-private:
-  ros::Publisher gimbal_control_pub_;
-
-  bool gimbal_control_;
-
-  std::vector<KDL::Rotation> links_frame_from_cog_;
-  std::vector<Eigen::Vector3d> edfs_origin_from_cog_;
-
-  void initParam();
-
-  std::vector<double> gimbal_nominal_angles_;
-};
-
-#endif
+ return 0;
+}

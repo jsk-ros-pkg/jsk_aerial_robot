@@ -85,10 +85,19 @@
         <material name="red"/>
       </visual>
 
+      <!-- box collision not work good for FCL
       <collision>
         <origin rpy="0 0 0" xyz="${gimbal_roll_x_offset}  0 0"/>
         <geometry>
           <box size="0.1 0.3 0.1686"/>
+        </geometry>
+      </collision>
+      -->
+      <!-- cylinder collision geometry works well for FCL -->
+      <collision>
+        <origin rpy="${pi/2} 0 0" xyz="${gimbal_roll_x_offset}  0 0"/>
+        <geometry>
+          <cylinder length="0.3" radius="0.08" />
         </geometry>
       </collision>
 

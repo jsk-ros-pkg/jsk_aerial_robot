@@ -1,5 +1,5 @@
 #Hydrus3 config
-joint_state_sub_name: /hydrus3/joint_states
+actuator_state_sub_name: /hydrus3/joint_states
 
 control_rate: 15.0
 baselink: fc
@@ -28,7 +28,7 @@ r3: 1.0
 r4: 1.0
 r5: 1.0
 
-var_thre: 0.2 # 0.04 is enough to calculate the planning, resulting in 0.07 ~ 0.08
+stability_margin_thre: 0.2 # 0.04 is enough to calculate the planning, resulting in 0.07 ~ 0.08
 f_max: 1000000.0#8.2
 f_min: 0.0#2.0
 

@@ -33,68 +33,69 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 
+#ifndef GAP_PASSING_SOLVER_H
+#define GAP_PASSING_SOLVER_H
 
-#ifndef DRAGON_TRANSFORM_CONTROL_H
-#define DRAGON_TRANSFORM_CONTROL_H
+#include <hydrus/differential_kinematics/planner_core.h>
 
-/* ros */
-#include <ros/ros.h>
+#include <pluginlib/class_loader.h>
+/* special cost plugin for cartesian constraint */
+#include <hydrus/differential_kinematics/cost/cartesian_constraint.h>
+/* special constraint plugin for collision avoidance */
+#include <hydrus/differential_kinematics/constraint/collision_avoidance.h>
 
-/* basic transform control */
-#include <hydrus/transform_control.h>
-#include <unordered_map>
+/* utils */
+#include <tf_conversions/tf_kdl.h>
+#include <fnmatch.h>
 
-using namespace std;
+using namespace differential_kinematics;
 
-class DragonTransformController : public TransformController
+enum Phase
+  {
+    CASE1,
+    CASE2_1,
+    CASE2_2,
+    CASE3,
+  };
+
+class GapPassingSolver
 {
+  using robot_model = TransformController;
 public:
-  DragonTransformController(ros::NodeHandle nh, ros::NodeHandle nh_private, bool callback_flag = true);
-  ~DragonTransformController(){}
-
-  void gimbalProcess(sensor_msgs::JointState& state);
-
-  void getLinksOrientation(std::vector<KDL::Rotation>& links_frame_from_cog)
-  {
-    links_frame_from_cog = links_frame_from_cog_;
-  }
-
-  void forwardKinematics(sensor_msgs::JointState& state);
-
-  void setEdfsFromCog(const std::vector<Eigen::Vector3d>& edfs_origin_from_cog)
-  {
-    boost::lock_guard<boost::mutex> lock(origins_mutex_);
-    assert(edfs_origin_from_cog_.size() == edfs_origin_from_cog.size());
-    edfs_origin_from_cog_ = edfs_origin_from_cog;
-  }
-
-  void getEdfsFromCog(std::vector<Eigen::Vector3d>& edfs_origin_from_cog)
-  {
-    boost::lock_guard<boost::mutex> lock(origins_mutex_);
-    int size = edfs_origin_from_cog_.size();
-    for(int i=0; i< size; i++)
-      edfs_origin_from_cog = edfs_origin_from_cog_;
-  }
-
-  bool overlapCheck(bool verbose = false);
-
-  std::vector<double>& getGimbalNominalAngles() {return gimbal_nominal_angles_;}
-
-  /* check the relative horizontal distance between propellers */
-  double edf_radius_; // the radius of EDF
-  double edf_max_tilt_;
+  GapPassingSolver(ros::NodeHandle nh, ros::NodeHandle nhp, boost::shared_ptr<robot_model> robot_model_ptr);
+  ~GapPassingSolver(){}
 
 private:
-  ros::Publisher gimbal_control_pub_;
 
-  bool gimbal_control_;
+  ros::NodeHandle nh_;
+  ros::NodeHandle nhp_;
+  ros::Subscriber actuator_state_sub_;
+  ros::Publisher env_collision_pub_;
+  tf::TransformBroadcaster br_;
 
-  std::vector<KDL::Rotation> links_frame_from_cog_;
-  std::vector<Eigen::Vector3d> edfs_origin_from_cog_;
+  boost::shared_ptr<robot_model> robot_model_ptr_;
+  boost::shared_ptr<Planner> planner_core_ptr_;
 
-  void initParam();
+  sensor_msgs::JointState init_actuator_vector_;
+  tf::Transform init_root_pose_;
+  tf::Transform openning_center_frame_;
 
-  std::vector<double> gimbal_nominal_angles_;
+  double delta_pinch_length_; //to propagate the pinch action
+
+  bool debug_;
+  Phase phase_;
+  double reference_point_ratio_;
+
+  boost::shared_ptr<cost::CartersianConstraint<Planner> > cartersian_constraint_;
+
+  visualization_msgs::MarkerArray env_collision_;
+
+  bool solver(bool debug);
+
+  void actuatorStateCallback(const sensor_msgs::JointStateConstPtr& state);
+
+  void motionFunc();
+  bool updatePinchPoint();
 };
 
 #endif

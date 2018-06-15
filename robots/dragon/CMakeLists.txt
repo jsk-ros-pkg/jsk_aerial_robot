@@ -44,7 +44,6 @@ cmake_policy(SET CMP0046 OLD)
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
-  $
 )
 
 ## Declare a C++ library
@@ -59,7 +58,6 @@ add_executable (dragon_transform_control_node src/transform_control_node.cpp)
 target_link_libraries (dragon_transform_control_node ${catkin_LIBRARIES} ${Eigen3_LIBRARIES} dragon_transform_control)
 add_dependencies(dragon_transform_control_node aerial_robot_msgs_generate_messages_cpp aerial_robot_base_generate_messages_cpp hydrus_generate_messages_cpp hydrus_gencfg)
 
-
 add_library(dragon_control_pluginlib src/gimbal_control.cpp)
 target_link_libraries (dragon_control_pluginlib ${catkin_LIBRARIES} ${Eigen3_LIBRARIES} dragon_transform_control)
 add_dependencies(dragon_control_pluginlib aerial_robot_msgs_generate_messages_cpp aerial_robot_base_generate_messages_cpp hydrus_generate_messages_cpp hydrus_gencfg)
@@ -71,3 +69,16 @@ add_dependencies(dragon_dynamixel_bridge aerial_robot_msgs_generate_messages_cpp
 add_executable(dynamixel_bridge_node src/dynamixel_bridge_node.cpp)
 target_link_libraries (dynamixel_bridge_node  ${catkin_LIBRARIES} dragon_dynamixel_bridge)
 add_dependencies(dynamixel_bridge_node aerial_robot_msgs_generate_messages_cpp aerial_robot_base_generate_messages_cpp ${PROJECT_NAME}_generate_messages_cpp ${PROJECT_NAME}_gencfg)
+
+add_executable (end_effector_ik_node src/end_effector_ik_node.cpp)
+target_link_libraries (end_effector_ik_node ${catkin_LIBRARIES} ${orocos_kdl_LIBRARIES}  ${Eigen3_LIBRARIES} dragon_transform_control)
+
+# dragon specified differential kinematics constraints
+add_library (dragon_differential_kinematics_constraint_pluginlib
+  src/differential_kinematics/constraint/link_attitude.cpp
+  src/differential_kinematics/constraint/overlap.cpp)
+target_link_libraries (dragon_differential_kinematics_constraint_pluginlib ${catkin_LIBRARIES} ${orocos_kdl_LIBRARIES}  ${Eigen3_LIBRARIES} dragon_transform_control)
+
+# gap passing, temporary
+add_executable (gap_passing_solver_node  src/gap_passing_solver_node.cpp)
+target_link_libraries (gap_passing_solver_node ${catkin_LIBRARIES} ${orocos_kdl_LIBRARIES} ${Eigen3_LIBRARIES} dragon_transform_control)

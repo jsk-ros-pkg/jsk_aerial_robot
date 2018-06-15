@@ -2,7 +2,7 @@
 /*********************************************************************
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2016, JSK Lab
+ *  Copyright (c) 2018, JSK Lab
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -33,68 +33,64 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 
+#ifndef DIFFERENTIA_KINEMATICS_CONSTRAINT_PLUGIN_H
+#define DIFFERENTIA_KINEMATICS_CONSTRAINT_PLUGIN_H
 
-#ifndef DRAGON_TRANSFORM_CONTROL_H
-#define DRAGON_TRANSFORM_CONTROL_H
-
-/* ros */
 #include <ros/ros.h>
 
-/* basic transform control */
-#include <hydrus/transform_control.h>
-#include <unordered_map>
+/* Linear Math */
+#include <Eigen/Dense>
 
-using namespace std;
-
-class DragonTransformController : public TransformController
+namespace differential_kinematics
 {
-public:
-  DragonTransformController(ros::NodeHandle nh, ros::NodeHandle nh_private, bool callback_flag = true);
-  ~DragonTransformController(){}
-
-  void gimbalProcess(sensor_msgs::JointState& state);
-
-  void getLinksOrientation(std::vector<KDL::Rotation>& links_frame_from_cog)
+  namespace constraint
   {
-    links_frame_from_cog = links_frame_from_cog_;
-  }
+    template <class motion_planner>
+    class Base
+    {
+    public:
+      Base() {}
+      ~Base(){}
 
-  void forwardKinematics(sensor_msgs::JointState& state);
+      void virtual initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
+                              boost::shared_ptr<motion_planner> planner, std::string constraint_name,
+                              bool orientation, bool full_body)
+      {
+        nh_ = ros::NodeHandle(nh, constraint_name);
+        nhp_ = ros::NodeHandle(nhp, constraint_name);
 
-  void setEdfsFromCog(const std::vector<Eigen::Vector3d>& edfs_origin_from_cog)
-  {
-    boost::lock_guard<boost::mutex> lock(origins_mutex_);
-    assert(edfs_origin_from_cog_.size() == edfs_origin_from_cog.size());
-    edfs_origin_from_cog_ = edfs_origin_from_cog;
-  }
+        planner_ = planner;
+        nhp_.param("verbose", verbose_, false);
 
-  void getEdfsFromCog(std::vector<Eigen::Vector3d>& edfs_origin_from_cog)
-  {
-    boost::lock_guard<boost::mutex> lock(origins_mutex_);
-    int size = edfs_origin_from_cog_.size();
-    for(int i=0; i< size; i++)
-      edfs_origin_from_cog = edfs_origin_from_cog_;
-  }
+        constraint_name_ = constraint_name;
+        orientation_ = orientation;
+        full_body_ = full_body;
+        j_ndof_ = planner_->getRobotModelPtr()->getActuatorJointMap().size();
+      }
+      virtual bool getConstraint(Eigen::MatrixXd& A, Eigen::VectorXd& lb, Eigen::VectorXd& ub, bool debug = false) = 0;
+      virtual bool directConstraint(){return false;}
 
-  bool overlapCheck(bool verbose = false);
+      int getNc() {return nc_;}
+      std::string getConstraintName() {return constraint_name_;}
 
-  std::vector<double>& getGimbalNominalAngles() {return gimbal_nominal_angles_;}
+      virtual void result() = 0;
+    protected:
 
-  /* check the relative horizontal distance between propellers */
-  double edf_radius_; // the radius of EDF
-  double edf_max_tilt_;
+      ros::NodeHandle nh_;
+      ros::NodeHandle nhp_;
 
-private:
-  ros::Publisher gimbal_control_pub_;
+      boost::shared_ptr<motion_planner> planner_;
 
-  bool gimbal_control_;
+      bool verbose_;
+      std::string constraint_name_;
+      int nc_;
 
-  std::vector<KDL::Rotation> links_frame_from_cog_;
-  std::vector<Eigen::Vector3d> edfs_origin_from_cog_;
+      int j_ndof_;
+      bool orientation_;
+      bool full_body_;
 
-  void initParam();
-
-  std::vector<double> gimbal_nominal_angles_;
+    };
+  };
 };
 
 #endif

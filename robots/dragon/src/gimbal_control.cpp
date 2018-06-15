@@ -353,7 +353,7 @@ namespace control_plugin
       {
         /* normalized vector */
         /* 1: use state_x */
-        tf::Vector3 f_i = tf::Vector3(f(2 * i), f(2 * i + 1), kinematics_->getStableState()[i]);
+        tf::Vector3 f_i = tf::Vector3(f(2 * i), f(2 * i + 1), kinematics_->getOptimalHoveringThrust()[i]);
         /* 2: use target_throttle */
         //tf::Vector3 f_i = tf::Vector3(f(2 * i), f(2 * i + 1), kinematics_->(getStableState())(i));
 
@@ -497,7 +497,7 @@ namespace control_plugin
   {
     joint_state_ = *state;
     kinematics_->gimbalProcess(joint_state_);
-    kinematics_->kinematics(joint_state_);
+    kinematics_->forwardKinematics(joint_state_);
     kinematics_->modelling();
   }
 

@@ -1,0 +1,5 @@
+if (NOT EXISTS ${CMAKE_CURRENT_BINARY_DIR}/qpOASES-3.0)
+  execute_process(COMMAND svn co https://projects.coin-or.org/svn/qpOASES/stable/3.0 ${CMAKE_CURRENT_BINARY_DIR}/qpOASES-3.0)
+  execute_process(COMMAND sed -i -e "s/qpOASES\ STATIC/qpOASES\ SHARED/g" ${CMAKE_CURRENT_BINARY_DIR}/qpOASES-3.0/CMakeLists.txt)
+  execute_process(COMMAND cmake -E chdir ${CMAKE_CURRENT_BINARY_DIR}/qpOASES-3.0 make)
+endif()

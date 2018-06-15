@@ -33,68 +33,52 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 
+#ifndef END_EFFECTOR_IK_SOLVER_CORE_H
+#define END_EFFECTOR_IK_SOLVER_CORE_H
 
-#ifndef DRAGON_TRANSFORM_CONTROL_H
-#define DRAGON_TRANSFORM_CONTROL_H
+#include <hydrus/differential_kinematics/planner_core.h>
 
-/* ros */
-#include <ros/ros.h>
+#include <pluginlib/class_loader.h>
+/* special cost plugin for cartesian constraint */
+#include <hydrus/differential_kinematics/cost/cartesian_constraint.h>
+/* special constraint plugin for collision avoidance */
+#include <hydrus/differential_kinematics/constraint/collision_avoidance.h>
 
-/* basic transform control */
-#include <hydrus/transform_control.h>
-#include <unordered_map>
+using namespace differential_kinematics;
 
-using namespace std;
-
-class DragonTransformController : public TransformController
+class EndEffectorIKSolverCore
 {
+  using robot_model = TransformController;
 public:
-  DragonTransformController(ros::NodeHandle nh, ros::NodeHandle nh_private, bool callback_flag = true);
-  ~DragonTransformController(){}
-
-  void gimbalProcess(sensor_msgs::JointState& state);
-
-  void getLinksOrientation(std::vector<KDL::Rotation>& links_frame_from_cog)
-  {
-    links_frame_from_cog = links_frame_from_cog_;
-  }
-
-  void forwardKinematics(sensor_msgs::JointState& state);
-
-  void setEdfsFromCog(const std::vector<Eigen::Vector3d>& edfs_origin_from_cog)
-  {
-    boost::lock_guard<boost::mutex> lock(origins_mutex_);
-    assert(edfs_origin_from_cog_.size() == edfs_origin_from_cog.size());
-    edfs_origin_from_cog_ = edfs_origin_from_cog;
-  }
-
-  void getEdfsFromCog(std::vector<Eigen::Vector3d>& edfs_origin_from_cog)
-  {
-    boost::lock_guard<boost::mutex> lock(origins_mutex_);
-    int size = edfs_origin_from_cog_.size();
-    for(int i=0; i< size; i++)
-      edfs_origin_from_cog = edfs_origin_from_cog_;
-  }
-
-  bool overlapCheck(bool verbose = false);
-
-  std::vector<double>& getGimbalNominalAngles() {return gimbal_nominal_angles_;}
-
-  /* check the relative horizontal distance between propellers */
-  double edf_radius_; // the radius of EDF
-  double edf_max_tilt_;
+  EndEffectorIKSolverCore(ros::NodeHandle nh, ros::NodeHandle nhp, boost::shared_ptr<robot_model> robot_model_ptr);
+  ~EndEffectorIKSolverCore(){}
 
 private:
-  ros::Publisher gimbal_control_pub_;
 
-  bool gimbal_control_;
+  ros::NodeHandle nh_;
+  ros::NodeHandle nhp_;
+  ros::ServiceServer end_effector_ik_service_;
+  ros::Subscriber actuator_state_sub_;
+  ros::Subscriber env_collision_sub_;
+  tf::TransformBroadcaster br_;
 
-  std::vector<KDL::Rotation> links_frame_from_cog_;
-  std::vector<Eigen::Vector3d> edfs_origin_from_cog_;
+  boost::shared_ptr<Planner> planner_core_ptr_;
 
-  void initParam();
+  tf::Transform target_ee_pose_;
+  sensor_msgs::JointState init_actuator_vector_;
 
-  std::vector<double> gimbal_nominal_angles_;
+  /* collision avoidance */
+  bool collision_avoidance_;
+  visualization_msgs::MarkerArray env_collision_;
+
+  bool inverseKinematics(const tf::Transform& target_ee_pose, const sensor_msgs::JointState& init_actuator_vector, const tf::Transform& init_root_pose, bool orientation, bool full_body, bool collision_avoidance, bool debug);
+
+  void actuatorStateCallback(const sensor_msgs::JointStateConstPtr& state);
+  bool endEffectorIkCallback(hydrus::TargetPose::Request  &req,
+                             hydrus::TargetPose::Response &res);
+  void envCollision(const visualization_msgs::MarkerArrayConstPtr& env_msg);
+
+  void motionFunc();
 };
 
 #endif

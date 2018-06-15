@@ -1,5 +1,5 @@
 <library path="lib/libflight_control_pluginlib">
-  
+
   <class name="control_plugin/flatness_pid" type="control_plugin::FlatnessPid" base_class_type="control_plugin::ControlBase">
     <description>differential flatness plugin</description>
   </class>

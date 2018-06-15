@@ -12,7 +12,6 @@ DragonTransformController::DragonTransformController(ros::NodeHandle nh, ros::No
   string pub_name;
   nh_private_.param("gimbal_control_topic_name", pub_name, string("gimbals_ctrl"));
   gimbal_control_pub_ = nh_.advertise<sensor_msgs::JointState>(pub_name, 1);
-
 }
 
 
@@ -30,8 +29,8 @@ void DragonTransformController::gimbalProcess(sensor_msgs::JointState& state)
   unsigned int j = 0;
   for(unsigned int i = 0; i < state.position.size(); i++)
     {
-      std::map<std::string, uint32_t>::iterator itr = joint_map_.find(state.name[i]);
-      if(itr != joint_map_.end())  jointpositions(joint_map_.find(state.name[i])->second) = state.position[i];
+      std::map<std::string, uint32_t>::iterator itr = actuator_map_.find(state.name[i]);
+      if(itr != actuator_map_.end())  jointpositions(actuator_map_.find(state.name[i])->second) = state.position[i];
 
       if(state.name[i].find("gimbal") != string::npos)
         gimbal_map.insert(std::make_pair(state.name[i], i));
@@ -79,12 +78,12 @@ void DragonTransformController::initParam()
 }
 
 
-void DragonTransformController::kinematics(sensor_msgs::JointState state)
+void DragonTransformController::forwardKinematics(sensor_msgs::JointState& state)
 {
   /* special process */
   gimbalProcess(state);
 
-  TransformController::kinematics(state);
+  TransformController::forwardKinematics(state);
 
   /* special process for dual edf gimbal */
   KDL::TreeFkSolverPos_recursive fk_solver(tree_);
@@ -94,10 +93,11 @@ void DragonTransformController::kinematics(sensor_msgs::JointState state)
   unsigned int j = 0;
   for(unsigned int i = 0; i < state.position.size(); i++)
     {
-      std::map<std::string, uint32_t>::iterator itr = joint_map_.find(state.name[i]);
-      if(itr != joint_map_.end())  jointpositions(joint_map_.find(state.name[i])->second) = state.position[i];
+      std::map<std::string, uint32_t>::iterator itr = actuator_map_.find(state.name[i]);
+      if(itr != actuator_map_.end())  jointpositions(actuator_map_.find(state.name[i])->second) = state.position[i];
     }
 
+  /* set the edf position w.r.t CoG frame */
   KDL::Frame cog_frame;
   tf::transformTFToKDL(cog_, cog_frame);
   std::vector<Eigen::Vector3d> f_edfs;
