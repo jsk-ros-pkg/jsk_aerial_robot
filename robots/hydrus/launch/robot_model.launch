@@ -1,22 +1,22 @@
 <launch>
   <arg name="direct_model" default="false" />
   <arg name="direct_model_name" />
-  <arg name="model" default="hydrus3" />
   <arg name="type" default="quad" />
+  <arg name="model" default="default" />
   <arg name="headless" default="False" />
   <arg name="description_mode" default="urdf"/>
   <arg name="need_joint_state" default="true" />
   <arg name="node_suffix" default="" />
 
-  <group ns="$(arg model)" >
+  <group ns="hydrusx" >
     <node name="robot_state_publisher_$(arg node_suffix)" pkg="robot_state_publisher" type="state_publisher" />
 
-    <rosparam file = "$(find hydrus)/config/$(arg model)/$(arg type)/RvizInit.yaml" command="load" />
+    <rosparam file = "$(find hydrus)/config/$(arg type)/RvizInit.yaml" command="load" />
     <group if="$(arg need_joint_state)">
       <param name="use_gui" value="true" />
       <node name="joint_state_publisher_$(arg node_suffix)" pkg="joint_state_publisher" type="joint_state_publisher" >
         <param name="robot_description"
-               command="$(find xacro)/xacro.py '$(find hydrus)/robots/$(arg model)/$(arg type).urdf.xacro'" />
+               command="$(find xacro)/xacro.py '$(find hydrus)/robots/$(arg type)/$(arg model).urdf.xacro'" />
       </node >
     </group>
 
@@ -26,7 +26,7 @@
 
   <include file="$(find aerial_robot_model)/launch/aerial_robot_model.launch" >
     <arg name="headless" value="$(arg headless)" />
-    <arg name="robot_model" value="$(find hydrus)/robots/$(arg model)/$(arg type).$(arg description_mode).xacro" unless="$(arg direct_model)"/>
+    <arg name="robot_model" value="$(find hydrus)/robots/$(arg type)/$(arg model).$(arg description_mode).xacro" unless="$(arg direct_model)"/>
     <arg name="robot_model" value="$(arg direct_model_name)" if="$(arg direct_model)"/>
     <arg name="node_suffix" value="$(arg node_suffix)" />
   </include>

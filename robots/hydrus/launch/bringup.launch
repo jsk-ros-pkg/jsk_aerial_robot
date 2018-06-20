@@ -4,7 +4,8 @@
   <arg name="real_machine" default="True" />
   <arg name="simulation" default="False" />
   <arg name="control_mode" default="0" />
-  <arg name="type" default="hex" />
+  <arg name="type" default="quad" />
+  <arg name="model" default="euclid201806" />
   <arg name="estimate_mode"  default= "0" />
   <arg name="headless" default="True" />
   <arg name="worldtype" default="$(find aerial_robot_simulation)/gazebo_model/world/empty.world" />
@@ -19,10 +20,10 @@
   <param name="/uav_info/uav_model" value= "16" />
 
   ###########  Motor Config  ###########
-  <rosparam file="$(find hydrus)/config/hydrusx/MotorInfo.yaml" command="load" />
+  <rosparam file="$(find hydrus)/config/MotorInfo.yaml" command="load" />
 
   ###########  Battery Config  ###########
-  <rosparam file="$(find hydrus)/config/hydrusx/$(arg type)/Battery.yaml" command="load" />
+  <rosparam file="$(find hydrus)/config/$(arg type)/Battery.yaml" command="load" />
 
   ###########  Base Platform  ###########
   <node pkg="aerial_robot_base" type="aerial_robot_base_node" name="aerial_robot_base_node" output="screen" >
@@ -45,13 +46,13 @@
     <param name="main_rate" type="double" value="40"/>
 
     ###########  Sensor Fusion  ###########
-    <rosparam file="$(find hydrus)/config/hydrusx/SensorFusion.yaml" command="load" if="$(arg real_machine)"/>
-    <rosparam file="$(find hydrus)/config/hydrusx/SensorSimulation.yaml" command="load" if="$(arg simulation)"/>
+    <rosparam file="$(find hydrus)/config/$(arg type)/sensor_fusion/$(arg model).yaml" command="load" if="$(arg real_machine)"/>
+    <rosparam file="$(find hydrus)/config/$(arg type)/sensor_fusion/simulation.yaml" command="load" if="$(arg simulation)"/>
     ###########  PID Control  ###########
-    <rosparam file="$(find hydrus)/config/hydrusx/$(arg type)/DifferentialFlatnessPidControlConfig.yaml" command="load" />
+    <rosparam file="$(find hydrus)/config/$(arg type)/DifferentialFlatnessPidControlConfig.yaml" command="load" />
 
     ###########  Teleop  ###########
-    <rosparam file="$(find hydrus)/config/hydrusx/TeleopNavigationConfig.yaml" command="load" />
+    <rosparam file="$(find hydrus)/config/$(arg type)/TeleopNavigationConfig.yaml" command="load" />
   </node>
 
   ###########  Sensors  ###########
@@ -67,13 +68,13 @@
 
   ###########  Servo Bridge  ###########
   <node pkg="hydrus" type="dynamixel_bridge_node" name="servo_bridge"  output="screen"  ns="hydrusx" if="$(arg real_machine)" >
-    <rosparam file="$(find hydrus)/config/hydrusx/$(arg type)/Servo.yaml" command="load" />
+    <rosparam file="$(find hydrus)/config/$(arg type)/Servo.yaml" command="load" />
   </node>
 
   ###########  Robot Model  ###########
   <include file="$(find hydrus)/launch/robot_model.launch" >
-    <arg name="model" value="hydrusx"/>
     <arg name="type" value="$(arg type)" />
+    <arg name="model" value="$(arg model)"/>
     <arg name="headless" value="$(arg headless)" />
     <arg name="need_joint_state" value="false" if="$(arg real_machine)"/>
     <arg name="need_joint_state" value="false" if="$(arg simulation)"/>
@@ -84,14 +85,14 @@
 
   ###########  Transform Control  ###########
   <node pkg="hydrus" type="transform_control_node" name="hydrusx"  output="screen" respawn="false">
-    <rosparam file="$(find hydrus)/config/hydrusx/$(arg type)/Hydrus.yaml" command="load" />
+    <rosparam file="$(find hydrus)/config/$(arg type)/Hydrus.yaml" command="load" />
     <param name="kinematic_verbose" value="false" />
     <param name="control_verbose" value="false" />
     <param name="debug_verbose" value="false" />
   </node>
 
   ########## Simulation in Gazebo #########
-  <rosparam file="$(find hydrus)/config/hydrusx/$(arg type)/SimulationControl.yaml" command="load"/>
+  <rosparam file="$(find hydrus)/config/$(arg type)/SimulationControl.yaml" command="load"/>
   <include file="$(find aerial_robot_simulation)/launch/simulation.launch" if = "$(arg simulation)" >
     <arg name="model" default="hydrusx" />
     <arg name="gui" default="false" if="$(arg headless)" />
