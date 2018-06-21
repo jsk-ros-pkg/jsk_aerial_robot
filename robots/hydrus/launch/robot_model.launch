@@ -16,7 +16,7 @@
       <param name="use_gui" value="true" />
       <node name="joint_state_publisher_$(arg node_suffix)" pkg="joint_state_publisher" type="joint_state_publisher" >
         <param name="robot_description"
-               command="$(find xacro)/xacro.py '$(find hydrus)/robots/$(arg type)/$(arg model).urdf.xacro'" />
+               command="$(find xacro)/xacro '$(find hydrus)/robots/$(arg type)/$(arg model).urdf.xacro'" />
       </node >
     </group>
 
