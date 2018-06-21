@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<robot
+    xmlns:xacro="http://www.ros.org/wiki/xacro" name="hydrusx" >
+
+  <xacro:include filename="$(find hydrus)/robots/hex/euclid201806.urdf.xacro" />
+
+  <!-- gazebo -->
+  <xacro:include filename="$(find hydrus)/robots/default.gazebo.xacro" />
+
+  <!-- TODO: add gazebo plugin for GPS, Magnetometer, Realsense -->
+
+</robot>
