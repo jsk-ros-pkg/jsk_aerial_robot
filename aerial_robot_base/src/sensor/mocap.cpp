@@ -281,14 +281,17 @@ namespace sensor_plugin
       std::string ns = nhp_.getNamespace();
 
       nhp_.param("pos_noise_sigma", pos_noise_sigma_, 0.001 );
-      if(param_verbose_) cout << "pos noise sigma  is " << pos_noise_sigma_ << endl;
+      if(param_verbose_) cout << ns << ": pos noise sigma  is " << pos_noise_sigma_ << endl;
 
       nhp_.param("angle_sigma", pos_noise_sigma_, 0.001 );
-      if(param_verbose_) cout << "pos noise sigma  is " << pos_noise_sigma_ << endl;
+      if(param_verbose_) cout << ns << ": pos noise sigma  is " << pos_noise_sigma_ << endl;
 
       nhp_.param("rx_freq", rx_freq_, 100.0);
+      if(param_verbose_) cout << ns << ": rx_freq  is " << rx_freq_ << endl;
       nhp_.param("cutoff_pos_freq", cutoff_pos_freq_, 20.0);
+      if(param_verbose_) cout << ns << ": cutoff_pos_freq  is " << cutoff_pos_freq_ << endl;
       nhp_.param("cutoff_vel_freq", cutoff_vel_freq_, 20.0);
+      if(param_verbose_) cout << ns << ": cutoff_vel_freq  is " << cutoff_vel_freq_ << endl;
     }
 
     void init(tf::Vector3 init_pos)

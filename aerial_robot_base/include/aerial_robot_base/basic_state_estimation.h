@@ -109,7 +109,9 @@ public:
       landing_height_(0)
   {
     /* ros param */
-    nhp_.param ("param_verbose", param_verbose_, true);
+    ros::NodeHandle global_nh("~");
+    global_nh.param ("param_verbose", param_verbose_, true);
+
     nhp_.param ("estimate_mode", estimate_mode_, 0); //EGOMOTION_ESTIMATE: 0
     nhp_.param("cog2baselink_transform_sub_name", cog2baselink_transform_sub_name_, std::string("/cog2baselink"));
     ROS_WARN("estimate_mode is %s", (estimate_mode_ == EGOMOTION_ESTIMATE)?string("EGOMOTION_ESTIMATE").c_str():((estimate_mode_ == EXPERIMENT_ESTIMATE)?string("EXPERIMENT_ESTIMATE").c_str():((estimate_mode_ == GROUND_TRUTH)?string("GROUND_TRUTH").c_str():string("WRONG_MODE").c_str())));

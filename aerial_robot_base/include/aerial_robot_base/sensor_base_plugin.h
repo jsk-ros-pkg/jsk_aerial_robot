@@ -85,15 +85,24 @@ namespace sensor_plugin
 
       estimate_flag_service_ = nh_.advertiseService("estimate_flag", &SensorBase::estimateFlag, this);
 
-      string ns = nhp_.getNamespace();
+      ros::NodeHandle nh_global("~");
+      nh_global.param("simulation", simulation_, false);
+      if(param_verbose_) cout << nh_global.getNamespace() << ", simulaiton is " << simulation_ << endl;
+      nh_global.param("param_verbose", param_verbose_, false);
+      nh_global.param("debug_verbose", debug_verbose_, false);
+
+      std::string ns = nhp_.getNamespace();
       ROS_WARN("load sensor plugin %s:", ns.c_str());
       if (!nhp_.getParam ("estimate_mode", estimate_mode_))
         ROS_ERROR("%s, can not get param about estimate mode", ns.c_str());
-      cout << ns.c_str() << ",  estimate mode  is " << estimate_mode_ << endl;
+      if(param_verbose_) cout << ns << ": estimate mode is " << estimate_mode_ << endl;
 
       nhp_.param("health_timeout", health_timeout_, 0.5);
+      if(param_verbose_) cout << ns << ": health_timeout is " << health_timeout_ << endl;
       nhp_.param("unhealth_level", unhealth_level_, 0);
+      if(param_verbose_) cout << ns << ": unhealth_level is " << unhealth_level_ << endl;
       nhp_.param("health_check_rate", health_check_rate_, 100.0);
+      if(param_verbose_) cout << ns << ": health_check_rate_ is " << health_check_rate_ << endl;
 
       double frame_x, frame_y, frame_z, frame_roll, frame_pitch, frame_yaw;
       nhp_.param("frame_x", frame_x, 0.0);
@@ -105,18 +114,12 @@ namespace sensor_plugin
       tf::Quaternion q;
       q.setRPY(frame_roll, frame_pitch, frame_yaw);
       baselink_transform_.setRotation(q);
-      cout << nhp_.getNamespace() << ", baselink frame transform: [" << frame_roll << ", " << frame_pitch << ", " << frame_yaw << "]" << endl;
+      if(param_verbose_) cout << ns << ": baselink frame transform: [" << frame_roll << ", " << frame_pitch << ", " << frame_yaw << "]" << endl;
 
       /* time sync for sensor fusion */
       nhp_.param("delay", delay_, 0.0);
       nhp_.param("time_sync", time_sync_, false);
-      cout << nhp_.getNamespace() << ", time_sync: " << time_sync_ << ", delay: " << delay_ << endl;
-
-      ros::NodeHandle nh_global("~");
-      nh_global.param("simulation", simulation_, false);
-      cout << nh_global.getNamespace() << ",  simulaiton  is " << simulation_ << endl;
-      nh_global.param("param_verbose", param_verbose_, false);
-      nh_global.param("debug_verbose", debug_verbose_, false);
+      if(param_verbose_) cout << ns << ": time_sync: " << time_sync_ << ", delay: " << delay_ << endl;
 
       health_check_timer_ = nhp_.createTimer(ros::Duration(1.0 / health_check_rate_), &SensorBase::healthCheck,this);
     }

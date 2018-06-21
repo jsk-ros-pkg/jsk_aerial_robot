@@ -595,43 +595,42 @@ namespace control_plugin
 
     string ns = nhp_.getNamespace();
     nhp_.param("control_verbose", control_verbose_, false);
-    if(verbose_) cout << ns << ": control_verbose is " << control_verbose_ << endl;
+    if(param_verbose_) cout << ns << ": control_verbose is " << control_verbose_ << endl;
     nhp_.param("real_machine", real_machine_, true);
-    if(verbose_) cout << ns << ": real_machine is " << real_machine_ << endl;
+    if(param_verbose_) cout << ns << ": real_machine is " << real_machine_ << endl;
     nhp_.param("joints_torque_control_srv_name", joints_torque_control_srv_name_, std::string("/joints_controller/torque_enable"));
 
     /* height threshold to disable the joint servo when landing */
     nhp_.param("height_thresh", height_thresh_, 0.1);
-    if(verbose_) cout << ns << ": height_thresh is " << height_thresh_ << endl;
+    if(param_verbose_) cout << ns << ": height_thresh is " << height_thresh_ << endl;
 
     /* the threshold to tilt smoothly */
     nhp_.param("tilt_thresh", tilt_thresh_, 0.02);
-    if(verbose_) cout << ns << ": tilt_thresh is " << tilt_thresh_ << endl;
+    if(param_verbose_) cout << ns << ": tilt_thresh is " << tilt_thresh_ << endl;
 
     /* the rate to pub target tilt  command */
     nhp_.param("tilt_pub_interval", tilt_pub_interval_, 0.1);
-    if(verbose_) cout << ns << ": tilt_pub_interval is " << tilt_pub_interval_ << endl;
+    if(param_verbose_) cout << ns << ": tilt_pub_interval is " << tilt_pub_interval_ << endl;
 
 
     /* pitch roll control */
     ros::NodeHandle pitch_roll_node(nhp_, "pitch_roll");
     string pitch_roll_ns = pitch_roll_node.getNamespace();
     pitch_roll_node.param("control_rate_thresh", pitch_roll_control_rate_thresh_, 1.0);
-    if(verbose_) cout << pitch_roll_ns << ": pos_limit_ is " <<  pitch_roll_control_rate_thresh_ << endl;
+    if(param_verbose_) cout << pitch_roll_ns << ": pos_limit_ is " <<  pitch_roll_control_rate_thresh_ << endl;
     pitch_roll_node.param("limit", pitch_roll_limit_, 1.0e6);
-    if(verbose_) cout << pitch_roll_ns << ": pos_limit_ is " <<  pitch_roll_limit_ << endl;
+    if(param_verbose_) cout << pitch_roll_ns << ": pos_limit_ is " <<  pitch_roll_limit_ << endl;
     pitch_roll_node.param("p_term_limit", pitch_roll_terms_limits_[0], 1.0e6);
-    if(verbose_) cout << pitch_roll_ns << ": pos_p_limit_ is " <<  pitch_roll_terms_limits_[0] << endl;
+    if(param_verbose_) cout << pitch_roll_ns << ": pos_p_limit_ is " <<  pitch_roll_terms_limits_[0] << endl;
     pitch_roll_node.param("i_term_limit", pitch_roll_terms_limits_[1], 1.0e6);
-    if(verbose_) cout << pitch_roll_ns << ": pos_i_limit_ is " <<  pitch_roll_terms_limits_[1] << endl;
+    if(param_verbose_) cout << pitch_roll_ns << ": pos_i_limit_ is " <<  pitch_roll_terms_limits_[1] << endl;
     pitch_roll_node.param("d_term_limit", pitch_roll_terms_limits_[2], 1.0e6);
-    if(verbose_) cout << pitch_roll_ns << ": pos_d_limit_ is " <<  pitch_roll_terms_limits_[2] << endl;
+    if(param_verbose_) cout << pitch_roll_ns << ": pos_d_limit_ is " <<  pitch_roll_terms_limits_[2] << endl;
     pitch_roll_node.param("p_gain", pitch_roll_gains_[0], 0.0);
-    if(verbose_) cout << pitch_roll_ns << ": p_gain_ is " << pitch_roll_gains_[0] << endl;
+    if(param_verbose_) cout << pitch_roll_ns << ": p_gain_ is " << pitch_roll_gains_[0] << endl;
     pitch_roll_node.param("i_gain", pitch_roll_gains_[1], 0.0);
-    if(verbose_) cout << pitch_roll_ns << ": i_gain_ is " << pitch_roll_gains_[1] << endl;
+    if(param_verbose_) cout << pitch_roll_ns << ": i_gain_ is " << pitch_roll_gains_[1] << endl;
     pitch_roll_node.param("d_gain", pitch_roll_gains_[2], 0.0);
-    if(verbose_) cout << pitch_roll_ns << ": d_gain_ is " << pitch_roll_gains_[2] << endl;
-
+    if(param_verbose_) cout << pitch_roll_ns << ": d_gain_ is " << pitch_roll_gains_[2] << endl;
   }
 };
