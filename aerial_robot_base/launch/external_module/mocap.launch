@@ -1,0 +1,18 @@
+<launch> 
+  <node pkg="mocap_optitrack"
+    type="mocap_node"
+    name="mocap_node"
+    respawn="false"
+    launch-prefix=""
+    required="true">
+    <rosparam>
+      rigid_bodies:
+         '1':
+               pose: aerial_robot/pose
+               pose2d: aerial_robot/ground_pose
+               child_frame_id: aerial_robot/base_link
+               parent_frame_id: world
+    </rosparam>
+  </node>
+
+</launch>
