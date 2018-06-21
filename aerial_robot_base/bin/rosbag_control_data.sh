@@ -1,0 +1,3 @@
+#!/bin/sh
+
+rosbag record /aerial_robot/ground_pose /aerial_robot/pose /baro /battery_voltage_status /camera_velocity /distance /gps /realsense/odom /realsense/slam/status /imu /joy /motor_pwms /servo/states /uav/nav /aerial_robot_control_four_axis /cog2baselink /control_terms /controller/debug /desire_coordinate /flight_config_ack /flight_config_cmd /estimator/sensor_plugin/imu/acc /estimator/sensor_plugin/imu/imu_filtered /estimator/sensor_plugin/mocap/data /estimator/sensor_plugin/mocap/ground_truth /four_axis_gain /hydrusx/joints_ctrl /hydrusx/joint_states /motor_info /p_matrix_pseudo_inverse_inertia /rpy_gain /servo/torque_enable /servo/target_states /tf /uav/baselink/odom /uav/cog/odom /uav/full_state /uav_info /uav_power
