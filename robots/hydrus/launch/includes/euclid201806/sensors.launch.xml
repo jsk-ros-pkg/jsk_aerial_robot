@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
 <launch>
 
-  <arg name="simulation" default="false" />
+  <arg name="real_machine" default="false" />
 
-  <group unless="$(arg simulation)">
+  <group if="$(arg real_machine)">
     <!-- fc & IMU & GPS -->
     <include file="$(find spinal_ros_bridge)/launch/serial.launch" >
       <arg name="baud" value="921600" />

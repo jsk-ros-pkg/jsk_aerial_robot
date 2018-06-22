@@ -75,7 +75,7 @@
 
   ###########  Sensors  ###########
   <include file="$(find hydrus)/launch/includes/$(arg model)/sensors.launch.xml" >
-    <arg name="simulation" value="$(arg simulation)" />
+    <arg name="real_machine" value="$(arg real_machine)" />
   </include >
 
   ###########  Servo Bridge  ###########
