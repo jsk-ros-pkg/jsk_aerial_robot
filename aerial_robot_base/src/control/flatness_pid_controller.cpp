@@ -85,9 +85,7 @@ namespace control_plugin
 
     //subscriber
     four_axis_gain_sub_ = nh_.subscribe<aerial_robot_msgs::FourAxisGain>("/four_axis_gain", 1, &FlatnessPid::fourAxisGainCallback, this, ros::TransportHints().tcpNoDelay());
-    /* for weak control for xy velocirt movement? necessary */
 
-    xy_vel_weak_gain_sub_ = nh_.subscribe<std_msgs::UInt8>(xy_vel_weak_gain_sub_name_, 1, &FlatnessPid::xyVelWeakGainCallback, this, ros::TransportHints().tcpNoDelay());
     //dynamic reconfigure server
     xy_pid_server_ = new dynamic_reconfigure::Server<aerial_robot_base::XYPidControlConfig>(ros::NodeHandle(nhp_, "pitch"));
     dynamic_reconf_func_xy_pid_ = boost::bind(&FlatnessPid::cfgXYPidCallback, this, _1, _2);
@@ -332,13 +330,6 @@ namespace control_plugin
       }
   }
 
-  void FlatnessPid::xyVelWeakGainCallback(const std_msgs::UInt8ConstPtr & msg)
-  {
-    ROS_INFO("xyVelWeakGainCallback: gain from %f", xy_gains_[2]);
-    if(msg->data == 1) xy_gains_[2] *= xy_vel_weak_rate_;
-    else xy_gains_[2] /= xy_vel_weak_rate_;
-    ROS_INFO("xyVelWeakGainCallback: gain to %f", xy_gains_[2]);
-  }
 
   void FlatnessPid::cfgXYPidCallback(aerial_robot_base::XYPidControlConfig &config, uint32_t level)
   {
@@ -398,71 +389,67 @@ namespace control_plugin
 
     /* altitude */
     alt_node.param("alt_landing_const_i_ctrl_thresh",  alt_landing_const_i_ctrl_thresh_, 0.0);
-    if(verbose_) cout << alt_ns << ": alt_landing_const_i_ctrl_thresh_ is " << alt_landing_const_i_ctrl_thresh_ << endl;
+    if(param_verbose_) cout << alt_ns << ": alt_landing_const_i_ctrl_thresh_ is " << alt_landing_const_i_ctrl_thresh_ << endl;
     alt_node.param("offset", alt_offset_, 0.0);
-    if(verbose_) cout << alt_ns << ": offset_ is " << alt_offset_ << endl;
+    if(param_verbose_) cout << alt_ns << ": offset_ is " << alt_offset_ << endl;
     alt_node.param("limit", alt_limit_, 1.0e6);
-    if(verbose_) cout << alt_ns << ": pos_limit_ is " << alt_limit_ << endl;
+    if(param_verbose_) cout << alt_ns << ": pos_limit_ is " << alt_limit_ << endl;
     alt_node.param("p_term_limit", alt_terms_limit_[0], 1.0e6);
-    if(verbose_) cout << alt_ns << ": pos_p_limit_ is " << alt_terms_limit_[0] << endl;
+    if(param_verbose_) cout << alt_ns << ": pos_p_limit_ is " << alt_terms_limit_[0] << endl;
     alt_node.param("i_term_limit", alt_terms_limit_[1], 1.0e6);
-    if(verbose_) cout << alt_ns << ": pos_i_limit_ is " << alt_terms_limit_[1] << endl;
+    if(param_verbose_) cout << alt_ns << ": pos_i_limit_ is " << alt_terms_limit_[1] << endl;
     alt_node.param("d_term_limit", alt_terms_limit_[2], 1.0e6);
-    if(verbose_) cout << alt_ns << ": pos_d_limit_ is " << alt_terms_limit_[2] << endl;
+    if(param_verbose_) cout << alt_ns << ": pos_d_limit_ is " << alt_terms_limit_[2] << endl;
     alt_node.param("err_thresh", alt_err_thresh_, 1.0);
-    if(verbose_) cout << alt_ns << ": alt_err_thresh_ is " << alt_err_thresh_ << endl;
+    if(param_verbose_) cout << alt_ns << ": alt_err_thresh_ is " << alt_err_thresh_ << endl;
     alt_gains_.resize(1); /* default is for general multirotor */
     alt_node.param("p_gain", alt_gains_[0][0], 0.0);
-    if(verbose_) cout << alt_ns << ": p_gain_ is " << alt_gains_[0][0] << endl;
+    if(param_verbose_) cout << alt_ns << ": p_gain_ is " << alt_gains_[0][0] << endl;
     alt_node.param("i_gain", alt_gains_[0][1], 0.001);
-    if(verbose_) cout << alt_ns << ": i_gain_ is " << alt_gains_[0][1] << endl;
+    if(param_verbose_) cout << alt_ns << ": i_gain_ is " << alt_gains_[0][1] << endl;
     alt_node.param("d_gain", alt_gains_[0][2], 0.0);
-    if(verbose_) cout << alt_ns << ": d_gain_ is " << alt_gains_[0][2] << endl;
+    if(param_verbose_) cout << alt_ns << ": d_gain_ is " << alt_gains_[0][2] << endl;
 
     /* xy */
     xy_node.param("x_offset", xy_offset_[0], 0.0);
-    if(verbose_) cout << xy_ns << ": x_offset_ is " <<  xy_offset_[0] << endl;
+    if(param_verbose_) cout << xy_ns << ": x_offset_ is " <<  xy_offset_[0] << endl;
     xy_node.param("y_offset", xy_offset_[1], 0.0);
-    if(verbose_) cout << xy_ns << ": y_offset_ is " <<  xy_offset_[1] << endl;
+    if(param_verbose_) cout << xy_ns << ": y_offset_ is " <<  xy_offset_[1] << endl;
     xy_node.param("limit", xy_limit_, 1.0e6);
-    if(verbose_) cout << xy_ns << ": pos_limit_ is " <<  xy_limit_ << endl;
+    if(param_verbose_) cout << xy_ns << ": pos_limit_ is " <<  xy_limit_ << endl;
     xy_node.param("p_term_limit", xy_terms_limits_[0], 1.0e6);
-    if(verbose_) cout << xy_ns << ": pos_p_limit_ is " <<  xy_terms_limits_[0] << endl;
+    if(param_verbose_) cout << xy_ns << ": pos_p_limit_ is " <<  xy_terms_limits_[0] << endl;
     xy_node.param("i_term_limit", xy_terms_limits_[1], 1.0e6);
-    if(verbose_) cout << xy_ns << ": pos_i_limit_ is " <<  xy_terms_limits_[1] << endl;
+    if(param_verbose_) cout << xy_ns << ": pos_i_limit_ is " <<  xy_terms_limits_[1] << endl;
     xy_node.param("d_term_limit", xy_terms_limits_[2], 1.0e6);
-    if(verbose_) cout << xy_ns << ": pos_d_limit_ is " <<  xy_terms_limits_[2] << endl;
+    if(param_verbose_) cout << xy_ns << ": pos_d_limit_ is " <<  xy_terms_limits_[2] << endl;
 
     xy_node.param("p_gain", xy_gains_[0], 0.0);
-    if(verbose_) cout << xy_ns << ": p_gain_ is " << xy_gains_[0] << endl;
+    if(param_verbose_) cout << xy_ns << ": p_gain_ is " << xy_gains_[0] << endl;
     xy_node.param("i_gain", xy_gains_[1], 0.0);
-    if(verbose_) cout << xy_ns << ": i_gain_ is " << xy_gains_[1] << endl;
+    if(param_verbose_) cout << xy_ns << ": i_gain_ is " << xy_gains_[1] << endl;
     xy_node.param("d_gain", xy_gains_[2], 0.0);
-    if(verbose_) cout << xy_ns << ": d_gain_ is " << xy_gains_[2] << endl;
+    if(param_verbose_) cout << xy_ns << ": d_gain_ is " << xy_gains_[2] << endl;
     xy_node.param("hovering_i_gain", xy_hovering_i_gain_, 0.0);
-    if(verbose_) cout << xy_ns << ": pos_i_gain_hover_ is " <<  xy_hovering_i_gain_ << endl;
-    xy_node.param("xy_vel_weak_gain_sub_name", xy_vel_weak_gain_sub_name_, string("xy_vel_weak_gain"));
-    if(verbose_) cout << xy_ns << "xy_vel_weak_gain_sub_name_ is " << xy_vel_weak_gain_sub_name_ << endl;
-    xy_node.param("xy_vel_weak_rate", xy_vel_weak_rate_, 0.2); // 20%
-    if(verbose_) cout << xy_ns << "xy_vel_weak_rate_ is " << xy_vel_weak_rate_ << endl;
+    if(param_verbose_) cout << xy_ns << ": pos_i_gain_hover_ is " <<  xy_hovering_i_gain_ << endl;
 
     /* yaw */
     yaw_node.param("limit", yaw_limit_, 1.0e6);
-    if(verbose_) cout << yaw_ns << ": pos_limit_ is " << yaw_limit_ << endl;
+    if(param_verbose_) cout << yaw_ns << ": pos_limit_ is " << yaw_limit_ << endl;
     yaw_node.param("p_term_limit", yaw_terms_limits_[0], 1.0e6);
-    if(verbose_) cout << yaw_ns << ": pos_p_limit_ is " << yaw_terms_limits_[0] << endl;
+    if(param_verbose_) cout << yaw_ns << ": pos_p_limit_ is " << yaw_terms_limits_[0] << endl;
     yaw_node.param("i_term_limit", yaw_terms_limits_[1], 1.0e6);
-    if(verbose_) cout << yaw_ns << ": pos_i_limit_ is " << yaw_terms_limits_[1] << endl;
+    if(param_verbose_) cout << yaw_ns << ": pos_i_limit_ is " << yaw_terms_limits_[1] << endl;
     yaw_node.param("d_term_limit", yaw_terms_limits_[2], 1.0e6);
-    if(verbose_) cout << yaw_ns << ": pos_d_limit_ is " << yaw_terms_limits_[2] << endl;
+    if(param_verbose_) cout << yaw_ns << ": pos_d_limit_ is " << yaw_terms_limits_[2] << endl;
     yaw_gains_.resize(1); /* default is for general multirotor */
     yaw_node.param("p_gain", yaw_gains_[0][0], 0.0);
-    if(verbose_) cout << yaw_ns << ": p_gain_ is " << yaw_gains_[0][0] << endl;
+    if(param_verbose_) cout << yaw_ns << ": p_gain_ is " << yaw_gains_[0][0] << endl;
     yaw_node.param("i_gain", yaw_gains_[0][1], 0.0);
-    if(verbose_) cout << yaw_ns << ": i_gain_ is " << yaw_gains_[0][1] << endl;
+    if(param_verbose_) cout << yaw_ns << ": i_gain_ is " << yaw_gains_[0][1] << endl;
     yaw_node.param("d_gain", yaw_gains_[0][2], 0.0);
-    if(verbose_) cout << yaw_ns << ": d_gain_ is " << yaw_gains_[0][2] << endl;
+    if(param_verbose_) cout << yaw_ns << ": d_gain_ is " << yaw_gains_[0][2] << endl;
     yaw_node.param("err_thresh", yaw_err_thresh_, 0.4);
-    if(verbose_) cout << yaw_ns << ": yaw_err_thresh_ is " << yaw_err_thresh_ << endl;
+    if(param_verbose_) cout << yaw_ns << ": yaw_err_thresh_ is " << yaw_err_thresh_ << endl;
   }
 };

@@ -87,7 +87,6 @@ namespace control_plugin
     ros::Publisher  pid_pub_;
     ros::Publisher  flight_cmd_pub_;
     ros::Subscriber four_axis_gain_sub_;
-    ros::Subscriber xy_vel_weak_gain_sub_;
 
     /* basic var */
     tf::Vector3 state_pos_;
@@ -122,8 +121,6 @@ namespace control_plugin
     tf::Vector3 xy_i_term_;
     double xy_hovering_i_gain_;
     tf::Vector3 xy_offset_;
-    std::string xy_vel_weak_gain_sub_name_;
-    double xy_vel_weak_rate_;
     bool start_rp_integration_;
 
     //**** yaw
@@ -138,7 +135,6 @@ namespace control_plugin
     dynamic_reconfigure::Server<aerial_robot_base::XYPidControlConfig>::CallbackType dynamic_reconf_func_xy_pid_;
 
     virtual void fourAxisGainCallback(const aerial_robot_msgs::FourAxisGainConstPtr & msg);
-    void xyVelWeakGainCallback(const std_msgs::UInt8ConstPtr & msg);
     void cfgXYPidCallback(aerial_robot_base::XYPidControlConfig &config, uint32_t level);
     virtual void rosParamInit();
 

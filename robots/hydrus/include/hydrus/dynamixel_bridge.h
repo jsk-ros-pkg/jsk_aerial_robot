@@ -81,11 +81,11 @@ public:
     nhp_.param(std::string("angle_scale"), scale_, 1.0);
     nhp_.param(std::string("name"), name_, std::string("unknown"));
 
-    if(nhp_.hasParam(std::string("id")))
-      nhp_.getParam(std::string("id"), id_);
+    if(nhp_.hasParam(std::string("id"))) nhp_.getParam(std::string("id"), id_);
 
-    ROS_INFO("[%s] name: %s  id: %d, angle_max: %f, angle_min: %f, angle_scale: %f, angle_sng: %d, angle_offset: %f",
-             nhp_.getNamespace().c_str(), name_.c_str(), id_, max_, min_, scale_, sgn_, offset_);
+    // std::cout << nhp_.getNamespace().c_str() << ", name: " << name_
+    //           << ", id: " << id_ << ", angle max: " << max_ << ", angle min: " << min_
+    //           << "angle_scale: " << scale_ <<  "angle_offset: " << offset_ << endl;
 
     /* special pub/sub for ros::dynamixel system */
     if (dynamixel_flag)

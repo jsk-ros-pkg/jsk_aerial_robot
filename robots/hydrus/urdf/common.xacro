@@ -2,7 +2,6 @@
 <robot
     xmlns:xacro="http://www.ros.org/wiki/xacro" name="hydrusx_common" >
 
-  <xacro:property name="pi" value="3.1415926535897931" />
   <!-- kinematics [m] -->
   <xacro:property name="link_length" value=".6" />
   <xacro:property name="link_rod_length" value=".528" />

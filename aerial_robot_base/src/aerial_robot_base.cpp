@@ -4,11 +4,11 @@ AerialRobotBase::AerialRobotBase(ros::NodeHandle nh, ros::NodeHandle nh_private)
   : nh_(nh), nhp_(nh_private)
 {
 
-  bool verbose;
-  nhp_.param ("verbose", verbose, true);
+  bool param_verbose;
+  nhp_.param ("param_verbose", param_verbose, true);
 
   nhp_.param ("main_rate", main_rate_, 0.0);
-  if(verbose) cout << nhp_.getNamespace() << ": main_rate is " << main_rate_ << endl;
+  if(param_verbose) cout << nhp_.getNamespace() << ": main_rate is " << main_rate_ << endl;
 
   //*** estimator
   estimator_ = new RigidEstimator(nh_, nhp_);

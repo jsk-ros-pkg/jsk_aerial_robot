@@ -54,7 +54,7 @@ TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_
 
 #endif
 
-#if 1 //box collison check test
+#if 0 //box collison check test
    DistanceResult<double> result;
    result.clear();
    DistanceRequest<double> request(true);

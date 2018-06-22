@@ -95,11 +95,14 @@ void Navigator::batteryCheckCallback(const std_msgs::Float32ConstPtr &msg)
       ROS_WARN_THROTTLE(1,"low voltage!");
     }
 
+  if(power_info_pub_.getNumSubscribers() == 0) return;
+
   geometry_msgs::Vector3Stamped power_info_msgs;
   power_info_msgs.header.stamp = ros::Time::now();
   power_info_msgs.vector.x = voltage;
   power_info_msgs.vector.y = percentage;
   power_info_pub_.publish(power_info_msgs);
+
 }
 
 void Navigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & msg)
@@ -667,82 +670,72 @@ void Navigator::rosParamInit(ros::NodeHandle nh)
 {
   std::string ns = nh.getNamespace();
 
-  if (!nh.getParam ("xy_control_mode", xy_control_mode_))
-    xy_control_mode_ = 0;
-  printf("%s: xy_control_mode_ is %d\n", ns.c_str(), xy_control_mode_);
+  ros::NodeHandle nh_global("~");
+  nh_global.param ("param_verbose", param_verbose_, false);
+  if(param_verbose_) cout << ns << ": param_verbose_ is " <<  param_verbose_ << endl;
 
-  if (!nh.getParam ("takeoff_height", takeoff_height_))
-    takeoff_height_ = 0;
-  printf("%s: takeoff_height_ is %.3f\n", ns.c_str(), takeoff_height_);
+  nh.param ("xy_control_mode", xy_control_mode_, 0);
+  if(param_verbose_) cout << ns << ": xy_control_mode_ is " <<  xy_control_mode_ << endl;
 
-  if (!nh.getParam ("convergent_duration", convergent_duration_))
-    convergent_duration_ = 1.0; //sec
-  printf("%s: convergent_duration_ is %.3f\n", ns.c_str(), convergent_duration_);
+  nh.param ("takeoff_height", takeoff_height_, 0.0);
+  if(param_verbose_) cout << ns << ": takeoff_height_ is " << takeoff_height_ << endl;
 
-  if (!nh.getParam ("alt_convergent_thresh", alt_convergent_thresh_))
-    alt_convergent_thresh_ = 0.05; //m
-  printf("%s: alt_convergent_thresh_ is %.3f\n", ns.c_str(), alt_convergent_thresh_);
+  nh.param ("convergent_duration", convergent_duration_, 1.0);
+  if(param_verbose_) cout << ns << ": convergent_duration_ is " << convergent_duration_ << endl;
 
-  if (!nh.getParam ("xy_convergent_thresh", xy_convergent_thresh_))
-    xy_convergent_thresh_ = 0.15; //m
-  printf("%s: xy_convergent_thresh_ is %.3f\n", ns.c_str(), xy_convergent_thresh_);
+  nh.param ("alt_convergent_thresh", alt_convergent_thresh_, 0.05);
+  if(param_verbose_) cout << ns << ": alt_convergent_thresh_ is " <<  alt_convergent_thresh_ << endl;
 
-  if (!nh.getParam ("max_target_vel", max_target_vel_))
-    max_target_vel_ = 0;
-  printf("%s: max_target_vel_ is %.3f\n", ns.c_str(), max_target_vel_);
+  nh.param ("xy_convergent_thresh", xy_convergent_thresh_, 0.15);
+  if(param_verbose_) cout << ns << ": xy_convergent_thresh_ is " <<  xy_convergent_thresh_ << endl;
 
-  if (!nh.getParam ("max_target_yaw_rate", max_target_yaw_rate_))
-    max_target_yaw_rate_ = 0;
-  printf("%s: max_target_yaw_rate_ is %.3f\n", ns.c_str(), max_target_yaw_rate_);
+  nh.param ("max_target_vel", max_target_vel_, 0.0);
+  if(param_verbose_) cout << ns << ": max_target_vel_ is " <<  max_target_vel_ << endl;
 
-  if (!nh.getParam ("max_target_tilt_angle", max_target_tilt_angle_))
-    max_target_tilt_angle_ = 1.0;
-  printf("%s: max_target_tilt_angle_ is %f\n", ns.c_str(), max_target_tilt_angle_);
+  nh.param ("max_target_yaw_rate", max_target_yaw_rate_, 0.0);
+  if(param_verbose_) cout << ns << ": max_target_yaw_rate_ is" <<  max_target_yaw_rate_ << endl;
+
+  nh.param ("max_target_tilt_angle", max_target_tilt_angle_, 1.0);
+  if(param_verbose_) cout << ns << ": max_target_tilt_angle_ is" <<  max_target_tilt_angle_ << endl;
 
   //*** auto vel nav
   nh.param("nav_vel_limit", nav_vel_limit_, 0.2);
-  printf("%s: nav_vel_limit_ is %.3f\n", ns.c_str(), nav_vel_limit_);
+  if(param_verbose_) cout << ns << ": nav_vel_limit_ is " <<  nav_vel_limit_ << endl;
   nh.param("vel_nav_threshold", vel_nav_threshold_, 0.4);
-  printf("%s: vel_nav_threshold_ is %.3f\n", ns.c_str(), vel_nav_threshold_);
+  if(param_verbose_) cout << ns << ": vel_nav_threshold_ is " <<  vel_nav_threshold_ << endl;
   nh.param("vel_nav_gain", vel_nav_gain_, 1.0);
-  printf("%s: vel_nav_gain_ is %.3f\n", ns.c_str(), vel_nav_gain_);
+  if(param_verbose_) cout << ns << ": vel_nav_gain_ is " <<  vel_nav_gain_ << endl;
 
-    //*** teleop navigation
-  if (!nh.getParam ("joy_target_vel_interval", joy_target_vel_interval_))
-    joy_target_vel_interval_ = 0;
-  printf("%s: joy_target_vel_interval_ is %.3f\n", ns.c_str(), joy_target_vel_interval_);
+//*** teleop navigation
+  nh.param ("joy_target_vel_interval", joy_target_vel_interval_, 0.0);
+  if(param_verbose_) cout << ns << ": joy_target_vel_interval_ is " <<  joy_target_vel_interval_ << endl;
 
-  if (!nh.getParam ("joy_target_alt_interval", joy_target_alt_interval_))
-    joy_target_alt_interval_ = 0;
-  printf("%s: joy_target_alt_interval_ is %.3f\n", ns.c_str(), joy_target_alt_interval_);
+  nh.param ("joy_target_alt_interval", joy_target_alt_interval_, 0.0);
+  if(param_verbose_) cout << ns << ": joy_target_alt_interval_ is " <<  joy_target_alt_interval_ << endl;
 
-  if (!nh.getParam ("navi_frame_int", navi_frame_int_))
-    navi_frame_int_ = 0;
-  printf("%s: navi_frame_int_ is %d\n", ns.c_str(), navi_frame_int_);
+  nh.param ("navi_frame_int", navi_frame_int_, 0);
+  if(param_verbose_) cout << ns << ": navi_frame_int_ is " <<  navi_frame_int_ << endl;
   navi_frame_ = navi_frame_int_;
 
-  if (!nh.getParam ("joy_stick_heart_beat_du", joy_stick_heart_beat_du_))
-    joy_stick_heart_beat_du_ = 2.0;
-  printf("%s: joy_stick_heart_beat_du_ is %f\n", ns.c_str(), joy_stick_heart_beat_du_);
+  nh.param ("joy_stick_heart_beat_du", joy_stick_heart_beat_du_, 2.0);
+  if(param_verbose_) cout << ns << ": joy_stick_heart_beat_du_ is " <<  joy_stick_heart_beat_du_ << endl;
 
-  if (!nh.getParam ("force_landing_to_halt_du", force_landing_to_halt_du_))
-    force_landing_to_halt_du_ = 1.0;
-  printf("%s: force_landing_to_halt_du_ is %f\n", ns.c_str(), force_landing_to_halt_du_);
+  nh.param ("force_landing_to_halt_du", force_landing_to_halt_du_, 1.0);
+  if(param_verbose_) cout << ns << ": force_landing_to_halt_du_ is " <<  force_landing_to_halt_du_ << endl;
 
-  if (!nh.getParam ("check_joy_stick_heart_beat", check_joy_stick_heart_beat_))
-    check_joy_stick_heart_beat_ = false;
-  printf("%s: check_joy_stick_heart_beat_ is %s\n", ns.c_str(), check_joy_stick_heart_beat_?std::string("true").c_str():std::string("false").c_str());
+  nh.param ("check_joy_stick_heart_beat", check_joy_stick_heart_beat_, false);
+  if(param_verbose_) cout << ns << ": check_joy_stick_heart_beat_ is " <<  check_joy_stick_heart_beat_ << endl;
 
   ros::NodeHandle bat_info_node("bat_info");
   bat_info_node.param("bat_cell", bat_cell_, 0); // Lipo battery cell
-  cout << ns  << ": bat_cell_ is "  <<  bat_cell_ << endl;
+  if(param_verbose_) cout << ns  << ": bat_cell_ is "  <<  bat_cell_ << endl;
   bat_info_node.param("low_voltage_thre", low_voltage_thre_, 0.1); // Lipo battery cell
-  cout << ns  << ": low_voltage_thre_ is "  <<  low_voltage_thre_ << endl;
+  if(param_verbose_) cout << ns  << ": low_voltage_thre_ is "  <<  low_voltage_thre_ << endl;
   bat_info_node.param("bat_resistance", bat_resistance_, 0.0); //Battery internal resistance
-  cout << ns  << ": bat_resistance_ is "  <<  bat_resistance_ << endl;
+  if(param_verbose_) cout << ns  << ": bat_resistance_ is "  <<  bat_resistance_ << endl;
   bat_info_node.param("bat_resistance_voltage_rate", bat_resistance_voltage_rate_, 0.0); //Battery internal resistance_voltage_rate
-  cout << ns  << ": bat_resistance_voltage_rate_ is "  <<  bat_resistance_voltage_rate_ << endl;
+  if(param_verbose_) cout << ns  << ": bat_resistance_voltage_rate_ is "  <<  bat_resistance_voltage_rate_ << endl;
   bat_info_node.param("hovering_current", hovering_current_, 0.0); // current at hovering state
-  cout << ns  << ": hovering_current_ is "  <<  hovering_current_ << endl;
+  if(param_verbose_) cout << ns  << ": hovering_current_ is "  <<  hovering_current_ << endl;
 }
 

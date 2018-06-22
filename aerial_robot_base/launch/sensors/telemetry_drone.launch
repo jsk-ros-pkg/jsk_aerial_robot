@@ -1,9 +1,0 @@
-<?xml version="1.0"?>
-<launch>
-
-  <node pkg="aerial_robot_base" type="telemetry_drone" name="telemetry_drone"  output="screen" > 
-    <param name="port" value="/dev/telemetry"/>
-    <param name="telemetry_rate" value="20.0"/>
-    <remap from="/telemetry_drone/joy" to="/joy" />
-  </node>
-</launch>

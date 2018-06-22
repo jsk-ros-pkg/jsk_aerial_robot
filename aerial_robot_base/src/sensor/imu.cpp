@@ -518,28 +518,28 @@ namespace sensor_plugin
 
     void rosParamInit()
     {
-      string ns = nhp_.getNamespace();
+      std::string ns = nhp_.getNamespace();
 
       nhp_.param("imu_topic_name", imu_topic_name_, string("imu"));
-      if(param_verbose_) cout << " imu topic name is " << imu_topic_name_.c_str() << endl;
+      if(param_verbose_) cout << ns << ": imu topic name is " << imu_topic_name_.c_str() << endl;
 
       nhp_.param("level_acc_noise_sigma", level_acc_noise_sigma_, 0.01 );
-      if(param_verbose_) cout << "level acc noise sigma  is " << level_acc_noise_sigma_ << endl;
+      if(param_verbose_) cout << ns << ": level acc noise sigma  is " << level_acc_noise_sigma_ << endl;
       nhp_.param("z_acc_noise_sigma", z_acc_noise_sigma_, 0.01 );
-      if(param_verbose_) cout << "z acc noise sigma  is " << z_acc_noise_sigma_ << endl;
+      if(param_verbose_) cout << ns << ": z acc noise sigma  is " << z_acc_noise_sigma_ << endl;
 
       nhp_.param("acc_bias_noise_sigma", acc_bias_noise_sigma_, 0.01 );
-      if(param_verbose_) cout << "acc bias noise sigma  is " << acc_bias_noise_sigma_ << endl;
+      if(param_verbose_) cout << ns << ": acc bias noise sigma  is " << acc_bias_noise_sigma_ << endl;
 
       nhp_.param("angle_bias_noise_sigma", angle_bias_noise_sigma_, 0.001 );
-      if(param_verbose_) cout << "angle bias noise sigma  is " << angle_bias_noise_sigma_ << endl;
+      if(param_verbose_) cout << ns << ": angle bias noise sigma  is " << angle_bias_noise_sigma_ << endl;
 
 
       nhp_.param("calib_time", calib_time_, 2.0 );
-      if(param_verbose_) cout << "imu calib time is " << calib_time_ << endl;
+      if(param_verbose_) cout << ns << ": imu calib time is " << calib_time_ << endl;
 
       nhp_.param("landing_shock_force_thre", landing_shock_force_thre_, 5.0 );
-      if(param_verbose_) cout << "landing shock force_thre is " << landing_shock_force_thre_ << endl;
+      if(param_verbose_) cout << ns << ": landing shock force_thre is " << landing_shock_force_thre_ << endl;
 
       nhp_.param("imu_board", imu_board_, 1);
       if(imu_board_ != D_BOARD)
@@ -547,11 +547,11 @@ namespace sensor_plugin
       if(imu_board_ == KDUINO)
         {
           nhp_.param("acc_scale", acc_scale_, BasicEstimator::G / 512.0);
-          if(param_verbose_) cout << "acc scale is" << acc_scale_ << endl;
+          if(param_verbose_) cout << ns << ": acc scale is" << acc_scale_ << endl;
           nhp_.param("gyro_scale", gyro_scale_, (2279 * M_PI)/((32767.0 / 4.0f ) * 180.0));
-          if(param_verbose_) cout << "gyro scale is" << gyro_scale_ << endl;
+          if(param_verbose_) cout << ns << ": gyro scale is" << gyro_scale_ << endl;
           nhp_.param("mag_scale", mag_scale_, 1200 / 32768.0);
-          if(param_verbose_) cout << "mag scale is" << mag_scale_ << endl;
+          if(param_verbose_) cout << ns << ": mag scale is" << mag_scale_ << endl;
         }
       nhp_.param("imu_pub_topic_name_", imu_pub_topic_name_, string("imu_filtered"));
     }

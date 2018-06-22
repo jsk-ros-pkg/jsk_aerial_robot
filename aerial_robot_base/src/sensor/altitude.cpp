@@ -683,56 +683,58 @@ namespace sensor_plugin
 
     void rosParamInit()
     {
+      std::string ns = nhp_.getNamespace();
+
       /* range sensor */
       nhp_.param("range_sensor_sub_name", range_sensor_sub_name_, string("/distance"));
-      if(param_verbose_) cout << "range noise sigma is " << range_sensor_sub_name_ << endl;
+      if(param_verbose_) cout << ns << ": range_noise_sigma is " << range_sensor_sub_name_ << endl;
 
       nhp_.param("range_noise_sigma", range_noise_sigma_, 0.005 );
-      if(param_verbose_) cout << "range noise sigma is " <<  range_noise_sigma_ << endl;
+      if(param_verbose_) cout << ns << ": range_noise_sigma is " <<  range_noise_sigma_ << endl;
 
       nhp_.param("calibrate_cnt", calibrate_cnt_, 100);
-      printf("check duration  is %d\n", calibrate_cnt_);
+      if(param_verbose_) cout << ns << ": calibrate_cnt is " << calibrate_cnt_ << endl;
 
       nhp_.param("no_height_offset", no_height_offset_, false);
-      printf("no height offset  is %s\n", no_height_offset_?(std::string("true")).c_str():(std::string("false")).c_str());
+      if(param_verbose_) cout << ns << ": no_height_offset is " << no_height_offset_ << endl;
 
       /* first ascending process: check range */
       nhp_.param("ascending_check_range", ascending_check_range_, 0.1); // [m]
-      if(param_verbose_) cout << "ascending check range is " << ascending_check_range_ << endl;
+      if(param_verbose_) cout << ns << ": ascending_check_range is " << ascending_check_range_ << endl;
 
       /* for terrain and outlier check */
       nhp_.param("terrain_check", terrain_check_, false);
-      if(param_verbose_) cout << "terrain check is " <<  (terrain_check_?string("true"):string("false")) << endl;
+      if(param_verbose_) cout << ns << ": terrain_check is " <<  terrain_check_ << endl;
 
       nhp_.param("outlier_noise", outlier_noise_, 0.1); // [m]
-      if(param_verbose_) cout << "outlier noise sigma is " << outlier_noise_ << endl;
+      if(param_verbose_) cout << ns << ": outlier_noise_sigma is " << outlier_noise_ << endl;
 
       nhp_.param("inlier_noise", inlier_noise_, 0.06); // [m]
-      if(param_verbose_) cout << "inlier noise sigma is " << inlier_noise_ << endl;
+      if(param_verbose_) cout << ns << ": inlier_noise_sigma is " << inlier_noise_ << endl;
 
       nhp_.param("check_du1", check_du1_, 0.1); // [sec]
-      if(param_verbose_) cout << "check duration1 is " << check_du1_ << endl;
+      if(param_verbose_) cout << ns << ": check_du1 is " << check_du1_ << endl;
 
       nhp_.param("check_du2", check_du2_, 1.0); // [sec]
-      if(param_verbose_) cout << "check duration2 is " << check_du2_ << endl;
+      if(param_verbose_) cout << ns << ": check_du2 is " << check_du2_ << endl;
 
       /* barometer */
       nhp_.param("barometer_sub_name", barometer_sub_name_, string("/baro"));
-      if(param_verbose_) cout << "barometer sub name is " << barometer_sub_name_ << endl;
+      if(param_verbose_) cout << ns << ": barometer_sub_name is " << barometer_sub_name_ << endl;
 
       nhp_.param("baro_noise_sigma", baro_noise_sigma_, 0.05 );
-      if(param_verbose_) cout << "baro noise sigma  is " << baro_noise_sigma_  << endl;
+      if(param_verbose_) cout << ns << ": baro_noise_sigma is " << baro_noise_sigma_  << endl;
       nhp_.param("baro_bias_noise_sigma", baro_bias_noise_sigma_, 0.001 );
-      if(param_verbose_) cout << "baro_bias noise sigma  is " << baro_bias_noise_sigma_ << endl;
+      if(param_verbose_) cout << ns << ": baro_bias_noise_sigma is " << baro_bias_noise_sigma_ << endl;
 
       nhp_.param("rx_freq", rx_freq_, 100.0 );
-      if(param_verbose_) cout << "rx freq of barometer  is " << rx_freq_ << endl;
+      if(param_verbose_) cout << ns << ": rx_freq is " << rx_freq_ << endl;
 
       nhp_.param("cutoff_freq", cutoff_freq_, 10.0 );
-      if(param_verbose_) cout << "cutoff freq of barometer  is " << cutoff_freq_ << endl;
+      if(param_verbose_) cout << ns << ": cutoff_freq is " << cutoff_freq_ << endl;
 
       nhp_.param("high_cutoff_freq", high_cutoff_freq_, 1.0 );
-      if(param_verbose_) cout << "high_cutoff freq of barometer  is " << high_cutoff_freq_ << endl;
+      if(param_verbose_) cout << ns << ": high_cutoff_freq is " << high_cutoff_freq_ << endl;
     }
 
   };

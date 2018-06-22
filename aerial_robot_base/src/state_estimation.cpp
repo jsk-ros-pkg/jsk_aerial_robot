@@ -182,11 +182,11 @@ void RigidEstimator::rosParamInit()
 
               if (!nhp_.getParam ("fuser_" + prefix + "_id" + fuser_no.str(), fuser_id))
                 ROS_ERROR("%s, no param in fuser %s id", prefix.c_str(), fuser_no.str().c_str());
-              if(param_verbose_) cout << "fuser_"  << prefix << "_id" << fuser_no.str() << " is " << fuser_id << endl;
+              if(param_verbose_) cout << ns << ": fuser_"  << prefix << "_id" << fuser_no.str() << " is " << fuser_id << endl;
 
               if (!nhp_.getParam ("fuser_" + prefix + "_name" + fuser_no.str(), fuser_name))
                 ROS_ERROR("%s, no param in fuser %s name", prefix.c_str(), fuser_no.str().c_str());
-              if(param_verbose_) cout << "fuser_"  << prefix << "_name" << fuser_no.str() << " is " << fuser_name << endl;
+              if(param_verbose_) cout << ns << ": fuser_"  << prefix << "_name" << fuser_no.str() << " is " << fuser_name << endl;
 
               boost::shared_ptr<kf_plugin::KalmanFilter> plugin_ptr = sensor_fusion_loader_ptr_->createInstance(name);
               plugin_ptr->initialize(nh_, fuser_name, fuser_id);

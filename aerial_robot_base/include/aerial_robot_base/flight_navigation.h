@@ -130,6 +130,8 @@ protected:
 
   BasicEstimator* estimator_;
 
+  bool param_verbose_;
+
   bool start_able_;
   uint8_t navi_state_;
 

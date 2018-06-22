@@ -163,33 +163,33 @@ namespace sensor_plugin
         std::string ns = nhp_.getNamespace();
 
         nhp_.param("rtk_gps_sub_name", rtk_gps_sub_name_, string("/rtk_gps"));
-        if(param_verbose_) cout << "rtk gps sub_name is:" << rtk_gps_sub_name_ << endl;
+        if(param_verbose_) cout << ns << ": rtk gps sub_name is:" << rtk_gps_sub_name_ << endl;
         nhp_.param("gps_sub_name", gps_sub_name_, string("/gps"));
-        if(param_verbose_) cout << "rtk gps sub_name is:" << gps_sub_name_ << endl;
+        if(param_verbose_) cout << ns << ": rtk gps sub_name is:" << gps_sub_name_ << endl;
         nhp_.param("wp_sub_name", wp_sub_name_, string("/wp"));
-        if(param_verbose_) cout << "rtk wp sub_name is:" << wp_sub_name_ << endl;
+        if(param_verbose_) cout << ns << ": rtk wp sub_name is:" << wp_sub_name_ << endl;
         nhp_.param("nav_pub_name", nav_pub_name_, string("/nav"));
-        if(param_verbose_) cout << "rtk wp pub_name is:" << nav_pub_name_ << endl;
+        if(param_verbose_) cout << ns << ": rtk wp pub_name is:" << nav_pub_name_ << endl;
 
         nhp_.param("wp_ctrl_rate", wp_ctrl_rate_, 0.0);
-        if(param_verbose_) cout << "wp ctrl rate is " << wp_ctrl_rate_ << endl;
+        if(param_verbose_) cout << ns << ": wp ctrl rate is " << wp_ctrl_rate_ << endl;
         nhp_.param("wp_dist_thre", wp_dist_thre_, 500.0);
-        if(param_verbose_) cout << "wp dist thre is " << wp_dist_thre_ << endl;
+        if(param_verbose_) cout << ns << ": wp dist thre is " << wp_dist_thre_ << endl;
         nhp_.param("wp_alt_thre", wp_alt_thre_, 50.0);
-        if(param_verbose_) cout << "wp alt thre is " << wp_alt_thre_ << endl;
+        if(param_verbose_) cout << ns << ": wp alt thre is " << wp_alt_thre_ << endl;
         nhp_.param("min_est_sat_num", min_est_sat_num_, 4);
-        if(param_verbose_) cout << "min est sat num is " << min_est_sat_num_ << endl;
+        if(param_verbose_) cout << ns << ": min est sat num is " << min_est_sat_num_ << endl;
         nhp_.param("min_wp_sat_num", min_wp_sat_num_, 7);
-        if(param_verbose_) cout << "min wp sat num is " << min_wp_sat_num_ << endl;
+        if(param_verbose_) cout << ns << ": min wp sat num is " << min_wp_sat_num_ << endl;
         nhp_.param("nav_vel_limit", nav_vel_limit_, 2.0);
-        if(param_verbose_) cout << "nav vel limit is " << nav_vel_limit_ << endl;
+        if(param_verbose_) cout << ns << ": nav vel limit is " << nav_vel_limit_ << endl;
         nhp_.param("vel_nav_gain", nav_vel_gain_, 1.0);
-        if(param_verbose_) cout << "vel nav gain is " << nav_vel_gain_ << endl;
+        if(param_verbose_) cout << ns << ": vel nav gain is " << nav_vel_gain_ << endl;
 
         nhp_.param("pos_noise_sigma", pos_noise_sigma_, 0.001);
-        if(param_verbose_) cout << "pos noise sigma is " << pos_noise_sigma_ << endl;
+        if(param_verbose_) cout << ns << ": pos noise sigma is " << pos_noise_sigma_ << endl;
         nhp_.param("vel_noise_sigma", vel_noise_sigma_, 0.1);
-        if(param_verbose_) cout << "vel noise sigma is " << vel_noise_sigma_ << endl;
+        if(param_verbose_) cout << ns << ": vel noise sigma is " << vel_noise_sigma_ << endl;
       }
 
       void gpsCallback(const spinal::Gps::ConstPtr & gps_msg)
