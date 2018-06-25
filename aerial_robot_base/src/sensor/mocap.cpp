@@ -84,8 +84,7 @@ namespace sensor_plugin
       vel_(0, 0, 0),
       prev_raw_pos_(0, 0, 0),
       prev_raw_vel_(0, 0, 0),
-      prev_psi_(0),
-      pos_offset_(0, 0, 0)
+      prev_psi_(0)
     {
       ground_truth_pose_.states.resize(6);
       ground_truth_pose_.states[0].id = "x";
@@ -124,7 +123,6 @@ namespace sensor_plugin
     double prev_psi_;
 
     tf::Vector3 prev_raw_pos_, prev_raw_vel_;
-    tf::Vector3 pos_offset_;
 
     /* ros msg */
     aerial_robot_msgs::States ground_truth_pose_;
@@ -145,7 +143,6 @@ namespace sensor_plugin
       if(!first_flag)
         {
           float delta_t = msg->header.stamp.toSec() - previous_time.toSec();
-          raw_pos_ -= tf::Vector3(0, 0, pos_offset_.z());
           raw_vel_ = (raw_pos_ - prev_raw_pos_) / delta_t;
           double psi_err = euler[2] - prev_psi_;
           if(psi_err > M_PI)  psi_err -= 2 * M_PI;
@@ -232,7 +229,6 @@ namespace sensor_plugin
 
       if(!first_flag)
         {
-          pos_ -= tf::Vector3(0, 0, pos_offset_.z());
           tf::vector3MsgToTF(msg->twist.twist.linear, vel_);
 
           /* baselink */
@@ -296,8 +292,6 @@ namespace sensor_plugin
 
     void init(tf::Vector3 init_pos)
     {
-      pos_offset_ = init_pos;
-
       /* set ground truth */
       estimator_->setStateStatus(State::X_BASE, BasicEstimator::GROUND_TRUTH, true);
       estimator_->setStateStatus(State::Y_BASE, BasicEstimator::GROUND_TRUTH, true);
