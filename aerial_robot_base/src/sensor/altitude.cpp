@@ -695,7 +695,7 @@ namespace sensor_plugin
       nhp_.param("calibrate_cnt", calibrate_cnt_, 100);
       if(param_verbose_) cout << ns << ": calibrate_cnt is " << calibrate_cnt_ << endl;
 
-      nhp_.param("no_height_offset", no_height_offset_, false);
+      nhp_.param("no_height_offset", no_height_offset_, true);
       if(param_verbose_) cout << ns << ": no_height_offset is " << no_height_offset_ << endl;
 
       /* first ascending process: check range */

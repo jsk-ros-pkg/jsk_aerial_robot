@@ -126,7 +126,7 @@ namespace control_plugin
     /* roll/pitch integration flag */
     if(!start_rp_integration_)
       {
-        if(state_pos_.z() > 0.01)
+        if(state_pos_.z() - estimator_->getLandingHeight() > 0.01)
           {
             start_rp_integration_ = true;
             spinal::FlightConfigCmd flight_config_cmd;
