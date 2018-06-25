@@ -225,7 +225,9 @@ protected:
 
     setNaviState(START_STATE);
     setTargetXyFromCurrentState();
-    setTargetPosZ(takeoff_height_);
+    estimator_->setLandingHeight(estimator_->getPos(Frame::COG, estimate_mode_).z());
+    setTargetPosZ(takeoff_height_ + estimator_->getLandingHeight());
+
     setTargetPsiFromCurrentState();
 
     ROS_INFO("Start state");
