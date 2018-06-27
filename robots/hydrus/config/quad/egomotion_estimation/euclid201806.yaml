@@ -4,7 +4,7 @@ estimator:
         sensor_list:
         - sensor_plugin/imu
         - sensor_plugin/mocap
-        #- sensor_plugin/vo
+        - sensor_plugin/vo
         #- sensor_plugin/gps
 
 

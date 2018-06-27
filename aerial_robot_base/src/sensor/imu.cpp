@@ -231,7 +231,7 @@ namespace sensor_plugin
       estimator_->setAngularVel(Frame::BASELINK, BasicEstimator::GROUND_TRUTH, omega_);
 
       /* COG */
-      /* only imu can assign to cog state for estimate mode and experiment mode */
+      /* TODO: only imu can assign to cog state for estimate mode and experiment mode */
       double roll, pitch, yaw;
       (estimator_->getOrientation(Frame::BASELINK, BasicEstimator::EGOMOTION_ESTIMATE) * estimator_->getCog2Baselink().getBasis().inverse()).getRPY(roll, pitch, yaw);
       estimator_->setEuler(Frame::COG, BasicEstimator::EGOMOTION_ESTIMATE, tf::Vector3(roll, pitch, yaw));
@@ -241,7 +241,7 @@ namespace sensor_plugin
       estimator_->setEuler(Frame::COG, BasicEstimator::EXPERIMENT_ESTIMATE, tf::Vector3(roll, pitch, yaw));
       estimator_->setAngularVel(Frame::COG, BasicEstimator::EXPERIMENT_ESTIMATE, estimator_->getCog2Baselink().getBasis() * omega_);
 
-      /* not good for ground truth mode, but do temporarily */
+      /* TODO: not good for ground truth mode, but do temporarily */
       (estimator_->getOrientation(Frame::BASELINK, BasicEstimator::GROUND_TRUTH) * estimator_->getCog2Baselink().getBasis().inverse()).getRPY(roll, pitch, yaw);
       estimator_->setEuler(Frame::COG, BasicEstimator::GROUND_TRUTH, tf::Vector3(roll, pitch, yaw));
       estimator_->setAngularVel(Frame::COG, BasicEstimator::GROUND_TRUTH, estimator_->getCog2Baselink().getBasis() * omega_);

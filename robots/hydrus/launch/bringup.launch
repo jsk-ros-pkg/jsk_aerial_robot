@@ -30,8 +30,8 @@
     # EGOMOTION_ESTIMATE = 0
     # EXPERIMENT_ESTIMATE = 1. for unstable mocap, use this mode
     # GROUND_TRUTH = 2
-    <param name="estimator/estimate_mode" value= "$(arg estimate_mode)" if="$(arg real_machine)"/>
     <param name="estimator/estimate_mode" value= "2" if="$(arg simulation)" />
+    <param name="estimator/estimate_mode" value= "$(arg estimate_mode)" if="$(arg real_machine)"/>
 
     # World Pos Control Mode: 0
     # World Vel Control Mode: 2
@@ -45,7 +45,7 @@
 
     ###########  Sensor Fusion  ###########
     <rosparam file="$(find hydrus)/config/$(arg type)/egomotion_estimation/$(arg model).yaml" command="load" if="$(arg real_machine)"/>
-    <rosparam file="$(find hydrus)/config/$(arg type)/egomotion_estimation/simulation.yaml" command="load" if="$(arg simulation)"/>
+    <rosparam file="$(find hydrus)/config/$(arg type)/egomotion_estimation/simulation.yaml" command="load" if="$(eval arg('simulation') * (1 - arg('real_machine')))"/>
     ###########  PID Control  ###########
     <rosparam file="$(find hydrus)/config/$(arg type)/DifferentialFlatnessPidControlConfig.yaml" command="load" />
 
@@ -58,8 +58,7 @@
     <arg name="type" value="$(arg type)" />
     <arg name="model" value="$(arg model)"/>
     <arg name="headless" value="$(arg headless)" />
-    <arg name="need_joint_state" value="false" if="$(arg real_machine)"/>
-    <arg name="need_joint_state" value="false" if="$(arg simulation)"/>
+    <arg name="need_joint_state" value="false" if ="$(eval arg('simulation') + arg('real_machine') > 0)"/>
     <arg name="description_mode" value="gazebo" if="$(arg simulation)"/>
     <arg name="direct_model" value="$(arg direct_model)" />
     <arg name="direct_model_name" value="$(arg direct_model_name)" if="$(arg direct_model)"/>
@@ -76,6 +75,7 @@
   ###########  Sensors  ###########
   <include file="$(find hydrus)/launch/includes/$(arg model)/sensors.launch.xml" >
     <arg name="real_machine" value="$(arg real_machine)" />
+    <arg name="simulation" value="$(arg simulation)" />
   </include >
 
   ###########  Servo Bridge  ###########
@@ -85,10 +85,11 @@
 
   ########## Simulation in Gazebo #########
   <rosparam file="$(find hydrus)/config/$(arg type)/SimulationControl.yaml" command="load"/>
-  <include file="$(find aerial_robot_simulation)/launch/simulation.launch" if = "$(arg simulation)" >
+  <include file="$(find aerial_robot_simulation)/launch/simulation.launch" if = "$(eval arg('simulation') * (1 - arg('real_machine')))" >
     <arg name="model" default="hydrusx" />
     <arg name="gui" default="false" if="$(arg headless)" />
     <arg name="headless" default="$(arg headless)" />
     <arg name="worldtype" value="$(arg worldtype)" />
-    </include>
+  </include>
+
 </launch>
