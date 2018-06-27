@@ -9,4 +9,23 @@
   <xacro:dragon_module self="2" child="3" baselink="true" />
   <xacro:dragon_module self="3" child="4" baselink="false" />
   <xacro:dragon_module self="4" child="4" baselink="false" />
+
+  <!--
+  <joint name="gopro_attach" type="fixed">
+    <parent link="link4"/>
+    <child link="gopro"/>
+    <origin rpy="0 0 0" xyz="0.41 0 -0.05"/>
+    <axis xyz="0 0 1"/>
+  </joint>
+  <link name="gopro">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.1"/>
+      <inertia
+          ixx="0.000001" ixy="0.0" ixz="0.0"
+          iyy="0.000001" iyz="0.0"
+          izz="0.000001"/>
+    </inertial>
+  </link>
+  -->
 </robot>
