@@ -69,10 +69,10 @@ namespace sensor_plugin
     }
 
     ~VisualOdometry(){}
-    VisualOdometry():init_time_(true), baselink_pos_(0,0,0)
+    VisualOdometry():init_time_(true)
     {
-      baselink_r_.setIdentity();
-      baselink_offset_tf_.setIdentity();
+      world_offset_tf_.setIdentity();
+      baselink_tf_.setIdentity();
 
       vo_state_.states.resize(3);
       vo_state_.states[0].id = "x";
@@ -95,9 +95,8 @@ namespace sensor_plugin
 
     bool init_time_;
     tf::StampedTransform sensor_tf_; /* TODO: this should be in the basic estimation */
-    tf::StampedTransform baselink_offset_tf_; /* TODO: this should be in the basic estimation */
-    tf::Vector3 baselink_pos_;
-    tf::Matrix3x3 baselink_r_;
+    tf::Transform world_offset_tf_; /* TODO: this should be in the basic estimation */
+    tf::Transform baselink_tf_;
     aerial_robot_msgs::States vo_state_;
 
     void voCallback(const nav_msgs::Odometry::ConstPtr & vo_msg)
@@ -109,12 +108,16 @@ namespace sensor_plugin
           return;
         }
 
+      tf::Transform raw_sensor_tf;
+      tf::poseMsgToTF(vo_msg->pose.pose, raw_sensor_tf);
+
       if(init_time_)
         {
           init_time_ = false;
 
           /* get transform from baselink to vo frame */
-          /* TODO: this should be in the basic estimation */
+          /* TODO1: this should be in the basic estimation */
+          /* TODO2: for joint or servo system, this should be processed every time */
           {
             string sensor_frame, reference_frame;
             nhp_.param("sensor_frame", sensor_frame, string("sensor_frame"));
@@ -123,8 +126,8 @@ namespace sensor_plugin
             tf::TransformListener listener;
             try
               {
-                listener.waitForTransform(sensor_frame, reference_frame, ros::Time(0), ros::Duration(1.0));
-                listener.lookupTransform(sensor_frame, reference_frame, ros::Time(0), sensor_tf_);
+                listener.waitForTransform(reference_frame, sensor_frame, ros::Time(0), ros::Duration(1.0));
+                listener.lookupTransform(reference_frame, sensor_frame, ros::Time(0), sensor_tf_);
               }
             catch (tf::TransformException ex)
               {
@@ -132,31 +135,40 @@ namespace sensor_plugin
                 init_time_ = true;
                 return;
               }
-            ROS_INFO("%s: get tf from %s to %s", nhp_.getNamespace().c_str(), reference_frame.c_str(), sensor_frame.c_str());
+            double y, p, r; sensor_tf_.getBasis().getRPY(r, p, y);
+            ROS_INFO("%s: get tf from %s to %s, [%f, %f, %f], [%f, %f, %f]",
+                     nhp_.getNamespace().c_str(), reference_frame.c_str(), sensor_frame.c_str(),
+                     sensor_tf_.getOrigin().x(), sensor_tf_.getOrigin().y(),
+                     sensor_tf_.getOrigin().z(), r, p, y);
           }
 
-
+          /* NO necessary: only consider the yaw angle between baselink and vo sensor, since the vo odom frame is flat
           if(vio_flag_)
             {
-              /* only consider the yaw angle between baselink and vo sensor, since the vo odom frame is flat */
               double sensor_tf_yaw = getYaw(sensor_tf_.getRotation());
               sensor_tf_.setRotation(tf::createQuaternionFromYaw(sensor_tf_yaw));
             }
+          */
 
-          /* set the init offset from the baselink of UAV from egomotion estimation (e.g. yaw) */
-          baselink_offset_tf_.setRotation(tf::createQuaternionFromYaw(estimator_->getState(State::YAW_BASE, BasicEstimator::EGOMOTION_ESTIMATE)[0]));
-          /* set the init offset from the baselink of UAV if we know the ground truth */
+          /* set the init offset from world to the baselink of UAV from egomotion estimation (e.g. yaw) */
+          world_offset_tf_.setRotation(tf::createQuaternionFromYaw(estimator_->getState(State::YAW_BASE, BasicEstimator::EGOMOTION_ESTIMATE)[0]));
+          /* set the init offset from world to the baselink of UAV if we know the ground truth */
           if(estimator_->getStateStatus(State::YAW_BASE, BasicEstimator::GROUND_TRUTH))
             {
-              baselink_offset_tf_.setOrigin(estimator_->getPos(Frame::BASELINK, BasicEstimator::GROUND_TRUTH));
-              baselink_offset_tf_.setRotation(tf::createQuaternionFromYaw(estimator_->getState(State::YAW_BASE, BasicEstimator::GROUND_TRUTH)[0]));
+              world_offset_tf_.setOrigin(estimator_->getPos(Frame::BASELINK, BasicEstimator::GROUND_TRUTH));
+              world_offset_tf_.setRotation(tf::createQuaternionFromYaw(estimator_->getState(State::YAW_BASE, BasicEstimator::GROUND_TRUTH)[0]));
+
+              double y, p, r; world_offset_tf_.getBasis().getRPY(r, p, y);
             }
+
+          /* also consider the offset tf from baselink to sensor */
+          world_offset_tf_ *= sensor_tf_;
 
           if(!estimator_->getStateStatus(State::X_BASE, BasicEstimator::EGOMOTION_ESTIMATE) ||
              !estimator_->getStateStatus(State::Y_BASE, BasicEstimator::EGOMOTION_ESTIMATE))
             {
               ROS_INFO("VO: start/restart kalman filter");
-              tf::Vector3 init_pos = (baselink_offset_tf_ * sensor_tf_).getOrigin();
+              tf::Vector3 init_pos = (world_offset_tf_ * raw_sensor_tf * sensor_tf_.inverse()).getOrigin();
 
               for(auto& fuser : estimator_->getFuser(BasicEstimator::EGOMOTION_ESTIMATE))
                 {
@@ -175,24 +187,36 @@ namespace sensor_plugin
           estimator_->setStateStatus(State::Y_BASE, BasicEstimator::EGOMOTION_ESTIMATE, true);
           estimator_->setStateStatus(State::Z_BASE, BasicEstimator::EGOMOTION_ESTIMATE, true);
           estimator_->setStateStatus(State::YAW_BASE, BasicEstimator::EGOMOTION_ESTIMATE, true);
-
           return;
         }
 
+      baselink_tf_ = world_offset_tf_ * raw_sensor_tf * sensor_tf_.inverse();
+
+
       tf::Vector3 raw_pos;
       tf::pointMsgToTF(vo_msg->pose.pose.position, raw_pos);
-      baselink_pos_ = baselink_offset_tf_ * sensor_tf_ * raw_pos;
       tf::Quaternion raw_q;
       tf::quaternionMsgToTF(vo_msg->pose.pose.orientation, raw_q);
-      baselink_r_ = baselink_offset_tf_.getBasis() * sensor_tf_.getBasis() * tf::Matrix3x3(raw_q);
 
+      /*
+      double y, p, r;  tf::Matrix3x3(raw_q).getRPY(r, p, y);
+      ROS_INFO("vo raw pos: [%f, %f, %f], raw rot: [%f, %f, %f]",
+               raw_pos.x(), raw_pos.y(), raw_pos.z(), r, p, y);
+      tf::Vector3 mocap_pos = estimator_->getPos(Frame::BASELINK, BasicEstimator::GROUND_TRUTH);
+      ROS_INFO("mocap pos: [%f, %f, %f], vo pos: [%f, %f, %f]",
+               mocap_pos.x(), mocap_pos.y(), mocap_pos.z(),
+               baselink_tf_.getOrigin().x(), baselink_tf_.getOrigin().y(),
+               baselink_tf_.getOrigin().z());
+      baselink_tf_.getBasis().getRPY(r, p, y);
+      ROS_INFO("mocap yaw: %f, vo rot: [%f, %f, %f]", estimator_->getState(State::YAW_BASE, BasicEstimator::GROUND_TRUTH)[0], r, p, y);
+      */
       estimateProcess(vo_msg->header.stamp);
 
       /* publish */
       vo_state_.header.stamp = vo_msg->header.stamp;
 
       for(int axis = 0; axis < 3; axis++)
-        vo_state_.states[axis].state[0].x = baselink_pos_[axis]; //raw
+        vo_state_.states[axis].state[0].x = baselink_tf_.getOrigin()[axis]; //raw
       vo_state_pub_.publish(vo_state_);
 
       /* update */
@@ -204,7 +228,7 @@ namespace sensor_plugin
       /* YAW */
       /* TODO: the weighting filter with IMU */
       tfScalar r,p,y;
-      baselink_r_.getRPY(r,p,y);
+      baselink_tf_.getBasis().getRPY(r,p,y);
       estimator_->setState(State::YAW_BASE, BasicEstimator::EGOMOTION_ESTIMATE, 0, y);
 
       /* XYZ */
@@ -224,7 +248,7 @@ namespace sensor_plugin
 
               /* correction */
               int index = id >> (State::X_BASE + 1);
-              VectorXd meas(1); meas <<  baselink_pos_[index];
+              VectorXd meas(1); meas <<  baselink_tf_.getOrigin()[index];
               vector<double> params = {kf_plugin::POS};
               kf->correction(meas, params, stamp.toSec());
 
