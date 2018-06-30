@@ -275,7 +275,7 @@ protected:
   void initParam();
 
   /* basic model */
-  void addChildren(const KDL::SegmentMap::const_iterator segment);
+  KDL::RigidBodyInertia inertialSetup(const KDL::TreeElement tree_element);
   void resolveLinkLength();
   void desireCoordinateCallback(const spinal::DesireCoordConstPtr & msg);
 
