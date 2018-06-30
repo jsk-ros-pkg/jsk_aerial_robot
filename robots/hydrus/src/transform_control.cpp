@@ -79,7 +79,7 @@ TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_
   nh_private_.param("thrust_link", thrust_link_, std::string("thrust"));
   if(verbose_) std::cout << "thrust_link: " << thrust_link_ << std::endl;
 
-  addChildren(tree_.getRootSegment());
+  inertialSetup(tree_.getRootSegment()->second);
   resolveLinkLength();
 
   for(auto itr = model_.joints_.begin(); itr != model_.joints_.end(); itr++)
@@ -141,78 +141,85 @@ TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_
     }
 }
 
-void TransformController::addChildren(const KDL::SegmentMap::const_iterator segment)
+KDL::RigidBodyInertia TransformController::inertialSetup(const KDL::TreeElement tree_element)
 {
-  const std::string& parent = GetTreeElementSegment(segment->second).getName();
+  const KDL::Segment&  current_seg = GetTreeElementSegment(tree_element);
 
-  const std::vector<KDL::SegmentMap::const_iterator>& children = GetTreeElementChildren(segment->second);
+  KDL::RigidBodyInertia current_seg_inertia = current_seg.getInertia();
+  if(verbose_) ROS_INFO("segment %s, mass is: %f", current_seg.getName().c_str(), current_seg_inertia.getMass());
 
-  for (unsigned int i=0; i<children.size(); i++)
+  /* check error joint */
+  assert(model_.getJoint(current_seg.getJoint().getName())->type == urdf::Joint::FLOATING);
+
+  /* check whether this can be a base inertia segment (i.e. link) */
+  /* 1. for the "root" parent link (i.e. link1) */
+  if(current_seg.getName().find("root") != std::string::npos)
     {
-      //ROS_WARN("child num; %d", children.size());
-      const KDL::Segment& child = GetTreeElementSegment(children[i]->second);
+      assert(inertia_map_.size() == 0);
+      assert(GetTreeElementChildren(tree_element).size() == 1);
 
-      if (child.getJoint().getType() == KDL::Joint::None) {
-        if (model_.getJoint(child.getJoint().getName()) && model_.getJoint(child.getJoint().getName())->type == urdf::Joint::FLOATING) {
-          if(verbose_) ROS_INFO("Floating joint. Not adding segment from %s to %s. This TF can not be published based on joint_states info", parent.c_str(), child.getName().c_str());
-        }
-        else {
-          if(verbose_) ROS_INFO("Adding fixed segment from %s to %s, joint: %s, [%f, %f, %f], q_nr: %d", parent.c_str(), child.getName().c_str(), child.getJoint().getName().c_str(), child.getFrameToTip().p.x(), child.getFrameToTip().p.y(), child.getFrameToTip().p.z(), children[i]->second.q_nr);
-        }
+      const KDL::Segment&  child_seg = GetTreeElementSegment(GetTreeElementChildren(tree_element).at(0)->second);
+      inertia_map_.insert(std::make_pair(child_seg.getName(), child_seg.getInertia()));
+      if(verbose_) ROS_WARN("Add root link: %s", child_seg.getName().c_str());
 
-        /* for the most parent link, e.g. link1 */
-        if(inertia_map_.size() == 0 && parent.find("root") != std::string::npos)
-          {
-            inertia_map_.insert(std::make_pair(child.getName(), child.getInertia()));
-            if(verbose_) ROS_WARN("Add new inertia base link: %s", child.getName().c_str());
-            /*
-            std::cout << "m: " << inertia_map_.find(child.getName())->second.getMass() << std::endl;
-            std::cout << "p: \n" << Eigen::Map<const Eigen::Vector3d>(inertia_map_.find(child.getName())->second.getCOG().data) << std::endl;
-            std::cout << "I: \n" << Eigen::Map<const Eigen::Matrix3d>(inertia_map_.find(child.getName())->second.getRotationalInertia().data) << std::endl;
-            */
-          }
-        else
-          {
-            /* add the inertia to the parent link */
-            std::map<std::string, KDL::RigidBodyInertia>::iterator it = inertia_map_.find(parent);
-            KDL::RigidBodyInertia parent_prev_inertia = it->second;
-            inertia_map_[parent] = child.getFrameToTip() * child.getInertia() + parent_prev_inertia;
-
-            /*
-            KDL:: RigidBodyInertia tmp = child.getFrameToTip() * child.getInertia();
-            std::cout << "m: " << tmp.getMass() << std::endl;
-            std::cout << "p: \n" << Eigen::Map<const Eigen::Vector3d>(tmp.getCOG().data) << std::endl;
-            std::cout << "I: \n" << Eigen::Map<const Eigen::Matrix3d>(tmp.getRotationalInertia().data) << std::endl;
-            */
-          }
-      }
-      else {
-        if(verbose_) ROS_INFO("Adding moving segment from %s to %s, joint: %s,  [%f, %f, %f], q_nr: %d", parent.c_str(), child.getName().c_str(), child.getJoint().getName().c_str(), child.getFrameToTip().p.x(), child.getFrameToTip().p.y(), child.getFrameToTip().p.z(), children[i]->second.q_nr);
-
-
-        /* add the new inertia base (child) link if the joint is not a rotor */
-        if(child.getJoint().getName().find("rotor") == std::string::npos)
-          {
-            /* create a new inertia base link */
-            inertia_map_.insert(std::make_pair(child.getName(), child.getInertia()));
-            actuator_map_.insert(std::make_pair(child.getJoint().getName(), children[i]->second.q_nr));
-            if(verbose_) ROS_WARN("Add new inertia base link: %s", child.getName().c_str());
-          }
-        else
-          {
-            std::map<std::string, KDL::RigidBodyInertia>::iterator it = inertia_map_.find(parent);
-            KDL::RigidBodyInertia parent_prev_inertia = it->second;
-            inertia_map_[parent] = child.getFrameToTip() * child.getInertia() + parent_prev_inertia;
-
-            /* add the rotor direction */
-            if(verbose_) ROS_WARN("%s, rototation is %f", child.getJoint().getName().c_str(), child.getJoint().JointAxis().z());
-            rotor_direction_.insert(std::make_pair(std::atoi(child.getJoint().getName().substr(5).c_str()), child.getJoint().JointAxis().z()));
-          }
-      }
-      /* count the rotor */
-      if(child.getName().find(thrust_link_.c_str()) != std::string::npos) rotor_num_++;
-      addChildren(children[i]);
+      /*
+      std::cout << "m: " << inertia_map_.find(child_seg.getName())->second.getMass() << std::endl;
+      std::cout << "p: \n" << Eigen::Map<const Eigen::Vector3d>(inertia_map_.find(child_seg.getName())->second.getCOG().data) << std::endl;
+      std::cout << "I: \n" << Eigen::Map<const Eigen::Matrix3d>(inertia_map_.find(child_seg.getName())->second.getRotationalInertia().data) << std::endl;
+      */
     }
+  /* 2. for segment that has joint with parent segment */
+  if (current_seg.getJoint().getType() != KDL::Joint::None)
+    {
+      /* add the new inertia base (child) link if the joint is not a rotor */
+      if(current_seg.getJoint().getName().find("rotor") == std::string::npos)
+        {
+          /* create a new inertia base link */
+          inertia_map_.insert(std::make_pair(current_seg.getName(), current_seg_inertia));
+          actuator_map_.insert(std::make_pair(current_seg.getJoint().getName(), tree_element.q_nr));
+          if(verbose_) ROS_WARN("Add new inertia base link: %s", current_seg.getName().c_str());
+        }
+    }
+  /* special process for rotor */
+  if(current_seg.getJoint().getName().find("rotor") != std::string::npos)
+    {
+      /* add the rotor direction */
+      if(verbose_) ROS_WARN("%s, rototation is %f", current_seg.getJoint().getName().c_str(), current_seg.getJoint().JointAxis().z());
+      rotor_direction_.insert(std::make_pair(std::atoi(current_seg.getJoint().getName().substr(5).c_str()), current_seg.getJoint().JointAxis().z()));
+    }
+
+  /* recursion process for children segment */
+  //ROS_WARN("child num of current seg %s: %d", current_seg.getName().c_str(), GetTreeElementChildren(tree_element).size());
+  for (auto itr: GetTreeElementChildren(tree_element))
+    {
+      const KDL::Segment& child_seg = GetTreeElementSegment(itr->second);
+      KDL::RigidBodyInertia child_seg_inertia = child_seg.getFrameToTip() *  inertialSetup(itr->second);
+      KDL::RigidBodyInertia current_seg_inertia_old = current_seg_inertia;
+      current_seg_inertia = current_seg_inertia_old + child_seg_inertia;
+
+      if(verbose_) ROS_WARN("Add new child segment %s to direct segment: %s", child_seg.getName().c_str(), current_seg.getName().c_str());
+      /*
+      std::cout << "child: seg, m: " << child_seg_inertia.getMass() << std::endl;
+      std::cout << "current seg, m: " << current_seg_inertia.getMass() << std::endl;
+      std::cout << "p: \n" << Eigen::Map<const Eigen::Vector3d>(current_seg_inertia.getCOG().data) << std::endl;
+      std::cout << "I: \n" << Eigen::Map<const Eigen::Matrix3d>(current_seg_inertia.getRotationalInertia().data) << std::endl;
+      */
+    }
+
+  /* count the rotor */
+  if(current_seg.getName().find(thrust_link_.c_str()) != std::string::npos) rotor_num_++;
+
+  /* update the inertia if the segment is base */
+  if (inertia_map_.find(current_seg.getName()) != inertia_map_.end())
+    {
+      inertia_map_.at(current_seg.getName()) = current_seg_inertia;
+
+      if(verbose_) ROS_WARN("Total mass of base segment %s is %f", current_seg.getName().c_str(),
+                            inertia_map_.at(current_seg.getName()).getMass());
+      current_seg_inertia = KDL::RigidBodyInertia::Zero();
+    }
+
+  return current_seg_inertia;
 }
 
 void TransformController::resolveLinkLength()
