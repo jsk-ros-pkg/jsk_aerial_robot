@@ -1,7 +1,7 @@
 sensor_plugin:
         vo:
                 vo_sub_topic_name: /realsense/odom
-                vo_noise_sigma: 0.01
+                vo_noise_sigma: 0.001
                 sensor_frame: /camera_link
                 reference_frame: /fc
                 vio_flag: true
