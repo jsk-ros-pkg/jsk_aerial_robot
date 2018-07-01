@@ -165,17 +165,18 @@ namespace sensor_plugin
           /* also consider the offset tf from baselink to sensor */
           world_offset_tf_ *= sensor_tf_;
 
-          if(!estimator_->getStateStatus(State::X_BASE, BasicEstimator::EGOMOTION_ESTIMATE) ||
-             !estimator_->getStateStatus(State::Y_BASE, BasicEstimator::EGOMOTION_ESTIMATE))
+          ROS_INFO("VO: start kalman filter");
+          tf::Vector3 init_pos = (world_offset_tf_ * raw_sensor_tf * sensor_tf_.inverse()).getOrigin();
+
+          for(auto& fuser : estimator_->getFuser(BasicEstimator::EGOMOTION_ESTIMATE))
             {
-              ROS_INFO("VO: start/restart kalman filter");
-              tf::Vector3 init_pos = (world_offset_tf_ * raw_sensor_tf * sensor_tf_.inverse()).getOrigin();
+              string plugin_name = fuser.first;
+              boost::shared_ptr<kf_plugin::KalmanFilter> kf = fuser.second;
+              int id = kf->getId();
 
-              for(auto& fuser : estimator_->getFuser(BasicEstimator::EGOMOTION_ESTIMATE))
+              if(plugin_name == "kalman_filter/kf_pos_vel_acc_bias" ||
+                 plugin_name == "kalman_filter/kf_pos_vel_acc")
                 {
-                  boost::shared_ptr<kf_plugin::KalmanFilter> kf = fuser.second;
-                  int id = kf->getId();
-
                   if(id < (1 << State::ROLL_COG))
                     {
                       if(time_sync_) kf->setTimeSync(true);
@@ -183,7 +184,20 @@ namespace sensor_plugin
                       kf->setMeasureFlag();
                     }
                 }
+
+              if(plugin_name == "aerial_robot_base/kf_xy_roll_pitch_bias")
+                {
+                  if((id & (1 << State::X_BASE)) && (id & (1 << State::Y_BASE)))
+                    {
+                      if(time_sync_) kf->setTimeSync(true);
+                      VectorXd init_state(6);
+                      init_state << init_pos[0], 0, init_pos[1], 0, 0, 0;
+                      kf->setInitState(init_state);
+                      kf->setMeasureFlag();
+                    }
+                }
             }
+
           estimator_->setStateStatus(State::X_BASE, BasicEstimator::EGOMOTION_ESTIMATE, true);
           estimator_->setStateStatus(State::Y_BASE, BasicEstimator::EGOMOTION_ESTIMATE, true);
           estimator_->setStateStatus(State::Z_BASE, BasicEstimator::EGOMOTION_ESTIMATE, true);
@@ -240,26 +254,60 @@ namespace sensor_plugin
           boost::shared_ptr<kf_plugin::KalmanFilter> kf = fuser.second;
           int id = kf->getId();
 
-          if(plugin_name == "kalman_filter/kf_pos_vel_acc" ||
-             plugin_name == "kalman_filter/kf_pos_vel_acc_bias")
+          /* x_w, y_w, z_w */
+          if(id < (1 << State::ROLL_COG))
             {
-              /* set noise sigma */
-              VectorXd measure_sigma(1);
-              measure_sigma << vo_noise_sigma_;
-              kf->setMeasureSigma(measure_sigma);
+              if(plugin_name == "kalman_filter/kf_pos_vel_acc" ||
+                 plugin_name == "kalman_filter/kf_pos_vel_acc_bias")
+                {
+                  /* set noise sigma */
+                  VectorXd measure_sigma(1);
+                  measure_sigma << vo_noise_sigma_;
+                  kf->setMeasureSigma(measure_sigma);
 
-              /* correction */
-              int index = id >> (State::X_BASE + 1);
-              VectorXd meas(1); meas <<  baselink_tf_.getOrigin()[index];
-              vector<double> params = {kf_plugin::POS};
-              kf->correction(meas, params, stamp.toSec());
+                  /* correction */
+                  int index = id >> (State::X_BASE + 1);
+                  VectorXd meas(1); meas <<  baselink_tf_.getOrigin()[index];
+                  vector<double> params = {kf_plugin::POS};
+                  kf->correction(meas, params, stamp.toSec());
 
-              VectorXd state = kf->getEstimateState();
-              estimator_->setState(index + 3, BasicEstimator::EGOMOTION_ESTIMATE, 0, state(0));
-              estimator_->setState(index + 3, BasicEstimator::EGOMOTION_ESTIMATE, 1, state(1));
+                  VectorXd state = kf->getEstimateState();
+                  estimator_->setState(index + 3, BasicEstimator::EGOMOTION_ESTIMATE, 0, state(0));
+                  estimator_->setState(index + 3, BasicEstimator::EGOMOTION_ESTIMATE, 1, state(1));
 
-              vo_state_.states[index].state[1].x = state(0); //estimated pos
-              vo_state_.states[index].state[1].y = state(1); //estimated vel
+                  vo_state_.states[index].state[1].x = state(0); //estimated pos
+                  vo_state_.states[index].state[1].y = state(1); //estimated vel
+                }
+            }
+          if(plugin_name == "aerial_robot_base/kf_xy_roll_pitch_bias")
+            {
+              if((id & (1 << State::X_BASE)) && (id & (1 << State::Y_BASE)))
+                {
+                  /* set noise sigma */
+                  VectorXd measure_sigma(2);
+                  measure_sigma << vo_noise_sigma_, vo_noise_sigma_;
+                  kf->setMeasureSigma(measure_sigma);
+
+                  /* correction */
+                  VectorXd meas(2); meas << baselink_tf_.getOrigin()[0], baselink_tf_.getOrigin()[1];
+                  vector<double> params = {kf_plugin::POS};
+                  /* time sync and delay process: get from kf time stamp */
+                  kf->correction(meas, params, stamp.toSec());
+
+                  VectorXd state = kf->getEstimateState();
+
+                  estimator_->setState(State::X_BASE, BasicEstimator::EGOMOTION_ESTIMATE, 0, state(0));
+                  estimator_->setState(State::X_BASE, BasicEstimator::EGOMOTION_ESTIMATE, 1, state(1));
+                  estimator_->setState(State::Y_BASE, BasicEstimator::EGOMOTION_ESTIMATE, 0, state(2));
+                  estimator_->setState(State::Y_BASE, BasicEstimator::EGOMOTION_ESTIMATE, 1, state(3));
+                  vo_state_.states[0].state[1].x = state(0);
+                  vo_state_.states[0].state[1].y = state(1);
+                  vo_state_.states[0].state[1].z = state(4);
+
+                  vo_state_.states[1].state[1].x = state(2);
+                  vo_state_.states[1].state[1].y = state(3);
+                  vo_state_.states[1].state[1].z = state(5);
+                }
             }
         }
     }
