@@ -5,5 +5,5 @@ sensor_plugin:
                 level_acc_noise_sigma: 0.02
                 z_acc_noise_sigma: 0.05 #real:0.05
                 acc_bias_noise_sigma: 0.001 #0.005#0.04
-                angle_bias_noise_sigma: 0.0001 #good for EKF
+                angle_bias_noise_sigma: 0.0002 #good for EKF
                 calib_time: 2.0
