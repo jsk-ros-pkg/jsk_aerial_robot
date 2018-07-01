@@ -6,3 +6,4 @@ sensor_plugin:
                 reference_frame: /fc
                 vio_flag: true
                 valid_yaw: true
+                debug_verbose: false

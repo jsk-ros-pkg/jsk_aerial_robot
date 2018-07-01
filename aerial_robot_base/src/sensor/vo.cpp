@@ -92,6 +92,7 @@ namespace sensor_plugin
     double vo_noise_sigma_;
     bool valid_yaw_;
     bool vio_flag_;
+    bool debug_verbose_;
 
     bool init_time_;
     tf::StampedTransform sensor_tf_; /* TODO: this should be in the basic estimation */
@@ -198,18 +199,19 @@ namespace sensor_plugin
       tf::Quaternion raw_q;
       tf::quaternionMsgToTF(vo_msg->pose.pose.orientation, raw_q);
 
-      /*
-      double y, p, r;  tf::Matrix3x3(raw_q).getRPY(r, p, y);
-      ROS_INFO("vo raw pos: [%f, %f, %f], raw rot: [%f, %f, %f]",
-               raw_pos.x(), raw_pos.y(), raw_pos.z(), r, p, y);
-      tf::Vector3 mocap_pos = estimator_->getPos(Frame::BASELINK, BasicEstimator::GROUND_TRUTH);
-      ROS_INFO("mocap pos: [%f, %f, %f], vo pos: [%f, %f, %f]",
-               mocap_pos.x(), mocap_pos.y(), mocap_pos.z(),
-               baselink_tf_.getOrigin().x(), baselink_tf_.getOrigin().y(),
-               baselink_tf_.getOrigin().z());
-      baselink_tf_.getBasis().getRPY(r, p, y);
-      ROS_INFO("mocap yaw: %f, vo rot: [%f, %f, %f]", estimator_->getState(State::YAW_BASE, BasicEstimator::GROUND_TRUTH)[0], r, p, y);
-      */
+      if(debug_verbose_)
+        {
+          double y, p, r;  tf::Matrix3x3(raw_q).getRPY(r, p, y);
+          ROS_INFO("vo raw pos: [%f, %f, %f], raw rot: [%f, %f, %f]",
+                   raw_pos.x(), raw_pos.y(), raw_pos.z(), r, p, y);
+          tf::Vector3 mocap_pos = estimator_->getPos(Frame::BASELINK, BasicEstimator::GROUND_TRUTH);
+          ROS_INFO("mocap pos: [%f, %f, %f], vo pos: [%f, %f, %f]",
+                   mocap_pos.x(), mocap_pos.y(), mocap_pos.z(),
+                   baselink_tf_.getOrigin().x(), baselink_tf_.getOrigin().y(),
+                   baselink_tf_.getOrigin().z());
+          baselink_tf_.getBasis().getRPY(r, p, y);
+          ROS_INFO("mocap yaw: %f, vo rot: [%f, %f, %f]", estimator_->getState(State::YAW_BASE, BasicEstimator::GROUND_TRUTH)[0], r, p, y);
+        }
       estimateProcess(vo_msg->header.stamp);
 
       /* publish */
@@ -274,6 +276,9 @@ namespace sensor_plugin
 
       nhp_.param("vo_noise_sigma", vo_noise_sigma_, 0.01 );
       if(param_verbose_) cout << ns << ": vo noise sigma is " <<  vo_noise_sigma_ << endl;
+
+      nhp_.param("debug_verbose", debug_verbose_, false );
+      if(param_verbose_) cout << ns << ": debug verbose is " <<  debug_verbose_ << endl;
     }
   };
 
