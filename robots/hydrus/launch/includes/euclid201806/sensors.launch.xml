@@ -2,22 +2,25 @@
 <launch>
 
   <arg name="real_machine" default="false" />
+  <arg name="simulation" default="false" />
 
   <group if="$(arg real_machine)">
-    <!-- fc & IMU & GPS -->
-    <include file="$(find spinal_ros_bridge)/launch/serial.launch" >
-      <arg name="baud" value="921600" />
-      <arg name="port" value="/dev/flight_controller" />
-    </include>
+    <group unless="$(arg simulation)">
+      <!-- fc & IMU & GPS -->
+      <include file="$(find spinal_ros_bridge)/launch/serial.launch" >
+        <arg name="baud" value="921600" />
+        <arg name="port" value="/dev/flight_controller" />
+      </include>
 
-    <!-- realsense cameras & VIO in intel euclid -->
-    <include file="$(find realsense_camera)/launch/lr200m_nodelet_default.launch" />
-    <include file="$(find realsense_sp)/launch/sp.launch" />
+      <!-- realsense cameras & VIO in intel euclid -->
+      <include file="$(find realsense_camera)/launch/lr200m_nodelet_default.launch" />
+      <include file="$(find realsense_sp)/launch/sp.launch" />
+    </group>
   </group>
 
   <!-- basic configuration for sensors (e.g. noise sigma) -->
   <rosparam file="$(find hydrus)/config/sensors/imu/spinal.yaml" command="load" />
   <rosparam file="$(find aerial_robot_base)/config/sensors/gps/ublox_m8n.yaml" command="load" />
-
+  <rosparam file="$(find hydrus)/config/sensors/vo/euclid_realsense.yaml" command="load" />
   <rosparam file="$(find aerial_robot_base)/config/sensors/mocap.yaml" command="load" />
 </launch>

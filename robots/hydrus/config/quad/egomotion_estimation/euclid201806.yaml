@@ -4,7 +4,7 @@ estimator:
         sensor_list:
         - sensor_plugin/imu
         - sensor_plugin/mocap
-        #- sensor_plugin/vo
+        - sensor_plugin/vo
         #- sensor_plugin/gps
 
 
@@ -12,6 +12,8 @@ estimator:
         egomotion_list:
         - kalman_filter/kf_pos_vel_acc_bias
         - kalman_filter/kf_pos_vel_acc_bias
+        #- kalman_filter/kf_pos_vel_acc
+        #- kalman_filter/kf_pos_vel_acc
         #- aerial_robot_base/kf_xy_roll_pitch_bias
         - kalman_filter/kf_pos_vel_acc_bias
 

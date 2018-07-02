@@ -12,7 +12,7 @@ controller:
 
         # xy [rad]
         xy:
-                p_gain: 0.2 
+                p_gain: 0.15
                 i_gain: 0.002
                 hovering_i_gain: 0.001
                 d_gain: 0.4
