@@ -34,6 +34,7 @@
 #include <std_msgs/UInt8.h>
 #include <std_msgs/Float32.h>
 #include <std_msgs/Float32MultiArray.h>
+#include <std_srvs/SetBool.h>
 #include <spinal/Pwms.h>
 #include <spinal/FourAxisCommand.h>
 #include <spinal/RollPitchYawTerms.h>
@@ -131,6 +132,8 @@ private:
   ros::Subscriber pwm_test_sub_;
   ros::Subscriber p_matrix_pseudo_inverse_inertia_sub_;
   ros::Publisher anti_gyro_pub_;
+  ros::ServiceServer att_control_srv_;
+  bool setAttitudeControlCallback(std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& res);
 #else
   ros::Subscriber<spinal::FourAxisCommand, AttitudeController> four_axis_cmd_sub_;
   ros::Subscriber<spinal::PwmInfo, AttitudeController> pwm_info_sub_;
@@ -138,8 +141,12 @@ private:
   ros::Subscriber<spinal::PMatrixPseudoInverseWithInertia, AttitudeController> p_matrix_pseudo_inverse_inertia_sub_;
   ros::Subscriber<std_msgs::Float32, AttitudeController> pwm_test_sub_;
 
+  ros::ServiceServer<std_srvs::SetBool::Request, std_srvs::SetBool::Response, AttitudeController> att_control_srv_;
+
   StateEstimate* estimator_;
   BatteryStatus* bat_;
+
+  void setAttitudeControlCallback(const std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& res);
 #endif
 
   int8_t uav_model_;
@@ -151,6 +158,7 @@ private:
   bool integrate_flag_;
   bool force_landing_flag_;
   bool can_comm_flag_; //two types: pwm_direct_type OR can_comm_type
+  bool attitude_flag_;
 
   // Control Input
   float target_angle_[3];

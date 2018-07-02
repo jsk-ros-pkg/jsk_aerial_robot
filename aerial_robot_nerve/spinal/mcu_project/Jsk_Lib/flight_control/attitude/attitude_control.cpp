@@ -26,6 +26,7 @@ void AttitudeController::init(ros::NodeHandle* nh)
   rpy_gain_sub_ = nh_->subscribe("/rpy_gain", 1, &AttitudeController::rpyGainCallback, this);
   p_matrix_pseudo_inverse_inertia_sub_ = nh_->subscribe("/p_matrix_pseudo_inverse_inertia", 1, &AttitudeController::pMatrixInertiaCallback, this);
   pwm_test_sub_ = nh_->subscribe("/pwm_test", 1, &AttitudeController::pwmTestCallback, this);
+  att_control_srv_ = nh_->advertiseService("/set_attitude_control", &AttitudeController::setAttitudeControlCallback, this);
   baseInit();
 }
 
@@ -38,7 +39,8 @@ AttitudeController::AttitudeController():
   pwm_info_sub_("/motor_info", &AttitudeController::pwmInfoCallback, this),
   rpy_gain_sub_("/rpy_gain", &AttitudeController::rpyGainCallback, this),
   p_matrix_pseudo_inverse_inertia_sub_("/p_matrix_pseudo_inverse_inertia", &AttitudeController::pMatrixInertiaCallback, this),
-  pwm_test_sub_("/pwm_test", &AttitudeController::pwmTestCallback, this )
+  pwm_test_sub_("/pwm_test", &AttitudeController::pwmTestCallback, this ),
+  att_control_srv_("/set_attitude_control", &AttitudeController::setAttitudeControlCallback, this)
 {
 }
 
@@ -70,6 +72,8 @@ void AttitudeController::init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2
   nh_->subscribe< ros::Subscriber<std_msgs::Float32, AttitudeController> >(pwm_test_sub_);
   nh_->subscribe< ros::Subscriber<spinal::PMatrixPseudoInverseWithInertia, AttitudeController> >(p_matrix_pseudo_inverse_inertia_sub_);
 
+  nh_->advertiseService(att_control_srv_);
+
   baseInit();
 }
 #endif
@@ -84,6 +88,7 @@ void AttitudeController::baseInit()
   pwm_test_flag_ = false;
   lqi_mode_ = false;
   force_landing_flag_ = false;
+  attitude_flag_ = true;
 
   //pwm init
   pwm_conversion_mode_ = -1;
@@ -306,7 +311,8 @@ void AttitudeController::update(void)
 #ifdef SIMULATION
               anti_gyro_msg.data.push_back(gyro_moment_compensate);
 #endif
-              target_thrust_[i] = base_throttle_term_[i] + motor_rpy_force_[i] + gyro_moment_compensate;
+              target_thrust_[i] = base_throttle_term_[i];
+              if(attitude_flag_) target_thrust_[i] += (motor_rpy_force_[i] + gyro_moment_compensate);
             }
 
 #ifdef SIMULATION
@@ -685,6 +691,15 @@ void  AttitudeController::setUavModel(int8_t uav_model)
          uav_model_ == spinal::UavInfo::DRAGON)
         lqi_mode_ = true;
     }
+}
+
+#ifdef SIMULATION
+bool AttitudeController::setAttitudeControlCallback(std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& res)
+#else
+  void AttitudeController::setAttitudeControlCallback(const std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& res)
+#endif
+{
+	attitude_flag_ = req.data;
 }
 
 bool AttitudeController::activated()
