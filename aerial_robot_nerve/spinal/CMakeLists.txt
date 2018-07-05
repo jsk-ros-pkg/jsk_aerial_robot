@@ -34,6 +34,9 @@ add_message_files(
   UavInfo.msg
   DesireCoord.msg
   FlightConfigCmd.msg
+  AttitudePidGains.msg
+  QMatrix.msg
+  QMatrixPseudoInverseInertia.msg
   )
 
 add_service_files(
