@@ -67,9 +67,9 @@ public:
   static constexpr uint8_t LQI_FOUR_AXIS_MODE = 4;
 
   //public functions
-  bool modelling(bool verbose = false, bool control_verbose = false); //lagrange method
+  virtual bool modelling(bool verbose = false, bool control_verbose = false); //lagrange method
   virtual bool overlapCheck(bool verbose = false) const {return true;}
-  bool stabilityMarginCheck(bool verbose = false);
+  virtual bool stabilityMarginCheck(bool verbose = false);
   uint8_t getLqiMode() const { return lqi_mode_; }
   double getStabilityMargin() const { return stability_margin_; }
   Eigen::VectorXd getOptimalHoveringThrust() const { return optimal_hovering_f_; }
@@ -79,7 +79,7 @@ public:
   bool hamiltonMatrixSolver(uint8_t lqi_mode);
   void setLqiMode(uint8_t lqi_mode) { lqi_mode_ = lqi_mode; }
 
-private:
+protected:
   //private attributes
   double f_max_;
   double f_min_;

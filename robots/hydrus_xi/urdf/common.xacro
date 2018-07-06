@@ -1,0 +1,94 @@
+<?xml version="1.0"?>
+<robot
+    xmlns:xacro="http://www.ros.org/wiki/xacro" name="hydrus_xi_common" >
+
+  <!-- kinematics [m] -->
+  <xacro:property name="link_length" value="0.6"/>
+  <xacro:property name="link_height" value="0.28"/>
+  <xacro:property name="protector_radius" value="0.1925"/>
+  <xacro:property name="fc_x_offset" value="0.566"/>
+  <xacro:property name="fc_z_offset" value="-0.021"/>
+  <xacro:property name="thrust_tilt_angle" value="0.34906585039"/> <!-- 20deg -->
+  <xacro:property name="rotor_radius" value=".0178"/>
+
+  <!-- mass [Kg] -->
+  <xacro:property name="rotor_mass" value="0.02"/> <!-- exclude from center mass -->
+  <xacro:property name="bat_mass" value="0.193"/> <!-- 1300mAh -->
+
+  <!-- dynamics -->
+  <xacro:property name="max_force" value="24"/> <!-- [N] -->
+
+  <!-- collision -->
+  <xacro:property name="collision_rotor_height" value="0.1" />
+  <xacro:property name="collision_rotor_radius" value="${protector_radius + 0.01}"/>
+
+  <xacro:macro name="mesh_model" params="type *origin">
+    <visual>
+      <xacro:insert_block name="origin"/>
+      <geometry>
+        <mesh filename="package://hydrus_xi/urdf/mesh/${type}.dae"/>
+      </geometry>
+    </visual>
+  </xacro:macro>
+
+  <xacro:macro name="link_collision_model">
+    <collision>
+      <origin rpy="0 0 0" xyz="${link_length* 0.5} 0 0"/>
+      <geometry>
+        <box size="${link_length} 0.05 ${link_height}"/>
+      </geometry>
+    </collision>
+  </xacro:macro>
+
+  <xacro:macro name="extra_module" params="name parent *origin *inertial visible:=0 model_url:=0">
+    <joint name="${parent}2${name}" type="fixed">
+      <parent link="${parent}"/>
+      <child link="${name}"/>
+      <xacro:insert_block name="origin" />
+    </joint>
+    <link name="${name}">
+      <xacro:insert_block name="inertial" />
+      <xacro:if value="${visible == 1}">
+        <visual>
+          <geometry>
+            <mesh filename="${model_url}"/>
+          </geometry>
+        </visual>
+      </xacro:if>
+    </link>
+  </xacro:macro>
+
+  <xacro:macro name="extra_module_collision" params="name parent *origin *inertial visible:=0 model_url:=0 *collision">
+    <joint name="${parent}2${name}" type="fixed">
+      <parent link="${parent}"/>
+      <child link="${name}"/>
+      <xacro:insert_block name="origin" />
+    </joint>
+    <link name="${name}">
+      <xacro:insert_block name="inertial" />
+      <xacro:if value="${visible == 1}">
+        <visual>
+          <geometry>
+            <mesh filename="${model_url}"/>
+          </geometry>
+        </visual>
+      </xacro:if>
+      <xacro:insert_block name="collision"/>
+    </link>
+  </xacro:macro>
+
+
+  <!-- friction -->
+  <xacro:macro name="friction" params="self">
+    <gazebo reference="link${self}">
+      <mu1>0.1</mu1>
+      <mu2>0.1</mu2>
+    </gazebo>
+  </xacro:macro>
+
+  <xacro:macro name="damping_factor" params="link">
+    <gazebo reference="${link}">
+      <dampingFactor>0.00</dampingFactor>
+    </gazebo>
+  </xacro:macro>
+</robot>

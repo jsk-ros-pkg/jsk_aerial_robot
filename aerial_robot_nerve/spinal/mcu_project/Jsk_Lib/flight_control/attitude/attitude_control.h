@@ -41,7 +41,8 @@
 #include <spinal/PwmInfo.h>
 #include <spinal/UavInfo.h>
 #include <spinal/PMatrixPseudoInverseWithInertia.h>
-
+#include <spinal/TorqueAllocationMatrixInv.h>
+#include <spinal/SetAttitudeGains.h>
 
 
 #define MAX_PWM  54000
@@ -57,20 +58,6 @@
 #define CONTROL_PUB_INTERVAL 100 //40hz //100 //10ms
 
 #define MOTOR_TEST 0
-
-// anzai TODO: ros subscribe
-#define P_TERM_LEVEL_LIMIT 500
-#define I_TERM_LEVEL_LIMIT 25
-#define I_TERM_YAW_LIMIT 90
-
-#define LEVEL_P_GAIN 403.065f
-#define LEVEL_I_GAIN 419.85f
-#define LEVEL_D_GAIN 106.1913f
-
-#define YAW_P_GAIN 0.0f
-#define YAW_I_GAIN 300.0f //multiwii: 339.3897f
-#define YAW_D_GAIN 300.0f //multiwii: 218.818f
-
 
 enum AXIS {
   X = 0,
@@ -110,12 +97,12 @@ public:
   }
   float getPwm(uint8_t index) {return target_pwm_[index];}
   float getForce(uint8_t index) {return target_thrust_[index];}
-  void levelPGain(float torque_p_gain) { torque_p_gain_[X] = torque_p_gain; torque_p_gain_[Y] = torque_p_gain;}
-  void levelIGain(float torque_i_gain) { torque_i_gain_[X] = torque_i_gain; torque_i_gain_[Y] = torque_i_gain;}
-  void levelDGain(float torque_d_gain) { torque_d_gain_[X] = torque_d_gain; torque_d_gain_[Y] = torque_d_gain;}
-  void yawPGain(float torque_p_gain) { torque_p_gain_[Z] = torque_p_gain; }
-  void yawIGain(float torque_i_gain) { torque_i_gain_[Z] = torque_i_gain; }
-  void yawDGain(float torque_d_gain) { torque_d_gain_[Z] = torque_d_gain; }
+  void levelPGain(float attitude_p_gain) { attitude_p_gain_[X] = attitude_p_gain; attitude_p_gain_[Y] = attitude_p_gain;}
+  void levelIGain(float attitude_i_gain) { attitude_i_gain_[X] = attitude_i_gain; attitude_i_gain_[Y] = attitude_i_gain;}
+  void levelDGain(float attitude_d_gain) { attitude_d_gain_[X] = attitude_d_gain; attitude_d_gain_[Y] = attitude_d_gain;}
+  void yawPGain(float attitude_p_gain) { attitude_p_gain_[Z] = attitude_p_gain; }
+  void yawIGain(float attitude_i_gain) { attitude_i_gain_[Z] = attitude_i_gain; }
+  void yawDGain(float attitude_d_gain) { attitude_d_gain_[Z] = attitude_d_gain; }
 
   bool activated();
 
@@ -139,22 +126,28 @@ private:
   ros::Subscriber rpy_gain_sub_;
   ros::Subscriber pwm_test_sub_;
   ros::Subscriber p_matrix_pseudo_inverse_inertia_sub_;
+  ros::Subscriber torque_allocation_matrix_inv_sub_;
   ros::Publisher anti_gyro_pub_;
   ros::ServiceServer att_control_srv_;
+  ros::ServiceServer attitude_gains_srv_;
+
   bool setAttitudeControlCallback(std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& res);
+  bool setAttitudeGainsCallback(spinal::SetAttitudeGains::Request& req, spinal::SetAttitudeGains::Response& res);
 #else
   ros::Subscriber<spinal::FourAxisCommand, AttitudeController> four_axis_cmd_sub_;
   ros::Subscriber<spinal::PwmInfo, AttitudeController> pwm_info_sub_;
   ros::Subscriber<spinal::RollPitchYawTerms, AttitudeController> rpy_gain_sub_;
-  ros::Subscriber<spinal::PMatrixPseudoInverseWithInertia, AttitudeController> p_matrix_pseudo_inverse_inertia_sub_;
   ros::Subscriber<std_msgs::Float32, AttitudeController> pwm_test_sub_;
-
+  ros::Subscriber<spinal::PMatrixPseudoInverseWithInertia, AttitudeController> p_matrix_pseudo_inverse_inertia_sub_;
+  ros::Subscriber<spinal::TorqueAllocationMatrixInv, AttitudeController> torque_allocation_matrix_inv_sub_;
   ros::ServiceServer<std_srvs::SetBool::Request, std_srvs::SetBool::Response, AttitudeController> att_control_srv_;
+  ros::ServiceServer<spinal::SetAttitudeGains::Request, spinal::SetAttitudeGains::Response, AttitudeController> attitude_gains_srv_;
+
+  void setAttitudeControlCallback(const std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& res);
+  void setAttitudeGainsCallback(const spinal::SetAttitudeGains::Request& req, spinal::SetAttitudeGains::Response& res);
 
   StateEstimate* estimator_;
   BatteryStatus* bat_;
-
-  void setAttitudeControlCallback(const std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& res);
 #endif
 
   int8_t uav_model_;
@@ -174,14 +167,19 @@ private:
   float target_cog_torque_[3];
 
   //Nonlinear Dynamics Inversion Control
-  float torque_p_gain_[3];
-  float torque_i_gain_[3];
-  float torque_d_gain_[3];
-  float torque_p_term_[3];
-  float torque_i_term_[3];
-  float torque_d_term_[3];
+  float attitude_p_gain_[3];
+  float attitude_i_gain_[3];
+  float attitude_d_gain_[3];
+  float attitude_term_limit_[3];
+  float attitude_p_term_limit_[3];
+  float attitude_i_term_limit_[3];
+  float attitude_d_term_limit_[3];
+  float attitude_yaw_p_i_term_;
   float error_angle_i_[3];
   float error_angle_i_limit_[3];
+  bool attitude_gain_receive_flag_;
+  float target_cog_angular_acc_[3];
+  float torque_allocation_matrix_inv_[MAX_MOTOR_NUMBER][3];
 
   //LQI Control
   bool lqi_mode_;
@@ -220,6 +218,7 @@ private:
   void pwmInfoCallback( const spinal::PwmInfo &info_msg);
   void rpyGainCallback( const spinal::RollPitchYawTerms &gain_msg);
   void pMatrixInertiaCallback(const spinal::PMatrixPseudoInverseWithInertia& msg);
+  void torqueAllocationMatrixInvCallback(const spinal::TorqueAllocationMatrixInv& msg);
   void pwmTestCallback(const std_msgs::Float32& pwm_msg);
 
   float pwmConversion(float thrust);

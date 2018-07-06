@@ -15,6 +15,7 @@ add_message_files(FILES
   State.msg
   States.msg
   Acc.msg
+  WrenchAllocationMatrix.msg
 )
 
 ## Generate added messages and services

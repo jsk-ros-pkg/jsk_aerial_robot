@@ -79,6 +79,7 @@ namespace aerial_robot_model {
     template<class T> T getCogDesireOrientation() const;
     template<class T> T getCog2Baselink() const;
     template<class T> T getInertia() const;
+    std::map<std::string, KDL::RigidBodyInertia> getInertiaMap() const { return inertia_map_; }
     double getLinkLength() const { return link_length_; }
     double getMass() const { return mass_; }
     std::map<int, int> getRotorDirection() { return rotor_direction_; }
