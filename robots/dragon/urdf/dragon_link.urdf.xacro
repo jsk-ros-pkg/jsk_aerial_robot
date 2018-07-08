@@ -80,9 +80,8 @@
       <visual>
         <origin xyz="${gimbal_roll_x_offset} 0 0" rpy="0 0 0"/>
         <geometry>
-          <mesh filename="package://dragon/urdf/mesh/ducted_fan_gimbal_roll.stl" scale="0.001 0.001 0.001"/>
+          <mesh filename="package://dragon/urdf/mesh/ducted_fan_gimbal_roll.dae"/>
         </geometry>
-        <material name="red"/>
       </visual>
 
       <!-- box collision not work good for FCL
@@ -102,9 +101,6 @@
       </collision>
 
     </link>
-    <gazebo reference="gimbal${self}_roll_module">
-      <material>Gazebo/Red</material>
-    </gazebo>
 
     <!-- gimbal pitch -->
     <joint name="gimbal${self}_pitch" type="revolute">
@@ -127,14 +123,10 @@
       <visual>
         <origin xyz="0 0 0" rpy="0 0 0"/>
         <geometry>
-          <mesh filename="package://dragon/urdf/mesh/ducted_fan_gimbal_pitch.stl" scale="0.001 0.001 0.001"/>
+          <mesh filename="package://dragon/urdf/mesh/ducted_fan_gimbal_pitch.dae"/>
         </geometry>
-        <material name="black"/>
       </visual>
     </link>
-    <gazebo reference="gimbal${self}_pitch_module">
-      <material>Gazebo/Black</material>
-    </gazebo>
 
     <!-- rotor -->
     <joint name="rotor${self}" type="continuous">
@@ -215,9 +207,8 @@
         <visual>
           <origin rpy="0 0 0" xyz="${inter_joint_x_offset} 0 0"/>
           <geometry>
-            <mesh filename="package://dragon/urdf/mesh/inter_joint_junction.stl" scale="0.001 0.001 0.001"/>
+            <mesh filename="package://dragon/urdf/mesh/inter_joint_junction.dae"/>
           </geometry>
-          <material name="red"/>
         </visual>
       </link>
 
@@ -233,7 +224,6 @@
       <gazebo reference="inter_joint${self}">
         <mu1>0.2</mu1>
         <mu2>0.2</mu2>
-        <material>Gazebo/Red</material>
       </gazebo>
 
     </xacro:unless>
