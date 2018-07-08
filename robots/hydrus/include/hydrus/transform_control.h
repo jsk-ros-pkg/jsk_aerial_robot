@@ -242,27 +242,6 @@ protected:
   bool debug_verbose_;
   bool verbose_;
 
-  /* basic model */
-  urdf::Model model_;
-  KDL::Tree tree_;
-  std::map<std::string, KDL::RigidBodyInertia> inertia_map_;
-  std::map<std::string, uint32_t> actuator_map_; // regarding to KDL tree
-  std::vector<int> actuator_joint_map_; //the real joint (other than rotor or gimbal)
-  std::map<std::string /* module_name */, KDL::Segment> extra_module_map_;
-  sensor_msgs::JointState current_actuator_state_;
-  int rotor_num_;
-  double link_length_;
-  std::string thrust_link_;
-
-  /* kinemtiacs */
-  double mass_;
-  Eigen::Matrix3d links_inertia_;
-  std::vector<Eigen::Vector3d> rotors_origin_from_cog_;
-  tf::Transform cog2baselink_transform_;
-  std::string baselink_;
-  tf::Transform cog_;
-  KDL::Rotation cog_desire_orientation_;
-
   /* static */
   double stability_margin_;
   Eigen::VectorXd optimal_hovering_f_;
@@ -275,8 +254,6 @@ protected:
   void initParam();
 
   /* basic model */
-  KDL::RigidBodyInertia inertialSetup(const KDL::TreeElement tree_element);
-  void resolveLinkLength();
   void desireCoordinateCallback(const spinal::DesireCoordConstPtr & msg);
 
   /* service */
