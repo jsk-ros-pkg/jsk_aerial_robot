@@ -47,9 +47,90 @@
 //Transformable Aerial Robot Model
 class TARModel {
 public:
-  TARModel(std::string baselink, std::string thrust_link);
+  TARModel();
+  TARModel(std::string baselink, std::string thrust_link): TARModel(), baselink_(baselink), thrust_link_(thrust_link) {}
+  bool addExtraModule(int action, std::string module_name, std::string parent_link_name, geometry_msgs::Transform transform, geometry_msgs::Inertia inertia);
+  tf::Transform getRoot2Link(std::string link, sensor_msgs::JointState state) const;
+  void setActuatorJointMap(const sensor_msgs::JointState& actuator_state);
+  const tf::Transform& getCog() const
+  {
+    return cog_;
+  }
+  void setCog(const tf::Transform& cog)
+  {
+    cog_ = cog;
+  }
+  const Eigen::Vector3d& getRotorOirginFromCog(const int index) const
+  {
+    return rotors_origin_from_cog_.at(index);
+  }
+  const std::vector<Eigen::Vector3d> getRotorsOriginFromCog() const
+  {
+    return rotors_origin_from_cog_;
+  }
+  void setRotorsOriginFromCog(const std::vector<Eigen::Vector3d>& rotors_origin_from_cog)
+  {
+    assert(rotors_origin_from_cog_.size() == rotors_origin_from_cog.size());
+    rotors_origin_from_cog_ = rotors_origin_from_cog;
+  }
+  void setCog2Baselink(const tf::Transform& transform)
+  {
+    cog2baselink_transform_ = transform;
+  }
+  const tf::Transform& getCog2Baselink() const
+  {
+    return cog2baselink_transform_;
+  }
+  void setBaselink(const std::string& baselink)
+  {
+    baselink_ = baselink;
+  }
+  void setCogDesireOrientation(const KDL::Rotation& cog_desire_orientation)
+  {
+    cog_desire_orientation_ = cog_desire_orientation;
+  }
+  const Eigen::Matrix3d& getInertia() const
+  {
+    return links_inertia_;
+  }
+  void setInertia(const Eigen::Matrix3d& link_inertia)
+  {
+    links_inertia_ = link_inertia;
+  }
+  double getMass() const
+  {
+    return mass_;
+  }
+  void setMass(const double& mass)
+  {
+    mass_ = mass;
+  }
+  const urdf::Model& getRobotModel() const
+  {
+    return model_;
+  }
+  const KDL::Tree& getModelTree() const
+  {
+    return tree_;
+  }
+  int getRotorNum() const
+  {
+    return rotor_num_;
+  }
+  double getLinkLength() const
+  {
+    return link_length_;
+  }
+  const std::map<std::string, uint32_t>& getActuatorMap() const
+  {
+    return actuator_map_;
+  }
+  const std::vector<int>& getActuatorJointMap() const
+  {
+    return actuator_joint_map_;
+  }
+
 private:
-  /* basic model */
   urdf::Model model_;
   KDL::Tree tree_;
   std::map<std::string, KDL::RigidBodyInertia> inertia_map_;

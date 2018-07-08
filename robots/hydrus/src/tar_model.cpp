@@ -1,8 +1,6 @@
 #include <hydrus/robot_model.h>
 
-TARModel::TARModel(std::string baselink, std::string thrust_link) :
-  baselink_(baselink),
-  thrust_link_(thrust_link)
+TARModel::TARModel()
 {
   /* robot model */
   if (!model_.initParam("robot_description"))
@@ -117,8 +115,8 @@ void TARModel::resolveLinkLength()
   KDL::JntArray joint_positions(nj);
   KDL::TreeFkSolverPos_recursive fk_solver(tree_);
   KDL::Frame f_link2, f_link3;
-  fk_solver.JntToCart(joint_positions, f_link2, "link2"); //hard coding
-  fk_solver.JntToCart(joint_positions, f_link3, "link3"); //hard coding
+  fk_solver.JntToCart(joint_positions, f_link2, "link2"); //hard coding //TODO
+  fk_solver.JntToCart(joint_positions, f_link3, "link3"); //hard coding //TODO
   link_length_ = (f_link3.p - f_link2.p).Norm();
   //ROS_ERROR("Update link length: %f", link_length_);
 }
@@ -266,4 +264,35 @@ bool TransformController::addExtraModule(int action, std::string module_name, st
     }
   ROS_ERROR("[extra module]: should not reach here ");
   return false;
+}
+
+tf::Transform TARModel::getRoot2Link(std::string link, sensor_msgs::JointState state)
+{
+  KDL::TreeFkSolverPos_recursive fk_solver(tree_);
+  unsigned int nj = tree_.getNrOfJoints();
+  KDL::JntArray joint_positions(nj);
+
+  unsigned int j = 0;
+  for(unsigned int i = 0; i < state.position.size(); i++)
+    {
+      std::map<std::string, uint32_t>::iterator itr = actuator_map_.find(state.name[i]);
+      if(itr != actuator_map_.end())  joint_positions(actuator_map_.find(state.name[i])->second) = state.position[i];
+    }
+
+  KDL::Frame f;
+  tf::Transform  link_f;
+  int status = fk_solver.JntToCart(joint_positions, f, link);
+  tf::transformKDLToTF(f, link_f);
+
+  return link_f;
+}
+
+void TransformController::setActuatorJointMap(const sensor_msgs::JointState& actuator_state)
+{
+  /* CAUTION: be sure that the joints are in order !!!!!!! */
+  for(auto itr = actuator_state.name.begin(); itr != actuator_state.name.end(); ++itr)
+    {
+      if(itr->find("joint") != std::string::npos)
+        actuator_joint_map_.push_back(std::distance(actuator_state.name.begin(), itr));
+    }
 }

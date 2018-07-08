@@ -48,7 +48,7 @@
 #include <spinal/DesireCoord.h>
 #include <spinal/PMatrixPseudoInverseWithInertia.h>
 #include <std_msgs/UInt8.h>
-#include <tf/transform_broadcaster.h>
+#include <tf2_ros/transform_broadcaster.h>
 #include <geometry_msgs/TransformStamped.h>
 #include <tf_conversions/tf_kdl.h>
 #include <tf_conversions/tf_eigen.h>
@@ -69,6 +69,9 @@
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
 #include <Eigen/Eigenvalues>
+
+/* kinematics */
+#include <hydrus/tar_model.h>
 
 /* for collision detection */
 #include <fcl/fcl.h>
@@ -104,101 +107,13 @@ using namespace fcl;
 
 class TransformController{
 public:
-  TransformController(ros::NodeHandle nh, ros::NodeHandle nh_private, bool callback_flag = true);
+  TransformController(ros::NodeHandle nh, ros::NodeHandle nh_private);
   ~TransformController();
 
   virtual void actuatorStateCallback(const sensor_msgs::JointStateConstPtr& state);
-  bool addExtraModule(int action, std::string module_name, std::string parent_link_name, geometry_msgs::Transform transform, geometry_msgs::Inertia inertia);
-
-  virtual void forwardKinematics(sensor_msgs::JointState& state);
   bool stabilityMarginCheck(bool verbose = false);
   virtual bool overlapCheck(bool verbose = false){return true; }
   bool modelling(bool verbose = false); //lagrange method
-
-  /* basic model info */
-  inline const urdf::Model& getRobotModel(){return model_;}
-  inline const KDL::Tree& getModelTree(){return tree_;}
-  inline int getRotorNum(){return rotor_num_;}
-  inline double getLinkLength(){return link_length_;}
-  const std::map<std::string, uint32_t> & getActuatorMap() {return actuator_map_;}
-  const std::vector<int>& getActuatorJointMap() {return actuator_joint_map_;}
-  void setActuatorJointMap(const sensor_msgs::JointState& actuator_state);
-
-  /* kinemtics */
-  /* position & orientation */
-  tf::Transform getCog()
-  {
-    boost::lock_guard<boost::mutex> lock(cog_mutex_);
-    return cog_;
-  }
-
-  void setCog(tf::Transform cog)
-  {
-    boost::lock_guard<boost::mutex> lock(cog_mutex_);
-    cog_ = cog;
-  }
-
-  const Eigen::Vector3d& getRotorOirginFromCog(int index)
-  {
-    boost::lock_guard<boost::mutex> lock(origins_mutex_);
-    return rotors_origin_from_cog_.at(index);
-  }
-
-  const std::vector<Eigen::Vector3d>& getRotorsOriginFromCog()
-  {
-    boost::lock_guard<boost::mutex> lock(origins_mutex_);
-    return rotors_origin_from_cog_;
-  }
-
-  void setRotorsOriginFromCog(const std::vector<Eigen::Vector3d>& rotors_origin_from_cog)
-  {
-    boost::lock_guard<boost::mutex> lock(origins_mutex_);
-    assert(rotors_origin_from_cog_.size() == rotors_origin_from_cog.size());
-    rotors_origin_from_cog_ = rotors_origin_from_cog;
-  }
-
-  void setCog2Baselink(tf::Transform transform)
-  {
-    cog2baselink_transform_ = transform;
-  }
-
-  tf::Transform getCog2Baselink()
-  {
-    return cog2baselink_transform_;
-  }
-
-  tf::Transform getRoot2Link(std::string link, sensor_msgs::JointState state);
-
-  inline void setBaselink(std::string baselink) { baselink_ = baselink;}
-
-  void setCogDesireOrientation(KDL::Rotation cog_desire_orientation)
-  {
-    cog_desire_orientation_ = cog_desire_orientation;
-  }
-
-  /* inertia parameter */
-  Eigen::Matrix3d getInertia()
-  {
-    boost::lock_guard<boost::mutex> lock(inertia_mutex_);
-    return links_inertia_;
-  }
-  void setInertia(Eigen::Matrix3d link_inertia)
-  {
-    boost::lock_guard<boost::mutex> lock(inertia_mutex_);
-    links_inertia_ = link_inertia;
-  }
-
-  double getMass()
-  {
-    boost::lock_guard<boost::mutex> lock(mass_mutex_);
-    return mass_;
-  }
-
-  void setMass(double mass)
-  {
-    boost::lock_guard<boost::mutex> lock(mass_mutex_);
-    mass_ = mass;
-  }
 
   /* static & stability */
   /** public attributes */
@@ -206,65 +121,82 @@ public:
   double stability_margin_thre_;
   double f_max_, f_min_;
   double p_det_thre_;
-  const double getStabilityMargin() {return stability_margin_;}
-  const Eigen::MatrixXd& getP() const  { return P_; }
-  const double getPdeterminant() {return p_det_;}
-  inline void setStableState(Eigen::VectorXd f) {optimal_hovering_f_ = f;}
-  const Eigen::VectorXd& getOptimalHoveringThrust() const {return optimal_hovering_f_;}
+  double getStabilityMargin() const
+  {
+    return stability_margin_;
+  }
+  const Eigen::MatrixXd& getP() const
+  {
+    return P_;
+  }
+  double getPdeterminant() const
+  {
+    return p_det_;
+  }
+  void setStableState(Eigen::VectorXd f)
+  {
+    optimal_hovering_f_ = f;
+  }
+  const Eigen::VectorXd& getOptimalHoveringThrust() const
+  {
+    return optimal_hovering_f_;
+  }
 
   //////////////////////////////////////////////////////////////////////////////////////
   /* control */
   static constexpr uint8_t LQI_THREE_AXIS_MODE = 3;
   static constexpr uint8_t LQI_FOUR_AXIS_MODE = 4;
 
-  const Eigen::MatrixXd& getK() const { return K_; }
-  inline uint8_t getLqiMode() { return lqi_mode_; }
-  inline void setLqiMode(uint8_t lqi_mode) { lqi_mode_ = lqi_mode; }
+  const Eigen::MatrixXd& getK() const
+  {
+    return K_;
+  }
+  uint8_t getLqiMode() const
+  {
+    return lqi_mode_;
+  }
+  void setLqiMode(uint8_t lqi_mode)
+  {
+    lqi_mode_ = lqi_mode;
+  }
   void param2controller();
   bool hamiltonMatrixSolver(uint8_t lqi_mode);
-  ///////////////////////////////////////////////////////////////////////////////////
 
 protected:
 
-  ros::NodeHandle nh_,nh_private_;
-  ros::Publisher transform_pub_;
-  ros::Subscriber actuator_state_sub_;
-  ros::Subscriber desire_coordinate_sub_;
-  tf::TransformBroadcaster br_;
+  ros::NodeHandle nh_, nh_private_;
 
-  boost::mutex mass_mutex_, cog_mutex_, origins_mutex_, inertia_mutex_;
-
-  bool callback_flag_;
   bool kinematics_flag_;
-
   bool kinematic_verbose_;
   bool control_verbose_;
   bool debug_verbose_;
   bool verbose_;
 
-  /* static */
+  TARModel kinematic_model_;
   double stability_margin_;
   Eigen::VectorXd optimal_hovering_f_;
   std::map<int, int> rotor_direction_;
   double m_f_rate_; //moment / force rate
   Eigen::MatrixXd P_;
   double p_det_;
+  double rotor_num_;
 
   /* ros param init */
   void initParam();
 
   /* basic model */
-  void desireCoordinateCallback(const spinal::DesireCoordConstPtr & msg);
+  void desireCoordinateCallback(const spinal::DesireCoordConstPtr& msg);
 
   /* service */
   ros::ServiceServer add_extra_module_service_;
-  ros::ServiceServer end_effector_ik_service_;
-  bool addExtraModuleCallback(hydrus::AddExtraModule::Request  &req,
-                      hydrus::AddExtraModule::Response &res);
+  ros::ServiceServer end_effector_ik_service_; //need?
+  bool addExtraModuleCallback(const hydrus::AddExtraModule::Request& req, hydrus::AddExtraModule::Response& res);
 
+  ros::Subscriber actuator_state_sub_;
+  ros::Subscriber desire_coordinate_sub_;
+  tf2_ros::TransformBroadcaster br_;
 
-  //////////////////////////////////////////////////////////////////////////////////////
-  /* control */
+  ros::Publisher transform_pub_;
   ros::Publisher rpy_gain_pub_;
   ros::Publisher four_axis_gain_pub_;
   ros::Publisher p_matrix_pseudo_inverse_inertia_pub_;
@@ -274,7 +206,6 @@ protected:
   bool only_three_axis_mode_;
   bool gyro_moment_compensation_;
 
-  /* main control func */
   Eigen::MatrixXd K_;
   Eigen::MatrixXd P_orig_pseudo_inverse_; // for compensation of cross term in the rotional dynamics
   //Q: 8/12:r,r_d, p, p_d, y, y_d, z. z_d, r_i, p_i, y_i, z_i
@@ -290,15 +221,15 @@ protected:
   /* LQI parameter calculation */
   void lqi();
 
-  /* dynamic reconfigure */
+  //dynamic reconfigure
+  dynamic_reconfigure::Server<hydrus::LQIConfig> lqi_server_;
+  dynamic_reconfigure::Server<hydrus::LQIConfig>::CallbackType dynamic_reconf_func_lqi_;
   void cfgLQICallback(hydrus::LQIConfig &config, uint32_t level);
 
-  //dynamic reconfigure
-  dynamic_reconfigure::Server<hydrus::LQIConfig>* lqi_server_;
-  dynamic_reconfigure::Server<hydrus::LQIConfig>::CallbackType dynamic_reconf_func_lqi_;
-
+  //TODO need?
   static bool defaultDistanceFunction(CollisionObject<double>* o1, CollisionObject<double>* o2, void* cdata_, double& dist);
 
+  //TODO need?
   struct DistanceData
   {
     DistanceData()
