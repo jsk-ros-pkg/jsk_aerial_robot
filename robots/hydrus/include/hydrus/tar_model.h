@@ -85,9 +85,9 @@ public:
   {
     baselink_ = baselink;
   }
-  void setCogDesireOrientation(const KDL::Rotation& cog_desire_orientation)
+  void setCogDesireOrientation(double roll, double pitch, double yaw)
   {
-    cog_desire_orientation_ = cog_desire_orientation;
+    cog_desire_orientation_ = KDL::Rotation::RPY(roll, pitch, yaw);
   }
   const Eigen::Matrix3d& getInertia() const
   {
@@ -146,9 +146,9 @@ private:
   double mass_;
   Eigen::Matrix3d links_inertia_;
   std::vector<Eigen::Vector3d> rotors_origin_from_cog_;
-  tf::Transform cog2baselink_transform_;
+  tf2::Transform cog2baselink_transform_;
   std::string baselink_;
-  tf::Transform cog_;
+  tf2::Transform cog_;
   KDL::Rotation cog_desire_orientation_;
 
   KDL::RigidBodyInertia inertialSetup(const KDL::TreeElement tree_element);

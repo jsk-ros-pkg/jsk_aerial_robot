@@ -1,4 +1,4 @@
-#include <hydrus/robot_model.h>
+#include <hydrus/tar_model.h>
 
 TARModel::TARModel()
 {
@@ -126,8 +126,7 @@ void TARModel::forwardKinematics(sensor_msgs::JointState& state)
   KDL::TreeFkSolverPos_recursive fk_solver(tree_);
   KDL::JntArray joint_positions(tree_.getNrOfJoints());   /* set joint array */
 
-  //unsigned int j = 0;
-  for(unsigned int i = 0; i < state.position.size(); i++)
+  for(unsigned int i = 0; i < state.position.size(); ++i)
     {
       std::map<std::string, uint32_t>::iterator itr = actuator_map_.find(state.name[i]);
 
@@ -146,7 +145,7 @@ void TARModel::forwardKinematics(sensor_msgs::JointState& state)
       link_inertia = link_inertia_tmp + f * it->second;
 
       /* process for the extra module */
-      for(std::map<std::string, KDL::Segment>::iterator it_extra = extra_module_map_.begin(); it_extra != extra_module_map_.end(); it_extra++)
+      for(std::map<std::string, KDL::Segment>::iterator it_extra = extra_module_map_.begin(); it_extra != extra_module_map_.end(); ++it_extra)
         {
           if(it_extra->second.getName() == it->first)
             {
@@ -163,14 +162,14 @@ void TARModel::forwardKinematics(sensor_msgs::JointState& state)
   if(status < 0) ROS_ERROR("can not get FK to the baselink: %s", baselink_.c_str());
   cog_frame.M = f_baselink.M * cog_desire_orientation_.Inverse();
   cog_frame.p = link_inertia.getCOG();
-  tf::Transform cog_transform;
-  tf::transformKDLToTF(cog_frame, cog_transform);
+  tf2::Transform cog_transform;
+  tf2::transformKDLToTF(cog_frame, cog_transform);
   setCog(cog_transform);
   setMass(link_inertia.getMass());
 
   /* thrust point based on COG */
   std::vector<Eigen::Vector3d> f_rotors;
-  for(int i = 0; i < rotor_num_; i++)
+  for(int i = 0; i < rotor_num_; ++i)
     {
       std::stringstream ss;
       ss << i + 1;
@@ -188,8 +187,8 @@ void TARModel::forwardKinematics(sensor_msgs::JointState& state)
   KDL::RigidBodyInertia link_inertia_from_cog = cog_frame.Inverse() * link_inertia;
   setInertia(Eigen::Map<const Eigen::Matrix3d>(link_inertia_from_cog.getRotationalInertia().data));
 
-  tf::Transform cog2baselink_transform;
-  tf::transformKDLToTF(cog_frame.Inverse() * f_baselink, cog2baselink_transform);
+  tf2::Transform cog2baselink_transform;
+  tf2::transformKDLToTF(cog_frame.Inverse() * f_baselink, cog2baselink_transform);
   setCog2Baselink(cog2baselink_transform);
 }
 
@@ -209,7 +208,7 @@ bool TransformController::addExtraModule(int action, std::string module_name, st
               }
 
 
-            if(fabs(1 - tf::Quaternion(transform.rotation.x, transform.rotation.y, transform.rotation.z, transform.rotation.w).length2()) > 1e-6)
+            if(fabs(1 - tf2::Quaternion(transform.rotation.x, transform.rotation.y, transform.rotation.z, transform.rotation.w).length2()) > 1e-6)
               {
                 ROS_WARN("[extra module]: fail to add new extra module %s, becuase the orientation is invalid", module_name.c_str());
                 return false;
@@ -222,7 +221,7 @@ bool TransformController::addExtraModule(int action, std::string module_name, st
               }
 
             KDL::Frame f;
-            tf::transformMsgToKDL(transform, f);
+            tf2::transformMsgToKDL(transform, f);
             KDL::RigidBodyInertia rigid_body_inertia(inertia.m, KDL::Vector(inertia.com.x, inertia.com.y, inertia.com.z),
                                                      KDL::RotationalInertia(inertia.ixx, inertia.iyy,
                                                                             inertia.izz, inertia.ixy,
@@ -266,23 +265,22 @@ bool TransformController::addExtraModule(int action, std::string module_name, st
   return false;
 }
 
-tf::Transform TARModel::getRoot2Link(std::string link, sensor_msgs::JointState state)
+tf2::Transform TARModel::getRoot2Link(std::string link, sensor_msgs::JointState state)
 {
   KDL::TreeFkSolverPos_recursive fk_solver(tree_);
   unsigned int nj = tree_.getNrOfJoints();
   KDL::JntArray joint_positions(nj);
 
-  unsigned int j = 0;
-  for(unsigned int i = 0; i < state.position.size(); i++)
+  for(unsigned int i = 0; i < state.position.size(); ++i)
     {
       std::map<std::string, uint32_t>::iterator itr = actuator_map_.find(state.name[i]);
       if(itr != actuator_map_.end())  joint_positions(actuator_map_.find(state.name[i])->second) = state.position[i];
     }
 
   KDL::Frame f;
-  tf::Transform  link_f;
+  tf2::Transform  link_f;
   int status = fk_solver.JntToCart(joint_positions, f, link);
-  tf::transformKDLToTF(f, link_f);
+  tf2::transformKDLToTF(f, link_f);
 
   return link_f;
 }

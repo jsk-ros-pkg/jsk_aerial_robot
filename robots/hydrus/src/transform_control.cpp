@@ -19,18 +19,6 @@ TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_
   kinematic_model_ = TARModel(baselink, thrust_link);
   initParam();
 
-  /* Linear Quadratic Control */
-  //U //TODO U? P?
-  rotor_num_ = kinematic_model_.getRotorNum();
-  P_ = Eigen::MatrixXd::Zero(4, rotor_num_);
-
-  //Q
-  q_diagonal_ = Eigen::VectorXd::Zero(LQI_FOUR_AXIS_MODE * 3);
-  q_diagonal_ << q_roll_,q_roll_d_,q_pitch_,q_pitch_d_,q_z_,q_z_d_,q_yaw_,q_yaw_d_, q_roll_i_,q_pitch_i_,q_z_i_,q_yaw_i_;
-  //std::cout << "Q elements :"  << std::endl << q_diagonal_ << std::endl;
-
-  lqi_mode_ = LQI_FOUR_AXIS_MODE;
-
   //publisher
   //those publisher is published from func param2controller
   rpy_gain_pub_ = nh_private_.advertise<spinal::RollPitchYawTerms>("rpy_gain_pub_name", 1);
@@ -49,6 +37,18 @@ TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_
   //ros service for extra module
   add_extra_module_service_ = nh_.advertiseService("add_extra_module", &TransformController::addExtraModuleCallback, this);
   control_thread_ = boost::thread(boost::bind(&TransformController::control, this));
+
+  /* Linear Quadratic Control */
+  //U //TODO U? P?
+  rotor_num_ = kinematic_model_.getRotorNum();
+  P_ = Eigen::MatrixXd::Zero(4, rotor_num_);
+
+  //Q
+  q_diagonal_ = Eigen::VectorXd::Zero(LQI_FOUR_AXIS_MODE * 3);
+  q_diagonal_ << q_roll_,q_roll_d_,q_pitch_,q_pitch_d_,q_z_,q_z_d_,q_yaw_,q_yaw_d_, q_roll_i_,q_pitch_i_,q_z_i_,q_yaw_i_;
+  //std::cout << "Q elements :"  << std::endl << q_diagonal_ << std::endl;
+
+  lqi_mode_ = LQI_FOUR_AXIS_MODE;
 }
 
 TransformController::~TransformController()
@@ -71,7 +71,7 @@ void TransformController::initParam()
 
   /* propeller direction and lqi R */
   r_.resize(rotor_num_);
-  for(int i = 0; i < rotor_num_; i++) {
+  for(int i = 0; i < rotor_num_; ++i) {
     std::stringstream ss;
     ss << i + 1;
     /* R */
@@ -136,7 +136,7 @@ void TransformController::control()
 
 void TransformController::desireCoordinateCallback(const spinal::DesireCoordConstPtr& msg)
 {
-  kinematic_model_.setCogDesireOrientation(KDL::Rotation::RPY(msg->roll, msg->pitch, msg->yaw));
+  kinematic_model_.setCogDesireOrientation(msg->roll, msg->pitch, msg->yaw);
 }
 
 void TransformController::actuatorStateCallback(const sensor_msgs::JointStateConstPtr& state)
@@ -153,14 +153,14 @@ void TransformController::actuatorStateCallback(const sensor_msgs::JointStateCon
 
   if(!kinematics_flag_)
     {
-      ROS_ERROR("the total mass is %f", getMass());
+      ROS_ERROR("the total mass is %f", kinematic_model_.getMass());
       kinematics_flag_ = true;
     }
 }
 
 bool TransformController::addExtraModuleCallback(const hydrus::AddExtraModule::Request &req, hydrus::AddExtraModule::Response &res)
 {
-  return addExtraModule(req.action, req.module_name, req.parent_link_name, req.transform, req.inertia);
+  return kinematic_model_.addExtraModule(req.action, req.module_name, req.parent_link_name, req.transform, req.inertia);
 }
 
 void TransformController::lqi()
@@ -208,7 +208,7 @@ bool TransformController::stabilityMarginCheck(bool verbose)
 {
   double average_x = 0, average_y = 0;
 
-  std::vector<Eigen::Vector3d> rotors_origin_from_cog = getRotorsOriginFromCog();
+  std::vector<Eigen::Vector3d> rotors_origin_from_cog = kinematic_model_.getRotorsOriginFromCog();
 
   /* calcuate the average */
   for(int i = 0; i < rotor_num_; i++)
@@ -237,10 +237,10 @@ bool TransformController::stabilityMarginCheck(bool verbose)
   assert(link_length_ > 0);
   stability_margin_ = sqrt(es.eigenvalues()[0]) / link_length_;
   if(verbose) ROS_INFO("stability_margin: %f", stability_margin_);
-  if( stability_margin_ < stability_margin_thre_ ) return false;
+  if(stability_margin_ < stability_margin_thre_) return false;
   return true;
 
-#if 0 // correlation coefficient
+#if 0 // correlation coefficient //TODO need?
   double correlation_coefficient = fabs(s_xy / sqrt(s_xx * s_yy));
   //ROS_INFO("correlation_coefficient: %f", correlation_coefficient);
 
@@ -251,8 +251,8 @@ bool TransformController::stabilityMarginCheck(bool verbose)
 
 bool  TransformController::modelling(bool verbose)
 {
-  std::vector<Eigen::Vector3d> rotors_origin_from_cog = getRotorsOriginFromCog();
-  Eigen::Matrix3d links_inertia = getInertia();
+  std::vector<Eigen::Vector3d> rotors_origin_from_cog = kinematic_model_.getRotorsOriginFromCog();
+  Eigen::Matrix3d links_inertia = kinematic_model_.getInertia();
 
   Eigen::VectorXd g(4);
   g << 0, 0, 9.8, 0;
@@ -497,7 +497,7 @@ void TransformController::param2controller()
   transform_msg.header.stamp = current_actuator_state_.header.stamp;
   transform_msg.header.frame_id = std::string("cog");
   transform_msg.child_frame_id = baselink_;
-  tf::transformTFToMsg(getCog2Baselink(), transform_msg.transform);
+  tf2::transformTFToMsg(getCog2Baselink(), transform_msg.transform);
   transform_pub_.publish(transform_msg);
 
   for(int i = 0; i < rotor_num_; ++i)
@@ -621,6 +621,7 @@ void TransformController::cfgLQICallback(hydrus::LQIConfig &config, uint32_t lev
     }
 }
 
+//TODO need?
 bool TransformController::defaultDistanceFunction(CollisionObject<double>* o1, CollisionObject<double>* o2, void* cdata_, double& dist)
 {
   auto* cdata = static_cast<DistanceData*>(cdata_);
