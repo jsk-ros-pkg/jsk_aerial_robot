@@ -14,7 +14,10 @@ find_package(catkin REQUIRED COMPONENTS
   tf
   tf2_ros
   tf2_kdl
+  tf2_geometry_msgs
   kdl_parser
+  message_generation
+  message_runtime
 )
 
 find_package(orocos_kdl REQUIRED)
@@ -25,10 +28,21 @@ link_directories(${orocos_kdl_LIBRARY_DIRS})
 
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
+add_service_files(
+  FILES
+  AddExtraModule.srv
+  )
+
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+  geometry_msgs
+  )
+
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES rotor_interface
-  CATKIN_DEPENDS roscpp  std_msgs  sensor_msgs geometry_msgs tf interactive_markers visualization_msgs
+  CATKIN_DEPENDS roscpp std_msgs sensor_msgs geometry_msgs tf interactive_markers visualization_msgs message_generation message_runtime
 #  DEPENDS system_lib
 )
 
@@ -41,15 +55,20 @@ catkin_package(
 ## Your package locations should be listed before other locations
 # include_directories(include)
 include_directories(
-  include ${Boost_INCLUDE_DIR} ${catkin_INCLUDE_DIRS}
-)
+  include
+  ${Boost_INCLUDE_DIR}
+  ${catkin_INCLUDE_DIRS}
+  ${Eigen3_INCLUDE_DIRS}
+  )
 
+add_library(transformable_aerial_robot_model src/transformable_aerial_robot_model.cpp)
+target_link_libraries(transformable_aerial_robot_model ${catkin_LIBRARIES} ${orocos_kdl_LIBRARIES} ${Eigen3_LIBRARIES})
 
 add_library(rotor_interface src/rotor_interface.cpp)
 target_link_libraries(rotor_interface ${catkin_LIBRARIES})
 
 add_executable(rotor_tf_publisher src/rotor_tf_publisher.cpp)
-target_link_libraries(rotor_tf_publisher  ${catkin_LIBRARIES} ${orocos_kdl_LIBRARIES})
+target_link_libraries(rotor_tf_publisher ${catkin_LIBRARIES} ${orocos_kdl_LIBRARIES})
 
 add_executable(interactive_marker src/interactive_marker.cpp)
 target_link_libraries(interactive_marker ${catkin_LIBRARIES})

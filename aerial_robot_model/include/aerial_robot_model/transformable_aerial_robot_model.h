@@ -43,20 +43,27 @@
 #include <kdl/treejnttojacsolver.hpp>
 #include <kdl/chainfksolverpos_recursive.hpp>
 #include <kdl/chainjnttojacsolver.hpp>
+#include <geometry_msgs/Inertia.h>
+#include <geometry_msgs/Transform.h>
+#include <sensor_msgs/JointState.h>
+#include <aerial_robot_model/AddExtraModule.h>
+#include <tf2_kdl/tf2_kdl.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
 //Transformable Aerial Robot Model
 class TARModel {
 public:
-  TARModel();
-  TARModel(std::string baselink, std::string thrust_link): TARModel(), baselink_(baselink), thrust_link_(thrust_link) {}
+  TARModel() = default;
+  TARModel(std::string baselink, std::string thrust_link, bool verbose);
   bool addExtraModule(int action, std::string module_name, std::string parent_link_name, geometry_msgs::Transform transform, geometry_msgs::Inertia inertia);
-  tf::Transform getRoot2Link(std::string link, sensor_msgs::JointState state) const;
+  tf2::Transform getRoot2Link(std::string link, sensor_msgs::JointState state) const;
   void setActuatorJointMap(const sensor_msgs::JointState& actuator_state);
-  const tf::Transform& getCog() const
+  void TARModel::forwardKinematics(sensor_msgs::JointState& state);
+  const tf2::Transform& getCog() const
   {
     return cog_;
   }
-  void setCog(const tf::Transform& cog)
+  void setCog(const tf2::Transform& cog)
   {
     cog_ = cog;
   }
@@ -73,11 +80,11 @@ public:
     assert(rotors_origin_from_cog_.size() == rotors_origin_from_cog.size());
     rotors_origin_from_cog_ = rotors_origin_from_cog;
   }
-  void setCog2Baselink(const tf::Transform& transform)
+  void setCog2Baselink(const tf2::Transform& transform)
   {
     cog2baselink_transform_ = transform;
   }
-  const tf::Transform& getCog2Baselink() const
+  const tf2::Transform& getCog2Baselink() const
   {
     return cog2baselink_transform_;
   }
@@ -140,16 +147,17 @@ private:
   sensor_msgs::JointState current_actuator_state_;
   int rotor_num_;
   double link_length_;
-  std::string thrust_link_;
 
-  /* kinematics */
   double mass_;
   Eigen::Matrix3d links_inertia_;
   std::vector<Eigen::Vector3d> rotors_origin_from_cog_;
   tf2::Transform cog2baselink_transform_;
-  std::string baselink_;
   tf2::Transform cog_;
   KDL::Rotation cog_desire_orientation_;
+  std::string baselink_;
+  std::string thrust_link_;
+  bool verbose_;
+  std::map<int, int> rotor_direction_;
 
   KDL::RigidBodyInertia inertialSetup(const KDL::TreeElement tree_element);
   void resolveLinkLength();

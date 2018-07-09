@@ -175,7 +175,6 @@ protected:
   TARModel kinematic_model_;
   double stability_margin_;
   Eigen::VectorXd optimal_hovering_f_;
-  std::map<int, int> rotor_direction_;
   double m_f_rate_; //moment / force rate
   Eigen::MatrixXd P_;
   double p_det_;
