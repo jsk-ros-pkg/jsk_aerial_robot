@@ -11,10 +11,10 @@ find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
   interactive_markers
   visualization_msgs
-  tf
   tf2_ros
   tf2_kdl
   tf2_geometry_msgs
+  eigen_conversions
   kdl_parser
   message_generation
   message_runtime
