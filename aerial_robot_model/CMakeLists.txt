@@ -63,6 +63,7 @@ include_directories(
 
 add_library(transformable_aerial_robot_model src/transformable_aerial_robot_model.cpp)
 target_link_libraries(transformable_aerial_robot_model ${catkin_LIBRARIES} ${orocos_kdl_LIBRARIES} ${Eigen3_LIBRARIES})
+add_dependencies(transformable_aerial_robot_model ${PROJECT_NAME}_generate_messages_cpp)
 
 add_library(rotor_interface src/rotor_interface.cpp)
 target_link_libraries(rotor_interface ${catkin_LIBRARIES})

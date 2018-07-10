@@ -1,5 +1,7 @@
 #include <aerial_robot_model/transformable_aerial_robot_model.h>
 
+namespace aerial_robot_model {
+
 TARModel::TARModel(std::string baselink, std::string thrust_link, bool verbose): baselink_(baselink), thrust_link_(thrust_link), verbose_(verbose)
 {
   /* robot model */
@@ -11,9 +13,9 @@ TARModel::TARModel(std::string baselink, std::string thrust_link, bool verbose):
   inertialSetup(tree_.getRootSegment()->second);
   resolveLinkLength();
 
+  //TODO need??
   for(auto itr = model_.joints_.begin(); itr != model_.joints_.end(); itr++)
     {
-      //TODO need??
       if(itr->first.find("joint1") != std::string::npos)
         {
           ROS_WARN("the angle range: [%f, %f]", itr->second->limits->lower, itr->second->limits->upper);
@@ -96,10 +98,10 @@ KDL::RigidBodyInertia TARModel::inertialSetup(const KDL::TreeElement tree_elemen
   return current_seg_inertia;
 }
 
+  //TODO hard coding
 void TARModel::resolveLinkLength()
 {
-  unsigned int nj = tree_.getNrOfJoints();
-  KDL::JntArray joint_positions(nj);
+  KDL::JntArray joint_positions(tree_.getNrOfJoints(););
   KDL::TreeFkSolverPos_recursive fk_solver(tree_);
   KDL::Frame f_link2, f_link3;
   fk_solver.JntToCart(joint_positions, f_link2, "link2"); //hard coding //TODO
@@ -107,10 +109,10 @@ void TARModel::resolveLinkLength()
   link_length_ = (f_link3.p - f_link2.p).Norm();
 }
 
-void TARModel::forwardKinematics(sensor_msgs::JointState& state)
+void TARModel::forwardKinematics(const sensor_msgs::JointState& state)
 {
+  KDL::JntArray joint_positions(tree_.getNrOfJoints());
   KDL::TreeFkSolverPos_recursive fk_solver(tree_);
-  KDL::JntArray joint_positions(tree_.getNrOfJoints());   /* set joint array */
 
   for(unsigned int i = 0; i < state.position.size(); ++i)
     {
@@ -248,7 +250,7 @@ bool TARModel::addExtraModule(int action, std::string module_name, std::string p
   return false;
 }
 
-tf2::Transform TARModel::getRoot2Link(std::string link, sensor_msgs::JointState state)
+tf2::Transform TARModel::getRoot2Link(std::string link, const sensor_msgs::JointState& state) const
 {
   KDL::TreeFkSolverPos_recursive fk_solver(tree_);
   unsigned int nj = tree_.getNrOfJoints();
@@ -256,7 +258,7 @@ tf2::Transform TARModel::getRoot2Link(std::string link, sensor_msgs::JointState 
 
   for(unsigned int i = 0; i < state.position.size(); ++i)
     {
-      std::map<std::string, uint32_t>::iterator itr = actuator_map_.find(state.name[i]);
+      auto itr = actuator_map_.find(state.name[i]);
       if(itr != actuator_map_.end())  joint_positions(actuator_map_.find(state.name[i])->second) = state.position[i];
     }
 
@@ -268,7 +270,7 @@ tf2::Transform TARModel::getRoot2Link(std::string link, sensor_msgs::JointState 
   return link_f;
 }
 
-void TransformController::setActuatorJointMap(const sensor_msgs::JointState& actuator_state)
+void TARModel::setActuatorJointMap(const sensor_msgs::JointState& actuator_state)
 {
   /* CAUTION: be sure that the joints are in order !!!!!!! */
   for(auto itr = actuator_state.name.begin(); itr != actuator_state.name.end(); ++itr)
@@ -277,3 +279,5 @@ void TransformController::setActuatorJointMap(const sensor_msgs::JointState& act
         actuator_joint_map_.push_back(std::distance(actuator_state.name.begin(), itr));
     }
 }
+
+} //namespace aerial_robot_model

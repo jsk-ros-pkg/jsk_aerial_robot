@@ -50,15 +50,17 @@
 #include <tf2_kdl/tf2_kdl.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
+namespace aerial_robot_model {
+
 //Transformable Aerial Robot Model
 class TARModel {
 public:
   TARModel() = default;
   TARModel(std::string baselink, std::string thrust_link, bool verbose);
   bool addExtraModule(int action, std::string module_name, std::string parent_link_name, geometry_msgs::Transform transform, geometry_msgs::Inertia inertia);
-  tf2::Transform getRoot2Link(std::string link, sensor_msgs::JointState state) const;
+  tf2::Transform getRoot2Link(std::string link, const sensor_msgs::JointState& state) const;
   void setActuatorJointMap(const sensor_msgs::JointState& actuator_state);
-  void TARModel::forwardKinematics(sensor_msgs::JointState& state);
+  void forwardKinematics(const sensor_msgs::JointState& state);
   const tf2::Transform& getCog() const
   {
     return cog_;
@@ -162,3 +164,5 @@ private:
   KDL::RigidBodyInertia inertialSetup(const KDL::TreeElement tree_element);
   void resolveLinkLength();
 };
+
+} //namespace aerial_robot_model
