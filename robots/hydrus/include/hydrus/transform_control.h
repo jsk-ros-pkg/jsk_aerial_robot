@@ -43,7 +43,7 @@
 #include <spinal/RollPitchYawTerms.h>
 #include <aerial_robot_msgs/FourAxisGain.h>
 #include <sensor_msgs/JointState.h>
-#include <hydrus/AddExtraModule.h>
+#include <aerial_robot_model/AddExtraModule.h>
 #include <hydrus/TargetPose.h>
 #include <spinal/DesireCoord.h>
 #include <spinal/PMatrixPseudoInverseWithInertia.h>
@@ -52,7 +52,6 @@
 #include <geometry_msgs/TransformStamped.h>
 #include <tf_conversions/tf_kdl.h>
 #include <tf_conversions/tf_eigen.h>
-#include <eigen_conversions/eigen_msg.h>
 
 /* robot model */
 #include <urdf/model.h>
@@ -71,20 +70,11 @@
 #include <Eigen/Eigenvalues>
 
 /* kinematics */
-#include <hydrus/tar_model.h>
-
-/* for collision detection */
-#include <fcl/fcl.h>
-//#include <fcl/collision_object.h>
-//#include <fcl/shape/geometric_shapes.h>
-//#include <fcl/collision_data.h>
-//#include <fcl/distance.h>
-//#include <fcl/broadphase/broadphase_dynamic_AABB_tree.h>
-using namespace fcl;
+#include <aerial_robot_model/transformable_aerial_robot_model.h>
 
 /* util */
-#include <boost/thread/mutex.hpp>
-#include <boost/thread.hpp>
+#include <thread>
+#include <mutex>
 #include <string>
 #include <iostream>
 #include <iomanip>
@@ -166,17 +156,16 @@ protected:
 
   ros::NodeHandle nh_, nh_private_;
 
-  bool kinematics_flag_;
   bool kinematic_verbose_;
   bool control_verbose_;
   bool debug_verbose_;
   bool verbose_;
 
-  TARModel kinematic_model_;
+  aerial_robot_model::RobotModel kinematic_model_;
   double stability_margin_;
   Eigen::VectorXd optimal_hovering_f_;
-  double m_f_rate_; //moment / force rate
   Eigen::MatrixXd P_;
+  double m_f_rate_; //moment / force rate
   double p_det_;
   double rotor_num_;
 
@@ -200,7 +189,8 @@ protected:
   ros::Publisher four_axis_gain_pub_;
   ros::Publisher p_matrix_pseudo_inverse_inertia_pub_;
 
-  boost::thread control_thread_;
+  std::thread control_thread_;
+  std::mutex mutex_;
   double control_rate_;
   bool only_three_axis_mode_;
   bool gyro_moment_compensation_;

@@ -16,8 +16,8 @@ TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_
   nh_private_.param("thrust_link", thrust_link_, std::string("thrust"));
   if(verbose_) std::cout << "thrust_link: " << thrust_link_ << std::endl;
 
-  kinematic_model_ = TARModel(baselink, thrust_link);
   initParam();
+  kinematic_model_ = aerial_robot_model::Model(baselink, thrust_link, kinematic_verbose_);
 
   //publisher
   //those publisher is published from func param2controller
@@ -31,12 +31,12 @@ TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_
   actuator_state_sub_ = nh_private_.subscribe("actuator_state_sub_name", 1, &TransformController::actuatorStateCallback, this);
 
   //dynamic reconfigure server
-  dynamic_reconf_func_lqi_ = boost::bind(&TransformController::cfgLQICallback, this, _1, _2);
+  dynamic_reconf_func_lqi_ = std::bind(&TransformController::cfgLQICallback, this, _1, _2);
   lqi_server_.setCallback(dynamic_reconf_func_lqi_);
 
   //ros service for extra module
   add_extra_module_service_ = nh_.advertiseService("add_extra_module", &TransformController::addExtraModuleCallback, this);
-  control_thread_ = boost::thread(boost::bind(&TransformController::control, this));
+  control_thread_ = std::thread(std::bind(&TransformController::control, this));
 
   /* Linear Quadratic Control */
   //U //TODO U? P?
@@ -125,22 +125,24 @@ void TransformController::control()
 {
   ros::Rate loop_rate(control_rate_);
 
-  while(ros::ok()) {
-    if(debug_verbose_) ROS_ERROR("start lqi");
-    lqi();
-    if(debug_verbose_) ROS_ERROR("finish lqi");
-
-    loop_rate.sleep();
-  }
+  while(ros::ok())
+    {
+      if(debug_verbose_) ROS_ERROR("start lqi");
+      lqi();
+      if(debug_verbose_) ROS_ERROR("finish lqi");
+      loop_rate.sleep();
+    }
 }
 
 void TransformController::desireCoordinateCallback(const spinal::DesireCoordConstPtr& msg)
 {
+  std::lock_guard<std::mutex> lock(mutex_);
   kinematic_model_.setCogDesireOrientation(msg->roll, msg->pitch, msg->yaw);
 }
 
 void TransformController::actuatorStateCallback(const sensor_msgs::JointStateConstPtr& state)
 {
+  std::lock_guard<std::mutex> lock(mutex_);
   current_actuator_state_ = *state;
 
   if(actuator_joint_map_.size() == 0) setActuatorJointMap(current_actuator_state_);
@@ -149,7 +151,11 @@ void TransformController::actuatorStateCallback(const sensor_msgs::JointStateCon
   kinematic_model_.forwardKinematics(current_actuator_state_);
   if(debug_verbose_) ROS_ERROR("finish kinematics");
 
-  br_.sendTransform(tf::StampedTransform(kinematic_model_.getCog(), state->header.stamp, GetTreeElementSegment(kinematic_model_.getTree().getRootSegment()->second).getName(), "cog"));
+  geometry_msgs::TransformStamped tf = kinematic_model_.getCog<geometry_msgs::TransformStamped();
+  tf.header = state->header;
+  tf.header.frame_id = kinematic_model_.getRootFrameName();
+  tf.child_frame_id = "cog";
+  br_.sendTransform(tf);
 
   if(!kinematics_flag_)
     {
@@ -158,14 +164,10 @@ void TransformController::actuatorStateCallback(const sensor_msgs::JointStateCon
     }
 }
 
-bool TransformController::addExtraModuleCallback(const hydrus::AddExtraModule::Request &req, hydrus::AddExtraModule::Response &res)
-{
-  return kinematic_model_.addExtraModule(req.action, req.module_name, req.parent_link_name, req.transform, req.inertia);
-}
-
 void TransformController::lqi()
 {
   if(!kinematics_flag_) return;
+  std::lock_guard<std::mutex> lock(kinematic_model_mutex_);
 
   /* check the thre check */
   if(debug_verbose_) ROS_WARN(" start dist thre check");
@@ -208,7 +210,7 @@ bool TransformController::stabilityMarginCheck(bool verbose)
 {
   double average_x = 0, average_y = 0;
 
-  std::vector<Eigen::Vector3d> rotors_origin_from_cog = kinematic_model_.getRotorsOriginFromCog();
+  const std::vector<Eigen::Vector3d> rotors_origin_from_cog = kinematic_model_.getRotorsOriginFromCog<Eigen::Vector3d>();
 
   /* calcuate the average */
   for(int i = 0; i < rotor_num_; i++)
@@ -249,10 +251,10 @@ bool TransformController::stabilityMarginCheck(bool verbose)
 #endif
 }
 
-bool  TransformController::modelling(bool verbose)
+bool TransformController::modelling(bool verbose)
 {
-  std::vector<Eigen::Vector3d> rotors_origin_from_cog = kinematic_model_.getRotorsOriginFromCog();
-  Eigen::Matrix3d links_inertia = kinematic_model_.getInertia();
+  const std::vector<Eigen::Vector3d> rotors_origin_from_cog = kinematic_model_.getRotorsOriginFromCog<Eigen::Vector3d>();
+  Eigen::Matrix3d links_inertia = kinematic_model_.getInertia<Eigen::Matrix3d>();
 
   Eigen::VectorXd g(4);
   g << 0, 0, 9.8, 0;
@@ -450,7 +452,6 @@ bool TransformController::hamiltonMatrixSolver(uint8_t lqi_mode)
   Eigen::MatrixXcd f = phy.block(0, 0, lqi_mode_ * 3, lqi_mode_ * 3);
   Eigen::MatrixXcd g = phy.block(lqi_mode_ * 3, 0, lqi_mode_ * 3, lqi_mode_ * 3);
 
-
   if(debug_verbose_) ROS_INFO("  start calculate f inv");
   start_time = ros::Time::now();
   Eigen::MatrixXcd f_inv  = f.inverse();
@@ -638,98 +639,3 @@ bool TransformController::defaultDistanceFunction(CollisionObject<double>* o1, C
 
   return cdata->done;
 }
-
-
-#if 0 // FCL general test
-  DistanceResult<double> result;
-  double distance;
-  //Box<double> box(0.6, 0.05, 0.15); // not good!!
-
-  std::shared_ptr< CollisionGeometry<double> > cgeomSphere_(new Sphere<double>(0.05));
-  std::shared_ptr< CollisionGeometry<double> > cgeomBox_(new Box<double>(0.6, 0.05, 0.15));
-  std::shared_ptr< CollisionGeometry<double> > cgeomCylinder_(new Cylinder<double>(0.05, 0.3));
-
-  CollisionObject<double> objSphere(cgeomSphere_, Eigen::Matrix3d::Identity(), Eigen::Vector3d(0.3, 0.3, 0.0));
-   CollisionObject<double> objBox(cgeomBox_, Eigen::Matrix3d::Identity(), Eigen::Vector3d(0.3, 0, -0.03));
-   CollisionObject<double> objCylinder(cgeomCylinder_, Eigen::Matrix3d::Identity(), Eigen::Vector3d(0.3, 0.3, 0));
-
-   boost::shared_ptr<BroadPhaseCollisionManager<double> > collision_manager(new DynamicAABBTreeCollisionManager<double>());
-   collision_manager->registerObject(&objSphere);
-  //collision_manager->registerObject(&objBox);
-
-
-  result.clear();
-  DistanceRequest<double> request(true);
-   /*
-  fcl::distance(&objBox, &objCylinder, request, result);
-  std::cout << "distance = " << result.min_distance << std::endl;
-  std::cout << " point on manager: x = " << result.nearest_points[0](0) << " y = " << result.nearest_points[0](1) << " z = " << result.nearest_points[0](2) << std::endl;
-  std::cout << " point on manager: x = " << result.nearest_points[1](0) << " y = " << result.nearest_points[1](1) << " z = " << result.nearest_points[1](2) << std::endl;
-
-   */
-
-   DistanceData distance_data;
-   distance_data.request = request;
-   collision_manager->distance(&objBox, &distance_data, TransformController::defaultDistanceFunction);
-   std::cout << "distance = " << distance_data.result.min_distance << std::endl;
-   std::cout << " point on manager: x = " << distance_data.result.nearest_points[0](0) << " y = " << distance_data.result.nearest_points[0](1) << " z = " << distance_data.result.nearest_points[0](2) << std::endl;
-   std::cout << " point on manager: x = " << distance_data.result.nearest_points[1](0) << " y = " << distance_data.result.nearest_points[1](1) << " z = " << distance_data.result.nearest_points[1](2) << std::endl;
-
-#endif
-
-#if 0 //box collison check test
-   DistanceResult<double> result;
-   result.clear();
-   DistanceRequest<double> request(true);
-
-   std::shared_ptr< CollisionGeometry<double> > cgeomBox1(new Box<double>(2.750000, 6.000000, 0.050000));
-   std::shared_ptr< CollisionGeometry<double> > cgeomBox2(new Box<double>(0.424000, 0.150000, 0.168600));
-   CollisionObject<double> objBox1(cgeomBox1, Eigen::Quaterniond(1,0,0,0).matrix(), Eigen::Vector3d(1.625000, 0.000000, 0.500000));
-   CollisionObject<double> objBox2(cgeomBox2, Eigen::Quaterniond(0.672811, 0.340674, 0.155066, 0.638138).matrix(), Eigen::Vector3d(0.192074, -0.277870, 0.273546 /*0.273546*/));
-
-   fcl::distance(&objBox1, &objBox2, request, result);
-   std::cout << "distance = " << result.min_distance << std::endl;
-   std::cout << " point on obj1: x = " << result.nearest_points[0](0) << " y = " << result.nearest_points[0](1) << " z = " << result.nearest_points[0](2) << std::endl;
-   std::cout << " point on obj2: x = " << result.nearest_points[1](0) << " y = " << result.nearest_points[1](1) << " z = " << result.nearest_points[1](2) << std::endl;
-#endif
-
-  /* jacobian test */
-#if 0
-  KDL::Chain chain;
-  tree_.getChain("root", "link4", chain);
-  KDL::JntArray joint_positions(chain.getNrOfJoints());
-  joint_positions.data = Eigen::VectorXd::Constant(chain.getNrOfJoints(), M_PI/2);
-  KDL::ChainJntToJacSolver jac_solver(chain);
-  KDL::Jacobian jac(chain.getNrOfJoints());
-  jac_solver.JntToJac(joint_positions, jac);
-  std::cout << "link4 jacobian: \n" << jac.data << std::endl;
-
-  KDL::Segment ee_seg(std::string("end_effector"), KDL::Joint(KDL::Joint::None), KDL::Frame(KDL::Vector(link_length_, 0, 0)));
-
-  /* CAUTION: if use changeRefPoint, pluase conver to the root (base) frame */
-  /* USE tree */
-  KDL::JntArray joint_positions_tree(tree_.getNrOfJoints());
-  for(size_t i = 0; i < current_actuator_state_.position.size(); i++)
-    {
-      auto itr = actuator_map_.find(current_actuator_state_.name.at(i));
-      if(itr != actuator_map_.end())  joint_positions_tree(actuator_map_.find(current_actuator_state_.name.at(i))->second) = current_actuator_state_.position.at(i);
-    }
-  KDL::Frame end_frame;
-  KDL::TreeFkSolverPos_recursive fk_solver_tree(tree_);
-  fk_solver_tree.JntToCart(joint_positions_tree, end_frame, "link4");
-  KDL::TreeJntToJacSolver jac_tree_solver(tree_);
-  KDL::Jacobian jac_tree(tree_.getNrOfJoints());
-  jac_tree_solver.JntToJac(joint_positions_tree, jac_tree, "link4");
-  jac_tree.changeRefPoint(end_frame.M * ee_seg.getFrameToTip().p);
-  std::cout << "link4 jacobian with change ref point tree : \n" << jac_tree.data << std::endl;
-
-  /* USE chain */
-  //jac.changeRefPoint(ee_seg.getFrameToTip().p);
-  jac.changeRefPoint(end_frame.M * ee_seg.getFrameToTip().p);
-  std::cout << "link4 jacobian with change ref point : \n" << jac.data << std::endl;
-
-  chain.addSegment(ee_seg);
-  KDL::ChainJntToJacSolver jac_solver2(chain);
-  jac_solver2.JntToJac(joint_positions, jac);
-  std::cout << "end effector jacobian: \n" << jac.data << std::endl;
-#endif

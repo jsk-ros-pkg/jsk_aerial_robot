@@ -8,6 +8,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   aerial_robot_msgs
   aerial_robot_base
+  aerial_robot_model
   spinal
   dynamixel_controllers
   eigen_conversions
@@ -43,7 +44,7 @@ generate_dynamic_reconfigure_options(
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES transform_control dynamixel_bridge
-  CATKIN_DEPENDS roscpp message_runtime aerial_robot_msgs aerial_robot_base spinal dynamixel_controllers tf_conversions eigen_conversions kdl_parser
+  CATKIN_DEPENDS roscpp message_runtime aerial_robot_msgs aerial_robot_base spinal dynamixel_controllers tf_conversions eigen_conversions kdl_parser aerial_robot_model
   DEPENDS Eigen3 orocos_kdl urdfdom_headers
 )
 
@@ -69,7 +70,10 @@ cmake_policy(SET CMP0046 OLD)
 ## Your package locations should be listed before other locations
 # include_directories(include)
 include_directories(
-  include ${Boost_INCLUDE_DIR} ${catkin_INCLUDE_DIRS} ${Eigen3_INCLUDE_DIRS}
+  include
+  ${Boost_INCLUDE_DIR}
+  ${catkin_INCLUDE_DIRS}
+  ${Eigen3_INCLUDE_DIRS}
 )
 
 add_library(dynamixel_bridge src/dynamixel_bridge.cpp)

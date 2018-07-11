@@ -86,6 +86,10 @@ namespace aerial_robot_model {
     {
       return tree_;
     }
+    std::string getRootFrameName() const
+    {
+      return GetTreeElementSegment(tree_.getRootSegment()->second).getName();
+    }
     int getRotorNum() const
     {
       return rotor_num_;
