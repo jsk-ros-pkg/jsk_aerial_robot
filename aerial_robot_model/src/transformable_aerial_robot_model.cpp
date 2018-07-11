@@ -2,7 +2,11 @@
 
 namespace aerial_robot_model {
 
-  RobotModel::RobotModel(std::string baselink, std::string thrust_link, bool verbose): baselink_(baselink), thrust_link_(thrust_link), verbose_(verbose)
+  RobotModel::RobotModel(std::string baselink, std::string thrust_link, bool verbose):
+    baselink_(baselink),
+    thrust_link_(thrust_link),
+    verbose_(verbose),
+    rotor_num_(0)
   {
     /* robot model */
     if (!model_.initParam("robot_description"))
@@ -10,7 +14,6 @@ namespace aerial_robot_model {
     if (!kdl_parser::treeFromUrdfModel(model_, tree_))
       ROS_ERROR("Failed to extract kdl tree from xml robot description");
 
-    ROS_ERROR(tree_.getRootSegment()->first.c_str());
     inertialSetup(tree_.getRootSegment()->second);
     resolveLinkLength();
 
@@ -45,18 +48,6 @@ namespace aerial_robot_model {
     KDL::RigidBodyInertia current_seg_inertia = current_seg.getInertia();
     if(verbose_) ROS_WARN("segment %s, mass is: %f", current_seg.getName().c_str(), current_seg_inertia.getMass());
 
-    ROS_ERROR("vital");
-    ROS_ERROR(current_seg.getJoint().getName().c_str());
-    model_.getJoint(current_seg.getJoint().getName());
-    ROS_ERROR("vital");
-    /* check error joint */
-    if (model_.getJoint(current_seg.getJoint().getName())->type == urdf::Joint::FLOATING) {
-      ROS_ERROR("safe");
-    } else {
-      ROS_ERROR("out");
-    }
-    assert(model_.getJoint(current_seg.getJoint().getName())->type == urdf::Joint::FLOATING);
-
     /* check whether this can be a base inertia segment (i.e. link) */
     /* 1. for the "root" parent link (i.e. link1) */
     if(current_seg.getName().find("root") != std::string::npos)
@@ -90,10 +81,10 @@ namespace aerial_robot_model {
       }
 
     /* recursion process for children segment */
-    for (const auto& itr: GetTreeElementChildren(tree_element))
+    for (const auto& elem: GetTreeElementChildren(tree_element))
       {
-        const KDL::Segment& child_seg = GetTreeElementSegment(itr->second);
-        KDL::RigidBodyInertia child_seg_inertia = child_seg.getFrameToTip() *  inertialSetup(itr->second);
+        const KDL::Segment& child_seg = GetTreeElementSegment(elem->second);
+        KDL::RigidBodyInertia child_seg_inertia = child_seg.getFrameToTip() *  inertialSetup(elem->second);
         KDL::RigidBodyInertia current_seg_inertia_old = current_seg_inertia;
         current_seg_inertia = current_seg_inertia_old + child_seg_inertia;
 
@@ -258,6 +249,7 @@ namespace aerial_robot_model {
     return false;
   }
 
+  //TODO need? it's like forwardKinematics
   KDL::Frame RobotModel::getRoot2Link(std::string link, const sensor_msgs::JointState& state) const
   {
     KDL::TreeFkSolverPos_recursive fk_solver(tree_);
@@ -277,6 +269,7 @@ namespace aerial_robot_model {
     return f;
   }
 
+  //TODO need?
   void RobotModel::setActuatorJointMap(const sensor_msgs::JointState& actuator_state)
   {
     /* CAUTION: be sure that the joints are in order !!!!!!! */

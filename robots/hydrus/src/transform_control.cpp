@@ -16,30 +16,30 @@ TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_
   nh_private_.param("kinematic_verbose", kinematic_verbose_, false);
 
   kinematic_model_ = aerial_robot_model::RobotModel(baselink_, thrust_link_, kinematic_verbose_);
+  rotor_num_ = kinematic_model_.getRotorNum();
   initParam();
 
   //publisher
   //those publisher is published from func param2controller
-  rpy_gain_pub_ = nh_private_.advertise<spinal::RollPitchYawTerms>("rpy_gain_pub_name", 1);
+  rpy_gain_pub_ = nh_private_.advertise<spinal::RollPitchYawTerms>("/rpy_gain", 1);
   four_axis_gain_pub_ = nh_.advertise<aerial_robot_msgs::FourAxisGain>("/four_axis_gain", 1);
   transform_pub_ = nh_.advertise<geometry_msgs::TransformStamped>("/cog2baselink", 1);
   p_matrix_pseudo_inverse_inertia_pub_ = nh_.advertise<spinal::PMatrixPseudoInverseWithInertia>("p_matrix_pseudo_inverse_inertia", 1);
 
   //subscriber
   desire_coordinate_sub_ = nh_.subscribe("/desire_coordinate", 1, &TransformController::desireCoordinateCallback, this);
-  actuator_state_sub_ = nh_private_.subscribe("actuator_state_sub_name", 1, &TransformController::actuatorStateCallback, this);
+  actuator_state_sub_ = nh_private_.subscribe("joint_states", 1, &TransformController::actuatorStateCallback, this);
 
   //dynamic reconfigure server
   dynamic_reconf_func_lqi_ = boost::bind(&TransformController::cfgLQICallback, this, _1, _2);
   lqi_server_.setCallback(dynamic_reconf_func_lqi_);
 
   //ros service for extra module
-  //add_extra_module_service_ = nh_.advertiseService("add_extra_module", this->kinematic_model_.addExtraModuleCallback);
+  //add_extra_module_service_ = nh_.advertiseService("add_extra_module", &aerial_robot_model::RobotModel::addExtraModuleCallback, &kinematic_model_);
 
   control_thread_ = std::thread(boost::bind(&TransformController::control, this));
 
   /* Linear Quadratic Control */
-  rotor_num_ = kinematic_model_.getRotorNum();
   //U //TODO U? P?
   P_ = Eigen::MatrixXd::Zero(4, rotor_num_);
 
@@ -74,6 +74,7 @@ void TransformController::initParam()
     ss << i + 1;
     /* R */
     nh_private_.param(std::string("r") + ss.str(), r_[i], 1.0);
+    if(verbose_) std::cout << std::string("r") + ss.str() << ": " << r_[i] << std::endl;
   }
 
   nh_private_.param ("stability_margin_thre", stability_margin_thre_, 0.01);
@@ -240,7 +241,8 @@ bool TransformController::stabilityMarginCheck(bool verbose)
   if(stability_margin_ < stability_margin_thre_) return false;
   return true;
 
-#if 0 // correlation coefficient //TODO need?
+  //TODO need?
+#if 0 // correlation coefficient
   double correlation_coefficient = fabs(s_xy / sqrt(s_xx * s_yy));
   //ROS_INFO("correlation_coefficient: %f", correlation_coefficient);
 

@@ -67,9 +67,10 @@
   ###########  Transform Control  ###########
   <node pkg="hydrus" type="transform_control_node" name="hydrusx"  output="screen" respawn="false">
     <rosparam file="$(find hydrus)/config/$(arg type)/Hydrus.yaml" command="load" />
-    <param name="kinematic_verbose" value="false" />
+    <param name="kinematic_verbose" value="true" />
     <param name="control_verbose" value="false" />
     <param name="debug_verbose" value="false" />
+    <param name="verbose" value="true" />
   </node>
 
   ###########  Sensors  ###########
