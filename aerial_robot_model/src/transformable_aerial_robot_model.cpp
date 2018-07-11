@@ -10,6 +10,7 @@ namespace aerial_robot_model {
     if (!kdl_parser::treeFromUrdfModel(model_, tree_))
       ROS_ERROR("Failed to extract kdl tree from xml robot description");
 
+    ROS_ERROR(tree_.getRootSegment()->first.c_str());
     inertialSetup(tree_.getRootSegment()->second);
     resolveLinkLength();
 
@@ -39,12 +40,21 @@ namespace aerial_robot_model {
 
   KDL::RigidBodyInertia RobotModel::inertialSetup(const KDL::TreeElement& tree_element)
   {
-    const KDL::Segment& current_seg = GetTreeElementSegment(tree_element);
+    const KDL::Segment current_seg = GetTreeElementSegment(tree_element);
 
     KDL::RigidBodyInertia current_seg_inertia = current_seg.getInertia();
     if(verbose_) ROS_WARN("segment %s, mass is: %f", current_seg.getName().c_str(), current_seg_inertia.getMass());
 
+    ROS_ERROR("vital");
+    ROS_ERROR(current_seg.getJoint().getName().c_str());
+    model_.getJoint(current_seg.getJoint().getName());
+    ROS_ERROR("vital");
     /* check error joint */
+    if (model_.getJoint(current_seg.getJoint().getName())->type == urdf::Joint::FLOATING) {
+      ROS_ERROR("safe");
+    } else {
+      ROS_ERROR("out");
+    }
     assert(model_.getJoint(current_seg.getJoint().getName())->type == urdf::Joint::FLOATING);
 
     /* check whether this can be a base inertia segment (i.e. link) */
@@ -80,7 +90,7 @@ namespace aerial_robot_model {
       }
 
     /* recursion process for children segment */
-    for (auto itr: GetTreeElementChildren(tree_element))
+    for (const auto& itr: GetTreeElementChildren(tree_element))
       {
         const KDL::Segment& child_seg = GetTreeElementSegment(itr->second);
         KDL::RigidBodyInertia child_seg_inertia = child_seg.getFrameToTip() *  inertialSetup(itr->second);

@@ -20,7 +20,7 @@ find_package(catkin REQUIRED COMPONENTS
 
 find_package(orocos_kdl REQUIRED)
 find_package(urdfdom_headers REQUIRED)
-find_package(Eigen3)
+find_package(Eigen3 REQUIRED)
 
 include_directories(${orocos_kdl_INCLUDE_DIRS} ${urdfdom_headers_INCLUDE_DIRS})
 link_directories(${orocos_kdl_LIBRARY_DIRS})
@@ -45,7 +45,7 @@ catkin_package(
   INCLUDE_DIRS include
   LIBRARIES transform_control dynamixel_bridge
   CATKIN_DEPENDS roscpp message_runtime aerial_robot_msgs aerial_robot_base spinal dynamixel_controllers tf_conversions eigen_conversions kdl_parser aerial_robot_model
-  DEPENDS Eigen3 orocos_kdl urdfdom_headers
+  DEPENDS EIGEN3 orocos_kdl urdfdom_headers
 )
 
 # Eigen requires optimization to get good performance
@@ -73,7 +73,7 @@ include_directories(
   include
   ${Boost_INCLUDE_DIR}
   ${catkin_INCLUDE_DIRS}
-  ${Eigen3_INCLUDE_DIRS}
+  ${EIGEN3_INCLUDE_DIRS}
 )
 
 add_library(dynamixel_bridge src/dynamixel_bridge.cpp)
@@ -85,11 +85,11 @@ target_link_libraries(dynamixel_bridge_node  ${catkin_LIBRARIES} dynamixel_bridg
 add_dependencies(dynamixel_bridge_node aerial_robot_msgs_generate_messages_cpp aerial_robot_base_generate_messages_cpp ${PROJECT_NAME}_generate_messages_cpp ${PROJECT_NAME}_gencfg)
 
 add_library(transform_control src/transform_control.cpp)
-target_link_libraries(transform_control ${catkin_LIBRARIES} ${orocos_kdl_LIBRARIES}  ${Eigen3_LIBRARIES} fcl)
+target_link_libraries(transform_control ${catkin_LIBRARIES} ${EIGEN3_LIBRARIES})
 add_dependencies(transform_control aerial_robot_msgs_generate_messages_cpp spinal_generate_messages_cpp ${PROJECT_NAME}_generate_messages_cpp ${PROJECT_NAME}_gencfg)
 
 add_executable(transform_control_node src/transform_control_node.cpp)
-target_link_libraries(transform_control_node transform_control ${catkin_LIBRARIES} ${orocos_kdl_LIBRARIES}  ${Eigen3_LIBRARIES})
+target_link_libraries(transform_control_node transform_control ${catkin_LIBRARIES} ${EIGEN3_LIBRARIES})
 add_dependencies(transform_control_node aerial_robot_msgs_generate_messages_cpp spinal_generate_messages_cpp ${PROJECT_NAME}_generate_messages_cpp ${PROJECT_NAME}_gencfg)
 
 install(PROGRAMS

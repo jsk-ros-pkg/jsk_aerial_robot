@@ -162,12 +162,17 @@ protected:
   bool verbose_;
 
   aerial_robot_model::RobotModel kinematic_model_;
+  bool kinematics_flag_;
   double stability_margin_;
   Eigen::VectorXd optimal_hovering_f_;
   Eigen::MatrixXd P_;
   double m_f_rate_; //moment / force rate
   double p_det_;
-  double rotor_num_;
+  int rotor_num_;
+  double link_length_;
+  std::string baselink_;
+  std::string thrust_link_;
+  sensor_msgs::JointState current_actuator_state_;
 
   /* ros param init */
   void initParam();
@@ -178,7 +183,6 @@ protected:
   /* service */
   ros::ServiceServer add_extra_module_service_;
   ros::ServiceServer end_effector_ik_service_; //need?
-  bool addExtraModuleCallback(const hydrus::AddExtraModule::Request& req, hydrus::AddExtraModule::Response& res);
 
   ros::Subscriber actuator_state_sub_;
   ros::Subscriber desire_coordinate_sub_;
@@ -216,26 +220,26 @@ protected:
   void cfgLQICallback(hydrus::LQIConfig &config, uint32_t level);
 
   //TODO need?
-  static bool defaultDistanceFunction(CollisionObject<double>* o1, CollisionObject<double>* o2, void* cdata_, double& dist);
+  // static bool defaultDistanceFunction(CollisionObject<double>* o1, CollisionObject<double>* o2, void* cdata_, double& dist);
 
-  //TODO need?
-  struct DistanceData
-  {
-    DistanceData()
-    {
-      done = false;
-    }
+  // //TODO need?
+  // struct DistanceData
+  // {
+  //   DistanceData()
+  //   {
+  //     done = false;
+  //   }
 
-    /// @brief Distance request
-    DistanceRequest<double> request;
+  //   /// @brief Distance request
+  //   DistanceRequest<double> request;
 
-    /// @brief Distance result
-    DistanceResult<double> result;
+  //   /// @brief Distance result
+  //   DistanceResult<double> result;
 
-    /// @brief Whether the distance iteration can stop
-    bool done;
+  //   /// @brief Whether the distance iteration can stop
+  //   bool done;
 
-  };
+  // };
 
 };
 

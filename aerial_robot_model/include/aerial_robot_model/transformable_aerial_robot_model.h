@@ -63,6 +63,8 @@ namespace aerial_robot_model {
 
     bool addExtraModule(std::string module_name, std::string parent_link_name, KDL::Frame transform, KDL::RigidBodyInertia inertia);
     bool removeExtraModule(std::string module_name);
+    bool addExtraModuleCallback(const aerial_robot_model::AddExtraModule::Request& req, aerial_robot_model::AddExtraModule::Response& res);
+
     void forwardKinematics(const sensor_msgs::JointState& state);
     void forwardKinematics(const KDL::JntArray& joint_positions);
     KDL::Frame getRoot2Link(std::string link, const sensor_msgs::JointState& state) const; //TODO need?
@@ -106,6 +108,14 @@ namespace aerial_robot_model {
     {
       return actuator_joint_map_;
     }
+    void setCogDesireOrientation(double roll, double pitch, double yaw)
+    {
+      cog_desire_orientation_ = KDL::Rotation::RPY(roll, pitch, yaw);
+    }
+    std::map<int, int> getRotorDirection()
+    {
+      return rotor_direction_;
+    }
 
   private:
     urdf::Model model_;
@@ -130,8 +140,6 @@ namespace aerial_robot_model {
 
     KDL::RigidBodyInertia inertialSetup(const KDL::TreeElement& tree_element);
     void resolveLinkLength();
-
-    bool addExtraModuleCallback(const aerial_robot_model::AddExtraModule::Request &req, aerial_robot_model::AddExtraModule::Response &res);
   };
 
   template<> inline KDL::Frame RobotModel::getCog() const

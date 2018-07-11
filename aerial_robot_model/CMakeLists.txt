@@ -22,6 +22,7 @@ find_package(catkin REQUIRED COMPONENTS
 
 find_package(orocos_kdl REQUIRED)
 find_package(urdfdom_headers REQUIRED)
+find_package(Eigen3 REQUIRED)
 
 include_directories(${orocos_kdl_INCLUDE_DIRS} ${urdfdom_headers_INCLUDE_DIRS})
 link_directories(${orocos_kdl_LIBRARY_DIRS})
@@ -41,9 +42,9 @@ generate_messages(
 
 catkin_package(
   INCLUDE_DIRS include
-  LIBRARIES rotor_interface
+  LIBRARIES rotor_interface transformable_aerial_robot_model
   CATKIN_DEPENDS roscpp std_msgs sensor_msgs geometry_msgs tf interactive_markers visualization_msgs message_generation message_runtime
-#  DEPENDS system_lib
+  DEPENDS EIGEN3
 )
 
 ###########
@@ -58,11 +59,11 @@ include_directories(
   include
   ${Boost_INCLUDE_DIR}
   ${catkin_INCLUDE_DIRS}
-  ${Eigen3_INCLUDE_DIRS}
+  ${EIGEN3_INCLUDE_DIRS}
   )
 
 add_library(transformable_aerial_robot_model src/transformable_aerial_robot_model.cpp)
-target_link_libraries(transformable_aerial_robot_model ${catkin_LIBRARIES} ${orocos_kdl_LIBRARIES} ${Eigen3_LIBRARIES})
+target_link_libraries(transformable_aerial_robot_model ${catkin_LIBRARIES} ${orocos_kdl_LIBRARIES} ${EIGEN3_LIBRARIES})
 add_dependencies(transformable_aerial_robot_model ${PROJECT_NAME}_generate_messages_cpp)
 
 add_library(rotor_interface src/rotor_interface.cpp)

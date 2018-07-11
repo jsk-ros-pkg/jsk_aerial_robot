@@ -1,7 +1,5 @@
 #include <hydrus/transform_control.h>
 
-using namespace fcl;
-
 TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_private):
   nh_(nh), nh_private_(nh_private),
   kinematics_flag_(false),
@@ -10,14 +8,15 @@ TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_
   nh_private_.param("verbose", verbose_, false);
   ROS_ERROR("ns is %s", nh_private_.getNamespace().c_str());
 
-  /* base link */
+  /* param for kinematics */
   nh_private_.param("baselink", baselink_, std::string("link1"));
   if(verbose_) std::cout << "baselink: " << baselink_ << std::endl;
   nh_private_.param("thrust_link", thrust_link_, std::string("thrust"));
   if(verbose_) std::cout << "thrust_link: " << thrust_link_ << std::endl;
+  nh_private_.param("kinematic_verbose", kinematic_verbose_, false);
 
+  kinematic_model_ = aerial_robot_model::RobotModel(baselink_, thrust_link_, kinematic_verbose_);
   initParam();
-  kinematic_model_ = aerial_robot_model::Model(baselink, thrust_link, kinematic_verbose_);
 
   //publisher
   //those publisher is published from func param2controller
@@ -31,16 +30,17 @@ TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_
   actuator_state_sub_ = nh_private_.subscribe("actuator_state_sub_name", 1, &TransformController::actuatorStateCallback, this);
 
   //dynamic reconfigure server
-  dynamic_reconf_func_lqi_ = std::bind(&TransformController::cfgLQICallback, this, _1, _2);
+  dynamic_reconf_func_lqi_ = boost::bind(&TransformController::cfgLQICallback, this, _1, _2);
   lqi_server_.setCallback(dynamic_reconf_func_lqi_);
 
   //ros service for extra module
-  add_extra_module_service_ = nh_.advertiseService("add_extra_module", &TransformController::addExtraModuleCallback, this);
-  control_thread_ = std::thread(std::bind(&TransformController::control, this));
+  //add_extra_module_service_ = nh_.advertiseService("add_extra_module", this->kinematic_model_.addExtraModuleCallback);
+
+  control_thread_ = std::thread(boost::bind(&TransformController::control, this));
 
   /* Linear Quadratic Control */
-  //U //TODO U? P?
   rotor_num_ = kinematic_model_.getRotorNum();
+  //U //TODO U? P?
   P_ = Eigen::MatrixXd::Zero(4, rotor_num_);
 
   //Q
@@ -53,7 +53,6 @@ TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_
 
 TransformController::~TransformController()
 {
-  control_thread_.interrupt();
   control_thread_.join();
 }
 
@@ -65,7 +64,6 @@ void TransformController::initParam()
   nh_private_.param("only_three_axis_mode", only_three_axis_mode_, false);
   nh_private_.param("gyro_moment_compensation", gyro_moment_compensation_, false);
   nh_private_.param("control_verbose", control_verbose_, false);
-  nh_private_.param("kinematic_verbose", kinematic_verbose_, false);
   nh_private_.param("debug_verbose", debug_verbose_, false);
   nh_private_.param("a_dash_eigen_calc_flag", a_dash_eigen_calc_flag_, false);
 
@@ -145,13 +143,13 @@ void TransformController::actuatorStateCallback(const sensor_msgs::JointStateCon
   std::lock_guard<std::mutex> lock(mutex_);
   current_actuator_state_ = *state;
 
-  if(actuator_joint_map_.size() == 0) setActuatorJointMap(current_actuator_state_);
+  if(kinematic_model_.getActuatorJointMap().empty()) kinematic_model_.setActuatorJointMap(current_actuator_state_);
 
   if(debug_verbose_) ROS_ERROR("start kinematics");
   kinematic_model_.forwardKinematics(current_actuator_state_);
   if(debug_verbose_) ROS_ERROR("finish kinematics");
 
-  geometry_msgs::TransformStamped tf = kinematic_model_.getCog<geometry_msgs::TransformStamped();
+  geometry_msgs::TransformStamped tf = kinematic_model_.getCog<geometry_msgs::TransformStamped>();
   tf.header = state->header;
   tf.header.frame_id = kinematic_model_.getRootFrameName();
   tf.child_frame_id = "cog";
@@ -167,7 +165,7 @@ void TransformController::actuatorStateCallback(const sensor_msgs::JointStateCon
 void TransformController::lqi()
 {
   if(!kinematics_flag_) return;
-  std::lock_guard<std::mutex> lock(kinematic_model_mutex_);
+  std::lock_guard<std::mutex> lock(mutex_);
 
   /* check the thre check */
   if(debug_verbose_) ROS_WARN(" start dist thre check");
@@ -234,10 +232,10 @@ bool TransformController::stabilityMarginCheck(bool verbose)
   Eigen::Matrix2d S;
   S << s_xx / rotor_num_, s_xy / rotor_num_, s_xy / rotor_num_, s_yy / rotor_num_;
   Eigen::SelfAdjointEigenSolver<Eigen::Matrix2d> es(S);
-  double link_len = (rotors_origin_from_cog[1] - rotors_origin_from_cog[0]).norm();
 
-  assert(link_length_ > 0);
-  stability_margin_ = sqrt(es.eigenvalues()[0]) / link_length_;
+  double link_length = kinematic_model_.getLinkLength();
+  assert(link_length > 0);
+  stability_margin_ = sqrt(es.eigenvalues()[0]) / link_length;
   if(verbose) ROS_INFO("stability_margin: %f", stability_margin_);
   if(stability_margin_ < stability_margin_thre_) return false;
   return true;
@@ -260,12 +258,13 @@ bool TransformController::modelling(bool verbose)
   g << 0, 0, 9.8, 0;
   Eigen::VectorXd p_x(rotor_num_), p_y(rotor_num_), p_c(rotor_num_), p_m(rotor_num_);
 
+  auto rotor_direction = kinematic_model_.getRotorDirection();
   for(int i = 0; i < rotor_num_; i++)
     {
       p_y(i) =  rotors_origin_from_cog[i](1);
       p_x(i) = -rotors_origin_from_cog[i](0);
-      p_c(i) = rotor_direction_.at(i + 1) * m_f_rate_ ;
-      p_m(i) = 1 / getMass();
+      p_c(i) = rotor_direction.at(i + 1) * m_f_rate_ ;
+      p_m(i) = 1 / kinematic_model_.getMass();
       if(kinematic_verbose_ || verbose)
         std::cout << "link" << i + 1 <<"origin :\n" << rotors_origin_from_cog[i] << std::endl;
     }
@@ -487,7 +486,6 @@ void TransformController::param2controller()
 {
   aerial_robot_msgs::FourAxisGain four_axis_gain_msg;
   spinal::RollPitchYawTerms rpy_gain_msg; //for rosserial
-  geometry_msgs::TransformStamped transform_msg; //for rosserial
   spinal::PMatrixPseudoInverseWithInertia p_pseudo_inverse_with_inertia_msg;
 
   four_axis_gain_msg.motor_num = rotor_num_;
@@ -495,10 +493,10 @@ void TransformController::param2controller()
   p_pseudo_inverse_with_inertia_msg.pseudo_inverse.resize(rotor_num_);
 
   /* the transform from cog to baselink */
+  geometry_msgs::TransformStamped transform_msg = kinematic_model_.getCog2Baselink<geometry_msgs::TransformStamped>();
   transform_msg.header.stamp = current_actuator_state_.header.stamp;
   transform_msg.header.frame_id = std::string("cog");
   transform_msg.child_frame_id = baselink_;
-  tf2::transformTFToMsg(getCog2Baselink(), transform_msg.transform);
   transform_pub_.publish(transform_msg);
 
   for(int i = 0; i < rotor_num_; ++i)
@@ -556,7 +554,7 @@ void TransformController::param2controller()
 
 
   /* the multilink inertia */
-  Eigen::Matrix3d inertia = getInertia();
+  Eigen::Matrix3d inertia = kinematic_model_.getInertia<Eigen::Matrix3d>();
   p_pseudo_inverse_with_inertia_msg.inertia[0] = inertia(0, 0) * 1000;
   p_pseudo_inverse_with_inertia_msg.inertia[1] = inertia(1, 1) * 1000;
   p_pseudo_inverse_with_inertia_msg.inertia[2] = inertia(2, 2) * 1000;
@@ -623,19 +621,19 @@ void TransformController::cfgLQICallback(hydrus::LQIConfig &config, uint32_t lev
 }
 
 //TODO need?
-bool TransformController::defaultDistanceFunction(CollisionObject<double>* o1, CollisionObject<double>* o2, void* cdata_, double& dist)
-{
-  auto* cdata = static_cast<DistanceData*>(cdata_);
-  const DistanceRequest<double>& request = cdata->request;
-  DistanceResult<double>& result = cdata->result;
+// bool TransformController::defaultDistanceFunction(CollisionObject<double>* o1, CollisionObject<double>* o2, void* cdata_, double& dist)
+// {
+//   auto* cdata = static_cast<DistanceData*>(cdata_);
+//   const DistanceRequest<double>& request = cdata->request;
+//   DistanceResult<double>& result = cdata->result;
 
-  if(cdata->done) { dist = result.min_distance; return true; }
+//   if(cdata->done) { dist = result.min_distance; return true; }
 
-  distance(o1, o2, request, result);
+//   distance(o1, o2, request, result);
 
-  dist = result.min_distance;
+//   dist = result.min_distance;
 
-  if(dist <= 0) return true; // in collision or in touch
+//   if(dist <= 0) return true; // in collision or in touch
 
-  return cdata->done;
-}
+//   return cdata->done;
+// }
