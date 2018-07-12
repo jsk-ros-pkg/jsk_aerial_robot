@@ -46,7 +46,6 @@
 #include <geometry_msgs/Inertia.h>
 #include <geometry_msgs/Transform.h>
 #include <sensor_msgs/JointState.h>
-#include <aerial_robot_model/AddExtraModule.h>
 #include <aerial_robot_model/kdl_utils.h>
 #include <Eigen/Geometry>
 #include <cmath>
@@ -64,7 +63,6 @@ namespace aerial_robot_model {
     void updateRobotModel(const sensor_msgs::JointState& state);
     bool addExtraModule(std::string module_name, std::string parent_link_name, KDL::Frame transform, KDL::RigidBodyInertia inertia);
     bool removeExtraModule(std::string module_name);
-    bool addExtraModuleCallback(const aerial_robot_model::AddExtraModule::Request& req, aerial_robot_model::AddExtraModule::Response& res);
     void setActuatorJointMap(const sensor_msgs::JointState& actuator_state);
 
     //API declaration
@@ -116,7 +114,7 @@ namespace aerial_robot_model {
       return rotor_direction_;
     }
 
-  private:
+  protected:
     urdf::Model model_;
     KDL::Tree tree_;
     std::map<std::string, KDL::RigidBodyInertia> inertia_map_;

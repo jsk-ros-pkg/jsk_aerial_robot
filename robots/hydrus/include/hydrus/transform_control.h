@@ -70,7 +70,7 @@
 #include <Eigen/Eigenvalues>
 
 /* kinematics */
-#include <aerial_robot_model/transformable_aerial_robot_model.h>
+#include <aerial_robot_model/transformable_aerial_robot_model_ros.h>
 
 /* util */
 #include <thread>
@@ -100,7 +100,6 @@ public:
   TransformController(ros::NodeHandle nh, ros::NodeHandle nh_private);
   ~TransformController();
 
-  virtual void actuatorStateCallback(const sensor_msgs::JointStateConstPtr& state);
   bool stabilityMarginCheck(bool verbose = false);
   virtual bool overlapCheck(bool verbose = false){return true; }
   bool modelling(bool verbose = false); //lagrange method
@@ -111,6 +110,7 @@ public:
   double stability_margin_thre_;
   double f_max_, f_min_;
   double p_det_thre_;
+
   double getStabilityMargin() const
   {
     return stability_margin_;
@@ -156,12 +156,11 @@ protected:
 
   ros::NodeHandle nh_, nh_private_;
 
-  bool kinematic_verbose_;
   bool control_verbose_;
   bool debug_verbose_;
   bool verbose_;
 
-  aerial_robot_model::RobotModel kinematic_model_;
+  aerial_robot_model::RobotModelRos kinematic_model_;
   bool kinematics_flag_;
   double stability_margin_;
   Eigen::VectorXd optimal_hovering_f_;
@@ -177,18 +176,7 @@ protected:
   /* ros param init */
   void initParam();
 
-  /* basic model */
-  void desireCoordinateCallback(const spinal::DesireCoordConstPtr& msg);
-
-  /* service */
-  ros::ServiceServer add_extra_module_service_;
-  ros::ServiceServer end_effector_ik_service_; //need?
-
-  ros::Subscriber actuator_state_sub_;
-  ros::Subscriber desire_coordinate_sub_;
-  tf2_ros::TransformBroadcaster br_;
-
-  ros::Publisher transform_pub_;
+  /* publisher */
   ros::Publisher rpy_gain_pub_;
   ros::Publisher four_axis_gain_pub_;
   ros::Publisher p_matrix_pseudo_inverse_inertia_pub_;

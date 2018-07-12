@@ -2,20 +2,13 @@
 
 TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_private):
   nh_(nh), nh_private_(nh_private),
+  kinematic_model_(nh, nh_private),
   kinematics_flag_(false),
   p_det_(0), stability_margin_(0)
 {
   nh_private_.param("verbose", verbose_, false);
   ROS_ERROR("ns is %s", nh_private_.getNamespace().c_str());
 
-  /* param for kinematics */
-  nh_private_.param("baselink", baselink_, std::string("link1"));
-  if(verbose_) std::cout << "baselink: " << baselink_ << std::endl;
-  nh_private_.param("thrust_link", thrust_link_, std::string("thrust"));
-  if(verbose_) std::cout << "thrust_link: " << thrust_link_ << std::endl;
-  nh_private_.param("kinematic_verbose", kinematic_verbose_, false);
-
-  kinematic_model_ = aerial_robot_model::RobotModel(baselink_, thrust_link_, kinematic_verbose_);
   rotor_num_ = kinematic_model_.getRotorNum();
   initParam();
 
@@ -23,19 +16,11 @@ TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_
   //those publisher is published from func param2controller
   rpy_gain_pub_ = nh_private_.advertise<spinal::RollPitchYawTerms>("/rpy_gain", 1);
   four_axis_gain_pub_ = nh_.advertise<aerial_robot_msgs::FourAxisGain>("/four_axis_gain", 1);
-  transform_pub_ = nh_.advertise<geometry_msgs::TransformStamped>("/cog2baselink", 1);
   p_matrix_pseudo_inverse_inertia_pub_ = nh_.advertise<spinal::PMatrixPseudoInverseWithInertia>("p_matrix_pseudo_inverse_inertia", 1);
-
-  //subscriber
-  desire_coordinate_sub_ = nh_.subscribe("/desire_coordinate", 1, &TransformController::desireCoordinateCallback, this);
-  actuator_state_sub_ = nh_private_.subscribe("joint_states", 1, &TransformController::actuatorStateCallback, this);
 
   //dynamic reconfigure server
   dynamic_reconf_func_lqi_ = boost::bind(&TransformController::cfgLQICallback, this, _1, _2);
   lqi_server_.setCallback(dynamic_reconf_func_lqi_);
-
-  //ros service for extra module
-  //add_extra_module_service_ = nh_.advertiseService("add_extra_module", &aerial_robot_model::RobotModel::addExtraModuleCallback, &kinematic_model_);
 
   control_thread_ = std::thread(boost::bind(&TransformController::control, this));
 
@@ -133,39 +118,9 @@ void TransformController::control()
     }
 }
 
-void TransformController::desireCoordinateCallback(const spinal::DesireCoordConstPtr& msg)
-{
-  std::lock_guard<std::mutex> lock(mutex_);
-  kinematic_model_.setCogDesireOrientation(msg->roll, msg->pitch, msg->yaw);
-}
-
-void TransformController::actuatorStateCallback(const sensor_msgs::JointStateConstPtr& state)
-{
-  std::lock_guard<std::mutex> lock(mutex_);
-  current_actuator_state_ = *state;
-
-  if(kinematic_model_.getActuatorJointMap().empty()) kinematic_model_.setActuatorJointMap(current_actuator_state_);
-
-  if(debug_verbose_) ROS_ERROR("start kinematics");
-  kinematic_model_.updateRobotModel(current_actuator_state_);
-  if(debug_verbose_) ROS_ERROR("finish kinematics");
-
-  geometry_msgs::TransformStamped tf = kinematic_model_.getCog<geometry_msgs::TransformStamped>();
-  tf.header = state->header;
-  tf.header.frame_id = kinematic_model_.getRootFrameName();
-  tf.child_frame_id = "cog";
-  br_.sendTransform(tf);
-
-  if(!kinematics_flag_)
-    {
-      ROS_ERROR("the total mass is %f", kinematic_model_.getMass());
-      kinematics_flag_ = true;
-    }
-}
-
 void TransformController::lqi()
 {
-  if(!kinematics_flag_) return;
+  if(!kinematic_model_.isKinematicsUpdated()) return;
   std::lock_guard<std::mutex> lock(mutex_);
 
   /* check the thre check */
@@ -258,7 +213,7 @@ bool TransformController::modelling(bool verbose)
       p_x(i) = -rotors_origin_from_cog[i](0);
       p_c(i) = rotor_direction.at(i + 1) * m_f_rate_ ;
       p_m(i) = 1 / kinematic_model_.getMass();
-      if(kinematic_verbose_ || verbose)
+      if(verbose)
         std::cout << "link" << i + 1 <<"origin :\n" << rotors_origin_from_cog[i] << std::endl;
     }
 
@@ -483,13 +438,6 @@ void TransformController::param2controller()
   four_axis_gain_msg.motor_num = rotor_num_;
   rpy_gain_msg.motors.resize(rotor_num_);
   p_pseudo_inverse_with_inertia_msg.pseudo_inverse.resize(rotor_num_);
-
-  /* the transform from cog to baselink */
-  geometry_msgs::TransformStamped transform_msg = kinematic_model_.getCog2Baselink<geometry_msgs::TransformStamped>();
-  transform_msg.header.stamp = current_actuator_state_.header.stamp;
-  transform_msg.header.frame_id = std::string("cog");
-  transform_msg.child_frame_id = baselink_;
-  transform_pub_.publish(transform_msg);
 
   for(int i = 0; i < rotor_num_; ++i)
     {

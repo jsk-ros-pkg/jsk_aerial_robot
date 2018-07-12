@@ -122,40 +122,6 @@ namespace aerial_robot_model {
       }
   }
 
-  bool RobotModel::addExtraModuleCallback(const aerial_robot_model::AddExtraModule::Request &req, aerial_robot_model::AddExtraModule::Response &res)
-  {
-    switch(req.action)
-      {
-      case aerial_robot_model::AddExtraModule::Request::ADD:
-        {
-          geometry_msgs::TransformStamped ts;
-          ts.transform = req.transform;
-          KDL::Frame f = tf2::transformToKDL(ts);
-          KDL::RigidBodyInertia rigid_body_inertia(req.inertia.m, KDL::Vector(req.inertia.com.x, req.inertia.com.y, req.inertia.com.z),
-                                                   KDL::RotationalInertia(req.inertia.ixx, req.inertia.iyy,
-                                                                          req.inertia.izz, req.inertia.ixy,
-                                                                          req.inertia.ixz, req.inertia.iyz));
-          res.status = addExtraModule(req.module_name, req.parent_link_name, f, rigid_body_inertia);
-          return res.status;
-          break;
-        }
-      case aerial_robot_model::AddExtraModule::Request::REMOVE:
-        {
-          res.status = removeExtraModule(req.module_name);
-          return res.status;
-          break;
-        }
-      default:
-        {
-          ROS_WARN("[extra module]: wrong action %d", req.action);
-          return false;
-          break;
-        }
-      }
-    ROS_ERROR("[extra module]: should not reach here ");
-    return false;
-  }
-
   void RobotModel::setActuatorJointMap(const sensor_msgs::JointState& actuator_state)
   {
     /* CAUTION: be sure that the joints are in order !!!!!!! */
@@ -218,7 +184,7 @@ namespace aerial_robot_model {
 
     /* count the rotor */
     if(current_seg.getName().find(thrust_link_.c_str()) != std::string::npos) rotor_num_++;
-
+    ROS_ERROR("rotor num++ called %d", rotor_num_);
     /* update the inertia if the segment is base */
     if (inertia_map_.find(current_seg.getName()) != inertia_map_.end())
       {
