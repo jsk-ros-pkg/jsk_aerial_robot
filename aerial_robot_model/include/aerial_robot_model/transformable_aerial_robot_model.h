@@ -60,21 +60,20 @@ namespace aerial_robot_model {
   public:
     RobotModel() = default;
     RobotModel(std::string baselink, std::string thrust_link, bool verbose);
-
+    void updateRobotModel(const KDL::JntArray& joint_positions);
+    void updateRobotModel(const sensor_msgs::JointState& state);
     bool addExtraModule(std::string module_name, std::string parent_link_name, KDL::Frame transform, KDL::RigidBodyInertia inertia);
     bool removeExtraModule(std::string module_name);
     bool addExtraModuleCallback(const aerial_robot_model::AddExtraModule::Request& req, aerial_robot_model::AddExtraModule::Response& res);
-
-    void forwardKinematics(const sensor_msgs::JointState& state);
-    void forwardKinematics(const KDL::JntArray& joint_positions);
-    KDL::Frame getRoot2Link(std::string link, const sensor_msgs::JointState& state) const; //TODO need?
-    void setActuatorJointMap(const sensor_msgs::JointState& actuator_state); //TODO need?
+    void setActuatorJointMap(const sensor_msgs::JointState& actuator_state);
 
     //API declaration
     template<class T> T getCog() const;
     template<class T> std::vector<T> getRotorsOriginFromCog() const;
     template<class T> T getCog2Baselink() const;
     template<class T> T getInertia() const;
+    template<class T> T getLinkFrameFk(std::string link, const KDL::JntArray& joint_positions) const;
+    template<class T> T getLinkFrameFk(std::string link, const sensor_msgs::JointState& state) const;
 
     double getMass() const
     {
@@ -121,7 +120,6 @@ namespace aerial_robot_model {
     urdf::Model model_;
     KDL::Tree tree_;
     std::map<std::string, KDL::RigidBodyInertia> inertia_map_;
-    std::map<std::string, uint32_t> actuator_map_; // regarding to KDL tree
     std::map<std::string, KDL::Segment> extra_module_map_; //string: module_name
     int rotor_num_;
     double link_length_; //TODO need?
@@ -135,11 +133,14 @@ namespace aerial_robot_model {
     std::string thrust_link_;
     bool verbose_;
     std::map<int, int> rotor_direction_;
-
-    std::vector<int> actuator_joint_map_; //the real joint (other than rotor or gimbal) //TODO need?
+    std::map<std::string, uint32_t> actuator_map_; // regarding to KDL tree
+    std::vector<int> actuator_joint_map_; //the real joint (other than rotor or gimbal)
 
     KDL::RigidBodyInertia inertialSetup(const KDL::TreeElement& tree_element);
     void resolveLinkLength();
+    KDL::Frame forwardKinematics(std::string link, const KDL::JntArray& joint_positions) const;
+    KDL::Frame forwardKinematics(std::string link, const sensor_msgs::JointState& state) const;
+    KDL::JntArray jointMsgToKdl(const sensor_msgs::JointState& state) const;
   };
 
   template<> inline KDL::Frame RobotModel::getCog() const
@@ -226,6 +227,46 @@ namespace aerial_robot_model {
   template<> inline Eigen::Matrix3d RobotModel::getInertia() const
   {
     return aerial_robot_model::kdlToEigen(link_inertia_cog_);
+  }
+
+  template<> inline KDL::Frame RobotModel::getLinkFrameFk(std::string link, const KDL::JntArray& joint_positions) const
+  {
+    return forwardKinematics(link, joint_positions);
+  }
+
+  template<> inline geometry_msgs::TransformStamped RobotModel::getLinkFrameFk(std::string link, const KDL::JntArray& joint_positions) const
+  {
+    return aerial_robot_model::kdlToMsg(forwardKinematics(link, joint_positions));
+  }
+
+  template<> inline Eigen::Affine3d RobotModel::getLinkFrameFk(std::string link, const KDL::JntArray& joint_positions) const
+  {
+    return aerial_robot_model::kdlToEigen(forwardKinematics(link, joint_positions));
+  }
+
+  template<> inline tf2::Transform RobotModel::getLinkFrameFk(std::string link, const KDL::JntArray& joint_positions) const
+  {
+    return aerial_robot_model::kdlToTf2(forwardKinematics(link, joint_positions));
+  }
+
+  template<> inline KDL::Frame RobotModel::getLinkFrameFk(std::string link, const sensor_msgs::JointState& state) const
+  {
+    return forwardKinematics(link, state);
+  }
+
+  template<> inline geometry_msgs::TransformStamped RobotModel::getLinkFrameFk(std::string link, const sensor_msgs::JointState& state) const
+  {
+    return aerial_robot_model::kdlToMsg(forwardKinematics(link, state));
+  }
+
+  template<> inline Eigen::Affine3d RobotModel::getLinkFrameFk(std::string link, const sensor_msgs::JointState& state) const
+  {
+    return aerial_robot_model::kdlToEigen(forwardKinematics(link, state));
+  }
+
+  template<> inline tf2::Transform RobotModel::getLinkFrameFk(std::string link, const sensor_msgs::JointState& state) const
+  {
+    return aerial_robot_model::kdlToTf2(forwardKinematics(link, state));
   }
 
 } //namespace aerial_robot_model

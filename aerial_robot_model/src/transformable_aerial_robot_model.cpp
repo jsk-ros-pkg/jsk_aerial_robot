@@ -17,109 +17,11 @@ namespace aerial_robot_model {
     inertialSetup(tree_.getRootSegment()->second);
     resolveLinkLength();
 
-    //TODO need?
-    for(auto itr = model_.joints_.begin(); itr != model_.joints_.end(); itr++)
-      {
-        if(itr->first.find("joint1") != std::string::npos)
-          {
-            ROS_WARN("the angle range: [%f, %f]", itr->second->limits->lower, itr->second->limits->upper);
-            break;
-          }
-      }
-
     ROS_ERROR("[kinematics] rotor num; %d", rotor_num_);
     rotors_origin_from_cog_.resize(rotor_num_);
   }
 
-  void RobotModel::resolveLinkLength() //TODO hard coding
-  {
-    KDL::JntArray joint_positions(tree_.getNrOfJoints());
-    KDL::TreeFkSolverPos_recursive fk_solver(tree_);
-    KDL::Frame f_link2, f_link3;
-    fk_solver.JntToCart(joint_positions, f_link2, "link2"); //hard coding //TODO
-    fk_solver.JntToCart(joint_positions, f_link3, "link3"); //hard coding //TODO
-    link_length_ = (f_link3.p - f_link2.p).Norm();
-  }
-
-  KDL::RigidBodyInertia RobotModel::inertialSetup(const KDL::TreeElement& tree_element)
-  {
-    const KDL::Segment current_seg = GetTreeElementSegment(tree_element);
-
-    KDL::RigidBodyInertia current_seg_inertia = current_seg.getInertia();
-    if(verbose_) ROS_WARN("segment %s, mass is: %f", current_seg.getName().c_str(), current_seg_inertia.getMass());
-
-    /* check whether this can be a base inertia segment (i.e. link) */
-    /* 1. for the "root" parent link (i.e. link1) */
-    if(current_seg.getName().find("root") != std::string::npos)
-      {
-        assert(inertia_map_.size() == 0);
-        assert(GetTreeElementChildren(tree_element).size() == 1);
-
-        const KDL::Segment& child_seg = GetTreeElementSegment(GetTreeElementChildren(tree_element).at(0)->second);
-        inertia_map_.insert(std::make_pair(child_seg.getName(), child_seg.getInertia()));
-        if(verbose_) ROS_WARN("Add root link: %s", child_seg.getName().c_str());
-
-      }
-    /* 2. for segment that has joint with parent segment */
-    if (current_seg.getJoint().getType() != KDL::Joint::None)
-      {
-        /* add the new inertia base (child) link if the joint is not a rotor */
-        if(current_seg.getJoint().getName().find("rotor") == std::string::npos)
-          {
-            /* create a new inertia base link */
-            inertia_map_.insert(std::make_pair(current_seg.getName(), current_seg_inertia));
-            actuator_map_.insert(std::make_pair(current_seg.getJoint().getName(), tree_element.q_nr));
-            if(verbose_) ROS_WARN("Add new inertia base link: %s", current_seg.getName().c_str());
-          }
-      }
-    /* special process for rotor */
-    if(current_seg.getJoint().getName().find("rotor") != std::string::npos)
-      {
-        /* add the rotor direction */
-        if(verbose_) ROS_WARN("%s, rototation is %f", current_seg.getJoint().getName().c_str(), current_seg.getJoint().JointAxis().z());
-        rotor_direction_.insert(std::make_pair(std::atoi(current_seg.getJoint().getName().substr(5).c_str()), current_seg.getJoint().JointAxis().z()));
-      }
-
-    /* recursion process for children segment */
-    for (const auto& elem: GetTreeElementChildren(tree_element))
-      {
-        const KDL::Segment& child_seg = GetTreeElementSegment(elem->second);
-        KDL::RigidBodyInertia child_seg_inertia = child_seg.getFrameToTip() *  inertialSetup(elem->second);
-        KDL::RigidBodyInertia current_seg_inertia_old = current_seg_inertia;
-        current_seg_inertia = current_seg_inertia_old + child_seg_inertia;
-
-        if(verbose_) ROS_WARN("Add new child segment %s to direct segment: %s", child_seg.getName().c_str(), current_seg.getName().c_str());
-      }
-
-    /* count the rotor */
-    if(current_seg.getName().find(thrust_link_.c_str()) != std::string::npos) rotor_num_++;
-
-    /* update the inertia if the segment is base */
-    if (inertia_map_.find(current_seg.getName()) != inertia_map_.end())
-      {
-        inertia_map_.at(current_seg.getName()) = current_seg_inertia;
-
-        if(verbose_) ROS_WARN("Total mass of base segment %s is %f", current_seg.getName().c_str(),
-                              inertia_map_.at(current_seg.getName()).getMass());
-        current_seg_inertia = KDL::RigidBodyInertia::Zero();
-      }
-
-    return current_seg_inertia;
-  }
-
-  void RobotModel::forwardKinematics(const sensor_msgs::JointState& state)
-  {
-    KDL::JntArray joint_positions(tree_.getNrOfJoints());
-    for(unsigned int i = 0; i < state.position.size(); ++i)
-      {
-        std::map<std::string, uint32_t>::iterator itr = actuator_map_.find(state.name[i]);
-
-        if(itr != actuator_map_.end()) joint_positions(actuator_map_.find(state.name[i])->second) = state.position[i];
-      }
-    forwardKinematics(joint_positions);
-  }
-
-  void RobotModel::forwardKinematics(const KDL::JntArray& joint_positions)
+  void RobotModel::updateRobotModel(const KDL::JntArray& joint_positions)
   {
     KDL::TreeFkSolverPos_recursive fk_solver(tree_);
     KDL::RigidBodyInertia link_inertia = KDL::RigidBodyInertia::Zero();
@@ -163,6 +65,11 @@ namespace aerial_robot_model {
       }
 
     link_inertia_cog_ = (cog_.Inverse() * link_inertia).getRotationalInertia();
+  }
+
+  void RobotModel::updateRobotModel(const sensor_msgs::JointState& state)
+  {
+    updateRobotModel(jointMsgToKdl(state));
   }
 
   bool RobotModel::addExtraModule(std::string module_name, std::string parent_link_name, KDL::Frame transform, KDL::RigidBodyInertia inertia)
@@ -249,27 +156,6 @@ namespace aerial_robot_model {
     return false;
   }
 
-  //TODO need? it's like forwardKinematics
-  KDL::Frame RobotModel::getRoot2Link(std::string link, const sensor_msgs::JointState& state) const
-  {
-    KDL::TreeFkSolverPos_recursive fk_solver(tree_);
-    unsigned int nj = tree_.getNrOfJoints();
-    KDL::JntArray joint_positions(nj);
-
-    for(unsigned int i = 0; i < state.position.size(); ++i)
-      {
-        auto itr = actuator_map_.find(state.name[i]);
-        if(itr != actuator_map_.end())  joint_positions(actuator_map_.find(state.name[i])->second) = state.position[i];
-      }
-
-    KDL::Frame f;
-    int status = fk_solver.JntToCart(joint_positions, f, link);
-    if(status < 0) ROS_ERROR("can not solve FK to link: %s", baselink_.c_str());
-
-    return f;
-  }
-
-  //TODO need?
   void RobotModel::setActuatorJointMap(const sensor_msgs::JointState& actuator_state)
   {
     /* CAUTION: be sure that the joints are in order !!!!!!! */
@@ -278,6 +164,108 @@ namespace aerial_robot_model {
         if(itr->find("joint") != std::string::npos)
           actuator_joint_map_.push_back(std::distance(actuator_state.name.begin(), itr));
       }
+  }
+
+  KDL::RigidBodyInertia RobotModel::inertialSetup(const KDL::TreeElement& tree_element)
+  {
+    const KDL::Segment current_seg = GetTreeElementSegment(tree_element);
+
+    KDL::RigidBodyInertia current_seg_inertia = current_seg.getInertia();
+    if(verbose_) ROS_WARN("segment %s, mass is: %f", current_seg.getName().c_str(), current_seg_inertia.getMass());
+
+    /* check whether this can be a base inertia segment (i.e. link) */
+    /* 1. for the "root" parent link (i.e. link1) */
+    if(current_seg.getName().find("root") != std::string::npos)
+      {
+        assert(inertia_map_.size() == 0);
+        assert(GetTreeElementChildren(tree_element).size() == 1);
+
+        const KDL::Segment& child_seg = GetTreeElementSegment(GetTreeElementChildren(tree_element).at(0)->second);
+        inertia_map_.insert(std::make_pair(child_seg.getName(), child_seg.getInertia()));
+        if(verbose_) ROS_WARN("Add root link: %s", child_seg.getName().c_str());
+
+      }
+    /* 2. for segment that has joint with parent segment */
+    if (current_seg.getJoint().getType() != KDL::Joint::None)
+      {
+        /* add the new inertia base (child) link if the joint is not a rotor */
+        if(current_seg.getJoint().getName().find("rotor") == std::string::npos)
+          {
+            /* create a new inertia base link */
+            inertia_map_.insert(std::make_pair(current_seg.getName(), current_seg_inertia));
+            actuator_map_.insert(std::make_pair(current_seg.getJoint().getName(), tree_element.q_nr));
+            if(verbose_) ROS_WARN("Add new inertia base link: %s", current_seg.getName().c_str());
+          }
+      }
+    /* special process for rotor */
+    if(current_seg.getJoint().getName().find("rotor") != std::string::npos)
+      {
+        /* add the rotor direction */
+        if(verbose_) ROS_WARN("%s, rototation is %f", current_seg.getJoint().getName().c_str(), current_seg.getJoint().JointAxis().z());
+        rotor_direction_.insert(std::make_pair(std::atoi(current_seg.getJoint().getName().substr(5).c_str()), current_seg.getJoint().JointAxis().z()));
+      }
+
+    /* recursion process for children segment */
+    for (const auto& elem: GetTreeElementChildren(tree_element))
+      {
+        const KDL::Segment& child_seg = GetTreeElementSegment(elem->second);
+        KDL::RigidBodyInertia child_seg_inertia = child_seg.getFrameToTip() *  inertialSetup(elem->second);
+        KDL::RigidBodyInertia current_seg_inertia_old = current_seg_inertia;
+        current_seg_inertia = current_seg_inertia_old + child_seg_inertia;
+
+        if(verbose_) ROS_WARN("Add new child segment %s to direct segment: %s", child_seg.getName().c_str(), current_seg.getName().c_str());
+      }
+
+    /* count the rotor */
+    if(current_seg.getName().find(thrust_link_.c_str()) != std::string::npos) rotor_num_++;
+
+    /* update the inertia if the segment is base */
+    if (inertia_map_.find(current_seg.getName()) != inertia_map_.end())
+      {
+        inertia_map_.at(current_seg.getName()) = current_seg_inertia;
+
+        if(verbose_) ROS_WARN("Total mass of base segment %s is %f", current_seg.getName().c_str(),
+                              inertia_map_.at(current_seg.getName()).getMass());
+        current_seg_inertia = KDL::RigidBodyInertia::Zero();
+      }
+
+    return current_seg_inertia;
+  }
+
+  void RobotModel::resolveLinkLength() //TODO hard coding
+  {
+    KDL::JntArray joint_positions(tree_.getNrOfJoints());
+    KDL::TreeFkSolverPos_recursive fk_solver(tree_);
+    KDL::Frame f_link2, f_link3;
+    fk_solver.JntToCart(joint_positions, f_link2, "link2"); //hard coding //TODO
+    fk_solver.JntToCart(joint_positions, f_link3, "link3"); //hard coding //TODO
+    link_length_ = (f_link3.p - f_link2.p).Norm();
+  }
+
+  KDL::Frame RobotModel::forwardKinematics(std::string link, const KDL::JntArray& joint_positions) const
+  {
+    KDL::TreeFkSolverPos_recursive fk_solver(tree_);
+    KDL::Frame f;
+    int status = fk_solver.JntToCart(joint_positions, f, link);
+    if(status < 0) ROS_ERROR("can not solve FK to link: %s", link.c_str());
+
+    return f;
+  }
+
+  KDL::Frame RobotModel::forwardKinematics(std::string link, const sensor_msgs::JointState& state) const
+  {
+    return forwardKinematics(link, jointMsgToKdl(state));
+  }
+
+  KDL::JntArray RobotModel::jointMsgToKdl(const sensor_msgs::JointState& state) const
+  {
+    KDL::JntArray joint_positions(tree_.getNrOfJoints());
+    for(unsigned int i = 0; i < state.position.size(); ++i)
+      {
+        auto itr = actuator_map_.find(state.name[i]);
+        if(itr != actuator_map_.end()) joint_positions(itr->second) = state.position[i];
+      }
+    return joint_positions;
   }
 
 } //namespace aerial_robot_model

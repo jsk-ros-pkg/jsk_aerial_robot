@@ -147,7 +147,7 @@ void TransformController::actuatorStateCallback(const sensor_msgs::JointStateCon
   if(kinematic_model_.getActuatorJointMap().empty()) kinematic_model_.setActuatorJointMap(current_actuator_state_);
 
   if(debug_verbose_) ROS_ERROR("start kinematics");
-  kinematic_model_.forwardKinematics(current_actuator_state_);
+  kinematic_model_.updateRobotModel(current_actuator_state_);
   if(debug_verbose_) ROS_ERROR("finish kinematics");
 
   geometry_msgs::TransformStamped tf = kinematic_model_.getCog<geometry_msgs::TransformStamped>();
@@ -240,15 +240,6 @@ bool TransformController::stabilityMarginCheck(bool verbose)
   if(verbose) ROS_INFO("stability_margin: %f", stability_margin_);
   if(stability_margin_ < stability_margin_thre_) return false;
   return true;
-
-  //TODO need?
-#if 0 // correlation coefficient
-  double correlation_coefficient = fabs(s_xy / sqrt(s_xx * s_yy));
-  //ROS_INFO("correlation_coefficient: %f", correlation_coefficient);
-
-  if(correlation_coefficient > correlation_thre_ ) return false;
-  return true;
-#endif
 }
 
 bool TransformController::modelling(bool verbose)
@@ -441,7 +432,6 @@ bool TransformController::hamiltonMatrixSolver(uint8_t lqi_mode)
           phy.col(j) = ces.eigenvectors().col(i);
           j++;
         }
-
     }
 
   if(j != lqi_mode_ * 3)
@@ -621,21 +611,3 @@ void TransformController::cfgLQICallback(hydrus::LQIConfig &config, uint32_t lev
       q_diagonal_ << q_roll_,q_roll_d_,q_pitch_,q_pitch_d_,q_z_,q_z_d_,q_yaw_,q_yaw_d_, q_roll_i_,q_pitch_i_,q_z_i_,q_yaw_i_;
     }
 }
-
-//TODO need?
-// bool TransformController::defaultDistanceFunction(CollisionObject<double>* o1, CollisionObject<double>* o2, void* cdata_, double& dist)
-// {
-//   auto* cdata = static_cast<DistanceData*>(cdata_);
-//   const DistanceRequest<double>& request = cdata->request;
-//   DistanceResult<double>& result = cdata->result;
-
-//   if(cdata->done) { dist = result.min_distance; return true; }
-
-//   distance(o1, o2, request, result);
-
-//   dist = result.min_distance;
-
-//   if(dist <= 0) return true; // in collision or in touch
-
-//   return cdata->done;
-// }

@@ -218,29 +218,6 @@ protected:
   dynamic_reconfigure::Server<hydrus::LQIConfig> lqi_server_;
   dynamic_reconfigure::Server<hydrus::LQIConfig>::CallbackType dynamic_reconf_func_lqi_;
   void cfgLQICallback(hydrus::LQIConfig &config, uint32_t level);
-
-  //TODO need?
-  // static bool defaultDistanceFunction(CollisionObject<double>* o1, CollisionObject<double>* o2, void* cdata_, double& dist);
-
-  // //TODO need?
-  // struct DistanceData
-  // {
-  //   DistanceData()
-  //   {
-  //     done = false;
-  //   }
-
-  //   /// @brief Distance request
-  //   DistanceRequest<double> request;
-
-  //   /// @brief Distance result
-  //   DistanceResult<double> result;
-
-  //   /// @brief Whether the distance iteration can stop
-  //   bool done;
-
-  // };
-
 };
 
 

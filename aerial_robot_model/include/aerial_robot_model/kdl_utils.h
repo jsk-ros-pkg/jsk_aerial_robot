@@ -2,6 +2,8 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <tf2_eigen/tf2_eigen.h>
 #include <eigen_conversions/eigen_kdl.h>
+#include <sensor_msgs/JointState.h>
+#include <map>
 
 namespace aerial_robot_model {
   inline bool isValidRotation(const KDL::Rotation& m)
