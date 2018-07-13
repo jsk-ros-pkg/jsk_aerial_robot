@@ -57,7 +57,6 @@ namespace aerial_robot_model {
   //Transformable Aerial Robot Model
   class RobotModel {
   public:
-    RobotModel() = default;
     RobotModel(std::string baselink, std::string thrust_link, bool verbose);
     void updateRobotModel(const KDL::JntArray& joint_positions);
     void updateRobotModel(const sensor_msgs::JointState& state);

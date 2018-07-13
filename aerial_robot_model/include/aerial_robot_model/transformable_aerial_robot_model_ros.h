@@ -2,7 +2,7 @@
 /*********************************************************************
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2016, JSK Lab
+ *  Copyright (c) 2018, JSK Lab
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -39,14 +39,17 @@
 #include <spinal/DesireCoord.h>
 #include <aerial_robot_model/AddExtraModule.h>
 #include <tf2_ros/transform_broadcaster.h>
+#include <memory>
 
 namespace aerial_robot_model {
 
   //Transformable Aerial Robot Model with ROS functions
-  class RobotModelRos : public RobotModel {
+  template <class T>
+  class RobotModelRos {
   public:
-    RobotModelRos(): RobotModel() {}
-    RobotModelRos(ros::NodeHandle nh, ros::NodeHandle nhp);
+    RobotModelRos(ros::NodeHandle nh, ros::NodeHandle nhp)
+    {
+    }
 
     std::string getBaselinkName() {
       return baselink_;
@@ -59,6 +62,8 @@ namespace aerial_robot_model {
     }
 
   private:
+    std::unique_ptr<aerial_robot_model::RobotModel> robot_model_;
+
     ros::NodeHandle nh_, nhp_;
     ros::Publisher cog2baselink_tf_pub_;
     ros::Subscriber actuator_state_sub_;
