@@ -8,4 +8,4 @@ sensor_plugin:
                 valid_yaw: true
                 debug_verbose: false
                 time_sync: true
-                delay: -0.1
+                delay: -0.09
