@@ -378,8 +378,7 @@ namespace sensor_plugin
                   int index = id >> (State::X_BASE + 1);
                   VectorXd meas(1); meas <<  raw_pos_[index];
                   vector<double> params = {kf_plugin::POS};
-                  kf->correction(meas, params, stamp.toSec());
-
+                  kf->correction(meas, stamp.toSec(), params);
                   VectorXd state = kf->getEstimateState();
                   estimator_->setState(index + 3, BasicEstimator::EXPERIMENT_ESTIMATE, 0, state(0));
                   estimator_->setState(index + 3, BasicEstimator::EXPERIMENT_ESTIMATE, 1, state(1));
@@ -400,7 +399,7 @@ namespace sensor_plugin
                       VectorXd meas(2); meas <<  raw_pos_[0], raw_pos_[1];
                       vector<double> params = {kf_plugin::POS};
                       /* time sync and delay process: get from kf time stamp */
-                      kf->correction(meas, params, stamp.toSec());
+                      kf->correction(meas, stamp.toSec(), params);
 
                       VectorXd state = kf->getEstimateState();
                       /* temp */

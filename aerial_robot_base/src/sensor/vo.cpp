@@ -248,6 +248,8 @@ namespace sensor_plugin
       baselink_tf_.getBasis().getRPY(r,p,y);
       estimator_->setState(State::YAW_BASE, BasicEstimator::EGOMOTION_ESTIMATE, 0, y);
 
+      ros::Time stamp_temp = stamp;
+
       /* XYZ */
       for(auto& fuser : estimator_->getFuser(BasicEstimator::EGOMOTION_ESTIMATE))
         {
@@ -272,9 +274,9 @@ namespace sensor_plugin
                   int index = id >> (State::X_BASE + 1);
                   VectorXd meas(1); meas <<  baselink_tf_.getOrigin()[index];
                   vector<double> params = {kf_plugin::POS};
-                  if(time_sync_ && delay_ < 0) stamp.fromSec(kf->getTimestamp() + delay_);
+                  if(time_sync_ && delay_ < 0) stamp.fromSec(stamp_temp.toSec() + delay_);
 
-                  kf->correction(meas, params, stamp.toSec());
+                  kf->correction(meas, stamp.toSec(), params);
                   VectorXd state = kf->getEstimateState();
                   estimator_->setState(index + 3, BasicEstimator::EGOMOTION_ESTIMATE, 0, state(0));
                   estimator_->setState(index + 3, BasicEstimator::EGOMOTION_ESTIMATE, 1, state(1));
@@ -295,9 +297,9 @@ namespace sensor_plugin
                   /* correction */
                   VectorXd meas(2); meas << baselink_tf_.getOrigin()[0], baselink_tf_.getOrigin()[1];
                   vector<double> params = {kf_plugin::POS};
-                  /* time sync and delay process: get from kf time stamp */
-                  kf->correction(meas, params, stamp.toSec());
+                  if(time_sync_ && delay_ < 0) stamp.fromSec(stamp_temp.toSec() + delay_);
 
+                  kf->correction(meas, stamp.toSec(), params);
                   VectorXd state = kf->getEstimateState();
 
                   estimator_->setState(State::X_BASE, BasicEstimator::EGOMOTION_ESTIMATE, 0, state(0));

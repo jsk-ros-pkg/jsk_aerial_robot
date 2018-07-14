@@ -453,7 +453,7 @@ namespace sensor_plugin
                       VectorXd meas(1); meas <<  raw_range_pos_z_;
                       vector<double> params = {kf_plugin::POS};
 
-                      kf->correction(meas, params, stamp.toSec());
+                      kf->correction(meas, stamp.toSec(), params);
                     }
                 }
             }
@@ -642,7 +642,7 @@ namespace sensor_plugin
                           /* correction */
                           VectorXd meas(1); meas <<  baro_pos_z_ + (baro_bias_kf_->getEstimateState())(0);
                           vector<double> params = {kf_plugin::POS};
-                          kf->correction(meas, params, stamp.toSec());
+                          kf->correction(meas, stamp.toSec(), params);
 
                         }
 
@@ -660,9 +660,9 @@ namespace sensor_plugin
           break;
         case WITHOUT_BARO_MODE:
           {
-            baro_bias_kf_->prediction(VectorXd::Zero(1));
+            baro_bias_kf_->prediction(VectorXd::Zero(1), stamp.toSec());
             VectorXd meas(1);  meas << (estimator_->getState(State::Z_BASE, 0))[0] - baro_pos_z_;
-            baro_bias_kf_->correction(meas);
+            baro_bias_kf_->correction(meas, stamp.toSec());
           }
           break;
         case WITH_BARO_MODE:

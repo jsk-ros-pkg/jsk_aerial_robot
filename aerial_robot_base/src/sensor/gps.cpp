@@ -304,7 +304,7 @@ namespace sensor_plugin
                                 current_secs = kf->getTimestamp() + delay_;
                                 gps_state_.header.stamp.fromSec(current_secs);
                               }
-                            kf->correction(meas, params, current_secs);
+                            kf->correction(meas, current_secs, params);
 
 
                             VectorXd state = kf->getEstimateState();
@@ -410,7 +410,7 @@ namespace sensor_plugin
                                 current_secs = kf->getTimestamp() + delay_;
                                 gps_state_.header.stamp.fromSec(current_secs);
                               }
-                            kf->correction(meas, params, current_secs);
+                            kf->correction(meas, current_secs, params);
 
 
                             VectorXd state = kf->getEstimateState();
