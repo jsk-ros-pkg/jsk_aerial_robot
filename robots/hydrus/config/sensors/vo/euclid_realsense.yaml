@@ -7,3 +7,5 @@ sensor_plugin:
                 vio_flag: true
                 valid_yaw: true
                 debug_verbose: false
+                time_sync: true
+                delay: -0.1

@@ -183,6 +183,7 @@ namespace sensor_plugin
                       kf->setInitState(init_pos[id >> (State::X_BASE + 1)], 0);
                       kf->setMeasureFlag();
                     }
+                  //if(id & (1 << State::X_BASE)) kf->setDebugVerbose(true);
                 }
 
               if(plugin_name == "aerial_robot_base/kf_xy_roll_pitch_bias")
@@ -254,6 +255,8 @@ namespace sensor_plugin
           boost::shared_ptr<kf_plugin::KalmanFilter> kf = fuser.second;
           int id = kf->getId();
 
+          if(!kf->getFilteringFlag()) continue;
+
           /* x_w, y_w, z_w */
           if(id < (1 << State::ROLL_COG))
             {
@@ -269,8 +272,9 @@ namespace sensor_plugin
                   int index = id >> (State::X_BASE + 1);
                   VectorXd meas(1); meas <<  baselink_tf_.getOrigin()[index];
                   vector<double> params = {kf_plugin::POS};
-                  kf->correction(meas, params, stamp.toSec());
+                  if(time_sync_ && delay_ < 0) stamp.fromSec(kf->getTimestamp() + delay_);
 
+                  kf->correction(meas, params, stamp.toSec());
                   VectorXd state = kf->getEstimateState();
                   estimator_->setState(index + 3, BasicEstimator::EGOMOTION_ESTIMATE, 0, state(0));
                   estimator_->setState(index + 3, BasicEstimator::EGOMOTION_ESTIMATE, 1, state(1));
