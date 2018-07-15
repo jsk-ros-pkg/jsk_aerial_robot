@@ -290,9 +290,6 @@ namespace sensor_plugin
                         {
                           VectorXd intput_noise_sigma(2);
 
-                          /* do not update model here */
-                          /* (boost::static_pointer_cast<kf_plugin::KalmanFilterPosVelAccBias>(kf))->updatePredictModel(sensor_dt_); */
-
                           if(id & (1 << State::X_BASE))
                             {
                               intput_noise_sigma << level_acc_noise_sigma_, acc_bias_noise_sigma_;
@@ -391,7 +388,7 @@ namespace sensor_plugin
                                 kf->resetState();
 
                             }
-                          kf->prediction(intput_val, params, imu_stamp_.toSec());
+                          kf->prediction(intput_val, imu_stamp_.toSec(), params);
                           VectorXd estimate_state = kf->getEstimateState();
                           estimator_->setState(axis, mode, 0, estimate_state(0));
                           estimator_->setState(axis, mode, 1, estimate_state(1));
@@ -422,7 +419,7 @@ namespace sensor_plugin
                               /* get the estiamted offset(bias) */
                               acc_bias_b_.setZ((kf->getEstimateState())(2));
                             }
-                          kf->prediction(intput_val, params, imu_stamp_.toSec());
+                          kf->prediction(intput_val, imu_stamp_.toSec(), params);
                           VectorXd estimate_state = kf->getEstimateState();
                           estimator_->setState(axis, mode, 0, estimate_state(0));
                           estimator_->setState(axis, mode, 1, estimate_state(1));
@@ -447,7 +444,7 @@ namespace sensor_plugin
                                 0,
                                 0;
 
-                              kf->prediction(intput_val, params, imu_stamp_.toSec());
+                              kf->prediction(intput_val, imu_stamp_.toSec(), params);
                               VectorXd estimate_state = kf->getEstimateState();
                               estimator_->setState(State::X_BASE, mode, 0, estimate_state(0));
                               estimator_->setState(State::X_BASE, mode, 1, estimate_state(1));

@@ -227,7 +227,7 @@ namespace sensor_plugin
                   /* time sync and delay process: get from kf time stamp */
                   if(time_sync_ && delay_ < 0) stamp.fromSec(kf->getTimestamp() + delay_);
                   //ROS_INFO("opt stamp: %f, imu stamp: %f, diff: %f", stamp.toSec(), kf->getTimestamp(), kf->getTimestamp() - stamp.toSec());
-                  kf->correction(meas, params, stamp.toSec());
+                  kf->correction(meas, stamp.toSec(), params);
 
                   VectorXd state = kf->getEstimateState();
                   estimator_->setState(index + 3, BasicEstimator::EGOMOTION_ESTIMATE, 0, state(0));
@@ -254,7 +254,7 @@ namespace sensor_plugin
                   vector<double> params = {kf_plugin::VEL};
                   /* time sync and delay process: get from kf time stamp */
                   if(time_sync_ && delay_ < 0) stamp.fromSec(kf->getTimestamp() + delay_);
-                  kf->correction(meas, params, stamp.toSec());
+                  kf->correction(meas, stamp.toSec(), params);
 
                   VectorXd state = kf->getEstimateState();
                   /* temp */

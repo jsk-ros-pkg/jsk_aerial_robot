@@ -81,7 +81,7 @@ namespace kf_plugin
        5: a_yb
        6: a_zb
      */
-    void updatePredictModel(const vector<double>& params)
+    void getPredictModel(const vector<double>& params, const VectorXd& estimate_state, MatrixXd& state_transition_model, MatrixXd& control_input_model) const
     {
       if(params.size() != 7)
         ROS_INFO("params.size is: %d", (int)params.size());
@@ -90,11 +90,11 @@ namespace kf_plugin
       float dt = params[0];
 
       /* roll + b_roll */
-      double S_phy_b = sin(params[1] + estimate_state_[4]);
-      double C_phy_b = cos(params[1] + estimate_state_[4]);
+      double S_phy_b = sin(params[1] + estimate_state[4]);
+      double C_phy_b = cos(params[1] + estimate_state[4]);
       /* pitch + b_pitch */
-      double S_theta_b = sin(params[2] + estimate_state_[5]);
-      double C_theta_b = cos(params[2] + estimate_state_[5]);
+      double S_theta_b = sin(params[2] + estimate_state[5]);
+      double C_theta_b = cos(params[2] + estimate_state[5]);
       /* yaw */
       double S_psi = sin(params[3]); double C_psi = cos(params[3]);
 
@@ -133,7 +133,7 @@ namespace kf_plugin
         S_psi * C_theta_b * S_phy_b, /* dR5_dbp */
         S_psi * C_theta_b * C_phy_b; /* dR6_dbp */
 
-      Matrix<double, 6, 6> state_transition_model = MatrixXd::Identity(6, 6);
+      state_transition_model = MatrixXd::Identity(6, 6);
       state_transition_model(0,1) = dt;
       state_transition_model(2,3) = dt;
 
@@ -149,9 +149,7 @@ namespace kf_plugin
       state_transition_model(3,4) = dt  * dR456_dr.dot(acc);
       state_transition_model(3,5) = dt  * dR456_dp.dot(acc);
 
-      setStateTransitionModel(state_transition_model);
-
-      Matrix<double, 6, 5> control_input_model = MatrixXd::Zero(6, 5);
+      control_input_model = MatrixXd::Zero(6, 5);
       control_input_model(0, 0) = 0.5 * dt * dt  * R1;
       control_input_model(0, 1) = 0.5 * dt * dt  * R2;
       control_input_model(0, 2) = 0.5 * dt * dt  * R3;
@@ -168,30 +166,28 @@ namespace kf_plugin
 
       control_input_model(4, 3) = 1;
       control_input_model(5, 4) = 1;
-
-      setControlInputModel(control_input_model);
     }
 
     /* be sure that the first parma should be timestamp */
-    void updateCorrectModel(const vector<double>& params)
+    void getCorrectModel(const vector<double>& params, const VectorXd& estimate_state, MatrixXd& observation_model) const
     {
       /* params: correct mode */
       assert(params.size() == 1);
       assert((int)params[0] <= VEL);
 
-      Matrix<double, 2, 6> observation_model;
+      Matrix<double, 2, 6> observation_model_temp;
       switch((int)params[0])
         {
         case POS:
           {
-            observation_model <<
+            observation_model_temp <<
               1, 0, 0, 0, 0, 0,
               0, 0, 1, 0, 0, 0;
             break;
           }
         case VEL:
           {
-            observation_model <<
+            observation_model_temp <<
               0, 1, 0, 0, 0, 0,
               0, 0, 0, 1, 0, 0;
             break;
@@ -204,11 +200,7 @@ namespace kf_plugin
           }
         }
 
-      setObservationModel(observation_model);
-
-      /*
-      Matrix<double, 2, 1> meas; meas << val_x, val_y;
-      */
+      observation_model = observation_model_temp;
     }
 
   private:

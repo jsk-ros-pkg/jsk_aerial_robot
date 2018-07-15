@@ -57,8 +57,15 @@ namespace kf_plugin
     void initialize(ros::NodeHandle nh, string suffix, int id);
 
     /* be sure that the first parma should be timestamp */
-    void updatePredictModel(const vector<double>& params = vector<double>(0)){}
-    void updateCorrectModel(const vector<double>& params = vector<double>(0)){}
+    void getPredictModel(const vector<double>& params, const VectorXd& estimate_state, MatrixXd& state_transition_model, MatrixXd& control_input_model) const
+    {
+      state_transition_model = state_transition_model_;
+      control_input_model = control_input_model_;
+    }
+    void getCorrectModel(const vector<double>& params, const VectorXd& estimate_state, MatrixXd& observation_model) const
+    {
+      observation_model = observation_model_;
+    }
 
   private:
     //dynamic reconfigure
