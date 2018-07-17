@@ -18,14 +18,9 @@ find_package(catkin REQUIRED COMPONENTS
   kdl_parser
   )
 
-find_package(orocos_kdl REQUIRED)
-find_package(urdfdom_headers REQUIRED)
 find_package(Eigen3 REQUIRED)
 
-include_directories(${orocos_kdl_INCLUDE_DIRS} ${urdfdom_headers_INCLUDE_DIRS})
-link_directories(${orocos_kdl_LIBRARY_DIRS})
-
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
 
 add_service_files(
   FILES
@@ -44,8 +39,8 @@ generate_dynamic_reconfigure_options(
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES transform_control dynamixel_bridge
-  CATKIN_DEPENDS roscpp message_runtime aerial_robot_msgs aerial_robot_base spinal dynamixel_controllers tf_conversions eigen_conversions kdl_parser aerial_robot_model
-  DEPENDS EIGEN3 orocos_kdl urdfdom_headers
+  CATKIN_DEPENDS roscpp message_runtime aerial_robot_msgs aerial_robot_base spinal dynamixel_controllers tf_conversions eigen_conversions aerial_robot_model
+  DEPENDS EIGEN3
 )
 
 # Eigen requires optimization to get good performance
@@ -83,6 +78,9 @@ add_dependencies(dynamixel_bridge aerial_robot_msgs_generate_messages_cpp aerial
 add_executable(dynamixel_bridge_node src/dynamixel_bridge_node.cpp)
 target_link_libraries(dynamixel_bridge_node  ${catkin_LIBRARIES} dynamixel_bridge)
 add_dependencies(dynamixel_bridge_node aerial_robot_msgs_generate_messages_cpp aerial_robot_base_generate_messages_cpp ${PROJECT_NAME}_generate_messages_cpp ${PROJECT_NAME}_gencfg)
+
+add_library(hydrus_robot_model src/hydrus_robot_model.cpp)
+target_link_libraries(hydrus_robot_model ${catkin_LIBRARIES})
 
 add_library(transform_control src/transform_control.cpp)
 target_link_libraries(transform_control ${catkin_LIBRARIES} ${EIGEN3_LIBRARIES})

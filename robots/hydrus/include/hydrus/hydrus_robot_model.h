@@ -33,9 +33,7 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 
-
-#ifndef TRANSFORM_CONTROL_H
-#define TRANSFORM_CONTROL_H
+#pragma once
 
 /* ros */
 #include <ros/ros.h>
@@ -53,15 +51,6 @@
 #include <tf_conversions/tf_kdl.h>
 #include <tf_conversions/tf_eigen.h>
 
-/* robot model */
-#include <urdf/model.h>
-#include <kdl/tree.hpp>
-#include <kdl_parser/kdl_parser.hpp>
-#include <kdl/treefksolverpos_recursive.hpp>
-#include <kdl/treejnttojacsolver.hpp>
-#include <kdl/chainfksolverpos_recursive.hpp>
-#include <kdl/chainjnttojacsolver.hpp>
-
 /* for eigen cumputation */
 #include <Eigen/Core>
 #include <Eigen/LU>
@@ -70,7 +59,7 @@
 #include <Eigen/Eigenvalues>
 
 /* kinematics */
-#include <hydrus/hydrus_robot_model_ros.h>
+#include <aerial_robot_model/transformable_aerial_robot_model.h>
 
 /* util */
 #include <thread>
@@ -81,75 +70,61 @@
 #include <cmath>
 #include <memory>
 
-/* for dynamic reconfigure */
-#include <dynamic_reconfigure/server.h>
-#include <hydrus/LQIConfig.h>
-#define LQI_GAIN_FLAG 0
-#define LQI_RP_P_GAIN 1
-#define LQI_RP_I_GAIN 2
-#define LQI_RP_D_GAIN 3
-#define LQI_Y_P_GAIN 4
-#define LQI_Y_I_GAIN 5
-#define LQI_Y_D_GAIN 6
-#define LQI_Z_P_GAIN 7
-#define LQI_Z_I_GAIN 8
-#define LQI_Z_D_GAIN 9
 
-
-class TransformController{
+class HydrusRobotModel : public aerial_robot_model::RobotModel {
 public:
-  TransformController(ros::NodeHandle nh, ros::NodeHandle nh_private);
-  ~TransformController();
+  HydrusRobotModel(std::string baselink, std::string thrust_link, double stability_margin_thre, double p_det_thre, double f_max, double f_min, double m_f_rate, bool only_three_axis_mode = false, bool verbose = false);
+  virtual ~HydrusRobotModel() = default;
 
-private:
-  ros::NodeHandle nh_, nh_private_;
+  bool stabilityMarginCheck(bool verbose = false);
+  //virtual bool overlapCheck(bool verbose = false) {return true;}
+  bool modelling(bool verbose = false, bool control_verbose = false); //lagrange method
 
-  bool control_verbose_;
-  bool debug_verbose_;
-  bool kinematic_verbose_;
-  bool verbose_;
+  /* static & stability */
+  double getStabilityMargin() const
+  {
+    return stability_margin_;
+  }
+  Eigen::MatrixXd getP() const
+  {
+    return P_;
+  }
+  double getPdeterminant() const
+  {
+    return p_det_;
+  }
+  Eigen::VectorXd getOptimalHoveringThrust() const
+  {
+    return optimal_hovering_f_;
+  }
 
-  std::unique_ptr<HydrusRobotModelRos> robot_model_ros_;
-  double stability_margin_;
-  double m_f_rate_; //moment / force rate
-  std::string baselink_;
-  std::string thrust_link_;
-  double stability_margin_thre_;
+  //////////////////////////////////////////////////////////////////////////////////////
+  /* control */
+  static constexpr uint8_t LQI_THREE_AXIS_MODE = 3;
+  static constexpr uint8_t LQI_FOUR_AXIS_MODE = 4;
 
+  uint8_t getLqiMode() const
+  {
+    return lqi_mode_;
+  }
+  void setLqiMode(uint8_t lqi_mode)
+  {
+    lqi_mode_ = lqi_mode;
+  }
   void param2controller();
   bool hamiltonMatrixSolver(uint8_t lqi_mode);
 
-  /* ros param init */
-  void initParam();
+private:
+  double stability_margin_thre_;
+  double p_det_thre_;
+  double f_max_, f_min_;
+  double m_f_rate_; //moment / force rate
+  bool only_three_axis_mode_;
 
-  /* publisher */
-  ros::Publisher rpy_gain_pub_;
-  ros::Publisher four_axis_gain_pub_;
-  ros::Publisher p_matrix_pseudo_inverse_inertia_pub_;
-
-  std::thread control_thread_;
-  std::mutex mutex_;
-  double control_rate_;
-  bool gyro_moment_compensation_;
-
-  Eigen::MatrixXd K_;
-  //Q: 8/12:r,r_d, p, p_d, y, y_d, z. z_d, r_i, p_i, y_i, z_i
-  //   6/9:r,r_d, p, p_d, z. z_d, r_i, p_i, z_i
-  Eigen::VectorXd q_diagonal_;
-  double q_roll_,q_roll_d_,q_pitch_,q_pitch_d_,q_yaw_,strong_q_yaw_, q_yaw_d_,q_z_,q_z_d_;
-  double q_roll_i_,q_pitch_i_,q_yaw_i_,q_z_i_;
-  bool a_dash_eigen_calc_flag_;
-  std::vector<double> r_; // matrix R
-
-  virtual void control();
-  /* LQI parameter calculation */
-  void lqi();
-
-  //dynamic reconfigure
-  dynamic_reconfigure::Server<hydrus::LQIConfig> lqi_server_;
-  dynamic_reconfigure::Server<hydrus::LQIConfig>::CallbackType dynamic_reconf_func_lqi_;
-  void cfgLQICallback(hydrus::LQIConfig &config, uint32_t level);
+  double p_det_;
+  double stability_margin_;
+  int lqi_mode_;
+  Eigen::VectorXd optimal_hovering_f_;
+  Eigen::MatrixXd P_;
+  Eigen::MatrixXd P_orig_pseudo_inverse_; // for compensation of cross term in the rotional dynamics
 };
-
-
-#endif

@@ -57,7 +57,7 @@ namespace aerial_robot_model {
   //Transformable Aerial Robot Model
   class RobotModel {
   public:
-    RobotModel(std::string baselink, std::string thrust_link, bool verbose);
+    RobotModel(std::string baselink, std::string thrust_link, bool verbose = false);
     void updateRobotModel(const KDL::JntArray& joint_positions);
     void updateRobotModel(const sensor_msgs::JointState& state);
     bool addExtraModule(std::string module_name, std::string parent_link_name, KDL::Frame transform, KDL::RigidBodyInertia inertia);
@@ -76,17 +76,17 @@ namespace aerial_robot_model {
     {
       return mass_;
     }
-    urdf::Model getRobotModel() const
+    double getVerbose() const
     {
-      return model_;
-    }
-    KDL::Tree getModelTree() const
-    {
-      return tree_;
+      return verbose_;
     }
     std::string getRootFrameName() const
     {
       return GetTreeElementSegment(tree_.getRootSegment()->second).getName();
+    }
+    std::string getBaselinkName() const
+    {
+      return baselink_;
     }
     int getRotorNum() const
     {
@@ -114,23 +114,12 @@ namespace aerial_robot_model {
     }
 
   protected:
-    urdf::Model model_;
-    KDL::Tree tree_;
     std::map<std::string, KDL::RigidBodyInertia> inertia_map_;
-    std::map<std::string, KDL::Segment> extra_module_map_; //string: module_name
-    int rotor_num_;
-    double link_length_; //TODO need?
-    double mass_;
-    KDL::RotationalInertia link_inertia_cog_;
+    std::map<std::string, KDL::Segment> extra_module_map_;
     std::vector<KDL::Vector> rotors_origin_from_cog_;
     KDL::Frame cog2baselink_transform_;
     KDL::Frame cog_;
     KDL::Rotation cog_desire_orientation_;
-    std::string baselink_;
-    std::string thrust_link_;
-    bool verbose_;
-    std::map<int, int> rotor_direction_;
-    std::map<std::string, uint32_t> actuator_map_; // regarding to KDL tree
     std::vector<int> actuator_joint_map_; //the real joint (other than rotor or gimbal)
 
     KDL::RigidBodyInertia inertialSetup(const KDL::TreeElement& tree_element);
@@ -138,6 +127,18 @@ namespace aerial_robot_model {
     KDL::Frame forwardKinematics(std::string link, const KDL::JntArray& joint_positions) const;
     KDL::Frame forwardKinematics(std::string link, const sensor_msgs::JointState& state) const;
     KDL::JntArray jointMsgToKdl(const sensor_msgs::JointState& state) const;
+  private:
+    urdf::Model model_;
+    KDL::Tree tree_;
+    int rotor_num_;
+    std::string baselink_;
+    std::string thrust_link_;
+    double link_length_;
+    bool verbose_;
+    double mass_;
+    KDL::RotationalInertia link_inertia_cog_;
+    std::map<int, int> rotor_direction_;
+    std::map<std::string, uint32_t> actuator_map_; // regarding to KDL tree
   };
 
   template<> inline KDL::Frame RobotModel::getCog() const

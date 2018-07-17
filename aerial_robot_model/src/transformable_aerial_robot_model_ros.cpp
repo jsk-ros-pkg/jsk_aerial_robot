@@ -1,24 +1,17 @@
 #include <aerial_robot_model/transformable_aerial_robot_model_ros.h>
 
 namespace aerial_robot_model {
-  RobotModelRos::RobotModelRos(ros::NodeHandle nh, ros::NodeHandle nhp, std::unique_ptr<T> model):
+  RobotModelRos::RobotModelRos(ros::NodeHandle nh, ros::NodeHandle nhp, std::unique_ptr<aerial_robot_model::RobotModel> robot_model):
     nh_(nh),
     nhp_(nhp),
-    is_kinematics_updated_(false)
+    robot_model_(std::move(robot_model)),
+    kinematics_updated_(false)
   {
-    nhp_.param("kinematic_verbose", verbose_, false);
-    nhp_.param("baselink", baselink_, std::string("link1"));
-    if(verbose_) std::cout << "baselink: " << baselink_ << std::endl;
-    nhp_.param("thrust_link", thrust_link_, std::string("thrust"));
-    if(verbose_) std::cout << "thrust_link: " << thrust_link_ << std::endl;
-
-    robot_model_ = std::move(model);
-
     //publisher
-    cog2baselink_tf_pub_ = nh_.advertise<geometry_msgs::TransformStamped>("/cog2baselink", 1);
+    cog2baselink_tf_pub_ = nh_.advertise<geometry_msgs::TransformStamped>("cog2baselink", 1);
     //subscriber
     actuator_state_sub_ = nhp_.subscribe("joint_states", 1, &RobotModelRos::actuatorStateCallback, this);
-    desire_coordinate_sub_ = nh_.subscribe("/desire_coordinate", 1, &RobotModelRos::desireCoordinateCallback, this);
+    desire_coordinate_sub_ = nh_.subscribe("desire_coordinate", 1, &RobotModelRos::desireCoordinateCallback, this);
 
     //service server
     add_extra_module_service_ = nhp_.advertiseService("add_extra_module", &RobotModelRos::addExtraModuleCallback, this);
@@ -26,33 +19,33 @@ namespace aerial_robot_model {
 
   void RobotModelRos::desireCoordinateCallback(const spinal::DesireCoordConstPtr& msg)
   {
-    robot_model_->setCogDesireOrientation(msg->roll, msg->pitch, msg->yaw);
+    getRobotModel().setCogDesireOrientation(msg->roll, msg->pitch, msg->yaw);
   }
 
   void RobotModelRos::actuatorStateCallback(const sensor_msgs::JointStateConstPtr& state)
   {
-    if(getActuatorJointMap().empty()) setActuatorJointMap(*state);
+    if(getRobotModel().getActuatorJointMap().empty()) getRobotModel().setActuatorJointMap(*state);
 
-    if(verbose_) ROS_ERROR("start kinematics");
-    robot_model_->updateRobotModel(*state);
-    if(verbose_) ROS_ERROR("finish kinematics");
+    if(getRobotModel().getVerbose()) ROS_ERROR("start kinematics");
+    getRobotModel().updateRobotModel(*state);
+    if(getRobotModel().getVerbose()) ROS_ERROR("finish kinematics");
 
-    geometry_msgs::TransformStamped tf = getCog<geometry_msgs::TransformStamped>();
+    geometry_msgs::TransformStamped tf = getRobotModel().getCog<geometry_msgs::TransformStamped>();
     tf.header = state->header;
-    tf.header.frame_id = robot_model_->getRootFrameName();
+    tf.header.frame_id = getRobotModel().getRootFrameName();
     tf.child_frame_id = "cog";
     br_.sendTransform(tf);
 
-    geometry_msgs::TransformStamped transform_msg = getCog2Baselink<geometry_msgs::TransformStamped>();
+    geometry_msgs::TransformStamped transform_msg = getRobotModel().getCog2Baselink<geometry_msgs::TransformStamped>();
     transform_msg.header = state->header;
     transform_msg.header.frame_id = std::string("cog");
-    transform_msg.child_frame_id = baselink_;
+    transform_msg.child_frame_id = getRobotModel().getBaselinkName();
     cog2baselink_tf_pub_.publish(transform_msg);
 
-    if(!is_kinematics_updated_)
+    if(!kinematics_updated_)
       {
-        ROS_ERROR("the total mass is %f", robot_model_->getMass());
-        is_kinematics_updated_ = true;
+        ROS_ERROR("the total mass is %f", getRobotModel().getMass());
+        kinematics_updated_ = true;
       }
   }
 
@@ -69,13 +62,13 @@ namespace aerial_robot_model {
                                                    KDL::RotationalInertia(req.inertia.ixx, req.inertia.iyy,
                                                                           req.inertia.izz, req.inertia.ixy,
                                                                           req.inertia.ixz, req.inertia.iyz));
-          res.status = robot_model_->addExtraModule(req.module_name, req.parent_link_name, f, rigid_body_inertia);
+          res.status = getRobotModel().addExtraModule(req.module_name, req.parent_link_name, f, rigid_body_inertia);
           return res.status;
           break;
         }
       case aerial_robot_model::AddExtraModule::Request::REMOVE:
         {
-          res.status = robot_model_->removeExtraModule(req.module_name);
+          res.status = getRobotModel().removeExtraModule(req.module_name);
           return res.status;
           break;
         }

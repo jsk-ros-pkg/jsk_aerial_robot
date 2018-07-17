@@ -35,43 +35,18 @@
 
 #pragma once
 
-#include <aerial_robot_model/transformable_aerial_robot_model.h>
-#include <spinal/DesireCoord.h>
-#include <aerial_robot_model/AddExtraModule.h>
-#include <tf2_ros/transform_broadcaster.h>
-#include <memory>
+#include <aerial_robot_model/transformable_aerial_robot_model_ros.h>
+#include <hydrus/hydrus_robot_model.h>
 
-namespace aerial_robot_model {
+class HydrusRobotModelRos : public aerial_robot_model::RobotModelRos{
+public:
+  HydrusRobotModelRos(ros::NodeHandle nh, ros::NodeHandle nhp, std::unique_ptr<HydrusRobotModel> robot_model):
+    RobotModelRos(nh, nhp, std::move(robot_model)) {}
+  virtual ~HydrusRobotModelRos() = default;
 
-  //Transformable Aerial Robot Model with ROS functions
-  class RobotModelRos {
-  public:
-    RobotModelRos(ros::NodeHandle nh, ros::NodeHandle nhp, std::unique_ptr<aerial_robot_model::RobotModel> robot_model);
-    virtual ~RobotModelRos() = default;
+  HydrusRobotModel& getRobotModel() const
+  {
+    return static_cast<HydrusRobotModel&>(RobotModelRos::getRobotModel());
+  }
+};
 
-    aerial_robot_model::RobotModel& getRobotModel() const
-    {
-      return *robot_model_;
-    }
-
-    bool getKinematicsUpdated() const
-    {
-      return kinematics_updated_;
-    }
-
-  private:
-    std::unique_ptr<aerial_robot_model::RobotModel> robot_model_;
-
-    ros::NodeHandle nh_, nhp_;
-    ros::Publisher cog2baselink_tf_pub_;
-    ros::Subscriber actuator_state_sub_;
-    ros::Subscriber desire_coordinate_sub_;
-    ros::ServiceServer add_extra_module_service_;
-    tf2_ros::TransformBroadcaster br_;
-
-    bool kinematics_updated_;
-    void actuatorStateCallback(const sensor_msgs::JointStateConstPtr& state);
-    void desireCoordinateCallback(const spinal::DesireCoordConstPtr& msg);
-    bool addExtraModuleCallback(aerial_robot_model::AddExtraModule::Request& req, aerial_robot_model::AddExtraModule::Response& res);
-  };
-} //namespace aerial_robot_model
