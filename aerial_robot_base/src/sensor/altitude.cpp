@@ -214,16 +214,20 @@ namespace sensor_plugin
       static double range_previous_secs = range_msg->header.stamp.toSec();
       double current_secs = range_msg->header.stamp.toSec();
 
+      if(!updateBaseLink2SensorTransform()) return;
+
       /* consider the orientation of the uav */
       float roll = (estimator_->getState(State::ROLL_BASE, BasicEstimator::EGOMOTION_ESTIMATE))[0];
       float pitch = (estimator_->getState(State::PITCH_BASE, BasicEstimator::EGOMOTION_ESTIMATE))[0];
-      //ROS_INFO("range debug: roll and pitch is [%f, %f]", roll, pitch);
-      raw_range_sensor_value_ = cos(roll) * cos(pitch) * range_msg->range;
-      //raw_range_sensor_value_ = range_msg->range; // depreacated
-
       /* add the offset from the base_link to the sensor */
       tf::Matrix3x3 tilt_r; tilt_r.setRPY(roll, pitch, 0);
-      raw_range_sensor_value_ -= (tilt_r * baselink_transform_.getOrigin()).z();
+      double raw_range_sensor_value = cos(roll) * cos(pitch) * range_msg->range - (tilt_r * sensor_tf_.getOrigin()).z();
+
+      raw_range_sensor_value_ = (estimator_->getOrientation(Frame::BASELINK, BasicEstimator::EGOMOTION_ESTIMATE) * (sensor_tf_* tf::Vector3(0, 0, range_msg->range))).z();
+
+      /* test */
+      ROS_INFO("range from roll/pitch vs from tf: %f vs %f",
+               raw_range_sensor_value, raw_range_sensor_value_);
 
       /* calibrate phase */
       if(calibrate_cnt > 0)

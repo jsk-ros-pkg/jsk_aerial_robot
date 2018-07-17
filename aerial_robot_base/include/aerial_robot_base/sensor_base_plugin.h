@@ -54,6 +54,8 @@
 /* ros msg */
 #include <aerial_robot_msgs/States.h>
 #include <std_srvs/SetBool.h>
+#include <tf2_ros/transform_listener.h>
+#include <tf/LinearMath/Transform.h>
 
 /* utils */
 #include <iostream>
@@ -70,7 +72,7 @@ namespace sensor_plugin
       estimate_flag_(true),
       sensor_hz_(0)
     {
-      baselink_transform_.setIdentity();
+      sensor_tf_.setIdentity();
     }
 
     virtual void initialize(ros::NodeHandle nh, ros::NodeHandle nhp, BasicEstimator* estimator, string sensor_name)
@@ -97,24 +99,17 @@ namespace sensor_plugin
         ROS_ERROR("%s, can not get param about estimate mode", ns.c_str());
       if(param_verbose_) cout << ns << ": estimate mode is " << estimate_mode_ << endl;
 
+      nhp_.param("sensor_frame", sensor_frame_, string("sensor_frame"));
+      nhp_.param("reference_frame", reference_frame_, string("baselink"));
+      nhp_.param("get_sensor_tf", get_sensor_tf_, false);
+      nhp_.param("variable_sensor_tf_flag", variable_sensor_tf_flag_, false);
+
       nhp_.param("health_timeout", health_timeout_, 0.5);
       if(param_verbose_) cout << ns << ": health_timeout is " << health_timeout_ << endl;
       nhp_.param("unhealth_level", unhealth_level_, 0);
       if(param_verbose_) cout << ns << ": unhealth_level is " << unhealth_level_ << endl;
       nhp_.param("health_check_rate", health_check_rate_, 100.0);
       if(param_verbose_) cout << ns << ": health_check_rate_ is " << health_check_rate_ << endl;
-
-      double frame_x, frame_y, frame_z, frame_roll, frame_pitch, frame_yaw;
-      nhp_.param("frame_x", frame_x, 0.0);
-      nhp_.param("frame_y", frame_y, 0.0);
-      nhp_.param("frame_z", frame_z, 0.0);
-      nhp_.param("frame_roll", frame_roll, 0.0);
-      nhp_.param("frame_pitch", frame_pitch, 0.0);
-      nhp_.param("frame_yaw", frame_yaw, 0.0);
-      tf::Quaternion q;
-      q.setRPY(frame_roll, frame_pitch, frame_yaw);
-      baselink_transform_.setRotation(q);
-      if(param_verbose_) cout << ns << ": baselink frame transform: [" << frame_roll << ", " << frame_pitch << ", " << frame_yaw << "]" << endl;
 
       /* time sync for sensor fusion */
       nhp_.param("delay", delay_, 0.0);
@@ -139,6 +134,11 @@ namespace sensor_plugin
     bool param_verbose_;
     bool debug_verbose_;
 
+    bool get_sensor_tf_;
+    bool variable_sensor_tf_flag_;
+    string sensor_frame_;
+    string reference_frame_;
+
     bool time_sync_;
     double delay_;
 
@@ -151,7 +151,7 @@ namespace sensor_plugin
     int estimate_flag_;
 
     /* the transformation between sensor frame and baselink frame */
-    tf::Transform baselink_transform_;
+    tf::Transform sensor_tf_; /* TODO: this should be in the basic estimation */
 
     /* health check */
     vector<bool> health_;
@@ -160,7 +160,7 @@ namespace sensor_plugin
     double health_timeout_;
     int unhealth_level_;
 
-    inline bool getFuserActivate(uint8_t mode)
+    inline const bool getFuserActivate(uint8_t mode) const
     {
       return (estimate_mode_ & (1 << mode));
     }
@@ -210,11 +210,44 @@ namespace sensor_plugin
       health_stamp_[chan] = stamp;
     }
 
-    inline tf::Transform getBaseLink2SensorTransform()
-    {
-      return baselink_transform_;
-    }
+    inline const tf::Transform& getBaseLink2SensorTransform() const { return sensor_tf_; }
 
+
+    bool updateBaseLink2SensorTransform()
+    {
+      /* get transform from baselink to sensor frame */
+      if(!variable_sensor_tf_flag_ && get_sensor_tf_) return true;
+
+      /*
+         TODO: for joint or servo system, this should be processed every time,
+         maybe KDL kinematics is better, since the tf need 0.x[sec].
+      */
+      double start_time = ros::Time::now().toSec();
+
+      tf2_ros::Buffer tfBuffer;
+      tf2_ros::TransformListener tfListener(tfBuffer);
+      geometry_msgs::TransformStamped transformStamped;
+      try
+        {
+          transformStamped = tfBuffer.lookupTransform(reference_frame_, sensor_frame_, ros::Time(0), ros::Duration(1.0));
+        }
+      catch (tf2::TransformException &ex)
+        {
+          ROS_ERROR("%s: %s",nhp_.getNamespace().c_str(), ex.what());
+          return false;
+        }
+      tf::transformMsgToTF(transformStamped.transform, sensor_tf_);
+
+      double y, p, r; sensor_tf_.getBasis().getRPY(r, p, y);
+      if(!variable_sensor_tf_flag_)
+        ROS_INFO("%s: get tf from %s to %s, [%f, %f, %f], [%f, %f, %f], using %f[sec]",
+                 nhp_.getNamespace().c_str(), reference_frame_.c_str(), sensor_frame_.c_str(),
+                 sensor_tf_.getOrigin().x(), sensor_tf_.getOrigin().y(),
+                 sensor_tf_.getOrigin().z(), r, p, y, ros::Time::now().toSec() - start_time);
+
+      get_sensor_tf_ = true;
+      return true;
+    }
   };
 
 };
