@@ -1,7 +1,7 @@
 #include <hydrus/hydrus_robot_model.h>
 
-HydrusRobotModel::HydrusRobotModel(std::string baselink, std::string thrust_link, double stability_margin_thre, double p_det_thre, double f_max, double f_min, double m_f_rate, bool only_three_axis_mode, bool verbose):
-  RobotModel(baselink, thrust_link, verbose),
+HydrusRobotModel::HydrusRobotModel(bool init_with_rosparam, std::string baselink, std::string thrust_link, double stability_margin_thre, double p_det_thre, double f_max, double f_min, double m_f_rate, bool only_three_axis_mode, bool verbose):
+  RobotModel(init_with_rosparam, baselink, thrust_link, verbose),
   stability_margin_thre_(stability_margin_thre),
   p_det_thre_(p_det_thre),
   f_max_(f_max),
@@ -11,10 +11,31 @@ HydrusRobotModel::HydrusRobotModel(std::string baselink, std::string thrust_link
   p_det_(0),
   stability_margin_(0)
 {
+  if (init_with_rosparam)
+    {
+      getParamFromRos();
+    }
   //P : mapping from thrust(u) to acceleration(y) y = Pu-G
   P_ = Eigen::MatrixXd::Zero(4, getRotorNum());
 
   lqi_mode_ = LQI_FOUR_AXIS_MODE;
+}
+
+void HydrusRobotModel::getParamFromRos()
+{
+  ros::NodeHandle nhp("~");
+  nhp.param("only_three_axis_mode", only_three_axis_mode_, false);
+  nhp.param ("stability_margin_thre", stability_margin_thre_, 0.01);
+  if(getVerbose()) std::cout << "stability margin thre: " << std::setprecision(3) << stability_margin_thre_ << std::endl;
+  nhp.param ("p_determinant_thre", p_det_thre_, 1e-6);
+  if(getVerbose()) std::cout << "p determinant thre: " << std::setprecision(3) << p_det_thre_ << std::endl;
+  nhp.param ("f_max", f_max_, 8.6);
+  if(getVerbose()) std::cout << "f_max: " << std::setprecision(3) << f_max_ << std::endl;
+  nhp.param ("f_min", f_min_, 2.0);
+  if(getVerbose()) std::cout << "f_min: " << std::setprecision(3) << f_min_ << std::endl;
+  ros::NodeHandle control_node("/motor_info");
+  control_node.param("m_f_rate", m_f_rate_, 0.01);
+  if(getVerbose()) std::cout << "m_f_rate: " << std::setprecision(3) << m_f_rate_ << std::endl;
 }
 
 bool HydrusRobotModel::stabilityMarginCheck(bool verbose)

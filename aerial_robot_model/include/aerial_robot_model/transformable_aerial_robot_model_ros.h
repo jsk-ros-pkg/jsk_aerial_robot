@@ -46,17 +46,17 @@ namespace aerial_robot_model {
   //Transformable Aerial Robot Model with ROS functions
   class RobotModelRos {
   public:
-    RobotModelRos(ros::NodeHandle nh, ros::NodeHandle nhp, std::unique_ptr<aerial_robot_model::RobotModel> robot_model);
+    RobotModelRos(ros::NodeHandle nh, ros::NodeHandle nhp, std::unique_ptr<aerial_robot_model::RobotModel> robot_model = std::make_unique<aerial_robot_model::RobotModel>(true));
     virtual ~RobotModelRos() = default;
-
-    aerial_robot_model::RobotModel& getRobotModel() const
-    {
-      return *robot_model_;
-    }
 
     bool getKinematicsUpdated() const
     {
       return kinematics_updated_;
+    }
+  protected:
+    aerial_robot_model::RobotModel& getRobotModel() const
+    {
+      return *robot_model_;
     }
 
   private:

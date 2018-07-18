@@ -1,7 +1,9 @@
 #include <hydrus/transform_control.h>
 
 TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_private):
-  nh_(nh), nh_private_(nh_private)
+  RobotModelRos(nh, nh_private, std::make_unique<HydrusRobotModel>(true)),
+  nh_(nh),
+  nh_private_(nh_private)
 {
   nh_private_.param("verbose", verbose_, false);
   ROS_ERROR("ns is %s", nh_private_.getNamespace().c_str());
@@ -21,7 +23,7 @@ TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_
   control_thread_ = std::thread(boost::bind(&TransformController::control, this));
 
   //Q
-  q_diagonal_ = Eigen::VectorXd::Zero(LQI_FOUR_AXIS_MODE * 3);
+  q_diagonal_ = Eigen::VectorXd::Zero(HydrusRobotModel::LQI_FOUR_AXIS_MODE * 3);
   q_diagonal_ << q_roll_,q_roll_d_,q_pitch_,q_pitch_d_,q_z_,q_z_d_,q_yaw_,q_yaw_d_, q_roll_i_,q_pitch_i_,q_z_i_,q_yaw_i_;
   //std::cout << "Q elements :"  << std::endl << q_diagonal_ << std::endl;
 }
@@ -36,33 +38,13 @@ void TransformController::initParam()
   nh_private_.param("control_rate", control_rate_, 15.0);
   if(verbose_) std::cout << "control_rate: " << std::setprecision(3) << control_rate_ << std::endl;
 
-  nh_private_.param("only_three_axis_mode", only_three_axis_mode_, false);
   nh_private_.param("gyro_moment_compensation", gyro_moment_compensation_, false);
   nh_private_.param("control_verbose", control_verbose_, false);
   nh_private_.param("debug_verbose", debug_verbose_, false);
-  nh_private_.param("kinematic_verbose", kinematic_verbose_, false);
   nh_private_.param("a_dash_eigen_calc_flag", a_dash_eigen_calc_flag_, false);
-  nh_private_.param("baselink", baselink_, std::string("fc"));
-  if(verbose_) std::cout << "baselink: " << baselink_ << std::endl;
-  nh_private_.param("thrust_link", thrust_link_, std::string("thrust"));
-  if(verbose_) std::cout << "thrust_link: " << thrust_link_ << std::endl;
-  /* dynamics: motor */
-  ros::NodeHandle control_node("/motor_info");
-  control_node.param("m_f_rate", m_f_rate_, 0.01);
-  if(verbose_) std::cout << "m_f_rate: " << std::setprecision(3) << m_f_rate_ << std::endl;
-  nh_private_.param ("stability_margin_thre", stability_margin_thre_, 0.01);
-  if(verbose_) std::cout << "stability margin thre: " << std::setprecision(3) << stability_margin_thre_ << std::endl;
-  nh_private_.param ("p_determinant_thre", p_det_thre_, 1e-6);
-  if(verbose_) std::cout << "p determinant thre: " << std::setprecision(3) << p_det_thre_ << std::endl;
-  nh_private_.param ("f_max", f_max_, 8.6);
-  if(verbose_) std::cout << "f_max: " << std::setprecision(3) << f_max_ << std::endl;
-  nh_private_.param ("f_min", f_min_, 2.0);
-  if(verbose_) std::cout << "f_min: " << std::setprecision(3) << f_min_ << std::endl;
-
-  robot_model_ros_ = std::make_unique<HydrusRobotModelRos>(nh_, nh_private_, std::make_unique<HydrusRobotModel>(baselink_, thrust_link_, stability_margin_thre_, p_det_thre_, f_max_, f_min_, m_f_rate_, only_three_axis_mode_, kinematic_verbose_));
 
   /* propeller direction and lqi R */
-  const int rotor_num = robot_model_ros_->getRobotModel().getRobotNum();
+  const int rotor_num = getRobotModel().getRotorNum();
   r_.resize(rotor_num);
   for(int i = 0; i < rotor_num; ++i) {
     std::stringstream ss;
@@ -71,7 +53,6 @@ void TransformController::initParam()
     nh_private_.param(std::string("r") + ss.str(), r_[i], 1.0);
     if(verbose_) std::cout << std::string("r") + ss.str() << ": " << r_[i] << std::endl;
   }
-
 
   nh_private_.param ("q_roll", q_roll_, 1.0);
   if(verbose_) std::cout << "Q: q_roll: " << std::setprecision(3) << q_roll_ << std::endl;
@@ -117,12 +98,12 @@ void TransformController::control()
 
 void TransformController::lqi()
 {
-  if(!robot_model_ros_->getKinematicsUpdated()) return;
+  if(!getKinematicsUpdated()) return;
   std::lock_guard<std::mutex> lock(mutex_);
 
   /* check the thre check */
   if(debug_verbose_) ROS_WARN(" start dist thre check");
-  if(!robot_model_ros_->getRobotModel().stabilityMarginCheck(control_verbose_)) //[m]
+  if(!getRobotModel().stabilityMarginCheck(control_verbose_)) //[m]
     {
       ROS_ERROR("LQI: invalid pose, cannot pass the distance thresh check");
       return;
@@ -131,7 +112,7 @@ void TransformController::lqi()
 
   /* check the propeller overlap */
   if(debug_verbose_) ROS_WARN(" start overlap check");
-  if(!overlapCheck()) //[m]
+  if(!getRobotModel().overlapCheck()) //[m]
     {
       ROS_ERROR("LQI: invalid pose, some propellers overlap");
       return;
@@ -140,13 +121,13 @@ void TransformController::lqi()
 
   /* modelling the multilink based on the inertia assumption */
   if(debug_verbose_) ROS_WARN(" start modelling");
-  if(!robot_model_ros_->getRobotModel().modelling(false, control_verbose_))
+  if(!getRobotModel().modelling(false, control_verbose_))
       ROS_ERROR("LQI: invalid pose, can not be four axis stable, switch to three axis stable mode");
 
   if(debug_verbose_) ROS_WARN(" finish modelling");
 
   if(debug_verbose_) ROS_WARN(" start ARE calc");
-  if(!hamiltonMatrixSolver(robot_model_ros_->getRobotModel().getLqiMode()))
+  if(!hamiltonMatrixSolver())
     {
       ROS_ERROR("LQI: can not solve hamilton matrix");
       return;
@@ -157,10 +138,11 @@ void TransformController::lqi()
   if(debug_verbose_) ROS_WARN(" finish param2controller");
 }
 
-bool TransformController::hamiltonMatrixSolver(uint8_t lqi_mode)
+bool TransformController::hamiltonMatrixSolver()
 {
   /* for the R which is  diagonal matrix. should be changed to rotor_num */
-  const int rotor_num = robot_model_ros_->getRobotModel().getRotorNum();
+  const int rotor_num = getRobotModel().getRotorNum();
+  const int lqi_mode = getRobotModel().getLqiMode();
   Eigen::MatrixXd A = Eigen::MatrixXd::Zero(lqi_mode * 3, lqi_mode * 3);
   Eigen::MatrixXd B = Eigen::MatrixXd::Zero(lqi_mode * 3, rotor_num);
   Eigen::MatrixXd C = Eigen::MatrixXd::Zero(lqi_mode, lqi_mode * 3);
@@ -168,7 +150,7 @@ bool TransformController::hamiltonMatrixSolver(uint8_t lqi_mode)
   for(int i = 0; i < lqi_mode; i++)
     {
       A(2 * i, 2 * i + 1) = 1;
-      B.row(2 * i + 1) = robot_model_ros_->getRobotModel().getP.row(i);
+      B.row(2 * i + 1) = getRobotModel().getP().row(i);
       C(i, 2 * i) = 1;
     }
   A.block(lqi_mode * 2, 0, lqi_mode, lqi_mode * 3) = -C;
@@ -182,7 +164,7 @@ bool TransformController::hamiltonMatrixSolver(uint8_t lqi_mode)
       Q.block(0, 0, 6, 6) = Q_tmp.block(0, 0, 6, 6);
       Q.block(6, 6, 3, 3) = Q_tmp.block(8, 8, 3, 3);
     }
-  if(lqi_mode_ == HydrusRobotModel::LQI_FOUR_AXIS_MODE) Q = q_diagonal_.asDiagonal();
+  if(lqi_mode == HydrusRobotModel::LQI_FOUR_AXIS_MODE) Q = q_diagonal_.asDiagonal();
 
   Eigen::MatrixXd R_inv  = Eigen::MatrixXd::Zero(rotor_num, rotor_num);
   for(int i = 0; i < rotor_num; ++i)
@@ -267,36 +249,38 @@ void TransformController::param2controller()
   spinal::RollPitchYawTerms rpy_gain_msg; //for rosserial
   spinal::PMatrixPseudoInverseWithInertia p_pseudo_inverse_with_inertia_msg;
 
-  const int rotor_num = robot_model_ros_->getRobotModel().getRobotNum();
+  const int rotor_num = getRobotModel().getRotorNum();
   four_axis_gain_msg.motor_num = rotor_num;
   rpy_gain_msg.motors.resize(rotor_num);
   p_pseudo_inverse_with_inertia_msg.pseudo_inverse.resize(rotor_num);
 
+  const int lqi_mode = getRobotModel().getLqiMode();
+  const Eigen::MatrixXd P_orig_pseudo_inverse = getRobotModel().getPOrigPseudoInverse();
   for(int i = 0; i < rotor_num; ++i)
     {
       /* to flight controller via rosserial */
       rpy_gain_msg.motors[i].roll_p = K_(i,0) * 1000; //scale: x 1000
       rpy_gain_msg.motors[i].roll_d = K_(i,1) * 1000;  //scale: x 1000
-      rpy_gain_msg.motors[i].roll_i = K_(i, lqi_mode_ * 2) * 1000; //scale: x 1000
+      rpy_gain_msg.motors[i].roll_i = K_(i, lqi_mode * 2) * 1000; //scale: x 1000
 
       rpy_gain_msg.motors[i].pitch_p = K_(i,2) * 1000; //scale: x 1000
       rpy_gain_msg.motors[i].pitch_d = K_(i,3) * 1000; //scale: x 1000
-      rpy_gain_msg.motors[i].pitch_i = K_(i,lqi_mode_ * 2 + 1) * 1000; //scale: x 1000
+      rpy_gain_msg.motors[i].pitch_i = K_(i,lqi_mode * 2 + 1) * 1000; //scale: x 1000
 
       /* to aerial_robot_base, feedback */
       four_axis_gain_msg.pos_p_gain_roll.push_back(K_(i,0));
       four_axis_gain_msg.pos_d_gain_roll.push_back(K_(i,1));
-      four_axis_gain_msg.pos_i_gain_roll.push_back(K_(i,lqi_mode_ * 2));
+      four_axis_gain_msg.pos_i_gain_roll.push_back(K_(i,lqi_mode * 2));
 
       four_axis_gain_msg.pos_p_gain_pitch.push_back(K_(i,2));
       four_axis_gain_msg.pos_d_gain_pitch.push_back(K_(i,3));
-      four_axis_gain_msg.pos_i_gain_pitch.push_back(K_(i,lqi_mode_ * 2 + 1));
+      four_axis_gain_msg.pos_i_gain_pitch.push_back(K_(i,lqi_mode * 2 + 1));
 
       four_axis_gain_msg.pos_p_gain_alt.push_back(K_(i,4));
       four_axis_gain_msg.pos_d_gain_alt.push_back(K_(i,5));
-      four_axis_gain_msg.pos_i_gain_alt.push_back(K_(i, lqi_mode_ * 2 + 2));
+      four_axis_gain_msg.pos_i_gain_alt.push_back(K_(i, lqi_mode * 2 + 2));
 
-      if(lqi_mode_ == LQI_FOUR_AXIS_MODE)
+      if(lqi_mode == HydrusRobotModel::LQI_FOUR_AXIS_MODE)
         {
           /* to flight controller via rosserial */
           rpy_gain_msg.motors[i].yaw_d = K_(i,7) * 1000; //scale: x 1000
@@ -307,7 +291,7 @@ void TransformController::param2controller()
           four_axis_gain_msg.pos_i_gain_yaw.push_back(K_(i,11));
 
         }
-      else if(lqi_mode_ == LQI_THREE_AXIS_MODE)
+      else if(lqi_mode == HydrusRobotModel::LQI_THREE_AXIS_MODE)
         {
           rpy_gain_msg.motors[i].yaw_d = 0;
 
@@ -318,16 +302,16 @@ void TransformController::param2controller()
         }
 
       /* the p matrix pseudo inverse and inertia */
-      p_pseudo_inverse_with_inertia_msg.pseudo_inverse[i].r = P_orig_pseudo_inverse_(i, 0) * 1000;
-      p_pseudo_inverse_with_inertia_msg.pseudo_inverse[i].p = P_orig_pseudo_inverse_(i, 1) * 1000;
-      p_pseudo_inverse_with_inertia_msg.pseudo_inverse[i].y = P_orig_pseudo_inverse_(i, 3) * 1000;
+      p_pseudo_inverse_with_inertia_msg.pseudo_inverse[i].r = P_orig_pseudo_inverse(i, 0) * 1000;
+      p_pseudo_inverse_with_inertia_msg.pseudo_inverse[i].p = P_orig_pseudo_inverse(i, 1) * 1000;
+      p_pseudo_inverse_with_inertia_msg.pseudo_inverse[i].y = P_orig_pseudo_inverse(i, 3) * 1000;
     }
   rpy_gain_pub_.publish(rpy_gain_msg);
   four_axis_gain_pub_.publish(four_axis_gain_msg);
 
 
   /* the multilink inertia */
-  Eigen::Matrix3d inertia = robot_model_ros_->getRobotModel().getInertia<Eigen::Matrix3d>();
+  Eigen::Matrix3d inertia = getRobotModel().getInertia<Eigen::Matrix3d>();
   p_pseudo_inverse_with_inertia_msg.inertia[0] = inertia(0, 0) * 1000;
   p_pseudo_inverse_with_inertia_msg.inertia[1] = inertia(1, 1) * 1000;
   p_pseudo_inverse_with_inertia_msg.inertia[2] = inertia(2, 2) * 1000;

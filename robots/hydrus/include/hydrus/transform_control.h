@@ -70,7 +70,8 @@
 #include <Eigen/Eigenvalues>
 
 /* kinematics */
-#include <hydrus/hydrus_robot_model_ros.h>
+#include <hydrus/hydrus_robot_model.h>
+#include <aerial_robot_model/transformable_aerial_robot_model_ros.h>
 
 /* util */
 #include <thread>
@@ -96,10 +97,16 @@
 #define LQI_Z_D_GAIN 9
 
 
-class TransformController{
+class TransformController : public aerial_robot_model::RobotModelRos {
 public:
   TransformController(ros::NodeHandle nh, ros::NodeHandle nh_private);
-  ~TransformController();
+  virtual ~TransformController();
+
+protected:
+  HydrusRobotModel& getRobotModel() const
+  {
+    return static_cast<HydrusRobotModel&>(RobotModelRos::getRobotModel());
+  }
 
 private:
   ros::NodeHandle nh_, nh_private_;
@@ -109,7 +116,6 @@ private:
   bool kinematic_verbose_;
   bool verbose_;
 
-  std::unique_ptr<HydrusRobotModelRos> robot_model_ros_;
   double stability_margin_;
   double m_f_rate_; //moment / force rate
   std::string baselink_;
@@ -117,7 +123,7 @@ private:
   double stability_margin_thre_;
 
   void param2controller();
-  bool hamiltonMatrixSolver(uint8_t lqi_mode);
+  bool hamiltonMatrixSolver();
 
   /* ros param init */
   void initParam();

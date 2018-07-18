@@ -57,7 +57,11 @@ namespace aerial_robot_model {
   //Transformable Aerial Robot Model
   class RobotModel {
   public:
-    RobotModel(std::string baselink, std::string thrust_link, bool verbose = false);
+    RobotModel(bool init_with_rosparam,
+               std::string baselink = std::string(""),
+               std::string thrust_link = std::string(""),
+               bool verbose = false);
+    virtual ~RobotModel() = default;
     void updateRobotModel(const KDL::JntArray& joint_positions);
     void updateRobotModel(const sensor_msgs::JointState& state);
     bool addExtraModule(std::string module_name, std::string parent_link_name, KDL::Frame transform, KDL::RigidBodyInertia inertia);
@@ -127,6 +131,7 @@ namespace aerial_robot_model {
     KDL::Frame forwardKinematics(std::string link, const KDL::JntArray& joint_positions) const;
     KDL::Frame forwardKinematics(std::string link, const sensor_msgs::JointState& state) const;
     KDL::JntArray jointMsgToKdl(const sensor_msgs::JointState& state) const;
+
   private:
     urdf::Model model_;
     KDL::Tree tree_;
@@ -139,6 +144,7 @@ namespace aerial_robot_model {
     KDL::RotationalInertia link_inertia_cog_;
     std::map<int, int> rotor_direction_;
     std::map<std::string, uint32_t> actuator_map_; // regarding to KDL tree
+    void getParamFromRos();
   };
 
   template<> inline KDL::Frame RobotModel::getCog() const

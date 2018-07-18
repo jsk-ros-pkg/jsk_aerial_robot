@@ -83,7 +83,7 @@ add_library(hydrus_robot_model src/hydrus_robot_model.cpp)
 target_link_libraries(hydrus_robot_model ${catkin_LIBRARIES})
 
 add_library(transform_control src/transform_control.cpp)
-target_link_libraries(transform_control ${catkin_LIBRARIES} ${EIGEN3_LIBRARIES})
+target_link_libraries(transform_control hydrus_robot_model ${catkin_LIBRARIES} ${EIGEN3_LIBRARIES})
 add_dependencies(transform_control aerial_robot_msgs_generate_messages_cpp spinal_generate_messages_cpp ${PROJECT_NAME}_generate_messages_cpp ${PROJECT_NAME}_gencfg)
 
 add_executable(transform_control_node src/transform_control_node.cpp)

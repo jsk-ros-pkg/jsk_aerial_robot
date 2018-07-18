@@ -73,11 +73,20 @@
 
 class HydrusRobotModel : public aerial_robot_model::RobotModel {
 public:
-  HydrusRobotModel(std::string baselink, std::string thrust_link, double stability_margin_thre, double p_det_thre, double f_max, double f_min, double m_f_rate, bool only_three_axis_mode = false, bool verbose = false);
+  HydrusRobotModel(bool init_with_rosparam,
+                   std::string baselink = std::string(""),
+                   std::string thrust_link = std::string(""),
+                   double stability_margin_thre = 0,
+                   double p_det_thre = 0,
+                   double f_max = 0,
+                   double f_min = 0,
+                   double m_f_rate = 0,
+                   bool only_three_axis_mode = false,
+                   bool verbose = false);
   virtual ~HydrusRobotModel() = default;
 
   bool stabilityMarginCheck(bool verbose = false);
-  //virtual bool overlapCheck(bool verbose = false) {return true;}
+  virtual bool overlapCheck(bool verbose = false) {return true;}
   bool modelling(bool verbose = false, bool control_verbose = false); //lagrange method
 
   /* static & stability */
@@ -96,6 +105,10 @@ public:
   Eigen::VectorXd getOptimalHoveringThrust() const
   {
     return optimal_hovering_f_;
+  }
+  Eigen::MatrixXd getPOrigPseudoInverse() const
+  {
+    return P_orig_pseudo_inverse_;
   }
 
   //////////////////////////////////////////////////////////////////////////////////////
@@ -127,4 +140,5 @@ private:
   Eigen::VectorXd optimal_hovering_f_;
   Eigen::MatrixXd P_;
   Eigen::MatrixXd P_orig_pseudo_inverse_; // for compensation of cross term in the rotional dynamics
+  void getParamFromRos();
 };

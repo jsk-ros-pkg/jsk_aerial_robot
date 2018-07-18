@@ -2,7 +2,7 @@
 
 namespace aerial_robot_model {
 
-  RobotModel::RobotModel(std::string baselink, std::string thrust_link, bool verbose):
+  RobotModel::RobotModel(bool init_with_rosparam, std::string baselink, std::string thrust_link, bool verbose):
     baselink_(baselink),
     thrust_link_(thrust_link),
     verbose_(verbose),
@@ -13,12 +13,25 @@ namespace aerial_robot_model {
       ROS_ERROR("Failed to extract urdf model from rosparam");
     if (!kdl_parser::treeFromUrdfModel(model_, tree_))
       ROS_ERROR("Failed to extract kdl tree from xml robot description");
-
+    if (init_with_rosparam)
+      {
+        getParamFromRos();
+      }
     inertialSetup(tree_.getRootSegment()->second);
     resolveLinkLength();
 
     ROS_ERROR("[kinematics] rotor num; %d", rotor_num_);
     rotors_origin_from_cog_.resize(rotor_num_);
+  }
+
+  void RobotModel::getParamFromRos()
+  {
+    ros::NodeHandle nhp("~");
+    nhp.param("kinematic_verbose", verbose_, false);
+    nhp.param("baselink", baselink_, std::string("fc"));
+    if(verbose_) std::cout << "baselink: " << baselink_ << std::endl;
+    nhp.param("thrust_link", thrust_link_, std::string("thrust"));
+    if(verbose_) std::cout << "thrust_link: " << thrust_link_ << std::endl;
   }
 
   void RobotModel::updateRobotModel(const KDL::JntArray& joint_positions)
@@ -184,7 +197,6 @@ namespace aerial_robot_model {
 
     /* count the rotor */
     if(current_seg.getName().find(thrust_link_.c_str()) != std::string::npos) rotor_num_++;
-    ROS_ERROR("rotor num++ called %d", rotor_num_);
     /* update the inertia if the segment is base */
     if (inertia_map_.find(current_seg.getName()) != inertia_map_.end())
       {
