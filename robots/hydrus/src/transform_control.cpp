@@ -258,7 +258,10 @@ void TransformController::initParam()
 
 void TransformController::lqi()
 {
-  if(!getKinematicsUpdated()) return;
+  if(!getKinematicsUpdated()) {
+    if(debug_verbose_) ROS_WARN("lqi return");
+    return;
+  }
   std::lock_guard<std::mutex> lock(mutex_);
 
   /* check the thre check */

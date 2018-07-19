@@ -41,8 +41,8 @@ KDL::JntArray DragonRobotModel::gimbalProcess(const KDL::JntArray& joint_positio
 
       modified_joint_positions(actuator_map.find(std::string("gimbal") + s + std::string("_roll"))->second) = -r;
       modified_joint_positions(actuator_map.find(std::string("gimbal") + s + std::string("_pitch"))->second) = -p;
-      if(getVerbose()) std::cout << std::string("gimbal") + s + std::string("_roll") << " " << actuator_map.find(std::string("gimbal") + s + std::string("_pitch"))->second << std::endl;
-      if(getVerbose()) std::cout << std::string("gimbal") + s + std::string("_roll") << " " << actuator_map.find(std::string("gimbal") + s + std::string("_pitch"))->second << std::endl;
+      //if(getVerbose()) std::cout << std::string("gimbal") + s + std::string("_roll") << " " << actuator_map.find(std::string("gimbal") + s + std::string("_roll"))->second << std::endl;
+      //if(getVerbose()) std::cout << std::string("gimbal") + s + std::string("_pitch") << " " << actuator_map.find(std::string("gimbal") + s + std::string("_pitch"))->second << std::endl;
 
       gimbal_nominal_angles_[i * 2] = -r;
       gimbal_nominal_angles_[i * 2 + 1] = -p;
@@ -80,12 +80,11 @@ bool DragonRobotModel::overlapCheck(bool verbose) const
 
 void DragonRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_positions)
 {
-  //  std::cout << "DragonRobotModel::updateRobotModelImpl Called" << std::endl; //TODO delete
   /* special process */
   gimbal_processed_joint_ = gimbalProcess(joint_positions);
 
   HydrusRobotModel::updateRobotModel(joint_positions);
-
+  return;
   /* special process for dual edf gimbal */
   /* set the edf position w.r.t CoG frame */
   std::vector<KDL::Vector> f_edfs;
