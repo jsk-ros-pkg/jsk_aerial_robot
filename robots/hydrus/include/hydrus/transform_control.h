@@ -33,58 +33,20 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 
+#pragma once
 
-#ifndef TRANSFORM_CONTROL_H
-#define TRANSFORM_CONTROL_H
-
-/* ros */
-#include <ros/ros.h>
-
-#include <spinal/RollPitchYawTerms.h>
-#include <aerial_robot_msgs/FourAxisGain.h>
-#include <sensor_msgs/JointState.h>
-#include <aerial_robot_model/AddExtraModule.h>
-#include <hydrus/TargetPose.h>
-#include <spinal/DesireCoord.h>
-#include <spinal/PMatrixPseudoInverseWithInertia.h>
-#include <std_msgs/UInt8.h>
-#include <tf2_ros/transform_broadcaster.h>
-#include <geometry_msgs/TransformStamped.h>
-#include <tf_conversions/tf_kdl.h>
-#include <tf_conversions/tf_eigen.h>
-
-/* robot model */
-#include <urdf/model.h>
-#include <kdl/tree.hpp>
-#include <kdl_parser/kdl_parser.hpp>
-#include <kdl/treefksolverpos_recursive.hpp>
-#include <kdl/treejnttojacsolver.hpp>
-#include <kdl/chainfksolverpos_recursive.hpp>
-#include <kdl/chainjnttojacsolver.hpp>
-
-/* for eigen cumputation */
-#include <Eigen/Core>
-#include <Eigen/LU>
-#include <Eigen/Dense>
-#include <Eigen/Geometry>
-#include <Eigen/Eigenvalues>
-
-/* kinematics */
-#include <hydrus/hydrus_robot_model.h>
 #include <aerial_robot_model/transformable_aerial_robot_model_ros.h>
-
-/* util */
-#include <thread>
-#include <mutex>
-#include <string>
-#include <iostream>
-#include <iomanip>
-#include <cmath>
-#include <memory>
-
-/* for dynamic reconfigure */
+#include <aerial_robot_msgs/FourAxisGain.h>
 #include <dynamic_reconfigure/server.h>
+#include <hydrus/hydrus_robot_model.h>
 #include <hydrus/LQIConfig.h>
+#include <mutex>
+#include <sensor_msgs/JointState.h>
+#include <spinal/PMatrixPseudoInverseWithInertia.h>
+#include <spinal/RollPitchYawTerms.h>
+#include <ros/ros.h>
+#include <thread>
+
 #define LQI_GAIN_FLAG 0
 #define LQI_RP_P_GAIN 1
 #define LQI_RP_I_GAIN 2
@@ -99,63 +61,51 @@
 
 class TransformController : public aerial_robot_model::RobotModelRos {
 public:
-  TransformController(ros::NodeHandle nh, ros::NodeHandle nh_private);
+  TransformController(ros::NodeHandle nh, ros::NodeHandle nh_private, std::unique_ptr<HydrusRobotModel> robot_model = std::make_unique<HydrusRobotModel>(true));
   virtual ~TransformController();
 
 protected:
-  HydrusRobotModel& getRobotModel() const
-  {
-    return static_cast<HydrusRobotModel&>(RobotModelRos::getRobotModel());
-  }
-
+  //protected functions
+  HydrusRobotModel& getRobotModel() const { return static_cast<HydrusRobotModel&>(RobotModelRos::getRobotModel()); }
 private:
-  ros::NodeHandle nh_, nh_private_;
-
+  //private attributes
+  bool a_dash_eigen_calc_flag_;
+  double control_rate_;
+  std::thread control_thread_;
   bool control_verbose_;
   bool debug_verbose_;
-  bool kinematic_verbose_;
+  dynamic_reconfigure::Server<hydrus::LQIConfig>::CallbackType dynamic_reconf_func_lqi_;
+  ros::Publisher four_axis_gain_pub_;
+  bool gyro_moment_compensation_;
+  Eigen::MatrixXd K_;
+  dynamic_reconfigure::Server<hydrus::LQIConfig> lqi_server_;
+  std::mutex mutex_;
+  ros::NodeHandle nh_;
+  ros::NodeHandle nh_private_;
+  ros::Publisher p_matrix_pseudo_inverse_inertia_pub_;
+  Eigen::VectorXd q_diagonal_;
+  double q_pitch_;
+  double q_pitch_d_;
+  double q_pitch_i_;
+  double q_roll_;
+  double q_roll_d_;
+  double q_roll_i_;
+  double q_yaw_;
+  double q_yaw_d_;
+  double q_yaw_i_;
+  double q_z_;
+  double q_z_d_;
+  double q_z_i_;
+  std::vector<double> r_; // matrix R
+  ros::Publisher rpy_gain_pub_;
+  double strong_q_yaw_;
   bool verbose_;
 
-  double stability_margin_;
-  double m_f_rate_; //moment / force rate
-  std::string baselink_;
-  std::string thrust_link_;
-  double stability_margin_thre_;
-
-  void param2controller();
-  bool hamiltonMatrixSolver();
-
-  /* ros param init */
-  void initParam();
-
-  /* publisher */
-  ros::Publisher rpy_gain_pub_;
-  ros::Publisher four_axis_gain_pub_;
-  ros::Publisher p_matrix_pseudo_inverse_inertia_pub_;
-
-  std::thread control_thread_;
-  std::mutex mutex_;
-  double control_rate_;
-  bool gyro_moment_compensation_;
-
-  Eigen::MatrixXd K_;
-  //Q: 8/12:r,r_d, p, p_d, y, y_d, z. z_d, r_i, p_i, y_i, z_i
-  //   6/9:r,r_d, p, p_d, z. z_d, r_i, p_i, z_i
-  Eigen::VectorXd q_diagonal_;
-  double q_roll_,q_roll_d_,q_pitch_,q_pitch_d_,q_yaw_,strong_q_yaw_, q_yaw_d_,q_z_,q_z_d_;
-  double q_roll_i_,q_pitch_i_,q_yaw_i_,q_z_i_;
-  bool a_dash_eigen_calc_flag_;
-  std::vector<double> r_; // matrix R
-
+  //private functions
+  void cfgLQICallback(hydrus::LQIConfig &config, uint32_t level); //dynamic reconfigure
   virtual void control();
-  /* LQI parameter calculation */
-  void lqi();
-
-  //dynamic reconfigure
-  dynamic_reconfigure::Server<hydrus::LQIConfig> lqi_server_;
-  dynamic_reconfigure::Server<hydrus::LQIConfig>::CallbackType dynamic_reconf_func_lqi_;
-  void cfgLQICallback(hydrus::LQIConfig &config, uint32_t level);
+  bool hamiltonMatrixSolver();
+  void initParam();
+  void lqi(); // LQI parameter calculation
+  void param2controller();
 };
-
-
-#endif

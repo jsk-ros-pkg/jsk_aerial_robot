@@ -55,7 +55,7 @@ catkin_package(
   INCLUDE_DIRS include
   LIBRARIES rotor_interface transformable_aerial_robot_model transformable_aerial_robot_model_ros
   CATKIN_DEPENDS roscpp std_msgs sensor_msgs geometry_msgs tf interactive_markers visualization_msgs message_generation message_runtime spinal
-  DEPENDS EIGEN3
+  DEPENDS EIGEN3 orocos_kdl urdfdom_headers
 )
 
 ###########

@@ -35,22 +35,11 @@
 
 #pragma once
 
-#include <aerial_robot_model/transformable_aerial_robot_model.h>
-#include <aerial_robot_msgs/FourAxisGain.h>
-#include <Eigen/Dense>
-#include <Eigen/Eigenvalues>
-#include <Eigen/LU>
-#include <iomanip>
-#include <iostream>
-#include <spinal/RollPitchYawTerms.h>
-#include <spinal/PMatrixPseudoInverseWithInertia.h>
-#include <ros/ros.h>
-#include <tf_conversions/tf_kdl.h>
-#include <tf_conversions/tf_eigen.h>
+#include <hydrus/hydrus_robot_model.h>
 
-class HydrusRobotModel : public aerial_robot_model::RobotModel {
+class DragonRobotModel : public HydrusRobotModel {
 public:
-  HydrusRobotModel(bool init_with_rosparam,
+  DragonRobotModel(bool init_with_rosparam,
                    bool verbose = false,
                    std::string baselink = std::string(""),
                    std::string thrust_link = std::string(""),
@@ -59,41 +48,71 @@ public:
                    double f_max = 0,
                    double f_min = 0,
                    double m_f_rate = 0,
-                   bool only_three_axis_mode = false);
-  virtual ~HydrusRobotModel() = default;
-
-  //public attributes
-  static constexpr uint8_t LQI_THREE_AXIS_MODE = 3;
-  static constexpr uint8_t LQI_FOUR_AXIS_MODE = 4;
+                   bool only_three_axis_mode = false,
+                   double edf_radius = 0,
+                   double edf_max_tilt = 0);
+  virtual ~DragonRobotModel() = default;
 
   //public functions
-  bool modelling(bool verbose = false, bool control_verbose = false); //lagrange method
-  virtual bool overlapCheck(bool verbose = false) const {return true;}
-  bool stabilityMarginCheck(bool verbose = false);
-  uint8_t getLqiMode() const { return lqi_mode_; }
-  double getStabilityMargin() const { return stability_margin_; }
-  Eigen::VectorXd getOptimalHoveringThrust() const { return optimal_hovering_f_; }
-  Eigen::MatrixXd getP() const { return P_; }
-  double getPdeterminant() const { return p_det_; }
-  Eigen::MatrixXd getPOrigPseudoInverse() const { return P_orig_pseudo_inverse_; }
-  bool hamiltonMatrixSolver(uint8_t lqi_mode);
-  void setLqiMode(uint8_t lqi_mode) { lqi_mode_ = lqi_mode; }
+  template <class T> std::vector<T> getEdfsOriginFromCog() const;
+  std::vector<double> getGimbalNominalAngles() const { return gimbal_nominal_angles_; }
+  template <class T> T getGimbalProcessedJoint() const;
+  template <class T> std::vector<T> getLinksRotationFromCog() const;
+  bool overlapCheck(bool verbose = false) const override;
+  void updateRobotModelImpl(const KDL::JntArray& joint_positions) override;
 
 private:
   //private attributes
-  double f_max_;
-  double f_min_;
-  int lqi_mode_;
-  double m_f_rate_; //moment / force rate
-  bool only_three_axis_mode_;
-  Eigen::VectorXd optimal_hovering_f_;
-  Eigen::MatrixXd P_;
-  double p_det_;
-  double p_det_thre_;
-  Eigen::MatrixXd P_orig_pseudo_inverse_; // for compensation of cross term in the rotional dynamics
-  double stability_margin_;
-  double stability_margin_thre_;
+  double edf_max_tilt_;
+  double edf_radius_;
+  std::vector<KDL::Vector> edfs_origin_from_cog_;
+  std::vector<double> gimbal_nominal_angles_;
+  KDL::JntArray gimbal_processed_joint_;
+  std::vector<KDL::Rotation> links_rotation_from_cog_;
 
   //private functions
   void getParamFromRos();
+  KDL::JntArray gimbalProcess(const KDL::JntArray& joint_positions);
 };
+
+template<> inline KDL::JntArray DragonRobotModel::getGimbalProcessedJoint() const
+{
+  return gimbal_processed_joint_;
+}
+
+template<> inline sensor_msgs::JointState DragonRobotModel::getGimbalProcessedJoint() const
+{
+  return kdlJointToMsg(gimbal_processed_joint_);
+}
+
+template<> inline std::vector<KDL::Rotation> DragonRobotModel::getLinksRotationFromCog() const
+{
+  return links_rotation_from_cog_;
+}
+
+template<> inline std::vector<Eigen::Matrix3d> DragonRobotModel::getLinksRotationFromCog() const
+{
+  return aerial_robot_model::kdlToEigen(links_rotation_from_cog_);
+}
+
+template<> inline std::vector<KDL::Vector> DragonRobotModel::getEdfsOriginFromCog() const
+{
+  return edfs_origin_from_cog_;
+}
+
+template<> inline std::vector<geometry_msgs::PointStamped> DragonRobotModel::getEdfsOriginFromCog() const
+{
+  return aerial_robot_model::kdlToMsg(edfs_origin_from_cog_);
+}
+
+template<> inline std::vector<Eigen::Vector3d> DragonRobotModel::getEdfsOriginFromCog() const
+{
+  return aerial_robot_model::kdlToEigen(edfs_origin_from_cog_);
+}
+
+template<> inline std::vector<tf2::Vector3> DragonRobotModel::getEdfsOriginFromCog() const
+{
+  return aerial_robot_model::kdlToTf2(edfs_origin_from_cog_);
+}
+
+

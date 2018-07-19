@@ -1,6 +1,7 @@
 #include <aerial_robot_model/transformable_aerial_robot_model_ros.h>
 
 namespace aerial_robot_model {
+
   RobotModelRos::RobotModelRos(ros::NodeHandle nh, ros::NodeHandle nhp, std::unique_ptr<aerial_robot_model::RobotModel> robot_model):
     nh_(nh),
     nhp_(nhp),
@@ -15,11 +16,6 @@ namespace aerial_robot_model {
 
     //service server
     add_extra_module_service_ = nhp_.advertiseService("add_extra_module", &RobotModelRos::addExtraModuleCallback, this);
-  }
-
-  void RobotModelRos::desireCoordinateCallback(const spinal::DesireCoordConstPtr& msg)
-  {
-    getRobotModel().setCogDesireOrientation(msg->roll, msg->pitch, msg->yaw);
   }
 
   void RobotModelRos::actuatorStateCallback(const sensor_msgs::JointStateConstPtr& state)
@@ -81,5 +77,10 @@ namespace aerial_robot_model {
       }
     ROS_ERROR("[extra module]: should not reach here ");
     return false;
+  }
+
+  void RobotModelRos::desireCoordinateCallback(const spinal::DesireCoordConstPtr& msg)
+  {
+    getRobotModel().setCogDesireOrientation(msg->roll, msg->pitch, msg->yaw);
   }
 } //namespace aerial_robot_model

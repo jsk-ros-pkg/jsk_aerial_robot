@@ -35,21 +35,22 @@
 
 #pragma once
 
-#include <ros/ros.h>
-#include <urdf/model.h>
-#include <kdl/tree.hpp>
-#include <kdl_parser/kdl_parser.hpp>
-#include <kdl/treefksolverpos_recursive.hpp>
-#include <kdl/treejnttojacsolver.hpp>
-#include <kdl/chainfksolverpos_recursive.hpp>
-#include <kdl/chainjnttojacsolver.hpp>
-#include <geometry_msgs/Inertia.h>
-#include <geometry_msgs/Transform.h>
-#include <sensor_msgs/JointState.h>
 #include <aerial_robot_model/kdl_utils.h>
-#include <Eigen/Geometry>
 #include <cmath>
 #include <eigen_conversions/eigen_kdl.h>
+#include <Eigen/Core>
+#include <Eigen/Geometry>
+#include <geometry_msgs/Inertia.h>
+#include <geometry_msgs/Transform.h>
+#include <kdl/chainfksolverpos_recursive.hpp>
+#include <kdl/chainjnttojacsolver.hpp>
+#include <kdl_parser/kdl_parser.hpp>
+#include <kdl/tree.hpp>
+#include <kdl/treefksolverpos_recursive.hpp>
+#include <kdl/treejnttojacsolver.hpp>
+#include <sensor_msgs/JointState.h>
+#include <ros/ros.h>
+#include <urdf/model.h>
 #include <vector>
 
 namespace aerial_robot_model {
@@ -58,103 +59,115 @@ namespace aerial_robot_model {
   class RobotModel {
   public:
     RobotModel(bool init_with_rosparam,
+               bool verbose = false,
                std::string baselink = std::string(""),
-               std::string thrust_link = std::string(""),
-               bool verbose = false);
+               std::string thrust_link = std::string(""));
     virtual ~RobotModel() = default;
-    void updateRobotModel(const KDL::JntArray& joint_positions);
-    void updateRobotModel(const sensor_msgs::JointState& state);
-    bool addExtraModule(std::string module_name, std::string parent_link_name, KDL::Frame transform, KDL::RigidBodyInertia inertia);
-    bool removeExtraModule(std::string module_name);
-    void setActuatorJointMap(const sensor_msgs::JointState& actuator_state);
 
-    //API declaration
+    //public functions
+    bool addExtraModule(std::string module_name, std::string parent_link_name, KDL::Frame transform, KDL::RigidBodyInertia inertia);
+    template<class T> T forwardKinematics(std::string link, const KDL::JntArray& joint_positions) const;
+    template<class T> T forwardKinematics(std::string link, const sensor_msgs::JointState& state) const;
+    std::vector<int> getActuatorJointMap() const { return actuator_joint_map_; }
+    std::map<std::string, uint32_t> getActuatorMap() const { return actuator_map_; }
+    std::string getBaselinkName() const { return baselink_; }
     template<class T> T getCog() const;
-    template<class T> std::vector<T> getRotorsOriginFromCog() const;
+    template<class T> T getCogDesireOrientation() const;
     template<class T> T getCog2Baselink() const;
     template<class T> T getInertia() const;
-    template<class T> T getLinkFrameFk(std::string link, const KDL::JntArray& joint_positions) const;
-    template<class T> T getLinkFrameFk(std::string link, const sensor_msgs::JointState& state) const;
-
-    double getMass() const
-    {
-      return mass_;
-    }
-    double getVerbose() const
-    {
-      return verbose_;
-    }
-    std::string getRootFrameName() const
-    {
-      return GetTreeElementSegment(tree_.getRootSegment()->second).getName();
-    }
-    std::string getBaselinkName() const
-    {
-      return baselink_;
-    }
-    int getRotorNum() const
-    {
-      return rotor_num_;
-    }
-    double getLinkLength() const
-    {
-      return link_length_;
-    }
-    std::map<std::string, uint32_t> getActuatorMap() const
-    {
-      return actuator_map_;
-    }
-    std::vector<int> getActuatorJointMap() const
-    {
-      return actuator_joint_map_;
-    }
-    void setCogDesireOrientation(double roll, double pitch, double yaw)
-    {
-      cog_desire_orientation_ = KDL::Rotation::RPY(roll, pitch, yaw);
-    }
-    std::map<int, int> getRotorDirection()
-    {
-      return rotor_direction_;
-    }
+    double getLinkLength() const { return link_length_; }
+    double getMass() const { return mass_; }
+    std::map<int, int> getRotorDirection() { return rotor_direction_; }
+    std::string getRootFrameName() const { return GetTreeElementSegment(tree_.getRootSegment()->second).getName(); }
+    int getRotorNum() const { return rotor_num_; }
+    template<class T> std::vector<T> getRotorsOriginFromCog() const;
+    double getVerbose() const { return verbose_; }
+    void setActuatorJointMap(const sensor_msgs::JointState& actuator_state);
+    void setCogDesireOrientation(double roll, double pitch, double yaw) { cog_desire_orientation_ = KDL::Rotation::RPY(roll, pitch, yaw); }
+    bool removeExtraModule(std::string module_name);
+    virtual void updateRobotModelImpl(const KDL::JntArray& joint_positions);
+    void updateRobotModel(const KDL::JntArray& joint_positions) { updateRobotModelImpl(joint_positions); }
+    void updateRobotModel(const sensor_msgs::JointState& state) { updateRobotModel(jointMsgToKdl(state)); }
 
   protected:
-    std::map<std::string, KDL::RigidBodyInertia> inertia_map_;
-    std::map<std::string, KDL::Segment> extra_module_map_;
-    std::vector<KDL::Vector> rotors_origin_from_cog_;
-    KDL::Frame cog2baselink_transform_;
-    KDL::Frame cog_;
-    KDL::Rotation cog_desire_orientation_;
-    std::vector<int> actuator_joint_map_; //the real joint (other than rotor or gimbal)
-
-    KDL::RigidBodyInertia inertialSetup(const KDL::TreeElement& tree_element);
-    void resolveLinkLength();
-    KDL::Frame forwardKinematics(std::string link, const KDL::JntArray& joint_positions) const;
-    KDL::Frame forwardKinematics(std::string link, const sensor_msgs::JointState& state) const;
+    //protected functions
     KDL::JntArray jointMsgToKdl(const sensor_msgs::JointState& state) const;
+    sensor_msgs::JointState kdlJointToMsg(const KDL::JntArray& joint_positions) const;
 
   private:
-    urdf::Model model_;
-    KDL::Tree tree_;
-    int rotor_num_;
-    std::string baselink_;
-    std::string thrust_link_;
-    double link_length_;
-    bool verbose_;
-    double mass_;
-    KDL::RotationalInertia link_inertia_cog_;
-    std::map<int, int> rotor_direction_;
+    //private attributes
+    std::vector<int> actuator_joint_map_; //the real joint (other than rotor or gimbal)
     std::map<std::string, uint32_t> actuator_map_; // regarding to KDL tree
+    std::string baselink_;
+    KDL::Frame cog_;
+    KDL::Rotation cog_desire_orientation_;
+    KDL::Frame cog2baselink_transform_;
+    std::map<std::string, KDL::Segment> extra_module_map_;
+    std::map<std::string, KDL::RigidBodyInertia> inertia_map_;
+    KDL::RotationalInertia link_inertia_cog_;
+    double link_length_;
+    double mass_;
+    urdf::Model model_;
+    std::map<int, int> rotor_direction_;
+    int rotor_num_;
+    std::vector<KDL::Vector> rotors_origin_from_cog_;
+    KDL::Tree tree_;
+    std::string thrust_link_;
+    bool verbose_;
+
+    //private functions
+    KDL::Frame forwardKinematicsImpl(std::string link, const KDL::JntArray& joint_positions) const
+    {
+      KDL::TreeFkSolverPos_recursive fk_solver(tree_);
+      KDL::Frame f;
+      int status = fk_solver.JntToCart(joint_positions, f, link);
+      if(status < 0) ROS_ERROR("can not solve FK to link: %s", link.c_str());
+
+      return f;
+    }
     void getParamFromRos();
+    KDL::RigidBodyInertia inertialSetup(const KDL::TreeElement& tree_element);
+    void resolveLinkLength();
   };
 
-  template<> inline KDL::Frame RobotModel::getCog() const
+  template<> inline Eigen::Affine3d RobotModel::forwardKinematics(std::string link, const KDL::JntArray& joint_positions) const
   {
-    return cog_;
+    return aerial_robot_model::kdlToEigen(forwardKinematicsImpl(link, joint_positions));
   }
 
-  template<> inline geometry_msgs::TransformStamped RobotModel::getCog() const
+  template<> inline geometry_msgs::TransformStamped RobotModel::forwardKinematics(std::string link, const KDL::JntArray& joint_positions) const
   {
-    return aerial_robot_model::kdlToMsg(cog_);
+    return aerial_robot_model::kdlToMsg(forwardKinematicsImpl(link, joint_positions));
+  }
+
+  template<> inline KDL::Frame RobotModel::forwardKinematics(std::string link, const KDL::JntArray& joint_positions) const
+  {
+    return forwardKinematicsImpl(link, joint_positions);
+  }
+
+  template<> inline tf2::Transform RobotModel::forwardKinematics(std::string link, const KDL::JntArray& joint_positions) const
+  {
+    return aerial_robot_model::kdlToTf2(forwardKinematicsImpl(link, joint_positions));
+  }
+
+  template<> inline Eigen::Affine3d RobotModel::forwardKinematics(std::string link, const sensor_msgs::JointState& state) const
+  {
+    return aerial_robot_model::kdlToEigen(forwardKinematicsImpl(link, jointMsgToKdl(state)));
+  }
+
+  template<> inline geometry_msgs::TransformStamped RobotModel::forwardKinematics(std::string link, const sensor_msgs::JointState& state) const
+  {
+    return aerial_robot_model::kdlToMsg(forwardKinematicsImpl(link, jointMsgToKdl(state)));
+  }
+
+  template<> inline KDL::Frame RobotModel::forwardKinematics(std::string link, const sensor_msgs::JointState& state) const
+  {
+    return forwardKinematicsImpl(link, jointMsgToKdl(state));
+  }
+
+  template<> inline tf2::Transform RobotModel::forwardKinematics(std::string link, const sensor_msgs::JointState& state) const
+  {
+    return aerial_robot_model::kdlToTf2(forwardKinematicsImpl(link, jointMsgToKdl(state)));
   }
 
   template<> inline Eigen::Affine3d RobotModel::getCog() const
@@ -162,55 +175,29 @@ namespace aerial_robot_model {
     return aerial_robot_model::kdlToEigen(cog_);
   }
 
+  template<> inline geometry_msgs::TransformStamped RobotModel::getCog() const
+  {
+    return aerial_robot_model::kdlToMsg(cog_);
+  }
+
+  template<> inline KDL::Frame RobotModel::getCog() const
+  {
+    return cog_;
+  }
+
   template<> inline tf2::Transform RobotModel::getCog() const
   {
     return aerial_robot_model::kdlToTf2(cog_);
   }
 
-  template<>
-  inline std::vector<KDL::Vector> RobotModel::getRotorsOriginFromCog() const
+  template<> inline Eigen::Matrix3d RobotModel::getCogDesireOrientation() const
   {
-    return rotors_origin_from_cog_;
+    return aerial_robot_model::kdlToEigen(cog_desire_orientation_);
   }
 
-  template<>
-  inline std::vector<geometry_msgs::PointStamped> RobotModel::getRotorsOriginFromCog() const
+  template<> inline KDL::Rotation RobotModel::getCogDesireOrientation() const
   {
-    std::vector<geometry_msgs::PointStamped> vec;
-    vec.reserve(rotors_origin_from_cog_.size());
-    for(const auto& elem : rotors_origin_from_cog_)
-      vec.push_back(aerial_robot_model::kdlToMsg(elem));
-    return vec;
-  }
-
-  template<>
-  inline std::vector<Eigen::Vector3d> RobotModel::getRotorsOriginFromCog() const
-  {
-    std::vector<Eigen::Vector3d> vec;
-    vec.reserve(rotors_origin_from_cog_.size());
-    for(const auto& elem : rotors_origin_from_cog_)
-      vec.push_back(aerial_robot_model::kdlToEigen(elem));
-    return vec;
-  }
-
-  template<>
-  inline std::vector<tf2::Vector3> RobotModel::getRotorsOriginFromCog() const
-  {
-    std::vector<tf2::Vector3> vec;
-    vec.reserve(rotors_origin_from_cog_.size());
-    for(const auto& elem : rotors_origin_from_cog_)
-      vec.push_back(aerial_robot_model::kdlToTf2(elem));
-    return vec;
-  }
-
-  template<> inline KDL::Frame RobotModel::getCog2Baselink() const
-  {
-    return cog2baselink_transform_;
-  }
-
-  template<> inline geometry_msgs::TransformStamped RobotModel::getCog2Baselink() const
-  {
-    return aerial_robot_model::kdlToMsg(cog2baselink_transform_);
+    return cog_desire_orientation_;
   }
 
   template<> inline Eigen::Affine3d RobotModel::getCog2Baselink() const
@@ -218,14 +205,19 @@ namespace aerial_robot_model {
     return aerial_robot_model::kdlToEigen(cog2baselink_transform_);
   }
 
+  template<> inline geometry_msgs::TransformStamped RobotModel::getCog2Baselink() const
+  {
+    return aerial_robot_model::kdlToMsg(cog2baselink_transform_);
+  }
+
+  template<> inline KDL::Frame RobotModel::getCog2Baselink() const
+  {
+    return cog2baselink_transform_;
+  }
+
   template<> inline tf2::Transform RobotModel::getCog2Baselink() const
   {
     return aerial_robot_model::kdlToTf2(cog2baselink_transform_);
-  }
-
-  template<> inline KDL::RotationalInertia RobotModel::getInertia() const
-  {
-    return link_inertia_cog_;
   }
 
   template<> inline Eigen::Matrix3d RobotModel::getInertia() const
@@ -233,44 +225,28 @@ namespace aerial_robot_model {
     return aerial_robot_model::kdlToEigen(link_inertia_cog_);
   }
 
-  template<> inline KDL::Frame RobotModel::getLinkFrameFk(std::string link, const KDL::JntArray& joint_positions) const
+  template<> inline KDL::RotationalInertia RobotModel::getInertia() const
   {
-    return forwardKinematics(link, joint_positions);
+    return link_inertia_cog_;
   }
 
-  template<> inline geometry_msgs::TransformStamped RobotModel::getLinkFrameFk(std::string link, const KDL::JntArray& joint_positions) const
+  template<> inline std::vector<Eigen::Vector3d> RobotModel::getRotorsOriginFromCog() const
   {
-    return aerial_robot_model::kdlToMsg(forwardKinematics(link, joint_positions));
+    return aerial_robot_model::kdlToEigen(rotors_origin_from_cog_);
   }
 
-  template<> inline Eigen::Affine3d RobotModel::getLinkFrameFk(std::string link, const KDL::JntArray& joint_positions) const
+  template<> inline std::vector<geometry_msgs::PointStamped> RobotModel::getRotorsOriginFromCog() const
   {
-    return aerial_robot_model::kdlToEigen(forwardKinematics(link, joint_positions));
+    return aerial_robot_model::kdlToMsg(rotors_origin_from_cog_);
   }
 
-  template<> inline tf2::Transform RobotModel::getLinkFrameFk(std::string link, const KDL::JntArray& joint_positions) const
+  template<> inline std::vector<KDL::Vector> RobotModel::getRotorsOriginFromCog() const
   {
-    return aerial_robot_model::kdlToTf2(forwardKinematics(link, joint_positions));
+    return rotors_origin_from_cog_;
   }
 
-  template<> inline KDL::Frame RobotModel::getLinkFrameFk(std::string link, const sensor_msgs::JointState& state) const
+  template<> inline std::vector<tf2::Vector3> RobotModel::getRotorsOriginFromCog() const
   {
-    return forwardKinematics(link, state);
+    return aerial_robot_model::kdlToTf2(rotors_origin_from_cog_);
   }
-
-  template<> inline geometry_msgs::TransformStamped RobotModel::getLinkFrameFk(std::string link, const sensor_msgs::JointState& state) const
-  {
-    return aerial_robot_model::kdlToMsg(forwardKinematics(link, state));
-  }
-
-  template<> inline Eigen::Affine3d RobotModel::getLinkFrameFk(std::string link, const sensor_msgs::JointState& state) const
-  {
-    return aerial_robot_model::kdlToEigen(forwardKinematics(link, state));
-  }
-
-  template<> inline tf2::Transform RobotModel::getLinkFrameFk(std::string link, const sensor_msgs::JointState& state) const
-  {
-    return aerial_robot_model::kdlToTf2(forwardKinematics(link, state));
-  }
-
 } //namespace aerial_robot_model

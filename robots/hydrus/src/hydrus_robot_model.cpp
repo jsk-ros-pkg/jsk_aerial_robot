@@ -1,7 +1,7 @@
 #include <hydrus/hydrus_robot_model.h>
 
-HydrusRobotModel::HydrusRobotModel(bool init_with_rosparam, std::string baselink, std::string thrust_link, double stability_margin_thre, double p_det_thre, double f_max, double f_min, double m_f_rate, bool only_three_axis_mode, bool verbose):
-  RobotModel(init_with_rosparam, baselink, thrust_link, verbose),
+HydrusRobotModel::HydrusRobotModel(bool init_with_rosparam, bool verbose, std::string baselink, std::string thrust_link, double stability_margin_thre, double p_det_thre, double f_max, double f_min, double m_f_rate, bool only_three_axis_mode):
+  RobotModel(init_with_rosparam, verbose, baselink, thrust_link),
   stability_margin_thre_(stability_margin_thre),
   p_det_thre_(p_det_thre),
   f_max_(f_max),
@@ -36,45 +36,6 @@ void HydrusRobotModel::getParamFromRos()
   ros::NodeHandle control_node("/motor_info");
   control_node.param("m_f_rate", m_f_rate_, 0.01);
   if(getVerbose()) std::cout << "m_f_rate: " << std::setprecision(3) << m_f_rate_ << std::endl;
-}
-
-bool HydrusRobotModel::stabilityMarginCheck(bool verbose)
-{
-  double average_x = 0, average_y = 0;
-
-  const std::vector<Eigen::Vector3d> rotors_origin_from_cog = getRotorsOriginFromCog<Eigen::Vector3d>();
-  const int rotor_num = getRotorNum();
-
-  /* calcuate the average */
-  for(int i = 0; i < rotor_num; i++)
-    {
-      average_x += rotors_origin_from_cog[i](0);
-      average_y += rotors_origin_from_cog[i](1);
-      if(verbose)
-        ROS_INFO("rotor%d x: %f, y: %f", i + 1, rotors_origin_from_cog[i](0), rotors_origin_from_cog[i](1));
-    }
-  average_x /= rotor_num;
-  average_y /= rotor_num;
-
-  double s_xy = 0, s_xx = 0, s_yy = 0;
-  for(const auto& rotor_pos : rotors_origin_from_cog)
-    {
-      double x_diff = rotor_pos(0) - average_x;
-      double y_diff = rotor_pos(1) - average_y;
-      s_xy += (x_diff * y_diff);
-      s_xx += (x_diff * x_diff);
-      s_yy += (y_diff * y_diff);
-    }
-
-  Eigen::Matrix2d S;
-  S << s_xx / rotor_num, s_xy / rotor_num, s_xy / rotor_num, s_yy / rotor_num;
-  Eigen::SelfAdjointEigenSolver<Eigen::Matrix2d> es(S);
-
-  assert(getLinkLength() > 0);
-  stability_margin_ = sqrt(es.eigenvalues()[0]) / getLinkLength();
-  if(verbose) ROS_INFO("stability_margin: %f", stability_margin_);
-  if(stability_margin_ < stability_margin_thre_) return false;
-  return true;
 }
 
 bool HydrusRobotModel::modelling(bool verbose, bool control_verbose)
@@ -191,5 +152,44 @@ bool HydrusRobotModel::modelling(bool verbose, bool control_verbose)
 
   lqi_mode_ = LQI_FOUR_AXIS_MODE;
 
+  return true;
+}
+
+bool HydrusRobotModel::stabilityMarginCheck(bool verbose)
+{
+  double average_x = 0, average_y = 0;
+
+  const std::vector<Eigen::Vector3d> rotors_origin_from_cog = getRotorsOriginFromCog<Eigen::Vector3d>();
+  const int rotor_num = getRotorNum();
+
+  /* calcuate the average */
+  for(int i = 0; i < rotor_num; i++)
+    {
+      average_x += rotors_origin_from_cog[i](0);
+      average_y += rotors_origin_from_cog[i](1);
+      if(verbose)
+        ROS_INFO("rotor%d x: %f, y: %f", i + 1, rotors_origin_from_cog[i](0), rotors_origin_from_cog[i](1));
+    }
+  average_x /= rotor_num;
+  average_y /= rotor_num;
+
+  double s_xy = 0, s_xx = 0, s_yy = 0;
+  for(const auto& rotor_pos : rotors_origin_from_cog)
+    {
+      double x_diff = rotor_pos(0) - average_x;
+      double y_diff = rotor_pos(1) - average_y;
+      s_xy += (x_diff * y_diff);
+      s_xx += (x_diff * x_diff);
+      s_yy += (y_diff * y_diff);
+    }
+
+  Eigen::Matrix2d S;
+  S << s_xx / rotor_num, s_xy / rotor_num, s_xy / rotor_num, s_yy / rotor_num;
+  Eigen::SelfAdjointEigenSolver<Eigen::Matrix2d> es(S);
+
+  assert(getLinkLength() > 0);
+  stability_margin_ = sqrt(es.eigenvalues()[0]) / getLinkLength();
+  if(verbose) ROS_INFO("stability_margin: %f", stability_margin_);
+  if(stability_margin_ < stability_margin_thre_) return false;
   return true;
 }

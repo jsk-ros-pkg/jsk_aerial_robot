@@ -1,6 +1,6 @@
 #include <dragon/gimbal_control.h>
 
-using namespace std;
+using namespace aerial_robot_model;
 
 namespace control_plugin
 {
@@ -22,7 +22,7 @@ namespace control_plugin
     FlatnessPid::initialize(nh, nhp, estimator, navigator, ctrl_loop_rate);
 
     /* initialize the multilink kinematics */
-    kinematics_ = boost::shared_ptr<DragonTransformController>(new DragonTransformController(nh_, nhp_, false));
+    kinematics_ = std::make_unique<DragonRobotModel>(true);
 
     /* initialize the matrix */
     P_xy_ = Eigen::MatrixXd::Zero(2, kinematics_->getRotorNum() * 2);
@@ -35,27 +35,14 @@ namespace control_plugin
     /* initialize the gimbal target angles */
     target_gimbal_angles_.resize(kinematics_->getRotorNum() * 2, 0);
 
-    string pub_name;
-    nhp_.param("gimbal_control_topic_name", pub_name, string("gimbals_ctrl"));
-    gimbal_control_pub_ = nh_.advertise<sensor_msgs::JointState>(pub_name, 1);
+    gimbal_control_pub_ = nh_.advertise<sensor_msgs::JointState>("/gimbals_ctrl", 1);
+    joint_control_pub_ = nh_.advertise<sensor_msgs::JointState>("/joints_ctrl", 1);
+    curr_desire_tilt_pub_ = nh_.advertise<spinal::DesireCoord>("/desire_coordinate", 1);
+    gimbal_target_force_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("/gimbals_target_force", 1);
+    roll_pitch_pid_pub_ = nh_.advertise<aerial_robot_msgs::FlatnessPid>("/roll_pitch_gimbal_control", 1);
 
-    nhp_.param("joint_control_topic_name", pub_name, string("joints_ctrl"));
-    joint_control_pub_ = nh_.advertise<sensor_msgs::JointState>(pub_name, 1);
-
-    nhp_.param("current_desire_tilt_topic_name", pub_name, string("/desire_coordinate"));
-    curr_desire_tilt_pub_ = nh_.advertise<spinal::DesireCoord>(pub_name, 1);
-
-    nhp_.param("gimbal_target_force_topic_name", pub_name, string("gimbals_target_force"));
-    gimbal_target_force_pub_ = nh_.advertise<std_msgs::Float32MultiArray>(pub_name, 1);
-
-    nhp_.param("roll_pitch_gimbal_topic_name", pub_name, string("roll_pitch_gimbal_control"));
-    roll_pitch_pid_pub_ = nh_.advertise<aerial_robot_msgs::FlatnessPid>(pub_name, 1);
-
-    string sub_name;
-    nhp_.param("joint_state_sub_name", sub_name, std::string("joint_state"));
-    joint_state_sub_ = nh_.subscribe(sub_name, 1, &DragonGimbal::jointStateCallback, this);
-    nhp_.param("final_desire_tilt_sub_name", sub_name, std::string("/final_desire_tilt"));
-    final_desire_tilt_sub_ = nh_.subscribe(sub_name, 1, &DragonGimbal::baselinkTiltCallback, this);
+    joint_state_sub_ = nh_.subscribe("/joint_states", 1, &DragonGimbal::jointStateCallback, this);
+    final_desire_tilt_sub_ = nh_.subscribe("/final_desire_tilt", 1, &DragonGimbal::baselinkTiltCallback, this);
 
     //dynamic reconfigure server
     roll_pitch_pid_server_ = new dynamic_reconfigure::Server<aerial_robot_base::XYPidControlConfig>(ros::NodeHandle(nhp_, "pitch_roll"));
@@ -201,8 +188,8 @@ namespace control_plugin
 
     int rotor_num = kinematics_->getRotorNum();
 
-    std::vector<Eigen::Vector3d> rotors_origin_from_cog = kinematics_->getRotorsOriginFromCog();
-    Eigen::Matrix3d links_inertia = kinematics_->getInertia();
+    std::vector<Eigen::Vector3d> rotors_origin_from_cog = kinematics_->getRotorsOriginFromCog<Eigen::Vector3d>();
+    Eigen::Matrix3d links_inertia = kinematics_->getInertia<Eigen::Matrix3d>();
 
     /* roll pitch condition */
     double max_x = 1e-6;
@@ -361,8 +348,7 @@ namespace control_plugin
         if(control_verbose_) ROS_INFO("gimbal%d f normaizled: [%f, %f, %f]", i + 1, f_i_normalized.x(), f_i_normalized.y(), f_i_normalized.z());
 
         /*f -> gimbal angle */
-        std::vector<KDL::Rotation> links_frame_from_cog;
-        kinematics_->getLinksOrientation(links_frame_from_cog);
+        std::vector<KDL::Rotation> links_frame_from_cog = kinematics_->getLinksRotationFromCog<KDL::Rotation>();
 
         /* [S_theta, -S_phy * C_theta, C_phy * C_phy]^T = R.transpose * f_i_normalized */
         tf::Quaternion q;  tf::quaternionKDLToTF(links_frame_from_cog[i], q);
@@ -496,8 +482,7 @@ namespace control_plugin
   void DragonGimbal::jointStateCallback(const sensor_msgs::JointStateConstPtr& state)
   {
     joint_state_ = *state;
-    kinematics_->gimbalProcess(joint_state_);
-    kinematics_->forwardKinematics(joint_state_);
+    kinematics_->updateRobotModel(joint_state_);
     kinematics_->modelling();
   }
 

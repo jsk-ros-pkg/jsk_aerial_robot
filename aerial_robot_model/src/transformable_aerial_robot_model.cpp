@@ -2,10 +2,10 @@
 
 namespace aerial_robot_model {
 
-  RobotModel::RobotModel(bool init_with_rosparam, std::string baselink, std::string thrust_link, bool verbose):
+  RobotModel::RobotModel(bool init_with_rosparam, bool verbose, std::string baselink, std::string thrust_link):
+    verbose_(verbose),
     baselink_(baselink),
     thrust_link_(thrust_link),
-    verbose_(verbose),
     rotor_num_(0)
   {
     /* robot model */
@@ -22,67 +22,6 @@ namespace aerial_robot_model {
 
     ROS_ERROR("[kinematics] rotor num; %d", rotor_num_);
     rotors_origin_from_cog_.resize(rotor_num_);
-  }
-
-  void RobotModel::getParamFromRos()
-  {
-    ros::NodeHandle nhp("~");
-    nhp.param("kinematic_verbose", verbose_, false);
-    nhp.param("baselink", baselink_, std::string("fc"));
-    if(verbose_) std::cout << "baselink: " << baselink_ << std::endl;
-    nhp.param("thrust_link", thrust_link_, std::string("thrust"));
-    if(verbose_) std::cout << "thrust_link: " << thrust_link_ << std::endl;
-  }
-
-  void RobotModel::updateRobotModel(const KDL::JntArray& joint_positions)
-  {
-    KDL::TreeFkSolverPos_recursive fk_solver(tree_);
-    KDL::RigidBodyInertia link_inertia = KDL::RigidBodyInertia::Zero();
-
-    for(const auto& inertia : inertia_map_)
-      {
-        KDL::Frame f;
-        int status = fk_solver.JntToCart(joint_positions, f, inertia.first);
-        if(status < 0) ROS_ERROR("can not solve FK to inertia element: %s", inertia.first.c_str());
-        link_inertia = link_inertia + f * inertia.second;
-
-        /* process for the extra module */
-        for(const auto& extra : extra_module_map_)
-          {
-            if(extra.second.getName() == inertia.first)
-              {
-                link_inertia = link_inertia + f * (extra.second.getFrameToTip() * extra.second.getInertia());
-              }
-          }
-      }
-
-    /* CoG */
-    KDL::Frame f_baselink;
-    int status = fk_solver.JntToCart(joint_positions, f_baselink, baselink_);
-    if(status < 0) ROS_ERROR("can not solve FK to the baselink: %s", baselink_.c_str());
-    cog_.M = f_baselink.M * cog_desire_orientation_.Inverse();
-    cog_.p = link_inertia.getCOG();
-    mass_ = link_inertia.getMass();
-    cog2baselink_transform_ = cog_.Inverse() * f_baselink;
-
-    /* thrust point based on COG */
-    for(int i = 0; i < rotor_num_; ++i)
-      {
-        std::string rotor = thrust_link_ + std::to_string(i + 1);
-
-        KDL::Frame f;
-        int status = fk_solver.JntToCart(joint_positions, f, rotor);
-        if(status < 0) ROS_ERROR("can not solve FK to rotor: %s", rotor.c_str());
-        if(verbose_) ROS_WARN(" %s status is : %d, [%f, %f, %f]", rotor.c_str(), status, f.p.x(), f.p.y(), f.p.z());
-        rotors_origin_from_cog_.at(i) = (cog_.Inverse() * f).p;
-      }
-
-    link_inertia_cog_ = (cog_.Inverse() * link_inertia).getRotationalInertia();
-  }
-
-  void RobotModel::updateRobotModel(const sensor_msgs::JointState& state)
-  {
-    updateRobotModel(jointMsgToKdl(state));
   }
 
   bool RobotModel::addExtraModule(std::string module_name, std::string parent_link_name, KDL::Frame transform, KDL::RigidBodyInertia inertia)
@@ -119,33 +58,17 @@ namespace aerial_robot_model {
       }
   }
 
-  bool RobotModel::removeExtraModule(std::string module_name)
+  void RobotModel::getParamFromRos()
   {
-    const auto it = extra_module_map_.find(module_name);
-    if(it == extra_module_map_.end())
-      {
-        ROS_WARN("[extra module]: fail to remove the extra module %s, because it does not exists", module_name.c_str());
-        return false;
-      }
-    else
-      {
-        extra_module_map_.erase(module_name);
-        ROS_INFO("[extra module]: succeed to remove the extra module %s", module_name.c_str());
-        return true;
-      }
+    ros::NodeHandle nhp("~");
+    nhp.param("kinematic_verbose", verbose_, false);
+    nhp.param("baselink", baselink_, std::string("fc"));
+    if(verbose_) std::cout << "baselink: " << baselink_ << std::endl;
+    nhp.param("thrust_link", thrust_link_, std::string("thrust"));
+    if(verbose_) std::cout << "thrust_link: " << thrust_link_ << std::endl;
   }
 
-  void RobotModel::setActuatorJointMap(const sensor_msgs::JointState& actuator_state)
-  {
-    /* CAUTION: be sure that the joints are in order !!!!!!! */
-    for(auto itr = actuator_state.name.begin(); itr != actuator_state.name.end(); ++itr)
-      {
-        if(itr->find("joint") != std::string::npos)
-          actuator_joint_map_.push_back(std::distance(actuator_state.name.begin(), itr));
-      }
-  }
-
-  KDL::RigidBodyInertia RobotModel::inertialSetup(const KDL::TreeElement& tree_element)
+    KDL::RigidBodyInertia RobotModel::inertialSetup(const KDL::TreeElement& tree_element)
   {
     const KDL::Segment current_seg = GetTreeElementSegment(tree_element);
 
@@ -210,31 +133,6 @@ namespace aerial_robot_model {
     return current_seg_inertia;
   }
 
-  void RobotModel::resolveLinkLength() //TODO hard coding
-  {
-    KDL::JntArray joint_positions(tree_.getNrOfJoints());
-    KDL::TreeFkSolverPos_recursive fk_solver(tree_);
-    KDL::Frame f_link2, f_link3;
-    fk_solver.JntToCart(joint_positions, f_link2, "link2"); //hard coding //TODO
-    fk_solver.JntToCart(joint_positions, f_link3, "link3"); //hard coding //TODO
-    link_length_ = (f_link3.p - f_link2.p).Norm();
-  }
-
-  KDL::Frame RobotModel::forwardKinematics(std::string link, const KDL::JntArray& joint_positions) const
-  {
-    KDL::TreeFkSolverPos_recursive fk_solver(tree_);
-    KDL::Frame f;
-    int status = fk_solver.JntToCart(joint_positions, f, link);
-    if(status < 0) ROS_ERROR("can not solve FK to link: %s", link.c_str());
-
-    return f;
-  }
-
-  KDL::Frame RobotModel::forwardKinematics(std::string link, const sensor_msgs::JointState& state) const
-  {
-    return forwardKinematics(link, jointMsgToKdl(state));
-  }
-
   KDL::JntArray RobotModel::jointMsgToKdl(const sensor_msgs::JointState& state) const
   {
     KDL::JntArray joint_positions(tree_.getNrOfJoints());
@@ -246,4 +144,89 @@ namespace aerial_robot_model {
     return joint_positions;
   }
 
+  sensor_msgs::JointState RobotModel::kdlJointToMsg(const KDL::JntArray& joint_positions) const
+  {
+    sensor_msgs::JointState state;
+    state.name.reserve(actuator_map_.size());
+    state.position.reserve(actuator_map_.size());
+    for(const auto& actuator : actuator_map_)
+      {
+        state.name.push_back(actuator.first);
+        state.position.push_back(joint_positions(actuator.second));
+      }
+    return state;
+  }
+
+  bool RobotModel::removeExtraModule(std::string module_name)
+  {
+    const auto it = extra_module_map_.find(module_name);
+    if(it == extra_module_map_.end())
+      {
+        ROS_WARN("[extra module]: fail to remove the extra module %s, because it does not exists", module_name.c_str());
+        return false;
+      }
+    else
+      {
+        extra_module_map_.erase(module_name);
+        ROS_INFO("[extra module]: succeed to remove the extra module %s", module_name.c_str());
+        return true;
+      }
+  }
+
+  void RobotModel::resolveLinkLength() //TODO hard coding
+  {
+    KDL::JntArray joint_positions(tree_.getNrOfJoints());
+    //hard coding //TODO
+    KDL::Frame f_link2 = forwardKinematics<KDL::Frame>("link2", joint_positions);
+    KDL::Frame f_link3 = forwardKinematics<KDL::Frame>("link3", joint_positions);
+    link_length_ = (f_link3.p - f_link2.p).Norm();
+  }
+
+  void RobotModel::setActuatorJointMap(const sensor_msgs::JointState& actuator_state)
+  {
+    /* CAUTION: be sure that the joints are in order !!!!!!! */
+    for(auto itr = actuator_state.name.begin(); itr != actuator_state.name.end(); ++itr)
+      {
+        if(itr->find("joint") != std::string::npos)
+          actuator_joint_map_.push_back(std::distance(actuator_state.name.begin(), itr));
+      }
+  }
+
+  void RobotModel::updateRobotModelImpl(const KDL::JntArray& joint_positions)
+  {
+    KDL::RigidBodyInertia link_inertia = KDL::RigidBodyInertia::Zero();
+
+    for(const auto& inertia : inertia_map_)
+      {
+        KDL::Frame f = forwardKinematics<KDL::Frame>(inertia.first, joint_positions);
+        link_inertia = link_inertia + f * inertia.second;
+
+        /* process for the extra module */
+        for(const auto& extra : extra_module_map_)
+          {
+            if(extra.second.getName() == inertia.first)
+              {
+                link_inertia = link_inertia + f * (extra.second.getFrameToTip() * extra.second.getInertia());
+              }
+          }
+      }
+
+    /* CoG */
+    KDL::Frame f_baselink = forwardKinematics<KDL::Frame>(baselink_, joint_positions);
+    cog_.M = f_baselink.M * cog_desire_orientation_.Inverse();
+    cog_.p = link_inertia.getCOG();
+    mass_ = link_inertia.getMass();
+    cog2baselink_transform_ = cog_.Inverse() * f_baselink;
+
+    /* thrust point based on COG */
+    for(int i = 0; i < rotor_num_; ++i)
+      {
+        std::string rotor = thrust_link_ + std::to_string(i + 1);
+        KDL::Frame f = forwardKinematics<KDL::Frame>(rotor, joint_positions);
+        if(verbose_) ROS_WARN(" %s : [%f, %f, %f]", rotor.c_str(), f.p.x(), f.p.y(), f.p.z());
+        rotors_origin_from_cog_.at(i) = (cog_.Inverse() * f).p;
+      }
+
+    link_inertia_cog_ = (cog_.Inverse() * link_inertia).getRotationalInertia();
+  }
 } //namespace aerial_robot_model
