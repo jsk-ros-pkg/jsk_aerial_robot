@@ -15,6 +15,9 @@
       <!-- realsense cameras & VIO in intel euclid -->
       <include file="$(find realsense_camera)/launch/lr200m_nodelet_default.launch" />
       <include file="$(find realsense_sp)/launch/sp.launch" />
+
+      <!-- mocap -->
+      <include file="$(find aerial_robot_base)/launch/external_module/mocap.launch" />
     </group>
   </group>
 
