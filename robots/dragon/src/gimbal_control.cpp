@@ -38,7 +38,7 @@ namespace control_plugin
     gimbal_control_pub_ = nh_.advertise<sensor_msgs::JointState>("/gimbals_ctrl", 1);
     joint_control_pub_ = nh_.advertise<sensor_msgs::JointState>("/joints_ctrl", 1);
     curr_desire_tilt_pub_ = nh_.advertise<spinal::DesireCoord>("/desire_coordinate", 1);
-    gimbal_target_force_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("/gimbals_target_force", 1);
+    gimbal_target_force_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("gimbals_target_force", 1);
     roll_pitch_pid_pub_ = nh_.advertise<aerial_robot_msgs::FlatnessPid>("roll_pitch_gimbal_control", 1);
 
     joint_state_sub_ = nh_.subscribe("/joint_states", 1, &DragonGimbal::jointStateCallback, this);

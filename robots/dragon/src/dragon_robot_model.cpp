@@ -80,7 +80,7 @@ void DragonRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_positions
 {
   /* special process */
   gimbal_processed_joint_ = gimbalProcess(joint_positions);
-  HydrusRobotModel::updateRobotModelImpl(joint_positions);
+  HydrusRobotModel::updateRobotModelImpl(gimbal_processed_joint_);
 
   /* special process for dual edf gimbal */
   /* set the edf position w.r.t CoG frame */
