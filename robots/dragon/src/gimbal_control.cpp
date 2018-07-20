@@ -39,10 +39,11 @@ namespace control_plugin
     joint_control_pub_ = nh_.advertise<sensor_msgs::JointState>("/joints_ctrl", 1);
     curr_desire_tilt_pub_ = nh_.advertise<spinal::DesireCoord>("/desire_coordinate", 1);
     gimbal_target_force_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("/gimbals_target_force", 1);
-    roll_pitch_pid_pub_ = nh_.advertise<aerial_robot_msgs::FlatnessPid>("/roll_pitch_gimbal_control", 1);
+    roll_pitch_pid_pub_ = nh_.advertise<aerial_robot_msgs::FlatnessPid>("roll_pitch_gimbal_control", 1);
 
     joint_state_sub_ = nh_.subscribe("/joint_states", 1, &DragonGimbal::jointStateCallback, this);
     final_desire_tilt_sub_ = nh_.subscribe("/final_desire_tilt", 1, &DragonGimbal::baselinkTiltCallback, this);
+    desire_coord_sub_ = nh_.subscribe("/desire_coordinate", 1, &DragonGimbal::desireCoordCallback, this);
 
     //dynamic reconfigure server
     roll_pitch_pid_server_ = new dynamic_reconfigure::Server<aerial_robot_base::XYPidControlConfig>(ros::NodeHandle(nhp_, "pitch_roll"));
@@ -76,6 +77,11 @@ namespace control_plugin
   void DragonGimbal::baselinkTiltCallback(const spinal::DesireCoordConstPtr & msg)
   {
     final_desire_tilt_.setValue(msg->roll, msg->pitch, msg->yaw);
+  }
+
+  void DragonGimbal::desireCoordCallback(const spinal::DesireCoordConstPtr& msg)
+  {
+    kinematics_->setCogDesireOrientation(msg->roll, msg->pitch, msg->yaw);
   }
 
   bool DragonGimbal::update()

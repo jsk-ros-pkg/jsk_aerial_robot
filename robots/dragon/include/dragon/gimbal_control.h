@@ -77,6 +77,7 @@ namespace control_plugin
     ros::Publisher  roll_pitch_pid_pub_;
     ros::Subscriber joint_state_sub_;
     ros::Subscriber final_desire_tilt_sub_;
+    ros::Subscriber desire_coord_sub_;
 
     void servoTorqueProcess();
     void landingProcess();
@@ -87,6 +88,7 @@ namespace control_plugin
 
     void baselinkTiltCallback(const spinal::DesireCoordConstPtr & msg);
     void fourAxisGainCallback(const aerial_robot_msgs::FourAxisGainConstPtr & msg);
+    void desireCoordCallback(const spinal::DesireCoordConstPtr& msg);
 
     sensor_msgs::JointState joint_state_;
     Eigen::MatrixXd P_xy_;
