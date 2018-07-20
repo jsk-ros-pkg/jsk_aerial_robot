@@ -41,8 +41,6 @@ KDL::JntArray DragonRobotModel::gimbalProcess(const KDL::JntArray& joint_positio
 
       modified_joint_positions(actuator_map.find(std::string("gimbal") + s + std::string("_roll"))->second) = -r;
       modified_joint_positions(actuator_map.find(std::string("gimbal") + s + std::string("_pitch"))->second) = -p;
-      //if(getVerbose()) std::cout << std::string("gimbal") + s + std::string("_roll") << " " << actuator_map.find(std::string("gimbal") + s + std::string("_roll"))->second << std::endl;
-      //if(getVerbose()) std::cout << std::string("gimbal") + s + std::string("_pitch") << " " << actuator_map.find(std::string("gimbal") + s + std::string("_pitch"))->second << std::endl;
 
       gimbal_nominal_angles_[i * 2] = -r;
       gimbal_nominal_angles_[i * 2 + 1] = -p;
@@ -62,7 +60,7 @@ bool DragonRobotModel::overlapCheck(bool verbose) const
           Eigen::Vector3d diff = edfs_origin_from_cog[i] - edfs_origin_from_cog[j]; //dual
           double projected_dist = sqrt(diff(0) * diff(0) + diff(1) * diff(1));
           //approximated, the true one should be (edf_radius_ / cos(tilt) + diff(2) * tan(tilt)
-          double dist_thre = edf_radius_  + fabs(diff(2)) * tan(edf_max_tilt_) + edf_radius_;
+          double dist_thre = edf_radius_ + fabs(diff(2)) * tan(edf_max_tilt_) + edf_radius_;
           /* special for dual rotor */
           if(i / 2 == j / 2) continue;
 
@@ -82,9 +80,8 @@ void DragonRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_positions
 {
   /* special process */
   gimbal_processed_joint_ = gimbalProcess(joint_positions);
+  HydrusRobotModel::updateRobotModelImpl(joint_positions);
 
-  HydrusRobotModel::updateRobotModel(joint_positions);
-  return;
   /* special process for dual edf gimbal */
   /* set the edf position w.r.t CoG frame */
   std::vector<KDL::Vector> f_edfs;

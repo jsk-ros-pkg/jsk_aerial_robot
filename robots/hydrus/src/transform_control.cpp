@@ -275,7 +275,7 @@ void TransformController::lqi()
 
   /* check the propeller overlap */
   if(debug_verbose_) ROS_WARN(" start overlap check");
-  if(!getRobotModel().overlapCheck()) //[m]
+  if(!getRobotModel().overlapCheck(control_verbose_)) //[m]
     {
       ROS_ERROR("LQI: invalid pose, some propellers overlap");
       return;
