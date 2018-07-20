@@ -79,8 +79,9 @@
   </include >
 
   ###########  Transform Control  ###########
-  <node pkg="dragon" type="dragon_transform_control_node" name="dragon"  output="screen" respawn="true">
+  <node pkg="dragon" type="dragon_transform_control_node" name="dragon_transformcontrol"  output="screen" respawn="true">
     <rosparam file="$(find dragon)/config/$(arg type)/AttitudeControl.yaml" command="load" />
+    <remap from="joint_states" to="/dragon/joint_states"/>
     <param name="kinematic_verbose" value="false" />
     <param name="control_verbose" value="false" />
     <param name="debug_verbose" value="false" />

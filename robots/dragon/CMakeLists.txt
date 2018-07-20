@@ -9,6 +9,8 @@ find_package(catkin REQUIRED COMPONENTS
   cmake_modules
   aerial_robot_msgs
   aerial_robot_base
+  aerial_robot_model
+  aerial_robot_simulation
   hydrus
 )
 

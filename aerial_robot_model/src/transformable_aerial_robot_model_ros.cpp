@@ -11,7 +11,7 @@ namespace aerial_robot_model {
     //publisher
     cog2baselink_tf_pub_ = nh_.advertise<geometry_msgs::TransformStamped>("cog2baselink", 1);
     //subscriber
-    actuator_state_sub_ = nhp_.subscribe("joint_states", 1, &RobotModelRos::actuatorStateCallback, this);
+    actuator_state_sub_ = nh_.subscribe("joint_states", 1, &RobotModelRos::actuatorStateCallback, this);
     desire_coordinate_sub_ = nh_.subscribe("desire_coordinate", 1, &RobotModelRos::desireCoordinateCallback, this);
 
     //service server
