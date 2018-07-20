@@ -45,7 +45,6 @@
 /* ros msg */
 #include <geometry_msgs/Vector3Stamped.h>
 #include <nav_msgs/Odometry.h>
-#include <tf/transform_listener.h>
 
 namespace sensor_plugin
 {
@@ -95,8 +94,7 @@ namespace sensor_plugin
     bool debug_verbose_;
 
     bool init_time_;
-    tf::StampedTransform sensor_tf_; /* TODO: this should be in the basic estimation */
-    tf::Transform world_offset_tf_; /* TODO: this should be in the basic estimation */
+    tf::Transform world_offset_tf_;
     tf::Transform baselink_tf_;
     aerial_robot_msgs::States vo_state_;
 
@@ -116,40 +114,11 @@ namespace sensor_plugin
         {
           init_time_ = false;
 
-          /* get transform from baselink to vo frame */
-          /* TODO1: this should be in the basic estimation */
-          /* TODO2: for joint or servo system, this should be processed every time */
-          {
-            string sensor_frame, reference_frame;
-            nhp_.param("sensor_frame", sensor_frame, string("sensor_frame"));
-            nhp_.param("reference_frame", reference_frame, string("fc"));
-
-            tf::TransformListener listener;
-            try
-              {
-                listener.waitForTransform(reference_frame, sensor_frame, ros::Time(0), ros::Duration(1.0));
-                listener.lookupTransform(reference_frame, sensor_frame, ros::Time(0), sensor_tf_);
-              }
-            catch (tf::TransformException ex)
-              {
-                ROS_ERROR("%s: %s",nhp_.getNamespace().c_str(), ex.what());
-                init_time_ = true;
-                return;
-              }
-            double y, p, r; sensor_tf_.getBasis().getRPY(r, p, y);
-            ROS_INFO("%s: get tf from %s to %s, [%f, %f, %f], [%f, %f, %f]",
-                     nhp_.getNamespace().c_str(), reference_frame.c_str(), sensor_frame.c_str(),
-                     sensor_tf_.getOrigin().x(), sensor_tf_.getOrigin().y(),
-                     sensor_tf_.getOrigin().z(), r, p, y);
-          }
-
-          /* NO necessary: only consider the yaw angle between baselink and vo sensor, since the vo odom frame is flat
-          if(vio_flag_)
+          if(!updateBaseLink2SensorTransform())
             {
-              double sensor_tf_yaw = getYaw(sensor_tf_.getRotation());
-              sensor_tf_.setRotation(tf::createQuaternionFromYaw(sensor_tf_yaw));
+              init_time_ = true;
+              return;
             }
-          */
 
           /* set the init offset from world to the baselink of UAV from egomotion estimation (e.g. yaw) */
           world_offset_tf_.setRotation(tf::createQuaternionFromYaw(estimator_->getState(State::YAW_BASE, BasicEstimator::EGOMOTION_ESTIMATE)[0]));
@@ -206,8 +175,9 @@ namespace sensor_plugin
           return;
         }
 
+      /* transformaton from baselink to vo sensor, if we use the servo motor */
+      updateBaseLink2SensorTransform();
       baselink_tf_ = world_offset_tf_ * raw_sensor_tf * sensor_tf_.inverse();
-
 
       tf::Vector3 raw_pos;
       tf::pointMsgToTF(vo_msg->pose.pose.position, raw_pos);

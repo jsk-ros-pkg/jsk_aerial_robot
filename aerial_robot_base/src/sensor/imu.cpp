@@ -65,16 +65,7 @@ namespace sensor_plugin
       acc_pub_ = nh_.advertise<aerial_robot_msgs::Acc>("acc", 2);
       imu_pub_ = nh_.advertise<sensor_msgs::Imu>(imu_pub_topic_name_, 1);
 
-      if(imu_board_ == D_BOARD)
-        {
-          imu_sub_ = nh_.subscribe<spinal::Imu>(imu_topic_name_, 1, boost::bind(&Imu::ImuCallback, this, _1, false));
-        }
-
-      if(imu_board_ == KDUINO)
-        {
-          imu_sub_ = nh_.subscribe<spinal::SimpleImu>(imu_topic_name_, 1, &Imu::kduinoImuCallback, this);
-        }
-
+      imu_sub_ = nh_.subscribe<spinal::Imu>(imu_topic_name_, 1, &Imu::ImuCallback, this);
     }
 
     ~Imu () {}
@@ -93,9 +84,6 @@ namespace sensor_plugin
       sensor_dt_(0)
     { }
 
-    const static uint8_t D_BOARD = 1;
-    const static uint8_t KDUINO = 0;
-
     inline tf::Vector3 getAttitude(uint8_t frame)  { return euler_; }
     inline ros::Time getStamp(){return imu_stamp_;}
 
@@ -108,7 +96,6 @@ namespace sensor_plugin
     /* rosparam */
     string imu_topic_name_;
     string imu_pub_topic_name_;
-    int imu_board_;
 
     int calib_count_;
     double acc_scale_, gyro_scale_, mag_scale_; /* the scale of sensor value */
@@ -136,7 +123,7 @@ namespace sensor_plugin
 
     ros::Time imu_stamp_;
 
-    void ImuCallback(const spinal::ImuConstPtr& imu_msg, bool sub_imu_board)
+    void ImuCallback(const spinal::ImuConstPtr& imu_msg)
     {
       imu_stamp_ = imu_msg->stamp;
 
@@ -150,27 +137,6 @@ namespace sensor_plugin
 
       imuDataConverter();
       updateHealthStamp(imu_msg->stamp.toSec());
-    }
-
-    void kduinoImuCallback(const spinal::SimpleImuConstPtr& imu_msg)
-    {
-      imu_stamp_ = imu_msg->stamp;
-
-      for(int i = 0; i < 3; i++)
-        {
-          /* acc */
-          acc_b_[i] = imu_msg->accData[i] * acc_scale_;
-
-          /* euler */
-          if(i == 2)
-            {
-              euler_[i] = M_PI * imu_msg->angle[2] / 180.0;
-            }
-          else /* raw data is 10 times */
-            euler_[0]  = M_PI * imu_msg->angle[0] / 10.0 / 180.0;
-        }
-
-      imuDataConverter();
     }
 
     void imuDataConverter()
@@ -487,7 +453,7 @@ namespace sensor_plugin
           /* no acc, we do not have the angular acceleration */
 
           publishAccData();
-          publishFilteredImuData();
+          publishRosImuData();
         }
       prev_time = imu_stamp_;
     }
@@ -504,10 +470,11 @@ namespace sensor_plugin
       acc_pub_.publish(acc_data);
     }
 
-    void publishFilteredImuData()
+    void publishRosImuData()
     {
       sensor_msgs::Imu imu_data;
       imu_data.header.stamp = imu_stamp_;
+      imu_data.orientation = tf::createQuaternionMsgFromRollPitchYaw(euler_[0], euler_[1], euler_[2]);
       tf::vector3TFToMsg(omega_, imu_data.angular_velocity);
       tf::vector3TFToMsg(acc_b_, imu_data.linear_acceleration);
       imu_pub_.publish(imu_data);
@@ -538,10 +505,9 @@ namespace sensor_plugin
       nhp_.param("landing_shock_force_thre", landing_shock_force_thre_, 5.0 );
       if(param_verbose_) cout << ns << ": landing shock force_thre is " << landing_shock_force_thre_ << endl;
 
-      nhp_.param("imu_board", imu_board_, 1);
-      if(imu_board_ != D_BOARD)
-        ROS_WARN(" imu board is %s\n", (imu_board_ == KDUINO)?"kduino":"other board");
-      if(imu_board_ == KDUINO)
+      nhp_.param("imu_pub_topic_name_", imu_pub_topic_name_, string("/uav/baselink/imu"));
+
+      /* important scale, record here
         {
           nhp_.param("acc_scale", acc_scale_, BasicEstimator::G / 512.0);
           if(param_verbose_) cout << ns << ": acc scale is" << acc_scale_ << endl;
@@ -550,7 +516,8 @@ namespace sensor_plugin
           nhp_.param("mag_scale", mag_scale_, 1200 / 32768.0);
           if(param_verbose_) cout << ns << ": mag scale is" << mag_scale_ << endl;
         }
-      nhp_.param("imu_pub_topic_name_", imu_pub_topic_name_, string("imu_filtered"));
+      */
+
     }
 
   };

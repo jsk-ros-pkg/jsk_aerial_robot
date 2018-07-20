@@ -148,7 +148,7 @@ namespace sensor_plugin
           if(psi_err > M_PI)  psi_err -= 2 * M_PI;
           else if(psi_err < -M_PI)  psi_err += 2 * M_PI;
           double raw_psi_vel = psi_err / delta_t;
- 
+
           double psi_vel = 0;
 
           /* pos */

@@ -111,6 +111,8 @@ namespace sensor_plugin
         gps_state_.states[3].id = "rtk_y";
         gps_state_.states[3].state.resize(3);
 
+        world_frame_.setIdentity();
+
         /* set health chan num */
         setHealthChanNum(2);
       }
@@ -130,7 +132,6 @@ namespace sensor_plugin
       string gps_sub_name_;
       string rtk_gps_sub_name_;
 
-
       /* for gps way point control */
       string wp_sub_name_;
       string nav_pub_name_;
@@ -143,6 +144,8 @@ namespace sensor_plugin
 
       double pos_noise_sigma_, vel_noise_sigma_;
       int min_est_sat_num_;
+      bool ned_flag_;
+      tf::Matrix3x3 world_frame_;
 
       aerial_robot_msgs::States gps_state_;
 
@@ -190,6 +193,11 @@ namespace sensor_plugin
         if(param_verbose_) cout << ns << ": pos noise sigma is " << pos_noise_sigma_ << endl;
         nhp_.param("vel_noise_sigma", vel_noise_sigma_, 0.1);
         if(param_verbose_) cout << ns << ": vel noise sigma is " << vel_noise_sigma_ << endl;
+
+
+        nhp_.param("ned_flag", ned_flag_, true);
+        if(param_verbose_) cout << ns << ": NED frame flag is " << ned_flag_ << endl;
+        if(ned_flag_) world_frame_.setRPY(M_PI, 0, 0);
       }
 
       void gpsCallback(const spinal::Gps::ConstPtr & gps_msg)
@@ -197,15 +205,16 @@ namespace sensor_plugin
         static bool first_flag = true;
         double current_secs = gps_msg->stamp.toSec();
 
+        if(!updateBaseLink2SensorTransform()) return;
 
         /* frame conversion */
         /* UTM */
         /* raw data about alt/lon from gps is * 10e7 */
         geodesy::fromMsg(geodesy::toMsg(gps_msg->location[0] / 1e7, gps_msg->location[1] / 1e7), utm_pos_);
 
-        raw_pos_ = baselink_transform_.getBasis() * tf::Vector3(utm_pos_.northing - home_utm_pos_.northing, utm_pos_.easting - home_utm_pos_.easting, 0);
+        raw_pos_ = world_frame_ * tf::Vector3(utm_pos_.northing - home_utm_pos_.northing, utm_pos_.easting - home_utm_pos_.easting, 0);
         tf::Vector3 raw_vel_temp(gps_msg->velocity[0], gps_msg->velocity[1], 0);
-        raw_vel_ = baselink_transform_.getBasis() * raw_vel_temp;
+        raw_vel_ = world_frame_ * raw_vel_temp;
 
         gps_state_.header.stamp = gps_msg->stamp;
 
@@ -344,8 +353,8 @@ namespace sensor_plugin
         tf::Vector3 raw_rtk_pos_temp, raw_rtk_vel_temp;
         tf::pointMsgToTF(rtk_gps_msg->pose.pose.position, raw_rtk_pos_temp);
         tf::vector3MsgToTF(rtk_gps_msg->twist.twist.linear, raw_rtk_vel_temp);
-        raw_rtk_pos_ = baselink_transform_.getBasis() * raw_rtk_pos_temp;
-        raw_rtk_vel_ = baselink_transform_.getBasis() * raw_rtk_vel_temp;
+        raw_rtk_pos_ = world_frame_ * raw_rtk_pos_temp;
+        raw_rtk_vel_ = world_frame_ * raw_rtk_vel_temp;
 
         gps_state_.header.stamp = rtk_gps_msg->header.stamp;
 
@@ -457,7 +466,7 @@ namespace sensor_plugin
         geodesy::fromMsg(geodesy::toMsg(msg->waypoints[0].x_lat, msg->waypoints[0].y_long, msg->waypoints[0].z_alt), target_utm_pos);
 
         /* TODO: the process for different zone */
-        tf::Vector3 target_pos = baselink_transform_.getBasis() * tf::Vector3(target_utm_pos.northing - home_utm_pos_.northing, target_utm_pos.easting - home_utm_pos_.easting, 0);
+        tf::Vector3 target_pos = world_frame_ * tf::Vector3(target_utm_pos.northing - home_utm_pos_.northing, target_utm_pos.easting - home_utm_pos_.easting, 0);
 
         /* threshold */
         if(target_pos.length() < wp_dist_thre_ && target_utm_pos.altitude < wp_alt_thre_)

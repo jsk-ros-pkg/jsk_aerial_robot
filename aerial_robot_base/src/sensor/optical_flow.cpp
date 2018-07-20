@@ -65,7 +65,7 @@ namespace sensor_plugin
 
     ~OpticalFlow() {}
     OpticalFlow():
-      vel_(0, 0, 0), quality_(0)
+      vel_(0, 0, 0)
     {
       opt_state_.states.resize(2);
       opt_state_.states[0].id = "x";
@@ -97,8 +97,26 @@ namespace sensor_plugin
       static bool first_flag = true;
       double current_secs = opt_msg->header.stamp.toSec();
 
-      //ROS_INFO("optical flow time: %f", opt_msg->header.stamp.toSec());
+      if(opt_msg->header.frame_id == "global")
+        {
+          /* the velocity should be based on the world frame  */
+          vel_.setValue(opt_msg->vector.x, opt_msg->vector.y, 0);
+        }
+      else if(opt_msg->header.frame_id == "local")
+        {
+          /* need perfrom transformation */
+          tf::Vector3 camera_vel;
+          tf::vector3MsgToTF(opt_msg->vector, camera_vel);
 
+          /* TODO: not accurate */
+          vel_ = estimator_->getOrientation(Frame::BASELINK, BasicEstimator::EGOMOTION_ESTIMATE) * (sensor_tf_.getBasis() * camera_vel - estimator_->getAngularVel(Frame::BASELINK, BasicEstimator::EGOMOTION_ESTIMATE).cross(sensor_tf_.getOrigin()));
+        }
+      else
+        {
+          ROS_ERROR("the optical flow frame id  is not correct: %s, should be <local> or <global>",
+                    opt_msg->header.frame_id.c_str());
+          return;
+        }
       /* only do egmotion estimate mode */
       if(!getFuserActivate(BasicEstimator::EGOMOTION_ESTIMATE))
         {
@@ -121,6 +139,7 @@ namespace sensor_plugin
             }
           return;
         }
+
 
       if(first_flag)
         {
@@ -170,19 +189,9 @@ namespace sensor_plugin
           estimator_->setStateStatus(State::Y_BASE, BasicEstimator::EGOMOTION_ESTIMATE, true);
         }
 
-      quality_ = opt_msg->vector.z;
-
-      /* get the optical flow frame orientation towards the world frame */
-      tf::Matrix3x3 orien = estimator_->getOrientation(Frame::BASELINK, BasicEstimator::EGOMOTION_ESTIMATE);
-      /* change the velocity based on the world frame  */
-      vel_ = orien * baselink_transform_.getBasis() * tf::Vector3(opt_msg->vector.x, opt_msg->vector.y, 0);
-      vel_.setZ(0);
-
       /* publish */
       opt_state_.header.stamp = opt_msg->header.stamp;
       estimateProcess(opt_state_.header.stamp);
-      //tf::Vector3 vel = vel_;
-      //vel_ = orien.transpose() * vel;
 
       for(int axis = 0; axis < 2; axis++) opt_state_.states[axis].state[0].y = vel_[axis];
       opt_state_pub_.publish(opt_state_);
@@ -194,6 +203,7 @@ namespace sensor_plugin
 
     void estimateProcess(ros::Time stamp)
     {
+      /* filtering by estimation velocity */
       tf::Vector3 estimate_vel(estimator_->getState(State::X_BASE, BasicEstimator::EGOMOTION_ESTIMATE)[1],
                                estimator_->getState(State::Y_BASE, BasicEstimator::EGOMOTION_ESTIMATE)[1],
                                0);
@@ -203,7 +213,7 @@ namespace sensor_plugin
           ROS_WARN("Optical Flow: bad vel estimate, since the diff is too big: %f, curr: [%f, %f, %f] vs prev: [%f, %f, %f]", (vel_ - estimate_vel).length(), vel_.x(), vel_.y(), vel_.z(), estimate_vel.x(), estimate_vel.y(), estimate_vel.z());
           return;
         }
-      //double t = ros::Time::now().toSec();
+
       for(auto& fuser : estimator_->getFuser(BasicEstimator::EGOMOTION_ESTIMATE))
         {
           boost::shared_ptr<kf_plugin::KalmanFilter> kf = fuser.second;
@@ -226,7 +236,7 @@ namespace sensor_plugin
                   vector<double> params = {kf_plugin::VEL};
                   /* time sync and delay process: get from kf time stamp */
                   if(time_sync_ && delay_ < 0) stamp.fromSec(kf->getTimestamp() + delay_);
-                  //ROS_INFO("opt stamp: %f, imu stamp: %f, diff: %f", stamp.toSec(), kf->getTimestamp(), kf->getTimestamp() - stamp.toSec());
+
                   kf->correction(meas, stamp.toSec(), params);
 
                   VectorXd state = kf->getEstimateState();
@@ -273,7 +283,6 @@ namespace sensor_plugin
                 }
             }
         }
-      //ROS_INFO("opt correciton: %f", ros::Time::now().toSec() - t)
     }
 
     void rosParamInit()
@@ -288,7 +297,7 @@ namespace sensor_plugin
       nhp_.param("vel_thresh", vel_thresh_, 1.0);
       if(param_verbose_) cout << ns << ": vel thresh is " <<  vel_thresh_ << endl;
 
-      nhp_.param("opt_sub_topic_name", opt_sub_topic_name_, string("opt") );
+      nhp_.param("opt_sub_topic_name", opt_sub_topic_name_, string("/uav/baselink/vel_raw") );
       if(param_verbose_) cout << ns << ": opt sub topic name is " <<  opt_sub_topic_name_ << endl;
     }
   };

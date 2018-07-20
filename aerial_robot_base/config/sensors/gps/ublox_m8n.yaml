@@ -3,4 +3,4 @@ sensor_plugin:
                 min_est_sat_num: 7
                 vel_noise_sigma:  0.05
                 wp_ctrl_rate: 0
-                frame_roll: 3.1415926
+                ned_flag: true # north-east-down frame
