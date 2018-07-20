@@ -65,7 +65,7 @@ namespace sensor_plugin
 
     ~OpticalFlow() {}
     OpticalFlow():
-      vel_(0, 0, 0), quality_(0)
+      vel_(0, 0, 0)
     {
       opt_state_.states.resize(2);
       opt_state_.states[0].id = "x";
@@ -97,13 +97,26 @@ namespace sensor_plugin
       static bool first_flag = true;
       double current_secs = opt_msg->header.stamp.toSec();
 
-      if(opt_msg->header.frame_id != reference_frame_)
+      if(opt_msg->header.frame_id == "global")
         {
-          ROS_ERROR("the optical flow w.r.t frame is not idiential with baselink frame: %s vs %s",
-                    opt_msg->header.frame_id.c_str(), reference_frame_.c_str());
+          /* the velocity should be based on the world frame  */
+          vel_.setValue(opt_msg->vector.x, opt_msg->vector.y, 0);
+        }
+      else if(opt_msg->header.frame_id == "local")
+        {
+          /* need perfrom transformation */
+          tf::Vector3 camera_vel;
+          tf::vector3MsgToTF(opt_msg->vector, camera_vel);
+
+          /* TODO: not accurate */
+          vel_ = estimator_->getOrientation(Frame::BASELINK, BasicEstimator::EGOMOTION_ESTIMATE) * (sensor_tf_.getBasis() * camera_vel - estimator_->getAngularVel(Frame::BASELINK, BasicEstimator::EGOMOTION_ESTIMATE).cross(sensor_tf_.getOrigin()));
+        }
+      else
+        {
+          ROS_ERROR("the optical flow frame id  is not correct: %s, should be <local> or <global>",
+                    opt_msg->header.frame_id.c_str());
           return;
         }
-
       /* only do egmotion estimate mode */
       if(!getFuserActivate(BasicEstimator::EGOMOTION_ESTIMATE))
         {
@@ -127,10 +140,6 @@ namespace sensor_plugin
           return;
         }
 
-      quality_ = opt_msg->vector.z;
-
-      /* the velocity should be based on the world frame  */
-      vel_.setValue(opt_msg->vector.x, opt_msg->vector.y, 0);
 
       if(first_flag)
         {
@@ -288,7 +297,7 @@ namespace sensor_plugin
       nhp_.param("vel_thresh", vel_thresh_, 1.0);
       if(param_verbose_) cout << ns << ": vel thresh is " <<  vel_thresh_ << endl;
 
-      nhp_.param("opt_sub_topic_name", opt_sub_topic_name_, string("opt") );
+      nhp_.param("opt_sub_topic_name", opt_sub_topic_name_, string("/uav/baselink/vel_raw") );
       if(param_verbose_) cout << ns << ": opt sub topic name is " <<  opt_sub_topic_name_ << endl;
     }
   };
