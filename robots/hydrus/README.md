@@ -13,16 +13,16 @@ paper: https://www.tandfonline.com/doi/full/10.1080/01691864.2016.1181006
 ### real machine
 -  egomotion estimation only with on-board sensors :
 ```
-$ roslaunch hydrus hydrusx_bringup.launch control_mode:=0 estimate_mode:=0 type:=hex
+$ roslaunch hydrus bringup.launch control_mode:=0 estimate_mode:=0 type:=hex
 ```
 -  egomotion estimation with mocap:
 ```
-$ roslaunch hydrus hydrusx_bringup.launch control_mode:=0 estimate_mode:=1 type:=hex
+$ roslaunch hydrus bringup.launch control_mode:=0 estimate_mode:=1 type:=hex
 ```
 
 ### simulation
 ```
-$ roslaunch hydrus hydrusx_bringup.launch real_machine:=false simulation:=true headless:=false control_mode:=0 type:=hex
+$ roslaunch hydrus bringup.launch real_machine:=false simulation:=true headless:=false control_mode:=0 type:=hex
 ```
 
 ## 2. teleop 
