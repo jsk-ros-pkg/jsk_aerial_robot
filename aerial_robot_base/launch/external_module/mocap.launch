@@ -12,6 +12,9 @@
                pose2d: aerial_robot/ground_pose
                child_frame_id: aerial_robot/base_link
                parent_frame_id: world
+      optitrack_config:
+         multicast_address:
+               239.255.42.99
     </rosparam>
   </node>
 
