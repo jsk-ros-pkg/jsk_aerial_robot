@@ -151,7 +151,7 @@ void AttitudeController::pwmsControl(void)
 
 #ifdef SIMULATION
   /* control result publish */
-  if(HAL_GetTick() - ros_pub_last_time > CONTROL_PUB_INTERVAL)
+  if(HAL_GetTick() - ros_pub_last_time >= CONTROL_PUB_INTERVAL)
     {
       ros_pub_last_time = HAL_GetTick();
       pwms_msg_.stamp = ros::Time::now();
@@ -161,7 +161,7 @@ void AttitudeController::pwmsControl(void)
 
 #else
   /* control result publish */
-  if(HAL_GetTick() - ros_pub_last_time > CONTROL_PUB_INTERVAL)
+  if(HAL_GetTick() - ros_pub_last_time >= CONTROL_PUB_INTERVAL)
     {
       ros_pub_last_time = HAL_GetTick();
       pwms_msg_.stamp = nh_->now();
