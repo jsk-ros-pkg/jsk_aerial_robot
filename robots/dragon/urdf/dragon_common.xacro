@@ -46,8 +46,8 @@
   <!-- friction -->
   <xacro:macro name="friction" params="self">
     <gazebo reference="link${self}">
-      <mu1>0.2</mu1>
-      <mu2>0.2</mu2>
+      <mu1>0.4</mu1>
+      <mu2>0.4</mu2>
     </gazebo>
   </xacro:macro>
 
