@@ -10,11 +10,15 @@
       <!-- head -->
       <xacro:if value="${self == 1}">
         <inertial>
-          <origin xyz="${link_length* 0.5 + 14.03 * 0.001} ${-7.10 * 0.001} ${-24.66 * 0.001}" rpy="0 0 0"/>
+          <origin xyz="${link_length* 0.5 + 20.63 * 0.001} ${-7.10 * 0.001} ${-24.66 * 0.001}" rpy="0 0 0"/>
           <mass value="0.7485" />
+          <!-- bad problem: https://github.com/tongtybj/aerial_robot/issues/155
           <inertia
               ixx="0.0014" iyy="0.0154" izz="0.0147"
-              ixy="-0.0008" ixz="0.0006" iyz="0.0"/>
+              ixy="-0.0008" ixz="0.0006" iyz="0.0"/> -->
+          <inertia
+              ixx="0.00090734" iyy="0.01452037" izz="0.01426033"
+              ixy="0.00078582" ixz="-0.00090857" iyz="0.0001282"/>
         </inertial>
         <xacro:link_model type="head_link" />
       </xacro:if>
@@ -25,9 +29,13 @@
           <inertial>
             <origin xyz="${link_length* 0.5 - 47.26 * 0.001} ${-0.12 * 0.001} ${-17.74 * 0.001}" rpy="0 0 0"/>
             <mass value="0.7460" />
+            <!-- bad problem: https://github.com/tongtybj/aerial_robot/issues/155
             <inertia
                 ixx="0.0014" iyy="0.0158" izz="0.0145"
-                ixy="0.0" ixz="-0.0006" iyz="0.0"/>
+                ixy="0.0" ixz="-0.0006" iyz="0.0"/> -->
+            <inertia
+                ixx="${1.21645440 * 0.001}" iyy="${1.39001170 * 0.01}" izz="${1.28812312 * 0.01}"
+                ixy="${1.00390000 * 0.00001}" ixz="${1.17225120 * 0.001}" iyz="${2.89500000 * 0.000001}"/>
           </inertial>
           <xacro:link_model type="end_link" />
         </xacro:if>
@@ -37,9 +45,13 @@
             <inertial>
               <origin xyz="${link_length* 0.5 + 9.75 * 0.001} ${-5.03 * 0.001} ${-14.39 * 0.001}" rpy="0 0 0"/>
               <mass value="1.0697" />
+              <!-- bad problem: https://github.com/tongtybj/aerial_robot/issues/155
               <inertia
                   ixx="0.0019" iyy="0.0226" izz="0.0217"
-                  ixy="-0.0009" ixz="-0.0007" iyz="0.0"/>
+                  ixy="-0.0009" ixz="-0.0007" iyz="0.0"/> -->
+              <inertia
+                  ixx="${1.65168720 * 0.001}" iyy="${2.23498232 * 0.01}" izz="${2.16125712 * 0.01}"
+                  ixy="${8.74188000 * 0.0001}" ixz="${5.33822400 * 0.0001}" iyz="${7.75584000 * 0.00001}"/>
             </inertial>
             <xacro:link_model type="baselink" />
           </xacro:if>
@@ -48,9 +60,13 @@
             <inertial>
               <origin xyz="${link_length* 0.5 - 11.42 * 0.001} ${-6.06 * 0.001} ${-14.09 * 0.001}" rpy="0 0 0"/>
               <mass value="0.8890" />
+              <!-- bad problem: https://github.com/tongtybj/aerial_robot/issues/155
               <inertia
                   ixx="0.0017" iyy="0.02" izz="0.019"
-                  ixy="-0.0009" ixz="-0.0004" iyz="0.0"/>
+                  ixy="-0.0009" ixz="-0.0004" iyz="0.0"/> -->
+              <inertia
+                  ixx="${1.46927480 * 0.001}" iyy="${1.97395958 * 0.01}" izz="${1.88998884 * 0.01}"
+                  ixy="${9.65232800 * 0.0001}" ixz="${5.77743600 * 0.0001}" iyz="${9.10326000 * 0.00001}"/>
             </inertial>
             <xacro:link_model type="general_link" />
           </xacro:unless>
@@ -73,9 +89,14 @@
       <inertial>
         <origin xyz="${gimbal_roll_x_offset - 17.46431 * 0.001} ${0.42738 * 0.001} ${15.47344 * 0.001}" rpy="0 0 0"/>
         <mass value="0.45058" />
+        <!-- bad problem: https://github.com/tongtybj/aerial_robot/issues/155
         <inertia
             ixx="0.0005" iyy="0.0007" izz="0.0004"
             ixy="0" ixz="-0.0002" iyz="0.0"/>
+        -->
+        <inertia
+            ixx="${4.49938835 * 0.0001}" iyy="${5.44075766 * 0.0001}" izz="${2.74350095 * 0.0001}"
+            ixy="${-3.56050862 * 0.000001}" ixz="${1.17396333 * 0.0001}" iyz="${1.01694621 * 0.00001}"/>
       </inertial>
       <visual>
         <origin xyz="${gimbal_roll_x_offset} 0 0" rpy="0 0 0"/>
@@ -117,7 +138,7 @@
         <origin xyz="0 ${0.47 * 0.001}  ${-7.38 * 0.001}" rpy="0 0 0"/>
         <mass value=".4187" />
         <inertia
-            ixx="0.0047" iyy="0.0002" izz="0.0047"
+            ixx="0.0047171" iyy="0.0001518" izz="0.0047442"
             ixy="0" ixz="0.0" iyz="0.0"/>
       </inertial>
       <visual>
