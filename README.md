@@ -1,6 +1,8 @@
 [![Build Status](https://travis-ci.com/tongtybj/aerial_robot.svg?branch=devel)](https://travis-ci.com/tongtybj/aerial_robot)
 
-# This is for aerial robot.
+# This is for aerial robot, especially for transformable aerial robot as shwon in following figure.
+
+![uav_intro](images/multilink-all.jpg)
 
 ## how to compile
 
@@ -14,5 +16,7 @@ rosdep install -y -r --from-paths src --ignore-src --rosdistro $ROS_DISTRO
 catkin build
 ```
 
+## how to use
+Please check instruction in [wiki](https://github.com/tongtybj/aerial_robot/wiki).
 
 
