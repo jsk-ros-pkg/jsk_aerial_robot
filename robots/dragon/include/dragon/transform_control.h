@@ -33,68 +33,17 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 
+#pragma once
 
-#ifndef DRAGON_TRANSFORM_CONTROL_H
-#define DRAGON_TRANSFORM_CONTROL_H
-
-/* ros */
-#include <ros/ros.h>
-
-/* basic transform control */
 #include <hydrus/transform_control.h>
-#include <unordered_map>
-
-using namespace std;
+#include <dragon/dragon_robot_model.h>
 
 class DragonTransformController : public TransformController
 {
 public:
-  DragonTransformController(ros::NodeHandle nh, ros::NodeHandle nh_private, bool callback_flag = true);
-  ~DragonTransformController(){}
-
-  void gimbalProcess(sensor_msgs::JointState& state);
-
-  void getLinksOrientation(std::vector<KDL::Rotation>& links_frame_from_cog)
-  {
-    links_frame_from_cog = links_frame_from_cog_;
-  }
-
-  void forwardKinematics(sensor_msgs::JointState& state);
-
-  void setEdfsFromCog(const std::vector<Eigen::Vector3d>& edfs_origin_from_cog)
-  {
-    boost::lock_guard<boost::mutex> lock(origins_mutex_);
-    assert(edfs_origin_from_cog_.size() == edfs_origin_from_cog.size());
-    edfs_origin_from_cog_ = edfs_origin_from_cog;
-  }
-
-  void getEdfsFromCog(std::vector<Eigen::Vector3d>& edfs_origin_from_cog)
-  {
-    boost::lock_guard<boost::mutex> lock(origins_mutex_);
-    int size = edfs_origin_from_cog_.size();
-    for(int i=0; i< size; i++)
-      edfs_origin_from_cog = edfs_origin_from_cog_;
-  }
-
-  bool overlapCheck(bool verbose = false);
-
-  std::vector<double>& getGimbalNominalAngles() {return gimbal_nominal_angles_;}
-
-  /* check the relative horizontal distance between propellers */
-  double edf_radius_; // the radius of EDF
-  double edf_max_tilt_;
-
-private:
-  ros::Publisher gimbal_control_pub_;
-
-  bool gimbal_control_;
-
-  std::vector<KDL::Rotation> links_frame_from_cog_;
-  std::vector<Eigen::Vector3d> edfs_origin_from_cog_;
-
-  void initParam();
-
-  std::vector<double> gimbal_nominal_angles_;
+  DragonTransformController(ros::NodeHandle nh, ros::NodeHandle nh_private, std::unique_ptr<DragonRobotModel> robot_model = std::make_unique<DragonRobotModel>(true));
+  virtual ~DragonTransformController() = default;
+protected:
+  //protected functions
+  DragonRobotModel& getRobotModel() const { return static_cast<DragonRobotModel&>(TransformController::getRobotModel()); }
 };
-
-#endif

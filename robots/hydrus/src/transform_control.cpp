@@ -1,949 +1,36 @@
 #include <hydrus/transform_control.h>
 
-using namespace fcl;
-
-TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_private, bool callback_flag):
-  nh_(nh), nh_private_(nh_private),
-  callback_flag_(callback_flag),
-  kinematics_flag_(false),
-  rotor_num_(0), link_length_(0),
-  p_det_(0), stability_margin_(0)
+TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_private, std::unique_ptr<HydrusRobotModel> robot_model):
+  RobotModelRos(nh, nh_private, std::move(robot_model)),
+  nh_(nh),
+  nh_private_(nh_private)
 {
-  /* robot model */
-  if (!model_.initParam("robot_description"))
-    ROS_ERROR("Failed to extract urdf model from rosparam");
-  if (!kdl_parser::treeFromUrdfModel(model_, tree_))
-    ROS_ERROR("Failed to extract kdl tree from xml robot description");
-
-
-#if 0 // FCL general test
-
-  DistanceResult<double> result;
-  double distance;
-  //Box<double> box(0.6, 0.05, 0.15); // not good!!
-
-  std::shared_ptr< CollisionGeometry<double> > cgeomSphere_(new Sphere<double>(0.05));
-  std::shared_ptr< CollisionGeometry<double> > cgeomBox_(new Box<double>(0.6, 0.05, 0.15));
-  std::shared_ptr< CollisionGeometry<double> > cgeomCylinder_(new Cylinder<double>(0.05, 0.3));
-
-  CollisionObject<double> objSphere(cgeomSphere_, Eigen::Matrix3d::Identity(), Eigen::Vector3d(0.3, 0.3, 0.0));
-   CollisionObject<double> objBox(cgeomBox_, Eigen::Matrix3d::Identity(), Eigen::Vector3d(0.3, 0, -0.03));
-   CollisionObject<double> objCylinder(cgeomCylinder_, Eigen::Matrix3d::Identity(), Eigen::Vector3d(0.3, 0.3, 0));
-
-   boost::shared_ptr<BroadPhaseCollisionManager<double> > collision_manager(new DynamicAABBTreeCollisionManager<double>());
-   collision_manager->registerObject(&objSphere);
-  //collision_manager->registerObject(&objBox);
-
-
-  result.clear();
-  DistanceRequest<double> request(true);
-   /*
-  fcl::distance(&objBox, &objCylinder, request, result);
-  std::cout << "distance = " << result.min_distance << std::endl;
-  std::cout << " point on manager: x = " << result.nearest_points[0](0) << " y = " << result.nearest_points[0](1) << " z = " << result.nearest_points[0](2) << std::endl;
-  std::cout << " point on manager: x = " << result.nearest_points[1](0) << " y = " << result.nearest_points[1](1) << " z = " << result.nearest_points[1](2) << std::endl;
-
-   */
-
-   DistanceData distance_data;
-   distance_data.request = request;
-   collision_manager->distance(&objBox, &distance_data, TransformController::defaultDistanceFunction);
-   std::cout << "distance = " << distance_data.result.min_distance << std::endl;
-   std::cout << " point on manager: x = " << distance_data.result.nearest_points[0](0) << " y = " << distance_data.result.nearest_points[0](1) << " z = " << distance_data.result.nearest_points[0](2) << std::endl;
-   std::cout << " point on manager: x = " << distance_data.result.nearest_points[1](0) << " y = " << distance_data.result.nearest_points[1](1) << " z = " << distance_data.result.nearest_points[1](2) << std::endl;
-
-#endif
-
-#if 0 //box collison check test
-   DistanceResult<double> result;
-   result.clear();
-   DistanceRequest<double> request(true);
-
-   std::shared_ptr< CollisionGeometry<double> > cgeomBox1(new Box<double>(2.750000, 6.000000, 0.050000));
-   std::shared_ptr< CollisionGeometry<double> > cgeomBox2(new Box<double>(0.424000, 0.150000, 0.168600));
-   CollisionObject<double> objBox1(cgeomBox1, Eigen::Quaterniond(1,0,0,0).matrix(), Eigen::Vector3d(1.625000, 0.000000, 0.500000));
-   CollisionObject<double> objBox2(cgeomBox2, Eigen::Quaterniond(0.672811, 0.340674, 0.155066, 0.638138).matrix(), Eigen::Vector3d(0.192074, -0.277870, 0.273546 /*0.273546*/));
-
-   fcl::distance(&objBox1, &objBox2, request, result);
-   std::cout << "distance = " << result.min_distance << std::endl;
-   std::cout << " point on obj1: x = " << result.nearest_points[0](0) << " y = " << result.nearest_points[0](1) << " z = " << result.nearest_points[0](2) << std::endl;
-   std::cout << " point on obj2: x = " << result.nearest_points[1](0) << " y = " << result.nearest_points[1](1) << " z = " << result.nearest_points[1](2) << std::endl;
-#endif
-
   nh_private_.param("verbose", verbose_, false);
   ROS_ERROR("ns is %s", nh_private_.getNamespace().c_str());
 
-  /* base link */
-  nh_private_.param("baselink", baselink_, std::string("link1"));
-  if(verbose_) std::cout << "baselink: " << baselink_ << std::endl;
-  nh_private_.param("thrust_link", thrust_link_, std::string("thrust"));
-  if(verbose_) std::cout << "thrust_link: " << thrust_link_ << std::endl;
-
-  inertialSetup(tree_.getRootSegment()->second);
-  resolveLinkLength();
-
-  for(auto itr = model_.joints_.begin(); itr != model_.joints_.end(); itr++)
-    {
-      if(itr->first.find("joint1") != std::string::npos)
-        {
-          joint_angle_min_ = itr->second->limits->lower;
-          joint_angle_max_ = itr->second->limits->upper;
-          ROS_WARN("the angle range: [%f, %f]", joint_angle_min_, joint_angle_max_);
-          break;
-        }
-    }
-
-  //for(auto it: actuator_map_) ROS_ERROR("%d: %s", it.second, it.first.c_str());
-
-  ROS_ERROR("[kinematics] rotor num; %d", rotor_num_);
-
   initParam();
 
-  rotors_origin_from_cog_.resize(rotor_num_);
-
-  /* Linear Quadratic Control */
-  //U
-  P_ = Eigen::MatrixXd::Zero(4,rotor_num_);
-
-  //Q
-  q_diagonal_ = Eigen::VectorXd::Zero(LQI_FOUR_AXIS_MODE * 3);
-  q_diagonal_ << q_roll_,q_roll_d_,q_pitch_,q_pitch_d_,q_z_,q_z_d_,q_yaw_,q_yaw_d_, q_roll_i_,q_pitch_i_,q_z_i_,q_yaw_i_;
-  //std::cout << "Q elements :"  << std::endl << q_diagonal_ << std::endl;
-
-  lqi_mode_ = LQI_FOUR_AXIS_MODE;
-
+  //publisher
   //those publisher is published from func param2controller
-  std::string rpy_gain_pub_name;
-  nh_private_.param("rpy_gain_pub_name", rpy_gain_pub_name, std::string("/rpy_gain"));
-  rpy_gain_pub_ = nh_.advertise<spinal::RollPitchYawTerms>(rpy_gain_pub_name, 1);
+  rpy_gain_pub_ = nh_private_.advertise<spinal::RollPitchYawTerms>("/rpy_gain", 1);
   four_axis_gain_pub_ = nh_.advertise<aerial_robot_msgs::FourAxisGain>("/four_axis_gain", 1);
-  transform_pub_ = nh_.advertise<geometry_msgs::TransformStamped>("/cog2baselink", 1);
   p_matrix_pseudo_inverse_inertia_pub_ = nh_.advertise<spinal::PMatrixPseudoInverseWithInertia>("p_matrix_pseudo_inverse_inertia", 1);
 
   //dynamic reconfigure server
-  lqi_server_ = new dynamic_reconfigure::Server<hydrus::LQIConfig>(nh_private_);
   dynamic_reconf_func_lqi_ = boost::bind(&TransformController::cfgLQICallback, this, _1, _2);
-  lqi_server_->setCallback(dynamic_reconf_func_lqi_);
+  lqi_server_.setCallback(dynamic_reconf_func_lqi_);
 
-  /* ros service for extra module */
-  add_extra_module_service_ = nh_.advertiseService("add_extra_module", &TransformController::addExtraModuleCallback, this);
+  control_thread_ = std::thread(boost::bind(&TransformController::control, this));
 
-  /* defualt callback */
-  desire_coordinate_sub_ = nh_.subscribe("/desire_coordinate", 1, &TransformController::desireCoordinateCallback, this);
-
-  if(callback_flag_)
-    {
-      std::string actuator_state_sub_name;
-      nh_private_.param("actuator_state_sub_name", actuator_state_sub_name, std::string("joint_state"));
-      actuator_state_sub_ = nh_.subscribe(actuator_state_sub_name, 1, &TransformController::actuatorStateCallback, this);
-
-      control_thread_ = boost::thread(boost::bind(&TransformController::control, this));
-    }
-}
-
-KDL::RigidBodyInertia TransformController::inertialSetup(const KDL::TreeElement tree_element)
-{
-  const KDL::Segment&  current_seg = GetTreeElementSegment(tree_element);
-
-  KDL::RigidBodyInertia current_seg_inertia = current_seg.getInertia();
-  if(verbose_) ROS_INFO("segment %s, mass is: %f", current_seg.getName().c_str(), current_seg_inertia.getMass());
-
-  /* check error joint */
-  assert(model_.getJoint(current_seg.getJoint().getName())->type == urdf::Joint::FLOATING);
-
-  /* check whether this can be a base inertia segment (i.e. link) */
-  /* 1. for the "root" parent link (i.e. link1) */
-  if(current_seg.getName().find("root") != std::string::npos)
-    {
-      assert(inertia_map_.size() == 0);
-      assert(GetTreeElementChildren(tree_element).size() == 1);
-
-      const KDL::Segment&  child_seg = GetTreeElementSegment(GetTreeElementChildren(tree_element).at(0)->second);
-      inertia_map_.insert(std::make_pair(child_seg.getName(), child_seg.getInertia()));
-      if(verbose_) ROS_WARN("Add root link: %s", child_seg.getName().c_str());
-
-      /*
-      std::cout << "m: " << inertia_map_.find(child_seg.getName())->second.getMass() << std::endl;
-      std::cout << "p: \n" << Eigen::Map<const Eigen::Vector3d>(inertia_map_.find(child_seg.getName())->second.getCOG().data) << std::endl;
-      std::cout << "I: \n" << Eigen::Map<const Eigen::Matrix3d>(inertia_map_.find(child_seg.getName())->second.getRotationalInertia().data) << std::endl;
-      */
-    }
-  /* 2. for segment that has joint with parent segment */
-  if (current_seg.getJoint().getType() != KDL::Joint::None)
-    {
-      /* add the new inertia base (child) link if the joint is not a rotor */
-      if(current_seg.getJoint().getName().find("rotor") == std::string::npos)
-        {
-          /* create a new inertia base link */
-          inertia_map_.insert(std::make_pair(current_seg.getName(), current_seg_inertia));
-          actuator_map_.insert(std::make_pair(current_seg.getJoint().getName(), tree_element.q_nr));
-          if(verbose_) ROS_WARN("Add new inertia base link: %s", current_seg.getName().c_str());
-        }
-    }
-  /* special process for rotor */
-  if(current_seg.getJoint().getName().find("rotor") != std::string::npos)
-    {
-      /* add the rotor direction */
-      if(verbose_) ROS_WARN("%s, rototation is %f", current_seg.getJoint().getName().c_str(), current_seg.getJoint().JointAxis().z());
-      rotor_direction_.insert(std::make_pair(std::atoi(current_seg.getJoint().getName().substr(5).c_str()), current_seg.getJoint().JointAxis().z()));
-    }
-
-  /* recursion process for children segment */
-  //ROS_WARN("child num of current seg %s: %d", current_seg.getName().c_str(), GetTreeElementChildren(tree_element).size());
-  for (auto itr: GetTreeElementChildren(tree_element))
-    {
-      const KDL::Segment& child_seg = GetTreeElementSegment(itr->second);
-      KDL::RigidBodyInertia child_seg_inertia = child_seg.getFrameToTip() *  inertialSetup(itr->second);
-      KDL::RigidBodyInertia current_seg_inertia_old = current_seg_inertia;
-      current_seg_inertia = current_seg_inertia_old + child_seg_inertia;
-
-      if(verbose_) ROS_WARN("Add new child segment %s to direct segment: %s", child_seg.getName().c_str(), current_seg.getName().c_str());
-      /*
-      std::cout << "child: seg, m: " << child_seg_inertia.getMass() << std::endl;
-      std::cout << "current seg, m: " << current_seg_inertia.getMass() << std::endl;
-      std::cout << "p: \n" << Eigen::Map<const Eigen::Vector3d>(current_seg_inertia.getCOG().data) << std::endl;
-      std::cout << "I: \n" << Eigen::Map<const Eigen::Matrix3d>(current_seg_inertia.getRotationalInertia().data) << std::endl;
-      */
-    }
-
-  /* count the rotor */
-  if(current_seg.getName().find(thrust_link_.c_str()) != std::string::npos) rotor_num_++;
-
-  /* update the inertia if the segment is base */
-  if (inertia_map_.find(current_seg.getName()) != inertia_map_.end())
-    {
-      inertia_map_.at(current_seg.getName()) = current_seg_inertia;
-
-      if(verbose_) ROS_WARN("Total mass of base segment %s is %f", current_seg.getName().c_str(),
-                            inertia_map_.at(current_seg.getName()).getMass());
-      current_seg_inertia = KDL::RigidBodyInertia::Zero();
-    }
-
-  return current_seg_inertia;
-}
-
-void TransformController::resolveLinkLength()
-{
-  unsigned int nj = tree_.getNrOfJoints();
-  KDL::JntArray joint_positions(nj);
-  KDL::TreeFkSolverPos_recursive fk_solver(tree_);
-  KDL::Frame f_link2, f_link3;
-  fk_solver.JntToCart(joint_positions, f_link2, "link2"); //hard coding
-  fk_solver.JntToCart(joint_positions, f_link3, "link3"); //hard coding
-  link_length_ = (f_link3.p - f_link2.p).Norm();
-  //ROS_ERROR("Update link length: %f", link_length_);
+  //Q
+  q_diagonal_ = Eigen::VectorXd::Zero(HydrusRobotModel::LQI_FOUR_AXIS_MODE * 3);
+  q_diagonal_ << q_roll_,q_roll_d_,q_pitch_,q_pitch_d_,q_z_,q_z_d_,q_yaw_,q_yaw_d_, q_roll_i_,q_pitch_i_,q_z_i_,q_yaw_i_;
+  //std::cout << "Q elements :"  << std::endl << q_diagonal_ << std::endl;
 }
 
 TransformController::~TransformController()
 {
-  if(callback_flag_)
-    {
-      control_thread_.interrupt();
-      control_thread_.join();
-    }
-}
-
-void TransformController::initParam()
-{
-  nh_private_.param("control_rate", control_rate_, 15.0);
-  if(verbose_) std::cout << "control_rate: " << std::setprecision(3) << control_rate_ << std::endl;
-
-  nh_private_.param("only_three_axis_mode", only_three_axis_mode_, false);
-  nh_private_.param("gyro_moment_compensation", gyro_moment_compensation_, false);
-  nh_private_.param("control_verbose", control_verbose_, false);
-  nh_private_.param("kinematic_verbose", kinematic_verbose_, false);
-  nh_private_.param("debug_verbose", debug_verbose_, false);
-  nh_private_.param("a_dash_eigen_calc_flag", a_dash_eigen_calc_flag_, false);
-
-  /* propeller direction and lqi R */
-  r_.resize(rotor_num_);
-  for(int i = 0; i < rotor_num_; i++)
-    {
-      std::stringstream ss;
-      ss << i + 1;
-      /* R */
-      nh_private_.param(std::string("r") + ss.str(), r_[i], 1.0);
-    }
-
-    nh_private_.param ("stability_margin_thre", stability_margin_thre_, 0.01);
-  if(verbose_) std::cout << "stability margin thre: " << std::setprecision(3) << stability_margin_thre_ << std::endl;
-  nh_private_.param ("p_determinant_thre", p_det_thre_, 1e-6);
-  if(verbose_) std::cout << "p determinant thre: " << std::setprecision(3) << p_det_thre_ << std::endl;
-  nh_private_.param ("f_max", f_max_, 8.6);
-  if(verbose_) std::cout << "f_max: " << std::setprecision(3) << f_max_ << std::endl;
-  nh_private_.param ("f_min", f_min_, 2.0);
-  if(verbose_) std::cout << "f_min: " << std::setprecision(3) << f_min_ << std::endl;
-
-  nh_private_.param ("q_roll", q_roll_, 1.0);
-  if(verbose_) std::cout << "Q: q_roll: " << std::setprecision(3) << q_roll_ << std::endl;
-  nh_private_.param ("q_roll_d", q_roll_d_, 1.0);
-  if(verbose_) std::cout << "Q: q_roll_d: " << std::setprecision(3) << q_roll_d_ << std::endl;
-  nh_private_.param ("q_pitch", q_pitch_, 1.0);
-  if(verbose_) std::cout << "Q: q_pitch: " << std::setprecision(3) << q_pitch_ << std::endl;
-  nh_private_.param ("q_pitch_d", q_pitch_d_,  1.0);
-  if(verbose_) std::cout << "Q: q_pitch_d: " << std::setprecision(3) << q_pitch_d_ << std::endl;
-  nh_private_.param ("q_yaw", q_yaw_, 1.0);
-  if(verbose_) std::cout << "Q: q_yaw: " << std::setprecision(3) << q_yaw_ << std::endl;
-  nh_private_.param ("strong_q_yaw", strong_q_yaw_, 1.0);
-  if(verbose_) std::cout << "Q: strong_q_yaw: " << std::setprecision(3) << strong_q_yaw_ << std::endl;
-  nh_private_.param ("q_yaw_d", q_yaw_d_, 1.0);
-  if(verbose_) std::cout << "Q: q_yaw_d: " << std::setprecision(3) << q_yaw_d_ << std::endl;
-  nh_private_.param ("q_z", q_z_, 1.0);
-  if(verbose_) std::cout << "Q: q_z: " << std::setprecision(3) << q_z_ << std::endl;
-  nh_private_.param ("q_z_d", q_z_d_, 1.0);
-  if(verbose_) std::cout << "Q: q_z_d: " << std::setprecision(3) << q_z_d_ << std::endl;
-
-  nh_private_.param ("q_roll_i", q_roll_i_, 1.0);
-  if(verbose_) std::cout << "Q: q_roll_i: " << std::setprecision(3) << q_roll_i_ << std::endl;
-  nh_private_.param ("q_pitch_i", q_pitch_i_, 1.0);
-  if(verbose_) std::cout << "Q: q_pitch_i: " << std::setprecision(3) << q_pitch_i_ << std::endl;
-  nh_private_.param ("q_yaw_i", q_yaw_i_, 1.0);
-  if(verbose_) std::cout << "Q: q_yaw_i: " << std::setprecision(3) << q_yaw_i_ << std::endl;
-  nh_private_.param ("q_z_i", q_z_i_, 1.0);
-  if(verbose_) std::cout << "Q: q_z_i: " << std::setprecision(3) << q_z_i_ << std::endl;
-
-  /* dynamics: motor */
-  ros::NodeHandle control_node("/motor_info");
-  control_node.param("m_f_rate", m_f_rate_, 0.01);
-  if(verbose_) std::cout << "m_f_rate: " << std::setprecision(3) << m_f_rate_ << std::endl;
-}
-
-void TransformController::control()
-{
-  ros::Rate loop_rate(control_rate_);
-  static int i = 0;
-  static int cnt = 0;
-
-  while(ros::ok())
-    {
-      if(debug_verbose_) ROS_ERROR("start lqi");
-      lqi();
-      if(debug_verbose_) ROS_ERROR("finish lqi");
-
-      loop_rate.sleep();
-    }
-}
-
-void TransformController::desireCoordinateCallback(const spinal::DesireCoordConstPtr & msg)
-{
-  setCogDesireOrientation(KDL::Rotation::RPY(msg->roll, msg->pitch, msg->yaw));
-}
-
-void TransformController::actuatorStateCallback(const sensor_msgs::JointStateConstPtr& state)
-{
-  current_actuator_state_ = *state;
-
-  if(actuator_joint_map_.size() == 0) setActuatorJointMap(current_actuator_state_);
-
-  if(debug_verbose_) ROS_ERROR("start kinematics");
-  forwardKinematics(current_actuator_state_);
-  if(debug_verbose_) ROS_ERROR("finish kinematics");
-
-  br_.sendTransform(tf::StampedTransform(getCog(), state->header.stamp, GetTreeElementSegment(tree_.getRootSegment()->second).getName(), "cog"));
-
-  if(!kinematics_flag_)
-    {
-      ROS_ERROR("the total mass is %f", getMass());
-      kinematics_flag_ = true;
-    }
-
-
-  /* jacobian test */
-#if 0
-  KDL::Chain chain;
-  tree_.getChain("root", "link4", chain);
-  KDL::JntArray joint_positions(chain.getNrOfJoints());
-  joint_positions.data = Eigen::VectorXd::Constant(chain.getNrOfJoints(), M_PI/2);
-  KDL::ChainJntToJacSolver jac_solver(chain);
-  KDL::Jacobian jac(chain.getNrOfJoints());
-  jac_solver.JntToJac(joint_positions, jac);
-  std::cout << "link4 jacobian: \n" << jac.data << std::endl;
-
-  KDL::Segment ee_seg(std::string("end_effector"), KDL::Joint(KDL::Joint::None), KDL::Frame(KDL::Vector(link_length_, 0, 0)));
-
-  /* CAUTION: if use changeRefPoint, pluase conver to the root (base) frame */
-  /* USE tree */
-  KDL::JntArray joint_positions_tree(tree_.getNrOfJoints());
-  for(size_t i = 0; i < current_actuator_state_.position.size(); i++)
-    {
-      auto itr = actuator_map_.find(current_actuator_state_.name.at(i));
-      if(itr != actuator_map_.end())  joint_positions_tree(actuator_map_.find(current_actuator_state_.name.at(i))->second) = current_actuator_state_.position.at(i);
-    }
-  KDL::Frame end_frame;
-  KDL::TreeFkSolverPos_recursive fk_solver_tree(tree_);
-  fk_solver_tree.JntToCart(joint_positions_tree, end_frame, "link4");
-  KDL::TreeJntToJacSolver jac_tree_solver(tree_);
-  KDL::Jacobian jac_tree(tree_.getNrOfJoints());
-  jac_tree_solver.JntToJac(joint_positions_tree, jac_tree, "link4");
-  jac_tree.changeRefPoint(end_frame.M * ee_seg.getFrameToTip().p);
-  std::cout << "link4 jacobian with change ref point tree : \n" << jac_tree.data << std::endl;
-
-  /* USE chain */
-  //jac.changeRefPoint(ee_seg.getFrameToTip().p);
-  jac.changeRefPoint(end_frame.M * ee_seg.getFrameToTip().p);
-  std::cout << "link4 jacobian with change ref point : \n" << jac.data << std::endl;
-
-  chain.addSegment(ee_seg);
-  KDL::ChainJntToJacSolver jac_solver2(chain);
-  jac_solver2.JntToJac(joint_positions, jac);
-  std::cout << "end effector jacobian: \n" << jac.data << std::endl;
-#endif
-}
-
-void TransformController::forwardKinematics(sensor_msgs::JointState& state)
-{
-  KDL::TreeFkSolverPos_recursive fk_solver(tree_);
-  KDL::JntArray joint_positions(tree_.getNrOfJoints());   /* set joint array */
-
-  //unsigned int j = 0;
-  for(unsigned int i = 0; i < state.position.size(); i++)
-    {
-      std::map<std::string, uint32_t>::iterator itr = actuator_map_.find(state.name[i]);
-
-      if(itr != actuator_map_.end())  joint_positions(actuator_map_.find(state.name[i])->second) = state.position[i];
-      //else ROS_FATAL("transform_control: no matching joint called %s", state.name[i].c_str());
-    }
-
-  KDL::RigidBodyInertia link_inertia = KDL::RigidBodyInertia::Zero();
-  KDL::Frame cog_frame;
-  for(auto it = inertia_map_.begin(); it != inertia_map_.end(); ++it)
-    {
-      KDL::Frame f;
-      int status = fk_solver.JntToCart(joint_positions, f, it->first);
-      //ROS_ERROR(" %s status is : %d, [%f, %f, %f]", it->first.c_str(), status, f.p.x(), f.p.y(), f.p.z());
-      KDL::RigidBodyInertia link_inertia_tmp = link_inertia;
-      link_inertia = link_inertia_tmp + f * it->second;
-
-      /* process for the extra module */
-      for(std::map<std::string, KDL::Segment>::iterator it_extra = extra_module_map_.begin(); it_extra != extra_module_map_.end(); it_extra++)
-        {
-          if(it_extra->second.getName() == it->first)
-            {
-              //ROS_INFO("[kinematics]: find the extra module %s", it_extra->second.getName().c_str());
-              KDL::RigidBodyInertia link_inertia_tmp = link_inertia;
-              link_inertia = link_inertia_tmp + f *  (it_extra->second.getFrameToTip() * it_extra->second.getInertia());
-            }
-        }
-
-    }
-  /* CoG */
-  KDL::Frame f_baselink;
-  int status = fk_solver.JntToCart(joint_positions, f_baselink, baselink_);
-  if(status < 0) ROS_ERROR("can not get FK to the baselink: %s", baselink_.c_str());
-  cog_frame.M = f_baselink.M * cog_desire_orientation_.Inverse();
-  cog_frame.p = link_inertia.getCOG();
-  tf::Transform cog_transform;
-  tf::transformKDLToTF(cog_frame, cog_transform);
-  setCog(cog_transform);
-  setMass(link_inertia.getMass());
-
-  /* thrust point based on COG */
-  std::vector<Eigen::Vector3d> f_rotors;
-  for(int i = 0; i < rotor_num_; i++)
-    {
-      std::stringstream ss;
-      ss << i + 1;
-      std::string rotor = thrust_link_ + ss.str();
-
-      KDL::Frame f;
-      int status = fk_solver.JntToCart(joint_positions, f, rotor);
-      //if(verbose) ROS_WARN(" %s status is : %d, [%f, %f, %f]", rotor.c_str(), status, f.p.x(), f.p.y(), f.p.z());
-      f_rotors.push_back(Eigen::Map<const Eigen::Vector3d>((cog_frame.Inverse() * f).p.data));
-
-      //std::cout << "rotor" << i + 1 << ": \n"<< f_rotors[i] << std::endl;
-    }
-
-  setRotorsOriginFromCog(f_rotors);
-  KDL::RigidBodyInertia link_inertia_from_cog = cog_frame.Inverse() * link_inertia;
-  setInertia(Eigen::Map<const Eigen::Matrix3d>(link_inertia_from_cog.getRotationalInertia().data));
-
-  tf::Transform cog2baselink_transform;
-  tf::transformKDLToTF(cog_frame.Inverse() * f_baselink, cog2baselink_transform);
-  setCog2Baselink(cog2baselink_transform);
-}
-
-
-bool TransformController::addExtraModuleCallback(hydrus::AddExtraModule::Request  &req,
-                                                 hydrus::AddExtraModule::Response &res)
-{
-  return addExtraModule(req.action, req.module_name, req.parent_link_name, req.transform, req.inertia);
-}
-
-bool TransformController::addExtraModule(int action, std::string module_name, std::string parent_link_name, geometry_msgs::Transform transform, geometry_msgs::Inertia inertia)
-{
-  switch(action)
-    {
-    case hydrus::AddExtraModule::Request::ADD:
-      {
-        std::map<std::string, KDL::Segment>::iterator it = extra_module_map_.find(module_name);
-        if(it == extra_module_map_.end())
-          {
-            if(inertia_map_.find(parent_link_name) == inertia_map_.end())
-              {
-                ROS_WARN("[extra module]: fail to add new extra module %s, becuase it's parent link (%s) is invalid", module_name.c_str(), parent_link_name.c_str());
-                return false;
-              }
-
-
-            if(fabs(1 - tf::Quaternion(transform.rotation.x, transform.rotation.y, transform.rotation.z, transform.rotation.w).length2()) > 1e-6)
-              {
-                ROS_WARN("[extra module]: fail to add new extra module %s, becuase the orientation is invalid", module_name.c_str());
-                return false;
-              }
-
-            if(inertia.m <= 0)
-              {
-                ROS_WARN("[extra module]: fail to add new extra module %s, becuase the mass %f is invalid", module_name.c_str(), inertia.m);
-                return false;
-              }
-
-            KDL::Frame f;
-            tf::transformMsgToKDL(transform, f);
-            KDL::RigidBodyInertia rigid_body_inertia(inertia.m, KDL::Vector(inertia.com.x, inertia.com.y, inertia.com.z),
-                                                     KDL::RotationalInertia(inertia.ixx, inertia.iyy,
-                                                                            inertia.izz, inertia.ixy,
-                                                                            inertia.ixz, inertia.iyz));
-            KDL::Segment extra_module(parent_link_name, KDL::Joint(KDL::Joint::None), f, rigid_body_inertia);
-            extra_module_map_.insert(std::make_pair(module_name, extra_module));
-            ROS_INFO("[extra module]: succeed to add new extra module %s", module_name.c_str());
-            return true;
-          }
-        else
-          {
-            ROS_WARN("[extra module]: fail to add new extra module %s, becuase it already exists", module_name.c_str());
-            return false;
-          }
-        break;
-      }
-    case hydrus::AddExtraModule::Request::REMOVE:
-      {
-        std::map<std::string, KDL::Segment>::iterator it = extra_module_map_.find(module_name);
-        if(it == extra_module_map_.end())
-          {
-            ROS_WARN("[extra module]: fail to remove the extra module %s, becuase it does not exists", module_name.c_str());
-            return false;
-          }
-        else
-          {
-            extra_module_map_.erase(module_name);
-            ROS_INFO("[extra module]: suscced to remove the extra module %s", module_name.c_str());
-            return true;
-          }
-        break;
-      }
-    default:
-      {
-        ROS_WARN("[extra module]: wrong action %d", action);
-        return false;
-        break;
-      }
-    }
-  ROS_ERROR("[extra module]: should not reach here ");
-  return false;
-}
-
-void TransformController::lqi()
-{
-  if(!kinematics_flag_) return;
-
-  /* check the thre check */
-  if(debug_verbose_) ROS_WARN(" start dist thre check");
-  if(!stabilityMarginCheck()) //[m]
-    {
-      ROS_ERROR("LQI: invalid pose, cannot pass the distance thresh check");
-      return;
-    }
-  if(debug_verbose_) ROS_WARN(" finish dist thre check");
-
-  /* check the propeller overlap */
-  if(debug_verbose_) ROS_WARN(" start overlap check");
-  if(!overlapCheck()) //[m]
-    {
-      ROS_ERROR("LQI: invalid pose, some propellers overlap");
-      return;
-    }
-  if(debug_verbose_) ROS_WARN(" finish dist thre check");
-
-  /* modelling the multilink based on the inertia assumption */
-  if(debug_verbose_) ROS_WARN(" start modelling");
-  if(!modelling())
-      ROS_ERROR("LQI: invalid pose, can not be four axis stable, switch to three axis stable mode");
-
-  if(debug_verbose_) ROS_WARN(" finish modelling");
-
-  if(debug_verbose_) ROS_WARN(" start ARE calc");
-  if(!hamiltonMatrixSolver(lqi_mode_))
-    {
-      ROS_ERROR("LQI: can not solve hamilton matrix");
-      return;
-    }
-  if(debug_verbose_) ROS_WARN(" finish ARE calc");
-
-  param2controller();
-  if(debug_verbose_) ROS_WARN(" finish param2controller");
-}
-
-bool TransformController::stabilityMarginCheck(bool verbose)
-{
-  double average_x = 0, average_y = 0;
-
-  std::vector<Eigen::Vector3d> rotors_origin_from_cog = getRotorsOriginFromCog();
-
-  /* calcuate the average */
-  for(int i = 0; i < rotor_num_; i++)
-    {
-      average_x += rotors_origin_from_cog[i](0);
-      average_y += rotors_origin_from_cog[i](1);
-      if(verbose)
-        ROS_INFO("rotor%d x: %f, y: %f", i + 1, rotors_origin_from_cog[i](0), rotors_origin_from_cog[i](1));
-    }
-  average_x /= rotor_num_;
-  average_y /= rotor_num_;
-
-  double s_xy =0, s_xx = 0, s_yy =0;
-  for(int i = 0; i < rotor_num_; i++)
-    {
-      s_xy += ((rotors_origin_from_cog[i](0) - average_x) * (rotors_origin_from_cog[i](1) - average_y));
-      s_xx += ((rotors_origin_from_cog[i](0) - average_x) * (rotors_origin_from_cog[i](0) - average_x));
-      s_yy += ((rotors_origin_from_cog[i](1) - average_y) * (rotors_origin_from_cog[i](1) - average_y));
-    }
-
-  Eigen::Matrix2d S;
-  S << s_xx / rotor_num_, s_xy / rotor_num_, s_xy / rotor_num_, s_yy / rotor_num_;
-  Eigen::SelfAdjointEigenSolver<Eigen::Matrix2d> es(S);
-  double link_len = (rotors_origin_from_cog[1] - rotors_origin_from_cog[0]).norm();
-
-  assert(link_length_ > 0);
-  stability_margin_ = sqrt(es.eigenvalues()[0]) / link_length_;
-  if(verbose) ROS_INFO("stability_margin: %f", stability_margin_);
-  if( stability_margin_ < stability_margin_thre_ ) return false;
-  return true;
-
-#if 0 // correlation coefficient
-  double correlation_coefficient = fabs(s_xy / sqrt(s_xx * s_yy));
-  //ROS_INFO("correlation_coefficient: %f", correlation_coefficient);
-
-  if(correlation_coefficient > correlation_thre_ ) return false;
-  return true;
-#endif
-}
-
-bool  TransformController::modelling(bool verbose)
-{
-  std::vector<Eigen::Vector3d> rotors_origin_from_cog = getRotorsOriginFromCog();
-  Eigen::Matrix3d links_inertia = getInertia();
-
-  Eigen::VectorXd g(4);
-  g << 0, 0, 9.8, 0;
-  Eigen::VectorXd p_x(rotor_num_), p_y(rotor_num_), p_c(rotor_num_), p_m(rotor_num_);
-
-  for(int i = 0; i < rotor_num_; i++)
-    {
-      p_y(i) =  rotors_origin_from_cog[i](1);
-      p_x(i) = -rotors_origin_from_cog[i](0);
-      p_c(i) = rotor_direction_.at(i + 1) * m_f_rate_ ;
-      p_m(i) = 1 / getMass();
-      if(kinematic_verbose_ || verbose)
-        std::cout << "link" << i + 1 <<"origin :\n" << rotors_origin_from_cog[i] << std::endl;
-    }
-
-  Eigen::MatrixXd P_att = Eigen::MatrixXd::Zero(3,rotor_num_);
-  P_att.row(0) = p_y;
-  P_att.row(1) = p_x;
-  P_att.row(2) = p_c;
-
-  Eigen::MatrixXd P_att_tmp = P_att;
-  P_att = links_inertia.inverse() * P_att_tmp;
-  if(control_verbose_)
-    std::cout << "links_inertia inverse:"  << std::endl << links_inertia.inverse() << std::endl;
-
-  // P_.row(0) = p_y / links_principal_inertia(0,0);
-  // P_.row(1) = p_x / links_principal_inertia(1,1);
-  // P_.row(3) = p_c / links_principal_inertia(2,2);
-
-  /* roll, pitch, alt, yaw */
-  P_.row(0) = P_att.row(0);
-  P_.row(1) = P_att.row(1);
-  P_.row(2) = p_m;
-  P_.row(3) = P_att.row(2);
-
-  if(control_verbose_ || verbose)
-    std::cout << "P_:"  << std::endl << P_ << std::endl;
-
-  ros::Time start_time = ros::Time::now();
-  /* lagrange mothod */
-  // issue: min x_t * x; constraint: g = P_ * x  (stable point)
-  //lamda: [4:0]
-  // x = P_t * lamba
-  // (P_  * P_t) * lamda = g
-  // x = P_t * (P_ * P_t).inv * g
-  Eigen::FullPivLU<Eigen::MatrixXd> solver((P_ * P_.transpose()));
-  Eigen::VectorXd lamda;
-  lamda = solver.solve(g);
-  optimal_hovering_f_ = P_.transpose() * lamda;
-
-  p_det_ = (P_ * P_.transpose()).determinant();
-  if(control_verbose_)
-    std::cout << "P det:"  << std::endl << p_det_ << std::endl;
-
-  if(control_verbose_)
-    ROS_INFO("P solver is: %f\n", ros::Time::now().toSec() - start_time.toSec());
-
-  if(optimal_hovering_f_.maxCoeff() > f_max_ || optimal_hovering_f_.minCoeff() < f_min_ || p_det_ < p_det_thre_ || only_three_axis_mode_)
-    {
-      lqi_mode_ = LQI_THREE_AXIS_MODE;
-
-      //no yaw constraint
-      Eigen::MatrixXd P_dash = Eigen::MatrixXd::Zero(3, rotor_num_);
-      P_dash.row(0) = P_.row(0);
-      P_dash.row(1) = P_.row(1);
-      P_dash.row(2) = P_.row(2);
-      Eigen::VectorXd g3(3);
-      g3 << 0, 0, 9.8;
-      Eigen::FullPivLU<Eigen::MatrixXd> solver((P_dash * P_dash.transpose()));
-      Eigen::VectorXd lamda;
-      lamda = solver.solve(g3);
-      optimal_hovering_f_ = P_dash.transpose() * lamda;
-      if(control_verbose_)
-        std::cout << "three axis mode: optimal_hovering_f_:"  << std::endl << optimal_hovering_f_ << std::endl;
-
-      /* calculate the P_orig(without inverse inertia) peusdo inverse */
-      P_dash.row(0) = p_y;
-      P_dash.row(1) = p_x;
-      P_dash.row(2) = p_m;
-      Eigen::MatrixXd P_dash_pseudo_inverse = P_dash.transpose() * (P_dash * P_dash.transpose()).inverse();
-      P_orig_pseudo_inverse_ = Eigen::MatrixXd::Zero(rotor_num_, 4);
-      P_orig_pseudo_inverse_.block(0, 0, rotor_num_, 3) = P_dash_pseudo_inverse;
-      if(control_verbose_)
-        std::cout << "P orig_pseudo inverse for three axis mode:"  << std::endl << P_orig_pseudo_inverse_ << std::endl;
-
-      /* if we do the 4dof underactuated control */
-      if(!only_three_axis_mode_) return false;
-
-      p_det_ = (P_dash * P_dash.transpose()).determinant();
-
-      /* if we only do the 3dof control, we still need to check the steady state validation */
-      if(optimal_hovering_f_.maxCoeff() > f_max_ || optimal_hovering_f_.minCoeff() < f_min_
-         || p_det_ < p_det_thre_)
-        return false;
-
-      return true;
-    }
-
-  /* calculate the P_orig(without inverse inertia) peusdo inverse */
-  Eigen::MatrixXd P_dash = Eigen::MatrixXd::Zero(4,rotor_num_);
-  P_dash.row(0) = p_y;
-  P_dash.row(1) = p_x;
-  P_dash.row(2) = p_m;
-  P_dash.row(3) = p_c;
-
-  P_orig_pseudo_inverse_ = P_dash.transpose() * (P_dash * P_dash.transpose()).inverse();
-  if(control_verbose_)
-    std::cout << "P orig_pseudo inverse for four axis mode:" << std::endl << P_orig_pseudo_inverse_ << std::endl;
-
-  if(control_verbose_ || verbose)
-    std::cout << "four axis mode optimal_hovering_f_:"  << std::endl << optimal_hovering_f_ << std::endl;
-
-  lqi_mode_ = LQI_FOUR_AXIS_MODE;
-
-  return true;
-}
-
-bool TransformController::hamiltonMatrixSolver(uint8_t lqi_mode)
-{
-  /* for the R which is  diagonal matrix. should be changed to rotor_num */
-
-  Eigen::MatrixXd A = Eigen::MatrixXd::Zero(lqi_mode_ * 3, lqi_mode_ * 3);
-  Eigen::MatrixXd B = Eigen::MatrixXd::Zero(lqi_mode_ * 3, rotor_num_);
-  Eigen::MatrixXd C = Eigen::MatrixXd::Zero(lqi_mode_, lqi_mode_ * 3);
-
-  for(int i = 0; i < lqi_mode_; i++)
-    {
-      A(2 * i, 2 * i + 1) = 1;
-      B.row(2 * i + 1) = P_.row(i);
-      C(i, 2 * i) = 1;
-    }
-  A.block(lqi_mode_ * 2, 0, lqi_mode_, lqi_mode_ * 3) = -C;
-
-  if(control_verbose_) std::cout << "B:"  << std::endl << B << std::endl;
-
-  Eigen::MatrixXd Q = Eigen::MatrixXd::Zero(lqi_mode_ * 3, lqi_mode_ * 3);
-  if(lqi_mode_ == LQI_THREE_AXIS_MODE)
-    {
-      Eigen::MatrixXd Q_tmp = q_diagonal_.asDiagonal();
-      Q.block(0, 0, 6, 6) = Q_tmp.block(0, 0, 6, 6);
-      Q.block(6, 6, 3, 3) = Q_tmp.block(8, 8, 3, 3);
-    }
-  if(lqi_mode_ == LQI_FOUR_AXIS_MODE) Q = q_diagonal_.asDiagonal();
-
-  Eigen::MatrixXd R_inv  = Eigen::MatrixXd::Zero(rotor_num_, rotor_num_);
-  for(int i = 0; i < rotor_num_; i ++)
-    R_inv(i,i) = 1/r_[i];
-
-  // B12_aug_ = Eigen::MatrixXd::Zero(12, rotor_num_);
-  // for(int j = 0; j < 8; j++) B12_aug_.row(j) = B_.row(j);
-
-
-  Eigen::MatrixXcd H = Eigen::MatrixXcd::Zero(lqi_mode_ * 6, lqi_mode_ * 6);
-  H.block(0,0, lqi_mode_ * 3, lqi_mode_ * 3) = A.cast<std::complex<double> >();
-  H.block(lqi_mode_ * 3, 0, lqi_mode_ * 3, lqi_mode_ * 3) = -(Q.cast<std::complex<double> >());
-  H.block(0, lqi_mode_ * 3, lqi_mode_ * 3, lqi_mode_ * 3) = - (B * R_inv * B.transpose()).cast<std::complex<double> >();
-  H.block(lqi_mode_ * 3, lqi_mode_ * 3, lqi_mode_ * 3, lqi_mode_ * 3) = - (A.transpose()).cast<std::complex<double> >();
-
-  //std::cout << " H  is:" << std::endl << H << std::endl;
-  if(debug_verbose_) ROS_INFO("  start H eigen compute");
-  //eigen solving
-  ros::Time start_time = ros::Time::now();
-  Eigen::ComplexEigenSolver<Eigen::MatrixXcd> ces;
-  ces.compute(H);
-  if(debug_verbose_) ROS_INFO("  finish H eigen compute");
-
-  if(control_verbose_)
-    ROS_INFO("h eigen time is: %f\n", ros::Time::now().toSec() - start_time.toSec());
-
-  Eigen::MatrixXcd phy = Eigen::MatrixXcd::Zero(lqi_mode_ * 6, lqi_mode_ * 3);
-  int j = 0;
-
-  for(int i = 0; i < lqi_mode_ * 6; i++)
-    {
-      if(ces.eigenvalues()[i].real() < 0)
-        {
-          if(j >= lqi_mode_ * 3)
-            {
-              ROS_ERROR("nagativa sigular amount is larger");
-              return false;
-            }
-
-          phy.col(j) = ces.eigenvectors().col(i);
-          j++;
-        }
-
-    }
-
-  if(j != lqi_mode_ * 3)
-    {
-      ROS_ERROR("nagativa sigular value amount is not enough");
-      return false;
-    }
-
-  Eigen::MatrixXcd f = phy.block(0, 0, lqi_mode_ * 3, lqi_mode_ * 3);
-  Eigen::MatrixXcd g = phy.block(lqi_mode_ * 3, 0, lqi_mode_ * 3, lqi_mode_ * 3);
-
-
-  if(debug_verbose_) ROS_INFO("  start calculate f inv");
-  start_time = ros::Time::now();
-  Eigen::MatrixXcd f_inv  = f.inverse();
-  if(control_verbose_)
-    ROS_INFO("f inverse: %f\n", ros::Time::now().toSec() - start_time.toSec());
-
-  if(debug_verbose_) ROS_INFO("  finish calculate f inv");
-
-  Eigen::MatrixXcd P = g * f_inv;
-
-  //K
-  K_ = -R_inv * B.transpose() * P.real();
-
-  if(control_verbose_)
-    std::cout << "K is:" << std::endl << K_ << std::endl;
-
-  if(a_dash_eigen_calc_flag_)
-    {
-      if(debug_verbose_) ROS_INFO("  start A eigen compute");
-      //check the eigen of new A
-      Eigen::MatrixXd A_dash = Eigen::MatrixXd::Zero(lqi_mode_ * 3, lqi_mode_ * 3);
-      A_dash = A + B * K_;
-      // start_time = ros::Time::now();
-      Eigen::EigenSolver<Eigen::MatrixXd> esa(A_dash);
-      if(debug_verbose_) ROS_INFO("  finish A eigen compute");
-      if(control_verbose_)
-        std::cout << "The eigenvalues of A_hash are:" << std::endl << esa.eigenvalues() << std::endl;
-    }
-  return true;
-}
-
-void TransformController::param2controller()
-{
-  aerial_robot_msgs::FourAxisGain four_axis_gain_msg;
-  spinal::RollPitchYawTerms rpy_gain_msg; //for rosserial
-  geometry_msgs::TransformStamped transform_msg; //for rosserial
-  spinal::PMatrixPseudoInverseWithInertia p_pseudo_inverse_with_inertia_msg;
-
-  four_axis_gain_msg.motor_num = rotor_num_;
-  rpy_gain_msg.motors.resize(rotor_num_);
-  p_pseudo_inverse_with_inertia_msg.pseudo_inverse.resize(rotor_num_);
-
-  /* the transform from cog to baselink */
-  transform_msg.header.stamp = current_actuator_state_.header.stamp;
-  transform_msg.header.frame_id = std::string("cog");
-  transform_msg.child_frame_id = baselink_;
-  tf::transformTFToMsg(getCog2Baselink(), transform_msg.transform);
-  transform_pub_.publish(transform_msg);
-
-  for(int i = 0; i < rotor_num_; i ++)
-    {
-      /* to flight controller via rosserial */
-      rpy_gain_msg.motors[i].roll_p = K_(i,0) * 1000; //scale: x 1000
-      rpy_gain_msg.motors[i].roll_d = K_(i,1) * 1000;  //scale: x 1000
-      rpy_gain_msg.motors[i].roll_i = K_(i, lqi_mode_ * 2) * 1000; //scale: x 1000
-
-      rpy_gain_msg.motors[i].pitch_p = K_(i,2) * 1000; //scale: x 1000
-      rpy_gain_msg.motors[i].pitch_d = K_(i,3) * 1000; //scale: x 1000
-      rpy_gain_msg.motors[i].pitch_i = K_(i,lqi_mode_ * 2 + 1) * 1000; //scale: x 1000
-
-      /* to aerial_robot_base, feedback */
-      four_axis_gain_msg.pos_p_gain_roll.push_back(K_(i,0));
-      four_axis_gain_msg.pos_d_gain_roll.push_back(K_(i,1));
-      four_axis_gain_msg.pos_i_gain_roll.push_back(K_(i,lqi_mode_ * 2));
-
-      four_axis_gain_msg.pos_p_gain_pitch.push_back(K_(i,2));
-      four_axis_gain_msg.pos_d_gain_pitch.push_back(K_(i,3));
-      four_axis_gain_msg.pos_i_gain_pitch.push_back(K_(i,lqi_mode_ * 2 + 1));
-
-      four_axis_gain_msg.pos_p_gain_alt.push_back(K_(i,4));
-      four_axis_gain_msg.pos_d_gain_alt.push_back(K_(i,5));
-      four_axis_gain_msg.pos_i_gain_alt.push_back(K_(i, lqi_mode_ * 2 + 2));
-
-      if(lqi_mode_ == LQI_FOUR_AXIS_MODE)
-        {
-          /* to flight controller via rosserial */
-          rpy_gain_msg.motors[i].yaw_d = K_(i,7) * 1000; //scale: x 1000
-
-          /* to aerial_robot_base, feedback */
-          four_axis_gain_msg.pos_p_gain_yaw.push_back(K_(i,6));
-          four_axis_gain_msg.pos_d_gain_yaw.push_back(K_(i,7));
-          four_axis_gain_msg.pos_i_gain_yaw.push_back(K_(i,11));
-
-        }
-      else if(lqi_mode_ == LQI_THREE_AXIS_MODE)
-        {
-          rpy_gain_msg.motors[i].yaw_d = 0;
-
-          /* to aerial_robot_base, feedback */
-          four_axis_gain_msg.pos_p_gain_yaw.push_back(0.0);
-          four_axis_gain_msg.pos_d_gain_yaw.push_back(0.0);
-          four_axis_gain_msg.pos_i_gain_yaw.push_back(0.0);
-        }
-
-      /* the p matrix pseudo inverse and inertia */
-      p_pseudo_inverse_with_inertia_msg.pseudo_inverse[i].r = P_orig_pseudo_inverse_(i, 0) * 1000;
-      p_pseudo_inverse_with_inertia_msg.pseudo_inverse[i].p = P_orig_pseudo_inverse_(i, 1) * 1000;
-      p_pseudo_inverse_with_inertia_msg.pseudo_inverse[i].y = P_orig_pseudo_inverse_(i, 3) * 1000;
-    }
-  rpy_gain_pub_.publish(rpy_gain_msg);
-  four_axis_gain_pub_.publish(four_axis_gain_msg);
-
-
-  /* the multilink inertia */
-  Eigen::Matrix3d inertia = getInertia();
-  p_pseudo_inverse_with_inertia_msg.inertia[0] = inertia(0, 0) * 1000;
-  p_pseudo_inverse_with_inertia_msg.inertia[1] = inertia(1, 1) * 1000;
-  p_pseudo_inverse_with_inertia_msg.inertia[2] = inertia(2, 2) * 1000;
-  p_pseudo_inverse_with_inertia_msg.inertia[3] = inertia(0, 1) * 1000;
-  p_pseudo_inverse_with_inertia_msg.inertia[4] = inertia(1, 2) * 1000;
-  p_pseudo_inverse_with_inertia_msg.inertia[5] = inertia(0, 2) * 1000;
-
-  if(gyro_moment_compensation_)
-    p_matrix_pseudo_inverse_inertia_pub_.publish(p_pseudo_inverse_with_inertia_msg);
+  control_thread_.join();
 }
 
 void TransformController::cfgLQICallback(hydrus::LQIConfig &config, uint32_t level)
@@ -1000,52 +87,298 @@ void TransformController::cfgLQICallback(hydrus::LQIConfig &config, uint32_t lev
     }
 }
 
-tf::Transform TransformController::getRoot2Link(std::string link, sensor_msgs::JointState state)
+void TransformController::control()
 {
-  KDL::TreeFkSolverPos_recursive fk_solver(tree_);
-  unsigned int nj = tree_.getNrOfJoints();
-  KDL::JntArray joint_positions(nj);
+  ros::Rate loop_rate(control_rate_);
 
-  unsigned int j = 0;
-  for(unsigned int i = 0; i < state.position.size(); i++)
+  while(ros::ok())
     {
-      std::map<std::string, uint32_t>::iterator itr = actuator_map_.find(state.name[i]);
-      if(itr != actuator_map_.end())  joint_positions(actuator_map_.find(state.name[i])->second) = state.position[i];
+      if(debug_verbose_) ROS_ERROR("start lqi");
+      lqi();
+      if(debug_verbose_) ROS_ERROR("finish lqi");
+      loop_rate.sleep();
     }
-
-  KDL::Frame f;
-  tf::Transform  link_f;
-  int status = fk_solver.JntToCart(joint_positions, f, link);
-  tf::transformKDLToTF(f, link_f);
-
-  return link_f;
 }
 
-void TransformController::setActuatorJointMap(const sensor_msgs::JointState& actuator_state)
+bool TransformController::hamiltonMatrixSolver()
 {
-  /* CAUTION: be sure that the joints are in order !!!!!!! */
-  for(auto itr = actuator_state.name.begin(); itr != actuator_state.name.end(); ++itr)
+  /* for the R which is  diagonal matrix. should be changed to rotor_num */
+  const int rotor_num = getRobotModel().getRotorNum();
+  const int lqi_mode = getRobotModel().getLqiMode();
+  Eigen::MatrixXd A = Eigen::MatrixXd::Zero(lqi_mode * 3, lqi_mode * 3);
+  Eigen::MatrixXd B = Eigen::MatrixXd::Zero(lqi_mode * 3, rotor_num);
+  Eigen::MatrixXd C = Eigen::MatrixXd::Zero(lqi_mode, lqi_mode * 3);
+
+  for(int i = 0; i < lqi_mode; i++)
     {
-      if(itr->find("joint") != std::string::npos)
-        actuator_joint_map_.push_back(std::distance(actuator_state.name.begin(), itr));
+      A(2 * i, 2 * i + 1) = 1;
+      B.row(2 * i + 1) = getRobotModel().getP().row(i);
+      C(i, 2 * i) = 1;
+    }
+  A.block(lqi_mode * 2, 0, lqi_mode, lqi_mode * 3) = -C;
+
+  if(control_verbose_) std::cout << "B:"  << std::endl << B << std::endl;
+
+  Eigen::MatrixXd Q = Eigen::MatrixXd::Zero(lqi_mode * 3, lqi_mode * 3);
+  if(lqi_mode == HydrusRobotModel::LQI_THREE_AXIS_MODE)
+    {
+      Eigen::MatrixXd Q_tmp = q_diagonal_.asDiagonal();
+      Q.block(0, 0, 6, 6) = Q_tmp.block(0, 0, 6, 6);
+      Q.block(6, 6, 3, 3) = Q_tmp.block(8, 8, 3, 3);
+    }
+  if(lqi_mode == HydrusRobotModel::LQI_FOUR_AXIS_MODE) Q = q_diagonal_.asDiagonal();
+
+  Eigen::MatrixXd R_inv  = Eigen::MatrixXd::Zero(rotor_num, rotor_num);
+  for(int i = 0; i < rotor_num; ++i)
+    R_inv(i,i) = 1/r_[i];
+
+  Eigen::MatrixXcd H = Eigen::MatrixXcd::Zero(lqi_mode * 6, lqi_mode * 6);
+  H.block(0,0, lqi_mode * 3, lqi_mode * 3) = A.cast<std::complex<double> >();
+  H.block(lqi_mode * 3, 0, lqi_mode * 3, lqi_mode * 3) = -(Q.cast<std::complex<double> >());
+  H.block(0, lqi_mode * 3, lqi_mode * 3, lqi_mode * 3) = - (B * R_inv * B.transpose()).cast<std::complex<double> >();
+  H.block(lqi_mode * 3, lqi_mode * 3, lqi_mode * 3, lqi_mode * 3) = - (A.transpose()).cast<std::complex<double> >();
+
+  if(debug_verbose_) ROS_INFO("  start H eigen compute");
+  //eigen solving
+  ros::Time start_time = ros::Time::now();
+  Eigen::ComplexEigenSolver<Eigen::MatrixXcd> ces;
+  ces.compute(H);
+  if(debug_verbose_) ROS_INFO("  finish H eigen compute");
+
+  if(control_verbose_)
+    ROS_INFO("h eigen time is: %f\n", ros::Time::now().toSec() - start_time.toSec());
+
+  Eigen::MatrixXcd phy = Eigen::MatrixXcd::Zero(lqi_mode * 6, lqi_mode * 3);
+  int j = 0;
+
+  for(int i = 0; i < lqi_mode * 6; i++)
+    {
+      if(ces.eigenvalues()[i].real() < 0)
+        {
+          if(j >= lqi_mode * 3)
+            {
+              ROS_ERROR("nagativa sigular amount is larger");
+              return false;
+            }
+
+          phy.col(j) = ces.eigenvectors().col(i);
+          j++;
+        }
     }
 
+  if(j != lqi_mode * 3)
+    {
+      ROS_ERROR("nagativa sigular value amount is not enough");
+      return false;
+    }
+
+  Eigen::MatrixXcd f = phy.block(0, 0, lqi_mode * 3, lqi_mode * 3);
+  Eigen::MatrixXcd g = phy.block(lqi_mode * 3, 0, lqi_mode * 3, lqi_mode * 3);
+
+  if(debug_verbose_) ROS_INFO("  start calculate f inv");
+  start_time = ros::Time::now();
+  Eigen::MatrixXcd f_inv  = f.inverse();
+  if(control_verbose_)
+    ROS_INFO("f inverse: %f\n", ros::Time::now().toSec() - start_time.toSec());
+
+  if(debug_verbose_) ROS_INFO("  finish calculate f inv");
+
+  Eigen::MatrixXcd P = g * f_inv;
+
+  //K
+  K_ = -R_inv * B.transpose() * P.real();
+
+  if(control_verbose_)
+    std::cout << "K is:" << std::endl << K_ << std::endl;
+
+  if(a_dash_eigen_calc_flag_)
+    {
+      if(debug_verbose_) ROS_INFO("  start A eigen compute");
+      //check the eigen of new A
+      Eigen::MatrixXd A_dash = Eigen::MatrixXd::Zero(lqi_mode * 3, lqi_mode * 3);
+      A_dash = A + B * K_;
+      Eigen::EigenSolver<Eigen::MatrixXd> esa(A_dash);
+      if(debug_verbose_) ROS_INFO("  finish A eigen compute");
+      if(control_verbose_)
+        std::cout << "The eigenvalues of A_hash are:" << std::endl << esa.eigenvalues() << std::endl;
+    }
+  return true;
 }
 
-bool TransformController::defaultDistanceFunction(CollisionObject<double>* o1, CollisionObject<double>* o2, void* cdata_, double& dist)
-  {
-    auto* cdata = static_cast<DistanceData*>(cdata_);
-    const DistanceRequest<double>& request = cdata->request;
-    DistanceResult<double>& result = cdata->result;
+void TransformController::initParam()
+{
+  nh_private_.param("control_rate", control_rate_, 15.0);
+  if(verbose_) std::cout << "control_rate: " << std::setprecision(3) << control_rate_ << std::endl;
 
-    if(cdata->done) { dist = result.min_distance; return true; }
+  nh_private_.param("gyro_moment_compensation", gyro_moment_compensation_, false);
+  nh_private_.param("control_verbose", control_verbose_, false);
+  nh_private_.param("debug_verbose", debug_verbose_, false);
+  nh_private_.param("a_dash_eigen_calc_flag", a_dash_eigen_calc_flag_, false);
 
-    distance(o1, o2, request, result);
-
-    dist = result.min_distance;
-
-    if(dist <= 0) return true; // in collision or in touch
-
-    return cdata->done;
+  /* propeller direction and lqi R */
+  const int rotor_num = getRobotModel().getRotorNum();
+  r_.resize(rotor_num);
+  for(int i = 0; i < rotor_num; ++i) {
+    std::stringstream ss;
+    ss << i + 1;
+    /* R */
+    nh_private_.param(std::string("r") + ss.str(), r_[i], 1.0);
+    if(verbose_) std::cout << std::string("r") + ss.str() << ": " << r_[i] << std::endl;
   }
+
+  nh_private_.param ("q_roll", q_roll_, 1.0);
+  if(verbose_) std::cout << "Q: q_roll: " << std::setprecision(3) << q_roll_ << std::endl;
+  nh_private_.param ("q_roll_d", q_roll_d_, 1.0);
+  if(verbose_) std::cout << "Q: q_roll_d: " << std::setprecision(3) << q_roll_d_ << std::endl;
+  nh_private_.param ("q_pitch", q_pitch_, 1.0);
+  if(verbose_) std::cout << "Q: q_pitch: " << std::setprecision(3) << q_pitch_ << std::endl;
+  nh_private_.param ("q_pitch_d", q_pitch_d_,  1.0);
+  if(verbose_) std::cout << "Q: q_pitch_d: " << std::setprecision(3) << q_pitch_d_ << std::endl;
+  nh_private_.param ("q_yaw", q_yaw_, 1.0);
+  if(verbose_) std::cout << "Q: q_yaw: " << std::setprecision(3) << q_yaw_ << std::endl;
+  nh_private_.param ("strong_q_yaw", strong_q_yaw_, 1.0);
+  if(verbose_) std::cout << "Q: strong_q_yaw: " << std::setprecision(3) << strong_q_yaw_ << std::endl;
+  nh_private_.param ("q_yaw_d", q_yaw_d_, 1.0);
+  if(verbose_) std::cout << "Q: q_yaw_d: " << std::setprecision(3) << q_yaw_d_ << std::endl;
+  nh_private_.param ("q_z", q_z_, 1.0);
+  if(verbose_) std::cout << "Q: q_z: " << std::setprecision(3) << q_z_ << std::endl;
+  nh_private_.param ("q_z_d", q_z_d_, 1.0);
+  if(verbose_) std::cout << "Q: q_z_d: " << std::setprecision(3) << q_z_d_ << std::endl;
+
+  nh_private_.param ("q_roll_i", q_roll_i_, 1.0);
+  if(verbose_) std::cout << "Q: q_roll_i: " << std::setprecision(3) << q_roll_i_ << std::endl;
+  nh_private_.param ("q_pitch_i", q_pitch_i_, 1.0);
+  if(verbose_) std::cout << "Q: q_pitch_i: " << std::setprecision(3) << q_pitch_i_ << std::endl;
+  nh_private_.param ("q_yaw_i", q_yaw_i_, 1.0);
+  if(verbose_) std::cout << "Q: q_yaw_i: " << std::setprecision(3) << q_yaw_i_ << std::endl;
+  nh_private_.param ("q_z_i", q_z_i_, 1.0);
+  if(verbose_) std::cout << "Q: q_z_i: " << std::setprecision(3) << q_z_i_ << std::endl;
+}
+
+
+void TransformController::lqi()
+{
+  if(!getKinematicsUpdated()) {
+    if(debug_verbose_) ROS_WARN("lqi return");
+    return;
+  }
+  std::lock_guard<std::mutex> lock(mutex_);
+
+  /* check the thre check */
+  if(debug_verbose_) ROS_WARN(" start dist thre check");
+  if(!getRobotModel().stabilityMarginCheck(control_verbose_)) //[m]
+    {
+      ROS_ERROR("LQI: invalid pose, cannot pass the distance thresh check");
+      return;
+    }
+  if(debug_verbose_) ROS_WARN(" finish dist thre check");
+
+  /* check the propeller overlap */
+  if(debug_verbose_) ROS_WARN(" start overlap check");
+  if(!getRobotModel().overlapCheck(control_verbose_)) //[m]
+    {
+      ROS_ERROR("LQI: invalid pose, some propellers overlap");
+      return;
+    }
+  if(debug_verbose_) ROS_WARN(" finish dist thre check");
+
+  /* modelling the multilink based on the inertia assumption */
+  if(debug_verbose_) ROS_WARN(" start modelling");
+  if(!getRobotModel().modelling(false, control_verbose_))
+      ROS_ERROR("LQI: invalid pose, can not be four axis stable, switch to three axis stable mode");
+
+  if(debug_verbose_) ROS_WARN(" finish modelling");
+
+  if(debug_verbose_) ROS_WARN(" start ARE calc");
+  if(!hamiltonMatrixSolver())
+    {
+      ROS_ERROR("LQI: can not solve hamilton matrix");
+      return;
+    }
+  if(debug_verbose_) ROS_WARN(" finish ARE calc");
+
+  param2controller();
+  if(debug_verbose_) ROS_WARN(" finish param2controller");
+}
+
+
+void TransformController::param2controller()
+{
+  aerial_robot_msgs::FourAxisGain four_axis_gain_msg;
+  spinal::RollPitchYawTerms rpy_gain_msg; //for rosserial
+  spinal::PMatrixPseudoInverseWithInertia p_pseudo_inverse_with_inertia_msg;
+
+  const int rotor_num = getRobotModel().getRotorNum();
+  four_axis_gain_msg.motor_num = rotor_num;
+  rpy_gain_msg.motors.resize(rotor_num);
+  p_pseudo_inverse_with_inertia_msg.pseudo_inverse.resize(rotor_num);
+
+  const int lqi_mode = getRobotModel().getLqiMode();
+  const Eigen::MatrixXd P_orig_pseudo_inverse = getRobotModel().getPOrigPseudoInverse();
+  for(int i = 0; i < rotor_num; ++i)
+    {
+      /* to flight controller via rosserial */
+      rpy_gain_msg.motors[i].roll_p = K_(i,0) * 1000; //scale: x 1000
+      rpy_gain_msg.motors[i].roll_d = K_(i,1) * 1000;  //scale: x 1000
+      rpy_gain_msg.motors[i].roll_i = K_(i, lqi_mode * 2) * 1000; //scale: x 1000
+
+      rpy_gain_msg.motors[i].pitch_p = K_(i,2) * 1000; //scale: x 1000
+      rpy_gain_msg.motors[i].pitch_d = K_(i,3) * 1000; //scale: x 1000
+      rpy_gain_msg.motors[i].pitch_i = K_(i,lqi_mode * 2 + 1) * 1000; //scale: x 1000
+
+      /* to aerial_robot_base, feedback */
+      four_axis_gain_msg.pos_p_gain_roll.push_back(K_(i,0));
+      four_axis_gain_msg.pos_d_gain_roll.push_back(K_(i,1));
+      four_axis_gain_msg.pos_i_gain_roll.push_back(K_(i,lqi_mode * 2));
+
+      four_axis_gain_msg.pos_p_gain_pitch.push_back(K_(i,2));
+      four_axis_gain_msg.pos_d_gain_pitch.push_back(K_(i,3));
+      four_axis_gain_msg.pos_i_gain_pitch.push_back(K_(i,lqi_mode * 2 + 1));
+
+      four_axis_gain_msg.pos_p_gain_alt.push_back(K_(i,4));
+      four_axis_gain_msg.pos_d_gain_alt.push_back(K_(i,5));
+      four_axis_gain_msg.pos_i_gain_alt.push_back(K_(i, lqi_mode * 2 + 2));
+
+      if(lqi_mode == HydrusRobotModel::LQI_FOUR_AXIS_MODE)
+        {
+          /* to flight controller via rosserial */
+          rpy_gain_msg.motors[i].yaw_d = K_(i,7) * 1000; //scale: x 1000
+
+          /* to aerial_robot_base, feedback */
+          four_axis_gain_msg.pos_p_gain_yaw.push_back(K_(i,6));
+          four_axis_gain_msg.pos_d_gain_yaw.push_back(K_(i,7));
+          four_axis_gain_msg.pos_i_gain_yaw.push_back(K_(i,11));
+
+        }
+      else if(lqi_mode == HydrusRobotModel::LQI_THREE_AXIS_MODE)
+        {
+          rpy_gain_msg.motors[i].yaw_d = 0;
+
+          /* to aerial_robot_base, feedback */
+          four_axis_gain_msg.pos_p_gain_yaw.push_back(0.0);
+          four_axis_gain_msg.pos_d_gain_yaw.push_back(0.0);
+          four_axis_gain_msg.pos_i_gain_yaw.push_back(0.0);
+        }
+
+      /* the p matrix pseudo inverse and inertia */
+      p_pseudo_inverse_with_inertia_msg.pseudo_inverse[i].r = P_orig_pseudo_inverse(i, 0) * 1000;
+      p_pseudo_inverse_with_inertia_msg.pseudo_inverse[i].p = P_orig_pseudo_inverse(i, 1) * 1000;
+      p_pseudo_inverse_with_inertia_msg.pseudo_inverse[i].y = P_orig_pseudo_inverse(i, 3) * 1000;
+    }
+  rpy_gain_pub_.publish(rpy_gain_msg);
+  four_axis_gain_pub_.publish(four_axis_gain_msg);
+
+
+  /* the multilink inertia */
+  Eigen::Matrix3d inertia = getRobotModel().getInertia<Eigen::Matrix3d>();
+  p_pseudo_inverse_with_inertia_msg.inertia[0] = inertia(0, 0) * 1000;
+  p_pseudo_inverse_with_inertia_msg.inertia[1] = inertia(1, 1) * 1000;
+  p_pseudo_inverse_with_inertia_msg.inertia[2] = inertia(2, 2) * 1000;
+  p_pseudo_inverse_with_inertia_msg.inertia[3] = inertia(0, 1) * 1000;
+  p_pseudo_inverse_with_inertia_msg.inertia[4] = inertia(1, 2) * 1000;
+  p_pseudo_inverse_with_inertia_msg.inertia[5] = inertia(0, 2) * 1000;
+
+  if(gyro_moment_compensation_)
+    p_matrix_pseudo_inverse_inertia_pub_.publish(p_pseudo_inverse_with_inertia_msg);
+}
 

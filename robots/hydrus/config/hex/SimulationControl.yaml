@@ -13,7 +13,6 @@ hydrusx:
         init_angle: 1.0472
 
     # test for non-attitude control mode
-    baselink_name: fc
 
     joint_state_controller:
         type: joint_state_controller/JointStateController

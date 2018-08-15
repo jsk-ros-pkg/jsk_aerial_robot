@@ -33,24 +33,17 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 
+#pragma once
 
-#ifndef GIMBAL_CONTROL_H
-#define GIMBAL_CONTROL_H
-
-/* ros */
-#include <ros/ros.h>
-
-/* ros msg */
-#include <std_msgs/UInt8.h>
+#include <aerial_robot_base/control/flatness_pid_controller.h>
+#include <aerial_robot_model/eigen_utils.h>
+#include <dragon/dragon_robot_model.h>
 #include <dynamixel_controllers/TorqueEnable.h>
 #include <nav_msgs/Odometry.h>
-#include <std_msgs/Float32MultiArray.h>
+#include <ros/ros.h>
 #include <spinal/DesireCoord.h>
-
-/* basic transform control */
-#include <dragon/transform_control.h>
-/* basic control class */
-#include <aerial_robot_base/control/flatness_pid_controller.h>
+#include <std_msgs/Float32MultiArray.h>
+#include <std_msgs/UInt8.h>
 
 namespace control_plugin
 {
@@ -67,8 +60,6 @@ namespace control_plugin
     void reset()
     {
       FlatnessPid::reset();
-      //yaw_i_term_.resize(1);
-      //target_yaw_.resize(1);
 
       yaw_i_term_.assign(1, 0);
       target_yaw_.assign(1, 0);
@@ -78,7 +69,7 @@ namespace control_plugin
     }
     void sendCmd();
   private:
-    boost::shared_ptr<DragonTransformController> kinematics_;
+    std::unique_ptr<DragonRobotModel> kinematics_;
     ros::Publisher gimbal_control_pub_;
     ros::Publisher joint_control_pub_;
     ros::Publisher gimbal_target_force_pub_;
@@ -86,6 +77,7 @@ namespace control_plugin
     ros::Publisher  roll_pitch_pid_pub_;
     ros::Subscriber joint_state_sub_;
     ros::Subscriber final_desire_tilt_sub_;
+    ros::Subscriber desire_coord_sub_;
 
     void servoTorqueProcess();
     void landingProcess();
@@ -96,6 +88,7 @@ namespace control_plugin
 
     void baselinkTiltCallback(const spinal::DesireCoordConstPtr & msg);
     void fourAxisGainCallback(const aerial_robot_msgs::FourAxisGainConstPtr & msg);
+    void desireCoordCallback(const spinal::DesireCoordConstPtr& msg);
 
     sensor_msgs::JointState joint_state_;
     Eigen::MatrixXd P_xy_;
@@ -137,34 +130,9 @@ namespace control_plugin
     dynamic_reconfigure::Server<aerial_robot_base::XYPidControlConfig>* yaw_pid_server_;
     dynamic_reconfigure::Server<aerial_robot_base::XYPidControlConfig>::CallbackType dynamic_reconf_func_yaw_pid_;
     void cfgYawPidCallback(aerial_robot_base::XYPidControlConfig &config, uint32_t level);
-
-    /* psuedo inverse */
-    /* https://gist.github.com/javidcf/25066cf85e71105d57b6 */
-    template <class MatT>
-    Eigen::Matrix<typename MatT::Scalar, MatT::ColsAtCompileTime, MatT::RowsAtCompileTime>
-    pseudoinverse(const MatT &mat, typename MatT::Scalar tolerance = typename MatT::Scalar{1e-4}) // choose appropriately
-    {
-      typedef typename MatT::Scalar Scalar;
-      auto svd = mat.jacobiSvd(Eigen::ComputeFullU | Eigen::ComputeFullV);
-      const auto &singularValues = svd.singularValues();
-      Eigen::Matrix<Scalar, MatT::ColsAtCompileTime, MatT::RowsAtCompileTime> singularValuesInv(mat.cols(), mat.rows());
-      singularValuesInv.setZero();
-      for (unsigned int i = 0; i < singularValues.size(); ++i) {
-        if (singularValues(i) > tolerance)
-          {
-            singularValuesInv(i, i) = Scalar{1} / singularValues(i);
-          }
-        else
-          {
-            singularValuesInv(i, i) = Scalar{0};
-          }
-      }
-      return svd.matrixV() * singularValuesInv * svd.matrixU().adjoint();
-    }
   };
 };
 
 /* plugin registration */
 #include <pluginlib/class_list_macros.h>
 PLUGINLIB_EXPORT_CLASS(control_plugin::DragonGimbal, control_plugin::ControlBase);
-#endif

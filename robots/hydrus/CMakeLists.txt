@@ -8,48 +8,22 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   aerial_robot_msgs
   aerial_robot_base
+  aerial_robot_model
   spinal
   dynamixel_controllers
   eigen_conversions
   tf_conversions
-  cmake_modules
   std_srvs
   dynamic_reconfigure
   kdl_parser
   )
 
-add_subdirectory(qpOASES)
-link_directories(${CMAKE_CURRENT_BINARY_DIR}/qpOASES/qpOASES-3.0/bin)
-include_directories(${CMAKE_CURRENT_BINARY_DIR}/qpOASES/qpOASES-3.0/include)
-add_definitions(-DUSE_QPOASES)
+find_package(Eigen3 REQUIRED)
 
-find_package(orocos_kdl REQUIRED)
-find_package(urdfdom_headers REQUIRED)
-
-find_package(PkgConfig)
-pkg_search_module(Eigen3 REQUIRED eigen3)
-
-SET(FCL_BUILD_TESTS OFF CACHE BOOL "Build FCL tests")
-if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/fcl/include/fcl/fcl.h.in)
-  message(WARNING "fcl/include/fcl/fcl.h.in is not exists, download this")
-  execute_process(COMMAND git submodule init fcl   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-  execute_process(COMMAND git submodule update fcl WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-endif()
-if (NOT EXISTS ${CMAKE_CURRENT_BINARY_DIR}/fcl)
-  add_subdirectory(fcl)
-endif()
-include_directories(fcl/include
-  ${CMAKE_CURRENT_BINARY_DIR}/fcl/include)
-link_directories(${CMAKE_CURRENT_BINARY_DIR}/fcl/lib)
-
-include_directories(${orocos_kdl_INCLUDE_DIRS} ${urdfdom_headers_INCLUDE_DIRS})
-link_directories(${orocos_kdl_LIBRARY_DIRS})
-
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
 
 add_service_files(
   FILES
-  AddExtraModule.srv
   TargetPose.srv
 )
 
@@ -63,10 +37,10 @@ generate_dynamic_reconfigure_options(
   cfg/LQI.cfg)
 
 catkin_package(
-  INCLUDE_DIRS include ${CMAKE_CURRENT_BINARY_DIR}/qpOASES/qpOASES-3.0/include fcl/include ${CMAKE_CURRENT_BINARY_DIR}/fcl/include
-  LIBRARIES transform_control dynamixel_bridge differential_kinematics_planner_core end_effector_ik_solver_core gap_passing_solver_core
-  CATKIN_DEPENDS roscpp message_runtime aerial_robot_msgs aerial_robot_base spinal dynamixel_controllers tf_conversions eigen_conversions kdl_parser
-  DEPENDS Eigen3 orocos_kdl urdfdom_headers
+  INCLUDE_DIRS include
+  LIBRARIES hydrus_robot_model transform_control dynamixel_bridge
+  CATKIN_DEPENDS roscpp message_runtime aerial_robot_msgs aerial_robot_base spinal dynamixel_controllers tf_conversions eigen_conversions aerial_robot_model
+  DEPENDS EIGEN3
 )
 
 # Eigen requires optimization to get good performance
@@ -91,55 +65,30 @@ cmake_policy(SET CMP0046 OLD)
 ## Your package locations should be listed before other locations
 # include_directories(include)
 include_directories(
-  include ${Boost_INCLUDE_DIR} ${catkin_INCLUDE_DIRS} ${Eigen3_INCLUDE_DIRS}
+  include
+  ${Boost_INCLUDE_DIR}
+  ${catkin_INCLUDE_DIRS}
+  ${EIGEN3_INCLUDE_DIRS}
 )
 
-add_library (dynamixel_bridge src/dynamixel_bridge.cpp)
-target_link_libraries (dynamixel_bridge ${catkin_LIBRARIES})
+add_library(dynamixel_bridge src/dynamixel_bridge.cpp)
+target_link_libraries(dynamixel_bridge ${catkin_LIBRARIES})
 add_dependencies(dynamixel_bridge aerial_robot_msgs_generate_messages_cpp aerial_robot_base_generate_messages_cpp ${PROJECT_NAME}_generate_messages_cpp ${PROJECT_NAME}_gencfg)
 
 add_executable(dynamixel_bridge_node src/dynamixel_bridge_node.cpp)
-target_link_libraries (dynamixel_bridge_node  ${catkin_LIBRARIES} dynamixel_bridge)
+target_link_libraries(dynamixel_bridge_node  ${catkin_LIBRARIES} dynamixel_bridge)
 add_dependencies(dynamixel_bridge_node aerial_robot_msgs_generate_messages_cpp aerial_robot_base_generate_messages_cpp ${PROJECT_NAME}_generate_messages_cpp ${PROJECT_NAME}_gencfg)
 
-add_library (transform_control src/transform_control.cpp)
-target_link_libraries (transform_control ${catkin_LIBRARIES} ${orocos_kdl_LIBRARIES}  ${Eigen3_LIBRARIES} fcl)
+add_library(hydrus_robot_model src/hydrus_robot_model.cpp)
+target_link_libraries(hydrus_robot_model ${catkin_LIBRARIES})
+
+add_library(transform_control src/transform_control.cpp)
+target_link_libraries(transform_control hydrus_robot_model ${catkin_LIBRARIES} ${EIGEN3_LIBRARIES})
 add_dependencies(transform_control aerial_robot_msgs_generate_messages_cpp spinal_generate_messages_cpp ${PROJECT_NAME}_generate_messages_cpp ${PROJECT_NAME}_gencfg)
 
-add_executable (transform_control_node src/transform_control_node.cpp)
-target_link_libraries (transform_control_node transform_control ${catkin_LIBRARIES} ${orocos_kdl_LIBRARIES}  ${Eigen3_LIBRARIES})
+add_executable(transform_control_node src/transform_control_node.cpp)
+target_link_libraries(transform_control_node transform_control ${catkin_LIBRARIES} ${EIGEN3_LIBRARIES})
 add_dependencies(transform_control_node aerial_robot_msgs_generate_messages_cpp spinal_generate_messages_cpp ${PROJECT_NAME}_generate_messages_cpp ${PROJECT_NAME}_gencfg)
-
-add_library (differential_kinematics_planner_core src/differential_kinematics/planner_core.cpp)
-target_link_libraries (differential_kinematics_planner_core ${catkin_LIBRARIES} ${orocos_kdl_LIBRARIES} ${Eigen3_LIBRARIES} transform_control qpOASES)
-add_dependencies(differential_kinematics_planner_core aerial_robot_msgs_generate_messages_cpp spinal_generate_messages_cpp ${PROJECT_NAME}_generate_messages_cpp ${PROJECT_NAME}_gencfg)
-
-add_library (differential_kinematics_cost_pluginlib
-  src/differential_kinematics/cost/cartesian_constraint.cpp
-  src/differential_kinematics/cost/state_vel.cpp)
-target_link_libraries (differential_kinematics_cost_pluginlib ${catkin_LIBRARIES} ${orocos_kdl_LIBRARIES}  ${Eigen3_LIBRARIES})
-add_dependencies(differential_kinematics_cost_pluginlib ${PROJECT_NAME}_generate_messages_cpp)
-
-add_library (differential_kinematics_constraint_pluginlib
-  src/differential_kinematics/constraint/stability.cpp
-  src/differential_kinematics/constraint/collision_avoidance.cpp
-  src/differential_kinematics/constraint/state_limit.cpp)
-target_link_libraries (differential_kinematics_constraint_pluginlib ${catkin_LIBRARIES} ${orocos_kdl_LIBRARIES}  ${Eigen3_LIBRARIES} fcl)
-add_dependencies(differential_kinematics_constraint_pluginlib ${PROJECT_NAME}_generate_messages_cpp)
-
-add_library (end_effector_ik_solver_core src/differential_kinematics/sample/end_effector_ik_solver_core.cpp)
-target_link_libraries (end_effector_ik_solver_core ${catkin_LIBRARIES} ${orocos_kdl_LIBRARIES} ${Eigen3_LIBRARIES} differential_kinematics_planner_core)
-add_dependencies(end_effector_ik_solver_core ${PROJECT_NAME}_generate_messages_cpp)
-
-add_executable (end_effector_ik_node src/end_effector_ik_node.cpp)
-target_link_libraries (end_effector_ik_node ${catkin_LIBRARIES} ${orocos_kdl_LIBRARIES}  ${Eigen3_LIBRARIES} end_effector_ik_solver_core)
-
-# gap passing, temporary
-add_library (gap_passing_solver_core  src/differential_kinematics/sample/gap_passing_solver_core.cpp)
-target_link_libraries (gap_passing_solver_core ${catkin_LIBRARIES}  ${Eigen3_LIBRARIES} differential_kinematics_planner_core)
-add_executable (gap_passing_solver_node  src/gap_passing_solver_node.cpp)
-target_link_libraries (gap_passing_solver_node ${catkin_LIBRARIES} ${orocos_kdl_LIBRARIES} ${Eigen3_LIBRARIES} gap_passing_solver_core)
-
 
 install(PROGRAMS
   scripts/dynamixel_param.py
@@ -154,5 +103,3 @@ install(TARGETS transform_control transform_control_node
    LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
    RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
  )
-
-

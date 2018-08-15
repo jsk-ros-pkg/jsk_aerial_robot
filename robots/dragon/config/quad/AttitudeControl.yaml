@@ -1,7 +1,5 @@
 #Dragon Quad config
 
-actuator_state_sub_name: /dragon/joint_states
-
 verbose: true
 control_rate: 15.0
 
