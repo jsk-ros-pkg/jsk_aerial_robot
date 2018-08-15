@@ -1,8 +1,0 @@
-<library path="lib/libdifferential_kinematics_cost_pluginlib">
-  <class name="differential_kinematics_cost/state_vel" type="differential_kinematics::cost::StateVel&lt;differential_kinematics::Planner&gt;" base_class_type="differential_kinematics::cost::Base&lt;differential_kinematics::Planner&gt;">
-    <description>This is a cost plugin for state(joint) vel</description>
-  </class>
-  <class name="differential_kinematics_cost/cartesian_constraint" type="differential_kinematics::cost::CartersianConstraint&lt;differential_kinematics::Planner&gt;" base_class_type="differential_kinematics::cost::Base&lt;differential_kinematics::Planner&gt;">
-    <description>This is a cost plugin for cartesian constraint</description>
-  </class>
-</library>

@@ -1,3 +1,0 @@
-[submodule "robots/hydrus/fcl"]
-	path = robots/hydrus/fcl
-	url = https://github.com/flexible-collision-library/fcl.git
