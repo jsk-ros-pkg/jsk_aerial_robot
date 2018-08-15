@@ -242,7 +242,8 @@ namespace control_plugin
 
     Eigen::VectorXd f;
 
-    if(P_det < 1e-3)
+    //ROS_INFO_THROTTLE(0.1, "P_det: %f", P_det);
+    if(P_det < pitch_roll_control_p_det_thresh_)
       { // bad pitch roll
         if(control_verbose_) ROS_ERROR("bad P_det: %f", P_det);
         P = Eigen::MatrixXd::Zero(3, rotor_num  * 2);
@@ -617,7 +618,10 @@ namespace control_plugin
     ros::NodeHandle pitch_roll_node(nhp_, "pitch_roll");
     string pitch_roll_ns = pitch_roll_node.getNamespace();
     pitch_roll_node.param("control_rate_thresh", pitch_roll_control_rate_thresh_, 1.0);
-    if(param_verbose_) cout << pitch_roll_ns << ": pos_limit_ is " <<  pitch_roll_control_rate_thresh_ << endl;
+    if(param_verbose_) cout << pitch_roll_ns << ": pitch_roll_control_rate_thresh_ is " <<  pitch_roll_control_rate_thresh_ << endl;
+    pitch_roll_node.param("control_p_det_thresh", pitch_roll_control_p_det_thresh_, 1e-3);
+    if(param_verbose_) cout << pitch_roll_ns << ": pitch_roll_control_p_det_thresh_ is " <<  pitch_roll_control_p_det_thresh_ << endl;
+
     pitch_roll_node.param("limit", pitch_roll_limit_, 1.0e6);
     if(param_verbose_) cout << pitch_roll_ns << ": pos_limit_ is " <<  pitch_roll_limit_ << endl;
     pitch_roll_node.param("p_term_limit", pitch_roll_terms_limits_[0], 1.0e6);

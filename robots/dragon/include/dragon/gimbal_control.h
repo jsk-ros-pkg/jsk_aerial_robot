@@ -108,6 +108,7 @@ namespace control_plugin
 
     /* pitch roll control */
     double pitch_roll_control_rate_thresh_;
+    double pitch_roll_control_p_det_thresh_;
     tf::Vector3 pitch_roll_gains_;
     double pitch_roll_limit_;
     tf::Vector3 pitch_roll_terms_limits_;
