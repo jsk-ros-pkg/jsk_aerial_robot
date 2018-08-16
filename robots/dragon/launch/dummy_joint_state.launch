@@ -1,4 +1,0 @@
-<launch>
-  <node pkg = "dragon" type = "dummy_joint_state.py" name = "dummy_joint_state" >
-  </node>
-</launch>

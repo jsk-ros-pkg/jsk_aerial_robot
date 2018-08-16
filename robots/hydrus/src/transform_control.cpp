@@ -1,7 +1,5 @@
 #include <hydrus/transform_control.h>
 
-using namespace fcl;
-
 TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_private, bool callback_flag):
   nh_(nh), nh_private_(nh_private),
   callback_flag_(callback_flag),
@@ -14,61 +12,6 @@ TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_
     ROS_ERROR("Failed to extract urdf model from rosparam");
   if (!kdl_parser::treeFromUrdfModel(model_, tree_))
     ROS_ERROR("Failed to extract kdl tree from xml robot description");
-
-
-#if 0 // FCL general test
-
-  DistanceResult<double> result;
-  double distance;
-  //Box<double> box(0.6, 0.05, 0.15); // not good!!
-
-  std::shared_ptr< CollisionGeometry<double> > cgeomSphere_(new Sphere<double>(0.05));
-  std::shared_ptr< CollisionGeometry<double> > cgeomBox_(new Box<double>(0.6, 0.05, 0.15));
-  std::shared_ptr< CollisionGeometry<double> > cgeomCylinder_(new Cylinder<double>(0.05, 0.3));
-
-  CollisionObject<double> objSphere(cgeomSphere_, Eigen::Matrix3d::Identity(), Eigen::Vector3d(0.3, 0.3, 0.0));
-   CollisionObject<double> objBox(cgeomBox_, Eigen::Matrix3d::Identity(), Eigen::Vector3d(0.3, 0, -0.03));
-   CollisionObject<double> objCylinder(cgeomCylinder_, Eigen::Matrix3d::Identity(), Eigen::Vector3d(0.3, 0.3, 0));
-
-   boost::shared_ptr<BroadPhaseCollisionManager<double> > collision_manager(new DynamicAABBTreeCollisionManager<double>());
-   collision_manager->registerObject(&objSphere);
-  //collision_manager->registerObject(&objBox);
-
-
-  result.clear();
-  DistanceRequest<double> request(true);
-   /*
-  fcl::distance(&objBox, &objCylinder, request, result);
-  std::cout << "distance = " << result.min_distance << std::endl;
-  std::cout << " point on manager: x = " << result.nearest_points[0](0) << " y = " << result.nearest_points[0](1) << " z = " << result.nearest_points[0](2) << std::endl;
-  std::cout << " point on manager: x = " << result.nearest_points[1](0) << " y = " << result.nearest_points[1](1) << " z = " << result.nearest_points[1](2) << std::endl;
-
-   */
-
-   DistanceData distance_data;
-   distance_data.request = request;
-   collision_manager->distance(&objBox, &distance_data, TransformController::defaultDistanceFunction);
-   std::cout << "distance = " << distance_data.result.min_distance << std::endl;
-   std::cout << " point on manager: x = " << distance_data.result.nearest_points[0](0) << " y = " << distance_data.result.nearest_points[0](1) << " z = " << distance_data.result.nearest_points[0](2) << std::endl;
-   std::cout << " point on manager: x = " << distance_data.result.nearest_points[1](0) << " y = " << distance_data.result.nearest_points[1](1) << " z = " << distance_data.result.nearest_points[1](2) << std::endl;
-
-#endif
-
-#if 0 //box collison check test
-   DistanceResult<double> result;
-   result.clear();
-   DistanceRequest<double> request(true);
-
-   std::shared_ptr< CollisionGeometry<double> > cgeomBox1(new Box<double>(2.750000, 6.000000, 0.050000));
-   std::shared_ptr< CollisionGeometry<double> > cgeomBox2(new Box<double>(0.424000, 0.150000, 0.168600));
-   CollisionObject<double> objBox1(cgeomBox1, Eigen::Quaterniond(1,0,0,0).matrix(), Eigen::Vector3d(1.625000, 0.000000, 0.500000));
-   CollisionObject<double> objBox2(cgeomBox2, Eigen::Quaterniond(0.672811, 0.340674, 0.155066, 0.638138).matrix(), Eigen::Vector3d(0.192074, -0.277870, 0.273546 /*0.273546*/));
-
-   fcl::distance(&objBox1, &objBox2, request, result);
-   std::cout << "distance = " << result.min_distance << std::endl;
-   std::cout << " point on obj1: x = " << result.nearest_points[0](0) << " y = " << result.nearest_points[0](1) << " z = " << result.nearest_points[0](2) << std::endl;
-   std::cout << " point on obj2: x = " << result.nearest_points[1](0) << " y = " << result.nearest_points[1](1) << " z = " << result.nearest_points[1](2) << std::endl;
-#endif
 
   nh_private_.param("verbose", verbose_, false);
   ROS_ERROR("ns is %s", nh_private_.getNamespace().c_str());
@@ -1031,21 +974,3 @@ void TransformController::setActuatorJointMap(const sensor_msgs::JointState& act
     }
 
 }
-
-bool TransformController::defaultDistanceFunction(CollisionObject<double>* o1, CollisionObject<double>* o2, void* cdata_, double& dist)
-  {
-    auto* cdata = static_cast<DistanceData*>(cdata_);
-    const DistanceRequest<double>& request = cdata->request;
-    DistanceResult<double>& result = cdata->result;
-
-    if(cdata->done) { dist = result.min_distance; return true; }
-
-    distance(o1, o2, request, result);
-
-    dist = result.min_distance;
-
-    if(dist <= 0) return true; // in collision or in touch
-
-    return cdata->done;
-  }
-

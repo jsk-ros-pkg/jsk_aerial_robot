@@ -44,7 +44,6 @@
 #include <aerial_robot_msgs/FourAxisGain.h>
 #include <sensor_msgs/JointState.h>
 #include <hydrus/AddExtraModule.h>
-#include <hydrus/TargetPose.h>
 #include <spinal/DesireCoord.h>
 #include <spinal/PMatrixPseudoInverseWithInertia.h>
 #include <std_msgs/UInt8.h>
@@ -69,15 +68,6 @@
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
 #include <Eigen/Eigenvalues>
-
-/* for collision detection */
-#include <fcl/fcl.h>
-//#include <fcl/collision_object.h>
-//#include <fcl/shape/geometric_shapes.h>
-//#include <fcl/collision_data.h>
-//#include <fcl/distance.h>
-//#include <fcl/broadphase/broadphase_dynamic_AABB_tree.h>
-using namespace fcl;
 
 /* util */
 #include <boost/thread/mutex.hpp>
@@ -319,27 +309,6 @@ protected:
   //dynamic reconfigure
   dynamic_reconfigure::Server<hydrus::LQIConfig>* lqi_server_;
   dynamic_reconfigure::Server<hydrus::LQIConfig>::CallbackType dynamic_reconf_func_lqi_;
-
-  static bool defaultDistanceFunction(CollisionObject<double>* o1, CollisionObject<double>* o2, void* cdata_, double& dist);
-
-  struct DistanceData
-  {
-    DistanceData()
-    {
-      done = false;
-    }
-
-    /// @brief Distance request
-    DistanceRequest<double> request;
-
-    /// @brief Distance result
-    DistanceResult<double> result;
-
-    /// @brief Whether the distance iteration can stop
-    bool done;
-
-  };
-
 };
 
 
