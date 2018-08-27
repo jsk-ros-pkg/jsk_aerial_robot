@@ -160,6 +160,7 @@ public:
   tf::Transform getRoot2Link(std::string link, sensor_msgs::JointState state);
 
   inline void setBaselink(std::string baselink) { baselink_ = baselink;}
+  inline const std::string getBaselink() { return baselink_;}
 
   void setCogDesireOrientation(KDL::Rotation cog_desire_orientation)
   {
