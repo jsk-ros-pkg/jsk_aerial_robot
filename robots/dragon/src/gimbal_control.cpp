@@ -381,8 +381,8 @@ namespace control_plugin
         /* ros publish */
         target_force_msg.data.push_back(f(2 * i));
         target_force_msg.data.push_back(f(2 * i + 1));
-        gimbal_target_force_pub_.publish(target_force_msg);
       }
+    gimbal_target_force_pub_.publish(target_force_msg);
   }
 
   void DragonGimbal::desireTilt()
