@@ -97,7 +97,7 @@ public:
     : write_fn_(write_fn) {
     ros::SubscribeOptions opts;
     opts.init<topic_tools::ShapeShifter>(
-        topic_info.topic_name, 1, boost::bind(&Subscriber::handle, this, _1));
+        topic_info.topic_name, 10, boost::bind(&Subscriber::handle, this, _1));
     opts.md5sum = topic_info.md5sum;
     opts.datatype = topic_info.message_type;
     subscriber_ = nh.subscribe(opts);
