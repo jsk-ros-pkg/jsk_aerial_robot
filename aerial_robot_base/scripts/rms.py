@@ -4,7 +4,7 @@ import rospy
 from std_msgs.msg import Empty
 from std_msgs.msg import Int8
 from std_msgs.msg import UInt16
-from aerial_robot_base.msg import FlatnessPid, States
+from aerial_robot_msgs.msg import FlatnessPid, States
 
 import sys, select, termios, tty, math
 
