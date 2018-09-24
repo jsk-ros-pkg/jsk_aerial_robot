@@ -43,7 +43,7 @@
 #include <spinal/RollPitchYawTerms.h>
 #include <aerial_robot_msgs/FourAxisGain.h>
 #include <sensor_msgs/JointState.h>
-#include <hydrus/AddExtraModule.h>
+#include <aerial_robot_model/AddExtraModule.h>
 #include <spinal/DesireCoord.h>
 #include <spinal/PMatrixPseudoInverseWithInertia.h>
 #include <std_msgs/UInt8.h>
@@ -273,8 +273,8 @@ protected:
   /* service */
   ros::ServiceServer add_extra_module_service_;
   ros::ServiceServer end_effector_ik_service_;
-  bool addExtraModuleCallback(hydrus::AddExtraModule::Request  &req,
-                      hydrus::AddExtraModule::Response &res);
+  bool addExtraModuleCallback(aerial_robot_model::AddExtraModule::Request  &req,
+                      aerial_robot_model::AddExtraModule::Response &res);
 
 
   //////////////////////////////////////////////////////////////////////////////////////

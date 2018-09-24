@@ -406,8 +406,8 @@ void TransformController::forwardKinematics(sensor_msgs::JointState& state)
 }
 
 
-bool TransformController::addExtraModuleCallback(hydrus::AddExtraModule::Request  &req,
-                                                 hydrus::AddExtraModule::Response &res)
+bool TransformController::addExtraModuleCallback(aerial_robot_model::AddExtraModule::Request  &req,
+                                                 aerial_robot_model::AddExtraModule::Response &res)
 {
   return addExtraModule(req.action, req.module_name, req.parent_link_name, req.transform, req.inertia);
 }
@@ -416,7 +416,7 @@ bool TransformController::addExtraModule(int action, std::string module_name, st
 {
   switch(action)
     {
-    case hydrus::AddExtraModule::Request::ADD:
+    case aerial_robot_model::AddExtraModule::Request::ADD:
       {
         std::map<std::string, KDL::Segment>::iterator it = extra_module_map_.find(module_name);
         if(it == extra_module_map_.end())
@@ -458,7 +458,7 @@ bool TransformController::addExtraModule(int action, std::string module_name, st
           }
         break;
       }
-    case hydrus::AddExtraModule::Request::REMOVE:
+    case aerial_robot_model::AddExtraModule::Request::REMOVE:
       {
         std::map<std::string, KDL::Segment>::iterator it = extra_module_map_.find(module_name);
         if(it == extra_module_map_.end())

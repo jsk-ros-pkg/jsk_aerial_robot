@@ -8,6 +8,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   aerial_robot_msgs
   aerial_robot_base
+  aerial_robot_model
   spinal
   dynamixel_controllers
   eigen_conversions
@@ -29,11 +30,6 @@ link_directories(${orocos_kdl_LIBRARY_DIRS})
 
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
-add_service_files(
-  FILES
-  AddExtraModule.srv
-)
-
 generate_messages(
   DEPENDENCIES
   std_msgs
@@ -46,7 +42,7 @@ generate_dynamic_reconfigure_options(
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES transform_control dynamixel_bridge
-  CATKIN_DEPENDS roscpp message_runtime aerial_robot_msgs aerial_robot_base spinal dynamixel_controllers tf_conversions eigen_conversions kdl_parser
+  CATKIN_DEPENDS roscpp aerial_robot_msgs aerial_robot_base aerial_robot_model spinal dynamixel_controllers tf_conversions eigen_conversions kdl_parser
   DEPENDS Eigen3 orocos_kdl urdfdom_headers
 )
 
@@ -85,11 +81,11 @@ add_dependencies(dynamixel_bridge_node aerial_robot_msgs_generate_messages_cpp a
 
 add_library (transform_control src/transform_control.cpp)
 target_link_libraries (transform_control ${catkin_LIBRARIES} ${orocos_kdl_LIBRARIES}  ${Eigen3_LIBRARIES})
-add_dependencies(transform_control aerial_robot_msgs_generate_messages_cpp spinal_generate_messages_cpp ${PROJECT_NAME}_generate_messages_cpp ${PROJECT_NAME}_gencfg)
+add_dependencies(transform_control aerial_robot_msgs_generate_messages_cpp aerial_robot_model_msgs_generate_messages_cpp spinal_generate_messages_cpp ${PROJECT_NAME}_generate_messages_cpp ${PROJECT_NAME}_gencfg)
 
 add_executable (transform_control_node src/transform_control_node.cpp)
 target_link_libraries (transform_control_node transform_control ${catkin_LIBRARIES} ${orocos_kdl_LIBRARIES}  ${Eigen3_LIBRARIES})
-add_dependencies(transform_control_node aerial_robot_msgs_generate_messages_cpp spinal_generate_messages_cpp ${PROJECT_NAME}_generate_messages_cpp ${PROJECT_NAME}_gencfg)
+add_dependencies(transform_control_node aerial_robot_msgs_generate_messages_cpp aerial_robot_model_msgs_generate_messages_cpp spinal_generate_messages_cpp ${PROJECT_NAME}_generate_messages_cpp ${PROJECT_NAME}_gencfg)
 
 install(PROGRAMS
   scripts/dynamixel_param.py
