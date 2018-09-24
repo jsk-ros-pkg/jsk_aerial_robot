@@ -22,21 +22,17 @@
   <build_depend>tf_conversions</build_depend>
   <build_depend>cmake_modules</build_depend>
   <build_depend>dynamic_reconfigure</build_depend>
-  <build_depend>orocos_kdl</build_depend>
-  <build_depend>kdl_parser</build_depend>
-  <build_depend>liburdfdom-headers-dev</build_depend>
 
   <run_depend>roscpp</run_depend>
   <run_depend>aerial_robot_msgs</run_depend>
   <run_depend>aerial_robot_base</run_depend>
   <run_depend>aerial_robot_model</run_depend>
+  <run_depend>aerial_robot_simulation</run_depend>
   <run_depend>spinal</run_depend>
   <run_depend>std_srvs</run_depend>
   <run_depend>dynamixel_controllers</run_depend>
   <run_depend>eigen_conversions</run_depend>
   <run_depend>tf_conversions</run_depend>
   <run_depend>dynamic_reconfigure</run_depend>
-  <run_depend>kdl_parser</run_depend>
-  <run_depend>orocos_kdl</run_depend>
 
 </package>
