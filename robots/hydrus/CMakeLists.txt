@@ -28,7 +28,7 @@ catkin_package(
   INCLUDE_DIRS include
   LIBRARIES hydrus_robot_model transform_control dynamixel_bridge
   CATKIN_DEPENDS roscpp aerial_robot_msgs aerial_robot_base aerial_robot_model spinal dynamixel_controllers tf_conversions eigen_conversions
-  DEPENDS Eigen3
+  DEPENDS EIGEN3
 )
 
 # Eigen requires optimization to get good performance
