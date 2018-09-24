@@ -95,7 +95,6 @@ dragon:
         pid: {p: 50.0, i: 0.01, d: 0.0}
         
     # test for non-attitude control mode
-    baselink_name: fc
     attitude_controller:
         type: flight_controllers/SimulationAttitudeController
         

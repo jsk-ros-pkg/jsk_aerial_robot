@@ -8,8 +8,6 @@ hydrusx:
     joint3:
         init_angle: 1.57
 
-    baselink_name: fc # flight controller
-
     joint_state_controller:
         type: joint_state_controller/JointStateController
         publish_rate: 50
