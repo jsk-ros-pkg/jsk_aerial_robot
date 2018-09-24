@@ -1,7 +1,5 @@
 #HydrusX Hex config
 
-actuator_state_sub_name: /hydrusx/joint_states
-
 control_rate: 15.0
 
 baselink: fc
