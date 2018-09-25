@@ -4,9 +4,9 @@
   <version>0.1.0</version>
   <description>The model for aerial robots</description>
 
-  <maintainer email="chou@jsk.imi.i.u-tokyo.ac.jp">Bakui Chou</maintainer> 
+  <maintainer email="chou@jsk.imi.i.u-tokyo.ac.jp">Bakui Chou</maintainer>
   <license>BSD</license>
-  <url type="website">http://wiki.ros.org/beginner_tutorials</url> 
+  <url type="website">http://wiki.ros.org/beginner_tutorials</url>
   <author email="chou@jsk.imi.i.u-tokyo.ac.jp">Bakui Chou</author>
 
   <buildtool_depend>catkin</buildtool_depend>
@@ -23,9 +23,15 @@
   <build_depend>tf</build_depend>
   <build_depend>tf2_ros</build_depend>
   <build_depend>tf2_kdl</build_depend>
+  <build_depend>tf2_eigen</build_depend>
   <build_depend>orocos_kdl</build_depend>
   <build_depend>kdl_parser</build_depend>
   <build_depend>liburdfdom-headers-dev</build_depend>
+  <build_depend>message_generation</build_depend>
+  <build_depend>message_runtime</build_depend>
+  <build_depend>tf2_geometry_msgs</build_depend>
+  <build_depend>eigen_conversions</build_depend>
+  <build_depend>spinal</build_depend>
 
   <run_depend>roscpp</run_depend>
   <run_depend>sensor_msgs</run_depend>
@@ -39,7 +45,12 @@
   <run_depend>tf</run_depend>
   <run_depend>tf2_ros</run_depend>
   <run_depend>tf2_kdl</run_depend>
+  <run_depend>tf2_eigen</run_depend>
   <run_depend>kdl_parser</run_depend>
   <run_depend>orocos_kdl</run_depend>
+  <run_depend>message_generation</run_depend>
+  <run_depend>message_runtime</run_depend>
+  <run_depend>tf2_geometry_msgs</run_depend>
+  <run_depend>spinal</run_depend>
 
 </package>

@@ -272,7 +272,7 @@ bool AerialRobotHWSim::initSim(
   if(rotor_interface_.getJointNum() > 0)
     {
       std::string baselink_name;
-      if(model_nh.getParam("baselink_name", baselink_name))
+      if(model_nh.getParam("baselink", baselink_name))
         rotor_interface_.setBaseLinkName(baselink_name);
       else
         ROS_FATAL("aerial_robot_hw_sim: can not get the baselink name for transformable robot");
