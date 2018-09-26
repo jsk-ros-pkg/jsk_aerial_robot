@@ -2,8 +2,8 @@
 Changelog for package aerial_robot_base
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.0.1 (2018-09-26)
+------------------
 * hogehoge.txt
 * Contributors: Tomoki Anzai
 

@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package>
   <name>aerial_robot_comm</name>
-  <version>1.0.0</version>
+  <version>1.0.1</version>
   <description>The aerial_robot_comm package</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag --> 
