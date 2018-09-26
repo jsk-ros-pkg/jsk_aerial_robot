@@ -2,6 +2,9 @@
 Changelog for package aerial_robot_estimation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 1.0.0 (2018-09-26)
 ------------------
 * Update CMakeLists.txt:

@@ -8,7 +8,6 @@ Forthcoming
 1.0.0 (2018-09-26)
 ------------------
 * Merge pull request `#169 <https://github.com/tongtybj/aerial_robot/issues/169>`_ from tongtybj/non_attitude_control
-  Spinal内の姿勢制御のON/OFF切り替え
 * Add flag to switch on/off regarding to the attitude control inside Spinal, via rosservice (rosserial)
 * Merge pull request `#142 <https://github.com/tongtybj/aerial_robot/issues/142>`_ from tongtybj/fix_gps
   Improvement the GPS connection with Spinal via UART
@@ -77,4 +76,4 @@ Forthcoming
   2. spinal: code project (TrueStudio) for spinal mcu
   3. neuron: code project (TrueStudio) for neuron mcu
   4. motor_test: the motor property (pwm, thrust, cuurent) identification
-* Contributors: KahnShi, Tomoki Anzai, tongtybj, 趙　漠居, 趙　漠居(Zhao, Moju)
+* Contributors: Moju Zhao, Tomoki Anzai, Fan Shi

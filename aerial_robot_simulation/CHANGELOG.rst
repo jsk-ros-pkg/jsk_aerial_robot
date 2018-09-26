@@ -2,6 +2,9 @@
 Changelog for package aerial_robot_simulation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 1.0.0 (2018-09-26)
 ------------------
 * Merge pull request `#197 <https://github.com/tongtybj/aerial_robot/issues/197>`_ from chibi314/refactor_transform_control

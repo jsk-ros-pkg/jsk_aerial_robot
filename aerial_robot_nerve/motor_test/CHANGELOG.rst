@@ -2,6 +2,9 @@
 Changelog for package motor_test
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 1.0.0 (2018-09-26)
 ------------------
 * Merge remote-tracking branch 'origin/devel' into ik
