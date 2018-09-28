@@ -225,6 +225,7 @@ namespace aerial_robot_model {
         KDL::Frame f = forwardKinematics<KDL::Frame>(rotor, joint_positions);
         if(verbose_) ROS_WARN(" %s : [%f, %f, %f]", rotor.c_str(), f.p.x(), f.p.y(), f.p.z());
         rotors_origin_from_cog_.at(i) = (cog_.Inverse() * f).p;
+        rotors_normal_from_cog_.at(i) = (cog_.Inverse() * f).M * KDL::Vector(0, 0, 1);
       }
 
     link_inertia_cog_ = (cog_.Inverse() * link_inertia).getRotationalInertia();
