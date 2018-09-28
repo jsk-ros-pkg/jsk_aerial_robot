@@ -84,6 +84,7 @@ namespace aerial_robot_model {
     double getVerbose() const { return verbose_; }
     void setActuatorJointMap(const sensor_msgs::JointState& actuator_state);
     void setCogDesireOrientation(double roll, double pitch, double yaw) { cog_desire_orientation_ = KDL::Rotation::RPY(roll, pitch, yaw); }
+    void setRotorDirection(const std::map<int, int>& rotor_direction) { rotor_direction_ = rotor_direction; }
     bool removeExtraModule(std::string module_name);
     virtual void updateRobotModelImpl(const KDL::JntArray& joint_positions);
     void updateRobotModel(const KDL::JntArray& joint_positions) { updateRobotModelImpl(joint_positions); }
