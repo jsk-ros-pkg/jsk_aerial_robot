@@ -62,7 +62,7 @@ if __name__=="__main__":
         joints_ctrl_pub = rospy.Publisher('/teleop_command/joints_ctrl', Int8)
 
 
-        motion_start_pub = rospy.Publisher('hydra/motion_control', UInt8)
+        motion_start_pub = rospy.Publisher('task_start', Empty)
         stop_realtime_lqi_pub = rospy.Publisher('realtime_control', UInt8)
 
 	rospy.init_node('keyboard_command')
@@ -120,9 +120,7 @@ if __name__=="__main__":
                                 stop_real = UInt8()
 				stop_real.data = 0
                                 #stop_realtime_lqi_pub.publish(stop_real)
-                                start_motion = UInt8()
-                                start_motion.data = 1
-                                motion_start_pub.publish(start_motion)
+                                motion_start_pub.publish()
 			if key == 'a':
 				comm.data = 1
 				yaw_pub.publish(comm)
