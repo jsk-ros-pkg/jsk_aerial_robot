@@ -219,7 +219,7 @@ namespace sensor_plugin
       if(!variable_sensor_tf_flag_ && get_sensor_tf_) return true;
 
       /*
-         TODO: for joint or servo system, this should be processed every time,
+         TODO: for joint, this should be processed every time,
          maybe KDL kinematics is better, since the tf need 0.x[sec].
       */
       double start_time = ros::Time::now().toSec();

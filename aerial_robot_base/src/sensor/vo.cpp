@@ -45,6 +45,13 @@
 /* ros msg */
 #include <geometry_msgs/Vector3Stamped.h>
 #include <nav_msgs/Odometry.h>
+#include <spinal/ServoControlCmd.h>
+#include <std_msgs/Empty.h>
+
+namespace
+{
+  ros::Time init_servo_st;
+}
 
 namespace sensor_plugin
 {
@@ -65,10 +72,21 @@ namespace sensor_plugin
       nhp_.param("vo_sub_topic_name", vo_sub_topic_name, string("vo") );
       vo_sub_ = nh_.subscribe(vo_sub_topic_name, 1, &VisualOdometry::voCallback, this);
 
+
+      /* servo control timer */
+      if(variable_sensor_tf_flag_)
+        {
+          init_servo_st = ros::Time::now();
+          /* ros publisher: servo motor */
+          vo_servo_pub_ = nh_.advertise<spinal::ServoControlCmd>("/vo_servo_target_pwm",10); //angle -> pwm
+          vo_servo_debug_sub_ = nh_.subscribe("/vo_servo_debug", 1, &VisualOdometry::servoDebugCallback, this);
+
+          servo_control_timer_ = nhp_.createTimer(ros::Duration(servo_control_rate_), &VisualOdometry::servoControl,this); // 10 Hz
+        }
     }
 
     ~VisualOdometry(){}
-    VisualOdometry():init_time_(true)
+    VisualOdometry():init_time_(true), servo_auto_change_flag_(false), servo_control_rate_(0.1)
     {
       world_offset_tf_.setIdentity();
       baselink_tf_.setIdentity();
@@ -86,6 +104,9 @@ namespace sensor_plugin
     /* ros */
     ros::Subscriber vo_sub_;
     ros::Publisher vo_state_pub_;
+    ros::Publisher vo_servo_pub_;
+    ros::Subscriber vo_servo_debug_sub_;
+    ros::Timer  servo_control_timer_;
 
     /* ros param */
     double vo_noise_sigma_;
@@ -93,9 +114,21 @@ namespace sensor_plugin
     bool vio_flag_;
     bool debug_verbose_;
 
+    /* servo */
+    bool servo_auto_change_flag_;
+    double servo_height_thresh_;
+    double servo_angle_;
+    double servo_init_angle_, servo_downwards_angle_;
+    double servo_vel_;
+    double servo_control_rate_;
+    int servo_min_pwm_, servo_max_pwm_;
+    double servo_min_angle_, servo_max_angle_;
+    tf::TransformBroadcaster br_;
+
     bool init_time_;
     tf::Transform world_offset_tf_;
     tf::Transform baselink_tf_;
+    tf::StampedTransform servo_tf_; //for servo
     aerial_robot_msgs::States vo_state_;
 
     void voCallback(const nav_msgs::Odometry::ConstPtr & vo_msg)
@@ -119,6 +152,8 @@ namespace sensor_plugin
               init_time_ = true;
               return;
             }
+
+          servo_tf_.stamp_ = vo_msg->header.stamp; //reset the time stamp, very important for rosbag play
 
           /* set the init offset from world to the baselink of UAV from egomotion estimation (e.g. yaw) */
           world_offset_tf_.setRotation(tf::createQuaternionFromYaw(estimator_->getState(State::YAW_BASE, BasicEstimator::EGOMOTION_ESTIMATE)[0]));
@@ -303,6 +338,92 @@ namespace sensor_plugin
 
       nhp_.param("debug_verbose", debug_verbose_, false );
       if(param_verbose_) cout << ns << ": debug verbose is " <<  debug_verbose_ << endl;
+
+      nhp_.param("servo_auto_change_flag", servo_auto_change_flag_, false );
+      if(param_verbose_) cout << ns << ": servo auto change flag is " <<  servo_auto_change_flag_ << endl;
+
+      nhp_.param("servo_height_thresh", servo_height_thresh_, 0.7);
+      if(param_verbose_) cout << ns << ": servo height thresh is " << servo_height_thresh_ << endl;
+
+      nhp_.param("servo_vel", servo_vel_, 0.02); // rad
+      if(param_verbose_) cout << ns << ": servo vel is " << servo_vel_ << endl;
+
+      nhp_.param("servo_init_angle", servo_init_angle_, 0.0); // rad
+      if(param_verbose_) cout << ns << ": servo init angle is " << servo_init_angle_ << endl;
+      servo_angle_ = servo_init_angle_;
+
+      nhp_.param("servo_downwards_angle", servo_downwards_angle_, 0.0); // rad
+      if(param_verbose_) cout << ns << ": servo downwards angle is " << servo_downwards_angle_ << endl;
+
+      nhp_.param("servo_min_pwm", servo_min_pwm_, 1000); // pwm [ms]
+      if(param_verbose_) cout << ns << ": servo min pwm is " << servo_min_pwm_ << endl;
+      nhp_.param("servo_max_pwm", servo_max_pwm_, 2000); // pwm [ms]
+      if(param_verbose_) cout << ns << ": servo max pwm is " << servo_max_pwm_ << endl;
+
+      nhp_.param("servo_min_angle", servo_min_angle_, -M_PI/2); // angle [rad]
+      if(param_verbose_) cout << ns << ": servo min angle is " << servo_min_angle_ << endl;
+      nhp_.param("servo_max_angle", servo_max_angle_, M_PI/2); // angle [rad]
+      if(param_verbose_) cout << ns << ": servo max angle is " << servo_max_angle_ << endl;
+
+      nhp_.param("servo_ref_frame", servo_tf_.frame_id_, std::string("servo"));
+      if(param_verbose_) cout << ns << ": servo ref frame is " << servo_tf_.frame_id_ << endl;
+      nhp_.param("servo_child_frame", servo_tf_.child_frame_id_, std::string("servo_horn"));
+      if(param_verbose_) cout << ns << ": servo child frame is " << servo_tf_.child_frame_id_ << endl;
+      servo_tf_.setIdentity();
+    }
+
+    void servoControl(const ros::TimerEvent & e)
+    {
+      assert(variable_sensor_tf_flag_);
+
+      bool send_pub_ = false;
+
+      /* after takeoff */
+      if(servo_auto_change_flag_ && estimator_->getState(State::Z_BASE, BasicEstimator::EGOMOTION_ESTIMATE)[0] > servo_height_thresh_ && servo_angle_ != servo_downwards_angle_)
+        {
+          if(fabs(servo_angle_ - servo_downwards_angle_) > servo_vel_ * servo_control_rate_)
+            {
+              int sign = fabs(servo_angle_ - servo_downwards_angle_) / (servo_angle_ - servo_downwards_angle_);
+              servo_angle_ -=  sign / servo_vel_ * servo_control_rate_;
+            }
+          else servo_angle_ = servo_downwards_angle_;
+
+          send_pub_ = true;
+        }
+
+      /* before ladning */
+      if(estimator_->getState(State::Z_BASE, BasicEstimator::EGOMOTION_ESTIMATE)[0] < servo_height_thresh_ - 0.1 &&  servo_angle_ != servo_init_angle_)
+        {
+          if(fabs(servo_angle_ - servo_init_angle_) > servo_vel_ * servo_control_rate_)
+            {
+              int sign = fabs(servo_angle_ - servo_init_angle_) / (servo_angle_ - servo_init_angle_);
+              servo_angle_ -=  sign / servo_vel_ * servo_control_rate_;
+            }
+          else servo_angle_ = servo_init_angle_;
+
+          send_pub_ = true;
+        }
+
+      int servo_target_pwm = (servo_angle_ - servo_min_angle_) / (servo_max_angle_ - servo_min_angle_) * (servo_max_pwm_ - servo_min_pwm_) + servo_min_pwm_;
+
+      /* init */
+      if ((ros::Time::now() - init_servo_st).toSec() < 1.0 ) // 1 [sec]
+        send_pub_ = true;
+
+      spinal::ServoControlCmd servo_target_pwm_msg;
+      servo_target_pwm_msg.index.push_back(0);
+      servo_target_pwm_msg.angles.push_back(servo_target_pwm);
+      if(send_pub_) vo_servo_pub_.publish(servo_target_pwm_msg);
+
+      /* tf publisher */
+      servo_tf_.stamp_ += (e.current_real - e.last_real);
+      servo_tf_.setRotation(tf::createQuaternionFromYaw(servo_angle_)); // z axis
+      br_.sendTransform(servo_tf_);
+    }
+
+    void servoDebugCallback(const std_msgs::Empty::ConstPtr & vo_msg)
+    {
+      servo_auto_change_flag_ = true;
     }
   };
 
