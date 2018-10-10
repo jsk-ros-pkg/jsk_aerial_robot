@@ -73,13 +73,39 @@ class GazeboControlBridge:
             except rospy.ServiceException, e:
                 print "Service call failed: %s"%e
 
+        # extra servo (e.g., sensor, leg)
+        self.extra_servo_num = rospy.get_param("extra_servo_num", 0)
+        self.init_extra_servo_angle = []
+        self.extra_servo_command_pubs = []
+
+        for i in range(0, self.extra_servo_num):
+            # extra_servo init angle
+            extra_servo_name = rospy.get_param("extra_servo" + str(i+1) + "/name", "extra_servo" + str(i+1))
+            self.extra_servo_command_pubs.append(rospy.Publisher(rospy.get_namespace() + extra_servo_name + "_position_controller/command", Float64, queue_size = 1))
+            self.init_extra_servo_angle.append(rospy.get_param("extra_servo" + str(i+1) + "/init_angle", 0))
+
+            # controller
+            rospy.wait_for_service(controller_manager_name)
+            try:
+                controller_loader = rospy.ServiceProxy(controller_manager_name, LoadController)
+                controller_loader.wait_for_service(timeout=shutdown_timeout)
+                self.controller_names.append("extra_servo" + str(i+1) + "_position_controller")
+
+                res = controller_loader(self.controller_names[i + self.joint_num + self.gimbal_num])
+
+                if res.ok:
+                    rospy.loginfo("loaded: %s",  self.controller_names[i + self.joint_num + self.gimbal_num])
+                else:
+                    rospy.logerr("can not load: %s",  self.controller_names[i + self.joint_num + self.gimbal_num])
+            except rospy.ServiceException, e:
+                print "Service call failed: %s"%e
+
         # start all controllers
         try:
             controller_switcher = rospy.ServiceProxy(rospy.get_namespace() + "controller_manager/switch_controller", SwitchController)
             controller_switcher.wait_for_service(timeout=shutdown_timeout)
 
             res = controller_switcher(self.controller_names, [], SwitchControllerRequest.STRICT)
-
             if res.ok:
                 rospy.loginfo("start controllers")
             else:

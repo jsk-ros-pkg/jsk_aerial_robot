@@ -1,0 +1,24 @@
+sensor_plugin:
+        vo:
+                vo_sub_topic_name: /realsense/odom #TODO
+                vo_noise_sigma: 0.001
+                sensor_frame: camera_link #TODO
+                reference_frame: fc #TODO
+                vio_flag: true
+                valid_yaw: true
+                debug_verbose: false
+                time_sync: true
+                delay: -0.09
+
+# for gazebo simulation of servo motor
+hydrusx:
+        extra_servo_num: 1
+        extra_servo1: #zed mini servo
+                      name: zed_mini_servo_joint
+                      init_angle: 0
+
+        extra_servo1_position_controller:
+                type: effort_controllers/JointPositionController
+                joint: zed_mini_servo_joint
+                pid: {p: 10.0, i: 0.01, d: 0.0}
+

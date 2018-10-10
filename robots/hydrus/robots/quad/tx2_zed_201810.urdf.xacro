@@ -1,0 +1,112 @@
+<?xml version="1.0"?>
+<robot
+    xmlns:xacro="http://www.ros.org/wiki/xacro" name="hydrusx" >
+
+  <xacro:include filename="$(find hydrus)/urdf/common.xacro" />
+  <xacro:include filename="$(find hydrus)/robots/quad/default.urdf.xacro" />
+
+  <!-- flight controller -->
+  <xacro:extra_module name = "fc" parent = "link2" visible = "1"
+                      model_url = "package://hydrus/urdf/mesh/modules/flight_controller/fc_euclid201806.dae"> <!-- same with intel euclid -->
+    <origin xyz="${link_length/2 + 0.2281} ${-4.4*0.001} 0.03533" rpy="0 0 0"/>
+    <inertial>
+      <mass value = "0.0457" />
+      <origin xyz="${8.7*0.001} ${4.4*0.001} -0.01" rpy="0 0 0"/>
+      <inertia
+          ixx="0.00001" ixy="0.0" ixz="0.0"
+          iyy="0.00001" iyz="0.0"
+          izz="0.00002"/>
+    </inertial>
+  </xacro:extra_module>
+
+  <!-- gps -->
+  <xacro:extra_module name = "gps" parent = "link2" visible = "1"
+                      model_url = "package://hydrus/urdf/mesh/modules/sensor/gps_ublox_m8n.dae">
+    <origin xyz="${link_length/2 + 0.206} 0.0 0.18" rpy="0 0 0"/>
+    <inertial>
+      <mass value = "0.044" />
+      <origin xyz="0.0 0.0 -0.08" rpy="0 0 0"/>
+      <inertia
+          ixx="0.00001" ixy="0.0" ixz="0.0"
+          iyy="0.00001" iyz="0.0"
+          izz="0.00002"/>
+    </inertial>
+  </xacro:extra_module>
+  <xacro:extra_module name = "magnet" parent = "gps">
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <inertial>
+      <mass value = "0.00001" />
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia
+          ixx="0.000001" ixy="0.0" ixz="0.0"
+          iyy="0.000001" iyz="0.0"
+          izz="0.000002"/>
+    </inertial>
+  </xacro:extra_module>
+
+  <!-- processor: jetson tx2 -->
+  <xacro:extra_module name = "pc" parent = "link3" visible = "1"
+                      model_url = "package://hydrus/urdf/mesh/modules/processor/jetson_tx2.dae">
+    <origin xyz="${link_length/2 - 0.2134} 0.0 -0.0192" rpy="${pi/2} 0 ${pi}"/>
+    <inertial>
+      <mass value = "0.1672" />
+      <origin xyz="0 0 ${-5 * 0.001}" rpy="0 0 0"/>
+      <inertia
+          ixx="0.00001" ixy="0.0" ixz="0.0"
+          iyy="0.00001" iyz="0.0"
+          izz="0.00002"/>
+    </inertial>
+  </xacro:extra_module>
+
+  <!-- sensor: zed mini with servo -->
+  <xacro:extra_module name = "zed_mini_servo_up" parent = "link2" visible = "1"
+                      model_url = "package://hydrus/urdf/mesh/modules/sensor/zed_mini_servo_up.dae">
+    <origin xyz="${link_length/2 + 0.28714} 0.0 -0.04015" rpy="0 0 0"/>
+    <inertial>
+      <mass value = "0.017" />
+      <origin xyz="${-20 * 0.001} 0 ${5 * 0.001}" rpy="0 0 0"/>
+      <inertia
+          ixx="0.00000" ixy="0.0" ixz="0.0"
+          iyy="0.00001" iyz="0.0"
+          izz="0.00001"/>
+    </inertial>
+  </xacro:extra_module>
+
+
+  <joint name="zed_mini_servo_joint" type="revolute">
+    <limit effort="0.2" lower="-1.6" upper="1.6" velocity="0.1"/>
+    <parent link="link2"/>
+    <child link="zed_mini_servo_down"/>
+    <origin rpy="0 0 0" xyz="${link_length/2 + 0.28714} 0.0 -0.04015"/>
+    <axis xyz="1 0 0"/>
+    <dynamics damping="0.01" friction="0.0"/>
+  </joint>
+
+  <link name="zed_mini_servo_down">
+    <inertial>
+      <origin xyz="${-22.5 * 0.001} 0 ${-14 * 0.001}" rpy="0 0 0"/>
+      <mass value="0.08" />
+      <inertia
+          ixx="0.00001" iyy="0.00012" izz="0.00013"
+          ixy="0" ixz="0" iyz="0"/>
+    </inertial>
+    <visual>
+      <origin xyz="${-22.5 * 0.001} 0 ${-19 * 0.001}" rpy="0 ${pi/2} ${pi/2}"/>
+      <geometry>
+        <mesh filename="package://hydrus/urdf/mesh/modules/sensor/zed_mini_servo_down.dae"/>
+      </geometry>
+    </visual>
+  </link>
+
+  <transmission name="zed_mini_servo_joint_tran">
+    <type>transmission_interface/SimpleTransmission</type>
+    <joint name="zed_mini_servo_joint">
+      <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+    </joint>
+    <actuator name="zed_mini_servo_joint">
+      <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+      <mechanicalReduction>1</mechanicalReduction>
+    </actuator>
+  </transmission>
+
+</robot>

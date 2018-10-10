@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<robot
+    xmlns:xacro="http://www.ros.org/wiki/xacro" name="hydrusx" >
+
+  <xacro:include filename="$(find hydrus)/robots/quad/tx2_zed_201810.urdf.xacro" />
+
+  <!-- gazebo -->
+  <xacro:include filename="$(find hydrus)/robots/default.gazebo.xacro" />
+
+</robot>
