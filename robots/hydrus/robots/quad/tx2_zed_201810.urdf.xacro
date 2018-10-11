@@ -91,12 +91,26 @@
           ixy="0" ixz="0" iyz="0"/>
     </inertial>
     <visual>
-      <origin xyz="${-22.5 * 0.001} 0 ${-19 * 0.001}" rpy="0 ${pi/2} ${pi/2}"/>
+      <origin xyz="${-14.75 * 0.001} 0 ${-19 * 0.001}" rpy="0 ${pi/2} ${-pi}"/>
       <geometry>
         <mesh filename="package://hydrus/urdf/mesh/modules/sensor/zed_mini_servo_down.dae"/>
       </geometry>
     </visual>
   </link>
+
+  <!-- to create the zed center frame -->
+  <xacro:extra_module name = "zed_camera_center" parent = "zed_mini_servo_down" visible = "0" >
+    <origin xyz="${-14.75 * 0.001} 0 ${-19 * 0.001}" rpy="0 ${pi/2} ${pi/2}"/>
+    <inertial>
+      <mass value = "0.0" />
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia
+          ixx="0.0" ixy="0.0" ixz="0.0"
+          iyy="0.0" iyz="0.0"
+          izz="0.0"/>
+    </inertial>
+  </xacro:extra_module>
+
 
   <transmission name="zed_mini_servo_joint_tran">
     <type>transmission_interface/SimpleTransmission</type>
