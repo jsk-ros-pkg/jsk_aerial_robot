@@ -1,15 +1,28 @@
 sensor_plugin:
         vo:
-                vo_sub_topic_name: /realsense/odom #TODO
+                vo_sub_topic_name: /zed/odom
                 vo_noise_sigma: 0.001
-                sensor_frame: camera_link #TODO
-                reference_frame: fc #TODO
+                sensor_frame: zed_mini_servo_up
+                reference_frame: fc
                 vio_flag: true
                 valid_yaw: true
                 debug_verbose: false
                 time_sync: true
-                delay: -0.09
-
+                delay: 0.0
+                servo_init_angle: -1.570796
+                servo_index: 1
+                servo_min_pwm: 550
+                servo_max_pwm: 2450
+                servo_ref_frame: zed_mini_servo_up
+                servo_child_frame: zed_mini_servo_down
+                variable_sensor_tf_flag: true
+                vo_servo_topic_name: /extra_servo_cmd
+                servo_auto_change_flag: true
+                servo_height_thresh: 0.8
+                servo_vel: 0.15
+                servo_horn_frame: zed_mini_servo_down
+                odometry_frame: zed_camera_center
+                
 # for gazebo simulation of servo motor
 hydrusx:
         extra_servo_num: 1

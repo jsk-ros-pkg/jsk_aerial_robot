@@ -215,13 +215,16 @@ namespace sensor_plugin
 
     bool updateBaseLink2SensorTransform()
     {
+      /*
+         TODO: for joint, this should be processed every time,
+         should use KDL kinematics, but not TF.
+         problem if use TF:
+         "Could not find a connection between 'fc' and 'xxxx' because they are not part of the same tree. Tf has two or more unconnected trees"
+      */
+
       /* get transform from baselink to sensor frame */
       if(!variable_sensor_tf_flag_ && get_sensor_tf_) return true;
 
-      /*
-         TODO: for joint, this should be processed every time,
-         maybe KDL kinematics is better, since the tf need 0.x[sec].
-      */
       double start_time = ros::Time::now().toSec();
 
       tf2_ros::Buffer tfBuffer;

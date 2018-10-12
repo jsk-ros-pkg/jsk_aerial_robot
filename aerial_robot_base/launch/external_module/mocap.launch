@@ -15,6 +15,7 @@
       optitrack_config:
          multicast_address:
                239.255.42.99
+         data_port: 1511
     </rosparam>
   </node>
 

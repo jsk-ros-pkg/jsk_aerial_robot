@@ -85,7 +85,7 @@
   <link name="zed_mini_servo_down">
     <inertial>
       <origin xyz="${-22.5 * 0.001} 0 ${-14 * 0.001}" rpy="0 0 0"/>
-      <mass value="0.08" />
+      <mass value="0.093" />
       <inertia
           ixx="0.00001" iyy="0.00012" izz="0.00013"
           ixy="0" ixz="0" iyz="0"/>
