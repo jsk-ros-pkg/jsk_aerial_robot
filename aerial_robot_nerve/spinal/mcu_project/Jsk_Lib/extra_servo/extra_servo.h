@@ -22,6 +22,8 @@
 
 #define MAX_PWM  54000
 #define MAX_DUTY 20000.0f //ms
+#define NEUTUAL_DUTY 1500.0f //ms
+
 
 class ExtraServo
 {
@@ -42,6 +44,10 @@ public:
     pwm_htim_ = htim;
     HAL_TIM_PWM_Start(pwm_htim_,TIM_CHANNEL_1);
     HAL_TIM_PWM_Start(pwm_htim_,TIM_CHANNEL_2);
+
+    /* netual: TODO, use flash memory */
+    pwm_htim_->Instance->CCR1 = (uint32_t)(NEUTUAL_DUTY / MAX_DUTY * MAX_PWM);
+    pwm_htim_->Instance->CCR2 = (uint32_t)(NEUTUAL_DUTY / MAX_DUTY * MAX_PWM);
   }
 
 private:
@@ -60,10 +66,12 @@ private:
           case 0:
             {
               pwm_htim_->Instance->CCR1 = (uint32_t)(cmd_msg.angles[i] / MAX_DUTY * MAX_PWM);
+              break;
             }
           case 1:
             {
               pwm_htim_->Instance->CCR2 = (uint32_t)(cmd_msg.angles[i] / MAX_DUTY * MAX_PWM);
+              break;
             }
           default:
             {
