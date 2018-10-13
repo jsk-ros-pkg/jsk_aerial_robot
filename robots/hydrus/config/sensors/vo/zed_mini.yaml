@@ -8,7 +8,7 @@ sensor_plugin:
                 valid_yaw: true
                 debug_verbose: false
                 time_sync: true
-                delay: 0.0
+                delay: -0.15
                 servo_init_angle: -1.570796
                 servo_index: 1
                 servo_min_pwm: 550

@@ -167,11 +167,11 @@ namespace sensor_plugin
     tf::TransformBroadcaster br_;
 
     bool init_time_;
-    tf::Transform world_offset_tf_;
-    tf::Transform baselink_tf_;
-    tf::StampedTransform servo_tf_; //for servo
-    tf::Transform sensor_end_tf_; //for servo
-    tf::Transform true_sensor_tf_; //for servo
+    tf::Transform world_offset_tf_; // ^{w}H_{w_vo}: transform from true world frame to the vo/vio world frame
+    tf::Transform baselink_tf_; // ^{w}H_{b}: transform from true world frame to the baselink frame, but is estimated by vo/vio
+    tf::StampedTransform servo_tf_; // ^{servo_main_body}H_{servo_horn}: transform from the servo main body frame (along the rotation axis) to the servo horn frame (along the rotation axis), the rotation axis is X (roll)
+    tf::Transform sensor_end_tf_; //  ^{servo_horn}H_{vo}: transform from servo horn frame (along the rotation axis) to the vo sensor frame.
+    tf::Transform true_sensor_tf_; // ^{b}H_{vo}: transform from baselink frame to the vo sensor frame.
     aerial_robot_msgs::States vo_state_;
 
     void voCallback(const nav_msgs::Odometry::ConstPtr & vo_msg)
@@ -198,7 +198,8 @@ namespace sensor_plugin
 
           servo_tf_.stamp_ = vo_msg->header.stamp; //reset the time stamp, very important for rosbag play
 
-          /* set the init offset from world to the baselink of UAV from egomotion estimation (e.g. yaw) */
+          /* step1: set the init offset from world to the baselink of UAV from egomotion estimation (e.g. yaw) */
+          /** ^{w}H_{b} **/
           world_offset_tf_.setRotation(tf::createQuaternionFromYaw(estimator_->getState(State::YAW_BASE, BasicEstimator::EGOMOTION_ESTIMATE)[0]));
           /* set the init offset from world to the baselink of UAV if we know the ground truth */
           if(estimator_->getStateStatus(State::YAW_BASE, BasicEstimator::GROUND_TRUTH))
@@ -209,11 +210,20 @@ namespace sensor_plugin
               double y, p, r; world_offset_tf_.getBasis().getRPY(r, p, y);
             }
 
-          /* also consider the offset tf from baselink to sensor */
-          world_offset_tf_ *= true_sensor_tf_;
+          /* step2: also consider the offset tf from baselink to sensor */
+          /** ^{w}H_{b} * ^{b}H_{vo} * ^{vo}H_{w_vo} = ^{w}H_{w_vo} **/
+          world_offset_tf_ *= (true_sensor_tf_ * raw_sensor_tf.inverse());
 
+          //double y, p, r; raw_sensor_tf.getBasis().getRPY(r, p, y);
           ROS_INFO("VO: start kalman filter");
           tf::Vector3 init_pos = (world_offset_tf_ * raw_sensor_tf * true_sensor_tf_.inverse()).getOrigin();
+          /*
+          ROS_WARN("init pos, mocap vs vo: [%f, %f, %f] vs [%f, %f, %f]",
+                   estimator_->getPos(Frame::BASELINK, BasicEstimator::GROUND_TRUTH).x(),
+                   estimator_->getPos(Frame::BASELINK, BasicEstimator::GROUND_TRUTH).y(),
+                   estimator_->getPos(Frame::BASELINK, BasicEstimator::GROUND_TRUTH).z(),
+                   init_pos.x(), init_pos.y(), init_pos.z());
+          */
 
           for(auto& fuser : estimator_->getFuser(BasicEstimator::EGOMOTION_ESTIMATE))
             {
