@@ -14,14 +14,13 @@ public:
 
     ros::Duration(0.1).sleep();
 
-    nhp_.param("other_object", other_object_, std::string("base_link"));
-    //other_object_ = std::string("/") + other_object_; //abs frame
-    nhp_.param("world", world_, std::string("/world"));
+    nhp_.param("target_frame", target_frame_, std::string("root"));
+    nhp_.param("reference_frame", reference_frame_, std::string("fixed_frame"));
     nhp_.param("tf_loop_rate", tf_loop_rate_, 60.0);
 
     intMarkerInit();
 
-    end_pose_.setRotation(tf::Quaternion(0.0, 0.0, 0.0, 1.0));
+    target_pose_.setIdentity();
     tf_timer_ = nh_.createTimer(ros::Duration(1.0 / tf_loop_rate_), &TfPublisher::tfPublish, this);
 
     server_->applyChanges();
@@ -38,10 +37,10 @@ private:
   ros::NodeHandle nhp_;
   ros::Timer  tf_timer_;
   double tf_loop_rate_;
-  std::string other_object_;
-  std::string world_;
+  std::string target_frame_;
+  std::string reference_frame_;
   tf::TransformBroadcaster br_;
-  tf::Transform end_pose_;;
+  tf::Transform target_pose_;;
   boost::mutex tf_mutex_;
 
   boost::shared_ptr<interactive_markers::InteractiveMarkerServer> server_;
@@ -66,20 +65,20 @@ private:
     tf::Transform t;
     ros::Time time = ros::Time::now();
     t = getTransform();
-    br_.sendTransform(tf::StampedTransform(t, time, world_, other_object_));
+    br_.sendTransform(tf::StampedTransform(t, time, reference_frame_, target_frame_));
   }
 
   void setTransform(tf::Vector3 origin, tf::Quaternion rotation)
   {
     boost::lock_guard<boost::mutex> lock(tf_mutex_);
-    end_pose_.setOrigin(origin);
-    end_pose_.setRotation(rotation);
+    target_pose_.setOrigin(origin);
+    target_pose_.setRotation(rotation);
   }
 
   tf::Transform getTransform()
   {
     boost::lock_guard<boost::mutex> lock(tf_mutex_);
-    return end_pose_;
+    return target_pose_;
   }
 
 
@@ -90,8 +89,8 @@ private:
 
     //end pose
     int_marker.controls.resize(0);
-    int_marker.header.frame_id = world_;
-    int_marker.name = other_object_  + std::string("_control");
+    int_marker.header.frame_id = reference_frame_;
+    int_marker.name = target_frame_  + std::string("_control");
     rotate_control.orientation.w = 1;
     rotate_control.orientation.x = 1;
     rotate_control.orientation.y = 0;
@@ -101,7 +100,6 @@ private:
     int_marker.controls.push_back(rotate_control);
     rotate_control.name = "move_x";
     rotate_control.interaction_mode = visualization_msgs::InteractiveMarkerControl::MOVE_AXIS;
-
     int_marker.controls.push_back(rotate_control);
 
     rotate_control.orientation.w = 1;
@@ -142,7 +140,7 @@ int main(int argc, char** argv)
   TfPublisher *tf_publisher = new TfPublisher(n, np);
   ros::spin();
   delete tf_publisher;
-  
+
   return 0;
 }
 
