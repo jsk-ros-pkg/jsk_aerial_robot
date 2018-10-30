@@ -4,7 +4,7 @@
 
   <xacro:include filename="$(find hydrus_xi)/robots/quad/default.urdf.xacro" />
 
-  <!-- flight controller -->
+  #### flight controller ####
   <xacro:extra_module name = "fc" parent = "link2" visible = "1"
                       model_url = "package://hydrus_xi/urdf/mesh/modules/flight_controller/fc.dae">
     <origin xyz="0.5396 -0.0044 -0.02847" rpy="0 0 0"/>

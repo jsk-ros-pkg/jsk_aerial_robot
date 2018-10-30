@@ -11,7 +11,7 @@
     </plugin>
   </gazebo>
 
-  <!-- imu plugin -->
+  ####### imu plugin #######
   <gazebo reference="fc">
     <gravity>true</gravity>
     <sensor name="imu_sensor" type="imu">
