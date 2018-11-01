@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<robot
+    xmlns:xacro="http://www.ros.org/wiki/xacro" name="hydrus_xi" >
+
+  <xacro:include filename="$(find hydrus_xi)/robots/hex/default.urdf.xacro" />
+
+  #### flight controller ####
+  <xacro:extra_module name = "fc" parent = "link3" visible = "1"
+                      model_url = "package://hydrus_xi/urdf/mesh/modules/flight_controller/fc.dae">
+    <origin xyz="0.5396 -0.0044 -0.02847" rpy="0 0 0"/>
+    <inertial>
+      <mass value = "0.021" />
+      <origin xyz="0.01389 0.00526 0.0049" rpy="0 0 0"/>
+      <inertia
+          ixx="0.00001" ixy="0.0" ixz="0.0"
+          iyy="0.00001" iyz="0.0"
+          izz="0.00002"/>
+    </inertial>
+  </xacro:extra_module>
+
+  <!-- processor: euclid -->
+  <!-- <xacro:extra_module name = "pc" parent = "link2" visible = "1" -->
+  <!--                     model_url = "package://hydrus/urdf/mesh/modules/processor/intel_euclid_201806.dae"> -->
+  <!--   <origin xyz="${link_length/2 + 0.1565 + 0.063} 0.0 -0.0394" rpy="0 0 ${-pi/2}"/> -->
+  <!--   <inertial> -->
+  <!--     <mass value = "0.164" /> -->
+  <!--     <origin xyz="${0.03*0.001} ${0.72*0.001} ${2.9 * 0.001}" rpy="0 0 0"/> -->
+  <!--     <inertia -->
+  <!--         ixx="0.00001" ixy="0.0" ixz="0.0" -->
+  <!--         iyy="0.00001" iyz="0.0" -->
+  <!--         izz="0.00002"/> -->
+  <!--   </inertial> -->
+  <!-- </xacro:extra_module> -->
+</robot>
