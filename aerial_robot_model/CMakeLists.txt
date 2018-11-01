@@ -87,29 +87,9 @@ target_link_libraries(rotor_interface ${catkin_LIBRARIES})
 add_executable(rotor_tf_publisher src/rotor_tf_publisher.cpp)
 target_link_libraries(rotor_tf_publisher ${catkin_LIBRARIES} ${orocos_kdl_LIBRARIES})
 
-add_executable(interactive_marker src/interactive_marker.cpp)
-target_link_libraries(interactive_marker ${catkin_LIBRARIES})
-
-add_executable(dragon2_joint_state_publisher src/dragon2_joint_state_publisher.cpp)
-target_link_libraries(dragon2_joint_state_publisher ${catkin_LIBRARIES})
-
-add_executable(hydrus_origin_publisher src/hydrus_origin_publisher.cpp)
-target_link_libraries(hydrus_origin_publisher ${catkin_LIBRARIES})
-
-
-add_executable(other_object_tf_publisher src/other_object_tf_publisher.cpp)
-target_link_libraries(other_object_tf_publisher ${catkin_LIBRARIES})
-
+add_executable(interactive_marker_tf_broadcaster src/interactive_marker_tf_broadcaster.cpp)
+target_link_libraries(interactive_marker_tf_broadcaster ${catkin_LIBRARIES})
 
 
 install(DIRECTORY launch
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
-
-
-## Mark executables and/or libraries for installation
-install(TARGETS interactive_marker
-   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
- )
-
