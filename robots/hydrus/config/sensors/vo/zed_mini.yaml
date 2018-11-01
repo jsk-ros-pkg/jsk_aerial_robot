@@ -19,7 +19,8 @@ sensor_plugin:
                 vo_servo_topic_name: /extra_servo_cmd
                 servo_auto_change_flag: true
                 servo_height_thresh: 0.8
-                servo_vel: 0.15
+                servo_vel: 0.08
+                servo_control_rate: 0.025
                 servo_horn_frame: zed_mini_servo_down
                 odometry_frame: zed_camera_center
                 

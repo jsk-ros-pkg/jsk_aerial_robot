@@ -126,7 +126,7 @@ namespace sensor_plugin
     }
 
     ~VisualOdometry(){}
-    VisualOdometry():init_time_(true), servo_auto_change_flag_(false), servo_control_rate_(0.1)
+    VisualOdometry():init_time_(true), servo_auto_change_flag_(false)
     {
       world_offset_tf_.setIdentity();
       baselink_tf_.setIdentity();
@@ -427,6 +427,10 @@ namespace sensor_plugin
       if(param_verbose_) cout << ns << ": servo ref frame is " << servo_tf_.frame_id_ << endl;
       nhp_.param("servo_child_frame", servo_tf_.child_frame_id_, std::string("servo_horn"));
       if(param_verbose_) cout << ns << ": servo child frame is " << servo_tf_.child_frame_id_ << endl;
+
+      nhp_.param("servo_control_rate", servo_control_rate_, 0.1);
+      if(param_verbose_) cout << ns << ": servo control rate is " << servo_control_rate_ << endl;
+
       servo_tf_.setIdentity();
       sensor_end_tf_.setIdentity();
     }
@@ -438,7 +442,7 @@ namespace sensor_plugin
       bool send_pub_ = false;
 
       /* after takeoff */
-      if(servo_auto_change_flag_ && estimator_->getState(State::Z_BASE, BasicEstimator::EXPERIMENT_ESTIMATE)[0] > servo_height_thresh_ && servo_angle_ != servo_downwards_angle_)
+      if(servo_auto_change_flag_ && estimator_->getState(State::Z_BASE, BasicEstimator::EGOMOTION_ESTIMATE)[0] > servo_height_thresh_ && servo_angle_ != servo_downwards_angle_)
         {
           if(fabs(servo_angle_ - servo_downwards_angle_) > servo_vel_ * servo_control_rate_)
             {
@@ -451,7 +455,6 @@ namespace sensor_plugin
         }
 
       /* before landing */
-      /*
       if(estimator_->getState(State::Z_BASE, BasicEstimator::EGOMOTION_ESTIMATE)[0] < servo_height_thresh_ - 0.1 &&  servo_angle_ != servo_init_angle_)
         {
           if(fabs(servo_angle_ - servo_init_angle_) > servo_vel_ * servo_control_rate_)
@@ -463,7 +466,6 @@ namespace sensor_plugin
 
           send_pub_ = true;
         }
-      */
 
       int servo_target_pwm = (servo_angle_ - servo_min_angle_) / (servo_max_angle_ - servo_min_angle_) * (servo_max_pwm_ - servo_min_pwm_) + servo_min_pwm_;
 
