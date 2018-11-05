@@ -2,8 +2,8 @@
 Changelog for package aerial_robot_model
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.0.1 (2018-11-05)
+------------------
 * modified the interactive marker processing for the tf broadcasting (#210)
 * add API: getRotorsNormalFromCog (#206)
 
