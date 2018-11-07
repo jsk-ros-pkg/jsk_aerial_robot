@@ -48,6 +48,7 @@ public:
     /* netual: TODO, use flash memory */
     pwm_htim_->Instance->CCR1 = (uint32_t)(NEUTUAL_DUTY / MAX_DUTY * MAX_PWM);
     pwm_htim_->Instance->CCR2 = (uint32_t)(NEUTUAL_DUTY / MAX_DUTY * MAX_PWM);
+    pwm_htim_->Instance->CCR3 = (uint32_t)(NEUTUAL_DUTY / MAX_DUTY * MAX_PWM);
   }
 
 private:
@@ -71,6 +72,11 @@ private:
           case 1:
             {
               pwm_htim_->Instance->CCR2 = (uint32_t)(cmd_msg.angles[i] / MAX_DUTY * MAX_PWM);
+              break;
+            }
+          case 2:
+            {
+              pwm_htim_->Instance->CCR3 = (uint32_t)(cmd_msg.angles[i] / MAX_DUTY * MAX_PWM);
               break;
             }
           default:
