@@ -93,9 +93,6 @@ namespace control_plugin
     servoTorqueProcess();
     stateError();
 
-    /* not good, but stable for gazebo */
-    if(simulation_) state_vel_ = estimator_->getVel(Frame::BASELINK, estimate_mode_);
-
     pidUpdate(); //LQI thrust control
     gimbalControl(); //gimbal vectoring control
     desireTilt();
