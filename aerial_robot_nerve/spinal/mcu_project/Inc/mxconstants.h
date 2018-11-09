@@ -44,8 +44,6 @@
 #define LED1_GPIO_Port GPIOE
 #define LED2_Pin GPIO_PIN_4
 #define LED2_GPIO_Port GPIOE
-#define TEST_Pin GPIO_PIN_0
-#define TEST_GPIO_Port GPIOB
 #define IMUCS_Pin GPIO_PIN_6
 #define IMUCS_GPIO_Port GPIOB
 #define BAROCS_Pin GPIO_PIN_1
