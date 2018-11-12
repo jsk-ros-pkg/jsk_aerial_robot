@@ -7,13 +7,16 @@
   <arg name="type" default="quad" />
   <arg name="model" default="euclid201806" />
   <arg name="estimate_mode"  default= "0" />
+  <arg name="fullyactuated_control" default="True"/>
   <arg name="headless" default="True" />
   <arg name="worldtype" default="$(find aerial_robot_simulation)/gazebo_model/world/empty.world" />
   <arg name="direct_model" default="False" />
   <arg name="direct_model_name" />
 
   ###########  UAV Config  ###########
-  <param name="/uav_info/uav_model" value= "16" />
+  <param if="$(arg fullyactuated_control)" name="/uav_info/uav_model" value= "17" />
+  <param unless="$(arg fullyactuated_control)" name="/uav_info/uav_model" value= "16" />
+  <param name="/hydrus_xi/baselink" value="fc" />
 
   ###########  Motor Config  ###########
   <rosparam file="$(find hydrus_xi)/config/MotorInfo.yaml" command="load" />
@@ -45,8 +48,11 @@
     <rosparam file="$(find hydrus_xi)/config/$(arg type)/egomotion_estimation/$(arg model).yaml" command="load" if="$(arg real_machine)"/>
     <rosparam file="$(find hydrus_xi)/config/$(arg type)/egomotion_estimation/simulation.yaml" command="load" if="$(eval arg('simulation') * (1 - arg('real_machine')))"/>
 
-    ###########  PID Control  ###########
-    <rosparam file="$(find hydrus_xi)/config/$(arg type)/DifferentialFlatnessPidControlConfig.yaml" command="load" />
+    ###########  Flight Control  ###########
+    <param if="$(arg fullyactuated_control)" name="control_plugin_name" value ="control_plugin/hydrus_xi_fully_actuated_controller"/>
+    <rosparam if="$(arg fullyactuated_control)" file="$(find hydrus_xi)/config/$(arg type)/FullyActuatedPidControlConfig.yaml" command="load" />
+    <remap if="$(arg fullyactuated_control)" from="joint_states" to="hydrus_xi/joint_states"/>
+    <rosparam unless="$(arg fullyactuated_control)" file="$(find hydrus_xi)/config/$(arg type)/DifferentialFlatnessPidControlConfig.yaml" command="load" />
 
     ###########  Teleop  ###########
     <rosparam file="$(find hydrus_xi)/config/$(arg type)/TeleopNavigationConfig.yaml" command="load" />
@@ -59,9 +65,9 @@
   </include >
 
   ###########  Servo Bridge  ###########
-  <!-- <node pkg="hydrus" type="dynamixel_bridge_node" name="servo_bridge"  output="screen"  ns="dragon"  if="$(arg real_machine)" > -->
-  <!--   <rosparam file="$(find hydrus)/config/$(arg type)/Servo.yaml" command="load" /> -->
-  <!-- </node> -->
+  <node pkg="dragon" type="dynamixel_bridge_node" name="servo_bridge" output="screen" ns="hydrus_xi" if="$(arg real_machine)" >
+    <rosparam file="$(find hydrus_xi)/config/$(arg type)/Servo.yaml" command="load" />
+  </node>
 
   ###########  Robot Model  ###########
   <include file="$(find hydrus_xi)/launch/robot_model.launch" >
@@ -74,19 +80,17 @@
     <arg name="direct_model_name" value="$(arg direct_model_name)" if="$(arg direct_model)"/>
   </include >
 
-
   ###########  LQI Control  ###########
-  <node pkg="hydrus_xi" type="hydrus_xi_lqi_controller_node" name="hydrus_xi" output="screen" respawn="true">
-    <rosparam file="$(find hydrus_xi)/config/$(arg type)/HydrusXi.yaml" command="load" />
+  <node unless="$(arg fullyactuated_control)" pkg="hydrus_xi" type="hydrus_xi_lqi_controller_node" name="hydrus_xi" output="screen" respawn="true">
+    <rosparam file="$(find hydrus_xi)/config/$(arg type)/LQIControl.yaml" command="load" />
     <remap from="joint_states" to="hydrus_xi/joint_states"/>
     <param name="kinematic_verbose" value="false" />
     <param name="control_verbose" value="false" />
     <param name="debug_verbose" value="false" />
-    <param name="real_machine" value="$(arg real_machine)" />
   </node>
 
   ########## Simulation in Gazebo #########
-  <rosparam file="$(find hydrus_xi)/config/$(arg type)/SimulationControl.yaml" command="load"/>
+  <rosparam file="$(find hydrus_xi)/config/$(arg type)/SimulationControl.yaml" ns="hydrus_xi" command="load"/>
   <include file="$(find aerial_robot_simulation)/launch/simulation.launch" if = "$(arg simulation)" >
     <arg name="model" value="hydrus_xi"/>
     <arg name="gui" value="false" if="$(arg headless)"/>
@@ -94,6 +98,3 @@
     <arg name="worldtype" value="$(arg worldtype)"/>
   </include>
 </launch>
-
-
-

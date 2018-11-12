@@ -11,12 +11,15 @@
   <buildtool_depend>catkin</buildtool_depend>
   <depend>aerial_robot_base</depend>
   <depend>aerial_robot_simulation</depend>
+  <depend>aerial_robot_msgs</depend>
   <depend>hydrus</depend>
   <depend>roscpp</depend>
   <depend>rospy</depend>
   <depend>spinal</depend>
+  <depend>tf_conversions</depend>
 
   <export>
+    <aerial_robot_base plugin="${prefix}/flight_control_plugin.xml"/>
   </export>
 
 </package>

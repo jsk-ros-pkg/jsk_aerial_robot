@@ -1,57 +1,55 @@
-hydrus_xi:
-    joint_state_controller:
-        type: joint_state_controller/JointStateController
-        publish_rate: 50
+joint_state_controller:
+  type: joint_state_controller/JointStateController
+  publish_rate: 50
 
-    # for control bridge
-    joint_num: 3
-    joint1:
-        init_angle: 1.57
-    joint2:
-        init_angle: 1.57
-    joint3:
-        init_angle: 1.57
+# for control bridge
+joint_num: 3
+joint1:
+  init_angle: 1.57
+joint2:
+  init_angle: 1.57
+joint3:
+  init_angle: 1.57
 
-    joint1_position_controller:
-        type: effort_controllers/JointPositionController
-        joint: joint1
-        pid: {p: 50.0, i: 0.01, d: 2.0, i_clamp_max: 1.0, i_clamp_min: -1.0}
-    joint2_position_controller:
-        type: effort_controllers/JointPositionController
-        joint: joint2
-        pid: {p: 50.0, i: 0.01, d: 2.0, i_clamp_max: 1.0, i_clamp_min: -1.0}
-    joint3_position_controller:
-        type: effort_controllers/JointPositionController
-        joint: joint3
-        pid: {p: 50.0, i: 0.01, d: 2.0, i_clamp_max: 1.0, i_clamp_min: -1.0}
+joint1_position_controller:
+  type: effort_controllers/JointPositionController
+  joint: joint1
+  pid: {p: 50.0, i: 0.01, d: 2.0, i_clamp_max: 1.0, i_clamp_min: -1.0}
+joint2_position_controller:
+  type: effort_controllers/JointPositionController
+  joint: joint2
+  pid: {p: 50.0, i: 0.01, d: 2.0, i_clamp_max: 1.0, i_clamp_min: -1.0}
+joint3_position_controller:
+  type: effort_controllers/JointPositionController
+  joint: joint3
+  pid: {p: 50.0, i: 0.01, d: 2.0, i_clamp_max: 1.0, i_clamp_min: -1.0}
 
-    gimbal_num: 4
-    gimbal1:
-        init_angle: 0
-    gimbal2:
-        init_angle: 3.14
-    gimbal3:
-        init_angle: 0
-    gimbal4:
-        init_angle: 3.14
+gimbal_num: 4
+gimbal1:
+  init_angle: 0
+gimbal2:
+  init_angle: 3.14
+gimbal3:
+  init_angle: 0
+gimbal4:
+  init_angle: 3.14
 
-    gimbal1_position_controller:
-        type: effort_controllers/JointPositionController
-        joint: gimbal1
-        pid: {p: 5.0, i: 0.001, d: 0.2, i_clamp_max: 0.1, i_clamp_min: -0.1} 
-    gimbal2_position_controller:
-        type: effort_controllers/JointPositionController
-        joint: gimbal2
-        pid: {p: 5.0, i: 0.001, d: 0.2, i_clamp_max: 0.1, i_clamp_min: -0.1} 
-    gimbal3_position_controller:
-        type: effort_controllers/JointPositionController
-        joint: gimbal3
-        pid: {p: 5.0, i: 0.001, d: 0.2, i_clamp_max: 0.1, i_clamp_min: -0.1} 
-    gimbal4_position_controller:
-        type: effort_controllers/JointPositionController
-        joint: gimbal4
-        pid: {p: 5.0, i: 0.001, d: 0.2, i_clamp_max: 0.1, i_clamp_min: -0.1} 
-        
-    attitude_controller:
-        type: flight_controllers/SimulationAttitudeController
-        
+gimbal1_position_controller:
+  type: effort_controllers/JointPositionController
+  joint: gimbal1
+  pid: {p: 5.0, i: 0.001, d: 0.2, i_clamp_max: 0.1, i_clamp_min: -0.1}
+gimbal2_position_controller:
+  type: effort_controllers/JointPositionController
+  joint: gimbal2
+  pid: {p: 5.0, i: 0.001, d: 0.2, i_clamp_max: 0.1, i_clamp_min: -0.1}
+gimbal3_position_controller:
+  type: effort_controllers/JointPositionController
+  joint: gimbal3
+  pid: {p: 5.0, i: 0.001, d: 0.2, i_clamp_max: 0.1, i_clamp_min: -0.1}
+gimbal4_position_controller:
+  type: effort_controllers/JointPositionController
+  joint: gimbal4
+  pid: {p: 5.0, i: 0.001, d: 0.2, i_clamp_max: 0.1, i_clamp_min: -0.1}
+
+attitude_controller:
+  type: flight_controllers/SimulationAttitudeController
