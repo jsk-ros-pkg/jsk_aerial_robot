@@ -34,12 +34,15 @@ add_message_files(
   UavInfo.msg
   DesireCoord.msg
   FlightConfigCmd.msg
+  Vector3Int16.msg
+  TorqueAllocationMatrixInv.msg
   )
 
 add_service_files(
   FILES
   GetBoardInfo.srv
   SetBoardConfig.srv
+  SetAttitudeGains.srv
 )
 
 generate_messages(
