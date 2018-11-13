@@ -18,17 +18,17 @@
     </inertial>
   </xacro:extra_module>
 
-  <!-- processor: euclid -->
-  <!-- <xacro:extra_module name = "pc" parent = "link2" visible = "1" -->
-  <!--                     model_url = "package://hydrus/urdf/mesh/modules/processor/intel_euclid_201806.dae"> -->
-  <!--   <origin xyz="${link_length/2 + 0.1565 + 0.063} 0.0 -0.0394" rpy="0 0 ${-pi/2}"/> -->
-  <!--   <inertial> -->
-  <!--     <mass value = "0.164" /> -->
-  <!--     <origin xyz="${0.03*0.001} ${0.72*0.001} ${2.9 * 0.001}" rpy="0 0 0"/> -->
-  <!--     <inertia -->
-  <!--         ixx="0.00001" ixy="0.0" ixz="0.0" -->
-  <!--         iyy="0.00001" iyz="0.0" -->
-  <!--         izz="0.00002"/> -->
-  <!--   </inertial> -->
-  <!-- </xacro:extra_module> -->
+  #### processor: xavier ####
+  <xacro:extra_module name = "pc" parent = "link2" visible = "1"
+                      model_url = "package://hydrus_xi/urdf/mesh/modules/pc/xavier.dae">
+    <origin xyz="0.47375 0.0 -0.0805" rpy="0 0 0"/>
+    <inertial>
+      <mass value = "0.559" />
+      <origin xyz="-0.00086 -0.00012 0.02982" rpy="0 0 0"/>
+      <inertia
+          ixx="0.00001" ixy="0.0" ixz="0.0"
+          iyy="0.00001" iyz="0.0"
+          izz="0.00002"/>
+    </inertial>
+  </xacro:extra_module>
 </robot>

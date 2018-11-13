@@ -12,6 +12,7 @@
 
   <!-- mass [Kg] -->
   <xacro:property name="rotor_mass" value="0.02"/> <!-- exclude from center mass -->
+  <xacro:property name="bat_mass" value="0.193"/> <!-- 1300mAh -->
 
   <!-- dynamics -->
   <xacro:property name="max_force" value="24"/> <!-- [N] -->

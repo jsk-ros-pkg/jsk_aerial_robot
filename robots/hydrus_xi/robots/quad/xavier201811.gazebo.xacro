@@ -2,7 +2,7 @@
 <robot
     xmlns:xacro="http://www.ros.org/wiki/xacro" name="hydrus_xi" >
 
-  <xacro:include filename="$(find hydrus_xi)/robots/hex/euclid201806.urdf.xacro" />
+  <xacro:include filename="$(find hydrus_xi)/robots/quad/xavier201811.urdf.xacro" />
 
   <!-- gazebo -->
   <xacro:include filename="$(find hydrus_xi)/robots/default.gazebo.xacro" />
