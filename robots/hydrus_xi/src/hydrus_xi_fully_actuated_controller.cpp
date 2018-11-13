@@ -81,6 +81,9 @@ namespace control_plugin
     wrench_allocation_matrix_inv_pub_ = ControlBase::nh_.advertise<aerial_robot_msgs::WrenchAllocationMatrix>("debug/wrench_allocation_matrix_inv", 1);
 
     set_attitude_gains_client_ = ControlBase::nh_.serviceClient<spinal::SetAttitudeGains>("/set_attitude_gains");
+
+    dynamic_reconf_func_ = boost::bind(&HydrusXiFullyActuatedController::controllerGainsCfgCallback, this, _1, _2);
+    server_.setCallback(dynamic_reconf_func_);
   }
 
   bool HydrusXiFullyActuatedController::update()
@@ -506,6 +509,67 @@ namespace control_plugin
       ROS_WARN("Set Attitude Gains Success");
     } else {
       ROS_ERROR("Set Attitude Gains Failure");
+    }
+  }
+
+  void HydrusXiFullyActuatedController::controllerGainsCfgCallback(hydrus_xi::FullyActuatedControllerGainsConfig &config, uint32_t level)
+  {
+    if(config.gain_flag)
+      {
+        ROS_INFO("FullyActuatedController Param:");
+        switch(level)
+          {
+          case Z_P_GAIN:
+            alt_gains_[0] = config.z_p;
+            ROS_INFO("change the z P gain: %f\n", alt_gains_[0]);
+            break;
+          case Z_I_GAIN:
+            alt_gains_[1] = config.z_i;
+            ROS_INFO("change the z I gain: %f\n", alt_gains_[1]);
+            break;
+          case Z_D_GAIN:
+            alt_gains_[2] = config.z_d;
+            ROS_INFO("change the z D gain: %f\n", alt_gains_[2]);
+            break;
+          case XY_P_GAIN:
+            xy_gains_[0] = config.xy_p;
+            ROS_INFO("change the xy P gain: %f\n", xy_gains_[0]);
+            break;
+          case XY_I_GAIN:
+            xy_gains_[1] = config.xy_i;
+            ROS_INFO("change the xy I gain: %f\n", xy_gains_[1]);
+            break;
+          case XY_D_GAIN:
+            xy_gains_[2] = config.xy_d;
+            ROS_INFO("change the xy D gain: %f\n", xy_gains_[2]);
+            break;
+          case YAW_P_GAIN:
+            yaw_gains_[0] = config.yaw_p;
+            ROS_INFO("change the yaw P gain: %f\n", yaw_gains_[0]);
+            break;
+          case YAW_I_GAIN:
+            yaw_gains_[1] = config.yaw_i;
+            ROS_INFO("change the yaw I gain: %f\n", yaw_gains_[1]);
+            break;
+          case YAW_D_GAIN:
+            yaw_gains_[2] = config.yaw_d;
+            ROS_INFO("change the yaw D gain: %f\n", yaw_gains_[2]);
+            break;
+          case RP_P_GAIN:
+            roll_pitch_gains_[0] = config.rp_p;
+            ROS_INFO("change the roll pitch P gain: %f\n", roll_pitch_gains_[0]);
+            break;
+          case RP_I_GAIN:
+            roll_pitch_gains_[1] = config.rp_i;
+            ROS_INFO("change the roll pitch I gain: %f\n", roll_pitch_gains_[1]);
+            break;
+          case RP_D_GAIN:
+            roll_pitch_gains_[2] = config.rp_d;
+            ROS_INFO("change the roll pitch D gain: %f\n", roll_pitch_gains_[2]);
+            break;
+          default:
+            break;
+          }
     }
   }
 

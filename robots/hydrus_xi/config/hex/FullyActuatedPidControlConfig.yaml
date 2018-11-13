@@ -15,7 +15,6 @@ controller:
     alt_landing_const_i_ctrl_thresh: -0.2
     p_gain: 5.0
     i_gain: 0.3
-    #d_gain: 20.0
     d_gain: 2.0
 
   xy:

@@ -17,6 +17,7 @@
   <depend>rospy</depend>
   <depend>spinal</depend>
   <depend>tf_conversions</depend>
+  <depend>dynamic_reconfigure</depend>
 
   <export>
     <aerial_robot_base plugin="${prefix}/flight_control_plugin.xml"/>

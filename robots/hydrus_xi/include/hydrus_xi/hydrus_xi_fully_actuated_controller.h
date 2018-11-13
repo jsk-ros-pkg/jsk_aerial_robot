@@ -45,14 +45,31 @@
 #include <aerial_robot_base/control/flight_control.h>
 #include <aerial_robot_model/transformable_aerial_robot_model_ros.h>
 #include <hydrus_xi/hydrus_xi_robot_model.h>
+#include <hydrus_xi/FullyActuatedControllerGainsConfig.h>
+#include <dynamic_reconfigure/server.h>
 #include <tf_conversions/tf_eigen.h>
 #include <cmath>
-
 
 using boost::algorithm::clamp;
 
 namespace control_plugin
 {
+  enum {
+    GAIN_FLAG = 0,
+    Z_P_GAIN = 1,
+    Z_I_GAIN = 2,
+    Z_D_GAIN = 3,
+    XY_P_GAIN = 4,
+    XY_I_GAIN = 5,
+    XY_D_GAIN = 6,
+    YAW_P_GAIN = 7,
+    YAW_I_GAIN = 8,
+    YAW_D_GAIN = 9,
+    RP_P_GAIN = 10,
+    RP_I_GAIN = 11,
+    RP_D_GAIN = 12
+  };
+
   class HydrusXiFullyActuatedController: public control_plugin::ControlBase, public aerial_robot_model::RobotModelRos
   {
   public:
@@ -139,6 +156,10 @@ namespace control_plugin
     void setAttitudeGains();
 
     void rosParamInit();
+
+    dynamic_reconfigure::Server<hydrus_xi::FullyActuatedControllerGainsConfig>::CallbackType dynamic_reconf_func_;
+    dynamic_reconfigure::Server<hydrus_xi::FullyActuatedControllerGainsConfig> server_;
+    void controllerGainsCfgCallback(hydrus_xi::FullyActuatedControllerGainsConfig &config, uint32_t level);
 
     tf::Vector3 clampV(tf::Vector3 input, double min, double max)
     {
