@@ -52,6 +52,11 @@
 using namespace Eigen;
 using namespace std;
 
+namespace
+{
+  bool first_msg_flag = true; // to omit the frist msg, since the timestamp has some problem
+};
+
 namespace sensor_plugin
 {
   class Imu : public sensor_plugin::SensorBase
@@ -102,7 +107,7 @@ namespace sensor_plugin
     double level_acc_noise_sigma_, z_acc_noise_sigma_, acc_bias_noise_sigma_, angle_bias_noise_sigma_; /* sigma for kf */
     double landing_shock_force_thre_;     /* force */
 
-    /* sensor internal */
+    /* sensor interval */
     double sensor_dt_;
 
     /* imu */
@@ -125,6 +130,13 @@ namespace sensor_plugin
 
     void ImuCallback(const spinal::ImuConstPtr& imu_msg)
     {
+      /* omit the first msg, since the time stamp is strange */
+      if(first_msg_flag)
+        {
+          first_msg_flag = false;
+          return;
+        }
+
       imu_stamp_ = imu_msg->stamp;
 
       for(int i = 0; i < 3; i++)

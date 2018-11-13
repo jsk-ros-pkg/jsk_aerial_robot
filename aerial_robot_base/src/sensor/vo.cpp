@@ -45,6 +45,14 @@
 /* ros msg */
 #include <geometry_msgs/Vector3Stamped.h>
 #include <nav_msgs/Odometry.h>
+#include <spinal/ServoControlCmd.h>
+#include <std_msgs/Empty.h>
+
+namespace
+{
+  ros::Time init_servo_st;
+  bool sensor_tf_flag = false;
+}
 
 namespace sensor_plugin
 {
@@ -65,10 +73,62 @@ namespace sensor_plugin
       nhp_.param("vo_sub_topic_name", vo_sub_topic_name, string("vo") );
       vo_sub_ = nh_.subscribe(vo_sub_topic_name, 1, &VisualOdometry::voCallback, this);
 
+      /* get the sensor tf based on FC */
+      if(!updateBaseLink2SensorTransform())
+        {
+          ROS_ERROR("%s: can not get sensor tf based on FC",nhp_.getNamespace().c_str());
+          return;
+        }
+
+      /* servo control timer */
+      if(variable_sensor_tf_flag_)
+        {
+
+          /* get the tf from servo based frame (servo horn) to odometry frame */
+          tf2_ros::Buffer tfBuffer;
+          tf2_ros::TransformListener tfListener(tfBuffer);
+          geometry_msgs::TransformStamped transformStamped;
+
+          std::string servo_horn_frame, odometry_frame;
+          nhp_.param("servo_horn_frame", servo_horn_frame, string("servo_horn"));
+          nhp_.param("odometry_frame", odometry_frame, string("sensor_base"));
+
+          try
+            {
+              transformStamped = tfBuffer.lookupTransform(servo_horn_frame, odometry_frame, ros::Time(0), ros::Duration(1.0));
+            }
+          catch (tf2::TransformException &ex)
+            {
+              ROS_ERROR("%s: %s",nhp_.getNamespace().c_str(), ex.what());
+              return;
+            }
+          tf::transformMsgToTF(transformStamped.transform, sensor_end_tf_);
+
+          double y, p, r; sensor_end_tf_.getBasis().getRPY(r, p, y);
+
+          ROS_INFO("%s: get tf from %s to %s, [%f, %f, %f], [%f, %f, %f]",
+                   nhp_.getNamespace().c_str(), servo_horn_frame.c_str(), odometry_frame.c_str(),
+                   sensor_end_tf_.getOrigin().x(), sensor_end_tf_.getOrigin().y(),
+                   sensor_end_tf_.getOrigin().z(), r, p, y);
+
+          init_servo_st = ros::Time::now();
+          /* ros publisher: servo motor */
+          string topic_name;
+          nhp_.param("vo_servo_topic_name", topic_name, string("/vo_servo_target_pwm"));
+          vo_servo_pub_ = nh_.advertise<spinal::ServoControlCmd>(topic_name, 1); //angle -> pwm
+
+
+          vo_servo_debug_sub_ = nh_.subscribe("/vo_servo_debug", 1, &VisualOdometry::servoDebugCallback, this);
+
+          servo_control_timer_ = nhp_.createTimer(ros::Duration(servo_control_rate_), &VisualOdometry::servoControl,this); // 10 Hz
+        }
+
+      sensor_tf_flag = true;
+      true_sensor_tf_ = sensor_tf_; //init
     }
 
     ~VisualOdometry(){}
-    VisualOdometry():init_time_(true)
+    VisualOdometry():init_time_(true), servo_auto_change_flag_(false)
     {
       world_offset_tf_.setIdentity();
       baselink_tf_.setIdentity();
@@ -86,6 +146,9 @@ namespace sensor_plugin
     /* ros */
     ros::Subscriber vo_sub_;
     ros::Publisher vo_state_pub_;
+    ros::Publisher vo_servo_pub_;
+    ros::Subscriber vo_servo_debug_sub_;
+    ros::Timer  servo_control_timer_;
 
     /* ros param */
     double vo_noise_sigma_;
@@ -93,13 +156,34 @@ namespace sensor_plugin
     bool vio_flag_;
     bool debug_verbose_;
 
+    /* servo */
+    bool servo_auto_change_flag_;
+    double servo_height_thresh_;
+    double servo_angle_;
+    double servo_init_angle_, servo_downwards_angle_;
+    double servo_vel_;
+    double servo_control_rate_;
+    int servo_min_pwm_, servo_max_pwm_;
+    double servo_min_angle_, servo_max_angle_;
+    int servo_index_;
+    tf::TransformBroadcaster br_;
+
     bool init_time_;
-    tf::Transform world_offset_tf_;
-    tf::Transform baselink_tf_;
+    tf::Transform world_offset_tf_; // ^{w}H_{w_vo}: transform from true world frame to the vo/vio world frame
+    tf::Transform baselink_tf_; // ^{w}H_{b}: transform from true world frame to the baselink frame, but is estimated by vo/vio
+    tf::StampedTransform servo_tf_; // ^{servo_main_body}H_{servo_horn}: transform from the servo main body frame (along the rotation axis) to the servo horn frame (along the rotation axis), the rotation axis is X (roll)
+    tf::Transform sensor_end_tf_; //  ^{servo_horn}H_{vo}: transform from servo horn frame (along the rotation axis) to the vo sensor frame.
+    tf::Transform true_sensor_tf_; // ^{b}H_{vo}: transform from baselink frame to the vo sensor frame.
     aerial_robot_msgs::States vo_state_;
 
     void voCallback(const nav_msgs::Odometry::ConstPtr & vo_msg)
     {
+      if(!sensor_tf_flag)
+        {
+          ROS_WARN_THROTTLE(0.5, "VO: can not get valid sensor tf based on baselink");
+          return;
+        }
+
       /* only do egmotion estimate mode */
       if(!getFuserActivate(BasicEstimator::EGOMOTION_ESTIMATE))
         {
@@ -114,13 +198,10 @@ namespace sensor_plugin
         {
           init_time_ = false;
 
-          if(!updateBaseLink2SensorTransform())
-            {
-              init_time_ = true;
-              return;
-            }
+          servo_tf_.stamp_ = vo_msg->header.stamp; //reset the time stamp, very important for rosbag play
 
-          /* set the init offset from world to the baselink of UAV from egomotion estimation (e.g. yaw) */
+          /* step1: set the init offset from world to the baselink of UAV from egomotion estimation (e.g. yaw) */
+          /** ^{w}H_{b} **/
           world_offset_tf_.setRotation(tf::createQuaternionFromYaw(estimator_->getState(State::YAW_BASE, BasicEstimator::EGOMOTION_ESTIMATE)[0]));
           /* set the init offset from world to the baselink of UAV if we know the ground truth */
           if(estimator_->getStateStatus(State::YAW_BASE, BasicEstimator::GROUND_TRUTH))
@@ -131,11 +212,20 @@ namespace sensor_plugin
               double y, p, r; world_offset_tf_.getBasis().getRPY(r, p, y);
             }
 
-          /* also consider the offset tf from baselink to sensor */
-          world_offset_tf_ *= sensor_tf_;
+          /* step2: also consider the offset tf from baselink to sensor */
+          /** ^{w}H_{b} * ^{b}H_{vo} * ^{vo}H_{w_vo} = ^{w}H_{w_vo} **/
+          world_offset_tf_ *= (true_sensor_tf_ * raw_sensor_tf.inverse());
 
+          //double y, p, r; raw_sensor_tf.getBasis().getRPY(r, p, y);
           ROS_INFO("VO: start kalman filter");
-          tf::Vector3 init_pos = (world_offset_tf_ * raw_sensor_tf * sensor_tf_.inverse()).getOrigin();
+          tf::Vector3 init_pos = (world_offset_tf_ * raw_sensor_tf * true_sensor_tf_.inverse()).getOrigin();
+          /*
+          ROS_WARN("init pos, mocap vs vo: [%f, %f, %f] vs [%f, %f, %f]",
+                   estimator_->getPos(Frame::BASELINK, BasicEstimator::GROUND_TRUTH).x(),
+                   estimator_->getPos(Frame::BASELINK, BasicEstimator::GROUND_TRUTH).y(),
+                   estimator_->getPos(Frame::BASELINK, BasicEstimator::GROUND_TRUTH).z(),
+                   init_pos.x(), init_pos.y(), init_pos.z());
+          */
 
           for(auto& fuser : estimator_->getFuser(BasicEstimator::EGOMOTION_ESTIMATE))
             {
@@ -176,8 +266,11 @@ namespace sensor_plugin
         }
 
       /* transformaton from baselink to vo sensor, if we use the servo motor */
-      updateBaseLink2SensorTransform();
-      baselink_tf_ = world_offset_tf_ * raw_sensor_tf * sensor_tf_.inverse();
+
+      // TODO: use following API based on KDL
+      // updateBaseLink2SensorTransform();
+
+      baselink_tf_ = world_offset_tf_ * raw_sensor_tf * true_sensor_tf_.inverse();
 
       tf::Vector3 raw_pos;
       tf::pointMsgToTF(vo_msg->pose.pose.position, raw_pos);
@@ -303,6 +396,111 @@ namespace sensor_plugin
 
       nhp_.param("debug_verbose", debug_verbose_, false );
       if(param_verbose_) cout << ns << ": debug verbose is " <<  debug_verbose_ << endl;
+
+      nhp_.param("servo_auto_change_flag", servo_auto_change_flag_, false );
+      if(param_verbose_) cout << ns << ": servo auto change flag is " <<  servo_auto_change_flag_ << endl;
+
+      nhp_.param("servo_height_thresh", servo_height_thresh_, 0.7);
+      if(param_verbose_) cout << ns << ": servo height thresh is " << servo_height_thresh_ << endl;
+
+      nhp_.param("servo_vel", servo_vel_, 0.02); // rad
+      if(param_verbose_) cout << ns << ": servo vel is " << servo_vel_ << endl;
+
+      nhp_.param("servo_init_angle", servo_init_angle_, 0.0); // rad
+      if(param_verbose_) cout << ns << ": servo init angle is " << servo_init_angle_ << endl;
+      servo_angle_ = servo_init_angle_;
+
+      nhp_.param("servo_downwards_angle", servo_downwards_angle_, 0.0); // rad
+      if(param_verbose_) cout << ns << ": servo downwards angle is " << servo_downwards_angle_ << endl;
+
+      nhp_.param("servo_min_pwm", servo_min_pwm_, 1000); // pwm [ms]
+      if(param_verbose_) cout << ns << ": servo min pwm is " << servo_min_pwm_ << endl;
+      nhp_.param("servo_max_pwm", servo_max_pwm_, 2000); // pwm [ms]
+      if(param_verbose_) cout << ns << ": servo max pwm is " << servo_max_pwm_ << endl;
+      nhp_.param("servo_index", servo_index_, 0);
+      if(param_verbose_) cout << ns << ": servo index is " << servo_index_ << endl;
+
+      nhp_.param("servo_min_angle", servo_min_angle_, -M_PI/2); // angle [rad]
+      if(param_verbose_) cout << ns << ": servo min angle is " << servo_min_angle_ << endl;
+      nhp_.param("servo_max_angle", servo_max_angle_, M_PI/2); // angle [rad]
+      if(param_verbose_) cout << ns << ": servo max angle is " << servo_max_angle_ << endl;
+
+      nhp_.param("servo_ref_frame", servo_tf_.frame_id_, std::string("servo"));
+      if(param_verbose_) cout << ns << ": servo ref frame is " << servo_tf_.frame_id_ << endl;
+      nhp_.param("servo_child_frame", servo_tf_.child_frame_id_, std::string("servo_horn"));
+      if(param_verbose_) cout << ns << ": servo child frame is " << servo_tf_.child_frame_id_ << endl;
+
+      nhp_.param("servo_control_rate", servo_control_rate_, 0.1);
+      if(param_verbose_) cout << ns << ": servo control rate is " << servo_control_rate_ << endl;
+
+      servo_tf_.setIdentity();
+      sensor_end_tf_.setIdentity();
+    }
+
+    void servoControl(const ros::TimerEvent & e)
+    {
+      assert(variable_sensor_tf_flag_);
+
+      bool send_pub_ = false;
+
+      /* after takeoff */
+      if(servo_auto_change_flag_ && estimator_->getState(State::Z_BASE, BasicEstimator::EGOMOTION_ESTIMATE)[0] > servo_height_thresh_ && servo_angle_ != servo_downwards_angle_)
+        {
+          if(fabs(servo_angle_ - servo_downwards_angle_) > servo_vel_ * servo_control_rate_)
+            {
+              int sign = fabs(servo_angle_ - servo_downwards_angle_) / (servo_angle_ - servo_downwards_angle_);
+              servo_angle_ -=  sign * servo_vel_ * servo_control_rate_;
+            }
+          else servo_angle_ = servo_downwards_angle_;
+
+          send_pub_ = true;
+        }
+
+      /* before landing */
+      if(estimator_->getState(State::Z_BASE, BasicEstimator::EGOMOTION_ESTIMATE)[0] < servo_height_thresh_ - 0.1 &&  servo_angle_ != servo_init_angle_)
+        {
+          if(fabs(servo_angle_ - servo_init_angle_) > servo_vel_ * servo_control_rate_)
+            {
+              int sign = fabs(servo_angle_ - servo_init_angle_) / (servo_angle_ - servo_init_angle_);
+              servo_angle_ -=  sign * servo_vel_ * servo_control_rate_;
+            }
+          else servo_angle_ = servo_init_angle_;
+
+          send_pub_ = true;
+        }
+
+      int servo_target_pwm = (servo_angle_ - servo_min_angle_) / (servo_max_angle_ - servo_min_angle_) * (servo_max_pwm_ - servo_min_pwm_) + servo_min_pwm_;
+
+      /* init */
+      if (ros::Time::now().toSec() - init_servo_st.toSec() < 1.0) // 1 [sec]
+        send_pub_ = true;
+
+      if(send_pub_)
+        {
+          spinal::ServoControlCmd servo_target_pwm_msg;
+          servo_target_pwm_msg.index.push_back(servo_index_);
+          servo_target_pwm_msg.angles.push_back(servo_target_pwm);
+          vo_servo_pub_.publish(servo_target_pwm_msg);
+        }
+
+      /* tf publisher */
+      servo_tf_.stamp_ += (e.current_real - e.last_real);
+      servo_tf_.setRotation(tf::createQuaternionFromRPY(servo_angle_, 0, 0)); // x axis
+      br_.sendTransform(servo_tf_);
+
+      true_sensor_tf_ = sensor_tf_ * servo_tf_ * sensor_end_tf_;
+
+      /*
+      double y, p, r; true_sensor_tf_.getBasis().getRPY(r, p, y);
+      ROS_INFO("tf from FC to vio frame, [%f, %f, %f], [%f, %f, %f]",
+               true_sensor_tf_.getOrigin().x(), true_sensor_tf_.getOrigin().y(),
+               true_sensor_tf_.getOrigin().z(), r, p, y);
+      */
+    }
+
+    void servoDebugCallback(const std_msgs::Empty::ConstPtr & vo_msg)
+    {
+      servo_auto_change_flag_ = true;
     }
   };
 
