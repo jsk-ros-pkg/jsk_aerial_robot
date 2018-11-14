@@ -68,8 +68,13 @@ namespace aerial_robot_model {
     bool addExtraModule(std::string module_name, std::string parent_link_name, KDL::Frame transform, KDL::RigidBodyInertia inertia);
     template<class T> T forwardKinematics(std::string link, const KDL::JntArray& joint_positions) const;
     template<class T> T forwardKinematics(std::string link, const sensor_msgs::JointState& state) const;
+    void fullForwardKinematics(const KDL::JntArray& joint_positions, std::map<std::string, KDL::Frame>& seg_tf_map) { fullForwardKinematicsImpl(joint_positions, seg_tf_map); }
+    void fullForwardKinematics(const sensor_msgs::JointState& state,  std::map<std::string, KDL::Frame>& seg_tf_map) { fullForwardKinematicsImpl(jointMsgToKdl(state), seg_tf_map); }
+    void fullForwardKinematicsImpl(const KDL::JntArray& joint_positions, std::map<std::string, KDL::Frame>& seg_tf_map);
+
     std::vector<int> getActuatorJointMap() const { return actuator_joint_map_; }
     std::map<std::string, uint32_t> getActuatorMap() const { return actuator_map_; }
+    std::map<std::string, KDL::Frame> getSegmentsTf() const { return seg_tf_map_; }
     std::string getBaselinkName() const { return baselink_; }
     template<class T> T getCog() const;
     template<class T> T getCogDesireOrientation() const;
@@ -103,6 +108,7 @@ namespace aerial_robot_model {
     KDL::Frame cog_;
     KDL::Rotation cog_desire_orientation_;
     KDL::Frame cog2baselink_transform_;
+    std::map<std::string, KDL::Frame> seg_tf_map_;
     std::map<std::string, KDL::Segment> extra_module_map_;
     std::map<std::string, KDL::RigidBodyInertia> inertia_map_;
     KDL::RotationalInertia link_inertia_cog_;
@@ -171,6 +177,7 @@ namespace aerial_robot_model {
   {
     return aerial_robot_model::kdlToTf2(forwardKinematicsImpl(link, jointMsgToKdl(state)));
   }
+
 
   template<> inline Eigen::Affine3d RobotModel::getCog() const
   {
