@@ -114,8 +114,10 @@ namespace sensor_plugin
           init_servo_st = ros::Time::now();
           /* ros publisher: servo motor */
           string topic_name;
-          nhp_.param("vo_servo_topic_name", topic_name, string("/vo_servo_target_pwm") );
+          nhp_.param("vo_servo_topic_name", topic_name, string("/vo_servo_target_pwm"));
           vo_servo_pub_ = nh_.advertise<spinal::ServoControlCmd>(topic_name, 1); //angle -> pwm
+
+
           vo_servo_debug_sub_ = nh_.subscribe("/vo_servo_debug", 1, &VisualOdometry::servoDebugCallback, this);
 
           servo_control_timer_ = nhp_.createTimer(ros::Duration(servo_control_rate_), &VisualOdometry::servoControl,this); // 10 Hz
@@ -470,6 +472,7 @@ namespace sensor_plugin
       int servo_target_pwm = (servo_angle_ - servo_min_angle_) / (servo_max_angle_ - servo_min_angle_) * (servo_max_pwm_ - servo_min_pwm_) + servo_min_pwm_;
 
       /* init */
+<<<<<<< HEAD
       if (ros::Time::now().toSec() - init_servo_st.toSec() < 1.0 ) // 1 [sec]
         send_pub_ = true;
 
@@ -477,6 +480,18 @@ namespace sensor_plugin
       servo_target_pwm_msg.index.push_back(servo_index_);
       servo_target_pwm_msg.angles.push_back(servo_target_pwm);
       if(send_pub_) vo_servo_pub_.publish(servo_target_pwm_msg);
+=======
+      if (ros::Time::now().toSec() - init_servo_st.toSec() < 1.0) // 1 [sec]
+        send_pub_ = true;
+
+      if(send_pub_)
+        {
+          spinal::ServoControlCmd servo_target_pwm_msg;
+          servo_target_pwm_msg.index.push_back(servo_index_);
+          servo_target_pwm_msg.angles.push_back(servo_target_pwm);
+          vo_servo_pub_.publish(servo_target_pwm_msg);
+        }
+>>>>>>> 05e0f25fdf822c1e27f7451446e2d4c8318f0166
 
       /* tf publisher */
       servo_tf_.stamp_ += (e.current_real - e.last_real);

@@ -47,23 +47,23 @@ if __name__=="__main__":
 	print msg
 	
 	#pub = rospy.Publisher('cmd_vel', Twist)
-	land_pub = rospy.Publisher('/teleop_command/land', Empty)
-        halt_pub = rospy.Publisher('/teleop_command/halt', Empty)
-	start_pub = rospy.Publisher('/teleop_command/start', Empty)
-	takeoff_pub = rospy.Publisher('/teleop_command/takeoff', Empty)
-	roll_pub = rospy.Publisher('/teleop_command/roll', Int8)
-	pitch_pub =  rospy.Publisher('/teleop_command/pitch', Int8)
-	yaw_pub =  rospy.Publisher('/teleop_command/yaw', Int8)
-	thrust_pub = rospy.Publisher('/teleop_command/throttle', Int8)
-	stair_pub = rospy.Publisher('/teleop_command/stair', Empty)
-	ctrl_mode_pub = rospy.Publisher('/teleop_command/ctrl_mode', Int8)
+	land_pub = rospy.Publisher('/teleop_command/land', Empty, queue_size=1)
+        halt_pub = rospy.Publisher('/teleop_command/halt', Empty, queue_size=1)
+	start_pub = rospy.Publisher('/teleop_command/start', Empty, queue_size=1)
+	takeoff_pub = rospy.Publisher('/teleop_command/takeoff', Empty, queue_size=1)
+	roll_pub = rospy.Publisher('/teleop_command/roll', Int8, queue_size=1)
+	pitch_pub =  rospy.Publisher('/teleop_command/pitch', Int8, queue_size=1)
+	yaw_pub =  rospy.Publisher('/teleop_command/yaw', Int8, queue_size=1)
+	thrust_pub = rospy.Publisher('/teleop_command/throttle', Int8, queue_size=1)
+	stair_pub = rospy.Publisher('/teleop_command/stair', Empty, queue_size=1)
+	ctrl_mode_pub = rospy.Publisher('/teleop_command/ctrl_mode', Int8, queue_size=1)
 
         #for hydra joints
-        joints_ctrl_pub = rospy.Publisher('/teleop_command/joints_ctrl', Int8)
+        joints_ctrl_pub = rospy.Publisher('/teleop_command/joints_ctrl', Int8, queue_size=1)
 
 
-        motion_start_pub = rospy.Publisher('hydra/motion_control', UInt8)
-        stop_realtime_lqi_pub = rospy.Publisher('realtime_control', UInt8)
+        motion_start_pub = rospy.Publisher('task_start', Empty, queue_size=1)
+        stop_realtime_lqi_pub = rospy.Publisher('realtime_control', UInt8, queue_size=1)
 
 	rospy.init_node('keyboard_command')
         #the way to write publisher in python
@@ -120,9 +120,7 @@ if __name__=="__main__":
                                 stop_real = UInt8()
 				stop_real.data = 0
                                 #stop_realtime_lqi_pub.publish(stop_real)
-                                start_motion = UInt8()
-                                start_motion.data = 1
-                                motion_start_pub.publish(start_motion)
+                                motion_start_pub.publish()
 			if key == 'a':
 				comm.data = 1
 				yaw_pub.publish(comm)

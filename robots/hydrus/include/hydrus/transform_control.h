@@ -33,53 +33,20 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 
+#pragma once
 
-#ifndef TRANSFORM_CONTROL_H
-#define TRANSFORM_CONTROL_H
-
-/* ros */
-#include <ros/ros.h>
-
-#include <spinal/RollPitchYawTerms.h>
+#include <aerial_robot_model/transformable_aerial_robot_model_ros.h>
 #include <aerial_robot_msgs/FourAxisGain.h>
-#include <sensor_msgs/JointState.h>
-#include <hydrus/AddExtraModule.h>
-#include <spinal/DesireCoord.h>
-#include <spinal/PMatrixPseudoInverseWithInertia.h>
-#include <std_msgs/UInt8.h>
-#include <tf/transform_broadcaster.h>
-#include <geometry_msgs/TransformStamped.h>
-#include <tf_conversions/tf_kdl.h>
-#include <tf_conversions/tf_eigen.h>
-#include <eigen_conversions/eigen_msg.h>
-
-/* robot model */
-#include <urdf/model.h>
-#include <kdl/tree.hpp>
-#include <kdl_parser/kdl_parser.hpp>
-#include <kdl/treefksolverpos_recursive.hpp>
-#include <kdl/treejnttojacsolver.hpp>
-#include <kdl/chainfksolverpos_recursive.hpp>
-#include <kdl/chainjnttojacsolver.hpp>
-
-/* for eigen cumputation */
-#include <Eigen/Core>
-#include <Eigen/LU>
-#include <Eigen/Dense>
-#include <Eigen/Geometry>
-#include <Eigen/Eigenvalues>
-
-/* util */
-#include <boost/thread/mutex.hpp>
-#include <boost/thread.hpp>
-#include <string>
-#include <iostream>
-#include <iomanip>
-#include <cmath>
-
-/* for dynamic reconfigure */
 #include <dynamic_reconfigure/server.h>
+#include <hydrus/hydrus_robot_model.h>
 #include <hydrus/LQIConfig.h>
+#include <mutex>
+#include <sensor_msgs/JointState.h>
+#include <spinal/PMatrixPseudoInverseWithInertia.h>
+#include <spinal/RollPitchYawTerms.h>
+#include <ros/ros.h>
+#include <thread>
+
 #define LQI_GAIN_FLAG 0
 #define LQI_RP_P_GAIN 1
 #define LQI_RP_I_GAIN 2
@@ -92,225 +59,53 @@
 #define LQI_Z_D_GAIN 9
 
 
-class TransformController{
+class TransformController : public aerial_robot_model::RobotModelRos {
 public:
-  TransformController(ros::NodeHandle nh, ros::NodeHandle nh_private, bool callback_flag = true);
-  ~TransformController();
-
-  virtual void actuatorStateCallback(const sensor_msgs::JointStateConstPtr& state);
-  bool addExtraModule(int action, std::string module_name, std::string parent_link_name, geometry_msgs::Transform transform, geometry_msgs::Inertia inertia);
-
-  virtual void forwardKinematics(sensor_msgs::JointState& state);
-  bool stabilityMarginCheck(bool verbose = false);
-  virtual bool overlapCheck(bool verbose = false){return true; }
-  bool modelling(bool verbose = false); //lagrange method
-
-  /* basic model info */
-  inline const urdf::Model& getRobotModel(){return model_;}
-  inline const KDL::Tree& getModelTree(){return tree_;}
-  inline int getRotorNum(){return rotor_num_;}
-  inline double getLinkLength(){return link_length_;}
-  const std::map<std::string, uint32_t> & getActuatorMap() {return actuator_map_;}
-  const std::vector<int>& getActuatorJointMap() {return actuator_joint_map_;}
-  void setActuatorJointMap(const sensor_msgs::JointState& actuator_state);
-
-  /* kinemtics */
-  /* position & orientation */
-  tf::Transform getCog()
-  {
-    boost::lock_guard<boost::mutex> lock(cog_mutex_);
-    return cog_;
-  }
-
-  void setCog(tf::Transform cog)
-  {
-    boost::lock_guard<boost::mutex> lock(cog_mutex_);
-    cog_ = cog;
-  }
-
-  const Eigen::Vector3d& getRotorOirginFromCog(int index)
-  {
-    boost::lock_guard<boost::mutex> lock(origins_mutex_);
-    return rotors_origin_from_cog_.at(index);
-  }
-
-  const std::vector<Eigen::Vector3d>& getRotorsOriginFromCog()
-  {
-    boost::lock_guard<boost::mutex> lock(origins_mutex_);
-    return rotors_origin_from_cog_;
-  }
-
-  void setRotorsOriginFromCog(const std::vector<Eigen::Vector3d>& rotors_origin_from_cog)
-  {
-    boost::lock_guard<boost::mutex> lock(origins_mutex_);
-    assert(rotors_origin_from_cog_.size() == rotors_origin_from_cog.size());
-    rotors_origin_from_cog_ = rotors_origin_from_cog;
-  }
-
-  void setCog2Baselink(tf::Transform transform)
-  {
-    cog2baselink_transform_ = transform;
-  }
-
-  tf::Transform getCog2Baselink()
-  {
-    return cog2baselink_transform_;
-  }
-
-  tf::Transform getRoot2Link(std::string link, sensor_msgs::JointState state);
-
-  inline void setBaselink(std::string baselink) { baselink_ = baselink;}
-  inline const std::string getBaselink() { return baselink_;}
-
-  void setCogDesireOrientation(KDL::Rotation cog_desire_orientation)
-  {
-    cog_desire_orientation_ = cog_desire_orientation;
-  }
-
-  /* inertia parameter */
-  Eigen::Matrix3d getInertia()
-  {
-    boost::lock_guard<boost::mutex> lock(inertia_mutex_);
-    return links_inertia_;
-  }
-  void setInertia(Eigen::Matrix3d link_inertia)
-  {
-    boost::lock_guard<boost::mutex> lock(inertia_mutex_);
-    links_inertia_ = link_inertia;
-  }
-
-  double getMass()
-  {
-    boost::lock_guard<boost::mutex> lock(mass_mutex_);
-    return mass_;
-  }
-
-  void setMass(double mass)
-  {
-    boost::lock_guard<boost::mutex> lock(mass_mutex_);
-    mass_ = mass;
-  }
-
-  /* static & stability */
-  /** public attributes */
-  double joint_angle_min_, joint_angle_max_;
-  double stability_margin_thre_;
-  double f_max_, f_min_;
-  double p_det_thre_;
-  const double getStabilityMargin() {return stability_margin_;}
-  const Eigen::MatrixXd& getP() const  { return P_; }
-  const double getPdeterminant() {return p_det_;}
-  inline void setStableState(Eigen::VectorXd f) {optimal_hovering_f_ = f;}
-  const Eigen::VectorXd& getOptimalHoveringThrust() const {return optimal_hovering_f_;}
-
-  //////////////////////////////////////////////////////////////////////////////////////
-  /* control */
-  static constexpr uint8_t LQI_THREE_AXIS_MODE = 3;
-  static constexpr uint8_t LQI_FOUR_AXIS_MODE = 4;
-
-  const Eigen::MatrixXd& getK() const { return K_; }
-  inline uint8_t getLqiMode() { return lqi_mode_; }
-  inline void setLqiMode(uint8_t lqi_mode) { lqi_mode_ = lqi_mode; }
-  void param2controller();
-  bool hamiltonMatrixSolver(uint8_t lqi_mode);
-  ///////////////////////////////////////////////////////////////////////////////////
+  TransformController(ros::NodeHandle nh, ros::NodeHandle nh_private, std::unique_ptr<HydrusRobotModel> robot_model = std::make_unique<HydrusRobotModel>(true));
+  virtual ~TransformController();
 
 protected:
-
-  ros::NodeHandle nh_,nh_private_;
-  ros::Publisher transform_pub_;
-  ros::Subscriber actuator_state_sub_;
-  ros::Subscriber desire_coordinate_sub_;
-  tf::TransformBroadcaster br_;
-
-  boost::mutex mass_mutex_, cog_mutex_, origins_mutex_, inertia_mutex_;
-
-  bool callback_flag_;
-  bool kinematics_flag_;
-
-  bool kinematic_verbose_;
+  //protected functions
+  HydrusRobotModel& getRobotModel() const { return static_cast<HydrusRobotModel&>(RobotModelRos::getRobotModel()); }
+private:
+  //private attributes
+  bool a_dash_eigen_calc_flag_;
+  double control_rate_;
+  std::thread control_thread_;
   bool control_verbose_;
   bool debug_verbose_;
+  dynamic_reconfigure::Server<hydrus::LQIConfig>::CallbackType dynamic_reconf_func_lqi_;
+  ros::Publisher four_axis_gain_pub_;
+  bool gyro_moment_compensation_;
+  Eigen::MatrixXd K_;
+  dynamic_reconfigure::Server<hydrus::LQIConfig> lqi_server_;
+  std::mutex mutex_;
+  ros::NodeHandle nh_;
+  ros::NodeHandle nh_private_;
+  ros::Publisher p_matrix_pseudo_inverse_inertia_pub_;
+  Eigen::VectorXd q_diagonal_;
+  double q_pitch_;
+  double q_pitch_d_;
+  double q_pitch_i_;
+  double q_roll_;
+  double q_roll_d_;
+  double q_roll_i_;
+  double q_yaw_;
+  double q_yaw_d_;
+  double q_yaw_i_;
+  double q_z_;
+  double q_z_d_;
+  double q_z_i_;
+  std::vector<double> r_; // matrix R
+  ros::Publisher rpy_gain_pub_;
+  double strong_q_yaw_;
   bool verbose_;
 
-  /* basic model */
-  urdf::Model model_;
-  KDL::Tree tree_;
-  std::map<std::string, KDL::RigidBodyInertia> inertia_map_;
-  std::map<std::string, uint32_t> actuator_map_; // regarding to KDL tree
-  std::vector<int> actuator_joint_map_; //the real joint (other than rotor or gimbal)
-  std::map<std::string /* module_name */, KDL::Segment> extra_module_map_;
-  sensor_msgs::JointState current_actuator_state_;
-  int rotor_num_;
-  double link_length_;
-  std::string thrust_link_;
-
-  /* kinemtiacs */
-  double mass_;
-  Eigen::Matrix3d links_inertia_;
-  std::vector<Eigen::Vector3d> rotors_origin_from_cog_;
-  tf::Transform cog2baselink_transform_;
-  std::string baselink_;
-  tf::Transform cog_;
-  KDL::Rotation cog_desire_orientation_;
-
-  /* static */
-  double stability_margin_;
-  Eigen::VectorXd optimal_hovering_f_;
-  std::map<int, int> rotor_direction_;
-  double m_f_rate_; //moment / force rate
-  Eigen::MatrixXd P_;
-  double p_det_;
-
-  /* ros param init */
-  void initParam();
-
-  /* basic model */
-  KDL::RigidBodyInertia inertialSetup(const KDL::TreeElement tree_element);
-  void resolveLinkLength();
-  void desireCoordinateCallback(const spinal::DesireCoordConstPtr & msg);
-
-  /* service */
-  ros::ServiceServer add_extra_module_service_;
-  ros::ServiceServer end_effector_ik_service_;
-  bool addExtraModuleCallback(hydrus::AddExtraModule::Request  &req,
-                      hydrus::AddExtraModule::Response &res);
-
-
-  //////////////////////////////////////////////////////////////////////////////////////
-  /* control */
-  ros::Publisher rpy_gain_pub_;
-  ros::Publisher four_axis_gain_pub_;
-  ros::Publisher p_matrix_pseudo_inverse_inertia_pub_;
-
-  boost::thread control_thread_;
-  double control_rate_;
-  bool only_three_axis_mode_;
-  bool gyro_moment_compensation_;
-
-  /* main control func */
-  Eigen::MatrixXd K_;
-  Eigen::MatrixXd P_orig_pseudo_inverse_; // for compensation of cross term in the rotional dynamics
-  //Q: 8/12:r,r_d, p, p_d, y, y_d, z. z_d, r_i, p_i, y_i, z_i
-  //   6/9:r,r_d, p, p_d, z. z_d, r_i, p_i, z_i
-  Eigen::VectorXd q_diagonal_;
-  double q_roll_,q_roll_d_,q_pitch_,q_pitch_d_,q_yaw_,strong_q_yaw_, q_yaw_d_,q_z_,q_z_d_;
-  double q_roll_i_,q_pitch_i_,q_yaw_i_,q_z_i_;
-  uint8_t lqi_mode_;
-  bool a_dash_eigen_calc_flag_;
-  std::vector<double> r_; // matrix R
-
+  //private functions
+  void cfgLQICallback(hydrus::LQIConfig &config, uint32_t level); //dynamic reconfigure
   virtual void control();
-  /* LQI parameter calculation */
-  void lqi();
-
-  /* dynamic reconfigure */
-  void cfgLQICallback(hydrus::LQIConfig &config, uint32_t level);
-
-  //dynamic reconfigure
-  dynamic_reconfigure::Server<hydrus::LQIConfig>* lqi_server_;
-  dynamic_reconfigure::Server<hydrus::LQIConfig>::CallbackType dynamic_reconf_func_lqi_;
+  bool hamiltonMatrixSolver();
+  void initParam();
+  void lqi(); // LQI parameter calculation
+  void param2controller();
 };
-
-
-#endif

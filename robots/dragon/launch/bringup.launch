@@ -44,6 +44,9 @@
     ###########  Gimbal Control  ###########
     <param name="control_plugin_name" value ="control_plugin/dragon_gimbal" />
     <rosparam file="$(find dragon)/config/$(arg type)/GimbalControlConfig.yaml" command="load" />
+    <remap from="/gimbals_ctrl" to="/dragon/gimbals_ctrl"/>
+    <remap from="/joints_ctrl" to="/dragon/joints_ctrl"/>
+    <remap from="/joint_states" to="/dragon/joint_states"/>
 
     ###########  Teleop  ###########
     <rosparam file="$(find dragon)/config/TeleopNavigationConfig.yaml" command="load" />
@@ -71,14 +74,13 @@
   </include >
 
   ###########  Transform Control  ###########
-  <node pkg="dragon" type="dragon_transform_control_node" name="dragon_transformcontrol"  output="screen" respawn="true">
+  <node pkg="dragon" type="dragon_transform_control_node" name="dragon"  output="screen" respawn="true">
     <rosparam file="$(find dragon)/config/$(arg type)/AttitudeControl.yaml" command="load" />
+    <remap from="joint_states" to="dragon/joint_states"/>
     <param name="kinematic_verbose" value="false" />
     <param name="control_verbose" value="false" />
     <param name="debug_verbose" value="false" />
     <param name="real_machine" value="$(arg real_machine)" />
-    <param name="gimbal_control" value="false" />
-    <param name="gimbal_control_topic_name" value="/dragon/gimbals_ctrl" />
   </node>
 
   ########## Simulation in Gazebo #########

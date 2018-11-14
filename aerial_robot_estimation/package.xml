@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package>
   <name>aerial_robot_estimation</name>
-  <version>0.0.0</version>
+  <version>1.0.1</version>
   <description>The aerial_robot_estimation package</description>
  
  <maintainer email="anzai@jsk.imi.i.u-tokyo.ac.jp">anzai</maintainer>

@@ -5,9 +5,6 @@ controller/baselink: fc
 controller/only_three_axis_mode: true
 controller/verbose: true
 controller/real_machine: false
-controller/gimbal_control_topic_name: /dragon/gimbals_ctrl
-controller/joint_control_topic_name: /dragon/joints_ctrl
-controller/joint_state_sub_name: /dragon/joint_states
 controller/control_verbose: false
 
 # alt [N]

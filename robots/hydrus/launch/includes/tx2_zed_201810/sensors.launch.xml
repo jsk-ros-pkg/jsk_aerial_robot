@@ -12,11 +12,8 @@
         <arg name="port" value="/dev/flight_controller" />
       </include>
 
-      <!-- TODO: zed mini & VIO in zed SDK -->
-      <!--
-          <include file="$(find realsense_camera)/launch/lr200m_nodelet_default.launch" />
-          <include file="$(find realsense_sp)/launch/sp.launch" />
-      -->
+      <!-- zed mini & VIO in zed SDK -->
+      <include file="$(find zed_wrapper)/launch/zed.launch" />
 
       <!-- mocap -->
       <include file="$(find aerial_robot_base)/launch/external_module/mocap.launch" />
