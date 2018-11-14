@@ -96,7 +96,6 @@ void MX_TIM3_Init(void)
 
   HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_2);
 
-  sConfigOC.Pulse = 0;
   HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_3);
 
   HAL_TIM_MspPostInit(&htim3);

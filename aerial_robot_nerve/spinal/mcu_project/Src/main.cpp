@@ -247,6 +247,9 @@ int main(void){
 
 #endif // imu condition
 
+  /* Extra Servo Control */
+  extra_servo_.init(&htim3, &nh_);
+
   FlashMemory::read(); //IMU calib data, uav type
 
 #if NERVE_COMM
@@ -259,8 +262,6 @@ int main(void){
   battery_status_.init(&hadc2, &nh_);
   /* Start Attitude Control */
   controller_.init(&htim4, &htim8, &estimator_, &battery_status_, &nh_);
-  /* Extra Servo Control */
-  extra_servo_.init(&htim3, &nh_);
 
 #if NERVE_COMM
   controller_.setMotorNumber(Spine::getSlaveNum());
