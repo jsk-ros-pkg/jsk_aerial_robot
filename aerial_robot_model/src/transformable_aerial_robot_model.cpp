@@ -235,7 +235,7 @@ namespace aerial_robot_model {
     link_inertia_cog_ = (cog_.Inverse() * link_inertia).getRotationalInertia();
   }
 
-  void RobotModel::fullForwardKinematicsImpl(const KDL::JntArray& joint_positions, std::map<std::string, KDL::Frame>& seg_tf_map)
+  bool RobotModel::fullForwardKinematicsImpl(const KDL::JntArray& joint_positions, std::map<std::string, KDL::Frame>& seg_tf_map)
   {
     std::function<void (const KDL::TreeElement&, const KDL::Frame& ) > recursiveFullFk = [&recursiveFullFk, &seg_tf_map, &joint_positions](const KDL::TreeElement& tree_element, const KDL::Frame& parrent_f)
       {
@@ -248,9 +248,11 @@ namespace aerial_robot_model {
           }
       };
 
-    if(joint_positions.rows() != tree_.getNrOfJoints()) return;
+    if(joint_positions.rows() != tree_.getNrOfJoints()) return false;
 
     recursiveFullFk(tree_.getRootSegment()->second, KDL::Frame::Identity());
+
+    return true;
   }
 
 } //namespace aerial_robot_model

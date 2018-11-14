@@ -68,9 +68,9 @@ namespace aerial_robot_model {
     bool addExtraModule(std::string module_name, std::string parent_link_name, KDL::Frame transform, KDL::RigidBodyInertia inertia);
     template<class T> T forwardKinematics(std::string link, const KDL::JntArray& joint_positions) const;
     template<class T> T forwardKinematics(std::string link, const sensor_msgs::JointState& state) const;
-    void fullForwardKinematics(const KDL::JntArray& joint_positions, std::map<std::string, KDL::Frame>& seg_tf_map) { fullForwardKinematicsImpl(joint_positions, seg_tf_map); }
-    void fullForwardKinematics(const sensor_msgs::JointState& state,  std::map<std::string, KDL::Frame>& seg_tf_map) { fullForwardKinematicsImpl(jointMsgToKdl(state), seg_tf_map); }
-    void fullForwardKinematicsImpl(const KDL::JntArray& joint_positions, std::map<std::string, KDL::Frame>& seg_tf_map);
+    bool fullForwardKinematics(const KDL::JntArray& joint_positions, std::map<std::string, KDL::Frame>& seg_tf_map) {return fullForwardKinematicsImpl(joint_positions, seg_tf_map); }
+    bool fullForwardKinematics(const sensor_msgs::JointState& state, std::map<std::string, KDL::Frame>& seg_tf_map) {return fullForwardKinematics(jointMsgToKdl(state), seg_tf_map); }
+    bool fullForwardKinematicsImpl(const KDL::JntArray& joint_positions, std::map<std::string, KDL::Frame>& seg_tf_map);
 
     std::vector<int> getActuatorJointMap() const { return actuator_joint_map_; }
     std::map<std::string, uint32_t> getActuatorMap() const { return actuator_map_; }
