@@ -49,6 +49,7 @@
 #include <kdl/treefksolverpos_recursive.hpp>
 #include <kdl/treejnttojacsolver.hpp>
 #include <sensor_msgs/JointState.h>
+#include <stdexcept>
 #include <ros/ros.h>
 #include <urdf/model.h>
 #include <vector>
@@ -68,8 +69,11 @@ namespace aerial_robot_model {
     bool addExtraModule(std::string module_name, std::string parent_link_name, KDL::Frame transform, KDL::RigidBodyInertia inertia);
     template<class T> T forwardKinematics(std::string link, const KDL::JntArray& joint_positions) const;
     template<class T> T forwardKinematics(std::string link, const sensor_msgs::JointState& state) const;
+    std::map<std::string, KDL::Frame> fullForwardKinematics(const KDL::JntArray& joint_positions) {return fullForwardKinematicsImpl(joint_positions); }
+    std::map<std::string, KDL::Frame> fullForwardKinematics(const sensor_msgs::JointState& state) {return fullForwardKinematics(jointMsgToKdl(state)); }
     std::vector<int> getActuatorJointMap() const { return actuator_joint_map_; }
     std::map<std::string, uint32_t> getActuatorMap() const { return actuator_map_; }
+    std::map<std::string, KDL::Frame> getSegmentsTf() const { return seg_tf_map_; }
     std::string getBaselinkName() const { return baselink_; }
     template<class T> T getCog() const;
     template<class T> T getCogDesireOrientation() const;
@@ -103,6 +107,7 @@ namespace aerial_robot_model {
     KDL::Frame cog_;
     KDL::Rotation cog_desire_orientation_;
     KDL::Frame cog2baselink_transform_;
+    std::map<std::string, KDL::Frame> seg_tf_map_;
     std::map<std::string, KDL::Segment> extra_module_map_;
     std::map<std::string, KDL::RigidBodyInertia> inertia_map_;
     KDL::RotationalInertia link_inertia_cog_;
@@ -120,6 +125,9 @@ namespace aerial_robot_model {
     //private functions
     KDL::Frame forwardKinematicsImpl(std::string link, const KDL::JntArray& joint_positions) const
     {
+      if (joint_positions.rows() != tree_.getNrOfJoints())
+        throw std::runtime_error("joint num is invalid");
+
       KDL::TreeFkSolverPos_recursive fk_solver(tree_);
       KDL::Frame f;
       int status = fk_solver.JntToCart(joint_positions, f, link);
@@ -127,6 +135,7 @@ namespace aerial_robot_model {
 
       return f;
     }
+    std::map<std::string, KDL::Frame> fullForwardKinematicsImpl(const KDL::JntArray& joint_positions);
     void getParamFromRos();
     KDL::RigidBodyInertia inertialSetup(const KDL::TreeElement& tree_element);
     void resolveLinkLength();
@@ -171,6 +180,7 @@ namespace aerial_robot_model {
   {
     return aerial_robot_model::kdlToTf2(forwardKinematicsImpl(link, jointMsgToKdl(state)));
   }
+
 
   template<> inline Eigen::Affine3d RobotModel::getCog() const
   {

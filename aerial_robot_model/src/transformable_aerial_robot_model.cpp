@@ -59,6 +59,28 @@ namespace aerial_robot_model {
       }
   }
 
+  std::map<std::string, KDL::Frame> RobotModel::fullForwardKinematicsImpl(const KDL::JntArray& joint_positions)
+  {
+    if (joint_positions.rows() != tree_.getNrOfJoints())
+      throw std::runtime_error("joint num is invalid");
+
+    std::map<std::string, KDL::Frame> seg_tf_map;
+    std::function<void (const KDL::TreeElement&, const KDL::Frame&) > recursiveFullFk = [&recursiveFullFk, &seg_tf_map, &joint_positions](const KDL::TreeElement& tree_element, const KDL::Frame& parrent_f)
+      {
+        for (const auto& elem: GetTreeElementChildren(tree_element))
+          {
+            const KDL::TreeElement& curr_element = elem->second;
+            KDL::Frame curr_f = parrent_f * GetTreeElementSegment(curr_element).pose(joint_positions(GetTreeElementQNr(curr_element)));
+            seg_tf_map.insert(std::make_pair(GetTreeElementSegment(curr_element).getName(), curr_f));
+            recursiveFullFk(curr_element, curr_f);
+          }
+      };
+
+    recursiveFullFk(tree_.getRootSegment()->second, KDL::Frame::Identity());
+
+    return seg_tf_map;
+  }
+
   void RobotModel::getParamFromRos()
   {
     ros::NodeHandle nhp("~");
@@ -196,10 +218,11 @@ namespace aerial_robot_model {
   void RobotModel::updateRobotModelImpl(const KDL::JntArray& joint_positions)
   {
     KDL::RigidBodyInertia link_inertia = KDL::RigidBodyInertia::Zero();
+    seg_tf_map_ = fullForwardKinematics(joint_positions);
 
     for(const auto& inertia : inertia_map_)
       {
-        KDL::Frame f = forwardKinematics<KDL::Frame>(inertia.first, joint_positions);
+        KDL::Frame f = seg_tf_map_[inertia.first];
         link_inertia = link_inertia + f * inertia.second;
 
         /* process for the extra module */
@@ -213,7 +236,7 @@ namespace aerial_robot_model {
       }
 
     /* CoG */
-    KDL::Frame f_baselink = forwardKinematics<KDL::Frame>(baselink_, joint_positions);
+    KDL::Frame f_baselink = seg_tf_map_[baselink_];
     cog_.M = f_baselink.M * cog_desire_orientation_.Inverse();
     cog_.p = link_inertia.getCOG();
     mass_ = link_inertia.getMass();
@@ -223,7 +246,7 @@ namespace aerial_robot_model {
     for(int i = 0; i < rotor_num_; ++i)
       {
         std::string rotor = thrust_link_ + std::to_string(i + 1);
-        KDL::Frame f = forwardKinematics<KDL::Frame>(rotor, joint_positions);
+        KDL::Frame f = seg_tf_map_[rotor];
         if(verbose_) ROS_WARN(" %s : [%f, %f, %f]", rotor.c_str(), f.p.x(), f.p.y(), f.p.z());
         rotors_origin_from_cog_.at(i) = (cog_.Inverse() * f).p;
         rotors_normal_from_cog_.at(i) = (cog_.Inverse() * f).M * KDL::Vector(0, 0, 1);
@@ -231,4 +254,5 @@ namespace aerial_robot_model {
 
     link_inertia_cog_ = (cog_.Inverse() * link_inertia).getRotationalInertia();
   }
+
 } //namespace aerial_robot_model
