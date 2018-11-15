@@ -18,9 +18,9 @@ class InitGimbalAngle:
         angles = []
         for i in range(self.gimbal_num):
             if i % 2 == 0:
-                angles.append(0.0)
-            else:
                 angles.append(math.pi)
+            else:
+                angles.append(0)
         pub_msg.position = angles
         self.complete = True
         self.pub.publish(pub_msg)

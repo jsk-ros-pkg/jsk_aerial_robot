@@ -7,14 +7,14 @@ controller:
   wrench_allocation_matrix_pub_interval: 0.1
 
   alt:
-    offset: 0.0
+    offset: 3.0
     limit: 12.0
     p_term_limit: 12.0
     i_term_limit: 12.0
     d_term_limit: 12.0
     alt_landing_const_i_ctrl_thresh: -0.2
     p_gain: 5.0
-    i_gain: 0.3
+    i_gain: 0.4
     d_gain: 2.0
 
   xy:
