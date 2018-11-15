@@ -71,7 +71,6 @@ namespace aerial_robot_model {
     template<class T> T forwardKinematics(std::string link, const sensor_msgs::JointState& state) const;
     std::map<std::string, KDL::Frame> fullForwardKinematics(const KDL::JntArray& joint_positions) {return fullForwardKinematicsImpl(joint_positions); }
     std::map<std::string, KDL::Frame> fullForwardKinematics(const sensor_msgs::JointState& state) {return fullForwardKinematics(jointMsgToKdl(state)); }
-    std::map<std::string, KDL::Frame> fullForwardKinematicsImpl(const KDL::JntArray& joint_positions);
     std::vector<int> getActuatorJointMap() const { return actuator_joint_map_; }
     std::map<std::string, uint32_t> getActuatorMap() const { return actuator_map_; }
     std::map<std::string, KDL::Frame> getSegmentsTf() const { return seg_tf_map_; }
@@ -136,6 +135,7 @@ namespace aerial_robot_model {
 
       return f;
     }
+    std::map<std::string, KDL::Frame> fullForwardKinematicsImpl(const KDL::JntArray& joint_positions);
     void getParamFromRos();
     KDL::RigidBodyInertia inertialSetup(const KDL::TreeElement& tree_element);
     void resolveLinkLength();
