@@ -49,6 +49,7 @@
 #include <kdl/treefksolverpos_recursive.hpp>
 #include <kdl/treejnttojacsolver.hpp>
 #include <sensor_msgs/JointState.h>
+#include <stdexcept>
 #include <ros/ros.h>
 #include <urdf/model.h>
 #include <vector>
@@ -68,10 +69,9 @@ namespace aerial_robot_model {
     bool addExtraModule(std::string module_name, std::string parent_link_name, KDL::Frame transform, KDL::RigidBodyInertia inertia);
     template<class T> T forwardKinematics(std::string link, const KDL::JntArray& joint_positions) const;
     template<class T> T forwardKinematics(std::string link, const sensor_msgs::JointState& state) const;
-    bool fullForwardKinematics(const KDL::JntArray& joint_positions, std::map<std::string, KDL::Frame>& seg_tf_map) {return fullForwardKinematicsImpl(joint_positions, seg_tf_map); }
-    bool fullForwardKinematics(const sensor_msgs::JointState& state, std::map<std::string, KDL::Frame>& seg_tf_map) {return fullForwardKinematics(jointMsgToKdl(state), seg_tf_map); }
-    bool fullForwardKinematicsImpl(const KDL::JntArray& joint_positions, std::map<std::string, KDL::Frame>& seg_tf_map);
-
+    std::map<std::string, KDL::Frame> fullForwardKinematics(const KDL::JntArray& joint_positions) {return fullForwardKinematicsImpl(joint_positions); }
+    std::map<std::string, KDL::Frame> fullForwardKinematics(const sensor_msgs::JointState& state) {return fullForwardKinematics(jointMsgToKdl(state)); }
+    std::map<std::string, KDL::Frame> fullForwardKinematicsImpl(const KDL::JntArray& joint_positions);
     std::vector<int> getActuatorJointMap() const { return actuator_joint_map_; }
     std::map<std::string, uint32_t> getActuatorMap() const { return actuator_map_; }
     std::map<std::string, KDL::Frame> getSegmentsTf() const { return seg_tf_map_; }
@@ -126,6 +126,9 @@ namespace aerial_robot_model {
     //private functions
     KDL::Frame forwardKinematicsImpl(std::string link, const KDL::JntArray& joint_positions) const
     {
+      if (joint_positions.rows() != tree_.getNrOfJoints())
+        throw std::runtime_error("joint num is invalid");
+
       KDL::TreeFkSolverPos_recursive fk_solver(tree_);
       KDL::Frame f;
       int status = fk_solver.JntToCart(joint_positions, f, link);

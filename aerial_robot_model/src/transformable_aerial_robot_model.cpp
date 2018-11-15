@@ -59,6 +59,28 @@ namespace aerial_robot_model {
       }
   }
 
+  std::map<std::string, KDL::Frame> RobotModel::fullForwardKinematicsImpl(const KDL::JntArray& joint_positions)
+  {
+    if (joint_positions.rows() != tree_.getNrOfJoints())
+      throw std::runtime_error("joint num is invalid");
+
+    std::map<std::string, KDL::Frame> seg_tf_map;
+    std::function<void (const KDL::TreeElement&, const KDL::Frame&) > recursiveFullFk = [&recursiveFullFk, &seg_tf_map, &joint_positions](const KDL::TreeElement& tree_element, const KDL::Frame& parrent_f)
+      {
+        for (const auto& elem: GetTreeElementChildren(tree_element))
+          {
+            const KDL::TreeElement& curr_element = elem->second;
+            KDL::Frame curr_f = parrent_f * GetTreeElementSegment(curr_element).pose(joint_positions(GetTreeElementQNr(curr_element)));
+            seg_tf_map.insert(std::make_pair(GetTreeElementSegment(curr_element).getName(), curr_f));
+            recursiveFullFk(curr_element, curr_f);
+          }
+      };
+
+    recursiveFullFk(tree_.getRootSegment()->second, KDL::Frame::Identity());
+
+    return seg_tf_map;
+  }
+
   void RobotModel::getParamFromRos()
   {
     ros::NodeHandle nhp("~");
@@ -196,8 +218,7 @@ namespace aerial_robot_model {
   void RobotModel::updateRobotModelImpl(const KDL::JntArray& joint_positions)
   {
     KDL::RigidBodyInertia link_inertia = KDL::RigidBodyInertia::Zero();
-    seg_tf_map_.clear();
-    fullForwardKinematics(joint_positions, seg_tf_map_);
+    seg_tf_map_ = fullForwardKinematics(joint_positions);
 
     double start_time = ros::Time::now().toSec();
     for(const auto& inertia : inertia_map_)
@@ -233,26 +254,6 @@ namespace aerial_robot_model {
       }
 
     link_inertia_cog_ = (cog_.Inverse() * link_inertia).getRotationalInertia();
-  }
-
-  bool RobotModel::fullForwardKinematicsImpl(const KDL::JntArray& joint_positions, std::map<std::string, KDL::Frame>& seg_tf_map)
-  {
-    std::function<void (const KDL::TreeElement&, const KDL::Frame& ) > recursiveFullFk = [&recursiveFullFk, &seg_tf_map, &joint_positions](const KDL::TreeElement& tree_element, const KDL::Frame& parrent_f)
-      {
-        for (const auto& elem: GetTreeElementChildren(tree_element))
-          {
-            const KDL::TreeElement& curr_element = elem->second;
-            KDL::Frame curr_f = parrent_f * GetTreeElementSegment(curr_element).pose(joint_positions(GetTreeElementQNr(curr_element)));
-            seg_tf_map.insert(std::make_pair(GetTreeElementSegment(curr_element).getName(), curr_f));
-            recursiveFullFk(curr_element, curr_f);
-          }
-      };
-
-    if(joint_positions.rows() != tree_.getNrOfJoints()) return false;
-
-    recursiveFullFk(tree_.getRootSegment()->second, KDL::Frame::Identity());
-
-    return true;
   }
 
 } //namespace aerial_robot_model
