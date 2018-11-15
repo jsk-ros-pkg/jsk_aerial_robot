@@ -163,11 +163,13 @@ namespace control_plugin
           xy_p_term = clampV(xy_gains_[0] * pos_err_, -xy_terms_limits_[0], xy_terms_limits_[0]);
 
           /* I */
-          if(navigator_->getNaviState() == Navigator::TAKEOFF_STATE || navigator_->getNaviState() == Navigator::LAND_STATE) //takeoff or land
-            xy_i_term_ += (pos_err_ * du * xy_gains_[1]);
-          else
-            xy_i_term_ += (pos_err_ * du * xy_hovering_i_gain_);
-          xy_i_term_ = clampV(xy_i_term_, -xy_terms_limits_[1], xy_terms_limits_[1]);
+          if (start_rp_integration_) {
+            if(navigator_->getNaviState() == Navigator::TAKEOFF_STATE || navigator_->getNaviState() == Navigator::LAND_STATE) //takeoff or land
+              xy_i_term_ += (pos_err_ * du * xy_gains_[1]);
+            else
+              xy_i_term_ += (pos_err_ * du * xy_hovering_i_gain_);
+            xy_i_term_ = clampV(xy_i_term_, -xy_terms_limits_[1], xy_terms_limits_[1]);
+          }
 
           /* D */
           vel_err_ = uav_rot_inv * (-state_vel_);
