@@ -66,7 +66,7 @@ private:
   ros::Subscriber<spinal::ServoControlCmd, ExtraServo> extra_servo_control_sub_;
   ros::Subscriber<spinal::ServoControlCmd, ExtraServo> extra_servo_init_duty_sub_;
 
-  Vector3f init_duty_; //[ms]
+  float init_duty_[3] = {}; //[ms]
 
   TIM_HandleTypeDef* pwm_htim_;
 
