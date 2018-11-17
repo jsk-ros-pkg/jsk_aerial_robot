@@ -77,6 +77,10 @@
 /* Battery Status */
 #include "battery_status/battery_status.h"
 
+/* Extra Servo */
+#include "extra_servo/extra_servo.h"
+
+
 /* Internal Communication System */
 #include <Spine/spine.h>
 
@@ -110,6 +114,7 @@ StateEstimate estimator_;
 #if FLIGHT_CONTROL_FLAG
 BatteryStatus battery_status_;
 FlightControl controller_;
+ExtraServo extra_servo_;
 #endif
 
 
@@ -195,8 +200,8 @@ int main(void){
   MX_CAN1_Init();
   MX_I2C1_Init();
   MX_SPI1_Init();
+  MX_TIM3_Init();
   MX_TIM4_Init();
-  MX_TIM5_Init();
   MX_TIM8_Init();
   MX_USART1_UART_Init();
   MX_USART3_UART_Init();
@@ -241,6 +246,9 @@ int main(void){
 #endif  // baro condition
 
 #endif // imu condition
+
+  /* Extra Servo Control */
+  extra_servo_.init(&htim3, &nh_);
 
   FlashMemory::read(); //IMU calib data, uav type
 
