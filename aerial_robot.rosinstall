@@ -14,7 +14,7 @@
 - git:
     local-name: mocap_optitrack
     uri: https://github.com/ros-drivers/mocap_optitrack.git
-    version: master
+    version: 9724d0e
 # mavlink
 # This should be temporary link, since this is fixed to be indigo version
 - git:
