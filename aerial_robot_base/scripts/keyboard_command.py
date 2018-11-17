@@ -52,11 +52,6 @@ if __name__=="__main__":
 	start_pub = rospy.Publisher('/teleop_command/start', Empty, queue_size=1)
 	takeoff_pub = rospy.Publisher('/teleop_command/takeoff', Empty, queue_size=1)
         force_landing_pub = rospy.Publisher('/teleop_command/force_landing', Empty, queue_size=1)
-	roll_pub = rospy.Publisher('/teleop_command/roll', Int8, queue_size=1)
-	pitch_pub =  rospy.Publisher('/teleop_command/pitch', Int8, queue_size=1)
-	yaw_pub =  rospy.Publisher('/teleop_command/yaw', Int8, queue_size=1)
-	thrust_pub = rospy.Publisher('/teleop_command/throttle', Int8, queue_size=1)
-	stair_pub = rospy.Publisher('/teleop_command/stair', Empty, queue_size=1)
 	ctrl_mode_pub = rospy.Publisher('/teleop_command/ctrl_mode', Int8, queue_size=1)
 
         #for hydra joints
