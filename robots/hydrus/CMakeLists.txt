@@ -59,14 +59,6 @@ include_directories(
   ${EIGEN3_INCLUDE_DIRS}
 )
 
-add_library(dynamixel_bridge src/dynamixel_bridge.cpp)
-target_link_libraries(dynamixel_bridge ${catkin_LIBRARIES})
-add_dependencies(dynamixel_bridge aerial_robot_msgs_generate_messages_cpp aerial_robot_base_generate_messages_cpp ${PROJECT_NAME}_generate_messages_cpp ${PROJECT_NAME}_gencfg)
-
-add_executable(dynamixel_bridge_node src/dynamixel_bridge_node.cpp)
-target_link_libraries (dynamixel_bridge_node  ${catkin_LIBRARIES} dynamixel_bridge)
-add_dependencies(dynamixel_bridge_node aerial_robot_msgs_generate_messages_cpp aerial_robot_base_generate_messages_cpp ${PROJECT_NAME}_generate_messages_cpp ${PROJECT_NAME}_gencfg)
-
 add_library(hydrus_robot_model src/hydrus_robot_model.cpp)
 target_link_libraries(hydrus_robot_model ${catkin_LIBRARIES})
 
