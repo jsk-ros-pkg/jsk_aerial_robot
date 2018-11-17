@@ -424,7 +424,7 @@ namespace sensor_plugin
         }
 
       alt_pub_.publish(alt_state_);
-      updateHealthStamp(current_secs, 1); //channel: 1
+      updateHealthStamp(1); //channel: 1
     }
 
     void rangeEstimateProcess(ros::Time stamp)
@@ -603,7 +603,7 @@ namespace sensor_plugin
       prev_raw_baro_pos_z_ = raw_baro_pos_z_;
       prev_baro_pos_z_ = baro_pos_z_;
       prev_high_filtered_baro_pos_z_ = high_filtered_baro_pos_z_;
-      updateHealthStamp(current_secs, 0); //channel: 0
+      updateHealthStamp(0); //channel: 0
     }
 
     void baroEstimateProcess(ros::Time stamp)

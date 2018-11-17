@@ -198,7 +198,7 @@ namespace sensor_plugin
 
       /* update */
       previous_secs = current_secs;
-      updateHealthStamp(current_secs);
+      updateHealthStamp();
     }
 
     void estimateProcess(ros::Time stamp)

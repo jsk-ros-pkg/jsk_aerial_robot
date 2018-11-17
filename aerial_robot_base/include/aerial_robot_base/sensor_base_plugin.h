@@ -200,14 +200,14 @@ namespace sensor_plugin
       health_stamp_.resize(chan_num, ros::Time::now().toSec());
     }
 
-    void updateHealthStamp(double stamp, uint8_t chan = 0)
+    void updateHealthStamp(uint8_t chan = 0)
     {
       if(!health_[chan])
         {
           health_[chan] = true;
-          ROS_WARN("%s: get sensor data, du: %f", nhp_.getNamespace().c_str(), stamp - health_stamp_[chan]);
+          ROS_WARN("%s: get sensor data, du: %f", nhp_.getNamespace().c_str(), ros::Time::now().toSec() - health_stamp_[chan]);
         }
-      health_stamp_[chan] = stamp;
+      health_stamp_[chan] = ros::Time::now().toSec();
     }
 
     inline const tf::Transform& getBaseLink2SensorTransform() const { return sensor_tf_; }
