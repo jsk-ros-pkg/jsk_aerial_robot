@@ -1,119 +1,69 @@
-bridge_rate: 50
-bridge_mode: 1
+dragon:
+  servo_controller:
+    joints:
+      state_sub_topic: /servo/states
+      ctrl_pub_topic: /servo/target_states
+      torque_pub_topic: /servo/torque_enable
+      angle_max: 1.58
+      angle_min: -1.58
+      angle_sgn: 1
+      angle_scale: 0.00076699
+      zero_point_offset: 2047
 
-# joint servo
-joint_num: 6
-# need to be ordered as the serial link
-joint/1/id: 1
-joint/1/name: joint1_pitch
-joint/1/angle_max: 1.58
-joint/1/angle_min: -1.58
-joint/1/angle_sgn: 1
-joint/1/angle_scale: 0.00076699
-joint/1/angle_offset: 2047
+      # should be in order in terms of kinematics model
+      # e.g. joint1 -> jointN; gimbal1_roll -> gimbal1_pitch
+      controller1:
+        id: 1
+        name: joint1_pitch
+        # angle_max: 1.58 # you can specify for each controller
+      controller2:
+        id: 0
+        name: joint1_yaw
+      controller3:
+        id: 5
+        name: joint2_pitch
+      controller4:
+        id: 4
+        name: joint2_yaw
+      controller5:
+        id: 9
+        name: joint3_pitch
+      controller6:
+        id: 8
+        name: joint3_yaw
 
-joint/2/id: 0
-joint/2/name: joint1_yaw
-joint/2/angle_max: 1.58
-joint/2/angle_min: -1.58
-joint/2/angle_sgn: 1
-joint/2/angle_scale: 0.00076699
-joint/2/angle_offset: 2047
+    gimbals:
+      ctrl_pub_topic: /servo/target_states
+      torque_pub_topic: /servo/torque_enable
 
-joint/3/id: 5
-joint/3/name: joint2_pitch
-joint/3/angle_max: 1.58
-joint/3/angle_min: -1.58
-joint/3/angle_sgn: 1
-joint/3/angle_scale: 0.00076699
-joint/3/angle_offset: 2047
+      angle_max: 1.58
+      angle_min: -1.58
+      angle_sgn: 1
+      angle_scale: 0.001534
+      zero_point_offset: 2047
 
-joint/4/id: 4
-joint/4/name: joint2_yaw
-joint/4/angle_max: 1.58
-joint/4/angle_min: -1.58
-joint/4/angle_sgn: 1
-joint/4/angle_scale: 0.00076699
-joint/4/angle_offset: 2047
+      controller1:
+        id: 3
+        name: gimbal1_roll
+      controller2:
+        id: 2
+        name: gimbal1_pitch
+      controller3:
+        id: 7
+        name: gimbal2_roll
+      controller4:
+        id: 6
+        name: gimbal2_pitch
+      controller5:
+        id: 11
+        name: gimbal3_roll
+      controller6:
+        id: 10
+        name: gimbal3_pitch
+      controller7:
+        id: 13
+        name: gimbal4_roll
+      controller8:
+        id: 12
+        name: gimbal4_pitch
 
-joint/5/id: 9
-joint/5/name: joint3_pitch
-joint/5/angle_max: 1.58
-joint/5/angle_min: -1.58
-joint/5/angle_sgn: 1
-joint/5/angle_scale: 0.00076699
-joint/5/angle_offset: 2047
-
-joint/6/id: 8
-joint/6/name: joint3_yaw
-joint/6/angle_max: 1.58
-joint/6/angle_min: -1.58
-joint/6/angle_sgn: 1
-joint/6/angle_scale: 0.00076699
-joint/6/angle_offset: 2047
-
-# gimbal servo
-gimbal_num: 8
-gimbal/1/name: gimbal1_roll
-gimbal/1/id: 3
-gimbal/1/angle_max: 1.58
-gimbal/1/angle_min: -1.58
-gimbal/1/angle_sgn: 1
-gimbal/1/angle_scale: 0.001534
-gimbal/1/angle_offset: 2047
-
-gimbal/2/name: gimbal1_pitch
-gimbal/2/id: 2
-gimbal/2/angle_max: 1.58
-gimbal/2/angle_min: -1.58
-gimbal/2/angle_sgn: 1
-gimbal/2/angle_scale: 0.001534
-gimbal/2/angle_offset: 2047
-
-gimbal/3/name: gimbal2_roll
-gimbal/3/id: 7
-gimbal/3/angle_max: 1.58
-gimbal/3/angle_min: -1.58
-gimbal/3/angle_sgn: 1
-gimbal/3/angle_scale: 0.001534
-gimbal/3/angle_offset: 2047
-
-gimbal/4/name: gimbal2_pitch
-gimbal/4/id: 6
-gimbal/4/angle_max: 1.58
-gimbal/4/angle_min: -1.58
-gimbal/4/angle_sgn: 1
-gimbal/4/angle_scale: 0.001534
-gimbal/4/angle_offset: 2047
-
-gimbal/5/name: gimbal3_roll
-gimbal/5/id: 11
-gimbal/5/angle_max: 1.58
-gimbal/5/angle_min: -1.58
-gimbal/5/angle_sgn: 1
-gimbal/5/angle_scale: 0.001534
-gimbal/5/angle_offset: 2047
-
-gimbal/6/name: gimbal3_pitch
-gimbal/6/id: 10
-gimbal/6/angle_max: 1.58
-gimbal/6/angle_min: -1.58
-gimbal/6/angle_sgn: 1
-gimbal/6/angle_scale: 0.001534
-gimbal/6/angle_offset: 2047
-
-gimbal/7/name: gimbal4_roll
-gimbal/7/id: 13
-gimbal/7/angle_max: 1.58
-gimbal/7/angle_min: -1.58
-gimbal/7/angle_sgn: 1
-gimbal/7/angle_scale: 0.001534
-gimbal/7/angle_offset: 2047
-
-gimbal/8/name: gimbal4_pitch
-gimbal/8/id: 12
-gimbal/8/angle_max: 1.58
-gimbal/8/angle_min: -1.58
-gimbal/8/angle_sgn: 1
-gimbal/8/angle_scale: 0.001534
-gimbal/8/angle_offset: 2047

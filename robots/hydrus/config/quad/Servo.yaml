@@ -1,29 +1,25 @@
-bridge_rate: 50
-joint_num: 3
-bridge_mode: 1
+hydrus:
+  servo_controller:
+    joints:
+      state_sub_topic: /servo/states
+      ctrl_pub_topic: /servo/target_states
+      torque_pub_topic: /servo/torque_enable
+      angle_max: 1.58
+      angle_min: -1.58
+      angle_sgn: 1
+      angle_scale: 0.001534
+      zero_point_offset: 2047
 
-# need to be ordered as the serial link
-joint:
-        "1":
-                name: joint1
-                angle_max: 1.58
-                angle_min: -1.58
-                angle_sgn: 1
-                angle_scale: 0.001534
-                angle_offset: 2046
+      # should be in order in terms of kinematics model
+      # i.e. joint1 -> jointN
+      controller1:
+        id: 0
+        name: joint1
+        # angle_max: 1.58 # you can specify for each controller
+      controller2:
+        id: 1
+        name: joint12
+      controller3:
+        id: 2
+        name: joint3
 
-        "2":
-                name: joint2
-                angle_max: 1.58
-                angle_min: -1.58
-                angle_sgn: 1
-                angle_scale: 0.001534
-                angle_offset: 2065
-
-        "3":
-                name: joint3
-                angle_max: 1.58
-                angle_min: -1.58
-                angle_sgn: 1
-                angle_scale: 0.001534
-                angle_offset: 1921

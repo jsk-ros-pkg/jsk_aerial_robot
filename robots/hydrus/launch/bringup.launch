@@ -11,14 +11,15 @@
   <arg name="worldtype" default="$(find aerial_robot_simulation)/gazebo_model/world/empty.world" />
   <arg name="direct_model" default="False" />
   <arg name="direct_model_name" />
-
-
   ###########  UAV Config  ###########
   # HYDRUS = 16 # 0x10, hydrus type with  4dof underactuated property
   <param name="/uav_info/uav_model" value= "16" />
 
   ###########  Motor Config  ###########
   <rosparam file="$(find hydrus)/config/MotorInfo.yaml" command="load" />
+
+  ###########  Servo Config  ###########
+  <rosparam file="$(find hydrus)/config/$(arg type)/Servo.yaml" command="load" />
 
   ###########  Battery Config  ###########
   <rosparam file="$(find hydrus)/config/$(arg type)/Battery.yaml" command="load" />
@@ -81,9 +82,7 @@
   </include >
 
   ###########  Servo Bridge  ###########
-  <node pkg="hydrus" type="dynamixel_bridge_node" name="servo_bridge"  output="screen"  ns="hydrusx" if="$(arg real_machine)" >
-    <rosparam file="$(find hydrus)/config/$(arg type)/Servo.yaml" command="load" />
-  </node>
+  <node pkg="aerial_robot_model" type="servo_bridge_node" name="servo_bridge"  output="screen"  ns="hydrus" />
 
   ########## Simulation in Gazebo #########
   <rosparam file="$(find hydrus)/config/$(arg type)/SimulationControl.yaml" command="load"/>
