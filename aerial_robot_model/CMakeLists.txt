@@ -81,6 +81,12 @@ add_library(transformable_aerial_robot_model_ros src/transformable_aerial_robot_
 target_link_libraries(transformable_aerial_robot_model_ros transformable_aerial_robot_model ${catkin_LIBRARIES} ${orocos_kdl_LIBRARIES} ${EIGEN3_LIBRARIES})
 add_dependencies(transformable_aerial_robot_model_ros ${PROJECT_NAME}_generate_messages_cpp spinal_generate_messages_cpp)
 
+add_library(servo_bridge src/servo_bridge.cpp)
+target_link_libraries(servo_bridge ${catkin_LIBRARIES})
+add_executable(servo_bridge_node src/servo_bridge_node.cpp)
+target_link_libraries (servo_bridge_node  ${catkin_LIBRARIES} servo_bridge)
+
+
 add_library(rotor_interface src/rotor_interface.cpp)
 target_link_libraries(rotor_interface ${catkin_LIBRARIES})
 
