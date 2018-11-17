@@ -54,6 +54,7 @@
 
 /* util */
 #include <string>
+#include <boost/algorithm/clamp.hpp>
 
 using namespace std;
 
@@ -66,9 +67,9 @@ namespace ValueType
 class SingleServoHandle
 {
 public:
-  SingleServoHandle(string name, int id, double max, double min, int sgn, double offset, double scale, bool receive_real_state):
+  SingleServoHandle(string name, int id, int sgn, double offset, double scale, bool receive_real_state):
     name_(name), id_(id), curr_val_(0), target_val_(0),init_target_val_(false), sgn_(sgn),
-    offset_(offset), scale_(scale), max_(max), min_(min), receive_real_state_(receive_real_state)
+    offset_(offset), scale_(scale), receive_real_state_(receive_real_state)
   {
     /* for simulation */
     //joint_ctrl_pub_ = nh_.advertise<std_msgs::Float64>(std::string("/j") + std_  + std::string("_controller/command"), 1);
@@ -81,7 +82,15 @@ public:
   inline void setCurrVal(const double& val, int value_type)
   {
     if(value_type == ValueType::BIT)
-      curr_val_ = scale_ * sgn_ * (val - offset_);
+      {
+        if (val < 0)
+          {
+            ROS_ERROR("%s: bit current val could not be negative: %f", name_.c_str(), val);
+            return;
+          }
+
+        curr_val_ = scale_ * sgn_ * (val - offset_);
+      }
     else if(value_type == ValueType::RADIAN)
       curr_val_ = val;
     else
@@ -97,14 +106,20 @@ public:
   inline void setTargetVal(const double& val, int value_type)
   {
     if(value_type == ValueType::BIT)
-      target_val_ = scale_ * sgn_ * (val - offset_);
+      {
+        if (val < 0)
+          {
+            ROS_ERROR("%s: bit target val could not be negative: %f", name_.c_str(), val);
+            return;
+          }
+        target_val_ = scale_ * sgn_ * (val - offset_);
+      }
     else if(value_type == ValueType::RADIAN)
       target_val_ = val;
     else
-      ROS_ERROR("wrong value type");
+      ROS_ERROR("%s: wrong value type", name_.c_str());
 
     if(!receive_real_state_) curr_val_ = target_val_;
-
   }
 
   inline void setName(const string& name){ name_ = name; }
@@ -112,13 +127,13 @@ public:
   inline void setSgn(const int& sgn){ sgn_ = sgn; }
   inline void setOffset(const int& offset){ offset_ = offset; }
   inline void setScale(const double& scale){ scale_ = scale; }
-  inline void setMax(const double& max){ max_ = max; }
-  inline void setMin(const double& min){ min_ = min; }
 
   const double getCurrVal(int value_type) const
   {
     if(value_type == ValueType::BIT)
-      return curr_val_ * sgn_ / scale_ + offset_;
+      {
+        return boost::algorithm::clamp(curr_val_ * sgn_ / scale_ + offset_, 0, UINT16_MAX);
+      }
     else if(value_type == ValueType::RADIAN)
       return curr_val_;
   }
@@ -126,7 +141,9 @@ public:
   const double getTargetVal(int value_type) const
   {
     if(value_type == ValueType::BIT)
-      return target_val_ * sgn_ / scale_ + offset_;
+      {
+        return boost::algorithm::clamp(target_val_ * sgn_ / scale_ + offset_, 0, UINT16_MAX);
+      }
     else if(value_type == ValueType::RADIAN)
       return target_val_;
   }
@@ -136,8 +153,6 @@ public:
   inline const int& getSgn() const {return sgn_; }
   inline const int& getOffset() const {return offset_; }
   inline const double& getScale() const {return scale_; }
-  inline const double& getMax() const {return max_; }
-  inline const double& getMin() const {return min_; }
 
 private:
   int id_;
@@ -147,8 +162,6 @@ private:
   int sgn_;
   int offset_;
   double scale_;
-  double max_;
-  double min_;
 
   bool receive_real_state_;
   bool init_target_val_;

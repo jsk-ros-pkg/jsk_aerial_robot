@@ -50,18 +50,14 @@ ServoBridge::ServoBridge(ros::NodeHandle nh, ros::NodeHandle nhp): nh_(nh),nhp_(
         {
           if(servo.first.find("controller") != string::npos)
             {
-              double max = (servo.second.hasMember("angle_max"))?
-                servo.second["angle_max"]:servo_group_params.second["angle_max"];
-              double min = (servo.second.hasMember("angle_min"))?
-                servo.second["angle_min"]:servo_group_params.second["angle_min"];
               int sgn = (servo.second.hasMember("angle_sgn"))?
                 servo.second["angle_sgn"]:servo_group_params.second["angle_sgn"];
-              int offset = (servo.second.hasMember("angle_offset"))?
-                servo.second["angle_offset"]:servo_group_params.second["angle_offset"];
+              int offset = (servo.second.hasMember("zero_point_offset"))?
+                servo.second["zero_point_offset"]:servo_group_params.second["zero_point_offset"];
               double scale = (servo.second.hasMember("angle_scale"))?
                 servo.second["angle_scale"]:servo_group_params.second["angle_scale"];
 
-              servo_group_handler.push_back(SingleServoHandlePtr(new SingleServoHandle(servo.second["name"], servo.second["id"], max, min, sgn, offset, scale, servo_group_params.second.hasMember("state_sub_topic"))));
+              servo_group_handler.push_back(SingleServoHandlePtr(new SingleServoHandle(servo.second["name"], servo.second["id"], sgn, offset, scale, servo_group_params.second.hasMember("state_sub_topic"))));
             }
         }
 
@@ -127,42 +123,53 @@ void ServoBridge::servoStatesCallback(const spinal::ServoStatesConstPtr& state_m
 
 void ServoBridge::servoCtrlCallback(const sensor_msgs::JointStateConstPtr& servo_ctrl_msg, const string& servo_group_name)
 {
-  if(servo_ctrl_msg->position.size() != servos_handler_[servo_group_name].size())
-    {
-      ROS_ERROR("[servo bridge, servo control control]: the joint num from rosparam %d is not equal with ros msgs %d", (int)servos_handler_[servo_group_name].size(), (int)servo_ctrl_msg->position.size());
-      return;
-    }
-
   spinal::ServoControlCmd target_angle_msg;
 
-
-  for(int i = 0; i < servo_ctrl_msg->position.size(); i++)
+  if(servo_ctrl_msg->name.size() > 0)
     {
-      /* consideration: think about the the order of servo (joint, gimbal) */
+      for(int i = 0; i < servo_ctrl_msg->name.size(); i++)
+        {/* servo name is assigned */
 
-      /*
-        // use servo_name to search the servo_handler
-        auto servo_handler = find_if(servos_handler_[servo_group_name].begin(),
-        servos_handler_[servo_group_name].end(),
-        [&](SingleServoHandlePtr s) {return servo_ctrl_msg->name.at(i) == s->getName();});
+          if(servo_ctrl_msg->position.size() !=  servo_ctrl_msg->name.size())
+            {
+              ROS_ERROR("[servo bridge, servo control control]: the servo position num and name num are different in ros msgs [%d vs %d]",
+                        (int)servo_ctrl_msg->position.size(), (int)servo_ctrl_msg->name.size());
+              return;
+            }
 
-        if(servo_handler == servos_handler_[servo_group_name].end())
+          // use servo_name to search the servo_handler
+          auto servo_handler = find_if(servos_handler_[servo_group_name].begin(), servos_handler_[servo_group_name].end(),
+                                       [&](SingleServoHandlePtr s) {return servo_ctrl_msg->name.at(i)  == s->getName();});
+
+          if(servo_handler == servos_handler_[servo_group_name].end())
+          {
+            ROS_ERROR("[servo bridge, servo control callback]: no matching servo handler for %s", servo_ctrl_msg->name.at(i).c_str());
+            return;
+          }
+
+          (*servo_handler)->setTargetVal(servo_ctrl_msg->position[i], ValueType::RADIAN);
+          target_angle_msg.index.push_back((*servo_handler)->getId());
+          target_angle_msg.angles.push_back((*servo_handler)->getTargetVal(ValueType::BIT));
+        }
+    }
+  else
+    { /* for fast tranmission: no searching process, in the predefine order */
+
+      if(servo_ctrl_msg->position.size() != servos_handler_[servo_group_name].size())
         {
-        ROS_ERROR("[servo bridge, servo control callback]: no matching joint handler for servo %s", servo_ctrl_msg->name.at(i).c_str());
-        return;
+          ROS_ERROR("[servo bridge, servo control control]: the joint num from rosparam %d is not equal with ros msgs %d",
+                    (int)servos_handler_[servo_group_name].size(), (int)servo_ctrl_msg->position.size());
+          return;
         }
 
-        (*servo_handler)->setTargetVal(servo_ctrl_msg->position[i], ValueType::RADIAN);
-        target_angle_msg.index.push_back((*servo_handler)->getId());
-        target_angle_msg.angles.push_back((*servo_handler)->getTargetVal(ValueType::BIT));
-      */
-
-
-      /*  use the kinematics order (e.g. joint1 ~ joint N, gimbal_roll -> gimbal_pitch) */
-      SingleServoHandlePtr servo_handler = servos_handler_[servo_group_name].at(i);
-      servo_handler->setTargetVal(servo_ctrl_msg->position[i], ValueType::RADIAN);
-      target_angle_msg.index.push_back(servo_handler->getId());
-      target_angle_msg.angles.push_back(servo_handler->getTargetVal(ValueType::BIT));
+      for(int i = 0; i < servo_ctrl_msg->position.size(); i++)
+        {
+          /*  use the kinematics order (e.g. joint1 ~ joint N, gimbal_roll -> gimbal_pitch) */
+          SingleServoHandlePtr servo_handler = servos_handler_[servo_group_name].at(i);
+          servo_handler->setTargetVal(servo_ctrl_msg->position[i], ValueType::RADIAN);
+          target_angle_msg.index.push_back(servo_handler->getId());
+          target_angle_msg.angles.push_back(servo_handler->getTargetVal(ValueType::BIT));
+        }
     }
 
   servo_ctrl_pubs_[servo_group_name].publish(target_angle_msg);
