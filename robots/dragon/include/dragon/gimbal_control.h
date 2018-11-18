@@ -38,12 +38,12 @@
 #include <aerial_robot_base/control/flatness_pid_controller.h>
 #include <aerial_robot_model/eigen_utils.h>
 #include <dragon/dragon_robot_model.h>
-#include <dynamixel_controllers/TorqueEnable.h>
 #include <nav_msgs/Odometry.h>
 #include <ros/ros.h>
 #include <spinal/DesireCoord.h>
 #include <std_msgs/Float32MultiArray.h>
 #include <std_msgs/UInt8.h>
+#include <std_srvs/SetBool.h>
 
 namespace control_plugin
 {

@@ -17,7 +17,6 @@
   <build_depend>aerial_robot_model</build_depend>
   <build_depend>spinal</build_depend>
   <build_depend>std_srvs</build_depend>
-  <build_depend>dynamixel_controllers</build_depend>
   <build_depend>eigen_conversions</build_depend>
   <build_depend>tf_conversions</build_depend>
   <build_depend>cmake_modules</build_depend>
@@ -30,7 +29,6 @@
   <run_depend>aerial_robot_simulation</run_depend>
   <run_depend>spinal</run_depend>
   <run_depend>std_srvs</run_depend>
-  <run_depend>dynamixel_controllers</run_depend>
   <run_depend>eigen_conversions</run_depend>
   <run_depend>tf_conversions</run_depend>
   <run_depend>dynamic_reconfigure</run_depend>

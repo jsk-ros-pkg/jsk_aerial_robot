@@ -424,8 +424,8 @@ namespace control_plugin
   {
     if(!real_machine_) return;
 
-    ros::ServiceClient client = nh_.serviceClient<dynamixel_controllers::TorqueEnable>(joints_torque_control_srv_name_);
-    dynamixel_controllers::TorqueEnable srv;
+    ros::ServiceClient client = nh_.serviceClient<std_srvs::SetBool>(joints_torque_control_srv_name_);
+    std_srvs::SetBool srv;
 
     if(servo_torque_)
       {
@@ -434,7 +434,7 @@ namespace control_plugin
             if(state_pos_.z() < height_thresh_ && real_machine_)
               {
 
-                srv.request.torque_enable = false;
+                srv.request.data = false;
 
                 if (client.call(srv))
                   {
@@ -468,7 +468,7 @@ namespace control_plugin
       {
         if(navigator_->getNaviState() == Navigator::ARM_ON_STATE)
           {
-            srv.request.torque_enable = true;
+            srv.request.data = true;
 
             if (client.call(srv))
               {

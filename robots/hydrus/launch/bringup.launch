@@ -82,7 +82,7 @@
   </include >
 
   ###########  Servo Bridge  ###########
-  <node pkg="aerial_robot_model" type="servo_bridge_node" name="servo_bridge"  output="screen"  ns="hydrus" />
+  <node pkg="aerial_robot_model" type="servo_bridge_node" name="servo_bridge"  output="screen"  ns="hydrusx" />
 
   ########## Simulation in Gazebo #########
   <rosparam file="$(find hydrus)/config/$(arg type)/SimulationControl.yaml" command="load"/>

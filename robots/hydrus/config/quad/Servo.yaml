@@ -1,4 +1,4 @@
-hydrus:
+hydrusx:
   servo_controller:
     joints:
       state_sub_topic: /servo/states
@@ -16,7 +16,7 @@ hydrus:
         # angle_max: 1.58 # you can specify for each controller
       controller2:
         id: 1
-        name: joint12
+        name: joint2
       controller3:
         id: 2
         name: joint3
