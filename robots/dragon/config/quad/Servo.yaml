@@ -8,6 +8,12 @@ dragon:
       angle_scale: 0.00076699
       zero_point_offset: 2047
 
+      # for simulation
+      simulation:
+        pid: {p: 50.0, i: 0.01, d: 2.0}
+        init_value: 0
+        type: effort_controllers/JointPositionController
+
       # should be in order in terms of kinematics model
       # e.g. joint1 -> jointN; gimbal1_roll -> gimbal1_pitch
       controller1:
@@ -17,18 +23,24 @@ dragon:
       controller2:
         id: 0
         name: joint1_yaw
+        simulation:
+          init_value: 1.57
       controller3:
         id: 5
         name: joint2_pitch
       controller4:
         id: 4
         name: joint2_yaw
+        simulation:
+          init_value: 1.57
       controller5:
         id: 9
         name: joint3_pitch
       controller6:
         id: 8
         name: joint3_yaw
+        simulation:
+          init_value: 1.57
 
     gimbals:
       ctrl_pub_topic: /servo/target_states
@@ -37,6 +49,11 @@ dragon:
       angle_sgn: 1
       angle_scale: 0.001534
       zero_point_offset: 2047
+
+      simulation:
+        pid: {p: 50.0, i: 0.01, d: 0.0}
+        init_value: 0
+        type: effort_controllers/JointPositionController
 
       controller1:
         id: 3

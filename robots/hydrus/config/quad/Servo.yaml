@@ -8,12 +8,24 @@ hydrusx:
       angle_scale: 0.001534
       zero_point_offset: 2047
 
+      # for simulation
+      simulation:
+        pid: {p: 50.0, i: 0.01, d: 2.0}
+        init_value: 1.57
+        type: effort_controllers/JointPositionController
+
       # should be in order in terms of kinematics model
       # i.e. joint1 -> jointN
       controller1:
         id: 0
         name: joint1
-        # angle_max: 1.58 # you can specify for each controller
+        #angle_max: 1.58 # you can specify for each controller
+
+        #simulaton:  # you can specify for each controller
+          #type: effort_controllers/JointPositionController
+          #pid: {p: 50.0, i: 0.01, d: 2.0}
+          #init_value: 0
+
       controller2:
         id: 1
         name: joint2

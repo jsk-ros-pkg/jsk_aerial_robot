@@ -84,7 +84,6 @@
   </node>
 
   ########## Simulation in Gazebo #########
-  <rosparam file="$(find dragon)/config/$(arg type)/SimulationControl.yaml" command="load"/>
   <include file="$(find aerial_robot_simulation)/launch/simulation.launch" if = "$(arg simulation)" >
     <arg name="model" default="dragon" />
     <arg name="gui" default="false" if="$(arg headless)" />

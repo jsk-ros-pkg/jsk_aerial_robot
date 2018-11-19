@@ -50,7 +50,8 @@
 #include <spinal/ServoStates.h>
 #include <spinal/ServoControlCmd.h>
 #include <spinal/ServoTorqueCmd.h>
-
+#include <controller_manager_msgs/LoadController.h>
+#include <controller_manager_msgs/SwitchController.h>
 
 /* util */
 #include <string>
@@ -182,13 +183,14 @@ protected:
   map<string, ros::Publisher> servo_ctrl_pubs_;
   vector<ros::ServiceServer> servo_torque_ctrl_srvs_;
   map<string, ros::Publisher> servo_torque_ctrl_pubs_;
+  map<string, vector<ros::Publisher> > servo_ctrl_sim_pubs_; // TODO: should be actionlib, trajectory controller
 
   map<string, ServoGroupHandler> servos_handler_;
   double moving_check_rate_;
   double moving_angle_thresh_;
   bool send_init_joint_pose_;
+  bool simulation_mode_;
   int send_init_joint_pose_cnt_;
-
 
   void servoStatesCallback(const spinal::ServoStatesConstPtr& state_msg, const std::string& servo_group_name);
   void servoCtrlCallback(const sensor_msgs::JointStateConstPtr& joints_ctrl_msg, const std::string& servo_group_name);

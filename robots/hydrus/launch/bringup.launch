@@ -85,7 +85,6 @@
   <node pkg="aerial_robot_model" type="servo_bridge_node" name="servo_bridge"  output="screen"  ns="hydrusx" />
 
   ########## Simulation in Gazebo #########
-  <rosparam file="$(find hydrus)/config/$(arg type)/SimulationControl.yaml" command="load"/>
   <include file="$(find aerial_robot_simulation)/launch/simulation.launch" if = "$(eval arg('simulation') * (1 - arg('real_machine')))" >
     <arg name="model" default="hydrusx" />
     <arg name="gui" default="false" if="$(arg headless)" />

@@ -38,6 +38,18 @@
 
 ServoBridge::ServoBridge(ros::NodeHandle nh, ros::NodeHandle nhp): nh_(nh),nhp_(nhp)
 {
+  nh_.param("/use_sim_time", simulation_mode_, false);
+
+
+  if(simulation_mode_)
+    {
+      if(!ros::service::waitForService(nh_.getNamespace() + std::string("/controller_manager/load_controller"), 10000.0))
+        {
+          ROS_ERROR("can't find the controller manager: %s", (nh_.getNamespace() + std::string("/controller_manager/load_controller")).c_str());
+          return;
+        }
+    }
+
   XmlRpc::XmlRpcValue all_servos_params;
   nh_.getParam("servo_controller", all_servos_params);
 
@@ -46,18 +58,80 @@ ServoBridge::ServoBridge(ros::NodeHandle nh, ros::NodeHandle nhp): nh_(nh),nhp_(
       ROS_ASSERT(servo_group_params.second.getType() == XmlRpc::XmlRpcValue::TypeStruct);
 
       ServoGroupHandler servo_group_handler;
-      for(auto servo : servo_group_params.second)
+      for(auto servo_params : servo_group_params.second)
         {
-          if(servo.first.find("controller") != string::npos)
+          if(servo_params.first.find("controller") != string::npos)
             {
-              int sgn = (servo.second.hasMember("angle_sgn"))?
-                servo.second["angle_sgn"]:servo_group_params.second["angle_sgn"];
-              int offset = (servo.second.hasMember("zero_point_offset"))?
-                servo.second["zero_point_offset"]:servo_group_params.second["zero_point_offset"];
-              double scale = (servo.second.hasMember("angle_scale"))?
-                servo.second["angle_scale"]:servo_group_params.second["angle_scale"];
+              int sgn = (servo_params.second.hasMember("angle_sgn"))?
+                servo_params.second["angle_sgn"]:servo_group_params.second["angle_sgn"];
+              int offset = (servo_params.second.hasMember("zero_point_offset"))?
+                servo_params.second["zero_point_offset"]:servo_group_params.second["zero_point_offset"];
+              double scale = (servo_params.second.hasMember("angle_scale"))?
+                servo_params.second["angle_scale"]:servo_group_params.second["angle_scale"];
 
-              servo_group_handler.push_back(SingleServoHandlePtr(new SingleServoHandle(servo.second["name"], servo.second["id"], sgn, offset, scale, servo_group_params.second.hasMember("state_sub_topic"))));
+              servo_group_handler.push_back(SingleServoHandlePtr(new SingleServoHandle(servo_params.second["name"], servo_params.second["id"], sgn, offset, scale, servo_group_params.second.hasMember("state_sub_topic"))));
+
+              /* rosparam and load controller for gazebo */
+              if(simulation_mode_)
+                {
+                  if(!servo_group_params.second.hasMember("simulation") &&
+                     !servo_params.second.hasMember("simulation"))
+                    {
+                      ROS_ERROR("please set gazebo servo parameters for %s, using sub namespace 'simulation:'", string(servo_params.second["name"]).c_str());
+
+                      continue;
+                    }
+
+                  vector<string> parameter_names = {"type", "pid", "init_value"};
+                  for(auto parameter_name : parameter_names)
+                    {
+                      if(!servo_params.second.hasMember("simulation") ||
+                         (servo_params.second.hasMember("simulation") &&
+                          !servo_params.second["simulation"].hasMember(parameter_name)))
+                        {
+                          if(!servo_group_params.second["simulation"].hasMember(parameter_name))
+                            {
+                              ROS_ERROR("can not find '%s' gazebo paramter for servo %s", parameter_name.c_str(),  string(servo_params.second["name"]).c_str());
+                              return;
+                            }
+                          nh_.setParam(string("servo_controller/") + servo_group_params.first + string("/") + servo_params.first + string("/simulation/") + parameter_name, servo_group_params.second["simulation"][parameter_name]);
+                        }
+                    }
+                  nh_.setParam(string("servo_controller/") + servo_group_params.first + string("/") + servo_params.first + string("/simulation/joint"), servo_params.second["name"]);
+
+
+                  /* load the controller */
+                  ros::ServiceClient controller_loader = nh_.serviceClient<controller_manager_msgs::LoadController>(nh_.getNamespace() + std::string("/controller_manager/load_controller"));
+                  controller_manager_msgs::LoadController load_srv;
+                  load_srv.request.name = nh_.getNamespace() + string("/servo_controller/") + servo_group_params.first + string("/") + servo_params.first + string("/simulation");
+
+                  if (controller_loader.call(load_srv))
+                    ROS_INFO("load gazebo controller for %s", string(servo_params.second["name"]).c_str());
+                  else
+                    ROS_ERROR("Failed to call service %s", controller_loader.getService().c_str());
+
+                  /* start the controller */
+                  ros::ServiceClient controller_starter = nh_.serviceClient<controller_manager_msgs::SwitchController>(nh_.getNamespace() + std::string("/controller_manager/switch_controller"));
+                  controller_manager_msgs::SwitchController switch_srv;
+                  switch_srv.request.start_controllers.push_back(load_srv.request.name);
+                  switch_srv.request.strictness = controller_manager_msgs::SwitchController::Request::STRICT;
+
+                  if (controller_starter.call(switch_srv))
+                    ROS_INFO("start servo controller for %s", string(servo_params.second["name"]).c_str());
+                  else
+                    ROS_ERROR("Failed to call service %s", controller_starter.getService().c_str());
+
+                  /* init the servo command publisher to the controller */
+                  servo_ctrl_sim_pubs_[servo_group_params.first].push_back(nh_.advertise<std_msgs::Float64>(load_srv.request.name + string("/command"), 1));
+                  // wait for the publisher initialization
+                  while(servo_ctrl_sim_pubs_[servo_group_params.first].back().getNumSubscribers() == 0 && ros::ok())
+                    ros::Duration(0.1).sleep();
+
+                  /* set the initial angle */
+                  std_msgs::Float64 msg;
+                  nh_.getParam(string("servo_controller/") + servo_group_params.first + string("/") + servo_params.first + string("/simulation/init_value"), msg.data);
+                  servo_ctrl_sim_pubs_[servo_group_params.first].back().publish(msg);
+                }
             }
         }
 
@@ -70,7 +144,6 @@ ServoBridge::ServoBridge(ros::NodeHandle nh, ros::NodeHandle nhp): nh_(nh),nhp_(
 
       /* subscribe target servo state from controller */
       servo_ctrl_subs_.push_back(nh_.subscribe<sensor_msgs::JointState>(servo_group_params.first + string("_ctrl"), 10, boost::bind(&ServoBridge::servoCtrlCallback, this, _1, servo_group_params.first)));
-
       /* publish target servo state to real machine */
       servo_ctrl_pubs_.insert(make_pair(servo_group_params.first, nh_.advertise<spinal::ServoControlCmd>(servo_group_params.second["ctrl_pub_topic"], 1)));
 
@@ -81,8 +154,8 @@ ServoBridge::ServoBridge(ros::NodeHandle nh, ros::NodeHandle nhp): nh_(nh),nhp_(
           servo_torque_ctrl_pubs_.insert(make_pair(servo_group_params.first, nh_.advertise<spinal::ServoTorqueCmd>((string)servo_group_params.second["torque_pub_topic"], 1)));
         }
     }
-  servo_states_pub_ = nh_.advertise<sensor_msgs::JointState>("joint_states", 1);
 
+  if(!simulation_mode_) servo_states_pub_ = nh_.advertise<sensor_msgs::JointState>("joint_states", 1);
 }
 
 void ServoBridge::servoStatesCallback(const spinal::ServoStatesConstPtr& state_msg, const string& servo_group_name)
@@ -150,6 +223,13 @@ void ServoBridge::servoCtrlCallback(const sensor_msgs::JointStateConstPtr& servo
           (*servo_handler)->setTargetVal(servo_ctrl_msg->position[i], ValueType::RADIAN);
           target_angle_msg.index.push_back((*servo_handler)->getId());
           target_angle_msg.angles.push_back((*servo_handler)->getTargetVal(ValueType::BIT));
+
+          if(simulation_mode_)
+            {
+              std_msgs::Float64 msg;
+              msg.data = servo_ctrl_msg->position[i];
+              servo_ctrl_sim_pubs_[servo_group_name].at(distance(servos_handler_[servo_group_name].begin(), servo_handler)).publish(msg);
+            }
         }
     }
   else
@@ -169,6 +249,13 @@ void ServoBridge::servoCtrlCallback(const sensor_msgs::JointStateConstPtr& servo
           servo_handler->setTargetVal(servo_ctrl_msg->position[i], ValueType::RADIAN);
           target_angle_msg.index.push_back(servo_handler->getId());
           target_angle_msg.angles.push_back(servo_handler->getTargetVal(ValueType::BIT));
+
+          if(simulation_mode_)
+            {
+              std_msgs::Float64 msg;
+              msg.data = servo_ctrl_msg->position[i];
+              servo_ctrl_sim_pubs_[servo_group_name].at(i).publish(msg);
+            }
         }
     }
 
