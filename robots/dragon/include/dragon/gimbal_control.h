@@ -107,6 +107,7 @@ namespace control_plugin
     tf::Vector3 pitch_roll_terms_limits_;
     double roll_i_term_, pitch_i_term_;
     double gimbal_control_stamp_;
+    bool gimbal_vectoring_check_flag_;
 
     /* landing process */
     bool level_flag_;
