@@ -51,6 +51,7 @@
   <run_depend>message_generation</run_depend>
   <run_depend>message_runtime</run_depend>
   <run_depend>tf2_geometry_msgs</run_depend>
+  <run_depend>eigen_conversions</run_depend>
   <run_depend>spinal</run_depend>
 
 </package>
