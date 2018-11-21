@@ -283,10 +283,10 @@ bool AerialRobotHWSim::initSim(
   KDL::Tree tree;
   if (!kdl_parser::treeFromUrdfModel(*urdf_model, tree))
     ROS_ERROR("Failed to extract kdl tree from xml robot description");
-  findBaselink(tree.getRootSegment());
+  findBaselinkParent(tree);
   if(base_link_parent_ == std::string("none"))
     {
-      ROS_FATAL("can not find baselink: %s",  base_link_parent_.c_str());
+      ROS_FATAL("can not find the parent of the baselink (%s) ",  base_link_parent_.c_str());
      return false;
     }
   flight_mode_ = CONTROL_MODE;
@@ -303,34 +303,41 @@ bool AerialRobotHWSim::initSim(
   return true;
 }
 
-void AerialRobotHWSim::findBaselink(const KDL::SegmentMap::const_iterator segment)
+void AerialRobotHWSim::findBaselinkParent(const KDL::Tree& tree)
 {
-  const std::string& parent = GetTreeElementSegment(segment->second).getName();
-
-  const std::vector<KDL::SegmentMap::const_iterator>& children = GetTreeElementChildren(segment->second);
-
-  for (unsigned int i=0; i<children.size(); i++)
+  std::function<KDL::Frame (const KDL::SegmentMap::const_iterator& ) > recursiveFindParent = [&recursiveFindParent, &tree, this](const KDL::SegmentMap::const_iterator& it)
     {
-      const KDL::Segment& child = GetTreeElementSegment(children[i]->second);
+      const KDL::TreeElementType& currentElement = it->second;
+      KDL::Frame currentFrame = GetTreeElementSegment(currentElement).pose(0);
 
-      if (child.getJoint().getType() == KDL::Joint::None)
+      KDL::SegmentMap::const_iterator parentIt = GetTreeElementParent(currentElement);
+
+      if(GetTreeElementSegment(parentIt->second).getJoint().getType() != KDL::Joint::None ||
+         parentIt == tree.getRootSegment())
         {
-          /* have offset */
-          if(child.getName()  == rotor_interface_.getBaseLinkName())
-            {
-              base_link_parent_ = parent;
-              base_link_offset_.Set(child.getFrameToTip().p.x(), child.getFrameToTip().p.y(), child.getFrameToTip().p.z());
-              ROS_WARN("Find baselink %s from %s, offset is [%f, %f, %f]", child.getName().c_str(), parent.c_str(), child.getFrameToTip().p.x(), child.getFrameToTip().p.y(), child.getFrameToTip().p.z());
-            }
-          if(parent  == rotor_interface_.getBaseLinkName())
-            {
-              base_link_parent_ = parent;
-              base_link_offset_.Set(0, 0, 0);
-              ROS_WARN("Find baselink %s is itsself, offset is [0, 0, 0]", parent.c_str());
-            }
+          base_link_parent_ = parentIt->first;
+          return currentFrame;
         }
-      findBaselink(children[i]);
+      else
+        {
+          return recursiveFindParent(parentIt) * currentFrame;
+        }
+    };
+
+  KDL::SegmentMap::const_iterator it = tree.getSegment(rotor_interface_.getBaseLinkName());
+
+  if(it == tree.getSegments().end())
+    {
+      ROS_ERROR("no matching baselink called %s in URDF (KDL) model", rotor_interface_.getBaseLinkName().c_str());
+      base_link_parent_ = std::string("none");
+      return;
     }
+
+  KDL::Frame base_link_offset = recursiveFindParent(it);
+  gazebo::math::Quaternion q;
+  base_link_offset.M.GetQuaternion(q.x, q.y, q.z, q.w);
+  base_link_offset_.Set(gazebo::math::Vector3(base_link_offset.p.x(), base_link_offset.p.y(), base_link_offset.p.z()), q);
+  ROS_WARN("Find the parent link for the baselink %s:  %s, offset is [%f, %f, %f]", rotor_interface_.getBaseLinkName().c_str(), base_link_parent_.c_str(), base_link_offset.p.x(), base_link_offset.p.y(), base_link_offset.p.z());
 }
 
 void AerialRobotHWSim::readSim(ros::Time time, ros::Duration period)
@@ -364,9 +371,9 @@ void AerialRobotHWSim::readSim(ros::Time time, ros::Duration period)
       /* orientation should calculate the rpy in world frame,
          and angular velocity should show the value in board(body) frame */
       /* set orientation and angular of baselink */
-      gazebo::math::Quaternion q = baselink_parent->GetWorldPose().rot;
+      gazebo::math::Quaternion q = baselink_parent->GetWorldPose().rot * base_link_offset_.rot;
       rotor_interface_.setBaseLinkOrientation(q.x, q.y, q.z, q.w);
-      gazebo::math::Vector3 w = baselink_parent->GetRelativeAngularVel();
+      gazebo::math::Vector3 w = base_link_offset_.rot.GetInverse() * baselink_parent->GetRelativeAngularVel();
       rotor_interface_.setBaseLinkAngular(w.x, w.y, w.z);
 
       if(time.toSec() - last_time.toSec() > ground_truth_pub_rate_)
@@ -374,7 +381,7 @@ void AerialRobotHWSim::readSim(ros::Time time, ros::Duration period)
           nav_msgs::Odometry pose_msg;
           pose_msg.header.stamp = time;
 
-          gazebo::math::Vector3 baselink_pos = baselink_parent->GetWorldPose().pos + baselink_parent->GetWorldPose().rot * base_link_offset_;
+          gazebo::math::Vector3 baselink_pos = baselink_parent->GetWorldPose().pos + baselink_parent->GetWorldPose().rot * base_link_offset_.pos;
           pose_msg.pose.pose.position.x = baselink_pos.x;
           pose_msg.pose.pose.position.y = baselink_pos.y;
           pose_msg.pose.pose.position.z = baselink_pos.z;
@@ -383,22 +390,22 @@ void AerialRobotHWSim::readSim(ros::Time time, ros::Duration period)
           pose_msg.pose.pose.orientation.z = q.z;
           pose_msg.pose.pose.orientation.w = q.w;
 
-          gazebo::math::Vector3 baselink_vel = baselink_parent->GetWorldLinearVel(base_link_offset_);
+          gazebo::math::Vector3 baselink_vel = baselink_parent->GetWorldLinearVel(base_link_offset_.pos);
           pose_msg.twist.twist.linear.x = baselink_vel.x;
           pose_msg.twist.twist.linear.y = baselink_vel.y;
           pose_msg.twist.twist.linear.z = baselink_vel.z;
 
-          /* CAUTION! the angular is describe in the link frame */
-          pose_msg.twist.twist.angular.x = baselink_parent->GetRelativeAngularVel().x;
-          pose_msg.twist.twist.angular.y = baselink_parent->GetRelativeAngularVel().y;
-          pose_msg.twist.twist.angular.z = baselink_parent->GetRelativeAngularVel().z;
+          /* CAUTION! the angular is describe in the fc frame */
+          pose_msg.twist.twist.angular.x = w.x;
+          pose_msg.twist.twist.angular.y = w.y;
+          pose_msg.twist.twist.angular.z = w.z;
 
           ground_truth_pub_.publish(pose_msg);
         }
     }
   else
     {
-      ROS_ERROR("the baselink does not exist: %s", rotor_interface_.getBaseLinkName().c_str());
+      ROS_ERROR("can't find the baselink  parent: %s in gazebo model", base_link_parent_.c_str());
     }
 }
 

@@ -158,10 +158,10 @@ protected:
   geometry_msgs::PoseStamped cmd_pos_;
 
   /* baselink */
-  gazebo::math::Vector3 base_link_offset_;
+  gazebo::math::Pose base_link_offset_;
   std::string base_link_parent_;
 
-  void findBaselink(const KDL::SegmentMap::const_iterator segment);
+  void findBaselinkParent(const KDL::Tree& tree);
 
   void cmdVelCallback(const geometry_msgs::TwistStampedConstPtr& cmd_vel)
   {
