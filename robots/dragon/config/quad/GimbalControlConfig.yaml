@@ -49,3 +49,6 @@ controller/pitch_roll/d_gain: 0.5 #pitch big noise from gyro
 
 # desire tilt
 controller/tilt_pub_interval: 0.2
+
+# gimbal vectoring function check
+controller/gimbal_vectoring_check_flag: false

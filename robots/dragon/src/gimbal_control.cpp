@@ -86,7 +86,7 @@ namespace control_plugin
 
   bool DragonGimbal::update()
   {
-    if(!ControlBase::update()) return false;
+    if(!ControlBase::update() || gimbal_vectoring_check_flag_) return false;
 
     landingProcess();
 
@@ -166,6 +166,7 @@ namespace control_plugin
 
   void DragonGimbal::gimbalControl()
   {
+
     if (control_timestamp_ < 0) return;
 
     /* get roll/pitch angle */
@@ -485,6 +486,15 @@ namespace control_plugin
     joint_state_ = *state;
     kinematics_->updateRobotModel(joint_state_);
     kinematics_->modelling();
+
+    /* check the gimbal vectoring function */
+    if (gimbal_vectoring_check_flag_)
+      {
+        sensor_msgs::JointState gimbal_control_msg;
+        gimbal_control_msg.header = state->header;
+        gimbal_control_msg.position = kinematics_->getGimbalNominalAngles();
+        gimbal_control_pub_.publish(gimbal_control_msg);
+      }
   }
 
   void DragonGimbal::cfgPitchRollPidCallback(aerial_robot_base::XYPidControlConfig &config, uint32_t level)
@@ -598,6 +608,9 @@ namespace control_plugin
     nhp_.param("tilt_pub_interval", tilt_pub_interval_, 0.1);
     if(param_verbose_) cout << ns << ": tilt_pub_interval is " << tilt_pub_interval_ << endl;
 
+    /* check the gimbal vectoring function without position and yaw control */
+    nhp_.param("gimbal_vectoring_check_flag", gimbal_vectoring_check_flag_, false);
+    if(param_verbose_) cout << ns << ": gimbal_vectoring_check_flag is " << gimbal_vectoring_check_flag_ << endl;
 
     /* pitch roll control */
     ros::NodeHandle pitch_roll_node(nhp_, "pitch_roll");
