@@ -334,7 +334,7 @@ namespace sensor_plugin
 
         /* update */
         prev_raw_pos_ = raw_pos_;
-        updateHealthStamp(current_secs, 0); //channel: 1
+        updateHealthStamp(0); //channel0
 
         /* for wp control, not good */
         if(gps_msg->sat_num > min_wp_sat_num_)
@@ -444,7 +444,7 @@ namespace sensor_plugin
 
         /* update */
         prev_raw_rtk_pos_ = raw_rtk_pos_;
-        updateHealthStamp(current_secs, 1); //channel: 1
+        updateHealthStamp(1); //channel: 1
       }
 
       void wpCallback(const mavros_msgs::WaypointList::ConstPtr & msg)

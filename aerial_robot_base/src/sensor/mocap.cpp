@@ -198,7 +198,7 @@ namespace sensor_plugin
 
       previous_time = msg->header.stamp;
       /* consider the remote wirleess transmission, we use the local time server */
-      updateHealthStamp(ros::Time::now().toSec());
+      updateHealthStamp();
     }
 
     void groundTruthProcess()

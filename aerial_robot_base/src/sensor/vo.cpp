@@ -207,7 +207,7 @@ namespace sensor_plugin
       vo_state_pub_.publish(vo_state_);
 
       /* update */
-      updateHealthStamp(vo_msg->header.stamp.toSec());
+      updateHealthStamp();
     }
 
     void estimateProcess(ros::Time stamp)

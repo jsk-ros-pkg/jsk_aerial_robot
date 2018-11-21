@@ -52,6 +52,14 @@
 using namespace Eigen;
 using namespace std;
 
+namespace
+{
+  int bias_calib = 0;
+  ros::Time prev_time;
+
+  bool first_callback = true;
+}
+
 namespace sensor_plugin
 {
   class Imu : public sensor_plugin::SensorBase
@@ -70,7 +78,7 @@ namespace sensor_plugin
 
     ~Imu () {}
     Imu ():
-      calib_count_(100),
+      calib_count_(200),
       acc_b_(0, 0, 0),
       euler_(0, 0, 0),
       omega_(0, 0, 0),
@@ -136,14 +144,11 @@ namespace sensor_plugin
         }
 
       imuDataConverter();
-      updateHealthStamp(imu_msg->stamp.toSec());
+      updateHealthStamp();
     }
 
     void imuDataConverter()
     {
-      static int bias_calib = 0;
-      static ros::Time prev_time;
-
       if(imu_stamp_.toSec() <= prev_time.toSec())
         {
           ROS_WARN("IMU: bad timestamp. curr time stamp: %f, prev time stamp: %f",
@@ -217,7 +222,7 @@ namespace sensor_plugin
         {
           bias_calib ++;
 
-          if(bias_calib == 2)
+          if(bias_calib == 100)
             {
               calib_count_ = calib_time_ / sensor_dt_;
               ROS_WARN("calib count is %d", calib_count_);
