@@ -46,6 +46,8 @@
     ###########  Sensor Fusion  ###########
     <rosparam file="$(find hydrus)/config/$(arg type)/egomotion_estimation/$(arg model).yaml" command="load" if="$(arg real_machine)"/>
     <rosparam file="$(find hydrus)/config/$(arg type)/egomotion_estimation/simulation.yaml" command="load" if="$(eval arg('simulation') * (1 - arg('real_machine')))"/>
+    <remap from="/joint_states" to="/hydrusx/joint_states"/>
+
     ###########  PID Control  ###########
     <rosparam file="$(find hydrus)/config/$(arg type)/DifferentialFlatnessPidControlConfig.yaml" command="load" />
 

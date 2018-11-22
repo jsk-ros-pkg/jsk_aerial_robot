@@ -41,6 +41,8 @@
     ###########  Sensor Fusion  ###########
     <rosparam file="$(find dragon)/config/SensorFusion.yaml" command="load" if="$(arg real_machine)"/>
     <rosparam file="$(find dragon)/config/SensorSimulation.yaml" command="load" if="$(arg simulation)"/>
+    <remap from="/joint_states" to="/dragon/joint_states"/>
+
     ###########  Gimbal Control  ###########
     <param name="control_plugin_name" value ="control_plugin/dragon_gimbal" />
     <rosparam file="$(find dragon)/config/$(arg type)/GimbalControlConfig.yaml" command="load" />
