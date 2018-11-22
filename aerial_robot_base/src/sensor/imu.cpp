@@ -56,8 +56,6 @@ namespace
 {
   int bias_calib = 0;
   ros::Time prev_time;
-
-  bool first_callback = true;
 }
 
 namespace sensor_plugin
