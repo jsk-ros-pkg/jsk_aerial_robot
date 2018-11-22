@@ -269,7 +269,7 @@ namespace sensor_plugin
         }
 
       /* consider the remote wirleess transmission, we use the local time server */
-      updateHealthStamp(ros::Time::now().toSec());
+      updateHealthStamp();
     }
 
     void rosParamInit()
