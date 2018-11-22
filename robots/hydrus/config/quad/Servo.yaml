@@ -1,29 +1,35 @@
-bridge_rate: 50
-joint_num: 3
-bridge_mode: 1
+hydrusx:
+  servo_controller:
+    joints:
+      state_sub_topic: /servo/states
+      ctrl_pub_topic: /servo/target_states
+      torque_pub_topic: /servo/torque_enable
+      angle_sgn: 1
+      angle_scale: 0.001534
+      zero_point_offset: 2047
 
-# need to be ordered as the serial link
-joint:
-        "1":
-                name: joint1
-                angle_max: 1.58
-                angle_min: -1.58
-                angle_sgn: 1
-                angle_scale: 0.001534
-                angle_offset: 2046
+      # for simulation
+      simulation:
+        pid: {p: 50.0, i: 0.01, d: 2.0}
+        init_value: 1.57
+        type: effort_controllers/JointPositionController
 
-        "2":
-                name: joint2
-                angle_max: 1.58
-                angle_min: -1.58
-                angle_sgn: 1
-                angle_scale: 0.001534
-                angle_offset: 2065
+      # should be in order in terms of kinematics model
+      # i.e. joint1 -> jointN
+      controller1:
+        id: 0
+        name: joint1
+        #angle_max: 1.58 # you can specify for each controller
 
-        "3":
-                name: joint3
-                angle_max: 1.58
-                angle_min: -1.58
-                angle_sgn: 1
-                angle_scale: 0.001534
-                angle_offset: 1921
+        #simulaton:  # you can specify for each controller
+          #type: effort_controllers/JointPositionController
+          #pid: {p: 50.0, i: 0.01, d: 2.0}
+          #init_value: 0
+
+      controller2:
+        id: 1
+        name: joint2
+      controller3:
+        id: 2
+        name: joint3
+

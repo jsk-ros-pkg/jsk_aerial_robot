@@ -19,6 +19,9 @@
   ###########  Motor Config  ###########
   <rosparam file="$(find dragon)/config/MotorInfo.yaml" command="load" />
 
+  ###########  Servo Config  ###########
+  <rosparam file="$(find dragon)/config/$(arg type)/Servo.yaml" command="load" />
+
   ###########  Battery Config  ###########
   <rosparam file="$(find dragon)/config/$(arg type)/Battery.yaml" command="load" />
 
@@ -58,12 +61,6 @@
     <arg name="simulation" value="$(arg simulation)" />
   </include >
 
-  ###########  Servo Bridge  ###########
-  <node pkg="dragon" type="dynamixel_bridge_node" name="servo_bridge"  output="screen"  ns="dragon"  if="$(arg real_machine)" >
-    <rosparam file="$(find dragon)/config/$(arg type)/Servo.yaml" command="load" />
-  </node>
-
-
   ###########  Robot Model  ###########
   <include file="$(find dragon)/launch/robot_model.launch">
     <arg name="type" value="$(arg type)" />
@@ -72,6 +69,9 @@
     <arg name="need_joint_state" value="false" if="$(arg simulation)"/>
     <arg name="description_mode" value="gazebo" if="$(arg simulation)"/>
   </include >
+
+  ###########  Servo Bridge  ###########
+  <node pkg="aerial_robot_model" type="servo_bridge_node" name="servo_bridge"  output="screen"  ns="dragon" />
 
   ###########  Transform Control  ###########
   <node pkg="dragon" type="dragon_transform_control_node" name="dragon"  output="screen" respawn="true">
@@ -84,7 +84,6 @@
   </node>
 
   ########## Simulation in Gazebo #########
-  <rosparam file="$(find dragon)/config/$(arg type)/SimulationControl.yaml" command="load"/>
   <include file="$(find aerial_robot_simulation)/launch/simulation.launch" if = "$(arg simulation)" >
     <arg name="model" default="dragon" />
     <arg name="gui" default="false" if="$(arg headless)" />

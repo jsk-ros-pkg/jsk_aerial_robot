@@ -19,7 +19,8 @@
         args="-urdf -model $(arg model) -param robot_description"/>
 
   <!-- control -->
+  <rosparam file="$(find aerial_robot_simulation)/config/SimulationControl.yaml" command="load" ns="$(arg model)" />
   <node name="controller_spawner" pkg="controller_manager" type="spawner" respawn="false"
-        output="screen" ns="$(arg model)" args="joint_state_controller attitude_controller"/>
-  <node name="control_bridge" pkg="aerial_robot_simulation" type="gazebo_control_bridge.py" output="screen" ns="$(arg model)" />
+        output="screen" ns="$(arg model)" args="joint_state_controller attitude_controller">
+  </node>
 </launch>

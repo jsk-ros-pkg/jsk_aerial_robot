@@ -10,7 +10,6 @@ find_package(catkin REQUIRED COMPONENTS
   aerial_robot_base
   aerial_robot_model
   spinal
-  dynamixel_controllers
   eigen_conversions
   tf_conversions
   std_srvs
@@ -26,8 +25,8 @@ generate_dynamic_reconfigure_options(
 
 catkin_package(
   INCLUDE_DIRS include
-  LIBRARIES hydrus_robot_model transform_control dynamixel_bridge
-  CATKIN_DEPENDS roscpp aerial_robot_msgs aerial_robot_base aerial_robot_model spinal dynamixel_controllers tf_conversions eigen_conversions
+  LIBRARIES hydrus_robot_model transform_control
+  CATKIN_DEPENDS roscpp aerial_robot_msgs aerial_robot_base aerial_robot_model spinal tf_conversions eigen_conversions
   DEPENDS EIGEN3
 )
 
@@ -58,14 +57,6 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
   ${EIGEN3_INCLUDE_DIRS}
 )
-
-add_library(dynamixel_bridge src/dynamixel_bridge.cpp)
-target_link_libraries(dynamixel_bridge ${catkin_LIBRARIES})
-add_dependencies(dynamixel_bridge aerial_robot_msgs_generate_messages_cpp aerial_robot_base_generate_messages_cpp ${PROJECT_NAME}_generate_messages_cpp ${PROJECT_NAME}_gencfg)
-
-add_executable(dynamixel_bridge_node src/dynamixel_bridge_node.cpp)
-target_link_libraries (dynamixel_bridge_node  ${catkin_LIBRARIES} dynamixel_bridge)
-add_dependencies(dynamixel_bridge_node aerial_robot_msgs_generate_messages_cpp aerial_robot_base_generate_messages_cpp ${PROJECT_NAME}_generate_messages_cpp ${PROJECT_NAME}_gencfg)
 
 add_library(hydrus_robot_model src/hydrus_robot_model.cpp)
 target_link_libraries(hydrus_robot_model ${catkin_LIBRARIES})

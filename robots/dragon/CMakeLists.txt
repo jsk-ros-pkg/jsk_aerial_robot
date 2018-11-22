@@ -57,11 +57,3 @@ target_link_libraries(dragon_transform_control_node dragon_transform_control ${c
 add_library(dragon_control_pluginlib src/gimbal_control.cpp)
 target_link_libraries (dragon_control_pluginlib dragon_robot_model ${catkin_LIBRARIES} ${Eigen3_LIBRARIES})
 add_dependencies(dragon_control_pluginlib aerial_robot_msgs_generate_messages_cpp aerial_robot_base_generate_messages_cpp hydrus_generate_messages_cpp hydrus_gencfg)
-
-add_library (dragon_dynamixel_bridge src/dynamixel_bridge.cpp)
-target_link_libraries (dragon_dynamixel_bridge ${catkin_LIBRARIES} ${Eigen3_LIBRARIES})
-add_dependencies(dragon_dynamixel_bridge aerial_robot_msgs_generate_messages_cpp aerial_robot_base_generate_messages_cpp ${PROJECT_NAME}_generate_messages_cpp ${PROJECT_NAME}_gencfg)
-
-add_executable(dynamixel_bridge_node src/dynamixel_bridge_node.cpp)
-target_link_libraries (dynamixel_bridge_node  ${catkin_LIBRARIES} dragon_dynamixel_bridge)
-add_dependencies(dynamixel_bridge_node aerial_robot_msgs_generate_messages_cpp aerial_robot_base_generate_messages_cpp ${PROJECT_NAME}_generate_messages_cpp ${PROJECT_NAME}_gencfg)

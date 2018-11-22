@@ -2,7 +2,7 @@
 /*********************************************************************
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2017, JSK Lab
+ *  Copyright (c) 2018, JSK Lab
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -33,18 +33,17 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 
-#include <hydrus/dynamixel_bridge.h>
-
+#include <aerial_robot_model/servo_bridge.h>
 
 int main(int argc, char** argv)
 {
-  ros::init(argc, argv, "hydrus_joints_bridge");
+  ros::init(argc, argv, "servo_bridge");
   ros::NodeHandle n;
   ros::NodeHandle np("~");
 
-  hydrus::JointInterface *joint_interface = new hydrus::JointInterface(n,np);
+  ServoBridge *servo_bridge = new ServoBridge(n,np);
   ros::spin();
-  delete joint_interface;
+  delete servo_bridge;
 
   return 0;
 }
