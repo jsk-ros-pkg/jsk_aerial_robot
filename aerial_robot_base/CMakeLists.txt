@@ -16,6 +16,7 @@ find_package(catkin REQUIRED COMPONENTS
   laser_geometry
   visualization_msgs
   tf
+  tf_conversions
   dynamic_reconfigure
   aerial_robot_msgs
   aerial_robot_model
