@@ -16,8 +16,10 @@ find_package(catkin REQUIRED COMPONENTS
   laser_geometry
   visualization_msgs
   tf
+  tf_conversions
   dynamic_reconfigure
   aerial_robot_msgs
+  aerial_robot_model
   spinal
   kalman_filter
   cmake_modules
@@ -38,7 +40,7 @@ generate_dynamic_reconfigure_options(
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES ${PROJECT_NAME} flight_control_pluginlib
-  CATKIN_DEPENDS roscpp message_runtime aerial_robot_msgs std_msgs geometry_msgs visualization_msgs nav_msgs  sensor_msgs laser_geometry tf kalman_filter pluginlib geodesy mavros_msgs spinal
+  CATKIN_DEPENDS roscpp message_runtime aerial_robot_msgs aerial_robot_model std_msgs geometry_msgs visualization_msgs nav_msgs  sensor_msgs laser_geometry tf kalman_filter pluginlib geodesy mavros_msgs spinal
 )
 
 cmake_policy(SET CMP0046 OLD)

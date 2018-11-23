@@ -54,8 +54,7 @@
 /* ros msg */
 #include <aerial_robot_msgs/States.h>
 #include <std_srvs/SetBool.h>
-#include <tf2_ros/transform_listener.h>
-#include <tf/LinearMath/Transform.h>
+#include <tf_conversions/tf_kdl.h>
 
 /* utils */
 #include <iostream>
@@ -100,7 +99,6 @@ namespace sensor_plugin
       if(param_verbose_) cout << ns << ": estimate mode is " << estimate_mode_ << endl;
 
       nhp_.param("sensor_frame", sensor_frame_, string("sensor_frame"));
-      nhp_.param("reference_frame", reference_frame_, string("baselink"));
       nhp_.param("get_sensor_tf", get_sensor_tf_, false);
       nhp_.param("variable_sensor_tf_flag", variable_sensor_tf_flag_, false);
 
@@ -137,7 +135,6 @@ namespace sensor_plugin
     bool get_sensor_tf_;
     bool variable_sensor_tf_flag_;
     string sensor_frame_;
-    string reference_frame_;
 
     bool time_sync_;
     double delay_;
@@ -151,7 +148,7 @@ namespace sensor_plugin
     int estimate_flag_;
 
     /* the transformation between sensor frame and baselink frame */
-    tf::Transform sensor_tf_; /* TODO: this should be in the basic estimation */
+    tf::Transform sensor_tf_;
 
     /* health check */
     vector<bool> health_;
@@ -219,31 +216,25 @@ namespace sensor_plugin
       if(!variable_sensor_tf_flag_ && get_sensor_tf_) return true;
 
       /*
-         TODO: for joint or servo system, this should be processed every time,
-         maybe KDL kinematics is better, since the tf need 0.x[sec].
+         for joint or servo system, this should be processed every time,
+         therefore kinematics based on kinematics is better, since the tf need 0.x[sec].
       */
-      double start_time = ros::Time::now().toSec();
-
-      tf2_ros::Buffer tfBuffer;
-      tf2_ros::TransformListener tfListener(tfBuffer);
-      geometry_msgs::TransformStamped transformStamped;
-      try
+      const auto& segments_tf =  estimator_->getSegmentsTf();
+      if(segments_tf.find(sensor_frame_) == segments_tf.end())
         {
-          transformStamped = tfBuffer.lookupTransform(reference_frame_, sensor_frame_, ros::Time(0), ros::Duration(1.0));
-        }
-      catch (tf2::TransformException &ex)
-        {
-          ROS_ERROR("%s: %s",nhp_.getNamespace().c_str(), ex.what());
+          ROS_ERROR_THROTTLE(0.5, "can not find %s in kinematics model", sensor_frame_.c_str());
           return false;
         }
-      tf::transformMsgToTF(transformStamped.transform, sensor_tf_);
+
+      tf::transformKDLToTF(segments_tf.at(estimator_->getBaselinkName()).Inverse() * segments_tf.at(sensor_frame_), sensor_tf_);
 
       double y, p, r; sensor_tf_.getBasis().getRPY(r, p, y);
       if(!variable_sensor_tf_flag_)
-        ROS_INFO("%s: get tf from %s to %s, [%f, %f, %f], [%f, %f, %f], using %f[sec]",
-                 nhp_.getNamespace().c_str(), reference_frame_.c_str(), sensor_frame_.c_str(),
+        ROS_INFO("%s: get tf from %s to %s, [%f, %f, %f], [%f, %f, %f]",
+                 nhp_.getNamespace().c_str(),
+                 estimator_->getBaselinkName().c_str(), sensor_frame_.c_str(),
                  sensor_tf_.getOrigin().x(), sensor_tf_.getOrigin().y(),
-                 sensor_tf_.getOrigin().z(), r, p, y, ros::Time::now().toSec() - start_time);
+                 sensor_tf_.getOrigin().z(), r, p, y);
 
       get_sensor_tf_ = true;
       return true;

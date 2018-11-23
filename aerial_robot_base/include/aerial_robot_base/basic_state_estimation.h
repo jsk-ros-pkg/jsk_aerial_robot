@@ -39,6 +39,9 @@
 /* ros */
 #include <ros/ros.h>
 
+/* kinematics model */
+#include <aerial_robot_model/transformable_aerial_robot_model.h>
+
 /* kf plugin */
 #include <pluginlib/class_loader.h>
 #include <kalman_filter/kf_base_plugin.h>
@@ -50,6 +53,7 @@
 #include <std_msgs/UInt8.h>
 #include <geometry_msgs/TransformStamped.h>
 #include <tf/transform_datatypes.h>
+#include <sensor_msgs/JointState.h>
 
 /* util */
 #include <assert.h>
@@ -119,6 +123,8 @@ public:
     baselink_odom_pub_ = nh_.advertise<nav_msgs::Odometry>("/uav/baselink/odom", 1);
     cog_odom_pub_ = nh_.advertise<nav_msgs::Odometry>("/uav/cog/odom", 1);
     full_state_pub_ = nh_.advertise<aerial_robot_msgs::States>("/uav/full_state", 1);
+
+    joint_state_sub_ = nh_.subscribe("/joint_states", 1, &BasicEstimator::jointStateCallback, this);
     cog2baselink_transform_sub_ = nh_.subscribe(cog2baselink_transform_sub_name_, 5, &BasicEstimator::transformCallback, this);
 
     fuser_[0].resize(0);
@@ -134,6 +140,9 @@ public:
           }
       }
 
+    /* initialize the multilink kinematics */
+    kinematics_model_ = boost::shared_ptr<aerial_robot_model::RobotModel>(new aerial_robot_model::RobotModel(true));
+    baselink_name_ = kinematics_model_->getBaselinkName();
     cog2baselink_transform_.setIdentity();
 
     /* TODO: represented sensors unhealth level */
@@ -293,6 +302,8 @@ public:
   virtual void setLandingHeight(float landing_height){ landing_height_ = landing_height;}
   virtual float getLandingHeight(){ return landing_height_;}
 
+  inline const std::map<std::string, KDL::Frame>& getSegmentsTf() const {return segments_tf_;}
+  inline std::string getBaselinkName() const {return baselink_name_;}
   inline tf::Transform getCog2Baselink(){return cog2baselink_transform_;}
   inline tf::Transform getBaselink2Cog(){return cog2baselink_transform_.inverse();}
 
@@ -328,6 +339,7 @@ protected:
   ros::NodeHandle nh_;
   ros::NodeHandle nhp_;
   ros::Publisher full_state_pub_, baselink_odom_pub_, cog_odom_pub_;
+  ros::Subscriber joint_state_sub_;
   ros::Subscriber cog2baselink_transform_sub_;
   ros::Subscriber estimate_height_mode_sub_;
   tf::TransformBroadcaster br_;
@@ -341,8 +353,11 @@ protected:
   string cog2baselink_transform_sub_name_;
   double update_rate_;
 
-  /* the transformation between baselink frame and CoG frame */
-  tf::Transform cog2baselink_transform_;
+  /* robot kinematics  */
+  boost::shared_ptr<aerial_robot_model::RobotModel> kinematics_model_;
+  std::map<std::string, KDL::Frame> segments_tf_;
+  std::string baselink_name_;
+  tf::Transform cog2baselink_transform_; // TODO: should be calculated from the aboved "kinemtaics_model_"
 
   /* 9: x_w, y_w, z_w, roll_w, pitch_w, yaw_cog_w, x_b, y_b, yaw_board_w */
   array<AxisState, State::TOTAL_NUM> state_;
@@ -362,10 +377,19 @@ protected:
   bool un_descend_flag_;
   float landing_height_;
 
+
+  /* update the kinematics model based on joint state */
+  void jointStateCallback(const sensor_msgs::JointStateConstPtr& state)
+  {
+    segments_tf_ = kinematics_model_->fullForwardKinematics(*state); // do not need inertial and cog calculation right now
+  }
+
   /* use subscribe method to get the cog-baselink offset */
   /* only the position offset, no vel and acc */
   void transformCallback(const geometry_msgs::TransformStampedConstPtr & msg)
   {
+    // TODO: should be calculated from the aboved "kinemtaics_model_"
+
     /* get the transform from CoG to base_link: {CoG} -> {baselink} */
     tf::transformMsgToTF(msg->transform, cog2baselink_transform_);
   }

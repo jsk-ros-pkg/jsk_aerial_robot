@@ -21,9 +21,11 @@
   <build_depend>laser_geometry</build_depend>
   <build_depend>visualization_msgs</build_depend>
   <build_depend>tf</build_depend>
+  <build_depend>tf_conversions</build_depend>
   <build_depend>dynamic_reconfigure</build_depend>
   <build_depend>kalman_filter</build_depend>
   <build_depend>aerial_robot_msgs</build_depend>
+  <build_depend>aerial_robot_model</build_depend>
   <build_depend>spinal</build_depend>
   <build_depend>cmake_modules</build_depend>
   <build_depend>pluginlib</build_depend>
@@ -42,9 +44,11 @@
   <run_depend>laser_geometry</run_depend>
   <run_depend>visualization_msgs</run_depend>
   <run_depend>tf</run_depend>
+  <run_depend>tf_conversions</run_depend>
   <run_depend>dynamic_reconfigure</run_depend>
   <run_depend>kalman_filter</run_depend>
   <run_depend>aerial_robot_msgs</run_depend>
+  <run_depend>aerial_robot_model</run_depend>
   <run_depend>spinal</run_depend>
   <run_depend>pluginlib</run_depend>
   <run_depend>message_runtime</run_depend>
