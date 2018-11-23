@@ -2,8 +2,8 @@
 Changelog for package aerial_robot_model
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.0.2 (2018-11-24)
+------------------
 * Create the improved and integrated servo bridge for both real machine and gazebo simulation (`#230 <https://github.com/tongtybj/aerial_robot/issues/230>`_)
 * Implement full forward kinematics for tree sturcture (`#223 <https://github.com/tongtybj/aerial_robot/issues/223>`_)
 
