@@ -2,6 +2,9 @@
 Changelog for package spinal
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 1.0.1 (2018-11-05)
 ------------------
 * Add stm32f4 version neuron project (#213)

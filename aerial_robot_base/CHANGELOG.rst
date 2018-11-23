@@ -2,6 +2,13 @@
 Changelog for package aerial_robot_base
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Update the vo sensor fusion plugin (`#233 <https://github.com/tongtybj/aerial_robot/issues/233>`_)
+* Change the sensor time stamp update behavior in HealthStamp check function (`#232 <https://github.com/tongtybj/aerial_robot/issues/232>`_)
+* Use kinamtics model to get the sensor transfrom w.r.t baselink frame, based on the full forward kinematics method, which is much faster than TF2 (`#226 <https://github.com/tongtybj/aerial_robot/issues/226>`_, `#231 <https://github.com/tongtybj/aerial_robot/issues/231>`_)
+* Add force_landing to keyboard command interface (`#224 <https://github.com/tongtybj/aerial_robot/issues/224>`_)
+
 1.0.1 (2018-11-05)
 ------------------
 * modify solidedge_cog_inertia_tensor_converter and move to aerial_robot_base (#207)

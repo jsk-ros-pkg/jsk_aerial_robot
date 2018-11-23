@@ -2,6 +2,10 @@
 Changelog for package aerial_robot_simulation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Remove old simulation servo bridge (`#230 <https://github.com/tongtybj/aerial_robot/issues/230>`_)
+
 1.0.1 (2018-11-05)
 ------------------
 

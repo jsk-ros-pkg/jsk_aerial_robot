@@ -2,6 +2,9 @@
 Changelog for package spinal_ros_bridge
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 1.0.1 (2018-11-05)
 ------------------
 
