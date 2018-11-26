@@ -9,7 +9,7 @@ class InitGimbalAngle:
         rospy.init_node('init_gimbal_angles')
         self.pub = rospy.Publisher('/hydrus_xi/gimbals_ctrl', JointState, queue_size=1)
         self.sub = rospy.Subscriber('/hydrus_xi/joint_states', JointState, self.callback)
-        self.gimbal_num = rospy.get_param('/hydrus_xi/gimbal_num')
+        self.gimbal_num = 6
         self.complete = False
 
 

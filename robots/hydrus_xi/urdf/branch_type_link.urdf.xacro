@@ -24,16 +24,15 @@
     #### link ####
     <link name="center_link">
       <inertial>
-        <origin xyz="0.294295 -0.000052 0.028894" rpy="0 0 0"/>
-        <mass value="0.714766"/>
+        <origin xyz="-0.000001 0.000000 0.031426" rpy="0 0 0"/>
+        <mass value="0.970304"/>
         <inertia
-            ixx="0.008182" iyy="0.019328" izz="0.023801"
-            ixy="-0.000016" ixz="0.010020" iyz="-0.000003"/>
+            ixx="0.011445" iyy="0.011444" izz="0.021712"
+            ixy="-0.000000" ixz="-0.000000" iyz="0.000000"/>
       </inertial>
       <xacro:mesh_model type="link/center_link">
         <origin xyz="0 0 0" rpy="0 0 0"/>
       </xacro:mesh_model>
-
     </link>
 
     <xacro:damping_factor link="center_link"/>
@@ -44,7 +43,7 @@
       <limit effort="3.3" lower="-1.57" upper="1.57" velocity="0.5"/>
       <parent link="center_link"/>
       <child link="link${child1}"/>
-      <origin rpy="0 0 ${pi / 2.0}" xyz="0 0.1255 0.016"/>
+      <origin rpy="0 0 0" xyz="0.1255 0 0.016"/>
       <axis xyz="0 0 1"/>
       <dynamics damping="0.8" friction="0.05"/>
     </joint>
@@ -53,7 +52,7 @@
       <limit effort="3.3" lower="-1.57" upper="1.57" velocity="0.5"/>
       <parent link="center_link"/>
       <child link="link${child2}"/>
-      <origin rpy="0 0 ${pi * 7.0 / 6.0}" xyz="-0.10869 -0.06275 0.016"/>
+      <origin rpy="0 0 ${pi * 2.0 / 3.0}" xyz="-0.06275 0.10869 0.016"/>
       <axis xyz="0 0 1"/>
       <dynamics damping="0.8" friction="0.05"/>
     </joint>
@@ -62,7 +61,7 @@
       <limit effort="3.3" lower="-1.57" upper="1.57" velocity="0.5"/>
       <parent link="center_link"/>
       <child link="link${child3}"/>
-      <origin rpy="0 0 ${pi * 11.0 / 6.0}" xyz="0.10869 -0.06275 0.016"/>
+      <origin rpy="0 0 ${pi * 4.0 / 3.0}" xyz="-0.06275 -0.10869 0.016"/>
       <axis xyz="0 0 1"/>
       <dynamics damping="0.8" friction="0.05"/>
     </joint>
@@ -106,33 +105,32 @@
   </xacro:macro>
 
 
-  <xacro:macro name="hydrus_xi_branch_type_link" params="self child rotor_direction link_type">
+  <xacro:macro name="hydrus_xi_branch_type_link" params="self child rotor_direction link_type battery">
 
     #### link ####
     <link name="link${self}">
-      <xacro:if value="${link_type == 'general'}">
+      <xacro:if value="${link_type == 'middle'}">
         <inertial>
-          <origin xyz="0.294295 -0.000052 0.028894" rpy="0 0 0"/>
-          <mass value="0.714766"/>
+          <origin xyz="0.300691 0.000051 0.027824" rpy="0 0 0"/>
+          <mass value="0.736958"/>
           <inertia
-              ixx="0.008182" iyy="0.019328" izz="0.023801"
-              ixy="-0.000016" ixz="0.010020" iyz="-0.000003"/>
+              ixx="0.008461" iyy="0.022896" izz="0.027105"
+              ixy="0.000029" ixz="0.013452" iyz="0.000003"/>
         </inertial>
-        <xacro:mesh_model type="link/general_link">
+        <xacro:mesh_model type="link/middle_link">
           <origin xyz="0.6 0 0" rpy="0 0 ${pi}"/>
         </xacro:mesh_model>
         <xacro:link_collision_model/>
       </xacro:if>
-
       <xacro:if value="${link_type == 'end'}">
         <inertial>
-          <origin xyz="0.280055 -0.000054 0.029470" rpy="0 0 0"/>
-          <mass value="0.688192"/>
+          <origin xyz="0.300691 0.000051 0.027824" rpy="0 0 0"/>
+          <mass value="0.736958"/>
           <inertia
-              ixx="0.008163" iyy="0.015742" izz="0.020229"
-              ixy="-0.000016" ixz="0.009513" iyz="-0.000003"/>
+              ixx="0.008461" iyy="0.022896" izz="0.027105"
+              ixy="0.000029" ixz="0.013452" iyz="0.000003"/>
         </inertial>
-        <xacro:mesh_model type="link/head_link">
+        <xacro:mesh_model type="link/end_link1">
           <origin xyz="0.6 0 0" rpy="0 0 ${pi}"/>
         </xacro:mesh_model>
         <xacro:link_collision_model/>
@@ -192,7 +190,7 @@
     #### link joint ####
     <xacro:unless value="${self == child}">
       <joint name="joint${child}" type="revolute">
-        <limit effort="3.3" lower="-1.57" upper="1.57" velocity="0.5"/>
+        <limit effort="6.6" lower="${-pi * 0.5}" upper="${pi * 0.5}" velocity="0.5"/>
         <parent link="link${self}"/>
         <child link="link${child}"/>
         <origin rpy="0 0 0" xyz="${link_length} 0 0"/>
@@ -206,7 +204,7 @@
       <limit effort="3.1" lower="-3.1415" upper="3.1415" velocity="0.5"/>
       <parent link="link${self}"/>
       <child link="gimbal_link${self}"/>
-      <origin rpy="0 0 3.14159" xyz="0.3016 0 0.05967"/>
+      <origin rpy="0 0 ${pi}" xyz="0.2984 0 0.05967"/>
       <axis xyz="0 0 1"/>
       <dynamics damping="0.8" friction="0.05"/>
     </joint>
@@ -229,18 +227,20 @@
     </joint>
 
     #### battery ####
-    <xacro:extra_module name="bat${self}" parent="link${self}" visible="1"
-                        model_url="package://hydrus_xi/urdf/mesh/modules/battery/battery.dae">
-      <origin xyz="0.2867 0.0 -0.048" rpy="0 0 ${pi / 2.0}"/>
-      <inertial>
-        <origin xyz="0 0 0" rpy="0 0 0"/>
-        <mass value="${bat_mass}"/>
-        <inertia
-          ixx="0.00001" ixy="0.0" ixz="0.0"
-          iyy="0.00001" iyz="0.0"
-          izz="0.00002"/>
-      </inertial>
-    </xacro:extra_module>
+    <xacro:if value="${battery == 1}">
+      <xacro:extra_module name="bat${self}" parent="link${self}" visible="1"
+                          model_url="package://hydrus_xi/urdf/mesh/modules/battery/battery.dae">
+        <origin xyz="0.2867 0.0 -0.048" rpy="0 0 ${pi / 2.0}"/>
+        <inertial>
+          <origin xyz="0 0 0" rpy="0 0 0"/>
+          <mass value="${bat_mass}"/>
+          <inertia
+              ixx="0.00001" ixy="0.0" ixz="0.0"
+              iyy="0.00001" iyz="0.0"
+              izz="0.00002"/>
+        </inertial>
+      </xacro:extra_module>
+    </xacro:if>
 
 
     #### hardware interface ####

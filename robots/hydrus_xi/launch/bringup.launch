@@ -24,6 +24,9 @@
   ###########  Battery Config  ###########
   <rosparam file="$(find hydrus_xi)/config/$(arg type)/Battery.yaml" command="load" />
 
+  ########### Servo Config ###########
+  <rosparam file="$(find hydrus_xi)/config/$(arg type)/Servo.yaml" command="load" ns="hydrus_xi"/>
+
   ###########  Base Platform  ###########
   <node pkg="aerial_robot_base" type="aerial_robot_base_node" name="aerial_robot_base_node" output="screen" >
 
@@ -65,9 +68,7 @@
   </include >
 
   ###########  Servo Bridge  ###########
-  <node pkg="dragon" type="dynamixel_bridge_node" name="servo_bridge" output="screen" ns="hydrus_xi" if="$(arg real_machine)" >
-    <rosparam file="$(find hydrus_xi)/config/$(arg type)/Servo.yaml" command="load" />
-  </node>
+  <node pkg="aerial_robot_model" type="servo_bridge_node" name="servo_bridge" output="screen" ns="hydrus_xi"/>
 
   ###########  Robot Model  ###########
   <include file="$(find hydrus_xi)/launch/robot_model.launch" >
@@ -90,7 +91,6 @@
   </node>
 
   ########## Simulation in Gazebo #########
-  <rosparam file="$(find hydrus_xi)/config/$(arg type)/SimulationControl.yaml" ns="hydrus_xi" command="load"/>
   <include file="$(find aerial_robot_simulation)/launch/simulation.launch" if = "$(arg simulation)" >
     <arg name="model" value="hydrus_xi"/>
     <arg name="gui" value="false" if="$(arg headless)"/>

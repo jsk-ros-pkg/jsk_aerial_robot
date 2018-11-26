@@ -1,98 +1,64 @@
-bridge_rate: 50
-bridge_mode: 1
+servo_controller:
+  joints:
+    state_sub_topic: /servo/states
+    ctrl_pub_topic: /servo/target_states
+    torque_pub_topic: /servo/torque_enable
+    angle_sgn: 1
+    angle_scale: 0.00076699
+    zero_point_offset: 2047
 
-joint_num: 5
+    # for simulation
+    simulation:
+      pid: {p: 50.0, i: 0.01, d: 2.0, i_clamp_max: 3.3, i_clamp_min: -3.3}
+      init_value: 0
+      type: effort_controllers/JointPositionController
 
-joint:
-  "1":
-    id: 0
-    name: joint1
-    angle_max: 1.58
-    angle_min: -1.58
-    angle_sgn: 1
-    angle_scale: 0.001534
-    angle_offset: 2047
-  "2":
-    id: 2
-    name: joint2
-    angle_max: 1.58
-    angle_min: -1.58
-    angle_sgn: 1
-    angle_scale: 0.001534
-    angle_offset: 2047
-  "3":
-    id: 4
-    name: joint3
-    angle_max: 1.58
-    angle_min: -1.58
-    angle_sgn: 1
-    angle_scale: 0.001534
-    angle_offset: 2047
-  "4":
-    id: 6
-    name: joint4
-    angle_max: 1.58
-    angle_min: -1.58
-    angle_sgn: 1
-    angle_scale: 0.001534
-    angle_offset: 2047
-  "5":
-    id: 8
-    name: joint5
-    angle_max: 1.58
-    angle_min: -1.58
-    angle_sgn: 1
-    angle_scale: 0.001534
-    angle_offset: 2047
+    controller1:
+      id: 2
+      name: joint2
+    controller2:
+      id: 0
+      name: joint1
+    controller3:
+      id: 6
+      name: joint4
+    controller4:
+      id: 4
+      name: joint3
+    controller5:
+      id: 10
+      name: joint6
+    controller6:
+      id: 8
+      name: joint5
 
-gimbal_num: 6
+  gimbals:
+    ctrl_pub_topic: /servo/target_states
+    torque_pub_topic: /servo/torque_enable
+    angle_sgn: 1
+    angle_scale: 0.001534
+    zero_point_offset: 0
 
-gimbal:
-  "1":
-    id: 1
-    name: gimbal1
-    angle_max: 3.14
-    angle_min: -3.14
-    angle_sgn: 1
-    angle_scale: 0.001534
-    angle_offset: 0
-  "2":
-    id: 3
-    name: gimbal2
-    angle_max: 3.14
-    angle_min: -3.14
-    angle_sgn: 1
-    angle_scale: 0.001534
-    angle_offset: 0
-  "3":
-    id: 5
-    name: gimbal3
-    angle_max: 3.14
-    angle_min: -3.14
-    angle_sgn: 1
-    angle_scale: 0.001534
-    angle_offset: 0
-  "4":
-    id: 7
-    name: gimbal4
-    angle_max: 3.14
-    angle_min: -3.14
-    angle_sgn: 1
-    angle_scale: 0.001534
-    angle_offset: 0
-  "5":
-    id: 9
-    name: gimbal5
-    angle_max: 3.14
-    angle_min: -3.14
-    angle_sgn: 1
-    angle_scale: 0.001534
-    angle_offset: 0
-  "6":
-    id: 10
-    name: gimbal6
-    angle_max: 3.14
-    angle_min: -3.14
-    angle_sgn: 1
-    angle_scale: 0.001534
-    angle_offset: 0
+    simulation:
+      pid: {p: 5.0, i: 0.001, d: 0.0, i_clamp_max: 0.1, i_clamp_min: -0.1}
+      init_value: 0.0
+      type: effort_controllers/JointPositionController
+
+    controller1:
+      id: 3
+      name: gimbal2
+    controller2:
+      id: 1
+      name: gimbal1
+    controller3:
+      id: 7
+      name: gimbal4
+    controller4:
+      id: 5
+      name: gimbal3
+    controller5:
+      id: 11
+      name: gimbal6
+    controller6:
+      id: 9
+      name: gimbal5
