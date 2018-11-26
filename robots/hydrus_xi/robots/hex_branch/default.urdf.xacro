@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<robot
+    xmlns:xacro="http://www.ros.org/wiki/xacro" name="hydrus_xi" >
+
+  <xacro:include filename="$(find hydrus_xi)/urdf/common.xacro" />
+  <xacro:include filename="$(find hydrus_xi)/urdf/branch_type_link.urdf.xacro" />
+
+  <xacro:hydrus_xi_center_link child1="1" child2="3" child3="5"/>
+  <xacro:hydrus_xi_branch_type_link self="1" child="2" rotor_direction="1" link_type="general"/>
+  <xacro:hydrus_xi_branch_type_link self="2" child="2" rotor_direction="-1" link_type="end"/>
+  <xacro:hydrus_xi_branch_type_link self="3" child="4" rotor_direction="-1" link_type="general"/>
+  <xacro:hydrus_xi_branch_type_link self="4" child="4" rotor_direction="1" link_type="end"/>
+  <xacro:hydrus_xi_branch_type_link self="5" child="6" rotor_direction="-1" link_type="general"/>
+  <xacro:hydrus_xi_branch_type_link self="6" child="6" rotor_direction="1" link_type="end"/>
+</robot>

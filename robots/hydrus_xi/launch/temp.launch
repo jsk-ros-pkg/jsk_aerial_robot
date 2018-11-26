@@ -1,0 +1,10 @@
+<launch>
+  <arg name="worldtype" default="$(find aerial_robot_simulation)/gazebo_model/world/empty.world" />
+  <include file="$(find aerial_robot_simulation)/launch/simulation.launch">
+    <arg name="model" value="hydrus_xi"/>
+    <arg name="gui" value="false" />
+    <arg name="headless" value="false"/>
+    <arg name="worldtype" value="$(arg worldtype)"/>
+  </include>
+
+</launch>

@@ -2,7 +2,111 @@
 <robot
     xmlns:xacro="http://www.ros.org/wiki/xacro" name="hydrus_xi_link">
 
-  <xacro:macro name="hydrus_xi_link" params="self child rotor_direction link_type">
+  <xacro:macro name="hydrus_xi_center_link" params="child1 child2 child3">
+    #### dummy root link for KDL ####
+    <link name="root">
+      <inertial>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <mass value="0.00001"/>
+        <inertia
+            ixx="0.000001" ixy="0.0" ixz="0.0"
+            iyy="0.000001" iyz="0.0"
+            izz="0.000001"/>
+      </inertial>
+    </link>
+    <joint name="root_joint" type="fixed">
+      <parent link="root"/>
+      <child link="center_link"/>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <axis xyz="0 0 1"/>
+    </joint>
+
+    #### link ####
+    <link name="center_link">
+      <inertial>
+        <origin xyz="0.294295 -0.000052 0.028894" rpy="0 0 0"/>
+        <mass value="0.714766"/>
+        <inertia
+            ixx="0.008182" iyy="0.019328" izz="0.023801"
+            ixy="-0.000016" ixz="0.010020" iyz="-0.000003"/>
+      </inertial>
+      <xacro:mesh_model type="link/center_link">
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+      </xacro:mesh_model>
+
+    </link>
+
+    <xacro:damping_factor link="center_link"/>
+
+    #### joints ####
+    #### link joint ####
+    <joint name="joint${child1}" type="revolute">
+      <limit effort="3.3" lower="-1.57" upper="1.57" velocity="0.5"/>
+      <parent link="center_link"/>
+      <child link="link${child1}"/>
+      <origin rpy="0 0 ${pi / 2.0}" xyz="0 0.1255 0.016"/>
+      <axis xyz="0 0 1"/>
+      <dynamics damping="0.8" friction="0.05"/>
+    </joint>
+
+    <joint name="joint${child2}" type="revolute">
+      <limit effort="3.3" lower="-1.57" upper="1.57" velocity="0.5"/>
+      <parent link="center_link"/>
+      <child link="link${child2}"/>
+      <origin rpy="0 0 ${pi * 7.0 / 6.0}" xyz="-0.10869 -0.06275 0.016"/>
+      <axis xyz="0 0 1"/>
+      <dynamics damping="0.8" friction="0.05"/>
+    </joint>
+
+    <joint name="joint${child3}" type="revolute">
+      <limit effort="3.3" lower="-1.57" upper="1.57" velocity="0.5"/>
+      <parent link="center_link"/>
+      <child link="link${child3}"/>
+      <origin rpy="0 0 ${pi * 11.0 / 6.0}" xyz="0.10869 -0.06275 0.016"/>
+      <axis xyz="0 0 1"/>
+      <dynamics damping="0.8" friction="0.05"/>
+    </joint>
+
+    #### hardware interface ####
+    <transmission name="joint_tran${child1}">
+      <type>transmission_interface/SimpleTransmission</type>
+      <joint name="joint${child1}">
+        <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+      </joint>
+      <actuator name="servo${child1}">
+        <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+        <mechanicalReduction>1</mechanicalReduction>
+      </actuator>
+    </transmission>
+
+    <transmission name="joint_tran${child2}">
+      <type>transmission_interface/SimpleTransmission</type>
+      <joint name="joint${child2}">
+        <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+      </joint>
+      <actuator name="servo${child2}">
+        <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+        <mechanicalReduction>1</mechanicalReduction>
+      </actuator>
+    </transmission>
+
+    <transmission name="joint_tran${child3}">
+      <type>transmission_interface/SimpleTransmission</type>
+      <joint name="joint${child3}">
+        <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+      </joint>
+      <actuator name="servo${child3}">
+        <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+        <mechanicalReduction>1</mechanicalReduction>
+      </actuator>
+    </transmission>
+
+    <xacro:friction self="center_link"/>
+
+  </xacro:macro>
+
+
+  <xacro:macro name="hydrus_xi_branch_type_link" params="self child rotor_direction link_type">
 
     #### link ####
     <link name="link${self}">
@@ -15,21 +119,7 @@
               ixy="-0.000016" ixz="0.010020" iyz="-0.000003"/>
         </inertial>
         <xacro:mesh_model type="link/general_link">
-          <origin xyz="0 0 0" rpy="0 0 0"/>
-        </xacro:mesh_model>
-        <xacro:link_collision_model/>
-      </xacro:if>
-
-      <xacro:if value="${link_type == 'head'}">
-        <inertial>
-          <origin xyz="0.32159 -0.0000232075 0.020785" rpy="0 0 0"/>
-          <mass value="0.64047"/>
-          <inertia
-              ixx="0.008485" iyy="0.015088" izz="0.019250"
-              ixy="-0.000009" ixz="0.007973" iyz="-0.000001"/>
-        </inertial>
-        <xacro:mesh_model type="link/head_link">
-          <origin xyz="0 0 0" rpy="0 0 0"/>
+          <origin xyz="0.6 0 0" rpy="0 0 ${pi}"/>
         </xacro:mesh_model>
         <xacro:link_collision_model/>
       </xacro:if>
@@ -42,12 +132,13 @@
               ixx="0.008163" iyy="0.015742" izz="0.020229"
               ixy="-0.000016" ixz="0.009513" iyz="-0.000003"/>
         </inertial>
-        <xacro:mesh_model type="link/end_link">
-          <origin xyz="0 0 0" rpy="0 0 0"/>
+        <xacro:mesh_model type="link/head_link">
+          <origin xyz="0.6 0 0" rpy="0 0 ${pi}"/>
         </xacro:mesh_model>
         <xacro:link_collision_model/>
       </xacro:if>
     </link>
+
     #### link${self} ####
     <xacro:damping_factor link="link${self}"/>
 
@@ -97,30 +188,10 @@
     </link>
     <xacro:damping_factor link="thrust${self}"/>
 
-    #### dummy root link for KDL ####
-    <xacro:if value="${self == 1}">
-      <link name="root">
-        <inertial>
-          <origin xyz="0 0 0" rpy="0 0 0"/>
-          <mass value="0.00001"/>
-          <inertia
-              ixx="0.000001" ixy="0.0" ixz="0.0"
-              iyy="0.000001" iyz="0.0"
-              izz="0.000001"/>
-        </inertial>
-      </link>
-      <joint name="root_joint" type="fixed">
-        <parent link="root"/>
-        <child link="link${self}"/>
-        <origin rpy="0 0 0" xyz="0 0 0"/>
-        <axis xyz="0 0 1"/>
-      </joint>
-    </xacro:if>
-
     #### joints ####
     #### link joint ####
     <xacro:unless value="${self == child}">
-      <joint name="joint${self}" type="revolute">
+      <joint name="joint${child}" type="revolute">
         <limit effort="3.3" lower="-1.57" upper="1.57" velocity="0.5"/>
         <parent link="link${self}"/>
         <child link="link${child}"/>
@@ -160,7 +231,7 @@
     #### battery ####
     <xacro:extra_module name="bat${self}" parent="link${self}" visible="1"
                         model_url="package://hydrus_xi/urdf/mesh/modules/battery/battery.dae">
-      <origin xyz="0.3133 0.0 -0.048" rpy="0 0 ${pi / 2.0}"/>
+      <origin xyz="0.2867 0.0 -0.048" rpy="0 0 ${pi / 2.0}"/>
       <inertial>
         <origin xyz="0 0 0" rpy="0 0 0"/>
         <mass value="${bat_mass}"/>
@@ -174,12 +245,12 @@
 
     #### hardware interface ####
     <xacro:unless value="${self == child}">
-      <transmission name="joint_tran${self}">
+      <transmission name="joint_tran${child}">
         <type>transmission_interface/SimpleTransmission</type>
-        <joint name="joint${self}">
+        <joint name="joint${child}">
           <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
         </joint>
-        <actuator name="servo{self}">
+        <actuator name="servo{child}">
           <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
           <mechanicalReduction>1</mechanicalReduction>
         </actuator>
