@@ -111,6 +111,7 @@ namespace control_plugin
     tf::Vector3 xy_terms_limits_; //0:p 1:i 2:d
     tf::Vector3 xy_offset_;
     bool start_rp_integration_;
+    double start_rp_integration_height_;
 
     //yaw
     tf::Vector3 yaw_gains_; //0:p 1:i 2:d

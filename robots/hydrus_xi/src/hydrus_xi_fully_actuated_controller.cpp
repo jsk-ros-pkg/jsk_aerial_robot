@@ -427,6 +427,7 @@ namespace control_plugin
     xy_node.param("i_gain", xy_gains_[1], 0.0);
     xy_node.param("d_gain", xy_gains_[2], 0.0);
     xy_node.param("hovering_i_gain", xy_hovering_i_gain_, 0.0);
+    xy_node.param("start_rp_integration_height", start_rp_integration_height_, 0.01);
 
     /* yaw */
     yaw_node.param("limit", yaw_limit_, 1.0e6);
@@ -474,6 +475,7 @@ namespace control_plugin
         cout << xy_ns << ": i_gain_ is " << xy_gains_[1] << endl;
         cout << xy_ns << ": d_gain_ is " << xy_gains_[2] << endl;
         cout << xy_ns << ": hovering_i_gain_ is " <<  xy_hovering_i_gain_ << endl;
+        cout << xy_ns << ": start_rp_integration_height_ is " << start_rp_integration_height_ << endl;
 
         cout << yaw_ns << ": limit_ is " << yaw_limit_ << endl;
         cout << yaw_ns << ": p_limit_ is " << yaw_terms_limits_[0] << endl;

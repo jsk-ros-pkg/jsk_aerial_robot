@@ -28,6 +28,7 @@ controller:
     d_term_limit: 10.0
     x_offset: 0
     y_offset: 0
+    start_rp_integration_height: 0.01
 
   yaw:
     limit: 10.0
