@@ -43,7 +43,7 @@
       <limit effort="3.3" lower="-1.57" upper="1.57" velocity="0.5"/>
       <parent link="center_link"/>
       <child link="link${child1}"/>
-      <origin rpy="0 0 0" xyz="0.1255 0 0.016"/>
+      <origin rpy="0 0 ${pi * 4.0 / 3.0}" xyz="-0.06275 -0.10869 0.016"/>
       <axis xyz="0 0 1"/>
       <dynamics damping="0.8" friction="0.05"/>
     </joint>
@@ -52,7 +52,7 @@
       <limit effort="3.3" lower="-1.57" upper="1.57" velocity="0.5"/>
       <parent link="center_link"/>
       <child link="link${child2}"/>
-      <origin rpy="0 0 ${pi * 2.0 / 3.0}" xyz="-0.06275 0.10869 0.016"/>
+      <origin rpy="0 0 0" xyz="0.1255 0 0.016"/>
       <axis xyz="0 0 1"/>
       <dynamics damping="0.8" friction="0.05"/>
     </joint>
@@ -61,7 +61,7 @@
       <limit effort="3.3" lower="-1.57" upper="1.57" velocity="0.5"/>
       <parent link="center_link"/>
       <child link="link${child3}"/>
-      <origin rpy="0 0 ${pi * 4.0 / 3.0}" xyz="-0.06275 -0.10869 0.016"/>
+      <origin rpy="0 0 ${pi * 2.0 / 3.0}" xyz="-0.06275 0.10869 0.016"/>
       <axis xyz="0 0 1"/>
       <dynamics damping="0.8" friction="0.05"/>
     </joint>
@@ -204,7 +204,7 @@
       <limit effort="3.1" lower="-3.1415" upper="3.1415" velocity="0.5"/>
       <parent link="link${self}"/>
       <child link="gimbal_link${self}"/>
-      <origin rpy="0 0 ${pi}" xyz="0.2984 0 0.05967"/>
+      <origin rpy="0 0 0" xyz="0.2984 0 0.05967"/>
       <axis xyz="0 0 1"/>
       <dynamics damping="0.8" friction="0.05"/>
     </joint>

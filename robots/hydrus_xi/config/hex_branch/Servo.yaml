@@ -3,7 +3,7 @@ servo_controller:
     state_sub_topic: /servo/states
     ctrl_pub_topic: /servo/target_states
     torque_pub_topic: /servo/torque_enable
-    angle_sgn: 1
+    angle_sgn: -1
     angle_scale: 0.00076699
     zero_point_offset: 2047
 
@@ -35,9 +35,9 @@ servo_controller:
   gimbals:
     ctrl_pub_topic: /servo/target_states
     torque_pub_topic: /servo/torque_enable
-    angle_sgn: 1
+    angle_sgn: -1
     angle_scale: 0.001534
-    zero_point_offset: 0
+    zero_point_offset: 4096
 
     simulation:
       pid: {p: 5.0, i: 0.001, d: 0.0, i_clamp_max: 0.1, i_clamp_min: -0.1}

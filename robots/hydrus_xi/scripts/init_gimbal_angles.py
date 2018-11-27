@@ -20,7 +20,7 @@ class InitGimbalAngle:
             if i % 2 == 0:
                 angles.append(math.pi/4)
             else:
-                angles.append(-math.pi/8)
+                angles.append(-math.pi/8 + math.pi * 2)
         pub_msg.position = angles
         self.complete = True
         self.pub.publish(pub_msg)

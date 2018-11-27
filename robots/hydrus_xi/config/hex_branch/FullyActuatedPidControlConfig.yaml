@@ -19,7 +19,7 @@ controller:
 
   xy:
     p_gain: 2.5
-    i_gain: 0.25
+    i_gain: 0.05
     hovering_i_gain: 0.05
     d_gain: 1.5
     limit: 10.0
