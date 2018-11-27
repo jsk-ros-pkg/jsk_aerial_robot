@@ -48,4 +48,4 @@ cog_i_xy = i_xy + cog_x * cog_y * mass
 cog_i_xz = i_xz + cog_x * cog_z * mass
 cog_i_yz = i_yz + cog_y * cog_z * mass
 
-print("<inertial>\n \t<origin xyz=\"%f %f %f\" rpy=\"0 0 0\"/>\n \t<mass value=\"%f\"/>\n \t<inertia\n \t ixx=\"%f\" iyy=\"%f\" izz=\"%f\"\n \t ixy=\"%f\" ixz=\"%f\" iyz=\"%f\"/> \n </inertial>" % (cog_x, cog_y, cog_z, mass, cog_i_xx, cog_i_yy, cog_i_zz, cog_i_xy, cog_i_xz, cog_i_yz))
+print("<inertial>\n \t<origin xyz=\"%f %f %f\" rpy=\"0 0 0\"/>\n \t<mass value=\"%f\"/>\n \t<inertia\n \t ixx=\"%f\" iyy=\"%f\" izz=\"%f\"\n \t ixy=\"%f\" ixz=\"%f\" iyz=\"%f\"/> \n</inertial>" % (cog_x, cog_y, cog_z, mass, cog_i_xx, cog_i_yy, cog_i_zz, cog_i_xy, cog_i_xz, cog_i_yz))
