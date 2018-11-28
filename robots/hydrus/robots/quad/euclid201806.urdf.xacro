@@ -8,10 +8,10 @@
   <!-- flight controller -->
   <xacro:extra_module name = "fc" parent = "link2" visible = "1"
                       model_url = "package://hydrus/urdf/mesh/modules/flight_controller/fc_euclid201806.dae">
-    <origin xyz="${link_length/2 + 0.2281} ${-4.4*0.001} 0.03533" rpy="0 0 0"/>
+    <origin xyz="${link_length / 2 + 0.2281} ${-4.4*0.001} 0.03533" rpy="0 0 0"/>
     <inertial>
-      <mass value = "0.0457" />
-      <origin xyz="${8.7*0.001} ${4.4*0.001} -0.01" rpy="0 0 0"/>
+      <mass value = "0.05" />
+      <origin xyz="${11.48*0.001} ${4.3*0.001} ${-9.4*0.001}" rpy="0 0 0"/>
       <inertia
           ixx="0.00001" ixy="0.0" ixz="0.0"
           iyy="0.00001" iyz="0.0"
@@ -24,12 +24,11 @@
                       model_url = "package://hydrus/urdf/mesh/modules/sensor/gps_ublox_m8n.dae">
     <origin xyz="${link_length/2 + 0.206} 0.0 0.18" rpy="0 0 0"/>
     <inertial>
-      <mass value = "0.044" />
-      <origin xyz="0.0 0.0 -0.08" rpy="0 0 0"/>
+      <origin xyz="0.000000 0.000000 -0.062510" rpy="0 0 0"/>
+      <mass value="0.053000"/>
       <inertia
-          ixx="0.00001" ixy="0.0" ixz="0.0"
-          iyy="0.00001" iyz="0.0"
-          izz="0.00002"/>
+          ixx="0.000503" iyy="0.000503" izz="0.000010"
+          ixy="0.000000" ixz="0.000000" iyz="0.000000"/>
     </inertial>
   </xacro:extra_module>
   <xacro:extra_module name = "magnet" parent = "gps">
