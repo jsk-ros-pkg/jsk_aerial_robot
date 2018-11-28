@@ -5,8 +5,8 @@
 			<author> SimLab Soft http://www.simLab-soft.com </author>
 			<authoring_tool>SimLab Collada Exporter for SolidWorks</authoring_tool>
 		</contributor>
-		<created>2018-11-28T07:43:29</created>
-		<modified>2018-11-28T07:43:29</modified>
+		<created>2018-11-28T17:20:30</created>
+		<modified>2018-11-28T17:20:30</modified>
 		<unit meter="1.000000000000000" name="Meter"/>
 		<up_axis>Z_UP</up_axis>
 	</asset>
@@ -15,11 +15,11 @@
 			<node>
 				<matrix> 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 </matrix>
 				<node  id="ID0" name="Camera_1">
-					<matrix> 1 0 0 0 0 0 -1 -0.342053 0 1 0 -0.00055 0 0 0 1 </matrix>
+					<matrix> 1 0 0 -0.01495 0 0 -1 -0.341893 0 1 0 0 0 0 0 1 </matrix>
 					<instance_camera url="#ID1" />
 				</node>
 				<node  id="ID2" name="leddar_one">
-					<matrix> 1 0 0 0 0 0 -1 0 0 1 0 0 0 0 0 1 </matrix>
+					<matrix> 0 1 0 -0.0144 0 0 -1 0.002 -1 0 0 0 0 0 0 1 </matrix>
 					<node  id="ID3" name="Body_1">
 						<matrix> 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 </matrix>
 						<instance_geometry url="#ID4">
@@ -34,7 +34,7 @@
 					</node>
 				</node>
 				<node  id="ID6" name="m3-10-bolt-poly">
-					<matrix> -0.923728 -0.383049 0 0.0395 0 0 1 0.015 -0.383049 0.923728 0 0 0 0 0 1 </matrix>
+					<matrix> -0.923728 -0.383049 0 -0.0144 0 0 1 0.017 -0.383049 0.923728 0 -0.0395 0 0 0 1 </matrix>
 					<node  id="ID7" name="Body_1">
 						<matrix> 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 </matrix>
 						<node  id="ID8" name="_3DGeom_21">
@@ -64,7 +64,7 @@
 					</node>
 				</node>
 				<node  id="ID14" name="m3-10-bolt-poly">
-					<matrix> -0.923728 -0.383049 0 -0.0395 0 0 1 0.015 -0.383049 0.923728 0 0 0 0 0 1 </matrix>
+					<matrix> -0.923728 -0.383049 0 -0.0144 0 0 1 0.017 -0.383049 0.923728 0 0.0395 0 0 0 1 </matrix>
 					<node  id="ID15" name="Body_1">
 						<matrix> 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 </matrix>
 						<node  id="ID16" name="_3DGeom_21">
@@ -94,7 +94,7 @@
 					</node>
 				</node>
 				<node  id="ID19" name="m3-10-bolt-poly">
-					<matrix> 1 0 0 0 0 0 -1 0.01 0 1 0 -0.0225 0 0 0 1 </matrix>
+					<matrix> -1 0 0 -0.0369 0 0 -1 0.012 0 -1 0 0 0 0 0 1 </matrix>
 					<node  id="ID20" name="Body_1">
 						<matrix> 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 </matrix>
 						<node  id="ID21" name="_3DGeom_21">
@@ -124,7 +124,7 @@
 					</node>
 				</node>
 				<node  id="ID24" name="m3-10-bolt-poly">
-					<matrix> 1 0 0 0.0194856 0 0 -1 0.01 0 1 0 0.01125 0 0 0 1 </matrix>
+					<matrix> 0 -1 0 -0.00315 0 0 -1 0.012 1 0 0 -0.0194856 0 0 0 1 </matrix>
 					<node  id="ID25" name="Body_1">
 						<matrix> 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 </matrix>
 						<node  id="ID26" name="_3DGeom_21">
@@ -154,7 +154,7 @@
 					</node>
 				</node>
 				<node  id="ID29" name="m3-10-bolt-poly">
-					<matrix> 1 0 0 -0.0194856 0 0 -1 0.01 0 1 0 0.01125 0 0 0 1 </matrix>
+					<matrix> 0 1 0 -0.00315 0 0 -1 0.012 -1 0 0 0.0194856 0 0 0 1 </matrix>
 					<node  id="ID30" name="Body_1">
 						<matrix> 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 </matrix>
 						<node  id="ID31" name="_3DGeom_21">
@@ -184,7 +184,7 @@
 					</node>
 				</node>
 				<node  id="ID34" name="leddarone_tx2_holder">
-					<matrix> 1 0 0 0 0 0 -1 0.01 0 1 0 0 0 0 0 1 </matrix>
+					<matrix> 0 1 0 -0.0144 0 0 -1 0.012 -1 0 0 0 0 0 0 1 </matrix>
 					<node  id="ID35" name="Body_1">
 						<matrix> 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 </matrix>
 						<instance_geometry url="#ID36">
@@ -199,7 +199,7 @@
 					</node>
 				</node>
 				<node  id="ID38" name="CB3-8">
-					<matrix> 0 0 1 0.0395 1 0 0 0.01 0 1 0 0 0 0 0 1 </matrix>
+					<matrix> 0 0 1 -0.0144 1 0 0 0.012 0 1 0 -0.0395 0 0 0 1 </matrix>
 					<node  id="ID39" name="Body_1">
 						<matrix> 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 </matrix>
 						<instance_geometry url="#ID40">
@@ -214,7 +214,7 @@
 					</node>
 				</node>
 				<node  id="ID42" name="CB3-8">
-					<matrix> 0 0 1 -0.0395 1 0 0 0.01 0 1 0 0 0 0 0 1 </matrix>
+					<matrix> 0 0 1 -0.0144 1 0 0 0.012 0 1 0 0.0395 0 0 0 1 </matrix>
 					<node  id="ID43" name="Body_1">
 						<matrix> 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 </matrix>
 						<instance_geometry url="#ID40">
@@ -238,14 +238,14 @@
 					<perspective>
 						<yfov>45</yfov>
 						<aspect_ratio>1.33333</aspect_ratio>
-						<znear>0.00378753</znear>
-						<zfar>37.8753</zfar>
+						<znear>0.00380613</znear>
+						<zfar>38.0613</zfar>
 					</perspective>
 				</technique_common>
 			</optics>
 			<extra>
 				<technique  >
-					<camera_target type="float">0 0.004 -0.00055</camera_target>
+					<camera_target type="float">-0.01495 0.006 0</camera_target>
 				</technique>
 			</extra>
 		</camera >
@@ -413,31 +413,31 @@
 		</geometry>
 	</library_geometries>
 	<library_materials>
-		<material id="ID41" name="Mtl10">
+		<material id="ID22" name="Mtl6">
 			<instance_effect url="#ID44"/>
 		</material>
-		<material id="ID32" name="Mtl8">
+		<material id="ID27" name="Mtl7">
 			<instance_effect url="#ID45"/>
 		</material>
-		<material id="ID17" name="Mtl5">
+		<material id="ID37" name="Mtla">
 			<instance_effect url="#ID46"/>
 		</material>
-		<material id="ID22" name="Mtl6">
+		<material id="ID17" name="Mtl5">
 			<instance_effect url="#ID47"/>
 		</material>
-		<material id="ID27" name="Mtl7">
+		<material id="ID32" name="Mtl8">
 			<instance_effect url="#ID48"/>
 		</material>
-		<material id="ID10" name="Mtl3">
+		<material id="ID5" name="Mtl1">
 			<instance_effect url="#ID49"/>
 		</material>
-		<material id="ID37" name="Mtla">
+		<material id="ID10" name="Mtl3">
 			<instance_effect url="#ID50"/>
 		</material>
-		<material id="ID5" name="Mtl1">
+		<material id="ID13" name="Mtl4">
 			<instance_effect url="#ID51"/>
 		</material>
-		<material id="ID13" name="Mtl4">
+		<material id="ID41" name="Mtl10">
 			<instance_effect url="#ID52"/>
 		</material>
 	</library_materials>
@@ -449,9 +449,9 @@
 						<emission><color>0 0 0 1</color></emission>
 						<ambient><color>0 0 0 1</color></ambient>
 						<diffuse>
-							<color>0.1 0.1 0.1 1</color>
+							<color>0.409804 0.354902 0.27451 1</color>
 						</diffuse>
-						<specular><color>0.1 0.1 0.1 1</color></specular>
+						<specular><color>0.409804 0.354902 0.27451 1</color></specular>
 						<transparent opaque="A_ONE"><color>1.0 1.0 1.0 1.0</color></transparent>
 						<transparency><float>1</float></transparency>
 					</phong>
@@ -481,9 +481,9 @@
 						<emission><color>0 0 0 1</color></emission>
 						<ambient><color>0 0 0 1</color></ambient>
 						<diffuse>
-							<color>0.409804 0.354902 0.27451 1</color>
+							<color>0.44902 0 0 1</color>
 						</diffuse>
-						<specular><color>0.409804 0.354902 0.27451 1</color></specular>
+						<specular><color>0.44902 0 0 1</color></specular>
 						<transparent opaque="A_ONE"><color>1.0 1.0 1.0 1.0</color></transparent>
 						<transparency><float>1</float></transparency>
 					</phong>
@@ -529,9 +529,9 @@
 						<emission><color>0 0 0 1</color></emission>
 						<ambient><color>0 0 0 1</color></ambient>
 						<diffuse>
-							<color>0.409804 0.354902 0.27451 1</color>
+							<color>0.1 0.1 0.1 1</color>
 						</diffuse>
-						<specular><color>0.409804 0.354902 0.27451 1</color></specular>
+						<specular><color>0.1 0.1 0.1 1</color></specular>
 						<transparent opaque="A_ONE"><color>1.0 1.0 1.0 1.0</color></transparent>
 						<transparency><float>1</float></transparency>
 					</phong>
@@ -545,9 +545,9 @@
 						<emission><color>0 0 0 1</color></emission>
 						<ambient><color>0 0 0 1</color></ambient>
 						<diffuse>
-							<color>0.44902 0 0 1</color>
+							<color>0.409804 0.354902 0.27451 1</color>
 						</diffuse>
-						<specular><color>0.44902 0 0 1</color></specular>
+						<specular><color>0.409804 0.354902 0.27451 1</color></specular>
 						<transparent opaque="A_ONE"><color>1.0 1.0 1.0 1.0</color></transparent>
 						<transparency><float>1</float></transparency>
 					</phong>
@@ -561,9 +561,9 @@
 						<emission><color>0 0 0 1</color></emission>
 						<ambient><color>0 0 0 1</color></ambient>
 						<diffuse>
-							<color>0.1 0.1 0.1 1</color>
+							<color>0.198039 0.470588 0.22549 1</color>
 						</diffuse>
-						<specular><color>0.1 0.1 0.1 1</color></specular>
+						<specular><color>0.198039 0.470588 0.22549 1</color></specular>
 						<transparent opaque="A_ONE"><color>1.0 1.0 1.0 1.0</color></transparent>
 						<transparency><float>1</float></transparency>
 					</phong>
@@ -577,9 +577,9 @@
 						<emission><color>0 0 0 1</color></emission>
 						<ambient><color>0 0 0 1</color></ambient>
 						<diffuse>
-							<color>0.198039 0.470588 0.22549 1</color>
+							<color>0.1 0.1 0.1 1</color>
 						</diffuse>
-						<specular><color>0.198039 0.470588 0.22549 1</color></specular>
+						<specular><color>0.1 0.1 0.1 1</color></specular>
 						<transparent opaque="A_ONE"><color>1.0 1.0 1.0 1.0</color></transparent>
 						<transparency><float>1</float></transparency>
 					</phong>

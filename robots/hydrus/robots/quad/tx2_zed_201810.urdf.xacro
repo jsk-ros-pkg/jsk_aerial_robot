@@ -43,6 +43,19 @@
     </inertial>
   </xacro:extra_module>
 
+  <!-- leddar one -->
+  <xacro:extra_module name = "leddarone" parent = "link3" visible = "1"
+                      model_url = "package://hydrus/urdf/mesh/modules/sensor/leddar_one_tx2_attached_mode.dae">
+    <origin xyz="0.0866 0.0 -0.06267" rpy="0 ${pi} 0"/>
+    <inertial>
+      <origin xyz="-0.007950 0.000000 -0.000140" rpy="0 0 0"/>
+      <mass value="0.029000"/>
+      <inertia
+          ixx="0.000010" iyy="0.000008" izz="0.000008"
+          ixy="0.000000" ixz="0.000000" iyz="0.000000"/>
+    </inertial>
+  </xacro:extra_module>
+
   <!-- processor: jetson tx2 -->
   <xacro:extra_module name = "pc" parent = "link3" visible = "1"
                       model_url = "package://hydrus/urdf/mesh/modules/processor/jetson_tx2.dae"
