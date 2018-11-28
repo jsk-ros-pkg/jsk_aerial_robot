@@ -78,7 +78,7 @@
   </node>
 
   ###########  Sensors  ###########
-  <include file="$(find hydrus)/launch/includes/$(arg model)/sensors.launch.xml" >
+  <include file="$(find hydrus)/launch/includes/$(arg model)/sensors.launch.xml" unless="$(arg direct_model)" >
     <arg name="real_machine" value="$(arg real_machine)" />
     <arg name="simulation" value="$(arg simulation)" />
   </include >
