@@ -8,10 +8,10 @@
   <!-- flight controller -->
   <xacro:extra_module name = "fc" parent = "link2" visible = "1"
                       model_url = "package://hydrus/urdf/mesh/modules/flight_controller/fc_euclid201806.dae"> <!-- same with intel euclid -->
-    <origin xyz="${link_length/2 + 0.2281} ${-4.4*0.001} 0.03533" rpy="0 0 0"/>
+    <origin xyz="${link_length / 2 + 0.2281} ${-4.4*0.001} 0.03533" rpy="0 0 0"/>
     <inertial>
-      <mass value = "0.0457" />
-      <origin xyz="${8.7*0.001} ${4.4*0.001} -0.01" rpy="0 0 0"/>
+      <mass value = "0.05" />
+      <origin xyz="${11.48*0.001} ${4.3*0.001} ${-9.4*0.001}" rpy="0 0 0"/>
       <inertia
           ixx="0.00001" ixy="0.0" ixz="0.0"
           iyy="0.00001" iyz="0.0"
@@ -24,12 +24,11 @@
                       model_url = "package://hydrus/urdf/mesh/modules/sensor/gps_ublox_m8n.dae">
     <origin xyz="${link_length/2 + 0.206} 0.0 0.18" rpy="0 0 0"/>
     <inertial>
-      <mass value = "0.044" />
-      <origin xyz="0.0 0.0 -0.08" rpy="0 0 0"/>
+      <origin xyz="0.000000 0.000000 -0.062510" rpy="0 0 0"/>
+      <mass value="0.053000"/>
       <inertia
-          ixx="0.00001" ixy="0.0" ixz="0.0"
-          iyy="0.00001" iyz="0.0"
-          izz="0.00002"/>
+          ixx="0.000503" iyy="0.000503" izz="0.000010"
+          ixy="0.000000" ixz="0.000000" iyz="0.000000"/>
     </inertial>
   </xacro:extra_module>
   <xacro:extra_module name = "magnet" parent = "gps">
@@ -46,48 +45,49 @@
 
   <!-- processor: jetson tx2 -->
   <xacro:extra_module name = "pc" parent = "link3" visible = "1"
-                      model_url = "package://hydrus/urdf/mesh/modules/processor/jetson_tx2.dae">
-    <origin xyz="${link_length/2 - 0.2134} 0.0 -0.0192" rpy="${pi/2} 0 ${pi}"/>
+                      model_url = "package://hydrus/urdf/mesh/modules/processor/jetson_tx2.dae"
+                      scale="0.001" >
+    <origin xyz="0.086 0.0 ${-0.0192}" rpy="${pi/2} 0 ${pi}"/>
     <inertial>
-      <mass value = "0.1672" />
-      <origin xyz="0 0 ${-5 * 0.001}" rpy="0 0 0"/>
+      <mass value = "0.181" />
+      <origin xyz="0 ${-5 * 0.001} 0" rpy="0 0 0"/>
       <inertia
           ixx="0.00001" ixy="0.0" ixz="0.0"
           iyy="0.00001" iyz="0.0"
-          izz="0.00002"/>
+          izz="0.00001"/>
     </inertial>
   </xacro:extra_module>
 
   <!-- sensor: zed mini with servo -->
   <xacro:extra_module name = "zed_mini_servo_up" parent = "link2" visible = "1"
                       model_url = "package://hydrus/urdf/mesh/modules/sensor/zed_mini_servo_up.dae">
-    <origin xyz="${link_length/2 + 0.28714} 0.0 -0.04015" rpy="0 0 0"/>
+    <origin xyz="${link_length/2 + 0.28715} 0.0 -0.04015" rpy="0 0 0"/>
     <inertial>
-      <mass value = "0.017" />
-      <origin xyz="${-20 * 0.001} 0 ${5 * 0.001}" rpy="0 0 0"/>
+      <mass value = "0.021" />
+      <origin xyz="${-21.77 * 0.001} 0 ${10.3 * 0.001}" rpy="0 0 0"/>
       <inertia
-          ixx="0.00000" ixy="0.0" ixz="0.0"
-          iyy="0.00001" iyz="0.0"
-          izz="0.00001"/>
+          ixx="0.0" ixy="0.0" ixz="0.0"
+          iyy="0.0" iyz="0.0"
+          izz="0.0"/>
     </inertial>
   </xacro:extra_module>
 
 
   <joint name="zed_mini_servo_joint" type="revolute">
     <limit effort="0.2" lower="-1.6" upper="1.6" velocity="0.1"/>
-    <parent link="link2"/>
+    <parent link="zed_mini_servo_up"/>
     <child link="zed_mini_servo_down"/>
-    <origin rpy="0 0 0" xyz="${link_length/2 + 0.28714} 0.0 -0.04015"/>
+    <origin rpy="0 0 0" xyz="0 0.0 0"/>
     <axis xyz="1 0 0"/>
     <dynamics damping="0.01" friction="0.0"/>
   </joint>
 
   <link name="zed_mini_servo_down">
     <inertial>
-      <origin xyz="${-22.5 * 0.001} 0 ${-14 * 0.001}" rpy="0 0 0"/>
-      <mass value="0.093" />
+      <origin xyz="${-21.35 * 0.001} 0 ${-16.4 * 0.001}" rpy="0 0 0"/>
+      <mass value="0.079" />
       <inertia
-          ixx="0.00001" iyy="0.00012" izz="0.00013"
+          ixx="0.00001" iyy="0.00012" izz="0.00012"
           ixy="0" ixz="0" iyz="0"/>
     </inertial>
     <visual>

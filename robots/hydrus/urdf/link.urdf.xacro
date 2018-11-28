@@ -3,33 +3,44 @@
     xmlns:xacro="http://www.ros.org/wiki/xacro" name="hydrusx_link" >
 
   <!-- D-H kai description(different from prof.nakamura) -->
-  <xacro:macro name="hydrusx_link" params="self child rotor_direction">
+  <xacro:macro name="hydrusx_link" params="self child rotor_direction with_leg:=1 with_battery:=1">
 
     <!-- link -->
     <link name="link${self}">
-      <!-- common inertial -->
-      <inertial>
-        <origin xyz="${link_length* 0.5} 0 0" rpy="0 0 0"/>
-        <mass value="${link_rod_mass + link_center_mass + protector_mass + protector_holder_mass - rotor_mass}" /> <!-- exclude from center mass -->
-        <inertia
-            ixx="${protector_inertia / 2}" ixy="0.0" ixz="0.0"
-            iyy="${link_rod_inertia + protector_holder_inertia + protector_inertia /2}" iyz="0.0"
-            izz="${link_rod_inertia + protector_holder_inertia + protector_inertia}"/>
-      </inertial>
-
-      <!-- sepcial inertia & visual & collision -->
       <!-- head -->
       <xacro:if value="${self == 1}">
+        <inertial>
+          <origin xyz="${link_length* 0.5 + 0.055120} 0.0 0.011580" rpy="0 0 0"/>
+          <mass value="0.566650"/>
+          <inertia
+              ixx="0.001804" iyy="0.017972" izz="0.019248"
+              ixy="0.000021" ixz="0.000372" iyz="0.000000"/>
+        </inertial>
         <xacro:link_model type="head" />
       </xacro:if>
       <xacro:unless value="${self == 1}">
+
         <!-- tail -->
         <xacro:if value="${self == child}">
+          <inertial>
+            <origin xyz="${link_length * 0.5 + -0.013450} 0.0 0.012830" rpy="0 0 0"/>
+            <mass value="0.495530"/>
+            <inertia
+                ixx="0.001758" iyy="0.013619" izz="0.014910"
+                ixy="0.000020" ixz="-0.000076" iyz="0.000000"/>
+          </inertial>
           <xacro:link_model type="end" />
         </xacro:if>
         <xacro:unless value="${self == child}">
           <!-- general -->
-            <xacro:link_model type="general" />
+          <inertial>
+            <origin xyz="${link_length * 0.5 + 0.038190} 0.0 0.010950" rpy="0 0 0"/>
+            <mass value="0.597720"/>
+            <inertia
+                ixx="0.001828" iyy="0.021127" izz="0.022388"
+                ixy="0.000021" ixz="0.000260" iyz="0.000000"/>
+          </inertial>
+          <xacro:link_model type="general" />
         </xacro:unless>
       </xacro:unless>
     </link>
@@ -49,38 +60,71 @@
       <!-- visual & collisiont -->
       <inertial>
         <origin xyz="0 0 0" rpy="0 0 0"/>
-        <mass value="${rotor_mass}"/>
+        <mass value="0.0001"/>
         <inertia
-            ixx="${rotor_mass * .25 * rotor_radius * rotor_radius}" ixy="0.0" ixz="0.0"
-            iyy="${rotor_mass * .25 * rotor_radius * rotor_radius}" iyz="0.0"
-            izz="${rotor_mass * .5 * rotor_radius * rotor_radius}"/>
+            ixx="0.00001" ixy="0.0" ixz="0.0"
+            iyy="0.00001" iyz="0.0"
+            izz="0.00002"/>
       </inertial>
-
       <collision>
-        <origin rpy="0 0 0" xyz="0 0 ${collision_model_z_offset}"/>
+        <origin rpy="0 0 0" xyz="0 0 0"/>
         <geometry>
-          <cylinder length="${collision_model_height}" radius="${protector_radius + 0.01}"/>
+          <cylinder length="0.1" radius="${protector_radius + 0.01}"/>
         </geometry>
-        </collision>
-
+      </collision>
     </link>
     <xacro:damping_factor link ="thrust${self}"/>
 
-    <!-- battery -->
-    <xacro:extra_module name = "bat${self}" parent = "link${self}" >
-      <origin xyz="${link_length/2 + bat_offset} 0.0 -0.054" rpy="0 0 0"/>
-      <inertial>
-        <origin xyz="0 0 0" rpy="0 0 0"/>
-        <mass value="${bat_mass}"/>
-        <inertia
-          ixx="0.00001" ixy="0.0" ixz="0.0"
-          iyy="0.00001" iyz="0.0"
-          izz="0.00002"/>
-      </inertial>
-    </xacro:extra_module>
+    <!-- battery: -->
+    <!-- use default battery: -->
+    <xacro:if value="${with_battery == 1}">
+      <xacro:extra_module name = "bat${self}" parent = "link${self}" visible = "1"
+                          model_url = "package://hydrus/urdf/mesh/modules/battery/VOLTON-PG-1300LP2-6s.stl" scale="0.001">
+        <origin xyz="${link_length/2} 0.0 -0.048" rpy="${pi/2} 0 0"/>
+        <inertial>
+          <origin xyz="0 0 0" rpy="0 0 0"/>
+          <mass value="0.194"/>
+          <inertia
+              ixx="0.00012" ixy="0.00005" ixz="0.00011"
+              iyy="0.0" iyz="0.0"
+              izz="0.0"/>
+        </inertial>
+      </xacro:extra_module>
+    </xacro:if>
 
-    <!-- extra module -->
-    <!-- head -->
+    <!-- leg -->
+    <xacro:if value="${with_leg == 1}">
+      <!-- head -->
+      <xacro:if value="${self == 1}">
+        <xacro:standard_leg parent = "link${self}" >
+          <origin xyz="${head_leg_offset} 0.0 0" rpy="0 0 0"/>
+        </xacro:standard_leg>
+      </xacro:if>
+      <xacro:unless value="${self == 1}">
+        <xacro:standard_leg parent = "link${self}" >
+          <origin xyz="${general_leg_offset} 0.0 0" rpy="0 0 0"/>
+        </xacro:standard_leg>
+        <!-- tail -->
+        <xacro:if value="${self == child}">
+          <xacro:standard_leg parent = "link${self}" self= "${self + 1}" >
+            <origin xyz="${end_leg_offset} 0.0 0" rpy="0 0 0"/>
+          </xacro:standard_leg>
+        </xacro:if>
+      </xacro:unless>
+    </xacro:if>
+
+    <!-- joint -->
+    <xacro:unless value="${self == child}">
+      <joint name="joint${self}" type="revolute">
+        <limit effort="10.0" lower="-1.57" upper="1.57" velocity="0.5"/>
+        <parent link="link${self}"/>
+        <child link="link${child}"/>
+        <origin rpy="0 0 0" xyz="${link_length} 0 0"/>
+        <axis xyz="0 0 1"/>
+        <dynamics damping="0.9" friction="0.05"/>
+      </joint>
+    </xacro:unless>
+
     <xacro:if value="${self == 1}">
       <!-- dummy root link for KDL -->
       <link name="root">
@@ -99,61 +143,7 @@
         <origin rpy="0 0 0" xyz="0 0 0"/>
         <axis xyz="0 0 1"/>
       </joint>
-
-      <xacro:extra_module name = "head_leg" parent = "link${self}" >
-        <origin xyz="${link_length * 0.5 + head_leg_offset} 0.0 -0.03" rpy="0 0 0"/>
-        <inertial>
-          <mass value="${head_leg_mass}"/>
-          <origin xyz="0.0 0.0 0.0" rpy="0 0 0"/>
-          <inertia
-              ixx="0.000001" ixy="0.0" ixz="0.0"
-              iyy="0.000001" iyz="0.0"
-              izz="0.000002"/>
-        </inertial>
-      </xacro:extra_module>
     </xacro:if>
-
-    <!-- tail -->
-    <xacro:if value="${self == child}">
-      <xacro:extra_module name = "end_leg" parent = "link${self}" >
-        <origin xyz="${link_length * 0.5 + end_leg_offset} 0.0 -0.03" rpy="0 0 0"/>
-        <inertial>
-          <mass value="${end_leg_mass}"/>
-          <origin xyz="0.0 0.0 0.0" rpy="0 0 0"/>
-          <inertia
-              ixx="0.000001" ixy="0.0" ixz="0.0"
-              iyy="0.000001" iyz="0.0"
-              izz="0.000002"/>
-        </inertial>
-
-      </xacro:extra_module>
-    </xacro:if>
-
-    <!-- joint -->>
-    <xacro:unless value="${self == child}">
-      <joint name="joint${self}" type="revolute">
-        <limit effort="3.1" lower="-1.6" upper="1.6" velocity="0.5"/>
-        <parent link="link${self}"/>
-        <child link="link${child}"/>
-        <origin rpy="0 0 0" xyz="${link_length} 0 0"/>
-        <axis xyz="0 0 1"/>
-        <dynamics damping="0.8" friction="0.05"/>
-      </joint>
-
-
-      <xacro:extra_module name = "joint${self}_module" parent = "link${self}" >
-        <origin xyz="${link_length * 0.5 + link_joint_offset} 0.0 0.0" rpy="0 0 0"/>
-        <inertial>
-          <mass value="${joint_mass}"/>
-          <origin xyz="0.0 0.0 0.0" rpy="0 0 0"/>
-          <inertia
-              ixx="0.000001" ixy="0.0" ixz="0.0"
-              iyy="0.000001" iyz="0.0"
-              izz="0.000002"/>
-        </inertial>
-      </xacro:extra_module>
-
-</xacro:unless>
 
     <!-- hardware interface -->
     <xacro:unless value="${self == child}">

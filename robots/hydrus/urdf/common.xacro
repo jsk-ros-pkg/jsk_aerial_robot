@@ -4,47 +4,33 @@
 
   <!-- kinematics [m] -->
   <xacro:property name="link_length" value=".6" />
-  <xacro:property name="link_rod_length" value=".528" />
   <xacro:property name="protector_radius" value=".1925" />
-  <xacro:property name="link_joint_offset" value="0.3" />
-  <xacro:property name="rotor_radius" value=".02" />
-  <xacro:property name="rotor_height" value=".05" />
-  <xacro:property name="bat_offset" value="0.0" />
-  <xacro:property name="head_leg_offset" value="-0.25" />
-  <xacro:property name="end_leg_offset" value="0.235" />
 
-  <!-- inertial paramters -->
-  <!-- mass [Kg] -->
-  <xacro:property name="link_rod_mass" value="0.099" />
-  <xacro:property name="link_center_mass" value=".211" />
-  <xacro:property name="joint_mass" value=".19" /> <!-- rollor: 0.15 -->
-  <xacro:property name="protector_mass" value=".05" />
-  <xacro:property name="protector_holder_mass" value=".0386" />
-  <xacro:property name="bat_mass" value="0.193" /> <!-- hyperon: 0.41, white(2700mAh): 0.364, white(1300mAh): 0.193 -->
-
-  <xacro:property name="head_leg_mass" value="0.045" /> <!-- rollor: 0.017 -->
-  <xacro:property name="end_leg_mass" value="0.073" /> <!-- rollor: 0.017 -->
-  <xacro:property name="rotor_mass" value=".05" /> <!-- exclude from center mass -->
+  <xacro:property name="head_leg_offset" value="0.0525" />
+  <xacro:property name="general_leg_offset" value="0.05" />
+  <xacro:property name="end_leg_offset" value="0.5355" />
 
   <!-- collision model parameter -->
-  <xacro:property name="collision_model_height" value="0.14" />
-  <xacro:property name="collision_model_z_offset" value="-0.0215" />
-
-  <!-- inertial [N*m*m] -->
-  <xacro:property name="link_rod_inertia" value="${link_rod_mass * link_rod_length * link_rod_length /12}" /> <!-- mass * dist * dist -->
-  <xacro:property name="protector_inertia" value="${protector_mass * protector_radius * protector_radius}" /> <!-- mass * dist * dist -->
-  <xacro:property name="protector_holder_inertia" value="${protector_holder_mass * protector_radius * protector_radius}" /> <!-- mass * dist * dist -->
+  <xacro:property name="leg_collision_model_height" value="0.1715" />
 
   <!-- dynamics -->
   <xacro:property name="max_force" value="18" /> <!-- [N] -->
 
-  <xacro:macro name="link_model" params="type">
+  <xacro:macro name="link_model" params="type with_leg:=${with_leg}">
     <!-- for fcl in planning -->
     <collision>
-      <origin rpy="0 0 0" xyz="${link_length* 0.5} 0 ${collision_model_z_offset}"/>
-      <geometry>
-        <box size="${link_length} 0.05 ${collision_model_height}"/>
-      </geometry>
+      <xacro:if value="${with_leg == 1}">
+        <origin rpy="0 0 0" xyz="${link_length* 0.5} 0 ${- leg_collision_model_height / 2}"/>
+        <geometry>
+          <box size="${link_length} 0.05 ${leg_collision_model_height}"/>
+        </geometry>
+      </xacro:if>
+      <xacro:unless value="${with_leg == 1}">
+        <origin rpy="0 0 0" xyz="${link_length* 0.5} 0 0"/>
+        <geometry>
+          <box size="${link_length} 0.05 0.1"/>
+        </geometry>
+      </xacro:unless>
     </collision>
 
     <visual>
@@ -55,7 +41,7 @@
     </visual>
   </xacro:macro>
 
-  <xacro:macro name="extra_module" params="name parent *origin *inertial visible:=0 model_url:=0">
+  <xacro:macro name="extra_module" params="name parent *origin *inertial visible:=0 model_url:=1 scale:=1">
     <joint name="${parent}2${name}" type="fixed">
       <parent link="${parent}"/>
       <child link="${name}"/>
@@ -68,11 +54,33 @@
           <!-- the origin of link_frame and visual_frame should be identical -->
           <origin rpy="${-pi/2} 0 0" xyz="0 0 0"/>
           <geometry>
-            <mesh filename="${model_url}"/>
+            <mesh filename="${model_url}" scale= "${scale} ${scale} ${scale}"/>
           </geometry>
         </visual>
-        </xacro:if>
+      </xacro:if>
     </link>
+  </xacro:macro>
+
+  <xacro:macro name="standard_leg" params="parent self:=${self} *origin">
+      <xacro:extra_module name = "leg${self}" parent = "${parent}" visible = "1"
+                          model_url = "package://hydrus/urdf/mesh/modules/mechanical/standard_legs.dae" >
+        <xacro:insert_block name="origin" />
+        <inertial>
+          <!-- short leg:
+          <origin xyz="0.0 0.0 -0.055380" rpy="0 0 0"/>
+          <mass value="0.043000"/>
+          <inertia
+              ixx="0.000088" iyy="0.000088" izz="0.000000"
+              ixy="0.000000" ixz="0.000000" iyz="0.000000"/>
+          -->
+          <!-- standard leg: -->
+          <origin xyz="0.0 0.0 -0.0852" rpy="0 0 0"/>
+          <mass value="0.047000"/>
+          <inertia
+              ixx="0.000259" iyy="-0.000281" izz="0.000010"
+              ixy="0.000000" ixz="0.000000" iyz="0.000000"/>
+        </inertial>
+      </xacro:extra_module>
   </xacro:macro>
 
   <!-- friction -->
