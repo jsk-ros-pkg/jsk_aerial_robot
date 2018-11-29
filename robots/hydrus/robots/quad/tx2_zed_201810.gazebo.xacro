@@ -2,9 +2,10 @@
 <robot
     xmlns:xacro="http://www.ros.org/wiki/xacro" name="hydrusx" >
 
+  <!-- robot urdf -->
   <xacro:include filename="$(find hydrus)/robots/quad/tx2_zed_201810.urdf.xacro" />
 
-  <!-- gazebo -->
-  <xacro:include filename="$(find hydrus)/robots/default.gazebo.xacro" />
+  <!-- gazebo plugin for sensors -->
+  <xacro:include filename="$(find hydrus)/robots/onboards/tx2_zed_201810/onboards.gazebo.xacro" />
 
 </robot>

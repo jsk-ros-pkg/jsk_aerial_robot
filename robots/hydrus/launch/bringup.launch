@@ -5,7 +5,7 @@
   <arg name="simulation" default="False" />
   <arg name="control_mode" default="0" />
   <arg name="type" default="quad" />
-  <arg name="model" default="tx2_zed_201810" />
+  <arg name="onboards_model" default="tx2_zed_201810" />
   <arg name="estimate_mode"  default= "0" />
   <arg name="headless" default="True" />
   <arg name="worldtype" default="$(find aerial_robot_simulation)/gazebo_model/world/empty.world" />
@@ -45,7 +45,7 @@
     <param name="main_rate" type="double" value="40"/>
 
     ###########  Sensor Fusion  ###########
-    <rosparam file="$(find hydrus)/config/$(arg type)/egomotion_estimation/$(arg model).yaml" command="load" if="$(arg real_machine)"/>
+    <rosparam file="$(find hydrus)/config/$(arg type)/egomotion_estimation/$(arg onboards_model).yaml" command="load" if="$(arg real_machine)"/>
     <rosparam file="$(find hydrus)/config/$(arg type)/egomotion_estimation/simulation.yaml" command="load" if="$(eval arg('simulation') * (1 - arg('real_machine')))"/>
     <remap from="/joint_states" to="/hydrusx/joint_states"/>
 
@@ -59,7 +59,7 @@
   ###########  Robot Model  ###########
   <include file="$(find hydrus)/launch/robot_model.launch" >
     <arg name="type" value="$(arg type)" />
-    <arg name="model" value="$(arg model)"/>
+    <arg name="onboards_model" value="$(arg onboards_model)"/>
     <arg name="headless" value="$(arg headless)" />
     <arg name="need_joint_state" value="false" if ="$(eval arg('simulation') + arg('real_machine') > 0)"/>
     <arg name="description_mode" value="gazebo" if="$(arg simulation)"/>
@@ -78,7 +78,7 @@
   </node>
 
   ###########  Sensors  ###########
-  <include file="$(find hydrus)/launch/includes/$(arg model)/sensors.launch.xml" >
+  <include file="$(find hydrus)/launch/includes/$(arg onboards_model)/sensors.launch.xml" >
     <arg name="real_machine" value="$(arg real_machine)" />
     <arg name="simulation" value="$(arg simulation)" />
   </include >

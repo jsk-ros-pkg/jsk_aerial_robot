@@ -2,9 +2,7 @@
 <robot
     xmlns:xacro="http://www.ros.org/wiki/xacro" name="hydrusx" >
 
-  <xacro:include filename="$(find hydrus)/robots/quad/euclid201806.urdf.xacro" />
-
-  <!-- gazebo -->
+  <!-- gazebo plugin for controller and common sensors -->
   <xacro:include filename="$(find hydrus)/robots/default.gazebo.xacro" />
 
   <!-- Realsense color camera -->

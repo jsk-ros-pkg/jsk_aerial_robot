@@ -1,0 +1,73 @@
+<?xml version="1.0"?>
+<robot
+    xmlns:xacro="http://www.ros.org/wiki/xacro" name="hydrusx" >
+
+  <xacro:include filename="$(find hydrus)/urdf/common.xacro" />
+
+  <xacro:macro name="onboards" params="link">
+
+    <!-- flight controller -->
+    <xacro:extra_module name = "fc" parent = "link${link}" visible = "1"
+                        model_url = "package://hydrus/urdf/mesh/modules/flight_controller/fc_euclid201806.dae">
+      <origin xyz="${link_length / 2 + 0.2281} ${-4.4*0.001} 0.03533" rpy="0 0 0"/>
+      <inertial>
+        <mass value = "0.05" />
+        <origin xyz="${11.48*0.001} ${4.3*0.001} ${-9.4*0.001}" rpy="0 0 0"/>
+        <inertia
+            ixx="0.00001" ixy="0.0" ixz="0.0"
+            iyy="0.00001" iyz="0.0"
+            izz="0.00002"/>
+      </inertial>
+    </xacro:extra_module>
+
+    <!-- gps -->
+    <xacro:extra_module name = "gps" parent = "link${link}" visible = "1"
+                        model_url = "package://hydrus/urdf/mesh/modules/sensor/gps_ublox_m8n.dae">
+      <origin xyz="${link_length/2 + 0.206} 0.0 0.18" rpy="0 0 0"/>
+      <inertial>
+        <origin xyz="0.000000 0.000000 -0.062510" rpy="0 0 0"/>
+        <mass value="0.053000"/>
+        <inertia
+            ixx="0.000503" iyy="0.000503" izz="0.000010"
+            ixy="0.000000" ixz="0.000000" iyz="0.000000"/>
+      </inertial>
+    </xacro:extra_module>
+    <xacro:extra_module name = "magnet" parent = "gps">
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertial>
+        <mass value = "0.00001" />
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <inertia
+            ixx="0.000001" ixy="0.0" ixz="0.0"
+            iyy="0.000001" iyz="0.0"
+            izz="0.000002"/>
+      </inertial>
+    </xacro:extra_module>
+
+    <!-- processor: euclid -->
+    <xacro:extra_module name = "pc" parent = "link${link}" visible = "1"
+                        model_url = "package://hydrus/urdf/mesh/modules/processor/intel_euclid_201806.dae">
+      <origin xyz="${link_length/2 + 0.1565 + 0.063} 0.0 -0.0394" rpy="0 0 ${-pi/2}"/>
+      <inertial>
+        <mass value = "0.164" />
+        <origin xyz="${0.03*0.001} ${0.72*0.001} ${2.9 * 0.001}" rpy="0 0 0"/>
+        <inertia
+            ixx="0.00001" ixy="0.0" ixz="0.0"
+            iyy="0.00001" iyz="0.0"
+            izz="0.00002"/>
+      </inertial>
+    </xacro:extra_module>
+
+    <xacro:extra_module name = "camera_link" parent = "pc">
+      <origin xyz="${11*0.001} ${-43*0.001} 0" rpy="0 0 0"/>
+      <inertial>
+        <mass value = "0.00001" />
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <inertia
+            ixx="0.000001" ixy="0.0" ixz="0.0"
+            iyy="0.000001" iyz="0.0"
+            izz="0.000002"/>
+      </inertial>
+    </xacro:extra_module>
+  </xacro:macro>
+</robot>

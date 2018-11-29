@@ -6,7 +6,7 @@
   <xacro:include filename="$(find hydrus)/robots/quad/default.urdf.xacro" />
 
   <!-- oboard sensors and processors -->
-  <xacro:include filename="$(find hydrus)/robots/onboards/tx2_zed_201810/onboards.urdf.xacro" />
+  <xacro:include filename="$(find hydrus)/robots/onboards/euclid_201806/onboards.urdf.xacro" />
   <xacro:onboards link = "2" />
 
 </robot>
