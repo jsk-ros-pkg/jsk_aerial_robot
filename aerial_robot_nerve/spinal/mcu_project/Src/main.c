@@ -233,6 +233,7 @@ int main(void)
   MX_TIM2_Init();
   SystemClock_Config();
   MX_TIM3_Init();
+  MX_TIM5_Init();
 
   /* USER CODE BEGIN 2 */
   /* ROS Interface between board and PC */

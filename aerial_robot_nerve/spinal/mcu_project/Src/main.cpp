@@ -202,6 +202,7 @@ int main(void){
   MX_SPI1_Init();
   MX_TIM3_Init();
   MX_TIM4_Init();
+  MX_TIM5_Init();
   MX_TIM8_Init();
   MX_USART1_UART_Init();
   MX_USART3_UART_Init();
@@ -248,7 +249,7 @@ int main(void){
 #endif // imu condition
 
   /* Extra Servo Control */
-  extra_servo_.init(&htim3, &nh_);
+  extra_servo_.init(&htim3, &htim5, &nh_);
 
   FlashMemory::read(); //IMU calib data, uav type
 
