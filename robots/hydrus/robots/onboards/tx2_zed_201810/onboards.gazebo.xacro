@@ -7,7 +7,7 @@
 
   <!-- stereo camera: depth, color based on left camera -->
   <xacro:extra_module name = "zed_left_camera_frame" parent = "zed_camera_center">
-    <origin xyz="0 0.03 0" rpy="0 0 0"/>
+    <origin xyz="0.002 0.03 0" rpy="0 0 0"/>
     <inertial>
       <mass value = "0.00001" />
       <origin xyz="0 0 0" rpy="0 0 0"/>
