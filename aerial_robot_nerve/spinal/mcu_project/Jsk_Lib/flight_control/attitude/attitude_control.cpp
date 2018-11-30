@@ -215,6 +215,8 @@ void AttitudeController::update(void)
           /* timeout => start force landing */
 #ifdef SIMULATION
           ROS_ERROR("failsafe1, time now: %d, time last stamp: %d", HAL_GetTick(), flight_command_last_stamp_);
+#else
+          nh_->logerror("failsafe2-2");
 #endif
           force_landing_flag_ = true;
         }
@@ -236,6 +238,8 @@ void AttitudeController::update(void)
         {
 #ifdef SIMULATION
           ROS_ERROR("failsafe3");
+#else
+          nh_->logerror("failsafe3");
 #endif
           force_landing_flag_ = true;
           error_angle_i_[X] = 0;
@@ -478,6 +482,8 @@ void AttitudeController::fourAxisCommandCallback( const spinal::FourAxisCommand 
       force_landing_flag_ = true;
 #ifdef SIMULATION
       ROS_ERROR("failsafe2-1");
+#else
+      nh_->logerror("failsafe2-1");
 #endif
       return;
     }
@@ -493,7 +499,11 @@ void AttitudeController::fourAxisCommandCallback( const spinal::FourAxisCommand 
           return;
         }
 #else
-      if(cmd_msg.base_throttle_length != motor_number_) return;
+      if(cmd_msg.base_throttle_length != motor_number_)
+    	{
+    	  nh_->logerror("fource axis commnd: motor number is not identical between fc and pc");
+    	  return;
+    	 }
 #endif
 
       /* failsafe2-2: the output difference between motors are too big, start force landing */
@@ -511,6 +521,8 @@ void AttitudeController::fourAxisCommandCallback( const spinal::FourAxisCommand 
           force_landing_flag_ = true;
 #ifdef SIMULATION
           ROS_ERROR("failsafe2-2");
+#else
+          nh_->logerror("failsafe2-2");
 #endif
           return;
         }
@@ -531,7 +543,10 @@ void AttitudeController::fourAxisCommandCallback( const spinal::FourAxisCommand 
                 force_landing_flag_ = true;
 #ifdef SIMULATION
                 ROS_ERROR("failsafe2-2");
+#else
+                nh_->logerror("failsafe2-2");
 #endif
+
                 break;
               }
             target_angle_[Z] = cmd_msg.angles[Z];
@@ -572,8 +587,6 @@ void AttitudeController::pwmInfoCallback( const spinal::PwmInfo &info_msg)
   min_duty_ = pwmConversion(min_thrust_);
   max_duty_ = pwmConversion(max_thrust_);
   abs_max_duty_ = info_msg.abs_max_pwm;
-
-  //ROS_ERROR("[d_board]: min_thrust: %f, max_thrust: %f, min_duty: %f, max_duty: %f, abs_max_duty: %f", min_thrust_, max_thrust_, min_duty_, max_duty_, abs_max_duty_);
 }
 
 void AttitudeController::rpyGainCallback( const spinal::RollPitchYawTerms &gain_msg)
@@ -584,11 +597,18 @@ void AttitudeController::rpyGainCallback( const spinal::RollPitchYawTerms &gain_
 #ifdef SIMULATION
   if(gain_msg.motors.size() != motor_number_)
     {
-      if(motor_number_ > 0) ROS_ERROR("rpy gain: motor number is not identical between fc:%d and pc:%d", motor_number_, (int)gain_msg.motors.size());
-      return;
+      if(motor_number_ > 0)
+      {
+    	  ROS_ERROR("rpy gain: motor number is not identical between fc:%d and pc:%d", motor_number_, (int)gain_msg.motors.size());
+    	  return;
+      }
     }
 #else
-  if(gain_msg.motors_length != motor_number_) return;
+  if(gain_msg.motors_length != motor_number_)
+	  {
+	  	  nh_->logerror("rpy gain: motor number is not identical between fc and pc");
+	  	  return;
+	  }
 #endif
 
   for(int i = 0; i < motor_number_; i++)
@@ -620,7 +640,11 @@ void AttitudeController::pMatrixInertiaCallback(const spinal::PMatrixPseudoInver
       return;
     }
 #else
-  if(msg.pseudo_inverse_length != motor_number_) return;
+  if(msg.pseudo_inverse_length != motor_number_)
+	  {
+	  	  nh_->logerror("p matrix pseudo inverse and inertia commnd: motor number is not identical between fc and pc");
+	  	  return;
+	  }
 #endif
 
   for(int i = 0; i < motor_number_; i ++)
