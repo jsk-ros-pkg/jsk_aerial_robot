@@ -23,6 +23,9 @@ namespace
   uint8_t ck_b_ = 0;
   uint8_t class_ = 0;
 
+  bool start_receive_ = false;
+  uint32_t start_delay = 5000; //start delay
+  uint32_t init_time_;
   bool receive_packet_ = false;
   uint8_t packet_buf_[UBLOX_PACKET_MAX_SIZE];
 }
@@ -33,11 +36,22 @@ GPS::GPS(): GPS_Backend()
 
 void GPS::init(UART_HandleTypeDef *huart, ros::NodeHandle* nh)
 {
+  init_time_ = HAL_GetTick();
   GPS_Backend::init(huart, nh);
 }
 
 void GPS::update()
 {
+  if(!start_receive_)
+  {
+	  if(HAL_GetTick() - init_time_ > start_delay)
+	  {
+		  /* start usart revceive */
+		  startReceive();
+		  start_receive_ = true;
+	  }
+  }
+
   LED2_L;
 
   if(!receive_packet_) return;
