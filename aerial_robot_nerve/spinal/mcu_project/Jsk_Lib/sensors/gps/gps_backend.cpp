@@ -12,8 +12,6 @@ void GPS_Backend::init(UART_HandleTypeDef* huart, ros::NodeHandle* nh)
   nh_ = nh;
   nh_->subscribe< ros::Subscriber<std_msgs::UInt8, GPS_Backend> >(gps_config_sub_);
 
-  /* start usart revceive dma interrupt */
-  startReceive();
 }
 
 void GPS_Backend::startReceive()
