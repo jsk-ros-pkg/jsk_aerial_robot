@@ -50,6 +50,7 @@ namespace aerial_robot_model {
     virtual ~RobotModelRos() = default;
 
     //public functions
+    sensor_msgs::JointState getJointState() const { return joint_state_; }
     bool getKinematicsUpdated() const { return kinematics_updated_; }
 
   protected:
@@ -64,6 +65,7 @@ namespace aerial_robot_model {
     ros::Publisher cog2baselink_tf_pub_;
     ros::Subscriber desire_coordinate_sub_;
     bool enable_cog2baselink_tf_pub_;
+    sensor_msgs::JointState joint_state_;
     bool kinematics_updated_;
     ros::NodeHandle nh_;
     ros::NodeHandle nhp_;
