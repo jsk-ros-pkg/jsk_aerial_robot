@@ -1,4 +1,5 @@
 #include <aerial_robot_model/transformable_aerial_robot_model_ros.h>
+
 namespace aerial_robot_model {
   RobotModelRos::RobotModelRos(ros::NodeHandle nh, ros::NodeHandle nhp, std::unique_ptr<aerial_robot_model::RobotModel> robot_model, bool enable_cog2baselink_tf_pub):
     nh_(nh),
@@ -16,10 +17,12 @@ namespace aerial_robot_model {
     //service server
     add_extra_module_service_ = nhp_.advertiseService("add_extra_module", &RobotModelRos::addExtraModuleCallback, this);
   }
+
   void RobotModelRos::actuatorStateCallback(const sensor_msgs::JointStateConstPtr& state)
   {
     if(getRobotModel().getActuatorJointMap().empty()) getRobotModel().setActuatorJointMap(*state);
     if(getRobotModel().getVerbose()) ROS_ERROR("start kinematics");
+    joint_state_ = *state;
     getRobotModel().updateRobotModel(*state);
     if(getRobotModel().getVerbose()) ROS_ERROR("finish kinematics");
 
@@ -43,6 +46,7 @@ namespace aerial_robot_model {
         kinematics_updated_ = true;
       }
   }
+
   bool RobotModelRos::addExtraModuleCallback(aerial_robot_model::AddExtraModule::Request &req, aerial_robot_model::AddExtraModule::Response &res)
   {
     switch(req.action)
@@ -76,6 +80,7 @@ namespace aerial_robot_model {
     ROS_ERROR("[extra module]: should not reach here ");
     return false;
   }
+
   void RobotModelRos::desireCoordinateCallback(const spinal::DesireCoordConstPtr& msg)
   {
     getRobotModel().setCogDesireOrientation(msg->roll, msg->pitch, msg->yaw);
