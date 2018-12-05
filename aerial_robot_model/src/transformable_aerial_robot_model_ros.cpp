@@ -1,13 +1,15 @@
 #include <aerial_robot_model/transformable_aerial_robot_model_ros.h>
 namespace aerial_robot_model {
-  RobotModelRos::RobotModelRos(ros::NodeHandle nh, ros::NodeHandle nhp, std::unique_ptr<aerial_robot_model::RobotModel> robot_model):
+  RobotModelRos::RobotModelRos(ros::NodeHandle nh, ros::NodeHandle nhp, std::unique_ptr<aerial_robot_model::RobotModel> robot_model, bool enable_cog2baselink_tf_pub):
     nh_(nh),
     nhp_(nhp),
     robot_model_(std::move(robot_model)),
-    kinematics_updated_(false)
+    kinematics_updated_(false),
+    enable_cog2baselink_tf_pub_(enable_cog2baselink_tf_pub)
   {
     //publisher
-    cog2baselink_tf_pub_ = nh_.advertise<geometry_msgs::TransformStamped>("cog2baselink", 1);
+    if (enable_cog2baselink_tf_pub_)
+      cog2baselink_tf_pub_ = nh_.advertise<geometry_msgs::TransformStamped>("cog2baselink", 1);
     //subscriber
     actuator_state_sub_ = nh_.subscribe("joint_states", 1, &RobotModelRos::actuatorStateCallback, this);
     desire_coordinate_sub_ = nh_.subscribe("desire_coordinate", 1, &RobotModelRos::desireCoordinateCallback, this);
@@ -20,16 +22,21 @@ namespace aerial_robot_model {
     if(getRobotModel().getVerbose()) ROS_ERROR("start kinematics");
     getRobotModel().updateRobotModel(*state);
     if(getRobotModel().getVerbose()) ROS_ERROR("finish kinematics");
-    geometry_msgs::TransformStamped tf = getRobotModel().getCog<geometry_msgs::TransformStamped>();
-    tf.header = state->header;
-    tf.header.frame_id = getRobotModel().getRootFrameName();
-    tf.child_frame_id = "cog";
-    br_.sendTransform(tf);
-    geometry_msgs::TransformStamped transform_msg = getRobotModel().getCog2Baselink<geometry_msgs::TransformStamped>();
-    transform_msg.header = state->header;
-    transform_msg.header.frame_id = std::string("cog");
-    transform_msg.child_frame_id = getRobotModel().getBaselinkName();
-    cog2baselink_tf_pub_.publish(transform_msg);
+
+    if (enable_cog2baselink_tf_pub_)
+      {
+        geometry_msgs::TransformStamped tf = getRobotModel().getCog<geometry_msgs::TransformStamped>();
+        tf.header = state->header;
+        tf.header.frame_id = getRobotModel().getRootFrameName();
+        tf.child_frame_id = "cog";
+        br_.sendTransform(tf);
+        geometry_msgs::TransformStamped transform_msg = getRobotModel().getCog2Baselink<geometry_msgs::TransformStamped>();
+        transform_msg.header = state->header;
+        transform_msg.header.frame_id = std::string("cog");
+        transform_msg.child_frame_id = getRobotModel().getBaselinkName();
+        cog2baselink_tf_pub_.publish(transform_msg);
+      }
+
     if(!kinematics_updated_)
       {
         ROS_ERROR("the total mass is %f", getRobotModel().getMass());
