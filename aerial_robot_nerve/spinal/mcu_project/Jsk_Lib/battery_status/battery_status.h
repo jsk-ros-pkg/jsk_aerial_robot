@@ -24,7 +24,6 @@
 #define ROS_PUB_INTERVAL 100 //20[ms]; 500[ms]
 /* https://www.sparkfun.com/datasheets/Sensors/DC%20Voltage%20and%20Current%20Sense%20PCB%20Spec%20Sheet.pdf */
 #define ADC_SCALE 12.65f * 0.001f // [mV/bit] for 12bit 3.3V ADC
-#define VOLTAGE_DIVISION 6
 
 class BatteryStatus
 {
@@ -57,7 +56,7 @@ public:
         	adc_value_ = HAL_ADC_GetValue(hadc_);
         HAL_ADC_Start(hadc_);
 
-        float voltage =  adc_value_ * ADC_SCALE * VOLTAGE_DIVISION ;
+        float voltage =  adc_value_ * ADC_SCALE;
         if(voltage_ < 0) voltage_ = voltage;
 
         /* filtering */
