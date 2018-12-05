@@ -46,7 +46,7 @@ namespace aerial_robot_model {
   //Transformable Aerial Robot Model with ROS functions
   class RobotModelRos {
   public:
-    RobotModelRos(ros::NodeHandle nh, ros::NodeHandle nhp, std::unique_ptr<aerial_robot_model::RobotModel> robot_model = std::make_unique<aerial_robot_model::RobotModel>(true));
+    RobotModelRos(ros::NodeHandle nh, ros::NodeHandle nhp, std::unique_ptr<aerial_robot_model::RobotModel> robot_model = std::make_unique<aerial_robot_model::RobotModel>(true), bool enable_cog2baselink_tf_pub = true);
     virtual ~RobotModelRos() = default;
 
     //public functions
@@ -55,6 +55,7 @@ namespace aerial_robot_model {
   protected:
     //protected functions
     aerial_robot_model::RobotModel& getRobotModel() const { return *robot_model_; }
+
   private:
     //private attributes
     ros::Subscriber actuator_state_sub_;
@@ -62,6 +63,7 @@ namespace aerial_robot_model {
     tf2_ros::TransformBroadcaster br_;
     ros::Publisher cog2baselink_tf_pub_;
     ros::Subscriber desire_coordinate_sub_;
+    bool enable_cog2baselink_tf_pub_;
     bool kinematics_updated_;
     ros::NodeHandle nh_;
     ros::NodeHandle nhp_;
