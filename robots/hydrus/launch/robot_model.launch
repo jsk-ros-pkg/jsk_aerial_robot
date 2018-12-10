@@ -1,8 +1,8 @@
 <launch>
+  <arg name="type" default = "quad" />
+  <arg name="onboards_model"  default = "default" />
   <arg name="direct_model" default="false" />
   <arg name="direct_model_name" />
-  <arg name="type" default="quad" />
-  <arg name="model" default="default" />
   <arg name="headless" default="False" />
   <arg name="description_mode" default="urdf"/>
   <arg name="need_joint_state" default="true" />
@@ -16,7 +16,7 @@
       <param name="use_gui" value="true" />
       <node name="joint_state_publisher_$(arg node_suffix)" pkg="joint_state_publisher" type="joint_state_publisher" >
         <param name="robot_description"
-               command="$(find xacro)/xacro '$(find hydrus)/robots/$(arg type)/$(arg model).urdf.xacro'" />
+               command="$(find xacro)/xacro '$(find hydrus)/robots/$(arg type)/$(arg onboards_model).urdf.xacro'" />
       </node >
     </group>
 
@@ -26,7 +26,7 @@
 
   <include file="$(find aerial_robot_model)/launch/aerial_robot_model.launch" >
     <arg name="headless" value="$(arg headless)" />
-    <arg name="robot_model" value="$(find hydrus)/robots/$(arg type)/$(arg model).$(arg description_mode).xacro" unless="$(arg direct_model)"/>
+    <arg name="robot_model" value="$(find hydrus)/robots/$(arg type)/$(arg onboards_model).$(arg description_mode).xacro" unless="$(arg direct_model)"/>
     <arg name="robot_model" value="$(arg direct_model_name)" if="$(arg direct_model)"/>
     <arg name="node_suffix" value="$(arg node_suffix)" />
   </include>
