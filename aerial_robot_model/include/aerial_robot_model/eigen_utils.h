@@ -1,8 +1,11 @@
+#pragma once
+
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 #include <Eigen/Dense>
 #include <Eigen/Eigenvalues>
 #include <Eigen/LU>
+
 namespace aerial_robot_model {
   /* psuedo inverse */
   /* https://gist.github.com/javidcf/25066cf85e71105d57b6 */
