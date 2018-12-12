@@ -50,6 +50,8 @@ public:
                      double m_f_rate = 0,
                      bool only_three_axis_mode = false);
   virtual ~HydrusXiRobotModel() = default;
+
   bool modelling(bool verbose = false, bool control_verbose = false) override;
+  Eigen::MatrixXd calcWrenchAllocationMatrix();
   //  bool stabilityMarginCheck(bool verbose = false) override;
 };

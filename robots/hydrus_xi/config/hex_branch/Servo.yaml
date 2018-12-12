@@ -9,7 +9,7 @@ servo_controller:
 
     # for simulation
     simulation:
-      pid: {p: 50.0, i: 0.01, d: 2.0, i_clamp_max: 3.3, i_clamp_min: -3.3}
+      pid: {p: 50.0, i: 0.05, d: 2.0, i_clamp_max: 6.6, i_clamp_min: -6.6}
       init_value: 0
       type: effort_controllers/JointPositionController
 
@@ -37,7 +37,7 @@ servo_controller:
     torque_pub_topic: /servo/torque_enable
     angle_sgn: -1
     angle_scale: 0.001534
-    zero_point_offset: 4096
+    zero_point_offset: 2047
 
     simulation:
       pid: {p: 5.0, i: 0.001, d: 0.0, i_clamp_max: 0.1, i_clamp_min: -0.1}

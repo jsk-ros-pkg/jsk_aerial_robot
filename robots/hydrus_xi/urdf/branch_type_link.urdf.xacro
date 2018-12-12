@@ -40,28 +40,28 @@
     #### joints ####
     #### link joint ####
     <joint name="joint${child1}" type="revolute">
-      <limit effort="3.3" lower="-1.57" upper="1.57" velocity="0.5"/>
+      <limit effort="6.6" lower="-1.57" upper="1.57" velocity="0.5"/>
       <parent link="center_link"/>
       <child link="link${child1}"/>
-      <origin rpy="0 0 ${pi * 4.0 / 3.0}" xyz="-0.06275 -0.10869 0.016"/>
+      <origin rpy="0 0 0" xyz="0.1555 0.0 0.015"/>
       <axis xyz="0 0 1"/>
       <dynamics damping="0.8" friction="0.05"/>
     </joint>
 
     <joint name="joint${child2}" type="revolute">
-      <limit effort="3.3" lower="-1.57" upper="1.57" velocity="0.5"/>
+      <limit effort="6.6" lower="-1.57" upper="1.57" velocity="0.5"/>
       <parent link="center_link"/>
       <child link="link${child2}"/>
-      <origin rpy="0 0 0" xyz="0.1255 0 0.016"/>
+      <origin rpy="0 0 ${pi * 2.0 / 3.0}" xyz="-0.07775 0.13467 0.015"/>
       <axis xyz="0 0 1"/>
       <dynamics damping="0.8" friction="0.05"/>
     </joint>
 
     <joint name="joint${child3}" type="revolute">
-      <limit effort="3.3" lower="-1.57" upper="1.57" velocity="0.5"/>
+      <limit effort="6.6" lower="-1.57" upper="1.57" velocity="0.5"/>
       <parent link="center_link"/>
       <child link="link${child3}"/>
-      <origin rpy="0 0 ${pi * 2.0 / 3.0}" xyz="-0.06275 0.10869 0.016"/>
+      <origin rpy="0 0 ${pi * 4.0 / 3.0}" xyz="-0.07775 -0.13467 0.015"/>
       <axis xyz="0 0 1"/>
       <dynamics damping="0.8" friction="0.05"/>
     </joint>

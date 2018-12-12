@@ -137,7 +137,6 @@ namespace control_plugin
 
     tf::Vector3 target_linear_acc_;
     double target_yaw_acc_;
-    Eigen::MatrixXd calcWrenchAllocationMatrixInv();
     std::vector<float> calcForceVector(const Eigen::MatrixXd& wrench_allocation_matrix_inv);
     std::vector<double> target_throttle_;
 

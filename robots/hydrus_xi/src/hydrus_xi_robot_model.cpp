@@ -79,6 +79,24 @@ bool HydrusXiRobotModel::modelling(bool verbose, bool control_verbose) //overrid
   return true;
 }
 
+Eigen::MatrixXd HydrusXiRobotModel::calcWrenchAllocationMatrix()
+{
+  const std::vector<Eigen::Vector3d> rotors_origin = getRotorsOriginFromCog<Eigen::Vector3d>();
+  const std::vector<Eigen::Vector3d> rotors_normal = getRotorsNormalFromCog<Eigen::Vector3d>();
+  const int rotor_num = getRotorNum();
+
+  //Q : WrenchAllocationMatrix
+  Eigen::MatrixXd Q(6, rotor_num);
+  double uav_mass_inv = 1.0 / getMass();
+  Eigen::Matrix3d inertia_inv = getInertia<Eigen::Matrix3d>().inverse();
+  for (unsigned int i = 0; i < rotor_num; ++i) {
+    Q.block(0, i, 3, 1) = rotors_normal.at(i) * uav_mass_inv;
+    Q.block(3, i, 3, 1) = inertia_inv * (rotors_origin.at(i).cross(rotors_normal.at(i)));
+  }
+
+  return Q;
+}
+
 //bool HydrusXiRobotModel::stabilityMarginCheck(bool verbose) //override
 //{
   //implement for future

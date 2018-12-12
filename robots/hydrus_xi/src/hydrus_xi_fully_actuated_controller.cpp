@@ -290,50 +290,8 @@ namespace control_plugin
     spinal::FourAxisCommand flight_command_data;
     flight_command_data.angles[2] = target_yaw_acc_;
 
-    //Simple PID based position/attitude/altitude control
-    const auto wrench_allocation_matrix_inv = calcWrenchAllocationMatrixInv();
-    flight_command_data.base_throttle = calcForceVector(wrench_allocation_matrix_inv);
-
-    flight_cmd_pub_.publish(flight_command_data);
-
-    //send torque allocation matrix inv
-    if (ros::Time::now().toSec() - torque_allocation_matrix_inv_pub_stamp_.toSec() > torque_allocation_matrix_inv_pub_interval_)
-      {
-        torque_allocation_matrix_inv_pub_stamp_ = ros::Time::now();
-
-        spinal::TorqueAllocationMatrixInv torque_allocation_matrix_inv_msg;
-        torque_allocation_matrix_inv_msg.rows.resize(motor_num_);
-        Eigen::MatrixXd torque_allocation_matrix_inv = wrench_allocation_matrix_inv.block(0, 3, motor_num_, 3);
-        if (torque_allocation_matrix_inv.cwiseAbs().maxCoeff() > INT16_MAX * 0.001f)
-          ROS_ERROR("Torque Allocation Matrix overflow");
-        for (unsigned int i = 0; i < motor_num_; i++)
-          {
-            torque_allocation_matrix_inv_msg.rows.at(i).x = torque_allocation_matrix_inv(i,0) * 1000;
-            torque_allocation_matrix_inv_msg.rows.at(i).y = torque_allocation_matrix_inv(i,1) * 1000;
-            torque_allocation_matrix_inv_msg.rows.at(i).z = torque_allocation_matrix_inv(i,2) * 1000;
-          }
-        torque_allocation_matrix_inv_pub_.publish(torque_allocation_matrix_inv_msg);
-      }
-  }
-
-  Eigen::MatrixXd HydrusXiFullyActuatedController::calcWrenchAllocationMatrixInv()
-  {
-    std::vector<Eigen::Vector3d> rotors_origin = getRobotModel().getRotorsOriginFromCog<Eigen::Vector3d>();
-    std::vector<Eigen::Vector3d> rotors_normal = getRobotModel().getRotorsNormalFromCog<Eigen::Vector3d>();
-    if (rotors_origin.size() != motor_num_) {
-      ROS_ERROR("HydrusXiFullyActuatedController: motor num is incorrect");
-      throw "motor num is incorrect";
-    }
-
-    //Q : WrenchAllocationMatrix
-    Eigen::MatrixXd Q(6, motor_num_);
-    double uav_mass_inv = 1.0 / getRobotModel().getMass();
-    Eigen::Matrix3d inertia_inv = getRobotModel().getInertia<Eigen::Matrix3d>().inverse();
-    for (unsigned int i = 0; i < motor_num_; i++) {
-      Q.block(0, i, 3, 1) = rotors_normal.at(i) * uav_mass_inv;
-      Q.block(3, i, 3, 1) = inertia_inv * (rotors_origin.at(i).cross(rotors_normal.at(i)));
-    }
-
+    //wrench allocation matrix
+    auto Q = getRobotModel().calcWrenchAllocationMatrix();
     auto Q_inv = aerial_robot_model::pseudoinverse(Q);
 
     if (verbose_)
@@ -372,7 +330,30 @@ namespace control_plugin
 
         wrench_allocation_matrix_inv_pub_.publish(msg);
       }
-    return Q_inv;
+
+    //Simple PID based position/attitude/altitude control
+    flight_command_data.base_throttle = calcForceVector(Q_inv);
+
+    flight_cmd_pub_.publish(flight_command_data);
+
+    //send torque allocation matrix inv
+    if (ros::Time::now().toSec() - torque_allocation_matrix_inv_pub_stamp_.toSec() > torque_allocation_matrix_inv_pub_interval_)
+      {
+        torque_allocation_matrix_inv_pub_stamp_ = ros::Time::now();
+
+        spinal::TorqueAllocationMatrixInv torque_allocation_matrix_inv_msg;
+        torque_allocation_matrix_inv_msg.rows.resize(motor_num_);
+        Eigen::MatrixXd torque_allocation_matrix_inv = Q_inv.block(0, 3, motor_num_, 3);
+        if (torque_allocation_matrix_inv.cwiseAbs().maxCoeff() > INT16_MAX * 0.001f)
+          ROS_ERROR("Torque Allocation Matrix overflow");
+        for (unsigned int i = 0; i < motor_num_; i++)
+          {
+            torque_allocation_matrix_inv_msg.rows.at(i).x = torque_allocation_matrix_inv(i,0) * 1000;
+            torque_allocation_matrix_inv_msg.rows.at(i).y = torque_allocation_matrix_inv(i,1) * 1000;
+            torque_allocation_matrix_inv_msg.rows.at(i).z = torque_allocation_matrix_inv(i,2) * 1000;
+          }
+        torque_allocation_matrix_inv_pub_.publish(torque_allocation_matrix_inv_msg);
+      }
   }
 
   std::vector<float> HydrusXiFullyActuatedController::calcForceVector(const Eigen::MatrixXd& wrench_allocation_matrix_inv)
