@@ -35,7 +35,7 @@ public:
   {
   }
 
-  void  init(TIM_HandleTypeDef* htim, ros::NodeHandle* nh)
+  void  init(TIM_HandleTypeDef* t1,TIM_HandleTypeDef* t2,ros::NodeHandle* nh)
   {
     nh_ = nh;
 
@@ -43,20 +43,29 @@ public:
     nh_->subscribe< ros::Subscriber<spinal::ServoControlCmd, ExtraServo> >(extra_servo_control_sub_);
     nh_->subscribe< ros::Subscriber<spinal::ServoControlCmd, ExtraServo> >(extra_servo_init_duty_sub_);
 
-    pwm_htim_ = htim;
-    HAL_TIM_PWM_Start(pwm_htim_,TIM_CHANNEL_1);
-    HAL_TIM_PWM_Start(pwm_htim_,TIM_CHANNEL_2);
-    HAL_TIM_PWM_Start(pwm_htim_,TIM_CHANNEL_3);
+    pwm_htim1_ = t1;
+    pwm_htim2_ = t2;
 
-    for (int i = 0; i < 3; i++) {
+    HAL_TIM_PWM_Start(pwm_htim1_,TIM_CHANNEL_1);
+    HAL_TIM_PWM_Start(pwm_htim1_,TIM_CHANNEL_2);
+    HAL_TIM_PWM_Start(pwm_htim1_,TIM_CHANNEL_3);
+
+    HAL_TIM_PWM_Start(pwm_htim2_,TIM_CHANNEL_1);
+    HAL_TIM_PWM_Start(pwm_htim2_,TIM_CHANNEL_2);
+    HAL_TIM_PWM_Start(pwm_htim2_,TIM_CHANNEL_3);
+
+
+    for (int i = 0; i < 6; i++) {
 		FlashMemory::addValue(&(init_duty_[i]), sizeof(float));
 	}
 
 	FlashMemory::read();
-    /* netual: TODO, use flash memory */
-	pwm_htim_->Instance->CCR1 = (uint32_t)(init_duty_[0] / MAX_DUTY * MAX_PWM);
-    pwm_htim_->Instance->CCR2 = (uint32_t)(init_duty_[1] / MAX_DUTY * MAX_PWM);
-    pwm_htim_->Instance->CCR3 = (uint32_t)(init_duty_[2] / MAX_DUTY * MAX_PWM);
+	pwm_htim1_->Instance->CCR1 = (uint32_t)(init_duty_[0] / MAX_DUTY * MAX_PWM);
+    pwm_htim1_->Instance->CCR2 = (uint32_t)(init_duty_[1] / MAX_DUTY * MAX_PWM);
+    pwm_htim1_->Instance->CCR3 = (uint32_t)(init_duty_[2] / MAX_DUTY * MAX_PWM);
+    pwm_htim2_->Instance->CCR1 = (uint32_t)(init_duty_[3] / MAX_DUTY * MAX_PWM);
+    pwm_htim2_->Instance->CCR2 = (uint32_t)(init_duty_[4] / MAX_DUTY * MAX_PWM);
+    pwm_htim2_->Instance->CCR3 = (uint32_t)(init_duty_[5] / MAX_DUTY * MAX_PWM);
 
   }
 
@@ -66,9 +75,11 @@ private:
   ros::Subscriber<spinal::ServoControlCmd, ExtraServo> extra_servo_control_sub_;
   ros::Subscriber<spinal::ServoControlCmd, ExtraServo> extra_servo_init_duty_sub_;
 
-  float init_duty_[3] = {}; //[ms]
+  float init_duty_[6] = {}; //[ms]
 
-  TIM_HandleTypeDef* pwm_htim_;
+  TIM_HandleTypeDef* pwm_htim1_;
+  TIM_HandleTypeDef* pwm_htim2_;
+
 
   void servoControlCallback(const spinal::ServoControlCmd& cmd_msg)
   {
@@ -78,17 +89,32 @@ private:
           {
           case 0:
             {
-              pwm_htim_->Instance->CCR1 = (uint32_t)(cmd_msg.angles[i] / MAX_DUTY * MAX_PWM);
+              pwm_htim1_->Instance->CCR1 = (uint32_t)(cmd_msg.angles[i] / MAX_DUTY * MAX_PWM);
               break;
             }
           case 1:
             {
-              pwm_htim_->Instance->CCR2 = (uint32_t)(cmd_msg.angles[i] / MAX_DUTY * MAX_PWM);
+              pwm_htim1_->Instance->CCR2 = (uint32_t)(cmd_msg.angles[i] / MAX_DUTY * MAX_PWM);
               break;
             }
           case 2:
             {
-              pwm_htim_->Instance->CCR3 = (uint32_t)(cmd_msg.angles[i] / MAX_DUTY * MAX_PWM);
+              pwm_htim1_->Instance->CCR3 = (uint32_t)(cmd_msg.angles[i] / MAX_DUTY * MAX_PWM);
+              break;
+            }
+          case 3:
+            {
+              pwm_htim2_->Instance->CCR1 = (uint32_t)(cmd_msg.angles[i] / MAX_DUTY * MAX_PWM);
+              break;
+            }
+          case 4:
+            {
+              pwm_htim2_->Instance->CCR2 = (uint32_t)(cmd_msg.angles[i] / MAX_DUTY * MAX_PWM);
+              break;
+            }
+          case 5:
+            {
+              pwm_htim2_->Instance->CCR3 = (uint32_t)(cmd_msg.angles[i] / MAX_DUTY * MAX_PWM);
               break;
             }
           default:
