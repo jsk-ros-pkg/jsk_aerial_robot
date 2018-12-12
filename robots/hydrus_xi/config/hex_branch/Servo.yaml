@@ -14,23 +14,23 @@ servo_controller:
       type: effort_controllers/JointPositionController
 
     controller1:
-      id: 2
-      name: joint2
-    controller2:
       id: 0
       name: joint1
+    controller2:
+      id: 2
+      name: joint2
     controller3:
-      id: 6
-      name: joint4
-    controller4:
       id: 4
       name: joint3
+    controller4:
+      id: 6
+      name: joint4
     controller5:
-      id: 10
-      name: joint6
-    controller6:
       id: 8
       name: joint5
+    controller6:
+      id: 10
+      name: joint6
 
   gimbals:
     ctrl_pub_topic: /servo/target_states
@@ -45,20 +45,20 @@ servo_controller:
       type: effort_controllers/JointPositionController
 
     controller1:
-      id: 3
-      name: gimbal2
-    controller2:
       id: 1
       name: gimbal1
+    controller2:
+      id: 3
+      name: gimbal2
     controller3:
-      id: 7
-      name: gimbal4
-    controller4:
       id: 5
       name: gimbal3
+    controller4:
+      id: 7
+      name: gimbal4
     controller5:
-      id: 11
-      name: gimbal6
-    controller6:
       id: 9
       name: gimbal5
+    controller6:
+      id: 11
+      name: gimbal6

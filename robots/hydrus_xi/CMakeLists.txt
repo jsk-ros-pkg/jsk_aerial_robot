@@ -51,5 +51,5 @@ add_executable(hydrus_xi_lqi_controller_node src/hydrus_xi_lqi_controller_node.c
 target_link_libraries(hydrus_xi_lqi_controller_node hydrus_xi_lqi_controller ${catkin_LIBRARIES})
 
 add_library(hydrus_xi_fully_actuated_controller_pluginlib src/hydrus_xi_fully_actuated_controller.cpp)
-target_link_libraries(hydrus_xi_fully_actuated_controller_pluginlib ${catkin_LIBRARIES})
+target_link_libraries(hydrus_xi_fully_actuated_controller_pluginlib hydrus_xi_robot_model ${catkin_LIBRARIES})
 add_dependencies(hydrus_xi_fully_actuated_controller_pluginlib ${PROJECT_NAME}_gencfg)
