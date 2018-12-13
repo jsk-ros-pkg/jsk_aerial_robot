@@ -86,6 +86,7 @@ namespace aerial_robot_model {
     int getRotorNum() const { return rotor_num_; }
     template<class T> std::vector<T> getRotorsNormalFromCog() const;
     template<class T> std::vector<T> getRotorsOriginFromCog() const;
+    const KDL::Tree& getTree() const { return tree_; }
     double getVerbose() const { return verbose_; }
     void setActuatorJointMap(const sensor_msgs::JointState& actuator_state);
     void setCogDesireOrientation(double roll, double pitch, double yaw) { cog_desire_orientation_ = KDL::Rotation::RPY(roll, pitch, yaw); }
