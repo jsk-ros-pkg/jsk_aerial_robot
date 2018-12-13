@@ -3,6 +3,7 @@
 HydrusXiRobotModel::HydrusXiRobotModel(bool init_with_rosparam, bool verbose, std::string baselink, std::string thrust_link, double stability_margin_thre, double p_det_thre, double f_max, double f_min, double m_f_rate, bool only_three_axis_mode) :
   HydrusRobotModel(init_with_rosparam, verbose, baselink, thrust_link, stability_margin_thre, p_det_thre, f_max, f_min, m_f_rate, only_three_axis_mode)
 {
+  makeJointThrustMap();
 }
 
 bool HydrusXiRobotModel::modelling(bool verbose, bool control_verbose) //override
@@ -95,6 +96,69 @@ Eigen::MatrixXd HydrusXiRobotModel::calcWrenchAllocationMatrix()
   }
 
   return Q;
+}
+
+void HydrusXiRobotModel::makeJointThrustMap()
+{
+  joint_thrust_map_.clear();
+  std::vector<std::string> thrust_list;
+  auto segment_map = getTree().getSegments();
+  auto actuator_map = getActuatorMap();
+  for (const auto actuator : actuator_map) {
+    std::vector<std::string> empty_vec;
+    joint_thrust_map_[actuator.first] = empty_vec;
+  }
+  const auto root_tree_elem = getTree().getRootSegment();
+
+  for (int i = 1; ; ++i) {
+    std::string thrust_s = std::string("thrust") + std::to_string(i);
+    auto thrust_tree_elem = segment_map.find(thrust_s);
+    if (thrust_tree_elem == segment_map.end()) break;
+
+    KDL::TreeElement& current_tree_elem = thrust_tree_elem->second;
+
+    while (true) {
+      auto parent_seg_map = GetTreeElementParent(thrust_tree_elem->second);
+      if (parent_seg_map == root_tree_elem) break;
+      auto parent_segment = GetTreeElementSegment(parent_seg_map->second);
+
+      if (joint_thrust_map_.find(parent_segment.getJoint().getName()) != joint_thrust_map_.end()) {
+        joint_thrust_map_.at(parent_segment.getJoint().getName()).push_back(thrust_s);
+      }
+            current_tree_elem = parent_seg_map->second;
+    }
+  }
+}
+
+std::vector<double> HydrusXiRobotModel::calcJointTorque()
+{
+  auto seg_tf_map = getSegmentsTf();
+
+  auto Q_inv = aerial_robot_model::pseudoinverse(calcWrenchAllocationMatrix());
+  Eigen::VectorXd g(6); g << 0, 0, 9.80665, 0, 0, 0;
+  auto static_thrust = Q_inv * g; //[thrust1, thrust2, ..., thrustN]
+  const auto rotors_normal_from_cog = getRotorsNormalFromCog<KDL::Vector>();
+  const auto rotor_direction = getRotorDirection();
+
+  std::vector<double> joint_torque; //[joint1, joint2, ..., jointN]
+
+  for (unsigned int i = 1; ; ++i) {
+    std::string joint_s = std::string("joint") + std::to_string(i);
+    auto thrust_itr = joint_thrust_map_.find(joint_s);
+    if (thrust_itr == joint_thrust_map_.end()) break;
+    double trq = 0.0;
+    for (auto t : thrust_itr->second) {
+      auto r = seg_tf_map.at(t).p - seg_tf_map.at(std::string("link") + std::to_string(i)).p;
+      t.erase(t.begin(), t.begin() + std::string("thrust").length());
+      int idx = std::stoi(t) - 1;
+      auto thrust = rotors_normal_from_cog.at(idx) * static_thrust[idx];
+      double counter_moment = rotor_direction.at(idx + 1) * m_f_rate_ * thrust.z();
+      trq += (-(r * thrust).z() - counter_moment);
+    }
+    joint_torque.push_back(trq);
+  }
+
+  return joint_torque;
 }
 
 //bool HydrusXiRobotModel::stabilityMarginCheck(bool verbose) //override

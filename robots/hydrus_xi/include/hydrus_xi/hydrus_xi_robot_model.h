@@ -36,6 +36,7 @@
 #pragma once
 
 #include <hydrus/hydrus_robot_model.h>
+#include <aerial_robot_model/eigen_utils.h>
 
 class HydrusXiRobotModel : public HydrusRobotModel {
 public:
@@ -53,5 +54,11 @@ public:
 
   bool modelling(bool verbose = false, bool control_verbose = false) override;
   Eigen::MatrixXd calcWrenchAllocationMatrix();
+  std::vector<double> calcJointTorque(); //joint only, not including gimbal
+
+private:
+  std::map<std::string, std::vector<std::string> > joint_thrust_map_;
+  void makeJointThrustMap();
+
   //  bool stabilityMarginCheck(bool verbose = false) override;
 };

@@ -41,7 +41,7 @@ namespace control_plugin
 {
   HydrusXiFullyActuatedController::HydrusXiFullyActuatedController():
     ControlBase(),
-    RobotModelRos(ros::NodeHandle(), ros::NodeHandle("~"), std::move(std::make_unique<HydrusRobotModel>(true))),
+    RobotModelRos(ros::NodeHandle(), ros::NodeHandle("~"), std::move(std::make_unique<HydrusXiRobotModel>(true))),
     state_pos_(0, 0, 0),
     state_vel_(0, 0, 0),
     target_pos_(0, 0, 0),
