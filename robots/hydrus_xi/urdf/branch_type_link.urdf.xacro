@@ -40,7 +40,7 @@
     #### joints ####
     #### link joint ####
     <joint name="joint${child1}" type="revolute">
-      <limit effort="6.6" lower="-1.57" upper="1.57" velocity="0.5"/>
+      <limit effort="6.6" lower="-1.57" upper="1.57" velocity="3.0"/>
       <parent link="center_link"/>
       <child link="link${child1}"/>
       <origin rpy="0 0 0" xyz="0.1555 0.0 0.015"/>
@@ -49,7 +49,7 @@
     </joint>
 
     <joint name="joint${child2}" type="revolute">
-      <limit effort="6.6" lower="-1.57" upper="1.57" velocity="0.5"/>
+      <limit effort="6.6" lower="-1.57" upper="1.57" velocity="3.0"/>
       <parent link="center_link"/>
       <child link="link${child2}"/>
       <origin rpy="0 0 ${pi * 2.0 / 3.0}" xyz="-0.07775 0.13467 0.015"/>
@@ -58,7 +58,7 @@
     </joint>
 
     <joint name="joint${child3}" type="revolute">
-      <limit effort="6.6" lower="-1.57" upper="1.57" velocity="0.5"/>
+      <limit effort="6.6" lower="-1.57" upper="1.57" velocity="3.0"/>
       <parent link="center_link"/>
       <child link="link${child3}"/>
       <origin rpy="0 0 ${pi * 4.0 / 3.0}" xyz="-0.07775 -0.13467 0.015"/>
@@ -190,7 +190,7 @@
     #### link joint ####
     <xacro:unless value="${self == child}">
       <joint name="joint${child}" type="revolute">
-        <limit effort="6.6" lower="${-pi * 0.5}" upper="${pi * 0.5}" velocity="0.5"/>
+        <limit effort="6.6" lower="${-pi * 0.5}" upper="${pi * 0.5}" velocity="3.0"/>
         <parent link="link${self}"/>
         <child link="link${child}"/>
         <origin rpy="0 0 0" xyz="${link_length} 0 0"/>
@@ -201,7 +201,7 @@
 
     #### gimbal joint ####
     <joint name="gimbal${self}" type="revolute">
-      <limit effort="3.1" lower="-3.1415" upper="3.1415" velocity="0.5"/>
+      <limit effort="3.1" lower="-3.1415" upper="3.1415" velocity="3.0"/>
       <parent link="link${self}"/>
       <child link="gimbal_link${self}"/>
       <origin rpy="0 0 0" xyz="0.2984 0 0.05967"/>

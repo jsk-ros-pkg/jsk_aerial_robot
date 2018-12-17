@@ -9,9 +9,7 @@ class InitGimbalAngle:
         rospy.init_node('init_gimbal_angles')
         self.pub = rospy.Publisher('/hydrus_xi/gimbals_ctrl', JointState, queue_size=1)
         self.sub = rospy.Subscriber('/hydrus_xi/joint_states', JointState, self.callback)
-        self.gimbal_num = 6
         self.complete = False
-        self.angle = [-0.443246, 1.80942, -0.422855, 1.81924, -0.427232, 1.83216]
 
     def callback(self, msg):
         pub_msg = JointState()
