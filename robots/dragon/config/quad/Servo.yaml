@@ -7,6 +7,7 @@ dragon:
       angle_sgn: 1
       angle_scale: 0.00076699
       zero_point_offset: 2047
+      torque_scale: 1.0 # TODO please update the scale
 
       # for simulation
       simulation:

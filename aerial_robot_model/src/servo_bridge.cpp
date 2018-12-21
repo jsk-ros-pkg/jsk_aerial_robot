@@ -62,14 +62,17 @@ ServoBridge::ServoBridge(ros::NodeHandle nh, ros::NodeHandle nhp): nh_(nh),nhp_(
         {
           if(servo_params.first.find("controller") != string::npos)
             {
-              int sgn = (servo_params.second.hasMember("angle_sgn"))?
+              int angle_sgn = servo_params.second.hasMember("angle_sgn")?
                 servo_params.second["angle_sgn"]:servo_group_params.second["angle_sgn"];
-              int offset = (servo_params.second.hasMember("zero_point_offset"))?
+              int zero_point_offset = servo_params.second.hasMember("zero_point_offset")?
                 servo_params.second["zero_point_offset"]:servo_group_params.second["zero_point_offset"];
-              double scale = (servo_params.second.hasMember("angle_scale"))?
+              double angle_scale = servo_params.second.hasMember("angle_scale")?
                 servo_params.second["angle_scale"]:servo_group_params.second["angle_scale"];
 
-              servo_group_handler.push_back(SingleServoHandlePtr(new SingleServoHandle(servo_params.second["name"], servo_params.second["id"], sgn, offset, scale, servo_group_params.second.hasMember("state_sub_topic"))));
+              double torque_scale = servo_group_params.second.hasMember("torque_scale")?
+                servo_group_params.second["torque_scale"]:(servo_params.second.hasMember("torque_scale")?servo_params.second["torque_scale"]: XmlRpc::XmlRpcValue(1.0));
+
+              servo_group_handler.push_back(SingleServoHandlePtr(new SingleServoHandle(servo_params.second["name"], servo_params.second["id"], angle_sgn, zero_point_offset, angle_scale, torque_scale, servo_group_params.second.hasMember("state_sub_topic"))));
 
               /* rosparam and load controller for gazebo */
               if(simulation_mode_)
@@ -177,7 +180,8 @@ void ServoBridge::servoStatesCallback(const spinal::ServoStatesConstPtr& state_m
           ROS_ERROR("[servo bridge, servo state callback]: no matching joint handler for servo index %d", it.index);
           return;
         }
-      (*servo_handler)->setCurrVal((double)it.angle, ValueType::BIT);
+      (*servo_handler)->setCurrAngleVal((double)it.angle, ValueType::BIT); // angle (position)
+      (*servo_handler)->setCurrTorqueVal((double)it.load); // torque (effort)
     }
 
   sensor_msgs::JointState servo_states_msg;
@@ -188,7 +192,8 @@ void ServoBridge::servoStatesCallback(const spinal::ServoStatesConstPtr& state_m
       for(auto servo_handler: servo_group.second)
         {
           servo_states_msg.name.push_back(servo_handler->getName());
-          servo_states_msg.position.push_back(servo_handler->getCurrVal(ValueType::RADIAN));
+          servo_states_msg.position.push_back(servo_handler->getCurrAngleVal(ValueType::RADIAN));
+          servo_states_msg.effort.push_back(servo_handler->getCurrTorqueVal());
         }
     }
   servo_states_pub_.publish(servo_states_msg);
@@ -220,9 +225,9 @@ void ServoBridge::servoCtrlCallback(const sensor_msgs::JointStateConstPtr& servo
             return;
           }
 
-          (*servo_handler)->setTargetVal(servo_ctrl_msg->position[i], ValueType::RADIAN);
+          (*servo_handler)->setTargetAngleVal(servo_ctrl_msg->position[i], ValueType::RADIAN);
           target_angle_msg.index.push_back((*servo_handler)->getId());
-          target_angle_msg.angles.push_back((*servo_handler)->getTargetVal(ValueType::BIT));
+          target_angle_msg.angles.push_back((*servo_handler)->getTargetAngleVal(ValueType::BIT));
 
           if(simulation_mode_)
             {
@@ -246,9 +251,9 @@ void ServoBridge::servoCtrlCallback(const sensor_msgs::JointStateConstPtr& servo
         {
           /*  use the kinematics order (e.g. joint1 ~ joint N, gimbal_roll -> gimbal_pitch) */
           SingleServoHandlePtr servo_handler = servos_handler_[servo_group_name].at(i);
-          servo_handler->setTargetVal(servo_ctrl_msg->position[i], ValueType::RADIAN);
+          servo_handler->setTargetAngleVal(servo_ctrl_msg->position[i], ValueType::RADIAN);
           target_angle_msg.index.push_back(servo_handler->getId());
-          target_angle_msg.angles.push_back(servo_handler->getTargetVal(ValueType::BIT));
+          target_angle_msg.angles.push_back(servo_handler->getTargetAngleVal(ValueType::BIT));
 
           if(simulation_mode_)
             {
