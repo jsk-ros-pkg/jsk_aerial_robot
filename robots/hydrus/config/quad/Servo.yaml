@@ -7,7 +7,7 @@ hydrusx:
       angle_sgn: 1
       angle_scale: 0.001534
       zero_point_offset: 2047
-      torque_scale: 1.0 # TODO please update the scale
+      torque_scale: 0.00735 # convert to N*m
 
       # for simulation
       simulation:
