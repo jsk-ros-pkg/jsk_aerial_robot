@@ -33,6 +33,13 @@
       <xacro:mesh_model type="link/center_link">
         <origin xyz="0 0 0" rpy="0 0 0"/>
       </xacro:mesh_model>
+      <collision>
+        <origin rpy="0 0 0" xyz="0 0 0"/>
+        <geometry>
+          <cylinder length="0.20" radius="0.1"/>
+        </geometry>
+      </collision>
+
     </link>
 
     <xacro:damping_factor link="center_link"/>
@@ -152,12 +159,12 @@
       <xacro:mesh_model type="link/propeller_link">
         <origin xyz="0 0 0" rpy="0 0 0"/>
       </xacro:mesh_model>
-      <!-- <collision> -->
-      <!--   <origin rpy="0 0 0" xyz="0 0 ${- collision_rotor_height / 2}"/> -->
-      <!--   <geometry> -->
-      <!--     <cylinder length="${collision_rotor_height}" radius="${protector_radius + 0.01}"/> -->
-      <!--   </geometry> -->
-      <!-- </collision> -->
+      <collision>
+        <origin rpy="0 0 0" xyz="0 0 ${- collision_rotor_height / 2}"/>
+        <geometry>
+          <cylinder length="${collision_rotor_height}" radius="${protector_radius + 0.01}"/>
+        </geometry>
+      </collision>
     </link>
     <xacro:damping_factor link="gimbal_link${self}"/>
 

@@ -12,6 +12,9 @@
   <arg name="worldtype" default="$(find aerial_robot_simulation)/gazebo_model/world/empty.world" />
   <arg name="direct_model" default="False" />
   <arg name="direct_model_name" />
+  <arg name="spawn_x" default="0.0"/>
+  <arg name="spawn_y" default="0.0"/>
+  <arg name="spawn_z" default="0.0"/>
 
   ###########  UAV Config  ###########
   <param if="$(arg fullyactuated_control)" name="/uav_info/uav_model" value= "17" />
@@ -96,6 +99,9 @@
     <arg name="gui" value="false" if="$(arg headless)"/>
     <arg name="headless" value="$(arg headless)"/>
     <arg name="worldtype" value="$(arg worldtype)"/>
+    <arg name="spawn_x" value="$(arg spawn_x)"/>
+    <arg name="spawn_y" value="$(arg spawn_y)"/>
+    <arg name="spawn_z" value="$(arg spawn_z)"/>
   </include>
 
   ######### init gimbal angles #########

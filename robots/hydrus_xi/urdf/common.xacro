@@ -4,6 +4,7 @@
 
   <!-- kinematics [m] -->
   <xacro:property name="link_length" value="0.6"/>
+  <xacro:property name="link_height" value="0.28"/>
   <xacro:property name="protector_radius" value="0.1925"/>
   <xacro:property name="fc_x_offset" value="0.566"/>
   <xacro:property name="fc_z_offset" value="-0.021"/>
@@ -34,7 +35,7 @@
     <collision>
       <origin rpy="0 0 0" xyz="${link_length* 0.5} 0 0"/>
       <geometry>
-        <box size="${link_length} 0.05 0.25"/>
+        <box size="${link_length} 0.05 ${link_height}"/>
       </geometry>
     </collision>
   </xacro:macro>
