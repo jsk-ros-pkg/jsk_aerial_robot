@@ -13,8 +13,8 @@
 # motion capture(optitrack)
 - git:
     local-name: mocap_optitrack
-    uri: https://github.com/ros-drivers/mocap_optitrack.git
-    version: 9724d0e
+    uri: https://github.com/tongtybj/mocap_optitrack.git
+    version: fix_multiple_rigid_bodies_parse_bug
 # mavlink
 # This should be temporary link, since this is fixed to be indigo version
 - git:
