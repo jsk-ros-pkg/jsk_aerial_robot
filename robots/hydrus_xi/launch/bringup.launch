@@ -22,7 +22,7 @@
   <param name="/hydrus_xi/baselink" value="fc" />
 
   ###########  Motor Config  ###########
-  <rosparam file="$(find hydrus_xi)/config/MotorInfo.yaml" command="load" />
+  <rosparam file="$(find hydrus_xi)/config/motor_info/MN4010KV475_Afro_15inch.yaml" command="load" />
 
   ###########  Battery Config  ###########
   <rosparam file="$(find hydrus_xi)/config/$(arg type)/Battery.yaml" command="load" />

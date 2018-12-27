@@ -119,7 +119,7 @@
       <xacro:if value="${link_type == 'middle'}">
         <inertial>
           <origin xyz="0.300691 0.000051 0.027824" rpy="0 0 0"/>
-          <mass value="0.736958"/>
+          <mass value="0.606958"/>
           <inertia
               ixx="0.008461" iyy="0.022896" izz="0.027105"
               ixy="0.000029" ixz="0.013452" iyz="0.000003"/>
@@ -131,11 +131,11 @@
       </xacro:if>
       <xacro:if value="${link_type == 'end'}">
         <inertial>
-          <origin xyz="0.300691 0.000051 0.027824" rpy="0 0 0"/>
-          <mass value="0.736958"/>
+          <origin xyz="0.271325 0.000023 0.018067" rpy="0 0 0"/>
+          <mass value="0.527057"/>
           <inertia
-              ixx="0.008461" iyy="0.022896" izz="0.027105"
-              ixy="0.000029" ixz="0.013452" iyz="0.000003"/>
+              ixx="0.008981" iyy="0.018237" izz="0.021912"
+              ixy="0.000009" ixz="0.005609" iyz="0.000001"/>
         </inertial>
         <xacro:mesh_model type="link/end_link1">
           <origin xyz="0.6 0 0" rpy="0 0 ${pi}"/>
@@ -151,7 +151,7 @@
     <link name="gimbal_link${self}">
       <inertial>
         <origin xyz="-0.006114 0.000001 0.032778" rpy="0 0 0"/>
-        <mass value="0.140963"/>
+        <mass value="0.23599752692"/>
         <inertia
             ixx="0.001" iyy="0.001" izz="0.001"
             ixy="0" ixz="0" iyz="0"/>
