@@ -1,6 +1,6 @@
 motor_info:
   min_thrust: 2 #[N]
-  max_thrust: 24 #[N]
+  max_thrust: 32 #[N]
   abs_max_pwm: 0.92
   force_landing_thrust: 7.0 #[N]
   m_f_rate: -0.0182
