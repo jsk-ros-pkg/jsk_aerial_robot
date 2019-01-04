@@ -72,13 +72,6 @@ namespace sensor_plugin
       nhp_.param("vo_sub_topic_name", vo_sub_topic_name, string("vo") );
       vo_sub_ = nh_.subscribe(vo_sub_topic_name, 1, &VisualOdometry::voCallback, this);
 
-      /* get the sensor tf based on FC */
-      if(!updateBaseLink2SensorTransform())
-        {
-          ROS_ERROR("%s: can not get sensor tf based on FC",nhp_.getNamespace().c_str());
-          return;
-        }
-
       /* servo control timer */
       if(variable_sensor_tf_flag_)
         {
