@@ -70,6 +70,7 @@ namespace sensor_plugin
 
       acc_pub_ = nh_.advertise<aerial_robot_msgs::Acc>("acc", 2);
       imu_pub_ = nh_.advertise<sensor_msgs::Imu>(imu_pub_topic_name_, 1);
+      state_pub_ = nh_.advertise<aerial_robot_msgs::States>("data", 1);
 
       imu_sub_ = nh_.subscribe<spinal::Imu>(imu_topic_name_, 1, &Imu::ImuCallback, this);
     }
@@ -88,7 +89,15 @@ namespace sensor_plugin
       acc_bias_l_(0, 0, 0),
       acc_bias_w_(0, 0, 0),
       sensor_dt_(0)
-    { }
+    {
+      state_.states.resize(3);
+      state_.states[0].id = "x";
+      state_.states[0].state.resize(2);
+      state_.states[1].id = "y";
+      state_.states[1].state.resize(2);
+      state_.states[2].id = "z";
+      state_.states[2].state.resize(2);
+    }
 
     inline tf::Vector3 getAttitude(uint8_t frame)  { return euler_; }
     inline ros::Time getStamp(){return imu_stamp_;}
@@ -96,6 +105,7 @@ namespace sensor_plugin
   private:
     ros::Publisher  acc_pub_;
     ros::Publisher  imu_pub_;
+    ros::Publisher  state_pub_;
     ros::Subscriber  imu_sub_, sub_imu_sub_;
     ros::Subscriber  imu_simple_sub_;
 
@@ -124,6 +134,8 @@ namespace sensor_plugin
     tf::Vector3 acc_bias_b_; /* the acceleration bias in baselink frame, only use z axis  */
     tf::Vector3 acc_bias_l_; /* the acceleration bias in level frame as to baselink frame: previously is acc_i */
     tf::Vector3 acc_bias_w_; /* the acceleration bias in world frame */
+
+    aerial_robot_msgs::States state_; /* for debug */
 
     double calib_time_;
 
@@ -457,6 +469,34 @@ namespace sensor_plugin
 
           publishAccData();
           publishRosImuData();
+
+          /* publish state date */
+          state_.header.stamp = imu_stamp_;
+          tf::Vector3 pos = estimator_->getPos(Frame::BASELINK, BasicEstimator::EGOMOTION_ESTIMATE);
+          tf::Vector3 vel = estimator_->getVel(Frame::BASELINK, BasicEstimator::EGOMOTION_ESTIMATE);
+          state_.states[0].state[0].x = pos.x();
+          state_.states[1].state[0].x = pos.y();
+          state_.states[2].state[0].x = pos.z();
+          state_.states[0].state[0].y = vel.x();
+          state_.states[1].state[0].y = vel.y();
+          state_.states[2].state[0].y = vel.z();
+          state_.states[0].state[0].z = acc_w_.x();
+          state_.states[1].state[0].z = acc_w_.y();
+          state_.states[2].state[0].z = acc_w_.z();
+          pos = estimator_->getPos(Frame::BASELINK, BasicEstimator::EXPERIMENT_ESTIMATE);
+          vel = estimator_->getVel(Frame::BASELINK, BasicEstimator::EXPERIMENT_ESTIMATE);
+          state_.states[0].state[1].x = pos.x();
+          state_.states[1].state[1].x = pos.y();
+          state_.states[2].state[1].x = pos.z();
+          state_.states[0].state[1].y = vel.x();
+          state_.states[1].state[1].y = vel.y();
+          state_.states[2].state[1].y = vel.z();
+          state_.states[0].state[1].z = acc_w_.x();
+          state_.states[1].state[1].z = acc_w_.y();
+          state_.states[2].state[1].z = acc_w_.z();
+
+          state_pub_.publish(state_);
+
         }
       prev_time = imu_stamp_;
     }

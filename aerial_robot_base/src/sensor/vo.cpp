@@ -72,13 +72,6 @@ namespace sensor_plugin
       nhp_.param("vo_sub_topic_name", vo_sub_topic_name, string("vo") );
       vo_sub_ = nh_.subscribe(vo_sub_topic_name, 1, &VisualOdometry::voCallback, this);
 
-      /* get the sensor tf based on FC */
-      if(!updateBaseLink2SensorTransform())
-        {
-          ROS_ERROR("%s: can not get sensor tf based on FC",nhp_.getNamespace().c_str());
-          return;
-        }
-
       /* servo control timer */
       if(variable_sensor_tf_flag_)
         {
@@ -248,10 +241,11 @@ namespace sensor_plugin
           baselink_tf_.getBasis().getRPY(r, p, y);
           ROS_INFO("mocap yaw: %f, vo rot: [%f, %f, %f]", estimator_->getState(State::YAW_BASE, BasicEstimator::GROUND_TRUTH)[0], r, p, y);
         }
-      estimateProcess(vo_msg->header.stamp);
+
+      vo_state_.header.stamp.fromSec(vo_msg->header.stamp.toSec() + ((time_sync_ && delay_ < 0)?delay_:0));
+      estimateProcess();
 
       /* publish */
-      vo_state_.header.stamp = vo_msg->header.stamp;
 
       for(int axis = 0; axis < 3; axis++)
         vo_state_.states[axis].state[0].x = baselink_tf_.getOrigin()[axis]; //raw
@@ -261,15 +255,13 @@ namespace sensor_plugin
       updateHealthStamp();
     }
 
-    void estimateProcess(ros::Time stamp)
+    void estimateProcess()
     {
       /* YAW */
       /* TODO: the weighting filter with IMU */
       tfScalar r,p,y;
       baselink_tf_.getBasis().getRPY(r,p,y);
       estimator_->setState(State::YAW_BASE, BasicEstimator::EGOMOTION_ESTIMATE, 0, y);
-
-      ros::Time stamp_temp = stamp;
 
       /* XYZ */
       for(auto& fuser : estimator_->getFuser(BasicEstimator::EGOMOTION_ESTIMATE))
@@ -295,15 +287,11 @@ namespace sensor_plugin
                   int index = id >> (State::X_BASE + 1);
                   VectorXd meas(1); meas <<  baselink_tf_.getOrigin()[index];
                   vector<double> params = {kf_plugin::POS};
-                  if(time_sync_ && delay_ < 0) stamp.fromSec(stamp_temp.toSec() + delay_);
 
-                  kf->correction(meas, stamp.toSec(), params);
+                  kf->correction(meas, vo_state_.header.stamp.toSec(), params);
                   VectorXd state = kf->getEstimateState();
                   estimator_->setState(index + 3, BasicEstimator::EGOMOTION_ESTIMATE, 0, state(0));
                   estimator_->setState(index + 3, BasicEstimator::EGOMOTION_ESTIMATE, 1, state(1));
-
-                  vo_state_.states[index].state[1].x = state(0); //estimated pos
-                  vo_state_.states[index].state[1].y = state(1); //estimated vel
                 }
             }
           if(plugin_name == "aerial_robot_base/kf_xy_roll_pitch_bias")
@@ -318,22 +306,14 @@ namespace sensor_plugin
                   /* correction */
                   VectorXd meas(2); meas << baselink_tf_.getOrigin()[0], baselink_tf_.getOrigin()[1];
                   vector<double> params = {kf_plugin::POS};
-                  if(time_sync_ && delay_ < 0) stamp.fromSec(stamp_temp.toSec() + delay_);
 
-                  kf->correction(meas, stamp.toSec(), params);
+                  kf->correction(meas, vo_state_.header.stamp.toSec(), params);
                   VectorXd state = kf->getEstimateState();
 
                   estimator_->setState(State::X_BASE, BasicEstimator::EGOMOTION_ESTIMATE, 0, state(0));
                   estimator_->setState(State::X_BASE, BasicEstimator::EGOMOTION_ESTIMATE, 1, state(1));
                   estimator_->setState(State::Y_BASE, BasicEstimator::EGOMOTION_ESTIMATE, 0, state(2));
                   estimator_->setState(State::Y_BASE, BasicEstimator::EGOMOTION_ESTIMATE, 1, state(3));
-                  vo_state_.states[0].state[1].x = state(0);
-                  vo_state_.states[0].state[1].y = state(1);
-                  vo_state_.states[0].state[1].z = state(4);
-
-                  vo_state_.states[1].state[1].x = state(2);
-                  vo_state_.states[1].state[1].y = state(3);
-                  vo_state_.states[1].state[1].z = state(5);
                 }
             }
         }
