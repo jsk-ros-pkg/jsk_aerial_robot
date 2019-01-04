@@ -118,11 +118,11 @@
     <link name="link${self}">
       <xacro:if value="${link_type == 'middle'}">
         <inertial>
-          <origin xyz="0.300691 0.000051 0.027824" rpy="0 0 0"/>
-          <mass value="0.606958"/>
+          <origin xyz="0.313051 0.000071 0.011024" rpy="0 0 0"/>
+          <mass value="0.535052"/>
           <inertia
-              ixx="0.008461" iyy="0.022896" izz="0.027105"
-              ixy="0.000029" ixz="0.013452" iyz="0.000003"/>
+              ixx="0.000808" iyy="0.014148" izz="0.013428"
+              ixy="0.000030" ixz="0.005073" iyz="0.000002"/>
         </inertial>
         <xacro:mesh_model type="link/middle_link">
           <origin xyz="0.6 0 0" rpy="0 0 ${pi}"/>
@@ -131,11 +131,11 @@
       </xacro:if>
       <xacro:if value="${link_type == 'end'}">
         <inertial>
-          <origin xyz="0.271325 0.000023 0.018067" rpy="0 0 0"/>
-          <mass value="0.527057"/>
+          <origin xyz="0.272827 0.000033 -0.006011" rpy="0 0 0"/>
+          <mass value="0.455151"/>
           <inertia
-              ixx="0.008981" iyy="0.018237" izz="0.021912"
-              ixy="0.000009" ixz="0.005609" iyz="0.000001"/>
+              ixx="0.001020" iyy="0.009477" izz="0.008530"
+              ixy="0.000009" ixz="-0.002418" iyz="0.000000"/>
         </inertial>
         <xacro:mesh_model type="link/end_link1">
           <origin xyz="0.6 0 0" rpy="0 0 ${pi}"/>
@@ -150,11 +150,11 @@
     #### gimbal link ####
     <link name="gimbal_link${self}">
       <inertial>
-        <origin xyz="-0.006114 0.000001 0.032778" rpy="0 0 0"/>
-        <mass value="0.23599752692"/>
+        <origin xyz="-0.009927 0.000000 0.050828" rpy="0 0 0"/>
+        <mass value="0.252140"/>
         <inertia
-            ixx="0.001" iyy="0.001" izz="0.001"
-            ixy="0" ixz="0" iyz="0"/>
+            ixx="0.004032" iyy="0.003374" izz="0.006517"
+            ixy="-0.000000" ixz="-0.001309" iyz="0.000000"/>
       </inertial>
       <xacro:mesh_model type="link/propeller_link">
         <origin xyz="0 0 0" rpy="0 0 0"/>
@@ -207,11 +207,11 @@
     </xacro:unless>
 
     #### gimbal joint ####
-    <joint name="gimbal${self}" type="revolute">
-      <limit effort="3.1" lower="-3.1415" upper="3.1415" velocity="3.0"/>
+    <joint name="gimbal${self}" type="continuous">
+      <limit effort="3.1" lower="${pi * -6}" upper="${pi * 6}" velocity="20.0"/>
       <parent link="link${self}"/>
       <child link="gimbal_link${self}"/>
-      <origin rpy="0 0 ${pi}" xyz="0.2984 0 0.05967"/>
+      <origin rpy="0 0 ${pi}" xyz="0.2984 0 0.04867"/>
       <axis xyz="0 0 1"/>
       <dynamics damping="0.8" friction="0.0"/>
     </joint>
@@ -220,7 +220,7 @@
     <joint name="rotor_parent_link_joint${self}" type="fixed">
       <parent link="gimbal_link${self}"/>
       <child link="rotor_parent${self}"/>
-      <origin rpy="0 ${thrust_tilt_angle} 0" xyz="0 0 0.05091"/>
+      <origin rpy="0 ${thrust_tilt_angle} 0" xyz="0 0 0.06041"/>
       <axis xyz="0 0 ${rotor_direction}"/>
     </joint>
 
