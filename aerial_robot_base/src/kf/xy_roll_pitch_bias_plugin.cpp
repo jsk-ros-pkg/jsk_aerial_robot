@@ -56,18 +56,16 @@ namespace kf_plugin
       measure_dim_ = 2:  p_x + p_y or v_x + v_y
     */
 
-    KalmanFilterXYBias():KalmanFilter(6,5,2) {}
+    KalmanFilterXYBias():KalmanFilter() {}
     ~KalmanFilterXYBias() {}
 
     void initialize(ros::NodeHandle nh, string suffix, int id)
     {
+      state_dim_ = 6;
+      input_name_v_ = {"a_xb", "a_yb", "a_zb", "d_b_roll", "d_b_pitch"};
+      measure_name_v_ = {"p_x", "p_y", "v_x", "v_y"};
 
       KalmanFilter::initialize(nh, suffix, id);
-
-      //cfg init
-      server_ = new dynamic_reconfigure::Server<aerial_robot_base::KalmanFilterXYBiasConfig>(nhp_);
-      dynamic_reconf_func_ = boost::bind(&KalmanFilterXYBias::cfgCallback, this, _1, _2);
-      server_->setCallback(dynamic_reconf_func_);
     }
 
     /* be sure that the first parameter should be timestamp */
@@ -204,10 +202,10 @@ namespace kf_plugin
     }
 
   private:
+    /*
     //dynamic reconfigure
     dynamic_reconfigure::Server<aerial_robot_base::KalmanFilterXYBiasConfig>* server_;
     dynamic_reconfigure::Server<aerial_robot_base::KalmanFilterXYBiasConfig>::CallbackType dynamic_reconf_func_;
-
     void cfgCallback(aerial_robot_base::KalmanFilterXYBiasConfig &config, uint32_t level)
     {
       if(config.kalman_filter_flag == true)
@@ -241,7 +239,7 @@ namespace kf_plugin
             }
         }
     }
-
+    */
   };
 };
 

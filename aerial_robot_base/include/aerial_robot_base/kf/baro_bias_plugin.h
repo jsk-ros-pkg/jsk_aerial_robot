@@ -48,9 +48,7 @@ namespace kf_plugin
   class KalmanFilterBaroBias : public kf_plugin::KalmanFilter
   {
   public:
-    KalmanFilterBaroBias(): KalmanFilter(1 /* state dim */,
-                                         1 /* input dim */,
-                                         1 /* measure dim */) {}
+    KalmanFilterBaroBias(): KalmanFilter() {}
 
     ~KalmanFilterBaroBias() {}
 
@@ -66,13 +64,6 @@ namespace kf_plugin
     {
       observation_model = observation_model_;
     }
-
-  private:
-    //dynamic reconfigure
-    dynamic_reconfigure::Server<aerial_robot_base::KalmanFilterBaroBiasConfig>* server_;
-    dynamic_reconfigure::Server<aerial_robot_base::KalmanFilterBaroBiasConfig>::CallbackType dynamic_reconf_func_;
-
-    void cfgCallback(aerial_robot_base::KalmanFilterBaroBiasConfig &config, uint32_t level);
 
   };
 };
