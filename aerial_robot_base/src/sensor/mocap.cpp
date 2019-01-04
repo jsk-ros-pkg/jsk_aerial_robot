@@ -50,6 +50,13 @@
 using namespace Eigen;
 using namespace std;
 
+namespace
+{
+  bool first_flag = true;
+  ros::Time previous_time;
+};
+
+
 namespace sensor_plugin
 {
   class Mocap : public sensor_plugin::SensorBase
@@ -113,7 +120,7 @@ namespace sensor_plugin
     double cutoff_pos_freq_;
     double cutoff_vel_freq_;
 
-    double pos_noise_sigma_, angle_noise_sigma_;
+    double pos_noise_sigma_, angle_noise_sigma_, acc_bias_noise_sigma_;
 
     array<IirFilter, 3> lpf_pos_vel_; /* x, y, z */
     IirFilter lpf_psi_;
@@ -129,9 +136,6 @@ namespace sensor_plugin
 
     void poseCallback(const geometry_msgs::PoseStampedConstPtr & msg)
     {
-      static bool first_flag = true;
-      static ros::Time previous_time;
-
       tf::pointMsgToTF(msg->pose.position, raw_pos_);
 
       tf::Quaternion q;
@@ -187,8 +191,8 @@ namespace sensor_plugin
 
       if(first_flag)
         {
-          init(raw_pos_);
           first_flag = false;
+          init(raw_pos_);
         }
 
 
@@ -225,7 +229,6 @@ namespace sensor_plugin
     void groundTruthCallback(const nav_msgs::OdometryConstPtr & msg)
     {
       tf::pointMsgToTF(msg->pose.pose.position, pos_);
-      static bool first_flag = true;
 
       if(!first_flag)
         {
@@ -279,6 +282,9 @@ namespace sensor_plugin
       nhp_.param("pos_noise_sigma", pos_noise_sigma_, 0.001 );
       if(param_verbose_) cout << ns << ": pos noise sigma  is " << pos_noise_sigma_ << endl;
 
+      nhp_.param("acc_bias_noise_sigma", acc_bias_noise_sigma_, 0.0);
+      if(param_verbose_) cout << ns << ": acc noise sigma  is " << acc_bias_noise_sigma_ << endl;
+
       nhp_.param("angle_sigma", pos_noise_sigma_, 0.001 );
       if(param_verbose_) cout << ns << ": pos noise sigma  is " << pos_noise_sigma_ << endl;
 
@@ -314,14 +320,12 @@ namespace sensor_plugin
               int id = kf->getId();
 
               /* x, y, z */
-              if(plugin_name == "kalman_filter/kf_pos_vel_acc_bias" ||
-                 plugin_name == "kalman_filter/kf_pos_vel_acc")
+              if(plugin_name == "kalman_filter/kf_pos_vel_acc")
                 {
                   if(id < (1 << State::ROLL_COG))
                     {
                       if(time_sync_) kf->setTimeSync(true);
-                      if(id & (1 << State::Z_BASE)) kf->setInitState(0, 0);
-                      else kf->setInitState(init_pos[id >> (State::X_BASE + 1)], 0);
+                      kf->setInitState(init_pos[id >> (State::X_BASE + 1)], 0);
                     }
                 }
 
@@ -359,17 +363,25 @@ namespace sensor_plugin
           /* x_w, y_w, z_w */
           if(id < (1 << State::ROLL_COG))
             {
-              if(plugin_name == "kalman_filter/kf_pos_vel_acc" ||
-                 plugin_name == "kalman_filter/kf_pos_vel_acc_bias")
+              if(plugin_name == "kalman_filter/kf_pos_vel_acc")
                 {
+                  int index = id >> (State::X_BASE + 1);
+
+                  if(kf->getInputDim() == 1 && acc_bias_noise_sigma_ > 0)
+                    {
+                      /* special process since we have to refer kf->getInputSigma() which is assinged from IMU */
+                      VectorXd input_noise_sigma(2);
+                      input_noise_sigma << (kf->getInputSigma())(0), acc_bias_noise_sigma_;
+                      kf->setInputSigma(input_noise_sigma);
+                    }
+
                   /* set noise sigma */
                   VectorXd measure_sigma(1);
                   measure_sigma << pos_noise_sigma_;
                   kf->setMeasureSigma(measure_sigma);
 
                   /* correction */
-                  int index = id >> (State::X_BASE + 1);
-                  VectorXd meas(1); meas <<  raw_pos_[index];
+                  VectorXd meas(1); meas << raw_pos_[index];
                   vector<double> params = {kf_plugin::POS};
                   kf->correction(meas, stamp.toSec(), params);
                   VectorXd state = kf->getEstimateState();

@@ -441,8 +441,7 @@ namespace sensor_plugin
               int id = kf->getId();
               if(id & (1 << State::Z_BASE))
                 {
-                  if(plugin_name == "kalman_filter/kf_pos_vel_acc" ||
-                     plugin_name == "kalman_filter/kf_pos_vel_acc_bias")
+                  if(plugin_name == "kalman_filter/kf_pos_vel_acc")
                     {
                       /* set noise sigma */
                       VectorXd measure_sigma(1); measure_sigma << range_noise_sigma_;
@@ -575,7 +574,8 @@ namespace sensor_plugin
           /* the initialization of the baro bias kf filter */
           VectorXd input_sigma(1); input_sigma << baro_bias_noise_sigma_;
           baro_bias_kf_->setInputSigma(input_sigma);
-          /* do not set the mesaure sigma, since the sigma should be 0 */
+          VectorXd measure_sigma(1); measure_sigma << 0;
+          baro_bias_kf_->setMeasureSigma(measure_sigma);
           baro_bias_kf_->setInputFlag();
           baro_bias_kf_->setMeasureFlag();
           baro_bias_kf_->setInitState(-baro_pos_z_, 0);
@@ -630,8 +630,7 @@ namespace sensor_plugin
                         }
                       /* We should set the sigma every time, since we may have several different sensors to correct the kalman filter(e.g. vo + opti, laser + baro) */
 
-                      if(plugin_name == "kalman_filter/kf_pos_vel_acc" ||
-                         plugin_name == "kalman_filter/kf_pos_vel_acc_bias")
+                      if(plugin_name == "kalman_filter/kf_pos_vel_acc")
                         {
                           /* set noise sigma */
                           VectorXd measure_sigma(1);

@@ -157,8 +157,7 @@ namespace sensor_plugin
                   boost::shared_ptr<kf_plugin::KalmanFilter> kf = fuser.second;
                   int id = kf->getId();
 
-                  if(plugin_name == "kalman_filter/kf_pos_vel_acc_bias" ||
-                    plugin_name == "kalman_filter/kf_pos_vel_acc")
+                  if(plugin_name == "kalman_filter/kf_pos_vel_acc")
                     {
                       if((id & (1 << State::X_BASE)) || (id & (1 << State::Y_BASE)) )
                         {
@@ -220,8 +219,7 @@ namespace sensor_plugin
           string plugin_name = fuser.first;
           int id = kf->getId();
 
-          if(plugin_name == "kalman_filter/kf_pos_vel_acc" ||
-             plugin_name == "kalman_filter/kf_pos_vel_acc_bias")
+          if(plugin_name == "kalman_filter/kf_pos_vel_acc")
             {
               if((id & (1 << State::X_BASE)) ||  (id & (1 << State::Y_BASE)))
                 {
