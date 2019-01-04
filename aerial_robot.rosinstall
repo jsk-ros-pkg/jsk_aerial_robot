@@ -2,13 +2,13 @@
 - git:
     local-name: kalman_filter
     uri: https://github.com/tongtybj/kalman_filter.git
-    version: master
+    version: f7efb4d
 
 # the sensor interface
 - git:
     local-name: sensor_interface
     uri: https://github.com/tongtybj/sensor_interface.git
-    version: master
+    version: 4cf16f1
 
 # motion capture(optitrack)
 - git:

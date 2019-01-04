@@ -187,8 +187,7 @@ namespace sensor_plugin
               boost::shared_ptr<kf_plugin::KalmanFilter> kf = fuser.second;
               int id = kf->getId();
 
-              if(plugin_name == "kalman_filter/kf_pos_vel_acc_bias" ||
-                 plugin_name == "kalman_filter/kf_pos_vel_acc")
+              if(plugin_name == "kalman_filter/kf_pos_vel_acc")
                 {
                   if(id < (1 << State::ROLL_COG))
                     {
@@ -275,8 +274,7 @@ namespace sensor_plugin
           /* x_w, y_w, z_w */
           if(id < (1 << State::ROLL_COG))
             {
-              if(plugin_name == "kalman_filter/kf_pos_vel_acc" ||
-                 plugin_name == "kalman_filter/kf_pos_vel_acc_bias")
+              if(plugin_name == "kalman_filter/kf_pos_vel_acc")
                 {
                   /* set noise sigma */
                   VectorXd measure_sigma(1);

@@ -167,8 +167,7 @@ namespace sensor_plugin
                     string plugin_name = fuser.first;
                     if((id & (1 << State::X_BASE)) || (id & (1 << State::Y_BASE)))
                       {
-                        if(plugin_name == "kalman_filter/kf_pos_vel_acc" ||
-                           plugin_name == "kalman_filter/kf_pos_vel_acc_bias")
+                        if(plugin_name == "kalman_filter/kf_pos_vel_acc")
                           {
                             /* set velocity correction mode */
                             if(time_sync_) kf->setTimeSync(true);
@@ -212,8 +211,7 @@ namespace sensor_plugin
                 int id = kf->getId();
                 if((id & (1 << State::X_BASE)) || (id & (1 << State::Y_BASE)))
                   {
-                    if(plugin_name == "kalman_filter/kf_pos_vel_acc" ||
-                       plugin_name == "kalman_filter/kf_pos_vel_acc_bias")
+                    if(plugin_name == "kalman_filter/kf_pos_vel_acc")
                       {
                         /* set noise sigma */
                         VectorXd measure_sigma(1);

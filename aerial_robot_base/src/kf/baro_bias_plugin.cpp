@@ -41,12 +41,7 @@ namespace kf_plugin
 {
   void KalmanFilterBaroBias::initialize(ros::NodeHandle nh, string suffix, int id)
   {
-    KalmanFilter::initialize(nh, suffix, id);
-
-    /* cfg init */
-    server_ = new dynamic_reconfigure::Server<aerial_robot_base::KalmanFilterBaroBiasConfig>(nhp_);
-    dynamic_reconf_func_ = boost::bind(&KalmanFilterBaroBias::cfgCallback, this, _1, _2);
-    server_->setCallback(dynamic_reconf_func_);
+    state_dim_ = 1;
 
     Matrix<double, 1, 1> state_transition_model;
     state_transition_model << 1;
@@ -59,34 +54,12 @@ namespace kf_plugin
     Matrix<double, 1, 1> observation_model;
     observation_model << 1;
     setObservationModel(observation_model);
+
+    input_name_v_ = {"bias"};
+    measure_name_v_ = {"bias"};
+
+    KalmanFilter::initialize(nh, suffix, id);
   }
-
-  void KalmanFilterBaroBias::cfgCallback(aerial_robot_base::KalmanFilterBaroBiasConfig &config, uint32_t level)
-  {
-    if(config.kalman_filter_flag == true)
-      {
-        printf("cfg update, node: %s ", (nhp_.getNamespace()).c_str());
-
-        switch(level)
-          {
-          case 1:  // INPUT_SIGMA = 1
-            input_sigma_(0) = config.input_sigma;
-            setPredictionNoiseCovariance();
-            printf("change the input sigma\n");
-            break;
-          case 2:  // MEASURE_SIGMA = 2
-            measure_sigma_(0)  = config.measure_sigma;
-            setMeasurementNoiseCovariance();
-            printf("change the measure sigma\n");
-            break;
-          default :
-            printf("\n");
-            break;
-          }
-      }
-  }
-
-
 };
 
 PLUGINLIB_EXPORT_CLASS(kf_plugin::KalmanFilterBaroBias, kf_plugin::KalmanFilter);

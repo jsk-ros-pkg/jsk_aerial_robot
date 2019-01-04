@@ -115,7 +115,7 @@ namespace sensor_plugin
 
     int calib_count_;
     double acc_scale_, gyro_scale_, mag_scale_; /* the scale of sensor value */
-    double level_acc_noise_sigma_, z_acc_noise_sigma_, acc_bias_noise_sigma_, angle_bias_noise_sigma_; /* sigma for kf */
+    double level_acc_noise_sigma_, z_acc_noise_sigma_, level_acc_bias_noise_sigma_, z_acc_bias_noise_sigma_, angle_bias_noise_sigma_; /* sigma for kf */
     double landing_shock_force_thre_;     /* force */
 
     /* sensor internal */
@@ -267,37 +267,26 @@ namespace sensor_plugin
 
                       bool start_predict = false;
 
-                      if(plugin_name == "kalman_filter/kf_pos_vel_acc_bias")
-                        {
-                          VectorXd intput_noise_sigma(2);
-
-                          if(id & (1 << State::X_BASE))
-                            {
-                              intput_noise_sigma << level_acc_noise_sigma_, acc_bias_noise_sigma_;
-                              kf->setInitState(acc_bias_w_.x(), 2);
-                            }
-                          else if(id & (1 << State::Y_BASE))
-                            {
-                              intput_noise_sigma << level_acc_noise_sigma_, acc_bias_noise_sigma_;
-                              kf->setInitState(acc_bias_w_.y(), 2);
-                            }
-                          else if((id & (1 << State::Z_BASE)))
-                            {
-                              intput_noise_sigma << z_acc_noise_sigma_, acc_bias_noise_sigma_;
-                              kf->setInitState(acc_bias_w_.z(), 2);
-                            }
-                          kf->setInputSigma(intput_noise_sigma);
-                          start_predict = true;
-                        }
-
                       if(plugin_name == "kalman_filter/kf_pos_vel_acc")
                         {
-                          VectorXd intput_noise_sigma(1);
+                          VectorXd input_noise_sigma(2);
                           if((id & (1 << State::X_BASE)) || (id & (1 << State::Y_BASE)))
-                            intput_noise_sigma << level_acc_noise_sigma_;
-                          else if((id & (1 << State::Z_BASE)))
-                            intput_noise_sigma << z_acc_noise_sigma_;
-                          kf->setInputSigma(intput_noise_sigma);
+                            {
+                              input_noise_sigma << level_acc_noise_sigma_, level_acc_bias_noise_sigma_;
+                              kf->setInputSigma(input_noise_sigma);
+                              if(level_acc_bias_noise_sigma_ > 0)
+                                {
+                                  if(id & (1 << State::X_BASE)) kf->setInitState(acc_bias_w_.x(),2);
+                                  if(id & (1 << State::Y_BASE)) kf->setInitState(acc_bias_w_.y(),2);
+                                }
+                            }
+                          if(id & (1 << State::Z_BASE))
+                            {
+                              input_noise_sigma << z_acc_noise_sigma_, z_acc_bias_noise_sigma_;
+                              kf->setInputSigma(input_noise_sigma);
+                              if(z_acc_bias_noise_sigma_ > 0) kf->setInitState(acc_bias_w_.z(), 2);
+
+                            }
                           start_predict = true;
                         }
 
@@ -305,18 +294,17 @@ namespace sensor_plugin
                         {
                           if((id & (1 << State::X_BASE)) && (id & (1 << State::Y_BASE)))
                             {
-                              VectorXd intput_noise_sigma(5);
-                              intput_noise_sigma <<
+                              VectorXd input_noise_sigma(5);
+                              input_noise_sigma <<
                                 level_acc_noise_sigma_,
                                 level_acc_noise_sigma_,
                                 level_acc_noise_sigma_,
                                 angle_bias_noise_sigma_,
                                 angle_bias_noise_sigma_;
-                              kf->setInputSigma(intput_noise_sigma);
+                              kf->setInputSigma(input_noise_sigma);
                               start_predict = true;
                             }
                         }
-
                       if(start_predict) kf->setInputFlag();
                     }
                 }
@@ -348,49 +336,20 @@ namespace sensor_plugin
 
                       if(plugin_name == "kalman_filter/kf_pos_vel_acc")
                         {
-                          VectorXd intput_val(1);
+                          VectorXd input_val(1);
                           if(id & (1 << State::X_BASE))
                             {
-                              intput_val << (double)acc_non_bias_w_.x();
+                              input_val << ((level_acc_bias_noise_sigma_ > 0)?acc_w_.x(): acc_non_bias_w_.x());
                               axis = State::X_BASE;
                             }
                           else if(id & (1 << State::Y_BASE))
                             {
-                              intput_val << (double)acc_non_bias_w_.y();
+                              input_val << ((level_acc_bias_noise_sigma_ > 0)?acc_w_.y(): acc_non_bias_w_.y());
                               axis = State::Y_BASE;
                             }
                           else if(id & (1 << State::Z_BASE))
                             {
-                              intput_val << (double)acc_non_bias_w_.z();
-                              axis = State::Z_BASE;
-
-                              /* considering the undescend mode, such as the phase of takeoff, the velocity should not below than 0 */
-                              if(estimator_->getUnDescendMode() && (kf->getEstimateState())(1) < 0)
-                                kf->resetState();
-
-                            }
-                          kf->prediction(intput_val, imu_stamp_.toSec(), params);
-                          VectorXd estimate_state = kf->getEstimateState();
-                          estimator_->setState(axis, mode, 0, estimate_state(0));
-                          estimator_->setState(axis, mode, 1, estimate_state(1));
-                        }
-
-                      if(plugin_name == "kalman_filter/kf_pos_vel_acc_bias")
-                        {
-                          VectorXd intput_val(2);
-                          if(id & (1 << State::X_BASE))
-                            {
-                              intput_val << acc_w_.x(), 0;
-                              axis = State::X_BASE;
-                            }
-                          else if(id & (1 << State::Y_BASE))
-                            {
-                              intput_val << acc_w_.y(), 0;
-                              axis = State::Y_BASE;
-                            }
-                          else if(id & (1 << State::Z_BASE))
-                            {
-                              intput_val << acc_w_.z(), 0;
+                              input_val << ((z_acc_bias_noise_sigma_ > 0)?acc_w_.z(): acc_non_bias_w_.z());
                               axis = State::Z_BASE;
 
                               /* considering the undescend mode, such as the phase of takeoff, the velocity should not below than 0 */
@@ -398,9 +357,9 @@ namespace sensor_plugin
                                 kf->resetState();
 
                               /* get the estiamted offset(bias) */
-                              acc_bias_b_.setZ((kf->getEstimateState())(2));
+                              if(z_acc_bias_noise_sigma_ > 0) acc_bias_b_.setZ((kf->getEstimateState())(2));
                             }
-                          kf->prediction(intput_val, imu_stamp_.toSec(), params);
+                          kf->prediction(input_val, imu_stamp_.toSec(), params);
                           VectorXd estimate_state = kf->getEstimateState();
                           estimator_->setState(axis, mode, 0, estimate_state(0));
                           estimator_->setState(axis, mode, 1, estimate_state(1));
@@ -417,15 +376,15 @@ namespace sensor_plugin
                               params.push_back(acc_b_[1]);
                               params.push_back(acc_b_[2] - acc_bias_b_.z());
 
-                              VectorXd intput_val(5);
-                              intput_val <<
+                              VectorXd input_val(5);
+                              input_val <<
                                 acc_b_[0],
                                 acc_b_[1],
                                 acc_b_[2] - acc_bias_b_.z(),
                                 0,
                                 0;
 
-                              kf->prediction(intput_val, imu_stamp_.toSec(), params);
+                              kf->prediction(input_val, imu_stamp_.toSec(), params);
                               VectorXd estimate_state = kf->getEstimateState();
                               estimator_->setState(State::X_BASE, mode, 0, estimate_state(0));
                               estimator_->setState(State::X_BASE, mode, 1, estimate_state(1));
@@ -535,12 +494,14 @@ namespace sensor_plugin
       nhp_.param("z_acc_noise_sigma", z_acc_noise_sigma_, 0.01 );
       if(param_verbose_) cout << ns << ": z acc noise sigma  is " << z_acc_noise_sigma_ << endl;
 
-      nhp_.param("acc_bias_noise_sigma", acc_bias_noise_sigma_, 0.01 );
-      if(param_verbose_) cout << ns << ": acc bias noise sigma  is " << acc_bias_noise_sigma_ << endl;
+      nhp_.param("level_acc_bias_noise_sigma", level_acc_bias_noise_sigma_, 0.01 );
+      if(param_verbose_) cout << ns << ": level acc bias noise sigma  is " << level_acc_bias_noise_sigma_ << endl;
+
+      nhp_.param("z_acc_bias_noise_sigma", z_acc_bias_noise_sigma_, 0.0);
+      if(param_verbose_) cout << ns << ": z acc bias noise sigma  is " << z_acc_bias_noise_sigma_ << endl;
 
       nhp_.param("angle_bias_noise_sigma", angle_bias_noise_sigma_, 0.001 );
       if(param_verbose_) cout << ns << ": angle bias noise sigma  is " << angle_bias_noise_sigma_ << endl;
-
 
       nhp_.param("calib_time", calib_time_, 2.0 );
       if(param_verbose_) cout << ns << ": imu calib time is " << calib_time_ << endl;

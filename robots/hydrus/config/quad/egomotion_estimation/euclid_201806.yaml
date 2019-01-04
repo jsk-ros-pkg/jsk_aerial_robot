@@ -10,19 +10,16 @@ estimator:
 
         # egomotion estimation
         egomotion_list:
-        - kalman_filter/kf_pos_vel_acc_bias
-        - kalman_filter/kf_pos_vel_acc_bias
-        #- kalman_filter/kf_pos_vel_acc
-        #- kalman_filter/kf_pos_vel_acc
-        #- aerial_robot_base/kf_xy_roll_pitch_bias
-        #- kalman_filter/kf_pos_vel_acc_bias
+        - kalman_filter/kf_pos_vel_acc
+        - kalman_filter/kf_pos_vel_acc
+        #- aerial_robot_base/kf_xy_roll_pitch_bias # if do xy simultaneous estimation
         - kalman_filter/kf_pos_vel_acc
 
         # experiment estimation
         experiment_list:
-        - kalman_filter/kf_pos_vel_acc_bias
-        - kalman_filter/kf_pos_vel_acc_bias
-        - kalman_filter/kf_pos_vel_acc_bias
+        - kalman_filter/kf_pos_vel_acc
+        - kalman_filter/kf_pos_vel_acc
+        - kalman_filter/kf_pos_vel_acc
 
         # specific id(int) of sensor fuser, axis for kf
         fuser_egomotion_id1: 8 # 1 << 3
