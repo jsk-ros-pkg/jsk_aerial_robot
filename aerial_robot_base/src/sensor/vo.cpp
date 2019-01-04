@@ -299,9 +299,6 @@ namespace sensor_plugin
                   VectorXd state = kf->getEstimateState();
                   estimator_->setState(index + 3, BasicEstimator::EGOMOTION_ESTIMATE, 0, state(0));
                   estimator_->setState(index + 3, BasicEstimator::EGOMOTION_ESTIMATE, 1, state(1));
-
-                  vo_state_.states[index].state[1].x = state(0); //estimated pos
-                  vo_state_.states[index].state[1].y = state(1); //estimated vel
                 }
             }
           if(plugin_name == "aerial_robot_base/kf_xy_roll_pitch_bias")
@@ -324,13 +321,6 @@ namespace sensor_plugin
                   estimator_->setState(State::X_BASE, BasicEstimator::EGOMOTION_ESTIMATE, 1, state(1));
                   estimator_->setState(State::Y_BASE, BasicEstimator::EGOMOTION_ESTIMATE, 0, state(2));
                   estimator_->setState(State::Y_BASE, BasicEstimator::EGOMOTION_ESTIMATE, 1, state(3));
-                  vo_state_.states[0].state[1].x = state(0);
-                  vo_state_.states[0].state[1].y = state(1);
-                  vo_state_.states[0].state[1].z = state(4);
-
-                  vo_state_.states[1].state[1].x = state(2);
-                  vo_state_.states[1].state[1].y = state(3);
-                  vo_state_.states[1].state[1].z = state(5);
                 }
             }
         }

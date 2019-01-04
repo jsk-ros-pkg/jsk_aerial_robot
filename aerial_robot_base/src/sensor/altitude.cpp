@@ -120,8 +120,8 @@ namespace sensor_plugin
       height_offset_(0)
     {
       alt_state_.states.resize(2);
-      alt_state_.states[0].id = "range_sensor_with_kf";
-      alt_state_.states[0].state.resize(3);
+      alt_state_.states[0].id = "range_sensor";
+      alt_state_.states[0].state.resize(2);
       alt_state_.states[1].id = "baro";
       alt_state_.states[1].state.resize(3);
 
@@ -416,9 +416,6 @@ namespace sensor_plugin
                   VectorXd state = kf->getEstimateState();
                   estimator_->setState(State::Z_BASE, mode, 0, state(0));
                   estimator_->setState(State::Z_BASE, mode, 1, state(1));
-
-                  alt_state_.states[0].state[1 + mode].x = state(0);
-                  alt_state_.states[0].state[1 + mode].y = state(1);
                 }
             }
         }

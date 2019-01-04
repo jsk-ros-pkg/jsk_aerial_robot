@@ -93,9 +93,9 @@ namespace sensor_plugin
   {
     gps_state_.states.resize(2);
     gps_state_.states[0].id = "x";
-    gps_state_.states[0].state.resize(3);
+    gps_state_.states[0].state.resize(2);
     gps_state_.states[1].id = "y";
-    gps_state_.states[1].state.resize(3);
+    gps_state_.states[1].state.resize(2);
 
     world_frame_.setIdentity();
   }
@@ -230,10 +230,6 @@ namespace sensor_plugin
 
                         estimator_->setState(index + 3, mode, 0, state(0));
                         estimator_->setState(index + 3, mode, 1, state(1));
-
-                        gps_state_.states[index].state[mode + 1].x = state(0);
-                        gps_state_.states[index].state[mode + 1].y = state(1);
-
                         gps_state_.states[index].state[0].x = raw_pos_[index];
                         gps_state_.states[index].state[0].y = raw_vel_[index];
                       }

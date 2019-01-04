@@ -88,11 +88,11 @@ namespace sensor_plugin
     {
       ground_truth_pose_.states.resize(6);
       ground_truth_pose_.states[0].id = "x";
-      ground_truth_pose_.states[0].state.resize(3);
+      ground_truth_pose_.states[0].state.resize(2);
       ground_truth_pose_.states[1].id = "y";
-      ground_truth_pose_.states[1].state.resize(3);
+      ground_truth_pose_.states[1].state.resize(2);
       ground_truth_pose_.states[2].id = "z";
-      ground_truth_pose_.states[2].state.resize(3);
+      ground_truth_pose_.states[2].state.resize(2);
       ground_truth_pose_.states[3].id = "roll";
       ground_truth_pose_.states[3].state.resize(2);
       ground_truth_pose_.states[4].id = "pitch";
@@ -344,14 +344,7 @@ namespace sensor_plugin
       if(!estimate_flag_) return;
 
       if((estimate_mode_ & (1 << BasicEstimator::GROUND_TRUTH)))
-        {
-          groundTruthProcess();
-          for(int i = 0; i < 3; i ++)
-            {
-              ground_truth_pose_.states[i].state[2].x = pos_[i];
-              ground_truth_pose_.states[i].state[2].y = vel_[i];
-            }
-        }
+        groundTruthProcess();
 
       /* start experiment estimation */
       if(!(estimate_mode_ & (1 << BasicEstimator::EXPERIMENT_ESTIMATE))) return;
@@ -382,8 +375,6 @@ namespace sensor_plugin
                   VectorXd state = kf->getEstimateState();
                   estimator_->setState(index + 3, BasicEstimator::EXPERIMENT_ESTIMATE, 0, state(0));
                   estimator_->setState(index + 3, BasicEstimator::EXPERIMENT_ESTIMATE, 1, state(1));
-                  ground_truth_pose_.states[index].state[2].x = state(0);
-                  ground_truth_pose_.states[index].state[2].y = state(1);
                 }
 
               if(plugin_name == "aerial_robot_base/kf_xy_roll_pitch_bias")
@@ -407,13 +398,6 @@ namespace sensor_plugin
                       estimator_->setState(State::X_BASE, BasicEstimator::EXPERIMENT_ESTIMATE, 1, state(1));
                       estimator_->setState(State::Y_BASE, BasicEstimator::EXPERIMENT_ESTIMATE, 0, state(2));
                       estimator_->setState(State::Y_BASE, BasicEstimator::EXPERIMENT_ESTIMATE, 1, state(3));
-                      ground_truth_pose_.states[0].state[2].x = state(0);
-                      ground_truth_pose_.states[0].state[2].y = state(1);
-                      ground_truth_pose_.states[0].state[2].z = state(4);
-
-                      ground_truth_pose_.states[1].state[2].x = state(2);
-                      ground_truth_pose_.states[1].state[2].y = state(3);
-                      ground_truth_pose_.states[1].state[2].z = state(5);
                     }
                 }
             }
