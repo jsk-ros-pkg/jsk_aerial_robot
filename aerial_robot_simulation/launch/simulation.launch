@@ -7,6 +7,7 @@
   <arg name="spawn_x" default="0.0"/>
   <arg name="spawn_y" default="0.0"/>
   <arg name="spawn_z" default="0.0"/>
+  <arg name="spawn_yaw" default="0.0"/>
 
   <!-- gazebo world -->
   <include file="$(find gazebo_ros)/launch/empty_world.launch">
@@ -19,7 +20,7 @@
   </include>
 
   <node name="urdf_spawner" pkg="gazebo_ros" type="spawn_model" respawn="false" output="screen"
-        args="-urdf -model $(arg model) -x $(arg spawn_x) -y $(arg spawn_y) -z $(arg spawn_z) -param robot_description"/>
+        args="-urdf -model $(arg model) -x $(arg spawn_x) -y $(arg spawn_y) -z $(arg spawn_z) -Y $(arg spawn_yaw) -param robot_description"/>
 
   <!-- control -->
   <rosparam file="$(find aerial_robot_simulation)/config/SimulationControl.yaml" command="load" ns="$(arg model)" />
