@@ -216,7 +216,7 @@ void AttitudeController::update(void)
 #ifdef SIMULATION
           ROS_ERROR("failsafe1, time now: %d, time last stamp: %d", HAL_GetTick(), flight_command_last_stamp_);
 #else
-          nh_->logerror("failsafe2-2");
+          nh_->logerror("failsafe1");
 #endif
           force_landing_flag_ = true;
         }
