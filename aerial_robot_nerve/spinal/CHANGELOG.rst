@@ -2,8 +2,8 @@
 Changelog for package spinal
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.0.3 (2019-01-08)
+------------------
 * Fix the wrong error id  from rosserial in spinal (`#264 <https://github.com/tongtybj/aerial_robot/issues/264>`_)
 * Add TIM5 for reserve servo control timer in spinal (`#237 <https://github.com/tongtybj/aerial_robot/issues/237>`_)
 * Update the voltage process in spinal by removing the voltage divider (`#245 <https://github.com/tongtybj/aerial_robot/issues/245>`_)

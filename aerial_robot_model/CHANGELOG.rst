@@ -2,8 +2,8 @@
 Changelog for package aerial_robot_model
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.0.3 (2019-01-08)
+------------------
 * Add torque (effort) publishing process for real machine from Spinal (`#254 <https://github.com/tongtybj/aerial_robot/issues/254>`_)
 * Add new APIs for transformable_aerial_robot_model  (`#243 <https://github.com/tongtybj/aerial_robot/issues/243>`_, `#244 <https://github.com/tongtybj/aerial_robot/issues/244>`_, `#250 <https://github.com/tongtybj/aerial_robot/issues/250>`_, `#251 <https://github.com/tongtybj/aerial_robot/issues/251>`_)
 

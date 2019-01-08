@@ -2,8 +2,8 @@
 Changelog for package aerial_robot_simulation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.0.3 (2019-01-08)
+------------------
 * Add launch_gazebo flag to bringup files (`#265 <https://github.com/tongtybj/aerial_robot/issues/265>`_)
 * Add spawn yaw argument in simulation.launch (`#263 <https://github.com/tongtybj/aerial_robot/issues/263>`_)
 * Add spawn position arguments in simulation.launch (`#258 <https://github.com/tongtybj/aerial_robot/issues/258>`_)
