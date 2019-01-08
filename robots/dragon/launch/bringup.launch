@@ -7,6 +7,7 @@
   <arg name="type" default="quad" />
   <arg name="estimate_mode"  default= "2" />
   <arg name="headless" default="True" />
+  <arg name="launch_gazebo" default="True" />
 
   <!-- sensors(fusion) special parameters -->
   <param name="/sensor_plugin/altitude/no_height_offset" value="true" />
@@ -90,6 +91,7 @@
     <arg name="model" default="dragon" />
     <arg name="gui" default="false" if="$(arg headless)" />
     <arg name="headless" default="$(arg headless)" />
+    <arg name="launch_gazebo" default="$(arg launch_gazebo)" />
   </include>
 </launch>
 
