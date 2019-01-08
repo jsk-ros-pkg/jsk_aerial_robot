@@ -2,6 +2,12 @@
 Changelog for package aerial_robot_base
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Update the usage of new API of `Kalman Filter <https://github.com/tongtybj/kalman_filter/tree/f7efb4d72131c02bf1632c6e4b400e2aeda60358>`_  for ego-motion estimation (`#262 <https://github.com/tongtybj/aerial_robot/issues/262>`_)
+* Update the ego-motion estimation system based on IMU + GPS  (`#261 <https://github.com/tongtybj/aerial_robot/issues/261>`_)
+* Update solidedge_cog_inertia_tensor_converter.py  (`#234 <https://github.com/tongtybj/aerial_robot/issues/234>`_)
+
 1.0.2 (2018-11-24)
 ------------------
 * Update the vo sensor fusion plugin (`#233 <https://github.com/tongtybj/aerial_robot/issues/233>`_)

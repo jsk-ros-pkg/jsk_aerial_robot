@@ -2,6 +2,12 @@
 Changelog for package dragon
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Add launch_gazebo flag to bringup files (`#265 <https://github.com/tongtybj/aerial_robot/issues/265>`_)
+* Refactor the sensor plugins which uses `new Kalman Filter version <https://github.com/tongtybj/kalman_filter/tree/f7efb4d72131c02bf1632c6e4b400e2aeda60358>`_  (`#262 <https://github.com/tongtybj/aerial_robot/issues/262>`_
+* Add torque (effort) publishing process from Spinal (`#254 <https://github.com/tongtybj/aerial_robot/issues/254>`_)
+
 1.0.2 (2018-11-24)
 ------------------
 * Remove old simulation servo bridge config file, and update the integrated servo config file (`#230 <https://github.com/tongtybj/aerial_robot/issues/230>`_)

@@ -2,6 +2,11 @@
 Changelog for package aerial_robot_model
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Add torque (effort) publishing process for real machine from Spinal (`#254 <https://github.com/tongtybj/aerial_robot/issues/254>`_)
+* Add new APIs for transformable_aerial_robot_model  (`#243 <https://github.com/tongtybj/aerial_robot/issues/243>`_, `#244 <https://github.com/tongtybj/aerial_robot/issues/244>`_, `#250 <https://github.com/tongtybj/aerial_robot/issues/250>`_, `#251 <https://github.com/tongtybj/aerial_robot/issues/251>`_)
+
 1.0.2 (2018-11-24)
 ------------------
 * Create the improved and integrated servo bridge for both real machine and gazebo simulation (`#230 <https://github.com/tongtybj/aerial_robot/issues/230>`_)
