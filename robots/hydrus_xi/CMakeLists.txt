@@ -7,6 +7,7 @@ find_package(catkin REQUIRED COMPONENTS
   aerial_robot_base
   aerial_robot_simulation
   aerial_robot_msgs
+  angles
   hydrus
   roscpp
   rospy

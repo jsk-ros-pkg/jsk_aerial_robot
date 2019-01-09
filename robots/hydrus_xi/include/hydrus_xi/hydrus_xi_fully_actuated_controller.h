@@ -49,6 +49,7 @@
 #include <dynamic_reconfigure/server.h>
 #include <tf_conversions/tf_eigen.h>
 #include <cmath>
+#include <angles/angles.h>
 
 using boost::algorithm::clamp;
 
@@ -105,7 +106,6 @@ namespace control_plugin
     //pid
     //xy
     tf::Vector3 xy_gains_; //0:p 1:i 2:d
-    double xy_hovering_i_gain_;
     tf::Vector3 xy_i_term_;
     double xy_limit_;
     tf::Vector3 xy_terms_limits_; //0:p 1:i 2:d
@@ -123,6 +123,7 @@ namespace control_plugin
 
     //altitude
     tf::Vector3 alt_gains_; //0:p 1:i 2:d
+    double alt_takeoff_i_gain_;
     double alt_i_term_;
     double alt_limit_;
     tf::Vector3 alt_terms_limits_; //0:p 1:i 2:d

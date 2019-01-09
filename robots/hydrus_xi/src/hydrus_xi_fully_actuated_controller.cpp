@@ -119,8 +119,7 @@ namespace control_plugin
     state_yaw_vel_ = estimator_->getState(State::YAW_COG, estimate_mode_)[1];
     target_yaw_ = navigator_->getTargetPsi();
     target_yaw_vel_ = navigator_->getTargetPsiVel();
-    yaw_err_ = target_yaw_ - state_yaw_;
-    if(yaw_err_ > M_PI)  yaw_err_ -= (2 * M_PI);
+    yaw_err_ = angles::shortest_angular_distance(state_yaw_, target_yaw_);
   }
 
   void HydrusXiFullyActuatedController::pidUpdate()
@@ -131,7 +130,7 @@ namespace control_plugin
     /* roll/pitch integration flag */
     if(!start_rp_integration_)
       {
-        if(state_pos_.z() - estimator_->getLandingHeight() > 0.01)
+        if(state_pos_.z() - estimator_->getLandingHeight() > start_rp_integration_height_)
           {
             start_rp_integration_ = true;
             spinal::FlightConfigCmd flight_config_cmd;
@@ -164,10 +163,7 @@ namespace control_plugin
 
           /* I */
           if (start_rp_integration_) {
-            if(navigator_->getNaviState() == Navigator::TAKEOFF_STATE || navigator_->getNaviState() == Navigator::LAND_STATE) //takeoff or land
-              xy_i_term_ += (pos_err_ * du * xy_gains_[1]);
-            else
-              xy_i_term_ += (pos_err_ * du * xy_hovering_i_gain_);
+            xy_i_term_ += (pos_err_ * du * xy_gains_[1]);
             xy_i_term_ = clampV(xy_i_term_, -xy_terms_limits_[1], xy_terms_limits_[1]);
           }
 
@@ -183,6 +179,7 @@ namespace control_plugin
 
           /* P */
           xy_p_term = clampV(xy_gains_[0] * vel_err_, -xy_terms_limits_[0], xy_terms_limits_[0]);
+          xy_i_term_.setZero();
           xy_d_term.setZero();
           break;
         }
@@ -259,18 +256,22 @@ namespace control_plugin
     if(navigator_->getNaviState() == Navigator::LAND_STATE) alt_p_term = 0;
 
     /* I */
-    alt_i_term_ += alt_err * du;
-    double alt_i_term = clamp(alt_gains_[1] * alt_i_term_, -alt_terms_limits_[1], alt_terms_limits_[1]);
+    if(navigator_->getNaviState() == Navigator::TAKEOFF_STATE)
+      alt_i_term_ += alt_err * du * alt_takeoff_i_gain_;
+    else
+      alt_i_term_ += alt_err * du * alt_gains_[1];
+
+    alt_i_term_ = clamp(alt_i_term_, -alt_terms_limits_[1], alt_terms_limits_[1]);
     /* D */
     double alt_d_term = clamp(alt_gains_[2] * -state_vel_.z(), -alt_terms_limits_[2], alt_terms_limits_[2]);
 
-    target_linear_acc_.setZ(clamp(alt_p_term + alt_i_term + alt_d_term + alt_offset_, -alt_limit_, alt_limit_));
+    target_linear_acc_.setZ(clamp(alt_p_term + alt_i_term_ + alt_d_term + alt_offset_, -alt_limit_, alt_limit_));
 
     /* ros pub */
     //throttle(z)
     pid_msg.throttle.total.push_back(target_linear_acc_.z());
     pid_msg.throttle.p_term.push_back(alt_p_term);
-    pid_msg.throttle.i_term.push_back(alt_i_term);
+    pid_msg.throttle.i_term.push_back(alt_i_term_);
     pid_msg.throttle.d_term.push_back(alt_d_term);
     pid_msg.throttle.target_pos = target_pos_.z();
     pid_msg.throttle.pos_err = alt_err;
@@ -396,6 +397,7 @@ namespace control_plugin
     alt_node.param("p_gain", alt_gains_[0], 0.0);
     alt_node.param("i_gain", alt_gains_[1], 0.001);
     alt_node.param("d_gain", alt_gains_[2], 0.0);
+    alt_node.param("takeoff_i_gain", alt_takeoff_i_gain_, 0.0);
 
     /* xy */
     xy_node.param("x_offset", xy_offset_[0], 0.0);
@@ -407,7 +409,6 @@ namespace control_plugin
     xy_node.param("p_gain", xy_gains_[0], 0.0);
     xy_node.param("i_gain", xy_gains_[1], 0.0);
     xy_node.param("d_gain", xy_gains_[2], 0.0);
-    xy_node.param("hovering_i_gain", xy_hovering_i_gain_, 0.0);
     xy_node.param("start_rp_integration_height", start_rp_integration_height_, 0.01);
 
     /* yaw */
@@ -445,6 +446,7 @@ namespace control_plugin
         cout << alt_ns << ": p_gain_ is " << alt_gains_[0] << endl;
         cout << alt_ns << ": i_gain_ is " << alt_gains_[1] << endl;
         cout << alt_ns << ": d_gain_ is " << alt_gains_[2] << endl;
+        cout << alt_ns << ": takeoff_i_gain_ is" << alt_takeoff_i_gain_ << endl;
 
         cout << xy_ns << ": x_offset_ is " <<  xy_offset_[0] << endl;
         cout << xy_ns << ": y_offset_ is " <<  xy_offset_[1] << endl;
@@ -455,7 +457,6 @@ namespace control_plugin
         cout << xy_ns << ": p_gain_ is " << xy_gains_[0] << endl;
         cout << xy_ns << ": i_gain_ is " << xy_gains_[1] << endl;
         cout << xy_ns << ": d_gain_ is " << xy_gains_[2] << endl;
-        cout << xy_ns << ": hovering_i_gain_ is " <<  xy_hovering_i_gain_ << endl;
         cout << xy_ns << ": start_rp_integration_height_ is " << start_rp_integration_height_ << endl;
 
         cout << yaw_ns << ": limit_ is " << yaw_limit_ << endl;
