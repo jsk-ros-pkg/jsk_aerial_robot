@@ -255,15 +255,70 @@ void Navigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & msg)
     }
 }
 
+const sensor_msgs::Joy Navigator::ps4joyToPs3joyConvert(const sensor_msgs::Joy& ps4_joy_msg)
+{
+  /* hard coding */
+  sensor_msgs::Joy joy_cmd;
+  joy_cmd.header = ps4_joy_msg.header;
+  joy_cmd.axes.resize(PS3_AXES, 0);
+  joy_cmd.buttons.resize(PS3_BUTTONS, 0);
+  joy_cmd.buttons[PS3_BUTTON_SELECT] = ps4_joy_msg.buttons[PS4_BUTTON_SHARE];
+  joy_cmd.buttons[PS3_BUTTON_STICK_LEFT] = ps4_joy_msg.buttons[PS4_BUTTON_STICK_LEFT];
+  joy_cmd.buttons[PS3_BUTTON_STICK_RIGHT] = ps4_joy_msg.buttons[PS4_BUTTON_STICK_RIGHT];
+  joy_cmd.buttons[PS3_BUTTON_START] = ps4_joy_msg.buttons[PS4_BUTTON_OPTIONS];
+  if(ps4_joy_msg.axes[PS4_AXIS_BUTTON_CROSS_UP_DOWN] == 1)
+    joy_cmd.buttons[PS3_BUTTON_CROSS_UP] = 1;
+  if(ps4_joy_msg.axes[PS4_AXIS_BUTTON_CROSS_UP_DOWN] == -1)
+    joy_cmd.buttons[PS3_BUTTON_CROSS_DOWN] = 1;
+  if(ps4_joy_msg.axes[PS4_AXIS_BUTTON_CROSS_LEFT_RIGHT] == 1)
+    joy_cmd.buttons[PS3_BUTTON_CROSS_LEFT] = 1;
+  if(ps4_joy_msg.axes[PS4_AXIS_BUTTON_CROSS_LEFT_RIGHT] == -1)
+    joy_cmd.buttons[PS3_BUTTON_CROSS_RIGHT] = 1;
+  joy_cmd.buttons[PS3_BUTTON_REAR_LEFT_2] = ps4_joy_msg.buttons[PS4_BUTTON_REAR_LEFT_2];
+  joy_cmd.buttons[PS3_BUTTON_REAR_RIGHT_2] = ps4_joy_msg.buttons[PS4_BUTTON_REAR_RIGHT_2];
+  joy_cmd.buttons[PS3_BUTTON_REAR_LEFT_1] = ps4_joy_msg.buttons[PS4_BUTTON_REAR_LEFT_1];
+  joy_cmd.buttons[PS3_BUTTON_REAR_RIGHT_1] = ps4_joy_msg.buttons[PS4_BUTTON_REAR_RIGHT_1];
+  joy_cmd.buttons[PS3_BUTTON_ACTION_TRIANGLE] = ps4_joy_msg.buttons[PS4_BUTTON_ACTION_TRIANGLE];
+  joy_cmd.buttons[PS3_BUTTON_ACTION_CIRCLE] = ps4_joy_msg.buttons[PS4_BUTTON_ACTION_CIRCLE];
+  joy_cmd.buttons[PS3_BUTTON_ACTION_CROSS] = ps4_joy_msg.buttons[PS4_BUTTON_ACTION_CROSS];
+  joy_cmd.buttons[PS3_BUTTON_ACTION_SQUARE] = ps4_joy_msg.buttons[PS4_BUTTON_ACTION_SQUARE];
+  joy_cmd.buttons[PS3_BUTTON_PAIRING] = ps4_joy_msg.buttons[PS4_BUTTON_PAIRING];
+  joy_cmd.axes[PS3_AXIS_STICK_LEFT_LEFTWARDS] = ps4_joy_msg.axes[PS4_AXIS_STICK_LEFT_LEFTWARDS];
+  joy_cmd.axes[PS3_AXIS_STICK_LEFT_UPWARDS] = ps4_joy_msg.axes[PS4_AXIS_STICK_LEFT_UPWARDS];
+  joy_cmd.axes[PS3_AXIS_STICK_RIGHT_LEFTWARDS] = ps4_joy_msg.axes[PS4_AXIS_STICK_RIGHT_LEFTWARDS];
+  joy_cmd.axes[PS3_AXIS_STICK_RIGHT_UPWARDS] = ps4_joy_msg.axes[PS4_AXIS_STICK_RIGHT_UPWARDS];
+  joy_cmd.axes[PS3_AXIS_ACCELEROMETER_LEFT] = ps4_joy_msg.axes[PS4_AXIS_ACCELEROMETER_LEFT];
+  joy_cmd.axes[PS3_AXIS_ACCELEROMETER_FORWARD] = ps4_joy_msg.axes[PS4_AXIS_ACCELEROMETER_FORWARD];
+  joy_cmd.axes[PS3_AXIS_ACCELEROMETER_UP] = ps4_joy_msg.axes[PS4_AXIS_ACCELEROMETER_UP];
+  joy_cmd.axes[PS3_AXIS_GYRO_YAW] = ps4_joy_msg.axes[PS4_AXIS_GYRO_YAW];
+  return joy_cmd;
+}
+
+
 void Navigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
 {
+  sensor_msgs::Joy joy_cmd;
+  if(joy_msg->axes.size() == PS3_AXES && joy_msg->buttons.size() == PS3_BUTTONS)
+    {
+      joy_cmd = (*joy_msg);
+    }
+  else if(joy_msg->axes.size() == PS4_AXES && joy_msg->buttons.size() == PS4_BUTTONS)
+    {
+      joy_cmd = ps4joyToPs3joyConvert(*joy_msg);
+    }
+  else
+    {
+      ROS_WARN("the joystick type is not supported (buttons: %d, axes: %d)", (int)joy_msg->buttons.size(), (int)joy_msg->axes.size());
+      return;
+    }
+
   /* ps3 joy bottons assignment: http://wiki.ros.org/ps3joy */
   if(!joy_stick_heart_beat_) joy_stick_heart_beat_ = true;
   joy_stick_prev_time_ = ros::Time::now().toSec();
 
   /* common command */
   /* start */
-  if(joy_msg->buttons[3] == 1 && getNaviState() == ARM_OFF_STATE)
+  if(joy_cmd.buttons[PS3_BUTTON_START] == 1 && getNaviState() == ARM_OFF_STATE)
     {
       motorArming();
       return;
@@ -271,7 +326,7 @@ void Navigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
 
   /* force landing && halt */
   static ros::Time force_landing_start_time_ = ros::Time::now();
-  if(joy_msg->buttons[0] == 1)
+  if(joy_cmd.buttons[PS3_BUTTON_SELECT] == 1)
     {
       /* Force Landing in inflight mode: TAKEOFF_STATE/LAND_STATE/HOVER_STATE */
       if(!force_landing_flag_ && (getNaviState() == TAKEOFF_STATE || getNaviState() == LAND_STATE || getNaviState() == HOVER_STATE))
@@ -283,11 +338,11 @@ void Navigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
           force_landing_flag_ = true;
 
           /* update the force landing stamp for the halt process*/
-          force_landing_start_time_ = joy_msg->header.stamp;
+          force_landing_start_time_ = joy_cmd.header.stamp;
         }
 
       /* Halt mode */
-      if(joy_msg->header.stamp.toSec() - force_landing_start_time_.toSec() > force_landing_to_halt_du_ && getNaviState() > START_STATE)
+      if(joy_cmd.header.stamp.toSec() - force_landing_start_time_.toSec() > force_landing_to_halt_du_ && getNaviState() > START_STATE)
         {
           //if(!teleop_flag_) return; /* can not do the process if other processs are running */
 
@@ -311,18 +366,18 @@ void Navigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
   else
     {
       /* update the halt process */
-      force_landing_start_time_ = joy_msg->header.stamp;
+      force_landing_start_time_ = joy_cmd.header.stamp;
     }
 
   /* takeoff */
-  if(joy_msg->buttons[7] == 1 && joy_msg->buttons[13] == 1)
+  if(joy_cmd.buttons[PS3_BUTTON_CROSS_LEFT] == 1 && joy_cmd.buttons[PS3_BUTTON_ACTION_CIRCLE] == 1)
     {
       startTakeoff();
       return;
     }
 
   /* landing */
-  if(joy_msg->buttons[5] == 1 && joy_msg->buttons[15] == 1)
+  if(joy_cmd.buttons[PS3_BUTTON_CROSS_RIGHT] == 1 && joy_cmd.buttons[PS3_BUTTON_ACTION_SQUARE] == 1)
     {
       if(getNaviState() == LAND_STATE) return;
       if(!teleop_flag_) return; /* can not do the process if other processs are running */
@@ -338,12 +393,12 @@ void Navigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
     }
 
   /* Motion: Up/Down */
-  if(fabs(joy_msg->axes[3]) > 0.2)
+  if(fabs(joy_cmd.axes[PS3_AXIS_STICK_RIGHT_UPWARDS]) > 0.2)
     {
       if(getNaviState() == HOVER_STATE)
         {
           alt_control_flag_ = true;
-          if(joy_msg->axes[3] >= 0)
+          if(joy_cmd.axes[PS3_AXIS_STICK_RIGHT_UPWARDS] >= 0)
             addTargetPosZ(joy_target_alt_interval_);
           else
             addTargetPosZ(-joy_target_alt_interval_);
@@ -362,12 +417,12 @@ void Navigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
 
   /* Motion: Yaw */
   /* this is the yaw_angle control */
-  if(joy_msg->buttons[2] == 1)
+  if(joy_cmd.buttons[PS3_BUTTON_STICK_RIGHT] == 1)
     {
-      if(fabs(joy_msg->axes[2]) > 0.05)
+      if(fabs(joy_cmd.axes[PS3_AXIS_STICK_RIGHT_LEFTWARDS]) > 0.05)
         {
           float  state_psi = estimator_->getState(State::YAW_COG, estimate_mode_)[0];
-          target_psi_ = state_psi + joy_msg->axes[2] * max_target_yaw_rate_;
+          target_psi_ = state_psi + joy_cmd.axes[PS3_AXIS_STICK_RIGHT_LEFTWARDS] * max_target_yaw_rate_;
           if(target_psi_ > M_PI)  target_psi_ -= 2 * M_PI;
           else if(target_psi_ < -M_PI)  target_psi_ += 2 * M_PI;
           ROS_WARN("Joy Control: yaw control based on angle control only");
@@ -377,7 +432,7 @@ void Navigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
     }
 
   /* turn to ACC_CONTROL_MODE */
-  if(joy_msg->buttons[6] == 1)
+  if(joy_cmd.buttons[PS3_BUTTON_CROSS_DOWN] == 1)
     {
       ROS_WARN("Change to attitude control");
       force_att_control_flag_ = true;
@@ -385,7 +440,7 @@ void Navigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
     }
 
   /* change to vel control mode */
-  if(joy_msg->buttons[12] == 1 && !vel_control_flag_)
+  if(joy_cmd.buttons[PS3_BUTTON_ACTION_TRIANGLE] == 1 && !vel_control_flag_)
     {
       ROS_INFO("change to vel pos-based control");
       vel_control_flag_ = true;
@@ -393,11 +448,11 @@ void Navigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
       xy_control_mode_ = flight_nav::VEL_CONTROL_MODE;
       target_vel_.setValue(0, 0, 0);
     }
-  if(joy_msg->buttons[12] == 0 && vel_control_flag_)
+  if(joy_cmd.buttons[PS3_BUTTON_ACTION_TRIANGLE] == 0 && vel_control_flag_)
     vel_control_flag_ = false;
 
   /* change to pos control mode */
-  if(joy_msg->buttons[14] == 1 && !pos_control_flag_)
+  if(joy_cmd.buttons[PS3_BUTTON_ACTION_CROSS] == 1 && !pos_control_flag_)
     {
       ROS_INFO("change to pos control");
       pos_control_flag_ = true;
@@ -405,7 +460,7 @@ void Navigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
       xy_control_mode_ = flight_nav::POS_CONTROL_MODE;
       setTargetXyFromCurrentState();
     }
-  if(joy_msg->buttons[14] == 0 && pos_control_flag_)
+  if(joy_cmd.buttons[PS3_BUTTON_ACTION_CROSS] == 0 && pos_control_flag_)
     pos_control_flag_ = false;
 
   /* mode oriented state */
@@ -417,11 +472,11 @@ void Navigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
           {
 
             control_frame_ = flight_nav::WORLD_FRAME;
-            if(joy_msg->buttons[8]) control_frame_ = flight_nav::LOCAL_FRAME;
+            if(joy_cmd.buttons[PS3_BUTTON_REAR_LEFT_2]) control_frame_ = flight_nav::LOCAL_FRAME;
 
             /* acc command */
-            target_acc_.setValue(joy_msg->axes[1] * max_target_tilt_angle_ * BasicEstimator::G,
-                                 joy_msg->axes[0] * max_target_tilt_angle_ * BasicEstimator::G, 0);
+            target_acc_.setValue(joy_cmd.axes[PS3_AXIS_STICK_LEFT_UPWARDS] * max_target_tilt_angle_ * BasicEstimator::G,
+                                 joy_cmd.axes[PS3_AXIS_STICK_LEFT_LEFTWARDS] * max_target_tilt_angle_ * BasicEstimator::G, 0);
 
             if(control_frame_ == flight_nav::LOCAL_FRAME)
               {
@@ -436,10 +491,10 @@ void Navigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
         if(teleop_flag_)
           {
             control_frame_ = flight_nav::WORLD_FRAME;
-            if(joy_msg->buttons[8]) control_frame_ = flight_nav::LOCAL_FRAME;
+            if(joy_cmd.buttons[PS3_BUTTON_REAR_LEFT_2]) control_frame_ = flight_nav::LOCAL_FRAME;
 
-            tf::Vector3 target_vel(joy_msg->axes[1] * fabs(joy_msg->axes[1]) * max_target_vel_,
-                                 joy_msg->axes[0] * fabs(joy_msg->axes[0]) * max_target_vel_, 0);
+            tf::Vector3 target_vel(joy_cmd.axes[PS3_AXIS_STICK_LEFT_UPWARDS] * fabs(joy_cmd.axes[PS3_AXIS_STICK_LEFT_UPWARDS]) * max_target_vel_,
+                                 joy_cmd.axes[PS3_AXIS_STICK_LEFT_LEFTWARDS] * fabs(joy_cmd.axes[PS3_AXIS_STICK_LEFT_LEFTWARDS]) * max_target_vel_, 0);
 
             /* defualt: world frame control */
             /* L2 trigger: fc(cog/ baselink frame) frame control */
