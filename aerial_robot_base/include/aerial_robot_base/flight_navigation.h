@@ -111,6 +111,82 @@ public:
   static constexpr float VOLTAGE_10P =  3.683;
   static constexpr float VOLTAGE_0P =  3.209;
 
+
+  /* playstation dualschock 3 joystick */
+  static constexpr int PS3_BUTTONS                  = 17;
+  static constexpr int PS3_BUTTON_SELECT            = 0;
+  static constexpr int PS3_BUTTON_STICK_LEFT        = 1;
+  static constexpr int PS3_BUTTON_STICK_RIGHT       = 2;
+  static constexpr int PS3_BUTTON_START             = 3;
+  static constexpr int PS3_BUTTON_CROSS_UP          = 4;
+  static constexpr int PS3_BUTTON_CROSS_RIGHT       = 5;
+  static constexpr int PS3_BUTTON_CROSS_DOWN        = 6;
+  static constexpr int PS3_BUTTON_CROSS_LEFT        = 7;
+  static constexpr int PS3_BUTTON_REAR_LEFT_2       = 8;
+  static constexpr int PS3_BUTTON_REAR_RIGHT_2      = 9;
+  static constexpr int PS3_BUTTON_REAR_LEFT_1       = 10;
+  static constexpr int PS3_BUTTON_REAR_RIGHT_1      = 11;
+  static constexpr int PS3_BUTTON_ACTION_TRIANGLE   = 12;
+  static constexpr int PS3_BUTTON_ACTION_CIRCLE     = 13;
+  static constexpr int PS3_BUTTON_ACTION_CROSS      = 14;
+  static constexpr int PS3_BUTTON_ACTION_SQUARE     = 15;
+  static constexpr int PS3_BUTTON_PAIRING           = 16;
+  static constexpr int PS3_AXES                         = 29;
+  static constexpr int PS3_AXIS_STICK_LEFT_LEFTWARDS    = 0;
+  static constexpr int PS3_AXIS_STICK_LEFT_UPWARDS      = 1;
+  static constexpr int PS3_AXIS_STICK_RIGHT_LEFTWARDS   = 2;
+  static constexpr int PS3_AXIS_STICK_RIGHT_UPWARDS     = 3;
+  static constexpr int PS3_AXIS_BUTTON_CROSS_UP         = 4;
+  static constexpr int PS3_AXIS_BUTTON_CROSS_RIGHT      = 5;
+  static constexpr int PS3_AXIS_BUTTON_CROSS_DOWN       = 6;
+  static constexpr int PS3_AXIS_BUTTON_CROSS_LEFT       = 7;
+  static constexpr int PS3_AXIS_BUTTON_REAR_LEFT_2      = 8;
+  static constexpr int PS3_AXIS_BUTTON_REAR_RIGHT_2     = 9;
+  static constexpr int PS3_AXIS_BUTTON_REAR_LEFT_1      = 10;
+  static constexpr int PS3_AXIS_BUTTON_REAR_RIGHT_1     = 11;
+  static constexpr int PS3_AXIS_BUTTON_ACTION_TRIANGLE  = 12;
+  static constexpr int PS3_AXIS_BUTTON_ACTION_CIRCLE    = 13;
+  static constexpr int PS3_AXIS_BUTTON_ACTION_CROSS     = 14;
+  static constexpr int PS3_AXIS_BUTTON_ACTION_SQUARE    = 15;
+  static constexpr int PS3_AXIS_ACCELEROMETER_LEFT      = 16;
+  static constexpr int PS3_AXIS_ACCELEROMETER_FORWARD   = 17;
+  static constexpr int PS3_AXIS_ACCELEROMETER_UP        = 18;
+  static constexpr int PS3_AXIS_GYRO_YAW                = 19;
+
+  /* playstation dualschock 4 joystick */
+  static constexpr int PS4_BUTTONS                  = 14;
+  static constexpr int PS4_BUTTON_ACTION_SQUARE     = 0;
+  static constexpr int PS4_BUTTON_ACTION_CROSS      = 1;
+  static constexpr int PS4_BUTTON_ACTION_CIRCLE     = 2;
+  static constexpr int PS4_BUTTON_ACTION_TRIANGLE   = 3;
+  static constexpr int PS4_BUTTON_REAR_LEFT_1       = 4;
+  static constexpr int PS4_BUTTON_REAR_RIGHT_1      = 5;
+  static constexpr int PS4_BUTTON_REAR_LEFT_2       = 6;
+  static constexpr int PS4_BUTTON_REAR_RIGHT_2      = 7;
+  static constexpr int PS4_BUTTON_SHARE             = 8;
+  static constexpr int PS4_BUTTON_OPTIONS           = 9;
+  static constexpr int PS4_BUTTON_STICK_LEFT        = 10;
+  static constexpr int PS4_BUTTON_STICK_RIGHT       = 11;
+  static constexpr int PS4_BUTTON_PAIRING           = 12;
+  static constexpr int PS4_BUTTON_TOUCHPAD          = 13;
+  static constexpr int PS4_AXES                         = 14;
+  static constexpr int PS4_AXIS_STICK_LEFT_LEFTWARDS    = 0;
+  static constexpr int PS4_AXIS_STICK_LEFT_UPWARDS      = 1;
+  static constexpr int PS4_AXIS_STICK_RIGHT_LEFTWARDS   = 2;
+  static constexpr int PS4_AXIS_BUTTON_REAR_LEFT_2      = 3; // neutral=+1, full accel=-1
+  static constexpr int PS4_AXIS_BUTTON_REAR_RIGHT_2     = 4; // neutral=+1, full accel=-1
+  static constexpr int PS4_AXIS_STICK_RIGHT_UPWARDS     = 5;
+  static constexpr int PS4_AXIS_ACCELEROMETER_LEFT      = 6;
+  static constexpr int PS4_AXIS_ACCELEROMETER_FORWARD   = 7;
+  static constexpr int PS4_AXIS_ACCELEROMETER_UP        = 8;
+  static constexpr int PS4_AXIS_BUTTON_CROSS_LEFT_RIGHT = 9; // left = +1, right= -1
+  static constexpr int PS4_AXIS_BUTTON_CROSS_UP_DOWN    = 10; // up = +1, down= -1
+  static constexpr int PS4_AXIS_GYRO_ROLL               = 11;
+  static constexpr int PS4_AXIS_GYRO_YAW                = 12;
+  static constexpr int PS4_AXIS_GYRO_PITCH              = 13;
+
+  static const sensor_msgs::Joy ps4joyToPs3joyConvert(const sensor_msgs::Joy& ps4_joy_msg);
+
 protected:
   ros::NodeHandle nh_;
   ros::NodeHandle nhp_;
