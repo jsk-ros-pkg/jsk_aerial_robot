@@ -5,13 +5,14 @@
   <arg name="simulation" default="False" />
   <arg name="control_mode" default="0" />
   <arg name="type" default="quad" />
-  <arg name="model" default="xavier201811" />
+  <arg name="onboards_model" default="xavier201811" />
   <arg name="estimate_mode"  default= "0" />
   <arg name="fullyactuated_control" default="True"/>
   <arg name="headless" default="True" />
   <arg name="worldtype" default="$(find aerial_robot_simulation)/gazebo_model/world/empty.world" />
   <arg name="direct_model" default="False" />
   <arg name="direct_model_name" />
+  <arg name="launch_gazebo" default="True" />
   <arg name="spawn_x" default="0.0"/>
   <arg name="spawn_y" default="0.0"/>
   <arg name="spawn_z" default="0.0"/>
@@ -52,7 +53,7 @@
     <param name="main_rate" type="double" value="40"/>
 
     ###########  Sensor Fusion  ###########
-    <rosparam file="$(find hydrus_xi)/config/$(arg type)/egomotion_estimation/$(arg model).yaml" command="load" if="$(arg real_machine)"/>
+    <rosparam file="$(find hydrus_xi)/config/$(arg type)/egomotion_estimation/$(arg onboards_model).yaml" command="load" if="$(arg real_machine)"/>
     <rosparam file="$(find hydrus_xi)/config/$(arg type)/egomotion_estimation/simulation.yaml" command="load" if="$(eval arg('simulation') * (1 - arg('real_machine')))"/>
 
     ###########  Flight Control  ###########
@@ -66,7 +67,7 @@
   </node>
 
   ###########  Sensors  ###########
-  <include file="$(find hydrus_xi)/launch/includes/$(arg model)/sensors.launch.xml" >
+  <include file="$(find hydrus_xi)/launch/includes/$(arg onboards_model)/sensors.launch.xml" >
     <arg name="real_machine" value="$(arg real_machine)" />
     <arg name="simulation" value="$(arg simulation)" />
   </include >
@@ -77,7 +78,7 @@
   ###########  Robot Model  ###########
   <include file="$(find hydrus_xi)/launch/robot_model.launch" >
     <arg name="type" value="$(arg type)" />
-    <arg name="model" value="$(arg model)"/>
+    <arg name="model" value="$(arg onboards_model)"/>
     <arg name="headless" value="$(arg headless)" />
     <arg name="need_joint_state" value="false" if ="$(eval arg('simulation') + arg('real_machine') > 0)"/>
     <arg name="description_mode" value="gazebo" if="$(arg simulation)"/>
@@ -95,8 +96,9 @@
   </node>
 
   ########## Simulation in Gazebo #########
-  <include file="$(find aerial_robot_simulation)/launch/simulation.launch" if = "$(arg simulation)" >
+  <include file="$(find aerial_robot_simulation)/launch/simulation.launch" if = "$(eval arg('simulation') * (1 - arg('real_machine')))" >
     <arg name="model" value="hydrus_xi"/>
+    <arg name="launch_gazebo" default="$(arg launch_gazebo)" />
     <arg name="gui" value="false" if="$(arg headless)"/>
     <arg name="headless" value="$(arg headless)"/>
     <arg name="worldtype" value="$(arg worldtype)"/>
