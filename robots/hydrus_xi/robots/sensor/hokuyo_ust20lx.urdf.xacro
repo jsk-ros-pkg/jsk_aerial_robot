@@ -12,7 +12,7 @@
     <link name="${name}_frame">
       <inertial>
         <origin xyz="-0.000570 0.000005 -0.064301" rpy="0 0 0"/>
-        <mass value="0.210930"/>
+        <mass value="0.2568"/> <!-- old: 0.210930 -->
         <inertia
             ixx="0.002067" iyy="0.002077" izz="0.000470"
             ixy="-0.000000" ixz="0.000005" iyz="-0.000000"/>
