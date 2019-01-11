@@ -11,7 +11,7 @@ hydrusx:
 
       # for simulation
       simulation:
-        pid: {p: 50.0, i: 0.01, d: 2.0}
+        pid: {p: 50.0, i: 0.01, d: 2.0, i_clamp_max: 1.0, i_clamp_min: -1.0}
         init_value: 1.57
         type: effort_controllers/JointPositionController
 
