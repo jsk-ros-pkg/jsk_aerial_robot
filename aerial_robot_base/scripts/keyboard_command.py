@@ -76,6 +76,8 @@ if __name__=="__main__":
 			if key == 'p':
 				comm.data = 0
 				ctrl_mode_pub.publish(comm)
+                        if (key == '\x03'):
+				break
                         '''
                         if ord(key) == 27:
                                 key = getKey()
