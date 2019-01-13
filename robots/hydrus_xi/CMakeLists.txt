@@ -16,6 +16,8 @@ find_package(catkin REQUIRED COMPONENTS
   dynamic_reconfigure
   )
 
+catkin_python_setup()
+
 generate_dynamic_reconfigure_options(
   cfg/FullyActuatedControllerGains.cfg)
 
