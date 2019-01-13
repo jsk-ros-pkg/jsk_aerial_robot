@@ -302,7 +302,17 @@ public:
   virtual void setLandingHeight(float landing_height){ landing_height_ = landing_height;}
   virtual float getLandingHeight(){ return landing_height_;}
 
-  inline const std::map<std::string, KDL::Frame>& getSegmentsTf() const {return segments_tf_;}
+  const std::map<std::string, KDL::Frame>& getSegmentsTf()
+  {
+    boost::lock_guard<boost::mutex> lock(kinematics_mutex_);
+    return segments_tf_;
+  }
+  void setSegmentsTf(const std::map<std::string, KDL::Frame>& segments_tf)
+  {
+    boost::lock_guard<boost::mutex> lock(kinematics_mutex_);
+    segments_tf_ = segments_tf;
+  }
+
   inline std::string getBaselinkName() const {return baselink_name_;}
   inline tf::Transform getCog2Baselink(){return cog2baselink_transform_;}
   inline tf::Transform getBaselink2Cog(){return cog2baselink_transform_.inverse();}
@@ -346,7 +356,9 @@ protected:
 
   boost::thread update_thread_;
 
-  boost::mutex state_mutex_;   /* mutex */
+  /* mutex */
+  boost::mutex state_mutex_;
+  boost::mutex kinematics_mutex_;
   /* ros param */
   bool param_verbose_;
   int estimate_mode_; /* main estimte mode */
@@ -381,7 +393,8 @@ protected:
   /* update the kinematics model based on joint state */
   void jointStateCallback(const sensor_msgs::JointStateConstPtr& state)
   {
-    segments_tf_ = kinematics_model_->fullForwardKinematics(*state); // do not need inertial and cog calculation right now
+    auto segments_tf = kinematics_model_->fullForwardKinematics(*state); // do not need inertial and cog calculation right now
+    setSegmentsTf(segments_tf);
   }
 
   /* use subscribe method to get the cog-baselink offset */
