@@ -39,7 +39,7 @@
 /* base class */
 #include <aerial_robot_base/sensor/base_plugin.h>
 
-/* filter */
+/* kalman filters */
 #include <kalman_filter/kf_pos_vel_acc_plugin.h>
 
 /* ros msg */
@@ -69,9 +69,8 @@ namespace sensor_plugin
       baro_bias_kf_  = kf_loader_ptr_->createInstance("aerial_robot_base/kf_baro_bias");
       baro_bias_kf_->initialize(string(""), 0);
 
-
-      iir_filter_ = IirFilter((float)rx_freq_, (float)cutoff_freq_);
-      iir_high_filter_ = IirFilter((float)rx_freq_, (float)high_cutoff_freq_);
+      baro_lpf_filter_ = IirFilter(sample_freq_, cutoff_freq_);
+      baro_lpf_high_filter_ = IirFilter(sample_freq_, high_cutoff_freq_);
 
       /* terrain check */
       if(!terrain_check_) state_on_terrain_ = NORMAL;
@@ -173,7 +172,7 @@ namespace sensor_plugin
     string barometer_sub_name_;
     double baro_noise_sigma_, baro_bias_noise_sigma_;
     /* the iir filter for the barometer for the first filtering stage */
-    double rx_freq_, cutoff_freq_, high_cutoff_freq_;
+    double sample_freq_, cutoff_freq_, high_cutoff_freq_;
 
     /* base variables */
     /* range sensor */
@@ -189,7 +188,7 @@ namespace sensor_plugin
     /* the kalman filter for the baro bias estimation */
     boost::shared_ptr< pluginlib::ClassLoader<kf_plugin::KalmanFilter> > kf_loader_ptr_;
     boost::shared_ptr<kf_plugin::KalmanFilter> baro_bias_kf_;
-    IirFilter iir_filter_, iir_high_filter_;
+    IirFilter baro_lpf_filter_, baro_lpf_high_filter_;
     bool inflight_state_; //the flag for the inflight state
     double raw_baro_pos_z_, baro_pos_z_, prev_raw_baro_pos_z_, prev_baro_pos_z_;
     double raw_baro_vel_z_, baro_vel_z_;
@@ -565,8 +564,8 @@ namespace sensor_plugin
 
       /*First Filtering: IIR filter */
       /* position */
-      iir_filter_.filterFunction(raw_baro_pos_z_, baro_pos_z_);
-      iir_high_filter_.filterFunction(raw_baro_pos_z_, high_filtered_baro_pos_z_);
+      baro_pos_z_ = baro_lpf_filter_.filterFunction(raw_baro_pos_z_);
+      high_filtered_baro_pos_z_ = baro_lpf_high_filter_.filterFunction(raw_baro_pos_z_);
       /* velocity */
       raw_baro_vel_z_ = (raw_baro_pos_z_ - prev_raw_baro_pos_z_)/(current_secs - baro_previous_secs);
       baro_vel_z_ = (baro_pos_z_ - prev_baro_pos_z_)/(current_secs - baro_previous_secs);
@@ -730,8 +729,8 @@ namespace sensor_plugin
       nhp_.param("baro_bias_noise_sigma", baro_bias_noise_sigma_, 0.001 );
       if(param_verbose_) cout << ns << ": baro_bias_noise_sigma is " << baro_bias_noise_sigma_ << endl;
 
-      nhp_.param("rx_freq", rx_freq_, 100.0 );
-      if(param_verbose_) cout << ns << ": rx_freq is " << rx_freq_ << endl;
+      nhp_.param("sample_freq", sample_freq_, 100.0 );
+      if(param_verbose_) cout << ns << ": sample_freq is " << sample_freq_ << endl;
 
       nhp_.param("cutoff_freq", cutoff_freq_, 10.0 );
       if(param_verbose_) cout << ns << ": cutoff_freq is " << cutoff_freq_ << endl;

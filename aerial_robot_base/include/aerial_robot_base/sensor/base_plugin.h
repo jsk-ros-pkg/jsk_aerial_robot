@@ -40,7 +40,7 @@
 #include <ros/ros.h>
 
 /* filter */
-#include <kalman_filter/digital_filter.h>
+#include <kalman_filter/lpf_filter.h>
 
 /* kf plugin */
 #include <kalman_filter/kf_base_plugin.h>
