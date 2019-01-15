@@ -43,7 +43,7 @@
   </xacro:extra_module>
 
   <!-- leddar one -->
-  <xacro:extra_module name = "leddar_one" parent = "center_link" visible = "1"
+  <xacro:extra_module name = "leddarone" parent = "center_link" visible = "1"
                       model_url = "package://hydrus_xi/urdf/mesh/sensor/leddar_one.dae">
     <origin xyz="0.082 0.0 -0.027" rpy="0 ${pi} ${-pi/2}"/>
     <inertial>

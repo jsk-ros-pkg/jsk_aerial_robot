@@ -16,16 +16,16 @@ controller:
     p_gain: 5.0
     i_gain: 0.4
     d_gain: 2.0
-    takeoff_i_gain: 1.5
+    takeoff_i_gain: 1.0
 
   xy:
     p_gain: 2.5
     i_gain: 0.05
     d_gain: 1.5
-    limit: 10.0
-    p_term_limit: 10.0
-    i_term_limit: 10.0
-    d_term_limit: 10.0
+    limit: 2.0
+    p_term_limit: 2.0
+    i_term_limit: 2.0
+    d_term_limit: 2.0
     x_offset: 0
     y_offset: 0
     start_rp_integration_height: 0.01
