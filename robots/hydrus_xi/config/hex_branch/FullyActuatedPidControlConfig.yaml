@@ -40,10 +40,10 @@ controller:
     d_gain: 4.0
 
   roll_pitch:
-    limit: 10.0
-    p_term_limit: 10.0
-    i_term_limit: 10.0
-    d_term_limit: 10.0
-    p_gain: 5.0
-    i_gain: 0.1
-    d_gain: 10.0
+    limit: 20.0
+    p_term_limit: 20.0
+    i_term_limit: 20.0
+    d_term_limit: 20.0
+    p_gain: 25.0
+    i_gain: 1.0
+    d_gain: 8.0

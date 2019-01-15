@@ -23,5 +23,5 @@ if __name__=='__main__':
 
     while not rospy.is_shutdown():
         if node.complete:
-            rospy.sleep(1)
+            rospy.sleep(10)
             rospy.signal_shutdown('init gimbal angles complete')

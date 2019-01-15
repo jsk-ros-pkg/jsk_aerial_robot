@@ -109,5 +109,5 @@
   </include>
 
   ######### init gimbal angles #########
-  <!--node pkg="hydrus_xi" name="init_gimbal_angles" type="init_gimbal_angles.py"/-->
+  <node pkg="hydrus_xi" name="init_gimbal_angles" type="init_gimbal_angles.py"/>
 </launch>
