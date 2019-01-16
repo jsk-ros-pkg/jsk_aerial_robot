@@ -111,7 +111,8 @@ namespace sensor_plugin
     ros::Timer  servo_control_timer_;
 
     /* ros param */
-    double vo_noise_sigma_;
+    double level_pos_noise_sigma_;
+    double z_pos_noise_sigma_;
     bool valid_yaw_;
     bool vio_flag_;
     bool debug_verbose_;
@@ -278,7 +279,10 @@ namespace sensor_plugin
                 {
                   /* set noise sigma */
                   VectorXd measure_sigma(1);
-                  measure_sigma << vo_noise_sigma_;
+                  if((id & (1 << State::X_BASE)) || (id & (1 << State::Y_BASE)))
+                    measure_sigma << level_pos_noise_sigma_;
+                  else
+                    measure_sigma << z_pos_noise_sigma_;
                   kf->setMeasureSigma(measure_sigma);
 
                   /* correction */
@@ -298,7 +302,7 @@ namespace sensor_plugin
                 {
                   /* set noise sigma */
                   VectorXd measure_sigma(2);
-                  measure_sigma << vo_noise_sigma_, vo_noise_sigma_;
+                  measure_sigma << level_pos_noise_sigma_, level_pos_noise_sigma_;
                   kf->setMeasureSigma(measure_sigma);
 
                   /* correction */
@@ -327,8 +331,10 @@ namespace sensor_plugin
       nhp_.param("valid_yaw", valid_yaw_, true );
       if(param_verbose_) cout << ns << ": valid yaw is " << valid_yaw_ << endl;
 
-      nhp_.param("vo_noise_sigma", vo_noise_sigma_, 0.01 );
-      if(param_verbose_) cout << ns << ": vo noise sigma is " <<  vo_noise_sigma_ << endl;
+      nhp_.param("level_pos_noise_sigma", level_pos_noise_sigma_, 0.01 );
+      if(param_verbose_) cout << ns << ": level_pos noise sigma is " <<  level_pos_noise_sigma_ << endl;
+      nhp_.param("z_pos_noise_sigma", z_pos_noise_sigma_, 0.01 );
+      if(param_verbose_) cout << ns << ": z_pos noise sigma is " <<  z_pos_noise_sigma_ << endl;
 
       nhp_.param("debug_verbose", debug_verbose_, false );
       if(param_verbose_) cout << ns << ": debug verbose is " <<  debug_verbose_ << endl;
