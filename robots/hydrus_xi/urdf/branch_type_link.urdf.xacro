@@ -150,11 +150,11 @@
     #### gimbal link ####
     <link name="gimbal_link${self}">
       <inertial>
-        <origin xyz="-0.009927 0.000000 0.050828" rpy="0 0 0"/>
-        <mass value="0.252140"/>
+        <origin xyz="-0.010664 0.000000 0.049923" rpy="0 0 0"/>
+        <mass value="0.237140"/>
         <inertia
-            ixx="0.004032" iyy="0.003374" izz="0.006517"
-            ixy="-0.000000" ixz="-0.001309" iyz="0.000000"/>
+            ixx="0.004029" iyy="0.003369" izz="0.006515"
+            ixy="-0.000000" ixz="-0.001310" iyz="0.000000"/>
       </inertial>
       <xacro:mesh_model type="link/propeller_link">
         <origin xyz="0 0 0" rpy="0 0 0"/>
