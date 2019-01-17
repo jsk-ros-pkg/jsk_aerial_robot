@@ -4,6 +4,7 @@
   <arg name="real_machine" default="True" />
   <arg name="simulation" default="False" />
   <arg name="control_mode" default="0" />
+  <arg name="config_dir" default="$(find hydrus_xi)/config"/>
   <arg name="type" default="quad" />
   <arg name="onboards_model" default="xavier201811" />
   <arg name="estimate_mode"  default= "0" />
@@ -12,6 +13,8 @@
   <arg name="worldtype" default="$(find aerial_robot_simulation)/gazebo_model/world/empty.world" />
   <arg name="direct_model" default="False" />
   <arg name="direct_model_name" />
+  <arg name="sensor_config_file" default="$(find hydrus_xi)/config/$(arg type)/egomotion_estimation/$(arg onboards_model).yaml"/>
+  <arg name="sensor_launch_file" default="$(find hydrus_xi)/launch/includes/$(arg onboards_model)/sensors.launch.xml"/>
   <arg name="launch_gazebo" default="True" />
   <arg name="spawn_x" default="0.0"/>
   <arg name="spawn_y" default="0.0"/>
@@ -27,10 +30,10 @@
   <rosparam file="$(find hydrus_xi)/config/motor_info/MN4010KV475_Afro_15inch.yaml" command="load" />
 
   ###########  Battery Config  ###########
-  <rosparam file="$(find hydrus_xi)/config/$(arg type)/Battery.yaml" command="load" />
+  <rosparam file="$(arg config_dir)/$(arg type)/Battery.yaml" command="load" />
 
   ########### Servo Config ###########
-  <rosparam file="$(find hydrus_xi)/config/$(arg type)/Servo.yaml" command="load" ns="hydrus_xi"/>
+  <rosparam file="$(arg config_dir)/$(arg type)/Servo.yaml" command="load" ns="hydrus_xi"/>
 
   ###########  Base Platform  ###########
   <node pkg="aerial_robot_base" type="aerial_robot_base_node" name="aerial_robot_base_node" output="screen" >
@@ -53,21 +56,21 @@
     <param name="main_rate" type="double" value="40"/>
 
     ###########  Sensor Fusion  ###########
-    <rosparam file="$(find hydrus_xi)/config/$(arg type)/egomotion_estimation/$(arg onboards_model).yaml" command="load" if="$(arg real_machine)"/>
-    <rosparam file="$(find hydrus_xi)/config/$(arg type)/egomotion_estimation/simulation.yaml" command="load" if="$(eval arg('simulation') * (1 - arg('real_machine')))"/>
+    <rosparam file="$(arg sensor_config_file)" command="load" if="$(arg real_machine)"/>
+    <rosparam file="$(arg config_dir)/$(arg type)/egomotion_estimation/simulation.yaml" command="load" if="$(eval arg('simulation') * (1 - arg('real_machine')))"/>
 
     ###########  Flight Control  ###########
     <param if="$(arg fullyactuated_control)" name="control_plugin_name" value ="control_plugin/hydrus_xi_fully_actuated_controller"/>
-    <rosparam if="$(arg fullyactuated_control)" file="$(find hydrus_xi)/config/$(arg type)/FullyActuatedPidControlConfig.yaml" command="load" />
+    <rosparam if="$(arg fullyactuated_control)" file="$(arg config_dir)/$(arg type)/FullyActuatedPidControlConfig.yaml" command="load" />
     <remap if="$(arg fullyactuated_control)" from="joint_states" to="hydrus_xi/joint_states"/>
-    <rosparam unless="$(arg fullyactuated_control)" file="$(find hydrus_xi)/config/$(arg type)/DifferentialFlatnessPidControlConfig.yaml" command="load" />
+    <rosparam unless="$(arg fullyactuated_control)" file="$(arg config_dir)/$(arg type)/DifferentialFlatnessPidControlConfig.yaml" command="load" />
 
     ###########  Teleop  ###########
-    <rosparam file="$(find hydrus_xi)/config/$(arg type)/TeleopNavigationConfig.yaml" command="load" />
+    <rosparam file="$(arg config_dir)/$(arg type)/TeleopNavigationConfig.yaml" command="load" />
   </node>
 
   ###########  Sensors  ###########
-  <include file="$(find hydrus_xi)/launch/includes/$(arg onboards_model)/sensors.launch.xml" >
+  <include file="$(arg sensor_launch_file)" >
     <arg name="real_machine" value="$(arg real_machine)" />
     <arg name="simulation" value="$(arg simulation)" />
   </include >
@@ -88,7 +91,7 @@
 
   ###########  LQI Control  ###########
   <node unless="$(arg fullyactuated_control)" pkg="hydrus_xi" type="hydrus_xi_lqi_controller_node" name="hydrus_xi" output="screen" respawn="true">
-    <rosparam file="$(find hydrus_xi)/config/$(arg type)/LQIControl.yaml" command="load" />
+    <rosparam file="$(arg config_dir)/$(arg type)/LQIControl.yaml" command="load" />
     <remap from="joint_states" to="hydrus_xi/joint_states"/>
     <param name="kinematic_verbose" value="false" />
     <param name="control_verbose" value="false" />

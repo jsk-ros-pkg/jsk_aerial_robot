@@ -50,8 +50,6 @@
       <xacro:insert_block name="inertial" />
       <xacro:if value="${visible == 1}">
         <visual>
-          <!-- the origin of link_frame and visual_frame should be identical -->
-          <!--origin rpy="${-pi/2} 0 0" xyz="0 0 0"/-->
           <geometry>
             <mesh filename="${model_url}"/>
           </geometry>
@@ -59,6 +57,26 @@
       </xacro:if>
     </link>
   </xacro:macro>
+
+  <xacro:macro name="extra_module_collision" params="name parent *origin *inertial visible:=0 model_url:=0 *collision">
+    <joint name="${parent}2${name}" type="fixed">
+      <parent link="${parent}"/>
+      <child link="${name}"/>
+      <xacro:insert_block name="origin" />
+    </joint>
+    <link name="${name}">
+      <xacro:insert_block name="inertial" />
+      <xacro:if value="${visible == 1}">
+        <visual>
+          <geometry>
+            <mesh filename="${model_url}"/>
+          </geometry>
+        </visual>
+      </xacro:if>
+      <xacro:insert_block name="collision"/>
+    </link>
+  </xacro:macro>
+
 
   <!-- friction -->
   <xacro:macro name="friction" params="self">
