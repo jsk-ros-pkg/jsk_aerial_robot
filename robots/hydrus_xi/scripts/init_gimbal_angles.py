@@ -16,7 +16,8 @@ class InitGimbalAngle:
         pub_msg = JointState()
         pub_msg.position = self.angle
         self.complete = True
-        self.pub.publish(pub_msg)
+        if not rospy.is_shutdown():
+            self.pub.publish(pub_msg)
 
 if __name__=='__main__':
     node = InitGimbalAngle()
