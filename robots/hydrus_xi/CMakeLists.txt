@@ -10,6 +10,7 @@ find_package(catkin REQUIRED COMPONENTS
   angles
   hydrus
   roscpp
+  ros_numpy
   rospy
   spinal
   tf_conversions
