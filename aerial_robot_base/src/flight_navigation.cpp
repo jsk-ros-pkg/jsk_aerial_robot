@@ -225,8 +225,9 @@ void Navigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & msg)
             }
           case flight_nav::LOCAL_FRAME:
             {
-              tf::Vector3 target_acc = target_acc_;
-              target_acc_ = frameConversion(target_acc,  estimator_->getState(State::YAW_COG, estimate_mode_)[0]);
+              tf::Vector3 target_acc = frameConversion(tf::Vector3(msg->target_acc_x, msg->target_acc_y, 0), estimator_->getState(State::YAW_COG, estimate_mode_)[0]);
+              setTargetAccX(target_acc.x());
+              setTargetAccY(target_acc.y());
               break;
             }
           default:
