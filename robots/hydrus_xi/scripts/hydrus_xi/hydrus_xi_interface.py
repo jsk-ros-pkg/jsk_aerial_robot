@@ -9,10 +9,11 @@ import numpy as np
 import ros_numpy as ros_np
 from tf.transformations import *
 from std_msgs.msg import Empty
+from actionlib_msgs.msg import GoalStatus
 
 class HydrusXiInterface:
     def __init__(self):
-        self.joint_state_sub_ = rospy.Subscriber('/hydrus_xi/joint_state', JointState, self.jointStateCallback)
+        self.joint_state_sub_ = rospy.Subscriber('/hydrus_xi/joint_states', JointState, self.jointStateCallback)
         self.cog_odom_sub_ = rospy.Subscriber('/uav/cog/odom', Odometry, self.cogOdomCallback)
         self.baselink_odom_sub_ = rospy.Subscriber('/uav/baselink/odom', Odometry, self.baselinkOdomCallback)
         self.nav_pub_ = rospy.Publisher('/uav/nav', FlightNav, queue_size = 1)
@@ -23,19 +24,25 @@ class HydrusXiInterface:
         self.joint_state_ = None
         self.cog_odom_ = None
         self.baselink_odom_ = None
+        self.joint_trajectory_client_ = actionlib.SimpleActionClient('transformation_planner', hydrus_xi_transformation_planning.msg.JointTrajectoryAction)
 
     def setJointAngle(self, target_joint_state, gimbal_velocity_limit = 3.0, execute_time = 10.0, interpolation_times = 30):
-        client = actionlib.SimpleActionClient('transformation_planner', hydrus_xi_transformation_planning.msg.JointTrajectoryAction)
-        client.wait_for_server()
+        self.joint_trajectory_client_.wait_for_server()
         goal = hydrus_xi_transformation_planning.msg.JointTrajectoryGoal()
         goal.joint_state = target_joint_state
         goal.gimbal_velocity_limit = gimbal_velocity_limit #rad/s
         goal.execute_time = execute_time
         goal.interpolation_times = interpolation_times
-        client.send_goal(goal)
-        client.wait_for_result()
-        rospy.loginfo("transformation finish")
-        return client.get_result()
+        self.joint_trajectory_client_.send_goal(goal)
+
+    def preemptSetJointAngle(self):
+        self.joint_trajectory_client_.cancel_goal()
+
+    def getClientState(self):
+        return self.joint_trajectory_client_.get_state()
+
+    def waitForSetJointAngleResult(self):
+        self.joint_trajectory_client_.wait_for_result()
 
     def jointStateCallback(self, msg):
         self.joint_state_ = msg
