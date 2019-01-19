@@ -187,7 +187,7 @@ namespace control_plugin
         {
           /* convert from world frame to CoG frame */
 
-          xy_p_term = uav_rot_inv * (target_acc_ / BasicEstimator::G);
+          xy_p_term = uav_rot_inv * target_acc_;
           xy_i_term_.setZero();
           xy_d_term.setZero();
           break;

@@ -20,6 +20,7 @@ class HydrusXiInterface:
         self.start_pub_ = rospy.Publisher('/teleop_command/start', Empty, queue_size = 1)
         self.takeoff_pub_ = rospy.Publisher('/teleop_command/takeoff', Empty, queue_size = 1)
         self.land_pub_ = rospy.Publisher('/teleop_command/land', Empty, queue_size = 1)
+        self.force_landing_pub_ = rospy.Publisher('/teleop_command/force_landing', Empty, queue_size = 1)
 
         self.joint_state_ = None
         self.cog_odom_ = None
@@ -78,6 +79,9 @@ class HydrusXiInterface:
 
     def land(self):
         self.land_pub_.publish()
+
+    def forceLanding(self):
+        self.force_landing_pub_.publish()
 
     def getBaselinkPos(self):
         return ros_np.numpify(self.baselink_odom_.pose.pose.position)
