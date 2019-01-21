@@ -189,7 +189,7 @@ void RigidEstimator::rosParamInit()
               if(param_verbose_) cout << ns << ": fuser_"  << prefix << "_name" << fuser_no.str() << " is " << fuser_name << endl;
 
               boost::shared_ptr<kf_plugin::KalmanFilter> plugin_ptr = sensor_fusion_loader_ptr_->createInstance(name);
-              plugin_ptr->initialize(nh_, fuser_name, fuser_id);
+              plugin_ptr->initialize(fuser_name, fuser_id);
               fuser_[i].push_back(make_pair(name, plugin_ptr));
 
               break;
