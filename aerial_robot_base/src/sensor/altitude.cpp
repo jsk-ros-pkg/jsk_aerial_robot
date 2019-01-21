@@ -65,7 +65,7 @@ namespace sensor_plugin
 
       kf_loader_ptr_ = boost::shared_ptr< pluginlib::ClassLoader<kf_plugin::KalmanFilter> >(new pluginlib::ClassLoader<kf_plugin::KalmanFilter>("kalman_filter", "kf_plugin::KalmanFilter"));
       baro_bias_kf_  = kf_loader_ptr_->createInstance("aerial_robot_base/kf_baro_bias");
-      baro_bias_kf_->initialize(nh_, string(""), 0);
+      baro_bias_kf_->initialize(string(""), 0);
 
 
       iir_filter_ = IirFilter((float)rx_freq_, (float)cutoff_freq_);
@@ -80,7 +80,7 @@ namespace sensor_plugin
       alt_mode_sub_ = nh_.subscribe("/estimate_alt_mode", 1, &Alt::altEstimateModeCallback, this);
 
       /* barometer */
-      barometer_sub_ = nh_.subscribe<spinal::Barometer>(barometer_sub_name_, 1, &Alt::baroCallback, this, ros::TransportHints().tcpNoDelay());
+      //barometer_sub_ = nh_.subscribe<spinal::Barometer>(barometer_sub_name_, 1, &Alt::baroCallback, this, ros::TransportHints().tcpNoDelay());
 
       /* range sensor */
       range_sensor_sub_ = nh_.subscribe(range_sensor_sub_name_, 1, &Alt::rangeCallback, this);
@@ -396,10 +396,10 @@ namespace sensor_plugin
         }
 
       /* terrain check and height estimate */
-      if(terrainProcess(current_secs)) rangeEstimateProcess(range_msg->header.stamp);
+      alt_state_.header.stamp.fromSec(range_msg->header.stamp.toSec() + delay_);
+      if(terrainProcess(current_secs)) rangeEstimateProcess();
 
       /* publish phase */
-      alt_state_.header.stamp = range_msg->header.stamp;
       alt_state_.states[0].state[0].x = raw_range_pos_z_;
       alt_state_.states[0].state[0].y = raw_range_vel_z_;
 
@@ -424,7 +424,7 @@ namespace sensor_plugin
       updateHealthStamp(1); //channel: 1
     }
 
-    void rangeEstimateProcess(ros::Time stamp)
+    void rangeEstimateProcess()
     {
       if(!estimate_flag_) return;
 
@@ -443,15 +443,13 @@ namespace sensor_plugin
                 {
                   if(plugin_name == "kalman_filter/kf_pos_vel_acc")
                     {
-                      /* set noise sigma */
-                      VectorXd measure_sigma(1); measure_sigma << range_noise_sigma_;
-                      kf->setMeasureSigma(measure_sigma);
-
                       /* correction */
+                      VectorXd measure_sigma(1); measure_sigma << range_noise_sigma_;
                       VectorXd meas(1); meas <<  raw_range_pos_z_;
                       vector<double> params = {kf_plugin::POS};
 
-                      kf->correction(meas, stamp.toSec(), params);
+                      kf->correction(meas, measure_sigma,
+                                     time_sync_?(alt_state_.header.stamp.toSec()):-1, params);
                     }
                 }
             }
@@ -573,9 +571,7 @@ namespace sensor_plugin
 
           /* the initialization of the baro bias kf filter */
           VectorXd input_sigma(1); input_sigma << baro_bias_noise_sigma_;
-          baro_bias_kf_->setInputSigma(input_sigma);
-          VectorXd measure_sigma(1); measure_sigma << 0;
-          baro_bias_kf_->setMeasureSigma(measure_sigma);
+          baro_bias_kf_->setPredictionNoiseCovariance(input_sigma);
           baro_bias_kf_->setInputFlag();
           baro_bias_kf_->setMeasureFlag();
           baro_bias_kf_->setInitState(-baro_pos_z_, 0);
@@ -632,15 +628,11 @@ namespace sensor_plugin
 
                       if(plugin_name == "kalman_filter/kf_pos_vel_acc")
                         {
-                          /* set noise sigma */
-                          VectorXd measure_sigma(1);
-                          measure_sigma << baro_noise_sigma_;
-                          kf->setMeasureSigma(measure_sigma);
-
                           /* correction */
+                          VectorXd measure_sigma(1); measure_sigma << baro_noise_sigma_;
                           VectorXd meas(1); meas <<  baro_pos_z_ + (baro_bias_kf_->getEstimateState())(0);
                           vector<double> params = {kf_plugin::POS};
-                          kf->correction(meas, stamp.toSec(), params);
+                          kf->correction(meas, measure_sigma, -1, params);
 
                         }
 
@@ -660,7 +652,7 @@ namespace sensor_plugin
           {
             baro_bias_kf_->prediction(VectorXd::Zero(1), stamp.toSec());
             VectorXd meas(1);  meas << (estimator_->getState(State::Z_BASE, 0))[0] - baro_pos_z_;
-            baro_bias_kf_->correction(meas, stamp.toSec());
+            baro_bias_kf_->correction(meas, VectorXd::Zero(1), -1);
           }
           break;
         case WITH_BARO_MODE:

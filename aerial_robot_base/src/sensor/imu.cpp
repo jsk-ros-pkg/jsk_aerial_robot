@@ -273,7 +273,7 @@ namespace sensor_plugin
                           if((id & (1 << State::X_BASE)) || (id & (1 << State::Y_BASE)))
                             {
                               input_noise_sigma << level_acc_noise_sigma_, level_acc_bias_noise_sigma_;
-                              kf->setInputSigma(input_noise_sigma);
+                              kf->setPredictionNoiseCovariance(input_noise_sigma);
                               if(level_acc_bias_noise_sigma_ > 0)
                                 {
                                   if(id & (1 << State::X_BASE)) kf->setInitState(acc_bias_w_.x(),2);
@@ -283,9 +283,8 @@ namespace sensor_plugin
                           if(id & (1 << State::Z_BASE))
                             {
                               input_noise_sigma << z_acc_noise_sigma_, z_acc_bias_noise_sigma_;
-                              kf->setInputSigma(input_noise_sigma);
+                              kf->setPredictionNoiseCovariance(input_noise_sigma);
                               if(z_acc_bias_noise_sigma_ > 0) kf->setInitState(acc_bias_w_.z(), 2);
-
                             }
                           start_predict = true;
                         }
@@ -301,11 +300,15 @@ namespace sensor_plugin
                                 level_acc_noise_sigma_,
                                 angle_bias_noise_sigma_,
                                 angle_bias_noise_sigma_;
-                              kf->setInputSigma(input_noise_sigma);
+                              kf->setPredictionNoiseCovariance(input_noise_sigma);
                               start_predict = true;
                             }
                         }
-                      if(start_predict) kf->setInputFlag();
+                      if(start_predict)
+                        {
+                          kf->setPredictBufSize(1/sensor_dt_); //set the prediction handler buffer size
+                          kf->setInputFlag();
+                        }
                     }
                 }
             }
@@ -359,6 +362,7 @@ namespace sensor_plugin
                               /* get the estiamted offset(bias) */
                               if(z_acc_bias_noise_sigma_ > 0) acc_bias_b_.setZ((kf->getEstimateState())(2));
                             }
+
                           kf->prediction(input_val, imu_stamp_.toSec(), params);
                           VectorXd estimate_state = kf->getEstimateState();
                           estimator_->setState(axis, mode, 0, estimate_state(0));

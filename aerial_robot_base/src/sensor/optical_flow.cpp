@@ -161,8 +161,6 @@ namespace sensor_plugin
                     {
                       if((id & (1 << State::X_BASE)) || (id & (1 << State::Y_BASE)) )
                         {
-                          if(time_sync_) kf->setTimeSync(true);
-
                           kf->setInitState(vel_[id >> (State::X_BASE + 1)], 1);
                           kf->setMeasureFlag();
                         }
@@ -172,7 +170,6 @@ namespace sensor_plugin
                     {
                       if((id & (1 << State::X_BASE)) && (id & (1 << State::Y_BASE)) )
                         {
-                          if(time_sync_) kf->setTimeSync(true);
                           VectorXd init_state(6);
                           init_state << 0, vel_[0], 0, vel_[1], 0, 0;
                           kf->setInitState(init_state);
@@ -223,19 +220,14 @@ namespace sensor_plugin
             {
               if((id & (1 << State::X_BASE)) ||  (id & (1 << State::Y_BASE)))
                 {
-                  /* set noise sigma */
+                  /* correction */
                   VectorXd measure_sigma(1);
                   measure_sigma << opt_noise_sigma_;
-                  kf->setMeasureSigma(measure_sigma);
-
-                  /* correction */
                   int index = id >> (State::X_BASE + 1);
                   VectorXd meas(1); meas <<  vel_[index];
                   vector<double> params = {kf_plugin::VEL};
-                  /* time sync and delay process: get from kf time stamp */
-                  if(time_sync_ && delay_ < 0) stamp.fromSec(kf->getTimestamp() + delay_);
-
-                  kf->correction(meas, stamp.toSec(), params);
+                  stamp.fromSec(stamp.toSec() + delay_);
+                  kf->correction(meas, measure_sigma, time_sync_?(stamp.toSec()):-1, params);
 
                   VectorXd state = kf->getEstimateState();
                   estimator_->setState(index + 3, BasicEstimator::EGOMOTION_ESTIMATE, 0, state(0));
@@ -247,17 +239,14 @@ namespace sensor_plugin
             {
               if((id & (1 << State::X_BASE)) && (id & (1 << State::Y_BASE)))
                 {
-                  /* set noise sigma */
+                  /* correction */
                   VectorXd measure_sigma(2);
                   measure_sigma << opt_noise_sigma_, opt_noise_sigma_;
-                  kf->setMeasureSigma(measure_sigma);
-
-                  /* correction */
                   VectorXd meas(2); meas <<  vel_[0], vel_[1];
                   vector<double> params = {kf_plugin::VEL};
                   /* time sync and delay process: get from kf time stamp */
-                  if(time_sync_ && delay_ < 0) stamp.fromSec(kf->getTimestamp() + delay_);
-                  kf->correction(meas, stamp.toSec(), params);
+                  stamp.fromSec(stamp.toSec() + delay_);
+                  kf->correction(meas, measure_sigma, time_sync_?(stamp.toSec()):-1, params);
 
                   VectorXd state = kf->getEstimateState();
                   /* temp */

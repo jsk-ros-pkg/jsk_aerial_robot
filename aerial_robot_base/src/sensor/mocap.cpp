@@ -323,10 +323,7 @@ namespace sensor_plugin
               if(plugin_name == "kalman_filter/kf_pos_vel_acc")
                 {
                   if(id < (1 << State::ROLL_COG))
-                    {
-                      if(time_sync_) kf->setTimeSync(true);
                       kf->setInitState(init_pos[id >> (State::X_BASE + 1)], 0);
-                    }
                 }
 
               if(plugin_name == "aerial_robot_base/kf_xy_roll_pitch_bias")
@@ -353,7 +350,6 @@ namespace sensor_plugin
       /* start experiment estimation */
       if(!(estimate_mode_ & (1 << BasicEstimator::EXPERIMENT_ESTIMATE))) return;
 
-
       for(auto& fuser : estimator_->getFuser(BasicEstimator::EXPERIMENT_ESTIMATE))
         {
           string plugin_name = fuser.first;
@@ -367,23 +363,25 @@ namespace sensor_plugin
                 {
                   int index = id >> (State::X_BASE + 1);
 
-                  if(kf->getInputDim() == 1 && acc_bias_noise_sigma_ > 0)
+                  if(kf->getStateDim() == 2 && acc_bias_noise_sigma_ > 0)
                     {
-                      /* special process since we have to refer kf->getInputSigma() which is assinged from IMU */
+                      if(kf->getPredictionNoiseCovariance().rows() == 0)
+                        return;
+
                       VectorXd input_noise_sigma(2);
-                      input_noise_sigma << (kf->getInputSigma())(0), acc_bias_noise_sigma_;
-                      kf->setInputSigma(input_noise_sigma);
+                      input_noise_sigma << kf->getPredictionNoiseCovariance()(0, 0),
+                        acc_bias_noise_sigma_;
+
+                      kf->setPredictionNoiseCovariance(input_noise_sigma);
+                      kf->setInitState(raw_pos_[index], 0);
                     }
 
-                  /* set noise sigma */
+                  /* correction */
                   VectorXd measure_sigma(1);
                   measure_sigma << pos_noise_sigma_;
-                  kf->setMeasureSigma(measure_sigma);
-
-                  /* correction */
                   VectorXd meas(1); meas << raw_pos_[index];
                   vector<double> params = {kf_plugin::POS};
-                  kf->correction(meas, stamp.toSec(), params);
+                  kf->correction(meas, measure_sigma, -1, params); //no time sync
                   VectorXd state = kf->getEstimateState();
                   estimator_->setState(index + 3, BasicEstimator::EXPERIMENT_ESTIMATE, 0, state(0));
                   estimator_->setState(index + 3, BasicEstimator::EXPERIMENT_ESTIMATE, 1, state(1));
@@ -393,16 +391,13 @@ namespace sensor_plugin
                 {
                   if((id & (1 << State::X_BASE)) && (id & (1 << State::Y_BASE)))
                     {
-                      /* set noise sigma */
+                      /* correction */
                       VectorXd measure_sigma(2);
                       measure_sigma << pos_noise_sigma_, pos_noise_sigma_;
-                      kf->setMeasureSigma(measure_sigma);
-
-                      /* correction */
                       VectorXd meas(2); meas <<  raw_pos_[0], raw_pos_[1];
                       vector<double> params = {kf_plugin::POS};
                       /* time sync and delay process: get from kf time stamp */
-                      kf->correction(meas, stamp.toSec(), params);
+                      kf->correction(meas, measure_sigma, -1, params); // no time sync
 
                       VectorXd state = kf->getEstimateState();
                       /* temp */
