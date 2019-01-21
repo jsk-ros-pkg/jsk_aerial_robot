@@ -1,8 +1,9 @@
 sensor_plugin:
   vo:
     vo_sub_topic_name: /zed/odom
-    level_pos_noise_sigma: 0.003
-    z_pos_noise_sigma: 0.005
+    level_pos_noise_sigma: 0.001 # use pos-vel-bias model, so need lower noise
+    z_pos_noise_sigma: 0.01 #0.005
+    vel_noise_sigma: 0.02
     joint: zed_mini_servo_joint
     sensor_frame: zed_camera_center
     reference_frame: fc
@@ -10,7 +11,8 @@ sensor_plugin:
     valid_yaw: true
     debug_verbose: false
     time_sync: true
-    delay: -0.2
+    delay: -0.15
+    z_no_delay: true #special case of some vio algorithm such as zed mini
     servo_init_angle: -1.570796
     servo_index: 1
     #servo_min_pwm: 550
