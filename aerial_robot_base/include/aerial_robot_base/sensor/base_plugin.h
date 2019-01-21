@@ -39,12 +39,14 @@
 /* ros */
 #include <ros/ros.h>
 
-/* estimation class */
-#include <aerial_robot_base/basic_state_estimation.h>
-
 /* filter */
-#include <kalman_filter/kf_base_plugin.h>
 #include <kalman_filter/digital_filter.h>
+
+/* kf plugin */
+#include <kalman_filter/kf_base_plugin.h>
+
+/* estimation class */
+#include <aerial_robot_base/state_estimation.h>
 
 /* algebra */
 #include <Eigen/Core>
@@ -74,10 +76,9 @@ namespace sensor_plugin
       sensor_tf_.setIdentity();
     }
 
-    virtual void initialize(ros::NodeHandle nh, ros::NodeHandle nhp, BasicEstimator* estimator, string sensor_name)
+    virtual void initialize(ros::NodeHandle nh, ros::NodeHandle nhp, StateEstimator* estimator, string sensor_name)
     {
       estimator_ = estimator;
-
       nh_ = ros::NodeHandle(nh, sensor_name);
       nhp_ = ros::NodeHandle(nhp, sensor_name);
 
@@ -125,7 +126,7 @@ namespace sensor_plugin
     ros::NodeHandle nhp_;
     ros::Timer  health_check_timer_;
     ros::ServiceServer estimate_flag_service_;
-    BasicEstimator* estimator_;
+    StateEstimator* estimator_;
     int estimate_mode_;
 
     bool simulation_;
@@ -175,13 +176,13 @@ namespace sensor_plugin
               ROS_ERROR("[%s, chan%d]: can not get fresh sensor data for %f[sec]", nhp_.getNamespace().c_str(), i, ros::Time::now().toSec() - health_stamp_[i]);
               /* TODO: the solution to unhealth should be more clever */
               estimator_->setUnhealthLevel(unhealth_level_);
+
               health_[i] = false;
             }
         }
     }
 
-    bool estimateFlag(std_srvs::SetBool::Request  &req,
-                      std_srvs::SetBool::Response &res)
+    bool estimateFlag(std_srvs::SetBool::Request  &req, std_srvs::SetBool::Response &res)
     {
       string ns = nhp_.getNamespace();
       estimate_flag_ = req.data;
@@ -209,15 +210,14 @@ namespace sensor_plugin
 
     inline const tf::Transform& getBaseLink2SensorTransform() const { return sensor_tf_; }
 
-
     bool updateBaseLink2SensorTransform()
     {
       /* get transform from baselink to sensor frame */
       if(!variable_sensor_tf_flag_ && get_sensor_tf_) return true;
 
       /*
-         for joint or servo system, this should be processed every time,
-         therefore kinematics based on kinematics is better, since the tf need 0.x[sec].
+        for joint or servo system, this should be processed every time,
+        therefore kinematics based on kinematics is better, since the tf need 0.x[sec].
       */
       const auto& segments_tf =  estimator_->getSegmentsTf();
       if(segments_tf.find(sensor_frame_) == segments_tf.end())
@@ -239,6 +239,7 @@ namespace sensor_plugin
       get_sensor_tf_ = true;
       return true;
     }
+
   };
 
 };

@@ -37,9 +37,9 @@
 #include <ros/ros.h>
 
 /* base class */
-#include <aerial_robot_base/sensor_base_plugin.h>
+#include <aerial_robot_base/sensor/base_plugin.h>
 
-/* kalman filters */
+/* filter */
 #include <kalman_filter/kf_pos_vel_acc_plugin.h>
 
 /* ros msg */
@@ -51,7 +51,7 @@ namespace sensor_plugin
   {
   public:
 
-    void initialize(ros::NodeHandle nh, ros::NodeHandle nhp, BasicEstimator* estimator, string sensor_name)
+    void initialize(ros::NodeHandle nh, ros::NodeHandle nhp, StateEstimator* estimator, string sensor_name)
     {
       SensorBase::initialize(nh, nhp, estimator, sensor_name);
       rosParamInit();
@@ -109,7 +109,7 @@ namespace sensor_plugin
           tf::vector3MsgToTF(opt_msg->vector, camera_vel);
 
           /* TODO: not accurate */
-          vel_ = estimator_->getOrientation(Frame::BASELINK, BasicEstimator::EGOMOTION_ESTIMATE) * (sensor_tf_.getBasis() * camera_vel - estimator_->getAngularVel(Frame::BASELINK, BasicEstimator::EGOMOTION_ESTIMATE).cross(sensor_tf_.getOrigin()));
+          vel_ = estimator_->getOrientation(Frame::BASELINK, StateEstimator::EGOMOTION_ESTIMATE) * (sensor_tf_.getBasis() * camera_vel - estimator_->getAngularVel(Frame::BASELINK, StateEstimator::EGOMOTION_ESTIMATE).cross(sensor_tf_.getOrigin()));
         }
       else
         {
@@ -118,22 +118,22 @@ namespace sensor_plugin
           return;
         }
       /* only do egmotion estimate mode */
-      if(!getFuserActivate(BasicEstimator::EGOMOTION_ESTIMATE))
+      if(!getFuserActivate(StateEstimator::EGOMOTION_ESTIMATE))
         {
           ROS_WARN_THROTTLE(1,"Optical Flow: no egmotion estimate mode");
           return;
         }
 
       /* update/check the state status of the xy state */
-      if(estimator_->getState(State::Z_BASE, BasicEstimator::EGOMOTION_ESTIMATE)[0] < height_thresh_)
+      if(estimator_->getState(State::Z_BASE, StateEstimator::EGOMOTION_ESTIMATE)[0] < height_thresh_)
         {
           ROS_WARN_THROTTLE(1,"Optical Flow: bad height to use opticla flow");
 
           /* stop kalman filter */
           if(!first_flag)
             {
-              estimator_->setStateStatus(State::X_BASE, BasicEstimator::EGOMOTION_ESTIMATE, false);
-              estimator_->setStateStatus(State::Y_BASE, BasicEstimator::EGOMOTION_ESTIMATE, false);
+              estimator_->setStateStatus(State::X_BASE, StateEstimator::EGOMOTION_ESTIMATE, false);
+              estimator_->setStateStatus(State::Y_BASE, StateEstimator::EGOMOTION_ESTIMATE, false);
 
               first_flag = true;
             }
@@ -146,12 +146,12 @@ namespace sensor_plugin
           first_flag = false;
           ROS_WARN("Optical Flow: start/restart, height: %f", height_thresh_);
 
-          if(!estimator_->getStateStatus(State::X_BASE, BasicEstimator::EGOMOTION_ESTIMATE) ||
-             !estimator_->getStateStatus(State::Y_BASE, BasicEstimator::EGOMOTION_ESTIMATE))
+          if(!estimator_->getStateStatus(State::X_BASE, StateEstimator::EGOMOTION_ESTIMATE) ||
+             !estimator_->getStateStatus(State::Y_BASE, StateEstimator::EGOMOTION_ESTIMATE))
             {
               ROS_WARN("Optical Flow: start/restart kalman filter");
 
-              for(auto& fuser : estimator_->getFuser(BasicEstimator::EGOMOTION_ESTIMATE))
+              for(auto& fuser : estimator_->getFuser(StateEstimator::EGOMOTION_ESTIMATE))
                 {
                   string plugin_name = fuser.first;
                   boost::shared_ptr<kf_plugin::KalmanFilter> kf = fuser.second;
@@ -181,8 +181,8 @@ namespace sensor_plugin
             }
 
           /* set the status */
-          estimator_->setStateStatus(State::X_BASE, BasicEstimator::EGOMOTION_ESTIMATE, true);
-          estimator_->setStateStatus(State::Y_BASE, BasicEstimator::EGOMOTION_ESTIMATE, true);
+          estimator_->setStateStatus(State::X_BASE, StateEstimator::EGOMOTION_ESTIMATE, true);
+          estimator_->setStateStatus(State::Y_BASE, StateEstimator::EGOMOTION_ESTIMATE, true);
         }
 
       /* publish */
@@ -200,8 +200,8 @@ namespace sensor_plugin
     void estimateProcess(ros::Time stamp)
     {
       /* filtering by estimation velocity */
-      tf::Vector3 estimate_vel(estimator_->getState(State::X_BASE, BasicEstimator::EGOMOTION_ESTIMATE)[1],
-                               estimator_->getState(State::Y_BASE, BasicEstimator::EGOMOTION_ESTIMATE)[1],
+      tf::Vector3 estimate_vel(estimator_->getState(State::X_BASE, StateEstimator::EGOMOTION_ESTIMATE)[1],
+                               estimator_->getState(State::Y_BASE, StateEstimator::EGOMOTION_ESTIMATE)[1],
                                0);
 
       if((vel_ - estimate_vel).length() > vel_thresh_)
@@ -210,7 +210,7 @@ namespace sensor_plugin
           return;
         }
 
-      for(auto& fuser : estimator_->getFuser(BasicEstimator::EGOMOTION_ESTIMATE))
+      for(auto& fuser : estimator_->getFuser(StateEstimator::EGOMOTION_ESTIMATE))
         {
           boost::shared_ptr<kf_plugin::KalmanFilter> kf = fuser.second;
           string plugin_name = fuser.first;
@@ -230,8 +230,8 @@ namespace sensor_plugin
                   kf->correction(meas, measure_sigma, time_sync_?(stamp.toSec()):-1, params);
 
                   VectorXd state = kf->getEstimateState();
-                  estimator_->setState(index + 3, BasicEstimator::EGOMOTION_ESTIMATE, 0, state(0));
-                  estimator_->setState(index + 3, BasicEstimator::EGOMOTION_ESTIMATE, 1, state(1));
+                  estimator_->setState(index + 3, StateEstimator::EGOMOTION_ESTIMATE, 0, state(0));
+                  estimator_->setState(index + 3, StateEstimator::EGOMOTION_ESTIMATE, 1, state(1));
                 }
             }
 
@@ -250,10 +250,10 @@ namespace sensor_plugin
 
                   VectorXd state = kf->getEstimateState();
                   /* temp */
-                  estimator_->setState(State::X_BASE, BasicEstimator::EGOMOTION_ESTIMATE, 0, state(0));
-                  estimator_->setState(State::X_BASE, BasicEstimator::EGOMOTION_ESTIMATE, 1, state(1));
-                  estimator_->setState(State::Y_BASE, BasicEstimator::EGOMOTION_ESTIMATE, 0, state(2));
-                  estimator_->setState(State::Y_BASE, BasicEstimator::EGOMOTION_ESTIMATE, 1, state(3));
+                  estimator_->setState(State::X_BASE, StateEstimator::EGOMOTION_ESTIMATE, 0, state(0));
+                  estimator_->setState(State::X_BASE, StateEstimator::EGOMOTION_ESTIMATE, 1, state(1));
+                  estimator_->setState(State::Y_BASE, StateEstimator::EGOMOTION_ESTIMATE, 0, state(2));
+                  estimator_->setState(State::Y_BASE, StateEstimator::EGOMOTION_ESTIMATE, 1, state(3));
                 }
             }
         }

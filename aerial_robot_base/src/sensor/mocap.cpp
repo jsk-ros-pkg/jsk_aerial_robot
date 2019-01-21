@@ -37,9 +37,9 @@
 #include <ros/ros.h>
 
 /* base class */
-#include <aerial_robot_base/sensor_base_plugin.h>
+#include <aerial_robot_base/sensor/base_plugin.h>
 
-/* kalman filters */
+/* filter */
 #include <kalman_filter/kf_pos_vel_acc_plugin.h>
 
 /* ros msg */
@@ -62,7 +62,7 @@ namespace sensor_plugin
   class Mocap : public sensor_plugin::SensorBase
   {
   public:
-    void initialize(ros::NodeHandle nh, ros::NodeHandle nhp, BasicEstimator* estimator, string sensor_name)
+    void initialize(ros::NodeHandle nh, ros::NodeHandle nhp, StateEstimator* estimator, string sensor_name)
     {
       SensorBase::initialize(nh, nhp, estimator, sensor_name);
       rosParamInit();
@@ -162,9 +162,9 @@ namespace sensor_plugin
           lpf_psi_.filterFunction(raw_psi_vel, psi_vel);
 
           /* euler */
-          estimator_->setState(State::YAW_BASE, BasicEstimator::GROUND_TRUTH, 0, euler[2]);
-          if(estimate_mode_ & (1 << BasicEstimator::EXPERIMENT_ESTIMATE))
-            estimator_->setState(State::YAW_BASE, BasicEstimator::EXPERIMENT_ESTIMATE, 0, euler[2]);
+          estimator_->setState(State::YAW_BASE, StateEstimator::GROUND_TRUTH, 0, euler[2]);
+          if(estimate_mode_ & (1 << StateEstimator::EXPERIMENT_ESTIMATE))
+            estimator_->setState(State::YAW_BASE, StateEstimator::EXPERIMENT_ESTIMATE, 0, euler[2]);
 
           ground_truth_pose_.header.stamp = msg->header.stamp;
 
@@ -208,13 +208,13 @@ namespace sensor_plugin
     void groundTruthProcess()
     {
       /* base link */
-      estimator_->setPos(Frame::BASELINK, BasicEstimator::GROUND_TRUTH, pos_);
-      estimator_->setVel(Frame::BASELINK, BasicEstimator::GROUND_TRUTH, vel_);
+      estimator_->setPos(Frame::BASELINK, StateEstimator::GROUND_TRUTH, pos_);
+      estimator_->setVel(Frame::BASELINK, StateEstimator::GROUND_TRUTH, vel_);
 
       /* CoG */
       /* 2017.7.25: calculate the state in COG frame using the Baselink frame */
       /* pos_cog = pos_baselink - R * pos_cog2baselink */
-      int estimate_mode = BasicEstimator::GROUND_TRUTH;
+      int estimate_mode = StateEstimator::GROUND_TRUTH;
       estimator_->setPos(Frame::COG, estimate_mode,
                          estimator_->getPos(Frame::BASELINK, estimate_mode)
                          + estimator_->getOrientation(Frame::BASELINK, estimate_mode)
@@ -253,14 +253,14 @@ namespace sensor_plugin
               if(i == 2) euler[2] = angle;
             }
 
-          estimator_->setEuler(Frame::BASELINK, BasicEstimator::GROUND_TRUTH, euler);
-          estimator_->setAngularVel(Frame::BASELINK, BasicEstimator::GROUND_TRUTH, omega);
+          estimator_->setEuler(Frame::BASELINK, StateEstimator::GROUND_TRUTH, euler);
+          estimator_->setAngularVel(Frame::BASELINK, StateEstimator::GROUND_TRUTH, omega);
 
           /* cog */
           (tf::Matrix3x3(q) * estimator_->getCog2Baselink().getBasis().inverse()).getRPY(r, p, y);
           euler.setValue(r, p, y);
-          estimator_->setEuler(Frame::COG, BasicEstimator::GROUND_TRUTH, euler);
-          estimator_->setAngularVel(Frame::COG, BasicEstimator::GROUND_TRUTH, estimator_->getCog2Baselink().getBasis() * omega);
+          estimator_->setEuler(Frame::COG, StateEstimator::GROUND_TRUTH, euler);
+          estimator_->setAngularVel(Frame::COG, StateEstimator::GROUND_TRUTH, estimator_->getCog2Baselink().getBasis() * omega);
 
           groundTruthProcess();
         }
@@ -299,21 +299,21 @@ namespace sensor_plugin
     void init(tf::Vector3 init_pos)
     {
       /* set ground truth */
-      estimator_->setStateStatus(State::X_BASE, BasicEstimator::GROUND_TRUTH, true);
-      estimator_->setStateStatus(State::Y_BASE, BasicEstimator::GROUND_TRUTH, true);
-      estimator_->setStateStatus(State::Z_BASE, BasicEstimator::GROUND_TRUTH, true);
-      estimator_->setStateStatus(State::YAW_BASE, BasicEstimator::GROUND_TRUTH, true);
-      estimator_->setStateStatus(State::YAW_COG, BasicEstimator::GROUND_TRUTH, true);
+      estimator_->setStateStatus(State::X_BASE, StateEstimator::GROUND_TRUTH, true);
+      estimator_->setStateStatus(State::Y_BASE, StateEstimator::GROUND_TRUTH, true);
+      estimator_->setStateStatus(State::Z_BASE, StateEstimator::GROUND_TRUTH, true);
+      estimator_->setStateStatus(State::YAW_BASE, StateEstimator::GROUND_TRUTH, true);
+      estimator_->setStateStatus(State::YAW_COG, StateEstimator::GROUND_TRUTH, true);
 
-      if(estimate_mode_ & (1 << BasicEstimator::EXPERIMENT_ESTIMATE))
+      if(estimate_mode_ & (1 << StateEstimator::EXPERIMENT_ESTIMATE))
         {
-          estimator_->setStateStatus(State::X_BASE, BasicEstimator::EXPERIMENT_ESTIMATE, true);
-          estimator_->setStateStatus(State::Y_BASE, BasicEstimator::EXPERIMENT_ESTIMATE, true);
-          estimator_->setStateStatus(State::Z_BASE, BasicEstimator::EXPERIMENT_ESTIMATE, true);
-          estimator_->setStateStatus(State::YAW_BASE, BasicEstimator::EXPERIMENT_ESTIMATE, true);
-          estimator_->setStateStatus(State::YAW_COG, BasicEstimator::EXPERIMENT_ESTIMATE, true);
+          estimator_->setStateStatus(State::X_BASE, StateEstimator::EXPERIMENT_ESTIMATE, true);
+          estimator_->setStateStatus(State::Y_BASE, StateEstimator::EXPERIMENT_ESTIMATE, true);
+          estimator_->setStateStatus(State::Z_BASE, StateEstimator::EXPERIMENT_ESTIMATE, true);
+          estimator_->setStateStatus(State::YAW_BASE, StateEstimator::EXPERIMENT_ESTIMATE, true);
+          estimator_->setStateStatus(State::YAW_COG, StateEstimator::EXPERIMENT_ESTIMATE, true);
 
-          for(auto& fuser : estimator_->getFuser(BasicEstimator::EXPERIMENT_ESTIMATE))
+          for(auto& fuser : estimator_->getFuser(StateEstimator::EXPERIMENT_ESTIMATE))
             {
               string plugin_name = fuser.first;
               boost::shared_ptr<kf_plugin::KalmanFilter> kf = fuser.second;
@@ -344,13 +344,13 @@ namespace sensor_plugin
     {
       if(!estimate_flag_) return;
 
-      if((estimate_mode_ & (1 << BasicEstimator::GROUND_TRUTH)))
+      if((estimate_mode_ & (1 << StateEstimator::GROUND_TRUTH)))
         groundTruthProcess();
 
       /* start experiment estimation */
-      if(!(estimate_mode_ & (1 << BasicEstimator::EXPERIMENT_ESTIMATE))) return;
+      if(!(estimate_mode_ & (1 << StateEstimator::EXPERIMENT_ESTIMATE))) return;
 
-      for(auto& fuser : estimator_->getFuser(BasicEstimator::EXPERIMENT_ESTIMATE))
+      for(auto& fuser : estimator_->getFuser(StateEstimator::EXPERIMENT_ESTIMATE))
         {
           string plugin_name = fuser.first;
           boost::shared_ptr<kf_plugin::KalmanFilter> kf = fuser.second;
@@ -383,8 +383,8 @@ namespace sensor_plugin
                   vector<double> params = {kf_plugin::POS};
                   kf->correction(meas, measure_sigma, -1, params); //no time sync
                   VectorXd state = kf->getEstimateState();
-                  estimator_->setState(index + 3, BasicEstimator::EXPERIMENT_ESTIMATE, 0, state(0));
-                  estimator_->setState(index + 3, BasicEstimator::EXPERIMENT_ESTIMATE, 1, state(1));
+                  estimator_->setState(index + 3, StateEstimator::EXPERIMENT_ESTIMATE, 0, state(0));
+                  estimator_->setState(index + 3, StateEstimator::EXPERIMENT_ESTIMATE, 1, state(1));
                 }
 
               if(plugin_name == "aerial_robot_base/kf_xy_roll_pitch_bias")
@@ -401,10 +401,10 @@ namespace sensor_plugin
 
                       VectorXd state = kf->getEstimateState();
                       /* temp */
-                      estimator_->setState(State::X_BASE, BasicEstimator::EXPERIMENT_ESTIMATE, 0, state(0));
-                      estimator_->setState(State::X_BASE, BasicEstimator::EXPERIMENT_ESTIMATE, 1, state(1));
-                      estimator_->setState(State::Y_BASE, BasicEstimator::EXPERIMENT_ESTIMATE, 0, state(2));
-                      estimator_->setState(State::Y_BASE, BasicEstimator::EXPERIMENT_ESTIMATE, 1, state(3));
+                      estimator_->setState(State::X_BASE, StateEstimator::EXPERIMENT_ESTIMATE, 0, state(0));
+                      estimator_->setState(State::X_BASE, StateEstimator::EXPERIMENT_ESTIMATE, 1, state(1));
+                      estimator_->setState(State::Y_BASE, StateEstimator::EXPERIMENT_ESTIMATE, 0, state(2));
+                      estimator_->setState(State::Y_BASE, StateEstimator::EXPERIMENT_ESTIMATE, 1, state(3));
                     }
                 }
             }

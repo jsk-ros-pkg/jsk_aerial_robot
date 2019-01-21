@@ -37,14 +37,10 @@
 #include <ros/ros.h>
 
 /* base class */
-#include <aerial_robot_base/sensor_base_plugin.h>
+#include <aerial_robot_base/sensor/base_plugin.h>
 
-/* filtering */
-#include <kalman_filter/digital_filter.h>
-
-/* kalman filters */
+/* filter */
 #include <kalman_filter/kf_pos_vel_acc_plugin.h>
-
 
 /* ros msg */
 #include <sensor_msgs/Range.h>
@@ -58,7 +54,7 @@ namespace sensor_plugin
   class Alt :public sensor_plugin::SensorBase
   {
   public:
-    void initialize(ros::NodeHandle nh, ros::NodeHandle nhp, BasicEstimator* estimator, string sensor_name)
+    void initialize(ros::NodeHandle nh, ros::NodeHandle nhp, StateEstimator* estimator, string sensor_name)
     {
       SensorBase::initialize(nh, nhp, estimator, sensor_name);
       rosParamInit();
@@ -218,14 +214,14 @@ namespace sensor_plugin
 
       /* consider the orientation of the uav */
 #if 0
-      float roll = (estimator_->getState(State::ROLL_BASE, BasicEstimator::EGOMOTION_ESTIMATE))[0];
-      float pitch = (estimator_->getState(State::PITCH_BASE, BasicEstimator::EGOMOTION_ESTIMATE))[0];
+      float roll = (estimator_->getState(State::ROLL_BASE, StateEstimator::EGOMOTION_ESTIMATE))[0];
+      float pitch = (estimator_->getState(State::PITCH_BASE, StateEstimator::EGOMOTION_ESTIMATE))[0];
       /* add the offset from the base_link to the sensor */
       tf::Matrix3x3 tilt_r; tilt_r.setRPY(roll, pitch, 0);
       double raw_range_sensor_value = cos(roll) * cos(pitch) * range_msg->range - (tilt_r * sensor_tf_.getOrigin()).z();
 #endif
 
-      raw_range_sensor_value_ = -(estimator_->getOrientation(Frame::BASELINK, BasicEstimator::EGOMOTION_ESTIMATE) * (sensor_tf_* tf::Vector3(0, 0, range_msg->range))).z();
+      raw_range_sensor_value_ = -(estimator_->getOrientation(Frame::BASELINK, StateEstimator::EGOMOTION_ESTIMATE) * (sensor_tf_* tf::Vector3(0, 0, range_msg->range))).z();
 
       /* calibrate phase */
       if(calibrate_cnt > 0)
@@ -286,6 +282,7 @@ namespace sensor_plugin
                     {
                       boost::shared_ptr<kf_plugin::KalmanFilter> kf = fuser.second;
                       int id = kf->getId();
+
                       if(id & (1 << State::Z_BASE))
                         {
                           kf->setMeasureFlag();
@@ -299,7 +296,7 @@ namespace sensor_plugin
 
 
               /* set the status for Z (altitude) */
-              estimator_->setStateStatus(State::Z_BASE, BasicEstimator::EGOMOTION_ESTIMATE, true);
+              estimator_->setStateStatus(State::Z_BASE, StateEstimator::EGOMOTION_ESTIMATE, true);
 
               ROS_WARN("%s: the range sensor offset: %f, initial sanity: %s, the hz is %f, estimate mode is %d",
                        (range_msg->radiation_type == sensor_msgs::Range::ULTRASOUND)?string("sonar sensor").c_str():string("infrared sensor").c_str(), range_sensor_offset_, range_sensor_sanity_?string("true").c_str():string("false").c_str(), 1.0 / sensor_hz_, alt_estimate_mode_);
@@ -461,9 +458,9 @@ namespace sensor_plugin
       if(!terrain_check_) return true;
 
       boost::shared_ptr<kf_plugin::KalmanFilter> kf;
-      if(!getFuserActivate(BasicEstimator::EGOMOTION_ESTIMATE)) return true;
+      if(!getFuserActivate(StateEstimator::EGOMOTION_ESTIMATE)) return true;
 
-      for(auto& fuser : estimator_->getFuser(BasicEstimator::EGOMOTION_ESTIMATE))
+      for(auto& fuser : estimator_->getFuser(StateEstimator::EGOMOTION_ESTIMATE))
         {
           if(fuser.second->getId() & (1 << State::Z_BASE))
             kf = fuser.second;

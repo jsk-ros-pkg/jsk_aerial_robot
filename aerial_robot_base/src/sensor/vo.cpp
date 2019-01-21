@@ -37,9 +37,9 @@
 #include <ros/ros.h>
 
 /* base class */
-#include <aerial_robot_base/sensor_base_plugin.h>
+#include <aerial_robot_base/sensor/base_plugin.h>
 
-/* kalman filters */
+/* filter */
 #include <kalman_filter/kf_pos_vel_acc_plugin.h>
 
 /* ros msg */
@@ -63,7 +63,7 @@ namespace sensor_plugin
   {
   public:
 
-    void initialize(ros::NodeHandle nh, ros::NodeHandle nhp, BasicEstimator* estimator, string sensor_name)
+    void initialize(ros::NodeHandle nh, ros::NodeHandle nhp, StateEstimator* estimator, string sensor_name)
     {
       SensorBase::initialize(nh, nhp, estimator, sensor_name);
       rosParamInit();
@@ -145,14 +145,14 @@ namespace sensor_plugin
     void voCallback(const nav_msgs::Odometry::ConstPtr & vo_msg)
     {
       /* only do egmotion estimate mode */
-      if(!getFuserActivate(BasicEstimator::EGOMOTION_ESTIMATE))
+      if(!getFuserActivate(StateEstimator::EGOMOTION_ESTIMATE))
         {
           ROS_WARN_THROTTLE(1,"Visual Odometry: no egmotion estimate mode");
           return;
         }
 
       /* Temp, TODO: set the status for each sensor plugin: inactive, init, active */
-      if(estimator_->getState(State::YAW_BASE, BasicEstimator::EGOMOTION_ESTIMATE)[0] == 0)
+      if(estimator_->getState(State::YAW_BASE, StateEstimator::EGOMOTION_ESTIMATE)[0] == 0)
         {
           ROS_WARN("the imu is not initialized, wait");
           return;
@@ -170,21 +170,21 @@ namespace sensor_plugin
 
           /* step1: set the init offset from world to the baselink of UAV from egomotion estimation (e.g. yaw) */
           /** ^{w}H_{b} **/
-          world_offset_tf_.setRotation(tf::createQuaternionFromYaw(estimator_->getState(State::YAW_BASE, BasicEstimator::EGOMOTION_ESTIMATE)[0]));
+          world_offset_tf_.setRotation(tf::createQuaternionFromYaw(estimator_->getState(State::YAW_BASE, StateEstimator::EGOMOTION_ESTIMATE)[0]));
 
-          tf::Vector3 world_offset_pos = estimator_->getPos(Frame::BASELINK, BasicEstimator::EGOMOTION_ESTIMATE);
-          if(estimator_->getStateStatus(State::X_BASE, BasicEstimator::EGOMOTION_ESTIMATE))
+          tf::Vector3 world_offset_pos = estimator_->getPos(Frame::BASELINK, StateEstimator::EGOMOTION_ESTIMATE);
+          if(estimator_->getStateStatus(State::X_BASE, StateEstimator::EGOMOTION_ESTIMATE))
             world_offset_tf_.getOrigin().setX(world_offset_pos.x());
-          if(estimator_->getStateStatus(State::Y_BASE, BasicEstimator::EGOMOTION_ESTIMATE))
+          if(estimator_->getStateStatus(State::Y_BASE, StateEstimator::EGOMOTION_ESTIMATE))
             world_offset_tf_.getOrigin().setY(world_offset_pos.y());
-          if(estimator_->getStateStatus(State::Z_BASE, BasicEstimator::EGOMOTION_ESTIMATE))
+          if(estimator_->getStateStatus(State::Z_BASE, StateEstimator::EGOMOTION_ESTIMATE))
             world_offset_tf_.getOrigin().setZ(world_offset_pos.z());
 
           /* set the init offset from world to the baselink of UAV if we know the ground truth */
-          if(estimator_->getStateStatus(State::YAW_BASE, BasicEstimator::GROUND_TRUTH))
+          if(estimator_->getStateStatus(State::YAW_BASE, StateEstimator::GROUND_TRUTH))
             {
-              world_offset_tf_.setOrigin(estimator_->getPos(Frame::BASELINK, BasicEstimator::GROUND_TRUTH));
-              world_offset_tf_.setRotation(tf::createQuaternionFromYaw(estimator_->getState(State::YAW_BASE, BasicEstimator::GROUND_TRUTH)[0]));
+              world_offset_tf_.setOrigin(estimator_->getPos(Frame::BASELINK, StateEstimator::GROUND_TRUTH));
+              world_offset_tf_.setRotation(tf::createQuaternionFromYaw(estimator_->getState(State::YAW_BASE, StateEstimator::GROUND_TRUTH)[0]));
 
               double y, p, r; world_offset_tf_.getBasis().getRPY(r, p, y);
             }
@@ -198,13 +198,13 @@ namespace sensor_plugin
           tf::Vector3 init_pos = (world_offset_tf_ * raw_sensor_tf * sensor_tf_.inverse()).getOrigin();
           /*
           ROS_WARN("init pos, mocap vs vo: [%f, %f, %f] vs [%f, %f, %f]",
-                   estimator_->getPos(Frame::BASELINK, BasicEstimator::GROUND_TRUTH).x(),
-                   estimator_->getPos(Frame::BASELINK, BasicEstimator::GROUND_TRUTH).y(),
-                   estimator_->getPos(Frame::BASELINK, BasicEstimator::GROUND_TRUTH).z(),
+                   estimator_->getPos(Frame::BASELINK, StateEstimator::GROUND_TRUTH).x(),
+                   estimator_->getPos(Frame::BASELINK, StateEstimator::GROUND_TRUTH).y(),
+                   estimator_->getPos(Frame::BASELINK, StateEstimator::GROUND_TRUTH).z(),
                    init_pos.x(), init_pos.y(), init_pos.z());
           */
 
-          for(auto& fuser : estimator_->getFuser(BasicEstimator::EGOMOTION_ESTIMATE))
+          for(auto& fuser : estimator_->getFuser(StateEstimator::EGOMOTION_ESTIMATE))
             {
               string plugin_name = fuser.first;
               boost::shared_ptr<kf_plugin::KalmanFilter> kf = fuser.second;
@@ -231,10 +231,10 @@ namespace sensor_plugin
                 }
             }
 
-          estimator_->setStateStatus(State::X_BASE, BasicEstimator::EGOMOTION_ESTIMATE, true);
-          estimator_->setStateStatus(State::Y_BASE, BasicEstimator::EGOMOTION_ESTIMATE, true);
-          estimator_->setStateStatus(State::Z_BASE, BasicEstimator::EGOMOTION_ESTIMATE, true);
-          estimator_->setStateStatus(State::YAW_BASE, BasicEstimator::EGOMOTION_ESTIMATE, true);
+          estimator_->setStateStatus(State::X_BASE, StateEstimator::EGOMOTION_ESTIMATE, true);
+          estimator_->setStateStatus(State::Y_BASE, StateEstimator::EGOMOTION_ESTIMATE, true);
+          estimator_->setStateStatus(State::Z_BASE, StateEstimator::EGOMOTION_ESTIMATE, true);
+          estimator_->setStateStatus(State::YAW_BASE, StateEstimator::EGOMOTION_ESTIMATE, true);
 
           prev_sensor_tf = raw_sensor_tf;
           return;
@@ -252,20 +252,20 @@ namespace sensor_plugin
       // velocity:
       tf::Transform delta_tf = prev_sensor_tf.inverse() * raw_sensor_tf;
       tf::Vector3 raw_local_vel = delta_tf.getOrigin() / (vo_msg->header.stamp.toSec() - prev_tf_time.toSec());
-      raw_global_vel_ = estimator_->getOrientation(Frame::BASELINK, estimator_->getStateStatus(State::YAW_BASE, BasicEstimator::GROUND_TRUTH)?BasicEstimator::GROUND_TRUTH:BasicEstimator::EGOMOTION_ESTIMATE) * ( sensor_tf_.getBasis() * raw_local_vel - estimator_->getAngularVel(Frame::BASELINK, BasicEstimator::EGOMOTION_ESTIMATE).cross(sensor_tf_.getOrigin()));
+      raw_global_vel_ = estimator_->getOrientation(Frame::BASELINK, estimator_->getStateStatus(State::YAW_BASE, StateEstimator::GROUND_TRUTH)?StateEstimator::GROUND_TRUTH:StateEstimator::EGOMOTION_ESTIMATE) * ( sensor_tf_.getBasis() * raw_local_vel - estimator_->getAngularVel(Frame::BASELINK, StateEstimator::EGOMOTION_ESTIMATE).cross(sensor_tf_.getOrigin()));
 
       if(debug_verbose_)
         {
           double y, p, r;  tf::Matrix3x3(raw_q).getRPY(r, p, y);
           ROS_INFO("vo raw pos: [%f, %f, %f], raw rot: [%f, %f, %f]",
                    raw_pos.x(), raw_pos.y(), raw_pos.z(), r, p, y);
-          tf::Vector3 mocap_pos = estimator_->getPos(Frame::BASELINK, BasicEstimator::GROUND_TRUTH);
+          tf::Vector3 mocap_pos = estimator_->getPos(Frame::BASELINK, StateEstimator::GROUND_TRUTH);
           ROS_INFO("mocap pos: [%f, %f, %f], vo pos: [%f, %f, %f]",
                    mocap_pos.x(), mocap_pos.y(), mocap_pos.z(),
                    baselink_tf_.getOrigin().x(), baselink_tf_.getOrigin().y(),
                    baselink_tf_.getOrigin().z());
           baselink_tf_.getBasis().getRPY(r, p, y);
-          ROS_INFO("mocap yaw: %f, vo rot: [%f, %f, %f]", estimator_->getState(State::YAW_BASE, BasicEstimator::GROUND_TRUTH)[0], r, p, y);
+          ROS_INFO("mocap yaw: %f, vo rot: [%f, %f, %f]", estimator_->getState(State::YAW_BASE, StateEstimator::GROUND_TRUTH)[0], r, p, y);
         }
 
       vo_state_.header.stamp.fromSec(vo_msg->header.stamp.toSec() + delay_);
@@ -299,10 +299,10 @@ namespace sensor_plugin
       /* TODO: the weighting filter with IMU */
       tfScalar r,p,y;
       baselink_tf_.getBasis().getRPY(r,p,y);
-      estimator_->setState(State::YAW_BASE, BasicEstimator::EGOMOTION_ESTIMATE, 0, y);
+      estimator_->setState(State::YAW_BASE, StateEstimator::EGOMOTION_ESTIMATE, 0, y);
 
       /* XYZ */
-      for(auto& fuser : estimator_->getFuser(BasicEstimator::EGOMOTION_ESTIMATE))
+      for(auto& fuser : estimator_->getFuser(StateEstimator::EGOMOTION_ESTIMATE))
         {
           string plugin_name = fuser.first;
           boost::shared_ptr<kf_plugin::KalmanFilter> kf = fuser.second;
@@ -354,8 +354,8 @@ namespace sensor_plugin
                   kf->correction(meas, measure_sigma,
                                  time_sync_?(timestamp):-1, params, outlier_thresh);
                   VectorXd state = kf->getEstimateState();
-                  estimator_->setState(index + 3, BasicEstimator::EGOMOTION_ESTIMATE, 0, state(0));
-                  estimator_->setState(index + 3, BasicEstimator::EGOMOTION_ESTIMATE, 1, state(1));
+                  estimator_->setState(index + 3, StateEstimator::EGOMOTION_ESTIMATE, 0, state(0));
+                  estimator_->setState(index + 3, StateEstimator::EGOMOTION_ESTIMATE, 1, state(1));
                 }
             }
           if(plugin_name == "aerial_robot_base/kf_xy_roll_pitch_bias")
@@ -372,10 +372,10 @@ namespace sensor_plugin
                                  time_sync_?(timestamp):-1, params);
                   VectorXd state = kf->getEstimateState();
 
-                  estimator_->setState(State::X_BASE, BasicEstimator::EGOMOTION_ESTIMATE, 0, state(0));
-                  estimator_->setState(State::X_BASE, BasicEstimator::EGOMOTION_ESTIMATE, 1, state(1));
-                  estimator_->setState(State::Y_BASE, BasicEstimator::EGOMOTION_ESTIMATE, 0, state(2));
-                  estimator_->setState(State::Y_BASE, BasicEstimator::EGOMOTION_ESTIMATE, 1, state(3));
+                  estimator_->setState(State::X_BASE, StateEstimator::EGOMOTION_ESTIMATE, 0, state(0));
+                  estimator_->setState(State::X_BASE, StateEstimator::EGOMOTION_ESTIMATE, 1, state(1));
+                  estimator_->setState(State::Y_BASE, StateEstimator::EGOMOTION_ESTIMATE, 0, state(2));
+                  estimator_->setState(State::Y_BASE, StateEstimator::EGOMOTION_ESTIMATE, 1, state(3));
                 }
             }
         }
@@ -440,7 +440,7 @@ namespace sensor_plugin
       bool send_pub_ = false;
 
       /* after takeoff */
-      if(servo_auto_change_flag_ && estimator_->getState(State::Z_BASE, BasicEstimator::EGOMOTION_ESTIMATE)[0] > servo_height_thresh_ && servo_angle_ != servo_downwards_angle_)
+      if(servo_auto_change_flag_ && estimator_->getState(State::Z_BASE, StateEstimator::EGOMOTION_ESTIMATE)[0] > servo_height_thresh_ && servo_angle_ != servo_downwards_angle_)
         {
           if(fabs(servo_angle_ - servo_downwards_angle_) > servo_vel_ * servo_control_rate_)
             {
@@ -453,7 +453,7 @@ namespace sensor_plugin
         }
 
       /* before landing */
-      if(estimator_->getState(State::Z_BASE, BasicEstimator::EGOMOTION_ESTIMATE)[0] < servo_height_thresh_ - 0.1 &&  servo_angle_ != servo_init_angle_)
+      if(estimator_->getState(State::Z_BASE, StateEstimator::EGOMOTION_ESTIMATE)[0] < servo_height_thresh_ - 0.1 &&  servo_angle_ != servo_init_angle_)
         {
           if(fabs(servo_angle_ - servo_init_angle_) > servo_vel_ * servo_control_rate_)
             {

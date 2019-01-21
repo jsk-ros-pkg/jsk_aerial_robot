@@ -71,7 +71,7 @@ namespace
 
 namespace sensor_plugin
 {
-  void Gps::initialize(ros::NodeHandle nh, ros::NodeHandle nhp, BasicEstimator* estimator, string sensor_name)
+  void Gps::initialize(ros::NodeHandle nh, ros::NodeHandle nhp, StateEstimator* estimator, string sensor_name)
   {
     SensorBase::initialize(nh, nhp, estimator, sensor_name);
     rosParamInit();
@@ -147,8 +147,8 @@ namespace sensor_plugin
       {
         first_flag = false;
 
-        if(!estimator_->getStateStatus(State::X_BASE, BasicEstimator::EGOMOTION_ESTIMATE) ||
-           !estimator_->getStateStatus(State::Y_BASE, BasicEstimator::EGOMOTION_ESTIMATE))
+        if(!estimator_->getStateStatus(State::X_BASE, StateEstimator::EGOMOTION_ESTIMATE) ||
+           !estimator_->getStateStatus(State::Y_BASE, StateEstimator::EGOMOTION_ESTIMATE))
           {
             ROS_WARN("GPS: start gps kalman filter");
 
@@ -156,7 +156,6 @@ namespace sensor_plugin
             for(int mode = 0; mode < 2; mode++)
               {
                 if(!getFuserActivate(mode)) continue;
-
                 for(auto& fuser : estimator_->getFuser(mode))
                   {
                     boost::shared_ptr<kf_plugin::KalmanFilter> kf = fuser.second;
@@ -180,8 +179,8 @@ namespace sensor_plugin
         ROS_WARN("home lat/lon: [%f deg , %f deg]", home_wgs84_point_.latitude, home_wgs84_point_.longitude);
 
         /* set the status */
-        estimator_->setStateStatus(State::X_BASE, BasicEstimator::EGOMOTION_ESTIMATE, true);
-        estimator_->setStateStatus(State::Y_BASE, BasicEstimator::EGOMOTION_ESTIMATE, true);
+        estimator_->setStateStatus(State::X_BASE, StateEstimator::EGOMOTION_ESTIMATE, true);
+        estimator_->setStateStatus(State::Y_BASE, StateEstimator::EGOMOTION_ESTIMATE, true);
       }
     else
       {

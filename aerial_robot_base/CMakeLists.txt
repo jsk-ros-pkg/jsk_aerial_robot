@@ -66,6 +66,7 @@ add_library(sensor_pluginlib
 target_link_libraries(sensor_pluginlib ${catkin_LIBRARIES})
 add_dependencies(sensor_pluginlib aerial_robot_msgs_generate_messages_cpp ${PROJECT_NAME}_generate_messages_cpp ${PROJECT_NAME}_gencfg)
 
+
 ### kf plugin
 add_library(kf_baro_bias_pluginlib
   src/kf/baro_bias_plugin.cpp

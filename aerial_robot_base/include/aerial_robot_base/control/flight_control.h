@@ -40,7 +40,7 @@
 #include <ros/ros.h>
 
 /* basic instance */
-#include <aerial_robot_base/basic_state_estimation.h>
+#include <aerial_robot_base/state_estimation.h>
 #include <aerial_robot_base/flight_navigation.h>
 
 /* ros msg to Spinal */
@@ -65,7 +65,7 @@ namespace control_plugin
     virtual ~ControlBase(){}
     void virtual initialize(ros::NodeHandle nh,
                ros::NodeHandle nhp,
-               BasicEstimator* estimator,
+               StateEstimator* estimator,
                Navigator* navigator,
                double ctrl_loop_rate)
     {
@@ -198,7 +198,7 @@ namespace control_plugin
     ros::Publisher  uav_info_pub_;
 
     Navigator* navigator_;
-    BasicEstimator* estimator_;
+    StateEstimator* estimator_;
 
     double ctrl_loop_rate_;
     double control_timestamp_;
