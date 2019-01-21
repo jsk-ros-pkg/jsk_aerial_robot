@@ -51,6 +51,10 @@
 namespace
 {
   ros::Time init_servo_st;
+  double max_du = 0;
+
+  tf::Transform prev_sensor_tf;
+  ros::Time prev_tf_time;
 }
 
 namespace sensor_plugin
@@ -113,8 +117,10 @@ namespace sensor_plugin
     /* ros param */
     double level_pos_noise_sigma_;
     double z_pos_noise_sigma_;
+    double vel_noise_sigma_;
     bool valid_yaw_;
     bool vio_flag_;
+    bool z_no_delay_;
     bool debug_verbose_;
 
     /* servo */
@@ -133,7 +139,7 @@ namespace sensor_plugin
     bool init_time_;
     tf::Transform world_offset_tf_; // ^{w}H_{w_vo}: transform from true world frame to the vo/vio world frame
     tf::Transform baselink_tf_; // ^{w}H_{b}: transform from true world frame to the baselink frame, but is estimated by vo/vio
-
+    tf::Vector3 raw_global_vel_;
     aerial_robot_msgs::States vo_state_;
 
     void voCallback(const nav_msgs::Odometry::ConstPtr & vo_msg)
@@ -142,6 +148,13 @@ namespace sensor_plugin
       if(!getFuserActivate(BasicEstimator::EGOMOTION_ESTIMATE))
         {
           ROS_WARN_THROTTLE(1,"Visual Odometry: no egmotion estimate mode");
+          return;
+        }
+
+      /* Temp, TODO: set the status for each sensor plugin: inactive, init, active */
+      if(estimator_->getState(State::YAW_BASE, BasicEstimator::EGOMOTION_ESTIMATE)[0] == 0)
+        {
+          ROS_WARN("the imu is not initialized, wait");
           return;
         }
 
@@ -158,6 +171,15 @@ namespace sensor_plugin
           /* step1: set the init offset from world to the baselink of UAV from egomotion estimation (e.g. yaw) */
           /** ^{w}H_{b} **/
           world_offset_tf_.setRotation(tf::createQuaternionFromYaw(estimator_->getState(State::YAW_BASE, BasicEstimator::EGOMOTION_ESTIMATE)[0]));
+
+          tf::Vector3 world_offset_pos = estimator_->getPos(Frame::BASELINK, BasicEstimator::EGOMOTION_ESTIMATE);
+          if(estimator_->getStateStatus(State::X_BASE, BasicEstimator::EGOMOTION_ESTIMATE))
+            world_offset_tf_.getOrigin().setX(world_offset_pos.x());
+          if(estimator_->getStateStatus(State::Y_BASE, BasicEstimator::EGOMOTION_ESTIMATE))
+            world_offset_tf_.getOrigin().setY(world_offset_pos.y());
+          if(estimator_->getStateStatus(State::Z_BASE, BasicEstimator::EGOMOTION_ESTIMATE))
+            world_offset_tf_.getOrigin().setZ(world_offset_pos.z());
+
           /* set the init offset from world to the baselink of UAV if we know the ground truth */
           if(estimator_->getStateStatus(State::YAW_BASE, BasicEstimator::GROUND_TRUTH))
             {
@@ -192,18 +214,15 @@ namespace sensor_plugin
                 {
                   if(id < (1 << State::ROLL_COG))
                     {
-                      if(time_sync_) kf->setTimeSync(true);
                       kf->setInitState(init_pos[id >> (State::X_BASE + 1)], 0);
                       kf->setMeasureFlag();
                     }
-                  //if(id & (1 << State::X_BASE)) kf->setDebugVerbose(true);
                 }
 
               if(plugin_name == "aerial_robot_base/kf_xy_roll_pitch_bias")
                 {
                   if((id & (1 << State::X_BASE)) && (id & (1 << State::Y_BASE)))
                     {
-                      if(time_sync_) kf->setTimeSync(true);
                       VectorXd init_state(6);
                       init_state << init_pos[0], 0, init_pos[1], 0, 0, 0;
                       kf->setInitState(init_state);
@@ -216,6 +235,8 @@ namespace sensor_plugin
           estimator_->setStateStatus(State::Y_BASE, BasicEstimator::EGOMOTION_ESTIMATE, true);
           estimator_->setStateStatus(State::Z_BASE, BasicEstimator::EGOMOTION_ESTIMATE, true);
           estimator_->setStateStatus(State::YAW_BASE, BasicEstimator::EGOMOTION_ESTIMATE, true);
+
+          prev_sensor_tf = raw_sensor_tf;
           return;
         }
 
@@ -227,6 +248,11 @@ namespace sensor_plugin
       tf::pointMsgToTF(vo_msg->pose.pose.position, raw_pos);
       tf::Quaternion raw_q;
       tf::quaternionMsgToTF(vo_msg->pose.pose.orientation, raw_q);
+
+      // velocity:
+      tf::Transform delta_tf = prev_sensor_tf.inverse() * raw_sensor_tf;
+      tf::Vector3 raw_local_vel = delta_tf.getOrigin() / (vo_msg->header.stamp.toSec() - prev_tf_time.toSec());
+      raw_global_vel_ = estimator_->getOrientation(Frame::BASELINK, estimator_->getStateStatus(State::YAW_BASE, BasicEstimator::GROUND_TRUTH)?BasicEstimator::GROUND_TRUTH:BasicEstimator::EGOMOTION_ESTIMATE) * ( sensor_tf_.getBasis() * raw_local_vel - estimator_->getAngularVel(Frame::BASELINK, BasicEstimator::EGOMOTION_ESTIMATE).cross(sensor_tf_.getOrigin()));
 
       if(debug_verbose_)
         {
@@ -242,16 +268,28 @@ namespace sensor_plugin
           ROS_INFO("mocap yaw: %f, vo rot: [%f, %f, %f]", estimator_->getState(State::YAW_BASE, BasicEstimator::GROUND_TRUTH)[0], r, p, y);
         }
 
-      vo_state_.header.stamp.fromSec(vo_msg->header.stamp.toSec() + ((time_sync_ && delay_ < 0)?delay_:0));
+      vo_state_.header.stamp.fromSec(vo_msg->header.stamp.toSec() + delay_);
+
+      double start_time = ros::Time::now().toSec();
       estimateProcess();
+      double time_du = ros::Time::now().toSec() - start_time;
+      if(max_du < time_du) max_du = time_du;
+      //ROS_INFO("max du: %f, time du: %f", max_du, time_du);
 
       /* publish */
 
       for(int axis = 0; axis < 3; axis++)
         vo_state_.states[axis].state[0].x = baselink_tf_.getOrigin()[axis]; //raw
+      vo_state_.states[0].state[0].y = raw_global_vel_.x();
+      vo_state_.states[1].state[0].y = raw_global_vel_.y();
+      vo_state_.states[2].state[0].y = raw_global_vel_.z();
+
       vo_state_pub_.publish(vo_state_);
 
       /* update */
+      prev_sensor_tf = raw_sensor_tf;
+      prev_tf_time = vo_msg->header.stamp;
+
       updateHealthStamp();
     }
 
@@ -268,29 +306,53 @@ namespace sensor_plugin
         {
           string plugin_name = fuser.first;
           boost::shared_ptr<kf_plugin::KalmanFilter> kf = fuser.second;
-          int id = kf->getId();
 
           if(!kf->getFilteringFlag()) continue;
 
+          int id = kf->getId();
+          double timestamp = vo_state_.header.stamp.toSec();
+          bool full_vel_mode = 1;
+          double outlier_thresh = full_vel_mode?(1 / (vel_noise_sigma_) / (vel_noise_sigma_)):0;
           /* x_w, y_w, z_w */
           if(id < (1 << State::ROLL_COG))
             {
               if(plugin_name == "kalman_filter/kf_pos_vel_acc")
                 {
-                  /* set noise sigma */
+                  /* correction */
                   VectorXd measure_sigma(1);
                   if((id & (1 << State::X_BASE)) || (id & (1 << State::Y_BASE)))
-                    measure_sigma << level_pos_noise_sigma_;
+                    {
+                      if(full_vel_mode) measure_sigma << vel_noise_sigma_;
+                      else measure_sigma << level_pos_noise_sigma_;
+                    }
                   else
-                    measure_sigma << z_pos_noise_sigma_;
-                  kf->setMeasureSigma(measure_sigma);
+                    measure_sigma << vel_noise_sigma_; // z_pos_noise_sigma_; //
 
-                  /* correction */
                   int index = id >> (State::X_BASE + 1);
-                  VectorXd meas(1); meas <<  baselink_tf_.getOrigin()[index];
-                  vector<double> params = {kf_plugin::POS};
+                  VectorXd meas(1);
+                  vector<double> params;
+                  if((id & (1 << State::X_BASE)) || (id & (1 << State::Y_BASE)))
+                    {
+                      if(full_vel_mode)
+                        {
+                          meas <<  raw_global_vel_[index];
+                          params = {kf_plugin::VEL};
+                        }
+                      else
+                        {
+                          meas <<  baselink_tf_.getOrigin()[index];
+                          params = {kf_plugin::POS};
+                        }
+                    }
+                  else
+                    {
+                      meas << raw_global_vel_[index]; // baselink_tf_.getOrigin()[index]; //
+                      params = {kf_plugin::VEL}; // {kf_plugin::POS};//
+                      if(z_no_delay_) timestamp -= delay_;
+                    }
 
-                  kf->correction(meas, vo_state_.header.stamp.toSec(), params);
+                  kf->correction(meas, measure_sigma,
+                                 time_sync_?(timestamp):-1, params, outlier_thresh);
                   VectorXd state = kf->getEstimateState();
                   estimator_->setState(index + 3, BasicEstimator::EGOMOTION_ESTIMATE, 0, state(0));
                   estimator_->setState(index + 3, BasicEstimator::EGOMOTION_ESTIMATE, 1, state(1));
@@ -300,16 +362,14 @@ namespace sensor_plugin
             {
               if((id & (1 << State::X_BASE)) && (id & (1 << State::Y_BASE)))
                 {
-                  /* set noise sigma */
+                  /* correction */
                   VectorXd measure_sigma(2);
                   measure_sigma << level_pos_noise_sigma_, level_pos_noise_sigma_;
-                  kf->setMeasureSigma(measure_sigma);
-
-                  /* correction */
                   VectorXd meas(2); meas << baselink_tf_.getOrigin()[0], baselink_tf_.getOrigin()[1];
                   vector<double> params = {kf_plugin::POS};
 
-                  kf->correction(meas, vo_state_.header.stamp.toSec(), params);
+                  kf->correction(meas, measure_sigma,
+                                 time_sync_?(timestamp):-1, params);
                   VectorXd state = kf->getEstimateState();
 
                   estimator_->setState(State::X_BASE, BasicEstimator::EGOMOTION_ESTIMATE, 0, state(0));
@@ -331,10 +391,16 @@ namespace sensor_plugin
       nhp_.param("valid_yaw", valid_yaw_, true );
       if(param_verbose_) cout << ns << ": valid yaw is " << valid_yaw_ << endl;
 
+      nhp_.param("z_no_delay", z_no_delay_, true );
+      if(param_verbose_) cout << ns << ": z no delay is " <<  z_no_delay_ << endl;
+
       nhp_.param("level_pos_noise_sigma", level_pos_noise_sigma_, 0.01 );
       if(param_verbose_) cout << ns << ": level_pos noise sigma is " <<  level_pos_noise_sigma_ << endl;
       nhp_.param("z_pos_noise_sigma", z_pos_noise_sigma_, 0.01 );
       if(param_verbose_) cout << ns << ": z_pos noise sigma is " <<  z_pos_noise_sigma_ << endl;
+
+      nhp_.param("vel_noise_sigma", vel_noise_sigma_, 0.05 );
+      if(param_verbose_) cout << ns << ": vel noise sigma is " <<  vel_noise_sigma_ << endl;
 
       nhp_.param("debug_verbose", debug_verbose_, false );
       if(param_verbose_) cout << ns << ": debug verbose is " <<  debug_verbose_ << endl;
