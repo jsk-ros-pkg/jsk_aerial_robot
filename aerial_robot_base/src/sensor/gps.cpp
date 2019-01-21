@@ -89,7 +89,8 @@ namespace sensor_plugin
     raw_pos_(0, 0, 0),
     prev_raw_pos_(0, 0, 0),
     vel_(0, 0, 0),
-    raw_vel_(0, 0, 0)
+    raw_vel_(0, 0, 0),
+    gps_active_(false)
   {
     gps_state_.states.resize(2);
     gps_state_.states[0].id = "x";
@@ -110,10 +111,13 @@ namespace sensor_plugin
     nhp_.param("min_est_sat_num", min_est_sat_num_, 4);
     if(param_verbose_) cout << ns << ": min est sat num is " << min_est_sat_num_ << endl;
 
-    nhp_.param("pos_noise_sigma", pos_noise_sigma_, 0.001);
+    nhp_.param("pos_noise_sigma", pos_noise_sigma_, 1.0);
     if(param_verbose_) cout << ns << ": pos noise sigma is " << pos_noise_sigma_ << endl;
     nhp_.param("vel_noise_sigma", vel_noise_sigma_, 0.1);
     if(param_verbose_) cout << ns << ": vel noise sigma is " << vel_noise_sigma_ << endl;
+
+    nhp_.param("only_use_vel", only_use_vel_, false);
+    if(param_verbose_) cout << ns << ": only use vel is " << only_use_vel_ << endl;
 
     nhp_.param("ned_flag", ned_flag_, true);
     if(param_verbose_) cout << ns << ": NED frame flag is " << ned_flag_ << endl;
@@ -132,16 +136,10 @@ namespace sensor_plugin
 
     /* fusion process */
     /* quit if the satellite number is too low */
+    if(gps_msg->sat_num >= min_est_sat_num_) gps_active_ = true;
     if(gps_msg->sat_num < min_est_sat_num_)
       {
-        ROS_WARN_THROTTLE(1, "the satellite is not enough: %d", gps_msg->sat_num);
-        if(!first_flag)
-          {
-            /* set the status */
-            estimator_->setStateStatus(State::X_BASE, BasicEstimator::EGOMOTION_ESTIMATE, false);
-            estimator_->setStateStatus(State::Y_BASE, BasicEstimator::EGOMOTION_ESTIMATE, false);
-            first_flag = true;
-          }
+        if(gps_active_) ROS_WARN_THROTTLE(1, "the satellite is not enough: %d", gps_msg->sat_num);
         return;
       }
 
@@ -169,9 +167,6 @@ namespace sensor_plugin
                       {
                         if(plugin_name == "kalman_filter/kf_pos_vel_acc")
                           {
-                            /* set velocity correction mode */
-                            if(time_sync_) kf->setTimeSync(true);
-
                             kf->setInitState(raw_vel_[id >> (State::X_BASE + 1)], 1);
                             kf->setMeasureFlag();
                           }
@@ -192,12 +187,13 @@ namespace sensor_plugin
       {
         /* get the position w.r.t. local frame (the origin is the initial takeoff place) */
         raw_pos_ = world_frame_ * Gps::wgs84ToNedLocalFrame(home_wgs84_point_, curr_wgs84_point_);
-        //ROS_INFO("[%f, %f] -> [%f, %f]", curr_wgs84_point_.latitude, curr_wgs84_point_.longitude, raw_pos_.x(), raw_pos_.y());
+
         /* update the timestamp */
-        gps_state_.header.stamp.fromSec(gps_msg->stamp.toSec() + ((time_sync_ && delay_ < 0)?delay_:0));
+        gps_state_.header.stamp.fromSec(gps_msg->stamp.toSec() + delay_);
 
         if(!estimate_flag_) return;
 
+        double start_time = ros::Time::now().toSec(); // debug
         /* fuser for 0: egomotion, 1: experiment */
         for(int mode = 0; mode < 2; mode++)
           {
@@ -213,29 +209,54 @@ namespace sensor_plugin
                   {
                     if(plugin_name == "kalman_filter/kf_pos_vel_acc")
                       {
-                        /* set noise sigma */
+                        /* correction */
                         VectorXd measure_sigma(1);
                         measure_sigma << vel_noise_sigma_;
-                        kf->setMeasureSigma(measure_sigma);
 
-                        /* correction */
                         int index = id >> (State::X_BASE + 1);
-                        VectorXd meas(1); meas <<  raw_vel_[index];
-                        vector<double> params = {kf_plugin::VEL};
 
-                        kf->correction(meas, gps_state_.header.stamp.toSec(), params);
+                        if(only_use_vel_)
+                          {
+                            /* correction */
+                            VectorXd meas(1); meas <<  raw_vel_[index];
+                            vector<double> params = {kf_plugin::VEL};
+                            VectorXd measure_sigma(1);
+                            measure_sigma << vel_noise_sigma_;
+
+                            kf->correction(meas, measure_sigma,
+                                           time_sync_?(gps_state_.header.stamp.toSec()):-1, params);
+                          }
+                        else
+                          {
+                            /* correction */
+                            VectorXd measure_sigma(2);
+                            measure_sigma << pos_noise_sigma_, vel_noise_sigma_;
+                            VectorXd meas(2); meas <<  raw_pos_[index], raw_vel_[index];
+                            vector<double> params = {kf_plugin::POS_VEL};
+
+                            kf->correction(meas, measure_sigma,
+                                           time_sync_?(gps_state_.header.stamp.toSec()):-1, params);
+                          }
+
                         VectorXd state = kf->getEstimateState();
 
                         estimator_->setState(index + 3, mode, 0, state(0));
                         estimator_->setState(index + 3, mode, 1, state(1));
-                        gps_state_.states[index].state[0].x = raw_pos_[index];
-                        gps_state_.states[index].state[0].y = raw_vel_[index];
                       }
                   }
               }
           }
-        state_pub_.publish(gps_state_);
+
+        //std::cout << "gps correction: " << ros::Time::now().toSec() - start_time << ", sat num: " << (int)gps_msg->sat_num << std::endl;
       }
+
+    gps_state_.states[0].state[0].x = raw_pos_[0];
+    gps_state_.states[0].state[0].y = raw_vel_[0];
+    gps_state_.states[1].state[0].x = raw_pos_[1];
+    gps_state_.states[1].state[0].y = raw_vel_[1];
+
+    state_pub_.publish(gps_state_);
+
 
     /* update */
     prev_raw_pos_ = raw_pos_;
