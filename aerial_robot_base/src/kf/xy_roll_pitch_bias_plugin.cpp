@@ -59,13 +59,14 @@ namespace kf_plugin
     KalmanFilterXYBias():KalmanFilter() {}
     ~KalmanFilterXYBias() {}
 
-    void initialize(ros::NodeHandle nh, string suffix, int id)
+    void initialize(string name, int id)
     {
       state_dim_ = 6;
-      input_name_v_ = {"a_xb", "a_yb", "a_zb", "d_b_roll", "d_b_pitch"};
-      measure_name_v_ = {"p_x", "p_y", "v_x", "v_y"};
+      state_names_ = {"p_x", "p_y", "v_x", "v_y", "b_roll", "b_pitch"};
+      input_names_ = {"a_xb", "a_yb", "a_zb", "d_b_roll", "d_b_pitch"};
+      measure_names_ = {"p_x", "p_y", "v_x", "v_y"};
 
-      KalmanFilter::initialize(nh, suffix, id);
+      KalmanFilter::initialize(name, id);
     }
 
     /* be sure that the first parameter should be timestamp */

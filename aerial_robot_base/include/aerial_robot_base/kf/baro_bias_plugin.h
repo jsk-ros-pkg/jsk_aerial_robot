@@ -39,10 +39,6 @@
 /* plugin */
 #include <pluginlib/class_list_macros.h>
 
-/* for dynamic reconfigure */
-#include <dynamic_reconfigure/server.h>
-#include <aerial_robot_base/KalmanFilterBaroBiasConfig.h>
-
 namespace kf_plugin
 {
   class KalmanFilterBaroBias : public kf_plugin::KalmanFilter
@@ -52,18 +48,22 @@ namespace kf_plugin
 
     ~KalmanFilterBaroBias() {}
 
-    void initialize(ros::NodeHandle nh, string suffix, int id);
+    void initialize(string name, int id);
 
     /* be sure that the first parma should be timestamp */
     void getPredictModel(const vector<double>& params, const VectorXd& estimate_state, MatrixXd& state_transition_model, MatrixXd& control_input_model) const
     {
-      state_transition_model = state_transition_model_;
-      control_input_model = control_input_model_;
+      state_transition_model = const_state_transition_model_;
+      control_input_model = const_control_input_model_;
     }
     void getCorrectModel(const vector<double>& params, const VectorXd& estimate_state, MatrixXd& observation_model) const
     {
-      observation_model = observation_model_;
+      observation_model = const_observation_model_;
     }
+  private:
+    MatrixXd const_state_transition_model_;
+    MatrixXd const_control_input_model_;
+    MatrixXd const_observation_model_;
 
   };
 };
