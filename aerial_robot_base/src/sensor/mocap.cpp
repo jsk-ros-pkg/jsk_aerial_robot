@@ -85,6 +85,7 @@ namespace sensor_plugin
     ~Mocap() {}
 
     Mocap():
+      sensor_plugin::SensorBase(string("mocap")),
       raw_pos_(0, 0, 0),
       raw_vel_(0, 0, 0),
       pos_(0, 0, 0),
@@ -342,7 +343,7 @@ namespace sensor_plugin
 
     void estimateProcess(ros::Time stamp)
     {
-      if(!estimate_flag_) return;
+      if(sensor_status_ == Status::INVALID) return;
 
       if((estimate_mode_ & (1 << StateEstimator::GROUND_TRUTH)))
         groundTruthProcess();

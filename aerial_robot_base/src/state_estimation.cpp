@@ -46,7 +46,8 @@ StateEstimator::StateEstimator(ros::NodeHandle nh, ros::NodeHandle nh_private)
     landing_mode_flag_(false),
     landed_flag_(false),
     un_descend_flag_(false),
-    landing_height_(0)
+    landing_height_(0),
+    force_att_control_flag_(false)
 {
   fuser_[0].resize(0);
   fuser_[1].resize(0);
@@ -252,6 +253,23 @@ void StateEstimator::rosParamInit()
           if(!pattern_match(sensor_plugin_name, name)) continue;
 
           sensors_.push_back(sensor_plugin_ptr_->createInstance(name));
+
+          if(sensors_.back()->getPluginName() == std::string(""))
+            {
+              ROS_ERROR("invalid sensor plugin");
+              sensors_.pop_back();
+            }
+          else
+            {
+              if(sensors_.back()->getPluginName() == std::string("imu"))
+                imu_handler_ = sensors_.back();
+              else if(sensors_.back()->getPluginName() == std::string("vo"))
+                vo_handler_ = sensors_.back();
+              else if(sensors_.back()->getPluginName() == std::string("gps"))
+                gps_handler_ = sensors_.back();
+              else if(sensors_.back()->getPluginName() == std::string("alt"))
+                alt_handler_ = sensors_.back();
+            }
           break;
         }
     }

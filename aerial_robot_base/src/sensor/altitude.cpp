@@ -49,6 +49,12 @@
 using namespace Eigen;
 using namespace std;
 
+namespace
+{
+  int calibrate_cnt;
+  double range_previous_secs;
+}
+
 namespace sensor_plugin
 {
   class Alt :public sensor_plugin::SensorBase
@@ -86,6 +92,7 @@ namespace sensor_plugin
     ~Alt() {}
 
     Alt():
+      sensor_plugin::SensorBase(string("alt")),
       /* range sensor */
       raw_range_sensor_value_(0),
       raw_range_pos_z_(0),
@@ -206,8 +213,6 @@ namespace sensor_plugin
 
     void rangeCallback(const sensor_msgs::RangeConstPtr & range_msg)
     {
-      static int calibrate_cnt = calibrate_cnt_;
-      static double range_previous_secs = range_msg->header.stamp.toSec();
       double current_secs = range_msg->header.stamp.toSec();
 
       if(!updateBaseLink2SensorTransform()) return;
@@ -226,6 +231,12 @@ namespace sensor_plugin
       /* calibrate phase */
       if(calibrate_cnt > 0)
         {
+          if(calibrate_cnt == calibrate_cnt_)
+            {
+              range_previous_secs = current_secs;
+              setStatus(Status::INIT);
+            }
+
           calibrate_cnt--;
           sensor_hz_ += (current_secs - range_previous_secs);
           range_sensor_offset_ -= raw_range_sensor_value_;
@@ -297,6 +308,8 @@ namespace sensor_plugin
 
               /* set the status for Z (altitude) */
               estimator_->setStateStatus(State::Z_BASE, StateEstimator::EGOMOTION_ESTIMATE, true);
+
+              setStatus(Status::ACTIVE); //active
 
               ROS_WARN("%s: the range sensor offset: %f, initial sanity: %s, the hz is %f, estimate mode is %d",
                        (range_msg->radiation_type == sensor_msgs::Range::ULTRASOUND)?string("sonar sensor").c_str():string("infrared sensor").c_str(), range_sensor_offset_, range_sensor_sanity_?string("true").c_str():string("false").c_str(), 1.0 / sensor_hz_, alt_estimate_mode_);
@@ -423,7 +436,7 @@ namespace sensor_plugin
 
     void rangeEstimateProcess()
     {
-      if(!estimate_flag_) return;
+      if(getStatus() == Status::INVALID) return;
 
       Matrix<double, 1, 1> temp = MatrixXd::Zero(1, 1);
 
@@ -598,7 +611,7 @@ namespace sensor_plugin
 
     void baroEstimateProcess(ros::Time stamp)
     {
-      if(!estimate_flag_) return;
+      if(getStatus() == Status::INVALID) return;
 
       if(!inflight_state_) return;
 
@@ -681,6 +694,7 @@ namespace sensor_plugin
 
       nhp_.param("calibrate_cnt", calibrate_cnt_, 100);
       if(param_verbose_) cout << ns << ": calibrate_cnt is " << calibrate_cnt_ << endl;
+      calibrate_cnt = calibrate_cnt_;
 
       nhp_.param("no_height_offset", no_height_offset_, true);
       if(param_verbose_) cout << ns << ": no_height_offset is " << no_height_offset_ << endl;

@@ -74,6 +74,7 @@ namespace sensor_plugin
 
     ~Imu () {}
     Imu ():
+      sensor_plugin::SensorBase(string("imu")),
       calib_count_(200),
       acc_b_(0, 0, 0),
       euler_(0, 0, 0),
@@ -150,11 +151,11 @@ namespace sensor_plugin
           mag_[i] = imu_msg->mag_data[i];
         }
 
-      imuDataConverter();
+      estimateProcess();
       updateHealthStamp();
     }
 
-    void imuDataConverter()
+    void estimateProcess()
     {
       if(imu_stamp_.toSec() <= prev_time.toSec())
         {
@@ -229,14 +230,12 @@ namespace sensor_plugin
         {
           bias_calib ++;
 
-          if(bias_calib == 100)
+          if(bias_calib == 100) // warm up for callback to be stable subscribe
             {
               calib_count_ = calib_time_ / sensor_dt_;
               ROS_WARN("calib count is %d", calib_count_);
 
-              /* check whether use imu yaw for contorl and estimation */
-              if(!estimator_->getStateStatus(State::YAW_BASE, estimator_->getEstimateMode()))
-                ROS_WARN("IMU: use imu mag-based yaw value for estimation");
+              setStatus(Status::INIT); // start init
             }
 
           /* acc bias */
@@ -246,6 +245,8 @@ namespace sensor_plugin
             {
               acc_bias_l_ /= calib_count_;
               ROS_WARN("accX bias is %f, accY bias is %f, accZ bias is %f, dt is %f[sec]", acc_bias_l_.x(), acc_bias_l_.y(), acc_bias_l_.z(), sensor_dt_);
+
+              setStatus(Status::ACTIVE);
 
               /* fuser for 0: egomotion, 1: experiment */
               for(int mode = 0; mode < 2; mode++)

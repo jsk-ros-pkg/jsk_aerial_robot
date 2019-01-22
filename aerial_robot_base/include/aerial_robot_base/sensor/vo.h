@@ -39,70 +39,78 @@
 /* base class */
 #include <aerial_robot_base/sensor/base_plugin.h>
 
-/* kalman filters */
+/* filter */
 #include <kalman_filter/kf_pos_vel_acc_plugin.h>
 
-/* gps convert */
-#include <geodesy/utm.h>
-
 /* ros msg */
-#include <spinal/Gps.h>
-#include <aerial_robot_msgs/FlightNav.h>
+#include <geometry_msgs/Vector3Stamped.h>
 #include <nav_msgs/Odometry.h>
-#include <sensor_msgs/NavSatFix.h>
+#include <spinal/ServoControlCmd.h>
+#include <std_msgs/Empty.h>
+#include <sensor_msgs/JointState.h>
 
 
-using namespace Eigen;
-using namespace std;
-
-/* TODO:
-   1. gps redundant proccess to improce the accuracy of position estimation
-   2. better way point control which is from sensor fusion but not only gps
-   3. interaction between single gps and rtk gps
-*/
 namespace sensor_plugin
 {
+  class VisualOdometry :public sensor_plugin::SensorBase
+  {
+  public:
 
-  class Gps :public sensor_plugin::SensorBase
+    VisualOdometry();
+    ~VisualOdometry(){}
+
+    void initialize(ros::NodeHandle nh, ros::NodeHandle nhp, StateEstimator* estimator, string sensor_name);
+    inline const bool odomPosMode(){return !full_vel_mode_;}
+
+  private:
+    /* ros */
+    ros::Subscriber vo_sub_;
+    ros::Publisher vo_state_pub_;
+    ros::Publisher vo_servo_pub_;
+    ros::Subscriber vo_servo_debug_sub_;
+    ros::Timer  servo_control_timer_;
+
+    /* ros param */
+    double level_pos_noise_sigma_;
+    double z_pos_noise_sigma_;
+    double vel_noise_sigma_;
+    double vel_outlier_thresh_;
+    double downwards_vo_min_height_;
+    double downwards_vo_max_height_;
+    bool full_vel_mode_;
+    bool z_vel_mode_;
+    bool z_no_delay_;
+    bool debug_verbose_;
+
+    /* servo */
+    std::string joint_name_;
+    bool servo_auto_change_flag_;
+    double servo_height_thresh_;
+    double servo_angle_;
+    double servo_init_angle_, servo_downwards_angle_;
+    double servo_vel_;
+    double servo_control_rate_;
+
+    double servo_min_angle_, servo_max_angle_;
+    int servo_index_;
+    tf::TransformBroadcaster br_;
+
+    tf::Transform world_offset_tf_; // ^{w}H_{w_vo}: transform from true world frame to the vo/vio world frame
+    tf::Transform baselink_tf_; // ^{w}H_{b}: transform from true world frame to the baselink frame, but is estimated by vo/vio
+    tf::Vector3 raw_global_vel_;
+    aerial_robot_msgs::States vo_state_;
+
+    void rosParamInit();
+    void servoControl(const ros::TimerEvent & e);
+    void estimateProcess();
+    void voCallback(const nav_msgs::Odometry::ConstPtr & vo_msg);
+
+    void servoDebugCallback(const std_msgs::Empty::ConstPtr & msg)
     {
-    public:
-      void initialize(ros::NodeHandle nh, ros::NodeHandle nhp, StateEstimator* estimator, string sensor_name);
-
-      ~Gps() {}
-      Gps();
-
-      static tf::Vector3 wgs84ToNedLocalFrame(geographic_msgs::GeoPoint base_pos, geographic_msgs::GeoPoint target_pos);
-      static geographic_msgs::GeoPoint NedLocalFrameToWgs84(tf::Vector3 diff_pos, geographic_msgs::GeoPoint base_pos);
-
-    private:
-      /* ros */
-      ros::Publisher gps_pub_;
-      ros::Publisher state_pub_;
-      ros::Subscriber gps_sub_; /* single gps to get NavSatFix */
-
-      /* ros param */
-      string gps_sub_name_;
-
-      double pos_noise_sigma_, vel_noise_sigma_;
-      int min_est_sat_num_;
-      bool ned_flag_;
-      bool only_use_vel_;
-      tf::Matrix3x3 world_frame_;
-
-      aerial_robot_msgs::States gps_state_;
-
-      geographic_msgs::GeoPoint home_wgs84_point_, curr_wgs84_point_;
-
-      tf::Vector3 pos_, raw_pos_, prev_raw_pos_;
-      tf::Vector3 vel_, raw_vel_;
-
-      void gpsCallback(const spinal::Gps::ConstPtr & gps_msg);
-      void estimateProcess();
-      void rosParamInit();
-    };
+      servo_auto_change_flag_ = true;
+    }
+  };
 };
-
-
 
 
 

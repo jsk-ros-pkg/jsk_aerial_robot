@@ -261,6 +261,9 @@ public:
   /* landing height is set for landing to different terrain */
   virtual void setLandingHeight(float landing_height){ landing_height_ = landing_height;}
   virtual float getLandingHeight(){ return landing_height_;}
+  /* att control mode is for user to manually control x and y motion by attitude control */
+  inline void setForceAttControlFlag (bool flag) {force_att_control_flag_ = flag; }
+  inline bool getForceAttControlFlag () {return force_att_control_flag_;}
 
   const std::map<std::string, KDL::Frame>& getSegmentsTf()
   {
@@ -281,7 +284,6 @@ public:
   {
     assert(mode >= 0 && mode < 2);
     return fuser_[mode];
-
   }
 
   inline int getEstimateMode() {return estimate_mode_;}
@@ -304,6 +306,11 @@ public:
 
   inline uint8_t getUnhealthLevel() { return unhealth_level_; }
 
+  const boost::shared_ptr<sensor_plugin::SensorBase> getImuHandler() const { return imu_handler_;}
+  const boost::shared_ptr<sensor_plugin::SensorBase> getAltHandler() const { return alt_handler_;}
+  const boost::shared_ptr<sensor_plugin::SensorBase> getVoHandler() const { return vo_handler_;}
+  const boost::shared_ptr<sensor_plugin::SensorBase> getGpsHandler() const { return gps_handler_;}
+
 protected:
 
   ros::NodeHandle nh_;
@@ -318,6 +325,10 @@ protected:
 
   vector< boost::shared_ptr<sensor_plugin::SensorBase> > sensors_;
   boost::shared_ptr< pluginlib::ClassLoader<sensor_plugin::SensorBase> > sensor_plugin_ptr_;
+  boost::shared_ptr<sensor_plugin::SensorBase> imu_handler_;
+  boost::shared_ptr<sensor_plugin::SensorBase> alt_handler_;
+  boost::shared_ptr<sensor_plugin::SensorBase> vo_handler_;
+  boost::shared_ptr<sensor_plugin::SensorBase> gps_handler_;
 
   /* mutex */
   boost::mutex state_mutex_;
@@ -351,6 +362,7 @@ protected:
   bool landed_flag_;
   bool un_descend_flag_;
   float landing_height_;
+  bool force_att_control_flag_;
 
   /* update the kinematics model based on joint state */
   void jointStateCallback(const sensor_msgs::JointStateConstPtr& state)

@@ -57,7 +57,6 @@ include_directories(
 
 ### sensor plugin
 add_library(sensor_pluginlib
-  src/sensor/optical_flow.cpp
   src/sensor/vo.cpp
   src/sensor/altitude.cpp
   src/sensor/mocap.cpp
