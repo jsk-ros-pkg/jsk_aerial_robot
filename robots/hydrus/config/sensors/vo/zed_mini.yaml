@@ -10,7 +10,8 @@ sensor_plugin:
     debug_verbose: false
     time_sync: true
     delay: -0.15
-    z_no_delay: true # special case of some vio algorithm such as zed mini
+    z_no_delay: true # z position delay problem: special case of some vio algorithm such as zed mini
+    vel_no_delay: true # velocity delay problem: special case of some vio algorithm such as zed mini
     downwards_vo_min_height: 0.8
     downwards_vo_max_height: 10.0
     servo_init_angle: -1.570796

@@ -370,6 +370,7 @@ namespace sensor_plugin
                       {
                         meas << raw_global_vel_[index];
                         params = {kf_plugin::VEL};
+                        if(vel_no_delay_) timestamp -= delay_;
                       }
                     else
                       {
@@ -383,13 +384,19 @@ namespace sensor_plugin
                       {
                         meas << raw_global_vel_[index];
                         params = {kf_plugin::VEL};
+                        if(vel_no_delay_) timestamp -= delay_;
+
+                        //ROS_INFO("st_vo: %f, st_kf: %f, diff: %f",
+                        //timestamp, kf->getLastTimestamp(),
+                        //timestamp - kf->getLastTimestamp());
                       }
                     else
                       {
                         meas << baselink_tf_.getOrigin()[index];
                         params = {kf_plugin::POS};
+                        if(z_no_delay_) timestamp -= delay_;
                       }
-                    if(z_no_delay_) timestamp -= delay_;
+
                   }
 
                 kf->correction(meas, measure_sigma,
@@ -449,6 +456,9 @@ namespace sensor_plugin
 
     nhp_.param("z_no_delay", z_no_delay_, true );
     if(param_verbose_) cout << ns << ": z no delay is " <<  z_no_delay_ << endl;
+
+    nhp_.param("vel_no_delay", vel_no_delay_, true );
+    if(param_verbose_) cout << ns << ": vel no delay is " <<  vel_no_delay_ << endl;
 
     nhp_.param("level_pos_noise_sigma", level_pos_noise_sigma_, 0.01 );
     if(param_verbose_) cout << ns << ": level_pos noise sigma is " <<  level_pos_noise_sigma_ << endl;

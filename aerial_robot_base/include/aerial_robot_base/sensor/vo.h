@@ -80,6 +80,7 @@ namespace sensor_plugin
     bool full_vel_mode_;
     bool z_vel_mode_;
     bool z_no_delay_;
+    bool vel_no_delay_;
     bool debug_verbose_;
 
     /* servo */
