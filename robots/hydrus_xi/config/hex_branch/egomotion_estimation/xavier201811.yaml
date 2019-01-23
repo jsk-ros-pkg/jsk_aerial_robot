@@ -1,9 +1,11 @@
-# Sensor Fuser Loader
 estimator:
   # sensor plugin
   sensor_list:
     - sensor_plugin/imu
     - sensor_plugin/mocap
+    - sensor_plugin/alt
+    - sensor_plugin/vo
+    #- sensor_plugin/gps
 
   # egomotion estimation
   egomotion_list:
@@ -45,3 +47,9 @@ estimator:
     estimate_mode: 3 # 1<<0 + 1<<1
   mocap:
     estimate_mode: 6 # 1<<1 + 1<<2
+  alt:
+    estimate_mode: 1 # 1<<0
+  gps:
+    estimate_mode: 1 # 1<<0
+  vo:
+    estimate_mode: 1 # 1<<0

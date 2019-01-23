@@ -11,6 +11,14 @@
         <arg name="port" value="/dev/flight_controller" />
       </include>
 
+      <!-- zed mini & VIO in zed SDK -->
+      <include file="$(find zed_wrapper)/launch/zed.launch" />
+      <param name="/zed/zed_wrapper_node/publish_map_tf" value="false" />
+      <param name="/zed/zed_wrapper_node/publish_tf" value="false" />
+
+      <!-- leddar one -->
+      <include file="$(find leddar_one)/launch/leddar_one.launch" />
+
       <!-- mocap -->
       <include file="$(find aerial_robot_base)/launch/external_module/mocap.launch" />
     </group>
@@ -18,6 +26,7 @@
 
   <!-- basic configuration for sensors (e.g. noise sigma) -->
   <rosparam file="$(find hydrus_xi)/config/sensors/imu/spinal.yaml" command="load" />
-  <rosparam file="$(find aerial_robot_base)/config/sensors/gps/ublox_m8n.yaml" command="load" />
+  <rosparam file="$(find hydrus_xi)/config/sensors/vo/zed_mini.yaml" command="load" />
+  <rosparam file="$(find aerial_robot_base)/config/sensors/altmeter/leddar_one.yaml" command="load" />
   <rosparam file="$(find aerial_robot_base)/config/sensors/mocap.yaml" command="load" />
 </launch>
