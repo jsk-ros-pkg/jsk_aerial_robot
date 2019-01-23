@@ -65,7 +65,7 @@ namespace control_plugin
   {
   }
 
-  void HydrusXiFullyActuatedController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp, BasicEstimator* estimator, Navigator* navigator, double ctrl_loop_rate) //override
+  void HydrusXiFullyActuatedController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp, StateEstimator* estimator, Navigator* navigator, double ctrl_loop_rate) //override
   {
     ControlBase::initialize(nh, nhp, estimator, navigator, ctrl_loop_rate);
 

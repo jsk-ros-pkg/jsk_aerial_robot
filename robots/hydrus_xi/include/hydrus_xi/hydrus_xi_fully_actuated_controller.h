@@ -78,7 +78,7 @@ namespace control_plugin
     virtual ~HydrusXiFullyActuatedController() = default;
 
     void initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
-                     BasicEstimator* estimator, Navigator* navigator,
+                     StateEstimator* estimator, Navigator* navigator,
                      double ctrl_loop_rate) override;
     bool update() override;
     void reset() override;
