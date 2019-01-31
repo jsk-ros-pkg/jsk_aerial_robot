@@ -383,9 +383,9 @@ namespace sensor_plugin
                   VectorXd meas(1); meas << raw_pos_[index];
                   vector<double> params = {kf_plugin::POS};
                   kf->correction(meas, measure_sigma, -1, params); //no time sync
-                  VectorXd state = kf->getEstimateState();
-                  estimator_->setState(index + 3, StateEstimator::EXPERIMENT_ESTIMATE, 0, state(0));
-                  estimator_->setState(index + 3, StateEstimator::EXPERIMENT_ESTIMATE, 1, state(1));
+                  // VectorXd state = kf->getEstimateState();
+                  // estimator_->setState(index + 3, StateEstimator::EXPERIMENT_ESTIMATE, 0, state(0));
+                  // estimator_->setState(index + 3, StateEstimator::EXPERIMENT_ESTIMATE, 1, state(1));
                 }
 
               if(plugin_name == "aerial_robot_base/kf_xy_roll_pitch_bias")

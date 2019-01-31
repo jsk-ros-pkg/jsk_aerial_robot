@@ -414,6 +414,7 @@ namespace sensor_plugin
       alt_state_.states[0].state[0].y = raw_range_vel_z_;
 
       /* fuser for 0: egomotion, 1: experiment */
+      /*
       for(int mode = 0; mode < 2; mode++)
         {
           if(!getFuserActivate(mode)) continue;
@@ -429,6 +430,7 @@ namespace sensor_plugin
                 }
             }
         }
+      */
 
       alt_pub_.publish(alt_state_);
       updateHealthStamp(1); //channel: 1
@@ -647,11 +649,11 @@ namespace sensor_plugin
                         }
 
                       /* set the state */
-                      VectorXd state = kf->getEstimateState();
-                      estimator_->setState(State::Z_BASE, mode, 0, state(0));
-                      estimator_->setState(State::Z_BASE, mode, 1, state(1));
-                      alt_state_.states[0].state[1].x = state(0);
-                      alt_state_.states[0].state[1].y = state(1);
+                      // VectorXd state = kf->getEstimateState();
+                      // estimator_->setState(State::Z_BASE, mode, 0, state(0));
+                      // estimator_->setState(State::Z_BASE, mode, 1, state(1));
+                      //alt_state_.states[0].state[1].x = state(0);
+                      //alt_state_.states[0].state[1].y = state(1);
                       alt_state_.states[0].state[1].z = (baro_bias_kf_->getEstimateState())(0);
 
                     }

@@ -401,9 +401,9 @@ namespace sensor_plugin
 
                 kf->correction(meas, measure_sigma,
                                time_sync_?(timestamp):-1, params, outlier_thresh);
-                VectorXd state = kf->getEstimateState();
-                estimator_->setState(index + 3, StateEstimator::EGOMOTION_ESTIMATE, 0, state(0));
-                estimator_->setState(index + 3, StateEstimator::EGOMOTION_ESTIMATE, 1, state(1));
+                // VectorXd state = kf->getEstimateState();
+                // estimator_->setState(index + 3, StateEstimator::EGOMOTION_ESTIMATE, 0, state(0));
+                // estimator_->setState(index + 3, StateEstimator::EGOMOTION_ESTIMATE, 1, state(1));
               }
           }
         if(plugin_name == "aerial_robot_base/kf_xy_roll_pitch_bias")
@@ -428,12 +428,12 @@ namespace sensor_plugin
                   }
 
                 kf->correction(meas, measure_sigma, time_sync_?(timestamp):-1, params);
-                VectorXd state = kf->getEstimateState();
+                // VectorXd state = kf->getEstimateState();
 
-                estimator_->setState(State::X_BASE, StateEstimator::EGOMOTION_ESTIMATE, 0, state(0));
-                estimator_->setState(State::X_BASE, StateEstimator::EGOMOTION_ESTIMATE, 1, state(1));
-                estimator_->setState(State::Y_BASE, StateEstimator::EGOMOTION_ESTIMATE, 0, state(2));
-                estimator_->setState(State::Y_BASE, StateEstimator::EGOMOTION_ESTIMATE, 1, state(3));
+                // estimator_->setState(State::X_BASE, StateEstimator::EGOMOTION_ESTIMATE, 0, state(0));
+                // estimator_->setState(State::X_BASE, StateEstimator::EGOMOTION_ESTIMATE, 1, state(1));
+                // estimator_->setState(State::Y_BASE, StateEstimator::EGOMOTION_ESTIMATE, 0, state(2));
+                // estimator_->setState(State::Y_BASE, StateEstimator::EGOMOTION_ESTIMATE, 1, state(3));
               }
           }
       }

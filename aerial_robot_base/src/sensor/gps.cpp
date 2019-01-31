@@ -274,10 +274,10 @@ namespace sensor_plugin
                                        time_sync_?(curr_timestamp_):-1, params);
                       }
 
-                    VectorXd state = kf->getEstimateState();
+                    // VectorXd state = kf->getEstimateState();
 
-                    estimator_->setState(index + 3, mode, 0, state(0));
-                    estimator_->setState(index + 3, mode, 1, state(1));
+                    // estimator_->setState(index + 3, mode, 0, state(0));
+                    // estimator_->setState(index + 3, mode, 1, state(1));
                   }
               }
           }
