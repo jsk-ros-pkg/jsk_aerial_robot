@@ -131,12 +131,20 @@ namespace sensor_plugin
 
     if(!updateBaseLink2SensorTransform()) return;
 
+    /* temporal update */
+    curr_timestamp_ = gps_msg->stamp.toSec() + delay_;
+
     /* assignment lat/lon, velocity */
     curr_wgs84_point_ = geodesy::toMsg(gps_msg->location[0] / 1e7, gps_msg->location[1] / 1e7);
     tf::Vector3 raw_vel_temp(gps_msg->velocity[0], gps_msg->velocity[1], 0);
     raw_vel_ = world_frame_ * raw_vel_temp;
 
-    curr_timestamp_ = gps_msg->stamp.toSec() + delay_; //temporal update
+    /* to get the correction rotation and omega of baselink with the consideration of time delay */
+    if(estimator_->getImuHandler()->getStatus() != Status::ACTIVE)
+      {
+        ROS_WARN_THROTTLE(1, "gps: the imu is not initialized, wait");
+        return;
+      }
 
     /* fusion process */
     /* quit if the satellite number is too low */
@@ -171,11 +179,7 @@ namespace sensor_plugin
                     string plugin_name = fuser.first;
                     if((id & (1 << State::X_BASE)) || (id & (1 << State::Y_BASE)))
                       {
-                        if(plugin_name == "kalman_filter/kf_pos_vel_acc")
-                          {
-                            //kf->setInitState(raw_vel_[id >> (State::X_BASE + 1)], 1); // the raw vel is not good for multi-sensor fusion
-                            kf->setMeasureFlag();
-                          }
+                        if(plugin_name == "kalman_filter/kf_pos_vel_acc") kf->setMeasureFlag();
                       }
                   }
               }
@@ -192,8 +196,13 @@ namespace sensor_plugin
         return;
       }
 
-    /* get the position w.r.t. local frame (the origin is the initial takeoff place) */
-    raw_pos_ = world_frame_ * Gps::wgs84ToNedLocalFrame(home_wgs84_point_, curr_wgs84_point_);
+    /* get the position and velocity  w.r.t. the local frame (the origin is the initial takeoff place) */
+    tf::Matrix3x3 r; r.setIdentity();
+    tf::Vector3 omega(0,0,0);
+    int mode = StateEstimator::EGOMOTION_ESTIMATE;
+    estimator_->findRotOmege(curr_timestamp_, mode, r, omega);
+    raw_vel_ += r * (- omega.cross(sensor_tf_.getOrigin())); //offset from gps to baselink
+    raw_pos_ = world_frame_ * Gps::wgs84ToNedLocalFrame(home_wgs84_point_, curr_wgs84_point_) - r * sensor_tf_.getOrigin();
 
     double start_time = ros::Time::now().toSec();
     estimateProcess();

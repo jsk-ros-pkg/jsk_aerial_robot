@@ -246,6 +246,8 @@ namespace sensor_plugin
               acc_bias_l_ /= calib_count_;
               ROS_WARN("accX bias is %f, accY bias is %f, accZ bias is %f, dt is %f[sec]", acc_bias_l_.x(), acc_bias_l_.y(), acc_bias_l_.z(), sensor_dt_);
 
+              estimator_->setQueueSize(1/sensor_dt_);
+
               setStatus(Status::ACTIVE);
 
               /* fuser for 0: egomotion, 1: experiment */
@@ -401,6 +403,10 @@ namespace sensor_plugin
           /* TODO: set z acc: should use kf reuslt? */
           estimator_->setState(State::Z_BASE, StateEstimator::EGOMOTION_ESTIMATE, 2, acc_non_bias_w_.z());
           estimator_->setState(State::Z_BASE, StateEstimator::EXPERIMENT_ESTIMATE, 2, acc_non_bias_w_.z());
+
+          /* set the rotation and angular velocity for the temporal queue for other sensor with time delay */
+          estimator_->updateQueue(imu_stamp_.toSec(), euler_[0], euler_[1], omega_);
+          /* TODO: we ignore yaw becuase it is relatively slower than other axes in the case of under -actuated system */
 
           /* 2017.7.25: calculate the state in COG frame using the Baselink frame */
           /* pos_cog = pos_baselink - R * pos_cog2baselink */

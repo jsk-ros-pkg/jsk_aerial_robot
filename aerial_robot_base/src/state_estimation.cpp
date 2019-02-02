@@ -42,6 +42,7 @@ StateEstimator::StateEstimator(ros::NodeHandle nh, ros::NodeHandle nh_private)
   : nh_(nh, "estimator"),
     nhp_(nh_private, "estimator"),
     sensor_fusion_flag_(false),
+    qu_size_(0),
     flying_flag_(false),
     landing_mode_flag_(false),
     landed_flag_(false),

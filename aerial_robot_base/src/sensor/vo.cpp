@@ -131,7 +131,7 @@ namespace sensor_plugin
             return;
           }
 
-        /* for yaw */
+        /* to get the correction rotation and omega of baselink with the consideration of time delay, along with the yaw problem */
         if(estimator_->getImuHandler()->getStatus() != Status::ACTIVE)
           {
             ROS_WARN_THROTTLE(1, "vo: the imu is not initialized, wait");
@@ -263,7 +263,13 @@ namespace sensor_plugin
     // velocity:
     tf::Transform delta_tf = prev_sensor_tf.inverse() * raw_sensor_tf;
     tf::Vector3 raw_local_vel = delta_tf.getOrigin() / (curr_timestamp_ - prev_timestamp_);
-    raw_global_vel_ = estimator_->getOrientation(Frame::BASELINK, estimator_->getStateStatus(State::YAW_BASE, StateEstimator::GROUND_TRUTH)?StateEstimator::GROUND_TRUTH:StateEstimator::EGOMOTION_ESTIMATE) * ( sensor_tf_.getBasis() * raw_local_vel - estimator_->getAngularVel(Frame::BASELINK, StateEstimator::EGOMOTION_ESTIMATE).cross(sensor_tf_.getOrigin()));
+
+    tf::Matrix3x3 r;
+    tf::Vector3 omega;
+    int mode = estimator_->getStateStatus(State::YAW_BASE, StateEstimator::GROUND_TRUTH)?StateEstimator::GROUND_TRUTH:StateEstimator::EGOMOTION_ESTIMATE;
+    estimator_->findRotOmege((curr_timestamp_ + prev_timestamp_) / 2, mode, r, omega);
+
+    raw_global_vel_ = r * ( sensor_tf_.getBasis() * raw_local_vel - omega.cross(sensor_tf_.getOrigin()));
 
     if(debug_verbose_)
       {
@@ -370,7 +376,7 @@ namespace sensor_plugin
                       {
                         meas << raw_global_vel_[index];
                         params = {kf_plugin::VEL};
-                        if(vel_no_delay_) timestamp -= delay_;
+                        timestamp = (curr_timestamp_ + prev_timestamp_) / 2; //velocity timestamp
                       }
                     else
                       {
@@ -384,19 +390,15 @@ namespace sensor_plugin
                       {
                         meas << raw_global_vel_[index];
                         params = {kf_plugin::VEL};
-                        if(vel_no_delay_) timestamp -= delay_;
-
-                        //ROS_INFO("st_vo: %f, st_kf: %f, diff: %f",
-                        //timestamp, kf->getLastTimestamp(),
-                        //timestamp - kf->getLastTimestamp());
+                        timestamp = (curr_timestamp_ + prev_timestamp_) / 2; //velocity timestamp
                       }
                     else
                       {
                         meas << baselink_tf_.getOrigin()[index];
                         params = {kf_plugin::POS};
-                        if(z_no_delay_) timestamp -= delay_;
                       }
 
+                    if(z_no_delay_) timestamp -= delay_;
                   }
 
                 kf->correction(meas, measure_sigma,
@@ -456,9 +458,6 @@ namespace sensor_plugin
 
     nhp_.param("z_no_delay", z_no_delay_, true );
     if(param_verbose_) cout << ns << ": z no delay is " <<  z_no_delay_ << endl;
-
-    nhp_.param("vel_no_delay", vel_no_delay_, true );
-    if(param_verbose_) cout << ns << ": vel no delay is " <<  vel_no_delay_ << endl;
 
     nhp_.param("level_pos_noise_sigma", level_pos_noise_sigma_, 0.01 );
     if(param_verbose_) cout << ns << ": level_pos noise sigma is " <<  level_pos_noise_sigma_ << endl;

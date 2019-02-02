@@ -406,7 +406,7 @@ namespace sensor_plugin
         }
 
       /* terrain check and height estimate */
-      alt_state_.header.stamp.fromSec(range_msg->header.stamp.toSec() + delay_);
+      alt_state_.header.stamp.fromSec(range_msg->header.stamp.toSec());
       if(terrainProcess(current_secs)) rangeEstimateProcess();
 
       /* publish phase */

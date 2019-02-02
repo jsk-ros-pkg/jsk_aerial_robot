@@ -62,6 +62,7 @@
 #include <utility>
 #include <map>
 #include <array>
+#include <deque>
 #include <fnmatch.h>
 
 using namespace std;
@@ -155,7 +156,7 @@ public:
     return state_[axis];
   }
 
-   tf::Vector3 getState( uint8_t axis,  uint8_t estimate_mode)
+  tf::Vector3 getState( uint8_t axis,  uint8_t estimate_mode)
   {
     boost::lock_guard<boost::mutex> lock(state_mutex_);
 
@@ -214,8 +215,8 @@ public:
     boost::lock_guard<boost::mutex> lock(state_mutex_);
     tf::Matrix3x3 r;
     r.setRPY((state_[State::ROLL_COG + frame * 3][estimate_mode].second)[0],
-               (state_[State::PITCH_COG + frame * 3][estimate_mode].second)[0],
-               (state_[State::YAW_COG + frame * 3][estimate_mode].second)[0]);
+             (state_[State::PITCH_COG + frame * 3][estimate_mode].second)[0],
+             (state_[State::YAW_COG + frame * 3][estimate_mode].second)[0]);
     return r;
   }
 
@@ -242,6 +243,115 @@ public:
     (state_[State::PITCH_COG + frame * 3][estimate_mode].second)[1] = omega[1];
     (state_[State::YAW_COG + frame * 3][estimate_mode].second)[1] = omega[2];
   }
+
+  inline void setQueueSize(const int& qu_size) {qu_size_ = qu_size;}
+  void updateQueue(const double& timestamp, const double& roll, const double& pitch, const tf::Vector3& omega)
+  {
+    tf::Matrix3x3 r_ee, r_ex, r_gt;
+    r_ee.setRPY(roll, pitch, (getState(State::YAW_BASE, StateEstimator::EGOMOTION_ESTIMATE))[0]);
+    r_ex.setRPY(roll, pitch, (getState(State::YAW_BASE, StateEstimator::EXPERIMENT_ESTIMATE))[0]);
+    r_gt.setRPY(roll, pitch, (getState(State::YAW_BASE, StateEstimator::GROUND_TRUTH))[0]);
+
+    {
+      boost::lock_guard<boost::mutex> lock(queue_mutex_);
+      timestamp_qu_.push_back(timestamp);
+      rot_ee_qu_.push_back(r_ee);
+      rot_ex_qu_.push_back(r_ex);
+      rot_gt_qu_.push_back(r_gt);
+      omega_qu_.push_back(omega);
+
+      if(timestamp_qu_.size() > qu_size_)
+        {
+          timestamp_qu_.pop_front();
+          rot_ee_qu_.pop_front();
+          rot_ex_qu_.pop_front();
+          rot_gt_qu_.pop_front();
+          omega_qu_.pop_front();
+        }
+    }
+  }
+
+  bool findRotOmege(const double& timestamp, const int& mode, tf::Matrix3x3& r, tf::Vector3& omega)
+  {
+    boost::lock_guard<boost::mutex> lock(queue_mutex_);
+
+    if(timestamp_qu_.size() == 0)
+      {
+        ROS_ERROR("estimation: no valid queue for timestamp to find proper r and omega");
+        return false;
+      }
+
+    if(timestamp < timestamp_qu_.front())
+      {
+        ROS_ERROR("estimation: sensor timestamp %f is earlier than the oldest timestamp %f in queue",
+                  timestamp, timestamp_qu_.front());
+        return false;
+      }
+
+    if(timestamp > timestamp_qu_.back())
+      {
+        ROS_ERROR("estimation: sensor timestamp %f is later than the latest timestamp %f in queue",
+                  timestamp, timestamp_qu_.front());
+        return false;
+      }
+
+    size_t candidate_index = (timestamp_qu_.size() - 1) * (timestamp - timestamp_qu_.front()) / (timestamp_qu_.back() - timestamp_qu_.front());
+
+
+    if(timestamp > timestamp_qu_.at(candidate_index))
+      {
+        for(auto it = timestamp_qu_.begin() + candidate_index; it != timestamp_qu_.end(); ++it)
+          {
+            /* future timestamp, escape */
+            if(*it > timestamp)
+              {
+                if (fabs(*it - timestamp) < fabs(*(it - 1) - timestamp))
+                  candidate_index = std::distance(timestamp_qu_.begin(), it);
+                else
+                  candidate_index = std::distance(timestamp_qu_.begin(), it-1);
+
+                //ROS_INFO("find timestamp sensor vs imu: [%f, %f]", timestamp, timestamp_qu_.at(candidate_index));
+                break;
+              }
+          }
+      }
+    else
+      {
+        for(auto it = timestamp_qu_.rbegin() + (timestamp_qu_.size() - 1 - candidate_index); it != timestamp_qu_.rend(); ++it)
+          {
+            /* future timestamp, escape */
+            if(*it < timestamp)
+              {
+                if (fabs(*it - timestamp) < fabs(*(it - 1) - timestamp))
+                  candidate_index = timestamp_qu_.size() - 1 - std::distance(timestamp_qu_.rbegin(), it);
+                else
+                  candidate_index = timestamp_qu_.size() - 1 - std::distance(timestamp_qu_.rbegin(), it-1);
+
+                //ROS_INFO("find timestamp sensor vs imu: [%f, %f]", timestamp, timestamp_qu_.at(candidate_index));
+                break;
+              }
+          }
+      }
+
+    omega = omega_qu_.at(candidate_index);
+    switch(mode)
+      {
+      case StateEstimator::EGOMOTION_ESTIMATE:
+        r = rot_ee_qu_.at(candidate_index);
+        break;
+      case StateEstimator::EXPERIMENT_ESTIMATE:
+        r = rot_ex_qu_.at(candidate_index);
+        break;
+      case StateEstimator::GROUND_TRUTH:
+        r = rot_gt_qu_.at(candidate_index);
+        break;
+      default:
+        ROS_ERROR("estimation search state with timestamp: wrong mode %d", mode);
+        return false;
+      }
+    return true;
+  }
+
 
   inline void setSensorFusionFlag(bool flag){sensor_fusion_flag_ = flag;  }
   inline bool getSensorFusionFlag(){return sensor_fusion_flag_; }
@@ -333,6 +443,7 @@ protected:
   /* mutex */
   boost::mutex state_mutex_;
   boost::mutex kinematics_mutex_;
+  boost::mutex queue_mutex_;
   /* ros param */
   bool param_verbose_;
   int estimate_mode_; /* main estimte mode */
@@ -347,6 +458,12 @@ protected:
 
   /* 9: x_w, y_w, z_w, roll_w, pitch_w, yaw_cog_w, x_b, y_b, yaw_board_w */
   array<AxisState, State::TOTAL_NUM> state_;
+
+  /* for calculate the sensor to baselink with the consideration of time delay */
+  int qu_size_;
+  deque<double> timestamp_qu_;
+  deque<tf::Matrix3x3> rot_ee_qu_, rot_ex_qu_, rot_gt_qu_;
+  deque<tf::Vector3> omega_qu_;
 
   /* sensor fusion */
   boost::shared_ptr< pluginlib::ClassLoader<kf_plugin::KalmanFilter> > sensor_fusion_loader_ptr_;
