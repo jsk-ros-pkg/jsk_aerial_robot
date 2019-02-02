@@ -216,7 +216,6 @@ void Navigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & msg)
         /* should be in COG frame */
         force_att_control_flag_ = true;
         xy_control_mode_ = flight_nav::ACC_CONTROL_MODE;
-        estimator_->setForceAttControlFlag(force_att_control_flag_);
         switch(msg->control_frame)
           {
           case flight_nav::WORLD_FRAME:
@@ -437,6 +436,7 @@ void Navigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
     {
       ROS_WARN("Change to attitude control");
       force_att_control_flag_ = true;
+      estimator_->setForceAttControlFlag(force_att_control_flag_);
       xy_control_mode_ = flight_nav::ACC_CONTROL_MODE;
     }
 
