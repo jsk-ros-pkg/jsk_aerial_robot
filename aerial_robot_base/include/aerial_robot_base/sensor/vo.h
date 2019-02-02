@@ -79,7 +79,10 @@ namespace sensor_plugin
     double downwards_vo_max_height_;
     bool full_vel_mode_;
     bool z_vel_mode_;
+    /* heuristic sepecial flag for fusion */
+    bool outdoor_;
     bool z_no_delay_;
+
     bool debug_verbose_;
 
     /* servo */

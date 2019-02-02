@@ -148,6 +148,13 @@ namespace sensor_plugin
           {
             full_vel_mode_ = true;
             std::cout << ", full vel mode for state estimation ";
+
+            if(estimator_->getGpsHandler() != nullptr && estimator_->getGpsHandler()->getStatus() == Status::ACTIVE)
+              {
+                std::cout << ", no temporal delay in outdoor mode, ";
+                delay_ = 0;
+                curr_timestamp_ =  vo_msg->header.stamp.toSec();
+              }
           }
         else
           {
