@@ -1,10 +1,10 @@
 sensor_plugin:
         gps: #single GPS
                 min_est_sat_num: 7
-                vel_noise_sigma:  0.01 #0.05
+                vel_noise_sigma:  0.02 #0.05 -> 0.01 -> 0.02
                 pos_noise_sigma:  1.0
                 sensor_frame: gps
                 ned_flag: true #north(x)-east(y)-down(z) frame
                 time_sync: true
-                delay: -0.4 #-0.15
-                #only_use_vel: true #debug
+                delay: -0.4 # -0.15 -> -0.4
+                #only_use_vel: true # debug
