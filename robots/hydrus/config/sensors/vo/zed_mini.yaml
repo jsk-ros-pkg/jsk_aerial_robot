@@ -10,6 +10,7 @@ sensor_plugin:
     debug_verbose: false
     time_sync: true
     delay: -0.15
+    outdoor_no_vel_time_sync: true
     z_no_delay: true # z position delay problem: special case of some vio algorithm such as zed mini
     downwards_vo_min_height: 0.8
     downwards_vo_max_height: 10.0

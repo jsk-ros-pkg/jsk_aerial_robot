@@ -119,6 +119,7 @@ namespace sensor_plugin
 
     tf::Transform raw_sensor_tf;
     tf::poseMsgToTF(vo_msg->pose.pose, raw_sensor_tf); // motion update
+
     curr_timestamp_ = vo_msg->header.stamp.toSec() + delay_; //temporal update
 
     if(getStatus() == Status::INACTIVE)
@@ -151,9 +152,13 @@ namespace sensor_plugin
 
             if(estimator_->getGpsHandler() != nullptr && estimator_->getGpsHandler()->getStatus() == Status::ACTIVE)
               {
-                std::cout << ", no temporal delay in outdoor mode, ";
-                delay_ = 0;
-                curr_timestamp_ =  vo_msg->header.stamp.toSec();
+                if(outdoor_no_vel_time_sync_)
+                  {
+                    /* TODO: very practical (heuristic), but effective. we observe the outdoor env is tricky for stereo cam stamp identification (e.g. zed mini) */
+                    time_sync_ = false;
+                    delay_ = 0;
+                    std::cout << ", no temporal delay in outdoor mode, ";
+                  }
               }
           }
         else
@@ -465,6 +470,9 @@ namespace sensor_plugin
 
     nhp_.param("z_no_delay", z_no_delay_, true );
     if(param_verbose_) cout << ns << ": z no delay is " <<  z_no_delay_ << endl;
+
+    nhp_.param("outdoor_no_vel_time_sync", outdoor_no_vel_time_sync_, true );
+    if(param_verbose_) cout << ns << "outdoor no vel time sync:  is " << outdoor_no_vel_time_sync_ << endl;
 
     nhp_.param("level_pos_noise_sigma", level_pos_noise_sigma_, 0.01 );
     if(param_verbose_) cout << ns << ": level_pos noise sigma is " <<  level_pos_noise_sigma_ << endl;
