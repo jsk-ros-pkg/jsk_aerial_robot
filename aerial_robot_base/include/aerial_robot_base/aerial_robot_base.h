@@ -25,7 +25,7 @@ class AerialRobotBase
   ros::Timer  main_timer_;
   double main_rate_;
 
-  RigidEstimator*  estimator_;
+  StateEstimator*  estimator_;
   Navigator* navigator_;
   boost::shared_ptr< pluginlib::ClassLoader<control_plugin::ControlBase> > controller_loader_ptr_;
   boost::shared_ptr<control_plugin::ControlBase> controller_;

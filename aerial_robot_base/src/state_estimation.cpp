@@ -35,16 +35,55 @@
 
 #include "aerial_robot_base/state_estimation.h"
 
-RigidEstimator::RigidEstimator(ros::NodeHandle nh, ros::NodeHandle nh_private) :
-  BasicEstimator(nh, nh_private)
+/* sensor plugin */
+#include <aerial_robot_base/sensor/base_plugin.h>
+
+StateEstimator::StateEstimator(ros::NodeHandle nh, ros::NodeHandle nh_private)
+  : nh_(nh, "estimator"),
+    nhp_(nh_private, "estimator"),
+    sensor_fusion_flag_(false),
+    qu_size_(0),
+    flying_flag_(false),
+    landing_mode_flag_(false),
+    landed_flag_(false),
+    un_descend_flag_(false),
+    landing_height_(0),
+    force_att_control_flag_(false)
 {
+  fuser_[0].resize(0);
+  fuser_[1].resize(0);
+
+  for(int i = 0; i < State::TOTAL_NUM; i ++)
+    {
+      for(int j = 0; j < 3; j++)
+        {
+          state_[i][j].first = 0;
+          state_[i][j].second = tf::Vector3(0, 0, 0);
+        }
+    }
+
+  /* initialize the multilink kinematics */
+  kinematics_model_ = boost::shared_ptr<aerial_robot_model::RobotModel>(new aerial_robot_model::RobotModel(true));
+  baselink_name_ = kinematics_model_->getBaselinkName();
+  cog2baselink_transform_.setIdentity();
+
+  /* TODO: represented sensors unhealth level */
+  unhealth_level_ = 0;
+
   rosParamInit();
 
+  baselink_odom_pub_ = nh_.advertise<nav_msgs::Odometry>("/uav/baselink/odom", 1);
+  cog_odom_pub_ = nh_.advertise<nav_msgs::Odometry>("/uav/cog/odom", 1);
+  full_state_pub_ = nh_.advertise<aerial_robot_msgs::States>("/uav/full_state", 1);
+
+  joint_state_sub_ = nh_.subscribe("/joint_states", 1, &StateEstimator::jointStateCallback, this);
+  cog2baselink_transform_sub_ = nh_.subscribe(cog2baselink_transform_sub_name_, 5, &StateEstimator::transformCallback, this);
+
+  nhp_.param ("update_rate", update_rate_, 100.0); //100Hz
+  update_thread_ = boost::thread(boost::bind(&StateEstimator::update, this));
 }
 
-RigidEstimator::~RigidEstimator() {}
-
-void RigidEstimator::statePublish()
+void StateEstimator::statePublish()
 {
   aerial_robot_msgs::States full_state;
   full_state.header.stamp = ros::Time::now();
@@ -137,7 +176,7 @@ void RigidEstimator::statePublish()
 }
 
 
-bool RigidEstimator::pattern_match(std::string &pl, std::string &pl_candidate)
+bool StateEstimator::pattern_match(std::string &pl, std::string &pl_candidate)
 {
   int cmp = fnmatch(pl.c_str(), pl_candidate.c_str(), FNM_CASEFOLD);
   if (cmp == 0)
@@ -151,8 +190,15 @@ bool RigidEstimator::pattern_match(std::string &pl, std::string &pl_candidate)
   return false;
 }
 
-void RigidEstimator::rosParamInit()
+void StateEstimator::rosParamInit()
 {
+  ros::NodeHandle global_nh("~");
+  global_nh.param ("param_verbose", param_verbose_, true);
+
+  nhp_.param ("estimate_mode", estimate_mode_, 0); //EGOMOTION_ESTIMATE: 0
+  nhp_.param("cog2baselink_transform_sub_name", cog2baselink_transform_sub_name_, std::string("/cog2baselink"));
+  ROS_WARN("estimate_mode is %s", (estimate_mode_ == EGOMOTION_ESTIMATE)?string("EGOMOTION_ESTIMATE").c_str():((estimate_mode_ == EXPERIMENT_ESTIMATE)?string("EXPERIMENT_ESTIMATE").c_str():((estimate_mode_ == GROUND_TRUTH)?string("GROUND_TRUTH").c_str():string("WRONG_MODE").c_str())));
+
   std::string ns = nhp_.getNamespace();
 
   sensor_fusion_loader_ptr_ = boost::shared_ptr< pluginlib::ClassLoader<kf_plugin::KalmanFilter> >(new pluginlib::ClassLoader<kf_plugin::KalmanFilter>("kalman_filter", "kf_plugin::KalmanFilter"));
@@ -189,9 +235,8 @@ void RigidEstimator::rosParamInit()
               if(param_verbose_) cout << ns << ": fuser_"  << prefix << "_name" << fuser_no.str() << " is " << fuser_name << endl;
 
               boost::shared_ptr<kf_plugin::KalmanFilter> plugin_ptr = sensor_fusion_loader_ptr_->createInstance(name);
-              plugin_ptr->initialize(nh_, fuser_name, fuser_id);
+              plugin_ptr->initialize(fuser_name, fuser_id);
               fuser_[i].push_back(make_pair(name, plugin_ptr));
-
               break;
             }
         }
@@ -209,6 +254,23 @@ void RigidEstimator::rosParamInit()
           if(!pattern_match(sensor_plugin_name, name)) continue;
 
           sensors_.push_back(sensor_plugin_ptr_->createInstance(name));
+
+          if(sensors_.back()->getPluginName() == std::string(""))
+            {
+              ROS_ERROR("invalid sensor plugin");
+              sensors_.pop_back();
+            }
+          else
+            {
+              if(sensors_.back()->getPluginName() == std::string("imu"))
+                imu_handler_ = sensors_.back();
+              else if(sensors_.back()->getPluginName() == std::string("vo"))
+                vo_handler_ = sensors_.back();
+              else if(sensors_.back()->getPluginName() == std::string("gps"))
+                gps_handler_ = sensors_.back();
+              else if(sensors_.back()->getPluginName() == std::string("alt"))
+                alt_handler_ = sensors_.back();
+            }
           break;
         }
     }

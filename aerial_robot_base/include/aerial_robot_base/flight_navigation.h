@@ -3,7 +3,7 @@
 
 /* ros */
 #include <ros/ros.h>
-#include <aerial_robot_base/basic_state_estimation.h>
+#include <aerial_robot_base/state_estimation.h>
 
 /* ros msg */
 #include <std_msgs/Int8.h>
@@ -39,7 +39,7 @@ class Navigator
 {
 public:
   Navigator(ros::NodeHandle nh, ros::NodeHandle nh_private,
-            BasicEstimator* estimator);
+            StateEstimator* estimator);
   virtual ~Navigator();
 
   ros::Publisher  flight_config_pub_;
@@ -204,7 +204,7 @@ protected:
   ros::Subscriber flight_nav_sub_;
   ros::Subscriber stop_teleop_sub_;
 
-  BasicEstimator* estimator_;
+  StateEstimator* estimator_;
 
   bool param_verbose_;
 

@@ -33,385 +33,539 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 
-/* ros */
-#include <ros/ros.h>
-
 /* base class */
-#include <aerial_robot_base/sensor_base_plugin.h>
+#include <aerial_robot_base/sensor/vo.h>
 
-/* kalman filters */
-#include <kalman_filter/kf_pos_vel_acc_plugin.h>
-
-/* ros msg */
-#include <geometry_msgs/Vector3Stamped.h>
-#include <nav_msgs/Odometry.h>
-#include <spinal/ServoControlCmd.h>
-#include <std_msgs/Empty.h>
-#include <sensor_msgs/JointState.h>
 namespace
 {
   ros::Time init_servo_st;
+  double max_du = 0;
+
+  tf::Transform prev_sensor_tf;
 }
 
 namespace sensor_plugin
 {
-  class VisualOdometry :public sensor_plugin::SensorBase
+  VisualOdometry::VisualOdometry():
+    sensor_plugin::SensorBase(string("vo")),
+    servo_auto_change_flag_(false),
+    full_vel_mode_(false),
+    z_vel_mode_(false)
   {
-  public:
+    world_offset_tf_.setIdentity();
+    baselink_tf_.setIdentity();
 
-    void initialize(ros::NodeHandle nh, ros::NodeHandle nhp, BasicEstimator* estimator, string sensor_name)
-    {
-      SensorBase::initialize(nh, nhp, estimator, sensor_name);
-      rosParamInit();
+    vo_state_.states.resize(3);
+    vo_state_.states[0].id = "x";
+    vo_state_.states[0].state.resize(2);
+    vo_state_.states[1].id = "y";
+    vo_state_.states[1].state.resize(2);
+    vo_state_.states[2].id = "z";
+    vo_state_.states[2].state.resize(2);
+  }
 
-      /* ros publisher: aerial_robot_base::State */
-      vo_state_pub_ = nh_.advertise<aerial_robot_msgs::States>("data",10);
 
-      /* ros subscriber: vo */
-      string vo_sub_topic_name;
-      nhp_.param("vo_sub_topic_name", vo_sub_topic_name, string("vo") );
-      vo_sub_ = nh_.subscribe(vo_sub_topic_name, 1, &VisualOdometry::voCallback, this);
 
-      /* servo control timer */
-      if(variable_sensor_tf_flag_)
-        {
-          init_servo_st = ros::Time::now();
-          /* ros publisher: servo motor */
-          string topic_name;
-          nhp_.param("vo_servo_topic_name", topic_name, string("/vo_servo_target_pwm"));
-          vo_servo_pub_ = nh_.advertise<sensor_msgs::JointState>(topic_name, 1);
+  void VisualOdometry::initialize(ros::NodeHandle nh, ros::NodeHandle nhp, StateEstimator* estimator, string sensor_name)
+  {
+    SensorBase::initialize(nh, nhp, estimator, sensor_name);
+    rosParamInit();
 
-          vo_servo_debug_sub_ = nh_.subscribe("/vo_servo_debug", 1, &VisualOdometry::servoDebugCallback, this);
+    /* ros publisher: aerial_robot_base::State */
+    vo_state_pub_ = nh_.advertise<aerial_robot_msgs::States>("data",10);
 
-          servo_control_timer_ = nhp_.createTimer(ros::Duration(servo_control_rate_), &VisualOdometry::servoControl,this); // 10 Hz
-        }
-    }
+    /* ros subscriber: vo */
+    string vo_sub_topic_name;
+    nhp_.param("vo_sub_topic_name", vo_sub_topic_name, string("vo") );
+    vo_sub_ = nh_.subscribe(vo_sub_topic_name, 1, &VisualOdometry::voCallback, this);
 
-    ~VisualOdometry(){}
-    VisualOdometry():init_time_(true), servo_auto_change_flag_(false)
-    {
-      world_offset_tf_.setIdentity();
-      baselink_tf_.setIdentity();
+    /* servo control timer */
+    if(variable_sensor_tf_flag_)
+      {
+        init_servo_st = ros::Time::now();
+        /* ros publisher: servo motor */
+        string topic_name;
+        nhp_.param("vo_servo_topic_name", topic_name, string("/vo_servo_target_pwm"));
+        vo_servo_pub_ = nh_.advertise<sensor_msgs::JointState>(topic_name, 1);
 
-      vo_state_.states.resize(3);
-      vo_state_.states[0].id = "x";
-      vo_state_.states[0].state.resize(2);
-      vo_state_.states[1].id = "y";
-      vo_state_.states[1].state.resize(2);
-      vo_state_.states[2].id = "z";
-      vo_state_.states[2].state.resize(2);
-    }
+        vo_servo_debug_sub_ = nh_.subscribe("/vo_servo_debug", 1, &VisualOdometry::servoDebugCallback, this);
 
-  private:
-    /* ros */
-    ros::Subscriber vo_sub_;
-    ros::Publisher vo_state_pub_;
-    ros::Publisher vo_servo_pub_;
-    ros::Subscriber vo_servo_debug_sub_;
-    ros::Timer  servo_control_timer_;
+        servo_control_timer_ = nhp_.createTimer(ros::Duration(servo_control_rate_), &VisualOdometry::servoControl,this); // 10 Hz
+      }
+  }
 
-    /* ros param */
-    double vo_noise_sigma_;
-    bool valid_yaw_;
-    bool vio_flag_;
-    bool debug_verbose_;
+  void VisualOdometry::voCallback(const nav_msgs::Odometry::ConstPtr & vo_msg)
+  {
+    /* only do egmotion estimate mode */
+    if(!getFuserActivate(StateEstimator::EGOMOTION_ESTIMATE))
+      {
+        ROS_WARN_THROTTLE(1,"Visual Odometry: no egmotion estimate mode");
+        return;
+      }
 
-    /* servo */
-    std::string joint_name_;
-    bool servo_auto_change_flag_;
-    double servo_height_thresh_;
-    double servo_angle_;
-    double servo_init_angle_, servo_downwards_angle_;
-    double servo_vel_;
-    double servo_control_rate_;
+    /* update the sensor tf w.r.t baselink */
+    if(!updateBaseLink2SensorTransform()) return;
 
-    double servo_min_angle_, servo_max_angle_;
-    int servo_index_;
-    tf::TransformBroadcaster br_;
+    /* servo init condition */
+    if(variable_sensor_tf_flag_ && ros::Time::now().toSec() - init_servo_st.toSec() < 1.0)
+      return;
 
-    bool init_time_;
-    tf::Transform world_offset_tf_; // ^{w}H_{w_vo}: transform from true world frame to the vo/vio world frame
-    tf::Transform baselink_tf_; // ^{w}H_{b}: transform from true world frame to the baselink frame, but is estimated by vo/vio
+    /* check whether is force att control mode */
+    if(estimator_->getForceAttControlFlag() && getStatus() != Status::INVALID)
+      {
+        estimator_->setStateStatus(State::YAW_BASE, StateEstimator::EGOMOTION_ESTIMATE, false);
+        setStatus(Status::INVALID);
+      }
 
-    aerial_robot_msgs::States vo_state_;
+    tf::Transform raw_sensor_tf;
+    tf::poseMsgToTF(vo_msg->pose.pose, raw_sensor_tf); // motion update
 
-    void voCallback(const nav_msgs::Odometry::ConstPtr & vo_msg)
-    {
-      /* only do egmotion estimate mode */
-      if(!getFuserActivate(BasicEstimator::EGOMOTION_ESTIMATE))
-        {
-          ROS_WARN_THROTTLE(1,"Visual Odometry: no egmotion estimate mode");
-          return;
-        }
+    curr_timestamp_ = vo_msg->header.stamp.toSec() + delay_; //temporal update
 
-      /* update the sensor tf w.r.t baselink */
-      if(!updateBaseLink2SensorTransform()) return;
+    if(getStatus() == Status::INACTIVE)
+      {
+        /* for z */
+        if(estimator_->getAltHandler() != nullptr && estimator_->getAltHandler()->getStatus() != Status::ACTIVE)
+          {
+            ROS_WARN_THROTTLE(1, "vo: the altimeter is not initialized, wait");
+            z_vel_mode_ = true;
+            return;
+          }
 
-      tf::Transform raw_sensor_tf;
-      tf::poseMsgToTF(vo_msg->pose.pose, raw_sensor_tf);
+        /* to get the correction rotation and omega of baselink with the consideration of time delay, along with the yaw problem */
+        if(estimator_->getImuHandler()->getStatus() != Status::ACTIVE)
+          {
+            ROS_WARN_THROTTLE(1, "vo: the imu is not initialized, wait");
+            return;
+          }
 
-      if(init_time_)
-        {
-          init_time_ = false;
+        setStatus(Status::INIT);
 
-          /* step1: set the init offset from world to the baselink of UAV from egomotion estimation (e.g. yaw) */
-          /** ^{w}H_{b} **/
-          world_offset_tf_.setRotation(tf::createQuaternionFromYaw(estimator_->getState(State::YAW_BASE, BasicEstimator::EGOMOTION_ESTIMATE)[0]));
-          /* set the init offset from world to the baselink of UAV if we know the ground truth */
-          if(estimator_->getStateStatus(State::YAW_BASE, BasicEstimator::GROUND_TRUTH))
-            {
-              world_offset_tf_.setOrigin(estimator_->getPos(Frame::BASELINK, BasicEstimator::GROUND_TRUTH));
-              world_offset_tf_.setRotation(tf::createQuaternionFromYaw(estimator_->getState(State::YAW_BASE, BasicEstimator::GROUND_TRUTH)[0]));
+        std::cout << "VO: start kalman filter";
+        /* chose pos / vel estimation mode, according to the view of the camera */
+        /* TODO: should consider the illustration or feature dense of the image view */
+        if(fabs((sensor_tf_.getBasis() * tf::Vector3(0,0,1)).x()) > 0.1 ||
+           fabs((sensor_tf_.getBasis() * tf::Vector3(0,0,1)).y()) > 0.1)
+          {
+            full_vel_mode_ = true;
+            std::cout << ", full vel mode for state estimation ";
 
-              double y, p, r; world_offset_tf_.getBasis().getRPY(r, p, y);
-            }
+            if(estimator_->getGpsHandler() != nullptr && estimator_->getGpsHandler()->getStatus() == Status::ACTIVE)
+              {
+                if(outdoor_no_vel_time_sync_)
+                  {
+                    /* TODO: very practical (heuristic), but effective. we observe the outdoor env is tricky for stereo cam stamp identification (e.g. zed mini) */
+                    time_sync_ = false;
+                    delay_ = 0;
+                    std::cout << ", no temporal delay in outdoor mode, ";
+                  }
+              }
+          }
+        else
+          {
+            full_vel_mode_ = false;
+            std::cout << ", odometry pos mode for state estimation ";
+          }
 
-          /* step2: also consider the offset tf from baselink to sensor */
-          /** ^{w}H_{b} * ^{b}H_{vo} * ^{vo}H_{w_vo} = ^{w}H_{w_vo} **/
-          world_offset_tf_ *= (sensor_tf_ * raw_sensor_tf.inverse());
+        /* step1: set the init offset from world to the baselink of UAV from egomotion estimation (e.g. yaw) */
+        /** ^{w}H_{b} **/
+        world_offset_tf_.setRotation(tf::createQuaternionFromYaw(estimator_->getState(State::YAW_BASE, StateEstimator::EGOMOTION_ESTIMATE)[0]));
 
-          //double y, p, r; raw_sensor_tf.getBasis().getRPY(r, p, y);
-          ROS_INFO("VO: start kalman filter");
-          tf::Vector3 init_pos = (world_offset_tf_ * raw_sensor_tf * sensor_tf_.inverse()).getOrigin();
-          /*
-          ROS_WARN("init pos, mocap vs vo: [%f, %f, %f] vs [%f, %f, %f]",
-                   estimator_->getPos(Frame::BASELINK, BasicEstimator::GROUND_TRUTH).x(),
-                   estimator_->getPos(Frame::BASELINK, BasicEstimator::GROUND_TRUTH).y(),
-                   estimator_->getPos(Frame::BASELINK, BasicEstimator::GROUND_TRUTH).z(),
-                   init_pos.x(), init_pos.y(), init_pos.z());
-          */
+        tf::Vector3 world_offset_pos = estimator_->getPos(Frame::BASELINK, StateEstimator::EGOMOTION_ESTIMATE);
+        if(estimator_->getStateStatus(State::X_BASE, StateEstimator::EGOMOTION_ESTIMATE))
+          world_offset_tf_.getOrigin().setX(world_offset_pos.x());
+        if(estimator_->getStateStatus(State::Y_BASE, StateEstimator::EGOMOTION_ESTIMATE))
+          world_offset_tf_.getOrigin().setY(world_offset_pos.y());
+        if(estimator_->getStateStatus(State::Z_BASE, StateEstimator::EGOMOTION_ESTIMATE))
+          world_offset_tf_.getOrigin().setZ(world_offset_pos.z());
 
-          for(auto& fuser : estimator_->getFuser(BasicEstimator::EGOMOTION_ESTIMATE))
-            {
-              string plugin_name = fuser.first;
-              boost::shared_ptr<kf_plugin::KalmanFilter> kf = fuser.second;
-              int id = kf->getId();
+        /* set the init offset from world to the baselink of UAV if we know the ground truth */
+        if(estimator_->getStateStatus(State::YAW_BASE, StateEstimator::GROUND_TRUTH))
+          {
+            world_offset_tf_.setOrigin(estimator_->getPos(Frame::BASELINK, StateEstimator::GROUND_TRUTH));
+            world_offset_tf_.setRotation(tf::createQuaternionFromYaw(estimator_->getState(State::YAW_BASE, StateEstimator::GROUND_TRUTH)[0]));
 
-              if(plugin_name == "kalman_filter/kf_pos_vel_acc")
-                {
-                  if(id < (1 << State::ROLL_COG))
-                    {
-                      if(time_sync_) kf->setTimeSync(true);
-                      kf->setInitState(init_pos[id >> (State::X_BASE + 1)], 0);
-                      kf->setMeasureFlag();
-                    }
-                  //if(id & (1 << State::X_BASE)) kf->setDebugVerbose(true);
-                }
+            double y, p, r; world_offset_tf_.getBasis().getRPY(r, p, y);
+          }
 
-              if(plugin_name == "aerial_robot_base/kf_xy_roll_pitch_bias")
-                {
-                  if((id & (1 << State::X_BASE)) && (id & (1 << State::Y_BASE)))
-                    {
-                      if(time_sync_) kf->setTimeSync(true);
-                      VectorXd init_state(6);
-                      init_state << init_pos[0], 0, init_pos[1], 0, 0, 0;
-                      kf->setInitState(init_state);
-                      kf->setMeasureFlag();
-                    }
-                }
-            }
+        /* step2: also consider the offset tf from baselink to sensor */
+        /** ^{w}H_{b} * ^{b}H_{vo} * ^{vo}H_{w_vo} = ^{w}H_{w_vo} **/
+        world_offset_tf_ *= (sensor_tf_ * raw_sensor_tf.inverse());
 
-          estimator_->setStateStatus(State::X_BASE, BasicEstimator::EGOMOTION_ESTIMATE, true);
-          estimator_->setStateStatus(State::Y_BASE, BasicEstimator::EGOMOTION_ESTIMATE, true);
-          estimator_->setStateStatus(State::Z_BASE, BasicEstimator::EGOMOTION_ESTIMATE, true);
-          estimator_->setStateStatus(State::YAW_BASE, BasicEstimator::EGOMOTION_ESTIMATE, true);
-          return;
-        }
+        //double y, p, r; raw_sensor_tf.getBasis().getRPY(r, p, y);
+        tf::Vector3 init_pos = (world_offset_tf_ * raw_sensor_tf * sensor_tf_.inverse()).getOrigin();
 
-      /* transformaton from baselink to vo sensor, if we use the servo motor */
+        for(auto& fuser : estimator_->getFuser(StateEstimator::EGOMOTION_ESTIMATE))
+          {
+            string plugin_name = fuser.first;
+            boost::shared_ptr<kf_plugin::KalmanFilter> kf = fuser.second;
+            int id = kf->getId();
 
-      baselink_tf_ = world_offset_tf_ * raw_sensor_tf * sensor_tf_.inverse();
+            if(plugin_name == "kalman_filter/kf_pos_vel_acc")
+              {
+                if(id < (1 << State::ROLL_COG))
+                  {
+                    if(estimator_->getStateStatus(State::X_BASE + (id >> (State::X_BASE + 1)), StateEstimator::EGOMOTION_ESTIMATE))
+                      continue;
 
-      tf::Vector3 raw_pos;
-      tf::pointMsgToTF(vo_msg->pose.pose.position, raw_pos);
-      tf::Quaternion raw_q;
-      tf::quaternionMsgToTF(vo_msg->pose.pose.orientation, raw_q);
+                    if(!full_vel_mode_)
+                      {
+                        if(id & (1 << State::Z_BASE))
+                          {
+                            if(!z_vel_mode_)
+                              {
+                                kf->setInitState(init_pos[2], 0);
+                                std::cout << ", init state z with pos mode";
+                              }
+                            else
+                              std::cout << ", init state z with vel mode";
+                          }
+                        else
+                          {
+                            kf->setInitState(init_pos[id >> (State::X_BASE + 1)], 0);
+                            std::cout << ", init state " << ((id >> (State::X_BASE + 1) == 0)?std::string("x"):std::string("y")) << "  with pos mode";
+                          }
+                      }
+                    kf->setMeasureFlag();
+                  }
+              }
 
-      if(debug_verbose_)
-        {
-          double y, p, r;  tf::Matrix3x3(raw_q).getRPY(r, p, y);
-          ROS_INFO("vo raw pos: [%f, %f, %f], raw rot: [%f, %f, %f]",
-                   raw_pos.x(), raw_pos.y(), raw_pos.z(), r, p, y);
-          tf::Vector3 mocap_pos = estimator_->getPos(Frame::BASELINK, BasicEstimator::GROUND_TRUTH);
-          ROS_INFO("mocap pos: [%f, %f, %f], vo pos: [%f, %f, %f]",
-                   mocap_pos.x(), mocap_pos.y(), mocap_pos.z(),
-                   baselink_tf_.getOrigin().x(), baselink_tf_.getOrigin().y(),
-                   baselink_tf_.getOrigin().z());
-          baselink_tf_.getBasis().getRPY(r, p, y);
-          ROS_INFO("mocap yaw: %f, vo rot: [%f, %f, %f]", estimator_->getState(State::YAW_BASE, BasicEstimator::GROUND_TRUTH)[0], r, p, y);
-        }
+            if(plugin_name == "aerial_robot_base/kf_xy_roll_pitch_bias")
+              {
+                if((id & (1 << State::X_BASE)) && (id & (1 << State::Y_BASE)))
+                  {
+                    if(estimator_->getStateStatus(State::X_BASE, StateEstimator::EGOMOTION_ESTIMATE) && estimator_->getStateStatus(State::Y_BASE, StateEstimator::EGOMOTION_ESTIMATE))
+                      continue;
 
-      vo_state_.header.stamp.fromSec(vo_msg->header.stamp.toSec() + ((time_sync_ && delay_ < 0)?delay_:0));
-      estimateProcess();
+                    if(!full_vel_mode_)
+                      {
+                        VectorXd init_state(6);
+                        init_state << init_pos[0], 0, init_pos[1], 0, 0, 0;
+                        kf->setInitState(init_state);
+                        std::cout << ", init state x/y with pos mode";
+                      }
+                    else
+                      std::cout << ", init state x/y with vel mode";
 
-      /* publish */
+                    kf->setMeasureFlag();
+                  }
+              }
+          }
+        std::cout << std::endl;
 
-      for(int axis = 0; axis < 3; axis++)
-        vo_state_.states[axis].state[0].x = baselink_tf_.getOrigin()[axis]; //raw
-      vo_state_pub_.publish(vo_state_);
+        estimator_->setStateStatus(State::X_BASE, StateEstimator::EGOMOTION_ESTIMATE, true);
+        estimator_->setStateStatus(State::Y_BASE, StateEstimator::EGOMOTION_ESTIMATE, true);
+        estimator_->setStateStatus(State::Z_BASE, StateEstimator::EGOMOTION_ESTIMATE, true);
 
-      /* update */
-      updateHealthStamp();
-    }
+        prev_sensor_tf = raw_sensor_tf;
+        prev_timestamp_ = curr_timestamp_;
+        setStatus(Status::ACTIVE);
+        return;
+      }
 
-    void estimateProcess()
-    {
-      /* YAW */
-      /* TODO: the weighting filter with IMU */
-      tfScalar r,p,y;
-      baselink_tf_.getBasis().getRPY(r,p,y);
-      estimator_->setState(State::YAW_BASE, BasicEstimator::EGOMOTION_ESTIMATE, 0, y);
+    /* transformaton from baselink to vo sensor, if we use the servo motor */
 
-      /* XYZ */
-      for(auto& fuser : estimator_->getFuser(BasicEstimator::EGOMOTION_ESTIMATE))
-        {
-          string plugin_name = fuser.first;
-          boost::shared_ptr<kf_plugin::KalmanFilter> kf = fuser.second;
-          int id = kf->getId();
+    baselink_tf_ = world_offset_tf_ * raw_sensor_tf * sensor_tf_.inverse();
 
-          if(!kf->getFilteringFlag()) continue;
+    tf::Vector3 raw_pos;
+    tf::pointMsgToTF(vo_msg->pose.pose.position, raw_pos);
+    tf::Quaternion raw_q;
+    tf::quaternionMsgToTF(vo_msg->pose.pose.orientation, raw_q);
 
-          /* x_w, y_w, z_w */
-          if(id < (1 << State::ROLL_COG))
-            {
-              if(plugin_name == "kalman_filter/kf_pos_vel_acc")
-                {
-                  /* set noise sigma */
-                  VectorXd measure_sigma(1);
-                  measure_sigma << vo_noise_sigma_;
-                  kf->setMeasureSigma(measure_sigma);
+    // velocity:
+    tf::Transform delta_tf = prev_sensor_tf.inverse() * raw_sensor_tf;
+    tf::Vector3 raw_local_vel = delta_tf.getOrigin() / (curr_timestamp_ - prev_timestamp_);
 
-                  /* correction */
-                  int index = id >> (State::X_BASE + 1);
-                  VectorXd meas(1); meas <<  baselink_tf_.getOrigin()[index];
-                  vector<double> params = {kf_plugin::POS};
+    tf::Matrix3x3 r;
+    tf::Vector3 omega;
+    int mode = estimator_->getStateStatus(State::YAW_BASE, StateEstimator::GROUND_TRUTH)?StateEstimator::GROUND_TRUTH:StateEstimator::EGOMOTION_ESTIMATE;
+    estimator_->findRotOmege((curr_timestamp_ + prev_timestamp_) / 2, mode, r, omega);
 
-                  kf->correction(meas, vo_state_.header.stamp.toSec(), params);
-                  VectorXd state = kf->getEstimateState();
-                  estimator_->setState(index + 3, BasicEstimator::EGOMOTION_ESTIMATE, 0, state(0));
-                  estimator_->setState(index + 3, BasicEstimator::EGOMOTION_ESTIMATE, 1, state(1));
-                }
-            }
-          if(plugin_name == "aerial_robot_base/kf_xy_roll_pitch_bias")
-            {
-              if((id & (1 << State::X_BASE)) && (id & (1 << State::Y_BASE)))
-                {
-                  /* set noise sigma */
-                  VectorXd measure_sigma(2);
-                  measure_sigma << vo_noise_sigma_, vo_noise_sigma_;
-                  kf->setMeasureSigma(measure_sigma);
+    raw_global_vel_ = r * ( sensor_tf_.getBasis() * raw_local_vel - omega.cross(sensor_tf_.getOrigin()));
 
-                  /* correction */
-                  VectorXd meas(2); meas << baselink_tf_.getOrigin()[0], baselink_tf_.getOrigin()[1];
-                  vector<double> params = {kf_plugin::POS};
+    if(debug_verbose_)
+      {
+        double y, p, r;  tf::Matrix3x3(raw_q).getRPY(r, p, y);
+        ROS_INFO("vo raw pos: [%f, %f, %f], raw rot: [%f, %f, %f]",
+                 raw_pos.x(), raw_pos.y(), raw_pos.z(), r, p, y);
+        tf::Vector3 mocap_pos = estimator_->getPos(Frame::BASELINK, StateEstimator::GROUND_TRUTH);
+        ROS_INFO("mocap pos: [%f, %f, %f], vo pos: [%f, %f, %f]",
+                 mocap_pos.x(), mocap_pos.y(), mocap_pos.z(),
+                 baselink_tf_.getOrigin().x(), baselink_tf_.getOrigin().y(),
+                 baselink_tf_.getOrigin().z());
+        baselink_tf_.getBasis().getRPY(r, p, y);
+        ROS_INFO("mocap yaw: %f, vo rot: [%f, %f, %f]", estimator_->getState(State::YAW_BASE, StateEstimator::GROUND_TRUTH)[0], r, p, y);
+      }
 
-                  kf->correction(meas, vo_state_.header.stamp.toSec(), params);
-                  VectorXd state = kf->getEstimateState();
+    double start_time = ros::Time::now().toSec();
+    estimateProcess();
+    /*
+    double time_du = ros::Time::now().toSec() - start_time;
+    if(max_du < time_du) max_du = time_du;
+    ROS_INFO("max du: %f, time du: %f", max_du, time_du);
+    */
 
-                  estimator_->setState(State::X_BASE, BasicEstimator::EGOMOTION_ESTIMATE, 0, state(0));
-                  estimator_->setState(State::X_BASE, BasicEstimator::EGOMOTION_ESTIMATE, 1, state(1));
-                  estimator_->setState(State::Y_BASE, BasicEstimator::EGOMOTION_ESTIMATE, 0, state(2));
-                  estimator_->setState(State::Y_BASE, BasicEstimator::EGOMOTION_ESTIMATE, 1, state(3));
-                }
-            }
-        }
-    }
+    /* publish */
+    vo_state_.header.stamp.fromSec(curr_timestamp_);
+    for(int axis = 0; axis < 3; axis++)
+      vo_state_.states[axis].state[0].x = baselink_tf_.getOrigin()[axis]; //raw
+    vo_state_.states[0].state[0].y = raw_global_vel_.x();
+    vo_state_.states[1].state[0].y = raw_global_vel_.y();
+    vo_state_.states[2].state[0].y = raw_global_vel_.z();
 
-    void rosParamInit()
-    {
-      std::string ns = nhp_.getNamespace();
+    vo_state_pub_.publish(vo_state_);
 
-      nhp_.param("vio_flag", vio_flag_, true );
-      if(param_verbose_) cout << ns << ": vio flag is " <<  vio_flag_ << endl;
+    /* update */
+    prev_sensor_tf = raw_sensor_tf;
+    prev_timestamp_ =  curr_timestamp_; // vo_msg->header.stamp;
 
-      nhp_.param("valid_yaw", valid_yaw_, true );
-      if(param_verbose_) cout << ns << ": valid yaw is " << valid_yaw_ << endl;
+    updateHealthStamp();
+  }
 
-      nhp_.param("vo_noise_sigma", vo_noise_sigma_, 0.01 );
-      if(param_verbose_) cout << ns << ": vo noise sigma is " <<  vo_noise_sigma_ << endl;
+  void VisualOdometry::estimateProcess()
+  {
+    if(getStatus() == Status::INVALID) return;
 
-      nhp_.param("debug_verbose", debug_verbose_, false );
-      if(param_verbose_) cout << ns << ": debug verbose is " <<  debug_verbose_ << endl;
+    if(full_vel_mode_)
+      {
+        double height = estimator_->getState(State::Z_BASE, StateEstimator::EGOMOTION_ESTIMATE)[0];
+        if(height < downwards_vo_min_height_ || height > downwards_vo_max_height_)
+          {
+            //ROS_WARN_THROTTLE(1, "VO, the height %f is not valid for vo to do downards vo", height);
+            return;
+          }
+      }
+    else
+      {
+        /* YAW */
+        if(!estimator_->getStateStatus(State::YAW_BASE, StateEstimator::EGOMOTION_ESTIMATE))
+          {
+            estimator_->setStateStatus(State::YAW_BASE, StateEstimator::EGOMOTION_ESTIMATE, true);
+            ROS_WARN("VO, set yaw estimate status true");
+          }
+        tfScalar r,p,y;
+        baselink_tf_.getBasis().getRPY(r,p,y);
+        estimator_->setState(State::YAW_BASE, StateEstimator::EGOMOTION_ESTIMATE, 0, y);
+      }
 
-      nhp_.param("joint", joint_name_, std::string("servo"));
-      if(param_verbose_) cout << ns << ": servo joint name is " << joint_name_ << endl;
+    /* XYZ */
+    for(auto& fuser : estimator_->getFuser(StateEstimator::EGOMOTION_ESTIMATE))
+      {
+        string plugin_name = fuser.first;
+        boost::shared_ptr<kf_plugin::KalmanFilter> kf = fuser.second;
 
-      nhp_.param("servo_auto_change_flag", servo_auto_change_flag_, false );
-      if(param_verbose_) cout << ns << ": servo auto change flag is " <<  servo_auto_change_flag_ << endl;
+        if(!kf->getFilteringFlag()) continue;
 
-      nhp_.param("servo_height_thresh", servo_height_thresh_, 0.7);
-      if(param_verbose_) cout << ns << ": servo height thresh is " << servo_height_thresh_ << endl;
+        int id = kf->getId();
+        double timestamp = curr_timestamp_;
+        double outlier_thresh = full_vel_mode_?(vel_outlier_thresh_ / (vel_noise_sigma_) / (vel_noise_sigma_)):0;
+        /* x_w, y_w, z_w */
+        if(id < (1 << State::ROLL_COG))
+          {
+            if(plugin_name == "kalman_filter/kf_pos_vel_acc")
+              {
+                /* correction */
+                VectorXd measure_sigma(1);
+                if((id & (1 << State::X_BASE)) || (id & (1 << State::Y_BASE)))
+                  {
+                    if(full_vel_mode_) measure_sigma << vel_noise_sigma_;
+                    else measure_sigma << level_pos_noise_sigma_;
+                  }
+                else
+                  {
+                    if(z_vel_mode_ || full_vel_mode_)
+                      measure_sigma << vel_noise_sigma_;
+                    else
+                      measure_sigma << z_pos_noise_sigma_;
+                  }
 
-      nhp_.param("servo_vel", servo_vel_, 0.02); // rad
-      if(param_verbose_) cout << ns << ": servo vel is " << servo_vel_ << endl;
+                int index = id >> (State::X_BASE + 1);
+                VectorXd meas(1);
+                vector<double> params;
+                if((id & (1 << State::X_BASE)) || (id & (1 << State::Y_BASE)))
+                  {
+                    if(full_vel_mode_)
+                      {
+                        meas << raw_global_vel_[index];
+                        params = {kf_plugin::VEL};
+                        timestamp = (curr_timestamp_ + prev_timestamp_) / 2; //velocity timestamp
+                      }
+                    else
+                      {
+                        meas << baselink_tf_.getOrigin()[index];
+                        params = {kf_plugin::POS};
+                      }
+                  }
+                else
+                  {
+                    if(z_vel_mode_ || full_vel_mode_)
+                      {
+                        meas << raw_global_vel_[index];
+                        params = {kf_plugin::VEL};
+                        timestamp = (curr_timestamp_ + prev_timestamp_) / 2; //velocity timestamp
+                      }
+                    else
+                      {
+                        meas << baselink_tf_.getOrigin()[index];
+                        params = {kf_plugin::POS};
+                      }
 
-      nhp_.param("servo_init_angle", servo_init_angle_, 0.0); // rad
-      if(param_verbose_) cout << ns << ": servo init angle is " << servo_init_angle_ << endl;
-      servo_angle_ = servo_init_angle_;
+                    if(z_no_delay_) timestamp -= delay_;
+                  }
 
-      nhp_.param("servo_downwards_angle", servo_downwards_angle_, 0.0); // rad
-      if(param_verbose_) cout << ns << ": servo downwards angle is " << servo_downwards_angle_ << endl;
+                kf->correction(meas, measure_sigma,
+                               time_sync_?(timestamp):-1, params, outlier_thresh);
+                // VectorXd state = kf->getEstimateState();
+                // estimator_->setState(index + 3, StateEstimator::EGOMOTION_ESTIMATE, 0, state(0));
+                // estimator_->setState(index + 3, StateEstimator::EGOMOTION_ESTIMATE, 1, state(1));
+              }
+          }
+        if(plugin_name == "aerial_robot_base/kf_xy_roll_pitch_bias")
+          {
+            if((id & (1 << State::X_BASE)) && (id & (1 << State::Y_BASE)))
+              {
+                /* correction */
+                VectorXd measure_sigma(2);
+                measure_sigma << level_pos_noise_sigma_, level_pos_noise_sigma_;
 
-      nhp_.param("servo_min_angle", servo_min_angle_, -M_PI/2); // angle [rad]
-      if(param_verbose_) cout << ns << ": servo min angle is " << servo_min_angle_ << endl;
-      nhp_.param("servo_max_angle", servo_max_angle_, M_PI/2); // angle [rad]
-      if(param_verbose_) cout << ns << ": servo max angle is " << servo_max_angle_ << endl;
+                VectorXd meas(2);
+                vector<double> params;
+                if(full_vel_mode_)
+                  {
+                    meas << raw_global_vel_[0], raw_global_vel_[1];
+                    params = {kf_plugin::VEL};
+                  }
+                else
+                  {
+                    meas << baselink_tf_.getOrigin()[0], baselink_tf_.getOrigin()[1];
+                    params = {kf_plugin::POS};
+                  }
 
-      nhp_.param("servo_control_rate", servo_control_rate_, 0.1);
-      if(param_verbose_) cout << ns << ": servo control rate is " << servo_control_rate_ << endl;
-    }
+                kf->correction(meas, measure_sigma, time_sync_?(timestamp):-1, params);
+                // VectorXd state = kf->getEstimateState();
 
-    void servoControl(const ros::TimerEvent & e)
-    {
-      assert(variable_sensor_tf_flag_);
+                // estimator_->setState(State::X_BASE, StateEstimator::EGOMOTION_ESTIMATE, 0, state(0));
+                // estimator_->setState(State::X_BASE, StateEstimator::EGOMOTION_ESTIMATE, 1, state(1));
+                // estimator_->setState(State::Y_BASE, StateEstimator::EGOMOTION_ESTIMATE, 0, state(2));
+                // estimator_->setState(State::Y_BASE, StateEstimator::EGOMOTION_ESTIMATE, 1, state(3));
+              }
+          }
+      }
+  }
 
-      bool send_pub_ = false;
+  void VisualOdometry::rosParamInit()
+  {
+    std::string ns = nhp_.getNamespace();
 
-      /* after takeoff */
-      if(servo_auto_change_flag_ && estimator_->getState(State::Z_BASE, BasicEstimator::EGOMOTION_ESTIMATE)[0] > servo_height_thresh_ && servo_angle_ != servo_downwards_angle_)
-        {
-          if(fabs(servo_angle_ - servo_downwards_angle_) > servo_vel_ * servo_control_rate_)
-            {
-              int sign = fabs(servo_angle_ - servo_downwards_angle_) / (servo_angle_ - servo_downwards_angle_);
-              servo_angle_ -=  sign * servo_vel_ * servo_control_rate_;
-            }
-          else servo_angle_ = servo_downwards_angle_;
+    if(nhp_.hasParam("full_vel_mode"))
+      {
+        nhp_.getParam("full_vel_mode", full_vel_mode_);
+        if(param_verbose_) cout << ns << ": full vel mode is " <<  full_vel_mode_ << endl;
+      }
+    if(nhp_.hasParam("z_vel_mode"))
+      {
+        nhp_.getParam("z_vel_mode", z_vel_mode_);
+        if(param_verbose_) cout << ns << ": z vel mode is " <<  z_vel_mode_ << endl;
+      }
 
-          send_pub_ = true;
-        }
+    nhp_.param("z_no_delay", z_no_delay_, true );
+    if(param_verbose_) cout << ns << ": z no delay is " <<  z_no_delay_ << endl;
 
-      /* before landing */
-      if(estimator_->getState(State::Z_BASE, BasicEstimator::EGOMOTION_ESTIMATE)[0] < servo_height_thresh_ - 0.1 &&  servo_angle_ != servo_init_angle_)
-        {
-          if(fabs(servo_angle_ - servo_init_angle_) > servo_vel_ * servo_control_rate_)
-            {
-              int sign = fabs(servo_angle_ - servo_init_angle_) / (servo_angle_ - servo_init_angle_);
-              servo_angle_ -=  sign * servo_vel_ * servo_control_rate_;
-            }
-          else servo_angle_ = servo_init_angle_;
+    nhp_.param("outdoor_no_vel_time_sync", outdoor_no_vel_time_sync_, true );
+    if(param_verbose_) cout << ns << "outdoor no vel time sync:  is " << outdoor_no_vel_time_sync_ << endl;
 
-          send_pub_ = true;
-        }
+    nhp_.param("level_pos_noise_sigma", level_pos_noise_sigma_, 0.01 );
+    if(param_verbose_) cout << ns << ": level_pos noise sigma is " <<  level_pos_noise_sigma_ << endl;
+    nhp_.param("z_pos_noise_sigma", z_pos_noise_sigma_, 0.01 );
+    if(param_verbose_) cout << ns << ": z_pos noise sigma is " <<  z_pos_noise_sigma_ << endl;
 
-      /* init */
-      if (ros::Time::now().toSec() - init_servo_st.toSec() < 1.0) // 1 [sec]
+    nhp_.param("vel_noise_sigma", vel_noise_sigma_, 0.05 );
+    if(param_verbose_) cout << ns << ": vel noise sigma is " <<  vel_noise_sigma_ << endl;
+
+    nhp_.param("vel_outlier_thresh", vel_outlier_thresh_, 1.0);
+    if(param_verbose_) cout << ns << ": vel outlier thresh is " <<  vel_outlier_thresh_ << endl;
+
+    nhp_.param("downwards_vo_min_height", downwards_vo_min_height_, 0.8);
+    if(param_verbose_) cout << ns << ": downwards vo min height is " << downwards_vo_min_height_ << endl;
+
+    nhp_.param("downwards_vo_max_height", downwards_vo_max_height_, 10.0);
+    if(param_verbose_) cout << ns << ": downwards vo max height is " << downwards_vo_max_height_ << endl;
+
+    nhp_.param("debug_verbose", debug_verbose_, false );
+    if(param_verbose_) cout << ns << ": debug verbose is " <<  debug_verbose_ << endl;
+
+    nhp_.param("joint", joint_name_, std::string("servo"));
+    if(param_verbose_) cout << ns << ": servo joint name is " << joint_name_ << endl;
+
+    nhp_.param("servo_auto_change_flag", servo_auto_change_flag_, false );
+    if(param_verbose_) cout << ns << ": servo auto change flag is " <<  servo_auto_change_flag_ << endl;
+
+    nhp_.param("servo_height_thresh", servo_height_thresh_, 0.7);
+    if(param_verbose_) cout << ns << ": servo height thresh is " << servo_height_thresh_ << endl;
+
+    nhp_.param("servo_vel", servo_vel_, 0.02); // rad
+    if(param_verbose_) cout << ns << ": servo vel is " << servo_vel_ << endl;
+
+    nhp_.param("servo_init_angle", servo_init_angle_, 0.0); // rad
+    if(param_verbose_) cout << ns << ": servo init angle is " << servo_init_angle_ << endl;
+    servo_angle_ = servo_init_angle_;
+
+    nhp_.param("servo_downwards_angle", servo_downwards_angle_, 0.0); // rad
+    if(param_verbose_) cout << ns << ": servo downwards angle is " << servo_downwards_angle_ << endl;
+
+    nhp_.param("servo_min_angle", servo_min_angle_, -M_PI/2); // angle [rad]
+    if(param_verbose_) cout << ns << ": servo min angle is " << servo_min_angle_ << endl;
+    nhp_.param("servo_max_angle", servo_max_angle_, M_PI/2); // angle [rad]
+    if(param_verbose_) cout << ns << ": servo max angle is " << servo_max_angle_ << endl;
+
+    nhp_.param("servo_control_rate", servo_control_rate_, 0.1);
+    if(param_verbose_) cout << ns << ": servo control rate is " << servo_control_rate_ << endl;
+  }
+
+  void VisualOdometry::servoControl(const ros::TimerEvent & e)
+  {
+    assert(variable_sensor_tf_flag_);
+
+    bool send_pub_ = false;
+
+    /* after takeoff */
+    if(servo_auto_change_flag_ && estimator_->getState(State::Z_BASE, StateEstimator::EGOMOTION_ESTIMATE)[0] > servo_height_thresh_ && servo_angle_ != servo_downwards_angle_)
+      {
+        if(fabs(servo_angle_ - servo_downwards_angle_) > servo_vel_ * servo_control_rate_)
+          {
+            int sign = fabs(servo_angle_ - servo_downwards_angle_) / (servo_angle_ - servo_downwards_angle_);
+            servo_angle_ -=  sign * servo_vel_ * servo_control_rate_;
+          }
+        else servo_angle_ = servo_downwards_angle_;
+
         send_pub_ = true;
+      }
 
-      if(send_pub_)
-        {
-          sensor_msgs::JointState msg;
-          msg.name.push_back(joint_name_);
-          msg.position.push_back(servo_angle_);
-          vo_servo_pub_.publish(msg);
-        }
-    }
+    /* before landing */
+    if(estimator_->getState(State::Z_BASE, StateEstimator::EGOMOTION_ESTIMATE)[0] < servo_height_thresh_ - 0.1 &&  servo_angle_ != servo_init_angle_)
+      {
+        if(fabs(servo_angle_ - servo_init_angle_) > servo_vel_ * servo_control_rate_)
+          {
+            int sign = fabs(servo_angle_ - servo_init_angle_) / (servo_angle_ - servo_init_angle_);
+            servo_angle_ -=  sign * servo_vel_ * servo_control_rate_;
+          }
+        else servo_angle_ = servo_init_angle_;
 
-    void servoDebugCallback(const std_msgs::Empty::ConstPtr & vo_msg)
-    {
-      servo_auto_change_flag_ = true;
-    }
-  };
+        send_pub_ = true;
+      }
 
+    /* init */
+    if (ros::Time::now().toSec() - init_servo_st.toSec() < 1.0) // 1 [sec]
+      send_pub_ = true;
+
+    if(send_pub_)
+      {
+        sensor_msgs::JointState msg;
+        msg.name.push_back(joint_name_);
+        msg.position.push_back(servo_angle_);
+        vo_servo_pub_.publish(msg);
+      }
+  }
 };
 
 /* plugin registration */

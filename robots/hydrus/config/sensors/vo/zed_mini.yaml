@@ -1,22 +1,24 @@
 sensor_plugin:
   vo:
     vo_sub_topic_name: /zed/odom
-    vo_noise_sigma: 0.001
+    level_pos_noise_sigma: 0.001 # use pos-vel-bias model, so need lower noise
+    z_pos_noise_sigma: 0.01 #0.005
+    vel_noise_sigma: 0.02
     joint: zed_mini_servo_joint
     sensor_frame: zed_camera_center
     reference_frame: fc
-    vio_flag: true
-    valid_yaw: true
     debug_verbose: false
     time_sync: true
     delay: -0.15
+    outdoor_no_vel_time_sync: true
+    z_no_delay: true # z position delay problem: special case of some vio algorithm such as zed mini
+    downwards_vo_min_height: 0.8
+    downwards_vo_max_height: 10.0
     servo_init_angle: -1.570796
     servo_index: 1
-    #servo_min_pwm: 550
-    #servo_max_pwm: 2450
     variable_sensor_tf_flag: true
     vo_servo_topic_name: /hydrusx/extra_servos_ctrl
-    servo_auto_change_flag: true
+    servo_auto_change_flag: false #true
     servo_height_thresh: 0.8
     servo_vel: 0.08
     servo_control_rate: 0.025

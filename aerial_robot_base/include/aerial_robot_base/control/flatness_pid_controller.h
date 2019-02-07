@@ -57,7 +57,7 @@ namespace control_plugin
     ~FlatnessPid(){};
 
     void initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
-                    BasicEstimator* estimator, Navigator* navigator,
+                    StateEstimator* estimator, Navigator* navigator,
                     double ctrl_loop_rate);
 
 

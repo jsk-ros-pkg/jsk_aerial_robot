@@ -39,26 +39,19 @@
 
 namespace kf_plugin
 {
-  void KalmanFilterBaroBias::initialize(ros::NodeHandle nh, string suffix, int id)
+  void KalmanFilterBaroBias::initialize(string name, int id)
   {
     state_dim_ = 1;
 
-    Matrix<double, 1, 1> state_transition_model;
-    state_transition_model << 1;
-    setStateTransitionModel(state_transition_model);
+    const_state_transition_model_ = MatrixXd::Identity(1, 1);
+    const_control_input_model_ = MatrixXd::Identity(1, 1);
+    const_observation_model_ = MatrixXd::Identity(1, 1);
 
-    Matrix<double, 1, 1> control_input_model;
-    control_input_model << 1;
-    setControlInputModel(control_input_model);
+    state_names_ = {"bias"};
+    input_names_ = {"d_bias"};
+    measure_names_ = {"bias"};
 
-    Matrix<double, 1, 1> observation_model;
-    observation_model << 1;
-    setObservationModel(observation_model);
-
-    input_name_v_ = {"bias"};
-    measure_name_v_ = {"bias"};
-
-    KalmanFilter::initialize(nh, suffix, id);
+    KalmanFilter::initialize(name, id);
   }
 };
 

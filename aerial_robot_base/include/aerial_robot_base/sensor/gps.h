@@ -37,7 +37,7 @@
 #include <ros/ros.h>
 
 /* base class */
-#include <aerial_robot_base/sensor_base_plugin.h>
+#include <aerial_robot_base/sensor/base_plugin.h>
 
 /* kalman filters */
 #include <kalman_filter/kf_pos_vel_acc_plugin.h>
@@ -66,7 +66,7 @@ namespace sensor_plugin
   class Gps :public sensor_plugin::SensorBase
     {
     public:
-      void initialize(ros::NodeHandle nh, ros::NodeHandle nhp, BasicEstimator* estimator, string sensor_name);
+      void initialize(ros::NodeHandle nh, ros::NodeHandle nhp, StateEstimator* estimator, string sensor_name);
 
       ~Gps() {}
       Gps();
@@ -86,6 +86,7 @@ namespace sensor_plugin
       double pos_noise_sigma_, vel_noise_sigma_;
       int min_est_sat_num_;
       bool ned_flag_;
+      bool only_use_vel_;
       tf::Matrix3x3 world_frame_;
 
       aerial_robot_msgs::States gps_state_;
@@ -95,9 +96,9 @@ namespace sensor_plugin
       tf::Vector3 pos_, raw_pos_, prev_raw_pos_;
       tf::Vector3 vel_, raw_vel_;
 
-      void rosParamInit();
-
       void gpsCallback(const spinal::Gps::ConstPtr & gps_msg);
+      void estimateProcess();
+      void rosParamInit();
     };
 };
 

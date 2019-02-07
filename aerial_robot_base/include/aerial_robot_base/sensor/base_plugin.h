@@ -39,12 +39,14 @@
 /* ros */
 #include <ros/ros.h>
 
-/* estimation class */
-#include <aerial_robot_base/basic_state_estimation.h>
-
 /* filter */
-#include <kalman_filter/kf_base_plugin.h>
 #include <kalman_filter/digital_filter.h>
+
+/* kf plugin */
+#include <kalman_filter/kf_base_plugin.h>
+
+/* estimation class */
+#include <aerial_robot_base/state_estimation.h>
 
 /* algebra */
 #include <Eigen/Core>
@@ -62,29 +64,33 @@
 using namespace Eigen;
 using namespace std;
 
+namespace Status
+{
+  enum {INACTIVE = 0, INIT = 1, ACTIVE = 2, INVALID = 3,};
+}
+
 namespace sensor_plugin
 {
   class SensorBase
   {
   public:
-    SensorBase():
-      estimate_flag_(true),
-      sensor_hz_(0)
+    SensorBase(string plugin_name = string("")):
+      sensor_hz_(0), plugin_name_(plugin_name)
     {
       sensor_tf_.setIdentity();
+      sensor_status_ = Status::INACTIVE;
     }
 
-    virtual void initialize(ros::NodeHandle nh, ros::NodeHandle nhp, BasicEstimator* estimator, string sensor_name)
+    virtual void initialize(ros::NodeHandle nh, ros::NodeHandle nhp, StateEstimator* estimator, string sensor_name)
     {
       estimator_ = estimator;
-
       nh_ = ros::NodeHandle(nh, sensor_name);
       nhp_ = ros::NodeHandle(nhp, sensor_name);
 
       health_.resize(1, false);
       health_stamp_.resize(1, ros::Time::now().toSec());
 
-      estimate_flag_service_ = nh_.advertiseService("estimate_flag", &SensorBase::estimateFlag, this);
+      set_status_service_ = nh_.advertiseService("estimate_flag", &SensorBase::setStatusCb, this);
 
       ros::NodeHandle nh_global("~");
       nh_global.param("simulation", simulation_, false);
@@ -119,36 +125,55 @@ namespace sensor_plugin
 
     virtual ~SensorBase(){}
 
+    inline const std::string& getPluginName() const {return plugin_name_;}
+    const int& getStatus()
+    {
+      boost::lock_guard<boost::mutex> lock(status_mutex_);
+      return sensor_status_;
+    }
+
+    void setStatus(const int& status)
+    {
+      boost::lock_guard<boost::mutex> lock(status_mutex_);
+      prev_status_ = sensor_status_;
+      sensor_status_ = status;
+    }
+
   protected:
 
     ros::NodeHandle nh_;
     ros::NodeHandle nhp_;
     ros::Timer  health_check_timer_;
-    ros::ServiceServer estimate_flag_service_;
-    BasicEstimator* estimator_;
+    ros::ServiceServer set_status_service_;
+    StateEstimator* estimator_;
     int estimate_mode_;
 
     bool simulation_;
     bool param_verbose_;
     bool debug_verbose_;
 
+    string plugin_name_;
+
     bool get_sensor_tf_;
     bool variable_sensor_tf_flag_;
+
     string sensor_frame_;
 
     bool time_sync_;
     double delay_;
-
-    //vector< boost::shared_ptr<sensor_base_plugin::SensorBase> > sensors_;
-
+    double curr_timestamp_;
+    double prev_timestamp_;
     double sensor_hz_; // hz  of the sensor
     vector<int> estimate_indices_; // the fuser_egomation index
     vector<int> experiment_indices_; // the fuser_experiment indices
 
-    int estimate_flag_;
-
     /* the transformation between sensor frame and baselink frame */
     tf::Transform sensor_tf_;
+
+    /* status */
+    int sensor_status_;
+    int prev_status_;
+    boost::mutex status_mutex_;
 
     /* health check */
     vector<bool> health_;
@@ -175,21 +200,28 @@ namespace sensor_plugin
               ROS_ERROR("[%s, chan%d]: can not get fresh sensor data for %f[sec]", nhp_.getNamespace().c_str(), i, ros::Time::now().toSec() - health_stamp_[i]);
               /* TODO: the solution to unhealth should be more clever */
               estimator_->setUnhealthLevel(unhealth_level_);
+
               health_[i] = false;
             }
         }
     }
 
-    bool estimateFlag(std_srvs::SetBool::Request  &req,
-                      std_srvs::SetBool::Response &res)
+    bool setStatusCb(std_srvs::SetBool::Request  &req, std_srvs::SetBool::Response &res)
     {
-      string ns = nhp_.getNamespace();
-      estimate_flag_ = req.data;
-      ROS_INFO("%s: %s", ns.c_str(), estimate_flag_?string("enable the estimate flag").c_str():string("disable the estimate flag").c_str());
+      if(sensor_status_ == Status::INVALID && req.data)
+        {
+          sensor_status_ == Status::INACTIVE;
+          ROS_INFO_STREAM(nhp_.getNamespace() << "enable the estimate flag");
+        }
+      if(!req.data)
+        {
+          sensor_status_ = Status::INVALID;
+          ROS_INFO_STREAM(nhp_.getNamespace() << "disable the estimate flag");
+        }
       return true;
     }
 
-    void setHealthChanNum(uint8_t chan_num)
+    void setHealthChanNum(const uint8_t& chan_num)
     {
       assert(chan_num > 0);
 
@@ -209,15 +241,14 @@ namespace sensor_plugin
 
     inline const tf::Transform& getBaseLink2SensorTransform() const { return sensor_tf_; }
 
-
     bool updateBaseLink2SensorTransform()
     {
       /* get transform from baselink to sensor frame */
       if(!variable_sensor_tf_flag_ && get_sensor_tf_) return true;
 
       /*
-         for joint or servo system, this should be processed every time,
-         therefore kinematics based on kinematics is better, since the tf need 0.x[sec].
+        for joint or servo system, this should be processed every time,
+        therefore kinematics based on kinematics is better, since the tf need 0.x[sec].
       */
       const auto& segments_tf =  estimator_->getSegmentsTf();
       if(segments_tf.find(sensor_frame_) == segments_tf.end())

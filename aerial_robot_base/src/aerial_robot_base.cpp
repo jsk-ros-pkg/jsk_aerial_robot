@@ -11,7 +11,7 @@ AerialRobotBase::AerialRobotBase(ros::NodeHandle nh, ros::NodeHandle nh_private)
   if(param_verbose) cout << nhp_.getNamespace() << ": main_rate is " << main_rate_ << endl;
 
   //*** estimator
-  estimator_ = new RigidEstimator(nh_, nhp_);
+  estimator_ = new StateEstimator(nh_, nhp_);
 
   //*** basic navigation
   navigator_ = new Navigator(nh_, nhp_, estimator_);
