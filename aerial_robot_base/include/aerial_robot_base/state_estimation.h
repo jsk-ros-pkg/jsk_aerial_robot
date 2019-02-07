@@ -297,7 +297,6 @@ public:
 
     size_t candidate_index = (timestamp_qu_.size() - 1) * (timestamp - timestamp_qu_.front()) / (timestamp_qu_.back() - timestamp_qu_.front());
 
-
     if(timestamp > timestamp_qu_.at(candidate_index))
       {
         for(auto it = timestamp_qu_.begin() + candidate_index; it != timestamp_qu_.end(); ++it)
@@ -310,7 +309,7 @@ public:
                 else
                   candidate_index = std::distance(timestamp_qu_.begin(), it-1);
 
-                //ROS_INFO("find timestamp sensor vs imu: [%f, %f]", timestamp, timestamp_qu_.at(candidate_index));
+                //ROS_INFO("find timestamp sensor vs imu: [%f, %f], candidate: %d", timestamp, timestamp_qu_.at(candidate_index), candidate_index);
                 break;
               }
           }
@@ -327,7 +326,7 @@ public:
                 else
                   candidate_index = timestamp_qu_.size() - 1 - std::distance(timestamp_qu_.rbegin(), it-1);
 
-                //ROS_INFO("find timestamp sensor vs imu: [%f, %f]", timestamp, timestamp_qu_.at(candidate_index));
+                //ROS_INFO("reverse find timestamp sensor vs imu: [%f, %f], %d", timestamp, timestamp_qu_.at(candidate_index) , candidate_index);
                 break;
               }
           }
@@ -349,7 +348,14 @@ public:
         ROS_ERROR("estimation search state with timestamp: wrong mode %d", mode);
         return false;
       }
+
     return true;
+  }
+
+  inline const double getImuLatestTimeStamp()
+  {
+    boost::lock_guard<boost::mutex> lock(queue_mutex_);
+    return timestamp_qu_.back();
   }
 
 
