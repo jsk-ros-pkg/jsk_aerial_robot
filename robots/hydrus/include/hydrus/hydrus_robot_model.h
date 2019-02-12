@@ -73,11 +73,15 @@ public:
   uint8_t getLqiMode() const { return lqi_mode_; }
   double getStabilityMargin() const { return stability_margin_; }
   Eigen::VectorXd getOptimalHoveringThrust() const { return optimal_hovering_f_; }
+  Eigen::MatrixXd getQf() const { return Q_f_; }
+  Eigen::MatrixXd getQtau() const { return Q_tau_; }
   Eigen::MatrixXd getP() const { return P_; }
   double getPdeterminant() const { return p_det_; }
   Eigen::MatrixXd getPOrigPseudoInverse() const { return P_orig_pseudo_inverse_; }
   bool hamiltonMatrixSolver(uint8_t lqi_mode);
   void setLqiMode(uint8_t lqi_mode) { lqi_mode_ = lqi_mode; }
+  double getFMax() const {return f_max_;}
+  double getFMin() const {return f_min_;}
 
 private:
   //private attributes
@@ -87,6 +91,7 @@ private:
   double m_f_rate_; //moment / force rate
   bool only_three_axis_mode_;
   Eigen::VectorXd optimal_hovering_f_;
+  Eigen::MatrixXd Q_tau_, Q_f_;
   Eigen::MatrixXd P_;
   double p_det_;
   double p_det_thre_;

@@ -86,6 +86,9 @@ namespace aerial_robot_model {
     int getRotorNum() const { return rotor_num_; }
     template<class T> std::vector<T> getRotorsNormalFromCog() const;
     template<class T> std::vector<T> getRotorsOriginFromCog() const;
+    template<class T> std::vector<T> getRotorsNormalFromCogDash() const;
+    template<class T> std::vector<T> getRotorsOriginFromCogDash() const;
+
     const KDL::Tree& getTree() const { return tree_; }
     double getVerbose() const { return verbose_; }
     void setActuatorJointMap(const sensor_msgs::JointState& actuator_state);
@@ -119,6 +122,9 @@ namespace aerial_robot_model {
     int rotor_num_;
     std::vector<KDL::Vector> rotors_origin_from_cog_;
     std::vector<KDL::Vector> rotors_normal_from_cog_;
+    /* {CoG'}: same origin with {CoG}, but the orientation (axes alignment) is same with {B} (baselink) */
+    std::vector<KDL::Vector> rotors_origin_from_cog_dash_;
+    std::vector<KDL::Vector> rotors_normal_from_cog_dash_;
     KDL::Tree tree_;
     std::string thrust_link_;
     bool verbose_;
@@ -263,6 +269,11 @@ namespace aerial_robot_model {
     return aerial_robot_model::kdlToTf2(rotors_normal_from_cog_);
   }
 
+  template<> inline std::vector<Eigen::Vector3d> RobotModel::getRotorsNormalFromCogDash() const
+  {
+    return aerial_robot_model::kdlToEigen(rotors_normal_from_cog_dash_);
+  }
+
   template<> inline std::vector<Eigen::Vector3d> RobotModel::getRotorsOriginFromCog() const
   {
     return aerial_robot_model::kdlToEigen(rotors_origin_from_cog_);
@@ -282,4 +293,10 @@ namespace aerial_robot_model {
   {
     return aerial_robot_model::kdlToTf2(rotors_origin_from_cog_);
   }
+
+  template<> inline std::vector<Eigen::Vector3d> RobotModel::getRotorsOriginFromCogDash() const
+  {
+    return aerial_robot_model::kdlToEigen(rotors_origin_from_cog_dash_);
+  }
+
 } //namespace aerial_robot_model

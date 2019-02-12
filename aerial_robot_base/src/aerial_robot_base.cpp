@@ -17,6 +17,7 @@ AerialRobotBase::AerialRobotBase(ros::NodeHandle nh, ros::NodeHandle nh_private)
   navigator_ = new Navigator(nh_, nhp_, estimator_);
 
   //*** flight controller
+
   try
     {
       controller_loader_ptr_ =  boost::shared_ptr< pluginlib::ClassLoader<control_plugin::ControlBase> >( new pluginlib::ClassLoader<control_plugin::ControlBase>("aerial_robot_base", "control_plugin::ControlBase"));

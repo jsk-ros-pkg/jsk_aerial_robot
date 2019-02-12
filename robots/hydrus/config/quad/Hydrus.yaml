@@ -15,17 +15,20 @@ q_pitch_d: 40
 q_pitch_i: 10.0
 
 q_yaw: 100
-q_yaw_d:  50
+q_yaw_d: 50
 q_yaw_i: 0.5
 
-q_z: 10.0
-q_z_d: 20.0
-q_z_i: 10.0
+q_z: 3.6 # direct feedback gain, old: 10.0
+q_z_d: 3.4  # direct feedback gain, old: 20.0
+q_z_i: 1.55  # direct feedback gain, old: 10.0
 
 r1: 1.0
 r2: 1.0
 r3: 1.0
 r4: 1.0
+
+trans_constraint_weight: 100
+att_control_weight: 1
 
 stability_margin_thre: 0.13
 f_max: 16.5
