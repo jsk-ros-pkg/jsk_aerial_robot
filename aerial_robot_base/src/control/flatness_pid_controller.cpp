@@ -141,9 +141,10 @@ namespace control_plugin
 
     /* xy */
     tf::Vector3 xy_p_term, xy_d_term;
-    /* convert from world frame to CoG frame */
-    pos_err_ = tf::Matrix3x3(tf::createQuaternionFromYaw(-state_psi_)) * (target_pos_ - state_pos_);
-    vel_err_ = tf::Matrix3x3(tf::createQuaternionFromYaw(-state_psi_)) * (target_vel_ - state_vel_);
+    //pos_err_ = tf::Matrix3x3(tf::createQuaternionFromYaw(-state_psi_)) * (target_pos_ - state_pos_);
+    //vel_err_ = tf::Matrix3x3(tf::createQuaternionFromYaw(-state_psi_)) * (target_vel_ - state_vel_);
+    pos_err_ = target_pos_ - state_pos_;
+    vel_err_ = target_vel_ - state_vel_;
 
     switch(navigator_->getXyControlMode())
       {
@@ -185,12 +186,12 @@ namespace control_plugin
       }
 
     tf::Vector3 xy_total_term = xy_p_term + xy_i_term_ + xy_d_term + xy_offset_;
-    target_pitch_ = clamp(xy_total_term[0], -xy_limit_, xy_limit_);
-    target_roll_ = clamp(xy_total_term[1], -xy_limit_, xy_limit_);
+    //target_pitch_ = clamp(xy_total_term[0], -xy_limit_, xy_limit_);
+    //target_roll_ = clamp(xy_total_term[1], -xy_limit_, xy_limit_);
+    xy_total_term[0] = clamp(xy_total_term[0], -xy_limit_, xy_limit_);
+    xy_total_term[1] = clamp(xy_total_term[1], -xy_limit_, xy_limit_);
 
     /* ros pub */
-    pid_msg.pitch.total.push_back(target_pitch_);
-    pid_msg.roll.total.push_back(target_roll_);
     pid_msg.pitch.p_term.push_back(xy_p_term[0]);
     pid_msg.pitch.i_term.push_back(xy_i_term_[0]);
     pid_msg.pitch.d_term.push_back(xy_d_term[0]);
@@ -205,6 +206,63 @@ namespace control_plugin
     pid_msg.roll.target_vel = target_vel_[1];
     pid_msg.pitch.vel_err = vel_err_[0];
     pid_msg.roll.vel_err = vel_err_[1];
+
+    /* z */
+    double alt_pos_err = clamp(pos_err_.z(), -alt_err_thresh_, alt_err_thresh_);
+    double alt_vel_err = target_vel_.z() - state_vel_.z();
+
+    if(navigator_->getNaviState() == Navigator::LAND_STATE) alt_pos_err += alt_landing_const_i_ctrl_thresh_;
+
+    double z_total_term = 0;
+    for(int j = 0; j < motor_num_; j++)
+      {
+        //**** P Term
+        double alt_p_term = clamp(-alt_gains_[j][0] * alt_pos_err, -alt_terms_limit_[0], alt_terms_limit_[0]);
+        if(navigator_->getNaviState() == Navigator::LAND_STATE) alt_p_term = 0;
+
+        /* two way to calculate the alt i term */
+        //**** I Term
+        alt_i_term_[j] +=  alt_pos_err * du;
+        double alt_i_term = clamp(alt_gains_[j][1] * alt_i_term_[j], -alt_terms_limit_[1], alt_terms_limit_[1]);
+        //***** D Term
+        double alt_d_term = clamp(-alt_gains_[j][2] * alt_vel_err, -alt_terms_limit_[2], alt_terms_limit_[2]);
+
+        //*** each motor command value for log
+        target_throttle_[j] = clamp(alt_p_term + alt_i_term + alt_d_term + alt_offset_, -alt_limit_, alt_limit_);
+        pid_msg.throttle.p_term.push_back(alt_p_term);
+        pid_msg.throttle.i_term.push_back(alt_i_term);
+        pid_msg.throttle.d_term.push_back(alt_d_term);
+
+        z_total_term += target_throttle_[j];
+        if(alt_gains_.size() == 1) break;
+      }
+
+    pid_msg.throttle.target_pos = target_pos_.z();
+    pid_msg.throttle.pos_err = alt_pos_err;
+    pid_msg.throttle.target_vel = target_vel_.z();
+    pid_msg.throttle.vel_err = alt_vel_err;
+
+    /* change from desired accelaration (force) to desired roll/pitch and throttle */
+    z_total_term /= estimator_->getMass();
+    tf::Vector3 desired_force(xy_total_term[0], xy_total_term[1], z_total_term);
+    double desired_total_throttle = desired_force.length();
+    tf::Vector3 desired_force_normalized = desired_force.normalized();
+    tf::Vector3 desired_force_normalized_cog_frame = (tf::Matrix3x3(tf::createQuaternionFromYaw(state_psi_))).inverse() * desired_force_normalized;
+
+    for(int j = 0; j < motor_num_; j++)
+      {
+        target_throttle_[j] *= desired_total_throttle / z_total_term;
+        pid_msg.throttle.total.push_back(target_throttle_[j]);
+        if(alt_gains_.size() == 1) break;
+      }
+
+    target_pitch_ = atan2(desired_force_normalized_cog_frame.x(), desired_force_normalized_cog_frame.z());
+    target_roll_ = atan2(-desired_force_normalized_cog_frame.y(), sqrt(desired_force_normalized_cog_frame.x() * desired_force_normalized_cog_frame.x() + desired_force_normalized_cog_frame.z() * desired_force_normalized_cog_frame.z()));
+
+    pid_msg.pitch.total.push_back(target_pitch_);
+    pid_msg.roll.total.push_back(target_roll_);
+
+    //ROS_INFO("mass: %f, desired_total_throttle / z_total_term: %f, target_pitch: %f, target_roll: %f", estimator_->getMass(), desired_total_throttle / z_total_term, target_pitch_, target_roll_);
 
     /* yaw */
     double psi_err = clamp(psi_err_, -yaw_err_thresh_, yaw_err_thresh_);
@@ -240,39 +298,6 @@ namespace control_plugin
     pid_msg.yaw.pos_err = psi_err_;
     pid_msg.yaw.target_vel = target_psi_vel_;
 
-    /* throttle */
-    double alt_pos_err = clamp(pos_err_.z(), -alt_err_thresh_, alt_err_thresh_);
-    double alt_vel_err = target_vel_.z() - state_vel_.z();
-
-    if(navigator_->getNaviState() == Navigator::LAND_STATE) alt_pos_err += alt_landing_const_i_ctrl_thresh_;
-
-    for(int j = 0; j < motor_num_; j++)
-      {
-        //**** P Term
-        double alt_p_term = clamp(-alt_gains_[j][0] * alt_pos_err, -alt_terms_limit_[0], alt_terms_limit_[0]);
-        if(navigator_->getNaviState() == Navigator::LAND_STATE) alt_p_term = 0;
-
-        /* two way to calculate the alt i term */
-        //**** I Term
-        alt_i_term_[j] +=  alt_pos_err * du;
-        double alt_i_term = clamp(alt_gains_[j][1] * alt_i_term_[j], -alt_terms_limit_[1], alt_terms_limit_[1]);
-        //***** D Term
-        double alt_d_term = clamp(-alt_gains_[j][2] * alt_vel_err, -alt_terms_limit_[2], alt_terms_limit_[2]);
-
-        //*** each motor command value for log
-        target_throttle_[j] = clamp(alt_p_term + alt_i_term + alt_d_term + alt_offset_, -alt_limit_, alt_limit_);
-        pid_msg.throttle.total.push_back(target_throttle_[j]);
-        pid_msg.throttle.p_term.push_back(alt_p_term);
-        pid_msg.throttle.i_term.push_back(alt_i_term);
-        pid_msg.throttle.d_term.push_back(alt_d_term);
-
-        if(alt_gains_.size() == 1) break;
-      }
-
-    pid_msg.throttle.target_pos = target_pos_.z();
-    pid_msg.throttle.pos_err = alt_pos_err;
-    pid_msg.throttle.target_vel = target_vel_.z();
-    pid_msg.throttle.vel_err = alt_vel_err;
 
     /* ros publish */
     pid_pub_.publish(pid_msg);
@@ -285,7 +310,7 @@ namespace control_plugin
   {
     /* send flight command */
     spinal::FourAxisCommand flight_command_data;
-    flight_command_data.angles[0] =  -target_roll_;
+    flight_command_data.angles[0] =  target_roll_;
     flight_command_data.angles[1] =  target_pitch_;
 
     flight_command_data.base_throttle.resize(motor_num_);

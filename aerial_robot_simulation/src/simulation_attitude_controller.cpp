@@ -115,6 +115,7 @@ void SimulationAttitudeController::update(const ros::Time& time, const ros::Dura
   tf::Vector3 w = desire_coord_ * rotor_interface_->getBaseLinkAngular();
   controller_core_->getAttController().setAngular(w.x(), w.y(), w.z());
 
+  //ROS_INFO_THROTTLE(1.0, "cog r, p y: [%f, %f, %f]", r, p, y);
   if(debug_mode_)
     {
       for(int i = 0; i < motor_num_; i++)

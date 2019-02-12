@@ -15,8 +15,7 @@ HydrusRobotModel::HydrusRobotModel(bool init_with_rosparam, bool verbose, std::s
     {
       getParamFromRos();
     }
-  //P : mapping from thrust(u) to acceleration(y) y = Pu-G
-  P_ = Eigen::MatrixXd::Zero(4, getRotorNum());
+  P_ = Eigen::MatrixXd::Zero(6, getRotorNum());
 
   lqi_mode_ = LQI_FOUR_AXIS_MODE;
 }
@@ -40,41 +39,24 @@ void HydrusRobotModel::getParamFromRos()
 
 bool HydrusRobotModel::modelling(bool verbose, bool control_verbose)
 {
-  const std::vector<Eigen::Vector3d> rotors_origin_from_cog = getRotorsOriginFromCog<Eigen::Vector3d>();
+  const std::vector<Eigen::Vector3d> rotors_origin = getRotorsOriginFromCogDash<Eigen::Vector3d>();
+  const std::vector<Eigen::Vector3d> rotors_normal = getRotorsNormalFromCogDash<Eigen::Vector3d>();
+
   const int rotor_num = getRotorNum();
   const auto rotor_direction = getRotorDirection();
 
   Eigen::VectorXd g(4);
-  g << 0, 0, 9.80665, 0;
-  Eigen::VectorXd p_x(rotor_num), p_y(rotor_num), p_c(rotor_num), p_m(rotor_num);
+  g << 0, 0, 0, 9.806650 * getMass(); // rotational motion (x,y,z) + translational motion (z)
 
-  for(int i = 0; i < getRotorNum(); i++)
-    {
-      p_y(i) =  rotors_origin_from_cog[i](1);
-      p_x(i) = -rotors_origin_from_cog[i](0);
-      p_c(i) =  rotor_direction.at(i + 1) * m_f_rate_ ;
-      p_m(i) =  1.0 / getMass();
-      if(verbose)
-        std::cout << "link" << i + 1 <<"origin :\n" << rotors_origin_from_cog[i] << std::endl;
-    }
+  Eigen::MatrixXd Q_tau(3, rotor_num), Q_f(3, rotor_num);
+  for (unsigned int i = 0; i < rotor_num; i++) {
+    Q_f.col(i) = rotors_normal.at(i);
+    Q_tau.col(i) = rotors_origin.at(i).cross(rotors_normal.at(i)) + rotor_direction.at(i + 1) * m_f_rate_ * rotors_normal.at(i);
+  }
 
-  Eigen::MatrixXd P_att = Eigen::MatrixXd::Zero(3, rotor_num);
-  P_att.row(0) = p_y;
-  P_att.row(1) = p_x;
-  P_att.row(2) = p_c;
-
-  P_att = getInertia<Eigen::Matrix3d>().inverse() * P_att;
-  if(verbose)
-    std::cout << "links_inertia inverse:"  << std::endl << getInertia<Eigen::Matrix3d>().inverse() << std::endl;
-
-  /* roll, pitch, alt, yaw */
-  P_.row(0) = P_att.row(0);
-  P_.row(1) = P_att.row(1);
-  P_.row(2) = p_m;
-  P_.row(3) = P_att.row(2);
-
-  if(control_verbose)
-    std::cout << "P_:"  << std::endl << P_ << std::endl;
+  Eigen::MatrixXd Q_four_axis = Eigen::MatrixXd::Zero(4, rotor_num);
+  Q_four_axis.block(0, 0, 3, rotor_num) = Q_tau;
+  Q_four_axis.row(3) = Q_f.row(2);
 
   ros::Time start_time = ros::Time::now();
   /* lagrange mothod */
@@ -83,14 +65,37 @@ bool HydrusRobotModel::modelling(bool verbose, bool control_verbose)
   // x = P_t * lamba
   // (P_  * P_t) * lamda = g
   // x = P_t * (P_ * P_t).inv * g
-  Eigen::FullPivLU<Eigen::MatrixXd> solver((P_ * P_.transpose()));
-  Eigen::VectorXd lamda;
+  Eigen::FullPivLU<Eigen::MatrixXd> solver((Q_four_axis * Q_four_axis.transpose()));
+  Eigen::VectorXd lamda, optimal_hovering_f;
   lamda = solver.solve(g);
-  optimal_hovering_f_ = P_.transpose() * lamda;
+  optimal_hovering_f = Q_four_axis.transpose() * lamda;
 
-  p_det_ = (P_ * P_.transpose()).determinant();
-  if(control_verbose)
-    std::cout << "P det:"  << std::endl << p_det_ << std::endl;
+  //std::cout << "tau : \n" << (Q_tau * optimal_hovering_f).transpose() << std::endl;
+  //std::cout << "force : \n" << (Q_f * optimal_hovering_f).transpose() << std::endl;
+
+  Eigen::VectorXd f = Q_f * optimal_hovering_f;
+  double f_norm_roll = atan2(f(1), f(2));
+  double f_norm_pitch = atan2(-f(0), sqrt(f(1)*f(1) + f(2)*f(2)));
+  setCogDesireOrientation(f_norm_roll, f_norm_pitch, 0); // set the hoverable frame as CoG to do the control
+  //std::cout << "hovering force : \n" << (Eigen::AngleAxisd(f_norm_pitch, Eigen::Vector3d::UnitY()) * Eigen::AngleAxisd(f_norm_roll, Eigen::Vector3d::UnitX()) * f).transpose() << std::endl;
+  //ROS_INFO("f_norm_pitch: %f, f_norm_roll: %f", f_norm_pitch, f_norm_roll);
+
+  Eigen::Matrix3d r;
+  r = Eigen::AngleAxisd(f_norm_pitch, Eigen::Vector3d::UnitY()) * Eigen::AngleAxisd(f_norm_roll, Eigen::Vector3d::UnitX());
+  P_.block(0, 0, 3, rotor_num) = getInertia<Eigen::Matrix3d>().inverse() * r * Q_tau;
+  P_.block(3, 0, 3, rotor_num) = r * Q_f / getMass();
+
+  if(control_verbose) std::cout << "P_:"  << std::endl << P_ << std::endl;
+
+  Eigen::MatrixXd P_four_axis = Q_four_axis;
+  P_four_axis.block(0, 0, 3, rotor_num) = P_.block(0, 0, 3, rotor_num);
+  P_four_axis.row(3) = P_.row(5);
+  p_det_ = (P_four_axis * P_four_axis.transpose()).determinant();
+  if(control_verbose) std::cout << "P det:"  << std::endl << p_det_ << std::endl;
+
+  optimal_hovering_f_ = optimal_hovering_f * (9.806650 * getMass() / f.norm());
+
+  //std::cout << "optimal_hovering_f: " << optimal_hovering_f.transpose() << " vs " << optimal_hovering_f_.transpose() << std::endl;
 
   if(control_verbose)
     ROS_INFO("P solver is: %f\n", ros::Time::now().toSec() - start_time.toSec());
@@ -99,49 +104,53 @@ bool HydrusRobotModel::modelling(bool verbose, bool control_verbose)
     {
       lqi_mode_ = LQI_THREE_AXIS_MODE;
 
-      //no yaw constraint
-      Eigen::MatrixXd P_dash = Eigen::MatrixXd::Zero(3, rotor_num);
-      P_dash.row(0) = P_.row(0);
-      P_dash.row(1) = P_.row(1);
-      P_dash.row(2) = P_.row(2);
+      Eigen::MatrixXd Q_three_axis = Eigen::MatrixXd::Zero(3, rotor_num);;
+      Q_three_axis.row(0) = Q_tau.row(0);
+      Q_three_axis.row(1) = Q_tau.row(1);
+      Q_three_axis.row(2) = Q_f.row(2);
       Eigen::VectorXd g3(3);
-      g3 << 0, 0, 9.8;
-      Eigen::FullPivLU<Eigen::MatrixXd> solver((P_dash * P_dash.transpose()));
+      g3 << 0, 0, 9.8 * getMass();
+
+      Eigen::FullPivLU<Eigen::MatrixXd> solver((Q_three_axis * Q_three_axis.transpose()));
       Eigen::VectorXd lamda;
       lamda = solver.solve(g3);
-      optimal_hovering_f_ = P_dash.transpose() * lamda;
+      optimal_hovering_f_ = Q_three_axis.transpose() * lamda;
       if(control_verbose)
         std::cout << "three axis mode: optimal_hovering_f_:"  << std::endl << optimal_hovering_f_ << std::endl;
 
       /* calculate the P_orig(without inverse inertia) peusdo inverse */
-      P_dash.row(0) = p_y;
-      P_dash.row(1) = p_x;
-      P_dash.row(2) = p_m;
+      Eigen::MatrixXd P_dash = Q_three_axis;
+      P_dash.row(2) = Q_f.row(2) / getMass();
       Eigen::MatrixXd P_dash_pseudo_inverse = P_dash.transpose() * (P_dash * P_dash.transpose()).inverse();
       P_orig_pseudo_inverse_ = Eigen::MatrixXd::Zero(rotor_num, 4);
-      P_orig_pseudo_inverse_.block(0, 0, rotor_num, 3) = P_dash_pseudo_inverse;
+      P_orig_pseudo_inverse_.block(0, 0, rotor_num, 2) = P_dash_pseudo_inverse.block(0, 0, rotor_num, 2);
+      P_orig_pseudo_inverse_.col(3) = P_dash_pseudo_inverse.col(2);
       if(control_verbose)
         std::cout << "P orig_pseudo inverse for three axis mode:"  << std::endl << P_orig_pseudo_inverse_ << std::endl;
 
       /* if we do the 4dof underactuated control */
       if(!only_three_axis_mode_) return false;
 
+      P_dash.block(0, 0, 2, rotor_num) = P_.block(0, 0, 2, rotor_num);
       p_det_ = (P_dash * P_dash.transpose()).determinant();
 
       /* if we only do the 3dof control, we still need to check the steady state validation */
-      if(optimal_hovering_f_.maxCoeff() > f_max_ || optimal_hovering_f_.minCoeff() < f_min_
-         || p_det_ < p_det_thre_)
+      if(optimal_hovering_f_.maxCoeff() > f_max_ || optimal_hovering_f_.minCoeff() < f_min_ || p_det_ < p_det_thre_)
         return false;
 
+      if (f(0) != 0 || f(1) != 0)
+        {
+          ROS_ERROR("the three axis control mode does not support for the tilted rotor model");
+          return false;
+        }
       return true;
     }
 
   /* calculate the P_orig(without inverse inertia) pseudo inverse */
-  Eigen::MatrixXd P_dash = Eigen::MatrixXd::Zero(4, rotor_num);
-  P_dash.row(0) = p_y;
-  P_dash.row(1) = p_x;
-  P_dash.row(2) = p_m;
-  P_dash.row(3) = p_c;
+  Eigen::MatrixXd P_dash = Q_four_axis;
+  P_dash.row(3) = Q_f.row(2) / getMass();
+  if(control_verbose)
+    std::cout << "P dash:" << std::endl << P_dash << std::endl;
 
   P_orig_pseudo_inverse_ = P_dash.transpose() * (P_dash * P_dash.transpose()).inverse();
   if(control_verbose)

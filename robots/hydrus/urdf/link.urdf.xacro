@@ -114,7 +114,7 @@
       <limit effort="100.0" lower="0" upper="${max_force}" velocity="0.5"/> <!-- force range -->
       <parent link="link${self}"/>
       <child link="thrust${self}"/>
-      <origin rpy="0 0 0" xyz="${link_length* 0.5} 0 0"/>
+      <origin rpy="0 ${rotor_direction * tilt_angle} 0" xyz="${link_length* 0.5} 0 0"/>
       <axis xyz="0 0 ${rotor_direction}"/>
     </joint>
 
@@ -131,7 +131,7 @@
       <collision>
         <origin rpy="0 0 0" xyz="0 0 0"/>
         <geometry>
-          <cylinder length="0.1" radius="${protector_radius + 0.01}"/>
+          <cylinder length="0.1" radius="${protector_radius -0.1}"/>
         </geometry>
       </collision>
     </link>

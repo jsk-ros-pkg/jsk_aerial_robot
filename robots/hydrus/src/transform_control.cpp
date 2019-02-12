@@ -15,6 +15,7 @@ TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_
   rpy_gain_pub_ = nh_private_.advertise<spinal::RollPitchYawTerms>("/rpy_gain", 1);
   four_axis_gain_pub_ = nh_.advertise<aerial_robot_msgs::FourAxisGain>("/four_axis_gain", 1);
   p_matrix_pseudo_inverse_inertia_pub_ = nh_.advertise<spinal::PMatrixPseudoInverseWithInertia>("p_matrix_pseudo_inverse_inertia", 1);
+  desired_orientation_pub_ = nh_private_.advertise<spinal::DesireCoord>("/desire_coordinate", 1);
 
   //dynamic reconfigure server
   dynamic_reconf_func_lqi_ = boost::bind(&TransformController::cfgLQICallback, this, _1, _2);
@@ -23,9 +24,9 @@ TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_
   control_thread_ = std::thread(boost::bind(&TransformController::control, this));
 
   //Q
-  q_diagonal_ = Eigen::VectorXd::Zero(HydrusRobotModel::LQI_FOUR_AXIS_MODE * 3);
-  q_diagonal_ << q_roll_,q_roll_d_,q_pitch_,q_pitch_d_,q_z_,q_z_d_,q_yaw_,q_yaw_d_, q_roll_i_,q_pitch_i_,q_z_i_,q_yaw_i_;
-  //std::cout << "Q elements :"  << std::endl << q_diagonal_ << std::endl;
+  q_diagonal_ = Eigen::VectorXd::Zero(HydrusRobotModel::LQI_THREE_AXIS_MODE * 3);
+  q_diagonal_ << q_roll_,q_roll_d_,q_pitch_,q_pitch_d_,q_yaw_,q_yaw_d_, q_roll_i_,q_pitch_i_,q_yaw_i_;
+
 }
 
 TransformController::~TransformController()
@@ -83,7 +84,7 @@ void TransformController::cfgLQICallback(hydrus::LQIConfig &config, uint32_t lev
           printf("\n");
           break;
         }
-      q_diagonal_ << q_roll_,q_roll_d_,q_pitch_,q_pitch_d_,q_z_,q_z_d_,q_yaw_,q_yaw_d_, q_roll_i_,q_pitch_i_,q_z_i_,q_yaw_i_;
+      q_diagonal_ << q_roll_,q_roll_d_,q_pitch_,q_pitch_d_,q_yaw_,q_yaw_d_, q_roll_i_,q_pitch_i_,q_yaw_i_;
     }
 }
 
@@ -104,7 +105,7 @@ bool TransformController::hamiltonMatrixSolver()
 {
   /* for the R which is  diagonal matrix. should be changed to rotor_num */
   const int rotor_num = getRobotModel().getRotorNum();
-  const int lqi_mode = getRobotModel().getLqiMode();
+  const int lqi_mode = getRobotModel().getLqiMode() - 1;
   Eigen::MatrixXd A = Eigen::MatrixXd::Zero(lqi_mode * 3, lqi_mode * 3);
   Eigen::MatrixXd B = Eigen::MatrixXd::Zero(lqi_mode * 3, rotor_num);
   Eigen::MatrixXd C = Eigen::MatrixXd::Zero(lqi_mode, lqi_mode * 3);
@@ -119,18 +120,23 @@ bool TransformController::hamiltonMatrixSolver()
 
   if(control_verbose_) std::cout << "B:"  << std::endl << B << std::endl;
 
-  Eigen::MatrixXd Q = Eigen::MatrixXd::Zero(lqi_mode * 3, lqi_mode * 3);
-  if(lqi_mode == HydrusRobotModel::LQI_THREE_AXIS_MODE)
+  Eigen::MatrixXd Q = q_diagonal_.asDiagonal();
+  if(lqi_mode == HydrusRobotModel::LQI_THREE_AXIS_MODE - 1)
     {
-      Eigen::MatrixXd Q_tmp = q_diagonal_.asDiagonal();
-      Q.block(0, 0, 6, 6) = Q_tmp.block(0, 0, 6, 6);
-      Q.block(6, 6, 3, 3) = Q_tmp.block(8, 8, 3, 3);
+      Eigen::MatrixXd Q_tmp = Q;
+      Q.block(0, 0, 4, 4) = Q_tmp.block(0, 0, 4, 4); // no yaw
+      Q.block(4, 4, 2, 2) = Q_tmp.block(6, 6, 2, 2); // no yaw
     }
-  if(lqi_mode == HydrusRobotModel::LQI_FOUR_AXIS_MODE) Q = q_diagonal_.asDiagonal();
 
+  /*
   Eigen::MatrixXd R_inv  = Eigen::MatrixXd::Zero(rotor_num, rotor_num);
   for(int i = 0; i < rotor_num; ++i)
     R_inv(i,i) = 1/r_[i];
+  */
+  Eigen::MatrixXd P_trans = getRobotModel().getP().block(3, 0, 3, rotor_num);
+  Eigen::MatrixXd R_trans = P_trans.transpose() * P_trans;
+  Eigen::MatrixXd R_input = Eigen::MatrixXd::Identity(rotor_num, rotor_num);
+  Eigen::MatrixXd R_inv = (R_trans * 10 + R_input).inverse(); //temp
 
   Eigen::MatrixXcd H = Eigen::MatrixXcd::Zero(lqi_mode * 6, lqi_mode * 6);
   H.block(0,0, lqi_mode * 3, lqi_mode * 3) = A.cast<std::complex<double> >();
@@ -236,8 +242,6 @@ void TransformController::initParam()
   if(verbose_) std::cout << "Q: q_pitch_d: " << std::setprecision(3) << q_pitch_d_ << std::endl;
   nh_private_.param ("q_yaw", q_yaw_, 1.0);
   if(verbose_) std::cout << "Q: q_yaw: " << std::setprecision(3) << q_yaw_ << std::endl;
-  nh_private_.param ("strong_q_yaw", strong_q_yaw_, 1.0);
-  if(verbose_) std::cout << "Q: strong_q_yaw: " << std::setprecision(3) << strong_q_yaw_ << std::endl;
   nh_private_.param ("q_yaw_d", q_yaw_d_, 1.0);
   if(verbose_) std::cout << "Q: q_yaw_d: " << std::setprecision(3) << q_yaw_d_ << std::endl;
   nh_private_.param ("q_z", q_z_, 1.0);
@@ -253,8 +257,8 @@ void TransformController::initParam()
   if(verbose_) std::cout << "Q: q_yaw_i: " << std::setprecision(3) << q_yaw_i_ << std::endl;
   nh_private_.param ("q_z_i", q_z_i_, 1.0);
   if(verbose_) std::cout << "Q: q_z_i: " << std::setprecision(3) << q_z_i_ << std::endl;
-}
 
+}
 
 void TransformController::lqi()
 {
@@ -301,19 +305,30 @@ void TransformController::lqi()
   if(debug_verbose_) ROS_WARN(" finish param2controller");
 }
 
-
 void TransformController::param2controller()
 {
   aerial_robot_msgs::FourAxisGain four_axis_gain_msg;
   spinal::RollPitchYawTerms rpy_gain_msg; //for rosserial
   spinal::PMatrixPseudoInverseWithInertia p_pseudo_inverse_with_inertia_msg;
 
+  double roll,pitch, yaw;
+  getRobotModel().getCogDesireOrientation<KDL::Rotation>().GetRPY(roll, pitch, yaw);
+
+  spinal::DesireCoord coord_msg;
+  coord_msg.roll = roll;
+  coord_msg.pitch = pitch;
+  desired_orientation_pub_.publish(coord_msg);
+
   const int rotor_num = getRobotModel().getRotorNum();
   four_axis_gain_msg.motor_num = rotor_num;
   rpy_gain_msg.motors.resize(rotor_num);
   p_pseudo_inverse_with_inertia_msg.pseudo_inverse.resize(rotor_num);
 
-  const int lqi_mode = getRobotModel().getLqiMode();
+  /* special process to calculate throttle gain */
+  Eigen::VectorXd f = getRobotModel().getOptimalHoveringThrust();
+  double f_sum = f.sum();
+
+  const int lqi_mode = getRobotModel().getLqiMode() - 1;
   const Eigen::MatrixXd P_orig_pseudo_inverse = getRobotModel().getPOrigPseudoInverse();
   for(int i = 0; i < rotor_num; ++i)
     {
@@ -335,22 +350,22 @@ void TransformController::param2controller()
       four_axis_gain_msg.pos_d_gain_pitch.push_back(K_(i,3));
       four_axis_gain_msg.pos_i_gain_pitch.push_back(K_(i,lqi_mode * 2 + 1));
 
-      four_axis_gain_msg.pos_p_gain_alt.push_back(K_(i,4));
-      four_axis_gain_msg.pos_d_gain_alt.push_back(K_(i,5));
-      four_axis_gain_msg.pos_i_gain_alt.push_back(K_(i, lqi_mode * 2 + 2));
+      /* special process to calculate throttle gain */
+      four_axis_gain_msg.pos_p_gain_alt.push_back(-q_z_ * f(i) / (f_sum / 4));
+      four_axis_gain_msg.pos_d_gain_alt.push_back(-q_z_d_ * f(i) / (f_sum / 4));
+      four_axis_gain_msg.pos_i_gain_alt.push_back(q_z_i_ * f(i) / (f_sum / 4));
 
-      if(lqi_mode == HydrusRobotModel::LQI_FOUR_AXIS_MODE)
+      if(lqi_mode == HydrusRobotModel::LQI_FOUR_AXIS_MODE - 1)
         {
           /* to flight controller via rosserial */
-          rpy_gain_msg.motors[i].yaw_d = K_(i,7) * 1000; //scale: x 1000
+          rpy_gain_msg.motors[i].yaw_d = K_(i,5) * 1000; //scale: x 1000
 
           /* to aerial_robot_base, feedback */
-          four_axis_gain_msg.pos_p_gain_yaw.push_back(K_(i,6));
-          four_axis_gain_msg.pos_d_gain_yaw.push_back(K_(i,7));
-          four_axis_gain_msg.pos_i_gain_yaw.push_back(K_(i,11));
-
+          four_axis_gain_msg.pos_p_gain_yaw.push_back(K_(i,4));
+          four_axis_gain_msg.pos_d_gain_yaw.push_back(K_(i,5));
+          four_axis_gain_msg.pos_i_gain_yaw.push_back(K_(i, 8));
         }
-      else if(lqi_mode == HydrusRobotModel::LQI_THREE_AXIS_MODE)
+      else if(lqi_mode == HydrusRobotModel::LQI_THREE_AXIS_MODE -1)
         {
           rpy_gain_msg.motors[i].yaw_d = 0;
 
@@ -363,7 +378,7 @@ void TransformController::param2controller()
       /* the p matrix pseudo inverse and inertia */
       p_pseudo_inverse_with_inertia_msg.pseudo_inverse[i].r = P_orig_pseudo_inverse(i, 0) * 1000;
       p_pseudo_inverse_with_inertia_msg.pseudo_inverse[i].p = P_orig_pseudo_inverse(i, 1) * 1000;
-      p_pseudo_inverse_with_inertia_msg.pseudo_inverse[i].y = P_orig_pseudo_inverse(i, 3) * 1000;
+      p_pseudo_inverse_with_inertia_msg.pseudo_inverse[i].y = P_orig_pseudo_inverse(i, 2) * 1000;
     }
   rpy_gain_pub_.publish(rpy_gain_msg);
   four_axis_gain_pub_.publish(four_axis_gain_msg);

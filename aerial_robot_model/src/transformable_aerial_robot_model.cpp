@@ -23,6 +23,9 @@ namespace aerial_robot_model {
     ROS_ERROR("[kinematics] rotor num; %d", rotor_num_);
     rotors_origin_from_cog_.resize(rotor_num_);
     rotors_normal_from_cog_.resize(rotor_num_);
+    rotors_origin_from_cog_bash_.resize(rotor_num_);
+    rotors_normal_from_cog_bash_.resize(rotor_num_);
+
   }
 
   bool RobotModel::addExtraModule(std::string module_name, std::string parent_link_name, KDL::Frame transform, KDL::RigidBodyInertia inertia)
@@ -250,6 +253,10 @@ namespace aerial_robot_model {
         if(verbose_) ROS_WARN(" %s : [%f, %f, %f]", rotor.c_str(), f.p.x(), f.p.y(), f.p.z());
         rotors_origin_from_cog_.at(i) = (cog_.Inverse() * f).p;
         rotors_normal_from_cog_.at(i) = (cog_.Inverse() * f).M * KDL::Vector(0, 0, 1);
+
+        /* temporary */
+        rotors_origin_from_cog_bash_.at(i) = cog_desire_orientation_.Inverse() * (cog_.Inverse() * f).p;
+        rotors_normal_from_cog_bash_.at(i) = cog_desire_orientation_.Inverse() * (cog_.Inverse() * f).M * KDL::Vector(0, 0, 1);
       }
 
     link_inertia_cog_ = (cog_.Inverse() * link_inertia).getRotationalInertia();

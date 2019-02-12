@@ -48,7 +48,8 @@ StateEstimator::StateEstimator(ros::NodeHandle nh, ros::NodeHandle nh_private)
     landed_flag_(false),
     un_descend_flag_(false),
     landing_height_(0),
-    force_att_control_flag_(false)
+    force_att_control_flag_(false),
+    mass_(0)
 {
   fuser_[0].resize(0);
   fuser_[1].resize(0);

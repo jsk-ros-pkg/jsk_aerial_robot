@@ -76,6 +76,7 @@ private:
   bool debug_verbose_;
   dynamic_reconfigure::Server<hydrus::LQIConfig>::CallbackType dynamic_reconf_func_lqi_;
   ros::Publisher four_axis_gain_pub_;
+  ros::Publisher desired_orientation_pub_;
   bool gyro_moment_compensation_;
   Eigen::MatrixXd K_;
   dynamic_reconfigure::Server<hydrus::LQIConfig> lqi_server_;
