@@ -1,0 +1,66 @@
+bridge_rate: 50
+bridge_mode: 1
+
+joint_num: 3
+
+joint:
+  "1":
+    id: 0
+    name: joint1
+    angle_max: 1.58
+    angle_min: -1.58
+    angle_sgn: 1
+    angle_scale: 0.001534
+    angle_offset: 2047
+  "2":
+    id: 2
+    name: joint2
+    angle_max: 1.58
+    angle_min: -1.58
+    angle_sgn: 1
+    angle_scale: 0.001534
+    angle_offset: 2047
+  "3":
+    id: 4
+    name: joint3
+    angle_max: 1.58
+    angle_min: -1.58
+    angle_sgn: 1
+    angle_scale: 0.001534
+    angle_offset: 2047
+
+gimbal_num: 4
+
+gimbal:
+  "1":
+    id: 1
+    name: gimbal1
+    angle_max: 3.14
+    angle_min: -3.14
+    angle_sgn: 1
+    angle_scale: 0.001534
+    angle_offset: 0
+  "2":
+    id: 3
+    name: gimbal2
+    angle_max: 3.14
+    angle_min: -3.14
+    angle_sgn: 1
+    angle_scale: 0.001534
+    angle_offset: 0
+  "3":
+    id: 5
+    name: gimbal3
+    angle_max: 3.14
+    angle_min: -3.14
+    angle_sgn: 1
+    angle_scale: 0.001534
+    angle_offset: 0
+  "4":
+    id: 6
+    name: gimbal4
+    angle_max: 3.14
+    angle_min: -3.14
+    angle_sgn: 1
+    angle_scale: 0.001534
+    angle_offset: 0
