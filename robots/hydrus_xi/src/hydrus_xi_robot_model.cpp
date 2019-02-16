@@ -4,6 +4,7 @@ HydrusXiRobotModel::HydrusXiRobotModel(bool init_with_rosparam, bool verbose, st
   HydrusRobotModel(init_with_rosparam, verbose, baselink, thrust_link, stability_margin_thre, p_det_thre, f_max, f_min, m_f_rate, only_three_axis_mode)
 {
   makeJointThrustMap();
+  link_joint_num_ = 6;
 }
 
 bool HydrusXiRobotModel::modelling(bool verbose, bool control_verbose) //override
@@ -78,6 +79,73 @@ bool HydrusXiRobotModel::modelling(bool verbose, bool control_verbose) //overrid
      return false;
 
   return true;
+}
+
+void HydrusXiRobotModel::addCogSegments()
+{
+  tree_with_cog_ = getTree();
+  
+}
+
+Eigen::MatrixXd HydrusXiRobotModel::getCOGJacobian(const sensor_msgs::JointState& joint_state)
+{
+
+  
+  std::vector<std::string> links;
+  auto segments = tree.getSegments();
+
+  for (int i = 0; i < link_joint_num_; ++i) {
+    links.push_back(std::string("link") + std::to_string(i + 1));
+  }
+  for (int i = 0; i < getRotorNum(); ++i) {
+    links.push_back(std::string("gimbal_link") + std::to_string(i + 1));
+  }
+
+  std::vector<Eigen::MatrixXd> jacobian_mass;
+  for (int i = 0; i < links.size(); ++i) {
+    auto seg = GetTreeElementSegment(segments.at(links[i]));
+    auto jacobian = getJacobian(joint_state, links[i]);
+    KDL::Vector cog = seg.getInertia().getCOG();
+    double mass = seg.getInertia().getMass();
+    KDL::Vector joint_axis = seg.getJoint().JointAxis();
+    
+    //    jacobian_mass.push_back(
+  }
+
+
+
+  auto seg = GetTreeElementSegment(segments.at("gimbal_link1"));
+  
+  std::cout << cog.x() << " " << cog.y() << " " << cog.z() << std::endl;
+
+  KDL::Vector vec = seg.getJoint().JointAxis();
+  std::cout << vec.x() << " " << vec.y() << " " << vec.z() << std::endl;
+
+}
+
+Eigen::MatrixXd HydrusXiRobotModel::getJacobian(const sensor_msgs::JointState& joint_state, std::string segment_name)
+{
+  const auto& tree = getTree();
+  KDL::JntArray joint_positions = jointMsgToKdl(joint_state);
+  KDL::TreeJntToJacSolver solver(tree);
+  KDL::Jacobian jac(tree.getNrOfJoints());
+  int status = solver.JntToJac(joint_positions, jac, segment_name);
+  solver.JntToJac(joint_positions, jac, segment_name);
+  return convertJacobian(jac.data);
+}
+
+inline Eigen::MatrixXd HydrusXiRobotModel::convertJacobian(const Eigen::MatrixXd& in)
+{
+  Eigen::MatrixXd out(6, link_joint_num_ + getRotorNum());
+  const auto& actuator_map = getActuatorMap();
+  for (int i = 0; i < link_joint_num_; ++i) {
+    out.col(i) = in.col(actuator_map.at(std::string("joint") + std::to_string(i + 1)));
+  }
+
+  for (int i = 0; i < getRotorNum(); ++i) {
+    out.col(i + link_joint_num_) = in.col(actuator_map.at(std::string("gimbal") + std::to_string(i + 1)));
+  }
+  return out;
 }
 
 Eigen::MatrixXd HydrusXiRobotModel::calcWrenchAllocationMatrix()

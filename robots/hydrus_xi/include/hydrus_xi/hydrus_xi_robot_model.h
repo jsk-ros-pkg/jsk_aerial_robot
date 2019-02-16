@@ -55,10 +55,17 @@ public:
   bool modelling(bool verbose = false, bool control_verbose = false) override;
   Eigen::MatrixXd calcWrenchAllocationMatrix();
   std::vector<double> calcJointTorque(); //joint only, not including gimbal
+  double getMFRate() {return m_f_rate_;}
+  Eigen::MatrixXd getJacobian(const sensor_msgs::JointState& joint_state, std::string segment_name);
+  inline Eigen::MatrixXd convertJacobian(const Eigen::MatrixXd& in);
+  Eigen::MatrixXd getCOGJacobian(const sensor_msgs::JointState& joint_state);
 
 private:
   std::map<std::string, std::vector<std::string> > joint_thrust_map_;
   void makeJointThrustMap();
+
+  int link_joint_num_;
+  KDL::Tree tree_with_cog_;
 
   //  bool stabilityMarginCheck(bool verbose = false) override;
 };

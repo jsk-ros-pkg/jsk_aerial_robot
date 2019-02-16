@@ -119,7 +119,6 @@ namespace aerial_robot_model {
     int rotor_num_;
     std::vector<KDL::Vector> rotors_origin_from_cog_;
     std::vector<KDL::Vector> rotors_normal_from_cog_;
-    KDL::Tree tree_;
     std::string thrust_link_;
     bool verbose_;
 
