@@ -37,6 +37,8 @@
 
 #include <hydrus/hydrus_robot_model.h>
 #include <aerial_robot_model/eigen_utils.h>
+#include <algorithm>
+#include <cmath>
 
 class HydrusXiRobotModel : public HydrusRobotModel {
 public:
@@ -56,16 +58,52 @@ public:
   Eigen::MatrixXd calcWrenchAllocationMatrix();
   std::vector<double> calcJointTorque(); //joint only, not including gimbal
   double getMFRate() {return m_f_rate_;}
-  Eigen::MatrixXd getJacobian(const sensor_msgs::JointState& joint_state, std::string segment_name);
+
+  Eigen::MatrixXd getJacobian(const KDL::JntArray& joint_positions, std::string segment_name);
   inline Eigen::MatrixXd convertJacobian(const Eigen::MatrixXd& in);
-  Eigen::MatrixXd getCOGJacobian(const sensor_msgs::JointState& joint_state);
+  Eigen::MatrixXd getCOGJacobian() {return cog_jacobian_;}
+  std::vector<Eigen::MatrixXd> getUJacobian() {return u_jacobian_;}
+  std::vector<Eigen::MatrixXd> getVJacobian() {return v_jacobian_;}
+  std::vector<Eigen::MatrixXd> getPJacobian() {return p_jacobian_;}
+  std::vector<Eigen::MatrixXd> getQJacobian() {return q_jacobian_;}
+  Eigen::MatrixXd getLambdaJacobian() {return lambda_jacobian_;}
+  void updateJacobians(const sensor_msgs::JointState& joint_state);
+  Eigen::MatrixXd calcQMatrix();
+  Eigen::MatrixXd calcStaticThrust();
+  double calcUTripleProduct(int i, int j, int k);
+  double calcVTripleProduct(int i, int j, int k);
+  Eigen::VectorXd getUTripleProductJacobian(int i, int j, int k) { return u_triple_product_jacobian_.at(i).at(j).at(k); }
+  Eigen::VectorXd getVTripleProductJacobian(int i, int j, int k) { return v_triple_product_jacobian_.at(i).at(j).at(k); }
+  std::vector<double> calcFmin();
+  std::vector<Eigen::VectorXd> getFMinJacobian() { return f_min_jacobian_; }
 
 private:
   std::map<std::string, std::vector<std::string> > joint_thrust_map_;
   void makeJointThrustMap();
 
-  int link_joint_num_;
-  KDL::Tree tree_with_cog_;
+  void calcCOGJacobian();
 
-  //  bool stabilityMarginCheck(bool verbose = false) override;
+  int joint_num_;
+  Eigen::VectorXd gravity_;
+  Eigen::VectorXd gravity_3d_;
+  double epsilon_;
+  std::vector<Eigen::MatrixXd> u_jacobian_; //thrust direction vector index:rotor
+  std::vector<Eigen::MatrixXd> v_jacobian_; //thrust torque direction vector index:rotor
+  std::vector<Eigen::MatrixXd> p_jacobian_; //thrust position index:rotor
+  std::vector<Eigen::MatrixXd> q_jacobian_; //allocation matrix index:rotor
+  Eigen::MatrixXd cog_jacobian_; //cog jacobian
+  Eigen::MatrixXd lambda_jacobian_; //thrust force
+  std::vector<std::vector<std::vector<Eigen::VectorXd> > > u_triple_product_jacobian_;
+  std::vector<std::vector<std::vector<Eigen::VectorXd> > > v_triple_product_jacobian_;
+  std::vector<Eigen::VectorXd> f_min_jacobian_; //min force index:rotor pair
+
+  std::map<std::string, std::vector<std::string> > joint_segment_map_;
+  void makeJointSegmentMap();
+  void jointSegmentSetupRecursive(const KDL::TreeElement& tree_element, std::vector<std::string> current_joints);
+
+  Eigen::Matrix3d skew(const Eigen::Vector3d& vec);
+  double reluApprox(double x);
+  double sigmoid(double x);
+  double absApprox(double x);
+  double tanh(double x);
 };
