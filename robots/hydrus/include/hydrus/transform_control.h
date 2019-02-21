@@ -97,6 +97,8 @@ private:
   double q_z_;
   double q_z_d_;
   double q_z_i_;
+  double trans_constraint_weight_;
+  double att_control_weight_;
   std::vector<double> r_; // matrix R
   ros::Publisher rpy_gain_pub_;
   double strong_q_yaw_;

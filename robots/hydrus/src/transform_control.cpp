@@ -136,7 +136,7 @@ bool TransformController::hamiltonMatrixSolver()
   Eigen::MatrixXd P_trans = getRobotModel().getP().block(3, 0, 3, rotor_num);
   Eigen::MatrixXd R_trans = P_trans.transpose() * P_trans;
   Eigen::MatrixXd R_input = Eigen::MatrixXd::Identity(rotor_num, rotor_num);
-  Eigen::MatrixXd R_inv = (R_trans * 10 + R_input).inverse(); //temp
+  Eigen::MatrixXd R_inv = (R_trans * trans_constraint_weight_ + R_input * att_control_weight_).inverse(); //temp
 
   Eigen::MatrixXcd H = Eigen::MatrixXcd::Zero(lqi_mode * 6, lqi_mode * 6);
   H.block(0,0, lqi_mode * 3, lqi_mode * 3) = A.cast<std::complex<double> >();
@@ -258,6 +258,11 @@ void TransformController::initParam()
   nh_private_.param ("q_z_i", q_z_i_, 1.0);
   if(verbose_) std::cout << "Q: q_z_i: " << std::setprecision(3) << q_z_i_ << std::endl;
 
+  nh_private_.param ("trans_constraint_weight", trans_constraint_weight_, 1.0);
+  if(verbose_) std::cout << "trans_constraint_weight: " << std::setprecision(3) << 100 << std::endl;
+  nh_private_.param ("att_control_weight", att_control_weight_, 1.0);
+  if(verbose_) std::cout << "att_control_weight: " << std::setprecision(3) << 100 << std::endl;
+
 }
 
 void TransformController::lqi()
@@ -267,6 +272,21 @@ void TransformController::lqi()
     return;
   }
   std::lock_guard<std::mutex> lock(mutex_);
+
+  /* modelling the multilink based on the inertia assumption */
+  if(debug_verbose_) ROS_WARN(" start modelling");
+  if(!getRobotModel().modelling(false, control_verbose_))
+    ROS_ERROR("LQI: invalid pose, can not be four axis stable, switch to three axis stable mode");
+  if(debug_verbose_) ROS_WARN(" finish modelling");
+
+  /*
+  sensor_msgs::JointState joint_state = getJointState();
+  for(int i = 0; i < joint_state.name.size(); i++)
+    {
+      if(joint_state.name.at(i).find("gimbal") != std::string::npos)
+        ROS_INFO("%s: %f", joint_state.name.at(i).c_str(), joint_state.position.at(i));
+    }
+  */
 
   /* check the thre check */
   if(debug_verbose_) ROS_WARN(" start dist thre check");
@@ -285,13 +305,6 @@ void TransformController::lqi()
       return;
     }
   if(debug_verbose_) ROS_WARN(" finish dist thre check");
-
-  /* modelling the multilink based on the inertia assumption */
-  if(debug_verbose_) ROS_WARN(" start modelling");
-  if(!getRobotModel().modelling(false, control_verbose_))
-    ROS_ERROR("LQI: invalid pose, can not be four axis stable, switch to three axis stable mode");
-
-  if(debug_verbose_) ROS_WARN(" finish modelling");
 
   if(debug_verbose_) ROS_WARN(" start ARE calc");
   if(!hamiltonMatrixSolver())

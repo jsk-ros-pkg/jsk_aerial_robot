@@ -1,0 +1,8 @@
+if (NOT EXISTS ${CMAKE_CURRENT_BINARY_DIR}/osqp-eigen)
+  execute_process(COMMAND git clone https://github.com/robotology/osqp-eigen.git  ${CMAKE_CURRENT_BINARY_DIR}/osqp-eigen)
+  execute_process(COMMAND sed -i -e "s@find_package(osqp\ REQUIRED)@include_directories(\${CMAKE_CURRENT_BINARY_DIR}/../../../osqp/osqp/include)\\nlink_directories(\${CMAKE_CURRENT_BINARY_DIR}/../../../osqp/osqp/build/out)@g" ${CMAKE_CURRENT_BINARY_DIR}/osqp-eigen/CMakeLists.txt)
+  execute_process(COMMAND sed -i -e "s@osqp\:\:@@g" ${CMAKE_CURRENT_BINARY_DIR}/osqp-eigen/CMakeLists.txt)
+  execute_process(COMMAND cmake -E make_directory ${CMAKE_CURRENT_BINARY_DIR}/osqp-eigen/build)
+  execute_process(COMMAND cmake -E chdir ${CMAKE_CURRENT_BINARY_DIR}/osqp-eigen/build cmake ..)
+  execute_process(COMMAND cmake -E chdir ${CMAKE_CURRENT_BINARY_DIR}/osqp-eigen/build make)
+endif()

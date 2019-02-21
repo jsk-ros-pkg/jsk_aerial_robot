@@ -14,7 +14,7 @@
   <xacro:property name="general_leg_offset_old_version" value="0.05" />
   <xacro:property name="end_leg_offset_old_version" value="0.5355" />
 
-  <xacro:property name="tilt_angle" value="0.2" />
+  <xacro:property name="tilt_angle" value="0.0" />
   <!-- collision model parameter -->
   <xacro:property name="leg_collision_model_height" value="0.1715" />
 

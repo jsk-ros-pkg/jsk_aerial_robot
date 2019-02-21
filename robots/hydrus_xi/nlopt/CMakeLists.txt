@@ -1,0 +1,6 @@
+if (NOT EXISTS ${CMAKE_CURRENT_BINARY_DIR}/nlopt)
+  execute_process(COMMAND git clone --branch v2.5.0 https://github.com/stevengj/nlopt.git ${CMAKE_CURRENT_BINARY_DIR}/nlopt)
+  execute_process(COMMAND cmake -E make_directory ${CMAKE_CURRENT_BINARY_DIR}/nlopt/build)
+  execute_process(COMMAND cmake -E chdir ${CMAKE_CURRENT_BINARY_DIR}/nlopt/build cmake ..)
+  execute_process(COMMAND cmake -E chdir ${CMAKE_CURRENT_BINARY_DIR}/nlopt/build make)
+endif()

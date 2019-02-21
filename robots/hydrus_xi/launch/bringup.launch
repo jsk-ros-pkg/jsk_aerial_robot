@@ -95,6 +95,19 @@
     <param name="debug_verbose" value="false" />
   </node>
 
+  ###########  Force Vectoring Control  ###########
+  <node pkg="hydrus_xi" type="hydrus_xi_quad_vectoring_controller_node" name="vectoring_controller_node"  output="screen" respawn="false">
+    <rosparam file="$(arg config_dir)/$(arg type)/LQIControl.yaml" command="load" />
+    <param name="verbose" value="false" />
+    <param name="delta_angle" value="0.4" />
+    <param name="force_rate" value="1.0" />
+    <param name="yaw_rate" value="1.0" />
+    <param name="real_machine" value="$(arg real_machine)" />
+    <param name="simulation" value="$(arg simulation)" />
+    <remap from="joint_states" to="hydrus_xi/joint_states"/>
+    <remap from="gimbals_ctrl" to="hydrus_xi/gimbals_ctrl"/>
+  </node>
+
   ########## Simulation in Gazebo #########
   <include file="$(find aerial_robot_simulation)/launch/simulation.launch" if = "$(eval arg('simulation') * (1 - arg('real_machine')))" >
     <arg name="model" value="hydrus_xi"/>

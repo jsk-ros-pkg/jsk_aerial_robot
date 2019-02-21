@@ -8,7 +8,7 @@
   <xacro:property name="protector_radius" value="0.1925"/>
   <xacro:property name="fc_x_offset" value="0.566"/>
   <xacro:property name="fc_z_offset" value="-0.021"/>
-  <xacro:property name="thrust_tilt_angle" value="0.34906585039"/> <!-- 20deg -->
+  <xacro:property name="thrust_tilt_angle" value="0.2"/> <!-- 20deg:0.3491 --> 
   <xacro:property name="rotor_radius" value=".0178"/>
 
   <!-- mass [Kg] -->

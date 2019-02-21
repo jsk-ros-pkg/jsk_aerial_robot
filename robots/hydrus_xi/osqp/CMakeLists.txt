@@ -1,0 +1,6 @@
+if (NOT EXISTS ${CMAKE_CURRENT_BINARY_DIR}/osqp)
+  execute_process(COMMAND git clone --recursive https://github.com/oxfordcontrol/osqp ${CMAKE_CURRENT_BINARY_DIR}/osqp)
+  execute_process(COMMAND cmake -E make_directory ${CMAKE_CURRENT_BINARY_DIR}/osqp/build)
+  execute_process(COMMAND cmake -E chdir ${CMAKE_CURRENT_BINARY_DIR}/osqp/build cmake ..)
+  execute_process(COMMAND cmake -E chdir ${CMAKE_CURRENT_BINARY_DIR}/osqp/build make)
+endif()
