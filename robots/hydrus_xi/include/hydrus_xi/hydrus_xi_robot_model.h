@@ -83,6 +83,8 @@ public:
   Eigen::VectorXd calcTmin();
   Eigen::MatrixXd getFMinJacobian() const { return f_min_jacobian_; }
   Eigen::MatrixXd getTMinJacobian() const { return t_min_jacobian_; }
+  Eigen::VectorXd getFminij() const { return f_min_ij_; }
+  Eigen::VectorXd getTminij() const { return t_min_ij_; }
   Eigen::VectorXd getJointTorque() const {return joint_torque_;}
   Eigen::MatrixXd getJointTorqueJacobian() const {return joint_torque_jacobian_;}
   Eigen::VectorXd calcJointTorque(const sensor_msgs::JointState& joint_state);

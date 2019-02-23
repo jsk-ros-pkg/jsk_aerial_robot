@@ -192,8 +192,8 @@ void HydrusXiRobotModel::updateJacobians(const KDL::JntArray& joint_positions)
           const Eigen::Vector3d d_uixuj = u_i.cross(d_u_j) + d_u_i.cross(u_j);
           d_uixuj_fg(l) = fg.dot(1/uixuj.norm() * d_uixuj - uixuj / (uixuj.norm() * uixuj.squaredNorm()) * uixuj.dot(d_uixuj));
         } //l
-        f_min_ij_(f_min_index) = f_min;
-        t_min_ij_(f_min_index) = t_min;
+        f_min_ij_(f_min_index) = absApprox(f_min - uixuj_fg);
+        t_min_ij_(f_min_index) = absApprox(t_min);
         f_min_jacobian_.row(f_min_index) = (tanh(f_min - uixuj_fg) * (d_f_min - d_uixuj_fg)).transpose();
         t_min_jacobian_.row(f_min_index) = (tanh(t_min) * (d_t_min)).transpose();
         f_min_index++;
@@ -344,12 +344,18 @@ double HydrusXiRobotModel::calcUTripleProduct(int i, int j, int k)
 {
   const auto& u = getRotorsNormalFromCog<Eigen::Vector3d>();
   Eigen::Vector3d uixuj = u.at(i).cross(u.at(j));
+  if (uixuj.norm() < 0.00001) {
+    return 0.0;
+  }
   return uixuj.dot(u.at(k)) / uixuj.norm();
 }
 
 inline double HydrusXiRobotModel::calcTripleProduct(const Eigen::Vector3d& ui, const Eigen::Vector3d& uj, const Eigen::Vector3d& uk)
 {
   Eigen::Vector3d uixuj = ui.cross(uj);
+  if (uixuj.norm() < 0.00001) {
+    return 0.0;
+  }
   return uixuj.dot(uk) / uixuj.norm();
 }
 
