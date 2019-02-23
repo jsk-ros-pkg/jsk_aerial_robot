@@ -52,7 +52,8 @@ public:
                      double f_max = 0,
                      double f_min = 0,
                      double m_f_rate = 0,
-                     bool only_three_axis_mode = false);
+                     bool only_three_axis_mode = false,
+                     double epsilon = 10.0);
   virtual ~HydrusXiRobotModel() = default;
 
   bool modelling(bool verbose = false, bool control_verbose = false) override;
@@ -67,6 +68,7 @@ public:
   std::vector<Eigen::MatrixXd> getPJacobian() const {return p_jacobian_;}
   std::vector<Eigen::MatrixXd> getQJacobian() const {return q_jacobian_;}
   Eigen::MatrixXd getLambdaJacobian() const {return lambda_jacobian_;}
+  void updateJacobians(const KDL::JntArray& joint_positions);
   void updateJacobians(const sensor_msgs::JointState& joint_state);
   Eigen::MatrixXd calcQMatrix();
   Eigen::MatrixXd calcQMatrix(const std::vector<Eigen::Vector3d>& u, const std::vector<Eigen::Vector3d>& p, const std::map<int, int>& sigma);
@@ -84,17 +86,21 @@ public:
   Eigen::VectorXd getJointTorque() const {return joint_torque_;}
   Eigen::MatrixXd getJointTorqueJacobian() const {return joint_torque_jacobian_;}
   Eigen::VectorXd calcJointTorque(const sensor_msgs::JointState& joint_state);
-  Eigen::VectorXd calcJointTorque(const KDL::JntArray& joint_positions, const std::vector<Eigen::Vector3d>& u, const std::map<int, int> sigma, const Eigen::VectorXd& static_thrust);
+  Eigen::VectorXd getSecondDerivative(std::string segment_name, int joint_i, int joint_j);
   std::vector<Eigen::Vector3d> calcV();
-
-  Eigen::VectorXd calcJointTorque(const sensor_msgs::JointState& joint_state, Eigen::VectorXd static_thrust);
-  Eigen::VectorXd calcJointTorque(const sensor_msgs::JointState& joint_state, Eigen::VectorXd static_thrust, std::vector<Eigen::Vector3d> u);
+  Eigen::VectorXd getStaticThrust() const {return static_thrust_;}
 
   KDL::JntArray convertMsgToKDL(const sensor_msgs::JointState& joint_state) {
     return jointMsgToKdl(joint_state);
   }
 
-  Eigen::VectorXd getSecondDerivative(std::string segment_name, int joint_i, int joint_j);
+  KDL::JntArray convertEigenToKDL(const Eigen::VectorXd& joint_vector) {
+    KDL::JntArray joint_positions(getTree().getNrOfJoints());
+    for (unsigned int i = 0; i < joint_indices_.size(); ++i) {
+      joint_positions(joint_indices_[i]) = joint_vector(i);
+    }
+    return joint_positions;
+  }
 
 private:
   int joint_num_;
@@ -109,18 +115,23 @@ private:
   Eigen::MatrixXd lambda_jacobian_; //thrust force
   std::vector<std::vector<std::vector<Eigen::VectorXd> > > u_triple_product_jacobian_;
   std::vector<std::vector<std::vector<Eigen::VectorXd> > > v_triple_product_jacobian_;
+  Eigen::VectorXd f_min_ij_;
+  Eigen::VectorXd t_min_ij_;
   Eigen::MatrixXd f_min_jacobian_; //min force
   Eigen::MatrixXd t_min_jacobian_; //min torque
   Eigen::VectorXd joint_torque_;
   Eigen::MatrixXd joint_torque_jacobian_;
   std::vector<std::string> joint_names_;
   std::map<std::string, int> joint_hierachy_;
+  std::vector<int> joint_indices_; //index in KDL::JntArray
+  Eigen::VectorXd static_thrust_;
 
   std::map<std::string, std::vector<std::string> > joint_segment_map_;
   void makeJointThrustMap();
   void calcCOGJacobian();
   void makeJointSegmentMap();
   void jointSegmentSetupRecursive(const KDL::TreeElement& tree_element, std::vector<std::string> current_joints);
+  void getParamFromRos();
 
   Eigen::Matrix3d skew(const Eigen::Vector3d& vec);
   double reluApprox(double x);

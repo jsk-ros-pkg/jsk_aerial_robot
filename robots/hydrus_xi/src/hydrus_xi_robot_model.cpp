@@ -1,8 +1,14 @@
 #include <hydrus_xi/hydrus_xi_robot_model.h>
 
-HydrusXiRobotModel::HydrusXiRobotModel(bool init_with_rosparam, bool verbose, std::string baselink, std::string thrust_link, double stability_margin_thre, double p_det_thre, double f_max, double f_min, double m_f_rate, bool only_three_axis_mode) :
-  HydrusRobotModel(init_with_rosparam, verbose, baselink, thrust_link, stability_margin_thre, p_det_thre, f_max, f_min, m_f_rate, only_three_axis_mode)
+HydrusXiRobotModel::HydrusXiRobotModel(bool init_with_rosparam, bool verbose, std::string baselink, std::string thrust_link, double stability_margin_thre, double p_det_thre, double f_max, double f_min, double m_f_rate, bool only_three_axis_mode, double epsilon) :
+  HydrusRobotModel(init_with_rosparam, verbose, baselink, thrust_link, stability_margin_thre, p_det_thre, f_max, f_min, m_f_rate, only_three_axis_mode),
+  epsilon_(epsilon)
 {
+
+  if (init_with_rosparam) {
+    getParamFromRos();
+  }
+
   joint_num_ = 0;
   makeJointSegmentMap();
   const int rotor_num = getRotorNum();
@@ -16,10 +22,13 @@ HydrusXiRobotModel::HydrusXiRobotModel(bool init_with_rosparam, bool verbose, st
   gravity_3d_.resize(3);
   gravity_3d_ << 0, 0, 9.80665;
   lambda_jacobian_.resize(rotor_num, joint_num_);
+  f_min_ij_.resize(rotor_num * (rotor_num - 1));
+  t_min_ij_.resize(rotor_num * (rotor_num - 1));
   f_min_jacobian_.resize(rotor_num * (rotor_num - 1), joint_num_);
   t_min_jacobian_.resize(rotor_num * (rotor_num - 1), joint_num_);
   joint_torque_.resize(joint_num_);
   joint_torque_jacobian_.resize(joint_num_, joint_num_);
+  static_thrust_.resize(rotor_num);
 
   u_triple_product_jacobian_.resize(rotor_num);
   for (auto& j : u_triple_product_jacobian_) {
@@ -43,11 +52,16 @@ HydrusXiRobotModel::HydrusXiRobotModel(bool init_with_rosparam, bool verbose, st
     }
   }
 
-  epsilon_ = 10.0;
-
   for (const auto& joint_thrust : joint_segment_map_) {
     joint_names_.push_back(joint_thrust.first);
+    joint_indices_.push_back(getActuatorMap().at(joint_thrust.first));
   }
+}
+
+void HydrusXiRobotModel::getParamFromRos()
+{
+  ros::NodeHandle nhp("~");
+  nhp.param("epslion", epsilon_, 10.0);
 }
 
 void HydrusXiRobotModel::calcCOGJacobian()
@@ -81,46 +95,10 @@ void HydrusXiRobotModel::calcCOGJacobian()
   }
 }
 
-inline Eigen::Matrix3d HydrusXiRobotModel::skew(const Eigen::Vector3d& vec)
+void HydrusXiRobotModel::updateJacobians(const KDL::JntArray& joint_positions)
 {
-  Eigen::Matrix3d skew_mat;
-  skew_mat << 0.0, -vec(2), vec(1),
-              vec(2), 0.0, -vec(0),
-              -vec(1), vec(0), 0.0;
-  return skew_mat;
-}
-
-inline double HydrusXiRobotModel::reluApprox(double x)
-{
-  return std::log(1 + std::exp(x * epsilon_)) / epsilon_;
-}
-
-//differential of reluApprox
-inline double HydrusXiRobotModel::sigmoid(double x)
-{
-  return 1 / (1 + std::exp(- x * epsilon_));
-}
-
-inline double HydrusXiRobotModel::absApprox(double x)
-{
-  return std::log(std::exp(- x * epsilon_) + std::exp(x * epsilon_)) / epsilon_;
-}
-
-//differential of absApprox
-inline double HydrusXiRobotModel::tanh(double x)
-{
-  double a = std::exp(-x * epsilon_);
-  double b = std::exp(x * epsilon_);
-  return (b - a) / (b + a);
-}
-
-void HydrusXiRobotModel::updateJacobians(const sensor_msgs::JointState& joint_state)
-{
-  clock_t start = clock();
-  KDL::JntArray joint_positions = jointMsgToKdl(joint_state);
   updateRobotModel(joint_positions);
   calcCOGJacobian();
-
 
   const int rotor_num = getRotorNum();
   const auto& u = getRotorsNormalFromCog<Eigen::Vector3d>();
@@ -214,6 +192,8 @@ void HydrusXiRobotModel::updateJacobians(const sensor_msgs::JointState& joint_st
           const Eigen::Vector3d d_uixuj = u_i.cross(d_u_j) + d_u_i.cross(u_j);
           d_uixuj_fg(l) = fg.dot(1/uixuj.norm() * d_uixuj - uixuj / (uixuj.norm() * uixuj.squaredNorm()) * uixuj.dot(d_uixuj));
         } //l
+        f_min_ij_(f_min_index) = f_min;
+        t_min_ij_(f_min_index) = t_min;
         f_min_jacobian_.row(f_min_index) = (tanh(f_min - uixuj_fg) * (d_f_min - d_uixuj_fg)).transpose();
         t_min_jacobian_.row(f_min_index) = (tanh(t_min) * (d_t_min)).transpose();
         f_min_index++;
@@ -222,15 +202,18 @@ void HydrusXiRobotModel::updateJacobians(const sensor_msgs::JointState& joint_st
   } //i
 
   //calc jacobian of joint torque
-  Eigen::VectorXd static_thrust = calcStaticThrust(q_inv);
+  static_thrust_ = calcStaticThrust(q_inv);
+  joint_torque_ = Eigen::VectorXd::Zero(joint_num_);
   joint_torque_jacobian_ = Eigen::MatrixXd::Zero(joint_num_, joint_num_);
 
   for (int i = 0; i < rotor_num; ++i) {
     Eigen::VectorXd wrench(6);
-    Eigen::Vector3d thrust = u.at(i) * static_thrust(i);
+    Eigen::Vector3d thrust = u.at(i) * static_thrust_(i);
     wrench.block(0, 0, 3, 1) = thrust;
     wrench.block(3, 0, 3, 1) = m_f_rate_ * sigma.at(i + 1) * thrust;
     std::string thrust_name = std::string("thrust") + std::to_string(i + 1);
+
+    joint_torque_ -= thrust_coord_jacobians.at(i).transpose() * wrench;
 
     for (int j = 0; j < joint_num_; ++j) {
       Eigen::MatrixXd hessian(6, joint_num_);
@@ -241,18 +224,19 @@ void HydrusXiRobotModel::updateJacobians(const sensor_msgs::JointState& joint_st
     }
 
     Eigen::MatrixXd wrench_jacobian(6, joint_num_);
-    wrench_jacobian.topRows(3) = u_jacobian_.at(i) * static_thrust(i);
+    wrench_jacobian.topRows(3) = u_jacobian_.at(i) * static_thrust_(i);
     wrench_jacobian.bottomRows(3) = m_f_rate_ * sigma.at(i) * u_jacobian_.at(i);
 
-    joint_torque_jacobian_ += thrust_coord_jacobians.at(i).transpose() * (wrench_jacobian + wrench / static_thrust(i) * lambda_jacobian_.row(i));
+    joint_torque_jacobian_ += thrust_coord_jacobians.at(i).transpose() * (wrench_jacobian + wrench / static_thrust_(i) * lambda_jacobian_.row(i));
   }
 
   joint_torque_jacobian_ *= -1;
 
-  clock_t end = clock();
+}
 
-  std::cout << "duration = " << (double)(end - start) / CLOCKS_PER_SEC << "sec.\n";
-  
+void HydrusXiRobotModel::updateJacobians(const sensor_msgs::JointState& joint_state)
+{
+  updateJacobians(jointMsgToKdl(joint_state));
 }
 
 Eigen::MatrixXd HydrusXiRobotModel::getJacobian(const KDL::JntArray& joint_positions, std::string segment_name)
@@ -515,29 +499,9 @@ Eigen::VectorXd HydrusXiRobotModel::calcJointTorque(const sensor_msgs::JointStat
   KDL::JntArray joint_positions = jointMsgToKdl(joint_state);
   const auto& u = getRotorsNormalFromCog<Eigen::Vector3d>();
   const auto& sigma = getRotorDirection();
-
-  return calcJointTorque(joint_positions, u, sigma, static_thrust);
-}
-
-Eigen::VectorXd HydrusXiRobotModel::calcJointTorque(const sensor_msgs::JointState& joint_state, Eigen::VectorXd static_thrust)
-{
-  KDL::JntArray joint_positions = jointMsgToKdl(joint_state);
-  const auto& u = getRotorsNormalFromCog<Eigen::Vector3d>();
-  const auto& sigma = getRotorDirection();
-  return calcJointTorque(joint_positions, u, sigma, static_thrust);
-}
-
-Eigen::VectorXd HydrusXiRobotModel::calcJointTorque(const sensor_msgs::JointState& joint_state, Eigen::VectorXd static_thrust, std::vector<Eigen::Vector3d> u)
-{
-  KDL::JntArray joint_positions = jointMsgToKdl(joint_state);
-  const auto& sigma = getRotorDirection();
-  return calcJointTorque(joint_positions, u, sigma, static_thrust);
-}
-
-inline Eigen::VectorXd HydrusXiRobotModel::calcJointTorque(const KDL::JntArray& joint_positions, const std::vector<Eigen::Vector3d>& u, const std::map<int, int> sigma, const Eigen::VectorXd& static_thrust)
-{
   const int rotor_num = getRotorNum();
   Eigen::VectorXd joint_torque = Eigen::VectorXd::Zero(joint_num_);
+
   for (int i = 0; i < rotor_num; ++i) {
     std::string seg_name = std::string("thrust") + std::to_string(i + 1);
     Eigen::MatrixXd thrust_coord_jacobian = getJacobian(joint_positions, seg_name);
@@ -550,6 +514,38 @@ inline Eigen::VectorXd HydrusXiRobotModel::calcJointTorque(const KDL::JntArray& 
   return joint_torque;
 }
 
+inline Eigen::Matrix3d HydrusXiRobotModel::skew(const Eigen::Vector3d& vec)
+{
+  Eigen::Matrix3d skew_mat;
+  skew_mat << 0.0, -vec(2), vec(1),
+              vec(2), 0.0, -vec(0),
+              -vec(1), vec(0), 0.0;
+  return skew_mat;
+}
+
+inline double HydrusXiRobotModel::reluApprox(double x)
+{
+  return std::log(1 + std::exp(x * epsilon_)) / epsilon_;
+}
+
+//differential of reluApprox
+inline double HydrusXiRobotModel::sigmoid(double x)
+{
+  return 1 / (1 + std::exp(- x * epsilon_));
+}
+
+inline double HydrusXiRobotModel::absApprox(double x)
+{
+  return std::log(std::exp(- x * epsilon_) + std::exp(x * epsilon_)) / epsilon_;
+}
+
+//differential of absApprox
+inline double HydrusXiRobotModel::tanh(double x)
+{
+  double a = std::exp(-x * epsilon_);
+  double b = std::exp(x * epsilon_);
+  return (b - a) / (b + a);
+}
 
 bool HydrusXiRobotModel::modelling(bool verbose, bool control_verbose) //override
 {

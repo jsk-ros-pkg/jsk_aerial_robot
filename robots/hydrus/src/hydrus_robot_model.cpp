@@ -15,7 +15,7 @@ HydrusRobotModel::HydrusRobotModel(bool init_with_rosparam, bool verbose, std::s
     {
       getParamFromRos();
     }
-  //P : mapping from thrust(u) to acceleration(y) y = Pu-G
+ //P : mapping from thrust(u) to acceleration(y) y = Pu-G
   P_ = Eigen::MatrixXd::Zero(4, getRotorNum());
 
   lqi_mode_ = LQI_FOUR_AXIS_MODE;
