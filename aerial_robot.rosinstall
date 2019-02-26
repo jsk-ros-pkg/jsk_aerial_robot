@@ -2,7 +2,7 @@
 - git:
     local-name: kalman_filter
     uri: https://github.com/tongtybj/kalman_filter.git
-    version: a45c4a0
+    version: ce7f8ea
 
 # the sensor interface
 - git:
