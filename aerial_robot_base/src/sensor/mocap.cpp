@@ -68,9 +68,9 @@ namespace sensor_plugin
       rosParamInit();
 
       //low pass filter
-      for(size_t i = 0; i < lpf_pos_vel_.size(); i ++)
-        lpf_pos_vel_[i] = IirFilter((float)rx_freq_, (float)cutoff_pos_freq_,(float)cutoff_vel_freq_);
-      lpf_psi_ = IirFilter((float)rx_freq_, (float)cutoff_vel_freq_);
+      lpf_pos_ = IirFilter(sample_freq_, cutoff_pos_freq_, 3);
+      lpf_vel_ = IirFilter(sample_freq_, cutoff_vel_freq_, 3);
+      lpf_angular_ = IirFilter(sample_freq_, cutoff_vel_freq_, 3);
 
       std::string topic_name;
 
@@ -117,14 +117,15 @@ namespace sensor_plugin
     ros::Subscriber mocap_sub_, ground_truth_sub_;
 
     /* ros param */
-    double rx_freq_;
+    double sample_freq_;
     double cutoff_pos_freq_;
     double cutoff_vel_freq_;
 
     double pos_noise_sigma_, angle_noise_sigma_, acc_bias_noise_sigma_;
 
-    array<IirFilter, 3> lpf_pos_vel_; /* x, y, z */
-    IirFilter lpf_psi_;
+    IirFilter lpf_pos_; /* x, y, z */
+    IirFilter lpf_vel_; /* x, y, z */
+    IirFilter lpf_angular_; /* yaw angular velocity */
 
     tf::Vector3 raw_pos_, raw_vel_;
     tf::Vector3 pos_, vel_;
@@ -156,11 +157,10 @@ namespace sensor_plugin
 
           double psi_vel = 0;
 
-          /* pos */
-          for(int i = 0; i < 3; i++)
-            lpf_pos_vel_[i].filterFunction(raw_pos_[i], pos_[i], raw_vel_[i], vel_[i]);
-
-          lpf_psi_.filterFunction(raw_psi_vel, psi_vel);
+          /* lpf */
+          pos_ = lpf_pos_.filterFunction(raw_pos_);
+          vel_ = lpf_vel_.filterFunction(raw_vel_);
+          psi_vel = (lpf_angular_.filterFunction(tf::Vector3(0, 0, raw_psi_vel))).z();
 
           /* euler */
           estimator_->setState(State::YAW_BASE, StateEstimator::GROUND_TRUTH, 0, euler[2]);
@@ -192,8 +192,10 @@ namespace sensor_plugin
 
       if(first_flag)
         {
-          first_flag = false;
+          lpf_pos_.setInitValues(raw_pos_); //init pos filter with the first value
           init(raw_pos_);
+          first_flag = false;
+
         }
 
 
@@ -230,29 +232,22 @@ namespace sensor_plugin
     void groundTruthCallback(const nav_msgs::OdometryConstPtr & msg)
     {
       tf::pointMsgToTF(msg->pose.pose.position, pos_);
+      tf::vector3MsgToTF(msg->twist.twist.linear, vel_);
 
       if(!first_flag)
         {
-          tf::vector3MsgToTF(msg->twist.twist.linear, vel_);
 
           /* baselink */
           tf::Quaternion q;
           tf::quaternionMsgToTF(msg->pose.pose.orientation, q);
           tfScalar r = 0, p = 0, y = 0;
           tf::Matrix3x3(q).getRPY(r, p, y);
-          tf::Vector3 euler = tf::Vector3(r, p, y);
+          tf::Vector3 euler =  lpf_pos_.filterFunction(tf::Vector3(r, p, y)); // for angle
+          euler[2] = y; /* only yaw can not use the LPF */
+
           tf::Vector3 omega;
           tf::vector3MsgToTF(msg->twist.twist.angular, omega);
-
-          for(int i = 0; i < 3; i++)
-            {
-              float angle = euler[i];
-              float vel = omega[i];
-              lpf_pos_vel_[i].filterFunction(angle, euler[i], vel, omega[i]);
-
-              /* only yaw can not use the LPF */
-              if(i == 2) euler[2] = angle;
-            }
+          omega = lpf_vel_.filterFunction(omega); // for angular velocity
 
           estimator_->setEuler(Frame::BASELINK, StateEstimator::GROUND_TRUTH, euler);
           estimator_->setAngularVel(Frame::BASELINK, StateEstimator::GROUND_TRUTH, omega);
@@ -286,11 +281,9 @@ namespace sensor_plugin
       nhp_.param("acc_bias_noise_sigma", acc_bias_noise_sigma_, 0.0);
       if(param_verbose_) cout << ns << ": acc noise sigma  is " << acc_bias_noise_sigma_ << endl;
 
-      nhp_.param("angle_sigma", pos_noise_sigma_, 0.001 );
-      if(param_verbose_) cout << ns << ": pos noise sigma  is " << pos_noise_sigma_ << endl;
+      nhp_.param("sample_freq", sample_freq_, 100.0);
+      if(param_verbose_) cout << ns << ": sample_freq  is " << sample_freq_ << endl;
 
-      nhp_.param("rx_freq", rx_freq_, 100.0);
-      if(param_verbose_) cout << ns << ": rx_freq  is " << rx_freq_ << endl;
       nhp_.param("cutoff_pos_freq", cutoff_pos_freq_, 20.0);
       if(param_verbose_) cout << ns << ": cutoff_pos_freq  is " << cutoff_pos_freq_ << endl;
       nhp_.param("cutoff_vel_freq", cutoff_vel_freq_, 20.0);
