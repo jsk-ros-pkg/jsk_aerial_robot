@@ -72,7 +72,6 @@ private:
 
   //private functions
   void getParamFromRos();
-  KDL::JntArray gimbalProcess(const KDL::JntArray& joint_positions);
 };
 
 template<> inline KDL::JntArray DragonRobotModel::getGimbalProcessedJoint() const
