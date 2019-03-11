@@ -207,7 +207,7 @@
     <!-- joint -->
     <xacro:unless value="${self == child}">
       <joint name="joint${self}_pitch" type="revolute">
-        <limit effort="10.0" lower="-1.57" upper="1.57" velocity="0.1"/>
+        <limit effort="10.0" lower="${-pi/2}" upper="${pi/2}" velocity="0.1"/>
         <parent link="link${self}"/>
         <child link="inter_joint${self}"/>
         <origin rpy="0 0 0" xyz="${link_length} 0 0"/>
@@ -234,7 +234,7 @@
       </link>
 
       <joint name="joint${self}_yaw" type="revolute">
-        <limit effort="10.0" lower="-1.57" upper="1.57" velocity="0.1"/>
+        <limit effort="10.0" lower="${-pi/2}" upper="${pi/2}" velocity="0.1"/>
         <parent link="inter_joint${self}"/>
         <child link="link${child}"/>
         <origin rpy="0 0 0" xyz="${2 * inter_joint_x_offset} 0 0"/>
