@@ -52,6 +52,7 @@
 #include <spinal/ServoTorqueCmd.h>
 #include <controller_manager_msgs/LoadController.h>
 #include <controller_manager_msgs/SwitchController.h>
+#include <urdf/model.h>
 
 /* filter */
 #include <kalman_filter/lpf_filter.h>
@@ -71,7 +72,7 @@ namespace ValueType
 class SingleServoHandle
 {
 public:
-  SingleServoHandle(string name, int id, int angle_sgn, double zero_point_offset, double angle_scale, double torque_scale, bool receive_real_state, bool filter_flag = false, double sample_freq = 0, double cutoff_freq = 0): name_(name), id_(id), curr_angle_val_(0), target_angle_val_(0), init_target_angle_val_(false), curr_torque_val_(0), angle_sgn_(angle_sgn), zero_point_offset_(zero_point_offset), angle_scale_(angle_scale), torque_scale_(torque_scale), receive_real_state_(receive_real_state), filter_flag_(filter_flag)
+  SingleServoHandle(string name, int id, int angle_sgn, double zero_point_offset, double angle_scale, double upper_limit, double lower_limit, double torque_scale, bool receive_real_state, bool filter_flag = false, double sample_freq = 0, double cutoff_freq = 0): name_(name), id_(id), curr_angle_val_(0), target_angle_val_(0), init_target_angle_val_(false), curr_torque_val_(0), angle_sgn_(angle_sgn), zero_point_offset_(zero_point_offset), angle_scale_(angle_scale), upper_limit_(upper_limit), lower_limit_(lower_limit), torque_scale_(torque_scale), receive_real_state_(receive_real_state), filter_flag_(filter_flag)
   {
     /* for simulation */
     //joint_ctrl_pub_ = nh_.advertise<std_msgs::Float64>(std::string("/j") + std_  + std::string("_controller/command"), 1);
@@ -111,7 +112,7 @@ public:
 
     if(!init_target_angle_val_)
       {
-        target_angle_val_ = val;
+        target_angle_val_ = boost::algorithm::clamp(val, lower_limit_, upper_limit_);
         init_target_angle_val_ = true;
       }
   }
@@ -125,10 +126,10 @@ public:
             ROS_ERROR("%s: bit target val could not be negative: %f", name_.c_str(), val);
             return;
           }
-        target_angle_val_ = angle_scale_ * angle_sgn_ * (val - zero_point_offset_);
+        target_angle_val_ = boost::algorithm::clamp(angle_scale_ * angle_sgn_ * (val - zero_point_offset_), lower_limit_, upper_limit_);
       }
     else if(value_type == ValueType::RADIAN)
-      target_angle_val_ = val;
+      target_angle_val_ = boost::algorithm::clamp(val, lower_limit_, upper_limit_);
     else
       ROS_ERROR("%s: wrong value type", name_.c_str());
 
@@ -188,6 +189,7 @@ private:
   int angle_sgn_;
   int zero_point_offset_;
   double angle_scale_;
+  double lower_limit_, upper_limit_;
   double torque_scale_;
 
   bool receive_real_state_;

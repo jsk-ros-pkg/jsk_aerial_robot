@@ -50,6 +50,12 @@ ServoBridge::ServoBridge(ros::NodeHandle nh, ros::NodeHandle nhp): nh_(nh),nhp_(
         }
     }
 
+  /* get robot URDF model via robot_description*/
+  urdf::Model urdf_model;
+  if (!urdf_model.initParam("robot_description"))
+    ROS_ERROR("Failed to extract urdf model from rosparam");
+
+  /* get additional config for servos from ros parameters */
   XmlRpc::XmlRpcValue all_servos_params;
   nh_.getParam("servo_controller", all_servos_params);
 
@@ -62,6 +68,11 @@ ServoBridge::ServoBridge(ros::NodeHandle nh, ros::NodeHandle nhp): nh_(nh),nhp_(
         {
           if(servo_params.first.find("controller") != string::npos)
             {
+              /* get parameters from urdf file */
+              double upper_limit = urdf_model.getJoint(servo_params.second["name"])->limits->upper;
+              double lower_limit = urdf_model.getJoint(servo_params.second["name"])->limits->lower;
+
+              /* get parameters from rosparam */
               int angle_sgn = servo_params.second.hasMember("angle_sgn")?
                 servo_params.second["angle_sgn"]:servo_group_params.second["angle_sgn"];
               int zero_point_offset = servo_params.second.hasMember("zero_point_offset")?
@@ -73,7 +84,6 @@ ServoBridge::ServoBridge(ros::NodeHandle nh, ros::NodeHandle nhp): nh_(nh),nhp_(
                 servo_group_params.second["torque_scale"]:(servo_params.second.hasMember("torque_scale")?servo_params.second["torque_scale"]: XmlRpc::XmlRpcValue(1.0));
 
               /* for low pass filtering */
-
               bool filter_flag = servo_group_params.second.hasMember("filter_flag")?
                 servo_group_params.second["filter_flag"]:(servo_params.second.hasMember("filter_flag")?servo_params.second["filter_flag"]: XmlRpc::XmlRpcValue(false));
               double sample_freq = servo_group_params.second.hasMember("sample_freq")?
@@ -81,7 +91,7 @@ ServoBridge::ServoBridge(ros::NodeHandle nh, ros::NodeHandle nhp): nh_(nh),nhp_(
               double cutoff_freq = servo_group_params.second.hasMember("cutoff_freq")?
                 servo_group_params.second["cutoff_freq"]:(servo_params.second.hasMember("cutoff_freq")?servo_params.second["cutoff_freq"]: XmlRpc::XmlRpcValue(0.0));
 
-              servo_group_handler.push_back(SingleServoHandlePtr(new SingleServoHandle(servo_params.second["name"], servo_params.second["id"], angle_sgn, zero_point_offset, angle_scale, torque_scale, servo_group_params.second.hasMember("state_sub_topic"), filter_flag, sample_freq, cutoff_freq)));
+              servo_group_handler.push_back(SingleServoHandlePtr(new SingleServoHandle(servo_params.second["name"], servo_params.second["id"], angle_sgn, zero_point_offset, angle_scale, upper_limit, lower_limit, torque_scale, servo_group_params.second.hasMember("state_sub_topic"), filter_flag, sample_freq, cutoff_freq)));
 
               /* rosparam and load controller for gazebo */
               if(simulation_mode_)
