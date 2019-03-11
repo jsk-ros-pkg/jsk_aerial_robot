@@ -73,7 +73,7 @@ namespace aerial_robot_model {
 
   inline Eigen::Matrix3d kdlToEigen(const KDL::Rotation& in)
   {
-    return Eigen::Map<const Eigen::Matrix3d>(in.data);
+    return Eigen::Map<const Eigen::Matrix<double, 3, 3, Eigen::RowMajor> >(in.data);
   }
 
   inline std::vector<Eigen::Vector3d> kdlToEigen(const std::vector<KDL::Vector>& in)
