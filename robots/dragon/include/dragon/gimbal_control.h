@@ -44,6 +44,7 @@
 #include <std_msgs/Float32MultiArray.h>
 #include <std_msgs/UInt8.h>
 #include <std_srvs/SetBool.h>
+#include <spinal/RollPitchYawTerm.h>
 
 namespace control_plugin
 {
@@ -73,33 +74,47 @@ namespace control_plugin
     ros::Publisher gimbal_control_pub_;
     ros::Publisher joint_control_pub_;
     ros::Publisher gimbal_target_force_pub_;
-    ros::Publisher curr_desire_tilt_pub_;
+    ros::Publisher curr_target_cog_rot_pub_;
     ros::Publisher  roll_pitch_pid_pub_;
     ros::Subscriber joint_state_sub_;
-    ros::Subscriber final_desire_tilt_sub_;
-    ros::Subscriber desire_coord_sub_;
+    ros::Subscriber final_target_cog_rot_sub_;
+    ros::Subscriber att_control_feedback_state_sub_;
+    ros::Subscriber target_coord_sub_;
 
     void servoTorqueProcess();
     void landingProcess();
     void gimbalControl();
-    void desireTilt();
+    void targetCogRotation();
     void jointStateCallback(const sensor_msgs::JointStateConstPtr& state);
     void rosParamInit();
 
     void baselinkTiltCallback(const spinal::DesireCoordConstPtr & msg);
     void fourAxisGainCallback(const aerial_robot_msgs::FourAxisGainConstPtr & msg);
-    void desireCoordCallback(const spinal::DesireCoordConstPtr& msg);
+    void targetCogRotCallback(const spinal::DesireCoordConstPtr& msg);
+    void attControlFeedbackStateCallback(const spinal::RollPitchYawTermConstPtr& msg);
 
-    sensor_msgs::JointState joint_state_;
-    Eigen::MatrixXd P_xy_;
 
-    /* desire tilt */
-    std::vector<double> target_gimbal_angles_;
-    tf::Vector3 curr_desire_tilt_, final_desire_tilt_;
+    /* rosparam */
+    bool real_machine_;
+    bool servo_torque_;
+    bool control_verbose_;
+    double height_thresh_;
+    string joints_torque_control_srv_name_;
+    double tilt_thresh_;
+    double tilt_pub_interval_;
 
-    bool simulation_;
+    /* basic vars */
+    std::vector<double> target_thrust_vector_; // the size of vectoring force: ||f||
+    sensor_msgs::JointState joint_state_; // realtime actuator angles
+    Eigen::MatrixXd P_xy_; //mapping matrix for r_x and r_y
+    std::vector<double> target_gimbal_angles_; // target gimbal angles
+
+    /* target rotation of {CoG} frame */
+    tf::Vector3 curr_target_cog_rot_, final_target_cog_rot_;
 
     /* pitch roll control */
+    std::vector<tf::Vector3> roll_gains_, pitch_gains_;
+    std::vector<double> att_lqi_term_;
     double pitch_roll_control_rate_thresh_;
     double pitch_roll_control_p_det_thresh_;
     tf::Vector3 pitch_roll_gains_;
@@ -112,17 +127,6 @@ namespace control_plugin
     /* landing process */
     bool level_flag_;
     bool landing_flag_;
-
-    bool real_machine_;
-    bool servo_torque_;
-
-    bool control_verbose_;
-
-    /* rosparam */
-    double height_thresh_;
-    string joints_torque_control_srv_name_;
-    double tilt_thresh_;
-    double tilt_pub_interval_;
 
     /* cfg */
     dynamic_reconfigure::Server<aerial_robot_base::XYPidControlConfig>* roll_pitch_pid_server_;
