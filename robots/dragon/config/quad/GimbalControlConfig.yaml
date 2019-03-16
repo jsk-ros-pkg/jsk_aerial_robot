@@ -16,7 +16,7 @@ controller/alt/d_term_limit: 28
 controller/alt/alt_landing_const_i_ctrl_thresh: -0.3
 
 # xy [rad]
-controller/xy/p_gain: 2.5 # 10 / 7.38: sucess in real machine, but weak; divided by mass
+controller/xy/p_gain: 3.6 # 2.5 # 10 / 7.38: sucess in real machine, but weak; divided by mass
 controller/xy/i_gain: 0.03 # divided by mass
 controller/xy/hovering_i_gain: 0.03 # divided by mass
 controller/xy/d_gain: 4 # 40.0 / 7.38 # 20 / 7.38: sucess in real machine, but weak; divided by mass
