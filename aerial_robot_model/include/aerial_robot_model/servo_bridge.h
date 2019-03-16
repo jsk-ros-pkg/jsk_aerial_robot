@@ -53,6 +53,9 @@
 #include <controller_manager_msgs/LoadController.h>
 #include <controller_manager_msgs/SwitchController.h>
 
+/* filter */
+#include <kalman_filter/lpf_filter.h>
+
 /* util */
 #include <string>
 #include <boost/algorithm/clamp.hpp>
@@ -68,10 +71,18 @@ namespace ValueType
 class SingleServoHandle
 {
 public:
-  SingleServoHandle(string name, int id, int angle_sgn, double zero_point_offset, double angle_scale, double torque_scale, bool receive_real_state): name_(name), id_(id), curr_angle_val_(0), target_angle_val_(0), init_target_angle_val_(false), curr_torque_val_(0), angle_sgn_(angle_sgn), zero_point_offset_(zero_point_offset), angle_scale_(angle_scale), torque_scale_(torque_scale), receive_real_state_(receive_real_state)
+  SingleServoHandle(string name, int id, int angle_sgn, double zero_point_offset, double angle_scale, double torque_scale, bool receive_real_state, bool filter_flag = false, double sample_freq = 0, double cutoff_freq = 0): name_(name), id_(id), curr_angle_val_(0), target_angle_val_(0), init_target_angle_val_(false), curr_torque_val_(0), angle_sgn_(angle_sgn), zero_point_offset_(zero_point_offset), angle_scale_(angle_scale), torque_scale_(torque_scale), receive_real_state_(receive_real_state), filter_flag_(filter_flag)
   {
     /* for simulation */
     //joint_ctrl_pub_ = nh_.advertise<std_msgs::Float64>(std::string("/j") + std_  + std::string("_controller/command"), 1);
+
+    if(filter_flag_)
+      {
+        if(sample_freq == 0 || cutoff_freq == 0)
+          throw std::runtime_error("filtering config for is invalid");
+
+        lpf_angle_ = IirFilter(sample_freq, cutoff_freq, 1);
+      }
   };
   ~SingleServoHandle() {};
 
@@ -93,6 +104,10 @@ public:
       curr_angle_val_ = val;
     else
       ROS_ERROR("wrong value type");
+
+    /* do low pass filtering */
+    if(filter_flag_)
+      curr_angle_val_ = lpf_angle_.filterFunction(curr_angle_val_);
 
     if(!init_target_angle_val_)
       {
@@ -176,7 +191,11 @@ private:
   double torque_scale_;
 
   bool receive_real_state_;
+  bool filter_flag_;
   bool init_target_angle_val_;
+
+
+  IirFilter lpf_angle_;
 };
 
 using SingleServoHandlePtr= boost::shared_ptr<SingleServoHandle>;

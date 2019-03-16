@@ -21,6 +21,7 @@ find_package(catkin REQUIRED COMPONENTS
   message_generation
   message_runtime
   spinal
+  kalman_filter
 )
 
 find_package(orocos_kdl REQUIRED)
