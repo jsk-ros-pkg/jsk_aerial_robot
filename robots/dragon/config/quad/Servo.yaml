@@ -9,6 +9,11 @@ dragon:
       zero_point_offset: 2047
       torque_scale: 1.0 # TODO please update the scale
 
+       # for low pass filter
+      filter_flag: true
+      sample_freq: 50.0 # 50Hz
+      cutoff_freq: 10.0 # 10Hz, test
+
       # for simulation
       simulation:
         pid: {p: 50.0, i: 0.01, d: 2.0}
