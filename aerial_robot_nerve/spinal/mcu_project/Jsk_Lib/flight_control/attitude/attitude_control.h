@@ -99,7 +99,15 @@ public:
   void setMotorNumber(uint8_t motor_number);
   void setPwmTestMode(bool pwm_test_flag){pwm_test_flag_ = pwm_test_flag; }
   void setIntegrateFlag(bool integrate_flag){integrate_flag_ = integrate_flag; }
-  void setForceLandingFlag(bool force_landing_flag){force_landing_flag_ = force_landing_flag;}
+  void setForceLandingFlag(bool force_landing_flag)
+  {
+    force_landing_flag_ = force_landing_flag;
+
+#ifdef NERVE_COMM
+    Spine::setServoControlFlag(!force_landing_flag);
+#endif
+
+  }
   float getPwm(uint8_t index) {return target_pwm_[index];}
   float getForce(uint8_t index) {return target_thrust_[index];}
   void levelPGain(float torque_p_gain) { torque_p_gain_[X] = torque_p_gain; torque_p_gain_[Y] = torque_p_gain;}

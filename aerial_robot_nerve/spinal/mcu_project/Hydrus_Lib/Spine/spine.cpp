@@ -12,7 +12,7 @@ namespace Spine
   /* CAUTIONS: be careful about the order of the var definition and func definition */
   namespace
   {
-  	std::vector<Neuron> neuron_;
+    std::vector<Neuron> neuron_;
     CANMotorSendDevice can_motor_send_device_;
     std::vector<std::reference_wrapper<Servo>> servo_;
     std::vector<std::reference_wrapper<Servo>> servo_with_send_flag_;
@@ -26,7 +26,7 @@ namespace Spine
     /* sensor fusion */
     StateEstimate* estimator_;
 
-  /* ros */
+    /* ros */
     constexpr uint8_t SERVO_PUB_INTERVAL = 20; //[ms]
     spinal::ServoStates servo_state_msg_;
     ros::Publisher servo_state_pub_("/servo/states", &servo_state_msg_);
@@ -45,6 +45,7 @@ namespace Spine
     ros::NodeHandle* nh_;
     uint32_t last_pub_time_;
     unsigned int can_idle_count_ = 0;
+    bool servo_control_flag_ = true;
   }
 
   void boardInfoCallback(const spinal::GetBoardInfo::Request& req, spinal::GetBoardInfo::Response& res)
@@ -54,6 +55,7 @@ namespace Spine
 
   void servoControlCallback(const spinal::ServoControlCmd& control_msg)
   {
+          if (!servo_control_flag_) return;
 	  if (control_msg.index_length != control_msg.angles_length) return;
 	  for (unsigned int i = 0; i < control_msg.index_length; i++) {
 		  servo_.at(control_msg.index[i]).get().setGoalPosition(control_msg.angles[i]);
@@ -263,6 +265,11 @@ namespace Spine
   int8_t getUavModel()
   {
 	  return uav_model_;
+  }
+
+  void setServoControlFlag(bool flag)
+  {
+          servo_control_flag_ = flag;
   }
 
   void convertGyroFromJointvalues()
