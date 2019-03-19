@@ -8,8 +8,12 @@ void DynamixelSerial::init(UART_HandleTypeDef* huart)
 	std::fill(servo_.begin(), servo_.end(), ServoData(255));
 
 	//initialize servo motors
-	reboot();
 	ping();
+	for (unsigned int i = 0; i < servo_num_; i++) {
+		reboot(servo_[i].id_);
+	}
+
+
 	setStatusReturnLevel();
 	//Successfully detected servo's led will be turned on 1 seconds
 	for (unsigned int i = 0; i < servo_num_; i++) {
@@ -47,9 +51,9 @@ void DynamixelSerial::ping()
 	}
 }
 
-void DynamixelSerial::reboot()
+void DynamixelSerial::reboot(uint8_t id)
 {
-	cmdReboot(BROADCAST_ID);
+	cmdReboot(id);
 }
 
 void DynamixelSerial::setTorque(uint8_t servo_index)

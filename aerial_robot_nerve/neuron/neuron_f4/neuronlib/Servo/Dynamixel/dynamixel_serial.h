@@ -112,7 +112,7 @@
 #define READ_INST_LEN					7
 #define HOMING_OFFSET_BYTE_LEN			4
 #define SET_STATUS_RETURN_LEVEL_LEN		3
-#define REBOOT_LEN						1
+#define REBOOT_LEN						3
 #define TORQUE_ENABLE_BYTE_LEN			1
 #define LED_BYTE_LEN					1
 #define STATUS_RETURN_LEVEL_BYTE_LEN	1
@@ -296,7 +296,7 @@ public:
 
   void init(UART_HandleTypeDef* huart);
   void ping();
-  void reboot();
+  void reboot(uint8_t id);
   void setTorque(uint8_t servo_index);
   void setHomingOffset(uint8_t servo_index);
   void setPositionGain(uint8_t servo_index);
