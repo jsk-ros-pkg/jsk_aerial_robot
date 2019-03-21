@@ -218,7 +218,7 @@ void AttitudeController::update(void)
 #else
           nh_->logerror("failsafe1");
 #endif
-          force_landing_flag_ = true;
+          setForceLandingFlag(true);
         }
 
       /* should be virutal coord */
@@ -241,7 +241,7 @@ void AttitudeController::update(void)
 #else
           nh_->logerror("failsafe3");
 #endif
-          force_landing_flag_ = true;
+          setForceLandingFlag(true);
           error_angle_i_[X] = 0;
           error_angle_i_[Y] = 0;
         }
@@ -479,7 +479,7 @@ void AttitudeController::fourAxisCommandCallback( const spinal::FourAxisCommand 
   /* failsafe2-1: if the pitch and roll angle is too big, start force landing */
   if(fabs(target_angle_[X]) > MAX_TILT_ANGLE || fabs(target_angle_[Y]) > MAX_TILT_ANGLE )
     {
-      force_landing_flag_ = true;
+      setForceLandingFlag(true);
 #ifdef SIMULATION
       ROS_ERROR("failsafe2-1");
 #else
@@ -518,7 +518,7 @@ void AttitudeController::fourAxisCommandCallback( const spinal::FourAxisCommand 
       /* difference large than 90% of the max f */
       if(max_thrust - min_thrust > max_thrust_ * 0.9)
         {
-          force_landing_flag_ = true;
+          setForceLandingFlag(true);
 #ifdef SIMULATION
           ROS_ERROR("failsafe2-2");
 #else
@@ -540,7 +540,7 @@ void AttitudeController::fourAxisCommandCallback( const spinal::FourAxisCommand 
             if(abs(cmd_msg.angles[Z]) + cmd_msg.base_throttle[Z]  > max_thrust_ ||
                -abs(cmd_msg.angles[Z]) + cmd_msg.base_throttle[Z]  < min_thrust_)
               {
-                force_landing_flag_ = true;
+                setForceLandingFlag(true);
 #ifdef SIMULATION
                 ROS_ERROR("failsafe2-2");
 #else

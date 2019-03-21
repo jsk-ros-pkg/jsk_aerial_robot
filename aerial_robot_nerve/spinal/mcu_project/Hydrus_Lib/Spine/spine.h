@@ -46,6 +46,7 @@ namespace Spine
   void convertGyroFromJointvalues();
   uint8_t getSlaveNum();
   int8_t getUavModel();
+  void setServoControlFlag(bool flag);
   void servoControlCallback(const spinal::ServoControlCmd& control_msg);
   void servoTorqueControlCallback(const spinal::ServoTorqueCmd& control_msg);
   void boardInfoCallback(const spinal::GetBoardInfo::Request& req, spinal::GetBoardInfo::Response& res);
