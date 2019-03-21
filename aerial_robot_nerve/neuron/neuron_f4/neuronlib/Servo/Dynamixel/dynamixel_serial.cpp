@@ -45,9 +45,8 @@ void DynamixelSerial::ping()
 {
 	cmdPing(BROADCAST_ID);
 	status_packet_instruction_ = INST_PING;
-	while (true) {
+	for (int i = 0; i < PING_TRIAL_NUM; ++i) {
 		int ping_result = readStatusPacket();
-		if (ping_result == -1) return;
 	}
 }
 
@@ -356,8 +355,11 @@ int8_t DynamixelSerial::readStatusPacket(void) /* Receive status packet to Dynam
 			break;
 		case READ_CHECKSUMH:
 			checksum |= ((rx_data << 8) & 0xFF00);
-			if (checksum == calcCRC16(0, receive_data, loop_count)) read_end_flag = true;
-			else return -1;
+			if (checksum == calcCRC16(0, receive_data, loop_count)) {
+				read_end_flag = true;
+			} else {
+				return -1;
+			}
 			break;
 		default:
 			return -1;

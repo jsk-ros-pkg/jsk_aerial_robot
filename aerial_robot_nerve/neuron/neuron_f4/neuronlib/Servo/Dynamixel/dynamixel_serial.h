@@ -145,6 +145,7 @@
 #define STATUS_PACKET_SIZE 		64
 
 #define MAX_SERVO_NUM			4
+#define PING_TRIAL_NUM			100
 
 //read status packet
 #define READ_HEADER0					0
