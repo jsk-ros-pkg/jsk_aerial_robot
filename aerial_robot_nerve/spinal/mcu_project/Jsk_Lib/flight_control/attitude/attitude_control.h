@@ -54,7 +54,8 @@
 #define FLIGHT_COMMAND_TIMEOUT 500 //500ms
 #define MAX_TILT_ANGLE 0.43 // 25d degree
 
-#define CONTROL_PUB_INTERVAL 100 //40hz //100 //10ms
+#define CONTROL_TERM_PUB_INTERVAL 25 //25ms => 40Hz
+#define PWM_PUB_INTERVAL 100 //100ms
 
 #define MOTOR_TEST 0
 
@@ -130,8 +131,10 @@ private:
 
   ros::Publisher pwms_pub_;
   ros::Publisher control_term_pub_;
+  ros::Publisher att_control_term_pub_;
   spinal::Pwms pwms_msg_;
   spinal::RollPitchYawTerms control_term_msg_;
+  spinal::RollPitchYawTerm att_control_term_msg_;
 
 #ifdef SIMULATION
   ros::Subscriber four_axis_cmd_sub_;

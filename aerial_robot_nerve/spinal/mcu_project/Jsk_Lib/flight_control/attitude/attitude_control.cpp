@@ -11,6 +11,12 @@
 
 #include "flight_control/attitude/attitude_control.h"
 
+namespace
+{
+  uint32_t control_term_pub_last_time;
+  uint32_t pwm_pub_last_time;
+};
+
 #ifdef SIMULATION
 AttitudeController::AttitudeController(): DELTA_T(0) {}
 
@@ -20,6 +26,7 @@ void AttitudeController::init(ros::NodeHandle* nh)
 
   pwms_pub_ = nh_->advertise<spinal::Pwms>("/motor_pwms", 1);
   control_term_pub_ = nh_->advertise<spinal::RollPitchYawTerms>("/control_terms", 1);
+  att_control_term_pub_ = nh_->advertise<spinal::RollPitchYawTerm>("/att_control_terms", 1);
   anti_gyro_pub_ = nh_->advertise<std_msgs::Float32MultiArray>("/gyro_moment_compensation", 1);
   four_axis_cmd_sub_ = nh_->subscribe("/aerial_robot_control_four_axis", 1, &AttitudeController::fourAxisCommandCallback, this);
   pwm_info_sub_ = nh_->subscribe("/motor_info", 1, &AttitudeController::pwmInfoCallback, this);
@@ -35,6 +42,7 @@ void AttitudeController::init(ros::NodeHandle* nh)
 AttitudeController::AttitudeController():
   pwms_pub_("/motor_pwms", &pwms_msg_),
   control_term_pub_("/control_terms", &control_term_msg_),
+  att_control_term_pub_("/att_control_terms", &att_control_term_msg_),
   four_axis_cmd_sub_("/aerial_robot_control_four_axis", &AttitudeController::fourAxisCommandCallback, this ),
   pwm_info_sub_("/motor_info", &AttitudeController::pwmInfoCallback, this),
   rpy_gain_sub_("/rpy_gain", &AttitudeController::rpyGainCallback, this),
@@ -65,6 +73,7 @@ void AttitudeController::init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2
 
   nh_->advertise(pwms_pub_);
   nh_->advertise(control_term_pub_);
+  nh_->advertise(att_control_term_pub_);
 
   nh_->subscribe< ros::Subscriber<spinal::FourAxisCommand, AttitudeController> >(four_axis_cmd_sub_);
   nh_->subscribe< ros::Subscriber<spinal::PwmInfo, AttitudeController> >(pwm_info_sub_);
@@ -125,8 +134,6 @@ void AttitudeController::baseInit()
 
 void AttitudeController::pwmsControl(void)
 {
-  static uint32_t ros_pub_last_time = HAL_GetTick();
-
   for(int i = 0; i < motor_number_; i++)
     {
       float target_thrust = target_thrust_[i];
@@ -151,22 +158,32 @@ void AttitudeController::pwmsControl(void)
 
 #ifdef SIMULATION
   /* control result publish */
-  if(HAL_GetTick() - ros_pub_last_time > CONTROL_PUB_INTERVAL)
+  if(HAL_GetTick() - control_term_pub_last_time >= CONTROL_TERM_PUB_INTERVAL)
     {
-      ros_pub_last_time = HAL_GetTick();
-      pwms_pub_.publish(pwms_msg_);
-      control_term_pub_.publish(control_term_msg_);
-    }
+      control_term_pub_last_time = HAL_GetTick();
+      att_control_term_pub_.publish(att_control_term_msg_); //send the raw feedback state 
+      control_term_pub_.publish(control_term_msg_); // send the final result of attitude control
 
+    }
+  if(HAL_GetTick() - pwm_pub_last_time >= PWM_PUB_INTERVAL)
+    {
+      pwm_pub_last_time = HAL_GetTick();
+      pwms_pub_.publish(pwms_msg_);
+    }
 #else
   /* control result publish */
-  if(HAL_GetTick() - ros_pub_last_time > CONTROL_PUB_INTERVAL)
+  if(HAL_GetTick() - control_term_pub_last_time > CONTROL_TERM_PUB_INTERVAL)
     {
-      ros_pub_last_time = HAL_GetTick();
-      pwms_pub_.publish(&pwms_msg_);
-      control_term_pub_.publish(&control_term_msg_);
-    }
+      control_term_pub_last_time = HAL_GetTick();
+      att_control_term_pub_.publish(&att_control_term_msg_); //send the raw feedback state 
+      //control_term_pub_.publish(control_term_msg_); // send the final result of attitude control
 
+    }
+  if(HAL_GetTick() - pwm_pub_last_time > PWM_PUB_INTERVAL)
+    {
+      pwm_pub_last_time = HAL_GetTick();
+      pwms_pub_.publish(&pwms_msg_);
+    }
 
   /* nerve comm type */
 #if NERVE_COMM
@@ -275,20 +292,14 @@ void AttitudeController::update(void)
 
               for(int axis = 0; axis < 3; axis++)
                 {
-                  if(axis < 2)
-                    {
-                      float error_angle = target_angle_[axis] - angles[axis];
-                      /* error_angle_i */
-                      if(i == 0 && integrate_flag_ == true)
-                        error_angle_i_[axis] += error_angle * DELTA_T;
+                  float error_angle = target_angle_[axis] - angles[axis];
+                  /* error_angle_i */
+                  if(i == 0 && integrate_flag_ == true)
+                    error_angle_i_[axis] += error_angle * DELTA_T;
 
-                      lqi_p_term = -error_angle * p_lqi_gain_[i][axis];
-                      lqi_i_term = (error_angle_i_[axis] * i_lqi_gain_[i][axis]);
-                    }
-                  else
-                    { lqi_p_term = 0; lqi_i_term = 0; }
+                  lqi_p_term = -error_angle * p_lqi_gain_[i][axis];
+                  lqi_i_term = (error_angle_i_[axis] * i_lqi_gain_[i][axis]);
 
-                  //lqi_d_term = vel[axis] * d_lqi_gain[i][axis];
                   lqi_d_term = limit(vel[axis] * d_lqi_gain_[i][axis], 4.5); //(old meesage: can be more strict), why?
                   motor_rpy_force_[i] += (lqi_p_term + lqi_i_term + lqi_d_term); //[N]
 
@@ -297,16 +308,29 @@ void AttitudeController::update(void)
                       control_term_msg_.motors[i].roll_p = lqi_p_term * 1000;
                       control_term_msg_.motors[i].roll_i= lqi_i_term * 1000;
                       control_term_msg_.motors[i].roll_d = lqi_d_term * 1000;
+
+                      att_control_term_msg_.roll_p = error_angle * 1000;
+                      att_control_term_msg_.roll_i = error_angle_i_[axis] * 1000;
+                      att_control_term_msg_.roll_d = vel[axis]  * 1000;
                     }
                   if(axis == Y)
                     {
                       control_term_msg_.motors[i].pitch_p = lqi_p_term * 1000;
                       control_term_msg_.motors[i].pitch_i = lqi_i_term * 1000;
                       control_term_msg_.motors[i].pitch_d = lqi_d_term * 1000;
+
+                      att_control_term_msg_.pitch_p = error_angle * 1000;
+                      att_control_term_msg_.pitch_i = error_angle_i_[axis] * 1000;
+                      att_control_term_msg_.pitch_d = vel[axis] * 1000;
+
                     }
                   if(axis == Z)
-                    control_term_msg_.motors[i].yaw_d = lqi_d_term * 1000;//lqi_d_term;
+                    {
+                      control_term_msg_.motors[i].yaw_d = lqi_d_term * 1000;//lqi_d_term;
+                      att_control_term_msg_.yaw_d = vel[axis] * 1000;
+                    }
                 }
+
               /* gyro moment compensation */
               float gyro_moment_compensate =
                 p_matrix_pseudo_inverse_[i][0] * gyro_moment.x +
@@ -455,6 +479,10 @@ void AttitudeController::reset(void)
         {
           base_throttle_term_[j] = 0;
           motor_rpy_force_[j] = 0;
+
+          p_lqi_gain_[j][i] = 0;
+          i_lqi_gain_[j][i] = 0;
+          d_lqi_gain_[j][i] = 0;
         }
     }
 
@@ -463,6 +491,11 @@ void AttitudeController::reset(void)
   /* failsafe */
   failsafe_ = false;
   flight_command_last_stamp_ = HAL_GetTick();
+
+  /* ros topic */
+  control_term_pub_last_time = HAL_GetTick();
+  pwm_pub_last_time = HAL_GetTick();
+
 }
 
 void AttitudeController::fourAxisCommandCallback( const spinal::FourAxisCommand &cmd_msg)
