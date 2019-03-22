@@ -7,6 +7,17 @@
 #include <Eigen/LU>
 
 namespace aerial_robot_model {
+  /* skew_symmetric matrix */
+  const Eigen::Matrix3d skewSymmetricMatrix(Eigen::Vector3d vec)
+  {
+    Eigen::Matrix3d mat;
+    mat << 0, -vec(2), vec(1),
+      vec(2), 0, -vec(0),
+      -vec(1), vec(0), 0;
+
+    return mat;
+  }
+
   /* psuedo inverse */
   /* https://gist.github.com/javidcf/25066cf85e71105d57b6 */
   template <class MatT>
