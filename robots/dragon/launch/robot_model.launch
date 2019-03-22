@@ -4,6 +4,8 @@
   <arg name="description_mode" default="urdf"/>
   <arg name="need_joint_state" default="true" />
   <arg name="node_suffix" default="" />
+  <arg name="direct_model" default="false" />
+  <arg name="direct_model_name" />
 
   <group ns="dragon" >
     <node name="robot_state_publisher_$(arg node_suffix)" pkg="robot_state_publisher" type="state_publisher" />
@@ -23,7 +25,8 @@
 
   <include file="$(find aerial_robot_model)/launch/aerial_robot_model.launch" >
     <arg name="headless" value="$(arg headless)" />
-    <arg name="robot_model" value="$(find dragon)/robots/$(arg type).$(arg description_mode).xacro" />
+    <arg name="robot_model" value="$(find dragon)/robots/$(arg type).$(arg description_mode).xacro" unless="$(arg direct_model)"/>
+    <arg name="robot_model" value="$(arg direct_model_name)" if="$(arg direct_model)"/>
     <arg name="node_suffix" value="$(arg node_suffix)" />
   </include>
 

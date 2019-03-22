@@ -8,6 +8,8 @@
   <arg name="estimate_mode"  default= "2" />
   <arg name="headless" default="True" />
   <arg name="launch_gazebo" default="True" />
+  <arg name="direct_model" default="False" />
+  <arg name="direct_model_name" />
 
   <!-- sensors(fusion) special parameters -->
   <param name="/sensor_plugin/altitude/no_height_offset" value="true" />
@@ -71,6 +73,8 @@
     <arg name="need_joint_state" value="false" if="$(arg real_machine)"/>
     <arg name="need_joint_state" value="false" if="$(arg simulation)"/>
     <arg name="description_mode" value="gazebo" if="$(arg simulation)"/>
+    <arg name="direct_model" value="$(arg direct_model)" />
+    <arg name="direct_model_name" value="$(arg direct_model_name)" if="$(arg direct_model)"/>
   </include >
 
   ###########  Servo Bridge  ###########
