@@ -21,8 +21,16 @@ namespace aerial_robot_model {
     resolveLinkLength();
 
     ROS_ERROR("[kinematics] rotor num; %d", rotor_num_);
+
     rotors_origin_from_cog_.resize(rotor_num_);
     rotors_normal_from_cog_.resize(rotor_num_);
+
+    for(auto itr : link_joint_names_)
+      {
+        auto joint_ptr = model_.getJoint(itr);
+        link_joint_lower_limits_.push_back(joint_ptr->limits->lower);
+        link_joint_upper_limits_.push_back(joint_ptr->limits->upper);
+      }
   }
 
   bool RobotModel::addExtraModule(std::string module_name, std::string parent_link_name, KDL::Frame transform, KDL::RigidBodyInertia inertia)
@@ -96,7 +104,11 @@ namespace aerial_robot_model {
     const KDL::Segment current_seg = GetTreeElementSegment(tree_element);
 
     KDL::RigidBodyInertia current_seg_inertia = current_seg.getInertia();
-    if(verbose_) ROS_WARN("segment %s, mass is: %f", current_seg.getName().c_str(), current_seg_inertia.getMass());
+    if(verbose_)
+      {
+        ROS_WARN("segment %s, mass is: %f", current_seg.getName().c_str(), current_seg_inertia.getMass());
+        //=> change the model, do not use: std::cout << "inertia is: \n" << aerial_robot_model::kdlToEigen(current_seg_inertia.RefPoint(current_seg_inertia.getCOG()).getRotationalInertia()) << std::endl;
+      }
 
     /* check whether this can be a base inertia segment (i.e. link) */
     /* 1. for the "root" parent link (i.e. link1) */
@@ -119,6 +131,15 @@ namespace aerial_robot_model {
             /* create a new inertia base link */
             inertia_map_.insert(std::make_pair(current_seg.getName(), current_seg_inertia));
             actuator_map_.insert(std::make_pair(current_seg.getJoint().getName(), tree_element.q_nr));
+
+            /* extract link joint */
+            if(current_seg.getJoint().getName().find("joint") == 0 &&
+               current_seg.getJoint().getType() != KDL::Joint::JointType::None)
+              {
+                link_joint_names_.push_back(current_seg.getJoint().getName());
+                link_joint_index_.push_back(tree_element.q_nr);
+              }
+
             if(verbose_) ROS_WARN("Add new inertia base link: %s", current_seg.getName().c_str());
           }
       }
@@ -203,16 +224,6 @@ namespace aerial_robot_model {
     KDL::Frame f_link2 = forwardKinematics<KDL::Frame>("link2", joint_positions);
     KDL::Frame f_link3 = forwardKinematics<KDL::Frame>("link3", joint_positions);
     link_length_ = (f_link3.p - f_link2.p).Norm();
-  }
-
-  void RobotModel::setActuatorJointMap(const sensor_msgs::JointState& actuator_state)
-  {
-    /* CAUTION: be sure that the joints are in order !!!!!!! */
-    for(auto itr = actuator_state.name.begin(); itr != actuator_state.name.end(); ++itr)
-      {
-        if(itr->find("joint") != std::string::npos)
-          actuator_joint_map_.push_back(std::distance(actuator_state.name.begin(), itr));
-      }
   }
 
   void RobotModel::updateRobotModelImpl(const KDL::JntArray& joint_positions)

@@ -71,14 +71,19 @@ namespace aerial_robot_model {
     template<class T> T forwardKinematics(std::string link, const sensor_msgs::JointState& state) const;
     std::map<std::string, KDL::Frame> fullForwardKinematics(const KDL::JntArray& joint_positions) {return fullForwardKinematicsImpl(joint_positions); }
     std::map<std::string, KDL::Frame> fullForwardKinematics(const sensor_msgs::JointState& state) {return fullForwardKinematics(jointMsgToKdl(state)); }
-    std::vector<int> getActuatorJointMap() const { return actuator_joint_map_; }
     std::map<std::string, uint32_t> getActuatorMap() const { return actuator_map_; }
+    std::vector<std::string> getLinkJointNames() const { return link_joint_names_; }
+    std::vector<int> getLinkJointIndex() const { return link_joint_index_; }
+    std::vector<double> getLinkJointLowerLimits() const { return link_joint_lower_limits_; }
+    std::vector<double> getLinkJointUpperLimits() const { return link_joint_upper_limits_; }
     std::map<std::string, KDL::Frame> getSegmentsTf() const { return seg_tf_map_; }
     std::string getBaselinkName() const { return baselink_; }
+    void setBaselinkName(const std::string baselink) { baselink_ = baselink; }
     template<class T> T getCog() const;
     template<class T> T getCogDesireOrientation() const;
     template<class T> T getCog2Baselink() const;
     template<class T> T getInertia() const;
+    std::map<std::string, KDL::RigidBodyInertia> getInertiaMap() const { return inertia_map_; }
     double getLinkLength() const { return link_length_; }
     double getMass() const { return mass_; }
     std::map<int, int> getRotorDirection() { return rotor_direction_; }
@@ -87,23 +92,25 @@ namespace aerial_robot_model {
     template<class T> std::vector<T> getRotorsNormalFromCog() const;
     template<class T> std::vector<T> getRotorsOriginFromCog() const;
     const KDL::Tree& getTree() const { return tree_; }
+    const urdf::Model& getUrdfModel() const { return model_; }
     double getVerbose() const { return verbose_; }
-    void setActuatorJointMap(const sensor_msgs::JointState& actuator_state);
-    void setCogDesireOrientation(double roll, double pitch, double yaw) { cog_desire_orientation_ = KDL::Rotation::RPY(roll, pitch, yaw); }
+    void setCogDesireOrientation(double roll, double pitch, double yaw) { setCogDesireOrientation(KDL::Rotation::RPY(roll, pitch, yaw)); }
+    void setCogDesireOrientation(KDL::Rotation cog_desire_orientation) { cog_desire_orientation_  = cog_desire_orientation;}
     bool removeExtraModule(std::string module_name);
     virtual void updateRobotModelImpl(const KDL::JntArray& joint_positions);
     void updateRobotModel(const KDL::JntArray& joint_positions) { updateRobotModelImpl(joint_positions); }
     void updateRobotModel(const sensor_msgs::JointState& state) { updateRobotModel(jointMsgToKdl(state)); }
 
-  protected:
-    //protected functions
     KDL::JntArray jointMsgToKdl(const sensor_msgs::JointState& state) const;
     sensor_msgs::JointState kdlJointToMsg(const KDL::JntArray& joint_positions) const;
 
   private:
     //private attributes
-    std::vector<int> actuator_joint_map_; //the real joint (other than rotor or gimbal)
     std::map<std::string, uint32_t> actuator_map_; // regarding to KDL tree
+    std::vector<std::string> link_joint_names_;
+    std::vector<double> link_joint_lower_limits_, link_joint_upper_limits_;
+    std::vector<int> link_joint_index_;
+
     std::string baselink_;
     KDL::Frame cog_;
     KDL::Rotation cog_desire_orientation_;

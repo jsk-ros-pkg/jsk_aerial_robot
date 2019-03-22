@@ -29,6 +29,7 @@ find_package(Boost REQUIRED COMPONENTS system)
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES dragon_robot_model dragon_transform_control
+  CATKIN_DEPENDS hydrus
   DEPENDS EIGEN3
 )
 

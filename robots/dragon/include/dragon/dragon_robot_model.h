@@ -54,6 +54,8 @@ public:
   virtual ~DragonRobotModel() = default;
 
   //public functions
+  const double getEdfRadius() const {return edf_radius_;}
+  const double getEdfMaxTilt() const {return edf_max_tilt_;}
   template <class T> std::vector<T> getEdfsOriginFromCog() const;
   std::vector<double> getGimbalNominalAngles() const { return gimbal_nominal_angles_; }
   template <class T> T getGimbalProcessedJoint() const;
