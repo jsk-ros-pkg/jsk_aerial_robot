@@ -17,7 +17,7 @@ private:
 	uint8_t index_;
 	uint16_t p_gain_, i_gain_, d_gain_;
 	uint16_t present_position_;
-	uint16_t goal_position_;
+	int16_t goal_position_;
 	uint16_t profile_velocity_;
 	uint16_t present_current_;
 	uint16_t current_limit_;
@@ -44,7 +44,7 @@ public:
 	uint8_t getMoving() const {return moving_;}
 	uint8_t getError() const {return error_;}
 	void setIndex(uint8_t index) {index_ = index;}
-	void setGoalPosition(uint16_t goal_position) {goal_position_ = goal_position;}
+	void setGoalPosition(int16_t goal_position) {goal_position_ = goal_position;}
 	void setTorqueEnable(bool torque_enable) {torque_enable_ = torque_enable;}
 };
 

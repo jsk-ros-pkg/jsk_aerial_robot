@@ -26,7 +26,7 @@ public:
 
 private:
 	struct CANServoData{
-		uint16_t angle;
+		int16_t angle;
 		uint8_t temperature;
 		uint8_t moving;
 		int16_t current;

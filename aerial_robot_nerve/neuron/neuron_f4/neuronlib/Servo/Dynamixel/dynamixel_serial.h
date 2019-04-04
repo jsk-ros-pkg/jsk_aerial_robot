@@ -266,14 +266,13 @@ private:
 class ServoData {
 public:
 	ServoData(){}
-	ServoData(uint8_t id): id_(id), torque_enable_(false), first_get_pos_flag_(true){}
+	ServoData(uint8_t id): id_(id), torque_enable_(false){}
 
 	uint8_t id_;
 	int32_t homing_offset_;
 	int32_t offset_value_;
 	int32_t goal_position_;
 	int32_t present_position_;
-	int32_t overflow_offset_value_;
 	uint8_t present_temp_;
 	int16_t present_current_;
 	uint8_t moving_;
@@ -284,7 +283,6 @@ public:
 	uint16_t send_data_flag_;
 	bool led_;
 	bool torque_enable_;
-	bool first_get_pos_flag_;
 	int32_t getNewHomingOffset() {return offset_value_ + homing_offset_ - present_position_;}
 
 	bool operator==(const ServoData& r) const {return this->id_ == r.id_;}

@@ -11,7 +11,7 @@ void CANServo::sendData()
 {
 	uint16_t target_angle[4];
 	for (unsigned int i = 0 ; i < servo_.size(); i++) {
-		target_angle[i] = ((servo_[i].torque_enable_ ? 1 : 0) << 15) | (servo_[i].goal_position_ & 0xFFF);
+		target_angle[i] = ((servo_[i].torque_enable_ ? 1 : 0) << 15) | (servo_[i].goal_position_ & 0x7FFF);
 	}
 	setMessage(CAN::MESSAGEID_RECEIVE_SERVO_ANGLE, m_slave_id, servo_.size() * 2, reinterpret_cast<uint8_t*>(target_angle));
 	sendMessage(0);

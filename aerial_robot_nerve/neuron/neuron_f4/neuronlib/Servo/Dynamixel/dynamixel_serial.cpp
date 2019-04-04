@@ -12,7 +12,7 @@ void DynamixelSerial::init(UART_HandleTypeDef* huart)
 	for (unsigned int i = 0; i < servo_num_; i++) {
 		reboot(servo_[i].id_);
 	}
-
+	HAL_Delay(500);
 
 	setStatusReturnLevel();
 	//Successfully detected servo's led will be turned on 1 seconds
@@ -379,19 +379,9 @@ int8_t DynamixelSerial::readStatusPacket(void) /* Receive status packet to Dynam
 	    return 0;
 	case INST_GET_PRESENT_POS:
 	{
-		int32_t present_position = ((parameters[3] << 24) & 0xFF000000) | ((parameters[2] << 16) & 0xFF0000) | ((parameters[1] << 8) & 0xFF00) | (parameters[0] & 0xFF);
+		volatile int32_t present_position = ((parameters[3] << 24) & 0xFF000000) | ((parameters[2] << 16) & 0xFF0000) | ((parameters[1] << 8) & 0xFF00) | (parameters[0] & 0xFF);
 		if (s != servo_.end()) {
 			s->present_position_ = present_position;
-			if (s->first_get_pos_flag_) {
-				if (present_position < 0) {
-					s->overflow_offset_value_ = 4096;
-				} else if (present_position > 4095) {
-					s->overflow_offset_value_ = -4096;
-				} else {
-					s->overflow_offset_value_ = 0;
-				}
-				s->first_get_pos_flag_ = false;
-			}
 		}
 	    return 0;
 	}
