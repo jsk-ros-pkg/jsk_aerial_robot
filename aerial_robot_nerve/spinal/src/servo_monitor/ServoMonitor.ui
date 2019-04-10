@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>ServoMonitor</class>
+ <widget class="QWidget" name="ServoMonitor">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>697</width>
+    <height>494</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string notr="true">Servo Monitor</string>
+  </property>
+  <widget class="QWidget" name="gridLayoutWidget">
+   <property name="geometry">
+    <rect>
+     <x>70</x>
+     <y>40</y>
+     <width>426</width>
+     <height>311</height>
+    </rect>
+   </property>
+   <layout class="QGridLayout" name="gridLayout">
+    <item row="10" column="2">
+     <widget class="QPushButton" name="configureButton">
+      <property name="text">
+       <string>configure</string>
+      </property>
+     </widget>
+    </item>
+    <item row="10" column="1">
+     <widget class="QLineEdit" name="valueInput"/>
+    </item>
+    <item row="0" column="0" colspan="3">
+     <widget class="QPushButton" name="boardInfoUpdateButton">
+      <property name="text">
+       <string>update</string>
+      </property>
+     </widget>
+    </item>
+    <item row="10" column="0">
+     <widget class="QLabel" name="paramLabel">
+      <property name="text">
+       <string>param</string>
+      </property>
+     </widget>
+    </item>
+    <item row="2" column="0" rowspan="4" colspan="3">
+     <widget class="QTableView" name="servoTableView">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+        <horstretch>0</horstretch>
+        <verstretch>1</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="sizeAdjustPolicy">
+       <enum>QAbstractScrollArea::AdjustIgnored</enum>
+      </property>
+     </widget>
+    </item>
+    <item row="2" column="3">
+     <widget class="QPushButton" name="pushButton_4">
+      <property name="text">
+       <string>all servo on</string>
+      </property>
+     </widget>
+    </item>
+    <item row="3" column="3">
+     <widget class="QPushButton" name="pushButton">
+      <property name="text">
+       <string>all servo off</string>
+      </property>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <zorder>gridLayoutWidget</zorder>
+  <zorder>pushButton_2</zorder>
+  <zorder>pushButton_2</zorder>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
