@@ -37,7 +37,7 @@
         <image>
           <width>1280</width>
           <height>720</height>
-          <format>R8G8B8</format>
+          <format>RGB</format>
         </image>
         <clip>
           <near>0.02</near>
