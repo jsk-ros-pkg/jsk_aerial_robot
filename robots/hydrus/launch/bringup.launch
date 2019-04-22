@@ -12,6 +12,11 @@
   <arg name="launch_gazebo" default="True" />
   <arg name="direct_model" default="False" />
   <arg name="direct_model_name" />
+  <arg name="spawn_x" default="0.0"/>
+  <arg name="spawn_y" default="0.0"/>
+  <arg name="spawn_z" default="0.0"/>
+  <arg name="spawn_yaw" default="0.0"/>
+
   ###########  UAV Config  ###########
   # HYDRUS = 16 # 0x10, hydrus type with  4dof underactuated property
   <param name="/uav_info/uav_model" value= "16" />
@@ -94,6 +99,10 @@
     <arg name="headless" default="$(arg headless)" />
     <arg name="launch_gazebo" default="$(arg launch_gazebo)" />
     <arg name="worldtype" value="$(arg worldtype)" />
+    <arg name="spawn_x" value="$(arg spawn_x)" />
+    <arg name="spawn_y" value="$(arg spawn_y)" />
+    <arg name="spawn_z" value="$(arg spawn_z)" />
+    <arg name="spawn_yaw" value="$(arg spawn_yaw)" />
   </include>
 
 </launch>
