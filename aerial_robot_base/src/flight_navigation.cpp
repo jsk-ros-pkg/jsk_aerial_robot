@@ -113,16 +113,16 @@ void Navigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & msg)
   if(msg->psi_nav_mode == aerial_robot_msgs::FlightNav::POS_MODE)
     {
       double target_psi = msg->target_psi;
-      if(target_psi > M_PI)  target_psi -= (2 * M_PI);
-      else if(target_psi < -M_PI)  target_psi += (2 * M_PI);
+      while(target_psi > M_PI)  target_psi -= (2 * M_PI);
+      while(target_psi < -M_PI)  target_psi += (2 * M_PI);
 
       setTargetPsi(target_psi);
     }
   if(msg->psi_nav_mode == aerial_robot_msgs::FlightNav::POS_VEL_MODE)
     {
       double target_psi = msg->target_psi;
-      if(target_psi > M_PI)  target_psi -= (2 * M_PI);
-      else if(target_psi < -M_PI)  target_psi += (2 * M_PI);
+      while(target_psi > M_PI)  target_psi -= (2 * M_PI);
+      while(target_psi < -M_PI)  target_psi += (2 * M_PI);
 
       setTargetPsi(target_psi);
       setTargetPsiVel(msg->target_vel_psi);
@@ -424,8 +424,8 @@ void Navigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
         {
           float  state_psi = estimator_->getState(State::YAW_COG, estimate_mode_)[0];
           target_psi_ = state_psi + joy_cmd.axes[PS3_AXIS_STICK_RIGHT_LEFTWARDS] * max_target_yaw_rate_;
-          if(target_psi_ > M_PI)  target_psi_ -= 2 * M_PI;
-          else if(target_psi_ < -M_PI)  target_psi_ += 2 * M_PI;
+          while(target_psi_ > M_PI)  target_psi_ -= 2 * M_PI;
+          while(target_psi_ < -M_PI)  target_psi_ += 2 * M_PI;
           ROS_WARN("Joy Control: yaw control based on angle control only");
         }
       else
