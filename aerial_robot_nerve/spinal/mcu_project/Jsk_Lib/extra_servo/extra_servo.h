@@ -42,6 +42,7 @@ public:
 
     /* servo control sub */
     nh_->subscribe< ros::Subscriber<spinal::ServoControlCmd, ExtraServo> >(extra_servo_control_sub_);
+    nh_->subscribe< ros::Subscriber<spinal::ServoTorqueCmd, ExtraServo> >(extra_servo_torque_control_sub_);
     nh_->subscribe< ros::Subscriber<spinal::ServoControlCmd, ExtraServo> >(extra_servo_init_duty_sub_);
 
     pwm_htim1_ = t1;
@@ -132,7 +133,7 @@ private:
     for(int i = 0; i < cmd_msg.index_length; i++)
       {
         /* TODO: please implement the flag to enable the servo */
-        if(cmd_msg.torque_enable)
+        if(cmd_msg.torque_enable[i])
           {
             nh_->logwarn("the flag to enable the (extra) servo is not implemented right now");
             continue;
