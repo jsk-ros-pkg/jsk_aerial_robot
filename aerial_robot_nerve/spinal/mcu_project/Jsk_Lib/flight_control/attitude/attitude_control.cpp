@@ -209,7 +209,7 @@ void AttitudeController::update(void)
   if(start_control_flag_)
     {
       /* failsafe 1: check the timeout of the flight command receive process */
-      if(failsafe_ && !force_landing_flag_ &&
+      if(failsafe_ && !force_landing_flag_ && attitude_flag_ &&
          (int32_t)(HAL_GetTick() - flight_command_last_stamp_) > FLIGHT_COMMAND_TIMEOUT)
         {
           /* timeout => start force landing */
