@@ -114,8 +114,8 @@ namespace control_plugin
     target_psi_ = navigator_->getTargetPsi();
     target_psi_vel_ = navigator_->getTargetPsiVel();
     psi_err_ = target_psi_ - state_psi_;
-    if(psi_err_ > M_PI)  psi_err_ -= (2 * M_PI);
-    else if(psi_err_ < -M_PI)  psi_err_ += (2 * M_PI);
+    while(psi_err_ > M_PI)  psi_err_ -= (2 * M_PI);
+    while(psi_err_ < -M_PI)  psi_err_ += (2 * M_PI);
   }
 
   void FlatnessPid::pidUpdate()
