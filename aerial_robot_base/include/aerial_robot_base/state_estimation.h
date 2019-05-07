@@ -173,7 +173,7 @@ public:
     state_[axis][estimate_mode].second = state;
   }
 
-  void setState( uint8_t axis,  int estimate_mode,  uint8_t state_mode,  float value)
+  void setState(uint8_t axis, int estimate_mode, uint8_t state_mode, float value)
   {
     boost::lock_guard<boost::mutex> lock(state_mutex_);
 
@@ -245,7 +245,7 @@ public:
   }
 
   inline void setQueueSize(const int& qu_size) {qu_size_ = qu_size;}
-  void updateQueue(const double& timestamp, const double& roll, const double& pitch, const tf::Vector3& omega)
+  void updateQueue(const double timestamp, const double roll, const double pitch, const tf::Vector3 omega)
   {
     tf::Matrix3x3 r_ee, r_ex, r_gt;
     r_ee.setRPY(roll, pitch, (getState(State::YAW_BASE, StateEstimator::EGOMOTION_ESTIMATE))[0]);
@@ -271,7 +271,7 @@ public:
     }
   }
 
-  bool findRotOmege(const double& timestamp, const int& mode, tf::Matrix3x3& r, tf::Vector3& omega)
+  bool findRotOmege(const double timestamp, const int mode, tf::Matrix3x3 r, tf::Vector3 omega)
   {
     boost::lock_guard<boost::mutex> lock(queue_mutex_);
 
@@ -381,12 +381,12 @@ public:
   inline void setForceAttControlFlag (bool flag) {force_att_control_flag_ = flag; }
   inline bool getForceAttControlFlag () {return force_att_control_flag_;}
 
-  const std::map<std::string, KDL::Frame>& getSegmentsTf()
+  const std::map<std::string, KDL::Frame> getSegmentsTf()
   {
     boost::lock_guard<boost::mutex> lock(kinematics_mutex_);
     return segments_tf_;
   }
-  void setSegmentsTf(const std::map<std::string, KDL::Frame>& segments_tf)
+  void setSegmentsTf(const std::map<std::string, KDL::Frame> segments_tf)
   {
     boost::lock_guard<boost::mutex> lock(kinematics_mutex_);
     segments_tf_ = segments_tf;

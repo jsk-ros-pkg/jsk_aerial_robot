@@ -126,13 +126,13 @@ namespace sensor_plugin
     virtual ~SensorBase(){}
 
     inline const std::string& getPluginName() const {return plugin_name_;}
-    const int& getStatus()
+    const int getStatus()
     {
       boost::lock_guard<boost::mutex> lock(status_mutex_);
       return sensor_status_;
     }
 
-    void setStatus(const int& status)
+    void setStatus(const int status)
     {
       boost::lock_guard<boost::mutex> lock(status_mutex_);
       prev_status_ = sensor_status_;
@@ -251,13 +251,29 @@ namespace sensor_plugin
         therefore kinematics based on kinematics is better, since the tf need 0.x[sec].
       */
       const auto& segments_tf =  estimator_->getSegmentsTf();
+
+      if(segments_tf.empty())
+        {
+          if(get_sensor_tf_) ROS_ERROR("the segment tf is empty after init phase");
+
+          ROS_DEBUG_STREAM("segment tf is empty");
+          return false;
+        }
+
       if(segments_tf.find(sensor_frame_) == segments_tf.end())
         {
           ROS_ERROR_THROTTLE(0.5, "can not find %s in kinematics model", sensor_frame_.c_str());
           return false;
         }
 
-      tf::transformKDLToTF(segments_tf.at(estimator_->getBaselinkName()).Inverse() * segments_tf.at(sensor_frame_), sensor_tf_);
+      try
+        {
+          tf::transformKDLToTF(segments_tf.at(estimator_->getBaselinkName()).Inverse() * segments_tf.at(sensor_frame_), sensor_tf_);
+        }
+      catch (...)
+        {
+          ROS_ERROR("Bug: can not find %s in spite of segments_tf.find is true", sensor_frame_.c_str());
+        }
 
       double y, p, r; sensor_tf_.getBasis().getRPY(r, p, y);
       if(!variable_sensor_tf_flag_)
