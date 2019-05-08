@@ -30,8 +30,9 @@ public:
   ~ExtraServo(){}
 
   ExtraServo():
-	  extra_servo_control_sub_("/extra_servo_cmd", &ExtraServo::servoControlCallback, this ),
-	  extra_servo_init_duty_sub_("/extra_servo_init_cmd", &ExtraServo::servoInitDutyCallback, this )
+    extra_servo_control_sub_("/extra_servo_cmd", &ExtraServo::servoControlCallback, this ),
+    extra_servo_torque_control_sub_("/extra_servo_torque_enable", &ExtraServo::servoTorqueControlCallback, this ),
+    extra_servo_init_duty_sub_("/extra_servo_init_cmd", &ExtraServo::servoInitDutyCallback, this )
   {
   }
 
@@ -41,6 +42,7 @@ public:
 
     /* servo control sub */
     nh_->subscribe< ros::Subscriber<spinal::ServoControlCmd, ExtraServo> >(extra_servo_control_sub_);
+    nh_->subscribe< ros::Subscriber<spinal::ServoTorqueCmd, ExtraServo> >(extra_servo_torque_control_sub_);
     nh_->subscribe< ros::Subscriber<spinal::ServoControlCmd, ExtraServo> >(extra_servo_init_duty_sub_);
 
     pwm_htim1_ = t1;
@@ -73,6 +75,7 @@ private:
 
   ros::NodeHandle* nh_;
   ros::Subscriber<spinal::ServoControlCmd, ExtraServo> extra_servo_control_sub_;
+  ros::Subscriber<spinal::ServoTorqueCmd, ExtraServo> extra_servo_torque_control_sub_;
   ros::Subscriber<spinal::ServoControlCmd, ExtraServo> extra_servo_init_duty_sub_;
 
   float init_duty_[6] = {}; //[ms]
@@ -115,6 +118,57 @@ private:
           case 5:
             {
               pwm_htim2_->Instance->CCR3 = (uint32_t)(cmd_msg.angles[i] / MAX_DUTY * MAX_PWM);
+              break;
+            }
+          default:
+            {
+              nh_->logerror("wrong extra servo id");
+            }
+          }
+      }
+  }
+
+  void servoTorqueControlCallback(const spinal::ServoTorqueCmd& cmd_msg)
+  {
+    for(int i = 0; i < cmd_msg.index_length; i++)
+      {
+        /* TODO: please implement the flag to enable the servo */
+        if(cmd_msg.torque_enable[i])
+          {
+            nh_->logwarn("the flag to enable the (extra) servo is not implemented right now");
+            continue;
+          }
+
+        switch(cmd_msg.index[i])
+          {
+          case 0:
+            {
+              pwm_htim1_->Instance->CCR1 = 0;
+              break;
+            }
+          case 1:
+            {
+              pwm_htim1_->Instance->CCR2 = 0;
+              break;
+            }
+          case 2:
+            {
+              pwm_htim1_->Instance->CCR3 = 0;
+              break;
+            }
+          case 3:
+            {
+              pwm_htim2_->Instance->CCR1 = 0;
+              break;
+            }
+          case 4:
+            {
+              pwm_htim2_->Instance->CCR2 = 0;
+              break;
+            }
+          case 5:
+            {
+              pwm_htim2_->Instance->CCR3 = 0;
               break;
             }
           default:
