@@ -13,56 +13,9 @@ from python_qt_binding.QtGui import *
 from python_qt_binding.QtCore import *
 import distutils.util
 from functools import partial
+from operator import add
 
-
-class MyTableModel(QAbstractTableModel):
-    def __init__(self, list, headers = [], parent = None):
-        QAbstractTableModel.__init__(self, parent)
-        self.list = list
-        self.headers = headers
-
-    def rowCount(self, parent):
-        return len(self.list)
-
-    def columnCount(self, parent):
-        return len(self.list[0])
-
-    def flags(self, index):
-        return Qt.ItemIsEnabled | Qt.ItemIsSelectable
-
-    def data(self, index, role):
-        if role == Qt.EditRole:
-            row = index.row()
-            column = index.column()
-            return self.list[row][column]
-
-        if role == Qt.DisplayRole:
-            row = index.row()
-            column = index.column()
-            value = self.list[row][column]
-            return value
-
-    def setData(self, index, value, role = Qt.EditRole):
-        if role == Qt.EditRole:
-            row = index.row()
-            column = index.column()
-            self.list[row][column] = value
-            self.dataChanged.emit(index, index)
-            return True
-        return False
-
-    def headerData(self, section, orientation, role):
-
-        if role == Qt.DisplayRole:
-
-            if orientation == Qt.Horizontal:
-
-                if section < len(self.headers):
-                    return self.headers[section]
-                else:
-                    return("not implemented")
-            else:
-                return("servo %d" % section)
+#def _servo
 
 class ServoMonitor(Plugin):
 
@@ -95,10 +48,20 @@ class ServoMonitor(Plugin):
         self._widget.setObjectName('ServoMonitor')
 
         self._widget.boardInfoUpdateButton.clicked.connect(self.updateButtonCallback)
-        # self._widget.boardInfoTreeView.setSelectionBehavior(QAbstractItemView.SelectRows)
-        self._widget.servoTableView.clicked.connect(self.tableClickedCallback)
-        # self._widget.configureButton.clicked.connect(self.configureButtonCallback)
-        self._widget.servoTableView.verticalHeader().sectionClicked.connect(self.verticalHeaderClickedCallback)
+        self._widget.allServoOnButton.clicked.connect(self.allServoOnButtonCallback)
+        self._widget.allServoOffButton.clicked.connect(self.allServoOffButtonCallback)
+        self._widget.servoTableWidget.clicked.connect(self.tableClickedCallback)
+
+        self._widget.servoTableWidget.setContextMenuPolicy(Qt.ActionsContextMenu)
+        servoOnAction = QAction("servo on", self._widget.servoTableWidget)
+        servoOnAction.triggered.connect(self.servoOn)
+        self._widget.servoTableWidget.addAction(servoOnAction)
+        servoOffAction = QAction("servo off", self._widget.servoTableWidget)
+        servoOffAction.triggered.connect(self.servoOff)
+        self._widget.servoTableWidget.addAction(servoOffAction)
+        jointCalibAction = QAction("joint calib", self._widget.servoTableWidget)
+        jointCalibAction.triggered.connect(self.jointCalib)
+        self._widget.servoTableWidget.addAction(jointCalibAction)
 
         self._table_data = []
         self._board_id = None
@@ -111,7 +74,7 @@ class ServoMonitor(Plugin):
             self._widget.setWindowTitle(self._widget.windowTitle() + (' (%d)' % context.serial_number()))
         # Add widget to the user interface
         context.add_widget(self._widget)
-        self.headers = ["board", "id", "angle", "temperature", "load", "error", "pid_gains", "profile_velocity", "current_limit", "send_data_flag", "servo on", "servo off", "calibration"]
+        self._headers = ["board", "index", "id", "angle", "temperature", "load", "error", "pid_gains", "profile_velocity", "current_limit", "send_data_flag", "servo on", "servo off", "calibration"]
 
         self._widget.setLayout(self._widget.gridLayout)
         self.updateButtonCallback()
@@ -139,36 +102,91 @@ class ServoMonitor(Plugin):
         # This will enable a setting button (gear icon) in each dock widget title bar
         # Usually used to open a modal configuration dialog
 
-    def verticalHeaderClickedCallback(self):
-        row = self._widget.servoTableView.currentIndex().row()
-        print(row)
-        
+    def servoTorqueControl(self, enable):
+        servo_index = self._widget.servoTableWidget.currentIndex().row()
+        msg = ServoTorqueCmd()
+        msg.index = chr(servo_index)
+        msg.torque_enable = chr(enable)
+        self.servo_torque_pub_.publish(msg)
+
+    def servoOn(self):
+        self.servoTorqueControl(1)
+
+    def servoOff(self):
+        self.servoTorqueControl(0)
+
+    def allServoTorqueControl(self, enable):
+        servo_num = self._widget.servoTableWidget.rowCount()
+        msg = ServoTorqueCmd()
+        msg.index = reduce(add, [chr(i) for i in range(servo_num)])
+        msg.torque_enable = reduce(add, [chr(enable)] * servo_num)
+        self.servo_torque_pub_.publish(msg)
+
+    def allServoOnButtonCallback(self):
+        self.allServoTorqueControl(1)
+
+    def allServoOffButtonCallback(self):
+        self.allServoTorqueControl(0)
+
+    def jointCalib(self):
+        servo_index = self._widget.servoTableWidget.currentIndex().row()
+        req = SetBoardConfigRequest()
+        req.data.append(int(self._widget.servoTableWidget.item(servo_index, 0).text())) #board id
+        req.data.append(int(self._widget.servoTableWidget.item(servo_index, 1).text())) #servo index
+
+        try:
+            req.data.append(int(self._widget.homingOffsetLineEdit.text()))
+        except ValueError as e:
+            print(e)
+            return
+        req.command = req.SET_SERVO_HOMING_OFFSET
+
+        #need to disable servo torque
+        servo_trq_msg = ServoTorqueCmd()
+        servo_trq_msg.index = chr(servo_index)
+        servo_trq_msg.torque_enable = chr(0)
+        self.servo_torque_pub_.publish(servo_trq_msg)
+        rospy.sleep(0.5)
+
+        rospy.loginfo('published message')
+        rospy.loginfo('command: ' + str(req.command))
+        rospy.loginfo('data: ' + str(req.data))
+        rospy.wait_for_service('/set_board_config')
+        try:
+            res = self.set_board_config_client_(req)
+            rospy.loginfo(bool(res.success))
+        except rospy.ServiceException, e:
+            print("/set_board_config service call failed: %s"%e)
 
 
     def servoStateCallback(self, msg):
         for s in msg.servos:
-            self._table_data[s.index][2] = s.angle
-            self._table_data[s.index][3] = s.temp
-            self._table_data[s.index][4] = s.load
-            self._table_data[s.index][5] = s.error
+            self._table_data[s.index][3] = s.angle
+            self._table_data[s.index][4] = s.temp
+            self._table_data[s.index][5] = s.load
+            self._table_data[s.index][6] = s.error
 
     def update(self):
-        model = MyTableModel(self._table_data, self.headers)
-        self._widget.servoTableView.setModel(model)
-        btn_cell = QPushButton("servo on", self._widget)
-        i = 1
-        func = lambda x=None: print(x)
-        btn_cell.clicked.connect(partial(func, x=i))
-        self._widget.servoTableView.setIndexWidget(self._widget.servoTableView.model().index(0, 0), btn_cell)
-        btn_cell = QPushButton("servo off", self._widget)
-        i = 2
-        btn_cell.clicked.connect(partial(func, x=i))
-        self._widget.servoTableView.setIndexWidget(self._widget.servoTableView.model().index(0, 1), btn_cell)
+        self._widget.servoTableWidget.setRowCount(len(self._table_data))
+        self._widget.servoTableWidget.setColumnCount(len(self._table_data[0]))
+        for i in range(len(self._table_data)):
+            for j in range(len(self._table_data[0])):
+                item = QTableWidgetItem(str(self._table_data[i][j]))
 
-        self._widget.servoTableView.show()
+                self._widget.servoTableWidget.setItem(i, j, item)
 
-    def servoButtonClicked(self):
-        print("hoge")
+        #self._widget.servoTableWidget.setHorizontalHeaderLabels(self._headers)
+        #self._widget.servoTableWidget.horizontalHeaderItem(3).setBackground(Qt.blue)
+
+        for i, h in enumerate(self._headers):
+            item = QTableWidgetItem(str(h))
+            self._widget.servoTableWidget.setHorizontalHeaderItem(i, item)
+
+        for i in range(len(self._table_data)):
+            item = QTableWidgetItem('servo' + str(i))
+            self._widget.servoTableWidget.setVerticalHeaderItem(i, item)
+
+        self._widget.servoTableWidget.show()
 
     def updateButtonCallback(self):
         rospy.wait_for_service('/get_board_info')
@@ -178,9 +196,10 @@ class ServoMonitor(Plugin):
             servo_index = 0
             self._table_data = []
             for b in res.boards:
-                for s in b.servos:
+                for i, s in enumerate(b.servos):
                     rowData = []
                     rowData.append(b.slave_id)
+                    rowData.append(i)
                     rowData.append(s.id)
                     rowData.extend([None] * 4)
                     rowData.append(str(s.p_gain) + ', ' + str(s.i_gain) + ', ' + str(s.d_gain))
@@ -194,8 +213,8 @@ class ServoMonitor(Plugin):
             print("/get_board_info service call failed: %s"%e)
 
     def tableClickedCallback(self):
-        col = self._widget.servoTableView.currentIndex().column()
-        row = self._widget.servoTableView.currentIndex().row()
+        col = self._widget.servoTableWidget.currentIndex().column()
+        row = self._widget.servoTableWidget.currentIndex().row()
         print(col)
         print(row)
 
