@@ -24,6 +24,7 @@ add_message_files(
   ServoStates.msg
   ServoControlCmd.msg
   ServoTorqueCmd.msg
+  ServoTorqueStates.msg
   Gyro.msg
   SimpleImu.msg
   FourAxisCommand.msg
