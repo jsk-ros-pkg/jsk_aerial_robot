@@ -29,7 +29,10 @@ namespace Spine
     /* ros */
     constexpr uint8_t SERVO_PUB_INTERVAL = 20; //[ms]
     spinal::ServoStates servo_state_msg_;
+    spinal::ServoTorqueStates servo_torque_state_msg_;
     ros::Publisher servo_state_pub_("/servo/states", &servo_state_msg_);
+    ros::Publisher servo_torque_state_pub_("/servo/torque_states", &servo_torque_state_msg_);
+
 #if SEND_GYRO
     hydrus::Gyro gyro_msg_;
     ros::Publisher gyro_pub_("/hydrus_gyro", &gyro_msg_);
@@ -91,6 +94,7 @@ namespace Spine
     /* ros */
     nh_ = nh;
     nh_->advertise(servo_state_pub_);
+    nh_->advertise(servo_torque_state_pub_);
 #if SEND_GYRO
     nh_->advertise(gyro_pub_);
 #endif
@@ -146,6 +150,8 @@ namespace Spine
 
     servo_state_msg_.servos_length = servo_with_send_flag_.size();
     servo_state_msg_.servos = new spinal::ServoState[servo_with_send_flag_.size()];
+    servo_torque_state_msg_.torque_enable_length = servo_.size();
+    servo_torque_state_msg_.torque_enable = new uint8_t[servo_.size()];
 
     /* other component */
     imu_weight_.resize(slave_num_ + 1);
@@ -231,7 +237,14 @@ namespace Spine
 
             servo_state_msg_.servos[i] = servo;
           }
+
+        for (unsigned int i = 0; i < servo_.size(); i++)
+          {
+            servo_torque_state_msg_.torque_enable[i] = servo_.at(i).get().getTorqueEnable() ? 1 : 0;
+          }
+
         servo_state_pub_.publish(&servo_state_msg_);
+        servo_torque_state_pub_.publish(&servo_torque_state_msg_);
 
 
 #if SEND_GYRO

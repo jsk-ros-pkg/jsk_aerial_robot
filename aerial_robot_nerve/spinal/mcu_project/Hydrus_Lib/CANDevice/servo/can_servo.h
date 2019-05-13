@@ -43,6 +43,7 @@ public:
 	uint8_t getPresentTemperature() const {return present_temperature_;}
 	uint8_t getMoving() const {return moving_;}
 	uint8_t getError() const {return error_;}
+	bool getTorqueEnable() const {return torque_enable_;}
 	void setIndex(uint8_t index) {index_ = index;}
 	void setGoalPosition(int16_t goal_position) {goal_position_ = goal_position;}
 	void setTorqueEnable(bool torque_enable) {torque_enable_ = torque_enable;}
