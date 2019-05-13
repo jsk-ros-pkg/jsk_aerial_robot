@@ -25,7 +25,11 @@ void DynamixelSerial::init(UART_HandleTypeDef* huart)
 		servo_[i].led_ = false;
 	}
 	cmdSyncWriteLed();
-	getHomingOffset();
+	HAL_Delay(100);
+	getHomingOffset(); // This operation always fails after the servo motor is ignited first
+	HAL_Delay(100);    //
+	getHomingOffset(); // So this line is necessary
+	HAL_Delay(100);
 	getCurrentLimit();
 
 	for (int i = 0; i < MAX_SERVO_NUM; i++) {
