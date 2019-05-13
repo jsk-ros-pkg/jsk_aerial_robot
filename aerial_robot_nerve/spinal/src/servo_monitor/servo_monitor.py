@@ -176,12 +176,30 @@ class ServoMonitor(Plugin):
         except rospy.ServiceException, e:
             print("/set_board_config service call failed: %s"%e)
 
+    def error2string(self, error):
+        error_list = []
+        if error & 0b100000:
+            error_list.append('Overload Error')
+        if error & 0b10000:
+            error_list.append('Electrical Shock Error')
+        if error & 0b1000:
+            error_list.append('Motor Encoder Error')
+        if error & 0b100:
+            error_list.append('Overheating Error')
+        if error & 0b1:
+            error_list.append('Input Voltage Error')
+
+        if error_list:
+            return reduce(lambda a, b: a + ', ' + b, error_list)
+        else:
+            return 'No Error'
+
     def servoStateCallback(self, msg):
         for s in msg.servos:
             self._table_data[s.index][4] = s.angle
             self._table_data[s.index][5] = s.temp
             self._table_data[s.index][6] = s.load
-            self._table_data[s.index][7] = s.error
+            self._table_data[s.index][7] = self.error2string(int(s.error))
 
     def servoTorqueStatesCallback(self, msg):
         for i, s in enumerate(msg.torque_enable):
@@ -202,10 +220,6 @@ class ServoMonitor(Plugin):
 
         for i, h in enumerate(self._headers):
             item = QTableWidgetItem(str(h))
-            #size = QSize()
-            #size.setWidth(300)
-            #size.setHeight(30)
-            #item.setSizeHint(size)
             self._widget.servoTableWidget.setHorizontalHeaderItem(i, item)
 
         for i in range(len(self._table_data)):
