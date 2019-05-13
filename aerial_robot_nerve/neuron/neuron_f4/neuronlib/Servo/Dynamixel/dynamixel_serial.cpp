@@ -5,12 +5,13 @@ void DynamixelSerial::init(UART_HandleTypeDef* huart)
 	huart_ = huart;
 
 	servo_num_ = 0;
+
 	std::fill(servo_.begin(), servo_.end(), ServoData(255));
 
 	//initialize servo motors
 	ping();
 	for (unsigned int i = 0; i < servo_num_; i++) {
-		reboot(servo_[i].id_);
+		reboot(i);
 	}
 	HAL_Delay(500);
 
@@ -54,9 +55,9 @@ void DynamixelSerial::ping()
 	}
 }
 
-void DynamixelSerial::reboot(uint8_t id)
+void DynamixelSerial::reboot(uint8_t servo_index)
 {
-	cmdReboot(id);
+	cmdReboot(servo_[servo_index].id_);
 }
 
 void DynamixelSerial::setTorque(uint8_t servo_index)

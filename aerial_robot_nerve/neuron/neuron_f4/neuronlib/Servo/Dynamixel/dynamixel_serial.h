@@ -304,7 +304,7 @@ public:
 
   void init(UART_HandleTypeDef* huart);
   void ping();
-  void reboot(uint8_t id);
+  void reboot(uint8_t servo_index);
   void setTorque(uint8_t servo_index);
   void setHomingOffset(uint8_t servo_index);
   void setPositionGain(uint8_t servo_index);

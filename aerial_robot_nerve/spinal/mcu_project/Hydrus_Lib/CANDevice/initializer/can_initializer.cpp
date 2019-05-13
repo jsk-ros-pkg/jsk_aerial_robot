@@ -121,6 +121,16 @@ void CANInitializer::configDevice(const spinal::SetBoardConfig::Request& req)
 			sendMessage(1);
 			break;
 		}
+
+		case spinal::SetBoardConfig::Request::REBOOT:
+		{
+			uint8_t send_data[1];
+			send_data[0] = CAN::BOARD_CONFIG_REBOOT;
+			setMessage(CAN::MESSAGEID_RECEIVE_BOARD_CONFIG_REQUEST, slave_id, 1, send_data);
+			sendMessage(1);
+			break;
+		}
+
 		default:
 			break;
 	}

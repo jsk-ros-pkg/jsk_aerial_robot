@@ -116,6 +116,11 @@ void Initializer::receiveDataCallback(uint8_t message_id, uint32_t DLC, uint8_t*
 			servo_.servo_handler_.setCurrentLimit(servo_index);
 			break;
 		}
+		case CAN::BOARD_CONFIG_REBOOT:
+		{
+			NVIC_SystemReset();
+			break;
+		}
 		default:
 			break;
 		}

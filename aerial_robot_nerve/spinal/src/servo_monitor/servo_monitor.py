@@ -59,6 +59,9 @@ class ServoMonitor(Plugin):
         jointCalibAction = QAction("joint calib", self._widget.servoTableWidget)
         jointCalibAction.triggered.connect(self.jointCalib)
         self._widget.servoTableWidget.addAction(jointCalibAction)
+        boardRebootAction = QAction("board reboot", self._widget.servoTableWidget)
+        boardRebootAction.triggered.connect(self.boardReboot)
+        self._widget.servoTableWidget.addAction(boardRebootAction)
 
         self._table_data = []
         self._board_id = None
@@ -146,6 +149,22 @@ class ServoMonitor(Plugin):
         servo_trq_msg.torque_enable = chr(0)
         self.servo_torque_pub_.publish(servo_trq_msg)
         rospy.sleep(0.5)
+
+        rospy.loginfo('published message')
+        rospy.loginfo('command: ' + str(req.command))
+        rospy.loginfo('data: ' + str(req.data))
+        rospy.wait_for_service('/set_board_config')
+        try:
+            res = self.set_board_config_client_(req)
+            rospy.loginfo(bool(res.success))
+        except rospy.ServiceException, e:
+            print("/set_board_config service call failed: %s"%e)
+
+    def boardReboot(self):
+        servo_index = self._widget.servoTableWidget.currentIndex().row()
+        req = SetBoardConfigRequest()
+        req.data.append(int(self._widget.servoTableWidget.item(servo_index, 1).text())) #board id
+        req.command = req.REBOOT
 
         rospy.loginfo('published message')
         rospy.loginfo('command: ' + str(req.command))
