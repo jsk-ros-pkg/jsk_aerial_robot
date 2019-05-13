@@ -385,7 +385,11 @@ int8_t DynamixelSerial::readStatusPacket(void) /* Receive status packet to Dynam
 	{
 		volatile int32_t present_position = ((parameters[3] << 24) & 0xFF000000) | ((parameters[2] << 16) & 0xFF0000) | ((parameters[1] << 8) & 0xFF00) | (parameters[0] & 0xFF);
 		if (s != servo_.end()) {
-			s->present_position_ = present_position;
+			if (s->first_get_pos_flag_) {
+				s->internal_offset_ = std::floor(present_position / 4096.0) * -4096;
+				s->first_get_pos_flag_ = false;
+			}
+			s->setPresentPosition(present_position);
 		}
 	    return 0;
 	}
@@ -586,10 +590,11 @@ void DynamixelSerial::cmdSyncWriteGoalPosition()
 	uint8_t parameters[INSTRUCTION_PACKET_SIZE];
 
 	for (unsigned int i = 0; i < servo_num_; i++) {
-		parameters[i * 4 + 0] = (uint8_t)((int32_t)(servo_[i].goal_position_) & 0xFF);
-		parameters[i * 4 + 1] = (uint8_t)(((int32_t)(servo_[i].goal_position_) >> 8) & 0xFF);
-		parameters[i * 4 + 2] = (uint8_t)(((int32_t)(servo_[i].goal_position_) >> 16) & 0xFF);
-		parameters[i * 4 + 3] = (uint8_t)(((int32_t)(servo_[i].goal_position_) >> 24) & 0xFF);
+		int32_t goal_position = servo_[i].getGoalPosition();
+		parameters[i * 4 + 0] = (uint8_t)((int32_t)(goal_position) & 0xFF);
+		parameters[i * 4 + 1] = (uint8_t)(((int32_t)(goal_position) >> 8) & 0xFF);
+		parameters[i * 4 + 2] = (uint8_t)(((int32_t)(goal_position) >> 16) & 0xFF);
+		parameters[i * 4 + 3] = (uint8_t)(((int32_t)(goal_position) >> 24) & 0xFF);
 	}
 
 	cmdSyncWrite(CTRL_GOAL_POSITION, parameters, GOAL_POSITION_BYTE_LEN);

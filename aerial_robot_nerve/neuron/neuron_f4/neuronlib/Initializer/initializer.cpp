@@ -40,8 +40,8 @@ void Initializer::receiveDataCallback(uint8_t message_id, uint32_t DLC, uint8_t*
 			setMessage(CAN::MESSAGEID_SEND_INITIAL_CONFIG_1, m_slave_id, 8, data);
 			sendMessage(1);
 			data[0] = i;
-			data[1] = s.present_position_ & 0xFF;
-			data[2] = (s.present_position_ >> 8) & 0xFF;
+			data[1] = s.getPresentPosition() & 0xFF;
+			data[2] = (s.getPresentPosition() >> 8) & 0xFF;
 			data[3] = s.profile_velocity_ & 0xFF;
 			data[4] = (s.profile_velocity_ >> 8) & 0xFF;
 			data[5] = s.current_limit_ & 0xFF;

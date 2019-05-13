@@ -14,6 +14,7 @@
 #include <array>
 #include <algorithm>
 #include <utility>
+#include <cmath>
 #include "flashmemory.h"
 
 /* first should set the baudrate to 1000000*/
@@ -266,13 +267,11 @@ private:
 class ServoData {
 public:
 	ServoData(){}
-	ServoData(uint8_t id): id_(id), torque_enable_(false){}
+	ServoData(uint8_t id): id_(id), torque_enable_(false), first_get_pos_flag_(true){}
 
 	uint8_t id_;
 	int32_t homing_offset_;
 	int32_t offset_value_;
-	int32_t goal_position_;
-	int32_t present_position_;
 	uint8_t present_temp_;
 	int16_t present_current_;
 	uint8_t moving_;
@@ -281,11 +280,21 @@ public:
 	uint16_t profile_velocity_;
 	uint16_t current_limit_;
 	uint16_t send_data_flag_;
+	int32_t internal_offset_;
 	bool led_;
 	bool torque_enable_;
-	int32_t getNewHomingOffset() {return offset_value_ + homing_offset_ - present_position_;}
+	bool first_get_pos_flag_;
+	int32_t getNewHomingOffset() const {return offset_value_ + homing_offset_ - present_position_;}
+	void setPresentPosition(int32_t present_position) {present_position_ = present_position + internal_offset_;}
+	int32_t getPresentPosition() const {return present_position_;}
+	void setGoalPosition(int32_t goal_position) {goal_position_ = goal_position - internal_offset_;}
+	int32_t getGoalPosition() const {return goal_position_;}
 
 	bool operator==(const ServoData& r) const {return this->id_ == r.id_;}
+
+private:
+	int32_t present_position_;
+	int32_t goal_position_;
 };
 
 class DynamixelSerial
