@@ -384,7 +384,7 @@ int8_t DynamixelSerial::readStatusPacket(void) /* Receive status packet to Dynam
 	    return 0;
 	case INST_GET_PRESENT_POS:
 	{
-		volatile int32_t present_position = ((parameters[3] << 24) & 0xFF000000) | ((parameters[2] << 16) & 0xFF0000) | ((parameters[1] << 8) & 0xFF00) | (parameters[0] & 0xFF);
+		int32_t present_position = ((parameters[3] << 24) & 0xFF000000) | ((parameters[2] << 16) & 0xFF0000) | ((parameters[1] << 8) & 0xFF00) | (parameters[0] & 0xFF);
 		if (s != servo_.end()) {
 			if (s->first_get_pos_flag_) {
 				s->internal_offset_ = std::floor(present_position / 4096.0) * -4096;
