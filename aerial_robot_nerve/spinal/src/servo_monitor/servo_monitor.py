@@ -121,6 +121,9 @@ class ServoMonitor(Plugin):
 
     def servoTorqueControl(self, enable):
         servo_index = self._widget.servoTableWidget.currentIndex().row()
+        if servo_index == -1:
+            rospy.logerr("No servo exists")
+            return
         msg = ServoTorqueCmd()
         msg.index = chr(servo_index)
         msg.torque_enable = chr(enable)
@@ -134,6 +137,9 @@ class ServoMonitor(Plugin):
 
     def allServoTorqueControl(self, enable):
         servo_num = self._widget.servoTableWidget.rowCount()
+        if servo_num == 0:
+            rospy.logerr("No servo exists")
+            return
         msg = ServoTorqueCmd()
         msg.index = reduce(add, [chr(i) for i in range(servo_num)])
         msg.torque_enable = reduce(add, [chr(enable)] * servo_num)
@@ -147,6 +153,10 @@ class ServoMonitor(Plugin):
 
     def jointCalib(self):
         servo_index = self._widget.servoTableWidget.currentIndex().row()
+        if servo_index == -1:
+            rospy.logerr("No servo exists")
+            return
+
         req = SetBoardConfigRequest()
         req.data.append(int(self._widget.servoTableWidget.item(servo_index, self._headers.index("board")).text())) #board id
         req.data.append(int(self._widget.servoTableWidget.item(servo_index, self._headers.index("index")).text())) #servo index
@@ -177,6 +187,10 @@ class ServoMonitor(Plugin):
 
     def boardReboot(self):
         servo_index = self._widget.servoTableWidget.currentIndex().row()
+        if servo_index == -1:
+            rospy.logerr("No servo exists")
+            return
+
         req = SetBoardConfigRequest()
         req.data.append(int(self._widget.servoTableWidget.item(servo_index, 1).text())) #board id
         req.command = req.REBOOT
@@ -221,6 +235,8 @@ class ServoMonitor(Plugin):
             self._table_data[i][self._headers.index("torque")] = "on" if bool(ord(s)) else "off"
 
     def update(self):
+        if not self._table_data:
+            return
         self._widget.servoTableWidget.setRowCount(len(self._table_data))
         self._widget.servoTableWidget.setColumnCount(len(self._table_data[0]))
         for i in range(len(self._table_data)):
@@ -245,7 +261,11 @@ class ServoMonitor(Plugin):
         self._widget.servoTableWidget.show()
 
     def updateButtonCallback(self):
-        rospy.wait_for_service('/get_board_info')
+        try:
+            rospy.wait_for_service('/get_board_info', timeout = 0.5)
+        except rospy.ROSException, e:
+            rospy.logerr(e)
+
         try:
             res = self.get_board_info_client_()
 
@@ -269,4 +289,4 @@ class ServoMonitor(Plugin):
                     self._table_data.append(rowData)
 
         except rospy.ServiceException, e:
-            print("/get_board_info service call failed: %s"%e)
+            rospy.logerr("/get_board_info service call failed: %s"%e)

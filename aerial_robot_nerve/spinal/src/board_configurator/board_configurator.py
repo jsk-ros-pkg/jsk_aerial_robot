@@ -87,7 +87,11 @@ class BoardConfigurator(Plugin):
         # This will enable a setting button (gear icon) in each dock widget title bar
         # Usually used to open a modal configuration dialog
     def updateButtonCallback(self):
-        rospy.wait_for_service('/get_board_info')
+        try:
+            rospy.wait_for_service('/get_board_info', timeout = 0.5)
+        except rospy.ROSException, e:
+            rospy.logerr(e)
+
         try:
             res = self.get_board_info_client_()
 
@@ -118,13 +122,13 @@ class BoardConfigurator(Plugin):
                 # span container columns
                 self._widget.boardInfoTreeView.setFirstColumnSpanned(i, self._widget.boardInfoTreeView.rootIndex(), True)
 
-            self._widget.boardInfoTreeView.setColumnWidth(0, 250)
-            self._widget.boardInfoTreeView.setColumnWidth(1, 70)
-            self._widget.boardInfoTreeView.expandAll()
-            self._widget.boardInfoTreeView.show()
-
         except rospy.ServiceException, e:
-            print "/get_board_info service call failed: %s"%e
+            rospy.logerr("/get_board_info service call failed: %s"%e)
+
+        self._widget.boardInfoTreeView.setColumnWidth(0, 250)
+        self._widget.boardInfoTreeView.setColumnWidth(1, 70)
+        self._widget.boardInfoTreeView.expandAll()
+        self._widget.boardInfoTreeView.show()
 
     def treeClickedCallback(self):
         col = self._widget.boardInfoTreeView.currentIndex().column()
@@ -156,7 +160,11 @@ class BoardConfigurator(Plugin):
 
     def configureButtonCallback(self):
         req = SetBoardConfigRequest()
-        req.data.append(int(self._board_id))
+        if self._board_id:
+            req.data.append(int(self._board_id))
+        else:
+            rospy.logerr("board id is not registered")
+            return
 
         if self._command == 'board_id':
             try:
