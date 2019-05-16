@@ -28,6 +28,7 @@ namespace Spine
 
     /* ros */
     constexpr uint8_t SERVO_PUB_INTERVAL = 20; //[ms]
+    constexpr uint8_t SERVO_TORQUE_PUB_INTERVAL = 1000; //[ms]
     spinal::ServoStates servo_state_msg_;
     spinal::ServoTorqueStates servo_torque_state_msg_;
     ros::Publisher servo_state_pub_("/servo/states", &servo_state_msg_);
@@ -46,7 +47,8 @@ namespace Spine
     spinal::GetBoardInfo::Response board_info_res_;
 
     ros::NodeHandle* nh_;
-    uint32_t last_pub_time_;
+    uint32_t servo_last_pub_time_ = 0;
+    uint32_t servo_torque_last_pub_time_ = 0;
     unsigned int can_idle_count_ = 0;
     bool servo_control_flag_ = true;
   }
@@ -221,7 +223,7 @@ namespace Spine
 
     /* ros publish */
     uint32_t now_time = HAL_GetTick();
-    if( now_time - last_pub_time_ >= SERVO_PUB_INTERVAL)
+    if( now_time - servo_last_pub_time_ >= SERVO_PUB_INTERVAL)
       {
     	/* send servo */
     	servo_state_msg_.stamp = nh_->now();
@@ -238,14 +240,8 @@ namespace Spine
             servo_state_msg_.servos[i] = servo;
           }
 
-        for (unsigned int i = 0; i < servo_.size(); i++)
-          {
-            servo_torque_state_msg_.torque_enable[i] = servo_.at(i).get().getTorqueEnable() ? 1 : 0;
-          }
-
         servo_state_pub_.publish(&servo_state_msg_);
-        servo_torque_state_pub_.publish(&servo_torque_state_msg_);
-
+        servo_last_pub_time_ = now_time;
 
 #if SEND_GYRO
         /* send gyro data */
@@ -259,7 +255,17 @@ namespace Spine
         gyro_pub_.publish(&gyro_msg_);
 #endif
 
-        last_pub_time_ = now_time;
+      }
+
+    if( now_time - servo_torque_last_pub_time_ >= SERVO_TORQUE_PUB_INTERVAL)
+      {
+    	for (unsigned int i = 0; i < servo_.size(); i++)
+    	  {
+    		servo_torque_state_msg_.torque_enable[i] = servo_.at(i).get().getTorqueEnable() ? 1 : 0;
+    	  }
+    	servo_torque_state_pub_.publish(&servo_torque_state_msg_);
+    	servo_torque_last_pub_time_ = now_time;
+
       }
 
     CANDeviceManager::tick(1);
