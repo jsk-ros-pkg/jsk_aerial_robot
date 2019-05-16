@@ -14,6 +14,7 @@ from python_qt_binding.QtCore import *
 import distutils.util
 from functools import partial
 from operator import add
+import xml.etree.ElementTree as ET
 
 
 class ServoMonitor(Plugin):
@@ -74,9 +75,23 @@ class ServoMonitor(Plugin):
             self._widget.setWindowTitle(self._widget.windowTitle() + (' (%d)' % context.serial_number()))
         # Add widget to the user interface
         context.add_widget(self._widget)
-        self._headers = ["torque", "board", "index", "id", "angle", "temperature", "load", "error", "pid_gains", "profile_velocity", "current_limit", "send_data_flag", "servo on", "servo off", "calibration"]
+        self._headers = ["torque", "joint name", "board", "index", "id", "angle", "temperature", "load", "error", "pid_gains", "profile_velocity", "current_limit", "send_data_flag"]
 
         self._widget.setLayout(self._widget.gridLayout)
+        self.joint_id_name_map = {}
+        try:
+            root = ET.fromstring(rospy.get_param("robot_description"))
+            robot_name = root.attrib['name']
+            param_tree = rospy.get_param(robot_name + "/servo_controller")
+            ctrl_pub_topic = '/servo/target_states'
+
+            for key in param_tree.keys():
+                if param_tree[key]['ctrl_pub_topic'] == ctrl_pub_topic:
+                    for elem in [l for l in param_tree[key].keys() if 'controller' in l]:
+                        self.joint_id_name_map[param_tree[key][elem]['id']] = param_tree[key][elem]['name']
+        except:
+            rospy.loginfo("robot info not found")
+
         self.updateButtonCallback()
         self.servo_state_sub_ = rospy.Subscriber('/servo/states', ServoStates, self.servoStateCallback)
         self.servo_torque_state_sub_ = rospy.Subscriber('/servo/torque_states', ServoTorqueStates, self.servoTorqueStatesCallback)
@@ -133,8 +148,8 @@ class ServoMonitor(Plugin):
     def jointCalib(self):
         servo_index = self._widget.servoTableWidget.currentIndex().row()
         req = SetBoardConfigRequest()
-        req.data.append(int(self._widget.servoTableWidget.item(servo_index, 1).text())) #board id
-        req.data.append(int(self._widget.servoTableWidget.item(servo_index, 2).text())) #servo index
+        req.data.append(int(self._widget.servoTableWidget.item(servo_index, self._headers.index("board")).text())) #board id
+        req.data.append(int(self._widget.servoTableWidget.item(servo_index, self._headers.index("index")).text())) #servo index
 
         try:
             req.data.append(int(self._widget.homingOffsetLineEdit.text()))
@@ -196,14 +211,14 @@ class ServoMonitor(Plugin):
 
     def servoStateCallback(self, msg):
         for s in msg.servos:
-            self._table_data[s.index][4] = s.angle
-            self._table_data[s.index][5] = s.temp
-            self._table_data[s.index][6] = s.load
-            self._table_data[s.index][7] = self.error2string(int(s.error))
+            self._table_data[s.index][self._headers.index("angle")] = s.angle
+            self._table_data[s.index][self._headers.index("temperature")] = s.temp
+            self._table_data[s.index][self._headers.index("load")] = s.load
+            self._table_data[s.index][self._headers.index("error")] = self.error2string(int(s.error))
 
     def servoTorqueStatesCallback(self, msg):
         for i, s in enumerate(msg.torque_enable):
-            self._table_data[i][0] = "on" if bool(ord(s)) else "off"
+            self._table_data[i][self._headers.index("torque")] = "on" if bool(ord(s)) else "off"
 
     def update(self):
         self._widget.servoTableWidget.setRowCount(len(self._table_data))
@@ -240,6 +255,8 @@ class ServoMonitor(Plugin):
                 for i, s in enumerate(b.servos):
                     rowData = []
                     rowData.append(None)
+                    rowData.append(self.joint_id_name_map.get(servo_index))
+                    servo_index += 1
                     rowData.append(b.slave_id)
                     rowData.append(i)
                     rowData.append(s.id)
