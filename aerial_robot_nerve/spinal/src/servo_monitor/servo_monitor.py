@@ -192,7 +192,7 @@ class ServoMonitor(Plugin):
             return
 
         req = SetBoardConfigRequest()
-        req.data.append(int(self._widget.servoTableWidget.item(servo_index, 1).text())) #board id
+        req.data.append(int(self._widget.servoTableWidget.item(servo_index, self._headers.index("board")).text())) #board id
         req.command = req.REBOOT
 
         rospy.loginfo('published message')
