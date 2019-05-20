@@ -13,6 +13,38 @@ void Initializer::sendData()
 	return;
 }
 
+void Initializer::sendBoardConfig()
+{
+	uint8_t data[8];
+	data[0] = servo_.servo_handler_.getServoNum();
+	data[1] = imu_.send_data_flag_ ? 1 : 0;
+	setMessage(CAN::MESSAGEID_SEND_INITIAL_CONFIG_0, m_slave_id, 2, data);
+	sendMessage(1);
+	for (unsigned int i = 0; i < servo_.servo_handler_.getServoNum(); i++) {
+		const ServoData& s = servo_.servo_handler_.getServo()[i];
+		data[0] = i;
+		data[1] = s.id_;
+		data[2] = s.p_gain_ & 0xFF;
+		data[3] = (s.p_gain_ >> 8) & 0xFF;
+		data[4] = s.i_gain_ & 0xFF;
+		data[5] = (s.i_gain_ >> 8) & 0xFF;
+		data[6] = s.d_gain_ & 0xFF;
+		data[7] = (s.d_gain_ >> 8) & 0xFF;
+		setMessage(CAN::MESSAGEID_SEND_INITIAL_CONFIG_1, m_slave_id, 8, data);
+		sendMessage(1);
+		data[0] = i;
+		data[1] = s.getPresentPosition() & 0xFF;
+		data[2] = (s.getPresentPosition() >> 8) & 0xFF;
+		data[3] = s.profile_velocity_ & 0xFF;
+		data[4] = (s.profile_velocity_ >> 8) & 0xFF;
+		data[5] = s.current_limit_ & 0xFF;
+		data[6] = (s.current_limit_ >> 8) & 0xFF;
+		data[7] = (s.send_data_flag_ ? 1 : 0);
+		setMessage(CAN::MESSAGEID_SEND_INITIAL_CONFIG_2, m_slave_id, 8, data);
+		sendMessage(1);
+	}
+}
+
 void Initializer::receiveDataCallback(uint8_t message_id, uint32_t DLC, uint8_t* data)
 {
 	switch (message_id) {
@@ -22,34 +54,7 @@ void Initializer::receiveDataCallback(uint8_t message_id, uint32_t DLC, uint8_t*
 		break;
 	case CAN::MESSAGEID_RECEIVE_INITIAL_CONFIG_REQUEST:
 	{
-		uint8_t data[8];
-		data[0] = servo_.servo_handler_.getServoNum();
-		data[1] = imu_.send_data_flag_ ? 1 : 0;
-		setMessage(CAN::MESSAGEID_SEND_INITIAL_CONFIG_0, m_slave_id, 2, data);
-		sendMessage(1);
-		for (unsigned int i = 0; i < servo_.servo_handler_.getServoNum(); i++) {
-			const ServoData& s = servo_.servo_handler_.getServo()[i];
-			data[0] = i;
-			data[1] = s.id_;
-			data[2] = s.p_gain_ & 0xFF;
-			data[3] = (s.p_gain_ >> 8) & 0xFF;
-			data[4] = s.i_gain_ & 0xFF;
-			data[5] = (s.i_gain_ >> 8) & 0xFF;
-			data[6] = s.d_gain_ & 0xFF;
-			data[7] = (s.d_gain_ >> 8) & 0xFF;
-			setMessage(CAN::MESSAGEID_SEND_INITIAL_CONFIG_1, m_slave_id, 8, data);
-			sendMessage(1);
-			data[0] = i;
-			data[1] = s.getPresentPosition() & 0xFF;
-			data[2] = (s.getPresentPosition() >> 8) & 0xFF;
-			data[3] = s.profile_velocity_ & 0xFF;
-			data[4] = (s.profile_velocity_ >> 8) & 0xFF;
-			data[5] = s.current_limit_ & 0xFF;
-			data[6] = (s.current_limit_ >> 8) & 0xFF;
-			data[7] = (s.send_data_flag_ ? 1 : 0);
-			setMessage(CAN::MESSAGEID_SEND_INITIAL_CONFIG_2, m_slave_id, 8, data);
-			sendMessage(1);
-		}
+		sendBoardConfig();
 	}
 	break;
 	case CAN::MESSAGEID_RECEIVE_BOARD_CONFIG_REQUEST:
@@ -84,7 +89,7 @@ void Initializer::receiveDataCallback(uint8_t message_id, uint32_t DLC, uint8_t*
 			s.p_gain_ = ((data[3] << 8) & 0xFF00) | (data[2] & 0xFF);
 			s.i_gain_ = ((data[5] << 8) & 0xFF00) | (data[4] & 0xFF);
 			s.d_gain_ = ((data[7] << 8) & 0xFF00) | (data[6] & 0xFF);
-			servo_.servo_handler_.setPositionGain(servo_index);
+			servo_.servo_handler_.setPositionGains(servo_index);
 			Flashmemory::erase();
 			Flashmemory::write();
 			break;
@@ -124,6 +129,7 @@ void Initializer::receiveDataCallback(uint8_t message_id, uint32_t DLC, uint8_t*
 		default:
 			break;
 		}
+		sendBoardConfig();
 		break;
 	default:
 		break;

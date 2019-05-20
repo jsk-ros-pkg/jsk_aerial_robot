@@ -86,6 +86,7 @@ class BoardConfigurator(Plugin):
         # Comment in to signal that the plugin has a way to configure
         # This will enable a setting button (gear icon) in each dock widget title bar
         # Usually used to open a modal configuration dialog
+
     def updateButtonCallback(self):
         try:
             rospy.wait_for_service('/get_board_info', timeout = 0.5)
@@ -229,5 +230,7 @@ class BoardConfigurator(Plugin):
         try:
             res = self.set_board_config_client_(req)
             rospy.loginfo(bool(res.success))
+            rospy.sleep(1)
+            self.updateButtonCallback()
         except rospy.ServiceException, e:
             print "/set_board_config service call failed: %s"%e

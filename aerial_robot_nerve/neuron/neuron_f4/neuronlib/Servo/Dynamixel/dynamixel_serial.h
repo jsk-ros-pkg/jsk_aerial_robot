@@ -174,20 +174,22 @@
 #define ERROR_ACCESS_ERROR				7
 
 //for instruction buffer
-#define INST_PING 						0
-#define INST_SET_GOAL_POS 				1
-#define INST_GET_PRESENT_POS			2
-#define INST_GET_PRESENT_CURRENT		3
-#define INST_GET_PRESENT_TEMPERATURE	4
+#define INST_GET_CURRENT_LIMIT			0
+#define INST_GET_HARDWARE_ERROR_STATUS  1
+#define INST_GET_HOMING_OFFSET			2
+#define INST_GET_POSITION_GAINS			3
+#define INST_GET_PRESENT_CURRENT		4
 #define INST_GET_PRESENT_MOVING			5
-#define INST_SET_TORQUE					6
-#define INST_SET_CURRENT_LIMIT			7
-#define INST_SET_HOMING_OFFSET			8
-#define INST_GET_HOMING_OFFSET			9
-#define INST_GET_HARDWARE_ERROR_STATUS  10
-#define INST_SET_POSITION_GAIN			11
-#define INST_GET_CURRENT_LIMIT			12
-#define INST_SET_PROFILE_VELOCITY		13
+#define INST_GET_PRESENT_POS			6
+#define INST_GET_PRESENT_TEMPERATURE	7
+#define INST_GET_PROFILE_VELOCITY		8
+#define INST_PING						9
+#define INST_SET_CURRENT_LIMIT			10
+#define INST_SET_GOAL_POS 				11
+#define INST_SET_HOMING_OFFSET			12
+#define INST_SET_POSITION_GAINS			13
+#define INST_SET_PROFILE_VELOCITY		14
+#define INST_SET_TORQUE					15
 
 //instruction frequency: 0 means no process
 #define SET_POS_DU 20 //[msec], 20ms => 50Hz
@@ -307,7 +309,7 @@ public:
   void reboot(uint8_t servo_index);
   void setTorque(uint8_t servo_index);
   void setHomingOffset(uint8_t servo_index);
-  void setPositionGain(uint8_t servo_index);
+  void setPositionGains(uint8_t servo_index);
   void setProfileVelocity(uint8_t servo_index);
   void setCurrentLimit(uint8_t servo_index);
   void update();
@@ -342,9 +344,11 @@ private:
   inline void cmdSyncReadHardwareErrorStatus();
   inline void cmdSyncReadHomingOffset();
   inline void cmdSyncReadMoving();
+  inline void cmdSyncReadPositionGains();
   inline void cmdSyncReadPresentCurrent();
   inline void cmdSyncReadPresentPosition();
   inline void cmdSyncReadPresentTemperature();
+  inline void cmdSyncReadProfileVelocity();
   inline void cmdSyncWriteGoalPosition();
   inline void cmdSyncWriteLed();
   inline void cmdSyncWritePositionGains();
@@ -354,6 +358,8 @@ private:
   inline void setStatusReturnLevel();
   inline void getHomingOffset();
   inline void getCurrentLimit();
+  inline void getPositionGains();
+  inline void getProfileVelocity();
 
   uint16_t calcCRC16(uint16_t crc_accum, uint8_t *data_blk_ptr, int data_blk_size);
 };

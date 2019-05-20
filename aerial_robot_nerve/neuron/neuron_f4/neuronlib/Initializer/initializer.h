@@ -22,6 +22,7 @@ private:
 public:
 	Initializer(uint16_t& slave_id, Servo& servo, IMU& imu):CANDevice(CAN::DEVICEID_INITIALIZER, slave_id), slave_id_(slave_id), servo_(servo), imu_(imu){}
 	void sendData() override;
+	void sendBoardConfig();
 	void receiveDataCallback(uint8_t message_id, uint32_t DLC, uint8_t* data) override;
 };
 

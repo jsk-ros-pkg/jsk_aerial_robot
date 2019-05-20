@@ -55,12 +55,29 @@ namespace Spine
 
   void boardInfoCallback(const spinal::GetBoardInfo::Request& req, spinal::GetBoardInfo::Response& res)
   {
+	  for (unsigned int i = 0; i < slave_num_; i++) {
+		  Neuron& neuron = neuron_.at(i);
+		  spinal::BoardInfo& board = board_info_res_.boards[i];
+		  board.imu_send_data_flag = neuron.can_imu_.getSendDataFlag() ? 1 : 0;
+		  board.slave_id = neuron.getSlaveId();
+
+		  for (unsigned int j = 0; j < board.servos_length; j++) {
+			  Servo& s = neuron.can_servo_.servo_.at(j);
+			  board.servos[j].id = s.getId();
+			  board.servos[j].p_gain = s.getPGain();
+			  board.servos[j].i_gain = s.getIGain();
+			  board.servos[j].d_gain = s.getDGain();
+			  board.servos[j].profile_velocity = s.getProfileVelocity();
+			  board.servos[j].current_limit = s.getCurrentLimit();
+			  board.servos[j].send_data_flag = s.getSendDataFlag() ? 1 : 0;
+		  }
+	  }
 	  res = board_info_res_;
   }
 
   void servoControlCallback(const spinal::ServoControlCmd& control_msg)
   {
-          if (!servo_control_flag_) return;
+      if (!servo_control_flag_) return;
 	  if (control_msg.index_length != control_msg.angles_length) return;
 	  for (unsigned int i = 0; i < control_msg.index_length; i++) {
 		  servo_.at(control_msg.index[i]).get().setGoalPosition(control_msg.angles[i]);
@@ -179,21 +196,8 @@ namespace Spine
     for (unsigned int i = 0; i < slave_num_; i++) {
     	Neuron& neuron = neuron_.at(i);
     	spinal::BoardInfo& board = board_info_res_.boards[i];
-    	board.imu_send_data_flag = neuron.can_imu_.getSendDataFlag() ? 1 : 0;
-    	board.slave_id = neuron.getSlaveId();
     	board.servos_length = neuron.can_servo_.servo_.size();
     	board.servos = new spinal::ServoInfo[board.servos_length];
-
-    	for (unsigned int j = 0; j < board.servos_length; j++) {
-    		Servo& s = neuron.can_servo_.servo_.at(j);
-    		board.servos[j].id = s.getId();
-    		board.servos[j].p_gain = s.getPGain();
-    		board.servos[j].i_gain = s.getIGain();
-    		board.servos[j].d_gain = s.getDGain();
-    		board.servos[j].profile_velocity = s.getProfileVelocity();
-    		board.servos[j].current_limit = s.getCurrentLimit();
-    		board.servos[j].send_data_flag = s.getSendDataFlag() ? 1 : 0;
-    	}
     }
   }
 

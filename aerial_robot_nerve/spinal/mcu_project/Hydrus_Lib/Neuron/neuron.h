@@ -15,8 +15,9 @@
 class Neuron {
 private:
 	uint8_t slave_id_;
+	bool initialized_;
 public:
-	Neuron(uint8_t slave_id):slave_id_(slave_id){}
+	Neuron(uint8_t slave_id):slave_id_(slave_id), initialized_(false){}
 
 	CANMotor can_motor_;
 	CANIMU can_imu_;
@@ -33,6 +34,9 @@ public:
 	}
 
 	uint8_t getSlaveId() const {return slave_id_;}
+
+	void setInitialized() {initialized_ = true;}
+	bool getInitialized() {return initialized_;}
 };
 
 

@@ -30,6 +30,7 @@ private:
 	friend class CANServo;
 	friend class CANInitializer;
 public:
+	Servo():torque_enable_(true) {}
 	uint8_t getId() const {return id_;}
 	uint8_t getIndex () const {return index_;}
 	uint16_t getPGain() const {return p_gain_;}
