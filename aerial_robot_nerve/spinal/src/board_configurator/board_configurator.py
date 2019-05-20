@@ -11,6 +11,7 @@ from python_qt_binding.QtWidgets import *
 from python_qt_binding.QtGui import *
 from python_qt_binding.QtCore import *
 import distutils.util
+import xml.etree.ElementTree as ET
 
 class BoardConfigurator(Plugin):
 
@@ -66,6 +67,21 @@ class BoardConfigurator(Plugin):
         # Add widget to the user interface
         context.add_widget(self._widget)
 
+        self.joint_id_name_map = {}
+        try:
+            root = ET.fromstring(rospy.get_param("robot_description"))
+            robot_name = root.attrib['name']
+            param_tree = rospy.get_param(robot_name + "/servo_controller")
+            ctrl_pub_topic = '/servo/target_states'
+
+            for key in param_tree.keys():
+                if param_tree[key]['ctrl_pub_topic'] == ctrl_pub_topic:
+                    for elem in [l for l in param_tree[key].keys() if 'controller' in l]:
+                        self.joint_id_name_map[param_tree[key][elem]['id']] = param_tree[key][elem]['name']
+        except:
+            rospy.loginfo("robot info not found")
+
+
         self.updateButtonCallback()
 
     def shutdown_plugin(self):
@@ -112,6 +128,7 @@ class BoardConfigurator(Plugin):
                     servo = QStandardItem(str(j))
                     servo.appendRow([QStandardItem('servo_id'), QStandardItem(str(s.id))])
                     servo.appendRow([QStandardItem('servo_serial_index'), QStandardItem(str(servo_serial_index))])
+                    servo.appendRow([QStandardItem('joint_name'), QStandardItem(str(self.joint_id_name_map.get(servo_serial_index)))])
                     servo_serial_index += 1
                     servo.appendRow([QStandardItem('pid_gain'), QStandardItem(str(s.p_gain) + ', ' + str(s.i_gain) + ', ' + str(s.d_gain))])
                     servo.appendRow([QStandardItem('profile_velocity'), QStandardItem(str(s.profile_velocity))])
