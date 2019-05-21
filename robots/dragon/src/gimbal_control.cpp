@@ -7,8 +7,8 @@ namespace control_plugin
   DragonGimbal::DragonGimbal():
     FlatnessPid(),
     servo_torque_(false), level_flag_(false), landing_flag_(false),
-    curr_desire_tilt_(0, 0, 0),
-    final_desire_tilt_(0, 0, 0),
+    curr_target_cog_rot_(0, 0, 0),
+    final_target_cog_rot_(0, 0, 0),
     roll_i_term_(0), pitch_i_term_(0), gimbal_control_stamp_(0)
   {
     need_yaw_d_control_ = true;
@@ -37,13 +37,13 @@ namespace control_plugin
 
     gimbal_control_pub_ = nh_.advertise<sensor_msgs::JointState>("/gimbals_ctrl", 1);
     joint_control_pub_ = nh_.advertise<sensor_msgs::JointState>("/joints_ctrl", 1);
-    curr_desire_tilt_pub_ = nh_.advertise<spinal::DesireCoord>("/desire_coordinate", 1);
+    curr_target_cog_rot_pub_ = nh_.advertise<spinal::DesireCoord>("/desire_coordinate", 1);
     gimbal_target_force_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("gimbals_target_force", 1);
     roll_pitch_pid_pub_ = nh_.advertise<aerial_robot_msgs::FlatnessPid>("roll_pitch_gimbal_control", 1);
 
     joint_state_sub_ = nh_.subscribe("/joint_states", 1, &DragonGimbal::jointStateCallback, this);
-    final_desire_tilt_sub_ = nh_.subscribe("/final_desire_tilt", 1, &DragonGimbal::baselinkTiltCallback, this);
-    desire_coord_sub_ = nh_.subscribe("/desire_coordinate", 1, &DragonGimbal::desireCoordCallback, this);
+    final_target_cog_rot_sub_ = nh_.subscribe("/final_desire_tilt", 1, &DragonGimbal::baselinkTiltCallback, this);
+    target_coord_sub_ = nh_.subscribe("/desire_coordinate", 1, &DragonGimbal::targetCogRotCallback, this);
 
     //dynamic reconfigure server
     roll_pitch_pid_server_ = new dynamic_reconfigure::Server<aerial_robot_base::XYPidControlConfig>(ros::NodeHandle(nhp_, "pitch_roll"));
@@ -76,10 +76,10 @@ namespace control_plugin
 
   void DragonGimbal::baselinkTiltCallback(const spinal::DesireCoordConstPtr & msg)
   {
-    final_desire_tilt_.setValue(msg->roll, msg->pitch, msg->yaw);
+    final_target_cog_rot_.setValue(msg->roll, msg->pitch, msg->yaw);
   }
 
-  void DragonGimbal::desireCoordCallback(const spinal::DesireCoordConstPtr& msg)
+  void DragonGimbal::targetCogRotCallback(const spinal::DesireCoordConstPtr& msg)
   {
     kinematics_->setCogDesireOrientation(msg->roll, msg->pitch, msg->yaw);
   }
@@ -95,7 +95,7 @@ namespace control_plugin
 
     pidUpdate(); //LQI thrust control
     gimbalControl(); //gimbal vectoring control
-    desireTilt();
+    targetCogRotation();
     sendCmd();
   }
 
@@ -122,10 +122,10 @@ namespace control_plugin
         if(!level_flag_)
           {
             joint_control_pub_.publish(joint_control_msg);
-            final_desire_tilt_.setValue(0, 0, 0);
+            final_target_cog_rot_.setValue(0, 0, 0);
 
             /* force set the current deisre tilt to current estimated tilt */
-            curr_desire_tilt_.setValue(estimator_->getState(State::ROLL_BASE, estimate_mode_)[0], estimator_->getState(State::PITCH_BASE, estimate_mode_)[0], 0);
+            curr_target_cog_rot_.setValue(estimator_->getState(State::ROLL_BASE, estimate_mode_)[0], estimator_->getState(State::PITCH_BASE, estimate_mode_)[0], 0);
           }
 
         level_flag_ = true;
@@ -151,8 +151,8 @@ namespace control_plugin
                 if(fabs(joint_state_.position[i]) > 0.085) already_level = false;
               }
           }
-        //ROS_INFO("curr_desire_tilt: [%f, %f], nomr: %f", curr_desire_tilt_.x(), curr_desire_tilt_.y(), curr_desire_tilt_.length());
-        if(curr_desire_tilt_.length()) already_level = false;
+        //ROS_INFO("curr_target_cog_rot: [%f, %f], nomr: %f", curr_target_cog_rot_.x(), curr_target_cog_rot_.y(), curr_target_cog_rot_.length());
+        if(curr_target_cog_rot_.length()) already_level = false;
 
         if(already_level && navigator_->getNaviState() == Navigator::HOVER_STATE)
           {
@@ -374,24 +374,24 @@ namespace control_plugin
     gimbal_target_force_pub_.publish(target_force_msg);
   }
 
-  void DragonGimbal::desireTilt()
+  void DragonGimbal::targetCogRotation()
   {
     static ros::Time prev_stamp = ros::Time::now();
-    if(curr_desire_tilt_ == final_desire_tilt_) return;
+    if(curr_target_cog_rot_ == final_target_cog_rot_) return;
 
-    //ROS_INFO("current desire_tilt_: [%f, %f, %f], final_desire_tilt_: [%f, %f, %f]", curr_desire_tilt_.x(), curr_desire_tilt_.y(), curr_desire_tilt_.z(), final_desire_tilt_.x(), final_desire_tilt_.y(), final_desire_tilt_.z());
+    //ROS_INFO("current target_cog_rot_: [%f, %f, %f], final_target_cog_rot_: [%f, %f, %f]", curr_target_cog_rot_.x(), curr_target_cog_rot_.y(), curr_target_cog_rot_.z(), final_target_cog_rot_.x(), final_target_cog_rot_.y(), final_target_cog_rot_.z());
 
     if(ros::Time::now().toSec() - prev_stamp.toSec() > tilt_pub_interval_)
       {
-        if((final_desire_tilt_- curr_desire_tilt_).length() > tilt_thresh_)
-          curr_desire_tilt_ += ((final_desire_tilt_ - curr_desire_tilt_).normalize() * tilt_thresh_);
+        if((final_target_cog_rot_- curr_target_cog_rot_).length() > tilt_thresh_)
+          curr_target_cog_rot_ += ((final_target_cog_rot_ - curr_target_cog_rot_).normalize() * tilt_thresh_);
         else
-          curr_desire_tilt_ = final_desire_tilt_;
+          curr_target_cog_rot_ = final_target_cog_rot_;
 
-        spinal::DesireCoord desire_tilt_msg;
-        desire_tilt_msg.roll = curr_desire_tilt_.x();
-        desire_tilt_msg.pitch = curr_desire_tilt_.y();
-        curr_desire_tilt_pub_.publish(desire_tilt_msg);
+        spinal::DesireCoord target_cog_rot_msg;
+        target_cog_rot_msg.roll = curr_target_cog_rot_.x();
+        target_cog_rot_msg.pitch = curr_target_cog_rot_.y();
+        curr_target_cog_rot_pub_.publish(target_cog_rot_msg);
 
         prev_stamp = ros::Time::now();
       }
@@ -584,10 +584,6 @@ namespace control_plugin
   void DragonGimbal::rosParamInit()
   {
     FlatnessPid::rosParamInit();
-
-    ros::NodeHandle nh_global("~");
-    nh_global.param("simulation", simulation_, false);
-    cout << nh_global.getNamespace() << ",  simulaiton  is " << simulation_ << endl;
 
     string ns = nhp_.getNamespace();
     nhp_.param("control_verbose", control_verbose_, false);
