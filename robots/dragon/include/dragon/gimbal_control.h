@@ -44,6 +44,7 @@
 #include <std_msgs/Float32MultiArray.h>
 #include <std_msgs/UInt8.h>
 #include <std_srvs/SetBool.h>
+#include <spinal/RollPitchYawTerm.h>
 
 namespace control_plugin
 {
@@ -77,6 +78,7 @@ namespace control_plugin
     ros::Publisher  roll_pitch_pid_pub_;
     ros::Subscriber joint_state_sub_;
     ros::Subscriber final_target_cog_rot_sub_;
+    ros::Subscriber att_control_feedback_state_sub_;
     ros::Subscriber target_coord_sub_;
 
     void servoTorqueProcess();
@@ -89,6 +91,7 @@ namespace control_plugin
     void baselinkTiltCallback(const spinal::DesireCoordConstPtr & msg);
     void fourAxisGainCallback(const aerial_robot_msgs::FourAxisGainConstPtr & msg);
     void targetCogRotCallback(const spinal::DesireCoordConstPtr& msg);
+    void attControlFeedbackStateCallback(const spinal::RollPitchYawTermConstPtr& msg);
 
 
     /* rosparam */
@@ -101,6 +104,7 @@ namespace control_plugin
     double tilt_pub_interval_;
 
     /* basic vars */
+    std::vector<double> target_thrust_vector_; // the size of vectoring force: ||f||
     sensor_msgs::JointState joint_state_; // realtime actuator angles
     Eigen::MatrixXd P_xy_; //mapping matrix for r_x and r_y
     std::vector<double> target_gimbal_angles_; // target gimbal angles
@@ -109,6 +113,8 @@ namespace control_plugin
     tf::Vector3 curr_target_cog_rot_, final_target_cog_rot_;
 
     /* pitch roll control */
+    std::vector<tf::Vector3> roll_gains_, pitch_gains_;
+    std::vector<double> att_lqi_term_;
     double pitch_roll_control_rate_thresh_;
     double pitch_roll_control_p_det_thresh_;
     tf::Vector3 pitch_roll_gains_;

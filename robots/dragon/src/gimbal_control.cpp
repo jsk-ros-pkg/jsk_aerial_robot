@@ -64,14 +64,21 @@ namespace control_plugin
 
         alt_i_term_.resize(motor_num_);
         alt_gains_.resize(motor_num_);
+        roll_gains_.resize(motor_num_);
+        pitch_gains_.resize(motor_num_);
+        att_lqi_term_.resize(motor_num_);
+        target_throttle_.resize(motor_num_); // LQI(z)
+        target_thrust_vector_.resize(motor_num_); // target thrust (throttle): ||f||
 
-        target_throttle_.resize(motor_num_);
-
-        ROS_WARN("gimbal flight control: update the motor number: %d", motor_num_);
+        ROS_WARN("[gimbal flight control] update the motor number: %d", motor_num_);
       }
 
     for(int i = 0; i < msg->motor_num; i++)
-      alt_gains_[i].setValue(msg->pos_p_gain_alt[i], msg->pos_i_gain_alt[i], msg->pos_d_gain_alt[i]);
+      {
+        alt_gains_[i].setValue(msg->pos_p_gain_alt[i], msg->pos_i_gain_alt[i], msg->pos_d_gain_alt[i]);
+        pitch_gains_[i].setValue(msg->pos_p_gain_pitch[i], msg->pos_i_gain_pitch[i], msg->pos_d_gain_pitch[i]);
+        roll_gains_[i].setValue(msg->pos_p_gain_roll[i], msg->pos_i_gain_roll[i], msg->pos_d_gain_roll[i]);
+      }
   }
 
   void DragonGimbal::baselinkTiltCallback(const spinal::DesireCoordConstPtr & msg)
@@ -82,6 +89,18 @@ namespace control_plugin
   void DragonGimbal::targetCogRotCallback(const spinal::DesireCoordConstPtr& msg)
   {
     kinematics_->setCogDesireOrientation(msg->roll, msg->pitch, msg->yaw);
+  }
+
+  void DragonGimbal::attControlFeedbackStateCallback(const spinal::RollPitchYawTermConstPtr& msg)
+  {
+    if(motor_num_ == 0) return;
+
+    /* calcualte the control term about attitude in spinal based on LQI */
+    /* -- only consider the P term and I term, since D term (angular velocity from gyro) in current Dragon platform is too noisy -- */
+    for(int i = 0; i < motor_num_; i++)
+      {
+        att_lqi_term_.at(i) = -roll_gains_[i][0] * (msg->roll_p / 1000.0) + roll_gains_[i][1] * (msg->roll_i / 1000.0) + (-pitch_gains_[i][0]) * (msg->pitch_p / 1000.0) + pitch_gains_[i][1] * (msg->pitch_i / 1000.0);
+      }
   }
 
   bool DragonGimbal::update()
@@ -199,8 +218,10 @@ namespace control_plugin
     double max_z = 1e-6;
 
     Eigen::MatrixXd P_att = Eigen::MatrixXd::Zero(3, rotor_num  * 2);
+    double f_z_sum = 0;
     for(int i = 0; i < rotor_num; i++)
       {
+        /* obatin mapping matrix */
         P_att(0, 2 * i + 1) = -rotors_origin_from_cog[i](2); //x(roll)
         P_att(1, 2 * i) = rotors_origin_from_cog[i](2); //y(pitch)
         P_att(2, 2 * i) = -rotors_origin_from_cog[i](1);
@@ -210,6 +231,10 @@ namespace control_plugin
         if(fabs(rotors_origin_from_cog[i](0)) > max_x) max_x = fabs(rotors_origin_from_cog[i](0));
         if(fabs(rotors_origin_from_cog[i](1)) > max_y) max_y = fabs(rotors_origin_from_cog[i](1));
         if(fabs(rotors_origin_from_cog[i](2)) > max_z) max_z = fabs(rotors_origin_from_cog[i](2));
+
+        /* obtain the sum of f_z w.r.t {CoG} frame */
+        f_z_sum += (att_lqi_term_.at(i) + target_throttle_.at(i));
+        //f_z_sum += target_throttle_.at(i); // only LQI(f_z)
       }
 
     Eigen::MatrixXd P_att_orig = P_att;
@@ -223,23 +248,24 @@ namespace control_plugin
     double P_det = (P * P.transpose()).determinant();
 
     if(control_verbose_)
+    {
+      std::cout << "gimbal P original :"  << std::endl << P_att_orig << std::endl;
+      std::cout << "gimbal P:"  << std::endl << P << std::endl;
+      std::cout << "P det:"  << std::endl << P_det << std::endl;
+      std::cout << "f_z_sum / mass: " << f_z_sum / kinematics_->getMass() << std::endl;
+    }
+
+    Eigen::VectorXd f_xy_vec;
+    if(P_det < pitch_roll_control_p_det_thresh_) //no pitch and roll control
       {
-        std::cout << "gimbal P original :"  << std::endl << P_att_orig << std::endl;
-        std::cout << "gimbal P:"  << std::endl << P << std::endl;
-        std::cout << "P det:"  << std::endl << P_det << std::endl;
-      }
-
-    Eigen::VectorXd f;
-
-    //ROS_INFO_THROTTLE(0.1, "P_det: %f", P_det);
-    if(P_det < pitch_roll_control_p_det_thresh_)
-      { // bad pitch roll
         if(control_verbose_) ROS_ERROR("bad P_det: %f", P_det);
         P = Eigen::MatrixXd::Zero(3, rotor_num  * 2);
         P.block(0, 0, 1, rotor_num * 2) = P_att.block(2, 0, 1, rotor_num * 2);
         P.block(1, 0, 2, rotor_num * 2) = P_xy_ / kinematics_->getMass();
 
-        f = pseudoinverse(P) * Eigen::Vector3d(target_yaw_[0], target_pitch_ - (pitch_angle * 9.8), target_roll_ - (-roll_angle * 9.8));
+        f_xy_vec = pseudoinverse(P) * Eigen::Vector3d(target_yaw_[0], target_pitch_ - (pitch_angle * f_z_sum / kinematics_->getMass()), target_roll_ - (-roll_angle * f_z_sum / kinematics_->getMass()));
+        /* -- approximation: around hovering state --*/
+        //f_xy_vec = pseudoinverse(P) * Eigen::Vector3d(target_yaw_[0], target_pitch_ - (pitch_angle * 9.8), target_roll_ - (-roll_angle * 9.8));
       }
     else
       {
@@ -326,28 +352,44 @@ namespace control_plugin
 
         Eigen::VectorXd pid_values(5);
         /* F = P# * [roll_pid, pitch_pid, yaw_pid, x_pid, y_pid] */
-        pid_values << target_gimbal_roll, target_gimbal_pitch, target_yaw_[0], target_pitch_ - (pitch_angle * 9.8), target_roll_ - (-roll_angle * 9.8);
-        f = pseudoinverse(P) * pid_values;
+
+        pid_values << target_gimbal_roll, target_gimbal_pitch, target_yaw_[0], target_pitch_ - (pitch_angle * f_z_sum / kinematics_->getMass()), target_roll_ - (-roll_angle * f_z_sum / kinematics_->getMass());
+        /* -- approximation: around hovering state --*/
+        //pid_values << target_gimbal_roll, target_gimbal_pitch, target_yaw_[0], target_pitch_ - (pitch_angle * 9.8), target_roll_ - (-roll_angle * 9.8);
+        f_xy_vec = pseudoinverse(P) * pid_values;
       }
 
     if(control_verbose_)
       {
         std::cout << "gimbal P_pseudo_inverse:"  << std::endl << pseudoinverse(P) << std::endl;
         //std::cout << "gimbal P * P_pseudo_inverse:"  << std::endl << P * pseudoinverse(P) << std::endl;
-        std::cout << "gimbal f:"  << std::endl << f << std::endl;
+        std::cout << "gimbal f:"  << std::endl << f_xy_vec << std::endl;
       }
 
     std_msgs::Float32MultiArray target_force_msg;
 
     for(int i = 0; i < rotor_num; i++)
       {
-        /* normalized vector */
-        /* 1: use state_x */
-        tf::Vector3 f_i = tf::Vector3(f(2 * i), f(2 * i + 1), kinematics_->getOptimalHoveringThrust()[i]);
-        /* 2: use target_throttle */
-        //tf::Vector3 f_i = tf::Vector3(f(2 * i), f(2 * i + 1), kinematics_->(getStableState())(i));
+        /* vectoring force */
+        /* --  LQI(z) + LQI(roll) + LQI(pitch) -- */
+        tf::Vector3 f_i(f_xy_vec(2 * i), f_xy_vec(2 * i + 1), target_throttle_.at(i) + att_lqi_term_.at(i));
+        /* --  only LQI(z) -- */
+        //tf::Vector3 f_i(f_xy_vec(2 * i), f_xy_vec(2 * i + 1), target_throttle_.at(i));
 
-        tf::Vector3 f_i_normalized = f_i.normalize();
+        /* calculate ||f|| */
+        target_thrust_vector_.at(i) = (f_i - tf::Vector3(0, 0, att_lqi_term_.at(i))).length(); //omit pitch and roll term, which will be added in spinal
+        if(control_verbose_)
+          ROS_INFO("[gimbal control]: rotor%d, target_thrust vs target_z: [%f vs %f]", i+1, target_thrust_vector_.at(i), target_throttle_.at(i));
+
+        /* -------------------------------------------------------------
+           in the early stage of takeoff, avoiding the large tilt angle,
+           because of the small throttle
+           --------------------------------------------------------------- */
+        if(!start_rp_integration_)
+          f_i.setValue(f_xy_vec(2 * i), f_xy_vec(2 * i + 1), kinematics_->getOptimalHoveringThrust()[i]);
+
+        /* normalized vector */
+        auto f_i_normalized = f_i.normalize();
         if(control_verbose_) ROS_INFO("gimbal%d f normaizled: [%f, %f, %f]", i + 1, f_i_normalized.x(), f_i_normalized.y(), f_i_normalized.z());
 
         /*f -> gimbal angle */
@@ -368,8 +410,8 @@ namespace control_plugin
         if(control_verbose_) std::cout << "gimbal" << i + 1 <<"r & p: " << gimbal_i_roll << ", "<< gimbal_i_pitch  << std::endl;
 
         /* ros publish */
-        target_force_msg.data.push_back(f(2 * i));
-        target_force_msg.data.push_back(f(2 * i + 1));
+        target_force_msg.data.push_back(f_xy_vec(2 * i));
+        target_force_msg.data.push_back(f_xy_vec(2 * i + 1));
       }
     gimbal_target_force_pub_.publish(target_force_msg);
   }
@@ -406,14 +448,23 @@ namespace control_plugin
 
     flight_command_data.base_throttle.resize(motor_num_);
     for(int i = 0; i < motor_num_; i++)
-      flight_command_data.base_throttle[i] = target_throttle_[i];
+      {
+        /* ----------------------------------------
+           1. need to send ||f||, instead of LQI(z).
+           2. exclude the attitude part (LQI(roll), LQI(pitch), wich is calculated in spinal.
+           ----------------------------------------- */
+        flight_command_data.base_throttle[i] = target_thrust_vector_.at(i);
+
+        /* -- general no-vectoring case: only LQI(z) --*/
+        //flight_command_data.base_throttle[i] = target_throttle_.at(i);
+      }
     flight_cmd_pub_.publish(flight_command_data);
 
     /* send gimbal control command */
     sensor_msgs::JointState gimbal_control_msg;
     gimbal_control_msg.header.stamp = ros::Time::now();
     for(int i = 0; i < kinematics_->getRotorNum() * 2; i++)
-      gimbal_control_msg.position.push_back(target_gimbal_angles_[i]);
+      gimbal_control_msg.position.push_back(target_gimbal_angles_.at(i));
 
     gimbal_control_pub_.publish(gimbal_control_msg);
   }
