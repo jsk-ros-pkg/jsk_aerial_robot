@@ -16,8 +16,8 @@ private:
 	uint8_t id_;
 	uint8_t index_;
 	uint16_t p_gain_, i_gain_, d_gain_;
-	uint16_t present_position_;
-	uint16_t goal_position_;
+	int16_t present_position_;
+	int16_t goal_position_;
 	uint16_t profile_velocity_;
 	uint16_t present_current_;
 	uint16_t current_limit_;
@@ -30,12 +30,13 @@ private:
 	friend class CANServo;
 	friend class CANInitializer;
 public:
+	Servo():torque_enable_(true) {}
 	uint8_t getId() const {return id_;}
 	uint8_t getIndex () const {return index_;}
 	uint16_t getPGain() const {return p_gain_;}
 	uint16_t getIGain() const {return i_gain_;}
 	uint16_t getDGain() const {return d_gain_;}
-	uint16_t getPresentPosition() const {return present_position_;}
+	int16_t getPresentPosition() const {return present_position_;}
 	uint16_t getProfileVelocity() const {return profile_velocity_;}
 	int16_t getPresentCurrent() const {return present_current_;}
 	uint16_t getCurrentLimit() const {return current_limit_;}
@@ -43,8 +44,9 @@ public:
 	uint8_t getPresentTemperature() const {return present_temperature_;}
 	uint8_t getMoving() const {return moving_;}
 	uint8_t getError() const {return error_;}
+	bool getTorqueEnable() const {return torque_enable_;}
 	void setIndex(uint8_t index) {index_ = index;}
-	void setGoalPosition(uint16_t goal_position) {goal_position_ = goal_position;}
+	void setGoalPosition(int16_t goal_position) {goal_position_ = goal_position;}
 	void setTorqueEnable(bool torque_enable) {torque_enable_ = torque_enable;}
 };
 
@@ -60,7 +62,7 @@ public:
 	std::vector<Servo> servo_;
 private:
 	struct CANServoData{
-		uint16_t angle;
+		int16_t angle;
 		uint8_t temperature;
 		uint8_t moving;
 		int16_t current;

@@ -14,6 +14,7 @@
 #include <array>
 #include <algorithm>
 #include <utility>
+#include <cmath>
 #include "flashmemory.h"
 
 /* first should set the baudrate to 1000000*/
@@ -112,7 +113,7 @@
 #define READ_INST_LEN					7
 #define HOMING_OFFSET_BYTE_LEN			4
 #define SET_STATUS_RETURN_LEVEL_LEN		3
-#define REBOOT_LEN						1
+#define REBOOT_LEN						3
 #define TORQUE_ENABLE_BYTE_LEN			1
 #define LED_BYTE_LEN					1
 #define STATUS_RETURN_LEVEL_BYTE_LEN	1
@@ -145,6 +146,7 @@
 #define STATUS_PACKET_SIZE 		64
 
 #define MAX_SERVO_NUM			4
+#define PING_TRIAL_NUM			100
 
 //read status packet
 #define READ_HEADER0					0
@@ -172,20 +174,22 @@
 #define ERROR_ACCESS_ERROR				7
 
 //for instruction buffer
-#define INST_PING 						0
-#define INST_SET_GOAL_POS 				1
-#define INST_GET_PRESENT_POS			2
-#define INST_GET_PRESENT_CURRENT		3
-#define INST_GET_PRESENT_TEMPERATURE	4
+#define INST_GET_CURRENT_LIMIT			0
+#define INST_GET_HARDWARE_ERROR_STATUS  1
+#define INST_GET_HOMING_OFFSET			2
+#define INST_GET_POSITION_GAINS			3
+#define INST_GET_PRESENT_CURRENT		4
 #define INST_GET_PRESENT_MOVING			5
-#define INST_SET_TORQUE					6
-#define INST_SET_CURRENT_LIMIT			7
-#define INST_SET_HOMING_OFFSET			8
-#define INST_GET_HOMING_OFFSET			9
-#define INST_GET_HARDWARE_ERROR_STATUS  10
-#define INST_SET_POSITION_GAIN			11
-#define INST_GET_CURRENT_LIMIT			12
-#define INST_SET_PROFILE_VELOCITY		13
+#define INST_GET_PRESENT_POS			6
+#define INST_GET_PRESENT_TEMPERATURE	7
+#define INST_GET_PROFILE_VELOCITY		8
+#define INST_PING						9
+#define INST_SET_CURRENT_LIMIT			10
+#define INST_SET_GOAL_POS 				11
+#define INST_SET_HOMING_OFFSET			12
+#define INST_SET_POSITION_GAINS			13
+#define INST_SET_PROFILE_VELOCITY		14
+#define INST_SET_TORQUE					15
 
 //instruction frequency: 0 means no process
 #define SET_POS_DU 20 //[msec], 20ms => 50Hz
@@ -270,9 +274,6 @@ public:
 	uint8_t id_;
 	int32_t homing_offset_;
 	int32_t offset_value_;
-	int32_t goal_position_;
-	int32_t present_position_;
-	int32_t overflow_offset_value_;
 	uint8_t present_temp_;
 	int16_t present_current_;
 	uint8_t moving_;
@@ -281,12 +282,21 @@ public:
 	uint16_t profile_velocity_;
 	uint16_t current_limit_;
 	uint16_t send_data_flag_;
+	int32_t internal_offset_;
 	bool led_;
 	bool torque_enable_;
 	bool first_get_pos_flag_;
-	int32_t getNewHomingOffset() {return offset_value_ + homing_offset_ - present_position_;}
+	int32_t getNewHomingOffset() const {return offset_value_ + homing_offset_ - present_position_;}
+	void setPresentPosition(int32_t present_position) {present_position_ = present_position + internal_offset_;}
+	int32_t getPresentPosition() const {return present_position_;}
+	void setGoalPosition(int32_t goal_position) {goal_position_ = goal_position - internal_offset_;}
+	int32_t getGoalPosition() const {return goal_position_;}
 
 	bool operator==(const ServoData& r) const {return this->id_ == r.id_;}
+
+private:
+	int32_t present_position_;
+	int32_t goal_position_;
 };
 
 class DynamixelSerial
@@ -296,10 +306,10 @@ public:
 
   void init(UART_HandleTypeDef* huart);
   void ping();
-  void reboot();
+  void reboot(uint8_t servo_index);
   void setTorque(uint8_t servo_index);
   void setHomingOffset(uint8_t servo_index);
-  void setPositionGain(uint8_t servo_index);
+  void setPositionGains(uint8_t servo_index);
   void setProfileVelocity(uint8_t servo_index);
   void setCurrentLimit(uint8_t servo_index);
   void update();
@@ -334,9 +344,11 @@ private:
   inline void cmdSyncReadHardwareErrorStatus();
   inline void cmdSyncReadHomingOffset();
   inline void cmdSyncReadMoving();
+  inline void cmdSyncReadPositionGains();
   inline void cmdSyncReadPresentCurrent();
   inline void cmdSyncReadPresentPosition();
   inline void cmdSyncReadPresentTemperature();
+  inline void cmdSyncReadProfileVelocity();
   inline void cmdSyncWriteGoalPosition();
   inline void cmdSyncWriteLed();
   inline void cmdSyncWritePositionGains();
@@ -346,6 +358,8 @@ private:
   inline void setStatusReturnLevel();
   inline void getHomingOffset();
   inline void getCurrentLimit();
+  inline void getPositionGains();
+  inline void getProfileVelocity();
 
   uint16_t calcCRC16(uint16_t crc_accum, uint8_t *data_blk_ptr, int data_blk_size);
 };

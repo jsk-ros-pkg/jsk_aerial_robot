@@ -23,7 +23,7 @@ void Servo::sendData()
 	for (unsigned int i = 0; i < servo_handler_.getServoNum(); i++) {
 		const ServoData& s = servo_handler_.getServo()[i];
 		if (s.send_data_flag_ != 0) {
-			CANServoData data(std::min(std::max((int)(s.present_position_ + s.overflow_offset_value_), 0), 4095),
+			CANServoData data(static_cast<int16_t>(s.getPresentPosition()),
 							  s.present_temp_,
 							  s.moving_,
 							  s.present_current_,
@@ -41,7 +41,13 @@ void Servo::receiveDataCallback(uint8_t message_id, uint32_t DLC, uint8_t* data)
 		{
 			for (unsigned int i = 0; i < servo_handler_.getServoNum(); i++) {
 				ServoData& s = servo_handler_.getServo()[i];
-				s.goal_position_ = (((data[i * 2 + 1]  & 0x0F ) << 8) | data[i * 2]) - s.overflow_offset_value_;
+				//convert int15 to int32
+				int sign = data[i * 2 + 1] & 0x40;
+				int32_t goal_pos = ((data[i * 2 + 1]  & 0x7F) << 8) | data[i * 2];
+				if (sign != 0) {
+					goal_pos = 0xFFFF8000 | goal_pos;
+				}
+				s.setGoalPosition(goal_pos);
 				bool torque_enable = (((data[i * 2 + 1] >> 7) & 0x01) != 0) ? true : false;
 				if (s.torque_enable_ != torque_enable) {
 					s.torque_enable_ = torque_enable;

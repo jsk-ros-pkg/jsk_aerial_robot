@@ -15,6 +15,8 @@ uint8 SET_SERVO_SEND_DATA_FLAG = 5
 # [slave_id, servo_index, flag]
 uint8 SET_SERVO_CURRENT_LIMIT = 6
 # [slave_id, servo_index, current_limit] !torque disable!
+uint8 REBOOT = 7
+# [slave_id]
 
 uint8 command
 int32[] data

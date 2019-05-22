@@ -1,0 +1,31 @@
+<library path="src">
+  <class name="BoardConfigurator" type="board_configurator.board_configurator.BoardConfigurator" base_class_type="rqt_gui_py::Plugin">
+    <description>
+      Configurator for aerial robot boards
+    </description>
+    <qtgui>
+      <group>
+        <icon type="theme">folder</icon>
+        <label>aerial robot</label>
+      </group>
+      <label>Board Configurator</label>
+      <icon type="theme">media-playback-start</icon>
+      <statustip>Configurator for aerial robot boards</statustip>
+    </qtgui>
+  </class>
+  <class name="ServoMonitor" type="servo_monitor.servo_monitor.ServoMonitor" base_class_type="rqt_gui_py::Plugin">
+    <description>
+      Servo monitor for transformable aerial robot hardware
+    </description>
+    <qtgui>
+      <group>
+        <icon type="theme">folder</icon>
+        <label>aerial robot</label>
+      </group>
+      <label>Servo Monitor</label>
+      <icon type="theme">media-playback-start</icon>
+      <statustip>Servo monitor for transformable aerial robot hardware</statustip>
+    </qtgui>
+  </class>
+</library>
+

@@ -26,6 +26,7 @@
 #include <spinal/ServoStates.h>
 #include <spinal/ServoControlCmd.h>
 #include <spinal/ServoTorqueCmd.h>
+#include <spinal/ServoTorqueStates.h>
 #include <spinal/Gyro.h>
 #include <spinal/GetBoardInfo.h>
 #include <spinal/SetBoardConfig.h>
@@ -41,7 +42,7 @@ namespace Spine
 {
   void send(void);
   void update(void);
-  void  init(CAN_HandleTypeDef* hcan, ros::NodeHandle* nh, StateEstimate* estimator, GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin);
+  void init(CAN_HandleTypeDef* hcan, ros::NodeHandle* nh, StateEstimate* estimator, GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin);
   void setMotorPwm(uint16_t pwm, uint8_t motor);
   void convertGyroFromJointvalues();
   uint8_t getSlaveNum();

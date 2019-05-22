@@ -9,6 +9,9 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   std_srvs
   message_generation
+  rospy
+  rqt_gui
+  rqt_gui_py
 )
 
 add_message_files(
@@ -21,6 +24,7 @@ add_message_files(
   ServoStates.msg
   ServoControlCmd.msg
   ServoTorqueCmd.msg
+  ServoTorqueStates.msg
   Gyro.msg
   SimpleImu.msg
   FourAxisCommand.msg
@@ -52,7 +56,7 @@ set(SPINAL_DIRS mcu_project/Jsk_Lib)
 catkin_package(
   INCLUDE_DIRS  ${SPINAL_DIRS}
   LIBRARIES spinal_flight_controller spinal_math
-  CATKIN_DEPENDS roscpp
+  CATKIN_DEPENDS roscpp rospy rqt_gui rqt_gui_py
 #  DEPENDS system_lib
 )
 

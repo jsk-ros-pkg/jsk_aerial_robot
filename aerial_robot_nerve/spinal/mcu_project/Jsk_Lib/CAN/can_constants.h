@@ -46,6 +46,7 @@ namespace CAN {
 	constexpr uint8_t BOARD_CONFIG_SET_SERVO_PROFILE_VEL = 4;
 	constexpr uint8_t BOARD_CONFIG_SET_SEND_DATA_FLAG = 5;
 	constexpr uint8_t BOARD_CONFIG_SET_SERVO_CURRENT_LIMIT = 6;
+	constexpr uint8_t BOARD_CONFIG_REBOOT = 7;
 }
 
 

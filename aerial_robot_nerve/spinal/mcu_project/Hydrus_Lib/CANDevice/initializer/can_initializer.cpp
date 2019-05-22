@@ -121,6 +121,16 @@ void CANInitializer::configDevice(const spinal::SetBoardConfig::Request& req)
 			sendMessage(1);
 			break;
 		}
+
+		case spinal::SetBoardConfig::Request::REBOOT:
+		{
+			uint8_t send_data[1];
+			send_data[0] = CAN::BOARD_CONFIG_REBOOT;
+			setMessage(CAN::MESSAGEID_RECEIVE_BOARD_CONFIG_REQUEST, slave_id, 1, send_data);
+			sendMessage(1);
+			break;
+		}
+
 		default:
 			break;
 	}
@@ -136,9 +146,14 @@ void CANInitializer::receiveDataCallback(uint8_t slave_id, uint8_t message_id, u
 		{
 			auto slave = std::find(neuron_.begin(), neuron_.end(), Neuron(slave_id));
 			if (slave == neuron_.end()) return;
+			if (slave->getInitialized()) {
+				slave->can_imu_.setSendDataFlag((data[1] != 0) ? true : false);
+				return;
+			}
 			slave->can_motor_ = CANMotor(slave_id);
 			slave->can_servo_ = CANServo(slave_id, data[0]);
 			slave->can_imu_ = CANIMU(slave_id, (data[1] != 0) ? true : false);
+			slave->setInitialized();
 		}
 		break;
 	case CAN::MESSAGEID_SEND_INITIAL_CONFIG_1:
@@ -162,7 +177,6 @@ void CANInitializer::receiveDataCallback(uint8_t slave_id, uint8_t message_id, u
 			slave->can_servo_.servo_[servo_index].profile_velocity_ = (data[4] << 8) | data[3];
 			slave->can_servo_.servo_[servo_index].current_limit_ = (data[6] << 8) | data[5];
 			slave->can_servo_.servo_[servo_index].send_data_flag_ = data[7];
-			slave->can_servo_.servo_[servo_index].torque_enable_ = true;
 		}
 		break;
 	}

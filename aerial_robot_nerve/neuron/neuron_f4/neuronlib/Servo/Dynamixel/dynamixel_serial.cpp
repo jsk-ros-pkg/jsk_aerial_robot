@@ -5,11 +5,16 @@ void DynamixelSerial::init(UART_HandleTypeDef* huart)
 	huart_ = huart;
 
 	servo_num_ = 0;
+
 	std::fill(servo_.begin(), servo_.end(), ServoData(255));
 
 	//initialize servo motors
-	reboot();
 	ping();
+	for (unsigned int i = 0; i < servo_num_; i++) {
+		reboot(i);
+	}
+	HAL_Delay(500);
+
 	setStatusReturnLevel();
 	//Successfully detected servo's led will be turned on 1 seconds
 	for (unsigned int i = 0; i < servo_num_; i++) {
@@ -21,8 +26,7 @@ void DynamixelSerial::init(UART_HandleTypeDef* huart)
 		servo_[i].led_ = false;
 	}
 	cmdSyncWriteLed();
-	getHomingOffset();
-	getCurrentLimit();
+
 
 	for (int i = 0; i < MAX_SERVO_NUM; i++) {
 		Flashmemory::addValue(&(servo_[i].p_gain_), 2);
@@ -35,21 +39,27 @@ void DynamixelSerial::init(UART_HandleTypeDef* huart)
 
 	cmdSyncWritePositionGains();
 	cmdSyncWriteProfileVelocity();
+
+	getHomingOffset(); // This operation always fails after the servo motor is ignited first
+	getHomingOffset(); // So this line is necessary
+	getCurrentLimit();
+	getPositionGains();
+	getProfileVelocity();
+
 }
 
 void DynamixelSerial::ping()
 {
 	cmdPing(BROADCAST_ID);
 	status_packet_instruction_ = INST_PING;
-	while (true) {
+	for (int i = 0; i < PING_TRIAL_NUM; ++i) {
 		int ping_result = readStatusPacket();
-		if (ping_result == -1) return;
 	}
 }
 
-void DynamixelSerial::reboot()
+void DynamixelSerial::reboot(uint8_t servo_index)
 {
-	cmdReboot(BROADCAST_ID);
+	cmdReboot(servo_[servo_index].id_);
 }
 
 void DynamixelSerial::setTorque(uint8_t servo_index)
@@ -59,22 +69,27 @@ void DynamixelSerial::setTorque(uint8_t servo_index)
 
 void DynamixelSerial::setHomingOffset(uint8_t servo_index)
 {
-	instruction_buffer_.push(std::make_pair(INST_SET_HOMING_OFFSET, servo_index));
+	cmdWriteHomingOffset(servo_index);
+	getHomingOffset();
 }
 
-void DynamixelSerial::setPositionGain(uint8_t servo_index)
+void DynamixelSerial::setPositionGains(uint8_t servo_index)
 {
-	instruction_buffer_.push(std::make_pair(INST_SET_POSITION_GAIN, servo_index));
+	cmdWritePositionGains(servo_index);
+	getPositionGains();
 }
 
 void DynamixelSerial::setProfileVelocity(uint8_t servo_index)
 {
-	instruction_buffer_.push(std::make_pair(INST_SET_PROFILE_VELOCITY, servo_index));
+	cmdWriteProfileVelocity(servo_index);
+	getProfileVelocity();
+
 }
 
 void DynamixelSerial::setCurrentLimit(uint8_t servo_index)
 {
-	instruction_buffer_.push(std::make_pair(INST_SET_CURRENT_LIMIT, servo_index));
+	cmdWriteCurrentLimit(servo_index);
+	getCurrentLimit();
 }
 
 void DynamixelSerial::update()
@@ -161,10 +176,30 @@ void DynamixelSerial::update()
     		status_packet_instruction_ = instruction.first;
     		read_status_packet_flag = true;
     		break;
+    	case INST_GET_HOMING_OFFSET:
+    		cmdSyncReadHomingOffset();
+    		status_packet_instruction_ = instruction.first;
+    		read_status_packet_flag = true;
+    		break;
+    	case INST_GET_POSITION_GAINS:
+    		cmdSyncReadPositionGains();
+    		status_packet_instruction_ = instruction.first;
+    		read_status_packet_flag = true;
+    		break;
+    	case INST_GET_PROFILE_VELOCITY:
+    		cmdSyncReadProfileVelocity();
+    		status_packet_instruction_ = instruction.first;
+    		read_status_packet_flag = true;
+    		break;
+    	case INST_GET_CURRENT_LIMIT:
+    		cmdSyncReadCurrentLimit();
+    		status_packet_instruction_ = instruction.first;
+    		read_status_packet_flag = true;
+    		break;
     	case INST_SET_HOMING_OFFSET:
     		cmdWriteHomingOffset(instruction.second);
     		break;
-    	case INST_SET_POSITION_GAIN:
+    	case INST_SET_POSITION_GAINS:
     		cmdWritePositionGains(instruction.second);
     		break;
     	case INST_SET_CURRENT_LIMIT:
@@ -352,8 +387,11 @@ int8_t DynamixelSerial::readStatusPacket(void) /* Receive status packet to Dynam
 			break;
 		case READ_CHECKSUMH:
 			checksum |= ((rx_data << 8) & 0xFF00);
-			if (checksum == calcCRC16(0, receive_data, loop_count)) read_end_flag = true;
-			else return -1;
+			if (checksum == calcCRC16(0, receive_data, loop_count)) {
+				read_end_flag = true;
+			} else {
+				return -1;
+			}
 			break;
 		default:
 			return -1;
@@ -375,17 +413,11 @@ int8_t DynamixelSerial::readStatusPacket(void) /* Receive status packet to Dynam
 	{
 		int32_t present_position = ((parameters[3] << 24) & 0xFF000000) | ((parameters[2] << 16) & 0xFF0000) | ((parameters[1] << 8) & 0xFF00) | (parameters[0] & 0xFF);
 		if (s != servo_.end()) {
-			s->present_position_ = present_position;
 			if (s->first_get_pos_flag_) {
-				if (present_position < 0) {
-					s->overflow_offset_value_ = 4096;
-				} else if (present_position > 4095) {
-					s->overflow_offset_value_ = -4096;
-				} else {
-					s->overflow_offset_value_ = 0;
-				}
+				s->internal_offset_ = std::floor(present_position / 4096.0) * -4096;
 				s->first_get_pos_flag_ = false;
 			}
+			s->setPresentPosition(present_position);
 		}
 	    return 0;
 	}
@@ -411,12 +443,24 @@ int8_t DynamixelSerial::readStatusPacket(void) /* Receive status packet to Dynam
 		return 0;
 	case INST_GET_HARDWARE_ERROR_STATUS:
 		if (s != servo_.end()) {
-			s->hardware_error_status_ = ((parameters[3] << 24) & 0xFF000000) | ((parameters[2] << 16) & 0xFF0000) | ((parameters[1] << 8) & 0xFF00) | (parameters[0] & 0xFF);
+			s->hardware_error_status_ = parameters[0];
 		}
 		return 0;
 	case INST_GET_CURRENT_LIMIT:
 		if (s != servo_.end()) {
 			s->current_limit_ = ((parameters[1] << 8) & 0xFF00) | (parameters[0] & 0xFF);
+		}
+		return 0;
+	case INST_GET_POSITION_GAINS:
+		if (s != servo_.end()) {
+			s->d_gain_ = ((parameters[1] << 8) & 0xFF00) | (parameters[0] & 0xFF);
+			s->i_gain_ = ((parameters[3] << 8) & 0xFF00) | (parameters[2] & 0xFF);
+			s->p_gain_ = ((parameters[5] << 8) & 0xFF00) | (parameters[4] & 0xFF);
+		}
+		return 0;
+	case INST_GET_PROFILE_VELOCITY:
+		if (s != servo_.end()) {
+			s->profile_velocity_ = ((parameters[3] << 24) & 0xFF000000) | ((parameters[2] << 16) & 0xFF0000) | ((parameters[1] << 8) & 0xFF00) | (parameters[0] & 0xFF);
 		}
 		return 0;
 	default:
@@ -566,6 +610,11 @@ void DynamixelSerial::cmdSyncReadMoving()
 	cmdSyncRead(CTRL_MOVING, MOVING_BYTE_LEN);
 }
 
+void DynamixelSerial::cmdSyncReadPositionGains()
+{
+	cmdSyncRead(CTRL_POSITION_D_GAIN, POSITION_GAINS_BYTE_LEN);
+}
+
 void DynamixelSerial::cmdSyncReadPresentCurrent()
 {
 	cmdSyncRead(CTRL_PRESENT_CURRENT, PRESENT_CURRENT_BYTE_LEN);
@@ -581,15 +630,21 @@ void DynamixelSerial::cmdSyncReadPresentTemperature()
 	cmdSyncRead(CTRL_PRESENT_TEMPERATURE, PRESENT_TEMPERATURE_BYTE_LEN);
 }
 
+void DynamixelSerial::cmdSyncReadProfileVelocity()
+{
+	cmdSyncRead(CTRL_PROFILE_VELOCITY, PROFILE_VELOCITY_BYTE_LEN);
+}
+
 void DynamixelSerial::cmdSyncWriteGoalPosition()
 {
 	uint8_t parameters[INSTRUCTION_PACKET_SIZE];
 
 	for (unsigned int i = 0; i < servo_num_; i++) {
-		parameters[i * 4 + 0] = (uint8_t)((int32_t)(servo_[i].goal_position_) & 0xFF);
-		parameters[i * 4 + 1] = (uint8_t)(((int32_t)(servo_[i].goal_position_) >> 8) & 0xFF);
-		parameters[i * 4 + 2] = (uint8_t)(((int32_t)(servo_[i].goal_position_) >> 16) & 0xFF);
-		parameters[i * 4 + 3] = (uint8_t)(((int32_t)(servo_[i].goal_position_) >> 24) & 0xFF);
+		int32_t goal_position = servo_[i].getGoalPosition();
+		parameters[i * 4 + 0] = (uint8_t)((int32_t)(goal_position) & 0xFF);
+		parameters[i * 4 + 1] = (uint8_t)(((int32_t)(goal_position) >> 8) & 0xFF);
+		parameters[i * 4 + 2] = (uint8_t)(((int32_t)(goal_position) >> 16) & 0xFF);
+		parameters[i * 4 + 3] = (uint8_t)(((int32_t)(goal_position) >> 24) & 0xFF);
 	}
 
 	cmdSyncWrite(CTRL_GOAL_POSITION, parameters, GOAL_POSITION_BYTE_LEN);
@@ -664,6 +719,24 @@ void DynamixelSerial::getCurrentLimit()
 {
 	cmdSyncReadCurrentLimit();
 	status_packet_instruction_ = INST_GET_CURRENT_LIMIT;
+	for (unsigned int i = 0; i < servo_num_; i++) {
+		readStatusPacket();
+	}
+}
+
+void DynamixelSerial::getPositionGains()
+{
+	cmdSyncReadPositionGains();
+	status_packet_instruction_ = INST_GET_POSITION_GAINS;
+	for (unsigned int i = 0; i < servo_num_; i++) {
+		readStatusPacket();
+	}
+}
+
+void DynamixelSerial::getProfileVelocity()
+{
+	cmdSyncReadProfileVelocity();
+	status_packet_instruction_ = INST_GET_PROFILE_VELOCITY;
 	for (unsigned int i = 0; i < servo_num_; i++) {
 		readStatusPacket();
 	}
