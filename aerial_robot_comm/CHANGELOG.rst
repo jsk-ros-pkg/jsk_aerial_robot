@@ -2,6 +2,9 @@
 Changelog for package aerial_robot_comm
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 1.0.3 (2019-01-08)
 ------------------
 

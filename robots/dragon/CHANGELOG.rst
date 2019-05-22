@@ -2,6 +2,13 @@
 Changelog for package dragon
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Add actuator limit in servo_bridge (`#287 <https://github.com/tongtybj/aerial_robot/issues/287>`_)
+* Refactor the function "DragonRobotModel::updateRobotModelImpl" (`#284 <https://github.com/tongtybj/aerial_robot/issues/284>`_)
+* Add low pass filter function in servo bridge (`#289 <https://github.com/tongtybj/aerial_robot/issues/289>`_)
+* Update the configuration for dragon quad type (`#277 <https://github.com/tongtybj/aerial_robot/issues/277>`_)
+
 1.0.3 (2019-01-08)
 ------------------
 * Add launch_gazebo flag to bringup files (`#265 <https://github.com/tongtybj/aerial_robot/issues/265>`_)

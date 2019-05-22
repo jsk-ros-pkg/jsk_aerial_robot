@@ -2,6 +2,13 @@
 Changelog for package aerial_robot_model
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Fix the bug about the rotation validation check (`#296 <https://github.com/tongtybj/aerial_robot/issues/296>`_)
+* Add actuator limit in servo_bridge (`#287 <https://github.com/tongtybj/aerial_robot/issues/287>`_)
+* Fix bug: The storage order from array to Eigen::Matrix (`#288 <https://github.com/tongtybj/aerial_robot/issues/288>`_)
+* Add low pass filter function in servo bridge (`#289 <https://github.com/tongtybj/aerial_robot/issues/289>`_)
+
 1.0.3 (2019-01-08)
 ------------------
 * Add torque (effort) publishing process for real machine from Spinal (`#254 <https://github.com/tongtybj/aerial_robot/issues/254>`_)

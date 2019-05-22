@@ -2,6 +2,18 @@
 Changelog for package aerial_robot_base
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Fix bug: forbid the variables called by reference against the function  which contains mutex  (`#298 <https://github.com/tongtybj/aerial_robot/issues/298>`_)
+* Improve psi command over range check (`#297 <https://github.com/tongtybj/aerial_robot/issues/297>`_)
+* Refactor the script to calculate the control error RMS (`#291 <https://github.com/tongtybj/aerial_robot/issues/291>`_)
+* Update the usage of low pass filter in mocap and barometer (`#280 <https://github.com/tongtybj/aerial_robot/issues/280>`_)
+* Multi sensor temporal synchronization fusion and refactor the state estimator class  (`#276 <https://github.com/tongtybj/aerial_robot/issues/276>`_)
+* Fix bug of acc control mode (`#274 <https://github.com/tongtybj/aerial_robot/issues/274>`_)
+* Add mutex for the kinamtics update in the ego-motion estimation process (`#269 <https://github.com/tongtybj/aerial_robot/issues/269>`_)
+* Fix the bug in keyboard teleop (`#270 <https://github.com/tongtybj/aerial_robot/issues/270>`_)
+* Update teleop system: 1. update the keyboard command script; 2. support PlayStation DualShock4. (`#266 <https://github.com/tongtybj/aerial_robot/issues/266>`_)
+
 1.0.3 (2019-01-08)
 ------------------
 * Update the usage of new API of `Kalman Filter <https://github.com/tongtybj/kalman_filter/tree/f7efb4d72131c02bf1632c6e4b400e2aeda60358>`_  for ego-motion estimation (`#262 <https://github.com/tongtybj/aerial_robot/issues/262>`_)

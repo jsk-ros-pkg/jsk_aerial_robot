@@ -2,6 +2,13 @@
 Changelog for package hydrus
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Fix bug: wrong RGB alignment of depth cloud (`#293 <https://github.com/tongtybj/aerial_robot/issues/293>`_)
+* Add spwan pose arguments in bringup.launch of hydrus (`#292 <https://github.com/tongtybj/aerial_robot/issues/292>`_)
+* Add actuator limit  in servo_bridge (`#287 <https://github.com/tongtybj/aerial_robot/issues/287>`_)
+* Multi sensor temporal synchronization fusion (`#276 <https://github.com/tongtybj/aerial_robot/issues/276>`_)
+
 1.0.3 (2019-01-08)
 ------------------
 * Add launch_gazebo flag to bringup files (`#265 <https://github.com/tongtybj/aerial_robot/issues/265>`_)

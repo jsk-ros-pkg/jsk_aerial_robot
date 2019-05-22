@@ -2,6 +2,9 @@
 Changelog for package motor_test
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 1.0.3 (2019-01-08)
 ------------------
 * Add motor test scripts in README.md (`#260 <https://github.com/tongtybj/aerial_robot/issues/260>`_)
