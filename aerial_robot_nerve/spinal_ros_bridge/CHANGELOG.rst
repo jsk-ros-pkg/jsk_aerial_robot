@@ -2,8 +2,8 @@
 Changelog for package spinal_ros_bridge
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.0.4 (2019-05-23)
+------------------
 * Fix bug: rosservice call sometimes fails (`#304 <https://github.com/tongtybj/aerial_robot/issues/304>`_)
 * Change default baudrate in serial.launch (`#301 <https://github.com/tongtybj/aerial_robot/issues/301>`_)
 

@@ -2,8 +2,8 @@
 Changelog for package aerial_robot_model
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.0.4 (2019-05-23)
+------------------
 * Fix the bug about the rotation validation check (`#296 <https://github.com/tongtybj/aerial_robot/issues/296>`_)
 * Add actuator limit in servo_bridge (`#287 <https://github.com/tongtybj/aerial_robot/issues/287>`_)
 * Fix bug: The storage order from array to Eigen::Matrix (`#288 <https://github.com/tongtybj/aerial_robot/issues/288>`_)

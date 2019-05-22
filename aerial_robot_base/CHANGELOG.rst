@@ -2,8 +2,8 @@
 Changelog for package aerial_robot_base
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.0.4 (2019-05-23)
+------------------
 * Fix bug: forbid the variables called by reference against the function  which contains mutex  (`#298 <https://github.com/tongtybj/aerial_robot/issues/298>`_)
 * Improve psi command over range check (`#297 <https://github.com/tongtybj/aerial_robot/issues/297>`_)
 * Refactor the script to calculate the control error RMS (`#291 <https://github.com/tongtybj/aerial_robot/issues/291>`_)

@@ -2,8 +2,8 @@
 Changelog for package spinal
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.0.4 (2019-05-23)
+------------------
 * Add the torque enable/disable flag for extra servo directly connected with spinal (`#252 <https://github.com/tongtybj/aerial_robot/issues/252>`_)
 * Add attitude_flag when checking the timeout of the flight command (`#299 <https://github.com/tongtybj/aerial_robot/issues/299>`_)
 * Add actuators (e.g. joint, gimbal) disable process in force landing phase (`#290 <https://github.com/tongtybj/aerial_robot/issues/290>`_)

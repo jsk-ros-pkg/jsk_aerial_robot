@@ -2,8 +2,8 @@
 Changelog for package hydrus
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.0.4 (2019-05-23)
+------------------
 * Fix bug: wrong RGB alignment of depth cloud (`#293 <https://github.com/tongtybj/aerial_robot/issues/293>`_)
 * Add spwan pose arguments in bringup.launch of hydrus (`#292 <https://github.com/tongtybj/aerial_robot/issues/292>`_)
 * Add actuator limit  in servo_bridge (`#287 <https://github.com/tongtybj/aerial_robot/issues/287>`_)
