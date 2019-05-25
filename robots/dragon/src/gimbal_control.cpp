@@ -44,6 +44,7 @@ namespace control_plugin
     joint_state_sub_ = nh_.subscribe("/joint_states", 1, &DragonGimbal::jointStateCallback, this);
     final_target_cog_rot_sub_ = nh_.subscribe("/final_desire_tilt", 1, &DragonGimbal::baselinkTiltCallback, this);
     target_coord_sub_ = nh_.subscribe("/desire_coordinate", 1, &DragonGimbal::targetCogRotCallback, this);
+    grasp_vectoring_force_sub_ = nhp_.subscribe("/grasp_vectoring_force", 1, &DragonGimbal::graspVectoringForceCallback, this);
 
     //dynamic reconfigure server
     roll_pitch_pid_server_ = new dynamic_reconfigure::Server<aerial_robot_base::XYPidControlConfig>(ros::NodeHandle(nhp_, "pitch_roll"));
@@ -60,6 +61,10 @@ namespace control_plugin
     add_external_wrench_service_ = nhp_.advertiseService(service_name, &DragonGimbal::addExternalWrenchCallback, this);
     nhp_.param("clear_external_wrench", service_name, std::string("/clear_external_wrench"));
     clear_external_wrench_service_ = nhp_.advertiseService(service_name, &DragonGimbal::clearExternalWrenchCallback, this);
+
+
+    /* additional vectoring force for grasping */
+    grasp_vectoring_force_ = Eigen::VectorXd::Zero(3 * kinematics_->getRotorNum());
 
   }
 
@@ -419,14 +424,14 @@ namespace control_plugin
         /* vectoring force */
 #if 1
         /* --  LQI(z) + LQI(roll) + LQI(pitch) -- */
-        tf::Vector3 f_i(f_xy_vec(2 * i) + ex_force_vec_cog_frame(3 * i),
-                        f_xy_vec(2 * i + 1) + ex_force_vec_cog_frame(3 * i + 1),
-                        target_throttle_.at(i) + att_lqi_term_.at(i) + ex_force_vec_cog_frame(3 * i + 2));
+        tf::Vector3 f_i(f_xy_vec(2 * i) + ex_force_vec_cog_frame(3 * i) + grasp_vectoring_force_(3 * i),
+                        f_xy_vec(2 * i + 1) + ex_force_vec_cog_frame(3 * i + 1) + grasp_vectoring_force_(3 * i + 1),
+                        target_throttle_.at(i) + att_lqi_term_.at(i) + ex_force_vec_cog_frame(3 * i + 2) + grasp_vectoring_force_(3 * i + 2));
 #else
         /* --  only LQI(z) -- */
-        tf::Vector3 f_i(f_xy_vec(2 * i) + ex_force_vec_cog_frame(3 * i),
-                        f_xy_vec(2 * i + 1) + ex_force_vec_cog_frame(3 * i + 1),
-                        target_throttle_.at(i) + ex_force_vec_cog_frame(3 * i + 2));
+        tf::Vector3 f_i(f_xy_vec(2 * i) + ex_force_vec_cog_frame(3 * i) + grasp_vectoring_force_(3 * i),
+                        f_xy_vec(2 * i + 1) + ex_force_vec_cog_frame(3 * i + 1) + grasp_vectoring_force_(3 * i + 1),
+                        target_throttle_.at(i) + ex_force_vec_cog_frame(3 * i + 2) + grasp_vectoring_force_(3 * i + 2) );
 #endif
 
         /* calculate ||f|| */
@@ -749,4 +754,24 @@ namespace control_plugin
     external_wrench_list_.erase(req.body_name);
   }
 
+  /* vectoring force for grasping */
+  void DragonGimbal::graspVectoringForceCallback(const dragon::GraspVectoringForceConstPtr& msg)
+  {
+    if(msg->clear_flag)
+      {
+        grasp_vectoring_force_ = Eigen::VectorXd::Zero(3 * kinematics_->getRotorNum());
+      }
+    else
+      {
+        if(grasp_vectoring_force_.size() != msg->grasp_vectoring_force.size())
+          {
+            ROS_ERROR("gimbal control: can not assign the grasp vectroing force from rosserive, the size of grasp_vectoring_force should be %d (vs %d)", grasp_vectoring_force_.size(), msg->grasp_vectoring_force.size());
+          }
+
+        grasp_vectoring_force_ = Eigen::Map<const Eigen::VectorXd>(msg->grasp_vectoring_force.data(), msg->grasp_vectoring_force.size());
+
+        //debug
+        std::cout << "the new grasp vectoring force is: \n" << grasp_vectoring_force_.transpose() << std::endl;
+      }
+  }
 };

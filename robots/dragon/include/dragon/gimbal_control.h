@@ -47,8 +47,10 @@
 #include <spinal/RollPitchYawTerm.h>
 #include <gazebo_msgs/ApplyBodyWrench.h>
 #include <gazebo_msgs/BodyRequest.h>
+#include <dragon/GraspVectoringForce.h>
 #include <eigen_conversions/eigen_msg.h>
 #include <tf_conversions/tf_eigen.h>
+
 
 namespace control_plugin
 {
@@ -84,6 +86,7 @@ namespace control_plugin
     ros::Subscriber final_target_cog_rot_sub_;
     ros::Subscriber att_control_feedback_state_sub_;
     ros::Subscriber target_coord_sub_;
+    ros::Subscriber grasp_vectoring_force_sub_;
     void servoTorqueProcess();
     void landingProcess();
     void gimbalControl();
@@ -95,6 +98,7 @@ namespace control_plugin
     void fourAxisGainCallback(const aerial_robot_msgs::FourAxisGainConstPtr & msg);
     void targetCogRotCallback(const spinal::DesireCoordConstPtr& msg);
     void attControlFeedbackStateCallback(const spinal::RollPitchYawTermConstPtr& msg);
+    void graspVectoringForceCallback(const dragon::GraspVectoringForceConstPtr& msg);
 
     /* external wrench */
     ros::ServiceServer add_external_wrench_service_, clear_external_wrench_service_;
@@ -135,6 +139,9 @@ namespace control_plugin
     /* landing process */
     bool level_flag_;
     bool landing_flag_;
+
+    /* additional vectoring force for grasping */
+    Eigen::VectorXd grasp_vectoring_force_;
 
     /* cfg */
     dynamic_reconfigure::Server<aerial_robot_base::XYPidControlConfig>* roll_pitch_pid_server_;
