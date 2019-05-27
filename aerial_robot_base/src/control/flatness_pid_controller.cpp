@@ -269,6 +269,23 @@ namespace control_plugin
         if(alt_gains_.size() == 1) break;
       }
 
+    /* update the mas for control */
+    if(total_mass_ > mass_for_control_)
+      mass_for_control_ = (1 - control_mass_update_rate_) * mass_for_control_  + control_mass_update_rate_ * total_mass_;
+    else
+      {
+        mass_for_control_ = total_mass_;
+        ROS_WARN("[flatness control] reset the mass for control to %f", total_mass_);
+      }
+    /* add additional force for extra module */
+    double original_sum = std::accumulate(target_throttle_.begin(), target_throttle_.end(), 0.0); //debug
+    double rate = (mass_for_control_ - estimator_->getRobotModel()->getMass()) * 9.8 / original_sum;
+    for(auto& itr: target_throttle_) itr *= (rate + 1);
+
+    // debug
+    ROS_WARN("the total force for extra moduel is %f", (std::accumulate(target_throttle_.begin(), target_throttle_.end(), 0.0) - original_sum) / 9.8);
+
+
     pid_msg.throttle.target_pos = target_pos_.z();
     pid_msg.throttle.pos_err = alt_pos_err;
     pid_msg.throttle.target_vel = target_vel_.z();
@@ -328,6 +345,8 @@ namespace control_plugin
         yaw_gains_[i].setValue(msg->pos_p_gain_yaw[i], msg->pos_i_gain_yaw[i], msg->pos_d_gain_yaw[i]);
         alt_gains_[i].setValue(msg->pos_p_gain_alt[i], msg->pos_i_gain_alt[i], msg->pos_d_gain_alt[i]);
       }
+
+    total_mass_ = msg->total_mass;
   }
 
 

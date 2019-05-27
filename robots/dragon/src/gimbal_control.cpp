@@ -44,6 +44,7 @@ namespace control_plugin
     joint_state_sub_ = nh_.subscribe("/joint_states", 1, &DragonGimbal::jointStateCallback, this);
     final_target_cog_rot_sub_ = nh_.subscribe("/final_desire_tilt", 1, &DragonGimbal::baselinkTiltCallback, this);
     target_coord_sub_ = nh_.subscribe("/desire_coordinate", 1, &DragonGimbal::targetCogRotCallback, this);
+    grasp_vectoring_force_sub_ = nhp_.subscribe("/grasp_vectoring_force", 1, &DragonGimbal::graspVectoringForceCallback, this);
 
     //dynamic reconfigure server
     roll_pitch_pid_server_ = new dynamic_reconfigure::Server<aerial_robot_base::XYPidControlConfig>(ros::NodeHandle(nhp_, "pitch_roll"));
@@ -53,6 +54,18 @@ namespace control_plugin
     yaw_pid_server_ = new dynamic_reconfigure::Server<aerial_robot_base::XYPidControlConfig>(ros::NodeHandle(nhp_, "yaw"));
     dynamic_reconf_func_yaw_pid_ = boost::bind(&DragonGimbal::cfgYawPidCallback, this, _1, _2);
     yaw_pid_server_->setCallback(dynamic_reconf_func_yaw_pid_);
+
+    /* external wrench */
+    std::string service_name;
+    nhp_.param("apply_external_wrench", service_name, std::string("/apply_external_wrench"));
+    add_external_wrench_service_ = nhp_.advertiseService(service_name, &DragonGimbal::addExternalWrenchCallback, this);
+    nhp_.param("clear_external_wrench", service_name, std::string("/clear_external_wrench"));
+    clear_external_wrench_service_ = nhp_.advertiseService(service_name, &DragonGimbal::clearExternalWrenchCallback, this);
+
+
+    /* additional vectoring force for grasping */
+    grasp_vectoring_force_ = Eigen::VectorXd::Zero(3 * kinematics_->getRotorNum());
+
   }
 
   void DragonGimbal::fourAxisGainCallback(const aerial_robot_msgs::FourAxisGainConstPtr & msg)
@@ -145,6 +158,9 @@ namespace control_plugin
 
             /* force set the current deisre tilt to current estimated tilt */
             curr_target_cog_rot_.setValue(estimator_->getState(State::ROLL_BASE, estimate_mode_)[0], estimator_->getState(State::PITCH_BASE, estimate_mode_)[0], 0);
+
+            /* clear the external wrench */
+            external_wrench_list_.clear();
           }
 
         level_flag_ = true;
@@ -191,21 +207,7 @@ namespace control_plugin
     /* get roll/pitch angle */
     double roll_angle = estimator_->getState(State::ROLL_COG, estimate_mode_)[0];
     double pitch_angle = estimator_->getState(State::PITCH_COG, estimate_mode_)[0];
-
-    /* do not do gimbal control in the early stage of takeoff phase */
-    /*
-    if(navigator_->getNaviState() == Navigator::TAKEOFF_STATE)
-      {
-        double total_thrust  = 0;
-        for(int j = 0; j < motor_num_; j++)
-          total_thrust += target_throttle_[j];
-        if(kinematics_->getMass() * 0.75 > total_thrust / 10)
-          {
-            //ROS_INFO("force is to small, mass: %f, force: %f", kinematics_->getMass(), total_thrust / 10);
-            return;
-          }
-      }
-    */
+    double yaw_angle = estimator_->getState(State::YAW_COG, estimate_mode_)[0];
 
     int rotor_num = kinematics_->getRotorNum();
 
@@ -359,6 +361,55 @@ namespace control_plugin
         f_xy_vec = pseudoinverse(P) * pid_values;
       }
 
+    /* =============================== Applay External Wrench =================================== */
+    /* Discription: need the opposite wrench to balance this external wrench                      */
+    /* -- calculuation total wrench w.r.t CoG frame -- */
+    Eigen::Quaterniond cog_att;
+    tf::quaternionTFToEigen(tf::createQuaternionFromRPY(roll_angle, pitch_angle, yaw_angle), cog_att);
+    auto segments_tf = kinematics_->getSegmentsTf();
+    Eigen::VectorXd sum_wrench_cog_frame = Eigen::VectorXd::Zero(6);
+    for(auto const& wrench_info: external_wrench_list_)
+      {
+        auto wrench_tf_root_link = segments_tf.find(wrench_info.first);
+        if(wrench_tf_root_link != segments_tf.end())
+          {
+            Eigen::Vector3d wrench_point_seg_frame;
+            tf::pointMsgToEigen(wrench_info.second.reference_point, wrench_point_seg_frame);
+
+            Eigen::Vector3d wrench_point_cog_frame = aerial_robot_model::kdlToEigen(kinematics_->getCog<KDL::Frame>().Inverse() * wrench_tf_root_link->second) * wrench_point_seg_frame;
+
+            Eigen::Vector3d force_world_frame;
+            tf::vectorMsgToEigen(wrench_info.second.wrench.force, force_world_frame);
+            Eigen::Vector3d torque_world_frame;
+            tf::vectorMsgToEigen(wrench_info.second.wrench.torque, torque_world_frame);
+            sum_wrench_cog_frame.head(3) += cog_att.inverse() * force_world_frame;
+            sum_wrench_cog_frame.tail(3) += wrench_point_cog_frame.cross(cog_att.inverse() * force_world_frame) + cog_att.inverse() * torque_world_frame; // Force Part + Torque Part
+          }
+        else
+          {
+            ROS_ERROR("undefined segment: %s", wrench_info.first.c_str());
+          }
+      }
+    if(control_verbose_)
+    {
+      std::cout << "external wrench w.r.t cog frame: " << sum_wrench_cog_frame.transpose() << std::endl;
+    }
+
+    /* -- allocation -- */
+    Eigen::MatrixXd allocation_mat = Eigen::MatrixXd::Zero(6, 3 * rotor_num);
+    for(int i = 0; i < rotor_num; i++)
+      {
+        allocation_mat.block(0, 3 * i, 3, 3) = Eigen::MatrixXd::Identity(3, 3);
+        allocation_mat.block(3, 3 * i, 3, 3) = aerial_robot_model::skewSymmetricMatrix(rotors_origin_from_cog[i]);
+      }
+    Eigen::VectorXd ex_force_vec_cog_frame = pseudoinverse(allocation_mat) * (-sum_wrench_cog_frame);
+    if(control_verbose_)
+    {
+      std::cout << "force vec w.r.t cog frame for external wrench: " <<  ex_force_vec_cog_frame.transpose() << std::endl;
+      std::cout << "allocation matrix: " << allocation_mat << std::endl;
+    }
+    /* ====================================================================================== */
+
     if(control_verbose_)
       {
         std::cout << "gimbal P_pseudo_inverse:"  << std::endl << pseudoinverse(P) << std::endl;
@@ -371,10 +422,17 @@ namespace control_plugin
     for(int i = 0; i < rotor_num; i++)
       {
         /* vectoring force */
+#if 1
         /* --  LQI(z) + LQI(roll) + LQI(pitch) -- */
-        tf::Vector3 f_i(f_xy_vec(2 * i), f_xy_vec(2 * i + 1), target_throttle_.at(i) + att_lqi_term_.at(i));
+        tf::Vector3 f_i(f_xy_vec(2 * i) + ex_force_vec_cog_frame(3 * i) + grasp_vectoring_force_(3 * i),
+                        f_xy_vec(2 * i + 1) + ex_force_vec_cog_frame(3 * i + 1) + grasp_vectoring_force_(3 * i + 1),
+                        target_throttle_.at(i) + att_lqi_term_.at(i) + ex_force_vec_cog_frame(3 * i + 2) + grasp_vectoring_force_(3 * i + 2));
+#else
         /* --  only LQI(z) -- */
-        //tf::Vector3 f_i(f_xy_vec(2 * i), f_xy_vec(2 * i + 1), target_throttle_.at(i));
+        tf::Vector3 f_i(f_xy_vec(2 * i) + ex_force_vec_cog_frame(3 * i) + grasp_vectoring_force_(3 * i),
+                        f_xy_vec(2 * i + 1) + ex_force_vec_cog_frame(3 * i + 1) + grasp_vectoring_force_(3 * i + 1),
+                        target_throttle_.at(i) + ex_force_vec_cog_frame(3 * i + 2) + grasp_vectoring_force_(3 * i + 2) );
+#endif
 
         /* calculate ||f|| */
         target_thrust_vector_.at(i) = (f_i - tf::Vector3(0, 0, att_lqi_term_.at(i))).length(); //omit pitch and roll term, which will be added in spinal
@@ -390,6 +448,7 @@ namespace control_plugin
 
         /* normalized vector */
         auto f_i_normalized = f_i.normalize();
+
         if(control_verbose_) ROS_INFO("gimbal%d f normaizled: [%f, %f, %f]", i + 1, f_i_normalized.x(), f_i_normalized.y(), f_i_normalized.z());
 
         /*f -> gimbal angle */
@@ -681,5 +740,38 @@ namespace control_plugin
     if(param_verbose_) cout << pitch_roll_ns << ": i_gain_ is " << pitch_roll_gains_[1] << endl;
     pitch_roll_node.param("d_gain", pitch_roll_gains_[2], 0.0);
     if(param_verbose_) cout << pitch_roll_ns << ": d_gain_ is " << pitch_roll_gains_[2] << endl;
+  }
+
+
+  /* external wrench */
+  bool DragonGimbal::addExternalWrenchCallback(gazebo_msgs::ApplyBodyWrench::Request& req, gazebo_msgs::ApplyBodyWrench::Response& res)
+  {
+    external_wrench_list_[req.body_name] = req;
+  }
+
+  bool DragonGimbal::clearExternalWrenchCallback(gazebo_msgs::BodyRequest::Request& req, gazebo_msgs::BodyRequest::Response& res)
+  {
+    external_wrench_list_.erase(req.body_name);
+  }
+
+  /* vectoring force for grasping */
+  void DragonGimbal::graspVectoringForceCallback(const dragon::GraspVectoringForceConstPtr& msg)
+  {
+    if(msg->clear_flag)
+      {
+        grasp_vectoring_force_ = Eigen::VectorXd::Zero(3 * kinematics_->getRotorNum());
+      }
+    else
+      {
+        if(grasp_vectoring_force_.size() != msg->grasp_vectoring_force.size())
+          {
+            ROS_ERROR("gimbal control: can not assign the grasp vectroing force from rosserive, the size of grasp_vectoring_force should be %d (vs %d)", grasp_vectoring_force_.size(), msg->grasp_vectoring_force.size());
+          }
+
+        grasp_vectoring_force_ = Eigen::Map<const Eigen::VectorXd>(msg->grasp_vectoring_force.data(), msg->grasp_vectoring_force.size());
+
+        //debug
+        std::cout << "the new grasp vectoring force is: \n" << grasp_vectoring_force_.transpose() << std::endl;
+      }
   }
 };

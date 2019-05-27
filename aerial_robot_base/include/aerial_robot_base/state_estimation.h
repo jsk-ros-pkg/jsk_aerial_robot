@@ -127,6 +127,8 @@ public:
 
   static constexpr float G = 9.797;
 
+  boost::shared_ptr<aerial_robot_model::RobotModel>  getRobotModel() {return kinematics_model_;}
+
   int getStateStatus(uint8_t axis, uint8_t estimate_mode)
   {
     boost::lock_guard<boost::mutex> lock(state_mutex_);

@@ -8,6 +8,7 @@ find_package(catkin REQUIRED COMPONENTS
   hydrus
   aerial_robot_model
   aerial_robot_simulation
+  message_generation
 )
 
 find_package(Eigen3 REQUIRED)
@@ -25,6 +26,12 @@ message(STATUS "CMAKE_CXX_FLAGS_MINSIZEREL:     ${CMAKE_CXX_FLAGS_MINSIZEREL}")
 message(STATUS "CMAKE_CXX_FLAGS_DEBUG:          ${CMAKE_CXX_FLAGS_DEBUG}")
 
 find_package(Boost REQUIRED COMPONENTS system)
+
+## Declare ROS services
+add_message_files(FILES GraspVectoringForce.msg)
+## Generate added messages and services
+generate_messages(DEPENDENCIES std_msgs)
+
 
 catkin_package(
   INCLUDE_DIRS include
@@ -57,4 +64,4 @@ target_link_libraries(dragon_transform_control_node dragon_transform_control ${c
 
 add_library(dragon_control_pluginlib src/gimbal_control.cpp)
 target_link_libraries (dragon_control_pluginlib dragon_robot_model ${catkin_LIBRARIES} ${Eigen3_LIBRARIES})
-add_dependencies(dragon_control_pluginlib aerial_robot_msgs_generate_messages_cpp aerial_robot_base_generate_messages_cpp hydrus_generate_messages_cpp hydrus_gencfg)
+add_dependencies(dragon_control_pluginlib aerial_robot_msgs_generate_messages_cpp aerial_robot_base_generate_messages_cpp hydrus_generate_messages_cpp hydrus_gencfg ${PROJECT_NAME}_generate_messages_cpp)
