@@ -152,7 +152,7 @@ public:
   {
     if(value_type == ValueType::BIT)
       {
-        return boost::algorithm::clamp(curr_angle_val_ * angle_sgn_ / angle_scale_ + zero_point_offset_, 0, UINT16_MAX);
+        return boost::algorithm::clamp(curr_angle_val_ * angle_sgn_ / angle_scale_ + zero_point_offset_, INT16_MIN/2, INT16_MAX/2);
       }
     else if(value_type == ValueType::RADIAN)
       return curr_angle_val_;
@@ -162,7 +162,7 @@ public:
   {
     if(value_type == ValueType::BIT)
       {
-        return boost::algorithm::clamp(target_angle_val_ * angle_sgn_ / angle_scale_ + zero_point_offset_, 0, UINT16_MAX);
+        return boost::algorithm::clamp(target_angle_val_ * angle_sgn_ / angle_scale_ + zero_point_offset_, INT16_MIN/2, INT16_MAX/2);
       }
     else if(value_type == ValueType::RADIAN)
       return target_angle_val_;
