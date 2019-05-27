@@ -91,7 +91,9 @@ namespace Spine
 		  servo_.at(control_msg.index[i]).get().setTorqueEnable((control_msg.torque_enable[i] != 0) ? true : false);
 
 		  /* update the target angle */
-		  servo_.at(control_msg.index[i]).get().setGoalPosition(servo_.at(control_msg.index[i]).get().getPresentPosition());
+		  if (servo_.at(control_msg.index[i]).get().getSendDataFlag()) {
+			  servo_.at(control_msg.index[i]).get().setGoalPosition(servo_.at(control_msg.index[i]).get().getPresentPosition());
+		  }
 	  }
   }
 
