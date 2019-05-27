@@ -315,6 +315,9 @@ void TransformController::param2controller()
 
   const int lqi_mode = getRobotModel().getLqiMode();
   const Eigen::MatrixXd P_orig_pseudo_inverse = getRobotModel().getPOrigPseudoInverse();
+
+  four_axis_gain_msg.total_mass = getRobotModel().getMass();
+
   for(int i = 0; i < rotor_num; ++i)
     {
       /* to flight controller via rosserial */

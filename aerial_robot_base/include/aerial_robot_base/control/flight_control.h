@@ -51,6 +51,7 @@
 /* util */
 #include <boost/algorithm/clamp.hpp>
 #include <tf/transform_datatypes.h>
+#include <numeric>
 
 using namespace std;
 
@@ -83,6 +84,7 @@ namespace control_plugin
       estimate_mode_ = estimator_->getEstimateMode();
 
       nhp.param("param_verbose", param_verbose_, false);
+      nhp.param("control_mass_update_rate", control_mass_update_rate_, 0.1);
 
       ros::NodeHandle motor_info_node("motor_info");
       std::string ns = motor_info_node.getNamespace();
@@ -130,10 +132,18 @@ namespace control_plugin
       /* the motor number can be calculated from ros model(KDL), so this is not necessary */
       uav_info_node.param("motor_num", motor_num_, 0);
       if(param_verbose_) cout << ns  << ": motor_num_ is "  <<  motor_num_ << endl;
+
     }
 
     virtual bool update()
     {
+      /* temporary for weight initialization  */
+      if(mass_for_control_ == 0 && estimator_->getRobotModel()->getMass() > 0)
+        {
+          mass_for_control_ = estimator_->getRobotModel()->getMass();
+          ROS_ERROR("Control: the intial mass is %f", mass_for_control_);
+        }
+
       if(motor_num_ == 0) return false;
 
       if(navigator_->getNaviState() == Navigator::START_STATE) activate();
@@ -204,6 +214,10 @@ namespace control_plugin
     double control_timestamp_;
     int motor_num_;
     int uav_model_;
+
+    double control_mass_update_rate_; // update rate
+    double total_mass_; // this is the total mass including the detachable module
+    double mass_for_control_; //this is **not** equal to the true mass, to deal with the detachable module
 
     /* new param */
     double min_thrust_, max_thrust_;
