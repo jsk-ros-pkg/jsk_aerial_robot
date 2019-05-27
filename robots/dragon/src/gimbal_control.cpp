@@ -68,6 +68,7 @@ namespace control_plugin
 
   }
 
+  //TODO: this overwrite is not good (2019.05.27)
   void DragonGimbal::fourAxisGainCallback(const aerial_robot_msgs::FourAxisGainConstPtr & msg)
   {
     /* update the motor number */
@@ -91,6 +92,13 @@ namespace control_plugin
         alt_gains_[i].setValue(msg->pos_p_gain_alt[i], msg->pos_i_gain_alt[i], msg->pos_d_gain_alt[i]);
         pitch_gains_[i].setValue(msg->pos_p_gain_pitch[i], msg->pos_i_gain_pitch[i], msg->pos_d_gain_pitch[i]);
         roll_gains_[i].setValue(msg->pos_p_gain_roll[i], msg->pos_i_gain_roll[i], msg->pos_d_gain_roll[i]);
+      }
+
+    total_mass_ = msg->total_mass; //duplicated with FlatnessPid::fourAxisGainCallback
+    if(original_mass_ == 0)
+      {
+        original_mass_ = msg->total_mass;
+        mass_for_control_ = msg->total_mass;
       }
   }
 
@@ -159,8 +167,11 @@ namespace control_plugin
             /* force set the current deisre tilt to current estimated tilt */
             curr_target_cog_rot_.setValue(estimator_->getState(State::ROLL_BASE, estimate_mode_)[0], estimator_->getState(State::PITCH_BASE, estimate_mode_)[0], 0);
 
-            /* clear the external wrench */
+            /* clear the external wrench and grasp vectoring force  */
             external_wrench_list_.clear();
+
+            /* clear the grasp vectoring force */
+            grasp_vectoring_force_ = Eigen::VectorXd::Zero(3 * kinematics_->getRotorNum());
           }
 
         level_flag_ = true;
@@ -763,15 +774,17 @@ namespace control_plugin
       }
     else
       {
+        if(navigator_->getNaviState() != Navigator::HOVER_STATE || navigator_->getForceLandingFlag() || landing_flag_) return;
+
         if(grasp_vectoring_force_.size() != msg->grasp_vectoring_force.size())
           {
-            ROS_ERROR("gimbal control: can not assign the grasp vectroing force from rosserive, the size of grasp_vectoring_force should be %d (vs %d)", grasp_vectoring_force_.size(), msg->grasp_vectoring_force.size());
+            ROS_ERROR("gimbal control: can not assign the grasp vectroing force from rosserive, the size of grasp_vectoring_force should be %d (vs %d)", (int)grasp_vectoring_force_.size(), (int)msg->grasp_vectoring_force.size());
           }
 
         grasp_vectoring_force_ = Eigen::Map<const Eigen::VectorXd>(msg->grasp_vectoring_force.data(), msg->grasp_vectoring_force.size());
 
         //debug
-        std::cout << "the new grasp vectoring force is: \n" << grasp_vectoring_force_.transpose() << std::endl;
+        //std::cout << "the  grasp vectoring force is: \n" << grasp_vectoring_force_.transpose() << std::endl;
       }
   }
 };

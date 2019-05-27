@@ -65,10 +65,10 @@ namespace control_plugin
 
     virtual ~ControlBase(){}
     void virtual initialize(ros::NodeHandle nh,
-               ros::NodeHandle nhp,
-               StateEstimator* estimator,
-               Navigator* navigator,
-               double ctrl_loop_rate)
+                            ros::NodeHandle nhp,
+                            StateEstimator* estimator,
+                            Navigator* navigator,
+                            double ctrl_loop_rate)
     {
       nh_ = ros::NodeHandle(nh, "controller");
       nhp_ = ros::NodeHandle(nhp,  "controller");
@@ -133,17 +133,14 @@ namespace control_plugin
       uav_info_node.param("motor_num", motor_num_, 0);
       if(param_verbose_) cout << ns  << ": motor_num_ is "  <<  motor_num_ << endl;
 
+
+      /* Initialize mass model */
+      mass_for_control_ = 0;
+      original_mass_ = 0;
     }
 
     virtual bool update()
     {
-      /* temporary for weight initialization  */
-      if(mass_for_control_ == 0 && estimator_->getRobotModel()->getMass() > 0)
-        {
-          mass_for_control_ = estimator_->getRobotModel()->getMass();
-          ROS_ERROR("Control: the intial mass is %f", mass_for_control_);
-        }
-
       if(motor_num_ == 0) return false;
 
       if(navigator_->getNaviState() == Navigator::START_STATE) activate();
@@ -216,6 +213,7 @@ namespace control_plugin
     int uav_model_;
 
     double control_mass_update_rate_; // update rate
+    double original_mass_; //this is the initial mass without any extra module
     double total_mass_; // this is the total mass including the detachable module
     double mass_for_control_; //this is **not** equal to the true mass, to deal with the detachable module
 

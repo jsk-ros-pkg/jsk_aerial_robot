@@ -274,16 +274,17 @@ namespace control_plugin
       mass_for_control_ = (1 - control_mass_update_rate_) * mass_for_control_  + control_mass_update_rate_ * total_mass_;
     else
       {
+        if(mass_for_control_ != total_mass_)
+          ROS_WARN("[flatness control] reset the mass for control to %f", total_mass_);
+
         mass_for_control_ = total_mass_;
-        ROS_WARN("[flatness control] reset the mass for control to %f", total_mass_);
       }
     /* add additional force for extra module */
     double original_sum = std::accumulate(target_throttle_.begin(), target_throttle_.end(), 0.0); //debug
-    double rate = (mass_for_control_ - estimator_->getRobotModel()->getMass()) * 9.8 / original_sum;
+    double rate = (mass_for_control_ - original_mass_) * 9.8 / original_sum;
     for(auto& itr: target_throttle_) itr *= (rate + 1);
-
     // debug
-    ROS_WARN("the total force for extra moduel is %f", (std::accumulate(target_throttle_.begin(), target_throttle_.end(), 0.0) - original_sum) / 9.8);
+    //ROS_WARN("the total force for extra moduel is %f", (std::accumulate(target_throttle_.begin(), target_throttle_.end(), 0.0) - original_sum) / 9.8);
 
 
     pid_msg.throttle.target_pos = target_pos_.z();
@@ -347,6 +348,11 @@ namespace control_plugin
       }
 
     total_mass_ = msg->total_mass;
+    if(original_mass_ == 0)
+      {
+        original_mass_ = msg->total_mass;
+        mass_for_control_ = msg->total_mass;
+      }
   }
 
 
