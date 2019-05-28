@@ -1,3 +1,4 @@
+
 #pragma once
 
 #include <tf2_kdl/tf2_kdl.h>
@@ -26,7 +27,7 @@ namespace aerial_robot_model {
   {
     double x, y, z, w;
     m.GetQuaternion(x, y, z, w);
-    if(std::fabs(1 - Eigen::Quaterniond(w, x, y, z).squaredNorm() > 1e-6)) return true;
+    if(std::fabs(1 - Eigen::Quaterniond(w, x, y, z).squaredNorm()) < 1e-6) return true;
     else return false;
   }
 
