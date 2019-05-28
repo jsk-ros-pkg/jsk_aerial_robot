@@ -7,7 +7,7 @@ dragon:
       angle_sgn: 1
       angle_scale: 0.00076699
       zero_point_offset: 2047
-      torque_scale: 1.0 # TODO please update the scale
+      torque_scale:  0.0106 # 0.0036 [A/bit] * (3.4 / 2.3) [Nm/A] * 2 (pulley)
 
        # for low pass filter
       filter_flag: true
