@@ -77,7 +77,7 @@ path = "./"
 # need correct inputs
 if (len(sys.argv) < 2):
     # default path: ../spinal/
-    path = spinal_dir + "/../spinal/mcu_project"
+    path = spinal_dir + "/../spinal/stm32h7_nucleo"
 else:
     # get output path
     path = sys.argv[1]
