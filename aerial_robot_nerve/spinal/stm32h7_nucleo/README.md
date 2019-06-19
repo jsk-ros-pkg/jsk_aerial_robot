@@ -1,4 +1,4 @@
-# TCP, UDP with nucleo
+# rossrial based on ethernet (UDP) with STM32H7 Nucleo
 
 ## requirement:
 
@@ -8,38 +8,61 @@
 
 ## compile:
 
-1. build in Truestudio
+0. prepare the `ros_lib` for MCU:
+
+   ```
+   $ rosrun spinal make_libraries.py
+   ```
+
+1. build in Truestudio by:
+
+   ```
+   $ rosrun spinal true_studio.sh
+   ```
+
 2. flash to the Nucleo-H743ZI
-
-### Generate from STM32CubeMX:
-please check the MPU settings for ethernet DMA, based on following website:
-- https://community.st.com/s/article/FAQ-Ethernet-not-working-on-STM32H7x3
-- https://www.keshikan.net/gohantabeyo/?p=563
-- http://nemuisan.blog.bai.ne.jp/?eid=215813
-- https://www.st.com/content/ccc/resource/technical/document/application_note/group0/bc/2d/f7/bd/fb/3f/48/47/DM00272912/files/DM00272912.pdf/jcr:content/translations/en.DM00272912.pdf
-
-
 
 ## usage:
 
-3. create a new Ethernet connection with static IP (192.168.25.xxx, xxx: except 238) in host PC.
+1. create a new Ethernet connection with static IP (192.168.25.xxx, xxx: except 238) in host PC.
+   please check the connection by `ping`:
 
-4. perform UDP receive test:
+   ```
+   $ ping 192.168.25.238
+   ```
 
-```
-$ python3 Scripts/socket_udp_receive.py
-```
+2. rosserial based on ethernet UDP.
 
-5. perform TCP echo test:
+   ```
+   $ roslaunch rosserial_server udp_socket.launch client_addr:="192.168.25.238" client_port:=12345 server_port:=12345  --screen -v
+   ```
 
-```
-$ python3 Scripts/socket_tcp_send.py
-```
+3. perform the load test
+
+   - check the published topic from device:
+
+      ```
+      $ rostopic hz /imu
+      ```
+
+      **note**: you can also add option `-w 2` to check the interval between two messages.
+
+   - publish topic to device
+
+      ```
+      $ rosrun spinal load_test.py
+      ```
+
+      **note**: you can see the log in the terminal launching `udp_socket.launch`, such as, `[ERROR] [1560932626.875748081]: 2, 3, 1`. This means the current interval is 2 [ms], the max interval is 3 [ms], the min interval is 1 [ms].
 
 
+### Option: generate from STM32CubeMX:
+please check the MPU settings for ethernet DMA, based on following website:
 
-5. perform UDP echo test:
+- https://community.st.com/s/article/FAQ-Ethernet-not-working-on-STM32H7x3
 
-```
-$ python3 Scripts/socket_udp_send.py
-```
+- https://www.keshikan.net/gohantabeyo/?p=563
+
+- http://nemuisan.blog.bai.ne.jp/?eid=215813
+
+- https://www.st.com/content/ccc/resource/technical/document/application_note/group0/bc/2d/f7/bd/fb/3f/48/47/DM00272912/files/DM00272912.pdf/jcr:content/translations/en.DM00272912.pdf

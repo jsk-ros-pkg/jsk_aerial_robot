@@ -72,10 +72,14 @@
 #include "udp_echoserver.h"
 #include "app_ethernet.h"
 
+#include <cstring>
 #include <string>
 #include <ros.h>
 #include <std_msgs/String.h>
 #include <std_msgs/Empty.h>
+#include <spinal/ServoControlCmd.h>
+#include <spinal/Imu.h>
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -102,10 +106,17 @@ uint32_t msTickPrevious = 0;
 bool start_processing_flag_ = false; //to prevent systick_callback starting  beforeinit() processes
 ros::NodeHandle nh_;
 
-std_msgs::String pub_msg_;
-ros::Publisher test_pub_("/test_pub", &pub_msg_);
-ros::Publisher test_pub2_("/test_pub2", &pub_msg_);
-ros::Publisher test_pub3_("/test_pub3", &pub_msg_);
+std_msgs::String test_msg_;
+spinal::Imu imu_msg_;
+ros::Publisher test_pub_("/imu", &imu_msg_);
+ros::Publisher test_pub2_("/test_pub1", &test_msg_);
+ros::Publisher test_pub3_("/test_pub2", &test_msg_);
+
+uint32_t servo_msg_recv_t = 0;
+uint32_t servo_msg_echo_t = 0;
+uint32_t max_du = 0;
+uint32_t min_du = 1e6;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -124,10 +135,10 @@ void HAL_SYSTICK_Callback(void)
 {
   if(!start_processing_flag_) return;
 
-  if(HAL_GetTick() - msTick > 1000)
+  //if(HAL_GetTick() - msTick > 1000)
     {
-      //pub_msg_.data = std::string("periodic pub").c_str();
-      //test_pub_.publish(&pub_msg_);
+      imu_msg_.stamp = nh_.now();
+      test_pub_.publish(&imu_msg_);
       msTick = HAL_GetTick();
     }
 
@@ -137,9 +148,45 @@ void HAL_SYSTICK_Callback(void)
 
 void testCallback(const std_msgs::Empty& msg)
 {
-  pub_msg_.data = std::string("sub echo ok").c_str();
-  test_pub_.publish(&pub_msg_);
+  test_msg_.data = std::string("sub echo ok").c_str();
+  test_pub2_.publish(&test_msg_);
 }
+
+void test2Callback(const spinal::ServoControlCmd& msg)
+{
+  if(HAL_GetTick() - servo_msg_recv_t > 2000) // 2000 ms
+    {
+      // reset
+      servo_msg_recv_t = 0;
+      servo_msg_echo_t = 0;
+
+      max_du = 0;
+      min_du = 1e6;
+    }
+  if(servo_msg_recv_t == 0)
+    {
+      servo_msg_recv_t = HAL_GetTick();
+      servo_msg_echo_t = HAL_GetTick();
+    }
+  else
+    {
+      uint32_t du = HAL_GetTick() - servo_msg_recv_t;
+      if(max_du < du) max_du = du;
+      if(min_du > du) min_du = du;
+
+      if (HAL_GetTick() - servo_msg_echo_t > 1000) // 1000 ms
+        {
+          char buffer[50];
+          sprintf (buffer, "%d, %d, %d", du, max_du, min_du);
+          nh_.logerror(buffer);
+          //std::string message = std::to_string(du) + std::string(", ") + std::to_string(max_du) + std::string(", ") + std::to_string(min_du);
+          //nh_.logerror(message.c_str());
+          servo_msg_echo_t = HAL_GetTick();
+        }
+      servo_msg_recv_t = HAL_GetTick();
+    }
+}
+
 
 /* USER CODE END 0 */
 
@@ -203,10 +250,13 @@ int main(void)
   nh_.initNode(dst_addr, 12345,12345);
 
   ros::Subscriber<std_msgs::Empty> test_sub_("/test_sub", &testCallback);
+  ros::Subscriber<spinal::ServoControlCmd> test2_sub_("/target_servo_sub", &test2Callback);
+
   nh_.advertise(test_pub_);
   nh_.advertise(test_pub2_);
   nh_.advertise(test_pub3_);
   nh_.subscribe< ros::Subscriber<std_msgs::Empty> >(test_sub_);
+  nh_.subscribe< ros::Subscriber<spinal::ServoControlCmd> >(test2_sub_);
 
   start_processing_flag_ = true;
 
