@@ -271,7 +271,7 @@ public:
     }
   }
 
-  bool findRotOmege(const double timestamp, const int mode, tf::Matrix3x3 r, tf::Vector3 omega)
+  bool findRotOmega(const double timestamp, const int mode, tf::Matrix3x3& r, tf::Vector3& omega)
   {
     boost::lock_guard<boost::mutex> lock(queue_mutex_);
 
@@ -290,8 +290,7 @@ public:
 
     if(timestamp > timestamp_qu_.back())
       {
-        ROS_ERROR("estimation: sensor timestamp %f is later than the latest timestamp %f in queue",
-                  timestamp, timestamp_qu_.front());
+        ROS_ERROR("estimation: sensor timestamp %f is later than the latest timestamp %f in queue", timestamp, timestamp_qu_.back());
         return false;
       }
 
