@@ -1,0 +1,234 @@
+<?xml version="1.0" encoding="utf-8"?>
+<COLLADA xmlns="http://www.collada.org/2005/11/COLLADASchema" version="1.4.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <asset>
+    <contributor>
+      <author>Blender User</author>
+      <authoring_tool>Blender 2.79.0 commit date:2018-03-22, commit time:14:10, hash:f4dc9f9d68b</authoring_tool>
+    </contributor>
+    <created>2019-07-04T07:25:35</created>
+    <modified>2019-07-04T07:25:35</modified>
+    <unit name="meter" meter="1"/>
+    <up_axis>Z_UP</up_axis>
+  </asset>
+  <library_cameras>
+    <camera id="Camera-camera" name="Camera">
+      <optics>
+        <technique_common>
+          <perspective>
+            <xfov sid="xfov">49.13434</xfov>
+            <aspect_ratio>1.777778</aspect_ratio>
+            <znear sid="znear">0.1</znear>
+            <zfar sid="zfar">100</zfar>
+          </perspective>
+        </technique_common>
+      </optics>
+      <extra>
+        <technique profile="blender">
+          <shiftx sid="shiftx" type="float">0</shiftx>
+          <shifty sid="shifty" type="float">0</shifty>
+          <YF_dofdist sid="YF_dofdist" type="float">0</YF_dofdist>
+        </technique>
+      </extra>
+    </camera>
+  </library_cameras>
+  <library_lights>
+    <light id="Lamp-light" name="Lamp">
+      <technique_common>
+        <point>
+          <color sid="color">1 1 1</color>
+          <constant_attenuation>1</constant_attenuation>
+          <linear_attenuation>0</linear_attenuation>
+          <quadratic_attenuation>0.00111109</quadratic_attenuation>
+        </point>
+      </technique_common>
+      <extra>
+        <technique profile="blender">
+          <type sid="type" type="int">0</type>
+          <flag sid="flag" type="int">0</flag>
+          <mode sid="mode" type="int">8192</mode>
+          <gamma sid="blender_gamma" type="float">1</gamma>
+          <red sid="red" type="float">1</red>
+          <green sid="green" type="float">1</green>
+          <blue sid="blue" type="float">1</blue>
+          <shadow_r sid="blender_shadow_r" type="float">0</shadow_r>
+          <shadow_g sid="blender_shadow_g" type="float">0</shadow_g>
+          <shadow_b sid="blender_shadow_b" type="float">0</shadow_b>
+          <energy sid="blender_energy" type="float">1</energy>
+          <dist sid="blender_dist" type="float">29.99998</dist>
+          <spotsize sid="spotsize" type="float">75</spotsize>
+          <spotblend sid="spotblend" type="float">0.15</spotblend>
+          <halo_intensity sid="blnder_halo_intensity" type="float">1</halo_intensity>
+          <att1 sid="att1" type="float">0</att1>
+          <att2 sid="att2" type="float">1</att2>
+          <falloff_type sid="falloff_type" type="int">2</falloff_type>
+          <clipsta sid="clipsta" type="float">1.000799</clipsta>
+          <clipend sid="clipend" type="float">30.002</clipend>
+          <bias sid="bias" type="float">1</bias>
+          <soft sid="soft" type="float">3</soft>
+          <compressthresh sid="compressthresh" type="float">0.04999995</compressthresh>
+          <bufsize sid="bufsize" type="int">2880</bufsize>
+          <samp sid="samp" type="int">3</samp>
+          <buffers sid="buffers" type="int">1</buffers>
+          <filtertype sid="filtertype" type="int">0</filtertype>
+          <bufflag sid="bufflag" type="int">0</bufflag>
+          <buftype sid="buftype" type="int">2</buftype>
+          <ray_samp sid="ray_samp" type="int">1</ray_samp>
+          <ray_sampy sid="ray_sampy" type="int">1</ray_sampy>
+          <ray_sampz sid="ray_sampz" type="int">1</ray_sampz>
+          <ray_samp_type sid="ray_samp_type" type="int">0</ray_samp_type>
+          <area_shape sid="area_shape" type="int">1</area_shape>
+          <area_size sid="area_size" type="float">0.1</area_size>
+          <area_sizey sid="area_sizey" type="float">0.1</area_sizey>
+          <area_sizez sid="area_sizez" type="float">1</area_sizez>
+          <adapt_thresh sid="adapt_thresh" type="float">0.000999987</adapt_thresh>
+          <ray_samp_method sid="ray_samp_method" type="int">1</ray_samp_method>
+          <shadhalostep sid="shadhalostep" type="int">0</shadhalostep>
+          <sun_effect_type sid="sun_effect_type" type="int">0</sun_effect_type>
+          <skyblendtype sid="skyblendtype" type="int">1</skyblendtype>
+          <horizon_brightness sid="horizon_brightness" type="float">1</horizon_brightness>
+          <spread sid="spread" type="float">1</spread>
+          <sun_brightness sid="sun_brightness" type="float">1</sun_brightness>
+          <sun_size sid="sun_size" type="float">1</sun_size>
+          <backscattered_light sid="backscattered_light" type="float">1</backscattered_light>
+          <sun_intensity sid="sun_intensity" type="float">1</sun_intensity>
+          <atm_turbidity sid="atm_turbidity" type="float">2</atm_turbidity>
+          <atm_extinction_factor sid="atm_extinction_factor" type="float">1</atm_extinction_factor>
+          <atm_distance_factor sid="atm_distance_factor" type="float">1</atm_distance_factor>
+          <skyblendfac sid="skyblendfac" type="float">1</skyblendfac>
+          <sky_exposure sid="sky_exposure" type="float">1</sky_exposure>
+          <sky_colorspace sid="sky_colorspace" type="int">0</sky_colorspace>
+        </technique>
+      </extra>
+    </light>
+  </library_lights>
+  <library_images/>
+  <library_effects>
+    <effect id="Material_016-effect">
+      <profile_COMMON>
+        <technique sid="common">
+          <phong>
+            <emission>
+              <color sid="emission">0 0 0 1</color>
+            </emission>
+            <ambient>
+              <color sid="ambient">0 0 0 1</color>
+            </ambient>
+            <diffuse>
+              <color sid="diffuse">0 0 0 1</color>
+            </diffuse>
+            <specular>
+              <color sid="specular">0.5 0.5 0.5 1</color>
+            </specular>
+            <shininess>
+              <float sid="shininess">50</float>
+            </shininess>
+            <index_of_refraction>
+              <float sid="index_of_refraction">1</float>
+            </index_of_refraction>
+          </phong>
+        </technique>
+      </profile_COMMON>
+    </effect>
+  </library_effects>
+  <library_materials>
+    <material id="Material_016-material" name="Material_016">
+      <instance_effect url="#Material_016-effect"/>
+    </material>
+  </library_materials>
+  <library_geometries>
+    <geometry id="Gps_Magnetometer_Ublox_M8N_Black_002-mesh" name="Gps Magnetometer Ublox M8N Black.002">
+      <mesh>
+        <source id="Gps_Magnetometer_Ublox_M8N_Black_002-mesh-positions">
+          <float_array id="Gps_Magnetometer_Ublox_M8N_Black_002-mesh-positions-array" count="48">-19.25 -19.25 6 -19.25 19.25 6 -19.25 19.25 0 -19.25 -19.25 0 19.25 19.25 0 19.25 -19.25 0 19.25 -19.25 6 19.25 19.25 6 13.25 -13.25 12 -13.25 -13.25 12 -17.49264 -17.49264 10.24264 17.49264 -17.49264 10.24264 13.25 13.25 12 -13.25 13.25 12 17.49264 17.49264 10.24264 -17.49264 17.49264 10.24264</float_array>
+          <technique_common>
+            <accessor source="#Gps_Magnetometer_Ublox_M8N_Black_002-mesh-positions-array" count="16" stride="3">
+              <param name="X" type="float"/>
+              <param name="Y" type="float"/>
+              <param name="Z" type="float"/>
+            </accessor>
+          </technique_common>
+        </source>
+        <source id="Gps_Magnetometer_Ublox_M8N_Black_002-mesh-normals">
+          <float_array id="Gps_Magnetometer_Ublox_M8N_Black_002-mesh-normals-array" count="66">-1 0 0 0 0 -1 0 -1 0 1 0 0 0 1 0 0 -0.3826835 0.9238796 0 -0.3826835 0.9238795 0 -0.9238795 0.3826838 0 -0.9238798 0.3826832 0 0 1 0.3826833 0 0.9238797 0.3826836 0 0.9238796 0.9238796 0 0.3826833 0.9238797 0 0.3826833 -0.9238797 0 0.3826833 -0.9238796 0 0.3826833 -0.3826836 0 0.9238796 -0.3826833 0 0.9238797 0 0.3826835 0.9238796 0 0.3826835 0.9238795 0 0.9238795 0.3826838 0 0.9238798 0.3826832</float_array>
+          <technique_common>
+            <accessor source="#Gps_Magnetometer_Ublox_M8N_Black_002-mesh-normals-array" count="22" stride="3">
+              <param name="X" type="float"/>
+              <param name="Y" type="float"/>
+              <param name="Z" type="float"/>
+            </accessor>
+          </technique_common>
+        </source>
+        <vertices id="Gps_Magnetometer_Ublox_M8N_Black_002-mesh-vertices">
+          <input semantic="POSITION" source="#Gps_Magnetometer_Ublox_M8N_Black_002-mesh-positions"/>
+        </vertices>
+        <triangles material="Material_016-material" count="28">
+          <input semantic="VERTEX" source="#Gps_Magnetometer_Ublox_M8N_Black_002-mesh-vertices" offset="0"/>
+          <input semantic="NORMAL" source="#Gps_Magnetometer_Ublox_M8N_Black_002-mesh-normals" offset="1"/>
+          <p>0 0 1 0 2 0 2 0 3 0 0 0 2 1 4 1 5 1 5 1 3 1 2 1 6 2 0 2 3 2 3 2 5 2 6 2 7 3 6 3 5 3 5 3 4 3 7 3 1 4 7 4 4 4 4 4 2 4 1 4 8 5 9 5 10 5 10 6 11 6 8 6 11 7 10 7 0 7 0 8 6 8 11 8 12 9 13 9 9 9 9 9 8 9 12 9 12 10 8 10 11 10 11 11 14 11 12 11 14 12 11 12 6 12 6 13 7 13 14 13 1 14 0 14 10 14 10 15 15 15 1 15 15 16 10 16 9 16 9 17 13 17 15 17 13 18 12 18 14 18 14 19 15 19 13 19 15 20 14 20 7 20 7 21 1 21 15 21</p>
+        </triangles>
+      </mesh>
+    </geometry>
+    <geometry id="Gps_Magnetometer_Ublox_M8N_Grey_003-mesh" name="Gps Magnetometer Ublox M8N Grey.003">
+      <mesh>
+        <source id="Gps_Magnetometer_Ublox_M8N_Grey_003-mesh-positions">
+          <float_array id="Gps_Magnetometer_Ublox_M8N_Grey_003-mesh-positions-array" count="489">-8.625 -14.93894 0 8.625 -14.93894 0 0 0 0 17.25 0 0 8.625 14.93894 0 -8.625 14.93894 0 -17.25 0 0 8.625 14.93894 -2 -8.625 14.93894 -2 -17.25 0 -2 -8.625 -14.93894 -2 8.625 -14.93894 -2 17.25 0 -2 3.896212 6.748437 -2 -3.896212 6.748437 -2 7.792424 0 -2 3.896212 -6.748437 -2 -3.896212 -6.748437 -2 -7.792424 0 -2 3.678318 6.371034 -2.254869 -3.678318 6.371034 -2.254869 -3.77 6.529832 -2.068395 3.77 6.529832 -2.068395 7.356636 0 -2.254869 7.540001 0 -2.068395 3.678318 -6.371034 -2.254869 3.77 -6.529832 -2.068395 -3.678318 -6.371034 -2.254869 -3.77 -6.529832 -2.068395 -7.356636 0 -2.254869 -7.540001 0 -2.068395 1.571682 2.722233 -9.745131 -1.571682 2.722233 -9.745131 -3.143364 0 -9.745131 -1.571682 -2.722233 -9.745131 1.571682 -2.722233 -9.745131 3.143364 0 -9.745131 -1.48 2.563435 -9.931605 -1.353788 2.34483 -10 -2.707576 0 -10 1.48 2.563435 -9.931605 1.353788 2.34483 -10 2.959999 0 -9.931605 2.707576 0 -10 1.48 -2.563435 -9.931605 1.353788 -2.34483 -10 -1.48 -2.563435 -9.931605 -1.353788 -2.34483 -10 -2.959999 0 -9.931605 1 1.732051 -10 -1 1.732051 -10 2 0 -10 1 -1.732051 -10 -1 -1.732051 -10 -2 0 -10 1 1.732051 -71.5 -1 1.732051 -71.5 -2 0 -71.5 -1 -1.732051 -71.5 1 -1.732051 -71.5 2 0 -71.5 -4.581377 0 -71.5 -2.290688 -3.967588 -71.5 2.290688 -3.967588 -71.5 4.581377 0 -71.5 2.290688 3.967588 -71.5 -2.290688 3.967588 -71.5 -2.451177 4.245563 -71.61663 -2.536795 4.393858 -71.9121 -5.07359 0 -71.9121 2.451177 4.245563 -71.61663 2.536795 4.393858 -71.9121 4.902353 0 -71.61663 5.07359 0 -71.9121 2.451177 -4.245563 -71.61663 2.536795 -4.393858 -71.9121 -2.451177 -4.245563 -71.61663 -2.536795 -4.393858 -71.9121 -4.902353 0 -71.61663 -3.75 6.495191 -85.5 -7.5 0 -85.5 3.75 6.495191 -85.5 7.5 0 -85.5 3.75 -6.495191 -85.5 -3.75 -6.495191 -85.5 3.75 6.495191 -99.5 -3.75 6.495191 -99.5 -7.5 0 -99.5 -3.75 -6.495191 -99.5 3.75 -6.495191 -99.5 7.5 0 -99.5 8.450963 -0.75 -99.5 8.450963 0.75 -99.5 -19.75 0.25 -99.5 -19.75 -0.25 -99.5 -18.87132 -2.37132 -99.5 -18.04904 -0.75 -99.5 -18.04904 0.75 -99.5 -18.87132 2.37132 -99.5 16.75 1.5 -99.5 18.04904 0.75 -99.5 18.87132 2.37132 -99.5 16.75 3.25 -99.5 9.75 1.5 -99.5 9.45714 3.25 -99.5 4.358899 9 -99.5 -4.358899 9 -99.5 -9.45714 3.25 -99.5 -8.450963 0.75 -99.5 -16.75 3.25 -99.5 -16.75 1.5 -99.5 -9.75 1.5 -99.5 19.75 -0.25 -99.5 19.75 0.25 -99.5 18.87132 -2.37132 -99.5 18.04904 -0.75 -99.5 16.75 -3.25 -99.5 16.75 -1.5 -99.5 9.45714 -3.25 -99.5 -16.75 -1.5 -99.5 -16.75 -3.25 -99.5 -9.75 -1.5 -99.5 -9.45714 -3.25 -99.5 -8.450963 -0.75 -99.5 -4.358899 -9 -99.5 4.358899 -9 -99.5 9.75 -1.5 -99.5 -9.45714 -3.25 -102 -4.358899 -9 -102 -9.45714 3.25 -102 -4.358899 9 -102 8.450963 0.75 -102 19.75 0.25 -102 19.75 -0.25 -102 18.87132 -2.37132 -102 9.45714 -3.25 -102 4.358899 -9 -102 4.358899 9 -102 9.45714 3.25 -102 9.75 1.5 -102 -16.75 1.5 -102 -18.04904 0.75 -102 -18.87132 2.37132 -102 -16.75 3.25 -102 -9.75 1.5 -102 -8.450963 0.75 -102 -8.450963 -0.75 -102 8.450963 -0.75 -102 16.75 1.5 -102 16.75 3.25 -102 18.04904 0.75 -102 18.87132 2.37132 -102 18.04904 -0.75 -102 -19.75 -0.25 -102 -19.75 0.25 -102 -18.87132 -2.37132 -102 -18.04904 -0.75 -102 -16.75 -3.25 -102 -16.75 -1.5 -102 16.75 -1.5 -102 16.75 -3.25 -102 9.75 -1.5 -102 -9.75 -1.5 -102</float_array>
+          <technique_common>
+            <accessor source="#Gps_Magnetometer_Ublox_M8N_Grey_003-mesh-positions-array" count="163" stride="3">
+              <param name="X" type="float"/>
+              <param name="Y" type="float"/>
+              <param name="Z" type="float"/>
+            </accessor>
+          </technique_common>
+        </source>
+        <source id="Gps_Magnetometer_Ublox_M8N_Grey_003-mesh-normals">
+          <float_array id="Gps_Magnetometer_Ublox_M8N_Grey_003-mesh-normals-array" count="516">0 0 1 0.8660254 0.5 0 0 1 0 -0.8660254 0.5 0 -0.8660254 -0.5 0 0 -1 0 0.8660254 -0.5 0 0 0 -1 0 0 -1 0 0 -1 0 0 -1 0 0 -1 0 0.7613461 -0.6483457 0 0.7613412 -0.6483516 0.6593434 0.3806716 -0.6483482 0.6593429 0.380672 -0.6483486 0.6593433 -0.380672 -0.6483481 0.659343 -0.3806715 -0.6483488 0 -0.7613461 -0.6483457 0 -0.7613412 -0.6483516 -0.6593434 -0.3806716 -0.6483482 -0.6593429 -0.380672 -0.6483486 -0.6593433 0.380672 -0.6483481 -0.659343 0.3806715 -0.6483488 0 0.2986001 -0.9543784 0 0.298596 -0.9543797 0.2585929 0.1492991 -0.9543792 0.2585937 0.1492989 -0.954379 0.258593 -0.1492991 -0.9543791 0.2585936 -0.1492989 -0.954379 0 -0.2986001 -0.9543784 0 -0.298596 -0.9543797 -0.2585929 -0.1492991 -0.9543792 -0.2585937 -0.1492989 -0.954379 -0.258593 0.1492991 -0.9543791 -0.2585936 0.1492989 -0.954379 0.7785605 0.4495021 -0.4379402 0 0.8990041 -0.4379402 0 0.8990041 -0.4379403 -0.7785604 0.4495021 -0.4379403 -0.7785605 0.4495021 -0.4379402 -0.7785604 -0.4495021 -0.4379402 -0.7785605 -0.4495021 -0.4379402 0 -0.8990041 -0.4379402 0 -0.8990041 -0.4379403 0.7785604 -0.4495021 -0.4379403 0.7785605 -0.4495021 -0.4379402 0.7785604 0.4495021 -0.4379402 -0.2585912 0.1492999 -0.9543794 0 0.2985993 -0.9543786 0 0.2985995 -0.9543785 0.2585943 0.1492998 -0.9543787 0.2585912 0.1492999 -0.9543794 0.2585943 -0.1492999 -0.9543787 0.2585912 -0.1492999 -0.9543794 0 -0.2985993 -0.9543786 0 -0.2985995 -0.9543785 -0.2585943 -0.1492998 -0.9543787 -0.2585912 -0.1492999 -0.9543794 -0.2585943 0.1492999 -0.9543787 -0.6593416 0.3806722 -0.6483497 0 0.7613412 -0.6483515 0 0.7613446 -0.6483474 0.65934 0.3806728 -0.6483511 0.6593446 0.3806708 -0.6483475 0.6593428 -0.3806715 -0.648349 0.6593416 -0.3806722 -0.6483497 0 -0.7613412 -0.6483515 0 -0.7613446 -0.6483474 -0.65934 -0.3806728 -0.6483511 -0.6593446 -0.3806708 -0.6483475 -0.6593428 0.3806715 -0.648349 0 0 -1 0 0 -1 0 0 -1 0 0 -1 0.8660254 0.5 0 -0.8660254 0.5000001 0 -0.8660254 0.5 0 -0.8660254 -0.5000001 0 -0.8660254 -0.5 0 0.8660254 -0.5000001 0 0.8660254 -0.5 0 0.8660254 0.5000001 0 0 0 1 0 0 1 0 0 1 0 0 1 -0.7739993 0.4468827 0.4485765 0 0.8937487 0.4485682 0 0.8937484 0.4485685 0.7739974 0.4468843 0.4485782 0.7740139 0.4468702 0.4485639 0.7740126 -0.4468713 0.4485652 0.7739993 -0.4468827 0.4485765 0 -0.8937487 0.4485682 0 -0.8937484 0.4485685 -0.7739974 -0.4468843 0.4485782 -0.7740139 -0.4468702 0.4485639 -0.7740126 0.4468713 0.4485652 -0.3350363 0.1934509 0.922132 0 0.3868966 0.9221231 0 0.3868989 0.9221222 0.3350806 0.1934477 0.9221166 0.3350365 0.1934511 0.9221319 0.3350808 -0.1934479 0.9221165 0.3350363 -0.1934509 0.922132 0 -0.3868966 0.9221231 0 -0.3868989 0.9221222 -0.3350806 -0.1934477 0.9221166 -0.3350365 -0.1934511 0.9221319 -0.3350808 0.1934479 0.9221165 -0.8558517 0.4941263 0.1528306 0 0.9882525 0.1528306 0 0.9882524 0.1528306 0.8558517 0.4941262 0.1528306 0.8558518 0.4941262 0.1528306 0.8558518 -0.4941261 0.1528306 0.8558517 -0.4941263 0.1528306 0 -0.9882525 0.1528306 0 -0.9882524 0.1528306 -0.8558517 -0.4941262 0.1528306 -0.8558518 -0.4941262 0.1528306 -0.8558518 0.4941261 0.1528306 0.8660253 0.5000002 0 -0.8660256 0.4999997 0 -0.8660253 0.5000002 0 -0.8660256 -0.4999997 0 -0.8660253 -0.5000002 0 0.8660256 -0.4999997 0 0.8660253 -0.5000002 0 0.8660256 0.4999997 0 -6.94624e-5 0 1 2.47422e-5 0 1 6.94624e-5 0 1 -8.52426e-6 0 1 6.80139e-6 0 1 -2.47422e-5 0 1 -6.80139e-6 0 1 8.52426e-6 0 1 1.99811e-6 0 1 -1.99811e-6 0 1 -0.7482404 -0.6634278 0 0.7482404 -0.6634278 0 0.7482404 0.6634278 0 -0.7482404 0.6634278 0 -0.9238795 -0.3826836 0 -0.9238798 -0.3826829 0 -0.3826838 -0.9238794 0 -0.3826833 -0.9238796 0 -1 0 0 -0.3826833 0.9238796 0 -0.3826838 0.9238794 0 -0.923879 0.3826848 0 -0.9238802 0.3826817 0 0.9238795 0.3826836 0 0.9238798 0.3826829 0 0.3826838 0.9238794 0 0.3826833 0.9238796 0 1 0 0 0.3826833 -0.9238796 0 0.3826838 -0.9238794 0 0.923879 -0.3826848 0 0.9238802 -0.3826817 0 -0.4999998 -0.8660256 0 -0.5000002 -0.8660252 0 -0.5000002 0.8660252 0 -0.4999998 0.8660256 0 0.4999998 0.8660256 0 0.4999998 -0.8660256 0 0.5000002 0.8660252 0 0.5000002 -0.8660252 0</float_array>
+          <technique_common>
+            <accessor source="#Gps_Magnetometer_Ublox_M8N_Grey_003-mesh-normals-array" count="172" stride="3">
+              <param name="X" type="float"/>
+              <param name="Y" type="float"/>
+              <param name="Z" type="float"/>
+            </accessor>
+          </technique_common>
+        </source>
+        <vertices id="Gps_Magnetometer_Ublox_M8N_Grey_003-mesh-vertices">
+          <input semantic="POSITION" source="#Gps_Magnetometer_Ublox_M8N_Grey_003-mesh-positions"/>
+        </vertices>
+        <triangles count="330">
+          <input semantic="VERTEX" source="#Gps_Magnetometer_Ublox_M8N_Grey_003-mesh-vertices" offset="0"/>
+          <input semantic="NORMAL" source="#Gps_Magnetometer_Ublox_M8N_Grey_003-mesh-normals" offset="1"/>
+          <p>0 0 1 0 2 0 1 0 3 0 2 0 3 0 4 0 2 0 2 0 4 0 5 0 5 0 6 0 2 0 6 0 0 0 2 0 7 1 4 1 3 1 4 2 7 2 8 2 8 2 5 2 4 2 5 3 8 3 9 3 9 3 6 3 5 3 6 4 9 4 10 4 10 4 0 4 6 4 0 5 10 5 11 5 11 5 1 5 0 5 1 6 11 6 12 6 12 6 3 6 1 6 3 1 12 1 7 1 13 7 14 7 8 7 8 7 7 7 13 7 15 7 13 7 7 7 7 8 12 8 15 8 16 9 15 9 12 9 12 7 11 7 16 7 17 7 16 7 11 7 11 7 10 7 17 7 18 7 17 7 10 7 10 10 9 10 18 10 14 11 18 11 9 11 9 7 8 7 14 7 19 12 20 12 21 12 21 13 22 13 19 13 23 14 19 14 22 14 22 15 24 15 23 15 25 16 23 16 24 16 24 17 26 17 25 17 27 18 25 18 26 18 26 19 28 19 27 19 29 20 27 20 28 20 28 21 30 21 29 21 20 22 29 22 30 22 30 23 21 23 20 23 22 24 21 24 14 24 14 25 13 25 22 25 24 26 22 26 13 26 13 27 15 27 24 27 26 28 24 28 15 28 15 29 16 29 26 29 28 30 26 30 16 30 16 31 17 31 28 31 30 32 28 32 17 32 17 33 18 33 30 33 21 34 30 34 18 34 18 35 14 35 21 35 31 36 19 36 23 36 19 37 31 37 32 37 32 38 20 38 19 38 20 39 32 39 33 39 33 40 29 40 20 40 29 41 33 41 34 41 34 42 27 42 29 42 27 43 34 43 35 43 35 44 25 44 27 44 25 45 35 45 36 45 36 46 23 46 25 46 23 47 36 47 31 47 37 48 38 48 39 48 38 49 37 49 40 49 40 50 41 50 38 50 41 51 40 51 42 51 42 52 43 52 41 52 43 53 42 53 44 53 44 54 45 54 43 54 45 55 44 55 46 55 46 56 47 56 45 56 47 57 46 57 48 57 48 58 39 58 47 58 39 59 48 59 37 59 32 60 37 60 48 60 37 61 32 61 31 61 31 62 40 62 37 62 40 63 31 63 36 63 36 64 42 64 40 64 42 65 36 65 35 65 35 66 44 66 42 66 44 67 35 67 34 67 34 68 46 68 44 68 46 69 34 69 33 69 33 70 48 70 46 70 48 71 33 71 32 71 49 7 50 7 38 7 38 7 41 7 49 7 51 7 49 7 41 7 41 72 43 72 51 72 52 73 51 73 43 73 43 7 45 7 52 7 53 7 52 7 45 7 45 7 47 7 53 7 54 7 53 7 47 7 47 74 39 74 54 74 50 75 54 75 39 75 39 7 38 7 50 7 55 76 49 76 51 76 49 2 55 2 56 2 56 2 50 2 49 2 50 77 56 77 57 77 57 78 54 78 50 78 54 79 57 79 58 79 58 80 53 80 54 80 53 5 58 5 59 5 59 5 52 5 53 5 52 81 59 81 60 81 60 82 51 82 52 82 51 83 60 83 55 83 58 84 57 84 61 84 61 0 62 0 58 0 59 0 58 0 62 0 62 0 63 0 59 0 60 0 59 0 63 0 63 85 64 85 60 85 55 86 60 86 64 86 64 0 65 0 55 0 56 0 55 0 65 0 65 0 66 0 56 0 57 0 56 0 66 0 66 87 61 87 57 87 67 88 68 88 69 88 68 89 67 89 70 89 70 90 71 90 68 90 71 91 70 91 72 91 72 92 73 92 71 92 73 93 72 93 74 93 74 94 75 94 73 94 75 95 74 95 76 95 76 96 77 96 75 96 77 97 76 97 78 97 78 98 69 98 77 98 69 99 78 99 67 99 66 100 67 100 78 100 67 101 66 101 65 101 65 102 70 102 67 102 70 103 65 103 64 103 64 104 72 104 70 104 72 105 64 105 63 105 63 106 74 106 72 106 74 107 63 107 62 107 62 108 76 108 74 108 76 109 62 109 61 109 61 110 78 110 76 110 78 111 61 111 66 111 68 112 79 112 80 112 79 113 68 113 71 113 71 114 81 114 79 114 81 115 71 115 73 115 73 116 82 116 81 116 82 117 73 117 75 117 75 118 83 118 82 118 83 119 75 119 77 119 77 120 84 120 83 120 84 121 77 121 69 121 69 122 80 122 84 122 80 123 69 123 68 123 85 124 81 124 82 124 81 2 85 2 86 2 86 2 79 2 81 2 79 125 86 125 87 125 87 126 80 126 79 126 80 127 87 127 88 127 88 128 84 128 80 128 84 5 88 5 89 5 89 5 83 5 84 5 83 129 89 129 90 129 90 130 82 130 83 130 82 131 90 131 85 131 90 0 89 0 91 0 91 0 92 0 90 0 85 0 90 0 92 0 93 132 94 132 95 132 96 133 97 133 98 133 99 0 100 0 101 0 101 0 102 0 99 0 103 0 99 0 102 0 102 0 104 0 103 0 104 0 92 0 103 0 92 0 104 0 105 0 105 0 85 0 92 0 86 0 85 0 105 0 106 0 107 0 108 0 109 0 98 0 97 0 97 0 110 0 109 0 107 0 109 0 110 0 110 0 111 0 107 0 111 0 108 0 107 0 112 134 113 134 101 134 101 135 100 135 112 135 114 136 112 136 100 136 100 137 115 137 114 137 116 0 114 0 115 0 115 0 117 0 116 0 118 0 116 0 117 0 98 138 93 138 96 138 95 139 96 139 93 139 119 0 96 0 95 0 95 0 120 0 119 0 121 0 119 0 120 0 120 0 122 0 121 0 122 0 123 0 121 0 123 0 122 0 124 0 105 0 106 0 86 0 108 140 86 140 106 140 87 0 86 0 108 0 108 0 123 0 87 0 88 0 87 0 123 0 124 0 88 0 123 0 89 0 88 0 124 0 124 0 125 0 89 0 91 141 89 141 125 141 125 0 118 0 91 0 126 0 91 0 118 0 117 0 126 0 118 0 122 142 127 142 128 142 128 142 124 142 122 142 129 7 130 7 131 7 132 7 133 7 134 7 135 7 136 7 128 7 131 7 130 7 137 7 137 7 138 7 131 7 139 7 131 7 138 7 140 7 141 7 142 7 142 7 143 7 140 7 144 7 140 7 143 7 143 7 129 7 144 7 129 7 145 7 144 7 131 7 145 7 129 7 146 7 145 7 131 7 131 7 147 7 146 7 148 7 139 7 138 7 138 7 149 7 148 7 150 7 148 7 149 7 149 7 151 7 150 7 152 7 150 7 151 7 153 7 154 7 142 7 142 7 141 7 153 7 155 7 153 7 141 7 141 7 156 7 155 7 157 7 155 7 156 7 156 7 158 7 157 7 127 7 157 7 158 7 151 7 132 7 152 7 134 7 152 7 132 7 159 7 152 7 134 7 134 7 160 7 159 7 161 7 159 7 160 7 160 7 135 7 161 7 135 7 147 7 161 7 128 7 147 7 135 7 146 7 147 7 128 7 128 7 127 7 146 7 162 7 146 7 127 7 158 7 162 7 127 7 125 143 136 143 135 143 135 143 118 143 125 143 104 144 138 144 137 144 137 144 105 144 104 144 106 145 130 145 129 145 129 145 107 145 106 145 120 5 157 5 127 5 127 5 122 5 120 5 94 146 153 146 155 146 155 147 95 147 94 147 95 148 155 148 157 148 157 149 120 149 95 149 93 150 154 150 153 150 153 150 94 150 93 150 109 151 143 151 142 151 142 152 98 152 109 152 98 153 142 153 154 153 154 154 93 154 98 154 143 2 109 2 107 2 107 2 129 2 143 2 102 2 149 2 138 2 138 2 104 2 102 2 113 155 132 155 151 155 151 156 101 156 113 156 101 157 151 157 149 157 149 158 102 158 101 158 112 159 133 159 132 159 132 159 113 159 112 159 116 160 160 160 134 160 134 161 114 161 116 161 114 162 134 162 133 162 133 163 112 163 114 163 160 5 116 5 118 5 118 5 135 5 160 5 144 5 111 5 110 5 110 5 140 5 144 5 108 164 111 164 144 164 144 165 145 165 108 165 123 150 108 150 145 150 145 150 146 150 123 150 121 166 123 166 146 166 146 167 162 167 121 167 158 2 119 2 121 2 121 2 162 2 158 2 96 168 119 168 158 168 158 168 156 168 96 168 97 159 96 159 156 159 156 159 141 159 97 159 110 169 97 169 141 169 141 169 140 169 110 169 148 5 99 5 103 5 103 5 139 5 148 5 100 164 99 164 148 164 148 164 150 164 100 164 115 150 100 150 150 150 150 150 152 150 115 150 117 167 115 167 152 167 152 167 159 167 117 167 161 2 126 2 117 2 117 2 159 2 161 2 91 168 126 168 161 168 161 170 147 170 91 170 92 159 91 159 147 159 147 159 131 159 92 159 103 171 92 171 131 171 131 169 139 169 103 169 137 2 130 2 106 2 106 2 105 2 137 2 128 5 136 5 125 5 125 5 124 5 128 5</p>
+        </triangles>
+      </mesh>
+    </geometry>
+  </library_geometries>
+  <library_controllers/>
+  <library_visual_scenes>
+    <visual_scene id="Scene" name="Scene">
+      <node id="Camera" name="Camera" type="NODE">
+        <matrix sid="transform">0.6859207 -0.3240135 0.6515582 7.481132 0.7276763 0.3054208 -0.6141704 -6.50764 0 0.8953956 0.4452714 5.343665 0 0 0 1</matrix>
+        <instance_camera url="#Camera-camera"/>
+      </node>
+      <node id="Lamp" name="Lamp" type="NODE">
+        <matrix sid="transform">-0.2908646 -0.7711008 0.5663932 4.076245 0.9551712 -0.1998834 0.2183912 1.005454 -0.05518906 0.6045247 0.7946723 5.903862 0 0 0 1</matrix>
+        <instance_light url="#Lamp-light"/>
+      </node>
+      <node id="Gps_Magnetometer_Ublox_M8N_Black" name="Gps_Magnetometer_Ublox_M8N_Black" type="NODE">
+        <matrix sid="transform">0.001 0 0 0 0 0.001 0 0 0 0 0.001 0 0 0 0 1</matrix>
+        <instance_geometry url="#Gps_Magnetometer_Ublox_M8N_Black_002-mesh" name="Gps_Magnetometer_Ublox_M8N_Black">
+          <bind_material>
+            <technique_common>
+              <instance_material symbol="Material_016-material" target="#Material_016-material"/>
+            </technique_common>
+          </bind_material>
+        </instance_geometry>
+      </node>
+      <node id="Gps_Magnetometer_Ublox_M8N_Grey" name="Gps_Magnetometer_Ublox_M8N_Grey" type="NODE">
+        <matrix sid="transform">-4.37114e-11 -0.001 0 0 0.001 -4.37114e-11 0 0 0 0 0.001 0 0 0 0 1</matrix>
+        <instance_geometry url="#Gps_Magnetometer_Ublox_M8N_Grey_003-mesh" name="Gps_Magnetometer_Ublox_M8N_Grey"/>
+      </node>
+    </visual_scene>
+  </library_visual_scenes>
+  <scene>
+    <instance_visual_scene url="#Scene"/>
+  </scene>
+</COLLADA>

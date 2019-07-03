@@ -13,8 +13,8 @@
 
   <!-- special battery arrangement -->
   <xacro:extra_module name = "bat1" parent = "link1" visible = "1"
-                      model_url = "package://hydrus/urdf/mesh/modules/battery/Kypom-3000-6s.stl" scale="0.001">
-    <origin xyz="${link_length/2} 0.0 -0.048" rpy="${pi/2} 0 0"/>
+                      model_url = "package://hydrus/urdf/mesh/battery/Kypom-3000-6s.dae" >
+    <origin xyz="${link_length/2} 0.0 -0.048" rpy="0 0 0"/>
     <inertial>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <mass value="0.4108"/>
@@ -25,8 +25,8 @@
   </xacro:extra_module>
 
   <xacro:extra_module name = "bat2" parent = "link4" visible = "1"
-                      model_url = "package://hydrus/urdf/mesh/modules/battery/Kypom-3000-6s.stl" scale="0.001">
-    <origin xyz="${link_length/2} 0.0 -0.048" rpy="${pi/2} 0 0"/>
+                      model_url = "package://hydrus/urdf/mesh/battery/Kypom-3000-6s.dae" >
+    <origin xyz="${link_length/2} 0.0 -0.048" rpy="0 0 0"/>
     <inertial>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <mass value="0.4108"/>
@@ -40,7 +40,7 @@
   <!-- 1.  processor -->
   <!-- 1.1 flight controller -->
   <xacro:extra_module name = "fc" parent = "link2" visible = "1"
-                      model_url = "package://hydrus/urdf/mesh/modules/flight_controller/fc_euclid201806.dae"> <!-- same with intel euclid -->
+                      model_url = "package://hydrus/urdf/mesh/ver1/flight_controller/fc_euclid201806.dae"> <!-- same with intel euclid -->
     <origin xyz="${link_length / 2 + 0.2281} ${-4.4*0.001} 0.03533" rpy="0 0 0"/>
     <inertial>
       <mass value = "0.05" />
@@ -55,9 +55,9 @@
 
   <!-- 1.2 processor: jetson tx2 -->
   <xacro:extra_module name = "pc" parent = "link3" visible = "1"
-                      model_url = "package://hydrus/urdf/mesh/modules/processor/jetson_tx2.dae"
+                      model_url = "package://hydrus/urdf/mesh/ver1/processor/jetson_tx2.dae"
                       scale="0.001" >
-    <origin xyz="0.086 0.0 ${-0.0192}" rpy="${pi/2} 0 ${pi}"/>
+    <origin xyz="0.086 0.0 ${-0.0192}" rpy="0 0 ${pi}"/>
     <inertial>
       <mass value = "0.181" />
       <origin xyz="0 ${-5 * 0.001} 0" rpy="0 0 0"/>
@@ -72,7 +72,7 @@
   <!-- 2.  sensor -->
   <!-- 2.1 leddar one -->
   <xacro:extra_module name = "leddarone" parent = "link3" visible = "1"
-                      model_url = "package://hydrus/urdf/mesh/modules/sensor/leddar_one_tx2_attached_mode.dae">
+                      model_url = "package://hydrus/urdf/mesh/sensor/leddar_one_tx2_attached_mode.dae">
     <origin xyz="0.0866 0.0 -0.06267" rpy="0 ${pi} 0"/>
     <inertial>
       <origin xyz="-0.007950 0.000000 -0.000140" rpy="0 0 0"/>
@@ -86,8 +86,8 @@
 
   <!-- 2.2 gps -->
   <xacro:extra_module name = "gps" parent = "link2" visible = "1"
-                      model_url = "package://hydrus/urdf/mesh/modules/sensor/gps_ublox_m8n.dae">
-    <origin xyz="${link_length/2 + 0.206} 0.0 0.18" rpy="0 0 0"/>
+                      model_url = "package://hydrus/urdf/mesh/sensor/gps_ublox_m8n.dae">
+    <origin xyz="${link_length/2 + 0.1925} 0.0 0.152" rpy="0 0 0"/>
     <inertial>
       <origin xyz="0.000000 0.000000 -0.062510" rpy="0 0 0"/>
       <mass value="0.053000"/>
@@ -111,7 +111,7 @@
 
   <!-- 2.3 sensor: zed mini with servo -->
   <xacro:extra_module name = "zed_mini_servo_up" parent = "link2" visible = "1"
-                      model_url = "package://hydrus/urdf/mesh/modules/sensor/zed_mini_servo_up.dae">
+                      model_url = "package://hydrus/urdf/mesh/ver1/sensor/zed_mini_servo_up.dae">
     <origin xyz="${link_length/2 + 0.28715} 0.0 -0.04015" rpy="0 0 0"/>
     <inertial>
       <mass value = "0.021" />
@@ -141,9 +141,9 @@
           ixy="0" ixz="0" iyz="0"/>
     </inertial>
     <visual>
-      <origin xyz="${-14.75 * 0.001} 0 ${-19 * 0.001}" rpy="0 ${pi/2} ${-pi}"/>
+      <origin xyz="${-14.75 * 0.001} 0 ${-19 * 0.001}" rpy="0 ${pi/2} ${pi/2}"/>
       <geometry>
-        <mesh filename="package://hydrus/urdf/mesh/modules/sensor/zed_mini_servo_down.dae"/>
+        <mesh filename="package://hydrus/urdf/mesh/ver1/sensor/zed_mini_servo_down.dae"/>
       </geometry>
     </visual>
   </link>

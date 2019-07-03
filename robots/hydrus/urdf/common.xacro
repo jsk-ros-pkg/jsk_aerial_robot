@@ -34,9 +34,9 @@
     </collision>
 
     <visual>
-      <origin rpy="${-pi/2} 0 0" xyz="${link_length* 0.5} 0 0"/>
+      <origin rpy="0 0 0" xyz="${link_length* 0.5} 0 0"/>
       <geometry>
-        <mesh filename="package://hydrus/urdf/mesh/link/${type}_link.dae"/>
+        <mesh filename="package://hydrus/urdf/mesh/ver1/link/${type}_link.dae"/>
       </geometry>
     </visual>
   </xacro:macro>
@@ -51,8 +51,7 @@
       <xacro:insert_block name="inertial" />
       <xacro:if value="${visible == 1}">
         <visual>
-          <!-- the origin of link_frame and visual_frame should be identical -->
-          <origin rpy="${-pi/2} 0 0" xyz="0 0 0"/>
+          <origin rpy="0 0 0" xyz="0 0 0"/>
           <geometry>
             <mesh filename="${model_url}" scale= "${scale} ${scale} ${scale}"/>
           </geometry>
@@ -63,7 +62,7 @@
 
   <xacro:macro name="standard_leg" params="parent self:=${self} *origin">
       <xacro:extra_module name = "leg${self}" parent = "${parent}" visible = "1"
-                          model_url = "package://hydrus/urdf/mesh/modules/mechanical/standard_legs.dae" >
+                          model_url = "package://hydrus/urdf/mesh/ver1/leg/standard_legs.dae" >
         <xacro:insert_block name="origin" />
         <inertial>
           <!-- short leg:
