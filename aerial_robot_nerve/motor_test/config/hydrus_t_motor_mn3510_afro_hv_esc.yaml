@@ -1,9 +1,0 @@
-# AFRO do not need manual calibration
-# please flash the firmware using: https://hobbyking.com/media/file/73530954X1785910X23.pdf
-# the serial baudrate is 9600, min: 1064, max: 1860
-
-pwm_incremental_value: 25
-duration: 3.0
-min_pwm_value: 1100
-max_pwm_value: 1850
-
