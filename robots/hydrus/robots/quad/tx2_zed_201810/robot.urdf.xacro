@@ -6,10 +6,10 @@
   <xacro:include filename="$(find hydrus)/urdf/common.xacro" />
   <xacro:include filename="$(find hydrus)/urdf/link.urdf.xacro" />
 
-  <xacro:hydrusx_link self="1" child="2" rotor_direction="-1" with_battery = "0" />
-  <xacro:hydrusx_link self="2" child="3" rotor_direction="1"  with_battery = "0" />
-  <xacro:hydrusx_link self="3" child="4" rotor_direction="-1" with_battery = "0" />
-  <xacro:hydrusx_link self="4" child="4" rotor_direction="1"  with_battery = "0"/>
+  <xacro:hydrusx_link links="4" self="1" rotor_direction="-1" with_battery = "0" old_version = "1" />
+  <xacro:hydrusx_link links="4" self="2" rotor_direction="1"  with_battery = "0" old_version = "1" />
+  <xacro:hydrusx_link links="4" self="3" rotor_direction="-1" with_battery = "0" old_version = "1" />
+  <xacro:hydrusx_link links="4" self="4" rotor_direction="1"  with_battery = "0" old_version = "1" />
 
   <!-- special battery arrangement -->
   <xacro:extra_module name = "bat1" parent = "link1" visible = "1"

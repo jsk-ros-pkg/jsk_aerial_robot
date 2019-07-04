@@ -6,9 +6,13 @@
   <xacro:property name="link_length" value=".6" />
   <xacro:property name="protector_radius" value=".1925" />
 
-  <xacro:property name="head_leg_offset" value="0.0525" />
-  <xacro:property name="general_leg_offset" value="0.05" />
-  <xacro:property name="end_leg_offset" value="0.5355" />
+  <xacro:property name="head_leg_offset" value="${0.3 - 0.25884}" />
+  <xacro:property name="end_leg_offset" value="${0.3 + 0.25884}" />
+
+  <!-- old version -->
+  <xacro:property name="head_leg_offset_old_version" value="0.0525" />
+  <xacro:property name="general_leg_offset_old_version" value="0.05" />
+  <xacro:property name="end_leg_offset_old_version" value="0.5355" />
 
   <!-- collision model parameter -->
   <xacro:property name="leg_collision_model_height" value="0.1715" />
@@ -16,7 +20,7 @@
   <!-- dynamics -->
   <xacro:property name="max_force" value="18" /> <!-- [N] -->
 
-  <xacro:macro name="link_model" params="type with_leg:=${with_leg}">
+  <xacro:macro name="link_model" params="type with_leg:=${with_leg} old_version:=${old_version}">
     <!-- for fcl in planning -->
     <collision>
       <xacro:if value="${with_leg == 1}">
@@ -34,10 +38,18 @@
     </collision>
 
     <visual>
-      <origin rpy="0 0 0" xyz="${link_length* 0.5} 0 0"/>
-      <geometry>
-        <mesh filename="package://hydrus/urdf/mesh/ver1/link/${type}_link.dae"/>
-      </geometry>
+      <xacro:if value="${old_version == 1}">
+        <origin rpy="0 0 0" xyz="${link_length* 0.5} 0 0"/>
+        <geometry>
+          <mesh filename="package://hydrus/urdf/mesh/ver1/link/${type}_link.dae"/>
+        </geometry>
+      </xacro:if>
+      <xacro:unless value="${old_version == 1}">
+        <origin rpy="0 0 0" xyz="${link_length* 0.5} 0 0"/>
+        <geometry>
+          <mesh filename="package://hydrus/urdf/mesh/ver2/link//link${type}.dae"/>
+        </geometry>
+      </xacro:unless>
     </visual>
   </xacro:macro>
 
@@ -60,27 +72,56 @@
     </link>
   </xacro:macro>
 
-  <xacro:macro name="standard_leg" params="parent self:=${self} *origin">
-      <xacro:extra_module name = "leg${self}" parent = "${parent}" visible = "1"
-                          model_url = "package://hydrus/urdf/mesh/ver1/leg/standard_legs.dae" >
-        <xacro:insert_block name="origin" />
-        <inertial>
-          <!-- short leg:
-          <origin xyz="0.0 0.0 -0.055380" rpy="0 0 0"/>
-          <mass value="0.043000"/>
-          <inertia
-              ixx="0.000088" iyy="0.000088" izz="0.000000"
-              ixy="0.000000" ixz="0.000000" iyz="0.000000"/>
-          -->
-          <!-- standard leg: -->
-          <origin xyz="0.0 0.0 -0.0852" rpy="0 0 0"/>
-          <mass value="0.047000"/>
-          <inertia
-              ixx="0.000259" iyy="-0.000281" izz="0.000010"
-              ixy="0.000000" ixz="0.000000" iyz="0.000000"/>
-        </inertial>
-      </xacro:extra_module>
+  <xacro:macro name="standard_leg_old_version" params="parent self:=${self} *origin">
+    <xacro:extra_module name = "leg${self}" parent = "${parent}" visible = "1"
+                        model_url = "package://hydrus/urdf/mesh/ver1/leg/standard_legs.dae" >
+      <xacro:insert_block name="origin" />
+      <inertial>
+        <!-- short leg:
+             <origin xyz="0.0 0.0 -0.055380" rpy="0 0 0"/>
+             <mass value="0.043000"/>
+             <inertia
+             ixx="0.000088" iyy="0.000088" izz="0.000000"
+             ixy="0.000000" ixz="0.000000" iyz="0.000000"/>
+        -->
+        <!-- standard leg: -->
+        <origin xyz="0.0 0.0 -0.093" rpy="0 0 0"/>
+        <mass value="0.047000"/>
+        <inertia
+            ixx="0.000259" iyy="0.000281" izz="0.000010"
+            ixy="0.000000" ixz="0.000000" iyz="0.000000"/>
+      </inertial>
+    </xacro:extra_module>
   </xacro:macro>
+
+  <xacro:macro name="standard_leg_joint" params="parent self:=${self} *origin">
+    <xacro:extra_module name = "leg${self}" parent = "${parent}" visible = "1"
+                        model_url = "package://hydrus/urdf/mesh/ver2/leg/joint_leg.dae" >
+      <xacro:insert_block name="origin" />
+      <inertial>
+        <origin xyz="0.0 0.0005 -0.09521" rpy="0 0 0"/>
+        <mass value="0.0471"/>
+        <inertia
+            ixx="0.000251" iyy="0.000242" izz="0.000011"
+            ixy="0.000000" ixz="0.000000" iyz="0.000000"/>
+      </inertial>
+    </xacro:extra_module>
+  </xacro:macro>
+
+  <xacro:macro name="standard_leg_end" params="parent self:=${self} *origin">
+    <xacro:extra_module name = "leg${self}" parent = "${parent}" visible = "1"
+                        model_url = "package://hydrus/urdf/mesh/ver2/leg/end_leg.dae" >
+      <xacro:insert_block name="origin" />
+      <inertial>
+        <origin xyz="0.0 0.0005 -0.09411" rpy="0 0 0"/>
+        <mass value="0.0471"/>
+        <inertia
+            ixx="0.000251" iyy="0.000242" izz="0.000011"
+            ixy="0.000000" ixz="0.000000" iyz="0.000000"/>
+      </inertial>
+    </xacro:extra_module>
+  </xacro:macro>
+
 
   <!-- friction -->
   <xacro:macro name="friction" params="self">

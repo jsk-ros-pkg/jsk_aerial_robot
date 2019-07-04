@@ -12,18 +12,18 @@
         <arg name="port" value="/dev/flight_controller" />
       </include>
 
-      <!-- realsense cameras & VIO in intel euclid -->
-      <include file="$(find realsense_camera)/launch/lr200m_nodelet_default.launch" />
-      <include file="$(find realsense_sp)/launch/sp.launch" />
-
       <!-- mocap -->
       <include file="$(find aerial_robot_base)/launch/external_module/mocap.launch" />
+
+      <!-- leddar one -->
+      <include file="$(find leddar_one)/launch/leddar_one.launch" />
+
     </group>
   </group>
 
   <!-- basic configuration for sensors (e.g. noise sigma) -->
   <rosparam file="$(find hydrus)/config/sensors/imu/spinal.yaml" command="load" />
   <rosparam file="$(find aerial_robot_base)/config/sensors/gps/ublox_m8n.yaml" command="load" />
-  <rosparam file="$(find hydrus)/config/sensors/vo/euclid_realsense.yaml" command="load" />
   <rosparam file="$(find aerial_robot_base)/config/sensors/mocap.yaml" command="load" />
+  <rosparam file="$(find aerial_robot_base)/config/sensors/altmeter/leddar_one.yaml" command="load" />
 </launch>
