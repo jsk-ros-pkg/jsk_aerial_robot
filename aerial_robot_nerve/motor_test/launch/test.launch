@@ -1,0 +1,37 @@
+<?xml version="1.0"?>
+<launch>
+  <!-- general parameters -->
+  <arg name="test_mode" default="1" /> <!-- 0: STEP; 1: ONESHOT -->
+  <arg name="run_duration" default="1.5" />
+  <arg name="pwm_incremental_value" default="25" />
+  <arg name="min_pwm_value" default="1100" />
+  <arg name="max_pwm_value" default="1900" />
+  <!-- parameters for oneshot -->
+  <arg name="raise_duration" default="1.0" />
+  <arg name="brake_duration" default="2.0" />
+
+  <node name="power_node"  pkg="takasako_sps" type="scpi_tcp_client_node" output="screen" />
+
+  <node name="forces_node" pkg="cfs_sensor" type="cfs_node"  output="screen"/>
+
+  <include file="$(find spinal_ros_bridge)/launch/serial.launch" >
+    <arg name="baud" value="921600" />
+  </include>
+
+  <node name="motor_test_node" pkg="motor_test" type="motor_test_node"  output="screen">
+    <param name="force_sensor_sub_name" value="/cfs/forces" />
+    <param name="motor_pwm_sub_name" value="/pwm_test" />
+
+    <param name="test_mode" value="$(arg test_mode)" />
+    <param name="run_duration" value="$(arg run_duration)" />
+    <param name="pwm_incremental_value" value="$(arg pwm_incremental_value)" />
+    <param name="min_pwm_value" value="$(arg min_pwm_value)" />
+    <param name="max_pwm_value" value="$(arg max_pwm_value)" />
+    <param name="raise_duration" value="$(arg raise_duration)" />
+    <param name="brake_duration" value="$(arg brake_duration)" />
+  </node>
+
+  <arg name="node_start_delay" default="3.0" />
+  <node name="set_uav_info" pkg="motor_test" type="set_uav_info" output="screen" launch-prefix="bash -c 'sleep $(arg node_start_delay); $0 $@' " />
+
+</launch>
