@@ -75,10 +75,10 @@
                       model_url = "package://hydrus/urdf/mesh/sensor/leddar_one_tx2_attached_mode.dae">
     <origin xyz="${link_length/2 - 0.1855} 0.0 -0.0626" rpy="${pi} 0 0"/>
     <inertial>
-      <origin xyz="-0.0083 0.0 -0.001" rpy="0 0 0"/>
-      <mass value="0.032"/>
+      <origin xyz="-0.008 0.0 0.0" rpy="0 0 0"/>
+      <mass value="0.025"/>
       <inertia
-          ixx="0.000012" iyy="0.00001" izz="0.00001"
+          ixx="0.00001" iyy="0.000006" izz="0.00001"
           ixy="0.000000" ixz="0.000000" iyz="0.000000"/>
     </inertial>
   </xacro:extra_module>
