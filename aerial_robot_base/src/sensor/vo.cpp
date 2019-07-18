@@ -42,15 +42,18 @@ namespace
   double max_du = 0;
 
   tf::Transform prev_sensor_tf;
+  tf::Vector3 baselink_omega;
+  tf::Matrix3x3 baselink_r;
+
+  //debug
+  double sample_interval = 0.02; //50 hz
 }
 
 namespace sensor_plugin
 {
   VisualOdometry::VisualOdometry():
     sensor_plugin::SensorBase(string("vo")),
-    servo_auto_change_flag_(false),
-    full_vel_mode_(false),
-    z_vel_mode_(false)
+    servo_auto_change_flag_(false)
   {
     world_offset_tf_.setIdentity();
     baselink_tf_.setIdentity();
@@ -77,7 +80,9 @@ namespace sensor_plugin
     /* ros subscriber: vo */
     string vo_sub_topic_name;
     nhp_.param("vo_sub_topic_name", vo_sub_topic_name, string("vo") );
-    vo_sub_ = nh_.subscribe(vo_sub_topic_name, 1, &VisualOdometry::voCallback, this);
+    uint32_t queuse_size = 1; // if the timestamp is not synchronized, we can only use the latest sensor value.
+    if(time_sync_) queuse_size = 10;
+    vo_sub_ = nh_.subscribe(vo_sub_topic_name, queuse_size, &VisualOdometry::voCallback, this);
 
     /* servo control timer */
     if(variable_sensor_tf_flag_)
@@ -96,6 +101,8 @@ namespace sensor_plugin
 
   void VisualOdometry::voCallback(const nav_msgs::Odometry::ConstPtr & vo_msg)
   {
+    //if(vo_msg->header.stamp.toSec() - prev_timestamp_ < sample_interval) return;
+
     /* only do egmotion estimate mode */
     if(!getFuserActivate(StateEstimator::EGOMOTION_ESTIMATE))
       {
@@ -121,6 +128,7 @@ namespace sensor_plugin
     tf::poseMsgToTF(vo_msg->pose.pose, raw_sensor_tf); // motion update
 
     curr_timestamp_ = vo_msg->header.stamp.toSec() + delay_; //temporal update
+    reference_timestamp_ = curr_timestamp_;
 
     if(getStatus() == Status::INACTIVE)
       {
@@ -144,15 +152,15 @@ namespace sensor_plugin
         std::cout << "VO: start kalman filter";
         /* chose pos / vel estimation mode, according to the view of the camera */
         /* TODO: should consider the illustration or feature dense of the image view */
-        if(fabs((sensor_tf_.getBasis() * tf::Vector3(0,0,1)).x()) > 0.1 ||
-           fabs((sensor_tf_.getBasis() * tf::Vector3(0,0,1)).y()) > 0.1)
+        auto sensor_view_rot = estimator_->getOrientation(Frame::BASELINK, StateEstimator::EGOMOTION_ESTIMATE) * sensor_tf_.getBasis();
+        if((sensor_view_rot * tf::Vector3(1,0,0)).z() < -0.8)
           {
-            full_vel_mode_ = true;
-            std::cout << ", full vel mode for state estimation ";
+            fusion_mode_ = ONLY_VEL_MODE;
+            std::cout << ", only vel mode from downward view state estimation";
 
             if(estimator_->getGpsHandler() != nullptr && estimator_->getGpsHandler()->getStatus() == Status::ACTIVE)
               {
-                if(outdoor_no_vel_time_sync_)
+                if(outdoor_no_vel_time_sync_) // heuristic option
                   {
                     /* TODO: very practical (heuristic), but effective. we observe the outdoor env is tricky for stereo cam stamp identification (e.g. zed mini) */
                     time_sync_ = false;
@@ -160,11 +168,6 @@ namespace sensor_plugin
                     std::cout << ", no temporal delay in outdoor mode, ";
                   }
               }
-          }
-        else
-          {
-            full_vel_mode_ = false;
-            std::cout << ", odometry pos mode for state estimation ";
           }
 
         /* step1: set the init offset from world to the baselink of UAV from egomotion estimation (e.g. yaw) */
@@ -205,17 +208,18 @@ namespace sensor_plugin
               {
                 if(id < (1 << State::ROLL_COG))
                   {
+                    /* not need to initialize */
                     if(estimator_->getStateStatus(State::X_BASE + (id >> (State::X_BASE + 1)), StateEstimator::EGOMOTION_ESTIMATE))
                       continue;
 
-                    if(!full_vel_mode_)
+                    if(fusion_mode_ != ONLY_VEL_MODE) //debug
                       {
                         if(id & (1 << State::Z_BASE))
                           {
                             if(!z_vel_mode_)
                               {
                                 kf->setInitState(init_pos[2], 0);
-                                std::cout << ", init state z with pos mode";
+                                std::cout << ", init state z with " << ((fusion_mode_== ONLY_POS_MODE)?"ony_pos":"pos_vel") << " mode";
                               }
                             else
                               std::cout << ", init state z with vel mode";
@@ -223,7 +227,8 @@ namespace sensor_plugin
                         else
                           {
                             kf->setInitState(init_pos[id >> (State::X_BASE + 1)], 0);
-                            std::cout << ", init state " << ((id >> (State::X_BASE + 1) == 0)?std::string("x"):std::string("y")) << "  with pos mode";
+                            std::cout << ", init state " << ((id >> (State::X_BASE + 1) == 0)?"x":"y") << "  with "
+                                      << ((fusion_mode_== ONLY_POS_MODE)?"only_pos":"pos_vel") << " mode";
                           }
                       }
                     kf->setMeasureFlag();
@@ -237,7 +242,7 @@ namespace sensor_plugin
                     if(estimator_->getStateStatus(State::X_BASE, StateEstimator::EGOMOTION_ESTIMATE) && estimator_->getStateStatus(State::Y_BASE, StateEstimator::EGOMOTION_ESTIMATE))
                       continue;
 
-                    if(!full_vel_mode_)
+                    if(fusion_mode_ != ONLY_VEL_MODE)
                       {
                         VectorXd init_state(6);
                         init_state << init_pos[0], 0, init_pos[1], 0, 0, 0;
@@ -273,15 +278,38 @@ namespace sensor_plugin
     tf::quaternionMsgToTF(vo_msg->pose.pose.orientation, raw_q);
 
     // velocity:
-    tf::Transform delta_tf = prev_sensor_tf.inverse() * raw_sensor_tf;
-    tf::Vector3 raw_local_vel = delta_tf.getOrigin() / (curr_timestamp_ - prev_timestamp_);
+    tf::Vector3 raw_local_vel;
+    tf::vector3MsgToTF(vo_msg->twist.twist.linear, raw_local_vel);
+    /* get the latest orientation and omega */
+    baselink_r = estimator_->getOrientation(Frame::BASELINK, StateEstimator::EGOMOTION_ESTIMATE);
+    baselink_omega = estimator_->getAngularVel(Frame::BASELINK, StateEstimator::EGOMOTION_ESTIMATE);
 
-    tf::Matrix3x3 r;
-    tf::Vector3 omega;
-    int mode = estimator_->getStateStatus(State::YAW_BASE, StateEstimator::GROUND_TRUTH)?StateEstimator::GROUND_TRUTH:StateEstimator::EGOMOTION_ESTIMATE;
-    estimator_->findRotOmege((curr_timestamp_ + prev_timestamp_) / 2, mode, r, omega);
+    if (time_sync_)
+      {
+        // TODO: what is the following previous tricky code?
+        // int mode = estimator_->getStateStatus(State::YAW_BASE, StateEstimator::GROUND_TRUTH)?StateEstimator::GROUND_TRUTH:StateEstimator::EGOMOTION_ESTIMATE;
+        int mode = StateEstimator::EGOMOTION_ESTIMATE;
 
-    raw_global_vel_ = r * ( sensor_tf_.getBasis() * raw_local_vel - omega.cross(sensor_tf_.getOrigin()));
+        if (raw_local_vel == tf::Vector3(0.0,0.0,0.0))
+          {
+            /* the odometry message does not contain velocity information, we have to calulcate by ourselves. */
+            tf::Transform delta_tf = prev_sensor_tf.inverse() * raw_sensor_tf;
+            raw_local_vel = delta_tf.getOrigin() / (curr_timestamp_ - prev_timestamp_);
+
+            reference_timestamp_ = (curr_timestamp_ + prev_timestamp_) / 2;
+            estimator_->findRotOmega(reference_timestamp_, mode, baselink_r, baselink_omega);
+          }
+        else
+          {
+            if(!estimator_->findRotOmega(reference_timestamp_, mode, baselink_r, baselink_omega, false))
+              {
+                //ROS_INFO("raw msg timestamp: %f", vo_msg->header.stamp.toSec());
+                reference_timestamp_ = estimator_->getImuLatestTimeStamp(); //special process for realsense t265
+              }
+          }
+      }
+
+    raw_global_vel_ = baselink_r * ( sensor_tf_.getBasis() * raw_local_vel - baselink_omega.cross(sensor_tf_.getOrigin()));
 
     if(debug_verbose_)
       {
@@ -317,6 +345,7 @@ namespace sensor_plugin
 
     /* update */
     prev_sensor_tf = raw_sensor_tf;
+    //ROS_INFO("vo time diff: %f", curr_timestamp_ - prev_timestamp_);
     prev_timestamp_ =  curr_timestamp_; // vo_msg->header.stamp;
 
     updateHealthStamp();
@@ -326,7 +355,8 @@ namespace sensor_plugin
   {
     if(getStatus() == Status::INVALID) return;
 
-    if(full_vel_mode_)
+    /* downward check */
+    if((baselink_r * tf::Vector3(1,0,0)).z() < -0.8)
       {
         double height = estimator_->getState(State::Z_BASE, StateEstimator::EGOMOTION_ESTIMATE)[0];
         if(height < downwards_vo_min_height_ || height > downwards_vo_max_height_)
@@ -357,67 +387,101 @@ namespace sensor_plugin
         if(!kf->getFilteringFlag()) continue;
 
         int id = kf->getId();
-        double timestamp = curr_timestamp_;
-        double outlier_thresh = full_vel_mode_?(vel_outlier_thresh_ / (vel_noise_sigma_) / (vel_noise_sigma_)):0;
+        double timestamp = reference_timestamp_;
+        double outlier_thresh = (fusion_mode_ == ONLY_VEL_MODE)?(vel_outlier_thresh_ / (vel_noise_sigma_) / (vel_noise_sigma_)):0;
         /* x_w, y_w, z_w */
         if(id < (1 << State::ROLL_COG))
           {
             if(plugin_name == "kalman_filter/kf_pos_vel_acc")
               {
-                /* correction */
-                VectorXd measure_sigma(1);
-                if((id & (1 << State::X_BASE)) || (id & (1 << State::Y_BASE)))
-                  {
-                    if(full_vel_mode_) measure_sigma << vel_noise_sigma_;
-                    else measure_sigma << level_pos_noise_sigma_;
-                  }
-                else
-                  {
-                    if(z_vel_mode_ || full_vel_mode_)
-                      measure_sigma << vel_noise_sigma_;
-                    else
-                      measure_sigma << z_pos_noise_sigma_;
-                  }
-
                 int index = id >> (State::X_BASE + 1);
-                VectorXd meas(1);
                 vector<double> params;
-                if((id & (1 << State::X_BASE)) || (id & (1 << State::Y_BASE)))
+
+                /* correction */
+                if (fusion_mode_ == ONLY_POS_MODE)
                   {
-                    if(full_vel_mode_)
+                    VectorXd meas(1);
+                    VectorXd measure_sigma(1);
+                    measure_sigma << level_pos_noise_sigma_;
+                    meas << baselink_tf_.getOrigin()[index];
+                    params = {kf_plugin::POS};
+
+                    if(id & (1 << State::Z_BASE))
                       {
-                        meas << raw_global_vel_[index];
-                        params = {kf_plugin::VEL};
-                        timestamp = (curr_timestamp_ + prev_timestamp_) / 2; //velocity timestamp
+                        if(z_vel_mode_)
+                          {
+                            measure_sigma << vel_noise_sigma_;
+                            meas << raw_global_vel_[index];
+                            params = {kf_plugin::VEL};
+                          }
+                        else
+                          measure_sigma << z_pos_noise_sigma_;
+
+                        if(z_no_delay_) timestamp -= delay_;
+                      }
+
+                    kf->correction(meas, measure_sigma,
+                                   time_sync_?(timestamp):-1,
+                                   params, outlier_thresh);
+                  }
+                else if(fusion_mode_ == ONLY_VEL_MODE)
+                  {
+                    VectorXd measure_sigma(1);
+                    measure_sigma << vel_noise_sigma_;
+
+                    VectorXd meas(1);
+                    meas << raw_global_vel_[index];
+                    params = {kf_plugin::VEL};
+
+                    kf->correction(meas, measure_sigma,
+                                   time_sync_?(timestamp):-1,
+                                   params, outlier_thresh);
+                  }
+                else if(fusion_mode_ == POS_VEL_MODE)
+                  {
+                    if(id & (1 << State::Z_BASE))
+                      {
+                        if(z_no_delay_) timestamp -= delay_;
+
+                        if(z_vel_mode_)
+                          {
+                            VectorXd measure_sigma(1);
+                            measure_sigma << vel_noise_sigma_;
+                            VectorXd meas(1);
+                            meas << raw_global_vel_[index];
+                            params = {kf_plugin::VEL};
+                            kf->correction(meas, measure_sigma,
+                                           time_sync_?(timestamp):-1,
+                                           params, outlier_thresh);
+                          }
+                        else
+                          {
+                            VectorXd measure_sigma(2);
+                            measure_sigma << z_pos_noise_sigma_, vel_noise_sigma_;
+                            VectorXd meas(2);
+                            meas << baselink_tf_.getOrigin()[index], raw_global_vel_[index];
+                            params = {kf_plugin::POS_VEL};
+                            kf->correction(meas, measure_sigma,
+                                           time_sync_?(timestamp):-1,
+                                           params, outlier_thresh);
+                          }
                       }
                     else
                       {
-                        meas << baselink_tf_.getOrigin()[index];
-                        params = {kf_plugin::POS};
+                        VectorXd measure_sigma(2);
+                        measure_sigma << level_pos_noise_sigma_, vel_noise_sigma_;
+                        VectorXd meas(2);
+                        meas << baselink_tf_.getOrigin()[index], raw_global_vel_[index];
+                        params = {kf_plugin::POS_VEL};
+                        kf->correction(meas, measure_sigma,
+                                       time_sync_?(timestamp):-1,
+                                       params, outlier_thresh);
                       }
-                  }
-                else
-                  {
-                    if(z_vel_mode_ || full_vel_mode_)
-                      {
-                        meas << raw_global_vel_[index];
-                        params = {kf_plugin::VEL};
-                        timestamp = (curr_timestamp_ + prev_timestamp_) / 2; //velocity timestamp
-                      }
-                    else
-                      {
-                        meas << baselink_tf_.getOrigin()[index];
-                        params = {kf_plugin::POS};
-                      }
-
-                    if(z_no_delay_) timestamp -= delay_;
-                  }
-
-                kf->correction(meas, measure_sigma,
-                               time_sync_?(timestamp):-1, params, outlier_thresh);
-                // VectorXd state = kf->getEstimateState();
-                // estimator_->setState(index + 3, StateEstimator::EGOMOTION_ESTIMATE, 0, state(0));
-                // estimator_->setState(index + 3, StateEstimator::EGOMOTION_ESTIMATE, 1, state(1));
+                }
+              else
+                {
+                  ROS_WARN("wrong fusion model %d", fusion_mode_);
+                }
               }
           }
         if(plugin_name == "aerial_robot_base/kf_xy_roll_pitch_bias")
@@ -430,24 +494,22 @@ namespace sensor_plugin
 
                 VectorXd meas(2);
                 vector<double> params;
-                if(full_vel_mode_)
+                if(fusion_mode_ == ONLY_VEL_MODE)
                   {
                     meas << raw_global_vel_[0], raw_global_vel_[1];
                     params = {kf_plugin::VEL};
                   }
-                else
+                else if(fusion_mode_ == ONLY_POS_MODE)
                   {
                     meas << baselink_tf_.getOrigin()[0], baselink_tf_.getOrigin()[1];
                     params = {kf_plugin::POS};
                   }
+                else
+                  {
+                    ROS_WARN("POS_VEL_MODE for xy_roll_pitch_bias is not supported");
+                  }
 
                 kf->correction(meas, measure_sigma, time_sync_?(timestamp):-1, params);
-                // VectorXd state = kf->getEstimateState();
-
-                // estimator_->setState(State::X_BASE, StateEstimator::EGOMOTION_ESTIMATE, 0, state(0));
-                // estimator_->setState(State::X_BASE, StateEstimator::EGOMOTION_ESTIMATE, 1, state(1));
-                // estimator_->setState(State::Y_BASE, StateEstimator::EGOMOTION_ESTIMATE, 0, state(2));
-                // estimator_->setState(State::Y_BASE, StateEstimator::EGOMOTION_ESTIMATE, 1, state(3));
               }
           }
       }
@@ -457,21 +519,15 @@ namespace sensor_plugin
   {
     std::string ns = nhp_.getNamespace();
 
-    if(nhp_.hasParam("full_vel_mode"))
-      {
-        nhp_.getParam("full_vel_mode", full_vel_mode_);
-        if(param_verbose_) cout << ns << ": full vel mode is " <<  full_vel_mode_ << endl;
-      }
-    if(nhp_.hasParam("z_vel_mode"))
-      {
-        nhp_.getParam("z_vel_mode", z_vel_mode_);
-        if(param_verbose_) cout << ns << ": z vel mode is " <<  z_vel_mode_ << endl;
-      }
+    nhp_.param("fusion_mode", fusion_mode_, (int)ONLY_POS_MODE);
+    if(param_verbose_) cout << ns << ": fusion mode is " << fusion_mode_ << endl;
+    nhp_.param("z_vel_mode", z_vel_mode_, false);
+    if(param_verbose_) cout << ns << ": z vel mode is " << z_vel_mode_ << endl;
 
-    nhp_.param("z_no_delay", z_no_delay_, true );
+    nhp_.param("z_no_delay", z_no_delay_, false);
     if(param_verbose_) cout << ns << ": z no delay is " <<  z_no_delay_ << endl;
 
-    nhp_.param("outdoor_no_vel_time_sync", outdoor_no_vel_time_sync_, true );
+    nhp_.param("outdoor_no_vel_time_sync", outdoor_no_vel_time_sync_, false);
     if(param_verbose_) cout << ns << "outdoor no vel time sync:  is " << outdoor_no_vel_time_sync_ << endl;
 
     nhp_.param("level_pos_noise_sigma", level_pos_noise_sigma_, 0.01 );
