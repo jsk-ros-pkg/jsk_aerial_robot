@@ -271,27 +271,29 @@ public:
     }
   }
 
-  bool findRotOmege(const double timestamp, const int mode, tf::Matrix3x3 r, tf::Vector3 omega)
+  bool findRotOmega(const double timestamp, const int mode, tf::Matrix3x3& r, tf::Vector3& omega, bool verbose = true)
   {
     boost::lock_guard<boost::mutex> lock(queue_mutex_);
 
     if(timestamp_qu_.size() == 0)
       {
-        ROS_ERROR("estimation: no valid queue for timestamp to find proper r and omega");
+        if(verbose)
+          ROS_ERROR("estimation: no valid queue for timestamp to find proper r and omega");
         return false;
       }
 
     if(timestamp < timestamp_qu_.front())
       {
-        ROS_ERROR("estimation: sensor timestamp %f is earlier than the oldest timestamp %f in queue",
+        if(verbose)
+          ROS_ERROR("estimation: sensor timestamp %f is earlier than the oldest timestamp %f in queue",
                   timestamp, timestamp_qu_.front());
         return false;
       }
 
     if(timestamp > timestamp_qu_.back())
       {
-        ROS_ERROR("estimation: sensor timestamp %f is later than the latest timestamp %f in queue",
-                  timestamp, timestamp_qu_.front());
+        if(verbose)
+          ROS_ERROR("estimation: sensor timestamp %f is later than the latest timestamp %f in queue", timestamp, timestamp_qu_.back());
         return false;
       }
 
