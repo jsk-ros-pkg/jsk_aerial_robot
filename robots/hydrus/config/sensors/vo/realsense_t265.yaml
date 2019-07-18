@@ -1,0 +1,18 @@
+sensor_plugin:
+  vo:
+    vo_sub_topic_name: /vo/odom #raw: /camera/odom/sample
+    level_pos_noise_sigma: 0.01
+    z_pos_noise_sigma: 0.01
+    vel_noise_sigma: 0.01
+    sensor_frame: camera_pose_frame
+    reference_frame: fc
+    debug_verbose: false
+    time_sync: true
+
+    ## heuristic params
+    delay: -0.015 #: heuristic, but necessary for time_sync mode, otherwise the timestamp is newer than imu stamp. realsense t265 is faster than spinal IMU. In other words, the imu from spinal has a certain delay!!! (e.g. 0.05ms)
+    z_vel_mode: true
+    fusion_mode: 2 # ONLY_POS_MODE = 0, ONLY_VEL_MODE = 1, POS_VEL_MODE = 2
+
+  imu:
+    level_acc_bias_noise_sigma: 0.0001
