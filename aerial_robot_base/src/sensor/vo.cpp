@@ -279,7 +279,7 @@ namespace sensor_plugin
     tf::Matrix3x3 r;
     tf::Vector3 omega;
     int mode = estimator_->getStateStatus(State::YAW_BASE, StateEstimator::GROUND_TRUTH)?StateEstimator::GROUND_TRUTH:StateEstimator::EGOMOTION_ESTIMATE;
-    estimator_->findRotOmege((curr_timestamp_ + prev_timestamp_) / 2, mode, r, omega);
+    estimator_->findRotOmega((curr_timestamp_ + prev_timestamp_) / 2, mode, r, omega);
 
     raw_global_vel_ = r * ( sensor_tf_.getBasis() * raw_local_vel - omega.cross(sensor_tf_.getOrigin()));
 
