@@ -77,7 +77,7 @@ namespace sensor_plugin
       nhp_.param("mocap_pub_name", topic_name, std::string("data"));
       pose_stamped_pub_ = nh_.advertise<aerial_robot_msgs::States>(topic_name, 5);
       nhp_.param("mocap_sub_name", topic_name, std::string("/aerial_robot/pose"));
-      mocap_sub_ = nh_.subscribe(topic_name, 1, &Mocap::poseCallback, this, ros::TransportHints().udp());
+      mocap_sub_ = nh_.subscribe(topic_name, 1, &Mocap::poseCallback, this, ros::TransportHints().udp()); // since we do not use time_sync mode for mocap, so only need the latest value.
       nhp_.param("ground_truth_sub_name", topic_name, std::string("ground_truth"));
       ground_truth_sub_ = nh_.subscribe(topic_name, 1, &Mocap::groundTruthCallback, this);
     }

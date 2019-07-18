@@ -84,7 +84,7 @@ namespace sensor_plugin
       //barometer_sub_ = nh_.subscribe<spinal::Barometer>(barometer_sub_name_, 1, &Alt::baroCallback, this, ros::TransportHints().tcpNoDelay());
 
       /* range sensor */
-      range_sensor_sub_ = nh_.subscribe(range_sensor_sub_name_, 1, &Alt::rangeCallback, this);
+      range_sensor_sub_ = nh_.subscribe(range_sensor_sub_name_, 10, &Alt::rangeCallback, this);
 
     }
 

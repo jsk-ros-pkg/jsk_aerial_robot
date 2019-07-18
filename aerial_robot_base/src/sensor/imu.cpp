@@ -69,7 +69,7 @@ namespace sensor_plugin
       imu_pub_ = nh_.advertise<sensor_msgs::Imu>(imu_pub_topic_name_, 1);
       state_pub_ = nh_.advertise<aerial_robot_msgs::States>("data", 1);
 
-      imu_sub_ = nh_.subscribe<spinal::Imu>(imu_topic_name_, 1, &Imu::ImuCallback, this);
+      imu_sub_ = nh_.subscribe<spinal::Imu>(imu_topic_name_, 10, &Imu::ImuCallback, this);
     }
 
     ~Imu () {}
