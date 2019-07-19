@@ -424,10 +424,15 @@ public:
 
   inline uint8_t getUnhealthLevel() { return unhealth_level_; }
 
-  const boost::shared_ptr<sensor_plugin::SensorBase> getImuHandler() const { return imu_handler_;}
-  const boost::shared_ptr<sensor_plugin::SensorBase> getAltHandler() const { return alt_handler_;}
-  const boost::shared_ptr<sensor_plugin::SensorBase> getVoHandler() const { return vo_handler_;}
-  const boost::shared_ptr<sensor_plugin::SensorBase> getGpsHandler() const { return gps_handler_;}
+  const vector<boost::shared_ptr<sensor_plugin::SensorBase> >& getImuHandlers() const { return imu_handlers_;}
+  const vector<boost::shared_ptr<sensor_plugin::SensorBase> >& getAltHandlers() const { return alt_handlers_;}
+  const vector<boost::shared_ptr<sensor_plugin::SensorBase> >& getVoHandlers() const { return vo_handlers_;}
+  const vector<boost::shared_ptr<sensor_plugin::SensorBase> >& getGpsHandlers() const { return gps_handlers_;}
+
+  const boost::shared_ptr<sensor_plugin::SensorBase> getImuHandler(int i) const { return imu_handlers_.at(i);}
+  const boost::shared_ptr<sensor_plugin::SensorBase> getAltHandlers(int i) const { return alt_handlers_.at(i);}
+  const boost::shared_ptr<sensor_plugin::SensorBase> getVoHandlers(int i) const { return vo_handlers_.at(i);}
+  const boost::shared_ptr<sensor_plugin::SensorBase> getGpsHandlers(int i) const { return gps_handlers_.at(i);}
 
 protected:
 
@@ -443,10 +448,10 @@ protected:
 
   vector< boost::shared_ptr<sensor_plugin::SensorBase> > sensors_;
   boost::shared_ptr< pluginlib::ClassLoader<sensor_plugin::SensorBase> > sensor_plugin_ptr_;
-  boost::shared_ptr<sensor_plugin::SensorBase> imu_handler_;
-  boost::shared_ptr<sensor_plugin::SensorBase> alt_handler_;
-  boost::shared_ptr<sensor_plugin::SensorBase> vo_handler_;
-  boost::shared_ptr<sensor_plugin::SensorBase> gps_handler_;
+  vector<boost::shared_ptr<sensor_plugin::SensorBase> > imu_handlers_;
+  vector<boost::shared_ptr<sensor_plugin::SensorBase> > alt_handlers_;
+  vector<boost::shared_ptr<sensor_plugin::SensorBase> > vo_handlers_;
+  vector<boost::shared_ptr<sensor_plugin::SensorBase> > gps_handlers_;
 
   /* mutex */
   boost::mutex state_mutex_;
@@ -508,7 +513,6 @@ protected:
 
   void statePublish();
   void rosParamInit();
-  bool pattern_match(std::string &pl, std::string &pl_candidate);
 
   void update()
   {

@@ -66,7 +66,7 @@ namespace sensor_plugin
   class Gps :public sensor_plugin::SensorBase
     {
     public:
-      void initialize(ros::NodeHandle nh, ros::NodeHandle nhp, StateEstimator* estimator, string sensor_name);
+      void initialize(ros::NodeHandle nh, ros::NodeHandle nhp, StateEstimator* estimator, string sensor_name, int index);
 
       ~Gps() {}
       Gps();
@@ -81,8 +81,6 @@ namespace sensor_plugin
       ros::Subscriber gps_sub_; /* single gps to get NavSatFix */
 
       /* ros param */
-      string gps_sub_name_;
-
       double pos_noise_sigma_, vel_noise_sigma_;
       int min_est_sat_num_;
       bool ned_flag_;

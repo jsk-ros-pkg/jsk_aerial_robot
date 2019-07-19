@@ -75,22 +75,25 @@ namespace sensor_plugin
   {
   public:
     SensorBase(string plugin_name = string("")):
-      sensor_hz_(0), plugin_name_(plugin_name)
+      sensor_hz_(0), plugin_name_(plugin_name), get_sensor_tf_(false)
     {
       sensor_tf_.setIdentity();
       sensor_status_ = Status::INACTIVE;
     }
 
-    virtual void initialize(ros::NodeHandle nh, ros::NodeHandle nhp, StateEstimator* estimator, string sensor_name)
+    virtual void initialize(ros::NodeHandle nh, ros::NodeHandle nhp, StateEstimator* estimator, string sensor_name, int index)
     {
       estimator_ = estimator;
+
       nh_ = ros::NodeHandle(nh, sensor_name);
       nhp_ = ros::NodeHandle(nhp, sensor_name);
+      indexed_nh_ = ros::NodeHandle(nh, sensor_name + std::to_string(index));
+      indexed_nhp_ = ros::NodeHandle(nhp, sensor_name + std::to_string(index));
 
       health_.resize(1, false);
       health_stamp_.resize(1, ros::Time::now().toSec());
 
-      set_status_service_ = nh_.advertiseService("estimate_flag", &SensorBase::setStatusCb, this);
+      set_status_service_ = indexed_nh_.advertiseService("estimate_flag", &SensorBase::setStatusCb, this);
 
       ros::NodeHandle nh_global("~");
       nh_global.param("simulation", simulation_, false);
@@ -98,29 +101,23 @@ namespace sensor_plugin
       nh_global.param("param_verbose", param_verbose_, false);
       nh_global.param("debug_verbose", debug_verbose_, false);
 
-      std::string ns = nhp_.getNamespace();
-      ROS_WARN("load sensor plugin %s:", ns.c_str());
-      if (!nhp_.getParam ("estimate_mode", estimate_mode_))
-        ROS_ERROR("%s, can not get param about estimate mode", ns.c_str());
-      if(param_verbose_) cout << ns << ": estimate mode is " << estimate_mode_ << endl;
+      ROS_WARN_STREAM("load sensor plugin: " << indexed_nhp_.getNamespace());
 
-      nhp_.param("sensor_frame", sensor_frame_, string("sensor_frame"));
-      nhp_.param("get_sensor_tf", get_sensor_tf_, false);
-      nhp_.param("variable_sensor_tf_flag", variable_sensor_tf_flag_, false);
+      if (!nhp_.getParam ("estimate_mode", estimate_mode_) && !indexed_nhp_.getParam ("estimate_mode", estimate_mode_))
+        ROS_ERROR_STREAM(indexed_nhp_.getNamespace() << ", can not get param about estimate mode");
 
-      nhp_.param("health_timeout", health_timeout_, 0.5);
-      if(param_verbose_) cout << ns << ": health_timeout is " << health_timeout_ << endl;
-      nhp_.param("unhealth_level", unhealth_level_, 0);
-      if(param_verbose_) cout << ns << ": unhealth_level is " << unhealth_level_ << endl;
-      nhp_.param("health_check_rate", health_check_rate_, 100.0);
-      if(param_verbose_) cout << ns << ": health_check_rate_ is " << health_check_rate_ << endl;
+      /* general parameters for the same sensor type */
+      getParam<bool>("param_verbose", param_verbose_, param_verbose_);
+      getParam<bool>("debug_verbose", debug_verbose_, debug_verbose_);
+      getParam<std::string>("sensor_frame", sensor_frame_, "sensor_frame");
+      getParam<bool>("variable_sensor_tf_flag", variable_sensor_tf_flag_, false);
+      getParam<double>("health_timeout", health_timeout_, 0.5);
+      getParam<int>("unhealth_level", unhealth_level_, 0);
+      getParam<double>("health_check_rate", health_check_rate_, 100.0);
+      getParam<bool>("time_sync", time_sync_, false);
+      getParam<double>("delay", delay_, 0.0);
 
-      /* time sync for sensor fusion */
-      nhp_.param("delay", delay_, 0.0);
-      nhp_.param("time_sync", time_sync_, false);
-      if(param_verbose_) cout << ns << ": time_sync: " << time_sync_ << ", delay: " << delay_ << endl;
-
-      health_check_timer_ = nhp_.createTimer(ros::Duration(1.0 / health_check_rate_), &SensorBase::healthCheck,this);
+      health_check_timer_ = indexed_nhp_.createTimer(ros::Duration(1.0 / health_check_rate_), &SensorBase::healthCheck,this);
     }
 
     virtual ~SensorBase(){}
@@ -141,8 +138,8 @@ namespace sensor_plugin
 
   protected:
 
-    ros::NodeHandle nh_;
-    ros::NodeHandle nhp_;
+    ros::NodeHandle nh_, nhp_; //node handle for same sensor type (e.g. imu, gps, vo, alt)
+    ros::NodeHandle indexed_nh_, indexed_nhp_; //node handle for indexed sensor handler (e.g. imu1, imu2)
     ros::Timer  health_check_timer_;
     ros::ServiceServer set_status_service_;
     StateEstimator* estimator_;
@@ -181,6 +178,7 @@ namespace sensor_plugin
     double health_check_rate_;
     double health_timeout_;
     int unhealth_level_;
+
 
     inline const bool getFuserActivate(uint8_t mode) const
     {
@@ -285,6 +283,15 @@ namespace sensor_plugin
 
       get_sensor_tf_ = true;
       return true;
+    }
+
+    template<class T> void getParam(std::string param_name, T& param, T default_value)
+    {
+      nhp_.param<T>(param_name, param, default_value);
+      if(indexed_nhp_.hasParam(param_name)) indexed_nhp_.getParam(param_name, param);
+
+      if(param_verbose_)
+        ROS_INFO_STREAM("[" << indexed_nhp_.getNamespace() << "] " << param_name << ": " << param);
     }
   };
 

@@ -61,7 +61,7 @@ namespace sensor_plugin
     VisualOdometry();
     ~VisualOdometry(){}
 
-    void initialize(ros::NodeHandle nh, ros::NodeHandle nhp, StateEstimator* estimator, string sensor_name);
+    void initialize(ros::NodeHandle nh, ros::NodeHandle nhp, StateEstimator* estimator, string sensor_name, int index);
 
     inline const bool odomPosMode()
     {
