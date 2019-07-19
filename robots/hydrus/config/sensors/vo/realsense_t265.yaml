@@ -6,13 +6,12 @@ sensor_plugin:
     vel_noise_sigma: 0.01
     sensor_frame: camera_pose_frame
     reference_frame: fc
-    debug_verbose: false
+    vio_mode: true
     time_sync: true
+    downwards_vo_min_height: 0.4
 
     ## heuristic params
     delay: -0.015 #: heuristic, but necessary for time_sync mode, otherwise the timestamp is newer than imu stamp. realsense t265 is faster than spinal IMU. In other words, the imu from spinal has a certain delay!!! (e.g. 0.05ms)
     z_vel_mode: true
     fusion_mode: 2 # ONLY_POS_MODE = 0, ONLY_VEL_MODE = 1, POS_VEL_MODE = 2
-
-  imu:
-    level_acc_bias_noise_sigma: 0.0001
+    #param_verbose: true

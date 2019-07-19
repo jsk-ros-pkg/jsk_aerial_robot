@@ -85,13 +85,12 @@ namespace sensor_plugin
     double downwards_vo_min_height_;
     double downwards_vo_max_height_;
     int fusion_mode_;
+    bool vio_mode_; // visual + inertial mode
     bool z_vel_mode_;
     bool outdoor_no_vel_time_sync_; // very special flag for stereo cam such as zed mini, which has tricky behavier in outdoor mode
     /* heuristic sepecial flag for fusion */
     bool outdoor_;
     bool z_no_delay_;
-
-    bool debug_verbose_;
 
     /* servo */
     std::string joint_name_;

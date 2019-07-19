@@ -107,7 +107,6 @@ namespace sensor_plugin
         nhp_.param("vo_servo_debug_topic_name", topic_name, string("/vo_servo_debug"));
         if(estimator_->getVoHandlers().size() > 1)
           indexed_nhp_.param("vo_servo_debug_topic_name", topic_name, string("/vo_servo_debug")  + std::to_string(index));
-          nhp_.param("vo_servo_topic_name", topic_name, string("/vo_servo_target_pwm"));
         vo_servo_debug_sub_ = nh_.subscribe(topic_name, 1, &VisualOdometry::servoDebugCallback, this);
 
         servo_control_timer_ = indexed_nhp_.createTimer(ros::Duration(servo_control_rate_), &VisualOdometry::servoControl,this); // 10 Hz
@@ -133,7 +132,7 @@ namespace sensor_plugin
       return;
 
     /* check whether is force att control mode */
-    if(estimator_->getForceAttControlFlag() && getStatus() != Status::INVALID)
+    if(estimator_->getForceAttControlFlag() && getStatus() == Status::ACTIVE)
       {
         estimator_->setStateStatus(State::YAW_BASE, StateEstimator::EGOMOTION_ESTIMATE, false);
         setStatus(Status::INVALID);
@@ -182,13 +181,30 @@ namespace sensor_plugin
             return;
           }
 
+        auto sensor_view_rot = estimator_->getOrientation(Frame::BASELINK, StateEstimator::EGOMOTION_ESTIMATE) * sensor_tf_.getBasis();
+        if(vio_mode_)
+          {
+            /* get the true rotation (i.e. attitude) from the sensor in vio mode */
+            tf::Quaternion q;
+            tf::quaternionMsgToTF(vo_msg->pose.pose.orientation, q);
+            sensor_view_rot.setRotation(q);
+          }
+
+        /* can not start fusion from this sensor if the sensor is downward and the height is too low */
+        double downward_rate = (sensor_view_rot * tf::Vector3(1,0,0)).z();
+        if(downward_rate < -0.8 &&
+           estimator_->getState(State::Z_BASE, StateEstimator::EGOMOTION_ESTIMATE)[0] < downwards_vo_min_height_)
+          {
+            return;
+          }
+
         setStatus(Status::INIT);
 
-        std::cout << "VO: start kalman filter";
+        std::cout << indexed_nhp_.getNamespace()  << ": start kalman filter";
         /* chose pos / vel estimation mode, according to the view of the camera */
         /* TODO: should consider the illustration or feature dense of the image view */
-        auto sensor_view_rot = estimator_->getOrientation(Frame::BASELINK, StateEstimator::EGOMOTION_ESTIMATE) * sensor_tf_.getBasis();
-        if((sensor_view_rot * tf::Vector3(1,0,0)).z() < -0.8)
+
+        if(downward_rate < -0.8)
           {
             fusion_mode_ = ONLY_VEL_MODE;
             std::cout << ", only vel mode from downward view state estimation";
@@ -398,12 +414,18 @@ namespace sensor_plugin
     if(getStatus() == Status::INVALID) return;
 
     /* downward check */
-    if((baselink_r * tf::Vector3(1,0,0)).z() < -0.8)
+    tf::Matrix3x3 sensor_view_rot;
+    if(vio_mode_)
+      sensor_view_rot = baselink_tf_.getBasis() * sensor_tf_.getBasis();
+    else sensor_view_rot = baselink_r * sensor_tf_.getBasis();
+
+    if((sensor_view_rot * tf::Vector3(1,0,0)).z() < -0.8)
       {
         double height = estimator_->getState(State::Z_BASE, StateEstimator::EGOMOTION_ESTIMATE)[0];
         if(height < downwards_vo_min_height_ || height > downwards_vo_max_height_)
           {
-            //ROS_WARN_THROTTLE(1, "VO, the height %f is not valid for vo to do downards vo", height);
+
+            //ROS_WARN_THROTTLE(1, "%s, the height %f is not valid for vo to do downards vo", indexed_nhp_.getNamespace().c_str(), height);
             return;
           }
       }
@@ -413,7 +435,7 @@ namespace sensor_plugin
         if(!estimator_->getStateStatus(State::YAW_BASE, StateEstimator::EGOMOTION_ESTIMATE))
           {
             estimator_->setStateStatus(State::YAW_BASE, StateEstimator::EGOMOTION_ESTIMATE, true);
-            ROS_WARN("VO, set yaw estimate status true");
+            ROS_WARN_STREAM(indexed_nhp_.getNamespace() <<": set yaw estimate status true");
           }
         tfScalar r,p,y;
         baselink_tf_.getBasis().getRPY(r,p,y);
@@ -559,9 +581,8 @@ namespace sensor_plugin
 
   void VisualOdometry::rosParamInit()
   {
-    std::string ns = nhp_.getNamespace();
-
     getParam<int>("fusion_mode", fusion_mode_, (int)ONLY_POS_MODE);
+    getParam<bool>("vio_mode", vio_mode_, false);
     getParam<bool>("z_vel_mode", z_vel_mode_, false);
     getParam<bool>("z_no_delay", z_no_delay_, false);
     getParam<bool>("outdoor_no_vel_time_sync", outdoor_no_vel_time_sync_, false);
