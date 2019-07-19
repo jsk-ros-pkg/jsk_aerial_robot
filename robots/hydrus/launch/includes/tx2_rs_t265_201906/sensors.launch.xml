@@ -13,8 +13,8 @@
       </include>
 
       <!-- vo by realsense t265 -->
-      <include file="$(find realsense2_camera)/launch/rs_t265.launch" >
-        <arg name="enable_sync" value="false"/>
+      <include file="$(find realsense2_camera)/launch/multi_t265_odom.launch" >
+        <arg name="throttle_rate" value="80.0"/> <!-- 80 hz -->
       </include>
       <param name="/camera/realsense2_camera/publish_odom_tf" value="false" />
 
@@ -27,14 +27,6 @@
     <group if="$(arg simulation)">
       <node pkg="nodelet" type="nodelet" name="realsense2_camera_manager" ns="camera" args="manager" />
     </group>
-
-    <!-- throttle for vo odom from realsense t265 -->
-    <node pkg="nodelet" type="nodelet"  name="throttle"
-          args="load jsk_topic_tools/LightweightThrottle /camera/realsense2_camera_manager">
-      <remap from="~input" to="/camera/odom/sample" />
-      <remap from="~output" to="/vo/odom" />
-      <param name="update_rate" value="80.0" /> <!-- not equal to fps -->
-    </node>
   </group>
 
   <!-- basic configuration for sensors (e.g. noise sigma) -->

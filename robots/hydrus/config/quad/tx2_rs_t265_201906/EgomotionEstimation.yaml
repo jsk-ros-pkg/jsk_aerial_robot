@@ -7,7 +7,7 @@ estimator:
         - sensor_plugin/alt
         - sensor_plugin/vo
         - sensor_plugin/gps
-
+        - sensor_plugin/vo
 
         # egomotion estimation
         egomotion_list:
@@ -52,6 +52,7 @@ estimator:
 /sensor_plugin:
         imu:
                 estimate_mode: 3 # 1<<0 + 1<<1
+                level_acc_bias_noise_sigma: 0.0001
         mocap:
                 estimate_mode: 6 # 1<<1 + 1<<2
         alt:
@@ -60,3 +61,9 @@ estimator:
                 estimate_mode: 1 # 1<<0
         vo:
                 estimate_mode: 1 # 1<<0
+        vo1:
+                vo_sub_topic_name: /realsense1/odom/throttle
+                sensor_frame: realsense1_pose_frame
+        vo2:
+                vo_sub_topic_name: /realsense2/odom/throttle
+                sensor_frame: realsense2_pose_frame

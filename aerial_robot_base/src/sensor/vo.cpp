@@ -184,10 +184,19 @@ namespace sensor_plugin
 
         setStatus(Status::INIT);
 
-        std::cout << "VO: start kalman filter";
+        std::cout << indexed_nhp_.getNamespace()  << ": start kalman filter";
         /* chose pos / vel estimation mode, according to the view of the camera */
         /* TODO: should consider the illustration or feature dense of the image view */
         auto sensor_view_rot = estimator_->getOrientation(Frame::BASELINK, StateEstimator::EGOMOTION_ESTIMATE) * sensor_tf_.getBasis();
+
+        if(vio_mode_)
+          {
+            /* get the true rotation (i.e. attitude) from the sensor in vio mode */
+            tf::Quaternion q;
+            tf::quaternionMsgToTF(vo_msg->pose.pose.orientation, q);
+            sensor_view_rot.setRotation(q);
+          }
+
         if((sensor_view_rot * tf::Vector3(1,0,0)).z() < -0.8)
           {
             fusion_mode_ = ONLY_VEL_MODE;
@@ -559,9 +568,8 @@ namespace sensor_plugin
 
   void VisualOdometry::rosParamInit()
   {
-    std::string ns = nhp_.getNamespace();
-
     getParam<int>("fusion_mode", fusion_mode_, (int)ONLY_POS_MODE);
+    getParam<bool>("vio_mode", vio_mode_, false);
     getParam<bool>("z_vel_mode", z_vel_mode_, false);
     getParam<bool>("z_no_delay", z_no_delay_, false);
     getParam<bool>("outdoor_no_vel_time_sync", outdoor_no_vel_time_sync_, false);
