@@ -87,42 +87,47 @@ namespace sensor_plugin
     world_frame_.setIdentity();
   }
 
-  void Gps::initialize(ros::NodeHandle nh, ros::NodeHandle nhp, StateEstimator* estimator, string sensor_name)
+  void Gps::initialize(ros::NodeHandle nh, ros::NodeHandle nhp, StateEstimator* estimator, string sensor_name, int index)
   {
-    SensorBase::initialize(nh, nhp, estimator, sensor_name);
+    SensorBase::initialize(nh, nhp, estimator, sensor_name, index);
     rosParamInit();
 
-    /* ros publisher of aerial_robot_base::State */
-    state_pub_ = nh_.advertise<aerial_robot_msgs::States>("data", 10);
-    /* ros publisher of sensor_msgs::NavSatFix */
-    gps_pub_ = nh_.advertise<sensor_msgs::NavSatFix>("/single_gps", 2);
     /* ros subscriber for gps */
-    gps_sub_ = nh_.subscribe(gps_sub_name_, 5, &Gps::gpsCallback, this);
+    std::string topic_name;
+    nhp_.param("gps_sub_name", topic_name, string("/gps"));
+    if(estimator_->getGpsHandlers().size() > 1)
+      indexed_nhp_.param("vo_sub_topic_name", topic_name, string("/gps" + std::to_string(index)));
+    gps_sub_ = nh_.subscribe(topic_name, 5, &Gps::gpsCallback, this);
+
+
+    if(estimator_->getGpsHandlers().size() == 1)
+      {
+        /* ros publisher of aerial_robot_base::State */
+        state_pub_ = nh_.advertise<aerial_robot_msgs::States>("data", 10);
+
+        /* ros publisher of sensor_msgs::NavSatFix */
+        gps_pub_ = nh_.advertise<sensor_msgs::NavSatFix>("single_gps", 2);
+      }
+    else
+      {
+        /* ros publisher of aerial_robot_base::State */
+        state_pub_ = indexed_nh_.advertise<aerial_robot_msgs::States>("data", 10);
+
+        /* ros publisher of sensor_msgs::NavSatFix */
+        gps_pub_ = indexed_nh_.advertise<sensor_msgs::NavSatFix>("single_gps", 2);
+      }
   }
 
   void Gps::rosParamInit()
   {
     std::string ns = nhp_.getNamespace();
 
-    nhp_.param("gps_sub_name", gps_sub_name_, string("/gps"));
-    if(param_verbose_) cout << ns << ": rtk gps sub_name is:" << gps_sub_name_ << endl;
+    getParam<bool>("ned_flag", ned_flag_, true);
+    getParam<bool>("only_use_vel", only_use_vel_, true);
+    getParam<int>("min_est_sat_num", min_est_sat_num_, 4);
+    getParam<double>("pos_noise_sigma", pos_noise_sigma_, 1.0);
+    getParam<double>("vel_noise_sigma", vel_noise_sigma_, 0.1);
 
-    nhp_.param("min_est_sat_num", min_est_sat_num_, 4);
-    if(param_verbose_) cout << ns << ": min est sat num is " << min_est_sat_num_ << endl;
-
-    nhp_.param("pos_noise_sigma", pos_noise_sigma_, 1.0);
-    if(param_verbose_) cout << ns << ": pos noise sigma is " << pos_noise_sigma_ << endl;
-    nhp_.param("vel_noise_sigma", vel_noise_sigma_, 0.1);
-    if(param_verbose_) cout << ns << ": vel noise sigma is " << vel_noise_sigma_ << endl;
-
-    if(nhp_.hasParam("only_use_vel"))
-      {
-        nhp_.getParam("only_use_vel", only_use_vel_);
-        if(param_verbose_) cout << ns << ": only use vel is " << only_use_vel_ << endl;
-      }
-
-    nhp_.param("ned_flag", ned_flag_, true);
-    if(param_verbose_) cout << ns << ": NED frame flag is " << ned_flag_ << endl;
     if(ned_flag_) world_frame_.setRPY(M_PI, 0, 0);
   }
 
@@ -140,7 +145,17 @@ namespace sensor_plugin
     raw_vel_ = world_frame_ * raw_vel_temp;
 
     /* to get the correction rotation and omega of baselink with the consideration of time delay */
-    if(estimator_->getImuHandler()->getStatus() != Status::ACTIVE)
+    bool imu_initialized = false;
+    for(const auto& handler: estimator_->getImuHandlers())
+      {
+        if(handler->getStatus() == Status::ACTIVE)
+          {
+            imu_initialized = true;
+            break;
+          }
+      }
+
+    if(!imu_initialized)
       {
         ROS_WARN_THROTTLE(1, "gps: the imu is not initialized, wait");
         return;
@@ -229,14 +244,16 @@ namespace sensor_plugin
     if(getStatus() == Status::INVALID) return;
 
     /* collaboration wit VO */
-    if(estimator_->getVoHandler() != nullptr)
+    if(estimator_->getVoHandlers().size() > 0 && !only_use_vel_)
       {
-        if(!only_use_vel_ && estimator_->getVoHandler()->getStatus() == Status::ACTIVE)
+        for(const auto& handler: estimator_->getVoHandlers())
           {
-            if((boost::dynamic_pointer_cast<sensor_plugin::VisualOdometry>(estimator_->getVoHandler()))->odomPosMode())
+            if(handler->getStatus() == Status::ACTIVE &&
+               boost::dynamic_pointer_cast<sensor_plugin::VisualOdometry>(handler)->odomPosMode())
               {
                 ROS_WARN("GPS, vo pose odom mode, so only use vel");
                 only_use_vel_ = true;
+                break;
               }
           }
       }

@@ -48,7 +48,8 @@ StateEstimator::StateEstimator(ros::NodeHandle nh, ros::NodeHandle nh_private)
     landed_flag_(false),
     un_descend_flag_(false),
     landing_height_(0),
-    force_att_control_flag_(false)
+    force_att_control_flag_(false),
+    imu_handlers_(0), alt_handlers_(0), vo_handlers_(0), gps_handlers_(0)
 {
   fuser_[0].resize(0);
   fuser_[1].resize(0);
@@ -80,7 +81,16 @@ StateEstimator::StateEstimator(ros::NodeHandle nh, ros::NodeHandle nh_private)
   cog2baselink_transform_sub_ = nh_.subscribe(cog2baselink_transform_sub_name_, 5, &StateEstimator::transformCallback, this);
 
   nhp_.param ("update_rate", update_rate_, 100.0); //100Hz
-  update_thread_ = boost::thread(boost::bind(&StateEstimator::update, this));
+
+  update_thread_ = boost::thread([this]()
+                                 {
+                                   ros::Rate loop_rate(update_rate_);
+                                   while(ros::ok())
+                                     {
+                                       statePublish();
+                                       loop_rate.sleep();
+                                     }
+                                 });
 }
 
 void StateEstimator::statePublish()
@@ -176,22 +186,22 @@ void StateEstimator::statePublish()
 }
 
 
-bool StateEstimator::pattern_match(std::string &pl, std::string &pl_candidate)
-{
-  int cmp = fnmatch(pl.c_str(), pl_candidate.c_str(), FNM_CASEFOLD);
-  if (cmp == 0)
-    return true;
-  else if (cmp != FNM_NOMATCH) {
-    // never see that, i think that it is fatal error.
-    ROS_FATAL("Plugin list check error! fnmatch('%s', '%s', FNM_CASEFOLD) -> %d",
-              pl.c_str(), pl_candidate.c_str(), cmp);
-    ros::shutdown();
-  }
-  return false;
-}
-
 void StateEstimator::rosParamInit()
 {
+  auto pattern_match = [](std::string &pl, std::string &pl_candidate)
+  {
+    int cmp = fnmatch(pl.c_str(), pl_candidate.c_str(), FNM_CASEFOLD);
+    if (cmp == 0)
+      return true;
+    else if (cmp != FNM_NOMATCH) {
+      // never see that, i think that it is fatal error.
+      ROS_FATAL("Plugin list check error! fnmatch('%s', '%s', FNM_CASEFOLD) -> %d",
+                pl.c_str(), pl_candidate.c_str(), cmp);
+      ros::shutdown();
+    }
+    return false;
+  };
+
   ros::NodeHandle global_nh("~");
   global_nh.param ("param_verbose", param_verbose_, true);
 
@@ -246,6 +256,7 @@ void StateEstimator::rosParamInit()
 
   ros::V_string sensor_list{};
   nhp_.getParam("sensor_list", sensor_list);
+  vector<int> sensor_index(0);
 
   for (auto &sensor_plugin_name : sensor_list)
     {
@@ -254,28 +265,40 @@ void StateEstimator::rosParamInit()
           if(!pattern_match(sensor_plugin_name, name)) continue;
 
           sensors_.push_back(sensor_plugin_ptr_->createInstance(name));
+          sensor_index.push_back(1);
 
-          if(sensors_.back()->getPluginName() == std::string(""))
+          if(sensors_.back()->getPluginName() == std::string("imu"))
             {
-              ROS_ERROR("invalid sensor plugin");
+              imu_handlers_.push_back(sensors_.back());
+              sensor_index.back() = imu_handlers_.size();
+            }
+          else if(sensors_.back()->getPluginName() == std::string("gps"))
+            {
+              gps_handlers_.push_back(sensors_.back());
+              sensor_index.back() = gps_handlers_.size();
+            }
+          else if(sensors_.back()->getPluginName() == std::string("alt"))
+            {
+              alt_handlers_.push_back(sensors_.back());
+              sensor_index.back() = alt_handlers_.size();
+            }
+          else if(sensors_.back()->getPluginName() == std::string("vo"))
+            {
+              vo_handlers_.push_back(sensors_.back());
+              sensor_index.back() = vo_handlers_.size();
+            }
+          else if(sensors_.back()->getPluginName() == std::string(""))
+            {
+              ROS_ERROR_STREAM("invalid sensor plugin:" << sensors_.back()->getPluginName());
               sensors_.pop_back();
             }
           else
             {
-              if(sensors_.back()->getPluginName() == std::string("imu"))
-                imu_handler_ = sensors_.back();
-              else if(sensors_.back()->getPluginName() == std::string("vo"))
-                vo_handler_ = sensors_.back();
-              else if(sensors_.back()->getPluginName() == std::string("gps"))
-                gps_handler_ = sensors_.back();
-              else if(sensors_.back()->getPluginName() == std::string("alt"))
-                alt_handler_ = sensors_.back();
             }
           break;
         }
     }
 
-  /* initilaize in the same time */
-  for(size_t i = 0; i < sensors_.size(); i++)
-    sensors_[i]->initialize(nh_, ros::NodeHandle(""), this, sensor_list[i]);
+  for(int i = 0; i < sensors_.size(); i++)
+    sensors_.at(i)->initialize(nh_, ros::NodeHandle(""), this, sensor_list.at(i), sensor_index.at(i));
 }

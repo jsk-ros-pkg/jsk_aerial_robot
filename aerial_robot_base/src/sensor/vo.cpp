@@ -69,33 +69,48 @@ namespace sensor_plugin
 
 
 
-  void VisualOdometry::initialize(ros::NodeHandle nh, ros::NodeHandle nhp, StateEstimator* estimator, string sensor_name)
+  void VisualOdometry::initialize(ros::NodeHandle nh, ros::NodeHandle nhp, StateEstimator* estimator, string sensor_name, int index)
   {
-    SensorBase::initialize(nh, nhp, estimator, sensor_name);
+    SensorBase::initialize(nh, nhp, estimator, sensor_name, index);
     rosParamInit();
 
     /* ros publisher: aerial_robot_base::State */
-    vo_state_pub_ = nh_.advertise<aerial_robot_msgs::States>("data",10);
+      if(estimator_->getVoHandlers().size() == 1)
+        {
+          vo_state_pub_ = nh_.advertise<aerial_robot_msgs::States>("data",10);
+        }
+      else
+        {
+          vo_state_pub_ = indexed_nh_.advertise<aerial_robot_msgs::States>("data",10);
+        }
 
     /* ros subscriber: vo */
-    string vo_sub_topic_name;
-    nhp_.param("vo_sub_topic_name", vo_sub_topic_name, string("vo") );
+    string topic_name;
+    nhp_.param("vo_sub_topic_name", topic_name, string("vo") );
+    if(estimator_->getVoHandlers().size() > 1)
+      indexed_nhp_.param("vo_sub_topic_name", topic_name, string("vo" + std::to_string(index)));
+
     uint32_t queuse_size = 1; // if the timestamp is not synchronized, we can only use the latest sensor value.
     if(time_sync_) queuse_size = 10;
-    vo_sub_ = nh_.subscribe(vo_sub_topic_name, queuse_size, &VisualOdometry::voCallback, this);
+    vo_sub_ = nh_.subscribe(topic_name, queuse_size, &VisualOdometry::voCallback, this);
 
     /* servo control timer */
     if(variable_sensor_tf_flag_)
       {
         init_servo_st = ros::Time::now();
         /* ros publisher: servo motor */
-        string topic_name;
         nhp_.param("vo_servo_topic_name", topic_name, string("/vo_servo_target_pwm"));
+        if(estimator_->getVoHandlers().size() > 1)
+          indexed_nhp_.param("vo_servo_topic_name", topic_name, string("/vo_servo_target_pwm") + std::to_string(index));
         vo_servo_pub_ = nh_.advertise<sensor_msgs::JointState>(topic_name, 1);
 
-        vo_servo_debug_sub_ = nh_.subscribe("/vo_servo_debug", 1, &VisualOdometry::servoDebugCallback, this);
+        nhp_.param("vo_servo_debug_topic_name", topic_name, string("/vo_servo_debug"));
+        if(estimator_->getVoHandlers().size() > 1)
+          indexed_nhp_.param("vo_servo_debug_topic_name", topic_name, string("/vo_servo_debug")  + std::to_string(index));
+          nhp_.param("vo_servo_topic_name", topic_name, string("/vo_servo_target_pwm"));
+        vo_servo_debug_sub_ = nh_.subscribe(topic_name, 1, &VisualOdometry::servoDebugCallback, this);
 
-        servo_control_timer_ = nhp_.createTimer(ros::Duration(servo_control_rate_), &VisualOdometry::servoControl,this); // 10 Hz
+        servo_control_timer_ = indexed_nhp_.createTimer(ros::Duration(servo_control_rate_), &VisualOdometry::servoControl,this); // 10 Hz
       }
   }
 
@@ -133,17 +148,37 @@ namespace sensor_plugin
     if(getStatus() == Status::INACTIVE)
       {
         /* for z */
-        if(estimator_->getAltHandler() != nullptr && estimator_->getAltHandler()->getStatus() != Status::ACTIVE)
+        bool alt_initialized = false;
+        for(const auto& handler: estimator_->getAltHandlers())
           {
-            ROS_WARN_THROTTLE(1, "vo: the altimeter is not initialized, wait");
+            if(handler->getStatus() == Status::ACTIVE)
+              {
+                alt_initialized = true;
+                break;
+              }
+          }
+
+        if(!alt_initialized && estimator_->getAltHandlers().size() > 0)
+          {
+            ROS_WARN_THROTTLE(1, "vo: no altimeter is initialized, wait");
             z_vel_mode_ = true;
             return;
           }
 
         /* to get the correction rotation and omega of baselink with the consideration of time delay, along with the yaw problem */
-        if(estimator_->getImuHandler()->getStatus() != Status::ACTIVE)
+        bool imu_initialized = false;
+        for(const auto& handler: estimator_->getImuHandlers())
           {
-            ROS_WARN_THROTTLE(1, "vo: the imu is not initialized, wait");
+            if(handler->getStatus() == Status::ACTIVE)
+              {
+                imu_initialized = true;
+                break;
+              }
+          }
+
+        if(!imu_initialized)
+          {
+            ROS_WARN_THROTTLE(1, "vo: no imu is initialized, wait");
             return;
           }
 
@@ -158,15 +193,22 @@ namespace sensor_plugin
             fusion_mode_ = ONLY_VEL_MODE;
             std::cout << ", only vel mode from downward view state estimation";
 
-            if(estimator_->getGpsHandler() != nullptr && estimator_->getGpsHandler()->getStatus() == Status::ACTIVE)
+            bool gps_initialized = false;
+            for(const auto& handler: estimator_->getGpsHandlers())
               {
-                if(outdoor_no_vel_time_sync_) // heuristic option
+                if(handler->getStatus() == Status::ACTIVE)
                   {
-                    /* TODO: very practical (heuristic), but effective. we observe the outdoor env is tricky for stereo cam stamp identification (e.g. zed mini) */
-                    time_sync_ = false;
-                    delay_ = 0;
-                    std::cout << ", no temporal delay in outdoor mode, ";
+                    gps_initialized = true;
+                    break;
                   }
+              }
+
+            if(gps_initialized && outdoor_no_vel_time_sync_ /* heuristic option */)
+              {
+                /* TODO: very heuristic, but effective. we observe the outdoor env is tricky for stereo cam stamp identification (e.g. zed mini) */
+                time_sync_ = false;
+                delay_ = 0;
+                std::cout << ", no temporal delay in outdoor mode, ";
               }
           }
 
@@ -519,63 +561,28 @@ namespace sensor_plugin
   {
     std::string ns = nhp_.getNamespace();
 
-    nhp_.param("fusion_mode", fusion_mode_, (int)ONLY_POS_MODE);
-    if(param_verbose_) cout << ns << ": fusion mode is " << fusion_mode_ << endl;
-    nhp_.param("z_vel_mode", z_vel_mode_, false);
-    if(param_verbose_) cout << ns << ": z vel mode is " << z_vel_mode_ << endl;
+    getParam<int>("fusion_mode", fusion_mode_, (int)ONLY_POS_MODE);
+    getParam<bool>("z_vel_mode", z_vel_mode_, false);
+    getParam<bool>("z_no_delay", z_no_delay_, false);
+    getParam<bool>("outdoor_no_vel_time_sync", outdoor_no_vel_time_sync_, false);
+    getParam<double>("level_pos_noise_sigma", level_pos_noise_sigma_, 0.01 );
+    getParam<double>("z_pos_noise_sigma", z_pos_noise_sigma_, 0.01 );
+    getParam<double>("vel_noise_sigma", vel_noise_sigma_, 0.05 );
+    getParam<double>("vel_outlier_thresh", vel_outlier_thresh_, 1.0);
+    getParam<double>("downwards_vo_min_height", downwards_vo_min_height_, 0.8);
+    getParam<double>("downwards_vo_max_height", downwards_vo_max_height_, 10.0);
 
-    nhp_.param("z_no_delay", z_no_delay_, false);
-    if(param_verbose_) cout << ns << ": z no delay is " <<  z_no_delay_ << endl;
+    getParam<std::string>("joint", joint_name_, std::string("servo"));
+    getParam<bool>("servo_auto_change_flag", servo_auto_change_flag_, false );
+    getParam<double>("servo_height_thresh", servo_height_thresh_, 0.7);
+    getParam<double>("servo_vel", servo_vel_, 0.02); // rad
+    getParam<double>("servo_init_angle", servo_init_angle_, 0.0); // rad
+    getParam<double>("servo_downwards_angle", servo_downwards_angle_, 0.0); // rad
+    getParam<double>("servo_min_angle", servo_min_angle_, -M_PI/2); // angle [rad]
+    getParam<double>("servo_max_angle", servo_max_angle_, M_PI/2); // angle [rad]
+    getParam<double>("servo_control_rate", servo_control_rate_, 0.1);
 
-    nhp_.param("outdoor_no_vel_time_sync", outdoor_no_vel_time_sync_, false);
-    if(param_verbose_) cout << ns << "outdoor no vel time sync:  is " << outdoor_no_vel_time_sync_ << endl;
-
-    nhp_.param("level_pos_noise_sigma", level_pos_noise_sigma_, 0.01 );
-    if(param_verbose_) cout << ns << ": level_pos noise sigma is " <<  level_pos_noise_sigma_ << endl;
-    nhp_.param("z_pos_noise_sigma", z_pos_noise_sigma_, 0.01 );
-    if(param_verbose_) cout << ns << ": z_pos noise sigma is " <<  z_pos_noise_sigma_ << endl;
-
-    nhp_.param("vel_noise_sigma", vel_noise_sigma_, 0.05 );
-    if(param_verbose_) cout << ns << ": vel noise sigma is " <<  vel_noise_sigma_ << endl;
-
-    nhp_.param("vel_outlier_thresh", vel_outlier_thresh_, 1.0);
-    if(param_verbose_) cout << ns << ": vel outlier thresh is " <<  vel_outlier_thresh_ << endl;
-
-    nhp_.param("downwards_vo_min_height", downwards_vo_min_height_, 0.8);
-    if(param_verbose_) cout << ns << ": downwards vo min height is " << downwards_vo_min_height_ << endl;
-
-    nhp_.param("downwards_vo_max_height", downwards_vo_max_height_, 10.0);
-    if(param_verbose_) cout << ns << ": downwards vo max height is " << downwards_vo_max_height_ << endl;
-
-    nhp_.param("debug_verbose", debug_verbose_, false );
-    if(param_verbose_) cout << ns << ": debug verbose is " <<  debug_verbose_ << endl;
-
-    nhp_.param("joint", joint_name_, std::string("servo"));
-    if(param_verbose_) cout << ns << ": servo joint name is " << joint_name_ << endl;
-
-    nhp_.param("servo_auto_change_flag", servo_auto_change_flag_, false );
-    if(param_verbose_) cout << ns << ": servo auto change flag is " <<  servo_auto_change_flag_ << endl;
-
-    nhp_.param("servo_height_thresh", servo_height_thresh_, 0.7);
-    if(param_verbose_) cout << ns << ": servo height thresh is " << servo_height_thresh_ << endl;
-
-    nhp_.param("servo_vel", servo_vel_, 0.02); // rad
-    if(param_verbose_) cout << ns << ": servo vel is " << servo_vel_ << endl;
-
-    nhp_.param("servo_init_angle", servo_init_angle_, 0.0); // rad
-    if(param_verbose_) cout << ns << ": servo init angle is " << servo_init_angle_ << endl;
     servo_angle_ = servo_init_angle_;
-
-    nhp_.param("servo_downwards_angle", servo_downwards_angle_, 0.0); // rad
-    if(param_verbose_) cout << ns << ": servo downwards angle is " << servo_downwards_angle_ << endl;
-
-    nhp_.param("servo_min_angle", servo_min_angle_, -M_PI/2); // angle [rad]
-    if(param_verbose_) cout << ns << ": servo min angle is " << servo_min_angle_ << endl;
-    nhp_.param("servo_max_angle", servo_max_angle_, M_PI/2); // angle [rad]
-    if(param_verbose_) cout << ns << ": servo max angle is " << servo_max_angle_ << endl;
-
-    nhp_.param("servo_control_rate", servo_control_rate_, 0.1);
-    if(param_verbose_) cout << ns << ": servo control rate is " << servo_control_rate_ << endl;
   }
 
   void VisualOdometry::servoControl(const ros::TimerEvent & e)

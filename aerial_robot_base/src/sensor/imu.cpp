@@ -60,16 +60,33 @@ namespace sensor_plugin
   class Imu : public sensor_plugin::SensorBase
   {
   public:
-    void initialize(ros::NodeHandle nh, ros::NodeHandle nhp, StateEstimator* estimator, string sensor_name)
+    void initialize(ros::NodeHandle nh, ros::NodeHandle nhp, StateEstimator* estimator, string sensor_name, int index)
     {
-      SensorBase::initialize(nh, nhp, estimator, sensor_name);
+      SensorBase::initialize(nh, nhp, estimator, sensor_name, index);
       rosParamInit();
 
-      acc_pub_ = nh_.advertise<aerial_robot_msgs::Acc>("acc", 2);
-      imu_pub_ = nh_.advertise<sensor_msgs::Imu>(imu_pub_topic_name_, 1);
-      state_pub_ = nh_.advertise<aerial_robot_msgs::States>("data", 1);
+      std::string topic_name;
 
-      imu_sub_ = nh_.subscribe<spinal::Imu>(imu_topic_name_, 10, &Imu::ImuCallback, this);
+      nhp_.param("imu_topic_name", topic_name, string("/imu"));
+      if(estimator_->getImuHandlers().size() > 1)
+        indexed_nhp_.param("imu_topic_name", topic_name, string("/imu") + std::to_string(index));
+      imu_sub_ = nh_.subscribe<spinal::Imu>(topic_name, 10, &Imu::ImuCallback, this);
+
+      nhp_.param("imu_pub_topic_name", topic_name, string("/uav/baselink/imu"));
+      if(estimator_->getImuHandlers().size() > 1)
+        indexed_nhp_.param("imu_pub_topic_name", topic_name, string("/uav/baselink/imu") + std::to_string(index));
+      imu_pub_ = nh_.advertise<sensor_msgs::Imu>(topic_name, 1);
+
+      if(estimator_->getImuHandlers().size() == 1)
+        {
+          acc_pub_ = nh_.advertise<aerial_robot_msgs::Acc>("acc", 2);
+          state_pub_ = nh_.advertise<aerial_robot_msgs::States>("data", 1);
+        }
+      else
+        {
+          acc_pub_ = indexed_nh_.advertise<aerial_robot_msgs::Acc>("acc", 2);
+          state_pub_ = indexed_nh_.advertise<aerial_robot_msgs::States>("data", 1);
+        }
     }
 
     ~Imu () {}
@@ -494,30 +511,13 @@ namespace sensor_plugin
     {
       std::string ns = nhp_.getNamespace();
 
-      nhp_.param("imu_topic_name", imu_topic_name_, string("imu"));
-      if(param_verbose_) cout << ns << ": imu topic name is " << imu_topic_name_.c_str() << endl;
-
-      nhp_.param("level_acc_noise_sigma", level_acc_noise_sigma_, 0.01 );
-      if(param_verbose_) cout << ns << ": level acc noise sigma  is " << level_acc_noise_sigma_ << endl;
-      nhp_.param("z_acc_noise_sigma", z_acc_noise_sigma_, 0.01 );
-      if(param_verbose_) cout << ns << ": z acc noise sigma  is " << z_acc_noise_sigma_ << endl;
-
-      nhp_.param("level_acc_bias_noise_sigma", level_acc_bias_noise_sigma_, 0.01 );
-      if(param_verbose_) cout << ns << ": level acc bias noise sigma  is " << level_acc_bias_noise_sigma_ << endl;
-
-      nhp_.param("z_acc_bias_noise_sigma", z_acc_bias_noise_sigma_, 0.0);
-      if(param_verbose_) cout << ns << ": z acc bias noise sigma  is " << z_acc_bias_noise_sigma_ << endl;
-
-      nhp_.param("angle_bias_noise_sigma", angle_bias_noise_sigma_, 0.001 );
-      if(param_verbose_) cout << ns << ": angle bias noise sigma  is " << angle_bias_noise_sigma_ << endl;
-
-      nhp_.param("calib_time", calib_time_, 2.0 );
-      if(param_verbose_) cout << ns << ": imu calib time is " << calib_time_ << endl;
-
-      nhp_.param("landing_shock_force_thre", landing_shock_force_thre_, 5.0 );
-      if(param_verbose_) cout << ns << ": landing shock force_thre is " << landing_shock_force_thre_ << endl;
-
-      nhp_.param("imu_pub_topic_name_", imu_pub_topic_name_, string("/uav/baselink/imu"));
+      getParam<double>("level_acc_noise_sigma", level_acc_noise_sigma_, 0.01 );
+      getParam<double>("z_acc_noise_sigma", z_acc_noise_sigma_, 0.01 );
+      getParam<double>("level_acc_bias_noise_sigma", level_acc_bias_noise_sigma_, 0.01 );
+      getParam<double>("z_acc_bias_noise_sigma", z_acc_bias_noise_sigma_, 0.0);
+      getParam<double>("angle_bias_noise_sigma", angle_bias_noise_sigma_, 0.001 );
+      getParam<double>("calib_time", calib_time_, 2.0 );
+      getParam<double>("landing_shock_force_thre", landing_shock_force_thre_, 5.0 );
 
       /* important scale, record here
         {
