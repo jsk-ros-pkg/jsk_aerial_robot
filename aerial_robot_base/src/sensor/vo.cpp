@@ -133,7 +133,7 @@ namespace sensor_plugin
       return;
 
     /* check whether is force att control mode */
-    if(estimator_->getForceAttControlFlag() && getStatus() != Status::INVALID)
+    if(estimator_->getForceAttControlFlag() && getStatus() == Status::ACTIVE)
       {
         estimator_->setStateStatus(State::YAW_BASE, StateEstimator::EGOMOTION_ESTIMATE, false);
         setStatus(Status::INVALID);
@@ -182,13 +182,7 @@ namespace sensor_plugin
             return;
           }
 
-        setStatus(Status::INIT);
-
-        std::cout << indexed_nhp_.getNamespace()  << ": start kalman filter";
-        /* chose pos / vel estimation mode, according to the view of the camera */
-        /* TODO: should consider the illustration or feature dense of the image view */
         auto sensor_view_rot = estimator_->getOrientation(Frame::BASELINK, StateEstimator::EGOMOTION_ESTIMATE) * sensor_tf_.getBasis();
-
         if(vio_mode_)
           {
             /* get the true rotation (i.e. attitude) from the sensor in vio mode */
@@ -197,7 +191,21 @@ namespace sensor_plugin
             sensor_view_rot.setRotation(q);
           }
 
-        if((sensor_view_rot * tf::Vector3(1,0,0)).z() < -0.8)
+        /* can not start fusion from this sensor if the sensor is downward and the height is too low */
+        double downward_rate = (sensor_view_rot * tf::Vector3(1,0,0)).z();
+        if(downward_rate < -0.8 &&
+           estimator_->getState(State::Z_BASE, StateEstimator::EGOMOTION_ESTIMATE)[0] < downwards_vo_min_height_)
+          {
+            return;
+          }
+
+        setStatus(Status::INIT);
+
+        std::cout << indexed_nhp_.getNamespace()  << ": start kalman filter";
+        /* chose pos / vel estimation mode, according to the view of the camera */
+        /* TODO: should consider the illustration or feature dense of the image view */
+
+        if(downward_rate < -0.8)
           {
             fusion_mode_ = ONLY_VEL_MODE;
             std::cout << ", only vel mode from downward view state estimation";
@@ -407,12 +415,18 @@ namespace sensor_plugin
     if(getStatus() == Status::INVALID) return;
 
     /* downward check */
-    if((baselink_r * tf::Vector3(1,0,0)).z() < -0.8)
+    tf::Matrix3x3 sensor_view_rot;
+    if(vio_mode_)
+      sensor_view_rot = baselink_tf_.getBasis() * sensor_tf_.getBasis();
+    else sensor_view_rot = baselink_r * sensor_tf_.getBasis();
+
+    if((sensor_view_rot * tf::Vector3(1,0,0)).z() < -0.8)
       {
         double height = estimator_->getState(State::Z_BASE, StateEstimator::EGOMOTION_ESTIMATE)[0];
         if(height < downwards_vo_min_height_ || height > downwards_vo_max_height_)
           {
-            //ROS_WARN_THROTTLE(1, "VO, the height %f is not valid for vo to do downards vo", height);
+
+            //ROS_WARN_THROTTLE(1, "%s, the height %f is not valid for vo to do downards vo", indexed_nhp_.getNamespace().c_str(), height);
             return;
           }
       }
@@ -422,7 +436,7 @@ namespace sensor_plugin
         if(!estimator_->getStateStatus(State::YAW_BASE, StateEstimator::EGOMOTION_ESTIMATE))
           {
             estimator_->setStateStatus(State::YAW_BASE, StateEstimator::EGOMOTION_ESTIMATE, true);
-            ROS_WARN("VO, set yaw estimate status true");
+            ROS_WARN_STREAM(indexed_nhp_.getNamespace() <<": set yaw estimate status true");
           }
         tfScalar r,p,y;
         baselink_tf_.getBasis().getRPY(r,p,y);

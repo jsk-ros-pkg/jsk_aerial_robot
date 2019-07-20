@@ -15,9 +15,9 @@
       <!-- vo by realsense t265 -->
       <include file="$(find realsense2_camera)/launch/multi_t265_odom.launch" >
         <arg name="throttle_rate" value="80.0"/> <!-- 80 hz -->
+        <arg name="set_module_list" value="true" />
+        <arg name="module_list_file" value="$(find hydrus)/config/quad/tx2_rs_t265_201906/T265ModuleList.yaml" />
       </include>
-      <param name="/camera/realsense2_camera/publish_odom_tf" value="false" />
-
       <!-- mocap -->
       <include file="$(find aerial_robot_base)/launch/external_module/mocap.launch" />
 

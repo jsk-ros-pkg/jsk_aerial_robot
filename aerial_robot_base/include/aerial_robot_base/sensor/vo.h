@@ -92,8 +92,6 @@ namespace sensor_plugin
     bool outdoor_;
     bool z_no_delay_;
 
-    bool debug_verbose_;
-
     /* servo */
     std::string joint_name_;
     bool servo_auto_change_flag_;

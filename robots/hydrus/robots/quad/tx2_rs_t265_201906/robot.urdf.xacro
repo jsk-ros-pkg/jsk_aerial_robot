@@ -86,7 +86,6 @@
   <!-- end: leddar one -->
 
   <!-- 2.2 gps -->
-  <!--
   <xacro:extra_module name = "gps" parent = "link2" visible = "1"
                       model_url = "package://hydrus/urdf/mesh/sensor/gps_ublox_m8n.dae">
     <origin xyz="${link_length/2 + 0.1925} 0.0 0.152" rpy="0 0 0"/>
@@ -109,7 +108,6 @@
           izz="0.000002"/>
     </inertial>
     </xacro:extra_module>
-  -->
   <!-- end: gps -->
 
   <!-- 2.3  side-view  and downwards realsense t265 -->
@@ -156,11 +154,11 @@
   <joint name="link32usb_hub" type="fixed">
     <parent link="link3"/>
     <child link="usb_hub"/>
-    <origin xyz="${55 * 0.001} 0 ${-100 * 0.001}" rpy="0 0 0"/>
+    <origin xyz="${40 * 0.001} 0 ${-100 * 0.001}" rpy="0 0 0"/>
   </joint>
   <link name="usb_hub">
     <inertial>
-      <mass value = "${(27.1 + 2 * 9.3) * 0.001}" />
+      <mass value = "${(16.8 + 2 * 9.3) * 0.001}" />
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <inertia
           ixx="0.000002" ixy="0.0" ixz="0.0"
@@ -170,7 +168,7 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <box size="0.004 0.05 0.03" />
+        <box size="0.03 0.015 0.02" />
       </geometry>
       <material name="Black">
         <color rgba="0.1 0.1 0.1 1.0"/>
