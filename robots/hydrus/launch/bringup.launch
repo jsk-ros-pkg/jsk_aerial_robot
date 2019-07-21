@@ -5,7 +5,7 @@
   <arg name="simulation" default="False" />
   <arg name="control_mode" default="0" />
   <arg name="type" default="quad" />
-  <arg name="onboards_model" default="tx2_zed_201810" />
+  <arg name="onboards_model" default="mbzirc_default_mode_201907" />
   <arg name="estimate_mode"  default= "0" />
   <arg name="headless" default="True" />
   <arg name="worldtype" default="$(find aerial_robot_simulation)/gazebo_model/world/empty.world" />
@@ -22,13 +22,13 @@
   <param name="/uav_info/uav_model" value= "16" />
 
   ###########  Motor Config  ###########
-  <rosparam file="$(find hydrus)/config/MotorInfo.yaml" command="load" />
+  <rosparam file="$(find hydrus)/config/$(arg type)/$(arg onboards_model)/MotorInfo.yaml" command="load" />
 
   ###########  Servo Config  ###########
-  <rosparam file="$(find hydrus)/config/$(arg type)/Servo.yaml" command="load" />
+  <rosparam file="$(find hydrus)/config/$(arg type)/$(arg onboards_model)/Servo.yaml" command="load" />
 
   ###########  Battery Config  ###########
-  <rosparam file="$(find hydrus)/config/$(arg type)/Battery.yaml" command="load" />
+  <rosparam file="$(find hydrus)/config/$(arg type)/$(arg onboards_model)/Battery.yaml" command="load" />
 
   ###########  Base Platform  ###########
   <node pkg="aerial_robot_base" type="aerial_robot_base_node" name="aerial_robot_base_node" output="screen" >
@@ -51,8 +51,8 @@
     <param name="main_rate" type="double" value="40"/>
 
     ###########  Sensor Fusion  ###########
-    <rosparam file="$(find hydrus)/config/$(arg type)/egomotion_estimation/$(arg onboards_model).yaml" command="load" if="$(arg real_machine)"/>
-    <rosparam file="$(find hydrus)/config/$(arg type)/egomotion_estimation/simulation.yaml" command="load" if="$(eval arg('simulation') * (1 - arg('real_machine')))"/>
+    <rosparam file="$(find hydrus)/config/$(arg type)/$(arg onboards_model)/EgomotionEstimation.yaml" command="load" if="$(arg real_machine)"/>
+    <rosparam file="$(find hydrus)/config/$(arg type)/simulation/EgomotionEstimation.yaml" command="load" if="$(eval arg('simulation') * (1 - arg('real_machine')))"/>
     <remap from="/joint_states" to="/hydrusx/joint_states"/>
 
     ###########  PID Control  ###########

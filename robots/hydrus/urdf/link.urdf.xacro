@@ -3,47 +3,109 @@
     xmlns:xacro="http://www.ros.org/wiki/xacro" name="hydrusx_link" >
 
   <!-- D-H kai description(different from prof.nakamura) -->
-  <xacro:macro name="hydrusx_link" params="self child rotor_direction with_leg:=1 with_battery:=1">
+  <xacro:macro name="hydrusx_link" params="links self rotor_direction with_leg:=1 with_battery:=1 old_version:=0">
 
-    <!-- link -->
-    <link name="link${self}">
-      <!-- head -->
-      <xacro:if value="${self == 1}">
-        <inertial>
-          <origin xyz="${link_length* 0.5 + 0.055120} 0.0 0.011580" rpy="0 0 0"/>
-          <mass value="0.566650"/>
-          <inertia
-              ixx="0.001804" iyy="0.017972" izz="0.019248"
-              ixy="0.000021" ixz="0.000372" iyz="0.000000"/>
-        </inertial>
-        <xacro:link_model type="head" />
-      </xacro:if>
-      <xacro:unless value="${self == 1}">
-
-        <!-- tail -->
-        <xacro:if value="${self == child}">
+    <xacro:if value="${old_version == 1}">
+      <!-- link -->
+      <link name="link${self}">
+        <!-- head -->
+        <xacro:if value="${self == 1}">
           <inertial>
-            <origin xyz="${link_length * 0.5 + -0.013450} 0.0 0.012830" rpy="0 0 0"/>
-            <mass value="0.495530"/>
+            <origin xyz="${link_length* 0.5 + 0.055120} 0.0 0.011580" rpy="0 0 0"/>
+            <mass value="0.566650"/>
             <inertia
-                ixx="0.001758" iyy="0.013619" izz="0.014910"
-                ixy="0.000020" ixz="-0.000076" iyz="0.000000"/>
+                ixx="0.001804" iyy="0.017972" izz="0.019248"
+                ixy="0.000021" ixz="0.000372" iyz="0.000000"/>
           </inertial>
-          <xacro:link_model type="end" />
+          <xacro:link_model type="head" />
         </xacro:if>
-        <xacro:unless value="${self == child}">
-          <!-- general -->
-          <inertial>
-            <origin xyz="${link_length * 0.5 + 0.038190} 0.0 0.010950" rpy="0 0 0"/>
-            <mass value="0.597720"/>
-            <inertia
-                ixx="0.001828" iyy="0.021127" izz="0.022388"
-                ixy="0.000021" ixz="0.000260" iyz="0.000000"/>
-          </inertial>
-          <xacro:link_model type="general" />
+
+        <xacro:unless value="${self == 1}">
+
+          <!-- tail -->
+          <xacro:if value="${self == links}">
+            <inertial>
+              <origin xyz="${link_length * 0.5 + -0.013450} 0.0 0.012830" rpy="0 0 0"/>
+              <mass value="0.495530"/>
+              <inertia
+                  ixx="0.001758" iyy="0.013619" izz="0.014910"
+                  ixy="0.000020" ixz="-0.000076" iyz="0.000000"/>
+            </inertial>
+            <xacro:link_model type="end" />
+          </xacro:if>
+
+          <xacro:unless value="${self == links}">
+            <!-- general -->
+            <inertial>
+              <origin xyz="${link_length * 0.5 + 0.038190} 0.0 0.010950" rpy="0 0 0"/>
+              <mass value="0.597720"/>
+              <inertia
+                  ixx="0.001828" iyy="0.021127" izz="0.022388"
+                  ixy="0.000021" ixz="0.000260" iyz="0.000000"/>
+            </inertial>
+            <xacro:link_model type="general" />
+          </xacro:unless>
+
         </xacro:unless>
-      </xacro:unless>
-    </link>
+      </link>
+    </xacro:if>
+
+    <xacro:unless value="${old_version == 1}">
+      <!-- link -->
+      <link name="link${self}">
+        <!-- head -->
+        <xacro:if value="${self == 1}">
+          <inertial>
+            <origin xyz="${link_length* 0.5 + 0.057} 0.0 0.018" rpy="0 0 0"/>
+            <mass value="0.58712"/>
+            <inertia
+                ixx="0.00179" iyy="0.01605" izz="0.01714"
+                ixy="0.00000" ixz="0.00067" iyz="0.00000"/>
+          </inertial>
+          <xacro:link_model type="1" />
+        </xacro:if>
+
+        <xacro:unless value="${self == 1}">
+
+          <!-- tail -->
+          <xacro:if value="${self == links}">
+            <inertial>
+              <origin xyz="${link_length * 0.5 -0.058} 0.0 0.0188" rpy="0 0 0"/>
+              <mass value="0.590"/>
+              <inertia
+                  ixx="0.00179" iyy="0.01581" izz="0.01692"
+                  ixy="0.00000" ixz="-0.00067" iyz="0.00000"/>
+            </inertial>
+            <xacro:link_model type="4" />
+          </xacro:if>
+
+          <xacro:unless value="${self == links}">
+            <!-- symetry -->
+            <xacro:if value="${self == links/2}">
+              <inertial>
+                <origin xyz="${link_length * 0.5} 0.0 0.01287" rpy="0 0 0"/>
+                <mass value="0.55744"/>
+                <inertia
+                    ixx="0.00171" iyy="0.01727" izz="0.01844"
+                    ixy="0.00000" ixz="0.00001" iyz="0.00000"/>
+              </inertial>
+              <xacro:link_model type="2" />
+            </xacro:if>
+            <!-- general -->
+            <xacro:unless value="${self == links/2}">
+              <inertial>
+                <origin xyz="${link_length * 0.5 - 0.0317} 0.0 0.01836" rpy="0 0 0"/>
+                <mass value="0.63453"/>
+                <inertia
+                    ixx="0.00182" iyy="0.02232" izz="0.02254"
+                    ixy="0.00000" ixz="-0.00077" iyz="0.00000"/>
+              </inertial>
+              <xacro:link_model type="3" />
+            </xacro:unless>
+          </xacro:unless>
+        </xacro:unless>
+      </link>
+    </xacro:unless>
 
     <xacro:damping_factor link ="link${self}"/>
 
@@ -78,8 +140,9 @@
     <!-- battery: -->
     <!-- use default battery: -->
     <xacro:if value="${with_battery == 1}">
+      <!-- note: use the same configuration between new and old version -->
       <xacro:extra_module name = "bat${self}" parent = "link${self}" visible = "1"
-                          model_url = "package://hydrus/urdf/mesh/modules/battery/VOLTON-PG-1300LP2-6s.stl" scale="0.001">
+                          model_url = "package://hydrus/urdf/mesh/ver1/modules/battery/VOLTON-PG-1300LP2-6s.stl" scale="0.001">
         <origin xyz="${link_length/2} 0.0 -0.048" rpy="${pi/2} 0 0"/>
         <inertial>
           <origin xyz="0 0 0" rpy="0 0 0"/>
@@ -95,29 +158,52 @@
     <xacro:if value="${with_leg == 1}">
       <!-- head -->
       <xacro:if value="${self == 1}">
-        <xacro:standard_leg parent = "link${self}" >
-          <origin xyz="${head_leg_offset} 0.0 0" rpy="0 0 0"/>
-        </xacro:standard_leg>
+        <xacro:if value="${old_version == 1}">
+          <xacro:standard_leg_old_version parent = "link${self}" >
+            <origin xyz="${head_leg_offset_old_version} 0.0 0" rpy="0 0 0"/>
+          </xacro:standard_leg_old_version>
+        </xacro:if>
+        <xacro:unless value="${old_version == 1}">
+          <xacro:standard_leg_end parent = "link${self}" >
+            <origin xyz="${head_leg_offset} 0.0 0" rpy="0 0 0"/>
+          </xacro:standard_leg_end>
+        </xacro:unless>
       </xacro:if>
       <xacro:unless value="${self == 1}">
-        <xacro:standard_leg parent = "link${self}" >
-          <origin xyz="${general_leg_offset} 0.0 0" rpy="0 0 0"/>
-        </xacro:standard_leg>
+        <xacro:if value="${old_version == 1}">
+        <xacro:standard_leg_old_version parent = "link${self}" >
+          <origin xyz="${general_leg_offset_old_version} 0.0 0" rpy="0 0 0"/>
+        </xacro:standard_leg_old_version>
+        </xacro:if>
+        <xacro:unless value="${old_version == 1}">
+          <xacro:standard_leg_joint parent = "link${self}" >
+            <origin xyz="0.0 0.0 0" rpy="0 0 0"/>
+          </xacro:standard_leg_joint>
+        </xacro:unless>
+
         <!-- tail -->
-        <xacro:if value="${self == child}">
-          <xacro:standard_leg parent = "link${self}" self= "${self + 1}" >
-            <origin xyz="${end_leg_offset} 0.0 0" rpy="0 0 0"/>
-          </xacro:standard_leg>
+        <xacro:if value="${self == links}">
+          <xacro:if value="${old_version == 1}">
+            <xacro:standard_leg_old_version parent = "link${self}" self= "${self + 1}" >
+              <origin xyz="${end_leg_offset_old_version} 0.0 0" rpy="0 0 0"/>
+            </xacro:standard_leg_old_version>
+          </xacro:if>
+          <xacro:unless value="${old_version == 1}">
+            <xacro:standard_leg_end parent = "link${self}" self= "${self + 1}" >
+              <origin xyz="${end_leg_offset} 0.0 0" rpy="0 0 0"/>
+            </xacro:standard_leg_end>
+          </xacro:unless>
         </xacro:if>
       </xacro:unless>
     </xacro:if>
 
+
     <!-- joint -->
-    <xacro:unless value="${self == child}">
+    <xacro:unless value="${self == links}">
       <joint name="joint${self}" type="revolute">
         <limit effort="10.0" lower="${-pi/2}" upper="${pi/2}" velocity="0.5"/>
         <parent link="link${self}"/>
-        <child link="link${child}"/>
+        <child link="link${self+1}"/>
         <origin rpy="0 0 0" xyz="${link_length} 0 0"/>
         <axis xyz="0 0 1"/>
         <dynamics damping="0.9" friction="0.05"/>
@@ -145,7 +231,7 @@
     </xacro:if>
 
     <!-- hardware interface -->
-    <xacro:unless value="${self == child}">
+    <xacro:unless value="${self == links}">
       <transmission name="joint_tran${self}">
         <type>transmission_interface/SimpleTransmission</type>
         <joint name="joint${self}">
