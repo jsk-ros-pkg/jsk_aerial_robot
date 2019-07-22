@@ -6,7 +6,10 @@ int main (int argc, char **argv)
   ros::NodeHandle nh;
   ros::NodeHandle nh_private("~");
   AerialRobotBase*  aerialRobotBaseNode = new AerialRobotBase(nh, nh_private);
-  ros::spin ();
+  ros::AsyncSpinner spinner(4); // Use 4 threads
+  spinner.start();
+  ros::waitForShutdown();
+
   delete aerialRobotBaseNode;
   return 0;
 }

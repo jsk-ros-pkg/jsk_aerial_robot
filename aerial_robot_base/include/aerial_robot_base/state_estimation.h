@@ -514,7 +514,6 @@ protected:
     while(ros::ok())
       {
         statePublish();
-        ros::spinOnce();
         loop_rate.sleep();
       }
   }
