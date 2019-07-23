@@ -121,7 +121,6 @@ void CANInitializer::configDevice(const spinal::SetBoardConfig::Request& req)
 			sendMessage(1);
 			break;
 		}
-
 		case spinal::SetBoardConfig::Request::REBOOT:
 		{
 			uint8_t send_data[1];
@@ -130,7 +129,16 @@ void CANInitializer::configDevice(const spinal::SetBoardConfig::Request& req)
 			sendMessage(1);
 			break;
 		}
-
+		case spinal::SetBoardConfig::Request::SET_DYNAMIXEL_TTL_RS485_MIXED:
+		{
+			uint8_t dynamixel_ttl_rs485_mixed = static_cast<uint8_t>(req.data[1]);
+			uint8_t send_data[2];
+			send_data[0] = CAN::BOARD_CONFIG_SET_DYNAMIXEL_TTL_RS485_MIXED;
+			send_data[1] = dynamixel_ttl_rs485_mixed;
+			setMessage(CAN::MESSAGEID_RECEIVE_BOARD_CONFIG_REQUEST, slave_id, 2, send_data);
+			sendMessage(1);
+			break;
+		}
 		default:
 			break;
 	}
@@ -148,10 +156,11 @@ void CANInitializer::receiveDataCallback(uint8_t slave_id, uint8_t message_id, u
 			if (slave == neuron_.end()) return;
 			if (slave->getInitialized()) {
 				slave->can_imu_.setSendDataFlag((data[1] != 0) ? true : false);
+				slave->can_servo_.setDynamixelTTLRS485Mixed((data[2] != 0) ? true : false);
 				return;
 			}
 			slave->can_motor_ = CANMotor(slave_id);
-			slave->can_servo_ = CANServo(slave_id, data[0]);
+			slave->can_servo_ = CANServo(slave_id, data[0], (data[2] != 0) ? true : false);
 			slave->can_imu_ = CANIMU(slave_id, (data[1] != 0) ? true : false);
 			slave->setInitialized();
 		}

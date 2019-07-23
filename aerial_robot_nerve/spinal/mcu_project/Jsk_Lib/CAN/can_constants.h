@@ -47,6 +47,7 @@ namespace CAN {
 	constexpr uint8_t BOARD_CONFIG_SET_SEND_DATA_FLAG = 5;
 	constexpr uint8_t BOARD_CONFIG_SET_SERVO_CURRENT_LIMIT = 6;
 	constexpr uint8_t BOARD_CONFIG_REBOOT = 7;
+	constexpr uint8_t BOARD_CONFIG_SET_DYNAMIXEL_TTL_RS485_MIXED = 8;
 }
 
 

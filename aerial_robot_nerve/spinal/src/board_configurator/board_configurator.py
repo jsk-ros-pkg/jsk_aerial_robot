@@ -123,6 +123,7 @@ class BoardConfigurator(Plugin):
                 board.setFlags(board.flags() ^ Qt.ItemIsEditable)
                 board.appendRow([QStandardItem('board_id'), QStandardItem(str(b.slave_id))])
                 board.appendRow([QStandardItem('imu_send_data_flag'), QStandardItem(str(bool(b.imu_send_data_flag)))])
+                board.appendRow([QStandardItem('dynamixel_ttl_rs485_mixed'), QStandardItem(str(bool(b.dynamixel_ttl_rs485_mixed)))])
                 servos = QStandardItem('servo (' + str(len(b.servos)) + ')')
                 for j, s in enumerate(b.servos):
                     servo = QStandardItem(str(j))
@@ -154,7 +155,7 @@ class BoardConfigurator(Plugin):
         param = self._widget.boardInfoTreeView.currentIndex().sibling(row, 0).data()
         value = self._widget.boardInfoTreeView.currentIndex().sibling(row, 1).data()
 
-        board_param_list = ['board_id', 'imu_send_data_flag']
+        board_param_list = ['board_id', 'imu_send_data_flag', 'dynamixel_ttl_rs485_mixed']
         servo_param_list = ['pid_gain', 'profile_velocity', 'current_limit', 'send_data_flag']
 
         if value and (param in servo_param_list):
@@ -239,6 +240,14 @@ class BoardConfigurator(Plugin):
             servo_trq_msg.torque_enable = chr(0)
             self.servo_torque_pub_.publish(servo_trq_msg)
             rospy.sleep(0.5)
+        elif self._command == 'dynamixel_ttl_rs485_mixed':
+            try:
+                req.data.append(distutils.util.strtobool(self._widget.lineEdit.text()))
+            except ValueError as e:
+                print(e)
+                return
+            req.command = req.SET_DYNAMIXEL_TTL_RS485_MIXED
+
 
         rospy.loginfo('published message')
         rospy.loginfo('command: ' + str(req.command))

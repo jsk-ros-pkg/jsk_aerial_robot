@@ -59,6 +59,7 @@ namespace Spine
 		  Neuron& neuron = neuron_.at(i);
 		  spinal::BoardInfo& board = board_info_res_.boards[i];
 		  board.imu_send_data_flag = neuron.can_imu_.getSendDataFlag() ? 1 : 0;
+		  board.dynamixel_ttl_rs485_mixed = neuron.can_servo_.getDynamixelTTLRS485Mixed() ? 1 : 0;
 		  board.slave_id = neuron.getSlaveId();
 
 		  for (unsigned int j = 0; j < board.servos_length; j++) {
@@ -99,7 +100,11 @@ namespace Spine
 
   void boardConfigCallback(const spinal::SetBoardConfig::Request& req, spinal::SetBoardConfig::Response& res)
   {
-	  can_idle_count_ = 2000;
+	  can_idle_count_ = 3000;
+	  //need this cheap delay
+	  for (int i = 0; i < 1000000; ++i) {
+			  asm("nop");
+	  }
 	  can_initializer_.configDevice(req);
 	  res.success = true;
   }
