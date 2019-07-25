@@ -364,8 +364,8 @@ void TransformController::param2controller()
       four_axis_gain_msg.pos_i_gain_pitch.push_back(K_(i,lqi_mode * 2 + 1));
 
       /* special process to calculate throttle gain */
-      four_axis_gain_msg.pos_p_gain_alt.push_back(-q_z_ * f(i) / (f_sum / 4));
-      four_axis_gain_msg.pos_d_gain_alt.push_back(-q_z_d_ * f(i) / (f_sum / 4));
+      four_axis_gain_msg.pos_p_gain_alt.push_back(q_z_ * f(i) / (f_sum / 4));
+      four_axis_gain_msg.pos_d_gain_alt.push_back(q_z_d_ * f(i) / (f_sum / 4));
       four_axis_gain_msg.pos_i_gain_alt.push_back(q_z_i_ * f(i) / (f_sum / 4));
 
       if(lqi_mode == HydrusRobotModel::LQI_FOUR_AXIS_MODE - 1)

@@ -246,8 +246,7 @@ namespace control_plugin
     z_total_term /= estimator_->getMass();
     tf::Vector3 desired_force(xy_total_term[0], xy_total_term[1], z_total_term);
     double desired_total_throttle = desired_force.length();
-    tf::Vector3 desired_force_normalized = desired_force.normalized();
-    tf::Vector3 desired_force_normalized_cog_frame = (tf::Matrix3x3(tf::createQuaternionFromYaw(state_psi_))).inverse() * desired_force_normalized;
+    tf::Vector3 desired_force_cog_frame = (tf::Matrix3x3(tf::createQuaternionFromYaw(state_psi_))).inverse() * desired_force;
 
     for(int j = 0; j < motor_num_; j++)
       {
@@ -256,8 +255,10 @@ namespace control_plugin
         if(alt_gains_.size() == 1) break;
       }
 
-    target_pitch_ = atan2(desired_force_normalized_cog_frame.x(), desired_force_normalized_cog_frame.z());
-    target_roll_ = atan2(-desired_force_normalized_cog_frame.y(), sqrt(desired_force_normalized_cog_frame.x() * desired_force_normalized_cog_frame.x() + desired_force_normalized_cog_frame.z() * desired_force_normalized_cog_frame.z()));
+    target_pitch_ = atan2(desired_force_cog_frame.x(), desired_force_cog_frame.z());
+    target_roll_ = atan2(-desired_force_cog_frame.y(), sqrt(desired_force_cog_frame.x() * desired_force_cog_frame.x() + desired_force_cog_frame.z() * desired_force_cog_frame.z()));
+    //target_pitch_ = desired_force_cog_frame[0] / 9.8;
+    //target_roll_ = -desired_force_cog_frame[1] / 9.8;
 
     pid_msg.pitch.total.push_back(target_pitch_);
     pid_msg.roll.total.push_back(target_roll_);
