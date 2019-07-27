@@ -7,12 +7,12 @@ baselink: fc #flight controller
 only_three_axis_mode: false
 gyro_moment_compensation: true
 
-q_roll: 400
-q_roll_d: 40
-q_roll_i: 10.0
-q_pitch: 400
-q_pitch_d: 40
-q_pitch_i: 10.0
+q_roll: 1000
+q_roll_d: 100
+q_roll_i: 20.0
+q_pitch: 1000
+q_pitch_d: 100
+q_pitch_i: 20.0
 
 q_yaw: 100
 q_yaw_d: 50
