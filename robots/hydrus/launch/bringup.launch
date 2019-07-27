@@ -50,13 +50,13 @@
     <param name="param_verbose" value="false"/>
     <param name="main_rate" type="double" value="40"/>
 
+    ###########  PID Control  ###########
+    <rosparam file="$(find hydrus)/config/$(arg type)/DifferentialFlatnessPidControlConfig.yaml" command="load" />
+
     ###########  Sensor Fusion  ###########
     <rosparam file="$(find hydrus)/config/$(arg type)/$(arg onboards_model)/EgomotionEstimation.yaml" command="load" if="$(arg real_machine)"/>
     <rosparam file="$(find hydrus)/config/$(arg type)/simulation/EgomotionEstimation.yaml" command="load" if="$(eval arg('simulation') * (1 - arg('real_machine')))"/>
     <remap from="/joint_states" to="/hydrusx/joint_states"/>
-
-    ###########  PID Control  ###########
-    <rosparam file="$(find hydrus)/config/$(arg type)/DifferentialFlatnessPidControlConfig.yaml" command="load" />
 
     ###########  Teleop  ###########
     <rosparam file="$(find hydrus)/config/$(arg type)/TeleopNavigationConfig.yaml" command="load" />

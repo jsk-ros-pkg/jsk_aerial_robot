@@ -3,7 +3,7 @@
     xmlns:xacro="http://www.ros.org/wiki/xacro" name="hydrusx_link" >
 
   <!-- D-H kai description(different from prof.nakamura) -->
-  <xacro:macro name="hydrusx_link" params="links self rotor_direction with_leg:=1 with_battery:=1 old_version:=0">
+  <xacro:macro name="hydrusx_link" params="links self rotor_direction with_leg:=1 with_battery:=1 old_version:=0 tilt_mode:=0">
 
     <xacro:if value="${old_version == 1}">
       <!-- link -->
@@ -55,13 +55,24 @@
       <link name="link${self}">
         <!-- head -->
         <xacro:if value="${self == 1}">
-          <inertial>
-            <origin xyz="${link_length* 0.5 + 0.057} 0.0 0.018" rpy="0 0 0"/>
-            <mass value="0.58712"/>
-            <inertia
-                ixx="0.00179" iyy="0.01605" izz="0.01714"
-                ixy="0.00000" ixz="0.00067" iyz="0.00000"/>
-          </inertial>
+          <xacro:if value="${tilt_mode == 1}">
+            <inertial>
+              <origin xyz="${link_length* 0.5 + 0.056} 0.0 0.02577" rpy="0 0 0"/>
+              <mass value="0.61442"/>
+              <inertia
+                  ixx="0.002" iyy="0.01634" izz="0.01723"
+                  ixy="0.00000" ixz="0.00045" iyz="0.00000"/>
+            </inertial>
+          </xacro:if>
+          <xacro:unless value="${tilt_mode == 1}">
+            <inertial>
+              <origin xyz="${link_length* 0.5 + 0.057} 0.0 0.018" rpy="0 0 0"/>
+              <mass value="0.58712"/>
+              <inertia
+                  ixx="0.00179" iyy="0.01605" izz="0.01714"
+                  ixy="0.00000" ixz="0.00067" iyz="0.00000"/>
+            </inertial>
+          </xacro:unless>
           <xacro:link_model type="1" />
         </xacro:if>
 
@@ -69,37 +80,71 @@
 
           <!-- tail -->
           <xacro:if value="${self == links}">
-            <inertial>
-              <origin xyz="${link_length * 0.5 -0.058} 0.0 0.0188" rpy="0 0 0"/>
-              <mass value="0.590"/>
-              <inertia
-                  ixx="0.00179" iyy="0.01581" izz="0.01692"
-                  ixy="0.00000" ixz="-0.00067" iyz="0.00000"/>
-            </inertial>
+            <xacro:if value="${tilt_mode == 1}">
+              <inertial>
+                <origin xyz="${link_length* 0.5 - 0.0576} 0.0 0.0258" rpy="0 0 0"/>
+                <mass value="0.616"/>
+                <inertia
+                    ixx="0.002" iyy="0.0161" izz="0.016992"
+                    ixy="0.00000" ixz="0.00000" iyz="0.00000"/>
+              </inertial>
+            </xacro:if>
+            <xacro:unless value="${tilt_mode == 1}">
+              <inertial>
+                <origin xyz="${link_length * 0.5 -0.058} 0.0 0.0188" rpy="0 0 0"/>
+                <mass value="0.590"/> <!-- +DCDC -->
+                <inertia
+                    ixx="0.00179" iyy="0.01581" izz="0.01692"
+                    ixy="0.00000" ixz="-0.00067" iyz="0.00000"/>
+              </inertial>
+            </xacro:unless>
             <xacro:link_model type="4" />
           </xacro:if>
+
 
           <xacro:unless value="${self == links}">
             <!-- symetry -->
             <xacro:if value="${self == links/2}">
-              <inertial>
-                <origin xyz="${link_length * 0.5} 0.0 0.01287" rpy="0 0 0"/>
-                <mass value="0.55744"/>
-                <inertia
-                    ixx="0.00171" iyy="0.01727" izz="0.01844"
-                    ixy="0.00000" ixz="0.00001" iyz="0.00000"/>
-              </inertial>
+              <xacro:if value="${tilt_mode == 1}">
+                <inertial>
+                  <origin xyz="${link_length* 0.5 - 0.0005} 0.0 0.0204" rpy="0 0 0"/>
+                  <mass value="0.58312"/>
+                  <inertia
+                      ixx="0.002" iyy="0.01752" izz="0.018447"
+                      ixy="0.00000" ixz="0.00000" iyz="0.00000"/>
+                </inertial>
+              </xacro:if>
+              <xacro:unless value="${tilt_mode == 1}">
+                <inertial>
+                  <origin xyz="${link_length * 0.5} 0.0 0.01287" rpy="0 0 0"/>
+                  <mass value="0.55744"/>
+                  <inertia
+                      ixx="0.00171" iyy="0.01727" izz="0.01844"
+                      ixy="0.00000" ixz="0.00001" iyz="0.00000"/>
+                </inertial>
+              </xacro:unless>
               <xacro:link_model type="2" />
             </xacro:if>
             <!-- general -->
             <xacro:unless value="${self == links/2}">
-              <inertial>
-                <origin xyz="${link_length * 0.5 - 0.0317} 0.0 0.01836" rpy="0 0 0"/>
-                <mass value="0.63453"/>
-                <inertia
-                    ixx="0.00182" iyy="0.02232" izz="0.02254"
-                    ixy="0.00000" ixz="-0.00077" iyz="0.00000"/>
-              </inertial>
+              <xacro:if value="${tilt_mode == 1}">
+                <inertial>
+                  <origin xyz="${link_length* 0.5 - 0.03} 0.0 0.025" rpy="0 0 0"/>
+                  <mass value="0.66183"/>
+                  <inertia
+                      ixx="0.002" iyy="0.021851" izz="0.022718"
+                      ixy="0.00000" ixz="0.00000" iyz="0.00000"/>
+                </inertial>
+              </xacro:if>
+              <xacro:unless value="${tilt_mode == 1}">
+                <inertial>
+                  <origin xyz="${link_length * 0.5 - 0.0317} 0.0 0.01836" rpy="0 0 0"/>
+                  <mass value="0.63453"/>
+                  <inertia
+                      ixx="0.00182" iyy="0.02232" izz="0.02254"
+                      ixy="0.00000" ixz="-0.00077" iyz="0.00000"/>
+                </inertial>
+              </xacro:unless>
               <xacro:link_model type="3" />
             </xacro:unless>
           </xacro:unless>
@@ -114,7 +159,12 @@
       <limit effort="100.0" lower="0" upper="${max_force}" velocity="0.5"/> <!-- force range -->
       <parent link="link${self}"/>
       <child link="thrust${self}"/>
-      <origin rpy="0 ${rotor_direction * tilt_angle} 0" xyz="${link_length* 0.5} 0 0"/>
+      <xacro:if value="${tilt_mode == 1}">
+        <origin rpy="0 ${-rotor_direction * tilt_angle} 0" xyz="${link_length* 0.5} 0 0.045"/>
+      </xacro:if>
+      <xacro:unless value="${tilt_mode == 1}">
+        <origin rpy="0 0 0" xyz="${link_length* 0.5} 0 0"/>
+      </xacro:unless>
       <axis xyz="0 0 ${rotor_direction}"/>
     </joint>
 

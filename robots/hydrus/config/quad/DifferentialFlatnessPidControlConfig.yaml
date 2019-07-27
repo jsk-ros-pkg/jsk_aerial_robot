@@ -12,10 +12,10 @@ controller:
 
         # xy [rad]
         xy:
-                p_gain: 1.5 #0.15 * g
+                p_gain: 1.0 #0.15 * g
                 i_gain: 0.02 #0.002 * g
                 hovering_i_gain: 0.02 #0.002 * g
-                d_gain: 4 #0.4 * g
+                d_gain: 2.5 #0.4 * g
                 limit: 3  # 0.3 * g
                 p_term_limit: 2 #0.2 * g
                 i_term_limit: 1.5 #0.15 * g
