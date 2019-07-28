@@ -17,6 +17,7 @@
         <arg name="throttle_rate" value="80.0"/> <!-- 80 hz -->
         <arg name="set_module_list" value="true" />
         <arg name="module_list_file" value="$(find hydrus)/config/quad/tx2_rs_t265_201906/T265ModuleList.yaml" />
+        <arg name="reset_duration" value = "0.5" />
       </include>
       <!-- mocap -->
       <include file="$(find aerial_robot_base)/launch/external_module/mocap.launch" />
