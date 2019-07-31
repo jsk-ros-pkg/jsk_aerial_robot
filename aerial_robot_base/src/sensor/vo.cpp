@@ -107,7 +107,6 @@ namespace sensor_plugin
         nhp_.param("vo_servo_debug_topic_name", topic_name, string("/vo_servo_debug"));
         if(estimator_->getVoHandlers().size() > 1)
           indexed_nhp_.param("vo_servo_debug_topic_name", topic_name, string("/vo_servo_debug")  + std::to_string(index));
-          nhp_.param("vo_servo_topic_name", topic_name, string("/vo_servo_target_pwm"));
         vo_servo_debug_sub_ = nh_.subscribe(topic_name, 1, &VisualOdometry::servoDebugCallback, this);
 
         servo_control_timer_ = indexed_nhp_.createTimer(ros::Duration(servo_control_rate_), &VisualOdometry::servoControl,this); // 10 Hz
