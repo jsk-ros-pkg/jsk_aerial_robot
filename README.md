@@ -1,6 +1,6 @@
 [![Build Status](https://travis-ci.com/tongtybj/aerial_robot.svg?branch=devel)](https://travis-ci.com/tongtybj/aerial_robot)
 
-# This is for aerial robot, especially for transformable aerial robot as shwon in following figure.
+# This is for aerial robot, especially for transformable aerial robot as shown in following figure.
 
 ![uav_intro](images/multilink-all.jpg)
 
