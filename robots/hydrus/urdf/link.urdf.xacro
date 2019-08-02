@@ -192,8 +192,8 @@
     <xacro:if value="${with_battery == 1}">
       <!-- note: use the same configuration between new and old version -->
       <xacro:extra_module name = "bat${self}" parent = "link${self}" visible = "1"
-                          model_url = "package://hydrus/urdf/mesh/ver1/modules/battery/VOLTON-PG-1300LP2-6s.stl" scale="0.001">
-        <origin xyz="${link_length/2} 0.0 -0.048" rpy="${pi/2} 0 0"/>
+                          model_url = "package://hydrus/urdf/mesh/battery/VOLTON-PG-1300LP2-6s.stl" scale="0.001">
+        <origin xyz="${link_length/2} 0.0 -0.048" rpy="0 0 0"/>
         <inertial>
           <origin xyz="0 0 0" rpy="0 0 0"/>
           <mass value="0.194"/>
