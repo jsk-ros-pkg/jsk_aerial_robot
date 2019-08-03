@@ -1,0 +1,32 @@
+### Differential Flatness PID control for hydrusx quad type
+
+controller:
+        # alt [N]
+        alt:
+                offset: 0
+                limit: 16.5
+                p_term_limit: 16.5
+                i_term_limit: 16.5
+                d_term_limit: 16.5
+                alt_landing_const_i_ctrl_thresh: -0.2
+
+        # xy [rad]
+        xy:
+                p_gain: 2.3 #0.15 * g
+                i_gain: 0.02 #0.002 * g
+                hovering_i_gain: 0.02 #0.002 * g
+                d_gain: 4.0 #0.4 * g
+                limit: 3  # 0.3 * g
+                p_term_limit: 3 #0.2 * g
+                i_term_limit: 1.5 #0.15 * g
+                d_term_limit: 3 #0.2 * g
+                x_offset: 0
+                y_offset: 0
+
+        # yaw [N]
+        yaw:
+                limit: 6.0
+                p_term_limit: 4.5
+                i_term_limit: 4.0
+                d_term_limit: 4.0
+                err_thresh: 0.4
