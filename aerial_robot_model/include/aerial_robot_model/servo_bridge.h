@@ -92,15 +92,7 @@ public:
   inline void setCurrAngleVal(const double& val, int value_type)
   {
     if(value_type == ValueType::BIT)
-      {
-        if (val < 0)
-          {
-            ROS_ERROR("%s: bit current val could not be negative: %f", name_.c_str(), val);
-            return;
-          }
-
-        curr_angle_val_ = angle_scale_ * angle_sgn_ * (val - zero_point_offset_);
-      }
+      curr_angle_val_ = angle_scale_ * angle_sgn_ * (val - zero_point_offset_);
     else if(value_type == ValueType::RADIAN)
       curr_angle_val_ = val;
     else
@@ -120,14 +112,7 @@ public:
   inline void setTargetAngleVal(const double& val, int value_type)
   {
     if(value_type == ValueType::BIT)
-      {
-        if (val < 0)
-          {
-            ROS_ERROR("%s: bit target val could not be negative: %f", name_.c_str(), val);
-            return;
-          }
-        target_angle_val_ = boost::algorithm::clamp(angle_scale_ * angle_sgn_ * (val - zero_point_offset_), lower_limit_, upper_limit_);
-      }
+      target_angle_val_ = boost::algorithm::clamp(angle_scale_ * angle_sgn_ * (val - zero_point_offset_), lower_limit_, upper_limit_);
     else if(value_type == ValueType::RADIAN)
       target_angle_val_ = boost::algorithm::clamp(val, lower_limit_, upper_limit_);
     else
