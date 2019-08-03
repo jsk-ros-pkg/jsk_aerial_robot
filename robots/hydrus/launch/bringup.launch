@@ -51,7 +51,7 @@
     <param name="main_rate" type="double" value="40"/>
 
     ###########  PID Control  ###########
-    <rosparam file="$(find hydrus)/config/$(arg type)/DifferentialFlatnessPidControlConfig.yaml" command="load" />
+    <rosparam file="$(find hydrus)/config/$(arg type)/$(arg onboards_model)/DifferentialFlatnessPidControlConfig.yaml" command="load" />
 
     ###########  Sensor Fusion  ###########
     <rosparam file="$(find hydrus)/config/$(arg type)/$(arg onboards_model)/EgomotionEstimation.yaml" command="load" if="$(arg real_machine)"/>
@@ -75,7 +75,7 @@
 
   ###########  Transform Control  ###########
   <node pkg="hydrus" type="transform_control_node" name="hydrusx"  output="screen" respawn="false">
-    <rosparam file="$(find hydrus)/config/$(arg type)/Hydrus.yaml" command="load" />
+    <rosparam file="$(find hydrus)/config/$(arg type)/$(arg onboards_model)/Hydrus.yaml" command="load" />
     <remap from="joint_states" to="hydrusx/joint_states"/>
     <param name="kinematic_verbose" value="false" />
     <param name="control_verbose" value="false" />
