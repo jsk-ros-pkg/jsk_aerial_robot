@@ -43,6 +43,7 @@ namespace control_plugin
 
     joint_state_sub_ = nh_.subscribe("/joint_states", 1, &DragonGimbal::jointStateCallback, this);
     final_target_cog_rot_sub_ = nh_.subscribe("/final_desire_tilt", 1, &DragonGimbal::baselinkTiltCallback, this);
+    att_control_feedback_state_sub_ = nh_.subscribe("/att_control_terms", 1, &DragonGimbal::attControlFeedbackStateCallback, this);
     target_coord_sub_ = nh_.subscribe("/desire_coordinate", 1, &DragonGimbal::targetCogRotCallback, this);
 
     //dynamic reconfigure server
