@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="verbose" default="false" />
+  <arg name="type" default="quad" />
+
+  <include file="$(find dragon)/launch/robot_model.launch">
+    <arg name="type" value="$(arg type)" />
+    <arg name="headless" value="true" />
+    <arg name="need_joint_state" value="false" />
+  </include >
+
+  <node pkg="dragon" type="maximum_single_contact_force_all_pose_node" name="maximum_single_contact_force_all_pose_node" output="screen" >
+
+    <rosparam file="$(find dragon)/config/$(arg type)/AttitudeControl.yaml" command="load" />
+
+    <rosparam file="$(find dragon)/config/$(arg type)/MaximumSingleContactSearch.yaml" command="load" />
+
+    <param name="increment" value="0.1" />
+
+    <param name="verbose" value="$(arg verbose)" />
+
+  </node>
+
+</launch>

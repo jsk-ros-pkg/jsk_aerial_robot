@@ -1,0 +1,20 @@
+max_root_roll: 1.57
+max_root_pitch: 1.57
+max_root_yaw: 0
+min_root_roll: -1.57
+min_root_pitch: -1.57
+min_root_yaw: -1.57
+
+# order: joint1_yaw, joint1_pitch, joint2_yaw, joint2_pitch, joint3_yaw, joint3_pitch
+max_joint_angle_vec: [1.57, 1.57, 1.57, 1.57, 1.57, 1.57]
+min_joint_angle_vec: [-1.57, -1.57, -1.57, -1.57, -1.57, -1.57]
+
+# test
+#max_root_roll: 0.2
+#max_root_pitch: 1.0
+#max_root_yaw: 0
+#min_root_roll: -0.2
+#min_root_pitch: -1.0
+#min_root_yaw: -1.57
+#max_joint_angle_vec: [0.2, 0, 1.57, 0, 1.57, 0]
+#min_joint_angle_vec: [-0.2, 0, 1.57, 0, 1.57, 0]
