@@ -15,10 +15,10 @@
 
     <rosparam file="$(find dragon)/config/$(arg type)/MaximumSingleContactSearch.yaml" command="load" />
 
+    <param name="/motor_info/m_f_rate" value="0" /> <!-- very important for calculating the hovering force !!!!! -->
     <param name="increment" value="0.1" />
 
     <param name="verbose" value="$(arg verbose)" />
-    <param name="baselink" value="link1" />
   </node>
 
 </launch>

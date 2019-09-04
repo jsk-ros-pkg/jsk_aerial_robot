@@ -61,4 +61,8 @@ private:
   int rotor_num_;
   double max_thrust_force_;
   bool verbose_;
+
+  std::map<std::string, KDL::RigidBodyInertia> inertia_map_;
+
+  const Eigen::MatrixXd getJacobian(std::string root_link, std::string tip_link, const sensor_msgs::JointState& joint_angles, bool full_body, Eigen::Matrix3d root_att = Eigen::Matrix3d::Identity(), KDL::Segment additional_frame = KDL::Segment());
 };
