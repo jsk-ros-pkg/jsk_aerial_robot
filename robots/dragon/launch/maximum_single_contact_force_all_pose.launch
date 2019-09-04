@@ -18,7 +18,7 @@
     <param name="increment" value="0.1" />
 
     <param name="verbose" value="$(arg verbose)" />
-
+    <param name="baselink" value="link1" />
   </node>
 
 </launch>
