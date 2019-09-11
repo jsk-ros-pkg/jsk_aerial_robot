@@ -200,7 +200,9 @@ namespace sensor_plugin
     tf::Matrix3x3 r; r.setIdentity();
     tf::Vector3 omega(0,0,0);
     int mode = StateEstimator::EGOMOTION_ESTIMATE;
-    estimator_->findRotOmege(curr_timestamp_, mode, r, omega);
+    estimator_->findRotOmega(curr_timestamp_, mode, r, omega);
+    if(omega == tf::Vector3(0,0,0)) ROS_ERROR("gps: the omega is not updated from findRotOmega");
+
     raw_vel_ += r * (- omega.cross(sensor_tf_.getOrigin())); //offset from gps to baselink
     raw_pos_ = world_frame_ * Gps::wgs84ToNedLocalFrame(home_wgs84_point_, curr_wgs84_point_) - r * sensor_tf_.getOrigin();
 
