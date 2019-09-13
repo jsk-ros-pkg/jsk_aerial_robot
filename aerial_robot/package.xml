@@ -15,13 +15,11 @@
   <run_depend>aerial_robot_msgs</run_depend>
   <run_depend>aerial_robot_model</run_depend>
   <run_depend>aerial_robot_base</run_depend>
-  <run_depend>aerial_robot_comm</run_depend>
   <run_depend>motor_test</run_depend>
   <run_depend>spinal_ros_bridge</run_depend>
   <run_depend>spinal</run_depend>
   <run_depend>aerial_robot_simulation</run_depend>
   <run_depend>hydrus</run_depend>
-  <run_depend>di_control</run_depend>
   <run_depend>dragon</run_depend>
 
   <export>
