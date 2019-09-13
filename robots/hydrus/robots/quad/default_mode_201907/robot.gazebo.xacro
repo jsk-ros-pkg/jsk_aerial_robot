@@ -3,7 +3,7 @@
     xmlns:xacro="http://www.ros.org/wiki/xacro" name="hydrusx" >
 
   <!-- robot urdf -->
-  <xacro:include filename="$(find hydrus)/robots/quad/mbzirc_default_mode_201907/robot.urdf.xacro" />
+  <xacro:include filename="$(find hydrus)/robots/quad/default_mode_201907/robot.urdf.xacro" />
 
   <!-- gazebo plugin for default controller and sensors -->
   <xacro:include filename="$(find hydrus)/robots/default.gazebo.xacro" />
