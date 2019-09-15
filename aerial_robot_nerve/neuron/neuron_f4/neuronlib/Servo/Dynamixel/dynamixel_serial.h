@@ -314,6 +314,8 @@ public:
   void setCurrentLimit(uint8_t servo_index);
   void update();
   unsigned int getServoNum() const {return servo_num_;}
+  uint16_t getTTLRS485Mixed() const {return ttl_rs485_mixed_;}
+  void setTTLRS485Mixed(uint16_t flag) {ttl_rs485_mixed_ = flag;}
   std::array<ServoData, MAX_SERVO_NUM>& getServo() {return servo_;}
   const std::array<ServoData, MAX_SERVO_NUM>& getServo() const {return servo_;}
 
@@ -323,6 +325,7 @@ private:
   RingBuffer<std::pair<uint8_t, uint8_t>, 16> instruction_buffer_;
   unsigned int servo_num_;
   std::array<ServoData, MAX_SERVO_NUM> servo_;
+  uint16_t ttl_rs485_mixed_;
 
   void transmitInstructionPacket(uint8_t id, uint16_t len, uint8_t instruction, uint8_t* parameters);
   int8_t readStatusPacket(void);
@@ -334,6 +337,15 @@ private:
   void cmdSyncRead(uint16_t address, uint16_t byte_size);
   void cmdSyncWrite(uint16_t address, uint8_t* param, int param_len);
 
+  inline void cmdReadCurrentLimit(uint8_t servo_index);
+  inline void cmdReadHardwareErrorStatus(uint8_t servo_index);
+  inline void cmdReadHomingOffset(uint8_t servo_index);
+  inline void cmdReadMoving(uint8_t servo_index);
+  inline void cmdReadPositionGains(uint8_t servo_index);
+  inline void cmdReadPresentCurrent(uint8_t servo_index);
+  inline void cmdReadPresentPosition(uint8_t servo_index);
+  inline void cmdReadPresentTemperature(uint8_t servo_index);
+  inline void cmdReadProfileVelocity(uint8_t servo_index);
   inline void cmdWriteCurrentLimit(uint8_t servo_index);
   inline void cmdWriteHomingOffset(uint8_t servo_index);
   inline void cmdWritePositionGains(uint8_t servo_index);

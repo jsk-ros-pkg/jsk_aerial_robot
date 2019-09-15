@@ -18,7 +18,8 @@ void Initializer::sendBoardConfig()
 	uint8_t data[8];
 	data[0] = servo_.servo_handler_.getServoNum();
 	data[1] = imu_.send_data_flag_ ? 1 : 0;
-	setMessage(CAN::MESSAGEID_SEND_INITIAL_CONFIG_0, m_slave_id, 2, data);
+	data[2] = servo_.servo_handler_.getTTLRS485Mixed();
+	setMessage(CAN::MESSAGEID_SEND_INITIAL_CONFIG_0, m_slave_id, 3, data);
 	sendMessage(1);
 	for (unsigned int i = 0; i < servo_.servo_handler_.getServoNum(); i++) {
 		const ServoData& s = servo_.servo_handler_.getServo()[i];
@@ -124,6 +125,13 @@ void Initializer::receiveDataCallback(uint8_t message_id, uint32_t DLC, uint8_t*
 		case CAN::BOARD_CONFIG_REBOOT:
 		{
 			NVIC_SystemReset();
+			break;
+		}
+		case CAN::BOARD_CONFIG_SET_DYNAMIXEL_TTL_RS485_MIXED:
+		{
+			servo_.servo_handler_.setTTLRS485Mixed(data[1]);
+			Flashmemory::erase();
+			Flashmemory::write();
 			break;
 		}
 		default:
