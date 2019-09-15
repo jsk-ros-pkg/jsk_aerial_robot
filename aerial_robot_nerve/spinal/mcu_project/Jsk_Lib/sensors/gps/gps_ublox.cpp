@@ -173,7 +173,7 @@ void GPS::configureRate(uint16_t rate)
   sendMessage(CLASS_CFG, MSG_CFG_RATE, &msg, sizeof(msg));
 }
 
-void GPS_RxCpltCallback(UART_HandleTypeDef *huart)
+extern "C" void GPS_RxCpltCallback(UART_HandleTypeDef *huart)
 {
   //LED0_L; //debug
   for(std::size_t i = 0; i < GPS_RX_SIZE; i++)
