@@ -1,5 +1,6 @@
 #include "dynamixel_serial.h"
 
+
 void DynamixelSerial::init(UART_HandleTypeDef* huart)
 {
 	huart_ = huart;

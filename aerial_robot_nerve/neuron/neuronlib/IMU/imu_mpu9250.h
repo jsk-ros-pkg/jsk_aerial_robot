@@ -13,7 +13,6 @@
 #endif
 
 #include "can_device.h"
-#include "stm32f4xx_hal.h"
 #include "flashmemory.h"
 
 using Vector3d = std::array<int16_t, 3>;

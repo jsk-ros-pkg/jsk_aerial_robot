@@ -10,7 +10,6 @@
 
 #include <inttypes.h>
 #include <stdlib.h>
-#include "stm32f4xx_hal.h"
 #include <array>
 #include <algorithm>
 #include <utility>

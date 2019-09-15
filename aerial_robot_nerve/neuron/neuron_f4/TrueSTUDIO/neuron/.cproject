@@ -43,12 +43,12 @@
 									<listOptionValue builtIn="false" value="../../../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy"/>
 									<listOptionValue builtIn="false" value="../../../Drivers/CMSIS/Device/ST/STM32F4xx/Include"/>
 									<listOptionValue builtIn="false" value="../../../Drivers/CMSIS/Include"/>
-									<listOptionValue builtIn="false" value="../../../neuronlib/CAN"/>
-									<listOptionValue builtIn="false" value="../../../neuronlib/Flashmemory"/>
-									<listOptionValue builtIn="false" value="../../../neuronlib/IMU"/>
-									<listOptionValue builtIn="false" value="../../../neuronlib/Initializer"/>
-									<listOptionValue builtIn="false" value="../../../neuronlib/Motor"/>
-									<listOptionValue builtIn="false" value="../../../neuronlib/Servo"/>
+									<listOptionValue builtIn="false" value="../../../../neuronlib/CAN"/>
+									<listOptionValue builtIn="false" value="../../../../neuronlib/Flashmemory"/>
+									<listOptionValue builtIn="false" value="../../../../neuronlib/IMU"/>
+									<listOptionValue builtIn="false" value="../../../../neuronlib/Initializer"/>
+									<listOptionValue builtIn="false" value="../../../../neuronlib/Motor"/>
+									<listOptionValue builtIn="false" value="../../../../neuronlib/Servo"/>
 								</option>
 								<option id="com.atollic.truestudio.gcc.symbols.defined.1670122205" name="Defined symbols" superClass="com.atollic.truestudio.gcc.symbols.defined" valueType="definedSymbols">
 									<listOptionValue builtIn="false" value="__weak=&quot;__attribute__((weak))&quot;"/>
@@ -106,12 +106,12 @@
 									<listOptionValue builtIn="false" value="../../../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy"/>
 									<listOptionValue builtIn="false" value="../../../Drivers/CMSIS/Device/ST/STM32F4xx/Include"/>
 									<listOptionValue builtIn="false" value="../../../Drivers/CMSIS/Include"/>
-									<listOptionValue builtIn="false" value="../../../neuronlib/CAN"/>
-									<listOptionValue builtIn="false" value="../../../neuronlib/Flashmemory"/>
-									<listOptionValue builtIn="false" value="../../../neuronlib/IMU"/>
-									<listOptionValue builtIn="false" value="../../../neuronlib/Initializer"/>
-									<listOptionValue builtIn="false" value="../../../neuronlib/Motor"/>
-									<listOptionValue builtIn="false" value="../../../neuronlib/Servo"/>
+									<listOptionValue builtIn="false" value="../../../../neuronlib/CAN"/>
+									<listOptionValue builtIn="false" value="../../../../neuronlib/Flashmemory"/>
+									<listOptionValue builtIn="false" value="../../../../neuronlib/IMU"/>
+									<listOptionValue builtIn="false" value="../../../../neuronlib/Initializer"/>
+									<listOptionValue builtIn="false" value="../../../../neuronlib/Motor"/>
+									<listOptionValue builtIn="false" value="../../../../neuronlib/Servo"/>
 								</option>
 								<option id="com.atollic.truestudio.exe.debug.toolchain.gpp.optimization.level.1981497295" superClass="com.atollic.truestudio.exe.debug.toolchain.gpp.optimization.level" useByScannerDiscovery="false" value="com.atollic.truestudio.gpp.optimization.level.02" valueType="enumerated"/>
 								<inputType id="com.atollic.truestudio.gpp.input.369035337" superClass="com.atollic.truestudio.gpp.input"/>
