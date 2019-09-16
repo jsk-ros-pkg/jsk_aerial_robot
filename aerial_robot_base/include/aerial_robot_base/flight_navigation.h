@@ -4,6 +4,7 @@
 /* ros */
 #include <ros/ros.h>
 #include <aerial_robot_base/state_estimation.h>
+#include <aerial_robot_base/sensor/base_plugin.h>
 
 /* ros msg */
 #include <std_msgs/Int8.h>

@@ -68,6 +68,7 @@ estimator:
                 vo_sub_topic_name: /realsense2/odom/throttle
                 sensor_frame: realsense2_pose_frame
                 downwards_vo_min_height: 0.25
+                vel_noise_sigma: 0.03
 
 navigator:
         takeoff_height: 0.8

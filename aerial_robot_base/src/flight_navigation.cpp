@@ -622,7 +622,20 @@ void Navigator::update()
 
         /* set flying flag to true once */
         if(!estimator_->getFlyingFlag())
-          estimator_->setFlyingFlag(true);
+          {
+            estimator_->setFlyingFlag(true);
+
+            for(const auto& handler: estimator_->getGpsHandlers())
+              {
+                if(handler->getStatus() == Status::ACTIVE)
+                  {
+                    convergent_duration_ /= 2;
+                    xy_convergent_thresh_ *= 4;
+                    ROS_WARN("reset the takeoff hovering threshold to, xy: %f, z: %f", xy_convergent_thresh_, alt_convergent_thresh_);
+                    break;
+                  }
+              }
+          }
 
         if(xy_control_mode_ == flight_nav::POS_CONTROL_MODE)
           {
