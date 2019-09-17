@@ -13,7 +13,6 @@ estimator:
         egomotion_list:
         - kalman_filter/kf_pos_vel_acc
         - kalman_filter/kf_pos_vel_acc
-        #- aerial_robot_base/kf_xy_roll_pitch_bias
         - kalman_filter/kf_pos_vel_acc
 
         # experiment estimation
@@ -26,8 +25,6 @@ estimator:
         fuser_egomotion_id1: 8 # 1 << 3
         fuser_egomotion_id2: 16 # 1 << 4
         fuser_egomotion_id3: 32 # 1 << 5
-        #fuser_egomotion_id1: 24 # 1 << 3 + 1 << 4
-        #fuser_egomotion_id2: 32 # 1 << 5
 
         fuser_experiment_id1: 8 # 1 << 3
         fuser_experiment_id2: 16 # 1 << 4
@@ -37,8 +34,6 @@ estimator:
         fuser_egomotion_name1: /ee/x
         fuser_egomotion_name2: /ee/y
         fuser_egomotion_name3: /ee/z
-        #fuser_egomotion_name1: /ee/xy
-        #fuser_egomotion_name2: /ee/z
 
         fuser_experiment_name1: /ex/x
         fuser_experiment_name2: /ex/y
@@ -64,11 +59,8 @@ estimator:
         vo1:
                 vo_sub_topic_name: /realsense1/odom/throttle
                 sensor_frame: realsense1_pose_frame
-        vo2:
+        vo2:  #downward
                 vo_sub_topic_name: /realsense2/odom/throttle
                 sensor_frame: realsense2_pose_frame
                 downwards_vo_min_height: 0.25
-                vel_noise_sigma: 0.03
-
-navigator:
-        takeoff_height: 0.8
+                outdoor_vel_noise_sigma: 0.03 #todo: please tuning this [0.01 ~ 0.03]

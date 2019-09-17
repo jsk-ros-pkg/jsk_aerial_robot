@@ -219,12 +219,19 @@ namespace sensor_plugin
                   }
               }
 
-            if(gps_initialized && outdoor_no_vel_time_sync_ /* heuristic option */)
+            if(gps_initialized)
               {
-                /* TODO: very heuristic, but effective. we observe the outdoor env is tricky for stereo cam stamp identification (e.g. zed mini) */
-                time_sync_ = false;
-                delay_ = 0;
-                std::cout << ", no temporal delay in outdoor mode, ";
+                getParam<double>("outdoor_vel_noise_sigma", vel_noise_sigma_, vel_noise_sigma_);
+                std::cout << ", the vel noise sigma is: " << vel_noise_sigma_ << ", ";
+
+                /* heuristic option */
+                if(outdoor_no_vel_time_sync_)
+                  {
+                    /* TODO: very heuristic, but effective. we observe the outdoor env is tricky for stereo cam stamp identification (e.g. zed mini) */
+                    time_sync_ = false;
+                    delay_ = 0;
+                    std::cout << ", no temporal delay in outdoor mode, ";
+                  }
               }
           }
 
