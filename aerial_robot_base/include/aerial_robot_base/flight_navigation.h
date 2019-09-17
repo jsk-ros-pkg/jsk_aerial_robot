@@ -4,6 +4,7 @@
 /* ros */
 #include <ros/ros.h>
 #include <aerial_robot_base/state_estimation.h>
+#include <aerial_robot_base/sensor/base_plugin.h>
 
 /* ros msg */
 #include <std_msgs/Int8.h>
@@ -297,6 +298,21 @@ protected:
       {
         ROS_ERROR("Flight Navigation: No correct sensor fusion for z(altitude), can not fly");
         return;
+      }
+
+    for(const auto& handler: estimator_->getGpsHandlers())
+      {
+        if(handler->getStatus() == Status::ACTIVE)
+          {
+            nhp_.param ("outdoor_takeoff_height", takeoff_height_, 1.2);
+            nhp_.param ("outdorr_convergent_duration", convergent_duration_, 0.5);
+            nhp_.param ("outdoor_xy_convergent_thresh", xy_convergent_thresh_, 0.6);
+            nhp_.param ("outdoor_alt_convergent_thresh", alt_convergent_thresh_, 0.05);
+
+            ROS_WARN_STREAM("update the navigation parameters for outdoor flight, takeoff height: " << takeoff_height_ << "; outdorr_convergent_duration: " << convergent_duration_ << "; outdoor_xy_convergent_thresh: " << xy_convergent_thresh_ << "; outdoor_alt_convergent_thresh: " << alt_convergent_thresh_);
+
+            break;
+          }
       }
 
     setNaviState(START_STATE);
