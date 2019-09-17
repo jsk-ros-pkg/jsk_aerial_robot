@@ -60,9 +60,9 @@ namespace sensor_plugin
   class Alt :public sensor_plugin::SensorBase
   {
   public:
-    void initialize(ros::NodeHandle nh, ros::NodeHandle nhp, StateEstimator* estimator, string sensor_name)
+    void initialize(ros::NodeHandle nh, ros::NodeHandle nhp, StateEstimator* estimator, string sensor_name, int index)
     {
-      SensorBase::initialize(nh, nhp, estimator, sensor_name);
+      SensorBase::initialize(nh, nhp, estimator, sensor_name, index);
       rosParamInit();
 
       kf_loader_ptr_ = boost::shared_ptr< pluginlib::ClassLoader<kf_plugin::KalmanFilter> >(new pluginlib::ClassLoader<kf_plugin::KalmanFilter>("kalman_filter", "kf_plugin::KalmanFilter"));
@@ -75,17 +75,21 @@ namespace sensor_plugin
       /* terrain check */
       if(!terrain_check_) state_on_terrain_ = NORMAL;
 
-      alt_pub_ = nh_.advertise<aerial_robot_msgs::States>("data",10);
+      /* range sensor */
+      std::string topic_name;
+      nhp_.param("range_sensor_sub_name", topic_name, string("/distance"));
+      if(estimator_->getAltHandlers().size() > 1)
+        indexed_nhp_.param("range_sensor_sub_name", topic_name, string("/distance" + std::to_string(index)));
+      range_sensor_sub_ = nh_.subscribe(topic_name, 10, &Alt::rangeCallback, this);
 
-      /* set the only barometer initially */
-      alt_mode_sub_ = nh_.subscribe("/estimate_alt_mode", 1, &Alt::altEstimateModeCallback, this);
+      if(estimator_->getGpsHandlers().size() == 1)
+        {
+          alt_pub_ = nh_.advertise<aerial_robot_msgs::States>("data",10);
+          alt_mode_sub_ = nh_.subscribe("estimate_alt_mode", 1, &Alt::altEstimateModeCallback, this);
+        }
 
       /* barometer */
       //barometer_sub_ = nh_.subscribe<spinal::Barometer>(barometer_sub_name_, 1, &Alt::baroCallback, this, ros::TransportHints().tcpNoDelay());
-
-      /* range sensor */
-      range_sensor_sub_ = nh_.subscribe(range_sensor_sub_name_, 10, &Alt::rangeCallback, this);
-
     }
 
     ~Alt() {}
@@ -163,7 +167,6 @@ namespace sensor_plugin
 
     /* ros param */
     /* range sensor */
-    string range_sensor_sub_name_;
     tf::Vector3 range_origin_; /* the origin of range based on cog of UAV */
     bool no_height_offset_;
     double range_noise_sigma_;
@@ -687,56 +690,29 @@ namespace sensor_plugin
       std::string ns = nhp_.getNamespace();
 
       /* range sensor */
-      nhp_.param("range_sensor_sub_name", range_sensor_sub_name_, string("/distance"));
-      if(param_verbose_) cout << ns << ": range_noise_sigma is " << range_sensor_sub_name_ << endl;
+      getParam<double>("range_noise_sigma", range_noise_sigma_, 0.005);
+      getParam<int>("calibrate_cnt", calibrate_cnt_, 100);
+      getParam<bool>("no_height_offset", no_height_offset_, true);
 
-      nhp_.param("range_noise_sigma", range_noise_sigma_, 0.005 );
-      if(param_verbose_) cout << ns << ": range_noise_sigma is " <<  range_noise_sigma_ << endl;
-
-      nhp_.param("calibrate_cnt", calibrate_cnt_, 100);
-      if(param_verbose_) cout << ns << ": calibrate_cnt is " << calibrate_cnt_ << endl;
       calibrate_cnt = calibrate_cnt_;
 
-      nhp_.param("no_height_offset", no_height_offset_, true);
-      if(param_verbose_) cout << ns << ": no_height_offset is " << no_height_offset_ << endl;
-
       /* first ascending process: check range */
-      nhp_.param("ascending_check_range", ascending_check_range_, 0.1); // [m]
-      if(param_verbose_) cout << ns << ": ascending_check_range is " << ascending_check_range_ << endl;
+      getParam<double>("ascending_check_range", ascending_check_range_, 0.1); // [m]
 
       /* for terrain and outlier check */
-      nhp_.param("terrain_check", terrain_check_, false);
-      if(param_verbose_) cout << ns << ": terrain_check is " <<  terrain_check_ << endl;
-
-      nhp_.param("outlier_noise", outlier_noise_, 0.1); // [m]
-      if(param_verbose_) cout << ns << ": outlier_noise_sigma is " << outlier_noise_ << endl;
-
-      nhp_.param("inlier_noise", inlier_noise_, 0.06); // [m]
-      if(param_verbose_) cout << ns << ": inlier_noise_sigma is " << inlier_noise_ << endl;
-
-      nhp_.param("check_du1", check_du1_, 0.1); // [sec]
-      if(param_verbose_) cout << ns << ": check_du1 is " << check_du1_ << endl;
-
-      nhp_.param("check_du2", check_du2_, 1.0); // [sec]
-      if(param_verbose_) cout << ns << ": check_du2 is " << check_du2_ << endl;
+      getParam<bool>("terrain_check", terrain_check_, false);
+      getParam<double>("outlier_noise", outlier_noise_, 0.1); // [m]
+      getParam<double>("inlier_noise", inlier_noise_, 0.06); // [m]
+      getParam<double>("check_du1", check_du1_, 0.1); // [sec]
+      getParam<double>("check_du2", check_du2_, 1.0); // [sec]
 
       /* barometer */
-      nhp_.param("barometer_sub_name", barometer_sub_name_, string("/baro"));
-      if(param_verbose_) cout << ns << ": barometer_sub_name is " << barometer_sub_name_ << endl;
-
-      nhp_.param("baro_noise_sigma", baro_noise_sigma_, 0.05 );
-      if(param_verbose_) cout << ns << ": baro_noise_sigma is " << baro_noise_sigma_  << endl;
-      nhp_.param("baro_bias_noise_sigma", baro_bias_noise_sigma_, 0.001 );
-      if(param_verbose_) cout << ns << ": baro_bias_noise_sigma is " << baro_bias_noise_sigma_ << endl;
-
-      nhp_.param("sample_freq", sample_freq_, 100.0 );
-      if(param_verbose_) cout << ns << ": sample_freq is " << sample_freq_ << endl;
-
-      nhp_.param("cutoff_freq", cutoff_freq_, 10.0 );
-      if(param_verbose_) cout << ns << ": cutoff_freq is " << cutoff_freq_ << endl;
-
-      nhp_.param("high_cutoff_freq", high_cutoff_freq_, 1.0 );
-      if(param_verbose_) cout << ns << ": high_cutoff_freq is " << high_cutoff_freq_ << endl;
+      getParam<std::string>("barometer_sub_name", barometer_sub_name_, string("/baro"));
+      getParam<double>("baro_noise_sigma", baro_noise_sigma_, 0.05 );
+      getParam<double>("baro_bias_noise_sigma", baro_bias_noise_sigma_, 0.001 );
+      getParam<double>("sample_freq", sample_freq_, 100.0 );
+      getParam<double>("cutoff_freq", cutoff_freq_, 10.0 );
+      getParam<double>("high_cutoff_freq", high_cutoff_freq_, 1.0 );
     }
 
   };

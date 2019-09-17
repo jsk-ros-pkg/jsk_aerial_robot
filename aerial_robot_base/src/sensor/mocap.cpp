@@ -62,9 +62,9 @@ namespace sensor_plugin
   class Mocap : public sensor_plugin::SensorBase
   {
   public:
-    void initialize(ros::NodeHandle nh, ros::NodeHandle nhp, StateEstimator* estimator, string sensor_name)
+    void initialize(ros::NodeHandle nh, ros::NodeHandle nhp, StateEstimator* estimator, string sensor_name, int index)
     {
-      SensorBase::initialize(nh, nhp, estimator, sensor_name);
+      SensorBase::initialize(nh, nhp, estimator, sensor_name, index);
       rosParamInit();
 
       //low pass filter
@@ -275,19 +275,11 @@ namespace sensor_plugin
     {
       std::string ns = nhp_.getNamespace();
 
-      nhp_.param("pos_noise_sigma", pos_noise_sigma_, 0.001 );
-      if(param_verbose_) cout << ns << ": pos noise sigma  is " << pos_noise_sigma_ << endl;
-
-      nhp_.param("acc_bias_noise_sigma", acc_bias_noise_sigma_, 0.0);
-      if(param_verbose_) cout << ns << ": acc noise sigma  is " << acc_bias_noise_sigma_ << endl;
-
-      nhp_.param("sample_freq", sample_freq_, 100.0);
-      if(param_verbose_) cout << ns << ": sample_freq  is " << sample_freq_ << endl;
-
-      nhp_.param("cutoff_pos_freq", cutoff_pos_freq_, 20.0);
-      if(param_verbose_) cout << ns << ": cutoff_pos_freq  is " << cutoff_pos_freq_ << endl;
-      nhp_.param("cutoff_vel_freq", cutoff_vel_freq_, 20.0);
-      if(param_verbose_) cout << ns << ": cutoff_vel_freq  is " << cutoff_vel_freq_ << endl;
+      getParam<double>("pos_noise_sigma", pos_noise_sigma_, 0.001 );
+      getParam<double>("acc_bias_noise_sigma", acc_bias_noise_sigma_, 0.0);
+      getParam<double>("sample_freq", sample_freq_, 100.0);
+      getParam<double>("cutoff_pos_freq", cutoff_pos_freq_, 20.0);
+      getParam<double>("cutoff_vel_freq", cutoff_vel_freq_, 20.0);
     }
 
     void init(tf::Vector3 init_pos)

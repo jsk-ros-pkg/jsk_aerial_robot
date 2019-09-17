@@ -52,6 +52,8 @@
 
 namespace sensor_plugin
 {
+  enum {ONLY_POS_MODE = 0, ONLY_VEL_MODE = 1, POS_VEL_MODE = 2,};
+
   class VisualOdometry :public sensor_plugin::SensorBase
   {
   public:
@@ -59,8 +61,13 @@ namespace sensor_plugin
     VisualOdometry();
     ~VisualOdometry(){}
 
-    void initialize(ros::NodeHandle nh, ros::NodeHandle nhp, StateEstimator* estimator, string sensor_name);
-    inline const bool odomPosMode(){return !full_vel_mode_;}
+    void initialize(ros::NodeHandle nh, ros::NodeHandle nhp, StateEstimator* estimator, string sensor_name, int index);
+
+    inline const bool odomPosMode()
+    {
+      if(fusion_mode_ != ONLY_VEL_MODE) return true;
+      else return false;
+    }
 
   private:
     /* ros */
@@ -77,14 +84,13 @@ namespace sensor_plugin
     double vel_outlier_thresh_;
     double downwards_vo_min_height_;
     double downwards_vo_max_height_;
-    bool full_vel_mode_;
+    int fusion_mode_;
+    bool vio_mode_; // visual + inertial mode
     bool z_vel_mode_;
     bool outdoor_no_vel_time_sync_; // very special flag for stereo cam such as zed mini, which has tricky behavier in outdoor mode
     /* heuristic sepecial flag for fusion */
     bool outdoor_;
     bool z_no_delay_;
-
-    bool debug_verbose_;
 
     /* servo */
     std::string joint_name_;
@@ -102,6 +108,8 @@ namespace sensor_plugin
     tf::Transform world_offset_tf_; // ^{w}H_{w_vo}: transform from true world frame to the vo/vio world frame
     tf::Transform baselink_tf_; // ^{w}H_{b}: transform from true world frame to the baselink frame, but is estimated by vo/vio
     tf::Vector3 raw_global_vel_;
+
+    double reference_timestamp_;
     aerial_robot_msgs::States vo_state_;
 
     void rosParamInit();

@@ -1,0 +1,36 @@
+hydrusx:
+  servo_controller:
+    joints:
+      state_sub_topic: /servo/states
+      ctrl_pub_topic: /servo/target_states
+      torque_pub_topic: /servo/torque_enable
+      angle_sgn: 1
+      angle_scale: 0.001534
+      zero_point_offset: 2047
+      torque_scale: 0.00735 # convert to N*m
+
+      # for simulation
+      simulation:
+        pid: {p: 50.0, i: 0.01, d: 2.0}
+        init_value: 1.57
+        type: effort_controllers/JointPositionController
+
+      # should be in order in terms of kinematics model
+      # i.e. joint1 -> jointN
+      controller1:
+        id: 0
+        name: joint1
+        #angle_max: 1.58 # you can specify for each controller
+
+        #simulaton:  # you can specify for each controller
+          #type: effort_controllers/JointPositionController
+          #pid: {p: 50.0, i: 0.01, d: 2.0}
+          #init_value: 0
+
+      controller2:
+        id: 1
+        name: joint2
+      controller3:
+        id: 2
+        name: joint3
+

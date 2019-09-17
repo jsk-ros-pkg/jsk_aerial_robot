@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<robot
+    xmlns:xacro="http://www.ros.org/wiki/xacro" name="hydrusx" >
+
+  <!-- robot urdf -->
+  <xacro:include filename="$(find hydrus)/robots/quad/old_model_tx2_rs_t265_201906/robot.urdf.xacro" />
+
+  <!-- gazebo plugin for default controller and sensors -->
+  <xacro:include filename="$(find hydrus)/robots/default.gazebo.xacro" />
+
+  <!-- sensors -->
+  <!-- TODO: create the fisheye gazebo plugin -->
+
+</robot>
