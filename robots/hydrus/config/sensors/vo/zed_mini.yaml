@@ -23,6 +23,8 @@ sensor_plugin:
     servo_height_thresh: 0.8
     servo_vel: 0.08
     servo_control_rate: 0.025
+    z_vel_mode: true
+    fusion_mode: 0 # ONLY_POS_MODE = 0, ONLY_VEL_MODE = 1, POS_VEL_MODE = 2
 
 # for gazebo simulation of servo motor
 hydrusx:
