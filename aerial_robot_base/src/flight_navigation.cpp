@@ -626,7 +626,7 @@ void Navigator::update()
 
         if(xy_control_mode_ == flight_nav::POS_CONTROL_MODE)
           {
-            if (fabs(delta.z() > alt_convergent_thresh_ || fabs(delta.x()) > xy_convergent_thresh_ || fabs(delta.y()) > xy_convergent_thresh_))
+            if (fabs(delta.z()) > alt_convergent_thresh_ || fabs(delta.x()) > xy_convergent_thresh_ || fabs(delta.y()) > xy_convergent_thresh_)
               convergent_start_time_ = ros::Time::now().toSec();
           }
         else
