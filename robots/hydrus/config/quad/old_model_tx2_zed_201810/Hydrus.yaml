@@ -1,0 +1,45 @@
+#HydrusX Quad config
+
+control_rate: 15.0
+
+baselink: fc #flight controller
+
+only_three_axis_mode: false
+gyro_moment_compensation: true
+
+q_roll: 1000
+q_roll_d: 100
+q_roll_i: 20.0
+q_pitch: 1000
+q_pitch_d: 100
+q_pitch_i: 10.0
+
+q_yaw: 100
+q_yaw_d: 50
+q_yaw_i: 0.5
+
+q_z: -3.6 # direct feedback gain, old: 10.0
+q_z_d: -3.4  # direct feedback gain, old: 20.0
+q_z_i: 1.55  # direct feedback gain, old: 10.0
+
+r1: 1.0
+r2: 1.0
+r3: 1.0
+r4: 1.0
+
+trans_constraint_weight: 100
+att_control_weight: 1
+
+stability_margin_thre: 0.13
+f_max: 16.5
+f_min: 2.0
+
+
+# inverse kinematics
+differential_motion_count: 50
+thre_joint_vel: 0.1
+w_joint_vel: 0.002
+w_root_vel: 0.001
+joint_vel_constraint_range: 0.11
+joint_vel_forbidden_range: 0.02
+#Test(flight stability) f_max: 9.29
