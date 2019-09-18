@@ -16,7 +16,7 @@
       <include file="$(find realsense2_camera)/launch/multi_t265_odom.launch" >
         <arg name="throttle_rate" value="80.0"/> <!-- 80 hz -->
         <arg name="set_module_list" value="true" />
-        <arg name="module_list_file" value="$(find hydrus)/config/quad/tx2_rs_t265_201906/T265ModuleList.yaml" />
+        <arg name="module_list_file" value="$(find hydrus)/config/quad/old_model_tx2_rs_t265_201906/T265ModuleList.yaml" />
         <arg name="reset_duration" value = "0.5" />
       </include>
       <!-- mocap -->
