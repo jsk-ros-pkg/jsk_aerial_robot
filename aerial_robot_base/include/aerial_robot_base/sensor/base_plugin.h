@@ -171,6 +171,7 @@ namespace sensor_plugin
     int sensor_status_;
     int prev_status_;
     boost::mutex status_mutex_;
+    boost::mutex health_check_mutex_;
 
     /* health check */
     vector<bool> health_;
@@ -190,16 +191,18 @@ namespace sensor_plugin
     /* check whether we get sensor data */
     void healthCheck(const ros::TimerEvent & e)
     {
+      boost::lock_guard<boost::mutex> lock(health_check_mutex_);
+
       /* this will call only once, no recovery */
       for(int i = 0; i < health_.size(); i++)
         {
-          if(ros::Time::now().toSec() - health_stamp_[i] > health_timeout_ && health_[i] && !simulation_)
+          if(ros::Time::now().toSec() - health_stamp_.at(i) > health_timeout_ && health_.at(i) && !simulation_)
             {
-              ROS_ERROR("[%s, chan%d]: can not get fresh sensor data for %f[sec]", nhp_.getNamespace().c_str(), i, ros::Time::now().toSec() - health_stamp_[i]);
+              ROS_ERROR("[%s, chan%d]: can not get fresh sensor data for %f[sec]", nhp_.getNamespace().c_str(), i, ros::Time::now().toSec() - health_stamp_.at(i));
               /* TODO: the solution to unhealth should be more clever */
               estimator_->setUnhealthLevel(unhealth_level_);
 
-              health_[i] = false;
+              health_.at(i) = false;
             }
         }
     }
@@ -229,6 +232,8 @@ namespace sensor_plugin
 
     void updateHealthStamp(uint8_t chan = 0)
     {
+      boost::lock_guard<boost::mutex> lock(health_check_mutex_);
+
       if(!health_[chan])
         {
           health_[chan] = true;
