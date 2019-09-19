@@ -66,13 +66,27 @@ void DynamixelSerial::reboot(uint8_t servo_index)
 
 void DynamixelSerial::setTorque(uint8_t servo_index)
 {
-	instruction_buffer_.push(std::make_pair(INST_SET_TORQUE, servo_index));
+  instruction_buffer_.push(std::make_pair(INST_SET_TORQUE, servo_index));
 }
 
 void DynamixelSerial::setHomingOffset(uint8_t servo_index)
 {
-	cmdWriteHomingOffset(servo_index);
-	getHomingOffset();
+  if(!servo_[servo_index].send_data_flag_)
+    {
+      cmdReadPresentPosition(servo_index);
+      status_packet_instruction_ = INST_GET_PRESENT_POS;
+      readStatusPacket();
+    }
+
+  cmdWriteHomingOffset(servo_index);
+  getHomingOffset();
+
+  if(!servo_[servo_index].send_data_flag_)
+    {
+      cmdReadPresentPosition(servo_index);
+      status_packet_instruction_ = INST_GET_PRESENT_POS;
+      readStatusPacket();
+    }
 }
 
 void DynamixelSerial::setPositionGains(uint8_t servo_index)
@@ -172,13 +186,15 @@ void DynamixelSerial::update()
     		switch (instruction.first) {
     		case INST_GET_PRESENT_POS: /* read servo position(angle) */
     			for (unsigned int i = 0; i < servo_num_; ++i) {
+                                if(!servo_[i].send_data_flag_ && !servo_[i].first_get_pos_flag_) continue;
     				cmdReadPresentPosition(i);
     				status_packet_instruction_ = instruction.first;
     				readStatusPacket();
     			}
     			break;
     		case INST_GET_PRESENT_CURRENT: /* read servo load */
-    			for (unsigned int i = 0; i < servo_num_; ++i) {
+                          for (unsigned int i = 0; i < servo_num_; ++i) {
+                                if(!servo_[i].send_data_flag_) continue;
     				cmdReadPresentCurrent(i);
     				status_packet_instruction_ = instruction.first;
     				readStatusPacket();
@@ -186,6 +202,7 @@ void DynamixelSerial::update()
     			break;
     		case INST_GET_PRESENT_TEMPERATURE: /* read servo temp */
     			for (unsigned int i = 0; i < servo_num_; ++i) {
+                                if(!servo_[i].send_data_flag_) continue;
     				cmdReadPresentTemperature(i);
     				status_packet_instruction_ = instruction.first;
     				readStatusPacket();
@@ -193,6 +210,7 @@ void DynamixelSerial::update()
     			break;
     		case INST_GET_PRESENT_MOVING: /* read servo movement */
     			for (unsigned int i = 0; i < servo_num_; ++i) {
+                                if(!servo_[i].send_data_flag_) continue;
     				cmdReadMoving(i);
     				status_packet_instruction_ = instruction.first;
     				readStatusPacket();
@@ -200,6 +218,7 @@ void DynamixelSerial::update()
     			break;
     		case INST_GET_HARDWARE_ERROR_STATUS:
     			for (unsigned int i = 0; i < servo_num_; ++i) {
+                                if(!servo_[i].send_data_flag_) continue;
     				cmdReadHardwareErrorStatus(i);
     				status_packet_instruction_ = instruction.first;
     				readStatusPacket();
@@ -239,47 +258,47 @@ void DynamixelSerial::update()
     	} else {
     		switch (instruction.first) {
     		case INST_GET_PRESENT_POS: /* read servo position(angle) */
-    			cmdSyncReadPresentPosition();
+    			cmdSyncReadPresentPosition(false);
     			status_packet_instruction_ = instruction.first;
     			read_status_packet_flag = true;
     			break;
     		case INST_GET_PRESENT_CURRENT: /* read servo load */
-    			cmdSyncReadPresentCurrent();
+    			cmdSyncReadPresentCurrent(false);
     			status_packet_instruction_ = instruction.first;
     			read_status_packet_flag = true;
     			break;
     		case INST_GET_PRESENT_TEMPERATURE: /* read servo temp */
-    			cmdSyncReadPresentTemperature();
+    			cmdSyncReadPresentTemperature(false);
     			status_packet_instruction_ = instruction.first;
     			read_status_packet_flag = true;
     			break;
     		case INST_GET_PRESENT_MOVING: /* read servo movement */
-    			cmdSyncReadMoving();
+    			cmdSyncReadMoving(false);
     			status_packet_instruction_ = instruction.first;
     			read_status_packet_flag = true;
     			break;
     		case INST_GET_HARDWARE_ERROR_STATUS:
-    			cmdSyncReadHardwareErrorStatus();
+    			cmdSyncReadHardwareErrorStatus(false);
     			status_packet_instruction_ = instruction.first;
     			read_status_packet_flag = true;
     			break;
     		case INST_GET_HOMING_OFFSET:
-    			cmdSyncReadHomingOffset();
+    			cmdSyncReadHomingOffset(false);
     			status_packet_instruction_ = instruction.first;
     			read_status_packet_flag = true;
     			break;
     		case INST_GET_POSITION_GAINS:
-    			cmdSyncReadPositionGains();
+    			cmdSyncReadPositionGains(false);
     			status_packet_instruction_ = instruction.first;
     			read_status_packet_flag = true;
     			break;
     		case INST_GET_PROFILE_VELOCITY:
-    			cmdSyncReadProfileVelocity();
+    			cmdSyncReadProfileVelocity(false);
     			status_packet_instruction_ = instruction.first;
     			read_status_packet_flag = true;
     			break;
     		case INST_GET_CURRENT_LIMIT:
-    			cmdSyncReadCurrentLimit();
+    			cmdSyncReadCurrentLimit(false);
     			status_packet_instruction_ = instruction.first;
     			read_status_packet_flag = true;
     			break;
@@ -289,6 +308,7 @@ void DynamixelSerial::update()
     	    /* receive data process */
     	    if(read_status_packet_flag) {
     	    	for (unsigned int i = 0; i < servo_num_; i++) {
+                        if(!servo_[i].send_data_flag_ && !servo_[i].first_get_pos_flag_) continue;
     	    		readStatusPacket();
     	    	}
     	    }
@@ -574,7 +594,7 @@ void DynamixelSerial::cmdWrite(uint8_t id, uint16_t address, uint8_t* param, int
 	transmitInstructionPacket(id, param_len + 5, COMMAND_WRITE, parameters);
 }
 
-void DynamixelSerial::cmdSyncRead(uint16_t address, uint16_t byte_size)
+void DynamixelSerial::cmdSyncRead(uint16_t address, uint16_t byte_size, bool send_all)
 {
 	uint8_t parameters[INSTRUCTION_PACKET_SIZE];
 	parameters[0] = address & 0xFF;
@@ -583,7 +603,8 @@ void DynamixelSerial::cmdSyncRead(uint16_t address, uint16_t byte_size)
 	parameters[3] = (byte_size >> 8) & 0xFF;
 	int param_idx = 4;
 	for (unsigned int i = 0; i < servo_num_; i++) {
-		parameters[param_idx++] = servo_[i].id_;
+          if(!send_all && !servo_[i].send_data_flag_ && !servo_[i].first_get_pos_flag_) continue;
+          parameters[param_idx++] = servo_[i].id_;
 	}
 	transmitInstructionPacket(BROADCAST_ID, param_idx + 3, COMMAND_SYNC_READ, parameters);
 }
@@ -710,49 +731,49 @@ void DynamixelSerial::cmdWriteTorqueEnable(uint8_t servo_index)
 	cmdWrite(servo_[servo_index].id_, CTRL_TORQUE_ENABLE, &parameter, TORQUE_ENABLE_BYTE_LEN);
 }
 
-void DynamixelSerial::cmdSyncReadCurrentLimit()
+void DynamixelSerial::cmdSyncReadCurrentLimit(bool send_all)
 {
-	cmdSyncRead(CTRL_CURRENT_LIMIT, CURRENT_LIMIT_BYTE_LEN);
+	cmdSyncRead(CTRL_CURRENT_LIMIT, CURRENT_LIMIT_BYTE_LEN, send_all);
 }
 
-void DynamixelSerial::cmdSyncReadHardwareErrorStatus()
+void DynamixelSerial::cmdSyncReadHardwareErrorStatus(bool send_all)
 {
-	cmdSyncRead(CTRL_HARDWARE_ERROR_STATUS, HARDWARE_ERROR_STATUS_BYTE_LEN);
+	cmdSyncRead(CTRL_HARDWARE_ERROR_STATUS, HARDWARE_ERROR_STATUS_BYTE_LEN, send_all);
 }
 
-void DynamixelSerial::cmdSyncReadHomingOffset()
+void DynamixelSerial::cmdSyncReadHomingOffset(bool send_all)
 {
-	cmdSyncRead(CTRL_HOMING_OFFSET, HOMING_OFFSET_BYTE_LEN);
+	cmdSyncRead(CTRL_HOMING_OFFSET, HOMING_OFFSET_BYTE_LEN, send_all);
 }
 
-void DynamixelSerial::cmdSyncReadMoving()
+void DynamixelSerial::cmdSyncReadMoving(bool send_all)
 {
-	cmdSyncRead(CTRL_MOVING, MOVING_BYTE_LEN);
+	cmdSyncRead(CTRL_MOVING, MOVING_BYTE_LEN, send_all);
 }
 
-void DynamixelSerial::cmdSyncReadPositionGains()
+void DynamixelSerial::cmdSyncReadPositionGains(bool send_all)
 {
-	cmdSyncRead(CTRL_POSITION_D_GAIN, POSITION_GAINS_BYTE_LEN);
+	cmdSyncRead(CTRL_POSITION_D_GAIN, POSITION_GAINS_BYTE_LEN, send_all);
 }
 
-void DynamixelSerial::cmdSyncReadPresentCurrent()
+void DynamixelSerial::cmdSyncReadPresentCurrent(bool send_all)
 {
-	cmdSyncRead(CTRL_PRESENT_CURRENT, PRESENT_CURRENT_BYTE_LEN);
+	cmdSyncRead(CTRL_PRESENT_CURRENT, PRESENT_CURRENT_BYTE_LEN, send_all);
 }
 
-void DynamixelSerial::cmdSyncReadPresentPosition()
+void DynamixelSerial::cmdSyncReadPresentPosition(bool send_all)
 {
-	cmdSyncRead(CTRL_PRESENT_POSITION, PRESENT_POSITION_BYTE_LEN);
+	cmdSyncRead(CTRL_PRESENT_POSITION, PRESENT_POSITION_BYTE_LEN, send_all);
 }
 
-void DynamixelSerial::cmdSyncReadPresentTemperature()
+void DynamixelSerial::cmdSyncReadPresentTemperature(bool send_all)
 {
-	cmdSyncRead(CTRL_PRESENT_TEMPERATURE, PRESENT_TEMPERATURE_BYTE_LEN);
+	cmdSyncRead(CTRL_PRESENT_TEMPERATURE, PRESENT_TEMPERATURE_BYTE_LEN, send_all);
 }
 
-void DynamixelSerial::cmdSyncReadProfileVelocity()
+void DynamixelSerial::cmdSyncReadProfileVelocity(bool send_all)
 {
-	cmdSyncRead(CTRL_PROFILE_VELOCITY, PROFILE_VELOCITY_BYTE_LEN);
+	cmdSyncRead(CTRL_PROFILE_VELOCITY, PROFILE_VELOCITY_BYTE_LEN, send_all);
 }
 
 void DynamixelSerial::cmdSyncWriteGoalPosition()

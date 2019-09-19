@@ -50,6 +50,12 @@ namespace CANDeviceManager
 		}
 	}
 
+	bool connected(void)
+	{
+		if(can_timeout_count > CAN_MAX_TIMEOUT_COUNT) return false;
+		else return true;
+	}
+
 	void Receive_IT()
 	{
 		CAN::Receive_IT();
