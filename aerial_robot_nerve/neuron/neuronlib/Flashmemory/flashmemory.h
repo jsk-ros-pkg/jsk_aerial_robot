@@ -8,11 +8,20 @@
 #ifndef APPLICATION_FLASHMEMORY_FLASHMEMORY_H_
 #define APPLICATION_FLASHMEMORY_FLASHMEMORY_H_
 
-#include "stm32f4xx_hal.h"
-#include <vector>
+#if defined(STM32F103xB)
+	#include "stm32f1xx_hal.h"
+        #include <array>
+#else
+	#include "stm32f4xx_hal.h"
+        #include <vector>
+#endif
 
 namespace Flashmemory {
+#if defined(STM32F103xB)
+  	void init(uint32_t data_address);
+#else
 	void init(uint32_t data_address, uint32_t data_sector);
+#endif
 	void addValue(void* ptr, size_t size);
 	void read();
 	void erase();

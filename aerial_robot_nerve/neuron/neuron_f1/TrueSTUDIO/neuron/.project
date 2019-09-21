@@ -83,34 +83,9 @@
 			<locationURI>virtual:/virtual</locationURI>
 		</link>
 		<link>
-			<name>Application/CAN</name>
+			<name>Application/neuronlib</name>
 			<type>2</type>
-			<locationURI>PARENT-2-PROJECT_LOC/CAN</locationURI>
-		</link>
-		<link>
-			<name>Application/Flashmemory</name>
-			<type>2</type>
-			<locationURI>PARENT-2-PROJECT_LOC/Flashmemory</locationURI>
-		</link>
-		<link>
-			<name>Application/IMU</name>
-			<type>2</type>
-			<locationURI>PARENT-2-PROJECT_LOC/IMU</locationURI>
-		</link>
-		<link>
-			<name>Application/Initializer</name>
-			<type>2</type>
-			<locationURI>PARENT-2-PROJECT_LOC/Initializer</locationURI>
-		</link>
-		<link>
-			<name>Application/Motor</name>
-			<type>2</type>
-			<locationURI>PARENT-2-PROJECT_LOC/Motor</locationURI>
-		</link>
-		<link>
-			<name>Application/Servo</name>
-			<type>2</type>
-			<locationURI>PARENT-2-PROJECT_LOC/Servo</locationURI>
+			<locationURI>PARENT-3-PROJECT_LOC/neuronlib</locationURI>
 		</link>
 		<link>
 			<name>Application/TrueSTUDIO</name>

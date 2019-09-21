@@ -46,13 +46,13 @@
 							</tool>
 							<tool command="arm-atollic-eabi-gcc -c " commandLinePattern="${COMMAND} ${FLAGS} ${OUTPUT_FLAG}${OUTPUT_PREFIX} ${OUTPUT} ${INPUTS}" errorParsers="org.eclipse.cdt.core.GCCErrorParser" id="com.atollic.truestudio.exe.debug.toolchain.gcc.1836874447" name="C Compiler" superClass="com.atollic.truestudio.exe.debug.toolchain.gcc">
 								<option id="com.atollic.truestudio.gcc.directories.select.330946435" name="Include path" superClass="com.atollic.truestudio.gcc.directories.select" valueType="includePath">
-									<listOptionValue builtIn="false" value="../../../Motor"/>
-									<listOptionValue builtIn="false" value="../../../Servo"/>
 									<listOptionValue builtIn="false" value="../../../Inc"/>
-									<listOptionValue builtIn="false" value="../../../IMU"/>
-									<listOptionValue builtIn="false" value="../../../CAN"/>
-									<listOptionValue builtIn="false" value="../../../Initializer"/>
-									<listOptionValue builtIn="false" value="../../../Flashmemory"/>
+									<listOptionValue builtIn="false" value="../../../../neuronlib/CAN"/>
+									<listOptionValue builtIn="false" value="../../../../neuronlib/IMU"/>
+									<listOptionValue builtIn="false" value="../../../../neuronlib/Initializer"/>
+									<listOptionValue builtIn="false" value="../../../../neuronlib/Motor"/>
+									<listOptionValue builtIn="false" value="../../../../neuronlib/Servo"/>
+									<listOptionValue builtIn="false" value="../../../../neuronlib/Flashmemory"/>
 									<listOptionValue builtIn="false" value="../../../Drivers/STM32F1xx_HAL_Driver/Inc"/>
 									<listOptionValue builtIn="false" value="../../../Drivers/STM32F1xx_HAL_Driver/Inc/Legacy"/>
 									<listOptionValue builtIn="false" value="../../../Drivers/CMSIS/Device/ST/STM32F1xx/Include"/>
@@ -113,13 +113,13 @@
 								<option id="com.atollic.truestudio.exe.debug.toolchain.gpp.optimization.level.1627228064" name="Optimization Level" superClass="com.atollic.truestudio.exe.debug.toolchain.gpp.optimization.level" value="com.atollic.truestudio.gpp.optimization.level.02" valueType="enumerated"/>
 								<option id="com.atollic.truestudio.gpp.cppstandard.42515683" name="C++ standard" superClass="com.atollic.truestudio.gpp.cppstandard" value="com.atollic.truestudio.gpp.cppstandard.gnupp0x" valueType="enumerated"/>
 								<option id="com.atollic.truestudio.gpp.directories.select.739146784" name="Include path" superClass="com.atollic.truestudio.gpp.directories.select" valueType="includePath">
-									<listOptionValue builtIn="false" value="../../../Motor"/>
-									<listOptionValue builtIn="false" value="../../../Servo"/>
 									<listOptionValue builtIn="false" value="../../../Inc"/>
-									<listOptionValue builtIn="false" value="../../../IMU"/>
-									<listOptionValue builtIn="false" value="../../../CAN"/>
-									<listOptionValue builtIn="false" value="../../../Initializer"/>
-									<listOptionValue builtIn="false" value="../../../Flashmemory"/>
+									<listOptionValue builtIn="false" value="../../../../neuronlib/CAN"/>
+									<listOptionValue builtIn="false" value="../../../../neuronlib/IMU"/>
+									<listOptionValue builtIn="false" value="../../../../neuronlib/Initializer"/>
+									<listOptionValue builtIn="false" value="../../../../neuronlib/Motor"/>
+									<listOptionValue builtIn="false" value="../../../../neuronlib/Servo"/>
+									<listOptionValue builtIn="false" value="../../../../neuronlib/Flashmemory"/>
 									<listOptionValue builtIn="false" value="../../../Drivers/STM32F1xx_HAL_Driver/Inc"/>
 									<listOptionValue builtIn="false" value="../../../Drivers/STM32F1xx_HAL_Driver/Inc/Legacy"/>
 									<listOptionValue builtIn="false" value="../../../Drivers/CMSIS/Device/ST/STM32F1xx/Include"/>

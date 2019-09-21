@@ -51,6 +51,8 @@ namespace Spine
     uint32_t servo_torque_last_pub_time_ = 0;
     unsigned int can_idle_count_ = 0;
     bool servo_control_flag_ = true;
+
+    uint32_t last_connected_time_ =0;
   }
 
   void boardInfoCallback(const spinal::GetBoardInfo::Request& req, spinal::GetBoardInfo::Response& res)
@@ -280,6 +282,14 @@ namespace Spine
       }
 
     CANDeviceManager::tick(1);
+
+   if(CANDeviceManager::connected()) last_connected_time_ = now_time;
+
+    if(now_time - last_connected_time_ > 1000 /* ms */)
+    {
+    	if(nh_->connected()) nh_->logerror("CAN is not connected");
+    	last_connected_time_ = now_time;
+    }
   }
 
   void setMotorPwm(uint16_t pwm, uint8_t motor)

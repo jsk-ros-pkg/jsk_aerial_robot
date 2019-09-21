@@ -10,7 +10,6 @@
 
 #include <inttypes.h>
 #include <stdlib.h>
-#include "stm32f4xx_hal.h"
 #include <array>
 #include <algorithm>
 #include <utility>
@@ -334,7 +333,7 @@ private:
   void cmdReboot(uint8_t id);
   void cmdRead(uint8_t id, uint16_t address, uint16_t byte_size);
   void cmdWrite(uint8_t id, uint16_t address, uint8_t* param, int param_len);
-  void cmdSyncRead(uint16_t address, uint16_t byte_size);
+  void cmdSyncRead(uint16_t address, uint16_t byte_size, bool send_all);
   void cmdSyncWrite(uint16_t address, uint8_t* param, int param_len);
 
   inline void cmdReadCurrentLimit(uint8_t servo_index);
@@ -352,15 +351,15 @@ private:
   inline void cmdWriteProfileVelocity(uint8_t servo_index);
   inline void cmdWriteStatusReturnLevel(uint8_t id, uint8_t set);
   inline void cmdWriteTorqueEnable(uint8_t servo_index);
-  inline void cmdSyncReadCurrentLimit();
-  inline void cmdSyncReadHardwareErrorStatus();
-  inline void cmdSyncReadHomingOffset();
-  inline void cmdSyncReadMoving();
-  inline void cmdSyncReadPositionGains();
-  inline void cmdSyncReadPresentCurrent();
-  inline void cmdSyncReadPresentPosition();
-  inline void cmdSyncReadPresentTemperature();
-  inline void cmdSyncReadProfileVelocity();
+  inline void cmdSyncReadCurrentLimit(bool send_all = true);
+  inline void cmdSyncReadHardwareErrorStatus(bool send_all = true);
+  inline void cmdSyncReadHomingOffset(bool send_all = true);
+  inline void cmdSyncReadMoving(bool send_all = true);
+  inline void cmdSyncReadPositionGains(bool send_all = true);
+  inline void cmdSyncReadPresentCurrent(bool send_all = true);
+  inline void cmdSyncReadPresentPosition(bool send_all = true);
+  inline void cmdSyncReadPresentTemperature(bool send_all = true);
+  inline void cmdSyncReadProfileVelocity(bool send_all = true);
   inline void cmdSyncWriteGoalPosition();
   inline void cmdSyncWriteLed();
   inline void cmdSyncWritePositionGains();
