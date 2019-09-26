@@ -86,9 +86,7 @@ namespace sensor_plugin
 
     /* ros subscriber: vo */
     string topic_name;
-    nhp_.param("vo_sub_topic_name", topic_name, string("vo") );
-    if(estimator_->getVoHandlers().size() > 1)
-      indexed_nhp_.param("vo_sub_topic_name", topic_name, string("vo" + std::to_string(index)));
+    getParam<std::string>("vo_sub_topic_name", topic_name, string("/vo"));
 
     uint32_t queuse_size = 1; // if the timestamp is not synchronized, we can only use the latest sensor value.
     if(time_sync_) queuse_size = 10;
