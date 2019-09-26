@@ -77,9 +77,7 @@ namespace sensor_plugin
 
       /* range sensor */
       std::string topic_name;
-      nhp_.param("range_sensor_sub_name", topic_name, string("/distance"));
-      if(estimator_->getAltHandlers().size() > 1)
-        indexed_nhp_.param("range_sensor_sub_name", topic_name, string("/distance" + std::to_string(index)));
+      getParam<std::string>("range_sensor_sub_name", topic_name, string("/distance"));
       range_sensor_sub_ = nh_.subscribe(topic_name, 10, &Alt::rangeCallback, this);
 
       if(estimator_->getGpsHandlers().size() == 1)

@@ -94,11 +94,8 @@ namespace sensor_plugin
 
     /* ros subscriber for gps */
     std::string topic_name;
-    nhp_.param("gps_sub_name", topic_name, string("/gps"));
-    if(estimator_->getGpsHandlers().size() > 1)
-      indexed_nhp_.param("gps_sub_topic_name", topic_name, string("/gps" + std::to_string(index)));
+    getParam<std::string>("gps_sub_name", topic_name, string("/gps"));
     gps_sub_ = nh_.subscribe(topic_name, 5, &Gps::gpsCallback, this);
-
 
     if(estimator_->getGpsHandlers().size() == 1)
       {

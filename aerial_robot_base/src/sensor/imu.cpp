@@ -66,10 +66,7 @@ namespace sensor_plugin
       rosParamInit();
 
       std::string topic_name;
-
-      nhp_.param("imu_topic_name", topic_name, string("/imu"));
-      if(estimator_->getImuHandlers().size() > 1)
-        indexed_nhp_.param("imu_topic_name", topic_name, string("/imu") + std::to_string(index));
+      getParam<std::string>("imu_topic_name", topic_name, string("/imu"));
       imu_sub_ = nh_.subscribe<spinal::Imu>(topic_name, 10, &Imu::ImuCallback, this);
 
       nhp_.param("imu_pub_topic_name", topic_name, string("/uav/baselink/imu"));
