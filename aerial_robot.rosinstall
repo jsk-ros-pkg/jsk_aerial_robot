@@ -15,3 +15,9 @@
     local-name: mocap_optitrack
     uri: https://github.com/tongtybj/mocap_optitrack.git
     version: fix_multiple_rigid_bodies_parse_bug
+
+# realsense
+- git:
+    local-name: realsense-ros
+    uri: https://github.com/tongtybj/realsense-ros.git
+    version: multi_realsense_t265
