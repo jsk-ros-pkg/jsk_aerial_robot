@@ -181,7 +181,7 @@
       <collision>
         <origin rpy="0 0 0" xyz="0 0 0"/>
         <geometry>
-          <cylinder length="0.1" radius="${protector_radius -0.1}"/>
+          <cylinder length="0.1" radius="${protector_radius + 0.01}"/>
         </geometry>
       </collision>
     </link>
