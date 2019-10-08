@@ -2,8 +2,8 @@
 
 set -x
 
-apt-get update
-apt-get install -y sudo software-properties-common git wget sed
+apt-get update -qq && apt-get install -y -q wget sudo lsb-release gnupg git sed # for docker
+echo 'debconf debconf/frontend select Noninteractive' | sudo debconf-set-selections
 
 echo "Testing branch $TRAVIS_BRANCH of $REPOSITORY_NAME"
 sudo sh -c "echo \"deb ${REPOSITORY} `lsb_release -cs` main\" > /etc/apt/sources.list.d/ros-latest.list"
