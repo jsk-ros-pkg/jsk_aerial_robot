@@ -158,7 +158,13 @@ protected:
   geometry_msgs::PoseStamped cmd_pos_;
 
   /* baselink */
-  gazebo::math::Pose base_link_offset_;
+#if GAZEBO_MAJOR_VERSION > 8
+  ignition::math::Pose3d base_link_offset_;
+#else
+   gazebo::math::Pose base_link_offset_;
+#endif
+  
+
   std::string base_link_parent_;
 
   void findBaselinkParent(const KDL::Tree& tree);

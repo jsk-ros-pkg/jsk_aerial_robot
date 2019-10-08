@@ -334,9 +334,16 @@ void AerialRobotHWSim::findBaselinkParent(const KDL::Tree& tree)
     }
 
   KDL::Frame base_link_offset = recursiveFindParent(it);
+#if GAZEBO_MAJOR_VERSION >= 8
+  ignition::math::Quaterniond q;
+  base_link_offset.M.GetQuaternion(q.X(), q.Y(), q.Z(), q.W());
+  base_link_offset_.Set(ignition::math::Vector3d(base_link_offset.p.x(), base_link_offset.p.y(), base_link_offset.p.z()), q);
+#else
   gazebo::math::Quaternion q;
   base_link_offset.M.GetQuaternion(q.x, q.y, q.z, q.w);
   base_link_offset_.Set(gazebo::math::Vector3(base_link_offset.p.x(), base_link_offset.p.y(), base_link_offset.p.z()), q);
+#endif
+
   ROS_WARN("Find the parent link for the baselink %s:  %s, offset is [%f, %f, %f]", rotor_interface_.getBaseLinkName().c_str(), base_link_parent_.c_str(), base_link_offset.p.x(), base_link_offset.p.y(), base_link_offset.p.z());
 }
 
@@ -346,14 +353,19 @@ void AerialRobotHWSim::readSim(ros::Time time, ros::Duration period)
   for(unsigned int j=0; j < n_dof_; j++)
   {
     // Gazebo has an interesting API...
+#if GAZEBO_MAJOR_VERSION >= 8
+    double position = sim_joints_[j]->Position(0);
+#else
+    double position = sim_joints_[j]->GetAngle(0).Radian();
+#endif
+
     if (joint_types_[j] == urdf::Joint::PRISMATIC)
     {
-      joint_position_[j] = sim_joints_[j]->GetAngle(0).Radian();
+      joint_position_[j] = position;
     }
     else
     {
-      joint_position_[j] += angles::shortest_angular_distance(joint_position_[j],
-                            sim_joints_[j]->GetAngle(0).Radian());
+      joint_position_[j] += angles::shortest_angular_distance(joint_position_[j], position);
     }
     joint_velocity_[j] = sim_joints_[j]->GetVelocity(0);
     joint_effort_[j] = sim_joints_[j]->GetForce((unsigned int)(0));
@@ -371,16 +383,42 @@ void AerialRobotHWSim::readSim(ros::Time time, ros::Duration period)
       /* orientation should calculate the rpy in world frame,
          and angular velocity should show the value in board(body) frame */
       /* set orientation and angular of baselink */
+#if GAZEBO_MAJOR_VERSION >= 8
+      ignition::math::Quaterniond q = baselink_parent->WorldPose().Rot() * base_link_offset_.Rot();
+      rotor_interface_.setBaseLinkOrientation(q.X(), q.Y(), q.Z(), q.W());
+      ignition::math::Vector3d w = base_link_offset_.Rot().Inverse() * baselink_parent->RelativeAngularVel();
+      rotor_interface_.setBaseLinkAngular(w.X(), w.Y(), w.Z());
+#else
       gazebo::math::Quaternion q = baselink_parent->GetWorldPose().rot * base_link_offset_.rot;
       rotor_interface_.setBaseLinkOrientation(q.x, q.y, q.z, q.w);
       gazebo::math::Vector3 w = base_link_offset_.rot.GetInverse() * baselink_parent->GetRelativeAngularVel();
       rotor_interface_.setBaseLinkAngular(w.x, w.y, w.z);
+#endif
 
       if(time.toSec() - last_time.toSec() > ground_truth_pub_rate_)
         {
           nav_msgs::Odometry pose_msg;
           pose_msg.header.stamp = time;
+#if GAZEBO_MAJOR_VERSION >= 8
+          ignition::math::Vector3d baselink_pos = baselink_parent->WorldPose().Pos() + baselink_parent->WorldPose().Rot() * base_link_offset_.Pos();
+          pose_msg.pose.pose.position.x = baselink_pos.X();
+          pose_msg.pose.pose.position.y = baselink_pos.Y();
+          pose_msg.pose.pose.position.z = baselink_pos.Z();
+          pose_msg.pose.pose.orientation.x = q.X();
+          pose_msg.pose.pose.orientation.y = q.Y();
+          pose_msg.pose.pose.orientation.z = q.Z();
+          pose_msg.pose.pose.orientation.w = q.W();
 
+          ignition::math::Vector3d baselink_vel = baselink_parent->WorldLinearVel(base_link_offset_.Pos());
+          pose_msg.twist.twist.linear.x = baselink_vel.X();
+          pose_msg.twist.twist.linear.y = baselink_vel.Y();
+          pose_msg.twist.twist.linear.z = baselink_vel.Z();
+
+          /* CAUTION! the angular is describe in the fc frame */
+          pose_msg.twist.twist.angular.x = w.X();
+          pose_msg.twist.twist.angular.y = w.Y();
+          pose_msg.twist.twist.angular.z = w.Z();
+#else
           gazebo::math::Vector3 baselink_pos = baselink_parent->GetWorldPose().pos + baselink_parent->GetWorldPose().rot * base_link_offset_.pos;
           pose_msg.pose.pose.position.x = baselink_pos.x;
           pose_msg.pose.pose.position.y = baselink_pos.y;
@@ -399,7 +437,7 @@ void AerialRobotHWSim::readSim(ros::Time time, ros::Duration period)
           pose_msg.twist.twist.angular.x = w.x;
           pose_msg.twist.twist.angular.y = w.y;
           pose_msg.twist.twist.angular.z = w.z;
-
+#endif
           ground_truth_pub_.publish(pose_msg);
         }
     }
@@ -441,25 +479,43 @@ void AerialRobotHWSim::writeSim(ros::Time time, ros::Duration period)
 
       if (flight_mode_ == CMD_VEL_MODE)
         {
+#if GAZEBO_MAJOR_VERSION >= 8
+          baselink->SetLinearVel(ignition::math::Vector3d(cmd_vel_.twist.linear.x,
+                                                        cmd_vel_.twist.linear.y,
+                                                        cmd_vel_.twist.linear.z));
+          baselink->SetAngularVel(ignition::math::Vector3d(cmd_vel_.twist.angular.x,
+                                                         cmd_vel_.twist.angular.y,
+                                                         cmd_vel_.twist.angular.z));
+#else
           baselink->SetLinearVel(gazebo::math::Vector3(cmd_vel_.twist.linear.x,
                                                         cmd_vel_.twist.linear.y,
                                                         cmd_vel_.twist.linear.z));
           baselink->SetAngularVel(gazebo::math::Vector3(cmd_vel_.twist.angular.x,
                                                          cmd_vel_.twist.angular.y,
                                                          cmd_vel_.twist.angular.z));
+#endif
           //flight_mode_ = CONTROL_MODE;
         }
 
       if (flight_mode_ == CMD_POS_MODE)
         {
-          baselink->SetWorldPose(gazebo::math::Pose(
-                                                       gazebo::math::Vector3(cmd_pos_.pose.position.x,
-                                                                             cmd_pos_.pose.position.y,
-                                                                             cmd_pos_.pose.position.z),
-                                                       gazebo::math::Quaternion(cmd_pos_.pose.orientation.w,
-                                                                                cmd_pos_.pose.orientation.x,
-                                                                                cmd_pos_.pose.orientation.y,
-                                                                                cmd_pos_.pose.orientation.z)));
+#if GAZEBO_MAJOR_VERSION >= 8
+          baselink->SetWorldPose(ignition::math::Pose3d(ignition::math::Vector3d(cmd_pos_.pose.position.x,
+                                                                              cmd_pos_.pose.position.y,
+                                                                              cmd_pos_.pose.position.z),
+                                                      ignition::math::Quaterniond(cmd_pos_.pose.orientation.w,
+                                                                                 cmd_pos_.pose.orientation.x,
+                                                                                 cmd_pos_.pose.orientation.y,
+                                                                                 cmd_pos_.pose.orientation.z)));
+#else
+          baselink->SetWorldPose(gazebo::math::Pose(gazebo::math::Vector3(cmd_pos_.pose.position.x,
+                                                                              cmd_pos_.pose.position.y,
+                                                                              cmd_pos_.pose.position.z),
+                                                      gazebo::math::Quaternion(cmd_pos_.pose.orientation.w,
+                                                                                 cmd_pos_.pose.orientation.x,
+                                                                                 cmd_pos_.pose.orientation.y,
+                                                                                 cmd_pos_.pose.orientation.z)));
+#endif
           flight_mode_ = CONTROL_MODE;
         }
     }
@@ -544,8 +600,13 @@ void AerialRobotHWSim::writeSim(ros::Time time, ros::Duration period)
 
               //std::cout << child_link->GetName() << ": force: " << rotor.getForce() << std::endl;
               /* add force and torque, need to check */
+#if GAZEBO_MAJOR_VERSION >= 8
+              child_link->AddRelativeForce(ignition::math::Vector3d(0, 0, rotor.getForce()));
+              parent_link->AddRelativeTorque(ignition::math::Vector3d(0, 0, rotor.getTorque()));
+#else
               child_link->AddRelativeForce(gazebo::math::Vector3(0, 0, rotor.getForce()));
               parent_link->AddRelativeTorque(gazebo::math::Vector3(0, 0, rotor.getTorque()));
+#endif
             }
         }
         break;
