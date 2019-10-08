@@ -1,0 +1,23 @@
+# kalman filter
+- git:
+    local-name: kalman_filter
+    uri: https://github.com/tongtybj/kalman_filter.git
+    version: e140388
+
+# the sensor interface
+- git:
+    local-name: sensor_interface
+    uri: https://github.com/tongtybj/sensor_interface.git
+    version: aacc56a
+
+# motion capture(optitrack)
+- git:
+    local-name: mocap_optitrack
+    uri: https://github.com/tongtybj/mocap_optitrack.git
+    version: fix_multiple_rigid_bodies_parse_bug
+
+# realsense
+#- git:
+#    local-name: realsense-ros
+#    uri: https://github.com/tongtybj/realsense-ros.git
+#    version: multi_realsense_t265

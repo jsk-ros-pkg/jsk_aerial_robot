@@ -5,6 +5,8 @@ env:
   matrix:
       - ROS_DISTRO="kinetic"   REPOSITORY=http://packages.ros.org/ros/ubuntu
       - ROS_DISTRO="kinetic"   REPOSITORY=http://packages.ros.org/ros-shadow-fixed/ubuntu
+      - ROS_DISTRO="melodic"   REPOSITORY=http://packages.ros.org/ros/ubuntu
+        ROS_DISTRO="melodic"   REPOSITORY=http://packages.ros.org/ros-shadow-fixed/ubuntu
 install:
   - case $ROS_DISTRO in "hydro") export DISTRO=precise;; "indigo") export DISTRO=trusty;; "kinetic") export DISTRO=xenial;; esac;
   - export DOCKER_IMAGE=ubuntu:$DISTRO
