@@ -32,5 +32,6 @@
   <run_depend>eigen_conversions</run_depend>
   <run_depend>tf_conversions</run_depend>
   <run_depend>dynamic_reconfigure</run_depend>
+  <run_depend>rostest</run_depend>
 
 </package>

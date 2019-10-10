@@ -10,11 +10,7 @@ sudo sh -c "echo \"deb ${REPOSITORY} `lsb_release -cs` main\" > /etc/apt/sources
 wget http://packages.ros.org/ros.key -O - | sudo apt-key add -
 sudo apt-get update -qq
 sudo apt-get install -qq -y python-catkin-pkg python-rosdep python-catkin-tools python-wstool ros-${ROS_DISTRO}-catkin
-# TODO: rostest
-# https://github.com/ros/ros_comm/pull/668
-#sudo apt-get install -qq -y ros-${ROS_DISTRO}-rostest
-#(cd /opt/ros/$ROS_DISTRO/lib/python2.7/dist-packages; wget --no-check-certificate https://patch-diff.githubusercontent.com/raw/ros/ros_comm/pull/637.diff -O - | sudo patch -f -p4 || echo "ok" )
-#(cd /opt/ros/$ROS_DISTRO/lib/python2.7/dist-packages; wget --no-check-certificate https://patch-diff.githubusercontent.com/raw/ros/ros_comm/pull/668.diff -O - | sudo patch -f -p4 || echo "ok" )
+
 source /opt/ros/${ROS_DISTRO}/setup.bash
 sudo rosdep init
 rosdep update
@@ -31,9 +27,5 @@ env | grep ROS
 rosversion catkin
 # Build
 catkin build -p 1 -j 1
-# TODO: rostest
-## Run tests
-#catkin run_tests
-## check test (this only works on indigo)
-#catkin_test_results --verbose build
-
+catkin run_tests -p1 -j1 --no-status aerial_robot --no-deps
+catkin_test_results --verbose build || catkin_test_results --all build
