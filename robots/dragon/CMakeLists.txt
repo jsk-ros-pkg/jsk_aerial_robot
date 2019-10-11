@@ -57,3 +57,9 @@ target_link_libraries(dragon_transform_control_node dragon_transform_control ${c
 add_library(dragon_control_pluginlib src/gimbal_control.cpp)
 target_link_libraries (dragon_control_pluginlib dragon_robot_model ${catkin_LIBRARIES} ${Eigen3_LIBRARIES})
 add_dependencies(dragon_control_pluginlib aerial_robot_msgs_generate_messages_cpp aerial_robot_base_generate_messages_cpp hydrus_generate_messages_cpp hydrus_gencfg)
+
+# test
+if(CATKIN_ENABLE_TESTING)
+  find_package(catkin REQUIRED COMPONENTS rostest)
+  add_subdirectory(test)
+endif()
