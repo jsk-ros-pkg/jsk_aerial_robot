@@ -16,9 +16,8 @@ rosdep install -y -r --from-paths src --ignore-src --rosdistro $ROS_DISTRO
 catkin build
 ```
 
-### Special Cases
-#### Jetson TX2
-- please follow [this tutorial](https://github.com/atinfinity/lab/wiki/librealsense-sdk-install-jetsontx2) to build [librealsense](https://github.com/IntelRealSense/librealsense)
+#### Special Cases
+- Jetson TX2: please check https://github.com/tongtybj/aerial_robot/wiki/Nvidia-Jetson
 
 
 ## how to use

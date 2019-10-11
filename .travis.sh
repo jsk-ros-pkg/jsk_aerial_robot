@@ -2,8 +2,8 @@
 
 set -x
 
-apt-get update
-apt-get install -y sudo software-properties-common git wget sed
+apt-get update -qq && apt-get install -y -q wget sudo lsb-release gnupg git sed # for docker
+echo 'debconf debconf/frontend select Noninteractive' | sudo debconf-set-selections
 
 echo "Testing branch $TRAVIS_BRANCH of $REPOSITORY_NAME"
 sudo sh -c "echo \"deb ${REPOSITORY} `lsb_release -cs` main\" > /etc/apt/sources.list.d/ros-latest.list"
@@ -24,7 +24,7 @@ mkdir -p ~/catkin_ws/src
 cd ~/catkin_ws
 ln -sf ${CI_SOURCE_PATH} src/${REPOSITORY_NAME}
 wstool init src
-wstool merge -t src src/aerial_robot/aerial_robot.rosinstall
+wstool merge -t src src/aerial_robot/aerial_robot_${ROS_DISTRO}.rosinstall
 wstool update -t src
 rosdep install --from-paths src -y -q -r --ignore-src --rosdistro ${ROS_DISTRO} # -r is indisapensible
 env | grep ROS
