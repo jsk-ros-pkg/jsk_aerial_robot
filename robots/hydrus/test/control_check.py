@@ -49,7 +49,7 @@ class InitFormCheck():
         self.init_joint_names = rospy.get_param('~init_joint_names', [])
         self.init_joint_angles = rospy.get_param('~init_joint_angles', [])
         self.convergence_duration = rospy.get_param('~init_form_duration', 10.0)
-        self.angle_threshold = rospy.get_param('~angle_threshold', 0.02) # rad
+        self.angle_threshold = rospy.get_param('~init_angle_threshold', 0.02) # rad
 
         self.joint_angle_sub = rospy.Subscriber('joint_states', JointState, self._jointCallback)
         self.joint_msg = None
@@ -69,7 +69,7 @@ class InitFormCheck():
 
         angles_diff = [math.fabs(x - y) < self.angle_threshold for (x, y) in zip(self.init_joint_angles, joint_angles)]
 
-        rospy.loginfo('angles diff: %s: %s' %  (self.init_joint_names, angles_diff))
+        rospy.loginfo('angles diff: %s: %s' %  (self.init_joint_names, [(x - y) in zip(self.init_joint_angles, joint_angles)]))
         if reduce(operator.mul, angles_diff):
             return True
         else:
@@ -136,7 +136,7 @@ class TransformCheck(InitFormCheck, HoveringCheck):
                 if self.joint_msg is None or self.control_msg is None:
                     continue
 
-                rospy.loginfo_throttle(1, 'errors: [%f, %f, %f, %f], joint: %s' %  (self.control_msg.pitch.pos_err, self.control_msg.roll.pos_err, self.control_msg.throttle.pos_err, self.control_msg.yaw.pos_err, self.joint_msg.position))
+                rospy.loginfo_throttle(1, 'errors: [%f, %f, %f, %f], joint: %s' %  (self.control_msg.pitch.pos_err, self.control_msg.roll.pos_err, self.control_msg.throttle.pos_err, self.control_msg.yaw.pos_err, [self.joint_msg.position[i] for i in self.joint_map]))
 
                 if self.control_msg.pitch.pos_err > max_error_xy:
                     max_error_xy = self.control_msg.pitch.pos_err
@@ -149,8 +149,7 @@ class TransformCheck(InitFormCheck, HoveringCheck):
 
                 # check the control stability
                 if math.fabs(self.control_msg.pitch.pos_err) > task['threshold'][0] or math.fabs(self.control_msg.roll.pos_err) > task['threshold'][0] or math.fabs(self.control_msg.throttle.pos_err) > task['threshold'][1] or math.fabs(self.control_msg.yaw.pos_err) > task['threshold'][2]:
-                    rospy.logwarn("devergence [%f, %f, %f, %f]", self.control_msg.pitch.pos_err, self.control_msg.roll.pos_err, self.control_msg.throttle.pos_err, self.control_msg.yaw.pos_err);
-
+                    rospy.logwarn("devergence in [xy, z, yaw]: [%f, %f, %f, %f]", self.control_msg.pitch.pos_err, self.control_msg.roll.pos_err, self.control_msg.throttle.pos_err, self.control_msg.yaw.pos_err)
                     if node_pid:
                         node_pid.kill()
                     return False
@@ -158,11 +157,13 @@ class TransformCheck(InitFormCheck, HoveringCheck):
             if node_pid:
                 node_pid.kill()
 
+            rospy.loginfo("max errors in [xy, z, yaw] are [%f, %f, %f]", max_error_xy, max_error_z, max_error_yaw)
+
             # check joint angles convergence
             joint_angles = [self.joint_msg.position[i] for i in self.joint_map]
             angles_diff = [math.fabs(x - y) < task['angle_threshold'] for (x, y) in zip(self.target_joint_angles, joint_angles)]
-            rospy.loginfo("max errors are [%f, %f, %f]", max_error_xy, max_error_z, max_error_yaw)
             if not reduce(operator.mul, angles_diff):
+                rospy.logwarn('angles diff is devergent: %s: %s' %  (self.init_joint_names, [(x - y) for (x,y) in zip(self.init_joint_angles, joint_angles)]))
                 # cannot be convergent
                 return False
 
@@ -179,10 +180,10 @@ class TransformCheck(InitFormCheck, HoveringCheck):
                 self.joint_ctrl_pub.publish(joint_ctrl_msg)
             else:
                 # the rosrun command (TODO, the roslaunch)
-                node_command = task['reset'].split()
+                node_command = shlex.split(task['reset'])
                 assert node_command[0] == 'rosrun', 'please use rosrun command'
                 # start the rosnode
-                node_pid = os.spawnv(os.P_NOWAIT, "rosrun", [node_command[1], node_command[2], ' '.join(node_command[3:len(node_command)])])
+                node_pid = subprocess.Popen(node_command)
 
             rospy.sleep(task['reset_duration'])
             rospy.loginfo("reset the form")
