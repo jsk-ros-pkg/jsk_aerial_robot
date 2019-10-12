@@ -210,8 +210,8 @@ private:
 /* get the UAV type from ros, which is necessary for simulation and general multirotor */
 void uavInfoConfigCallback(const spinal::UavInfo& config_msg)
   {
-    setMotorNumber(config_msg.motor_num);
-    setUavModel(config_msg.uav_model);
+	setUavModel(config_msg.uav_model);
+	setMotorNumber(config_msg.motor_num);
   }
 
 };
