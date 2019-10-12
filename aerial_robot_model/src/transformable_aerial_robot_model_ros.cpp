@@ -20,7 +20,6 @@ namespace aerial_robot_model {
 
   void RobotModelRos::actuatorStateCallback(const sensor_msgs::JointStateConstPtr& state)
   {
-    if(getRobotModel().getActuatorJointMap().empty()) getRobotModel().setActuatorJointMap(*state);
     if(getRobotModel().getVerbose()) ROS_ERROR("start kinematics");
     joint_state_ = *state;
     getRobotModel().updateRobotModel(*state);

@@ -79,6 +79,11 @@ public:
   bool hamiltonMatrixSolver(uint8_t lqi_mode);
   void setLqiMode(uint8_t lqi_mode) { lqi_mode_ = lqi_mode; }
 
+  inline const double getThrustUpperLimit() const {return f_max_;}
+  inline const double getThrustLowerLimit() const {return f_min_;}
+  inline const double getPDetThresh() const {return p_det_thre_;}
+  inline const double getStabilityMaginThresh() const {return stability_margin_thre_;}
+
 private:
   //private attributes
   double f_max_;
