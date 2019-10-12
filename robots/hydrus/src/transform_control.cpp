@@ -117,16 +117,29 @@ bool TransformController::hamiltonMatrixSolver()
     }
   A.block(lqi_mode * 2, 0, lqi_mode, lqi_mode * 3) = -C;
 
-  if(control_verbose_) std::cout << "B:"  << std::endl << B << std::endl;
-
   Eigen::MatrixXd Q = Eigen::MatrixXd::Zero(lqi_mode * 3, lqi_mode * 3);
   if(lqi_mode == HydrusRobotModel::LQI_THREE_AXIS_MODE)
     {
+      // revise matrix B:
+      // 1. the third row of B should be z axis
+      B.row(5) = getRobotModel().getP().row(5);
+
       Eigen::MatrixXd Q_tmp = q_diagonal_.asDiagonal();
       Q.block(0, 0, 6, 6) = Q_tmp.block(0, 0, 6, 6);
       Q.block(6, 6, 3, 3) = Q_tmp.block(8, 8, 3, 3);
     }
-  if(lqi_mode == HydrusRobotModel::LQI_FOUR_AXIS_MODE) Q = q_diagonal_.asDiagonal();
+  if(lqi_mode == HydrusRobotModel::LQI_FOUR_AXIS_MODE)
+    {
+      // revise matrix B:
+      // 1. the third row of B should be z axis
+      B.row(5) = getRobotModel().getP().row(5);
+      // 2. the forth row of B should be yaw axis
+      B.row(7) = getRobotModel().getP().row(2);
+
+      Q = q_diagonal_.asDiagonal();
+    }
+
+  if(control_verbose_) std::cout << "B:"  << std::endl << B << std::endl;
 
   Eigen::MatrixXd R_inv  = Eigen::MatrixXd::Zero(rotor_num, rotor_num);
   for(int i = 0; i < rotor_num; ++i)
