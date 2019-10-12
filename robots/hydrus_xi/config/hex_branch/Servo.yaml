@@ -1,0 +1,88 @@
+servo_controller:
+  joints:
+    state_sub_topic: /servo/states
+    ctrl_pub_topic: /servo/target_states
+    torque_pub_topic: /servo/torque_enable
+    angle_sgn: -1
+    angle_scale: 0.00076699
+    zero_point_offset: 2047
+
+    # for simulation
+    simulation:
+      pid: {p: 50.0, i: 0.4, d: 2.0, i_clamp_max: 6.6, i_clamp_min: -6.6}
+      init_value: 0
+      type: effort_controllers/JointPositionController
+
+    controller1:
+      id: 0
+      name: joint1
+    controller2:
+      id: 2
+      name: joint2
+    controller3:
+      id: 4
+      name: joint3
+    controller4:
+      id: 6
+      name: joint4
+    controller5:
+      id: 8
+      name: joint5
+    controller6:
+      id: 10
+      name: joint6
+
+  gimbals:
+    ctrl_pub_topic: /servo/target_states
+    torque_pub_topic: /servo/torque_enable
+    angle_sgn: -1
+    angle_scale: 0.001534
+    zero_point_offset: 2047
+
+    controller1:
+      id: 1
+      name: gimbal1
+      simulation:
+        pid: {p: 5.0, i: 0.1, d: 0.1, i_clamp_max: 2.0, i_clamp_min: -2.0}
+        init_value: -2.0608248910572566
+        type: effort_controllers/JointPositionController
+
+    controller2:
+      id: 3
+      name: gimbal2
+      simulation:
+        pid: {p: 5.0, i: 0.1, d: 0.1, i_clamp_max: 2.0, i_clamp_min: -2.0}
+        init_value: 2.966100767547349 
+        type: effort_controllers/JointPositionController
+
+    controller3:
+      id: 5
+      name: gimbal3
+      simulation:
+        pid: {p: 5.0, i: 0.1, d: 0.1, i_clamp_max: 2.0, i_clamp_min: -2.0}
+        init_value: -1.2057390426804435
+        type: effort_controllers/JointPositionController
+
+    controller4:
+      id: 7
+      name: gimbal4
+      simulation:
+        pid: {p: 5.0, i: 0.1, d: 0.1, i_clamp_max: 2.0, i_clamp_min: -2.0}
+        init_value: 2.98521277254385
+        type: effort_controllers/JointPositionController
+
+    controller5:
+      id: 9
+      name: gimbal5
+      simulation:
+        pid: {p: 5.0, i: 0.1, d: 0.1, i_clamp_max: 2.0, i_clamp_min: -2.0}
+        init_value: -2.045284927628222
+        type: effort_controllers/JointPositionController
+
+    controller6:
+      id: 11
+      name: gimbal6
+      simulation:
+        pid: {p: 5.0, i: 0.1, d: 0.1, i_clamp_max: 2.0, i_clamp_min: -2.0}
+        init_value: 2.1446255681850133
+        type: effort_controllers/JointPositionController
