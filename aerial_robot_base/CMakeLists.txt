@@ -28,6 +28,8 @@ find_package(catkin REQUIRED COMPONENTS
   geodesy
 )
 
+catkin_python_setup()
+
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
 generate_dynamic_reconfigure_options(
@@ -108,3 +110,5 @@ install(DIRECTORY launch
 # )
 
 
+# test
+# TODO: please add test code for general multirotor

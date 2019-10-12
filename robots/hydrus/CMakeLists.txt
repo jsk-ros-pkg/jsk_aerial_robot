@@ -83,4 +83,9 @@ install(TARGETS transform_control transform_control_node
    RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
  )
 
+# test
+if(CATKIN_ENABLE_TESTING)
+  find_package(catkin REQUIRED COMPONENTS rostest)
+  add_subdirectory(test)
+endif()
 

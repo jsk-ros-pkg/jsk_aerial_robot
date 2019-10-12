@@ -40,7 +40,7 @@ if reverse_reset:
     desire_att.pitch = 0
     desire_att.roll = 0
 
-time.sleep(0.5)
+time.sleep(0.6)
 
 joint_control_pub.publish(desire_joint)
 att_control_pub.publish(desire_att)

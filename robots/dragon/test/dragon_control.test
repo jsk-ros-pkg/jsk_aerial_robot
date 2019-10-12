@@ -1,0 +1,55 @@
+<launch>
+  <arg name="headless" default="False"/>
+
+  <include file="$(find dragon)/launch/bringup.launch">
+    <arg name="real_machine" value="False" />
+    <arg name="simulation" value="True" />
+    <arg name="control_mode" value="0" />
+    <arg name="headless" value="$(arg headless)" />
+  </include>
+
+  <!-- test codes -->
+  <!-- 1. topics  -->
+  <test name="publishtest"
+        test-name="publishtest"
+        pkg="rostest" type="publishtest">
+    <rosparam>
+      topics:
+        - name: /uav/cog/odom
+          timeout: 5.0
+    </rosparam>
+  </test>
+
+  <!-- 2. control -->
+  <test test-name="control_test" pkg="hydrus" type="control_check.py"  name="control_test"  time-limit="180">
+    <rosparam>
+      init_joint_names: ['joint1_pitch', 'joint1_yaw', 'joint2_pitch', 'joint2_yaw', 'joint3_pitch', 'joint3_yaw']
+      init_joint_angles: [0, 1.57, 0, 1.57, 0, 1.57]
+      tasks:
+        - command: "rosrun dragon transformation_demo.py _mode:=0 _reset:=0"
+          threshold: [0.1, 0.06, 0.06]
+          angle_threshold: 0.02
+          timeout: 20
+          reset: "rosrun dragon transformation_demo.py _mode:=0 _reset:=1"
+          reset_duration: 20
+        - command: "rosrun dragon transformation_demo.py _mode:=1 _reset:=0"
+          threshold: [0.05, 0.06, 0.04]
+          angle_threshold: 0.02
+          timeout: 10
+          reset: "rosrun dragon transformation_demo.py _mode:=0 _reset:=1"
+          reset_duration: 10
+        - command: "rosrun dragon transformation_demo.py _mode:=2 _reset:=0"
+          threshold: [0.15, 0.08, 0.14]
+          angle_threshold: 0.02
+          timeout: 15
+          reset: "rosrun dragon transformation_demo.py _mode:=0 _reset:=1"
+          reset_duration: 10
+    </rosparam>
+    <param name="init_form_duration" value="25.0" />
+    <param name="init_angle_threshold" value="0.04" />
+    <param name="hovering_duration" value="30.0" />
+    <remap from="joint_states" to ="/dragon/joint_states" />
+    <remap from="joints_ctrl" to ="/dragon/joints_ctrl" />
+  </test>
+
+</launch>
