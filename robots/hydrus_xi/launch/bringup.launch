@@ -52,7 +52,6 @@
     <param name="navigator/xy_control_mode"  value="$(arg control_mode)"/>
 
     <param name="simulation" value="$(arg simulation)" /> <!-- for sensor plugin -->
-    <param name="param_verbose" value= "true" />
     <param name="main_rate" type="double" value="40"/>
 
     ###########  Sensor Fusion  ###########

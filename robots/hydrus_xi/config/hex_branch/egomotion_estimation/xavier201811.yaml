@@ -5,7 +5,7 @@ estimator:
     - sensor_plugin/mocap
     - sensor_plugin/alt
     - sensor_plugin/vo
-    #- sensor_plugin/gps
+    - sensor_plugin/gps
 
   # egomotion estimation
   egomotion_list:
