@@ -37,8 +37,11 @@ Navigator::Navigator(ros::NodeHandle nh, ros::NodeHandle nh_private,
   start_sub_ = nh_.subscribe<std_msgs::Empty>("/teleop_command/start", 1,&Navigator::startCallback, this, ros::TransportHints().tcpNoDelay());
   ctrl_mode_sub_ = nh_.subscribe<std_msgs::Int8>("/teleop_command/ctrl_mode", 1, &Navigator::xyControlModeCallback, this, ros::TransportHints().tcpNoDelay());
 
+#ifdef ARM_MELODIC // https://github.com/ros/ros_comm/issues/1404
+  joy_stick_sub_ = nh_.subscribe<sensor_msgs::Joy>("/joy", 1, &Navigator::joyStickControl, this);
+#else
   joy_stick_sub_ = nh_.subscribe<sensor_msgs::Joy>("/joy", 1, &Navigator::joyStickControl, this, ros::TransportHints().udp());
-
+#endif
   stop_teleop_sub_ = nh_.subscribe<std_msgs::UInt8>("stop_teleop", 1, &Navigator::stopTeleopCallback, this, ros::TransportHints().tcpNoDelay());
   teleop_flag_ = true;
 
