@@ -10,7 +10,7 @@
 cd <catkin_ws>
 wstool init src
 wstool set -u -t src aerial_robot http://github.com/tongtybj/aerial_robot --git
-wstool merge -t src src/aerial_robot/aerial_robot.rosinstall
+wstool merge -t src src/aerial_robot/aerial_robot_${ROS_DISTRO}.rosinstall
 wstool update -t src
 rosdep install -y -r --from-paths src --ignore-src --rosdistro $ROS_DISTRO
 catkin build
