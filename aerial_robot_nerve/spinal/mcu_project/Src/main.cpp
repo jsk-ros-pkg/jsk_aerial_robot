@@ -264,8 +264,8 @@ int main(void){
   controller_.init(&htim4, &htim8, &estimator_, &battery_status_, &nh_);
 
 #if NERVE_COMM
-  controller_.setMotorNumber(Spine::getSlaveNum());
   controller_.setUavModel(Spine::getUavModel());
+  controller_.setMotorNumber(Spine::getSlaveNum());
 #endif
 
 #if GPS_FLAG
