@@ -733,7 +733,11 @@ void AttitudeController::setMotorNumber(uint8_t motor_number)
       if(motor_number_ != motor_number)
         {
           motor_number_ = 0;
+#ifdef SIMULATION
+          ROS_ERROR("ATTENTION: motor number is 0");
+#else
           nh_->logerror("ATTENTION: motor number is 0");
+#endif
         }
     }
   else
@@ -768,7 +772,11 @@ void  AttitudeController::setUavModel(int8_t uav_model)
       if(uav_model_ != uav_model)
         {
           uav_model_ = -1;
+#ifdef SIMULATION
+          ROS_ERROR("ATTENTION: UAV model is not set");
+#else
           nh_->logerror("ATTENTION: UAV model is not set");
+#endif
         }
     }
   else
