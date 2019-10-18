@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -x
+set -ex
 
 apt-get update -qq && apt-get install -y -q wget sudo lsb-release gnupg git sed # for docker
 echo 'debconf debconf/frontend select Noninteractive' | sudo debconf-set-selections
@@ -23,9 +23,9 @@ wstool init src
 wstool merge -t src src/aerial_robot/aerial_robot_${ROS_DISTRO}.rosinstall
 wstool update -t src
 rosdep install --from-paths src -y -q -r --ignore-src --rosdistro ${ROS_DISTRO} # -r is indisapensible
-env | grep ROS
-rosversion catkin
+
 # Build
-catkin build -p 1 -j 1
+catkin config --cmake-args -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+catkin build -p1 -j1 --no-status
 catkin run_tests -p1 -j1 --no-status aerial_robot --no-deps
 catkin_test_results --verbose build || catkin_test_results --all build
