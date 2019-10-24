@@ -8,7 +8,6 @@
   <arg name="type" default="quad" />
   <arg name="onboards_model" default="xavier201811" />
   <arg name="estimate_mode"  default= "0" />
-  <arg name="flight_control_type" default="fully_actuated"/> ####### fully_acuated or under_actuated
   <arg name="headless" default="True" />
   <arg name="worldtype" default="$(find aerial_robot_simulation)/gazebo_model/world/empty.world" />
   <arg name="direct_model" default="False" />
@@ -22,8 +21,7 @@
   <arg name="spawn_yaw" default="0.0"/>
 
   ###########  UAV Config  ###########
-  <param if="$(eval flight_control_type == 'fully_actuated')" name="/uav_info/uav_model" value= "17" />
-  <param unless="$(eval flight_control_type == 'fully_actuated')" name="/uav_info/uav_model" value= "16" />
+  <param name="/uav_info/uav_model" value= "17" />
   <param name="/hydrus_xi/baselink" value="fc" />
 
   ###########  Motor Config  ###########
@@ -59,10 +57,9 @@
     <rosparam file="$(arg config_dir)/$(arg type)/egomotion_estimation/simulation.yaml" command="load" if="$(eval arg('simulation') * (1 - arg('real_machine')))"/>
 
     ###########  Flight Control  ###########
-    <param if="$(eval flight_control_type == 'fully_actuated')" name="control_plugin_name" value ="control_plugin/hydrus_xi_fully_actuated_controller"/>
-    <rosparam if="$(eval flight_control_type == 'fully_actuated')" file="$(arg config_dir)/$(arg type)/FullyActuatedPidControlConfig.yaml" command="load" />
-    <remap if="$(eval flight_control_type == 'fully_actuated')" from="joint_states" to="hydrus_xi/joint_states"/>
-    <rosparam if="$(eval flight_control_type == 'under_actuated')" file="$(arg config_dir)/$(arg type)/DifferentialFlatnessPidControlConfig.yaml" command="load" />
+    <param name="control_plugin_name" value ="control_plugin/hydrus_xi_fully_actuated_controller"/>
+    <rosparam file="$(arg config_dir)/$(arg type)/FullyActuatedPidControlConfig.yaml" command="load" />
+    <remap from="joint_states" to="hydrus_xi/joint_states"/>
 
     ###########  Teleop  ###########
     <rosparam file="$(arg config_dir)/$(arg type)/TeleopNavigationConfig.yaml" command="load" />
@@ -87,15 +84,6 @@
     <arg name="direct_model" value="$(arg direct_model)" />
     <arg name="direct_model_name" value="$(arg direct_model_name)" if="$(arg direct_model)"/>
   </include >
-
-  ###########  LQI Control  ###########
-  <node if="$(eval flight_control_type == 'under_actuated')" pkg="hydrus_xi" type="hydrus_xi_lqi_controller_node" name="hydrus_xi" output="screen" respawn="true">
-    <rosparam file="$(arg config_dir)/$(arg type)/LQIControl.yaml" command="load" />
-    <remap from="joint_states" to="hydrus_xi/joint_states"/>
-    <param name="kinematic_verbose" value="false" />
-    <param name="control_verbose" value="false" />
-    <param name="debug_verbose" value="false" />
-  </node>
 
   ########## Simulation in Gazebo #########
   <include file="$(find aerial_robot_simulation)/launch/simulation.launch" if = "$(eval arg('simulation') * (1 - arg('real_machine')))" >
