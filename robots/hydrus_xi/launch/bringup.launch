@@ -5,7 +5,7 @@
   <arg name="simulation" default="False" />
   <arg name="control_mode" default="0" />
   <arg name="config_dir" default="$(find hydrus_xi)/config"/>
-  <arg name="type" default="quad" />
+  <arg name="type" default="hex_branch" />
   <arg name="onboards_model" default="xavier201811" />
   <arg name="estimate_mode"  default= "0" />
   <arg name="headless" default="True" />
