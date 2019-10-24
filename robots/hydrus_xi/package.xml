@@ -15,7 +15,6 @@
   <depend>angles</depend>
   <depend>hydrus</depend>
   <depend>roscpp</depend>
-  <depend>ros_numpy</depend>
   <depend>rospy</depend>
   <depend>rostest</depend>
   <depend>spinal</depend>
