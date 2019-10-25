@@ -77,7 +77,13 @@ namespace sensor_plugin
       nhp_.param("mocap_pub_name", topic_name, std::string("data"));
       pose_stamped_pub_ = nh_.advertise<aerial_robot_msgs::States>(topic_name, 5);
       nhp_.param("mocap_sub_name", topic_name, std::string("/aerial_robot/pose"));
+
+#ifdef ARM_MELODIC //https://github.com/ros/ros_comm/issues/1404
+      mocap_sub_ = nh_.subscribe(topic_name, 1, &Mocap::poseCallback, this); // since we do not use time_sync mode for mocap, so only need the latest value.
+#else
       mocap_sub_ = nh_.subscribe(topic_name, 1, &Mocap::poseCallback, this, ros::TransportHints().udp()); // since we do not use time_sync mode for mocap, so only need the latest value.
+      ROS_INFO("use UDP for mocap topic subscriber in ground truth mode");
+#endif
       nhp_.param("ground_truth_sub_name", topic_name, std::string("ground_truth"));
       ground_truth_sub_ = nh_.subscribe(topic_name, 1, &Mocap::groundTruthCallback, this);
     }
@@ -195,7 +201,6 @@ namespace sensor_plugin
           lpf_pos_.setInitValues(raw_pos_); //init pos filter with the first value
           init(raw_pos_);
           first_flag = false;
-
         }
 
 

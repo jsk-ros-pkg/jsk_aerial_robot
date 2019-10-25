@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>hydrus_xi</name>
+  <version>1.0.0</version>
+  <description>The hydrus_xi package</description>
+
+  <maintainer email="anzai@jsk.imi.i.u-tokyo.ac.jp">Tomoki Anzai</maintainer>
+
+  <license>TODO</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <depend>aerial_robot_base</depend>
+  <depend>aerial_robot_simulation</depend>
+  <depend>aerial_robot_msgs</depend>
+  <depend>angles</depend>
+  <depend>hydrus</depend>
+  <depend>roscpp</depend>
+  <depend>rospy</depend>
+  <depend>rostest</depend>
+  <depend>spinal</depend>
+  <depend>tf_conversions</depend>
+  <depend>dynamic_reconfigure</depend>
+
+  <export>
+    <aerial_robot_base plugin="${prefix}/flight_control_plugin.xml"/>
+  </export>
+
+</package>

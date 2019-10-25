@@ -36,6 +36,7 @@
 #pragma once
 
 #include <aerial_robot_model/transformable_aerial_robot_model.h>
+#include <aerial_robot_model/eigen_utils.h>
 #include <aerial_robot_msgs/FourAxisGain.h>
 #include <Eigen/Dense>
 #include <Eigen/Eigenvalues>
@@ -67,12 +68,14 @@ public:
   static constexpr uint8_t LQI_FOUR_AXIS_MODE = 4;
 
   //public functions
-  bool modelling(bool verbose = false, bool control_verbose = false); //lagrange method
+  virtual bool modelling(bool verbose = false, bool control_verbose = false); //lagrange method
   virtual bool overlapCheck(bool verbose = false) const {return true;}
-  bool stabilityMarginCheck(bool verbose = false);
+  virtual bool stabilityMarginCheck(bool verbose = false);
   uint8_t getLqiMode() const { return lqi_mode_; }
   double getStabilityMargin() const { return stability_margin_; }
   Eigen::VectorXd getOptimalHoveringThrust() const { return optimal_hovering_f_; }
+  Eigen::MatrixXd getQf() const { return Q_f_; }
+  Eigen::MatrixXd getQtau() const { return Q_tau_; }
   Eigen::MatrixXd getP() const { return P_; }
   double getPdeterminant() const { return p_det_; }
   Eigen::MatrixXd getPOrigPseudoInverse() const { return P_orig_pseudo_inverse_; }
@@ -84,7 +87,8 @@ public:
   inline const double getPDetThresh() const {return p_det_thre_;}
   inline const double getStabilityMaginThresh() const {return stability_margin_thre_;}
 
-private:
+protected:
+
   //private attributes
   double f_max_;
   double f_min_;
@@ -92,6 +96,7 @@ private:
   double m_f_rate_; //moment / force rate
   bool only_three_axis_mode_;
   Eigen::VectorXd optimal_hovering_f_;
+  Eigen::MatrixXd Q_tau_, Q_f_;
   Eigen::MatrixXd P_;
   double p_det_;
   double p_det_thre_;

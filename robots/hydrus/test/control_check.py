@@ -67,6 +67,8 @@ class InitFormCheck():
         # check convergence
         joint_angles = [self.joint_msg.position[i] for i in self.joint_map]
 
+        print joint_angles
+        print self.init_joint_angles
         angles_diff = [math.fabs(x - y) < self.angle_threshold for (x, y) in zip(self.init_joint_angles, joint_angles)]
 
         rospy.loginfo('angles diff: %s: %s' %  (self.init_joint_names, [(x - y) in zip(self.init_joint_angles, joint_angles)]))

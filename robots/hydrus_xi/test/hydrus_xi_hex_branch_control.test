@@ -1,0 +1,38 @@
+<launch>
+  <arg name="headless" default="False"/>
+
+  <include file="$(find hydrus_xi)/launch/bringup.launch">
+    <arg name="real_machine" value="False" />
+    <arg name="simulation" value="True" />
+    <arg name="type" value="hex_branch" />
+    <arg name="headless" value="$(arg headless)" />
+  </include>
+
+  <!-- test codes -->
+  <!-- 1. topics  -->
+  <test name="publishtest"
+        test-name="publishtest"
+        pkg="rostest" type="publishtest">
+    <rosparam>
+      topics:
+        - name: /uav/cog/odom
+          timeout: 5.0
+    </rosparam>
+  </test>
+
+  <!-- 2. control -->
+  <test test-name="control_test" pkg="hydrus" type="control_check.py"  name="control_test"  time-limit="180">
+    <rosparam>
+      init_joint_names: ['joint1', 'joint2', 'joint3', 'joint4', 'joint5', 'joint6']
+      init_joint_angles: [0, 0, 0, 0, 0, 0]
+      convergence_thresholds: [0.01, 0.02, 0.01] <!-- for hovering -->
+    </rosparam>
+    <param name="init_form_duration" value="5.0" />
+    <param name="init_angle_threshold" value="0.04" />
+    <param name="hovering_duration" value="40.0" />
+    <remap from="joint_states" to ="/hydrus_xi/joint_states" />
+    <remap from="joints_ctrl" to ="/hydrus_xi/joints_ctrl" />
+    <remap from="/controller/debug" to ="/controller/debug/pid" />
+  </test>
+
+</launch>

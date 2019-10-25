@@ -46,6 +46,12 @@ catkin_package(
 
 cmake_policy(SET CMP0046 OLD)
 
+### Temporary soulition because of https://github.com/ros/ros_comm/issues/1404
+if (CMAKE_SYSTEM_PROCESSOR MATCHES "(aarch64)|(armhf)" AND $ENV{ROS_DISTRO} MATCHES "melodic")
+  message(WARNING "please check https://github.com/ros/ros_comm/issues/1404")
+  add_definitions (-DARM_MELODIC)
+endif()
+
 ###########
 ## Build ##
 ###########
