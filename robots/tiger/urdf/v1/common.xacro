@@ -1,0 +1,83 @@
+<?xml version="1.0"?>
+<robot
+    xmlns:xacro="http://www.ros.org/wiki/xacro" name="tiger_common" >
+
+  <!-- kinematics [m] -->
+  <xacro:property name="general_link_length" value="0.51661"/>
+  <xacro:property name="general_link_radius" value="0.025"/>
+  <xacro:property name="center_link_radius" value="0.169"/>
+  <xacro:property name="center_link_height" value="0.0928"/>
+  <!-- dynamics -->
+  <xacro:property name="max_force" value="36"/> <!-- [N] -->
+
+  <xacro:macro name="mesh_model" params="type *origin">
+    <visual>
+      <xacro:insert_block name="origin"/>
+      <geometry>
+        <mesh filename="package://tiger/urdf/v1/mesh/${type}.dae"/>
+      </geometry>
+    </visual>
+  </xacro:macro>
+
+  <xacro:macro name="link_collision_model">
+    <collision>
+      <origin xyz="${general_link_length* 0.5} 0 0" rpy="0 ${pi / 2} 0"/>
+      <geometry>
+        <cylinder radius="${general_link_radius}" length="${general_link_length}"/>
+      </geometry>
+    </collision>
+  </xacro:macro>
+
+  <xacro:macro name="extra_module" params="name parent *origin *inertial visible:=0 collision:=0 model_url:=0">
+    <joint name="${parent}2${name}" type="fixed">
+      <parent link="${parent}"/>
+      <child link="${name}"/>
+      <xacro:insert_block name="origin" />
+    </joint>
+    <link name="${name}">
+      <xacro:insert_block name="inertial" />
+      <xacro:if value="${visible == 1}">
+        <visual>
+          <geometry>
+            <mesh filename="${model_url}"/>
+          </geometry>
+        </visual>
+      </xacro:if>
+      <xacro:if value="${collision == 1}">
+        <visual>
+          <geometry>
+            <mesh filename="${model_url}"/>
+          </geometry>
+        </visual>
+      </xacro:if>
+
+    </link>
+  </xacro:macro>
+
+  <xacro:macro name="joint_transmission" params="joint">
+    <transmission name="{joint}_tran">
+      <type>transmission_interface/SimpleTransmission</type>
+      <joint name="${joint}">
+        <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+      </joint>
+      <actuator name="{joint}_servo">
+        <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+        <mechanicalReduction>1</mechanicalReduction>
+      </actuator>
+    </transmission>
+  </xacro:macro>
+
+  <!-- friction -->
+  <xacro:macro name="friction" params="link">
+    <gazebo reference="${link}">
+      <mu1>0.1</mu1>
+      <mu2>0.1</mu2>
+    </gazebo>
+  </xacro:macro>
+
+  <xacro:macro name="damping_factor" params="link">
+    <gazebo reference="${link}">
+      <dampingFactor>0.00</dampingFactor>
+    </gazebo>
+  </xacro:macro>
+</robot>
