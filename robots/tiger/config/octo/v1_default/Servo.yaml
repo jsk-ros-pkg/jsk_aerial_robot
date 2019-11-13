@@ -1,0 +1,133 @@
+tiger:
+  servo_controller:
+    joints:
+      state_sub_topic: /servo/states
+      ctrl_pub_topic: /servo/target_states
+      torque_pub_topic: /servo/torque_enable
+      angle_sgn: 1
+      angle_scale: 0.00076699
+      zero_point_offset: 2047
+      torque_scale: 1.0 # TODO please update the scale
+
+       # for low pass filter
+      filter_flag: true
+      sample_freq: 50.0 # 50Hz
+      cutoff_freq: 10.0 # 10Hz, test
+
+      # for simulation
+      simulation:
+        pid: {p: 50.0, i: 0.01, d: 2.0}
+        init_value: 0
+        type: effort_controllers/JointPositionController
+
+      controller1:
+        id: 0
+        name: joint1_yaw
+      controller2:
+        id: 1
+        name: joint1_pitch
+      controller3:
+        id: 4
+        name: joint2_yaw
+      controller4:
+        id: 5
+        name: joint2_pitch
+      controller5:
+        id: 8
+        name: joint3_yaw
+      controller6:
+        id: 9
+        name: joint3_pitch
+      controller7:
+        id: 12
+        name: joint4_yaw
+      controller8:
+        id: 13
+        name: joint4_pitch
+      controller9:
+        id: 16
+        name: joint5_yaw
+      controller10:
+        id: 17
+        name: joint5_pitch
+      controller11:
+        id: 20
+        name: joint6_yaw
+      controller12:
+        id: 21
+        name: joint6_pitch
+      controller13:
+        id: 24
+        name: joint7_yaw
+      controller14:
+        id: 25
+        name: joint7_pitch
+      controller15:
+        id: 28
+        name: joint8_yaw
+      controller16:
+        id: 29
+        name: joint8_pitch
+
+    gimbals:
+      ctrl_pub_topic: /servo/target_states
+      torque_pub_topic: /servo/torque_enable
+
+      angle_sgn: 1
+      angle_scale: 0.001534
+      zero_point_offset: 2047
+
+      simulation:
+        pid: {p: 50.0, i: 0.01, d: 0.0}
+        init_value: 0
+        type: effort_controllers/JointPositionController
+
+      controller1:
+        id: 2
+        name: gimbal1_roll
+      controller2:
+        id: 3
+        name: gimbal1_pitch
+      controller3:
+        id: 6
+        name: gimbal2_roll
+      controller4:
+        id: 7
+        name: gimbal2_pitch
+      controller5:
+        id: 10
+        name: gimbal3_roll
+      controller6:
+        id: 11
+        name: gimbal3_pitch
+      controller7:
+        id: 14
+        name: gimbal4_roll
+      controller8:
+        id: 15
+        name: gimbal4_pitch
+      controller9:
+        id: 18
+        name: gimbal5_roll
+      controller10:
+        id: 19
+        name: gimbal5_pitch
+      controller11:
+        id: 22
+        name: gimbal6_roll
+      controller12:
+        id: 23
+        name: gimbal6_pitch
+      controller13:
+        id: 26
+        name: gimbal7_roll
+      controller14:
+        id: 27
+        name: gimbal7_pitch
+      controller15:
+        id: 30
+        name: gimbal8_roll
+      controller16:
+        id: 31
+        name: gimbal8_pitch
+

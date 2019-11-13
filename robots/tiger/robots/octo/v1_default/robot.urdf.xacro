@@ -2,18 +2,21 @@
 <robot
     xmlns:xacro="http://www.ros.org/wiki/xacro" name="hydrusx" >
 
-  <xacro:include filename="$(find tiger)/urdf/v1/link.urdf.xacro" />
-  <xacro:property name="battery" value="1"/>
-  <xacro:property name="leg" value="1"/>
+  <xacro:include filename="$(find tiger)/robots/octo/tiger_v1_base.urdf.xacro" />
 
-  <xacro:tiger_center_link child1="1" child2="3" child3="5" child4="7" leg="${leg}"/>
-  <xacro:tiger_link self="1" child="2" link_type="general" battery="${battery}" leg="${leg}"/>
-  <xacro:tiger_link self="2" child="2" link_type="end"     battery="${battery}" leg="${leg}"/>
-  <xacro:tiger_link self="3" child="4" link_type="general" battery="${battery}" leg="${leg}"/>
-  <xacro:tiger_link self="4" child="4" link_type="end"     battery="${battery}" leg="${leg}"/>
-  <xacro:tiger_link self="5" child="6" link_type="general" battery="${battery}" leg="${leg}"/>
-  <xacro:tiger_link self="6" child="6" link_type="end"     battery="${battery}" leg="${leg}"/>
-  <xacro:tiger_link self="7" child="8" link_type="general" battery="${battery}" leg="${leg}"/>
-  <xacro:tiger_link self="8" child="8" link_type="end"     battery="${battery}" leg="${leg}"/>
+  <xacro:tiger_v1/>
+
+  #### flight controller ####
+  <!-- TODO -->
+  <xacro:extra_module name = "fc" parent = "center_link" visible = "0">
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.001"/>
+      <inertia
+          ixx="0.000004" iyy="0.000004" izz="0.000008"
+          ixy="0.000001" ixz="-0.000001" iyz="-0.000000"/>
+    </inertial>
+  </xacro:extra_module>
 
 </robot>

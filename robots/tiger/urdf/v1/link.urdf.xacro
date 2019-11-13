@@ -28,8 +28,10 @@
       <dynamics damping="0.8" friction="0.0"/>
     </joint>
 
+    <xacro:joint_transmission joint="joint${self}_pitch"/>
+
     <xacro:if value="${leg == 1}">
-      <xacro:extra_module name="joint_junction_leg${self}" parent="joint_junction_link${self}" visible="1" collision="1" model_url="package://tiger/urdf/v1/mesh/leg/leg.dae">
+      <xacro:extra_module name="joint_junction_leg${self}" parent="joint_junction_link${self}" visible="1" collision="0" model_url="package://tiger/urdf/v1/mesh/leg/leg.dae">
         <origin xyz="0 0 -0.0283" rpy="0 ${pi} 0"/>
         <inertial>
           <mass value="0.0230696"/>
@@ -131,10 +133,6 @@
     <xacro:joint_transmission joint="joint${child2}_yaw"/>
     <xacro:joint_transmission joint="joint${child3}_yaw"/>
     <xacro:joint_transmission joint="joint${child4}_yaw"/>
-    <xacro:joint_transmission joint="joint_${child4}_pitch"/>
-    <xacro:joint_transmission joint="joint_${child4}_pitch"/>
-    <xacro:joint_transmission joint="joint_${child4}_pitch"/>
-    <xacro:joint_transmission joint="joint_${child4}_pitch"/>
   </xacro:macro>
 
   #### LINK ####
@@ -207,7 +205,7 @@
     <link name="thrust${self}">
       <inertial>
         <origin xyz="0 0 0" rpy="0 0 0"/>
-        <mass value="0.0000001"/>
+        <mass value="0.00001"/>
         <inertia
             ixx="0.000001" iyy="0.000001" izz="0.000001"
             ixy="0.0" iyz="0.0" ixz="0.0"/>
@@ -279,7 +277,7 @@
     #### leg ####
     <xacro:if value="${leg == 1}">
       <xacro:if value="${link_type == 'end'}">
-        <xacro:extra_module name="end_leg${self}" parent="link${self}" visible="1" collision="1"
+        <xacro:extra_module name="end_leg${self}" parent="link${self}" visible="1" collision="0"
                             model_url="package://tiger/urdf/v1/mesh/leg/end_leg.dae">
           <origin xyz="0.4835 0.0 0.0" rpy="0 0 0"/>
           <inertial>
@@ -297,7 +295,6 @@
     #### hardware interface ####
     <xacro:unless value="${self == child}">
       <xacro:joint_transmission joint="joint${child}_yaw"/>
-      <xacro:joint_transmission joint="joint${child}_pitch"/>
     </xacro:unless>
 
     <xacro:joint_transmission joint="gimbal_roll${self}"/>
