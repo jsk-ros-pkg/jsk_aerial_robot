@@ -5,13 +5,13 @@
   <arg name="simulation" default="False" />
   <arg name="control_mode" default="0" />
   <arg name="type" default="quad" />
-  <arg name="estimate_mode"  default= "2" />
+  <arg name="onboards_model" default="euclid_201709" />
+  <arg name="estimate_mode"  default= "1" /> <!-- 2: pure mocap mode -->
   <arg name="headless" default="True" />
+  <arg name="worldtype" default="$(find aerial_robot_simulation)/gazebo_model/world/empty.world" />
   <arg name="launch_gazebo" default="True" />
-
-  <!-- sensors(fusion) special parameters -->
-  <param name="/sensor_plugin/altitude/no_height_offset" value="true" />
-  <param name="/sensor_plugin/mocap/cutoff_vel_freq" value="10" />
+  <arg name="direct_model" default="False" />
+  <arg name="direct_model_name" />
 
   ###########  UAV Config  ###########
   # DRAGON = 32 # 0x20, dragon type with full/over actuated property
@@ -33,8 +33,8 @@
     # EGOMOTION_ESTIMATE = 0
     # EXPERIMENT_ESTIMATE = 1. for unstable mocap, use this mode
     # GROUND_TRUTH = 2
-    <param name="estimator/estimate_mode" value= "$(arg estimate_mode)" if="$(arg real_machine)"/>
     <param name="estimator/estimate_mode" value= "2" if="$(arg simulation)" />
+    <param name="estimator/estimate_mode" value= "$(arg estimate_mode)" if="$(arg real_machine)"/>
 
     <param name="navigator/xy_control_mode"  value="$(arg control_mode)"/>
 
@@ -43,8 +43,9 @@
     <param name="main_rate" type="double" value="40"/>
 
     ###########  Sensor Fusion  ###########
-    <rosparam file="$(find dragon)/config/SensorFusion.yaml" command="load" if="$(arg real_machine)"/>
-    <rosparam file="$(find dragon)/config/SensorSimulation.yaml" command="load" if="$(arg simulation)"/>
+    <rosparam file="$(find dragon)/config/$(arg type)/egomotion_estimation/$(arg onboards_model).yaml" command="load" if="$(arg real_machine)"/>
+    <rosparam file="$(find dragon)/config/$(arg type)/egomotion_estimation/simulation.yaml" command="load" if="$(eval arg('simulation') * (1 - arg('real_machine')))"/>
+
     <remap from="/joint_states" to="/dragon/joint_states"/>
 
     ###########  Gimbal Control  ###########
@@ -55,11 +56,11 @@
     <remap from="/joint_states" to="/dragon/joint_states"/>
 
     ###########  Teleop  ###########
-    <rosparam file="$(find dragon)/config/TeleopNavigationConfig.yaml" command="load" />
+    <rosparam file="$(find dragon)/config/$(arg type)/TeleopNavigationConfig.yaml" command="load" />
   </node>
 
   ###########  Sensors  ###########
-  <include file="$(find dragon)/launch/includes/sensors.launch.xml" >
+  <include file="$(find dragon)/launch/includes/$(arg onboards_model)/sensors.launch.xml" >
     <arg name="real_machine" value="$(arg real_machine)" />
     <arg name="simulation" value="$(arg simulation)" />
   </include >
@@ -67,10 +68,12 @@
   ###########  Robot Model  ###########
   <include file="$(find dragon)/launch/robot_model.launch">
     <arg name="type" value="$(arg type)" />
+    <arg name="onboards_model" value="$(arg onboards_model)"/>
     <arg name="headless" value="$(arg headless)" />
-    <arg name="need_joint_state" value="false" if="$(arg real_machine)"/>
-    <arg name="need_joint_state" value="false" if="$(arg simulation)"/>
+    <arg name="need_joint_state" value="false" if ="$(eval arg('simulation') + arg('real_machine') > 0)"/>
     <arg name="description_mode" value="gazebo" if="$(arg simulation)"/>
+    <arg name="direct_model" value="$(arg direct_model)" />
+    <arg name="direct_model_name" value="$(arg direct_model_name)" if="$(arg direct_model)"/>
   </include >
 
   ###########  Servo Bridge  ###########
@@ -87,11 +90,12 @@
   </node>
 
   ########## Simulation in Gazebo #########
-  <include file="$(find aerial_robot_simulation)/launch/simulation.launch" if = "$(arg simulation)" >
+  <include file="$(find aerial_robot_simulation)/launch/simulation.launch" if = "$(eval arg('simulation') * (1 - arg('real_machine')))" >
     <arg name="model" default="dragon" />
     <arg name="gui" default="false" if="$(arg headless)" />
     <arg name="headless" default="$(arg headless)" />
     <arg name="launch_gazebo" default="$(arg launch_gazebo)" />
+    <arg name="worldtype" value="$(arg worldtype)" />
   </include>
 </launch>
 
