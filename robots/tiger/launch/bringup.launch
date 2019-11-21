@@ -49,7 +49,7 @@
     # Attitude Control Mode: 4
     <param name="navigator/xy_control_mode"  value="$(arg control_mode)"/>
 
-    <param name="simulation" value="$(arg simulation)" /> <!-- for sensor plugin -->
+    <param name="simulation" value="$(arg simulation)" /> #for sensor plugin
     <param name="main_rate" type="double" value="40"/>
 
     ###########  Sensor Fusion  ###########
@@ -62,6 +62,8 @@
     <remap from="/gimbals_ctrl" to="/tiger/gimbals_ctrl"/>
     <remap from="/joints_ctrl" to="/tiger/joints_ctrl"/>
     <remap from="/joint_states" to="/tiger/joint_states"/>
+
+    <!-- <rosparam file="$(arg config_dir)/$(arg type)/$(arg onboards_model)/DifferentialFlatnessPidControlConfig.yaml" command="load" /> -->
 
     ###########  Teleop  ###########
     <rosparam file="$(arg config_dir)/$(arg type)/$(arg onboards_model)/TeleopNavigationConfig.yaml" command="load" />
@@ -77,14 +79,14 @@
   <node pkg="aerial_robot_model" type="servo_bridge_node" name="servo_bridge" output="screen" ns="tiger"/>
 
   ###########  Transform Control  ###########
-  <!-- <node pkg="dragon" type="dragon_transform_control_node" name="tiger" output="screen" respawn="true"> -->
-  <!--   <rosparam file="$(arg config_dir)/$(arg type)/$(arg onboards_model)/AttitudeLQIControl.yaml" command="load" /> -->
-  <!--   <remap from="joint_states" to="tiger/joint_states"/> -->
-  <!--   <param name="kinematic_verbose" value="false" /> -->
-  <!--   <param name="control_verbose" value="false" /> -->
-  <!--   <param name="debug_verbose" value="false" /> -->
-  <!--   <param name="real_machine" value="$(arg real_machine)" /> -->
-  <!-- </node> -->
+  <node pkg="dragon" type="dragon_transform_control_node" name="tiger" output="screen" respawn="true">
+    <rosparam file="$(arg config_dir)/$(arg type)/$(arg onboards_model)/AttitudeLQIControl.yaml" command="load" />
+    <remap from="joint_states" to="tiger/joint_states"/>
+    <param name="kinematic_verbose" value="false" />
+    <param name="control_verbose" value="false" />
+    <param name="debug_verbose" value="false" />
+    <param name="real_machine" value="$(arg real_machine)" />
+  </node>
 
   ###########  Robot Model  ###########
   <include file="$(find tiger)/launch/robot_model.launch" >

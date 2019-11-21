@@ -20,7 +20,7 @@
     <xacro:damping_factor link="joint_junction_link${self}"/>
 
     <joint name="joint${self}_pitch" type="revolute">
-      <limit effort="6.6" lower="-1.57" upper="1.57" velocity="3.0"/>
+      <limit effort="100" lower="${-pi/2}" upper="${pi/2}" velocity="3.0"/>
       <parent link="joint_junction_link${self}"/>
       <child link="${child}"/>
       <origin rpy="0 0 0" xyz="0.0515 0.0 0.0"/>
@@ -31,7 +31,7 @@
     <xacro:joint_transmission joint="joint${self}_pitch"/>
 
     <xacro:if value="${leg == 1}">
-      <xacro:extra_module name="joint_junction_leg${self}" parent="joint_junction_link${self}" visible="1" collision="0" model_url="package://tiger/urdf/v1/mesh/leg/leg.dae">
+      <xacro:extra_module name="joint_junction_leg${self}" parent="joint_junction_link${self}" visible="1" collision="1" model_url="package://tiger/urdf/v1/mesh/leg/leg.dae">
         <origin xyz="0 0 -0.0283" rpy="0 ${pi} 0"/>
         <inertial>
           <mass value="0.0230696"/>
@@ -93,7 +93,7 @@
 
     #### joints ####
     <joint name="joint${child1}_yaw" type="revolute">
-      <limit effort="6.6" lower="-1.57" upper="1.57" velocity="3.0"/>
+      <limit effort="100" lower="${-pi/2}" upper="${pi/2}" velocity="3.0"/>
       <parent link="center_link"/>
       <child link="joint_junction_link${child1}"/>
       <origin rpy="0 0 ${pi / 4}" xyz="0.1195 0.1195 -0.0155"/>
@@ -102,7 +102,7 @@
     </joint>
 
     <joint name="joint${child2}_yaw" type="revolute">
-      <limit effort="6.6" lower="-1.57" upper="1.57" velocity="3.0"/>
+      <limit effort="100" lower="${-pi/2}" upper="${pi/2}" velocity="3.0"/>
       <parent link="center_link"/>
       <child link="joint_junction_link${child2}"/>
       <origin rpy="0 0 ${pi * 3 / 4}" xyz="-0.1195 0.1195 -0.0155"/>
@@ -111,7 +111,7 @@
     </joint>
 
     <joint name="joint${child3}_yaw" type="revolute">
-      <limit effort="6.6" lower="-1.57" upper="1.57" velocity="3.0"/>
+      <limit effort="100" lower="${-pi/2}" upper="${pi/2}" velocity="3.0"/>
       <parent link="center_link"/>
       <child link="joint_junction_link${child3}"/>
       <origin rpy="0 0 ${pi * 5 / 4}" xyz="-0.1195 -0.1195 -0.0155"/>
@@ -120,7 +120,7 @@
     </joint>
 
     <joint name="joint${child4}_yaw" type="revolute">
-      <limit effort="6.6" lower="-1.57" upper="1.57" velocity="3.0"/>
+      <limit effort="100" lower="${-pi/2}" upper="${pi/2}" velocity="3.0"/>
       <parent link="center_link"/>
       <child link="joint_junction_link${child4}"/>
       <origin rpy="0 0 ${pi * 7 / 4}" xyz="0.1195 -0.1195 -0.0155"/>
@@ -174,8 +174,11 @@
       <inertial>
         <mass value="0.2749981"/>
         <origin xyz="0.0145839 -0.0007152 -0.0219046" rpy="0 0 0"/>
+        <!-- <inertia -->
+        <!--     ixx="0.0004558" iyy="0.0005038" izz="0.0001566" -->
+        <!--     ixy="0.0000029" iyz="-0.0000086" ixz="-0.0001245" /> -->
         <inertia
-            ixx="0.0004558" iyy="0.0005038" izz="0.0001566"
+            ixx="0.004558" iyy="0.005038" izz="0.001566"
             ixy="0.0000029" iyz="-0.0000086" ixz="-0.0001245" />
       </inertial>
       <xacro:mesh_model type="link/roll_link">
@@ -190,8 +193,11 @@
       <inertial>
         <mass value="0.4336874"/>
         <origin xyz="0.0015167 0.0000151 -0.0010897" rpy="0 0 0"/>
+        <!-- <inertia -->
+        <!--     ixx="0.0004013" iyy="0.0075949" izz="0.0077808" -->
+        <!--     ixy="0.0000001" iyz="-0.0000001" ixz="-0.0000103" /> -->
         <inertia
-            ixx="0.0004013" iyy="0.0075949" izz="0.0077808"
+            ixx="0.004013" iyy="0.0075949" izz="0.0077808"
             ixy="0.0000001" iyz="-0.0000001" ixz="-0.0000103" />
       </inertial>
       <xacro:mesh_model type="link/pitch_link">
@@ -213,6 +219,40 @@
     </link>
     <xacro:damping_factor link="thrust${self}"/>
 
+    #### special part of duct fun ####
+    <joint name="edf${self}_left_mount" type="fixed">
+      <child link="edf${self}_left"/>
+      <parent link="gimbal_pitch_link${self}"/>
+      <origin rpy="0 0 0" xyz="0.15 0 0 "/>
+      <axis xyz="0 0 1"/>
+    </joint>
+    <link name="edf${self}_left">
+      <inertial>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <mass value="0.00001"/>
+        <inertia
+            ixx="0.000001" ixy="0.0" ixz="0.0"
+            iyy="0.000001" iyz="0.0"
+            izz="0.000002"/>
+      </inertial>
+    </link>
+    <joint name="edf${self}_right_mount" type="fixed">
+      <child link="edf${self}_right"/>
+      <parent link="gimbal_pitch_link${self}"/>
+      <origin rpy="0 0 0" xyz="-0.15 0 0 "/>
+      <axis xyz="0 0 1"/>
+    </joint>
+    <link name="edf${self}_right">
+      <inertial>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <mass value="0.00001"/>
+        <inertia
+            ixx="0.000001" ixy="0.0" ixz="0.0"
+            iyy="0.000001" iyz="0.0"
+            izz="0.000002"/>
+      </inertial>
+    </link>
+
     #### joint junction ####
     <xacro:unless value="${self == child}">
       <xacro:tiger_joint_junction_link self="${child}" child="link${child}" leg="${leg}"/>
@@ -222,7 +262,7 @@
     #### link joint ####
     <xacro:unless value="${self == child}">
       <joint name="joint${child}_yaw" type="revolute">
-        <limit effort="6.6" lower="${-pi / 2}" upper="${pi / 2}" velocity="3.0"/>
+        <limit effort="100" lower="${-pi/2}" upper="${pi}" velocity="3.0"/>
         <parent link="link${self}"/>
         <child link="joint_junction_link${child}"/>
         <origin rpy="0 0 0" xyz="${general_link_length} 0 0"/>
@@ -232,7 +272,7 @@
     </xacro:unless>
 
     #### gimbal joint ####
-    <joint name="gimbal_roll${self}" type="continuous">
+    <joint name="gimbal${self}_roll" type="continuous">
       <limit effort="1.5" lower="${pi * -6}" upper="${pi * 6}" velocity="10.0"/>
       <parent link="link${self}"/>
       <child link="gimbal_roll_link${self}"/>
@@ -241,12 +281,12 @@
       <dynamics damping="0.8" friction="0.0"/>
     </joint>
 
-    <joint name="gimbal_pitch${self}" type="continuous">
+    <joint name="gimbal${self}_pitch" type="continuous">
       <limit effort="1.5" lower="${pi * -6}" upper="${pi * 6}" velocity="10.0"/>
       <parent link="gimbal_roll_link${self}"/>
       <child link="gimbal_pitch_link${self}"/>
       <origin rpy="0 0 ${-pi / 2}" xyz="-0.0065 0.0 -0.027"/>
-      <axis xyz="1 0 0"/>
+      <axis xyz="-1 0 0"/>
       <dynamics damping="0.8" friction="0.0"/>
     </joint>
 
@@ -277,7 +317,7 @@
     #### leg ####
     <xacro:if value="${leg == 1}">
       <xacro:if value="${link_type == 'end'}">
-        <xacro:extra_module name="end_leg${self}" parent="link${self}" visible="1" collision="0"
+        <xacro:extra_module name="end_leg${self}" parent="link${self}" visible="1" collision="1"
                             model_url="package://tiger/urdf/v1/mesh/leg/end_leg.dae">
           <origin xyz="0.4835 0.0 0.0" rpy="0 0 0"/>
           <inertial>
@@ -297,8 +337,8 @@
       <xacro:joint_transmission joint="joint${child}_yaw"/>
     </xacro:unless>
 
-    <xacro:joint_transmission joint="gimbal_roll${self}"/>
-    <xacro:joint_transmission joint="gimbal_pitch${self}"/>
+    <xacro:joint_transmission joint="gimbal${self}_roll"/>
+    <xacro:joint_transmission joint="gimbal${self}_pitch"/>
 
     <transmission name="rotor_tran${self}">
       <type>transmission_interface/SimpleTransmission</type>

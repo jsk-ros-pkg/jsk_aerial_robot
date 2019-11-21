@@ -1,17 +1,18 @@
-controller:
-  baselink: fc
-  only_three_axis_mode: true
-  verbose: true
-  real_machine: false
-  control_verbose: false
+baselink: fc
+only_three_axis_mode: true
+kinematic_verbose: false
+f_max: 36
+f_min: 3
 
   # alt [N]
+controller:
+  control_verbose: false
   alt:
-    offset: 0
-    limit: 28
-    p_term_limit: 28
-    i_term_limit: 28
-    d_term_limit: 28
+    offset: 15
+    limit: 36
+    p_term_limit: 36
+    i_term_limit: 36
+    d_term_limit: 36
     alt_landing_const_i_ctrl_thresh: -0.3
 
   # xy [rad]

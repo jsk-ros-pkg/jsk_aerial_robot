@@ -9,42 +9,42 @@ tiger:
       zero_point_offset: 2047
       torque_scale: 1.0 # TODO please update the scale
 
-       # for low pass filter
-      filter_flag: true
+      # for low pass filter
+      filter_flag: false
       sample_freq: 50.0 # 50Hz
       cutoff_freq: 10.0 # 10Hz, test
 
       # for simulation
       simulation:
-        pid: {p: 50.0, i: 0.01, d: 2.0}
+        pid: {p: 50.0, i: 0.3, d: 1.0}
         init_value: 0
         type: effort_controllers/JointPositionController
 
-      controller1:
+      controller01:
         id: 0
         name: joint1_yaw
-      controller2:
+      controller02:
         id: 1
         name: joint1_pitch
-      controller3:
+      controller03:
         id: 4
         name: joint2_yaw
-      controller4:
+      controller04:
         id: 5
         name: joint2_pitch
-      controller5:
+      controller05:
         id: 8
         name: joint3_yaw
-      controller6:
+      controller06:
         id: 9
         name: joint3_pitch
-      controller7:
+      controller07:
         id: 12
         name: joint4_yaw
-      controller8:
+      controller08:
         id: 13
         name: joint4_pitch
-      controller9:
+      controller09:
         id: 16
         name: joint5_yaw
       controller10:
@@ -75,38 +75,38 @@ tiger:
 
       angle_sgn: 1
       angle_scale: 0.001534
-      zero_point_offset: 2047
+      zero_point_offset: 0
 
       simulation:
-        pid: {p: 50.0, i: 0.01, d: 0.0}
+        pid: {p: 50.0, i: 0.1, d: 1.0}
         init_value: 0
         type: effort_controllers/JointPositionController
 
-      controller1:
+      controller01:
         id: 2
         name: gimbal1_roll
-      controller2:
+      controller02:
         id: 3
         name: gimbal1_pitch
-      controller3:
+      controller03:
         id: 6
         name: gimbal2_roll
-      controller4:
+      controller04:
         id: 7
         name: gimbal2_pitch
-      controller5:
+      controller05:
         id: 10
         name: gimbal3_roll
-      controller6:
+      controller06:
         id: 11
         name: gimbal3_pitch
-      controller7:
+      controller07:
         id: 14
         name: gimbal4_roll
-      controller8:
+      controller08:
         id: 15
         name: gimbal4_pitch
-      controller9:
+      controller09:
         id: 18
         name: gimbal5_roll
       controller10:

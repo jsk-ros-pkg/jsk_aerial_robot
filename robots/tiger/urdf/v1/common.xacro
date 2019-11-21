@@ -23,8 +23,7 @@
     <collision>
       <origin xyz="${general_link_length* 0.5} 0 0" rpy="0 ${pi / 2} 0"/>
       <geometry>
-        <!--cylinder radius="${general_link_radius}" length="${general_link_length}"/-->
-        <box size="0.1 0.1 ${general_link_length}"/>
+        <cylinder radius="${general_link_radius}" length="${general_link_length}"/>
       </geometry>
     </collision>
   </xacro:macro>
@@ -45,11 +44,11 @@
         </visual>
       </xacro:if>
       <xacro:if value="${collision == 1}">
-        <visual>
+        <collision>
           <geometry>
             <mesh filename="${model_url}"/>
           </geometry>
-        </visual>
+        </collision>
       </xacro:if>
 
     </link>
@@ -71,8 +70,8 @@
   <!-- friction -->
   <xacro:macro name="friction" params="link">
     <gazebo reference="${link}">
-      <mu1>0.5</mu1>
-      <mu2>0.5</mu2>
+      <mu1>0.2</mu1>
+      <mu2>0.2</mu2>
     </gazebo>
   </xacro:macro>
 
