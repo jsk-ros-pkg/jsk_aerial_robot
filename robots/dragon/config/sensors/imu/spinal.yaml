@@ -2,8 +2,8 @@ sensor_plugin:
         imu:
                 imu_board: 1 #d_board
                 imu_topic_name: /imu
-                level_acc_noise_sigma: 0.05
-                z_acc_noise_sigma: 0.05 #real:0.05
+                level_acc_noise_sigma: 0.05 #0.15 #0.05 OK
+                z_acc_noise_sigma: 0.05 #0.15 #0.05 OK
                 level_acc_bias_noise_sigma: 0.001 #0.005#0.04
                 z_acc_bias_noise_sigma: 0
                 angle_bias_noise_sigma: 0.0002 #good for EKF

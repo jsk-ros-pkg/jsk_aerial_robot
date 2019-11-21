@@ -98,7 +98,7 @@ namespace sensor_plugin
       vel_(0, 0, 0),
       prev_raw_pos_(0, 0, 0),
       prev_raw_vel_(0, 0, 0),
-      prev_psi_(0)
+      prev_raw_q_(0, 0, 0, 1)
     {
       ground_truth_pose_.states.resize(6);
       ground_truth_pose_.states[0].id = "x";
@@ -135,9 +135,9 @@ namespace sensor_plugin
 
     tf::Vector3 raw_pos_, raw_vel_;
     tf::Vector3 pos_, vel_;
-    double prev_psi_;
 
     tf::Vector3 prev_raw_pos_, prev_raw_vel_;
+    tf::Quaternion prev_raw_q_;
 
     /* ros msg */
     aerial_robot_msgs::States ground_truth_pose_;
@@ -156,17 +156,20 @@ namespace sensor_plugin
         {
           float delta_t = msg->header.stamp.toSec() - previous_time.toSec();
           raw_vel_ = (raw_pos_ - prev_raw_pos_) / delta_t;
-          double psi_err = euler[2] - prev_psi_;
-          if(psi_err > M_PI)  psi_err -= 2 * M_PI;
-          else if(psi_err < -M_PI)  psi_err += 2 * M_PI;
-          double raw_psi_vel = psi_err / delta_t;
 
-          double psi_vel = 0;
+          /* TODO: not working
+          tf::Quaternion q_delta = prev_raw_q_.inverse() * q;
+          tf::Vector3 raw_omega = q_delta.getAxis() * q_delta.getAngle() / delta_t;
+          */
+
+          tf::Matrix3x3 r_delta(prev_raw_q_.inverse() * q);
+          r_delta.getRPY(r, p, y);
+          tf::Vector3 raw_omega(r/delta_t, p/delta_t, y/delta_t);
 
           /* lpf */
           pos_ = lpf_pos_.filterFunction(raw_pos_);
           vel_ = lpf_vel_.filterFunction(raw_vel_);
-          psi_vel = (lpf_angular_.filterFunction(tf::Vector3(0, 0, raw_psi_vel))).z();
+          tf::Vector3 omega = lpf_angular_.filterFunction(raw_omega);
 
           /* euler */
           estimator_->setState(State::YAW_BASE, StateEstimator::GROUND_TRUTH, 0, euler[2]);
@@ -187,7 +190,8 @@ namespace sensor_plugin
               else
                 {
                   ground_truth_pose_.states[i].state[0].x = euler[i - 3];
-                  if(i == 5) ground_truth_pose_.states[i].state[0].y = psi_vel;
+                  ground_truth_pose_.states[i].state[0].y = raw_omega[i - 3];
+                  ground_truth_pose_.states[i].state[1].y = omega[i - 3];
                 }
             }
 
@@ -206,7 +210,7 @@ namespace sensor_plugin
 
       prev_raw_pos_ = raw_pos_;
       prev_raw_vel_ = raw_vel_;
-      prev_psi_ = euler[2];
+      prev_raw_q_ = q;
 
       previous_time = msg->header.stamp;
       /* consider the remote wirleess transmission, we use the local time server */

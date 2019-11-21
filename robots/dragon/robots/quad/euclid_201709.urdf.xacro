@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<robot
+    xmlns:xacro="http://www.ros.org/wiki/xacro" name="hydrusx" >
+
+  <!-- temporary -->
+  <xacro:include filename="$(find dragon)/urdf/dragon_common.xacro" />
+  <xacro:include filename="$(find dragon)/urdf/dragon_link.urdf.xacro" />
+
+  <xacro:dragon_module self="1" child="2" baselink="false" />
+  <xacro:dragon_module self="2" child="3" baselink="true" />
+  <xacro:dragon_module self="3" child="4" baselink="false" />
+  <xacro:dragon_module self="4" child="4" baselink="false" />
+
+</robot>
