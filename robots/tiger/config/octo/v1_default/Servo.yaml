@@ -16,7 +16,7 @@ tiger:
 
       # for simulation
       simulation:
-        pid: {p: 50.0, i: 0.3, d: 1.0}
+        pid: {p: 50.0, i: 1.0, d: 5.0, i_clamp_min: -6.6, i_clamp_max: 6.6}
         init_value: 0
         type: effort_controllers/JointPositionController
 
@@ -78,7 +78,7 @@ tiger:
       zero_point_offset: 0
 
       simulation:
-        pid: {p: 50.0, i: 0.1, d: 1.0}
+        pid: {p: 50.0, i: 0.1, d: 1.0, i_clamp_min: -1.5, i_clamp_max: 1.5}
         init_value: 0
         type: effort_controllers/JointPositionController
 
