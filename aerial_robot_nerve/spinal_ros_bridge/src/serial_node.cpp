@@ -51,7 +51,7 @@ int main(int argc, char* argv[])
   // Run boost::asio io service in a background thread.
   boost::asio::io_service io_service;
   new rosserial_server::SerialSession(io_service, port, baud);
-  ros::Duration(0.5).sleep();
+  ros::Duration(1.0).sleep();
   boost::thread(boost::bind(&boost::asio::io_service::run, &io_service));
 
   ros::MultiThreadedSpinner spinner(2);
