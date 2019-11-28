@@ -299,18 +299,18 @@ class IMUCalibWidget(QWidget):
             for i in range(len(res.data) / self.calib_data_len):
                 gyro_data = []
                 gyro_data.extend([None])
-                gyro_data.append("{0:.5f}".format(res.data[i * self.calib_data_len + 0]) + ', ' + "{0:.5f}".format(i * self.calib_data_len + res.data[1]) + ', ' + "{0:.5f}".format(i * self.calib_data_len + res.data[2])) # bias
+                gyro_data.append("{0:.5f}".format(res.data[i * self.calib_data_len + 0]) + ', ' + "{0:.5f}".format(res.data[i * self.calib_data_len + 1]) + ', ' + "{0:.5f}".format(res.data[i * self.calib_data_len + 2])) # bias
                 self.gyro_table_data.append(gyro_data)
 
                 acc_data = []
                 acc_data.extend([None])
-                acc_data.append("{0:.5f}".format(i * self.calib_data_len + res.data[3]) + ', ' + "{0:.5f}".format(i * self.calib_data_len + res.data[4]) + ', ' + "{0:.5f}".format(i * self.calib_data_len + res.data[5])) # bias
+                acc_data.append("{0:.5f}".format(res.data[3 + i * self.calib_data_len]) + ', ' + "{0:.5f}".format(res.data[4 + i * self.calib_data_len]) + ', ' + "{0:.5f}".format(res.data[i * self.calib_data_len + 5])) # bias
                 self.acc_table_data.append(acc_data)
 
                 mag_data = []
                 mag_data.extend([None])
-                mag_data.append("{0:.5f}".format(i * self.calib_data_len + res.data[6]) + ', ' + "{0:.5f}".format(i * self.calib_data_len + res.data[7]) + ', ' + "{0:.5f}".format(i * self.calib_data_len + res.data[8])) # bias
-                mag_data.append("{0:.5f}".format(i * self.calib_data_len + res.data[9]) + ', ' + "{0:.5f}".format(i * self.calib_data_len + res.data[10]) + ', ' + "{0:.5f}".format(i * self.calib_data_len + res.data[11])) # scale
+                mag_data.append("{0:.5f}".format(res.data[6 + i * self.calib_data_len]) + ', ' + "{0:.5f}".format(res.data[7 + i * self.calib_data_len]) + ', ' + "{0:.5f}".format(res.data[8 + i * self.calib_data_len])) # bias
+                mag_data.append("{0:.5f}".format(res.data[9 + i * self.calib_data_len]) + ', ' + "{0:.5f}".format(res.data[10 + i * self.calib_data_len]) + ', ' + "{0:.5f}".format(res.data[11 + i * self.calib_data_len])) # scale
                 self.mag_table_data.append(mag_data)
 
                 att_data = []
