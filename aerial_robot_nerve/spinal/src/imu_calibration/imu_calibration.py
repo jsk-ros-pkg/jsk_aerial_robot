@@ -131,6 +131,9 @@ class IMUCalibWidget(QWidget):
         self.acc_stop_calib_button.setIcon(QIcon.fromTheme('media-playback-stop'))
         self.mag_start_calib_button.setIcon(QIcon.fromTheme('media-playback-start'))
         self.mag_stop_calib_button.setIcon(QIcon.fromTheme('media-playback-stop'))
+        self.mag_start_lsm_calib_button.setIcon(QIcon.fromTheme('media-playback-start'))
+        self.mag_stop_lsm_calib_button.setIcon(QIcon.fromTheme('media-playback-stop'))
+
         self.mag_view_button.setIcon(QIcon.fromTheme('media-playback-start'))
         self.mag_clear_button.setIcon(QIcon.fromTheme('edit-clear'))
 
@@ -412,13 +415,115 @@ class IMUCalibWidget(QWidget):
 
         self.mag_view_start_flag = flag # for visualization
 
-        rospy.sleep(0.5)
+        rospy.sleep(1.0)
 
         if flag:  # start calibration
             self.mag_view_clear_flag = True # clear the sample with certain delay
         else: # stop calibration
-            # start least-squares method.
             self.update_imu_calib_data()
+
+    def mag_lsm_calib(self, flag):
+        try:
+            rospy.wait_for_service('/imu_calib', timeout = 0.5)
+        except rospy.ROSException, e:
+            rospy.logerr(e)
+
+        try:
+            # Rest Mag calib data first
+            req = ImuCalibRequest()
+            req.command = req.SEND_CALIB_DATA
+            req.data = []
+            req.data.append(0) # hard-coding: imu0
+            req.data.append(req.CALIB_MAG)
+            req.data.extend([0, 0, 0, 1, 1, 1]) # mag bias and scale
+            print req.data
+            res = self.imu_calib_data_client(req)
+        except rospy.ServiceException, e:
+            rospy.logerr("/imu_calib service call failed: %s"%e)
+
+        self.mag_view_start_flag = flag # for visualization
+
+        rospy.sleep(1.0)
+
+        if flag:  # start calibration
+            self.mag_view_clear_flag = True # clear the sample with certain delay
+            self.update_imu_calib_data()
+        else: # stop calibration
+            # start least-squares method.
+            bias, scale = self.mag_least_squares_method()
+
+            try:
+                # Rest Mag calib data first
+                req = ImuCalibRequest()
+                req.command = req.SEND_CALIB_DATA
+                req.data = []
+                req.data.append(0) # hard-coding: imu0
+                req.data.append(req.CALIB_MAG)
+                req.data.extend(bias)
+                req.data.extend(scale) # mag bias and scale
+                res = self.imu_calib_data_client(req)
+            except rospy.ServiceException, e:
+                rospy.logerr("/imu_calib service call failed: %s"%e)
+
+            rospy.sleep(0.5)
+            self.update_imu_calib_data()
+
+    def mag_least_squares_method(self):
+
+        xyz = np.matrix([self.mag_data_plot._canvas.x, self.mag_data_plot._canvas.y, self.mag_data_plot._canvas.z]).T
+        rospy.loginfo('Starting least-squared based magnetometer calibration with %d samples'%(len(self.mag_data_plot._canvas.x)))
+
+        #compute the vectors [ x^2 y^2 z^2 2*x*y 2*y*z 2*x*z x y z 1] for every sample
+        # the result for the x*y y*z and x*z components should be divided by 2
+        xyz2 = np.power(xyz,2)
+        xy = np.multiply(xyz[:,0],xyz[:,1])
+        xz = np.multiply(xyz[:,0],xyz[:,2])
+        yz = np.multiply(xyz[:,1],xyz[:,2])
+
+        # build the data matrix
+        A = np.bmat('xyz2 xy xz yz xyz')
+
+        b = 1.0*np.ones((xyz.shape[0],1))
+
+        # solve the system Ax = b
+        q,res,rank,sing = np.linalg.lstsq(A,b)
+
+        # build scaled ellipsoid quadric matrix (in homogeneous coordinates)
+        A = np.matrix([[q[0][0],0.5*q[3][0],0.5*q[4][0],0.5*q[6][0]],
+                    [0.5*q[3][0],q[1][0],0.5*q[5][0],0.5*q[7][0]],
+                    [0.5*q[4][0],0.5*q[5][0],q[2][0],0.5*q[8][0]],
+                    [0.5*q[6][0],0.5*q[7][0],0.5*q[8][0],-1]])
+
+        # build scaled ellipsoid quadric matrix (in regular coordinates)
+        Q = np.matrix([[q[0][0],0.5*q[3][0],0.5*q[4][0]],
+                    [0.5*q[3][0],q[1][0],0.5*q[5][0]],
+                    [0.5*q[4][0],0.5*q[5][0],q[2][0]]])
+
+        # obtain the centroid of the ellipsoid
+        x0 = np.linalg.inv(-1.0*Q) * np.matrix([0.5*q[6][0],0.5*q[7][0],0.5*q[8][0]]).T
+
+        # translate the ellipsoid in homogeneous coordinates to the center
+        T_x0 = np.matrix(np.eye(4))
+        T_x0[0,3] = x0[0]; T_x0[1,3] = x0[1]; T_x0[2,3] = x0[2];
+        A = T_x0.T*A*T_x0
+
+        # rescale the ellipsoid quadric matrix (in regular coordinates)
+        Q = Q*(-1.0/A[3,3])
+
+        # take the cholesky decomposition of Q. this will be the matrix to transform
+        # points from the ellipsoid to a sphere, after correcting for the offset x0
+        L = np.eye(3)
+        try:
+            L = np.linalg.cholesky(Q).transpose()
+            L = L / L[1,1] # normalized with y
+        except Exception,e:
+            rospy.loginfo(str(e))
+            L = np.eye(3)
+
+        rospy.loginfo("Magnetometer offset:\n %s",x0)
+        rospy.loginfo("Magnetometer Calibration Matrix:\n %s",L)
+
+        return x0, np.diag(L)
 
     @Slot()
     def on_update_button_clicked(self):
@@ -455,6 +560,14 @@ class IMUCalibWidget(QWidget):
     @Slot()
     def on_mag_stop_calib_button_clicked(self):
         self.mag_calib(False)
+
+    @Slot()
+    def on_mag_start_lsm_calib_button_clicked(self):
+        self.mag_lsm_calib(True)
+
+    @Slot()
+    def on_mag_stop_lsm_calib_button_clicked(self):
+        self.mag_lsm_calib(False)
 
     @Slot(bool)
     def on_mag_view_button_clicked(self, checked):
