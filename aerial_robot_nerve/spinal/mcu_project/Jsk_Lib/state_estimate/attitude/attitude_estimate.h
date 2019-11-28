@@ -82,8 +82,6 @@ public:
     if(imu_list_[0]->getUpdate())
       {
         /* attitude estimation */
-        if(!imu_list_[0]->getCalibrated()) return;
-
         Vector3f gyro, acc, mag;
         multiImuFusion(gyro, acc, mag);
         estimator_->update(gyro, acc, mag);

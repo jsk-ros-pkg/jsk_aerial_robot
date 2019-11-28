@@ -61,11 +61,13 @@ private:
   ros::NodeHandle* nh_;
 
   bool use_external_mag_flag_;
+  uint32_t calib_indicator_time_; // ms
 
   void gyroInit(void);
   void accInit(void);
   void magInit(void);
 
+  void ledOutput(void)  override;
   void updateRawData (void) override;
   void mpuWrite(uint8_t address, uint8_t value);
   uint8_t mpuRead(uint8_t address);

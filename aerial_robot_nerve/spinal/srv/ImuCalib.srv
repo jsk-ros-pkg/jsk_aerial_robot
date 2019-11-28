@@ -1,0 +1,16 @@
+#commands
+uint8 GET_CALIB_DATA = 0 # data: []
+uint8 RESET_CALIB_DATA = 1 # data: []
+uint8 CALIB_GYRO = 2  #data: [start(1)/stop(0), int duration (t > 0: stop with t[sec])]
+uint8 CALIB_ACC = 3  #data: [start(1)/stop(0), int duration (t > 0: stop with t[sec])]
+uint8 CALIB_MAG = 4  #data: [start(1)/stop(0), int duration (t > 0: stop with t[sec])]
+uint8 SEND_CALIB_DATA = 5  #data: [imu_id, sensor_id (GYRO/ACC/MAG), calib data]
+uint8 SAVE_CALIB_DATA = 6  #data: []
+
+uint8 command
+float32[] data
+---
+
+bool success
+float32[] data 
+

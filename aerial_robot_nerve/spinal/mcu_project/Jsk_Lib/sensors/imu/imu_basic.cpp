@@ -15,40 +15,49 @@ IMU::IMU()
 
 void IMU::init()
 {
-	acc_.zero();
-	gyro_.zero();
-	mag_.zero();
-	acc_v_.zero();
-	gyro_v_.zero();
-	mag_v_.zero();
-	mag_outlier_counter_ = 0;
-	calibrate_gyro_ = CALIBRATING_STEP;
-	calibrate_acc_ = 0;
-	calibrate_mag_ = 0;
-	mag_filtering_flag_ = false;
-	virtual_frame_ = false;
-	raw_gyro_p_.zero();
-	raw_acc_p_.zero();
-	for (int i = 0; i < 3; i++) {
-		FlashMemory::addValue(&(acc_offset_[i]), sizeof(float));
-		FlashMemory::addValue(&(mag_offset_[i]), sizeof(float));
-	}
-}
-
-void IMU::ledOutput()
-{
-  if(calibrate_acc_ || calibrate_gyro_ || calibrate_mag_) LED0_L;
-  else LED0_H;
+  acc_.zero();
+  gyro_.zero();
+  mag_.zero();
+  acc_v_.zero();
+  gyro_v_.zero();
+  mag_v_.zero();
+  mag_outlier_counter_ = 0;
+  gyro_bias_.zero();
+  calib_gyro_ = true;
+  calib_acc_ = false;
+  calib_mag_ = false;
+  gyro_calib_duration_ = GYRO_DEFAULT_CALIB_DURATION;
+#if NERVE_COMM
+  gyro_calib_duration_ += 3000; // idle duration because of can initialization
+#endif
+  acc_calib_duration_ = ACC_DEFAULT_CALIB_DURATION;
+  mag_calib_duration_ = MAG_DEFAULT_CALIB_DURATION;
+  gyro_calib_time_ = HAL_GetTick();
+  acc_calib_time_ = HAL_GetTick();
+  mag_calib_time_ = HAL_GetTick();
+  gyro_calib_cnt_ = 0;
+  acc_calib_cnt_ = 0;
+  mag_calib_cnt_ = 0;
+  mag_filtering_flag_ = false;
+  virtual_frame_ = false;
+  raw_gyro_p_.zero();
+  raw_acc_p_.zero();
+  for (int i = 0; i < 3; i++) {
+    FlashMemory::addValue(&(acc_bias_[i]), sizeof(float));
+    FlashMemory::addValue(&(mag_bias_[i]), sizeof(float));
+    FlashMemory::addValue(&(mag_scale_[i]), sizeof(float));
+  }
 }
 
 void IMU::readCalibData()
 {
-	FlashMemory::read();
+  FlashMemory::read();
 }
 
 void IMU::writeCalibData()
 {
-	FlashMemory::write();
+  FlashMemory::erase();
+  FlashMemory::write();
 }
 
 void IMU::update()
@@ -56,115 +65,188 @@ void IMU::update()
   updateRawData();
   setUpdate(true);
   process();
+
   /* LED indicator */
   ledOutput();
 }
 
-
 void IMU::process (void)
 {
-
   /* gyro part */
-  if (calibrate_gyro_ > 0)
+  raw_gyro_= raw_gyro_adc_;
+  if (calib_gyro_)
     {
-      if (calibrate_gyro_ == CALIBRATING_STEP)
-        gyro_offset_.zero();
+      gyro_bias_ += raw_gyro_adc_;
+      gyro_calib_cnt_++;
 
-      gyro_offset_ += raw_gyro_adc_;
-      if (calibrate_gyro_ == 1)
+      if (gyro_calib_duration_ > 0 && HAL_GetTick() - gyro_calib_time_ >= gyro_calib_duration_)
         {
-          gyro_offset_ /= (float)CALIBRATING_STEP;
+          gyro_bias_ /= (float)gyro_calib_cnt_;
+          calib_gyro_ = false;
         }
-      calibrate_gyro_--;
     }
   else
-    {
-      raw_gyro_= raw_gyro_adc_ - gyro_offset_;
-      raw_gyro_p_  -= (raw_gyro_p_/GYRO_LPF_FACTOR);
-      raw_gyro_p_   += raw_gyro_;
-      gyro_  = (raw_gyro_p_/GYRO_LPF_FACTOR);
-    }
+    raw_gyro_ -= gyro_bias_;
+
+  raw_gyro_p_ -= (raw_gyro_p_/GYRO_LPF_FACTOR);
+  raw_gyro_p_ += raw_gyro_;
+  gyro_ = (raw_gyro_p_/GYRO_LPF_FACTOR);
 
   /* acc part */
-  if (calibrate_acc_ > 0) {
-    if (calibrate_acc_ == CALIBRATING_STEP) acc_offset_.zero();
-    acc_offset_ += raw_acc_adc_;
-
-    if (calibrate_acc_ == 1) {
-      acc_offset_[0] /= (float)CALIBRATING_STEP;
-      acc_offset_[1] /= (float)CALIBRATING_STEP;
-      acc_offset_[2] =  acc_offset_[2]/(float)CALIBRATING_STEP - GRAVITY_MSS;
-    }
-    calibrate_acc_--;
-  }
-  else
+  raw_acc_ = raw_acc_adc_;
+  if (calib_acc_)
     {
-      raw_acc_ = raw_acc_adc_ - acc_offset_;
-      raw_acc_p_    -= (raw_acc_p_/ACC_LPF_FACTOR);
-      raw_acc_p_    += raw_acc_;
-      acc_ = (raw_acc_p_/ACC_LPF_FACTOR);
+      acc_bias_ += raw_acc_adc_;
+      acc_calib_cnt_++;
+
+      if (acc_calib_duration_ > 0 && HAL_GetTick() - acc_calib_time_ >= acc_calib_duration_)
+        {
+          acc_bias_[0] /= (float)acc_calib_cnt_;
+          acc_bias_[1] /= (float)acc_calib_cnt_;
+          acc_bias_[2] =  acc_bias_[2]/(float)acc_calib_cnt_ - GRAVITY_MSS;
+          calib_acc_ = false;
+        }
     }
+  else
+    raw_acc_ -= acc_bias_;
+
+  raw_acc_p_ -= (raw_acc_p_/ACC_LPF_FACTOR);
+  raw_acc_p_ += raw_acc_;
+  acc_ = (raw_acc_p_/ACC_LPF_FACTOR);
+
 
   /* mag part */
-  if (calibrate_mag_ > 0)
+  if (calib_mag_)
     {
-      if(calibrate_mag_  == CALIBRATING_MAG_STEP)
-        {
-          mag_offset_.zero();
-          mag_min_ = raw_mag_adc_;
-          mag_max_ = raw_mag_adc_;
-        }
-      // 30s: you have 30s to turn the multi in all directions
+      /*
+        simple calibration algorithm:
+        https://github.com/kriswiner/MPU6050/wiki/Simple-and-Effective-Magnetometer-Calibration
+
+        (option) min-least-square algorithm:
+        https://github.com/juancamilog/calibrate_imu/blob/master/nodes/calibrate_imu.py
+      */
       for (int i = 0; i < 3; i++)
         {
           if (raw_mag_adc_[i] < mag_min_[i]) mag_min_[i] = raw_mag_adc_[i];
           if (raw_mag_adc_[i] > mag_max_[i]) mag_max_[i] = raw_mag_adc_[i];
         }
-      // http://www.aichi-mi.com/old_pages/5_2_transistor_gijutu/transistor_gijutu.htm
 
-      if(calibrate_mag_ == 1)
+
+      if (mag_calib_duration_ > 0 && HAL_GetTick() - mag_calib_time_ >= mag_calib_duration_)
         {
-          mag_offset_ = (mag_min_ + mag_max_) / 2;
+          mag_bias_ = (mag_min_ + mag_max_) / 2;
+
+          Vector3f ellipsoid_rad = (mag_min_ - mag_max_) / 2;
+          float avg_rad = (ellipsoid_rad[0] + ellipsoid_rad[1] + ellipsoid_rad[2])  / 3;
+          mag_scale_[0] = avg_rad / ellipsoid_rad[0];
+          mag_scale_[1] = avg_rad / ellipsoid_rad[1];
+          mag_scale_[2] = avg_rad / ellipsoid_rad[2];
+          calib_mag_ = false;
         }
-      calibrate_mag_ --;
     }
-  else
+  /* transform coordinate */
+  raw_mag_ = raw_mag_adc_ - mag_bias_; //bias
+  raw_mag_[0] *= mag_scale_[0];
+  raw_mag_[1] *= mag_scale_[1];
+  raw_mag_[2] *= mag_scale_[2];
+
+  /* filtering => because the magnetemeter generates too much outlier, not know the reason */
+  if(mag_filtering_flag_)
     {
-      /* transform coordinate */
-	  raw_mag_ = raw_mag_adc_ - mag_offset_;
-
-      /* filtering => because the magnetemeter generates too much outlier, not know the reason */
-      if(mag_filtering_flag_)
+      bool mag_outlier_flag = false;
+      for(int i = 0; i < 3; i++)
         {
-          bool mag_outlier_flag = false;
-          for(int i = 0; i < 3; i++)
-            {
-              if(fabs(raw_mag_[i] - mag_[i]) > MAG_GENERAL_THRESH) mag_outlier_flag = true;
-            }
+          if(fabs(raw_mag_[i] - mag_[i]) > MAG_GENERAL_THRESH) mag_outlier_flag = true;
+        }
 
-          if(!mag_outlier_flag)
-            {
-              mag_ = raw_mag_;
-              mag_outlier_counter_ = 0;
-            }
-          else
-            {
-              if(++mag_outlier_counter_ > MAG_OUTLIER_MAX_COUNT)
-                {
-                  mag_outlier_counter_ = 0;
-                  mag_ = raw_mag_;
-                }
-            }
+      if(!mag_outlier_flag)
+        {
+          mag_ = raw_mag_;
+          mag_outlier_counter_ = 0;
         }
       else
         {
-          if(!raw_mag_adc_.is_zero())
-            {//should notice that the raw_mag_adc may be 0 in the early stage
+          if(++mag_outlier_counter_ > MAG_OUTLIER_MAX_COUNT)
+            {
+              mag_outlier_counter_ = 0;
               mag_ = raw_mag_;
-              mag_filtering_flag_  = true;
             }
         }
     }
+  else
+    {
+      if(!raw_mag_adc_.is_zero())
+        {//should notice that the raw_mag_adc may be 0 in the early stage
+          mag_ = raw_mag_;
+          mag_filtering_flag_  = true;
+        }
+    }
+
+}
+
+void IMU::gyroCalib(bool flag, float duration)
+{
+  if(flag)
+    { // start re-calib
+      gyro_bias_.zero();
+      calib_gyro_ = true;
+      gyro_calib_duration_ = duration * 1000;
+      gyro_calib_time_ = HAL_GetTick();
+      gyro_calib_cnt_ = 0;
+    }
+  else
+    { // stop re-calib
+      gyro_calib_duration_ = 100; // stop re-calib in 100ms
+    }
+}
+
+void IMU::accCalib(bool flag, float duration)
+{
+  if(flag)
+    { // start re-calib
+      acc_bias_.zero();
+      calib_acc_ = true;
+      acc_calib_duration_ = duration * 1000;
+      acc_calib_time_ = HAL_GetTick();
+      acc_calib_cnt_ = 0;
+
+      /* also calibrate gyro at the same time */
+      gyroCalib(flag, duration);
+    }
+  else
+    { // stop re-calib
+      acc_calib_duration_ = 100; // stop re-calib in 100ms
+      gyro_calib_duration_ = 100; // stop re-calib in 100ms
+    }
+}
+
+void IMU::magCalib(bool flag, float duration)
+{
+  if(flag)
+    { // start re-calib
+      mag_bias_.zero();
+      mag_min_ = Vector3f(1000,1000,1000);
+      mag_max_ = Vector3f(-1000,-1000,-1000);
+      mag_scale_ = Vector3f(1,1,1);
+      calib_mag_ = true;
+      mag_calib_duration_ = duration * 1000;
+      mag_calib_time_ = HAL_GetTick();
+      mag_calib_cnt_ = 0;
+    }
+  else
+    { // stop re-calib
+      mag_calib_duration_ = 100; // stop re-calib in 100ms
+    }
+}
+
+void IMU::resetCalib()
+{
+  gyro_bias_.zero();
+  acc_bias_.zero();
+  mag_bias_.zero();
+  mag_min_ = Vector3f(1000,1000,1000);
+  mag_max_ = Vector3f(-1000,-1000,-1000);
+  mag_scale_ = Vector3f(1,1,1);
 }
 
 
