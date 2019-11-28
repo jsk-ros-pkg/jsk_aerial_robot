@@ -1,0 +1,535 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+  <class>ImuCalib</class>
+  <widget class="QWidget" name="ImuCalib">
+    <property name="geometry">
+      <rect>
+        <x>0</x>
+        <y>0</y>
+        <width>561</width>
+        <height>61</height>
+      </rect>
+    </property>
+    <property name="acceptDrops">
+      <bool>true</bool>
+    </property>
+    <property name="windowTitle">
+      <string>IMU Calibration</string>
+    </property>
+    <layout class="QVBoxLayout" name="verticalLayout">
+      <property name="spacing">
+        <number>0</number>
+      </property>
+      <property name="margin">
+        <number>0</number>
+      </property>
+      <item>
+        <layout class="QHBoxLayout" name="basicControlLayout">
+          <property name="spacing">
+            <number>0</number>
+          </property>
+          <property name="margin">
+            <number>5</number>
+          </property>
+          <item>
+            <widget class="QPushButton" name="update_button">
+              <property name="sizePolicy">
+                <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                </sizepolicy>
+              </property>
+              <property name="toolTip">
+                <string>update imu calibration data</string>
+              </property>
+              <property name="text">
+                <string>Update</string>
+              </property>
+            </widget>
+          </item>
+          <item>
+            <widget class="QPushButton" name="reset_button">
+              <property name="sizePolicy">
+                <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                </sizepolicy>
+              </property>
+              <property name="toolTip">
+                <string>reset imu calibration data</string>
+              </property>
+              <property name="text">
+                <string>Reset</string>
+              </property>
+            </widget>
+          </item>
+          <item>
+            <widget class="QPushButton" name="save_button">
+              <property name="sizePolicy">
+                <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                </sizepolicy>
+              </property>
+              <property name="toolTip">
+                <string>save imu calibration data</string>
+              </property>
+              <property name="text">
+                <string>Save</string>
+              </property>
+            </widget>
+          </item>
+        </layout>
+      </item>
+
+      <item>
+        <layout class="QHBoxLayout" name="controlViewLayout">
+
+          <item>
+            <layout class="QVBoxLayout" name="gyroAccMagControlPlotLayout">
+
+              <item>
+                <layout class="QHBoxLayout" name="attitudeLayout">
+                  <item>
+                    <widget class="QLabel" name="">
+                      <property name="sizePolicy">
+                        <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+                          <horstretch>0</horstretch>
+                          <verstretch>0</verstretch>
+                        </sizepolicy>
+                      </property>
+                      <property name="text">
+                        <string>Attitude</string>
+                      </property>
+                    </widget>
+                  </item>
+                  <item>
+                    <spacer name="spacer">
+                      <property name="orientation">
+                        <enum>Qt::Horizontal</enum>
+                      </property>
+                      <property name="sizeHint" stdset="0">
+                        <size>
+                          <width>40</width>
+                          <height>20</height>
+                        </size>
+                      </property>
+                    </spacer>
+                  </item>
+                </layout>
+              </item>
+              <item>
+                <layout class="QHBoxLayout" name="attitudeTableLayout">
+                  <item>
+                    <widget class="QTableWidget" name="att_table_widget">
+                      <property name="sizePolicy">
+                        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                          <horstretch>0</horstretch>
+                          <verstretch>1</verstretch>
+                        </sizepolicy>
+                      </property>
+                      <property name="rowCount">
+                        <number>0</number>
+                      </property>
+                      <property name="columnCount">
+                        <number>0</number>
+                      </property>
+                      <attribute name="horizontalHeaderVisible">
+                        <bool>true</bool>
+                      </attribute>
+                      <attribute name="horizontalHeaderHighlightSections">
+                        <bool>true</bool>
+                      </attribute>
+                      <attribute name="verticalHeaderHighlightSections">
+                        <bool>true</bool>
+                      </attribute>
+                    </widget>
+                  </item>
+                </layout>
+              </item>
+
+              <item>
+                <layout class="QHBoxLayout" name="gyroControlLayout">
+                  <item>
+                    <widget class="QLabel" name="gyro">
+                      <property name="sizePolicy">
+                        <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+                          <horstretch>0</horstretch>
+                          <verstretch>0</verstretch>
+                        </sizepolicy>
+                      </property>
+                      <property name="text">
+                        <string>Gyroscope</string>
+                      </property>
+                    </widget>
+                  </item>
+                  <item>
+                    <widget class="QPushButton" name="gyro_start_calib_button">
+                      <property name="sizePolicy">
+                        <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                          <horstretch>0</horstretch>
+                          <verstretch>0</verstretch>
+                        </sizepolicy>
+                      </property>
+                      <property name="toolTip">
+                        <string>gyro start calib button</string>
+                      </property>
+                      <property name="text">
+                        <string>Start Calib</string>
+                      </property>
+                      <property name="iconSize">
+                        <size>
+                          <width>16</width>
+                          <height>16</height>
+                        </size>
+                      </property>
+                    </widget>
+                  </item>
+                  <item>
+                    <widget class="QPushButton" name="gyro_stop_calib_button">
+                      <property name="sizePolicy">
+                        <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                          <horstretch>0</horstretch>
+                          <verstretch>0</verstretch>
+                        </sizepolicy>
+                      </property>
+                      <property name="toolTip">
+                        <string>gyro stop calib button</string>
+                      </property>
+                      <property name="text">
+                        <string>Stop Calib</string>
+                      </property>
+                      <property name="iconSize">
+                        <size>
+                          <width>16</width>
+                          <height>16</height>
+                        </size>
+                      </property>
+                    </widget>
+                  </item>
+                  <item>
+                    <spacer name="spacer">
+                      <property name="orientation">
+                        <enum>Qt::Horizontal</enum>
+                      </property>
+                      <property name="sizeHint" stdset="0">
+                        <size>
+                          <width>40</width>
+                          <height>20</height>
+                        </size>
+                      </property>
+                    </spacer>
+                  </item>
+                </layout>
+              </item>
+              <item>
+                <layout class="QHBoxLayout" name="gyroDataTableLayout">
+                  <item>
+                    <widget class="QTableWidget" name="gyro_table_widget">
+                      <property name="sizePolicy">
+                        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                          <horstretch>0</horstretch>
+                          <verstretch>1</verstretch>
+                        </sizepolicy>
+                      </property>
+                      <property name="rowCount">
+                        <number>0</number>
+                      </property>
+                      <property name="columnCount">
+                        <number>0</number>
+                      </property>
+                      <attribute name="horizontalHeaderVisible">
+                        <bool>true</bool>
+                      </attribute>
+                      <attribute name="horizontalHeaderHighlightSections">
+                        <bool>true</bool>
+                      </attribute>
+                      <attribute name="verticalHeaderHighlightSections">
+                        <bool>true</bool>
+                      </attribute>
+                    </widget>
+                  </item>
+                </layout>
+              </item>
+
+              <item>
+                <layout class="QHBoxLayout" name="accControlLayout">
+                  <item>
+                    <widget class="QLabel" name="acc">
+                      <property name="sizePolicy">
+                        <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+                          <horstretch>0</horstretch>
+                          <verstretch>0</verstretch>
+                        </sizepolicy>
+                      </property>
+                      <property name="text">
+                        <string>Accelerometer</string>
+                      </property>
+                    </widget>
+                  </item>
+                  <item>
+                    <widget class="QPushButton" name="acc_start_calib_button">
+                      <property name="sizePolicy">
+                        <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                          <horstretch>0</horstretch>
+                          <verstretch>0</verstretch>
+                        </sizepolicy>
+                      </property>
+                      <property name="toolTip">
+                        <string>acc start calib button</string>
+                      </property>
+                      <property name="text">
+                        <string>Start Calib</string>
+                      </property>
+                      <property name="iconSize">
+                        <size>
+                          <width>16</width>
+                          <height>16</height>
+                        </size>
+                      </property>
+                    </widget>
+                  </item>
+                  <item>
+                    <widget class="QPushButton" name="acc_stop_calib_button">
+                      <property name="sizePolicy">
+                        <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                          <horstretch>0</horstretch>
+                          <verstretch>0</verstretch>
+                        </sizepolicy>
+                      </property>
+                      <property name="toolTip">
+                        <string>acc stop calib button</string>
+                      </property>
+                      <property name="text">
+                        <string>Stop Calib</string>
+                      </property>
+                      <property name="iconSize">
+                        <size>
+                          <width>16</width>
+                          <height>16</height>
+                        </size>
+                      </property>
+                    </widget>
+                  </item>
+                  <item>
+                    <spacer name="spacer">
+                      <property name="orientation">
+                        <enum>Qt::Horizontal</enum>
+                      </property>
+                      <property name="sizeHint" stdset="0">
+                        <size>
+                          <width>40</width>
+                          <height>20</height>
+                        </size>
+                      </property>
+                    </spacer>
+                  </item>
+                </layout>
+              </item>
+              <item>
+                <layout class="QHBoxLayout" name="accDataTableLayout">
+                  <item>
+                    <widget class="QTableWidget" name="acc_table_widget">
+                      <property name="sizePolicy">
+                        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                          <horstretch>0</horstretch>
+                          <verstretch>1</verstretch>
+                        </sizepolicy>
+                      </property>
+                      <property name="rowCount">
+                        <number>0</number>
+                      </property>
+                      <property name="columnCount">
+                        <number>0</number>
+                      </property>
+                      <attribute name="horizontalHeaderVisible">
+                        <bool>true</bool>
+                      </attribute>
+                      <attribute name="horizontalHeaderHighlightSections">
+                        <bool>true</bool>
+                      </attribute>
+                      <attribute name="verticalHeaderHighlightSections">
+                        <bool>true</bool>
+                      </attribute>
+                    </widget>
+                  </item>
+                </layout>
+              </item>
+
+              <item>
+                <layout class="QHBoxLayout" name="magControlLayout">
+                  <item>
+                    <widget class="QLabel" name="mag">
+                      <property name="sizePolicy">
+                        <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+                          <horstretch>0</horstretch>
+                          <verstretch>0</verstretch>
+                        </sizepolicy>
+                      </property>
+                      <property name="text">
+                        <string>Magnetometer</string>
+                      </property>
+                    </widget>
+                  </item>
+                  <item>
+                    <widget class="QPushButton" name="mag_start_calib_button">
+                      <property name="sizePolicy">
+                        <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                          <horstretch>0</horstretch>
+                          <verstretch>0</verstretch>
+                        </sizepolicy>
+                      </property>
+                      <property name="toolTip">
+                        <string>mag start calib button</string>
+                      </property>
+                      <property name="text">
+                        <string>Start Calib</string>
+                      </property>
+                      <property name="iconSize">
+                        <size>
+                          <width>16</width>
+                          <height>16</height>
+                        </size>
+                      </property>
+                    </widget>
+                  </item>
+                  <item>
+                    <widget class="QPushButton" name="mag_stop_calib_button">
+                      <property name="sizePolicy">
+                        <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                          <horstretch>0</horstretch>
+                          <verstretch>0</verstretch>
+                        </sizepolicy>
+                      </property>
+                      <property name="toolTip">
+                        <string>mag stop calib button</string>
+                      </property>
+                      <property name="text">
+                        <string>Stop Calib</string>
+                      </property>
+                      <property name="iconSize">
+                        <size>
+                          <width>16</width>
+                          <height>16</height>
+                        </size>
+                      </property>
+                    </widget>
+                  </item>
+                  <item>
+                    <spacer name="spacer">
+                      <property name="orientation">
+                        <enum>Qt::Horizontal</enum>
+                      </property>
+                      <property name="sizeHint" stdset="0">
+                        <size>
+                          <width>20</width>
+                          <height>20</height>
+                        </size>
+                      </property>
+                    </spacer>
+                  </item>
+                  <item>
+                    <widget class="QLabel" name="mag_field_view">
+                      <property name="sizePolicy">
+                        <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+                          <horstretch>0</horstretch>
+                          <verstretch>0</verstretch>
+                        </sizepolicy>
+                      </property>
+                      <property name="text">
+                        <string>Magnetic Field</string>
+                      </property>
+                    </widget>
+                  </item>
+                  <item>
+                    <widget class="QPushButton" name="mag_view_button">
+                      <property name="sizePolicy">
+                        <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                          <horstretch>0</horstretch>
+                          <verstretch>0</verstretch>
+                        </sizepolicy>
+                      </property>
+                      <property name="toolTip">
+                        <string>pause plot</string>
+                      </property>
+                      <property name="iconSize">
+                        <size>
+                          <width>16</width>
+                          <height>16</height>
+                        </size>
+                      </property>
+                      <property name="checkable">
+                        <bool>true</bool>
+                      </property>
+                    </widget>
+                  </item>
+                  <item>
+                    <widget class="QPushButton" name="mag_clear_button">
+                      <property name="sizePolicy">
+                        <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                          <horstretch>0</horstretch>
+                          <verstretch>0</verstretch>
+                        </sizepolicy>
+                      </property>
+                      <property name="toolTip">
+                        <string>remove all topics</string>
+                      </property>
+                      <property name="iconSize">
+                        <size>
+                          <width>16</width>
+                          <height>16</height>
+                        </size>
+                      </property>
+                    </widget>
+                  </item>
+                </layout>
+              </item>
+              <item>
+                <layout class="QHBoxLayout" name="magDataTableLayout">
+                  <item>
+                    <widget class="QTableWidget" name="mag_table_widget">
+                      <property name="sizePolicy">
+                        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                          <horstretch>0</horstretch>
+                          <verstretch>1</verstretch>
+                        </sizepolicy>
+                      </property>
+                      <property name="rowCount">
+                        <number>0</number>
+                      </property>
+                      <property name="columnCount">
+                        <number>0</number>
+                      </property>
+                      <attribute name="horizontalHeaderVisible">
+                        <bool>true</bool>
+                      </attribute>
+                      <attribute name="horizontalHeaderHighlightSections">
+                        <bool>true</bool>
+                      </attribute>
+                      <attribute name="verticalHeaderHighlightSections">
+                        <bool>true</bool>
+                      </attribute>
+                    </widget>
+                  </item>
+                </layout>
+              </item>
+            </layout>
+          </item>
+
+          <item>
+            <layout class="QHBoxLayout" name="mag_view_layout">
+              <property name="spacing">
+                <number>0</number>
+              </property>
+            </layout>
+          </item>
+        </layout>
+
+      </item>
+    </layout>
+  </widget>
+  <resources/>
+  <connections/>
+</ui>
+
+
