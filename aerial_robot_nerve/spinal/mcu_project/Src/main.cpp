@@ -250,8 +250,6 @@ int main(void){
   /* Extra Servo Control */
   extra_servo_.init(&htim3, &htim5, &nh_);
 
-  FlashMemory::read(); //IMU calib data, uav type
-
 #if NERVE_COMM
   /* NERVE */
   Spine::init(&hcan1, &nh_, &estimator_, GPIOE, GPIO_PIN_3);
@@ -272,8 +270,9 @@ int main(void){
   gps_.init(&huart3, &nh_);
 #endif
 
-
 #endif
+
+  FlashMemory::read(); //IMU calib data (including IMU in neurons)
 
   start_processing_flag_ = true;
   uint32_t now_time = HAL_GetTick();
