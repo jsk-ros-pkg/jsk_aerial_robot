@@ -12,7 +12,7 @@
       <icon type="theme">media-playback-start</icon>
       <statustip>Configurator for aerial robot boards</statustip>
     </qtgui>
-  </class>
+    </class>
   <class name="ServoMonitor" type="servo_monitor.servo_monitor.ServoMonitor" base_class_type="rqt_gui_py::Plugin">
     <description>
       Servo monitor for transformable aerial robot hardware
@@ -27,5 +27,21 @@
       <statustip>Servo monitor for transformable aerial robot hardware</statustip>
     </qtgui>
   </class>
+
+  <class name="ImuCalibration" type="imu_calibration.imu_calibration.ImuCalibrator" base_class_type="rqt_gui_py::Plugin">
+    <description>
+      IMU calibration
+    </description>
+    <qtgui>
+      <group>
+        <icon type="theme">folder</icon>
+        <label>aerial robot</label>
+      </group>
+      <label>IMU Calibration</label>
+      <icon type="theme">utilities-system-monitor</icon>
+      <statustip>A plugin for IMU calibration</statustip>
+    </qtgui>
+  </class>
+
 </library>
 

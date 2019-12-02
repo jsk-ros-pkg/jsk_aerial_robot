@@ -47,6 +47,7 @@ add_service_files(
   GetBoardInfo.srv
   SetBoardConfig.srv
   SetAttitudeGains.srv
+  ImuCalib.srv
 )
 
 generate_messages(

@@ -9,7 +9,7 @@
 #define APPLICATION_JSK_LIB_SENSORS_IMU_IMU_ROS_CMD_H_
 
 #include <ros.h>
-#include <std_msgs/UInt8.h>
+#include <spinal/ImuCalib.h>
 #include "sensors/imu/imu_basic.h"
 
 namespace IMU_ROS_CMD {

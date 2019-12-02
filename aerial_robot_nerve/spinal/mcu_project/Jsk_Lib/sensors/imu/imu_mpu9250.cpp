@@ -30,6 +30,8 @@ void IMUOnboard::init(SPI_HandleTypeDef* hspi, I2C_HandleTypeDef* hi2c, ros::Nod
   hspi_ = hspi;
   hi2c_ = hi2c;
 
+  calib_indicator_time_ = HAL_GetTick();
+
   gyroInit();
   accInit();
   magInit();
@@ -93,7 +95,7 @@ void IMUOnboard::magInit(void)
    * we need check the i2c connectio with external mag(HMC5883L) several times initially,
    * since the module UBlox M8N has some problem with the gps/mag simultaneous polling.
    */
-  HAL_Delay(10);
+  HAL_Delay(500); // wait for the setup of the Blox M8N module
   uint8_t val[2];
   val[0] = HMC58X3_R_CONFB;
   val[1] = 0x20;
@@ -156,6 +158,27 @@ void IMUOnboard::magInit(void)
       HAL_Delay(1);
     }
   last_mag_time_ = HAL_GetTick();
+}
+
+void IMUOnboard::ledOutput()
+{
+  /* calibration pattern */
+  if(calib_acc_ || calib_gyro_ || calib_mag_)
+    {
+      if(HAL_GetTick() - calib_indicator_time_ < 100) //ms
+        LED0_H;
+      else if(HAL_GetTick() - calib_indicator_time_ < 200) //ms
+        LED0_L;
+      else if(HAL_GetTick() - calib_indicator_time_ < 300) //ms
+        LED0_H;
+      else if(HAL_GetTick() - calib_indicator_time_ < 400) //ms
+        LED0_L;
+
+      if(HAL_GetTick() - calib_indicator_time_ > 1000) //ms
+        calib_indicator_time_ = HAL_GetTick();
+    }
+  else LED0_H;
+
 }
 
 void IMUOnboard::updateRawData()
