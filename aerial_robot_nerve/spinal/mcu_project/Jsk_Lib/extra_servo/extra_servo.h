@@ -13,12 +13,12 @@
 #define __EXTRA_SERVO_H
 
 #include "stm32f7xx_hal.h"
+#include "flashmemory/flashmemory.h"
 #include "config.h"
 #include <ros.h>
 
 /* ros */
 #include <spinal/ServoControlCmd.h>
-#include <spinal/UavInfo.h>
 
 #define MAX_PWM  54000
 #define MAX_DUTY 20000.0f //conversion to [ms]
