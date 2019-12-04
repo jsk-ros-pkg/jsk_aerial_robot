@@ -1,7 +1,6 @@
 motor_info:
-        min_thrust: 1 #[N]
-        max_thrust: 16.5 #[N]
-        abs_max_pwm: 0.95
+        min_pwm: 0.59 # 1180 [ms]
+        max_pwm: 0.95 # 1900 [ms]
         force_landing_thrust: 6.5 #[N]
         m_f_rate: -0.0166
         pwm_conversion_mode: 0 # SQRT Mode

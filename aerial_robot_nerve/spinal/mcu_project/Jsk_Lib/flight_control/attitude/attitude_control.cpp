@@ -126,8 +126,7 @@ void AttitudeController::pwmsControl(void)
 
           /* constraint */
           if(target_pwm_[i] < min_duty_) target_pwm_[i]  = min_duty_;
-          else if(target_pwm_[i]  > abs_max_duty_) target_pwm_[i]  = abs_max_duty_;
-          //max_duty_:  affected by voltage, abs_max_duty_: no affected by voltage
+          else if(target_pwm_[i]  > max_duty_) target_pwm_[i]  = max_duty_;
 
           /* motor pwm test */
           if(pwm_test_flag_) target_pwm_[i] = pwm_test_value_;
@@ -486,9 +485,9 @@ void AttitudeController::fourAxisCommandCallback( const spinal::FourAxisCommand 
     {
       setForceLandingFlag(true);
 #ifdef SIMULATION
-      ROS_ERROR("failsafe2-1");
+      ROS_ERROR("failsafe2");
 #else
-      nh_->logerror("failsafe2-1");
+      nh_->logerror("failsafe2");
 #endif
       return;
     }
@@ -511,27 +510,6 @@ void AttitudeController::fourAxisCommandCallback( const spinal::FourAxisCommand 
     	 }
 #endif
 
-      /* failsafe2-2: the output difference between motors are too big, start force landing */
-      float min_thrust = max_thrust_;
-      float max_thrust = min_thrust_;
-      for(int i = 0; i < motor_number_; i++)
-        {
-          /* remove the pitch/roll feedforward terms */
-          if(cmd_msg.base_throttle[i] > max_thrust) max_thrust = cmd_msg.base_throttle[i];
-          if(cmd_msg.base_throttle[i] < min_thrust) min_thrust = cmd_msg.base_throttle[i];
-        }
-      /* difference large than 90% of the max f */
-      if(max_thrust - min_thrust > max_thrust_ * 0.9)
-        {
-          setForceLandingFlag(true);
-#ifdef SIMULATION
-          ROS_ERROR("failsafe2-2");
-#else
-          nh_->logerror("failsafe2-2");
-#endif
-          return;
-        }
-
       for(int i = 0; i < motor_number_; i++)
         base_throttle_term_[i] = cmd_msg.base_throttle[i];
     }
@@ -541,19 +519,6 @@ void AttitudeController::fourAxisCommandCallback( const spinal::FourAxisCommand 
         {
         case spinal::UavInfo::DRONE:
           {
-            /* failsafe2-2: the output(z + yaw) difference between motors are too big, start force landing */
-            if(abs(cmd_msg.angles[Z]) + cmd_msg.base_throttle[Z]  > max_thrust_ ||
-               -abs(cmd_msg.angles[Z]) + cmd_msg.base_throttle[Z]  < min_thrust_)
-              {
-                setForceLandingFlag(true);
-#ifdef SIMULATION
-                ROS_ERROR("failsafe2-2");
-#else
-                nh_->logerror("failsafe2-2");
-#endif
-
-                break;
-              }
             target_angle_[Z] = cmd_msg.angles[Z];
             target_thrust_[Z] = cmd_msg.base_throttle[0]; //no good name
             break;
@@ -571,27 +536,6 @@ void AttitudeController::fourAxisCommandCallback( const spinal::FourAxisCommand 
         	  if(cmd_msg.base_throttle_length != motor_number_) return;
 #endif
 
-        	  /* failsafe2-2: the output difference between motors are too big, start force landing */
-        	  float min_thrust = max_thrust_;
-        	  float max_thrust = min_thrust_;
-        	  for(int i = 0; i < motor_number_; i++)
-        	    {
-        		  /* remove the pitch/roll feedforward terms */
-        		  if(cmd_msg.base_throttle[i] > max_thrust) max_thrust = cmd_msg.base_throttle[i];
-        		  if(cmd_msg.base_throttle[i] < min_thrust) min_thrust = cmd_msg.base_throttle[i];
-        	    }
-        	  /* difference large than 90% of the max f */
-        	  if(max_thrust - min_thrust > max_thrust_ * 0.9)
-        	    {
-        		  force_landing_flag_ = true;
-#ifdef SIMULATION
-        		  ROS_ERROR("failsafe2-2 max:%f min:%f max_:%f", max_thrust, min_thrust, max_thrust_);
-#else
-        		  nh_->logerror("failsafe2-2");
-#endif
-        		  return;
-        	    }
-
         	  for(int i = 0; i < motor_number_; i++)
         		  base_throttle_term_[i] = cmd_msg.base_throttle[i];
         	  attitude_yaw_p_i_term_ = cmd_msg.angles[Z]; //P and I term of yaw target acc
@@ -607,10 +551,10 @@ void AttitudeController::fourAxisCommandCallback( const spinal::FourAxisCommand 
 
 void AttitudeController::pwmInfoCallback( const spinal::PwmInfo &info_msg)
 {
-  min_thrust_ = info_msg.min_thrust;
-  max_thrust_ = info_msg.max_thrust;
   force_landing_thrust_ = info_msg.force_landing_thrust;
 
+  min_duty_ = info_msg.min_pwm;
+  max_duty_ = info_msg.max_pwm;
   pwm_conversion_mode_ = info_msg.pwm_conversion_mode;
 
   motor_info_.resize(0);
@@ -623,9 +567,6 @@ void AttitudeController::pwmInfoCallback( const spinal::PwmInfo &info_msg)
         motor_info_.push_back(info_msg.motor_info[i]);
       }
 
-  min_duty_ = pwmConversion(min_thrust_);
-  max_duty_ = pwmConversion(max_thrust_);
-  abs_max_duty_ = info_msg.abs_max_pwm;
 }
 
 void AttitudeController::rpyGainCallback( const spinal::RollPitchYawTerms &gain_msg)
@@ -874,7 +815,6 @@ float AttitudeController::pwmConversion(float thrust)
           {
             /* pwm = F_inv[(V_ref / V)^1.5 f] */
             v_factor_ = motor_info_[motor_ref_index_].voltage / voltage * inv_sqrt(voltage / motor_info_[motor_ref_index_].voltage);
-            //ROS_INFO_THROTTLE(1, "v factor is %f", v_factor_);
             break;
           }
         default:
@@ -899,7 +839,8 @@ float AttitudeController::pwmConversion(float thrust)
     case spinal::MotorInfo::POLYNOMINAL_MODE:
       {
         /* pwm = F_inv[(V_ref / V)^1.5 f] */
-        float v_factor_thrust_decimal = v_factor_ * thrust * 0.1f; //special decimal order shift (x0.1)
+        float v_factor_thrust = v_factor_ * thrust > motor_info_[motor_ref_index_].max_thrust?motor_info_[motor_ref_index_].max_thrust: v_factor_ * thrust;
+        float v_factor_thrust_decimal = v_factor_thrust * 0.1f; //special decimal order shift (x0.1)
         /* hardcode: 4 dimensional */
         int max_dimenstional = 4;
         target_pwm = motor_info_[motor_ref_index_].polynominal[max_dimenstional];

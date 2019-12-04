@@ -87,12 +87,10 @@ namespace control_plugin
       ros::NodeHandle motor_info_node("motor_info");
       std::string ns = motor_info_node.getNamespace();
 
-      motor_info_node.param("min_thrust", min_thrust_, 0.0);
-      if(param_verbose_) cout << ns  << ": min_thrust_ is "  <<  min_thrust_ << endl;
-      motor_info_node.param("max_thrust", max_thrust_, 0.0);
-      if(param_verbose_) cout << ns  << ": max_thrust_ is "  <<  max_thrust_ << endl;
-      motor_info_node.param("abs_max_pwm", abs_max_pwm_, 0.0);
-      if(param_verbose_) cout << ns  << ": abs_max_pwm_ is "  <<  abs_max_pwm_ << endl;
+      motor_info_node.param("max_pwm", max_pwm_, 0.0);
+      if(param_verbose_) cout << ns  << ": max_pwm_ is "  <<  max_pwm_ << endl;
+      motor_info_node.param("min_pwm", min_pwm_, 0.0);
+      if(param_verbose_) cout << ns  << ": min_pwm_ is "  <<  min_pwm_ << endl;
       motor_info_node.param("force_landing_thrust", force_landing_thrust_, 0.0);
       if(param_verbose_) cout << ns  << ": force_landing_thrust_ is "  <<  force_landing_thrust_ << endl;
       motor_info_node.param("m_f_rate", m_f_rate_, 0.0);
@@ -109,15 +107,18 @@ namespace control_plugin
           ss << i + 1;
           double val;
           ros::NodeHandle nh(motor_info_node, "ref" + ss.str());
-          nh.param("voltage", val, 0.0);
+          nh.getParam("voltage", val);
           motor_info_[i].voltage = val;
-          if(param_verbose_) cout << nh.getNamespace()  << ": voltage is "  <<  val << endl;
+          nh.param("max_thrust", val, 0.0);
+          motor_info_[i].max_thrust = val;
+          if(param_verbose_) cout << nh.getNamespace() << ": voltage is "<< motor_info_[i].voltage <<  "; max thrust is " << motor_info_[i].max_thrust << endl;
+
           /* hardcode: up to 4 dimension */
           for(int j = 0; j < 5; j++)
             {
               std::stringstream ss2;
               ss2 << j;
-              nh.param("polynominal" + ss2.str(), val, 0.0);
+              nh.getParam("polynominal" + ss2.str(), val);
               motor_info_[i].polynominal[j] = val;
               if(param_verbose_) cout << nh.getNamespace() << ": polynominal" << j << " is "  <<  val << endl;
             }
@@ -165,9 +166,8 @@ namespace control_plugin
         {
           /* send motor and uav info to uav, about 10Hz */
           spinal::PwmInfo motor_info_msg;
-          motor_info_msg.min_thrust = min_thrust_;
-          motor_info_msg.max_thrust = max_thrust_;
-          motor_info_msg.abs_max_pwm = abs_max_pwm_;
+          motor_info_msg.max_pwm = max_pwm_;
+          motor_info_msg.min_pwm = min_pwm_;
           motor_info_msg.force_landing_thrust = force_landing_thrust_;
           motor_info_msg.pwm_conversion_mode = pwm_conversion_mode_;
           motor_info_msg.motor_info.resize(0);
@@ -206,8 +206,7 @@ namespace control_plugin
     int uav_model_;
 
     /* new param */
-    double min_thrust_, max_thrust_;
-    double abs_max_pwm_;
+    double max_pwm_, min_pwm_;
     double m_f_rate_;
     double force_landing_thrust_; //pwm
     int pwm_conversion_mode_;
