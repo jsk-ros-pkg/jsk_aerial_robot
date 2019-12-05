@@ -3,7 +3,7 @@
     xmlns:xacro="http://www.ros.org/wiki/xacro" name="tiger_common" >
 
   <!-- kinematics [m] -->
-  <xacro:property name="general_link_length" value="0.51661"/>
+  <xacro:property name="general_link_length" value="0.523"/>
   <xacro:property name="general_link_radius" value="0.025"/>
   <xacro:property name="center_link_radius" value="0.169"/>
   <xacro:property name="center_link_height" value="0.0928"/>
