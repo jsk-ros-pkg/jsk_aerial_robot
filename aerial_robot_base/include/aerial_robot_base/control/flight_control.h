@@ -91,6 +91,8 @@ namespace control_plugin
       if(param_verbose_) cout << ns  << ": max_pwm_ is "  <<  max_pwm_ << endl;
       motor_info_node.param("min_pwm", min_pwm_, 0.0);
       if(param_verbose_) cout << ns  << ": min_pwm_ is "  <<  min_pwm_ << endl;
+      motor_info_node.param("min_thrust", min_thrust_, 0.0);
+      if(param_verbose_) cout << ns  << ": min_thrust_ is "  <<  min_thrust_ << endl;
       motor_info_node.param("force_landing_thrust", force_landing_thrust_, 0.0);
       if(param_verbose_) cout << ns  << ": force_landing_thrust_ is "  <<  force_landing_thrust_ << endl;
       motor_info_node.param("m_f_rate", m_f_rate_, 0.0);
@@ -168,6 +170,7 @@ namespace control_plugin
           spinal::PwmInfo motor_info_msg;
           motor_info_msg.max_pwm = max_pwm_;
           motor_info_msg.min_pwm = min_pwm_;
+          motor_info_msg.min_thrust = min_thrust_;
           motor_info_msg.force_landing_thrust = force_landing_thrust_;
           motor_info_msg.pwm_conversion_mode = pwm_conversion_mode_;
           motor_info_msg.motor_info.resize(0);
@@ -207,6 +210,7 @@ namespace control_plugin
 
     /* new param */
     double max_pwm_, min_pwm_;
+    double min_thrust_;
     double m_f_rate_;
     double force_landing_thrust_; //pwm
     int pwm_conversion_mode_;
