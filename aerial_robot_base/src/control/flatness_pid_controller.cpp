@@ -59,10 +59,9 @@ namespace control_plugin
     psi_err_(0),
     target_pitch_(0),
     target_roll_(0),
-    alt_i_term_(0),
-    yaw_i_term_(0),
     target_throttle_(0),
     target_yaw_(0),
+    candidate_yaw_term_(0),
     need_yaw_d_control_(false)
   {
     xy_offset_[2] = 0;
@@ -207,33 +206,51 @@ namespace control_plugin
     pid_msg.roll.vel_err = vel_err_[1];
 
     /* yaw */
+    std::vector<double> target_yaw_tmp(target_yaw_);
+    max_target_yaw_ = 0;
+    int16_t max_yaw_d_gain = 0; // for reconstruct yaw control term in spinal
+
     double psi_err = clamp(psi_err_, -yaw_err_thresh_, yaw_err_thresh_);
+    psi_err_i_ += psi_err * du;
     for(int j = 0; j < motor_num_; j++)
       {
         //**** P term
         double yaw_p_term = clamp(-yaw_gains_[j][0] * psi_err, -yaw_terms_limits_[0], yaw_terms_limits_[0]);
 
         //**** I term:
-        yaw_i_term_[j] += (psi_err * du * yaw_gains_[j][1]);
-        yaw_i_term_[j] = clamp(yaw_i_term_[j], -yaw_terms_limits_[1], yaw_terms_limits_[1]);
+        double yaw_i_term = clamp(yaw_gains_[j][1] * psi_err_i_, -yaw_terms_limits_[1], yaw_terms_limits_[1]);
 
         //***** D term: usaully it is in the flight board
         /* but for the gimbal control, we need the d term, set 0 if it is not gimbal type */
         double yaw_d_term = -yaw_gains_[j][2] * target_psi_vel_;
-
-        if(need_yaw_d_control_)
-          yaw_d_term += clamp(-yaw_gains_[j][2] * (-state_psi_vel_), -yaw_terms_limits_[2], yaw_terms_limits_[2]);
+        if(need_yaw_d_control_) yaw_d_term += (-yaw_gains_[j][2] * (-state_psi_vel_));
+        yaw_d_term = clamp(yaw_d_term, -yaw_terms_limits_[2], yaw_terms_limits_[2]);
 
         //*** each motor command value for log
-        target_yaw_[j] = clamp(yaw_p_term + yaw_i_term_[j] + yaw_d_term, -yaw_limit_, yaw_limit_);
+        target_yaw_tmp[j] = yaw_p_term + yaw_i_term + yaw_d_term;
 
-        pid_msg.yaw.total.push_back(target_yaw_[j]);
+        pid_msg.yaw.total.push_back(target_yaw_tmp[j]);
         pid_msg.yaw.p_term.push_back(yaw_p_term);
-        pid_msg.yaw.i_term.push_back(yaw_i_term_[j]);
+        pid_msg.yaw.i_term.push_back(yaw_i_term);
         pid_msg.yaw.d_term.push_back(yaw_d_term);
 
         if(yaw_gains_.size() == 1) break;
+
+        if(fabs(target_yaw_tmp[j]) > max_target_yaw_) max_target_yaw_ = fabs(target_yaw_tmp[j]);
+
+        /* use d gains to find the maximum (positive) value */
+        /* only select positve terms to avoid identical absolute value */
+        if(static_cast<int16_t>(yaw_gains_[j][2] * 1000) > max_yaw_d_gain)
+          {
+            max_yaw_d_gain = static_cast<int16_t>(yaw_gains_[j][2] * 1000);
+            candidate_yaw_term_ = target_yaw_tmp[j];
+          }
       }
+
+    if(max_target_yaw_ <= yaw_limit_)
+      std::copy(target_yaw_tmp.begin(), target_yaw_tmp.end(), target_yaw_.begin());
+    else
+      psi_err_i_ -= psi_err * du; // do not increase this term if saturated
 
     //**** ros pub
     pid_msg.yaw.target_pos = target_psi_;
@@ -241,7 +258,11 @@ namespace control_plugin
     pid_msg.yaw.target_vel = target_psi_vel_;
 
     /* throttle */
+    std::vector<double> target_throttle_tmp(target_throttle_);
+    double max_target_throttle = 0;
+
     double alt_pos_err = clamp(pos_err_.z(), -alt_err_thresh_, alt_err_thresh_);
+    alt_pos_err_i_ +=  alt_pos_err * du;
     double alt_vel_err = target_vel_.z() - state_vel_.z();
 
     if(navigator_->getNaviState() == Navigator::LAND_STATE) alt_pos_err += alt_landing_const_i_ctrl_thresh_;
@@ -252,22 +273,33 @@ namespace control_plugin
         double alt_p_term = clamp(-alt_gains_[j][0] * alt_pos_err, -alt_terms_limit_[0], alt_terms_limit_[0]);
         if(navigator_->getNaviState() == Navigator::LAND_STATE) alt_p_term = 0;
 
-        /* two way to calculate the alt i term */
         //**** I Term
-        alt_i_term_[j] +=  alt_pos_err * du;
-        double alt_i_term = clamp(alt_gains_[j][1] * alt_i_term_[j], -alt_terms_limit_[1], alt_terms_limit_[1]);
+        double alt_i_term = clamp(alt_gains_[j][1] * alt_pos_err_i_, -alt_terms_limit_[1], alt_terms_limit_[1]);
         //***** D Term
         double alt_d_term = clamp(-alt_gains_[j][2] * alt_vel_err, -alt_terms_limit_[2], alt_terms_limit_[2]);
 
-        //*** each motor command value for log
-        target_throttle_[j] = clamp(alt_p_term + alt_i_term + alt_d_term + alt_offset_, -alt_limit_, alt_limit_);
-        pid_msg.throttle.total.push_back(target_throttle_[j]);
+        target_throttle_tmp[j] = alt_p_term + alt_i_term + alt_d_term + alt_offset_;
+
+        pid_msg.throttle.total.push_back(target_throttle_tmp[j]);
         pid_msg.throttle.p_term.push_back(alt_p_term);
         pid_msg.throttle.i_term.push_back(alt_i_term);
         pid_msg.throttle.d_term.push_back(alt_d_term);
 
-        if(alt_gains_.size() == 1) break;
+        if(alt_gains_.size() == 1)
+          {
+            target_throttle_[j] = clamp(target_throttle_tmp[j], 0, alt_limit_);
+            break;
+          }
+
+        if(target_throttle_tmp[j] > max_target_throttle)
+          max_target_throttle = target_throttle_tmp[j];
       }
+
+    if(max_target_throttle <= alt_limit_)
+      std::copy(target_throttle_tmp.begin(), target_throttle_tmp.end(), target_throttle_.begin());
+    else
+      alt_pos_err_i_ -=  alt_pos_err * du; // do not increase this term if saturated
+
 
     pid_msg.throttle.target_pos = target_pos_.z();
     pid_msg.throttle.pos_err = alt_pos_err;
@@ -287,12 +319,13 @@ namespace control_plugin
     spinal::FourAxisCommand flight_command_data;
     flight_command_data.angles[0] =  -target_roll_;
     flight_command_data.angles[1] =  target_pitch_;
+    flight_command_data.angles[2] = candidate_yaw_term_;
 
     flight_command_data.base_throttle.resize(motor_num_);
+
     if(uav_model_ == spinal::UavInfo::DRONE)
       {
         /* Simple PID based attitude/altitude control */
-        flight_command_data.angles[2] = target_yaw_[0];
         flight_command_data.base_throttle[0] =  target_throttle_[0];
         if(target_throttle_[0] == 0) return; // do not publish the empty flight command => the force landing flag will be activate
       }
@@ -300,7 +333,7 @@ namespace control_plugin
       {
         /* LQI based attitude/altitude control */
         for(int i = 0; i < motor_num_; i++)
-          flight_command_data.base_throttle[i] = target_throttle_[i] + target_yaw_[i];
+          flight_command_data.base_throttle[i] = target_throttle_[i];
       }
     flight_cmd_pub_.publish(flight_command_data);
   }
@@ -312,9 +345,7 @@ namespace control_plugin
       {
         motor_num_ = msg->motor_num;
 
-        yaw_i_term_.resize(motor_num_);
         yaw_gains_.resize(motor_num_);
-        alt_i_term_.resize(motor_num_);
         alt_gains_.resize(motor_num_);
 
         target_throttle_.resize(motor_num_);

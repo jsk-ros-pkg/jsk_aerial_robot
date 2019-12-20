@@ -61,7 +61,6 @@ namespace control_plugin
     {
       FlatnessPid::reset();
 
-      yaw_i_term_.assign(1, 0);
       target_yaw_.assign(1, 0);
 
       level_flag_ = false;

@@ -66,8 +66,8 @@ namespace control_plugin
       ControlBase::reset();
 
       start_rp_integration_ = false;
-      alt_i_term_.assign(motor_num_, 0);
-      yaw_i_term_.assign(motor_num_, 0);
+      alt_pos_err_i_ = 0;
+      psi_err_i_ = 0;
 
       xy_i_term_.setValue(0,0,0);
 
@@ -110,7 +110,7 @@ namespace control_plugin
     double alt_err_thresh_;
     double alt_limit_;
     tf::Vector3 alt_terms_limit_;
-    std::vector<double> alt_i_term_;
+    double alt_pos_err_i_;
     double alt_landing_const_i_ctrl_thresh_;
     double alt_offset_;
 
@@ -127,8 +127,10 @@ namespace control_plugin
     std::vector<tf::Vector3> yaw_gains_;
     double yaw_limit_;
     tf::Vector3 yaw_terms_limits_;
+    double max_target_yaw_;
+    double candidate_yaw_term_;     /* to reconstruct yaw PI control term in spinal */
     double yaw_err_thresh_;
-    std::vector<double>  yaw_i_term_;
+    double  psi_err_i_;
     bool need_yaw_d_control_;
 
     dynamic_reconfigure::Server<aerial_robot_base::XYPidControlConfig>* xy_pid_server_;

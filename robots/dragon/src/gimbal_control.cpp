@@ -62,7 +62,6 @@ namespace control_plugin
       {
         motor_num_ = msg->motor_num;
 
-        alt_i_term_.resize(motor_num_);
         alt_gains_.resize(motor_num_);
 
         target_throttle_.resize(motor_num_);
