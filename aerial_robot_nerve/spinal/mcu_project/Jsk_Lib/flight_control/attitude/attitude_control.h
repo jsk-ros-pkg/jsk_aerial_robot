@@ -53,7 +53,7 @@
 
 /* fail safe */
 #define FLIGHT_COMMAND_TIMEOUT 500 //500ms
-#define MAX_TILT_ANGLE 0.43 // 25d degree
+#define MAX_TILT_ANGLE 1.0 // 25d degree
 
 #define CONTROL_PUB_INTERVAL 100 //40hz //100 //10ms
 
@@ -187,7 +187,10 @@ private:
   float i_lqi_gain_[MAX_MOTOR_NUMBER][3];
   float d_lqi_gain_[MAX_MOTOR_NUMBER][3];
   float base_throttle_term_[MAX_MOTOR_NUMBER]; //[N]
-  float motor_rpy_force_[MAX_MOTOR_NUMBER]; //[N]
+  float yaw_pi_term_[MAX_MOTOR_NUMBER]; //[N]
+  float yaw_term_[MAX_MOTOR_NUMBER]; //[N]
+  float roll_pitch_term_[MAX_MOTOR_NUMBER]; //[N]
+  int max_yaw_term_index_;
   // Gyro Moment Compensation for LQI
   float p_matrix_pseudo_inverse_[MAX_MOTOR_NUMBER][4];
   Matrix3f inertia_;
@@ -197,10 +200,9 @@ private:
   float target_pwm_[MAX_MOTOR_NUMBER];
   float min_duty_;
   float max_duty_;
-  float abs_max_duty_;
-  float max_thrust_;
-  float min_thrust_;
+  float min_thrust_; // max thrust is variant according to the voltage
   float force_landing_thrust_;
+  int8_t rotor_devider_;
   int8_t pwm_conversion_mode_;
   std::vector<spinal::MotorInfo> motor_info_;
   uint8_t motor_ref_index_;
@@ -221,7 +223,7 @@ private:
   void torqueAllocationMatrixInvCallback(const spinal::TorqueAllocationMatrixInv& msg);
   void pwmTestCallback(const std_msgs::Float32& pwm_msg);
 
-  float pwmConversion(float thrust);
+  void pwmConversion(void);
   void pwmsControl(void);
 
   void reset(void);

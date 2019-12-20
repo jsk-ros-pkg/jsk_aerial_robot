@@ -89,6 +89,7 @@ void AttitudeController::baseInit()
   // base param for uav model
   motor_number_ = 0;
   uav_model_ = -1;
+  rotor_devider_ = 1;
 
   start_control_flag_ = false;
   pwm_test_flag_ = false;
@@ -100,12 +101,25 @@ void AttitudeController::baseInit()
   //pwm init
   pwm_conversion_mode_ = -1;
   min_duty_ = IDLE_DUTY;
-  max_duty_ = min_duty_; //should assign right value from PC(ros)
+  max_duty_ = IDLE_DUTY; //should assign right value from PC(ros)
+  min_thrust_ = 0;
   force_landing_thrust_ = 0;
   // voltage
+  motor_info_.resize(0);
   v_factor_ = 1;
   motor_ref_index_ = 0;
   voltage_update_last_time_ = 0;
+
+  // control
+  for(int i = 0; i < MAX_MOTOR_NUMBER; i++)
+    {
+      for(int j = 0; j < 3; j++)
+        {
+          p_lqi_gain_[i][j] = 0;
+          i_lqi_gain_[i][j] = 0;
+          d_lqi_gain_[i][j] = 0;
+        }
+    }
 
   reset();
 }
@@ -114,27 +128,8 @@ void AttitudeController::pwmsControl(void)
 {
   static uint32_t ros_pub_last_time = HAL_GetTick();
 
-  for(int i = 0; i < motor_number_; i++)
-    {
-      float target_thrust = target_thrust_[i];
-      /* for dragon, we use dual rotor, so devide into two */
-      if(uav_model_ == spinal::UavInfo::DRAGON) target_thrust /= 2;
-
-      if(start_control_flag_)
-        {
-          target_pwm_[i] = pwmConversion(target_thrust);
-
-          /* constraint */
-          if(target_pwm_[i] < min_duty_) target_pwm_[i]  = min_duty_;
-          else if(target_pwm_[i]  > abs_max_duty_) target_pwm_[i]  = abs_max_duty_;
-          //max_duty_:  affected by voltage, abs_max_duty_: no affected by voltage
-
-          /* motor pwm test */
-          if(pwm_test_flag_) target_pwm_[i] = pwm_test_value_;
-        }
-      /* for ros */
-      pwms_msg_.motor_value[i] = (target_pwm_[i] * 2000);
-    }
+  /* target thrust -> target pwm */
+  pwmConversion();
 
 #ifdef SIMULATION
   /* control result publish */
@@ -193,10 +188,10 @@ void AttitudeController::pwmsControl(void)
 
 void AttitudeController::update(void)
 {
-  if(start_control_flag_)
+  if(start_control_flag_ && attitude_flag_)
     {
       /* failsafe 1: check the timeout of the flight command receive process */
-      if(failsafe_ && !force_landing_flag_ && attitude_flag_ &&
+      if(failsafe_ && !force_landing_flag_ &&
          (int32_t)(HAL_GetTick() - flight_command_last_stamp_) > FLIGHT_COMMAND_TIMEOUT)
         {
           /* timeout => start force landing */
@@ -258,8 +253,6 @@ void AttitudeController::update(void)
 
           for(int i = 0; i < motor_number_; i++)
             {
-              motor_rpy_force_[i] = 0; //[N]
-
               for(int axis = 0; axis < 3; axis++)
                 {
                   if(axis < 2)
@@ -272,38 +265,40 @@ void AttitudeController::update(void)
                       lqi_p_term = -error_angle * p_lqi_gain_[i][axis];
                       lqi_i_term = (error_angle_i_[axis] * i_lqi_gain_[i][axis]);
                     }
-                  else
-                    { lqi_p_term = 0; lqi_i_term = 0; }
 
-                  //lqi_d_term = vel[axis] * d_lqi_gain[i][axis];
-                  lqi_d_term = limit(vel[axis] * d_lqi_gain_[i][axis], 4.5); //(old meesage: can be more strict), why?
-                  motor_rpy_force_[i] += (lqi_p_term + lqi_i_term + lqi_d_term); //[N]
+                  /* d term */
+                  lqi_d_term = vel[axis] * d_lqi_gain_[i][axis];
 
                   if(axis == X)
                     {
+                      roll_pitch_term_[i] = lqi_p_term + lqi_i_term + lqi_d_term; // [N]
                       control_term_msg_.motors[i].roll_p = lqi_p_term * 1000;
                       control_term_msg_.motors[i].roll_i= lqi_i_term * 1000;
                       control_term_msg_.motors[i].roll_d = lqi_d_term * 1000;
                     }
                   if(axis == Y)
                     {
+                      roll_pitch_term_[i] += (lqi_p_term + lqi_i_term + lqi_d_term); // [N]
                       control_term_msg_.motors[i].pitch_p = lqi_p_term * 1000;
                       control_term_msg_.motors[i].pitch_i = lqi_i_term * 1000;
                       control_term_msg_.motors[i].pitch_d = lqi_d_term * 1000;
                     }
                   if(axis == Z)
-                    control_term_msg_.motors[i].yaw_d = lqi_d_term * 1000;//lqi_d_term;
+                    {
+                      yaw_term_[i] = yaw_pi_term_[i] + lqi_d_term;
+                      control_term_msg_.motors[i].yaw_d = lqi_d_term * 1000; //lqi_d_term;
+                    }
                 }
               /* gyro moment compensation */
               float gyro_moment_compensate =
                 p_matrix_pseudo_inverse_[i][0] * gyro_moment.x +
                 p_matrix_pseudo_inverse_[i][1] * gyro_moment.y +
                 p_matrix_pseudo_inverse_[i][2] * gyro_moment.z;
+              roll_pitch_term_[i] += gyro_moment_compensate;
+
 #ifdef SIMULATION
               anti_gyro_msg.data.push_back(gyro_moment_compensate);
 #endif
-              target_thrust_[i] = base_throttle_term_[i];
-              if(attitude_flag_) target_thrust_[i] += (motor_rpy_force_[i] + gyro_moment_compensate);
             }
 
 #ifdef SIMULATION
@@ -313,14 +308,14 @@ void AttitudeController::update(void)
             {
               float total_thrust = 0;
               /* sum */
-              for(int i = 0; i < motor_number_; i++) total_thrust += target_thrust_[i];
+              for(int i = 0; i < motor_number_; i++) total_thrust += base_throttle_term_[i];
               /* average */
               float average_thrust = total_thrust / motor_number_;
 
               if(average_thrust > force_landing_thrust_)
                 {
                   for(int i = 0; i < motor_number_; i++)
-                    base_throttle_term_[i] -= (target_thrust_[i] / average_thrust * FORCE_LANDING_INTEGRAL);
+                    base_throttle_term_[i] -= (base_throttle_term_[i] / average_thrust * FORCE_LANDING_INTEGRAL);
                 }
             }
         }
@@ -382,7 +377,7 @@ void AttitudeController::update(void)
           inversionMapping();
         }
     }
-  /* force -> pwm */
+  /* target thrust -> target pwm -> HAL */
   pwmsControl();
 }
 
@@ -445,15 +440,16 @@ void AttitudeController::reset(void)
       target_cog_torque_[i] = 0;
       target_cog_angular_acc_[i] = 0;
       error_angle_i_[i] = 0;
-
-
     }
   //LQI mode
   for(int i = 0; i < MAX_MOTOR_NUMBER; i++)
     {
       base_throttle_term_[i] = 0;
-      motor_rpy_force_[i] = 0;
+      roll_pitch_term_[i] = 0;
+      yaw_term_[i] = 0;
+      yaw_pi_term_[i] = 0;
     }
+  max_yaw_term_index_ = -1;
   for (int i = 0; i < MAX_MOTOR_NUMBER; i++)
     {
 	  for (int j = 0; j < 3; j++)
@@ -486,9 +482,9 @@ void AttitudeController::fourAxisCommandCallback( const spinal::FourAxisCommand 
     {
       setForceLandingFlag(true);
 #ifdef SIMULATION
-      ROS_ERROR("failsafe2-1");
+      ROS_ERROR("failsafe2");
 #else
-      nh_->logerror("failsafe2-1");
+      nh_->logerror("failsafe2");
 #endif
       return;
     }
@@ -511,29 +507,14 @@ void AttitudeController::fourAxisCommandCallback( const spinal::FourAxisCommand 
     	 }
 #endif
 
-      /* failsafe2-2: the output difference between motors are too big, start force landing */
-      float min_thrust = max_thrust_;
-      float max_thrust = min_thrust_;
       for(int i = 0; i < motor_number_; i++)
         {
-          /* remove the pitch/roll feedforward terms */
-          if(cmd_msg.base_throttle[i] > max_thrust) max_thrust = cmd_msg.base_throttle[i];
-          if(cmd_msg.base_throttle[i] < min_thrust) min_thrust = cmd_msg.base_throttle[i];
+          // base throttle is about the z control
+          base_throttle_term_[i] = cmd_msg.base_throttle[i];
+          // reconstruct the pi term for yaw
+          if(max_yaw_term_index_ != -1)
+            yaw_pi_term_[i] = cmd_msg.angles[Z] * d_lqi_gain_[i][Z] / d_lqi_gain_[max_yaw_term_index_][Z];
         }
-      /* difference large than 90% of the max f */
-      if(max_thrust - min_thrust > max_thrust_ * 0.9)
-        {
-          setForceLandingFlag(true);
-#ifdef SIMULATION
-          ROS_ERROR("failsafe2-2");
-#else
-          nh_->logerror("failsafe2-2");
-#endif
-          return;
-        }
-
-      for(int i = 0; i < motor_number_; i++)
-        base_throttle_term_[i] = cmd_msg.base_throttle[i];
     }
   else
     { /* dynamics inversion */
@@ -541,19 +522,6 @@ void AttitudeController::fourAxisCommandCallback( const spinal::FourAxisCommand 
         {
         case spinal::UavInfo::DRONE:
           {
-            /* failsafe2-2: the output(z + yaw) difference between motors are too big, start force landing */
-            if(abs(cmd_msg.angles[Z]) + cmd_msg.base_throttle[Z]  > max_thrust_ ||
-               -abs(cmd_msg.angles[Z]) + cmd_msg.base_throttle[Z]  < min_thrust_)
-              {
-                setForceLandingFlag(true);
-#ifdef SIMULATION
-                ROS_ERROR("failsafe2-2");
-#else
-                nh_->logerror("failsafe2-2");
-#endif
-
-                break;
-              }
             target_angle_[Z] = cmd_msg.angles[Z];
             target_thrust_[Z] = cmd_msg.base_throttle[0]; //no good name
             break;
@@ -571,27 +539,6 @@ void AttitudeController::fourAxisCommandCallback( const spinal::FourAxisCommand 
         	  if(cmd_msg.base_throttle_length != motor_number_) return;
 #endif
 
-        	  /* failsafe2-2: the output difference between motors are too big, start force landing */
-        	  float min_thrust = max_thrust_;
-        	  float max_thrust = min_thrust_;
-        	  for(int i = 0; i < motor_number_; i++)
-        	    {
-        		  /* remove the pitch/roll feedforward terms */
-        		  if(cmd_msg.base_throttle[i] > max_thrust) max_thrust = cmd_msg.base_throttle[i];
-        		  if(cmd_msg.base_throttle[i] < min_thrust) min_thrust = cmd_msg.base_throttle[i];
-        	    }
-        	  /* difference large than 90% of the max f */
-        	  if(max_thrust - min_thrust > max_thrust_ * 0.9)
-        	    {
-        		  force_landing_flag_ = true;
-#ifdef SIMULATION
-        		  ROS_ERROR("failsafe2-2 max:%f min:%f max_:%f", max_thrust, min_thrust, max_thrust_);
-#else
-        		  nh_->logerror("failsafe2-2");
-#endif
-        		  return;
-        	    }
-
         	  for(int i = 0; i < motor_number_; i++)
         		  base_throttle_term_[i] = cmd_msg.base_throttle[i];
         	  attitude_yaw_p_i_term_ = cmd_msg.angles[Z]; //P and I term of yaw target acc
@@ -607,13 +554,13 @@ void AttitudeController::fourAxisCommandCallback( const spinal::FourAxisCommand 
 
 void AttitudeController::pwmInfoCallback( const spinal::PwmInfo &info_msg)
 {
-  min_thrust_ = info_msg.min_thrust;
-  max_thrust_ = info_msg.max_thrust;
   force_landing_thrust_ = info_msg.force_landing_thrust;
 
+  min_duty_ = info_msg.min_pwm;
+  max_duty_ = info_msg.max_pwm;
   pwm_conversion_mode_ = info_msg.pwm_conversion_mode;
 
-  motor_info_.resize(0);
+  min_thrust_ = info_msg.min_thrust; // make a variant min_duty_
 #ifdef SIMULATION
   for(int i = 0; i < info_msg.motor_info.size(); i++)
 #else
@@ -623,9 +570,6 @@ void AttitudeController::pwmInfoCallback( const spinal::PwmInfo &info_msg)
         motor_info_.push_back(info_msg.motor_info[i]);
       }
 
-  min_duty_ = pwmConversion(min_thrust_);
-  max_duty_ = pwmConversion(max_thrust_);
-  abs_max_duty_ = info_msg.abs_max_pwm;
 }
 
 void AttitudeController::rpyGainCallback( const spinal::RollPitchYawTerms &gain_msg)
@@ -650,6 +594,9 @@ void AttitudeController::rpyGainCallback( const spinal::RollPitchYawTerms &gain_
 	  }
 #endif
 
+  int16_t max_yaw_gain = 0;
+  max_yaw_term_index_ = -1;
+
   for(int i = 0; i < motor_number_; i++)
     {
       p_lqi_gain_[i][X] = gain_msg.motors[i].roll_p / 1000.0f;
@@ -659,6 +606,14 @@ void AttitudeController::rpyGainCallback( const spinal::RollPitchYawTerms &gain_
       i_lqi_gain_[i][Y] = gain_msg.motors[i].pitch_i / 1000.0f;
       d_lqi_gain_[i][Y] = gain_msg.motors[i].pitch_d / 1000.0f;
       d_lqi_gain_[i][Z] = gain_msg.motors[i].yaw_d / 1000.0f;
+
+      /* only find the maximum (positive) value */
+      /* to avoid identical absolute value */
+      if(gain_msg.motors[i].yaw_d> max_yaw_gain)
+        {
+          max_yaw_gain = gain_msg.motors[i].yaw_d;
+          max_yaw_term_index_ = i;
+        }
     }
 }
 
@@ -786,6 +741,11 @@ void  AttitudeController::setUavModel(int8_t uav_model)
       if(uav_model_ == spinal::UavInfo::HYDRUS ||
          uav_model_ == spinal::UavInfo::DRAGON)
         lqi_mode_ = true;
+
+      if(uav_model_ == spinal::UavInfo::DRAGON)
+        {
+          rotor_devider_ = 2; // dual-rotor
+        }
     }
 }
 
@@ -837,20 +797,53 @@ bool AttitudeController::activated()
   else return false;
 }
 
-float AttitudeController::pwmConversion(float thrust)
+void AttitudeController::pwmConversion()
 {
+  auto convert = [this](float target_thrust)
+    {
+      float scaled_thrust = v_factor_ * target_thrust / rotor_devider_;
+      float target_pwm = 0;
+      if (scaled_thrust < 0) scaled_thrust = 0;
+
+      switch(pwm_conversion_mode_)
+        {
+        case spinal::MotorInfo::SQRT_MODE:
+          {
+            /* pwm = F_inv[(V_ref / V)^2 f] */
+            float sqrt_tmp = motor_info_[motor_ref_index_].polynominal[1] * motor_info_[motor_ref_index_].polynominal[1] - 4 * 10 * motor_info_[motor_ref_index_].polynominal[2] * (motor_info_[motor_ref_index_].polynominal[0] - scaled_thrust); //special decimal order shift (x10)
+            target_pwm = (-motor_info_[motor_ref_index_].polynominal[1] + sqrt_tmp * inv_sqrt(sqrt_tmp)) / (2 * motor_info_[motor_ref_index_].polynominal[2]);
+            break;
+          }
+        case spinal::MotorInfo::POLYNOMINAL_MODE:
+          {
+            /* pwm = F_inv[(V_ref / V)^1.5 f] */
+            float tenth_scaled_thrust = scaled_thrust * 0.1f; //special decimal order shift (x0.1)
+            /* 4 dimensional */
+            int max_dimenstional = 4;
+            target_pwm = motor_info_[motor_ref_index_].polynominal[max_dimenstional];
+            for (int j = max_dimenstional - 1; j >= 0; j--)
+              target_pwm = target_pwm * tenth_scaled_thrust + motor_info_[motor_ref_index_].polynominal[j];
+            break;
+          }
+        default:
+          {
+            break;
+          }
+        }
+      return target_pwm / 100; // target_pwm is [%]
+    };
+
+  /* update the factor regarding the robot voltage */
   if(HAL_GetTick() - voltage_update_last_time_ > 500) //[500ms = 0.5s]
     {
 #ifdef SIMULATION
+      if(motor_info_.size() == 0) return;
       float voltage = motor_info_[0].voltage;
 #else
       float voltage = bat_->getVoltage();
 #endif
-#ifdef SIMULATION
-      //voltage = 25.2; //test
-#endif
 
-      /* find the best reference */
+      /* find the best reference voltage */
       float min_voltage_diff = 1e6;
       for(int i = 0; i < motor_info_.size(); i++)
         {
@@ -874,7 +867,6 @@ float AttitudeController::pwmConversion(float thrust)
           {
             /* pwm = F_inv[(V_ref / V)^1.5 f] */
             v_factor_ = motor_info_[motor_ref_index_].voltage / voltage * inv_sqrt(voltage / motor_info_[motor_ref_index_].voltage);
-            //ROS_INFO_THROTTLE(1, "v factor is %f", v_factor_);
             break;
           }
         default:
@@ -883,36 +875,117 @@ float AttitudeController::pwmConversion(float thrust)
           }
         }
 
+      if(min_thrust_> 0) min_duty_ = convert(min_thrust_);
+
       voltage_update_last_time_ = HAL_GetTick();
     }
 
-  float target_pwm = IDLE_DUTY;
-  switch(pwm_conversion_mode_)
+  /* pwm saturation measures (CAUTION: only available for LQI control framework) */
+  if(lqi_mode_)
     {
-    case spinal::MotorInfo::SQRT_MODE:
-      {
-        /* pwm = F_inv[(V_ref / V)^2 f] */
-        float sqrt_tmp = motor_info_[motor_ref_index_].polynominal[1] * motor_info_[motor_ref_index_].polynominal[1] - 4 * 10 * motor_info_[motor_ref_index_].polynominal[2] * (motor_info_[motor_ref_index_].polynominal[0] - v_factor_ * thrust); //special decimal order shift (x10)
-        target_pwm = (-motor_info_[motor_ref_index_].polynominal[1] + sqrt_tmp * inv_sqrt(sqrt_tmp)) / (2 * motor_info_[motor_ref_index_].polynominal[2]);
-        break;
-      }
-    case spinal::MotorInfo::POLYNOMINAL_MODE:
-      {
-        /* pwm = F_inv[(V_ref / V)^1.5 f] */
-        float v_factor_thrust_decimal = v_factor_ * thrust * 0.1f; //special decimal order shift (x0.1)
-        /* hardcode: 4 dimensional */
-        int max_dimenstional = 4;
-        target_pwm = motor_info_[motor_ref_index_].polynominal[max_dimenstional];
-        for (int j = max_dimenstional - 1; j >= 0; j--)
-          {
-            target_pwm = target_pwm * v_factor_thrust_decimal + motor_info_[motor_ref_index_].polynominal[j];
-          }
-        break;
-      }
-    default:
-      {
-        break;
-      }
+      /* get the decreasing rate for the thrust to avoid the devergence because of the pwm saturation */
+      float base_throttle_decreasing_rate = 0;
+      float yaw_decreasing_rate = 0;
+      float thrust_limit = motor_info_[motor_ref_index_].max_thrust / v_factor_;
+
+      /* check saturation level 2: z control saturation */
+      float max_thrust = 0;
+      int max_thrust_index = 0;
+      for(int i = 0; i < motor_number_; i++)
+        {
+          float thrust = base_throttle_term_[i] + roll_pitch_term_[i];
+          if(max_thrust < thrust)
+            {
+              max_thrust = thrust;
+              max_thrust_index = i;
+            }
+        }
+
+      if(start_control_flag_)
+        {
+          float residual_term = thrust_limit - max_thrust / rotor_devider_;
+
+          if(residual_term < 0)
+            {
+              base_throttle_decreasing_rate =  residual_term / (base_throttle_term_[max_thrust_index] / rotor_devider_);
+
+              // also, we have to ignore the yaw control
+              yaw_decreasing_rate = -1;
+            }
+          else
+            {
+              if(max_yaw_term_index_ != -1 && base_throttle_term_[0] > 0 )
+                {
+                  /* check saturation level1: yaw control saturation */
+                  max_thrust = 0;
+                  float min_thrust = 10000;
+                  int min_thrust_index = 0;
+                  for(int i = 0; i < motor_number_; i++)
+                    {
+                      float thrust = base_throttle_term_[i] + roll_pitch_term_[i] + yaw_term_[i];
+                      if(max_thrust < thrust)
+                        {
+                          max_thrust = thrust;
+                          max_thrust_index = i;
+                        }
+                      if(min_thrust > thrust)
+                        {
+                          min_thrust = thrust;
+                          min_thrust_index = i;
+                        }
+                    }
+
+                  float residual_term_max =  thrust_limit - max_thrust / rotor_devider_;
+                  float residual_term_min =  min_thrust / rotor_devider_ - min_thrust_;
+                  int thrust_index = 0;
+                  if (residual_term_min < residual_term_max)
+                    {
+                      residual_term = residual_term_min;
+                      thrust_index = min_thrust_index;
+                    }
+                  else
+                    {
+                      residual_term = residual_term_max;
+                      thrust_index = max_thrust_index;
+                    }
+
+                  if(residual_term < 0)
+                    {
+                      yaw_decreasing_rate =  residual_term / (fabs(yaw_term_[thrust_index]) / rotor_devider_);
+                    }
+
+                  if(yaw_decreasing_rate < -1) yaw_decreasing_rate = -1;
+                  if(yaw_decreasing_rate > 0) yaw_decreasing_rate = 0;
+                }
+              else
+                {
+                  yaw_decreasing_rate = -1;
+                }
+            }
+        }
+
+      for(int i = 0; i < motor_number_; i++)
+        target_thrust_[i] = roll_pitch_term_[i] + (1 + base_throttle_decreasing_rate) * base_throttle_term_[i] + (1 + yaw_decreasing_rate) * yaw_term_[i];
     }
-  return target_pwm / 100; // target_pwm is [%] -> decimal
+
+
+  /* convert to target pwm */
+  for(int i = 0; i < motor_number_; i++)
+    {
+      if(start_control_flag_)
+        {
+          target_pwm_[i] = convert(target_thrust_[i]);
+
+          /* constraint */
+          if(target_pwm_[i] < min_duty_) target_pwm_[i]  = min_duty_;
+          else if(target_pwm_[i]  > max_duty_) target_pwm_[i]  = max_duty_;
+
+          /* motor pwm test */
+          if(pwm_test_flag_) target_pwm_[i] = pwm_test_value_;
+        }
+
+      /* for ros */
+      pwms_msg_.motor_value[i] = (target_pwm_[i] * 2000);
+      //pwms_msg_.motor_value[i] = (target_thrust_[i] * 1000);
+    }
 }
