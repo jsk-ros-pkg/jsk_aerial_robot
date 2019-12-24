@@ -4,7 +4,6 @@ tiger:
       state_sub_topic: /servo/states
       ctrl_pub_topic: /servo/target_states
       torque_pub_topic: /servo/torque_enable
-      angle_sgn: 1
       angle_scale: 0.00076699
       zero_point_offset: 2047
       torque_scale: 1.0 # TODO please update the scale
@@ -23,59 +22,73 @@ tiger:
       controller01:
         id: 0
         name: joint1_yaw
+        angle_sgn: 1
       controller02:
         id: 1
         name: joint1_pitch
+        angle_sgn: 1
       controller03:
         id: 4
         name: joint2_yaw
+        angle_sgn: 1
       controller04:
         id: 5
         name: joint2_pitch
+        angle_sgn: -1
       controller05:
         id: 8
         name: joint3_yaw
+        angle_sgn: 1
       controller06:
         id: 9
         name: joint3_pitch
+        angle_sgn: 1
       controller07:
         id: 12
         name: joint4_yaw
+        angle_sgn: 1
       controller08:
         id: 13
         name: joint4_pitch
+        angle_sgn: -1
       controller09:
         id: 16
         name: joint5_yaw
+        angle_sgn: 1
       controller10:
         id: 17
         name: joint5_pitch
+        angle_sgn: 1
       controller11:
         id: 20
         name: joint6_yaw
+        angle_sgn: 1
       controller12:
         id: 21
         name: joint6_pitch
+        angle_sgn: -1
       controller13:
         id: 24
         name: joint7_yaw
+        angle_sgn: 1
       controller14:
         id: 25
         name: joint7_pitch
+        angle_sgn: 1
       controller15:
         id: 28
         name: joint8_yaw
+        angle_sgn: 1
       controller16:
         id: 29
         name: joint8_pitch
+        angle_sgn: -1
 
     gimbals:
       ctrl_pub_topic: /servo/target_states
       torque_pub_topic: /servo/torque_enable
-
-      angle_sgn: 1
-      angle_scale: 0.001534
-      zero_point_offset: 0
+      angle_sgn: -1
+      zero_point_offset: 2047
 
       simulation:
         pid: {p: 50.0, i: 0.1, d: 1.0, i_clamp_min: -1.5, i_clamp_max: 1.5}
@@ -85,49 +98,65 @@ tiger:
       controller01:
         id: 2
         name: gimbal1_roll
+        angle_scale: 0.000920388
       controller02:
         id: 3
         name: gimbal1_pitch
+        angle_scale: 0.00115048
       controller03:
         id: 6
         name: gimbal2_roll
+        angle_scale: 0.000920388
       controller04:
         id: 7
         name: gimbal2_pitch
+        angle_scale: 0.00115048
       controller05:
         id: 10
         name: gimbal3_roll
+        angle_scale: 0.000920388
       controller06:
         id: 11
         name: gimbal3_pitch
+        angle_scale: 0.00115048
       controller07:
         id: 14
         name: gimbal4_roll
+        angle_scale: 0.000920388
       controller08:
         id: 15
         name: gimbal4_pitch
+        angle_scale: 0.00115048
       controller09:
         id: 18
         name: gimbal5_roll
+        angle_scale: 0.000920388
       controller10:
         id: 19
         name: gimbal5_pitch
+        angle_scale: 0.00115048
       controller11:
         id: 22
         name: gimbal6_roll
+        angle_scale: 0.000920388
       controller12:
         id: 23
         name: gimbal6_pitch
+        angle_scale: 0.00115048
       controller13:
         id: 26
         name: gimbal7_roll
+        angle_scale: 0.000920388
       controller14:
         id: 27
         name: gimbal7_pitch
+        angle_scale: 0.00115048
       controller15:
         id: 30
         name: gimbal8_roll
+        angle_scale: 0.000920388
       controller16:
         id: 31
         name: gimbal8_pitch
+        angle_scale: 0.00115048
 
