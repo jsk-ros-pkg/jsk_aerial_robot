@@ -5,7 +5,7 @@
   <arg name="simulation" default="False" />
   <arg name="headless" default="True" />
   <arg name="control_mode" default="0" />
-  <arg name="estimate_mode"  default= "0" />
+  <arg name="estimate_mode"  default= "1" />
   <arg name="config_dir" default="$(find tiger)/config"/>
   <arg name="type" default="octo" />
   <arg name="onboards_model" default="v1_default" />
@@ -24,8 +24,7 @@
   <param name="/tiger/baselink" value="fc" />
 
   ###########  Motor Config  ###########
-  <!-- TODO temp-->
-  <rosparam file="$(find tiger)/config/motor_info/MN4010KV475_Afro_15inch.yaml" command="load"/>
+  <rosparam file="$(arg config_dir)/$(arg type)/$(arg onboards_model)/MotorInfo.yaml" command="load"/>
 
   ###########  Battery Config  ###########
   <rosparam file="$(arg config_dir)/$(arg type)/$(arg onboards_model)/Battery.yaml" command="load"/>
