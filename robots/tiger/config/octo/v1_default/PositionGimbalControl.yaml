@@ -54,4 +54,4 @@ controller:
   tilt_pub_interval: 0.2
 
   # gimbal vectoring function check
-  gimbal_vectoring_check_flag: true
+  gimbal_vectoring_check_flag: false
