@@ -1,0 +1,36 @@
+motor_info:
+        min_thrust: 1 #[N]
+        max_thrust: 16 #[N], affected by voltage
+        abs_max_pwm: 0.85 # Not affected by voltage
+        force_landing_thrust: 7 #[N]
+        m_f_rate: 0 # should be zero, because of the dual rotor
+        pwm_conversion_mode: 1 # Polynominal Mode
+        vel_ref_num: 4
+        ref1:        
+                voltage: 25.2
+                polynominal4: 5.079662 # x 10^4
+                polynominal3: -30.860972 # x10^3
+                polynominal2: 52.20898308 # x10^2
+                polynominal1: 17.08438351 # x10
+                polynominal0: 6.52285058 # x1
+        ref2:
+                voltage: 24.2
+                polynominal4: 8.942545 # x 10^4
+                polynominal3: -45.7226269 # x10^3
+                polynominal2: 69.05888605 # x10^2
+                polynominal1: 13.98117532 # x10
+                polynominal0: 7.113210925 # x1
+        ref3:        
+                voltage: 23.2
+                polynominal4: 7.795719 # x 10^4
+                polynominal3: -43.4999442 # x10^3
+                polynominal2: 66.17574146 # x10^2
+                polynominal1: 20.23518804 # x10
+                polynominal0: 6.630923199 # x1
+        ref4:        
+                voltage: 22.2
+                polynominal4: 5.880102 # x 10^4
+                polynominal3: -39.2722194 # x10^3
+                polynominal2: 61.70708257 # x10^2
+                polynominal1: 26.49619135 # x10
+                polynominal0: 6.100380182 # x1

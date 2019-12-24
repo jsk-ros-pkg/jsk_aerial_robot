@@ -8,7 +8,7 @@ f_min: 3
 controller:
   control_verbose: false
   alt:
-    offset: 15
+    offset: 0
     limit: 36
     p_term_limit: 36
     i_term_limit: 36
@@ -54,4 +54,4 @@ controller:
   tilt_pub_interval: 0.2
 
   # gimbal vectoring function check
-  gimbal_vectoring_check_flag: false
+  gimbal_vectoring_check_flag: true
