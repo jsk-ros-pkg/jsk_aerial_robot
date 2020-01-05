@@ -1,6 +1,6 @@
 <launch>
   <arg name="headless" default="False"/>
-  <arg name="onboards_model" default="old_model_tx2_zed_201810" />
+  <arg name="onboards_model" default="tilt_20deg_201907" />
 
   <include file="$(find hydrus)/launch/bringup.launch">
     <arg name="real_machine" value="False" />
@@ -28,17 +28,15 @@
       init_joint_names: ['joint1', 'joint2', 'joint3']
       init_joint_angles: [1.57, 1.57, 1.57]
       tasks:
-        - command: [1.57, 0, 0]
-          threshold: [0.3, 0.01, 0.4]
+        - command: [0, 1.57, 1.57]
+          threshold: [0.05, 0.05, 0.06]
           reset: [1.57, 1.57, 1.57]
-          timeout: 20
-        - command: [0, 0, 1.57]
-          threshold: [0.2, 0.01, 0.15]
           timeout: 10
-        - command: "rosrun hydrus hydrusx_demo.py _link_num:=4 _duration:=6 _joint_control_topic_name:=/hydrusx/joints_ctrl"
-          threshold: [0.3, 0.02, 0.45]
-          angle_threshold: 3.14
-          timeout: 40
+          reset_duration: 5
+        - command: [0.78, 1.57, 0.78]
+          threshold: [0.02, 0.02, 0.02]
+          timeout: 10
+          reset_duration: 5
     </rosparam>
     <param name="init_form_duration" value="5.0" />
     <param name="hovering_duration" value="25.0" />
