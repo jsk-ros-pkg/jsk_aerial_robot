@@ -35,6 +35,7 @@
 #pragma once
 
 #include <aerial_robot_base/control/flatness_pid_controller.h>
+#include <numeric>
 
 namespace control_plugin
 {
