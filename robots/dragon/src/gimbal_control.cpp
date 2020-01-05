@@ -238,7 +238,7 @@ namespace control_plugin
         P.block(0, 0, 1, rotor_num * 2) = P_att.block(2, 0, 1, rotor_num * 2);
         P.block(1, 0, 2, rotor_num * 2) = P_xy_ / kinematics_->getMass();
 
-        f = pseudoinverse(P) * Eigen::Vector3d(target_yaw_[0], target_pitch_ - (pitch_angle * 9.8), target_roll_ - (-roll_angle * 9.8));
+        f = pseudoinverse(P) * Eigen::Vector3d(target_yaw_[0], target_pitch_ - (pitch_angle * 9.8), (-target_roll_) - (-roll_angle * 9.8));
       }
     else
       {
@@ -325,7 +325,7 @@ namespace control_plugin
 
         Eigen::VectorXd pid_values(5);
         /* F = P# * [roll_pid, pitch_pid, yaw_pid, x_pid, y_pid] */
-        pid_values << target_gimbal_roll, target_gimbal_pitch, target_yaw_[0], target_pitch_ - (pitch_angle * 9.8), target_roll_ - (-roll_angle * 9.8);
+        pid_values << target_gimbal_roll, target_gimbal_pitch, target_yaw_[0], target_pitch_ - (pitch_angle * 9.8), (-target_roll_) - (-roll_angle * 9.8);
         f = pseudoinverse(P) * pid_values;
       }
 
