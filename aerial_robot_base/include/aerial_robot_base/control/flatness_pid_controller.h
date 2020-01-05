@@ -33,6 +33,8 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 
+#pragma once
+
 /* basic class */
 #include <aerial_robot_base/control/flight_control.h>
 

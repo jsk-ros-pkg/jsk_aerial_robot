@@ -44,8 +44,6 @@ catkin_package(
   CATKIN_DEPENDS roscpp message_runtime aerial_robot_msgs aerial_robot_model std_msgs geometry_msgs visualization_msgs nav_msgs  sensor_msgs laser_geometry tf kalman_filter pluginlib geodesy spinal
 )
 
-cmake_policy(SET CMP0046 OLD)
-
 ### Temporary soulition because of https://github.com/ros/ros_comm/issues/1404
 if (CMAKE_SYSTEM_PROCESSOR MATCHES "(aarch64)|(armhf)" AND $ENV{ROS_DISTRO} MATCHES "melodic")
   message(WARNING "please check https://github.com/ros/ros_comm/issues/1404")
@@ -70,7 +68,7 @@ add_library(sensor_pluginlib
   src/sensor/gps.cpp
   src/sensor/imu.cpp)
 target_link_libraries(sensor_pluginlib ${catkin_LIBRARIES})
-add_dependencies(sensor_pluginlib aerial_robot_msgs_generate_messages_cpp ${PROJECT_NAME}_generate_messages_cpp ${PROJECT_NAME}_gencfg)
+add_dependencies(sensor_pluginlib aerial_robot_msgs_generate_messages_cpp ${PROJECT_NAME}_gencfg)
 
 
 ### kf plugin
@@ -81,21 +79,20 @@ target_link_libraries(kf_baro_bias_pluginlib ${catkin_LIBRARIES})
 
 ### flight control plugin
 add_library(flight_control_pluginlib
-  src/control/flatness_pid_controller.cpp)
+  src/control/flatness_pid_controller.cpp
+  src/control/agile_flatness_pid_controller.cpp)
 target_link_libraries(flight_control_pluginlib ${catkin_LIBRARIES})
-add_dependencies(flight_control_pluginlib aerial_robot_msgs_generate_messages_cpp ${PROJECT_NAME}_generate_messages_cpp ${PROJECT_NAME}_gencfg)
+add_dependencies(flight_control_pluginlib aerial_robot_msgs_generate_messages_cpp ${PROJECT_NAME}_gencfg)
 
 add_library (aerial_robot_base src/aerial_robot_base.cpp
   src/flight_navigation.cpp
-  src/state_estimation.cpp
-)
-add_dependencies(aerial_robot_base aerial_robot_msgs_generate_messages_cpp ${PROJECT_NAME}_generate_messages_cpp ${PROJECT_NAME}_gencfg)
+  src/state_estimation.cpp)
 target_link_libraries (aerial_robot_base ${catkin_LIBRARIES}  ${Boost_LIBRARIES})
-add_dependencies(aerial_robot_base aerial_robot_msgs_generate_messages_cpp ${PROJECT_NAME}_generate_messages_cpp ${PROJECT_NAME}_gencfg)
+add_dependencies(aerial_robot_base aerial_robot_msgs_generate_messages_cpp ${PROJECT_NAME}_gencfg)
 
 add_executable(aerial_robot_base_node src/aerial_robot_base_node.cpp)
 target_link_libraries (aerial_robot_base_node ${catkin_LIBRARIES}  ${Boost_LIBRARIES} aerial_robot_base)
-add_dependencies(aerial_robot_base_node aerial_robot_msgs_generate_messages_cpp ${PROJECT_NAME}_generate_messages_cpp ${PROJECT_NAME}_gencfg)
+
 
 
 install(PROGRAMS

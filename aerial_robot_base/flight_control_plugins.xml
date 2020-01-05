@@ -1,6 +1,11 @@
 <library path="lib/libflight_control_pluginlib">
 
   <class name="control_plugin/flatness_pid" type="control_plugin::FlatnessPid" base_class_type="control_plugin::ControlBase">
-    <description>differential flatness plugin</description>
+    <description>differential flatness controller with near-hovering assumpttion </description>
   </class>
+
+  <class name="control_plugin/agile_flatness_pid" type="control_plugin::AgileFlatnessPid" base_class_type="control_plugin::ControlBase">
+    <description>differential flatness controller without near-hovering assumpttion</description>
+  </class>
+
 </library>

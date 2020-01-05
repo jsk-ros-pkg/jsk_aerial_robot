@@ -49,7 +49,7 @@ StateEstimator::StateEstimator(ros::NodeHandle nh, ros::NodeHandle nh_private)
     un_descend_flag_(false),
     landing_height_(0),
     force_att_control_flag_(false),
-    imu_handlers_(0), alt_handlers_(0), vo_handlers_(0), gps_handlers_(0)
+    mass_(0), imu_handlers_(0), alt_handlers_(0), vo_handlers_(0), gps_handlers_(0)
 {
   fuser_[0].resize(0);
   fuser_[1].resize(0);
