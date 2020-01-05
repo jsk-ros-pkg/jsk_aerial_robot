@@ -33,8 +33,6 @@ catkin_package(
   DEPENDS EIGEN3
 )
 
-cmake_policy(SET CMP0046 OLD)
-
 ###########
 ## Build ##
 ###########
@@ -50,14 +48,14 @@ target_link_libraries(dragon_robot_model ${catkin_LIBRARIES})
 
 add_library(dragon_transform_control src/transform_control.cpp)
 target_link_libraries(dragon_transform_control dragon_robot_model ${catkin_LIBRARIES} ${Eigen3_LIBRARIES})
-add_dependencies(dragon_transform_control aerial_robot_msgs_generate_messages_cpp aerial_robot_base_generate_messages_cpp hydrus_generate_messages_cpp hydrus_gencfg)
+add_dependencies(dragon_transform_control aerial_robot_msgs_generate_messages_cpp hydrus_gencfg)
 
 add_executable(dragon_transform_control_node src/transform_control_node.cpp)
 target_link_libraries(dragon_transform_control_node dragon_transform_control ${catkin_LIBRARIES} ${Eigen3_LIBRARIES})
 
 add_library(dragon_control_pluginlib src/gimbal_control.cpp)
 target_link_libraries (dragon_control_pluginlib dragon_robot_model ${catkin_LIBRARIES} ${Eigen3_LIBRARIES})
-add_dependencies(dragon_control_pluginlib aerial_robot_msgs_generate_messages_cpp aerial_robot_base_generate_messages_cpp hydrus_generate_messages_cpp hydrus_gencfg)
+add_dependencies(dragon_control_pluginlib aerial_robot_msgs_generate_messages_cpp hydrus_gencfg)
 
 # test
 if(CATKIN_ENABLE_TESTING)

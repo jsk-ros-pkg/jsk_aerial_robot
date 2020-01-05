@@ -50,13 +50,13 @@
     <param name="param_verbose" value="false"/>
     <param name="main_rate" type="double" value="40"/>
 
+    ###########  PID Control  ###########
+    <rosparam file="$(find hydrus)/config/$(arg type)/$(arg onboards_model)/DifferentialFlatnessPidControlConfig.yaml" command="load" />
+
     ###########  Sensor Fusion  ###########
     <rosparam file="$(find hydrus)/config/$(arg type)/$(arg onboards_model)/EgomotionEstimation.yaml" command="load" if="$(arg real_machine)"/>
     <rosparam file="$(find hydrus)/config/$(arg type)/simulation/EgomotionEstimation.yaml" command="load" if="$(eval arg('simulation') * (1 - arg('real_machine')))"/>
     <remap from="/joint_states" to="/hydrusx/joint_states"/>
-
-    ###########  PID Control  ###########
-    <rosparam file="$(find hydrus)/config/$(arg type)/DifferentialFlatnessPidControlConfig.yaml" command="load" />
 
     ###########  Teleop  ###########
     <rosparam file="$(find hydrus)/config/$(arg type)/TeleopNavigationConfig.yaml" command="load" />
@@ -73,17 +73,10 @@
     <arg name="direct_model_name" value="$(arg direct_model_name)" if="$(arg direct_model)"/>
   </include >
 
-  ###########  Transform Control  ###########
-  <node pkg="hydrus" type="transform_control_node" name="hydrusx"  output="screen" respawn="false">
-    <rosparam file="$(find hydrus)/config/$(arg type)/Hydrus.yaml" command="load" />
-    <remap from="joint_states" to="hydrusx/joint_states"/>
-    <param name="kinematic_verbose" value="false" />
-    <param name="control_verbose" value="false" />
-    <param name="debug_verbose" value="false" />
-    <param name="verbose" value="false"/>
-  </node>
+  ###########  LQI Gain Generators  ###########
+  <include file="$(find hydrus)/launch/includes/$(arg onboards_model)/transform_control.launch.xml" />
 
-  ###########  Sensors  ###########
+  ###########  Sensors ###########
   <include file="$(find hydrus)/launch/includes/$(arg onboards_model)/sensors.launch.xml" >
     <arg name="real_machine" value="$(arg real_machine)" />
     <arg name="simulation" value="$(arg simulation)" />

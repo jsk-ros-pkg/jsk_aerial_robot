@@ -60,6 +60,15 @@
 
 
 class TransformController : public aerial_robot_model::RobotModelRos {
+
+  struct PID{
+    double p;
+    double i;
+    double d;
+
+    PID(double p = 0, double i = 0, double d = 0): p(p), i(i), d(d) {}
+  };
+
 public:
   TransformController(ros::NodeHandle nh, ros::NodeHandle nh_private, std::unique_ptr<HydrusRobotModel> robot_model = std::make_unique<HydrusRobotModel>(true));
   virtual ~TransformController();
@@ -67,7 +76,7 @@ public:
 protected:
   //protected functions
   HydrusRobotModel& getRobotModel() const { return static_cast<HydrusRobotModel&>(RobotModelRos::getRobotModel()); }
-private:
+
   //private attributes
   bool a_dash_eigen_calc_flag_;
   double control_rate_;
@@ -98,14 +107,15 @@ private:
   double q_z_i_;
   std::vector<double> r_; // matrix R
   ros::Publisher rpy_gain_pub_;
-  double strong_q_yaw_;
   bool verbose_;
 
+  std::vector<PID> pitch_gains_, roll_gains_, yaw_gains_, z_gains_;
+
   //private functions
-  void cfgLQICallback(hydrus::LQIConfig &config, uint32_t level); //dynamic reconfigure
+  virtual void cfgLQICallback(hydrus::LQIConfig &config, uint32_t level); //dynamic reconfigure
   virtual void control();
-  bool hamiltonMatrixSolver();
+  virtual bool hamiltonMatrixSolver();
   void initParam();
+  virtual void param2controller();
   void lqi(); // LQI parameter calculation
-  void param2controller();
 };

@@ -42,7 +42,6 @@ message(STATUS "CMAKE_CXX_FLAGS_RELWITHDEBINFO: ${CMAKE_CXX_FLAGS_RELWITHDEBINFO
 message(STATUS "CMAKE_CXX_FLAGS_MINSIZEREL:     ${CMAKE_CXX_FLAGS_MINSIZEREL}")
 message(STATUS "CMAKE_CXX_FLAGS_DEBUG:          ${CMAKE_CXX_FLAGS_DEBUG}")
 
-cmake_policy(SET CMP0046 OLD)
 
 ###########
 ## Build ##
@@ -58,16 +57,25 @@ include_directories(
   ${EIGEN3_INCLUDE_DIRS}
 )
 
-add_library(hydrus_robot_model src/hydrus_robot_model.cpp)
+add_library(hydrus_robot_model
+  src/hydrus_robot_model.cpp
+  src/tilted_robot_model.cpp)
 target_link_libraries(hydrus_robot_model ${catkin_LIBRARIES})
 
 add_library(transform_control src/transform_control.cpp)
 target_link_libraries(transform_control hydrus_robot_model ${catkin_LIBRARIES} ${EIGEN3_LIBRARIES})
-add_dependencies(transform_control aerial_robot_msgs_generate_messages_cpp aerial_robot_model_msgs_generate_messages_cpp spinal_generate_messages_cpp ${PROJECT_NAME}_generate_messages_cpp ${PROJECT_NAME}_gencfg)
+add_dependencies(transform_control aerial_robot_msgs_generate_messages_cpp spinal_generate_messages_cpp ${PROJECT_NAME}_gencfg)
 
 add_executable(transform_control_node src/transform_control_node.cpp)
 target_link_libraries(transform_control_node transform_control ${catkin_LIBRARIES}  ${EIGEN3_LIBRARIES})
-add_dependencies(transform_control_node aerial_robot_msgs_generate_messages_cpp aerial_robot_model_msgs_generate_messages_cpp spinal_generate_messages_cpp ${PROJECT_NAME}_generate_messages_cpp ${PROJECT_NAME}_gencfg)
+
+add_library(tilted_transform_control src/tilted_transform_control.cpp)
+target_link_libraries(tilted_transform_control hydrus_robot_model transform_control ${catkin_LIBRARIES} ${EIGEN3_LIBRARIES})
+
+add_executable(tilted_transform_control_node src/tilted_transform_control_node.cpp)
+target_link_libraries(tilted_transform_control_node tilted_transform_control ${catkin_LIBRARIES}  ${EIGEN3_LIBRARIES})
+
+
 
 install(PROGRAMS
   scripts/dynamixel_param.py
@@ -77,7 +85,7 @@ install(PROGRAMS
 install(DIRECTORY launch
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
 
-install(TARGETS transform_control transform_control_node
+install(TARGETS transform_control tilted_transform_control
    ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
    LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
    RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}

@@ -8,13 +8,13 @@ motor_info:
         vel_ref_num: 4
         ref1:
                 voltage: 25.2
-                max_thrust: 18 # N
+                max_thrust: 18.5 # N
                 polynominal2: 0.068880979 # x10
                 polynominal1: -5.247319649 # x10
                 polynominal0: 8.1304098538 # x1
         ref2:
                 voltage: 24.2
-                max_thrust: 17 # N
+                max_thrust: 17.2 # N
                 polynominal2: 0.066618537 # x10
                 polynominal1: -5.217626986 # x10
                 polynominal0: 8.6395979035 # x1
