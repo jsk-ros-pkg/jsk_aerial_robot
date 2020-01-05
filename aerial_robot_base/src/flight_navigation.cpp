@@ -60,6 +60,11 @@ Navigator::~Navigator()
 
 void Navigator::batteryCheckCallback(const std_msgs::Float32ConstPtr &msg)
 {
+  if(std::isnan(msg->data))
+    {
+      throw std::runtime_error("the voltage from spinal is Nan, please re-calibrate the voltage scale using /set_adc_scale.");
+    }
+
   if(bat_cell_ == 0)
     {
       ROS_WARN("No correct battery information, cell is 0");
