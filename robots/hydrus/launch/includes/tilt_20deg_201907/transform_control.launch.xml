@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<launch>
+  <node pkg="hydrus" type="tilted_transform_control_node" name="hydrusx"  output="screen" respawn="false">
+    <rosparam file="$(find hydrus)/config/quad/tilt_20deg_201907/Hydrus.yaml" command="load" />
+    <remap from="joint_states" to="hydrusx/joint_states"/>
+    <param name="kinematic_verbose" value="false" />
+    <param name="control_verbose" value="false" />
+    <param name="debug_verbose" value="false" />
+    <param name="verbose" value="false"/>
+  </node>
+
+</launch>
