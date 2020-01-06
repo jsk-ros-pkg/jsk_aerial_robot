@@ -2,6 +2,11 @@
 Changelog for package spinal_ros_bridge
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Refactoring of IMU calibration system (`#357 <https://github.com/tongtybj/aerial_robot/issues/357>`_)
+* Support for ros melodic distribution (`#309 <https://github.com/tongtybj/aerial_robot/issues/309>`_)
+
 1.0.4 (2019-05-23)
 ------------------
 * Fix bug: rosservice call sometimes fails (`#304 <https://github.com/tongtybj/aerial_robot/issues/304>`_)

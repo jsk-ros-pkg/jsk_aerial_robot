@@ -2,6 +2,10 @@
 Changelog for package motor_test
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Update the usage of motor test and add one-shot mode for motor pwm test  (`#312 <https://github.com/tongtybj/aerial_robot/issues/312>`_, `#313 <https://github.com/tongtybj/aerial_robot/issues/313>`_)
+
 1.0.4 (2019-05-23)
 ------------------
 

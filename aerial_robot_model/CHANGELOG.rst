@@ -2,6 +2,15 @@
 Changelog for package aerial_robot_model
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Fix Bug: allow the negative angle value from spinal (`#342 <https://github.com/tongtybj/aerial_robot/issues/342>`_)
+* Add API to access private members in transformable_aerial_robot_model (`#285 <https://github.com/tongtybj/aerial_robot/issues/285>`_)
+* Add rostest (`#337 <https://github.com/tongtybj/aerial_robot/issues/337>`_)
+* Fix bug for travis test: add run dependency, robot_state_publisher
+* Add one-shot mode for motor pwm test (`#313 <https://github.com/tongtybj/aerial_robot/issues/313>`_)
+* Fix bug: wrong clamping of servo target bit value (`#308 <https://github.com/tongtybj/aerial_robot/issues/308>`_)
+
 1.0.4 (2019-05-23)
 ------------------
 * Fix the bug about the rotation validation check (`#296 <https://github.com/tongtybj/aerial_robot/issues/296>`_)

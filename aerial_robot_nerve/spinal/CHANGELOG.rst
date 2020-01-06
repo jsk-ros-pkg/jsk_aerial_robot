@@ -2,6 +2,19 @@
 Changelog for package spinal
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Improve pwm saturation measures (`#362 <https://github.com/tongtybj/aerial_robot/issues/362>`_)
+* Make the ADC scale in battery status configurable (`#358 <https://github.com/tongtybj/aerial_robot/issues/358>`_)
+* Refactoring of IMU calibration system (`#357 <https://github.com/tongtybj/aerial_robot/issues/357>`_)
+* Fix bug: the wrong magnetometer value publishing in dragon model (`#355 <https://github.com/tongtybj/aerial_robot/issues/355>`_)
+* Add hydrus_xi (full_acutated model) model (`#340 <https://github.com/tongtybj/aerial_robot/issues/340>`_)
+* Neuron Improvement in servo connection (`#329 <https://github.com/tongtybj/aerial_robot/issues/329>`_)
+* Correct the compile configuration for spinal and neuron f1 (`#311 <https://github.com/tongtybj/aerial_robot/issues/311>`_)
+* Implement dynamixel TTL and RS485 mixed mode (`#320 <https://github.com/tongtybj/aerial_robot/issues/320>`_)
+* Increase the  max registration size for ros publisher/subscirber in spinal (`#321 <https://github.com/tongtybj/aerial_robot/issues/321>`_)
+* Fix bug about servo and add GUI in Spinal (`#302 <https://github.com/tongtybj/aerial_robot/issues/302>`_, `#308 <https://github.com/tongtybj/aerial_robot/issues/308>`_)
+
 1.0.4 (2019-05-23)
 ------------------
 * Add the torque enable/disable flag for extra servo directly connected with spinal (`#252 <https://github.com/tongtybj/aerial_robot/issues/252>`_)

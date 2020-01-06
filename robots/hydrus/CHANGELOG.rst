@@ -2,6 +2,20 @@
 Changelog for package hydrus
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Implementation for tilted Hydrus model (`#363 <https://github.com/tongtybj/aerial_robot/issues/363>`_)
+* Improve pwm saturation measures (`#362 <https://github.com/tongtybj/aerial_robot/issues/362>`_)
+* Correct rosbag record script (`#354 <https://github.com/tongtybj/aerial_robot/issues/354>`_)
+* Add hydrus_xi (full_acutated model) model (`#340 <https://github.com/tongtybj/aerial_robot/issues/340>`_)
+* Add API to access private members in transformable_aerial_robot_model (`#285 <https://github.com/tongtybj/aerial_robot/issues/285>`_)
+* Add rostest (`#337 <https://github.com/tongtybj/aerial_robot/issues/337>`_)
+* Add several parameters for outdoor flight (`#331 <https://github.com/tongtybj/aerial_robot/issues/331>`_)
+* Refactor the ego-motion estimation based on VIO (`#330 <https://github.com/tongtybj/aerial_robot/issues/330>`_)
+* Change the model names regarding Hydrus (`#328 <https://github.com/tongtybj/aerial_robot/issues/328>`_)
+* Enable the accelerometer bias estimation for z axis (`#323 <https://github.com/tongtybj/aerial_robot/issues/323>`_)
+* Refactor the config file structure (`#314 <https://github.com/tongtybj/aerial_robot/issues/314>`_)
+
 1.0.4 (2019-05-23)
 ------------------
 * Fix bug: wrong RGB alignment of depth cloud (`#293 <https://github.com/tongtybj/aerial_robot/issues/293>`_)

@@ -2,6 +2,16 @@
 Changelog for package dragon
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Implementation for tilted Hydrus model (`#363 <https://github.com/tongtybj/aerial_robot/issues/363>`_)
+* Implement robot model and transform control (lqi gain generator) for tilted hydrus model.
+* Improve pwm saturation measures (`#362 <https://github.com/tongtybj/aerial_robot/issues/362>`_)
+* Correct rosbag record script (`#354 <https://github.com/tongtybj/aerial_robot/issues/354>`_)
+* Enable Kalman Filter based IMU-Mocap estimation for Dragon (`#350 <https://github.com/tongtybj/aerial_robot/issues/350>`_)
+* Add API to access private members in transformable_aerial_robot_model (`#285 <https://github.com/tongtybj/aerial_robot/issues/285>`_)
+* Add rostest (`#337 <https://github.com/tongtybj/aerial_robot/issues/337>`_)
+
 1.0.4 (2019-05-23)
 ------------------
 * Add actuator limit in servo_bridge (`#287 <https://github.com/tongtybj/aerial_robot/issues/287>`_)

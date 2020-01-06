@@ -2,6 +2,25 @@
 Changelog for package aerial_robot_base
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Implementation for tilted Hydrus model (`#363 <https://github.com/tongtybj/aerial_robot/issues/363>`_)
+* PWM saturation measures  (`#362 <https://github.com/tongtybj/aerial_robot/issues/362>`_)
+* Correct rosbag record script (`#354 <https://github.com/tongtybj/aerial_robot/issues/354>`_)
+* Enable Kalman Filter based IMU-Mocap estimation for Dragon (`#350 <https://github.com/tongtybj/aerial_robot/issues/350>`_)
+* Add hydrus_xi (full_acutated model) model (`#340 <https://github.com/tongtybj/aerial_robot/issues/340>`_)
+* Add rostest (`#337 <https://github.com/tongtybj/aerial_robot/issues/337>`_)
+* Fix the bug about the sensor topic name from rosparam (`#334 <https://github.com/tongtybj/aerial_robot/issues/334>`_)
+* Mutex for multi-thread spin (`#332 <https://github.com/tongtybj/aerial_robot/issues/332>`_)
+* Add mutex to avoid the double access to the variables related to the sensor health check.
+* Add several parameters for outdoor flight (`#331 <https://github.com/tongtybj/aerial_robot/issues/331>`_)
+* Refactor the ego-motion estimation based on VIO (`#330 <https://github.com/tongtybj/aerial_robot/issues/330>`_)
+* Handle multi snesor nodes for same type of sensor (e.g. imu1, imu2, vo1, vo2, vo3)
+* Refactor the visual odometry sensor plugin
+* Remove unnecessary ros packages (`#327 <https://github.com/tongtybj/aerial_robot/issues/327>`_)
+* Fix bug to find the synchronized rotation and angular velocity of baselink (`#318 <https://github.com/tongtybj/aerial_robot/issues/318>`_)
+* Multi-thread spin (`#319 <https://github.com/tongtybj/aerial_robot/issues/319>`_)
+
 1.0.4 (2019-05-23)
 ------------------
 * Fix bug: forbid the variables called by reference against the function  which contains mutex  (`#298 <https://github.com/tongtybj/aerial_robot/issues/298>`_)
