@@ -185,7 +185,7 @@ namespace control_plugin
 
     tf::Vector3 xy_total_term = xy_p_term + xy_i_term_ + xy_d_term + xy_offset_;
     target_pitch_ = clamp(xy_total_term[0], -xy_limit_, xy_limit_);
-    target_roll_ = clamp(xy_total_term[1], -xy_limit_, xy_limit_);
+    target_roll_ = clamp(-xy_total_term[1], -xy_limit_, xy_limit_); // reverse
 
     /* ros pub */
     pid_msg.pitch.total.push_back(target_pitch_);
@@ -317,7 +317,7 @@ namespace control_plugin
   {
     /* send flight command */
     spinal::FourAxisCommand flight_command_data;
-    flight_command_data.angles[0] =  -target_roll_;
+    flight_command_data.angles[0] =  target_roll_;
     flight_command_data.angles[1] =  target_pitch_;
     flight_command_data.angles[2] = candidate_yaw_term_;
 

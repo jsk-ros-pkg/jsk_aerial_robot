@@ -81,6 +81,8 @@ public:
   Eigen::MatrixXd getPOrigPseudoInverse() const { return P_orig_pseudo_inverse_; }
   bool hamiltonMatrixSolver(uint8_t lqi_mode);
   void setLqiMode(uint8_t lqi_mode) { lqi_mode_ = lqi_mode; }
+  double getFMax() const {return f_max_;}
+  double getFMin() const {return f_min_;}
 
   inline const double getThrustUpperLimit() const {return f_max_;}
   inline const double getThrustLowerLimit() const {return f_min_;}

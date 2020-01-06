@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<launch>
+  <node pkg="hydrus" type="transform_control_node" name="hydrusx"  output="screen" respawn="false">
+    <rosparam file="$(find hydrus)/config/quad/old_model_tx2_zed_201810/Hydrus.yaml" command="load" />
+    <remap from="joint_states" to="hydrusx/joint_states"/>
+    <param name="kinematic_verbose" value="false" />
+    <param name="control_verbose" value="false" />
+    <param name="debug_verbose" value="false" />
+    <param name="verbose" value="false"/>
+  </node>
+
+</launch>

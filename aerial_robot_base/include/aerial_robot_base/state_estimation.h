@@ -393,6 +393,7 @@ public:
     segments_tf_ = segments_tf;
   }
 
+  inline double getMass() const {return mass_;}
   inline std::string getBaselinkName() const {return baselink_name_;}
   inline tf::Transform getCog2Baselink(){return cog2baselink_transform_;}
   inline tf::Transform getBaselink2Cog(){return cog2baselink_transform_.inverse();}
@@ -467,6 +468,7 @@ protected:
   std::map<std::string, KDL::Frame> segments_tf_;
   std::string baselink_name_;
   tf::Transform cog2baselink_transform_; // TODO: should be calculated from the aboved "kinemtaics_model_"
+  double mass_;
 
   /* 9: x_w, y_w, z_w, roll_w, pitch_w, yaw_cog_w, x_b, y_b, yaw_board_w */
   array<AxisState, State::TOTAL_NUM> state_;
@@ -496,6 +498,12 @@ protected:
   /* update the kinematics model based on joint state */
   void jointStateCallback(const sensor_msgs::JointStateConstPtr& state)
   {
+    if(mass_ == 0)
+      {
+        kinematics_model_->updateRobotModel(*state);
+        mass_ = kinematics_model_->getMass();
+      }
+
     auto segments_tf = kinematics_model_->fullForwardKinematics(*state); // do not need inertial and cog calculation right now
     setSegmentsTf(segments_tf);
   }

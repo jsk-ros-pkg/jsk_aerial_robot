@@ -1,6 +1,6 @@
 <launch>
   <arg name="headless" default="False"/>
-  <arg name="onboards_model" default="default_mode_201907" />
+  <arg name="onboards_model" default="old_model_tx2_zed_201810" />
 
   <include file="$(find hydrus)/launch/bringup.launch">
     <arg name="real_machine" value="False" />
@@ -29,29 +29,21 @@
       init_joint_angles: [1.57, 1.57, 1.57]
       tasks:
         - command: [1.57, 0, 0]
-          threshold: [0.3, 0.25, 0.4]
+          threshold: [0.3, 0.01, 0.4]
           reset: [1.57, 1.57, 1.57]
           timeout: 20
         - command: [0, 0, 1.57]
-          threshold: [0.22, 0.01, 0.15]
-          timeout: 20
+          threshold: [0.2, 0.01, 0.15]
+          timeout: 10
         - command: "rosrun hydrus hydrusx_demo.py _link_num:=4 _duration:=6 _joint_control_topic_name:=/hydrusx/joints_ctrl"
-          threshold: [0.3, 0.08, 0.45]
+          threshold: [0.3, 0.02, 0.45]
           angle_threshold: 3.14
           timeout: 40
     </rosparam>
     <param name="init_form_duration" value="5.0" />
-    <param name="hovering_duration" value="30.0" />
+    <param name="hovering_duration" value="25.0" />
     <remap from="joint_states" to ="/hydrusx/joint_states" />
     <remap from="joints_ctrl" to ="/hydrusx/joints_ctrl" />
   </test>
-
-  <!-- temp: only hovering -->
-  <!--
-  <test test-name="hovering_test" pkg="aerial_robot_base" type="hovering_check.py"  name="hovering_test" >
-    <param name="hovering_delay" value="5.0" />
-    <param name="hovering_duration" value="30.0" />
-    </test>
-  -->
 
 </launch>

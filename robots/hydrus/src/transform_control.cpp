@@ -25,7 +25,12 @@ TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nh_
   //Q
   q_diagonal_ = Eigen::VectorXd::Zero(HydrusRobotModel::LQI_FOUR_AXIS_MODE * 3);
   q_diagonal_ << q_roll_,q_roll_d_,q_pitch_,q_pitch_d_,q_z_,q_z_d_,q_yaw_,q_yaw_d_, q_roll_i_,q_pitch_i_,q_z_i_,q_yaw_i_;
-  //std::cout << "Q elements :"  << std::endl << q_diagonal_ << std::endl;
+
+  //gains
+  pitch_gains_.assign(getRobotModel().getRotorNum(), PID());
+  roll_gains_.assign(getRobotModel().getRotorNum(), PID());
+  yaw_gains_.assign(getRobotModel().getRotorNum(), PID());
+  z_gains_.assign(getRobotModel().getRotorNum(), PID());
 }
 
 TransformController::~TransformController()
@@ -215,6 +220,28 @@ bool TransformController::hamiltonMatrixSolver()
       if(control_verbose_)
         std::cout << "The eigenvalues of A_hash are:" << std::endl << esa.eigenvalues() << std::endl;
     }
+
+  // convert to gains
+  for(int i = 0; i < rotor_num; ++i)
+    {
+      roll_gains_.at(i).p = K_(i,0);
+      roll_gains_.at(i).i = K_(i, lqi_mode * 2);
+      roll_gains_.at(i).d = K_(i,1);
+      pitch_gains_.at(i).p = K_(i,2);
+      pitch_gains_.at(i).i = K_(i, lqi_mode * 2 + 1);
+      pitch_gains_.at(i).d = K_(i,3);
+      z_gains_.at(i).p = K_(i,4);
+      z_gains_.at(i).i = K_(i, lqi_mode * 2 + 2);
+      z_gains_.at(i).d = K_(i,5);
+
+      if(lqi_mode == HydrusRobotModel::LQI_FOUR_AXIS_MODE)
+        {
+          yaw_gains_.at(i).p = K_(i,6);
+          yaw_gains_.at(i).i = K_(i, lqi_mode * 2 + 3);
+          yaw_gains_.at(i).d = K_(i,7);
+        }
+    }
+
   return true;
 }
 
@@ -249,8 +276,6 @@ void TransformController::initParam()
   if(verbose_) std::cout << "Q: q_pitch_d: " << std::setprecision(3) << q_pitch_d_ << std::endl;
   nh_private_.param ("q_yaw", q_yaw_, 1.0);
   if(verbose_) std::cout << "Q: q_yaw: " << std::setprecision(3) << q_yaw_ << std::endl;
-  nh_private_.param ("strong_q_yaw", strong_q_yaw_, 1.0);
-  if(verbose_) std::cout << "Q: strong_q_yaw: " << std::setprecision(3) << strong_q_yaw_ << std::endl;
   nh_private_.param ("q_yaw_d", q_yaw_d_, 1.0);
   if(verbose_) std::cout << "Q: q_yaw_d: " << std::setprecision(3) << q_yaw_d_ << std::endl;
   nh_private_.param ("q_z", q_z_, 1.0);
@@ -277,6 +302,12 @@ void TransformController::lqi()
   }
   std::lock_guard<std::mutex> lock(mutex_);
 
+  /* modelling the multilink based on the quasi-static assumption */
+  if(debug_verbose_) ROS_WARN(" start modelling");
+  if(!getRobotModel().modelling(false, control_verbose_))
+    ROS_ERROR("LQI: invalid pose, can not be four axis stable, switch to three axis stable mode");
+  if(debug_verbose_) ROS_WARN(" finish modelling");
+
   /* check the thre check */
   if(debug_verbose_) ROS_WARN(" start dist thre check");
   if(!getRobotModel().stabilityMarginCheck(control_verbose_)) //[m]
@@ -295,13 +326,6 @@ void TransformController::lqi()
     }
   if(debug_verbose_) ROS_WARN(" finish dist thre check");
 
-  /* modelling the multilink based on the inertia assumption */
-  if(debug_verbose_) ROS_WARN(" start modelling");
-  if(!getRobotModel().modelling(false, control_verbose_))
-    ROS_ERROR("LQI: invalid pose, can not be four axis stable, switch to three axis stable mode");
-
-  if(debug_verbose_) ROS_WARN(" finish modelling");
-
   if(debug_verbose_) ROS_WARN(" start ARE calc");
   if(!hamiltonMatrixSolver())
     {
@@ -313,7 +337,6 @@ void TransformController::lqi()
   param2controller();
   if(debug_verbose_) ROS_WARN(" finish param2controller");
 }
-
 
 void TransformController::param2controller()
 {
@@ -335,11 +358,11 @@ void TransformController::param2controller()
   double max_roll_p_gain = 0, max_roll_d_gain = 0, max_pitch_p_gain = 0, max_pitch_d_gain = 0, max_yaw_d_gain = 0;
   for(int i = 0; i < rotor_num; ++i)
     {
-      if(max_roll_p_gain < fabs(K_(i,0))) max_roll_p_gain = fabs(K_(i,0));
-      if(max_roll_d_gain < fabs(K_(i,1))) max_roll_d_gain = fabs(K_(i,1));
-      if(max_pitch_p_gain < fabs(K_(i,2))) max_pitch_p_gain = fabs(K_(i,2));
-      if(max_pitch_d_gain < fabs(K_(i,3))) max_pitch_d_gain = fabs(K_(i,3));
-      if(max_yaw_d_gain < fabs(K_(i,7))) max_yaw_d_gain = fabs(K_(i,7));
+      if(max_roll_p_gain < fabs(roll_gains_.at(i).p)) max_roll_p_gain = fabs(roll_gains_.at(i).p);
+      if(max_roll_d_gain < fabs(roll_gains_.at(i).d)) max_roll_d_gain = fabs(roll_gains_.at(i).d);
+      if(max_pitch_p_gain < fabs(pitch_gains_.at(i).p)) max_pitch_p_gain = fabs(pitch_gains_.at(i).p);
+      if(max_pitch_d_gain < fabs(pitch_gains_.at(i).d)) max_pitch_d_gain = fabs(pitch_gains_.at(i).d);
+      if(max_yaw_d_gain < fabs(yaw_gains_.at(i).d)) max_yaw_d_gain = fabs(yaw_gains_.at(i).d);
     }
 
   double roll_p_gain_scale = 1, roll_d_gain_scale = 1, pitch_p_gain_scale = 1, pitch_d_gain_scale = 1, yaw_d_gain_scale = 1;
@@ -371,53 +394,38 @@ void TransformController::param2controller()
 
   for(int i = 0; i < rotor_num; ++i)
     {
-      /* to flight controller via rosserial */
-      rpy_gain_msg.motors[i].roll_p = K_(i,0) * 1000 * roll_p_gain_scale; //scale: x 1000
-      rpy_gain_msg.motors[i].roll_d = K_(i,1) * 1000 * roll_d_gain_scale;  //scale: x 1000
-      rpy_gain_msg.motors[i].roll_i = K_(i, lqi_mode * 2) * 1000; //scale: x 1000
+      /* to flight controller via rosserial scaling by 1000 */
+      rpy_gain_msg.motors[i].roll_p = roll_gains_.at(i).p * 1000 * roll_p_gain_scale;
+      rpy_gain_msg.motors[i].roll_i = roll_gains_.at(i).i * 1000;
+      rpy_gain_msg.motors[i].roll_d = roll_gains_.at(i).d * 1000 * roll_d_gain_scale;
 
-      rpy_gain_msg.motors[i].pitch_p = K_(i,2) * 1000 * pitch_p_gain_scale; //scale: x 1000
-      rpy_gain_msg.motors[i].pitch_d = K_(i,3) * 1000 * pitch_d_gain_scale; //scale: x 1000
-      rpy_gain_msg.motors[i].pitch_i = K_(i,lqi_mode * 2 + 1) * 1000; //scale: x 1000
+      rpy_gain_msg.motors[i].pitch_p = pitch_gains_.at(i).p * 1000 * pitch_p_gain_scale;
+      rpy_gain_msg.motors[i].pitch_i = pitch_gains_.at(i).i * 1000;
+      rpy_gain_msg.motors[i].pitch_d = pitch_gains_.at(i).d * 1000 * pitch_d_gain_scale;
+
+      rpy_gain_msg.motors[i].yaw_d = yaw_gains_.at(i).d * 1000 * yaw_d_gain_scale; //scale: x 1000
 
       /* to aerial_robot_base, feedback */
-      four_axis_gain_msg.pos_p_gain_roll.push_back(K_(i,0) * roll_p_gain_scale);
-      four_axis_gain_msg.pos_d_gain_roll.push_back(K_(i,1) * roll_d_gain_scale);
-      four_axis_gain_msg.pos_i_gain_roll.push_back(K_(i,lqi_mode * 2));
+      four_axis_gain_msg.pos_p_gain_roll.push_back(roll_gains_.at(i).p * roll_p_gain_scale);
+      four_axis_gain_msg.pos_i_gain_roll.push_back(roll_gains_.at(i).i);
+      four_axis_gain_msg.pos_d_gain_roll.push_back(roll_gains_.at(i).d * roll_d_gain_scale);
 
-      four_axis_gain_msg.pos_p_gain_pitch.push_back(K_(i,2) * pitch_p_gain_scale);
-      four_axis_gain_msg.pos_d_gain_pitch.push_back(K_(i,3) * pitch_d_gain_scale);
-      four_axis_gain_msg.pos_i_gain_pitch.push_back(K_(i,lqi_mode * 2 + 1));
+      four_axis_gain_msg.pos_p_gain_pitch.push_back(pitch_gains_.at(i).p * pitch_p_gain_scale);
+      four_axis_gain_msg.pos_i_gain_pitch.push_back(pitch_gains_.at(i).i);
+      four_axis_gain_msg.pos_d_gain_pitch.push_back(pitch_gains_.at(i).d * pitch_d_gain_scale);
 
-      four_axis_gain_msg.pos_p_gain_alt.push_back(K_(i,4));
-      four_axis_gain_msg.pos_d_gain_alt.push_back(K_(i,5));
-      four_axis_gain_msg.pos_i_gain_alt.push_back(K_(i, lqi_mode * 2 + 2));
+      four_axis_gain_msg.pos_p_gain_alt.push_back(z_gains_.at(i).p);
+      four_axis_gain_msg.pos_i_gain_alt.push_back(z_gains_.at(i).i);
+      four_axis_gain_msg.pos_d_gain_alt.push_back(z_gains_.at(i).d);
 
-      if(lqi_mode == HydrusRobotModel::LQI_FOUR_AXIS_MODE)
-        {
-          /* to flight controller via rosserial */
-          rpy_gain_msg.motors[i].yaw_d = K_(i,7) * 1000 * yaw_d_gain_scale; //scale: x 1000
-
-          /* to aerial_robot_base, feedback */
-          four_axis_gain_msg.pos_p_gain_yaw.push_back(K_(i,6));
-          four_axis_gain_msg.pos_d_gain_yaw.push_back(K_(i,7) * yaw_d_gain_scale);
-          four_axis_gain_msg.pos_i_gain_yaw.push_back(K_(i,11));
-
-        }
-      else if(lqi_mode == HydrusRobotModel::LQI_THREE_AXIS_MODE)
-        {
-          rpy_gain_msg.motors[i].yaw_d = 0;
-
-          /* to aerial_robot_base, feedback */
-          four_axis_gain_msg.pos_p_gain_yaw.push_back(0.0);
-          four_axis_gain_msg.pos_d_gain_yaw.push_back(0.0);
-          four_axis_gain_msg.pos_i_gain_yaw.push_back(0.0);
-        }
+      four_axis_gain_msg.pos_p_gain_yaw.push_back(yaw_gains_.at(i).p);
+      four_axis_gain_msg.pos_i_gain_yaw.push_back(yaw_gains_.at(i).i);
+      four_axis_gain_msg.pos_d_gain_yaw.push_back(yaw_gains_.at(i).d * yaw_d_gain_scale);
 
       /* the p matrix pseudo inverse and inertia */
       p_pseudo_inverse_with_inertia_msg.pseudo_inverse[i].r = P_orig_pseudo_inverse(i, 0) * 1000;
       p_pseudo_inverse_with_inertia_msg.pseudo_inverse[i].p = P_orig_pseudo_inverse(i, 1) * 1000;
-      p_pseudo_inverse_with_inertia_msg.pseudo_inverse[i].y = P_orig_pseudo_inverse(i, 3) * 1000;
+      p_pseudo_inverse_with_inertia_msg.pseudo_inverse[i].y = P_orig_pseudo_inverse(i, 2) * 1000;
     }
   rpy_gain_pub_.publish(rpy_gain_msg);
   four_axis_gain_pub_.publish(four_axis_gain_msg);
