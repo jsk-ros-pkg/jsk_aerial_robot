@@ -45,6 +45,7 @@ public:
 
   ros::Publisher  flight_config_pub_;
   ros::Publisher  power_info_pub_;
+  ros::Publisher  flight_state_pub_;
 
   void update();
 
@@ -98,6 +99,10 @@ public:
   static constexpr uint8_t LAND_STATE = 0x04;
   static constexpr uint8_t HOVER_STATE= 0x05;
   static constexpr uint8_t STOP_STATE = 0x06;
+
+  // abnormal state
+  static constexpr uint8_t LOW_BATTERY_STATE = 0x10;
+  static constexpr uint8_t FORCE_LANDING_STATE = 0x11;
 
   // battery check
   static constexpr float VOLTAGE_100P =  4.2;
@@ -194,7 +199,7 @@ protected:
 
   ros::Subscriber navi_sub_;
   ros::Subscriber battery_sub_;
-  ros::Subscriber arming_ack_sub_;
+  ros::Subscriber flight_status_ack_sub_;
   ros::Subscriber takeoff_sub_;
   ros::Subscriber land_sub_;
   ros::Subscriber start_sub_;
@@ -221,6 +226,7 @@ protected:
   int estimate_mode_;
   bool  force_att_control_flag_;
   bool lock_teleop_;
+  ros::Time force_landing_start_time_;
 
   double convergent_start_time_;
   double convergent_duration_;
@@ -332,7 +338,7 @@ protected:
     return orien * origin_val;
   }
 
-  void armingAckCallback(const std_msgs::UInt8ConstPtr& ack_msg)
+  void flightStatusAckCallback(const std_msgs::UInt8ConstPtr& ack_msg)
   {
     if(ack_msg->data == spinal::FlightConfigCmd::ARM_OFF_CMD)
       {//  arming off
@@ -344,6 +350,16 @@ protected:
       {//  arming on
         ROS_INFO("START RES From AERIAL ROBOT");
         setNaviState(ARM_ON_STATE);
+      }
+
+    if(ack_msg->data == spinal::FlightConfigCmd::FORCE_LANDING_CMD)
+      {//  get the first force landing message from spinal
+        ROS_INFO("FORCE LANDING MSG From AERIAL ROBOT");
+
+        force_landing_flag_ = true;
+
+        /* update the force landing stamp for the halt process*/
+        force_landing_start_time_ = ros::Time::now();
       }
   }
 
