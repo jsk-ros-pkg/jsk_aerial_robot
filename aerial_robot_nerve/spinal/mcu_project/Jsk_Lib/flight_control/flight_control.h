@@ -98,6 +98,18 @@ public:
   void update()
   {
     att_controller_.update();
+
+    /* check the failsafe from attitude controller */
+    if(!force_landing_flag_ && att_controller_.getForceLandingFlag())
+      {
+        force_landing_flag_ = true;
+        config_ack_msg_.data = spinal::FlightConfigCmd::FORCE_LANDING_CMD;
+#ifdef SIMULATION
+        config_ack_pub_.publish(config_ack_msg_);
+#else
+        config_ack_pub_.publish(&config_ack_msg_);
+#endif
+      }
   }
 
   void setMotorNumber(uint8_t motor_number)

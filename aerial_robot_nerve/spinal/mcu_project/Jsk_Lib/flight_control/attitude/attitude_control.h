@@ -53,7 +53,7 @@
 
 /* fail safe */
 #define FLIGHT_COMMAND_TIMEOUT 500 //500ms
-#define MAX_TILT_ANGLE 1.0 // 25d degree
+#define MAX_TILT_ANGLE 1.0f // rad
 
 #define CONTROL_PUB_INTERVAL 100 //40hz //100 //10ms
 
@@ -86,6 +86,7 @@ public:
   void setMotorNumber(uint8_t motor_number);
   void setPwmTestMode(bool pwm_test_flag){pwm_test_flag_ = pwm_test_flag; }
   void setIntegrateFlag(bool integrate_flag){integrate_flag_ = integrate_flag; }
+  bool getForceLandingFlag() {return force_landing_flag_;}
   void setForceLandingFlag(bool force_landing_flag)
   {
     force_landing_flag_ = force_landing_flag;

@@ -28,7 +28,7 @@ Navigator::Navigator(ros::NodeHandle nh, ros::NodeHandle nh_private,
 
   battery_sub_ = nh_.subscribe<std_msgs::Float32>("/battery_voltage_status", 1, &Navigator::batteryCheckCallback, this, ros::TransportHints().tcpNoDelay());
 
-  arming_ack_sub_ = nh_.subscribe<std_msgs::UInt8>("/flight_config_ack", 1, &Navigator::armingAckCallback, this, ros::TransportHints().tcpNoDelay());
+  flight_status_ack_sub_ = nh_.subscribe<std_msgs::UInt8>("/flight_config_ack", 1, &Navigator::flightStatusAckCallback, this, ros::TransportHints().tcpNoDelay());
   takeoff_sub_ = nh_.subscribe<std_msgs::Empty>("/teleop_command/takeoff", 1, &Navigator::takeoffCallback, this, ros::TransportHints().tcpNoDelay());
   halt_sub_ = nh_.subscribe<std_msgs::Empty>("/teleop_command/halt", 1, &Navigator::haltCallback, this, ros::TransportHints().tcpNoDelay());
   force_landing_sub_ = nh_.subscribe<std_msgs::Empty>("/teleop_command/force_landing", 1, &Navigator::forceLandingCallback, this, ros::TransportHints().tcpNoDelay());
@@ -47,10 +47,12 @@ Navigator::Navigator(ros::NodeHandle nh, ros::NodeHandle nh_private,
 
   flight_config_pub_ = nh_.advertise<spinal::FlightConfigCmd>("/flight_config_cmd", 10);
   power_info_pub_ = nh_.advertise<geometry_msgs::Vector3Stamped>("/uav_power", 10);
+  flight_state_pub_ = nh_.advertise<std_msgs::UInt8>("/flight_state", 1);
 
   estimator_ = estimator;
   estimate_mode_ = estimator_->getEstimateMode();
   setNaviState( ARM_OFF_STATE );
+  force_landing_start_time_ = ros::Time::now();
 }
 
 Navigator::~Navigator()
@@ -334,7 +336,6 @@ void Navigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
     }
 
   /* force landing && halt */
-  static ros::Time force_landing_start_time_ = ros::Time::now();
   if(joy_cmd.buttons[PS3_BUTTON_SELECT] == 1)
     {
       /* Force Landing in inflight mode: TAKEOFF_STATE/LAND_STATE/HOVER_STATE */
@@ -617,7 +618,7 @@ void Navigator::update()
           }
 
         estimator_->setSensorFusionFlag(true);
-        force_landing_flag_ = false; //is here good?
+        force_landing_flag_ = false;
 
         spinal::FlightConfigCmd flight_config_cmd;
         flight_config_cmd.cmd = spinal::FlightConfigCmd::ARM_ON_CMD;
@@ -717,6 +718,9 @@ void Navigator::update()
         estimator_->setLandedFlag(false);
         estimator_->setFlyingFlag(false);
 
+        force_landing_flag_ = false;
+        low_voltage_flag_ = false;
+
         spinal::FlightConfigCmd flight_config_cmd;
         flight_config_cmd.cmd = spinal::FlightConfigCmd::ARM_OFF_CMD;
         flight_config_pub_.publish(flight_config_cmd);
@@ -728,6 +732,13 @@ void Navigator::update()
         break;
       }
     }
+
+  /* publish the state */
+  std_msgs::UInt8 state_msg;
+  state_msg.data = getNaviState();
+  if(force_landing_flag_) state_msg.data = FORCE_LANDING_STATE;
+  else if(low_voltage_flag_) state_msg.data = LOW_BATTERY_STATE;
+  flight_state_pub_.publish(state_msg);
 }
 
 
