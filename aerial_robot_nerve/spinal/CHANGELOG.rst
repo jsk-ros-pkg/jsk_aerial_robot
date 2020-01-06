@@ -2,8 +2,8 @@
 Changelog for package spinal
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.1.0 (2020-01-06)
+------------------
 * Improve pwm saturation measures (`#362 <https://github.com/tongtybj/aerial_robot/issues/362>`_)
 * Make the ADC scale in battery status configurable (`#358 <https://github.com/tongtybj/aerial_robot/issues/358>`_)
 * Refactoring of IMU calibration system (`#357 <https://github.com/tongtybj/aerial_robot/issues/357>`_)

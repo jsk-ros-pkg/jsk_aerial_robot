@@ -2,8 +2,8 @@
 Changelog for package aerial_robot
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.1.0 (2020-01-06)
+------------------
 * Remove unnecessary ros packages (`#327 <https://github.com/tongtybj/aerial_robot/issues/327>`_)
 
 1.0.4 (2019-05-23)

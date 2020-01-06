@@ -2,8 +2,8 @@
 Changelog for package aerial_robot_base
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.1.0 (2020-01-06)
+------------------
 * Implementation for tilted Hydrus model (`#363 <https://github.com/tongtybj/aerial_robot/issues/363>`_)
 * PWM saturation measures  (`#362 <https://github.com/tongtybj/aerial_robot/issues/362>`_)
 * Correct rosbag record script (`#354 <https://github.com/tongtybj/aerial_robot/issues/354>`_)

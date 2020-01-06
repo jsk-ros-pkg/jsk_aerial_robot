@@ -2,8 +2,8 @@
 Changelog for package aerial_robot_model
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.1.0 (2020-01-06)
+------------------
 * Fix Bug: allow the negative angle value from spinal (`#342 <https://github.com/tongtybj/aerial_robot/issues/342>`_)
 * Add API to access private members in transformable_aerial_robot_model (`#285 <https://github.com/tongtybj/aerial_robot/issues/285>`_)
 * Add rostest (`#337 <https://github.com/tongtybj/aerial_robot/issues/337>`_)

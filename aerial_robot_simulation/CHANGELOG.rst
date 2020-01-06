@@ -2,8 +2,8 @@
 Changelog for package aerial_robot_simulation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.1.0 (2020-01-06)
+------------------
 * Support for ros melodic distribution (`#309 <https://github.com/tongtybj/aerial_robot/issues/309>`_)
 
 1.0.4 (2019-05-23)
