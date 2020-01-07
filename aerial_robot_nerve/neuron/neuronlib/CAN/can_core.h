@@ -23,6 +23,17 @@ namespace CAN {
 		HAL_CAN_Receive_IT(getHcanInstance(), CAN_FIFO1);
 	}
 
+	inline void EnableIRQ()
+	{
+		HAL_NVIC_EnableIRQ(CAN1_RX1_IRQn);
+	}
+
+	inline void DisableIRQ()
+	{
+		HAL_NVIC_DisableIRQ(CAN1_RX1_IRQn);
+	}
+
+
 	inline void sendMessage(int timeout)
 	{
 		HAL_CAN_Transmit(getHcanInstance(), timeout);

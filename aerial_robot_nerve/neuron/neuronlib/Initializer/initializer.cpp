@@ -52,6 +52,7 @@ void Initializer::receiveDataCallback(uint8_t message_id, uint32_t DLC, uint8_t*
 	case CAN::MESSAGEID_RECEIVE_ENUM_REQUEST:
 		setMessage(CAN::MESSAGEID_SEND_ENUM_RESPONSE, m_slave_id, 0, nullptr);
 		sendMessage(1);
+		CANDeviceManager::resetTick();
 		break;
 	case CAN::MESSAGEID_RECEIVE_INITIAL_CONFIG_REQUEST:
 	{

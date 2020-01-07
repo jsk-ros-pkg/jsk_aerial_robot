@@ -77,6 +77,13 @@ void SystemClock_Config(void);
 /* USER CODE END PFP */
 void HAL_SYSTICK_Callback(void)
 {
+}
+
+/* USER CODE BEGIN 0 */
+
+//500Hz
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
 	if (!start_process_flag_) return;
 	CANDeviceManager::tick(1);
 	motor_.update();
@@ -84,7 +91,6 @@ void HAL_SYSTICK_Callback(void)
 	servo_.update();
 }
 
-/* USER CODE BEGIN 0 */
 void CANDeviceManager::userReceiveMessagesCallback(uint8_t slave_id, uint8_t device_id, uint8_t message_id, uint32_t DLC, uint8_t* data)
 {
 	if (device_id == CAN::DEVICEID_SERVO && message_id == CAN::MESSAGEID_RECEIVE_SERVO_ANGLE) {
@@ -124,6 +130,7 @@ int main(void)
   MX_GPIO_Init();
   MX_USART2_UART_Init();
   MX_TIM1_Init();
+  MX_TIM2_Init();
   MX_CAN1_Init();
   MX_SPI1_Init();
   /* USER CODE BEGIN 2 */

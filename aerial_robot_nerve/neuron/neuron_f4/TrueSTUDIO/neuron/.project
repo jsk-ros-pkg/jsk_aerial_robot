@@ -113,6 +113,11 @@
 			<locationURI>PARENT-1-PROJECT_LOC/startup_stm32f413xx.s</locationURI>
 		</link>
 		<link>
+			<name>Application/TrueSTUDIO/syscalls.c</name>
+			<type>1</type>
+			<locationURI>PARENT-1-PROJECT_LOC/syscalls.c</locationURI>
+		</link>
+		<link>
 			<name>Application/User/can.c</name>
 			<type>1</type>
 			<locationURI>PARENT-2-PROJECT_LOC/Src/can.c</locationURI>
@@ -141,6 +146,11 @@
 			<name>Application/User/stm32f4xx_it.c</name>
 			<type>1</type>
 			<locationURI>PARENT-2-PROJECT_LOC/Src/stm32f4xx_it.c</locationURI>
+		</link>
+		<link>
+			<name>Application/User/sys.c</name>
+			<type>1</type>
+			<locationURI>PARENT-2-PROJECT_LOC/Src/sys.c</locationURI>
 		</link>
 		<link>
 			<name>Application/User/tim.c</name>
