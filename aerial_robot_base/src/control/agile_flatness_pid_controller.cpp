@@ -159,7 +159,6 @@ namespace control_plugin
 
         target_throttle_tmp[j] = alt_p_term + alt_i_term + alt_d_term + alt_offset_;
 
-        pid_msg.throttle.total.push_back(target_throttle_tmp[j]);
         pid_msg.throttle.p_term.push_back(alt_p_term);
         pid_msg.throttle.i_term.push_back(alt_i_term);
         pid_msg.throttle.d_term.push_back(alt_d_term);
