@@ -239,11 +239,6 @@ protected:
 
   double takeoff_height_;
 
-  double max_target_vel_;
-  double max_target_tilt_angle_;
-  double max_target_yaw_rate_;
-
-
   /* auto vel nav */
   bool vel_based_waypoint_;
   double nav_vel_limit_; // the vel limitation
@@ -251,26 +246,30 @@ protected:
   double vel_nav_gain_;
 
   /* teleop */
-  double joy_target_vel_interval_;
-  double joy_target_alt_interval_;
-
-  int navi_frame_int_;
-  uint8_t navi_frame_;
-
+  bool teleop_flag_;
   bool  vel_control_flag_;
   bool  pos_control_flag_;
   bool  xy_control_flag_;
   bool  alt_control_flag_;
   bool  yaw_control_flag_;
-
-  bool teleop_flag_;
   bool force_landing_flag_;
-
   bool check_joy_stick_heart_beat_;
   bool joy_stick_heart_beat_;
+
+  double joy_target_vel_interval_;
+  double joy_target_alt_interval_;
+  double max_target_vel_;
+  double max_target_tilt_angle_;
+  double max_target_yaw_rate_;
+
+  double joy_alt_deadzone_;
+  double joy_yaw_deadzone_;
+
   double joy_stick_prev_time_;
   double joy_stick_heart_beat_du_;
   double force_landing_to_halt_du_;
+
+  std::string teleop_local_frame_;
 
   /* battery info */
   double low_voltage_thre_;
@@ -331,11 +330,14 @@ protected:
     ROS_INFO("Start state");
   }
 
+  tf::Vector3 frameConversion(tf::Vector3 origin_val,  tf::Matrix3x3 r)
+  {
+    return r * origin_val;
+  }
+
   tf::Vector3 frameConversion(tf::Vector3 origin_val, float yaw)
   {
-    tf::Matrix3x3 orien;
-    orien.setRPY(0, 0, yaw);
-    return orien * origin_val;
+    return frameConversion(origin_val, tf::Matrix3x3(tf::createQuaternionFromYaw(yaw)));
   }
 
   void flightStatusAckCallback(const std_msgs::UInt8ConstPtr& ack_msg)
