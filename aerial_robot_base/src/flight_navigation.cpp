@@ -403,7 +403,7 @@ void Navigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
     }
 
   /* Motion: Up/Down */
-  if(fabs(joy_cmd.axes[PS3_AXIS_STICK_RIGHT_UPWARDS]) > 0.2)
+  if(fabs(joy_cmd.axes[PS3_AXIS_STICK_RIGHT_UPWARDS]) > joy_alt_deadzone_)
     {
       if(getNaviState() == HOVER_STATE)
         {
@@ -412,7 +412,6 @@ void Navigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
             addTargetPosZ(joy_target_alt_interval_);
           else
             addTargetPosZ(-joy_target_alt_interval_);
-          ROS_INFO("Joy Control: Thrust state");
         }
     }
   else
@@ -421,24 +420,29 @@ void Navigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
         {
           alt_control_flag_= false;
           setTargetZFromCurrentState();
-          ROS_INFO("Joy Control: Fixed Alt state, targetPosz_is %f",target_pos_.z());
+          ROS_INFO("Joy Control: fixed alt state, target pos z is %f",target_pos_.z());
         }
     }
 
   /* Motion: Yaw */
   /* this is the yaw_angle control */
-  if(joy_cmd.buttons[PS3_BUTTON_STICK_RIGHT] == 1)
+  if(fabs(joy_cmd.axes[PS3_AXIS_STICK_RIGHT_LEFTWARDS]) > joy_yaw_deadzone_)
     {
-      if(fabs(joy_cmd.axes[PS3_AXIS_STICK_RIGHT_LEFTWARDS]) > 0.05)
+      float  state_psi = estimator_->getState(State::YAW_COG, estimate_mode_)[0];
+      target_psi_ = state_psi + joy_cmd.axes[PS3_AXIS_STICK_RIGHT_LEFTWARDS] * max_target_yaw_rate_;
+      while(target_psi_ > M_PI)  target_psi_ -= 2 * M_PI;
+      while(target_psi_ < -M_PI)  target_psi_ += 2 * M_PI;
+
+      yaw_control_flag_ = true;
+    }
+  else
+    {
+      if(yaw_control_flag_)
         {
-          float  state_psi = estimator_->getState(State::YAW_COG, estimate_mode_)[0];
-          target_psi_ = state_psi + joy_cmd.axes[PS3_AXIS_STICK_RIGHT_LEFTWARDS] * max_target_yaw_rate_;
-          while(target_psi_ > M_PI)  target_psi_ -= 2 * M_PI;
-          while(target_psi_ < -M_PI)  target_psi_ += 2 * M_PI;
-          ROS_WARN("Joy Control: yaw control based on angle control only");
+          yaw_control_flag_= false;
+          setTargetPsiFromCurrentState();
+          ROS_INFO("Joy Control: fixed yaw state, target yaw angle is %f", target_psi_);
         }
-      else
-        setTargetPsiFromCurrentState();
     }
 
   /* turn to ACC_CONTROL_MODE */
@@ -492,7 +496,17 @@ void Navigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
             if(control_frame_ == flight_nav::LOCAL_FRAME)
               {
                 tf::Vector3 target_acc = target_acc_;
-                target_acc_ = frameConversion(target_acc,  estimator_->getState(State::YAW_COG, estimate_mode_)[0]);
+                /* convert the frame */
+                const auto& segments_tf =  estimator_->getSegmentsTf();
+                if(segments_tf.find(teleop_local_frame_) == segments_tf.end())
+                  {
+                    ROS_ERROR("can not find %s in kinematics model", teleop_local_frame_.c_str());
+                    target_acc.setValue(0,0,0);
+                  }
+                tf::Transform teleop_local_frame_tf;
+                tf::transformKDLToTF(segments_tf.at(estimator_->getBaselinkName()).Inverse() * segments_tf.at(teleop_local_frame_), teleop_local_frame_tf);
+
+                target_acc_ = frameConversion(target_acc,  tf::Matrix3x3(tf::createQuaternionFromYaw(estimator_->getState(State::YAW_COG, estimate_mode_)[0])) * teleop_local_frame_tf.getBasis());
               }
           }
         break;
@@ -782,16 +796,18 @@ void Navigator::rosParamInit(ros::NodeHandle nh)
   nh.param("vel_nav_gain", vel_nav_gain_, 1.0);
   if(param_verbose_) cout << ns << ": vel_nav_gain_ is " <<  vel_nav_gain_ << endl;
 
-//*** teleop navigation
+  //*** teleop navigation
   nh.param ("joy_target_vel_interval", joy_target_vel_interval_, 0.0);
   if(param_verbose_) cout << ns << ": joy_target_vel_interval_ is " <<  joy_target_vel_interval_ << endl;
 
   nh.param ("joy_target_alt_interval", joy_target_alt_interval_, 0.0);
   if(param_verbose_) cout << ns << ": joy_target_alt_interval_ is " <<  joy_target_alt_interval_ << endl;
 
-  nh.param ("navi_frame_int", navi_frame_int_, 0);
-  if(param_verbose_) cout << ns << ": navi_frame_int_ is " <<  navi_frame_int_ << endl;
-  navi_frame_ = navi_frame_int_;
+  nh.param ("joy_alt_deadzone", joy_alt_deadzone_, 0.2);
+  if(param_verbose_) cout << ns << ": joy_alt_deadzone_ is " <<  joy_alt_deadzone_ << endl;
+
+  nh.param ("joy_yaw_deadzone", joy_yaw_deadzone_, 0.2);
+  if(param_verbose_) cout << ns << ": joy_yaw_deadzone_ is " <<  joy_yaw_deadzone_ << endl;
 
   nh.param ("joy_stick_heart_beat_du", joy_stick_heart_beat_du_, 2.0);
   if(param_verbose_) cout << ns << ": joy_stick_heart_beat_du_ is " <<  joy_stick_heart_beat_du_ << endl;
@@ -801,6 +817,9 @@ void Navigator::rosParamInit(ros::NodeHandle nh)
 
   nh.param ("check_joy_stick_heart_beat", check_joy_stick_heart_beat_, false);
   if(param_verbose_) cout << ns << ": check_joy_stick_heart_beat_ is " <<  check_joy_stick_heart_beat_ << endl;
+
+  nh.param ("teleop_local_frame", teleop_local_frame_, std::string("root"));
+  if(param_verbose_) cout << ns << ": teleop_local_frame_ is " <<  teleop_local_frame_ << endl;
 
   ros::NodeHandle bat_info_node("bat_info");
   bat_info_node.param("bat_cell", bat_cell_, 0); // Lipo battery cell
