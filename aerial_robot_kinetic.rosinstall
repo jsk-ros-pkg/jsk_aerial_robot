@@ -8,7 +8,7 @@
 - git:
     local-name: sensor_interface
     uri: https://github.com/tongtybj/sensor_interface.git
-    version: aacc56a
+    version: 7f80e1b
 
 # motion capture(optitrack)
 - git:
