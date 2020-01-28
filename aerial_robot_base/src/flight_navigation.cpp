@@ -19,6 +19,8 @@ Navigator::Navigator(ros::NodeHandle nh, ros::NodeHandle nh_private,
     alt_control_flag_(false),
     yaw_control_flag_(false),
     vel_based_waypoint_(false),
+    gps_waypoint_(false),
+    gps_waypoint_time_(0),
     joy_stick_heart_beat_(false),
     joy_stick_prev_time_(0)
 {
@@ -119,6 +121,10 @@ void Navigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & msg)
 {
   if(getNaviState() == TAKEOFF_STATE || getNaviState() == LAND_STATE) return;
 
+  gps_waypoint_ = false;
+
+  if(force_att_control_flag_) return;
+
   /* yaw */
   if(msg->psi_nav_mode == aerial_robot_msgs::FlightNav::POS_MODE)
     {
@@ -143,8 +149,6 @@ void Navigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & msg)
     {
     case aerial_robot_msgs::FlightNav::POS_MODE:
       {
-        force_att_control_flag_ = false;
-
         tf::Vector3 target_cog_pos(msg->target_pos_x, msg->target_pos_y, 0);
         if(msg->target == aerial_robot_msgs::FlightNav::BASELINK)
           {
@@ -179,7 +183,6 @@ void Navigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & msg)
             return;
           }
         /* should be in COG frame */
-        force_att_control_flag_ = false;
         xy_control_mode_ = flight_nav::VEL_CONTROL_MODE;
         switch(msg->control_frame)
           {
@@ -205,8 +208,6 @@ void Navigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & msg)
       }
     case aerial_robot_msgs::FlightNav::POS_VEL_MODE:
       {
-        force_att_control_flag_ = false;
-
         if(msg->target == aerial_robot_msgs::FlightNav::BASELINK)
           {
             ROS_ERROR("[Flight nav] can not do pos_vel nav for baselink");
@@ -224,7 +225,6 @@ void Navigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & msg)
     case aerial_robot_msgs::FlightNav::ACC_MODE:
       {
         /* should be in COG frame */
-        force_att_control_flag_ = true;
         xy_control_mode_ = flight_nav::ACC_CONTROL_MODE;
         switch(msg->control_frame)
           {
@@ -245,6 +245,13 @@ void Navigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & msg)
               break;
             }
           }
+        break;
+      }
+    case aerial_robot_msgs::FlightNav::GPS_WAYPOINT_MODE:
+      {
+        target_wp_ = geodesy::toMsg(msg->target_pos_x, msg->target_pos_y);
+        gps_waypoint_ = true;
+
         break;
       }
     }
@@ -698,13 +705,49 @@ void Navigator::update()
       }
     case HOVER_STATE:
       {
+        if(gps_waypoint_)
+          {
+            if(ros::Time::now().toSec() - gps_waypoint_time_ > gps_waypoint_check_du_)
+              {
+                tf::Vector3 gps_waypoint_delta;
+
+                for (const auto& handler: estimator_->getGpsHandlers())
+                  {
+                    if(handler->getStatus() == Status::ACTIVE)
+                      {
+                        auto base_wp = boost::static_pointer_cast<sensor_plugin::Gps>(handler)->getCurrentPoint();
+                        gps_waypoint_delta = boost::static_pointer_cast<sensor_plugin::Gps>(handler)->getWolrdFrame() * sensor_plugin::Gps::wgs84ToNedLocalFrame(base_wp, target_wp_);
+                        break;
+                      }
+                  }
+
+                if(gps_waypoint_delta.length() < gps_waypoint_threshold_)
+                  gps_waypoint_ = false;
+
+                xy_control_mode_ = flight_nav::POS_CONTROL_MODE;
+
+                if(gps_waypoint_delta.length() > vel_nav_threshold_)
+                  {
+                    vel_based_waypoint_ = true;
+                    xy_control_mode_ = flight_nav::VEL_CONTROL_MODE;
+                  }
+
+                //ROS_INFO("gps_waypoint_delta: %f, %f", gps_waypoint_delta.x(), gps_waypoint_delta.y());
+                tf::Vector3 target_cog_pos = estimator_->getPos(Frame::COG, estimate_mode_) + gps_waypoint_delta;
+                setTargetPosX(target_cog_pos.x());
+                setTargetPosY(target_cog_pos.y());
+
+                delta = gps_waypoint_delta;
+                gps_waypoint_time_ = ros::Time::now().toSec();
+              }
+          }
+
         if(vel_based_waypoint_)
           {
-            /* vel nav */
             delta.setZ(0); // we do not need z
+            /* vel nav */
             if(delta.length() > vel_nav_threshold_)
               {
-                //ROS_INFO("debug: vel based waypoint");
                 tf::Vector3 nav_vel = delta * vel_nav_gain_;
 
                 double speed = nav_vel.length();
@@ -795,6 +838,13 @@ void Navigator::rosParamInit(ros::NodeHandle nh)
   if(param_verbose_) cout << ns << ": vel_nav_threshold_ is " <<  vel_nav_threshold_ << endl;
   nh.param("vel_nav_gain", vel_nav_gain_, 1.0);
   if(param_verbose_) cout << ns << ": vel_nav_gain_ is " <<  vel_nav_gain_ << endl;
+
+  //*** gps waypoint
+  nh.param("gps_waypoint_threshold", gps_waypoint_threshold_, 3.0);
+  if(param_verbose_) cout << ns << ": gps_waypoint_threshold_ is " <<  gps_waypoint_threshold_ << endl;
+  nh.param("gps_waypoint_check_du", gps_waypoint_check_du_, 1.0);
+  if(param_verbose_) cout << ns << ": gps_waypoint_check_du_ is " <<  gps_waypoint_check_du_ << endl;
+
 
   //*** teleop navigation
   nh.param ("joy_target_vel_interval", joy_target_vel_interval_, 0.0);

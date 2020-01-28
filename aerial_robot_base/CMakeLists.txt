@@ -87,7 +87,7 @@ add_dependencies(flight_control_pluginlib aerial_robot_msgs_generate_messages_cp
 add_library (aerial_robot_base src/aerial_robot_base.cpp
   src/flight_navigation.cpp
   src/state_estimation.cpp)
-target_link_libraries (aerial_robot_base ${catkin_LIBRARIES}  ${Boost_LIBRARIES})
+target_link_libraries (aerial_robot_base ${catkin_LIBRARIES}  ${Boost_LIBRARIES} sensor_pluginlib)
 add_dependencies(aerial_robot_base aerial_robot_msgs_generate_messages_cpp ${PROJECT_NAME}_gencfg)
 
 add_executable(aerial_robot_base_node src/aerial_robot_base_node.cpp)
