@@ -3,14 +3,20 @@ estimator:
         # sensor plugin
         sensor_list:
         - sensor_plugin/mocap
+        - sensor_plugin/gps
 
-# EGOMOTION_ESTIMATION_MODE = 0
-# GROUND_TRUTH_MODE = 1
-# EXPERIMENT_MODE = 2
+# EGOMOTION_ESTIMATE = 0
+# EXPERIMENT_ESTIMATE = 1
+# GROUND_TRUTH = 2
+
 
 /sensor_plugin:
         mocap:
-                estimate_mode: 2 #1 << 1
+                estimate_mode: 4 #1 << 2
                 unhealth_level: 3
                 health_timeout: 0.5
                 ground_truth_sub_name: /hydrusx/ground_truth
+
+        gps:
+                estimate_mode: 4 #1 << 2
+                ned_flag: true # hector_gazebo_plugins/GPS

@@ -32,5 +32,14 @@
     </sensor>
   </gazebo>
 
+  <!-- gps plugin -->
+  <gazebo>
+    <plugin name="gps_controller" filename="libhector_gazebo_ros_gps.so">
+      <updateRate>5.0</updateRate>
+      <bodyName>gps</bodyName>
+      <topicName>/fix</topicName>
+      <velocityTopicName>/fix_velocity</velocityTopicName>
+    </plugin>
+  </gazebo>
 
 </robot>
