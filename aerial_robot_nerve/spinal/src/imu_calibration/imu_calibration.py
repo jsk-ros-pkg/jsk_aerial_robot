@@ -513,12 +513,17 @@ class IMUCalibWidget(QWidget):
         # take the cholesky decomposition of Q. this will be the matrix to transform
         # points from the ellipsoid to a sphere, after correcting for the offset x0
         L = np.eye(3)
+
+        # deprecated to calcualte the transformation matrix from ellipsoid to sphere,
+        # since the detorsion is very small for most of the case.
+        '''
         try:
             L = np.linalg.cholesky(Q).transpose()
             L = L / L[1,1] # normalized with y
         except Exception,e:
             rospy.loginfo(str(e))
             L = np.eye(3)
+        '''
 
         rospy.loginfo("Magnetometer offset:\n %s",x0)
         rospy.loginfo("Magnetometer Calibration Matrix:\n %s",L)
