@@ -38,6 +38,7 @@
 
 namespace
 {
+  /* TODO: https://github.com/tu-darmstadt-ros-pkg/hector_gazebo/blob/kinetic-devel/hector_gazebo_plugins/src/gazebo_ros_gps.cpp */
   /*
     Provides meters-per-degree latitude at a given latitude
 
@@ -96,6 +97,8 @@ namespace sensor_plugin
     std::string topic_name;
     getParam<std::string>("gps_sub_name", topic_name, string("/gps"));
     gps_sub_ = nh_.subscribe(topic_name, 5, &Gps::gpsCallback, this);
+    getParam<std::string>("gps_ros_sub_name", topic_name, string("/fix"));
+    gps_ros_sub_ = nh_.subscribe(topic_name, 5, &Gps::gpsRosCallback, this);
 
     if(estimator_->getGpsHandlers().size() == 1)
       {
@@ -152,6 +155,8 @@ namespace sensor_plugin
           }
       }
 
+    if(getFuserActivate(StateEstimator::GROUND_TRUTH)) imu_initialized = true;
+
     if(!imu_initialized)
       {
         ROS_WARN_THROTTLE(1, "gps: the imu is not initialized, wait");
@@ -204,16 +209,20 @@ namespace sensor_plugin
 
         /* set home position */
         home_wgs84_point_ = curr_wgs84_point_;
-        ROS_WARN("home lat/lon: [%f deg , %f deg]", home_wgs84_point_.latitude, home_wgs84_point_.longitude);
+        ROS_WARN("home lat/lon: [%f, %f] deg", home_wgs84_point_.latitude, home_wgs84_point_.longitude);
         return;
       }
 
     /* get the position and velocity  w.r.t. the local frame (the origin is the initial takeoff place) */
     tf::Matrix3x3 r; r.setIdentity();
     tf::Vector3 omega(0,0,0);
-    int mode = StateEstimator::EGOMOTION_ESTIMATE;
-    estimator_->findRotOmega(curr_timestamp_, mode, r, omega);
-    if(omega == tf::Vector3(0,0,0)) ROS_ERROR("gps: the omega is not updated from findRotOmega");
+
+    if(!getFuserActivate(StateEstimator::GROUND_TRUTH))
+      {
+        int mode = StateEstimator::EGOMOTION_ESTIMATE;
+        estimator_->findRotOmega(curr_timestamp_, mode, r, omega);
+        if(omega == tf::Vector3(0,0,0)) ROS_ERROR("gps: the omega is not updated from findRotOmega");
+      }
 
     raw_vel_ += r * (- omega.cross(sensor_tf_.getOrigin())); //offset from gps to baselink
     raw_pos_ = world_frame_ * Gps::wgs84ToNedLocalFrame(home_wgs84_point_, curr_wgs84_point_) - r * sensor_tf_.getOrigin();
@@ -234,6 +243,21 @@ namespace sensor_plugin
     /* update */
     prev_raw_pos_ = raw_pos_;
     updateHealthStamp();
+  }
+
+  void Gps::gpsRosCallback(const sensor_msgs::NavSatFix::ConstPtr & gps_msg)
+  {
+    /* TODO: add velocity */
+    spinal::Gps::Ptr spinal_gps_msg(new spinal::Gps());
+    spinal_gps_msg->stamp = gps_msg->header.stamp;
+    spinal_gps_msg->location[0] = gps_msg->latitude * 1e7;
+
+    /* since we use hector_gazebo_plugins/GPS, the longitude has same direction with y axis, which is not correct with the real situation */
+    spinal_gps_msg->location[1] = gps_msg->longitude * 1e7;
+
+    if(gps_msg->status.status == sensor_msgs::NavSatStatus::STATUS_FIX)
+      spinal_gps_msg->sat_num = min_est_sat_num_; // temporarily
+    gpsCallback(boost::const_pointer_cast<const spinal::Gps>(spinal_gps_msg));
   }
 
   void Gps::estimateProcess()

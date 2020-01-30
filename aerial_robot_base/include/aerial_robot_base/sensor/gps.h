@@ -74,11 +74,16 @@ namespace sensor_plugin
       static tf::Vector3 wgs84ToNedLocalFrame(geographic_msgs::GeoPoint base_pos, geographic_msgs::GeoPoint target_pos);
       static geographic_msgs::GeoPoint NedLocalFrameToWgs84(tf::Vector3 diff_pos, geographic_msgs::GeoPoint base_pos);
 
+      const tf::Matrix3x3 getWolrdFrame() const { return world_frame_;}
+      const geographic_msgs::GeoPoint getHomePoint() const { return home_wgs84_point_;}
+      const geographic_msgs::GeoPoint getCurrentPoint() const { return curr_wgs84_point_;}
+
     private:
       /* ros */
       ros::Publisher gps_pub_;
       ros::Publisher state_pub_;
-      ros::Subscriber gps_sub_; /* single gps to get NavSatFix */
+      ros::Subscriber gps_sub_; /* from spinal */
+      ros::Subscriber gps_ros_sub_; /* from ros */
 
       /* ros param */
       double pos_noise_sigma_, vel_noise_sigma_;
@@ -95,6 +100,7 @@ namespace sensor_plugin
       tf::Vector3 vel_, raw_vel_;
 
       void gpsCallback(const spinal::Gps::ConstPtr & gps_msg);
+      void gpsRosCallback(const sensor_msgs::NavSatFix::ConstPtr & gps_msg);
       void estimateProcess();
       void rosParamInit();
     };

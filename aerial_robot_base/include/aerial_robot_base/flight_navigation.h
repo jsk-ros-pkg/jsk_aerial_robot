@@ -5,6 +5,7 @@
 #include <ros/ros.h>
 #include <aerial_robot_base/state_estimation.h>
 #include <aerial_robot_base/sensor/base_plugin.h>
+#include <aerial_robot_base/sensor/gps.h>
 
 /* ros msg */
 #include <std_msgs/Int8.h>
@@ -222,7 +223,6 @@ protected:
   bool xy_vel_mode_pos_ctrl_takeoff_;
 
   int  control_frame_;
-
   int estimate_mode_;
   bool  force_att_control_flag_;
   bool lock_teleop_;
@@ -233,7 +233,7 @@ protected:
   double alt_convergent_thresh_;
   double xy_convergent_thresh_;
 
-  //target value
+  /* target value */
   tf::Vector3 target_pos_, target_vel_, target_acc_;
   float target_psi_, target_vel_psi_;
 
@@ -244,6 +244,13 @@ protected:
   double nav_vel_limit_; // the vel limitation
   double vel_nav_threshold_; // the range (board) to siwtch between vel_nav and pos_nav
   double vel_nav_gain_;
+
+  /* gps waypint */
+  bool gps_waypoint_;
+  geographic_msgs::GeoPoint target_wp_;
+  double gps_waypoint_time_;
+  double gps_waypoint_check_du_;
+  double gps_waypoint_threshold_;
 
   /* teleop */
   bool teleop_flag_;
