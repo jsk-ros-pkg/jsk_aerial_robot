@@ -67,8 +67,8 @@ private:
   {
     gps_msg_.stamp = nh_->now();
 
-    gps_msg_.location[0] = gps_->getGpsState().location.lat; // lat
-    gps_msg_.location[1] = gps_->getGpsState().location.lng; // lng
+    gps_msg_.location[0] = gps_->getGpsState().location.lat / 1e7L; // lat
+    gps_msg_.location[1] = gps_->getGpsState().location.lng / 1e7L; // lng
 
     gps_msg_.velocity[0] = gps_->getGpsState().velocity.x;
     gps_msg_.velocity[1] = gps_->getGpsState().velocity.y;
