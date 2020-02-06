@@ -73,18 +73,14 @@ namespace sensor_plugin
       baro_lpf_high_filter_ = IirFilter(sample_freq_, high_cutoff_freq_);
 
       /* terrain check */
-      if(!terrain_check_) state_on_terrain_ = NORMAL;
+      if(!terrain_check_with_baro_) state_on_terrain_ = NORMAL;
 
       /* range sensor */
       std::string topic_name;
       getParam<std::string>("range_sensor_sub_name", topic_name, string("/distance"));
       range_sensor_sub_ = nh_.subscribe(topic_name, 10, &Alt::rangeCallback, this);
-
-      if(estimator_->getGpsHandlers().size() == 1)
-        {
-          alt_pub_ = nh_.advertise<aerial_robot_msgs::States>("data",10);
-          alt_mode_sub_ = nh_.subscribe("estimate_alt_mode", 1, &Alt::altEstimateModeCallback, this);
-        }
+      alt_pub_ = nh_.advertise<aerial_robot_msgs::States>("data",10);
+      alt_mode_sub_ = nh_.subscribe("estimate_alt_mode", 1, &Alt::altEstimateModeCallback, this);
 
       /* barometer */
       //barometer_sub_ = nh_.subscribe<spinal::Barometer>(barometer_sub_name_, 1, &Alt::baroCallback, this, ros::TransportHints().tcpNoDelay());
@@ -98,6 +94,7 @@ namespace sensor_plugin
       raw_range_sensor_value_(0),
       raw_range_pos_z_(0),
       prev_raw_range_pos_z_(0),
+      prev_prev_raw_range_pos_z_(0),
       raw_range_vel_z_(0),
       min_range_(0),
       max_range_(0),
@@ -178,7 +175,7 @@ namespace sensor_plugin
     /* base variables */
     /* range sensor */
     double raw_range_sensor_value_;
-    double raw_range_pos_z_, prev_raw_range_pos_z_, raw_range_vel_z_;
+    double raw_range_pos_z_, prev_raw_range_pos_z_, prev_prev_raw_range_pos_z_, raw_range_vel_z_;
     double min_range_, max_range_;
     double ascending_check_range_; /* merge range around the min range */
     float range_sensor_offset_; // the offset of the sensor value due to the attachment(hardware);
@@ -198,9 +195,9 @@ namespace sensor_plugin
 
     /* for terrain check */
     int alt_estimate_mode_;
-    bool terrain_check_; // the flag to enable or disable the terrain check
-    double outlier_noise_; // the check threshold between the estimated value and sensor value: e.g. 10 times
-    double inlier_noise_; // the check threshold between the estimated value and sensor value: e.g. 5 times
+    bool terrain_check_with_baro_; // the flag to enable or disable the terrain check
+    double outlier_threshold_; // the check threshold between the estimated value and sensor value: e.g. 10 times
+    double inlier_threshold_; // the check threshold between the estimated value and sensor value: e.g. 5 times
     double check_du1_; // the duration to check the sensor value in terms of the big noise, short time(e.g. 0.1s)
     double check_du2_; // the duration to check the sensor value in terms of the new flat terrain, long time(e.g. 1s)
     uint8_t state_on_terrain_; // the sensor state(normal or abnormal)
@@ -313,6 +310,11 @@ namespace sensor_plugin
 
               ROS_WARN("%s: the range sensor offset: %f, initial sanity: %s, the hz is %f, estimate mode is %d",
                        (range_msg->radiation_type == sensor_msgs::Range::ULTRASOUND)?string("sonar sensor").c_str():string("infrared sensor").c_str(), range_sensor_offset_, range_sensor_sanity_?string("true").c_str():string("false").c_str(), 1.0 / sensor_hz_, alt_estimate_mode_);
+
+              range_previous_secs = current_secs;
+              prev_prev_raw_range_pos_z_ = prev_raw_range_pos_z_;
+              prev_raw_range_pos_z_ = raw_range_pos_z_;
+              return;
             }
         }
 
@@ -320,16 +322,11 @@ namespace sensor_plugin
       raw_range_pos_z_ = raw_range_sensor_value_ + height_offset_;
       raw_range_vel_z_ = (raw_range_pos_z_ - prev_raw_range_pos_z_) / (current_secs - range_previous_secs);
 
-      range_previous_secs = current_secs;
-      prev_raw_range_pos_z_ = raw_range_pos_z_;
-      if(calibrate_cnt > 0) return;
 
-      /* not terrain check, only for sonar */
-      /* for the insanity sensor: preparation */
-      /* Global Sensor Fusion Flag Check for the takeoff and landing */
-      /* sonar before takeoff: toal_sane -> total_insane */
-      /* sonar takeoff: total_insane -> potentially_insance */
-      /* sonar landing: potentially_insance -> total_insane */
+      /* only for sonar in takeoff and landing phase
+         before takeoff: toal_sane -> total_insane
+         takeoff: total_insane -> potentially_insance
+         landing: potentially_insance -> total_insane */
       switch(range_sensor_sanity_)
         {
         case TOTAL_INSANE:
@@ -407,7 +404,14 @@ namespace sensor_plugin
 
       /* terrain check and height estimate */
       alt_state_.header.stamp.fromSec(range_msg->header.stamp.toSec());
-      if(terrainProcess(current_secs)) rangeEstimateProcess();
+      if(terrainProcess(current_secs))
+        {
+          rangeEstimateProcess();
+
+          range_previous_secs = current_secs;
+          prev_prev_raw_range_pos_z_ = prev_raw_range_pos_z_;
+          prev_raw_range_pos_z_ = raw_range_pos_z_;
+        }
 
       /* publish phase */
       alt_state_.states[0].state[0].x = raw_range_pos_z_;
@@ -470,90 +474,139 @@ namespace sensor_plugin
 
     bool terrainProcess(double current_secs)
     {
-      if(!terrain_check_) return true;
-
-      boost::shared_ptr<kf_plugin::KalmanFilter> kf;
-      if(!getFuserActivate(StateEstimator::EGOMOTION_ESTIMATE)) return true;
+      boost::shared_ptr<kf_plugin::KalmanFilter> kf = nullptr;
+      if(!getFuserActivate(StateEstimator::EGOMOTION_ESTIMATE))
+        {
+          ROS_ERROR("range sensor is not used in EGOMOTION_ESTIMATE mode");
+          return false;
+        }
 
       for(auto& fuser : estimator_->getFuser(StateEstimator::EGOMOTION_ESTIMATE))
         {
           if(fuser.second->getId() & (1 << State::Z_BASE))
-            kf = fuser.second;
+            {
+              if(!kf) kf = fuser.second;
+              else
+                {
+                  ROS_ERROR("more than one kaman filter estimating z axis is detected");
+                  return false;
+                }
+            }
         }
 
-
-      switch(state_on_terrain_)
+      if(terrain_check_with_baro_)
         {
-        case NORMAL:
-          /* flow chat 1 */
-          /* check the height of the range sensor when height exceeds limitation */
-          if(raw_range_sensor_value_ < min_range_ || raw_range_sensor_value_ > max_range_)
+          switch(state_on_terrain_)
             {
-              state_on_terrain_ = MAX_EXCEED;
-              alt_estimate_mode_ = ONLY_BARO_MODE;
-              ROS_WARN("exceed the range of the sensor, change to only baro estimate mode");
+            case NORMAL:
+              /* flow chat 1 */
+              /* check the height of the range sensor when height exceeds limitation */
+              if(raw_range_sensor_value_ < min_range_ || raw_range_sensor_value_ > max_range_)
+                {
+                  state_on_terrain_ = MAX_EXCEED;
+                  alt_estimate_mode_ = ONLY_BARO_MODE;
+                  ROS_WARN("exceed the range of the sensor, change to only baro estimate mode");
+                  //break;
+                  return false;
+                }
+
+              /* flow chat 2 */
+              /* check the difference between the estimated value and raw range value */
+              if(fabs((kf->getEstimateState())(0) - raw_range_pos_z_) > outlier_threshold_)
+                {
+                  t_ab_ = current_secs;
+                  t_ab_incre_ = current_secs;
+                  first_outlier_val_ = raw_range_sensor_value_;
+                  state_on_terrain_ = ABNORMAL;
+                  ROS_WARN("range sensor: we find the outlier value in NORMAL mode, switch to ABNORMAL mode, the sensor value is %f, the estimator value is %f, the first outlier value is %f", raw_range_pos_z_, (kf->getEstimateState())(0), first_outlier_val_);
+                  //break;
+                  return false;
+                }
+
               //break;
+              return true;
+            case ABNORMAL:
+
+              /* update the t_ab_incre_ for the second level oulier check */
+              if(fabs(raw_range_sensor_value_ - first_outlier_val_) > outlier_threshold_)
+                {
+                  ROS_WARN("range sensor: update the t_ab_incre and first_outlier_val_, since the sensor value is vibrated, sensor value:%f, first outlier value: %f", raw_range_sensor_value_, first_outlier_val_);
+                  t_ab_incre_ = current_secs;
+                  first_outlier_val_ = raw_range_sensor_value_;
+                }
+
+              if(current_secs - t_ab_ < check_du1_)
+                {
+                  /* the first level to check the outlier: recover to the last normal mode */
+                  /* we don't have to update the height_offset */
+                  if(fabs((kf->getEstimateState())(0) - raw_range_pos_z_) < inlier_threshold_)
+                    {
+                      state_on_terrain_ = NORMAL;
+                      return true;
+                    }
+                }
+              else
+                {
+                  /* the second level to check the outlier: find new terrain */
+                  if(current_secs - t_ab_incre_ > check_du2_)
+                    {
+                      state_on_terrain_ = NORMAL;
+                      height_offset_ = (kf->getEstimateState())(0) - raw_range_sensor_value_;
+                      /* also update the landing height */
+                      estimator_->setLandingHeight(height_offset_ - range_sensor_offset_);
+                      ROS_WARN("We we find the new terrain, the new height_offset is %f", height_offset_);
+                    }
+                }
+              break;
+            case MAX_EXCEED:
+              /* the sensor value is below the max value ath the MAX_EXCEED state */
+              /*we first turn back to ABNORMAL mode to verify the validity of the value */
+              if(raw_range_sensor_value_ < max_range_ && raw_range_sensor_value_ > min_range_) state_on_terrain_ = ABNORMAL;
+              return false;
+            default:
               return false;
             }
-
-          /* flow chat 2 */
-          /* check the difference between the estimated value and */
-          if(fabs((kf->getEstimateState())(0) - raw_range_pos_z_) > outlier_noise_)
+        }
+      else
+        {
+          /* check the validity of range sensor together with  visual odometry */
+          /* note: this method is only effective when there is a plane ground, and the objects on the ground is finite */
+          if(estimator_->getVoHandlers().size() > 0)
             {
-              t_ab_ = current_secs;
-              t_ab_incre_ = current_secs;
-              first_outlier_val_ = raw_range_sensor_value_;
-              state_on_terrain_ = ABNORMAL;
-              ROS_WARN("range sensor: we find the outlier value in NORMAL mode, switch to ABNORMAL mode, the sensor value is %f, the estimator value is %f, the first outlier value is %f", raw_range_pos_z_, (kf->getEstimateState())(0), first_outlier_val_);
-              //break;
-              return false;
-            }
+              //ROS_INFO("current pos z: %f, prev raw range pos z: %f, kf pos z: %f", raw_range_sensor_value_, prev_raw_range_pos_z_, (kf->getEstimateState())(0));
 
-          //break;
+              if(fabs(raw_range_pos_z_ - (kf->getEstimateState())(0)) > outlier_threshold_)
+                {
+                  /* 1. we need t-2, t-1, t, since the range sensor has a onboard low pass filter
+                     so the change is smoothed, thus diff between t-2 and t-1 is sometimes larger diff between t-1 and t */
+                  if(fabs(raw_range_pos_z_ - prev_raw_range_pos_z_) < inlier_threshold_ &&
+                     fabs(prev_prev_raw_range_pos_z_ - prev_raw_range_pos_z_) < inlier_threshold_)
+                    {
+                      /* we only avoid the suddent ascending because of the insane vio value */
+                      if(raw_range_pos_z_ - (kf->getEstimateState())(0) > outlier_threshold_)
+                        {
+                          for(const auto& handler: estimator_->getVoHandlers())
+                            {
+                              if(handler->getStatus() != Status::RESET)
+                                ROS_ERROR_STREAM("visual odometry is not correct, reset " << handler->getPluginName());
+                              handler->reset();
+                            }
+                        }
+                      return true;
+                    }
+                  else
+                    {
+                      ROS_INFO_THROTTLE(1.0, "Find terrain gap, current pos z: %f, kf pos z: %f, last valid pos z: %f, second last valid pos z: %f skip range sensor in sensor fusion", raw_range_sensor_value_, (kf->getEstimateState())(0), prev_raw_range_pos_z_, prev_prev_raw_range_pos_z_);
+
+                      prev_raw_range_pos_z_ =  prev_prev_raw_range_pos_z_; // since the range sensor is smoothed. prev_prev_raw_range_pos_z_ is better that prev_raw_range_pos_z_ for sudden change of terrain
+
+                      return false;
+                    }
+                }
+            }
           return true;
-        case ABNORMAL:
-
-          /* update the t_ab_incre_ for the second level oulier check */
-          if(fabs(raw_range_sensor_value_ - first_outlier_val_) > outlier_noise_)
-            {
-              ROS_WARN("range sensor: update the t_ab_incre and first_outlier_val_, since the sensor value is vibrated, sensor value:%f, first outlier value: %f", raw_range_sensor_value_, first_outlier_val_);
-              t_ab_incre_ = current_secs;
-              first_outlier_val_ = raw_range_sensor_value_;
-            }
-
-          if(current_secs - t_ab_ < check_du1_)
-            {
-              /* the first level to check the outlier: recover to the last normal mode */
-              /* we don't have to update the height_offset */
-              if(fabs((kf->getEstimateState())(0) - raw_range_pos_z_) < inlier_noise_)
-                {
-                  state_on_terrain_ = NORMAL;
-                  return true;
-                }
-            }
-          else
-            {
-              /* the second level to check the outlier: find new terrain */
-              if(current_secs - t_ab_incre_ > check_du2_)
-                {
-                  state_on_terrain_ = NORMAL;
-                  height_offset_ = (kf->getEstimateState())(0) - raw_range_sensor_value_;
-                  /* also update the landing height */
-                  estimator_->setLandingHeight(height_offset_ - range_sensor_offset_);
-                  ROS_WARN("We we find the new terrain, the new height_offset is %f", height_offset_);
-                }
-            }
-          break;
-        case MAX_EXCEED:
-          /* the sensor value is below the max value ath the MAX_EXCEED state */
-          /*we first turn back to ABNORMAL mode to verify the validity of the value */
-          if(raw_range_sensor_value_ < max_range_ && raw_range_sensor_value_ > min_range_) state_on_terrain_ = ABNORMAL;
-          return false;
-        default:
-          return false;
         }
     }
-
 
     void baroCallback(const spinal::BarometerConstPtr & baro_msg)
     {
@@ -698,9 +751,9 @@ namespace sensor_plugin
       getParam<double>("ascending_check_range", ascending_check_range_, 0.1); // [m]
 
       /* for terrain and outlier check */
-      getParam<bool>("terrain_check", terrain_check_, false);
-      getParam<double>("outlier_noise", outlier_noise_, 0.1); // [m]
-      getParam<double>("inlier_noise", inlier_noise_, 0.06); // [m]
+      getParam<double>("outlier_threshold", outlier_threshold_, 1.0); // [m]
+      getParam<double>("inlier_threshold", inlier_threshold_, 0.5); // [m]
+      getParam<bool>("terrain_check_with_baro", terrain_check_with_baro_, false);
       getParam<double>("check_du1", check_du1_, 0.1); // [sec]
       getParam<double>("check_du2", check_du2_, 1.0); // [sec]
 

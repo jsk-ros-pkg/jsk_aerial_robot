@@ -132,8 +132,22 @@ namespace sensor_plugin
     /* check whether is force att control mode */
     if(estimator_->getForceAttControlFlag() && getStatus() == Status::ACTIVE)
       {
-        estimator_->setStateStatus(State::YAW_BASE, StateEstimator::EGOMOTION_ESTIMATE, false);
+        if(estimator_->getStateStatus(State::YAW_BASE, StateEstimator::EGOMOTION_ESTIMATE))
+          estimator_->setStateStatus(State::YAW_BASE, StateEstimator::EGOMOTION_ESTIMATE, false);
         setStatus(Status::INVALID);
+      }
+
+    /* check the sensor value whether valid */
+    if(std::isnan(vo_msg->pose.pose.position.x) ||
+       std::isnan(vo_msg->pose.pose.position.y) ||
+       std::isnan(vo_msg->pose.pose.position.z) ||
+       std::isnan(vo_msg->twist.twist.linear.x) ||
+       std::isnan(vo_msg->twist.twist.linear.y) ||
+       std::isnan(vo_msg->twist.twist.linear.z))
+      {
+        ROS_ERROR("VIO sensor [%s] publishes NaN value!", vo_sub_.getTopic().c_str());
+        reset();
+        return;
       }
 
     tf::Transform raw_sensor_tf;
@@ -331,6 +345,13 @@ namespace sensor_plugin
         return;
       }
 
+    /* RESET   */
+    if(getStatus() == Status::RESET && ros::Time::now().toSec() - reset_stamp_ > reset_duration_)
+    {
+      prev_sensor_tf = raw_sensor_tf;
+      setStatus(Status::ACTIVE);
+    }
+
     /* transformaton from baselink to vo sensor, if we use the servo motor */
 
     baselink_tf_ = world_offset_tf_ * raw_sensor_tf * sensor_tf_.inverse();
@@ -416,7 +437,7 @@ namespace sensor_plugin
 
   void VisualOdometry::estimateProcess()
   {
-    if(getStatus() == Status::INVALID) return;
+    if(getStatus() == Status::INVALID || getStatus() == Status::RESET) return;
 
     /* downward check */
     tf::Matrix3x3 sensor_view_rot;
@@ -655,6 +676,40 @@ namespace sensor_plugin
         vo_servo_pub_.publish(msg);
       }
   }
+
+  bool VisualOdometry::reset()
+  {
+    /* call reset rosserive */
+    std::string srv_name;
+    getParam<std::string>("reset_srv_name", srv_name, string("/reset"));
+
+    ros::ServiceClient client = nh_.serviceClient<std_srvs::Empty>(srv_name);
+
+    if(!client.exists ())
+      {
+        ROS_WARN("rosservice %s does not exist", srv_name.c_str());
+        setStatus(Status::INVALID);
+        return false;
+      }
+
+    /* waiting for the completement of reset is allowed because of the multi-thread spin */
+    std_srvs::Empty srv;
+    if (client.call(srv))
+      {
+        fusion_mode_ = ONLY_VEL_MODE;
+        setStatus(Status::RESET);
+        reset_stamp_ = ros::Time::now().toSec();
+        ROS_INFO("Reset VIO sensor %s", plugin_name_.c_str());
+        return true;
+      }
+    else
+      {
+        ROS_ERROR("Failed to call service %s", srv_name.c_str());
+        setStatus(Status::INVALID);
+        return false;
+      }
+  }
+
 };
 
 /* plugin registration */
