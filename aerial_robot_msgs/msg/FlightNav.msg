@@ -16,11 +16,11 @@ Header header
 uint8 control_frame # reference frame: local or world, mainly for vel/acc nav
 uint8 target # the target link: baselink or COG
 uint8 pos_xy_nav_mode
-float32 target_pos_x
+float64 target_pos_x
 float32 target_vel_x
 float32 target_acc_x
 
-float32 target_pos_y
+float64 target_pos_y
 float32 target_vel_y
 float32 target_acc_y
 

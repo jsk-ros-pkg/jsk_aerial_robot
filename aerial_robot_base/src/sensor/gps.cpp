@@ -140,7 +140,7 @@ namespace sensor_plugin
     curr_timestamp_ = gps_msg->stamp.toSec() + delay_;
 
     /* assignment lat/lon, velocity */
-    curr_wgs84_point_ = geodesy::toMsg(gps_msg->location[0] / 1e7, gps_msg->location[1] / 1e7);
+    curr_wgs84_point_ = geodesy::toMsg(gps_msg->location[0], gps_msg->location[1]);
     tf::Vector3 raw_vel_temp(gps_msg->velocity[0], gps_msg->velocity[1], 0);
     raw_vel_ = world_frame_ * raw_vel_temp;
 
@@ -250,10 +250,10 @@ namespace sensor_plugin
     /* TODO: add velocity */
     spinal::Gps::Ptr spinal_gps_msg(new spinal::Gps());
     spinal_gps_msg->stamp = gps_msg->header.stamp;
-    spinal_gps_msg->location[0] = gps_msg->latitude * 1e7;
+    spinal_gps_msg->location[0] = gps_msg->latitude;
 
     /* since we use hector_gazebo_plugins/GPS, the longitude has same direction with y axis, which is not correct with the real situation */
-    spinal_gps_msg->location[1] = gps_msg->longitude * 1e7;
+    spinal_gps_msg->location[1] = gps_msg->longitude;
 
     if(gps_msg->status.status == sensor_msgs::NavSatStatus::STATUS_FIX)
       spinal_gps_msg->sat_num = min_est_sat_num_; // temporarily
