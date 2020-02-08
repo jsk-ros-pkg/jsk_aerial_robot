@@ -55,6 +55,7 @@
 
 /* ros msg */
 #include <aerial_robot_msgs/States.h>
+#include <std_srvs/Empty.h>
 #include <std_srvs/SetBool.h>
 #include <tf_conversions/tf_kdl.h>
 
@@ -66,7 +67,7 @@ using namespace std;
 
 namespace Status
 {
-  enum {INACTIVE = 0, INIT = 1, ACTIVE = 2, INVALID = 3,};
+  enum {INACTIVE = 0, INIT = 1, ACTIVE = 2, INVALID = 3, RESET = 4};
 }
 
 namespace sensor_plugin
@@ -94,6 +95,7 @@ namespace sensor_plugin
       health_stamp_.resize(1, ros::Time::now().toSec());
 
       set_status_service_ = indexed_nh_.advertiseService("estimate_flag", &SensorBase::setStatusCb, this);
+      reset_service_ = indexed_nh_.advertiseService("reset", &SensorBase::resetCb, this);
 
       ros::NodeHandle nh_global("~");
       nh_global.param("simulation", simulation_, false);
@@ -111,6 +113,7 @@ namespace sensor_plugin
       getParam<bool>("debug_verbose", debug_verbose_, debug_verbose_);
       getParam<std::string>("sensor_frame", sensor_frame_, "sensor_frame");
       getParam<bool>("variable_sensor_tf_flag", variable_sensor_tf_flag_, false);
+      getParam<double>("reset_duration", reset_duration_, 1.0);
       getParam<double>("health_timeout", health_timeout_, 0.5);
       getParam<int>("unhealth_level", unhealth_level_, 0);
       getParam<double>("health_check_rate", health_check_rate_, 100.0);
@@ -136,12 +139,33 @@ namespace sensor_plugin
       sensor_status_ = status;
     }
 
+    virtual bool reset()
+    {
+      return true;
+    }
+
+    virtual void changeStatus(bool flag)
+    {
+      ROS_WARN("wrong, %d", flag);
+      if(sensor_status_ == Status::INVALID && flag)
+        {
+          sensor_status_ = Status::INACTIVE;
+          ROS_INFO_STREAM(nhp_.getNamespace() << ", set to inactive");
+        }
+      if(!flag)
+        {
+          sensor_status_ = Status::INVALID;
+          ROS_INFO_STREAM(nhp_.getNamespace() << ", set to invalid");
+        }
+    }
+
   protected:
 
     ros::NodeHandle nh_, nhp_; //node handle for same sensor type (e.g. imu, gps, vo, alt)
     ros::NodeHandle indexed_nh_, indexed_nhp_; //node handle for indexed sensor handler (e.g. imu1, imu2)
     ros::Timer  health_check_timer_;
     ros::ServiceServer set_status_service_;
+    ros::ServiceServer reset_service_;
     StateEstimator* estimator_;
     int estimate_mode_;
 
@@ -174,6 +198,8 @@ namespace sensor_plugin
     boost::mutex health_check_mutex_;
 
     /* health check */
+    double reset_stamp_;
+    double reset_duration_;
     vector<bool> health_;
     vector<double> health_stamp_;
     double health_check_rate_;
@@ -207,18 +233,17 @@ namespace sensor_plugin
         }
     }
 
+    bool resetCb(std_srvs::Empty::Request  &req, std_srvs::Empty::Response &res)
+    {
+      ROS_INFO("reset sensor plugin %s from rosservice server", plugin_name_.c_str());
+      reset();
+      return true;
+    }
+
     bool setStatusCb(std_srvs::SetBool::Request  &req, std_srvs::SetBool::Response &res)
     {
-      if(sensor_status_ == Status::INVALID && req.data)
-        {
-          sensor_status_ == Status::INACTIVE;
-          ROS_INFO_STREAM(nhp_.getNamespace() << "enable the estimate flag");
-        }
-      if(!req.data)
-        {
-          sensor_status_ = Status::INVALID;
-          ROS_INFO_STREAM(nhp_.getNamespace() << "disable the estimate flag");
-        }
+      changeStatus(req.data);
+
       return true;
     }
 
