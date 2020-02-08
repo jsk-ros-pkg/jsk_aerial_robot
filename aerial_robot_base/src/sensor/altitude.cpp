@@ -82,6 +82,7 @@ namespace sensor_plugin
       alt_pub_ = nh_.advertise<aerial_robot_msgs::States>("data",10);
       alt_mode_sub_ = nh_.subscribe("estimate_alt_mode", 1, &Alt::altEstimateModeCallback, this);
 
+
       /* barometer */
       //barometer_sub_ = nh_.subscribe<spinal::Barometer>(barometer_sub_name_, 1, &Alt::baroCallback, this, ros::TransportHints().tcpNoDelay());
     }
@@ -211,6 +212,12 @@ namespace sensor_plugin
     void rangeCallback(const sensor_msgs::RangeConstPtr & range_msg)
     {
       double current_secs = range_msg->header.stamp.toSec();
+
+      if(getStatus() != Status::ACTIVE && estimator_->getForceAttControlFlag())
+        {
+          sensor_status_ = Status::ACTIVE;
+          ROS_WARN("Force activate range sensor in force att contorl mode");
+        }
 
       if(!updateBaseLink2SensorTransform()) return;
 
@@ -474,6 +481,8 @@ namespace sensor_plugin
 
     bool terrainProcess(double current_secs)
     {
+      if(getStatus() == Status::INVALID) return false;
+
       boost::shared_ptr<kf_plugin::KalmanFilter> kf = nullptr;
       if(!getFuserActivate(StateEstimator::EGOMOTION_ESTIMATE))
         {
@@ -569,6 +578,8 @@ namespace sensor_plugin
         }
       else
         {
+          if(estimator_->getForceAttControlFlag()) return true;
+
           /* check the validity of range sensor together with  visual odometry */
           /* note: this method is only effective when there is a plane ground, and the objects on the ground is finite */
           if(estimator_->getVoHandlers().size() > 0)
@@ -577,6 +588,19 @@ namespace sensor_plugin
 
               if(fabs(raw_range_pos_z_ - (kf->getEstimateState())(0)) > outlier_threshold_)
                 {
+                  bool vo_active = false;
+                  for(const auto& handler: estimator_->getVoHandlers())
+                    {
+                      if(handler->getStatus() == Status::ACTIVE)
+                        vo_active = true;
+                    }
+
+                  if(!vo_active)
+                    {
+                      ROS_WARN("Maybe this is a terrain gap, but ignore: current pos z: %f, kf pos z: %f, last valid pos z: %f, second last valid pos z: %f", raw_range_sensor_value_, (kf->getEstimateState())(0), prev_raw_range_pos_z_, prev_prev_raw_range_pos_z_);
+                      return true;
+                    }
+
                   /* 1. we need t-2, t-1, t, since the range sensor has a onboard low pass filter
                      so the change is smoothed, thus diff between t-2 and t-1 is sometimes larger diff between t-1 and t */
                   if(fabs(raw_range_pos_z_ - prev_raw_range_pos_z_) < inlier_threshold_ &&
@@ -585,6 +609,7 @@ namespace sensor_plugin
                       /* we only avoid the suddent ascending because of the insane vio value */
                       if(raw_range_pos_z_ - (kf->getEstimateState())(0) > outlier_threshold_)
                         {
+                          ROS_ERROR("vo, current pos z: %f, prev raw range pos z: %f, kf pos z: %f", raw_range_sensor_value_, prev_raw_range_pos_z_, (kf->getEstimateState())(0));
                           for(const auto& handler: estimator_->getVoHandlers())
                             {
                               if(handler->getStatus() != Status::RESET)
@@ -596,11 +621,19 @@ namespace sensor_plugin
                     }
                   else
                     {
-                      ROS_INFO_THROTTLE(1.0, "Find terrain gap, current pos z: %f, kf pos z: %f, last valid pos z: %f, second last valid pos z: %f skip range sensor in sensor fusion", raw_range_sensor_value_, (kf->getEstimateState())(0), prev_raw_range_pos_z_, prev_prev_raw_range_pos_z_);
+                      if(raw_range_pos_z_ - (kf->getEstimateState())(0) > outlier_threshold_)
+                        {
+                          ROS_WARN("Although find terrain gap, current pos z: %f, kf pos z: %f, last valid pos z: %f, second last valid pos z: %f, but the robot may ascedning, no skip", raw_range_sensor_value_, (kf->getEstimateState())(0), prev_raw_range_pos_z_, prev_prev_raw_range_pos_z_);
+                          return true;
+                        }
+                      else
+                        {
+                          ROS_INFO("Find terrain gap, current pos z: %f, kf pos z: %f, last valid pos z: %f, second last valid pos z: %f skip range sensor in sensor fusion", raw_range_sensor_value_, (kf->getEstimateState())(0), prev_raw_range_pos_z_, prev_prev_raw_range_pos_z_);
 
-                      prev_raw_range_pos_z_ =  prev_prev_raw_range_pos_z_; // since the range sensor is smoothed. prev_prev_raw_range_pos_z_ is better that prev_raw_range_pos_z_ for sudden change of terrain
+                          prev_raw_range_pos_z_ =  prev_prev_raw_range_pos_z_; // since the range sensor is smoothed. prev_prev_raw_range_pos_z_ is better that prev_raw_range_pos_z_ for sudden change of terrain
+                          return false;
+                        }
 
-                      return false;
                     }
                 }
             }
@@ -764,6 +797,20 @@ namespace sensor_plugin
       getParam<double>("sample_freq", sample_freq_, 100.0 );
       getParam<double>("cutoff_freq", cutoff_freq_, 10.0 );
       getParam<double>("high_cutoff_freq", high_cutoff_freq_, 1.0 );
+    }
+
+    void changeStatus(bool flag)
+    {
+      if(flag)
+        {
+          sensor_status_ = Status::ACTIVE;
+          ROS_INFO_STREAM(nhp_.getNamespace() << ", set to active");
+        }
+      else
+        {
+          sensor_status_ = Status::INVALID;
+          ROS_INFO_STREAM(nhp_.getNamespace() << ", set to invalid");
+        }
     }
 
   };

@@ -144,6 +144,21 @@ namespace sensor_plugin
       return true;
     }
 
+    virtual void changeStatus(bool flag)
+    {
+      ROS_WARN("wrong, %d", flag);
+      if(sensor_status_ == Status::INVALID && flag)
+        {
+          sensor_status_ = Status::INACTIVE;
+          ROS_INFO_STREAM(nhp_.getNamespace() << ", set to inactive");
+        }
+      if(!flag)
+        {
+          sensor_status_ = Status::INVALID;
+          ROS_INFO_STREAM(nhp_.getNamespace() << ", set to invalid");
+        }
+    }
+
   protected:
 
     ros::NodeHandle nh_, nhp_; //node handle for same sensor type (e.g. imu, gps, vo, alt)
@@ -227,16 +242,8 @@ namespace sensor_plugin
 
     bool setStatusCb(std_srvs::SetBool::Request  &req, std_srvs::SetBool::Response &res)
     {
-      if(sensor_status_ == Status::INVALID && req.data)
-        {
-          sensor_status_ == Status::INACTIVE;
-          ROS_INFO_STREAM(nhp_.getNamespace() << "enable the estimate flag");
-        }
-      if(!req.data)
-        {
-          sensor_status_ = Status::INVALID;
-          ROS_INFO_STREAM(nhp_.getNamespace() << "disable the estimate flag");
-        }
+      changeStatus(req.data);
+
       return true;
     }
 
