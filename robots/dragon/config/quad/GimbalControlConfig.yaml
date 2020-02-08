@@ -13,7 +13,7 @@ controller/alt/limit: 28
 controller/alt/p_term_limit: 28
 controller/alt/i_term_limit: 28
 controller/alt/d_term_limit: 28
-controller/alt/alt_landing_const_i_ctrl_thresh: -0.3
+controller/alt/landing_alt_err_thresh: -0.4
 
 # xy [rad]
 controller/xy/p_gain: 3.6 # old: 2.5 # 10 / 7.38: sucess in real machine, but weak; divided by mass

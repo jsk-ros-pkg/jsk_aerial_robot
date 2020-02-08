@@ -113,7 +113,8 @@ namespace control_plugin
     double alt_limit_;
     tf::Vector3 alt_terms_limit_;
     double alt_pos_err_i_;
-    double alt_landing_const_i_ctrl_thresh_;
+    double landing_alt_err_thresh_;
+    double safe_landing_height_;
     double alt_offset_;
 
     //**** xy

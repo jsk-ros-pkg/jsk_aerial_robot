@@ -262,16 +262,24 @@ namespace control_plugin
     double max_target_throttle = 0;
 
     double alt_pos_err = clamp(pos_err_.z(), -alt_err_thresh_, alt_err_thresh_);
-    alt_pos_err_i_ +=  alt_pos_err * du;
-    double alt_vel_err = target_vel_.z() - state_vel_.z();
+    if(navigator_->getNaviState() == Navigator::LAND_STATE && -pos_err_.z() > safe_landing_height_)
+      {
+        /* too high, slowly descend */
+        alt_pos_err = landing_alt_err_thresh_;
+      }
+    else
+      {
+        alt_pos_err_i_ += alt_pos_err * du;
 
-    if(navigator_->getNaviState() == Navigator::LAND_STATE) alt_pos_err += alt_landing_const_i_ctrl_thresh_;
+        if(navigator_->getNaviState() == Navigator::LAND_STATE)
+          alt_pos_err = 0; // no p control in final safe landing phase
+      }
+    double alt_vel_err = target_vel_.z() - state_vel_.z();
 
     for(int j = 0; j < motor_num_; j++)
       {
         //**** P Term
         double alt_p_term = clamp(-alt_gains_[j][0] * alt_pos_err, -alt_terms_limit_[0], alt_terms_limit_[0]);
-        if(navigator_->getNaviState() == Navigator::LAND_STATE) alt_p_term = 0;
 
         //**** I Term
         double alt_i_term = clamp(alt_gains_[j][1] * alt_pos_err_i_, -alt_terms_limit_[1], alt_terms_limit_[1]);
@@ -419,8 +427,11 @@ namespace control_plugin
     string yaw_ns = yaw_node.getNamespace();
 
     /* altitude */
-    alt_node.param("alt_landing_const_i_ctrl_thresh",  alt_landing_const_i_ctrl_thresh_, 0.0);
-    if(param_verbose_) cout << alt_ns << ": alt_landing_const_i_ctrl_thresh_ is " << alt_landing_const_i_ctrl_thresh_ << endl;
+    alt_node.param("landing_alt_err_thresh", landing_alt_err_thresh_, -0.5);
+    if(param_verbose_) cout << alt_ns << ": landing_alt_err_thresh_ is " << landing_alt_err_thresh_ << endl;
+    if(landing_alt_err_thresh_ >=0) landing_alt_err_thresh_  = -0.5;
+    alt_node.param("safe_landing_height",  safe_landing_height_, 0.5);
+    if(param_verbose_) cout << alt_ns << ": safe_landing_height_ is " << safe_landing_height_ << endl;
     alt_node.param("offset", alt_offset_, 0.0);
     if(param_verbose_) cout << alt_ns << ": offset_ is " << alt_offset_ << endl;
     alt_node.param("limit", alt_limit_, 1.0e6);
