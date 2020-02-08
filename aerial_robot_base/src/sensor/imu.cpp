@@ -159,7 +159,14 @@ namespace sensor_plugin
 
       for(int i = 0; i < 3; i++)
         {
-          acc_b_[i] = imu_msg->acc_data[i];
+          if(std::isnan(imu_msg->acc_data[i]) || std::isnan(imu_msg->angles[i]) ||
+             std::isnan(imu_msg->gyro_data[i]) || std::isnan(imu_msg->mag_data[i]))
+            {
+              ROS_ERROR_THROTTLE(1.0, "IMU sensor publishes Nan value!");
+              return;
+            }
+
+            acc_b_[i] = imu_msg->acc_data[i];
           euler_[i] = imu_msg->angles[i];
           omega_[i] = imu_msg->gyro_data[i];
           mag_[i] = imu_msg->mag_data[i];
