@@ -384,6 +384,8 @@ protected:
 
   void landCallback(const std_msgs::EmptyConstPtr & msg)
   {
+    if(force_att_control_flag_) return;
+
     if(!teleop_flag_) return;
 
     setNaviState(LAND_STATE);
