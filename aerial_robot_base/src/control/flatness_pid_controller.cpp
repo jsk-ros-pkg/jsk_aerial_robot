@@ -266,6 +266,9 @@ namespace control_plugin
       {
         /* too high, slowly descend */
         alt_pos_err = landing_alt_err_thresh_;
+
+        /* avoid the unexceped ascending when the i term exceed the hovering state */
+        if(state_vel_.z() > landing_alt_err_thresh_) alt_pos_err_i_ += alt_pos_err * du;
       }
     else
       {
