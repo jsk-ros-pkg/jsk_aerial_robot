@@ -49,7 +49,6 @@
 #include <std_msgs/Empty.h>
 #include <sensor_msgs/JointState.h>
 
-
 namespace sensor_plugin
 {
   enum {ONLY_POS_MODE = 0, ONLY_VEL_MODE = 1, POS_VEL_MODE = 2,};
@@ -68,6 +67,8 @@ namespace sensor_plugin
       if(fusion_mode_ != ONLY_VEL_MODE) return true;
       else return false;
     }
+
+    bool reset();
 
   private:
     /* ros */
