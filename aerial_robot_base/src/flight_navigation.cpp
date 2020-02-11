@@ -396,6 +396,8 @@ void Navigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
   /* landing */
   if(joy_cmd.buttons[PS3_BUTTON_CROSS_RIGHT] == 1 && joy_cmd.buttons[PS3_BUTTON_ACTION_SQUARE] == 1)
     {
+      if(force_att_control_flag_) return;
+
       if(getNaviState() == LAND_STATE) return;
       if(!teleop_flag_) return; /* can not do the process if other processs are running */
 
@@ -455,7 +457,7 @@ void Navigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
   /* turn to ACC_CONTROL_MODE */
   if(joy_cmd.buttons[PS3_BUTTON_CROSS_DOWN] == 1)
     {
-      ROS_WARN("Change to attitude control");
+      ROS_WARN("Foce change to attitude control");
       force_att_control_flag_ = true;
       estimator_->setForceAttControlFlag(force_att_control_flag_);
       xy_control_mode_ = flight_nav::ACC_CONTROL_MODE;
@@ -562,9 +564,17 @@ void Navigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
 
 void Navigator::update()
 {
-  /* check the xy estimation status, if not ready, change to att_control_mode */
-  if(!force_att_control_flag_)
+  if(force_att_control_flag_)
     {
+      if(getNaviState() == LAND_STATE)
+        {
+          setTargetZFromCurrentState();
+          setNaviState(HOVER_STATE);
+        }
+    }
+  else
+    {
+      /* check the xy estimation status, if not ready, change to att_control_mode */
       if(!estimator_->getStateStatus(State::X_BASE, estimate_mode_) || !estimator_->getStateStatus(State::Y_BASE, estimate_mode_))
         {
           if(xy_control_mode_ == flight_nav::VEL_CONTROL_MODE ||
@@ -616,7 +626,7 @@ void Navigator::update()
           ROS_ERROR("Normal Landing: low battery");
         }
 
-      if(normal_land)
+      if(normal_land && !force_att_control_flag_)
         {
           setNaviState(LAND_STATE);
           setTargetXyFromCurrentState();
