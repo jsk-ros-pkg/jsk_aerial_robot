@@ -768,7 +768,27 @@ void Navigator::update()
               }
             else
               {
-                ROS_WARN("back to pos nav control for way point");
+                if(gps_waypoint_)
+                  {
+                    tf::Vector3 gps_waypoint_delta;
+
+                    for (const auto& handler: estimator_->getGpsHandlers())
+                      {
+                        if(handler->getStatus() == Status::ACTIVE)
+                          {
+                            auto base_wp = boost::static_pointer_cast<sensor_plugin::Gps>(handler)->getCurrentPoint();
+                            gps_waypoint_delta = boost::static_pointer_cast<sensor_plugin::Gps>(handler)->getWolrdFrame() * sensor_plugin::Gps::wgs84ToNedLocalFrame(base_wp, target_wp_);
+                            break;
+                          }
+                      }
+                    ROS_WARN("back to pos nav control for GPS way point, gps waypoint delta: %f, %f", gps_waypoint_delta.x(), gps_waypoint_delta.y());
+                    gps_waypoint_  = false;
+                  }
+                else
+                  {
+                    ROS_WARN("back to pos nav control for way point");
+                  }
+
                 xy_control_mode_ = flight_nav::POS_CONTROL_MODE;
                 vel_based_waypoint_ = false;
                 setTargetVelX(0);
