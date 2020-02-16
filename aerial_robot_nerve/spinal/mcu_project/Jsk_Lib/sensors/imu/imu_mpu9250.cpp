@@ -95,7 +95,7 @@ void IMUOnboard::magInit(void)
    * we need check the i2c connectio with external mag(HMC5883L) several times initially,
    * since the module UBlox M8N has some problem with the gps/mag simultaneous polling.
    */
-  HAL_Delay(2000); // wait for the setup of the Blox M8N module
+  HAL_Delay(4000); // wait for the setup of the Blox M8N module, especially for winter
   uint8_t val[2];
   val[0] = HMC58X3_R_CONFB;
   val[1] = 0x20;

@@ -37,7 +37,7 @@ private:
   Vector3f acc_bias_, gyro_bias_, mag_bias_, mag_scale_;
 
 
-  static constexpr uint32_t GYRO_DEFAULT_CALIB_DURATION = 5000; // 5s
+  static constexpr uint32_t GYRO_DEFAULT_CALIB_DURATION = 7000; // 7s
   static constexpr uint32_t ACC_DEFAULT_CALIB_DURATION = 5000; // 5s
   static constexpr uint32_t MAG_DEFAULT_CALIB_DURATION = 60000; // 60s
   static constexpr float MAG_GENERAL_THRESH = 20.0f;
