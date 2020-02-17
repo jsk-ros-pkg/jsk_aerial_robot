@@ -529,7 +529,6 @@ class IMUCalibWidget(QWidget):
         rospy.loginfo("Magnetometer Calibration Matrix:\n %s",L)
 
         # calibrate the sample data
-        print(self.mag_data_plot._canvas.x)
         self.mag_data_plot._canvas.x = [i - x0[0] for i in self.mag_data_plot._canvas.x]
         self.mag_data_plot._canvas.y = [i - x0[1] for i in self.mag_data_plot._canvas.y]
         self.mag_data_plot._canvas.z = [i - x0[2] for i in self.mag_data_plot._canvas.z]
