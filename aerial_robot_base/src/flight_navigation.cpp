@@ -715,6 +715,8 @@ void Navigator::update()
       }
     case HOVER_STATE:
       {
+        if(force_att_control_flag_) break;
+
         if(gps_waypoint_)
           {
             if(ros::Time::now().toSec() - gps_waypoint_time_ > gps_waypoint_check_du_)
