@@ -4,5 +4,6 @@
   <node pkg="joy" type="joy_node" name="joy_node"  output="screen" > 
 
     <param name="dev" type="string" value="/dev/input/js0"/>
+    <param name="coalesce_interval" value="0.025"/>
   </node>
 </launch>
