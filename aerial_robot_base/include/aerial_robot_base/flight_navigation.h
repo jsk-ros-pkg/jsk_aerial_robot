@@ -260,6 +260,7 @@ protected:
   bool  alt_control_flag_;
   bool  yaw_control_flag_;
   bool force_landing_flag_;
+  bool joy_udp_;
   bool check_joy_stick_heart_beat_;
   bool joy_stick_heart_beat_;
 
