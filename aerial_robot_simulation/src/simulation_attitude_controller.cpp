@@ -49,11 +49,11 @@ SimulationAttitudeController::SimulationAttitudeController()
   desire_coord_.setRPY(0, 0, 0);
 }
 
-bool SimulationAttitudeController::init(hardware_interface::RotorInterface *robot, ros::NodeHandle &n)
+bool SimulationAttitudeController::init(hardware_interface::SpinalInterface *robot, ros::NodeHandle &n)
 {
-  rotor_interface_ = robot;
-  motor_num_ = rotor_interface_->getNames().size();
-  joint_num_ = rotor_interface_->getJointNum();
+  spinal_interface_ = robot;
+  motor_num_ = spinal_interface_->getNames().size();
+  joint_num_ = spinal_interface_->getJointNum();
 
 
   controller_core_->init(&n);
@@ -104,15 +104,14 @@ void SimulationAttitudeController::starting(const ros::Time& time)
 
 void SimulationAttitudeController::update(const ros::Time& time, const ros::Duration& period)
 {
-  if(!rotor_interface_->foundBaseLink()) return;
   /* update the control coordinate */
-  tf::Matrix3x3 orientation = tf::Matrix3x3(rotor_interface_->getBaseLinkOrientation()) * desire_coord_.transpose();
+  tf::Matrix3x3 orientation = tf::Matrix3x3(spinal_interface_->getBaseLinkOrientation()) * desire_coord_.transpose();
   //ROS_INFO("[%f, %f, %f], [%f, %f, %f], [%f, %f, %f]", orientation.getRow(0).x(), orientation.getRow(0).y(), orientation.getRow(0).z(),orientation.getRow(1).x(), orientation.getRow(1).y(), orientation.getRow(1).z(), orientation.getRow(2).x(), orientation.getRow(2).y(), orientation.getRow(2).z());
 
   tfScalar r = 0,p = 0, y = 0;
   orientation.getRPY(r,p,y);
   controller_core_->getAttController().setRPY(r,p,y);
-  tf::Vector3 w = desire_coord_ * rotor_interface_->getBaseLinkAngular();
+  tf::Vector3 w = desire_coord_ * spinal_interface_->getBaseLinkAngular();
   controller_core_->getAttController().setAngular(w.x(), w.y(), w.z());
 
   if(debug_mode_)
@@ -123,7 +122,7 @@ void SimulationAttitudeController::update(const ros::Time& time, const ros::Dura
             {
               std::stringstream joint_no;
               joint_no << i + 1;
-              hardware_interface::RotorHandle rotor = rotor_interface_->getHandle(std::string("rotor") + joint_no.str());
+              hardware_interface::RotorHandle rotor = spinal_interface_->getHandle(std::string("rotor") + joint_no.str());
               rotor.setForce(debug_force_);
             }
         }
@@ -137,7 +136,7 @@ void SimulationAttitudeController::update(const ros::Time& time, const ros::Dura
     {
       std::stringstream joint_no;
       joint_no << i + 1;
-      hardware_interface::RotorHandle rotor = rotor_interface_->getHandle(std::string("rotor") + joint_no.str());
+      hardware_interface::RotorHandle rotor = spinal_interface_->getHandle(std::string("rotor") + joint_no.str());
       rotor.setForce(controller_core_->getAttController().getForce(i));
     }
 }

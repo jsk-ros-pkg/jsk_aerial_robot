@@ -29,47 +29,54 @@
    Desc:   Hardware Interface for propeller rotor in Gazebo
 */
 
-#include <aerial_robot_model/rotor_interface.h>
+#ifndef HARDWARE_INTERFACE_ROTOR_HANDLE_H
+#define HARDWARE_INTERFACE_ROTOR_HANDLE_H
+
+
+#include <ros/ros.h>
+#include <urdf_model/joint.h>
 
 namespace hardware_interface
 {
 
   /** A handle used to read the state of a single joint. */
-  RotorHandle::RotorHandle(ros::NodeHandle nh,  urdf::JointConstSharedPtr urdf_joint):  force_(new double(0)), max_pwm_(2000)
+  class RotorHandle
   {
-    name_ = urdf_joint->name;
-    direction_ = urdf_joint->axis.z;
-    ROS_WARN("[%s], direction: %d", name_.c_str(), direction_);
+  public:
+    RotorHandle():force_(new double(0)) {}
+    RotorHandle(ros::NodeHandle nh,  urdf::JointConstSharedPtr urdf_joint):  force_(new double(0)), max_pwm_(2000)
+    {
+      name_ = urdf_joint->name;
+      direction_ = urdf_joint->axis.z;
 
-    std::string full_name;
-    ros::NodeHandle motor_nh("/motor_info");
+      std::string full_name;
+      ros::NodeHandle motor_nh("/motor_info");
 
-    if (motor_nh.searchParam("m_f_rate", full_name))
-      {
-        motor_nh.getParam(full_name, m_f_rate_);
-        ROS_INFO(" m_f_rate: %f", m_f_rate_);
-      }
-    else
-      ROS_ERROR("Cannot get m_f_rate from ros nodehandle: %s", nh.getNamespace().c_str());
-  }
+      if (motor_nh.searchParam("m_f_rate", full_name))
+        {
+          motor_nh.getParam(full_name, m_f_rate_);
+          ROS_DEBUG_STREAM("m_f_rate: " <<  m_f_rate_);
+        }
+      else
+        ROS_ERROR_STREAM_NAMED("RotorHandle", "Cannot get m_f_rate from ros nodehandle");
+    }
 
-  RotorInterface::RotorInterface(): baselink_name_("baselink"), q_(), joint_num_(0), found_baselink_(false) {}
-};
+    inline std::string getName() const {return name_;}
+    inline double getForce()    const {return *force_;}
+    inline double setForce(double force)    {*force_ = force;}
+    inline double getTorque()    const {return getForce() * direction_ * m_f_rate_;}
+    inline void setCommand(double command); //no implement here
 
-namespace rotor_limits_interface
-{
-  EffortRotorSaturationHandle::EffortRotorSaturationHandle(const hardware_interface::RotorHandle& jh, urdf::JointConstSharedPtr urdf_joint)
-    : jh_(jh)
-  {
-    if (!urdf_joint)
-      {
-        throw joint_limits_interface::JointLimitsInterfaceException("Cannot laod param for rotor '" + getName() +
-                                                                    "'. It has no urdf for this rotor.");
-      }
-    min_force_ = urdf_joint->limits->lower;
-    max_force_ = urdf_joint->limits->upper;
-    ROS_DEBUG_STREAM_NAMED("robot_imits_interface","Loading joint '" << jh_.getName()
-                           << "' of max force  '" << max_force_ << "' and min force '" << min_force_);
-  }
+  private:
+    std::string name_;
+    boost::shared_ptr<double> force_;
+    int direction_;
+    double f_pwm_rate_;
+    double f_pwm_offset_;
+    double m_f_rate_;
+    double pwm_rate_;
+    double max_pwm_;
+  };
+}
 
-};
+#endif

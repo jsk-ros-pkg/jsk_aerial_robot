@@ -43,7 +43,7 @@
 /* ros */
 #include <ros/node_handle.h>
 #include <controller_interface/controller.h>
-#include <aerial_robot_model/rotor_interface.h>
+#include <aerial_robot_simulation/spinal_interface.h>
 #include <urdf/model.h>
 
 /* msg / srv */
@@ -60,7 +60,7 @@
 namespace flight_controllers
 {
 
-class SimulationAttitudeController: public controller_interface::Controller<hardware_interface::RotorInterface>
+class SimulationAttitudeController: public controller_interface::Controller<hardware_interface::SpinalInterface>
 {
 public:
 
@@ -75,7 +75,7 @@ public:
     desire_coord_sub_.shutdown();
   }
 
-  bool init(hardware_interface::RotorInterface *robot, ros::NodeHandle &n);
+  bool init(hardware_interface::SpinalInterface *robot, ros::NodeHandle &n);
 
   void setCommand(double pos_target);
   void setCommand(double pos_target, double vel_target);
@@ -93,7 +93,7 @@ private:
   ros::Subscriber debug_sub_;
   int loop_count_;
 
-  hardware_interface::RotorInterface* rotor_interface_;
+  hardware_interface::SpinalInterface* spinal_interface_;
   boost::shared_ptr<FlightControl> controller_core_;
   tf::Matrix3x3 desire_coord_;
   uint8_t motor_num_;
