@@ -41,8 +41,6 @@ class DragonRobotModel : public HydrusRobotModel {
 public:
   DragonRobotModel(bool init_with_rosparam,
                    bool verbose = false,
-                   std::string baselink = std::string(""),
-                   std::string thrust_link = std::string(""),
                    double stability_margin_thre = 0,
                    double p_det_thre = 0,
                    double f_max = 0,

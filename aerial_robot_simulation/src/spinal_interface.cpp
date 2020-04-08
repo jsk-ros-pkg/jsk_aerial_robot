@@ -33,14 +33,23 @@
 
 namespace hardware_interface
 {
-  SpinalInterface::SpinalInterface(): baselink_("fc"), q_(), joint_num_(0)
+  SpinalInterface::SpinalInterface(): q_(), joint_num_(0)
   {
   }
 
   bool SpinalInterface::init(const urdf::Model& model)
   {
-
     kdl_parser::treeFromUrdfModel(model, tree_);
+
+    /* get baselink from robot model */
+    auto robot_model_xml = aerial_robot_model::RobotModel::getRobotModelXml("robot_description");
+    TiXmlElement* baselink_attr = robot_model_xml.FirstChildElement("robot")->FirstChildElement("baselink");
+    if(!baselink_attr)
+      {
+        ROS_ERROR_STREAM_NAMED("spianl interface", "Failed to find baselink attribute from urdf model, please add '<baselink name=\"fc\" \/>' to your urdf file");
+        return false;
+      }
+    baselink_ = std::string(baselink_attr->Attribute("name"));
 
     KDL::SegmentMap::const_iterator it = tree_.getSegment(baselink_);
     if(it == tree_.getSegments().end())

@@ -51,7 +51,6 @@ namespace gazebo_ros_control
   {
     parent_model_ = parent_model;
 
-
     if(!spinal_interface_.init(*urdf_model))
       {
         ROS_ERROR_STREAM_NAMED("aerial_robot_hw", "Failed to initialize spinal interface");

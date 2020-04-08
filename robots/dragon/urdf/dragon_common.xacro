@@ -7,6 +7,10 @@
   <!--  model type 3: general -->
   <!--  model type 4: end -->
 
+  <!-- general attribute -->
+  <baselink name="fc" />
+  <thrust_link name="thrust" />
+
   <xacro:property name="pi" value="3.1415926535897931" />
   <!-- kinematics [m] -->
   <xacro:property name="link_length" value=".424" />

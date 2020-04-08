@@ -33,6 +33,7 @@
 #define HARDWARE_INTERFACE_SPINAL_INTERFACE_H
 
 
+#include <aerial_robot_model/transformable_aerial_robot_model.h>
 #include <aerial_robot_simulation/rotor_handle.h>
 #include <algorithm>
 #include <cassert>
