@@ -20,6 +20,8 @@
 #include "edc.h"
 #include "location.h"
 
+namespace ap
+{
 
 // define AP_Param types AP_Vector3f and Ap_Matrix3f
 /* AP_PARAMDEFV(Vector3f, Vector3f, AP_PARAM_VECTOR3F); */
@@ -164,5 +166,6 @@ inline uint32_t usec_to_hz(uint32_t usec)
 
 /* fast inv sqrt(added by bakui) */
 float inv_sqrt(float x);
+}; // namespace ap
 
 #endif

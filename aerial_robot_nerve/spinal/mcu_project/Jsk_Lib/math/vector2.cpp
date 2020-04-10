@@ -25,6 +25,9 @@
 
 #include "AP_Math.h"
 
+namespace ap
+{
+
 template <typename T>
 float Vector2<T>::length(void) const
 {
@@ -160,3 +163,4 @@ template bool Vector2<float>::operator !=(const Vector2<float> &v) const;
 template bool Vector2<float>::is_nan(void) const;
 template bool Vector2<float>::is_inf(void) const;
 template float Vector2<float>::angle(const Vector2<float> &v) const;
+}; // namespace ap

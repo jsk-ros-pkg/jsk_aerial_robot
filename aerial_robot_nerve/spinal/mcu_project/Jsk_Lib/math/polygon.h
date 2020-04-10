@@ -17,6 +17,10 @@
  * with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+
+namespace ap
+{
 bool        Polygon_outside(const Vector2l &P, const Vector2l *V, unsigned n);
 bool        Polygon_complete(const Vector2l *V, unsigned n);
+}; // namespace ap
 

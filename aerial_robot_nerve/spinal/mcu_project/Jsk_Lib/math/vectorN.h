@@ -23,6 +23,10 @@
 #include <assert.h>
 #endif
 
+namespace ap
+{
+
+
 template <typename T, uint8_t N>
 class VectorN
 {
@@ -140,5 +144,7 @@ public:
 private:
     T _v[N];
 };
+
+}; // namespace ap
 
 #endif // VECTORN_H

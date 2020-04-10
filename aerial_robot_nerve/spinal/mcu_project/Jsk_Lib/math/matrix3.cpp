@@ -25,6 +25,9 @@
 
 #include "AP_Math.h"
 
+namespace ap
+{
+
 // create a rotation matrix given some euler angles
 // this is based on http://gentlenav.googlecode.com/files/EulerAngles.pdf
 template <typename T>
@@ -259,3 +262,4 @@ template Vector3<double> Matrix3<double>::mul_transpose(const Vector3<double> &v
 template Matrix3<double> Matrix3<double>::operator *(const Matrix3<double> &m) const;
 template Matrix3<double> Matrix3<double>::transposed(void) const;
 template Vector2<double> Matrix3<double>::mulXY(const Vector3<double> &v) const;
+}; // namespace ap

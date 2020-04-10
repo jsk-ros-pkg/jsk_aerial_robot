@@ -35,6 +35,8 @@
 #include <math.h>
 #include <float.h>
 
+namespace ap
+{
 template <typename T>
 struct Vector2
 {
@@ -162,5 +164,6 @@ typedef Vector2<uint16_t>       Vector2ui;
 typedef Vector2<int32_t>        Vector2l;
 typedef Vector2<uint32_t>       Vector2ul;
 typedef Vector2<float>          Vector2f;
+}; // namespace ap
 
 #endif // VECTOR2_H

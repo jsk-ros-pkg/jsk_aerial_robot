@@ -26,6 +26,9 @@
 #include <math/AP_Math.h>
 #include <stdio.h>
 
+namespace ap
+{
+
 //TODO: use higher precision datatypes to achieve more accuracy for matrix algebra operations
 
 /*
@@ -153,7 +156,7 @@ void mat_LU_decompose(float* A, float* L, float* U, float *P, uint8_t n)
     memset(P,0,n*n*sizeof(float));
     mat_pivot(A,P,n);
 
-    float *APrime = mat_mul(P,A,n);
+    float *APrime = ap::mat_mul(P,A,n);
     for(uint8_t i = 0; i < n; i++) {
         L[i*n + i] = 1;
     }
@@ -208,8 +211,8 @@ bool mat_inverse(float* A, float* inv, uint8_t n)
     free(L);
     free(U);
 
-    float *inv_unpivoted = mat_mul(U_inv,L_inv,n);
-    float *inv_pivoted = mat_mul(inv_unpivoted, P, n);
+    float *inv_unpivoted = ap::mat_mul(U_inv,L_inv,n);
+    float *inv_pivoted = ap::mat_mul(inv_unpivoted, P, n);
 
     //check sanity of results
     for(uint8_t i = 0; i < n; i++) {
@@ -416,8 +419,9 @@ bool inverse4x4(float m[],float invOut[])
 bool inverse(float x[], float y[], uint16_t dim)
 {
     switch(dim){
-    case 3: return inverse3x3(x,y);
-    case 4: return inverse4x4(x,y);
+    case 3: return ap::inverse3x3(x,y);
+    case 4: return ap::inverse4x4(x,y);
     default: return mat_inverse(x,y,dim);
     }
 }
+}; // namespace ap

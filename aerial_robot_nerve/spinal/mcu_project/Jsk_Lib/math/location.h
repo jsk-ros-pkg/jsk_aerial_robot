@@ -30,6 +30,8 @@
 
 #define PACKED __attribute__((__packed__))
 
+namespace ap
+{
 struct PACKED Location_Option_Flags {
   uint8_t relative_alt : 1;           // 1 if altitude is relateive to home
   uint8_t unused1      : 1;           // unused flag (defined so that loiter_ccw uses the correct bit)
@@ -122,5 +124,5 @@ void        wgsllh2ecef(const Vector3d &llh, Vector3d &ecef);
 // coordinates (X, Y, Z), into WHS84 geodetic
 // coordinates (lat, lon, height)
 void        wgsecef2llh(const Vector3d &ecef, Vector3d &llh);
-
+}; // namespace ap
 #endif
