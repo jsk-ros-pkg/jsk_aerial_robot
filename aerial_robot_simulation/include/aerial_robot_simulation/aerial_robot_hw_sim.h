@@ -41,6 +41,7 @@
 #define _GAZEBO_ROS_CONTROL___AERIAL_ROBOT_HW_SIM_H_
 
 #include <aerial_robot_model/transformable_aerial_robot_model.h>
+#include <aerial_robot_simulation/noise_model.h>
 #include <aerial_robot_simulation/spinal_interface.h>
 #include <gazebo_ros_control/default_robot_hw_sim.h>
 #include <gazebo/sensors/sensors.hh>
@@ -101,8 +102,12 @@ protected:
   ros::Publisher mocap_pub_;
   double ground_truth_pub_rate_;
   double mocap_pub_rate_;
-  unsigned int noise_seed_;
+
   double mocap_rot_noise_, mocap_pos_noise_;
+  double ground_truth_pos_noise_, ground_truth_vel_noise_, ground_truth_rot_noise_, ground_truth_angular_noise_;
+  ignition::math::Vector3d ground_truth_rot_curr_drift_, ground_truth_vel_curr_drift_, ground_truth_angular_curr_drift_;
+  double ground_truth_rot_drift_, ground_truth_vel_drift_, ground_truth_angular_drift_;
+  double ground_truth_rot_drift_frequency_, ground_truth_vel_drift_frequency_, ground_truth_angular_drift_frequency_;
 
   geometry_msgs::TwistStamped cmd_vel_;
   geometry_msgs::PoseStamped cmd_pos_;
@@ -120,8 +125,6 @@ protected:
     control_mode_ = SIM_POS_MODE;
     cmd_pos_ = *cmd_pos;
   }
-
-  double guassianKernel(double sigma);
 };
 
 typedef boost::shared_ptr<AerialRobotHWSim> AerialRobotHWSimPtr;

@@ -266,7 +266,8 @@ namespace sensor_plugin
 
           tf::Vector3 omega;
           tf::vector3MsgToTF(msg->twist.twist.angular, omega);
-          omega = lpf_angular_.filterFunction(omega); // for angular velocity
+          // This LPF simulates the smoothing of gyro in spinal (e.g., dragon, which use angular to do attitude control in ROS as well as spinal,)
+          omega = lpf_angular_.filterFunction(omega);
 
           estimator_->setEuler(Frame::BASELINK, StateEstimator::GROUND_TRUTH, euler);
           estimator_->setAngularVel(Frame::BASELINK, StateEstimator::GROUND_TRUTH, omega);

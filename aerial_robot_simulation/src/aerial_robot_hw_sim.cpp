@@ -183,12 +183,22 @@ namespace gazebo_ros_control
     sim_vel_sub_ = model_nh.subscribe("sim_cmd_vel", 1, &AerialRobotHWSim::cmdVelCallback, this);
     sim_pos_sub_ = model_nh.subscribe("sim_cmd_pos", 1, &AerialRobotHWSim::cmdPosCallback, this);
     model_nh.param("ground_truth_pub_rate", ground_truth_pub_rate_, 0.01); // [sec]
+    model_nh.param("ground_truth_pos_noise", ground_truth_pos_noise_, 0.0); // m
+    model_nh.param("ground_truth_vel_noise", ground_truth_vel_noise_, 0.0); // m/s
+    model_nh.param("ground_truth_rot_noise", ground_truth_rot_noise_, 0.0); // rad
+    model_nh.param("ground_truth_angular_noise", ground_truth_angular_noise_, 0.0); // rad/s
+    model_nh.param("ground_truth_rot_drift", ground_truth_rot_drift_, 0.0); // rad
+    model_nh.param("ground_truth_vel_drift", ground_truth_vel_drift_, 0.0); // m/s
+    model_nh.param("ground_truth_angular_drift", ground_truth_angular_drift_, 0.0); // rad/s
+    model_nh.param("ground_truth_rot_drift_frequency", ground_truth_rot_drift_frequency_, 0.0); // 1/s
+    model_nh.param("ground_truth_vel_drift_frequency", ground_truth_vel_drift_frequency_, 0.0); // 1/s
+    model_nh.param("ground_truth_angular_drift_frequency", ground_truth_angular_drift_frequency_, 0.0); // 1/s
+
     model_nh.param("mocap_pub_rate", mocap_pub_rate_, 0.01); // [sec]
     model_nh.param("mocap_pos_noise", mocap_pos_noise_, 0.001); // m
     model_nh.param("mocap_rot_noise", mocap_rot_noise_, 0.001); // rad
     ground_truth_pub_ = model_nh.advertise<nav_msgs::Odometry>("ground_truth", 1);
     mocap_pub_ = model_nh.advertise<geometry_msgs::PoseStamped>("/aerial_robot/pose", 1);
-    noise_seed_ = 0;
 
     return true;
   }
@@ -200,15 +210,20 @@ namespace gazebo_ros_control
     /* set ground truth value to spinal interface */
     const gazebo::physics::LinkPtr baselink_parent = parent_model_->GetLink(baselink_parent_);
 #if GAZEBO_MAJOR_VERSION >= 8
+    ignition::math::Vector3d baselink_pos = baselink_parent->WorldPose().Pos() + baselink_parent->WorldPose().Rot() * baselink_offset_.Pos();
+    ignition::math::Vector3d baselink_vel = baselink_parent->WorldLinearVel(baselink_offset_.Pos());
     ignition::math::Quaterniond q = baselink_parent->WorldPose().Rot() * baselink_offset_.Rot();
-    spinal_interface_.setTrueBaselinkOrientation(q.X(), q.Y(), q.Z(), q.W());
     ignition::math::Vector3d w = baselink_offset_.Rot().Inverse() * baselink_parent->RelativeAngularVel();
-    spinal_interface_.setTrueBaselinkAngular(w.X(), w.Y(), w.Z());
 #else
-    gazebo::math::Quaternion q = baselink_parent->GetWorldPose().rot * baselink_offset_.rot;
-    spinal_interface_.setTrueBaselinkOrientation(q.x, q.y, q.z, q.w);
-    gazebo::math::Vector3 w = baselink_offset_.rot.GetInverse() * baselink_parent->GetRelativeAngularVel();
-    spinal_interface_.setTrueBaselinkAngular(w.x, w.y, w.z);
+    gazebo::math::Vector3 gazebo_pos = baselink_parent->GetWorldPose().pos + baselink_parent->GetWorldPose().rot * baselink_offset_.pos;
+    gazebo::math::Vector3 gazebo_vel = baselink_parent->GetWorldLinearVel(baselink_offset_.pos);
+    ignition::math::Vector3d baselink_pos(gazebo_pos.x, gazebo_pos.y, gazebo_pos.z);
+    ignition::math::Vector3d baselink_vel(gazebo_vel.x, gazebo_vel.y, gazebo_vel.z);
+
+    gazebo::math::Quaternion gazebo_q = baselink_parent->GetWorldPose().rot * baselink_offset_.rot;
+    gazebo::math::Vector3 gazebo_w = baselink_offset_.rot.GetInverse() * baselink_parent->GetRelativeAngularVel();
+    ignition::math::Quaterniond q(gazebo_q.w, gazebo_q.x, gazebo_q.y, gazebo_q.z);
+    ignition::math::Vector3d w(gazebo_w.x, gazebo_w.y, gazebo_w.z);
 #endif
 
     /* get sensor values and do atittude estimation */
@@ -234,45 +249,41 @@ namespace gazebo_ros_control
     /* publish ground truth value */
     nav_msgs::Odometry odom_msg;
     odom_msg.header.stamp = time;
-#if GAZEBO_MAJOR_VERSION >= 8
-    ignition::math::Vector3d baselink_pos = baselink_parent->WorldPose().Pos() + baselink_parent->WorldPose().Rot() * baselink_offset_.Pos();
-    odom_msg.pose.pose.position.x = baselink_pos.X();
-    odom_msg.pose.pose.position.y = baselink_pos.Y();
-    odom_msg.pose.pose.position.z = baselink_pos.Z();
-    odom_msg.pose.pose.orientation.x = q.X();
-    odom_msg.pose.pose.orientation.y = q.Y();
-    odom_msg.pose.pose.orientation.z = q.Z();
-    odom_msg.pose.pose.orientation.w = q.W();
+    odom_msg.pose.pose.position.x = baselink_pos.X() + gazebo::gaussianKernel(ground_truth_pos_noise_);
+    odom_msg.pose.pose.position.y = baselink_pos.Y() + gazebo::gaussianKernel(ground_truth_pos_noise_);
+    odom_msg.pose.pose.position.z = baselink_pos.Z() + gazebo::gaussianKernel(ground_truth_pos_noise_);
 
-    ignition::math::Vector3d baselink_vel = baselink_parent->WorldLinearVel(baselink_offset_.Pos());
-    odom_msg.twist.twist.linear.x = baselink_vel.X();
-    odom_msg.twist.twist.linear.y = baselink_vel.Y();
-    odom_msg.twist.twist.linear.z = baselink_vel.Z();
+    ignition::math::Vector3d euler = q.Euler();
+    euler += ignition::math::Vector3d(gazebo::addNoise(ground_truth_rot_curr_drift_.X(), ground_truth_rot_drift_, ground_truth_rot_drift_frequency_, 0, ground_truth_rot_noise_, period.toSec()),
+                                      gazebo::addNoise(ground_truth_rot_curr_drift_.Y(), ground_truth_rot_drift_, ground_truth_rot_drift_frequency_, 0, ground_truth_rot_noise_, period.toSec()),
+                                      gazebo::addNoise(ground_truth_rot_curr_drift_.Z(), ground_truth_rot_drift_, ground_truth_rot_drift_frequency_, 0, ground_truth_rot_noise_, period.toSec()));
+
+    ignition::math::Quaterniond q_noise(euler);
+    odom_msg.pose.pose.orientation.x = q_noise.X();
+    odom_msg.pose.pose.orientation.y = q_noise.Y();
+    odom_msg.pose.pose.orientation.z = q_noise.Z();
+    odom_msg.pose.pose.orientation.w = q_noise.W();
+
+    odom_msg.twist.twist.linear.x = baselink_vel.X() + gazebo::addNoise(ground_truth_vel_curr_drift_.X(), ground_truth_vel_drift_, ground_truth_vel_drift_frequency_, 0, ground_truth_vel_noise_, period.toSec());
+    odom_msg.twist.twist.linear.y = baselink_vel.Y() + gazebo::addNoise(ground_truth_vel_curr_drift_.Y(), ground_truth_vel_drift_, ground_truth_vel_drift_frequency_, 0, ground_truth_vel_noise_, period.toSec());
+    odom_msg.twist.twist.linear.z = baselink_vel.Z() + gazebo::addNoise(ground_truth_vel_curr_drift_.Z(), ground_truth_vel_drift_, ground_truth_vel_drift_frequency_, 0, ground_truth_vel_noise_, period.toSec());
 
     /* CAUTION! the angular is describe in the fc frame */
-    odom_msg.twist.twist.angular.x = w.X();
-    odom_msg.twist.twist.angular.y = w.Y();
-    odom_msg.twist.twist.angular.z = w.Z();
-#else
-    gazebo::math::Vector3 baselink_pos = baselink_parent->GetWorldPose().pos + baselink_parent->GetWorldPose().rot * baselink_offset_.pos;
-    odom_msg.pose.pose.position.x = baselink_pos.x;
-    odom_msg.pose.pose.position.y = baselink_pos.y;
-    odom_msg.pose.pose.position.z = baselink_pos.z;
-    odom_msg.pose.pose.orientation.x = q.x;
-    odom_msg.pose.pose.orientation.y = q.y;
-    odom_msg.pose.pose.orientation.z = q.z;
-    odom_msg.pose.pose.orientation.w = q.w;
 
-    gazebo::math::Vector3 baselink_vel = baselink_parent->GetWorldLinearVel(baselink_offset_.pos);
-    odom_msg.twist.twist.linear.x = baselink_vel.x;
-    odom_msg.twist.twist.linear.y = baselink_vel.y;
-    odom_msg.twist.twist.linear.z = baselink_vel.z;
+    odom_msg.twist.twist.angular.x = w.X() + gazebo::addNoise(ground_truth_angular_curr_drift_.X(), ground_truth_angular_drift_, ground_truth_angular_drift_frequency_, 0, ground_truth_angular_noise_, period.toSec());
+    odom_msg.twist.twist.angular.y = w.Y() + gazebo::addNoise(ground_truth_angular_curr_drift_.Y(), ground_truth_angular_drift_, ground_truth_angular_drift_frequency_, 0, ground_truth_angular_noise_, period.toSec());
+    odom_msg.twist.twist.angular.z = w.Z() + gazebo::addNoise(ground_truth_angular_curr_drift_.Z(), ground_truth_angular_drift_, ground_truth_angular_drift_frequency_, 0, ground_truth_angular_noise_, period.toSec());
 
-    /* CAUTION! the angular is described in the fc frame */
-    odom_msg.twist.twist.angular.x = w.x;
-    odom_msg.twist.twist.angular.y = w.y;
-    odom_msg.twist.twist.angular.z = w.z;
-#endif
+    /* set ground truth for controller: use the value with noise */
+    spinal_interface_.setTrueBaselinkOrientation(q_noise.X(),
+                                                 q_noise.Y(),
+                                                 q_noise.Z(),
+                                                 q_noise.W());
+    spinal_interface_.setTrueBaselinkAngular(odom_msg.twist.twist.angular.x,
+                                             odom_msg.twist.twist.angular.y,
+                                             odom_msg.twist.twist.angular.z);
+
+
     if(time.toSec() - last_ground_truth_time_.toSec() > ground_truth_pub_rate_)
       {
         ground_truth_pub_.publish(odom_msg);
@@ -284,32 +295,22 @@ namespace gazebo_ros_control
         geometry_msgs::PoseStamped pose_msg;
         pose_msg.header = odom_msg.header;
 
-        pose_msg.pose.position.x = odom_msg.pose.pose.position.x + guassianKernel(mocap_pos_noise_);
-        pose_msg.pose.position.y = odom_msg.pose.pose.position.y + guassianKernel(mocap_pos_noise_);
-        pose_msg.pose.position.z = odom_msg.pose.pose.position.z + guassianKernel(mocap_pos_noise_);
+        pose_msg.pose.position.x = odom_msg.pose.pose.position.x + gazebo::gaussianKernel(mocap_pos_noise_);
+        pose_msg.pose.position.y = odom_msg.pose.pose.position.y + gazebo::gaussianKernel(mocap_pos_noise_);
+        pose_msg.pose.position.z = odom_msg.pose.pose.position.z + gazebo::gaussianKernel(mocap_pos_noise_);
 
         // pose.pose.orientation = odom_msg.pose.pose.orientation;
-#if GAZEBO_MAJOR_VERSION >= 8
-        ignition::math::Vector3d euler = q.Eulter();
-        euler += ignition::math::Vector3d(guassianKernel(mocap_rot_noise_),
-                                          guassianKernel(mocap_rot_noise_),
-                                          guassianKernel(mocap_rot_noise_));
-        ignition::math::Quaterniond q_noise(euler);
+        euler = q.Euler();
+        euler += ignition::math::Vector3d(gazebo::gaussianKernel(mocap_rot_noise_),
+                                          gazebo::gaussianKernel(mocap_rot_noise_),
+                                          gazebo::gaussianKernel(mocap_rot_noise_));
+        q_noise = ignition::math::Quaterniond(euler);
         pose_msg.pose.orientation.x = q_noise.X();
         pose_msg.pose.orientation.y = q_noise.Y();
         pose_msg.pose.orientation.z = q_noise.Z();
         pose_msg.pose.orientation.w = q_noise.W();
-#else
-        gazebo::math::Vector3 euler = q.GetAsEuler();
-        euler += gazebo::math::Vector3(guassianKernel(mocap_rot_noise_),
-                                       guassianKernel(mocap_rot_noise_),
-                                       guassianKernel(mocap_rot_noise_));
-        gazebo::math::Quaternion q_noise(euler);
-        pose_msg.pose.orientation.x = q_noise.x;
-        pose_msg.pose.orientation.y = q_noise.y;
-        pose_msg.pose.orientation.z = q_noise.z;
-        pose_msg.pose.orientation.w = q_noise.w;
-#endif
+
+
         mocap_pub_.publish(pose_msg);
         last_mocap_time_ = time;
       }
@@ -372,29 +373,16 @@ namespace gazebo_ros_control
 
 #if GAZEBO_MAJOR_VERSION >= 8
             child_link->AddRelativeForce(ignition::math::Vector3d(0, 0, rotor.getForce()));
-            parent_link->AddRelativeTorque(ignition::math::Vector3d(0, 0, rotor.getTorque()));
+            auto  torque = rotor.getTorque();
+            parent_link->AddRelativeTorque(ignition::math::Vector3d(torque.x(), torque.y(), torque.z()));
 #else
             child_link->AddRelativeForce(gazebo::math::Vector3(0, 0, rotor.getForce()));
-            parent_link->AddRelativeTorque(gazebo::math::Vector3(0, 0, rotor.getTorque()));
+            auto  torque = rotor.getTorque();
+            parent_link->AddRelativeTorque(gazebo::math::Vector3(torque.x(), torque.y(), torque.z()));
 #endif
           }
       }
   }
-
-  double AerialRobotHWSim::guassianKernel(double sigma)
-  {
-    // generation of two normalized uniform random variables
-    double U1 = static_cast<double>(rand_r(&noise_seed_)) / static_cast<double>(RAND_MAX);
-    double U2 = static_cast<double>(rand_r(&noise_seed_)) / static_cast<double>(RAND_MAX);
-
-    // using Box-Muller transform to obtain a varaible with a standard normal distribution
-    double Z0 = sqrt(-2.0 * ::log(U1)) * cos(2.0*M_PI * U2);
-
-    // scaling
-    Z0 = sigma * Z0;
-    return Z0;
-  }
-
 }
 
 PLUGINLIB_EXPORT_CLASS(gazebo_ros_control::AerialRobotHWSim, gazebo_ros_control::RobotHWSim)

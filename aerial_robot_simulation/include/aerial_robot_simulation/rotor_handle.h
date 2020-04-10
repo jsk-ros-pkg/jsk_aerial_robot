@@ -35,6 +35,8 @@
 
 #include <ros/ros.h>
 #include <urdf_model/joint.h>
+#include <tf/LinearMath/Vector3.h>
+#include <aerial_robot_simulation/noise_model.h>
 
 namespace hardware_interface
 {
@@ -59,12 +61,44 @@ namespace hardware_interface
         }
       else
         ROS_ERROR_STREAM_NAMED("RotorHandle", "Cannot get m_f_rate from ros nodehandle");
+
+      motor_nh.param("rotor_damping_rate", rotor_damping_rate_, 1.0); // s
+      if(rotor_damping_rate_ > 1.0)
+        {
+          ROS_ERROR_NAMED("rotor handler", "invalid rotor damping rate %f, which should be less than 1, set to 1", rotor_damping_rate_);
+          rotor_damping_rate_ = 1.0;
+        }
+      if(rotor_damping_rate_ <= 0)
+        {
+          ROS_ERROR_NAMED("rotor handler", "invalid rotor damping rate %f, which should be larger than 0, set to 0.1", rotor_damping_rate_);
+          rotor_damping_rate_ = 0.1;
+        }
+
+      motor_nh.param("rotor_force_noise", rotor_force_noise_, 0.0); // N
+      motor_nh.param("dual_rotor_moment_noise", dual_rotor_moment_noise_, 0.0);
     }
 
     inline std::string getName() const {return name_;}
-    inline double getForce()    const {return *force_;}
-    inline double setForce(double force)    {*force_ = force;}
-    inline double getTorque()    const {return getForce() * direction_ * m_f_rate_;}
+    double getForce()   const  { return *force_; }
+
+    inline void setForce(double target_force, bool direct = false)
+    {
+      if(direct)
+        {
+          *force_ = target_force;
+        }
+      else
+        {
+          /* set the damping function */
+          double current_force = *force_;
+          *force_ =  (1 - rotor_damping_rate_)  * current_force + rotor_damping_rate_ * target_force + gazebo::gaussianKernel(rotor_force_noise_);
+        }
+    }
+
+    inline tf::Vector3 getTorque()   const
+    {
+      return tf::Vector3(gazebo::gaussianKernel(dual_rotor_moment_noise_), 0, getForce() * direction_ * m_f_rate_);
+    }
     inline void setCommand(double command); //no implement here
 
   private:
@@ -76,6 +110,10 @@ namespace hardware_interface
     double m_f_rate_;
     double pwm_rate_;
     double max_pwm_;
+
+    double rotor_damping_rate_;
+    double rotor_force_noise_;
+    double dual_rotor_moment_noise_;
   };
 }
 
