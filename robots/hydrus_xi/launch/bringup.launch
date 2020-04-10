@@ -8,6 +8,7 @@
   <arg name="type" default="hex_branch" />
   <arg name="onboards_model" default="xavier201811" />
   <arg name="estimate_mode"  default= "0" />
+  <arg name="sim_estimate_mode"  default= "2" />
   <arg name="headless" default="True" />
   <arg name="worldtype" default="$(find aerial_robot_simulation)/gazebo_model/world/empty.world" />
   <arg name="direct_model" default="False" />
@@ -39,8 +40,8 @@
     # EGOMOTION_ESTIMATE = 0
     # EXPERIMENT_ESTIMATE = 1. for unstable mocap, use this mode
     # GROUND_TRUTH = 2
+    <param name="estimator/estimate_mode" value= "$(arg sim_estimate_mode)" if="$(arg simulation)" />
     <param name="estimator/estimate_mode" value= "$(arg estimate_mode)" if="$(arg real_machine)"/>
-    <param name="estimator/estimate_mode" value= "2" if="$(arg simulation)" />
 
     # World Pos Control Mode: 0
     # World Vel Control Mode: 2
@@ -52,8 +53,8 @@
     <param name="main_rate" type="double" value="40"/>
 
     ###########  Sensor Fusion  ###########
-    <rosparam file="$(arg sensor_config_file)" command="load" if="$(arg real_machine)"/>
-    <rosparam file="$(arg config_dir)/$(arg type)/egomotion_estimation/simulation.yaml" command="load" if="$(eval arg('simulation') * (1 - arg('real_machine')))"/>
+    <rosparam file="$(arg sensor_config_file)" command="load" />
+    <rosparam file="$(arg config_dir)/$(arg type)/egomotion_estimation/simulation.yaml" command="load" if="$(arg simulation)"/>
 
     ###########  Flight Control  ###########
     <param name="control_plugin_name" value ="control_plugin/hydrus_xi_fully_actuated_controller"/>

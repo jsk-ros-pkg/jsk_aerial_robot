@@ -38,6 +38,7 @@
 
 /* base class */
 #include <aerial_robot_base/sensor/base_plugin.h>
+#include <aerial_robot_base/sensor/imu.h>
 
 /* filter */
 #include <kalman_filter/kf_pos_vel_acc_plugin.h>
@@ -53,9 +54,9 @@ using namespace std;
 namespace
 {
   bool first_flag = true;
+  bool ground_truth_first_flag = true;
   ros::Time previous_time;
 };
-
 
 namespace sensor_plugin
 {
@@ -98,7 +99,8 @@ namespace sensor_plugin
       vel_(0, 0, 0),
       prev_raw_pos_(0, 0, 0),
       prev_raw_vel_(0, 0, 0),
-      prev_raw_q_(0, 0, 0, 1)
+      prev_raw_q_(0, 0, 0, 1),
+      receive_groundtruth_odom_(false)
     {
       ground_truth_pose_.states.resize(6);
       ground_truth_pose_.states[0].id = "x";
@@ -139,6 +141,8 @@ namespace sensor_plugin
     tf::Vector3 prev_raw_pos_, prev_raw_vel_;
     tf::Quaternion prev_raw_q_;
 
+    bool receive_groundtruth_odom_;
+
     /* ros msg */
     aerial_robot_msgs::States ground_truth_pose_;
 
@@ -169,10 +173,15 @@ namespace sensor_plugin
           /* lpf */
           pos_ = lpf_pos_.filterFunction(raw_pos_);
           vel_ = lpf_vel_.filterFunction(raw_vel_);
-          tf::Vector3 omega = lpf_angular_.filterFunction(raw_omega);
 
-          /* euler */
-          estimator_->setState(State::YAW_BASE, StateEstimator::GROUND_TRUTH, 0, euler[2]);
+
+          /* euler and omega */
+          tf::Vector3 omega = raw_omega;
+          if(!receive_groundtruth_odom_)
+            {
+              omega = lpf_angular_.filterFunction(raw_omega);
+              estimator_->setState(State::YAW_BASE, StateEstimator::GROUND_TRUTH, 0, euler[2]);
+            }
           if(estimate_mode_ & (1 << StateEstimator::EXPERIMENT_ESTIMATE))
             estimator_->setState(State::YAW_BASE, StateEstimator::EXPERIMENT_ESTIMATE, 0, euler[2]);
 
@@ -217,11 +226,11 @@ namespace sensor_plugin
       updateHealthStamp();
     }
 
-    void groundTruthProcess()
+    void setGroundTruthPosVel(tf::Vector3 baselink_pos, tf::Vector3 baselink_vel)
     {
       /* base link */
-      estimator_->setPos(Frame::BASELINK, StateEstimator::GROUND_TRUTH, pos_);
-      estimator_->setVel(Frame::BASELINK, StateEstimator::GROUND_TRUTH, vel_);
+      estimator_->setPos(Frame::BASELINK, StateEstimator::GROUND_TRUTH, baselink_pos);
+      estimator_->setVel(Frame::BASELINK, StateEstimator::GROUND_TRUTH, baselink_vel);
 
       /* CoG */
       /* 2017.7.25: calculate the state in COG frame using the Baselink frame */
@@ -236,27 +245,28 @@ namespace sensor_plugin
                          estimator_->getVel(Frame::BASELINK, estimate_mode)
                          + estimator_->getOrientation(Frame::BASELINK, estimate_mode)
                          * (estimator_->getAngularVel(Frame::BASELINK, estimate_mode).cross(estimator_->getCog2Baselink().inverse().getOrigin())));
+
+      auto pos = estimator_->getPos(Frame::COG, estimate_mode);
     }
 
     void groundTruthCallback(const nav_msgs::OdometryConstPtr & msg)
     {
-      tf::pointMsgToTF(msg->pose.pose.position, pos_);
-      tf::vector3MsgToTF(msg->twist.twist.linear, vel_);
+      tf::Vector3 baselink_pos, baselink_vel;
+      tf::pointMsgToTF(msg->pose.pose.position, baselink_pos);
+      tf::vector3MsgToTF(msg->twist.twist.linear, baselink_vel);
 
-      if(!first_flag)
+      if(!ground_truth_first_flag)
         {
-
           /* baselink */
           tf::Quaternion q;
           tf::quaternionMsgToTF(msg->pose.pose.orientation, q);
           tfScalar r = 0, p = 0, y = 0;
           tf::Matrix3x3(q).getRPY(r, p, y);
-          tf::Vector3 euler =  lpf_pos_.filterFunction(tf::Vector3(r, p, y)); // for angle
-          euler[2] = y; /* only yaw can not use the LPF */
+          tf::Vector3 euler(r, p, y);
 
           tf::Vector3 omega;
           tf::vector3MsgToTF(msg->twist.twist.angular, omega);
-          omega = lpf_vel_.filterFunction(omega); // for angular velocity
+          omega = lpf_angular_.filterFunction(omega); // for angular velocity
 
           estimator_->setEuler(Frame::BASELINK, StateEstimator::GROUND_TRUTH, euler);
           estimator_->setAngularVel(Frame::BASELINK, StateEstimator::GROUND_TRUTH, omega);
@@ -265,19 +275,20 @@ namespace sensor_plugin
           (tf::Matrix3x3(q) * estimator_->getCog2Baselink().getBasis().inverse()).getRPY(r, p, y);
           euler.setValue(r, p, y);
           estimator_->setEuler(Frame::COG, StateEstimator::GROUND_TRUTH, euler);
-          estimator_->setAngularVel(Frame::COG, StateEstimator::GROUND_TRUTH, estimator_->getCog2Baselink().getBasis() * omega);
+          estimator_->setAngularVel(Frame::COG, StateEstimator::GROUND_TRUTH, estimator_->getCog2Baselink().getBasis() * omega); // TODO: check the vibration
 
-          groundTruthProcess();
+          setGroundTruthPosVel(baselink_pos, baselink_vel);
         }
 
-      if(first_flag)
+      if(ground_truth_first_flag)
         {
-          first_flag = false;
-          init(pos_);
-        }
+          ground_truth_first_flag = false;
+          init(baselink_pos);
+          receive_groundtruth_odom_ = true;
 
-      /* consider the remote wirleess transmission, we use the local time server */
-      updateHealthStamp();
+          for(const auto& handler: estimator_->getImuHandlers())
+            boost::dynamic_pointer_cast<sensor_plugin::Imu>(handler)->treatImuAsGroundTruth(false);
+        }
     }
 
     void rosParamInit()
@@ -339,8 +350,10 @@ namespace sensor_plugin
     {
       if(sensor_status_ == Status::INVALID) return;
 
-      if((estimate_mode_ & (1 << StateEstimator::GROUND_TRUTH)))
-        groundTruthProcess();
+      if((estimate_mode_ & (1 << StateEstimator::GROUND_TRUTH)) && !receive_groundtruth_odom_)
+        {
+          setGroundTruthPosVel(pos_, vel_);
+        }
 
       /* start experiment estimation */
       if(!(estimate_mode_ & (1 << StateEstimator::EXPERIMENT_ESTIMATE))) return;

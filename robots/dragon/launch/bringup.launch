@@ -6,7 +6,8 @@
   <arg name="control_mode" default="0" />
   <arg name="type" default="quad" />
   <arg name="onboards_model" default="euclid_201709" />
-  <arg name="estimate_mode"  default= "1" /> <!-- 2: pure mocap mode -->
+  <arg name="estimate_mode"  default= "1" />
+  <arg name="sim_estimate_mode"  default= "2" />
   <arg name="headless" default="True" />
   <arg name="worldtype" default="$(find aerial_robot_simulation)/gazebo_model/world/empty.world" />
   <arg name="launch_gazebo" default="True" />
@@ -33,7 +34,7 @@
     # EGOMOTION_ESTIMATE = 0
     # EXPERIMENT_ESTIMATE = 1. for unstable mocap, use this mode
     # GROUND_TRUTH = 2
-    <param name="estimator/estimate_mode" value= "2" if="$(arg simulation)" />
+    <param name="estimator/estimate_mode" value= "$(arg sim_estimate_mode)" if="$(arg simulation)" />
     <param name="estimator/estimate_mode" value= "$(arg estimate_mode)" if="$(arg real_machine)"/>
 
     <param name="navigator/xy_control_mode"  value="$(arg control_mode)"/>
@@ -43,8 +44,8 @@
     <param name="main_rate" type="double" value="40"/>
 
     ###########  Sensor Fusion  ###########
-    <rosparam file="$(find dragon)/config/$(arg type)/egomotion_estimation/$(arg onboards_model).yaml" command="load" if="$(arg real_machine)"/>
-    <rosparam file="$(find dragon)/config/$(arg type)/egomotion_estimation/simulation.yaml" command="load" if="$(eval arg('simulation') * (1 - arg('real_machine')))"/>
+    <rosparam file="$(find dragon)/config/$(arg type)/egomotion_estimation/$(arg onboards_model).yaml" command="load" />
+    <rosparam file="$(find dragon)/config/$(arg type)/egomotion_estimation/simulation.yaml" command="load" if="$(arg simulation)"/>
 
     <remap from="/joint_states" to="/dragon/joint_states"/>
 

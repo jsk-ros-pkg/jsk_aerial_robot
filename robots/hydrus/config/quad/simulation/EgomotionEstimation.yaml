@@ -1,22 +1,8 @@
-# Sensor Fuser Loader
-estimator:
-        # sensor plugin
-        sensor_list:
-        - sensor_plugin/mocap
-        - sensor_plugin/gps
-
-# EGOMOTION_ESTIMATE = 0
-# EXPERIMENT_ESTIMATE = 1
-# GROUND_TRUTH = 2
-
+# overwrite parameter for simulation
 
 /sensor_plugin:
         mocap:
-                estimate_mode: 4 #1 << 2
-                unhealth_level: 3
-                health_timeout: 0.5
                 ground_truth_sub_name: /hydrusx/ground_truth
-
         gps:
                 estimate_mode: 4 #1 << 2
                 ned_flag: true # hector_gazebo_plugins/GPS
