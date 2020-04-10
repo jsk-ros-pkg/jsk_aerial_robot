@@ -12,24 +12,24 @@
 #ifndef __STATE_ESTIMATE_H
 #define __STATE_ESTIMATE_H
 
+#ifndef SIMULATION
 #include "stm32f7xx_hal.h"
 #include "config.h"
-/* #include "arm_math.h" */
 #include <ros.h>
 #include <spinal/MagDeclination.h>
 
 /* sensors */
-////////////////////////////////////////
-//TODO: should include the super class//
-////////////////////////////////////////
 #include "sensors/imu/imu_mpu9250.h"
 #include "sensors/baro/baro_ms5611.h"
 #include "sensors/gps/gps_ublox.h"
+#endif
 
 /* */
 #include "state_estimate/attitude/attitude_estimate.h"
+#ifndef SIMULATION
 #include "state_estimate/altitude/altitude_estimate.h"
 #include "state_estimate/pos/pos_estimate.h"
+#endif
 
 class StateEstimate
 {
@@ -39,6 +39,13 @@ public:
   }
   ~StateEstimate(){}
 
+#ifdef SIMULATION
+  void  init(ros::NodeHandle* nh)
+  {
+    attitude_estimate_flag_ = true;
+    attitude_estimator_.init(nh);
+  }
+#else
   void  init(IMU* imu, Baro* baro, GPS* gps, ros::NodeHandle* nh)
   {
     nh_ = nh;
@@ -76,32 +83,41 @@ public:
         pos_estimator_.init(imu_, gps_, nh_);
       }
   }
+#endif
 
   void update()
   {
     if(attitude_estimate_flag_) attitude_estimator_.update();
+#ifndef SIMULATION
     if(altitude_estimate_flag_) altitude_estimator_.update();
     if(pos_estimate_flag_) pos_estimator_.update();
+#endif
   }
 
   AttitudeEstimate* getAttEstimator(){ return &attitude_estimator_;}
+#ifndef SIMULATION
   AltitudeEstimate* getAltEstimator(){ return &altitude_estimator_;}
   PosEstimate* getPosEstimator(){ return &pos_estimator_;}
 
   IMU* getImu() {return imu_;}
   Baro* getBaro() {return baro_;}
   GPS* getGPS() {return gps_;}
+#endif
 
 private:
+#ifndef SIMULATION
   ros::NodeHandle* nh_;
 
   IMU* imu_;
   Baro* baro_;
   GPS* gps_;
+#endif
 
   AttitudeEstimate attitude_estimator_;
+#ifndef SIMULATION
   AltitudeEstimate altitude_estimator_;
   PosEstimate pos_estimator_;
+#endif
 
   bool attitude_estimate_flag_;
   bool altitude_estimate_flag_;

@@ -21,6 +21,8 @@
 #define GPS_RX_SIZE 4 //match the dma rule(circuler mode=> MBurst Value)
 #define RING_BUFFER_SIZE 400
 
+using namespace ap;
+
 /// GPS status codes
 enum GPS_Status {
   NO_GPS = 0,             ///< No GPS connected/detected

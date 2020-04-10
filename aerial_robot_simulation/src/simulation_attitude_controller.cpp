@@ -46,7 +46,6 @@ namespace flight_controllers {
 SimulationAttitudeController::SimulationAttitudeController()
   : loop_count_(0), motor_num_(0), controller_core_(new FlightControl()), debug_mode_(false)
 {
-  desire_coord_.setRPY(0, 0, 0);
 }
 
 bool SimulationAttitudeController::init(hardware_interface::SpinalInterface *robot, ros::NodeHandle &n)
@@ -55,8 +54,20 @@ bool SimulationAttitudeController::init(hardware_interface::SpinalInterface *rob
   motor_num_ = spinal_interface_->getNames().size();
   joint_num_ = spinal_interface_->getJointNum();
 
+  controller_core_->init(&n, robot->getEstimatorPtr());
 
-  controller_core_->init(&n);
+  std::string key("/aerial_robot_base_node/estimator/estimate_mode");
+  if(n.hasParam(key))
+    {
+      int estimate_mode;
+      n.getParam(key, estimate_mode);
+      if(estimate_mode == StateEstimator::GROUND_TRUTH)
+        controller_core_->useGroundTruth(true);
+    }
+  else
+    {
+      ROS_ERROR_STREAM_NAMED("simulation_attitude_controller", "can not find rosparam " << key << ", to set the estimate model in simulation attitude controller");
+    }
 
   // Set the control gains if necessary
   double gain = 0;
@@ -91,8 +102,6 @@ bool SimulationAttitudeController::init(hardware_interface::SpinalInterface *rob
       controller_core_->getAttController().yawDGain(gain);
     }
 
-  desire_coord_sub_ = n.subscribe("/desire_coordinate", 1, &SimulationAttitudeController::desireCoordCallback, this);
-
   debug_sub_ = n.subscribe("/debug_force", 1, &SimulationAttitudeController::debugCallback, this);
 
   return true;
@@ -104,15 +113,14 @@ void SimulationAttitudeController::starting(const ros::Time& time)
 
 void SimulationAttitudeController::update(const ros::Time& time, const ros::Duration& period)
 {
-  /* update the control coordinate */
-  tf::Matrix3x3 orientation = tf::Matrix3x3(spinal_interface_->getBaseLinkOrientation()) * desire_coord_.transpose();
-  //ROS_INFO("[%f, %f, %f], [%f, %f, %f], [%f, %f, %f]", orientation.getRow(0).x(), orientation.getRow(0).y(), orientation.getRow(0).z(),orientation.getRow(1).x(), orientation.getRow(1).y(), orientation.getRow(1).z(), orientation.getRow(2).x(), orientation.getRow(2).y(), orientation.getRow(2).z());
+  /* set ground truth value for control */
+  auto true_cog_rpy = spinal_interface_->getTrueCogRPY();
+  controller_core_->getAttController().setTrueRPY(true_cog_rpy.x(), true_cog_rpy.y(), true_cog_rpy.z());
+  auto true_cog_angular = spinal_interface_->getTrueCogAngular();
+  controller_core_->getAttController().setTrueAngular(true_cog_angular.x(), true_cog_angular.y(), true_cog_angular.z());
 
-  tfScalar r = 0,p = 0, y = 0;
-  orientation.getRPY(r,p,y);
-  controller_core_->getAttController().setRPY(r,p,y);
-  tf::Vector3 w = desire_coord_ * spinal_interface_->getBaseLinkAngular();
-  controller_core_->getAttController().setAngular(w.x(), w.y(), w.z());
+  /* freeze the attitude estimator while touching the ground, since the bad contact simulation performance in gazebo */
+  spinal_interface_->onGround(!controller_core_->getAttController().getIntegrateFlag());
 
   if(debug_mode_)
     {

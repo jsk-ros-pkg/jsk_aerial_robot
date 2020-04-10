@@ -4,9 +4,8 @@
 
   <xacro:include filename="$(find hydrus_xi)/robots/hex_branch/xavier201811.urdf.xacro" />
 
-  <!-- gazebo -->
-  <xacro:include filename="$(find hydrus_xi)/robots/default.gazebo.xacro" />
-
-  <!-- TODO: add gazebo plugin for GPS, Magnetometer, Realsense -->
+  <!-- gazebo plugin for default controller and sensors -->
+  <xacro:include filename="$(find aerial_robot_simulation)/xacro/spinal.gazebo.xacro" />
+  <xacro:gazebo_spinal robot_name="hydrus_xi" mag_frame="fc" />
 
 </robot>

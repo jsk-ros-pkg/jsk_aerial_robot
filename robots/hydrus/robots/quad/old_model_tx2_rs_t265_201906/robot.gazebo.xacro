@@ -6,9 +6,7 @@
   <xacro:include filename="$(find hydrus)/robots/quad/old_model_tx2_rs_t265_201906/robot.urdf.xacro" />
 
   <!-- gazebo plugin for default controller and sensors -->
-  <xacro:include filename="$(find hydrus)/robots/default.gazebo.xacro" />
-
-  <!-- sensors -->
-  <!-- TODO: create the fisheye gazebo plugin -->
+  <xacro:include filename="$(find aerial_robot_simulation)/xacro/spinal.gazebo.xacro" />
+  <xacro:gazebo_spinal robot_name="hydrusx" />
 
 </robot>

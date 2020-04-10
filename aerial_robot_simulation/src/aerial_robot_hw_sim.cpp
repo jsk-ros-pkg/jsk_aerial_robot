@@ -51,13 +51,46 @@ namespace gazebo_ros_control
   {
     parent_model_ = parent_model;
 
-    if(!spinal_interface_.init(*urdf_model))
+    /* get baselink from robot model */
+    KDL::Tree tree;
+    kdl_parser::treeFromUrdfModel(*urdf_model, tree);
+
+    auto robot_model_xml = aerial_robot_model::RobotModel::getRobotModelXml("robot_description");
+    TiXmlElement* baselink_attr = robot_model_xml.FirstChildElement("robot")->FirstChildElement("baselink");
+    if(!baselink_attr)
       {
-        ROS_ERROR_STREAM_NAMED("aerial_robot_hw", "Failed to initialize spinal interface");
+        ROS_ERROR_STREAM_NAMED("spianl interface", "Failed to find baselink attribute from urdf model, please add '<baselink name=\"fc\" />' to your urdf file");
         return false;
       }
-    baselink_parent_ = spinal_interface_.getBaseLinkParentName();
-    auto baselink_offset = spinal_interface_.getBaselinkOffset();
+    baselink_ = std::string(baselink_attr->Attribute("name"));
+
+    KDL::SegmentMap::const_iterator it = tree.getSegment(baselink_);
+    if(it == tree.getSegments().end())
+      {
+        ROS_ERROR_STREAM_NAMED("spianl interface", "Failed to find baselink '" << baselink_ << "' in urdf from robot_description");
+        return false;
+      }
+
+    std::function<KDL::Frame (const KDL::SegmentMap::const_iterator& ) > recursiveFindParent = [&recursiveFindParent, this, &tree](const KDL::SegmentMap::const_iterator& it)
+      {
+        const KDL::TreeElementType& currentElement = it->second;
+        KDL::Frame currentFrame = GetTreeElementSegment(currentElement).pose(0);
+
+        KDL::SegmentMap::const_iterator parentIt = GetTreeElementParent(currentElement);
+
+        if(GetTreeElementSegment(parentIt->second).getJoint().getType() != KDL::Joint::None ||
+           parentIt == tree.getRootSegment())
+          {
+            baselink_parent_ = parentIt->first;
+            return currentFrame;
+          }
+        else
+          {
+            return recursiveFindParent(parentIt) * currentFrame;
+          }
+      };
+
+    auto baselink_offset = recursiveFindParent(it);
 #if GAZEBO_MAJOR_VERSION >= 8
     ignition::math::Quaterniond q;
     baselink_offset.M.GetQuaternion(q.X(), q.Y(), q.Z(), q.W());
@@ -68,6 +101,19 @@ namespace gazebo_ros_control
     baselink_offset_.Set(gazebo::math::Vector3(baselink_offset.p.x(), baselink_offset.p.y(), baselink_offset.p.z()), q);
 #endif
 
+    if(baselink_parent_ == std::string("none"))
+      {
+        ROS_ERROR_STREAM_NAMED("spianl interface", "Can not find the parent of the baselink '" << baselink_);
+        return false;
+      }
+    /*
+    else
+      {
+        ROS_ERROR_STREAM(baselink_parent_ << "[" << baselink_offset.p.x() << ", " << baselink_offset.p.y() << ", " << baselink_offset.p.z() << "]");
+      }
+    */
+
+    /* Initialize joint handlers */
     std::vector<transmission_interface::TransmissionInfo> joint_transmissions;
     for(const auto& transmission: transmissions)
       {
@@ -80,9 +126,8 @@ namespace gazebo_ros_control
     if(!DefaultRobotHWSim::initSim(robot_namespace, model_nh,  parent_model, urdf_model, joint_transmissions))
       return false;
 
-    // Initialize values
+    /* Initialize rotor handlers */
     rotor_n_dof_ = transmissions.size() - n_dof_;
-
     for(const auto& transmission: transmissions)
       {
         const std::string& hardware_interface = transmission.joints_[0].hardware_interfaces_.front();
@@ -92,7 +137,7 @@ namespace gazebo_ros_control
           {
             /* TODO: change to debug */
             std::string rotor_name = transmission.joints_[0].name_;
-            ROS_INFO_STREAM_NAMED("aerial_robot_hw_sim","Loading joint '"
+            ROS_INFO_STREAM_NAMED("aerial_robot_hw_sim","Loading rotor '"
                                   << rotor_name
                                   << "' of type '" << hardware_interface << "'");
 
@@ -120,15 +165,31 @@ namespace gazebo_ros_control
           }
       }
 
+    /* Initialize spinal interface */
+    spinal_interface_.init(model_nh, n_dof_);
     registerInterface(&spinal_interface_);
-    spinal_interface_.setJointNum(n_dof_);
 
+    /* Initialize sensor handlers */
+    for(auto sensor: gazebo::sensors::SensorManager::Instance()->GetSensors())
+      {
+        if(sensor->Name() == std::string("spinal_imu"))
+          imu_handler_ = std::dynamic_pointer_cast<gazebo::sensors::ImuSensor>(sensor);
+        if(sensor->Name() == std::string("magnetometer"))
+          mag_handler_ = std::dynamic_pointer_cast<gazebo::sensors::MagnetometerSensor>(sensor);
+        ROS_DEBUG_STREAM_NAMED("aerial_robot_hw", "get gazebo sensor named: " << sensor->Name());
+      }
 
     control_mode_ = FORCE_CONTROL_MODE;
     sim_vel_sub_ = model_nh.subscribe("sim_cmd_vel", 1, &AerialRobotHWSim::cmdVelCallback, this);
     sim_pos_sub_ = model_nh.subscribe("sim_cmd_pos", 1, &AerialRobotHWSim::cmdPosCallback, this);
     model_nh.param("ground_truth_pub_rate", ground_truth_pub_rate_, 0.01); // [sec]
+    model_nh.param("mocap_pub_rate", mocap_pub_rate_, 0.01); // [sec]
+    model_nh.param("mocap_pos_noise", mocap_pos_noise_, 0.001); // m
+    model_nh.param("mocap_rot_noise", mocap_rot_noise_, 0.001); // rad
     ground_truth_pub_ = model_nh.advertise<nav_msgs::Odometry>("ground_truth", 1);
+    mocap_pub_ = model_nh.advertise<geometry_msgs::PoseStamped>("/aerial_robot/pose", 1);
+    noise_seed_ = 0;
+
     return true;
   }
 
@@ -136,75 +197,122 @@ namespace gazebo_ros_control
   {
     DefaultRobotHWSim::readSim(time, period);
 
-    /* Aerial Robot */
+    /* set ground truth value to spinal interface */
     const gazebo::physics::LinkPtr baselink_parent = parent_model_->GetLink(baselink_parent_);
-
-    /* TODO: switch to spinal interface */
-    /* please check whether this is same with IMU process */
-    /* orientation should calculate the rpy in world frame,
-       and angular velocity should show the value in board(body) frame */
-    /* set orientation and angular of baselink */
 #if GAZEBO_MAJOR_VERSION >= 8
     ignition::math::Quaterniond q = baselink_parent->WorldPose().Rot() * baselink_offset_.Rot();
-    spinal_interface_.setBaseLinkOrientation(q.X(), q.Y(), q.Z(), q.W());
+    spinal_interface_.setTrueBaselinkOrientation(q.X(), q.Y(), q.Z(), q.W());
     ignition::math::Vector3d w = baselink_offset_.Rot().Inverse() * baselink_parent->RelativeAngularVel();
-    spinal_interface_.setBaseLinkAngular(w.X(), w.Y(), w.Z());
+    spinal_interface_.setTrueBaselinkAngular(w.X(), w.Y(), w.Z());
 #else
     gazebo::math::Quaternion q = baselink_parent->GetWorldPose().rot * baselink_offset_.rot;
-    spinal_interface_.setBaseLinkOrientation(q.x, q.y, q.z, q.w);
+    spinal_interface_.setTrueBaselinkOrientation(q.x, q.y, q.z, q.w);
     gazebo::math::Vector3 w = baselink_offset_.rot.GetInverse() * baselink_parent->GetRelativeAngularVel();
-    spinal_interface_.setBaseLinkAngular(w.x, w.y, w.z);
+    spinal_interface_.setTrueBaselinkAngular(w.x, w.y, w.z);
 #endif
 
-    if(time.toSec() - last_time_.toSec() > ground_truth_pub_rate_)
+    /* get sensor values and do atittude estimation */
+    if(imu_handler_)
       {
-        nav_msgs::Odometry pose_msg;
-        pose_msg.header.stamp = time;
+        auto acc = imu_handler_->LinearAcceleration();
+        auto gyro = imu_handler_->AngularVelocity();
+        spinal_interface_.setImuValue(acc.X(), acc.Y(), acc.Z(), gyro.X(), gyro.Y(), gyro.Z());
+      }
+    else
+      ROS_DEBUG_THROTTLE(1.0, "No imu sensor handler to read sensor data");
+
+    if(mag_handler_)
+      {
+        auto mag = mag_handler_->MagneticField();
+        spinal_interface_.setMagValue(mag.X(), mag.Y(), mag.Z());
+      }
+    else
+      ROS_DEBUG_THROTTLE(1.0, "No magnetometer sensor handler to read sensor data");
+
+    spinal_interface_.stateEstimate();
+
+    /* publish ground truth value */
+    nav_msgs::Odometry odom_msg;
+    odom_msg.header.stamp = time;
 #if GAZEBO_MAJOR_VERSION >= 8
-        ignition::math::Vector3d baselink_pos = baselink_parent->WorldPose().Pos() + baselink_parent->WorldPose().Rot() * baselink_offset_.Pos();
-        pose_msg.pose.pose.position.x = baselink_pos.X();
-        pose_msg.pose.pose.position.y = baselink_pos.Y();
-        pose_msg.pose.pose.position.z = baselink_pos.Z();
-        pose_msg.pose.pose.orientation.x = q.X();
-        pose_msg.pose.pose.orientation.y = q.Y();
-        pose_msg.pose.pose.orientation.z = q.Z();
-        pose_msg.pose.pose.orientation.w = q.W();
+    ignition::math::Vector3d baselink_pos = baselink_parent->WorldPose().Pos() + baselink_parent->WorldPose().Rot() * baselink_offset_.Pos();
+    odom_msg.pose.pose.position.x = baselink_pos.X();
+    odom_msg.pose.pose.position.y = baselink_pos.Y();
+    odom_msg.pose.pose.position.z = baselink_pos.Z();
+    odom_msg.pose.pose.orientation.x = q.X();
+    odom_msg.pose.pose.orientation.y = q.Y();
+    odom_msg.pose.pose.orientation.z = q.Z();
+    odom_msg.pose.pose.orientation.w = q.W();
 
-        ignition::math::Vector3d baselink_vel = baselink_parent->WorldLinearVel(baselink_offset_.Pos());
-        pose_msg.twist.twist.linear.x = baselink_vel.X();
-        pose_msg.twist.twist.linear.y = baselink_vel.Y();
-        pose_msg.twist.twist.linear.z = baselink_vel.Z();
+    ignition::math::Vector3d baselink_vel = baselink_parent->WorldLinearVel(baselink_offset_.Pos());
+    odom_msg.twist.twist.linear.x = baselink_vel.X();
+    odom_msg.twist.twist.linear.y = baselink_vel.Y();
+    odom_msg.twist.twist.linear.z = baselink_vel.Z();
 
-        /* CAUTION! the angular is describe in the fc frame */
-        pose_msg.twist.twist.angular.x = w.X();
-        pose_msg.twist.twist.angular.y = w.Y();
-        pose_msg.twist.twist.angular.z = w.Z();
+    /* CAUTION! the angular is describe in the fc frame */
+    odom_msg.twist.twist.angular.x = w.X();
+    odom_msg.twist.twist.angular.y = w.Y();
+    odom_msg.twist.twist.angular.z = w.Z();
 #else
-        gazebo::math::Vector3 baselink_pos = baselink_parent->GetWorldPose().pos + baselink_parent->GetWorldPose().rot * baselink_offset_.pos;
-        pose_msg.pose.pose.position.x = baselink_pos.x;
-        pose_msg.pose.pose.position.y = baselink_pos.y;
-        pose_msg.pose.pose.position.z = baselink_pos.z;
-        pose_msg.pose.pose.orientation.x = q.x;
-        pose_msg.pose.pose.orientation.y = q.y;
-        pose_msg.pose.pose.orientation.z = q.z;
-        pose_msg.pose.pose.orientation.w = q.w;
+    gazebo::math::Vector3 baselink_pos = baselink_parent->GetWorldPose().pos + baselink_parent->GetWorldPose().rot * baselink_offset_.pos;
+    odom_msg.pose.pose.position.x = baselink_pos.x;
+    odom_msg.pose.pose.position.y = baselink_pos.y;
+    odom_msg.pose.pose.position.z = baselink_pos.z;
+    odom_msg.pose.pose.orientation.x = q.x;
+    odom_msg.pose.pose.orientation.y = q.y;
+    odom_msg.pose.pose.orientation.z = q.z;
+    odom_msg.pose.pose.orientation.w = q.w;
 
-        gazebo::math::Vector3 baselink_vel = baselink_parent->GetWorldLinearVel(baselink_offset_.pos);
-        pose_msg.twist.twist.linear.x = baselink_vel.x;
-        pose_msg.twist.twist.linear.y = baselink_vel.y;
-        pose_msg.twist.twist.linear.z = baselink_vel.z;
+    gazebo::math::Vector3 baselink_vel = baselink_parent->GetWorldLinearVel(baselink_offset_.pos);
+    odom_msg.twist.twist.linear.x = baselink_vel.x;
+    odom_msg.twist.twist.linear.y = baselink_vel.y;
+    odom_msg.twist.twist.linear.z = baselink_vel.z;
 
-        /* CAUTION! the angular is described in the fc frame */
-        pose_msg.twist.twist.angular.x = w.x;
-        pose_msg.twist.twist.angular.y = w.y;
-        pose_msg.twist.twist.angular.z = w.z;
+    /* CAUTION! the angular is described in the fc frame */
+    odom_msg.twist.twist.angular.x = w.x;
+    odom_msg.twist.twist.angular.y = w.y;
+    odom_msg.twist.twist.angular.z = w.z;
 #endif
-        ground_truth_pub_.publish(pose_msg);
-        last_time_ = time;
+    if(time.toSec() - last_ground_truth_time_.toSec() > ground_truth_pub_rate_)
+      {
+        ground_truth_pub_.publish(odom_msg);
+        last_ground_truth_time_ = time;
       }
 
-    /* TODO : mocap and imu */
-    /* attitude estimation from spinal interface */
+    if(time.toSec() - last_mocap_time_.toSec() > mocap_pub_rate_)
+      {
+        geometry_msgs::PoseStamped pose_msg;
+        pose_msg.header = odom_msg.header;
+
+        pose_msg.pose.position.x = odom_msg.pose.pose.position.x + guassianKernel(mocap_pos_noise_);
+        pose_msg.pose.position.y = odom_msg.pose.pose.position.y + guassianKernel(mocap_pos_noise_);
+        pose_msg.pose.position.z = odom_msg.pose.pose.position.z + guassianKernel(mocap_pos_noise_);
+
+        // pose.pose.orientation = odom_msg.pose.pose.orientation;
+#if GAZEBO_MAJOR_VERSION >= 8
+        ignition::math::Vector3d euler = q.Eulter();
+        euler += ignition::math::Vector3d(guassianKernel(mocap_rot_noise_),
+                                          guassianKernel(mocap_rot_noise_),
+                                          guassianKernel(mocap_rot_noise_));
+        ignition::math::Quaterniond q_noise(euler);
+        pose_msg.pose.orientation.x = q_noise.X();
+        pose_msg.pose.orientation.y = q_noise.Y();
+        pose_msg.pose.orientation.z = q_noise.Z();
+        pose_msg.pose.orientation.w = q_noise.W();
+#else
+        gazebo::math::Vector3 euler = q.GetAsEuler();
+        euler += gazebo::math::Vector3(guassianKernel(mocap_rot_noise_),
+                                       guassianKernel(mocap_rot_noise_),
+                                       guassianKernel(mocap_rot_noise_));
+        gazebo::math::Quaternion q_noise(euler);
+        pose_msg.pose.orientation.x = q_noise.x;
+        pose_msg.pose.orientation.y = q_noise.y;
+        pose_msg.pose.orientation.z = q_noise.z;
+        pose_msg.pose.orientation.w = q_noise.w;
+#endif
+        mocap_pub_.publish(pose_msg);
+        last_mocap_time_ = time;
+      }
   }
 
   void AerialRobotHWSim::writeSim(ros::Time time, ros::Duration period)
@@ -212,7 +320,7 @@ namespace gazebo_ros_control
     DefaultRobotHWSim::writeSim(time, period);
 
     er_sat_interface_.enforceLimits(period);
-    const gazebo::physics::LinkPtr baselink = parent_model_->GetLink(spinal_interface_.getBaseLinkName());
+    const gazebo::physics::LinkPtr baselink = parent_model_->GetLink(baselink_);
     if (control_mode_ == SIM_VEL_MODE)
       {
 #if GAZEBO_MAJOR_VERSION >= 8
@@ -271,6 +379,20 @@ namespace gazebo_ros_control
 #endif
           }
       }
+  }
+
+  double AerialRobotHWSim::guassianKernel(double sigma)
+  {
+    // generation of two normalized uniform random variables
+    double U1 = static_cast<double>(rand_r(&noise_seed_)) / static_cast<double>(RAND_MAX);
+    double U2 = static_cast<double>(rand_r(&noise_seed_)) / static_cast<double>(RAND_MAX);
+
+    // using Box-Muller transform to obtain a varaible with a standard normal distribution
+    double Z0 = sqrt(-2.0 * ::log(U1)) * cos(2.0*M_PI * U2);
+
+    // scaling
+    Z0 = sigma * Z0;
+    return Z0;
   }
 
 }

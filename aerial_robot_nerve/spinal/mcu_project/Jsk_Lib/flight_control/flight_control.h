@@ -43,14 +43,14 @@ public:
 #ifdef SIMULATION
   FlightControl(): att_controller_() {}
 
-  void init(ros::NodeHandle* nh)
+  void init(ros::NodeHandle* nh, StateEstimate* estimator)
   {
     nh_ = nh;
     config_ack_pub_ = nh_->advertise<std_msgs::UInt8>("/flight_config_ack", 1);
     uav_info_sub_ = nh_->subscribe("/uav_info", 1, &FlightControl::uavInfoConfigCallback, this);
     flight_config_sub_ = nh_->subscribe("/flight_config_cmd", 1, &FlightControl::flightConfigCallback, this);
 
-    att_controller_.init(nh);
+    att_controller_.init(nh, estimator);
 
     start_control_flag_ = false;
     pwm_test_flag_ = false;
@@ -59,6 +59,7 @@ public:
 
   inline AttitudeController& getAttController(){ return att_controller_;}
 
+  void useGroundTruth(bool flag) { att_controller_.useGroundTruth(flag); }
 #else
   FlightControl():
     config_ack_pub_("/flight_config_ack", &config_ack_msg_),
@@ -68,7 +69,7 @@ public:
   {
   }
 
-  void  init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2, StateEstimate* estimator, BatteryStatus* bat, ros::NodeHandle* nh)
+  void init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2, StateEstimate* estimator, BatteryStatus* bat, ros::NodeHandle* nh)
   {
     nh_ = nh;
 
@@ -169,10 +170,6 @@ private:
         start_control_flag_ = true;
         att_controller_.setStartControlFlag(start_control_flag_);
 
-#ifndef SIMULATION
-        /* Deprecated: amp the gyro integral rate for the inflight attitude estimation */
-        estimator_->getAttEstimator()->getEstimator()->gyroIntegralAmp(true);
-#endif
         /* ack to ROS */
         config_ack_msg_.data = spinal::FlightConfigCmd::ARM_ON_CMD;
 #ifdef SIMULATION
@@ -197,10 +194,6 @@ private:
         force_landing_flag_ = false;
         att_controller_.setForceLandingFlag(force_landing_flag_);
 
-#ifndef SIMULATION
-        /* deprecated: reset the gyro integral rate for the ground attitude estimation */
-        estimator_->getAttEstimator()->getEstimator()->gyroIntegralAmp(false);
-#endif
         break;
       case spinal::FlightConfigCmd::FORCE_LANDING_CMD:
         force_landing_flag_ = true;
@@ -222,8 +215,8 @@ private:
 /* get the UAV type from ros, which is necessary for simulation and general multirotor */
 void uavInfoConfigCallback(const spinal::UavInfo& config_msg)
   {
-	setUavModel(config_msg.uav_model);
-	setMotorNumber(config_msg.motor_num);
+    setUavModel(config_msg.uav_model);
+    setMotorNumber(config_msg.motor_num);
   }
 
 };

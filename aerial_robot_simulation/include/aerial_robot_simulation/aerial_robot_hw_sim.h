@@ -40,8 +40,12 @@
 #ifndef _GAZEBO_ROS_CONTROL___AERIAL_ROBOT_HW_SIM_H_
 #define _GAZEBO_ROS_CONTROL___AERIAL_ROBOT_HW_SIM_H_
 
+#include <aerial_robot_model/transformable_aerial_robot_model.h>
 #include <aerial_robot_simulation/spinal_interface.h>
 #include <gazebo_ros_control/default_robot_hw_sim.h>
+#include <gazebo/sensors/sensors.hh>
+#include <gazebo/sensors/ImuSensor.hh>
+#include <gazebo/sensors/MagnetometerSensor.hh>
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/TwistStamped.h>
 #include <kdl/tree.hpp>
@@ -74,11 +78,16 @@ protected:
   /* spinal: rotor handlers */
   unsigned int rotor_n_dof_;
   std::vector<gazebo::physics::JointPtr> sim_rotors_;
+
   hardware_interface::SpinalInterface spinal_interface_;
   rotor_limits_interface::EffortRotorSaturationInterface er_sat_interface_;
-  /* TODO: imu handler (plugin), attitude estimator, mocap plugin, ground truth plugin */
+
+  /* sensor handlers */
+  gazebo::sensors::ImuSensorPtr imu_handler_;
+  gazebo::sensors::MagnetometerSensorPtr mag_handler_;
 
   /* baselink */
+  std::string baselink_;
 #if GAZEBO_MAJOR_VERSION > 8
   ignition::math::Pose3d baselink_offset_;
 #else
@@ -89,12 +98,16 @@ protected:
   uint8_t control_mode_;
   ros::Subscriber sim_vel_sub_, sim_pos_sub_;
   ros::Publisher ground_truth_pub_;
+  ros::Publisher mocap_pub_;
   double ground_truth_pub_rate_;
+  double mocap_pub_rate_;
+  unsigned int noise_seed_;
+  double mocap_rot_noise_, mocap_pos_noise_;
 
   geometry_msgs::TwistStamped cmd_vel_;
   geometry_msgs::PoseStamped cmd_pos_;
 
-  ros::Time last_time_;
+  ros::Time last_ground_truth_time_, last_mocap_time_;
 
   void cmdVelCallback(const geometry_msgs::TwistStampedConstPtr& cmd_vel)
   {
@@ -107,6 +120,8 @@ protected:
     control_mode_ = SIM_POS_MODE;
     cmd_pos_ = *cmd_pos;
   }
+
+  double guassianKernel(double sigma);
 };
 
 typedef boost::shared_ptr<AerialRobotHWSim> AerialRobotHWSimPtr;

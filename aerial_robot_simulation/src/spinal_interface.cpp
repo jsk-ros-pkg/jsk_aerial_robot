@@ -33,60 +33,70 @@
 
 namespace hardware_interface
 {
-  SpinalInterface::SpinalInterface(): q_(), joint_num_(0)
+  SpinalInterface::SpinalInterface()
   {
+    on_ground_ = true; // freeze attitude estimate, since the init state is on the ground, the contact force between ground is very unstable
   }
 
-  bool SpinalInterface::init(const urdf::Model& model)
+  bool SpinalInterface::init(ros::NodeHandle& nh, int joint_num)
   {
-    kdl_parser::treeFromUrdfModel(model, tree_);
-
-    /* get baselink from robot model */
-    auto robot_model_xml = aerial_robot_model::RobotModel::getRobotModelXml("robot_description");
-    TiXmlElement* baselink_attr = robot_model_xml.FirstChildElement("robot")->FirstChildElement("baselink");
-    if(!baselink_attr)
-      {
-        ROS_ERROR_STREAM_NAMED("spianl interface", "Failed to find baselink attribute from urdf model, please add '<baselink name=\"fc\" \/>' to your urdf file");
-        return false;
-      }
-    baselink_ = std::string(baselink_attr->Attribute("name"));
-
-    KDL::SegmentMap::const_iterator it = tree_.getSegment(baselink_);
-    if(it == tree_.getSegments().end())
-      {
-        ROS_ERROR_STREAM_NAMED("spianl interface", "Failed to find baselink '" << baselink_ << "' in urdf from robot_description");
-        return false;
-      }
-
-    std::function<KDL::Frame (const KDL::SegmentMap::const_iterator& ) > recursiveFindParent = [&recursiveFindParent, this](const KDL::SegmentMap::const_iterator& it)
-      {
-        const KDL::TreeElementType& currentElement = it->second;
-        KDL::Frame currentFrame = GetTreeElementSegment(currentElement).pose(0);
-
-        KDL::SegmentMap::const_iterator parentIt = GetTreeElementParent(currentElement);
-
-        if(GetTreeElementSegment(parentIt->second).getJoint().getType() != KDL::Joint::None ||
-           parentIt == tree_.getRootSegment())
-          {
-            baselink_parent_ = parentIt->first;
-            return currentFrame;
-          }
-        else
-          {
-            return recursiveFindParent(parentIt) * currentFrame;
-          }
-      };
-
-    baselink_offset_ = recursiveFindParent(it);
-    if(baselink_parent_ == std::string("none"))
-      {
-        ROS_ERROR_STREAM_NAMED("spianl interface", "Can not find the parent of the baselink '" << baselink_);
-        return false;
-      }
-
-    ROS_DEBUG_NAMED("aerial_robot_hw", "Find the parent link for the baselink %s:  %s, offset is [%f, %f, %f]", baselink_.c_str(), baselink_parent_.c_str(), baselink_offset_.p.x(), baselink_offset_.p.y(), baselink_offset_.p.z());
-    return true;
+    joint_num_ = joint_num;
+    spinal_state_estimator_.init(&nh);
   }
+
+  void SpinalInterface::stateEstimate()
+  {
+    if(on_ground_)
+      {
+        /* assume the robot is static, acc: [0, 0, g] */
+        setImuValue(0, 0, StateEstimator::G, 0, 0, 0);
+      }
+
+    spinal_state_estimator_.update();
+  }
+
+  void SpinalInterface::setImuValue(double acc_x, double acc_y, double acc_z, double gyro_x, double gyro_y, double gyro_z)
+  {
+    spinal_state_estimator_.getAttEstimator()->setAcc(acc_x, acc_y, acc_z);
+    spinal_state_estimator_.getAttEstimator()->setGyro(gyro_x, gyro_y, gyro_z);
+  }
+
+  void SpinalInterface::setMagValue(double mag_x, double mag_y, double mag_z)
+  {
+    spinal_state_estimator_.getAttEstimator()->setMag(mag_x, mag_y, mag_z);
+  }
+
+  tf::Vector3 SpinalInterface::getTrueBaselinkRPY()
+  {
+    double r,p,y;
+    baselink_rot_.getRPY(r, p, y);
+    return tf::Vector3(r,p,y);
+  }
+
+  tf::Vector3 SpinalInterface::getTrueCogAngular()
+  {
+    return spinal_state_estimator_.getAttEstimator()->getDesiredCoordTf() * baselink_angular_;
+  }
+
+  tf::Vector3 SpinalInterface::getTrueCogRPY()
+  {
+    tf::Matrix3x3 rot = baselink_rot_ * spinal_state_estimator_.getAttEstimator()->getDesiredCoordTf().transpose() ;
+    double r,p,y;
+    rot.getRPY(r, p, y);
+    return tf::Vector3(r,p,y);
+  }
+
+  void SpinalInterface::setTrueBaselinkOrientation(double q_x, double q_y, double q_z, double q_w)
+  {
+    baselink_rot_.setRotation(tf::Quaternion(q_x, q_y, q_z, q_w));
+  }
+
+  void SpinalInterface::setTrueBaselinkAngular(double w_x, double w_y, double w_z)
+  {
+    baselink_angular_.setValue(w_x, w_y, w_z);
+  }
+
+
 };
 
 namespace rotor_limits_interface

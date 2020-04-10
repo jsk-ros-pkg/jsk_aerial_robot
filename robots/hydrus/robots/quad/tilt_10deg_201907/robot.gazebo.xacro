@@ -6,7 +6,7 @@
   <xacro:include filename="$(find hydrus)/robots/quad/tilt_10deg_201907/robot.urdf.xacro" />
 
   <!-- gazebo plugin for default controller and sensors -->
-  <xacro:include filename="$(find hydrus)/robots/default.gazebo.xacro" />
-
+  <xacro:include filename="$(find aerial_robot_simulation)/xacro/spinal.gazebo.xacro" />
+  <xacro:gazebo_spinal robot_name="hydrusx" />
 
 </robot>

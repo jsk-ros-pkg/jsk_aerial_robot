@@ -12,11 +12,12 @@
 #include "flight_control/attitude/attitude_control.h"
 
 #ifdef SIMULATION
-AttitudeController::AttitudeController(): DELTA_T(0) {}
+AttitudeController::AttitudeController(): DELTA_T(0), prev_time_(-1), use_ground_truth_(false) {}
 
-void AttitudeController::init(ros::NodeHandle* nh)
+void AttitudeController::init(ros::NodeHandle* nh, StateEstimate* estimator)
 {
   nh_ = nh;
+  estimator_ = estimator;
 
   pwms_pub_ = nh_->advertise<spinal::Pwms>("/motor_pwms", 1);
   control_term_pub_ = nh_->advertise<spinal::RollPitchYawTerms>("/control_terms", 1);
@@ -204,15 +205,28 @@ void AttitudeController::update(void)
         }
 
       /* should be virutal coord */
+      ap::Vector3f angles;
+      ap::Vector3f vel;
 #ifdef SIMULATION
-      Vector3f angles = angles_;
-      Vector3f vel = vel_;
-      static double prev_time = ros::Time::now().toSec();
-      DELTA_T = ros::Time::now().toSec() - prev_time;
-      prev_time = ros::Time::now().toSec();
+      if(use_ground_truth_)
+        {
+          angles = true_angles_;
+          vel = true_vel_;
+        }
+      else
+        {
+          angles = estimator_->getAttEstimator()->getAttitude(Frame::VIRTUAL);
+          vel = estimator_->getAttEstimator()->getAngular(Frame::VIRTUAL);
+        }
+
+      ROS_DEBUG_THROTTLE(0.01, "true vs spinal: r [%f vs %f], p [%f vs %f], y [%f vs %f], ws [%f vs %f], wy [%f vs %f], wz [%f vs %f]", true_angles_.x, angles.x, true_angles_.y, angles.y, true_angles_.z, angles.z, true_vel_.x, vel.x, true_vel_.y, vel.y, true_vel_.z, vel.z);
+
+      if(prev_time_ < 0) DELTA_T = 0;
+      else DELTA_T = ros::Time::now().toSec() - prev_time_;
+      prev_time_ = ros::Time::now().toSec();
 #else
-      Vector3f angles = estimator_->getAttEstimator()->getAttitude(Frame::VIRTUAL);
-      Vector3f vel = estimator_->getAttEstimator()->getAngular(Frame::VIRTUAL);
+      angles = estimator_->getAttEstimator()->getAttitude(Frame::VIRTUAL);
+      vel = estimator_->getAttEstimator()->getAngular(Frame::VIRTUAL);
 #endif
 
       /* failsafe 3: too large tile angle */
@@ -246,7 +260,7 @@ void AttitudeController::update(void)
           float lqi_d_term = 0;
 
           /* gyro moment */
-          Vector3f gyro_moment = vel % (inertia_ * vel);
+          ap::Vector3f gyro_moment = vel % (inertia_ * vel);
 #ifdef SIMULATION
           std_msgs::Float32MultiArray anti_gyro_msg;
 #endif
@@ -464,6 +478,10 @@ void AttitudeController::reset(void)
   /* failsafe */
   failsafe_ = false;
   flight_command_last_stamp_ = HAL_GetTick();
+
+#ifdef SIMULATION
+  prev_time_ = -1;
+#endif
 }
 
 void AttitudeController::fourAxisCommandCallback( const spinal::FourAxisCommand &cmd_msg)
@@ -648,9 +666,9 @@ void AttitudeController::pMatrixInertiaCallback(const spinal::PMatrixPseudoInver
     }
 
   /* inertia */
-  inertia_ = Matrix3f(msg.inertia[0] * 0.001f, msg.inertia[3] * 0.001f, msg.inertia[5] * 0.001f,
-                      msg.inertia[3] * 0.001f, msg.inertia[1] * 0.001f, msg.inertia[4] * 0.001f,
-                      msg.inertia[5] * 0.001f, msg.inertia[4] * 0.001f, msg.inertia[2] * 0.001f);
+  inertia_ = ap::Matrix3f(msg.inertia[0] * 0.001f, msg.inertia[3] * 0.001f, msg.inertia[5] * 0.001f,
+                          msg.inertia[3] * 0.001f, msg.inertia[1] * 0.001f, msg.inertia[4] * 0.001f,
+                          msg.inertia[5] * 0.001f, msg.inertia[4] * 0.001f, msg.inertia[2] * 0.001f);
 }
 
 void AttitudeController::torqueAllocationMatrixInvCallback(const spinal::TorqueAllocationMatrixInv& msg)
@@ -811,7 +829,7 @@ void AttitudeController::pwmConversion()
           {
             /* pwm = F_inv[(V_ref / V)^2 f] */
             float sqrt_tmp = motor_info_[motor_ref_index_].polynominal[1] * motor_info_[motor_ref_index_].polynominal[1] - 4 * 10 * motor_info_[motor_ref_index_].polynominal[2] * (motor_info_[motor_ref_index_].polynominal[0] - scaled_thrust); //special decimal order shift (x10)
-            target_pwm = (-motor_info_[motor_ref_index_].polynominal[1] + sqrt_tmp * inv_sqrt(sqrt_tmp)) / (2 * motor_info_[motor_ref_index_].polynominal[2]);
+            target_pwm = (-motor_info_[motor_ref_index_].polynominal[1] + sqrt_tmp * ap::inv_sqrt(sqrt_tmp)) / (2 * motor_info_[motor_ref_index_].polynominal[2]);
             break;
           }
         case spinal::MotorInfo::POLYNOMINAL_MODE:
@@ -866,7 +884,7 @@ void AttitudeController::pwmConversion()
         case spinal::MotorInfo::POLYNOMINAL_MODE:
           {
             /* pwm = F_inv[(V_ref / V)^1.5 f] */
-            v_factor_ = motor_info_[motor_ref_index_].voltage / voltage * inv_sqrt(voltage / motor_info_[motor_ref_index_].voltage);
+            v_factor_ = motor_info_[motor_ref_index_].voltage / voltage * ap::inv_sqrt(voltage / motor_info_[motor_ref_index_].voltage);
             break;
           }
         default:

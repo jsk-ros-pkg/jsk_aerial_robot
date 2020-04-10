@@ -32,23 +32,19 @@
 #ifndef HARDWARE_INTERFACE_SPINAL_INTERFACE_H
 #define HARDWARE_INTERFACE_SPINAL_INTERFACE_H
 
-
-#include <aerial_robot_model/transformable_aerial_robot_model.h>
+#include <aerial_robot_base/state_estimation.h>
 #include <aerial_robot_simulation/rotor_handle.h>
 #include <algorithm>
 #include <cassert>
 #include <cmath>
 #include <hardware_interface/internal/hardware_resource_manager.h>
 #include <joint_limits_interface/joint_limits_interface_exception.h>
-#include <kdl_parser/kdl_parser.hpp>
-#include <kdl/tree.hpp>
 #include <limits>
 #include <ros/ros.h>
 #include <ros/common.h>
-#include <string>
+#include <state_estimate/state_estimate.h>
 #include <tf/LinearMath/Transform.h>
 #include <urdf_model/joint.h>
-#include <urdf/model.h>
 #include <urdf/urdfdom_compatibility.h>
 
 namespace hardware_interface
@@ -58,29 +54,33 @@ namespace hardware_interface
 
   public:
     SpinalInterface();
-    bool init(const urdf::Model& model);
+    bool init(ros::NodeHandle& nh, int joint_num);
 
-    inline std::string getBaseLinkName() {return baselink_; }
-    inline std::string getBaseLinkParentName() {return baselink_parent_; }
-    KDL::Frame getBaselinkOffset() {return baselink_offset_;}
     inline uint8_t getJointNum() {return joint_num_; }
-    inline tf::Quaternion getBaseLinkOrientation() {return q_; }
-    inline tf::Vector3 getBaseLinkAngular() {return w_;}
 
-    inline void setBaseLinkName(std::string baselink) { baselink_ = baselink; }
-    inline void setBaseLinkOrientation(double qx, double qy, double qz, double qw) { q_.setValue(qx, qy, qz, qw); }
-    inline void setBaseLinkAngular(double wx, double wy, double wz) { w_.setValue(wx, wy, wz); }
+    void setImuValue(double acc_x, double acc_y, double acc_z, double gyro_x, double gyro_y, double gyro_z);
+    void setMagValue(double mag_x, double mag_y, double mag_z);
+    void setTrueBaselinkOrientation(double q_x, double q_y, double q_z, double q_w);
+    void setTrueBaselinkAngular(double w_x, double w_y, double w_z);
 
-    inline void setJointNum(uint8_t joint_num) {joint_num_ = joint_num; }
+    tf::Vector3 getTrueBaselinkRPY();
+    inline tf::Vector3 getTrueBaselinkAngular() { return baselink_angular_;}
+    tf::Vector3 getTrueCogRPY();
+    tf::Vector3 getTrueCogAngular();
 
+    void stateEstimate();
+    inline void onGround(bool flag) { on_ground_ = flag; }
+
+    StateEstimate* getEstimatorPtr() {return &spinal_state_estimator_;}
   private:
-    KDL::Tree tree_;
     uint8_t joint_num_;
-    std::string baselink_;
-    std::string baselink_parent_;
-    KDL::Frame baselink_offset_;
-    tf::Quaternion q_;
-    tf::Vector3 w_;
+
+    tf::Matrix3x3 baselink_rot_;
+    tf::Vector3 baselink_angular_;
+
+    /* attitude estimator */
+    bool on_ground_;
+    StateEstimate spinal_state_estimator_;
   };
 
 };
