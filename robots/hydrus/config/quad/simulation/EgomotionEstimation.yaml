@@ -6,3 +6,22 @@
         gps:
                 estimate_mode: 4 #1 << 2
                 ned_flag: true # hector_gazebo_plugins/GPS
+
+/hydrusxx:
+        # ground truth parameter
+        # gaussian noise
+        ground_truth_pos_noise: 0
+        ground_truth_vel_noise: 0
+        ground_truth_rot_noise: 0
+        ground_truth_angular_noise: 0
+
+        # drift model: e^(-dt * drift_frequency) * curr_drift + dt * gaussian_kernel(sqrt( 2 * drift_frequency) * drfit))
+        # drift diviation:
+        ground_truth_vel_drift: 0
+        ground_truth_rot_drift: 0
+        ground_truth_angular_drift: 0
+
+        # drift frequency:
+        ground_truth_vel_drift_frequency: 0
+        ground_truth_rot_drift_frequency: 0
+        ground_truth_angular_drift_frequency: 0

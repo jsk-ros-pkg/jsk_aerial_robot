@@ -30,7 +30,7 @@ motor_info:
                 polynominal2: -14.915788 # x10^2
                 polynominal1: 17.404827 # x10
                 polynominal0: 58.512989 # x1
-        ref4:        
+        ref4:
                 voltage: 22.2
                 max_thrust: 14.22 # N
                 polynominal4: -14.725489 # x 10^4
@@ -38,3 +38,9 @@ motor_info:
                 polynominal2: -21.115724 # x10^2
                 polynominal1: 19.991898 # x10
                 polynominal0: 58.454254 # x1
+
+
+        # for simualtion
+        rotor_damping_rate: 0.1 # = 0.001 / (0.01 + 0.001); 0.01: time constant; 0.001: dt
+        rotor_force_noise: 0.1 # not sure, but good performance in gazebo
+        dual_rotor_moment_noise: 0.2 # not sure, but good performance in gazebo (0.5 OK)
