@@ -40,7 +40,7 @@ namespace aerial_robot_model {
         return;
       }
     bool found_thrust_link = false;
-    std::vector< boost::shared_ptr<urdf::Link> > urdf_links;
+    std::vector<urdf::LinkSharedPtr> urdf_links;
     model_.getLinks(urdf_links);
     for(const auto& link: urdf_links)
       {
