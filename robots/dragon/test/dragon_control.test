@@ -12,7 +12,7 @@
   <!-- 1. topics  -->
   <test name="publishtest"
         test-name="publishtest"
-        pkg="rostest" type="publishtest">
+        pkg="rostest" type="publishtest" retry="2">
     <rosparam>
       topics:
         - name: /uav/cog/odom
@@ -21,25 +21,27 @@
   </test>
 
   <!-- 2. control -->
-  <test test-name="control_test" pkg="hydrus" type="control_check.py"  name="control_test"  time-limit="180">
+  <test test-name="control_test" pkg="hydrus" type="control_check.py"  name="control_test"  time-limit="180" retry="2">
     <rosparam>
+      hovering_duration: 30.0
+      convergence_thresholds: [0.02, 0.02, 0.02] # hovering threshold
       init_joint_names: ['joint1_pitch', 'joint1_yaw', 'joint2_pitch', 'joint2_yaw', 'joint3_pitch', 'joint3_yaw']
       init_joint_angles: [0, 1.57, 0, 1.57, 0, 1.57]
       tasks:
         - command: "rosrun dragon transformation_demo.py _mode:=0 _reset:=0"
-          threshold: [0.1, 0.06, 0.06]
+          threshold: [0.1, 0.08, 0.08]
           angle_threshold: 0.02
           timeout: 20
           reset: "rosrun dragon transformation_demo.py _mode:=0 _reset:=1"
           reset_duration: 20
         - command: "rosrun dragon transformation_demo.py _mode:=1 _reset:=0"
-          threshold: [0.05, 0.06, 0.04]
+          threshold: [0.08, 0.08, 0.08]
           angle_threshold: 0.02
           timeout: 10
           reset: "rosrun dragon transformation_demo.py _mode:=0 _reset:=1"
           reset_duration: 10
         - command: "rosrun dragon transformation_demo.py _mode:=2 _reset:=0"
-          threshold: [0.15, 0.08, 0.14]
+          threshold: [0.15, 0.08, 0.16]
           angle_threshold: 0.02
           timeout: 15
           reset: "rosrun dragon transformation_demo.py _mode:=0 _reset:=1"
@@ -47,7 +49,6 @@
     </rosparam>
     <param name="init_form_duration" value="25.0" />
     <param name="init_angle_threshold" value="0.04" />
-    <param name="hovering_duration" value="30.0" />
     <remap from="joint_states" to ="/dragon/joint_states" />
     <remap from="joints_ctrl" to ="/dragon/joints_ctrl" />
   </test>
