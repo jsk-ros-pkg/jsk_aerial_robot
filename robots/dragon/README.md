@@ -27,8 +27,8 @@
 ## 3. transformation demostration
    **note**: after the robot completely hovering with the message `Hovering!`
    
-   - defualt dragon pose: ``` $ rosrun dragon transformation_demo.py  _mode:= 0```
-   - spiral pose: ``` $ rosrun dragon transformation_demo.py  _mode:= 1```
-   - m-like pose: ``` $ rosrun dragon transformation_demo.py  _mode:= 2```
-   - normal pose: ``` $ rosrun dragon transformation_demo.py  _reset:= 1```
-   - reverse normal pose: ``` $ rosrun dragon transformation_demo.py  _reverse:= 1```
+   - defualt dragon pose: ``` $ rosrun dragon transformation_demo.py  _mode:=0```
+   - spiral pose: ``` $ rosrun dragon transformation_demo.py  _mode:=1```
+   - m-like pose: ``` $ rosrun dragon transformation_demo.py  _mode:=2```
+   - normal pose: ``` $ rosrun dragon transformation_demo.py  _reset:=1```
+   - reverse normal pose: ``` $ rosrun dragon transformation_demo.py  _reverse_reset:=1```
