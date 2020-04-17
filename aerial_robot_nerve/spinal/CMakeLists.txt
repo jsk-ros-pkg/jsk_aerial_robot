@@ -28,8 +28,10 @@ add_message_files(
   Gyro.msg
   SimpleImu.msg
   FourAxisCommand.msg
-  Imu.msg Barometer.msg
+  Imu.msg
+  Barometer.msg
   Gps.msg
+  GpsFull.msg
   RollPitchYawTerm.msg
   RollPitchYawTerms.msg
   MotorInfo.msg

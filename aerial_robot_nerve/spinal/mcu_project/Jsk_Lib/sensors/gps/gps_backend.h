@@ -35,7 +35,16 @@ struct GPS_State {
   // all the following fields must all be filled by the backend driver
   uint8_t status;                  ///< driver fix status
   uint32_t time_week_ms;              ///< GPS time (milliseconds from start of GPS week)
-  uint16_t time_week;               ///< GPS week number
+  uint32_t utc_time;
+  uint16_t utc_year;
+  uint8_t utc_month;
+  uint8_t utc_day;
+  uint8_t utc_hour;
+  uint8_t utc_min;
+  uint8_t utc_sec;
+  int32_t utc_nano;
+  uint8_t utc_acc;
+  uint8_t utc_valid;
   Location location;                  ///< last fix location
   float ground_speed;                 ///< ground speed in m/sec
   int32_t ground_course_cd;           ///< ground course in 100ths of a degree
@@ -83,7 +92,6 @@ public:
   int32_t ground_course_cd() const { return state_.ground_course_cd; }  // ground course in centidegrees
   uint8_t num_sats() const {  return state_.num_sats; }   // number of locked satellites
   uint32_t time_week_ms() const { return state_.time_week_ms; } // GPS time of week in milliseconds
-  uint16_t time_week() const { return state_.time_week; }
   uint32_t last_fix_time_ms() const { return timing_.last_fix_time_ms; }
   uint32_t last_message_time_ms() const { return timing_.last_message_time_ms; }
 
