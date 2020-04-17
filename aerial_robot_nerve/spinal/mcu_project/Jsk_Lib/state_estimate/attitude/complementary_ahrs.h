@@ -77,7 +77,7 @@ private:
     rpy_[Frame::BODY].x = atan2f(est_g_[Frame::BODY].y , est_g_[Frame::BODY].z);
     rpy_[Frame::BODY].y = atan2f(-est_g_[Frame::BODY].x , inv_sqrt(sq_g_y_sq_g_z)* sq_g_y_sq_g_z);
     rpy_[Frame::BODY].z = atan2f( est_m_[Frame::BODY].z * est_g_[Frame::BODY].y - est_m_[Frame::BODY].y * est_g_[Frame::BODY].z,
-                     est_m_[Frame::BODY].x * invG * sq_g_y_sq_g_z  - (est_m_[Frame::BODY].y * est_g_[Frame::BODY].y + est_m_[Frame::BODY].z * est_g_[Frame::BODY].z) * invG * est_g_[Frame::BODY].x ) + MAG_DECLINIATION;
+                     est_m_[Frame::BODY].x * invG * sq_g_y_sq_g_z  - (est_m_[Frame::BODY].y * est_g_[Frame::BODY].y + est_m_[Frame::BODY].z * est_g_[Frame::BODY].z) * invG * est_g_[Frame::BODY].x ) + mag_declination_;
 
 
     /* virtual(CoG) frame */
@@ -89,7 +89,7 @@ private:
     rpy_[Frame::VIRTUAL].x = atan2f(est_g_[Frame::VIRTUAL].y , est_g_[Frame::VIRTUAL].z);
     rpy_[Frame::VIRTUAL].y = atan2f(-est_g_[Frame::VIRTUAL].x , inv_sqrt(sq_g_y_sq_g_z)* sq_g_y_sq_g_z);
     rpy_[Frame::VIRTUAL].z = atan2f( est_m_[Frame::VIRTUAL].z * est_g_[Frame::VIRTUAL].y - est_m_[Frame::VIRTUAL].y * est_g_[Frame::VIRTUAL].z,
-                     est_m_[Frame::VIRTUAL].x * invG * sq_g_y_sq_g_z  - (est_m_[Frame::VIRTUAL].y * est_g_[Frame::VIRTUAL].y + est_m_[Frame::VIRTUAL].z * est_g_[Frame::VIRTUAL].z) * invG * est_g_[Frame::VIRTUAL].x ) + MAG_DECLINIATION;
+                     est_m_[Frame::VIRTUAL].x * invG * sq_g_y_sq_g_z  - (est_m_[Frame::VIRTUAL].y * est_g_[Frame::VIRTUAL].y + est_m_[Frame::VIRTUAL].z * est_g_[Frame::VIRTUAL].z) * invG * est_g_[Frame::VIRTUAL].x ) + mag_declination_;
     //********************************************************************************:
     //** refrence1: https://sites.google.com/site/myimuestimationexperience/sensors/magnetometer
     //** refrence2: http://uav.xenocross.net/hdg.html

@@ -83,6 +83,18 @@ void GPS::update()
         else
           state_.utc_valid = 0;
 
+        if((raw_packet_.pvt.valid & VALID_MAG) == VALID_MAG)
+          {
+            state_.mag_valid = true;
+            state_.mag_dec = raw_packet_.pvt.mag_dec *1.0e-2f * 0.0174532f;
+            if(fabs(state_.mag_dec) > 0.2) state_.mag_valid = false; // error check
+          }
+        else
+          {
+            state_.mag_valid = false;
+          }
+
+
         /* fix type and status */
         state_.status = raw_packet_.pvt.fix_type;
 

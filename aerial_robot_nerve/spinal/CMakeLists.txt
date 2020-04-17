@@ -50,6 +50,7 @@ add_service_files(
   SetBoardConfig.srv
   SetAttitudeGains.srv
   ImuCalib.srv
+  MagDeclination.srv
 )
 
 generate_messages(

@@ -28,6 +28,7 @@
 //TODO: should include the super class//
 ////////////////////////////////////////
 #include "sensors/imu/imu_mpu9250.h"
+#include "sensors/gps/gps_ublox.h"
 
 /* estiamtor algorithm */
 #include "state_estimate/attitude/complementary_ahrs.h"
@@ -50,20 +51,23 @@ public:
     imu_pub_("imu", &imu_msg_),
     attitude_pub_("attitude", &attitude_msg_),
     desire_coord_sub_("/desire_coordinate", &AttitudeEstimate::desireCoordCallback, this ),
+    mag_declination_srv_("/mag_declination", &AttitudeEstimate::magDeclinationCallback,this),
     imu_list_(1),
     imu_weights_(1,1),
     pub_smoothing_gyro_flag_(false)
   {}
   ~AttitudeEstimate(){}
 
-  void init(IMU* imu, ros::NodeHandle* nh)
+  void init(IMU* imu, GPS* gps, ros::NodeHandle* nh)
   {
     nh_ = nh;
     nh_->advertise(imu_pub_);
     nh_->advertise(attitude_pub_);
     nh_->subscribe< ros::Subscriber<spinal::DesireCoord, AttitudeEstimate> >(desire_coord_sub_);
+    nh_->advertiseService(mag_declination_srv_);
 
     imu_list_[0] = imu;
+    gps_ = gps;
 
     last_imu_pub_time_ = HAL_GetTick();
     last_attitude_pub_time_ = HAL_GetTick();
@@ -79,6 +83,16 @@ public:
 
   void update()
   {
+    if(gps_)
+      {
+        if(gps_->getMagValid() && !estimator_->getMagDecValid())
+          {
+            /* update magnetic declination by GPS receive data */
+            estimator_->setMagDeclination(gps_->getMagDeclination());
+          }
+      }
+
+
     if(imu_list_[0]->getUpdate())
       {
         /* attitude estimation */
@@ -92,7 +106,6 @@ public:
         /* reset update status of imu*/
         imu_list_[0]->setUpdate(false);
       }
-
   }
 
   void multiImuFusion(Vector3f& gyro, Vector3f& acc, Vector3f& mag )
@@ -138,7 +151,7 @@ public:
             else
               imu_msg_.gyro_data[i] = estimator_->getAngular(Frame::BODY)[i];
  #if ESTIMATE_TYPE == COMPLEMENTARY
-            imu_msg_.angles[i] = estimator_->getAttitude(Frame::BODY)[i]; // get the attitude at body frame
+            imu_msg_.angles[i] = estimator_->getAttitude(Frame::BODY)[i]; // get the attitude at body frame3
 #endif
           }
         imu_pub_.publish(&imu_msg_);
@@ -184,6 +197,7 @@ private:
 
   EstimatorAlgorithm* estimator_;
   std::vector< IMU* > imu_list_;
+  GPS* gps_;
   std::vector< float > imu_weights_;
 
   uint32_t last_imu_pub_time_, last_attitude_pub_time_;
@@ -192,5 +206,34 @@ private:
   {
     estimator_->coordinateUpdate(coord_msg.roll, coord_msg.pitch, coord_msg.yaw);
   }
+
+
+  /* mag declination */
+  ros::ServiceServer<spinal::MagDeclination::Request, spinal::MagDeclination::Response, AttitudeEstimate> mag_declination_srv_;
+
+  void magDeclinationCallback(const spinal::MagDeclination::Request& req, spinal::MagDeclination::Response& res)
+  {
+    switch (req.command)
+      {
+      case spinal::MagDeclination::Request::GET_DECLINATION:
+        {
+          res.data = estimator_->getMagDeclination();
+          res.success = true;
+          break;
+        }
+      case spinal::MagDeclination::Request::SET_DECLINATION:
+        {
+          /* update the magnetic declination */
+          estimator_->setMagDeclination(req.data);
+          res.success = true;
+          break;
+        }
+      default:
+        {
+          break;
+        }
+      }
+  }
+
 };
 #endif

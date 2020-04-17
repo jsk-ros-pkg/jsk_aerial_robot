@@ -16,9 +16,9 @@
 #include <math.h>
 #include <math/AP_Math.h>
 #include <array>
+#include "flashmemory/flashmemory.h"
 
 #define DELTA_T 0.001f
-#define MAG_DECLINIATION -0.13002702927f //[rad] = -7.27[deg], http://www.magnetic-declination.com/
 #define GYRO_AMP 1.1395f  //if value= 1, it means normal complementrary filter
 
 namespace Axis
@@ -36,11 +36,11 @@ class EstimatorAlgorithm
 public:
 
 	EstimatorAlgorithm():
-    acc_(), gyro_(), mag_(), prev_mag_(), pre1_(), pre2_()
+          acc_(), gyro_(), mag_(), prev_mag_(), pre1_(), pre2_(), mag_dec_valid_(false)
   {
     r_.identity();
     gyro_amp_ = 1.0f;
-
+    mag_declination_ = 0;
 
     /* IIR LPF */
     rx_freq_ = 1000.0f;
@@ -53,6 +53,7 @@ public:
     b1_ =  (1 - cos(w0_)) / (1 + a_);
     b2_ = (1 - cos(w0_)) / 2 / (1 + a_);
 
+    FlashMemory::addValue(&mag_declination_, sizeof(float));
   };
 
   ~EstimatorAlgorithm(){}
@@ -105,6 +106,16 @@ public:
   Vector3f getAcc(uint8_t frame){return acc_[frame];}
   Vector3f getMag(uint8_t frame){return mag_[frame];}
 
+  bool getMagDecValid() { return mag_dec_valid_; }
+  float getMagDeclination() { return mag_declination_;}
+  void setMagDeclination(float mag_dec)
+  {
+    mag_declination_ = mag_dec;
+    FlashMemory::erase();
+    FlashMemory::write();
+    mag_dec_valid_ = true;
+  }
+
 protected:
   std::array<Vector3f, 2> acc_, gyro_, mag_, gyro_smooth_;
   Vector3f prev_mag_; /* for lpf filter method for mag */
@@ -122,6 +133,10 @@ protected:
   double b1_;
   double b2_;
   Vector3f pre1_, pre2_;
+
+  /* mag declination */
+  bool mag_dec_valid_;
+  float mag_declination_;
 
   void filterFunction(Vector3f input, Vector3f& output)
   {

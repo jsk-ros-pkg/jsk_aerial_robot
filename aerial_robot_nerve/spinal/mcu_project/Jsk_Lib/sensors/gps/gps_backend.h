@@ -60,6 +60,8 @@ struct GPS_State {
   bool have_horizontal_accuracy:1;
   bool have_vertical_accuracy:1;
   uint32_t last_gps_time_ms;          ///< the system time we got the last GPS timestamp, milliseconds
+  bool mag_valid: 1;
+  float mag_dec;
 };
 
 struct GPS_timing {
@@ -77,6 +79,7 @@ public:
     update_(false)
   {
     state_.status = NO_FIX;
+    state_.mag_valid = false;
   }
 
   virtual ~GPS_Backend(void) {}
@@ -94,6 +97,9 @@ public:
   uint32_t time_week_ms() const { return state_.time_week_ms; } // GPS time of week in milliseconds
   uint32_t last_fix_time_ms() const { return timing_.last_fix_time_ms; }
   uint32_t last_message_time_ms() const { return timing_.last_message_time_ms; }
+  bool getMagValid() const { return state_.mag_valid; }
+  float getMagDeclination() const { return state_.mag_dec; }
+
 
   /* UART */
   UART_HandleTypeDef* getHuart() { return huart_; }

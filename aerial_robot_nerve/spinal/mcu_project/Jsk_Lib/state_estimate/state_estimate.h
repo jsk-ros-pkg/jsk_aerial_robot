@@ -16,6 +16,7 @@
 #include "config.h"
 /* #include "arm_math.h" */
 #include <ros.h>
+#include <spinal/MagDeclination.h>
 
 /* sensors */
 ////////////////////////////////////////
@@ -41,6 +42,9 @@ public:
   void  init(IMU* imu, Baro* baro, GPS* gps, ros::NodeHandle* nh)
   {
     nh_ = nh;
+    imu_ = imu;
+    baro_ = baro;
+    gps_ = gps;
 
     if(imu == NULL)
       {
@@ -49,8 +53,7 @@ public:
     else
       {
         attitude_estimate_flag_ = true;
-        imu_ = imu;
-        attitude_estimator_.init(imu_, nh_);
+        attitude_estimator_.init(imu_, gps_, nh_);
       }
 
     if(baro == NULL)
@@ -60,7 +63,6 @@ public:
     else
       {
         altitude_estimate_flag_ = true;
-        baro_ = baro;
         altitude_estimator_.init(imu_, baro_, nh_);
       }
 
@@ -71,7 +73,6 @@ public:
     else
       {
         pos_estimate_flag_ = true;
-        gps_ = gps;
         pos_estimator_.init(imu_, gps_, nh_);
       }
   }
@@ -105,6 +106,7 @@ private:
   bool attitude_estimate_flag_;
   bool altitude_estimate_flag_;
   bool pos_estimate_flag_;
+
 };
 
 #endif

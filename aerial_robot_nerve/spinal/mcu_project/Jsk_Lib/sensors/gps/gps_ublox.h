@@ -223,7 +223,8 @@ private:
     uint16_t position_DOP;
     uint8_t res[6];
     int32_t heading;
-    uint32_t res2[4];
+    int16_t mag_dec;
+    uint16_t mag_dec_acc;
   };
   struct PACKED ubx_nav_velned {
     uint32_t time;                                  // GPS msToW

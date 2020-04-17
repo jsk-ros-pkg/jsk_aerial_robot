@@ -134,6 +134,7 @@ class IMUCalibWidget(QWidget):
         self.mag_start_lsm_calib_button.setIcon(QIcon.fromTheme('media-playback-start'))
         self.mag_stop_lsm_calib_button.setIcon(QIcon.fromTheme('media-playback-stop'))
 
+
         self.mag_view_button.setIcon(QIcon.fromTheme('media-playback-start'))
         self.mag_clear_button.setIcon(QIcon.fromTheme('edit-clear'))
 
@@ -153,6 +154,8 @@ class IMUCalibWidget(QWidget):
         self.mag_view_start_flag = False
         self.mag_view_clear_flag = False
 
+        self.mag_declination_client = rospy.ServiceProxy('/mag_declination', MagDeclination)
+
         self.calib_data_len = 12 # gyro (3) + acc (3) + mag (6)
         self.common_headers = ["value", "bias"]
         self.mag_headers = copy.copy(self.common_headers + ["scale"])
@@ -163,6 +166,7 @@ class IMUCalibWidget(QWidget):
 
         # get imu calibration data
         self.update_imu_calib_data()
+        self.update_mag_declination()
 
     def imu_callback(self, msg):
 
@@ -544,9 +548,47 @@ class IMUCalibWidget(QWidget):
 
         return x0, np.diag(L)
 
+    def mag_dec_configure(self):
+        try:
+            rospy.wait_for_service('/mag_declination', timeout = 0.5)
+        except rospy.ROSException, e:
+            rospy.logerr(e)
+
+        try:
+            req = MagDeclinationRequest()
+            req.command = req.SET_DECLINATION
+            req.data = float(self.mag_dec_line_edit.text())
+            res = self.mag_declination_client(req)
+
+            #print(float(self.mag_dec_line_edit.text()))
+        except rospy.ServiceException, e:
+            rospy.logerr("/mag_declination service for set decalination call failed: %s"%e)
+
+        rospy.sleep(3.0) # wait for the flash write
+
+        self.update_mag_declination()
+
+    def update_mag_declination(self):
+        try:
+            rospy.wait_for_service('/mag_declination', timeout = 0.5)
+        except rospy.ROSException, e:
+            rospy.logerr(e)
+            return
+
+        try:
+            req = MagDeclinationRequest()
+            req.command = req.GET_DECLINATION
+            res = self.mag_declination_client(req)
+
+            self.mag_dec.setText('Magnetic Declination: ' + str(res.data))
+        except rospy.ServiceException, e:
+            rospy.logerr("/mag_declination service for get decalination call failed: %s"%e)
+
+
     @Slot()
     def on_update_button_clicked(self):
         self.update_imu_calib_data()
+        self.update_mag_declination()
 
     @Slot()
     def on_reset_button_clicked(self):
@@ -587,6 +629,10 @@ class IMUCalibWidget(QWidget):
     @Slot()
     def on_mag_stop_lsm_calib_button_clicked(self):
         self.mag_lsm_calib(False)
+
+    @Slot()
+    def on_mag_declination_configure_button_clicked(self):
+        self.mag_dec_configure()
 
     @Slot(bool)
     def on_mag_view_button_clicked(self, checked):
