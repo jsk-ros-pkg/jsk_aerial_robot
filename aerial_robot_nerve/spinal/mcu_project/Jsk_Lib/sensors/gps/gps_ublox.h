@@ -367,6 +367,12 @@ private:
     UBLOX_7,
     UBLOX_M8
   };
+  enum ubs_pvt_valid_flags {
+    VALID_DATE = 1,
+    VALID_TIME = 2,
+    VALID_FULLY_RESOLVED = 4,
+    VALID_MAG = 8
+  };
 
   // Receive buffer
   union PACKED{
