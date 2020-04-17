@@ -39,11 +39,13 @@ Navigator::Navigator(ros::NodeHandle nh, ros::NodeHandle nh_private,
   start_sub_ = nh_.subscribe<std_msgs::Empty>("/teleop_command/start", 1,&Navigator::startCallback, this, ros::TransportHints().tcpNoDelay());
   ctrl_mode_sub_ = nh_.subscribe<std_msgs::Int8>("/teleop_command/ctrl_mode", 1, &Navigator::xyControlModeCallback, this, ros::TransportHints().tcpNoDelay());
 
+  ros::TransportHints joy_transport_hints;
 #ifdef ARM_MELODIC // https://github.com/ros/ros_comm/issues/1404
-  joy_stick_sub_ = nh_.subscribe<sensor_msgs::Joy>("/joy", 1, &Navigator::joyStickControl, this);
-#else
-  joy_stick_sub_ = nh_.subscribe<sensor_msgs::Joy>("/joy", 1, &Navigator::joyStickControl, this, ros::TransportHints().udp());
+  joy_udp_ = false;
 #endif
+  if(joy_udp_) joy_transport_hints = ros::TransportHints().udp();
+  joy_stick_sub_ = nh_.subscribe<sensor_msgs::Joy>("/joy", 1, &Navigator::joyStickControl, this, joy_transport_hints);
+
   stop_teleop_sub_ = nh_.subscribe<std_msgs::UInt8>("stop_teleop", 1, &Navigator::stopTeleopCallback, this, ros::TransportHints().tcpNoDelay());
   teleop_flag_ = true;
 
@@ -896,6 +898,9 @@ void Navigator::rosParamInit(ros::NodeHandle nh)
 
   nh.param ("force_landing_to_halt_du", force_landing_to_halt_du_, 1.0);
   if(param_verbose_) cout << ns << ": force_landing_to_halt_du_ is " <<  force_landing_to_halt_du_ << endl;
+
+  nh.param ("joy_udp", joy_udp_, true);
+  if(param_verbose_) cout << ns << ": joy_udp_ is " <<  joy_udp_ << endl;
 
   nh.param ("check_joy_stick_heart_beat", check_joy_stick_heart_beat_, false);
   if(param_verbose_) cout << ns << ": check_joy_stick_heart_beat_ is " <<  check_joy_stick_heart_beat_ << endl;
