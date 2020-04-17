@@ -1,0 +1,11 @@
+#commands
+uint8 GET_DECLINATION = 0
+uint8 SET_DECLINATION = 1
+
+uint8 command
+float32 data
+---
+
+bool success
+float32 data
+

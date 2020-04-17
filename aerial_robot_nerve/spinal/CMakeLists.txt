@@ -28,8 +28,10 @@ add_message_files(
   Gyro.msg
   SimpleImu.msg
   FourAxisCommand.msg
-  Imu.msg Barometer.msg
+  Imu.msg
+  Barometer.msg
   Gps.msg
+  GpsFull.msg
   RollPitchYawTerm.msg
   RollPitchYawTerms.msg
   MotorInfo.msg
@@ -48,6 +50,7 @@ add_service_files(
   SetBoardConfig.srv
   SetAttitudeGains.srv
   ImuCalib.srv
+  MagDeclination.srv
 )
 
 generate_messages(

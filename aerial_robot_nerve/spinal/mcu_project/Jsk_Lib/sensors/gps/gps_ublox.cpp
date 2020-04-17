@@ -64,12 +64,44 @@ void GPS::update()
     case MSG_PVT:
       {
         LED2_H;
+
+        /* https://www.u-blox.com/sites/default/files/products/documents/u-blox8-M8_ReceiverDescrProtSpec_(UBX-13003221)_Public.pdf */
+
+        /* iTow: GPS time of week */
+        state_.time_week_ms = raw_packet_.pvt.time;
+        /* UTC */
+        state_.utc_year = raw_packet_.pvt.year;
+        state_.utc_month = raw_packet_.pvt.month;
+        state_.utc_day = raw_packet_.pvt.day;
+        state_.utc_hour = raw_packet_.pvt.hour;
+        state_.utc_min = raw_packet_.pvt.min;
+        state_.utc_sec = raw_packet_.pvt.sec;
+        state_.utc_nano = raw_packet_.pvt.nano;
+        uint8_t valid_time  = VALID_DATE | VALID_TIME | VALID_FULLY_RESOLVED;
+        if((raw_packet_.pvt.valid & valid_time) == valid_time)
+          state_.utc_valid = 1;
+        else
+          state_.utc_valid = 0;
+
+        if((raw_packet_.pvt.valid & VALID_MAG) == VALID_MAG)
+          {
+            state_.mag_valid = true;
+            state_.mag_dec = raw_packet_.pvt.mag_dec *1.0e-2f * 0.0174532f;
+            if(fabs(state_.mag_dec) > 0.2) state_.mag_valid = false; // error check
+          }
+        else
+          {
+            state_.mag_valid = false;
+          }
+
+
+        /* fix type and status */
+        state_.status = raw_packet_.pvt.fix_type;
+
+        /* location */
         state_.location.lng    = raw_packet_.pvt.longitude;
         state_.location.lat    = raw_packet_.pvt.latitude;
         state_.location.alt    = raw_packet_.pvt.altitude_msl / 10;
-
-        state_.status = raw_packet_.pvt.fix_type;
-
         state_.horizontal_accuracy = raw_packet_.pvt.horizontal_accuracy*1.0e-3f;
         state_.vertical_accuracy = raw_packet_.pvt.vertical_accuracy*1.0e-3f;
         state_.have_horizontal_accuracy = true;

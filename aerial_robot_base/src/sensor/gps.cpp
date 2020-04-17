@@ -97,6 +97,10 @@ namespace sensor_plugin
     std::string topic_name;
     getParam<std::string>("gps_sub_name", topic_name, string("/gps"));
     gps_sub_ = nh_.subscribe(topic_name, 5, &Gps::gpsCallback, this);
+
+    getParam<std::string>("gps_full_sub_name", topic_name, string("/gps_full"));
+    // gps_full_sub_ = nh_.subscribe(topic_name, 5, &Gps::gpsFullCallback, this); // reserve
+
     getParam<std::string>("gps_ros_sub_name", topic_name, string("/fix"));
     gps_ros_sub_ = nh_.subscribe(topic_name, 5, &Gps::gpsRosCallback, this);
 
@@ -245,6 +249,43 @@ namespace sensor_plugin
     updateHealthStamp();
   }
 
+  void Gps::gpsFullCallback(const spinal::GpsFull::ConstPtr & gps_full_msg)
+  {
+    /* time */
+    struct tm time = {0};
+    time.tm_year = gps_full_msg->year - 1900;
+    time.tm_mon = gps_full_msg->month - 1;
+    time.tm_mday = gps_full_msg->day;
+    time.tm_hour = gps_full_msg->hour;
+    time.tm_min = gps_full_msg->min;
+    time.tm_sec = gps_full_msg->sec;
+    auto time_sec = mkgmtime(&time);
+
+    ros::Time fix_ros_time;
+    if (gps_full_msg->nano < 0)
+      {
+        fix_ros_time.sec = time_sec - 1;
+        fix_ros_time.nsec = (uint32_t)(gps_full_msg->nano + 1e9);
+      }
+    else
+      {
+        fix_ros_time.sec = time_sec;
+        fix_ros_time.nsec = (uint32_t)(gps_full_msg->nano);
+      }
+
+    ROS_DEBUG("gps utc time %f; spinal time: %f", fix_ros_time.toSec(), gps_full_msg->stamp.toSec() + delay_);
+
+    spinal::Gps::Ptr gps_msg(new spinal::Gps());
+    gps_msg->stamp = gps_full_msg->stamp;
+    gps_msg->location[0] = gps_full_msg->location[0];
+    gps_msg->location[1] = gps_full_msg->location[1];
+    gps_msg->velocity[0] = gps_full_msg->velocity[0];
+    gps_msg->velocity[1] = gps_full_msg->velocity[1];
+    gps_msg->sat_num = gps_full_msg->sat_num;
+
+    gpsCallback(boost::const_pointer_cast<const spinal::Gps>(gps_msg));
+  }
+
   void Gps::gpsRosCallback(const sensor_msgs::NavSatFix::ConstPtr & gps_msg)
   {
     /* TODO: add velocity */
@@ -357,6 +398,70 @@ namespace sensor_plugin
     return target_point;
   }
 
+
+  time_t Gps::mkgmtime(struct tm * const tmp)
+  {
+    register int            dir;
+    register int            bits;
+    register int            saved_seconds;
+    time_t              t;
+    struct tm           yourtm, *mytm;
+
+    yourtm = *tmp;
+    saved_seconds = yourtm.tm_sec;
+    yourtm.tm_sec = 0;
+    /*
+    ** Calculate the number of magnitude bits in a time_t
+    ** (this works regardless of whether time_t is
+    ** signed or unsigned, though lint complains if unsigned).
+    */
+    for (bits = 0, t = 1; t > 0; ++bits, t <<= 1)
+      ;
+    /*
+    ** If time_t is signed, then 0 is the median value,
+    ** if time_t is unsigned, then 1 << bits is median.
+    */
+    t = (t < 0) ? 0 : ((time_t) 1 << bits);
+
+    /* Some gmtime() implementations are broken and will return
+     * NULL for time_ts larger than 40 bits even on 64-bit platforms
+     * so we'll just cap it at 40 bits */
+    if(bits > 40) bits = 40;
+
+    for ( ; ; ) {
+      mytm = gmtime(&t);
+
+      if(!mytm) return -1;
+
+      dir = tmcomp(mytm, &yourtm);
+      if (dir != 0) {
+        if (bits-- < 0)
+          return -1;
+        if (bits < 0)
+          --t;
+        else if (dir > 0)
+          t -= (time_t) 1 << bits;
+        else    t += (time_t) 1 << bits;
+        continue;
+      }
+      break;
+    }
+    t += saved_seconds;
+    return t;
+  }
+
+  int Gps::tmcomp(register const struct tm * const  atmp, register const struct tm * const btmp)
+  {
+    register int    result;
+
+    if ((result = (atmp->tm_year - btmp->tm_year)) == 0 &&
+        (result = (atmp->tm_mon - btmp->tm_mon)) == 0 &&
+        (result = (atmp->tm_mday - btmp->tm_mday)) == 0 &&
+        (result = (atmp->tm_hour - btmp->tm_hour)) == 0 &&
+        (result = (atmp->tm_min - btmp->tm_min)) == 0)
+      result = atmp->tm_sec - btmp->tm_sec;
+    return result;
+  }
 };
 
 /* plugin registration */

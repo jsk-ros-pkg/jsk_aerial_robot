@@ -45,8 +45,12 @@
 /* gps convert */
 #include <geodesy/utm.h>
 
+/* time */
+#include <time.h>
+
 /* ros msg */
 #include <spinal/Gps.h>
+#include <spinal/GpsFull.h>
 #include <aerial_robot_msgs/FlightNav.h>
 #include <nav_msgs/Odometry.h>
 #include <sensor_msgs/NavSatFix.h>
@@ -60,6 +64,7 @@ using namespace std;
    2. better way point control which is from sensor fusion but not only gps
    3. interaction between single gps and rtk gps
 */
+
 namespace sensor_plugin
 {
 
@@ -82,7 +87,7 @@ namespace sensor_plugin
       /* ros */
       ros::Publisher gps_pub_;
       ros::Publisher state_pub_;
-      ros::Subscriber gps_sub_; /* from spinal */
+      ros::Subscriber gps_sub_, gps_full_sub_; /* from spinal */
       ros::Subscriber gps_ros_sub_; /* from ros */
 
       /* ros param */
@@ -100,9 +105,15 @@ namespace sensor_plugin
       tf::Vector3 vel_, raw_vel_;
 
       void gpsCallback(const spinal::Gps::ConstPtr & gps_msg);
+      void gpsFullCallback(const spinal::GpsFull::ConstPtr & gps_full_msg);
       void gpsRosCallback(const sensor_msgs::NavSatFix::ConstPtr & gps_msg);
       void estimateProcess();
       void rosParamInit();
+
+      /* utc time */
+      /* https://github.com/KumarRobotics/ublox/blob/master/ublox_gps/include/ublox_gps/mkgmtime.h */
+      time_t mkgmtime(struct tm * const tmp);
+      int tmcomp(register const struct tm * const  atmp, register const struct tm * const btmp);
     };
 };
 
