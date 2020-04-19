@@ -109,6 +109,9 @@ protected:
 
   //private functions
   void initParam();
+  void resetGain() { K_ = Eigen::MatrixXd(); }
+  bool updateRobotModel();
+
   virtual void cfgLQICallback(hydrus::LQIConfig &config, uint32_t level); //dynamic reconfigure
   virtual void mainFunc();
   virtual bool optimalGain();

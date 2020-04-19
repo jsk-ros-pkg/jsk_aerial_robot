@@ -84,7 +84,9 @@ bool TiltedTransformController::optimalGain()
 
   double t = ros::Time::now().toSec();
   Eigen::MatrixXd P;
-  if(!control_utils::care(A, B, R, Q, P, K_))
+  bool use_kleinman_method = true;
+  if(K_.cols() == 0 || K_.rows() == 0) use_kleinman_method = false;
+  if(!control_utils::care(A, B, R, Q, P, K_, use_kleinman_method))
     {
       ROS_ERROR_STREAM("error in solver ofcontinuous-time algebraic riccati equation");
       return false;

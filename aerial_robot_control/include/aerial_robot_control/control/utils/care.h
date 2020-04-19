@@ -39,13 +39,16 @@
 #include <Eigen/Eigenvalues>
 #include <Eigen/LU>
 #include <iostream>
+#include <unsupported/Eigen/MatrixFunctions>
 
 #define RED_MESSAGE "\033[31m "
 #define YELLOW_MESSAGE "\033[33m "
+#define BLUE_MESSAGE "\033[34m "
+#define MAGENTA_MESSAGE "\033[35m "
 #define RESET_COLOR "\033[m "
 
 namespace control_utils
 {
   /* Continuous-time Algebraic Riccati Equation */
-  bool care(const Eigen::MatrixXd& A, const Eigen::MatrixXd& B, const Eigen::MatrixXd& R, const Eigen::MatrixXd& Q, Eigen::MatrixXd& P, Eigen::MatrixXd& K);
+  bool care(const Eigen::MatrixXd& A, const Eigen::MatrixXd& B, const Eigen::MatrixXd& R, const Eigen::MatrixXd& Q, Eigen::MatrixXd& P, Eigen::MatrixXd& K, const bool iterative_solution = false, const double converge_thresh = 0.01, const int max_iteration = 10);
 }

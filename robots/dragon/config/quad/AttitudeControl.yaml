@@ -1,6 +1,6 @@
 #Dragon Quad config
 
-verbose: true
+verbose: false
 control_rate: 15.0
 
 baselink: fc
