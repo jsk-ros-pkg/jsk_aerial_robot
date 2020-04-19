@@ -2,6 +2,9 @@
 Changelog for package spinal_ros_bridge
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 1.1.0 (2020-01-06)
 ------------------
 * Refactoring of IMU calibration system (`#357 <https://github.com/tongtybj/aerial_robot/issues/357>`_)

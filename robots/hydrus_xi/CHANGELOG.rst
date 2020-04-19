@@ -2,6 +2,10 @@
 Changelog for package hydrus_xi
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* GPS latitude/longitude waypoint (`#370 <https://github.com/tongtybj/aerial_robot/issues/370>`_)
+
 1.1.0 (2020-01-06)
 ------------------
 * Implementation for tilted Hydrus model (`#363 <https://github.com/tongtybj/aerial_robot/issues/363>`_)

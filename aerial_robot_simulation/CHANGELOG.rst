@@ -2,6 +2,10 @@
 Changelog for package aerial_robot_simulation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* GPS latitude/longitude waypoint (`#370 <https://github.com/tongtybj/aerial_robot/issues/370>`_)
+
 1.1.0 (2020-01-06)
 ------------------
 * Support for ros melodic distribution (`#309 <https://github.com/tongtybj/aerial_robot/issues/309>`_)

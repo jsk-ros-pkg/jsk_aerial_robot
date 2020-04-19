@@ -2,6 +2,23 @@
 Changelog for package aerial_robot_base
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Make magnetic declination reconfigurable and also extend GPS function `#395 <https://github.com/tongtybj/aerial_robot/issues/395>`_ from tongtybj/mag_calibration
+* Make the transport hint (tcp/udp) of joy ros message reconfigurable from rosparam (`#389 <https://github.com/tongtybj/aerial_robot/issues/389>`_)
+* Augument the state publish from GPS, including UTC time, fix status, accuracy of horizontal position and velocity, but reserve it right now and use the compact message type.
+* Refine GPS waypoint navigation in final convergence phase (`#379 <https://github.com/tongtybj/aerial_robot/issues/379>`_)
+* Reduce the publish rate of joy stick (`#382 <https://github.com/tongtybj/aerial_robot/issues/382>`_)
+* Fix bug: block gps waypoint when doing force attitude control (`#381 <https://github.com/tongtybj/aerial_robot/issues/381>`_)
+* Refine the rosbag record script (`#380 <https://github.com/tongtybj/aerial_robot/issues/380>`_)
+* Make the altitude control in landing phase safer (`#378 <https://github.com/tongtybj/aerial_robot/issues/378>`_)
+* Refactor altitude estimation related to vo and range sensor (`#376 <https://github.com/tongtybj/aerial_robot/issues/376>`_)
+* Change GPS location variable type (`#374 <https://github.com/tongtybj/aerial_robot/issues/374>`_)
+* GPS latitude/longitude waypoint (`#370 <https://github.com/tongtybj/aerial_robot/issues/370>`_)
+* Refactor several functions about teleop (`#367 <https://github.com/tongtybj/aerial_robot/issues/367>`_)
+* Fix bug: remove the wrong assignment of target_throttle to ros message (`#366 <https://github.com/tongtybj/aerial_robot/issues/366>`_)
+* Publish flight_state to provide the current state (`#365 <https://github.com/tongtybj/aerial_robot/issues/365>`_)
+
 1.1.0 (2020-01-06)
 ------------------
 * Implementation for tilted Hydrus model (`#363 <https://github.com/tongtybj/aerial_robot/issues/363>`_)

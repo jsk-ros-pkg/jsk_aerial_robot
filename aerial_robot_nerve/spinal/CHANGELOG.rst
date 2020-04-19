@@ -2,6 +2,14 @@
 Changelog for package spinal
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Make the magnetic declination configurable from ros and rqt_qui, and augument the state publish from GPS. (`#395 <https://github.com/tongtybj/aerial_robot/issues/395>`_)
+* Abolish the tranformation calculation from ellipsoid to sphere in magnetometer calibration (`#372 <https://github.com/tongtybj/aerial_robot/issues/372>`_)
+* Change GPS location variable type (`#374 <https://github.com/tongtybj/aerial_robot/issues/374>`_)
+* Increase the waiting time for the external magnetometer (Ublox) to start (`#368 <https://github.com/tongtybj/aerial_robot/issues/368>`_)
+* Publish flight_state to provide the current state (`#365 <https://github.com/tongtybj/aerial_robot/issues/365>`_)
+
 1.1.0 (2020-01-06)
 ------------------
 * Improve pwm saturation measures (`#362 <https://github.com/tongtybj/aerial_robot/issues/362>`_)

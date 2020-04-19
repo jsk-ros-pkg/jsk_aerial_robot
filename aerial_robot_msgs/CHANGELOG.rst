@@ -2,6 +2,11 @@
 Changelog for package aerial_robot_msgs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Change GPS location variable type (`#374 <https://github.com/tongtybj/aerial_robot/issues/374>`_)
+* GPS latitude/longitude waypoint (`#370 <https://github.com/tongtybj/aerial_robot/issues/370>`_)
+
 1.1.0 (2020-01-06)
 ------------------
 * Add hydrus_xi (full_acutated model) model (`#340 <https://github.com/tongtybj/aerial_robot/issues/340>`_)

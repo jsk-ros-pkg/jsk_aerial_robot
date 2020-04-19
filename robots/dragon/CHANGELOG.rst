@@ -2,6 +2,13 @@
 Changelog for package dragon
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Modify README.md of dragon (`#394 <https://github.com/tongtybj/aerial_robot/issues/394>`_)
+* Make the altitude control in landing phase safer (`#378 <https://github.com/tongtybj/aerial_robot/issues/378>`_)
+* GPS latitude/longitude waypoint (`#370 <https://github.com/tongtybj/aerial_robot/issues/370>`_)
+
+
 1.1.0 (2020-01-06)
 ------------------
 * Implementation for tilted Hydrus model (`#363 <https://github.com/tongtybj/aerial_robot/issues/363>`_)
