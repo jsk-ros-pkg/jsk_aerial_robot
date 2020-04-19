@@ -2,7 +2,7 @@
 /*********************************************************************
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2020, JSK Lab
+ *  Copyright (c) 2019, JSK Lab
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -33,26 +33,19 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 
-#pragma once
+#pragma
 
-#include <hydrus/transform_control.h>
-#include <hydrus/tilted_robot_model.h>
+#include <Eigen/Dense>
+#include <Eigen/Eigenvalues>
+#include <Eigen/LU>
+#include <iostream>
 
-class TiltedTransformController : public TransformController
+#define RED_MESSAGE "\033[31m "
+#define YELLOW_MESSAGE "\033[33m "
+#define RESET_COLOR "\033[m "
+
+namespace control_utils
 {
-public:
-  TiltedTransformController(ros::NodeHandle nh, ros::NodeHandle nh_private, std::unique_ptr<HydrusTiltedRobotModel> robot_model = std::make_unique<HydrusTiltedRobotModel>(true));
-  virtual ~TiltedTransformController() = default;
-protected:
-  //protected functions
-  HydrusTiltedRobotModel& getRobotModel() const { return static_cast<HydrusTiltedRobotModel&>(TransformController::getRobotModel()); }
-
-  ros::Publisher desired_orientation_pub_;
-
-  double trans_constraint_weight_;
-  double att_control_weight_;
-
-  bool optimalGain() override;
-  void param2controller() override;
-  void cfgLQICallback(hydrus::LQIConfig &config, uint32_t level) override;
-};
+  /* Continuous-time Algebraic Riccati Equation */
+  bool care(const Eigen::MatrixXd& A, const Eigen::MatrixXd& B, const Eigen::MatrixXd& R, const Eigen::MatrixXd& Q, Eigen::MatrixXd& P, Eigen::MatrixXd& K);
+}

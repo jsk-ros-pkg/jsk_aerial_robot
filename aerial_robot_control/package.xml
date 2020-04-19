@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>aerial_robot_control</name>
+  <version>1.1.1</version>
+  <description>The aerial_robot_control package</description>
+
+  <maintainer email="chou@jsk.imi.i.u-tokyo.ac.jp">Moju Zhao</maintainer>
+
+  <license>BSD</license>
+
+  <author email="chou@jsk.imi.i.u-tokyo.ac.jp">Moju Zhao</author>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <depend>aerial_robot_model</depend>
+  <depend>aerial_robot_msgs</depend>
+  <depend>dynamic_reconfigure</depend>
+  <depend>geometry_msgs</depend>
+  <depend>pluginlib</depend>
+  <depend>roscpp</depend>
+  <depend>spinal</depend>
+  <depend>std_msgs</depend>
+  <depend>tf</depend>
+
+</package>

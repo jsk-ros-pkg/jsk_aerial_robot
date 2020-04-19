@@ -11,11 +11,13 @@
 
   <buildtool_depend>catkin</buildtool_depend>
 
+  <build_depend>aerial_robot_control</build_depend>
   <build_depend>roscpp</build_depend>
   <build_depend>hydrus</build_depend>
   <build_depend>cmake_modules</build_depend>
   <build_depend>pluginlib</build_depend>
 
+  <run_depend>aerial_robot_control</run_depend>
   <run_depend>roscpp</run_depend>
   <run_depend>hydrus</run_depend>
   <run_depend>pluginlib</run_depend>
