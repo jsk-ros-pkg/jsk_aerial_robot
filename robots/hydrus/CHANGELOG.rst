@@ -2,8 +2,8 @@
 Changelog for package hydrus
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.1.1 (2020-04-19)
+------------------
 * Refine the rosbag record script (`#380 <https://github.com/tongtybj/aerial_robot/issues/380>`_)
 * Make the altitude control in landing phase safer (`#378 <https://github.com/tongtybj/aerial_robot/issues/378>`_)
 * Refactor altitude estimation related to vo and range sensor (`#376 <https://github.com/tongtybj/aerial_robot/issues/376>`_)

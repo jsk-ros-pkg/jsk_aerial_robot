@@ -2,8 +2,8 @@
 Changelog for package spinal
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.1.1 (2020-04-19)
+------------------
 * Make the magnetic declination configurable from ros and rqt_qui, and augument the state publish from GPS. (`#395 <https://github.com/tongtybj/aerial_robot/issues/395>`_)
 * Abolish the tranformation calculation from ellipsoid to sphere in magnetometer calibration (`#372 <https://github.com/tongtybj/aerial_robot/issues/372>`_)
 * Change GPS location variable type (`#374 <https://github.com/tongtybj/aerial_robot/issues/374>`_)

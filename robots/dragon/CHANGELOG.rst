@@ -2,8 +2,8 @@
 Changelog for package dragon
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.1.1 (2020-04-19)
+------------------
 * Modify README.md of dragon (`#394 <https://github.com/tongtybj/aerial_robot/issues/394>`_)
 * Make the altitude control in landing phase safer (`#378 <https://github.com/tongtybj/aerial_robot/issues/378>`_)
 * GPS latitude/longitude waypoint (`#370 <https://github.com/tongtybj/aerial_robot/issues/370>`_)

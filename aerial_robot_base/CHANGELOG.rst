@@ -2,8 +2,8 @@
 Changelog for package aerial_robot_base
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.1.1 (2020-04-19)
+------------------
 * Make magnetic declination reconfigurable and also extend GPS function `#395 <https://github.com/tongtybj/aerial_robot/issues/395>`_ from tongtybj/mag_calibration
 * Make the transport hint (tcp/udp) of joy ros message reconfigurable from rosparam (`#389 <https://github.com/tongtybj/aerial_robot/issues/389>`_)
 * Augument the state publish from GPS, including UTC time, fix status, accuracy of horizontal position and velocity, but reserve it right now and use the compact message type.

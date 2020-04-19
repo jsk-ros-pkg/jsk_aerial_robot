@@ -2,8 +2,8 @@
 Changelog for package aerial_robot_msgs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.1.1 (2020-04-19)
+------------------
 * Change GPS location variable type (`#374 <https://github.com/tongtybj/aerial_robot/issues/374>`_)
 * GPS latitude/longitude waypoint (`#370 <https://github.com/tongtybj/aerial_robot/issues/370>`_)
 
