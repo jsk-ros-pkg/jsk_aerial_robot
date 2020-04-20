@@ -267,10 +267,6 @@ private:
   std::vector< IMU* > imu_list_;
   GPS* gps_;
   std::vector< float > imu_weights_;
-#else
-  ap::Vector3f acc_, mag_, gyro_;
-  tf::Matrix3x3 tf_desired_coord_;
-  uint32_t HAL_GetTick(){ return ros::Time::now().toSec() * 1000; }
 
   /* mag declination */
   ros::ServiceServer<spinal::MagDeclination::Request, spinal::MagDeclination::Response, AttitudeEstimate> mag_declination_srv_;
@@ -298,6 +294,11 @@ private:
         }
       }
   }
+
+#else
+  ap::Vector3f acc_, mag_, gyro_;
+  tf::Matrix3x3 tf_desired_coord_;
+  uint32_t HAL_GetTick(){ return ros::Time::now().toSec() * 1000; }
 #endif
 
   uint32_t last_imu_pub_time_, last_attitude_pub_time_;

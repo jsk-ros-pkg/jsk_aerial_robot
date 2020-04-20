@@ -111,6 +111,7 @@ public:
   ap::Vector3f getMag(uint8_t frame){return mag_[frame];}
   ap::Matrix3f getDesiredCoord() {return r_;}
 
+#ifndef SIMULATION
   bool getMagDecValid() { return mag_dec_valid_; }
   float getMagDeclination() { return mag_declination_;}
   void setMagDeclination(float mag_dec)
@@ -120,6 +121,7 @@ public:
     FlashMemory::write();
     mag_dec_valid_ = true;
   }
+#endif
 
 protected:
   std::array<ap::Vector3f, 2> acc_, gyro_, mag_, gyro_smooth_;
