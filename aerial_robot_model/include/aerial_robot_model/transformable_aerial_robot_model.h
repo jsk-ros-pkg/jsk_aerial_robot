@@ -69,12 +69,16 @@ namespace aerial_robot_model {
     template<class T> T forwardKinematics(std::string link, const sensor_msgs::JointState& state) const;
     std::map<std::string, KDL::Frame> fullForwardKinematics(const KDL::JntArray& joint_positions) {return fullForwardKinematicsImpl(joint_positions); }
     std::map<std::string, KDL::Frame> fullForwardKinematics(const sensor_msgs::JointState& state) {return fullForwardKinematics(jointMsgToKdl(state)); }
-    std::map<std::string, uint32_t> getActuatorMap() const { return actuator_map_; }
-    std::vector<std::string> getLinkJointNames() const { return link_joint_names_; }
-    std::vector<int> getLinkJointIndex() const { return link_joint_index_; }
-    std::vector<double> getLinkJointLowerLimits() const { return link_joint_lower_limits_; }
-    std::vector<double> getLinkJointUpperLimits() const { return link_joint_upper_limits_; }
-    std::map<std::string, KDL::Frame> getSegmentsTf() const { return seg_tf_map_; }
+    const std::map<std::string, uint32_t>& getJointIndexMap() const { return joint_index_map_; }
+    const std::map<std::string, std::vector<std::string> >& getJointSegmentMap() const { return joint_segment_map_; }
+    const std::map<std::string, int>& getJointHierachy() const {return joint_hierachy_;}
+    const std::vector<std::string>& getJointNames() const { return joint_names_; }
+    const std::vector<int>& getJointIndices() const { return joint_indices_; }
+    const std::vector<std::string>& getLinkJointNames() const { return link_joint_names_; }
+    const std::vector<int>& getLinkJointIndices() const { return link_joint_indices_; }
+    const std::vector<double>& getLinkJointLowerLimits() const { return link_joint_lower_limits_; }
+    const std::vector<double>& getLinkJointUpperLimits() const { return link_joint_upper_limits_; }
+    const std::map<std::string, KDL::Frame>& getSegmentsTf() const { return seg_tf_map_; }
     std::string getBaselinkName() const { return baselink_; }
     void setBaselinkName(const std::string baselink) { baselink_ = baselink; }
     template<class T> T getCog() const;
@@ -84,8 +88,9 @@ namespace aerial_robot_model {
     std::map<std::string, KDL::RigidBodyInertia> getInertiaMap() const { return inertia_map_; }
     double getLinkLength() const { return link_length_; }
     double getMass() const { return mass_; }
-    std::map<int, int> getRotorDirection() { return rotor_direction_; }
+    const std::map<int, int>& getRotorDirection() { return rotor_direction_; }
     std::string getRootFrameName() const { return GetTreeElementSegment(tree_.getRootSegment()->second).getName(); }
+    int getJointNum() const { return joint_num_; }
     int getRotorNum() const { return rotor_num_; }
     template<class T> std::vector<T> getRotorsNormalFromCog() const;
     template<class T> std::vector<T> getRotorsOriginFromCog() const;
@@ -104,10 +109,16 @@ namespace aerial_robot_model {
     static TiXmlDocument getRobotModelXml(const std::string& param);
   private:
     //private attributes
-    std::map<std::string, uint32_t> actuator_map_; // regarding to KDL tree
+    std::map<std::string, uint32_t> joint_index_map_; // index in KDL::JntArray
+    std::map<std::string, std::vector<std::string> > joint_segment_map_;
+    std::map<std::string, int> joint_hierachy_;
+
+    std::vector<std::string> joint_names_;
+    std::vector<int> joint_indices_; // index in KDL::JntArray
     std::vector<std::string> link_joint_names_;
+    std::vector<int> link_joint_indices_; // index in KDL::JntArray
     std::vector<double> link_joint_lower_limits_, link_joint_upper_limits_;
-    std::vector<int> link_joint_index_;
+
 
     std::string baselink_;
     KDL::Frame cog_;
@@ -121,6 +132,7 @@ namespace aerial_robot_model {
     double mass_;
     urdf::Model model_;
     std::map<int, int> rotor_direction_;
+    int joint_num_;
     int rotor_num_;
     std::vector<KDL::Vector> rotors_origin_from_cog_;
     std::vector<KDL::Vector> rotors_normal_from_cog_;
@@ -144,6 +156,8 @@ namespace aerial_robot_model {
     std::map<std::string, KDL::Frame> fullForwardKinematicsImpl(const KDL::JntArray& joint_positions);
     void getParamFromRos();
     KDL::RigidBodyInertia inertialSetup(const KDL::TreeElement& tree_element);
+    void makeJointSegmentMap();
+    void jointSegmentSetupRecursive(const KDL::TreeElement& tree_element, std::vector<std::string> current_joints);
     void resolveLinkLength();
   };
 

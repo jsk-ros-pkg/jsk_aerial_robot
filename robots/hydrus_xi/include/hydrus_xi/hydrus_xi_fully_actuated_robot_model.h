@@ -94,15 +94,15 @@ public:
   }
 
   KDL::JntArray convertEigenToKDL(const Eigen::VectorXd& joint_vector) {
+    const auto& joint_indices = getJointIndices();
     KDL::JntArray joint_positions(getTree().getNrOfJoints());
-    for (unsigned int i = 0; i < joint_indices_.size(); ++i) {
-      joint_positions(joint_indices_[i]) = joint_vector(i);
+    for (unsigned int i = 0; i < joint_indices.size(); ++i) {
+      joint_positions(joint_indices.at(i)) = joint_vector(i);
     }
     return joint_positions;
   }
 
 private:
-  int joint_num_;
   Eigen::VectorXd gravity_;
   Eigen::VectorXd gravity_3d_;
   double epsilon_;
@@ -120,16 +120,9 @@ private:
   Eigen::MatrixXd t_min_jacobian_; //min torque
   Eigen::VectorXd joint_torque_;
   Eigen::MatrixXd joint_torque_jacobian_;
-  std::vector<std::string> joint_names_;
-  std::map<std::string, int> joint_hierachy_;
-  std::vector<int> joint_indices_; //index in KDL::JntArray
   Eigen::VectorXd static_thrust_;
 
-  std::map<std::string, std::vector<std::string> > joint_segment_map_;
-  void makeJointThrustMap();
   void calcCOGJacobian();
-  void makeJointSegmentMap();
-  void jointSegmentSetupRecursive(const KDL::TreeElement& tree_element, std::vector<std::string> current_joints);
   void getParamFromRos();
 
   Eigen::Matrix3d skew(const Eigen::Vector3d& vec);

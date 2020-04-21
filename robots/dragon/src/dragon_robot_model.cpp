@@ -68,7 +68,7 @@ void DragonRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_positions
   fk_solver.JntToCart(joint_positions, f_baselink, getBaselinkName());
   const KDL::Rotation cog_frame = f_baselink.M * getCogDesireOrientation<KDL::Rotation>().Inverse();
 
-  const auto actuator_map = getActuatorMap();
+  const auto joint_index_map = getJointIndexMap();
   gimbal_processed_joint_ = joint_positions;
   /* link based on COG */
   for(int i = 0; i < getRotorNum(); ++i)
@@ -81,8 +81,8 @@ void DragonRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_positions
       double r, p, y;
       links_rotation_from_cog_[i].GetRPY(r, p, y);
 
-      gimbal_processed_joint_(actuator_map.find(std::string("gimbal") + s + std::string("_roll"))->second) = -r;
-      gimbal_processed_joint_(actuator_map.find(std::string("gimbal") + s + std::string("_pitch"))->second) = -p;
+      gimbal_processed_joint_(joint_index_map.find(std::string("gimbal") + s + std::string("_roll"))->second) = -r;
+      gimbal_processed_joint_(joint_index_map.find(std::string("gimbal") + s + std::string("_pitch"))->second) = -p;
 
       gimbal_nominal_angles_[i * 2] = -r;
       gimbal_nominal_angles_[i * 2 + 1] = -p;

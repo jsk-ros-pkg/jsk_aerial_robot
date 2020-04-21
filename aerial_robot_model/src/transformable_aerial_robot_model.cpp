@@ -7,6 +7,7 @@ namespace aerial_robot_model {
     baselink_("fc"),
     thrust_link_("thrust"),
     rotor_num_(0)
+    joint_num_(0)
   {
     /* robot model */
     if (!model_.initParam("robot_description"))
@@ -59,6 +60,7 @@ namespace aerial_robot_model {
       }
 
     inertialSetup(tree_.getRootSegment()->second);
+    makeJointSegmentMap();
     resolveLinkLength();
 
     rotors_origin_from_cog_.resize(rotor_num_);
@@ -161,14 +163,15 @@ namespace aerial_robot_model {
           {
             /* create a new inertia base link */
             inertia_map_.insert(std::make_pair(current_seg.getName(), current_seg_inertia));
-            actuator_map_.insert(std::make_pair(current_seg.getJoint().getName(), tree_element.q_nr));
+            joint_index_map_.insert(std::make_pair(current_seg.getJoint().getName(), tree_element.q_nr));
+            joint_names_.push_back(current_seg.getJoint().getName());
+            joint_indices_.push_back(tree_element.q_nr);
 
             /* extract link joint */
-            if(current_seg.getJoint().getName().find("joint") == 0 &&
-               current_seg.getJoint().getType() != KDL::Joint::JointType::None)
+            if(current_seg.getJoint().getName().find("joint") == 0)
               {
                 link_joint_names_.push_back(current_seg.getJoint().getName());
-                link_joint_index_.push_back(tree_element.q_nr);
+                link_joint_indices_.push_back(tree_element.q_nr);
               }
 
             if(verbose_) ROS_WARN("Add new inertia base link: %s", current_seg.getName().c_str());
@@ -208,13 +211,65 @@ namespace aerial_robot_model {
     return current_seg_inertia;
   }
 
+  void RobotModel::makeJointSegmentMap()
+  {
+    joint_segment_map_.clear();
+    for (const auto joint_index : joint_index_map_) {
+      std::vector<std::string> empty_vec;
+      joint_segment_map_[joint_index.first] = empty_vec;
+    }
+
+    std::vector<std::string> current_joints;
+    jointSegmentSetupRecursive(getTree().getRootSegment()->second, current_joints);
+
+    for(const auto joint_seg_map : joint_segment_map_)
+      {
+        std::cout << joint_seg_map.first << std::endl;
+        for(const auto seg: joint_seg_map.second)
+          std::cout << "  " << seg << std::endl;
+      }
+    for(const auto joint_hierachy : joint_hierachy_)
+      std::cout << joint_hierachy.first << ", " << joint_hierachy.second << std::endl;
+  }
+
+  void RobotModel::jointSegmentSetupRecursive(const KDL::TreeElement& tree_element, std::vector<std::string> current_joints)
+  {
+    const auto inertia_map = getInertiaMap();
+    const KDL::Segment current_seg = GetTreeElementSegment(tree_element);
+    bool add_joint_flag = false;
+
+    // if this segment has a real joint except rotor
+    if (current_seg.getJoint().getType() != KDL::Joint::None && current_seg.getJoint().getName().find("rotor") == std::string::npos) {
+      std::string focused_joint = current_seg.getJoint().getName();
+      joint_hierachy_.insert(std::make_pair(focused_joint, current_joints.size()));
+      current_joints.push_back(focused_joint);
+      bool add_joint_flag = true;
+      joint_num_++;
+    }
+
+    // if this segment is a real segment (= not having fixed joint)
+    if (inertia_map.find(current_seg.getName()) != inertia_map.end() || current_seg.getName().find("thrust") != std::string::npos) {
+      for (const auto& cj : current_joints) {
+        joint_segment_map_.at(cj).push_back(current_seg.getName());
+      }
+    }
+
+    // recursive process
+    for (const auto& elem: GetTreeElementChildren(tree_element)) {
+      jointSegmentSetupRecursive(elem->second, current_joints);
+    }
+
+    return;
+  }
+
+
   KDL::JntArray RobotModel::jointMsgToKdl(const sensor_msgs::JointState& state) const
   {
     KDL::JntArray joint_positions(tree_.getNrOfJoints());
     for(unsigned int i = 0; i < state.position.size(); ++i)
       {
-        auto itr = actuator_map_.find(state.name[i]);
-        if(itr != actuator_map_.end()) joint_positions(itr->second) = state.position[i];
+        auto itr = joint_index_map_.find(state.name[i]);
+        if(itr != joint_index_map_.end()) joint_positions(itr->second) = state.position[i];
       }
     return joint_positions;
   }
@@ -222,9 +277,9 @@ namespace aerial_robot_model {
   sensor_msgs::JointState RobotModel::kdlJointToMsg(const KDL::JntArray& joint_positions) const
   {
     sensor_msgs::JointState state;
-    state.name.reserve(actuator_map_.size());
-    state.position.reserve(actuator_map_.size());
-    for(const auto& actuator : actuator_map_)
+    state.name.reserve(joint_index_map_.size());
+    state.position.reserve(joint_index_map_.size());
+    for(const auto& actuator : joint_index_map_)
       {
         state.name.push_back(actuator.first);
         state.position.push_back(joint_positions(actuator.second));

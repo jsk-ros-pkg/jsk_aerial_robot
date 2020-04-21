@@ -8,25 +8,24 @@ HydrusXiFullyActuatedRobotModel::HydrusXiFullyActuatedRobotModel(bool init_with_
     getParamFromRos();
   }
 
-  joint_num_ = 0;
-  makeJointSegmentMap();
   const int rotor_num = getRotorNum();
+  const int joint_num = getJointNum();
   u_jacobian_.resize(rotor_num);
   v_jacobian_.resize(rotor_num);
   p_jacobian_.resize(rotor_num);
-  q_jacobian_.resize(joint_num_);
-  cog_jacobian_.resize(3, joint_num_);
+  q_jacobian_.resize(joint_num);
+  cog_jacobian_.resize(3, joint_num);
   gravity_.resize(6);
   gravity_ <<  0, 0, 9.80665, 0, 0, 0;
   gravity_3d_.resize(3);
   gravity_3d_ << 0, 0, 9.80665;
-  lambda_jacobian_.resize(rotor_num, joint_num_);
+  lambda_jacobian_.resize(rotor_num, joint_num);
   f_min_ij_.resize(rotor_num * (rotor_num - 1));
   t_min_ij_.resize(rotor_num * (rotor_num - 1));
-  f_min_jacobian_.resize(rotor_num * (rotor_num - 1), joint_num_);
-  t_min_jacobian_.resize(rotor_num * (rotor_num - 1), joint_num_);
-  joint_torque_.resize(joint_num_);
-  joint_torque_jacobian_.resize(joint_num_, joint_num_);
+  f_min_jacobian_.resize(rotor_num * (rotor_num - 1), joint_num);
+  t_min_jacobian_.resize(rotor_num * (rotor_num - 1), joint_num);
+  joint_torque_.resize(joint_num);
+  joint_torque_jacobian_.resize(joint_num, joint_num);
   static_thrust_.resize(rotor_num);
 
   u_triple_product_jacobian_.resize(rotor_num);
@@ -35,7 +34,7 @@ HydrusXiFullyActuatedRobotModel::HydrusXiFullyActuatedRobotModel(bool init_with_
     for (auto& k : j) {
       k.resize(rotor_num);
       for (auto& vec : k) {
-        vec.resize(joint_num_);
+        vec.resize(joint_num);
       }
     }
   }
@@ -46,14 +45,9 @@ HydrusXiFullyActuatedRobotModel::HydrusXiFullyActuatedRobotModel(bool init_with_
     for (auto& k : j) {
       k.resize(rotor_num);
       for (auto& vec : k) {
-        vec.resize(joint_num_);
+        vec.resize(joint_num);
       }
     }
-  }
-
-  for (const auto& joint_thrust : joint_segment_map_) {
-    joint_names_.push_back(joint_thrust.first);
-    joint_indices_.push_back(getActuatorMap().at(joint_thrust.first));
   }
 }
 
@@ -70,9 +64,10 @@ void HydrusXiFullyActuatedRobotModel::calcCOGJacobian()
   const auto& segment_map = getTree().getSegments();
   const auto& seg_frames = getSegmentsTf();
   const auto& inertia_map = getInertiaMap();
+  const auto& joint_segment_map = getJointSegmentMap();
 
   int col_index = 0;
-  for (const auto& joint_segment : joint_segment_map_) {
+  for (const auto& joint_segment : joint_segment_map) {
     std::string joint_child_segment_name = joint_segment.second.at(0);
     KDL::Segment joint_child_segment = GetTreeElementSegment(segment_map.at(joint_child_segment_name));
     KDL::Vector a = seg_frames.at(joint_child_segment_name).M * joint_child_segment.getJoint().JointAxis();
@@ -100,6 +95,7 @@ void HydrusXiFullyActuatedRobotModel::updateJacobians(const KDL::JntArray& joint
   updateRobotModel(joint_positions);
   calcCOGJacobian();
 
+  const int joint_num = getJointNum();
   const int rotor_num = getRotorNum();
   const auto& u = getRotorsNormalFromCog<Eigen::Vector3d>();
   const auto& p = getRotorsOriginFromCog<Eigen::Vector3d>();
@@ -122,7 +118,7 @@ void HydrusXiFullyActuatedRobotModel::updateJacobians(const KDL::JntArray& joint
   }
 
   //calc jacobian of q(matrix), lambda(thrust value)
-  for (int i = 0; i < joint_num_; ++i) {
+  for (int i = 0; i < joint_num; ++i) {
     Eigen::MatrixXd q_jacobi_i(6, rotor_num);
     for (int j = 0; j < rotor_num; ++j) {
       q_jacobi_i.block(0, j, 3, 1) = u_jacobian_.at(j).col(i);
@@ -138,8 +134,8 @@ void HydrusXiFullyActuatedRobotModel::updateJacobians(const KDL::JntArray& joint
     for (int j = 0; j < rotor_num; ++j) {
       double f_min = 0.0;
       double t_min = 0.0;
-      Eigen::VectorXd d_f_min = Eigen::VectorXd::Zero(joint_num_);
-      Eigen::VectorXd d_t_min = Eigen::VectorXd::Zero(joint_num_);
+      Eigen::VectorXd d_f_min = Eigen::VectorXd::Zero(joint_num);
+      Eigen::VectorXd d_t_min = Eigen::VectorXd::Zero(joint_num);
       const Eigen::Vector3d& u_i = u.at(i);
       const Eigen::Vector3d& u_j = u.at(j);
       const Eigen::Vector3d uixuj = u_i.cross(u_j);
@@ -149,14 +145,14 @@ void HydrusXiFullyActuatedRobotModel::updateJacobians(const KDL::JntArray& joint
 
       for (int k = 0; k < rotor_num; ++k) {
         if (i == j || j == k || k == i) {
-          u_triple_product_jacobian_.at(i).at(j).at(k) = Eigen::VectorXd::Zero(joint_num_);
-          v_triple_product_jacobian_.at(i).at(j).at(k) = Eigen::VectorXd::Zero(joint_num_);
+          u_triple_product_jacobian_.at(i).at(j).at(k) = Eigen::VectorXd::Zero(joint_num);
+          v_triple_product_jacobian_.at(i).at(j).at(k) = Eigen::VectorXd::Zero(joint_num);
         } else {
           const Eigen::Vector3d& u_k = u.at(k);
           const Eigen::Vector3d& v_k = v.at(k);
           const double u_triple_product = calcTripleProduct(u_i, u_j, u_k);
           const double v_triple_product = calcTripleProduct(v_i, v_j, v_k);
-          for (int l = 0; l < joint_num_; ++l) {
+          for (int l = 0; l < joint_num; ++l) {
             {
               const Eigen::Vector3d& d_u_i = u_jacobian_.at(i).col(l);
               const Eigen::Vector3d& d_u_j = u_jacobian_.at(j).col(l);
@@ -185,8 +181,8 @@ void HydrusXiFullyActuatedRobotModel::updateJacobians(const KDL::JntArray& joint
 
       if (i != j) {
         double uixuj_fg = uixuj.dot(fg)/uixuj.norm();
-        Eigen::VectorXd d_uixuj_fg(joint_num_);
-        for (int l = 0; l < joint_num_; ++l) {
+        Eigen::VectorXd d_uixuj_fg(joint_num);
+        for (int l = 0; l < joint_num; ++l) {
           const Eigen::Vector3d& d_u_i = u_jacobian_.at(i).col(l);
           const Eigen::Vector3d& d_u_j = u_jacobian_.at(j).col(l);
           const Eigen::Vector3d d_uixuj = u_i.cross(d_u_j) + d_u_i.cross(u_j);
@@ -203,8 +199,8 @@ void HydrusXiFullyActuatedRobotModel::updateJacobians(const KDL::JntArray& joint
 
   //calc jacobian of joint torque
   static_thrust_ = calcStaticThrust(q_inv);
-  joint_torque_ = Eigen::VectorXd::Zero(joint_num_);
-  joint_torque_jacobian_ = Eigen::MatrixXd::Zero(joint_num_, joint_num_);
+  joint_torque_ = Eigen::VectorXd::Zero(joint_num);
+  joint_torque_jacobian_ = Eigen::MatrixXd::Zero(joint_num, joint_num);
 
   for (int i = 0; i < rotor_num; ++i) {
     Eigen::VectorXd wrench(6);
@@ -215,15 +211,15 @@ void HydrusXiFullyActuatedRobotModel::updateJacobians(const KDL::JntArray& joint
 
     joint_torque_ -= thrust_coord_jacobians.at(i).transpose() * wrench;
 
-    for (int j = 0; j < joint_num_; ++j) {
-      Eigen::MatrixXd hessian(6, joint_num_);
-      for (int k = 0; k < joint_num_; ++k) {
+    for (int j = 0; j < joint_num; ++j) {
+      Eigen::MatrixXd hessian(6, joint_num);
+      for (int k = 0; k < joint_num; ++k) {
         hessian.col(k) = getSecondDerivative(thrust_name, j, k);
       }
       joint_torque_jacobian_.col(j) += hessian.transpose() * wrench;
     }
 
-    Eigen::MatrixXd wrench_jacobian(6, joint_num_);
+    Eigen::MatrixXd wrench_jacobian(6, joint_num);
     wrench_jacobian.topRows(3) = u_jacobian_.at(i) * static_thrust_(i);
     wrench_jacobian.bottomRows(3) = m_f_rate_ * sigma.at(i) * u_jacobian_.at(i);
 
@@ -253,15 +249,18 @@ Eigen::VectorXd HydrusXiFullyActuatedRobotModel::getSecondDerivative(std::string
   const auto& segment_map = getTree().getSegments();
   const auto& seg_frames = getSegmentsTf();
   const auto& inertia_map = getInertiaMap();
+  const auto& joint_hierachy = getJointHierachy();
+  const auto& joint_segment_map = getJointSegmentMap();
+  const auto& joint_names = getJointNames();
 
-  std::string joint_i_name = joint_names_.at(joint_i);
-  std::string joint_j_name = joint_names_.at(joint_j);
-  if (joint_hierachy_.at(joint_i_name) > joint_hierachy_.at(joint_j_name)) {
+  std::string joint_i_name = joint_names.at(joint_i);
+  std::string joint_j_name = joint_names.at(joint_j);
+  if (joint_hierachy.at(joint_i_name) > joint_hierachy.at(joint_j_name)) {
     std::swap(joint_i_name, joint_j_name);
   }
 
-  std::vector<std::string> joint_i_child_segments = joint_segment_map_.at(joint_i_name);
-  std::vector<std::string> joint_j_child_segments = joint_segment_map_.at(joint_j_name);
+  std::vector<std::string> joint_i_child_segments = joint_segment_map.at(joint_i_name);
+  std::vector<std::string> joint_j_child_segments = joint_segment_map.at(joint_j_name);
 
   Eigen::Vector3d p_r = aerial_robot_model::kdlToEigen(seg_frames.at(segment_name).p);
 
@@ -285,12 +284,13 @@ Eigen::VectorXd HydrusXiFullyActuatedRobotModel::getSecondDerivative(std::string
 
 inline Eigen::MatrixXd HydrusXiFullyActuatedRobotModel::convertJacobian(const Eigen::MatrixXd& in)
 {
-  Eigen::MatrixXd out(6, joint_num_);
-  const auto& actuator_map = getActuatorMap();
+  Eigen::MatrixXd out(6, getJointNum());
+  const auto& joint_index_map = getJointIndexMap();
+  const auto& joint_segment_map = getJointSegmentMap();
 
   int col_index = 0;
-  for (const auto& joint_segment : joint_segment_map_) {
-    out.col(col_index) = in.col(actuator_map.at(joint_segment.first));
+  for (const auto& joint_segment : joint_segment_map) {
+    out.col(col_index) = in.col(joint_index_map.at(joint_segment.first));
     col_index++;
   }
 
@@ -453,60 +453,15 @@ Eigen::MatrixXd HydrusXiFullyActuatedRobotModel::calcWrenchAllocationMatrix()
   return Q;
 }
 
-void HydrusXiFullyActuatedRobotModel::makeJointSegmentMap()
-{
-  joint_segment_map_.clear();
-  const auto actuator_map = getActuatorMap();
-  for (const auto actuator : actuator_map) {
-    std::vector<std::string> empty_vec;
-    joint_segment_map_[actuator.first] = empty_vec;
-  }
-
-  std::vector<std::string> current_joints;
-  jointSegmentSetupRecursive(getTree().getRootSegment()->second, current_joints);
-}
-
-void HydrusXiFullyActuatedRobotModel::jointSegmentSetupRecursive(const KDL::TreeElement& tree_element, std::vector<std::string> current_joints)
-{
-  const auto inertia_map = getInertiaMap();
-  const KDL::Segment current_seg = GetTreeElementSegment(tree_element);
-  bool add_joint_flag = false;
-
-  // if this segment has a real joint except rotor
-  if (current_seg.getJoint().getType() != KDL::Joint::None && current_seg.getJoint().getName().find("rotor") == std::string::npos) {
-    std::string focused_joint = current_seg.getJoint().getName();
-    joint_hierachy_.insert(std::make_pair(focused_joint, current_joints.size()));
-    current_joints.push_back(focused_joint);
-    bool add_joint_flag = true;
-    joint_num_++;
-  }
-
-  // if this segment is a real segment (= not having fixed joint)
-  if (inertia_map.find(current_seg.getName()) != inertia_map.end() || current_seg.getName().find("thrust") != std::string::npos) {
-    for (const auto& cj : current_joints) {
-      joint_segment_map_.at(cj).push_back(current_seg.getName());
-    }
-  }
-
-  // recursive process
-  for (const auto& elem: GetTreeElementChildren(tree_element)) {
-    jointSegmentSetupRecursive(elem->second, current_joints);
-  }
-
-  if (add_joint_flag) {
-    current_joints.pop_back();
-  }
-  return;
-}
-
 Eigen::VectorXd HydrusXiFullyActuatedRobotModel::calcJointTorque(const sensor_msgs::JointState& joint_state)
 {
   auto static_thrust = calcStaticThrust();
   KDL::JntArray joint_positions = jointMsgToKdl(joint_state);
   const auto& u = getRotorsNormalFromCog<Eigen::Vector3d>();
   const auto& sigma = getRotorDirection();
+  const int joint_num = getJointNum();
   const int rotor_num = getRotorNum();
-  Eigen::VectorXd joint_torque = Eigen::VectorXd::Zero(joint_num_);
+  Eigen::VectorXd joint_torque = Eigen::VectorXd::Zero(joint_num);
 
   for (int i = 0; i < rotor_num; ++i) {
     std::string seg_name = std::string("thrust") + std::to_string(i + 1);
