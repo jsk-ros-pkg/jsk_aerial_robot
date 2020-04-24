@@ -1,12 +1,12 @@
 #include <hydrus/hydrus_robot_model.h>
 
-HydrusRobotModel::HydrusRobotModel(bool init_with_rosparam, bool verbose, double stability_margin_thre, double p_det_thre, bool only_three_axis_mode):
+HydrusRobotModel::HydrusRobotModel(bool init_with_rosparam, bool verbose, double control_margin_thre, double p_det_thre, bool only_three_axis_mode):
   RobotModel(init_with_rosparam, verbose),
-  stability_margin_thre_(stability_margin_thre),
+  control_margin_thre_(control_margin_thre),
   p_det_thre_(p_det_thre),
   only_three_axis_mode_(only_three_axis_mode),
   p_det_(0),
-  stability_margin_(0)
+  control_margin_(0)
 {
   if (init_with_rosparam)
     {
@@ -24,11 +24,11 @@ void HydrusRobotModel::getParamFromRos()
 {
   ros::NodeHandle nhp("~");
   nhp.param("only_three_axis_mode", only_three_axis_mode_, false);
-  nhp.param("stability_margin_thre", stability_margin_thre_, 0.01);
+  nhp.param("control_margin_thre", control_margin_thre_, 0.01);
   nhp.param("p_determinant_thre", p_det_thre_, 1e-6);
 }
 
-bool HydrusRobotModel::modelling(bool verbose, bool control_verbose)
+void HydrusRobotModel::updateStatics(bool verbose)
 {
   const std::vector<Eigen::Vector3d> rotors_origin = getRotorsOriginFromCog<Eigen::Vector3d>();
   const std::vector<Eigen::Vector3d> rotors_normal = getRotorsNormalFromCog<Eigen::Vector3d>();
@@ -62,7 +62,7 @@ bool HydrusRobotModel::modelling(bool verbose, bool control_verbose)
   optimal_hovering_f_ = P_four_axis.transpose() * lamda;
   p_det_ = (P_four_axis * P_four_axis.transpose()).determinant();
 
-  if(control_verbose)
+  if(verbose)
     {
       std::cout << "P_:"  << std::endl << P_ << std::endl;
       std::cout << "P det:"  << std::endl << p_det_ << std::endl;
@@ -84,11 +84,10 @@ bool HydrusRobotModel::modelling(bool verbose, bool control_verbose)
       P_orig_pseudo_inverse_ = Eigen::MatrixXd::Zero(rotor_num, 4);
       P_orig_pseudo_inverse_.block(0, 0, rotor_num, 2) = P_dash_pseudo_inverse.block(0, 0, rotor_num, 2);
       P_orig_pseudo_inverse_.col(3) = P_dash_pseudo_inverse.col(2);
-      if(control_verbose)
+      if(verbose)
         std::cout << "P orig pseudo inverse for three axis mode:"  << std::endl << P_orig_pseudo_inverse_ << std::endl;
 
-      /* if we do the 4dof underactuated control */
-      if(!only_three_axis_mode_) return false;
+      if(!only_three_axis_mode_) ROS_WARN("change to three axis stable mode");
 
       Eigen::FullPivLU<Eigen::MatrixXd> solver((P_three_axis * P_three_axis.transpose()));
       Eigen::VectorXd lamda;
@@ -96,14 +95,9 @@ bool HydrusRobotModel::modelling(bool verbose, bool control_verbose)
       optimal_hovering_f_ = P_three_axis.transpose() * lamda;
       p_det_ = (P_three_axis * P_three_axis.transpose()).determinant();
 
-      if(control_verbose)
+      if(verbose)
         std::cout << "three axis mode: optimal_hovering_f_:"  << std::endl << optimal_hovering_f_ << std::endl;
-
-      /* if we only do the 3dof control, we still need to check the steady state validation */
-      if(optimal_hovering_f_.maxCoeff() > getThrustUpperLimit() || optimal_hovering_f_.minCoeff() < getThrustLowerLimit() || p_det_ < p_det_thre_)
-        return false;
-
-      return true;
+      return;
     }
 
   /* calculate the P_orig pseudo inverse */
@@ -111,18 +105,27 @@ bool HydrusRobotModel::modelling(bool verbose, bool control_verbose)
   P_dash.block(0, 0, 3, rotor_num) = Q_tau_; // without inverse inertia!
   P_orig_pseudo_inverse_ = aerial_robot_model::pseudoinverse(P_dash);
 
-  if(control_verbose)
-    std::cout << "P orig pseudo inverse for four axis mode:" << std::endl << P_orig_pseudo_inverse_ << std::endl;
-
-  if(control_verbose || verbose)
-    std::cout << "four axis mode optimal_hovering_f_:"  << std::endl << optimal_hovering_f_ << std::endl;
+  if(verbose)
+    {
+      std::cout << "P orig pseudo inverse for four axis mode:" << std::endl << P_orig_pseudo_inverse_ << std::endl;
+      std::cout << "four axis mode optimal_hovering_f_:"  << std::endl << optimal_hovering_f_ << std::endl;
+    }
 
   lqi_mode_ = LQI_FOUR_AXIS_MODE;
+}
+
+bool HydrusRobotModel::stabilityCheck(bool verbose)
+{
+  if(!controlMarginCheck(verbose))
+    return false;
+
+  if(optimal_hovering_f_.maxCoeff() > getThrustUpperLimit() || optimal_hovering_f_.minCoeff() < getThrustLowerLimit() || p_det_ < p_det_thre_)
+    return false;
 
   return true;
 }
 
-bool HydrusRobotModel::stabilityMarginCheck(bool verbose)
+bool HydrusRobotModel::controlMarginCheck(bool verbose)
 {
   double average_x = 0, average_y = 0;
 
@@ -155,8 +158,12 @@ bool HydrusRobotModel::stabilityMarginCheck(bool verbose)
   Eigen::SelfAdjointEigenSolver<Eigen::Matrix2d> es(S);
 
   assert(getLinkLength() > 0);
-  stability_margin_ = sqrt(es.eigenvalues()[0]) / getLinkLength();
-  if(verbose) ROS_INFO("stability_margin: %f", stability_margin_);
-  if(stability_margin_ < stability_margin_thre_) return false;
+  control_margin_ = sqrt(es.eigenvalues()[0]) / getLinkLength();
+  if(verbose) ROS_INFO("control_margin: %f", control_margin_);
+  if(control_margin_ < control_margin_thre_)
+    {
+      ROS_ERROR("Invalid control_margin against threshold: %f vs %f", control_margin_, control_margin_thre_);
+      return false;
+    }
   return true;
 }

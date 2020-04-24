@@ -1,7 +1,7 @@
 #include <dragon/dragon_robot_model.h>
 
-DragonRobotModel::DragonRobotModel(bool init_with_rosparam, bool verbose, double stability_margin_thre, double p_det_thre, double edf_radius, double edf_max_tilt) :
-  HydrusRobotModel(init_with_rosparam, verbose, stability_margin_thre, p_det_thre),
+DragonRobotModel::DragonRobotModel(bool init_with_rosparam, bool verbose, double control_margin_thre, double p_det_thre, double edf_radius, double edf_max_tilt) :
+  HydrusRobotModel(init_with_rosparam, verbose, control_margin_thre, p_det_thre),
   edf_radius_(edf_radius),
   edf_max_tilt_(edf_max_tilt)
 {
@@ -23,7 +23,21 @@ void DragonRobotModel::getParamFromRos()
   nhp.param("edf_max_tilt", edf_max_tilt_, 0.26); //15 [deg]
 }
 
-bool DragonRobotModel::overlapCheck(bool verbose) const
+bool DragonRobotModel::stabilityCheck(bool verbose)
+{
+  if(!HydrusRobotModel::stabilityCheck(verbose)) return false;
+
+  /* check the propeller overlap */
+  if(!overlapCheck(verbose))
+    {
+      ROS_ERROR("propeller overlapped!");
+      return false;
+    }
+
+  return true;
+}
+
+bool DragonRobotModel::overlapCheck(bool verbose)
 {
   const std::vector<Eigen::Vector3d> edfs_origin_from_cog = getEdfsOriginFromCog<Eigen::Vector3d>();
   const int rotor_num = getRotorNum();

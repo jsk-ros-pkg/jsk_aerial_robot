@@ -107,6 +107,8 @@ namespace aerial_robot_model {
     KDL::JntArray jointMsgToKdl(const sensor_msgs::JointState& state) const;
     sensor_msgs::JointState kdlJointToMsg(const KDL::JntArray& joint_positions) const;
 
+    virtual void updateStatics(bool verbose = false) {}
+    virtual bool stabilityCheck(bool verbose = false) {return true;}
     inline const double getThrustUpperLimit() const {return thrust_max_;}
     inline const double getThrustLowerLimit() const {return thrust_min_;}
     inline const double getMFRate() const  {return m_f_rate_;}

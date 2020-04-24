@@ -484,7 +484,7 @@ namespace control_plugin
   {
     joint_state_ = *state;
     kinematics_->updateRobotModel(joint_state_);
-    kinematics_->modelling();
+    kinematics_->updateStatics();
 
     /* check the gimbal vectoring function */
     if (gimbal_vectoring_check_flag_)

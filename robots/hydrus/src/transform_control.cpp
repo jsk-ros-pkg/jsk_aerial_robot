@@ -118,24 +118,11 @@ bool TransformController::updateRobotModel()
       return false;
     }
 
-  /* modelling the multilink based on the quasi-static assumption */
-  if(!getRobotModel().modelling(false, verbose_))
-    {
-      ROS_ERROR_NAMED("LQI gain generator", "LQI gain generator: invalid pose, can not be four axis stable, switch to three axis stable mode");
-      return false;
-    }
+  getRobotModel().updateStatics(verbose_);
 
-  /* check the thre check */
-  if(!getRobotModel().stabilityMarginCheck(verbose_)) //[m]
+  if(!getRobotModel().stabilityCheck(verbose_))
     {
-      ROS_ERROR_NAMED("LQI gain generator", "LQI gain generator: invalid pose, cannot pass the distance thresh check");
-      return false;
-    }
-
-  /* check the propeller overlap */
-  if(!getRobotModel().overlapCheck(verbose_)) //[m]
-    {
-      ROS_ERROR_NAMED("LQI gain generator", "LQI gain generator: invalid pose, some propellers overlap");
+      ROS_ERROR_NAMED("LQI gain generator", "LQI gain generator: invalid pose, stability is invalid");
       return false;
     }
 
@@ -189,6 +176,12 @@ bool TransformController::optimalGain()
   /* solve continuous-time algebraic Ricatti equation */
   double t = ros::Time::now().toSec();
   Eigen::MatrixXd P;
+
+  if(K_.cols() != lqi_mode * 3)
+    {
+      resetGain(); // four axis -> three axis and vice versa
+    }
+
   bool use_kleinman_method = true;
   if(K_.cols() == 0 || K_.rows() == 0)
     {

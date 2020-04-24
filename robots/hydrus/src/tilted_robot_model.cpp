@@ -1,11 +1,11 @@
 #include <hydrus/tilted_robot_model.h>
 
-HydrusTiltedRobotModel::HydrusTiltedRobotModel(bool init_with_rosparam, bool verbose, double stability_margin_thre, double p_det_thre):
-  HydrusRobotModel(init_with_rosparam, verbose, stability_margin_thre, p_det_thre, false)
+HydrusTiltedRobotModel::HydrusTiltedRobotModel(bool init_with_rosparam, bool verbose, double control_margin_thre, double p_det_thre):
+  HydrusRobotModel(init_with_rosparam, verbose, control_margin_thre, p_det_thre, false)
 {
 }
 
-bool HydrusTiltedRobotModel::modelling(bool verbose, bool control_verbose)
+void HydrusTiltedRobotModel::updateStatics(bool verbose)
 {
   const int rotor_num = getRotorNum();
   const auto rotor_direction = getRotorDirection();
@@ -51,7 +51,7 @@ bool HydrusTiltedRobotModel::modelling(bool verbose, bool control_verbose)
   optimal_hovering_f = P_four_axis.transpose() * lamda;
   p_det_ = (P_four_axis * P_four_axis.transpose()).determinant();
 
-  if(control_verbose)
+  if(verbose)
     {
       std::cout << "P_:"  << std::endl << P_ << std::endl;
       std::cout << "P_four_axis det:"  << std::endl << p_det_ << std::endl;
@@ -68,7 +68,7 @@ bool HydrusTiltedRobotModel::modelling(bool verbose, bool control_verbose)
   Eigen::Matrix3d r;
   r = Eigen::AngleAxisd(f_norm_pitch, Eigen::Vector3d::UnitY()) * Eigen::AngleAxisd(f_norm_roll, Eigen::Vector3d::UnitX());
 
-  if(control_verbose)
+  if(verbose)
     {
       std::cout << "f_norm_pitch: " << f_norm_pitch << "; f_norm_roll: " << f_norm_roll << std::endl;
       std::cout << "transformed force: \n" << (r * f).transpose() << std::endl;
@@ -77,36 +77,34 @@ bool HydrusTiltedRobotModel::modelling(bool verbose, bool control_verbose)
   P_.block(0, 0, 3, rotor_num) = r * P_.block(0, 0, 3, rotor_num);
   P_.block(3, 0, 3, rotor_num) = r * P_.block(3, 0, 3, rotor_num);
 
-  if(control_verbose) std::cout << "transformed P_:"  << std::endl << P_ << std::endl;
+  if(verbose) std::cout << "transformed P_:"  << std::endl << P_ << std::endl;
 
   P_four_axis.block(0, 0, 3, rotor_num) = P_.block(0, 0, 3, rotor_num);
   P_four_axis.row(3) = P_.row(5);
   p_det_ = (P_four_axis * P_four_axis.transpose()).determinant();
-  if(control_verbose) std::cout << "P four axis det:"  << std::endl << p_det_ << std::endl;
+  if(verbose) std::cout << "P four axis det:"  << std::endl << p_det_ << std::endl;
 
   /* rescaling hovering force */
   optimal_hovering_f_ = optimal_hovering_f * (9.806650 * getMass() / f.norm());
 
-  if(control_verbose)
+  if(verbose)
     std::cout << "rescaled optimal_hovering_f: " << optimal_hovering_f_.transpose() << std::endl;
 
   if(p_det_ < p_det_thre_)
     {
       ROS_ERROR("the determinant of P four axis is too small: %f [%f]", p_det_, p_det_thre_);
       lqi_mode_ = 0;
-      return false;
+      return;
     }
 
   /* calculate the P_orig pseudo inverse */
   Eigen::MatrixXd P_dash = P_four_axis;
   P_dash.block(0, 0, 3, rotor_num) = r * Q_tau_; // without inverse inertia!
   P_orig_pseudo_inverse_ = aerial_robot_model::pseudoinverse(P_dash);
-  if(control_verbose)
+  if(verbose)
     std::cout << "P orig pseudo inverse for four axis mode:" << std::endl << P_orig_pseudo_inverse_ << std::endl;
 
   lqi_mode_ = LQI_THREE_AXIS_MODE;
-
-  return true;
 }
 
 

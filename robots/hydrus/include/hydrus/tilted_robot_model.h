@@ -41,11 +41,12 @@ class HydrusTiltedRobotModel : public HydrusRobotModel {
 public:
   HydrusTiltedRobotModel(bool init_with_rosparam,
                          bool verbose = false,
-                         double stability_margin_thre = 0,
+                         double control_margin_thre = 0,
                          double p_det_thre = 0);
   virtual ~HydrusTiltedRobotModel() = default;
 
-  bool modelling(bool verbose = false, bool control_verbose = false) override;
+  void updateStatics(bool verbose = false) override;
+
 
 protected:
 };

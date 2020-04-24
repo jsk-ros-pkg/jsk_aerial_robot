@@ -52,7 +52,7 @@ class HydrusRobotModel : public aerial_robot_model::RobotModel {
 public:
   HydrusRobotModel(bool init_with_rosparam,
                    bool verbose = false,
-                   double stability_margin_thre = 0,
+                   double control_margin_thre = 0,
                    double p_det_thre = 0,
                    bool only_three_axis_mode = false);
   virtual ~HydrusRobotModel() = default;
@@ -62,11 +62,12 @@ public:
   static constexpr uint8_t LQI_FOUR_AXIS_MODE = 4;
 
   //public functions
-  virtual bool modelling(bool verbose = false, bool control_verbose = false); //lagrange method
-  virtual bool overlapCheck(bool verbose = false) const {return true;}
-  virtual bool stabilityMarginCheck(bool verbose = false);
+  virtual void updateStatics(bool verbose = false);
+  virtual bool stabilityCheck(bool verbose = false) override;
+  virtual bool controlMarginCheck(bool verbose = false);
+
   uint8_t getLqiMode() const { return lqi_mode_; }
-  double getStabilityMargin() const { return stability_margin_; }
+  double getControlMargin() const { return control_margin_; }
   Eigen::VectorXd getOptimalHoveringThrust() const { return optimal_hovering_f_; }
   Eigen::MatrixXd getQf() const { return Q_f_; }
   Eigen::MatrixXd getQtau() const { return Q_tau_; }
@@ -77,7 +78,7 @@ public:
   void setLqiMode(uint8_t lqi_mode) { lqi_mode_ = lqi_mode; }
 
   inline const double getPDetThresh() const {return p_det_thre_;}
-  inline const double getStabilityMaginThresh() const {return stability_margin_thre_;}
+  inline const double getControlMarginThresh() const {return control_margin_thre_;}
 
 protected:
 
@@ -90,8 +91,8 @@ protected:
   double p_det_;
   double p_det_thre_;
   Eigen::MatrixXd P_orig_pseudo_inverse_; // for compensation of cross term in the rotional dynamics
-  double stability_margin_;
-  double stability_margin_thre_;
+  double control_margin_;
+  double control_margin_thre_;
 
   //private functions
   void getParamFromRos();

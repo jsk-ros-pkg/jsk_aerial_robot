@@ -41,7 +41,7 @@ class DragonRobotModel : public HydrusRobotModel {
 public:
   DragonRobotModel(bool init_with_rosparam,
                    bool verbose = false,
-                   double stability_margin_thre = 0,
+                   double control_margin_thre = 0,
                    double p_det_thre = 0,
                    double edf_radius = 0,
                    double edf_max_tilt = 0);
@@ -54,8 +54,9 @@ public:
   std::vector<double> getGimbalNominalAngles() const { return gimbal_nominal_angles_; }
   template <class T> T getGimbalProcessedJoint() const;
   template <class T> std::vector<T> getLinksRotationFromCog() const;
-  bool overlapCheck(bool verbose = false) const override;
   void updateRobotModelImpl(const KDL::JntArray& joint_positions) override;
+  bool stabilityCheck(bool verbose = false) override;
+  bool overlapCheck(bool verbose = false);
 
 private:
   //private attributes
