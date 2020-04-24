@@ -30,4 +30,39 @@ namespace aerial_robot_model {
     }
     return svd.matrixV() * singularValuesInv * svd.matrixU().adjoint();
   }
+
+  inline Eigen::Matrix3d skew(const Eigen::Vector3d& vec)
+  {
+    Eigen::Matrix3d skew_mat;
+    skew_mat << 0.0, -vec(2), vec(1),
+      vec(2), 0.0, -vec(0),
+      -vec(1), vec(0), 0.0;
+    return skew_mat;
+  }
+
+  inline double reluApprox(double x, double epsilon = 10)
+  {
+    return std::log(1 + std::exp(x * epsilon)) / epsilon;
+  }
+
+  // differential of reluApprox
+  inline double sigmoid(double x, double epsilon = 10)
+  {
+    return 1 / (1 + std::exp(- x * epsilon));
+  }
+
+  inline double absApprox(double x, double epsilon = 10)
+  {
+    return std::log(std::exp(- x * epsilon) + std::exp(x * epsilon)) / epsilon;
+  }
+
+  // differential of absApprox
+  inline double tanh(double x, double epsilon = 10)
+  {
+    double a = std::exp(-x * epsilon);
+    double b = std::exp(x * epsilon);
+    return (b - a) / (b + a);
+  }
+
+
 } //namespace aerial_robot_model
