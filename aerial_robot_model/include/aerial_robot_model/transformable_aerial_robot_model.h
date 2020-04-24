@@ -61,7 +61,7 @@ namespace aerial_robot_model {
  //Transformable Aerial Robot Model
   class RobotModel {
   public:
-    RobotModel(bool init_with_rosparam, bool verbose = false, double thrust_max = 0, double thrust_min = 0, double m_f_rate = 0);
+    RobotModel(bool init_with_rosparam, bool verbose = false);
     virtual ~RobotModel() = default;
 
     //public functions

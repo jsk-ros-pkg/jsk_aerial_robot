@@ -226,7 +226,7 @@
 
     #### rotor joint (virtual) ####
     <joint name="rotor${self}" type="continuous">
-     <limit effort="100.0" lower="0" upper="${max_force}" velocity="0.5"/>
+     <limit effort="100.0" lower="${min_force}" upper="${max_force}" velocity="0.5"/>
       <parent link="rotor_parent${self}"/>
       <child link="thrust${self}"/>
       <origin rpy="0 0 0" xyz="0 0 0"/>

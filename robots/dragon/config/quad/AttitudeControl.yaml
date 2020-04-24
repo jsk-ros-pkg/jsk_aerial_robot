@@ -25,6 +25,4 @@ r3: 1.0
 r4: 1.0
 
 stability_margin_thre: 0.1
-f_max: 30.0
-f_min: 10.0
 edf_max_tilt: 0.0 # 0.1

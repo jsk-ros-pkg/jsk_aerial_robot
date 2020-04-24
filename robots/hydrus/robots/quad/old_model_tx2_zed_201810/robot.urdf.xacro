@@ -3,6 +3,7 @@
     xmlns:xacro="http://www.ros.org/wiki/xacro" name="hydrusx" >
 
   <!-- basic kinematics model -->
+  <m_f_rate value="-0.0182" /> <!-- overwrite -->
   <xacro:include filename="$(find hydrus)/urdf/common.xacro" />
   <xacro:include filename="$(find hydrus)/urdf/link.urdf.xacro" />
 

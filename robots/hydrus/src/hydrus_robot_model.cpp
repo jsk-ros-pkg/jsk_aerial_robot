@@ -1,7 +1,7 @@
 #include <hydrus/hydrus_robot_model.h>
 
-HydrusRobotModel::HydrusRobotModel(bool init_with_rosparam, bool verbose, double thrust_max, double thrust_min, double m_f_rate, double stability_margin_thre, double p_det_thre, bool only_three_axis_mode):
-  RobotModel(init_with_rosparam, verbose, thrust_max, thrust_min, m_f_rate),
+HydrusRobotModel::HydrusRobotModel(bool init_with_rosparam, bool verbose, double stability_margin_thre, double p_det_thre, bool only_three_axis_mode):
+  RobotModel(init_with_rosparam, verbose),
   stability_margin_thre_(stability_margin_thre),
   p_det_thre_(p_det_thre),
   only_three_axis_mode_(only_three_axis_mode),

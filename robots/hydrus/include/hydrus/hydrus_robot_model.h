@@ -52,9 +52,6 @@ class HydrusRobotModel : public aerial_robot_model::RobotModel {
 public:
   HydrusRobotModel(bool init_with_rosparam,
                    bool verbose = false,
-                   double thrust_max = 0,
-                   double thrust_min = 0,
-                   double m_f_rate = 0,
                    double stability_margin_thre = 0,
                    double p_det_thre = 0,
                    bool only_three_axis_mode = false);

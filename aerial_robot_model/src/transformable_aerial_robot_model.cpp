@@ -2,15 +2,14 @@
 
 namespace aerial_robot_model {
 
-  RobotModel::RobotModel(bool init_with_rosparam, bool verbose, double thrust_max, double thrust_min, double m_f_rate):
+  RobotModel::RobotModel(bool init_with_rosparam, bool verbose):
     verbose_(verbose),
     baselink_("fc"),
     thrust_link_("thrust"),
-    thrust_max_(thrust_max),
-    thrust_min_(thrust_min),
-    m_f_rate_(m_f_rate),
     rotor_num_(0),
-    joint_num_(0)
+    joint_num_(0),
+    thrust_max_(0),
+    thrust_min_(0)
   {
     /* robot model */
     if (!model_.initParam("robot_description"))
@@ -56,6 +55,27 @@ namespace aerial_robot_model {
         ROS_ERROR_STREAM("Can not find the link named '" << baselink_ << "' in urdf model");
         return;
       }
+
+    /* set rotor property */
+    TiXmlElement* m_f_rate_attr = robot_model_xml.FirstChildElement("robot")->FirstChildElement("m_f_rate");
+    if(!m_f_rate_attr)
+      ROS_ERROR("Can not get m_f_rate attribute from urdf model");
+    else
+      m_f_rate_attr->Attribute("value", &m_f_rate_);
+
+    for(const auto& link: urdf_links)
+      {
+        if(link->parent_joint)
+          {
+            if(link->parent_joint->name == "rotor1")
+              {
+                thrust_max_ = link->parent_joint->limits->upper;
+                thrust_min_ = link->parent_joint->limits->lower;
+                break;
+              }
+          }
+      }
+
 
     if (init_with_rosparam)
       {
@@ -136,13 +156,9 @@ namespace aerial_robot_model {
   void RobotModel::getParamFromRos()
   {
     ros::NodeHandle nhp("~");
+    ROS_WARN_STREAM(nhp.getNamespace());
     nhp.param("kinematic_verbose", verbose_, false);
-    nhp.param("thrust_min", thrust_min_, 0.0);
-    nhp.param("thrust_max", thrust_max_, 1.0);
     ros::NodeHandle control_node("/motor_info");
-    control_node.param("m_f_rate", m_f_rate_, 0.01);
-
-    ROS_INFO("%f, %f, %f", thrust_min_, thrust_max_, m_f_rate_);
   }
 
   KDL::RigidBodyInertia RobotModel::inertialSetup(const KDL::TreeElement& tree_element)
@@ -230,15 +246,6 @@ namespace aerial_robot_model {
 
     std::vector<std::string> current_joints;
     jointSegmentSetupRecursive(getTree().getRootSegment()->second, current_joints);
-
-    for(const auto joint_seg_map : joint_segment_map_)
-      {
-        std::cout << joint_seg_map.first << std::endl;
-        for(const auto seg: joint_seg_map.second)
-          std::cout << "  " << seg << std::endl;
-      }
-    for(const auto joint_hierachy : joint_hierachy_)
-      std::cout << joint_hierachy.first << ", " << joint_hierachy.second << std::endl;
   }
 
   void RobotModel::jointSegmentSetupRecursive(const KDL::TreeElement& tree_element, std::vector<std::string> current_joints)

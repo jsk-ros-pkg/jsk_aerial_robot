@@ -1,7 +1,7 @@
 #include <hydrus_xi/hydrus_xi_fully_actuated_robot_model.h>
 
-HydrusXiFullyActuatedRobotModel::HydrusXiFullyActuatedRobotModel(bool init_with_rosparam, bool verbose, double thrust_max, double thrust_min, double m_f_rate, double epsilon) :
-  RobotModel(init_with_rosparam, verbose, thrust_max, thrust_min, m_f_rate), epsilon_(epsilon)
+HydrusXiFullyActuatedRobotModel::HydrusXiFullyActuatedRobotModel(bool init_with_rosparam, bool verbose, double epsilon) :
+  RobotModel(init_with_rosparam, verbose), epsilon_(epsilon)
 {
 
   if (init_with_rosparam) {

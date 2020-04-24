@@ -45,11 +45,8 @@ using namespace aerial_robot_model;
 class HydrusXiFullyActuatedRobotModel : public aerial_robot_model::RobotModel {
 public:
   HydrusXiFullyActuatedRobotModel(bool init_with_rosparam,
-                     bool verbose = false,
-                     double f_max = 0,
-                     double f_min = 0,
-                     double m_f_rate = 0,
-                     double epsilon = 10.0);
+                                  bool verbose = false,
+                                  double epsilon = 10.0);
   virtual ~HydrusXiFullyActuatedRobotModel() = default;
 
   Eigen::MatrixXd calcWrenchAllocationMatrix();

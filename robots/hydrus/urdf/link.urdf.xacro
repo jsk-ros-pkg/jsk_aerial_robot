@@ -156,7 +156,7 @@
 
     <!-- rotor -->
     <joint name="rotor${self}" type="continuous">
-      <limit effort="100.0" lower="0" upper="${max_force}" velocity="0.5"/> <!-- force range -->
+      <limit effort="100.0" lower="${min_force}" upper="${max_force}" velocity="0.5"/>
       <parent link="link${self}"/>
       <child link="thrust${self}"/>
       <xacro:if value="${tilt_mode == 1}">

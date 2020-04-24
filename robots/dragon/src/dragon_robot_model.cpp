@@ -1,7 +1,7 @@
 #include <dragon/dragon_robot_model.h>
 
-DragonRobotModel::DragonRobotModel(bool init_with_rosparam, bool verbose, double f_max, double f_min, double m_f_rate, double stability_margin_thre, double p_det_thre, double edf_radius, double edf_max_tilt) :
-  HydrusRobotModel(init_with_rosparam, verbose, f_max, f_min, m_f_rate, stability_margin_thre, p_det_thre, true),
+DragonRobotModel::DragonRobotModel(bool init_with_rosparam, bool verbose, double stability_margin_thre, double p_det_thre, double edf_radius, double edf_max_tilt) :
+  HydrusRobotModel(init_with_rosparam, verbose, stability_margin_thre, p_det_thre, true),
   edf_radius_(edf_radius),
   edf_max_tilt_(edf_max_tilt)
 {
