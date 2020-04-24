@@ -1,7 +1,7 @@
 #include <hydrus/tilted_robot_model.h>
 
-HydrusTiltedRobotModel::HydrusTiltedRobotModel(bool init_with_rosparam, bool verbose, double stability_margin_thre, double p_det_thre, double f_max, double f_min, double m_f_rate):
-  HydrusRobotModel(init_with_rosparam, verbose, stability_margin_thre, p_det_thre, f_max, f_min, m_f_rate, false)
+HydrusTiltedRobotModel::HydrusTiltedRobotModel(bool init_with_rosparam, bool verbose, double thrust_max, double thrust_min, double m_f_rate, double stability_margin_thre, double p_det_thre):
+  HydrusRobotModel(init_with_rosparam, verbose, stability_margin_thre, p_det_thre, thrust_max, thrust_min, m_f_rate, false)
 {
 }
 
@@ -29,7 +29,7 @@ bool HydrusTiltedRobotModel::modelling(bool verbose, bool control_verbose)
 
   for (unsigned int i = 0; i < rotor_num; i++) {
     Q_f_.col(i) = rotors_normal.at(i);
-    Q_tau_.col(i) = rotors_origin.at(i).cross(rotors_normal.at(i)) + rotor_direction.at(i + 1) * m_f_rate_ * rotors_normal.at(i);
+    Q_tau_.col(i) = rotors_origin.at(i).cross(rotors_normal.at(i)) + rotor_direction.at(i + 1)  * getMFRate() * rotors_normal.at(i);
   }
 
   P_.block(0, 0, 3, rotor_num) = aerial_robot_model::kdlToEigen(link_inertia_cog_dash).inverse() * Q_tau_;

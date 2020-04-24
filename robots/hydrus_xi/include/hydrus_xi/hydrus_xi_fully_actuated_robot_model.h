@@ -35,27 +35,24 @@
 
 #pragma once
 
-#include <hydrus/hydrus_robot_model.h>
-#include <aerial_robot_model/eigen_utils.h>
+#include <aerial_robot_model/transformable_aerial_robot_model.h>
 #include <algorithm>
 #include <cmath>
 #include <time.h>
 
-class HydrusXiFullyActuatedRobotModel : public HydrusRobotModel {
+using namespace aerial_robot_model;
+
+class HydrusXiFullyActuatedRobotModel : public aerial_robot_model::RobotModel {
 public:
   HydrusXiFullyActuatedRobotModel(bool init_with_rosparam,
                      bool verbose = false,
-                     double stability_margin_thre = 0,
-                     double p_det_thre = 0,
                      double f_max = 0,
                      double f_min = 0,
                      double m_f_rate = 0,
-                     bool only_three_axis_mode = false,
                      double epsilon = 10.0);
   virtual ~HydrusXiFullyActuatedRobotModel() = default;
 
   Eigen::MatrixXd calcWrenchAllocationMatrix();
-  double getMFRate() {return m_f_rate_;}
 
   Eigen::MatrixXd getJacobian(const KDL::JntArray& joint_positions, std::string segment_name);
   inline Eigen::MatrixXd convertJacobian(const Eigen::MatrixXd& in);
@@ -124,10 +121,4 @@ private:
 
   void calcCOGJacobian();
   void getParamFromRos();
-
-  Eigen::Matrix3d skew(const Eigen::Vector3d& vec);
-  double reluApprox(double x);
-  double sigmoid(double x);
-  double absApprox(double x);
-  double tanh(double x);
 };

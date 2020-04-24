@@ -1,12 +1,9 @@
 #include <hydrus/hydrus_robot_model.h>
 
-HydrusRobotModel::HydrusRobotModel(bool init_with_rosparam, bool verbose, double stability_margin_thre, double p_det_thre, double f_max, double f_min, double m_f_rate, bool only_three_axis_mode):
-  RobotModel(init_with_rosparam, verbose),
+HydrusRobotModel::HydrusRobotModel(bool init_with_rosparam, bool verbose, double thrust_max, double thrust_min, double m_f_rate, double stability_margin_thre, double p_det_thre, bool only_three_axis_mode):
+  RobotModel(init_with_rosparam, verbose, thrust_max, thrust_min, m_f_rate),
   stability_margin_thre_(stability_margin_thre),
   p_det_thre_(p_det_thre),
-  f_max_(f_max),
-  f_min_(f_min),
-  m_f_rate_(m_f_rate_),
   only_three_axis_mode_(only_three_axis_mode),
   p_det_(0),
   stability_margin_(0)
@@ -27,17 +24,8 @@ void HydrusRobotModel::getParamFromRos()
 {
   ros::NodeHandle nhp("~");
   nhp.param("only_three_axis_mode", only_three_axis_mode_, false);
-  nhp.param ("stability_margin_thre", stability_margin_thre_, 0.01);
-  if(getVerbose()) std::cout << "stability margin thre: " << std::setprecision(3) << stability_margin_thre_ << std::endl;
-  nhp.param ("p_determinant_thre", p_det_thre_, 1e-6);
-  if(getVerbose()) std::cout << "p determinant thre: " << std::setprecision(3) << p_det_thre_ << std::endl;
-  nhp.param ("f_max", f_max_, 8.6);
-  if(getVerbose()) std::cout << "f_max: " << std::setprecision(3) << f_max_ << std::endl;
-  nhp.param ("f_min", f_min_, 2.0);
-  if(getVerbose()) std::cout << "f_min: " << std::setprecision(3) << f_min_ << std::endl;
-  ros::NodeHandle control_node("/motor_info");
-  control_node.param("m_f_rate", m_f_rate_, 0.01);
-  if(getVerbose()) std::cout << "m_f_rate: " << std::setprecision(3) << m_f_rate_ << std::endl;
+  nhp.param("stability_margin_thre", stability_margin_thre_, 0.01);
+  nhp.param("p_determinant_thre", p_det_thre_, 1e-6);
 }
 
 bool HydrusRobotModel::modelling(bool verbose, bool control_verbose)
@@ -53,7 +41,7 @@ bool HydrusRobotModel::modelling(bool verbose, bool control_verbose)
 
   for (unsigned int i = 0; i < rotor_num; i++) {
     Q_f_.col(i) = rotors_normal.at(i);
-    Q_tau_.col(i) = rotors_origin.at(i).cross(rotors_normal.at(i)) + rotor_direction.at(i + 1) * m_f_rate_ * rotors_normal.at(i);
+    Q_tau_.col(i) = rotors_origin.at(i).cross(rotors_normal.at(i)) + rotor_direction.at(i + 1) * getMFRate() * rotors_normal.at(i);
   }
 
   P_.block(0, 0, 3, rotor_num) = getInertia<Eigen::Matrix3d>().inverse() * Q_tau_;
@@ -82,7 +70,7 @@ bool HydrusRobotModel::modelling(bool verbose, bool control_verbose)
       ROS_INFO("P solver is: %f\n", ros::Time::now().toSec() - start_time.toSec());
     }
 
-  if(optimal_hovering_f_.maxCoeff() > f_max_ || optimal_hovering_f_.minCoeff() < f_min_ || p_det_ < p_det_thre_ || only_three_axis_mode_)
+  if(optimal_hovering_f_.maxCoeff() > getThrustUpperLimit() || optimal_hovering_f_.minCoeff() < getThrustLowerLimit() || p_det_ < p_det_thre_ || only_three_axis_mode_)
     {
       lqi_mode_ = LQI_THREE_AXIS_MODE;
 
@@ -112,7 +100,7 @@ bool HydrusRobotModel::modelling(bool verbose, bool control_verbose)
         std::cout << "three axis mode: optimal_hovering_f_:"  << std::endl << optimal_hovering_f_ << std::endl;
 
       /* if we only do the 3dof control, we still need to check the steady state validation */
-      if(optimal_hovering_f_.maxCoeff() > f_max_ || optimal_hovering_f_.minCoeff() < f_min_ || p_det_ < p_det_thre_)
+      if(optimal_hovering_f_.maxCoeff() > getThrustUpperLimit() || optimal_hovering_f_.minCoeff() < getThrustLowerLimit() || p_det_ < p_det_thre_)
         return false;
 
       return true;

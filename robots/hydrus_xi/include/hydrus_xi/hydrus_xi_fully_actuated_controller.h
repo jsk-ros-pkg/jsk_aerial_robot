@@ -41,7 +41,6 @@
 #include <spinal/FlightConfigCmd.h>
 #include <aerial_robot_msgs/WrenchAllocationMatrix.h>
 #include <aerial_robot_msgs/FlatnessPid.h>
-#include <aerial_robot_model/eigen_utils.h>
 #include <aerial_robot_base/control/flight_control.h>
 #include <aerial_robot_model/transformable_aerial_robot_model_ros.h>
 #include <hydrus_xi/hydrus_xi_fully_actuated_robot_model.h>

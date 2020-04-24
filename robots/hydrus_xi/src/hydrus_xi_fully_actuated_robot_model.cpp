@@ -1,7 +1,7 @@
 #include <hydrus_xi/hydrus_xi_fully_actuated_robot_model.h>
 
-HydrusXiFullyActuatedRobotModel::HydrusXiFullyActuatedRobotModel(bool init_with_rosparam, bool verbose, double stability_margin_thre, double p_det_thre, double f_max, double f_min, double m_f_rate, bool only_three_axis_mode, double epsilon) :
-  HydrusRobotModel(init_with_rosparam, verbose, stability_margin_thre, p_det_thre, f_max, f_min, m_f_rate, only_three_axis_mode), epsilon_(epsilon)
+HydrusXiFullyActuatedRobotModel::HydrusXiFullyActuatedRobotModel(bool init_with_rosparam, bool verbose, double thrust_max, double thrust_min, double m_f_rate, double epsilon) :
+  RobotModel(init_with_rosparam, verbose, thrust_max, thrust_min, m_f_rate), epsilon_(epsilon)
 {
 
   if (init_with_rosparam) {
@@ -97,6 +97,8 @@ void HydrusXiFullyActuatedRobotModel::updateJacobians(const KDL::JntArray& joint
 
   const int joint_num = getJointNum();
   const int rotor_num = getRotorNum();
+  const double thrust_max = getThrustUpperLimit();
+  const double m_f_rate = getMFRate();
   const auto& u = getRotorsNormalFromCog<Eigen::Vector3d>();
   const auto& p = getRotorsOriginFromCog<Eigen::Vector3d>();
   const auto& sigma = getRotorDirection();
@@ -113,8 +115,8 @@ void HydrusXiFullyActuatedRobotModel::updateJacobians(const KDL::JntArray& joint
     thrust_coord_jacobians.at(i) = thrust_coord_jacobian;
     u_jacobian_.at(i) = -skew(u.at(i)) * thrust_coord_jacobian.bottomRows(3);
     p_jacobian_.at(i) = thrust_coord_jacobian.topRows(3) - cog_jacobian_;
-    v.at(i) = p.at(i).cross(u.at(i)) + m_f_rate_ * sigma.at(i + 1) * u.at(i);
-    v_jacobian_.at(i) = -skew(u.at(i)) * p_jacobian_.at(i) + skew(p.at(i)) * u_jacobian_.at(i) + m_f_rate_ * sigma.at(i + 1) * u_jacobian_.at(i);
+    v.at(i) = p.at(i).cross(u.at(i)) + m_f_rate * sigma.at(i + 1) * u.at(i);
+    v_jacobian_.at(i) = -skew(u.at(i)) * p_jacobian_.at(i) + skew(p.at(i)) * u_jacobian_.at(i) + m_f_rate * sigma.at(i + 1) * u_jacobian_.at(i);
   }
 
   //calc jacobian of q(matrix), lambda(thrust value)
@@ -161,7 +163,7 @@ void HydrusXiFullyActuatedRobotModel::updateJacobians(const KDL::JntArray& joint
 
               double d_u_triple_product = (uixuj / uixuj.norm()).dot(d_u_k) + u_k.dot(1/uixuj.norm() * d_uixuj - uixuj / (uixuj.norm() * uixuj.squaredNorm()) * uixuj.dot(d_uixuj));
               u_triple_product_jacobian_.at(i).at(j).at(k)(l) = d_u_triple_product;
-              d_f_min(l) += sigmoid(u_triple_product * f_max_) * d_u_triple_product * f_max_;
+              d_f_min(l) += sigmoid(u_triple_product * thrust_max, epsilon_) * d_u_triple_product * thrust_max;
             }
             {
               const Eigen::Vector3d& d_v_i = v_jacobian_.at(i).col(l);
@@ -171,11 +173,11 @@ void HydrusXiFullyActuatedRobotModel::updateJacobians(const KDL::JntArray& joint
 
               double d_v_triple_product = (vixvj / vixvj.norm()).dot(d_v_k) + v_k.dot(1/vixvj.norm() * d_vixvj - vixvj / (vixvj.norm() * vixvj.squaredNorm()) * vixvj.dot(d_vixvj));
               v_triple_product_jacobian_.at(i).at(j).at(k)(l) = d_v_triple_product;
-              d_t_min(l) += sigmoid(v_triple_product * f_max_) * d_v_triple_product * f_max_;
+              d_t_min(l) += sigmoid(v_triple_product * thrust_max, epsilon_) * d_v_triple_product * thrust_max;
             }
           } //l
-          f_min += reluApprox(u_triple_product * f_max_);
-          t_min += reluApprox(v_triple_product * f_max_);
+          f_min += reluApprox(u_triple_product * thrust_max, epsilon_);
+          t_min += reluApprox(v_triple_product * thrust_max, epsilon_);
         } //if
       } //k
 
@@ -188,10 +190,10 @@ void HydrusXiFullyActuatedRobotModel::updateJacobians(const KDL::JntArray& joint
           const Eigen::Vector3d d_uixuj = u_i.cross(d_u_j) + d_u_i.cross(u_j);
           d_uixuj_fg(l) = fg.dot(1/uixuj.norm() * d_uixuj - uixuj / (uixuj.norm() * uixuj.squaredNorm()) * uixuj.dot(d_uixuj));
         } //l
-        f_min_ij_(f_min_index) = absApprox(f_min - uixuj_fg);
-        t_min_ij_(f_min_index) = absApprox(t_min);
-        f_min_jacobian_.row(f_min_index) = (tanh(f_min - uixuj_fg) * (d_f_min - d_uixuj_fg)).transpose();
-        t_min_jacobian_.row(f_min_index) = (tanh(t_min) * (d_t_min)).transpose();
+        f_min_ij_(f_min_index) = absApprox(f_min - uixuj_fg, epsilon_);
+        t_min_ij_(f_min_index) = absApprox(t_min, epsilon_);
+        f_min_jacobian_.row(f_min_index) = (tanh(f_min - uixuj_fg, epsilon_) * (d_f_min - d_uixuj_fg)).transpose();
+        t_min_jacobian_.row(f_min_index) = (tanh(t_min, epsilon_) * (d_t_min)).transpose();
         f_min_index++;
       }
     } //j
@@ -206,7 +208,7 @@ void HydrusXiFullyActuatedRobotModel::updateJacobians(const KDL::JntArray& joint
     Eigen::VectorXd wrench(6);
     Eigen::Vector3d thrust = u.at(i) * static_thrust_(i);
     wrench.block(0, 0, 3, 1) = thrust;
-    wrench.block(3, 0, 3, 1) = m_f_rate_ * sigma.at(i + 1) * thrust;
+    wrench.block(3, 0, 3, 1) = m_f_rate * sigma.at(i + 1) * thrust;
     std::string thrust_name = std::string("thrust") + std::to_string(i + 1);
 
     joint_torque_ -= thrust_coord_jacobians.at(i).transpose() * wrench;
@@ -221,7 +223,7 @@ void HydrusXiFullyActuatedRobotModel::updateJacobians(const KDL::JntArray& joint
 
     Eigen::MatrixXd wrench_jacobian(6, joint_num);
     wrench_jacobian.topRows(3) = u_jacobian_.at(i) * static_thrust_(i);
-    wrench_jacobian.bottomRows(3) = m_f_rate_ * sigma.at(i) * u_jacobian_.at(i);
+    wrench_jacobian.bottomRows(3) = m_f_rate * sigma.at(i) * u_jacobian_.at(i);
 
     joint_torque_jacobian_ += thrust_coord_jacobians.at(i).transpose() * (wrench_jacobian + wrench / static_thrust_(i) * lambda_jacobian_.row(i));
   }
@@ -303,12 +305,13 @@ Eigen::MatrixXd HydrusXiFullyActuatedRobotModel::calcQMatrix()
   const std::vector<Eigen::Vector3d> rotors_normal = getRotorsNormalFromCog<Eigen::Vector3d>();
   const auto& rotor_direction = getRotorDirection();
   const int rotor_num = getRotorNum();
+  const double m_f_rate = getMFRate();
 
   //Q : WrenchAllocationMatrix
   Eigen::MatrixXd Q(6, rotor_num);
   for (unsigned int i = 0; i < rotor_num; ++i) {
     Q.block(0, i, 3, 1) = rotors_normal.at(i);
-    Q.block(3, i, 3, 1) = rotors_origin.at(i).cross(rotors_normal.at(i)) + m_f_rate_ * rotor_direction.at(i + 1) * rotors_normal.at(i);
+    Q.block(3, i, 3, 1) = rotors_origin.at(i).cross(rotors_normal.at(i)) + m_f_rate * rotor_direction.at(i + 1) * rotors_normal.at(i);
   }
 
   return Q;
@@ -317,11 +320,12 @@ Eigen::MatrixXd HydrusXiFullyActuatedRobotModel::calcQMatrix()
 Eigen::MatrixXd HydrusXiFullyActuatedRobotModel::calcQMatrix(const std::vector<Eigen::Vector3d>& u, const std::vector<Eigen::Vector3d>& p, const std::map<int, int>& sigma)
 {
   const int rotor_num = getRotorNum();
+  const double m_f_rate = getMFRate();
 
   Eigen::MatrixXd Q(6, rotor_num);
   for (unsigned int i = 0; i < rotor_num; ++i) {
     Q.block(0, i, 3, 1) = u.at(i);
-    Q.block(3, i, 3, 1) = p.at(i).cross(u.at(i)) + m_f_rate_ * sigma.at(i + 1) * u.at(i);
+    Q.block(3, i, 3, 1) = p.at(i).cross(u.at(i)) + m_f_rate * sigma.at(i + 1) * u.at(i);
   }
 
   return Q;
@@ -373,16 +377,18 @@ std::vector<Eigen::Vector3d> HydrusXiFullyActuatedRobotModel::calcV()
   const std::vector<Eigen::Vector3d> u = getRotorsNormalFromCog<Eigen::Vector3d>();
   const auto& sigma = getRotorDirection();
   const int rotor_num = getRotorNum();
+  const double m_f_rate = getMFRate();
   std::vector<Eigen::Vector3d> v(rotor_num);
 
   for (int i = 0; i < rotor_num; ++i)
-    v.at(i) = p.at(i).cross(u.at(i)) + m_f_rate_ * sigma.at(i + 1) * u.at(i);
+    v.at(i) = p.at(i).cross(u.at(i)) + m_f_rate * sigma.at(i + 1) * u.at(i);
   return v;
 }
 
 Eigen::VectorXd HydrusXiFullyActuatedRobotModel::calcFmin()
 {
   const int rotor_num = getRotorNum();
+  const double thrust_max = getThrustUpperLimit();
   Eigen::VectorXd f_min(rotor_num * (rotor_num - 1));
 
   const auto& u = getRotorsNormalFromCog<Eigen::Vector3d>();
@@ -396,10 +402,10 @@ Eigen::VectorXd HydrusXiFullyActuatedRobotModel::calcFmin()
       for (int k = 0; k < rotor_num; ++k) {
         if (i == k || j == k) continue;
         double u_triple_product = calcUTripleProduct(i, j, k);
-        f_min_ij += reluApprox(u_triple_product * f_max_);
+        f_min_ij += reluApprox(u_triple_product * thrust_max, epsilon_);
       }
       Eigen::Vector3d uixuj = u.at(i).cross(u.at(j));
-      double d_fij = absApprox(f_min_ij - (uixuj.dot(gravity_force) / uixuj.norm()));
+      double d_fij = absApprox(f_min_ij - (uixuj.dot(gravity_force) / uixuj.norm()), epsilon_);
       f_min(f_min_index) = d_fij;
       f_min_index++;
     }
@@ -411,6 +417,7 @@ Eigen::VectorXd HydrusXiFullyActuatedRobotModel::calcFmin()
 Eigen::VectorXd HydrusXiFullyActuatedRobotModel::calcTmin()
 {
   const int rotor_num = getRotorNum();
+  const double thrust_max = getThrustUpperLimit();
   Eigen::VectorXd t_min(rotor_num * (rotor_num - 1));
 
   const auto& v = calcV();
@@ -423,10 +430,10 @@ Eigen::VectorXd HydrusXiFullyActuatedRobotModel::calcTmin()
       for (int k = 0; k < rotor_num; ++k) {
         if (i == k || j == k) continue;
         double v_triple_product = calcVTripleProduct(i, j, k);
-        t_min_ij += reluApprox(v_triple_product * f_max_);
+        t_min_ij += reluApprox(v_triple_product * thrust_max, epsilon_);
       }
       Eigen::Vector3d vixvj = v.at(i).cross(v.at(j));
-      double d_tij = absApprox(t_min_ij);
+      double d_tij = absApprox(t_min_ij, epsilon_);
       t_min(t_min_index) = d_tij;
       t_min_index++;
     }
@@ -461,6 +468,7 @@ Eigen::VectorXd HydrusXiFullyActuatedRobotModel::calcJointTorque(const sensor_ms
   const auto& sigma = getRotorDirection();
   const int joint_num = getJointNum();
   const int rotor_num = getRotorNum();
+  const double m_f_rate = getMFRate();
   Eigen::VectorXd joint_torque = Eigen::VectorXd::Zero(joint_num);
 
   for (int i = 0; i < rotor_num; ++i) {
@@ -469,41 +477,8 @@ Eigen::VectorXd HydrusXiFullyActuatedRobotModel::calcJointTorque(const sensor_ms
     Eigen::VectorXd wrench(6);
     Eigen::Vector3d thrust = u.at(i) * static_thrust(i);
     wrench.block(0, 0, 3, 1) = thrust;
-    wrench.block(3, 0, 3, 1) = m_f_rate_ * sigma.at(i + 1) * thrust;
+    wrench.block(3, 0, 3, 1) = m_f_rate * sigma.at(i + 1) * thrust;
     joint_torque -= thrust_coord_jacobian.transpose() * wrench;
   }
   return joint_torque;
-}
-
-inline Eigen::Matrix3d HydrusXiFullyActuatedRobotModel::skew(const Eigen::Vector3d& vec)
-{
-  Eigen::Matrix3d skew_mat;
-  skew_mat << 0.0, -vec(2), vec(1),
-              vec(2), 0.0, -vec(0),
-              -vec(1), vec(0), 0.0;
-  return skew_mat;
-}
-
-inline double HydrusXiFullyActuatedRobotModel::reluApprox(double x)
-{
-  return std::log(1 + std::exp(x * epsilon_)) / epsilon_;
-}
-
-//differential of reluApprox
-inline double HydrusXiFullyActuatedRobotModel::sigmoid(double x)
-{
-  return 1 / (1 + std::exp(- x * epsilon_));
-}
-
-inline double HydrusXiFullyActuatedRobotModel::absApprox(double x)
-{
-  return std::log(std::exp(- x * epsilon_) + std::exp(x * epsilon_)) / epsilon_;
-}
-
-//differential of absApprox
-inline double HydrusXiFullyActuatedRobotModel::tanh(double x)
-{
-  double a = std::exp(-x * epsilon_);
-  double b = std::exp(x * epsilon_);
-  return (b - a) / (b + a);
 }

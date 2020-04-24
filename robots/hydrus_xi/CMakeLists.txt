@@ -8,7 +8,6 @@ find_package(catkin REQUIRED COMPONENTS
   aerial_robot_simulation
   aerial_robot_msgs
   angles
-  hydrus
   roscpp
   rospy
   spinal
@@ -22,7 +21,7 @@ generate_dynamic_reconfigure_options(
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES  hydrus_xi_fully_actuated_robot_model
-  CATKIN_DEPENDS aerial_robot_base aerial_robot_simulation aerial_robot_msgs hydrus roscpp rospy spinal tf_conversions dynamic_reconfigure
+  CATKIN_DEPENDS aerial_robot_base aerial_robot_simulation aerial_robot_msgs roscpp rospy spinal tf_conversions dynamic_reconfigure
   )
 
 if(NOT CMAKE_BUILD_TYPE)

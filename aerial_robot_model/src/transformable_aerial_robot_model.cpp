@@ -2,11 +2,14 @@
 
 namespace aerial_robot_model {
 
-  RobotModel::RobotModel(bool init_with_rosparam, bool verbose):
+  RobotModel::RobotModel(bool init_with_rosparam, bool verbose, double thrust_max, double thrust_min, double m_f_rate):
     verbose_(verbose),
     baselink_("fc"),
     thrust_link_("thrust"),
-    rotor_num_(0)
+    thrust_max_(thrust_max),
+    thrust_min_(thrust_min),
+    m_f_rate_(m_f_rate),
+    rotor_num_(0),
     joint_num_(0)
   {
     /* robot model */
@@ -134,6 +137,12 @@ namespace aerial_robot_model {
   {
     ros::NodeHandle nhp("~");
     nhp.param("kinematic_verbose", verbose_, false);
+    nhp.param("thrust_min", thrust_min_, 0.0);
+    nhp.param("thrust_max", thrust_max_, 1.0);
+    ros::NodeHandle control_node("/motor_info");
+    control_node.param("m_f_rate", m_f_rate_, 0.01);
+
+    ROS_INFO("%f, %f, %f", thrust_min_, thrust_max_, m_f_rate_);
   }
 
   KDL::RigidBodyInertia RobotModel::inertialSetup(const KDL::TreeElement& tree_element)

@@ -36,7 +36,6 @@
 #pragma once
 
 #include <aerial_robot_model/transformable_aerial_robot_model.h>
-#include <aerial_robot_model/eigen_utils.h>
 #include <aerial_robot_msgs/FourAxisGain.h>
 #include <Eigen/Dense>
 #include <Eigen/Eigenvalues>
@@ -53,11 +52,11 @@ class HydrusRobotModel : public aerial_robot_model::RobotModel {
 public:
   HydrusRobotModel(bool init_with_rosparam,
                    bool verbose = false,
+                   double thrust_max = 0,
+                   double thrust_min = 0,
+                   double m_f_rate = 0,
                    double stability_margin_thre = 0,
                    double p_det_thre = 0,
-                   double f_max = 0,
-                   double f_min = 0,
-                   double m_f_rate = 0,
                    bool only_three_axis_mode = false);
   virtual ~HydrusRobotModel() = default;
 
@@ -79,21 +78,14 @@ public:
   Eigen::MatrixXd getPOrigPseudoInverse() const { return P_orig_pseudo_inverse_; }
   bool hamiltonMatrixSolver(uint8_t lqi_mode);
   void setLqiMode(uint8_t lqi_mode) { lqi_mode_ = lqi_mode; }
-  double getFMax() const {return f_max_;}
-  double getFMin() const {return f_min_;}
 
-  inline const double getThrustUpperLimit() const {return f_max_;}
-  inline const double getThrustLowerLimit() const {return f_min_;}
   inline const double getPDetThresh() const {return p_det_thre_;}
   inline const double getStabilityMaginThresh() const {return stability_margin_thre_;}
 
 protected:
 
   //private attributes
-  double f_max_;
-  double f_min_;
   int lqi_mode_;
-  double m_f_rate_; //moment / force rate
   bool only_three_axis_mode_;
   Eigen::VectorXd optimal_hovering_f_;
   Eigen::MatrixXd Q_tau_, Q_f_;

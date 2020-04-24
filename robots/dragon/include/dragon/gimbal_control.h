@@ -36,7 +36,6 @@
 #pragma once
 
 #include <aerial_robot_base/control/flatness_pid_controller.h>
-#include <aerial_robot_model/eigen_utils.h>
 #include <dragon/dragon_robot_model.h>
 #include <nav_msgs/Odometry.h>
 #include <ros/ros.h>

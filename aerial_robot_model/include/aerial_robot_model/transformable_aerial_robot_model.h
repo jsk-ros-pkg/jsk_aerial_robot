@@ -36,6 +36,7 @@
 #pragma once
 
 #include <aerial_robot_model/kdl_utils.h>
+#include <aerial_robot_model/math_utils.h>
 #include <cmath>
 #include <eigen_conversions/eigen_kdl.h>
 #include <Eigen/Core>
@@ -57,10 +58,10 @@
 namespace aerial_robot_model {
 
 
-  //Transformable Aerial Robot Model
+ //Transformable Aerial Robot Model
   class RobotModel {
   public:
-    RobotModel(bool init_with_rosparam, bool verbose = false);
+    RobotModel(bool init_with_rosparam, bool verbose = false, double thrust_max = 0, double thrust_min = 0, double m_f_rate = 0);
     virtual ~RobotModel() = default;
 
     //public functions
@@ -106,7 +107,12 @@ namespace aerial_robot_model {
     KDL::JntArray jointMsgToKdl(const sensor_msgs::JointState& state) const;
     sensor_msgs::JointState kdlJointToMsg(const KDL::JntArray& joint_positions) const;
 
+    inline const double getThrustUpperLimit() const {return thrust_max_;}
+    inline const double getThrustLowerLimit() const {return thrust_min_;}
+    inline const double getMFRate() const  {return m_f_rate_;}
+
     static TiXmlDocument getRobotModelXml(const std::string& param);
+
   private:
     //private attributes
     std::map<std::string, uint32_t> joint_index_map_; // index in KDL::JntArray
@@ -138,6 +144,9 @@ namespace aerial_robot_model {
     std::vector<KDL::Vector> rotors_normal_from_cog_;
     KDL::Tree tree_;
     std::string thrust_link_;
+    double thrust_max_;
+    double thrust_min_;
+    double m_f_rate_; //moment / force rate
     bool verbose_;
 
     //private functions

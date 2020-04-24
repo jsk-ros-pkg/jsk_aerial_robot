@@ -3,8 +3,6 @@
 verbose: false
 control_rate: 15.0
 
-only_three_axis_mode: true
-
 q_roll: 400 #650
 q_roll_d: 40  #65
 q_roll_i: 1.0
