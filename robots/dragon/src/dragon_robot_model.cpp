@@ -1,7 +1,7 @@
 #include <dragon/dragon_robot_model.h>
 
 DragonRobotModel::DragonRobotModel(bool init_with_rosparam, bool verbose, double stability_margin_thre, double p_det_thre, double edf_radius, double edf_max_tilt) :
-  HydrusRobotModel(init_with_rosparam, verbose, stability_margin_thre, p_det_thre, true),
+  HydrusRobotModel(init_with_rosparam, verbose, stability_margin_thre, p_det_thre),
   edf_radius_(edf_radius),
   edf_max_tilt_(edf_max_tilt)
 {
@@ -10,6 +10,7 @@ DragonRobotModel::DragonRobotModel(bool init_with_rosparam, bool verbose, double
       getParamFromRos();
     }
 
+  only_three_axis_mode_ = true;
   links_rotation_from_cog_.resize(getRotorNum());
   edfs_origin_from_cog_.resize(getRotorNum() * 2);
   gimbal_nominal_angles_.resize(getRotorNum() * 2);
