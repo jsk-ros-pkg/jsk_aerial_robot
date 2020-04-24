@@ -40,27 +40,21 @@
 #ifndef SIMULATION_ATTITUDE_CONTROLLER_H
 #define SIMULATION_ATTITUDE_CONTROLLER_H
 
-/* ros */
-#include <ros/node_handle.h>
-#include <controller_interface/controller.h>
-#include <aerial_robot_model/rotor_interface.h>
-#include <urdf/model.h>
-
-/* msg / srv */
-#include <std_msgs/Float64.h>
-#include <spinal/DesireCoord.h>
-
-/* d_board part */
-#include <flight_control/flight_control.h>
-
-/* utils */
+#include <aerial_robot_base/state_estimation.h>
+#include <aerial_robot_simulation/spinal_interface.h>
 #include <boost/scoped_ptr.hpp>
+#include <controller_interface/controller.h>
+#include <flight_control/flight_control.h>
+#include <ros/node_handle.h>
+#include <spinal/DesireCoord.h>
+#include <std_msgs/Float64.h>
 #include <tf/LinearMath/Transform.h>
+#include <urdf/model.h>
 
 namespace flight_controllers
 {
 
-class SimulationAttitudeController: public controller_interface::Controller<hardware_interface::RotorInterface>
+class SimulationAttitudeController: public controller_interface::Controller<hardware_interface::SpinalInterface>
 {
 public:
 
@@ -70,12 +64,9 @@ public:
   };
 
   SimulationAttitudeController();
-  ~SimulationAttitudeController()
-  {
-    desire_coord_sub_.shutdown();
-  }
+  ~SimulationAttitudeController() {}
 
-  bool init(hardware_interface::RotorInterface *robot, ros::NodeHandle &n);
+  bool init(hardware_interface::SpinalInterface *robot, ros::NodeHandle &n);
 
   void setCommand(double pos_target);
   void setCommand(double pos_target, double vel_target);
@@ -89,23 +80,16 @@ public:
   double getPosition();
 
 private:
-  ros::Subscriber desire_coord_sub_;
   ros::Subscriber debug_sub_;
   int loop_count_;
 
-  hardware_interface::RotorInterface* rotor_interface_;
+  hardware_interface::SpinalInterface* spinal_interface_;
   boost::shared_ptr<FlightControl> controller_core_;
-  tf::Matrix3x3 desire_coord_;
   uint8_t motor_num_;
   uint8_t joint_num_;
 
   bool debug_mode_;
   float debug_force_;
-
-  void desireCoordCallback(const spinal::DesireCoord& coord_msg)
-  {
-    desire_coord_.setRPY(coord_msg.roll, coord_msg.pitch, coord_msg.yaw);
-  }
 
   void debugCallback(const std_msgs::Float64& debug_force)
   {

@@ -29,31 +29,74 @@
    Desc:   Hardware Interface for propeller rotor in Gazebo
 */
 
-#include <aerial_robot_model/rotor_interface.h>
+#include <aerial_robot_simulation/spinal_interface.h>
 
 namespace hardware_interface
 {
-
-  /** A handle used to read the state of a single joint. */
-  RotorHandle::RotorHandle(ros::NodeHandle nh,  urdf::JointConstSharedPtr urdf_joint):  force_(new double(0)), max_pwm_(2000)
+  SpinalInterface::SpinalInterface()
   {
-    name_ = urdf_joint->name;
-    direction_ = urdf_joint->axis.z;
-    ROS_WARN("[%s], direction: %d", name_.c_str(), direction_);
-
-    std::string full_name;
-    ros::NodeHandle motor_nh("/motor_info");
-
-    if (motor_nh.searchParam("m_f_rate", full_name))
-      {
-        motor_nh.getParam(full_name, m_f_rate_);
-        ROS_INFO(" m_f_rate: %f", m_f_rate_);
-      }
-    else
-      ROS_ERROR("Cannot get m_f_rate from ros nodehandle: %s", nh.getNamespace().c_str());
+    on_ground_ = true; // freeze attitude estimate, since the init state is on the ground, the contact force between ground is very unstable
   }
 
-  RotorInterface::RotorInterface(): baselink_name_("baselink"), q_(), joint_num_(0), found_baselink_(false) {}
+  bool SpinalInterface::init(ros::NodeHandle& nh, int joint_num)
+  {
+    joint_num_ = joint_num;
+    spinal_state_estimator_.init(&nh);
+  }
+
+  void SpinalInterface::stateEstimate()
+  {
+    if(on_ground_)
+      {
+        /* assume the robot is static, acc: [0, 0, g] */
+        setImuValue(0, 0, StateEstimator::G, 0, 0, 0);
+      }
+
+    spinal_state_estimator_.update();
+  }
+
+  void SpinalInterface::setImuValue(double acc_x, double acc_y, double acc_z, double gyro_x, double gyro_y, double gyro_z)
+  {
+    spinal_state_estimator_.getAttEstimator()->setAcc(acc_x, acc_y, acc_z);
+    spinal_state_estimator_.getAttEstimator()->setGyro(gyro_x, gyro_y, gyro_z);
+  }
+
+  void SpinalInterface::setMagValue(double mag_x, double mag_y, double mag_z)
+  {
+    spinal_state_estimator_.getAttEstimator()->setMag(mag_x, mag_y, mag_z);
+  }
+
+  tf::Vector3 SpinalInterface::getTrueBaselinkRPY()
+  {
+    double r,p,y;
+    baselink_rot_.getRPY(r, p, y);
+    return tf::Vector3(r,p,y);
+  }
+
+  tf::Vector3 SpinalInterface::getTrueCogAngular()
+  {
+    return spinal_state_estimator_.getAttEstimator()->getDesiredCoordTf() * baselink_angular_;
+  }
+
+  tf::Vector3 SpinalInterface::getTrueCogRPY()
+  {
+    tf::Matrix3x3 rot = baselink_rot_ * spinal_state_estimator_.getAttEstimator()->getDesiredCoordTf().transpose() ;
+    double r,p,y;
+    rot.getRPY(r, p, y);
+    return tf::Vector3(r,p,y);
+  }
+
+  void SpinalInterface::setTrueBaselinkOrientation(double q_x, double q_y, double q_z, double q_w)
+  {
+    baselink_rot_.setRotation(tf::Quaternion(q_x, q_y, q_z, q_w));
+  }
+
+  void SpinalInterface::setTrueBaselinkAngular(double w_x, double w_y, double w_z)
+  {
+    baselink_angular_.setValue(w_x, w_y, w_z);
+  }
+
+
 };
 
 namespace rotor_limits_interface

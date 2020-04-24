@@ -16,10 +16,11 @@
 #include <math.h>
 #include <math/AP_Math.h>
 #include <array>
-#include "flashmemory/flashmemory.h"
 
+#ifndef SIMULATION
+#include "flashmemory/flashmemory.h"
 #define DELTA_T 0.001f
-#define GYRO_AMP 1.1395f  //if value= 1, it means normal complementrary filter
+#endif
 
 namespace Axis
 {
@@ -35,12 +36,12 @@ class EstimatorAlgorithm
 
 public:
 
-	EstimatorAlgorithm():
-          acc_(), gyro_(), mag_(), prev_mag_(), pre1_(), pre2_(), mag_dec_valid_(false)
+  EstimatorAlgorithm():
+    acc_(), gyro_(), mag_(), prev_mag_(), pre1_(), pre2_(), mag_dec_valid_(false)
   {
     r_.identity();
-    gyro_amp_ = 1.0f;
     mag_declination_ = 0;
+
 
     /* IIR LPF */
     rx_freq_ = 1000.0f;
@@ -53,7 +54,11 @@ public:
     b1_ =  (1 - cos(w0_)) / (1 + a_);
     b2_ = (1 - cos(w0_)) / 2 / (1 + a_);
 
+#ifdef SIMULATION
+    prev_time = -1;
+#else
     FlashMemory::addValue(&mag_declination_, sizeof(float));
+#endif
   };
 
   ~EstimatorAlgorithm(){}
@@ -65,7 +70,7 @@ public:
   }
 
 
-  void update(const Vector3f& gyro, const Vector3f& acc, const Vector3f& mag)
+  void update(const ap::Vector3f& gyro, const ap::Vector3f& acc, const ap::Vector3f& mag)
   {
     /* the sensor data in body frame */
     acc_[Frame::BODY] = acc;
@@ -84,15 +89,14 @@ public:
     estimation();
   }
 
-  /* we observe that if there is amplified rate about 1.13, the control will be more stable */
-  void gyroIntegralAmp(bool amp_flag)
+  virtual void estimation()
   {
-    //if(amp_flag) gyro_amp_ = GYRO_AMP;
-    if(amp_flag) gyro_amp_ = 1.0f;
-    else gyro_amp_ = 1.0f;
-  }
-
-  virtual void estimation(){}; //please implementation!
+#ifdef SIMULATION
+    if(prev_time < 0) DELTA_T = 0;
+    else DELTA_T = ros::Time::now().toSec() - prev_time;
+    prev_time = ros::Time::now().toSec();
+#endif
+  };
 
   static const uint8_t BODY_FRAME = 0;
   static const uint8_t RELATIVE_COORD = 1;
@@ -100,12 +104,14 @@ public:
   static const uint8_t Y = 1;
   static const uint8_t Z = 2;
 
-  Vector3f getAttitude(uint8_t frame){return rpy_[frame];}
-  Vector3f getAngular(uint8_t frame){return gyro_[frame];}
-  Vector3f getSmoothAngular(uint8_t frame){return gyro_smooth_[frame];}
-  Vector3f getAcc(uint8_t frame){return acc_[frame];}
-  Vector3f getMag(uint8_t frame){return mag_[frame];}
+  ap::Vector3f getAttitude(uint8_t frame){return rpy_[frame];}
+  ap::Vector3f getAngular(uint8_t frame){return gyro_[frame];}
+  ap::Vector3f getSmoothAngular(uint8_t frame){return gyro_smooth_[frame];}
+  ap::Vector3f getAcc(uint8_t frame){return acc_[frame];}
+  ap::Vector3f getMag(uint8_t frame){return mag_[frame];}
+  ap::Matrix3f getDesiredCoord() {return r_;}
 
+#ifndef SIMULATION
   bool getMagDecValid() { return mag_dec_valid_; }
   float getMagDeclination() { return mag_declination_;}
   void setMagDeclination(float mag_dec)
@@ -115,12 +121,13 @@ public:
     FlashMemory::write();
     mag_dec_valid_ = true;
   }
+#endif
 
 protected:
-  std::array<Vector3f, 2> acc_, gyro_, mag_, gyro_smooth_;
-  Vector3f prev_mag_; /* for lpf filter method for mag */
-  Matrix3f r_;
-  std::array<Vector3f, 2> rpy_;
+  std::array<ap::Vector3f, 2> acc_, gyro_, mag_, gyro_smooth_;
+  ap::Vector3f prev_mag_; /* for lpf filter method for mag */
+  ap::Matrix3f r_;
+  std::array<ap::Vector3f, 2> rpy_;
 
   /* IIR lpf */
   float rx_freq_;
@@ -132,21 +139,24 @@ protected:
   double b0_;
   double b1_;
   double b2_;
-  Vector3f pre1_, pre2_;
+  ap::Vector3f pre1_, pre2_;
 
   /* mag declination */
   bool mag_dec_valid_;
   float mag_declination_;
 
-  void filterFunction(Vector3f input, Vector3f& output)
+  void filterFunction(ap::Vector3f input, ap::Vector3f& output)
   {
-    Vector3f reg = input + pre1_  *  a1_ + pre2_ * a2_;
+    ap::Vector3f reg = input + pre1_  *  a1_ + pre2_ * a2_;
     output = reg  * b0_ +   pre1_ * b1_ + pre2_ * b2_;
     pre2_ = pre1_;
     pre1_ = reg;
   }
 
-  float gyro_amp_; // the gyro integaral attitude estiamtion amplification rate
+#ifdef SIMULATION
+  float DELTA_T;
+  double prev_time;
+#endif
 };
 
 #endif

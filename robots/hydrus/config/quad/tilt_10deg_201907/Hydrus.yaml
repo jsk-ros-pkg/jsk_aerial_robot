@@ -2,8 +2,6 @@
 
 control_rate: 15.0
 
-baselink: fc #flight controller
-
 only_three_axis_mode: false
 gyro_moment_compensation: true
 

@@ -2,6 +2,10 @@
 <robot
     xmlns:xacro="http://www.ros.org/wiki/xacro" name="hydrusx_common" >
 
+  <!-- general attribute -->
+  <baselink name="fc" />
+  <thrust_link name="thrust" />
+
   <!-- kinematics [m] -->
   <xacro:property name="link_length" value=".6" />
   <xacro:property name="protector_radius" value=".1925" />

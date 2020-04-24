@@ -77,6 +77,7 @@ class HoveringCheck():
             return True
 
         # cannot be convergent
+        rospy.logerr_throttle(1, 'errors: [%f, %f, %f, %f]' %  (self.control_msg.pitch.pos_err, self.control_msg.roll.pos_err, self.control_msg.throttle.pos_err, self.control_msg.yaw.pos_err))
         return False
 
     def _controlCallback(self, msg):

@@ -26,10 +26,10 @@
 #ifndef SIMULATION
 /* state estimate  */
 #include <Spine/spine.h>
-#include "state_estimate/state_estimate.h"
 /* battery status */
 #include "battery_status/battery_status.h"
 #endif
+#include "state_estimate/state_estimate.h"
 
 #include <std_msgs/UInt8.h>
 #include <std_msgs/Float32.h>
@@ -72,7 +72,7 @@ public:
   ~AttitudeController(){}
 
 #ifdef SIMULATION
-  void init(ros::NodeHandle* nh);
+  void init(ros::NodeHandle* nh, StateEstimate* estimator);
 #else
   void init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2, StateEstimate* estimator, BatteryStatus* bat, ros::NodeHandle* nh);
 #endif
@@ -85,6 +85,7 @@ public:
   inline uint8_t getMotorNumber(){return motor_number_;}
   void setMotorNumber(uint8_t motor_number);
   void setPwmTestMode(bool pwm_test_flag){pwm_test_flag_ = pwm_test_flag; }
+  bool getIntegrateFlag(){return integrate_flag_; }
   void setIntegrateFlag(bool integrate_flag){integrate_flag_ = integrate_flag; }
   bool getForceLandingFlag() {return force_landing_flag_;}
   void setForceLandingFlag(bool force_landing_flag)
@@ -147,9 +148,9 @@ private:
   void setAttitudeControlCallback(const std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& res);
   void setAttitudeGainsCallback(const spinal::SetAttitudeGains::Request& req, spinal::SetAttitudeGains::Response& res);
 
-  StateEstimate* estimator_;
   BatteryStatus* bat_;
 #endif
+  StateEstimate* estimator_;
 
   int8_t uav_model_;
   uint8_t motor_number_;
@@ -194,7 +195,7 @@ private:
   int max_yaw_term_index_;
   // Gyro Moment Compensation for LQI
   float p_matrix_pseudo_inverse_[MAX_MOTOR_NUMBER][4];
-  Matrix3f inertia_;
+  ap::Matrix3f inertia_;
 
   // Thrust and PWM
   float target_thrust_[MAX_MOTOR_NUMBER];
@@ -240,13 +241,17 @@ private:
   }
 
 #ifdef SIMULATION
+  bool use_ground_truth_;
   uint32_t HAL_GetTick(){ return ros::Time::now().toSec() * 1000; }
+
 public:
-  void setRPY(float r, float p, float y) {angles_.x = r; angles_.y = p; angles_.z = y; }
-  void setAngular(float wx, float wy, float wz) {vel_.x = wx; vel_.y = wy; vel_.z = wz; }
-  Vector3f angles_;
-  Vector3f vel_;
+  void useGroundTruth(bool flag) { use_ground_truth_ = flag; }
+  void setTrueRPY(float r, float p, float y) {true_angles_.x = r; true_angles_.y = p; true_angles_.z = y; }
+  void setTrueAngular(float wx, float wy, float wz) {true_vel_.x = wx; true_vel_.y = wy; true_vel_.z = wz; }
+  ap::Vector3f true_angles_;
+  ap::Vector3f true_vel_;
   float DELTA_T;
+  double prev_time_;
 #endif
 };
 #endif

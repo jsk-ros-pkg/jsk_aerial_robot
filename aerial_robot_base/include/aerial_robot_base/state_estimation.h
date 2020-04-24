@@ -277,21 +277,21 @@ public:
 
     if(timestamp_qu_.size() == 0)
       {
-        ROS_ERROR_COND(verbose, "estimation: no valid queue for timestamp to find proper r and omega");
+        ROS_WARN_COND(verbose, "estimation: no valid queue for timestamp to find proper r and omega");
 
         return false;
       }
 
     if(timestamp < timestamp_qu_.front())
       {
-        ROS_ERROR_COND(verbose, "estimation: sensor timestamp %f is earlier than the oldest timestamp %f in queue",
+        ROS_WARN_COND(verbose, "estimation: sensor timestamp %f is earlier than the oldest timestamp %f in queue",
                        timestamp, timestamp_qu_.front());
         return false;
       }
 
     if(timestamp > timestamp_qu_.back())
       {
-        ROS_ERROR_COND(verbose, "estimation: sensor timestamp %f is later than the latest timestamp %f in queue", timestamp, timestamp_qu_.back());
+        ROS_WARN_COND(verbose, "estimation: sensor timestamp %f is later than the latest timestamp %f in queue", timestamp, timestamp_qu_.back());
 
         return false;
       }

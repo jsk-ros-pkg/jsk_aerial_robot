@@ -13,6 +13,9 @@
 
 #include <inttypes.h>
 
+namespace ap
+{
+
 /* CRC16 implementation acording to CCITT standards */
 static const uint16_t crc16tab[256] = {
   0x0000, 0x1021, 0x2042, 0x3063, 0x4084, 0x50A5, 0x60C6, 0x70E7,
@@ -55,3 +58,4 @@ uint16_t crc16_ccitt(const uint8_t *buf, uint32_t len, uint16_t crc)
     crc = (crc << 8) ^ crc16tab[((crc >> 8) ^ *buf++) & 0x00FF];
   return crc;
 }
+}; // namespace ap

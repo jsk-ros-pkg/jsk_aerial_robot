@@ -56,7 +56,7 @@ generate_messages(
 
 catkin_package(
   INCLUDE_DIRS include
-  LIBRARIES rotor_interface transformable_aerial_robot_model transformable_aerial_robot_model_ros
+  LIBRARIES transformable_aerial_robot_model transformable_aerial_robot_model_ros
   CATKIN_DEPENDS roscpp  std_msgs  sensor_msgs geometry_msgs tf interactive_markers visualization_msgs message_generation message_runtime spinal eigen_conversions
 #  DEPENDS system_lib
 )
@@ -87,10 +87,6 @@ add_library(servo_bridge src/servo_bridge.cpp)
 target_link_libraries(servo_bridge ${catkin_LIBRARIES})
 add_executable(servo_bridge_node src/servo_bridge_node.cpp)
 target_link_libraries (servo_bridge_node  ${catkin_LIBRARIES} servo_bridge)
-
-
-add_library(rotor_interface src/rotor_interface.cpp)
-target_link_libraries(rotor_interface ${catkin_LIBRARIES})
 
 add_executable(rotor_tf_publisher src/rotor_tf_publisher.cpp)
 target_link_libraries(rotor_tf_publisher ${catkin_LIBRARIES} ${orocos_kdl_LIBRARIES})

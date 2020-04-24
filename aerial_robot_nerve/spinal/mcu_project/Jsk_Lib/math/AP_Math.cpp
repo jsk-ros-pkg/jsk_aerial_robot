@@ -1,6 +1,9 @@
 #include "AP_Math.h"
 #include <float.h>
 
+namespace ap
+{
+
 // a varient of asin() that checks the input ranges and ensures a
 // valid angle as output. If nan is given as input then zero is
 // returned.
@@ -46,4 +49,4 @@ float inv_sqrt(float x)
   y = y * (1.5f - (halfx * y * y));
   return y;
 }
-
+}; // namespace ap

@@ -2,25 +2,64 @@
 
 namespace aerial_robot_model {
 
-  RobotModel::RobotModel(bool init_with_rosparam, bool verbose, std::string baselink, std::string thrust_link):
+  RobotModel::RobotModel(bool init_with_rosparam, bool verbose):
     verbose_(verbose),
-    baselink_(baselink),
-    thrust_link_(thrust_link),
+    baselink_("fc"),
+    thrust_link_("thrust"),
     rotor_num_(0)
   {
     /* robot model */
     if (!model_.initParam("robot_description"))
-      ROS_ERROR("Failed to extract urdf model from rosparam");
+      {
+        ROS_ERROR("Failed to extract urdf model from rosparam");
+        return;
+      }
     if (!kdl_parser::treeFromUrdfModel(model_, tree_))
-      ROS_ERROR("Failed to extract kdl tree from xml robot description");
+      {
+        ROS_ERROR("Failed to extract kdl tree from xml robot description");
+        return;
+      }
+
+    /* get baselink and thrust_link from robot model */
+    auto robot_model_xml = getRobotModelXml("robot_description");
+    TiXmlElement* baselink_attr = robot_model_xml.FirstChildElement("robot")->FirstChildElement("baselink");
+    if(!baselink_attr)
+      ROS_DEBUG("Can not get baselink attribute from urdf model");
+    else
+      baselink_ = std::string(baselink_attr->Attribute("name"));
+
+    TiXmlElement* thrust_link_attr = robot_model_xml.FirstChildElement("robot")->FirstChildElement("thrust_link");
+    if(!thrust_link_attr)
+      ROS_DEBUG("Can not get thrust_link attribute from urdf model");
+    else
+      thrust_link_ = std::string(thrust_link_attr->Attribute("name"));
+
+    if(!model_.getLink(baselink_))
+      {
+        ROS_ERROR_STREAM("Can not find the link named '" << baselink_ << "' in urdf model");
+        return;
+      }
+    bool found_thrust_link = false;
+    std::vector<urdf::LinkSharedPtr> urdf_links;
+    model_.getLinks(urdf_links);
+    for(const auto& link: urdf_links)
+      {
+        if(link->name.find(thrust_link_.c_str()) != std::string::npos)
+          found_thrust_link = true;
+      }
+    if(!found_thrust_link)
+      {
+        ROS_ERROR_STREAM("Can not find the link named '" << baselink_ << "' in urdf model");
+        return;
+      }
+
     if (init_with_rosparam)
       {
         getParamFromRos();
       }
+
     inertialSetup(tree_.getRootSegment()->second);
     resolveLinkLength();
-
-    ROS_DEBUG("robot_model detects %d rotors form urdf", rotor_num_);
 
     rotors_origin_from_cog_.resize(rotor_num_);
     rotors_normal_from_cog_.resize(rotor_num_);
@@ -93,10 +132,6 @@ namespace aerial_robot_model {
   {
     ros::NodeHandle nhp("~");
     nhp.param("kinematic_verbose", verbose_, false);
-    nhp.param("baselink", baselink_, std::string("fc"));
-    if(verbose_) std::cout << "baselink: " << baselink_ << std::endl;
-    nhp.param("thrust_link", thrust_link_, std::string("thrust"));
-    if(verbose_) std::cout << "thrust_link: " << thrust_link_ << std::endl;
   }
 
   KDL::RigidBodyInertia RobotModel::inertialSetup(const KDL::TreeElement& tree_element)
@@ -195,6 +230,17 @@ namespace aerial_robot_model {
         state.position.push_back(joint_positions(actuator.second));
       }
     return state;
+  }
+
+  TiXmlDocument RobotModel::getRobotModelXml(const std::string& param)
+  {
+    ros::NodeHandle nh;
+    std::string xml_string;
+    nh.getParam(param, xml_string);
+    TiXmlDocument xml_doc;
+    xml_doc.Parse(xml_string.c_str());
+
+    return xml_doc;
   }
 
   bool RobotModel::removeExtraModule(std::string module_name)

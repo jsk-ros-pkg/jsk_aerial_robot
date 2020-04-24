@@ -3,8 +3,6 @@
 verbose: true
 control_rate: 15.0
 
-baselink: fc
-
 only_three_axis_mode: true
 
 q_roll: 400 #650

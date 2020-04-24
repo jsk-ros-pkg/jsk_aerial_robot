@@ -59,6 +59,8 @@
 #include <assert.h>
 #endif
 
+namespace ap
+{
 template <typename T>
 class Matrix3;
 
@@ -213,5 +215,7 @@ typedef Vector3<int32_t>                Vector3l;
 typedef Vector3<uint32_t>               Vector3ul;
 typedef Vector3<float>                  Vector3f;
 typedef Vector3<double>                 Vector3d;
+
+}; // namespace ap
 
 #endif // VECTOR3_H

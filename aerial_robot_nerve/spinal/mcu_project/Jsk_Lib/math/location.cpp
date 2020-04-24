@@ -25,6 +25,8 @@
 #include "AP_Math.h"
 #include "location.h"
 
+namespace ap
+{
 // scaling factor from 1e-7 degrees to meters at equater
 // == 1.0e-7 * DEG_TO_RAD * RADIUS_OF_EARTH
 #define LOCATION_SCALING_FACTOR 0.011131884502145034f
@@ -60,21 +62,21 @@ float longitude_scale(const struct Location &loc)
 float get_distance(const struct Location &loc1, const struct Location &loc2)
 {
     float dlat              = (float)(loc2.lat - loc1.lat);
-    float dlong             = ((float)(loc2.lng - loc1.lng)) * longitude_scale(loc2);
+    float dlong             = ((float)(loc2.lng - loc1.lng)) * ap::longitude_scale(loc2);
     return pythagorous2(dlat, dlong) * LOCATION_SCALING_FACTOR;
 }
 
 // return distance in centimeters to between two locations
 uint32_t get_distance_cm(const struct Location &loc1, const struct Location &loc2)
 {
-    return get_distance(loc1, loc2) * 100;
+    return ap::get_distance(loc1, loc2) * 100;
 }
 
 // return bearing in centi-degrees between two locations
 int32_t get_bearing_cd(const struct Location &loc1, const struct Location &loc2)
 {
     int32_t off_x = loc2.lng - loc1.lng;
-    int32_t off_y = (loc2.lat - loc1.lat) / longitude_scale(loc2);
+    int32_t off_y = (loc2.lat - loc1.lat) / ap::longitude_scale(loc2);
     int32_t bearing = 9000 + atan2f(-off_y, off_x) * 5729.57795f;
     if (bearing < 0) bearing += 36000;
     return bearing;
@@ -134,7 +136,7 @@ void location_offset(struct Location &loc, float ofs_north, float ofs_east)
 {
     if (!is_zero(ofs_north) || !is_zero(ofs_east)) {
         int32_t dlat = ofs_north * LOCATION_SCALING_FACTOR_INV;
-        int32_t dlng = (ofs_east * LOCATION_SCALING_FACTOR_INV) / longitude_scale(loc);
+        int32_t dlng = (ofs_east * LOCATION_SCALING_FACTOR_INV) / ap::longitude_scale(loc);
         loc.lat += dlat;
         loc.lng += dlng;
     }
@@ -147,7 +149,7 @@ void location_offset(struct Location &loc, float ofs_north, float ofs_east)
 Vector2f location_diff(const struct Location &loc1, const struct Location &loc2)
 {
     return Vector2f((loc2.lat - loc1.lat) * LOCATION_SCALING_FACTOR,
-                    (loc2.lng - loc1.lng) * LOCATION_SCALING_FACTOR * longitude_scale(loc1));
+                    (loc2.lng - loc1.lng) * LOCATION_SCALING_FACTOR * ap::longitude_scale(loc1));
 }
 
 /*
@@ -387,3 +389,4 @@ void wgsecef2llh(const Vector3d &ecef, Vector3d &llh) {
     llh[0] = copysign(1.0, ecef[2]) * atan(S / (e_c*C));
     llh[2] = (p*e_c*C + fabs(ecef[2])*S - WGS84_A*e_c*A_n) / sqrt(e_c*e_c*C*C + S*S);
 }
+}; // namespace ap

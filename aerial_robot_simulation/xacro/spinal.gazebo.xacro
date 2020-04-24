@@ -1,0 +1,126 @@
+<?xml version="1.0"?>
+
+<robot
+    xmlns:xacro="http://www.ros.org/wiki/xacro" name="spinal" >
+
+  <xacro:macro name="gazebo_spinal" params="robot_name imu_frame:=fc mag_frame:=magnet gps_frame:=gps">
+    <!-- gazebo elements: spinal interface -->
+    <gazebo>
+      <plugin name="gazebo_ros_control" filename="libgazebo_ros_control.so">
+        <robotNamespace>/${robot_name}</robotNamespace>
+        <robotSimType>gazebo_ros_control/AerialRobotHWSim</robotSimType>
+      </plugin>
+    </gazebo>
+
+    <!-- imu plugin -->
+    <!--
+        note1: please do not use hector_gazebo_ros_imu, which calculates the acceleration in the parent link of the imu frame (e.g. fc -> link2)
+        note2: please do not trust the acceleration value from the multilinked model. Since the acceleration is calculated from the differential of veloctity (see https://bitbucket.org/osrf/gazebo/src/cde54284e90b59a9af9fade096946c0cd4a91c44/gazebo/sensors/ImuSensor.cc#lines-366:367). The internal force from joint create a very unstable acceleration to the link. Anyway, you can test the sensor fusio for general multirotor and transformable robot with only hovering motion.
+    -->
+    <gazebo reference="${imu_frame}">
+      <sensor name="spinal_imu" type="imu">
+        <imu>
+          <angular_velocity>
+            <x>
+              <noise type="gaussian">
+                <mean>0.0</mean>
+                <stddev>2e-4</stddev>
+                <bias_mean>0.0000075</bias_mean>
+                <bias_stddev>0.0000008</bias_stddev>
+              </noise>
+            </x>
+            <y>
+              <noise type="gaussian">
+                <mean>0.0</mean>
+                <stddev>2e-4</stddev>
+                <bias_mean>0.0000075</bias_mean>
+                <bias_stddev>0.0000008</bias_stddev>
+              </noise>
+            </y>
+            <z>
+              <noise type="gaussian">
+                <mean>0.0</mean>
+                <stddev>2e-4</stddev>
+                <bias_mean>0.0000075</bias_mean>
+                <bias_stddev>0.0000008</bias_stddev>
+              </noise>
+            </z>
+          </angular_velocity>
+          <linear_acceleration>
+            <x>
+              <noise type="gaussian">
+                <mean>0.0</mean>
+                <stddev>1.7e-2</stddev>
+                <bias_mean>0.1</bias_mean>
+                <bias_stddev>0.001</bias_stddev>
+              </noise>
+            </x>
+            <y>
+              <noise type="gaussian">
+                <mean>0.0</mean>
+                <stddev>1.7e-2</stddev>
+                <bias_mean>0.1</bias_mean>
+                <bias_stddev>0.001</bias_stddev>
+              </noise>
+            </y>
+            <z>
+              <noise type="gaussian">
+                <mean>0.0</mean>
+                <stddev>1.7e-2</stddev>
+                <bias_mean>0.1</bias_mean>
+                <bias_stddev>0.001</bias_stddev>
+              </noise>
+            </z>
+            </linear_acceleration>
+        </imu>
+        <always_on>1</always_on>
+        <update_rate>1000</update_rate>
+      </sensor>
+    </gazebo>
+
+    <!-- magnetometer plugin -->
+    <gazebo reference="${mag_frame}">
+      <sensor name="magnetometer" type="magnetometer">
+        <magnetometer>
+          <x>
+            <noise type="gaussian">
+              <mean>0.0</mean>
+              <stddev>1.7e-2</stddev>
+              <bias_mean>0.05</bias_mean>
+              <bias_stddev>0.01</bias_stddev>
+            </noise>
+          </x>
+          <y>
+            <noise type="gaussian">
+              <mean>0.0</mean>
+              <stddev>1.7e-2</stddev>
+              <bias_mean>0.05</bias_mean>
+              <bias_stddev>0.01</bias_stddev>
+            </noise>
+          </y>
+          <z>
+            <noise type="gaussian">
+              <mean>0.0</mean>
+              <stddev>1.7e-2</stddev>
+              <bias_mean>0.5</bias_mean>
+              <bias_stddev>0.01</bias_stddev>
+            </noise>
+            </z>
+        </magnetometer>
+        <always_on>1</always_on>
+        <update_rate>1000</update_rate>
+      </sensor>
+    </gazebo>
+
+    <!-- gps plugin -->
+    <gazebo>
+      <plugin name="gps_controller" filename="libhector_gazebo_ros_gps.so">
+        <updateRate>5.0</updateRate>
+        <bodyName>${gps_frame}</bodyName>
+        <topicName>/fix</topicName>
+        <velocityTopicName>/fix_velocity</velocityTopicName>
+      </plugin>
+    </gazebo>
+
+  </xacro:macro>
+</robot>

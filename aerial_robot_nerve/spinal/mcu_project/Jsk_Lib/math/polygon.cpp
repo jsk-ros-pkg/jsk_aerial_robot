@@ -19,6 +19,9 @@
 
 #include "AP_Math.h"
 
+namespace ap
+{
+
 /*
  *  The point in polygon algorithm is based on:
  *  http://www.ecse.rpi.edu/Homepages/wrf/Research/Short_Notes/pnpoly.html
@@ -89,3 +92,4 @@ bool Polygon_complete(const Vector2l *V, unsigned n)
 {
     return (n >= 4 && V[n-1].x == V[0].x && V[n-1].y == V[0].y);
 }
+}; // namespace ap

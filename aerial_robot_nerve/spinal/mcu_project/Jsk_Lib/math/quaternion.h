@@ -25,6 +25,8 @@
 #include <assert.h>
 #endif
 
+namespace ap
+{
 class Quaternion
 {
 public:
@@ -124,4 +126,6 @@ public:
     Quaternion &operator*=(const Quaternion &v);
     Quaternion operator/(const Quaternion &v) const;
 };
+}; // namespace ap
+
 #endif // QUATERNION_H

@@ -29,90 +29,62 @@
    Desc:   Hardware Interface for propeller rotor in Gazebo
 */
 
-#ifndef HARDWARE_INTERFACE_ROTOR_INTERFACE_H
-#define HARDWARE_INTERFACE_ROTOR_INTERFACE_H
+#ifndef HARDWARE_INTERFACE_SPINAL_INTERFACE_H
+#define HARDWARE_INTERFACE_SPINAL_INTERFACE_H
 
-#include <cassert>
-#include <string>
-#include <cmath>
-#include <limits>
+#include <aerial_robot_base/state_estimation.h>
+#include <aerial_robot_simulation/rotor_handle.h>
 #include <algorithm>
-
-#include <ros/ros.h>
+#include <cassert>
+#include <cmath>
 #include <hardware_interface/internal/hardware_resource_manager.h>
+#include <joint_limits_interface/joint_limits_interface_exception.h>
+#include <limits>
+#include <ros/ros.h>
+#include <ros/common.h>
+#include <state_estimate/state_estimate.h>
+#include <tf/LinearMath/Transform.h>
 #include <urdf_model/joint.h>
 #include <urdf/urdfdom_compatibility.h>
-#include <ros/common.h>
-#include <tf/LinearMath/Transform.h>
-#include <joint_limits_interface/joint_limits_interface_exception.h>
 
 namespace hardware_interface
 {
-
-  /** A handle used to read the state of a single joint. */
-  class RotorHandle
-  {
-  public:
-    RotorHandle():force_(new double(0)) {}
-    RotorHandle(ros::NodeHandle nh, urdf::JointConstSharedPtr urdf_joint);
-
-    inline std::string getName() const {return name_;}
-    inline double getForce()    const {return *force_;}
-    inline double setForce(double force)    {*force_ = force;}
-    inline double getTorque()    const {return getForce() * direction_ * m_f_rate_;}
-    inline void setCommand(double command); //no implement here
-
-  private:
-    std::string name_;
-    boost::shared_ptr<double> force_;
-    int direction_;
-    double f_pwm_rate_;
-    double f_pwm_offset_;
-    double m_f_rate_;
-    double pwm_rate_;
-    double max_pwm_;
-  };
-
-  class RotorInterface : public HardwareResourceManager<RotorHandle, ClaimResources>
+  class SpinalInterface : public HardwareResourceManager<RotorHandle, ClaimResources>
   {
 
   public:
-    RotorInterface();
+    SpinalInterface();
+    bool init(ros::NodeHandle& nh, int joint_num);
 
-    inline std::string getBaseLinkName() {return baselink_name_;}
-    inline void setBaseLinkName(std::string baselink_name) { baselink_name_ = baselink_name; }
-    inline void setBaseLinkOrientation(double qx, double qy, double qz, double qw) { q_.setValue(qx, qy, qz, qw); }
-    inline void setBaseLinkAngular(double wx, double wy, double wz) { w_.setValue(wx, wy, wz); }
-    inline void setBaseLink() {found_baselink_ = true; }
-    inline bool foundBaseLink() {return found_baselink_; }
-
-    inline void setJointNum(uint8_t joint_num) {joint_num_ = joint_num; }
     inline uint8_t getJointNum() {return joint_num_; }
-    inline tf::Quaternion getBaseLinkOrientation() {return q_; }
-    inline tf::Vector3 getBaseLinkAngular() {return w_;}
 
-    /* temporary implementation */
-    uint8_t getBaseLinkNo()
-    {
-      for(uint8_t i = 0; i < getNames().size(); i++)
-        {
-          std::stringstream link_no;
-          link_no << i + 1;
-          if(baselink_name_ == std::string("link") + link_no.str())
-            return i;
-        }
-      return 255;
-    }
+    void setImuValue(double acc_x, double acc_y, double acc_z, double gyro_x, double gyro_y, double gyro_z);
+    void setMagValue(double mag_x, double mag_y, double mag_z);
+    void setTrueBaselinkOrientation(double q_x, double q_y, double q_z, double q_w);
+    void setTrueBaselinkAngular(double w_x, double w_y, double w_z);
 
+    tf::Vector3 getTrueBaselinkRPY();
+    inline tf::Vector3 getTrueBaselinkAngular() { return baselink_angular_;}
+    tf::Vector3 getTrueCogRPY();
+    tf::Vector3 getTrueCogAngular();
+
+    void stateEstimate();
+    inline void onGround(bool flag) { on_ground_ = flag; }
+
+    StateEstimate* getEstimatorPtr() {return &spinal_state_estimator_;}
   private:
     uint8_t joint_num_;
-    bool found_baselink_;
-    std::string baselink_name_;
-    tf::Quaternion q_;
-    tf::Vector3 w_;
+
+    tf::Matrix3x3 baselink_rot_;
+    tf::Vector3 baselink_angular_;
+
+    /* attitude estimator */
+    bool on_ground_;
+    StateEstimate spinal_state_estimator_;
   };
 
 };
+
 namespace rotor_limits_interface
 {
   namespace internal
@@ -141,6 +113,7 @@ namespace rotor_limits_interface
      */
     void enforceLimits(const ros::Duration& /* period */)
     {
+      /* because of "inline double setForce(double force)    {*force_ = force;}", we can change the value with same address */
       jh_.setForce(internal::saturate(jh_.getForce(), min_force_, max_force_));
     }
 

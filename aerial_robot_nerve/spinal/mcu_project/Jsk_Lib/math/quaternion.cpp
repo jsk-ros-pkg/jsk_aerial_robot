@@ -24,6 +24,9 @@
 
 #include "AP_Math.h"
 
+namespace ap
+{
+
 // return the rotation matrix equivalent for this quaternion
 void Quaternion::rotation_matrix(Matrix3f &m) const
 {
@@ -330,3 +333,4 @@ Quaternion Quaternion::operator/(const Quaternion &v) const {
     ret.q4 = (rquat0*quat3 - rquat1*quat2 + rquat2*quat1 - rquat3*quat0);
     return ret;
 }
+}; // namespace ap

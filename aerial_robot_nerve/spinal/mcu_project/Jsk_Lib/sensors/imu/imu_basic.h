@@ -15,6 +15,8 @@
 #include "config.h"
 #include "math/definitions.h"
 
+using namespace ap;
+
 class IMU
 {
 private:

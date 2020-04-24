@@ -159,8 +159,6 @@ namespace sensor_plugin
           }
       }
 
-    if(getFuserActivate(StateEstimator::GROUND_TRUTH)) imu_initialized = true;
-
     if(!imu_initialized)
       {
         ROS_WARN_THROTTLE(1, "gps: the imu is not initialized, wait");
@@ -221,12 +219,9 @@ namespace sensor_plugin
     tf::Matrix3x3 r; r.setIdentity();
     tf::Vector3 omega(0,0,0);
 
-    if(!getFuserActivate(StateEstimator::GROUND_TRUTH))
-      {
-        int mode = StateEstimator::EGOMOTION_ESTIMATE;
-        estimator_->findRotOmega(curr_timestamp_, mode, r, omega);
-        if(omega == tf::Vector3(0,0,0)) ROS_ERROR("gps: the omega is not updated from findRotOmega");
-      }
+    int mode = StateEstimator::EGOMOTION_ESTIMATE;
+    if(!estimator_->findRotOmega(curr_timestamp_, mode, r, omega))
+      ROS_WARN_STREAM("gps: the omega is not updated from findRotOmega");
 
     raw_vel_ += r * (- omega.cross(sensor_tf_.getOrigin())); //offset from gps to baselink
     raw_pos_ = world_frame_ * Gps::wgs84ToNedLocalFrame(home_wgs84_point_, curr_wgs84_point_) - r * sensor_tf_.getOrigin();

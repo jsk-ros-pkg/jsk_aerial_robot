@@ -27,6 +27,9 @@
 
 #define HALF_SQRT_2 0.70710678118654757f
 
+namespace ap
+{
+
 // rotate a vector by a standard rotation, attempting
 // to use the minimum number of floating point operations
 template <typename T>
@@ -423,3 +426,4 @@ template Vector3<double> Vector3<double>::operator -(void) const;
 template bool Vector3<double>::operator ==(const Vector3<double> &v) const;
 template bool Vector3<double>::operator !=(const Vector3<double> &v) const;
 template float Vector3<double>::angle(const Vector3<double> &v) const;
+}; // namespace ap

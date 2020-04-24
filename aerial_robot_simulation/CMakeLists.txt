@@ -61,8 +61,11 @@ add_library(flight_controllers
 target_link_libraries(flight_controllers ${catkin_LIBRARIES})
 add_dependencies(flight_controllers spinal_generate_messages_cpp)
 
+add_library(spinal_interface src/spinal_interface.cpp)
+target_link_libraries(spinal_interface ${catkin_LIBRARIES})
+
 add_library(aerial_robot_hw_sim src/aerial_robot_hw_sim.cpp)
-target_link_libraries(aerial_robot_hw_sim ${catkin_LIBRARIES} ${GAZEBO_LIBRARIES} ${orocos_kdl_LIBRARIES})
+target_link_libraries(aerial_robot_hw_sim spinal_interface ${catkin_LIBRARIES} ${GAZEBO_LIBRARIES} ${orocos_kdl_LIBRARIES})
 
 #############
 ## Install ##

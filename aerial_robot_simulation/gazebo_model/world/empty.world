@@ -6,6 +6,7 @@
       <max_step_size>0.001</max_step_size>
       <real_time_factor>1</real_time_factor>
       <real_time_update_rate>1000</real_time_update_rate>
+      <magnetic_field>34 0 -36</magnetic_field>
       <gravity>0 0 -9.8</gravity>
     </physics>
 

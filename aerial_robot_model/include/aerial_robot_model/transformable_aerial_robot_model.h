@@ -56,13 +56,11 @@
 
 namespace aerial_robot_model {
 
+
   //Transformable Aerial Robot Model
   class RobotModel {
   public:
-    RobotModel(bool init_with_rosparam,
-               bool verbose = false,
-               std::string baselink = std::string(""),
-               std::string thrust_link = std::string(""));
+    RobotModel(bool init_with_rosparam, bool verbose = false);
     virtual ~RobotModel() = default;
 
     //public functions
@@ -103,6 +101,7 @@ namespace aerial_robot_model {
     KDL::JntArray jointMsgToKdl(const sensor_msgs::JointState& state) const;
     sensor_msgs::JointState kdlJointToMsg(const KDL::JntArray& joint_positions) const;
 
+    static TiXmlDocument getRobotModelXml(const std::string& param);
   private:
     //private attributes
     std::map<std::string, uint32_t> actuator_map_; // regarding to KDL tree
