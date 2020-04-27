@@ -51,7 +51,7 @@ public:
 
   Eigen::MatrixXd calcWrenchAllocationMatrix();
 
-  Eigen::MatrixXd getJacobian(const KDL::JntArray& joint_positions, std::string segment_name);
+  Eigen::MatrixXd getJacobian(const KDL::JntArray& joint_positions, std::string segment_name, KDL::Vector offset = KDL::Vector::Zero());
   inline Eigen::MatrixXd convertJacobian(const Eigen::MatrixXd& in);
   Eigen::MatrixXd getCOGJacobian() const {return cog_jacobian_;}
   std::vector<Eigen::MatrixXd> getUJacobian() const {return u_jacobian_;}
@@ -79,7 +79,10 @@ public:
   Eigen::VectorXd getJointTorque() const {return joint_torque_;}
   Eigen::MatrixXd getJointTorqueJacobian() const {return joint_torque_jacobian_;}
   Eigen::VectorXd calcJointTorque(const sensor_msgs::JointState& joint_state);
-  Eigen::VectorXd getSecondDerivative(std::string segment_name, int joint_i, int joint_j);
+  Eigen::MatrixXd getSecondDerivative(std::string ref_frame, int joint_i, KDL::Vector offset = KDL::Vector::Zero());
+  Eigen::MatrixXd getSecondDerivativeRoot(std::string ref_frame, KDL::Vector offset = KDL::Vector::Zero());
+  Eigen::VectorXd getHessian(std::string ref_frame, int joint_i, int joint_j, KDL::Vector offset = KDL::Vector::Zero());
+
   std::vector<Eigen::Vector3d> calcV();
   Eigen::VectorXd getStaticThrust() const {return static_thrust_;}
 
@@ -104,6 +107,8 @@ private:
   std::vector<Eigen::MatrixXd> v_jacobian_; //thrust torque direction vector index:rotor
   std::vector<Eigen::MatrixXd> p_jacobian_; //thrust position index:rotor
   std::vector<Eigen::MatrixXd> q_jacobian_; //allocation matrix index:rotor
+  std::vector<Eigen::MatrixXd> thrust_coord_jacobians_;
+  std::vector<Eigen::MatrixXd> cog_coord_jacobians_;
   Eigen::MatrixXd cog_jacobian_; //cog jacobian
   Eigen::MatrixXd lambda_jacobian_; //thrust force
   std::vector<std::vector<std::vector<Eigen::VectorXd> > > u_triple_product_jacobian_;
@@ -115,7 +120,18 @@ private:
   Eigen::VectorXd joint_torque_;
   Eigen::MatrixXd joint_torque_jacobian_;
   Eigen::VectorXd static_thrust_;
+  std::vector<Eigen::VectorXd> thrust_wrench_;
 
   void calcCOGJacobian();
   void getParamFromRos();
+
+  Eigen::MatrixXd calcLambdaJacobain(const KDL::JntArray& joint_positions);
+  void updateRobotModelImpl(const KDL::JntArray& joint_positions) override;
+
+  Eigen::VectorXd calcGravityWrench();
+  Eigen::MatrixXd calcThrustJacobian();
+
+  std::vector<Eigen::MatrixXd> fr_root_jacobians_;
+  std::vector<Eigen::VectorXd> fr_wrench_units_;
+
 };

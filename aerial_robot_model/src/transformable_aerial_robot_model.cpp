@@ -22,7 +22,6 @@ namespace aerial_robot_model {
         ROS_ERROR("Failed to extract kdl tree from xml robot description");
         return;
       }
-
     /* get baselink and thrust_link from robot model */
     auto robot_model_xml = getRobotModelXml("robot_description");
     TiXmlElement* baselink_attr = robot_model_xml.FirstChildElement("robot")->FirstChildElement("baselink");
@@ -191,6 +190,7 @@ namespace aerial_robot_model {
             joint_index_map_.insert(std::make_pair(current_seg.getJoint().getName(), tree_element.q_nr));
             joint_names_.push_back(current_seg.getJoint().getName());
             joint_indices_.push_back(tree_element.q_nr);
+            joint_parent_link_names_.push_back(GetTreeElementParent(tree_element)->first);
 
             /* extract link joint */
             if(current_seg.getJoint().getName().find("joint") == 0)
@@ -277,7 +277,6 @@ namespace aerial_robot_model {
 
     return;
   }
-
 
   KDL::JntArray RobotModel::jointMsgToKdl(const sensor_msgs::JointState& state) const
   {

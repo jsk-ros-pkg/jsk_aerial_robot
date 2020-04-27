@@ -75,6 +75,7 @@ namespace aerial_robot_model {
     const std::map<std::string, int>& getJointHierachy() const {return joint_hierachy_;}
     const std::vector<std::string>& getJointNames() const { return joint_names_; }
     const std::vector<int>& getJointIndices() const { return joint_indices_; }
+    const std::vector<std::string>& getJointParentLinkNames() const { return joint_parent_link_names_; }
     const std::vector<std::string>& getLinkJointNames() const { return link_joint_names_; }
     const std::vector<int>& getLinkJointIndices() const { return link_joint_indices_; }
     const std::vector<double>& getLinkJointLowerLimits() const { return link_joint_lower_limits_; }
@@ -121,10 +122,12 @@ namespace aerial_robot_model {
     std::map<std::string, std::vector<std::string> > joint_segment_map_;
     std::map<std::string, int> joint_hierachy_;
 
+    // index in KDL::JntArray
     std::vector<std::string> joint_names_;
-    std::vector<int> joint_indices_; // index in KDL::JntArray
+    std::vector<int> joint_indices_;
+    std::vector<std::string> joint_parent_link_names_;
     std::vector<std::string> link_joint_names_;
-    std::vector<int> link_joint_indices_; // index in KDL::JntArray
+    std::vector<int> link_joint_indices_;
     std::vector<double> link_joint_lower_limits_, link_joint_upper_limits_;
 
 
