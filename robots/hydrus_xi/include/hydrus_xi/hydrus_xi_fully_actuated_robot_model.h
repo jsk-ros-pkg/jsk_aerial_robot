@@ -116,6 +116,7 @@ private:
   std::vector<Eigen::MatrixXd> thrust_coord_jacobians_;
   std::vector<Eigen::MatrixXd> cog_coord_jacobians_;
   Eigen::MatrixXd cog_jacobian_; //cog jacobian
+  Eigen::MatrixXd l_momentum_jacobian_; //angular_momemtum jacobian
   Eigen::MatrixXd lambda_jacobian_; //thrust force
   std::vector<std::vector<std::vector<Eigen::VectorXd> > > u_triple_product_jacobian_;
   std::vector<std::vector<std::vector<Eigen::VectorXd> > > v_triple_product_jacobian_;
@@ -127,7 +128,7 @@ private:
   Eigen::MatrixXd joint_torque_jacobian_;
   Eigen::VectorXd static_thrust_;
 
-  void calcCOGJacobian();
+  void calcCoGMomentumJacobian();
   void getParamFromRos();
 
   Eigen::VectorXd getGravityWrenchOnRoot();
@@ -141,4 +142,5 @@ private:
   // test jacobian with numerical solution
   void thrustForceNumericalJacobian(const KDL::JntArray joint_positions, Eigen::MatrixXd analytical_result = Eigen::MatrixXd()); // TODO add root desired
   void jointTorqueNumericalJacobian(const KDL::JntArray joint_positions, Eigen::MatrixXd analytical_result = Eigen::MatrixXd());
+  void cogMomentumNumericalJacobian(const KDL::JntArray joint_positions, Eigen::MatrixXd analytical_cog_result = Eigen::MatrixXd(), Eigen::MatrixXd analytical_momentum_result = Eigen::MatrixXd());
 };

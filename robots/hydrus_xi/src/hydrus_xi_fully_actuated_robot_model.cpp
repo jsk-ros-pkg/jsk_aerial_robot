@@ -12,12 +12,13 @@ HydrusXiFullyActuatedRobotModel::HydrusXiFullyActuatedRobotModel(bool init_with_
   const int rotor_num = getRotorNum();
   const int joint_num = getJointNum();
   const int full_body_ndof = 6 + joint_num;
-  q_mat_ = Eigen::MatrixXd::Zero(6, rotor_num);
+  q_mat_.resize(6, rotor_num);
   v_.resize(rotor_num);
   u_jacobian_.resize(rotor_num);
   v_jacobian_.resize(rotor_num);
   p_jacobian_.resize(rotor_num);
   cog_jacobian_.resize(3, full_body_ndof);
+  l_momentum_jacobian_.resize(3, full_body_ndof);
   gravity_.resize(6);
   gravity_ <<  0, 0, 9.80665, 0, 0, 0;
   gravity_3d_.resize(3);
@@ -56,6 +57,7 @@ HydrusXiFullyActuatedRobotModel::HydrusXiFullyActuatedRobotModel(bool init_with_
       }
     }
   }
+
 }
 
 
@@ -74,7 +76,7 @@ void HydrusXiFullyActuatedRobotModel::updateJacobians(const KDL::JntArray& joint
 {
   if(update_model) updateRobotModel(joint_positions);
 
-  calcCOGJacobian();
+  calcCoGMomentumJacobian();
 
   calcBasicKinematicsJacobian();
 
@@ -437,7 +439,7 @@ Eigen::VectorXd HydrusXiFullyActuatedRobotModel::calcTmin()
   return t_min;
 }
 
-void HydrusXiFullyActuatedRobotModel::calcCOGJacobian()
+void HydrusXiFullyActuatedRobotModel::calcCoGMomentumJacobian()
 {
   double mass_all = getMass();
   const auto cog_all = getCog<KDL::Frame>().p;
@@ -446,6 +448,22 @@ void HydrusXiFullyActuatedRobotModel::calcCOGJacobian()
   const auto& inertia_map = getInertiaMap();
   const auto& joint_names = getJointNames();
   const auto& joint_segment_map = getJointSegmentMap();
+  const auto& joint_parent_link_names = getJointParentLinkNames();
+  const auto root_rot = getCogDesireOrientation<Eigen::Matrix3d>();
+  const auto joint_num = getJointNum();
+
+  /*
+    Note: the jacobian about the cog velocity (linear momentum) and angular momentum.
+
+    Please refer to Eq.13 ~ 22 of following paper:
+    ============================================================================
+    S. Kajita et al., "Resolved momentum control: humanoid motion planning based on the linear and angular momentum,".
+    ============================================================================
+
+    1. the cog velocity is w.r.t in the root link frame.
+    2. the angular momentum is w.r.t in cog frame
+  */
+
 
   int col_index = 0;
   /* fix bug: the joint_segment_map is reordered, which is not match the order of  joint_indeices_ or joint_names_ */
@@ -453,7 +471,7 @@ void HydrusXiFullyActuatedRobotModel::calcCOGJacobian()
   for (const auto& joint_name : joint_names){
     std::string joint_child_segment_name = joint_segment_map.at(joint_name).at(0);
     KDL::Segment joint_child_segment = GetTreeElementSegment(segment_map.at(joint_child_segment_name));
-    KDL::Vector a = seg_frames.at(joint_child_segment_name).M * joint_child_segment.getJoint().JointAxis();
+    KDL::Vector a = seg_frames.at(joint_parent_link_names.at(col_index)).M * joint_child_segment.getJoint().JointAxis();
 
     KDL::Vector r = seg_frames.at(joint_child_segment_name).p;
     KDL::RigidBodyInertia inertia = KDL::RigidBodyInertia::Zero();
@@ -466,16 +484,22 @@ void HydrusXiFullyActuatedRobotModel::calcCOGJacobian()
     KDL::Vector c = inertia.getCOG();
     double m = inertia.getMass();
 
-    KDL::Vector cog_jacobian_col = a * (c - r) * m / mass_all;
+    KDL::Vector p_momentum_jacobian_col = a * (c - r) * m;
+    KDL::Vector l_momentum_jacobian_col = (c - cog_all) * p_momentum_jacobian_col + inertia.RefPoint(c).getRotationalInertia() * a;
 
-    cog_jacobian_.col(6 + col_index) = aerial_robot_model::kdlToEigen(cog_jacobian_col);
+    cog_jacobian_.col(6 + col_index) = aerial_robot_model::kdlToEigen(p_momentum_jacobian_col / mass_all);
+    l_momentum_jacobian_.col(6 + col_index) = aerial_robot_model::kdlToEigen(l_momentum_jacobian_col);
     col_index++;
   }
 
   // virtual 6dof root
-  cog_jacobian_.leftCols(3) = Eigen::MatrixXd::Identity(3,3);
-  cog_jacobian_.middleCols(3, 3) = -aerial_robot_model::skew(aerial_robot_model::kdlToEigen(cog_all));
-  cog_jacobian_ = getCogDesireOrientation<Eigen::Matrix3d>() * cog_jacobian_;
+  cog_jacobian_.leftCols(3) = Eigen::MatrixXd::Identity(3, 3);
+  cog_jacobian_.middleCols(3, 3) = - aerial_robot_model::skew(aerial_robot_model::kdlToEigen(cog_all));
+  cog_jacobian_ = root_rot * cog_jacobian_;
+
+  l_momentum_jacobian_.leftCols(3) = Eigen::MatrixXd::Zero(3, 3);
+  l_momentum_jacobian_.middleCols(3, 3) = getInertia<Eigen::Matrix3d>() * root_rot; // aready converted
+  l_momentum_jacobian_.rightCols(joint_num) = root_rot * l_momentum_jacobian_.rightCols(joint_num);
 }
 
 void HydrusXiFullyActuatedRobotModel::calcLambdaJacobain()
@@ -719,8 +743,9 @@ void HydrusXiFullyActuatedRobotModel::updateRobotModelImpl(const KDL::JntArray& 
   aerial_robot_model::RobotModel::updateRobotModelImpl(joint_positions);
   updateJacobians();
 
-  thrustForceNumericalJacobian(getJointPositions(), lambda_jacobian_);
-  jointTorqueNumericalJacobian(getJointPositions(), joint_torque_jacobian_);
+  //thrustForceNumericalJacobian(getJointPositions(), lambda_jacobian_);
+  //jointTorqueNumericalJacobian(getJointPositions(), joint_torque_jacobian_);
+  cogMomentumNumericalJacobian(getJointPositions(), cog_jacobian_, l_momentum_jacobian_);
 
   //throw std::runtime_error("test");
 

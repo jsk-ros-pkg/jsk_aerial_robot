@@ -8,14 +8,13 @@ void HydrusXiFullyActuatedRobotModel::thrustForceNumericalJacobian(const KDL::Jn
   const auto& sigma = getRotorDirection();
   const double m_f_rate = getMFRate();
   const int full_body_ndof = 6 + getJointNum();
+  KDL::Rotation root_rot = getCogDesireOrientation<KDL::Rotation>();
 
   double delta_angle = 0.00001; // [rad]
   Eigen::MatrixXd J_g = Eigen::MatrixXd::Zero(6, full_body_ndof);
 
   Eigen::MatrixXd J_thrust = Eigen::MatrixXd::Zero(6, full_body_ndof);
   Eigen::MatrixXd J_lambda = Eigen::MatrixXd::Zero(getRotorNum(), full_body_ndof);
-
-  KDL::Rotation curr_root_att = getCogDesireOrientation<KDL::Rotation>();
 
   calcStaticThrust();
 
@@ -36,28 +35,28 @@ void HydrusXiFullyActuatedRobotModel::thrustForceNumericalJacobian(const KDL::Jn
 
   // joint part
   for (const auto& joint_index : joint_indices) {
-    KDL::JntArray pertubation_joint_positions(joint_positions);
-    pertubation_joint_positions(joint_index) += delta_angle;
-    perturbationSeparateForce(col_index, pertubation_joint_positions);
+    KDL::JntArray perturbation_joint_positions(joint_positions);
+    perturbation_joint_positions(joint_index) += delta_angle;
+    perturbationSeparateForce(col_index, perturbation_joint_positions);
     col_index++;
   }
 
   // virtual 6dof root
 
   // roll
-  setCogDesireOrientation(curr_root_att * KDL::Rotation::RPY(delta_angle, 0, 0));
+  setCogDesireOrientation(root_rot * KDL::Rotation::RPY(delta_angle, 0, 0));
   perturbationSeparateForce(3, joint_positions);
 
   // pitch
-  setCogDesireOrientation(curr_root_att * KDL::Rotation::RPY(0, delta_angle, 0));
+  setCogDesireOrientation(root_rot * KDL::Rotation::RPY(0, delta_angle, 0));
   perturbationSeparateForce(4, joint_positions);
 
   // yaw
-  setCogDesireOrientation(curr_root_att * KDL::Rotation::RPY(0, 0, delta_angle));
+  setCogDesireOrientation(root_rot * KDL::Rotation::RPY(0, 0, delta_angle));
   perturbationSeparateForce(5, joint_positions);
 
   // reset
-  setCogDesireOrientation(curr_root_att);
+  setCogDesireOrientation(root_rot);
   aerial_robot_model::RobotModel::updateRobotModelImpl(joint_positions);
 
   ROS_DEBUG_STREAM("numerical result of wrench_gravity_jacobian: \n" << J_g);
@@ -72,27 +71,27 @@ void HydrusXiFullyActuatedRobotModel::thrustForceNumericalJacobian(const KDL::Jn
 
   col_index = 6;
   for (const auto& joint_index : joint_indices) {
-      KDL::JntArray pertubation_joint_positions = joint_positions;
-      pertubation_joint_positions(joint_index) += delta_angle;
-      perturbationStaticThrust(col_index, pertubation_joint_positions);
+      KDL::JntArray perturbation_joint_positions = joint_positions;
+      perturbation_joint_positions(joint_index) += delta_angle;
+      perturbationStaticThrust(col_index, perturbation_joint_positions);
       col_index++;
     }
 
   // virtual 6dof root
   // roll
-  setCogDesireOrientation(curr_root_att * KDL::Rotation::RPY(delta_angle, 0, 0));
+  setCogDesireOrientation(root_rot * KDL::Rotation::RPY(delta_angle, 0, 0));
   perturbationStaticThrust(3, joint_positions);
 
   // pitch
-  setCogDesireOrientation(curr_root_att * KDL::Rotation::RPY(0, delta_angle, 0));
+  setCogDesireOrientation(root_rot * KDL::Rotation::RPY(0, delta_angle, 0));
   perturbationStaticThrust(4, joint_positions);
 
   // yaw
-  setCogDesireOrientation(curr_root_att * KDL::Rotation::RPY(0, 0, delta_angle));
+  setCogDesireOrientation(root_rot * KDL::Rotation::RPY(0, 0, delta_angle));
   perturbationStaticThrust(5, joint_positions);
 
   // reset
-  setCogDesireOrientation(curr_root_att); // set the orientation of root
+  setCogDesireOrientation(root_rot); // set the orientation of root
   aerial_robot_model::RobotModel::updateRobotModelImpl(joint_positions);
 
   ROS_DEBUG_STREAM("numerical  lambda_jacobian: \n" << J_lambda);
@@ -104,8 +103,8 @@ void HydrusXiFullyActuatedRobotModel::thrustForceNumericalJacobian(const KDL::Jn
 
       double min_diff = (J_lambda - analytical_result).minCoeff();
       double max_diff = (J_lambda - analytical_result).maxCoeff();
-      if(max_diff > fabs(min_diff)) ROS_INFO_STREAM("max diff of labda jacobian: " << max_diff);
-      else  ROS_INFO_STREAM("max diff of labda jacobian: " << fabs(min_diff));
+      if(max_diff > fabs(min_diff)) ROS_INFO_STREAM("max diff of lambda jacobian: " << max_diff);
+      else  ROS_INFO_STREAM("max diff of lambda jacobian: " << fabs(min_diff));
     }
 }
 
@@ -115,7 +114,7 @@ void HydrusXiFullyActuatedRobotModel::jointTorqueNumericalJacobian(const KDL::Jn
   const int full_body_ndof = 6 + getJointNum();
   Eigen::MatrixXd J_t = Eigen::MatrixXd::Zero(getJointNum(), full_body_ndof);
 
-  KDL::Rotation curr_root_att = getCogDesireOrientation<KDL::Rotation>();
+  KDL::Rotation root_rot = getCogDesireOrientation<KDL::Rotation>();
 
   calcBasicKinematicsJacobian(); // necessary for thrust_coord_jacobias
   calcStaticThrust();
@@ -135,26 +134,26 @@ void HydrusXiFullyActuatedRobotModel::jointTorqueNumericalJacobian(const KDL::Jn
     };
 
   for (const auto& joint_index : joint_indices) {
-      KDL::JntArray pertubation_joint_positions = joint_positions;
-      pertubation_joint_positions(joint_index) += delta_angle;
-      perturbationJointTorque(col_index, pertubation_joint_positions);
+      KDL::JntArray perturbation_joint_positions = joint_positions;
+      perturbation_joint_positions(joint_index) += delta_angle;
+      perturbationJointTorque(col_index, perturbation_joint_positions);
       col_index++;
     }
 
   // roll
-  setCogDesireOrientation(curr_root_att * KDL::Rotation::RPY(delta_angle, 0, 0)); // set the orientation of root
+  setCogDesireOrientation(root_rot * KDL::Rotation::RPY(delta_angle, 0, 0)); // set the orientation of root
   perturbationJointTorque(3, joint_positions);
 
   // pitch
-  setCogDesireOrientation(curr_root_att * KDL::Rotation::RPY(0, delta_angle, 0)); // set the orientation of root
+  setCogDesireOrientation(root_rot * KDL::Rotation::RPY(0, delta_angle, 0)); // set the orientation of root
   perturbationJointTorque(4, joint_positions);
 
   // yaw
-  setCogDesireOrientation(curr_root_att * KDL::Rotation::RPY(0, 0, delta_angle)); // set the orientation of root
+  setCogDesireOrientation(root_rot * KDL::Rotation::RPY(0, 0, delta_angle)); // set the orientation of root
   perturbationJointTorque(5, joint_positions);
 
   // reset
-  setCogDesireOrientation(curr_root_att); // set the orientation of root
+  setCogDesireOrientation(root_rot); // set the orientation of root
   aerial_robot_model::RobotModel::updateRobotModelImpl(joint_positions);
 
   ROS_DEBUG_STREAM("numerical result of joint_torque_jacobian: \n" << J_t);
@@ -199,9 +198,9 @@ void HydrusXiFullyActuatedRobotModel::jointTorqueNumericalJacobian(const KDL::Jn
     };
 
   for (const auto& joint_index : joint_indices) {
-      KDL::JntArray pertubation_joint_positions = joint_positions;
-      pertubation_joint_positions(joint_index) += delta_angle;
-      aerial_robot_model::RobotModel::updateRobotModelImpl(pertubation_joint_positions);
+      KDL::JntArray perturbation_joint_positions = joint_positions;
+      perturbation_joint_positions(joint_index) += delta_angle;
+      aerial_robot_model::RobotModel::updateRobotModelImpl(perturbation_joint_positions);
       calcJointTorque();
 #if 0
       for (int i = 0; i < getRotorNum(); ++i) {
@@ -218,23 +217,123 @@ void HydrusXiFullyActuatedRobotModel::jointTorqueNumericalJacobian(const KDL::Jn
     }
 
   // roll
-  setCogDesireOrientation(curr_root_att * KDL::Rotation::RPY(delta_angle, 0, 0)); // set the orientation of root
+  setCogDesireOrientation(root_rot * KDL::Rotation::RPY(delta_angle, 0, 0)); // set the orientation of root
   virtualRootRotJacobianTorque(3);
 
   // pitch
-  setCogDesireOrientation(curr_root_att * KDL::Rotation::RPY(0, delta_angle, 0)); // set the orientation of root
+  setCogDesireOrientation(root_rot * KDL::Rotation::RPY(0, delta_angle, 0)); // set the orientation of root
   virtualRootRotJacobianTorque(4);
 
   // yaw
-  setCogDesireOrientation(curr_root_att * KDL::Rotation::RPY(0, 0, delta_angle)); // set the orientation of root
+  setCogDesireOrientation(root_rot * KDL::Rotation::RPY(0, 0, delta_angle)); // set the orientation of root
   virtualRootRotJacobianTorque(5);
 
   // reset
-  setCogDesireOrientation(curr_root_att); // set the orientation of root
+  setCogDesireOrientation(root_rot); // set the orientation of root
   aerial_robot_model::RobotModel::updateRobotModelImpl(joint_positions);
 
   ROS_INFO_STREAM("joint_torque_jacobian : \n" << joint_torque_jacobian);
   ROS_INFO_STREAM("numerical result of joint_torque_jacobian : \n" << J_t_j);
   ROS_INFO_STREAM("diff: \n" << J_t_j - joint_torque_jacobian);
 #endif
+}
+
+void HydrusXiFullyActuatedRobotModel::cogMomentumNumericalJacobian(const KDL::JntArray joint_positions, Eigen::MatrixXd analytical_cog_result, Eigen::MatrixXd analytical_momentum_result)
+{
+  const auto& joint_indices = getJointIndices();
+  const auto& inertia_map = getInertiaMap();
+  const int full_body_ndof = 6 + getJointNum();
+  double mass_all = getMass();
+  const std::map<std::string, KDL::Frame> nominal_seg_frames = getSegmentsTf();
+  KDL::Rotation nominal_root_rot = getCogDesireOrientation<KDL::Rotation>();
+
+  Eigen::MatrixXd J_cog = Eigen::MatrixXd::Zero(3, full_body_ndof);
+  Eigen::MatrixXd J_L = Eigen::MatrixXd::Zero(3, full_body_ndof);
+
+  double delta_angle = 0.00001; // [rad]
+
+  KDL::Vector nominal_cog = getCog<KDL::Frame>().p;
+
+  auto perturbation = [&](int col, KDL::JntArray joint_angles) {
+    aerial_robot_model::RobotModel::updateRobotModelImpl(joint_angles);
+
+    const std::map<std::string, KDL::Frame> seg_frames = getSegmentsTf();
+    KDL::Rotation root_rot = getCogDesireOrientation<KDL::Rotation>();
+
+    for(const auto& seg : inertia_map)
+      {
+        Eigen::Vector3d p_momentum_jacobian = aerial_robot_model::kdlToEigen(root_rot * (seg_frames.at(seg.first) * seg.second.getCOG()) - nominal_root_rot * (nominal_seg_frames.at(seg.first)  * seg.second.getCOG())) * seg.second.getMass() / delta_angle;
+
+        J_cog.col(col) += p_momentum_jacobian / mass_all;
+
+        J_L.col(col) += aerial_robot_model::kdlToEigen(nominal_root_rot * (nominal_seg_frames.at(seg.first) * seg.second.getCOG() - nominal_cog)).cross(p_momentum_jacobian);
+
+        KDL::Rotation inertia_rot = nominal_root_rot * nominal_seg_frames.at(seg.first).M;
+        KDL::RigidBodyInertia seg_inertia = seg.second;
+        Eigen::MatrixXd rotional_inertia = aerial_robot_model::kdlToEigen((inertia_rot * seg_inertia.RefPoint(seg.second.getCOG())).getRotationalInertia());
+
+        KDL::Rotation pertuabated_inertia_rot = root_rot * seg_frames.at(seg.first).M;
+        Eigen::MatrixXd omega_skew = (aerial_robot_model::kdlToEigen(pertuabated_inertia_rot) - aerial_robot_model::kdlToEigen(inertia_rot)) / delta_angle * aerial_robot_model::kdlToEigen(inertia_rot.Inverse());
+
+        // ROS_INFO_STREAM("omega_skew of " << seg.first << " for col " << col << ": \n" << omega_skew);
+        Eigen::Vector3d omega(omega_skew(2,1), omega_skew(0,2), omega_skew(1,0));
+        J_L.col(col) += rotional_inertia * omega;
+      }
+
+    // simple way to get cog velocity jacobian
+    //J_cog.col(col) = aerial_robot_model::kdlToEigen(root_rot * getCog<KDL::Frame>().p - nominal_root_rot * nominal_cog) / delta_angle;
+  };
+
+  /* joint */
+  int col_index = 6;
+  for (const auto& joint_index : joint_indices) {
+    KDL::JntArray perturbation_joint_positions(joint_positions);
+    perturbation_joint_positions(joint_index) += delta_angle;
+    perturbation(col_index, perturbation_joint_positions);
+    col_index++;
+  }
+
+  // virtual 6dof root
+  J_cog.leftCols(3) =  aerial_robot_model::kdlToEigen(nominal_root_rot);
+  // roll
+  setCogDesireOrientation(nominal_root_rot * KDL::Rotation::RPY(delta_angle, 0, 0));
+  perturbation(3, joint_positions);
+
+  // pitch
+  setCogDesireOrientation(nominal_root_rot * KDL::Rotation::RPY(0, delta_angle, 0));
+  perturbation(4, joint_positions);
+
+  // yaw
+  setCogDesireOrientation(nominal_root_rot * KDL::Rotation::RPY(0, 0, delta_angle));
+  perturbation(5, joint_positions);
+
+  // reset
+  setCogDesireOrientation(nominal_root_rot);
+  aerial_robot_model::RobotModel::updateRobotModelImpl(joint_positions);
+
+  ROS_DEBUG_STREAM("numerical cog_jacobian: \n" << J_cog);
+
+  if(analytical_cog_result.cols() > 0 && analytical_cog_result.rows() > 0)
+    {
+      ROS_DEBUG_STREAM("analytical cog_jacobian: \n" << analytical_cog_result);
+      ROS_DEBUG_STREAM("diff of cog jacobian: \n" << J_cog - analytical_cog_result);
+
+      double min_diff = (J_cog - analytical_cog_result).minCoeff();
+      double max_diff = (J_cog - analytical_cog_result).maxCoeff();
+      if(max_diff > fabs(min_diff)) ROS_INFO_STREAM("max diff of cog jacobian: " << max_diff);
+      else  ROS_INFO_STREAM("max diff of cog jacobian: " << fabs(min_diff));
+    }
+
+  ROS_DEBUG_STREAM("numerical angular momentum_jacobian: \n" << J_L);
+
+  if(analytical_momentum_result.cols() > 0 && analytical_momentum_result.rows() > 0)
+    {
+      ROS_DEBUG_STREAM("analytical angular momentum jacobian: \n" << analytical_momentum_result);
+      ROS_DEBUG_STREAM("diff of two jacobians: \n" << J_L - analytical_momentum_result);
+
+      double min_diff = (J_L - analytical_momentum_result).minCoeff();
+      double max_diff = (J_L - analytical_momentum_result).maxCoeff();
+      if(max_diff > fabs(min_diff)) ROS_INFO_STREAM("max diff of angular momentum jacobian: " << max_diff);
+      else  ROS_INFO_STREAM("max diff of angular momentum jacobian: " << fabs(min_diff));
+    }
 }
