@@ -77,8 +77,8 @@ namespace control_plugin
     virtual ~HydrusXiFullyActuatedController() = default;
 
     void initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
-                     StateEstimator* estimator, Navigator* navigator,
-                     double ctrl_loop_rate) override;
+                    StateEstimator* estimator, Navigator* navigator,
+                    double ctrl_loop_rate) override;
     bool update() override;
     void reset() override;
     void stateError();
@@ -138,6 +138,7 @@ namespace control_plugin
     tf::Vector3 target_linear_acc_;
     double target_yaw_acc_;
     std::vector<float> calcForceVector(const Eigen::MatrixXd& wrench_allocation_matrix_inv);
+    Eigen::MatrixXd calcWrenchAllocationMatrixWithInertial();
     std::vector<double> target_throttle_;
 
     ros::Publisher flight_cmd_pub_;

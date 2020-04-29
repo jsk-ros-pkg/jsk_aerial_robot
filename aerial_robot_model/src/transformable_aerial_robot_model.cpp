@@ -340,6 +340,8 @@ namespace aerial_robot_model {
 
   void RobotModel::updateRobotModelImpl(const KDL::JntArray& joint_positions)
   {
+    joint_positions_ = joint_positions;
+
     KDL::RigidBodyInertia link_inertia = KDL::RigidBodyInertia::Zero();
     seg_tf_map_ = fullForwardKinematics(joint_positions);
 

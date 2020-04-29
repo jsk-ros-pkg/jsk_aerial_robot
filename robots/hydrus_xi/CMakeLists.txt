@@ -40,7 +40,8 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
 )
 
-add_library(hydrus_xi_fully_actuated_robot_model src/hydrus_xi_fully_actuated_robot_model.cpp)
+add_library(hydrus_xi_fully_actuated_robot_model src/hydrus_xi_fully_actuated_robot_model.cpp
+  src/hydrus_xi_fully_actuated_jacobian_test.cpp)
 target_link_libraries(hydrus_xi_fully_actuated_robot_model ${catkin_LIBRARIES})
 
 add_library(hydrus_xi_fully_actuated_controller_pluginlib src/hydrus_xi_fully_actuated_controller.cpp)

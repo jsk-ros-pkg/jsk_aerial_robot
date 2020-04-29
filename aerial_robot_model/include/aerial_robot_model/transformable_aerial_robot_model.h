@@ -70,6 +70,7 @@ namespace aerial_robot_model {
     template<class T> T forwardKinematics(std::string link, const sensor_msgs::JointState& state) const;
     std::map<std::string, KDL::Frame> fullForwardKinematics(const KDL::JntArray& joint_positions) {return fullForwardKinematicsImpl(joint_positions); }
     std::map<std::string, KDL::Frame> fullForwardKinematics(const sensor_msgs::JointState& state) {return fullForwardKinematics(jointMsgToKdl(state)); }
+    const KDL::JntArray& getJointPositions() const { return joint_positions_; }
     const std::map<std::string, uint32_t>& getJointIndexMap() const { return joint_index_map_; }
     const std::map<std::string, std::vector<std::string> >& getJointSegmentMap() const { return joint_segment_map_; }
     const std::map<std::string, int>& getJointHierachy() const {return joint_hierachy_;}
@@ -132,6 +133,7 @@ namespace aerial_robot_model {
 
 
     std::string baselink_;
+    KDL::JntArray joint_positions_;
     KDL::Frame cog_;
     KDL::Rotation cog_desire_orientation_;
     KDL::Frame cog2baselink_transform_;
