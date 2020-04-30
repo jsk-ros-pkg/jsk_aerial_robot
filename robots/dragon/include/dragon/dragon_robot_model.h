@@ -41,6 +41,7 @@ class DragonRobotModel : public HydrusRobotModel {
 public:
   DragonRobotModel(bool init_with_rosparam,
                    bool verbose = false,
+                   double epsilon = 10,
                    double control_margin_thre = 0,
                    double p_det_thre = 0,
                    double edf_radius = 0,

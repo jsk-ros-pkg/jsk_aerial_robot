@@ -52,6 +52,7 @@ class HydrusRobotModel : public aerial_robot_model::RobotModel {
 public:
   HydrusRobotModel(bool init_with_rosparam,
                    bool verbose = false,
+                   double epsilon = 10,
                    double control_margin_thre = 0,
                    double p_det_thre = 0,
                    bool only_three_axis_mode = false);
@@ -88,6 +89,7 @@ protected:
   Eigen::VectorXd optimal_hovering_f_;
   Eigen::MatrixXd Q_tau_, Q_f_;
   Eigen::MatrixXd P_;
+
   double p_det_;
   double p_det_thre_;
   Eigen::MatrixXd P_orig_pseudo_inverse_; // for compensation of cross term in the rotional dynamics

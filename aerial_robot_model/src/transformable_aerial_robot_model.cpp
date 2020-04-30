@@ -2,8 +2,9 @@
 
 namespace aerial_robot_model {
 
-  RobotModel::RobotModel(bool init_with_rosparam, bool verbose):
+  RobotModel::RobotModel(bool init_with_rosparam, bool verbose, double epsilon):
     verbose_(verbose),
+    epsilon_(epsilon),
     baselink_("fc"),
     thrust_link_("thrust"),
     rotor_num_(0),
@@ -94,7 +95,56 @@ namespace aerial_robot_model {
         link_joint_lower_limits_.push_back(joint_ptr->limits->lower);
         link_joint_upper_limits_.push_back(joint_ptr->limits->upper);
       }
-  }
+
+
+    // jacobian
+    full_body_ndof_ = 6 + joint_num_;
+    q_mat_.resize(6, rotor_num_);
+    v_.resize(rotor_num_);
+    u_jacobian_.resize(rotor_num_);
+    v_jacobian_.resize(rotor_num_);
+    p_jacobian_.resize(rotor_num_);
+    cog_jacobian_.resize(3, full_body_ndof_);
+    l_momentum_jacobian_.resize(3, full_body_ndof_);
+    gravity_.resize(6);
+    gravity_ <<  0, 0, 9.80665, 0, 0, 0;
+    gravity_3d_.resize(3);
+    gravity_3d_ << 0, 0, 9.80665;
+    lambda_jacobian_.resize(rotor_num_, full_body_ndof_);
+    f_min_ij_.resize(rotor_num_ * (rotor_num_ - 1));
+    t_min_ij_.resize(rotor_num_ * (rotor_num_ - 1));
+    f_min_jacobian_.resize(rotor_num_ * (rotor_num_ - 1), full_body_ndof_);
+    t_min_jacobian_.resize(rotor_num_ * (rotor_num_ - 1), full_body_ndof_);
+    thrust_coord_jacobians_.resize(rotor_num_);
+    cog_coord_jacobians_.resize(getInertiaMap().size());
+    joint_torque_.resize(joint_num_);
+    joint_torque_jacobian_.resize(joint_num_, full_body_ndof_);
+    static_thrust_.resize(rotor_num_);
+    thrust_wrench_units_.resize(rotor_num_);
+    thrust_wrench_allocations_.resize(rotor_num_);
+
+    u_triple_product_jacobian_.resize(rotor_num_);
+    for (auto& j : u_triple_product_jacobian_) {
+      j.resize(rotor_num_);
+      for (auto& k : j) {
+        k.resize(rotor_num_);
+        for (auto& vec : k) {
+          vec.resize(full_body_ndof_);
+        }
+      }
+    }
+
+    v_triple_product_jacobian_.resize(rotor_num_);
+    for (auto& j : v_triple_product_jacobian_) {
+      j.resize(rotor_num_);
+      for (auto& k : j) {
+        k.resize(rotor_num_);
+        for (auto& vec : k) {
+          vec.resize(full_body_ndof_);
+        }
+      }
+    }
+   }
 
   bool RobotModel::addExtraModule(std::string module_name, std::string parent_link_name, KDL::Frame transform, KDL::RigidBodyInertia inertia)
   {
@@ -155,9 +205,8 @@ namespace aerial_robot_model {
   void RobotModel::getParamFromRos()
   {
     ros::NodeHandle nhp("~");
-    ROS_WARN_STREAM(nhp.getNamespace());
     nhp.param("kinematic_verbose", verbose_, false);
-    ros::NodeHandle control_node("/motor_info");
+    nhp.param("epslion", epsilon_, 10.0);
   }
 
   KDL::RigidBodyInertia RobotModel::inertialSetup(const KDL::TreeElement& tree_element)
@@ -378,6 +427,9 @@ namespace aerial_robot_model {
       }
 
     link_inertia_cog_ = (cog_.Inverse() * link_inertia).getRotationalInertia();
+
+    /* statics */
+    calcStaticThrust();
   }
 
 } //namespace aerial_robot_model

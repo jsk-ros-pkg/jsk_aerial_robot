@@ -38,11 +38,7 @@ if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE RelWithDebInfo)
 endif()
 set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O3 -g -DNDEBUG")
-message(STATUS "CMAKE_BUILD_TYPE:               ${CMAKE_BUILD_TYPE}")
-message(STATUS "CMAKE_CXX_FLAGS_RELEASE:        ${CMAKE_CXX_FLAGS_RELEASE}")
-message(STATUS "CMAKE_CXX_FLAGS_RELWITHDEBINFO: ${CMAKE_CXX_FLAGS_RELWITHDEBINFO}")
-message(STATUS "CMAKE_CXX_FLAGS_MINSIZEREL:     ${CMAKE_CXX_FLAGS_MINSIZEREL}")
-message(STATUS "CMAKE_CXX_FLAGS_DEBUG:          ${CMAKE_CXX_FLAGS_DEBUG}")
+
 add_service_files(
   FILES
   AddExtraModule.srv
@@ -76,7 +72,7 @@ include_directories(
   ${EIGEN3_INCLUDE_DIRS}
 )
 
-add_library(transformable_aerial_robot_model src/transformable_aerial_robot_model.cpp)
+add_library(transformable_aerial_robot_model src/transformable_aerial_robot_model.cpp src/transformable_aerial_robot_model_jacobian.cpp src/transformable_aerial_robot_model_jacobian_test.cpp)
 target_link_libraries(transformable_aerial_robot_model ${catkin_LIBRARIES} ${orocos_kdl_LIBRARIES} ${EIGEN3_LIBRARIES})
 
 add_library(transformable_aerial_robot_model_ros src/transformable_aerial_robot_model_ros.cpp)

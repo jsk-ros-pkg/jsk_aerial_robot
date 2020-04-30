@@ -1,7 +1,7 @@
 #include <hydrus/tilted_robot_model.h>
 
-HydrusTiltedRobotModel::HydrusTiltedRobotModel(bool init_with_rosparam, bool verbose, double control_margin_thre, double p_det_thre):
-  HydrusRobotModel(init_with_rosparam, verbose, control_margin_thre, p_det_thre, false)
+HydrusTiltedRobotModel::HydrusTiltedRobotModel(bool init_with_rosparam, bool verbose, double epsilon, double control_margin_thre, double p_det_thre):
+  HydrusRobotModel(init_with_rosparam, verbose, epsilon, control_margin_thre, p_det_thre, false)
 {
 }
 

@@ -20,10 +20,8 @@ namespace aerial_robot_model {
 
   void RobotModelRos::actuatorStateCallback(const sensor_msgs::JointStateConstPtr& state)
   {
-    if(getRobotModel().getVerbose()) ROS_ERROR("start kinematics");
     joint_state_ = *state;
     getRobotModel().updateRobotModel(*state);
-    if(getRobotModel().getVerbose()) ROS_ERROR("finish kinematics");
 
     if (enable_cog2baselink_tf_pub_)
       {
@@ -39,11 +37,10 @@ namespace aerial_robot_model {
         cog2baselink_tf_pub_.publish(transform_msg);
       }
 
-    if(!kinematics_updated_)
-      {
-        ROS_ERROR("the total mass is %f", getRobotModel().getMass());
-        kinematics_updated_ = true;
-      }
+    if(!kinematics_updated_) kinematics_updated_ = true;
+
+
+    getRobotModel().updateJacobians(); // test jacobian
   }
 
   bool RobotModelRos::addExtraModuleCallback(aerial_robot_model::AddExtraModule::Request &req, aerial_robot_model::AddExtraModule::Response &res)
