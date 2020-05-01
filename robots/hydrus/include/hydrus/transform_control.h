@@ -35,12 +35,12 @@
 
 #pragma once
 
+#include <aerial_robot_control/control/utils/care.h>
 #include <aerial_robot_model/transformable_aerial_robot_model_ros.h>
 #include <aerial_robot_msgs/FourAxisGain.h>
 #include <dynamic_reconfigure/server.h>
 #include <hydrus/hydrus_robot_model.h>
 #include <hydrus/LQIConfig.h>
-#include <mutex>
 #include <sensor_msgs/JointState.h>
 #include <spinal/PMatrixPseudoInverseWithInertia.h>
 #include <spinal/RollPitchYawTerms.h>
@@ -78,17 +78,14 @@ protected:
   HydrusRobotModel& getRobotModel() const { return static_cast<HydrusRobotModel&>(RobotModelRos::getRobotModel()); }
 
   //private attributes
-  bool a_dash_eigen_calc_flag_;
   double control_rate_;
-  std::thread control_thread_;
-  bool control_verbose_;
-  bool debug_verbose_;
+  std::thread main_thread_;
+  bool verbose_;
   dynamic_reconfigure::Server<hydrus::LQIConfig>::CallbackType dynamic_reconf_func_lqi_;
   ros::Publisher four_axis_gain_pub_;
   bool gyro_moment_compensation_;
   Eigen::MatrixXd K_;
   dynamic_reconfigure::Server<hydrus::LQIConfig> lqi_server_;
-  std::mutex mutex_;
   ros::NodeHandle nh_;
   ros::NodeHandle nh_private_;
   ros::Publisher p_matrix_pseudo_inverse_inertia_pub_;
@@ -107,15 +104,17 @@ protected:
   double q_z_i_;
   std::vector<double> r_; // matrix R
   ros::Publisher rpy_gain_pub_;
-  bool verbose_;
 
   std::vector<PID> pitch_gains_, roll_gains_, yaw_gains_, z_gains_;
 
   //private functions
-  virtual void cfgLQICallback(hydrus::LQIConfig &config, uint32_t level); //dynamic reconfigure
-  virtual void control();
-  virtual bool hamiltonMatrixSolver();
   void initParam();
+  void resetGain() { K_ = Eigen::MatrixXd(); }
+  bool updateRobotModel();
+
+  virtual void cfgLQICallback(hydrus::LQIConfig &config, uint32_t level); //dynamic reconfigure
+  virtual void mainFunc();
+  virtual bool optimalGain();
   virtual void param2controller();
-  void lqi(); // LQI parameter calculation
+
 };

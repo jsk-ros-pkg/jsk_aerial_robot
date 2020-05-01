@@ -6,6 +6,7 @@ add_compile_options(-std=c++14)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   hydrus
+  aerial_robot_control
   aerial_robot_model
   aerial_robot_simulation
 )
