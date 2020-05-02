@@ -118,7 +118,7 @@ namespace aerial_robot_model {
     inline const double getMFRate() const  {return m_f_rate_;}
 
     Eigen::VectorXd getGravityWrenchOnRoot();
-    Eigen::MatrixXd calcWrenchMatrixOnCoG(); // TODO move to hydrus, this is only usefull to check the singularity like hydrus.
+    Eigen::MatrixXd calcWrenchMatrixOnCoG();
     virtual void calcWrenchMatrixOnRoot();
     virtual void calcStaticThrust();
     virtual void calcJointTorque();

@@ -11,6 +11,7 @@ void HydrusTiltedRobotModel::calcStaticThrust()
   calcWrenchMatrixOnRoot(); // update Q matrix
 
   /* calculate the static thrust on CoG frame */
+  /* note: can not calculate in root frame, sine the projected f_x, f_y is different in CoG and root */
   Eigen::MatrixXd wrench_mat_on_cog = calcWrenchMatrixOnCoG();
 
   Eigen::VectorXd static_thrust = aerial_robot_model::pseudoinverse(wrench_mat_on_cog.middleRows(2, 4)) * getGravity().segment(2,4) * getMass();
