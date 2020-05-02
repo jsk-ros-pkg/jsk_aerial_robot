@@ -43,7 +43,7 @@ public:
                    bool verbose = false,
                    double epsilon = 10,
                    double control_margin_thre = 0,
-                   double p_det_thre = 0,
+                   double wrench_mat_det_thre = 0,
                    double edf_radius = 0,
                    double edf_max_tilt = 0);
   virtual ~DragonRobotModel() = default;

@@ -38,9 +38,6 @@ namespace aerial_robot_model {
       }
 
     if(!kinematics_updated_) kinematics_updated_ = true;
-
-
-    getRobotModel().updateJacobians(); // test jacobian
   }
 
   bool RobotModelRos::addExtraModuleCallback(aerial_robot_model::AddExtraModule::Request &req, aerial_robot_model::AddExtraModule::Response &res)

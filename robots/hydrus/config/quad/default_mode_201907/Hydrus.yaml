@@ -2,7 +2,6 @@
 
 control_rate: 15.0
 
-only_three_axis_mode: false
 gyro_moment_compensation: true
 
 q_roll: 1000

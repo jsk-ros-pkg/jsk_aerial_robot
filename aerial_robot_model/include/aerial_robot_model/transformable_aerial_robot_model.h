@@ -109,21 +109,24 @@ namespace aerial_robot_model {
     KDL::JntArray jointMsgToKdl(const sensor_msgs::JointState& state) const;
     sensor_msgs::JointState kdlJointToMsg(const KDL::JntArray& joint_positions) const;
 
-    virtual void updateStatics(bool verbose = false) {}
+    static TiXmlDocument getRobotModelXml(const std::string& param);
+
+    // statics
     virtual bool stabilityCheck(bool verbose = false) {return true;}
     inline const double getThrustUpperLimit() const {return thrust_max_;}
     inline const double getThrustLowerLimit() const {return thrust_min_;}
     inline const double getMFRate() const  {return m_f_rate_;}
 
-    static TiXmlDocument getRobotModelXml(const std::string& param);
-
-    // statics
-    virtual Eigen::MatrixXd calcQMatrixOnCoG(); // TODO move to hydrus, this is only usefull to check the singularity like hydrus.
-    virtual void calcQMatrixOnRoot();
+    Eigen::VectorXd getGravityWrenchOnRoot();
+    Eigen::MatrixXd calcWrenchMatrixOnCoG(); // TODO move to hydrus, this is only usefull to check the singularity like hydrus.
+    virtual void calcWrenchMatrixOnRoot();
     virtual void calcStaticThrust();
     virtual void calcJointTorque();
-    inline Eigen::VectorXd getStaticThrust() const {return static_thrust_;}
-    inline Eigen::VectorXd getJointTorque() const {return joint_torque_;}
+    inline const Eigen::MatrixXd& getWrenchMatrix() const {return q_mat_;}
+    inline const Eigen::VectorXd& getStaticThrust() const {return static_thrust_;}
+    inline const Eigen::VectorXd& getJointTorque() const {return joint_torque_;}
+    inline const Eigen::VectorXd& getGravity() const {return gravity_;}
+
 
     // jacobian parts
     Eigen::MatrixXd getJacobian(const KDL::JntArray& joint_positions, std::string segment_name, KDL::Vector offset = KDL::Vector::Zero());
@@ -166,6 +169,10 @@ namespace aerial_robot_model {
       }
       return joint_positions;
     }
+
+    inline void setStaticThrust(const Eigen::VectorXd static_thrust) {static_thrust_ = static_thrust;}
+    inline void setWrenchMatrix(const Eigen::MatrixXd q_mat) {q_mat_ = q_mat;}
+
 
   private:
     //private attributes
@@ -258,7 +265,6 @@ namespace aerial_robot_model {
     virtual void calcLambdaJacobain();
     virtual void calcJointTorqueJacobain();
     virtual void calcFeasibileForceTorqueVolumeJacobian();
-    Eigen::VectorXd getGravityWrenchOnRoot();
 
     // test jacobian with numerical solution
     void thrustForceNumericalJacobian(const KDL::JntArray joint_positions, Eigen::MatrixXd analytical_result = Eigen::MatrixXd()); // TODO add root desired

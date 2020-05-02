@@ -36,63 +36,38 @@
 #pragma once
 
 #include <aerial_robot_model/transformable_aerial_robot_model.h>
-#include <aerial_robot_msgs/FourAxisGain.h>
-#include <Eigen/Dense>
-#include <Eigen/Eigenvalues>
-#include <Eigen/LU>
-#include <iomanip>
-#include <iostream>
-#include <spinal/RollPitchYawTerms.h>
-#include <spinal/PMatrixPseudoInverseWithInertia.h>
-#include <ros/ros.h>
-#include <tf_conversions/tf_kdl.h>
-#include <tf_conversions/tf_eigen.h>
 
 class HydrusRobotModel : public aerial_robot_model::RobotModel {
 public:
   HydrusRobotModel(bool init_with_rosparam,
                    bool verbose = false,
                    double epsilon = 10,
+                   int wrench_dof = 4,
                    double control_margin_thre = 0,
-                   double p_det_thre = 0,
-                   bool only_three_axis_mode = false);
+                   double wrench_mat_det_thre = 0);
   virtual ~HydrusRobotModel() = default;
 
-  //public attributes
-  static constexpr uint8_t LQI_THREE_AXIS_MODE = 3;
-  static constexpr uint8_t LQI_FOUR_AXIS_MODE = 4;
-
   //public functions
-  virtual void updateStatics(bool verbose = false);
+  virtual void calcWrenchMatrixOnRoot() override;
+  virtual void calcStaticThrust() override;
+
   virtual bool stabilityCheck(bool verbose = false) override;
-  virtual bool controlMarginCheck(bool verbose = false);
 
-  uint8_t getLqiMode() const { return lqi_mode_; }
-  double getControlMargin() const { return control_margin_; }
-  Eigen::VectorXd getOptimalHoveringThrust() const { return optimal_hovering_f_; }
-  Eigen::MatrixXd getQf() const { return Q_f_; }
-  Eigen::MatrixXd getQtau() const { return Q_tau_; }
-  Eigen::MatrixXd getP() const { return P_; }
-  double getPdeterminant() const { return p_det_; }
-  Eigen::MatrixXd getPOrigPseudoInverse() const { return P_orig_pseudo_inverse_; }
-  bool hamiltonMatrixSolver(uint8_t lqi_mode);
-  void setLqiMode(uint8_t lqi_mode) { lqi_mode_ = lqi_mode; }
+  inline const uint8_t getWrenchDof() const { return wrench_dof_; }
+  inline const double getControlMargin() const { return control_margin_; }
+  inline const double getControlMarginThresh() const { return control_margin_thre_; }
+  inline const double getWrenchMatDeterminant() const { return wrench_mat_det_; }
+  inline const double getWrenchMatDetThresh() const {return wrench_mat_det_thre_;}
 
-  inline const double getPDetThresh() const {return p_det_thre_;}
-  inline const double getControlMarginThresh() const {return control_margin_thre_;}
+  inline void setWrenchDof(uint8_t dof) { wrench_dof_ = dof; }
 
 protected:
 
   //private attributes
-  int lqi_mode_;
-  bool only_three_axis_mode_;
-  Eigen::VectorXd optimal_hovering_f_;
-  Eigen::MatrixXd Q_tau_, Q_f_;
-  Eigen::MatrixXd P_;
-
-  double p_det_;
-  double p_det_thre_;
-  Eigen::MatrixXd P_orig_pseudo_inverse_; // for compensation of cross term in the rotional dynamics
+  int wrench_dof_;
+  // following variables will be replaced by t_min, f_min in the furture
+  double wrench_mat_det_;
+  double wrench_mat_det_thre_;
   double control_margin_;
   double control_margin_thre_;
 

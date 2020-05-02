@@ -10,7 +10,7 @@ namespace aerial_robot_model {
     const auto& sigma = getRotorDirection();
     const double m_f_rate = getMFRate();
     const int full_body_ndof = 6 + getJointNum();
-    KDL::Rotation root_rot = getCogDesireOrientation<KDL::Rotation>();
+    KDL::Rotation root_rot = getCogDesireOrientation<KDL::Rotation>() * seg_frames.at(baselink_).M.Inverse();
 
     double delta_angle = 0.00001; // [rad]
     Eigen::MatrixXd J_g = Eigen::MatrixXd::Zero(6, full_body_ndof);
@@ -30,7 +30,7 @@ namespace aerial_robot_model {
       aerial_robot_model::RobotModel::updateRobotModelImpl(joint_angles);
       Eigen::VectorXd perturbated_wrench_g = getGravityWrenchOnRoot();
       J_g.col(col) = (perturbated_wrench_g - nominal_wrench_g) / delta_angle;
-      calcQMatrixOnRoot();
+      calcWrenchMatrixOnRoot();
       Eigen::VectorXd perturbated_wrench_thrust = q_mat_ * nominal_static_thrust;
       J_thrust.col(col) = (perturbated_wrench_thrust - nominal_wrench_thrust) / delta_angle;
     };
@@ -112,11 +112,12 @@ namespace aerial_robot_model {
 
   void RobotModel::jointTorqueNumericalJacobian(const KDL::JntArray joint_positions, Eigen::MatrixXd analytical_result)
   {
+    const auto& seg_frames = getSegmentsTf();
     const auto& joint_indices = getJointIndices();
     const int full_body_ndof = 6 + getJointNum();
     Eigen::MatrixXd J_t = Eigen::MatrixXd::Zero(getJointNum(), full_body_ndof);
 
-    KDL::Rotation root_rot = getCogDesireOrientation<KDL::Rotation>();
+    KDL::Rotation root_rot = getCogDesireOrientation<KDL::Rotation>() * seg_frames.at(baselink_).M.Inverse();
 
     calcBasicKinematicsJacobian(); // necessary for thrust_coord_jacobias
     calcStaticThrust();
@@ -247,7 +248,7 @@ namespace aerial_robot_model {
     const int full_body_ndof = 6 + getJointNum();
     double mass_all = getMass();
     const std::map<std::string, KDL::Frame> nominal_seg_frames = getSegmentsTf();
-    KDL::Rotation nominal_root_rot = getCogDesireOrientation<KDL::Rotation>();
+    KDL::Rotation nominal_root_rot = getCogDesireOrientation<KDL::Rotation>() * nominal_seg_frames.at(baselink_).M.Inverse();
 
     Eigen::MatrixXd J_cog = Eigen::MatrixXd::Zero(3, full_body_ndof);
     Eigen::MatrixXd J_L = Eigen::MatrixXd::Zero(3, full_body_ndof);
@@ -260,7 +261,7 @@ namespace aerial_robot_model {
       aerial_robot_model::RobotModel::updateRobotModelImpl(joint_angles);
 
       const std::map<std::string, KDL::Frame> seg_frames = getSegmentsTf();
-      KDL::Rotation root_rot = getCogDesireOrientation<KDL::Rotation>();
+      KDL::Rotation root_rot = getCogDesireOrientation<KDL::Rotation>() * seg_frames.at(baselink_).M.Inverse();
 
       for(const auto& seg : inertia_map)
         {

@@ -43,11 +43,11 @@ public:
                          bool verbose = false,
                          double epsilon = 10,
                          double control_margin_thre = 0,
-                         double p_det_thre = 0);
+                         double wrench_mat_det_thre = 0);
   virtual ~HydrusTiltedRobotModel() = default;
 
-  void updateStatics(bool verbose = false) override;
+  virtual void calcStaticThrust() override;
 
-
-protected:
+private:
+  void updateRobotModelImpl(const KDL::JntArray& joint_positions) override;
 };

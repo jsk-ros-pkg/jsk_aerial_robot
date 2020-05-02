@@ -96,7 +96,6 @@ namespace aerial_robot_model {
         link_joint_upper_limits_.push_back(joint_ptr->limits->upper);
       }
 
-
     // jacobian
     full_body_ndof_ = 6 + joint_num_;
     q_mat_.resize(6, rotor_num_);

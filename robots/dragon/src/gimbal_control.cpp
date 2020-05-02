@@ -342,7 +342,7 @@ namespace control_plugin
       {
         /* normalized vector */
         /* 1: use state_x */
-        tf::Vector3 f_i = tf::Vector3(f(2 * i), f(2 * i + 1), kinematics_->getOptimalHoveringThrust()[i]);
+        tf::Vector3 f_i = tf::Vector3(f(2 * i), f(2 * i + 1), kinematics_->getStaticThrust()[i]);
         /* 2: use target_throttle */
         //tf::Vector3 f_i = tf::Vector3(f(2 * i), f(2 * i + 1), kinematics_->(getStableState())(i));
 
@@ -484,7 +484,6 @@ namespace control_plugin
   {
     joint_state_ = *state;
     kinematics_->updateRobotModel(joint_state_);
-    kinematics_->updateStatics();
 
     /* check the gimbal vectoring function */
     if (gimbal_vectoring_check_flag_)

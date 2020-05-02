@@ -38,7 +38,7 @@
 namespace control_utils
 {
   /* Continuous-time Algebraic Riccati Equation */
-  bool care(const Eigen::MatrixXd& A, const Eigen::MatrixXd& B, const Eigen::MatrixXd& R, const Eigen::MatrixXd& Q, Eigen::MatrixXd& P, Eigen::MatrixXd& K, const bool iterative_solution, const double converge_thresh, const int max_iteration)
+  bool care(const Eigen::MatrixXd& A, const Eigen::MatrixXd& B, const Eigen::MatrixXd& R, const Eigen::MatrixXd& Q, Eigen::MatrixXd& K, const bool iterative_solution, const double converge_thresh, const int max_iteration)
   {
 
     Eigen::MatrixXd R_inv = R.inverse();
@@ -73,7 +73,7 @@ namespace control_utils
             Eigen::MatrixXcd Y = Eigen::internal::matrix_function_solve_triangular_sylvester(A_BKt_T, A_BK_T, F);
 
             Eigen::MatrixXd K_prev = K;
-            P = ((A_BKt_U * Y) * A_BK_U.adjoint()).real();
+            Eigen::MatrixXd P = ((A_BKt_U * Y) * A_BK_U.adjoint()).real();
             K = -R_inv * B.transpose() * P;
 
             Eigen::MatrixXd delta_K = K - K_prev;
@@ -104,7 +104,7 @@ namespace control_utils
 
         std::cout << YELLOW_MESSAGE << "Warning in care: K does not converge in Kleinman method, max matrix element diff is " << max_diff << ", use hamiltonMatrixSolver" << RESET_COLOR << std::endl;
 
-        return care(A, B, R, Q, P, K);
+        return care(A, B, R, Q, K);
       }
     else
       {
@@ -147,7 +147,7 @@ namespace control_utils
         Eigen::MatrixXcd g = phy.block(state_dim, 0, state_dim, state_dim);
 
         Eigen::MatrixXcd f_inv  = f.inverse();
-        P = (g * f_inv).real();
+        Eigen::MatrixXd P = (g * f_inv).real();
         //K
         K = -R_inv * B.transpose() * P;
       }

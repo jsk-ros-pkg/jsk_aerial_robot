@@ -1,7 +1,7 @@
 #include <dragon/dragon_robot_model.h>
 
-DragonRobotModel::DragonRobotModel(bool init_with_rosparam, bool verbose, double epsilon, double control_margin_thre, double p_det_thre, double edf_radius, double edf_max_tilt) :
-  HydrusRobotModel(init_with_rosparam, verbose, epsilon, control_margin_thre, p_det_thre),
+DragonRobotModel::DragonRobotModel(bool init_with_rosparam, bool verbose, double epsilon, double control_margin_thre, double wrench_mat_det_thre, double edf_radius, double edf_max_tilt) :
+  HydrusRobotModel(init_with_rosparam, verbose, epsilon, 3, control_margin_thre, wrench_mat_det_thre),
   edf_radius_(edf_radius),
   edf_max_tilt_(edf_max_tilt)
 {
@@ -10,7 +10,6 @@ DragonRobotModel::DragonRobotModel(bool init_with_rosparam, bool verbose, double
       getParamFromRos();
     }
 
-  only_three_axis_mode_ = true;
   links_rotation_from_cog_.resize(getRotorNum());
   edfs_origin_from_cog_.resize(getRotorNum() * 2);
   gimbal_nominal_angles_.resize(getRotorNum() * 2);
@@ -108,20 +107,15 @@ void DragonRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_positions
 
   /* special process for dual edf gimbal */
   /* set the edf position w.r.t CoG frame */
+  const auto& seg_frames = getSegmentsTf();
   std::vector<KDL::Vector> f_edfs;
   for(int i = 0; i < getRotorNum(); ++i)
     {
       std::string s = std::to_string(i + 1);
       std::string edf = std::string("edf") + s + std::string("_left");
-      KDL::Frame f;
-      fk_solver.JntToCart(gimbal_processed_joint_, f, edf);
-
-      f_edfs.push_back((getCog<KDL::Frame>().Inverse() * f).p);
-
+      f_edfs.push_back((getCog<KDL::Frame>().Inverse() * seg_frames.at(edf)).p);
       edf = std::string("edf") + s + std::string("_right");
-      f = forwardKinematics<KDL::Frame>(edf, gimbal_processed_joint_);
-      f_edfs.push_back((getCog<KDL::Frame>().Inverse() * f).p);
+      f_edfs.push_back((getCog<KDL::Frame>().Inverse() * seg_frames.at(edf)).p);
     }
-
   edfs_origin_from_cog_ = f_edfs;
 }

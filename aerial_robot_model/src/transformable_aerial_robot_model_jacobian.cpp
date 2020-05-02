@@ -24,8 +24,8 @@ namespace aerial_robot_model {
 
     //calcFeasibileForceTorqueVolumeJacobian();
 
-    thrustForceNumericalJacobian(getJointPositions(), lambda_jacobian_);
-    jointTorqueNumericalJacobian(getJointPositions(), joint_torque_jacobian_);
+    //thrustForceNumericalJacobian(getJointPositions(), lambda_jacobian_);
+    //jointTorqueNumericalJacobian(getJointPositions(), joint_torque_jacobian_);
     //cogMomentumNumericalJacobian(getJointPositions(), cog_jacobian_, l_momentum_jacobian_);
     //throw std::runtime_error("test");
 
@@ -35,7 +35,7 @@ namespace aerial_robot_model {
   {
     const auto& tree = getTree();
     const auto& seg_frames = getSegmentsTf();
-    const auto root_rot = getCogDesireOrientation<Eigen::Matrix3d>();
+    Eigen::MatrixXd root_rot = aerial_robot_model::kdlToEigen(getCogDesireOrientation<KDL::Rotation>() * seg_frames.at(baselink_).M.Inverse());
 
     KDL::TreeJntToJacSolver solver(tree);
     KDL::Jacobian jac(tree.getNrOfJoints());
@@ -81,7 +81,8 @@ namespace aerial_robot_model {
     const auto& joint_segment_map = getJointSegmentMap();
     const auto& joint_names = getJointNames();
     const auto& joint_parent_link_names = getJointParentLinkNames();
-    const auto root_rot = getCogDesireOrientation<Eigen::Matrix3d>();
+
+    Eigen::MatrixXd root_rot = aerial_robot_model::kdlToEigen(getCogDesireOrientation<KDL::Rotation>() * seg_frames.at(baselink_).M.Inverse());
 
     Eigen::Vector3d p_e = aerial_robot_model::kdlToEigen(seg_frames.at(ref_frame).p + seg_frames.at(ref_frame).M * offset);
 
@@ -124,7 +125,7 @@ namespace aerial_robot_model {
     const auto& joint_parent_link_names = getJointParentLinkNames();
     const auto& joint_num = getJointNum();
     const int full_body_ndof = 6 + joint_num;
-    const auto root_rot = getCogDesireOrientation<Eigen::Matrix3d>();
+    Eigen::MatrixXd root_rot = aerial_robot_model::kdlToEigen(getCogDesireOrientation<KDL::Rotation>() * seg_frames.at(baselink_).M.Inverse());
 
     Eigen::Vector3d p_e = aerial_robot_model::kdlToEigen(seg_frames.at(ref_frame).p + seg_frames.at(ref_frame).M * offset);
 
@@ -183,7 +184,7 @@ namespace aerial_robot_model {
     const auto& joint_parent_link_names = getJointParentLinkNames();
     const auto& segment_map = getTree().getSegments();
     const auto& seg_frames = getSegmentsTf();
-    const auto root_rot = getCogDesireOrientation<Eigen::Matrix3d>();
+    Eigen::MatrixXd root_rot = aerial_robot_model::kdlToEigen(getCogDesireOrientation<KDL::Rotation>() * seg_frames.at(baselink_).M.Inverse());
 
     Eigen::Vector3d p_e = aerial_robot_model::kdlToEigen(seg_frames.at(ref_frame).p + seg_frames.at(ref_frame).M * offset);
     Eigen::MatrixXd out = Eigen::MatrixXd::Zero(3, full_body_ndof);
@@ -238,12 +239,12 @@ namespace aerial_robot_model {
 
   void RobotModel::calcStaticThrust()
   {
-    calcQMatrixOnRoot(); // update Q matrix
+    calcWrenchMatrixOnRoot(); // update Q matrix
     Eigen::VectorXd wrench_g = getGravityWrenchOnRoot();
     static_thrust_ = aerial_robot_model::pseudoinverse(q_mat_) * (-wrench_g); // TODO: add external force
 
 #if 1
-    Eigen::VectorXd static_thrust_from_cog = aerial_robot_model::pseudoinverse(calcQMatrixOnCoG()) * getMass() * gravity_;
+    Eigen::VectorXd static_thrust_from_cog = aerial_robot_model::pseudoinverse(calcWrenchMatrixOnCoG()) * getMass() * gravity_;
     ROS_DEBUG_STREAM("wrench gravity:" << wrench_g.transpose());
     ROS_DEBUG_STREAM("static thrust w.r.t. cog:" << static_thrust_from_cog.transpose());
     ROS_DEBUG_STREAM("static thrust w.r.t. root :" << static_thrust_.transpose());
@@ -388,9 +389,9 @@ namespace aerial_robot_model {
     const auto& joint_names = getJointNames();
     const auto& joint_segment_map = getJointSegmentMap();
     const auto& joint_parent_link_names = getJointParentLinkNames();
-    const auto root_rot = getCogDesireOrientation<Eigen::Matrix3d>();
     const auto joint_num = getJointNum();
 
+    Eigen::MatrixXd root_rot = aerial_robot_model::kdlToEigen(getCogDesireOrientation<KDL::Rotation>() * seg_frames.at(baselink_).M.Inverse());
     /*
       Note: the jacobian about the cog velocity (linear momentum) and angular momentum.
 
@@ -616,8 +617,8 @@ namespace aerial_robot_model {
   {
     const auto& seg_frames = getSegmentsTf();
     const auto& inertia_map = getInertiaMap();
-    const auto root_rot = getCogDesireOrientation<Eigen::Matrix3d>();
 
+    Eigen::MatrixXd root_rot = aerial_robot_model::kdlToEigen(getCogDesireOrientation<KDL::Rotation>() * seg_frames.at(baselink_).M.Inverse());
     Eigen::VectorXd wrench_g = Eigen::VectorXd::Zero(6);
     KDL::RigidBodyInertia link_inertia = KDL::RigidBodyInertia::Zero();
     std::vector<Eigen::MatrixXd> g_root_jacobians;
@@ -633,7 +634,7 @@ namespace aerial_robot_model {
 
 
   // TODO move to hydrus, this is only usefull to check the singularity like hydrus.
-  Eigen::MatrixXd RobotModel::calcQMatrixOnCoG()
+  Eigen::MatrixXd RobotModel::calcWrenchMatrixOnCoG()
   {
     const std::vector<Eigen::Vector3d> p = getRotorsOriginFromCog<Eigen::Vector3d>();
     const std::vector<Eigen::Vector3d> u = getRotorsNormalFromCog<Eigen::Vector3d>();
@@ -652,15 +653,17 @@ namespace aerial_robot_model {
   }
 
 
-  void RobotModel::calcQMatrixOnRoot()
+  void RobotModel::calcWrenchMatrixOnRoot()
   {
     const auto& seg_frames = getSegmentsTf();
     const std::vector<Eigen::Vector3d>& u = getRotorsNormalFromCog<Eigen::Vector3d>();
     const auto& sigma = getRotorDirection();
-    const auto root_rot = getCogDesireOrientation<Eigen::Matrix3d>();
     const int rotor_num = getRotorNum();
     const double m_f_rate = getMFRate();
 
+    Eigen::MatrixXd root_rot = aerial_robot_model::kdlToEigen(getCogDesireOrientation<KDL::Rotation>() * seg_frames.at(baselink_).M.Inverse());
+
+    q_mat_ = Eigen::MatrixXd::Zero(6, rotor_num);
     for (unsigned int i = 0; i < rotor_num; ++i) {
       std::string rotor = "thrust" + std::to_string(i + 1);
       Eigen::MatrixXd q_i = Eigen::MatrixXd::Identity(6, 6);
