@@ -63,7 +63,7 @@ public:
 
 protected:
 
-  //private attributes
+  // private attributes
   int wrench_dof_;
   // following variables will be replaced by t_min, f_min in the furture
   double wrench_mat_det_;
@@ -71,6 +71,9 @@ protected:
   double control_margin_;
   double control_margin_thre_;
 
-  //private functions
+  // private functions
   void getParamFromRos();
+
+  // jacobian part
+  virtual void thrustForceNumericalJacobian(const KDL::JntArray joint_positions, Eigen::MatrixXd analytical_result = Eigen::MatrixXd(), std::vector<int> joint_indices = std::vector<int>()) override;
 };

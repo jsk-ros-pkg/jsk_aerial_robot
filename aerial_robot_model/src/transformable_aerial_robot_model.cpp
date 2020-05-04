@@ -97,27 +97,27 @@ namespace aerial_robot_model {
       }
 
     // jacobian
-    full_body_ndof_ = 6 + joint_num_;
+    int full_body_dof = 6 + joint_num_;
     q_mat_.resize(6, rotor_num_);
     v_.resize(rotor_num_);
-    u_jacobian_.resize(rotor_num_);
-    v_jacobian_.resize(rotor_num_);
-    p_jacobian_.resize(rotor_num_);
-    cog_jacobian_.resize(3, full_body_ndof_);
-    l_momentum_jacobian_.resize(3, full_body_ndof_);
+    u_jacobians_.resize(rotor_num_);
+    v_jacobians_.resize(rotor_num_);
+    p_jacobians_.resize(rotor_num_);
+    thrust_coord_jacobians_.resize(rotor_num_);
+    cog_coord_jacobians_.resize(getInertiaMap().size());
+    cog_jacobian_.resize(3, full_body_dof);
+    l_momentum_jacobian_.resize(3, full_body_dof);
     gravity_.resize(6);
     gravity_ <<  0, 0, 9.80665, 0, 0, 0;
     gravity_3d_.resize(3);
     gravity_3d_ << 0, 0, 9.80665;
-    lambda_jacobian_.resize(rotor_num_, full_body_ndof_);
+    lambda_jacobian_.resize(rotor_num_, full_body_dof);
     f_min_ij_.resize(rotor_num_ * (rotor_num_ - 1));
     t_min_ij_.resize(rotor_num_ * (rotor_num_ - 1));
-    f_min_jacobian_.resize(rotor_num_ * (rotor_num_ - 1), full_body_ndof_);
-    t_min_jacobian_.resize(rotor_num_ * (rotor_num_ - 1), full_body_ndof_);
-    thrust_coord_jacobians_.resize(rotor_num_);
-    cog_coord_jacobians_.resize(getInertiaMap().size());
+    f_min_jacobian_.resize(rotor_num_ * (rotor_num_ - 1), full_body_dof);
+    t_min_jacobian_.resize(rotor_num_ * (rotor_num_ - 1), full_body_dof);
     joint_torque_.resize(joint_num_);
-    joint_torque_jacobian_.resize(joint_num_, full_body_ndof_);
+    joint_torque_jacobian_.resize(joint_num_, full_body_dof);
     static_thrust_.resize(rotor_num_);
     thrust_wrench_units_.resize(rotor_num_);
     thrust_wrench_allocations_.resize(rotor_num_);
@@ -128,7 +128,7 @@ namespace aerial_robot_model {
       for (auto& k : j) {
         k.resize(rotor_num_);
         for (auto& vec : k) {
-          vec.resize(full_body_ndof_);
+          vec.resize(full_body_dof);
         }
       }
     }
@@ -139,10 +139,12 @@ namespace aerial_robot_model {
       for (auto& k : j) {
         k.resize(rotor_num_);
         for (auto& vec : k) {
-          vec.resize(full_body_ndof_);
+          vec.resize(full_body_dof);
         }
       }
     }
+
+    //setCogDesireOrientation(0.1, -0.1, 0);
    }
 
   bool RobotModel::addExtraModule(std::string module_name, std::string parent_link_name, KDL::Frame transform, KDL::RigidBodyInertia inertia)

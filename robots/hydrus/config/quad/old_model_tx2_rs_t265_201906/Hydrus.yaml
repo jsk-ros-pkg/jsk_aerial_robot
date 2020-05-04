@@ -2,7 +2,7 @@
 
 control_rate: 15.0
 
-#wrench_dof: 3
+# wrench_dof: 3
 gyro_moment_compensation: true
 
 q_roll: 400

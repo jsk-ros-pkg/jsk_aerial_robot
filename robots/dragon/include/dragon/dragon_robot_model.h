@@ -59,6 +59,9 @@ public:
   bool stabilityCheck(bool verbose = false) override;
   bool overlapCheck(bool verbose = false);
 
+  Eigen::MatrixXd getJacobian(const KDL::JntArray& joint_positions, std::string segment_name, KDL::Vector offset = KDL::Vector::Zero()) override;
+  void updateJacobians(const KDL::JntArray& joint_positions, bool update_model = true) override;
+
 private:
   //private attributes
   double edf_max_tilt_;
@@ -68,8 +71,16 @@ private:
   KDL::JntArray gimbal_processed_joint_;
   std::vector<KDL::Rotation> links_rotation_from_cog_;
 
+  Eigen::MatrixXd gimbal_jacobian_;
+
   //private functions
   void getParamFromRos();
+
+  void thrustForceNumericalJacobian(const KDL::JntArray joint_positions, Eigen::MatrixXd analytical_result = Eigen::MatrixXd(), std::vector<int> joint_indices = std::vector<int>()) override;
+
+protected:
+  void calcBasicKinematicsJacobian() override;
+  void calcCoGMomentumJacobian() override;
 };
 
 template<> inline KDL::JntArray DragonRobotModel::getGimbalProcessedJoint() const

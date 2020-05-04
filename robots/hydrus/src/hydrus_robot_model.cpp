@@ -96,3 +96,41 @@ void HydrusRobotModel::calcStaticThrust()
   Eigen::VectorXd static_thrust = aerial_robot_model::pseudoinverse(wrench_mat) * (-wrench_g.segment(2, wrench_dof_));
   setStaticThrust(static_thrust);
 }
+
+void HydrusRobotModel::thrustForceNumericalJacobian(const KDL::JntArray joint_positions, Eigen::MatrixXd analytical_result, std::vector<int> joint_indices)
+{
+  joint_indices = getJointIndices();
+
+  double delta_angle = 0.00001; // [rad]
+  Eigen::MatrixXd J_lambda = Eigen::MatrixXd::Zero(getRotorNum(), getJointNum());
+
+  Eigen::VectorXd nominal_static_thrust = getStaticThrust();
+
+  auto perturbationStaticThrust = [&](int col, KDL::JntArray joint_angles)
+    {
+      updateRobotModelImpl(joint_angles);
+      J_lambda.col(col) = (getStaticThrust() - nominal_static_thrust) / delta_angle;
+    };
+
+  int col_index = 0;
+  for (const auto& joint_index : joint_indices) {
+    KDL::JntArray perturbation_joint_positions = joint_positions;
+    perturbation_joint_positions(joint_index) += delta_angle;
+    perturbationStaticThrust(col_index, perturbation_joint_positions);
+    col_index++;
+  }
+
+  ROS_INFO_STREAM("numerical  lambda_jacobian: \n" << J_lambda);
+
+  if(analytical_result.cols() > 0 && analytical_result.rows() > 0)
+    {
+      ROS_INFO_STREAM("analytical lambda_jacobian: \n" << analytical_result);
+      Eigen::MatrixXd diff_mat = J_lambda - analytical_result.rightCols(getJointNum());
+      ROS_INFO_STREAM("diff of lambda jacobian: \n" << diff_mat);
+
+      double min_diff = diff_mat.minCoeff();
+      double max_diff = diff_mat.maxCoeff();
+      if(max_diff > fabs(min_diff)) ROS_INFO_STREAM("max diff of lambda jacobian: " << max_diff);
+      else  ROS_INFO_STREAM("max diff of lambda jacobian: " << fabs(min_diff));
+    }
+}

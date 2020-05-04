@@ -122,35 +122,39 @@ namespace aerial_robot_model {
     virtual void calcWrenchMatrixOnRoot();
     virtual void calcStaticThrust();
     virtual void calcJointTorque();
-    inline const Eigen::MatrixXd& getWrenchMatrix() const {return q_mat_;}
+    inline const std::vector<Eigen::VectorXd> getThrustWrenchUnits() const {return thrust_wrench_units_;}
     inline const Eigen::VectorXd& getStaticThrust() const {return static_thrust_;}
     inline const Eigen::VectorXd& getJointTorque() const {return joint_torque_;}
+    inline const Eigen::MatrixXd& getWrenchMatrix() const {return q_mat_;}
     inline const Eigen::VectorXd& getGravity() const {return gravity_;}
+    inline const Eigen::VectorXd& getGravity3d() const {return gravity_3d_;}
 
 
     // jacobian parts
-    Eigen::MatrixXd getJacobian(const KDL::JntArray& joint_positions, std::string segment_name, KDL::Vector offset = KDL::Vector::Zero());
+    virtual Eigen::MatrixXd getJacobian(const KDL::JntArray& joint_positions, std::string segment_name, KDL::Vector offset = KDL::Vector::Zero());
     Eigen::MatrixXd getSecondDerivative(std::string ref_frame, int joint_i, KDL::Vector offset = KDL::Vector::Zero());
-
     Eigen::MatrixXd getSecondDerivativeRoot(std::string ref_frame, KDL::Vector offset = KDL::Vector::Zero());
     Eigen::VectorXd getHessian(std::string ref_frame, int joint_i, int joint_j, KDL::Vector offset = KDL::Vector::Zero());
+
     virtual Eigen::MatrixXd convertJacobian(const Eigen::MatrixXd& in);
 
     virtual void updateJacobians();
     virtual void updateJacobians(const KDL::JntArray& joint_positions, bool update_model = true);
 
-    inline std::vector<Eigen::MatrixXd> getUJacobian() const {return u_jacobian_;}
-    inline std::vector<Eigen::MatrixXd> getVJacobian() const {return v_jacobian_;}
-    inline std::vector<Eigen::MatrixXd> getPJacobian() const {return p_jacobian_;}
-    inline Eigen::MatrixXd getCOGJacobian() const {return cog_jacobian_;}
-    inline Eigen::MatrixXd getLMomentumJacobian() const {return l_momentum_jacobian_;}
-    inline Eigen::MatrixXd getLambdaJacobian() const {return lambda_jacobian_;}
+    inline const std::vector<Eigen::MatrixXd>& getUJacobians() const {return u_jacobians_;}
+    inline const std::vector<Eigen::MatrixXd>& getVJacobians() const {return v_jacobians_;}
+    inline const std::vector<Eigen::MatrixXd>& getPJacobians() const {return p_jacobians_;}
+    inline const std::vector<Eigen::MatrixXd>& getThrustCoordJacobians() const {return thrust_coord_jacobians_;}
+    inline const std::vector<Eigen::MatrixXd>& getCOGCoordJacobians() const {return cog_coord_jacobians_;}
+    inline const Eigen::MatrixXd& getCOGJacobian() const {return cog_jacobian_;}
+    inline const Eigen::MatrixXd& getLMomentumJacobian() const {return l_momentum_jacobian_;}
+    inline const Eigen::MatrixXd& getLambdaJacobian() const {return lambda_jacobian_;}
+    inline const Eigen::MatrixXd& getJointTorqueJacobian() const {return joint_torque_jacobian_;}
 
     inline Eigen::VectorXd getUTripleProductJacobian(int i, int j, int k) const { return u_triple_product_jacobian_.at(i).at(j).at(k); }
     inline Eigen::VectorXd getVTripleProductJacobian(int i, int j, int k) const { return v_triple_product_jacobian_.at(i).at(j).at(k); }
-    inline Eigen::MatrixXd getFMinJacobian() const { return f_min_jacobian_; }
-    inline Eigen::MatrixXd getTMinJacobian() const { return t_min_jacobian_; }
-    inline Eigen::MatrixXd getJointTorqueJacobian() const {return joint_torque_jacobian_;}
+    inline const Eigen::MatrixXd& getFMinJacobian() const { return f_min_jacobian_; }
+    inline const Eigen::MatrixXd& getTMinJacobian() const { return t_min_jacobian_; }
 
     double calcUTripleProduct(int i, int j, int k);
     double calcVTripleProduct(int i, int j, int k);
@@ -172,6 +176,16 @@ namespace aerial_robot_model {
 
     inline void setStaticThrust(const Eigen::VectorXd static_thrust) {static_thrust_ = static_thrust;}
     inline void setWrenchMatrix(const Eigen::MatrixXd q_mat) {q_mat_ = q_mat;}
+
+    inline void setUJacobians(const std::vector<Eigen::MatrixXd> u_jacobians) {u_jacobians_ = u_jacobians;}
+    inline void setVJacobians(const std::vector<Eigen::MatrixXd> v_jacobians) {v_jacobians_ = v_jacobians;}
+    inline void setPJacobians(const std::vector<Eigen::MatrixXd> p_jacobians) {p_jacobians_ = p_jacobians;}
+    inline void setCOGCoordJacobians(const std::vector<Eigen::MatrixXd> cog_coord_jacobians) {cog_coord_jacobians_ = cog_coord_jacobians;}
+    inline void setThrustTCoordJacobians(const std::vector<Eigen::MatrixXd> thrust_coord_jacobians) {thrust_coord_jacobians_ = thrust_coord_jacobians;}
+    inline void setCOGJacobian(const Eigen::MatrixXd cog_jacobian) {cog_jacobian_ = cog_jacobian;}
+    inline void setLMomentumJacobian(const Eigen::MatrixXd l_momentum_jacobian) {l_momentum_jacobian_ = l_momentum_jacobian;}
+    inline void setLambdaJacobian(const Eigen::MatrixXd lambda_jacobian) {lambda_jacobian_ = lambda_jacobian;}
+    inline void setJointTorqueJacobian(const Eigen::MatrixXd joint_torque_jacobian) {joint_torque_jacobian_ = joint_torque_jacobian;}
 
 
   private:
@@ -233,15 +247,18 @@ namespace aerial_robot_model {
     void resolveLinkLength();
 
 
-    // jacobian parts
-    int full_body_ndof_;
+    // statics
     Eigen::VectorXd gravity_;
     Eigen::VectorXd gravity_3d_;
     Eigen::MatrixXd q_mat_;
+    Eigen::VectorXd joint_torque_;
+    Eigen::VectorXd static_thrust_;
+
+    // jacobian
     double epsilon_;
-    std::vector<Eigen::MatrixXd> u_jacobian_; //thrust direction vector index:rotor
-    std::vector<Eigen::MatrixXd> v_jacobian_; //thrust torque direction vector index:rotor
-    std::vector<Eigen::MatrixXd> p_jacobian_; //thrust position index:rotor
+    std::vector<Eigen::MatrixXd> u_jacobians_; //thrust direction vector index:rotor
+    std::vector<Eigen::MatrixXd> v_jacobians_; //thrust torque direction vector index:rotor
+    std::vector<Eigen::MatrixXd> p_jacobians_; //thrust position index:rotor
     std::vector<Eigen::Vector3d> v_;
     std::vector<Eigen::VectorXd> thrust_wrench_units_;
     std::vector<Eigen::MatrixXd> thrust_wrench_allocations_;
@@ -250,26 +267,25 @@ namespace aerial_robot_model {
     Eigen::MatrixXd cog_jacobian_; //cog jacobian
     Eigen::MatrixXd l_momentum_jacobian_; //angular_momemtum jacobian
     Eigen::MatrixXd lambda_jacobian_; //thrust force
+    Eigen::MatrixXd joint_torque_jacobian_; // joint torque
     std::vector<std::vector<std::vector<Eigen::VectorXd> > > u_triple_product_jacobian_;
     std::vector<std::vector<std::vector<Eigen::VectorXd> > > v_triple_product_jacobian_;
     Eigen::VectorXd f_min_ij_;
     Eigen::VectorXd t_min_ij_;
     Eigen::MatrixXd f_min_jacobian_; //min force
     Eigen::MatrixXd t_min_jacobian_; //min torque
-    Eigen::VectorXd joint_torque_;
-    Eigen::MatrixXd joint_torque_jacobian_;
-    Eigen::VectorXd static_thrust_;
 
+  protected:
     virtual void calcBasicKinematicsJacobian();
     virtual void calcCoGMomentumJacobian();
-    virtual void calcLambdaJacobain();
-    virtual void calcJointTorqueJacobain();
+    virtual void calcLambdaJacobian();
+    virtual void calcJointTorqueJacobian();
     virtual void calcFeasibileForceTorqueVolumeJacobian();
 
     // test jacobian with numerical solution
-    void thrustForceNumericalJacobian(const KDL::JntArray joint_positions, Eigen::MatrixXd analytical_result = Eigen::MatrixXd()); // TODO add root desired
-    void jointTorqueNumericalJacobian(const KDL::JntArray joint_positions, Eigen::MatrixXd analytical_result = Eigen::MatrixXd());
-    void cogMomentumNumericalJacobian(const KDL::JntArray joint_positions, Eigen::MatrixXd analytical_cog_result = Eigen::MatrixXd(), Eigen::MatrixXd analytical_momentum_result = Eigen::MatrixXd());
+    virtual void thrustForceNumericalJacobian(const KDL::JntArray joint_positions, Eigen::MatrixXd analytical_result = Eigen::MatrixXd(), std::vector<int> joint_indices = std::vector<int>());
+    virtual void jointTorqueNumericalJacobian(const KDL::JntArray joint_positions, Eigen::MatrixXd analytical_result = Eigen::MatrixXd(), std::vector<int> joint_indices = std::vector<int>());
+    virtual void cogMomentumNumericalJacobian(const KDL::JntArray joint_positions, Eigen::MatrixXd analytical_cog_result = Eigen::MatrixXd(), Eigen::MatrixXd analytical_momentum_result = Eigen::MatrixXd(), std::vector<int> joint_indices = std::vector<int>());
 
   };
 

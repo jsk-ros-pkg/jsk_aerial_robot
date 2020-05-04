@@ -234,7 +234,6 @@ namespace control_plugin
       }
     else
       {
-        ROS_WARN("roll and pitch gimbal control, pitch_i_term_: %f, roll_i_term_: %f", pitch_i_term_, roll_i_term_);
         /* roll & pitch gimbal additional control */
         double target_gimbal_roll = 0, target_gimbal_pitch = 0;
 
@@ -261,7 +260,6 @@ namespace control_plugin
 
             /* I */
             roll_i_term_ += (-state_phy * du * pitch_roll_gains_[1]);
-            ROS_INFO("add state_phy: %f, du: %f, pitch_roll_gains_[1]: %f", state_phy, du, pitch_roll_gains_[1]);
             roll_i_term_ = clamp(roll_i_term_, -pitch_roll_terms_limits_[1], pitch_roll_terms_limits_[1]);
 
             /* D */

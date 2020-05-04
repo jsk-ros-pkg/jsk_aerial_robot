@@ -13,6 +13,25 @@ DragonRobotModel::DragonRobotModel(bool init_with_rosparam, bool verbose, double
   links_rotation_from_cog_.resize(getRotorNum());
   edfs_origin_from_cog_.resize(getRotorNum() * 2);
   gimbal_nominal_angles_.resize(getRotorNum() * 2);
+
+  // gimbal jacobian
+  const auto& joint_indices = getJointIndices();
+  const auto& link_joint_indices = getLinkJointIndices();
+  gimbal_jacobian_ = Eigen::MatrixXd::Zero(6 + getJointNum(), 6 + getLinkJointIndices().size());
+  gimbal_jacobian_.topLeftCorner(6,6) = Eigen::MatrixXd::Identity(6,6);
+
+  int j = 0;
+  for(int i = 0; i < joint_indices.size(); i++)
+    {
+      if(joint_indices.at(i) == link_joint_indices.at(j))
+        {
+          gimbal_jacobian_(6 + i, 6 + j) = 1;
+          j++;
+        }
+      if(j == link_joint_indices.size()) break;
+    }
+
+  //setCogDesireOrientation(0.0, -0.3, 0);
 }
 
 void DragonRobotModel::getParamFromRos()
@@ -118,4 +137,143 @@ void DragonRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_positions
       f_edfs.push_back((getCog<KDL::Frame>().Inverse() * seg_frames.at(edf)).p);
     }
   edfs_origin_from_cog_ = f_edfs;
+}
+
+Eigen::MatrixXd DragonRobotModel::getJacobian(const KDL::JntArray& joint_positions, std::string segment_name, KDL::Vector offset)
+{
+  Eigen::MatrixXd jacobian = aerial_robot_model::RobotModel::getJacobian(joint_positions, segment_name, offset);
+  return jacobian * gimbal_jacobian_;
+}
+
+void DragonRobotModel::calcBasicKinematicsJacobian()
+{
+  aerial_robot_model::RobotModel::calcBasicKinematicsJacobian();
+
+  const auto& joint_names = getJointNames();
+  const auto& link_joint_names = getLinkJointNames();
+  const auto& link_joint_indices = getLinkJointIndices();
+  const auto& joint_index_map = getJointIndexMap();
+
+  std::vector<Eigen::MatrixXd> thrust_coord_jacobians = getThrustCoordJacobians();
+
+  // the rotor normal of gimbal is always vertial
+  for(int i = 0; i < getRotorNum(); i++)
+    {
+      Eigen::MatrixXd joint_rot_jacobian = Eigen::MatrixXd::Zero(3, 6 + link_joint_indices.size());
+
+      joint_rot_jacobian.leftCols(6) = thrust_coord_jacobians.at(i).bottomLeftCorner(3, 6); // root
+      std::string gimbal = std::string("gimbal") + std::to_string(i + 1);
+      int gimbal_roll_index, gimbal_pitch_index;
+      int j = 0;
+      for(int k = 0; k < joint_names.size(); k++)
+        {
+          if(j < link_joint_names.size())
+            {
+              if(joint_names.at(k) == link_joint_names.at(j))
+                {
+                  joint_rot_jacobian.col(6 + j) = thrust_coord_jacobians.at(i).block(3, 6 + k, 3, 1);
+                  j++;
+                }
+            }
+          if(joint_names.at(k) == gimbal + std::string("_roll")) gimbal_roll_index = 6 + k;
+          if(joint_names.at(k) == gimbal + std::string("_pitch")) gimbal_pitch_index = 6 + k;
+        }
+
+       // ROS_ERROR_STREAM("thrust coord jacobian: \n" << thrust_coord_jacobians.at(i));
+       // ROS_ERROR_STREAM("joint rot jacobian: \n" << joint_rot_jacobian);
+
+       // ROS_INFO("roll & pitch index: %d, %d", gimbal_roll_index, gimbal_pitch_index);
+
+      Eigen::MatrixXd gimbal_rot_jacobian = Eigen::MatrixXd::Zero(3, 2);
+      gimbal_rot_jacobian.col(0) = thrust_coord_jacobians.at(i).block(3, gimbal_roll_index, 3, 1);
+      gimbal_rot_jacobian.col(1) = thrust_coord_jacobians.at(i).block(3, gimbal_pitch_index, 3, 1);
+
+      //ROS_INFO_STREAM("gimbal rot jacobian  for rotor" << i+1 << ": \n" << gimbal_rot_jacobian);
+
+      Eigen::MatrixXd gimbal_joint_jacobian = - (Eigen::MatrixXd::Identity(2,3) * gimbal_rot_jacobian).inverse() * Eigen::MatrixXd::Identity(2,3) * joint_rot_jacobian;
+
+      //ROS_INFO_STREAM("gimbal joint jacobian for rotor" << i+1 << ": \n" << gimbal_joint_jacobian);
+
+      gimbal_jacobian_.row(gimbal_roll_index) = gimbal_joint_jacobian.row(0);
+      gimbal_jacobian_.row(gimbal_pitch_index) = gimbal_joint_jacobian.row(1);
+    }
+  //ROS_ERROR_STREAM("dragon gimbal jacobian: \n" << gimbal_jacobian_);
+}
+
+void DragonRobotModel::calcCoGMomentumJacobian()
+{
+  setCOGJacobian(Eigen::MatrixXd::Zero(3, 6 + getJointNum()));
+  setLMomentumJacobian(Eigen::MatrixXd::Zero(3, 6 + getJointNum()));
+
+  aerial_robot_model::RobotModel::calcCoGMomentumJacobian();
+}
+
+void DragonRobotModel::updateJacobians(const KDL::JntArray& joint_positions, bool update_model)
+{
+  if(update_model) updateRobotModel(joint_positions);
+
+  calcBasicKinematicsJacobian();
+
+  calcCoGMomentumJacobian();
+
+  calcLambdaJacobian();
+
+  calcJointTorque();
+
+  calcJointTorqueJacobian();
+
+  // convert to jacobian only for link joint
+  std::vector<Eigen::MatrixXd> u_jacobians = getUJacobians();
+  for(auto& jacobian: u_jacobians)
+    {
+      //ROS_INFO_STREAM("prev u jacobian: \n" << jacobian);
+      jacobian = jacobian * gimbal_jacobian_;
+    }
+  setUJacobians(u_jacobians);
+
+  std::vector<Eigen::MatrixXd> p_jacobians = getPJacobians();
+  for(auto& jacobian: p_jacobians) jacobian = jacobian * gimbal_jacobian_;
+  setPJacobians(p_jacobians);
+
+  std::vector<Eigen::MatrixXd> v_jacobians = getVJacobians();
+  for(auto& jacobian: v_jacobians) jacobian = jacobian * gimbal_jacobian_;
+  setVJacobians(v_jacobians);
+
+  std::vector<Eigen::MatrixXd> thrust_coord_jacobians = getThrustCoordJacobians();
+  for(auto& jacobian: thrust_coord_jacobians) jacobian = jacobian * gimbal_jacobian_;
+  setThrustTCoordJacobians(thrust_coord_jacobians);
+
+  std::vector<Eigen::MatrixXd> cog_coord_jacobians = getCOGCoordJacobians();
+  for(auto& jacobian: cog_coord_jacobians) jacobian = jacobian * gimbal_jacobian_;
+  setCOGCoordJacobians(cog_coord_jacobians);
+
+  Eigen::MatrixXd cog_jacobian = getCOGJacobian();
+  setCOGJacobian(cog_jacobian * gimbal_jacobian_);
+  Eigen::MatrixXd l_momentum_jacobian = getLMomentumJacobian();
+  setLMomentumJacobian(l_momentum_jacobian * gimbal_jacobian_);
+
+  Eigen::MatrixXd lambda_jacobian = getLambdaJacobian();
+  setLambdaJacobian(lambda_jacobian * gimbal_jacobian_);
+  Eigen::MatrixXd joint_torque_jacobian = getJointTorqueJacobian();
+  setJointTorqueJacobian(joint_torque_jacobian * gimbal_jacobian_);
+
+  // test
+  // thrust_coord_jacobians = getThrustCoordJacobians();
+  // for(auto& jacobian: thrust_coord_jacobians) ROS_INFO_STREAM("\n" << jacobian);
+   // u_jacobians = getUJacobians();
+   // for(auto& jacobian: u_jacobians)  ROS_INFO_STREAM("u jacobian: \n" << jacobian);
+
+  thrustForceNumericalJacobian(getJointPositions(), getLambdaJacobian(), getLinkJointIndices());
+
+  jointTorqueNumericalJacobian(getJointPositions(), getJointTorqueJacobian(), getLinkJointIndices());
+  cogMomentumNumericalJacobian(getJointPositions(), getCOGJacobian(), getLMomentumJacobian(), getLinkJointIndices());
+
+  //for(auto name: getLinkJointNames()) ROS_WARN_STREAM(name);
+  //throw std::runtime_error("test");
+}
+
+
+void DragonRobotModel::thrustForceNumericalJacobian(const KDL::JntArray joint_positions, Eigen::MatrixXd analytical_result, std::vector<int> joint_indices)
+{
+  aerial_robot_model::RobotModel::thrustForceNumericalJacobian(joint_positions, analytical_result, joint_indices);
 }
