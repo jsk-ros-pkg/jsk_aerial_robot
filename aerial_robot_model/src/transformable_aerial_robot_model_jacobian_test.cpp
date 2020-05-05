@@ -13,7 +13,7 @@ namespace aerial_robot_model {
     KDL::Rotation baselink_rot = getCogDesireOrientation<KDL::Rotation>();
     KDL::Rotation root_rot = getCogDesireOrientation<KDL::Rotation>() * seg_frames.at(baselink_).M.Inverse();
 
-    double delta_angle = 0.000001; // [rad]
+    double delta_angle = 0.00001; // [rad]
     Eigen::MatrixXd J_g = Eigen::MatrixXd::Zero(6, full_body_dof);
 
     Eigen::MatrixXd J_thrust = Eigen::MatrixXd::Zero(q_mat_.rows(), full_body_dof);

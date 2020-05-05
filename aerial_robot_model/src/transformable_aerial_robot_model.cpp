@@ -143,9 +143,7 @@ namespace aerial_robot_model {
         }
       }
     }
-
-    //setCogDesireOrientation(0.1, -0.1, 0);
-   }
+  }
 
   bool RobotModel::addExtraModule(std::string module_name, std::string parent_link_name, KDL::Frame transform, KDL::RigidBodyInertia inertia)
   {

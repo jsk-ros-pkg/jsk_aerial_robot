@@ -38,6 +38,7 @@ DragonRobotModel::DragonRobotModel(bool init_with_rosparam, bool verbose, double
       if(j == link_joint_indices.size()) break;
     }
 
+  //setCogDesireOrientation(0.0, -0.3, 0);
 }
 
 void DragonRobotModel::getParamFromRos()
@@ -262,12 +263,12 @@ void DragonRobotModel::updateJacobians(const KDL::JntArray& joint_positions, boo
   /* update jacobian for rotor overlap */
   calcRotorOverlapJacobian();
 
-  //thrustForceNumericalJacobian(getJointPositions(), getLambdaJacobian(), getLinkJointIndices());
+  thrustForceNumericalJacobian(getJointPositions(), getLambdaJacobian(), getLinkJointIndices());
 
-  //jointTorqueNumericalJacobian(getJointPositions(), getJointTorqueJacobian(), getLinkJointIndices());
-  //cogMomentumNumericalJacobian(getJointPositions(), getCOGJacobian(), getLMomentumJacobian(), getLinkJointIndices());
+  jointTorqueNumericalJacobian(getJointPositions(), getJointTorqueJacobian(), getLinkJointIndices());
+  cogMomentumNumericalJacobian(getJointPositions(), getCOGJacobian(), getLMomentumJacobian(), getLinkJointIndices());
 
-  overlapNumericalJacobian(getJointPositions(), rotor_overlap_jacobian_);
+  // overlapNumericalJacobian(getJointPositions(), rotor_overlap_jacobian_);
 
   //throw std::runtime_error("test");
 }
@@ -373,17 +374,17 @@ void DragonRobotModel::overlapNumericalJacobian(const KDL::JntArray joint_positi
   setCogDesireOrientation(baselink_rot); // set the orientation of root
   updateRobotModelImpl(joint_positions);
 
-  ROS_INFO_STREAM("numerical result of joint_torque_jacobian: \n" << J_overlap);
+  ROS_INFO_STREAM("numerical result of rotor overlap jacobian: \n" << J_overlap);
 
   if(analytical_result.cols() > 0 && analytical_result.rows() > 0)
     {
       ROS_INFO_STREAM("analytical_result: \n" << analytical_result);
-      ROS_INFO_STREAM("diff of overlap jacobian: \n" << J_overlap - analytical_result);
+      ROS_INFO_STREAM("diff of  jacobian: \n" << J_overlap - analytical_result);
 
       double min_diff = (J_overlap - analytical_result).minCoeff();
       double max_diff = (J_overlap - analytical_result).maxCoeff();
 
-      if(max_diff > fabs(min_diff)) ROS_INFO_STREAM("max diff of torque jacobian: " << max_diff);
+      if(max_diff > fabs(min_diff)) ROS_INFO_STREAM("max diff of overlap jacobian: " << max_diff);
       else  ROS_INFO_STREAM("max diff of overlap jacobian: " << fabs(min_diff));
     }
 }

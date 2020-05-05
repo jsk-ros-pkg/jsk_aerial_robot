@@ -23,7 +23,7 @@ namespace aerial_robot_model {
     //calcFeasibileForceTorqueVolumeJacobian();
 
     thrustForceNumericalJacobian(getJointPositions(), lambda_jacobian_);
-    //jointTorqueNumericalJacobian(getJointPositions(), joint_torque_jacobian_);
+    jointTorqueNumericalJacobian(getJointPositions(), joint_torque_jacobian_);
     //cogMomentumNumericalJacobian(getJointPositions(), cog_jacobian_, l_momentum_jacobian_);
 
     throw std::runtime_error("test");
@@ -450,39 +450,64 @@ namespace aerial_robot_model {
     const int ndof = thrust_coord_jacobians_.at(0).cols();
     const double m_f_rate = getMFRate();
     const int wrench_dof = q_mat_.rows(); // default: 6, under-actuated: 4
+    Eigen::MatrixXd q_pseudo_inv = aerial_robot_model::pseudoinverse(q_mat_);
 
     /* derivative for gravity jacobian */
     Eigen::MatrixXd wrench_gravity_jacobian = Eigen::MatrixXd::Zero(6, ndof);
     for(const auto& inertia : inertia_map){
       wrench_gravity_jacobian.bottomRows(3) -= aerial_robot_model::skew(-inertia.second.getMass() * gravity_3d_) * getSecondDerivativeRoot(inertia.first, inertia.second.getCOG());
     }
-    //ROS_INFO_STREAM("wrench_gravity_jacobian w.r.t. root : \n" << wrench_gravity_jacobian);
+
+    ROS_DEBUG_STREAM("wrench_gravity_jacobian w.r.t. root : \n" << wrench_gravity_jacobian);
+
+    if(wrench_dof == 6) // fully-actuated
+      lambda_jacobian_ = -q_pseudo_inv * wrench_gravity_jacobian; // trans, rot
+    else // under-actuated
+      lambda_jacobian_ = -q_pseudo_inv * (wrench_gravity_jacobian).middleRows(2, wrench_dof); // z, rot
 
     /* derivative for thrust jacobian */
-    Eigen::MatrixXd wrench_thrust_jacobian = Eigen::MatrixXd::Zero(6, ndof);
+    std::vector<Eigen::MatrixXd> q_mat_jacobians;
+    Eigen::MatrixXd q_inv_jacobian = Eigen::MatrixXd::Zero(6, ndof);
     for (int i = 0; i < rotor_num; ++i) {
       std::string thrust_name = std::string("thrust") + std::to_string(i + 1);
+      Eigen::MatrixXd q_mat_jacobian = Eigen::MatrixXd::Zero(6, ndof);
+
+      q_mat_jacobian.bottomRows(3) -= aerial_robot_model::skew(thrust_wrench_units_.at(i).head(3)) * getSecondDerivativeRoot(thrust_name);
+
       Eigen::MatrixXd wrench_unit_jacobian = Eigen::MatrixXd::Zero(6, ndof);
       wrench_unit_jacobian.topRows(3) = -skew(thrust_wrench_units_.at(i).head(3)) * thrust_coord_jacobians_.at(i).bottomRows(3);
       wrench_unit_jacobian.bottomRows(3) = -skew(thrust_wrench_units_.at(i).tail(3)) * thrust_coord_jacobians_.at(i).bottomRows(3);
+      q_mat_jacobian += (thrust_wrench_allocations_.at(i).transpose() * wrench_unit_jacobian);
 
-      wrench_thrust_jacobian.bottomRows(3) -= aerial_robot_model::skew(thrust_wrench_units_.at(i).head(3)) * getSecondDerivativeRoot(thrust_name) * static_thrust_(i);
-      wrench_thrust_jacobian += (thrust_wrench_allocations_.at(i).transpose() * wrench_unit_jacobian * static_thrust_(i));
+      q_inv_jacobian += (q_mat_jacobian * static_thrust_(i));
+      q_mat_jacobians.push_back(q_mat_jacobian);
+
+#if 0
+      q_mat_jacobian.bottomRows(3) -= aerial_robot_model::skew(thrust_wrench_units_.at(i).head(3)) * getSecondDerivativeRoot(thrust_name) * static_thrust_(i);
+      q_mat_jacobian += (thrust_wrench_allocations_.at(i).transpose() * wrench_unit_jacobian * static_thrust_(i));
+#endif
     }
 
-    //ROS_INFO_STREAM("wrench_thrust_jacobian: \n" << wrench_thrust_jacobian);
+    ROS_DEBUG_STREAM("q_inv_jacobian: \n" << q_inv_jacobian);
 
-    Eigen::MatrixXd wrench_jacobian = wrench_thrust_jacobian + wrench_gravity_jacobian;
-
-    if(wrench_dof == 6) // fully-actuated
-      lambda_jacobian_ = aerial_robot_model::pseudoinverse(q_mat_) * (- wrench_jacobian); // trans, rot
+     if(wrench_dof == 6) // fully-actuated
+      lambda_jacobian_ += -q_pseudo_inv * q_inv_jacobian; // trans, rot
     else // under-actuated
-      {
-        lambda_jacobian_ = aerial_robot_model::pseudoinverse(q_mat_) * (- wrench_jacobian).middleRows(2, wrench_dof); // z, rot
-      }
+      lambda_jacobian_ += -q_pseudo_inv * (q_inv_jacobian).middleRows(2, wrench_dof); // z, rot
 
-    // ROS_INFO_STREAM("wrench_jacobian: \n" << wrench_jacobian);
-    // ROS_INFO_STREAM("lambda_jacobian: \n" << lambda_jacobian_);
+    // https://mathoverflow.net/questions/25778/analytical-formula-for-numerical-derivative-of-the-matrix-pseudo-inverse, the third tmer
+    Eigen::MatrixXd q_pseudo_inv_jacobian = Eigen::MatrixXd::Zero(rotor_num, ndof);
+    Eigen::VectorXd pseudo_wrech = q_pseudo_inv.transpose() * static_thrust_;
+    for(int i = 0; i < rotor_num; i++)
+      {
+        if(wrench_dof == 6) // fully-actuated
+          q_pseudo_inv_jacobian.row(i) = pseudo_wrech.transpose() * q_mat_jacobians.at(i);
+        else // under-actuated
+          q_pseudo_inv_jacobian.row(i) = pseudo_wrech.transpose() * q_mat_jacobians.at(i).middleRows(2, wrench_dof);
+      }
+    lambda_jacobian_ += (Eigen::MatrixXd::Identity(rotor_num, rotor_num) - q_pseudo_inv * q_mat_) * q_pseudo_inv_jacobian;
+
+    ROS_DEBUG_STREAM("lambda_jacobian: \n" << lambda_jacobian_);
   }
 
   void RobotModel::calcJointTorqueJacobian()
