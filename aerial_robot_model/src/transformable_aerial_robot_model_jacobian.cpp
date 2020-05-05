@@ -22,11 +22,11 @@ namespace aerial_robot_model {
 
     //calcFeasibileForceTorqueVolumeJacobian();
 
-    thrustForceNumericalJacobian(getJointPositions(), lambda_jacobian_);
-    jointTorqueNumericalJacobian(getJointPositions(), joint_torque_jacobian_);
+    //thrustForceNumericalJacobian(getJointPositions(), lambda_jacobian_);
+    //jointTorqueNumericalJacobian(getJointPositions(), joint_torque_jacobian_);
     //cogMomentumNumericalJacobian(getJointPositions(), cog_jacobian_, l_momentum_jacobian_);
 
-    throw std::runtime_error("test");
+    //throw std::runtime_error("test");
   }
 
   Eigen::MatrixXd RobotModel::getJacobian(const KDL::JntArray& joint_positions, std::string segment_name, KDL::Vector offset)

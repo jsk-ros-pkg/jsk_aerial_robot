@@ -263,10 +263,10 @@ void DragonRobotModel::updateJacobians(const KDL::JntArray& joint_positions, boo
   /* update jacobian for rotor overlap */
   calcRotorOverlapJacobian();
 
-  thrustForceNumericalJacobian(getJointPositions(), getLambdaJacobian(), getLinkJointIndices());
+  // thrustForceNumericalJacobian(getJointPositions(), getLambdaJacobian(), getLinkJointIndices());
 
-  jointTorqueNumericalJacobian(getJointPositions(), getJointTorqueJacobian(), getLinkJointIndices());
-  cogMomentumNumericalJacobian(getJointPositions(), getCOGJacobian(), getLMomentumJacobian(), getLinkJointIndices());
+  // jointTorqueNumericalJacobian(getJointPositions(), getJointTorqueJacobian(), getLinkJointIndices());
+  // cogMomentumNumericalJacobian(getJointPositions(), getCOGJacobian(), getLMomentumJacobian(), getLinkJointIndices());
 
   // overlapNumericalJacobian(getJointPositions(), rotor_overlap_jacobian_);
 

@@ -60,8 +60,12 @@ bool HydrusRobotModel::stabilityCheck(bool verbose)
     }
 
   /* Wrench matrix determinant, should use wrench on CoG */
-  Eigen::MatrixXd wrench_mat = calcWrenchMatrixOnCoG().middleRows(2, wrench_dof_);
-  wrench_mat_det_ = (wrench_mat * wrench_mat.transpose()).determinant();
+  Eigen::MatrixXd wrench_mat = calcWrenchMatrixOnCoG();
+  // normalized
+  wrench_mat.topRows(3) = wrench_mat.topRows(3) / getMass();
+  wrench_mat.bottomRows(3) = getInertia<Eigen::Matrix3d>().inverse() *  wrench_mat.bottomRows(3);
+  Eigen::MatrixXd valid_wrench_mat = wrench_mat.middleRows(2, wrench_dof_);
+  wrench_mat_det_ = (valid_wrench_mat * valid_wrench_mat.transpose()).determinant();
 
   if(wrench_mat_det_ < wrench_mat_det_thre_)
     {
