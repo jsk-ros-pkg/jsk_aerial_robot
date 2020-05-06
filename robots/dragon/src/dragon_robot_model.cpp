@@ -268,7 +268,7 @@ void DragonRobotModel::updateJacobians(const KDL::JntArray& joint_positions, boo
   // jointTorqueNumericalJacobian(getJointPositions(), getJointTorqueJacobian(), getLinkJointIndices());
   // cogMomentumNumericalJacobian(getJointPositions(), getCOGJacobian(), getLMomentumJacobian(), getLinkJointIndices());
 
-  // overlapNumericalJacobian(getJointPositions(), rotor_overlap_jacobian_);
+  //overlapNumericalJacobian(getJointPositions(), rotor_overlap_jacobian_);
 
   //throw std::runtime_error("test");
 }
@@ -287,7 +287,9 @@ void DragonRobotModel::calcRotorOverlapJacobian()
 
   const int rotor_num = getRotorNum();
 
-  min_dist_squared_ = 1e6;
+  min_dist_ = 1e6;
+
+  Eigen::Vector3d closest_p_i, closest_p_j, closest_p_v;
 
   for(int i = 0; i < rotor_num * 2; ++i)
     {
@@ -306,26 +308,28 @@ void DragonRobotModel::calcRotorOverlapJacobian()
           Eigen::Vector3d p_j = aerial_robot_model::kdlToEigen(edfs_origin_from_cog_.at(j));
           Eigen::Vector3d p_v = p_i + (p_j(2) - p_i(2)) * u.at(i/2) / u.at(i/2)(2);
 
-          if((p_v - p_j).squaredNorm() < min_dist_squared_)
+          double dist = (p_v - p_j).norm() - (p_i(2) - p_j(2)) * tan(edf_max_tilt_);
+
+          if(dist < min_dist_)
             {
-              min_dist_squared_ = (p_v - p_j).squaredNorm();
+              min_dist_ = dist;
               rotor_i_ = i;
               rotor_j_ = j;
-              p_i_ = p_i;
-              p_j_ = p_j;
-              p_v_ = p_v;
-              // ROS_INFO("%d, %d, %f", rotor_i_, rotor_j_, min_dist_squared_);
+              closest_p_i = p_i;
+              closest_p_j = p_j;
+              closest_p_v = p_v;
             }
 
           if(swap) std::swap(i, j);
         }
     }
 
-  // ROS_INFO_STREAM("ovverlap: i:" << edf_names_.at(rotor_i_) << "; j:" << edf_names_.at(rotor_j_));
+  // ROS_INFO_STREAM("overlap: i:" << edf_names_.at(rotor_i_) << "; j:" << edf_names_.at(rotor_j_));
   Eigen::MatrixXd p_i_jacobian = getJacobian(getJointPositions(), edf_names_.at(rotor_i_)).topRows(3);
   Eigen::MatrixXd p_j_jacobian = getJacobian(getJointPositions(), edf_names_.at(rotor_j_)).topRows(3);
-  Eigen::MatrixXd p_v_jacobian = p_i_jacobian + (p_j_(2) - p_i_(2)) / u.at(rotor_i_/2)(2) * u_jacobians.at(rotor_i_/2) + u.at(rotor_i_/2) / u.at(rotor_i_/2)(2) * (p_j_jacobian.row(2) - p_i_jacobian.row(2)) - u.at(rotor_i_/2) / std::pow(u.at(rotor_i_/2)(2), 2) * (p_j_(2) - p_i_(2)) * u_jacobians.at(rotor_i_/2).row(2);
-  rotor_overlap_jacobian_ = 2 * (p_v_ - p_j_).transpose() * (p_v_jacobian - p_j_jacobian);
+  Eigen::MatrixXd p_v_jacobian = p_i_jacobian + (closest_p_j(2) - closest_p_i(2)) / u.at(rotor_i_/2)(2) * u_jacobians.at(rotor_i_/2) + u.at(rotor_i_/2) / u.at(rotor_i_/2)(2) * (p_j_jacobian.row(2) - p_i_jacobian.row(2)) - u.at(rotor_i_/2) / std::pow(u.at(rotor_i_/2)(2), 2) * (closest_p_j(2) - closest_p_i(2)) * u_jacobians.at(rotor_i_/2).row(2);
+  rotor_overlap_jacobian_ = (closest_p_v - closest_p_j).transpose() * (p_v_jacobian - p_j_jacobian) / (closest_p_v - closest_p_j).norm();
+  rotor_overlap_jacobian_ -= tan(edf_max_tilt_) * (p_i_jacobian.row(2) - p_j_jacobian.row(2));
 }
 
 void DragonRobotModel::overlapNumericalJacobian(const KDL::JntArray joint_positions, Eigen::MatrixXd analytical_result)
@@ -345,8 +349,9 @@ void DragonRobotModel::overlapNumericalJacobian(const KDL::JntArray joint_positi
     {
       updateRobotModelImpl(joint_angles);
       auto diff = edfs_origin_from_cog_.at(rotor_i_) - edfs_origin_from_cog_.at(rotor_j_);
+      double d_tilt = diff.z() * tan(edf_max_tilt_);
       diff.z(0);
-      J_overlap(0, col) = (std::pow(diff.Norm(), 2) - min_dist_squared_) / delta_angle;
+      J_overlap(0, col) = (diff.Norm() - d_tilt - min_dist_) / delta_angle;
     };
 
   for (const auto& joint_index : getLinkJointIndices()) {
@@ -374,12 +379,12 @@ void DragonRobotModel::overlapNumericalJacobian(const KDL::JntArray joint_positi
   setCogDesireOrientation(baselink_rot); // set the orientation of root
   updateRobotModelImpl(joint_positions);
 
-  ROS_INFO_STREAM("numerical result of rotor overlap jacobian: \n" << J_overlap);
+  ROS_DEBUG_STREAM("numerical result of rotor overlap jacobian: \n" << J_overlap);
 
   if(analytical_result.cols() > 0 && analytical_result.rows() > 0)
     {
-      ROS_INFO_STREAM("analytical_result: \n" << analytical_result);
-      ROS_INFO_STREAM("diff of  jacobian: \n" << J_overlap - analytical_result);
+      ROS_DEBUG_STREAM("analytical_result: \n" << analytical_result);
+      ROS_DEBUG_STREAM("diff of  jacobian: \n" << J_overlap - analytical_result);
 
       double min_diff = (J_overlap - analytical_result).minCoeff();
       double max_diff = (J_overlap - analytical_result).maxCoeff();
@@ -387,4 +392,12 @@ void DragonRobotModel::overlapNumericalJacobian(const KDL::JntArray joint_positi
       if(max_diff > fabs(min_diff)) ROS_INFO_STREAM("max diff of overlap jacobian: " << max_diff);
       else  ROS_INFO_STREAM("max diff of overlap jacobian: " << fabs(min_diff));
     }
+}
+
+std::vector<int> DragonRobotModel::getClosestRotorIndices()
+{
+  std::vector<int> rotor_indices;
+  rotor_indices.push_back(rotor_i_);
+  rotor_indices.push_back(rotor_j_);
+  return rotor_indices;
 }

@@ -51,10 +51,14 @@ public:
   //public functions
   const double getEdfRadius() const {return edf_radius_;}
   const double getEdfMaxTilt() const {return edf_max_tilt_;}
+  const std::vector<std::string>& getEdfNames() const { return edf_names_; }
   template <class T> std::vector<T> getEdfsOriginFromCog() const;
   std::vector<double> getGimbalNominalAngles() const { return gimbal_nominal_angles_; }
   template <class T> T getGimbalProcessedJoint() const;
   template <class T> std::vector<T> getLinksRotationFromCog() const;
+  std::vector<int> getClosestRotorIndices();
+  const double getClosestRotorDist() const {return min_dist_;}
+  const Eigen::MatrixXd& getRotorOverlapJacobian() const { return rotor_overlap_jacobian_;}
   void updateRobotModelImpl(const KDL::JntArray& joint_positions) override;
   bool stabilityCheck(bool verbose = false) override;
   bool overlapCheck(bool verbose = false);
@@ -79,8 +83,7 @@ private:
   std::vector<KDL::Vector> edfs_origin_from_cog_;
   std::vector<std::string> edf_names_;
   int rotor_i_, rotor_j_;
-  Eigen::Vector3d p_i_, p_j_, p_v_;
-  double min_dist_squared_;
+  double min_dist_;
 
   //private functions
   void getParamFromRos();

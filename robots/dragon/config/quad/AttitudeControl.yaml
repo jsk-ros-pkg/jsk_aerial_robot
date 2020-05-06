@@ -25,4 +25,4 @@ r3: 1.0
 r4: 1.0
 
 control_margin_thre: 0.1
-edf_max_tilt: 0.0 # 0.1
+edf_max_tilt: 0.05
