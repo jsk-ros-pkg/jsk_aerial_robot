@@ -36,6 +36,8 @@
 #pragma once
 
 #include <hydrus/hydrus_robot_model.h>
+#include <eigen_conversions/eigen_msg.h>
+#include <kdl_conversions/kdl_msg.h>
 
 class DragonRobotModel : public HydrusRobotModel {
 public:
@@ -65,7 +67,17 @@ public:
 
   Eigen::MatrixXd getJacobian(const KDL::JntArray& joint_positions, std::string segment_name, KDL::Vector offset = KDL::Vector::Zero()) override;
   void updateJacobians(const KDL::JntArray& joint_positions, bool update_model = true) override;
+  const Eigen::MatrixXd& getCompThrustJacobian() const {return  comp_thrust_jacobian_; }
+  void setCompThrustJacobian(const Eigen::MatrixXd comp_thrust_jacobian) { comp_thrust_jacobian_ = comp_thrust_jacobian; }
 
+  // static wrench
+  bool addExternalStaticWrench(const std::string wrench_name, const std::string reference_frame, const geometry_msgs::Point offset, const geometry_msgs::Wrench wrench);
+  bool addExternalStaticWrench(const std::string wrench_name, const std::string reference_frame, const KDL::Vector offset, const KDL::Wrench wrench);
+  bool addExternalStaticWrench(const std::string wrench_name, const std::string reference_frame, const KDL::Vector offset, const Eigen::VectorXd wrench);
+
+  bool removeExternalStaticWrench(const std::string wrench_name);
+  void resetExternalStaticWrench();
+  void calcExternalWrenchCompThrust();
 
 private:
   //private attributes
@@ -85,16 +97,37 @@ private:
   int rotor_i_, rotor_j_;
   double min_dist_;
 
+  // external static wrench
+  struct ExternalWrench
+  {
+    std::string frame;
+    KDL::Vector offset;
+    Eigen::VectorXd wrench;
+  };
+  std::map<std::string, ExternalWrench> external_wrench_map_;
+  Eigen::VectorXd wrench_comp_thrust_;
+  Eigen::VectorXd vectoring_thrust_;
+  Eigen::MatrixXd vectoring_q_mat_;
+  Eigen::MatrixXd comp_thrust_jacobian_;
+
+
   //private functions
   void getParamFromRos();
 
   void thrustForceNumericalJacobian(const KDL::JntArray joint_positions, Eigen::MatrixXd analytical_result = Eigen::MatrixXd(), std::vector<int> joint_indices = std::vector<int>()) override;
+  void jointTorqueNumericalJacobian(const KDL::JntArray joint_positions, Eigen::MatrixXd analytical_result = Eigen::MatrixXd(), std::vector<int> joint_indices = std::vector<int>()) override;
   void overlapNumericalJacobian(const KDL::JntArray joint_positions, Eigen::MatrixXd analytical_result = Eigen::MatrixXd());
+
+  void compThrustNumericalJacobian(const KDL::JntArray joint_positions, Eigen::MatrixXd analytical_result = Eigen::MatrixXd());
 
 protected:
   void calcBasicKinematicsJacobian() override;
   void calcCoGMomentumJacobian() override;
   void calcRotorOverlapJacobian();
+  void calcCompThrustJacobian();
+  void addCompThrustToLambdaJacobian();
+  void addCompThrustToJointTorqueJacobian();
+
 };
 
 template<> inline KDL::JntArray DragonRobotModel::getGimbalProcessedJoint() const

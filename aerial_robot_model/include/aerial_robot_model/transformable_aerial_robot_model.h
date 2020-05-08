@@ -128,7 +128,7 @@ namespace aerial_robot_model {
     inline const Eigen::MatrixXd& getWrenchMatrix() const {return q_mat_;}
     inline const Eigen::VectorXd& getGravity() const {return gravity_;}
     inline const Eigen::VectorXd& getGravity3d() const {return gravity_3d_;}
-
+    inline const std::vector<Eigen::MatrixXd>& getThrustWrenchAllocations() const {return thrust_wrench_allocations_;}
 
     // jacobian parts
     virtual Eigen::MatrixXd getJacobian(const KDL::JntArray& joint_positions, std::string segment_name, KDL::Vector offset = KDL::Vector::Zero());
@@ -175,6 +175,7 @@ namespace aerial_robot_model {
     }
 
     inline void setStaticThrust(const Eigen::VectorXd static_thrust) {static_thrust_ = static_thrust;}
+     inline void setJointTorque(const Eigen::VectorXd joint_torque) {joint_torque_ = joint_torque;}
     inline void setWrenchMatrix(const Eigen::MatrixXd q_mat) {q_mat_ = q_mat;}
 
     inline void setUJacobians(const std::vector<Eigen::MatrixXd> u_jacobians) {u_jacobians_ = u_jacobians;}

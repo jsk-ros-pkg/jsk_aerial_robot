@@ -521,13 +521,11 @@ namespace aerial_robot_model {
 
     joint_torque_jacobian_ = Eigen::MatrixXd::Zero(joint_num, ndof);
     // gravity
-    int seg_index = 0;
     for(const auto& inertia : inertia_map)
       {
         for (int j = 0; j < joint_num; ++j) {
           joint_torque_jacobian_.row(j) += inertia.second.getMass() * (-gravity_.transpose()) * getSecondDerivative(inertia.first, j, inertia.second.getCOG());
         }
-        seg_index ++;
       }
     // thrust
     for (int i = 0; i < rotor_num; ++i) {
@@ -644,7 +642,6 @@ namespace aerial_robot_model {
     Eigen::MatrixXd root_rot = aerial_robot_model::kdlToEigen(getCogDesireOrientation<KDL::Rotation>() * seg_frames.at(baselink_).M.Inverse());
     Eigen::VectorXd wrench_g = Eigen::VectorXd::Zero(6);
     KDL::RigidBodyInertia link_inertia = KDL::RigidBodyInertia::Zero();
-    std::vector<Eigen::MatrixXd> g_root_jacobians;
     for(const auto& inertia : inertia_map)
       {
         Eigen::MatrixXd jacobi_root = Eigen::MatrixXd::Identity(3, 6);
@@ -691,7 +688,7 @@ namespace aerial_robot_model {
       std::string rotor = "thrust" + std::to_string(i + 1);
       Eigen::MatrixXd q_i = Eigen::MatrixXd::Identity(6, 6);
       Eigen::Vector3d p = root_rot * aerial_robot_model::kdlToEigen(seg_frames.at(rotor).p);
-      q_i.topRightCorner(3,3) = - aerial_robot_model::skew(p);
+      q_i.bottomLeftCorner(3,3) = aerial_robot_model::skew(p);
 
       Eigen::VectorXd wrench_unit = Eigen::VectorXd::Zero(6);
       wrench_unit.head(3) = u.at(i);
@@ -699,7 +696,7 @@ namespace aerial_robot_model {
 
       thrust_wrench_units_.at(i) = wrench_unit;
       thrust_wrench_allocations_.at(i) = q_i;
-      q_mat_.col(i) = q_i.transpose() * wrench_unit;
+      q_mat_.col(i) = q_i * wrench_unit;
     }
   }
 
