@@ -46,6 +46,8 @@ class HydrusXiFullyActuatedRobotModel : public aerial_robot_model::RobotModel {
 public:
   HydrusXiFullyActuatedRobotModel(bool init_with_rosparam,
                                   bool verbose = false,
+                                  double wrench_margin_f_min_thre = 0,
+                                  double wrench_margin_t_min_thre = 0,
                                   double epsilon = 10.0);
   virtual ~HydrusXiFullyActuatedRobotModel() = default;
 };

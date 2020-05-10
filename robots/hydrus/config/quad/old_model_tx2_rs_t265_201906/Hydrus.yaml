@@ -25,6 +25,7 @@ r2: 1.0
 r3: 1.0
 r4: 1.0
 
+# epsilon: 50
 control_margin_thre: 0.13
 
 # inverse kinematics
@@ -35,3 +36,4 @@ w_root_vel: 0.001
 joint_vel_constraint_range: 0.11
 joint_vel_forbidden_range: 0.02
 #Test(flight stability) f_max: 9.29
+

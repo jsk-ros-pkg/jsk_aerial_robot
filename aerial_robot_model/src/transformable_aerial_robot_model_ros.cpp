@@ -23,7 +23,7 @@ namespace aerial_robot_model {
     joint_state_ = *state;
     getRobotModel().updateRobotModel(*state);
 
-    getRobotModel().updateJacobians();
+    getRobotModel().updateJacobians(); // test
 
     if (enable_cog2baselink_tf_pub_)
       {
