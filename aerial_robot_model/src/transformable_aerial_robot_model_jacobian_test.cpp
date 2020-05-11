@@ -337,7 +337,7 @@ namespace aerial_robot_model {
       }
   }
 
-  void RobotModel::wrenchMarginNumericalJacobian(const KDL::JntArray joint_positions, Eigen::MatrixXd analytical_f_min_ij_result, Eigen::MatrixXd analytical_t_min_ij_result, std::vector<int> joint_indices)
+  void RobotModel::feasibleControlNumericalJacobian(const KDL::JntArray joint_positions, Eigen::MatrixXd analytical_f_result, Eigen::MatrixXd analytical_t_result, std::vector<int> joint_indices)
   {
     const auto& seg_frames = getSegmentsTf();
     if(joint_indices.empty()) joint_indices = getJointIndices();
@@ -349,40 +349,39 @@ namespace aerial_robot_model {
     double delta_angle = 0.00001; // [rad]
     int col_index = 6;
 
-    Eigen::VectorXd nominal_wrench_margin_f_min_ij = wrench_margin_f_min_ij_;
-    Eigen::VectorXd nominal_approx_wrench_margin_f_min_ij = approx_wrench_margin_f_min_ij_;
-    Eigen::VectorXd nominal_wrench_margin_t_min_ij = wrench_margin_t_min_ij_;
-    Eigen::VectorXd nominal_approx_wrench_margin_t_min_ij = approx_wrench_margin_t_min_ij_;
+    Eigen::VectorXd nominal_fc_f_dists = fc_f_dists_;
+    Eigen::VectorXd nominal_approx_fc_f_dists = approx_fc_f_dists_;
+    Eigen::VectorXd nominal_fc_t_dists = fc_t_dists_;
+    Eigen::VectorXd nominal_approx_fc_t_dists = approx_fc_t_dists_;
 
-    ROS_DEBUG_STREAM("nominal_wrench_margin_f_min_ij :" << nominal_wrench_margin_f_min_ij.transpose());
-    ROS_DEBUG_STREAM("nominal_approx_wrench_margin_f_min_ij :" << nominal_approx_wrench_margin_f_min_ij.transpose());
-    ROS_DEBUG_STREAM("diff of approx and nominal_wrench_margin_f_min_ij :" << (nominal_approx_wrench_margin_f_min_ij - nominal_wrench_margin_f_min_ij).transpose());
+    ROS_DEBUG_STREAM("nominal_fc_f_dists :" << nominal_fc_f_dists.transpose());
+    ROS_DEBUG_STREAM("nominal_approx_fc_f_dists :" << nominal_approx_fc_f_dists.transpose());
+    ROS_DEBUG_STREAM("diff of approx and nominal_fc_f_dists :" << (nominal_approx_fc_f_dists - nominal_fc_f_dists).transpose());
 
-    ROS_DEBUG_STREAM("nominal_wrench_margin_t_min_ij :" << nominal_wrench_margin_t_min_ij.transpose());
-    ROS_DEBUG_STREAM("nominal_approx_wrench_margin_t_min_ij :" << nominal_approx_wrench_margin_t_min_ij.transpose());
-    ROS_DEBUG_STREAM("diff of approx and nominal_wrench_margin_t_min_ij :" << (nominal_approx_wrench_margin_t_min_ij - nominal_wrench_margin_t_min_ij).transpose());
+    ROS_DEBUG_STREAM("nominal_fc_t_dists :" << nominal_fc_t_dists.transpose());
+    ROS_DEBUG_STREAM("nominal_approx_fc_t_dists :" << nominal_approx_fc_t_dists.transpose());
+    ROS_DEBUG_STREAM("diff of approx and nominal_fc_t_dists :" << (nominal_approx_fc_t_dists - nominal_fc_t_dists).transpose());
 
-    Eigen::MatrixXd J_f_min_ij = Eigen::MatrixXd::Zero(wrench_margin_f_min_ij_.size(), full_body_dof);
-    Eigen::MatrixXd J_approx_f_min_ij = Eigen::MatrixXd::Zero(wrench_margin_f_min_ij_.size(), full_body_dof);
-    Eigen::MatrixXd J_t_min_ij = Eigen::MatrixXd::Zero(wrench_margin_t_min_ij_.size(), full_body_dof);
-    Eigen::MatrixXd J_approx_t_min_ij = Eigen::MatrixXd::Zero(wrench_margin_t_min_ij_.size(), full_body_dof);
+    Eigen::MatrixXd J_fc_f_dists = Eigen::MatrixXd::Zero(nominal_fc_f_dists.size(), full_body_dof);
+    Eigen::MatrixXd J_approx_fc_f_dists = Eigen::MatrixXd::Zero(nominal_fc_f_dists.size(), full_body_dof);
+    Eigen::MatrixXd J_fc_t_dists = Eigen::MatrixXd::Zero(nominal_fc_t_dists.size(), full_body_dof);
+    Eigen::MatrixXd J_approx_fc_t_dists = Eigen::MatrixXd::Zero(nominal_fc_t_dists.size(), full_body_dof);
 
     auto perturbation = [&](int col, KDL::JntArray joint_angles)
       {
         updateRobotModelImpl(joint_angles);
-        calcBasicKinematicsJacobian(); // necessary for u_jacobians, p_jacobians
-        calcWrenchMarginJacobian();
-        J_f_min_ij.col(col) = (wrench_margin_f_min_ij_ - nominal_wrench_margin_f_min_ij) / delta_angle;
-        J_approx_f_min_ij.col(col) = (approx_wrench_margin_f_min_ij_ - nominal_approx_wrench_margin_f_min_ij) / delta_angle;
-        J_t_min_ij.col(col) = (wrench_margin_t_min_ij_ - nominal_wrench_margin_t_min_ij) / delta_angle;
-        J_approx_t_min_ij.col(col) = (approx_wrench_margin_t_min_ij_ - nominal_approx_wrench_margin_t_min_ij) / delta_angle;
+        calcFeasibleControlJacobian(); // calculate approx_fc_f_dists_, approx_fc_t_dists_
+        J_fc_f_dists.col(col) = (fc_f_dists_ - nominal_fc_f_dists) / delta_angle;
+        J_approx_fc_f_dists.col(col) = (approx_fc_f_dists_ - nominal_approx_fc_f_dists) / delta_angle;
+        J_fc_t_dists.col(col) = (fc_t_dists_ - nominal_fc_t_dists) / delta_angle;
+        J_approx_fc_t_dists.col(col) = (approx_fc_t_dists_ - nominal_approx_fc_t_dists) / delta_angle;
 
-        for(int i = 0; i < wrench_margin_f_min_ij_.size(); i++)
+        for(int i = 0; i < nominal_fc_f_dists.size(); i++)
           {
-            if(std::isnan(J_f_min_ij.col(col)(i))) J_f_min_ij.col(col)(i) = 0;
-            if(std::isnan(J_approx_f_min_ij.col(col)(i))) J_approx_f_min_ij.col(col)(i) = 0;
-            if(std::isnan(J_t_min_ij.col(col)(i))) J_t_min_ij.col(col)(i) = 0;
-            if(std::isnan(J_approx_t_min_ij.col(col)(i))) J_approx_t_min_ij.col(col)(i) = 0;
+            if(std::isnan(J_fc_f_dists.col(col)(i))) J_fc_f_dists.col(col)(i) = 0;
+            if(std::isnan(J_approx_fc_f_dists.col(col)(i))) J_approx_fc_f_dists.col(col)(i) = 0;
+            if(std::isnan(J_fc_t_dists.col(col)(i))) J_fc_t_dists.col(col)(i) = 0;
+            if(std::isnan(J_approx_fc_t_dists.col(col)(i))) J_approx_fc_t_dists.col(col)(i) = 0;
           }
       };
 
@@ -411,43 +410,43 @@ namespace aerial_robot_model {
     setCogDesireOrientation(baselink_rot); // set the orientation of root
     updateRobotModelImpl(joint_positions);
 
-    ROS_DEBUG_STREAM("numerical result of J_f_min_ij: \n" << J_f_min_ij);
-    ROS_DEBUG_STREAM("numerical result of J_approx_f_min_ij: \n" << J_approx_f_min_ij);
-    ROS_DEBUG_STREAM("numerical result of J_t_min_ij: \n" << J_t_min_ij);
-    ROS_DEBUG_STREAM("numerical result of J_approx_t_min_ij: \n" << J_approx_t_min_ij);
+    ROS_DEBUG_STREAM("numerical result of J_fc_f_dists: \n" << J_fc_f_dists);
+    ROS_DEBUG_STREAM("numerical result of J_approx_fc_f_dists: \n" << J_approx_fc_f_dists);
+    ROS_DEBUG_STREAM("numerical result of J_fc_t_dists: \n" << J_fc_t_dists);
+    ROS_DEBUG_STREAM("numerical result of J_approx_fc_t_dists: \n" << J_approx_fc_t_dists);
 
-    if(analytical_f_min_ij_result.cols() > 0 && analytical_t_min_ij_result.cols() > 0)
+    if(analytical_f_result.cols() > 0 && analytical_t_result.cols() > 0)
       {
-        ROS_DEBUG_STREAM("analytical_result of J_approx_f_min_ij: \n" << analytical_f_min_ij_result);
-        ROS_DEBUG_STREAM("analytical_result of J_approx_t_min_ij: \n" << analytical_t_min_ij_result);
+        ROS_DEBUG_STREAM("analytical_result of J_approx_fc_f_dists: \n" << analytical_f_result);
+        ROS_DEBUG_STREAM("analytical_result of J_approx_fc_t_dists: \n" << analytical_t_result);
 
-        Eigen::MatrixXd diff_mat = J_approx_f_min_ij - analytical_f_min_ij_result;
-        ROS_DEBUG_STREAM("diff of J_approx_f_min_ij: \n" << diff_mat);
+        Eigen::MatrixXd diff_mat = J_approx_fc_f_dists - analytical_f_result;
+        ROS_DEBUG_STREAM("diff of J_approx_fc_f_dists: \n" << diff_mat);
         double min_diff = diff_mat.minCoeff();
         double max_diff = diff_mat.maxCoeff();
-        if(max_diff > fabs(min_diff)) ROS_INFO_STREAM("max diff of J_approx_f_min_ij: " << max_diff);
-        else  ROS_INFO_STREAM("max diff of J_approx_f_min_ij: " << fabs(min_diff));
+        if(max_diff > fabs(min_diff)) ROS_INFO_STREAM("max diff of J_approx_fc_f_dists: " << max_diff);
+        else  ROS_INFO_STREAM("max diff of J_approx_fc_f_dists: " << fabs(min_diff));
 
-        diff_mat = J_f_min_ij - analytical_f_min_ij_result;
-        ROS_DEBUG_STREAM("diff of J_f_min_ij: \n" << diff_mat);
+        diff_mat = J_fc_f_dists - analytical_f_result;
+        ROS_DEBUG_STREAM("diff of J_fc_f_dists: \n" << diff_mat);
         min_diff = diff_mat.minCoeff();
         max_diff = diff_mat.maxCoeff();
-        if(max_diff > fabs(min_diff)) ROS_INFO_STREAM("max diff of J_f_min_ij: " << max_diff);
-        else  ROS_INFO_STREAM("max diff of J_f_min_ij: " << fabs(min_diff));
+        if(max_diff > fabs(min_diff)) ROS_INFO_STREAM("max diff of J_fc_f_dists: " << max_diff);
+        else  ROS_INFO_STREAM("max diff of J_fc_f_dists: " << fabs(min_diff));
 
-        diff_mat = J_approx_t_min_ij - analytical_t_min_ij_result;
-        ROS_DEBUG_STREAM("diff of J_approx_t_min_ij: \n" << diff_mat);
+        diff_mat = J_approx_fc_t_dists - analytical_t_result;
+        ROS_DEBUG_STREAM("diff of J_approx_fc_t_dists: \n" << diff_mat);
         min_diff = diff_mat.minCoeff();
         max_diff = diff_mat.maxCoeff();
-        if(max_diff > fabs(min_diff)) ROS_INFO_STREAM("max diff of J_approx_t_min_ij: " << max_diff);
-        else  ROS_INFO_STREAM("max diff of J_approx_t_min_ij: " << fabs(min_diff));
+        if(max_diff > fabs(min_diff)) ROS_INFO_STREAM("max diff of J_approx_fc_t_dists: " << max_diff);
+        else  ROS_INFO_STREAM("max diff of J_approx_fc_t_dists: " << fabs(min_diff));
 
-        diff_mat = J_t_min_ij - analytical_t_min_ij_result;
-        ROS_DEBUG_STREAM("diff of J_t_min_ij: \n" << diff_mat);
+        diff_mat = J_fc_t_dists - analytical_t_result;
+        ROS_DEBUG_STREAM("diff of J_fc_t_dists: \n" << diff_mat);
         min_diff = diff_mat.minCoeff();
         max_diff = diff_mat.maxCoeff();
-        if(max_diff > fabs(min_diff)) ROS_INFO_STREAM("max diff of J_t_min_ij: " << max_diff);
-        else  ROS_INFO_STREAM("max diff of J_t_min_ij: " << fabs(min_diff));
+        if(max_diff > fabs(min_diff)) ROS_INFO_STREAM("max diff of J_fc_t_dists: " << max_diff);
+        else  ROS_INFO_STREAM("max diff of J_fc_t_dists: " << fabs(min_diff));
       }
   }
 };

@@ -41,12 +41,10 @@ class HydrusRobotModel : public aerial_robot_model::RobotModel {
 public:
   HydrusRobotModel(bool init_with_rosparam,
                    bool verbose = false,
-                   double wrench_margin_t_min_thre = 0,
-                   double wrench_margin_roll_pitch_min_thre = 0,
+                   double fc_t_min_thre = 0,
+                   double fc_rp_min_thre = 0,
                    double epsilon = 10,
-                   int wrench_dof = 4,
-                   double control_margin_thre = 0,
-                   double wrench_mat_det_thre = 0);
+                   int wrench_dof = 4);
   virtual ~HydrusRobotModel() = default;
 
   //public functions
@@ -59,20 +57,22 @@ public:
   virtual bool stabilityCheck(bool verbose = false) override;
 
   inline const uint8_t getWrenchDof() const { return wrench_dof_; }
-  inline const double getControlMargin() const { return control_margin_; }
-  inline const double getControlMarginThresh() const { return control_margin_thre_; }
+  inline const double getRollPitchPositionMargin() const { return rp_position_margin_; }
+  inline const double getRollPitchPositionMarginThresh() const { return rp_position_margin_thre_; }
   inline const double getWrenchMatDeterminant() const { return wrench_mat_det_; }
   inline const double getWrenchMatDetThresh() const {return wrench_mat_det_thre_;}
-  const Eigen::MatrixXd& getWrenchMarginRollPitchJacobian() const {return wrench_margin_roll_pitch_min_jacobian_;}
-  inline const double& getWrenchMarginRollPitchMin()  {return wrench_margin_roll_pitch_min_;}
-  inline const double& getWrenchMarginRollPitchMinThre()  {return wrench_margin_roll_pitch_min_thre_;}
+  const Eigen::MatrixXd& getFeasibleControlRollPitchDistsJacobian() const {return fc_rp_dists_jacobian_;}
+  inline const double& getFeasibleControlRollPitchMin()  {return fc_rp_min_;}
+  inline const double& getFeasibleControlRollPitchMinThre()  {return fc_rp_min_thre_;}
+  inline const Eigen::VectorXd& getFeasibleControlRollPitchDists() const {return fc_rp_dists_;}
+  inline const Eigen::VectorXd& getApproxFeasibleControlRollPitchDists() const {return approx_fc_rp_dists_;}
 
-  void setWrenchMarginRollPitchJacobian(const Eigen::MatrixXd wrench_margin_roll_pitch_min_jacobian) {wrench_margin_roll_pitch_min_jacobian_ = wrench_margin_roll_pitch_min_jacobian;}
+  void setFeasibleControlRollPitchDistsJacobian(const Eigen::MatrixXd fc_rp_dists_jacobian) {fc_rp_dists_jacobian_ = fc_rp_dists_jacobian;}
 
   inline void setWrenchDof(uint8_t dof) { wrench_dof_ = dof; }
 
-  void calcWrenchMarginRollPitch();
-  void calcWrenchMarginRollPitchJacobian();
+  void calcFeasibleControlRollPitchDists();
+  void calcFeasibleControlRollPitchDistsJacobian();
 
   bool rollPitchPositionMarginCheck();
   bool wrenchMatrixDeterminantCheck();
@@ -81,23 +81,23 @@ protected:
 
   // private attributes
   int wrench_dof_;
-  // following variables will be replaced by wrench_margin_t_min, wrench_margin_f_min in the furture
+
+  Eigen::VectorXd approx_fc_rp_dists_;
+  Eigen::VectorXd fc_rp_dists_;
+  double fc_rp_min_;
+  double fc_rp_min_thre_;
+  Eigen::MatrixXd fc_rp_dists_jacobian_;
+
+  // following variables will be replaced by fc_t_min, fc_f_min in the furture
   double wrench_mat_det_;
   double wrench_mat_det_thre_;
-  double control_margin_;
-  double control_margin_thre_;
-
-  Eigen::VectorXd approx_wrench_margin_roll_pitch_min_i_;
-  Eigen::VectorXd wrench_margin_roll_pitch_min_i_;
-  double wrench_margin_roll_pitch_min_;
-  double wrench_margin_roll_pitch_min_thre_;
-
-  Eigen::MatrixXd wrench_margin_roll_pitch_min_jacobian_;
+  double rp_position_margin_;
+  double rp_position_margin_thre_;
 
   // private functions
   void getParamFromRos();
 
   // jacobian part
   virtual void thrustForceNumericalJacobian(const KDL::JntArray joint_positions, Eigen::MatrixXd analytical_result = Eigen::MatrixXd(), std::vector<int> joint_indices = std::vector<int>()) override;
-  void wrenchMarginRollPitchNumericalJacobian(const KDL::JntArray joint_positions, Eigen::MatrixXd analytical_result = Eigen::MatrixXd(), std::vector<int> joint_indices = std::vector<int>());
+  void feasibleControlRollPitchDistsNumericalJacobian(const KDL::JntArray joint_positions, Eigen::MatrixXd analytical_result = Eigen::MatrixXd(), std::vector<int> joint_indices = std::vector<int>());
 };

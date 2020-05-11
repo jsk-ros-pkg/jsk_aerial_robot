@@ -2,10 +2,10 @@
 
 namespace aerial_robot_model {
 
-  RobotModel::RobotModel(bool init_with_rosparam, bool verbose, double wrench_margin_f_min_thre, double wrench_margin_t_min_thre, double epsilon):
+  RobotModel::RobotModel(bool init_with_rosparam, bool verbose, double fc_f_min_thre, double fc_t_min_thre, double epsilon):
     verbose_(verbose),
-    wrench_margin_f_min_thre_(wrench_margin_f_min_thre),
-    wrench_margin_t_min_thre_(wrench_margin_t_min_thre),
+    fc_f_min_thre_(fc_f_min_thre),
+    fc_t_min_thre_(fc_t_min_thre),
     epsilon_(epsilon),
     baselink_("fc"),
     thrust_link_("thrust"),
@@ -112,12 +112,12 @@ namespace aerial_robot_model {
     gravity_3d_.resize(3);
     gravity_3d_ << 0, 0, 9.80665;
     lambda_jacobian_.resize(rotor_num_, full_body_dof);
-    wrench_margin_f_min_ij_.resize(rotor_num_ * (rotor_num_ - 1));
-    wrench_margin_t_min_ij_.resize(rotor_num_ * (rotor_num_ - 1));
-    approx_wrench_margin_f_min_ij_.resize(rotor_num_ * (rotor_num_ - 1));
-    approx_wrench_margin_t_min_ij_.resize(rotor_num_ * (rotor_num_ - 1));
-    wrench_margin_f_min_jacobian_.resize(rotor_num_ * (rotor_num_ - 1), full_body_dof);
-    wrench_margin_t_min_jacobian_.resize(rotor_num_ * (rotor_num_ - 1), full_body_dof);
+    fc_f_dists_.resize(rotor_num_ * (rotor_num_ - 1));
+    fc_t_dists_.resize(rotor_num_ * (rotor_num_ - 1));
+    approx_fc_f_dists_.resize(rotor_num_ * (rotor_num_ - 1));
+    approx_fc_t_dists_.resize(rotor_num_ * (rotor_num_ - 1));
+    fc_f_dists_jacobian_.resize(rotor_num_ * (rotor_num_ - 1), full_body_dof);
+    fc_t_dists_jacobian_.resize(rotor_num_ * (rotor_num_ - 1), full_body_dof);
     joint_torque_.resize(joint_num_);
     joint_torque_jacobian_.resize(joint_num_, full_body_dof);
     static_thrust_.resize(rotor_num_);
@@ -185,8 +185,8 @@ namespace aerial_robot_model {
   {
     ros::NodeHandle nhp("~");
     nhp.param("kinematic_verbose", verbose_, false);
-    nhp.param("wrench_margin_f_min_thre", wrench_margin_f_min_thre_, 0.0);
-    nhp.param("wrench_margin_t_min_thre", wrench_margin_t_min_thre_, 0.0);
+    nhp.param("fc_f_min_thre", fc_f_min_thre_, 0.0);
+    nhp.param("fc_t_min_thre", fc_t_min_thre_, 0.0);
     nhp.param("epsilon", epsilon_, 10.0);
   }
 
@@ -411,8 +411,8 @@ namespace aerial_robot_model {
 
     /* statics */
     calcStaticThrust();
-    calcWrenchMarginF();
-    calcWrenchMarginT();
+    calcFeasibleControlFDists();
+    calcFeasibleControlTDists();
   }
 
 } //namespace aerial_robot_model

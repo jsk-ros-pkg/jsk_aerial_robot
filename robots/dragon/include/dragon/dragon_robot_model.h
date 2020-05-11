@@ -43,11 +43,9 @@ class DragonRobotModel : public HydrusRobotModel {
 public:
   DragonRobotModel(bool init_with_rosparam,
                    bool verbose = false,
-                   double wrench_margin_t_min_thre = 0,
-                   double wrench_margin_roll_pitch_min_thre = 0,
+                   double fc_t_min_thre = 0,
+                   double fc_roll_pitch_min_thre = 0,
                    double epsilon = 10,
-                   double control_margin_thre = 0,
-                   double wrench_mat_det_thre = 0,
                    double edf_radius = 0,
                    double edf_max_tilt = 0);
   virtual ~DragonRobotModel() = default;

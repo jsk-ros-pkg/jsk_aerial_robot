@@ -25,9 +25,9 @@ r2: 1.0
 r3: 1.0
 r4: 1.0
 
-wrench_margin_t_min_thre: 0.01
-wrench_margin_roll_pitch_min_thre: 1.8
-control_margin_thre: 0.13 # deprecated
+fc_t_min_thre: 0.01
+fc_rp_min_thre: 1.8
+rp_position_margin_thre: 0.13 # deprecated
 
 # inverse kinematics
 differential_motion_count: 50

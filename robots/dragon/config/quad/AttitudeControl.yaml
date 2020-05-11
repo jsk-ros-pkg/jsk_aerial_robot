@@ -24,7 +24,7 @@ r2: 1.0
 r3: 1.0
 r4: 1.0
 
-wrench_margin_roll_pitch_min_thre: 2.2
-control_margin_thre: 0.1 # deprecated
+fc_rp_min_thre: 2.2
+rp_position_margin_thre: 0.1 # deprecated
 
 edf_max_tilt: 0.05

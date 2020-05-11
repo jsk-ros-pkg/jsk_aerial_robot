@@ -1,7 +1,7 @@
 #include <dragon/dragon_robot_model.h>
 
-DragonRobotModel::DragonRobotModel(bool init_with_rosparam, bool verbose, double wrench_margin_t_min_thre, double wrench_margin_roll_pitch_min_thre, double epsilon, double control_margin_thre, double wrench_mat_det_thre, double edf_radius, double edf_max_tilt) :
-  HydrusRobotModel(init_with_rosparam, verbose, wrench_margin_t_min_thre, wrench_margin_roll_pitch_min_thre, epsilon, 3, control_margin_thre, wrench_mat_det_thre),
+DragonRobotModel::DragonRobotModel(bool init_with_rosparam, bool verbose, double fc_t_min_thre, double fc_rp_min_thre, double epsilon, double edf_radius, double edf_max_tilt) :
+  HydrusRobotModel(init_with_rosparam, verbose, fc_t_min_thre, fc_rp_min_thre, epsilon, 3),
   edf_radius_(edf_radius),
   edf_max_tilt_(edf_max_tilt)
 {
@@ -47,7 +47,7 @@ DragonRobotModel::DragonRobotModel(bool init_with_rosparam, bool verbose, double
   wrench_comp_thrust_ = Eigen::VectorXd::Zero(rotor_num * 3); // init
 
   // test
-  //setCogDesireOrientation(0.0, -0.3, 0);
+  // setCogDesireOrientation(0.0, -0.3, 0);
 
   Eigen::VectorXd wrench = Eigen::VectorXd::Zero(6);
   wrench(0) = 0; // x
@@ -248,7 +248,7 @@ void DragonRobotModel::updateJacobians(const KDL::JntArray& joint_positions, boo
   addCompThrustToLambdaJacobian();
   addCompThrustToJointTorqueJacobian();
 
-  calcWrenchMarginRollPitchJacobian();
+  calcFeasibleControlRollPitchDistsJacobian();
 
   // convert to jacobian only for link joint
   std::vector<Eigen::MatrixXd> u_jacobians = getUJacobians();
@@ -284,8 +284,8 @@ void DragonRobotModel::updateJacobians(const KDL::JntArray& joint_positions, boo
   Eigen::MatrixXd comp_thrust_jacobian = getCompThrustJacobian();
   setCompThrustJacobian(comp_thrust_jacobian * gimbal_jacobian_);
 
-  Eigen::MatrixXd wrench_margin_roll_pitch_min_jacobian = getWrenchMarginRollPitchJacobian();
-  setWrenchMarginRollPitchJacobian(wrench_margin_roll_pitch_min_jacobian * gimbal_jacobian_);
+  Eigen::MatrixXd fc_rp_dists_jacobian = getFeasibleControlRollPitchDistsJacobian();
+  setFeasibleControlRollPitchDistsJacobian(fc_rp_dists_jacobian * gimbal_jacobian_);
 
   // update jacobian for rotor overlap
   calcRotorOverlapJacobian();
@@ -296,7 +296,7 @@ void DragonRobotModel::updateJacobians(const KDL::JntArray& joint_positions, boo
   jointTorqueNumericalJacobian(getJointPositions(), getJointTorqueJacobian(), getLinkJointIndices());
   cogMomentumNumericalJacobian(getJointPositions(), getCOGJacobian(), getLMomentumJacobian(), getLinkJointIndices());
   overlapNumericalJacobian(getJointPositions(), rotor_overlap_jacobian_);
-  wrenchMarginRollPitchNumericalJacobian(getJointPositions(), getWrenchMarginRollPitchJacobian(), getLinkJointIndices());
+  feasibleControlRollPitchDistsNumericalJacobian(getJointPositions(), getFeasibleControlRollPitchDistsJacobian(), getLinkJointIndices());
 
   throw std::runtime_error("test");
 #endif

@@ -119,7 +119,7 @@ bool TransformController::updateRobotModel()
   if(!getRobotModel().stabilityCheck(verbose_))
     {
       ROS_ERROR_NAMED("LQI gain generator", "LQI gain generator: invalid pose, stability is invalid");
-      if(getRobotModel().getWrenchDof() == 4 && getRobotModel().getWrenchMarginRollPitchMin() > getRobotModel().getWrenchMarginRollPitchMinThre())
+      if(getRobotModel().getWrenchDof() == 4 && getRobotModel().getFeasibleControlRollPitchMin() > getRobotModel().getFeasibleControlRollPitchMinThre())
         {
           ROS_WARN_NAMED("LQI gain generator", "LQI gain generator: change to three axis stable mode");
           lqi_mode_ = 3;

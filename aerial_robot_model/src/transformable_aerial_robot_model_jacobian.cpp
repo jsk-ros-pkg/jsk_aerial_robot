@@ -19,14 +19,12 @@ namespace aerial_robot_model {
     calcJointTorque();
     calcJointTorqueJacobian();
 
-    calcWrenchMarginJacobian();
-
+    calcFeasibleControlJacobian();
 #if 0
     thrustForceNumericalJacobian(getJointPositions(), lambda_jacobian_);
     jointTorqueNumericalJacobian(getJointPositions(), joint_torque_jacobian_);
     cogMomentumNumericalJacobian(getJointPositions(), cog_jacobian_, l_momentum_jacobian_);
-    wrenchMarginNumericalJacobian(getJointPositions(), wrench_margin_f_min_jacobian_, wrench_margin_t_min_jacobian_);
-
+    feasibleControlNumericalJacobian(getJointPositions(), fc_f_dists_jacobian_, fc_t_dists_jacobian_);
     throw std::runtime_error("test");
 #endif
   }
@@ -236,15 +234,15 @@ namespace aerial_robot_model {
 
   bool RobotModel::stabilityCheck(bool verbose)
   {
-    if(wrench_margin_f_min_ < wrench_margin_f_min_thre_)
+    if(fc_f_min_ < fc_f_min_thre_)
       {
-        ROS_ERROR_STREAM("wrench_margin_f_min " << wrench_margin_f_min_ << " is lower than the threshold " <<  wrench_margin_f_min_thre_);
+        ROS_ERROR_STREAM("the min distance to the plane of feasible control force convex " << fc_f_min_ << " is lower than the threshold " <<  fc_f_min_thre_);
           return false;
       }
 
-    if(wrench_margin_t_min_ < wrench_margin_t_min_thre_)
+    if(fc_t_min_ < fc_t_min_thre_)
       {
-        ROS_ERROR_STREAM("wrench_margin_t_min " << wrench_margin_t_min_ << " is lower than the threshold " <<  wrench_margin_t_min_thre_);
+        ROS_ERROR_STREAM("the min distance to the plane of feasible control torque convex " << fc_t_min_ << " is lower than the threshold " <<  fc_t_min_thre_);
         return false;
       }
 
@@ -323,7 +321,7 @@ namespace aerial_robot_model {
     return v;
   }
 
-  void RobotModel::calcWrenchMarginF()
+  void RobotModel::calcFeasibleControlFDists()
   {
     const int rotor_num = getRotorNum();
     const double thrust_max = getThrustUpperLimit();
@@ -338,24 +336,24 @@ namespace aerial_robot_model {
         if (i == j) continue;
         const Eigen::Vector3d& u_j = u.at(j);
 
-        double f_min_ij = 0.0;
+        double dist_ij = 0.0;
         for (int k = 0; k < rotor_num; ++k) {
           if (i == k || j == k) continue;
           const Eigen::Vector3d& u_k = u.at(k);
           double u_triple_product = calcTripleProduct(u_i, u_j, u_k);
-          f_min_ij += std::max(0.0, u_triple_product * thrust_max);
+          dist_ij += std::max(0.0, u_triple_product * thrust_max);
         }
 
         Eigen::Vector3d uixuj = u_i.cross(u_j);
-        wrench_margin_f_min_ij_(index) = fabs(f_min_ij - (uixuj.dot(gravity_force) / uixuj.norm()));
+        fc_f_dists_(index) = fabs(dist_ij - (uixuj.dot(gravity_force) / uixuj.norm()));
         index++;
       }
     }
-    wrench_margin_f_min_ = wrench_margin_f_min_ij_.minCoeff();
+    fc_f_min_ = fc_f_dists_.minCoeff();
 
   }
 
-  void RobotModel::calcWrenchMarginT()
+  void RobotModel::calcFeasibleControlTDists()
   {
     const int rotor_num = getRotorNum();
     const double thrust_max = getThrustUpperLimit();
@@ -368,19 +366,19 @@ namespace aerial_robot_model {
       for (int j = 0; j < rotor_num; ++j) {
         if (i == j) continue;
         const Eigen::Vector3d& v_j = v.at(j);
-        double t_min_ij = 0.0;
+        double dist_ij = 0.0;
         for (int k = 0; k < rotor_num; ++k) {
           if (i == k || j == k) continue;
           const Eigen::Vector3d& v_k = v.at(k);
           double v_triple_product = calcTripleProduct(v_i, v_j, v_k);
-          t_min_ij += std::max(0.0, v_triple_product * thrust_max);
+          dist_ij += std::max(0.0, v_triple_product * thrust_max);
         }
-        wrench_margin_t_min_ij_(index) = t_min_ij;
+        fc_t_dists_(index) = dist_ij;
         index++;
       }
     }
 
-    wrench_margin_t_min_ = wrench_margin_t_min_ij_.minCoeff();
+    fc_t_min_ = fc_t_dists_.minCoeff();
   }
 
   void RobotModel::calcCoGMomentumJacobian()
@@ -557,7 +555,7 @@ namespace aerial_robot_model {
   }
 
 
-  void RobotModel::calcWrenchMarginJacobian()
+  void RobotModel::calcFeasibleControlJacobian()
   {
     // reference:
     // https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=8967725
@@ -582,8 +580,8 @@ namespace aerial_robot_model {
     int index = 0;
     for (int i = 0; i < rotor_num; ++i) {
       for (int j = 0; j < rotor_num; ++j) {
-        double approx_f_min = 0.0;
-        double approx_t_min = 0.0;
+        double approx_f_dist = 0.0;
+        double approx_t_dist = 0.0;
         Eigen::MatrixXd d_f_min = Eigen::MatrixXd::Zero(1, ndof);
         Eigen::MatrixXd d_t_min = Eigen::MatrixXd::Zero(1, ndof);
         const Eigen::Vector3d& u_i = u.at(i);
@@ -610,7 +608,7 @@ namespace aerial_robot_model {
             const Eigen::MatrixXd& d_u_k = u_jacobians_.at(k);
             Eigen::MatrixXd d_u_triple_product = (uixuj / uixuj.norm()).transpose() * d_u_k + u_k.transpose() * (d_uixuj / uixuj.norm() - uixuj / (uixuj.norm() * uixuj.squaredNorm()) * uixuj.transpose() * d_uixuj);
             d_f_min += sigmoid(u_triple_product * thrust_max, epsilon_) * d_u_triple_product * thrust_max;
-            approx_f_min += reluApprox(u_triple_product * thrust_max, epsilon_);
+            approx_f_dist += reluApprox(u_triple_product * thrust_max, epsilon_);
 
             // v
             const Eigen::Vector3d& v_k = v.at(k);
@@ -618,7 +616,7 @@ namespace aerial_robot_model {
             const Eigen::MatrixXd& d_v_k = v_jacobians.at(k);
             Eigen::MatrixXd d_v_triple_product = (vixvj / vixvj.norm()).transpose() * d_v_k + v_k.transpose() * (d_vixvj / vixvj.norm() - vixvj / (vixvj.norm() * vixvj.squaredNorm()) * vixvj.transpose() * d_vixvj);
             d_t_min += sigmoid(v_triple_product * thrust_max, epsilon_) * d_v_triple_product * thrust_max;
-            approx_t_min += reluApprox(v_triple_product * thrust_max, epsilon_);
+            approx_t_dist += reluApprox(v_triple_product * thrust_max, epsilon_);
           } //if
         } //k
 
@@ -627,146 +625,24 @@ namespace aerial_robot_model {
           Eigen::MatrixXd d_uixuj_fg = Eigen::MatrixXd::Zero(1, ndof);
           d_uixuj_fg = fg.transpose() * (d_uixuj / uixuj.norm() - uixuj / (uixuj.norm() * uixuj.squaredNorm()) * uixuj.transpose() * d_uixuj);
 
-          approx_wrench_margin_f_min_ij_(index) = absApprox(approx_f_min - uixuj_fg, epsilon_);
-          wrench_margin_f_min_jacobian_.row(index) = tanh(approx_f_min - uixuj_fg, epsilon_) * (d_f_min - d_uixuj_fg);
+          approx_fc_f_dists_(index) = absApprox(approx_f_dist - uixuj_fg, epsilon_);
+          fc_f_dists_jacobian_.row(index) = tanh(approx_f_dist - uixuj_fg, epsilon_) * (d_f_min - d_uixuj_fg);
 
-          approx_wrench_margin_t_min_ij_(index) = approx_t_min;
-          wrench_margin_t_min_jacobian_.row(index) = d_t_min;
+          approx_fc_t_dists_(index) = approx_t_dist;
+          fc_t_dists_jacobian_.row(index) = d_t_min;
 
           for(int l = 0; l < ndof; l++)
             {
-              if(std::isnan(wrench_margin_f_min_jacobian_.row(index)(0, l)))
-                wrench_margin_f_min_jacobian_.row(index)(0, l) = 0;
-              if(std::isnan(wrench_margin_t_min_jacobian_.row(index)(0, l)))
-                wrench_margin_t_min_jacobian_.row(index)(0, l) = 0;
+              if(std::isnan(fc_f_dists_jacobian_.row(index)(0, l)))
+                fc_f_dists_jacobian_.row(index)(0, l) = 0;
+              if(std::isnan(fc_t_dists_jacobian_.row(index)(0, l)))
+                fc_t_dists_jacobian_.row(index)(0, l) = 0;
             }
           index++;
         }
       } //j
     } //i
-
-    // ROS_WARN_STREAM("approx_wrench_margin_f_min_ij_: " << approx_wrench_margin_f_min_ij_.transpose());
-    // ROS_WARN_STREAM("approx_wrench_margin_t_min_ij_: " << approx_wrench_margin_t_min_ij_.transpose());
   }
-
-#if 0
-  // @depreacated 
-  void RobotModel::calcWrenchMarginJacobian()
-  {
-    // reference:
-    // https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=8967725
-
-    const int rotor_num = getRotorNum();
-    const int joint_num = getJointNum();
-    const int ndof = 6 + joint_num;
-    const auto& p = getRotorsOriginFromCog<Eigen::Vector3d>();
-    const auto& u = getRotorsNormalFromCog<Eigen::Vector3d>();
-    const auto& sigma = getRotorDirection();
-    const double thrust_max = getThrustUpperLimit();
-    Eigen::Vector3d fg = getMass() * gravity_3d_;
-    const double m_f_rate = getMFRate();
-
-    const auto v = calcV();
-    std::vector<Eigen::MatrixXd> v_jacobians;
-    for (int i = 0; i < rotor_num; ++i) {
-      v_jacobians.push_back(-skew(u.at(i)) * p_jacobians_.at(i) + skew(p.at(i)) * u_jacobians_.at(i) + m_f_rate * sigma.at(i + 1) * u_jacobians_.at(i));
-    }
-
-    // triple_product_jacobian
-    std::vector<std::vector<std::vector<Eigen::VectorXd> > > u_triple_product_jacobian;
-    std::vector<std::vector<std::vector<Eigen::VectorXd> > > v_triple_product_jacobian;
-    u_triple_product_jacobian.resize(rotor_num);
-    for (auto& j : u_triple_product_jacobian) {
-      j.resize(rotor_num);
-      for (auto& k : j) {
-        k.resize(rotor_num);
-        for (auto& vec : k) {
-          vec.resize(ndof);
-        }
-      }
-    }
-
-    v_triple_product_jacobian.resize(rotor_num);
-    for (auto& j : v_triple_product_jacobian) {
-      j.resize(rotor_num);
-      for (auto& k : j) {
-        k.resize(rotor_num);
-        for (auto& vec : k) {
-          vec.resize(ndof);
-        }
-      }
-    }
-
-    //calc jacobian of f_min_ij, t_min_ij
-    int f_min_index = 0;
-    for (int i = 0; i < rotor_num; ++i) {
-      for (int j = 0; j < rotor_num; ++j) {
-        double f_min = 0.0;
-        double t_min = 0.0;
-        Eigen::VectorXd d_f_min = Eigen::VectorXd::Zero(ndof);
-        Eigen::VectorXd d_t_min = Eigen::VectorXd::Zero(ndof);
-        const Eigen::Vector3d& u_i = u.at(i);
-        const Eigen::Vector3d& u_j = u.at(j);
-        const Eigen::Vector3d uixuj = u_i.cross(u_j);
-        const Eigen::Vector3d& v_i = v.at(i);
-        const Eigen::Vector3d& v_j = v.at(j);
-        const Eigen::Vector3d vixvj = v_i.cross(v_j);
-
-        for (int k = 0; k < rotor_num; ++k) {
-          if (i == j || j == k || k == i) {
-            u_triple_product_jacobian.at(i).at(j).at(k) = Eigen::VectorXd::Zero(ndof);
-            v_triple_product_jacobian.at(i).at(j).at(k) = Eigen::VectorXd::Zero(ndof);
-          } else {
-            const Eigen::Vector3d& u_k = u.at(k);
-            const Eigen::Vector3d& v_k = v.at(k);
-            const double u_triple_product = calcTripleProduct(u_i, u_j, u_k);
-            const double v_triple_product = calcTripleProduct(v_i, v_j, v_k);
-            for (int l = 0; l < ndof; ++l) {
-              {
-                const Eigen::Vector3d& d_u_i = u_jacobians_.at(i).col(l);
-                const Eigen::Vector3d& d_u_j = u_jacobians_.at(j).col(l);
-                const Eigen::Vector3d& d_u_k = u_jacobians_.at(k).col(l);
-                const Eigen::Vector3d d_uixuj = u_i.cross(d_u_j) + d_u_i.cross(u_j);
-
-                double d_u_triple_product = (uixuj / uixuj.norm()).dot(d_u_k) + u_k.dot(1/uixuj.norm() * d_uixuj - uixuj / (uixuj.norm() * uixuj.squaredNorm()) * uixuj.dot(d_uixuj));
-                u_triple_product_jacobian.at(i).at(j).at(k)(l) = d_u_triple_product;
-                d_f_min(l) += sigmoid(u_triple_product * thrust_max, epsilon_) * d_u_triple_product * thrust_max;
-              }
-              {
-                const Eigen::Vector3d& d_v_i = v_jacobians.at(i).col(l);
-                const Eigen::Vector3d& d_v_j = v_jacobians.at(j).col(l);
-                const Eigen::Vector3d& d_v_k = v_jacobians.at(k).col(l);
-                const Eigen::Vector3d d_vixvj = v_i.cross(d_v_j) + d_v_i.cross(v_j);
-
-                double d_v_triple_product = (vixvj / vixvj.norm()).dot(d_v_k) + v_k.dot(1/vixvj.norm() * d_vixvj - vixvj / (vixvj.norm() * vixvj.squaredNorm()) * vixvj.dot(d_vixvj));
-                v_triple_product_jacobian.at(i).at(j).at(k)(l) = d_v_triple_product;
-                d_t_min(l) += sigmoid(v_triple_product * thrust_max, epsilon_) * d_v_triple_product * thrust_max;
-              }
-            } //l
-            f_min += reluApprox(u_triple_product * thrust_max, epsilon_);
-            t_min += reluApprox(v_triple_product * thrust_max, epsilon_);
-          } //if
-        } //k
-
-        if (i != j) {
-          double uixuj_fg = uixuj.dot(fg)/uixuj.norm();
-          Eigen::VectorXd d_uixuj_fg(ndof);
-          for (int l = 0; l < ndof; ++l) {
-            const Eigen::Vector3d& d_u_i = u_jacobians_.at(i).col(l);
-            const Eigen::Vector3d& d_u_j = u_jacobians_.at(j).col(l);
-            const Eigen::Vector3d d_uixuj = u_i.cross(d_u_j) + d_u_i.cross(u_j);
-            d_uixuj_fg(l) = fg.dot(1/uixuj.norm() * d_uixuj - uixuj / (uixuj.norm() * uixuj.squaredNorm()) * uixuj.dot(d_uixuj));
-          } //l
-          approx_wrench_margin_f_min_ij_(f_min_index) = absApprox(f_min - uixuj_fg, epsilon_);
-          approx_wrench_margin_t_min_ij_(f_min_index) = absApprox(t_min, epsilon_);
-          wrench_margin_f_min_jacobian_.row(f_min_index) = (tanh(f_min - uixuj_fg, epsilon_) * (d_f_min - d_uixuj_fg)).transpose();
-          wrench_margin_t_min_jacobian_.row(f_min_index) = (tanh(t_min, epsilon_) * (d_t_min)).transpose();
-          f_min_index++;
-        }
-      } //j
-    } //i
-  }
-#endif
 
   Eigen::VectorXd RobotModel::getGravityWrenchOnRoot()
   {

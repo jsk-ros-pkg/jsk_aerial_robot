@@ -61,7 +61,7 @@ namespace aerial_robot_model {
  //Transformable Aerial Robot Model
   class RobotModel {
   public:
-    RobotModel(bool init_with_rosparam, bool verbose = false, double wrench_margin_f_min_thre = 0, double wrench_margin_t_min_thre = 0, double epsilon = 10.0);
+    RobotModel(bool init_with_rosparam, bool verbose = false, double fc_f_min_thre = 0, double fc_t_min_thre = 0, double epsilon = 10.0);
     virtual ~RobotModel() = default;
 
     //public functions
@@ -131,15 +131,17 @@ namespace aerial_robot_model {
     inline const Eigen::VectorXd& getGravity3d() const {return gravity_3d_;}
     inline const double getEpsilon() const {return epsilon_;}
     inline const std::vector<Eigen::MatrixXd>& getThrustWrenchAllocations() const {return thrust_wrench_allocations_;}
-    inline const double& getWrenchMarginFMin()  const {return wrench_margin_f_min_;}
-    inline const double& getWrenchMarginTMin()  const {return wrench_margin_t_min_;}
-    inline const double& getWrenchMarginFMinThre()  const {return wrench_margin_f_min_thre_;}
-    inline const double& getWrenchMarginTMinThre()  const {return wrench_margin_t_min_thre_;}
-    const void setWrenchMarginFMinThre(const double wrench_margin_f_min_thre)  { wrench_margin_f_min_thre_ = wrench_margin_f_min_thre;}
-    const void setWrenchMarginTMinThre(const double wrench_margin_t_min_thre)  { wrench_margin_t_min_thre_ = wrench_margin_t_min_thre;}
+    inline const double& getFeasibleControlFMin()  const {return fc_f_min_;}
+    inline const double& getFeasibleControlTMin()  const {return fc_t_min_;}
+    inline const double& getFeasibleControlFMinThre()  const {return fc_f_min_thre_;}
+    inline const double& getFeasibleControlTMinThre()  const {return fc_t_min_thre_;}
+    const void setFeasibleControlFMinThre(const double fc_f_min_thre)  { fc_f_min_thre_ = fc_f_min_thre;}
+    const void setFeasibleControlTMinThre(const double fc_t_min_thre)  { fc_t_min_thre_ = fc_t_min_thre;}
 
-    inline const Eigen::VectorXd& getApproxWrenchMarginFMinVector() const {return approx_wrench_margin_f_min_ij_;}
-    inline const Eigen::VectorXd& getApproxWrenchMarginTMinVector() const {return approx_wrench_margin_t_min_ij_;}
+    inline const Eigen::VectorXd& getFeasibleControlFDists() const {return fc_f_dists_;}
+    inline const Eigen::VectorXd& getFeasibleControlTDists() const {return fc_t_dists_;}
+    inline const Eigen::VectorXd& getApproxFeasibleControlFDists() const {return approx_fc_f_dists_;}
+    inline const Eigen::VectorXd& getApproxFeasibleControlTDists() const {return approx_fc_t_dists_;}
 
     // jacobian parts
     virtual Eigen::MatrixXd getJacobian(const KDL::JntArray& joint_positions, std::string segment_name, KDL::Vector offset = KDL::Vector::Zero());
@@ -161,13 +163,13 @@ namespace aerial_robot_model {
     inline const Eigen::MatrixXd& getLambdaJacobian() const {return lambda_jacobian_;}
     inline const Eigen::MatrixXd& getJointTorqueJacobian() const {return joint_torque_jacobian_;}
 
-    inline const Eigen::MatrixXd& getWrenchMarginFMinJacobian() const { return wrench_margin_f_min_jacobian_; }
-    inline const Eigen::MatrixXd& getWrenchMarginTMinJacobian() const { return wrench_margin_t_min_jacobian_; }
+    inline const Eigen::MatrixXd& getFeasibleControlFDistsJacobian() const { return fc_f_dists_jacobian_; }
+    inline const Eigen::MatrixXd& getFeasibleControlTDistsJacobian() const { return fc_t_dists_jacobian_; }
 
     double calcTripleProduct(const Eigen::Vector3d& ui, const Eigen::Vector3d& uj, const Eigen::Vector3d& uk);
 
-    void calcWrenchMarginF();
-    void calcWrenchMarginT();
+    void calcFeasibleControlFDists();
+    void calcFeasibleControlTDists();
 
     std::vector<Eigen::Vector3d> calcV();
 
@@ -273,29 +275,29 @@ namespace aerial_robot_model {
     Eigen::MatrixXd lambda_jacobian_; //thrust force
     Eigen::MatrixXd joint_torque_jacobian_; // joint torque
 
-    Eigen::VectorXd wrench_margin_f_min_ij_;
-    Eigen::VectorXd wrench_margin_t_min_ij_;
-    Eigen::VectorXd approx_wrench_margin_f_min_ij_;
-    Eigen::VectorXd approx_wrench_margin_t_min_ij_;
-    double wrench_margin_f_min_thre_;
-    double wrench_margin_t_min_thre_;
-    double wrench_margin_f_min_;
-    double wrench_margin_t_min_;
-    Eigen::MatrixXd wrench_margin_f_min_jacobian_;
-    Eigen::MatrixXd wrench_margin_t_min_jacobian_;
+    Eigen::VectorXd fc_f_dists_; // distances to the plane of feasible control force convex
+    Eigen::VectorXd fc_t_dists_; // distances to the plane of feasible control torque convex
+    Eigen::VectorXd approx_fc_f_dists_;
+    Eigen::VectorXd approx_fc_t_dists_;
+    double fc_f_min_thre_;
+    double fc_t_min_thre_;
+    double fc_f_min_;
+    double fc_t_min_;
+    Eigen::MatrixXd fc_f_dists_jacobian_;
+    Eigen::MatrixXd fc_t_dists_jacobian_;
 
   protected:
     virtual void calcBasicKinematicsJacobian();
     virtual void calcCoGMomentumJacobian();
     virtual void calcLambdaJacobian();
     virtual void calcJointTorqueJacobian();
-    virtual void calcWrenchMarginJacobian();
+    virtual void calcFeasibleControlJacobian();
 
     // test jacobian with numerical solution
     virtual void thrustForceNumericalJacobian(const KDL::JntArray joint_positions, Eigen::MatrixXd analytical_result = Eigen::MatrixXd(), std::vector<int> joint_indices = std::vector<int>());
     virtual void jointTorqueNumericalJacobian(const KDL::JntArray joint_positions, Eigen::MatrixXd analytical_result = Eigen::MatrixXd(), std::vector<int> joint_indices = std::vector<int>());
     virtual void cogMomentumNumericalJacobian(const KDL::JntArray joint_positions, Eigen::MatrixXd analytical_cog_result = Eigen::MatrixXd(), Eigen::MatrixXd analytical_momentum_result = Eigen::MatrixXd(), std::vector<int> joint_indices = std::vector<int>());
-    virtual void wrenchMarginNumericalJacobian(const KDL::JntArray joint_positions, Eigen::MatrixXd analytical_f_min_ij_result = Eigen::MatrixXd(), Eigen::MatrixXd analytical_t_min_ij_result = Eigen::MatrixXd(), std::vector<int> joint_indices = std::vector<int>());
+    virtual void feasibleControlNumericalJacobian(const KDL::JntArray joint_positions, Eigen::MatrixXd analytical_f_result = Eigen::MatrixXd(), Eigen::MatrixXd analytical_t_result = Eigen::MatrixXd(), std::vector<int> joint_indices = std::vector<int>());
 
   };
 
