@@ -131,10 +131,13 @@ namespace aerial_robot_model {
     inline const Eigen::VectorXd& getGravity3d() const {return gravity_3d_;}
     inline const double getEpsilon() const {return epsilon_;}
     inline const std::vector<Eigen::MatrixXd>& getThrustWrenchAllocations() const {return thrust_wrench_allocations_;}
-    inline const double& getWrenchMarginFMin()  {return wrench_margin_f_min_;}
-    inline const double& getWrenchMarginTMin()  {return wrench_margin_t_min_;}
-    inline const double& getWrenchMarginFMinThre()  {return wrench_margin_f_min_thre_;}
-    inline const double& getWrenchMarginTMinThre()  {return wrench_margin_t_min_thre_;}
+    inline const double& getWrenchMarginFMin()  const {return wrench_margin_f_min_;}
+    inline const double& getWrenchMarginTMin()  const {return wrench_margin_t_min_;}
+    inline const double& getWrenchMarginFMinThre()  const {return wrench_margin_f_min_thre_;}
+    inline const double& getWrenchMarginTMinThre()  const {return wrench_margin_t_min_thre_;}
+    const void setWrenchMarginFMinThre(const double wrench_margin_f_min_thre)  { wrench_margin_f_min_thre_ = wrench_margin_f_min_thre;}
+    const void setWrenchMarginTMinThre(const double wrench_margin_t_min_thre)  { wrench_margin_t_min_thre_ = wrench_margin_t_min_thre;}
+
     inline const Eigen::VectorXd& getApproxWrenchMarginFMinVector() const {return approx_wrench_margin_f_min_ij_;}
     inline const Eigen::VectorXd& getApproxWrenchMarginTMinVector() const {return approx_wrench_margin_t_min_ij_;}
 

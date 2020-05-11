@@ -290,16 +290,16 @@ void DragonRobotModel::updateJacobians(const KDL::JntArray& joint_positions, boo
   // update jacobian for rotor overlap
   calcRotorOverlapJacobian();
 
-  //compThrustNumericalJacobian(getJointPositions(), comp_thrust_jacobian_);
-
-  //thrustForceNumericalJacobian(getJointPositions(), getLambdaJacobian(), getLinkJointIndices());
-  //jointTorqueNumericalJacobian(getJointPositions(), getJointTorqueJacobian(), getLinkJointIndices());
-  // cogMomentumNumericalJacobian(getJointPositions(), getCOGJacobian(), getLMomentumJacobian(), getLinkJointIndices());
-
-  //overlapNumericalJacobian(getJointPositions(), rotor_overlap_jacobian_);
+#if 0
+  compThrustNumericalJacobian(getJointPositions(), comp_thrust_jacobian_);
+  thrustForceNumericalJacobian(getJointPositions(), getLambdaJacobian(), getLinkJointIndices());
+  jointTorqueNumericalJacobian(getJointPositions(), getJointTorqueJacobian(), getLinkJointIndices());
+  cogMomentumNumericalJacobian(getJointPositions(), getCOGJacobian(), getLMomentumJacobian(), getLinkJointIndices());
+  overlapNumericalJacobian(getJointPositions(), rotor_overlap_jacobian_);
   wrenchMarginRollPitchNumericalJacobian(getJointPositions(), getWrenchMarginRollPitchJacobian(), getLinkJointIndices());
 
-  // throw std::runtime_error("test");
+  throw std::runtime_error("test");
+#endif
 }
 
 void DragonRobotModel::calcRotorOverlapJacobian()

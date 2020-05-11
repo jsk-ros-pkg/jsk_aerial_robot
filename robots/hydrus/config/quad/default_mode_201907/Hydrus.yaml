@@ -27,7 +27,11 @@ r4: 1.0
 trans_constraint_weight: 100
 att_control_weight: 1
 
+
+wrench_margin_t_min_thre: 0.01
+wrench_margin_roll_pitch_min_thre: 1.8
 control_margin_thre: 0.13
+
 
 # inverse kinematics
 differential_motion_count: 50

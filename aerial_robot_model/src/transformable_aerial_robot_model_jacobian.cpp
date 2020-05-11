@@ -21,13 +21,14 @@ namespace aerial_robot_model {
 
     calcWrenchMarginJacobian();
 
-    //thrustForceNumericalJacobian(getJointPositions(), lambda_jacobian_);
-    //jointTorqueNumericalJacobian(getJointPositions(), joint_torque_jacobian_);
-    //cogMomentumNumericalJacobian(getJointPositions(), cog_jacobian_, l_momentum_jacobian_);
-
+#if 0
+    thrustForceNumericalJacobian(getJointPositions(), lambda_jacobian_);
+    jointTorqueNumericalJacobian(getJointPositions(), joint_torque_jacobian_);
+    cogMomentumNumericalJacobian(getJointPositions(), cog_jacobian_, l_momentum_jacobian_);
     wrenchMarginNumericalJacobian(getJointPositions(), wrench_margin_f_min_jacobian_, wrench_margin_t_min_jacobian_);
 
-    //throw std::runtime_error("test");
+    throw std::runtime_error("test");
+#endif
   }
 
   Eigen::MatrixXd RobotModel::getJacobian(const KDL::JntArray& joint_positions, std::string segment_name, KDL::Vector offset)
@@ -237,15 +238,22 @@ namespace aerial_robot_model {
   {
     if(wrench_margin_f_min_ < wrench_margin_f_min_thre_)
       {
-        ROS_ERROR_STREAM("wrench_margin_f_min " << wrench_margin_f_min_ << " is lowever than the threshold " <<  wrench_margin_f_min_thre_);
+        ROS_ERROR_STREAM("wrench_margin_f_min " << wrench_margin_f_min_ << " is lower than the threshold " <<  wrench_margin_f_min_thre_);
           return false;
       }
 
     if(wrench_margin_t_min_ < wrench_margin_t_min_thre_)
       {
-        ROS_ERROR_STREAM("wrench_margin_t_min " << wrench_margin_t_min_ << " is lowever than the threshold " <<  wrench_margin_t_min_thre_);
-          return false;
+        ROS_ERROR_STREAM("wrench_margin_t_min " << wrench_margin_t_min_ << " is lower than the threshold " <<  wrench_margin_t_min_thre_);
+        return false;
       }
+
+    if(static_thrust_.maxCoeff() > thrust_max_ || static_thrust_.minCoeff() < thrust_min_)
+      {
+        ROS_ERROR("Invalid static thrust, max: %f, min: %f", static_thrust_.maxCoeff(), static_thrust_.minCoeff());
+        return false;
+      }
+
     return true;
   }
 

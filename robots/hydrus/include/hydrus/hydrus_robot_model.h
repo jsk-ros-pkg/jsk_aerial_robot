@@ -64,6 +64,9 @@ public:
   inline const double getWrenchMatDeterminant() const { return wrench_mat_det_; }
   inline const double getWrenchMatDetThresh() const {return wrench_mat_det_thre_;}
   const Eigen::MatrixXd& getWrenchMarginRollPitchJacobian() const {return wrench_margin_roll_pitch_min_jacobian_;}
+  inline const double& getWrenchMarginRollPitchMin()  {return wrench_margin_roll_pitch_min_;}
+  inline const double& getWrenchMarginRollPitchMinThre()  {return wrench_margin_roll_pitch_min_thre_;}
+
   void setWrenchMarginRollPitchJacobian(const Eigen::MatrixXd wrench_margin_roll_pitch_min_jacobian) {wrench_margin_roll_pitch_min_jacobian_ = wrench_margin_roll_pitch_min_jacobian;}
 
   inline void setWrenchDof(uint8_t dof) { wrench_dof_ = dof; }
@@ -71,9 +74,8 @@ public:
   void calcWrenchMarginRollPitch();
   void calcWrenchMarginRollPitchJacobian();
 
-  inline const double& getWrenchMarginRollPitchMin()  {return wrench_margin_roll_pitch_min_;}
-  inline const double& getWrenchMarginRollPitchMinThre()  {return wrench_margin_roll_pitch_min_thre_;}
-
+  bool rollPitchPositionMarginCheck();
+  bool wrenchMatrixDeterminantCheck();
 
 protected:
 

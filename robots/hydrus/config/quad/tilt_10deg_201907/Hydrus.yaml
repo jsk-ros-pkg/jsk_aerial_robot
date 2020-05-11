@@ -27,8 +27,6 @@ r4: 1.0
 trans_constraint_weight: 100
 att_control_weight: 1
 
-control_margin_thre: 0.13
-
 # inverse kinematics
 differential_motion_count: 50
 thre_joint_vel: 0.1

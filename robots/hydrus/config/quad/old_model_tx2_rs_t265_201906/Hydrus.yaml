@@ -2,7 +2,7 @@
 
 control_rate: 15.0
 
-# wrench_dof: 3
+#wrench_dof: 3
 gyro_moment_compensation: true
 
 q_roll: 400
@@ -25,7 +25,9 @@ r2: 1.0
 r3: 1.0
 r4: 1.0
 
-# epsilon: 50
+
+wrench_margin_t_min_thre: 0.01
+wrench_margin_roll_pitch_min_thre: 1.8
 control_margin_thre: 0.13
 
 # inverse kinematics

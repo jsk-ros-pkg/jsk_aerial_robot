@@ -14,6 +14,8 @@ HydrusRobotModel::HydrusRobotModel(bool init_with_rosparam, bool verbose, double
       getParamFromRos();
     }
 
+  if(wrench_dof_ == 3) setWrenchMarginTMinThre(0);
+
   wrench_margin_roll_pitch_min_i_.resize(getRotorNum());
   approx_wrench_margin_roll_pitch_min_i_.resize(getRotorNum());
 
@@ -42,22 +44,34 @@ void HydrusRobotModel::updateJacobians(const KDL::JntArray& joint_positions, boo
 
   calcWrenchMarginRollPitchJacobian();
 
+#if 0
   wrenchMarginRollPitchNumericalJacobian(getJointPositions(), wrench_margin_roll_pitch_min_jacobian_);
-  //throw std::runtime_error("test");
+  throw std::runtime_error("test");
+#endif
 }
 
 bool HydrusRobotModel::stabilityCheck(bool verbose)
 {
-  double wrench_margin_t_min = getWrenchMarginTMin();
-  double wrench_margin_t_min_thre = getWrenchMarginTMinThre();
-  if(wrench_margin_t_min < wrench_margin_t_min_thre)
-    {
-      ROS_ERROR_STREAM("wrench_margin_t_min " << wrench_margin_t_min << " is lowever than the threshold " <<  wrench_margin_t_min_thre);
+  if(!aerial_robot_model::RobotModel::stabilityCheck(verbose)) return false;
+
+  if(wrench_margin_roll_pitch_min_ < wrench_margin_roll_pitch_min_thre_)
+    { // only roll & pitch
+      ROS_ERROR_STREAM("wrench_margin_roll_pitch_min " << wrench_margin_roll_pitch_min_ << " is lower than the threshold " <<  wrench_margin_roll_pitch_min_thre_);
       return false;
     }
 
-  // TODO: wrench_margin_roll_pitch_min check
+  // old statbility check method
+  rollPitchPositionMarginCheck();
+  wrenchMatrixDeterminantCheck();
 
+  ROS_DEBUG_STREAM("control_margin: " << control_margin_ << " vs wrench_margin_t_min: " << getWrenchMarginTMin() << " vs wrench_margin_roll_pitch_min: " << wrench_margin_roll_pitch_min_);
+
+  return true;
+}
+
+// @depreacated
+bool HydrusRobotModel::rollPitchPositionMarginCheck()
+{
   // TODO: depreacated
   /* calcuate the average */
   double average_x = 0, average_y = 0;
@@ -68,8 +82,7 @@ bool HydrusRobotModel::stabilityCheck(bool verbose)
     {
       average_x += rotors_origin_from_cog.at(i)(0);
       average_y += rotors_origin_from_cog.at(i)(1);
-      if(verbose)
-        ROS_INFO("rotor%d x: %f, y: %f", i + 1, rotors_origin_from_cog.at(i)(0), rotors_origin_from_cog.at(i)(1));
+      ROS_DEBUG("rotor%d x: %f, y: %f", i + 1, rotors_origin_from_cog.at(i)(0), rotors_origin_from_cog.at(i)(1));
     }
   average_x /= rotor_num;
   average_y /= rotor_num;
@@ -89,15 +102,21 @@ bool HydrusRobotModel::stabilityCheck(bool verbose)
   Eigen::SelfAdjointEigenSolver<Eigen::Matrix2d> es(S);
 
   control_margin_ = sqrt(es.eigenvalues()[0]) / getLinkLength();
-  if(verbose) ROS_INFO("control_margin: %f", control_margin_);
+
   if(control_margin_ < control_margin_thre_)
     {
-      ROS_ERROR("Invalid control margin against threshold: %f vs %f", control_margin_, control_margin_thre_);
+      ROS_WARN("Invalid control margin against threshold: %f vs %f", control_margin_, control_margin_thre_);
       return false;
     }
+  return true;
+}
 
+// @depreacated
+bool HydrusRobotModel::wrenchMatrixDeterminantCheck()
+{
   /* Wrench matrix determinant, should use wrench on CoG */
   Eigen::MatrixXd wrench_mat = calcWrenchMatrixOnCoG();
+
   // normalized
   wrench_mat.topRows(3) = wrench_mat.topRows(3) / getMass();
   wrench_mat.bottomRows(3) = getInertia<Eigen::Matrix3d>().inverse() *  wrench_mat.bottomRows(3);
@@ -106,17 +125,9 @@ bool HydrusRobotModel::stabilityCheck(bool verbose)
 
   if(wrench_mat_det_ < wrench_mat_det_thre_)
     {
-      ROS_ERROR("Invalid wrench matrix  determinant against threshold: %f vs %f", wrench_mat_det_, wrench_mat_det_thre_);
+      ROS_WARN("Invalid wrench matrix  determinant against threshold: %f vs %f", wrench_mat_det_, wrench_mat_det_thre_);
       return false;
     }
-
-  if(getStaticThrust().maxCoeff() > getThrustUpperLimit() || getStaticThrust().minCoeff() < getThrustLowerLimit())
-    {
-      ROS_ERROR("Invalid static thrust, max: %f, min: %f", getStaticThrust().maxCoeff(), getStaticThrust().minCoeff());
-      return false;
-    }
-
-  //ROS_INFO("old control margin: %f, wrench_t_min: %f", control_margin_, wrench_margin_t_min);
   return true;
 }
 
