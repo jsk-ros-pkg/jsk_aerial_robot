@@ -1,0 +1,44 @@
+<launch>
+  <arg name="headless" default="False"/>
+  <arg name="rostest" default="True"/>
+
+  <arg name="type" default="hex_branch" />
+  <arg name="onboards_model" default="xavier201811" />
+
+  <include file="$(find hydrus_xi)/launch/robot_model.launch" >
+    <arg name="type" value="$(arg type)" />
+    <arg name="model" value="$(arg onboards_model)"/>
+    <arg name="headless" value="$(arg headless)" />
+    <arg name="need_joint_state" value="$(eval not rostest)"/>
+  </include>
+
+
+  <!-- test codes -->
+  <group if="$(arg rostest)">
+    <node pkg="rostopic" type="rostopic" name="joint_state"
+          args="pub -r 1 /hydrus_xi/joint_states sensor_msgs/JointState
+                '{name: [joint1, joint2, joint3, joint4, joint5, joint6],
+                position: [0, 0, 0, 0, 0, 0]}'" />
+
+    <test test-name="hydrus_xi_jacobian_test" pkg="hydrus_xi" type="hydrus_xi_jacobian_test" time-limit="10">
+      <param name="rostest" value="$(arg rostest)" />
+      <param name="delta" value="0.000001" />
+      <param name="thrust_force_diff_thre" value="0.002" />
+      <remap from="joint_states" to ="/hydrus_xi/joint_states" />
+    </test>
+  </group>
+
+  <group unless="$(arg rostest)">
+    <node name="hydrus_xi_jacobian_test_node" pkg="hydrus_xi" type="hydrus_xi_jacobian_test" output="screen">
+      <param name="rostest" value="$(arg rostest)" />
+      <param name="delta" value="0.000001" />
+      <param name="thrust_force_diff_thre" value="0.002" />
+      <param name="check_thrust_force" value="true" />
+      <param name="check_joint_torque" value="true" />
+      <param name="check_cog_motion" value="true" />
+      <param name="check_feasible_control" value="true" />
+      <remap from="joint_states" to ="/hydrus_xi/joint_states" />
+    </node>
+  </group>
+
+</launch>

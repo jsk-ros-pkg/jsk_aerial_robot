@@ -23,8 +23,6 @@ namespace aerial_robot_model {
     joint_state_ = *state;
     getRobotModel().updateRobotModel(*state);
 
-    getRobotModel().updateJacobians(); // test
-
     if (enable_cog2baselink_tf_pub_)
       {
         geometry_msgs::TransformStamped tf = getRobotModel().getCog<geometry_msgs::TransformStamped>();

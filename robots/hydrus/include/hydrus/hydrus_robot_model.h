@@ -48,13 +48,12 @@ public:
   virtual ~HydrusRobotModel() = default;
 
   //public functions
-  virtual void updateRobotModelImpl(const KDL::JntArray& joint_positions) override;
-  virtual void updateJacobians(const KDL::JntArray& joint_positions, bool update_model = true) override;
+
+  void calcFeasibleControlRollPitchDists();
+  void calcFeasibleControlRollPitchDistsJacobian();
 
   virtual void calcWrenchMatrixOnRoot() override;
   virtual void calcStaticThrust() override;
-
-  virtual bool stabilityCheck(bool verbose = false) override;
 
   inline const uint8_t getWrenchDof() const { return wrench_dof_; }
   inline const double getRollPitchPositionMargin() const { return rp_position_margin_; }
@@ -67,17 +66,16 @@ public:
   inline const Eigen::VectorXd& getFeasibleControlRollPitchDists() const {return fc_rp_dists_;}
   inline const Eigen::VectorXd& getApproxFeasibleControlRollPitchDists() const {return approx_fc_rp_dists_;}
 
-  void setFeasibleControlRollPitchDistsJacobian(const Eigen::MatrixXd fc_rp_dists_jacobian) {fc_rp_dists_jacobian_ = fc_rp_dists_jacobian;}
+  bool rollPitchPositionMarginCheck(); // deprecated
 
   inline void setWrenchDof(uint8_t dof) { wrench_dof_ = dof; }
+  virtual bool stabilityCheck(bool verbose = false) override;
 
-  void calcFeasibleControlRollPitchDists();
-  void calcFeasibleControlRollPitchDistsJacobian();
+  virtual void updateJacobians(const KDL::JntArray& joint_positions, bool update_model = true) override;
 
-  bool rollPitchPositionMarginCheck();
-  bool wrenchMatrixDeterminantCheck();
+  bool wrenchMatrixDeterminantCheck(); // deprecated
 
-protected:
+private:
 
   // private attributes
   int wrench_dof_;
@@ -97,7 +95,9 @@ protected:
   // private functions
   void getParamFromRos();
 
-  // jacobian part
-  virtual void thrustForceNumericalJacobian(const KDL::JntArray joint_positions, Eigen::MatrixXd analytical_result = Eigen::MatrixXd(), std::vector<int> joint_indices = std::vector<int>()) override;
-  void feasibleControlRollPitchDistsNumericalJacobian(const KDL::JntArray joint_positions, Eigen::MatrixXd analytical_result = Eigen::MatrixXd(), std::vector<int> joint_indices = std::vector<int>());
+protected:
+
+  void setFeasibleControlRollPitchDistsJacobian(const Eigen::MatrixXd fc_rp_dists_jacobian) {fc_rp_dists_jacobian_ = fc_rp_dists_jacobian;}
+
+  virtual void updateRobotModelImpl(const KDL::JntArray& joint_positions) override;
 };

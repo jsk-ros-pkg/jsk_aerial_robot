@@ -51,8 +51,8 @@ generate_messages(
   )
 
 catkin_package(
-  INCLUDE_DIRS include
-  LIBRARIES transformable_aerial_robot_model transformable_aerial_robot_model_ros
+  INCLUDE_DIRS include test
+  LIBRARIES transformable_aerial_robot_model transformable_aerial_robot_model_ros numerical_jacobians
   CATKIN_DEPENDS roscpp  std_msgs  sensor_msgs geometry_msgs tf interactive_markers visualization_msgs message_generation message_runtime spinal eigen_conversions
 #  DEPENDS system_lib
 )
@@ -67,28 +67,38 @@ catkin_package(
 # include_directories(include)
 include_directories(
   include
+  test
   ${Boost_INCLUDE_DIR}
   ${catkin_INCLUDE_DIRS}
   ${EIGEN3_INCLUDE_DIRS}
 )
 
-add_library(transformable_aerial_robot_model src/transformable_aerial_robot_model.cpp src/transformable_aerial_robot_model_jacobian.cpp src/transformable_aerial_robot_model_jacobian_test.cpp)
+add_library(transformable_aerial_robot_model
+  src/transformable_aerial_robot_model/robot_model.cpp
+  src/transformable_aerial_robot_model/jacobians.cpp
+  src/transformable_aerial_robot_model/kinematics.cpp
+  src/transformable_aerial_robot_model/stability.cpp
+  src/transformable_aerial_robot_model/statics.cpp)
 target_link_libraries(transformable_aerial_robot_model ${catkin_LIBRARIES} ${orocos_kdl_LIBRARIES} ${EIGEN3_LIBRARIES})
 
-add_library(transformable_aerial_robot_model_ros src/transformable_aerial_robot_model_ros.cpp)
+add_library(transformable_aerial_robot_model_ros src/transformable_aerial_robot_model/robot_model_ros.cpp)
 target_link_libraries(transformable_aerial_robot_model_ros transformable_aerial_robot_model ${catkin_LIBRARIES} ${orocos_kdl_LIBRARIES} ${EIGEN3_LIBRARIES})
 add_dependencies(transformable_aerial_robot_model_ros ${PROJECT_NAME}_generate_messages_cpp spinal_generate_messages_cpp)
 
-add_library(servo_bridge src/servo_bridge.cpp)
+add_library(servo_bridge src/servo_bridge/servo_bridge.cpp)
 target_link_libraries(servo_bridge ${catkin_LIBRARIES})
-add_executable(servo_bridge_node src/servo_bridge_node.cpp)
+add_executable(servo_bridge_node src/servo_bridge/servo_bridge_node.cpp)
 target_link_libraries (servo_bridge_node  ${catkin_LIBRARIES} servo_bridge)
 
-add_executable(rotor_tf_publisher src/rotor_tf_publisher.cpp)
+add_executable(rotor_tf_publisher src/utils/rotor_tf_publisher.cpp)
 target_link_libraries(rotor_tf_publisher ${catkin_LIBRARIES} ${orocos_kdl_LIBRARIES})
 
-add_executable(interactive_marker_tf_broadcaster src/interactive_marker_tf_broadcaster.cpp)
+add_executable(interactive_marker_tf_broadcaster src/utils/interactive_marker_tf_broadcaster.cpp)
 target_link_libraries(interactive_marker_tf_broadcaster ${catkin_LIBRARIES})
+
+## for rostest
+add_library(numerical_jacobians test/aerial_robot_model/numerical_jacobians.cpp)
+target_link_libraries(numerical_jacobians transformable_aerial_robot_model ${catkin_LIBRARIES})
 
 
 install(DIRECTORY launch

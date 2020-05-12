@@ -1,0 +1,50 @@
+<launch>
+  <arg name="headless" default="False"/>
+  <arg name="rostest" default="True"/>
+
+  <arg name="onboards_model" default="euclid_201709" />
+
+  <include file="$(find dragon)/launch/robot_model.launch" >
+    <arg name="onboards_model" value="$(arg onboards_model)"/>
+    <arg name="headless" value="$(arg headless)" />
+    <arg name="need_joint_state" value="$(eval not rostest)"/>
+  </include>
+
+  <!-- test codes -->
+  <group if="$(arg rostest)">
+    <node pkg="rostopic" type="rostopic" name="joint_state"
+          args="pub -r 1 /dragon/joint_states sensor_msgs/JointState
+                '{name: [joint1_pitch, joint1_yaw, joint2_pitch, joint2_yaw, joint3_pitch, joint3_yaw],
+                position: [0, 1.5708, 0, 1.5708, 0, 1.5708]}'" />
+
+    <test test-name="dragon_jacobian_test" pkg="dragon" type="dragon_jacobian_test" time-limit="10">
+      <param name="rostest" value="$(arg rostest)" />
+      <param name="delta" value="0.000001" />
+      <param name="cog_vel_diff_thre" value="0.01" />
+      <param name="l_momentum_diff_thre" value="0.02" />
+      <remap from="joint_states" to ="/dragon/joint_states" />
+    </test>
+  </group>
+
+  <group unless="$(arg rostest)">
+    <node name="dragon_jacobian_test_node" pkg="dragon" type="dragon_jacobian_test" output="screen">
+      <param name="rostest" value="$(arg rostest)" />
+      <param name="delta" value="0.000001" />
+      <param name="cog_vel_diff_thre" value="0.01" />
+      <param name="l_momentum_diff_thre" value="0.02" />
+      <param name="check_comp_thrust" value="true" />
+      <param name="external_fx" value="0.0" />
+      <param name="external_fy" value="0.0" />
+      <param name="external_fz" value="0.0" /> <!-- 1.0 -->
+      <param name="external_f_frame" value="link4" />
+      <param name="external_f_offset" value="0.424" />
+      <param name="check_thrust_force" value="true" />
+      <param name="check_joint_torque" value="true" />
+      <param name="check_cog_motion" value="true" />
+      <param name="check_rotor_overlap" value="true" />
+      <param name="check_feasible_control_roll_pitch" value="true" />
+      <remap from="joint_states" to ="/dragon/joint_states" />
+    </node>
+  </group>
+
+</launch>

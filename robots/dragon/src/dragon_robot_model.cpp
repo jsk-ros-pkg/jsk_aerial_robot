@@ -45,15 +45,6 @@ DragonRobotModel::DragonRobotModel(bool init_with_rosparam, bool verbose, double
   vectoring_q_mat_ = Eigen::MatrixXd::Zero(6, rotor_num * 3); // init
   vectoring_thrust_ = Eigen::VectorXd::Zero(rotor_num * 3); // init
   wrench_comp_thrust_ = Eigen::VectorXd::Zero(rotor_num * 3); // init
-
-  // test
-  // setCogDesireOrientation(0.0, -0.3, 0);
-
-  Eigen::VectorXd wrench = Eigen::VectorXd::Zero(6);
-  wrench(0) = 0; // x
-  wrench(1) = 0; // x
-  wrench(2) = 1; // z
-  //addExternalStaticWrench("force1", "link4", KDL::Vector(0.424, 0, 0), wrench);
 }
 
 void DragonRobotModel::getParamFromRos()
@@ -91,7 +82,6 @@ bool DragonRobotModel::overlapCheck(bool verbose)
 
           Eigen::Vector3d diff = edfs_origin_from_cog.at(i) - edfs_origin_from_cog.at(j); //dual
           double projected_dist = sqrt(diff(0) * diff(0) + diff(1) * diff(1));
-          //approximated, the true one should be (edf_radius_ / cos(tilt) + diff(2) * tan(tilt)
           double dist_thre = edf_radius_ + fabs(diff(2)) * tan(edf_max_tilt_) + edf_radius_;
 
           /* debug */
@@ -196,30 +186,19 @@ void DragonRobotModel::calcBasicKinematicsJacobian()
           if(joint_names.at(k) == gimbal + std::string("_pitch")) gimbal_pitch_index = 6 + k;
         }
 
-       // ROS_ERROR_STREAM("thrust coord jacobian: \n" << thrust_coord_jacobians.at(i));
-       // ROS_ERROR_STREAM("joint rot jacobian: \n" << joint_rot_jacobian);
-
-       // ROS_INFO("roll & pitch index: %d, %d", gimbal_roll_index, gimbal_pitch_index);
-
       Eigen::MatrixXd gimbal_rot_jacobian = Eigen::MatrixXd::Zero(3, 2);
       gimbal_rot_jacobian.col(0) = thrust_coord_jacobians.at(i).block(3, gimbal_roll_index, 3, 1);
       gimbal_rot_jacobian.col(1) = thrust_coord_jacobians.at(i).block(3, gimbal_pitch_index, 3, 1);
 
-      //ROS_INFO_STREAM("gimbal rot jacobian  for rotor" << i+1 << ": \n" << gimbal_rot_jacobian);
-
       Eigen::MatrixXd gimbal_joint_jacobian = - (Eigen::MatrixXd::Identity(2,3) * gimbal_rot_jacobian).inverse() * Eigen::MatrixXd::Identity(2,3) * joint_rot_jacobian;
-
-      //ROS_INFO_STREAM("gimbal joint jacobian for rotor" << i+1 << ": \n" << gimbal_joint_jacobian);
 
       gimbal_jacobian_.row(gimbal_roll_index) = gimbal_joint_jacobian.row(0);
       gimbal_jacobian_.row(gimbal_pitch_index) = gimbal_joint_jacobian.row(1);
     }
-  //ROS_ERROR_STREAM("dragon gimbal jacobian: \n" << gimbal_jacobian_);
 }
 
 void DragonRobotModel::calcCoGMomentumJacobian()
 {
-  // TODO set zero to the original function
   setCOGJacobian(Eigen::MatrixXd::Zero(3, 6 + getJointNum()));
   setLMomentumJacobian(Eigen::MatrixXd::Zero(3, 6 + getJointNum()));
 
@@ -254,7 +233,6 @@ void DragonRobotModel::updateJacobians(const KDL::JntArray& joint_positions, boo
   std::vector<Eigen::MatrixXd> u_jacobians = getUJacobians();
   for(auto& jacobian: u_jacobians)
     {
-      //ROS_INFO_STREAM("prev u jacobian: \n" << jacobian);
       jacobian = jacobian * gimbal_jacobian_;
     }
   setUJacobians(u_jacobians);
@@ -289,17 +267,6 @@ void DragonRobotModel::updateJacobians(const KDL::JntArray& joint_positions, boo
 
   // update jacobian for rotor overlap
   calcRotorOverlapJacobian();
-
-#if 0
-  compThrustNumericalJacobian(getJointPositions(), comp_thrust_jacobian_);
-  thrustForceNumericalJacobian(getJointPositions(), getLambdaJacobian(), getLinkJointIndices());
-  jointTorqueNumericalJacobian(getJointPositions(), getJointTorqueJacobian(), getLinkJointIndices());
-  cogMomentumNumericalJacobian(getJointPositions(), getCOGJacobian(), getLMomentumJacobian(), getLinkJointIndices());
-  overlapNumericalJacobian(getJointPositions(), rotor_overlap_jacobian_);
-  feasibleControlRollPitchDistsNumericalJacobian(getJointPositions(), getFeasibleControlRollPitchDistsJacobian(), getLinkJointIndices());
-
-  throw std::runtime_error("test");
-#endif
 }
 
 void DragonRobotModel::calcRotorOverlapJacobian()
@@ -346,7 +313,6 @@ void DragonRobotModel::calcRotorOverlapJacobian()
         }
     }
 
-  // ROS_INFO_STREAM("overlap: i:" << edf_names_.at(rotor_i_) << "; j:" << edf_names_.at(rotor_j_));
   Eigen::MatrixXd p_i_jacobian = getJacobian(getJointPositions(), edf_names_.at(rotor_i_)).topRows(3);
   Eigen::MatrixXd p_j_jacobian = getJacobian(getJointPositions(), edf_names_.at(rotor_j_)).topRows(3);
   Eigen::MatrixXd p_v_jacobian = p_i_jacobian + (closest_p_j(2) - closest_p_i(2)) / u.at(rotor_i_/2)(2) * u_jacobians.at(rotor_i_/2) + u.at(rotor_i_/2) / u.at(rotor_i_/2)(2) * (p_j_jacobian.row(2) - p_i_jacobian.row(2)) - u.at(rotor_i_/2) / std::pow(u.at(rotor_i_/2)(2), 2) * (closest_p_j(2) - closest_p_i(2)) * u_jacobians.at(rotor_i_/2).row(2);
@@ -354,67 +320,6 @@ void DragonRobotModel::calcRotorOverlapJacobian()
   rotor_overlap_jacobian_ -= tan(edf_max_tilt_) * (p_i_jacobian.row(2) - p_j_jacobian.row(2));
 }
 
-void DragonRobotModel::overlapNumericalJacobian(const KDL::JntArray joint_positions, Eigen::MatrixXd analytical_result)
-{
-  const std::map<std::string, KDL::Frame> seg_frames = getSegmentsTf();
-  const int rotor_num = getRotorNum();
-  KDL::Rotation baselink_rot = getCogDesireOrientation<KDL::Rotation>();
-  KDL::Rotation root_rot = getCogDesireOrientation<KDL::Rotation>() * seg_frames.at(getBaselinkName()).M.Inverse();
-  const std::vector<KDL::Vector> nominal_edfs_origin_from_cog = edfs_origin_from_cog_;
-
-  Eigen::MatrixXd J_overlap = Eigen::MatrixXd::Zero(1, 6 + getLinkJointIndices().size());
-
-  double delta_angle = 0.00001; // [rad]
-  int col_index = 6;
-
-  auto perturbation = [&](int col, KDL::JntArray joint_angles)
-    {
-      updateRobotModelImpl(joint_angles);
-      auto diff = edfs_origin_from_cog_.at(rotor_i_) - edfs_origin_from_cog_.at(rotor_j_);
-      double d_tilt = diff.z() * tan(edf_max_tilt_);
-      diff.z(0);
-      J_overlap(0, col) = (diff.Norm() - d_tilt - min_dist_) / delta_angle;
-    };
-
-  for (const auto& joint_index : getLinkJointIndices()) {
-    KDL::JntArray perturbation_joint_positions = joint_positions;
-    perturbation_joint_positions(joint_index) += delta_angle;
-    updateRobotModelImpl(perturbation_joint_positions);
-    setCogDesireOrientation(root_rot * getSegmentsTf().at(getBaselinkName() ).M);
-    perturbation(col_index, perturbation_joint_positions);
-    col_index++;
-  }
-
-  // roll
-  setCogDesireOrientation(root_rot * KDL::Rotation::RPY(delta_angle, 0, 0) * seg_frames.at(getBaselinkName()).M);
-  perturbation(3, joint_positions);
-
-  // pitch
-  setCogDesireOrientation(root_rot * KDL::Rotation::RPY(0, delta_angle, 0) * seg_frames.at(getBaselinkName()).M);
-  perturbation(4, joint_positions);
-
-  // yaw
-  setCogDesireOrientation(root_rot * KDL::Rotation::RPY(0, 0, delta_angle) * seg_frames.at(getBaselinkName()).M);
-  perturbation(5, joint_positions);
-
-  // reset
-  setCogDesireOrientation(baselink_rot); // set the orientation of root
-  updateRobotModelImpl(joint_positions);
-
-  ROS_DEBUG_STREAM("numerical result of rotor overlap jacobian: \n" << J_overlap);
-
-  if(analytical_result.cols() > 0 && analytical_result.rows() > 0)
-    {
-      ROS_DEBUG_STREAM("analytical_result: \n" << analytical_result);
-      ROS_DEBUG_STREAM("diff of  jacobian: \n" << J_overlap - analytical_result);
-
-      double min_diff = (J_overlap - analytical_result).minCoeff();
-      double max_diff = (J_overlap - analytical_result).maxCoeff();
-
-      if(max_diff > fabs(min_diff)) ROS_INFO_STREAM("max diff of overlap jacobian: " << max_diff);
-      else  ROS_INFO_STREAM("max diff of overlap jacobian: " << fabs(min_diff));
-    }
-}
 
 std::vector<int> DragonRobotModel::getClosestRotorIndices()
 {
@@ -493,7 +398,6 @@ void DragonRobotModel::calcExternalWrenchCompThrust()
     {
       Eigen::MatrixXd jacobi_root = Eigen::MatrixXd::Identity(6, 6);
       Eigen::Vector3d p = root_rot * aerial_robot_model::kdlToEigen(seg_frames.at(wrench.second.frame) * wrench.second.offset);
-      // p = root_rot * (aerial_robot_model::kdlToEigen(seg_frames.at(wrench.second.frame)) * wrench.second.offset);
       jacobi_root.topRightCorner(3,3) = - aerial_robot_model::skew(p);
       wrench_sum += jacobi_root.transpose() * wrench.second.wrench;
     }
@@ -507,7 +411,7 @@ void DragonRobotModel::calcExternalWrenchCompThrust()
 
   // add external wrench compasation term
   Eigen::VectorXd static_thrust = getStaticThrust();
-  // ROS_INFO_STREAM("only gravity static thrust: " << static_thrust.transpose());
+
   for(int i = 0; i < getRotorNum(); i++)
     {
       vectoring_thrust_(3 * i) = wrench_comp_thrust_(3 * i);
@@ -515,7 +419,7 @@ void DragonRobotModel::calcExternalWrenchCompThrust()
       vectoring_thrust_(3 * i + 2) = wrench_comp_thrust_(3 * i + 2) + static_thrust(i);
       static_thrust(i) = vectoring_thrust_.segment(3 * i, 3).norm();
     }
-  // ROS_INFO_STREAM("add wrench comp static thrust: " << static_thrust.transpose());
+
 
   setStaticThrust(static_thrust);
 
@@ -585,67 +489,6 @@ void DragonRobotModel::calcCompThrustJacobian()
 }
 
 
-void DragonRobotModel::compThrustNumericalJacobian(const KDL::JntArray joint_positions, Eigen::MatrixXd analytical_result)
-{
-  const std::map<std::string, KDL::Frame> seg_frames = getSegmentsTf();
-  const int rotor_num = getRotorNum();
-  const int full_body_dof = 6 + getLinkJointIndices().size();
-  KDL::Rotation baselink_rot = getCogDesireOrientation<KDL::Rotation>();
-  KDL::Rotation root_rot = getCogDesireOrientation<KDL::Rotation>() * seg_frames.at(getBaselinkName()).M.Inverse();
-
-
-  double delta_angle = 0.00001; // [rad]
-  int col_index = 6;
-
-  Eigen::VectorXd nominal_wrench_comp_thrust = wrench_comp_thrust_;
-  Eigen::MatrixXd J_f = Eigen::MatrixXd::Zero(3 * getRotorNum(), full_body_dof);
-  auto perturbation = [&](int col, KDL::JntArray joint_angles)
-    {
-      updateRobotModelImpl(joint_angles);
-      calcExternalWrenchCompThrust();
-      J_f.col(col) = (wrench_comp_thrust_ - nominal_wrench_comp_thrust) / delta_angle;
-    };
-
-  for (const auto& joint_index : getLinkJointIndices()) {
-    KDL::JntArray perturbation_joint_positions = joint_positions;
-    perturbation_joint_positions(joint_index) += delta_angle;
-    updateRobotModelImpl(perturbation_joint_positions);
-    setCogDesireOrientation(root_rot * getSegmentsTf().at(getBaselinkName() ).M);
-    perturbation(col_index, perturbation_joint_positions);
-    col_index++;
-  }
-
-  // roll
-  setCogDesireOrientation(root_rot * KDL::Rotation::RPY(delta_angle, 0, 0) * seg_frames.at(getBaselinkName()).M);
-  perturbation(3, joint_positions);
-
-  // pitch
-  setCogDesireOrientation(root_rot * KDL::Rotation::RPY(0, delta_angle, 0) * seg_frames.at(getBaselinkName()).M);
-  perturbation(4, joint_positions);
-
-  // yaw
-  setCogDesireOrientation(root_rot * KDL::Rotation::RPY(0, 0, delta_angle) * seg_frames.at(getBaselinkName()).M);
-  perturbation(5, joint_positions);
-
-  // reset
-  setCogDesireOrientation(baselink_rot); // set the orientation of root
-  updateRobotModelImpl(joint_positions);
-
-  ROS_DEBUG_STREAM("numerical result of wrench compensation thrust jacobian: \n" << J_f);
-
-  if(analytical_result.cols() > 0 && analytical_result.rows() > 0)
-    {
-      ROS_DEBUG_STREAM("analytical_result: \n" << analytical_result);
-      ROS_DEBUG_STREAM("diff of  jacobian: \n" << J_f - analytical_result);
-
-      double min_diff = (J_f - analytical_result).minCoeff();
-      double max_diff = (J_f - analytical_result).maxCoeff();
-
-      if(max_diff > fabs(min_diff)) ROS_INFO_STREAM("max diff of wrench compensation thrust  jacobian: " << max_diff);
-      else  ROS_INFO_STREAM("max diff of wrench compensation thrust  jacobian: " << fabs(min_diff));
-    }
-}
-
 void DragonRobotModel::addCompThrustToLambdaJacobian()
 {
   const Eigen::MatrixXd& lambda_jacobian = getLambdaJacobian();
@@ -698,134 +541,4 @@ void DragonRobotModel::addCompThrustToJointTorqueJacobian()
 }
 
 
-void DragonRobotModel::thrustForceNumericalJacobian(const KDL::JntArray joint_positions, Eigen::MatrixXd analytical_result, std::vector<int> joint_indices)
-{
-  const std::map<std::string, KDL::Frame> seg_frames = getSegmentsTf();
-  if(joint_indices.empty()) joint_indices = getJointIndices();
-  const int full_body_dof = 6 + joint_indices.size();
-  std::string baselink = getBaselinkName();
-  KDL::Rotation baselink_rot = getCogDesireOrientation<KDL::Rotation>();
-  KDL::Rotation root_rot = getCogDesireOrientation<KDL::Rotation>() * seg_frames.at(baselink).M.Inverse();
 
-  double delta_angle = 0.00001; // [rad]
-
-  Eigen::MatrixXd J_lambda = Eigen::MatrixXd::Zero(getRotorNum(), full_body_dof);
-
-  calcExternalWrenchCompThrust();
-  Eigen::VectorXd nominal_static_thrust = getStaticThrust();
-  // ROS_INFO_STREAM("nominal_static_thrust: " << nominal_static_thrust.transpose());
-
-  int col_index = 6;
-
-  auto perturbationStaticThrust = [&](int col, KDL::JntArray joint_angles){
-    updateRobotModelImpl(joint_angles);
-    calcExternalWrenchCompThrust();
-    J_lambda.col(col) = (getStaticThrust() - nominal_static_thrust) / delta_angle;
-  };
-
-  col_index = 6;
-  for (const auto& joint_index : joint_indices) {
-    KDL::JntArray perturbation_joint_positions = joint_positions;
-    perturbation_joint_positions(joint_index) += delta_angle;
-    updateRobotModelImpl(perturbation_joint_positions);
-    setCogDesireOrientation(root_rot * getSegmentsTf().at(baselink).M); // necessary
-    perturbationStaticThrust(col_index, perturbation_joint_positions);
-    col_index++;
-  }
-
-  // virtual 6dof root
-  // roll
-  setCogDesireOrientation(root_rot * KDL::Rotation::RPY(delta_angle, 0, 0) * seg_frames.at(baselink).M);
-  perturbationStaticThrust(3, joint_positions);
-
-  // pitch
-  setCogDesireOrientation(root_rot * KDL::Rotation::RPY(0, delta_angle, 0) * seg_frames.at(baselink).M);
-  perturbationStaticThrust(4, joint_positions);
-
-  // yaw
-  setCogDesireOrientation(root_rot * KDL::Rotation::RPY(0, 0, delta_angle) * seg_frames.at(baselink).M);
-  perturbationStaticThrust(5, joint_positions);
-
-  // reset
-  setCogDesireOrientation(baselink_rot);
-  updateRobotModelImpl(joint_positions);
-
-  ROS_DEBUG_STREAM("numerical lambda_jacobian: \n" << J_lambda);
-
-  if(analytical_result.cols() > 0 && analytical_result.rows() > 0)
-    {
-      ROS_DEBUG_STREAM("analytical lambda_jacobian: \n" << analytical_result);
-      ROS_DEBUG_STREAM("diff of lambda jacobian: \n" << J_lambda - analytical_result);
-
-      double min_diff = (J_lambda - analytical_result).minCoeff();
-      double max_diff = (J_lambda - analytical_result).maxCoeff();
-      if(max_diff > fabs(min_diff)) ROS_INFO_STREAM("max diff of lambda jacobian: " << max_diff);
-      else  ROS_INFO_STREAM("max diff of lambda jacobian: " << fabs(min_diff));
-    }
-}
-
-void DragonRobotModel::jointTorqueNumericalJacobian(const KDL::JntArray joint_positions, Eigen::MatrixXd analytical_result, std::vector<int> joint_indices)
-{
-  const auto& seg_frames = getSegmentsTf();
-  if(joint_indices.empty()) joint_indices = getJointIndices();
-  const int full_body_dof = 6 + joint_indices.size();
-  Eigen::MatrixXd J_t = Eigen::MatrixXd::Zero(getJointNum(), full_body_dof);
-  std::string baselink = getBaselinkName();
-  KDL::Rotation baselink_rot = getCogDesireOrientation<KDL::Rotation>();
-  KDL::Rotation root_rot = getCogDesireOrientation<KDL::Rotation>() * seg_frames.at(baselink).M.Inverse();
-
-  // necessary for reset
-  calcJointTorque();
-  calcExternalWrenchCompThrust();
-
-  double delta_angle = 0.00001; // [rad]
-  int col_index = 6;
-  Eigen::VectorXd nominal_joint_torque = getJointTorque();
-
-  auto perturbationJointTorque = [&](int col, KDL::JntArray joint_angles)
-    {
-      updateRobotModelImpl(joint_angles);
-      calcJointTorque();
-      calcExternalWrenchCompThrust();
-      J_t.col(col) = (getJointTorque() - nominal_joint_torque) / delta_angle;
-    };
-
-  for (const auto& joint_index : joint_indices) {
-    KDL::JntArray perturbation_joint_positions = joint_positions;
-    perturbation_joint_positions(joint_index) += delta_angle;
-    updateRobotModelImpl(perturbation_joint_positions);
-    setCogDesireOrientation(root_rot * getSegmentsTf().at(baselink).M);
-    perturbationJointTorque(col_index, perturbation_joint_positions);
-    col_index++;
-  }
-
-  // roll
-  setCogDesireOrientation(root_rot * KDL::Rotation::RPY(delta_angle, 0, 0) * seg_frames.at(baselink).M);
-  perturbationJointTorque(3, joint_positions);
-
-  // pitch
-  setCogDesireOrientation(root_rot * KDL::Rotation::RPY(0, delta_angle, 0) * seg_frames.at(baselink).M);
-  perturbationJointTorque(4, joint_positions);
-
-  // yaw
-  setCogDesireOrientation(root_rot * KDL::Rotation::RPY(0, 0, delta_angle) * seg_frames.at(baselink).M);
-  perturbationJointTorque(5, joint_positions);
-
-  // reset
-  setCogDesireOrientation(baselink_rot); // set the orientation of root
-  updateRobotModelImpl(joint_positions);
-
-  ROS_DEBUG_STREAM("numerical result of joint_torque_jacobian: \n" << J_t);
-
-  if(analytical_result.cols() > 0 && analytical_result.rows() > 0)
-    {
-      ROS_DEBUG_STREAM("analytical_result: \n" << analytical_result);
-      ROS_DEBUG_STREAM("diff of joint torque jacobian: \n" << J_t - analytical_result);
-
-      double min_diff = (J_t - analytical_result).minCoeff();
-      double max_diff = (J_t - analytical_result).maxCoeff();
-
-      if(max_diff > fabs(min_diff)) ROS_INFO_STREAM("max diff of torque jacobian: " << max_diff);
-      else  ROS_INFO_STREAM("max diff of torque jacobian: " << fabs(min_diff));
-    }
-}
