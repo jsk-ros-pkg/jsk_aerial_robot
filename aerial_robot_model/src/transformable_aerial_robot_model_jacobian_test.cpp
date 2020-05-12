@@ -124,12 +124,11 @@ namespace aerial_robot_model {
 
     double delta_angle = 0.00001; // [rad]
     int col_index = 6;
-    Eigen::VectorXd nominal_joint_torque = joint_torque_;
+    Eigen::VectorXd nominal_joint_torque = getJointTorque();
 
     auto perturbationJointTorque = [&](int col, KDL::JntArray joint_angles)
       {
         updateRobotModelImpl(joint_angles);
-        calcBasicKinematicsJacobian(); // necessary for thrust_coord_jacobias
         calcJointTorque();
         J_t.col(col) = (joint_torque_ - nominal_joint_torque) / delta_angle;
       };

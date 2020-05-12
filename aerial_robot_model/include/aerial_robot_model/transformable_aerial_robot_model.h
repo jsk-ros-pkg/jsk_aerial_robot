@@ -122,7 +122,7 @@ namespace aerial_robot_model {
     Eigen::MatrixXd calcWrenchMatrixOnCoG();
     virtual void calcWrenchMatrixOnRoot();
     virtual void calcStaticThrust();
-    virtual void calcJointTorque();
+    virtual void calcJointTorque(const bool update_jacobian = true);
     inline const std::vector<Eigen::VectorXd> getThrustWrenchUnits() const {return thrust_wrench_units_;}
     inline const Eigen::VectorXd& getStaticThrust() const {return static_thrust_;}
     inline const Eigen::VectorXd& getJointTorque() const {return joint_torque_;}
@@ -183,7 +183,7 @@ namespace aerial_robot_model {
     }
 
     inline void setStaticThrust(const Eigen::VectorXd static_thrust) {static_thrust_ = static_thrust;}
-     inline void setJointTorque(const Eigen::VectorXd joint_torque) {joint_torque_ = joint_torque;}
+    inline void setJointTorque(const Eigen::VectorXd joint_torque) {joint_torque_ = joint_torque;}
     inline void setWrenchMatrix(const Eigen::MatrixXd q_mat) {q_mat_ = q_mat;}
 
     inline void setUJacobians(const std::vector<Eigen::MatrixXd> u_jacobians) {u_jacobians_ = u_jacobians;}

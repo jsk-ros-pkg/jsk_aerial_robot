@@ -16,7 +16,7 @@ namespace aerial_robot_model {
 
     calcLambdaJacobian();
 
-    calcJointTorque();
+    calcJointTorque(false);
     calcJointTorqueJacobian();
 
     calcFeasibleControlJacobian();
@@ -271,7 +271,7 @@ namespace aerial_robot_model {
 #endif
   }
 
-  void RobotModel::calcJointTorque()
+  void RobotModel::calcJointTorque(const bool update_jacobian)
   {
     const auto& sigma = getRotorDirection();
     const auto& joint_positions = getJointPositions();
@@ -279,6 +279,9 @@ namespace aerial_robot_model {
     const int joint_num = getJointNum();
     const int rotor_num = getRotorNum();
     const double m_f_rate = getMFRate();
+
+    if(update_jacobian)
+      calcBasicKinematicsJacobian(); // update thrust_coord_jacobians_
 
     joint_torque_ = Eigen::VectorXd::Zero(joint_num);
 

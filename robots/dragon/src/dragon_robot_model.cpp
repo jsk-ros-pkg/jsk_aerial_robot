@@ -237,7 +237,7 @@ void DragonRobotModel::updateJacobians(const KDL::JntArray& joint_positions, boo
 
   calcLambdaJacobian();
 
-  calcJointTorque();
+  calcJointTorque(false);
 
   calcJointTorqueJacobian();
 
@@ -774,7 +774,7 @@ void DragonRobotModel::jointTorqueNumericalJacobian(const KDL::JntArray joint_po
   KDL::Rotation baselink_rot = getCogDesireOrientation<KDL::Rotation>();
   KDL::Rotation root_rot = getCogDesireOrientation<KDL::Rotation>() * seg_frames.at(baselink).M.Inverse();
 
-  calcBasicKinematicsJacobian(); // necessary for thrust_coord_jacobias
+  // necessary for reset
   calcJointTorque();
   calcExternalWrenchCompThrust();
 
@@ -785,7 +785,6 @@ void DragonRobotModel::jointTorqueNumericalJacobian(const KDL::JntArray joint_po
   auto perturbationJointTorque = [&](int col, KDL::JntArray joint_angles)
     {
       updateRobotModelImpl(joint_angles);
-      calcBasicKinematicsJacobian(); // necessary for thrust_coord_jacobias
       calcJointTorque();
       calcExternalWrenchCompThrust();
       J_t.col(col) = (getJointTorque() - nominal_joint_torque) / delta_angle;
