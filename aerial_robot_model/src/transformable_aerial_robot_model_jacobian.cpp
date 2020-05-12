@@ -482,15 +482,10 @@ namespace aerial_robot_model {
       Eigen::MatrixXd wrench_unit_jacobian = Eigen::MatrixXd::Zero(6, ndof);
       wrench_unit_jacobian.topRows(3) = -skew(thrust_wrench_units_.at(i).head(3)) * thrust_coord_jacobians_.at(i).bottomRows(3);
       wrench_unit_jacobian.bottomRows(3) = -skew(thrust_wrench_units_.at(i).tail(3)) * thrust_coord_jacobians_.at(i).bottomRows(3);
-      q_mat_jacobian += (thrust_wrench_allocations_.at(i).transpose() * wrench_unit_jacobian);
+      q_mat_jacobian += (thrust_wrench_allocations_.at(i) * wrench_unit_jacobian);
 
       q_inv_jacobian += (q_mat_jacobian * static_thrust_(i));
       q_mat_jacobians.push_back(q_mat_jacobian);
-
-#if 0
-      q_mat_jacobian.bottomRows(3) -= aerial_robot_model::skew(thrust_wrench_units_.at(i).head(3)) * getSecondDerivativeRoot(thrust_name) * static_thrust_(i);
-      q_mat_jacobian += (thrust_wrench_allocations_.at(i).transpose() * wrench_unit_jacobian * static_thrust_(i));
-#endif
     }
 
     ROS_DEBUG_STREAM("q_inv_jacobian: \n" << q_inv_jacobian);

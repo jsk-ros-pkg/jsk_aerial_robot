@@ -183,6 +183,8 @@ void HydrusRobotModel::thrustForceNumericalJacobian(const KDL::JntArray joint_po
       if(max_diff > fabs(min_diff)) ROS_INFO_STREAM("max diff of lambda jacobian: " << max_diff);
       else  ROS_INFO_STREAM("max diff of lambda jacobian: " << fabs(min_diff));
     }
+
+  updateRobotModelImpl(joint_positions); // reset
 }
 
 void HydrusRobotModel::calcFeasibleControlRollPitchDists()
