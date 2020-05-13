@@ -479,9 +479,9 @@ void DragonRobotModel::calcCompThrustJacobian()
   comp_thrust_jacobian_ += -q_pseudo_inv * q_inv_jacobian;
 
   Eigen::MatrixXd q_pseudo_inv_jacobian = Eigen::MatrixXd::Zero(3 * rotor_num, ndof);
-  Eigen::VectorXd pseudo_wrech = q_pseudo_inv.transpose() * wrench_comp_thrust_;
+  Eigen::VectorXd pseudo_wrench = q_pseudo_inv.transpose() * wrench_comp_thrust_;
   for(int i = 0; i < rotor_num; i++)
-    q_pseudo_inv_jacobian.middleRows(3 * i, 3) = aerial_robot_model::skew(pseudo_wrech.tail(3)) * p_jacobians.at(i);
+    q_pseudo_inv_jacobian.middleRows(3 * i, 3) = aerial_robot_model::skew(pseudo_wrench.tail(3)) * p_jacobians.at(i);
 
   comp_thrust_jacobian_ += (Eigen::MatrixXd::Identity(3 * rotor_num, 3 * rotor_num) - q_pseudo_inv * vectoring_q_mat_) * q_pseudo_inv_jacobian;
 

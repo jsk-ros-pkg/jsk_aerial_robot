@@ -90,13 +90,13 @@ namespace aerial_robot_model {
 
     // https://mathoverflow.net/questions/25778/analytical-formula-for-numerical-derivative-of-the-matrix-pseudo-inverse, the third tmer
     Eigen::MatrixXd q_pseudo_inv_jacobian = Eigen::MatrixXd::Zero(rotor_num, ndof);
-    Eigen::VectorXd pseudo_wrech = q_pseudo_inv.transpose() * static_thrust_;
+    Eigen::VectorXd pseudo_wrench = q_pseudo_inv.transpose() * static_thrust_;
     for(int i = 0; i < rotor_num; i++)
       {
         if(wrench_dof == 6) // fully-actuated
-          q_pseudo_inv_jacobian.row(i) = pseudo_wrech.transpose() * q_mat_jacobians.at(i);
+          q_pseudo_inv_jacobian.row(i) = pseudo_wrench.transpose() * q_mat_jacobians.at(i);
         else // under-actuated
-          q_pseudo_inv_jacobian.row(i) = pseudo_wrech.transpose() * q_mat_jacobians.at(i).middleRows(2, wrench_dof);
+          q_pseudo_inv_jacobian.row(i) = pseudo_wrench.transpose() * q_mat_jacobians.at(i).middleRows(2, wrench_dof);
       }
     lambda_jacobian_ += (Eigen::MatrixXd::Identity(rotor_num, rotor_num) - q_pseudo_inv * q_mat_) * q_pseudo_inv_jacobian;
 
