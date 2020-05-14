@@ -44,7 +44,7 @@ namespace control_plugin
   FlatnessPid::FlatnessPid():
     ControlBase(),
     xy_i_term_(0,0,0),
-    start_rp_integration_(false), //xy(pitch/roll control) integration start
+    start_rp_integration_(false), //xy (pitch/roll control) integration start
     state_pos_(0, 0, 0),
     state_vel_(0, 0, 0),
     target_pos_(0, 0, 0),
@@ -52,15 +52,15 @@ namespace control_plugin
     target_acc_(0, 0, 0),
     pos_err_(0, 0, 0),
     vel_err_(0, 0, 0),
-    state_psi_(0),
-    state_psi_vel_(0),
-    target_psi_(0),
-    target_psi_vel_(0),
-    psi_err_(0),
+    state_yaw_(0),
+    state_yaw_vel_(0),
+    target_yaw_(0),
+    target_yaw_vel_(0),
+    yaw_err_(0),
     target_pitch_(0),
     target_roll_(0),
-    target_throttle_(0),
-    target_yaw_(0),
+    z_control_terms_(0),
+    yaw_control_terms_(0),
     candidate_yaw_term_(0),
     need_yaw_d_control_(false)
   {
@@ -75,18 +75,18 @@ namespace control_plugin
   {
     ControlBase::initialize(nh, nhp, estimator, navigator, ctrl_loop_rate);
 
-
     rosParamInit();
 
+
     //publish
-    flight_cmd_pub_ = nh_.advertise<spinal::FourAxisCommand>("/aerial_robot_control_four_axis", 10);
-    pid_pub_ = nh_.advertise<aerial_robot_msgs::FlatnessPid>("debug", 10);
+    flight_cmd_pub_ = nh_.advertise<spinal::FourAxisCommand>("four_axes/command", 10);
+    pid_pub_ = nh_.advertise<aerial_robot_msgs::FlatnessPid>("debug/pos_yaw/pid", 10);
 
     //subscriber
-    four_axis_gain_sub_ = nh_.subscribe<aerial_robot_msgs::FourAxisGain>("/four_axis_gain", 1, &FlatnessPid::fourAxisGainCallback, this, ros::TransportHints().tcpNoDelay());
+    four_axis_gain_sub_ = nh_.subscribe<aerial_robot_msgs::FourAxisGain>("four_axes/gain", 1, &FlatnessPid::fourAxisGainCallback, this, ros::TransportHints().tcpNoDelay());
 
     //dynamic reconfigure server
-    xy_pid_server_ = new dynamic_reconfigure::Server<aerial_robot_base::XYPidControlConfig>(ros::NodeHandle(nhp_, "pitch"));
+    xy_pid_server_ = new dynamic_reconfigure::Server<aerial_robot_base::XYPidControlConfig>(ros::NodeHandle(nhp_, "gain_generator/xy"));
     dynamic_reconf_func_xy_pid_ = boost::bind(&FlatnessPid::cfgXYPidCallback, this, _1, _2);
     xy_pid_server_->setCallback(dynamic_reconf_func_xy_pid_);
   }
@@ -108,13 +108,13 @@ namespace control_plugin
     target_pos_ = navigator_->getTargetPos();
     target_acc_ = navigator_->getTargetAcc();
 
-    state_psi_ = estimator_->getState(State::YAW_COG, estimate_mode_)[0];
-    state_psi_vel_ = estimator_->getState(State::YAW_COG, estimate_mode_)[1];
-    target_psi_ = navigator_->getTargetPsi();
-    target_psi_vel_ = navigator_->getTargetPsiVel();
-    psi_err_ = target_psi_ - state_psi_;
-    while(psi_err_ > M_PI)  psi_err_ -= (2 * M_PI);
-    while(psi_err_ < -M_PI)  psi_err_ += (2 * M_PI);
+    state_yaw_ = estimator_->getState(State::YAW_COG, estimate_mode_)[0];
+    state_yaw_vel_ = estimator_->getState(State::YAW_COG, estimate_mode_)[1];
+    target_yaw_ = navigator_->getTargetYaw();
+    target_yaw_vel_ = navigator_->getTargetYawVel();
+    yaw_err_ = target_yaw_ - state_yaw_;
+    while(yaw_err_ > M_PI)  yaw_err_ -= (2 * M_PI);
+    while(yaw_err_ < -M_PI)  yaw_err_ += (2 * M_PI);
   }
 
   void FlatnessPid::pidUpdate()
@@ -141,8 +141,8 @@ namespace control_plugin
     /* xy */
     tf::Vector3 xy_p_term, xy_d_term;
     /* convert from world frame to CoG frame */
-    pos_err_ = tf::Matrix3x3(tf::createQuaternionFromYaw(-state_psi_)) * (target_pos_ - state_pos_);
-    vel_err_ = tf::Matrix3x3(tf::createQuaternionFromYaw(-state_psi_)) * (target_vel_ - state_vel_);
+    pos_err_ = tf::Matrix3x3(tf::createQuaternionFromYaw(-state_yaw_)) * (target_pos_ - state_pos_);
+    vel_err_ = tf::Matrix3x3(tf::createQuaternionFromYaw(-state_yaw_)) * (target_vel_ - state_vel_);
 
     switch(navigator_->getXyControlMode())
       {
@@ -172,7 +172,7 @@ namespace control_plugin
       case flight_nav::ACC_CONTROL_MODE:
         {
           /* convert from world frame to CoG frame */
-          xy_p_term = tf::Matrix3x3(tf::createQuaternionFromYaw(-state_psi_)) * (target_acc_ / StateEstimator::G);
+          xy_p_term = tf::Matrix3x3(tf::createQuaternionFromYaw(-state_yaw_)) * (target_acc_ / StateEstimator::G);
           xy_i_term_.setValue(0, 0, 0);
           xy_d_term.setValue(0, 0, 0);
           break;
@@ -206,116 +206,116 @@ namespace control_plugin
     pid_msg.roll.vel_err = vel_err_[1];
 
     /* yaw */
-    std::vector<double> target_yaw_tmp(target_yaw_);
-    max_target_yaw_ = 0;
+    std::vector<double> yaw_control_terms_tmp(yaw_control_terms_);
+    max_yaw_term_ = 0;
     int16_t max_yaw_d_gain = 0; // for reconstruct yaw control term in spinal
 
-    double psi_err = clamp(psi_err_, -yaw_err_thresh_, yaw_err_thresh_);
-    psi_err_i_ += psi_err * du;
+    double yaw_err = clamp(yaw_err_, -yaw_err_thresh_, yaw_err_thresh_);
+    yaw_err_i_ += yaw_err * du;
     for(int j = 0; j < motor_num_; j++)
       {
         //**** P term
-        double yaw_p_term = clamp(-yaw_gains_[j][0] * psi_err, -yaw_terms_limits_[0], yaw_terms_limits_[0]);
+        double yaw_p_term = clamp(-yaw_gains_[j][0] * yaw_err, -yaw_terms_limits_[0], yaw_terms_limits_[0]);
 
         //**** I term:
-        double yaw_i_term = clamp(yaw_gains_[j][1] * psi_err_i_, -yaw_terms_limits_[1], yaw_terms_limits_[1]);
+        double yaw_i_term = clamp(yaw_gains_[j][1] * yaw_err_i_, -yaw_terms_limits_[1], yaw_terms_limits_[1]);
 
         //***** D term: usaully it is in the flight board
         /* but for the gimbal control, we need the d term, set 0 if it is not gimbal type */
-        double yaw_d_term = -yaw_gains_[j][2] * target_psi_vel_;
-        if(need_yaw_d_control_) yaw_d_term += (-yaw_gains_[j][2] * (-state_psi_vel_));
+        double yaw_d_term = -yaw_gains_[j][2] * target_yaw_vel_;
+        if(need_yaw_d_control_) yaw_d_term += (-yaw_gains_[j][2] * (-state_yaw_vel_));
         yaw_d_term = clamp(yaw_d_term, -yaw_terms_limits_[2], yaw_terms_limits_[2]);
 
         //*** each motor command value for log
-        target_yaw_tmp[j] = yaw_p_term + yaw_i_term + yaw_d_term;
+        yaw_control_terms_tmp[j] = yaw_p_term + yaw_i_term + yaw_d_term;
 
-        pid_msg.yaw.total.push_back(target_yaw_tmp[j]);
+        pid_msg.yaw.total.push_back(yaw_control_terms_tmp[j]);
         pid_msg.yaw.p_term.push_back(yaw_p_term);
         pid_msg.yaw.i_term.push_back(yaw_i_term);
         pid_msg.yaw.d_term.push_back(yaw_d_term);
 
         if(yaw_gains_.size() == 1) break;
 
-        if(fabs(target_yaw_tmp[j]) > max_target_yaw_) max_target_yaw_ = fabs(target_yaw_tmp[j]);
+        if(fabs(yaw_control_terms_tmp[j]) > max_yaw_term_) max_yaw_term_ = fabs(yaw_control_terms_tmp[j]);
 
         /* use d gains to find the maximum (positive) value */
         /* only select positve terms to avoid identical absolute value */
         if(static_cast<int16_t>(yaw_gains_[j][2] * 1000) > max_yaw_d_gain)
           {
             max_yaw_d_gain = static_cast<int16_t>(yaw_gains_[j][2] * 1000);
-            candidate_yaw_term_ = target_yaw_tmp[j];
+            candidate_yaw_term_ = yaw_control_terms_tmp[j];
           }
       }
 
-    if(max_target_yaw_ <= yaw_limit_)
-      std::copy(target_yaw_tmp.begin(), target_yaw_tmp.end(), target_yaw_.begin());
+    if(max_yaw_term_ <= yaw_limit_)
+      std::copy(yaw_control_terms_tmp.begin(), yaw_control_terms_tmp.end(), yaw_control_terms_.begin());
     else
-      psi_err_i_ -= psi_err * du; // do not increase this term if saturated
+      yaw_err_i_ -= yaw_err * du; // do not increase this term if saturated
 
     //**** ros pub
-    pid_msg.yaw.target_pos = target_psi_;
-    pid_msg.yaw.pos_err = psi_err_;
-    pid_msg.yaw.target_vel = target_psi_vel_;
+    pid_msg.yaw.target_pos = target_yaw_;
+    pid_msg.yaw.pos_err = yaw_err_;
+    pid_msg.yaw.target_vel = target_yaw_vel_;
 
-    /* throttle */
-    std::vector<double> target_throttle_tmp(target_throttle_);
-    double max_target_throttle = 0;
+    /* z */
+    std::vector<double> z_control_terms_tmp(z_control_terms_);
+    double max_z_control_terms = 0;
 
-    double alt_pos_err = clamp(pos_err_.z(), -alt_err_thresh_, alt_err_thresh_);
+    double z_pos_err = clamp(pos_err_.z(), -z_err_thresh_, z_err_thresh_);
     if(navigator_->getNaviState() == Navigator::LAND_STATE && -pos_err_.z() > safe_landing_height_)
       {
         /* too high, slowly descend */
-        alt_pos_err = landing_alt_err_thresh_;
+        z_pos_err = landing_z_err_thresh_;
 
         /* avoid the unexceped ascending when the i term exceed the hovering state */
-        if(state_vel_.z() > landing_alt_err_thresh_) alt_pos_err_i_ += alt_pos_err * du;
+        if(state_vel_.z() > landing_z_err_thresh_) z_pos_err_i_ += z_pos_err * du;
       }
     else
       {
-        alt_pos_err_i_ += alt_pos_err * du;
+        z_pos_err_i_ += z_pos_err * du;
 
         if(navigator_->getNaviState() == Navigator::LAND_STATE)
-          alt_pos_err = 0; // no p control in final safe landing phase
+          z_pos_err = 0; // no p control in final safe landing phase
       }
-    double alt_vel_err = target_vel_.z() - state_vel_.z();
+    double z_vel_err = target_vel_.z() - state_vel_.z();
 
     for(int j = 0; j < motor_num_; j++)
       {
         //**** P Term
-        double alt_p_term = clamp(-alt_gains_[j][0] * alt_pos_err, -alt_terms_limit_[0], alt_terms_limit_[0]);
+        double z_p_term = clamp(-z_gains_[j][0] * z_pos_err, -z_terms_limit_[0], z_terms_limit_[0]);
 
         //**** I Term
-        double alt_i_term = clamp(alt_gains_[j][1] * alt_pos_err_i_, -alt_terms_limit_[1], alt_terms_limit_[1]);
+        double z_i_term = clamp(z_gains_[j][1] * z_pos_err_i_, -z_terms_limit_[1], z_terms_limit_[1]);
         //***** D Term
-        double alt_d_term = clamp(-alt_gains_[j][2] * alt_vel_err, -alt_terms_limit_[2], alt_terms_limit_[2]);
+        double z_d_term = clamp(-z_gains_[j][2] * z_vel_err, -z_terms_limit_[2], z_terms_limit_[2]);
 
-        target_throttle_tmp[j] = alt_p_term + alt_i_term + alt_d_term + alt_offset_;
+        z_control_terms_tmp[j] = z_p_term + z_i_term + z_d_term + z_offset_;
 
-        pid_msg.throttle.total.push_back(target_throttle_tmp[j]);
-        pid_msg.throttle.p_term.push_back(alt_p_term);
-        pid_msg.throttle.i_term.push_back(alt_i_term);
-        pid_msg.throttle.d_term.push_back(alt_d_term);
+        pid_msg.z.total.push_back(z_control_terms_tmp[j]);
+        pid_msg.z.p_term.push_back(z_p_term);
+        pid_msg.z.i_term.push_back(z_i_term);
+        pid_msg.z.d_term.push_back(z_d_term);
 
-        if(alt_gains_.size() == 1)
+        if(z_gains_.size() == 1)
           {
-            target_throttle_[j] = clamp(target_throttle_tmp[j], 0, alt_limit_);
+            z_control_terms_[j] = clamp(z_control_terms_tmp[j], 0, z_limit_);
             break;
           }
 
-        if(target_throttle_tmp[j] > max_target_throttle)
-          max_target_throttle = target_throttle_tmp[j];
+        if(z_control_terms_tmp[j] > max_z_control_terms)
+          max_z_control_terms = z_control_terms_tmp[j];
       }
 
-    if(max_target_throttle <= alt_limit_)
-      std::copy(target_throttle_tmp.begin(), target_throttle_tmp.end(), target_throttle_.begin());
+    if(max_z_control_terms <= z_limit_)
+      std::copy(z_control_terms_tmp.begin(), z_control_terms_tmp.end(), z_control_terms_.begin());
     else
-      alt_pos_err_i_ -=  alt_pos_err * du; // do not increase this term if saturated
+      z_pos_err_i_ -=  z_pos_err * du; // do not increase this term if saturated
 
 
-    pid_msg.throttle.target_pos = target_pos_.z();
-    pid_msg.throttle.pos_err = alt_pos_err;
-    pid_msg.throttle.target_vel = target_vel_.z();
-    pid_msg.throttle.vel_err = alt_vel_err;
+    pid_msg.z.target_pos = target_pos_.z();
+    pid_msg.z.pos_err = z_pos_err;
+    pid_msg.z.target_vel = target_vel_.z();
+    pid_msg.z.vel_err = z_vel_err;
 
     /* ros publish */
     pid_pub_.publish(pid_msg);
@@ -336,15 +336,15 @@ namespace control_plugin
 
     if(uav_model_ == spinal::UavInfo::DRONE)
       {
-        /* Simple PID based attitude/altitude control */
-        flight_command_data.base_throttle[0] =  target_throttle_[0];
-        if(target_throttle_[0] == 0) return; // do not publish the empty flight command => the force landing flag will be activate
+        /* Simple PID based attitude/zitude control */
+        flight_command_data.base_throttle[0] =  z_control_terms_[0];
+        if(z_control_terms_[0] == 0) return; // do not publish the empty flight command => the force landing flag will be activate
       }
     else
       {
-        /* LQI based attitude/altitude control */
+        /* LQI based attitude/zitude control */
         for(int i = 0; i < motor_num_; i++)
-          flight_command_data.base_throttle[i] = target_throttle_[i];
+          flight_command_data.base_throttle[i] = z_control_terms_[i];
       }
     flight_cmd_pub_.publish(flight_command_data);
   }
@@ -357,18 +357,18 @@ namespace control_plugin
         motor_num_ = msg->motor_num;
 
         yaw_gains_.resize(motor_num_);
-        alt_gains_.resize(motor_num_);
+        z_gains_.resize(motor_num_);
 
-        target_throttle_.resize(motor_num_);
-        target_yaw_.resize(motor_num_);
+        z_control_terms_.resize(motor_num_);
+        yaw_control_terms_.resize(motor_num_);
 
-        ROS_WARN("flight control: update the motor number: %d", motor_num_);
+        ROS_INFO("Flight control: update the motor number from gain message: %d", motor_num_);
       }
 
     for(int i = 0; i < msg->motor_num; i++)
       {
         yaw_gains_[i].setValue(msg->pos_p_gain_yaw[i], msg->pos_i_gain_yaw[i], msg->pos_d_gain_yaw[i]);
-        alt_gains_[i].setValue(msg->pos_p_gain_alt[i], msg->pos_i_gain_alt[i], msg->pos_d_gain_alt[i]);
+        z_gains_[i].setValue(msg->pos_p_gain_z[i], msg->pos_i_gain_z[i], msg->pos_d_gain_z[i]);
       }
   }
 
@@ -421,80 +421,48 @@ namespace control_plugin
 
   void FlatnessPid::rosParamInit()
   {
-    ros::NodeHandle alt_node(nhp_, "alt");
-    ros::NodeHandle xy_node(nhp_, "xy");
-    ros::NodeHandle yaw_node(nhp_, "yaw");
+    ros::NodeHandle control_nh(nh_, "controller");
+    ros::NodeHandle xy_nh(control_nh, "xy");
+    ros::NodeHandle z_nh(control_nh, "z");
+    ros::NodeHandle yaw_nh(control_nh, "yaw");
 
-    string alt_ns = alt_node.getNamespace();
-    string xy_ns = xy_node.getNamespace();
-    string yaw_ns = yaw_node.getNamespace();
-
-    /* altitude */
-    alt_node.param("landing_alt_err_thresh", landing_alt_err_thresh_, -0.5);
-    if(param_verbose_) cout << alt_ns << ": landing_alt_err_thresh_ is " << landing_alt_err_thresh_ << endl;
-    if(landing_alt_err_thresh_ >=0) landing_alt_err_thresh_  = -0.5;
-    alt_node.param("safe_landing_height",  safe_landing_height_, 0.5);
-    if(param_verbose_) cout << alt_ns << ": safe_landing_height_ is " << safe_landing_height_ << endl;
-    alt_node.param("offset", alt_offset_, 0.0);
-    if(param_verbose_) cout << alt_ns << ": offset_ is " << alt_offset_ << endl;
-    alt_node.param("limit", alt_limit_, 1.0e6);
-    if(param_verbose_) cout << alt_ns << ": pos_limit_ is " << alt_limit_ << endl;
-    alt_node.param("p_term_limit", alt_terms_limit_[0], 1.0e6);
-    if(param_verbose_) cout << alt_ns << ": pos_p_limit_ is " << alt_terms_limit_[0] << endl;
-    alt_node.param("i_term_limit", alt_terms_limit_[1], 1.0e6);
-    if(param_verbose_) cout << alt_ns << ": pos_i_limit_ is " << alt_terms_limit_[1] << endl;
-    alt_node.param("d_term_limit", alt_terms_limit_[2], 1.0e6);
-    if(param_verbose_) cout << alt_ns << ": pos_d_limit_ is " << alt_terms_limit_[2] << endl;
-    alt_node.param("err_thresh", alt_err_thresh_, 1.0);
-    if(param_verbose_) cout << alt_ns << ": alt_err_thresh_ is " << alt_err_thresh_ << endl;
-    alt_gains_.resize(1); /* default is for general multirotor */
-    alt_node.param("p_gain", alt_gains_[0][0], 0.0);
-    if(param_verbose_) cout << alt_ns << ": p_gain_ is " << alt_gains_[0][0] << endl;
-    alt_node.param("i_gain", alt_gains_[0][1], 0.001);
-    if(param_verbose_) cout << alt_ns << ": i_gain_ is " << alt_gains_[0][1] << endl;
-    alt_node.param("d_gain", alt_gains_[0][2], 0.0);
-    if(param_verbose_) cout << alt_ns << ": d_gain_ is " << alt_gains_[0][2] << endl;
+    /* z */
+    getParam<double>(z_nh, "landing_z_err_thresh", landing_z_err_thresh_, -0.5);
+    if(landing_z_err_thresh_ >=0) landing_z_err_thresh_  = -0.5;
+    getParam<double>(z_nh, "safe_landing_height",  safe_landing_height_, 0.5);
+    getParam<double>(z_nh, "offset", z_offset_, 0.0);
+    getParam<double>(z_nh, "limit", z_limit_, 1.0e6);
+    getParam<double>(z_nh, "p_term_limit", z_terms_limit_[0], 1.0e6);
+    getParam<double>(z_nh, "i_term_limit", z_terms_limit_[1], 1.0e6);
+    getParam<double>(z_nh, "d_term_limit", z_terms_limit_[2], 1.0e6);
+    getParam<double>(z_nh, "err_thresh", z_err_thresh_, 1.0);
+    z_gains_.resize(1);
+    getParam<double>(z_nh, "p_gain", z_gains_[0][0], 0.0);
+    getParam<double>(z_nh, "i_gain", z_gains_[0][1], 0.001);
+    getParam<double>(z_nh, "d_gain", z_gains_[0][2], 0.0);
 
     /* xy */
-    xy_node.param("x_offset", xy_offset_[0], 0.0);
-    if(param_verbose_) cout << xy_ns << ": x_offset_ is " <<  xy_offset_[0] << endl;
-    xy_node.param("y_offset", xy_offset_[1], 0.0);
-    if(param_verbose_) cout << xy_ns << ": y_offset_ is " <<  xy_offset_[1] << endl;
-    xy_node.param("limit", xy_limit_, 1.0e6);
-    if(param_verbose_) cout << xy_ns << ": pos_limit_ is " <<  xy_limit_ << endl;
-    xy_node.param("p_term_limit", xy_terms_limits_[0], 1.0e6);
-    if(param_verbose_) cout << xy_ns << ": pos_p_limit_ is " <<  xy_terms_limits_[0] << endl;
-    xy_node.param("i_term_limit", xy_terms_limits_[1], 1.0e6);
-    if(param_verbose_) cout << xy_ns << ": pos_i_limit_ is " <<  xy_terms_limits_[1] << endl;
-    xy_node.param("d_term_limit", xy_terms_limits_[2], 1.0e6);
-    if(param_verbose_) cout << xy_ns << ": pos_d_limit_ is " <<  xy_terms_limits_[2] << endl;
+    getParam<double>(xy_nh, "x_offset", xy_offset_[0], 0.0);
+    getParam<double>(xy_nh, "y_offset", xy_offset_[1], 0.0);
+    getParam<double>(xy_nh, "limit", xy_limit_, 1.0e6);
+    getParam<double>(xy_nh, "p_term_limit", xy_terms_limits_[0], 1.0e6);
+    getParam<double>(xy_nh, "i_term_limit", xy_terms_limits_[1], 1.0e6);
+    getParam<double>(xy_nh, "d_term_limit", xy_terms_limits_[2], 1.0e6);
 
-    xy_node.param("p_gain", xy_gains_[0], 0.0);
-    if(param_verbose_) cout << xy_ns << ": p_gain_ is " << xy_gains_[0] << endl;
-    xy_node.param("i_gain", xy_gains_[1], 0.0);
-    if(param_verbose_) cout << xy_ns << ": i_gain_ is " << xy_gains_[1] << endl;
-    xy_node.param("d_gain", xy_gains_[2], 0.0);
-    if(param_verbose_) cout << xy_ns << ": d_gain_ is " << xy_gains_[2] << endl;
-    xy_node.param("hovering_i_gain", xy_hovering_i_gain_, 0.0);
-    if(param_verbose_) cout << xy_ns << ": pos_i_gain_hover_ is " <<  xy_hovering_i_gain_ << endl;
+    getParam<double>(xy_nh, "p_gain", xy_gains_[0], 0.0);
+    getParam<double>(xy_nh, "i_gain", xy_gains_[1], 0.0);
+    getParam<double>(xy_nh, "d_gain", xy_gains_[2], 0.0);
+    getParam<double>(xy_nh, "hovering_i_gain", xy_hovering_i_gain_, 0.0);
 
     /* yaw */
-    yaw_node.param("limit", yaw_limit_, 1.0e6);
-    if(param_verbose_) cout << yaw_ns << ": pos_limit_ is " << yaw_limit_ << endl;
-    yaw_node.param("p_term_limit", yaw_terms_limits_[0], 1.0e6);
-    if(param_verbose_) cout << yaw_ns << ": pos_p_limit_ is " << yaw_terms_limits_[0] << endl;
-    yaw_node.param("i_term_limit", yaw_terms_limits_[1], 1.0e6);
-    if(param_verbose_) cout << yaw_ns << ": pos_i_limit_ is " << yaw_terms_limits_[1] << endl;
-    yaw_node.param("d_term_limit", yaw_terms_limits_[2], 1.0e6);
-    if(param_verbose_) cout << yaw_ns << ": pos_d_limit_ is " << yaw_terms_limits_[2] << endl;
+    getParam<double>(yaw_nh, "limit", yaw_limit_, 1.0e6);
+    getParam<double>(yaw_nh, "p_term_limit", yaw_terms_limits_[0], 1.0e6);
+    getParam<double>(yaw_nh, "i_term_limit", yaw_terms_limits_[1], 1.0e6);
+    getParam<double>(yaw_nh, "d_term_limit", yaw_terms_limits_[2], 1.0e6);
     yaw_gains_.resize(1); /* default is for general multirotor */
-    yaw_node.param("p_gain", yaw_gains_[0][0], 0.0);
-    if(param_verbose_) cout << yaw_ns << ": p_gain_ is " << yaw_gains_[0][0] << endl;
-    yaw_node.param("i_gain", yaw_gains_[0][1], 0.0);
-    if(param_verbose_) cout << yaw_ns << ": i_gain_ is " << yaw_gains_[0][1] << endl;
-    yaw_node.param("d_gain", yaw_gains_[0][2], 0.0);
-    if(param_verbose_) cout << yaw_ns << ": d_gain_ is " << yaw_gains_[0][2] << endl;
-    yaw_node.param("err_thresh", yaw_err_thresh_, 0.4);
-    if(param_verbose_) cout << yaw_ns << ": yaw_err_thresh_ is " << yaw_err_thresh_ << endl;
+    getParam<double>(yaw_nh, "p_gain", yaw_gains_[0][0], 0.0);
+    getParam<double>(yaw_nh, "i_gain", yaw_gains_[0][1], 0.0);
+    getParam<double>(yaw_nh, "d_gain", yaw_gains_[0][2], 0.0);
+    getParam<double>(yaw_nh, "err_thresh", yaw_err_thresh_, 0.4);
   }
 };

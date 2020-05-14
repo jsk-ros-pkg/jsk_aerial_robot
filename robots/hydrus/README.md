@@ -59,5 +59,4 @@ $ roslaunch hydrus bringup.launch real_machine:=true simulation:=true headless:=
 ## 3. transformation demostration
    **note**: after the robot completely hovering with the message `Hovering!`
    
-   - quad:  ``` $  rosrun hydrus hydrusx_demo.py _link_num:=4 _duration:=6 _joint_control_topic_name:=/hydrusx/joints_ctrl ```
-   - hex:  ``` $  rosrun hydrus hydrusx_demo.py _link_num:=6 _duration:=8 _joint_control_topic_name:=/hydrusx/joints_ctrl ```
+   - quad:  ``` $  rosrun hydrus hydrus_demo.py _link_num:=4 _duration:=6 _joint_control_topic_name:=/hydrus/joints_ctrl ```

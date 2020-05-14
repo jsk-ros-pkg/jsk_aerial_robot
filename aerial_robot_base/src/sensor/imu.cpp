@@ -44,7 +44,7 @@ namespace
 namespace sensor_plugin
 {
   Imu::Imu ():
-    sensor_plugin::SensorBase(string("imu")),
+    sensor_plugin::SensorBase(),
     calib_count_(200),
     acc_b_(0, 0, 0),
     euler_(0, 0, 0),
@@ -68,30 +68,16 @@ namespace sensor_plugin
     state_.states[2].state.resize(2);
   }
 
-  void Imu::initialize(ros::NodeHandle nh, ros::NodeHandle nhp, StateEstimator* estimator, string sensor_name, int index)
+  void Imu::initialize(ros::NodeHandle nh, StateEstimator* estimator, string sensor_name, int index)
   {
-    SensorBase::initialize(nh, nhp, estimator, sensor_name, index);
+    SensorBase::initialize(nh, estimator, sensor_name, index);
     rosParamInit();
 
     std::string topic_name;
-    getParam<std::string>("imu_topic_name", topic_name, string("/imu"));
+    getParam<std::string>("imu_topic_name", topic_name, string("imu"));
     imu_sub_ = nh_.subscribe<spinal::Imu>(topic_name, 10, &Imu::ImuCallback, this);
-
-    nhp_.param("imu_pub_topic_name", topic_name, string("/uav/baselink/imu"));
-    if(estimator_->getImuHandlers().size() > 1)
-      indexed_nhp_.param("imu_pub_topic_name", topic_name, string("/uav/baselink/imu") + std::to_string(index));
-    imu_pub_ = nh_.advertise<sensor_msgs::Imu>(topic_name, 1);
-
-    if(estimator_->getImuHandlers().size() == 1)
-      {
-        acc_pub_ = nh_.advertise<aerial_robot_msgs::Acc>("acc", 2);
-        state_pub_ = nh_.advertise<aerial_robot_msgs::States>("data", 1);
-      }
-    else
-      {
-        acc_pub_ = indexed_nh_.advertise<aerial_robot_msgs::Acc>("acc", 2);
-        state_pub_ = indexed_nh_.advertise<aerial_robot_msgs::States>("data", 1);
-      }
+    imu_pub_ = indexed_nhp_.advertise<sensor_msgs::Imu>(string("ros_converted"), 1);
+    acc_pub_ = indexed_nhp_.advertise<aerial_robot_msgs::Acc>("acc_only", 2);
   }
 
   void Imu::ImuCallback(const spinal::ImuConstPtr& imu_msg)

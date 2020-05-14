@@ -1,5 +1,3 @@
-#HydrusX Quad config
-
 control_rate: 15.0
 
 #wrench_dof: 3
@@ -25,11 +23,13 @@ r2: 1.0
 r3: 1.0
 r4: 1.0
 
-
+# TODO: move
+# feasible control configuration
 fc_t_min_thre: 0.01
 fc_rp_min_thre: 1.8
 rp_position_margin_thre: 0.13 # deprecated
 
+# TODO: move
 # inverse kinematics
 differential_motion_count: 50
 thre_joint_vel: 0.1

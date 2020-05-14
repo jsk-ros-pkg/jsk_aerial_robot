@@ -55,7 +55,7 @@ namespace gazebo_ros_control
     KDL::Tree tree;
     kdl_parser::treeFromUrdfModel(*urdf_model, tree);
 
-    auto robot_model_xml = aerial_robot_model::RobotModel::getRobotModelXml("robot_description");
+    auto robot_model_xml = aerial_robot_model::RobotModel::getRobotModelXml("robot_description", model_nh);
     TiXmlElement* baselink_attr = robot_model_xml.FirstChildElement("robot")->FirstChildElement("baselink");
     if(!baselink_attr)
       {
@@ -106,12 +106,6 @@ namespace gazebo_ros_control
         ROS_ERROR_STREAM_NAMED("spianl interface", "Can not find the parent of the baselink '" << baselink_);
         return false;
       }
-    /*
-    else
-      {
-        ROS_ERROR_STREAM(baselink_parent_ << "[" << baselink_offset.p.x() << ", " << baselink_offset.p.y() << ", " << baselink_offset.p.z() << "]");
-      }
-    */
 
     /* Initialize joint handlers */
     std::vector<transmission_interface::TransmissionInfo> joint_transmissions;
@@ -182,23 +176,25 @@ namespace gazebo_ros_control
     control_mode_ = FORCE_CONTROL_MODE;
     sim_vel_sub_ = model_nh.subscribe("sim_cmd_vel", 1, &AerialRobotHWSim::cmdVelCallback, this);
     sim_pos_sub_ = model_nh.subscribe("sim_cmd_pos", 1, &AerialRobotHWSim::cmdPosCallback, this);
-    model_nh.param("ground_truth_pub_rate", ground_truth_pub_rate_, 0.01); // [sec]
-    model_nh.param("ground_truth_pos_noise", ground_truth_pos_noise_, 0.0); // m
-    model_nh.param("ground_truth_vel_noise", ground_truth_vel_noise_, 0.0); // m/s
-    model_nh.param("ground_truth_rot_noise", ground_truth_rot_noise_, 0.0); // rad
-    model_nh.param("ground_truth_angular_noise", ground_truth_angular_noise_, 0.0); // rad/s
-    model_nh.param("ground_truth_rot_drift", ground_truth_rot_drift_, 0.0); // rad
-    model_nh.param("ground_truth_vel_drift", ground_truth_vel_drift_, 0.0); // m/s
-    model_nh.param("ground_truth_angular_drift", ground_truth_angular_drift_, 0.0); // rad/s
-    model_nh.param("ground_truth_rot_drift_frequency", ground_truth_rot_drift_frequency_, 0.0); // 1/s
-    model_nh.param("ground_truth_vel_drift_frequency", ground_truth_vel_drift_frequency_, 0.0); // 1/s
-    model_nh.param("ground_truth_angular_drift_frequency", ground_truth_angular_drift_frequency_, 0.0); // 1/s
 
-    model_nh.param("mocap_pub_rate", mocap_pub_rate_, 0.01); // [sec]
-    model_nh.param("mocap_pos_noise", mocap_pos_noise_, 0.001); // m
-    model_nh.param("mocap_rot_noise", mocap_rot_noise_, 0.001); // rad
+    ros::NodeHandle simulation_nh = ros::NodeHandle(model_nh, "simulation");
+    simulation_nh.param("ground_truth_pub_rate", ground_truth_pub_rate_, 0.01); // [sec]
+    simulation_nh.param("ground_truth_pos_noise", ground_truth_pos_noise_, 0.0); // m
+    simulation_nh.param("ground_truth_vel_noise", ground_truth_vel_noise_, 0.0); // m/s
+    simulation_nh.param("ground_truth_rot_noise", ground_truth_rot_noise_, 0.0); // rad
+    simulation_nh.param("ground_truth_angular_noise", ground_truth_angular_noise_, 0.0); // rad/s
+    simulation_nh.param("ground_truth_rot_drift", ground_truth_rot_drift_, 0.0); // rad
+    simulation_nh.param("ground_truth_vel_drift", ground_truth_vel_drift_, 0.0); // m/s
+    simulation_nh.param("ground_truth_angular_drift", ground_truth_angular_drift_, 0.0); // rad/s
+    simulation_nh.param("ground_truth_rot_drift_frequency", ground_truth_rot_drift_frequency_, 0.0); // 1/s
+    simulation_nh.param("ground_truth_vel_drift_frequency", ground_truth_vel_drift_frequency_, 0.0); // 1/s
+    simulation_nh.param("ground_truth_angular_drift_frequency", ground_truth_angular_drift_frequency_, 0.0); // 1/s
+
+    simulation_nh.param("mocap_pub_rate", mocap_pub_rate_, 0.01); // [sec]
+    simulation_nh.param("mocap_pos_noise", mocap_pos_noise_, 0.001); // m
+    simulation_nh.param("mocap_rot_noise", mocap_rot_noise_, 0.001); // rad
     ground_truth_pub_ = model_nh.advertise<nav_msgs::Odometry>("ground_truth", 1);
-    mocap_pub_ = model_nh.advertise<geometry_msgs::PoseStamped>("/aerial_robot/pose", 1);
+    mocap_pub_ = model_nh.advertise<geometry_msgs::PoseStamped>("mocap/pose", 1);
 
     return true;
   }

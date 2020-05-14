@@ -31,18 +31,18 @@ namespace Spine
     constexpr uint8_t SERVO_TORQUE_PUB_INTERVAL = 1000; //[ms]
     spinal::ServoStates servo_state_msg_;
     spinal::ServoTorqueStates servo_torque_state_msg_;
-    ros::Publisher servo_state_pub_("/servo/states", &servo_state_msg_);
-    ros::Publisher servo_torque_state_pub_("/servo/torque_states", &servo_torque_state_msg_);
+    ros::Publisher servo_state_pub_("servo/states", &servo_state_msg_);
+    ros::Publisher servo_torque_state_pub_("servo/torque_states", &servo_torque_state_msg_);
 
 #if SEND_GYRO
     hydrus::Gyro gyro_msg_;
-    ros::Publisher gyro_pub_("/hydrus_gyro", &gyro_msg_);
+    ros::Publisher gyro_pub_("hydrus_gyro", &gyro_msg_);
 #endif
-    ros::Subscriber<spinal::ServoControlCmd> servo_ctrl_sub_("/servo/target_states", servoControlCallback);
-    ros::Subscriber<spinal::ServoTorqueCmd> servo_torque_ctrl_sub_("/servo/torque_enable", servoTorqueControlCallback);
+    ros::Subscriber<spinal::ServoControlCmd> servo_ctrl_sub_("servo/target_states", servoControlCallback);
+    ros::Subscriber<spinal::ServoTorqueCmd> servo_torque_ctrl_sub_("servo/torque_enable", servoTorqueControlCallback);
 
-    ros::ServiceServer<spinal::GetBoardInfo::Request, spinal::GetBoardInfo::Response> board_info_srv_("/get_board_info", boardInfoCallback);
-    ros::ServiceServer<spinal::SetBoardConfig::Request, spinal::SetBoardConfig::Response> board_config_srv_("/set_board_config", boardConfigCallback);
+    ros::ServiceServer<spinal::GetBoardInfo::Request, spinal::GetBoardInfo::Response> board_info_srv_("get_board_info", boardInfoCallback);
+    ros::ServiceServer<spinal::SetBoardConfig::Request, spinal::SetBoardConfig::Response> board_config_srv_("set_board_config", boardConfigCallback);
 
     spinal::GetBoardInfo::Response board_info_res_;
 

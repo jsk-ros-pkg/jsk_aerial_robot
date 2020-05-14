@@ -3,6 +3,7 @@ sensor_plugin:
                 min_est_sat_num: 7
                 vel_noise_sigma:  0.02 #0.05 -> 0.01 -> 0.02
                 pos_noise_sigma:  1.0
+                gps_ros_sub_name: sim/gps/fix
                 sensor_frame: gps
                 ned_flag: true #north(x)-east(y)-down(z) frame
                 time_sync: true

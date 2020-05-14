@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <robot
-    xmlns:xacro="http://www.ros.org/wiki/xacro" name="hydrusx" >
+    xmlns:xacro="http://www.ros.org/wiki/xacro" name="hydrus" >
 
   <!-- temporary -->
   <xacro:include filename="$(find dragon)/urdf/dragon_common.xacro" />

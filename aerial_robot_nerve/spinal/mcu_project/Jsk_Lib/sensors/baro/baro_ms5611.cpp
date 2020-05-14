@@ -12,7 +12,7 @@
 
 #include "sensors/baro/baro_ms5611.h"
 
-Baro::Baro(): BaroBackend(), baro_config_sub_("/baro_config_cmd", &Baro::baroConfigCallback, this )
+Baro::Baro(): BaroBackend(), baro_config_sub_("baro_config_cmd", &Baro::baroConfigCallback, this )
 {
   state_ = 0;
   tp_updated_ = false;

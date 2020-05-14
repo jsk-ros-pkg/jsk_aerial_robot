@@ -60,7 +60,7 @@ namespace sensor_plugin
     VisualOdometry();
     ~VisualOdometry(){}
 
-    void initialize(ros::NodeHandle nh, ros::NodeHandle nhp, StateEstimator* estimator, string sensor_name, int index);
+    void initialize(ros::NodeHandle nh, StateEstimator* estimator, string sensor_name, int index);
 
     inline const bool odomPosMode()
     {
@@ -73,7 +73,6 @@ namespace sensor_plugin
   private:
     /* ros */
     ros::Subscriber vo_sub_;
-    ros::Publisher vo_state_pub_;
     ros::Publisher vo_servo_pub_;
     ros::Subscriber vo_servo_debug_sub_;
     ros::Timer  servo_control_timer_;

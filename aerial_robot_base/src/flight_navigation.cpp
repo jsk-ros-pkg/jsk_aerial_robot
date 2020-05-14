@@ -4,12 +4,12 @@ using namespace std;
 
 Navigator::Navigator(ros::NodeHandle nh, ros::NodeHandle nh_private,
                      StateEstimator* estimator)
-  : nh_(nh, "navigator"),
-    nhp_(nh_private, "navigator"),
+  : nh_(nh),
+    nhp_(nh_private),
     target_pos_(0, 0, 0),
     target_vel_(0, 0, 0),
     target_acc_(0, 0, 0),
-    target_psi_(0), target_vel_psi_(0),
+    target_yaw_(0), target_vel_yaw_(0),
     force_att_control_flag_(false),
     low_voltage_flag_(false),
     prev_xy_control_mode_(flight_nav::ACC_CONTROL_MODE),
@@ -24,34 +24,36 @@ Navigator::Navigator(ros::NodeHandle nh, ros::NodeHandle nh_private,
     joy_stick_heart_beat_(false),
     joy_stick_prev_time_(0)
 {
-  rosParamInit(nhp_);
+  rosParamInit();
 
-  navi_sub_ = nh_.subscribe<aerial_robot_msgs::FlightNav>("/uav/nav", 1, &Navigator::naviCallback, this, ros::TransportHints().tcpNoDelay());
+  navi_sub_ = nh_.subscribe<aerial_robot_msgs::FlightNav>("uav/nav", 1, &Navigator::naviCallback, this, ros::TransportHints().tcpNoDelay());
 
-  battery_sub_ = nh_.subscribe<std_msgs::Float32>("/battery_voltage_status", 1, &Navigator::batteryCheckCallback, this, ros::TransportHints().tcpNoDelay());
+  battery_sub_ = nh_.subscribe<std_msgs::Float32>("battery_voltage_status", 1, &Navigator::batteryCheckCallback, this, ros::TransportHints().tcpNoDelay());
 
-  flight_status_ack_sub_ = nh_.subscribe<std_msgs::UInt8>("/flight_config_ack", 1, &Navigator::flightStatusAckCallback, this, ros::TransportHints().tcpNoDelay());
-  takeoff_sub_ = nh_.subscribe<std_msgs::Empty>("/teleop_command/takeoff", 1, &Navigator::takeoffCallback, this, ros::TransportHints().tcpNoDelay());
-  halt_sub_ = nh_.subscribe<std_msgs::Empty>("/teleop_command/halt", 1, &Navigator::haltCallback, this, ros::TransportHints().tcpNoDelay());
-  force_landing_sub_ = nh_.subscribe<std_msgs::Empty>("/teleop_command/force_landing", 1, &Navigator::forceLandingCallback, this, ros::TransportHints().tcpNoDelay());
+  flight_status_ack_sub_ = nh_.subscribe<std_msgs::UInt8>("flight_config_ack", 1, &Navigator::flightStatusAckCallback, this, ros::TransportHints().tcpNoDelay());
+
+  ros::NodeHandle teleop_nh = ros::NodeHandle(nh_, "teleop_command");
+  takeoff_sub_ = teleop_nh.subscribe<std_msgs::Empty>("takeoff", 1, &Navigator::takeoffCallback, this);
+  halt_sub_ = teleop_nh.subscribe<std_msgs::Empty>("halt", 1, &Navigator::haltCallback, this);
+  force_landing_sub_ = teleop_nh.subscribe<std_msgs::Empty>("force_landing", 1, &Navigator::forceLandingCallback, this);
   force_landing_flag_ = false;
-  land_sub_ = nh_.subscribe<std_msgs::Empty>("/teleop_command/land", 1, &Navigator::landCallback, this, ros::TransportHints().tcpNoDelay());
-  start_sub_ = nh_.subscribe<std_msgs::Empty>("/teleop_command/start", 1,&Navigator::startCallback, this, ros::TransportHints().tcpNoDelay());
-  ctrl_mode_sub_ = nh_.subscribe<std_msgs::Int8>("/teleop_command/ctrl_mode", 1, &Navigator::xyControlModeCallback, this, ros::TransportHints().tcpNoDelay());
+  land_sub_ = teleop_nh.subscribe<std_msgs::Empty>("land", 1, &Navigator::landCallback, this);
+  start_sub_ = teleop_nh.subscribe<std_msgs::Empty>("start", 1,&Navigator::startCallback, this);
+  ctrl_mode_sub_ = teleop_nh.subscribe<std_msgs::Int8>("ctrl_mode", 1, &Navigator::xyControlModeCallback, this);
 
   ros::TransportHints joy_transport_hints;
 #ifdef ARM_MELODIC // https://github.com/ros/ros_comm/issues/1404
   joy_udp_ = false;
 #endif
   if(joy_udp_) joy_transport_hints = ros::TransportHints().udp();
-  joy_stick_sub_ = nh_.subscribe<sensor_msgs::Joy>("/joy", 1, &Navigator::joyStickControl, this, joy_transport_hints);
+  joy_stick_sub_ = nh_.subscribe<sensor_msgs::Joy>("joy", 1, &Navigator::joyStickControl, this, joy_transport_hints);
 
-  stop_teleop_sub_ = nh_.subscribe<std_msgs::UInt8>("stop_teleop", 1, &Navigator::stopTeleopCallback, this, ros::TransportHints().tcpNoDelay());
+  stop_teleop_sub_ = nh_.subscribe<std_msgs::UInt8>("stop_teleop", 1, &Navigator::stopTeleopCallback, this);
   teleop_flag_ = true;
 
-  flight_config_pub_ = nh_.advertise<spinal::FlightConfigCmd>("/flight_config_cmd", 10);
-  power_info_pub_ = nh_.advertise<geometry_msgs::Vector3Stamped>("/uav_power", 10);
-  flight_state_pub_ = nh_.advertise<std_msgs::UInt8>("/flight_state", 1);
+  flight_config_pub_ = nh_.advertise<spinal::FlightConfigCmd>("flight_config_cmd", 10);
+  power_info_pub_ = nh_.advertise<geometry_msgs::Vector3Stamped>("uav_power", 10);
+  flight_state_pub_ = nh_.advertise<std_msgs::UInt8>("flight_state", 1);
 
   estimator_ = estimator;
   estimate_mode_ = estimator_->getEstimateMode();
@@ -128,22 +130,22 @@ void Navigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & msg)
   if(force_att_control_flag_) return;
 
   /* yaw */
-  if(msg->psi_nav_mode == aerial_robot_msgs::FlightNav::POS_MODE)
+  if(msg->yaw_nav_mode == aerial_robot_msgs::FlightNav::POS_MODE)
     {
-      double target_psi = msg->target_psi;
-      while(target_psi > M_PI)  target_psi -= (2 * M_PI);
-      while(target_psi < -M_PI)  target_psi += (2 * M_PI);
+      double target_yaw = msg->target_yaw;
+      while(target_yaw > M_PI)  target_yaw -= (2 * M_PI);
+      while(target_yaw < -M_PI)  target_yaw += (2 * M_PI);
 
-      setTargetPsi(target_psi);
+      setTargetYaw(target_yaw);
     }
-  if(msg->psi_nav_mode == aerial_robot_msgs::FlightNav::POS_VEL_MODE)
+  if(msg->yaw_nav_mode == aerial_robot_msgs::FlightNav::POS_VEL_MODE)
     {
-      double target_psi = msg->target_psi;
-      while(target_psi > M_PI)  target_psi -= (2 * M_PI);
-      while(target_psi < -M_PI)  target_psi += (2 * M_PI);
+      double target_yaw = msg->target_yaw;
+      while(target_yaw > M_PI)  target_yaw -= (2 * M_PI);
+      while(target_yaw < -M_PI)  target_yaw += (2 * M_PI);
 
-      setTargetPsi(target_psi);
-      setTargetPsiVel(msg->target_vel_psi);
+      setTargetYaw(target_yaw);
+      setTargetYawVel(msg->target_vel_yaw);
     }
 
   /* xy control */
@@ -155,7 +157,7 @@ void Navigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & msg)
         if(msg->target == aerial_robot_msgs::FlightNav::BASELINK)
           {
             /* check the transformation */
-            target_cog_pos -= tf::Matrix3x3(tf::createQuaternionFromYaw(getTargetPsi()))
+            target_cog_pos -= tf::Matrix3x3(tf::createQuaternionFromYaw(getTargetYaw()))
               * estimator_->getCog2Baselink().getOrigin();
           }
 
@@ -371,7 +373,7 @@ void Navigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
 
           /* update the target pos(maybe not necessary) */
           setTargetXyFromCurrentState();
-          setTargetPsiFromCurrentState();
+          setTargetYawFromCurrentState();
 
           /* several flag should be false */
           estimator_->setSensorFusionFlag(false);
@@ -406,7 +408,7 @@ void Navigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
       setNaviState(LAND_STATE);
       //update
       setTargetXyFromCurrentState();
-      setTargetPsiFromCurrentState();
+      setTargetYawFromCurrentState();
       setTargetPosZ(estimator_->getLandingHeight());
       ROS_INFO("Joy Control: Land state");
 
@@ -439,10 +441,10 @@ void Navigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
   /* this is the yaw_angle control */
   if(fabs(joy_cmd.axes[PS3_AXIS_STICK_RIGHT_LEFTWARDS]) > joy_yaw_deadzone_)
     {
-      float  state_psi = estimator_->getState(State::YAW_COG, estimate_mode_)[0];
-      target_psi_ = state_psi + joy_cmd.axes[PS3_AXIS_STICK_RIGHT_LEFTWARDS] * max_target_yaw_rate_;
-      while(target_psi_ > M_PI)  target_psi_ -= 2 * M_PI;
-      while(target_psi_ < -M_PI)  target_psi_ += 2 * M_PI;
+      float  state_yaw = estimator_->getState(State::YAW_COG, estimate_mode_)[0];
+      target_yaw_ = state_yaw + joy_cmd.axes[PS3_AXIS_STICK_RIGHT_LEFTWARDS] * max_target_yaw_rate_;
+      while(target_yaw_ > M_PI)  target_yaw_ -= 2 * M_PI;
+      while(target_yaw_ < -M_PI)  target_yaw_ += 2 * M_PI;
 
       yaw_control_flag_ = true;
     }
@@ -451,8 +453,8 @@ void Navigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
       if(yaw_control_flag_)
         {
           yaw_control_flag_= false;
-          setTargetPsiFromCurrentState();
-          ROS_INFO("Joy Control: fixed yaw state, target yaw angle is %f", target_psi_);
+          setTargetYawFromCurrentState();
+          ROS_INFO("Joy Control: fixed yaw state, target yaw angle is %f", target_yaw_);
         }
     }
 
@@ -632,7 +634,7 @@ void Navigator::update()
         {
           setNaviState(LAND_STATE);
           setTargetXyFromCurrentState();
-          setTargetPsiFromCurrentState();
+          setTargetYawFromCurrentState();
           setTargetPosZ(estimator_->getLandingHeight());
         }
     }
@@ -701,7 +703,7 @@ void Navigator::update()
                 setNaviState(STOP_STATE);
 
                 setTargetXyFromCurrentState();
-                setTargetPsiFromCurrentState();
+                setTargetYawFromCurrentState();
 
                 estimator_->setSensorFusionFlag(false);
                 estimator_->setLandingMode(false);
@@ -833,91 +835,45 @@ void Navigator::update()
 }
 
 
-void Navigator::rosParamInit(ros::NodeHandle nh)
+void Navigator::rosParamInit()
 {
-  std::string ns = nh.getNamespace();
+  getParam<bool>(nhp_, "param_verbose", param_verbose_, false);
 
-  ros::NodeHandle nh_global("~");
-  nh_global.param ("param_verbose", param_verbose_, false);
-  if(param_verbose_) cout << ns << ": param_verbose_ is " <<  param_verbose_ << endl;
-
-  nh.param ("xy_control_mode", xy_control_mode_, 0);
-  if(param_verbose_) cout << ns << ": xy_control_mode_ is " <<  xy_control_mode_ << endl;
-
-  nh.param ("takeoff_height", takeoff_height_, 0.0);
-  if(param_verbose_) cout << ns << ": takeoff_height_ is " << takeoff_height_ << endl;
-
-  nh.param ("convergent_duration", convergent_duration_, 1.0);
-  if(param_verbose_) cout << ns << ": convergent_duration_ is " << convergent_duration_ << endl;
-
-  nh.param ("alt_convergent_thresh", alt_convergent_thresh_, 0.05);
-  if(param_verbose_) cout << ns << ": alt_convergent_thresh_ is " <<  alt_convergent_thresh_ << endl;
-
-  nh.param ("xy_convergent_thresh", xy_convergent_thresh_, 0.15);
-  if(param_verbose_) cout << ns << ": xy_convergent_thresh_ is " <<  xy_convergent_thresh_ << endl;
-
-  nh.param ("max_target_vel", max_target_vel_, 0.0);
-  if(param_verbose_) cout << ns << ": max_target_vel_ is " <<  max_target_vel_ << endl;
-
-  nh.param ("max_target_yaw_rate", max_target_yaw_rate_, 0.0);
-  if(param_verbose_) cout << ns << ": max_target_yaw_rate_ is" <<  max_target_yaw_rate_ << endl;
-
-  nh.param ("max_target_tilt_angle", max_target_tilt_angle_, 1.0);
-  if(param_verbose_) cout << ns << ": max_target_tilt_angle_ is" <<  max_target_tilt_angle_ << endl;
+  ros::NodeHandle nh(nh_, "navigation");
+  getParam<int>(nh, "xy_control_mode", xy_control_mode_, 0);
+  getParam<double>(nh, "takeoff_height", takeoff_height_, 0.0);
+  getParam<double>(nh, "convergent_duration", convergent_duration_, 1.0);
+  getParam<double>(nh, "alt_convergent_thresh", alt_convergent_thresh_, 0.05);
+  getParam<double>(nh, "xy_convergent_thresh", xy_convergent_thresh_, 0.15);
+  getParam<double>(nh, "max_target_vel", max_target_vel_, 0.0);
+  getParam<double>(nh, "max_target_yaw_rate", max_target_yaw_rate_, 0.0);
+  getParam<double>(nh, "max_target_tilt_angle", max_target_tilt_angle_, 1.0);
 
   //*** auto vel nav
-  nh.param("nav_vel_limit", nav_vel_limit_, 0.2);
-  if(param_verbose_) cout << ns << ": nav_vel_limit_ is " <<  nav_vel_limit_ << endl;
-  nh.param("vel_nav_threshold", vel_nav_threshold_, 0.4);
-  if(param_verbose_) cout << ns << ": vel_nav_threshold_ is " <<  vel_nav_threshold_ << endl;
-  nh.param("vel_nav_gain", vel_nav_gain_, 1.0);
-  if(param_verbose_) cout << ns << ": vel_nav_gain_ is " <<  vel_nav_gain_ << endl;
+  getParam<double>(nh, "nav_vel_limit", nav_vel_limit_, 0.2);
+  getParam<double>(nh, "vel_nav_threshold", vel_nav_threshold_, 0.4);
+  getParam<double>(nh, "vel_nav_gain", vel_nav_gain_, 1.0);
 
   //*** gps waypoint
-  nh.param("gps_waypoint_threshold", gps_waypoint_threshold_, 3.0);
-  if(param_verbose_) cout << ns << ": gps_waypoint_threshold_ is " <<  gps_waypoint_threshold_ << endl;
-  nh.param("gps_waypoint_check_du", gps_waypoint_check_du_, 1.0);
-  if(param_verbose_) cout << ns << ": gps_waypoint_check_du_ is " <<  gps_waypoint_check_du_ << endl;
-
+  getParam<double>(nh, "gps_waypoint_threshold", gps_waypoint_threshold_, 3.0);
+  getParam<double>(nh, "gps_waypoint_check_du", gps_waypoint_check_du_, 1.0);
 
   //*** teleop navigation
-  nh.param ("joy_target_vel_interval", joy_target_vel_interval_, 0.0);
-  if(param_verbose_) cout << ns << ": joy_target_vel_interval_ is " <<  joy_target_vel_interval_ << endl;
+  getParam<double>(nh, "joy_target_vel_interval", joy_target_vel_interval_, 0.0);
+  getParam<double>(nh, "joy_target_alt_interval", joy_target_alt_interval_, 0.0);
+  getParam<double>(nh, "joy_alt_deadzone", joy_alt_deadzone_, 0.2);
+  getParam<double>(nh, "joy_yaw_deadzone", joy_yaw_deadzone_, 0.2);
+  getParam<double>(nh, "joy_stick_heart_beat_du", joy_stick_heart_beat_du_, 2.0);
+  getParam<double>(nh, "force_landing_to_halt_du", force_landing_to_halt_du_, 1.0);
+  getParam<bool>(nh, "joy_udp", joy_udp_, true);
+  getParam<bool>(nh, "check_joy_stick_heart_beat", check_joy_stick_heart_beat_, false);
+  getParam<std::string>(nh, "teleop_local_frame", teleop_local_frame_, std::string("root"));
 
-  nh.param ("joy_target_alt_interval", joy_target_alt_interval_, 0.0);
-  if(param_verbose_) cout << ns << ": joy_target_alt_interval_ is " <<  joy_target_alt_interval_ << endl;
-
-  nh.param ("joy_alt_deadzone", joy_alt_deadzone_, 0.2);
-  if(param_verbose_) cout << ns << ": joy_alt_deadzone_ is " <<  joy_alt_deadzone_ << endl;
-
-  nh.param ("joy_yaw_deadzone", joy_yaw_deadzone_, 0.2);
-  if(param_verbose_) cout << ns << ": joy_yaw_deadzone_ is " <<  joy_yaw_deadzone_ << endl;
-
-  nh.param ("joy_stick_heart_beat_du", joy_stick_heart_beat_du_, 2.0);
-  if(param_verbose_) cout << ns << ": joy_stick_heart_beat_du_ is " <<  joy_stick_heart_beat_du_ << endl;
-
-  nh.param ("force_landing_to_halt_du", force_landing_to_halt_du_, 1.0);
-  if(param_verbose_) cout << ns << ": force_landing_to_halt_du_ is " <<  force_landing_to_halt_du_ << endl;
-
-  nh.param ("joy_udp", joy_udp_, true);
-  if(param_verbose_) cout << ns << ": joy_udp_ is " <<  joy_udp_ << endl;
-
-  nh.param ("check_joy_stick_heart_beat", check_joy_stick_heart_beat_, false);
-  if(param_verbose_) cout << ns << ": check_joy_stick_heart_beat_ is " <<  check_joy_stick_heart_beat_ << endl;
-
-  nh.param ("teleop_local_frame", teleop_local_frame_, std::string("root"));
-  if(param_verbose_) cout << ns << ": teleop_local_frame_ is " <<  teleop_local_frame_ << endl;
-
-  ros::NodeHandle bat_info_node("bat_info");
-  bat_info_node.param("bat_cell", bat_cell_, 0); // Lipo battery cell
-  if(param_verbose_) cout << ns  << ": bat_cell_ is "  <<  bat_cell_ << endl;
-  bat_info_node.param("low_voltage_thre", low_voltage_thre_, 0.1); // Lipo battery cell
-  if(param_verbose_) cout << ns  << ": low_voltage_thre_ is "  <<  low_voltage_thre_ << endl;
-  bat_info_node.param("bat_resistance", bat_resistance_, 0.0); //Battery internal resistance
-  if(param_verbose_) cout << ns  << ": bat_resistance_ is "  <<  bat_resistance_ << endl;
-  bat_info_node.param("bat_resistance_voltage_rate", bat_resistance_voltage_rate_, 0.0); //Battery internal resistance_voltage_rate
-  if(param_verbose_) cout << ns  << ": bat_resistance_voltage_rate_ is "  <<  bat_resistance_voltage_rate_ << endl;
-  bat_info_node.param("hovering_current", hovering_current_, 0.0); // current at hovering state
-  if(param_verbose_) cout << ns  << ": hovering_current_ is "  <<  hovering_current_ << endl;
+  ros::NodeHandle bat_nh(nh_, "bat_info");
+  getParam<int>(bat_nh, "bat_cell", bat_cell_, 0); // Lipo battery cell
+  getParam<double>(bat_nh, "low_voltage_thre", low_voltage_thre_, 0.1); // Lipo battery cell
+  getParam<double>(bat_nh, "bat_resistance", bat_resistance_, 0.0); //Battery internal resistance
+  getParam<double>(bat_nh, "bat_resistance_voltage_rate", bat_resistance_voltage_rate_, 0.0); //Battery internal resistance_voltage_rate
+  getParam<double>(bat_nh, "hovering_current", hovering_current_, 0.0); // current at hovering state
 }
 

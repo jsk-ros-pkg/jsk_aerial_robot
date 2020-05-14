@@ -9,7 +9,7 @@ TiltedTransformController::TiltedTransformController(ros::NodeHandle nh, ros::No
   nhp_.param ("att_control_weight", att_control_weight_, 1.0);
   if(verbose_) std::cout << "att_control_weight: " << std::setprecision(3) << 100 << std::endl;
 
-  desired_orientation_pub_ = nh_.advertise<spinal::DesireCoord>("/desire_coordinate", 1);
+  desired_orientation_pub_ = nh_.advertise<spinal::DesireCoord>("desire_coordinate", 1);
 }
 
 bool TiltedTransformController::optimalGain()

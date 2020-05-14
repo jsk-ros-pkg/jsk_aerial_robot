@@ -1,8 +1,10 @@
 <?xml version="1.0"?>
 <launch>
-  <node pkg="hydrus" type="tilted_transform_control_node" name="hydrusx"  output="screen" respawn="false">
-    <rosparam file="$(find hydrus)/config/quad/tilt_10deg_201907/Hydrus.yaml" command="load" />
-    <remap from="joint_states" to="hydrusx/joint_states"/>
+  <arg name="robot_ns" default="hydrus" />
+
+  <node pkg="hydrus" type="tilted_transform_control_node" name="lqi_gain_generator"  output="screen" ns="$(arg robot_ns)">
+    <rosparam file="$(find hydrus)/config/quad/tilt_10deg_201907/LQI.yaml" command="load" />
+    <param name="tf_prefix" value="$(arg robot_ns)" />
     <param name="kinematic_verbose" value="false" />
     <param name="control_verbose" value="false" />
     <param name="debug_verbose" value="false" />

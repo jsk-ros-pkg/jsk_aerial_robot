@@ -54,7 +54,7 @@ namespace sensor_plugin
   class Imu :public sensor_plugin::SensorBase
   {
   public:
-    void initialize(ros::NodeHandle nh, ros::NodeHandle nhp, StateEstimator* estimator, string sensor_name, int index);
+    void initialize(ros::NodeHandle nh, StateEstimator* estimator, string sensor_name, int index);
 
     ~Imu() {}
     Imu();
@@ -66,7 +66,6 @@ namespace sensor_plugin
   private:
     ros::Publisher  acc_pub_;
     ros::Publisher  imu_pub_;
-    ros::Publisher  state_pub_;
     ros::Subscriber  imu_sub_, sub_imu_sub_;
     ros::Subscriber  imu_simple_sub_;
 

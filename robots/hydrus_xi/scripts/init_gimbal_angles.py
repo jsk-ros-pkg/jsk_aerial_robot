@@ -12,15 +12,15 @@ class InitGimbalAngle:
         try:
             index = 1
             while True:
-                angle = rospy.get_param('/hydrus_xi/servo_controller/gimbals/controller' + str(index) + '/simulation/init_value')
-                name = rospy.get_param('/hydrus_xi/servo_controller/gimbals/controller' + str(index) + '/name')
+                angle = rospy.get_param('servo_controller/gimbals/controller' + str(index) + '/simulation/init_value')
+                name = rospy.get_param('servo_controller/gimbals/controller' + str(index) + '/name')
                 index += 1
                 self.init_angles[name] = angle
         except:
             pass
 
-        self.pub = rospy.Publisher('/hydrus_xi/gimbals_ctrl', JointState, queue_size=1)
-        self.sub = rospy.Subscriber('/hydrus_xi/joint_states', JointState, self.callback)
+        self.pub = rospy.Publisher('gimbals_ctrl', JointState, queue_size=1)
+        self.sub = rospy.Subscriber('joint_states', JointState, self.callback)
         self.complete = False
 
     def callback(self, msg):

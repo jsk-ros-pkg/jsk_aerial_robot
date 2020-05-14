@@ -54,19 +54,26 @@ bool SimulationAttitudeController::init(hardware_interface::SpinalInterface *rob
   motor_num_ = spinal_interface_->getNames().size();
   joint_num_ = spinal_interface_->getJointNum();
 
-  controller_core_->init(&n, robot->getEstimatorPtr());
+  // we have to extract the robot namesace from the ros::controller nodehandle
+  int index = n.getNamespace().rfind('/');
+  std::string robot_ns = n.getNamespace().substr(0, index);
+  ros::NodeHandle n_robot = ros::NodeHandle(robot_ns);
+  controller_core_->init(&n_robot, robot->getEstimatorPtr());
 
-  std::string key("/aerial_robot_base_node/estimator/estimate_mode");
-  if(n.hasParam(key))
+  std::string full_param;
+  if (n.searchParam("estimation/mode", full_param))
     {
+      ROS_DEBUG_STREAM("find " << full_param);
+
       int estimate_mode;
-      n.getParam(key, estimate_mode);
+      n.getParam(full_param, estimate_mode);
       if(estimate_mode == StateEstimator::GROUND_TRUTH)
         controller_core_->useGroundTruth(true);
     }
   else
     {
-      ROS_ERROR_STREAM_NAMED("simulation_attitude_controller", "can not find rosparam " << key << ", to set the estimate model in simulation attitude controller");
+      ROS_WARN_STREAM_NAMED("simulation_attitude_controller", "can not find rosparam  estimation/mode in ns " << n.getNamespace()  << ", set ground truth mode");
+      controller_core_->useGroundTruth(true);
     }
 
   // Set the control gains if necessary
@@ -102,7 +109,7 @@ bool SimulationAttitudeController::init(hardware_interface::SpinalInterface *rob
       controller_core_->getAttController().yawDGain(gain);
     }
 
-  debug_sub_ = n.subscribe("/debug_force", 1, &SimulationAttitudeController::debugCallback, this);
+  debug_sub_ = n.subscribe("debug_force", 1, &SimulationAttitudeController::debugCallback, this);
 
   return true;
 }

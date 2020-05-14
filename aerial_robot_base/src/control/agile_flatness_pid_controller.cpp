@@ -137,77 +137,77 @@ namespace control_plugin
     pid_msg.roll.vel_err = vel_err_[1];
 
     /* z */
-    std::vector<double> target_throttle_tmp(target_throttle_);
-    double max_target_throttle = 0;
+    std::vector<double> z_control_terms_tmp(z_control_terms_);
+    double max_z_control_terms = 0;
 
-    double alt_pos_err = clamp(pos_err_.z(), -alt_err_thresh_, alt_err_thresh_);
+    double z_pos_err = clamp(pos_err_.z(), -z_err_thresh_, z_err_thresh_);
     if(navigator_->getNaviState() == Navigator::LAND_STATE && -pos_err_.z() > safe_landing_height_)
       {
         /* too high, slowly descend */
-        alt_pos_err = landing_alt_err_thresh_;
+        z_pos_err = landing_z_err_thresh_;
 
         /* avoid the unexceped ascending when the i term exceed the hovering state */
-        if(state_vel_.z() > landing_alt_err_thresh_) alt_pos_err_i_ += alt_pos_err * du;
+        if(state_vel_.z() > landing_z_err_thresh_) z_pos_err_i_ += z_pos_err * du;
       }
     else
       {
-        alt_pos_err_i_ += alt_pos_err * du;
+        z_pos_err_i_ += z_pos_err * du;
 
         if(navigator_->getNaviState() == Navigator::LAND_STATE)
-          alt_pos_err = 0; // no p control in final safe landing phase
+          z_pos_err = 0; // no p control in final safe landing phase
       }
-    double alt_vel_err = target_vel_.z() - state_vel_.z();
+    double z_vel_err = target_vel_.z() - state_vel_.z();
 
     for(int j = 0; j < motor_num_; j++)
       {
         //**** P Term
-        double alt_p_term = clamp(-alt_gains_[j][0] * alt_pos_err, -alt_terms_limit_[0], alt_terms_limit_[0]);
+        double z_p_term = clamp(-z_gains_[j][0] * z_pos_err, -z_terms_limit_[0], z_terms_limit_[0]);
 
         //**** I Term
-        double alt_i_term = clamp(alt_gains_[j][1] * alt_pos_err_i_, -alt_terms_limit_[1], alt_terms_limit_[1]);
+        double z_i_term = clamp(z_gains_[j][1] * z_pos_err_i_, -z_terms_limit_[1], z_terms_limit_[1]);
         //***** D Term
-        double alt_d_term = clamp(-alt_gains_[j][2] * alt_vel_err, -alt_terms_limit_[2], alt_terms_limit_[2]);
+        double z_d_term = clamp(-z_gains_[j][2] * z_vel_err, -z_terms_limit_[2], z_terms_limit_[2]);
 
-        target_throttle_tmp[j] = alt_p_term + alt_i_term + alt_d_term + alt_offset_;
+        z_control_terms_tmp[j] = z_p_term + z_i_term + z_d_term + z_offset_;
 
-        pid_msg.throttle.p_term.push_back(alt_p_term);
-        pid_msg.throttle.i_term.push_back(alt_i_term);
-        pid_msg.throttle.d_term.push_back(alt_d_term);
+        pid_msg.z.p_term.push_back(z_p_term);
+        pid_msg.z.i_term.push_back(z_i_term);
+        pid_msg.z.d_term.push_back(z_d_term);
 
-        if(alt_gains_.size() == 1)
+        if(z_gains_.size() == 1)
           {
-            target_throttle_[j] = clamp(target_throttle_tmp[j], 0, alt_limit_);
+            z_control_terms_[j] = clamp(z_control_terms_tmp[j], 0, z_limit_);
             break;
           }
 
-        if(target_throttle_tmp[j] > max_target_throttle)
-          max_target_throttle = target_throttle_tmp[j];
+        if(z_control_terms_tmp[j] > max_z_control_terms)
+          max_z_control_terms = z_control_terms_tmp[j];
       }
 
-    if(max_target_throttle <= alt_limit_)
-      std::copy(target_throttle_tmp.begin(), target_throttle_tmp.end(), target_throttle_.begin());
+    if(max_z_control_terms <= z_limit_)
+      std::copy(z_control_terms_tmp.begin(), z_control_terms_tmp.end(), z_control_terms_.begin());
     else
-      alt_pos_err_i_ -=  alt_pos_err * du; // do not increase this term if saturated
+      z_pos_err_i_ -=  z_pos_err * du; // do not increase this term if saturated
 
-    double z_total_term = std::accumulate(target_throttle_.begin(), target_throttle_.end(), 0.0);
+    double z_total_term = std::accumulate(z_control_terms_.begin(), z_control_terms_.end(), 0.0);
 
-    pid_msg.throttle.target_pos = target_pos_.z();
-    pid_msg.throttle.pos_err = alt_pos_err;
-    pid_msg.throttle.target_vel = target_vel_.z();
-    pid_msg.throttle.vel_err = alt_vel_err;
+    pid_msg.z.target_pos = target_pos_.z();
+    pid_msg.z.pos_err = z_pos_err;
+    pid_msg.z.target_vel = target_vel_.z();
+    pid_msg.z.vel_err = z_vel_err;
 
     /* change from desired accelaration (force) to desired roll/pitch and throttle */
     z_total_term /= estimator_->getMass();
     tf::Vector3 desired_force(xy_total_term[0], xy_total_term[1], z_total_term);
 
     double desired_total_throttle = desired_force.length();
-    tf::Vector3 desired_force_cog_frame = (tf::Matrix3x3(tf::createQuaternionFromYaw(state_psi_))).inverse() * desired_force;
+    tf::Vector3 desired_force_cog_frame = (tf::Matrix3x3(tf::createQuaternionFromYaw(state_yaw_))).inverse() * desired_force;
 
     for(int j = 0; j < motor_num_; j++)
       {
-        target_throttle_[j] *= desired_total_throttle / z_total_term;
-        pid_msg.throttle.total.push_back(target_throttle_[j]);
-        if(alt_gains_.size() == 1) break;
+        z_control_terms_[j] *= desired_total_throttle / z_total_term;
+        pid_msg.z.total.push_back(z_control_terms_[j]);
+        if(z_gains_.size() == 1) break;
       }
 
     target_pitch_ = atan2(desired_force_cog_frame.x(), desired_force_cog_frame.z());
@@ -217,56 +217,56 @@ namespace control_plugin
     pid_msg.roll.total.push_back(target_roll_);
 
     /* yaw */
-    std::vector<double> target_yaw_tmp(target_yaw_);
-    max_target_yaw_ = 0;
+    std::vector<double> yaw_control_terms_tmp(yaw_control_terms_);
+    max_yaw_term_ = 0;
     int16_t max_yaw_d_gain = 0; // for reconstruct yaw control term in spinal
 
-    double psi_err = clamp(psi_err_, -yaw_err_thresh_, yaw_err_thresh_);
-    psi_err_i_ += psi_err * du;
+    double yaw_err = clamp(yaw_err_, -yaw_err_thresh_, yaw_err_thresh_);
+    yaw_err_i_ += yaw_err * du;
     for(int j = 0; j < motor_num_; j++)
       {
         //**** P term
-        double yaw_p_term = clamp(-yaw_gains_[j][0] * psi_err, -yaw_terms_limits_[0], yaw_terms_limits_[0]);
+        double yaw_p_term = clamp(-yaw_gains_[j][0] * yaw_err, -yaw_terms_limits_[0], yaw_terms_limits_[0]);
 
         //**** I term:
-        double yaw_i_term = clamp(yaw_gains_[j][1] * psi_err_i_, -yaw_terms_limits_[1], yaw_terms_limits_[1]);
+        double yaw_i_term = clamp(yaw_gains_[j][1] * yaw_err_i_, -yaw_terms_limits_[1], yaw_terms_limits_[1]);
 
         //***** D term: usaully it is in the flight board
         /* but for the gimbal control, we need the d term, set 0 if it is not gimbal type */
-        double yaw_d_term = -yaw_gains_[j][2] * target_psi_vel_;
-        if(need_yaw_d_control_) yaw_d_term += (-yaw_gains_[j][2] * (-state_psi_vel_));
+        double yaw_d_term = -yaw_gains_[j][2] * target_yaw_vel_;
+        if(need_yaw_d_control_) yaw_d_term += (-yaw_gains_[j][2] * (-state_yaw_vel_));
         yaw_d_term = clamp(yaw_d_term, -yaw_terms_limits_[2], yaw_terms_limits_[2]);
 
         //*** each motor command value for log
-        target_yaw_tmp[j] = yaw_p_term + yaw_i_term + yaw_d_term;
+        yaw_control_terms_tmp[j] = yaw_p_term + yaw_i_term + yaw_d_term;
 
-        pid_msg.yaw.total.push_back(target_yaw_tmp[j]);
+        pid_msg.yaw.total.push_back(yaw_control_terms_tmp[j]);
         pid_msg.yaw.p_term.push_back(yaw_p_term);
         pid_msg.yaw.i_term.push_back(yaw_i_term);
         pid_msg.yaw.d_term.push_back(yaw_d_term);
 
         if(yaw_gains_.size() == 1) break;
 
-        if(fabs(target_yaw_tmp[j]) > max_target_yaw_) max_target_yaw_ = fabs(target_yaw_tmp[j]);
+        if(fabs(yaw_control_terms_tmp[j]) > max_yaw_term_) max_yaw_term_ = fabs(yaw_control_terms_tmp[j]);
 
         /* use d gains to find the maximum (positive) value */
         /* only select positve terms to avoid identical absolute value */
         if(static_cast<int16_t>(yaw_gains_[j][2] * 1000) > max_yaw_d_gain)
           {
             max_yaw_d_gain = static_cast<int16_t>(yaw_gains_[j][2] * 1000);
-            candidate_yaw_term_ = target_yaw_tmp[j];
+            candidate_yaw_term_ = yaw_control_terms_tmp[j];
           }
       }
 
-    if(max_target_yaw_ <= yaw_limit_)
-      std::copy(target_yaw_tmp.begin(), target_yaw_tmp.end(), target_yaw_.begin());
+    if(max_yaw_term_ <= yaw_limit_)
+      std::copy(yaw_control_terms_tmp.begin(), yaw_control_terms_tmp.end(), yaw_control_terms_.begin());
     else
-      psi_err_i_ -= psi_err * du; // do not increase this term if saturated
+      yaw_err_i_ -= yaw_err * du; // do not increase this term if saturated
 
     //**** ros pub
-    pid_msg.yaw.target_pos = target_psi_;
-    pid_msg.yaw.pos_err = psi_err_;
-    pid_msg.yaw.target_vel = target_psi_vel_;
+    pid_msg.yaw.target_pos = target_yaw_;
+    pid_msg.yaw.pos_err = yaw_err_;
+    pid_msg.yaw.target_vel = target_yaw_vel_;
 
     /* ros publish */
     pid_pub_.publish(pid_msg);

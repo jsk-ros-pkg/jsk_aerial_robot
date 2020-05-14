@@ -46,9 +46,9 @@ public:
   void init(ros::NodeHandle* nh, StateEstimate* estimator)
   {
     nh_ = nh;
-    config_ack_pub_ = nh_->advertise<std_msgs::UInt8>("/flight_config_ack", 1);
-    uav_info_sub_ = nh_->subscribe("/uav_info", 1, &FlightControl::uavInfoConfigCallback, this);
-    flight_config_sub_ = nh_->subscribe("/flight_config_cmd", 1, &FlightControl::flightConfigCallback, this);
+    config_ack_pub_ = nh_->advertise<std_msgs::UInt8>("flight_config_ack", 1);
+    uav_info_sub_ = nh_->subscribe("uav_info", 1, &FlightControl::uavInfoConfigCallback, this);
+    flight_config_sub_ = nh_->subscribe("flight_config_cmd", 1, &FlightControl::flightConfigCallback, this);
 
     att_controller_.init(nh, estimator);
 
@@ -62,9 +62,9 @@ public:
   void useGroundTruth(bool flag) { att_controller_.useGroundTruth(flag); }
 #else
   FlightControl():
-    config_ack_pub_("/flight_config_ack", &config_ack_msg_),
-    uav_info_sub_("/uav_info", &FlightControl::uavInfoConfigCallback, this ),
-    flight_config_sub_("/flight_config_cmd", &FlightControl::flightConfigCallback, this ),
+    config_ack_pub_("flight_config_ack", &config_ack_msg_),
+    uav_info_sub_("uav_info", &FlightControl::uavInfoConfigCallback, this ),
+    flight_config_sub_("flight_config_cmd", &FlightControl::flightConfigCallback, this ),
     att_controller_()
   {
   }

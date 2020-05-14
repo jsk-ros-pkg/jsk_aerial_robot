@@ -2,7 +2,7 @@
 
 ## Robot model (under ./robots)
 - hydrus3: 3rd generation hydrus which has 4 links
-- hydrusx: 4rd generation hydrus which has links more than 4 links. E.g. penta with 5 links, hex with 6 links.
+- hydrus: 4rd generation hydrus which has links more than 4 links. E.g. penta with 5 links, hex with 6 links.
 - dragon2: prototype of dragon
 
 ## Usage
@@ -11,9 +11,9 @@
 $ roslaunch aerial_robot_model aerial_robot_model.launch
 ```
 
-- hydrusx:
+- hydrus:
 ```
-$ roslaunch aerial_robot_model aerial_robot_model.launch model:=hydrusx/hydrus3_hex
+$ roslaunch aerial_robot_model aerial_robot_model.launch model:=hydrus/hydrus3_hex
 ```
 
 - dragon2:

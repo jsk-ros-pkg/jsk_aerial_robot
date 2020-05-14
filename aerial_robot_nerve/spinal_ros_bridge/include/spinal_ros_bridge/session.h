@@ -94,8 +94,8 @@ public:
         = boost::bind(&Session::handle_time, this, _1);
 
     /* for rosservice server */
-    serialized_msg_pub_ = nh_.advertise<spinal_ros_bridge::SerializedMessage>("/serialized_msg", 10);
-    serialized_srv_req_sub_ = nh_.subscribe("/serialized_srv_req", 1, &Session::serialized_srv_req_callback, this);
+    serialized_msg_pub_ = nh_.advertise<spinal_ros_bridge::SerializedMessage>("serialized_msg", 10);
+    serialized_srv_req_sub_ = nh_.subscribe("serialized_srv_req", 1, &Session::serialized_srv_req_callback, this);
 
     signal(SIGINT, &Session::signal_catch);
   }

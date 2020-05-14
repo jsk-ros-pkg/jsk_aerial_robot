@@ -59,6 +59,7 @@ public:
   RotorTfPublisher(ros::NodeHandle nh, ros::NodeHandle nhp, const KDL::Tree& tree, const urdf::Model& model): nh_(nh), nhp_(nhp)
   {
     nhp_.param("rotor_joint_name", rotor_joint_name_, string("rotor"));
+    nhp_.param("tf_prefix", tf_prefix_, string(""));
 
     addChildren(tree.getRootSegment());
     timer_ = nhp_.createTimer(0.1, &RotorTfPublisher::callbackFixedJoint, this, true);
@@ -76,8 +77,8 @@ private:
     for (map<string, SegmentPair>::const_iterator seg=segments_rotor_.begin(); seg != segments_rotor_.end(); seg++) {
       geometry_msgs::TransformStamped tf_transform = tf2::kdlToTransform(seg->second.segment.pose(0));
       tf_transform.header.stamp = ros::Time::now();
-      tf_transform.header.frame_id = seg->second.root;
-      tf_transform.child_frame_id = seg->second.tip;
+      tf_transform.header.frame_id = tf::resolve(tf_prefix_, seg->second.root);
+      tf_transform.child_frame_id =  tf::resolve(tf_prefix_, seg->second.tip);
       tf_transforms.push_back(tf_transform);
     }
     static_tf_broadcaster_.sendTransform(tf_transforms);
@@ -86,6 +87,7 @@ private:
   ros::Timer timer_;
   ros::NodeHandle nh_, nhp_;
   string rotor_joint_name_;
+  string tf_prefix_;
   tf2_ros::StaticTransformBroadcaster static_tf_broadcaster_;
   std::map<std::string, SegmentPair> segments_rotor_;
 

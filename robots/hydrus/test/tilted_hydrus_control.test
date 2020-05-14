@@ -40,8 +40,8 @@
     </rosparam>
     <param name="init_form_duration" value="5.0" />
     <param name="hovering_duration" value="25.0" />
-    <remap from="joint_states" to ="/hydrusx/joint_states" />
-    <remap from="joints_ctrl" to ="/hydrusx/joints_ctrl" />
+    <remap from="joint_states" to ="/hydrus/joint_states" />
+    <remap from="joints_ctrl" to ="/hydrus/joints_ctrl" />
   </test>
 
 </launch>

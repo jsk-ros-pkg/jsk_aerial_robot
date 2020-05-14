@@ -1,15 +1,15 @@
 <?xml version="1.0"?>
 <robot
-    xmlns:xacro="http://www.ros.org/wiki/xacro" name="hydrusx" >
+    xmlns:xacro="http://www.ros.org/wiki/xacro" name="hydrus" >
 
   <!-- basic kinematics model -->
   <xacro:include filename="$(find hydrus)/urdf/common.xacro" />
   <xacro:include filename="$(find hydrus)/urdf/link.urdf.xacro" />
 
-  <xacro:hydrusx_link links="4" self="1" rotor_direction="-1" with_battery = "0" />
-  <xacro:hydrusx_link links="4" self="2" rotor_direction="1"  with_battery = "0" />
-  <xacro:hydrusx_link links="4" self="3" rotor_direction="-1" with_battery = "0" />
-  <xacro:hydrusx_link links="4" self="4" rotor_direction="1"  with_battery = "0" />
+  <xacro:hydrus_link links="4" self="1" rotor_direction="-1" with_battery = "0" />
+  <xacro:hydrus_link links="4" self="2" rotor_direction="1"  with_battery = "0" />
+  <xacro:hydrus_link links="4" self="3" rotor_direction="-1" with_battery = "0" />
+  <xacro:hydrus_link links="4" self="4" rotor_direction="1"  with_battery = "0" />
 
   <!-- special battery arrangement -->
   <xacro:extra_module name = "bat1" parent = "link1" visible = "1"

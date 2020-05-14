@@ -9,9 +9,10 @@ attitude_controller:
 
 # sensor -> aerial_robot_hw_sim
 ## mocap
-mocap_pub_rate: 0.01
-mocap_pos_noise: 0.001
-mocap_rot_noise: 0.001
+simulation:
+  mocap_pub_rate: 0.01
+  mocap_pos_noise: 0.001
+  mocap_rot_noise: 0.001
 
-# ground truth -> aerial_robot_hw_sim
-ground_truth_pub_rate: 0.01
+  # ground truth -> aerial_robot_hw_sim
+  ground_truth_pub_rate: 0.01

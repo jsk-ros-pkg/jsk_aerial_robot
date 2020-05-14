@@ -3,37 +3,46 @@
 
   <arg name="real_machine" default="false" />
   <arg name="simulation" default="false" />
+  <arg name="robot_ns" default="hydrus" />
 
-  <group if="$(arg real_machine)">
-    <group unless="$(arg simulation)">
-      <!-- fc & IMU & GPS -->
-      <include file="$(find spinal_ros_bridge)/launch/serial.launch" >
-        <arg name="baud" value="921600" />
-        <arg name="port" value="/dev/flight_controller" />
-      </include>
+  <group ns="$(arg robot_ns)">
 
-      <!-- vo by realsense t265 -->
-      <include file="$(find realsense2_camera)/launch/multi_t265_odom.launch" >
-        <arg name="throttle_rate" value="80.0"/> <!-- 80 hz -->
-        <arg name="set_module_list" value="true" />
-        <arg name="module_list_file" value="$(find hydrus)/config/quad/old_model_tx2_rs_t265_201906/T265ModuleList.yaml" />
-        <arg name="reset_duration" value = "0.5" />
-      </include>
-      <!-- mocap -->
-      <include file="$(find aerial_robot_base)/launch/external_module/mocap.launch" />
+    <group if="$(arg real_machine)">
+      <group unless="$(arg simulation)">
+        <!-- fc & IMU & GPS -->
+        <include file="$(find spinal_ros_bridge)/launch/serial.launch" >
+          <arg name="baud" value="921600" />
+          <arg name="port" value="/dev/flight_controller" />
+        </include>
 
-      <!-- leddar one -->
-      <include file="$(find leddar_one)/launch/leddar_one.launch" />
+        <!-- vo by realsense t265 -->
+        <include file="$(find realsense2_camera)/launch/multi_t265_odom.launch" >
+          <arg name="throttle_rate" value="80.0"/> <!-- 80 hz -->
+          <arg name="set_module_list" value="true" />
+          <arg name="module_list_file" value="$(find hydrus)/config/quad/old_model_tx2_rs_t265_201906/T265ModuleList.yaml" />
+          <arg name="reset_duration" value = "0.5" />
+        </include>
+        <!-- mocap -->
+        <include file="$(find aerial_robot_base)/launch/external_module/mocap.launch" />
+
+        <!-- leddar one -->
+        <include file="$(find leddar_one)/launch/leddar_one.launch" >
+          <arg name="port" value="/dev/leddarone" />
+        </include>
+
+      </group>
+      <group if="$(arg simulation)">
+        <node pkg="nodelet" type="nodelet" name="realsense2_camera_manager" ns="camera" args="manager" />
+      </group>
     </group>
-    <group if="$(arg simulation)">
-      <node pkg="nodelet" type="nodelet" name="realsense2_camera_manager" ns="camera" args="manager" />
-    </group>
+
+    <!-- basic configuration for sensors (e.g. noise sigma) -->
+    <rosparam file="$(find hydrus)/config/sensors/imu/spinal.yaml" command="load" />
+    <rosparam file="$(find aerial_robot_base)/config/sensors/gps/ublox_m8n.yaml" command="load" />
+    <rosparam file="$(find hydrus)/config/sensors/vo/realsense_t265.yaml" command="load" />
+    <rosparam file="$(find aerial_robot_base)/config/sensors/mocap.yaml" command="load" />
+    <rosparam file="$(find aerial_robot_base)/config/sensors/altmeter/leddar_one.yaml" command="load" />
+
   </group>
 
-  <!-- basic configuration for sensors (e.g. noise sigma) -->
-  <rosparam file="$(find hydrus)/config/sensors/imu/spinal.yaml" command="load" />
-  <rosparam file="$(find aerial_robot_base)/config/sensors/gps/ublox_m8n.yaml" command="load" />
-  <rosparam file="$(find hydrus)/config/sensors/vo/realsense_t265.yaml" command="load" />
-  <rosparam file="$(find aerial_robot_base)/config/sensors/mocap.yaml" command="load" />
-  <rosparam file="$(find aerial_robot_base)/config/sensors/altmeter/leddar_one.yaml" command="load" />
 </launch>

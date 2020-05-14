@@ -51,7 +51,7 @@ namespace hardware_interface
       name_ = urdf_joint->name;
       direction_ = urdf_joint->axis.z;
 
-      auto robot_model_xml = aerial_robot_model::RobotModel::getRobotModelXml("robot_description");
+      auto robot_model_xml = aerial_robot_model::RobotModel::getRobotModelXml("robot_description", nh);
       TiXmlElement* m_f_rate_attr = robot_model_xml.FirstChildElement("robot")->FirstChildElement("m_f_rate");
       if(!m_f_rate_attr)
         ROS_ERROR_STREAM_NAMED("RotorHandle", "Cannot get m_f_rate from ros nodehandle");
@@ -62,7 +62,7 @@ namespace hardware_interface
         }
 
 
-      ros::NodeHandle motor_nh("/motor_info");
+      ros::NodeHandle motor_nh(nh, "motor_info");
       motor_nh.param("rotor_damping_rate", rotor_damping_rate_, 1.0); // s
       if(rotor_damping_rate_ > 1.0)
         {

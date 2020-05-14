@@ -24,10 +24,10 @@ float64 target_pos_y
 float32 target_vel_y
 float32 target_acc_y
 
-uint8 psi_nav_mode
+uint8 yaw_nav_mode
 
-float32 target_vel_psi
-float32 target_psi
+float32 target_vel_yaw
+float32 target_yaw
 
 uint8 pos_z_nav_mode
 

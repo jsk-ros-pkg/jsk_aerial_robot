@@ -1,16 +1,32 @@
 <launch>
-  <arg name="headless" default="False" />
+  <arg name="headless" default="false" />
+  <arg name="need_joint_state" default="true"/>
+  <arg name="model_options" default=""/>
   <arg name="robot_model" />
-  <arg name="node_suffix" default= "" />
+  <arg name="robot_ns" />
+  <arg name="rviz_init_pose" />
+  <arg name="rviz_config" />
 
-  <!-- not good -->
-  <!-- global namespace -->
-  <param name="robot_description"
-         command="$(find xacro)/xacro.py '$(arg robot_model)'" />
+  <group ns="$(arg robot_ns)">
+    <!-- set robot_description to rosparameter server -->
+    <param name="robot_description" command="$(find xacro)/xacro.py '$(arg robot_model)' robot_name:=$(arg robot_ns)  $(arg model_options)" />
 
-  <group unless="$(arg headless)">
-    <node name="rviz_$(arg node_suffix)" pkg="rviz" type="rviz"
-          args="-d $(find aerial_robot_model)/launch/rviz_config" respawn="true" />
+    <!-- joint state publisher if necessary -->
+    <rosparam file ="$(arg rviz_init_pose)" command="load"/>
+    <node name="$(anon joint_state_publisher_gui)" pkg="joint_state_publisher_gui" type="joint_state_publisher_gui" if="$(arg need_joint_state)">
+      <param name="robot_description" command="$(find xacro)/xacro.py '$(arg robot_model)' $(arg model_options)" />
+    </node >
+
+    <!-- tf publisher from joint_state -->
+    <node name="$(anon robot_state_publisher)" pkg="robot_state_publisher" type="state_publisher">
+      <param name="tf_prefix" value="$(arg robot_ns)" />
+    </node>
+    <node name="$(anon rotor_tf_publisher)" pkg="aerial_robot_model" type="rotor_tf_publisher" unless="$(arg need_joint_state)">
+      <param name="tf_prefix" value="$(arg robot_ns)" />
+    </node>
+
+    <!-- rviz -->
+    <node name="$(anon rviz)" pkg="rviz" type="rviz" args="-d $(arg rviz_config)" respawn="true" unless="$(arg headless)"/>
   </group>
 
 </launch>

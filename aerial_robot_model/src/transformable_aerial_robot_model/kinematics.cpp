@@ -154,12 +154,18 @@ namespace aerial_robot_model {
   }
 
 
-  TiXmlDocument RobotModel::getRobotModelXml(const std::string& param)
+  TiXmlDocument RobotModel::getRobotModelXml(const std::string param, ros::NodeHandle nh)
   {
-    ros::NodeHandle nh;
     std::string xml_string;
-    nh.getParam(param, xml_string);
     TiXmlDocument xml_doc;
+
+    if (!nh.hasParam(param))
+      {
+        ROS_ERROR("Could not find parameter %s on parameter server with namespace '%s'", param.c_str(), nh.getNamespace().c_str());
+        return xml_doc;
+      }
+
+    nh.getParam(param, xml_string);
     xml_doc.Parse(xml_string.c_str());
 
     return xml_doc;

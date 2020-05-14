@@ -28,8 +28,8 @@
 class BatteryStatus
 {
 public:
-  BatteryStatus():  voltage_status_pub_("/battery_voltage_status", &voltage_status_msg_),
-                    adc_scale_sub_("/set_adc_scale", &BatteryStatus::adcScaleCallback, this)
+  BatteryStatus():  voltage_status_pub_("battery_voltage_status", &voltage_status_msg_),
+                    adc_scale_sub_("set_adc_scale", &BatteryStatus::adcScaleCallback, this)
   {
   }
 

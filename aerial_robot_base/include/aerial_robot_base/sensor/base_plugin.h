@@ -75,42 +75,36 @@ namespace sensor_plugin
   class SensorBase
   {
   public:
-    SensorBase(string plugin_name = string("")):
-      sensor_hz_(0), plugin_name_(plugin_name), get_sensor_tf_(false)
+    SensorBase(): sensor_hz_(0), get_sensor_tf_(false)
     {
       sensor_tf_.setIdentity();
       sensor_status_ = Status::INACTIVE;
     }
 
-    virtual void initialize(ros::NodeHandle nh, ros::NodeHandle nhp, StateEstimator* estimator, string sensor_name, int index)
+    virtual void initialize(ros::NodeHandle nh, StateEstimator* estimator, string sensor_name, int index)
     {
       estimator_ = estimator;
 
-      nh_ = ros::NodeHandle(nh, sensor_name);
-      nhp_ = ros::NodeHandle(nhp, sensor_name);
-      indexed_nh_ = ros::NodeHandle(nh, sensor_name + std::to_string(index));
-      indexed_nhp_ = ros::NodeHandle(nhp, sensor_name + std::to_string(index));
+      nh_ = nh;
+      nhp_ = ros::NodeHandle(nh_, sensor_name);
+      indexed_nhp_ = ros::NodeHandle(nh_, sensor_name + std::to_string(index));
 
       health_.resize(1, false);
       health_stamp_.resize(1, ros::Time::now().toSec());
 
-      set_status_service_ = indexed_nh_.advertiseService("estimate_flag", &SensorBase::setStatusCb, this);
-      reset_service_ = indexed_nh_.advertiseService("reset", &SensorBase::resetCb, this);
+      sensor_name_ = sensor_name.substr(sensor_name.rfind("/") + 1);
+      state_pub_ = nh_.advertise<aerial_robot_msgs::States>("kf/" + sensor_name_ + std::to_string(index) + "/data", 10);
+      set_status_service_ = indexed_nhp_.advertiseService("estimate_flag", &SensorBase::setStatusCb, this);
+      reset_service_ = indexed_nhp_.advertiseService("reset", &SensorBase::resetCb, this);
 
-      ros::NodeHandle nh_global("~");
-      nh_global.param("simulation", simulation_, false);
-      if(param_verbose_) cout << nh_global.getNamespace() << ", simulaiton is " << simulation_ << endl;
-      nh_global.param("param_verbose", param_verbose_, false);
-      nh_global.param("debug_verbose", debug_verbose_, false);
-
-      ROS_WARN_STREAM("load sensor plugin: " << indexed_nhp_.getNamespace());
+      ROS_INFO_STREAM("load sensor plugin: " << sensor_name_ + std::to_string(index));
 
       if (!nhp_.getParam ("estimate_mode", estimate_mode_) && !indexed_nhp_.getParam ("estimate_mode", estimate_mode_))
         ROS_ERROR_STREAM(indexed_nhp_.getNamespace() << ", can not get param about estimate mode");
 
       /* general parameters for the same sensor type */
-      getParam<bool>("param_verbose", param_verbose_, param_verbose_);
-      getParam<bool>("debug_verbose", debug_verbose_, debug_verbose_);
+      getParam<bool>("param_verbose", param_verbose_, false);
+      getParam<bool>("debug_verbose", debug_verbose_, false);
       getParam<std::string>("sensor_frame", sensor_frame_, "sensor_frame");
       getParam<bool>("variable_sensor_tf_flag", variable_sensor_tf_flag_, false);
       getParam<double>("reset_duration", reset_duration_, 1.0);
@@ -125,7 +119,7 @@ namespace sensor_plugin
 
     virtual ~SensorBase(){}
 
-    inline const std::string& getPluginName() const {return plugin_name_;}
+    inline const std::string& getSensorName() const {return sensor_name_;}
     const int getStatus()
     {
       boost::lock_guard<boost::mutex> lock(status_mutex_);
@@ -146,34 +140,34 @@ namespace sensor_plugin
 
     virtual void changeStatus(bool flag)
     {
-      ROS_WARN("wrong, %d", flag);
       if(sensor_status_ == Status::INVALID && flag)
         {
           sensor_status_ = Status::INACTIVE;
-          ROS_INFO_STREAM(nhp_.getNamespace() << ", set to inactive");
+          ROS_INFO_STREAM(indexed_nhp_.getNamespace() << ", set to inactive");
         }
       if(!flag)
         {
           sensor_status_ = Status::INVALID;
-          ROS_INFO_STREAM(nhp_.getNamespace() << ", set to invalid");
+          ROS_INFO_STREAM(indexed_nhp_.getNamespace() << ", set to invalid");
         }
     }
 
   protected:
 
-    ros::NodeHandle nh_, nhp_; //node handle for same sensor type (e.g. imu, gps, vo, alt)
-    ros::NodeHandle indexed_nh_, indexed_nhp_; //node handle for indexed sensor handler (e.g. imu1, imu2)
+    ros::NodeHandle nh_, nhp_;
+    ros::NodeHandle indexed_nhp_; //node handle for indexed sensor handler (e.g. imu1, imu2)
+    ros::Publisher state_pub_;
     ros::Timer  health_check_timer_;
     ros::ServiceServer set_status_service_;
     ros::ServiceServer reset_service_;
     StateEstimator* estimator_;
     int estimate_mode_;
 
-    bool simulation_;
+    //bool simulation_;
     bool param_verbose_;
     bool debug_verbose_;
 
-    string plugin_name_;
+    string sensor_name_;
 
     bool get_sensor_tf_;
     bool variable_sensor_tf_flag_;
@@ -222,9 +216,9 @@ namespace sensor_plugin
       /* this will call only once, no recovery */
       for(int i = 0; i < health_.size(); i++)
         {
-          if(ros::Time::now().toSec() - health_stamp_.at(i) > health_timeout_ && health_.at(i) && !simulation_)
+          if(ros::Time::now().toSec() - health_stamp_.at(i) > health_timeout_ && health_.at(i)) //  && !simulation_
             {
-              ROS_ERROR("[%s, chan%d]: can not get fresh sensor data for %f[sec]", nhp_.getNamespace().c_str(), i, ros::Time::now().toSec() - health_stamp_.at(i));
+              ROS_ERROR("[%s, chan%d]: can not get fresh sensor data for %f[sec]", indexed_nhp_.getNamespace().c_str(), i, ros::Time::now().toSec() - health_stamp_.at(i));
               /* TODO: the solution to unhealth should be more clever */
               estimator_->setUnhealthLevel(unhealth_level_);
 
@@ -235,7 +229,7 @@ namespace sensor_plugin
 
     bool resetCb(std_srvs::Empty::Request  &req, std_srvs::Empty::Response &res)
     {
-      ROS_INFO("reset sensor plugin %s from rosservice server", plugin_name_.c_str());
+      ROS_INFO("reset sensor plugin %s from rosservice server", sensor_name_.c_str());
       reset();
       return true;
     }
@@ -262,7 +256,7 @@ namespace sensor_plugin
       if(!health_[chan])
         {
           health_[chan] = true;
-          ROS_WARN("%s: get sensor data, du: %f", nhp_.getNamespace().c_str(), ros::Time::now().toSec() - health_stamp_[chan]);
+          ROS_WARN("%s: get sensor data, du: %f", indexed_nhp_.getNamespace().c_str(), ros::Time::now().toSec() - health_stamp_[chan]);
         }
       health_stamp_[chan] = ros::Time::now().toSec();
     }
@@ -306,7 +300,7 @@ namespace sensor_plugin
       double y, p, r; sensor_tf_.getBasis().getRPY(r, p, y);
       if(!variable_sensor_tf_flag_)
         ROS_INFO("%s: get tf from %s to %s, [%f, %f, %f], [%f, %f, %f]",
-                 nhp_.getNamespace().c_str(),
+                 indexed_nhp_.getNamespace().c_str(),
                  estimator_->getBaselinkName().c_str(), sensor_frame_.c_str(),
                  sensor_tf_.getOrigin().x(), sensor_tf_.getOrigin().y(),
                  sensor_tf_.getOrigin().z(), r, p, y);

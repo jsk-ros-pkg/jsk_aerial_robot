@@ -63,9 +63,9 @@ namespace sensor_plugin
   class Mocap : public sensor_plugin::SensorBase
   {
   public:
-    void initialize(ros::NodeHandle nh, ros::NodeHandle nhp, StateEstimator* estimator, string sensor_name, int index)
+    void initialize(ros::NodeHandle nh, StateEstimator* estimator, string sensor_name, int index)
     {
-      SensorBase::initialize(nh, nhp, estimator, sensor_name, index);
+      SensorBase::initialize(nh, estimator, sensor_name, index);
       rosParamInit();
 
       //low pass filter
@@ -74,10 +74,7 @@ namespace sensor_plugin
       lpf_angular_ = IirFilter(sample_freq_, cutoff_vel_freq_, 3);
 
       std::string topic_name;
-
-      nhp_.param("mocap_pub_name", topic_name, std::string("data"));
-      pose_stamped_pub_ = nh_.advertise<aerial_robot_msgs::States>(topic_name, 5);
-      nhp_.param("mocap_sub_name", topic_name, std::string("/aerial_robot/pose"));
+      getParam<std::string>("mocap_sub_name", topic_name, std::string("pose"));
 
 #ifdef ARM_MELODIC //https://github.com/ros/ros_comm/issues/1404
       mocap_sub_ = nh_.subscribe(topic_name, 1, &Mocap::poseCallback, this); // since we do not use time_sync mode for mocap, so only need the latest value.
@@ -92,7 +89,7 @@ namespace sensor_plugin
     ~Mocap() {}
 
     Mocap():
-      sensor_plugin::SensorBase(string("mocap")),
+      sensor_plugin::SensorBase(),
       raw_pos_(0, 0, 0),
       raw_vel_(0, 0, 0),
       pos_(0, 0, 0),
@@ -121,7 +118,6 @@ namespace sensor_plugin
 
   private:
     /* ros */
-    ros::Publisher  pose_stamped_pub_;
     ros::Subscriber mocap_sub_, ground_truth_sub_;
 
     /* ros param */
@@ -206,7 +202,7 @@ namespace sensor_plugin
 
           /* estimation */
           estimateProcess(msg->header.stamp);
-          pose_stamped_pub_.publish(ground_truth_pose_);
+          state_pub_.publish(ground_truth_pose_);
         }
 
       if(first_flag)
@@ -294,8 +290,6 @@ namespace sensor_plugin
 
     void rosParamInit()
     {
-      std::string ns = nhp_.getNamespace();
-
       getParam<double>("pos_noise_sigma", pos_noise_sigma_, 0.001 );
       getParam<double>("acc_bias_noise_sigma", acc_bias_noise_sigma_, 0.0);
       getParam<double>("sample_freq", sample_freq_, 100.0);

@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <launch>
   # machine
-  <arg name="model" default ="hydrusx" />
+  <arg name="model" default ="hydrus" />
 
   # sensor
   <arg name="use_zed" default ="true" />

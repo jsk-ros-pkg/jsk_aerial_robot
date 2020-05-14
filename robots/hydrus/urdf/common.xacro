@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <robot
-    xmlns:xacro="http://www.ros.org/wiki/xacro" name="hydrusx_common" >
+    xmlns:xacro="http://www.ros.org/wiki/xacro" name="hydrus_common" >
 
   <!-- general attribute -->
   <baselink name="fc" />

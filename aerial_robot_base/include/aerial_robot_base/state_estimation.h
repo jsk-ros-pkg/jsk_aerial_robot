@@ -466,6 +466,7 @@ protected:
   /* robot kinematics  */
   boost::shared_ptr<aerial_robot_model::RobotModel> kinematics_model_;
   std::map<std::string, KDL::Frame> segments_tf_;
+  std::string tf_prefix_;
   std::string baselink_name_;
   tf::Transform cog2baselink_transform_; // TODO: should be calculated from the aboved "kinemtaics_model_"
   double mass_;

@@ -52,7 +52,7 @@ namespace
 namespace sensor_plugin
 {
   VisualOdometry::VisualOdometry():
-    sensor_plugin::SensorBase(string("vo")),
+    sensor_plugin::SensorBase(),
     servo_auto_change_flag_(false)
   {
     world_offset_tf_.setIdentity();
@@ -67,26 +67,14 @@ namespace sensor_plugin
     vo_state_.states[2].state.resize(2);
   }
 
-
-
-  void VisualOdometry::initialize(ros::NodeHandle nh, ros::NodeHandle nhp, StateEstimator* estimator, string sensor_name, int index)
+  void VisualOdometry::initialize(ros::NodeHandle nh, StateEstimator* estimator, string sensor_name, int index)
   {
-    SensorBase::initialize(nh, nhp, estimator, sensor_name, index);
+    SensorBase::initialize(nh, estimator, sensor_name, index);
     rosParamInit();
-
-    /* ros publisher: aerial_robot_base::State */
-      if(estimator_->getVoHandlers().size() == 1)
-        {
-          vo_state_pub_ = nh_.advertise<aerial_robot_msgs::States>("data",10);
-        }
-      else
-        {
-          vo_state_pub_ = indexed_nh_.advertise<aerial_robot_msgs::States>("data",10);
-        }
 
     /* ros subscriber: vo */
     string topic_name;
-    getParam<std::string>("vo_sub_topic_name", topic_name, string("/vo"));
+    getParam<std::string>("vo_sub_topic_name", topic_name, string("vo"));
 
     uint32_t queuse_size = 1; // if the timestamp is not synchronized, we can only use the latest sensor value.
     if(time_sync_) queuse_size = 10;
@@ -97,14 +85,10 @@ namespace sensor_plugin
       {
         init_servo_st = ros::Time::now();
         /* ros publisher: servo motor */
-        nhp_.param("vo_servo_topic_name", topic_name, string("/vo_servo_target_pwm"));
-        if(estimator_->getVoHandlers().size() > 1)
-          indexed_nhp_.param("vo_servo_topic_name", topic_name, string("/vo_servo_target_pwm") + std::to_string(index));
+        getParam<std::string>("vo_servo_topic_name", topic_name, string("vo_servo_target_pwm"));
         vo_servo_pub_ = nh_.advertise<sensor_msgs::JointState>(topic_name, 1);
 
-        nhp_.param("vo_servo_debug_topic_name", topic_name, string("/vo_servo_debug"));
-        if(estimator_->getVoHandlers().size() > 1)
-          indexed_nhp_.param("vo_servo_debug_topic_name", topic_name, string("/vo_servo_debug")  + std::to_string(index));
+        getParam<std::string>("vo_servo_debug_topic_name", topic_name, string("vo_servo_debug"));
         vo_servo_debug_sub_ = nh_.subscribe(topic_name, 1, &VisualOdometry::servoDebugCallback, this);
 
         servo_control_timer_ = indexed_nhp_.createTimer(ros::Duration(servo_control_rate_), &VisualOdometry::servoControl,this); // 10 Hz
@@ -212,7 +196,7 @@ namespace sensor_plugin
 
         setStatus(Status::INIT);
 
-        std::cout << indexed_nhp_.getNamespace()  << ": start kalman filter";
+        ROS_INFO_STREAM(indexed_nhp_.getNamespace()  << ": start kalman filter");
         /* chose pos / vel estimation mode, according to the view of the camera */
         /* TODO: should consider the illustration or feature dense of the image view */
 
@@ -425,7 +409,7 @@ namespace sensor_plugin
     vo_state_.states[1].state[0].y = raw_global_vel_.y();
     vo_state_.states[2].state[0].y = raw_global_vel_.z();
 
-    vo_state_pub_.publish(vo_state_);
+    state_pub_.publish(vo_state_);
 
     /* update */
     prev_sensor_tf = raw_sensor_tf;
@@ -681,7 +665,7 @@ namespace sensor_plugin
   {
     /* call reset rosserive */
     std::string srv_name;
-    getParam<std::string>("reset_srv_name", srv_name, string("/reset"));
+    getParam<std::string>("reset_srv_name", srv_name, string("reset"));
 
     ros::ServiceClient client = nh_.serviceClient<std_srvs::Empty>(srv_name);
 
@@ -699,7 +683,7 @@ namespace sensor_plugin
         fusion_mode_ = ONLY_VEL_MODE;
         setStatus(Status::RESET);
         reset_stamp_ = ros::Time::now().toSec();
-        ROS_INFO("Reset VIO sensor %s", plugin_name_.c_str());
+        ROS_INFO("Reset VIO sensor %s", sensor_name_.c_str());
         return true;
       }
     else
