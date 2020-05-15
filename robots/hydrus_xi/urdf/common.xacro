@@ -20,7 +20,9 @@
   <xacro:property name="bat_mass" value="0.193"/> <!-- 1300mAh -->
 
   <!-- dynamics -->
+  <m_f_rate value="-0.0182" /> <!-- MN4010KV475_Afro_15inch -->
   <xacro:property name="max_force" value="24"/> <!-- [N] -->
+  <xacro:property name="min_force" value="1"/> <!-- [N] -->
 
   <!-- collision -->
   <xacro:property name="collision_rotor_height" value="0.1" />

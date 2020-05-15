@@ -1,7 +1,6 @@
 ### Gimbal PID control for dragon quad type
 
 # general parameter
-controller/only_three_axis_mode: true
 controller/verbose: true
 controller/real_machine: false
 controller/control_verbose: false

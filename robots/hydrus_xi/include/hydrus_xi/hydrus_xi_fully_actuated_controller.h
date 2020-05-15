@@ -41,7 +41,6 @@
 #include <spinal/FlightConfigCmd.h>
 #include <aerial_robot_msgs/WrenchAllocationMatrix.h>
 #include <aerial_robot_msgs/FlatnessPid.h>
-#include <aerial_robot_model/eigen_utils.h>
 #include <aerial_robot_base/control/flight_control.h>
 #include <aerial_robot_model/transformable_aerial_robot_model_ros.h>
 #include <hydrus_xi/hydrus_xi_fully_actuated_robot_model.h>
@@ -78,8 +77,8 @@ namespace control_plugin
     virtual ~HydrusXiFullyActuatedController() = default;
 
     void initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
-                     StateEstimator* estimator, Navigator* navigator,
-                     double ctrl_loop_rate) override;
+                    StateEstimator* estimator, Navigator* navigator,
+                    double ctrl_loop_rate) override;
     bool update() override;
     void reset() override;
     void stateError();
@@ -139,6 +138,7 @@ namespace control_plugin
     tf::Vector3 target_linear_acc_;
     double target_yaw_acc_;
     std::vector<float> calcForceVector(const Eigen::MatrixXd& wrench_allocation_matrix_inv);
+    Eigen::MatrixXd calcWrenchAllocationMatrixWithInertial();
     std::vector<double> target_throttle_;
 
     ros::Publisher flight_cmd_pub_;

@@ -25,9 +25,9 @@ generate_dynamic_reconfigure_options(
   cfg/LQI.cfg)
 
 catkin_package(
-  INCLUDE_DIRS include
-  LIBRARIES hydrus_robot_model transform_control
-  CATKIN_DEPENDS roscpp aerial_robot_msgs aerial_robot_base aerial_robot_model spinal tf_conversions eigen_conversions
+  INCLUDE_DIRS include test
+  LIBRARIES hydrus_robot_model transform_control hydrus_numerical_jacobians
+  CATKIN_DEPENDS roscpp aerial_robot_msgs aerial_robot_base aerial_robot_model aerial_robot_control spinal tf_conversions eigen_conversions
   DEPENDS EIGEN3
 )
 
@@ -48,6 +48,7 @@ set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O3 -g -DNDEBUG")
 # include_directories(include)
 include_directories(
   include
+  test
   ${Boost_INCLUDE_DIR}
   ${catkin_INCLUDE_DIRS}
   ${EIGEN3_INCLUDE_DIRS}
@@ -88,6 +89,12 @@ install(TARGETS transform_control tilted_transform_control
  )
 
 # test
+# pre-build test code
+add_library(hydrus_numerical_jacobians test/hydrus/numerical_jacobians.cpp)
+target_link_libraries(hydrus_numerical_jacobians hydrus_robot_model ${catkin_LIBRARIES})
+add_executable(hydrus_jacobian_test test/hydrus/jacobian_test.cpp)
+target_link_libraries(hydrus_jacobian_test hydrus_numerical_jacobians ${catkin_LIBRARIES} ${GTEST_LIBRARIES})
+
 if(CATKIN_ENABLE_TESTING)
   find_package(catkin REQUIRED COMPONENTS rostest)
   add_subdirectory(test)

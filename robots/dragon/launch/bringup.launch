@@ -40,7 +40,7 @@
     <param name="navigator/xy_control_mode"  value="$(arg control_mode)"/>
 
     <param name="simulation" value="$(arg simulation)" /> <!-- for sensor plugin -->
-    <param name="param_verbose" value= "true" />
+    <param name="param_verbose" value= "false" />
     <param name="main_rate" type="double" value="40"/>
 
     ###########  Sensor Fusion  ###########
@@ -81,7 +81,7 @@
   <node pkg="aerial_robot_model" type="servo_bridge_node" name="servo_bridge"  output="screen"  ns="dragon" />
 
   ###########  Transform Control  ###########
-  <node pkg="dragon" type="dragon_transform_control_node" name="dragon"  output="screen" respawn="true">
+  <node pkg="dragon" type="dragon_transform_control_node" name="dragon"  output="screen">
     <rosparam file="$(find dragon)/config/$(arg type)/AttitudeControl.yaml" command="load" />
     <remap from="joint_states" to="dragon/joint_states"/>
     <param name="kinematic_verbose" value="false" />

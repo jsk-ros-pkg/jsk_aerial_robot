@@ -28,8 +28,8 @@ message(STATUS "CMAKE_CXX_FLAGS_DEBUG:          ${CMAKE_CXX_FLAGS_DEBUG}")
 find_package(Boost REQUIRED COMPONENTS system)
 
 catkin_package(
-  INCLUDE_DIRS include
-  LIBRARIES dragon_robot_model dragon_transform_control
+  INCLUDE_DIRS include test
+  LIBRARIES dragon_robot_model dragon_transform_control dragon_numerical_jacobians
   CATKIN_DEPENDS hydrus
   DEPENDS EIGEN3
 )
@@ -40,6 +40,7 @@ catkin_package(
 
 include_directories(
   include
+  test
   ${catkin_INCLUDE_DIRS}
   ${EIGEN3_INCLUDE_DIRS}
 )
@@ -59,6 +60,12 @@ target_link_libraries (dragon_control_pluginlib dragon_robot_model ${catkin_LIBR
 add_dependencies(dragon_control_pluginlib aerial_robot_msgs_generate_messages_cpp hydrus_gencfg)
 
 # test
+# pre-build test code
+add_library(dragon_numerical_jacobians test/dragon/numerical_jacobians.cpp)
+target_link_libraries(dragon_numerical_jacobians dragon_robot_model ${catkin_LIBRARIES})
+add_executable(dragon_jacobian_test test/dragon/jacobian_test.cpp)
+target_link_libraries(dragon_jacobian_test dragon_numerical_jacobians ${catkin_LIBRARIES} ${GTEST_LIBRARIES})
+
 if(CATKIN_ENABLE_TESTING)
   find_package(catkin REQUIRED COMPONENTS rostest)
   add_subdirectory(test)

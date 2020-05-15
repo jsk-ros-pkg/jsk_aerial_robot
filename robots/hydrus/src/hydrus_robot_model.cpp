@@ -1,153 +1,142 @@
 #include <hydrus/hydrus_robot_model.h>
 
-HydrusRobotModel::HydrusRobotModel(bool init_with_rosparam, bool verbose, double stability_margin_thre, double p_det_thre, double f_max, double f_min, double m_f_rate, bool only_three_axis_mode):
-  RobotModel(init_with_rosparam, verbose),
-  stability_margin_thre_(stability_margin_thre),
-  p_det_thre_(p_det_thre),
-  f_max_(f_max),
-  f_min_(f_min),
-  m_f_rate_(m_f_rate_),
-  only_three_axis_mode_(only_three_axis_mode),
-  p_det_(0),
-  stability_margin_(0)
+using namespace aerial_robot_model;
+
+HydrusRobotModel::HydrusRobotModel(bool init_with_rosparam, bool verbose, double fc_t_min_thre, double fc_rp_min_thre, double epsilon, int wrench_dof):
+  RobotModel(init_with_rosparam, verbose, 0, fc_t_min_thre, epsilon),
+  fc_rp_min_thre_(fc_rp_min_thre),
+  wrench_dof_(wrench_dof)
 {
   if (init_with_rosparam)
     {
       getParamFromRos();
     }
 
-  Q_f_ = Eigen::MatrixXd::Zero(3, getRotorNum());
-  Q_tau_ = Eigen::MatrixXd::Zero(3, getRotorNum());
-  P_ = Eigen::MatrixXd::Zero(6, getRotorNum());
+  if(wrench_dof_ == 3) setFeasibleControlTMinThre(0);
 
-  lqi_mode_ = LQI_FOUR_AXIS_MODE;
+  fc_rp_dists_.resize(getRotorNum());
+  approx_fc_rp_dists_.resize(getRotorNum());
+}
+
+void HydrusRobotModel::calcFeasibleControlRollPitchDists()
+{
+  /* only consider Moment for roll and pitch */
+  const int rotor_num = getRotorNum();
+  const double thrust_max = getThrustUpperLimit();
+
+  auto v = calcV();
+
+  for (auto& v_i: v) v_i.z() = 0;
+
+  for (int i = 0; i < rotor_num; ++i) {
+    double t_min_i = 0.0;
+    auto v_i_normalized = v.at(i).normalized();
+    for (int j = 0; j < rotor_num; ++j) {
+      if (i == j) continue;
+      double cross_product = (v.at(j).cross(v_i_normalized)).z();
+
+      t_min_i += std::max(0.0, cross_product * thrust_max);
+      //ROS_INFO("i: %d, j: %d, cross_product: %f, t_min_ij: %f" , i, j, cross_product, std::max(0.0, cross_product * thrust_max));
+    }
+    fc_rp_dists_(i) = t_min_i;
+  }
+
+  //  ROS_INFO_STREAM("fc_rp_distsj_: " << fc_rp_distsj_.transpose());
+  fc_rp_min_ = fc_rp_dists_.minCoeff();
+}
+
+void HydrusRobotModel::calcFeasibleControlRollPitchDistsJacobian()
+{
+  const int rotor_num = getRotorNum();
+  const int joint_num = getJointNum();
+  const int ndof = 6 + joint_num;
+  const auto& p = getRotorsOriginFromCog<Eigen::Vector3d>();
+  const auto& u = getRotorsNormalFromCog<Eigen::Vector3d>();
+  const auto& sigma = getRotorDirection();
+  const double thrust_max = getThrustUpperLimit();
+  const double m_f_rate = getMFRate();
+  const auto& u_jacobians = getUJacobians();
+  const auto& p_jacobians = getPJacobians();
+  const double epsilon = getEpsilon();
+
+  fc_rp_dists_jacobian_.resize(rotor_num, 6 + joint_num);
+
+  auto v = calcV();
+  for (auto& v_i: v) v_i.z() = 0; // 2D
+
+  std::vector<Eigen::MatrixXd> v_jacobians;
+  for (int i = 0; i < rotor_num; ++i) {
+    v_jacobians.push_back(-skew(u.at(i)) * p_jacobians.at(i) + skew(p.at(i)) * u_jacobians.at(i) + m_f_rate * sigma.at(i + 1) * u_jacobians.at(i));
+    v_jacobians.back().row(2).setZero(); // 2D
+  }
+
+  for (int i = 0; i < rotor_num; ++i)
+    {
+      const Eigen::Vector3d& v_i = v.at(i);
+      const Eigen::Vector3d v_i_normalized = v.at(i).normalized();
+      const Eigen::MatrixXd& d_v_i = v_jacobians.at(i);
+
+      double approx_dist = 0.0;
+      Eigen::MatrixXd d_dist = Eigen::MatrixXd::Zero(1, ndof);
+      for (int j = 0; j < rotor_num; ++j)
+        {
+          if (i == j) continue;
+
+          const Eigen::Vector3d& v_j = v.at(j);
+          const Eigen::MatrixXd& d_v_j = v_jacobians.at(j);
+          const double v_cross_product = (v_j.cross(v_i_normalized)).z();
+          Eigen::MatrixXd d_v_cross_product = -skew(v_i_normalized) * d_v_j + skew(v_j) * (1 / v_i.norm() * d_v_i - v_i_normalized / v_i.squaredNorm() * v_i.transpose() * d_v_i);
+          approx_dist += reluApprox(v_cross_product * thrust_max, epsilon);
+          d_dist += sigmoid(v_cross_product * thrust_max, epsilon) * d_v_cross_product.row(2) * thrust_max;
+        } //j
+
+      approx_fc_rp_dists_(i) = approx_dist;
+      fc_rp_dists_jacobian_.row(i) = d_dist;
+    } //i
+}
+
+void HydrusRobotModel::calcWrenchMatrixOnRoot()
+{
+  aerial_robot_model::RobotModel::calcWrenchMatrixOnRoot();
+  const auto wrench_mat = getThrustWrenchMatrix();
+  setThrustWrenchMatrix(wrench_mat.middleRows(2, wrench_dof_));
+}
+
+void HydrusRobotModel::calcStaticThrust()
+{
+  calcWrenchMatrixOnRoot(); // update Q matrix
+
+  Eigen::VectorXd wrench_g = calcGravityWrenchOnRoot();
+  const auto& wrench_mat = getThrustWrenchMatrix();
+
+  // under-actuated
+  Eigen::VectorXd static_thrust = aerial_robot_model::pseudoinverse(wrench_mat) * (-wrench_g.segment(2, wrench_dof_));
+  setStaticThrust(static_thrust);
 }
 
 void HydrusRobotModel::getParamFromRos()
 {
   ros::NodeHandle nhp("~");
-  nhp.param("only_three_axis_mode", only_three_axis_mode_, false);
-  nhp.param ("stability_margin_thre", stability_margin_thre_, 0.01);
-  if(getVerbose()) std::cout << "stability margin thre: " << std::setprecision(3) << stability_margin_thre_ << std::endl;
-  nhp.param ("p_determinant_thre", p_det_thre_, 1e-6);
-  if(getVerbose()) std::cout << "p determinant thre: " << std::setprecision(3) << p_det_thre_ << std::endl;
-  nhp.param ("f_max", f_max_, 8.6);
-  if(getVerbose()) std::cout << "f_max: " << std::setprecision(3) << f_max_ << std::endl;
-  nhp.param ("f_min", f_min_, 2.0);
-  if(getVerbose()) std::cout << "f_min: " << std::setprecision(3) << f_min_ << std::endl;
-  ros::NodeHandle control_node("/motor_info");
-  control_node.param("m_f_rate", m_f_rate_, 0.01);
-  if(getVerbose()) std::cout << "m_f_rate: " << std::setprecision(3) << m_f_rate_ << std::endl;
+  nhp.param("fc_rp_min_thre", fc_rp_min_thre_, 1e-6);
+  nhp.param("rp_position_margin_thre", rp_position_margin_thre_, 0.01);
+  nhp.param("wrench_mat_det_thre", wrench_mat_det_thre_, 1e-6);
+  if(nhp.hasParam("wrench_dof"))  nhp.getParam("wrench_dof", wrench_dof_);
 }
 
-bool HydrusRobotModel::modelling(bool verbose, bool control_verbose)
+// @depreacated
+bool HydrusRobotModel::rollPitchPositionMarginCheck()
 {
-  const std::vector<Eigen::Vector3d> rotors_origin = getRotorsOriginFromCog<Eigen::Vector3d>();
-  const std::vector<Eigen::Vector3d> rotors_normal = getRotorsNormalFromCog<Eigen::Vector3d>();
-
-  const int rotor_num = getRotorNum();
-  const auto rotor_direction = getRotorDirection();
-
-  Eigen::VectorXd g(4);
-  g << 0, 0, 0, 9.806650; // rotational motion (x,y,z) + translational motion (z)
-
-  for (unsigned int i = 0; i < rotor_num; i++) {
-    Q_f_.col(i) = rotors_normal.at(i);
-    Q_tau_.col(i) = rotors_origin.at(i).cross(rotors_normal.at(i)) + rotor_direction.at(i + 1) * m_f_rate_ * rotors_normal.at(i);
-  }
-
-  P_.block(0, 0, 3, rotor_num) = getInertia<Eigen::Matrix3d>().inverse() * Q_tau_;
-  P_.block(3, 0, 3, rotor_num) = Q_f_ / getMass();
-
-  ros::Time start_time = ros::Time::now();
-  /* lagrange mothod */
-  // issue: min x_t * x; constraint: y = A_ * x  (stable point)
-  //lamda: [4:0]
-  // x = A_t * lamba
-  // (A_  * A_t) * lamda = y
-  // x = A_t * (A_ * A_t).inv * y
-  Eigen::MatrixXd P_four_axis = P_.block(0, 0, 4, rotor_num);
-  P_four_axis.row(3) = P_.row(5); // the forth element is z
-  Eigen::FullPivLU<Eigen::MatrixXd> solver((P_four_axis * P_four_axis.transpose()));
-  Eigen::VectorXd lamda, optimal_hovering_f;
-  lamda = solver.solve(g);
-  optimal_hovering_f_ = P_four_axis.transpose() * lamda;
-  p_det_ = (P_four_axis * P_four_axis.transpose()).determinant();
-
-  if(control_verbose)
-    {
-      std::cout << "P_:"  << std::endl << P_ << std::endl;
-      std::cout << "P det:"  << std::endl << p_det_ << std::endl;
-      std::cout << "optimal_hovering_f: " << optimal_hovering_f.transpose() << " vs " << optimal_hovering_f_.transpose() << std::endl;
-      ROS_INFO("P solver is: %f\n", ros::Time::now().toSec() - start_time.toSec());
-    }
-
-  if(optimal_hovering_f_.maxCoeff() > f_max_ || optimal_hovering_f_.minCoeff() < f_min_ || p_det_ < p_det_thre_ || only_three_axis_mode_)
-    {
-      lqi_mode_ = LQI_THREE_AXIS_MODE;
-
-      Eigen::MatrixXd P_three_axis = P_.block(0, 0, 3, rotor_num);
-      P_three_axis.row(2) = P_.row(5); // the third element is z
-
-      /* calculate the P_orig peusdo inverse */
-      Eigen::MatrixXd P_dash = Q_tau_; // caution: without inverse inertia to calculate P_dash_pseudo_inverse
-      P_dash.row(2) = P_.row(5);
-      Eigen::MatrixXd P_dash_pseudo_inverse = aerial_robot_model::pseudoinverse(P_dash);
-      P_orig_pseudo_inverse_ = Eigen::MatrixXd::Zero(rotor_num, 4);
-      P_orig_pseudo_inverse_.block(0, 0, rotor_num, 2) = P_dash_pseudo_inverse.block(0, 0, rotor_num, 2);
-      P_orig_pseudo_inverse_.col(3) = P_dash_pseudo_inverse.col(2);
-      if(control_verbose)
-        std::cout << "P orig pseudo inverse for three axis mode:"  << std::endl << P_orig_pseudo_inverse_ << std::endl;
-
-      /* if we do the 4dof underactuated control */
-      if(!only_three_axis_mode_) return false;
-
-      Eigen::FullPivLU<Eigen::MatrixXd> solver((P_three_axis * P_three_axis.transpose()));
-      Eigen::VectorXd lamda;
-      lamda = solver.solve(g.tail(3));
-      optimal_hovering_f_ = P_three_axis.transpose() * lamda;
-      p_det_ = (P_three_axis * P_three_axis.transpose()).determinant();
-
-      if(control_verbose)
-        std::cout << "three axis mode: optimal_hovering_f_:"  << std::endl << optimal_hovering_f_ << std::endl;
-
-      /* if we only do the 3dof control, we still need to check the steady state validation */
-      if(optimal_hovering_f_.maxCoeff() > f_max_ || optimal_hovering_f_.minCoeff() < f_min_ || p_det_ < p_det_thre_)
-        return false;
-
-      return true;
-    }
-
-  /* calculate the P_orig pseudo inverse */
-  Eigen::MatrixXd P_dash = P_four_axis;
-  P_dash.block(0, 0, 3, rotor_num) = Q_tau_; // without inverse inertia!
-  P_orig_pseudo_inverse_ = aerial_robot_model::pseudoinverse(P_dash);
-
-  if(control_verbose)
-    std::cout << "P orig pseudo inverse for four axis mode:" << std::endl << P_orig_pseudo_inverse_ << std::endl;
-
-  if(control_verbose || verbose)
-    std::cout << "four axis mode optimal_hovering_f_:"  << std::endl << optimal_hovering_f_ << std::endl;
-
-  lqi_mode_ = LQI_FOUR_AXIS_MODE;
-
-  return true;
-}
-
-bool HydrusRobotModel::stabilityMarginCheck(bool verbose)
-{
+  // TODO: depreacated
+  /* calcuate the average */
   double average_x = 0, average_y = 0;
-
   const std::vector<Eigen::Vector3d> rotors_origin_from_cog = getRotorsOriginFromCog<Eigen::Vector3d>();
   const int rotor_num = getRotorNum();
 
-  /* calcuate the average */
   for(int i = 0; i < rotor_num; i++)
     {
-      average_x += rotors_origin_from_cog[i](0);
-      average_y += rotors_origin_from_cog[i](1);
-      if(verbose)
-        ROS_INFO("rotor%d x: %f, y: %f", i + 1, rotors_origin_from_cog[i](0), rotors_origin_from_cog[i](1));
+      average_x += rotors_origin_from_cog.at(i)(0);
+      average_y += rotors_origin_from_cog.at(i)(1);
+      ROS_DEBUG("rotor%d x: %f, y: %f", i + 1, rotors_origin_from_cog.at(i)(0), rotors_origin_from_cog.at(i)(1));
     }
   average_x /= rotor_num;
   average_y /= rotor_num;
@@ -166,9 +155,66 @@ bool HydrusRobotModel::stabilityMarginCheck(bool verbose)
   S << s_xx / rotor_num, s_xy / rotor_num, s_xy / rotor_num, s_yy / rotor_num;
   Eigen::SelfAdjointEigenSolver<Eigen::Matrix2d> es(S);
 
-  assert(getLinkLength() > 0);
-  stability_margin_ = sqrt(es.eigenvalues()[0]) / getLinkLength();
-  if(verbose) ROS_INFO("stability_margin: %f", stability_margin_);
-  if(stability_margin_ < stability_margin_thre_) return false;
+  rp_position_margin_ = sqrt(es.eigenvalues()[0]) / getLinkLength();
+
+  if(rp_position_margin_ < rp_position_margin_thre_)
+    {
+      ROS_WARN("Invalid old control margin against threshold: %f vs %f", rp_position_margin_, rp_position_margin_thre_);
+      return false;
+    }
   return true;
 }
+
+bool HydrusRobotModel::stabilityCheck(bool verbose)
+{
+  if(!aerial_robot_model::RobotModel::stabilityCheck(verbose)) return false;
+
+  if(fc_rp_min_ < fc_rp_min_thre_)
+    { // only roll & pitch
+      ROS_ERROR_STREAM("fc_rp_min " << fc_rp_min_ << " is lower than the threshold " <<  fc_rp_min_thre_);
+      return false;
+    }
+
+  // deprecated statbility check method
+  rollPitchPositionMarginCheck();
+  wrenchMatrixDeterminantCheck();
+
+  ROS_DEBUG_STREAM("rp_position_margin: " << rp_position_margin_ << " vs fc_t_min: " << getFeasibleControlTMin() << " vs fc_rp_min: " << fc_rp_min_);
+
+  return true;
+}
+
+void HydrusRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_positions)
+{
+  aerial_robot_model::RobotModel::updateRobotModelImpl(joint_positions);
+  calcFeasibleControlRollPitchDists();
+}
+
+void HydrusRobotModel::updateJacobians(const KDL::JntArray& joint_positions, bool update_model)
+{
+  aerial_robot_model::RobotModel::updateJacobians(joint_positions, update_model);
+
+  calcFeasibleControlRollPitchDistsJacobian();
+}
+
+
+// @depreacated
+bool HydrusRobotModel::wrenchMatrixDeterminantCheck()
+{
+  /* Wrench matrix determinant, should use wrench on CoG */
+  Eigen::MatrixXd wrench_mat = calcWrenchMatrixOnCoG();
+
+  // normalized
+  wrench_mat.topRows(3) = wrench_mat.topRows(3) / getMass();
+  wrench_mat.bottomRows(3) = getInertia<Eigen::Matrix3d>().inverse() *  wrench_mat.bottomRows(3);
+  Eigen::MatrixXd valid_wrench_mat = wrench_mat.middleRows(2, wrench_dof_);
+  wrench_mat_det_ = (valid_wrench_mat * valid_wrench_mat.transpose()).determinant();
+
+  if(wrench_mat_det_ < wrench_mat_det_thre_)
+    {
+      ROS_WARN("Invalid wrench matrix determinant against threshold: %f vs %f", wrench_mat_det_, wrench_mat_det_thre_);
+      return false;
+    }
+  return true;
+}
+

@@ -36,7 +36,6 @@
 #pragma once
 
 #include <aerial_robot_base/control/flatness_pid_controller.h>
-#include <aerial_robot_model/eigen_utils.h>
 #include <dragon/dragon_robot_model.h>
 #include <nav_msgs/Odometry.h>
 #include <ros/ros.h>
@@ -105,7 +104,8 @@ namespace control_plugin
     double pitch_roll_limit_;
     tf::Vector3 pitch_roll_terms_limits_;
     double roll_i_term_, pitch_i_term_;
-    double gimbal_control_stamp_;
+    double gimbal_roll_control_stamp_;
+    double gimbal_pitch_control_stamp_;
     bool gimbal_vectoring_check_flag_;
 
     /* landing process */

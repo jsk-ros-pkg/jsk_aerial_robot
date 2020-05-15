@@ -292,7 +292,7 @@ namespace control_plugin
     flight_command_data.angles[2] = target_yaw_acc_;
 
     //wrench allocation matrix
-    auto Q = getRobotModel().calcWrenchAllocationMatrix();
+    auto Q = calcWrenchAllocationMatrixWithInertial();
     auto Q_inv = aerial_robot_model::pseudoinverse(Q);
 
     if (verbose_)
@@ -355,6 +355,24 @@ namespace control_plugin
           }
         torque_allocation_matrix_inv_pub_.publish(torque_allocation_matrix_inv_msg);
       }
+  }
+
+  Eigen::MatrixXd HydrusXiFullyActuatedController::calcWrenchAllocationMatrixWithInertial()
+  {
+    const std::vector<Eigen::Vector3d> rotors_origin = getRobotModel().getRotorsOriginFromCog<Eigen::Vector3d>();
+    const std::vector<Eigen::Vector3d> rotors_normal = getRobotModel().getRotorsNormalFromCog<Eigen::Vector3d>();
+    const int rotor_num = getRobotModel().getRotorNum();
+
+    //Q : WrenchAllocationMatrix
+    Eigen::MatrixXd Q(6, rotor_num);
+    double uav_mass_inv = 1.0 / getRobotModel().getMass();
+    Eigen::Matrix3d inertia_inv = getRobotModel().getInertia<Eigen::Matrix3d>().inverse();
+    for (unsigned int i = 0; i < rotor_num; ++i) {
+      Q.block(0, i, 3, 1) = rotors_normal.at(i) * uav_mass_inv;
+      Q.block(3, i, 3, 1) = inertia_inv * (rotors_origin.at(i).cross(rotors_normal.at(i)));
+    }
+
+    return Q;
   }
 
   std::vector<float> HydrusXiFullyActuatedController::calcForceVector(const Eigen::MatrixXd& wrench_allocation_matrix_inv)

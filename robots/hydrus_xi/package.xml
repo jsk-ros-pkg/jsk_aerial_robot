@@ -13,7 +13,6 @@
   <depend>aerial_robot_simulation</depend>
   <depend>aerial_robot_msgs</depend>
   <depend>angles</depend>
-  <depend>hydrus</depend>
   <depend>roscpp</depend>
   <depend>rospy</depend>
   <depend>rostest</depend>

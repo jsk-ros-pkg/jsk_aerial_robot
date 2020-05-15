@@ -36,74 +36,68 @@
 #pragma once
 
 #include <aerial_robot_model/transformable_aerial_robot_model.h>
-#include <aerial_robot_model/eigen_utils.h>
-#include <aerial_robot_msgs/FourAxisGain.h>
-#include <Eigen/Dense>
-#include <Eigen/Eigenvalues>
-#include <Eigen/LU>
-#include <iomanip>
-#include <iostream>
-#include <spinal/RollPitchYawTerms.h>
-#include <spinal/PMatrixPseudoInverseWithInertia.h>
-#include <ros/ros.h>
-#include <tf_conversions/tf_kdl.h>
-#include <tf_conversions/tf_eigen.h>
 
 class HydrusRobotModel : public aerial_robot_model::RobotModel {
 public:
   HydrusRobotModel(bool init_with_rosparam,
                    bool verbose = false,
-                   double stability_margin_thre = 0,
-                   double p_det_thre = 0,
-                   double f_max = 0,
-                   double f_min = 0,
-                   double m_f_rate = 0,
-                   bool only_three_axis_mode = false);
+                   double fc_t_min_thre = 0,
+                   double fc_rp_min_thre = 0,
+                   double epsilon = 10,
+                   int wrench_dof = 4);
   virtual ~HydrusRobotModel() = default;
 
-  //public attributes
-  static constexpr uint8_t LQI_THREE_AXIS_MODE = 3;
-  static constexpr uint8_t LQI_FOUR_AXIS_MODE = 4;
-
   //public functions
-  virtual bool modelling(bool verbose = false, bool control_verbose = false); //lagrange method
-  virtual bool overlapCheck(bool verbose = false) const {return true;}
-  virtual bool stabilityMarginCheck(bool verbose = false);
-  uint8_t getLqiMode() const { return lqi_mode_; }
-  double getStabilityMargin() const { return stability_margin_; }
-  Eigen::VectorXd getOptimalHoveringThrust() const { return optimal_hovering_f_; }
-  Eigen::MatrixXd getQf() const { return Q_f_; }
-  Eigen::MatrixXd getQtau() const { return Q_tau_; }
-  Eigen::MatrixXd getP() const { return P_; }
-  double getPdeterminant() const { return p_det_; }
-  Eigen::MatrixXd getPOrigPseudoInverse() const { return P_orig_pseudo_inverse_; }
-  bool hamiltonMatrixSolver(uint8_t lqi_mode);
-  void setLqiMode(uint8_t lqi_mode) { lqi_mode_ = lqi_mode; }
-  double getFMax() const {return f_max_;}
-  double getFMin() const {return f_min_;}
 
-  inline const double getThrustUpperLimit() const {return f_max_;}
-  inline const double getThrustLowerLimit() const {return f_min_;}
-  inline const double getPDetThresh() const {return p_det_thre_;}
-  inline const double getStabilityMaginThresh() const {return stability_margin_thre_;}
+  void calcFeasibleControlRollPitchDists();
+  void calcFeasibleControlRollPitchDistsJacobian();
+
+  virtual void calcWrenchMatrixOnRoot() override;
+  virtual void calcStaticThrust() override;
+
+  inline const uint8_t getWrenchDof() const { return wrench_dof_; }
+  inline const double getRollPitchPositionMargin() const { return rp_position_margin_; }
+  inline const double getRollPitchPositionMarginThresh() const { return rp_position_margin_thre_; }
+  inline const double getWrenchMatDeterminant() const { return wrench_mat_det_; }
+  inline const double getWrenchMatDetThresh() const {return wrench_mat_det_thre_;}
+  const Eigen::MatrixXd& getFeasibleControlRollPitchDistsJacobian() const {return fc_rp_dists_jacobian_;}
+  inline const double& getFeasibleControlRollPitchMin()  {return fc_rp_min_;}
+  inline const double& getFeasibleControlRollPitchMinThre()  {return fc_rp_min_thre_;}
+  inline const Eigen::VectorXd& getFeasibleControlRollPitchDists() const {return fc_rp_dists_;}
+  inline const Eigen::VectorXd& getApproxFeasibleControlRollPitchDists() const {return approx_fc_rp_dists_;}
+
+  bool rollPitchPositionMarginCheck(); // deprecated
+
+  inline void setWrenchDof(uint8_t dof) { wrench_dof_ = dof; }
+  virtual bool stabilityCheck(bool verbose = false) override;
+
+  virtual void updateJacobians(const KDL::JntArray& joint_positions, bool update_model = true) override;
+
+  bool wrenchMatrixDeterminantCheck(); // deprecated
+
+private:
+
+  // private attributes
+  int wrench_dof_;
+
+  Eigen::VectorXd approx_fc_rp_dists_;
+  Eigen::VectorXd fc_rp_dists_;
+  double fc_rp_min_;
+  double fc_rp_min_thre_;
+  Eigen::MatrixXd fc_rp_dists_jacobian_;
+
+  // following variables will be replaced by fc_t_min, fc_f_min in the furture
+  double wrench_mat_det_;
+  double wrench_mat_det_thre_;
+  double rp_position_margin_;
+  double rp_position_margin_thre_;
+
+  // private functions
+  void getParamFromRos();
 
 protected:
 
-  //private attributes
-  double f_max_;
-  double f_min_;
-  int lqi_mode_;
-  double m_f_rate_; //moment / force rate
-  bool only_three_axis_mode_;
-  Eigen::VectorXd optimal_hovering_f_;
-  Eigen::MatrixXd Q_tau_, Q_f_;
-  Eigen::MatrixXd P_;
-  double p_det_;
-  double p_det_thre_;
-  Eigen::MatrixXd P_orig_pseudo_inverse_; // for compensation of cross term in the rotional dynamics
-  double stability_margin_;
-  double stability_margin_thre_;
+  void setFeasibleControlRollPitchDistsJacobian(const Eigen::MatrixXd fc_rp_dists_jacobian) {fc_rp_dists_jacobian_ = fc_rp_dists_jacobian;}
 
-  //private functions
-  void getParamFromRos();
+  virtual void updateRobotModelImpl(const KDL::JntArray& joint_positions) override;
 };

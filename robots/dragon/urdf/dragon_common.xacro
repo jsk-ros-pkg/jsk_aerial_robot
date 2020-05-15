@@ -19,7 +19,9 @@
   <xacro:property name="gimbal_pitch_z_offset" value="0.037" />
 
   <!-- dynamics -->
+  <m_f_rate value="0" /> <!-- drug torque rate -->
   <xacro:property name="max_force" value="30" /> <!-- [N] -->
+  <xacro:property name="min_force" value="2" /> <!-- [N] -->
 
   <xacro:macro name="link_model" params="type">
 

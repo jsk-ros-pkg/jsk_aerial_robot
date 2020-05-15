@@ -8,7 +8,6 @@ find_package(catkin REQUIRED COMPONENTS
   aerial_robot_simulation
   aerial_robot_msgs
   angles
-  hydrus
   roscpp
   rospy
   spinal
@@ -16,24 +15,21 @@ find_package(catkin REQUIRED COMPONENTS
   dynamic_reconfigure
   )
 
+find_package(rostest REQUIRED)
+
 generate_dynamic_reconfigure_options(
   cfg/FullyActuatedControllerGains.cfg)
 
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES  hydrus_xi_fully_actuated_robot_model
-  CATKIN_DEPENDS aerial_robot_base aerial_robot_simulation aerial_robot_msgs hydrus roscpp rospy spinal tf_conversions dynamic_reconfigure
+  CATKIN_DEPENDS aerial_robot_base aerial_robot_simulation aerial_robot_msgs roscpp rospy spinal tf_conversions dynamic_reconfigure
   )
 
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE RelWithDebInfo)
 endif()
 set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O3 -g -DNDEBUG")
-message(STATUS "CMAKE_BUILD_TYPE:               ${CMAKE_BUILD_TYPE}")
-message(STATUS "CMAKE_CXX_FLAGS_RELEASE:        ${CMAKE_CXX_FLAGS_RELEASE}")
-message(STATUS "CMAKE_CXX_FLAGS_RELWITHDEBINFO: ${CMAKE_CXX_FLAGS_RELWITHDEBINFO}")
-message(STATUS "CMAKE_CXX_FLAGS_MINSIZEREL:     ${CMAKE_CXX_FLAGS_MINSIZEREL}")
-message(STATUS "CMAKE_CXX_FLAGS_DEBUG:          ${CMAKE_CXX_FLAGS_DEBUG}")
 
 
 include_directories(
@@ -48,7 +44,11 @@ add_library(hydrus_xi_fully_actuated_controller_pluginlib src/hydrus_xi_fully_ac
 target_link_libraries(hydrus_xi_fully_actuated_controller_pluginlib ${catkin_LIBRARIES} hydrus_xi_fully_actuated_robot_model)
 add_dependencies(hydrus_xi_fully_actuated_controller_pluginlib ${PROJECT_NAME}_gencfg)
 
-# test
+
+# pre-build test code
+add_executable(hydrus_xi_jacobian_test test/hydrus_xi/jacobian_test.cpp)
+target_link_libraries(hydrus_xi_jacobian_test hydrus_xi_fully_actuated_robot_model ${catkin_LIBRARIES} ${GTEST_LIBRARIES})
+
 if(CATKIN_ENABLE_TESTING)
   find_package(catkin REQUIRED COMPONENTS rostest)
   add_subdirectory(test)

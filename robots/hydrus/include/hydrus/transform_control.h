@@ -70,14 +70,18 @@ class TransformController : public aerial_robot_model::RobotModelRos {
   };
 
 public:
-  TransformController(ros::NodeHandle nh, ros::NodeHandle nh_private, std::unique_ptr<HydrusRobotModel> robot_model = std::make_unique<HydrusRobotModel>(true));
+  TransformController(ros::NodeHandle nh, ros::NodeHandle nhp, std::unique_ptr<HydrusRobotModel> robot_model = std::make_unique<HydrusRobotModel>(true));
   virtual ~TransformController();
+
+  const Eigen::MatrixXd& getPMatrix() const { return p_mat_; }
+  Eigen::MatrixXd getPMatrixPseudoInv() const { return p_mat_pseudo_inv_; }
 
 protected:
   //protected functions
   HydrusRobotModel& getRobotModel() const { return static_cast<HydrusRobotModel&>(RobotModelRos::getRobotModel()); }
 
   //private attributes
+  int lqi_mode_;
   double control_rate_;
   std::thread main_thread_;
   bool verbose_;
@@ -87,9 +91,9 @@ protected:
   Eigen::MatrixXd K_;
   dynamic_reconfigure::Server<hydrus::LQIConfig> lqi_server_;
   ros::NodeHandle nh_;
-  ros::NodeHandle nh_private_;
+  ros::NodeHandle nhp_;
   ros::Publisher p_matrix_pseudo_inverse_inertia_pub_;
-  Eigen::VectorXd q_diagonal_;
+
   double q_pitch_;
   double q_pitch_d_;
   double q_pitch_i_;
@@ -117,4 +121,6 @@ protected:
   virtual bool optimalGain();
   virtual void param2controller();
 
+  Eigen::MatrixXd p_mat_pseudo_inv_; // for compensation of cross term in the rotional dynamics
+  Eigen::MatrixXd p_mat_;
 };

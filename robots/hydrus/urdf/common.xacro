@@ -22,7 +22,9 @@
   <xacro:property name="leg_collision_model_height" value="0.1715" />
 
   <!-- dynamics -->
-  <xacro:property name="max_force" value="18" /> <!-- [N] -->
+  <m_f_rate value="-0.0172" /> <!-- drug torque rate -->
+  <xacro:property name="max_force" value="16.5" /> <!-- [N] -->
+  <xacro:property name="min_force" value="1.0" /> <!-- [N] -->
 
   <xacro:macro name="link_model" params="type with_leg:=${with_leg} old_version:=${old_version} tilt_mode:=${tilt_mode} tilt_angle:=${tilt_angle}">
     <!-- for fcl in planning -->

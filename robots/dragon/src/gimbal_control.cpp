@@ -9,7 +9,8 @@ namespace control_plugin
     servo_torque_(false), level_flag_(false), landing_flag_(false),
     curr_desire_tilt_(0, 0, 0),
     final_desire_tilt_(0, 0, 0),
-    roll_i_term_(0), pitch_i_term_(0), gimbal_control_stamp_(0)
+    roll_i_term_(0), pitch_i_term_(0),
+    gimbal_roll_control_stamp_(0), gimbal_pitch_control_stamp_(0)
   {
     need_yaw_d_control_ = true;
   }
@@ -172,21 +173,6 @@ namespace control_plugin
     double roll_angle = estimator_->getState(State::ROLL_COG, estimate_mode_)[0];
     double pitch_angle = estimator_->getState(State::PITCH_COG, estimate_mode_)[0];
 
-    /* do not do gimbal control in the early stage of takeoff phase */
-    /*
-    if(navigator_->getNaviState() == Navigator::TAKEOFF_STATE)
-      {
-        double total_thrust  = 0;
-        for(int j = 0; j < motor_num_; j++)
-          total_thrust += target_throttle_[j];
-        if(kinematics_->getMass() * 0.75 > total_thrust / 10)
-          {
-            //ROS_INFO("force is to small, mass: %f, force: %f", kinematics_->getMass(), total_thrust / 10);
-            return;
-          }
-      }
-    */
-
     int rotor_num = kinematics_->getRotorNum();
 
     std::vector<Eigen::Vector3d> rotors_origin_from_cog = kinematics_->getRotorsOriginFromCog<Eigen::Vector3d>();
@@ -230,32 +216,38 @@ namespace control_plugin
 
     Eigen::VectorXd f;
 
-    //ROS_INFO_THROTTLE(0.1, "P_det: %f", P_det);
     if(P_det < pitch_roll_control_p_det_thresh_)
-      { // bad pitch roll
+      {
+        // no pitch roll
         if(control_verbose_) ROS_ERROR("bad P_det: %f", P_det);
         P = Eigen::MatrixXd::Zero(3, rotor_num  * 2);
         P.block(0, 0, 1, rotor_num * 2) = P_att.block(2, 0, 1, rotor_num * 2);
         P.block(1, 0, 2, rotor_num * 2) = P_xy_ / kinematics_->getMass();
 
         f = pseudoinverse(P) * Eigen::Vector3d(target_yaw_[0], target_pitch_ - (pitch_angle * 9.8), (-target_roll_) - (-roll_angle * 9.8));
+
+        // reset gimbal roll pitch control
+        roll_i_term_ = 0;
+        pitch_i_term_ = 0;
+        gimbal_roll_control_stamp_ = 0;
+        gimbal_pitch_control_stamp_ = 0;
       }
     else
       {
         /* roll & pitch gimbal additional control */
         double target_gimbal_roll = 0, target_gimbal_pitch = 0;
-        if(gimbal_control_stamp_ == 0) gimbal_control_stamp_ = ros::Time::now().toSec();
-        double du = ros::Time::now().toSec() - gimbal_control_stamp_;
 
         /* ros pub */
         aerial_robot_msgs::FlatnessPid pid_msg;
         pid_msg.header.stamp = ros::Time::now();
 
-        //ROS_WARN("max_x: %f, max_y: %f, max_z: %f", max_x, max_y, max_z);
-
         /* roll addition control */
         if(max_z > pitch_roll_control_rate_thresh_ * max_y)
           {
+            if(gimbal_roll_control_stamp_ == 0)
+              gimbal_roll_control_stamp_ = ros::Time::now().toSec();
+            double du = ros::Time::now().toSec() - gimbal_roll_control_stamp_;
+
             if(control_verbose_)
               ROS_WARN("roll gimbal control, max_z: %f, max_y: %f", max_z, max_y);
 
@@ -285,11 +277,23 @@ namespace control_plugin
             pid_msg.roll.vel_err = state_phy_vel;
             pid_msg.roll.target_vel = 0;
 
+            gimbal_roll_control_stamp_ = ros::Time::now().toSec();
+          }
+        else
+          {
+            //reset
+            roll_i_term_ = 0;
+            gimbal_roll_control_stamp_ = 0;
           }
 
         /* pitch addition control */
         if(max_z > pitch_roll_control_rate_thresh_ * max_x)
           {
+            if(gimbal_pitch_control_stamp_ == 0)
+              gimbal_pitch_control_stamp_ = ros::Time::now().toSec();
+            double du = ros::Time::now().toSec() - gimbal_pitch_control_stamp_;
+
+
             if(control_verbose_)
               ROS_WARN("pitch gimbal control, max_z: %f, max_x: %f", max_z, max_y);
 
@@ -318,10 +322,18 @@ namespace control_plugin
             pid_msg.pitch.target_pos = 0;
             pid_msg.pitch.vel_err = state_theta_vel;
             pid_msg.pitch.target_vel = 0;
+
+            gimbal_pitch_control_stamp_ = ros::Time::now().toSec();
+          }
+        else
+          {
+            //reset
+            pitch_i_term_ = 0;
+            gimbal_pitch_control_stamp_ = 0;
           }
 
+
         roll_pitch_pid_pub_.publish(pid_msg);
-        gimbal_control_stamp_ = ros::Time::now().toSec();
 
         Eigen::VectorXd pid_values(5);
         /* F = P# * [roll_pid, pitch_pid, yaw_pid, x_pid, y_pid] */
@@ -342,7 +354,7 @@ namespace control_plugin
       {
         /* normalized vector */
         /* 1: use state_x */
-        tf::Vector3 f_i = tf::Vector3(f(2 * i), f(2 * i + 1), kinematics_->getOptimalHoveringThrust()[i]);
+        tf::Vector3 f_i = tf::Vector3(f(2 * i), f(2 * i + 1), kinematics_->getStaticThrust()[i]);
         /* 2: use target_throttle */
         //tf::Vector3 f_i = tf::Vector3(f(2 * i), f(2 * i + 1), kinematics_->(getStableState())(i));
 
@@ -484,7 +496,6 @@ namespace control_plugin
   {
     joint_state_ = *state;
     kinematics_->updateRobotModel(joint_state_);
-    kinematics_->modelling();
 
     /* check the gimbal vectoring function */
     if (gimbal_vectoring_check_flag_)

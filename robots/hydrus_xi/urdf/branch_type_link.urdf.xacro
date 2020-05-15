@@ -51,7 +51,7 @@
       <parent link="center_link"/>
       <child link="link${child1}"/>
       <origin rpy="0 0 0" xyz="0.1555 0.0 0.015"/>
-      <axis xyz="0 0 1"/>
+      <axis xyz="1 0 0"/>
       <dynamics damping="0.8" friction="0.0"/>
     </joint>
 
@@ -60,7 +60,7 @@
       <parent link="center_link"/>
       <child link="link${child2}"/>
       <origin rpy="0 0 ${pi * 2.0 / 3.0}" xyz="-0.07775 0.13467 0.015"/>
-      <axis xyz="0 0 1"/>
+      <axis xyz="1 0 0"/>
       <dynamics damping="0.8" friction="0.0"/>
     </joint>
 
@@ -69,7 +69,7 @@
       <parent link="center_link"/>
       <child link="link${child3}"/>
       <origin rpy="0 0 ${pi * 4.0 / 3.0}" xyz="-0.07775 -0.13467 0.015"/>
-      <axis xyz="0 0 1"/>
+      <axis xyz="1 0 0"/>
       <dynamics damping="0.8" friction="0.0"/>
     </joint>
 
@@ -226,7 +226,7 @@
 
     #### rotor joint (virtual) ####
     <joint name="rotor${self}" type="continuous">
-     <limit effort="100.0" lower="0" upper="${max_force}" velocity="0.5"/>
+     <limit effort="100.0" lower="${min_force}" upper="${max_force}" velocity="0.5"/>
       <parent link="rotor_parent${self}"/>
       <child link="thrust${self}"/>
       <origin rpy="0 0 0" xyz="0 0 0"/>

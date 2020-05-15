@@ -2,7 +2,6 @@
 
 control_rate: 15.0
 
-only_three_axis_mode: false
 gyro_moment_compensation: true
 
 q_roll: 1000
@@ -28,9 +27,10 @@ r4: 1.0
 trans_constraint_weight: 100
 att_control_weight: 1
 
-stability_margin_thre: 0.13
-f_max: 16.5
-f_min: 2.0
+
+fc_t_min_thre: 0.01
+fc_rp_min_thre: 1.8
+rp_position_margin_thre: 0.13 # deprecated
 
 
 # inverse kinematics

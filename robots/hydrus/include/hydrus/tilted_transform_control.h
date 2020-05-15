@@ -54,5 +54,4 @@ protected:
 
   bool optimalGain() override;
   void param2controller() override;
-  void cfgLQICallback(hydrus::LQIConfig &config, uint32_t level) override;
 };

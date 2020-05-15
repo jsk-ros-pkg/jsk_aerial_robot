@@ -50,5 +50,5 @@
 namespace control_utils
 {
   /* Continuous-time Algebraic Riccati Equation */
-  bool care(const Eigen::MatrixXd& A, const Eigen::MatrixXd& B, const Eigen::MatrixXd& R, const Eigen::MatrixXd& Q, Eigen::MatrixXd& P, Eigen::MatrixXd& K, const bool iterative_solution = false, const double converge_thresh = 0.01, const int max_iteration = 10);
+  bool care(const Eigen::MatrixXd& A, const Eigen::MatrixXd& B, const Eigen::MatrixXd& R, const Eigen::MatrixXd& Q, Eigen::MatrixXd& K, const bool iterative_solution = false, const double converge_thresh = 0.01, const int max_iteration = 10);
 }

@@ -40,15 +40,13 @@
 class HydrusTiltedRobotModel : public HydrusRobotModel {
 public:
   HydrusTiltedRobotModel(bool init_with_rosparam,
-                   bool verbose = false,
-                   double stability_margin_thre = 0,
-                   double p_det_thre = 0,
-                   double f_max = 0,
-                   double f_min = 0,
-                   double m_f_rate = 0);
+                         bool verbose = false,
+                         double fc_t_min_thre = 0,
+                         double epsilon = 10);
   virtual ~HydrusTiltedRobotModel() = default;
 
-  bool modelling(bool verbose = false, bool control_verbose = false) override;
+  virtual void calcStaticThrust() override;
 
-protected:
+private:
+  void updateRobotModelImpl(const KDL::JntArray& joint_positions) override;
 };
