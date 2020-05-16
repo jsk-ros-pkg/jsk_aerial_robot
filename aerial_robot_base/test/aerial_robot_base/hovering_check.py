@@ -48,14 +48,14 @@ class HoveringCheck():
     def __init__(self, name="hovering_check"):
         self.hovering_duration = rospy.get_param('~hovering_duration', 0.0)
         self.convergence_thresholds = rospy.get_param('~convergence_thresholds', [0.01, 0.01, 0.01]) # [xy,z, theta]
-        self.controller_sub = rospy.Subscriber('/controller/debug', FlatnessPid, self._controlCallback)
+        self.controller_sub = rospy.Subscriber('debug/pos_yaw/pid', FlatnessPid, self._controlCallback)
         self.control_msg = None
 
     def hoveringCheck(self):
 
         # start motor arming
-        start_pub = rospy.Publisher('/teleop_command/start', Empty, queue_size=1)
-        takeoff_pub = rospy.Publisher('/teleop_command/takeoff', Empty, queue_size=1)
+        start_pub = rospy.Publisher('teleop_command/start', Empty, queue_size=1)
+        takeoff_pub = rospy.Publisher('teleop_command/takeoff', Empty, queue_size=1)
 
         time.sleep(0.5) # wait for publisher initialization
         start_pub.publish(Empty())
@@ -68,21 +68,21 @@ class HoveringCheck():
         deadline = rospy.Time.now() + rospy.Duration(self.hovering_duration)
         while not rospy.Time.now() > deadline:
             if self.control_msg is not None:
-                rospy.loginfo_throttle(1, 'errors: [%f, %f, %f, %f]' %  (self.control_msg.pitch.pos_err, self.control_msg.roll.pos_err, self.control_msg.throttle.pos_err, self.control_msg.yaw.pos_err))
+                rospy.loginfo_throttle(1, 'errors: [%f, %f, %f, %f]' %  (self.control_msg.pitch.pos_err, self.control_msg.roll.pos_err, self.control_msg.z.pos_err, self.control_msg.yaw.pos_err))
 
             rospy.sleep(1.0)
 
         # check convergence
-        if math.fabs(self.control_msg.pitch.pos_err) < self.convergence_thresholds[0] and math.fabs(self.control_msg.roll.pos_err) < self.convergence_thresholds[0] and math.fabs(self.control_msg.throttle.pos_err) < self.convergence_thresholds[1] and math.fabs(self.control_msg.yaw.pos_err) < self.convergence_thresholds[2]:
+        if math.fabs(self.control_msg.pitch.pos_err) < self.convergence_thresholds[0] and math.fabs(self.control_msg.roll.pos_err) < self.convergence_thresholds[0] and math.fabs(self.control_msg.z.pos_err) < self.convergence_thresholds[1] and math.fabs(self.control_msg.yaw.pos_err) < self.convergence_thresholds[2]:
             return True
 
         # cannot be convergent
-        rospy.logerr_throttle(1, 'errors: [%f, %f, %f, %f]' %  (self.control_msg.pitch.pos_err, self.control_msg.roll.pos_err, self.control_msg.throttle.pos_err, self.control_msg.yaw.pos_err))
+        rospy.logerr_throttle(1, 'errors: [%f, %f, %f, %f]' %  (self.control_msg.pitch.pos_err, self.control_msg.roll.pos_err, self.control_msg.z.pos_err, self.control_msg.yaw.pos_err))
         return False
 
     def _controlCallback(self, msg):
         self.control_msg = msg
-        # rospy.loginfo_throttle(1, 'errors: [%f, %f, %f, %f]'  % (self.control_msg.pitch.pos_err, self.control_msg.roll.pos_err, self.control_msg.throttle.pos_err, self.control_msg.yaw.pos_err))
+        rospy.logdebug_throttle(1, 'errors: [%f, %f, %f, %f]'  % (self.control_msg.pitch.pos_err, self.control_msg.roll.pos_err, self.control_msg.z.pos_err, self.control_msg.yaw.pos_err))
 
 class HoveringTest(unittest.TestCase):
     def __init__(self, *args):

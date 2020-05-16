@@ -1,28 +1,29 @@
 <launch>
   <arg name="headless" default="False"/>
   <arg name="onboards_model" default="tilt_20deg_201907" />
+  <arg name="robot_id" default=""/>
+  <arg name="robot_ns" value="hydrus$(arg robot_id)"/>
 
   <include file="$(find hydrus)/launch/bringup.launch">
     <arg name="real_machine" value="False" />
     <arg name="simulation" value="True" />
+    <arg name="robot_id" value="$(arg robot_id)"/>
     <arg name="onboards_model" value="$(arg onboards_model)" />
     <arg name="headless" value="$(arg headless)" />
   </include>
 
   <!-- test codes -->
   <!-- 1. topics  -->
-  <test name="publishtest"
-        test-name="publishtest"
-        pkg="rostest" type="publishtest" retry="2">
+  <test name="publishtest" test-name="publishtest" pkg="rostest" type="publishtest" ns="$(arg robot_ns)" retry="1">
     <rosparam>
       topics:
-        - name: /uav/cog/odom
+        - name: uav/cog/odom
           timeout: 5.0
     </rosparam>
   </test>
 
   <!-- 2. control -->
-  <test test-name="control_test" pkg="hydrus" type="control_check.py"  name="control_test"  time-limit="180" retry="2">
+  <test test-name="control_test" pkg="hydrus" type="control_check.py"  name="control_test" ns="$(arg robot_ns)"  time-limit="180" retry="1">
     <rosparam>
       init_joint_names: ['joint1', 'joint2', 'joint3']
       init_joint_angles: [1.57, 1.57, 1.57]
@@ -39,8 +40,6 @@
     </rosparam>
     <param name="init_form_duration" value="5.0" />
     <param name="hovering_duration" value="25.0" />
-    <remap from="joint_states" to ="/hydrus/joint_states" />
-    <remap from="joints_ctrl" to ="/hydrus/joints_ctrl" />
   </test>
 
 </launch>

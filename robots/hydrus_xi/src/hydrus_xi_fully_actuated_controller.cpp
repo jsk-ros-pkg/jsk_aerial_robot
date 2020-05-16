@@ -73,7 +73,7 @@ namespace control_plugin
     motor_num_ = getRobotModel().getRotorNum();
 
     flight_cmd_pub_ = ControlBase::nh_.advertise<spinal::FourAxisCommand>("four_axes/command", 1);
-    pid_pub_ = ControlBase::nh_.advertise<aerial_robot_msgs::FlatnessPid>("pos_yaw/pid", 1);
+    pid_pub_ = ControlBase::nh_.advertise<aerial_robot_msgs::FlatnessPid>("debug/pos_yaw/pid", 1);
 
     torque_allocation_matrix_inv_pub_ = ControlBase::nh_.advertise<spinal::TorqueAllocationMatrixInv>("torque_allocation_matrix_inv", 1);
     wrench_allocation_matrix_pub_ = ControlBase::nh_.advertise<aerial_robot_msgs::WrenchAllocationMatrix>("debug/wrench_allocation_matrix", 1);
