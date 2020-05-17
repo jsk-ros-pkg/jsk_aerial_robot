@@ -11,6 +11,9 @@ controller:
   # gimbal vectoring function check
   gimbal_vectoring_check_flag: false
 
+  # consider lqi roll/pitch control in spnial when calculating the thrust scalar value
+  add_lqi_result: false # TODO: true/false have no big difference in gazebo, please test in real_machine
+
   # z
   z:
     offset: 0

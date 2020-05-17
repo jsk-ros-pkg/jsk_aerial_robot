@@ -43,6 +43,7 @@
 #include <std_msgs/Float32MultiArray.h>
 #include <std_msgs/UInt8.h>
 #include <std_srvs/SetBool.h>
+#include <spinal/RollPitchYawTerm.h>
 
 namespace control_plugin
 {
@@ -73,6 +74,7 @@ namespace control_plugin
     ros::Publisher gimbal_target_force_pub_;
     ros::Publisher curr_target_baselink_rot_pub_;
     ros::Publisher  roll_pitch_pid_pub_;
+    ros::Subscriber att_control_feedback_state_sub_;
     ros::Subscriber joint_state_sub_;
     ros::Subscriber final_target_baselink_rot_sub_;
     ros::Subscriber target_baselink_rot_sub_;
@@ -84,14 +86,17 @@ namespace control_plugin
     void jointStateCallback(const sensor_msgs::JointStateConstPtr& state);
     void rosParamInit();
 
+    void attControlFeedbackStateCallback(const spinal::RollPitchYawTermConstPtr& msg);
     void setFinalTargetBaselinkRotCallback(const spinal::DesireCoordConstPtr & msg);
     void fourAxisGainCallback(const aerial_robot_msgs::FourAxisGainConstPtr & msg);
     void targetBaselinkRotCallback(const spinal::DesireCoordConstPtr& msg);
 
+
+    std::vector<double> target_thrust_terms_; // the scalar value of vectoring force: ||f||
     sensor_msgs::JointState joint_state_;
     Eigen::MatrixXd P_xy_;
 
-    /* desire tilt */
+    /* target baselink rotation */
     std::vector<double> target_gimbal_angles_;
     tf::Vector3 curr_target_baselink_rot_, final_target_baselink_rot_;
 
@@ -105,6 +110,10 @@ namespace control_plugin
     double gimbal_roll_control_stamp_;
     double gimbal_pitch_control_stamp_;
     bool gimbal_vectoring_check_flag_;
+
+    bool add_lqi_result_;
+    std::vector<tf::Vector3> lqi_roll_gains_, lqi_pitch_gains_;
+    std::vector<double> lqi_att_terms_;
 
     /* landing process */
     bool level_flag_;
