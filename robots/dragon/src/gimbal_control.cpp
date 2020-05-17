@@ -535,6 +535,25 @@ namespace control_plugin
       }
   }
 
+  void DragonGimbal::halt()
+  {
+    ros::ServiceClient client = nh_.serviceClient<std_srvs::SetBool>(joints_torque_control_srv_name_);
+    std_srvs::SetBool srv;
+    srv.request.data = false;
+    if (client.call(srv))
+      ROS_INFO("dragon control halt process: disable the joint torque");
+    else
+      ROS_ERROR("Failed to call service %s", joints_torque_control_srv_name_.c_str());
+
+    client = nh_.serviceClient<std_srvs::SetBool>(gimbals_torque_control_srv_name_);
+
+    srv.request.data = false;
+    if (client.call(srv))
+      ROS_INFO("dragon control halt process: disable the gimbal torque");
+    else
+      ROS_ERROR("Failed to call service %s", gimbals_torque_control_srv_name_.c_str());
+  }
+
   void DragonGimbal::jointStateCallback(const sensor_msgs::JointStateConstPtr& state)
   {
     joint_state_ = *state;
@@ -642,7 +661,8 @@ namespace control_plugin
     ros::NodeHandle pitch_roll_nh(control_nh, "pitch_roll");
 
     getParam<bool>(control_nh, "control_verbose", control_verbose_, false);
-    getParam<std::string>(control_nh, "joints_torque_control_srv_name", joints_torque_control_srv_name_, std::string("joints_controller/torque_enable"));
+    getParam<std::string>(control_nh, "joints_torque_control_srv_name", joints_torque_control_srv_name_, std::string("joints/torque_enable"));
+    getParam<std::string>(control_nh, "gimbals_torque_control_srv_name", gimbals_torque_control_srv_name_, std::string("gimbals/torque_enable"));
     getParam<double>(control_nh, "height_thresh", height_thresh_, 0.1); // height threshold to disable the joint servo when landing
     getParam<double>(control_nh, "baselink_rot_change_thresh", baselink_rot_change_thresh_, 0.02);  // the threshold to change the baselink rotation
     getParam<double>(control_nh, "baselink_rot_pub_interval", baselink_rot_pub_interval_, 0.1); // the rate to pub baselink rotation command

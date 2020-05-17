@@ -66,6 +66,7 @@ namespace control_plugin
       level_flag_ = false;
       landing_flag_ = false;
     }
+    void halt() override;
     void sendCmd();
   private:
     std::unique_ptr<DragonRobotModel> kinematics_;
@@ -125,7 +126,7 @@ namespace control_plugin
 
     /* rosparam */
     double height_thresh_;
-    string joints_torque_control_srv_name_;
+    string joints_torque_control_srv_name_, gimbals_torque_control_srv_name_;
     double baselink_rot_change_thresh_;
     double baselink_rot_pub_interval_;
 
