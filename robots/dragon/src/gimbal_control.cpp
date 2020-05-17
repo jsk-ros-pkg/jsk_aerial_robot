@@ -7,8 +7,8 @@ namespace control_plugin
   DragonGimbal::DragonGimbal():
     FlatnessPid(),
     servo_torque_(false), level_flag_(false), landing_flag_(false),
-    curr_desire_tilt_(0, 0, 0),
-    final_desire_tilt_(0, 0, 0),
+    curr_target_baselink_rot_(0, 0, 0),
+    final_target_baselink_rot_(0, 0, 0),
     roll_i_term_(0), pitch_i_term_(0),
     gimbal_roll_control_stamp_(0), gimbal_pitch_control_stamp_(0)
   {
@@ -38,13 +38,13 @@ namespace control_plugin
 
     gimbal_control_pub_ = nh_.advertise<sensor_msgs::JointState>("gimbals_ctrl", 1);
     joint_control_pub_ = nh_.advertise<sensor_msgs::JointState>("joints_ctrl", 1);
-    curr_desire_tilt_pub_ = nh_.advertise<spinal::DesireCoord>("desire_coordinate", 1);
+    curr_target_baselink_rot_pub_ = nh_.advertise<spinal::DesireCoord>("desire_coordinate", 1);
     gimbal_target_force_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("debug/gimbals_target_force", 1);
     roll_pitch_pid_pub_ = nh_.advertise<aerial_robot_msgs::FlatnessPid>("debug/roll_pitch_gimbal_control", 1);
 
     joint_state_sub_ = nh_.subscribe("joint_states", 1, &DragonGimbal::jointStateCallback, this);
-    final_desire_tilt_sub_ = nh_.subscribe("final_desire_tilt", 1, &DragonGimbal::baselinkTiltCallback, this);
-    desire_coord_sub_ = nh_.subscribe("desire_coordinate", 1, &DragonGimbal::desireCoordCallback, this);
+    final_target_baselink_rot_sub_ = nh_.subscribe("final_target_baselink_rot", 1, &DragonGimbal::setFinalTargetBaselinkRotCallback, this);
+    target_baselink_rot_sub_ = nh_.subscribe("desire_coordinate", 1, &DragonGimbal::targetBaselinkRotCallback, this);
 
     //dynamic reconfigure server
     roll_pitch_pid_server_ = new dynamic_reconfigure::Server<aerial_robot_base::XYPidControlConfig>(ros::NodeHandle(nhp_, "gain_generator/pitch_roll"));
@@ -74,12 +74,12 @@ namespace control_plugin
       z_gains_[i].setValue(msg->pos_p_gain_z[i], msg->pos_i_gain_z[i], msg->pos_d_gain_z[i]);
   }
 
-  void DragonGimbal::baselinkTiltCallback(const spinal::DesireCoordConstPtr & msg)
+  void DragonGimbal::setFinalTargetBaselinkRotCallback(const spinal::DesireCoordConstPtr & msg)
   {
-    final_desire_tilt_.setValue(msg->roll, msg->pitch, msg->yaw);
+    final_target_baselink_rot_.setValue(msg->roll, msg->pitch, msg->yaw);
   }
 
-  void DragonGimbal::desireCoordCallback(const spinal::DesireCoordConstPtr& msg)
+  void DragonGimbal::targetBaselinkRotCallback(const spinal::DesireCoordConstPtr& msg)
   {
     kinematics_->setCogDesireOrientation(msg->roll, msg->pitch, msg->yaw);
   }
@@ -95,7 +95,7 @@ namespace control_plugin
 
     pidUpdate(); //LQI thrust control
     gimbalControl(); //gimbal vectoring control
-    desireTilt();
+    baselinkRotationProcess();
     sendCmd();
   }
 
@@ -122,10 +122,10 @@ namespace control_plugin
         if(!level_flag_)
           {
             joint_control_pub_.publish(joint_control_msg);
-            final_desire_tilt_.setValue(0, 0, 0);
+            final_target_baselink_rot_.setValue(0, 0, 0);
 
             /* force set the current deisre tilt to current estimated tilt */
-            curr_desire_tilt_.setValue(estimator_->getState(State::ROLL_BASE, estimate_mode_)[0], estimator_->getState(State::PITCH_BASE, estimate_mode_)[0], 0);
+            curr_target_baselink_rot_.setValue(estimator_->getState(State::ROLL_BASE, estimate_mode_)[0], estimator_->getState(State::PITCH_BASE, estimate_mode_)[0], 0);
           }
 
         level_flag_ = true;
@@ -152,7 +152,7 @@ namespace control_plugin
               }
           }
 
-        if(curr_desire_tilt_.length()) already_level = false;
+        if(curr_target_baselink_rot_.length()) already_level = false;
 
         if(already_level && navigator_->getNaviState() == Navigator::HOVER_STATE)
           {
@@ -385,22 +385,22 @@ namespace control_plugin
     gimbal_target_force_pub_.publish(target_force_msg);
   }
 
-  void DragonGimbal::desireTilt()
+  void DragonGimbal::baselinkRotationProcess()
   {
     static ros::Time prev_stamp = ros::Time::now();
-    if(curr_desire_tilt_ == final_desire_tilt_) return;
+    if(curr_target_baselink_rot_ == final_target_baselink_rot_) return;
 
-    if(ros::Time::now().toSec() - prev_stamp.toSec() > tilt_pub_interval_)
+    if(ros::Time::now().toSec() - prev_stamp.toSec() > baselink_rot_pub_interval_)
       {
-        if((final_desire_tilt_- curr_desire_tilt_).length() > tilt_thresh_)
-          curr_desire_tilt_ += ((final_desire_tilt_ - curr_desire_tilt_).normalize() * tilt_thresh_);
+        if((final_target_baselink_rot_- curr_target_baselink_rot_).length() > baselink_rot_change_thresh_)
+          curr_target_baselink_rot_ += ((final_target_baselink_rot_ - curr_target_baselink_rot_).normalize() * baselink_rot_change_thresh_);
         else
-          curr_desire_tilt_ = final_desire_tilt_;
+          curr_target_baselink_rot_ = final_target_baselink_rot_;
 
-        spinal::DesireCoord desire_tilt_msg;
-        desire_tilt_msg.roll = curr_desire_tilt_.x();
-        desire_tilt_msg.pitch = curr_desire_tilt_.y();
-        curr_desire_tilt_pub_.publish(desire_tilt_msg);
+        spinal::DesireCoord target_baselink_rot_msg;
+        target_baselink_rot_msg.roll = curr_target_baselink_rot_.x();
+        target_baselink_rot_msg.pitch = curr_target_baselink_rot_.y();
+        curr_target_baselink_rot_pub_.publish(target_baselink_rot_msg);
 
         prev_stamp = ros::Time::now();
       }
@@ -597,8 +597,8 @@ namespace control_plugin
     getParam<bool>(control_nh, "control_verbose", control_verbose_, false);
     getParam<std::string>(control_nh, "joints_torque_control_srv_name", joints_torque_control_srv_name_, std::string("joints_controller/torque_enable"));
     getParam<double>(control_nh, "height_thresh", height_thresh_, 0.1); // height threshold to disable the joint servo when landing
-    getParam<double>(control_nh, "tilt_thresh", tilt_thresh_, 0.02);  // the threshold to tilt smoothly
-    getParam<double>(control_nh, "tilt_pub_interval", tilt_pub_interval_, 0.1); // the rate to pub target tilt  command
+    getParam<double>(control_nh, "baselink_rot_change_thresh", baselink_rot_change_thresh_, 0.02);  // the threshold to change the baselink rotation
+    getParam<double>(control_nh, "baselink_rot_pub_interval", baselink_rot_pub_interval_, 0.1); // the rate to pub baselink rotation command
     getParam<bool>(control_nh, "gimbal_vectoring_check_flag", gimbal_vectoring_check_flag_, false); // check the gimbal vectoring function without position and yaw control
 
     /* pitch roll control */

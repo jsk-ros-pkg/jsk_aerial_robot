@@ -10,7 +10,7 @@ from spinal.msg import DesireCoord
 rospy.init_node("dragon_transformation_demo")
 
 joint_control_pub = rospy.Publisher("/dragon/joints_ctrl", JointState, queue_size=10)
-att_control_pub = rospy.Publisher("/dragon/final_desire_tilt", DesireCoord, queue_size=1)
+att_control_pub = rospy.Publisher("/dragon/final_target_baselink_rot", DesireCoord, queue_size=1)
 
 demo_mode = rospy.get_param("~mode", 0)
 reset = rospy.get_param("~reset", False)
