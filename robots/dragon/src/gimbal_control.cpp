@@ -35,6 +35,8 @@ namespace control_plugin
 
     /* initialize the gimbal target angles */
     target_gimbal_angles_.resize(kinematics_->getRotorNum() * 2, 0);
+    /* additional vectoring force for grasping */
+    extra_vectoring_force_ = Eigen::VectorXd::Zero(3 * kinematics_->getRotorNum());
 
     gimbal_control_pub_ = nh_.advertise<sensor_msgs::JointState>("gimbals_ctrl", 1);
     joint_control_pub_ = nh_.advertise<sensor_msgs::JointState>("joints_ctrl", 1);
@@ -46,6 +48,7 @@ namespace control_plugin
     joint_state_sub_ = nh_.subscribe("joint_states", 1, &DragonGimbal::jointStateCallback, this);
     final_target_baselink_rot_sub_ = nh_.subscribe("final_target_baselink_rot", 1, &DragonGimbal::setFinalTargetBaselinkRotCallback, this);
     target_baselink_rot_sub_ = nh_.subscribe("desire_coordinate", 1, &DragonGimbal::targetBaselinkRotCallback, this);
+    extra_vectoring_force_sub_ = nh_.subscribe("extra_vectoring_force", 1, &DragonGimbal::extraVectoringForceCallback, this);
 
     std::string service_name;
     nh_.param("apply_external_wrench", service_name, std::string("apply_external_wrench"));
@@ -166,6 +169,9 @@ namespace control_plugin
 
             /* clear the external wrench */
             kinematics_->resetExternalStaticWrench();
+
+            /* clear the extra vectoring force */
+            extra_vectoring_force_.setZero();
           }
 
         level_flag_ = true;
@@ -414,9 +420,10 @@ namespace control_plugin
     for(int i = 0; i < rotor_num; i++)
       {
         /* vectoring force */
-        tf::Vector3 f_i(f_xy(2 * i) + wrench_comp_thrust(3 * i),
-                        f_xy(2 * i + 1) + wrench_comp_thrust(3 * i + 1),
-                        z_control_terms_.at(i) + lqi_att_terms_.at(i) + wrench_comp_thrust(3 * i + 2));
+        tf::Vector3 f_i(f_xy(2 * i) + wrench_comp_thrust(3 * i) + extra_vectoring_force_(3 * i),
+                        f_xy(2 * i + 1) + wrench_comp_thrust(3 * i + 1) + extra_vectoring_force_(3 * i + 1),
+                        z_control_terms_.at(i) + lqi_att_terms_.at(i) + wrench_comp_thrust(3 * i + 2) + extra_vectoring_force_(3 * i + 2));
+
 
         /* calculate ||f||, but omit pitch and roll term, which will be added in spinal */
         target_thrust_terms_.at(i) = (f_i - tf::Vector3(0, 0, lqi_att_terms_.at(i))).length();
@@ -612,6 +619,23 @@ namespace control_plugin
   {
     kinematics_->removeExternalStaticWrench(req.body_name);
     return true;
+  }
+
+  /* extra vectoring force  */
+  void DragonGimbal::extraVectoringForceCallback(const std_msgs::Float32MultiArrayConstPtr& msg)
+  {
+    if(navigator_->getNaviState() != Navigator::HOVER_STATE || navigator_->getForceLandingFlag() || landing_flag_) return;
+
+    if(extra_vectoring_force_.size() != msg->data.size())
+      {
+        ROS_ERROR_STREAM("gimbal control: can not assign the extra vectroing force, the size is wrong: " << msg->data.size() << "; reset");
+        extra_vectoring_force_.setZero();
+        return;
+      }
+
+    extra_vectoring_force_ = (Eigen::Map<const Eigen::VectorXf>(msg->data.data(), msg->data.size())).cast<double>();
+
+    ROS_INFO_STREAM("add extra vectoring force is: \n" << extra_vectoring_force_.transpose());
   }
 
   void DragonGimbal::cfgPitchRollPidCallback(aerial_robot_base::XYPidControlConfig &config, uint32_t level)

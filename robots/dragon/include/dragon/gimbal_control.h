@@ -82,6 +82,7 @@ namespace control_plugin
     ros::Subscriber joint_state_sub_;
     ros::Subscriber final_target_baselink_rot_sub_;
     ros::Subscriber target_baselink_rot_sub_;
+    ros::Subscriber extra_vectoring_force_sub_;
 
     void servoTorqueProcess();
     void landingProcess();
@@ -94,7 +95,7 @@ namespace control_plugin
     void setFinalTargetBaselinkRotCallback(const spinal::DesireCoordConstPtr & msg);
     void fourAxisGainCallback(const aerial_robot_msgs::FourAxisGainConstPtr & msg);
     void targetBaselinkRotCallback(const spinal::DesireCoordConstPtr& msg);
-
+    void extraVectoringForceCallback(const std_msgs::Float32MultiArrayConstPtr& msg);
 
     std::vector<double> target_thrust_terms_; // the scalar value of vectoring force: ||f||
     sensor_msgs::JointState joint_state_;
@@ -128,6 +129,9 @@ namespace control_plugin
     ros::ServiceServer add_external_wrench_service_, clear_external_wrench_service_;
     bool addExternalWrenchCallback(gazebo_msgs::ApplyBodyWrench::Request& req, gazebo_msgs::ApplyBodyWrench::Response& res);
     bool clearExternalWrenchCallback(gazebo_msgs::BodyRequest::Request& req, gazebo_msgs::BodyRequest::Response& res);
+
+    /* extra vectoring force (i.e., for grasping) */
+    Eigen::VectorXd extra_vectoring_force_;
 
     /* rosparam */
     bool control_verbose_;
