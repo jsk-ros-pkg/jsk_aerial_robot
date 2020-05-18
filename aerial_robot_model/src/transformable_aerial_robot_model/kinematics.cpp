@@ -60,7 +60,7 @@ namespace aerial_robot_model {
     double mass_all = getMass();
     const auto cog_all = getCog<KDL::Frame>().p;
     const auto& segment_map = getTree().getSegments();
-    const auto& seg_frames = getSegmentsTf();
+    const auto seg_frames = getSegmentsTf();
     const auto& inertia_map = getInertiaMap();
     const auto& joint_names = getJointNames();
     const auto& joint_segment_map = getJointSegmentMap();

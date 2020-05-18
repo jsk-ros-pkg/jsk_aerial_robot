@@ -272,7 +272,7 @@ namespace sensor_plugin
         for joint or servo system, this should be processed every time,
         therefore kinematics based on kinematics is better, since the tf need 0.x[sec].
       */
-      const auto& segments_tf =  estimator_->getSegmentsTf();
+      const auto segments_tf =  estimator_->getSegmentsTf();
 
       if(segments_tf.empty())
         {

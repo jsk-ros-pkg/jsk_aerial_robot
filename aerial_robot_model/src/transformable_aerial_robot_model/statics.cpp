@@ -142,7 +142,7 @@ namespace aerial_robot_model {
 
   Eigen::VectorXd RobotModel::calcGravityWrenchOnRoot()
   {
-    const auto& seg_frames = getSegmentsTf();
+    const auto seg_frames = getSegmentsTf();
     const auto& inertia_map = getInertiaMap();
 
     Eigen::MatrixXd root_rot = aerial_robot_model::kdlToEigen(getCogDesireOrientation<KDL::Rotation>() * seg_frames.at(baselink_).M.Inverse());
@@ -178,7 +178,7 @@ namespace aerial_robot_model {
 
   void RobotModel::calcWrenchMatrixOnRoot()
   {
-    const auto& seg_frames = getSegmentsTf();
+    const auto seg_frames = getSegmentsTf();
     const std::vector<Eigen::Vector3d>& u = getRotorsNormalFromCog<Eigen::Vector3d>();
     const auto& sigma = getRotorDirection();
     const int rotor_num = getRotorNum();

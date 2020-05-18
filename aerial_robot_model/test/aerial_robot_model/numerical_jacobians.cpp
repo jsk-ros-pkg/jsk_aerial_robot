@@ -56,7 +56,7 @@ namespace aerial_robot_model {
 
   const Eigen::MatrixXd NumericalJacobian::thrustForceNumericalJacobian(std::vector<int> joint_indices)
   {
-    const std::map<std::string, KDL::Frame> seg_frames = getRobotModel().getSegmentsTf();
+    const auto seg_frames = getRobotModel().getSegmentsTf();
     const KDL::JntArray joint_positions = getRobotModel().getJointPositions();
     const auto& u = getRobotModel().getRotorsNormalFromCog<Eigen::Vector3d>();
     const auto& sigma = getRobotModel().getRotorDirection();
@@ -161,7 +161,7 @@ namespace aerial_robot_model {
 
   const Eigen::MatrixXd NumericalJacobian::jointTorqueNumericalJacobian(std::vector<int> joint_indices)
   {
-    const auto& seg_frames = getRobotModel().getSegmentsTf();
+    const auto seg_frames = getRobotModel().getSegmentsTf();
     const KDL::JntArray joint_positions = getRobotModel().getJointPositions();
     const int full_body_dof = 6 + joint_indices.size();
     Eigen::MatrixXd J_t = Eigen::MatrixXd::Zero(getRobotModel().getJointNum(), full_body_dof);
@@ -274,7 +274,7 @@ namespace aerial_robot_model {
   const std::vector<Eigen::MatrixXd> NumericalJacobian::cogMomentumNumericalJacobian(std::vector<int> joint_indices)
   {
     const auto& inertia_map = getRobotModel().getInertiaMap();
-    const std::map<std::string, KDL::Frame> nominal_seg_frames = getRobotModel().getSegmentsTf();
+    const auto nominal_seg_frames = getRobotModel().getSegmentsTf();
     const KDL::JntArray joint_positions = getRobotModel().getJointPositions();
     const int full_body_dof = 6 + joint_indices.size();
     double mass_all = getRobotModel().getMass();
@@ -287,7 +287,7 @@ namespace aerial_robot_model {
 
     auto perturbation = [&](int col, KDL::JntArray joint_angles, KDL::Rotation root_rot) {
       getRobotModel().updateRobotModel(joint_angles);
-      const std::map<std::string, KDL::Frame> seg_frames = getRobotModel().getSegmentsTf();
+      const auto seg_frames = getRobotModel().getSegmentsTf();
 
       for(const auto& seg : inertia_map)
         {
@@ -347,7 +347,7 @@ namespace aerial_robot_model {
 
   const std::vector<Eigen::MatrixXd> NumericalJacobian::feasibleControlNumericalJacobian(std::vector<int> joint_indices)
   {
-    const auto& seg_frames = getRobotModel().getSegmentsTf();
+    const auto seg_frames = getRobotModel().getSegmentsTf();
     const KDL::JntArray joint_positions = getRobotModel().getJointPositions();
     const int rotor_num = getRobotModel().getRotorNum();
     const int full_body_dof = 6 + joint_indices.size();

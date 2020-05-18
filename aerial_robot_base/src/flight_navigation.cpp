@@ -512,7 +512,7 @@ void Navigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
               {
                 tf::Vector3 target_acc = target_acc_;
                 /* convert the frame */
-                const auto& segments_tf =  estimator_->getSegmentsTf();
+                const auto segments_tf =  estimator_->getSegmentsTf();
                 if(segments_tf.find(teleop_local_frame_) == segments_tf.end())
                   {
                     ROS_ERROR("can not find %s in kinematics model", teleop_local_frame_.c_str());

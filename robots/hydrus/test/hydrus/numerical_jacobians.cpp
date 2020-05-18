@@ -44,7 +44,7 @@ const Eigen::MatrixXd HydrusNumericalJacobian::thrustForceNumericalJacobian(std:
 
 const std::vector<Eigen::MatrixXd> HydrusNumericalJacobian::feasibleControlRollPitchDistsNumericalJacobian(std::vector<int> joint_indices)
 {
-  const auto& seg_frames = getRobotModel().getSegmentsTf();
+  const auto seg_frames = getRobotModel().getSegmentsTf();
   const KDL::JntArray joint_positions = getRobotModel().getJointPositions();
   const int rotor_num = getRobotModel().getRotorNum();
   const int full_body_dof = 6 + joint_indices.size();
