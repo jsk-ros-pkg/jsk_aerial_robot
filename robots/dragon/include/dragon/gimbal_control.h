@@ -37,6 +37,8 @@
 
 #include <aerial_robot_base/control/flatness_pid_controller.h>
 #include <dragon/dragon_robot_model.h>
+#include <gazebo_msgs/ApplyBodyWrench.h>
+#include <gazebo_msgs/BodyRequest.h>
 #include <nav_msgs/Odometry.h>
 #include <ros/ros.h>
 #include <spinal/DesireCoord.h>
@@ -44,6 +46,7 @@
 #include <std_msgs/UInt8.h>
 #include <std_srvs/SetBool.h>
 #include <spinal/RollPitchYawTerm.h>
+
 
 namespace control_plugin
 {
@@ -119,12 +122,15 @@ namespace control_plugin
     /* landing process */
     bool level_flag_;
     bool landing_flag_;
-
     bool servo_torque_;
 
-    bool control_verbose_;
+    /* external wrench */
+    ros::ServiceServer add_external_wrench_service_, clear_external_wrench_service_;
+    bool addExternalWrenchCallback(gazebo_msgs::ApplyBodyWrench::Request& req, gazebo_msgs::ApplyBodyWrench::Response& res);
+    bool clearExternalWrenchCallback(gazebo_msgs::BodyRequest::Request& req, gazebo_msgs::BodyRequest::Response& res);
 
     /* rosparam */
+    bool control_verbose_;
     double height_thresh_;
     string joints_torque_control_srv_name_, gimbals_torque_control_srv_name_;
     double baselink_rot_change_thresh_;

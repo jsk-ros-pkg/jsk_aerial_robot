@@ -47,6 +47,12 @@ namespace control_plugin
     final_target_baselink_rot_sub_ = nh_.subscribe("final_target_baselink_rot", 1, &DragonGimbal::setFinalTargetBaselinkRotCallback, this);
     target_baselink_rot_sub_ = nh_.subscribe("desire_coordinate", 1, &DragonGimbal::targetBaselinkRotCallback, this);
 
+    std::string service_name;
+    nh_.param("apply_external_wrench", service_name, std::string("apply_external_wrench"));
+    add_external_wrench_service_ = nh_.advertiseService(service_name, &DragonGimbal::addExternalWrenchCallback, this);
+    nh_.param("clear_external_wrench", service_name, std::string("clear_external_wrench"));
+    clear_external_wrench_service_ = nh_.advertiseService(service_name, &DragonGimbal::clearExternalWrenchCallback, this);
+
     //dynamic reconfigure server
     roll_pitch_pid_server_ = new dynamic_reconfigure::Server<aerial_robot_base::XYPidControlConfig>(ros::NodeHandle(nhp_, "gain_generator/pitch_roll"));
     dynamic_reconf_func_roll_pitch_pid_ = boost::bind(&DragonGimbal::cfgPitchRollPidCallback, this, _1, _2);
@@ -157,6 +163,9 @@ namespace control_plugin
 
             /* force set the current deisre tilt to current estimated tilt */
             curr_target_baselink_rot_.setValue(estimator_->getState(State::ROLL_BASE, estimate_mode_)[0], estimator_->getState(State::PITCH_BASE, estimate_mode_)[0], 0);
+
+            /* clear the external wrench */
+            kinematics_->resetExternalStaticWrench();
           }
 
         level_flag_ = true;
@@ -203,6 +212,7 @@ namespace control_plugin
     /* get roll/pitch angle */
     double roll_angle = estimator_->getState(State::ROLL_COG, estimate_mode_)[0];
     double pitch_angle = estimator_->getState(State::PITCH_COG, estimate_mode_)[0];
+    double yaw_angle = estimator_->getState(State::YAW_COG, estimate_mode_)[0];
 
     int rotor_num = kinematics_->getRotorNum();
 
@@ -380,15 +390,33 @@ namespace control_plugin
     if(control_verbose_)
       {
         std::cout << "gimbal P_pseudo_inverse:"  << std::endl << pseudoinverse(P) << std::endl;
-        std::cout << "gimbal f:"  << std::endl << f_xy << std::endl;
+        std::cout << "gimbal force for horizontal control:"  << std::endl << f_xy << std::endl;
       }
+
+    /* external wrench compensation */
+    Eigen::MatrixXd cog_rot_inv = aerial_robot_model::kdlToEigen(KDL::Rotation::RPY(roll_angle, pitch_angle, yaw_angle).Inverse());
+    Eigen::MatrixXd extended_cog_rot_inv = Eigen::MatrixXd::Zero(6, 6);
+    extended_cog_rot_inv.topLeftCorner(3,3) = cog_rot_inv;
+    extended_cog_rot_inv.bottomRightCorner(3,3) = cog_rot_inv;
+    std::map<std::string, DragonRobotModel::ExternalWrench> external_wrench_map = kinematics_->getExternalWrenchMap();
+    for(auto& wrench: external_wrench_map) wrench.second.wrench = extended_cog_rot_inv * wrench.second.wrench;
+
+    kinematics_->calcExternalWrenchCompThrust(external_wrench_map);
+    const Eigen::VectorXd& wrench_comp_thrust = kinematics_->getExWrenchCompensateVectoringThrust();
+    if(control_verbose_)
+      {
+        std::cout << "external wrench  compensate vectoring thrust: " << wrench_comp_thrust.transpose() << std::endl;
+      }
+
 
     std_msgs::Float32MultiArray target_force_msg;
 
     for(int i = 0; i < rotor_num; i++)
       {
         /* vectoring force */
-        tf::Vector3 f_i(f_xy(2 * i), f_xy(2 * i + 1), z_control_terms_.at(i) + lqi_att_terms_.at(i));
+        tf::Vector3 f_i(f_xy(2 * i) + wrench_comp_thrust(3 * i),
+                        f_xy(2 * i + 1) + wrench_comp_thrust(3 * i + 1),
+                        z_control_terms_.at(i) + lqi_att_terms_.at(i) + wrench_comp_thrust(3 * i + 2));
 
         /* calculate ||f||, but omit pitch and roll term, which will be added in spinal */
         target_thrust_terms_.at(i) = (f_i - tf::Vector3(0, 0, lqi_att_terms_.at(i))).length();
@@ -567,6 +595,23 @@ namespace control_plugin
         gimbal_control_msg.position = kinematics_->getGimbalNominalAngles();
         gimbal_control_pub_.publish(gimbal_control_msg);
       }
+  }
+
+  /* external wrench */
+  bool DragonGimbal::addExternalWrenchCallback(gazebo_msgs::ApplyBodyWrench::Request& req, gazebo_msgs::ApplyBodyWrench::Response& res)
+  {
+    if(kinematics_->addExternalStaticWrench(req.body_name, req.reference_frame, req.reference_point, req.wrench))
+      res.success  = true;
+    else
+      res.success  = false;
+
+    return true;
+  }
+
+  bool DragonGimbal::clearExternalWrenchCallback(gazebo_msgs::BodyRequest::Request& req, gazebo_msgs::BodyRequest::Response& res)
+  {
+    kinematics_->removeExternalStaticWrench(req.body_name);
+    return true;
   }
 
   void DragonGimbal::cfgPitchRollPidCallback(aerial_robot_base::XYPidControlConfig &config, uint32_t level)
