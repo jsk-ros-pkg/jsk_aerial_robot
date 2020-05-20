@@ -133,12 +133,16 @@ private:
   ros::Subscriber pwm_test_sub_;
   ros::Subscriber p_matrix_pseudo_inverse_inertia_sub_;
   ros::Subscriber torque_allocation_matrix_inv_sub_;
+  ros::Subscriber sim_vol_sub_;
   ros::Publisher anti_gyro_pub_;
   ros::ServiceServer att_control_srv_;
   ros::ServiceServer attitude_gains_srv_;
 
   bool setAttitudeControlCallback(std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& res);
   bool setAttitudeGainsCallback(spinal::SetAttitudeGains::Request& req, spinal::SetAttitudeGains::Response& res);
+
+  void setSimVolCallback(const std_msgs::Float32& vol_msg);
+  float sim_voltage_;
 #else
   ros::Subscriber<spinal::FourAxisCommand, AttitudeController> four_axis_cmd_sub_;
   ros::Subscriber<spinal::PwmInfo, AttitudeController> pwm_info_sub_;
@@ -230,7 +234,6 @@ private:
   void pMatrixInertiaCallback(const spinal::PMatrixPseudoInverseWithInertia& msg);
   void torqueAllocationMatrixInvCallback(const spinal::TorqueAllocationMatrixInv& msg);
   void pwmTestCallback(const std_msgs::Float32& pwm_msg);
-
   void pwmConversion(void);
   void pwmsControl(void);
 

@@ -12,7 +12,7 @@
 #include "flight_control/attitude/attitude_control.h"
 
 #ifdef SIMULATION
-AttitudeController::AttitudeController(): DELTA_T(0), prev_time_(-1), use_ground_truth_(false) {}
+AttitudeController::AttitudeController(): DELTA_T(0), prev_time_(-1), use_ground_truth_(false), sim_voltage_(0) {}
 
 void AttitudeController::init(ros::NodeHandle* nh, StateEstimate* estimator)
 {
@@ -30,6 +30,7 @@ void AttitudeController::init(ros::NodeHandle* nh, StateEstimate* estimator)
   pwm_test_sub_ = nh_->subscribe("pwm_test", 1, &AttitudeController::pwmTestCallback, this);
   att_control_srv_ = nh_->advertiseService("set_attitude_control", &AttitudeController::setAttitudeControlCallback, this);
   torque_allocation_matrix_inv_sub_ = nh_->subscribe("torque_allocation_matrix_inv", 1, &AttitudeController::torqueAllocationMatrixInvCallback, this);
+  sim_vol_sub_ = nh_->subscribe("set_sim_voltage", 1, &AttitudeController::setSimVolCallback, this);
   attitude_gains_srv_ = nh_->advertiseService("set_attitude_gains", &AttitudeController::setAttitudeGainsCallback, this); // TODO: merge with rpyGainCallback()
   baseInit();
 }
@@ -631,6 +632,7 @@ void AttitudeController::pwmInfoCallback( const spinal::PwmInfo &info_msg)
         motor_info_.push_back(info_msg.motor_info[i]);
       }
 
+  if(sim_voltage_== 0) sim_voltage_ = motor_info_[0].voltage;
 }
 
 void AttitudeController::rpyGainCallback( const spinal::RollPitchYawTerms &gain_msg)
@@ -851,6 +853,13 @@ void AttitudeController::setAttitudeGainsCallback(const spinal::SetAttitudeGains
 #endif
 }
 
+#ifdef SIMULATION
+void AttitudeController::setSimVolCallback(const std_msgs::Float32& vol_msg)
+{
+  sim_voltage_ = vol_msg.data;
+}
+#endif
+
 bool AttitudeController::activated()
 {
   /* uav model check and motor property */
@@ -899,7 +908,7 @@ void AttitudeController::pwmConversion()
     {
 #ifdef SIMULATION
       if(motor_info_.size() == 0) return;
-      float voltage = motor_info_[0].voltage;
+      float voltage = sim_voltage_;
 #else
       float voltage = bat_->getVoltage();
 #endif
