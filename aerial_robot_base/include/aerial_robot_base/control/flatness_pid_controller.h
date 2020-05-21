@@ -68,13 +68,13 @@ namespace control_plugin
       ControlBase::reset();
 
       start_rp_integration_ = false;
-      alt_pos_err_i_ = 0;
-      psi_err_i_ = 0;
+      z_pos_err_i_ = 0;
+      yaw_err_i_ = 0;
 
       xy_i_term_.setValue(0,0,0);
 
-      target_throttle_.assign(motor_num_, 0);
-      target_yaw_.assign(motor_num_, 0);
+      z_control_terms_.assign(motor_num_, 0);
+      yaw_control_terms_.assign(motor_num_, 0);
       target_roll_ = 0;
       target_pitch_ = 0;
     }
@@ -98,24 +98,25 @@ namespace control_plugin
     tf::Vector3 target_acc_;
     tf::Vector3 pos_err_;
     tf::Vector3 vel_err_;
-    double state_psi_;
-    double state_psi_vel_;
-    double target_psi_;
-    double target_psi_vel_;
-    double psi_err_;
+    double state_yaw_;
+    double state_yaw_vel_;
+    double target_yaw_;
+    double target_yaw_vel_;
+    double yaw_err_;
 
     double target_pitch_, target_roll_;
-    std::vector<double> target_throttle_;
-    std::vector<double> target_yaw_;
-    //**** altitude
-    std::vector<tf::Vector3>  alt_gains_;
-    double alt_err_thresh_;
-    double alt_limit_;
-    tf::Vector3 alt_terms_limit_;
-    double alt_pos_err_i_;
-    double landing_alt_err_thresh_;
+    std::vector<double> z_control_terms_;
+    std::vector<double> yaw_control_terms_;
+
+    //**** z
+    std::vector<tf::Vector3>  z_gains_;
+    double z_err_thresh_;
+    double z_limit_;
+    tf::Vector3 z_terms_limit_;
+    double z_pos_err_i_;
+    double landing_z_err_thresh_;
     double safe_landing_height_;
-    double alt_offset_;
+    double z_offset_;
 
     //**** xy
     tf::Vector3 xy_gains_;
@@ -130,10 +131,10 @@ namespace control_plugin
     std::vector<tf::Vector3> yaw_gains_;
     double yaw_limit_;
     tf::Vector3 yaw_terms_limits_;
-    double max_target_yaw_;
+    double max_yaw_term_;
     double candidate_yaw_term_;     /* to reconstruct yaw PI control term in spinal */
     double yaw_err_thresh_;
-    double  psi_err_i_;
+    double  yaw_err_i_;
     bool need_yaw_d_control_;
 
     dynamic_reconfigure::Server<aerial_robot_base::XYPidControlConfig>* xy_pid_server_;

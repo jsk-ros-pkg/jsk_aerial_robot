@@ -1,27 +1,27 @@
 <launch>
   <arg name="headless" default="False"/>
+  <arg name="robot_id" default=""/>
+  <arg name="robot_ns" value="dragon$(arg robot_id)"/>
 
   <include file="$(find dragon)/launch/bringup.launch">
     <arg name="real_machine" value="False" />
     <arg name="simulation" value="True" />
-    <arg name="control_mode" value="0" />
+    <arg name="robot_id" value="$(arg robot_id)"/>
     <arg name="headless" value="$(arg headless)" />
   </include>
 
   <!-- test codes -->
   <!-- 1. topics  -->
-  <test name="publishtest"
-        test-name="publishtest"
-        pkg="rostest" type="publishtest" retry="2">
+  <test name="publishtest" test-name="publishtest" pkg="rostest" type="publishtest" ns="$(arg robot_ns)" retry="1">
     <rosparam>
       topics:
-        - name: /uav/cog/odom
+        - name: uav/cog/odom
           timeout: 5.0
     </rosparam>
   </test>
 
   <!-- 2. control -->
-  <test test-name="control_test" pkg="hydrus" type="control_check.py"  name="control_test"  time-limit="180" retry="2">
+  <test test-name="control_test" pkg="hydrus" type="control_check.py"  name="control_test" ns="$(arg robot_ns)" time-limit="180" retry="1">
     <rosparam>
       hovering_duration: 30.0
       convergence_thresholds: [0.02, 0.02, 0.02] # hovering threshold
@@ -49,8 +49,6 @@
     </rosparam>
     <param name="init_form_duration" value="25.0" />
     <param name="init_angle_threshold" value="0.04" />
-    <remap from="joint_states" to ="/dragon/joint_states" />
-    <remap from="joints_ctrl" to ="/dragon/joints_ctrl" />
   </test>
 
 </launch>

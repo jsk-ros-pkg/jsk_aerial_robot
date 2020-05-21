@@ -60,9 +60,9 @@ namespace sensor_plugin
   class Alt :public sensor_plugin::SensorBase
   {
   public:
-    void initialize(ros::NodeHandle nh, ros::NodeHandle nhp, StateEstimator* estimator, string sensor_name, int index)
+    void initialize(ros::NodeHandle nh, StateEstimator* estimator, string sensor_name, int index)
     {
-      SensorBase::initialize(nh, nhp, estimator, sensor_name, index);
+      SensorBase::initialize(nh, estimator, sensor_name, index);
       rosParamInit();
 
       kf_loader_ptr_ = boost::shared_ptr< pluginlib::ClassLoader<kf_plugin::KalmanFilter> >(new pluginlib::ClassLoader<kf_plugin::KalmanFilter>("kalman_filter", "kf_plugin::KalmanFilter"));
@@ -77,20 +77,20 @@ namespace sensor_plugin
 
       /* range sensor */
       std::string topic_name;
-      getParam<std::string>("range_sensor_sub_name", topic_name, string("/distance"));
+      getParam<std::string>("range_sensor_sub_name", topic_name, string("distance"));
       range_sensor_sub_ = nh_.subscribe(topic_name, 10, &Alt::rangeCallback, this);
-      alt_pub_ = nh_.advertise<aerial_robot_msgs::States>("data",10);
-      alt_mode_sub_ = nh_.subscribe("estimate_alt_mode", 1, &Alt::altEstimateModeCallback, this);
+
+      alt_mode_sub_ = indexed_nhp_.subscribe("estimate_alt_mode", 1, &Alt::altEstimateModeCallback, this);
 
 
       /* barometer */
-      //barometer_sub_ = nh_.subscribe<spinal::Barometer>(barometer_sub_name_, 1, &Alt::baroCallback, this, ros::TransportHints().tcpNoDelay());
+      //barometer_sub_ = nh_.subscribe(barometer_sub_name_, 1, &Alt::baroCallback, this);
     }
 
     ~Alt() {}
 
     Alt():
-      sensor_plugin::SensorBase(string("alt")),
+      sensor_plugin::SensorBase(),
       /* range sensor */
       raw_range_sensor_value_(0),
       raw_range_pos_z_(0),
@@ -152,7 +152,6 @@ namespace sensor_plugin
 
   private:
     /* ros */
-    ros::Publisher alt_pub_;
     ros::Subscriber alt_mode_sub_;
     /* range sensor */
     ros::Subscriber range_sensor_sub_;
@@ -421,7 +420,7 @@ namespace sensor_plugin
       alt_state_.states[0].state[0].x = raw_range_pos_z_;
       alt_state_.states[0].state[0].y = raw_range_vel_z_;
 
-      alt_pub_.publish(alt_state_);
+      state_pub_.publish(alt_state_);
       updateHealthStamp(1); //channel: 1
 
       /* update */
@@ -633,7 +632,7 @@ namespace sensor_plugin
       alt_state_.states[1].state[2].x = high_filtered_baro_pos_z_;
       alt_state_.states[1].state[2].y = high_filtered_baro_vel_z_;
 
-      alt_pub_.publish(alt_state_);
+      state_pub_.publish(alt_state_);
 
       /* update */
       baro_previous_secs = current_secs;
@@ -717,8 +716,6 @@ namespace sensor_plugin
 
     void rosParamInit()
     {
-      std::string ns = nhp_.getNamespace();
-
       /* range sensor */
       getParam<double>("range_noise_sigma", range_noise_sigma_, 0.005);
       getParam<int>("calibrate_cnt", calibrate_cnt_, 100);

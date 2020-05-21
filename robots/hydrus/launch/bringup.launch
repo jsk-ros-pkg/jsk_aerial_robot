@@ -3,7 +3,6 @@
   ###########  launch config  ###########
   <arg name="real_machine" default="True" />
   <arg name="simulation" default="False" />
-  <arg name="control_mode" default="0" />
   <arg name="type" default="quad" />
   <arg name="onboards_model" default="default_mode_201907" />
   <arg name="estimate_mode"  default= "0" />
@@ -17,78 +16,81 @@
   <arg name="spawn_y" default="0.0"/>
   <arg name="spawn_z" default="0.0"/>
   <arg name="spawn_yaw" default="0.0"/>
+  <arg name="robot_id" default="" />
+  <arg name="robot_ns" value="hydrus$(arg robot_id)" />
+  <arg name="config_dir" default="$(find hydrus)/config/$(arg type)" />
 
-  ###########  UAV Config  ###########
-  # HYDRUS = 16 # 0x10, hydrus type with  4dof underactuated property
-  <param name="/uav_info/uav_model" value= "16" />
-
-  ###########  Motor Config  ###########
-  <rosparam file="$(find hydrus)/config/$(arg type)/$(arg onboards_model)/MotorInfo.yaml" command="load" />
-
-  ###########  Servo Config  ###########
-  <rosparam file="$(find hydrus)/config/$(arg type)/$(arg onboards_model)/Servo.yaml" command="load" />
-
-  ###########  Battery Config  ###########
-  <rosparam file="$(find hydrus)/config/$(arg type)/$(arg onboards_model)/Battery.yaml" command="load" />
-
-  ###########  Base Platform  ###########
-  <node pkg="aerial_robot_base" type="aerial_robot_base_node" name="aerial_robot_base_node" output="screen" >
+  ###########  Parameters  ###########
+  <group ns="$(arg robot_ns)">
 
     ###########  Basic Param  ###########
     # EGOMOTION_ESTIMATE = 0
     # EXPERIMENT_ESTIMATE = 1. for unstable mocap, use this mode
     # GROUND_TRUTH = 2
-    <param name="estimator/estimate_mode" value= "$(arg sim_estimate_mode)" if="$(arg simulation)" />
-    <param name="estimator/estimate_mode" value= "$(arg estimate_mode)" if="$(arg real_machine)"/>
+    <param name="estimation/mode" value= "$(arg sim_estimate_mode)" if="$(arg simulation)" />
+    <param name="estimation/mode" value= "$(arg estimate_mode)" if="$(arg real_machine)"/>
 
-    # World Pos Control Mode: 0
-    # World Vel Control Mode: 2
-    # Local Vel Control Mode: 3
-    # Attitude Control Mode: 4
-    <param name="navigator/xy_control_mode"  value="$(arg control_mode)"/>
+    # HYDRUS = 16 # 0x10, hydrus type with  4dof underactuated property
+    <param name="uav_model" value= "16" />
 
-    <param name="simulation" value="$(arg simulation)" />  <!--for sensor plugin-->
-    <param name="param_verbose" value="false"/>
-    <param name="main_rate" type="double" value="40"/>
+    ###########  Motor Config  ###########
+    <rosparam file="$(arg config_dir)/$(arg onboards_model)/MotorInfo.yaml" command="load" />
 
-    ###########  PID Control  ###########
-    <rosparam file="$(find hydrus)/config/$(arg type)/$(arg onboards_model)/DifferentialFlatnessPidControlConfig.yaml" command="load" />
+    ###########  Servo Config  ###########
+    <rosparam file="$(arg config_dir)/$(arg onboards_model)/Servo.yaml" command="load" />
+
+    ###########  Battery Config  ###########
+    <rosparam file="$(arg config_dir)/$(arg onboards_model)/Battery.yaml" command="load" />
+
+    ###########  Control  ###########
+    <rosparam file="$(arg config_dir)/$(arg onboards_model)/FlightControl.yaml" command="load" />
 
     ###########  Sensor Fusion  ###########
-    <rosparam file="$(find hydrus)/config/$(arg type)/$(arg onboards_model)/EgomotionEstimation.yaml" command="load" />
-    <rosparam file="$(find hydrus)/config/$(arg type)/simulation/EgomotionEstimation.yaml" command="load" if="$(arg simulation)"/>
-    <remap from="/joint_states" to="/hydrusx/joint_states"/>
+    <rosparam file="$(arg config_dir)/$(arg onboards_model)/StateEstimation.yaml" command="load" />
+    <rosparam file="$(arg config_dir)/Simulation.yaml" command="load" if="$(arg simulation)"/>
 
     ###########  Teleop  ###########
-    <rosparam file="$(find hydrus)/config/$(arg type)/TeleopNavigationConfig.yaml" command="load" />
+    <rosparam file="$(arg config_dir)/TeleopNavigationConfig.yaml" command="load" />
+  </group>
+
+  ###########  Base Platform  ###########
+  <node pkg="aerial_robot_base" type="aerial_robot_base_node" name="aerial_robot_base_node" ns="$(arg robot_ns)" output="screen" >
+    <param name="tf_prefix" value="$(arg robot_ns)"/>
+    <param name="param_verbose" value="false"/>
+    <param name="main_rate" value="40"/>
   </node>
 
   ###########  Robot Model  ###########
-  <include file="$(find hydrus)/launch/robot_model.launch" >
-    <arg name="type" value="$(arg type)" />
-    <arg name="onboards_model" value="$(arg onboards_model)"/>
+  <arg name="description_mode" value="urdf" unless="$(arg simulation)" />
+  <arg name="description_mode" value="gazebo" if="$(arg simulation)" />
+  <include file="$(find aerial_robot_model)/launch/aerial_robot_model.launch" >
     <arg name="headless" value="$(arg headless)" />
-    <arg name="need_joint_state" value="false" if ="$(eval arg('simulation') + arg('real_machine') > 0)"/>
-    <arg name="description_mode" value="gazebo" if="$(arg simulation)"/>
-    <arg name="direct_model" value="$(arg direct_model)" />
-    <arg name="direct_model_name" value="$(arg direct_model_name)" if="$(arg direct_model)"/>
-  </include >
+    <arg name="robot_model" value="$(find hydrus)/robots/$(arg type)/$(arg onboards_model)/robot.$(arg description_mode).xacro" unless="$(arg direct_model)"/>
+    <arg name="robot_model" value="$(arg direct_model_name)" if="$(arg direct_model)"/>
+    <arg name="robot_ns" value="$(arg robot_ns)" />
+    <arg name="rviz_config" value="$(find hydrus)/config/rviz_config" />
+    <arg name="rviz_init_pose" value="$(arg config_dir)/RvizInit.yaml" />
+    <arg name="need_joint_state" value="false" if ="$(eval arg('simulation') + arg('real_machine'))"/>
+  </include>
 
   ###########  LQI Gain Generators  ###########
-  <include file="$(find hydrus)/launch/includes/$(arg onboards_model)/transform_control.launch.xml" />
+  <include file="$(find hydrus)/launch/includes/$(arg onboards_model)/transform_control.launch.xml" >
+    <arg name="robot_ns" default="$(arg robot_ns)" />
+  </include>
 
   ###########  Sensors ###########
   <include file="$(find hydrus)/launch/includes/$(arg onboards_model)/sensors.launch.xml" >
     <arg name="real_machine" value="$(arg real_machine)" />
     <arg name="simulation" value="$(arg simulation)" />
+    <arg name="robot_ns" value="$(arg robot_ns)" />
   </include >
 
   ###########  Servo Bridge  ###########
-  <node pkg="aerial_robot_model" type="servo_bridge_node" name="servo_bridge"  output="screen"  ns="hydrusx" />
+  <node pkg="aerial_robot_model" type="servo_bridge_node" name="servo_bridge" ns="$(arg robot_ns)" output="screen" />
 
   ########## Simulation in Gazebo #########
   <include file="$(find aerial_robot_simulation)/launch/simulation.launch" if = "$(eval arg('simulation') * (1 - arg('real_machine')))" >
-    <arg name="model" default="hydrusx" />
+    <arg name="robot_ns" default="$(arg robot_ns)" />
     <arg name="gui" default="false" if="$(arg headless)" />
     <arg name="headless" default="$(arg headless)" />
     <arg name="launch_gazebo" default="$(arg launch_gazebo)" />

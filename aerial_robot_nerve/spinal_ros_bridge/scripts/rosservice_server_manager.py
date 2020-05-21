@@ -102,8 +102,8 @@ class ServiceServer:
 
 class RosserviceServerManager:
     def __init__(self):
-        self.pub_serialized_srv_req = rospy.Publisher('/serialized_srv_req', SerializedMessage, queue_size=10)
-        self.sub_serialized_msg = rospy.Subscriber('/serialized_msg', SerializedMessage, self.serializedMsgsCallback)
+        self.pub_serialized_srv_req = rospy.Publisher('serialized_srv_req', SerializedMessage, queue_size=10)
+        self.sub_serialized_msg = rospy.Subscriber('serialized_msg', SerializedMessage, self.serializedMsgsCallback)
         self.services = dict()    # topic:Service
         self.callbacks = dict()
         self.callbacks[TopicInfo.ID_SERVICE_SERVER+TopicInfo.ID_PUBLISHER] = self.setupServiceServerPublisher

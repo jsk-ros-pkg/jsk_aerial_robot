@@ -30,9 +30,9 @@ public:
   ~ExtraServo(){}
 
   ExtraServo():
-    extra_servo_control_sub_("/extra_servo_cmd", &ExtraServo::servoControlCallback, this ),
-    extra_servo_torque_control_sub_("/extra_servo_torque_enable", &ExtraServo::servoTorqueControlCallback, this ),
-    extra_servo_init_duty_sub_("/extra_servo_init_cmd", &ExtraServo::servoInitDutyCallback, this )
+    extra_servo_control_sub_("extra_servo_cmd", &ExtraServo::servoControlCallback, this ),
+    extra_servo_torque_control_sub_("extra_servo_torque_enable", &ExtraServo::servoTorqueControlCallback, this ),
+    extra_servo_init_duty_sub_("extra_servo_init_cmd", &ExtraServo::servoInitDutyCallback, this )
   {
   }
 

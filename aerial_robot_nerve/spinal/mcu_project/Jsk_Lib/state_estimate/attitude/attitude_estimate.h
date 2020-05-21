@@ -62,9 +62,9 @@ public:
   void init(ros::NodeHandle* nh)
   {
     nh_ = nh;
-    imu_pub_ = nh_->advertise<spinal::Imu>("/imu", 1);
-    attitude_pub_ = nh_->advertise<geometry_msgs::Vector3Stamped>("/attitude", 1),
-    desire_coord_sub_ = nh_->subscribe("/desire_coordinate", 1, &AttitudeEstimate::desireCoordCallback, this);
+    imu_pub_ = nh_->advertise<spinal::Imu>("imu", 1);
+    attitude_pub_ = nh_->advertise<geometry_msgs::Vector3Stamped>("attitude", 1),
+    desire_coord_sub_ = nh_->subscribe("desire_coordinate", 1, &AttitudeEstimate::desireCoordCallback, this);
 
     last_imu_pub_time_ = HAL_GetTick();
     last_attitude_pub_time_ = HAL_GetTick();
@@ -96,8 +96,8 @@ public:
   AttitudeEstimate():
     imu_pub_("imu", &imu_msg_),
     attitude_pub_("attitude", &attitude_msg_),
-    desire_coord_sub_("/desire_coordinate", &AttitudeEstimate::desireCoordCallback, this ),
-    mag_declination_srv_("/mag_declination", &AttitudeEstimate::magDeclinationCallback,this),
+    desire_coord_sub_("desire_coordinate", &AttitudeEstimate::desireCoordCallback, this ),
+    mag_declination_srv_("mag_declination", &AttitudeEstimate::magDeclinationCallback,this),
     imu_list_(1),
     imu_weights_(1,1),
     pub_smoothing_gyro_flag_(false)

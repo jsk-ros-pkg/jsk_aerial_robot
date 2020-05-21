@@ -1,33 +1,35 @@
 <launch>
   <arg name="headless" default="False"/>
   <arg name="rostest" default="True"/>
-
+  <arg name="robot_ns" default="dragon"/>
   <arg name="onboards_model" default="euclid_201709" />
 
-  <include file="$(find dragon)/launch/robot_model.launch" >
-    <arg name="onboards_model" value="$(arg onboards_model)"/>
+  <include file="$(find aerial_robot_model)/launch/aerial_robot_model.launch" >
+    <arg name="robot_ns" value="$(arg robot_ns)" />
     <arg name="headless" value="$(arg headless)" />
     <arg name="need_joint_state" value="$(eval not rostest)"/>
+    <arg name="robot_model" value="$(find dragon)/robots/quad/$(arg onboards_model).urdf.xacro" />
+    <arg name="rviz_config" value="$(find dragon)/config/rviz_config" />
+    <arg name="rviz_init_pose" value="$(find dragon)/config/quad/RvizInit.yaml" />
   </include>
 
   <!-- test codes -->
   <group if="$(arg rostest)">
-    <node pkg="rostopic" type="rostopic" name="joint_state"
-          args="pub -r 1 /dragon/joint_states sensor_msgs/JointState
+    <node pkg="rostopic" type="rostopic" name="joint_state" ns="$(arg robot_ns)"
+          args="pub -r 1 joint_states sensor_msgs/JointState
                 '{name: [joint1_pitch, joint1_yaw, joint2_pitch, joint2_yaw, joint3_pitch, joint3_yaw],
                 position: [0, 1.5708, 0, 1.5708, 0, 1.5708]}'" />
 
-    <test test-name="dragon_jacobian_test" pkg="dragon" type="dragon_jacobian_test" time-limit="10">
+    <test test-name="dragon_jacobian_test" pkg="dragon" type="dragon_jacobian_test" ns="$(arg robot_ns)" time-limit="10">
       <param name="rostest" value="$(arg rostest)" />
       <param name="delta" value="0.000001" />
       <param name="cog_vel_diff_thre" value="0.01" />
       <param name="l_momentum_diff_thre" value="0.02" />
-      <remap from="joint_states" to ="/dragon/joint_states" />
     </test>
   </group>
 
   <group unless="$(arg rostest)">
-    <node name="dragon_jacobian_test_node" pkg="dragon" type="dragon_jacobian_test" output="screen">
+    <node name="dragon_jacobian_test_node" pkg="dragon" type="dragon_jacobian_test" ns="$(arg robot_ns)" output="screen">
       <param name="rostest" value="$(arg rostest)" />
       <param name="delta" value="0.000001" />
       <param name="cog_vel_diff_thre" value="0.01" />
@@ -43,7 +45,6 @@
       <param name="check_cog_motion" value="true" />
       <param name="check_rotor_overlap" value="true" />
       <param name="check_feasible_control_roll_pitch" value="true" />
-      <remap from="joint_states" to ="/dragon/joint_states" />
     </node>
   </group>
 

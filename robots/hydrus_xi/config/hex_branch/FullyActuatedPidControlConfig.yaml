@@ -6,7 +6,7 @@ controller:
   torque_allocation_matrix_inv_pub_interval: 0.05
   wrench_allocation_matrix_pub_interval: 0.1
 
-  alt:
+  z:
     offset: 0.0
     limit: 12.0
     p_term_limit: 12.0

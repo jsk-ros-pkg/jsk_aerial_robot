@@ -1,5 +1,3 @@
-#HydrusX Quad config
-
 control_rate: 15.0
 
 gyro_moment_compensation: true
@@ -26,12 +24,3 @@ r4: 1.0
 
 trans_constraint_weight: 100
 att_control_weight: 1
-
-# inverse kinematics
-differential_motion_count: 50
-thre_joint_vel: 0.1
-w_joint_vel: 0.002
-w_root_vel: 0.001
-joint_vel_constraint_range: 0.11
-joint_vel_forbidden_range: 0.02
-#Test(flight stability) f_max: 9.29

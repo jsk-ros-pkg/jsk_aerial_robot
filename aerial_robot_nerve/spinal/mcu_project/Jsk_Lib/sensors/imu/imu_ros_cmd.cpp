@@ -166,7 +166,7 @@ namespace IMU_ROS_CMD
 
   namespace
   {
-    ros::ServiceServer<spinal::ImuCalib::Request, spinal::ImuCalib::Response> imu_calib_srv_("/imu_calib", imuCalibCallback);
+    ros::ServiceServer<spinal::ImuCalib::Request, spinal::ImuCalib::Response> imu_calib_srv_("imu_calib", imuCalibCallback);
   }
 
   void init(ros::NodeHandle* nh)

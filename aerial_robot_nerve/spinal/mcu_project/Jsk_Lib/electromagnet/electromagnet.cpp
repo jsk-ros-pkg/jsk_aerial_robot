@@ -15,8 +15,8 @@
 bool have_slave_;
 
 ElectroMagnet::ElectroMagnet():
-  contact_status_pub_("/contact_status", &contact_status_msg_),
-  control_sub_("/mag_control", &ElectroMagnet::controlCallback, this)
+  contact_status_pub_("contact_status", &contact_status_msg_),
+  control_sub_("mag_control", &ElectroMagnet::controlCallback, this)
 {
 }
 

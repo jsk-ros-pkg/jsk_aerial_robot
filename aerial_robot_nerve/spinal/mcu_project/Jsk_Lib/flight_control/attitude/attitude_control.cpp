@@ -19,33 +19,33 @@ void AttitudeController::init(ros::NodeHandle* nh, StateEstimate* estimator)
   nh_ = nh;
   estimator_ = estimator;
 
-  pwms_pub_ = nh_->advertise<spinal::Pwms>("/motor_pwms", 1);
-  control_term_pub_ = nh_->advertise<spinal::RollPitchYawTerms>("/control_terms", 1);
-  anti_gyro_pub_ = nh_->advertise<std_msgs::Float32MultiArray>("/gyro_moment_compensation", 1);
-  four_axis_cmd_sub_ = nh_->subscribe("/aerial_robot_control_four_axis", 1, &AttitudeController::fourAxisCommandCallback, this);
-  pwm_info_sub_ = nh_->subscribe("/motor_info", 1, &AttitudeController::pwmInfoCallback, this);
-  rpy_gain_sub_ = nh_->subscribe("/rpy_gain", 1, &AttitudeController::rpyGainCallback, this);
-  p_matrix_pseudo_inverse_inertia_sub_ = nh_->subscribe("/p_matrix_pseudo_inverse_inertia", 1, &AttitudeController::pMatrixInertiaCallback, this);
-  pwm_test_sub_ = nh_->subscribe("/pwm_test", 1, &AttitudeController::pwmTestCallback, this);
-  att_control_srv_ = nh_->advertiseService("/set_attitude_control", &AttitudeController::setAttitudeControlCallback, this);
-  torque_allocation_matrix_inv_sub_ = nh_->subscribe("/torque_allocation_matrix_inv", 1, &AttitudeController::torqueAllocationMatrixInvCallback, this);
-  attitude_gains_srv_ = nh_->advertiseService("/set_attitude_gains", &AttitudeController::setAttitudeGainsCallback, this);
+  pwms_pub_ = nh_->advertise<spinal::Pwms>("motor_pwms", 1);
+  control_term_pub_ = nh_->advertise<spinal::RollPitchYawTerms>("rpy/pid", 1);
+  anti_gyro_pub_ = nh_->advertise<std_msgs::Float32MultiArray>("gyro_moment_compensation", 1);
+  four_axis_cmd_sub_ = nh_->subscribe("four_axes/command", 1, &AttitudeController::fourAxisCommandCallback, this);
+  pwm_info_sub_ = nh_->subscribe("motor_info", 1, &AttitudeController::pwmInfoCallback, this);
+  rpy_gain_sub_ = nh_->subscribe("rpy/gain", 1, &AttitudeController::rpyGainCallback, this);
+  p_matrix_pseudo_inverse_inertia_sub_ = nh_->subscribe("p_matrix_pseudo_inverse_inertia", 1, &AttitudeController::pMatrixInertiaCallback, this);
+  pwm_test_sub_ = nh_->subscribe("pwm_test", 1, &AttitudeController::pwmTestCallback, this);
+  att_control_srv_ = nh_->advertiseService("set_attitude_control", &AttitudeController::setAttitudeControlCallback, this);
+  torque_allocation_matrix_inv_sub_ = nh_->subscribe("torque_allocation_matrix_inv", 1, &AttitudeController::torqueAllocationMatrixInvCallback, this);
+  attitude_gains_srv_ = nh_->advertiseService("set_attitude_gains", &AttitudeController::setAttitudeGainsCallback, this); // TODO: merge with rpyGainCallback()
   baseInit();
 }
 
 #else
 
 AttitudeController::AttitudeController():
-  pwms_pub_("/motor_pwms", &pwms_msg_),
-  control_term_pub_("/control_terms", &control_term_msg_),
-  four_axis_cmd_sub_("/aerial_robot_control_four_axis", &AttitudeController::fourAxisCommandCallback, this ),
-  pwm_info_sub_("/motor_info", &AttitudeController::pwmInfoCallback, this),
-  rpy_gain_sub_("/rpy_gain", &AttitudeController::rpyGainCallback, this),
-  p_matrix_pseudo_inverse_inertia_sub_("/p_matrix_pseudo_inverse_inertia", &AttitudeController::pMatrixInertiaCallback, this),
-  pwm_test_sub_("/pwm_test", &AttitudeController::pwmTestCallback, this ),
-  att_control_srv_("/set_attitude_control", &AttitudeController::setAttitudeControlCallback, this),
-  torque_allocation_matrix_inv_sub_("/torque_allocation_matrix_inv", &AttitudeController::torqueAllocationMatrixInvCallback, this),
-  attitude_gains_srv_("/set_attitude_gains", &AttitudeController::setAttitudeGainsCallback, this)
+  pwms_pub_("motor_pwms", &pwms_msg_),
+  control_term_pub_("rpy/pid", &control_term_msg_),
+  four_axis_cmd_sub_("four_axes/command", &AttitudeController::fourAxisCommandCallback, this ),
+  pwm_info_sub_("motor_info", &AttitudeController::pwmInfoCallback, this),
+  rpy_gain_sub_("rpy/gain", &AttitudeController::rpyGainCallback, this),
+  p_matrix_pseudo_inverse_inertia_sub_("p_matrix_pseudo_inverse_inertia", &AttitudeController::pMatrixInertiaCallback, this),
+  pwm_test_sub_("pwm_test", &AttitudeController::pwmTestCallback, this ),
+  att_control_srv_("set_attitude_control", &AttitudeController::setAttitudeControlCallback, this),
+  torque_allocation_matrix_inv_sub_("torque_allocation_matrix_inv", &AttitudeController::torqueAllocationMatrixInvCallback, this),
+  attitude_gains_srv_("set_attitude_gains", &AttitudeController::setAttitudeGainsCallback, this)
 {
 }
 

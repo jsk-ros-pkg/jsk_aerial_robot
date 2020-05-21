@@ -1,25 +1,25 @@
 # Teleop Basic Param
 
-navigator/takeoff_height: 0.5
-navigator/navi_frame_int: 0  # deprecated?  map frame: 0, body frame: 1
-navigator/map_frame: map
-navigator/target_frame: target
+navigation:
+  xy_control_mode: 0
+  # World Pos Control Mode: 0
+  # World Vel Control Mode: 2
+  # Local Vel Control Mode: 3
+  # Attitude Control Mode: 4
 
-# Keyboard _teleop
+  takeoff_height: 0.5
+  outdoor_takeoff_height: 1.0
 
-navigator/even_move_distance: 0.1
-navigator/up_down_distance: 0.1
-navigator/forward_backward_distance: 0
-navigator/left_right_distance: 0
+  max_target_vel: 0.5
+  joy_target_vel_interval: 0.005  # 0.2 / 20 = 0.01, 0.005 ~ 0.01  m/s
+  joy_target_alt_interval: 0.005
+  max_target_yaw_rate: 0.1 #  0.05
+  cmd_vel_lev2_gain : 2.0
 
-# Keyboard _teleop
-navigator/max_target_vel: 0.5
-navigator/joy_target_vel_interval: 0.005  # 0.2 / 20 = 0.01, 0.005 ~ 0.01  m/s
-navigator/joy_target_alt_interval: 0.005
-navigator/max_target_yaw_rate: 0.1 #  0.05 
-navigator/cmd_vel_lev2_gain : 2.0
+  gain_tunning_mode: 0
+  max_target_tilt_angle: 0.2
+  cmd_angle_lev2_gain : 1.5
 
-# attitude tunning mode in joystick mode
-navigator/gain_tunning_mode: 0
-navigator/max_target_tilt_angle: 0.2
-navigator/cmd_angle_lev2_gain : 1.5
+  # gps waypoint
+  gps_waypoint_threshold: 3.0
+  gps_waypoint_check_du: 1.0

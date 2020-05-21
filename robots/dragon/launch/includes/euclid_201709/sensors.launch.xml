@@ -3,24 +3,30 @@
 
   <arg name="real_machine" default="false" />
   <arg name="simulation" default="false" />
+  <arg name="robot_ns" default="dragon" />
 
-  <group if="$(arg real_machine)">
-    <group unless="$(arg simulation)">
-      <!-- fc & IMU & GPS -->
-      <include file="$(find spinal_ros_bridge)/launch/serial.launch" >
-        <arg name="baud" value="921600" />
-        <arg name="port" value="/dev/flight_controller" />
-      </include>
+  <group ns="$(arg robot_ns)">
 
-      <!-- mocap -->
-      <!--
-      <include file="$(find aerial_robot_base)/launch/external_module/mocap.launch" />
-      -->
+    <group if="$(arg real_machine)">
+      <group unless="$(arg simulation)">
+        <!-- fc & IMU & GPS -->
+        <include file="$(find spinal_ros_bridge)/launch/serial.launch" >
+          <arg name="baud" value="921600" />
+          <arg name="port" value="/dev/flight_controller" />
+        </include>
+
+        <!-- mocap -->
+        <!--
+            <include file="$(find aerial_robot_base)/launch/external_module/mocap.launch" />
+        -->
+      </group>
     </group>
+
+    <!-- basic configuration for sensors (e.g. noise sigma) -->
+    <rosparam file="$(find dragon)/config/sensors/imu/spinal.yaml" command="load" />
+    <rosparam file="$(find aerial_robot_base)/config/sensors/mocap.yaml" command="load" />
+    <param name="sensor_plugin/mocap/cutoff_vel_freq" value="20" /> <!-- # special configuration for LPF in dragon: 10 is good for gournd_truth mode, especially for angular velocity from gyro -->
+    
   </group>
 
-  <!-- basic configuration for sensors (e.g. noise sigma) -->
-  <rosparam file="$(find dragon)/config/sensors/imu/spinal.yaml" command="load" />
-  <rosparam file="$(find aerial_robot_base)/config/sensors/mocap.yaml" command="load" />
-  <param name="/sensor_plugin/mocap/cutoff_vel_freq" value="20" /> <!-- # special configuration for LPF in dragon: 10 is good for gournd_truth mode, especially for angular velocity from gyro -->
 </launch>

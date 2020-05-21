@@ -59,21 +59,20 @@ namespace control_plugin
   class ControlBase
   {
   public:
-    ControlBase(): control_timestamp_(-1)
+    ControlBase(): control_timestamp_(-1), motor_num_(0)
     {}
 
     virtual ~ControlBase(){}
     void virtual initialize(ros::NodeHandle nh,
-               ros::NodeHandle nhp,
-               StateEstimator* estimator,
-               Navigator* navigator,
-               double ctrl_loop_rate)
+                            ros::NodeHandle nhp,
+                            StateEstimator* estimator,
+                            Navigator* navigator,
+                            double ctrl_loop_rate)
     {
-      nh_ = ros::NodeHandle(nh, "controller");
-      nhp_ = ros::NodeHandle(nhp,  "controller");
-
-      motor_info_pub_ = nh_.advertise<spinal::PwmInfo>("/motor_info", 10);
-      uav_info_pub_ = nh_.advertise<spinal::UavInfo>("/uav_info", 10);
+      nh_ = nh;
+      nhp_ = nhp;
+      motor_info_pub_ = nh_.advertise<spinal::PwmInfo>("motor_info", 10);
+      uav_info_pub_ = nh_.advertise<spinal::UavInfo>("uav_info", 10);
 
       estimator_ = estimator;
       navigator_ = navigator;
@@ -82,57 +81,40 @@ namespace control_plugin
 
       estimate_mode_ = estimator_->getEstimateMode();
 
-      nhp.param("param_verbose", param_verbose_, false);
+      getParam<bool>(nhp_, "param_verbose", param_verbose_, false);
+      getParam<int>(nh_, "uav_model", uav_model_, 0); //0: DRONE
 
-      ros::NodeHandle motor_info_node("motor_info");
-      std::string ns = motor_info_node.getNamespace();
+      ros::NodeHandle motor_nh(nh_, "motor_info");
+      getParam<double>(motor_nh, "max_pwm", max_pwm_, 0.0);
+      getParam<double>(motor_nh, "min_pwm", min_pwm_, 0.0);
+      getParam<double>(motor_nh, "min_thrust", min_thrust_, 0.0);
+      getParam<double>(motor_nh, "force_landing_thrust", force_landing_thrust_, 0.0);
+      getParam<double>(motor_nh, "m_f_rate", m_f_rate_, 0.0);
+      getParam<int>(motor_nh, "pwm_conversion_mode", pwm_conversion_mode_, -1);
 
-      motor_info_node.param("max_pwm", max_pwm_, 0.0);
-      if(param_verbose_) cout << ns  << ": max_pwm_ is "  <<  max_pwm_ << endl;
-      motor_info_node.param("min_pwm", min_pwm_, 0.0);
-      if(param_verbose_) cout << ns  << ": min_pwm_ is "  <<  min_pwm_ << endl;
-      motor_info_node.param("min_thrust", min_thrust_, 0.0);
-      if(param_verbose_) cout << ns  << ": min_thrust_ is "  <<  min_thrust_ << endl;
-      motor_info_node.param("force_landing_thrust", force_landing_thrust_, 0.0);
-      if(param_verbose_) cout << ns  << ": force_landing_thrust_ is "  <<  force_landing_thrust_ << endl;
-      motor_info_node.param("m_f_rate", m_f_rate_, 0.0);
-      if(param_verbose_) cout << ns  << ": m_f_rate_ is "  <<  m_f_rate_ << endl;
-      motor_info_node.param("pwm_conversion_mode", pwm_conversion_mode_, -1);
-      if(param_verbose_) cout << ns  << ": pwm_conversion_mode_ is "  <<  pwm_conversion_mode_ << endl;
       int vel_ref_num;
-      motor_info_node.param("vel_ref_num", vel_ref_num, 0);
-      if(param_verbose_) cout << ns  << ": vel_ref_num is "  <<  vel_ref_num << endl;
+      getParam<int>(motor_nh, "vel_ref_num", vel_ref_num, 0);
       motor_info_.resize(vel_ref_num);
       for(int i = 0; i < vel_ref_num; i++)
         {
           std::stringstream ss;
           ss << i + 1;
           double val;
-          ros::NodeHandle nh(motor_info_node, "ref" + ss.str());
-          nh.getParam("voltage", val);
+          ros::NodeHandle nh(motor_nh, "ref" + ss.str());
+          getParam<double>(nh, "voltage", val, 0);
           motor_info_[i].voltage = val;
           nh.param("max_thrust", val, 0.0);
           motor_info_[i].max_thrust = val;
-          if(param_verbose_) cout << nh.getNamespace() << ": voltage is "<< motor_info_[i].voltage <<  "; max thrust is " << motor_info_[i].max_thrust << endl;
 
           /* hardcode: up to 4 dimension */
           for(int j = 0; j < 5; j++)
             {
               std::stringstream ss2;
               ss2 << j;
-              nh.getParam("polynominal" + ss2.str(), val);
+              getParam<double>(nh, "polynominal" + ss2.str(), val, 0);
               motor_info_[i].polynominal[j] = val;
-              if(param_verbose_) cout << nh.getNamespace() << ": polynominal" << j << " is "  <<  val << endl;
             }
         }
-
-      ros::NodeHandle uav_info_node("uav_info");
-      ns = uav_info_node.getNamespace();
-      uav_info_node.param("uav_model", uav_model_, 0); //0: DRONE
-      if(param_verbose_) cout << ns  << ": uav_model_ is "  <<  uav_model_ << endl;
-      /* the motor number can be calculated from ros model(KDL), so this is not necessary */
-      uav_info_node.param("motor_num", motor_num_, 0);
-      if(param_verbose_) cout << ns  << ": motor_num_ is "  <<  motor_num_ << endl;
     }
 
     virtual bool update()
@@ -219,6 +201,15 @@ namespace control_plugin
     int estimate_mode_;
 
     bool param_verbose_;
+
+
+    template<class T> void getParam(ros::NodeHandle nh, std::string param_name, T& param, T default_value)
+    {
+      nh.param<T>(param_name, param, default_value);
+
+      if(param_verbose_)
+        ROS_INFO_STREAM("[" << nh.getNamespace() << "] " << param_name << ": " << param);
+    }
   };
 
 };

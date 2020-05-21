@@ -71,7 +71,7 @@ namespace sensor_plugin
   class Gps :public sensor_plugin::SensorBase
     {
     public:
-      void initialize(ros::NodeHandle nh, ros::NodeHandle nhp, StateEstimator* estimator, string sensor_name, int index);
+      void initialize(ros::NodeHandle nh, StateEstimator* estimator, string sensor_name, int index);
 
       ~Gps() {}
       Gps();
@@ -86,7 +86,6 @@ namespace sensor_plugin
     private:
       /* ros */
       ros::Publisher gps_pub_;
-      ros::Publisher state_pub_;
       ros::Subscriber gps_sub_, gps_full_sub_; /* from spinal */
       ros::Subscriber gps_ros_sub_; /* from ros */
 

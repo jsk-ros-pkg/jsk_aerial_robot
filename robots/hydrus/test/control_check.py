@@ -70,8 +70,7 @@ class InitFormCheck():
         print joint_angles
         print self.init_joint_angles
         angles_diff = [math.fabs(x - y) < self.angle_threshold for (x, y) in zip(self.init_joint_angles, joint_angles)]
-
-        rospy.loginfo('angles diff: %s: %s' %  (self.init_joint_names, [(x - y) in zip(self.init_joint_angles, joint_angles)]))
+        rospy.loginfo('joint angles convergence: %s: %s' %  (self.init_joint_names, angles_diff))
         if reduce(operator.mul, angles_diff):
             return True
         else:
@@ -138,20 +137,20 @@ class TransformCheck(InitFormCheck, HoveringCheck):
                 if self.joint_msg is None or self.control_msg is None:
                     continue
 
-                rospy.loginfo_throttle(1, 'errors: [%f, %f, %f, %f], joint: %s' %  (self.control_msg.pitch.pos_err, self.control_msg.roll.pos_err, self.control_msg.throttle.pos_err, self.control_msg.yaw.pos_err, [self.joint_msg.position[i] for i in self.joint_map]))
+                rospy.loginfo_throttle(1, 'errors: [%f, %f, %f, %f], joint: %s' %  (self.control_msg.pitch.pos_err, self.control_msg.roll.pos_err, self.control_msg.z.pos_err, self.control_msg.yaw.pos_err, [self.joint_msg.position[i] for i in self.joint_map]))
 
                 if self.control_msg.pitch.pos_err > max_error_xy:
                     max_error_xy = self.control_msg.pitch.pos_err
                 if self.control_msg.roll.pos_err > max_error_xy:
                     max_error_xy = self.control_msg.roll.pos_err
-                if self.control_msg.throttle.pos_err > max_error_z:
-                    max_error_z = self.control_msg.throttle.pos_err
+                if self.control_msg.z.pos_err > max_error_z:
+                    max_error_z = self.control_msg.z.pos_err
                 if self.control_msg.yaw.pos_err > max_error_yaw:
                     max_error_yaw = self.control_msg.yaw.pos_err
 
                 # check the control stability
-                if math.fabs(self.control_msg.pitch.pos_err) > task['threshold'][0] or math.fabs(self.control_msg.roll.pos_err) > task['threshold'][0] or math.fabs(self.control_msg.throttle.pos_err) > task['threshold'][1] or math.fabs(self.control_msg.yaw.pos_err) > task['threshold'][2]:
-                    rospy.logwarn("devergence in [xy, z, yaw]: [%f, %f, %f, %f]", self.control_msg.pitch.pos_err, self.control_msg.roll.pos_err, self.control_msg.throttle.pos_err, self.control_msg.yaw.pos_err)
+                if math.fabs(self.control_msg.pitch.pos_err) > task['threshold'][0] or math.fabs(self.control_msg.roll.pos_err) > task['threshold'][0] or math.fabs(self.control_msg.z.pos_err) > task['threshold'][1] or math.fabs(self.control_msg.yaw.pos_err) > task['threshold'][2]:
+                    rospy.logwarn("devergence in [xy, z, yaw]: [%f, %f, %f, %f]", self.control_msg.pitch.pos_err, self.control_msg.roll.pos_err, self.control_msg.z.pos_err, self.control_msg.yaw.pos_err)
                     if node_pid:
                         node_pid.kill()
                     return False

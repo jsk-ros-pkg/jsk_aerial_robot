@@ -9,9 +9,9 @@ float32[] pos_p_gain_roll
 float32[] pos_i_gain_roll
 float32[] pos_d_gain_roll
 
-float32[] pos_p_gain_alt
-float32[] pos_i_gain_alt
-float32[] pos_d_gain_alt
+float32[] pos_p_gain_z
+float32[] pos_i_gain_z
+float32[] pos_d_gain_z
 
 float32[] pos_p_gain_yaw
 float32[] pos_i_gain_yaw

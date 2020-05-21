@@ -40,10 +40,9 @@ ServoBridge::ServoBridge(ros::NodeHandle nh, ros::NodeHandle nhp): nh_(nh),nhp_(
 {
   nh_.param("/use_sim_time", simulation_mode_, false);
 
-
   if(simulation_mode_)
     {
-      if(!ros::service::waitForService(nh_.getNamespace() + std::string("/controller_manager/load_controller"), 10000.0))
+      if(!ros::service::waitForService(nh_.getNamespace() + std::string("/controller_manager/load_controller")))
         {
           ROS_ERROR("can't find the controller manager: %s", (nh_.getNamespace() + std::string("/controller_manager/load_controller")).c_str());
           return;

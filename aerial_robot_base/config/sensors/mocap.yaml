@@ -6,3 +6,4 @@ sensor_plugin:
                 unhealth_level: 3
                 health_timeout: 0.5
                 time_sync: false
+                mocap_sub_name: mocap/pose

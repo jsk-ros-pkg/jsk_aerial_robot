@@ -1,52 +1,57 @@
 ### Gimbal PID control for dragon quad type
 
-# general parameter
-controller/verbose: true
-controller/real_machine: false
-controller/control_verbose: false
+controller:
 
-# alt [N]
-controller/alt/offset: 0
-controller/alt/limit: 28
-controller/alt/p_term_limit: 28
-controller/alt/i_term_limit: 28
-controller/alt/d_term_limit: 28
-controller/alt/landing_alt_err_thresh: -0.4
+  # general parameter
+  control_verbose: false
 
-# xy [rad]
-controller/xy/p_gain: 3.6 # old: 2.5 # 10 / 7.38: sucess in real machine, but weak; divided by mass
-controller/xy/i_gain: 0.03 # divided by mass
-controller/xy/hovering_i_gain: 0.03 # divided by mass
-controller/xy/d_gain: 4 # 40.0 / 7.38 # 20 / 7.38: sucess in real machine, but weak; divided by mass
-controller/xy/limit: 100 # divided by mass
-controller/xy/p_term_limit: 10 # [m/s^2] divided by mass
-controller/xy/i_term_limit: 10 # [m/s^2] divided by mass
-controller/xy/d_term_limit: 10 # [m/s^2] divided by mass
-controller/xy/x_offset: 0
-controller/xy/y_offset: 0
+  # desire tilt
+  tilt_pub_interval: 0.2
 
-# yaw [N]
-controller/yaw/limit: 10.0
-controller/yaw/p_term_limit: 10.0
-controller/yaw/i_term_limit: 10.0
-controller/yaw/d_term_limit: 10.0
-controller/yaw/p_gain: -10 # should be negative
-controller/yaw/i_gain: 0.1
-controller/yaw/d_gain: -5 # should be negative
+  # gimbal vectoring function check
+  gimbal_vectoring_check_flag: false
 
-# pitch & roll
-controller/pitch_roll/control_p_det_thresh: 0.00025
-controller/pitch_roll/control_rate_thresh: 0.7
-controller/pitch_roll/limit: 20.0
-controller/pitch_roll/p_term_limit: 20.0
-controller/pitch_roll/i_term_limit: 20.0
-controller/pitch_roll/d_term_limit: 20.0
-controller/pitch_roll/p_gain: 20 
-controller/pitch_roll/i_gain: 2.0 
-controller/pitch_roll/d_gain: 0.5 #pitch big noise from gyro
+  # z
+  z:
+    offset: 0
+    limit: 28
+    p_term_limit: 28
+    i_term_limit: 28
+    d_term_limit: 28
+    landing_z_err_thresh: -0.4
 
-# desire tilt
-controller/tilt_pub_interval: 0.2
+  # xy
+  xy:
+    p_gain: 3.6 # old: 2.5 # 10 / 7.38: sucess in real machine, but weak; divided by mass
+    i_gain: 0.03 # divided by mass
+    hovering_i_gain: 0.03 # divided by mass
+    d_gain: 4 # 40.0 / 7.38 # 20 / 7.38: sucess in real machine, but weak; divided by mass
+    limit: 100 # divided by mass
+    p_term_limit: 10 # [m/s^2] divided by mass
+    i_term_limit: 10 # [m/s^2] divided by mass
+    d_term_limit: 10 # [m/s^2] divided by mass
+    x_offset: 0
+    y_offset: 0
 
-# gimbal vectoring function check
-controller/gimbal_vectoring_check_flag: false
+  # yaw
+  yaw:
+    limit: 10.0
+    p_term_limit: 10.0
+    i_term_limit: 10.0
+    d_term_limit: 10.0
+    p_gain: -10 # should be negative
+    i_gain: 0.1
+    d_gain: -5 # should be negative
+
+  # pitch & roll
+  pitch_roll:
+    control_p_det_thresh: 0.00025
+    control_rate_thresh: 0.7
+    limit: 20.0
+    p_term_limit: 20.0
+    i_term_limit: 20.0
+    d_term_limit: 20.0
+    p_gain: 20 
+    i_gain: 2.0 
+    d_gain: 0.5 #pitch big noise from gyro
+

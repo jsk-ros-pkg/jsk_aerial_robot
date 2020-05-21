@@ -77,7 +77,7 @@ class GPS_Backend
 {
 public:
   GPS_Backend():
-    gps_config_sub_("/gps_config_cmd", &GPS_Backend::gpsConfigCallback, this),
+    gps_config_sub_("gps_config_cmd", &GPS_Backend::gpsConfigCallback, this),
     update_(false)
   {
     state_.status = NO_FIX;

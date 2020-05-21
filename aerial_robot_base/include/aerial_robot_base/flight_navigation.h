@@ -65,11 +65,11 @@ public:
   inline tf::Vector3 getTargetPos() {return target_pos_;}
   inline tf::Vector3 getTargetVel() {return target_vel_;}
   inline tf::Vector3 getTargetAcc() {return target_acc_;}
-  inline float getTargetPsi() {return target_psi_;}
-  inline float getTargetPsiVel() {return target_vel_psi_;}
+  inline float getTargetYaw() {return target_yaw_;}
+  inline float getTargetYawVel() {return target_vel_yaw_;}
 
-  inline void setTargetPsi(float value) { target_psi_ = value; }
-  inline void setTargetPsiVel(float value) { target_vel_psi_ = value; }
+  inline void setTargetYaw(float value) { target_yaw_ = value; }
+  inline void setTargetYawVel(float value) { target_vel_yaw_ = value; }
   inline void setTargetPosX( float value){  target_pos_.setX(value);}
   inline void setTargetVelX( float value){  target_vel_.setX(value);}
   inline void setTargetAccX( float value){  target_acc_.setX(value);}
@@ -235,7 +235,7 @@ protected:
 
   /* target value */
   tf::Vector3 target_pos_, target_vel_, target_acc_;
-  float target_psi_, target_vel_psi_;
+  float target_yaw_, target_vel_yaw_;
 
   double takeoff_height_;
 
@@ -287,7 +287,7 @@ protected:
   double bat_resistance_voltage_rate_;
   double hovering_current_;
 
-  void rosParamInit(ros::NodeHandle nh);
+  void rosParamInit();
   void naviCallback(const aerial_robot_msgs::FlightNavConstPtr & msg);
   void joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg);
   void batteryCheckCallback(const std_msgs::Float32ConstPtr &msg);
@@ -317,10 +317,11 @@ protected:
       {
         if(handler->getStatus() == Status::ACTIVE)
           {
-            nhp_.param ("outdoor_takeoff_height", takeoff_height_, 1.2);
-            nhp_.param ("outdorr_convergent_duration", convergent_duration_, 0.5);
-            nhp_.param ("outdoor_xy_convergent_thresh", xy_convergent_thresh_, 0.6);
-            nhp_.param ("outdoor_alt_convergent_thresh", alt_convergent_thresh_, 0.05);
+            ros::NodeHandle nh(nh_, "navigation");
+            nh.param("outdoor_takeoff_height", takeoff_height_, 1.2);
+            nh.param("outdorr_convergent_duration", convergent_duration_, 0.5);
+            nh.param("outdoor_xy_convergent_thresh", xy_convergent_thresh_, 0.6);
+            nh.param("outdoor_alt_convergent_thresh", alt_convergent_thresh_, 0.05);
 
             ROS_WARN_STREAM("update the navigation parameters for outdoor flight, takeoff height: " << takeoff_height_ << "; outdorr_convergent_duration: " << convergent_duration_ << "; outdoor_xy_convergent_thresh: " << xy_convergent_thresh_ << "; outdoor_alt_convergent_thresh: " << alt_convergent_thresh_);
 
@@ -333,7 +334,7 @@ protected:
     estimator_->setLandingHeight(estimator_->getPos(Frame::COG, estimate_mode_).z());
     setTargetPosZ(takeoff_height_);
 
-    setTargetPsiFromCurrentState();
+    setTargetYawFromCurrentState();
 
     ROS_INFO("Start state");
   }
@@ -390,9 +391,9 @@ protected:
     if(!teleop_flag_) return;
 
     setNaviState(LAND_STATE);
-    //更新
+
     setTargetXyFromCurrentState();
-    setTargetPsiFromCurrentState();
+    setTargetYawFromCurrentState();
     setTargetPosZ(estimator_->getLandingHeight());
     ROS_INFO("Land state");
   }
@@ -403,7 +404,7 @@ protected:
 
     setNaviState(STOP_STATE);
     setTargetXyFromCurrentState();
-    setTargetPsiFromCurrentState();
+    setTargetYawFromCurrentState();
     setTargetPosZ(estimator_->getLandingHeight());
 
     estimator_->setSensorFusionFlag(false);
@@ -467,10 +468,19 @@ protected:
     target_pos_.setZ(estimator_->getPos(Frame::COG, estimate_mode_).z());
   }
 
-  void setTargetPsiFromCurrentState()
+  void setTargetYawFromCurrentState()
   {
-    target_psi_ = estimator_->getState(State::YAW_COG, estimate_mode_)[0];
+    target_yaw_ = estimator_->getState(State::YAW_COG, estimate_mode_)[0];
   }
+
+  template<class T> void getParam(ros::NodeHandle nh, std::string param_name, T& param, T default_value)
+  {
+    nh.param<T>(param_name, param, default_value);
+
+    if(param_verbose_)
+      ROS_INFO_STREAM("[" << nh.getNamespace() << "] " << param_name << ": " << param);
+  }
+
 
 };
 

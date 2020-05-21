@@ -1,88 +1,87 @@
-dragon:
-  servo_controller:
-    joints:
-      state_sub_topic: /servo/states
-      ctrl_pub_topic: /servo/target_states
-      torque_pub_topic: /servo/torque_enable
-      angle_sgn: 1
-      angle_scale: 0.00076699
-      zero_point_offset: 2047
-      torque_scale: 1.0 # TODO please update the scale
+servo_controller:
+  joints:
+    state_sub_topic: servo/states
+    ctrl_pub_topic: servo/target_states
+    torque_pub_topic: servo/torque_enable
+    angle_sgn: 1
+    angle_scale: 0.00076699
+    zero_point_offset: 2047
+    torque_scale: 1.0 # TODO please update the scale
 
-       # for low pass filter
-      filter_flag: true
-      sample_freq: 50.0 # 50Hz
-      cutoff_freq: 10.0 # 10Hz, test
+    # for low pass filter
+    filter_flag: true
+    sample_freq: 50.0 # 50Hz
+    cutoff_freq: 10.0 # 10Hz, test
 
-      # for simulation
+    # for simulation
+    simulation:
+      pid: {p: 50.0, i: 0.01, d: 2.0}
+      init_value: 0
+      type: effort_controllers/JointPositionController
+
+    # should be in order in terms of kinematics model
+    # e.g. joint1 -> jointN; gimbal1_roll -> gimbal1_pitch
+    controller1:
+      id: 1
+      name: joint1_pitch
+      # angle_max: 1.58 # you can specify for each controller
+    controller2:
+      id: 0
+      name: joint1_yaw
       simulation:
-        pid: {p: 50.0, i: 0.01, d: 2.0}
-        init_value: 0
-        type: effort_controllers/JointPositionController
-
-      # should be in order in terms of kinematics model
-      # e.g. joint1 -> jointN; gimbal1_roll -> gimbal1_pitch
-      controller1:
-        id: 1
-        name: joint1_pitch
-        # angle_max: 1.58 # you can specify for each controller
-      controller2:
-        id: 0
-        name: joint1_yaw
-        simulation:
-          init_value: 1.57
-      controller3:
-        id: 5
-        name: joint2_pitch
-      controller4:
-        id: 4
-        name: joint2_yaw
-        simulation:
-          init_value: 1.57
-      controller5:
-        id: 9
-        name: joint3_pitch
-      controller6:
-        id: 8
-        name: joint3_yaw
-        simulation:
-          init_value: 1.57
-
-    gimbals:
-      ctrl_pub_topic: /servo/target_states
-      torque_pub_topic: /servo/torque_enable
-
-      angle_sgn: 1
-      angle_scale: 0.001534
-      zero_point_offset: 2047
-
+        init_value: 1.57
+    controller3:
+      id: 5
+      name: joint2_pitch
+    controller4:
+      id: 4
+      name: joint2_yaw
       simulation:
-        pid: {p: 50.0, i: 0.01, d: 0.0}
-        init_value: 0
-        type: effort_controllers/JointPositionController
+        init_value: 1.57
+    controller5:
+      id: 9
+      name: joint3_pitch
+    controller6:
+      id: 8
+      name: joint3_yaw
+      simulation:
+        init_value: 1.57
 
-      controller1:
-        id: 3
-        name: gimbal1_roll
-      controller2:
-        id: 2
-        name: gimbal1_pitch
-      controller3:
-        id: 7
-        name: gimbal2_roll
-      controller4:
-        id: 6
-        name: gimbal2_pitch
-      controller5:
-        id: 11
-        name: gimbal3_roll
-      controller6:
-        id: 10
-        name: gimbal3_pitch
-      controller7:
-        id: 13
-        name: gimbal4_roll
-      controller8:
-        id: 12
-        name: gimbal4_pitch
+  gimbals:
+    ctrl_pub_topic: servo/target_states
+    torque_pub_topic: servo/torque_enable
+
+    angle_sgn: 1
+    angle_scale: 0.001534
+    zero_point_offset: 2047
+
+    simulation:
+      pid: {p: 50.0, i: 0.01, d: 0.0}
+      init_value: 0
+      type: effort_controllers/JointPositionController
+
+    controller1:
+      id: 3
+      name: gimbal1_roll
+    controller2:
+      id: 2
+      name: gimbal1_pitch
+    controller3:
+      id: 7
+      name: gimbal2_roll
+    controller4:
+      id: 6
+      name: gimbal2_pitch
+    controller5:
+      id: 11
+      name: gimbal3_roll
+    controller6:
+      id: 10
+      name: gimbal3_pitch
+    controller7:
+      id: 13
+      name: gimbal4_roll
+    controller8:
+      id: 12
+      name: gimbal4_pitch
 

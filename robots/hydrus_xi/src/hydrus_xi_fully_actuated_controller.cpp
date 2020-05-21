@@ -58,7 +58,6 @@ namespace control_plugin
     start_rp_integration_(false),
     yaw_i_term_(0),
     alt_i_term_(0),
-    target_throttle_(0),
     target_yaw_acc_(0),
     wrench_allocation_matrix_pub_stamp_(ros::Time::now()),
     torque_allocation_matrix_inv_pub_stamp_(ros::Time::now())
@@ -73,14 +72,14 @@ namespace control_plugin
 
     motor_num_ = getRobotModel().getRotorNum();
 
-    flight_cmd_pub_ = ControlBase::nh_.advertise<spinal::FourAxisCommand>("/aerial_robot_control_four_axis", 1);
-    pid_pub_ = ControlBase::nh_.advertise<aerial_robot_msgs::FlatnessPid>("debug/pid", 1);
+    flight_cmd_pub_ = ControlBase::nh_.advertise<spinal::FourAxisCommand>("four_axes/command", 1);
+    pid_pub_ = ControlBase::nh_.advertise<aerial_robot_msgs::FlatnessPid>("debug/pos_yaw/pid", 1);
 
-    torque_allocation_matrix_inv_pub_ = ControlBase::nh_.advertise<spinal::TorqueAllocationMatrixInv>("/torque_allocation_matrix_inv", 1);
+    torque_allocation_matrix_inv_pub_ = ControlBase::nh_.advertise<spinal::TorqueAllocationMatrixInv>("torque_allocation_matrix_inv", 1);
     wrench_allocation_matrix_pub_ = ControlBase::nh_.advertise<aerial_robot_msgs::WrenchAllocationMatrix>("debug/wrench_allocation_matrix", 1);
     wrench_allocation_matrix_inv_pub_ = ControlBase::nh_.advertise<aerial_robot_msgs::WrenchAllocationMatrix>("debug/wrench_allocation_matrix_inv", 1);
 
-    set_attitude_gains_client_ = ControlBase::nh_.serviceClient<spinal::SetAttitudeGains>("/set_attitude_gains");
+    set_attitude_gains_client_ = ControlBase::nh_.serviceClient<spinal::SetAttitudeGains>("set_attitude_gains");
 
     dynamic_reconf_func_ = boost::bind(&HydrusXiFullyActuatedController::controllerGainsCfgCallback, this, _1, _2);
     server_.setCallback(dynamic_reconf_func_);
@@ -102,7 +101,6 @@ namespace control_plugin
     xy_i_term_.setZero();
     alt_i_term_ = 0.0;
     yaw_i_term_ = 0.0;
-    target_throttle_.assign(motor_num_, 0);
     target_yaw_acc_ = 0.0;
     setAttitudeGains();
   }
@@ -117,8 +115,8 @@ namespace control_plugin
 
     state_yaw_ = estimator_->getState(State::YAW_COG, estimate_mode_)[0];
     state_yaw_vel_ = estimator_->getState(State::YAW_COG, estimate_mode_)[1];
-    target_yaw_ = navigator_->getTargetPsi();
-    target_yaw_vel_ = navigator_->getTargetPsiVel();
+    target_yaw_ = navigator_->getTargetYaw();
+    target_yaw_vel_ = navigator_->getTargetYawVel();
     yaw_err_ = angles::shortest_angular_distance(state_yaw_, target_yaw_);
   }
 
@@ -268,15 +266,15 @@ namespace control_plugin
     target_linear_acc_.setZ(clamp(alt_p_term + alt_i_term_ + alt_d_term + alt_offset_, -alt_limit_, alt_limit_));
 
     /* ros pub */
-    //throttle(z)
-    pid_msg.throttle.total.push_back(target_linear_acc_.z());
-    pid_msg.throttle.p_term.push_back(alt_p_term);
-    pid_msg.throttle.i_term.push_back(alt_i_term_);
-    pid_msg.throttle.d_term.push_back(alt_d_term);
-    pid_msg.throttle.target_pos = target_pos_.z();
-    pid_msg.throttle.pos_err = alt_err;
-    pid_msg.throttle.target_vel = target_vel_.z();
-    pid_msg.throttle.vel_err = state_vel_.z();
+    //z(z)
+    pid_msg.z.total.push_back(target_linear_acc_.z());
+    pid_msg.z.p_term.push_back(alt_p_term);
+    pid_msg.z.i_term.push_back(alt_i_term_);
+    pid_msg.z.d_term.push_back(alt_d_term);
+    pid_msg.z.target_pos = target_pos_.z();
+    pid_msg.z.pos_err = alt_err;
+    pid_msg.z.target_vel = target_vel_.z();
+    pid_msg.z.vel_err = state_vel_.z();
 
     /* ros publish */
     pid_pub_.publish(pid_msg);
@@ -388,112 +386,60 @@ namespace control_plugin
 
   void HydrusXiFullyActuatedController::rosParamInit()
   {
-    ros::NodeHandle alt_node(ControlBase::nhp_, "alt");
-    ros::NodeHandle xy_node(ControlBase::nhp_, "xy");
-    ros::NodeHandle yaw_node(ControlBase::nhp_, "yaw");
-    ros::NodeHandle roll_pitch_node(ControlBase::nhp_, "roll_pitch");
+    ros::NodeHandle control_nh(ControlBase::nh_, "controller");
+    ros::NodeHandle xy_nh(control_nh, "xy");
+    ros::NodeHandle z_nh(control_nh, "z");
+    ros::NodeHandle yaw_nh(control_nh, "yaw");
+    ros::NodeHandle roll_pitch_nh(control_nh, "roll_pitch");
 
-    string alt_ns = alt_node.getNamespace();
-    string xy_ns = xy_node.getNamespace();
-    string yaw_ns = yaw_node.getNamespace();
-    string roll_pitch_ns = roll_pitch_node.getNamespace();
+    getParam<bool>(control_nh, "need_yaw_d_control", need_yaw_d_control_, false);
+    getParam<bool>(control_nh, "verbose", verbose_, false);
+    getParam<double>(control_nh, "torque_allocation_matrix_inv_pub_interval", torque_allocation_matrix_inv_pub_interval_, 0.05);
+    getParam<double>(control_nh, "wrench_allocation_matrix_pub_interval", wrench_allocation_matrix_pub_interval_, 0.1);
 
-    ControlBase::nhp_.param("need_yaw_d_control", need_yaw_d_control_, false);
-    ControlBase::nhp_.param("verbose", verbose_, false);
-    ControlBase::nhp_.param("torque_allocation_matrix_inv_pub_interval", torque_allocation_matrix_inv_pub_interval_, 0.05);
-    ControlBase::nhp_.param("wrench_allocation_matrix_pub_interval", wrench_allocation_matrix_pub_interval_, 0.1);
-
-
-    /* altitude */
-    alt_node.param("alt_landing_const_i_ctrl_thresh", alt_landing_const_i_ctrl_thresh_, 0.0);
-    alt_node.param("offset", alt_offset_, 0.0);
-    alt_node.param("limit", alt_limit_, 1.0e6);
-    alt_node.param("p_term_limit", alt_terms_limits_[0], 1.0e6);
-    alt_node.param("i_term_limit", alt_terms_limits_[1], 1.0e6);
-    alt_node.param("d_term_limit", alt_terms_limits_[2], 1.0e6);
-    alt_node.param("err_thresh", alt_err_thresh_, 1.0);
-    alt_node.param("p_gain", alt_gains_[0], 0.0);
-    alt_node.param("i_gain", alt_gains_[1], 0.001);
-    alt_node.param("d_gain", alt_gains_[2], 0.0);
-    alt_node.param("takeoff_i_gain", alt_takeoff_i_gain_, 0.0);
+    /* z */
+    getParam<double>(z_nh, "alt_landing_const_i_ctrl_thresh", alt_landing_const_i_ctrl_thresh_, 0.0);
+    getParam<double>(z_nh, "offset", alt_offset_, 0.0);
+    getParam<double>(z_nh, "limit", alt_limit_, 1.0e6);
+    getParam<double>(z_nh, "p_term_limit", alt_terms_limits_[0], 1.0e6);
+    getParam<double>(z_nh, "i_term_limit", alt_terms_limits_[1], 1.0e6);
+    getParam<double>(z_nh, "d_term_limit", alt_terms_limits_[2], 1.0e6);
+    getParam<double>(z_nh, "err_thresh", alt_err_thresh_, 1.0);
+    getParam<double>(z_nh, "p_gain", alt_gains_[0], 0.0);
+    getParam<double>(z_nh, "i_gain", alt_gains_[1], 0.001);
+    getParam<double>(z_nh, "d_gain", alt_gains_[2], 0.0);
+    getParam<double>(z_nh, "takeoff_i_gain", alt_takeoff_i_gain_, 0.0);
 
     /* xy */
-    xy_node.param("x_offset", xy_offset_[0], 0.0);
-    xy_node.param("y_offset", xy_offset_[1], 0.0);
-    xy_node.param("limit", xy_limit_, 1.0e6);
-    xy_node.param("p_term_limit", xy_terms_limits_[0], 1.0e6);
-    xy_node.param("i_term_limit", xy_terms_limits_[1], 1.0e6);
-    xy_node.param("d_term_limit", xy_terms_limits_[2], 1.0e6);
-    xy_node.param("p_gain", xy_gains_[0], 0.0);
-    xy_node.param("i_gain", xy_gains_[1], 0.0);
-    xy_node.param("d_gain", xy_gains_[2], 0.0);
-    xy_node.param("start_rp_integration_height", start_rp_integration_height_, 0.01);
+    getParam<double>(xy_nh, "x_offset", xy_offset_[0], 0.0);
+    getParam<double>(xy_nh, "y_offset", xy_offset_[1], 0.0);
+    getParam<double>(xy_nh, "limit", xy_limit_, 1.0e6);
+    getParam<double>(xy_nh, "p_term_limit", xy_terms_limits_[0], 1.0e6);
+    getParam<double>(xy_nh, "i_term_limit", xy_terms_limits_[1], 1.0e6);
+    getParam<double>(xy_nh, "d_term_limit", xy_terms_limits_[2], 1.0e6);
+    getParam<double>(xy_nh, "p_gain", xy_gains_[0], 0.0);
+    getParam<double>(xy_nh, "i_gain", xy_gains_[1], 0.0);
+    getParam<double>(xy_nh, "d_gain", xy_gains_[2], 0.0);
+    getParam<double>(xy_nh, "start_rp_integration_height", start_rp_integration_height_, 0.01);
 
     /* yaw */
-    yaw_node.param("limit", yaw_limit_, 1.0e6);
-    yaw_node.param("p_term_limit", yaw_terms_limits_[0], 1.0e6);
-    yaw_node.param("i_term_limit", yaw_terms_limits_[1], 1.0e6);
-    yaw_node.param("d_term_limit", yaw_terms_limits_[2], 1.0e6);
-    yaw_node.param("err_thresh", yaw_err_thresh_, 0.4);
-    yaw_node.param("p_gain", yaw_gains_[0], 0.0);
-    yaw_node.param("i_gain", yaw_gains_[1], 0.0);
-    yaw_node.param("d_gain", yaw_gains_[2], 0.0);
+    getParam<double>(yaw_nh, "limit", yaw_limit_, 1.0e6);
+    getParam<double>(yaw_nh, "p_term_limit", yaw_terms_limits_[0], 1.0e6);
+    getParam<double>(yaw_nh, "i_term_limit", yaw_terms_limits_[1], 1.0e6);
+    getParam<double>(yaw_nh, "d_term_limit", yaw_terms_limits_[2], 1.0e6);
+    getParam<double>(yaw_nh, "err_thresh", yaw_err_thresh_, 0.4);
+    getParam<double>(yaw_nh, "p_gain", yaw_gains_[0], 0.0);
+    getParam<double>(yaw_nh, "i_gain", yaw_gains_[1], 0.0);
+    getParam<double>(yaw_nh, "d_gain", yaw_gains_[2], 0.0);
 
     /* roll_pitch */
-    roll_pitch_node.param("limit", roll_pitch_limit_, 1.0e6);
-    roll_pitch_node.param("p_term_limit", roll_pitch_terms_limits_[0], 1.0e6);
-    roll_pitch_node.param("i_term_limit", roll_pitch_terms_limits_[1], 1.0e6);
-    roll_pitch_node.param("d_term_limit", roll_pitch_terms_limits_[2], 1.0e6);
-    roll_pitch_node.param("p_gain", roll_pitch_gains_[0], 0.0);
-    roll_pitch_node.param("i_gain", roll_pitch_gains_[1], 0.0);
-    roll_pitch_node.param("d_gain", roll_pitch_gains_[2], 0.0);
-
-
-    if (param_verbose_)
-      {
-        cout << "verbose is " << boolalpha << verbose_ << endl;
-        cout << "need_yaw_d_control_ is " << boolalpha << need_yaw_d_control_ << endl;
-
-        cout << alt_ns << ": alt_landing_const_i_ctrl_thresh_ is " << alt_landing_const_i_ctrl_thresh_ << endl;
-        cout << alt_ns << ": offset_ is " << alt_offset_ << endl;
-        cout << alt_ns << ": limit_ is " << alt_limit_ << endl;
-        cout << alt_ns << ": p_limit_ is " << alt_terms_limits_[0] << endl;
-        cout << alt_ns << ": i_limit_ is " << alt_terms_limits_[1] << endl;
-        cout << alt_ns << ": d_limit_ is " << alt_terms_limits_[2] << endl;
-        cout << alt_ns << ": err_thresh_ is " << alt_err_thresh_ << endl;
-        cout << alt_ns << ": p_gain_ is " << alt_gains_[0] << endl;
-        cout << alt_ns << ": i_gain_ is " << alt_gains_[1] << endl;
-        cout << alt_ns << ": d_gain_ is " << alt_gains_[2] << endl;
-        cout << alt_ns << ": takeoff_i_gain_ is " << alt_takeoff_i_gain_ << endl;
-
-        cout << xy_ns << ": x_offset_ is " <<  xy_offset_[0] << endl;
-        cout << xy_ns << ": y_offset_ is " <<  xy_offset_[1] << endl;
-        cout << xy_ns << ": limit_ is " <<  xy_limit_ << endl;
-        cout << xy_ns << ": p_limit_ is " <<  xy_terms_limits_[0] << endl;
-        cout << xy_ns << ": i_limit_ is " <<  xy_terms_limits_[1] << endl;
-        cout << xy_ns << ": d_limit_ is " <<  xy_terms_limits_[2] << endl;
-        cout << xy_ns << ": p_gain_ is " << xy_gains_[0] << endl;
-        cout << xy_ns << ": i_gain_ is " << xy_gains_[1] << endl;
-        cout << xy_ns << ": d_gain_ is " << xy_gains_[2] << endl;
-        cout << xy_ns << ": start_rp_integration_height_ is " << start_rp_integration_height_ << endl;
-
-        cout << yaw_ns << ": limit_ is " << yaw_limit_ << endl;
-        cout << yaw_ns << ": p_limit_ is " << yaw_terms_limits_[0] << endl;
-        cout << yaw_ns << ": i_limit_ is " << yaw_terms_limits_[1] << endl;
-        cout << yaw_ns << ": d_limit_ is " << yaw_terms_limits_[2] << endl;
-        cout << yaw_ns << ": err_thresh_ is " << yaw_err_thresh_ << endl;
-        cout << yaw_ns << ": p_gain_ is " << yaw_gains_[0] << endl;
-        cout << yaw_ns << ": i_gain_ is " << yaw_gains_[1] << endl;
-        cout << yaw_ns << ": d_gain_ is " << yaw_gains_[2] << endl;
-
-        cout << roll_pitch_ns << ": limit_ is " << roll_pitch_limit_ << endl;
-        cout << roll_pitch_ns << ": p_limit_ is " << roll_pitch_terms_limits_[0] << endl;
-        cout << roll_pitch_ns << ": i_limit_ is " << roll_pitch_terms_limits_[1] << endl;
-        cout << roll_pitch_ns << ": d_limit_ is " << roll_pitch_terms_limits_[2] << endl;
-        cout << roll_pitch_ns << ": p_gain_ is " << roll_pitch_gains_[0] << endl;
-        cout << roll_pitch_ns << ": i_gain_ is " << roll_pitch_gains_[1] << endl;
-        cout << roll_pitch_ns << ": d_gain_ is " << roll_pitch_gains_[2] << endl;
-      }
+    getParam<double>(roll_pitch_nh, "limit", roll_pitch_limit_, 1.0e6);
+    getParam<double>(roll_pitch_nh, "p_term_limit", roll_pitch_terms_limits_[0], 1.0e6);
+    getParam<double>(roll_pitch_nh, "i_term_limit", roll_pitch_terms_limits_[1], 1.0e6);
+    getParam<double>(roll_pitch_nh, "d_term_limit", roll_pitch_terms_limits_[2], 1.0e6);
+    getParam<double>(roll_pitch_nh, "p_gain", roll_pitch_gains_[0], 0.0);
+    getParam<double>(roll_pitch_nh, "i_gain", roll_pitch_gains_[1], 0.0);
+    getParam<double>(roll_pitch_nh, "d_gain", roll_pitch_gains_[2], 0.0);
   }
 
   void HydrusXiFullyActuatedController::setAttitudeGains()

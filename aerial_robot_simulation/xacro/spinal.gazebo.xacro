@@ -7,7 +7,7 @@
     <!-- gazebo elements: spinal interface -->
     <gazebo>
       <plugin name="gazebo_ros_control" filename="libgazebo_ros_control.so">
-        <robotNamespace>/${robot_name}</robotNamespace>
+        <robotNamespace>${robot_name}</robotNamespace>
         <robotSimType>gazebo_ros_control/AerialRobotHWSim</robotSimType>
       </plugin>
     </gazebo>
@@ -115,10 +115,11 @@
     <!-- gps plugin -->
     <gazebo>
       <plugin name="gps_controller" filename="libhector_gazebo_ros_gps.so">
+        <robotNamespace>${robot_name}</robotNamespace>
         <updateRate>5.0</updateRate>
         <bodyName>${gps_frame}</bodyName>
-        <topicName>/fix</topicName>
-        <velocityTopicName>/fix_velocity</velocityTopicName>
+        <topicName>sim/gps/fix</topicName>
+        <velocityTopicName>sim/gps/velocity</velocityTopicName>
       </plugin>
     </gazebo>
 

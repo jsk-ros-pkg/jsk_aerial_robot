@@ -39,6 +39,7 @@
 #include <aerial_robot_model/AddExtraModule.h>
 #include <memory>
 #include <spinal/DesireCoord.h>
+#include <tf/tf.h>
 #include <tf2_ros/transform_broadcaster.h>
 
 namespace aerial_robot_model {
@@ -70,6 +71,7 @@ namespace aerial_robot_model {
     ros::NodeHandle nh_;
     ros::NodeHandle nhp_;
     std::unique_ptr<aerial_robot_model::RobotModel> robot_model_;
+    std::string tf_prefix_;
 
     //private functions
     void actuatorStateCallback(const sensor_msgs::JointStateConstPtr& state);

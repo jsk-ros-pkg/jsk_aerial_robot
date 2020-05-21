@@ -10,6 +10,7 @@ import python_qt_binding as pyqt
 from python_qt_binding.QtWidgets import *
 from python_qt_binding.QtGui import *
 from python_qt_binding.QtCore import *
+import rosgraph
 import distutils.util
 import xml.etree.ElementTree as ET
 
@@ -20,9 +21,21 @@ class BoardConfigurator(Plugin):
 
         self.setObjectName('BoardConfigurator')
 
-        self.get_board_info_client_ = rospy.ServiceProxy('/get_board_info', GetBoardInfo)
-        self.set_board_config_client_ = rospy.ServiceProxy('/set_board_config', SetBoardConfig)
-        self.servo_torque_pub_ = rospy.Publisher('/servo/torque_enable', ServoTorqueCmd, queue_size = 1)
+        # search the robot prefix for topics
+        master = rosgraph.Master('/rostopic')
+        try:
+            _, _, srvs = master.getSystemState()
+        except socket.error:
+            raise ROSTopicIOException("Unable to communicate with master!")
+        board_info_srvs = [srv[0] for srv in srvs if '/get_board_info' in srv[0]]
+
+        # choose the first robot name
+        robot_ns = board_info_srvs[0].split('/get_board_info')[0]
+
+        print robot_ns
+        self.get_board_info_client_ = rospy.ServiceProxy(robot_ns + '/get_board_info', GetBoardInfo)
+        self.set_board_config_client_ = rospy.ServiceProxy(robot_ns + '/set_board_config', SetBoardConfig)
+        self.servo_torque_pub_ = rospy.Publisher(robot_ns + '/servo/torque_enable', ServoTorqueCmd, queue_size = 1)
 
         from argparse import ArgumentParser
         parser = ArgumentParser()
@@ -69,10 +82,9 @@ class BoardConfigurator(Plugin):
 
         self.joint_id_name_map = {}
         try:
-            root = ET.fromstring(rospy.get_param("robot_description"))
-            robot_name = root.attrib['name']
-            param_tree = rospy.get_param(robot_name + "/servo_controller")
-            ctrl_pub_topic = '/servo/target_states'
+            param_tree = rospy.get_param(robot_ns + "/servo_controller")
+            ctrl_pub_topic = 'servo/target_states'
+            print "OKOKOKOKOKOKOKOKOKOKO"
 
             for key in param_tree.keys():
                 if param_tree[key]['ctrl_pub_topic'] == ctrl_pub_topic:
@@ -104,11 +116,6 @@ class BoardConfigurator(Plugin):
         # Usually used to open a modal configuration dialog
 
     def updateButtonCallback(self):
-        try:
-            rospy.wait_for_service('/get_board_info', timeout = 0.5)
-        except rospy.ROSException, e:
-            rospy.logerr(e)
-
         try:
             res = self.get_board_info_client_()
 
@@ -252,7 +259,6 @@ class BoardConfigurator(Plugin):
         rospy.loginfo('published message')
         rospy.loginfo('command: ' + str(req.command))
         rospy.loginfo('data: ' + str(req.data))
-        rospy.wait_for_service('/set_board_config')
         try:
             res = self.set_board_config_client_(req)
             rospy.loginfo(bool(res.success))

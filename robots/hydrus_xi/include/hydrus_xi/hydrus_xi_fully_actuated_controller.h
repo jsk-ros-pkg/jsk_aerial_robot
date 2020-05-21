@@ -139,7 +139,7 @@ namespace control_plugin
     double target_yaw_acc_;
     std::vector<float> calcForceVector(const Eigen::MatrixXd& wrench_allocation_matrix_inv);
     Eigen::MatrixXd calcWrenchAllocationMatrixWithInertial();
-    std::vector<double> target_throttle_;
+
 
     ros::Publisher flight_cmd_pub_;
     ros::Publisher pid_pub_;

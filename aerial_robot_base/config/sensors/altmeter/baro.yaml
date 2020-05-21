@@ -1,6 +1,6 @@
 sensor_plugin:
         altitude:
-                barometer_sub_name: /baro
+                barometer_sub_name: baro
                 baro_noise_sigma: 0.2
                 baro_bias_noise_sigma: 0.001
                 rx_freq: 80.0

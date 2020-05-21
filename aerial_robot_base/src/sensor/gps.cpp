@@ -72,7 +72,7 @@ namespace
 namespace sensor_plugin
 {
   Gps::Gps():
-    sensor_plugin::SensorBase(string("gps")),
+    sensor_plugin::SensorBase(),
     pos_(0, 0, 0),
     raw_pos_(0, 0, 0),
     prev_raw_pos_(0, 0, 0),
@@ -88,38 +88,24 @@ namespace sensor_plugin
     world_frame_.setIdentity();
   }
 
-  void Gps::initialize(ros::NodeHandle nh, ros::NodeHandle nhp, StateEstimator* estimator, string sensor_name, int index)
+  void Gps::initialize(ros::NodeHandle nh, StateEstimator* estimator, string sensor_name, int index)
   {
-    SensorBase::initialize(nh, nhp, estimator, sensor_name, index);
+    SensorBase::initialize(nh, estimator, sensor_name, index);
     rosParamInit();
 
     /* ros subscriber for gps */
     std::string topic_name;
-    getParam<std::string>("gps_sub_name", topic_name, string("/gps"));
+    getParam<std::string>("gps_sub_name", topic_name, string("gps"));
     gps_sub_ = nh_.subscribe(topic_name, 5, &Gps::gpsCallback, this);
 
-    getParam<std::string>("gps_full_sub_name", topic_name, string("/gps_full"));
+    getParam<std::string>("gps_full_sub_name", topic_name, string("gps_full"));
     // gps_full_sub_ = nh_.subscribe(topic_name, 5, &Gps::gpsFullCallback, this); // reserve
 
-    getParam<std::string>("gps_ros_sub_name", topic_name, string("/fix"));
+    getParam<std::string>("gps_ros_sub_name", topic_name, string("ros_fix"));
     gps_ros_sub_ = nh_.subscribe(topic_name, 5, &Gps::gpsRosCallback, this);
 
-    if(estimator_->getGpsHandlers().size() == 1)
-      {
-        /* ros publisher of aerial_robot_base::State */
-        state_pub_ = nh_.advertise<aerial_robot_msgs::States>("data", 10);
-
-        /* ros publisher of sensor_msgs::NavSatFix */
-        gps_pub_ = nh_.advertise<sensor_msgs::NavSatFix>("single_gps", 2);
-      }
-    else
-      {
-        /* ros publisher of aerial_robot_base::State */
-        state_pub_ = indexed_nh_.advertise<aerial_robot_msgs::States>("data", 10);
-
-        /* ros publisher of sensor_msgs::NavSatFix */
-        gps_pub_ = indexed_nh_.advertise<sensor_msgs::NavSatFix>("single_gps", 2);
-      }
+    /* ros publisher of sensor_msgs::NavSatFix */
+    gps_pub_ = indexed_nhp_.advertise<sensor_msgs::NavSatFix>("ros_converted", 2);
   }
 
   void Gps::rosParamInit()

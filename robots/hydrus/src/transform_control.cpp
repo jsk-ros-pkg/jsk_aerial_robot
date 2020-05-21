@@ -10,8 +10,8 @@ TransformController::TransformController(ros::NodeHandle nh, ros::NodeHandle nhp
   initParam();
 
   //publisher
-  rpy_gain_pub_ = nhp_.advertise<spinal::RollPitchYawTerms>("/rpy_gain", 1);
-  four_axis_gain_pub_ = nh_.advertise<aerial_robot_msgs::FourAxisGain>("/four_axis_gain", 1);
+  rpy_gain_pub_ = nh_.advertise<spinal::RollPitchYawTerms>("rpy/gain", 1);
+  four_axis_gain_pub_ = nh_.advertise<aerial_robot_msgs::FourAxisGain>("four_axes/gain", 1);
   p_matrix_pseudo_inverse_inertia_pub_ = nh_.advertise<spinal::PMatrixPseudoInverseWithInertia>("p_matrix_pseudo_inverse_inertia", 1);
 
   //dynamic reconfigure server
@@ -346,13 +346,13 @@ void TransformController::param2controller()
       four_axis_gain_msg.pos_i_gain_pitch.push_back(pitch_gains_.at(i).i);
       four_axis_gain_msg.pos_d_gain_pitch.push_back(pitch_gains_.at(i).d * pitch_d_gain_scale);
 
-      four_axis_gain_msg.pos_p_gain_alt.push_back(z_gains_.at(i).p);
-      four_axis_gain_msg.pos_i_gain_alt.push_back(z_gains_.at(i).i);
-      four_axis_gain_msg.pos_d_gain_alt.push_back(z_gains_.at(i).d);
-
       four_axis_gain_msg.pos_p_gain_yaw.push_back(yaw_gains_.at(i).p);
       four_axis_gain_msg.pos_i_gain_yaw.push_back(yaw_gains_.at(i).i);
       four_axis_gain_msg.pos_d_gain_yaw.push_back(yaw_gains_.at(i).d * yaw_d_gain_scale);
+
+      four_axis_gain_msg.pos_p_gain_z.push_back(z_gains_.at(i).p);
+      four_axis_gain_msg.pos_i_gain_z.push_back(z_gains_.at(i).i);
+      four_axis_gain_msg.pos_d_gain_z.push_back(z_gains_.at(i).d);
 
       /* the p matrix pseudo inverse and inertia */
       p_pseudo_inverse_with_inertia_msg.pseudo_inverse[i].r = p_mat_pseudo_inv_(i, 1) * 1000;

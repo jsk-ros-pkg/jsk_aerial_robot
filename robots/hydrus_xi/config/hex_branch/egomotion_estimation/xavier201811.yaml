@@ -1,4 +1,4 @@
-estimator:
+estimation:
   # sensor plugin
   sensor_list:
     - sensor_plugin/imu
@@ -42,7 +42,7 @@ estimator:
 # EXPERIMENT_MODE = 1
 # GROUND_TRUTH_MODE = 2
 
-/sensor_plugin:
+sensor_plugin:
   imu:
     estimate_mode: 3 # 1<<0 + 1<<1
   mocap:

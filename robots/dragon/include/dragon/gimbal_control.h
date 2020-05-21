@@ -60,7 +60,7 @@ namespace control_plugin
     {
       FlatnessPid::reset();
 
-      target_yaw_.assign(1, 0);
+      yaw_control_terms_.assign(1, 0);
 
       level_flag_ = false;
       landing_flag_ = false;
@@ -95,8 +95,6 @@ namespace control_plugin
     std::vector<double> target_gimbal_angles_;
     tf::Vector3 curr_desire_tilt_, final_desire_tilt_;
 
-    bool simulation_;
-
     /* pitch roll control */
     double pitch_roll_control_rate_thresh_;
     double pitch_roll_control_p_det_thresh_;
@@ -112,7 +110,6 @@ namespace control_plugin
     bool level_flag_;
     bool landing_flag_;
 
-    bool real_machine_;
     bool servo_torque_;
 
     bool control_verbose_;
