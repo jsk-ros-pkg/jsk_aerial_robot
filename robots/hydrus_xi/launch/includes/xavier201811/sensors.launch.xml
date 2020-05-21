@@ -16,8 +16,9 @@
 
         <!-- zed mini & VIO in zed SDK -->
         <include file="$(find zed_wrapper)/launch/zed.launch" />
-        <param name="/zed/zed_wrapper_node/publish_map_tf" value="false" />
-        <param name="/zed/zed_wrapper_node/publish_tf" value="false" />
+        <param name="zed/zed_wrapper_node/publish_map_tf" value="false" />
+        <param name="zed/zed_wrapper_node/publish_tf" value="false" />
+        <param name="zed/zed_state_publisher/tf_prefix" value="$(arg robot_ns)" />
 
         <!-- leddar one -->
         <include file="$(find leddar_one)/launch/leddar_one.launch" >
