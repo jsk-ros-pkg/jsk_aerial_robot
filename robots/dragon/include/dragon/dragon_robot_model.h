@@ -40,7 +40,18 @@
 #include <kdl_conversions/kdl_msg.h>
 
 class DragonRobotModel : public HydrusRobotModel {
+
 public:
+
+  // external static wrench
+  struct ExternalWrench
+  {
+    std::string frame;
+    KDL::Vector offset;
+    Eigen::VectorXd wrench;
+  };
+
+
   DragonRobotModel(bool init_with_rosparam,
                    bool verbose = false,
                    double fc_t_min_thre = 0,
@@ -51,7 +62,8 @@ public:
   virtual ~DragonRobotModel() = default;
 
   //public functions
-
+  void addCompThrustToJointTorque();
+  void addCompThrustToStaticThrust();
   bool addExternalStaticWrench(const std::string wrench_name, const std::string reference_frame, const geometry_msgs::Point offset, const geometry_msgs::Wrench wrench);
   bool addExternalStaticWrench(const std::string wrench_name, const std::string reference_frame, const KDL::Vector offset, const KDL::Wrench wrench);
   bool addExternalStaticWrench(const std::string wrench_name, const std::string reference_frame, const KDL::Vector offset, const Eigen::VectorXd wrench);
@@ -60,8 +72,8 @@ public:
   void calcCoGMomentumJacobian() override;
   void calcCompThrustJacobian();
   void calcExternalWrenchCompThrust();
+  void calcExternalWrenchCompThrust(const std::map<std::string, ExternalWrench>& external_wrench_map);
   void calcRotorOverlapJacobian();
-
   const double getClosestRotorDist() const {return min_dist_;}
   std::vector<int> getClosestRotorIndices();
   const Eigen::MatrixXd& getCompThrustJacobian() const {return  comp_thrust_jacobian_; }
@@ -70,6 +82,7 @@ public:
   const std::vector<std::string>& getEdfNames() const { return edf_names_; }
   template <class T> std::vector<T> getEdfsOriginFromCog() const;
   const Eigen::VectorXd& getExWrenchCompensateVectoringThrust() const {return wrench_comp_thrust_;}
+  const std::map<std::string, ExternalWrench>& getExternalWrenchMap() const {return external_wrench_map_;}
   std::vector<double> getGimbalNominalAngles() const { return gimbal_nominal_angles_; }
   template <class T> T getGimbalProcessedJoint() const;
   Eigen::MatrixXd getJacobian(const KDL::JntArray& joint_positions, std::string segment_name, KDL::Vector offset = KDL::Vector::Zero()) override;
@@ -103,13 +116,6 @@ private:
   int rotor_i_, rotor_j_;
   double min_dist_;
 
-  // external static wrench
-  struct ExternalWrench
-  {
-    std::string frame;
-    KDL::Vector offset;
-    Eigen::VectorXd wrench;
-  };
   std::map<std::string, ExternalWrench> external_wrench_map_;
   Eigen::VectorXd wrench_comp_thrust_;
   Eigen::VectorXd vectoring_thrust_;

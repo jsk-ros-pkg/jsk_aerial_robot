@@ -49,6 +49,7 @@
 #include <kdl/tree.hpp>
 #include <kdl/treefksolverpos_recursive.hpp>
 #include <kdl/treejnttojacsolver.hpp>
+#include <mutex>
 #include <sensor_msgs/JointState.h>
 #include <stdexcept>
 #include <ros/ros.h>
@@ -102,7 +103,17 @@ namespace aerial_robot_model {
     const int getRotorNum() const { return rotor_num_; }
     const std::map<int, int>& getRotorDirection() { return rotor_direction_; }
     const std::string getRootFrameName() const { return GetTreeElementSegment(tree_.getRootSegment()->second).getName(); }
-    const std::map<std::string, KDL::Frame>& getSegmentsTf() const { return seg_tf_map_; }
+    const std::map<std::string, KDL::Frame> getSegmentsTf()
+    {
+      std::lock_guard<std::mutex> lock(mutex_seg_tf_);
+      return seg_tf_map_;
+    }
+    const KDL::Frame& getSegmentTf(const std::string seg_name)
+    {
+      std::lock_guard<std::mutex> lock(mutex_seg_tf_);
+      return seg_tf_map_.at(seg_name);
+    }
+
     const std::vector<Eigen::MatrixXd>& getThrustCoordJacobians() const {return thrust_coord_jacobians_;}
     const KDL::Tree& getTree() const { return tree_; }
     const urdf::Model& getUrdfModel() const { return model_; }
@@ -188,6 +199,7 @@ namespace aerial_robot_model {
     Eigen::MatrixXd getSecondDerivativeRoot(std::string ref_frame, KDL::Vector offset = KDL::Vector::Zero());
     Eigen::VectorXd getHessian(std::string ref_frame, int joint_i, int joint_j, KDL::Vector offset = KDL::Vector::Zero());
 
+
   private:
 
     //private attributes
@@ -216,6 +228,7 @@ namespace aerial_robot_model {
 
     double mass_;
     urdf::Model model_;
+    std::mutex mutex_seg_tf_;
 
     std::map<std::string, KDL::Frame> seg_tf_map_;
 
@@ -273,6 +286,11 @@ namespace aerial_robot_model {
     void kinematicsInit();
     void stabilityInit();
     void staticsInit();
+    void setSegmentsTf(const std::map<std::string, KDL::Frame> seg_tf_map)
+    {
+      std::lock_guard<std::mutex> lock(mutex_seg_tf_);
+      seg_tf_map_ = seg_tf_map;
+    }
 
   protected:
 

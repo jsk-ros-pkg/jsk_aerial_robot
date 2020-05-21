@@ -44,7 +44,7 @@ bool DragonNumericalJacobian::checkJacobians()
 
 const Eigen::MatrixXd DragonNumericalJacobian::thrustForceNumericalJacobian(std::vector<int> joint_indices)
 {
-  const std::map<std::string, KDL::Frame> seg_frames = getRobotModel().getSegmentsTf();
+  const auto seg_frames = getRobotModel().getSegmentsTf();
   const KDL::JntArray joint_positions = getRobotModel().getJointPositions();
   const std::string baselink = getRobotModel().getBaselinkName();
   const int rotor_num = getRobotModel().getRotorNum();
@@ -56,6 +56,7 @@ const Eigen::MatrixXd DragonNumericalJacobian::thrustForceNumericalJacobian(std:
   Eigen::MatrixXd J_lambda = Eigen::MatrixXd::Zero(rotor_num, full_body_dof);
 
   getDragonRobotModel().calcExternalWrenchCompThrust();
+  getDragonRobotModel().addCompThrustToStaticThrust();
   const Eigen::VectorXd nominal_static_thrust = getRobotModel().getStaticThrust();
 
   int col_index = 6;
@@ -63,6 +64,7 @@ const Eigen::MatrixXd DragonNumericalJacobian::thrustForceNumericalJacobian(std:
   auto perturbationStaticThrust = [&](int col, KDL::JntArray joint_angles){
     getRobotModel().updateRobotModel(joint_angles);
     getDragonRobotModel().calcExternalWrenchCompThrust();
+    getDragonRobotModel().addCompThrustToStaticThrust();
     const Eigen::VectorXd static_thrust = getRobotModel().getStaticThrust();
     J_lambda.col(col) = (static_thrust - nominal_static_thrust) / delta_;
   };
@@ -106,7 +108,7 @@ bool DragonNumericalJacobian::checkThrsutForceJacobian(std::vector<int> joint_in
 
 const Eigen::MatrixXd DragonNumericalJacobian::jointTorqueNumericalJacobian(std::vector<int> joint_indices)
 {
-  const auto& seg_frames = getRobotModel().getSegmentsTf();
+  const auto seg_frames = getRobotModel().getSegmentsTf();
   const KDL::JntArray joint_positions = getRobotModel().getJointPositions();
   const int full_body_dof = 6 + joint_indices.size();
   Eigen::MatrixXd J_t = Eigen::MatrixXd::Zero(getRobotModel().getJointNum(), full_body_dof);
@@ -114,8 +116,9 @@ const Eigen::MatrixXd DragonNumericalJacobian::jointTorqueNumericalJacobian(std:
   KDL::Rotation baselink_rot = getRobotModel().getCogDesireOrientation<KDL::Rotation>();
   KDL::Rotation root_rot = getRobotModel().getCogDesireOrientation<KDL::Rotation>() * seg_frames.at(baselink).M.Inverse();
 
-  getRobotModel().calcJointTorque();
   getDragonRobotModel().calcExternalWrenchCompThrust();
+  getRobotModel().calcJointTorque();
+  getDragonRobotModel().addCompThrustToJointTorque();
 
   int col_index = 6;
   const Eigen::VectorXd nominal_joint_torque = getRobotModel().getJointTorque();
@@ -123,8 +126,9 @@ const Eigen::MatrixXd DragonNumericalJacobian::jointTorqueNumericalJacobian(std:
   auto perturbationJointTorque = [&](int col, KDL::JntArray joint_angles)
     {
       getRobotModel().updateRobotModel(joint_angles);
-      getRobotModel().calcJointTorque();
       getDragonRobotModel().calcExternalWrenchCompThrust();
+      getRobotModel().calcJointTorque();
+      getDragonRobotModel().addCompThrustToJointTorque();
       const Eigen::VectorXd joint_torque = getRobotModel().getJointTorque();
       J_t.col(col) = (joint_torque - nominal_joint_torque) / delta_;
     };
@@ -161,7 +165,7 @@ const Eigen::MatrixXd DragonNumericalJacobian::jointTorqueNumericalJacobian(std:
 
 const Eigen::MatrixXd DragonNumericalJacobian::overlapNumericalJacobian()
 {
-  const std::map<std::string, KDL::Frame> seg_frames = getRobotModel().getSegmentsTf();
+  const auto seg_frames = getRobotModel().getSegmentsTf();
   const KDL::JntArray joint_positions = getRobotModel().getJointPositions();
   const int rotor_num = getRobotModel().getRotorNum();
   const std::string baselink = getRobotModel().getBaselinkName();
@@ -243,7 +247,7 @@ bool DragonNumericalJacobian::checkRotorOverlapJacobian()
 
 const Eigen::MatrixXd DragonNumericalJacobian::compThrustNumericalJacobian()
 {
-  const std::map<std::string, KDL::Frame> seg_frames = getRobotModel().getSegmentsTf();
+  const auto seg_frames = getRobotModel().getSegmentsTf();
   const KDL::JntArray joint_positions = getRobotModel().getJointPositions();
   const int rotor_num = getRobotModel().getRotorNum();
   const int full_body_dof = 6 + getRobotModel().getLinkJointIndices().size();

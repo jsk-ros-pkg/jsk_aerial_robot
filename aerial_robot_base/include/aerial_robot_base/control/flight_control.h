@@ -127,6 +127,11 @@ namespace control_plugin
           reset();
         }
 
+      if(navigator_->getNaviState() == Navigator::STOP_STATE && navigator_->getForceLandingFlag())
+        {
+          halt();
+        }
+
       if (control_timestamp_ < 0)
         {
           if (navigator_->getNaviState() == Navigator::TAKEOFF_STATE)
@@ -174,6 +179,10 @@ namespace control_plugin
     virtual void reset()
     {
       control_timestamp_ = -1;
+    }
+
+    virtual void halt()
+    {
     }
 
   protected:

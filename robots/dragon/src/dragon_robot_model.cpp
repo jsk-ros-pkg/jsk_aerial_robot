@@ -138,7 +138,7 @@ void DragonRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_positions
 
   /* special process for dual edf gimbal */
   /* set the edf position w.r.t CoG frame */
-  const auto& seg_frames = getSegmentsTf();
+  const auto seg_frames = getSegmentsTf();
   std::vector<KDL::Vector> f_edfs;
   for(const auto& name: edf_names_)
     f_edfs.push_back((getCog<KDL::Frame>().Inverse() * seg_frames.at(name)).p);
@@ -223,8 +223,9 @@ void DragonRobotModel::updateJacobians(const KDL::JntArray& joint_positions, boo
   // external wrench realted jacobians
   calcExternalWrenchCompThrust();
   calcCompThrustJacobian();
-
+  addCompThrustToStaticThrust();
   addCompThrustToLambdaJacobian();
+  addCompThrustToJointTorque();
   addCompThrustToJointTorqueJacobian();
 
   calcFeasibleControlRollPitchDistsJacobian();
@@ -331,13 +332,19 @@ std::vector<int> DragonRobotModel::getClosestRotorIndices()
 
 bool DragonRobotModel::addExternalStaticWrench(const std::string wrench_name, const std::string reference_frame, const KDL::Vector offset, const Eigen::VectorXd wrench)
 {
-  if(external_wrench_map_.find(wrench_name) != external_wrench_map_.end())
+  const auto seg_frames = getSegmentsTf();
+  if(getTree().getSegment(reference_frame) == getTree().getSegments().end())
     {
-      ROS_WARN_STREAM(wrench_name << " is already in the wrench map.");
+      ROS_WARN_STREAM(reference_frame << " can not be found in segment map.");
       return false;
     }
 
   external_wrench_map_[wrench_name] =  ExternalWrench{reference_frame, offset, wrench};
+
+  for(const auto wrench: external_wrench_map_)
+    {
+      ROS_DEBUG_STREAM(wrench.first << ", pos: " << aerial_robot_model::kdlToEigen(wrench.second.offset).transpose() << ", wrench: " << wrench.second.wrench.transpose());
+    }
 
   return true;
 }
@@ -382,19 +389,22 @@ void DragonRobotModel::resetExternalStaticWrench()
 
 void DragonRobotModel::calcExternalWrenchCompThrust()
 {
-  const auto& seg_frames = getSegmentsTf();
+  calcExternalWrenchCompThrust(external_wrench_map_);
+}
+
+void DragonRobotModel::calcExternalWrenchCompThrust(const std::map<std::string, DragonRobotModel::ExternalWrench>& external_wrench_map)
+{
+  const auto seg_frames = getSegmentsTf();
   const int rotor_num = getRotorNum();
   const int joint_num = getJointNum();
   const std::string baselink = getBaselinkName();
   const auto& thrust_wrench_allocations = getThrustWrenchAllocations();
-  const auto& joint_positions = getJointPositions();
-  const auto& thrust_coord_jacobians = getThrustCoordJacobians();
 
   Eigen::MatrixXd root_rot = aerial_robot_model::kdlToEigen(getCogDesireOrientation<KDL::Rotation>() * seg_frames.at(baselink).M.Inverse());
   Eigen::VectorXd wrench_sum = Eigen::VectorXd::Zero(6);
 
   // get sum wrench from external wrench
-  for(const auto& wrench : external_wrench_map_)
+  for(const auto& wrench : external_wrench_map)
     {
       Eigen::MatrixXd jacobi_root = Eigen::MatrixXd::Identity(6, 6);
       Eigen::Vector3d p = root_rot * aerial_robot_model::kdlToEigen(seg_frames.at(wrench.second.frame) * wrench.second.offset);
@@ -408,8 +418,10 @@ void DragonRobotModel::calcExternalWrenchCompThrust()
   wrench_comp_thrust_ = aerial_robot_model::pseudoinverse(vectoring_q_mat_) * (-wrench_sum);
 
   ROS_DEBUG_STREAM("wrench_comp_thrust: " << wrench_comp_thrust_.transpose());
+}
 
-  // add external wrench compasation term
+void DragonRobotModel::addCompThrustToStaticThrust()
+{
   Eigen::VectorXd static_thrust = getStaticThrust();
 
   for(int i = 0; i < getRotorNum(); i++)
@@ -419,11 +431,16 @@ void DragonRobotModel::calcExternalWrenchCompThrust()
       vectoring_thrust_(3 * i + 2) = wrench_comp_thrust_(3 * i + 2) + static_thrust(i);
       static_thrust(i) = vectoring_thrust_.segment(3 * i, 3).norm();
     }
-
-
   setStaticThrust(static_thrust);
+}
 
-  // joint torque
+void DragonRobotModel::addCompThrustToJointTorque()
+{
+  const int rotor_num = getRotorNum();
+  const int joint_num = getJointNum();
+  const auto& joint_positions = getJointPositions();
+  const auto& thrust_coord_jacobians = getThrustCoordJacobians();
+
   Eigen::VectorXd joint_torque = getJointTorque();
   // external wrench
   for(const auto& wrench : external_wrench_map_)

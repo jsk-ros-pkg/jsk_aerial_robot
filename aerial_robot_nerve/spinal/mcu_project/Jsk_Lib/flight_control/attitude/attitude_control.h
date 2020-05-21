@@ -55,7 +55,9 @@
 #define FLIGHT_COMMAND_TIMEOUT 500 //500ms
 #define MAX_TILT_ANGLE 1.0f // rad
 
-#define CONTROL_PUB_INTERVAL 100 //40hz //100 //10ms
+#define CONTROL_TERM_PUB_INTERVAL 100
+#define CONTROL_FEEDBACK_STATE_PUB_INTERVAL 25
+#define PWM_PUB_INTERVAL 100 //100ms
 
 #define MOTOR_TEST 0
 
@@ -119,8 +121,10 @@ private:
 
   ros::Publisher pwms_pub_;
   ros::Publisher control_term_pub_;
+  ros::Publisher control_feedback_state_pub_;
   spinal::Pwms pwms_msg_;
   spinal::RollPitchYawTerms control_term_msg_;
+  spinal::RollPitchYawTerm control_feedback_state_msg_;
 
 #ifdef SIMULATION
   ros::Subscriber four_axis_cmd_sub_;
@@ -129,12 +133,16 @@ private:
   ros::Subscriber pwm_test_sub_;
   ros::Subscriber p_matrix_pseudo_inverse_inertia_sub_;
   ros::Subscriber torque_allocation_matrix_inv_sub_;
+  ros::Subscriber sim_vol_sub_;
   ros::Publisher anti_gyro_pub_;
   ros::ServiceServer att_control_srv_;
   ros::ServiceServer attitude_gains_srv_;
 
   bool setAttitudeControlCallback(std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& res);
   bool setAttitudeGainsCallback(spinal::SetAttitudeGains::Request& req, spinal::SetAttitudeGains::Response& res);
+
+  void setSimVolCallback(const std_msgs::Float32& vol_msg);
+  float sim_voltage_;
 #else
   ros::Subscriber<spinal::FourAxisCommand, AttitudeController> four_axis_cmd_sub_;
   ros::Subscriber<spinal::PwmInfo, AttitudeController> pwm_info_sub_;
@@ -210,6 +218,8 @@ private:
   uint8_t motor_ref_index_;
   float v_factor_;
   uint32_t voltage_update_last_time_;
+  uint32_t control_term_pub_last_time_, control_feedback_state_pub_last_time_;
+  uint32_t pwm_pub_last_time_;
 
   //PWM Test
   float pwm_test_value_;
@@ -224,7 +234,6 @@ private:
   void pMatrixInertiaCallback(const spinal::PMatrixPseudoInverseWithInertia& msg);
   void torqueAllocationMatrixInvCallback(const spinal::TorqueAllocationMatrixInv& msg);
   void pwmTestCallback(const std_msgs::Float32& pwm_msg);
-
   void pwmConversion(void);
   void pwmsControl(void);
 

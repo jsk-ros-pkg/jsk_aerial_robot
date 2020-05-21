@@ -5,7 +5,7 @@ namespace aerial_robot_model {
   Eigen::MatrixXd RobotModel::getJacobian(const KDL::JntArray& joint_positions, std::string segment_name, KDL::Vector offset)
   {
     const auto& tree = getTree();
-    const auto& seg_frames = getSegmentsTf();
+    const auto seg_frames = getSegmentsTf();
     Eigen::MatrixXd root_rot = aerial_robot_model::kdlToEigen(getCogDesireOrientation<KDL::Rotation>() * seg_frames.at(baselink_).M.Inverse());
 
     KDL::TreeJntToJacSolver solver(tree);
@@ -47,7 +47,7 @@ namespace aerial_robot_model {
   Eigen::VectorXd RobotModel::getHessian(std::string ref_frame, int joint_i, int joint_j, KDL::Vector offset)
   {
     const auto& segment_map = getTree().getSegments();
-    const auto& seg_frames = getSegmentsTf();
+    const auto seg_frames = getSegmentsTf();
     const auto& joint_hierachy = getJointHierachy();
     const auto& joint_segment_map = getJointSegmentMap();
     const auto& joint_names = getJointNames();
@@ -89,7 +89,7 @@ namespace aerial_robot_model {
   Eigen::MatrixXd RobotModel::getSecondDerivative(std::string ref_frame, int joint_i, KDL::Vector offset)
   {
     const auto& segment_map = getTree().getSegments();
-    const auto& seg_frames = getSegmentsTf();
+    const auto seg_frames = getSegmentsTf();
     const auto& joint_hierachy = getJointHierachy();
     const auto& joint_segment_map = getJointSegmentMap();
     const auto& joint_names = getJointNames();
@@ -154,7 +154,7 @@ namespace aerial_robot_model {
     const int full_body_ndof = 6 + joint_num;
     const auto& joint_parent_link_names = getJointParentLinkNames();
     const auto& segment_map = getTree().getSegments();
-    const auto& seg_frames = getSegmentsTf();
+    const auto seg_frames = getSegmentsTf();
     Eigen::MatrixXd root_rot = aerial_robot_model::kdlToEigen(getCogDesireOrientation<KDL::Rotation>() * seg_frames.at(baselink_).M.Inverse());
 
     Eigen::Vector3d p_e = aerial_robot_model::kdlToEigen(seg_frames.at(ref_frame).p + seg_frames.at(ref_frame).M * offset);

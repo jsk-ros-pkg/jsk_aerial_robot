@@ -110,6 +110,8 @@ void Navigator::batteryCheckCallback(const std_msgs::Float32ConstPtr &msg)
       low_voltage_flag_  = true;
       ROS_WARN_THROTTLE(1,"low voltage!");
     }
+  else
+    low_voltage_flag_  = false;
 
   if(power_info_pub_.getNumSubscribers() == 0) return;
 
@@ -510,7 +512,7 @@ void Navigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
               {
                 tf::Vector3 target_acc = target_acc_;
                 /* convert the frame */
-                const auto& segments_tf =  estimator_->getSegmentsTf();
+                const auto segments_tf =  estimator_->getSegmentsTf();
                 if(segments_tf.find(teleop_local_frame_) == segments_tf.end())
                   {
                     ROS_ERROR("can not find %s in kinematics model", teleop_local_frame_.c_str());
@@ -810,9 +812,6 @@ void Navigator::update()
         estimator_->setLandingMode(false);
         estimator_->setLandedFlag(false);
         estimator_->setFlyingFlag(false);
-
-        force_landing_flag_ = false;
-        low_voltage_flag_ = false;
 
         spinal::FlightConfigCmd flight_config_cmd;
         flight_config_cmd.cmd = spinal::FlightConfigCmd::ARM_OFF_CMD;

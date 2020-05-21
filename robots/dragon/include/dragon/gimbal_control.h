@@ -37,12 +37,16 @@
 
 #include <aerial_robot_base/control/flatness_pid_controller.h>
 #include <dragon/dragon_robot_model.h>
+#include <gazebo_msgs/ApplyBodyWrench.h>
+#include <gazebo_msgs/BodyRequest.h>
 #include <nav_msgs/Odometry.h>
 #include <ros/ros.h>
 #include <spinal/DesireCoord.h>
 #include <std_msgs/Float32MultiArray.h>
 #include <std_msgs/UInt8.h>
 #include <std_srvs/SetBool.h>
+#include <spinal/RollPitchYawTerm.h>
+
 
 namespace control_plugin
 {
@@ -65,35 +69,41 @@ namespace control_plugin
       level_flag_ = false;
       landing_flag_ = false;
     }
+    void halt() override;
     void sendCmd();
   private:
     std::unique_ptr<DragonRobotModel> kinematics_;
     ros::Publisher gimbal_control_pub_;
     ros::Publisher joint_control_pub_;
     ros::Publisher gimbal_target_force_pub_;
-    ros::Publisher curr_desire_tilt_pub_;
+    ros::Publisher curr_target_baselink_rot_pub_;
     ros::Publisher  roll_pitch_pid_pub_;
+    ros::Subscriber att_control_feedback_state_sub_;
     ros::Subscriber joint_state_sub_;
-    ros::Subscriber final_desire_tilt_sub_;
-    ros::Subscriber desire_coord_sub_;
+    ros::Subscriber final_target_baselink_rot_sub_;
+    ros::Subscriber target_baselink_rot_sub_;
+    ros::Subscriber extra_vectoring_force_sub_;
 
     void servoTorqueProcess();
     void landingProcess();
     void gimbalControl();
-    void desireTilt();
+    void baselinkRotationProcess();
     void jointStateCallback(const sensor_msgs::JointStateConstPtr& state);
     void rosParamInit();
 
-    void baselinkTiltCallback(const spinal::DesireCoordConstPtr & msg);
+    void attControlFeedbackStateCallback(const spinal::RollPitchYawTermConstPtr& msg);
+    void setFinalTargetBaselinkRotCallback(const spinal::DesireCoordConstPtr & msg);
     void fourAxisGainCallback(const aerial_robot_msgs::FourAxisGainConstPtr & msg);
-    void desireCoordCallback(const spinal::DesireCoordConstPtr& msg);
+    void targetBaselinkRotCallback(const spinal::DesireCoordConstPtr& msg);
+    void extraVectoringForceCallback(const std_msgs::Float32MultiArrayConstPtr& msg);
 
+    std::vector<double> target_thrust_terms_; // the scalar value of vectoring force: ||f||
     sensor_msgs::JointState joint_state_;
     Eigen::MatrixXd P_xy_;
 
-    /* desire tilt */
+    /* target baselink rotation */
     std::vector<double> target_gimbal_angles_;
-    tf::Vector3 curr_desire_tilt_, final_desire_tilt_;
+    tf::Vector3 curr_target_baselink_rot_, final_target_baselink_rot_;
 
     /* pitch roll control */
     double pitch_roll_control_rate_thresh_;
@@ -106,19 +116,29 @@ namespace control_plugin
     double gimbal_pitch_control_stamp_;
     bool gimbal_vectoring_check_flag_;
 
+    bool add_lqi_result_;
+    std::vector<tf::Vector3> lqi_roll_gains_, lqi_pitch_gains_;
+    std::vector<double> lqi_att_terms_;
+
     /* landing process */
     bool level_flag_;
     bool landing_flag_;
-
     bool servo_torque_;
 
-    bool control_verbose_;
+    /* external wrench */
+    ros::ServiceServer add_external_wrench_service_, clear_external_wrench_service_;
+    bool addExternalWrenchCallback(gazebo_msgs::ApplyBodyWrench::Request& req, gazebo_msgs::ApplyBodyWrench::Response& res);
+    bool clearExternalWrenchCallback(gazebo_msgs::BodyRequest::Request& req, gazebo_msgs::BodyRequest::Response& res);
+
+    /* extra vectoring force (i.e., for grasping) */
+    Eigen::VectorXd extra_vectoring_force_;
 
     /* rosparam */
+    bool control_verbose_;
     double height_thresh_;
-    string joints_torque_control_srv_name_;
-    double tilt_thresh_;
-    double tilt_pub_interval_;
+    string joints_torque_control_srv_name_, gimbals_torque_control_srv_name_;
+    double baselink_rot_change_thresh_;
+    double baselink_rot_pub_interval_;
 
     /* cfg */
     dynamic_reconfigure::Server<aerial_robot_base::XYPidControlConfig>* roll_pitch_pid_server_;

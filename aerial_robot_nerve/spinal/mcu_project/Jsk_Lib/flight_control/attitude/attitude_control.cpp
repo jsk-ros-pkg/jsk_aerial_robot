@@ -12,7 +12,7 @@
 #include "flight_control/attitude/attitude_control.h"
 
 #ifdef SIMULATION
-AttitudeController::AttitudeController(): DELTA_T(0), prev_time_(-1), use_ground_truth_(false) {}
+AttitudeController::AttitudeController(): DELTA_T(0), prev_time_(-1), use_ground_truth_(false), sim_voltage_(0) {}
 
 void AttitudeController::init(ros::NodeHandle* nh, StateEstimate* estimator)
 {
@@ -21,6 +21,7 @@ void AttitudeController::init(ros::NodeHandle* nh, StateEstimate* estimator)
 
   pwms_pub_ = nh_->advertise<spinal::Pwms>("motor_pwms", 1);
   control_term_pub_ = nh_->advertise<spinal::RollPitchYawTerms>("rpy/pid", 1);
+  control_feedback_state_pub_ = nh_->advertise<spinal::RollPitchYawTerm>("rpy/feedback_state", 1);
   anti_gyro_pub_ = nh_->advertise<std_msgs::Float32MultiArray>("gyro_moment_compensation", 1);
   four_axis_cmd_sub_ = nh_->subscribe("four_axes/command", 1, &AttitudeController::fourAxisCommandCallback, this);
   pwm_info_sub_ = nh_->subscribe("motor_info", 1, &AttitudeController::pwmInfoCallback, this);
@@ -29,6 +30,7 @@ void AttitudeController::init(ros::NodeHandle* nh, StateEstimate* estimator)
   pwm_test_sub_ = nh_->subscribe("pwm_test", 1, &AttitudeController::pwmTestCallback, this);
   att_control_srv_ = nh_->advertiseService("set_attitude_control", &AttitudeController::setAttitudeControlCallback, this);
   torque_allocation_matrix_inv_sub_ = nh_->subscribe("torque_allocation_matrix_inv", 1, &AttitudeController::torqueAllocationMatrixInvCallback, this);
+  sim_vol_sub_ = nh_->subscribe("set_sim_voltage", 1, &AttitudeController::setSimVolCallback, this);
   attitude_gains_srv_ = nh_->advertiseService("set_attitude_gains", &AttitudeController::setAttitudeGainsCallback, this); // TODO: merge with rpyGainCallback()
   baseInit();
 }
@@ -38,6 +40,7 @@ void AttitudeController::init(ros::NodeHandle* nh, StateEstimate* estimator)
 AttitudeController::AttitudeController():
   pwms_pub_("motor_pwms", &pwms_msg_),
   control_term_pub_("rpy/pid", &control_term_msg_),
+  control_feedback_state_pub_("rpy/feedback_state", &control_feedback_state_msg_),
   four_axis_cmd_sub_("four_axes/command", &AttitudeController::fourAxisCommandCallback, this ),
   pwm_info_sub_("motor_info", &AttitudeController::pwmInfoCallback, this),
   rpy_gain_sub_("rpy/gain", &AttitudeController::rpyGainCallback, this),
@@ -70,6 +73,7 @@ void AttitudeController::init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2
 
   nh_->advertise(pwms_pub_);
   nh_->advertise(control_term_pub_);
+  nh_->advertise(control_feedback_state_pub_);
 
   nh_->subscribe< ros::Subscriber<spinal::FourAxisCommand, AttitudeController> >(four_axis_cmd_sub_);
   nh_->subscribe< ros::Subscriber<spinal::PwmInfo, AttitudeController> >(pwm_info_sub_);
@@ -99,12 +103,14 @@ void AttitudeController::baseInit()
   attitude_flag_ = true;
   attitude_gain_receive_flag_ = false;
 
-  //pwm init
+  //pwm
   pwm_conversion_mode_ = -1;
   min_duty_ = IDLE_DUTY;
   max_duty_ = IDLE_DUTY; //should assign right value from PC(ros)
   min_thrust_ = 0;
   force_landing_thrust_ = 0;
+  pwm_pub_last_time_ = 0;
+
   // voltage
   motor_info_.resize(0);
   v_factor_ = 1;
@@ -121,35 +127,61 @@ void AttitudeController::baseInit()
           d_lqi_gain_[i][j] = 0;
         }
     }
+  control_term_pub_last_time_ = 0;
+  control_feedback_state_pub_last_time_ = 0;
 
   reset();
 }
 
 void AttitudeController::pwmsControl(void)
 {
-  static uint32_t ros_pub_last_time = HAL_GetTick();
-
   /* target thrust -> target pwm */
   pwmConversion();
 
 #ifdef SIMULATION
   /* control result publish */
-  if(HAL_GetTick() - ros_pub_last_time > CONTROL_PUB_INTERVAL)
+  if(HAL_GetTick() - control_term_pub_last_time_ > CONTROL_TERM_PUB_INTERVAL)
     {
-      ros_pub_last_time = HAL_GetTick();
-      pwms_pub_.publish(pwms_msg_);
+      control_term_pub_last_time_ = HAL_GetTick();
       control_term_pub_.publish(control_term_msg_);
+    }
+
+  if(HAL_GetTick() - control_feedback_state_pub_last_time_ > CONTROL_FEEDBACK_STATE_PUB_INTERVAL)
+    {
+      control_feedback_state_pub_last_time_ = HAL_GetTick();
+      control_feedback_state_pub_.publish(control_feedback_state_msg_);
+    }
+
+  if(HAL_GetTick() - pwm_pub_last_time_ > PWM_PUB_INTERVAL)
+    {
+      pwm_pub_last_time_ = HAL_GetTick();
+      pwms_pub_.publish(pwms_msg_);
     }
 
 #else
   /* control result publish */
-  if(HAL_GetTick() - ros_pub_last_time > CONTROL_PUB_INTERVAL)
+  if(uav_model_ == spinal::UavInfo::DRAGON)
     {
-      ros_pub_last_time = HAL_GetTick();
-      pwms_pub_.publish(&pwms_msg_);
-      control_term_pub_.publish(&control_term_msg_);
+      if(HAL_GetTick() - control_feedback_state_pub_last_time_ > CONTROL_FEEDBACK_STATE_PUB_INTERVAL)
+        {
+          control_feedback_state_pub_last_time_ = HAL_GetTick();
+          control_feedback_state_pub_.publish(&control_feedback_state_msg_);
+        }
+    }
+  else
+    {
+      if(HAL_GetTick() - control_term_pub_last_time_ > CONTROL_TERM_PUB_INTERVAL)
+        {
+          control_term_pub_last_time_ = HAL_GetTick();
+          control_term_pub_.publish(&control_term_msg_);
+        }
     }
 
+  if(HAL_GetTick() - pwm_pub_last_time_ > PWM_PUB_INTERVAL)
+    {
+      pwm_pub_last_time_ = HAL_GetTick();
+      pwms_pub_.publish(&pwms_msg_);
+    }
 
   /* nerve comm type */
 #if NERVE_COMM
@@ -269,16 +301,13 @@ void AttitudeController::update(void)
             {
               for(int axis = 0; axis < 3; axis++)
                 {
-                  if(axis < 2)
-                    {
-                      float error_angle = target_angle_[axis] - angles[axis];
-                      /* error_angle_i */
-                      if(i == 0 && integrate_flag_ == true)
-                        error_angle_i_[axis] += error_angle * DELTA_T;
+                  float error_angle = target_angle_[axis] - angles[axis];
+                  /* error_angle_i */
+                  if(i == 0 && integrate_flag_ == true)
+                    error_angle_i_[axis] += error_angle * DELTA_T;
 
-                      lqi_p_term = -error_angle * p_lqi_gain_[i][axis];
-                      lqi_i_term = (error_angle_i_[axis] * i_lqi_gain_[i][axis]);
-                    }
+                  lqi_p_term = -error_angle * p_lqi_gain_[i][axis];
+                  lqi_i_term = (error_angle_i_[axis] * i_lqi_gain_[i][axis]);
 
                   /* d term */
                   lqi_d_term = vel[axis] * d_lqi_gain_[i][axis];
@@ -289,6 +318,13 @@ void AttitudeController::update(void)
                       control_term_msg_.motors[i].roll_p = lqi_p_term * 1000;
                       control_term_msg_.motors[i].roll_i= lqi_i_term * 1000;
                       control_term_msg_.motors[i].roll_d = lqi_d_term * 1000;
+
+                      if(i == 0)
+                        {
+                          control_feedback_state_msg_.roll_p = error_angle * 1000;
+                          control_feedback_state_msg_.roll_i = error_angle_i_[axis] * 1000;
+                          control_feedback_state_msg_.roll_d = vel[axis]  * 1000;
+                        }
                     }
                   if(axis == Y)
                     {
@@ -296,11 +332,19 @@ void AttitudeController::update(void)
                       control_term_msg_.motors[i].pitch_p = lqi_p_term * 1000;
                       control_term_msg_.motors[i].pitch_i = lqi_i_term * 1000;
                       control_term_msg_.motors[i].pitch_d = lqi_d_term * 1000;
+
+                      if(i == 0)
+                        {
+                          control_feedback_state_msg_.pitch_p = error_angle * 1000;
+                          control_feedback_state_msg_.pitch_i = error_angle_i_[axis] * 1000;
+                          control_feedback_state_msg_.pitch_d = vel[axis]  * 1000;
+                        }
                     }
                   if(axis == Z)
                     {
                       yaw_term_[i] = yaw_pi_term_[i] + lqi_d_term;
                       control_term_msg_.motors[i].yaw_d = lqi_d_term * 1000; //lqi_d_term;
+                      control_feedback_state_msg_.yaw_d = vel[axis] * 1000;
                     }
                 }
               /* gyro moment compensation */
@@ -588,6 +632,7 @@ void AttitudeController::pwmInfoCallback( const spinal::PwmInfo &info_msg)
         motor_info_.push_back(info_msg.motor_info[i]);
       }
 
+  if(sim_voltage_== 0) sim_voltage_ = motor_info_[0].voltage;
 }
 
 void AttitudeController::rpyGainCallback( const spinal::RollPitchYawTerms &gain_msg)
@@ -808,6 +853,13 @@ void AttitudeController::setAttitudeGainsCallback(const spinal::SetAttitudeGains
 #endif
 }
 
+#ifdef SIMULATION
+void AttitudeController::setSimVolCallback(const std_msgs::Float32& vol_msg)
+{
+  sim_voltage_ = vol_msg.data;
+}
+#endif
+
 bool AttitudeController::activated()
 {
   /* uav model check and motor property */
@@ -856,7 +908,7 @@ void AttitudeController::pwmConversion()
     {
 #ifdef SIMULATION
       if(motor_info_.size() == 0) return;
-      float voltage = motor_info_[0].voltage;
+      float voltage = sim_voltage_;
 #else
       float voltage = bat_->getVoltage();
 #endif

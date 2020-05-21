@@ -7,8 +7,8 @@ namespace control_plugin
   DragonGimbal::DragonGimbal():
     FlatnessPid(),
     servo_torque_(false), level_flag_(false), landing_flag_(false),
-    curr_desire_tilt_(0, 0, 0),
-    final_desire_tilt_(0, 0, 0),
+    curr_target_baselink_rot_(0, 0, 0),
+    final_target_baselink_rot_(0, 0, 0),
     roll_i_term_(0), pitch_i_term_(0),
     gimbal_roll_control_stamp_(0), gimbal_pitch_control_stamp_(0)
   {
@@ -35,16 +35,26 @@ namespace control_plugin
 
     /* initialize the gimbal target angles */
     target_gimbal_angles_.resize(kinematics_->getRotorNum() * 2, 0);
+    /* additional vectoring force for grasping */
+    extra_vectoring_force_ = Eigen::VectorXd::Zero(3 * kinematics_->getRotorNum());
 
     gimbal_control_pub_ = nh_.advertise<sensor_msgs::JointState>("gimbals_ctrl", 1);
     joint_control_pub_ = nh_.advertise<sensor_msgs::JointState>("joints_ctrl", 1);
-    curr_desire_tilt_pub_ = nh_.advertise<spinal::DesireCoord>("desire_coordinate", 1);
+    curr_target_baselink_rot_pub_ = nh_.advertise<spinal::DesireCoord>("desire_coordinate", 1);
     gimbal_target_force_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("debug/gimbals_target_force", 1);
     roll_pitch_pid_pub_ = nh_.advertise<aerial_robot_msgs::FlatnessPid>("debug/roll_pitch_gimbal_control", 1);
 
+    att_control_feedback_state_sub_ = nh_.subscribe("rpy/feedback_state", 1, &DragonGimbal::attControlFeedbackStateCallback, this);
     joint_state_sub_ = nh_.subscribe("joint_states", 1, &DragonGimbal::jointStateCallback, this);
-    final_desire_tilt_sub_ = nh_.subscribe("final_desire_tilt", 1, &DragonGimbal::baselinkTiltCallback, this);
-    desire_coord_sub_ = nh_.subscribe("desire_coordinate", 1, &DragonGimbal::desireCoordCallback, this);
+    final_target_baselink_rot_sub_ = nh_.subscribe("final_target_baselink_rot", 1, &DragonGimbal::setFinalTargetBaselinkRotCallback, this);
+    target_baselink_rot_sub_ = nh_.subscribe("desire_coordinate", 1, &DragonGimbal::targetBaselinkRotCallback, this);
+    extra_vectoring_force_sub_ = nh_.subscribe("extra_vectoring_force", 1, &DragonGimbal::extraVectoringForceCallback, this);
+
+    std::string service_name;
+    nh_.param("apply_external_wrench", service_name, std::string("apply_external_wrench"));
+    add_external_wrench_service_ = nh_.advertiseService(service_name, &DragonGimbal::addExternalWrenchCallback, this);
+    nh_.param("clear_external_wrench", service_name, std::string("clear_external_wrench"));
+    clear_external_wrench_service_ = nh_.advertiseService(service_name, &DragonGimbal::clearExternalWrenchCallback, this);
 
     //dynamic reconfigure server
     roll_pitch_pid_server_ = new dynamic_reconfigure::Server<aerial_robot_base::XYPidControlConfig>(ros::NodeHandle(nhp_, "gain_generator/pitch_roll"));
@@ -63,25 +73,55 @@ namespace control_plugin
       {
         motor_num_ = msg->motor_num;
 
-        z_gains_.resize(motor_num_);
+        target_thrust_terms_.resize(motor_num_);
 
+        z_gains_.resize(motor_num_);
         z_control_terms_.resize(motor_num_);
+
+        lqi_roll_gains_.resize(motor_num_);
+        lqi_pitch_gains_.resize(motor_num_);
+        lqi_att_terms_.resize(motor_num_, 0);
 
         ROS_WARN("gimbal flight control: update the motor number: %d", motor_num_);
       }
 
     for(int i = 0; i < msg->motor_num; i++)
-      z_gains_[i].setValue(msg->pos_p_gain_z[i], msg->pos_i_gain_z[i], msg->pos_d_gain_z[i]);
+      {
+        z_gains_[i].setValue(msg->pos_p_gain_z[i], msg->pos_i_gain_z[i], msg->pos_d_gain_z[i]);
+
+        lqi_pitch_gains_[i].setValue(msg->pos_p_gain_pitch[i], msg->pos_i_gain_pitch[i], msg->pos_d_gain_pitch[i]);
+        lqi_roll_gains_[i].setValue(msg->pos_p_gain_roll[i], msg->pos_i_gain_roll[i], msg->pos_d_gain_roll[i]);
+      }
   }
 
-  void DragonGimbal::baselinkTiltCallback(const spinal::DesireCoordConstPtr & msg)
+  void DragonGimbal::setFinalTargetBaselinkRotCallback(const spinal::DesireCoordConstPtr & msg)
   {
-    final_desire_tilt_.setValue(msg->roll, msg->pitch, msg->yaw);
+    final_target_baselink_rot_.setValue(msg->roll, msg->pitch, msg->yaw);
   }
 
-  void DragonGimbal::desireCoordCallback(const spinal::DesireCoordConstPtr& msg)
+  void DragonGimbal::targetBaselinkRotCallback(const spinal::DesireCoordConstPtr& msg)
   {
     kinematics_->setCogDesireOrientation(msg->roll, msg->pitch, msg->yaw);
+  }
+
+  void DragonGimbal::attControlFeedbackStateCallback(const spinal::RollPitchYawTermConstPtr& msg)
+  {
+    if(motor_num_ == 0) return;
+
+    if(!add_lqi_result_) return;
+
+    /* reproduce the control term about attitude in spinal based on LQI */
+    /* -- only consider the P term and I term, since D term (angular velocity from gyro) in current Dragon platform is too noisy -- */
+
+    for(int i = 0; i < motor_num_; i++)
+      {
+        lqi_att_terms_.at(i) = -lqi_roll_gains_[i][0] * (msg->roll_p / 1000.0) + lqi_roll_gains_[i][1] * (msg->roll_i / 1000.0) + (-lqi_pitch_gains_[i][0]) * (msg->pitch_p / 1000.0) + lqi_pitch_gains_[i][1] * (msg->pitch_i / 1000.0);
+      }
+
+    // std::cout << "reproduce lqi att control term: ";
+    //for(int i = 0; i < motor_num_; i++)
+    // std::cout << lqi_att_terms_.at(i) << ", ";
+    // std::cout << std::endl;
   }
 
   bool DragonGimbal::update()
@@ -95,7 +135,7 @@ namespace control_plugin
 
     pidUpdate(); //LQI thrust control
     gimbalControl(); //gimbal vectoring control
-    desireTilt();
+    baselinkRotationProcess();
     sendCmd();
   }
 
@@ -122,10 +162,16 @@ namespace control_plugin
         if(!level_flag_)
           {
             joint_control_pub_.publish(joint_control_msg);
-            final_desire_tilt_.setValue(0, 0, 0);
+            final_target_baselink_rot_.setValue(0, 0, 0);
 
             /* force set the current deisre tilt to current estimated tilt */
-            curr_desire_tilt_.setValue(estimator_->getState(State::ROLL_BASE, estimate_mode_)[0], estimator_->getState(State::PITCH_BASE, estimate_mode_)[0], 0);
+            curr_target_baselink_rot_.setValue(estimator_->getState(State::ROLL_BASE, estimate_mode_)[0], estimator_->getState(State::PITCH_BASE, estimate_mode_)[0], 0);
+
+            /* clear the external wrench */
+            kinematics_->resetExternalStaticWrench();
+
+            /* clear the extra vectoring force */
+            extra_vectoring_force_.setZero();
           }
 
         level_flag_ = true;
@@ -152,7 +198,7 @@ namespace control_plugin
               }
           }
 
-        if(curr_desire_tilt_.length()) already_level = false;
+        if(curr_target_baselink_rot_.length()) already_level = false;
 
         if(already_level && navigator_->getNaviState() == Navigator::HOVER_STATE)
           {
@@ -172,6 +218,7 @@ namespace control_plugin
     /* get roll/pitch angle */
     double roll_angle = estimator_->getState(State::ROLL_COG, estimate_mode_)[0];
     double pitch_angle = estimator_->getState(State::PITCH_COG, estimate_mode_)[0];
+    double yaw_angle = estimator_->getState(State::YAW_COG, estimate_mode_)[0];
 
     int rotor_num = kinematics_->getRotorNum();
 
@@ -184,6 +231,7 @@ namespace control_plugin
     double max_z = 1e-6;
 
     Eigen::MatrixXd P_att = Eigen::MatrixXd::Zero(3, rotor_num  * 2);
+    double acc_z = 0;
     for(int i = 0; i < rotor_num; i++)
       {
         P_att(0, 2 * i + 1) = -rotors_origin_from_cog[i](2); //x(roll)
@@ -195,7 +243,10 @@ namespace control_plugin
         if(fabs(rotors_origin_from_cog[i](0)) > max_x) max_x = fabs(rotors_origin_from_cog[i](0));
         if(fabs(rotors_origin_from_cog[i](1)) > max_y) max_y = fabs(rotors_origin_from_cog[i](1));
         if(fabs(rotors_origin_from_cog[i](2)) > max_z) max_z = fabs(rotors_origin_from_cog[i](2));
+
+        acc_z += (lqi_att_terms_.at(i) + z_control_terms_.at(i));
       }
+    acc_z /= kinematics_->getMass();
 
     Eigen::MatrixXd P_att_orig = P_att;
     P_att = links_inertia.inverse() * P_att_orig;
@@ -209,12 +260,13 @@ namespace control_plugin
 
     if(control_verbose_)
       {
-        std::cout << "gimbal P original :"  << std::endl << P_att_orig << std::endl;
-        std::cout << "gimbal P:"  << std::endl << P << std::endl;
-        std::cout << "P det:"  << std::endl << P_det << std::endl;
+        std::cout << "gimbal P original: \n"  << std::endl << P_att_orig << std::endl;
+        std::cout << "gimbal P: \n"  << std::endl << P << std::endl;
+        std::cout << "P det: "  << std::endl << P_det << std::endl;
+        std::cout << "acc_z: " << acc_z  << std::endl;
       }
 
-    Eigen::VectorXd f;
+    Eigen::VectorXd f_xy;
 
     if(P_det < pitch_roll_control_p_det_thresh_)
       {
@@ -224,7 +276,7 @@ namespace control_plugin
         P.block(0, 0, 1, rotor_num * 2) = P_att.block(2, 0, 1, rotor_num * 2);
         P.block(1, 0, 2, rotor_num * 2) = P_xy_ / kinematics_->getMass();
 
-        f = pseudoinverse(P) * Eigen::Vector3d(yaw_control_terms_[0], target_pitch_ - (pitch_angle * 9.8), (-target_roll_) - (-roll_angle * 9.8));
+        f_xy = pseudoinverse(P) * Eigen::Vector3d(yaw_control_terms_[0], target_pitch_ - (pitch_angle * acc_z), (-target_roll_) - (-roll_angle * acc_z));
 
         // reset gimbal roll pitch control
         roll_i_term_ = 0;
@@ -337,31 +389,55 @@ namespace control_plugin
 
         Eigen::VectorXd pid_values(5);
         /* F = P# * [roll_pid, pitch_pid, yaw_pid, x_pid, y_pid] */
-        pid_values << target_gimbal_roll, target_gimbal_pitch, yaw_control_terms_[0], target_pitch_ - (pitch_angle * 9.8), (-target_roll_) - (-roll_angle * 9.8);
-        f = pseudoinverse(P) * pid_values;
+        pid_values << target_gimbal_roll, target_gimbal_pitch, yaw_control_terms_[0], target_pitch_ - (pitch_angle * acc_z), (-target_roll_) - (-roll_angle * acc_z);
+        f_xy = pseudoinverse(P) * pid_values;
       }
 
     if(control_verbose_)
       {
         std::cout << "gimbal P_pseudo_inverse:"  << std::endl << pseudoinverse(P) << std::endl;
-        //std::cout << "gimbal P * P_pseudo_inverse:"  << std::endl << P * pseudoinverse(P) << std::endl;
-        std::cout << "gimbal f:"  << std::endl << f << std::endl;
+        std::cout << "gimbal force for horizontal control:"  << std::endl << f_xy << std::endl;
       }
+
+    /* external wrench compensation */
+    Eigen::MatrixXd cog_rot_inv = aerial_robot_model::kdlToEigen(KDL::Rotation::RPY(roll_angle, pitch_angle, yaw_angle).Inverse());
+    Eigen::MatrixXd extended_cog_rot_inv = Eigen::MatrixXd::Zero(6, 6);
+    extended_cog_rot_inv.topLeftCorner(3,3) = cog_rot_inv;
+    extended_cog_rot_inv.bottomRightCorner(3,3) = cog_rot_inv;
+    std::map<std::string, DragonRobotModel::ExternalWrench> external_wrench_map = kinematics_->getExternalWrenchMap();
+    for(auto& wrench: external_wrench_map) wrench.second.wrench = extended_cog_rot_inv * wrench.second.wrench;
+
+    kinematics_->calcExternalWrenchCompThrust(external_wrench_map);
+    const Eigen::VectorXd& wrench_comp_thrust = kinematics_->getExWrenchCompensateVectoringThrust();
+    if(control_verbose_)
+      {
+        std::cout << "external wrench  compensate vectoring thrust: " << wrench_comp_thrust.transpose() << std::endl;
+      }
+
 
     std_msgs::Float32MultiArray target_force_msg;
 
     for(int i = 0; i < rotor_num; i++)
       {
-        /* normalized vector */
-        /* 1: use state_x */
-        tf::Vector3 f_i = tf::Vector3(f(2 * i), f(2 * i + 1), kinematics_->getStaticThrust()[i]);
-        /* 2: use z_control_terms */
-        //tf::Vector3 f_i = tf::Vector3(f(2 * i), f(2 * i + 1), kinematics_->(getStableState())(i));
+        /* vectoring force */
+        tf::Vector3 f_i(f_xy(2 * i) + wrench_comp_thrust(3 * i) + extra_vectoring_force_(3 * i),
+                        f_xy(2 * i + 1) + wrench_comp_thrust(3 * i + 1) + extra_vectoring_force_(3 * i + 1),
+                        z_control_terms_.at(i) + lqi_att_terms_.at(i) + wrench_comp_thrust(3 * i + 2) + extra_vectoring_force_(3 * i + 2));
+
+
+        /* calculate ||f||, but omit pitch and roll term, which will be added in spinal */
+        target_thrust_terms_.at(i) = (f_i - tf::Vector3(0, 0, lqi_att_terms_.at(i))).length();
+        if(control_verbose_)
+          ROS_INFO("[gimbal control]: rotor%d, target_thrust vs target_z: [%f vs %f]", i+1, target_thrust_terms_.at(i), z_control_terms_.at(i));
+
+        if(!start_rp_integration_) // in the early stage of takeoff avoiding the large tilt angle,
+          f_i.setValue(f_xy(2 * i), f_xy(2 * i + 1), kinematics_->getStaticThrust()[i]);
 
         tf::Vector3 f_i_normalized = f_i.normalize();
         if(control_verbose_) ROS_INFO("gimbal%d f normaizled: [%f, %f, %f]", i + 1, f_i_normalized.x(), f_i_normalized.y(), f_i_normalized.z());
 
-        /*f -> gimbal angle */
+
+        /* f -> gimbal angle */
         std::vector<KDL::Rotation> links_frame_from_cog = kinematics_->getLinksRotationFromCog<KDL::Rotation>();
 
         /* [S_pitch, -S_roll * C_pitch, C_roll * C_roll]^T = R.transpose * f_i_normalized */
@@ -379,28 +455,28 @@ namespace control_plugin
         if(control_verbose_) std::cout << "gimbal" << i + 1 <<"r & p: " << gimbal_i_roll << ", "<< gimbal_i_pitch  << std::endl;
 
         /* ros publish */
-        target_force_msg.data.push_back(f(2 * i));
-        target_force_msg.data.push_back(f(2 * i + 1));
+        target_force_msg.data.push_back(f_xy(2 * i));
+        target_force_msg.data.push_back(f_xy(2 * i + 1));
       }
     gimbal_target_force_pub_.publish(target_force_msg);
   }
 
-  void DragonGimbal::desireTilt()
+  void DragonGimbal::baselinkRotationProcess()
   {
     static ros::Time prev_stamp = ros::Time::now();
-    if(curr_desire_tilt_ == final_desire_tilt_) return;
+    if(curr_target_baselink_rot_ == final_target_baselink_rot_) return;
 
-    if(ros::Time::now().toSec() - prev_stamp.toSec() > tilt_pub_interval_)
+    if(ros::Time::now().toSec() - prev_stamp.toSec() > baselink_rot_pub_interval_)
       {
-        if((final_desire_tilt_- curr_desire_tilt_).length() > tilt_thresh_)
-          curr_desire_tilt_ += ((final_desire_tilt_ - curr_desire_tilt_).normalize() * tilt_thresh_);
+        if((final_target_baselink_rot_- curr_target_baselink_rot_).length() > baselink_rot_change_thresh_)
+          curr_target_baselink_rot_ += ((final_target_baselink_rot_ - curr_target_baselink_rot_).normalize() * baselink_rot_change_thresh_);
         else
-          curr_desire_tilt_ = final_desire_tilt_;
+          curr_target_baselink_rot_ = final_target_baselink_rot_;
 
-        spinal::DesireCoord desire_tilt_msg;
-        desire_tilt_msg.roll = curr_desire_tilt_.x();
-        desire_tilt_msg.pitch = curr_desire_tilt_.y();
-        curr_desire_tilt_pub_.publish(desire_tilt_msg);
+        spinal::DesireCoord target_baselink_rot_msg;
+        target_baselink_rot_msg.roll = curr_target_baselink_rot_.x();
+        target_baselink_rot_msg.pitch = curr_target_baselink_rot_.y();
+        curr_target_baselink_rot_pub_.publish(target_baselink_rot_msg);
 
         prev_stamp = ros::Time::now();
       }
@@ -415,14 +491,20 @@ namespace control_plugin
 
     flight_command_data.base_throttle.resize(motor_num_);
     for(int i = 0; i < motor_num_; i++)
-      flight_command_data.base_throttle[i] = z_control_terms_[i];
+      {
+        /* ----------------------------------------
+           1. need to send ||f||, instead of LQI(z).
+           2. exclude the attitude part (LQI(roll), LQI(pitch), which will be calculated in spinal.
+           ----------------------------------------- */
+        flight_command_data.base_throttle[i] = target_thrust_terms_.at(i);
+      }
     flight_cmd_pub_.publish(flight_command_data);
 
     /* send gimbal control command */
     sensor_msgs::JointState gimbal_control_msg;
     gimbal_control_msg.header.stamp = ros::Time::now();
     for(int i = 0; i < kinematics_->getRotorNum() * 2; i++)
-      gimbal_control_msg.position.push_back(target_gimbal_angles_[i]);
+      gimbal_control_msg.position.push_back(target_gimbal_angles_.at(i));
 
     gimbal_control_pub_.publish(gimbal_control_msg);
   }
@@ -488,6 +570,25 @@ namespace control_plugin
       }
   }
 
+  void DragonGimbal::halt()
+  {
+    ros::ServiceClient client = nh_.serviceClient<std_srvs::SetBool>(joints_torque_control_srv_name_);
+    std_srvs::SetBool srv;
+    srv.request.data = false;
+    if (client.call(srv))
+      ROS_INFO("dragon control halt process: disable the joint torque");
+    else
+      ROS_ERROR("Failed to call service %s", joints_torque_control_srv_name_.c_str());
+
+    client = nh_.serviceClient<std_srvs::SetBool>(gimbals_torque_control_srv_name_);
+
+    srv.request.data = false;
+    if (client.call(srv))
+      ROS_INFO("dragon control halt process: disable the gimbal torque");
+    else
+      ROS_ERROR("Failed to call service %s", gimbals_torque_control_srv_name_.c_str());
+  }
+
   void DragonGimbal::jointStateCallback(const sensor_msgs::JointStateConstPtr& state)
   {
     joint_state_ = *state;
@@ -501,6 +602,40 @@ namespace control_plugin
         gimbal_control_msg.position = kinematics_->getGimbalNominalAngles();
         gimbal_control_pub_.publish(gimbal_control_msg);
       }
+  }
+
+  /* external wrench */
+  bool DragonGimbal::addExternalWrenchCallback(gazebo_msgs::ApplyBodyWrench::Request& req, gazebo_msgs::ApplyBodyWrench::Response& res)
+  {
+    if(kinematics_->addExternalStaticWrench(req.body_name, req.reference_frame, req.reference_point, req.wrench))
+      res.success  = true;
+    else
+      res.success  = false;
+
+    return true;
+  }
+
+  bool DragonGimbal::clearExternalWrenchCallback(gazebo_msgs::BodyRequest::Request& req, gazebo_msgs::BodyRequest::Response& res)
+  {
+    kinematics_->removeExternalStaticWrench(req.body_name);
+    return true;
+  }
+
+  /* extra vectoring force  */
+  void DragonGimbal::extraVectoringForceCallback(const std_msgs::Float32MultiArrayConstPtr& msg)
+  {
+    if(navigator_->getNaviState() != Navigator::HOVER_STATE || navigator_->getForceLandingFlag() || landing_flag_) return;
+
+    if(extra_vectoring_force_.size() != msg->data.size())
+      {
+        ROS_ERROR_STREAM("gimbal control: can not assign the extra vectroing force, the size is wrong: " << msg->data.size() << "; reset");
+        extra_vectoring_force_.setZero();
+        return;
+      }
+
+    extra_vectoring_force_ = (Eigen::Map<const Eigen::VectorXf>(msg->data.data(), msg->data.size())).cast<double>();
+
+    ROS_INFO_STREAM("add extra vectoring force is: \n" << extra_vectoring_force_.transpose());
   }
 
   void DragonGimbal::cfgPitchRollPidCallback(aerial_robot_base::XYPidControlConfig &config, uint32_t level)
@@ -595,10 +730,11 @@ namespace control_plugin
     ros::NodeHandle pitch_roll_nh(control_nh, "pitch_roll");
 
     getParam<bool>(control_nh, "control_verbose", control_verbose_, false);
-    getParam<std::string>(control_nh, "joints_torque_control_srv_name", joints_torque_control_srv_name_, std::string("joints_controller/torque_enable"));
+    getParam<std::string>(control_nh, "joints_torque_control_srv_name", joints_torque_control_srv_name_, std::string("joints/torque_enable"));
+    getParam<std::string>(control_nh, "gimbals_torque_control_srv_name", gimbals_torque_control_srv_name_, std::string("gimbals/torque_enable"));
     getParam<double>(control_nh, "height_thresh", height_thresh_, 0.1); // height threshold to disable the joint servo when landing
-    getParam<double>(control_nh, "tilt_thresh", tilt_thresh_, 0.02);  // the threshold to tilt smoothly
-    getParam<double>(control_nh, "tilt_pub_interval", tilt_pub_interval_, 0.1); // the rate to pub target tilt  command
+    getParam<double>(control_nh, "baselink_rot_change_thresh", baselink_rot_change_thresh_, 0.02);  // the threshold to change the baselink rotation
+    getParam<double>(control_nh, "baselink_rot_pub_interval", baselink_rot_pub_interval_, 0.1); // the rate to pub baselink rotation command
     getParam<bool>(control_nh, "gimbal_vectoring_check_flag", gimbal_vectoring_check_flag_, false); // check the gimbal vectoring function without position and yaw control
 
     /* pitch roll control */
@@ -611,5 +747,6 @@ namespace control_plugin
     getParam<double>(pitch_roll_nh, "p_gain", pitch_roll_gains_[0], 0.0);
     getParam<double>(pitch_roll_nh, "i_gain", pitch_roll_gains_[1], 0.0);
     getParam<double>(pitch_roll_nh, "d_gain", pitch_roll_gains_[2], 0.0);
+    getParam<bool>(control_nh, "add_lqi_result", add_lqi_result_, false);
   }
 };
