@@ -23,6 +23,7 @@ import rospkg
 import rospy
 from spinal.msg import Imu
 from spinal.srv import *
+import rosgraph
 from rqt_gui_py.plugin import Plugin
 from rqt_plot.rosplot import ROSData, RosPlotException
 from rqt_py_common.topic_completer import TopicCompleter
@@ -147,14 +148,25 @@ class IMUCalibWidget(QWidget):
         self.update_imu_data_timer.timeout.connect(self.update_imu_data)
         self.update_imu_data_timer.start(100)
 
-        self.imu_sub = rospy.Subscriber('/imu', Imu, self.imu_callback)
-        self.imu_calib_data_client = rospy.ServiceProxy('/imu_calib', ImuCalib)
+        # search the robot prefix for topics
+        master = rosgraph.Master('/rostopic')
+        try:
+            _, _, srvs = master.getSystemState()
+        except socket.error:
+            raise ROSTopicIOException("Unable to communicate with master!")
+        imu_calib_srvs = [srv[0] for srv in srvs if '/imu_calib' in srv[0]]
+
+        # choose the first robot name
+        robot_ns = imu_calib_srvs[0].split('/imu_calib')[0]
+
+        self.imu_sub = rospy.Subscriber(robot_ns + '/imu', Imu, self.imu_callback)
+        self.imu_calib_data_client = rospy.ServiceProxy(robot_ns + '/imu_calib', ImuCalib)
 
         self.imu_stamp = rospy.get_time()
         self.mag_view_start_flag = False
         self.mag_view_clear_flag = False
 
-        self.mag_declination_client = rospy.ServiceProxy('/mag_declination', MagDeclination)
+        self.mag_declination_client = rospy.ServiceProxy(robot_ns + '/mag_declination', MagDeclination)
 
         self.calib_data_len = 12 # gyro (3) + acc (3) + mag (6)
         self.common_headers = ["value", "bias"]
@@ -286,11 +298,6 @@ class IMUCalibWidget(QWidget):
 
     def update_imu_calib_data(self):
         try:
-            rospy.wait_for_service('/imu_calib', timeout = 0.5)
-        except rospy.ROSException, e:
-            rospy.logerr(e)
-
-        try:
             req = ImuCalibRequest()
             req.command = req.GET_CALIB_DATA
             res = self.imu_calib_data_client(req)
@@ -330,11 +337,6 @@ class IMUCalibWidget(QWidget):
 
     def reset_imu_calib_data(self):
         try:
-            rospy.wait_for_service('/imu_calib', timeout = 0.5)
-        except rospy.ROSException, e:
-            rospy.logerr(e)
-
-        try:
             req = ImuCalibRequest()
             req.command = req.RESET_CALIB_DATA
             res = self.imu_calib_data_client(req)
@@ -347,11 +349,6 @@ class IMUCalibWidget(QWidget):
 
     def save_imu_calib_data(self):
         try:
-            rospy.wait_for_service('/imu_calib', timeout = 0.5)
-        except rospy.ROSException, e:
-            rospy.logerr(e)
-
-        try:
             req = ImuCalibRequest()
             req.command = req.SAVE_CALIB_DATA
             res = self.imu_calib_data_client(req)
@@ -362,11 +359,6 @@ class IMUCalibWidget(QWidget):
         self.update_imu_calib_data()
 
     def gyro_calib(self, flag):
-        try:
-            rospy.wait_for_service('/imu_calib', timeout = 0.5)
-        except rospy.ROSException, e:
-            rospy.logerr(e)
-
         try:
             req = ImuCalibRequest()
             req.command = req.CALIB_GYRO
@@ -383,11 +375,6 @@ class IMUCalibWidget(QWidget):
 
     def acc_calib(self, flag):
         try:
-            rospy.wait_for_service('/imu_calib', timeout = 0.5)
-        except rospy.ROSException, e:
-            rospy.logerr(e)
-
-        try:
             req = ImuCalibRequest()
             req.command = req.CALIB_ACC
             req.data = []
@@ -402,11 +389,6 @@ class IMUCalibWidget(QWidget):
             self.update_imu_calib_data()
 
     def mag_calib(self, flag):
-        try:
-            rospy.wait_for_service('/imu_calib', timeout = 0.5)
-        except rospy.ROSException, e:
-            rospy.logerr(e)
-
         try:
             req = ImuCalibRequest()
             req.command = req.CALIB_MAG
@@ -427,11 +409,6 @@ class IMUCalibWidget(QWidget):
             self.update_imu_calib_data()
 
     def mag_lsm_calib(self, flag):
-        try:
-            rospy.wait_for_service('/imu_calib', timeout = 0.5)
-        except rospy.ROSException, e:
-            rospy.logerr(e)
-
         try:
             # Rest Mag calib data first
             req = ImuCalibRequest()
@@ -550,11 +527,6 @@ class IMUCalibWidget(QWidget):
 
     def mag_dec_configure(self):
         try:
-            rospy.wait_for_service('/mag_declination', timeout = 0.5)
-        except rospy.ROSException, e:
-            rospy.logerr(e)
-
-        try:
             req = MagDeclinationRequest()
             req.command = req.SET_DECLINATION
             req.data = float(self.mag_dec_line_edit.text())
@@ -569,12 +541,6 @@ class IMUCalibWidget(QWidget):
         self.update_mag_declination()
 
     def update_mag_declination(self):
-        try:
-            rospy.wait_for_service('/mag_declination', timeout = 0.5)
-        except rospy.ROSException, e:
-            rospy.logerr(e)
-            return
-
         try:
             req = MagDeclinationRequest()
             req.command = req.GET_DECLINATION
