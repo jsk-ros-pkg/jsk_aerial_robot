@@ -11,6 +11,7 @@
   <buildtool_depend>catkin</buildtool_depend>
   <depend>aerial_robot_base</depend>
   <depend>aerial_robot_simulation</depend>
+  <depend>aerial_robot_model</depend>
   <depend>aerial_robot_msgs</depend>
   <depend>angles</depend>
   <depend>roscpp</depend>
@@ -22,6 +23,7 @@
 
   <export>
     <aerial_robot_base plugin="${prefix}/flight_control_plugin.xml"/>
+    <aerial_robot_model plugin="${prefix}/robot_model_plugin.xml"/>
   </export>
 
 </package>

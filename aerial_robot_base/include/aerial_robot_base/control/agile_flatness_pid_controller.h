@@ -39,13 +39,14 @@
 
 namespace control_plugin
 {
-  class AgileFlatnessPid : public control_plugin::FlatnessPid
+  class AgileFlatnessPid : virtual public control_plugin::FlatnessPid
   {
   public:
     AgileFlatnessPid();
     ~AgileFlatnessPid(){}
 
     void initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
+                    boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
                     StateEstimator* estimator, Navigator* navigator,
                     double ctrl_loop_rate);
 

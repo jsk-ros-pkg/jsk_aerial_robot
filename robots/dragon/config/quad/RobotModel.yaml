@@ -1,0 +1,8 @@
+# robot model plugin
+
+robot_model_plugin_name: dragon_robot_model
+
+fc_rp_min_thre: 2.2
+rp_position_margin_thre: 0.1 # deprecated
+
+edf_max_tilt: 0.05

@@ -35,18 +35,34 @@
 
 #pragma once
 
-#include <hydrus/hydrus_robot_model.h>
+#include <aerial_robot_base/control/agile_flatness_pid_controller.h>
+#include <hydrus/hydrus_lqi_controller.h>
+#include <spinal/DesireCoord.h>
 
-class HydrusTiltedRobotModel : public HydrusRobotModel {
-public:
-  HydrusTiltedRobotModel(bool init_with_rosparam,
-                         bool verbose = false,
-                         double fc_t_min_thre = 0,
-                         double epsilon = 10);
-  virtual ~HydrusTiltedRobotModel() = default;
+namespace control_plugin
+{
+  class HydrusTiltedLQIController : public AgileFlatnessPid, public HydrusLQIController
+  {
+  public:
+    HydrusTiltedLQIController() {}
+    virtual ~HydrusTiltedLQIController() = default;
 
-  virtual void calcStaticThrust() override;
+    void initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
+                    boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
+                    StateEstimator* estimator, Navigator* navigator,
+                    double ctrl_loop_rate);
 
-private:
-  void updateRobotModelImpl(const KDL::JntArray& joint_positions) override;
+  protected:
+
+    ros::Publisher desired_orientation_pub_;
+
+    double trans_constraint_weight_;
+    double att_control_weight_;
+
+    void pidUpdate() override;
+    bool optimalGain() override;
+    void publishGain() override;
+    void rosParamInit() override;
+
+  };
 };

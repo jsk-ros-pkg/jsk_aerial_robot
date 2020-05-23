@@ -52,7 +52,7 @@ public:
   };
 
 
-  DragonRobotModel(bool init_with_rosparam,
+  DragonRobotModel(bool init_with_rosparam = true,
                    bool verbose = false,
                    double fc_t_min_thre = 0,
                    double fc_roll_pitch_min_thre = 0,

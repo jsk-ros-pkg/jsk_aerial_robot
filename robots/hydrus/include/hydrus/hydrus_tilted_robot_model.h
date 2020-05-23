@@ -2,7 +2,7 @@
 /*********************************************************************
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2016, JSK Lab
+ *  Copyright (c) 2020, JSK Lab
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -35,15 +35,18 @@
 
 #pragma once
 
-#include <hydrus/transform_control.h>
-#include <dragon/dragon_robot_model.h>
+#include <hydrus/hydrus_robot_model.h>
 
-class DragonTransformController : public TransformController
-{
+class HydrusTiltedRobotModel : public HydrusRobotModel {
 public:
-  DragonTransformController(ros::NodeHandle nh, ros::NodeHandle nh_private, std::unique_ptr<DragonRobotModel> robot_model = std::make_unique<DragonRobotModel>(true));
-  virtual ~DragonTransformController() = default;
-protected:
-  //protected functions
-  DragonRobotModel& getRobotModel() const { return static_cast<DragonRobotModel&>(TransformController::getRobotModel()); }
+  HydrusTiltedRobotModel(bool init_with_rosparam = true,
+                         bool verbose = false,
+                         double fc_t_min_thre = 0,
+                         double epsilon = 10);
+  virtual ~HydrusTiltedRobotModel() = default;
+
+  virtual void calcStaticThrust() override;
+
+private:
+  void updateRobotModelImpl(const KDL::JntArray& joint_positions) override;
 };

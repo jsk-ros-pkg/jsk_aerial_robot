@@ -41,7 +41,6 @@ namespace control_plugin
 {
   HydrusXiFullyActuatedController::HydrusXiFullyActuatedController():
     ControlBase(),
-    RobotModelRos(ros::NodeHandle(), ros::NodeHandle("~"), std::move(std::make_unique<HydrusXiFullyActuatedRobotModel>(true))),
     state_pos_(0, 0, 0),
     state_vel_(0, 0, 0),
     target_pos_(0, 0, 0),
@@ -64,25 +63,26 @@ namespace control_plugin
   {
   }
 
-  void HydrusXiFullyActuatedController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp, StateEstimator* estimator, Navigator* navigator, double ctrl_loop_rate) //override
+  void HydrusXiFullyActuatedController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp, boost::shared_ptr<aerial_robot_model::RobotModel> robot_model, StateEstimator* estimator, Navigator* navigator, double ctrl_loop_rate) //override
   {
-    ControlBase::initialize(nh, nhp, estimator, navigator, ctrl_loop_rate);
+    ControlBase::initialize(nh, nhp, robot_model, estimator, navigator, ctrl_loop_rate);
 
     rosParamInit();
 
-    motor_num_ = getRobotModel().getRotorNum();
+    motor_num_ = robot_model_->getRotorNum();
 
-    flight_cmd_pub_ = ControlBase::nh_.advertise<spinal::FourAxisCommand>("four_axes/command", 1);
-    pid_pub_ = ControlBase::nh_.advertise<aerial_robot_msgs::FlatnessPid>("debug/pos_yaw/pid", 1);
+    flight_cmd_pub_ = nh_.advertise<spinal::FourAxisCommand>("four_axes/command", 1);
+    pid_pub_ = nh_.advertise<aerial_robot_msgs::FlatnessPid>("debug/pos_yaw/pid", 1);
 
-    torque_allocation_matrix_inv_pub_ = ControlBase::nh_.advertise<spinal::TorqueAllocationMatrixInv>("torque_allocation_matrix_inv", 1);
-    wrench_allocation_matrix_pub_ = ControlBase::nh_.advertise<aerial_robot_msgs::WrenchAllocationMatrix>("debug/wrench_allocation_matrix", 1);
-    wrench_allocation_matrix_inv_pub_ = ControlBase::nh_.advertise<aerial_robot_msgs::WrenchAllocationMatrix>("debug/wrench_allocation_matrix_inv", 1);
+    torque_allocation_matrix_inv_pub_ = nh_.advertise<spinal::TorqueAllocationMatrixInv>("torque_allocation_matrix_inv", 1);
+    wrench_allocation_matrix_pub_ = nh_.advertise<aerial_robot_msgs::WrenchAllocationMatrix>("debug/wrench_allocation_matrix", 1);
+    wrench_allocation_matrix_inv_pub_ = nh_.advertise<aerial_robot_msgs::WrenchAllocationMatrix>("debug/wrench_allocation_matrix_inv", 1);
 
-    set_attitude_gains_client_ = ControlBase::nh_.serviceClient<spinal::SetAttitudeGains>("set_attitude_gains");
+    set_attitude_gains_client_ = nh_.serviceClient<spinal::SetAttitudeGains>("set_attitude_gains");
 
+    server_ = boost::make_shared<dynamic_reconfigure::Server<hydrus_xi::FullyActuatedControllerGainsConfig> >(ros::NodeHandle(nh, "gina/generator/att"));
     dynamic_reconf_func_ = boost::bind(&HydrusXiFullyActuatedController::controllerGainsCfgCallback, this, _1, _2);
-    server_.setCallback(dynamic_reconf_func_);
+    server_->setCallback(dynamic_reconf_func_);
   }
 
   bool HydrusXiFullyActuatedController::update()
@@ -357,15 +357,14 @@ namespace control_plugin
 
   Eigen::MatrixXd HydrusXiFullyActuatedController::calcWrenchAllocationMatrixWithInertial()
   {
-    const std::vector<Eigen::Vector3d> rotors_origin = getRobotModel().getRotorsOriginFromCog<Eigen::Vector3d>();
-    const std::vector<Eigen::Vector3d> rotors_normal = getRobotModel().getRotorsNormalFromCog<Eigen::Vector3d>();
-    const int rotor_num = getRobotModel().getRotorNum();
+    const std::vector<Eigen::Vector3d> rotors_origin = robot_model_->getRotorsOriginFromCog<Eigen::Vector3d>();
+    const std::vector<Eigen::Vector3d> rotors_normal = robot_model_->getRotorsNormalFromCog<Eigen::Vector3d>();
 
     //Q : WrenchAllocationMatrix
-    Eigen::MatrixXd Q(6, rotor_num);
-    double uav_mass_inv = 1.0 / getRobotModel().getMass();
-    Eigen::Matrix3d inertia_inv = getRobotModel().getInertia<Eigen::Matrix3d>().inverse();
-    for (unsigned int i = 0; i < rotor_num; ++i) {
+    Eigen::MatrixXd Q(6, motor_num_);
+    double uav_mass_inv = 1.0 / robot_model_->getMass();
+    Eigen::Matrix3d inertia_inv = robot_model_->getInertia<Eigen::Matrix3d>().inverse();
+    for (unsigned int i = 0; i < motor_num_; ++i) {
       Q.block(0, i, 3, 1) = rotors_normal.at(i) * uav_mass_inv;
       Q.block(3, i, 3, 1) = inertia_inv * (rotors_origin.at(i).cross(rotors_normal.at(i)));
     }
@@ -386,7 +385,7 @@ namespace control_plugin
 
   void HydrusXiFullyActuatedController::rosParamInit()
   {
-    ros::NodeHandle control_nh(ControlBase::nh_, "controller");
+    ros::NodeHandle control_nh(nh_, "controller");
     ros::NodeHandle xy_nh(control_nh, "xy");
     ros::NodeHandle z_nh(control_nh, "z");
     ros::NodeHandle yaw_nh(control_nh, "yaw");
@@ -525,3 +524,7 @@ namespace control_plugin
   }
 
 } //namespace control_plugin
+
+/* plugin registration */
+#include <pluginlib/class_list_macros.h>
+PLUGINLIB_EXPORT_CLASS(control_plugin::HydrusXiFullyActuatedController, control_plugin::ControlBase);

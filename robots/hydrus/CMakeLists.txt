@@ -26,7 +26,7 @@ generate_dynamic_reconfigure_options(
 
 catkin_package(
   INCLUDE_DIRS include test
-  LIBRARIES hydrus_robot_model transform_control hydrus_numerical_jacobians
+  LIBRARIES hydrus_robot_model hydrus_controller_pluginlib hydrus_numerical_jacobians
   CATKIN_DEPENDS roscpp aerial_robot_msgs aerial_robot_base aerial_robot_model aerial_robot_control spinal tf_conversions eigen_conversions
   DEPENDS EIGEN3
 )
@@ -56,37 +56,15 @@ include_directories(
 
 add_library(hydrus_robot_model
   src/hydrus_robot_model.cpp
-  src/tilted_robot_model.cpp)
+  src/hydrus_tilted_robot_model.cpp)
 target_link_libraries(hydrus_robot_model ${catkin_LIBRARIES})
 
-add_library(transform_control src/transform_control.cpp)
-target_link_libraries(transform_control hydrus_robot_model ${catkin_LIBRARIES} ${EIGEN3_LIBRARIES})
-add_dependencies(transform_control aerial_robot_msgs_generate_messages_cpp spinal_generate_messages_cpp ${PROJECT_NAME}_gencfg)
-
-add_executable(transform_control_node src/transform_control_node.cpp)
-target_link_libraries(transform_control_node transform_control ${catkin_LIBRARIES}  ${EIGEN3_LIBRARIES})
-
-add_library(tilted_transform_control src/tilted_transform_control.cpp)
-target_link_libraries(tilted_transform_control hydrus_robot_model transform_control ${catkin_LIBRARIES} ${EIGEN3_LIBRARIES})
-
-add_executable(tilted_transform_control_node src/tilted_transform_control_node.cpp)
-target_link_libraries(tilted_transform_control_node tilted_transform_control ${catkin_LIBRARIES}  ${EIGEN3_LIBRARIES})
-
-
-
-install(PROGRAMS
-  scripts/dynamixel_param.py
-  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
-
-install(DIRECTORY launch
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
-
-install(TARGETS transform_control tilted_transform_control
-   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
- )
+### flight control plugin
+add_library(hydrus_controller_pluginlib
+  src/hydrus_lqi_controller.cpp
+  src/hydrus_tilted_lqi_controller.cpp)
+target_link_libraries(hydrus_controller_pluginlib hydrus_robot_model ${catkin_LIBRARIES} ${EIGEN3_LIBRARIES})
+add_dependencies(hydrus_controller_pluginlib aerial_robot_msgs_generate_messages_cpp spinal_generate_messages_cpp ${PROJECT_NAME}_gencfg)
 
 # test
 # pre-build test code

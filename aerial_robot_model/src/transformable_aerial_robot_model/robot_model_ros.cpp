@@ -1,46 +1,50 @@
 #include <aerial_robot_model/transformable_aerial_robot_model_ros.h>
 
 namespace aerial_robot_model {
-  RobotModelRos::RobotModelRos(ros::NodeHandle nh, ros::NodeHandle nhp, std::unique_ptr<aerial_robot_model::RobotModel> robot_model, bool enable_cog2baselink_tf_pub):
+  RobotModelRos::RobotModelRos(ros::NodeHandle nh, ros::NodeHandle nhp):
     nh_(nh),
     nhp_(nhp),
-    robot_model_(std::move(robot_model)),
-    kinematics_updated_(false),
-    enable_cog2baselink_tf_pub_(enable_cog2baselink_tf_pub)
+    robot_model_loader_("aerial_robot_model", "aerial_robot_model::RobotModel")
   {
-    //publisher
-    if (enable_cog2baselink_tf_pub_)
-      cog2baselink_tf_pub_ = nh_.advertise<geometry_msgs::TransformStamped>("cog2baselink", 1);
-    //subscriber
-    actuator_state_sub_ = nh_.subscribe("joint_states", 1, &RobotModelRos::actuatorStateCallback, this);
+    // subscriber
     desire_coordinate_sub_ = nh_.subscribe("desire_coordinate", 1, &RobotModelRos::desireCoordinateCallback, this);
-    //service server
-    add_extra_module_service_ = nhp_.advertiseService("add_extra_module", &RobotModelRos::addExtraModuleCallback, this);
+    joint_state_sub_ = nh_.subscribe("joint_states", 1, &RobotModelRos::jointStateCallback, this);
+    // service server
+    add_extra_module_service_ = nh_.advertiseService("add_extra_module", &RobotModelRos::addExtraModuleCallback, this);
 
-    //rosparam
+    // rosparam
     nhp_.param("tf_prefix", tf_prefix_, std::string(""));
+
+    // load robot model plugin
+    std::string plugin_name;
+    if(nh_.getParam("robot_model_plugin_name", plugin_name))
+      {
+        try
+          {
+            robot_model_ = robot_model_loader_.createInstance(plugin_name);
+          }
+        catch(pluginlib::PluginlibException& ex)
+          {
+            ROS_ERROR("The plugin failed to load for some reason. Error: %s", ex.what());
+          }
+      }
+    else
+      {
+        ROS_ERROR("can not find plugin rosparameter for robot model, use default class: aerial_robot_model::RobotModel");
+        robot_model_ = boost::make_shared<aerial_robot_model::RobotModel>();
+      }
  }
 
-  void RobotModelRos::actuatorStateCallback(const sensor_msgs::JointStateConstPtr& state)
+  void RobotModelRos::jointStateCallback(const sensor_msgs::JointStateConstPtr& state)
   {
     joint_state_ = *state;
-    getRobotModel().updateRobotModel(*state);
+    robot_model_->updateRobotModel(*state);
 
-    if (enable_cog2baselink_tf_pub_)
-      {
-        geometry_msgs::TransformStamped tf = getRobotModel().getCog<geometry_msgs::TransformStamped>();
-        tf.header = state->header;
-        tf.header.frame_id = tf::resolve(tf_prefix_, getRobotModel().getRootFrameName());
-        tf.child_frame_id = tf::resolve(tf_prefix_, std::string("cog"));
-        br_.sendTransform(tf);
-        geometry_msgs::TransformStamped transform_msg = getRobotModel().getCog2Baselink<geometry_msgs::TransformStamped>();
-        transform_msg.header = state->header;
-        transform_msg.header.frame_id = tf::resolve(tf_prefix_, std::string("cog"));
-        transform_msg.child_frame_id =  tf::resolve(tf_prefix_, getRobotModel().getBaselinkName());
-        cog2baselink_tf_pub_.publish(transform_msg);
-      }
-
-    if(!kinematics_updated_) kinematics_updated_ = true;
+    geometry_msgs::TransformStamped tf = robot_model_->getCog<geometry_msgs::TransformStamped>();
+    tf.header = state->header;
+    tf.header.frame_id = tf::resolve(tf_prefix_, robot_model_->getRootFrameName());
+    tf.child_frame_id = tf::resolve(tf_prefix_, std::string("cog"));
+    br_.sendTransform(tf);
   }
 
   bool RobotModelRos::addExtraModuleCallback(aerial_robot_model::AddExtraModule::Request &req, aerial_robot_model::AddExtraModule::Response &res)
@@ -56,13 +60,13 @@ namespace aerial_robot_model {
                                                    KDL::RotationalInertia(req.inertia.ixx, req.inertia.iyy,
                                                                           req.inertia.izz, req.inertia.ixy,
                                                                           req.inertia.ixz, req.inertia.iyz));
-          res.status = getRobotModel().addExtraModule(req.module_name, req.parent_link_name, f, rigid_body_inertia);
+          res.status = robot_model_->addExtraModule(req.module_name, req.parent_link_name, f, rigid_body_inertia);
           return res.status;
           break;
         }
       case aerial_robot_model::AddExtraModule::Request::REMOVE:
         {
-          res.status = getRobotModel().removeExtraModule(req.module_name);
+          res.status = robot_model_->removeExtraModule(req.module_name);
           return res.status;
           break;
         }
@@ -79,6 +83,6 @@ namespace aerial_robot_model {
 
   void RobotModelRos::desireCoordinateCallback(const spinal::DesireCoordConstPtr& msg)
   {
-    getRobotModel().setCogDesireOrientation(msg->roll, msg->pitch, msg->yaw);
+    robot_model_->setCogDesireOrientation(msg->roll, msg->pitch, msg->yaw);
   }
 } //namespace aerial_robot_model

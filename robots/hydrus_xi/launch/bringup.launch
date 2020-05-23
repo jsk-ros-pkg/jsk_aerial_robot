@@ -32,6 +32,7 @@
     <param name="estimation/mode" value= "$(arg estimate_mode)" if="$(arg real_machine)"/>
 
     <param name="uav_model" value= "17" />
+    <param name="robot_model_plugin_name" value ="hydrus_xi_fully_actuated_robot_model"/>
 
     ###########  Motor Config  ###########
     <rosparam file="$(find hydrus_xi)/config/motor_info/MN4010KV475_Afro_15inch.yaml" command="load" />

@@ -69,11 +69,12 @@ namespace control_plugin
 
   void FlatnessPid::initialize(ros::NodeHandle nh,
                                ros::NodeHandle nhp,
+                               boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
                                StateEstimator* estimator,
                                Navigator* navigator,
                                double ctrl_loop_rate)
   {
-    ControlBase::initialize(nh, nhp, estimator, navigator, ctrl_loop_rate);
+    ControlBase::initialize(nh, nhp, robot_model, estimator, navigator, ctrl_loop_rate);
 
     rosParamInit();
 
@@ -82,11 +83,8 @@ namespace control_plugin
     flight_cmd_pub_ = nh_.advertise<spinal::FourAxisCommand>("four_axes/command", 10);
     pid_pub_ = nh_.advertise<aerial_robot_msgs::FlatnessPid>("debug/pos_yaw/pid", 10);
 
-    //subscriber
-    four_axis_gain_sub_ = nh_.subscribe<aerial_robot_msgs::FourAxisGain>("four_axes/gain", 1, &FlatnessPid::fourAxisGainCallback, this, ros::TransportHints().tcpNoDelay());
-
     //dynamic reconfigure server
-    xy_pid_server_ = new dynamic_reconfigure::Server<aerial_robot_base::XYPidControlConfig>(ros::NodeHandle(nhp_, "gain_generator/xy"));
+    xy_pid_server_ = boost::make_shared<dynamic_reconfigure::Server<aerial_robot_base::XYPidControlConfig>>(ros::NodeHandle(nh, "gain_generator/xy"));
     dynamic_reconf_func_xy_pid_ = boost::bind(&FlatnessPid::cfgXYPidCallback, this, _1, _2);
     xy_pid_server_->setCallback(dynamic_reconf_func_xy_pid_);
   }
@@ -348,30 +346,6 @@ namespace control_plugin
       }
     flight_cmd_pub_.publish(flight_command_data);
   }
-
-  void FlatnessPid::fourAxisGainCallback(const aerial_robot_msgs::FourAxisGainConstPtr & msg)
-  {
-    /* update the motor number */
-    if(motor_num_ == 0)
-      {
-        motor_num_ = msg->motor_num;
-
-        yaw_gains_.resize(motor_num_);
-        z_gains_.resize(motor_num_);
-
-        z_control_terms_.resize(motor_num_);
-        yaw_control_terms_.resize(motor_num_);
-
-        ROS_INFO("Flight control: update the motor number from gain message: %d", motor_num_);
-      }
-
-    for(int i = 0; i < msg->motor_num; i++)
-      {
-        yaw_gains_[i].setValue(msg->pos_p_gain_yaw[i], msg->pos_i_gain_yaw[i], msg->pos_d_gain_yaw[i]);
-        z_gains_[i].setValue(msg->pos_p_gain_z[i], msg->pos_i_gain_z[i], msg->pos_d_gain_z[i]);
-      }
-  }
-
 
   void FlatnessPid::cfgXYPidCallback(aerial_robot_base::XYPidControlConfig &config, uint32_t level)
   {

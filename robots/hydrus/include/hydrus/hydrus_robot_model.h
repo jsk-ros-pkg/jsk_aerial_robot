@@ -39,7 +39,7 @@
 
 class HydrusRobotModel : public aerial_robot_model::RobotModel {
 public:
-  HydrusRobotModel(bool init_with_rosparam,
+  HydrusRobotModel(bool init_with_rosparam = true,
                    bool verbose = false,
                    double fc_t_min_thre = 0,
                    double fc_rp_min_thre = 0,

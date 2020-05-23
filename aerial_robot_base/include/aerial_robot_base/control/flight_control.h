@@ -42,6 +42,7 @@
 /* basic instance */
 #include <aerial_robot_base/state_estimation.h>
 #include <aerial_robot_base/flight_navigation.h>
+#include <aerial_robot_model/transformable_aerial_robot_model.h>
 
 /* ros msg to Spinal */
 #include <spinal/PwmInfo.h>
@@ -65,6 +66,7 @@ namespace control_plugin
     virtual ~ControlBase(){}
     void virtual initialize(ros::NodeHandle nh,
                             ros::NodeHandle nhp,
+                            boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
                             StateEstimator* estimator,
                             Navigator* navigator,
                             double ctrl_loop_rate)
@@ -74,6 +76,7 @@ namespace control_plugin
       motor_info_pub_ = nh_.advertise<spinal::PwmInfo>("motor_info", 10);
       uav_info_pub_ = nh_.advertise<spinal::UavInfo>("uav_info", 10);
 
+      robot_model_ = robot_model;
       estimator_ = estimator;
       navigator_ = navigator;
 
@@ -191,6 +194,7 @@ namespace control_plugin
     ros::Publisher  motor_info_pub_;
     ros::Publisher  uav_info_pub_;
 
+    boost::shared_ptr<aerial_robot_model::RobotModel> robot_model_;
     Navigator* navigator_;
     StateEstimator* estimator_;
 

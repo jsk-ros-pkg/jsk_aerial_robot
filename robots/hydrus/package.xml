@@ -36,4 +36,9 @@
   <run_depend>dynamic_reconfigure</run_depend>
   <run_depend>rostest</run_depend>
 
+  <export>
+    <aerial_robot_base plugin="${prefix}/flight_control_plugins.xml"/>
+    <aerial_robot_model plugin="${prefix}/robot_model_plugins.xml"/>
+  </export>
+
 </package>

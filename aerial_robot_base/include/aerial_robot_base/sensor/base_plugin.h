@@ -81,9 +81,10 @@ namespace sensor_plugin
       sensor_status_ = Status::INACTIVE;
     }
 
-    virtual void initialize(ros::NodeHandle nh, StateEstimator* estimator, string sensor_name, int index)
+    virtual void initialize(ros::NodeHandle nh, boost::shared_ptr<aerial_robot_model::RobotModel> robot_model, StateEstimator* estimator, string sensor_name, int index)
     {
       estimator_ = estimator;
+      robot_model_ = robot_model;
 
       nh_ = nh;
       nhp_ = ros::NodeHandle(nh_, sensor_name);
@@ -160,6 +161,7 @@ namespace sensor_plugin
     ros::Timer  health_check_timer_;
     ros::ServiceServer set_status_service_;
     ros::ServiceServer reset_service_;
+    boost::shared_ptr<aerial_robot_model::RobotModel> robot_model_;
     StateEstimator* estimator_;
     int estimate_mode_;
 
@@ -272,7 +274,7 @@ namespace sensor_plugin
         for joint or servo system, this should be processed every time,
         therefore kinematics based on kinematics is better, since the tf need 0.x[sec].
       */
-      const auto segments_tf =  estimator_->getSegmentsTf();
+      const auto segments_tf =  robot_model_->getSegmentsTf();
 
       if(segments_tf.empty())
         {
@@ -290,7 +292,7 @@ namespace sensor_plugin
 
       try
         {
-          tf::transformKDLToTF(segments_tf.at(estimator_->getBaselinkName()).Inverse() * segments_tf.at(sensor_frame_), sensor_tf_);
+          tf::transformKDLToTF(segments_tf.at(robot_model_->getBaselinkName()).Inverse() * segments_tf.at(sensor_frame_), sensor_tf_);
         }
       catch (...)
         {
@@ -301,7 +303,7 @@ namespace sensor_plugin
       if(!variable_sensor_tf_flag_)
         ROS_INFO("%s: get tf from %s to %s, [%f, %f, %f], [%f, %f, %f]",
                  indexed_nhp_.getNamespace().c_str(),
-                 estimator_->getBaselinkName().c_str(), sensor_frame_.c_str(),
+                 robot_model_->getBaselinkName().c_str(), sensor_frame_.c_str(),
                  sensor_tf_.getOrigin().x(), sensor_tf_.getOrigin().y(),
                  sensor_tf_.getOrigin().z(), r, p, y);
 

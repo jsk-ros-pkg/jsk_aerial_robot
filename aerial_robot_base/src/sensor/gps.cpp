@@ -88,9 +88,9 @@ namespace sensor_plugin
     world_frame_.setIdentity();
   }
 
-  void Gps::initialize(ros::NodeHandle nh, StateEstimator* estimator, string sensor_name, int index)
+  void Gps::initialize(ros::NodeHandle nh, boost::shared_ptr<aerial_robot_model::RobotModel> robot_model, StateEstimator* estimator, string sensor_name, int index)
   {
-    SensorBase::initialize(nh, estimator, sensor_name, index);
+    SensorBase::initialize(nh, robot_model, estimator, sensor_name, index);
     rosParamInit();
 
     /* ros subscriber for gps */

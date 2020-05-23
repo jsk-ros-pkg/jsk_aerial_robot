@@ -1,4 +1,4 @@
-### Differential Flatness PID control for hydrus quad type
+control_plugin_name: control_plugin/hydrus_lqi_controller
 
 controller:
   # z
@@ -30,3 +30,29 @@ controller:
     i_term_limit: 4.0
     d_term_limit: 4.0
     err_thresh: 0.4
+
+  # LQI gain generator
+  lqi:
+    gain_generate_rate: 15.0
+    gyro_moment_compensation: true
+    clamp_gain: true
+
+    q_roll: 400
+    q_roll_d: 40
+    q_roll_i: 10.0
+    q_pitch: 400
+    q_pitch_d: 40
+    q_pitch_i: 10.0
+
+    q_yaw: 100
+    q_yaw_d:  50
+    q_yaw_i: 0.5
+
+    q_z: 10.0
+    q_z_d: 20.0
+    q_z_i: 10.0
+
+    r1: 1.0
+    r2: 1.0
+    r3: 1.0
+    r4: 1.0

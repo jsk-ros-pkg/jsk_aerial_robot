@@ -60,7 +60,7 @@ namespace sensor_plugin
     VisualOdometry();
     ~VisualOdometry(){}
 
-    void initialize(ros::NodeHandle nh, StateEstimator* estimator, string sensor_name, int index);
+    void initialize(ros::NodeHandle nh, boost::shared_ptr<aerial_robot_model::RobotModel> robot_model, StateEstimator* estimator, string sensor_name, int index);
 
     inline const bool odomPosMode()
     {

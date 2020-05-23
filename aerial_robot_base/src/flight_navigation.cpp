@@ -3,6 +3,7 @@
 using namespace std;
 
 Navigator::Navigator(ros::NodeHandle nh, ros::NodeHandle nh_private,
+                     boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
                      StateEstimator* estimator)
   : nh_(nh),
     nhp_(nh_private),
@@ -159,8 +160,10 @@ void Navigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & msg)
         if(msg->target == aerial_robot_msgs::FlightNav::BASELINK)
           {
             /* check the transformation */
+            tf::Transform cog2baselink_tf;
+            tf::transformKDLToTF(robot_model_->getCog2Baselink<KDL::Frame>(), cog2baselink_tf);
             target_cog_pos -= tf::Matrix3x3(tf::createQuaternionFromYaw(getTargetYaw()))
-              * estimator_->getCog2Baselink().getOrigin();
+              * cog2baselink_tf.getOrigin();
           }
 
         tf::Vector3 target_delta = getTargetPos() - target_cog_pos;
@@ -512,14 +515,14 @@ void Navigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
               {
                 tf::Vector3 target_acc = target_acc_;
                 /* convert the frame */
-                const auto segments_tf =  estimator_->getSegmentsTf();
+                const auto segments_tf = robot_model_->getSegmentsTf();
                 if(segments_tf.find(teleop_local_frame_) == segments_tf.end())
                   {
                     ROS_ERROR("can not find %s in kinematics model", teleop_local_frame_.c_str());
                     target_acc.setValue(0,0,0);
                   }
                 tf::Transform teleop_local_frame_tf;
-                tf::transformKDLToTF(segments_tf.at(estimator_->getBaselinkName()).Inverse() * segments_tf.at(teleop_local_frame_), teleop_local_frame_tf);
+                tf::transformKDLToTF(segments_tf.at(robot_model_->getBaselinkName()).Inverse() * segments_tf.at(teleop_local_frame_), teleop_local_frame_tf);
 
                 target_acc_ = frameConversion(target_acc,  tf::Matrix3x3(tf::createQuaternionFromYaw(estimator_->getState(State::YAW_COG, estimate_mode_)[0])) * teleop_local_frame_tf.getBasis());
               }

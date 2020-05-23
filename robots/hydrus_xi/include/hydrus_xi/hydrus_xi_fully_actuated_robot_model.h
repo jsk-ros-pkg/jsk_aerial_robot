@@ -44,7 +44,7 @@ using namespace aerial_robot_model;
 
 class HydrusXiFullyActuatedRobotModel : public aerial_robot_model::RobotModel {
 public:
-  HydrusXiFullyActuatedRobotModel(bool init_with_rosparam,
+  HydrusXiFullyActuatedRobotModel(bool init_with_rosparam = true,
                                   bool verbose = false,
                                   double fc_f_min_thre = 0,
                                   double fc_t_min_thre = 0,

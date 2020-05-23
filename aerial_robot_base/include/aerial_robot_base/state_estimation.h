@@ -111,7 +111,7 @@ class StateEstimator
 {
 
 public:
-  StateEstimator(ros::NodeHandle nh, ros::NodeHandle nh_private);
+  StateEstimator(ros::NodeHandle nh, ros::NodeHandle nh_private, boost::shared_ptr<aerial_robot_model::RobotModel> robot_model);
 
   virtual ~StateEstimator()
   {
@@ -382,22 +382,6 @@ public:
   inline void setForceAttControlFlag (bool flag) {force_att_control_flag_ = flag; }
   inline bool getForceAttControlFlag () {return force_att_control_flag_;}
 
-  const std::map<std::string, KDL::Frame> getSegmentsTf()
-  {
-    boost::lock_guard<boost::mutex> lock(kinematics_mutex_);
-    return segments_tf_;
-  }
-  void setSegmentsTf(const std::map<std::string, KDL::Frame> segments_tf)
-  {
-    boost::lock_guard<boost::mutex> lock(kinematics_mutex_);
-    segments_tf_ = segments_tf;
-  }
-
-  inline double getMass() const {return mass_;}
-  inline std::string getBaselinkName() const {return baselink_name_;}
-  inline tf::Transform getCog2Baselink(){return cog2baselink_transform_;}
-  inline tf::Transform getBaselink2Cog(){return cog2baselink_transform_.inverse();}
-
   const SensorFuser& getFuser(int mode)
   {
     assert(mode >= 0 && mode < 2);
@@ -439,9 +423,6 @@ protected:
   ros::NodeHandle nh_;
   ros::NodeHandle nhp_;
   ros::Publisher full_state_pub_, baselink_odom_pub_, cog_odom_pub_;
-  ros::Subscriber joint_state_sub_;
-  ros::Subscriber cog2baselink_transform_sub_;
-  ros::Subscriber estimate_height_mode_sub_;
   tf::TransformBroadcaster br_;
 
   boost::thread update_thread_;
@@ -455,21 +436,15 @@ protected:
 
   /* mutex */
   boost::mutex state_mutex_;
-  boost::mutex kinematics_mutex_;
   boost::mutex queue_mutex_;
   /* ros param */
   bool param_verbose_;
   int estimate_mode_; /* main estimte mode */
-  string cog2baselink_transform_sub_name_;
   double update_rate_;
 
-  /* robot kinematics  */
-  boost::shared_ptr<aerial_robot_model::RobotModel> kinematics_model_;
-  std::map<std::string, KDL::Frame> segments_tf_;
+  /* robot model (kinematics)  */
+  boost::shared_ptr<aerial_robot_model::RobotModel> robot_model_;
   std::string tf_prefix_;
-  std::string baselink_name_;
-  tf::Transform cog2baselink_transform_; // TODO: should be calculated from the aboved "kinemtaics_model_"
-  double mass_;
 
   /* 9: x_w, y_w, z_w, roll_w, pitch_w, yaw_cog_w, x_b, y_b, yaw_board_w */
   array<AxisState, State::TOTAL_NUM> state_;
@@ -495,29 +470,6 @@ protected:
   bool un_descend_flag_;
   float landing_height_;
   bool force_att_control_flag_;
-
-  /* update the kinematics model based on joint state */
-  void jointStateCallback(const sensor_msgs::JointStateConstPtr& state)
-  {
-    if(mass_ == 0)
-      {
-        kinematics_model_->updateRobotModel(*state);
-        mass_ = kinematics_model_->getMass();
-      }
-
-    auto segments_tf = kinematics_model_->fullForwardKinematics(*state); // do not need inertial and cog calculation right now
-    setSegmentsTf(segments_tf);
-  }
-
-  /* use subscribe method to get the cog-baselink offset */
-  /* only the position offset, no vel and acc */
-  void transformCallback(const geometry_msgs::TransformStampedConstPtr & msg)
-  {
-    // TODO: should be calculated from the aboved "kinemtaics_model_"
-
-    /* get the transform from CoG to base_link: {CoG} -> {baselink} */
-    tf::transformMsgToTF(msg->transform, cog2baselink_transform_);
-  }
 
   void statePublish();
   void rosParamInit();

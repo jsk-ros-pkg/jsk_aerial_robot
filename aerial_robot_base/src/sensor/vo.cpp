@@ -67,9 +67,9 @@ namespace sensor_plugin
     vo_state_.states[2].state.resize(2);
   }
 
-  void VisualOdometry::initialize(ros::NodeHandle nh, StateEstimator* estimator, string sensor_name, int index)
+  void VisualOdometry::initialize(ros::NodeHandle nh, boost::shared_ptr<aerial_robot_model::RobotModel> robot_model, StateEstimator* estimator, string sensor_name, int index)
   {
-    SensorBase::initialize(nh, estimator, sensor_name, index);
+    SensorBase::initialize(nh, robot_model, estimator, sensor_name, index);
     rosParamInit();
 
     /* ros subscriber: vo */

@@ -6,6 +6,7 @@
 #include <aerial_robot_base/control/flight_control.h>
 #include <aerial_robot_base/flight_navigation.h>
 #include <aerial_robot_base/state_estimation.h>
+#include <aerial_robot_model/transformable_aerial_robot_model_ros.h>
 #include <boost/thread.hpp>
 #include <iostream>
 
@@ -25,10 +26,13 @@ class AerialRobotBase
   ros::Timer  main_timer_;
   double main_rate_;
 
+  boost::shared_ptr<aerial_robot_model::RobotModelRos> robot_model_ros_;
+
   StateEstimator*  estimator_;
   Navigator* navigator_;
-  boost::shared_ptr< pluginlib::ClassLoader<control_plugin::ControlBase> > controller_loader_ptr_;
+  pluginlib::ClassLoader<control_plugin::ControlBase> controller_loader_;
   boost::shared_ptr<control_plugin::ControlBase> controller_;
+
 
 };
 

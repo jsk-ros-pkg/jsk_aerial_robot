@@ -16,6 +16,7 @@ HydrusRobotModel::HydrusRobotModel(bool init_with_rosparam, bool verbose, double
 
   fc_rp_dists_.resize(getRotorNum());
   approx_fc_rp_dists_.resize(getRotorNum());
+
 }
 
 void HydrusRobotModel::calcFeasibleControlRollPitchDists()
@@ -116,11 +117,11 @@ void HydrusRobotModel::calcStaticThrust()
 
 void HydrusRobotModel::getParamFromRos()
 {
-  ros::NodeHandle nhp("~");
-  nhp.param("fc_rp_min_thre", fc_rp_min_thre_, 1e-6);
-  nhp.param("rp_position_margin_thre", rp_position_margin_thre_, 0.01);
-  nhp.param("wrench_mat_det_thre", wrench_mat_det_thre_, 1e-6);
-  if(nhp.hasParam("wrench_dof"))  nhp.getParam("wrench_dof", wrench_dof_);
+  ros::NodeHandle nh;
+  nh.param("fc_rp_min_thre", fc_rp_min_thre_, 1e-6);
+  nh.param("rp_position_margin_thre", rp_position_margin_thre_, 0.01);
+  nh.param("wrench_mat_det_thre", wrench_mat_det_thre_, 1e-6);
+  if(nh.hasParam("wrench_dof"))  nh.getParam("wrench_dof", wrench_dof_);
 }
 
 // @depreacated
@@ -218,3 +219,6 @@ bool HydrusRobotModel::wrenchMatrixDeterminantCheck()
   return true;
 }
 
+/* plugin registration */
+#include <pluginlib/class_list_macros.h>
+PLUGINLIB_EXPORT_CLASS(HydrusRobotModel, aerial_robot_model::RobotModel);

@@ -1,5 +1,5 @@
 <library path="lib/libdragon_control_pluginlib">
-  <class name="control_plugin/dragon_gimbal" type="control_plugin::DragonGimbal" base_class_type="control_plugin::ControlBase">
-    <description>dragon gimbal control plugin for horizon position and yaw</description>
+  <class name="control_plugin/dragon_lqi_gimbal" type="control_plugin::DragonLQIGimbalController" base_class_type="control_plugin::ControlBase">
+    <description> dragon control plugin: gimbal for x,y,yaw; lqi for roll,pitch,z</description>
   </class>
 </library>

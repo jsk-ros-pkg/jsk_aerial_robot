@@ -41,6 +41,7 @@ class Navigator
 {
 public:
   Navigator(ros::NodeHandle nh, ros::NodeHandle nh_private,
+            boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
             StateEstimator* estimator);
   virtual ~Navigator();
 
@@ -211,6 +212,7 @@ protected:
   ros::Subscriber flight_nav_sub_;
   ros::Subscriber stop_teleop_sub_;
 
+  boost::shared_ptr<aerial_robot_model::RobotModel> robot_model_;
   StateEstimator* estimator_;
 
   bool param_verbose_;

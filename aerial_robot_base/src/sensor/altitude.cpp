@@ -60,9 +60,9 @@ namespace sensor_plugin
   class Alt :public sensor_plugin::SensorBase
   {
   public:
-    void initialize(ros::NodeHandle nh, StateEstimator* estimator, string sensor_name, int index)
+    void initialize(ros::NodeHandle nh, boost::shared_ptr<aerial_robot_model::RobotModel> robot_model, StateEstimator* estimator, string sensor_name, int index)
     {
-      SensorBase::initialize(nh, estimator, sensor_name, index);
+      SensorBase::initialize(nh, robot_model, estimator, sensor_name, index);
       rosParamInit();
 
       kf_loader_ptr_ = boost::shared_ptr< pluginlib::ClassLoader<kf_plugin::KalmanFilter> >(new pluginlib::ClassLoader<kf_plugin::KalmanFilter>("kalman_filter", "kf_plugin::KalmanFilter"));

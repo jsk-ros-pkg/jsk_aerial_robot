@@ -70,13 +70,14 @@ namespace control_plugin
     RP_D_GAIN = 12
   };
 
-  class HydrusXiFullyActuatedController: public control_plugin::ControlBase, public aerial_robot_model::RobotModelRos
+  class HydrusXiFullyActuatedController: public control_plugin::ControlBase
   {
   public:
     HydrusXiFullyActuatedController();
     virtual ~HydrusXiFullyActuatedController() = default;
 
     void initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
+                    boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
                     StateEstimator* estimator, Navigator* navigator,
                     double ctrl_loop_rate) override;
     bool update() override;
@@ -86,8 +87,6 @@ namespace control_plugin
     void sendCmd();
 
   private:
-    HydrusXiFullyActuatedRobotModel& getRobotModel() const { return static_cast<HydrusXiFullyActuatedRobotModel&>(aerial_robot_model::RobotModelRos::getRobotModel()); }
-
     //state
     tf::Vector3 state_pos_;
     tf::Vector3 state_vel_;
@@ -159,7 +158,7 @@ namespace control_plugin
     void rosParamInit();
 
     dynamic_reconfigure::Server<hydrus_xi::FullyActuatedControllerGainsConfig>::CallbackType dynamic_reconf_func_;
-    dynamic_reconfigure::Server<hydrus_xi::FullyActuatedControllerGainsConfig> server_;
+    boost::shared_ptr<dynamic_reconfigure::Server<hydrus_xi::FullyActuatedControllerGainsConfig> >server_;
     void controllerGainsCfgCallback(hydrus_xi::FullyActuatedControllerGainsConfig &config, uint32_t level);
 
     tf::Vector3 clampV(tf::Vector3 input, double min, double max)
@@ -170,7 +169,3 @@ namespace control_plugin
     }
   };
 } //namespace control_plugin
-
-/* plugin registration */
-#include <pluginlib/class_list_macros.h>
-PLUGINLIB_EXPORT_CLASS(control_plugin::HydrusXiFullyActuatedController, control_plugin::ControlBase);

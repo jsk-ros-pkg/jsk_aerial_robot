@@ -43,12 +43,13 @@ namespace control_plugin
   {
   }
   void AgileFlatnessPid::initialize(ros::NodeHandle nh,
-                               ros::NodeHandle nhp,
-                               StateEstimator* estimator,
-                               Navigator* navigator,
-                               double ctrl_loop_rate)
+                                    ros::NodeHandle nhp,
+                                    boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
+                                    StateEstimator* estimator,
+                                    Navigator* navigator,
+                                    double ctrl_loop_rate)
   {
-    FlatnessPid::initialize(nh, nhp, estimator, navigator, ctrl_loop_rate);
+    FlatnessPid::initialize(nh, nhp, robot_model, estimator, navigator, ctrl_loop_rate);
   }
 
   void AgileFlatnessPid::pidUpdate()
@@ -197,7 +198,7 @@ namespace control_plugin
     pid_msg.z.vel_err = z_vel_err;
 
     /* change from desired accelaration (force) to desired roll/pitch and throttle */
-    z_total_term /= estimator_->getMass();
+    z_total_term /= robot_model_->getMass();
     tf::Vector3 desired_force(xy_total_term[0], xy_total_term[1], z_total_term);
 
     double desired_total_throttle = desired_force.length();

@@ -21,10 +21,12 @@
   <run_depend>roscpp</run_depend>
   <run_depend>hydrus</run_depend>
   <run_depend>pluginlib</run_depend>
+  <run_depend>aerial_robot_model</run_depend> <!-- for pluginlib -->
   <run_depend>aerial_robot_base</run_depend> <!-- for pluginlib -->
   <run_depend>rostest</run_depend>
 
   <export>
+    <aerial_robot_model plugin="${prefix}/robot_model_plugins.xml"/>
     <aerial_robot_base plugin="${prefix}/flight_control_plugins.xml" />
   </export>
 

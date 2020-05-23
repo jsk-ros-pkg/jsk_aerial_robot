@@ -59,6 +59,7 @@ namespace control_plugin
     ~FlatnessPid(){};
 
     void initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
+                    boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
                     StateEstimator* estimator, Navigator* navigator,
                     double ctrl_loop_rate);
 
@@ -88,7 +89,6 @@ namespace control_plugin
   protected:
     ros::Publisher  pid_pub_;
     ros::Publisher  flight_cmd_pub_;
-    ros::Subscriber four_axis_gain_sub_;
 
     /* basic var */
     tf::Vector3 state_pos_;
@@ -137,10 +137,9 @@ namespace control_plugin
     double  yaw_err_i_;
     bool need_yaw_d_control_;
 
-    dynamic_reconfigure::Server<aerial_robot_base::XYPidControlConfig>* xy_pid_server_;
+    boost::shared_ptr<dynamic_reconfigure::Server<aerial_robot_base::XYPidControlConfig> > xy_pid_server_;
     dynamic_reconfigure::Server<aerial_robot_base::XYPidControlConfig>::CallbackType dynamic_reconf_func_xy_pid_;
 
-    virtual void fourAxisGainCallback(const aerial_robot_msgs::FourAxisGainConstPtr & msg);
     void cfgXYPidCallback(aerial_robot_base::XYPidControlConfig &config, uint32_t level);
     virtual void rosParamInit();
 

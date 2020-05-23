@@ -68,9 +68,9 @@ namespace sensor_plugin
     state_.states[2].state.resize(2);
   }
 
-  void Imu::initialize(ros::NodeHandle nh, StateEstimator* estimator, string sensor_name, int index)
+  void Imu::initialize(ros::NodeHandle nh, boost::shared_ptr<aerial_robot_model::RobotModel> robot_model, StateEstimator* estimator, string sensor_name, int index)
   {
-    SensorBase::initialize(nh, estimator, sensor_name, index);
+    SensorBase::initialize(nh, robot_model, estimator, sensor_name, index);
     rosParamInit();
 
     std::string topic_name;
@@ -154,14 +154,17 @@ namespace sensor_plugin
 
     /* COG */
     /* TODO: only imu can assign to cog state for estimate mode and experiment mode */
-    double roll, pitch, yaw;
-    (estimator_->getOrientation(Frame::BASELINK, StateEstimator::EGOMOTION_ESTIMATE) * estimator_->getCog2Baselink().getBasis().inverse()).getRPY(roll, pitch, yaw);
-    estimator_->setEuler(Frame::COG, StateEstimator::EGOMOTION_ESTIMATE, tf::Vector3(roll, pitch, yaw));
-    estimator_->setAngularVel(Frame::COG, StateEstimator::EGOMOTION_ESTIMATE, estimator_->getCog2Baselink().getBasis() * omega_);
+    tf::Transform cog2baselink_tf;
+    tf::transformKDLToTF(robot_model_->getCog2Baselink<KDL::Frame>(), cog2baselink_tf);
 
-    (estimator_->getOrientation(Frame::BASELINK, StateEstimator::EXPERIMENT_ESTIMATE) * estimator_->getCog2Baselink().getBasis().inverse()).getRPY(roll, pitch, yaw);
+    double roll, pitch, yaw;
+    (estimator_->getOrientation(Frame::BASELINK, StateEstimator::EGOMOTION_ESTIMATE) * cog2baselink_tf.inverse().getBasis()).getRPY(roll, pitch, yaw);
+    estimator_->setEuler(Frame::COG, StateEstimator::EGOMOTION_ESTIMATE, tf::Vector3(roll, pitch, yaw));
+    estimator_->setAngularVel(Frame::COG, StateEstimator::EGOMOTION_ESTIMATE, cog2baselink_tf.getBasis() * omega_);
+
+    (estimator_->getOrientation(Frame::BASELINK, StateEstimator::EXPERIMENT_ESTIMATE) * cog2baselink_tf.inverse().getBasis()).getRPY(roll, pitch, yaw);
     estimator_->setEuler(Frame::COG, StateEstimator::EXPERIMENT_ESTIMATE, tf::Vector3(roll, pitch, yaw));
-    estimator_->setAngularVel(Frame::COG, StateEstimator::EXPERIMENT_ESTIMATE, estimator_->getCog2Baselink().getBasis() * omega_);
+    estimator_->setAngularVel(Frame::COG, StateEstimator::EXPERIMENT_ESTIMATE, cog2baselink_tf.getBasis() * omega_);
 
     /* Ground Truth if necessary */
     if(treat_imu_as_ground_truth_)
@@ -170,12 +173,12 @@ namespace sensor_plugin
         estimator_->setState(State::ROLL_BASE, StateEstimator::GROUND_TRUTH, 0, euler_[0]);
         estimator_->setState(State::PITCH_BASE, StateEstimator::GROUND_TRUTH, 0, euler_[1]);
         /* set cog angles for all axes */
-        (estimator_->getOrientation(Frame::BASELINK, StateEstimator::GROUND_TRUTH) * estimator_->getCog2Baselink().getBasis().inverse()).getRPY(roll, pitch, yaw);
+        (estimator_->getOrientation(Frame::BASELINK, StateEstimator::GROUND_TRUTH) * cog2baselink_tf.inverse().getBasis()).getRPY(roll, pitch, yaw);
         estimator_->setEuler(Frame::COG, StateEstimator::GROUND_TRUTH, tf::Vector3(roll, pitch, yaw));
         /* set baselink angular velocity for all axes using imu omega */
         estimator_->setAngularVel(Frame::BASELINK, StateEstimator::GROUND_TRUTH, omega_);
         /* set cog angular velocity for all axes using imu omega */
-        estimator_->setAngularVel(Frame::COG, StateEstimator::GROUND_TRUTH, estimator_->getCog2Baselink().getBasis() * omega_);
+        estimator_->setAngularVel(Frame::COG, StateEstimator::GROUND_TRUTH, cog2baselink_tf.getBasis() * omega_);
       }
 
     /* bais calibration */
@@ -367,23 +370,22 @@ namespace sensor_plugin
         estimator_->setPos(Frame::COG, estimate_mode,
                            estimator_->getPos(Frame::BASELINK, estimate_mode)
                            + estimator_->getOrientation(Frame::BASELINK, estimate_mode)
-                           * estimator_->getCog2Baselink().inverse().getOrigin());
-        /* vel_cog = vel_baselink - R * (w x pos_cog2baselink) */
+                           * cog2baselink_tf.inverse().getOrigin());
         estimator_->setVel(Frame::COG, estimate_mode,
                            estimator_->getVel(Frame::BASELINK, estimate_mode)
                            + estimator_->getOrientation(Frame::BASELINK, estimate_mode)
-                           * (estimator_->getAngularVel(Frame::BASELINK, estimate_mode).cross(estimator_->getCog2Baselink().inverse().getOrigin())));
+                           * (estimator_->getAngularVel(Frame::BASELINK, estimate_mode).cross(cog2baselink_tf.inverse().getOrigin())));
 
 
         estimate_mode = StateEstimator::EXPERIMENT_ESTIMATE;
         estimator_->setPos(Frame::COG, estimate_mode,
                            estimator_->getPos(Frame::BASELINK, estimate_mode)
                            + estimator_->getOrientation(Frame::BASELINK, estimate_mode)
-                           * estimator_->getCog2Baselink().inverse().getOrigin());
+                           * cog2baselink_tf.inverse().getOrigin());
         estimator_->setVel(Frame::COG, estimate_mode,
                            estimator_->getVel(Frame::BASELINK, estimate_mode)
                            + estimator_->getOrientation(Frame::BASELINK, estimate_mode)
-                           * (estimator_->getAngularVel(Frame::BASELINK, estimate_mode).cross(estimator_->getCog2Baselink().inverse().getOrigin())));
+                           * (estimator_->getAngularVel(Frame::BASELINK, estimate_mode).cross(cog2baselink_tf.inverse().getOrigin())));
 
         /* no acc, we do not have the angular acceleration */
 

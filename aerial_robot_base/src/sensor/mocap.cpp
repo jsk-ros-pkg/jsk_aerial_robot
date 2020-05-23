@@ -63,9 +63,9 @@ namespace sensor_plugin
   class Mocap : public sensor_plugin::SensorBase
   {
   public:
-    void initialize(ros::NodeHandle nh, StateEstimator* estimator, string sensor_name, int index)
+    void initialize(ros::NodeHandle nh, boost::shared_ptr<aerial_robot_model::RobotModel> robot_model, StateEstimator* estimator, string sensor_name, int index)
     {
-      SensorBase::initialize(nh, estimator, sensor_name, index);
+      SensorBase::initialize(nh, robot_model, estimator, sensor_name, index);
       rosParamInit();
 
       //low pass filter
@@ -231,16 +231,19 @@ namespace sensor_plugin
       /* CoG */
       /* 2017.7.25: calculate the state in COG frame using the Baselink frame */
       /* pos_cog = pos_baselink - R * pos_cog2baselink */
+      tf::Transform cog2baselink_tf;
+      tf::transformKDLToTF(robot_model_->getCog2Baselink<KDL::Frame>(), cog2baselink_tf);
+
       int estimate_mode = StateEstimator::GROUND_TRUTH;
       estimator_->setPos(Frame::COG, estimate_mode,
                          estimator_->getPos(Frame::BASELINK, estimate_mode)
                          + estimator_->getOrientation(Frame::BASELINK, estimate_mode)
-                         * estimator_->getCog2Baselink().inverse().getOrigin());
+                         * cog2baselink_tf.inverse().getOrigin());
       /* vel_cog = vel_baselink - R * (w x pos_cog2baselink) */
       estimator_->setVel(Frame::COG, estimate_mode,
                          estimator_->getVel(Frame::BASELINK, estimate_mode)
                          + estimator_->getOrientation(Frame::BASELINK, estimate_mode)
-                         * (estimator_->getAngularVel(Frame::BASELINK, estimate_mode).cross(estimator_->getCog2Baselink().inverse().getOrigin())));
+                         * (estimator_->getAngularVel(Frame::BASELINK, estimate_mode).cross(cog2baselink_tf.inverse().getOrigin())));
 
       auto pos = estimator_->getPos(Frame::COG, estimate_mode);
     }
@@ -269,10 +272,12 @@ namespace sensor_plugin
           estimator_->setAngularVel(Frame::BASELINK, StateEstimator::GROUND_TRUTH, omega);
 
           /* cog */
-          (tf::Matrix3x3(q) * estimator_->getCog2Baselink().getBasis().inverse()).getRPY(r, p, y);
+          tf::Transform cog2baselink_tf;
+          tf::transformKDLToTF(robot_model_->getCog2Baselink<KDL::Frame>(), cog2baselink_tf);
+          (tf::Matrix3x3(q) * cog2baselink_tf.inverse().getBasis()).getRPY(r, p, y);
           euler.setValue(r, p, y);
           estimator_->setEuler(Frame::COG, StateEstimator::GROUND_TRUTH, euler);
-          estimator_->setAngularVel(Frame::COG, StateEstimator::GROUND_TRUTH, estimator_->getCog2Baselink().getBasis() * omega); // TODO: check the vibration
+          estimator_->setAngularVel(Frame::COG, StateEstimator::GROUND_TRUTH, cog2baselink_tf.getBasis() * omega); // TODO: check the vibration
 
           setGroundTruthPosVel(baselink_pos, baselink_vel);
         }

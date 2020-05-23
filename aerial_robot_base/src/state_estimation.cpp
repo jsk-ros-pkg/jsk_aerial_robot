@@ -38,9 +38,10 @@
 /* sensor plugin */
 #include <aerial_robot_base/sensor/base_plugin.h>
 
-StateEstimator::StateEstimator(ros::NodeHandle nh, ros::NodeHandle nh_private)
+StateEstimator::StateEstimator(ros::NodeHandle nh, ros::NodeHandle nh_private, boost::shared_ptr<aerial_robot_model::RobotModel> robot_model)
   : nh_(nh),
     nhp_(nh_private),
+    robot_model_(robot_model),
     sensor_fusion_flag_(false),
     qu_size_(0),
     flying_flag_(false),
@@ -49,7 +50,7 @@ StateEstimator::StateEstimator(ros::NodeHandle nh, ros::NodeHandle nh_private)
     un_descend_flag_(false),
     landing_height_(0),
     force_att_control_flag_(false),
-    mass_(0), imu_handlers_(0), alt_handlers_(0), vo_handlers_(0), gps_handlers_(0)
+    imu_handlers_(0), alt_handlers_(0), vo_handlers_(0), gps_handlers_(0)
 {
   fuser_[0].resize(0);
   fuser_[1].resize(0);
@@ -63,10 +64,6 @@ StateEstimator::StateEstimator(ros::NodeHandle nh, ros::NodeHandle nh_private)
         }
     }
 
-  /* initialize the multilink kinematics */
-  kinematics_model_ = boost::shared_ptr<aerial_robot_model::RobotModel>(new aerial_robot_model::RobotModel(true));
-  baselink_name_ = kinematics_model_->getBaselinkName();
-  cog2baselink_transform_.setIdentity();
   /* TODO: represented sensors unhealth level */
   unhealth_level_ = 0;
 
@@ -75,9 +72,6 @@ StateEstimator::StateEstimator(ros::NodeHandle nh, ros::NodeHandle nh_private)
   baselink_odom_pub_ = nh_.advertise<nav_msgs::Odometry>("uav/baselink/odom", 1);
   cog_odom_pub_ = nh_.advertise<nav_msgs::Odometry>("uav/cog/odom", 1);
   full_state_pub_ = nh_.advertise<aerial_robot_msgs::States>("uav/full_state", 1);
-
-  joint_state_sub_ = nh_.subscribe("joint_states", 1, &StateEstimator::jointStateCallback, this);
-  cog2baselink_transform_sub_ = nh_.subscribe("cog2baselink", 5, &StateEstimator::transformCallback, this);
 
   nhp_.param("tf_prefix", tf_prefix_, std::string(""));
   nh_.param ("estimation/update_rate", update_rate_, 100.0);
@@ -163,16 +157,16 @@ void StateEstimator::statePublish()
   tf::vector3TFToMsg(getAngularVel(Frame::BASELINK, estimate_mode_), odom_state.twist.twist.angular);
 
   /* Translation */
-  odom_state.child_frame_id = tf::resolve(tf_prefix_, baselink_name_);
+  odom_state.child_frame_id = tf::resolve(tf_prefix_, robot_model_->getBaselinkName());
   tf::pointTFToMsg(getPos(Frame::BASELINK, estimate_mode_), odom_state.pose.pose.position);
   tf::vector3TFToMsg(getVel(Frame::BASELINK, estimate_mode_), odom_state.twist.twist.linear);
   baselink_odom_pub_.publish(odom_state);
 
   /* TF broadcast from world frame */
   tf::Transform root2baselink_tf;
-  const auto segs_tf = getSegmentsTf();
-  if(segs_tf.size() > 0) // kinemtiacs is initialized
-    tf::transformKDLToTF(segs_tf.at(kinematics_model_->getBaselinkName()), root2baselink_tf);
+  const auto segments_tf = robot_model_->getSegmentsTf();
+  if(segments_tf.size() > 0) // kinemtiacs is initialized
+    tf::transformKDLToTF(segments_tf.at(robot_model_->getBaselinkName()), root2baselink_tf);
   else
     root2baselink_tf.setIdentity(); // not initialized
 
@@ -296,7 +290,7 @@ void StateEstimator::rosParamInit()
               sensor_index.back() = vo_handlers_.size();
             }
 
-          sensors_.back()->initialize(nh_, this, name, sensor_index.back());
+          sensors_.back()->initialize(nh_, robot_model_, this, name, sensor_index.back());
           break;
         }
     }

@@ -12,7 +12,8 @@ namespace aerial_robot_model {
     rotor_num_(0),
     joint_num_(0),
     thrust_max_(0),
-    thrust_min_(0)
+    thrust_min_(0),
+    mass_(0)
   {
     if (init_with_rosparam)
       getParamFromRos();
@@ -24,11 +25,11 @@ namespace aerial_robot_model {
 
   void RobotModel::getParamFromRos()
   {
-    ros::NodeHandle nhp("~");
-    nhp.param("kinematic_verbose", verbose_, false);
-    nhp.param("fc_f_min_thre", fc_f_min_thre_, 0.0);
-    nhp.param("fc_t_min_thre", fc_t_min_thre_, 0.0);
-    nhp.param("epsilon", epsilon_, 10.0);
+    ros::NodeHandle nh;
+    nh.param("kinematic_verbose", verbose_, false);
+    nh.param("fc_f_min_thre", fc_f_min_thre_, 0.0);
+    nh.param("fc_t_min_thre", fc_t_min_thre_, 0.0);
+    nh.param("epsilon", epsilon_, 10.0);
   }
 
   KDL::JntArray RobotModel::jointMsgToKdl(const sensor_msgs::JointState& state) const
@@ -127,3 +128,4 @@ namespace aerial_robot_model {
   }
 
 } //namespace aerial_robot_model
+
