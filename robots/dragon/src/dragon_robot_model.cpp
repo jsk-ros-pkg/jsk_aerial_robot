@@ -52,7 +52,6 @@ void DragonRobotModel::getParamFromRos()
   ros::NodeHandle nh;
   nh.param("edf_radius", edf_radius_, 0.035); //70mm EDF
   nh.param("edf_max_tilt", edf_max_tilt_, 0.26); //15 [deg]
-  ROS_ERROR("edf_max_tilt: %f", edf_max_tilt_);
 }
 
 bool DragonRobotModel::stabilityCheck(bool verbose)
