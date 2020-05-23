@@ -120,12 +120,12 @@ namespace aerial_robot_model {
     const std::vector<Eigen::MatrixXd>& getUJacobians() const {return u_jacobians_;}
     const double getVerbose() const { return verbose_; }
 
-    template<class T> T getCog() const;
+    template<class T> T getCog();
     template<class T> T getCogDesireOrientation() const;
-    template<class T> T getCog2Baselink() const;
-    template<class T> T getInertia() const;
-    template<class T> std::vector<T> getRotorsNormalFromCog() const;
-    template<class T> std::vector<T> getRotorsOriginFromCog() const;
+    template<class T> T getCog2Baselink();
+    template<class T> T getInertia();
+    template<class T> std::vector<T> getRotorsNormalFromCog();
+    template<class T> std::vector<T> getRotorsOriginFromCog();
     static TiXmlDocument getRobotModelXml(const std::string param, ros::NodeHandle nh = ros::NodeHandle());
 
     KDL::JntArray jointMsgToKdl(const sensor_msgs::JointState& state) const;
@@ -228,7 +228,13 @@ namespace aerial_robot_model {
 
     double mass_;
     urdf::Model model_;
+    std::mutex mutex_cog_;
+    std::mutex mutex_cog2baselink_;
+    std::mutex mutex_inertia_;
+    std::mutex mutex_rotor_origin_;
+    std::mutex mutex_rotor_normal_;
     std::mutex mutex_seg_tf_;
+
 
     std::map<std::string, KDL::Frame> seg_tf_map_;
 
@@ -286,6 +292,32 @@ namespace aerial_robot_model {
     void kinematicsInit();
     void stabilityInit();
     void staticsInit();
+
+    void setCog(const KDL::Frame cog)
+    {
+      std::lock_guard<std::mutex> lock(mutex_cog_);
+      cog_ = cog;
+    }
+    void setCog2Baselink(const KDL::Frame cog2baselink_transform)
+    {
+      std::lock_guard<std::mutex> lock(mutex_cog2baselink_);
+      cog2baselink_transform_ = cog2baselink_transform;
+    }
+    void setInertia(const KDL::RotationalInertia inertia)
+    {
+      std::lock_guard<std::mutex> lock(mutex_inertia_);
+      link_inertia_cog_ = inertia;
+    }
+   void setRotorsNormalFromCog(const std::vector<KDL::Vector> rotors_normal_from_cog)
+    {
+      std::lock_guard<std::mutex> lock(mutex_rotor_normal_);
+      rotors_normal_from_cog_ = rotors_normal_from_cog;
+    }
+   void setRotorsOriginFromCog(const std::vector<KDL::Vector> rotors_origin_from_cog)
+    {
+      std::lock_guard<std::mutex> lock(mutex_rotor_origin_);
+      rotors_origin_from_cog_ = rotors_origin_from_cog;
+    }
     void setSegmentsTf(const std::map<std::string, KDL::Frame> seg_tf_map)
     {
       std::lock_guard<std::mutex> lock(mutex_seg_tf_);
@@ -350,25 +382,46 @@ namespace aerial_robot_model {
     return aerial_robot_model::kdlToTf2(forwardKinematicsImpl(link, jointMsgToKdl(state)));
   }
 
-
-  template<> inline Eigen::Affine3d RobotModel::getCog() const
+  template<> inline KDL::Frame RobotModel::getCog()
   {
-    return aerial_robot_model::kdlToEigen(cog_);
-  }
-
-  template<> inline geometry_msgs::TransformStamped RobotModel::getCog() const
-  {
-    return aerial_robot_model::kdlToMsg(cog_);
-  }
-
-  template<> inline KDL::Frame RobotModel::getCog() const
-  {
+    std::lock_guard<std::mutex> lock(mutex_cog_);
     return cog_;
   }
 
-  template<> inline tf2::Transform RobotModel::getCog() const
+  template<> inline Eigen::Affine3d RobotModel::getCog()
   {
-    return aerial_robot_model::kdlToTf2(cog_);
+    return aerial_robot_model::kdlToEigen(RobotModel::getCog<KDL::Frame>());
+  }
+
+  template<> inline geometry_msgs::TransformStamped RobotModel::getCog()
+  {
+    return aerial_robot_model::kdlToMsg(RobotModel::getCog<KDL::Frame>());
+  }
+
+  template<> inline tf2::Transform RobotModel::getCog()
+  {
+    return aerial_robot_model::kdlToTf2(RobotModel::getCog<KDL::Frame>());
+  }
+
+  template<> inline KDL::Frame RobotModel::getCog2Baselink()
+  {
+    std::lock_guard<std::mutex> lock(mutex_cog2baselink_);
+    return cog2baselink_transform_;
+  }
+
+  template<> inline Eigen::Affine3d RobotModel::getCog2Baselink()
+  {
+    return aerial_robot_model::kdlToEigen(RobotModel::getCog2Baselink<KDL::Frame>());
+  }
+
+  template<> inline geometry_msgs::TransformStamped RobotModel::getCog2Baselink()
+  {
+    return aerial_robot_model::kdlToMsg(RobotModel::getCog2Baselink<KDL::Frame>());
+  }
+
+  template<> inline tf2::Transform RobotModel::getCog2Baselink()
+  {
+    return aerial_robot_model::kdlToTf2(RobotModel::getCog2Baselink<KDL::Frame>());
   }
 
   template<> inline Eigen::Matrix3d RobotModel::getCogDesireOrientation() const
@@ -381,73 +434,56 @@ namespace aerial_robot_model {
     return cog_desire_orientation_;
   }
 
-  template<> inline Eigen::Affine3d RobotModel::getCog2Baselink() const
+  template<> inline KDL::RotationalInertia RobotModel::getInertia()
   {
-    return aerial_robot_model::kdlToEigen(cog2baselink_transform_);
-  }
-
-  template<> inline geometry_msgs::TransformStamped RobotModel::getCog2Baselink() const
-  {
-    return aerial_robot_model::kdlToMsg(cog2baselink_transform_);
-  }
-
-  template<> inline KDL::Frame RobotModel::getCog2Baselink() const
-  {
-    return cog2baselink_transform_;
-  }
-
-  template<> inline tf2::Transform RobotModel::getCog2Baselink() const
-  {
-    return aerial_robot_model::kdlToTf2(cog2baselink_transform_);
-  }
-
-  template<> inline Eigen::Matrix3d RobotModel::getInertia() const
-  {
-    return aerial_robot_model::kdlToEigen(link_inertia_cog_);
-  }
-
-  template<> inline KDL::RotationalInertia RobotModel::getInertia() const
-  {
+    std::lock_guard<std::mutex> lock(mutex_inertia_);
     return link_inertia_cog_;
   }
 
-  template<> inline std::vector<Eigen::Vector3d> RobotModel::getRotorsNormalFromCog() const
+  template<> inline Eigen::Matrix3d RobotModel::getInertia()
   {
-    return aerial_robot_model::kdlToEigen(rotors_normal_from_cog_);
+    return aerial_robot_model::kdlToEigen(RobotModel::getInertia<KDL::RotationalInertia>());
   }
 
-  template<> inline std::vector<geometry_msgs::PointStamped> RobotModel::getRotorsNormalFromCog() const
+  template<> inline std::vector<KDL::Vector> RobotModel::getRotorsNormalFromCog()
   {
-    return aerial_robot_model::kdlToMsg(rotors_normal_from_cog_);
-  }
-
-  template<> inline std::vector<KDL::Vector> RobotModel::getRotorsNormalFromCog() const
-  {
+    std::lock_guard<std::mutex> lock(mutex_rotor_normal_);
     return rotors_normal_from_cog_;
   }
 
-  template<> inline std::vector<tf2::Vector3> RobotModel::getRotorsNormalFromCog() const
+  template<> inline std::vector<Eigen::Vector3d> RobotModel::getRotorsNormalFromCog()
   {
-    return aerial_robot_model::kdlToTf2(rotors_normal_from_cog_);
+    return aerial_robot_model::kdlToEigen(RobotModel::getRotorsNormalFromCog<KDL::Vector>());
   }
 
-  template<> inline std::vector<Eigen::Vector3d> RobotModel::getRotorsOriginFromCog() const
+  template<> inline std::vector<geometry_msgs::PointStamped> RobotModel::getRotorsNormalFromCog()
   {
-    return aerial_robot_model::kdlToEigen(rotors_origin_from_cog_);
+    return aerial_robot_model::kdlToMsg(RobotModel::getRotorsNormalFromCog<KDL::Vector>());
   }
 
-  template<> inline std::vector<geometry_msgs::PointStamped> RobotModel::getRotorsOriginFromCog() const
+  template<> inline std::vector<tf2::Vector3> RobotModel::getRotorsNormalFromCog()
   {
-    return aerial_robot_model::kdlToMsg(rotors_origin_from_cog_);
+    return aerial_robot_model::kdlToTf2(RobotModel::getRotorsNormalFromCog<KDL::Vector>());
   }
 
-  template<> inline std::vector<KDL::Vector> RobotModel::getRotorsOriginFromCog() const
+  template<> inline std::vector<KDL::Vector> RobotModel::getRotorsOriginFromCog()
   {
+    std::lock_guard<std::mutex> lock(mutex_rotor_origin_);
     return rotors_origin_from_cog_;
   }
 
-  template<> inline std::vector<tf2::Vector3> RobotModel::getRotorsOriginFromCog() const
+  template<> inline std::vector<Eigen::Vector3d> RobotModel::getRotorsOriginFromCog()
   {
-    return aerial_robot_model::kdlToTf2(rotors_origin_from_cog_);
+    return aerial_robot_model::kdlToEigen(RobotModel::getRotorsOriginFromCog<KDL::Vector>());
+  }
+
+  template<> inline std::vector<geometry_msgs::PointStamped> RobotModel::getRotorsOriginFromCog()
+  {
+    return aerial_robot_model::kdlToMsg(RobotModel::getRotorsOriginFromCog<KDL::Vector>());
+  }
+
+  template<> inline std::vector<tf2::Vector3> RobotModel::getRotorsOriginFromCog()
+  {
+    return aerial_robot_model::kdlToTf2(RobotModel::getRotorsOriginFromCog<KDL::Vector>());
   }
 } //namespace aerial_robot_model

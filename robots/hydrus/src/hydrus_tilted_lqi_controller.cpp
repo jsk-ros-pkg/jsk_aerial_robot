@@ -24,7 +24,8 @@ bool HydrusTiltedLQIController::optimalGain()
 
   /* calculate the P_orig pseudo inverse */
   Eigen::MatrixXd P = robot_model_->calcWrenchMatrixOnCoG();
-  Eigen::MatrixXd P_dash  = robot_model_->getInertia<Eigen::Matrix3d>().inverse() * P.bottomRows(3); // roll, pitch, yaw
+  Eigen::MatrixXd inertia = robot_model_->getInertia<Eigen::Matrix3d>();
+  Eigen::MatrixXd P_dash  = inertia.inverse() * P.bottomRows(3); // roll, pitch, yaw
 
   Eigen::MatrixXd A = Eigen::MatrixXd::Zero(9, 9);
   Eigen::MatrixXd B = Eigen::MatrixXd::Zero(9, motor_num_);
@@ -61,7 +62,7 @@ bool HydrusTiltedLQIController::optimalGain()
   ROS_DEBUG_STREAM_NAMED("LQI gain generator",  "LQI gain generator:  K \n" <<  K_);
 
   // convert to gains
-  const auto f = robot_model_->getStaticThrust();
+  Eigen::VectorXd f = robot_model_->getStaticThrust();
   double f_sum = f.sum();
 
   for(int i = 0; i < motor_num_; ++i)

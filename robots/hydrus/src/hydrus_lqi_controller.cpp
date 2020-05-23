@@ -161,9 +161,9 @@ bool HydrusLQIController::optimalGain()
 
   Eigen::MatrixXd P = robot_model_->calcWrenchMatrixOnCoG();
   Eigen::MatrixXd P_dash = Eigen::MatrixXd::Zero(lqi_mode_, motor_num_);
-
+  Eigen::MatrixXd inertia = robot_model_->getInertia<Eigen::Matrix3d>();
   P_dash.row(0) = P.row(2) / robot_model_->getMass(); // z
-  P_dash.bottomRows(lqi_mode_ - 1) = (robot_model_->getInertia<Eigen::Matrix3d>().inverse() * P.bottomRows(3)).topRows(lqi_mode_ - 1); // roll, pitch, yaw
+  P_dash.bottomRows(lqi_mode_ - 1) = (inertia.inverse() * P.bottomRows(3)).topRows(lqi_mode_ - 1); // roll, pitch, yaw
 
   Eigen::MatrixXd A = Eigen::MatrixXd::Zero(lqi_mode_ * 3, lqi_mode_ * 3);
   Eigen::MatrixXd B = Eigen::MatrixXd::Zero(lqi_mode_ * 3, motor_num_);
