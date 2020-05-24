@@ -6,9 +6,6 @@ controller:
   # general parameter
   control_verbose: false
 
-  # desire tilt
-  baselink_rot_pub_interval: 0.2
-
   # gimbal vectoring function check
   gimbal_vectoring_check_flag: false
 

@@ -51,11 +51,12 @@
     <rosparam file="$(arg config_dir)/GimbalControlConfig.yaml" command="load" />
 
     ###########  Teleop  ###########
+    <param name="flight_navigation_plugin_name" value="aerial_robot_navigation/dragon_navigation" />
     <rosparam file="$(arg config_dir)/TeleopNavigationConfig.yaml" command="load" />
   </group>
 
   ###########  Base Platform  ###########
-  <node pkg="aerial_robot_base" type="aerial_robot_base_node" name="aerial_robot_base_node" ns="$(arg robot_ns)" output="screen">
+  <node pkg="aerial_robot_base" type="aerial_robot_base_node" name="aerial_robot_base_node" ns="$(arg robot_ns)" output="screen" >
     <param name="tf_prefix" value="$(arg robot_ns)"/>
     <param name="param_verbose" value="false"/>
     <param name="main_rate" value="40"/>

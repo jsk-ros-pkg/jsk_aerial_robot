@@ -23,3 +23,6 @@ navigation:
   # gps waypoint
   gps_waypoint_threshold: 3.0
   gps_waypoint_check_du: 1.0
+
+  # desire tilt
+  baselink_rot_pub_interval: 0.2

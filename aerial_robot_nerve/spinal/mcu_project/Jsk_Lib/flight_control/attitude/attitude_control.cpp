@@ -981,6 +981,15 @@ void AttitudeController::pwmConversion()
 
               // also, we have to ignore the yaw control
               yaw_decreasing_rate = -1;
+
+#ifdef SIMULATION
+              if(std::isinf(base_throttle_decreasing_rate))
+                {
+                  ROS_ERROR("residual_term: %f, base throttle_term: %f, max_thrust_index: %d, rotor_devider: %d", residual_term, base_throttle_term_[max_thrust_index], max_thrust_index , rotor_devider_); // hard-coding
+                  throw;
+                }
+#endif
+
             }
           else
             {

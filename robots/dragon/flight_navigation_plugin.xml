@@ -1,0 +1,5 @@
+<library path="lib/libdragon_navigation">
+  <class name="aerial_robot_navigation/dragon_navigation" type="aerial_robot_navigation::DragonNavigator" base_class_type="aerial_robot_navigation::BaseNavigator">
+    <description> dragon navigation plugin</description>
+  </class>
+</library>

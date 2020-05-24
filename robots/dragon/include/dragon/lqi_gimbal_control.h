@@ -37,16 +37,12 @@
 
 #include <hydrus/hydrus_lqi_controller.h>
 #include <dragon/dragon_robot_model.h>
+#include <dragon/dragon_navigation.h>
 #include <gazebo_msgs/ApplyBodyWrench.h>
 #include <gazebo_msgs/BodyRequest.h>
-#include <nav_msgs/Odometry.h>
 #include <ros/ros.h>
-#include <spinal/DesireCoord.h>
 #include <std_msgs/Float32MultiArray.h>
-#include <std_msgs/UInt8.h>
-#include <std_srvs/SetBool.h>
 #include <spinal/RollPitchYawTerm.h>
-
 
 namespace control_plugin
 {
@@ -59,7 +55,7 @@ namespace control_plugin
     void initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
                     boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
                     boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
-                    Navigator* navigator,
+                    boost::shared_ptr<aerial_robot_navigation::BaseNavigator> navigator,
                     double ctrl_loop_rate);
     bool update();
     void reset()
@@ -71,28 +67,19 @@ namespace control_plugin
       level_flag_ = false;
       landing_flag_ = false;
     }
-    void halt() override;
+
     void sendCmd();
   private:
     ros::Publisher gimbal_control_pub_;
-    ros::Publisher joint_control_pub_;
     ros::Publisher gimbal_target_force_pub_;
-    ros::Publisher curr_target_baselink_rot_pub_;
     ros::Publisher  roll_pitch_pid_pub_;
     ros::Subscriber att_control_feedback_state_sub_;
-    ros::Subscriber final_target_baselink_rot_sub_;
-    ros::Subscriber target_baselink_rot_sub_;
     ros::Subscriber extra_vectoring_force_sub_;
 
-    void servoTorqueProcess();
-    void landingProcess();
     void gimbalControl();
-    void baselinkRotationProcess();
     void rosParamInit();
 
     void attControlFeedbackStateCallback(const spinal::RollPitchYawTermConstPtr& msg);
-    void setFinalTargetBaselinkRotCallback(const spinal::DesireCoordConstPtr & msg);
-    void targetBaselinkRotCallback(const spinal::DesireCoordConstPtr& msg);
     void extraVectoringForceCallback(const std_msgs::Float32MultiArrayConstPtr& msg);
 
     boost::shared_ptr<DragonRobotModel> dragon_robot_model_;
@@ -138,12 +125,12 @@ namespace control_plugin
     double baselink_rot_pub_interval_;
 
     /* cfg */
-    boost::shared_ptr<dynamic_reconfigure::Server<aerial_robot_base::XYPidControlConfig> > gimbal_roll_pitch_pid_server_;
-    dynamic_reconfigure::Server<aerial_robot_base::XYPidControlConfig>::CallbackType dynamic_reconf_func_gimbal_roll_pitch_pid_;
-    void cfgGimbalPitchRollPidCallback(aerial_robot_base::XYPidControlConfig &config, uint32_t level);
+    boost::shared_ptr<dynamic_reconfigure::Server<aerial_robot_control::XYPidControlConfig> > gimbal_roll_pitch_pid_server_;
+    dynamic_reconfigure::Server<aerial_robot_control::XYPidControlConfig>::CallbackType dynamic_reconf_func_gimbal_roll_pitch_pid_;
+    void cfgGimbalPitchRollPidCallback(aerial_robot_control::XYPidControlConfig &config, uint32_t level);
 
-    boost::shared_ptr<dynamic_reconfigure::Server<aerial_robot_base::XYPidControlConfig> > gimbal_yaw_pid_server_;
-    dynamic_reconfigure::Server<aerial_robot_base::XYPidControlConfig>::CallbackType dynamic_reconf_func_gimbal_yaw_pid_;
-    void cfgGimbalYawPidCallback(aerial_robot_base::XYPidControlConfig &config, uint32_t level);
+    boost::shared_ptr<dynamic_reconfigure::Server<aerial_robot_control::XYPidControlConfig> > gimbal_yaw_pid_server_;
+    dynamic_reconfigure::Server<aerial_robot_control::XYPidControlConfig>::CallbackType dynamic_reconf_func_gimbal_yaw_pid_;
+    void cfgGimbalYawPidCallback(aerial_robot_control::XYPidControlConfig &config, uint32_t level);
   };
 };

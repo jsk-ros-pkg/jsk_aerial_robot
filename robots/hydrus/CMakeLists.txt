@@ -7,7 +7,6 @@ project(hydrus)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   aerial_robot_msgs
-  aerial_robot_base
   aerial_robot_control
   aerial_robot_model
   spinal
@@ -27,7 +26,7 @@ generate_dynamic_reconfigure_options(
 catkin_package(
   INCLUDE_DIRS include test
   LIBRARIES hydrus_robot_model hydrus_controller_pluginlib hydrus_numerical_jacobians
-  CATKIN_DEPENDS roscpp aerial_robot_msgs aerial_robot_base aerial_robot_model aerial_robot_control spinal tf_conversions eigen_conversions
+  CATKIN_DEPENDS roscpp aerial_robot_control aerial_robot_model aerial_robot_msgs spinal tf_conversions eigen_conversions
   DEPENDS EIGEN3
 )
 

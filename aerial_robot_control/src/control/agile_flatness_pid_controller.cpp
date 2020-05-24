@@ -34,7 +34,7 @@
  *********************************************************************/
 
 /* basic class */
-#include <aerial_robot_base/control/agile_flatness_pid_controller.h>
+#include <aerial_robot_control/control/agile_flatness_pid_controller.h>
 
 namespace control_plugin
 {
@@ -46,7 +46,7 @@ namespace control_plugin
                                     ros::NodeHandle nhp,
                                     boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
                                     boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
-                                    Navigator* navigator,
+                                    boost::shared_ptr<aerial_robot_navigation::BaseNavigator> navigator,
                                     double ctrl_loop_rate)
   {
     FlatnessPid::initialize(nh, nhp, robot_model, estimator, navigator, ctrl_loop_rate);
@@ -65,7 +65,7 @@ namespace control_plugin
             start_rp_integration_ = true;
             spinal::FlightConfigCmd flight_config_cmd;
             flight_config_cmd.cmd = spinal::FlightConfigCmd::INTEGRATION_CONTROL_ON_CMD;
-            navigator_->flight_config_pub_.publish(flight_config_cmd);
+            navigator_->getFlightConfigPublisher().publish(flight_config_cmd);
             ROS_WARN("start rp integration");
           }
       }
@@ -80,13 +80,13 @@ namespace control_plugin
 
     switch(navigator_->getXyControlMode())
       {
-      case flight_nav::POS_CONTROL_MODE:
+      case aerial_robot_navigation::POS_CONTROL_MODE:
         {
           /* P */
           xy_p_term = clampV(xy_gains_[0] * pos_err_,  -xy_terms_limits_[0], xy_terms_limits_[0]);
 
           /* I */
-          if(navigator_->getNaviState() == Navigator::TAKEOFF_STATE || navigator_->getNaviState() == Navigator::LAND_STATE) //takeoff or land
+          if(navigator_->getNaviState() == aerial_robot_navigation::TAKEOFF_STATE || navigator_->getNaviState() == aerial_robot_navigation::LAND_STATE) //takeoff or land
             xy_i_term_ += (pos_err_ * du * xy_gains_[1]);
           else
             xy_i_term_ += (pos_err_ * du * xy_hovering_i_gain_);
@@ -96,14 +96,14 @@ namespace control_plugin
           xy_d_term = clampV(xy_gains_[2] * vel_err_,  -xy_terms_limits_[2], xy_terms_limits_[2]);
           break;
         }
-      case flight_nav::VEL_CONTROL_MODE:
+      case aerial_robot_navigation::VEL_CONTROL_MODE:
         {
           /* P */
           xy_p_term = clampV(xy_gains_[2] * vel_err_,  -xy_terms_limits_[0], xy_terms_limits_[0]);
           xy_d_term.setValue(0, 0, 0);
           break;
         }
-      case flight_nav::ACC_CONTROL_MODE:
+      case aerial_robot_navigation::ACC_CONTROL_MODE:
         {
           /* convert from world frame to CoG frame */
           xy_p_term = target_acc_;
@@ -142,7 +142,7 @@ namespace control_plugin
     double max_z_control_terms = 0;
 
     double z_pos_err = clamp(pos_err_.z(), -z_err_thresh_, z_err_thresh_);
-    if(navigator_->getNaviState() == Navigator::LAND_STATE && -pos_err_.z() > safe_landing_height_)
+    if(navigator_->getNaviState() == aerial_robot_navigation::LAND_STATE && -pos_err_.z() > safe_landing_height_)
       {
         /* too high, slowly descend */
         z_pos_err = landing_z_err_thresh_;
@@ -154,7 +154,7 @@ namespace control_plugin
       {
         z_pos_err_i_ += z_pos_err * du;
 
-        if(navigator_->getNaviState() == Navigator::LAND_STATE)
+        if(navigator_->getNaviState() == aerial_robot_navigation::LAND_STATE)
           z_pos_err = 0; // no p control in final safe landing phase
       }
     double z_vel_err = target_vel_.z() - state_vel_.z();

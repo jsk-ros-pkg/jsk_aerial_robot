@@ -36,16 +36,12 @@
 #pragma once
 
 /* basic class */
-#include <aerial_robot_base/control/flight_control.h>
-
-/* ros msg */
+#include <aerial_robot_control/control/flight_control.h>
+#include <aerial_robot_control/XYPidControlConfig.h>
+#include <aerial_robot_msgs/DynamicReconfigureLevels.h>
 #include <aerial_robot_msgs/FourAxisGain.h>
 #include <aerial_robot_msgs/FlatnessPid.h>
-
-//* for dynamic reconfigure
 #include <dynamic_reconfigure/server.h>
-#include <aerial_robot_msgs/DynamicReconfigureLevels.h>
-#include <aerial_robot_base/XYPidControlConfig.h>
 
 using boost::algorithm::clamp;
 using namespace std;
@@ -61,7 +57,7 @@ namespace control_plugin
     void initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
                     boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
                     boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
-                    Navigator* navigator,
+                    boost::shared_ptr<aerial_robot_navigation::BaseNavigator> navigator,
                     double ctrl_loop_rate);
 
 
@@ -138,10 +134,10 @@ namespace control_plugin
     double  yaw_err_i_;
     bool need_yaw_d_control_;
 
-    boost::shared_ptr<dynamic_reconfigure::Server<aerial_robot_base::XYPidControlConfig> > xy_pid_server_;
-    dynamic_reconfigure::Server<aerial_robot_base::XYPidControlConfig>::CallbackType dynamic_reconf_func_xy_pid_;
+    boost::shared_ptr<dynamic_reconfigure::Server<aerial_robot_control::XYPidControlConfig> > xy_pid_server_;
+    dynamic_reconfigure::Server<aerial_robot_control::XYPidControlConfig>::CallbackType dynamic_reconf_func_xy_pid_;
 
-    void cfgXYPidCallback(aerial_robot_base::XYPidControlConfig &config, uint32_t level);
+    void cfgXYPidCallback(aerial_robot_control::XYPidControlConfig &config, uint32_t level);
     virtual void rosParamInit();
 
 

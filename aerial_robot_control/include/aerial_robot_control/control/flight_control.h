@@ -33,15 +33,14 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 
-#ifndef FLIGHT_CONTROLLER_BASE_PLUGIN_H
-#define FLIGHT_CONTROLLER_BASE_PLUGIN_H
+#pragma once
 
 /* ros */
 #include <ros/ros.h>
 
 /* basic instance */
+#include <aerial_robot_control/flight_navigation.h>
 #include <aerial_robot_estimation/state_estimation.h>
-#include <aerial_robot_base/flight_navigation.h>
 #include <aerial_robot_model/transformable_aerial_robot_model.h>
 
 /* ros msg to Spinal */
@@ -68,7 +67,7 @@ namespace control_plugin
                             ros::NodeHandle nhp,
                             boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
                             boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
-                            Navigator* navigator,
+                            boost::shared_ptr<aerial_robot_navigation::BaseNavigator> navigator,
                             double ctrl_loop_rate)
     {
       nh_ = nh;
@@ -124,23 +123,19 @@ namespace control_plugin
     {
       if(motor_num_ == 0) return false;
 
-      if(navigator_->getNaviState() == Navigator::START_STATE) activate();
-      if(navigator_->getNaviState() == Navigator::ARM_OFF_STATE && control_timestamp_ > 0)
+      if(navigator_->getNaviState() == aerial_robot_navigation::START_STATE) activate();
+      if(navigator_->getNaviState() == aerial_robot_navigation::ARM_OFF_STATE && control_timestamp_ > 0)
         {
           reset();
         }
 
-      if(navigator_->getNaviState() == Navigator::STOP_STATE && navigator_->getForceLandingFlag())
-        {
-          halt();
-        }
-
       if (control_timestamp_ < 0)
         {
-          if (navigator_->getNaviState() == Navigator::TAKEOFF_STATE)
+          if (navigator_->getNaviState() == aerial_robot_navigation::TAKEOFF_STATE)
             {
               reset();
               control_timestamp_ = ros::Time::now().toSec();
+
             }
           else return false;
         }
@@ -184,10 +179,6 @@ namespace control_plugin
       control_timestamp_ = -1;
     }
 
-    virtual void halt()
-    {
-    }
-
   protected:
     ros::NodeHandle nh_;
     ros::NodeHandle nhp_;
@@ -196,7 +187,7 @@ namespace control_plugin
 
     boost::shared_ptr<aerial_robot_model::RobotModel> robot_model_;
     boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator_;
-    Navigator* navigator_;
+    boost::shared_ptr<aerial_robot_navigation::BaseNavigator> navigator_;
 
     double ctrl_loop_rate_;
     double control_timestamp_;
@@ -226,4 +217,3 @@ namespace control_plugin
   };
 
 };
-#endif

@@ -5,9 +5,6 @@ using namespace control_plugin;
 
 DragonLQIGimbalController::DragonLQIGimbalController():
   HydrusLQIController(),
-  servo_torque_(false), level_flag_(false), landing_flag_(false),
-  curr_target_baselink_rot_(0, 0, 0),
-  final_target_baselink_rot_(0, 0, 0),
   gimbal_roll_i_term_(0), gimbal_pitch_i_term_(0),
   gimbal_roll_control_stamp_(0), gimbal_pitch_control_stamp_(0)
 {
@@ -17,7 +14,7 @@ DragonLQIGimbalController::DragonLQIGimbalController():
 void DragonLQIGimbalController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
                                            boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
                                            boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
-                                           Navigator* navigator,
+                                           boost::shared_ptr<aerial_robot_navigation::BaseNavigator> navigator,
                                            double ctrl_loop_rate)
 {
   /* initialize the flight control */
@@ -42,14 +39,10 @@ void DragonLQIGimbalController::initialize(ros::NodeHandle nh, ros::NodeHandle n
   extra_vectoring_force_ = Eigen::VectorXd::Zero(3 * motor_num_);
 
   gimbal_control_pub_ = nh_.advertise<sensor_msgs::JointState>("gimbals_ctrl", 1);
-  joint_control_pub_ = nh_.advertise<sensor_msgs::JointState>("joints_ctrl", 1);
-  curr_target_baselink_rot_pub_ = nh_.advertise<spinal::DesireCoord>("desire_coordinate", 1);
   gimbal_target_force_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("debug/gimbals_target_force", 1);
   roll_pitch_pid_pub_ = nh_.advertise<aerial_robot_msgs::FlatnessPid>("debug/roll_pitch_gimbal_control", 1);
 
   att_control_feedback_state_sub_ = nh_.subscribe("rpy/feedback_state", 1, &DragonLQIGimbalController::attControlFeedbackStateCallback, this);
-  final_target_baselink_rot_sub_ = nh_.subscribe("final_target_baselink_rot", 1, &DragonLQIGimbalController::setFinalTargetBaselinkRotCallback, this);
-  target_baselink_rot_sub_ = nh_.subscribe("desire_coordinate", 1, &DragonLQIGimbalController::targetBaselinkRotCallback, this);
   extra_vectoring_force_sub_ = nh_.subscribe("extra_vectoring_force", 1, &DragonLQIGimbalController::extraVectoringForceCallback, this);
 
   std::string service_name;
@@ -59,24 +52,15 @@ void DragonLQIGimbalController::initialize(ros::NodeHandle nh, ros::NodeHandle n
   clear_external_wrench_service_ = nh_.advertiseService(service_name, &DragonLQIGimbalController::clearExternalWrenchCallback, this);
 
   //dynamic reconfigure server
-  gimbal_roll_pitch_pid_server_ = boost::make_shared<dynamic_reconfigure::Server<aerial_robot_base::XYPidControlConfig> >(ros::NodeHandle(nhp_, "gain_generator/gimbal/pitch_roll"));
+  gimbal_roll_pitch_pid_server_ = boost::make_shared<dynamic_reconfigure::Server<aerial_robot_control::XYPidControlConfig> >(ros::NodeHandle(nhp_, "gain_generator/gimbal/pitch_roll"));
   dynamic_reconf_func_gimbal_roll_pitch_pid_ = boost::bind(&DragonLQIGimbalController::cfgGimbalPitchRollPidCallback, this, _1, _2);
   gimbal_roll_pitch_pid_server_->setCallback(dynamic_reconf_func_gimbal_roll_pitch_pid_);
 
-  gimbal_yaw_pid_server_ = boost::make_shared<dynamic_reconfigure::Server<aerial_robot_base::XYPidControlConfig> >(ros::NodeHandle(nhp_, "gain_generator/gimbal/yaw"));
+  gimbal_yaw_pid_server_ = boost::make_shared<dynamic_reconfigure::Server<aerial_robot_control::XYPidControlConfig> >(ros::NodeHandle(nhp_, "gain_generator/gimbal/yaw"));
   dynamic_reconf_func_gimbal_yaw_pid_ = boost::bind(&DragonLQIGimbalController::cfgGimbalYawPidCallback, this, _1, _2);
   gimbal_yaw_pid_server_->setCallback(dynamic_reconf_func_gimbal_yaw_pid_);
 }
 
-void DragonLQIGimbalController::setFinalTargetBaselinkRotCallback(const spinal::DesireCoordConstPtr & msg)
-{
-  final_target_baselink_rot_.setValue(msg->roll, msg->pitch, msg->yaw);
-}
-
-void DragonLQIGimbalController::targetBaselinkRotCallback(const spinal::DesireCoordConstPtr& msg)
-{
-  robot_model_->setCogDesireOrientation(msg->roll, msg->pitch, msg->yaw);
-}
 
 void DragonLQIGimbalController::attControlFeedbackStateCallback(const spinal::RollPitchYawTermConstPtr& msg)
 {
@@ -97,92 +81,16 @@ bool DragonLQIGimbalController::update()
 {
   if(!ControlBase::update() || gimbal_vectoring_check_flag_) return false;
 
-  landingProcess();
 
-  servoTorqueProcess();
   stateError();
-
 
   pidUpdate(); //LQI thrust control
   gimbalControl(); //gimbal vectoring control
-  baselinkRotationProcess();
   sendCmd();
-}
-
-void DragonLQIGimbalController::landingProcess()
-{
-  const auto joint_state = robot_model_->kdlJointToMsg(robot_model_->getJointPositions());
-  sensor_msgs::JointState joint_control_msg;
-  for(int i = 0; i < joint_state.position.size(); i++)
-    {
-      if(joint_state.name[i].find("joint") != std::string::npos)
-        {
-          double target_cmd;
-          if(joint_state.name[i].find("pitch") != std::string::npos)
-            target_cmd = 0;
-          else target_cmd = joint_state.position[i];
-
-          joint_control_msg.position.push_back(target_cmd);
-
-        }
-    }
-
-  if(navigator_->getForceLandingFlag() || navigator_->getNaviState() == Navigator::LAND_STATE)
-    {
-      if(!level_flag_)
-        {
-          joint_control_pub_.publish(joint_control_msg);
-          final_target_baselink_rot_.setValue(0, 0, 0);
-
-          /* force set the current deisre tilt to current estimated tilt */
-          curr_target_baselink_rot_.setValue(estimator_->getState(State::ROLL_BASE, estimate_mode_)[0], estimator_->getState(State::PITCH_BASE, estimate_mode_)[0], 0);
-
-          /* clear the external wrench */
-          dragon_robot_model_->resetExternalStaticWrench();
-
-          /* clear the extra vectoring force */
-          extra_vectoring_force_.setZero();
-        }
-
-      level_flag_ = true;
-
-      if(navigator_->getNaviState() == Navigator::LAND_STATE && !landing_flag_)
-        {
-          landing_flag_ = true;
-          navigator_->setTeleopFlag(false);
-          navigator_->setTargetPosZ(estimator_->getState(State::Z_COG, estimate_mode_)[0]);
-          navigator_->setNaviState(Navigator::HOVER_STATE);
-        }
-    }
-
-  /* back to landing process */
-  if(landing_flag_)
-    {
-      bool already_level = true;
-      for(int i = 0; i < joint_state.position.size(); i++)
-        {
-          if(joint_state.name[i].find("joint") != std::string::npos
-             && joint_state.name[i].find("pitch") != std::string::npos)
-            {
-              if(fabs(joint_state.position[i]) > 0.085) already_level = false;
-            }
-        }
-
-      if(curr_target_baselink_rot_.length()) already_level = false;
-
-      if(already_level && navigator_->getNaviState() == Navigator::HOVER_STATE)
-        {
-          ROS_WARN("gimbal control: back to land state");
-          navigator_->setNaviState(Navigator::LAND_STATE);
-          navigator_->setTargetPosZ(estimator_->getLandingHeight());
-          navigator_->setTeleopFlag(true);
-        }
-    }
 }
 
 void DragonLQIGimbalController::gimbalControl()
 {
-
   if (control_timestamp_ < 0) return;
 
   /* get roll/pitch angle */
@@ -370,6 +278,12 @@ void DragonLQIGimbalController::gimbalControl()
     }
 
   /* external wrench compensation */
+  if(boost::dynamic_pointer_cast<aerial_robot_navigation::DragonNavigator>(navigator_)->getLandingFlag())
+    {
+      dragon_robot_model_->resetExternalStaticWrench(); // clear the external wrench
+      extra_vectoring_force_.setZero(); // clear the extra vectoring force
+    }
+
   Eigen::MatrixXd cog_rot_inv = aerial_robot_model::kdlToEigen(KDL::Rotation::RPY(roll_angle, pitch_angle, yaw_angle).Inverse());
   Eigen::MatrixXd extended_cog_rot_inv = Eigen::MatrixXd::Zero(6, 6);
   extended_cog_rot_inv.topLeftCorner(3,3) = cog_rot_inv;
@@ -383,7 +297,6 @@ void DragonLQIGimbalController::gimbalControl()
     {
       std::cout << "external wrench  compensate vectoring thrust: " << wrench_comp_thrust.transpose() << std::endl;
     }
-
 
   std_msgs::Float32MultiArray target_force_msg;
 
@@ -431,27 +344,6 @@ void DragonLQIGimbalController::gimbalControl()
   gimbal_target_force_pub_.publish(target_force_msg);
 }
 
-void DragonLQIGimbalController::baselinkRotationProcess()
-{
-  static ros::Time prev_stamp = ros::Time::now();
-  if(curr_target_baselink_rot_ == final_target_baselink_rot_) return;
-
-  if(ros::Time::now().toSec() - prev_stamp.toSec() > baselink_rot_pub_interval_)
-    {
-      if((final_target_baselink_rot_- curr_target_baselink_rot_).length() > baselink_rot_change_thresh_)
-        curr_target_baselink_rot_ += ((final_target_baselink_rot_ - curr_target_baselink_rot_).normalize() * baselink_rot_change_thresh_);
-      else
-        curr_target_baselink_rot_ = final_target_baselink_rot_;
-
-      spinal::DesireCoord target_baselink_rot_msg;
-      target_baselink_rot_msg.roll = curr_target_baselink_rot_.x();
-      target_baselink_rot_msg.pitch = curr_target_baselink_rot_.y();
-      curr_target_baselink_rot_pub_.publish(target_baselink_rot_msg);
-
-      prev_stamp = ros::Time::now();
-    }
-}
-
 void DragonLQIGimbalController::sendCmd()
 {
   /* send base throttle command */
@@ -487,86 +379,6 @@ void DragonLQIGimbalController::sendCmd()
   gimbal_control_pub_.publish(gimbal_control_msg);
 }
 
-void DragonLQIGimbalController::servoTorqueProcess()
-{
-  ros::ServiceClient client = nh_.serviceClient<std_srvs::SetBool>(joints_torque_control_srv_name_);
-  std_srvs::SetBool srv;
-
-  if(servo_torque_)
-    {
-      if(navigator_->getNaviState() == Navigator::LAND_STATE)
-        {
-          if(state_pos_.z() < height_thresh_)
-            {
-
-              srv.request.data = false;
-
-              if (client.call(srv))
-                {
-                  ROS_INFO("dragon control: disable the joint torque");
-                  servo_torque_ = false;
-                }
-              else
-                {
-                  ROS_ERROR("Failed to call service %s", joints_torque_control_srv_name_.c_str());
-                }
-            }
-        }
-
-      /*
-        if(navigator_->getForceLandingFlag() == true)
-        {
-        srv.request.torque_enable = false;
-        if (client.call(srv))
-        {
-        ROS_INFO("dragon control: disable the joint torque");
-        servo_torque_ = false;
-        }
-        else
-        {
-        ROS_ERROR("Failed to call service %s", joints_torque_control_srv_name_.c_str());
-        }
-        }
-      */
-    }
-  else
-    {
-      if(navigator_->getNaviState() == Navigator::ARM_ON_STATE)
-        {
-          srv.request.data = true;
-
-          if (client.call(srv))
-            {
-              ROS_INFO("dragon control: enable the joint torque");
-              servo_torque_ = true;
-            }
-          else
-            {
-              ROS_ERROR("Failed to call service %s", joints_torque_control_srv_name_.c_str());
-            }
-        }
-    }
-}
-
-void DragonLQIGimbalController::halt()
-{
-  ros::ServiceClient client = nh_.serviceClient<std_srvs::SetBool>(joints_torque_control_srv_name_);
-  std_srvs::SetBool srv;
-  srv.request.data = false;
-  if (client.call(srv))
-    ROS_INFO("dragon control halt process: disable the joint torque");
-  else
-    ROS_ERROR("Failed to call service %s", joints_torque_control_srv_name_.c_str());
-
-  client = nh_.serviceClient<std_srvs::SetBool>(gimbals_torque_control_srv_name_);
-
-  srv.request.data = false;
-  if (client.call(srv))
-    ROS_INFO("dragon control halt process: disable the gimbal torque");
-  else
-    ROS_ERROR("Failed to call service %s", gimbals_torque_control_srv_name_.c_str());
-}
-
 /* external wrench */
 bool DragonLQIGimbalController::addExternalWrenchCallback(gazebo_msgs::ApplyBodyWrench::Request& req, gazebo_msgs::ApplyBodyWrench::Response& res)
 {
@@ -587,7 +399,7 @@ bool DragonLQIGimbalController::clearExternalWrenchCallback(gazebo_msgs::BodyReq
 /* extra vectoring force  */
 void DragonLQIGimbalController::extraVectoringForceCallback(const std_msgs::Float32MultiArrayConstPtr& msg)
 {
-  if(navigator_->getNaviState() != Navigator::HOVER_STATE || navigator_->getForceLandingFlag() || landing_flag_) return;
+  if(navigator_->getNaviState() != aerial_robot_navigation::HOVER_STATE || navigator_->getForceLandingFlag() || landing_flag_) return;
 
   if(extra_vectoring_force_.size() != msg->data.size())
     {
@@ -601,7 +413,7 @@ void DragonLQIGimbalController::extraVectoringForceCallback(const std_msgs::Floa
   ROS_INFO_STREAM("add extra vectoring force is: \n" << extra_vectoring_force_.transpose());
 }
 
-void DragonLQIGimbalController::cfgGimbalPitchRollPidCallback(aerial_robot_base::XYPidControlConfig &config, uint32_t level)
+void DragonLQIGimbalController::cfgGimbalPitchRollPidCallback(aerial_robot_control::XYPidControlConfig &config, uint32_t level)
 {
   if(config.xy_pid_control_flag)
     {
@@ -643,7 +455,7 @@ void DragonLQIGimbalController::cfgGimbalPitchRollPidCallback(aerial_robot_base:
     }
 }
 
-void DragonLQIGimbalController::cfgGimbalYawPidCallback(aerial_robot_base::XYPidControlConfig &config, uint32_t level)
+void DragonLQIGimbalController::cfgGimbalYawPidCallback(aerial_robot_control::XYPidControlConfig &config, uint32_t level)
 {
   if(config.xy_pid_control_flag)
     {
@@ -690,17 +502,11 @@ void DragonLQIGimbalController::rosParamInit()
   HydrusLQIController::rosParamInit();
 
   ros::NodeHandle control_nh(nh_, "controller");
-  ros::NodeHandle gimbal_pitch_roll_nh(control_nh, "gimbal_pitch_roll");
-
   getParam<bool>(control_nh, "control_verbose", control_verbose_, false);
-  getParam<std::string>(control_nh, "joints_torque_control_srv_name", joints_torque_control_srv_name_, std::string("joints/torque_enable"));
-  getParam<std::string>(control_nh, "gimbals_torque_control_srv_name", gimbals_torque_control_srv_name_, std::string("gimbals/torque_enable"));
-  getParam<double>(control_nh, "height_thresh", height_thresh_, 0.1); // height threshold to disable the joint servo when landing
-  getParam<double>(control_nh, "baselink_rot_change_thresh", baselink_rot_change_thresh_, 0.02);  // the threshold to change the baselink rotation
-  getParam<double>(control_nh, "baselink_rot_pub_interval", baselink_rot_pub_interval_, 0.1); // the rate to pub baselink rotation command
+  getParam<bool>(control_nh, "add_lqi_result", add_lqi_result_, false);
   getParam<bool>(control_nh, "gimbal_vectoring_check_flag", gimbal_vectoring_check_flag_, false); // check the gimbal vectoring function without position and yaw control
 
-  /* pitch roll control */
+  ros::NodeHandle gimbal_pitch_roll_nh(control_nh, "gimbal_pitch_roll");
   getParam<double>(gimbal_pitch_roll_nh, "control_rate_thresh", gimbal_pitch_roll_control_rate_thresh_, 1.0);
   getParam<double>(gimbal_pitch_roll_nh, "control_p_det_thresh", gimbal_pitch_roll_control_p_det_thresh_, 1e-3);
   getParam<double>(gimbal_pitch_roll_nh, "limit", gimbal_pitch_roll_limit_, 1.0e6);
@@ -710,7 +516,7 @@ void DragonLQIGimbalController::rosParamInit()
   getParam<double>(gimbal_pitch_roll_nh, "p_gain", gimbal_pitch_roll_gains_[0], 0.0);
   getParam<double>(gimbal_pitch_roll_nh, "i_gain", gimbal_pitch_roll_gains_[1], 0.0);
   getParam<double>(gimbal_pitch_roll_nh, "d_gain", gimbal_pitch_roll_gains_[2], 0.0);
-  getParam<bool>(control_nh, "add_lqi_result", add_lqi_result_, false);
+
 }
 
 /* plugin registration */

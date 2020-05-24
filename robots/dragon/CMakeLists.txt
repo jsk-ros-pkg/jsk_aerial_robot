@@ -8,7 +8,7 @@ find_package(catkin REQUIRED COMPONENTS
   hydrus
   aerial_robot_control
   aerial_robot_model
-  aerial_robot_simulation
+  aerial_robot_msgs
 )
 
 find_package(Eigen3 REQUIRED)
@@ -51,6 +51,9 @@ target_link_libraries(dragon_robot_model ${catkin_LIBRARIES})
 add_library(dragon_control_pluginlib src/lqi_gimbal_control.cpp)
 target_link_libraries (dragon_control_pluginlib dragon_robot_model ${catkin_LIBRARIES} ${Eigen3_LIBRARIES})
 add_dependencies(dragon_control_pluginlib aerial_robot_msgs_generate_messages_cpp hydrus_gencfg)
+
+add_library(dragon_navigation src/dragon_navigation.cpp)
+target_link_libraries(dragon_navigation ${catkin_LIBRARIES})
 
 # test
 # pre-build test code

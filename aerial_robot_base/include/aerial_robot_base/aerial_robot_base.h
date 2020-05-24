@@ -2,8 +2,8 @@
 
 #include <ros/ros.h>
 #include <pluginlib/class_loader.h>
-#include <aerial_robot_base/control/flight_control.h>
-#include <aerial_robot_base/flight_navigation.h>
+#include <aerial_robot_control/control/flight_control.h>
+#include <aerial_robot_control/flight_navigation.h>
 #include <aerial_robot_estimation/state_estimation.h>
 #include <aerial_robot_model/transformable_aerial_robot_model_ros.h>
 
@@ -13,7 +13,7 @@ class AerialRobotBase
 {
  public:
   AerialRobotBase(ros::NodeHandle nh, ros::NodeHandle nh_private);
-  ~AerialRobotBase();
+  ~AerialRobotBase() {};
 
   void mainFunc(const ros::TimerEvent & e);
 
@@ -25,7 +25,8 @@ class AerialRobotBase
   boost::shared_ptr<aerial_robot_model::RobotModelRos> robot_model_ros_;
   boost::shared_ptr<aerial_robot_estimation::StateEstimator>  estimator_;
 
-  Navigator* navigator_;
+  pluginlib::ClassLoader<aerial_robot_navigation::BaseNavigator> navigator_loader_;
+  boost::shared_ptr<aerial_robot_navigation::BaseNavigator> navigator_;
 
   pluginlib::ClassLoader<control_plugin::ControlBase> controller_loader_;
   boost::shared_ptr<control_plugin::ControlBase> controller_;

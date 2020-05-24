@@ -67,7 +67,7 @@ namespace control_plugin
                                                    ros::NodeHandle nhp,
                                                    boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
                                                    boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
-                                                   Navigator* navigator,
+                                                   boost::shared_ptr<aerial_robot_navigation::BaseNavigator> navigator,
                                                    double ctrl_loop_rate)
   {
     ControlBase::initialize(nh, nhp, robot_model, estimator, navigator, ctrl_loop_rate);
@@ -138,7 +138,7 @@ namespace control_plugin
             start_rp_integration_ = true;
             spinal::FlightConfigCmd flight_config_cmd;
             flight_config_cmd.cmd = spinal::FlightConfigCmd::INTEGRATION_CONTROL_ON_CMD;
-            navigator_->flight_config_pub_.publish(flight_config_cmd);
+            navigator_->getFlightConfigPublisher().publish(flight_config_cmd);
             ROS_WARN("start rp integration");
           }
       }
@@ -159,7 +159,7 @@ namespace control_plugin
 
     switch(navigator_->getXyControlMode())
       {
-      case flight_nav::POS_CONTROL_MODE:
+      case aerial_robot_navigation::POS_CONTROL_MODE:
         {
           /* P */
           xy_p_term = clampV(xy_gains_[0] * pos_err_, -xy_terms_limits_[0], xy_terms_limits_[0]);
@@ -175,7 +175,7 @@ namespace control_plugin
           xy_d_term = clampV(xy_gains_[2] * vel_err_, -xy_terms_limits_[2], xy_terms_limits_[2]);
           break;
         }
-      case flight_nav::VEL_CONTROL_MODE:
+      case aerial_robot_navigation::VEL_CONTROL_MODE:
         {
           /* convert from world frame to CoG frame */
           vel_err_ = uav_rot_inv * (target_vel_ - state_vel_);
@@ -186,7 +186,7 @@ namespace control_plugin
           xy_d_term.setZero();
           break;
         }
-      case flight_nav::ACC_CONTROL_MODE:
+      case aerial_robot_navigation::ACC_CONTROL_MODE:
         {
           /* convert from world frame to CoG frame */
 
@@ -252,14 +252,14 @@ namespace control_plugin
     /* alt */
     double alt_err = clamp(pos_err_.z(), -alt_err_thresh_, alt_err_thresh_);
 
-    if(navigator_->getNaviState() == Navigator::LAND_STATE) alt_err += alt_landing_const_i_ctrl_thresh_;
+    if(navigator_->getNaviState() == aerial_robot_navigation::LAND_STATE) alt_err += alt_landing_const_i_ctrl_thresh_;
 
     /* P */
     double alt_p_term = clamp(alt_gains_[0] * alt_err, -alt_terms_limits_[0], alt_terms_limits_[0]);
-    if(navigator_->getNaviState() == Navigator::LAND_STATE) alt_p_term = 0;
+    if(navigator_->getNaviState() == aerial_robot_navigation::LAND_STATE) alt_p_term = 0;
 
     /* I */
-    if(navigator_->getNaviState() == Navigator::TAKEOFF_STATE)
+    if(navigator_->getNaviState() == aerial_robot_navigation::TAKEOFF_STATE)
       alt_i_term_ += alt_err * du * alt_takeoff_i_gain_;
     else
       alt_i_term_ += alt_err * du * alt_gains_[1];

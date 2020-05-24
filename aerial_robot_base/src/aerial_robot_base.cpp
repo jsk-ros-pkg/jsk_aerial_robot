@@ -2,7 +2,8 @@
 
 AerialRobotBase::AerialRobotBase(ros::NodeHandle nh, ros::NodeHandle nh_private)
   : nh_(nh), nhp_(nh_private),
-    controller_loader_("aerial_robot_base", "control_plugin::ControlBase")
+    controller_loader_("aerial_robot_control", "control_plugin::ControlBase"),
+    navigator_loader_("aerial_robot_control", "aerial_robot_navigation::BaseNavigator")
 {
 
   bool param_verbose;
@@ -15,14 +16,31 @@ AerialRobotBase::AerialRobotBase(ros::NodeHandle nh, ros::NodeHandle nh_private)
   robot_model_ros_ = boost::make_shared<aerial_robot_model::RobotModelRos>(nh_, nhp_);
   auto robot_model = robot_model_ros_->getRobotModel();
 
-  //*** estimator
+  // estimator
   estimator_ = boost::make_shared<aerial_robot_estimation::StateEstimator>();
   estimator_->initialize(nh_, nhp_, robot_model);
 
-  //*** basic navigation
-  navigator_ = new Navigator(nh_, nhp_, robot_model, estimator_);
+  // navigation
+  std::string navi_plugin_name;
+  if(nh_.getParam("flight_navigation_plugin_name", navi_plugin_name))
+    {
+      try
+        {
+          navigator_ = navigator_loader_.createInstance(navi_plugin_name);
+        }
+      catch(pluginlib::PluginlibException& ex)
+        {
+          ROS_ERROR("The plugin failed to load for some reason. Error: %s", ex.what());
+        }
+    }
+  else
+    {
+      ROS_DEBUG("use default class for flight navigation: aerial_robot_navigation::BaseNavigator");
+      navigator_ = boost::make_shared<aerial_robot_navigation::BaseNavigator>();
+    }
+  navigator_->initialize(nh_, nhp_, robot_model, estimator_);
 
-  //*** flight controller
+  //  controller
   try
     {
       std::string control_plugin_name;
@@ -42,11 +60,6 @@ AerialRobotBase::AerialRobotBase(ros::NodeHandle nh, ros::NodeHandle nh_private)
     {
       main_timer_ = nhp_.createTimer(ros::Duration(1.0 / main_rate), &AerialRobotBase::mainFunc, this);
     }
-}
-
-AerialRobotBase::~AerialRobotBase()
-{
-  delete navigator_;
 }
 
 void AerialRobotBase::mainFunc(const ros::TimerEvent & e)

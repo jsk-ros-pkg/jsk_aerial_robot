@@ -41,7 +41,7 @@
 #include <spinal/FlightConfigCmd.h>
 #include <aerial_robot_msgs/WrenchAllocationMatrix.h>
 #include <aerial_robot_msgs/FlatnessPid.h>
-#include <aerial_robot_base/control/flight_control.h>
+#include <aerial_robot_control/control/flight_control.h>
 #include <aerial_robot_model/transformable_aerial_robot_model_ros.h>
 #include <hydrus_xi/hydrus_xi_fully_actuated_robot_model.h>
 #include <hydrus_xi/FullyActuatedControllerGainsConfig.h>
@@ -79,7 +79,7 @@ namespace control_plugin
     void initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
                     boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
                     boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
-                    Navigator* navigator,
+                    boost::shared_ptr<aerial_robot_navigation::BaseNavigator> navigator,
                     double ctrl_loop_rate) override;
     bool update() override;
     void reset() override;

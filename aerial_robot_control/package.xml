@@ -11,14 +11,18 @@
   <author email="chou@jsk.imi.i.u-tokyo.ac.jp">Moju Zhao</author>
 
   <buildtool_depend>catkin</buildtool_depend>
+
+  <depend>aerial_robot_estimation</depend>
   <depend>aerial_robot_model</depend>
   <depend>aerial_robot_msgs</depend>
   <depend>dynamic_reconfigure</depend>
-  <depend>geometry_msgs</depend>
   <depend>pluginlib</depend>
   <depend>roscpp</depend>
   <depend>spinal</depend>
-  <depend>std_msgs</depend>
   <depend>tf</depend>
+
+  <export>
+    <aerial_robot_control plugin="${prefix}/flight_control_plugins.xml" />
+  </export>
 
 </package>
