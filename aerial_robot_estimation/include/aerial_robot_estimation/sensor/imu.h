@@ -33,18 +33,14 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 
-/* ros */
-#include <ros/ros.h>
+#pragma once
 
-/* base class */
-#include <aerial_robot_base/sensor/base_plugin.h>
-
-/* ros msg */
 #include <aerial_robot_msgs/Acc.h>
+#include <aerial_robot_estimation/sensor/base_plugin.h>
 #include <geometry_msgs/Vector3.h>
-#include <spinal/SimpleImu.h>
-#include <spinal/Imu.h>
 #include <sensor_msgs/Imu.h>
+#include <spinal/Imu.h>
+
 
 using namespace Eigen;
 using namespace std;
@@ -54,7 +50,10 @@ namespace sensor_plugin
   class Imu :public sensor_plugin::SensorBase
   {
   public:
-    void initialize(ros::NodeHandle nh, boost::shared_ptr<aerial_robot_model::RobotModel> robot_model, StateEstimator* estimator, string sensor_name, int index);
+    void initialize(ros::NodeHandle nh,
+                    boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
+                    boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
+                    string sensor_name, int index) override;
 
     ~Imu() {}
     Imu();
@@ -66,8 +65,7 @@ namespace sensor_plugin
   private:
     ros::Publisher  acc_pub_;
     ros::Publisher  imu_pub_;
-    ros::Subscriber  imu_sub_, sub_imu_sub_;
-    ros::Subscriber  imu_simple_sub_;
+    ros::Subscriber imu_sub_;
 
     /* rosparam */
     string imu_topic_name_;

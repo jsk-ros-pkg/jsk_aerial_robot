@@ -32,7 +32,7 @@
 #ifndef HARDWARE_INTERFACE_SPINAL_INTERFACE_H
 #define HARDWARE_INTERFACE_SPINAL_INTERFACE_H
 
-#include <aerial_robot_base/state_estimation.h>
+#include <aerial_robot_estimation/state_estimation.h>
 #include <aerial_robot_simulation/rotor_handle.h>
 #include <algorithm>
 #include <cassert>

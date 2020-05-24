@@ -70,7 +70,7 @@ namespace control_plugin
   void FlatnessPid::initialize(ros::NodeHandle nh,
                                ros::NodeHandle nhp,
                                boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
-                               StateEstimator* estimator,
+                               boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
                                Navigator* navigator,
                                double ctrl_loop_rate)
   {
@@ -170,7 +170,7 @@ namespace control_plugin
       case flight_nav::ACC_CONTROL_MODE:
         {
           /* convert from world frame to CoG frame */
-          xy_p_term = tf::Matrix3x3(tf::createQuaternionFromYaw(-state_yaw_)) * (target_acc_ / StateEstimator::G);
+          xy_p_term = tf::Matrix3x3(tf::createQuaternionFromYaw(-state_yaw_)) * (target_acc_ / aerial_robot_estimation::G);
           xy_i_term_.setValue(0, 0, 0);
           xy_d_term.setValue(0, 0, 0);
           break;

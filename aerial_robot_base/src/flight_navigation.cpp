@@ -4,7 +4,7 @@ using namespace std;
 
 Navigator::Navigator(ros::NodeHandle nh, ros::NodeHandle nh_private,
                      boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
-                     StateEstimator* estimator)
+                     boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator)
   : nh_(nh),
     nhp_(nh_private),
     target_pos_(0, 0, 0),
@@ -508,8 +508,8 @@ void Navigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
             if(joy_cmd.buttons[PS3_BUTTON_REAR_LEFT_2]) control_frame_ = flight_nav::LOCAL_FRAME;
 
             /* acc command */
-            target_acc_.setValue(joy_cmd.axes[PS3_AXIS_STICK_LEFT_UPWARDS] * max_target_tilt_angle_ * StateEstimator::G,
-                                 joy_cmd.axes[PS3_AXIS_STICK_LEFT_LEFTWARDS] * max_target_tilt_angle_ * StateEstimator::G, 0);
+            target_acc_.setValue(joy_cmd.axes[PS3_AXIS_STICK_LEFT_UPWARDS] * max_target_tilt_angle_ * aerial_robot_estimation::G,
+                                 joy_cmd.axes[PS3_AXIS_STICK_LEFT_LEFTWARDS] * max_target_tilt_angle_ * aerial_robot_estimation::G, 0);
 
             if(control_frame_ == flight_nav::LOCAL_FRAME)
               {
@@ -606,7 +606,7 @@ void Navigator::update()
     }
 
   /* sensor health check */
-  if(estimator_->getUnhealthLevel() == StateEstimator::UNHEALTH_LEVEL3 && !force_landing_flag_)
+  if(estimator_->getUnhealthLevel() == Sensor::UNHEALTH_LEVEL3 && !force_landing_flag_)
     {
       if(getNaviState() == TAKEOFF_STATE || getNaviState() == HOVER_STATE  || getNaviState() == LAND_STATE)
         ROS_WARN("Sensor Unhealth Level%d: force landing state", estimator_->getUnhealthLevel());

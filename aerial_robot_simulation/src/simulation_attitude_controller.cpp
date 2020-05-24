@@ -67,7 +67,7 @@ bool SimulationAttitudeController::init(hardware_interface::SpinalInterface *rob
 
       int estimate_mode;
       n.getParam(full_param, estimate_mode);
-      if(estimate_mode == StateEstimator::GROUND_TRUTH)
+      if(estimate_mode == aerial_robot_estimation::GROUND_TRUTH)
         controller_core_->useGroundTruth(true);
     }
   else

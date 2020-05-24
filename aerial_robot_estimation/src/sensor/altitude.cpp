@@ -33,16 +33,9 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 
-/* ros */
-#include <ros/ros.h>
 
-/* base class */
-#include <aerial_robot_base/sensor/base_plugin.h>
-
-/* kalman filters */
+#include <aerial_robot_estimation/sensor/base_plugin.h>
 #include <kalman_filter/kf_pos_vel_acc_plugin.h>
-
-/* ros msg */
 #include <sensor_msgs/Range.h>
 #include <spinal/Barometer.h>
 
@@ -60,7 +53,10 @@ namespace sensor_plugin
   class Alt :public sensor_plugin::SensorBase
   {
   public:
-    void initialize(ros::NodeHandle nh, boost::shared_ptr<aerial_robot_model::RobotModel> robot_model, StateEstimator* estimator, string sensor_name, int index)
+    void initialize(ros::NodeHandle nh,
+                    boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
+                    boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
+                    string sensor_name, int index)
     {
       SensorBase::initialize(nh, robot_model, estimator, sensor_name, index);
       rosParamInit();
@@ -224,14 +220,14 @@ namespace sensor_plugin
 
       /* consider the orientation of the uav */
 #if 0
-      float roll = (estimator_->getState(State::ROLL_BASE, StateEstimator::EGOMOTION_ESTIMATE))[0];
-      float pitch = (estimator_->getState(State::PITCH_BASE, StateEstimator::EGOMOTION_ESTIMATE))[0];
+      float roll = (estimator_->getState(State::ROLL_BASE, aerial_robot_estimation::EGOMOTION_ESTIMATE))[0];
+      float pitch = (estimator_->getState(State::PITCH_BASE, aerial_robot_estimation::EGOMOTION_ESTIMATE))[0];
       /* add the offset from the base_link to the sensor */
       tf::Matrix3x3 tilt_r; tilt_r.setRPY(roll, pitch, 0);
       double raw_range_sensor_value = cos(roll) * cos(pitch) * range_msg->range - (tilt_r * sensor_tf_.getOrigin()).z();
 #endif
 
-      raw_range_sensor_value_ = -(estimator_->getOrientation(Frame::BASELINK, StateEstimator::EGOMOTION_ESTIMATE) * (sensor_tf_* tf::Vector3(0, 0, range_msg->range))).z();
+      raw_range_sensor_value_ = -(estimator_->getOrientation(Frame::BASELINK, aerial_robot_estimation::EGOMOTION_ESTIMATE) * (sensor_tf_* tf::Vector3(0, 0, range_msg->range))).z();
 
       /* calibrate phase */
       if(calibrate_cnt > 0)
@@ -314,7 +310,7 @@ namespace sensor_plugin
 
 
               /* set the status for Z (altitude) */
-              estimator_->setStateStatus(State::Z_BASE, StateEstimator::EGOMOTION_ESTIMATE, true);
+              estimator_->setStateStatus(State::Z_BASE, aerial_robot_estimation::EGOMOTION_ESTIMATE, true);
 
               setStatus(Status::ACTIVE); //active
 
@@ -465,13 +461,13 @@ namespace sensor_plugin
       if(getStatus() == Status::INVALID) return false;
 
       boost::shared_ptr<kf_plugin::KalmanFilter> kf = nullptr;
-      if(!getFuserActivate(StateEstimator::EGOMOTION_ESTIMATE))
+      if(!getFuserActivate(aerial_robot_estimation::EGOMOTION_ESTIMATE))
         {
           ROS_ERROR("range sensor is not used in EGOMOTION_ESTIMATE mode");
           return false;
         }
 
-      for(auto& fuser : estimator_->getFuser(StateEstimator::EGOMOTION_ESTIMATE))
+      for(auto& fuser : estimator_->getFuser(aerial_robot_estimation::EGOMOTION_ESTIMATE))
         {
           if(fuser.second->getId() & (1 << State::Z_BASE))
             {

@@ -3,30 +3,55 @@
   <name>aerial_robot_estimation</name>
   <version>1.1.1</version>
   <description>The aerial_robot_estimation package</description>
- 
- <maintainer email="anzai@jsk.imi.i.u-tokyo.ac.jp">anzai</maintainer>
-  <license>TODO</license>
+
+  <maintainer email="chou@jsk.imi.i.u-tokyo.ac.jp">zhao</maintainer>
+  <maintainer email="anzai@jsk.imi.i.u-tokyo.ac.jp">anzai</maintainer>
+  <license>BSD</license>
 
   <buildtool_depend>catkin</buildtool_depend>
+
+  <build_depend>aerial_robot_model</build_depend>
+  <build_depend>aerial_robot_msgs</build_depend>
   <build_depend>cv_bridge</build_depend>
+  <build_depend>dynamic_reconfigure</build_depend>
+  <build_depend>geodesy</build_depend>
+  <build_depend>geographic_msgs</build_depend>
   <build_depend>geometry_msgs</build_depend>
+  <build_depend>kalman_filter</build_depend>
   <build_depend>nav_msgs</build_depend>
+  <build_depend>nodelet</build_depend>
+  <build_depend>pluginlib</build_depend>
   <build_depend>roscpp</build_depend>
   <build_depend>rospy</build_depend>
   <build_depend>sensor_msgs</build_depend>
+  <build_depend>spinal</build_depend>
   <build_depend>std_msgs</build_depend>
-  <build_depend>nodelet</build_depend>
+  <build_depend>tf</build_depend>
+  <build_depend>tf_conversions</build_depend>
 
+  <run_depend>aerial_robot_model</run_depend>
+  <run_depend>aerial_robot_msgs</run_depend>
   <run_depend>cv_bridge</run_depend>
+  <run_depend>dynamic_reconfigure</run_depend>
+  <run_depend>geodesy</run_depend>
+  <run_depend>geographic_msgs</run_depend>
   <run_depend>geometry_msgs</run_depend>
+  <run_depend>kalman_filter</run_depend>
   <run_depend>nav_msgs</run_depend>
+  <run_depend>nodelet</run_depend>
+  <run_depend>pluginlib</run_depend>
   <run_depend>roscpp</run_depend>
   <run_depend>rospy</run_depend>
   <run_depend>sensor_msgs</run_depend>
+  <run_depend>spinal</run_depend>
   <run_depend>std_msgs</run_depend>
-  <run_depend>nodelet</run_depend>
+  <run_depend>std_srvs</run_depend>
+  <run_depend>tf</run_depend>
+  <run_depend>tf_conversions</run_depend>
 
   <export>
-    <nodelet plugin="${prefix}/opticalflow_nodelet.xml"/>
+    <kalman_filter plugin="${prefix}/plugins/kf_plugins.xml" />
+    <aerial_robot_estimation plugin="${prefix}/plugins/sensor_plugins.xml" />
+    <nodelet plugin="${prefix}/plugins/vision_nodelet.xml"/>
   </export>
 </package>

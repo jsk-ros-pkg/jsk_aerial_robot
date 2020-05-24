@@ -40,7 +40,7 @@
 #include <ros/ros.h>
 
 /* basic instance */
-#include <aerial_robot_base/state_estimation.h>
+#include <aerial_robot_estimation/state_estimation.h>
 #include <aerial_robot_base/flight_navigation.h>
 #include <aerial_robot_model/transformable_aerial_robot_model.h>
 
@@ -67,7 +67,7 @@ namespace control_plugin
     void virtual initialize(ros::NodeHandle nh,
                             ros::NodeHandle nhp,
                             boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
-                            StateEstimator* estimator,
+                            boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
                             Navigator* navigator,
                             double ctrl_loop_rate)
     {
@@ -195,8 +195,8 @@ namespace control_plugin
     ros::Publisher  uav_info_pub_;
 
     boost::shared_ptr<aerial_robot_model::RobotModel> robot_model_;
+    boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator_;
     Navigator* navigator_;
-    StateEstimator* estimator_;
 
     double ctrl_loop_rate_;
     double control_timestamp_;

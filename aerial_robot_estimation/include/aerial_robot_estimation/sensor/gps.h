@@ -33,28 +33,16 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 
-/* ros */
-#include <ros/ros.h>
+#pragma once
 
-/* base class */
-#include <aerial_robot_base/sensor/base_plugin.h>
-
-/* kalman filters */
-#include <kalman_filter/kf_pos_vel_acc_plugin.h>
-
-/* gps convert */
+#include <aerial_robot_estimation/sensor/base_plugin.h>
 #include <geodesy/utm.h>
-
-/* time */
-#include <time.h>
-
-/* ros msg */
-#include <spinal/Gps.h>
-#include <spinal/GpsFull.h>
-#include <aerial_robot_msgs/FlightNav.h>
+#include <kalman_filter/kf_pos_vel_acc_plugin.h>
 #include <nav_msgs/Odometry.h>
 #include <sensor_msgs/NavSatFix.h>
-
+#include <spinal/Gps.h>
+#include <spinal/GpsFull.h>
+#include <time.h>
 
 using namespace Eigen;
 using namespace std;
@@ -71,7 +59,10 @@ namespace sensor_plugin
   class Gps :public sensor_plugin::SensorBase
     {
     public:
-      void initialize(ros::NodeHandle nh, boost::shared_ptr<aerial_robot_model::RobotModel> robot_model, StateEstimator* estimator, string sensor_name, int index);
+      void initialize(ros::NodeHandle nh,
+                      boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
+                      boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
+                      string sensor_name, int index) override;
 
       ~Gps() {}
       Gps();

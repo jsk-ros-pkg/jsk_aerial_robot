@@ -34,36 +34,25 @@
  *********************************************************************/
 
 /* base class */
-#include <kalman_filter/kf_base_plugin.h>
-
-/* plugin */
-#include <pluginlib/class_list_macros.h>
+#include <aerial_robot_estimation/kf/baro_bias_plugin.h>
 
 namespace kf_plugin
 {
-  class KalmanFilterBaroBias : public kf_plugin::KalmanFilter
+  void KalmanFilterBaroBias::initialize(string name, int id)
   {
-  public:
-    KalmanFilterBaroBias(): KalmanFilter() {}
+    state_dim_ = 1;
 
-    ~KalmanFilterBaroBias() {}
+    const_state_transition_model_ = MatrixXd::Identity(1, 1);
+    const_control_input_model_ = MatrixXd::Identity(1, 1);
+    const_observation_model_ = MatrixXd::Identity(1, 1);
 
-    void initialize(string name, int id);
+    state_names_ = {"bias"};
+    input_names_ = {"d_bias"};
+    measure_names_ = {"bias"};
 
-    /* be sure that the first parma should be timestamp */
-    void getPredictModel(const vector<double>& params, const VectorXd& estimate_state, MatrixXd& state_transition_model, MatrixXd& control_input_model) const
-    {
-      state_transition_model = const_state_transition_model_;
-      control_input_model = const_control_input_model_;
-    }
-    void getCorrectModel(const vector<double>& params, const VectorXd& estimate_state, MatrixXd& observation_model) const
-    {
-      observation_model = const_observation_model_;
-    }
-  private:
-    MatrixXd const_state_transition_model_;
-    MatrixXd const_control_input_model_;
-    MatrixXd const_observation_model_;
-
-  };
+    KalmanFilter::initialize(name, id);
+  }
 };
+
+#include <pluginlib/class_list_macros.h>
+PLUGINLIB_EXPORT_CLASS(kf_plugin::KalmanFilterBaroBias, kf_plugin::KalmanFilter);

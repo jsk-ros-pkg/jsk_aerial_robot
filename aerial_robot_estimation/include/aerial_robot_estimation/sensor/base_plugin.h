@@ -33,34 +33,20 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 
-#ifndef SENOR_BASE_PLUGIN_H_
-#define SENOR_BASE_PLUGIN_H_
+#pragma once
 
-/* ros */
-#include <ros/ros.h>
-
-/* filter */
-#include <kalman_filter/lpf_filter.h>
-
-/* kf plugin */
-#include <kalman_filter/kf_base_plugin.h>
-
-/* estimation class */
-#include <aerial_robot_base/state_estimation.h>
-
-/* algebra */
+#include <aerial_robot_estimation/state_estimation.h>
+#include <aerial_robot_msgs/States.h>
 #include <Eigen/Core>
 #include <Eigen/Dense>
-#include <tf/LinearMath/Transform.h>
-
-/* ros msg */
-#include <aerial_robot_msgs/States.h>
+#include <iostream>
+#include <kalman_filter/lpf_filter.h>
+#include <kalman_filter/kf_base_plugin.h>
+#include <ros/ros.h>
 #include <std_srvs/Empty.h>
 #include <std_srvs/SetBool.h>
+#include <tf/LinearMath/Transform.h>
 #include <tf_conversions/tf_kdl.h>
-
-/* utils */
-#include <iostream>
 
 using namespace Eigen;
 using namespace std;
@@ -81,7 +67,10 @@ namespace sensor_plugin
       sensor_status_ = Status::INACTIVE;
     }
 
-    virtual void initialize(ros::NodeHandle nh, boost::shared_ptr<aerial_robot_model::RobotModel> robot_model, StateEstimator* estimator, string sensor_name, int index)
+    virtual void initialize(ros::NodeHandle nh,
+                            boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
+                            boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
+                            string sensor_name, int index)
     {
       estimator_ = estimator;
       robot_model_ = robot_model;
@@ -162,7 +151,7 @@ namespace sensor_plugin
     ros::ServiceServer set_status_service_;
     ros::ServiceServer reset_service_;
     boost::shared_ptr<aerial_robot_model::RobotModel> robot_model_;
-    StateEstimator* estimator_;
+    boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator_;
     int estimate_mode_;
 
     //bool simulation_;
@@ -322,5 +311,3 @@ namespace sensor_plugin
   };
 
 };
-
-#endif

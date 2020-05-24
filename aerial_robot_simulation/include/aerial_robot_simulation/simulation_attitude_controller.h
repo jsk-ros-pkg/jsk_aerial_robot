@@ -40,7 +40,7 @@
 #ifndef SIMULATION_ATTITUDE_CONTROLLER_H
 #define SIMULATION_ATTITUDE_CONTROLLER_H
 
-#include <aerial_robot_base/state_estimation.h>
+#include <aerial_robot_estimation/state_estimation.h>
 #include <aerial_robot_simulation/spinal_interface.h>
 #include <boost/scoped_ptr.hpp>
 #include <controller_interface/controller.h>

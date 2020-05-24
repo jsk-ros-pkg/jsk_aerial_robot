@@ -33,8 +33,8 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 
-#include <aerial_robot_base/sensor/gps.h>
-#include <aerial_robot_base/sensor/vo.h>
+#include <aerial_robot_estimation/sensor/gps.h>
+#include <aerial_robot_estimation/sensor/vo.h>
 
 namespace
 {
@@ -88,7 +88,10 @@ namespace sensor_plugin
     world_frame_.setIdentity();
   }
 
-  void Gps::initialize(ros::NodeHandle nh, boost::shared_ptr<aerial_robot_model::RobotModel> robot_model, StateEstimator* estimator, string sensor_name, int index)
+  void Gps::initialize(ros::NodeHandle nh,
+                       boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
+                       boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
+                       string sensor_name, int index)
   {
     SensorBase::initialize(nh, robot_model, estimator, sensor_name, index);
     rosParamInit();
@@ -167,8 +170,8 @@ namespace sensor_plugin
       {
         setStatus(Status::INIT);
 
-        if(!estimator_->getStateStatus(State::X_BASE, StateEstimator::EGOMOTION_ESTIMATE) ||
-           !estimator_->getStateStatus(State::Y_BASE, StateEstimator::EGOMOTION_ESTIMATE))
+        if(!estimator_->getStateStatus(State::X_BASE, aerial_robot_estimation::EGOMOTION_ESTIMATE) ||
+           !estimator_->getStateStatus(State::Y_BASE, aerial_robot_estimation::EGOMOTION_ESTIMATE))
           {
             ROS_WARN("GPS: start gps kalman filter");
 
@@ -191,8 +194,8 @@ namespace sensor_plugin
           }
 
         /* set the status */
-        estimator_->setStateStatus(State::X_BASE, StateEstimator::EGOMOTION_ESTIMATE, true);
-        estimator_->setStateStatus(State::Y_BASE, StateEstimator::EGOMOTION_ESTIMATE, true);
+        estimator_->setStateStatus(State::X_BASE, aerial_robot_estimation::EGOMOTION_ESTIMATE, true);
+        estimator_->setStateStatus(State::Y_BASE, aerial_robot_estimation::EGOMOTION_ESTIMATE, true);
         setStatus(Status::ACTIVE);
 
         /* set home position */
@@ -205,7 +208,7 @@ namespace sensor_plugin
     tf::Matrix3x3 r; r.setIdentity();
     tf::Vector3 omega(0,0,0);
 
-    int mode = StateEstimator::EGOMOTION_ESTIMATE;
+    int mode = aerial_robot_estimation::EGOMOTION_ESTIMATE;
     if(!estimator_->findRotOmega(curr_timestamp_, mode, r, omega))
       ROS_WARN_STREAM("gps: the omega is not updated from findRotOmega");
 

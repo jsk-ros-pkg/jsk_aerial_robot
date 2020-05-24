@@ -33,21 +33,15 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 
-/* ros */
-#include <ros/ros.h>
+#pragma once
 
-/* base class */
-#include <aerial_robot_base/sensor/base_plugin.h>
-
-/* filter */
-#include <kalman_filter/kf_pos_vel_acc_plugin.h>
-
-/* ros msg */
+#include <aerial_robot_estimation/sensor/base_plugin.h>
 #include <geometry_msgs/Vector3Stamped.h>
+#include <kalman_filter/kf_pos_vel_acc_plugin.h>
 #include <nav_msgs/Odometry.h>
+#include <sensor_msgs/JointState.h>
 #include <spinal/ServoControlCmd.h>
 #include <std_msgs/Empty.h>
-#include <sensor_msgs/JointState.h>
 
 namespace sensor_plugin
 {
@@ -60,7 +54,10 @@ namespace sensor_plugin
     VisualOdometry();
     ~VisualOdometry(){}
 
-    void initialize(ros::NodeHandle nh, boost::shared_ptr<aerial_robot_model::RobotModel> robot_model, StateEstimator* estimator, string sensor_name, int index);
+    void initialize(ros::NodeHandle nh,
+                    boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
+                    boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
+                    string sensor_name, int index) override;
 
     inline const bool odomPosMode()
     {

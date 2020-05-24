@@ -33,7 +33,7 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 
-#include <aerial_robot_base/sensor/imu.h>
+#include <aerial_robot_estimation/sensor/imu.h>
 
 namespace
 {
@@ -68,7 +68,10 @@ namespace sensor_plugin
     state_.states[2].state.resize(2);
   }
 
-  void Imu::initialize(ros::NodeHandle nh, boost::shared_ptr<aerial_robot_model::RobotModel> robot_model, StateEstimator* estimator, string sensor_name, int index)
+  void Imu::initialize(ros::NodeHandle nh,
+                       boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
+                       boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
+                       string sensor_name, int index)
   {
     SensorBase::initialize(nh, robot_model, estimator, sensor_name, index);
     rosParamInit();
@@ -121,10 +124,10 @@ namespace sensor_plugin
     tf::Matrix3x3 orientation;
     orientation.setRPY(euler_[0], euler_[1], 0);
 #if 1
-    acc_l_ = orientation * acc_b_  - tf::Vector3(0, 0, StateEstimator::G); /* use x,y for factor4 and z for factor3 */
-    //acc_l_.setZ((orientation * tf::Vector3(0, 0, acc_[Frame::BODY].z())).z() - StateEstimator::G);
+    acc_l_ = orientation * acc_b_  - tf::Vector3(0, 0, aerial_robot_estimation::G); /* use x,y for factor4 and z for factor3 */
+    //acc_l_.setZ((orientation * tf::Vector3(0, 0, acc_[Frame::BODY].z())).z() - aerial_robot_estimation::G);
 #else  // use approximation
-    acc_l_ = orientation * tf::Vector3(0, 0, acc_b_.z()) - tf::Vector3(0, 0, StateEstimator::G);
+    acc_l_ = orientation * tf::Vector3(0, 0, acc_b_.z()) - tf::Vector3(0, 0, aerial_robot_estimation::G);
 #endif
 
     if(estimator_->getLandingMode() &&
@@ -137,20 +140,20 @@ namespace sensor_plugin
 
     /* base link */
     /* roll & pitch */
-    estimator_->setState(State::ROLL_BASE, StateEstimator::EGOMOTION_ESTIMATE, 0, euler_[0]);
-    estimator_->setState(State::PITCH_BASE, StateEstimator::EGOMOTION_ESTIMATE, 0, euler_[1]);
-    estimator_->setState(State::ROLL_BASE, StateEstimator::EXPERIMENT_ESTIMATE, 0, euler_[0]);
-    estimator_->setState(State::PITCH_BASE, StateEstimator::EXPERIMENT_ESTIMATE, 0, euler_[1]);
+    estimator_->setState(State::ROLL_BASE, aerial_robot_estimation::EGOMOTION_ESTIMATE, 0, euler_[0]);
+    estimator_->setState(State::PITCH_BASE, aerial_robot_estimation::EGOMOTION_ESTIMATE, 0, euler_[1]);
+    estimator_->setState(State::ROLL_BASE, aerial_robot_estimation::EXPERIMENT_ESTIMATE, 0, euler_[0]);
+    estimator_->setState(State::PITCH_BASE, aerial_robot_estimation::EXPERIMENT_ESTIMATE, 0, euler_[1]);
 
     /* yaw */
-    if(!estimator_->getStateStatus(State::YAW_BASE, StateEstimator::EGOMOTION_ESTIMATE))
-      estimator_->setState(State::YAW_BASE, StateEstimator::EGOMOTION_ESTIMATE, 0, euler_[2]);
+    if(!estimator_->getStateStatus(State::YAW_BASE, aerial_robot_estimation::EGOMOTION_ESTIMATE))
+      estimator_->setState(State::YAW_BASE, aerial_robot_estimation::EGOMOTION_ESTIMATE, 0, euler_[2]);
 
-    if(!estimator_->getStateStatus(State::YAW_BASE, StateEstimator::EXPERIMENT_ESTIMATE))
-      estimator_->setState(State::YAW_BASE, StateEstimator::EXPERIMENT_ESTIMATE, 0, euler_[2]);
+    if(!estimator_->getStateStatus(State::YAW_BASE, aerial_robot_estimation::EXPERIMENT_ESTIMATE))
+      estimator_->setState(State::YAW_BASE, aerial_robot_estimation::EXPERIMENT_ESTIMATE, 0, euler_[2]);
 
-    estimator_->setAngularVel(Frame::BASELINK, StateEstimator::EGOMOTION_ESTIMATE, omega_);
-    estimator_->setAngularVel(Frame::BASELINK, StateEstimator::EXPERIMENT_ESTIMATE, omega_);
+    estimator_->setAngularVel(Frame::BASELINK, aerial_robot_estimation::EGOMOTION_ESTIMATE, omega_);
+    estimator_->setAngularVel(Frame::BASELINK, aerial_robot_estimation::EXPERIMENT_ESTIMATE, omega_);
 
     /* COG */
     /* TODO: only imu can assign to cog state for estimate mode and experiment mode */
@@ -158,27 +161,27 @@ namespace sensor_plugin
     tf::transformKDLToTF(robot_model_->getCog2Baselink<KDL::Frame>(), cog2baselink_tf);
 
     double roll, pitch, yaw;
-    (estimator_->getOrientation(Frame::BASELINK, StateEstimator::EGOMOTION_ESTIMATE) * cog2baselink_tf.inverse().getBasis()).getRPY(roll, pitch, yaw);
-    estimator_->setEuler(Frame::COG, StateEstimator::EGOMOTION_ESTIMATE, tf::Vector3(roll, pitch, yaw));
-    estimator_->setAngularVel(Frame::COG, StateEstimator::EGOMOTION_ESTIMATE, cog2baselink_tf.getBasis() * omega_);
+    (estimator_->getOrientation(Frame::BASELINK, aerial_robot_estimation::EGOMOTION_ESTIMATE) * cog2baselink_tf.inverse().getBasis()).getRPY(roll, pitch, yaw);
+    estimator_->setEuler(Frame::COG, aerial_robot_estimation::EGOMOTION_ESTIMATE, tf::Vector3(roll, pitch, yaw));
+    estimator_->setAngularVel(Frame::COG, aerial_robot_estimation::EGOMOTION_ESTIMATE, cog2baselink_tf.getBasis() * omega_);
 
-    (estimator_->getOrientation(Frame::BASELINK, StateEstimator::EXPERIMENT_ESTIMATE) * cog2baselink_tf.inverse().getBasis()).getRPY(roll, pitch, yaw);
-    estimator_->setEuler(Frame::COG, StateEstimator::EXPERIMENT_ESTIMATE, tf::Vector3(roll, pitch, yaw));
-    estimator_->setAngularVel(Frame::COG, StateEstimator::EXPERIMENT_ESTIMATE, cog2baselink_tf.getBasis() * omega_);
+    (estimator_->getOrientation(Frame::BASELINK, aerial_robot_estimation::EXPERIMENT_ESTIMATE) * cog2baselink_tf.inverse().getBasis()).getRPY(roll, pitch, yaw);
+    estimator_->setEuler(Frame::COG, aerial_robot_estimation::EXPERIMENT_ESTIMATE, tf::Vector3(roll, pitch, yaw));
+    estimator_->setAngularVel(Frame::COG, aerial_robot_estimation::EXPERIMENT_ESTIMATE, cog2baselink_tf.getBasis() * omega_);
 
     /* Ground Truth if necessary */
     if(treat_imu_as_ground_truth_)
       {
         /* set baselink angles for roll and pitch, yaw is obtained from mocap */
-        estimator_->setState(State::ROLL_BASE, StateEstimator::GROUND_TRUTH, 0, euler_[0]);
-        estimator_->setState(State::PITCH_BASE, StateEstimator::GROUND_TRUTH, 0, euler_[1]);
+        estimator_->setState(State::ROLL_BASE, aerial_robot_estimation::GROUND_TRUTH, 0, euler_[0]);
+        estimator_->setState(State::PITCH_BASE, aerial_robot_estimation::GROUND_TRUTH, 0, euler_[1]);
         /* set cog angles for all axes */
-        (estimator_->getOrientation(Frame::BASELINK, StateEstimator::GROUND_TRUTH) * cog2baselink_tf.inverse().getBasis()).getRPY(roll, pitch, yaw);
-        estimator_->setEuler(Frame::COG, StateEstimator::GROUND_TRUTH, tf::Vector3(roll, pitch, yaw));
+        (estimator_->getOrientation(Frame::BASELINK, aerial_robot_estimation::GROUND_TRUTH) * cog2baselink_tf.inverse().getBasis()).getRPY(roll, pitch, yaw);
+        estimator_->setEuler(Frame::COG, aerial_robot_estimation::GROUND_TRUTH, tf::Vector3(roll, pitch, yaw));
         /* set baselink angular velocity for all axes using imu omega */
-        estimator_->setAngularVel(Frame::BASELINK, StateEstimator::GROUND_TRUTH, omega_);
+        estimator_->setAngularVel(Frame::BASELINK, aerial_robot_estimation::GROUND_TRUTH, omega_);
         /* set cog angular velocity for all axes using imu omega */
-        estimator_->setAngularVel(Frame::COG, StateEstimator::GROUND_TRUTH, cog2baselink_tf.getBasis() * omega_);
+        estimator_->setAngularVel(Frame::COG, aerial_robot_estimation::GROUND_TRUTH, cog2baselink_tf.getBasis() * omega_);
       }
 
     /* bais calibration */
@@ -357,8 +360,8 @@ namespace sensor_plugin
           }
 
         /* TODO: set z acc: should use kf reuslt? */
-        estimator_->setState(State::Z_BASE, StateEstimator::EGOMOTION_ESTIMATE, 2, acc_non_bias_w_.z());
-        estimator_->setState(State::Z_BASE, StateEstimator::EXPERIMENT_ESTIMATE, 2, acc_non_bias_w_.z());
+        estimator_->setState(State::Z_BASE, aerial_robot_estimation::EGOMOTION_ESTIMATE, 2, acc_non_bias_w_.z());
+        estimator_->setState(State::Z_BASE, aerial_robot_estimation::EXPERIMENT_ESTIMATE, 2, acc_non_bias_w_.z());
 
         /* set the rotation and angular velocity for the temporal queue for other sensor with time delay */
         estimator_->updateQueue(imu_stamp_.toSec(), euler_[0], euler_[1], omega_);
@@ -366,7 +369,7 @@ namespace sensor_plugin
 
         /* 2017.7.25: calculate the state in COG frame using the Baselink frame */
         /* pos_cog = pos_baselink - R * pos_cog2baselink */
-        int estimate_mode = StateEstimator::EGOMOTION_ESTIMATE;
+        int estimate_mode = aerial_robot_estimation::EGOMOTION_ESTIMATE;
         estimator_->setPos(Frame::COG, estimate_mode,
                            estimator_->getPos(Frame::BASELINK, estimate_mode)
                            + estimator_->getOrientation(Frame::BASELINK, estimate_mode)
@@ -377,7 +380,7 @@ namespace sensor_plugin
                            * (estimator_->getAngularVel(Frame::BASELINK, estimate_mode).cross(cog2baselink_tf.inverse().getOrigin())));
 
 
-        estimate_mode = StateEstimator::EXPERIMENT_ESTIMATE;
+        estimate_mode = aerial_robot_estimation::EXPERIMENT_ESTIMATE;
         estimator_->setPos(Frame::COG, estimate_mode,
                            estimator_->getPos(Frame::BASELINK, estimate_mode)
                            + estimator_->getOrientation(Frame::BASELINK, estimate_mode)
@@ -394,8 +397,8 @@ namespace sensor_plugin
 
         /* publish state date */
         state_.header.stamp = imu_stamp_;
-        tf::Vector3 pos = estimator_->getPos(Frame::BASELINK, StateEstimator::EGOMOTION_ESTIMATE);
-        tf::Vector3 vel = estimator_->getVel(Frame::BASELINK, StateEstimator::EGOMOTION_ESTIMATE);
+        tf::Vector3 pos = estimator_->getPos(Frame::BASELINK, aerial_robot_estimation::EGOMOTION_ESTIMATE);
+        tf::Vector3 vel = estimator_->getVel(Frame::BASELINK, aerial_robot_estimation::EGOMOTION_ESTIMATE);
         state_.states[0].state[0].x = pos.x();
         state_.states[1].state[0].x = pos.y();
         state_.states[2].state[0].x = pos.z();
@@ -405,8 +408,8 @@ namespace sensor_plugin
         state_.states[0].state[0].z = acc_w_.x();
         state_.states[1].state[0].z = acc_w_.y();
         state_.states[2].state[0].z = acc_w_.z();
-        pos = estimator_->getPos(Frame::BASELINK, StateEstimator::EXPERIMENT_ESTIMATE);
-        vel = estimator_->getVel(Frame::BASELINK, StateEstimator::EXPERIMENT_ESTIMATE);
+        pos = estimator_->getPos(Frame::BASELINK, aerial_robot_estimation::EXPERIMENT_ESTIMATE);
+        vel = estimator_->getVel(Frame::BASELINK, aerial_robot_estimation::EXPERIMENT_ESTIMATE);
         state_.states[0].state[1].x = pos.x();
         state_.states[1].state[1].x = pos.y();
         state_.states[2].state[1].x = pos.z();
@@ -459,7 +462,7 @@ namespace sensor_plugin
 
     /* important scale, record here
        {
-       nhp_.param("acc_scale", acc_scale_, StateEstimator::G / 512.0);
+       nhp_.param("acc_scale", acc_scale_, aerial_robot_estimation::G / 512.0);
        if(param_verbose_) cout << ns << ": acc scale is" << acc_scale_ << endl;
        nhp_.param("gyro_scale", gyro_scale_, (2279 * M_PI)/((32767.0 / 4.0f ) * 180.0));
        if(param_verbose_) cout << ns << ": gyro scale is" << gyro_scale_ << endl;

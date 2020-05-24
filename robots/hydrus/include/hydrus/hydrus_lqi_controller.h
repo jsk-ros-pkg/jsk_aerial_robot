@@ -76,7 +76,8 @@ namespace control_plugin
 
     void initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
                     boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
-                    StateEstimator* estimator, Navigator* navigator,
+                    boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
+                    Navigator* navigator,
                     double ctrl_loop_rate);
 
     const Eigen::MatrixXd& getPMatrix() const { return p_mat_; }

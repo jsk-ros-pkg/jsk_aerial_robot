@@ -63,7 +63,12 @@ namespace control_plugin
   {
   }
 
-  void HydrusXiFullyActuatedController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp, boost::shared_ptr<aerial_robot_model::RobotModel> robot_model, StateEstimator* estimator, Navigator* navigator, double ctrl_loop_rate) //override
+  void HydrusXiFullyActuatedController::initialize(ros::NodeHandle nh,
+                                                   ros::NodeHandle nhp,
+                                                   boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
+                                                   boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
+                                                   Navigator* navigator,
+                                                   double ctrl_loop_rate)
   {
     ControlBase::initialize(nh, nhp, robot_model, estimator, navigator, ctrl_loop_rate);
 

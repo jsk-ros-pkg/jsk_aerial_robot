@@ -33,20 +33,12 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 
-/* ros */
-#include <ros/ros.h>
-
-/* base class */
-#include <aerial_robot_base/sensor/base_plugin.h>
-#include <aerial_robot_base/sensor/imu.h>
-
-/* filter */
-#include <kalman_filter/kf_pos_vel_acc_plugin.h>
-
-/* ros msg */
-#include <std_msgs/Float32.h>
+#include <aerial_robot_estimation/sensor/base_plugin.h>
+#include <aerial_robot_estimation/sensor/imu.h>
 #include <geometry_msgs/PoseStamped.h>
+#include <kalman_filter/kf_pos_vel_acc_plugin.h>
 #include <nav_msgs/Odometry.h>
+#include <std_msgs/Float32.h>
 
 using namespace Eigen;
 using namespace std;
@@ -63,7 +55,10 @@ namespace sensor_plugin
   class Mocap : public sensor_plugin::SensorBase
   {
   public:
-    void initialize(ros::NodeHandle nh, boost::shared_ptr<aerial_robot_model::RobotModel> robot_model, StateEstimator* estimator, string sensor_name, int index)
+    void initialize(ros::NodeHandle nh,
+                    boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
+                    boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
+                    string sensor_name, int index)
     {
       SensorBase::initialize(nh, robot_model, estimator, sensor_name, index);
       rosParamInit();
@@ -176,10 +171,10 @@ namespace sensor_plugin
           if(!receive_groundtruth_odom_)
             {
               omega = lpf_angular_.filterFunction(raw_omega);
-              estimator_->setState(State::YAW_BASE, StateEstimator::GROUND_TRUTH, 0, euler[2]);
+              estimator_->setState(State::YAW_BASE, aerial_robot_estimation::GROUND_TRUTH, 0, euler[2]);
             }
-          if(estimate_mode_ & (1 << StateEstimator::EXPERIMENT_ESTIMATE))
-            estimator_->setState(State::YAW_BASE, StateEstimator::EXPERIMENT_ESTIMATE, 0, euler[2]);
+          if(estimate_mode_ & (1 << aerial_robot_estimation::EXPERIMENT_ESTIMATE))
+            estimator_->setState(State::YAW_BASE, aerial_robot_estimation::EXPERIMENT_ESTIMATE, 0, euler[2]);
 
           ground_truth_pose_.header.stamp = msg->header.stamp;
 
@@ -225,8 +220,8 @@ namespace sensor_plugin
     void setGroundTruthPosVel(tf::Vector3 baselink_pos, tf::Vector3 baselink_vel)
     {
       /* base link */
-      estimator_->setPos(Frame::BASELINK, StateEstimator::GROUND_TRUTH, baselink_pos);
-      estimator_->setVel(Frame::BASELINK, StateEstimator::GROUND_TRUTH, baselink_vel);
+      estimator_->setPos(Frame::BASELINK, aerial_robot_estimation::GROUND_TRUTH, baselink_pos);
+      estimator_->setVel(Frame::BASELINK, aerial_robot_estimation::GROUND_TRUTH, baselink_vel);
 
       /* CoG */
       /* 2017.7.25: calculate the state in COG frame using the Baselink frame */
@@ -234,7 +229,7 @@ namespace sensor_plugin
       tf::Transform cog2baselink_tf;
       tf::transformKDLToTF(robot_model_->getCog2Baselink<KDL::Frame>(), cog2baselink_tf);
 
-      int estimate_mode = StateEstimator::GROUND_TRUTH;
+      int estimate_mode = aerial_robot_estimation::GROUND_TRUTH;
       estimator_->setPos(Frame::COG, estimate_mode,
                          estimator_->getPos(Frame::BASELINK, estimate_mode)
                          + estimator_->getOrientation(Frame::BASELINK, estimate_mode)
@@ -268,16 +263,16 @@ namespace sensor_plugin
           // This LPF simulates the smoothing of gyro in spinal (e.g., dragon, which use angular to do attitude control in ROS as well as spinal,)
           omega = lpf_angular_.filterFunction(omega);
 
-          estimator_->setEuler(Frame::BASELINK, StateEstimator::GROUND_TRUTH, euler);
-          estimator_->setAngularVel(Frame::BASELINK, StateEstimator::GROUND_TRUTH, omega);
+          estimator_->setEuler(Frame::BASELINK, aerial_robot_estimation::GROUND_TRUTH, euler);
+          estimator_->setAngularVel(Frame::BASELINK, aerial_robot_estimation::GROUND_TRUTH, omega);
 
           /* cog */
           tf::Transform cog2baselink_tf;
           tf::transformKDLToTF(robot_model_->getCog2Baselink<KDL::Frame>(), cog2baselink_tf);
           (tf::Matrix3x3(q) * cog2baselink_tf.inverse().getBasis()).getRPY(r, p, y);
           euler.setValue(r, p, y);
-          estimator_->setEuler(Frame::COG, StateEstimator::GROUND_TRUTH, euler);
-          estimator_->setAngularVel(Frame::COG, StateEstimator::GROUND_TRUTH, cog2baselink_tf.getBasis() * omega); // TODO: check the vibration
+          estimator_->setEuler(Frame::COG, aerial_robot_estimation::GROUND_TRUTH, euler);
+          estimator_->setAngularVel(Frame::COG, aerial_robot_estimation::GROUND_TRUTH, cog2baselink_tf.getBasis() * omega); // TODO: check the vibration
 
           setGroundTruthPosVel(baselink_pos, baselink_vel);
         }
@@ -305,21 +300,21 @@ namespace sensor_plugin
     void init(tf::Vector3 init_pos)
     {
       /* set ground truth */
-      estimator_->setStateStatus(State::X_BASE, StateEstimator::GROUND_TRUTH, true);
-      estimator_->setStateStatus(State::Y_BASE, StateEstimator::GROUND_TRUTH, true);
-      estimator_->setStateStatus(State::Z_BASE, StateEstimator::GROUND_TRUTH, true);
-      estimator_->setStateStatus(State::YAW_BASE, StateEstimator::GROUND_TRUTH, true);
-      estimator_->setStateStatus(State::YAW_COG, StateEstimator::GROUND_TRUTH, true);
+      estimator_->setStateStatus(State::X_BASE, aerial_robot_estimation::GROUND_TRUTH, true);
+      estimator_->setStateStatus(State::Y_BASE, aerial_robot_estimation::GROUND_TRUTH, true);
+      estimator_->setStateStatus(State::Z_BASE, aerial_robot_estimation::GROUND_TRUTH, true);
+      estimator_->setStateStatus(State::YAW_BASE, aerial_robot_estimation::GROUND_TRUTH, true);
+      estimator_->setStateStatus(State::YAW_COG, aerial_robot_estimation::GROUND_TRUTH, true);
 
-      if(estimate_mode_ & (1 << StateEstimator::EXPERIMENT_ESTIMATE))
+      if(estimate_mode_ & (1 << aerial_robot_estimation::EXPERIMENT_ESTIMATE))
         {
-          estimator_->setStateStatus(State::X_BASE, StateEstimator::EXPERIMENT_ESTIMATE, true);
-          estimator_->setStateStatus(State::Y_BASE, StateEstimator::EXPERIMENT_ESTIMATE, true);
-          estimator_->setStateStatus(State::Z_BASE, StateEstimator::EXPERIMENT_ESTIMATE, true);
-          estimator_->setStateStatus(State::YAW_BASE, StateEstimator::EXPERIMENT_ESTIMATE, true);
-          estimator_->setStateStatus(State::YAW_COG, StateEstimator::EXPERIMENT_ESTIMATE, true);
+          estimator_->setStateStatus(State::X_BASE, aerial_robot_estimation::EXPERIMENT_ESTIMATE, true);
+          estimator_->setStateStatus(State::Y_BASE, aerial_robot_estimation::EXPERIMENT_ESTIMATE, true);
+          estimator_->setStateStatus(State::Z_BASE, aerial_robot_estimation::EXPERIMENT_ESTIMATE, true);
+          estimator_->setStateStatus(State::YAW_BASE, aerial_robot_estimation::EXPERIMENT_ESTIMATE, true);
+          estimator_->setStateStatus(State::YAW_COG, aerial_robot_estimation::EXPERIMENT_ESTIMATE, true);
 
-          for(auto& fuser : estimator_->getFuser(StateEstimator::EXPERIMENT_ESTIMATE))
+          for(auto& fuser : estimator_->getFuser(aerial_robot_estimation::EXPERIMENT_ESTIMATE))
             {
               string plugin_name = fuser.first;
               boost::shared_ptr<kf_plugin::KalmanFilter> kf = fuser.second;
@@ -350,15 +345,15 @@ namespace sensor_plugin
     {
       if(sensor_status_ == Status::INVALID) return;
 
-      if((estimate_mode_ & (1 << StateEstimator::GROUND_TRUTH)) && !receive_groundtruth_odom_)
+      if((estimate_mode_ & (1 << aerial_robot_estimation::GROUND_TRUTH)) && !receive_groundtruth_odom_)
         {
           setGroundTruthPosVel(pos_, vel_);
         }
 
       /* start experiment estimation */
-      if(!(estimate_mode_ & (1 << StateEstimator::EXPERIMENT_ESTIMATE))) return;
+      if(!(estimate_mode_ & (1 << aerial_robot_estimation::EXPERIMENT_ESTIMATE))) return;
 
-      for(auto& fuser : estimator_->getFuser(StateEstimator::EXPERIMENT_ESTIMATE))
+      for(auto& fuser : estimator_->getFuser(aerial_robot_estimation::EXPERIMENT_ESTIMATE))
         {
           string plugin_name = fuser.first;
           boost::shared_ptr<kf_plugin::KalmanFilter> kf = fuser.second;
@@ -391,8 +386,8 @@ namespace sensor_plugin
                   vector<double> params = {kf_plugin::POS};
                   kf->correction(meas, measure_sigma, -1, params); //no time sync
                   // VectorXd state = kf->getEstimateState();
-                  // estimator_->setState(index + 3, StateEstimator::EXPERIMENT_ESTIMATE, 0, state(0));
-                  // estimator_->setState(index + 3, StateEstimator::EXPERIMENT_ESTIMATE, 1, state(1));
+                  // estimator_->setState(index + 3, aerial_robot_estimation::EXPERIMENT_ESTIMATE, 0, state(0));
+                  // estimator_->setState(index + 3, aerial_robot_estimation::EXPERIMENT_ESTIMATE, 1, state(1));
                 }
 
               if(plugin_name == "aerial_robot_base/kf_xy_roll_pitch_bias")
@@ -409,10 +404,10 @@ namespace sensor_plugin
 
                       VectorXd state = kf->getEstimateState();
                       /* temp */
-                      estimator_->setState(State::X_BASE, StateEstimator::EXPERIMENT_ESTIMATE, 0, state(0));
-                      estimator_->setState(State::X_BASE, StateEstimator::EXPERIMENT_ESTIMATE, 1, state(1));
-                      estimator_->setState(State::Y_BASE, StateEstimator::EXPERIMENT_ESTIMATE, 0, state(2));
-                      estimator_->setState(State::Y_BASE, StateEstimator::EXPERIMENT_ESTIMATE, 1, state(3));
+                      estimator_->setState(State::X_BASE, aerial_robot_estimation::EXPERIMENT_ESTIMATE, 0, state(0));
+                      estimator_->setState(State::X_BASE, aerial_robot_estimation::EXPERIMENT_ESTIMATE, 1, state(1));
+                      estimator_->setState(State::Y_BASE, aerial_robot_estimation::EXPERIMENT_ESTIMATE, 0, state(2));
+                      estimator_->setState(State::Y_BASE, aerial_robot_estimation::EXPERIMENT_ESTIMATE, 1, state(3));
                     }
                 }
             }

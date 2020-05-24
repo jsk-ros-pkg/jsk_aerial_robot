@@ -3,9 +3,9 @@
 
 /* ros */
 #include <ros/ros.h>
-#include <aerial_robot_base/state_estimation.h>
-#include <aerial_robot_base/sensor/base_plugin.h>
-#include <aerial_robot_base/sensor/gps.h>
+#include <aerial_robot_estimation/state_estimation.h>
+#include <aerial_robot_estimation/sensor/base_plugin.h>
+#include <aerial_robot_estimation/sensor/gps.h>
 
 /* ros msg */
 #include <std_msgs/Int8.h>
@@ -42,7 +42,7 @@ class Navigator
 public:
   Navigator(ros::NodeHandle nh, ros::NodeHandle nh_private,
             boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
-            StateEstimator* estimator);
+            boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator);
   virtual ~Navigator();
 
   ros::Publisher  flight_config_pub_;
@@ -213,7 +213,7 @@ protected:
   ros::Subscriber stop_teleop_sub_;
 
   boost::shared_ptr<aerial_robot_model::RobotModel> robot_model_;
-  StateEstimator* estimator_;
+  boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator_;
 
   bool param_verbose_;
 

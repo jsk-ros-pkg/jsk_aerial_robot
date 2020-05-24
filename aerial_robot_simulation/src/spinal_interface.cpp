@@ -49,7 +49,7 @@ namespace hardware_interface
     if(on_ground_)
       {
         /* assume the robot is static, acc: [0, 0, g] */
-        setImuValue(0, 0, StateEstimator::G, 0, 0, 0);
+        setImuValue(0, 0, aerial_robot_estimation::G, 0, 0, 0);
       }
 
     spinal_state_estimator_.update();

@@ -33,15 +33,9 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 
-/* base class */
-#include <kalman_filter/kf_pos_vel_acc_plugin.h>
-
-/* plugin */
-#include <pluginlib/class_list_macros.h>
-
-//* for dynamic reconfigure
+#include <aerial_robot_estimation/KalmanFilterXYBiasConfig.h>
 #include <dynamic_reconfigure/server.h>
-#include <aerial_robot_base/KalmanFilterXYBiasConfig.h>
+#include <kalman_filter/kf_pos_vel_acc_plugin.h>
 
 namespace kf_plugin
 {
@@ -244,4 +238,5 @@ namespace kf_plugin
   };
 };
 
+#include <pluginlib/class_list_macros.h>
 PLUGINLIB_EXPORT_CLASS(kf_plugin::KalmanFilterXYBias, kf_plugin::KalmanFilter);

@@ -33,16 +33,13 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 
-#include "aerial_robot_base/state_estimation.h"
+#include <aerial_robot_estimation/sensor/base_plugin.h>
+#include <aerial_robot_estimation/state_estimation.h>
 
-/* sensor plugin */
-#include <aerial_robot_base/sensor/base_plugin.h>
+using namespace aerial_robot_estimation;
 
-StateEstimator::StateEstimator(ros::NodeHandle nh, ros::NodeHandle nh_private, boost::shared_ptr<aerial_robot_model::RobotModel> robot_model)
-  : nh_(nh),
-    nhp_(nh_private),
-    robot_model_(robot_model),
-    sensor_fusion_flag_(false),
+StateEstimator::StateEstimator()
+  : sensor_fusion_flag_(false),
     qu_size_(0),
     flying_flag_(false),
     landing_mode_flag_(false),
@@ -66,6 +63,13 @@ StateEstimator::StateEstimator(ros::NodeHandle nh, ros::NodeHandle nh_private, b
 
   /* TODO: represented sensors unhealth level */
   unhealth_level_ = 0;
+}
+
+void StateEstimator::initialize(ros::NodeHandle nh, ros::NodeHandle nh_private, boost::shared_ptr<aerial_robot_model::RobotModel> robot_model)
+{
+  nh_ = nh;
+  nhp_ = nh_private;
+  robot_model_ =robot_model;
 
   rosParamInit();
 
@@ -251,10 +255,11 @@ void StateEstimator::rosParamInit()
         }
     }
 
-  sensor_plugin_ptr_ =  boost::shared_ptr< pluginlib::ClassLoader<sensor_plugin::SensorBase> >( new pluginlib::ClassLoader<sensor_plugin::SensorBase>("aerial_robot_base", "sensor_plugin::SensorBase"));
+  sensor_plugin_ptr_ =  boost::shared_ptr< pluginlib::ClassLoader<sensor_plugin::SensorBase> >( new pluginlib::ClassLoader<sensor_plugin::SensorBase>("aerial_robot_estimation", "sensor_plugin::SensorBase"));
 
   ros::V_string sensor_list{};
   nh.getParam("sensor_list", sensor_list);
+
   vector<int> sensor_index(0);
 
   for (auto &sensor_plugin_name : sensor_list)
@@ -290,7 +295,7 @@ void StateEstimator::rosParamInit()
               sensor_index.back() = vo_handlers_.size();
             }
 
-          sensors_.back()->initialize(nh_, robot_model_, this, name, sensor_index.back());
+          sensors_.back()->initialize(nh_, robot_model_, shared_from_this(), name, sensor_index.back());
           break;
         }
     }

@@ -37,23 +37,11 @@
 #ifndef AERIAL_ROBOT_ESTIMATION_OPTICAL_FLOW_H_
 #define AERIAL_ROBOT_ESTIMATION_OPTICAL_FLOW_H_
 
-/* ros */
-#include <ros/ros.h>
-#include <nodelet/nodelet.h>
-
-/* ros msg/srv */
-#include <sensor_msgs/Image.h>
-#include <sensor_msgs/CameraInfo.h>
+#include <cv_bridge/cv_bridge.h>
+#include <geometry_msgs/Quaternion.h>
 #include <geometry_msgs/Vector3Stamped.h>
 #include <nav_msgs/Odometry.h>
-#include <sensor_msgs/Imu.h>
-#include <geometry_msgs/Quaternion.h>
-#include <sensor_msgs/Range.h>
-
-/* tf */
-#include <tf/transform_broadcaster.h>
-
-/* opencv */
+#include <nodelet/nodelet.h>
 #include "opencv2/core/core.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 #include "opencv2/highgui/highgui.hpp"
@@ -61,7 +49,13 @@
 #if USE_GPU
 #include "opencv2/gpu/gpu.hpp"
 #endif
-#include <cv_bridge/cv_bridge.h>
+#include <ros/ros.h>
+#include <sensor_msgs/CameraInfo.h>
+#include <sensor_msgs/Imu.h>
+#include <sensor_msgs/Image.h>
+#include <sensor_msgs/Range.h>
+#include <tf/transform_broadcaster.h>
+
 
 namespace aerial_robot_estimation
 {

@@ -1,5 +1,4 @@
-#include "aerial_robot_estimation/optical_flow.h"
-#include <pluginlib/class_list_macros.h>
+#include <aerial_robot_estimation/vision/optical_flow.h>
 
 namespace {
 #if USE_GPU
@@ -235,4 +234,5 @@ namespace aerial_robot_estimation
 } //namespace aerial_robot_estimation
 
 
+#include <pluginlib/class_list_macros.h>
 PLUGINLIB_EXPORT_CLASS(aerial_robot_estimation::OpticalFlow, nodelet::Nodelet)
