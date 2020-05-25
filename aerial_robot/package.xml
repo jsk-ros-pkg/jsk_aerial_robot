@@ -20,6 +20,7 @@
   <run_depend>spinal</run_depend>
   <run_depend>aerial_robot_simulation</run_depend>
   <run_depend>hydrus</run_depend>
+  <run_depend>hydrus_xi</run_depend>
   <run_depend>dragon</run_depend>
 
   <export>
