@@ -21,7 +21,7 @@
   <depend>tf_conversions</depend>
 
   <export>
-    <aerial_robot_base plugin="${prefix}/flight_control_plugin.xml"/>
+    <aerial_robot_control plugin="${prefix}/flight_control_plugin.xml"/>
     <aerial_robot_model plugin="${prefix}/robot_model_plugin.xml"/>
   </export>
 

@@ -1,6 +1,0 @@
-
-motor_info:
-        motor_num: 1
-        min_pwm: 0.55 # should calibrate ESC first, min_esc_range < min_pwm (e.g. min_esc_range = 0.5, min_pwm: 0.55). since the min_pwm is the lowest value for rotation, but with min_esc_range motor can not rotate
-        max_pwm: 0.95 # should calibrate ESC first, max_esc_range = max_pwm
-        force_landing_pwm: 0.7 #altually 0.72 is better, should below the hovering pwm, usaully is 1500
