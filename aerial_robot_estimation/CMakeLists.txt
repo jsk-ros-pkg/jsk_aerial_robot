@@ -60,7 +60,7 @@ add_library(kf_baro_bias_pluginlib
   src/kf/baro_bias_plugin.cpp
   src/kf/xy_roll_pitch_bias_plugin.cpp)
 target_link_libraries(kf_baro_bias_pluginlib ${catkin_LIBRARIES})
-add_dependencies(sensor_pluginlib ${PROJECT_NAME}_gencfg)
+add_dependencies(kf_baro_bias_pluginlib ${PROJECT_NAME}_gencfg)
 
 set(USE_GPU OFF)
 set(CMAKE_BUILD_TYPE Release)

@@ -50,8 +50,8 @@ controller:
     q_yaw_d: 50
     q_yaw_i: 0.5
 
-    q_z: -3.6 # direct feedback gain, old: 10.0
-    q_z_d: -3.4  # direct feedback gain, old: 20.0
+    q_z: 3.6 # direct feedback gain, old: 10.0
+    q_z_d: 3.4  # direct feedback gain, old: 20.0
     q_z_i: 1.55  # direct feedback gain, old: 10.0
 
     r1: 1.0

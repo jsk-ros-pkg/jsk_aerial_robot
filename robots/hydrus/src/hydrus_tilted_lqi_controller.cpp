@@ -67,13 +67,13 @@ bool HydrusTiltedLQIController::optimalGain()
 
   for(int i = 0; i < motor_num_; ++i)
     {
-      roll_gains_.at(i).p = K_(i,0);
+      roll_gains_.at(i).p = -K_(i,0);
       roll_gains_.at(i).i = K_(i,6);
-      roll_gains_.at(i).d = K_(i,1);
-      pitch_gains_.at(i).p = K_(i,2);
+      roll_gains_.at(i).d = -K_(i,1);
+      pitch_gains_.at(i).p = -K_(i,2);
       pitch_gains_.at(i).i = K_(i,7);
-      pitch_gains_.at(i).d = K_(i,3);
-      yaw_gains_.at(i).setValue(K_(i,4), K_(i,8), K_(i,5));
+      pitch_gains_.at(i).d = -K_(i,3);
+      yaw_gains_.at(i).setValue(-K_(i,4), K_(i,8), -K_(i,5));
 
       /* special process to calculate z gain */
       z_gains_.at(i).setValue(q_z_ * f(i) / (f_sum / 4),

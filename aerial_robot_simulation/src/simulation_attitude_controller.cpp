@@ -76,39 +76,6 @@ bool SimulationAttitudeController::init(hardware_interface::SpinalInterface *rob
       controller_core_->useGroundTruth(true);
     }
 
-  // Set the control gains if necessary
-  double gain = 0;
-  if(n.getParam("level_p_gain", gain))
-    {
-      ROS_INFO("simulation_attitude_controller: update level p gain: %f", gain);
-      controller_core_->getAttController().levelPGain(gain);
-    }
-  if(n.getParam("level_i_gain", gain))
-    {
-      ROS_INFO("simulation_attitude_controller: update level i gain: %f", gain);
-      controller_core_->getAttController().levelIGain(gain);
-    }
-  if(n.getParam("level_d_gain", gain))
-    {
-      ROS_INFO("simulation_attitude_controller: update level d gain: %f", gain);
-      controller_core_->getAttController().levelDGain(gain);
-    }
-  if(n.getParam("yaw_p_gain", gain))
-    {
-      ROS_INFO("simulation_attitude_controller: update yaw p gain: %f", gain);
-      controller_core_->getAttController().yawPGain(gain);
-    }
-  if(n.getParam("yaw_i_gain", gain))
-    {
-      ROS_INFO("simulation_attitude_controller: update yaw i gain: %f", gain);
-      controller_core_->getAttController().yawIGain(gain);
-    }
-  if(n.getParam("yaw_d_gain", gain))
-    {
-      ROS_INFO("simulation_attitude_controller: update yaw d gain: %f", gain);
-      controller_core_->getAttController().yawDGain(gain);
-    }
-
   debug_sub_ = n.subscribe("debug_force", 1, &SimulationAttitudeController::debugCallback, this);
 
   return true;

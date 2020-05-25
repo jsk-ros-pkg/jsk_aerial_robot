@@ -215,17 +215,17 @@ bool HydrusLQIController::optimalGain()
 
   for(int i = 0; i < motor_num_; ++i)
     {
-      z_gains_.at(i).setValue(K_(i,0), K_(i, lqi_mode_ * 2), K_(i,1)); // direct allocate
+      z_gains_.at(i).setValue(-K_(i,0), K_(i, lqi_mode_ * 2), -K_(i,1)); // direct allocate
 
-      roll_gains_.at(i).p = K_(i,2);
+      roll_gains_.at(i).p = -K_(i,2);
       roll_gains_.at(i).i = K_(i, lqi_mode_ * 2 + 1);
-      roll_gains_.at(i).d = K_(i,3);
+      roll_gains_.at(i).d = -K_(i,3);
 
-      pitch_gains_.at(i).p = K_(i,4);
+      pitch_gains_.at(i).p = -K_(i,4);
       pitch_gains_.at(i).i = K_(i, lqi_mode_ * 2 + 2);
-      pitch_gains_.at(i).d = K_(i,5);
+      pitch_gains_.at(i).d = -K_(i,5);
 
-      if(lqi_mode_ == 4) yaw_gains_.at(i).setValue(K_(i,6), K_(i, lqi_mode_ * 2 + 3), K_(i,7));
+      if(lqi_mode_ == 4) yaw_gains_.at(i).setValue(-K_(i,6), K_(i, lqi_mode_ * 2 + 3), -K_(i,7));
       else
         {
           if(hydrus_robot_model_->getWrenchDof() == 4)

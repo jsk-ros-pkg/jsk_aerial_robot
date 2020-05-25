@@ -162,12 +162,12 @@ namespace control_plugin
     for(int j = 0; j < motor_num_; j++)
       {
         //**** P Term
-        double z_p_term = clamp(-z_gains_[j][0] * z_pos_err, -z_terms_limit_[0], z_terms_limit_[0]);
+        double z_p_term = clamp(z_gains_[j][0] * z_pos_err, -z_terms_limit_[0], z_terms_limit_[0]);
 
         //**** I Term
         double z_i_term = clamp(z_gains_[j][1] * z_pos_err_i_, -z_terms_limit_[1], z_terms_limit_[1]);
         //***** D Term
-        double z_d_term = clamp(-z_gains_[j][2] * z_vel_err, -z_terms_limit_[2], z_terms_limit_[2]);
+        double z_d_term = clamp(z_gains_[j][2] * z_vel_err, -z_terms_limit_[2], z_terms_limit_[2]);
 
         z_control_terms_tmp[j] = z_p_term + z_i_term + z_d_term + z_offset_;
 
@@ -227,15 +227,14 @@ namespace control_plugin
     for(int j = 0; j < motor_num_; j++)
       {
         //**** P term
-        double yaw_p_term = clamp(-yaw_gains_[j][0] * yaw_err, -yaw_terms_limits_[0], yaw_terms_limits_[0]);
+        double yaw_p_term = clamp(yaw_gains_[j][0] * yaw_err, -yaw_terms_limits_[0], yaw_terms_limits_[0]);
 
         //**** I term:
         double yaw_i_term = clamp(yaw_gains_[j][1] * yaw_err_i_, -yaw_terms_limits_[1], yaw_terms_limits_[1]);
 
         //***** D term: usaully it is in the flight board
-        /* but for the gimbal control, we need the d term, set 0 if it is not gimbal type */
-        double yaw_d_term = -yaw_gains_[j][2] * target_yaw_vel_;
-        if(need_yaw_d_control_) yaw_d_term += (-yaw_gains_[j][2] * (-state_yaw_vel_));
+        double yaw_d_term = yaw_gains_[j][2] * target_yaw_vel_; // feed-forward
+        if(need_yaw_d_control_) yaw_d_term += (yaw_gains_[j][2] * (-state_yaw_vel_));
         yaw_d_term = clamp(yaw_d_term, -yaw_terms_limits_[2], yaw_terms_limits_[2]);
 
         //*** each motor command value for log

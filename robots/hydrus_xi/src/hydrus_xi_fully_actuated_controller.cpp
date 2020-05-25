@@ -79,11 +79,10 @@ namespace control_plugin
     flight_cmd_pub_ = nh_.advertise<spinal::FourAxisCommand>("four_axes/command", 1);
     pid_pub_ = nh_.advertise<aerial_robot_msgs::FlatnessPid>("debug/pos_yaw/pid", 1);
 
+    rpy_gain_pub_ = nh_.advertise<spinal::RollPitchYawTerms>("rpy/gain", 1);
     torque_allocation_matrix_inv_pub_ = nh_.advertise<spinal::TorqueAllocationMatrixInv>("torque_allocation_matrix_inv", 1);
     wrench_allocation_matrix_pub_ = nh_.advertise<aerial_robot_msgs::WrenchAllocationMatrix>("debug/wrench_allocation_matrix", 1);
     wrench_allocation_matrix_inv_pub_ = nh_.advertise<aerial_robot_msgs::WrenchAllocationMatrix>("debug/wrench_allocation_matrix_inv", 1);
-
-    set_attitude_gains_client_ = nh_.serviceClient<spinal::SetAttitudeGains>("set_attitude_gains");
 
     server_ = boost::make_shared<dynamic_reconfigure::Server<hydrus_xi::FullyActuatedControllerGainsConfig> >(ros::NodeHandle(nh, "gina/generator/att"));
     dynamic_reconf_func_ = boost::bind(&HydrusXiFullyActuatedController::controllerGainsCfgCallback, this, _1, _2);
@@ -290,10 +289,6 @@ namespace control_plugin
 
   void HydrusXiFullyActuatedController::sendCmd()
   {
-    //send flight command
-    spinal::FourAxisCommand flight_command_data;
-    flight_command_data.angles[2] = target_yaw_acc_;
-
     //wrench allocation matrix
     auto Q = calcWrenchAllocationMatrixWithInertial();
     auto Q_inv = aerial_robot_model::pseudoinverse(Q);
@@ -336,8 +331,15 @@ namespace control_plugin
       }
 
     //Simple PID based position/attitude/altitude control
+    //send flight command
+    spinal::FourAxisCommand flight_command_data;
+    double max_yaw_d_gain = 0; // for reconstruct yaw control term in spinal
+    for (unsigned int i = 0; i < motor_num_; i++)
+      {
+        if(Q_inv(i, 5) > max_yaw_d_gain) max_yaw_d_gain = Q_inv(i, 5);
+      }
+    flight_command_data.angles[2] = target_yaw_acc_ * max_yaw_d_gain;
     flight_command_data.base_throttle = calcForceVector(Q_inv);
-
     flight_cmd_pub_.publish(flight_command_data);
 
     //send torque allocation matrix inv
@@ -427,20 +429,16 @@ namespace control_plugin
     getParam<double>(xy_nh, "start_rp_integration_height", start_rp_integration_height_, 0.01);
 
     /* yaw */
+    getParam<double>(yaw_nh, "err_thresh", yaw_err_thresh_, 0.4);
     getParam<double>(yaw_nh, "limit", yaw_limit_, 1.0e6);
     getParam<double>(yaw_nh, "p_term_limit", yaw_terms_limits_[0], 1.0e6);
     getParam<double>(yaw_nh, "i_term_limit", yaw_terms_limits_[1], 1.0e6);
     getParam<double>(yaw_nh, "d_term_limit", yaw_terms_limits_[2], 1.0e6);
-    getParam<double>(yaw_nh, "err_thresh", yaw_err_thresh_, 0.4);
     getParam<double>(yaw_nh, "p_gain", yaw_gains_[0], 0.0);
     getParam<double>(yaw_nh, "i_gain", yaw_gains_[1], 0.0);
     getParam<double>(yaw_nh, "d_gain", yaw_gains_[2], 0.0);
 
     /* roll_pitch */
-    getParam<double>(roll_pitch_nh, "limit", roll_pitch_limit_, 1.0e6);
-    getParam<double>(roll_pitch_nh, "p_term_limit", roll_pitch_terms_limits_[0], 1.0e6);
-    getParam<double>(roll_pitch_nh, "i_term_limit", roll_pitch_terms_limits_[1], 1.0e6);
-    getParam<double>(roll_pitch_nh, "d_term_limit", roll_pitch_terms_limits_[2], 1.0e6);
     getParam<double>(roll_pitch_nh, "p_gain", roll_pitch_gains_[0], 0.0);
     getParam<double>(roll_pitch_nh, "i_gain", roll_pitch_gains_[1], 0.0);
     getParam<double>(roll_pitch_nh, "d_gain", roll_pitch_gains_[2], 0.0);
@@ -448,22 +446,18 @@ namespace control_plugin
 
   void HydrusXiFullyActuatedController::setAttitudeGains()
   {
-    spinal::SetAttitudeGains srv;
-    srv.request.roll_pitch_p = roll_pitch_gains_[0];
-    srv.request.roll_pitch_i = roll_pitch_gains_[1];
-    srv.request.roll_pitch_d = roll_pitch_gains_[2];
-    srv.request.yaw_d = yaw_gains_[2];
-    srv.request.roll_pitch_limit = roll_pitch_limit_;
-    srv.request.roll_pitch_p_limit = roll_pitch_terms_limits_[0];
-    srv.request.roll_pitch_i_limit = roll_pitch_terms_limits_[1];
-    srv.request.roll_pitch_d_limit = roll_pitch_terms_limits_[2];
-    srv.request.yaw_d_limit = yaw_gains_[2];
+    spinal::RollPitchYawTerms rpy_gain_msg; //for rosserial
+    /* to flight controller via rosserial scaling by 1000 */
+    rpy_gain_msg.motors.resize(1);
+    rpy_gain_msg.motors.at(0).roll_p = roll_pitch_gains_[0] * 1000;
+    rpy_gain_msg.motors.at(0).roll_i = roll_pitch_gains_[1] * 1000;
+    rpy_gain_msg.motors.at(0).roll_d = roll_pitch_gains_[2] * 1000;
+    rpy_gain_msg.motors.at(0).pitch_p = roll_pitch_gains_[0] * 1000;
+    rpy_gain_msg.motors.at(0).pitch_i = roll_pitch_gains_[1] * 1000;
+    rpy_gain_msg.motors.at(0).pitch_d = roll_pitch_gains_[2] * 1000;
+    rpy_gain_msg.motors.at(0).yaw_d = yaw_gains_[2] * 1000;
 
-    if (set_attitude_gains_client_.call(srv) && srv.response.success) {
-      ROS_WARN("Set Attitude Gains Success");
-    } else {
-      ROS_ERROR("Set Attitude Gains Failure");
-    }
+    rpy_gain_pub_.publish(rpy_gain_msg);
   }
 
   void HydrusXiFullyActuatedController::controllerGainsCfgCallback(hydrus_xi::FullyActuatedControllerGainsConfig &config, uint32_t level)

@@ -34,21 +34,22 @@
  *********************************************************************/
 #pragma once
 
-#include <ros/ros.h>
-#include <spinal/TorqueAllocationMatrixInv.h>
-#include <spinal/SetAttitudeGains.h>
-#include <spinal/FourAxisCommand.h>
-#include <spinal/FlightConfigCmd.h>
 #include <aerial_robot_msgs/WrenchAllocationMatrix.h>
 #include <aerial_robot_msgs/FlatnessPid.h>
 #include <aerial_robot_control/control/flight_control.h>
 #include <aerial_robot_model/transformable_aerial_robot_model_ros.h>
+#include <angles/angles.h>
+#include <cmath>
+#include <dynamic_reconfigure/server.h>
 #include <hydrus_xi/hydrus_xi_fully_actuated_robot_model.h>
 #include <hydrus_xi/FullyActuatedControllerGainsConfig.h>
-#include <dynamic_reconfigure/server.h>
+#include <ros/ros.h>
+#include <spinal/RollPitchYawTerms.h>
+#include <spinal/TorqueAllocationMatrixInv.h>
+#include <spinal/SetAttitudeGains.h>
+#include <spinal/FourAxisCommand.h>
+#include <spinal/FlightConfigCmd.h>
 #include <tf_conversions/tf_eigen.h>
-#include <cmath>
-#include <angles/angles.h>
 
 using boost::algorithm::clamp;
 
@@ -131,9 +132,7 @@ namespace control_plugin
     double alt_landing_const_i_ctrl_thresh_;
 
     //roll pitch (for spinal)
-    double roll_pitch_limit_;
     tf::Vector3 roll_pitch_gains_;
-    tf::Vector3 roll_pitch_terms_limits_;
 
     tf::Vector3 target_linear_acc_;
     double target_yaw_acc_;
@@ -143,12 +142,12 @@ namespace control_plugin
 
     ros::Publisher flight_cmd_pub_;
     ros::Publisher pid_pub_;
+    ros::Publisher rpy_gain_pub_; //for spinal
     ros::Publisher torque_allocation_matrix_inv_pub_; //for spinal
     ros::Time torque_allocation_matrix_inv_pub_stamp_;
     ros::Publisher wrench_allocation_matrix_pub_; //for debug
     ros::Publisher wrench_allocation_matrix_inv_pub_; //for debug
     ros::Time wrench_allocation_matrix_pub_stamp_;
-    ros::ServiceClient set_attitude_gains_client_; //for spinal
 
     double torque_allocation_matrix_inv_pub_interval_;
     double wrench_allocation_matrix_pub_interval_;
