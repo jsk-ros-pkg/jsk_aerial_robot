@@ -8,12 +8,16 @@ find_package(catkin REQUIRED COMPONENTS
   aerial_robot_model
   aerial_robot_msgs
   angles
+  hydrus
   roscpp
   rospy
   spinal
   )
 
 find_package(rostest REQUIRED)
+
+find_package(NLopt REQUIRED)
+find_package(OsqpEigen REQUIRED)
 
 catkin_package(
   INCLUDE_DIRS include
@@ -30,7 +34,12 @@ set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O3 -g -DNDEBUG")
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
+  ${OsqpEigen_INCLUDE_DIRS}
+  ${NLOPT_INCLUDE_DIRS}
 )
+
+add_library(hydrus_xi_under_actuated_navigation src/hydrus_xi_under_actuated_navigation.cpp)
+target_link_libraries(hydrus_xi_under_actuated_navigation ${catkin_LIBRARIES} ${OsqpEigen_LIBRARIES} ${NLOPT_LIBRARIES})
 
 add_library(hydrus_xi_fully_actuated_robot_model src/hydrus_xi_fully_actuated_robot_model.cpp)
 target_link_libraries(hydrus_xi_fully_actuated_robot_model ${catkin_LIBRARIES})

@@ -189,7 +189,7 @@ namespace aerial_robot_model {
     const void setFeasibleControlFMinThre(const double fc_f_min_thre)  { fc_f_min_thre_ = fc_f_min_thre;}
     const void setFeasibleControlTMinThre(const double fc_t_min_thre)  { fc_t_min_thre_ = fc_t_min_thre;}
 
-    virtual bool stabilityCheck(bool verbose = false);
+    virtual bool stabilityCheck(bool verbose = true);
 
 
     // jacobian
