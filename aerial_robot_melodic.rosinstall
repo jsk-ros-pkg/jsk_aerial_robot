@@ -1,3 +1,9 @@
+# aerial robot third party
+- git:
+    local-name: aerial_robot_3rdparty
+    uri: https://github.com/tongtybj/aerial_robot_3rdparty.git
+    version: master
+
 # kalman filter
 - git:
     local-name: kalman_filter
