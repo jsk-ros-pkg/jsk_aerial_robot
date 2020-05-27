@@ -131,8 +131,8 @@
     </xacro:unless>
 
     #### gimbal joint ####
-    <joint name="gimbal${self}" type="revolute">
-      <limit effort="3.1" lower="-3.1415" upper="3.1415" velocity="0.5"/>
+    <joint name="gimbal${self}" type="continuous">
+      <limit effort="3.1" lower="${pi * -6}" upper="${pi * 6}" velocity="20.0"/>
       <parent link="link${self}"/>
       <child link="gimbal_link${self}"/>
       <origin rpy="0 0 3.14159" xyz="0.3016 0 0.05967"/>

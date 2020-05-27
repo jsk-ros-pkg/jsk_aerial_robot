@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="real_machine" default="false" />
+  <arg name="simulation" default="false" />
+  <arg name="robot_ns" default="hydrus_xi" />
+
+  <group ns="$(arg robot_ns)">
+
+    <group if="$(arg real_machine)">
+      <group unless="$(arg simulation)">
+        <!-- fc & IMU & GPS -->
+        <include file="$(find spinal_ros_bridge)/launch/serial.launch" >
+          <arg name="baud" value="921600" />
+          <arg name="port" value="/dev/flight_controller" />
+        </include>
+
+      </group>
+    </group>
+
+    <!-- basic configuration for sensors (e.g. noise sigma) -->
+    <rosparam file="$(find hydrus_xi)/config/sensors/imu/spinal.yaml" command="load" />
+  </group>
+
+</launch>

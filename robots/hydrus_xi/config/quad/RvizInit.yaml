@@ -1,0 +1,8 @@
+zeros:
+  joint1: 1.57
+  joint2: 1.57
+  joint3: 1.57
+  gimbal1: 0
+  gimbal2: 3.14
+  gimbal3: 0
+  gimbal4: 3.14
