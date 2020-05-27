@@ -71,7 +71,7 @@
     <arg name="robot_ns" value="$(arg robot_ns)" />
     <arg name="rviz_config" value="$(find dragon)/config/rviz_config" />
     <arg name="rviz_init_pose" value="$(arg config_dir)/RvizInit.yaml" />
-    <arg name="need_joint_state" value="false" if ="$(eval arg('simulation') + arg('real_machine'))"/>
+    <arg name="need_joint_state" value="false" if ="$(eval arg('simulation') + arg('real_machine') > 0)"/>
   </include >
 
   ###########  Sensors  ###########
