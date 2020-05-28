@@ -51,8 +51,8 @@
     ###########  Flight Control  ###########
     <rosparam file="$(arg config_dir)/$(arg type)/FlightControl.yaml" command="load" />
 
-    ###########  Teleop  ###########
-    <rosparam file="$(arg config_dir)/$(arg type)/TeleopNavigationConfig.yaml" command="load" />
+    ###########  Navigation ###############
+    <rosparam file="$(arg config_dir)/$(arg type)/NavigationConfig.yaml" command="load" />
   </group>
 
   ###########  Base Platform  ###########

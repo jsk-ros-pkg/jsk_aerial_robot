@@ -50,9 +50,9 @@
     ###########  Control  ###########
     <rosparam file="$(arg config_dir)/GimbalControlConfig.yaml" command="load" />
 
-    ###########  Teleop  ###########
+    ###########  Navigation ###########
     <param name="flight_navigation_plugin_name" value="aerial_robot_navigation/dragon_navigation" />
-    <rosparam file="$(arg config_dir)/TeleopNavigationConfig.yaml" command="load" />
+    <rosparam file="$(arg config_dir)/NavigationConfig.yaml" command="load" />
   </group>
 
   ###########  Base Platform  ###########

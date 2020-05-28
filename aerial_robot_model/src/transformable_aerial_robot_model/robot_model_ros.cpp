@@ -40,6 +40,8 @@ namespace aerial_robot_model {
     joint_state_ = *state;
     robot_model_->updateRobotModel(*state);
 
+    ROS_INFO_ONCE("initialized robot model, the mass is %f", robot_model_->getMass());
+
     geometry_msgs::TransformStamped tf = robot_model_->getCog<geometry_msgs::TransformStamped>();
     tf.header = state->header;
     tf.header.frame_id = tf::resolve(tf_prefix_, robot_model_->getRootFrameName());

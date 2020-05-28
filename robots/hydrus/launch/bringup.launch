@@ -50,8 +50,8 @@
     <rosparam file="$(arg config_dir)/$(arg onboards_model)/StateEstimation.yaml" command="load" />
     <rosparam file="$(arg config_dir)/Simulation.yaml" command="load" if="$(arg simulation)"/>
 
-    ###########  Teleop  ###########
-    <rosparam file="$(arg config_dir)/TeleopNavigationConfig.yaml" command="load" />
+    ###########  Navigation  ###########
+    <rosparam file="$(arg config_dir)/NavigationConfig.yaml" command="load" />
   </group>
 
   ###########  Base Platform  ###########
