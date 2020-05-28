@@ -438,6 +438,7 @@ void BaseNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
       double target_yaw = estimator_->getState(State::YAW_COG, estimate_mode_)[0]
         + joy_cmd.axes[PS3_AXIS_STICK_RIGHT_LEFTWARDS] * max_target_yaw_rate_;
       setTargetYaw(angles::normalize_angle(target_yaw));
+      setTargetOmageZ(joy_cmd.axes[PS3_AXIS_STICK_RIGHT_LEFTWARDS] * max_target_yaw_rate_);
 
       yaw_control_flag_ = true;
     }
@@ -447,6 +448,7 @@ void BaseNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
         {
           yaw_control_flag_= false;
           setTargetYawFromCurrentState();
+          setTargetOmageZ(0);
           ROS_INFO("Joy Control: fixed yaw state, target yaw angle is %f", getTargetRPY().z());
         }
     }
