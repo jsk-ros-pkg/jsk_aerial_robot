@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <launch>
 
-  <arg name="robot_ns" default="/" />
+  <arg name="robot_name" default="/" />
 
   <node pkg="joy" type="joy_node" name="joy_node" ns="$(arg robot_name)" output="screen" >
 
