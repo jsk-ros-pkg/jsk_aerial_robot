@@ -81,7 +81,6 @@ void AttitudeController::init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2
   nh_->subscribe< ros::Subscriber<spinal::TorqueAllocationMatrixInv, AttitudeController> >(torque_allocation_matrix_inv_sub_);
 
   nh_->advertiseService(att_control_srv_);
-  nh_->advertiseService(attitude_gains_srv_);
 
   baseInit();
 }
@@ -353,14 +352,14 @@ void AttitudeController::update(void)
         {
           float total_thrust = 0;
           /* sum */
-          for(int i = 0; i < motor_number_; i++) total_thrust += base_throttle_term_[i];
+          for(int i = 0; i < motor_number_; i++) total_thrust += base_thrust_term_[i];
           /* average */
           float average_thrust = total_thrust / motor_number_;
 
           if(average_thrust > force_landing_thrust_)
             {
               for(int i = 0; i < motor_number_; i++)
-                base_throttle_term_[i] -= (base_throttle_term_[i] / average_thrust * FORCE_LANDING_INTEGRAL);
+                base_thrust_term_[i] -= (base_thrust_term_[i] / average_thrust * FORCE_LANDING_INTEGRAL);
             }
         }
     }
@@ -377,7 +376,7 @@ void AttitudeController::reset(void)
       target_thrust_[i] = 0;
       target_pwm_[i] = IDLE_DUTY;
 
-      base_throttle_term_[i] = 0;
+      base_thrust_term_[i] = 0;
       roll_pitch_term_[i] = 0;
       yaw_term_[i] = 0;
       extra_yaw_pi_term_[i] = 0;
@@ -437,15 +436,15 @@ void AttitudeController::fourAxisCommandCallback( const spinal::FourAxisCommand 
       return;
     }
 
-  /* check the number of motor which should be equal to the ros throttle */
+  /* check the number of motor which should be equal to the ros thrust */
 #ifdef SIMULATION
-  if(cmd_msg.base_throttle.size() != motor_number_)
+  if(cmd_msg.base_thrust.size() != motor_number_)
     {
       ROS_ERROR("fource axis commnd: motor number is not identical between fc and pc");
       return;
     }
 #else
-  if(cmd_msg.base_throttle_length != motor_number_)
+  if(cmd_msg.base_thrust_length != motor_number_)
     {
       nh_->logerror("fource axis commnd: motor number is not identical between fc and pc");
       return;
@@ -456,8 +455,8 @@ void AttitudeController::fourAxisCommandCallback( const spinal::FourAxisCommand 
 
   for(int i = 0; i < motor_number_; i++)
     {
-      // base throttle is about the z control
-      base_throttle_term_[i] = cmd_msg.base_throttle[i];
+      // base thrust is about the z control
+      base_thrust_term_[i] = cmd_msg.base_thrust[i];
 
       // reconstruct the pi term for yaw (temporary measure for pwm saturation avoidance)
       if(max_yaw_term_index_ != -1)
@@ -486,15 +485,16 @@ void AttitudeController::pwmInfoCallback( const spinal::PwmInfo &info_msg)
         motor_info_.push_back(info_msg.motor_info[i]);
       }
 
+#ifdef SIMULATION
   if(sim_voltage_== 0) sim_voltage_ = motor_info_[0].voltage;
-
+#endif
 }
 
 void AttitudeController::rpyGainCallback( const spinal::RollPitchYawTerms &gain_msg)
 {
   if(motor_number_ == 0) return; //not be activated
 
-  /* check the number of motor which should be equal to the ros throttle */
+  /* check the number of motor which should be equal to the ros thrust */
 #ifdef SIMULATION
   if(gain_msg.motors.size() != motor_number_ && gain_msg.motors.size() != 1)
     {
@@ -792,7 +792,7 @@ void AttitudeController::pwmConversion()
 
   /* pwm saturation avoidance */
   /* get the decreasing rate for the thrust to avoid the devergence because of the pwm saturation */
-  float base_throttle_decreasing_rate = 0;
+  float base_thrust_decreasing_rate = 0;
   float yaw_decreasing_rate = 0;
   float thrust_limit = motor_info_[motor_ref_index_].max_thrust / v_factor_;
 
@@ -801,7 +801,7 @@ void AttitudeController::pwmConversion()
   int max_thrust_index = 0;
   for(int i = 0; i < motor_number_; i++)
     {
-      float thrust = base_throttle_term_[i] + roll_pitch_term_[i];
+      float thrust = base_thrust_term_[i] + roll_pitch_term_[i];
       if(max_thrust < thrust)
         {
           max_thrust = thrust;
@@ -813,14 +813,14 @@ void AttitudeController::pwmConversion()
     {
       float residual_term = thrust_limit - max_thrust / rotor_devider_;
 
-      if(residual_term < 0 && base_throttle_term_[max_thrust_index] > 0)
+      if(residual_term < 0 && base_thrust_term_[max_thrust_index] > 0)
         {
-          base_throttle_decreasing_rate = residual_term / (base_throttle_term_[max_thrust_index] / rotor_devider_);
+          base_thrust_decreasing_rate = residual_term / (base_thrust_term_[max_thrust_index] / rotor_devider_);
           yaw_decreasing_rate = -1; // also, we have to ignore the yaw control
         }
       else
         {
-          if(max_yaw_term_index_ != -1 && base_throttle_term_[0] > 0 )
+          if(max_yaw_term_index_ != -1 && base_thrust_term_[0] > 0 )
             {
               /* check saturation level1: yaw control saturation */
               max_thrust = 0;
@@ -828,7 +828,7 @@ void AttitudeController::pwmConversion()
               int min_thrust_index = 0;
               for(int i = 0; i < motor_number_; i++)
                 {
-                  float thrust = base_throttle_term_[i] + roll_pitch_term_[i] + yaw_term_[i];
+                  float thrust = base_thrust_term_[i] + roll_pitch_term_[i] + yaw_term_[i];
                   if(max_thrust < thrust)
                     {
                       max_thrust = thrust;
@@ -871,7 +871,7 @@ void AttitudeController::pwmConversion()
     }
 
   for(int i = 0; i < motor_number_; i++)
-    target_thrust_[i] = roll_pitch_term_[i] + (1 + base_throttle_decreasing_rate) * base_throttle_term_[i] + (1 + yaw_decreasing_rate) * yaw_term_[i];
+    target_thrust_[i] = roll_pitch_term_[i] + (1 + base_thrust_decreasing_rate) * base_thrust_term_[i] + (1 + yaw_decreasing_rate) * yaw_term_[i];
 
   /* convert to target pwm */
   for(int i = 0; i < motor_number_; i++)

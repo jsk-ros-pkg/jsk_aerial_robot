@@ -11,19 +11,14 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   spinal
-  tf_conversions
-  dynamic_reconfigure
   )
 
 find_package(rostest REQUIRED)
 
-generate_dynamic_reconfigure_options(
-  cfg/FullyActuatedControllerGains.cfg)
-
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES  hydrus_xi_fully_actuated_robot_model
-  CATKIN_DEPENDS aerial_robot_control aerial_robot_model aerial_robot_msgs roscpp rospy spinal tf_conversions dynamic_reconfigure
+  CATKIN_DEPENDS aerial_robot_control aerial_robot_model aerial_robot_msgs roscpp rospy spinal
   )
 
 if(NOT CMAKE_BUILD_TYPE)
@@ -39,11 +34,6 @@ include_directories(
 
 add_library(hydrus_xi_fully_actuated_robot_model src/hydrus_xi_fully_actuated_robot_model.cpp)
 target_link_libraries(hydrus_xi_fully_actuated_robot_model ${catkin_LIBRARIES})
-
-add_library(hydrus_xi_fully_actuated_controller_pluginlib src/hydrus_xi_fully_actuated_controller.cpp)
-target_link_libraries(hydrus_xi_fully_actuated_controller_pluginlib ${catkin_LIBRARIES} hydrus_xi_fully_actuated_robot_model)
-add_dependencies(hydrus_xi_fully_actuated_controller_pluginlib ${PROJECT_NAME}_gencfg)
-
 
 # pre-build test code
 add_executable(hydrus_xi_jacobian_test test/hydrus_xi/jacobian_test.cpp)

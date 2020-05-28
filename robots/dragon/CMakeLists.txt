@@ -48,9 +48,9 @@ include_directories(
 add_library(dragon_robot_model src/dragon_robot_model.cpp)
 target_link_libraries(dragon_robot_model ${catkin_LIBRARIES})
 
-add_library(dragon_control_pluginlib src/lqi_gimbal_control.cpp)
-target_link_libraries (dragon_control_pluginlib dragon_robot_model ${catkin_LIBRARIES} ${Eigen3_LIBRARIES})
-add_dependencies(dragon_control_pluginlib aerial_robot_msgs_generate_messages_cpp hydrus_gencfg)
+add_library(dragon_aerial_robot_controllib src/lqi_gimbal_control.cpp)
+target_link_libraries (dragon_aerial_robot_controllib dragon_robot_model ${catkin_LIBRARIES} ${Eigen3_LIBRARIES})
+add_dependencies(dragon_aerial_robot_controllib aerial_robot_msgs_generate_messages_cpp hydrus_gencfg)
 
 add_library(dragon_navigation src/dragon_navigation.cpp)
 target_link_libraries(dragon_navigation ${catkin_LIBRARIES})

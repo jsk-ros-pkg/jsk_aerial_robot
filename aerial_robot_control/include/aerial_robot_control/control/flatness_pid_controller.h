@@ -36,19 +36,20 @@
 #pragma once
 
 /* basic class */
-#include <aerial_robot_control/control/flight_control.h>
+#include <aerial_robot_control/control/base>
 #include <aerial_robot_control/XYPidControlConfig.h>
 #include <aerial_robot_msgs/DynamicReconfigureLevels.h>
 #include <aerial_robot_msgs/FourAxisGain.h>
+#include <spinal/FourAxisCommand.h>
 #include <aerial_robot_msgs/FlatnessPid.h>
 #include <dynamic_reconfigure/server.h>
 
 using boost::algorithm::clamp;
 using namespace std;
 
-namespace control_plugin
+namespace aerial_robot_control
 {
-  class FlatnessPid : public control_plugin::ControlBase
+  class FlatnessPid : public aerial_robot_control::ControlBase
   {
   public:
     FlatnessPid();
@@ -153,5 +154,5 @@ namespace control_plugin
 
 /* plugin registration */
 #include <pluginlib/class_list_macros.h>
-PLUGINLIB_EXPORT_CLASS(control_plugin::FlatnessPid, control_plugin::ControlBase);
+PLUGINLIB_EXPORT_CLASS(aerial_robot_control::FlatnessPid, aerial_robot_control::ControlBase);
 

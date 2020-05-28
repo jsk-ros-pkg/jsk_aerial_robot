@@ -10,7 +10,7 @@ add_message_files(FILES
   FourAxisGain.msg
   AerialRobotStatus.msg
   FlightNav.msg
-  FlatnessPid.msg
+  PoseControlPid.msg
   Pid.msg
   State.msg
   States.msg

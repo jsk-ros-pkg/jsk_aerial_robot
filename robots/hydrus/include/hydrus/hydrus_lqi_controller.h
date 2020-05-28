@@ -35,7 +35,7 @@
 
 #pragma once
 
-#include <aerial_robot_control/control/flatness_pid_controller.h>
+#include <aerial_robot_control/control/under_actuated_controller.h>
 #include <aerial_robot_control/control/utils/care.h>
 #include <aerial_robot_msgs/FourAxisGain.h>
 #include <dynamic_reconfigure/server.h>
@@ -47,31 +47,13 @@
 #include <ros/ros.h>
 #include <thread>
 
-#define LQI_GAIN_FLAG 0
-#define LQI_RP_P_GAIN 1
-#define LQI_RP_I_GAIN 2
-#define LQI_RP_D_GAIN 3
-#define LQI_Y_P_GAIN 4
-#define LQI_Y_I_GAIN 5
-#define LQI_Y_D_GAIN 6
-#define LQI_Z_P_GAIN 7
-#define LQI_Z_I_GAIN 8
-#define LQI_Z_D_GAIN 9
-
-namespace control_plugin
+namespace aerial_robot_control
 {
-  class HydrusLQIController : virtual public control_plugin::FlatnessPid
+  class HydrusLQIController: public PoseLinearController
   {
-    struct PID{
-      double p;
-      double i;
-      double d;
-
-      PID(double p = 0, double i = 0, double d = 0): p(p), i(i), d(d) {}
-    };
 
   public:
-    HydrusLQIController() {};
+    HydrusLQIController();
     virtual ~HydrusLQIController();
 
     void initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
@@ -87,11 +69,9 @@ namespace control_plugin
 
     boost::shared_ptr<HydrusRobotModel> hydrus_robot_model_;
 
-    //private attributes
-    ros::NodeHandle nh_;
-    ros::NodeHandle nhp_;
+    ros::Publisher flight_cmd_pub_; //for spinal
+    ros::Publisher rpy_gain_pub_; //for spinal
     ros::Publisher four_axis_gain_pub_;
-    ros::Publisher rpy_gain_pub_;
     ros::Publisher p_matrix_pseudo_inverse_inertia_pub_;
 
     int lqi_mode_;
@@ -100,36 +80,36 @@ namespace control_plugin
     boost::shared_ptr<dynamic_reconfigure::Server<hydrus::LQIConfig> > lqi_server_;
     dynamic_reconfigure::Server<hydrus::LQIConfig>::CallbackType dynamic_reconf_func_lqi_;
 
+    double target_roll_, target_pitch_; // under-actuated
+    double candidate_yaw_term_;
+    std::vector<float> target_base_thrust_;
+
     bool gyro_moment_compensation_;
     bool clamp_gain_;
     Eigen::MatrixXd K_;
 
-    double q_pitch_;
-    double q_pitch_d_;
-    double q_pitch_i_;
-    double q_roll_;
-    double q_roll_d_;
-    double q_roll_i_;
-    double q_yaw_;
-    double q_yaw_d_;
-    double q_yaw_i_;
-    double q_z_;
-    double q_z_d_;
-    double q_z_i_;
+    Eigen::Vector3d lqi_roll_pitch_weight_, lqi_yaw_weight_, lqi_z_weight_;
     std::vector<double> r_; // matrix R
 
-    std::vector<PID> pitch_gains_, roll_gains_; // additional
+    std::vector<Eigen::Vector3d> pitch_gains_, roll_gains_, yaw_gains_, z_gains_;
 
     //private functions
     void resetGain() { K_ = Eigen::MatrixXd(); }
     bool checkRobotModel();
 
-    virtual void cfgLQICallback(hydrus::LQIConfig &config, uint32_t level); //dynamic reconfigure
-    virtual void gainGeneratorFunc();
+    virtual void rosParamInit();
+    virtual void controlCore() override;
+
     virtual bool optimalGain();
     virtual void clampGain();
     virtual void publishGain();
-    virtual void rosParamInit() override;
+
+    virtual void sendCmd() override;
+    virtual void sendFourAxisCommand();
+
+    virtual void allocateYawTerm();
+    void gainGeneratorFunc();
+    void cfgLQICallback(hydrus::LQIConfig &config, uint32_t level); //dynamic reconfigure
 
     Eigen::MatrixXd p_mat_pseudo_inv_; // for compensation of cross term in the rotional dynamics
     Eigen::MatrixXd p_mat_;

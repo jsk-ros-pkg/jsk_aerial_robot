@@ -7,14 +7,15 @@ BaseNavigator::BaseNavigator():
   target_pos_(0, 0, 0),
   target_vel_(0, 0, 0),
   target_acc_(0, 0, 0),
-  target_yaw_(0), target_vel_yaw_(0),
+  target_rpy_(0, 0, 0),
+  target_omega_(0, 0, 0),
   force_att_control_flag_(false),
   low_voltage_flag_(false),
   prev_xy_control_mode_(ACC_CONTROL_MODE),
   vel_control_flag_(false),
   pos_control_flag_(false),
   xy_control_flag_(false),
-  alt_control_flag_(false),
+  z_control_flag_(false),
   yaw_control_flag_(false),
   vel_based_waypoint_(false),
   gps_waypoint_(false),
@@ -137,20 +138,12 @@ void BaseNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & ms
   /* yaw */
   if(msg->yaw_nav_mode == aerial_robot_msgs::FlightNav::POS_MODE)
     {
-      double target_yaw = msg->target_yaw;
-      while(target_yaw > M_PI)  target_yaw -= (2 * M_PI);
-      while(target_yaw < -M_PI)  target_yaw += (2 * M_PI);
-
-      setTargetYaw(target_yaw);
+      setTargetYaw(angles::normalize_angle(msg->target_yaw));
     }
   if(msg->yaw_nav_mode == aerial_robot_msgs::FlightNav::POS_VEL_MODE)
     {
-      double target_yaw = msg->target_yaw;
-      while(target_yaw > M_PI)  target_yaw -= (2 * M_PI);
-      while(target_yaw < -M_PI)  target_yaw += (2 * M_PI);
-
-      setTargetYaw(target_yaw);
-      setTargetYawVel(msg->target_vel_yaw);
+      setTargetYaw(angles::normalize_angle(msg->target_yaw));
+      setTargetOmageZ(msg->target_omega_z);
     }
 
   /* xy control */
@@ -164,7 +157,7 @@ void BaseNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & ms
             /* check the transformation */
             tf::Transform cog2baselink_tf;
             tf::transformKDLToTF(robot_model_->getCog2Baselink<KDL::Frame>(), cog2baselink_tf);
-            target_cog_pos -= tf::Matrix3x3(tf::createQuaternionFromYaw(getTargetYaw()))
+            target_cog_pos -= tf::Matrix3x3(tf::createQuaternionFromYaw(getTargetRPY().z()))
               * cog2baselink_tf.getOrigin();
           }
 
@@ -266,6 +259,7 @@ void BaseNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & ms
         break;
       }
     }
+  if(msg->pos_xy_nav_mode != aerial_robot_msgs::FlightNav::ACC_MODE) target_acc_.setValue(0,0,0);
 
   /* z */
   if(msg->pos_z_nav_mode == aerial_robot_msgs::FlightNav::VEL_MODE)
@@ -416,24 +410,24 @@ void BaseNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
     }
 
   /* Motion: Up/Down */
-  if(fabs(joy_cmd.axes[PS3_AXIS_STICK_RIGHT_UPWARDS]) > joy_alt_deadzone_)
+  if(fabs(joy_cmd.axes[PS3_AXIS_STICK_RIGHT_UPWARDS]) > joy_z_deadzone_)
     {
       if(getNaviState() == HOVER_STATE)
         {
-          alt_control_flag_ = true;
+          z_control_flag_ = true;
           if(joy_cmd.axes[PS3_AXIS_STICK_RIGHT_UPWARDS] >= 0)
-            addTargetPosZ(joy_target_alt_interval_);
+            addTargetPosZ(joy_target_z_interval_);
           else
-            addTargetPosZ(-joy_target_alt_interval_);
+            addTargetPosZ(-joy_target_z_interval_);
         }
     }
   else
     {
-      if(alt_control_flag_)
+      if(z_control_flag_)
         {
-          alt_control_flag_= false;
+          z_control_flag_= false;
           setTargetZFromCurrentState();
-          ROS_INFO("Joy Control: fixed alt state, target pos z is %f",target_pos_.z());
+          ROS_INFO("Joy Control: fixed z state, target pos z is %f",target_pos_.z());
         }
     }
 
@@ -441,10 +435,9 @@ void BaseNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
   /* this is the yaw_angle control */
   if(fabs(joy_cmd.axes[PS3_AXIS_STICK_RIGHT_LEFTWARDS]) > joy_yaw_deadzone_)
     {
-      float  state_yaw = estimator_->getState(State::YAW_COG, estimate_mode_)[0];
-      target_yaw_ = state_yaw + joy_cmd.axes[PS3_AXIS_STICK_RIGHT_LEFTWARDS] * max_target_yaw_rate_;
-      while(target_yaw_ > M_PI)  target_yaw_ -= 2 * M_PI;
-      while(target_yaw_ < -M_PI)  target_yaw_ += 2 * M_PI;
+      double target_yaw = estimator_->getState(State::YAW_COG, estimate_mode_)[0]
+        + joy_cmd.axes[PS3_AXIS_STICK_RIGHT_LEFTWARDS] * max_target_yaw_rate_;
+      setTargetYaw(angles::normalize_angle(target_yaw));
 
       yaw_control_flag_ = true;
     }
@@ -454,7 +447,7 @@ void BaseNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
         {
           yaw_control_flag_= false;
           setTargetYawFromCurrentState();
-          ROS_INFO("Joy Control: fixed yaw state, target yaw angle is %f", target_yaw_);
+          ROS_INFO("Joy Control: fixed yaw state, target yaw angle is %f", getTargetRPY().z());
         }
     }
 
@@ -475,6 +468,7 @@ void BaseNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
       force_att_control_flag_ = false;
       xy_control_mode_ = VEL_CONTROL_MODE;
       target_vel_.setValue(0, 0, 0);
+      target_acc_.setValue(0, 0, 0);
     }
   if(joy_cmd.buttons[PS3_BUTTON_ACTION_TRIANGLE] == 0 && vel_control_flag_)
     vel_control_flag_ = false;
@@ -487,6 +481,7 @@ void BaseNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
       force_att_control_flag_ = false;
       xy_control_mode_ = POS_CONTROL_MODE;
       setTargetXyFromCurrentState();
+      target_acc_.setValue(0, 0, 0);
     }
   if(joy_cmd.buttons[PS3_BUTTON_ACTION_CROSS] == 0 && pos_control_flag_)
     pos_control_flag_ = false;
@@ -498,7 +493,6 @@ void BaseNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
       {
         if(teleop_flag_)
           {
-
             control_frame_ = WORLD_FRAME;
             if(joy_cmd.buttons[PS3_BUTTON_REAR_LEFT_2]) control_frame_ = LOCAL_FRAME;
 
@@ -670,12 +664,12 @@ void BaseNavigator::update()
 
         if(xy_control_mode_ == POS_CONTROL_MODE)
           {
-            if (fabs(delta.z()) > alt_convergent_thresh_ || fabs(delta.x()) > xy_convergent_thresh_ || fabs(delta.y()) > xy_convergent_thresh_)
+            if (fabs(delta.z()) > z_convergent_thresh_ || fabs(delta.x()) > xy_convergent_thresh_ || fabs(delta.y()) > xy_convergent_thresh_)
               convergent_start_time_ = ros::Time::now().toSec();
           }
         else
           {
-            if (fabs(delta.z()) > alt_convergent_thresh_) convergent_start_time_ = ros::Time::now().toSec();
+            if (fabs(delta.z()) > z_convergent_thresh_) convergent_start_time_ = ros::Time::now().toSec();
           }
         if (ros::Time::now().toSec() - convergent_start_time_ > convergent_duration_)
           {
@@ -693,7 +687,7 @@ void BaseNavigator::update()
 
         if (getNaviState() > START_STATE)
           {
-            if (fabs(delta.z()) > alt_convergent_thresh_) convergent_start_time_ = ros::Time::now().toSec();
+            if (fabs(delta.z()) > z_convergent_thresh_) convergent_start_time_ = ros::Time::now().toSec();
 
             if (ros::Time::now().toSec() - convergent_start_time_ > convergent_duration_)
               {
@@ -838,7 +832,7 @@ void BaseNavigator::rosParamInit()
   getParam<int>(nh, "xy_control_mode", xy_control_mode_, 0);
   getParam<double>(nh, "takeoff_height", takeoff_height_, 0.0);
   getParam<double>(nh, "convergent_duration", convergent_duration_, 1.0);
-  getParam<double>(nh, "alt_convergent_thresh", alt_convergent_thresh_, 0.05);
+  getParam<double>(nh, "z_convergent_thresh", z_convergent_thresh_, 0.05);
   getParam<double>(nh, "xy_convergent_thresh", xy_convergent_thresh_, 0.15);
   getParam<double>(nh, "max_target_vel", max_target_vel_, 0.0);
   getParam<double>(nh, "max_target_yaw_rate", max_target_yaw_rate_, 0.0);
@@ -855,8 +849,8 @@ void BaseNavigator::rosParamInit()
 
   //*** teleop navigation
   getParam<double>(nh, "joy_target_vel_interval", joy_target_vel_interval_, 0.0);
-  getParam<double>(nh, "joy_target_alt_interval", joy_target_alt_interval_, 0.0);
-  getParam<double>(nh, "joy_alt_deadzone", joy_alt_deadzone_, 0.2);
+  getParam<double>(nh, "joy_target_z_interval", joy_target_z_interval_, 0.0);
+  getParam<double>(nh, "joy_z_deadzone", joy_z_deadzone_, 0.2);
   getParam<double>(nh, "joy_yaw_deadzone", joy_yaw_deadzone_, 0.2);
   getParam<double>(nh, "joy_stick_heart_beat_du", joy_stick_heart_beat_du_, 2.0);
   getParam<double>(nh, "force_landing_to_halt_du", force_landing_to_halt_du_, 1.0);

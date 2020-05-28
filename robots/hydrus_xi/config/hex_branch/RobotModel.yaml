@@ -1,0 +1,2 @@
+uav_model: 17 # hydrus_xi
+robot_model_plugin_name: hydrus_xi_fully_actuated_robot_model

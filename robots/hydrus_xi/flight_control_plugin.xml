@@ -1,5 +1,0 @@
-<library path="lib/libhydrus_xi_fully_actuated_controller_pluginlib">
-  <class name="control_plugin/hydrus_xi_fully_actuated_controller" type="control_plugin::HydrusXiFullyActuatedController" base_class_type="control_plugin::ControlBase">
-    <description>full or over actuated controller with dynamic inversion</description>
-  </class>
-</library>

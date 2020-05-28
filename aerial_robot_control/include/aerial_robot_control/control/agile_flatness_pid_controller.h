@@ -37,9 +37,9 @@
 #include <aerial_robot_control/control/flatness_pid_controller.h>
 #include <numeric>
 
-namespace control_plugin
+namespace aerial_robot_control
 {
-  class AgileFlatnessPid : virtual public control_plugin::FlatnessPid
+  class AgileFlatnessPid : virtual public aerial_robot_control::FlatnessPid
   {
   public:
     AgileFlatnessPid();
@@ -58,4 +58,4 @@ namespace control_plugin
 /* plugin registration */
 
 #include <pluginlib/class_list_macros.h>
-PLUGINLIB_EXPORT_CLASS(control_plugin::AgileFlatnessPid, control_plugin::ControlBase);
+PLUGINLIB_EXPORT_CLASS(aerial_robot_control::AgileFlatnessPid, aerial_robot_control::ControlBase);

@@ -14,7 +14,7 @@ navigation:
   # teleop operation
   max_target_vel: 0.5
   joy_target_vel_interval: 0.005  # 0.2 / 20 = 0.01, 0.005 ~ 0.01  m/s
-  joy_target_alt_interval: 0.02
+  joy_target_z_interval: 0.02
   max_target_yaw_rate: 0.1 #  0.05
   teleop_local_frame: fc
 

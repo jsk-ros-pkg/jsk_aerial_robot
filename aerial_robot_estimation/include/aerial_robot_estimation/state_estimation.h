@@ -189,6 +189,7 @@ namespace aerial_robot_estimation
 
     tf::Vector3 getPos(int frame, int estimate_mode)
     {
+      boost::lock_guard<boost::mutex> lock(state_mutex_);
       return tf::Vector3((state_[State::X_COG + frame * 3][estimate_mode].second)[0],
                          (state_[State::Y_COG + frame * 3][estimate_mode].second)[0],
                          (state_[State::Z_COG + frame * 3][estimate_mode].second)[0]);
@@ -223,6 +224,15 @@ namespace aerial_robot_estimation
                (state_[State::PITCH_COG + frame * 3][estimate_mode].second)[0],
                (state_[State::YAW_COG + frame * 3][estimate_mode].second)[0]);
       return r;
+    }
+
+    tf::Vector3 getEuler(int frame, int estimate_mode)
+    {
+      boost::lock_guard<boost::mutex> lock(state_mutex_);
+
+      return tf::Vector3((state_[State::ROLL_COG + frame * 3][estimate_mode].second)[0],
+                         (state_[State::PITCH_COG + frame * 3][estimate_mode].second)[0],
+                         (state_[State::YAW_COG + frame * 3][estimate_mode].second)[0]);
     }
 
     void setEuler(int frame, int estimate_mode, tf::Vector3 euler)

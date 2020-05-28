@@ -2,7 +2,7 @@
 
 AerialRobotBase::AerialRobotBase(ros::NodeHandle nh, ros::NodeHandle nh_private)
   : nh_(nh), nhp_(nh_private),
-    controller_loader_("aerial_robot_control", "control_plugin::ControlBase"),
+    controller_loader_("aerial_robot_control", "aerial_robot_control::ControlBase"),
     navigator_loader_("aerial_robot_control", "aerial_robot_navigation::BaseNavigator")
 {
 
@@ -43,9 +43,9 @@ AerialRobotBase::AerialRobotBase(ros::NodeHandle nh, ros::NodeHandle nh_private)
   //  controller
   try
     {
-      std::string control_plugin_name;
-      nh_.param ("control_plugin_name", control_plugin_name, std::string("control_plugin/flatness_pid"));
-      controller_ = controller_loader_.createInstance(control_plugin_name);
+      std::string aerial_robot_control_name;
+      nh_.param ("aerial_robot_control_name", aerial_robot_control_name, std::string("aerial_robot_control/flatness_pid"));
+      controller_ = controller_loader_.createInstance(aerial_robot_control_name);
       controller_->initialize(nh_, nhp_, robot_model, estimator_, navigator_, main_rate);
     }
   catch(pluginlib::PluginlibException& ex)

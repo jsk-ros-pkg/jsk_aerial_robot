@@ -2,7 +2,7 @@
 
 #include <ros/ros.h>
 #include <pluginlib/class_loader.h>
-#include <aerial_robot_control/control/flight_control.h>
+#include <aerial_robot_control/control/control_base.h>
 #include <aerial_robot_control/flight_navigation.h>
 #include <aerial_robot_estimation/state_estimation.h>
 #include <aerial_robot_model/transformable_aerial_robot_model_ros.h>
@@ -28,6 +28,6 @@ class AerialRobotBase
   pluginlib::ClassLoader<aerial_robot_navigation::BaseNavigator> navigator_loader_;
   boost::shared_ptr<aerial_robot_navigation::BaseNavigator> navigator_;
 
-  pluginlib::ClassLoader<control_plugin::ControlBase> controller_loader_;
-  boost::shared_ptr<control_plugin::ControlBase> controller_;
+  pluginlib::ClassLoader<aerial_robot_control::ControlBase> controller_loader_;
+  boost::shared_ptr<aerial_robot_control::ControlBase> controller_;
 };

@@ -2,7 +2,7 @@
 /*********************************************************************
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2016, JSK Lab
+ *  Copyright (c) 2018, JSK Lab
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -32,18 +32,55 @@
  *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
-
 #pragma once
 
-#include <hydrus/transform_control.h>
-#include <hydrus_xi/hydrus_xi_robot_model.h>
+#include <aerial_robot_control/control/pose_linear_controller.h>
+#include <spinal/FourAxisCommand.h>
+#include <spinal/RollPitchYawTerms.h>
+#include <spinal/TorqueAllocationMatrixInv.h>
 
-class HydrusXiLqiController : public TransformController
+using boost::algorithm::clamp;
+
+namespace aerial_robot_control
 {
-public:
-  HydrusXiLqiController(ros::NodeHandle nh, ros::NodeHandle nh_private, std::unique_ptr<HydrusXiRobotModel> robot_model = std::make_unique<HydrusXiRobotModel>(true));
-  virtual ~HydrusXiLqiController() = default;
-protected:
-  //protected functions
-  HydrusXiRobotModel& getRobotModel() const { return static_cast<HydrusXiRobotModel&>(TransformController::getRobotModel()); }
-};
+  class UnderActuatedController: public PoseLinearController
+  {
+  public:
+    UnderActuatedController();
+    virtual ~UnderActuatedController() = default;
+
+    void initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
+                    boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
+                    boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
+                    boost::shared_ptr<aerial_robot_navigation::BaseNavigator> navigator,
+                    double ctrl_loop_rate) override;
+
+    virtual void reset() override;
+
+  protected:
+    ros::Publisher flight_cmd_pub_; //for spinal
+    ros::Publisher rpy_gain_pub_; //for spinal
+    ros::Publisher torque_allocation_matrix_inv_pub_; //for spinal
+    double torque_allocation_matrix_inv_pub_stamp_;
+
+    Eigen::MatrixXd q_mat_;
+    Eigen::MatrixXd q_mat_inv_;
+
+    double target_roll_, target_pitch_; // under-actuated
+    double candidate_yaw_term_;
+    std::vector<float> target_base_thrust_;
+
+    double torque_allocation_matrix_inv_pub_interval_;
+
+    bool hovering_approximate_;
+
+    void setAttitudeGains();
+    virtual void rosParamInit();
+    virtual void controlCore() override;
+    virtual void sendCmd() override;
+    virtual void sendFourAxisCommand();
+    virtual void sendTorqueAllocationMatrixInv();
+
+
+  };
+} //namespace aerial_robot_control

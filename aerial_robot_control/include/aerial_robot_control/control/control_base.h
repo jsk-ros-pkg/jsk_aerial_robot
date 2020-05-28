@@ -2,7 +2,7 @@
 /*********************************************************************
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2017, JSK Lab
+ *  Copyright (c) 2020, JSK Lab
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -35,31 +35,20 @@
 
 #pragma once
 
-/* ros */
-#include <ros/ros.h>
 
-/* basic instance */
 #include <aerial_robot_control/flight_navigation.h>
 #include <aerial_robot_estimation/state_estimation.h>
 #include <aerial_robot_model/transformable_aerial_robot_model.h>
-
-/* ros msg to Spinal */
+#include <ros/ros.h>
 #include <spinal/PwmInfo.h>
 #include <spinal/UavInfo.h>
-#include <spinal/FourAxisCommand.h>
 
-/* util */
-#include <boost/algorithm/clamp.hpp>
-#include <tf/transform_datatypes.h>
-
-using namespace std;
-
-namespace control_plugin
+namespace aerial_robot_control
 {
   class ControlBase
   {
   public:
-    ControlBase(): control_timestamp_(-1), motor_num_(0)
+    ControlBase(): control_timestamp_(-1), activate_timestamp_(0)
     {}
 
     virtual ~ControlBase(){}
@@ -68,7 +57,7 @@ namespace control_plugin
                             boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
                             boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
                             boost::shared_ptr<aerial_robot_navigation::BaseNavigator> navigator,
-                            double ctrl_loop_rate)
+                            double ctrl_loop_du)
     {
       nh_ = nh;
       nhp_ = nhp;
@@ -79,12 +68,16 @@ namespace control_plugin
       estimator_ = estimator;
       navigator_ = navigator;
 
-      ctrl_loop_rate_ = ctrl_loop_rate;
+      ctrl_loop_du_ = ctrl_loop_du;
 
+      motor_num_ = robot_model->getRotorNum();
       estimate_mode_ = estimator_->getEstimateMode();
 
       getParam<bool>(nhp_, "param_verbose", param_verbose_, false);
       getParam<int>(nh_, "uav_model", uav_model_, 0); //0: DRONE
+
+      ros::NodeHandle control_nh(nh_, "controller");
+      getParam<bool>(control_nh, "control_verbose", control_verbose_, false);
 
       ros::NodeHandle motor_nh(nh_, "motor_info");
       getParam<double>(motor_nh, "max_pwm", max_pwm_, 0.0);
@@ -121,8 +114,6 @@ namespace control_plugin
 
     virtual bool update()
     {
-      if(motor_num_ == 0) return false;
-
       if(navigator_->getNaviState() == aerial_robot_navigation::START_STATE) activate();
       if(navigator_->getNaviState() == aerial_robot_navigation::ARM_OFF_STATE && control_timestamp_ > 0)
         {
@@ -147,9 +138,7 @@ namespace control_plugin
     {
       /* motor related info */
       /* initialize setting */
-
-      static ros::Time activate_timestamp = ros::Time(0);
-      if(ros::Time::now().toSec() - activate_timestamp.toSec()  > 0.1)
+      if(ros::Time::now().toSec() - activate_timestamp_  > 0.1)
         {
           /* send motor and uav info to uav, about 10Hz */
           spinal::PwmInfo motor_info_msg;
@@ -168,7 +157,7 @@ namespace control_plugin
           uav_info_msg.uav_model = uav_model_;
           uav_info_pub_.publish(uav_info_msg);
 
-          activate_timestamp = ros::Time::now();
+          activate_timestamp_ = ros::Time::now().toSec();
 
         }
       reset();
@@ -189,23 +178,24 @@ namespace control_plugin
     boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator_;
     boost::shared_ptr<aerial_robot_navigation::BaseNavigator> navigator_;
 
-    double ctrl_loop_rate_;
+    double activate_timestamp_;
+
+    double ctrl_loop_du_;
     double control_timestamp_;
     int motor_num_;
     int uav_model_;
 
-    /* new param */
+    double m_f_rate_;
     double max_pwm_, min_pwm_;
     double min_thrust_;
-    double m_f_rate_;
-    double force_landing_thrust_; //pwm
-    int pwm_conversion_mode_;
     std::vector<spinal::MotorInfo> motor_info_;
 
+    double force_landing_thrust_; //pwm
+    int pwm_conversion_mode_;
+
     int estimate_mode_;
-
     bool param_verbose_;
-
+    bool control_verbose_;
 
     template<class T> void getParam(ros::NodeHandle nh, std::string param_name, T& param, T default_value)
     {

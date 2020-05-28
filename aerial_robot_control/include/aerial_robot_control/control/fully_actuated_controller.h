@@ -2,7 +2,7 @@
 /*********************************************************************
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2020, JSK Lab
+ *  Copyright (c) 2018, JSK Lab
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -32,37 +32,59 @@
  *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
-
 #pragma once
 
-#include <hydrus/hydrus_lqi_controller.h>
-#include <spinal/DesireCoord.h>
+#include <aerial_robot_msgs/WrenchAllocationMatrix.h>
+#include <aerial_robot_control/control/pose_linear_controller.h>
+#include <spinal/FourAxisCommand.h>
+#include <spinal/RollPitchYawTerms.h>
+#include <spinal/TorqueAllocationMatrixInv.h>
+
+using boost::algorithm::clamp;
 
 namespace aerial_robot_control
 {
-  class HydrusTiltedLQIController: public HydrusLQIController
+  class FullyActuatedController: public PoseLinearController
   {
   public:
-    HydrusTiltedLQIController() {}
-    virtual ~HydrusTiltedLQIController() = default;
+    FullyActuatedController();
+    virtual ~FullyActuatedController() = default;
 
     void initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
                     boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
                     boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
                     boost::shared_ptr<aerial_robot_navigation::BaseNavigator> navigator,
-                    double ctrl_loop_rate);
+                    double ctrl_loop_rate) override;
 
-  protected:
+    virtual void reset() override;
 
-    ros::Publisher desired_baselink_rot_pub_;
+    virtual void controlCore() override;
+    virtual void sendCmd() override;
 
-    double trans_constraint_weight_;
-    double att_control_weight_;
+  private:
+    ros::Publisher flight_cmd_pub_; //for spinal
+    ros::Publisher rpy_gain_pub_; //for spinal
+    ros::Publisher torque_allocation_matrix_inv_pub_; //for spinal
+    double torque_allocation_matrix_inv_pub_stamp_;
+    ros::Publisher wrench_allocation_matrix_pub_; //for debug
+    ros::Publisher wrench_allocation_matrix_inv_pub_; //for debug
+    double wrench_allocation_matrix_pub_stamp_;
 
-    void controlCore() override;
-    bool optimalGain() override;
-    void publishGain() override;
-    void rosParamInit() override;
+    Eigen::MatrixXd q_mat_;
+    Eigen::MatrixXd q_mat_inv_;
+
+    std::vector<float> target_base_thrust_;
+    double candidate_yaw_term_;
+
+    double torque_allocation_matrix_inv_pub_interval_;
+    double wrench_allocation_matrix_pub_interval_;
+
+    void setAttitudeGains();
+    void rosParamInit();
+
+    void sendFourAxisCommand();
+    void sendTorqueAllocationMatrixInv();
+
 
   };
-};
+} //namespace aerial_robot_control

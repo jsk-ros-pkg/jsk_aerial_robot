@@ -1,8 +1,14 @@
 #include <hydrus/hydrus_lqi_controller.h>
 
-// TODO: LQI Q matrix -> M, R matrix -> N
+using namespace aerial_robot_control;
 
-using namespace control_plugin;
+HydrusLQIController::HydrusLQIController():
+  target_roll_(0), target_pitch_(0), candidate_yaw_term_(0)
+{
+  lqi_roll_pitch_weight_.setZero();
+  lqi_yaw_weight_.setZero();
+  lqi_z_weight_.setZero();
+}
 
 
 void HydrusLQIController::initialize(ros::NodeHandle nh,
@@ -12,34 +18,41 @@ void HydrusLQIController::initialize(ros::NodeHandle nh,
                                      boost::shared_ptr<aerial_robot_navigation::BaseNavigator> navigator,
                                      double ctrl_loop_rate)
 {
-  FlatnessPid::initialize(nh, nhp, robot_model, estimator, navigator, ctrl_loop_rate);
+  PoseLinearController::initialize(nh, nhp, robot_model, estimator, navigator, ctrl_loop_rate);
+
+  rosParamInit();
 
   hydrus_robot_model_ = boost::dynamic_pointer_cast<HydrusRobotModel>(robot_model);
 
   //publisher
   rpy_gain_pub_ = nh_.advertise<spinal::RollPitchYawTerms>("rpy/gain", 1);
-  four_axis_gain_pub_ = nh_.advertise<aerial_robot_msgs::FourAxisGain>("four_axes/gain", 1);
+  flight_cmd_pub_ = nh_.advertise<spinal::FourAxisCommand>("four_axes/command", 1);
+  four_axis_gain_pub_ = nh_.advertise<aerial_robot_msgs::FourAxisGain>("debug/four_axes/gain", 1);
   p_matrix_pseudo_inverse_inertia_pub_ = nh_.advertise<spinal::PMatrixPseudoInverseWithInertia>("p_matrix_pseudo_inverse_inertia", 1);
 
   //dynamic reconfigure server
-  lqi_server_ = boost::make_shared<dynamic_reconfigure::Server<hydrus::LQIConfig> >(ros::NodeHandle(nh, "gain_generator/lqi"));
+  ros::NodeHandle control_nh(nh_, "controller");
+  lqi_server_ = boost::make_shared<dynamic_reconfigure::Server<hydrus::LQIConfig> >(ros::NodeHandle(control_nh, "lqi"));
   dynamic_reconf_func_lqi_ = boost::bind(&HydrusLQIController::cfgLQICallback, this, _1, _2);
   lqi_server_->setCallback(dynamic_reconf_func_lqi_);
-
   gain_generator_thread_ = std::thread(boost::bind(&HydrusLQIController::gainGeneratorFunc, this));
 
   //gains
-  motor_num_ = robot_model->getRotorNum();
-  pitch_gains_.assign(motor_num_, PID());
-  roll_gains_.assign(motor_num_, PID());
+  pitch_gains_.resize(motor_num_, Eigen::Vector3d(0,0,0));
+  roll_gains_.resize(motor_num_, Eigen::Vector3d(0,0,0));
+  z_gains_.resize(motor_num_, Eigen::Vector3d(0,0,0));
+  yaw_gains_.resize(motor_num_, Eigen::Vector3d(0,0,0));
 
-  z_gains_.resize(motor_num_, tf::Vector3(0,0,0));
-  z_control_terms_.resize(motor_num_);
-  if(hydrus_robot_model_->getWrenchDof() == 4)
-    {
-      yaw_gains_.resize(motor_num_, tf::Vector3(0,0,0));
-      yaw_control_terms_.resize(motor_num_);
-    }
+  //message
+  target_base_thrust_.resize(motor_num_);
+  pid_msg_.z.total.resize(motor_num_);
+  pid_msg_.z.p_term.resize(motor_num_);
+  pid_msg_.z.i_term.resize(motor_num_);
+  pid_msg_.z.d_term.resize(motor_num_);
+  pid_msg_.yaw.total.resize(motor_num_);
+  pid_msg_.yaw.p_term.resize(motor_num_);
+  pid_msg_.yaw.i_term.resize(motor_num_);
+  pid_msg_.yaw.d_term.resize(motor_num_);
 }
 
 HydrusLQIController::~HydrusLQIController()
@@ -47,53 +60,100 @@ HydrusLQIController::~HydrusLQIController()
   gain_generator_thread_.join();
 }
 
-void HydrusLQIController::cfgLQICallback(hydrus::LQIConfig &config, uint32_t level)
+
+void HydrusLQIController::sendCmd()
 {
-  if(config.lqi_gain_flag)
+  PoseLinearController::sendCmd();
+
+  sendFourAxisCommand();
+}
+
+void HydrusLQIController::sendFourAxisCommand()
+{
+  spinal::FourAxisCommand flight_command_data;
+  flight_command_data.angles[0] = target_roll_;
+  flight_command_data.angles[1] = target_pitch_;
+  flight_command_data.angles[2] = candidate_yaw_term_;
+  flight_command_data.base_thrust = target_base_thrust_;
+  flight_cmd_pub_.publish(flight_command_data);
+}
+
+void HydrusLQIController::controlCore()
+{
+  PoseLinearController::controlCore();
+
+  tf::Vector3 target_acc_w(pid_controllers_.at(X).result(),
+                           pid_controllers_.at(Y).result(),
+                           pid_controllers_.at(Z).result());
+  tf::Vector3 target_acc_dash = (tf::Matrix3x3(tf::createQuaternionFromYaw(rpy_.z()))).inverse() * target_acc_w;
+
+  target_pitch_ = target_acc_dash.x() / aerial_robot_estimation::G;
+  target_roll_ = -target_acc_dash.y() / aerial_robot_estimation::G;
+
+  Eigen::VectorXd target_thrust_z_term = Eigen::VectorXd::Zero(motor_num_);
+  for(int i = 0; i < motor_num_; i++)
     {
-      switch(level)
+      double p_term = z_gains_.at(i)[0] * pid_controllers_.at(Z).getErrP();
+      double i_term = z_gains_.at(i)[1] * pid_controllers_.at(Z).getErrI();
+      double d_term = z_gains_.at(i)[2] * pid_controllers_.at(Z).getErrD();
+      target_thrust_z_term(i) = p_term + i_term + d_term;
+      pid_msg_.z.p_term.at(i) = p_term;
+      pid_msg_.z.i_term.at(i) = i_term;
+      pid_msg_.z.d_term.at(i) = d_term;
+    }
+
+  // constraint z (also  I term)
+  int index;
+  double max_term = target_thrust_z_term.cwiseAbs().maxCoeff(&index);
+  double residual = max_term - pid_controllers_.at(Z).getLimitSum();
+  if(residual > 0)
+    {
+      pid_controllers_.at(Z).setErrI(pid_controllers_.at(Z).getErrI() - residual / z_gains_.at(index)[1]);
+      target_thrust_z_term *= (1 - residual / max_term);
+    }
+
+  for(int i = 0; i < motor_num_; i++)
+    {
+      target_base_thrust_.at(i) = target_thrust_z_term(i);
+      pid_msg_.z.total.at(i) =  target_thrust_z_term(i);
+    }
+
+  allocateYawTerm();
+}
+
+void HydrusLQIController::allocateYawTerm()
+{
+  Eigen::VectorXd target_thrust_yaw_term = Eigen::VectorXd::Zero(motor_num_);
+  for(int i = 0; i < motor_num_; i++)
+    {
+      double p_term = yaw_gains_.at(i)[0] * pid_controllers_.at(YAW).getErrP();
+      double i_term = yaw_gains_.at(i)[1] * pid_controllers_.at(YAW).getErrI();
+      double d_term = yaw_gains_.at(i)[2] * pid_controllers_.at(YAW).getErrD();
+      target_thrust_yaw_term(i) = p_term + i_term + d_term;
+      pid_msg_.yaw.p_term.at(i) = p_term;
+      pid_msg_.yaw.i_term.at(i) = i_term;
+      pid_msg_.yaw.d_term.at(i) = d_term;
+    }
+  // constraint yaw (also  I term)
+  int index;
+  double max_term = target_thrust_yaw_term.cwiseAbs().maxCoeff(&index);
+  double residual = max_term - pid_controllers_.at(YAW).getLimitSum();
+  if(residual > 0)
+    {
+      pid_controllers_.at(YAW).setErrI(pid_controllers_.at(YAW).getErrI() - residual / yaw_gains_.at(index)[1]);
+      target_thrust_yaw_term *= (1 - residual / max_term);
+    }
+
+  // special process for yaw since the bandwidth between PC and spinal
+  double max_yaw_scale = 0; // for reconstruct yaw control term in spinal
+  for(int i = 0; i < motor_num_; i++)
+    {
+      pid_msg_.yaw.total.at(i) =  target_thrust_yaw_term(i);
+
+      if(yaw_gains_[i][2] > max_yaw_scale)
         {
-        case LQI_RP_P_GAIN:
-          ROS_INFO_STREAM_NAMED("LQI gain generator", "LQI gain generator: change the p gain weight of roll and pitch from " << q_roll_ <<  " to "  << config.q_roll);
-          q_roll_ = config.q_roll;
-          q_pitch_ = config.q_roll;
-          break;
-        case LQI_RP_I_GAIN:
-          ROS_INFO_STREAM_NAMED("LQI gain generator", "LQI gain generator: change the i gain weight of roll and pitch from " << q_roll_i_ <<  " to "  << config.q_roll_i);
-          q_roll_i_ = config.q_roll_i;
-          q_pitch_i_ = config.q_roll_i;
-          break;
-        case LQI_RP_D_GAIN:
-          ROS_INFO_STREAM_NAMED("LQI gain generator", "LQI gain generator: change the d gain weight of roll and pitch from " << q_roll_d_ <<  " to "  << config.q_roll_d);
-          q_roll_d_ = config.q_roll_d;
-          q_pitch_d_ = config.q_roll_d;
-          break;
-        case LQI_Y_P_GAIN:
-          ROS_INFO_STREAM_NAMED("LQI gain generator", "LQI gain generator: change the p gain weight of yaw from " << q_yaw_ <<  " to "  << config.q_yaw);
-          q_yaw_ = config.q_yaw;
-          break;
-        case LQI_Y_I_GAIN:
-          ROS_INFO_STREAM_NAMED("LQI gain generator", "LQI gain generator: change the i gain weight of yaw from " << q_yaw_i_ <<  " to "  << config.q_yaw_i);
-          q_yaw_i_ = config.q_yaw_i;
-          break;
-        case LQI_Y_D_GAIN:
-          ROS_INFO_STREAM_NAMED("LQI gain generator", "LQI gain generator: change the d gain weight of yaw from " << q_yaw_d_ <<  " to "  << config.q_yaw_d);
-          q_yaw_d_ = config.q_yaw_d;
-          break;
-        case LQI_Z_P_GAIN:
-          ROS_INFO_STREAM_NAMED("LQI gain generator", "LQI gain generator: change the p gain weight of z from " << q_z_ <<  " to "  << config.q_z);
-          q_z_ = config.q_z;
-          break;
-        case LQI_Z_I_GAIN:
-          ROS_INFO_STREAM_NAMED("LQI gain generator", "LQI gain generator: change the i gain weight of z from " << q_z_i_ <<  " to "  << config.q_z_i);
-          q_z_i_ = config.q_z_i;
-          break;
-        case LQI_Z_D_GAIN:
-          ROS_INFO_STREAM_NAMED("LQI gain generator", "LQI gain generator: change the d gain weight of z from " << q_z_d_ <<  " to "  << config.q_z_d);
-          q_z_d_ = config.q_z_d;
-          break;
-        default :
-          break;
+          max_yaw_scale = yaw_gains_[i][2];
+          candidate_yaw_term_ = target_thrust_yaw_term(i);
         }
     }
 }
@@ -180,10 +240,13 @@ bool HydrusLQIController::optimalGain()
 
   Eigen::VectorXd q_diagonals(lqi_mode_ * 3);
   if(lqi_mode_ == 3)
-    q_diagonals << q_z_, q_z_d_, q_roll_, q_roll_d_, q_pitch_, q_pitch_d_, q_z_i_, q_roll_i_, q_pitch_i_;
+    {
+      q_diagonals << lqi_z_weight_(0), lqi_z_weight_(2), lqi_roll_pitch_weight_(0), lqi_roll_pitch_weight_(2), lqi_roll_pitch_weight_(0), lqi_roll_pitch_weight_(2), lqi_z_weight_(1), lqi_roll_pitch_weight_(1), lqi_roll_pitch_weight_(1);
+    }
   else
-    q_diagonals << q_z_, q_z_d_, q_roll_, q_roll_d_, q_pitch_, q_pitch_d_, q_yaw_, q_yaw_d_, q_z_i_, q_roll_i_, q_pitch_i_, q_yaw_i_;
-
+    {
+      q_diagonals << lqi_z_weight_(0), lqi_z_weight_(2), lqi_roll_pitch_weight_(0), lqi_roll_pitch_weight_(2), lqi_roll_pitch_weight_(0), lqi_roll_pitch_weight_(2), lqi_yaw_weight_(0), lqi_yaw_weight_(2), lqi_z_weight_(1), lqi_roll_pitch_weight_(1), lqi_roll_pitch_weight_(1), lqi_yaw_weight_(1);
+    }
   Eigen::MatrixXd Q = q_diagonals.asDiagonal();
 
   Eigen::MatrixXd R  = Eigen::MatrixXd::Zero(motor_num_, motor_num_);
@@ -215,24 +278,11 @@ bool HydrusLQIController::optimalGain()
 
   for(int i = 0; i < motor_num_; ++i)
     {
-      z_gains_.at(i).setValue(-K_(i,0), K_(i, lqi_mode_ * 2), -K_(i,1)); // direct allocate
-
-      roll_gains_.at(i).p = -K_(i,2);
-      roll_gains_.at(i).i = K_(i, lqi_mode_ * 2 + 1);
-      roll_gains_.at(i).d = -K_(i,3);
-
-      pitch_gains_.at(i).p = -K_(i,4);
-      pitch_gains_.at(i).i = K_(i, lqi_mode_ * 2 + 2);
-      pitch_gains_.at(i).d = -K_(i,5);
-
-      if(lqi_mode_ == 4) yaw_gains_.at(i).setValue(-K_(i,6), K_(i, lqi_mode_ * 2 + 3), -K_(i,7));
-      else
-        {
-          if(hydrus_robot_model_->getWrenchDof() == 4)
-            {
-              yaw_gains_.at(i).setValue(0, 0, 0); // TODO: hard-coding
-            }
-        }
+      roll_gains_.at(i) = Eigen::Vector3d(-K_(i,2),  K_(i, lqi_mode_ * 2 + 1), -K_(i,3));
+      pitch_gains_.at(i) = Eigen::Vector3d(-K_(i,4), K_(i, lqi_mode_ * 2 + 2), -K_(i,5));
+      z_gains_.at(i) = Eigen::Vector3d(-K_(i,0), K_(i, lqi_mode_ * 2), -K_(i,1));
+      if(lqi_mode_ == 4) yaw_gains_.at(i) = Eigen::Vector3d(-K_(i,6), K_(i, lqi_mode_ * 2 + 3), -K_(i,7));
+      else yaw_gains_.at(i).setZero();
     }
 
   // compensation for gyro moment
@@ -244,16 +294,17 @@ void HydrusLQIController::clampGain()
 {
   /* avoid the violation of 16int_t range because of spinal::RollPitchYawTerms */
   double max_gain_thresh = 32.767;
-  double max_roll_p_gain = 0, max_roll_d_gain = 0, max_pitch_p_gain = 0, max_pitch_d_gain = 0;
+  double max_roll_p_gain = 0, max_roll_d_gain = 0, max_pitch_p_gain = 0, max_pitch_d_gain = 0, max_yaw_d_gain = 0;
   for(int i = 0; i < motor_num_; ++i)
     {
-      if(max_roll_p_gain < fabs(roll_gains_.at(i).p)) max_roll_p_gain = fabs(roll_gains_.at(i).p);
-      if(max_roll_d_gain < fabs(roll_gains_.at(i).d)) max_roll_d_gain = fabs(roll_gains_.at(i).d);
-      if(max_pitch_p_gain < fabs(pitch_gains_.at(i).p)) max_pitch_p_gain = fabs(pitch_gains_.at(i).p);
-      if(max_pitch_d_gain < fabs(pitch_gains_.at(i).d)) max_pitch_d_gain = fabs(pitch_gains_.at(i).d);
+      if(max_roll_p_gain < fabs(roll_gains_.at(i)[0])) max_roll_p_gain = fabs(roll_gains_.at(i)[0]);
+      if(max_roll_d_gain < fabs(roll_gains_.at(i)[2])) max_roll_d_gain = fabs(roll_gains_.at(i)[2]);
+      if(max_pitch_p_gain < fabs(pitch_gains_.at(i)[0])) max_pitch_p_gain = fabs(pitch_gains_.at(i)[0]);
+      if(max_pitch_d_gain < fabs(pitch_gains_.at(i)[2])) max_pitch_d_gain = fabs(pitch_gains_.at(i)[2]);
+      if(max_yaw_d_gain < fabs(yaw_gains_.at(i)[2])) max_yaw_d_gain = fabs(yaw_gains_.at(i)[2]);
     }
 
-  double roll_p_gain_scale = 1, roll_d_gain_scale = 1, pitch_p_gain_scale = 1, pitch_d_gain_scale = 1;
+  double roll_p_gain_scale = 1, roll_d_gain_scale = 1, pitch_p_gain_scale = 1, pitch_d_gain_scale = 1, yaw_d_gain_scale = 1;
   if(max_roll_p_gain > max_gain_thresh)
     {
       ROS_WARN_STREAM_NAMED("LQI gain generator", "LQI gain generator: the max roll p gain violate the range of int16_t: " << max_roll_p_gain);
@@ -274,45 +325,33 @@ void HydrusLQIController::clampGain()
       ROS_WARN_STREAM_NAMED("LQI gain generator", "LQI gain generator: the max pitch d gain violate the range of int16_t: " << max_pitch_d_gain);
       pitch_d_gain_scale = max_gain_thresh / max_pitch_d_gain;
     }
+  if(max_yaw_d_gain > max_gain_thresh)
+    {
+      ROS_WARN_STREAM_NAMED("LQI gain generator", "LQI gain generator: the max yaw d gain violate the range of int16_t: " << max_yaw_d_gain);
+      yaw_d_gain_scale = max_gain_thresh / max_yaw_d_gain;
+    }
 
   for(int i = 0; i < motor_num_; ++i)
     {
-      roll_gains_.at(i).p *= roll_p_gain_scale;
-      roll_gains_.at(i).d *= roll_d_gain_scale;
+      roll_gains_.at(i)[0] *= roll_p_gain_scale;
+      roll_gains_.at(i)[2] *= roll_d_gain_scale;
 
-      pitch_gains_.at(i).p *= pitch_p_gain_scale;
-      pitch_gains_.at(i).d *= pitch_d_gain_scale;
-    }
+      pitch_gains_.at(i)[0] *= pitch_p_gain_scale;
+      pitch_gains_.at(i)[2] *= pitch_d_gain_scale;
 
-  // TODO: hard-coding
-  if(lqi_mode_ == 4)
-    {
-      double max_yaw_d_gain = 0;
-      for(int i = 0; i < motor_num_; ++i)
-        if(max_yaw_d_gain < fabs(yaw_gains_.at(i).z())) max_yaw_d_gain = fabs(yaw_gains_.at(i).z());
-
-      double yaw_d_gain_scale = 1;
-      if(max_yaw_d_gain > max_gain_thresh)
-        {
-          ROS_WARN_STREAM_NAMED("LQI gain generator", "LQI gain generator: the max yaw d gain violate the range of int16_t: " << max_yaw_d_gain);
-          yaw_d_gain_scale = max_gain_thresh / max_yaw_d_gain;
-        }
-      for(int i = 0; i < motor_num_; ++i) yaw_gains_.at(i)[2] *= yaw_d_gain_scale;
+      yaw_gains_.at(i)[2] *= yaw_d_gain_scale;
     }
 }
 
-
 void HydrusLQIController::rosParamInit()
 {
-  FlatnessPid::rosParamInit();
-
   ros::NodeHandle control_nh(nh_, "controller");
   ros::NodeHandle lqi_nh(control_nh, "lqi");
-  lqi_nh.param("gyro_moment_compensation", gyro_moment_compensation_, false);
-  lqi_nh.param("clamp_gain", clamp_gain_, true);
+  getParam<bool>(lqi_nh, "gyro_moment_compensation", gyro_moment_compensation_, false);
+  getParam<bool>(lqi_nh, "clamp_gain", clamp_gain_, true);
 
   /* propeller direction and lqi R */
-  r_.resize(robot_model_->getRotorNum()); // motor_num is not set
+  r_.resize(motor_num_); // motor_num is not set
   for(int i = 0; i < robot_model_->getRotorNum(); ++i) {
     std::stringstream ss;
     ss << i + 1;
@@ -320,72 +359,54 @@ void HydrusLQIController::rosParamInit()
     getParam<double>(lqi_nh, std::string("r") + ss.str(), r_.at(i), 1.0);
   }
 
-  getParam<double>(lqi_nh, "q_roll", q_roll_, 1.0);
-  getParam<double>(lqi_nh, "q_roll_d", q_roll_d_, 1.0);
-  getParam<double>(lqi_nh, "q_pitch", q_pitch_, 1.0);
-  getParam<double>(lqi_nh, "q_pitch_d", q_pitch_d_,  1.0);
-  getParam<double>(lqi_nh, "q_yaw", q_yaw_, 1.0);
-  getParam<double>(lqi_nh, "q_yaw_d", q_yaw_d_, 1.0);
-  getParam<double>(lqi_nh, "q_z", q_z_, 1.0);
-  getParam<double>(lqi_nh, "q_z_d", q_z_d_, 1.0);
-
-  getParam<double>(lqi_nh, "q_roll_i", q_roll_i_, 1.0);
-  getParam<double>(lqi_nh, "q_pitch_i", q_pitch_i_, 1.0);
-  getParam<double>(lqi_nh, "q_yaw_i", q_yaw_i_, 1.0);
-  getParam<double>(lqi_nh, "q_z_i", q_z_i_, 1.0);
+  getParam<double>(lqi_nh, "roll_pitch_p", lqi_roll_pitch_weight_[0], 1.0);
+  getParam<double>(lqi_nh, "roll_pitch_i", lqi_roll_pitch_weight_[1], 1.0);
+  getParam<double>(lqi_nh, "roll_pitch_d", lqi_roll_pitch_weight_[2], 1.0);
+  getParam<double>(lqi_nh, "yaw_p", lqi_yaw_weight_[0], 1.0);
+  getParam<double>(lqi_nh, "yaw_i", lqi_yaw_weight_[1], 1.0);
+  getParam<double>(lqi_nh, "yaw_d", lqi_yaw_weight_[2], 1.0);
+  getParam<double>(lqi_nh, "z_p", lqi_z_weight_[0], 1.0);
+  getParam<double>(lqi_nh, "z_i", lqi_z_weight_[1], 1.0);
+  getParam<double>(lqi_nh, "z_d", lqi_z_weight_[2], 1.0);
 }
 
 void HydrusLQIController::publishGain()
 {
   aerial_robot_msgs::FourAxisGain four_axis_gain_msg;
-  spinal::RollPitchYawTerms rpy_gain_msg; //for rosserial
-  spinal::PMatrixPseudoInverseWithInertia p_pseudo_inverse_with_inertia_msg;
+  spinal::RollPitchYawTerms rpy_gain_msg; // to spinal
+  spinal::PMatrixPseudoInverseWithInertia p_pseudo_inverse_with_inertia_msg; // to spinal
 
   rpy_gain_msg.motors.resize(motor_num_);
   p_pseudo_inverse_with_inertia_msg.pseudo_inverse.resize(motor_num_);
 
   for(int i = 0; i < motor_num_; ++i)
     {
-      four_axis_gain_msg.roll_p_gain.push_back(roll_gains_.at(i).p);
-      four_axis_gain_msg.roll_i_gain.push_back(roll_gains_.at(i).i);
-      four_axis_gain_msg.roll_d_gain.push_back(roll_gains_.at(i).d);
+      four_axis_gain_msg.roll_p_gain.push_back(roll_gains_.at(i)[0]);
+      four_axis_gain_msg.roll_i_gain.push_back(roll_gains_.at(i)[1]);
+      four_axis_gain_msg.roll_d_gain.push_back(roll_gains_.at(i)[2]);
 
-      four_axis_gain_msg.pitch_p_gain.push_back(pitch_gains_.at(i).p);
-      four_axis_gain_msg.pitch_i_gain.push_back(pitch_gains_.at(i).i);
-      four_axis_gain_msg.pitch_d_gain.push_back(pitch_gains_.at(i).d);
+      four_axis_gain_msg.pitch_p_gain.push_back(pitch_gains_.at(i)[0]);
+      four_axis_gain_msg.pitch_i_gain.push_back(pitch_gains_.at(i)[1]);
+      four_axis_gain_msg.pitch_d_gain.push_back(pitch_gains_.at(i)[2]);
 
-      // TODO: temporary, consider the DragonRobotModel derived
-      if(lqi_mode_ == 4)
-        {
-          four_axis_gain_msg.yaw_p_gain.push_back(yaw_gains_.at(i)[0]);
-          four_axis_gain_msg.yaw_i_gain.push_back(yaw_gains_.at(i)[1]);
-          four_axis_gain_msg.yaw_d_gain.push_back(yaw_gains_.at(i)[2]);
-        }
-      else
-        {
-          four_axis_gain_msg.yaw_p_gain.push_back(0);
-          four_axis_gain_msg.yaw_i_gain.push_back(0);
-          four_axis_gain_msg.yaw_d_gain.push_back(0);
-        }
+      four_axis_gain_msg.yaw_p_gain.push_back(yaw_gains_.at(i)[0]);
+      four_axis_gain_msg.yaw_i_gain.push_back(yaw_gains_.at(i)[1]);
+      four_axis_gain_msg.yaw_d_gain.push_back(yaw_gains_.at(i)[2]);
 
       four_axis_gain_msg.z_p_gain.push_back(z_gains_.at(i)[0]);
       four_axis_gain_msg.z_i_gain.push_back(z_gains_.at(i)[1]);
       four_axis_gain_msg.z_d_gain.push_back(z_gains_.at(i)[2]);
 
       /* to flight controller via rosserial scaling by 1000 */
-      rpy_gain_msg.motors[i].roll_p = roll_gains_.at(i).p * 1000;
-      rpy_gain_msg.motors[i].roll_i = roll_gains_.at(i).i * 1000;
-      rpy_gain_msg.motors[i].roll_d = roll_gains_.at(i).d * 1000;
+      rpy_gain_msg.motors[i].roll_p = roll_gains_.at(i)[0] * 1000;
+      rpy_gain_msg.motors[i].roll_i = roll_gains_.at(i)[1] * 1000;
+      rpy_gain_msg.motors[i].roll_d = roll_gains_.at(i)[2] * 1000;
 
-      rpy_gain_msg.motors[i].pitch_p = pitch_gains_.at(i).p * 1000;
-      rpy_gain_msg.motors[i].pitch_i = pitch_gains_.at(i).i * 1000;
-      rpy_gain_msg.motors[i].pitch_d = pitch_gains_.at(i).d * 1000;
+      rpy_gain_msg.motors[i].pitch_p = pitch_gains_.at(i)[0] * 1000;
+      rpy_gain_msg.motors[i].pitch_i = pitch_gains_.at(i)[1] * 1000;
+      rpy_gain_msg.motors[i].pitch_d = pitch_gains_.at(i)[2] * 1000;
 
-      // TODO: temporary, consider the DragonRobotModel derived
-      if(lqi_mode_ == 4)
-        rpy_gain_msg.motors[i].yaw_d = yaw_gains_.at(i)[2] * 1000;
-      else
-        rpy_gain_msg.motors[i].yaw_d = 0;
+      rpy_gain_msg.motors[i].yaw_d = yaw_gains_.at(i)[2] * 1000;
 
       /* the p matrix pseudo inverse and inertia */
       p_pseudo_inverse_with_inertia_msg.pseudo_inverse[i].r = p_mat_pseudo_inv_(i, 1) * 1000;
@@ -412,6 +433,56 @@ void HydrusLQIController::publishGain()
     p_matrix_pseudo_inverse_inertia_pub_.publish(p_pseudo_inverse_with_inertia_msg);
 }
 
+void HydrusLQIController::cfgLQICallback(hydrus::LQIConfig &config, uint32_t level)
+{
+  using Levels = aerial_robot_msgs::DynamicReconfigureLevels;
+  if(config.lqi_flag)
+    {
+      switch(level)
+        {
+        case Levels::RECONFIGURE_LQI_ROLL_PITCH_P:
+          ROS_INFO_STREAM_NAMED("LQI gain generator", "LQI gain generator: change the p gain weight of roll and pitch from " << lqi_roll_pitch_weight_.x() <<  " to "  << config.roll_pitch_p);
+          lqi_roll_pitch_weight_.x() = config.roll_pitch_p;
+          break;
+        case Levels::RECONFIGURE_LQI_ROLL_PITCH_I:
+          ROS_INFO_STREAM_NAMED("LQI gain generator", "LQI gain generator: change the p gain weight of roll and pitch from " << lqi_roll_pitch_weight_.y() <<  " to "  << config.roll_pitch_i);
+          lqi_roll_pitch_weight_.y() = config.roll_pitch_i;
+          break;
+        case Levels::RECONFIGURE_LQI_ROLL_PITCH_D:
+          ROS_INFO_STREAM_NAMED("LQI gain generator", "LQI gain generator: change the p gain weight of roll and pitch from " << lqi_roll_pitch_weight_.z() <<  " to "  << config.roll_pitch_d);
+          lqi_roll_pitch_weight_.z() = config.roll_pitch_d;
+          break;
+        case Levels::RECONFIGURE_LQI_YAW_P:
+          ROS_INFO_STREAM_NAMED("LQI gain generator", "LQI gain generator: change the p gain weight of roll and pitch from " << lqi_yaw_weight_.x() <<  " to "  << config.yaw_p);
+          lqi_yaw_weight_.x() = config.yaw_p;
+          break;
+        case Levels::RECONFIGURE_LQI_YAW_I:
+          ROS_INFO_STREAM_NAMED("LQI gain generator", "LQI gain generator: change the p gain weight of roll and pitch from " << lqi_yaw_weight_.y() <<  " to "  << config.yaw_i);
+          lqi_yaw_weight_.y() = config.yaw_i;
+          break;
+        case Levels::RECONFIGURE_LQI_YAW_D:
+          ROS_INFO_STREAM_NAMED("LQI gain generator", "LQI gain generator: change the p gain weight of roll and pitch from " << lqi_yaw_weight_.z() <<  " to "  << config.yaw_d);
+          lqi_yaw_weight_.z() = config.yaw_d;
+          break;
+        case Levels::RECONFIGURE_LQI_Z_P:
+          ROS_INFO_STREAM_NAMED("LQI gain generator", "LQI gain generator: change the p gain weight of roll and pitch from " << lqi_z_weight_.x() <<  " to "  << config.z_p);
+          lqi_z_weight_.x() = config.z_p;
+          break;
+        case Levels::RECONFIGURE_LQI_Z_I:
+          ROS_INFO_STREAM_NAMED("LQI gain generator", "LQI gain generator: change the p gain weight of roll and pitch from " << lqi_z_weight_.y() <<  " to "  << config.z_i);
+          lqi_z_weight_.y() = config.z_i;
+          break;
+        case Levels::RECONFIGURE_LQI_Z_D:
+          ROS_INFO_STREAM_NAMED("LQI gain generator", "LQI gain generator: change the p gain weight of roll and pitch from " << lqi_z_weight_.z() <<  " to "  << config.z_d);
+          lqi_z_weight_.z() = config.z_d;
+          break;
+        default :
+          break;
+        }
+    }
+}
+
+
 /* plugin registration */
 #include <pluginlib/class_list_macros.h>
-PLUGINLIB_EXPORT_CLASS(control_plugin::HydrusLQIController, control_plugin::ControlBase);
+PLUGINLIB_EXPORT_CLASS(aerial_robot_control::HydrusLQIController, aerial_robot_control::ControlBase);

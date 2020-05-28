@@ -17,7 +17,7 @@ find_package(catkin REQUIRED COMPONENTS
 find_package(Eigen3 REQUIRED)
 
 generate_dynamic_reconfigure_options(
-  cfg/XYPidControl.cfg
+  cfg/PidControl.cfg
   )
 
 ### Temporary soulition because of https://github.com/ros/ros_comm/issues/1404
@@ -54,11 +54,12 @@ add_library(control_utils
   )
 target_link_libraries(control_utils ${EIGEN3_LIBRARIES})
 
-
 ### flight control plugin
 add_library(flight_control_pluginlib
-  src/control/flatness_pid_controller.cpp
-  src/control/agile_flatness_pid_controller.cpp)
+  src/control/pose_linear_controller.cpp
+  src/control/fully_actuated_controller.cpp
+  src/control/under_actuated_controller.cpp)
+
 target_link_libraries(flight_control_pluginlib ${catkin_LIBRARIES})
 add_dependencies(flight_control_pluginlib  ${PROJECT_NAME}_gencfg)
 

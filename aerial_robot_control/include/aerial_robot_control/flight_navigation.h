@@ -4,6 +4,7 @@
 #include <aerial_robot_estimation/sensor/gps.h>
 #include <aerial_robot_estimation/state_estimation.h>
 #include <aerial_robot_msgs/FlightNav.h>
+#include <angles/angles.h>
 #include <geometry_msgs/Vector3Stamped.h>
 #include <ros/ros.h>
 #include <sensor_msgs/Joy.h>
@@ -70,11 +71,15 @@ namespace aerial_robot_navigation
     inline tf::Vector3 getTargetPos() {return target_pos_;}
     inline tf::Vector3 getTargetVel() {return target_vel_;}
     inline tf::Vector3 getTargetAcc() {return target_acc_;}
-    inline float getTargetYaw() {return target_yaw_;}
-    inline float getTargetYawVel() {return target_vel_yaw_;}
+    inline tf::Vector3 getTargetRPY() {return target_rpy_;}
+    inline tf::Vector3 getTargetOmega() {return target_omega_;}
 
-    inline void setTargetYaw(float value) { target_yaw_ = value; }
-    inline void setTargetYawVel(float value) { target_vel_yaw_ = value; }
+    inline void setTargetRoll(float value) { target_rpy_.setX(value); }
+    inline void setTargetOmageX(float value) { target_omega_.setX(value); }
+    inline void setTargetPitch(float value) { target_rpy_.setY(value); }
+    inline void setTargetOmageY(float value) { target_omega_.setY(value); }
+    inline void setTargetYaw(float value) { target_rpy_.setZ(value); }
+    inline void setTargetOmageZ(float value) { target_omega_.setZ(value); }
     inline void setTargetPosX( float value){  target_pos_.setX(value);}
     inline void setTargetVelX( float value){  target_vel_.setX(value);}
     inline void setTargetAccX( float value){  target_acc_.setX(value);}
@@ -230,12 +235,12 @@ namespace aerial_robot_navigation
 
     double convergent_start_time_;
     double convergent_duration_;
-    double alt_convergent_thresh_;
+    double z_convergent_thresh_;
     double xy_convergent_thresh_;
 
     /* target value */
     tf::Vector3 target_pos_, target_vel_, target_acc_;
-    float target_yaw_, target_vel_yaw_;
+    tf::Vector3 target_rpy_, target_omega_;
 
     double takeoff_height_;
 
@@ -257,7 +262,7 @@ namespace aerial_robot_navigation
     bool  vel_control_flag_;
     bool  pos_control_flag_;
     bool  xy_control_flag_;
-    bool  alt_control_flag_;
+    bool  z_control_flag_;
     bool  yaw_control_flag_;
     bool force_landing_flag_;
     bool joy_udp_;
@@ -265,12 +270,12 @@ namespace aerial_robot_navigation
     bool joy_stick_heart_beat_;
 
     double joy_target_vel_interval_;
-    double joy_target_alt_interval_;
+    double joy_target_z_interval_;
     double max_target_vel_;
     double max_target_tilt_angle_;
     double max_target_yaw_rate_;
 
-    double joy_alt_deadzone_;
+    double joy_z_deadzone_;
     double joy_yaw_deadzone_;
 
     double joy_stick_prev_time_;
@@ -330,9 +335,9 @@ namespace aerial_robot_navigation
               nh.param("outdoor_takeoff_height", takeoff_height_, 1.2);
               nh.param("outdorr_convergent_duration", convergent_duration_, 0.5);
               nh.param("outdoor_xy_convergent_thresh", xy_convergent_thresh_, 0.6);
-              nh.param("outdoor_alt_convergent_thresh", alt_convergent_thresh_, 0.05);
+              nh.param("outdoor_z_convergent_thresh", z_convergent_thresh_, 0.05);
 
-              ROS_WARN_STREAM("update the navigation parameters for outdoor flight, takeoff height: " << takeoff_height_ << "; outdorr_convergent_duration: " << convergent_duration_ << "; outdoor_xy_convergent_thresh: " << xy_convergent_thresh_ << "; outdoor_alt_convergent_thresh: " << alt_convergent_thresh_);
+              ROS_WARN_STREAM("update the navigation parameters for outdoor flight, takeoff height: " << takeoff_height_ << "; outdorr_convergent_duration: " << convergent_duration_ << "; outdoor_xy_convergent_thresh: " << xy_convergent_thresh_ << "; outdoor_z_convergent_thresh: " << z_convergent_thresh_);
 
               break;
             }
@@ -476,7 +481,7 @@ namespace aerial_robot_navigation
 
     void setTargetYawFromCurrentState()
     {
-      target_yaw_ = estimator_->getState(State::YAW_COG, estimate_mode_)[0];
+      target_rpy_.setZ(estimator_->getState(State::YAW_COG, estimate_mode_)[0]);
     }
 
     template<class T> void getParam(ros::NodeHandle nh, std::string param_name, T& param, T default_value)
