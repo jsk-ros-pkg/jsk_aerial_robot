@@ -129,6 +129,8 @@ class TransformCheck(InitFormCheck, HoveringCheck):
                 node_pid = subprocess.Popen(node_command)
 
             max_error_xy = 0
+            max_error_x = 0
+            max_error_y = 0
             max_error_z = 0
             max_error_yaw = 0
             while not rospy.Time.now() > deadline:
@@ -137,20 +139,25 @@ class TransformCheck(InitFormCheck, HoveringCheck):
                 if self.joint_msg is None or self.control_msg is None:
                     continue
 
-                rospy.loginfo_throttle(1, 'errors: [%f, %f, %f, %f], joint: %s' %  (self.control_msg.pitch.pos_err, self.control_msg.roll.pos_err, self.control_msg.z.pos_err, self.control_msg.yaw.pos_err, [self.joint_msg.position[i] for i in self.joint_map]))
+                err_x = self.control_msg.x.err_p;
+                err_y = self.control_msg.y.err_p;
+                err_z = self.control_msg.z.err_p;
+                err_yaw = self.control_msg.yaw.err_p;
+                err_xy = math.sqrt(err_x * err_x + err_y * err_y);
+                rospy.loginfo_throttle(1, 'errors in [xy, z, yaw]: [%f (%f, %f), %f, %f]' %  (err_xy, err_x, err_y, err_z, err_yaw))
 
-                if self.control_msg.pitch.pos_err > max_error_xy:
-                    max_error_xy = self.control_msg.pitch.pos_err
-                if self.control_msg.roll.pos_err > max_error_xy:
-                    max_error_xy = self.control_msg.roll.pos_err
-                if self.control_msg.z.pos_err > max_error_z:
-                    max_error_z = self.control_msg.z.pos_err
-                if self.control_msg.yaw.pos_err > max_error_yaw:
-                    max_error_yaw = self.control_msg.yaw.pos_err
+                if err_xy > max_error_xy:
+                    max_error_xy = err_xy
+                    max_error_x = err_x
+                    max_error_y = err_y
+                if math.fabs(err_z) > math.fabs(max_error_z):
+                    max_error_z = err_z
+                if math.fabs(err_yaw) > math.fabs(max_error_yaw):
+                    max_error_yaw = err_yaw
 
                 # check the control stability
-                if math.fabs(self.control_msg.pitch.pos_err) > task['threshold'][0] or math.fabs(self.control_msg.roll.pos_err) > task['threshold'][0] or math.fabs(self.control_msg.z.pos_err) > task['threshold'][1] or math.fabs(self.control_msg.yaw.pos_err) > task['threshold'][2]:
-                    rospy.logwarn("devergence in [xy, z, yaw]: [%f, %f, %f, %f]", self.control_msg.pitch.pos_err, self.control_msg.roll.pos_err, self.control_msg.z.pos_err, self.control_msg.yaw.pos_err)
+                if err_xy > task['threshold'][0] or math.fabs(err_z) > task['threshold'][1] or math.fabs(err_yaw) > task['threshold'][2]:
+                    rospy.logwarn("devergence in [xy, z, yaw]: [% (%f, %f), %f, %f, %f]", err_xy, err_x, err_y, err_z, err_yaw)
                     if node_pid:
                         node_pid.kill()
                     return False
@@ -158,7 +165,7 @@ class TransformCheck(InitFormCheck, HoveringCheck):
             if node_pid:
                 node_pid.kill()
 
-            rospy.loginfo("max errors in [xy, z, yaw] are [%f, %f, %f]", max_error_xy, max_error_z, max_error_yaw)
+            rospy.loginfo("max errors in [xy, z, yaw] are [%f (%f, %f), %f, %f]", max_error_xy, max_error_x, max_error_y, max_error_z, max_error_yaw)
 
             # check joint angles convergence
             joint_angles = [self.joint_msg.position[i] for i in self.joint_map]

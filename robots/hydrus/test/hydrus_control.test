@@ -29,11 +29,11 @@
       init_joint_angles: [1.57, 1.57, 1.57]
       tasks:
         - command: [1.57, 0, 0]
-          threshold: [0.3, 0.01, 0.4]
+          threshold: [0.35, 0.01, 0.4]
           reset: [1.57, 1.57, 1.57]
           timeout: 20
         - command: [0, 0, 1.57]
-          threshold: [0.2, 0.01, 0.15]
+          threshold: [0.25, 0.01, 0.15]
           timeout: 10
         - command: "rosrun hydrus hydrus_demo.py _link_num:=4 _duration:=6"
           threshold: [0.3, 0.02, 0.45]
