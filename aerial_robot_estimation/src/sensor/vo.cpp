@@ -38,7 +38,7 @@
 
 namespace
 {
-  ros::Time init_servo_st;
+  double init_servo_st = 0;
   double max_du = 0;
 
   tf::Transform prev_sensor_tf;
@@ -86,7 +86,6 @@ namespace sensor_plugin
     /* servo control timer */
     if(variable_sensor_tf_flag_)
       {
-        init_servo_st = ros::Time::now();
         /* ros publisher: servo motor */
         getParam<std::string>("vo_servo_topic_name", topic_name, string("vo_servo_target_pwm"));
         vo_servo_pub_ = nh_.advertise<sensor_msgs::JointState>(topic_name, 1);
@@ -113,7 +112,7 @@ namespace sensor_plugin
     if(!updateBaseLink2SensorTransform()) return;
 
     /* servo init condition */
-    if(variable_sensor_tf_flag_ && ros::Time::now().toSec() - init_servo_st.toSec() < 1.0)
+    if(variable_sensor_tf_flag_ && ros::Time::now().toSec() - init_servo_st < 1.0 && init_servo_st > 0)
       return;
 
     /* check whether is force att control mode */
@@ -652,8 +651,11 @@ namespace sensor_plugin
       }
 
     /* init */
-    if (ros::Time::now().toSec() - init_servo_st.toSec() < 1.0) // 1 [sec]
-      send_pub_ = true;
+    if(init_servo_st == 0) init_servo_st = ros::Time::now().toSec();
+    if (ros::Time::now().toSec() - init_servo_st < 1.0) // 1 [sec]
+      {
+        send_pub_ = true;
+      }
 
     if(send_pub_)
       {
