@@ -1,12 +1,7 @@
-### Gimbal PID control for dragon quad type
-
+aerial_robot_control_name: aerial_robot_control/dragon_lqi_gimbal
 controller:
 
-  # general parameter
   control_verbose: false
-
-  # desire tilt
-  baselink_rot_pub_interval: 0.2
 
   # gimbal vectoring function check
   gimbal_vectoring_check_flag: false
@@ -14,47 +9,60 @@ controller:
   # consider lqi roll/pitch control in spnial when calculating the thrust scalar value
   add_lqi_result: false # TODO: true/false have no big difference in gazebo, please test in real_machine
 
-  # z
-  z:
-    offset: 0
-    limit: 28
-    p_term_limit: 28
-    i_term_limit: 28
-    d_term_limit: 28
-    landing_z_err_thresh: -0.4
-
-  # xy
   xy:
-    p_gain: 3.6 # old: 2.5 # 10 / 7.38: sucess in real machine, but weak; divided by mass
-    i_gain: 0.03 # divided by mass
-    hovering_i_gain: 0.03 # divided by mass
-    d_gain: 4 # 40.0 / 7.38 # 20 / 7.38: sucess in real machine, but weak; divided by mass
-    limit: 100 # divided by mass
-    p_term_limit: 10 # [m/s^2] divided by mass
-    i_term_limit: 10 # [m/s^2] divided by mass
-    d_term_limit: 10 # [m/s^2] divided by mass
-    x_offset: 0
-    y_offset: 0
+    p_gain: 3.6
+    i_gain: 0.03
+    d_gain: 4
+    limit_sum: 10
+    limit_p: 10 # [m/s^2]
+    limit_i: 10 # [m/s^2]
+    limit_d: 10 # [m/s^2]
 
-  # yaw
-  yaw:
-    limit: 10.0
-    p_term_limit: 10.0
-    i_term_limit: 10.0
-    d_term_limit: 10.0
-    p_gain: -10 # should be negative
-    i_gain: 0.1
-    d_gain: -5 # should be negative
+  z:
+    limit_err_p: 1.0
+    limit_sum: 28 # N for clamping thrust force
+    limit_p: 20 # m / s^2
+    limit_i: 20 # m / s^2
+    limit_d: 20 # m / s^2
+    landing_err_z: -0.4
 
-  # pitch & roll
-  pitch_roll:
-    control_p_det_thresh: 0.00025
-    control_rate_thresh: 0.7
-    limit: 20.0
-    p_term_limit: 20.0
-    i_term_limit: 20.0
-    d_term_limit: 20.0
-    p_gain: 20 
-    i_gain: 2.0 
+  roll_pitch:
+    p_gain: 20
+    i_gain: 2.0
     d_gain: 0.5 #pitch big noise from gyro
+    limit_sum: 10
+    limit_p: 10
+    limit_i: 10
+    limit_d: 10
+    gimbal_control_p_det_thresh: 0.00025
+    gimbal_control_rate_thresh: 0.7
 
+  yaw:
+    p_gain: 10
+    i_gain: 0.1
+    d_gain: 5
+    limit_sum: 10 # N for clamping thrust force
+    limit_p: 10
+    limit_i: 10
+    limit_d: 10
+    limit_err_p: 0.4
+    need_d_control: true
+
+  # LQI (roll, pitch, z)
+  lqi:
+    gain_generate_rate: 15.0
+    gyro_moment_compensation: false
+    clamp_gain: true
+
+    roll_pitch_p: 400
+    roll_pitch_i: 1.0
+    roll_pitch_d: 40
+
+    z_p: 20.0
+    z_i: 20.0
+    z_d: 30.0
+
+    r1: 1.0
+    r2: 1.0
+    r3: 1.0
+    r4: 1.0

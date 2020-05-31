@@ -49,9 +49,9 @@ DragonRobotModel::DragonRobotModel(bool init_with_rosparam, bool verbose, double
 
 void DragonRobotModel::getParamFromRos()
 {
-  ros::NodeHandle nhp("~");
-  nhp.param("edf_radius", edf_radius_, 0.035); //70mm EDF
-  nhp.param("edf_max_tilt", edf_max_tilt_, 0.26); //15 [deg]
+  ros::NodeHandle nh;
+  nh.param("edf_radius", edf_radius_, 0.035); //70mm EDF
+  nh.param("edf_max_tilt", edf_max_tilt_, 0.26); //15 [deg]
 }
 
 bool DragonRobotModel::stabilityCheck(bool verbose)
@@ -557,5 +557,6 @@ void DragonRobotModel::addCompThrustToJointTorqueJacobian()
   setJointTorqueJacobian(augmented_joint_torque_jacobian + getJointTorqueJacobian());
 }
 
-
-
+/* plugin registration */
+#include <pluginlib/class_list_macros.h>
+PLUGINLIB_EXPORT_CLASS(DragonRobotModel, aerial_robot_model::RobotModel);

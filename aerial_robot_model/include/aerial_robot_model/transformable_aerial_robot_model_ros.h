@@ -37,7 +37,7 @@
 
 #include <aerial_robot_model/transformable_aerial_robot_model.h>
 #include <aerial_robot_model/AddExtraModule.h>
-#include <memory>
+#include <pluginlib/class_loader.h>
 #include <spinal/DesireCoord.h>
 #include <tf/tf.h>
 #include <tf2_ros/transform_broadcaster.h>
@@ -47,34 +47,29 @@ namespace aerial_robot_model {
   //Transformable Aerial Robot Model with ROS functions
   class RobotModelRos {
   public:
-    RobotModelRos(ros::NodeHandle nh, ros::NodeHandle nhp, std::unique_ptr<aerial_robot_model::RobotModel> robot_model = std::make_unique<aerial_robot_model::RobotModel>(true), bool enable_cog2baselink_tf_pub = true);
+    RobotModelRos(ros::NodeHandle nh, ros::NodeHandle nhp);
     virtual ~RobotModelRos() = default;
 
     //public functions
     sensor_msgs::JointState getJointState() const { return joint_state_; }
-    bool getKinematicsUpdated() const { return kinematics_updated_; }
 
-  protected:
-    //protected functions
-    aerial_robot_model::RobotModel& getRobotModel() const { return *robot_model_; }
+    const boost::shared_ptr<aerial_robot_model::RobotModel> getRobotModel() const { return robot_model_; }
 
   private:
     //private attributes
-    ros::Subscriber actuator_state_sub_;
     ros::ServiceServer add_extra_module_service_;
-    tf2_ros::TransformBroadcaster br_;
-    ros::Publisher cog2baselink_tf_pub_;
     ros::Subscriber desire_coordinate_sub_;
-    bool enable_cog2baselink_tf_pub_;
+    ros::Subscriber joint_state_sub_;
+    tf2_ros::TransformBroadcaster br_;
     sensor_msgs::JointState joint_state_;
-    bool kinematics_updated_;
     ros::NodeHandle nh_;
     ros::NodeHandle nhp_;
-    std::unique_ptr<aerial_robot_model::RobotModel> robot_model_;
+    pluginlib::ClassLoader<aerial_robot_model::RobotModel> robot_model_loader_;
+    boost::shared_ptr<aerial_robot_model::RobotModel> robot_model_;
     std::string tf_prefix_;
 
     //private functions
-    void actuatorStateCallback(const sensor_msgs::JointStateConstPtr& state);
+    void jointStateCallback(const sensor_msgs::JointStateConstPtr& state);
     bool addExtraModuleCallback(aerial_robot_model::AddExtraModule::Request& req, aerial_robot_model::AddExtraModule::Response& res);
     void desireCoordinateCallback(const spinal::DesireCoordConstPtr& msg);
   };

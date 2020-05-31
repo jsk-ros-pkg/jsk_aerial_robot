@@ -35,13 +35,13 @@
           reset: "rosrun dragon transformation_demo.py _mode:=0 _reset:=1"
           reset_duration: 20
         - command: "rosrun dragon transformation_demo.py _mode:=1 _reset:=0"
-          threshold: [0.08, 0.08, 0.08]
+          threshold: [0.08, 0.08, 0.05]
           angle_threshold: 0.02
           timeout: 10
           reset: "rosrun dragon transformation_demo.py _mode:=0 _reset:=1"
           reset_duration: 10
         - command: "rosrun dragon transformation_demo.py _mode:=2 _reset:=0"
-          threshold: [0.15, 0.08, 0.16]
+          threshold: [0.15, 0.08, 0.10]
           angle_threshold: 0.02
           timeout: 15
           reset: "rosrun dragon transformation_demo.py _mode:=0 _reset:=1"

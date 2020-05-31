@@ -163,7 +163,6 @@ namespace aerial_robot_model {
     const std::vector<Eigen::Vector3d> p = getRotorsOriginFromCog<Eigen::Vector3d>();
     const std::vector<Eigen::Vector3d> u = getRotorsNormalFromCog<Eigen::Vector3d>();
     const auto& sigma = getRotorDirection();
-    const auto& rotor_direction = getRotorDirection();
     const int rotor_num = getRotorNum();
     const double m_f_rate = getMFRate();
 

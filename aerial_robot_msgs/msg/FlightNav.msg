@@ -26,7 +26,7 @@ float32 target_acc_y
 
 uint8 yaw_nav_mode
 
-float32 target_vel_yaw
+float32 target_omega_z
 float32 target_yaw
 
 uint8 pos_z_nav_mode

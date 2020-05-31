@@ -5,25 +5,27 @@ project(aerial_robot_model)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  roscpp
-  std_msgs
-  sensor_msgs
+  eigen_conversions
   geometry_msgs
   interactive_markers
-  visualization_msgs
-  tf
-  tf2_ros
-  tf2_kdl
-  tf2_eigen
-  tf2_geometry_msgs
-  tf_conversions
-  eigen_conversions
+  kalman_filter
   kdl_parser
   message_generation
-  message_runtime
+  pluginlib
+  roscpp
+  sensor_msgs
   spinal
-  kalman_filter
-)
+  std_msgs
+  tf
+  tf_conversions
+  tf2_eigen
+  tf2_geometry_msgs
+  tf2_kdl
+  tf2_ros
+  tf_conversions
+  urdf
+  visualization_msgs
+  )
 
 find_package(orocos_kdl REQUIRED)
 find_package(urdfdom_headers REQUIRED)
@@ -53,8 +55,7 @@ generate_messages(
 catkin_package(
   INCLUDE_DIRS include test
   LIBRARIES transformable_aerial_robot_model transformable_aerial_robot_model_ros numerical_jacobians
-  CATKIN_DEPENDS roscpp  std_msgs  sensor_msgs geometry_msgs tf interactive_markers visualization_msgs message_generation message_runtime spinal eigen_conversions
-#  DEPENDS system_lib
+  CATKIN_DEPENDS eigen_conversions interactive_markers spinal tf tf_conversions
 )
 
 ###########

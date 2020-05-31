@@ -42,8 +42,6 @@
 #include <spinal/UavInfo.h>
 #include <spinal/PMatrixPseudoInverseWithInertia.h>
 #include <spinal/TorqueAllocationMatrixInv.h>
-#include <spinal/SetAttitudeGains.h>
-
 
 #define MAX_PWM  54000
 #define IDLE_DUTY 0.5f
@@ -85,11 +83,13 @@ public:
   void setStartControlFlag(bool start_control_flag);
   void setUavModel(int8_t uav_model);
   inline uint8_t getMotorNumber(){return motor_number_;}
+
   void setMotorNumber(uint8_t motor_number);
   void setPwmTestMode(bool pwm_test_flag){pwm_test_flag_ = pwm_test_flag; }
   bool getIntegrateFlag(){return integrate_flag_; }
   void setIntegrateFlag(bool integrate_flag){integrate_flag_ = integrate_flag; }
   bool getForceLandingFlag() {return force_landing_flag_;}
+
   void setForceLandingFlag(bool force_landing_flag)
   {
     force_landing_flag_ = force_landing_flag;
@@ -101,12 +101,6 @@ public:
   }
   float getPwm(uint8_t index) {return target_pwm_[index];}
   float getForce(uint8_t index) {return target_thrust_[index];}
-  void levelPGain(float attitude_p_gain) { attitude_p_gain_[X] = attitude_p_gain; attitude_p_gain_[Y] = attitude_p_gain;}
-  void levelIGain(float attitude_i_gain) { attitude_i_gain_[X] = attitude_i_gain; attitude_i_gain_[Y] = attitude_i_gain;}
-  void levelDGain(float attitude_d_gain) { attitude_d_gain_[X] = attitude_d_gain; attitude_d_gain_[Y] = attitude_d_gain;}
-  void yawPGain(float attitude_p_gain) { attitude_p_gain_[Z] = attitude_p_gain; }
-  void yawIGain(float attitude_i_gain) { attitude_i_gain_[Z] = attitude_i_gain; }
-  void yawDGain(float attitude_d_gain) { attitude_d_gain_[Z] = attitude_d_gain; }
 
   bool activated();
 
@@ -136,13 +130,11 @@ private:
   ros::Subscriber sim_vol_sub_;
   ros::Publisher anti_gyro_pub_;
   ros::ServiceServer att_control_srv_;
-  ros::ServiceServer attitude_gains_srv_;
 
-  bool setAttitudeControlCallback(std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& res);
-  bool setAttitudeGainsCallback(spinal::SetAttitudeGains::Request& req, spinal::SetAttitudeGains::Response& res);
-
-  void setSimVolCallback(const std_msgs::Float32& vol_msg);
+  bool setAttitudeControlCallback(std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& res) { att_control_flag_ = req.data; }
+  void setSimVolCallback(const std_msgs::Float32 vol_msg) { sim_voltage_ = vol_msg.data; }
   float sim_voltage_;
+
 #else
   ros::Subscriber<spinal::FourAxisCommand, AttitudeController> four_axis_cmd_sub_;
   ros::Subscriber<spinal::PwmInfo, AttitudeController> pwm_info_sub_;
@@ -151,61 +143,49 @@ private:
   ros::Subscriber<spinal::PMatrixPseudoInverseWithInertia, AttitudeController> p_matrix_pseudo_inverse_inertia_sub_;
   ros::Subscriber<spinal::TorqueAllocationMatrixInv, AttitudeController> torque_allocation_matrix_inv_sub_;
   ros::ServiceServer<std_srvs::SetBool::Request, std_srvs::SetBool::Response, AttitudeController> att_control_srv_;
-  ros::ServiceServer<spinal::SetAttitudeGains::Request, spinal::SetAttitudeGains::Response, AttitudeController> attitude_gains_srv_;
 
-  void setAttitudeControlCallback(const std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& res);
-  void setAttitudeGainsCallback(const spinal::SetAttitudeGains::Request& req, spinal::SetAttitudeGains::Response& res);
+  void setAttitudeControlCallback(const std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& res) { att_control_flag_ = req.data; }
 
   BatteryStatus* bat_;
 #endif
+
   StateEstimate* estimator_;
 
   int8_t uav_model_;
   uint8_t motor_number_;
-
-  //Control Flag
   bool start_control_flag_;
   bool pwm_test_flag_;
   bool integrate_flag_;
   bool force_landing_flag_;
-  bool can_comm_flag_; //two types: pwm_direct_type OR can_comm_type
-  bool attitude_flag_;
+  bool att_control_flag_;
 
-  // Control Input
+
   float target_angle_[3];
-  float target_cog_force_[3];
-  float target_cog_torque_[3];
-
-  //Nonlinear Dynamics Inversion Control
-  float attitude_p_gain_[3];
-  float attitude_i_gain_[3];
-  float attitude_d_gain_[3];
-  float attitude_term_limit_[3];
-  float attitude_p_term_limit_[3];
-  float attitude_i_term_limit_[3];
-  float attitude_d_term_limit_[3];
-  float attitude_yaw_p_i_term_;
   float error_angle_i_[3];
   float error_angle_i_limit_[3];
-  bool attitude_gain_receive_flag_;
-  float target_cog_angular_acc_[3];
-  float torque_allocation_matrix_inv_[MAX_MOTOR_NUMBER][3];
 
-  //LQI Control
-  bool lqi_mode_;
-  float p_lqi_gain_[MAX_MOTOR_NUMBER][3];
-  float i_lqi_gain_[MAX_MOTOR_NUMBER][3];
-  float d_lqi_gain_[MAX_MOTOR_NUMBER][3];
-  float base_throttle_term_[MAX_MOTOR_NUMBER]; //[N]
-  float yaw_pi_term_[MAX_MOTOR_NUMBER]; //[N]
-  float yaw_term_[MAX_MOTOR_NUMBER]; //[N]
+  float torque_p_gain_[3];
+  float torque_i_gain_[3];
+  float torque_d_gain_[3];
+  float thrust_p_gain_[MAX_MOTOR_NUMBER][3];
+  float thrust_i_gain_[MAX_MOTOR_NUMBER][3];
+  float thrust_d_gain_[MAX_MOTOR_NUMBER][3];
+  float torque_allocation_matrix_inv_[MAX_MOTOR_NUMBER][3];
+  float base_thrust_term_[MAX_MOTOR_NUMBER]; //[N]
   float roll_pitch_term_[MAX_MOTOR_NUMBER]; //[N]
+  float yaw_term_[MAX_MOTOR_NUMBER]; //[N]
+  float extra_yaw_pi_term_[MAX_MOTOR_NUMBER]; //[N]
   int max_yaw_term_index_;
-  // Gyro Moment Compensation for LQI
+
+  // Gyro Moment Compensation
   float p_matrix_pseudo_inverse_[MAX_MOTOR_NUMBER][4];
   ap::Matrix3f inertia_;
 
-  // Thrust and PWM
+  // Failsafe
+  bool failsafe_;
+  uint32_t flight_command_last_stamp_;
+
+  // Thrust PWM Conversion
   float target_thrust_[MAX_MOTOR_NUMBER];
   float target_pwm_[MAX_MOTOR_NUMBER];
   float min_duty_;
@@ -220,26 +200,20 @@ private:
   uint32_t voltage_update_last_time_;
   uint32_t control_term_pub_last_time_, control_feedback_state_pub_last_time_;
   uint32_t pwm_pub_last_time_;
-
-  //PWM Test
-  float pwm_test_value_;
-
-  // Failsafe
-  bool failsafe_;
-  uint32_t flight_command_last_stamp_;
+  float pwm_test_value_; // PWM Test
 
   void fourAxisCommandCallback( const spinal::FourAxisCommand &cmd_msg);
   void pwmInfoCallback( const spinal::PwmInfo &info_msg);
   void rpyGainCallback( const spinal::RollPitchYawTerms &gain_msg);
   void pMatrixInertiaCallback(const spinal::PMatrixPseudoInverseWithInertia& msg);
   void torqueAllocationMatrixInvCallback(const spinal::TorqueAllocationMatrixInv& msg);
+  void thrustGainMapping();
+  void maxYawGainIndex();
   void pwmTestCallback(const std_msgs::Float32& pwm_msg);
   void pwmConversion(void);
   void pwmsControl(void);
 
   void reset(void);
-
-  void inversionMapping(void);
 
 
   float limit(float input, float limit)

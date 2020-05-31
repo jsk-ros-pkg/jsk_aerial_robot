@@ -7,6 +7,7 @@
   <arg name="config_dir" default="$(find hydrus_xi)/config"/>
   <arg name="type" default="hex_branch" />
   <arg name="onboards_model" default="xavier201811" />
+  <arg name="init_gimbal_angle" default="true" />
   <arg name="estimate_mode"  default= "0" />
   <arg name="sim_estimate_mode"  default= "2" />
   <arg name="headless" default="True" />
@@ -31,7 +32,8 @@
     <param name="estimation/mode" value= "$(arg sim_estimate_mode)" if="$(arg simulation)" />
     <param name="estimation/mode" value= "$(arg estimate_mode)" if="$(arg real_machine)"/>
 
-    <param name="uav_model" value= "17" />
+    ###########  Robot Model  ###########
+    <rosparam file="$(arg config_dir)/$(arg type)/RobotModel.yaml" command="load" />
 
     ###########  Motor Config  ###########
     <rosparam file="$(find hydrus_xi)/config/motor_info/MN4010KV475_Afro_15inch.yaml" command="load" />
@@ -47,11 +49,10 @@
     <rosparam file="$(arg config_dir)/$(arg type)/Simulation.yaml" command="load" if="$(arg simulation)"/>
 
     ###########  Flight Control  ###########
-    <param name="control_plugin_name" value ="control_plugin/hydrus_xi_fully_actuated_controller"/>
-    <rosparam file="$(arg config_dir)/$(arg type)/FullyActuatedPidControlConfig.yaml" command="load" />
+    <rosparam file="$(arg config_dir)/$(arg type)/FlightControl.yaml" command="load" />
 
-    ###########  Teleop  ###########
-    <rosparam file="$(arg config_dir)/$(arg type)/TeleopNavigationConfig.yaml" command="load" />
+    ###########  Navigation ###############
+    <rosparam file="$(arg config_dir)/$(arg type)/NavigationConfig.yaml" command="load" />
   </group>
 
   ###########  Base Platform  ###########
@@ -98,5 +99,5 @@
   </include>
 
   ######### init gimbal angles #########
-  <node pkg="hydrus_xi" name="init_gimbal_angles" type="init_gimbal_angles.py" ns="$(arg robot_ns)" />
+  <node pkg="hydrus_xi" name="init_gimbal_angles" type="init_gimbal_angles.py" ns="$(arg robot_ns)" if="$(arg init_gimbal_angle)"/>
 </launch>

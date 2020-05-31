@@ -1,18 +1,16 @@
-int32 motor_num
-
 #feedback gain
-float32[] pos_p_gain_pitch
-float32[] pos_i_gain_pitch
-float32[] pos_d_gain_pitch
+float32[] pitch_p_gain
+float32[] pitch_i_gain
+float32[] pitch_d_gain
 
-float32[] pos_p_gain_roll
-float32[] pos_i_gain_roll
-float32[] pos_d_gain_roll
+float32[] roll_p_gain
+float32[] roll_i_gain
+float32[] roll_d_gain
 
-float32[] pos_p_gain_z
-float32[] pos_i_gain_z
-float32[] pos_d_gain_z
+float32[] z_p_gain
+float32[] z_i_gain
+float32[] z_d_gain
 
-float32[] pos_p_gain_yaw
-float32[] pos_i_gain_yaw
-float32[] pos_d_gain_yaw
+float32[] yaw_p_gain
+float32[] yaw_i_gain
+float32[] yaw_d_gain

@@ -40,7 +40,7 @@
 #ifndef SIMULATION_ATTITUDE_CONTROLLER_H
 #define SIMULATION_ATTITUDE_CONTROLLER_H
 
-#include <aerial_robot_base/state_estimation.h>
+#include <aerial_robot_estimation/state_estimation.h>
 #include <aerial_robot_simulation/spinal_interface.h>
 #include <boost/scoped_ptr.hpp>
 #include <controller_interface/controller.h>
@@ -72,10 +72,7 @@ public:
   void setCommand(double pos_target, double vel_target);
   void starting(const ros::Time& time);
   void update(const ros::Time& time, const ros::Duration& period);
-  void getGains(double &p, double &i, double &d, double &i_max, double &i_min);
-  void getGains(double &p, double &i, double &d, double &i_max, double &i_min, bool &antiwindup);
   void printDebug();
-  void setGains(const double &p, const double &i, const double &d, const double &i_max, const double &i_min, const bool &antiwindup = false);
   std::string getJointName();
   double getPosition();
 

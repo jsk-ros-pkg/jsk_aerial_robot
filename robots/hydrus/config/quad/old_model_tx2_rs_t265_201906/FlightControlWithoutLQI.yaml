@@ -1,0 +1,43 @@
+aerial_robot_control_name: aerial_robot_control/under_actuated_controller
+
+controller:
+
+  hovering_approximate: false
+
+  xy:
+    p_gain: 2.3
+    i_gain: 0.02
+    d_gain: 4.0
+    limit_sum: 3
+    limit_p: 3
+    limit_i: 1.5
+    limit_d: 3
+
+  z:
+    p_gain: 3.6
+    i_gain: 1.55
+    d_gain: 3.4
+    limit_err_p: 1.0
+    limit_sum: 16.5 # N for clamping thrust force
+    limit_p: 10 # m / s^2
+    limit_i: 15 # m / s^2
+    limit_d: 10 # m / s^2
+    landing_err_z: -0.55
+
+  roll_pitch:
+    p_gain: 25.0
+    i_gain: 1.0
+    d_gain: 8.0
+
+    start_rp_integration_height: 0.01
+
+  yaw:
+    p_gain: 8.0
+    i_gain: 1.0
+    d_gain: 4.0
+    limit_sum: 6.0 # N for clamping thrust force
+    limit_p: 4.0
+    limit_i: 4.0
+    limit_d: 4.0
+    limit_err_p: 0.4
+    need_d_control: false

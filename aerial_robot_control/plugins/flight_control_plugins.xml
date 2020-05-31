@@ -1,0 +1,11 @@
+<library path="lib/libflight_control_pluginlib">
+
+  <class name="aerial_robot_control/fully_actuated_controller" type="aerial_robot_control::FullyActuatedController" base_class_type="aerial_robot_control::ControlBase">
+    <description>controller for fully actuated model (e.g., tilted hex) </description>
+  </class>
+
+  <class name="aerial_robot_control/under_actuated_controller" type="aerial_robot_control::UnderActuatedController" base_class_type="aerial_robot_control::ControlBase">
+    <description>controller for under actuated model (e.g., quad) </description>
+  </class>
+
+</library>

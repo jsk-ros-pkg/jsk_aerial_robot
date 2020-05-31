@@ -1,0 +1,7 @@
+<library path="lib/libhydrus_xi_fully_actuated_robot_model">
+
+  <class name="hydrus_xi_fully_actuated_robot_model" type="HydrusXiFullyActuatedRobotModel" base_class_type="aerial_robot_model::RobotModel">
+    <description>plugin for hydrus_xi robot model </description>
+  </class>
+
+</library>

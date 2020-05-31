@@ -1,13 +1,11 @@
-#ifndef AERIAL_ROBOT_BASE_H
-#define AERIAL_ROBOT_BASE_H
+#pragma once
 
 #include <ros/ros.h>
 #include <pluginlib/class_loader.h>
-#include <aerial_robot_base/control/flight_control.h>
-#include <aerial_robot_base/flight_navigation.h>
-#include <aerial_robot_base/state_estimation.h>
-#include <boost/thread.hpp>
-#include <iostream>
+#include <aerial_robot_control/control/control_base.h>
+#include <aerial_robot_control/flight_navigation.h>
+#include <aerial_robot_estimation/state_estimation.h>
+#include <aerial_robot_model/transformable_aerial_robot_model_ros.h>
 
 using namespace std;
 
@@ -15,22 +13,21 @@ class AerialRobotBase
 {
  public:
   AerialRobotBase(ros::NodeHandle nh, ros::NodeHandle nh_private);
-  ~ AerialRobotBase();
+  ~AerialRobotBase() {};
 
   void mainFunc(const ros::TimerEvent & e);
 
  private:
   ros::NodeHandle nh_;
   ros::NodeHandle nhp_;
-  ros::Timer  main_timer_;
-  double main_rate_;
+  ros::Timer main_timer_;
 
-  StateEstimator*  estimator_;
-  Navigator* navigator_;
-  boost::shared_ptr< pluginlib::ClassLoader<control_plugin::ControlBase> > controller_loader_ptr_;
-  boost::shared_ptr<control_plugin::ControlBase> controller_;
+  boost::shared_ptr<aerial_robot_model::RobotModelRos> robot_model_ros_;
+  boost::shared_ptr<aerial_robot_estimation::StateEstimator>  estimator_;
 
+  pluginlib::ClassLoader<aerial_robot_navigation::BaseNavigator> navigator_loader_;
+  boost::shared_ptr<aerial_robot_navigation::BaseNavigator> navigator_;
+
+  pluginlib::ClassLoader<aerial_robot_control::ControlBase> controller_loader_;
+  boost::shared_ptr<aerial_robot_control::ControlBase> controller_;
 };
-
-
-#endif

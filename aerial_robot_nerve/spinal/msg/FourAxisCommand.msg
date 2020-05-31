@@ -1,2 +1,2 @@
-float32[3] angles  #roll, pitch, yaw [rad]
-float32[] base_throttle # LQI: f[N]; General: PWM (1000 ~ 2000). : z command + yaw pi command
+float32[3] angles
+float32[] base_thrust

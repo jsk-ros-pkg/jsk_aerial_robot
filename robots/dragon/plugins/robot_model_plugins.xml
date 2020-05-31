@@ -1,0 +1,7 @@
+<library path="lib/libdragon_robot_model">
+
+  <class name="dragon_robot_model" type="DragonRobotModel" base_class_type="aerial_robot_model::RobotModel">
+    <description>plugin for dragon robot model </description>
+  </class>
+
+</library>

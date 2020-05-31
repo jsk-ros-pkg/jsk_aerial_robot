@@ -11,54 +11,50 @@
 
   <buildtool_depend>catkin</buildtool_depend>
 
-  <build_depend>roscpp</build_depend>
-  <build_depend>sensor_msgs</build_depend>
+  <build_depend>eigen_conversions</build_depend>
   <build_depend>geometry_msgs</build_depend>
-  <build_depend>urdf</build_depend>
-  <build_depend>hardware_interface</build_depend>
-  <build_depend>joint_limits_interface</build_depend>
   <build_depend>interactive_markers</build_depend>
-  <build_depend>visualization_msgs</build_depend>
-  <build_depend>std_msgs</build_depend>
-  <build_depend>tf</build_depend>
-  <build_depend>tf2_ros</build_depend>
-  <build_depend>tf2_kdl</build_depend>
-  <build_depend>tf2_eigen</build_depend>
-  <build_depend>orocos_kdl</build_depend>
+  <build_depend>kalman_filter</build_depend>
   <build_depend>kdl_parser</build_depend>
   <build_depend>liburdfdom-headers-dev</build_depend>
   <build_depend>message_generation</build_depend>
-  <build_depend>message_runtime</build_depend>
-  <build_depend>tf2_geometry_msgs</build_depend>
-  <build_depend>tf_conversions</build_depend>
-  <build_depend>eigen_conversions</build_depend>
+  <build_depend>orocos_kdl</build_depend>
+  <build_depend>pluginlib</build_depend>
+  <build_depend>roscpp</build_depend>
+  <build_depend>sensor_msgs</build_depend>
   <build_depend>spinal</build_depend>
-  <build_depend>kalman_filter</build_depend>
+  <build_depend>std_msgs</build_depend>
+  <build_depend>tf</build_depend>
+  <build_depend>tf_conversions</build_depend>
+  <build_depend>tf2_eigen</build_depend>
+  <build_depend>tf2_geometry_msgs</build_depend>
+  <build_depend>tf2_kdl</build_depend>
+  <build_depend>tf2_ros</build_depend>
+  <build_depend>tf_conversions</build_depend>
+  <build_depend>urdf</build_depend>
+  <build_depend>visualization_msgs</build_depend>
 
+  <run_depend>eigen_conversions</run_depend>
+  <run_depend>geometry_msgs</run_depend>
+  <run_depend>interactive_markers</run_depend>
+  <run_depend>joint_state_publisher_gui</run_depend>
+  <run_depend>kalman_filter</run_depend>
+  <run_depend>kdl_parser</run_depend>
+  <run_depend>message_runtime</run_depend>
+  <run_depend>orocos_kdl</run_depend>
+  <run_depend>pluginlib</run_depend>
+  <run_depend>robot_state_publisher</run_depend>
   <run_depend>roscpp</run_depend>
   <run_depend>sensor_msgs</run_depend>
-  <run_depend>geometry_msgs</run_depend>
-  <run_depend>urdf</run_depend>
-  <run_depend>joint_state_publisher_gui</run_depend>
-  <run_depend>joint_limits_interface</run_depend>
-  <run_depend>hardware_interface</run_depend>
-  <run_depend>interactive_markers</run_depend>
-  <run_depend>visualization_msgs</run_depend>
+  <run_depend>spinal</run_depend>
   <run_depend>std_msgs</run_depend>
   <run_depend>tf</run_depend>
-  <run_depend>tf2_ros</run_depend>
-  <run_depend>tf2_kdl</run_depend>
-  <run_depend>tf2_eigen</run_depend>
-  <run_depend>kdl_parser</run_depend>
-  <run_depend>orocos_kdl</run_depend>
-  <run_depend>message_generation</run_depend>
-  <run_depend>message_runtime</run_depend>
-  <run_depend>robot_state_publisher</run_depend>
-  <run_depend>std_msgs</run_depend>
-  <run_depend>tf2_geometry_msgs</run_depend>
   <run_depend>tf_conversions</run_depend>
-  <run_depend>eigen_conversions</run_depend>
-  <run_depend>spinal</run_depend>
-  <run_depend>kalman_filter</run_depend>
+  <run_depend>tf2_eigen</run_depend>
+  <run_depend>tf2_geometry_msgs</run_depend>
+  <run_depend>tf2_kdl</run_depend>
+  <run_depend>tf2_ros</run_depend>
+  <run_depend>urdf</run_depend>
+  <run_depend>visualization_msgs</run_depend>
 
 </package>

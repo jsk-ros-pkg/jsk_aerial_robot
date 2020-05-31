@@ -32,6 +32,7 @@
 
     # HYDRUS = 16 # 0x10, hydrus type with  4dof underactuated property
     <param name="uav_model" value= "16" />
+    <rosparam file="$(arg config_dir)/$(arg onboards_model)/RobotModel.yaml" command="load" />
 
     ###########  Motor Config  ###########
     <rosparam file="$(arg config_dir)/$(arg onboards_model)/MotorInfo.yaml" command="load" />
@@ -49,8 +50,8 @@
     <rosparam file="$(arg config_dir)/$(arg onboards_model)/StateEstimation.yaml" command="load" />
     <rosparam file="$(arg config_dir)/Simulation.yaml" command="load" if="$(arg simulation)"/>
 
-    ###########  Teleop  ###########
-    <rosparam file="$(arg config_dir)/TeleopNavigationConfig.yaml" command="load" />
+    ###########  Navigation  ###########
+    <rosparam file="$(arg config_dir)/NavigationConfig.yaml" command="load" />
   </group>
 
   ###########  Base Platform  ###########
@@ -71,11 +72,6 @@
     <arg name="rviz_config" value="$(find hydrus)/config/rviz_config" />
     <arg name="rviz_init_pose" value="$(arg config_dir)/RvizInit.yaml" />
     <arg name="need_joint_state" value="false" if ="$(eval arg('simulation') + arg('real_machine') > 0)"/>
-  </include>
-
-  ###########  LQI Gain Generators  ###########
-  <include file="$(find hydrus)/launch/includes/$(arg onboards_model)/transform_control.launch.xml" >
-    <arg name="robot_ns" default="$(arg robot_ns)" />
   </include>
 
   ###########  Sensors ###########

@@ -32,6 +32,7 @@
 
     # DRAGON = 32 # 0x20, dragon type with full/over actuated property
     <param name="uav_model" value= "32" />
+    <rosparam file="$(arg config_dir)/RobotModel.yaml" command="load" />
 
     ###########  Motor Config  ###########
     <rosparam file="$(find dragon)/config/MotorInfo.yaml" command="load" />
@@ -47,15 +48,15 @@
     <rosparam file="$(arg config_dir)/Simulation.yaml" command="load" if="$(arg simulation)"/>
 
     ###########  Control  ###########
-    <param name="control_plugin_name" value ="control_plugin/dragon_gimbal" />
     <rosparam file="$(arg config_dir)/GimbalControlConfig.yaml" command="load" />
 
-    ###########  Teleop  ###########
-    <rosparam file="$(arg config_dir)/TeleopNavigationConfig.yaml" command="load" />
+    ###########  Navigation ###########
+    <param name="flight_navigation_plugin_name" value="aerial_robot_navigation/dragon_navigation" />
+    <rosparam file="$(arg config_dir)/NavigationConfig.yaml" command="load" />
   </group>
 
   ###########  Base Platform  ###########
-  <node pkg="aerial_robot_base" type="aerial_robot_base_node" name="aerial_robot_base_node" ns="$(arg robot_ns)" output="screen" >
+  <node pkg="aerial_robot_base" type="aerial_robot_base_node" name="aerial_robot_base_node" ns="$(arg robot_ns)" output="screen">
     <param name="tf_prefix" value="$(arg robot_ns)"/>
     <param name="param_verbose" value="false"/>
     <param name="main_rate" value="40"/>
@@ -83,16 +84,6 @@
 
   ###########  Servo Bridge  ###########
   <node pkg="aerial_robot_model" type="servo_bridge_node" name="servo_bridge"  output="screen" ns="$(arg robot_ns)" />
-
-  ###########  Transform Control  ###########
-  <node pkg="dragon" type="dragon_transform_control_node" name="lqi_gain_generator" ns="$(arg robot_ns)" output="screen">
-    <rosparam file="$(arg config_dir)/LQI.yaml" command="load" />
-    <param name="tf_prefix" value="$(arg robot_ns)" />
-    <param name="kinematic_verbose" value="false" />
-    <param name="control_verbose" value="false" />
-    <param name="debug_verbose" value="false" />
-    <param name="verbose" value="false"/>
-  </node>
 
   ########## Simulation in Gazebo #########
   <include file="$(find aerial_robot_simulation)/launch/simulation.launch" if = "$(eval arg('simulation') * (1 - arg('real_machine')))" >

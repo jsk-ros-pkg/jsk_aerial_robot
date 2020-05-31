@@ -12,7 +12,8 @@ namespace aerial_robot_model {
     rotor_num_(0),
     joint_num_(0),
     thrust_max_(0),
-    thrust_min_(0)
+    thrust_min_(0),
+    mass_(0)
   {
     if (init_with_rosparam)
       getParamFromRos();
@@ -24,11 +25,11 @@ namespace aerial_robot_model {
 
   void RobotModel::getParamFromRos()
   {
-    ros::NodeHandle nhp("~");
-    nhp.param("kinematic_verbose", verbose_, false);
-    nhp.param("fc_f_min_thre", fc_f_min_thre_, 0.0);
-    nhp.param("fc_t_min_thre", fc_t_min_thre_, 0.0);
-    nhp.param("epsilon", epsilon_, 10.0);
+    ros::NodeHandle nh;
+    nh.param("kinematic_verbose", verbose_, false);
+    nh.param("fc_f_min_thre", fc_f_min_thre_, 0.0);
+    nh.param("fc_t_min_thre", fc_t_min_thre_, 0.0);
+    nh.param("epsilon", epsilon_, 10.0);
   }
 
   KDL::JntArray RobotModel::jointMsgToKdl(const sensor_msgs::JointState& state) const
@@ -103,22 +104,27 @@ namespace aerial_robot_model {
 
     /* CoG */
     KDL::Frame f_baselink = seg_tf_map.at(baselink_);
-    cog_.M = f_baselink.M * cog_desire_orientation_.Inverse();
-    cog_.p = link_inertia.getCOG();
+    KDL::Frame cog;
+    cog.M = f_baselink.M * cog_desire_orientation_.Inverse();
+    cog.p = link_inertia.getCOG();
+    setCog(cog);
     mass_ = link_inertia.getMass();
-    cog2baselink_transform_ = cog_.Inverse() * f_baselink;
+
+    setInertia((cog.Inverse() * link_inertia).getRotationalInertia());
+    setCog2Baselink(cog.Inverse() * f_baselink);
 
     /* thrust point based on COG */
+    std::vector<KDL::Vector> rotors_origin_from_cog, rotors_normal_from_cog;
     for(int i = 0; i < rotor_num_; ++i)
       {
         std::string rotor = thrust_link_ + std::to_string(i + 1);
         KDL::Frame f = seg_tf_map.at(rotor);
         if(verbose_) ROS_WARN(" %s : [%f, %f, %f]", rotor.c_str(), f.p.x(), f.p.y(), f.p.z());
-        rotors_origin_from_cog_.at(i) = (cog_.Inverse() * f).p;
-        rotors_normal_from_cog_.at(i) = (cog_.Inverse() * f).M * KDL::Vector(0, 0, 1);
+        rotors_origin_from_cog.push_back((cog.Inverse() * f).p);
+        rotors_normal_from_cog.push_back((cog.Inverse() * f).M * KDL::Vector(0, 0, 1));
       }
-
-    link_inertia_cog_ = (cog_.Inverse() * link_inertia).getRotationalInertia();
+    setRotorsNormalFromCog(rotors_normal_from_cog);
+    setRotorsOriginFromCog(rotors_origin_from_cog);
 
     /* statics */
     calcStaticThrust();
@@ -127,3 +133,4 @@ namespace aerial_robot_model {
   }
 
 } //namespace aerial_robot_model
+

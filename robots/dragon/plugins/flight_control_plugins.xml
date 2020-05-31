@@ -1,0 +1,5 @@
+<library path="lib/libdragon_aerial_robot_controllib">
+  <class name="aerial_robot_control/dragon_lqi_gimbal" type="aerial_robot_control::DragonLQIGimbalController" base_class_type="aerial_robot_control::ControlBase">
+    <description> dragon control plugin: gimbal for x,y,yaw; lqi for roll,pitch,z</description>
+  </class>
+</library>

@@ -8,11 +8,12 @@ add_definitions(-std=c++11)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
+  aerial_robot_base
+  aerial_robot_estimation
+  aerial_robot_model
+  aerial_robot_msgs
   gazebo_ros_control
   roscpp
-  aerial_robot_msgs
-  aerial_robot_model
-  aerial_robot_base
   spinal
   kdl_parser
 )
