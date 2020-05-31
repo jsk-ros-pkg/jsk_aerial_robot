@@ -2,8 +2,8 @@
 Changelog for package aerial_robot_simulation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.2.0 (2020-05-31)
+------------------
 * Refactor aeiral_robot_base (`#406 <https://github.com/tongtybj/aerial_robot/issues/406>`_)
 * Add robot namesapce for whole system (`#399 <https://github.com/tongtybj/aerial_robot/issues/399>`_)
 * Refactor aerial_robot_model/transformable_aerial_robot_model and implment Jacobians (`#398 <https://github.com/tongtybj/aerial_robot/issues/398>`_)

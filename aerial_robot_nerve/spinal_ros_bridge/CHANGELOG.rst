@@ -2,8 +2,8 @@
 Changelog for package spinal_ros_bridge
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.2.0 (2020-05-31)
+------------------
 * Add robot namespace for whole system (`#399 <https://github.com/tongtybj/aerial_robot/issues/399>`_)
 
 1.1.1 (2020-04-19)

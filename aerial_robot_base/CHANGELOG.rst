@@ -2,8 +2,8 @@
 Changelog for package aerial_robot_base
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.2.0 (2020-05-31)
+------------------
 * Refactor aeiral_robot_base (`#406 <https://github.com/tongtybj/aerial_robot/issues/406>`_)
 * Merge pull request `#401 <https://github.com/tongtybj/aerial_robot/issues/401>`_ from tongtybj/dragon_special_control
 * Implement several extra control methods for dragon (`#401 <https://github.com/tongtybj/aerial_robot/issues/401>`_)

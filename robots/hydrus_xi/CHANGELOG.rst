@@ -2,8 +2,8 @@
 Changelog for package hydrus_xi
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.2.0 (2020-05-31)
+------------------
 * Refactor aeiral_robot_base (`#406 <https://github.com/tongtybj/aerial_robot/issues/406>`_)
 * Fix bugs in bringup launch files (`#404 <https://github.com/tongtybj/aerial_robot/issues/404>`_)
 * Implement several extra control methods for dragon (`#401 <https://github.com/tongtybj/aerial_robot/issues/401>`_)
