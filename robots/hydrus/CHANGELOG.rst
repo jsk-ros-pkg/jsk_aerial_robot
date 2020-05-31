@@ -2,6 +2,16 @@
 Changelog for package hydrus
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Refactor aeiral_robot_base (`#406 <https://github.com/tongtybj/aerial_robot/issues/406>`_)
+* Fix bugs  (`#404 <https://github.com/tongtybj/aerial_robot/issues/404>`_)
+* Implement several extra control methods for dragon (`#401 <https://github.com/tongtybj/aerial_robot/issues/401>`_)
+* Add robot namespace for whole system (`#399 <https://github.com/tongtybj/aerial_robot/issues/399>`_)
+* Refactor aerial_robot_model/transformable_aerial_robot_model and implment Jacobians (`#398 <https://github.com/tongtybj/aerial_robot/issues/398>`_)
+* Refactor the gain solver for optimal control (`#397 <https://github.com/tongtybj/aerial_robot/issues/397>`_)
+* Refactor Gazebo system (`#391 <https://github.com/tongtybj/aerial_robot/issues/391>`_)
+
 1.1.1 (2020-04-19)
 ------------------
 * Refine the rosbag record script (`#380 <https://github.com/tongtybj/aerial_robot/issues/380>`_)

@@ -2,6 +2,11 @@
 Changelog for package aerial_robot_msgs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Refactor aeiral_robot_base (`#406 <https://github.com/tongtybj/aerial_robot/issues/406>`_)
+* Add robot namesapce for whole system (`#399 <https://github.com/tongtybj/aerial_robot/issues/399>`_)
+
 1.1.1 (2020-04-19)
 ------------------
 * Change GPS location variable type (`#374 <https://github.com/tongtybj/aerial_robot/issues/374>`_)

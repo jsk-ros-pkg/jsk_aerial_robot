@@ -2,6 +2,13 @@
 Changelog for package spinal
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Refactor aeiral_robot_base (`#406 <https://github.com/tongtybj/aerial_robot/issues/406>`_)
+* Implement several extra control methods for dragon (`#401 <https://github.com/tongtybj/aerial_robot/issues/401>`_)
+* Add robot namespace for whole system (`#399 <https://github.com/tongtybj/aerial_robot/issues/399>`_)
+* Refactor Gazebo system (`#391 <https://github.com/tongtybj/aerial_robot/issues/391>`_)
+
 1.1.1 (2020-04-19)
 ------------------
 * Make the magnetic declination configurable from ros and rqt_qui, and augument the state publish from GPS. (`#395 <https://github.com/tongtybj/aerial_robot/issues/395>`_)

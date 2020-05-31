@@ -2,6 +2,11 @@
 Changelog for package aerial_robot
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* refactoring aerial_robot_base (`#406 <https://github.com/tongtybj/aerial_robot/issues/406>`_)
+* [Fix bug] add hydrus_xi as dependency in aerial_robot package for rostest in travis (`#402 <https://github.com/tongtybj/aerial_robot/issues/402>`_)
+
 1.1.1 (2020-04-19)
 ------------------
 

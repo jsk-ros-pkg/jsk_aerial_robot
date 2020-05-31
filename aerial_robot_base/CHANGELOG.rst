@@ -2,6 +2,14 @@
 Changelog for package aerial_robot_base
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Refactor aeiral_robot_base (`#406 <https://github.com/tongtybj/aerial_robot/issues/406>`_)
+* Merge pull request `#401 <https://github.com/tongtybj/aerial_robot/issues/401>`_ from tongtybj/dragon_special_control
+* Implement several extra control methods for dragon (`#401 <https://github.com/tongtybj/aerial_robot/issues/401>`_)
+* Add robot namesapce for whole system (`#399 <https://github.com/tongtybj/aerial_robot/issues/399>`_)
+* Refactor Gazebo system (`#391 <https://github.com/tongtybj/aerial_robot/issues/391>`_)
+
 1.1.1 (2020-04-19)
 ------------------
 * Make magnetic declination reconfigurable and also extend GPS function `#395 <https://github.com/tongtybj/aerial_robot/issues/395>`_ from tongtybj/mag_calibration
