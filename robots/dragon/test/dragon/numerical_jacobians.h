@@ -36,7 +36,7 @@
 #pragma once
 
 #include <hydrus/numerical_jacobians.h>
-#include <dragon/dragon_robot_model.h>
+#include <dragon/model/hydrus_like_robot_model.h>
 
 class DragonNumericalJacobian : public HydrusNumericalJacobian
 {
@@ -57,7 +57,7 @@ protected:
   double rotor_overlap_diff_thre_;
   double comp_thrust_diff_thre_;
 
-  DragonRobotModel& getDragonRobotModel() const {return dynamic_cast<DragonRobotModel&>(*robot_model_);}
+  Dragon::HydrusLikeRobotModel& getDragonRobotModel() const {return dynamic_cast<Dragon::HydrusLikeRobotModel&>(*robot_model_);}
 
   // numerical solution
   virtual const Eigen::MatrixXd thrustForceNumericalJacobian(std::vector<int> joint_indices) override;

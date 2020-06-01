@@ -1,7 +1,11 @@
 <library path="lib/libdragon_robot_model">
 
-  <class name="dragon_robot_model" type="DragonRobotModel" base_class_type="aerial_robot_model::RobotModel">
-    <description>plugin for dragon robot model </description>
+  <class name="dragon/hydrus_like_robot_model" type="Dragon::HydrusLikeRobotModel" base_class_type="aerial_robot_model::RobotModel">
+    <description>plugin for hydrus-like dragon robot model </description>
+  </class>
+
+  <class name="dragon/full_vectoring_robot_model" type="Dragon::FullVectoringRobotModel" base_class_type="aerial_robot_model::RobotModel">
+    <description>plugin for full vectoring dragon robot model </description>
   </class>
 
 </library>

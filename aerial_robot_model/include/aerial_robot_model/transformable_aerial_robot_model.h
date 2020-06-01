@@ -170,8 +170,8 @@ namespace aerial_robot_model {
 
     // control stability
     virtual void calcFeasibleControlJacobian();
-    void calcFeasibleControlFDists();
-    void calcFeasibleControlTDists();
+    virtual void calcFeasibleControlFDists();
+    virtual void calcFeasibleControlTDists();
     double calcTripleProduct(const Eigen::Vector3d& ui, const Eigen::Vector3d& uj, const Eigen::Vector3d& uk);
     std::vector<Eigen::Vector3d> calcV();
     const Eigen::VectorXd& getApproxFeasibleControlFDists() const {return approx_fc_f_dists_;}
