@@ -3,6 +3,7 @@
   ###########  launch config  ###########
   <arg name="real_machine" default="True" />
   <arg name="simulation" default="False" />
+  <arg name="full_vectoring_mode"  default= "false" />
   <arg name="type" default="quad" />
   <arg name="onboards_model" default="euclid_201709" />
   <arg name="estimate_mode"  default= "1" />
@@ -32,7 +33,8 @@
 
     # DRAGON = 32 # 0x20, dragon type with full/over actuated property
     <param name="uav_model" value= "32" />
-    <rosparam file="$(arg config_dir)/RobotModel.yaml" command="load" />
+    <rosparam file="$(arg config_dir)/model/FullVectoringRobotModel.yaml" command="load" if="$(arg full_vectoring_mode)" />
+    <rosparam file="$(arg config_dir)/model/HydrusLikeRobotModel.yaml" command="load" unless="$(arg full_vectoring_mode)" />
 
     ###########  Motor Config  ###########
     <rosparam file="$(find dragon)/config/MotorInfo.yaml" command="load" />
@@ -48,7 +50,8 @@
     <rosparam file="$(arg config_dir)/Simulation.yaml" command="load" if="$(arg simulation)"/>
 
     ###########  Control  ###########
-    <rosparam file="$(arg config_dir)/GimbalControlConfig.yaml" command="load" />
+    <rosparam file="$(arg config_dir)/control/FullVectoringControlConfig.yaml" command="load" if="$(arg full_vectoring_mode)"/>
+    <rosparam file="$(arg config_dir)/control/LQIGimbalControlConfig.yaml" command="load" unless="$(arg full_vectoring_mode)"/>
 
     ###########  Navigation ###########
     <param name="flight_navigation_plugin_name" value="aerial_robot_navigation/dragon_navigation" />

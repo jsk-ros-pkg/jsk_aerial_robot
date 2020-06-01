@@ -35,22 +35,20 @@
 
 #pragma once
 
-#include <hydrus/hydrus_lqi_controller.h>
-#include <dragon/dragon_robot_model.h>
-#include <dragon/dragon_navigation.h>
-#include <gazebo_msgs/ApplyBodyWrench.h>
-#include <gazebo_msgs/BodyRequest.h>
-#include <ros/ros.h>
-#include <std_msgs/Float32MultiArray.h>
+#include <aerial_robot_control/control/pose_linear_controller.h>
+#include <dragon/model/full_vectoring_robot_model.h>
+#include <spinal/FourAxisCommand.h>
 #include <spinal/RollPitchYawTerm.h>
+#include <spinal/TorqueAllocationMatrixInv.h>
+#include <std_msgs/Float32MultiArray.h>
 
 namespace aerial_robot_control
 {
-  class DragonLQIGimbalController : public HydrusLQIController
+  class DragonFullVectoringController: public PoseLinearController
   {
   public:
-    DragonLQIGimbalController();
-    ~DragonLQIGimbalController(){}
+    DragonFullVectoringController();
+    ~DragonFullVectoringController(){}
 
     void initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
                     boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
@@ -58,46 +56,20 @@ namespace aerial_robot_control
                     boost::shared_ptr<aerial_robot_navigation::BaseNavigator> navigator,
                     double ctrl_loop_rate) override;
 
-    bool update() override;
-    void reset() override
-    {
-      HydrusLQIController::reset();
-    }
-
   private:
+
+    ros::Publisher flight_cmd_pub_; //for spinal
     ros::Publisher gimbal_control_pub_;
-    ros::Publisher gimbal_target_force_pub_;
-    ros::Subscriber att_control_feedback_state_sub_;
-    ros::Subscriber extra_vectoring_force_sub_;
+    ros::Publisher target_vectoring_force_pub_;
 
-    void gimbalControl();
-    void controlCore() override;
-    void rosParamInit() override;
-    void sendCmd() override;
-    void allocateYawTerm() override {} // do nothing
-
-    void attControlFeedbackStateCallback(const spinal::RollPitchYawTermConstPtr& msg);
-    void extraVectoringForceCallback(const std_msgs::Float32MultiArrayConstPtr& msg);
-
-    boost::shared_ptr<DragonRobotModel> dragon_robot_model_;
-    Eigen::MatrixXd P_xy_;
-
-    bool gimbal_vectoring_check_flag_;
-    bool add_lqi_result_;
-    std::vector<double> lqi_att_terms_;
+    boost::shared_ptr<Dragon::FullVectoringRobotModel> dragon_robot_model_;
+    std::vector<float> target_base_thrust_;
     std::vector<double> target_gimbal_angles_;
+    bool decoupling_;
+    bool gimbal_vectoring_check_flag_;
 
-    double gimbal_roll_pitch_control_rate_thresh_;
-    double gimbal_roll_pitch_control_p_det_thresh_;
-
-
-    /* external wrench */
-    ros::ServiceServer add_external_wrench_service_, clear_external_wrench_service_;
-    bool addExternalWrenchCallback(gazebo_msgs::ApplyBodyWrench::Request& req, gazebo_msgs::ApplyBodyWrench::Response& res);
-    bool clearExternalWrenchCallback(gazebo_msgs::BodyRequest::Request& req, gazebo_msgs::BodyRequest::Response& res);
-
-    /* extra vectoring force (i.e., for grasping) */
-    Eigen::VectorXd extra_vectoring_force_;
-
+    void controlCore() override;
+    void rosParamInit();
+    void sendCmd();
   };
 };
