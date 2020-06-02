@@ -302,9 +302,9 @@ void FullVectoringRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_po
   robot_model_for_plan_->updateRobotModel(gimbal_processed_joint);
 
   /* 5.2. convergence  */
+  double t = ros::Time::now().toSec();
   for(int j = 0; j < robot_model_refine_max_iteration_; j++)
     {
-      double t = ros::Time::now().toSec();
       /* 5.2.1. update the wrench allocation matrix  */
       std::vector<Eigen::Vector3d> rotors_origin_from_cog = robot_model_for_plan_->getRotorsOriginFromCog<Eigen::Vector3d>();
       Eigen::MatrixXd full_q_mat = Eigen::MatrixXd::Zero(6, 3 * getRotorNum() - gimbal_lock_num);
@@ -419,6 +419,20 @@ void FullVectoringRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_po
 
   setGimbalNominalAngles(gimbal_nominal_angles_curr);
   setGimbalProcessedJoint(gimbal_processed_joint);
+
+  return;
+  Eigen::Matrix3d inertia_inv = getInertia<Eigen::Matrix3d>().inverse();
+  double mass_inv =  1 / getMass();
+  Eigen::MatrixXd full_q_mat = getVectoringForceWrenchMatrix();
+  full_q_mat.topRows(3) =  mass_inv * full_q_mat.topRows(3) ;
+  full_q_mat.bottomRows(3) =  inertia_inv * full_q_mat.bottomRows(3);
+  //ROS_INFO_STREAM_THROTTLE(1.0, "full_q_mat : \n" << full_q_mat);
+  ROS_INFO_STREAM_THROTTLE(1.0, "full_q_mat_inv : \n" << aerial_robot_model::pseudoinverse(full_q_mat));
+  //ROS_INFO_STREAM_THROTTLE(1.0, "mul : \n" << full_q_mat * aerial_robot_model::pseudoinverse(full_q_mat));
+  std::stringstream ss;
+  for(auto angle: gimbal_nominal_angles_curr) ss << angle << ", ";
+  ROS_INFO_STREAM_THROTTLE(1.0, "gimbal nominal angles: \n" << ss.str());
+  ROS_INFO_STREAM_THROTTLE(1.0, "hovering force: \n" << hover_vectoring_f_);
 }
 
 Eigen::VectorXd FullVectoringRobotModel::calcFeasibleControlFxyDists(const std::vector<int>& roll_locked_gimbal, const std::vector<double>& locked_angles, int rotor_num, const std::vector<Eigen::Matrix3d>& link_rot)

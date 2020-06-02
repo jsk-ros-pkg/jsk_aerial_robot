@@ -63,10 +63,14 @@ namespace aerial_robot_control
     ros::Publisher target_vectoring_force_pub_;
 
     boost::shared_ptr<Dragon::FullVectoringRobotModel> dragon_robot_model_;
+    boost::shared_ptr<aerial_robot_model::RobotModel> robot_model_for_control_;
     std::vector<float> target_base_thrust_;
     std::vector<double> target_gimbal_angles_;
+    Eigen::VectorXd target_vectoring_f_;
     bool decoupling_;
     bool gimbal_vectoring_check_flag_;
+    double allocation_refine_threshold_;
+    int allocation_refine_max_iteration_;
 
     void controlCore() override;
     void rosParamInit();
