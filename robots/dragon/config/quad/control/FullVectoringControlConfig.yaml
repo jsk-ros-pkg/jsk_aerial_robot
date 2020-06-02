@@ -7,6 +7,9 @@ controller:
   # gimbal vectoring function check
   gimbal_vectoring_check_flag: false
 
+  allocation_refine_max_iteration: 5
+  allocation_refine_threshold: 0.0001
+
   xy:
     p_gain: 3.6
     i_gain: 0.03
@@ -29,8 +32,8 @@ controller:
 
   roll_pitch:
     p_gain: 10
-    i_gain: 1.0
-    d_gain: 2.5 # 5: deverge
+    i_gain: 0.3
+    d_gain: 5 # 5: deverge?
     limit_sum: 10
     limit_p: 10
     limit_i: 10
