@@ -214,20 +214,6 @@ namespace aerial_robot_control
     // time diff
     double du = ros::Time::now().toSec() - control_timestamp_;
 
-    // roll/pitch integration flag
-    if(!start_rp_integration_)
-      {
-        if(pos_.z() - estimator_->getLandingHeight() > start_rp_integration_height_)
-          {
-            start_rp_integration_ = true;
-            spinal::FlightConfigCmd flight_config_cmd;
-            flight_config_cmd.cmd = spinal::FlightConfigCmd::INTEGRATION_CONTROL_ON_CMD;
-            navigator_->getFlightConfigPublisher().publish(flight_config_cmd);
-            ROS_WARN("start roll/pitch I control");
-          }
-      }
-
-
     // x & y
     switch(navigator_->getXyControlMode())
       {
@@ -274,8 +260,21 @@ namespace aerial_robot_control
       }
 
     // roll pitch
-    pid_controllers_.at(ROLL).update(target_rpy_.x() - rpy_.x(), du, target_omega_.x() - omega_.x());
-    pid_controllers_.at(PITCH).update(target_rpy_.y() - rpy_.y(), du, target_omega_.y() - omega_.y());
+    double du_rp = du;
+    if(!start_rp_integration_)
+      {
+        if(pos_.z() - estimator_->getLandingHeight() > start_rp_integration_height_)
+          {
+            start_rp_integration_ = true;
+            spinal::FlightConfigCmd flight_config_cmd;
+            flight_config_cmd.cmd = spinal::FlightConfigCmd::INTEGRATION_CONTROL_ON_CMD;
+            navigator_->getFlightConfigPublisher().publish(flight_config_cmd);
+            ROS_WARN("start roll/pitch I control");
+          }
+        du_rp = 0;
+      }
+    pid_controllers_.at(ROLL).update(target_rpy_.x() - rpy_.x(), du_rp, target_omega_.x() - omega_.x());
+    pid_controllers_.at(PITCH).update(target_rpy_.y() - rpy_.y(), du_rp, target_omega_.y() - omega_.y());
 
     // yaw
     double err_yaw = angles::shortest_angular_distance(rpy_.z(), target_rpy_.z());
