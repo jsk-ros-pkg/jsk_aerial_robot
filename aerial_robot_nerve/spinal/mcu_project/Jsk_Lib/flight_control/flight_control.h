@@ -198,6 +198,13 @@ private:
       case spinal::FlightConfigCmd::FORCE_LANDING_CMD:
         force_landing_flag_ = true;
         att_controller_.setForceLandingFlag(force_landing_flag_);
+        config_ack_msg_.data = spinal::FlightConfigCmd::FORCE_LANDING_CMD;
+#ifdef SIMULATION
+        config_ack_pub_.publish(config_ack_msg_);
+#else
+        config_ack_pub_.publish(&config_ack_msg_);
+#endif
+
         break;
       case spinal::FlightConfigCmd::INTEGRATION_CONTROL_ON_CMD:
         integrate_flag_ = true;

@@ -45,7 +45,7 @@
 
 #define MAX_PWM  54000
 #define IDLE_DUTY 0.5f
-#define FORCE_LANDING_INTEGRAL 0.0025f // 500Hz * 0.00005 = 0.025, 1600 -> 1500: 2sec
+#define FORCE_LANDING_INTEGRAL 0.0025f // 500Hz * 0.0025 = 1.25 N / sec
 
 #define MAX_MOTOR_NUMBER 10
 
@@ -90,15 +90,7 @@ public:
   void setIntegrateFlag(bool integrate_flag){integrate_flag_ = integrate_flag; }
   bool getForceLandingFlag() {return force_landing_flag_;}
 
-  void setForceLandingFlag(bool force_landing_flag)
-  {
-    force_landing_flag_ = force_landing_flag;
-
-#ifdef NERVE_COMM
-    Spine::setServoControlFlag(!force_landing_flag);
-#endif
-
-  }
+  void setForceLandingFlag(bool force_landing_flag) { force_landing_flag_ = force_landing_flag; }
   float getPwm(uint8_t index) {return target_pwm_[index];}
   float getForce(uint8_t index) {return target_thrust_[index];}
 

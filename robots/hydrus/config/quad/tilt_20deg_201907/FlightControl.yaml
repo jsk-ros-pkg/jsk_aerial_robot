@@ -20,6 +20,7 @@ controller:
     limit_i: 15 # m / s^2
     limit_d: 10 # m / s^2
     landing_err_z: -0.55
+    force_landing_descending_rate: -0.6
 
   yaw:
     limit_sum: 6.0 # N for clamping thrust force
