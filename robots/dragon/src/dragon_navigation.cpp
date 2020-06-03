@@ -89,8 +89,14 @@ void DragonNavigator::landingProcess()
           joint_control_pub_.publish(joint_control_msg);
           final_target_baselink_rot_.setValue(0, 0, 0);
 
+          double curr_roll = estimator_->getState(State::ROLL_BASE, estimate_mode_)[0];
+          double curr_pitch = estimator_->getState(State::PITCH_BASE, estimate_mode_)[0];
+
+          if(fabs(fabs(curr_pitch) - M_PI/2) < 0.05 && fabs(curr_roll) > M_PI/2) // singularity of XYZ Euler
+            curr_roll = 0;
+
           /* force set the current deisre tilt to current estimated tilt */
-          curr_target_baselink_rot_.setValue(estimator_->getState(State::ROLL_BASE, estimate_mode_)[0], estimator_->getState(State::PITCH_BASE, estimate_mode_)[0], 0);
+          curr_target_baselink_rot_.setValue(curr_roll, curr_pitch, 0);
         }
 
       level_flag_ = true;
