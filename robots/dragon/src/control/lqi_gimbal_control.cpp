@@ -259,7 +259,7 @@ void DragonLQIGimbalController::gimbalControl()
       if(control_verbose_)
         ROS_INFO("[gimbal control]: rotor%d, target_thrust vs target_z: [%f vs %f]", i+1, target_base_thrust_.at(i), z_control_terms.at(i));
 
-      if(!start_rp_integration_) // in the early stage of takeoff avoiding the large tilt angle,
+      if(!start_rp_integration_ || navigator_->getForceLandingFlag())
         f_i.setValue(f_xy(2 * i), f_xy(2 * i + 1), robot_model_->getStaticThrust()[i]);
 
       /* f -> gimbal angle */

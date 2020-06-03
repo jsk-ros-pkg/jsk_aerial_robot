@@ -67,6 +67,7 @@ namespace aerial_robot_navigation
 
     inline bool getXyVelModePosCtrlTakeoff(){  return xy_vel_mode_pos_ctrl_takeoff_;}
     inline bool getForceLandingFlag() {return force_landing_flag_;}
+    inline double getForceLandingStartTime() {return force_landing_start_time_.toSec();}
 
     inline tf::Vector3 getTargetPos() {return target_pos_;}
     inline tf::Vector3 getTargetVel() {return target_vel_;}
@@ -383,9 +384,6 @@ namespace aerial_robot_navigation
           ROS_INFO("FORCE LANDING MSG From AERIAL ROBOT");
 
           force_landing_flag_ = true;
-
-          /* update the force landing stamp for the halt process*/
-          force_landing_start_time_ = ros::Time::now();
         }
     }
 

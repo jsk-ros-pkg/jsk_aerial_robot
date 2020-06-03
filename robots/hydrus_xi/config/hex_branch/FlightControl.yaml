@@ -23,6 +23,7 @@ controller:
     limit_p: 25.0
     limit_i: 25.0
     limit_d: 25.0
+    force_landing_descending_rate: -0.5
 
   roll_pitch:
     p_gain: 25.0

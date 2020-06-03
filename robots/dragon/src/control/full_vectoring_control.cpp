@@ -64,6 +64,10 @@ void DragonFullVectoringController::controlCore()
   pid_msg_.pitch.target_d = target_omega_.y();
   pid_msg_.pitch.err_d = pid_controllers_.at(PITCH).getErrD();
 
+
+  if(navigator_->getForceLandingFlag() && target_acc_w.z() < 5.0) // heuristic measures to avoid to large gimbal angles after force land
+    start_rp_integration_ = false;
+
 #if 1 // iteratively find the target force and target gimbal angles
   KDL::Rotation cog_desire_orientation = robot_model_->getCogDesireOrientation<KDL::Rotation>();
   robot_model_for_control_->setCogDesireOrientation(cog_desire_orientation); // update the cog orientation

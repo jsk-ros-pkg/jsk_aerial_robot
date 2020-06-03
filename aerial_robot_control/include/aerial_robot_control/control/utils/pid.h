@@ -75,7 +75,11 @@ namespace aerial_robot_control
 
     const double result() const { return result_; }
 
-    void reset() { err_i_ = 0;}
+    void reset()
+    {
+      err_i_ = 0;
+      result_ = 0;
+    }
 
     const double& getPGain() const { return p_gain_; }
     const double& getIGain() const { return i_gain_; }
