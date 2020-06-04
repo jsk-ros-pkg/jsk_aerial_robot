@@ -30,11 +30,12 @@ controller:
     limit_i: 20 # m / s^2
     limit_d: 20 # m / s^2
     landing_err_z: -0.4
+    force_landing_descending_rate: -0.5
 
   roll_pitch:
-    p_gain: 10
+    p_gain: 15
     i_gain: 0.3
-    d_gain: 5 # 5: deverge?
+    d_gain: 5 # 5: good, 7: deverge in the takeoff phase
     limit_sum: 10
     limit_p: 10
     limit_i: 10
