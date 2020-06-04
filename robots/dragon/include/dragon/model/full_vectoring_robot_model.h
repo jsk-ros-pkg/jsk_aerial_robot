@@ -37,6 +37,7 @@
 
 #include <dragon/model/hydrus_like_robot_model.h>
 #include <nlopt.hpp>
+#include <numeric>
 #include <ros/console.h>
 #include <sstream>
 #include <tf_conversions/tf_kdl.h>
