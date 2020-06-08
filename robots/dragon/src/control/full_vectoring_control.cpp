@@ -27,6 +27,25 @@ void DragonFullVectoringController::initialize(ros::NodeHandle nh, ros::NodeHand
   gimbal_control_pub_ = nh_.advertise<sensor_msgs::JointState>("gimbals_ctrl", 1);
   flight_cmd_pub_ = nh_.advertise<spinal::FourAxisCommand>("four_axes/command", 1);
   target_vectoring_force_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("debug/target_vectoring_force", 1);
+  estimate_external_wrench_pub_ = nh_.advertise<geometry_msgs::WrenchStamped>("estimated_external_wrench", 1);
+
+  est_external_wrench_ = Eigen::VectorXd::Zero(6);
+  init_sum_momentum_ = Eigen::VectorXd::Zero(6);
+  integrate_term_ = Eigen::VectorXd::Zero(6);
+  prev_est_wrench_timestamp_ = 0;
+  wrench_estimate_thread_ = boost::thread([this]()
+                                          {
+                                            ros::NodeHandle control_nh(nh_, "controller");
+                                            double update_rate;
+                                            control_nh.param ("wrench_estimate_update_rate", update_rate, 100.0);
+
+                                            ros::Rate loop_rate(update_rate);
+                                            while(ros::ok())
+                                              {
+                                                externalWrenchEstimate();
+                                                loop_rate.sleep();
+                                              }
+                                          });
 }
 
 void DragonFullVectoringController::controlCore()
@@ -39,13 +58,17 @@ void DragonFullVectoringController::controlCore()
                            pid_controllers_.at(Y).result(),
                            pid_controllers_.at(Z).result());
   tf::Vector3 target_acc_cog = uav_rot.inverse() * target_acc_w;
-  Eigen::VectorXd target_wrench_cog = Eigen::VectorXd::Zero(6);
-  target_wrench_cog.head(3) = Eigen::Vector3d(target_acc_cog.x(), target_acc_cog.y(), target_acc_cog.z());
+  Eigen::VectorXd target_wrench_acc_cog = Eigen::VectorXd::Zero(6);
+  target_wrench_acc_cog.head(3) = Eigen::Vector3d(target_acc_cog.x(), target_acc_cog.y(), target_acc_cog.z());
 
   double target_ang_acc_x = pid_controllers_.at(ROLL).result();
   double target_ang_acc_y = pid_controllers_.at(PITCH).result();
   double target_ang_acc_z = pid_controllers_.at(YAW).result();
-  target_wrench_cog.tail(3) = Eigen::Vector3d(target_ang_acc_x, target_ang_acc_y, target_ang_acc_z);
+  target_wrench_acc_cog.tail(3) = Eigen::Vector3d(target_ang_acc_x, target_ang_acc_y, target_ang_acc_z);
+
+  Eigen::VectorXd target_wrench_acc_tmp = target_wrench_acc_cog;
+  target_wrench_acc_tmp.head(3) = Eigen::Vector3d(target_acc_w.x(), target_acc_w.y(), target_acc_w.z()); // test
+  setTargetWrenchAccCog(target_wrench_acc_cog);
 
   pid_msg_.roll.total.at(0) = target_ang_acc_x;
   pid_msg_.roll.p_term.at(0) = pid_controllers_.at(ROLL).getPTerm();
@@ -114,7 +137,7 @@ void DragonFullVectoringController::controlCore()
       full_q_mat.topRows(3) =  mass_inv * full_q_mat.topRows(3) ;
       full_q_mat.bottomRows(3) =  inertia_inv * full_q_mat.bottomRows(3);
       Eigen::MatrixXd full_q_mat_inv = aerial_robot_model::pseudoinverse(full_q_mat);
-      target_vectoring_f_ = full_q_mat_inv * target_wrench_cog;
+      target_vectoring_f_ = full_q_mat_inv * target_wrench_acc_cog;
 
       if(control_verbose_) ROS_DEBUG_STREAM("vectoring force for control in iteration "<< j+1 << ": " << target_vectoring_f_.transpose());
       last_col = 0;
@@ -195,7 +218,7 @@ void DragonFullVectoringController::controlCore()
   full_q_mat.topRows(3) =  mass_inv * full_q_mat.topRows(3) ;
   full_q_mat.bottomRows(3) =  inertia_inv * full_q_mat.bottomRows(3);
   Eigen::MatrixXd full_q_mat_inv = aerial_robot_model::pseudoinverse(full_q_mat);
-  target_vectoring_f_ = full_q_mat_inv * target_wrench_cog;
+  target_vectoring_f_ = full_q_mat_inv * target_wrench_acc_cog;
   ROS_DEBUG_STREAM("target vectoring f: \n" << target_vectoring_f_.transpose());
 
   /* conversion */
@@ -285,17 +308,78 @@ void DragonFullVectoringController::controlCore()
 
   ROS_INFO_STREAM_THROTTLE(1.0, "full q mat diff2: \n" << full_q_mat_dash - full_q_mat);
 
-  Eigen::VectorXd target_wrench_cog_dash = full_q_mat_dash * target_vectoring_f_;
+  Eigen::VectorXd target_wrench_acc_cog_dash = full_q_mat_dash * target_vectoring_f_;
   //ROS_INFO_STREAM("full p mat dash: \n" << full_q_mat_dash);
-  //ROS_INFO_STREAM_THROTTLE(1.0, "target wrench cog with new p: " << target_wrench_cog_dash.transpose());
-  ROS_INFO_STREAM_THROTTLE(1.0, "diff: " << (target_wrench_cog_dash - target_wrench_cog).transpose());
+  //ROS_INFO_STREAM_THROTTLE(1.0, "target wrench cog with new p: " << target_wrench_acc_cog_dash.transpose());
+  ROS_INFO_STREAM_THROTTLE(1.0, "diff: " << (target_wrench_acc_cog_dash - target_wrench_acc_cog).transpose());
 
-  // Eigen::VectorXd target_wrench_cog_tmp = Eigen::VectorXd::Zero(6);
-  // ROS_INFO_STREAM("target x pertubate: " <<  * target_wrench_cog_tmp);
+  // Eigen::VectorXd target_wrench_acc_cog_tmp = Eigen::VectorXd::Zero(6);
+  // ROS_INFO_STREAM("target x pertubate: " <<  * target_wrench_acc_cog_tmp);
   ROS_INFO_STREAM_THROTTLE(1.0, "full p mat perturbate: \n " <<  full_q_mat_dash * full_q_mat_inv);
 
 #endif
 }
+
+void DragonFullVectoringController::externalWrenchEstimate()
+{
+  if(navigator_->getNaviState() != aerial_robot_navigation::HOVER_STATE &&
+     navigator_->getNaviState() != aerial_robot_navigation::LAND_STATE)
+    {
+      prev_est_wrench_timestamp_ = 0;
+      integrate_term_ = Eigen::VectorXd::Zero(6);
+      return;
+    }
+
+  Eigen::Vector3d vel_w, omega_cog;
+  tf::vectorTFToEigen(estimator_->getVel(Frame::COG, estimate_mode_), vel_w);
+  tf::vectorTFToEigen(estimator_->getAngularVel(Frame::COG, estimate_mode_), omega_cog);
+  Eigen::Matrix3d cog_rot;
+  tf::matrixTFToEigen(estimator_->getOrientation(Frame::COG, estimate_mode_), cog_rot);
+
+  Eigen::Matrix3d inertia = robot_model_->getInertia<Eigen::Matrix3d>();
+  double mass = robot_model_->getMass();
+
+  Eigen::VectorXd sum_momentum = Eigen::VectorXd::Zero(6);
+  sum_momentum.head(3) = mass * vel_w;
+  sum_momentum.tail(3) = inertia * omega_cog;
+
+  Eigen::MatrixXd J_t = Eigen::MatrixXd::Identity(6,6);
+  J_t.topLeftCorner(3,3) = cog_rot;
+
+  Eigen::VectorXd N = mass * robot_model_->getGravity();
+  N.tail(3) = aerial_robot_model::skew(omega_cog) * (inertia * omega_cog);
+
+  const Eigen::VectorXd target_wrench_acc_cog = getTargetWrenchAccCog();
+  Eigen::VectorXd target_wrench_cog = Eigen::VectorXd::Zero(6);
+  target_wrench_cog.head(3) = mass * target_wrench_acc_cog.head(3);
+  target_wrench_cog.tail(3) = inertia * target_wrench_acc_cog.tail(3);
+
+  if(prev_est_wrench_timestamp_ == 0)
+    {
+      prev_est_wrench_timestamp_ = ros::Time::now().toSec();
+      init_sum_momentum_ = sum_momentum; // not good
+    }
+
+  double dt = ros::Time::now().toSec() - prev_est_wrench_timestamp_;
+
+  integrate_term_ += (J_t * target_wrench_cog - N + est_external_wrench_) * dt;
+
+  est_external_wrench_ = momentum_observer_matrix_ * (sum_momentum - init_sum_momentum_ - integrate_term_);
+  //ROS_INFO_STREAM("dt: "<< dt << ", est_external_wrench_: " << est_external_wrench_.transpose());
+
+  geometry_msgs::WrenchStamped wrench_msg;
+  wrench_msg.header.stamp.fromSec(estimator_->getImuLatestTimeStamp());
+  wrench_msg.wrench.force.x = est_external_wrench_(0);
+  wrench_msg.wrench.force.y = est_external_wrench_(1);
+  wrench_msg.wrench.force.z = est_external_wrench_(2);
+  wrench_msg.wrench.torque.x = est_external_wrench_(3);
+  wrench_msg.wrench.torque.y = est_external_wrench_(4);
+  wrench_msg.wrench.torque.z = est_external_wrench_(5);
+  estimate_external_wrench_pub_.publish(wrench_msg);
+
+  prev_est_wrench_timestamp_ = ros::Time::now().toSec();
+}
+
 
 void DragonFullVectoringController::sendCmd()
 {
@@ -334,6 +418,14 @@ void DragonFullVectoringController::rosParamInit()
   getParam<bool>(control_nh, "gimbal_vectoring_check_flag", gimbal_vectoring_check_flag_, false);
   getParam<double>(control_nh, "allocation_refine_threshold", allocation_refine_threshold_, 0.01);
   getParam<int>(control_nh, "allocation_refine_max_iteration", allocation_refine_max_iteration_, 1);
+
+  momentum_observer_matrix_ = Eigen::MatrixXd::Identity(6,6);
+  double force_weight, torque_weight;
+  getParam<double>(control_nh, "momentum_observer_force_weight", force_weight, 10.0);
+  getParam<double>(control_nh, "momentum_observer_torque_weight", torque_weight, 10.0);
+  momentum_observer_matrix_.topRows(3) *= force_weight;
+  momentum_observer_matrix_.bottomRows(3) *= torque_weight;
+
 }
 
 /* plugin registration */
