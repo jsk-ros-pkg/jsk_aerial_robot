@@ -10,6 +10,10 @@ controller:
   allocation_refine_max_iteration: 5
   allocation_refine_threshold: 0.0001
 
+  wrench_estimate_update_rate: 100
+  momentum_observer_force_weight: 5
+  momentum_observer_torque_weight: 5
+
   xy:
     p_gain: 3.6
     i_gain: 0.03
