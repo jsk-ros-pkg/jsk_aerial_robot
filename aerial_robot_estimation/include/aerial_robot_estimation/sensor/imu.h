@@ -62,6 +62,31 @@ namespace sensor_plugin
     inline ros::Time getStamp(){return imu_stamp_;}
 
     inline void treatImuAsGroundTruth(bool flag) { treat_imu_as_ground_truth_ = flag; }
+
+    void setFilteredOmegaCog(const tf::Vector3 filtered_omega_cog)
+    {
+      boost::lock_guard<boost::mutex> lock(omega_mutex_);
+      filtered_omega_cog_ = filtered_omega_cog;
+    }
+
+    void setFilteredVelCog(const tf::Vector3 filtered_vel_cog)
+    {
+      boost::lock_guard<boost::mutex> lock(vel_mutex_);
+      filtered_vel_cog_ = filtered_vel_cog;
+    }
+
+    const tf::Vector3 getFilteredOmegaCog()
+    {
+      boost::lock_guard<boost::mutex> lock(omega_mutex_);
+      return filtered_omega_cog_;
+    }
+
+    const tf::Vector3 getFilteredVelCog()
+    {
+      boost::lock_guard<boost::mutex> lock(vel_mutex_);
+      filtered_vel_cog_;
+    }
+
   private:
     ros::Publisher  acc_pub_;
     ros::Publisher  imu_pub_;
@@ -105,6 +130,13 @@ namespace sensor_plugin
     void publishAccData();
     void publishRosImuData();
     void rosParamInit();
+
+    // temporary
+    boost::mutex omega_mutex_;
+    boost::mutex vel_mutex_;
+    tf::Vector3 filtered_omega_baselink_;
+    tf::Vector3 filtered_vel_cog_;
+    tf::Vector3 filtered_omega_cog_;
   };
 };
 

@@ -100,7 +100,15 @@ namespace sensor_plugin
         euler_[i] = imu_msg->angles[i];
         omega_[i] = imu_msg->gyro_data[i];
         mag_[i] = imu_msg->mag_data[i];
+
+        filtered_omega_baselink_[i] = imu_msg->gyro_data[i];
       }
+
+    // TODO: temporary, use raw omega (not filtered in spinal)
+    omega_[0] = imu_msg->mag_data[0];
+    omega_[1] = imu_msg->mag_data[1];
+    // TODO: use heavily filtered omege to calculate cog velocity, although this is not good way to get baselink -> cog velocity, position
+    // TODO: use lightly filterd omega to calculate cog angular velocity
 
     estimateProcess();
     updateHealthStamp();
@@ -192,6 +200,7 @@ namespace sensor_plugin
         if(bias_calib == 100) // warm up for callback to be stable subscribe
           {
             calib_count_ = calib_time_ / sensor_dt_;
+            // calib_count_ = 200;
             ROS_WARN("calib count is %d", calib_count_);
 
             setStatus(Status::INIT); // start init
@@ -422,6 +431,11 @@ namespace sensor_plugin
 
         state_pub_.publish(state_);
 
+        //temporary
+        setFilteredOmegaCog(cog2baselink_tf.getBasis() * filtered_omega_baselink_);
+        setFilteredVelCog(filtered_vel_cog_ = estimator_->getVel(Frame::BASELINK, estimate_mode)
+                          + estimator_->getOrientation(Frame::BASELINK, estimate_mode)
+                          * (filtered_omega_baselink_.cross(cog2baselink_tf.inverse().getOrigin())));
       }
     prev_time = imu_stamp_;
   }

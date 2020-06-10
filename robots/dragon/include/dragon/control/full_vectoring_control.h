@@ -43,7 +43,7 @@
 #include <spinal/TorqueAllocationMatrixInv.h>
 #include <std_msgs/Float32MultiArray.h>
 #include <tf_conversions/tf_eigen.h>
-
+#include <aerial_robot_estimation/sensor/imu.h>
 
 namespace aerial_robot_control
 {
@@ -69,6 +69,8 @@ namespace aerial_robot_control
     ros::Publisher gimbal_control_pub_;
     ros::Publisher target_vectoring_force_pub_;
     ros::Publisher estimate_external_wrench_pub_;
+    ros::Publisher rotor_interfere_wrench_pub_;
+    ros::Publisher rotor_interfere_force_pub_;
 
     boost::shared_ptr<Dragon::FullVectoringRobotModel> dragon_robot_model_;
     boost::shared_ptr<aerial_robot_model::RobotModel> robot_model_for_control_;
@@ -90,6 +92,26 @@ namespace aerial_robot_control
     Eigen::VectorXd integrate_term_;
     double prev_est_wrench_timestamp_;
 
+    bool rotor_interfere_compensate_;
+    double fz_bias_;
+    double tx_bias_;
+    double ty_bias_;
+    double wrench_lpf_rate_;
+    double fz_bias_thresh_;
+    double comp_wrench_lpf_rate_;
+    double rotor_interfere_torque_xy_weight_;
+    double rotor_interfere_force_dev_weight_;
+    Eigen::VectorXd rotor_interfere_force_;
+    Eigen::VectorXd rotor_interfere_comp_wrench_;
+    std::vector<Eigen::VectorXd> overlap_positions_;
+    std::vector<double> overlap_weights_;
+    double overlap_dist_rotor_thresh_;
+    double overlap_dist_rotor_relax_thresh_;
+    double overlap_dist_link_thresh_;
+    double overlap_dist_link_relax_thresh_;
+    double overlap_dist_inter_joint_thresh_;
+
+
     void externalWrenchEstimate();
     const Eigen::VectorXd getTargetWrenchAccCog()
     {
@@ -103,6 +125,7 @@ namespace aerial_robot_control
     }
 
     void controlCore() override;
+    void rotorInterfereCompensation();
     void rosParamInit();
     void sendCmd();
   };
