@@ -11,8 +11,20 @@ controller:
   allocation_refine_threshold: 0.0001
 
   wrench_estimate_update_rate: 100
-  momentum_observer_force_weight: 5
-  momentum_observer_torque_weight: 5
+  momentum_observer_force_weight: 1
+  momentum_observer_torque_weight: 1
+
+  rotor_interfere_compensate: true
+  overlap_dist_link_thresh: 0.12
+  overlap_dist_link_relax_thresh: 0.14
+  overlap_dist_rotor_thresh: 0.1
+  overlap_dist_rotor_relax_thresh: 0.12
+  overlap_dist_inter_joint_thresh: 0.08
+  rotor_interfere_comp_wrench_lpf_rate: 0.1
+  rotor_interfere_torque_xy_weight: 5.0
+  rotor_interfere_force_dev_weight: 0.1
+  external_wrench_lpf_rate: 0.2
+  external_fz_bias_thresh: 1.0
 
   xy:
     p_gain: 3.6

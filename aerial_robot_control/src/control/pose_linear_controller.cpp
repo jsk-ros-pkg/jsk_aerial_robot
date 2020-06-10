@@ -289,7 +289,7 @@ namespace aerial_robot_control
             spinal::FlightConfigCmd flight_config_cmd;
             flight_config_cmd.cmd = spinal::FlightConfigCmd::INTEGRATION_CONTROL_ON_CMD;
             navigator_->getFlightConfigPublisher().publish(flight_config_cmd);
-            ROS_WARN("start roll/pitch I control");
+            ROS_WARN_ONCE("start roll/pitch I control");
           }
         du_rp = 0;
       }
@@ -309,7 +309,7 @@ namespace aerial_robot_control
     control_timestamp_ = ros::Time::now().toSec();
 
     /* ros pub */
-    pid_msg_.header.stamp = ros::Time::now();
+    pid_msg_.header.stamp.fromSec(estimator_->getImuLatestTimeStamp());
     pid_msg_.x.total.at(0) = pid_controllers_.at(X).result();
     pid_msg_.x.p_term.at(0) = pid_controllers_.at(X).getPTerm();
     pid_msg_.x.i_term.at(0) = pid_controllers_.at(X).getITerm();

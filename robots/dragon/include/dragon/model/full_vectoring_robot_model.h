@@ -99,6 +99,8 @@ namespace Dragon
     double smooth_rate_;
     double smooth_converge_threshold_;
 
+    std::vector<Eigen::Vector3d> overlap_positions_;
+    std::vector<double> overlap_magnitudes_;
 
     //private functions
     void getParamFromRos();

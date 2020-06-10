@@ -203,6 +203,7 @@ public:
  #if ESTIMATE_TYPE == COMPLEMENTARY
             imu_msg_.angles[i] = estimator_->getAttitude(Frame::BODY)[i]; // get the attitude at body frame3
 #endif
+            imu_msg_.mag_data[i] = estimator_->getAngular(Frame::BODY)[i]; // temporary
           }
 #ifdef SIMULATION
         imu_pub_.publish(imu_msg_);
