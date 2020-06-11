@@ -84,7 +84,7 @@ namespace aerial_robot_control
     Eigen::VectorXd target_wrench_acc_cog_;
 
     /* external wrench */
-    boost::mutex wrench_mutex_;
+    std::mutex wrench_mutex_;
     boost::thread wrench_estimate_thread_;
     Eigen::VectorXd init_sum_momentum_;
     Eigen::VectorXd est_external_wrench_;
@@ -115,12 +115,12 @@ namespace aerial_robot_control
     void externalWrenchEstimate();
     const Eigen::VectorXd getTargetWrenchAccCog()
     {
-      boost::lock_guard<boost::mutex> lock(wrench_mutex_);
+      std::lock_guard<std::mutex> lock(wrench_mutex_);
       return target_wrench_acc_cog_;
     }
     void setTargetWrenchAccCog(const Eigen::VectorXd target_wrench_acc_cog)
     {
-      boost::lock_guard<boost::mutex> lock(wrench_mutex_);
+      std::lock_guard<std::mutex> lock(wrench_mutex_);
       target_wrench_acc_cog_ = target_wrench_acc_cog;
     }
 
