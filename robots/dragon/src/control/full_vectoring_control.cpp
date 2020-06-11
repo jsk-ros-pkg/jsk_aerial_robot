@@ -459,11 +459,13 @@ void DragonFullVectoringController::controlCore()
   KDL::JntArray gimbal_processed_joint = dragon_robot_model_->getJointPositions();
   robot_model_for_control_->updateRobotModel(gimbal_processed_joint);
 
-  const auto& roll_locked_gimbal = dragon_robot_model_->getRollLockedGimbal();
-  const auto& links_rotation_from_cog = dragon_robot_model_->getLinksRotationFromCog<Eigen::Matrix3d>();
-  const auto& gimbal_nominal_angles = dragon_robot_model_->getGimbalNominalAngles();
+  const auto roll_locked_gimbal = dragon_robot_model_->getRollLockedGimbal();
+  const auto links_rotation_from_cog = dragon_robot_model_->getLinksRotationFromCog<Eigen::Matrix3d>();
+  const auto gimbal_nominal_angles = dragon_robot_model_->getGimbalNominalAngles();
   const auto& joint_index_map = dragon_robot_model_->getJointIndexMap();
-  Eigen::MatrixXd full_q_mat = dragon_robot_model_->getVectoringForceWrenchMatrix();
+
+  int gimbal_lock_num = std::accumulate(roll_locked_gimbal.begin(), roll_locked_gimbal.end(), 0);
+  Eigen::MatrixXd full_q_mat = Eigen::MatrixXd::Zero(6, 3 * motor_num_ - gimbal_lock_num);
 
   double t = ros::Time::now().toSec();
   for(int j = 0; j < allocation_refine_max_iteration_; j++)
@@ -574,8 +576,13 @@ void DragonFullVectoringController::controlCore()
   Eigen::Matrix3d inertia_inv = robot_model_->getInertia<Eigen::Matrix3d>().inverse();
   double mass_inv =  1 / robot_model_->getMass();
   Eigen::MatrixXd full_q_mat = dragon_robot_model_->getVectoringForceWrenchMatrix();
-  const std::vector<int>& roll_locked_gimbal = dragon_robot_model_->getRollLockedGimbal();
-  assert(full_q_mat.cols() == roll_locked_gimbal.sum);
+  const std::vector<int> roll_locked_gimbal = dragon_robot_model_->getRollLockedGimbal();
+  int gimbal_lock_num = std::accumulate(roll_locked_gimbal.begin(), roll_locked_gimbal.end(), 0);
+  if(full_q_mat.cols() != 3 * getRotorNum() - gimbal_lock_num)
+    {
+      ROS_ERROR("full_q_mat.cols() != 3 * getRotorNum() - gimbal_lock_num: %d vs %d", full_q_mat.cols(), 3 * getRotorNum() - gimbal_lock_num);
+      return;
+    }
 
   full_q_mat.topRows(3) =  mass_inv * full_q_mat.topRows(3) ;
   full_q_mat.bottomRows(3) =  inertia_inv * full_q_mat.bottomRows(3);

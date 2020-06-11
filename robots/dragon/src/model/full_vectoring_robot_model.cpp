@@ -48,7 +48,7 @@ namespace
     auto model_for_plan = model->getRobotModelForPlan();
     std::vector<Eigen::Vector3d> rotor_pos = model_for_plan->getRotorsOriginFromCog<Eigen::Vector3d>();
 
-    std::vector<int> roll_locked_gimbal = model->getRollLockedGimbal();
+    std::vector<int> roll_locked_gimbal = model->getRollLockedGimbalForPlan();
     for(int i = 0; i < rotor_num; i++)
     {
       /*
@@ -124,6 +124,8 @@ void FullVectoringRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_po
   KDL::JntArray gimbal_processed_joint = joint_positions;
   std::vector<double> gimbal_nominal_angles(0);
   std::vector<KDL::Rotation> links_rotation_from_cog(0);
+  std::vector<int> roll_locked_gimbal(getRotorNum(), 0);
+
   for(int i = 0; i < getRotorNum(); ++i)
     {
       std::string s = std::to_string(i + 1);
@@ -165,15 +167,15 @@ void FullVectoringRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_po
       if(fabs(fabs(gimbal_nominal_angles.at(i * 2 + 1)) - M_PI /2) < gimbal_lock_threshold_)
         {
           ROS_DEBUG_STREAM_NAMED("robot_model", "link" << i+1 << " pitch: " << -gimbal_nominal_angles.at(i * 2 + 1) << " exceeds");
-          roll_locked_gimbal_.at(i) = 1;
+          roll_locked_gimbal.at(i) = 1;
         }
       else
         {
-          roll_locked_gimbal_.at(i) = 0;
+          roll_locked_gimbal.at(i) = 0;
         }
 
       /* case1: the locked rotors have change  */
-      if(prev_roll_locked_gimbal_.at(i) != roll_locked_gimbal_.at(i))
+      if(prev_roll_locked_gimbal_.at(i) != roll_locked_gimbal.at(i))
         {
           ROS_DEBUG_STREAM_NAMED("robot_model", "roll locked status change, gimbal " << i+1 <<" , cnt: " << roll_lock_status_accumulator_.at(i));
 
@@ -183,8 +185,8 @@ void FullVectoringRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_po
             {
               roll_lock_status_accumulator_.at(i) = 0;
               roll_lock_status_change = true;
-              ROS_INFO_STREAM_NAMED("robot_model", "rotor " << i + 1 << ": the gimbal roll lock status changes from " << prev_roll_locked_gimbal_.at(i) << " to " << roll_locked_gimbal_.at(i));
-              if(roll_locked_gimbal_.at(i) == 0)
+              ROS_INFO_STREAM_NAMED("robot_model", "rotor " << i + 1 << ": the gimbal roll lock status changes from " << prev_roll_locked_gimbal_.at(i) << " to " << roll_locked_gimbal.at(i));
+              if(roll_locked_gimbal.at(i) == 0)
                 {
                   roll_lock_angle_smooth_.at(i) = 1;
                 }
@@ -192,7 +194,7 @@ void FullVectoringRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_po
           else
             {
               /* force change back the roll lock status */
-              roll_locked_gimbal_.at(i) = prev_roll_locked_gimbal_.at(i);
+              roll_locked_gimbal.at(i) = prev_roll_locked_gimbal_.at(i);
             }
         }
       else
@@ -204,7 +206,8 @@ void FullVectoringRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_po
   ROS_DEBUG_STREAM_THROTTLE_NAMED(1.0, "robot_model", "max link pitch: " << max_pitch);
 
   /* 3. calculate the optimized locked gimbal roll angles */
-  int gimbal_lock_num = std::accumulate(roll_locked_gimbal_.begin(), roll_locked_gimbal_.end(), 0);
+  int gimbal_lock_num = std::accumulate(roll_locked_gimbal.begin(), roll_locked_gimbal.end(), 0);
+
   if(gimbal_lock_num > 0)
     {
       /* case2: the link attitude change more than a threshold  */
@@ -239,15 +242,16 @@ void FullVectoringRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_po
               gimbal_roll_origin_from_cog_.at(i) = (robot_model_for_plan_->getCog<KDL::Frame>().Inverse() * f).p;
             }
 
-          locked_angles_ = calcBestLockGimbalRoll(roll_locked_gimbal_, prev_roll_locked_gimbal_, locked_angles_);
-          prev_roll_locked_gimbal_ = roll_locked_gimbal_;
+          setRollLockedGimbalForPlan(roll_locked_gimbal);
+          locked_angles_ = calcBestLockGimbalRoll(roll_locked_gimbal, prev_roll_locked_gimbal_, locked_angles_);
+          prev_roll_locked_gimbal_ = roll_locked_gimbal;
           prev_links_rotation_from_cog_ = links_rotation_from_cog;
         }
     }
   else
     {
       locked_angles_.resize(0);
-      prev_roll_locked_gimbal_ = roll_locked_gimbal_;
+      prev_roll_locked_gimbal_ = roll_locked_gimbal;
       prev_links_rotation_from_cog_ = links_rotation_from_cog;
     }
 
@@ -255,15 +259,14 @@ void FullVectoringRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_po
   int gimbal_lock_index = 0;
   std::vector<double>  gimbal_nominal_angles_curr = getGimbalNominalAngles();
   for(int i = 0; i < getRotorNum(); ++i)
-     {
+    {
       /* only smooth roll angles */
-      if(roll_locked_gimbal_.at(i) == 0)
+      if(roll_locked_gimbal.at(i) == 0)
         {
           if(roll_lock_angle_smooth_.at(i) == 1)
             {
               ROS_DEBUG_NAMED("robot_model", "smooth the gimbal roll angle %d, for after free the lock", i+1);
-              /* still lock the gimbal roll */
-              roll_locked_gimbal_.at(i) = 1;
+              roll_locked_gimbal.at(i) = 1; // force change back to lock status
               gimbal_nominal_angles_curr.at(i * 2) = (1 - smooth_rate_) * gimbal_nominal_angles_curr.at(i * 2) + smooth_rate_ * gimbal_nominal_angles.at(i * 2);
 
               if(debug_verbose_) ROS_DEBUG_STREAM_NAMED("robot_model", "smoothing rotor " << i + 1 << ", desired roll angle: " << gimbal_nominal_angles.at(i * 2) << ", curr angle: " << gimbal_nominal_angles_curr.at(i * 2));
@@ -290,6 +293,7 @@ void FullVectoringRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_po
         }
       gimbal_nominal_angles_curr.at(i * 2 + 1) = gimbal_nominal_angles.at(i * 2 + 1);
     }
+  gimbal_lock_num = std::accumulate(roll_locked_gimbal.begin(), roll_locked_gimbal.end(), 0); // update
 
   /* 5: (new) refine the rotor origin from cog */
   /* 5.1. init update the CoG and gimbal roll origin based on the level (horizontal) nominal gimbal angles and joints */
@@ -317,7 +321,7 @@ void FullVectoringRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_po
         {
           wrench_map.block(3, 0, 3, 3) = aerial_robot_model::skew(rotors_origin_from_cog.at(i));
 
-          if(roll_locked_gimbal_.at(i) == 0)
+          if(roll_locked_gimbal.at(i) == 0)
             {
               /* 3DoF */
               full_q_mat.block(0, last_col, 6, 3) = wrench_map * aerial_robot_model::kdlToEigen(links_rotation_from_cog.at(i));
@@ -338,7 +342,7 @@ void FullVectoringRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_po
       last_col = 0;
       for(int i = 0; i < getRotorNum(); i++)
         {
-          if(roll_locked_gimbal_.at(i) == 0)
+          if(roll_locked_gimbal.at(i) == 0)
             {
               static_thrust(i) = hover_vectoring_f.segment(last_col, 3).norm();
               Eigen::Vector3d f = hover_vectoring_f.segment(last_col, 3);
@@ -381,6 +385,7 @@ void FullVectoringRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_po
         {
           if(debug_verbose_) ROS_DEBUG_STREAM_NAMED("robot_model", "refine rotor origin: converge in iteration " << j+1 << " max_diff " << max_diff << ", use " << ros::Time::now().toSec() - t << "sec");
           setStaticThrust(static_thrust);
+
           setVectoringForceWrenchMatrix(full_q_mat);
           hover_vectoring_f_ = hover_vectoring_f;
           break;
@@ -419,6 +424,7 @@ void FullVectoringRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_po
 
   setGimbalNominalAngles(gimbal_nominal_angles_curr);
   setGimbalProcessedJoint(gimbal_processed_joint);
+  setRollLockedGimbal(roll_locked_gimbal);
 
   return;
   Eigen::Matrix3d inertia_inv = getInertia<Eigen::Matrix3d>().inverse();

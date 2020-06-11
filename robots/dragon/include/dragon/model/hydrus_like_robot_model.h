@@ -82,21 +82,49 @@ namespace Dragon
     const double getEdfRadius() const {return edf_radius_;}
     const double getEdfMaxTilt() const {return edf_max_tilt_;}
     const std::vector<std::string>& getEdfNames() const { return edf_names_; }
-    template <class T> std::vector<T> getEdfsOriginFromCog() const;
+    template <class T> std::vector<T> getEdfsOriginFromCog();
     const Eigen::VectorXd& getExWrenchCompensateVectoringThrust() const {return wrench_comp_thrust_;}
     const std::map<std::string, ExternalWrench>& getExternalWrenchMap() const {return external_wrench_map_;}
-    const std::vector<double>& getGimbalNominalAngles() const { return gimbal_nominal_angles_; }
-    template <class T> T getGimbalProcessedJoint() const;
+    const std::vector<double> getGimbalNominalAngles()
+    {
+      std::lock_guard<std::mutex> lock(gimbal_nominal_angles_mutex_);
+      return gimbal_nominal_angles_;
+    }
+    template <class T> T getGimbalProcessedJoint();
     Eigen::MatrixXd getJacobian(const KDL::JntArray& joint_positions, std::string segment_name, KDL::Vector offset = KDL::Vector::Zero()) override;
-    template <class T> std::vector<T> getLinksRotationFromCog() const;
+    template <class T> std::vector<T> getLinksRotationFromCog();
     const Eigen::MatrixXd& getRotorOverlapJacobian() const { return rotor_overlap_jacobian_;}
-    const Eigen::MatrixXd& getVectoringForceWrenchMatrix() const {return vectoring_q_mat_;}
+    const Eigen::MatrixXd getVectoringForceWrenchMatrix()
+    {
+      std::lock_guard<std::mutex> lock(vectoring_q_mat_mutex_);
+      return vectoring_q_mat_;
+    }
 
-    void setGimbalNominalAngles(const std::vector<double> gimbal_nominal_angles) { gimbal_nominal_angles_ = gimbal_nominal_angles; }
-    void setGimbalProcessedJoint(const KDL::JntArray gimbal_processed_joint) { gimbal_processed_joint_ = gimbal_processed_joint; }
-    void setLinksRotationFromCog(const std::vector<KDL::Rotation> links_rotation_from_cog) {links_rotation_from_cog_ = links_rotation_from_cog; }
-    void setEdfsOriginFromCog(const std::vector<KDL::Vector> edfs_origin_from_cog) { edfs_origin_from_cog_ = edfs_origin_from_cog; }
-    void setVectoringForceWrenchMatrix(const Eigen::MatrixXd vectoring_q_mat)  { vectoring_q_mat_ = vectoring_q_mat; }
+    void setGimbalNominalAngles(const std::vector<double> gimbal_nominal_angles)
+    {
+      std::lock_guard<std::mutex> lock(gimbal_nominal_angles_mutex_);
+      gimbal_nominal_angles_ = gimbal_nominal_angles;
+    }
+    void setGimbalProcessedJoint(const KDL::JntArray gimbal_processed_joint)
+    {
+      std::lock_guard<std::mutex> lock(gimbal_processed_joint_mutex_);
+      gimbal_processed_joint_ = gimbal_processed_joint;
+    }
+    void setLinksRotationFromCog(const std::vector<KDL::Rotation> links_rotation_from_cog)
+    {
+      std::lock_guard<std::mutex> lock(links_rotation_mutex_);
+      links_rotation_from_cog_ = links_rotation_from_cog;
+    }
+    void setEdfsOriginFromCog(const std::vector<KDL::Vector> edfs_origin_from_cog)
+    {
+      std::lock_guard<std::mutex> lock(edgs_origin_mutex_);
+      edfs_origin_from_cog_ = edfs_origin_from_cog;
+    }
+    void setVectoringForceWrenchMatrix(const Eigen::MatrixXd vectoring_q_mat)
+    {
+      std::lock_guard<std::mutex> lock(vectoring_q_mat_mutex_);
+      vectoring_q_mat_ = vectoring_q_mat;
+    }
 
     bool overlapCheck(bool verbose = false);
     bool removeExternalStaticWrench(const std::string wrench_name);
@@ -129,6 +157,12 @@ namespace Dragon
     Eigen::MatrixXd vectoring_q_mat_;
     Eigen::MatrixXd comp_thrust_jacobian_;
 
+    std::mutex gimbal_nominal_angles_mutex_;
+    std::mutex gimbal_processed_joint_mutex_;
+    std::mutex vectoring_q_mat_mutex_;
+    std::mutex links_rotation_mutex_;
+    std::mutex edgs_origin_mutex_;
+
     //private functions
     void addCompThrustToLambdaJacobian();
     void addCompThrustToJointTorqueJacobian();
@@ -141,44 +175,37 @@ namespace Dragon
     void updateRobotModelImpl(const KDL::JntArray& joint_positions) override;
   };
 
-template<> inline KDL::JntArray HydrusLikeRobotModel::getGimbalProcessedJoint() const
+template<> inline KDL::JntArray HydrusLikeRobotModel::getGimbalProcessedJoint()
 {
+  std::lock_guard<std::mutex> lock(gimbal_processed_joint_mutex_);
   return gimbal_processed_joint_;
 }
 
-template<> inline sensor_msgs::JointState HydrusLikeRobotModel::getGimbalProcessedJoint() const
+template<> inline sensor_msgs::JointState HydrusLikeRobotModel::getGimbalProcessedJoint()
 {
-  return kdlJointToMsg(gimbal_processed_joint_);
+  return kdlJointToMsg(getGimbalProcessedJoint<KDL::JntArray>());
 }
 
-template<> inline std::vector<KDL::Rotation> HydrusLikeRobotModel::getLinksRotationFromCog() const
+template<> inline std::vector<KDL::Rotation> HydrusLikeRobotModel::getLinksRotationFromCog()
 {
+  std::lock_guard<std::mutex> lock(links_rotation_mutex_);
   return links_rotation_from_cog_;
 }
 
-template<> inline std::vector<Eigen::Matrix3d> HydrusLikeRobotModel::getLinksRotationFromCog() const
+template<> inline std::vector<Eigen::Matrix3d> HydrusLikeRobotModel::getLinksRotationFromCog()
 {
-  return aerial_robot_model::kdlToEigen(links_rotation_from_cog_);
+  return aerial_robot_model::kdlToEigen(getLinksRotationFromCog<KDL::Rotation>());
 }
 
-template<> inline std::vector<KDL::Vector> HydrusLikeRobotModel::getEdfsOriginFromCog() const
+template<> inline std::vector<KDL::Vector> HydrusLikeRobotModel::getEdfsOriginFromCog()
 {
+  std::lock_guard<std::mutex> lock(edgs_origin_mutex_);
   return edfs_origin_from_cog_;
 }
 
-template<> inline std::vector<geometry_msgs::PointStamped> HydrusLikeRobotModel::getEdfsOriginFromCog() const
+template<> inline std::vector<Eigen::Vector3d> HydrusLikeRobotModel::getEdfsOriginFromCog()
 {
-  return aerial_robot_model::kdlToMsg(edfs_origin_from_cog_);
-}
-
-template<> inline std::vector<Eigen::Vector3d> HydrusLikeRobotModel::getEdfsOriginFromCog() const
-{
-  return aerial_robot_model::kdlToEigen(edfs_origin_from_cog_);
-}
-
-template<> inline std::vector<tf2::Vector3> HydrusLikeRobotModel::getEdfsOriginFromCog() const
-{
-  return aerial_robot_model::kdlToTf2(edfs_origin_from_cog_);
+  return aerial_robot_model::kdlToEigen(getEdfsOriginFromCog<KDL::Vector>());
 }
 
 };

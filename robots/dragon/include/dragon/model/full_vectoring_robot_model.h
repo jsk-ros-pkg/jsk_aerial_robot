@@ -58,12 +58,23 @@ namespace Dragon
     inline boost::shared_ptr<aerial_robot_model::RobotModel> getRobotModelForPlan() { return robot_model_for_plan_;}
     inline const Eigen::VectorXd& getHoverVectoringF() const {return hover_vectoring_f_;}
 
-    inline const std::vector<int>& getRollLockedGimbal() const {return roll_locked_gimbal_;}
+    const std::vector<int> getRollLockedGimbal()
+    {
+      std::lock_guard<std::mutex> lock(roll_locked_gimbal_mutex_);
+      return roll_locked_gimbal_;
+    }
 
     double getMinForceNormalizedWeight() const {return min_force_normalized_weight_;}
     double getMinTorqueNormalizedWeight() const {return min_torque_normalized_weight_;}
-    template <class T> std::vector<T> getGimbalRollOriginFromCog() const;
+    template <class T> std::vector<T> getGimbalRollOriginFromCog() const ; // only for gimbal lock planning
+    const std::vector<int>& getRollLockedGimbalForPlan() const { return roll_locked_gimbal_for_plan_; } // only for gimbal lock planning
+    void setRollLockedGimbalForPlan(const std::vector<int> roll_locked_gimbal_for_plan) { roll_locked_gimbal_for_plan_ = roll_locked_gimbal_for_plan; } // only for gimbal lock planning
 
+    void setRollLockedGimbal(const std::vector<int> roll_locked_gimbal)
+    {
+      std::lock_guard<std::mutex> lock(roll_locked_gimbal_mutex_);
+      roll_locked_gimbal_ = roll_locked_gimbal;
+    }
 
     // TODO: overwrite the implementation about the Jacobian, since the gimbal processing is different from the hydrus-like model.
     // right now, we approximate to that  one.
@@ -83,6 +94,7 @@ namespace Dragon
     double gimbal_lock_threshold_;
     std::vector<double> locked_angles_;
     std::vector<int> roll_locked_gimbal_, prev_roll_locked_gimbal_;
+    std::vector<int> roll_locked_gimbal_for_plan_;
     std::vector<int> roll_lock_status_accumulator_;
     std::vector<int> roll_lock_angle_smooth_;
     std::vector<KDL::Vector> gimbal_roll_origin_from_cog_;
@@ -96,6 +108,7 @@ namespace Dragon
     std::vector<KDL::Rotation> prev_links_rotation_from_cog_;
     int robot_model_refine_max_iteration_;
     double robot_model_refine_threshold_;
+    std::mutex roll_locked_gimbal_mutex_;
     double smooth_rate_;
     double smooth_converge_threshold_;
 
@@ -119,20 +132,9 @@ namespace Dragon
     return gimbal_roll_origin_from_cog_;
   }
 
-  template<> inline std::vector<geometry_msgs::PointStamped> FullVectoringRobotModel::getGimbalRollOriginFromCog() const
-  {
-    return aerial_robot_model::kdlToMsg(gimbal_roll_origin_from_cog_);
-  }
-
   template<> inline std::vector<Eigen::Vector3d> FullVectoringRobotModel::getGimbalRollOriginFromCog() const
   {
-    return aerial_robot_model::kdlToEigen(gimbal_roll_origin_from_cog_);
+    return aerial_robot_model::kdlToEigen(getGimbalRollOriginFromCog<KDL::Vector>());
   }
-
-  template<> inline std::vector<tf2::Vector3> FullVectoringRobotModel::getGimbalRollOriginFromCog() const
-  {
-    return aerial_robot_model::kdlToTf2(gimbal_roll_origin_from_cog_);
-  }
-
 };
 
