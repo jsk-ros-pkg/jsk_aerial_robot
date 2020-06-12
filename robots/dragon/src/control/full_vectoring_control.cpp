@@ -59,6 +59,8 @@ void DragonFullVectoringController::rotorInterfereCompensation()
   //rotor interference compensation based on previous robot model
   overlap_positions_.clear();
   overlap_weights_.clear();
+  overlap_segments_.clear();
+  overlap_rotors_.clear();
 
   if(navigator_->getForceLandingFlag())
     {
@@ -74,9 +76,7 @@ void DragonFullVectoringController::rotorInterfereCompensation()
   double link_length = (seg_tf_map.at(std::string("inter_joint1")).p - seg_tf_map.at(std::string("link1")).p).Norm();
   KDL::Frame cog_inv = robot_model_for_control_->getCog<KDL::Frame>().Inverse();
 
-  std::vector<std::string > overlap_segments;
-  std::vector<std::string > overlap_rotors;
-  auto rotorInterfere = [this, &seg_tf_map, &cog_inv, &overlap_segments, &overlap_rotors](int i, Eigen::Vector3d p_rotor, Eigen::Vector3d u_rotor, double link_length, std::string rotor_name)
+  auto rotorInterfere = [this, &seg_tf_map, &cog_inv](int i, Eigen::Vector3d p_rotor, Eigen::Vector3d u_rotor, double link_length, std::string rotor_name)
     {
       for(int j = 0; j < motor_num_; ++j)
         {
@@ -112,8 +112,8 @@ void DragonFullVectoringController::rotorInterfereCompensation()
                 {
                   overlap_positions_.push_back(p_inter);
                   overlap_weights_.push_back(1);
-                  overlap_segments.push_back(std::string("inter_joint") + s);
-                  overlap_rotors.push_back(std::string("rotor") + std::to_string(i + 1) + std::string("_") + rotor_name);
+                  overlap_segments_.push_back(std::string("inter_joint") + s);
+                  overlap_rotors_.push_back(std::string("rotor") + std::to_string(i + 1) + std::string("_") + rotor_name);
                 }
               continue;
             }
@@ -171,8 +171,8 @@ void DragonFullVectoringController::rotorInterfereCompensation()
                       linear_rotor_weight = (overlap_dist_rotor_relax_thresh_ - dist_rotor_r) / overlap_dist_rotor_relax_thresh_;
                       overlap_positions_.push_back(p_rotor_r);
                       overlap_weights_.push_back(rotor_r_weight);
-                      overlap_segments.push_back(std::string("rotor") + s + std::string("_right"));
-                      overlap_rotors.push_back(std::string("rotor") + std::to_string(i + 1) + std::string("_") + rotor_name);
+                      overlap_segments_.push_back(std::string("rotor") + s + std::string("_right"));
+                      overlap_rotors_.push_back(std::string("rotor") + std::to_string(i + 1) + std::string("_") + rotor_name);
 
 
                       /// ROS_INFO_STREAM("rotor" << i + 1 << "_" << rotor_name << " " << p_rotor.transpose() << ", interfere with rotor" << j+1 << "right: " << overlap_positions_.back().transpose());
@@ -183,8 +183,8 @@ void DragonFullVectoringController::rotorInterfereCompensation()
                       overlap_positions_.push_back(p_rotor_l);
                       overlap_weights_.push_back(rotor_l_weight);
 
-                      overlap_segments.push_back(std::string("rotor") + s + std::string("_left"));
-                      overlap_rotors.push_back(std::string("rotor") + std::to_string(i + 1) + std::string("_") + rotor_name);
+                      overlap_segments_.push_back(std::string("rotor") + s + std::string("_left"));
+                      overlap_rotors_.push_back(std::string("rotor") + std::to_string(i + 1) + std::string("_") + rotor_name);
 
                       /// ROS_INFO_STREAM("rotor" << i + 1 << "_" << rotor_name << " " << p_rotor.transpose() << ", interfere with rotor" << j+1 << "left: " << overlap_positions_.back().transpose());
                     }
@@ -194,8 +194,8 @@ void DragonFullVectoringController::rotorInterfereCompensation()
                       overlap_positions_.push_back((rotor_l_weight * p_rotor_l + rotor_r_weight * p_rotor_r) / (rotor_l_weight + rotor_r_weight));
                       overlap_weights_.push_back((rotor_l_weight + rotor_r_weight) / 2);
 
-                      overlap_segments.push_back(std::string("rotor") + s + std::string("_left&right"));
-                      overlap_rotors.push_back(std::string("rotor") + std::to_string(i + 1) + std::string("_") + rotor_name);
+                      overlap_segments_.push_back(std::string("rotor") + s + std::string("_left&right"));
+                      overlap_rotors_.push_back(std::string("rotor") + std::to_string(i + 1) + std::string("_") + rotor_name);
 
                       /// ROS_INFO_STREAM("rotor" << i + 1 << "_" << rotor_name << " " << p_rotor.transpose() << ", interfere with rotor" << j+1 << "left&right: " << overlap_positions_.back().transpose());
                     }
@@ -251,7 +251,7 @@ void DragonFullVectoringController::rotorInterfereCompensation()
                       overlap_positions_.back() = (linear_rotor_weight * p_rotor_overlap + linear_link_weight * p_link_overlap) / (linear_rotor_weight + linear_link_weight);
                       overlap_weights_.back() = (weight_rotor_overlap + weight) / 2;
 
-                      overlap_segments.back() = overlap_segments.back() + std::string("&link");
+                      overlap_segments_.back() = overlap_segments_.back() + std::string("&link");
 
                       /// ROS_INFO_STREAM("  rotor" << i + 1 << "_" << rotor_name << " " << p_rotor.transpose() << ", interfere with link" << j+1 << "&rotor : " << overlap_positions_.back().transpose());
                     }
@@ -264,8 +264,8 @@ void DragonFullVectoringController::rotorInterfereCompensation()
                           overlap_positions_.push_back((linear_inter_weight * p_inter + linear_link_weight * p_link_overlap) / (linear_inter_weight + linear_link_weight));
                           overlap_weights_.push_back(weight);
 
-                          overlap_segments.push_back(std::string("link&inter_joint") + s);
-                          overlap_rotors.push_back(std::string("rotor") + std::to_string(i + 1) + std::string("_") + rotor_name);
+                          overlap_segments_.push_back(std::string("link&inter_joint") + s);
+                          overlap_rotors_.push_back(std::string("rotor") + std::to_string(i + 1) + std::string("_") + rotor_name);
 
                           /// ROS_INFO_STREAM(" rotor" << i + 1 << "_" << rotor_name << " " << p_rotor.transpose() << ", interfere with link & inter_joint" << j+1 << ": " << overlap_positions_.back().transpose());
                         }
@@ -274,8 +274,8 @@ void DragonFullVectoringController::rotorInterfereCompensation()
                           overlap_positions_.push_back(p_link_overlap);
                           overlap_weights_.push_back(weight);
 
-                          overlap_segments.push_back(std::string("link") + s);
-                          overlap_rotors.push_back(std::string("rotor") + std::to_string(i + 1) + std::string("_") + rotor_name);
+                          overlap_segments_.push_back(std::string("link") + s);
+                          overlap_rotors_.push_back(std::string("rotor") + std::to_string(i + 1) + std::string("_") + rotor_name);
 
                           /// ROS_INFO_STREAM("rotor" << i + 1 << "_" << rotor_name << " " << p_rotor.transpose() << ", interfere with link" << j+1 << ": " << overlap_positions_.back().transpose());
                         }
@@ -318,7 +318,7 @@ void DragonFullVectoringController::rotorInterfereCompensation()
           return;
         }
 
-      // for(int i = 0; i < overlap_rotors.size(); i++) std::cout << overlap_rotors.at(i) << " -> " << overlap_segments.at(i) << "; ";
+      // for(int i = 0; i < overlap_rotors_.size(); i++) std::cout << overlap_rotors_.at(i) << " -> " << overlap_segments_.at(i) << "; ";
       // std::cout << std::endl;
       // for(int i = 0; i < overlap_positions_.size(); i++) std::cout << overlap_positions_.at(i).transpose() << "; ";
       // std::cout << std::endl;
@@ -342,21 +342,28 @@ void DragonFullVectoringController::rotorInterfereCompensation()
             {
               std::vector<Eigen::VectorXd> overlap_positions_tmp = overlap_positions_;
               std::vector<double> overlap_weights_tmp = overlap_weights_;
+              std::vector<std::string> overlap_segments_tmp = overlap_segments_;
+              std::vector<std::string> overlap_rotors_tmp = overlap_rotors_;
               overlap_positions_.clear();
               overlap_weights_.clear();
+              overlap_segments_.clear();
+              overlap_rotors_.clear();
+
               for(int i = 0; i < rotor_interfere_force_.size(); i++)
                 {
                   if(rotor_interfere_force_(i) < 0)
                     {
                       overlap_positions_.push_back(overlap_positions_tmp.at(i));
                       overlap_weights_.push_back(overlap_weights_tmp.at(i));
+                      overlap_segments_.push_back(overlap_segments_tmp.at(i));
+                      overlap_rotors_.push_back(overlap_rotors_tmp.at(i));
                     }
                 }
               if(overlap_positions_.size() == 0)
                 {
                   rotor_interfere_comp_wrench_.segment(2, 3) = (1 - comp_wrench_lpf_rate_) * rotor_interfere_comp_wrench_.segment(2, 3) +  comp_wrench_lpf_rate_ * Eigen::VectorXd::Zero(3);
                   rotor_interfere_force_.setZero();
-                  /// ROS_INFO_STREAM("no rotor_interfere from recalculate");
+                  ROS_DEBUG_STREAM("no rotor_interfere from recalculate");
                   break;
                 }
               else
@@ -378,11 +385,11 @@ void DragonFullVectoringController::rotorInterfereCompensation()
 
                   if(rotor_interfere_force_.maxCoeff() > 0)
                     {
-                      ROS_ERROR_STREAM("invalid rotor_interfere force: " << rotor_interfere_force_.transpose()); // loop
+                      ROS_DEBUG_STREAM("invalid rotor_interfere force: " << rotor_interfere_force_.transpose()); // loop
                     }
                   else
                     {
-                      ROS_INFO_STREAM("rotor_interfere force recalculate: " << rotor_interfere_force_.transpose());
+                      ROS_DEBUG_STREAM("rotor_interfere force recalculate: " << rotor_interfere_force_.transpose());
                       break;
                     }
                 }
@@ -442,14 +449,33 @@ void DragonFullVectoringController::controlCore()
 
   // rotor interference compensation
   rotorInterfereCompensation();
-  if(rotor_interfere_compensate_)
+
+  Eigen::VectorXd rotor_interfere_comp_acc = Eigen::VectorXd::Zero(6);
+  rotor_interfere_comp_acc(2) = mass_inv * rotor_interfere_comp_wrench_(2);
+
+  bool torque_comp = false;
+  if(overlap_positions_.size() == 1) torque_comp = true;
+
+  if(overlap_positions_.size() == 2)
     {
-      Eigen::VectorXd rotor_interfere_comp_acc = Eigen::VectorXd::Zero(6);
-      rotor_interfere_comp_acc(2) = mass_inv * rotor_interfere_comp_wrench_(2);
-      // if(overlap_positions_.size() == 1) // TODO: dual-rotor -> count one
-      //   rotor_interfere_comp_acc.tail(3) = inertia_inv * rotor_interfere_comp_wrench_.tail(3);
-      target_wrench_acc_cog += rotor_interfere_comp_acc;
+      if(overlap_rotors_.at(0).substr(0, 6) == overlap_rotors_.at(1).substr(0, 6))
+        {
+          ROS_INFO_STREAM("do rotor interference torque compensation: " << overlap_rotors_.at(0) << " and " << overlap_rotors_.at(1));
+          torque_comp = true;
+        }
     }
+
+  if(torque_comp)
+    {
+      ROS_WARN("compsensate the torque resulted from rotor interference");
+      rotor_interfere_comp_acc.tail(3) = inertia_inv * rotor_interfere_comp_wrench_.tail(3);
+    }
+  if(rotor_interfere_compensate_) // TODO move this scope
+    target_wrench_acc_cog += rotor_interfere_comp_acc;
+
+  std::stringstream ss;
+  for(int i = 0; i < overlap_rotors_.size(); i++) ss << overlap_rotors_.at(i) << " -> " << overlap_segments_.at(i) << "; ";
+  if(overlap_rotors_.size() > 0) ROS_DEBUG_STREAM("rotor interference: " << ss.str());
 
   setTargetWrenchAccCog(target_wrench_acc_cog);
 
