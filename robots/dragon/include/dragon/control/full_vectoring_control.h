@@ -105,6 +105,8 @@ namespace aerial_robot_control
     Eigen::VectorXd rotor_interfere_comp_wrench_;
     std::vector<Eigen::VectorXd> overlap_positions_;
     std::vector<double> overlap_weights_;
+    std::vector<std::string> overlap_segments_;
+    std::vector<std::string> overlap_rotors_;
     double overlap_dist_rotor_thresh_;
     double overlap_dist_rotor_relax_thresh_;
     double overlap_dist_link_thresh_;
