@@ -10,8 +10,8 @@ lock_status_change_threshold: 10
 gimbal_delta_angle: 0.3
 robot_model_refine_max_iteration: 5
 robot_model_refine_threshold: 0.01
-smooth_rate: 0.1
-smooth_converge_threshold: 0.1
+gimbal_roll_change_threshold: 0.04
+
 min_force_weight: 1.0
 min_torque_weight: 1.0
 

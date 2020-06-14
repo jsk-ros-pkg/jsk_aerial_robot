@@ -103,8 +103,7 @@ void FullVectoringRobotModel::getParamFromRos()
   nh.param("gimbal_delta_angle", gimbal_delta_angle_, 0.3); // 10deg
   nh.param("robot_model_refine_max_iteration", robot_model_refine_max_iteration_, 1);
   nh.param("robot_model_refine_threshold", robot_model_refine_threshold_, 0.01); // m
-  nh.param("smooth_rate", smooth_rate_, 0.5);
-  nh.param("smooth_converge_threshold", smooth_converge_threshold_, 0.1);
+  nh.param("gimbal_roll_change_threshold", gimbal_roll_change_threshold_, 0.02); // rad/s
   nh.param("min_force_weight", min_force_weight_, 1.0);
   nh.param("min_torque_weight", min_torque_weight_, 1.0);
 }
@@ -267,15 +266,20 @@ void FullVectoringRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_po
             {
               ROS_DEBUG_NAMED("robot_model", "smooth the gimbal roll angle %d, for after free the lock", i+1);
               roll_locked_gimbal.at(i) = 1; // force change back to lock status
-              gimbal_nominal_angles_curr.at(i * 2) = (1 - smooth_rate_) * gimbal_nominal_angles_curr.at(i * 2) + smooth_rate_ * gimbal_nominal_angles.at(i * 2);
 
-              if(debug_verbose_) ROS_DEBUG_STREAM_NAMED("robot_model", "smoothing rotor " << i + 1 << ", desired roll angle: " << gimbal_nominal_angles.at(i * 2) << ", curr angle: " << gimbal_nominal_angles_curr.at(i * 2));
-
-              if(fabs(gimbal_nominal_angles_curr.at(i * 2) - gimbal_nominal_angles.at(i * 2)) < smooth_converge_threshold_)
+              if(gimbal_nominal_angles.at(i * 2) - gimbal_nominal_angles_curr.at(i * 2) > gimbal_roll_change_threshold_)
+                gimbal_nominal_angles_curr.at(i * 2) += gimbal_roll_change_threshold_;
+              else if(gimbal_nominal_angles.at(i * 2) - gimbal_nominal_angles_curr.at(i * 2) < - gimbal_roll_change_threshold_)
+                gimbal_nominal_angles_curr.at(i * 2) -= gimbal_roll_change_threshold_;
+              else
                 {
+                  gimbal_nominal_angles_curr.at(i * 2) = gimbal_nominal_angles.at(i * 2);
                   roll_lock_angle_smooth_.at(i) = 0; // stop smoothing
                   if(debug_verbose_) ROS_INFO_STREAM_NAMED("robot_model", "free the gimbal roll after the smoothing for rotor" << i+1);
                 }
+
+              if(debug_verbose_) ROS_DEBUG_STREAM_NAMED("robot_model", "smoothing rotor " << i + 1 << ", desired roll angle: " << gimbal_nominal_angles.at(i * 2) << ", curr angle: " << gimbal_nominal_angles_curr.at(i * 2));
+
             }
           else
             {
@@ -286,7 +290,13 @@ void FullVectoringRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_po
         {
           assert(roll_lock_angle_smooth_.at(i) == 1);
 
-          gimbal_nominal_angles_curr.at(i * 2) = (1 - smooth_rate_) * gimbal_nominal_angles_curr.at(i * 2) + smooth_rate_ * locked_angles_.at(gimbal_lock_index);
+          if(locked_angles_.at(gimbal_lock_index) - gimbal_nominal_angles_curr.at(i * 2) > gimbal_roll_change_threshold_)
+            gimbal_nominal_angles_curr.at(i * 2) += gimbal_roll_change_threshold_;
+          else if(locked_angles_.at(gimbal_lock_index) - gimbal_nominal_angles_curr.at(i * 2) < - gimbal_roll_change_threshold_)
+            gimbal_nominal_angles_curr.at(i * 2) -= gimbal_roll_change_threshold_;
+          else
+            gimbal_nominal_angles_curr.at(i * 2) = locked_angles_.at(gimbal_lock_index);
+
           if(debug_verbose_) ROS_DEBUG_STREAM_NAMED("robot_model", "smoothing rotor " << i + 1 << ", desired roll angle: " << locked_angles_.at(gimbal_lock_index) << ", curr angle: " << gimbal_nominal_angles_curr.at(i * 2));
 
           gimbal_lock_index++;
