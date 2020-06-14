@@ -109,8 +109,7 @@ namespace Dragon
     int robot_model_refine_max_iteration_;
     double robot_model_refine_threshold_;
     std::mutex roll_locked_gimbal_mutex_;
-    double smooth_rate_;
-    double smooth_converge_threshold_;
+    double gimbal_roll_change_threshold_;
 
     std::vector<Eigen::Vector3d> overlap_positions_;
     std::vector<double> overlap_magnitudes_;
