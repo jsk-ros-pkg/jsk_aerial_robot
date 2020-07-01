@@ -194,7 +194,7 @@
 //instruction frequency: 0 means no process
 #define SET_POS_DU 20 //[msec], 20ms => 50Hz
 #define SET_POS_OFFSET 0 // offset from SET_POS
-#define GET_POS_DU 20 //[msec], 20ms => 25Hz
+#define GET_POS_DU 20 //[msec], 20ms => 50Hz
 #define GET_POS_OFFSET 10 //offset from GET_POS
 #define GET_LOAD_DU 200 //[msec], 200ms => 5Hz
 #define GET_LOAD_OFFSET 0 //offset from GET_LOAD

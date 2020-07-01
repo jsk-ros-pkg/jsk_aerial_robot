@@ -81,7 +81,7 @@ void HAL_SYSTICK_Callback(void)
 
 /* USER CODE BEGIN 0 */
 
-//500Hz
+//1kHz
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
 	if (!start_process_flag_) return;

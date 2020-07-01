@@ -252,7 +252,6 @@ void DynamixelSerial::update()
     			status_packet_instruction_ = instruction.first;
     			readStatusPacket();
     			break;
-    		/*
     		case INST_GET_HOMING_OFFSET:
     			for (unsigned int i = 0; i < servo_num_; ++i) {
     				cmdReadHomingOffset(i);
@@ -281,7 +280,6 @@ void DynamixelSerial::update()
     				readStatusPacket();
     			}
     			break;
-    			*/
     		default:
     			break;
     		}
@@ -312,7 +310,6 @@ void DynamixelSerial::update()
     			status_packet_instruction_ = instruction.first;
     			read_status_packet_flag = true;
     			break;
-    		/*
     		case INST_GET_HOMING_OFFSET:
     			cmdSyncReadHomingOffset(false);
     			status_packet_instruction_ = instruction.first;
@@ -333,7 +330,6 @@ void DynamixelSerial::update()
     			status_packet_instruction_ = instruction.first;
     			read_status_packet_flag = true;
     			break;
-    			*/
     		default:
     			break;
     		}
