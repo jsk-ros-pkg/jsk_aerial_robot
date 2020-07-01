@@ -96,7 +96,7 @@ namespace tx
     return status;
   }
 
-  void write(uint8_t * new_data, uint8_t new_size)
+  void write(uint8_t * new_data, unsigned int new_size)
   {
     /* if subscript comes around and get to one in progress_, then wait. */
     if (subscript_in_progress_ == subscript_to_add_ + 1 || ( subscript_to_add_ == TX_BUFFER_SIZE - 1 && subscript_in_progress_ == 0) )

@@ -13,9 +13,9 @@
 #include "stm32f7xx_hal_uart.h"
 #include "stm32f7xx_hal_dma.h"
 
-#define TX_BUFFER_SIZE 50
+#define TX_BUFFER_SIZE 512
 #define TX_BUFFER_WIDTH 512
-#define RX_BUFFER_SIZE 400
+#define RX_BUFFER_SIZE 512
 #define RX_PACKET_SIZE 16
 
 template <typename T,  int SIZE>
@@ -94,14 +94,14 @@ namespace rx
 template<int BUFFER_LENGTH>
 struct TxBufferUnit{
   uint8_t tx_data_[BUFFER_LENGTH];//this means each txdata packet should be shorter than 255
-  uint8_t tx_len_;
+  uint16_t tx_len_;
 } ;
 
 namespace tx
 {
   void init(UART_HandleTypeDef *huart);
   int publish();
-  void write(uint8_t * new_data, uint8_t new_size);
+  void write(uint8_t * new_data, unsigned int new_size);
 
   uint8_t subscriptInProgress();
   uint8_t subscriptToAdd();
@@ -137,7 +137,7 @@ public:
     return rx::read();
   }
 
-  void write(uint8_t* data, int length){
+  void write(uint8_t* data, unsigned int length){
     tx::write(data, length);
   }
 
