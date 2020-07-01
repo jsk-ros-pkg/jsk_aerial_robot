@@ -29,7 +29,7 @@ find_package(Boost REQUIRED COMPONENTS system)
 
 catkin_package(
   INCLUDE_DIRS include test
-  LIBRARIES dragon_robot_model dragon_transform_control dragon_numerical_jacobians
+  LIBRARIES dragon_robot_model dragon_aerial_robot_controllib dragon_navigation dragon_numerical_jacobians
   CATKIN_DEPENDS hydrus
   DEPENDS EIGEN3
 )
@@ -49,7 +49,7 @@ add_library(dragon_robot_model src/dragon_robot_model.cpp)
 target_link_libraries(dragon_robot_model ${catkin_LIBRARIES})
 
 add_library(dragon_aerial_robot_controllib src/lqi_gimbal_control.cpp)
-target_link_libraries (dragon_aerial_robot_controllib dragon_robot_model ${catkin_LIBRARIES} ${Eigen3_LIBRARIES})
+target_link_libraries (dragon_aerial_robot_controllib dragon_robot_model dragon_navigation ${catkin_LIBRARIES} ${Eigen3_LIBRARIES})
 add_dependencies(dragon_aerial_robot_controllib aerial_robot_msgs_generate_messages_cpp hydrus_gencfg)
 
 add_library(dragon_navigation src/dragon_navigation.cpp)
