@@ -11,6 +11,10 @@
   <xacro:property name="max_force" value="36"/> ### [N]
   <xacro:property name="max_joint_torque" value="6.6"/>  ### [N]
 
+  <baselink name="fc" />
+  <thrust_link name="thrust" />
+  <m_f_rate value="0" /> <!-- drug torque rate -->
+
   <xacro:macro name="mesh_model" params="type *origin">
     <visual>
       <xacro:insert_block name="origin"/>

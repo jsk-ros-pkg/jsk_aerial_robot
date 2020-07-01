@@ -12,6 +12,7 @@ find_package(catkin REQUIRED COMPONENTS
   aerial_robot_model
   aerial_robot_msgs
   aerial_robot_simulation
+  aerial_robot_control
   dragon
   roscpp
   sensor_msgs
