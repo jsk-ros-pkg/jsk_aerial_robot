@@ -19,9 +19,11 @@ demo_mode = rospy.get_param("~mode", 0)
 desire_joint = JointState()
 desire_att = DesireCoord()
 
+half_pi = 1.56 # the limitation of the joint
+
 if demo_mode == 0:
   desire_joint.name = ["joint3_yaw"]
-  desire_joint.position = [-1.57]
+  desire_joint.position = [-half_pi]
 
 elif demo_mode == 1:
   desire_joint.name = ["joint2_yaw"]
@@ -29,7 +31,7 @@ elif demo_mode == 1:
 
 elif demo_mode == 2: # mode model
   desire_joint.name = ["joint2_yaw", "joint1_yaw"]
-  desire_joint.position = [-1.57, -1.57]
+  desire_joint.position = [-half_pi, -half_pi]
 
 time.sleep(0.6)
 
