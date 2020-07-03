@@ -10,4 +10,17 @@
   <xacro:hydrus_xi_link self="3" child="4" rotor_direction="1" link_type="middle"/>
   <xacro:hydrus_xi_link self="4" child="4" rotor_direction="-1"  link_type="end"/>
 
+  #### flight controller ####
+  <xacro:extra_module name = "fc" parent = "link2" visible = "1"
+                      model_url = "package://hydrus_xi/urdf/mesh/modules/flight_controller/quad/fc.dae">
+    <origin xyz="0.5451 -0.006 -0.032" rpy="0 0 0"/>
+    <inertial>
+      <mass value = "0.0436" />
+      <origin xyz="0.0 0.006 0.0" rpy="0 0 0"/>
+      <inertia
+          ixx="0.00001" ixy="0.0" ixz="0.0"
+          iyy="0.00001" iyz="0.0"
+          izz="0.00002"/>
+    </inertial>
+  </xacro:extra_module>
 </robot>

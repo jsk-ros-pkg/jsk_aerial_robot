@@ -4,13 +4,13 @@
 
   <xacro:include filename="$(find hydrus_xi)/robots/quad/default.urdf.xacro" />
 
-  #### flight controller ####
-  <xacro:extra_module name = "fc" parent = "link2" visible = "1"
-                      model_url = "package://hydrus_xi/urdf/mesh/modules/flight_controller/fc.dae">
-    <origin xyz="0.5396 -0.0044 -0.02847" rpy="0 0 0"/>
+  #### pc ####
+  <xacro:extra_module name = "pc" parent = "link3" visible = "1"
+                      model_url = "package://hydrus_xi/urdf/mesh/modules/pc/quad/upboard.dae">
+    <origin xyz="0.087 0 -0.029" rpy="${pi} 0 ${pi}"/>
     <inertial>
-      <mass value = "0.021" />
-      <origin xyz="0.01389 0.00526 0.0049" rpy="0 0 0"/>
+      <mass value = "0.138" />
+      <origin xyz="0.0 0.0 0.0" rpy="0 0 0"/>
       <inertia
           ixx="0.00001" ixy="0.0" ixz="0.0"
           iyy="0.00001" iyz="0.0"
