@@ -1,4 +1,4 @@
-uav_model: 16  # special, because this is under-actuated
+uav_model: 17
 
 # robot model plugin
 robot_model_plugin_name: hydrus_tilted_robot_model
