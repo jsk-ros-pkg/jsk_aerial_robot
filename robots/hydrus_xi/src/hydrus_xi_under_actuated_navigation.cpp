@@ -264,9 +264,9 @@ bool HydrusXiUnderActuatedNavigator::plan()
         {
           if(joint_names.at(i).find("joint") != std::string::npos)
             {
-              if(fabs(joint_positions_for_plan_(joint_indices.at(i)) - 2 * M_PI / robot_model_->getRotorNum()) > 0.1)
+              if(fabs(joint_positions_for_plan_(joint_indices.at(i)) - 2 * M_PI / robot_model_->getRotorNum()) > 0.2 && init_from_normal_pose_)
                 {
-                  ROS_WARN_THROTTLE(1.0, "hydrus_xi, vectoring planner: the initial joint pose is invalid");
+                  ROS_WARN_THROTTLE(1.0, "hydrus_xi, vectoring planner: the initial joint pose is invalid, every joint angle should be %f rad, %s is %f", 2 * M_PI / robot_model_->getRotorNum(), joint_names.at(i).c_str(), joint_positions_for_plan_(joint_indices.at(i)));
                   return false;
                 }
             }
@@ -275,7 +275,6 @@ bool HydrusXiUnderActuatedNavigator::plan()
       for(const auto& name: control_gimbal_names_)
         control_gimbal_indices_.push_back(robot_model_->getJointIndexMap().at(name));
     }
-
 
   /* find the optimal gimbal vectoring angles from nlopt */
   std::vector<double> lb(control_gimbal_indices_.size(), - 2 * M_PI);
@@ -321,11 +320,6 @@ bool HydrusXiUnderActuatedNavigator::plan()
       double roll,pitch,yaw;
       robot_model_for_plan_->getCogDesireOrientation<KDL::Rotation>().GetRPY(roll, pitch, yaw);
 
-      std::for_each(opt_gimbal_angles_.begin(), opt_gimbal_angles_.end(),
-                    [this](double& x) mutable {
-                      if(x < -M_PI - gimbal_delta_angle_) x += (2 * M_PI);
-                      else if (x > M_PI + gimbal_delta_angle_) x -= (2 * M_PI);});
-
       if(prev_opt_gimbal_angles_.size() == 0) prev_opt_gimbal_angles_ = opt_gimbal_angles_;
 
       if(plan_verbose_)
@@ -364,12 +358,7 @@ bool HydrusXiUnderActuatedNavigator::plan()
   for(int i = 0; i < control_gimbal_indices_.size(); i++)
     {
       gimbal_msg.name.push_back(control_gimbal_names_.at(i));
-
-      if(opt_gimbal_angles_.at(i) - prev_opt_gimbal_angles_.at(i) > M_PI)
-        gimbal_msg.position.push_back(opt_gimbal_angles_.at(i) - 2 * M_PI);
-      else if(opt_gimbal_angles_.at(i) - prev_opt_gimbal_angles_.at(i) < -M_PI)
-        gimbal_msg.position.push_back(opt_gimbal_angles_.at(i) + 2 * M_PI);
-      else gimbal_msg.position.push_back(opt_gimbal_angles_.at(i));
+      gimbal_msg.position.push_back(opt_gimbal_angles_.at(i));
     }
   gimbal_ctrl_pub_.publish(gimbal_msg);
 
@@ -384,6 +373,7 @@ void HydrusXiUnderActuatedNavigator::rosParamInit()
   ros::NodeHandle navi_nh(nh_, "navigation");
   getParam<bool>(navi_nh, "plan_verbose", plan_verbose_, false);
   getParam<bool>(navi_nh, "maximize_yaw", maximize_yaw_, false);
+  getParam<bool>(navi_nh, "init_from_normal_pose", init_from_normal_pose_, true);
   getParam<double>(navi_nh, "gimbal_delta_angle", gimbal_delta_angle_, 0.2);
   getParam<double>(navi_nh, "force_norm_rate", force_norm_weight_, 2.0);
   getParam<double>(navi_nh, "force_variant_rate", force_variant_weight_, 0.01);

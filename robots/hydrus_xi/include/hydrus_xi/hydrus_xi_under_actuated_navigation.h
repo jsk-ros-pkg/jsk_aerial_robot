@@ -86,6 +86,7 @@ namespace aerial_robot_navigation
 
     bool plan_verbose_;
     bool maximize_yaw_;
+    bool init_from_normal_pose_;
     double force_norm_weight_; // cost func
     double force_variant_weight_; // cost func
     double yaw_torque_weight_; // cost func
