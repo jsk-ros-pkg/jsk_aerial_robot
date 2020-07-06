@@ -7,19 +7,22 @@ namespace aerial_robot_model {
   {
     if(fc_f_min_ < fc_f_min_thre_)
       {
-        ROS_ERROR_STREAM("the min distance to the plane of feasible control force convex " << fc_f_min_ << " is lower than the threshold " <<  fc_f_min_thre_);
+        if(verbose)
+          ROS_ERROR_STREAM("the min distance to the plane of feasible control force convex " << fc_f_min_ << " is lower than the threshold " <<  fc_f_min_thre_);
           return false;
       }
 
     if(fc_t_min_ < fc_t_min_thre_)
       {
-        ROS_ERROR_STREAM("the min distance to the plane of feasible control torque convex " << fc_t_min_ << " is lower than the threshold " <<  fc_t_min_thre_);
+        if(verbose)
+          ROS_ERROR_STREAM("the min distance to the plane of feasible control torque convex " << fc_t_min_ << " is lower than the threshold " <<  fc_t_min_thre_);
         return false;
       }
 
     if(static_thrust_.maxCoeff() > thrust_max_ || static_thrust_.minCoeff() < thrust_min_)
       {
-        ROS_ERROR("Invalid static thrust, max: %f, min: %f", static_thrust_.maxCoeff(), static_thrust_.minCoeff());
+        if(verbose)
+          ROS_ERROR("Invalid static thrust, max: %f, min: %f", static_thrust_.maxCoeff(), static_thrust_.minCoeff());
         return false;
       }
 

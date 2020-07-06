@@ -13,6 +13,7 @@
   <depend>aerial_robot_model</depend>
   <depend>aerial_robot_msgs</depend>
   <depend>angles</depend>
+  <depend>hydrus</depend>
   <depend>roscpp</depend>
   <depend>rospy</depend>
   <depend>rostest</depend>
@@ -20,6 +21,7 @@
 
   <export>
     <aerial_robot_model plugin="${prefix}/plugins/robot_model_plugin.xml"/>
+    <aerial_robot_control plugin="${prefix}/flight_navigation_plugin.xml" />
   </export>
 
 </package>

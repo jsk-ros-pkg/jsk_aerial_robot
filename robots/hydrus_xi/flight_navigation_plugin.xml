@@ -1,0 +1,5 @@
+<library path="lib/libhydrus_xi_under_actuated_navigation">
+  <class name="aerial_robot_navigation/hydrus_xi_under_actuated_navigation" type="aerial_robot_navigation::HydrusXiUnderActuatedNavigator" base_class_type="aerial_robot_navigation::BaseNavigator">
+    <description> hydrus_xi under-actuated model navigation plugin</description>
+  </class>
+</library>

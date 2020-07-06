@@ -172,7 +172,7 @@ bool HydrusRobotModel::stabilityCheck(bool verbose)
 
   if(fc_rp_min_ < fc_rp_min_thre_)
     { // only roll & pitch
-      ROS_ERROR_STREAM("fc_rp_min " << fc_rp_min_ << " is lower than the threshold " <<  fc_rp_min_thre_);
+      if(verbose) ROS_ERROR_STREAM("fc_rp_min " << fc_rp_min_ << " is lower than the threshold " <<  fc_rp_min_thre_);
       return false;
     }
 

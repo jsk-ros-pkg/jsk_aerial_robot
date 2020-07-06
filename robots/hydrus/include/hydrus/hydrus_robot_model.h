@@ -69,7 +69,7 @@ public:
   bool rollPitchPositionMarginCheck(); // deprecated
 
   inline void setWrenchDof(uint8_t dof) { wrench_dof_ = dof; }
-  virtual bool stabilityCheck(bool verbose = false) override;
+  virtual bool stabilityCheck(bool verbose = true) override;
 
   virtual void updateJacobians(const KDL::JntArray& joint_positions, bool update_model = true) override;
 

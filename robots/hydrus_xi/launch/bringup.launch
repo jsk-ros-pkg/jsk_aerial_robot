@@ -100,4 +100,5 @@
 
   ######### init gimbal angles #########
   <node pkg="hydrus_xi" name="init_gimbal_angles" type="init_gimbal_angles.py" ns="$(arg robot_ns)" if="$(arg init_gimbal_angle)"/>
+
 </launch>
