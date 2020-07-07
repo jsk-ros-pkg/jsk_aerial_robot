@@ -147,13 +147,12 @@ namespace aerial_robot_model {
 
     Eigen::MatrixXd root_rot = aerial_robot_model::kdlToEigen(getCogDesireOrientation<KDL::Rotation>() * seg_frames.at(baselink_).M.Inverse());
     Eigen::VectorXd wrench_g = Eigen::VectorXd::Zero(6);
-    KDL::RigidBodyInertia link_inertia = KDL::RigidBodyInertia::Zero();
     for(const auto& inertia : inertia_map)
       {
         Eigen::MatrixXd jacobi_root = Eigen::MatrixXd::Identity(3, 6);
         Eigen::Vector3d p = root_rot * aerial_robot_model::kdlToEigen(seg_frames.at(inertia.first).p + seg_frames.at(inertia.first).M * inertia.second.getCOG());
         jacobi_root.rightCols(3) = - aerial_robot_model::skew(p);
-        wrench_g += jacobi_root.transpose() *  inertia.second.getMass() * (-gravity_);
+        wrench_g += jacobi_root.transpose() *  inertia.second.getMass() * (-gravity_3d_);
       }
     return wrench_g;
   }
