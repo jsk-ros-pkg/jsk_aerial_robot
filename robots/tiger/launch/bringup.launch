@@ -1,8 +1,10 @@
 <?xml version="1.0"?>
 <launch>
   ###########  launch config  ###########
-  <arg name="real_machine" default="True"/>
-  <arg name="simulation" default="False"/>
+  <arg name="rm" default="True"/>
+  <arg name="sim" default="False"/>
+  <arg name="real_machine" default="$(arg rm)"/>
+  <arg name="simulation" default="$(arg sim)"/>
   <arg name="type" default="octo"/>
   <arg name="onboards_model" default="v1_default"/>
   <arg name="estimate_mode" default="0"/>
