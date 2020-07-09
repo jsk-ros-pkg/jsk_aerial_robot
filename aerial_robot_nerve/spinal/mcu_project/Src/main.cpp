@@ -64,6 +64,8 @@
 #include "sensors/gps/gps_ublox.h"
 #endif
 
+#include "sensors/encoder/mag_encoder.h"
+
 /* State Estimate, including attitude, altitude and pos */
 #if ATTITUDE_ESTIMATE_FLAG || HEIGHT_ESTIMATE_FLAG || POS_ESTIMATE_FLAG
 #include "state_estimate/state_estimate.h"
@@ -106,6 +108,8 @@ Baro baro_;
 #if GPS_FLAG
 GPS gps_;
 #endif
+
+MagEncoder encoder_;
 
 #if ATTITUDE_ESTIMATE_FLAG || HEIGHT_ESTIMATE_FLAG || POS_ESTIMATE_FLAG
 StateEstimate estimator_;
@@ -151,6 +155,8 @@ void HAL_SYSTICK_Callback(void)
 #if GPS_FLAG
   gps_.update();
 #endif
+
+encoder_.update();
 
   /* state estimate */
 #if (ATTITUDE_ESTIMATE_FLAG || HEIGHT_ESTIMATE_FLAG || POS_ESTIMATE_FLAG)
@@ -249,6 +255,9 @@ int main(void){
 
   /* Extra Servo Control */
   extra_servo_.init(&htim3, &htim5, &nh_);
+
+  /* Magnetic Encoder */
+  encoder_.init(&hi2c2, &nh_);
 
 #if NERVE_COMM
   /* NERVE */
