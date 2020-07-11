@@ -24,4 +24,8 @@
     <description>Visual Odometry sensor plugin.</description>
   </class>
 
+  <class name="sensor_plugin/plane_detection" type="sensor_plugin::PlaneDetection" base_class_type="sensor_plugin::SensorBase">
+    <description>Plane Detection sensor plugin.</description>
+  </class>
+
 </library>
