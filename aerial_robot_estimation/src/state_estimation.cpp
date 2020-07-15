@@ -47,7 +47,7 @@ StateEstimator::StateEstimator()
     un_descend_flag_(false),
     landing_height_(0),
     force_att_control_flag_(false),
-    imu_handlers_(0), alt_handlers_(0), vo_handlers_(0), gps_handlers_(0)
+    imu_handlers_(0), alt_handlers_(0), vo_handlers_(0), gps_handlers_(0), plane_detection_handlers_(0)
 {
   fuser_[0].resize(0);
   fuser_[1].resize(0);
@@ -294,6 +294,13 @@ void StateEstimator::rosParamInit()
               vo_handlers_.push_back(sensors_.back());
               sensor_index.back() = vo_handlers_.size();
             }
+
+          if(name.find("plane_detection") != std::string::npos)
+            {
+              plane_detection_handlers_.push_back(sensors_.back());
+              sensor_index.back() = plane_detection_handlers_.size();
+            }
+
 
           sensors_.back()->initialize(nh_, robot_model_, shared_from_this(), name, sensor_index.back());
           break;
