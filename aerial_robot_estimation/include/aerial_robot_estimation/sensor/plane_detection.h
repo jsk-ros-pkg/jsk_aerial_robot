@@ -38,6 +38,7 @@
 #include <aerial_robot_estimation/sensor/base_plugin.h>
 #include <kalman_filter/kf_pos_vel_acc_plugin.h>
 #include <jsk_recognition_msgs/ModelCoefficientsArray.h>
+#include <pcl_msgs/ModelCoefficients.h>
 
 namespace sensor_plugin
 {
@@ -54,6 +55,26 @@ namespace sensor_plugin
                     string sensor_name, int index) override;
 
   private:
+    /* ros */
+    ros::Subscriber plane_sub_;
+
+    std::string plane_detection_sub_topic_name_;
+    aerial_robot_msgs::States plane_detection_state_;
+
+    /* ros param */
+    double eps_angle_;
+    double distance_diff_thresh_;
+    double plane_noise_sigma_;
+    double min_height_, max_height_;
+    double max_camera_angle_;
+
+    /* estimation */
+    double raw_plane_pos_z_;
+    double prev_raw_plane_pos_z_;
+    double raw_plane_vel_z_;
+
+    bool findValidPlane(const jsk_recognition_msgs::ModelCoefficientsArray& msg);
+    bool isCameraAngleValid();
     void estimateProcess() override;
     void rosParamInit();
     void planeCallback(const jsk_recognition_msgs::ModelCoefficientsArray& msg);

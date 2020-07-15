@@ -22,6 +22,7 @@ find_package(catkin REQUIRED COMPONENTS
   tf
   tf_conversions
   jsk_recognition_msgs
+  pcl_msgs
 )
 
 find_package(OpenCV REQUIRED)
