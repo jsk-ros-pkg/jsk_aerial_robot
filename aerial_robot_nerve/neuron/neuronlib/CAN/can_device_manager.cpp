@@ -13,6 +13,7 @@ namespace CANDeviceManager
 	namespace {
 		std::array<CANDevice*, (1 << CAN::DEVICE_ID_LEN)> can_device_list;
 		int can_timeout_count = 0;
+		int internal_count = 0;
 		constexpr int CAN_MAX_TIMEOUT_COUNT = 100;
 		GPIO_TypeDef* m_GPIOx;
 		uint16_t m_GPIO_Pin;
@@ -44,7 +45,6 @@ namespace CANDeviceManager
 	void tick(int cycle /* ms */)
 	{
 		can_timeout_count++;
-		static int internal_count = 0;
 		if (can_timeout_count <= CAN_MAX_TIMEOUT_COUNT) {
 			internal_count++;
 			if (internal_count == (1000 / cycle) - 1) {
@@ -54,6 +54,12 @@ namespace CANDeviceManager
 				HAL_GPIO_TogglePin(m_GPIOx, m_GPIO_Pin);
 			}
 		}
+	}
+
+	void resetTick()
+	{
+		internal_count = 0;
+		HAL_GPIO_WritePin(m_GPIOx, m_GPIO_Pin, GPIO_PIN_RESET);
 	}
 
 	bool isTimeout()

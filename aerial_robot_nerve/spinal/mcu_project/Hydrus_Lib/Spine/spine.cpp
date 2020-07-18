@@ -133,7 +133,7 @@ namespace Spine
     nh_->advertiseService(board_info_srv_);
     nh_->advertiseService(board_config_srv_);
 
-    HAL_Delay(3000); //wait neuron initialization
+    HAL_Delay(5000); //wait neuron initialization
     CANDeviceManager::addDevice(can_initializer_);
     CANDeviceManager::Receive_IT();
     can_initializer_.initDevices();

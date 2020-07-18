@@ -9,6 +9,7 @@
 #define APPLICATION_CONFIGURATOR_CONFIGURATOR_H_
 
 #include "can_device.h"
+#include "can_device_manager.h"
 #include "Dynamixel/dynamixel_serial.h"
 #include "imu_mpu9250.h"
 #include "servo.h"

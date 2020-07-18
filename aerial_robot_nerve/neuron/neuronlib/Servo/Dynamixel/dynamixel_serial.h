@@ -15,6 +15,7 @@
 #include <utility>
 #include <cmath>
 #include "flashmemory.h"
+#include "can_core.h"
 
 /* first should set the baudrate to 1000000*/
 /* uncomment following macro, and set the uart baudrate to 57143(M
@@ -196,13 +197,13 @@
 #define GET_POS_DU 20 //[msec], 20ms => 50Hz
 #define GET_POS_OFFSET 10 //offset from GET_POS
 #define GET_LOAD_DU 200 //[msec], 200ms => 5Hz
-#define GET_LOAD_OFFSET 45 //offset from GET_LOAD
+#define GET_LOAD_OFFSET 0 //offset from GET_LOAD
 #define GET_TEMP_DU 200 //[msec], 200ms => 5Hz
-#define GET_TEMP_OFFSET 85 //offset from GET_TEMP
+#define GET_TEMP_OFFSET 50 //offset from GET_TEMP
 #define GET_MOVE_DU 200 //[msec], 200ms => 5Hz
-#define GET_MOVE_OFFSET 125 //offset from GET_MOVE
+#define GET_MOVE_OFFSET 100 //offset from GET_MOVE
 #define GET_HARDWARE_ERROR_STATUS_DU 200 //[msec], 200ms => 5Hz
-#define GET_HARDWARE_ERROR_STATUS_OFFSET 165
+#define GET_HARDWARE_ERROR_STATUS_OFFSET 150
 
 /* please define the gpio which control the IO direction */
 #define WE HAL_GPIO_WritePin(RS485EN_GPIO_Port, RS485EN_Pin, GPIO_PIN_SET);
@@ -319,12 +320,13 @@ public:
   const std::array<ServoData, MAX_SERVO_NUM>& getServo() const {return servo_;}
 
 private:
-  UART_HandleTypeDef* huart_; // uart handler
+  UART_HandleTypeDef* huart_; // uart handlercmdReadPresentPosition
   uint8_t status_packet_instruction_;
-  RingBuffer<std::pair<uint8_t, uint8_t>, 16> instruction_buffer_;
+  RingBuffer<std::pair<uint8_t, uint8_t>, 64> instruction_buffer_;
   unsigned int servo_num_;
   std::array<ServoData, MAX_SERVO_NUM> servo_;
   uint16_t ttl_rs485_mixed_;
+  uint32_t current_time_;
 
   void transmitInstructionPacket(uint8_t id, uint16_t len, uint8_t instruction, uint8_t* parameters);
   int8_t readStatusPacket(void);
