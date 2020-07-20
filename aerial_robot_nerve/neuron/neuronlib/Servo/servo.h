@@ -19,7 +19,7 @@ class Servo : public CANDevice
 public:
 	Servo(){}
 	Servo(uint8_t slave_id):CANDevice(CAN::DEVICEID_SERVO, slave_id){}
-	void init(UART_HandleTypeDef* huart);
+        void init(UART_HandleTypeDef* huart, I2C_HandleTypeDef* hi2c);
 	void update();
 	void sendData() override;
 	void receiveDataCallback(uint8_t message_id, uint32_t DLC, uint8_t* data) override;

@@ -16,6 +16,7 @@
 #include <cmath>
 #include "flashmemory.h"
 #include "can_core.h"
+#include "Encoder/mag_encoder.h"
 
 /* first should set the baudrate to 1000000*/
 /* uncomment following macro, and set the uart baudrate to 57143(M
@@ -172,6 +173,10 @@
 #define ERROR_DATA_LENGTH_ERROR			5
 #define ERROR_DATA_LIMIT_ERROR			6
 #define ERROR_ACCESS_ERROR				7
+//addintional error status for external encoder
+#define RESOLUTION_RATIO_ERROR 6
+#define ENCODER_CONNECT_ERROR 7
+
 
 //for instruction buffer
 #define INST_GET_CURRENT_LIMIT			0
@@ -272,9 +277,12 @@ public:
 	ServoData(uint8_t id): id_(id), torque_enable_(false), first_get_pos_flag_(true){}
 
 	uint8_t id_;
+  	int32_t present_position_;
+	int32_t goal_position_;
+        int32_t calib_value_;
 	int32_t homing_offset_;
-	int32_t offset_value_;
-	uint8_t present_temp_;
+        int32_t internal_offset_;
+        uint8_t present_temp_;
 	int16_t present_current_;
 	uint8_t moving_;
 	uint8_t hardware_error_status_;
@@ -282,21 +290,21 @@ public:
 	uint16_t profile_velocity_;
 	uint16_t current_limit_;
 	uint16_t send_data_flag_;
-	int32_t internal_offset_;
+        uint16_t external_encoder_flag_;
+        int32_t joint_offset_;
+        uint16_t joint_resolution_;
+        uint16_t servo_resolution_;
+        float resolution_ratio_;
 	bool led_;
 	bool torque_enable_;
 	bool first_get_pos_flag_;
-	int32_t getNewHomingOffset() const {return offset_value_ + homing_offset_ - present_position_;}
+	int32_t getNewHomingOffset() const {return calib_value_ + homing_offset_ - present_position_;}
 	void setPresentPosition(int32_t present_position) {present_position_ = present_position + internal_offset_;}
 	int32_t getPresentPosition() const {return present_position_;}
-	void setGoalPosition(int32_t goal_position) {goal_position_ = goal_position - internal_offset_;}
+	void setGoalPosition(int32_t goal_position) {goal_position_ = resolution_ratio_ * goal_position - internal_offset_;}
 	int32_t getGoalPosition() const {return goal_position_;}
 
 	bool operator==(const ServoData& r) const {return this->id_ == r.id_;}
-
-private:
-	int32_t present_position_;
-	int32_t goal_position_;
 };
 
 class DynamixelSerial
@@ -304,7 +312,7 @@ class DynamixelSerial
 public:
   DynamixelSerial(){}
 
-  void init(UART_HandleTypeDef* huart);
+  void init(UART_HandleTypeDef* huart, I2C_HandleTypeDef* hi2c);
   void ping();
   void reboot(uint8_t servo_index);
   void setTorque(uint8_t servo_index);
@@ -321,6 +329,7 @@ public:
 
 private:
   UART_HandleTypeDef* huart_; // uart handlercmdReadPresentPosition
+  MagEncoder encoder_handler_;
   uint8_t status_packet_instruction_;
   RingBuffer<std::pair<uint8_t, uint8_t>, 64> instruction_buffer_;
   unsigned int servo_num_;

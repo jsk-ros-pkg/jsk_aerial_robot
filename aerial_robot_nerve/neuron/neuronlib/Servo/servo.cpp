@@ -8,9 +8,9 @@
 
 #include "servo.h"
 
-void Servo::init(UART_HandleTypeDef* huart)
+void Servo::init(UART_HandleTypeDef* huart, I2C_HandleTypeDef* hi2c)
 {
-	servo_handler_.init(huart);
+        servo_handler_.init(huart, hi2c);
 }
 
 void Servo::update()

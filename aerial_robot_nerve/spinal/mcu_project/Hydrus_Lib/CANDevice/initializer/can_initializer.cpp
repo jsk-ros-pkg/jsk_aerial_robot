@@ -121,6 +121,34 @@ void CANInitializer::configDevice(const spinal::SetBoardConfig::Request& req)
 			sendMessage(1);
 			break;
 		}
+                case spinal::SetBoardConfig::Request::SET_SERVO_EXTERNAL_ENCODER_FLAG:
+                {
+                  uint8_t servo_index = static_cast<uint8_t>(req.data[1]);
+                  uint8_t servo_send_data_flag = static_cast<uint8_t>(req.data[2]);
+                  uint8_t send_data[3];
+                  send_data[0] = CAN::BOARD_CONFIG_SET_EXTERNAL_ENCODER_FLAG;
+                  send_data[1] = servo_index;
+                  send_data[2] = servo_send_data_flag & 0xFF;
+                  setMessage(CAN::MESSAGEID_RECEIVE_BOARD_CONFIG_REQUEST, slave_id, 3, send_data);
+                  sendMessage(1);
+                  break;
+                }
+                case spinal::SetBoardConfig::Request::SET_SERVO_RESOLUTION_RATIO:
+                {
+                  uint8_t servo_index = static_cast<uint8_t>(req.data[1]);
+                  uint16_t joint_resolution = static_cast<uint16_t>(req.data[2]);
+                  uint16_t servo_resolution = static_cast<uint16_t>(req.data[3]);
+                  uint8_t send_data[6];
+                  send_data[0] = CAN::BOARD_CONFIG_SET_RESOLUTION_RATIO;
+                  send_data[1] = servo_index;
+                  send_data[2] = joint_resolution & 0xFF;
+                  send_data[3] = (joint_resolution >> 8) & 0xFF;
+                  send_data[4] = servo_resolution & 0xFF;
+                  send_data[5] = (servo_resolution >> 8) & 0xFF;
+                  setMessage(CAN::MESSAGEID_RECEIVE_BOARD_CONFIG_REQUEST, slave_id, 6, send_data);
+                  sendMessage(1);
+                  break;
+                }
 		case spinal::SetBoardConfig::Request::REBOOT:
 		{
 			uint8_t send_data[1];
@@ -186,6 +214,17 @@ void CANInitializer::receiveDataCallback(uint8_t slave_id, uint8_t message_id, u
 			slave->can_servo_.servo_[servo_index].profile_velocity_ = (data[4] << 8) | data[3];
 			slave->can_servo_.servo_[servo_index].current_limit_ = (data[6] << 8) | data[5];
 			slave->can_servo_.servo_[servo_index].send_data_flag_ = data[7];
+		}
+		break;
+        case CAN::MESSAGEID_SEND_INITIAL_CONFIG_3:
+		{
+			auto slave = std::find(neuron_.begin(), neuron_.end(), Neuron(slave_id));
+			if (slave == neuron_.end()) return;
+			uint8_t servo_index = data[0];
+                        slave->can_servo_.servo_[servo_index].error_ = data[1];
+			slave->can_servo_.servo_[servo_index].external_encoder_flag_ = data[2];
+                        slave->can_servo_.servo_[servo_index].joint_resolution_ = (data[4] << 8) | data[3];
+                        slave->can_servo_.servo_[servo_index].servo_resolution_ = (data[6] << 8) | data[5];
 		}
 		break;
 	}

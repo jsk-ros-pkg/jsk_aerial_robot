@@ -39,6 +39,7 @@
 #include "main.h"
 #include "stm32f4xx_hal.h"
 #include "can.h"
+#include "i2c.h"
 #include "spi.h"
 #include "tim.h"
 #include "usart.h"
@@ -133,6 +134,7 @@ int main(void)
   MX_TIM2_Init();
   MX_CAN1_Init();
   MX_SPI1_Init();
+  MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
   Flashmemory::init(0x08160000, FLASH_SECTOR_15); //64th page
   uint16_t slave_id;
@@ -150,7 +152,7 @@ int main(void)
   Initializer initializer(slave_id, servo_, imu_);
   motor_.init(&htim1);
   HAL_Delay(300); //wait servo init
-  servo_.init(&huart2);
+  servo_.init(&huart2, &hi2c1);
   imu_.init(&hspi1);
   CANDeviceManager::init(&hcan1, slave_id, GPIOC, GPIO_PIN_13);
   CANDeviceManager::addDevice(&motor_);

@@ -26,6 +26,9 @@ private:
 	uint8_t error_;
 	bool send_data_flag_;
 	bool torque_enable_;
+	bool external_encoder_flag_;
+	uint16_t joint_resolution_;
+	uint16_t servo_resolution_;
 
 	friend class CANServo;
 	friend class CANInitializer;
@@ -41,10 +44,13 @@ public:
 	int16_t getPresentCurrent() const {return present_current_;}
 	uint16_t getCurrentLimit() const {return current_limit_;}
 	bool getSendDataFlag() const {return send_data_flag_;}
+	bool getExternalEncoderFlag() const {return external_encoder_flag_;}
+	uint16_t getJointResolution() const {return joint_resolution_;}
+	uint16_t getServoResolution() const {return servo_resolution_;}
 	uint8_t getPresentTemperature() const {return present_temperature_;}
 	uint8_t getMoving() const {return moving_;}
 	uint8_t getError() const {return error_;}
-	bool getTorqueEnable() const {return torque_enable_;}
+	bool getTorqueEnable();
 	void setIndex(uint8_t index) {index_ = index;}
 	void setGoalPosition(int16_t goal_position) {goal_position_ = goal_position;}
 	void setTorqueEnable(bool torque_enable) {torque_enable_ = torque_enable;}
