@@ -7,6 +7,12 @@
 
 #include "can_servo.h"
 
+bool Servo::getTorqueEnable()
+{
+  if(error_ != 0) torque_enable_ = false;
+  return torque_enable_;
+}
+
 void CANServo::sendData()
 {
 	uint16_t target_angle[4];

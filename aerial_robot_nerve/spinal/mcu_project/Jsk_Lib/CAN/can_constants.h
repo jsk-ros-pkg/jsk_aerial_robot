@@ -39,6 +39,7 @@ namespace CAN {
 	constexpr uint8_t MESSAGEID_SEND_INITIAL_CONFIG_0 = 1;
 	constexpr uint8_t MESSAGEID_SEND_INITIAL_CONFIG_1 = 2;
 	constexpr uint8_t MESSAGEID_SEND_INITIAL_CONFIG_2 = 3;
+  	constexpr uint8_t MESSAGEID_SEND_INITIAL_CONFIG_3 = 4;
 	constexpr uint8_t BOARD_CONFIG_SET_SLAVE_ID = 0;
 	constexpr uint8_t BOARD_CONFIG_SET_IMU_SEND_FLAG = 1;
 	constexpr uint8_t BOARD_CONFIG_SET_SERVO_HOMING_OFFSET = 2;
@@ -48,6 +49,8 @@ namespace CAN {
 	constexpr uint8_t BOARD_CONFIG_SET_SERVO_CURRENT_LIMIT = 6;
 	constexpr uint8_t BOARD_CONFIG_REBOOT = 7;
 	constexpr uint8_t BOARD_CONFIG_SET_DYNAMIXEL_TTL_RS485_MIXED = 8;
+        constexpr uint8_t BOARD_CONFIG_SET_EXTERNAL_ENCODER_FLAG = 9;
+        constexpr uint8_t BOARD_CONFIG_SET_RESOLUTION_RATIO = 10;
 }
 
 

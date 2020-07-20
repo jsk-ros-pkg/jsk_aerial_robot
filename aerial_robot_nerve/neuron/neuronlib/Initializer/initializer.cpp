@@ -43,6 +43,16 @@ void Initializer::sendBoardConfig()
 		data[7] = (s.send_data_flag_ ? 1 : 0);
 		setMessage(CAN::MESSAGEID_SEND_INITIAL_CONFIG_2, m_slave_id, 8, data);
 		sendMessage(1);
+                data[0] = i;
+                data[1] = s.hardware_error_status_;
+                data[2] = (s.external_encoder_flag_ ? 1 : 0);
+		data[3] = s.joint_resolution_ & 0xFF;
+		data[4] = (s.joint_resolution_ >> 8) & 0xFF;
+		data[5] = s.servo_resolution_ & 0xFF;
+		data[6] = (s.servo_resolution_ >> 8) & 0xFF;
+                data[7] = 0;
+		setMessage(CAN::MESSAGEID_SEND_INITIAL_CONFIG_3, m_slave_id, 8, data);
+		sendMessage(1);
 	}
 }
 
@@ -79,9 +89,9 @@ void Initializer::receiveDataCallback(uint8_t message_id, uint32_t DLC, uint8_t*
 		{
 			uint8_t servo_index = data[1];
 			ServoData& s = servo_.servo_handler_.getServo()[servo_index];
-			int32_t offset_value = ((data[5] << 24) & 0xFF000000) | ((data[4] << 16) & 0xFF0000) | ((data[3] << 8) & 0xFF00) | ((data[2] << 0) & 0xFF);
-			s.offset_value_ = offset_value;
-			servo_.servo_handler_.setHomingOffset(servo_index);
+			int32_t calib_value = ((data[5] << 24) & 0xFF000000) | ((data[4] << 16) & 0xFF0000) | ((data[3] << 8) & 0xFF00) | ((data[2] << 0) & 0xFF);
+                        s.calib_value_ = calib_value;
+                        servo_.servo_handler_.setHomingOffset(servo_index);
 			break;
 		}
 		case CAN::BOARD_CONFIG_SET_SERVO_PID_GAIN:
@@ -134,6 +144,40 @@ void Initializer::receiveDataCallback(uint8_t message_id, uint32_t DLC, uint8_t*
 			Flashmemory::erase();
 			Flashmemory::write();
 			break;
+		}
+		case CAN::BOARD_CONFIG_SET_EXTERNAL_ENCODER_FLAG:
+                  {
+                    uint8_t servo_index = data[1];
+                    ServoData& s = servo_.servo_handler_.getServo()[servo_index];
+                    if(!s.torque_enable_){
+                      s.external_encoder_flag_ = data[2];
+                      s.first_get_pos_flag_ = true;
+                      Flashmemory::erase();
+                      Flashmemory::write();
+                    }
+                    break;
+		}
+		case CAN::BOARD_CONFIG_SET_RESOLUTION_RATIO:
+                  {
+                    uint8_t servo_index = data[1];
+                    ServoData& s = servo_.servo_handler_.getServo()[servo_index];
+                    if(!s.torque_enable_){
+                      s.joint_resolution_ = ((data[3] << 8) & 0xFF00) | (data[2] & 0xFF);
+                      s.servo_resolution_ = ((data[5] << 8) & 0xFF00) | (data[4] & 0xFF);
+                      s.hardware_error_status_ &= (1 << RESOLUTION_RATIO_ERROR - 1); // 0b00111111: reset
+
+                      if(s.servo_resolution_ == 65535 || s.joint_resolution_ == 65535){
+                        s.hardware_error_status_ |= (1 << RESOLUTION_RATIO_ERROR);  // 0b01000000;
+                        s.resolution_ratio_ = 1;
+                      }
+                      else{
+                        s.resolution_ratio_ = (float)s.servo_resolution_ / (float)s.joint_resolution_;
+                        s.first_get_pos_flag_ = true;
+                        Flashmemory::erase();
+                        Flashmemory::write();
+                      }
+                    }
+                    break;
 		}
 		default:
 			break;
