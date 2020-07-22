@@ -19,8 +19,7 @@ void Initializer::sendBoardConfig()
 	data[0] = servo_.servo_handler_.getServoNum();
 	data[1] = imu_.send_data_flag_ ? 1 : 0;
 	data[2] = servo_.servo_handler_.getTTLRS485Mixed();
-	setMessage(CAN::MESSAGEID_SEND_INITIAL_CONFIG_0, m_slave_id, 3, data);
-	sendMessage(1);
+	sendMessage(CAN::MESSAGEID_SEND_INITIAL_CONFIG_0, m_slave_id, 3, data, 1);
 	for (unsigned int i = 0; i < servo_.servo_handler_.getServoNum(); i++) {
 		const ServoData& s = servo_.servo_handler_.getServo()[i];
 		data[0] = i;
@@ -31,8 +30,7 @@ void Initializer::sendBoardConfig()
 		data[5] = (s.i_gain_ >> 8) & 0xFF;
 		data[6] = s.d_gain_ & 0xFF;
 		data[7] = (s.d_gain_ >> 8) & 0xFF;
-		setMessage(CAN::MESSAGEID_SEND_INITIAL_CONFIG_1, m_slave_id, 8, data);
-		sendMessage(1);
+		sendMessage(CAN::MESSAGEID_SEND_INITIAL_CONFIG_1, m_slave_id, 8, data, 1);
 		data[0] = i;
 		data[1] = s.getPresentPosition() & 0xFF;
 		data[2] = (s.getPresentPosition() >> 8) & 0xFF;
@@ -41,8 +39,7 @@ void Initializer::sendBoardConfig()
 		data[5] = s.current_limit_ & 0xFF;
 		data[6] = (s.current_limit_ >> 8) & 0xFF;
 		data[7] = (s.send_data_flag_ ? 1 : 0);
-		setMessage(CAN::MESSAGEID_SEND_INITIAL_CONFIG_2, m_slave_id, 8, data);
-		sendMessage(1);
+		sendMessage(CAN::MESSAGEID_SEND_INITIAL_CONFIG_2, m_slave_id, 8, data, 1);
                 data[0] = i;
                 data[1] = s.hardware_error_status_;
                 data[2] = (s.external_encoder_flag_ ? 1 : 0);
@@ -51,8 +48,7 @@ void Initializer::sendBoardConfig()
 		data[5] = s.servo_resolution_ & 0xFF;
 		data[6] = (s.servo_resolution_ >> 8) & 0xFF;
                 data[7] = 0;
-		setMessage(CAN::MESSAGEID_SEND_INITIAL_CONFIG_3, m_slave_id, 8, data);
-		sendMessage(1);
+		sendMessage(CAN::MESSAGEID_SEND_INITIAL_CONFIG_3, m_slave_id, 8, data, 1);
 	}
 }
 
@@ -60,8 +56,7 @@ void Initializer::receiveDataCallback(uint8_t message_id, uint32_t DLC, uint8_t*
 {
 	switch (message_id) {
 	case CAN::MESSAGEID_RECEIVE_ENUM_REQUEST:
-		setMessage(CAN::MESSAGEID_SEND_ENUM_RESPONSE, m_slave_id, 0, nullptr);
-		sendMessage(1);
+		sendMessage(CAN::MESSAGEID_SEND_ENUM_RESPONSE, m_slave_id, 0, nullptr, 1);
 		CANDeviceManager::resetTick();
 		break;
 	case CAN::MESSAGEID_RECEIVE_INITIAL_CONFIG_REQUEST:

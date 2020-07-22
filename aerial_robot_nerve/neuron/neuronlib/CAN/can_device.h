@@ -19,8 +19,7 @@ public:
 	CANDevice(uint8_t device_id, uint8_t slave_id):m_device_id(device_id), m_slave_id(slave_id){}
 	uint8_t getDeviceId(){return m_device_id;}
 	uint8_t getSlaveId(){return m_slave_id;}
-	void setMessage(uint8_t message_id, uint8_t slave_id, uint32_t dlc, uint8_t* data){CAN::setMessage(m_device_id, message_id, slave_id, dlc, data);}
-	void sendMessage(int timeout){CAN::sendMessage(timeout);}
+    void sendMessage(uint8_t message_id, uint8_t slave_id, uint32_t dlc, uint8_t* data, uint32_t timeout){CAN::sendMessage(m_device_id, message_id, slave_id, dlc, data, timeout);}
 	virtual void sendData() = 0;
 	virtual void receiveDataCallback(uint8_t message_id, uint32_t DLC, uint8_t* data) = 0;
 };
