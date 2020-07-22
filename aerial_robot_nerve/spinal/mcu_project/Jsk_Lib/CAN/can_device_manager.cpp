@@ -56,9 +56,9 @@ namespace CANDeviceManager
 		else return true;
 	}
 
-	void Receive_IT()
+	void CAN_START()
 	{
-		CAN::Receive_IT();
+		CAN::CAN_START();
 	}
 
 	__weak void userSendMessages()
@@ -72,15 +72,24 @@ namespace CANDeviceManager
 	}
 }
 
-void HAL_CAN_RxCpltCallback(CAN_HandleTypeDef* hcan)
+void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef* hcan)
 {
 	CANDeviceManager::can_timeout_count = 0;
-	CANDeviceManager::Receive_IT();
-	int communication_id = CANDeviceManager::makeCommunicationId(CAN::getDeviceId(hcan), CAN::getSlaveId(hcan));
-	if (CAN::getDeviceId(hcan) == CAN::DEVICEID_INITIALIZER) { //special
-		communication_id = CANDeviceManager::makeCommunicationId(CAN::getDeviceId(hcan), CAN::MASTER_ID);
-	}
-	if (CANDeviceManager::can_device_list.count(communication_id) == 0) return;
-	CANDeviceManager::can_device_list.at(communication_id).receiveDataCallback(CAN::getSlaveId(hcan), CAN::getMessageId(hcan), CAN::getDlc(hcan), CAN::getData(hcan));
-	CANDeviceManager::userReceiveMessagesCallback(CAN::getSlaveId(hcan), CAN::getDeviceId(hcan), CAN::getMessageId(hcan), CAN::getDlc(hcan), CAN::getData(hcan));
+        CAN_RxHeaderTypeDef rx_header;
+        uint8_t rx_data[8];
+        if (HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO1, &rx_header, rx_data) == HAL_OK)
+          {
+            uint8_t slave_id = CAN::getSlaveId(rx_header);
+            uint8_t device_id = CAN::getDeviceId(rx_header);
+            uint8_t message_id = CAN::getMessageId(rx_header);
+            uint32_t dlc = CAN::getDlc(rx_header);
+
+            int communication_id = CANDeviceManager::makeCommunicationId(device_id, slave_id);
+            if (device_id == CAN::DEVICEID_INITIALIZER) { //special
+              communication_id = CANDeviceManager::makeCommunicationId(device_id, CAN::MASTER_ID);
+            }
+            if (CANDeviceManager::can_device_list.count(communication_id) == 0) return;
+            CANDeviceManager::can_device_list.at(communication_id).receiveDataCallback(slave_id, message_id, dlc, rx_data);
+            CANDeviceManager::userReceiveMessagesCallback(slave_id, device_id, message_id, dlc, rx_data);
+          }
 }

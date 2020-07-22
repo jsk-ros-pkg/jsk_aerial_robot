@@ -14,13 +14,11 @@ void CANInitializer::sendData()
 
 void CANInitializer::initDevices()
 {
-	setMessage(CAN::MESSAGEID_RECEIVE_ENUM_REQUEST, CAN::BROADCAST_ID, 0, nullptr);
-	sendMessage(1);
+	sendMessage(CAN::MESSAGEID_RECEIVE_ENUM_REQUEST, CAN::BROADCAST_ID, 0, nullptr, 1);
 	HAL_Delay(200);
 	std::sort(neuron_.begin(), neuron_.end());
 	for (unsigned int i = 0; i < neuron_.size(); i++) {
-		setMessage(CAN::MESSAGEID_RECEIVE_INITIAL_CONFIG_REQUEST, neuron_.at(i).getSlaveId(), 0, nullptr);
-		sendMessage(1);
+		sendMessage(CAN::MESSAGEID_RECEIVE_INITIAL_CONFIG_REQUEST, neuron_.at(i).getSlaveId(), 0, nullptr, 1);
 		HAL_Delay(200);
 	}
 }
@@ -35,8 +33,7 @@ void CANInitializer::configDevice(const spinal::SetBoardConfig::Request& req)
 			uint8_t send_data[2];
 			send_data[0] = CAN::BOARD_CONFIG_SET_SLAVE_ID;
 			send_data[1] = new_slave_id;
-			setMessage(CAN::MESSAGEID_RECEIVE_BOARD_CONFIG_REQUEST, slave_id, 2, send_data);
-			sendMessage(1);
+			sendMessage(CAN::MESSAGEID_RECEIVE_BOARD_CONFIG_REQUEST, slave_id, 2, send_data, 1);
 			break;
 		}
 		case spinal::SetBoardConfig::Request::SET_IMU_SEND_FLAG:
@@ -45,8 +42,7 @@ void CANInitializer::configDevice(const spinal::SetBoardConfig::Request& req)
 			uint8_t send_data[2];
 			send_data[0] = CAN::BOARD_CONFIG_SET_IMU_SEND_FLAG;
 			send_data[1] = imu_send_data_flag;
-			setMessage(CAN::MESSAGEID_RECEIVE_BOARD_CONFIG_REQUEST, slave_id, 2, send_data);
-			sendMessage(1);
+			sendMessage(CAN::MESSAGEID_RECEIVE_BOARD_CONFIG_REQUEST, slave_id, 2, send_data, 1);
 			break;
 		}
 		case spinal::SetBoardConfig::Request::SET_SERVO_HOMING_OFFSET:
@@ -60,8 +56,7 @@ void CANInitializer::configDevice(const spinal::SetBoardConfig::Request& req)
 			send_data[3] = (joint_offset >> 8) & 0xFF;
 			send_data[4] = (joint_offset >> 16) & 0xFF;
 			send_data[5] = (joint_offset >> 24) & 0xFF;
-			setMessage(CAN::MESSAGEID_RECEIVE_BOARD_CONFIG_REQUEST, slave_id, 6, send_data);
-			sendMessage(1);
+			sendMessage(CAN::MESSAGEID_RECEIVE_BOARD_CONFIG_REQUEST, slave_id, 6, send_data, 1);
 			break;
 		}
 		case spinal::SetBoardConfig::Request::SET_SERVO_PID_GAIN:
@@ -79,8 +74,7 @@ void CANInitializer::configDevice(const spinal::SetBoardConfig::Request& req)
 			send_data[5] = (i_gain >> 8) & 0xFF;
 			send_data[6] = d_gain & 0xFF;
 			send_data[7] = (d_gain >> 8) & 0xFF;
-			setMessage(CAN::MESSAGEID_RECEIVE_BOARD_CONFIG_REQUEST, slave_id, 8, send_data);
-			sendMessage(1);
+			sendMessage(CAN::MESSAGEID_RECEIVE_BOARD_CONFIG_REQUEST, slave_id, 8, send_data, 1);
 			break;
 		}
 		case spinal::SetBoardConfig::Request::SET_SERVO_PROFILE_VEL:
@@ -92,8 +86,7 @@ void CANInitializer::configDevice(const spinal::SetBoardConfig::Request& req)
 			send_data[1] = servo_index;
 			send_data[2] = profile_vel & 0xFF;
 			send_data[3] = (profile_vel >> 8) & 0xFF;
-			setMessage(CAN::MESSAGEID_RECEIVE_BOARD_CONFIG_REQUEST, slave_id, 4, send_data);
-			sendMessage(1);
+			sendMessage(CAN::MESSAGEID_RECEIVE_BOARD_CONFIG_REQUEST, slave_id, 4, send_data, 1);
 			break;
 		}
 		case spinal::SetBoardConfig::Request::SET_SERVO_SEND_DATA_FLAG:
@@ -104,8 +97,7 @@ void CANInitializer::configDevice(const spinal::SetBoardConfig::Request& req)
 			send_data[0] = CAN::BOARD_CONFIG_SET_SEND_DATA_FLAG;
 			send_data[1] = servo_index;
 			send_data[2] = servo_send_data_flag & 0xFF;
-			setMessage(CAN::MESSAGEID_RECEIVE_BOARD_CONFIG_REQUEST, slave_id, 3, send_data);
-			sendMessage(1);
+			sendMessage(CAN::MESSAGEID_RECEIVE_BOARD_CONFIG_REQUEST, slave_id, 3, send_data, 1);
 			break;
 		}
 		case spinal::SetBoardConfig::Request::SET_SERVO_CURRENT_LIMIT:
@@ -117,8 +109,7 @@ void CANInitializer::configDevice(const spinal::SetBoardConfig::Request& req)
 			send_data[1] = servo_index;
 			send_data[2] = current_limit & 0xFF;
 			send_data[3] = (current_limit >> 8) & 0xFF;
-			setMessage(CAN::MESSAGEID_RECEIVE_BOARD_CONFIG_REQUEST, slave_id, 4, send_data);
-			sendMessage(1);
+			sendMessage(CAN::MESSAGEID_RECEIVE_BOARD_CONFIG_REQUEST, slave_id, 4, send_data, 1);
 			break;
 		}
                 case spinal::SetBoardConfig::Request::SET_SERVO_EXTERNAL_ENCODER_FLAG:
@@ -129,8 +120,7 @@ void CANInitializer::configDevice(const spinal::SetBoardConfig::Request& req)
                   send_data[0] = CAN::BOARD_CONFIG_SET_EXTERNAL_ENCODER_FLAG;
                   send_data[1] = servo_index;
                   send_data[2] = servo_send_data_flag & 0xFF;
-                  setMessage(CAN::MESSAGEID_RECEIVE_BOARD_CONFIG_REQUEST, slave_id, 3, send_data);
-                  sendMessage(1);
+                  sendMessage(CAN::MESSAGEID_RECEIVE_BOARD_CONFIG_REQUEST, slave_id, 3, send_data, 1);
                   break;
                 }
                 case spinal::SetBoardConfig::Request::SET_SERVO_RESOLUTION_RATIO:
@@ -145,16 +135,14 @@ void CANInitializer::configDevice(const spinal::SetBoardConfig::Request& req)
                   send_data[3] = (joint_resolution >> 8) & 0xFF;
                   send_data[4] = servo_resolution & 0xFF;
                   send_data[5] = (servo_resolution >> 8) & 0xFF;
-                  setMessage(CAN::MESSAGEID_RECEIVE_BOARD_CONFIG_REQUEST, slave_id, 6, send_data);
-                  sendMessage(1);
+                  sendMessage(CAN::MESSAGEID_RECEIVE_BOARD_CONFIG_REQUEST, slave_id, 6, send_data, 1);
                   break;
                 }
 		case spinal::SetBoardConfig::Request::REBOOT:
 		{
 			uint8_t send_data[1];
 			send_data[0] = CAN::BOARD_CONFIG_REBOOT;
-			setMessage(CAN::MESSAGEID_RECEIVE_BOARD_CONFIG_REQUEST, slave_id, 1, send_data);
-			sendMessage(1);
+			sendMessage(CAN::MESSAGEID_RECEIVE_BOARD_CONFIG_REQUEST, slave_id, 1, send_data, 1);
 			break;
 		}
 		case spinal::SetBoardConfig::Request::SET_DYNAMIXEL_TTL_RS485_MIXED:
@@ -163,8 +151,7 @@ void CANInitializer::configDevice(const spinal::SetBoardConfig::Request& req)
 			uint8_t send_data[2];
 			send_data[0] = CAN::BOARD_CONFIG_SET_DYNAMIXEL_TTL_RS485_MIXED;
 			send_data[1] = dynamixel_ttl_rs485_mixed;
-			setMessage(CAN::MESSAGEID_RECEIVE_BOARD_CONFIG_REQUEST, slave_id, 2, send_data);
-			sendMessage(1);
+			sendMessage(CAN::MESSAGEID_RECEIVE_BOARD_CONFIG_REQUEST, slave_id, 2, send_data, 1);
 			break;
 		}
 		default:
