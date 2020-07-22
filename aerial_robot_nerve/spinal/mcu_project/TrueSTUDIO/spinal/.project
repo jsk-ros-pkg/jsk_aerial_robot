@@ -128,6 +128,11 @@
 			<locationURI>PARENT-1-PROJECT_LOC/startup_stm32f746xx.s</locationURI>
 		</link>
 		<link>
+			<name>Application/TrueSTUDIO/syscalls.c</name>
+			<type>1</type>
+			<locationURI>PARENT-1-PROJECT_LOC/syscalls.c</locationURI>
+		</link>
+		<link>
 			<name>Application/User/adc.c</name>
 			<type>1</type>
 			<locationURI>PARENT-2-PROJECT_LOC/Src/adc.c</locationURI>
@@ -223,6 +228,11 @@
 			<locationURI>PARENT-2-PROJECT_LOC/Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_dma_ex.c</locationURI>
 		</link>
 		<link>
+			<name>Drivers/STM32F7xx_HAL_Driver/stm32f7xx_hal_exti.c</name>
+			<type>1</type>
+			<locationURI>PARENT-2-PROJECT_LOC/Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_exti.c</locationURI>
+		</link>
+		<link>
 			<name>Drivers/STM32F7xx_HAL_Driver/stm32f7xx_hal_flash.c</name>
 			<type>1</type>
 			<locationURI>PARENT-2-PROJECT_LOC/Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_flash.c</locationURI>
@@ -273,6 +283,11 @@
 			<locationURI>PARENT-2-PROJECT_LOC/Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_spi.c</locationURI>
 		</link>
 		<link>
+			<name>Drivers/STM32F7xx_HAL_Driver/stm32f7xx_hal_spi_ex.c</name>
+			<type>1</type>
+			<locationURI>PARENT-2-PROJECT_LOC/Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_spi_ex.c</locationURI>
+		</link>
+		<link>
 			<name>Drivers/STM32F7xx_HAL_Driver/stm32f7xx_hal_tim.c</name>
 			<type>1</type>
 			<locationURI>PARENT-2-PROJECT_LOC/Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_tim.c</locationURI>
@@ -286,6 +301,11 @@
 			<name>Drivers/STM32F7xx_HAL_Driver/stm32f7xx_hal_uart.c</name>
 			<type>1</type>
 			<locationURI>PARENT-2-PROJECT_LOC/Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_uart.c</locationURI>
+		</link>
+		<link>
+			<name>Drivers/STM32F7xx_HAL_Driver/stm32f7xx_hal_uart_ex.c</name>
+			<type>1</type>
+			<locationURI>PARENT-2-PROJECT_LOC/Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_uart_ex.c</locationURI>
 		</link>
 	</linkedResources>
 </projectDescription>

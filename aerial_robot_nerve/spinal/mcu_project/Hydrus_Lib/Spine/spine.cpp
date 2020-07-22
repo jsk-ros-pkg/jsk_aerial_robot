@@ -138,7 +138,7 @@ namespace Spine
 
     HAL_Delay(5000); //wait neuron initialization
     CANDeviceManager::addDevice(can_initializer_);
-    CANDeviceManager::Receive_IT();
+    CANDeviceManager::CAN_START();
     can_initializer_.initDevices();
 
     //add CAN devices to CANDeviceManager

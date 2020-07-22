@@ -41,8 +41,8 @@ void CANMotorSendDevice::sendData()
 	}
 
 	parse();
-	setMessage(CAN::MESSAGEID_RECEIVE_PWM_0_5, CAN::BROADCAST_ID, 8, pwm_data);
-	sendMessage(0);
+	sendMessage(CAN::MESSAGEID_RECEIVE_PWM_0_5, CAN::BROADCAST_ID, 8, pwm_data, 0);
+
 
 	if (can_motor_.size() <= 6) return;
 
@@ -52,8 +52,7 @@ void CANMotorSendDevice::sendData()
 	}
 
 	parse();
-	setMessage(CAN::MESSAGEID_RECEIVE_PWM_6_11, CAN::BROADCAST_ID, 8, pwm_data);
-	sendMessage(0);
+	sendMessage(CAN::MESSAGEID_RECEIVE_PWM_6_11, CAN::BROADCAST_ID, 8, pwm_data, 0);
 }
 
 void CANMotorSendDevice::receiveDataCallback(uint8_t slave_id, uint8_t message_id, uint32_t DLC, uint8_t* data)
