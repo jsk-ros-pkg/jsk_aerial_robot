@@ -289,8 +289,12 @@ namespace aerial_robot_model {
     if(current_seg.getJoint().getName().find("rotor") != std::string::npos)
       {
         /* add the rotor direction */
-        if(verbose_) ROS_WARN("%s, rototation is %f", current_seg.getJoint().getName().c_str(), current_seg.getJoint().JointAxis().z());
-        rotor_direction_.insert(std::make_pair(std::atoi(current_seg.getJoint().getName().substr(5).c_str()), current_seg.getJoint().JointAxis().z()));
+        auto urdf_joint =  model_.getJoint(current_seg.getJoint().getName());
+        if(urdf_joint->type == urdf::Joint::CONTINUOUS)
+          {
+            if(verbose_) ROS_WARN("joint name: %s, z axis: %f", current_seg.getJoint().getName().c_str(), urdf_joint->axis.z);
+            rotor_direction_.insert(std::make_pair(std::atoi(current_seg.getJoint().getName().substr(5).c_str()), urdf_joint->axis.z));
+          }
       }
 
     /* recursion process for children segment */
