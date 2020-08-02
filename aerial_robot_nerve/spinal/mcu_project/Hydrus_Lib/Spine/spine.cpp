@@ -159,11 +159,10 @@ namespace Spine
     /* uav model: special rule based on the number of gimbals (no send data flag servos) */
     uint8_t gimbal_servo_num = servo_.size() - servo_with_send_flag_.size();
 
-    /* Tongtybj: TODO not good case processing */
+    /* TODO: not good case processing */
     if(gimbal_servo_num == 0)
         {
-          if(slave_num_ < 6) uav_model_ = spinal::UavInfo::HYDRUS; // less than hex
-          else uav_model_ = spinal::UavInfo::HYDRUS_XI;
+          uav_model_ = spinal::UavInfo::HYDRUS;
         }
    if(gimbal_servo_num  == slave_num_)
         {
