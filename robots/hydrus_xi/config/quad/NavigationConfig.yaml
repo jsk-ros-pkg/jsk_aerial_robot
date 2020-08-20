@@ -35,3 +35,5 @@ navigation:
   maximize_yaw: false # true: maximize min yaw torque, false: maximize feasible control torque convex
   plan_freq: 20.0
   baselink_rot_thresh: 0.01
+  gimbal_delta_angle: 0.2
+  plan_init_sleep: 5.0
