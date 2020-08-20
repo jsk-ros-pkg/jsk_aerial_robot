@@ -281,6 +281,7 @@ namespace aerial_robot_navigation
     double joy_stick_prev_time_;
     double joy_stick_heart_beat_du_;
     double force_landing_to_halt_du_;
+    bool force_landing_auto_stop_flag_;
 
     std::string teleop_local_frame_;
 
