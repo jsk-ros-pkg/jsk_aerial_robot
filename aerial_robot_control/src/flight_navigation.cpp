@@ -637,6 +637,17 @@ void BaseNavigator::update()
 
   tf::Vector3 delta = target_pos_ - estimator_->getPos(Frame::COG, estimate_mode_);
 
+  /* check the hard landing in force_landing model */
+  if(force_landing_flag_)
+    {
+      if(!estimator_->getLandingMode()) estimator_->setLandingMode(true);
+      if(estimator_->getLandedFlag() && force_landing_auto_stop_flag_)
+        {
+          ROS_WARN("hard touch to the ground in force landing mode, disarm motor");
+          setNaviState(STOP_STATE);
+        }
+    }
+
   switch(getNaviState())
     {
     case START_STATE:
@@ -856,6 +867,7 @@ void BaseNavigator::rosParamInit()
   getParam<double>(nh, "joy_yaw_deadzone", joy_yaw_deadzone_, 0.2);
   getParam<double>(nh, "joy_stick_heart_beat_du", joy_stick_heart_beat_du_, 2.0);
   getParam<double>(nh, "force_landing_to_halt_du", force_landing_to_halt_du_, 1.0);
+  getParam<bool>(nh, "force_landing_auto_stop_flag", force_landing_auto_stop_flag_, true);
   getParam<bool>(nh, "joy_udp", joy_udp_, true);
   getParam<bool>(nh, "check_joy_stick_heart_beat", check_joy_stick_heart_beat_, false);
   getParam<std::string>(nh, "teleop_local_frame", teleop_local_frame_, std::string("root"));
