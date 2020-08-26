@@ -23,9 +23,14 @@ namespace
     if(!robot_model->stabilityCheck(planner->getPlanVerbose()))
       {
         invalid_cnt ++;
-        if(planner->getPlanVerbose()) ROS_WARN("nlopt, robot stability is invalid (cnt: %d)", invalid_cnt);
+        std::stringstream ss;
+        for(const auto& angle: x)
+          ss << angle << ", ";
+        if(planner->getPlanVerbose()) ROS_WARN_STREAM("nlopt, robot stability is invalid with gimbals: " << ss.str() << " (cnt: " << invalid_cnt << ")");
         return 0;
       }
+
+    invalid_cnt = 0;
 
     Eigen::VectorXd force_v = robot_model->getStaticThrust();
     double average_force = force_v.sum() / force_v.size();
@@ -278,17 +283,17 @@ bool HydrusXiUnderActuatedNavigator::plan()
     }
 
   /* find the optimal gimbal vectoring angles from nlopt */
-  std::vector<double> lb(control_gimbal_indices_.size(), - 2 * M_PI);
-  std::vector<double> ub(control_gimbal_indices_.size(), 2 * M_PI);
+  std::vector<double> lb(control_gimbal_indices_.size(), - M_PI);
+  std::vector<double> ub(control_gimbal_indices_.size(), M_PI);
 
   /* update the range by using the last optimization result with the assumption that the motion is cotinuous */
   if(opt_gimbal_angles_.size() != 0)
     {
-      for(int i = 0; i < opt_gimbal_angles_.size(); i++)
-        {
-          lb.at(i) = opt_gimbal_angles_.at(i) - gimbal_delta_angle_;
-          ub.at(i) = opt_gimbal_angles_.at(i) + gimbal_delta_angle_;
-        }
+       for(int i = 0; i < opt_gimbal_angles_.size(); i++)
+         {
+           lb.at(i) = opt_gimbal_angles_.at(i) - gimbal_delta_angle_;
+           ub.at(i) = opt_gimbal_angles_.at(i) + gimbal_delta_angle_;
+         }
     }
   else
     {
@@ -354,6 +359,7 @@ bool HydrusXiUnderActuatedNavigator::plan()
         }
 
       cnt = 0;
+      invalid_cnt = 0;
     }
   catch(std::exception &e)
     {
