@@ -12,7 +12,6 @@ namespace
     cnt++;
     HydrusXiUnderActuatedNavigator *planner = reinterpret_cast<HydrusXiUnderActuatedNavigator*>(planner_ptr);
     auto robot_model = planner->getRobotModelForPlan();
-
     /* update robot model */
     KDL::JntArray joint_positions = planner->getJointPositionsForPlan();
     for(int i = 0; i < x.size(); i++)
@@ -24,8 +23,7 @@ namespace
       {
         invalid_cnt ++;
         std::stringstream ss;
-        for(const auto& angle: x)
-          ss << angle << ", ";
+        for(const auto& angle: x) ss << angle << ", ";
         if(planner->getPlanVerbose()) ROS_WARN_STREAM("nlopt, robot stability is invalid with gimbals: " << ss.str() << " (cnt: " << invalid_cnt << ")");
         return 0;
       }
@@ -289,10 +287,17 @@ bool HydrusXiUnderActuatedNavigator::plan()
   /* update the range by using the last optimization result with the assumption that the motion is cotinuous */
   if(opt_gimbal_angles_.size() != 0)
     {
-       for(int i = 0; i < opt_gimbal_angles_.size(); i++)
+      double delta_angle = gimbal_delta_angle_;
+
+      if(!robot_model_for_plan_->stabilityCheck(false))
+        {
+          delta_angle = M_PI; // reset
+        }
+
+      for(int i = 0; i < opt_gimbal_angles_.size(); i++)
          {
-           lb.at(i) = opt_gimbal_angles_.at(i) - gimbal_delta_angle_;
-           ub.at(i) = opt_gimbal_angles_.at(i) + gimbal_delta_angle_;
+           lb.at(i) = opt_gimbal_angles_.at(i) - delta_angle;
+           ub.at(i) = opt_gimbal_angles_.at(i) + delta_angle;
          }
     }
   else
@@ -342,21 +347,13 @@ bool HydrusXiUnderActuatedNavigator::plan()
                     << ros::Time::now().toSec() - start_time  <<  "[sec], cnt: " << cnt;
           std::cout << ", found optimal gimbal angles: ";
           for(auto it: opt_gimbal_angles_) std::cout << std::setprecision(5) << it << " ";
-          std::cout << ", max min yaw: [" << max_min_yaw_ ;
+          std::cout << ", max min yaw: " << max_min_yaw_;
           std::cout << ", fc t min: " << robot_model_for_plan_->getFeasibleControlTMin();
           std::cout << ", atttidue: [" << roll << ", " << pitch;
           std::cout << "], force: [" << robot_model_for_plan_->getStaticThrust().transpose();
-          std::cout << "] = " << std::setprecision(10) << max_min_yaw_ << std::endl;
+          std::cout << "]" << std::endl;
         }
 
-      if(!robot_model_->stabilityCheck())
-        {
-          ROS_INFO_STREAM("plan vs real: " << robot_model_for_plan_->getFeasibleControlTMin() << " vs " << robot_model_->getFeasibleControlTMin());
-          ROS_INFO("re update the plan robot model, cnt %d", cnt);
-          robot_model_for_plan_->updateRobotModel(joint_positions_for_plan_);
-          robot_model_for_plan_->stabilityCheck();
-          ROS_INFO("finish re update");
-        }
 
       cnt = 0;
       invalid_cnt = 0;
