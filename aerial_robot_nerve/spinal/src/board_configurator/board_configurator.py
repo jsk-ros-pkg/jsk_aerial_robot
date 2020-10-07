@@ -142,7 +142,7 @@ class BoardConfigurator(Plugin):
                     servo.appendRow([QStandardItem('send_data_flag'), QStandardItem(str(bool(s.send_data_flag)))])
                     servo.appendRow([QStandardItem('current_limit'), QStandardItem(str(s.current_limit))])
                     servo.appendRow([QStandardItem('external_encoder_flag'), QStandardItem(str(bool(s.external_encoder_flag)))])
-                    servo.appendRow([QStandardItem('resolution[joint:servo]'), QStandardItem(str(s.joint_resolution) + ': ' + str(s.servo_resolution))])
+                    servo.appendRow([QStandardItem('resolution[joint:servo]'), QStandardItem(str(s.joint_resolution) + ' : ' + str(s.servo_resolution))])
                     servos.appendRow(servo)
                 board.appendRow(servos)
                 self.model.appendRow(board)
@@ -266,7 +266,7 @@ class BoardConfigurator(Plugin):
         elif self._command == 'resolution[joint:servo]':
             try:
                 req.data.append(int(self._servo_index))
-                resolutions = map(lambda x: int(x), self._widget.lineEdit.text().split(','))
+                resolutions = map(lambda x: int(x), self._widget.lineEdit.text().split(':'))
                 if len(resolutions) != 2:
                     raise ValueError('Input 2 resoultion(int)')
                 req.data.extend(resolutions)
