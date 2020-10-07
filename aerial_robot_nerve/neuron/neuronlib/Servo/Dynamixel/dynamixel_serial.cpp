@@ -62,12 +62,13 @@ void DynamixelSerial::init(UART_HandleTypeDef* huart, I2C_HandleTypeDef* hi2c)
 	for (int i = 0; i < MAX_SERVO_NUM; i++) {
           servo_[i].hardware_error_status_ = 0;
           if(servo_[i].servo_resolution_ == 65535 || servo_[i].joint_resolution_ == 65535){
-            servo_[i].hardware_error_status_ = 1 << RESOLUTION_RATIO_ERROR;  // 0b01000000;
+            if(servo_[i].external_encoder_flag_)
+              servo_[i].hardware_error_status_ = 1 << RESOLUTION_RATIO_ERROR;  // 0b01000000;
             servo_[i].resolution_ratio_ = 1;
           }
           else{
             servo_[i].resolution_ratio_ = (float)servo_[i].servo_resolution_ / (float)servo_[i].joint_resolution_;
-            if(servo_[i].external_encoder_flag_ != 0) encoder_handler_.setOffset(servo_[i].joint_offset_); // hard-coding
+            if(servo_[i].external_encoder_flag_) encoder_handler_.setOffset(servo_[i].joint_offset_);
           }
 	}
 }
@@ -93,7 +94,7 @@ void DynamixelSerial::setTorque(uint8_t servo_index)
 
 void DynamixelSerial::setHomingOffset(uint8_t servo_index)
 {
-  if(servo_[servo_index].external_encoder_flag_ != 0){
+  if(servo_[servo_index].external_encoder_flag_){
 	servo_[servo_index].joint_offset_ = servo_[servo_index].calib_value_ + servo_[servo_index].joint_offset_ - servo_[servo_index].present_position_;
 	// servo_[servo_index].joint_offset_ = servo_[servo_index].calib_value_; // debug
 	encoder_handler_.setOffset(servo_[servo_index].joint_offset_);
@@ -566,21 +567,21 @@ int8_t DynamixelSerial::readStatusPacket(void) /* Receive status packet to Dynam
 	{
 		int32_t present_position = ((parameters[3] << 24) & 0xFF000000) | ((parameters[2] << 16) & 0xFF0000) | ((parameters[1] << 8) & 0xFF00) | (parameters[0] & 0xFF);
 		if (s != servo_.end()) {
-                  s->hardware_error_status_ &= (1 << ENCODER_CONNECT_ERROR - 1); // 0b01111111: reset
-                  if(s->external_encoder_flag_ != 0) {
+                  s->hardware_error_status_ &= (1 << ENCODER_CONNECT_ERROR - 1); // &= 0b01111111
+                  if(s->external_encoder_flag_) {
                     encoder_handler_.update();
                     if(encoder_handler_.connected()) {
-                      s->present_position_ = (int32_t)(encoder_handler_.getValue());
+                      s->present_position_ = (int32_t)(encoder_handler_.getValue()); // use external encoder value instead of servo internal encoder value
 
                       if (s->first_get_pos_flag_) {
                         s->internal_offset_ = s->resolution_ratio_ * s->present_position_ - present_position;
                         s->first_get_pos_flag_ = false;
                       }
 
-                      // check tooth jump
+                      // TODO: check tooth jump
                     }
                     else {
-                      s->hardware_error_status_ |= 1 << ENCODER_CONNECT_ERROR; // 0b10000000:  encoder is not connected
+                      s->hardware_error_status_ |= 1 << ENCODER_CONNECT_ERROR; // |= 0b10000000:  encoder is not connected
                     }
                   }
                   else {
@@ -615,7 +616,7 @@ int8_t DynamixelSerial::readStatusPacket(void) /* Receive status packet to Dynam
 		return 0;
 	case INST_GET_HARDWARE_ERROR_STATUS:
 		if (s != servo_.end()) {
-                  s->hardware_error_status_ &=  ((1 << RESOLUTION_RATIO_ERROR) + (1 << ENCODER_CONNECT_ERROR));  //  0b11000000;
+                  s->hardware_error_status_ &=  ((1 << RESOLUTION_RATIO_ERROR) + (1 << ENCODER_CONNECT_ERROR));  //  &= 0b11000000;
                   s->hardware_error_status_ |= parameters[0];
 		}
 		return 0;

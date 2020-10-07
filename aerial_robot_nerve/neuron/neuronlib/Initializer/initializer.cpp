@@ -152,6 +152,12 @@ void Initializer::receiveDataCallback(uint8_t message_id, uint32_t DLC, uint8_t*
                     if(!s.torque_enable_){
                       s.external_encoder_flag_ = data[2];
                       s.first_get_pos_flag_ = true;
+                      if(!s.external_encoder_flag_)
+                        { // if use the servo internal encoder, we directly output the encoder value without scaling by resolution_ratio.
+                          s.servo_resolution_ = 1;
+                          s.joint_resolution_ = 1;
+                          s.resolution_ratio_ = 1;
+                        }
                       Flashmemory::erase();
                       Flashmemory::write();
                     }
