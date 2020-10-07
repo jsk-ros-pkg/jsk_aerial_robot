@@ -66,6 +66,7 @@ namespace sensor_plugin
     double plane_noise_sigma_;
     double min_height_, max_height_;
     double max_camera_angle_;
+    double height_offset_;
 
     /* estimation */
     double raw_plane_pos_z_;

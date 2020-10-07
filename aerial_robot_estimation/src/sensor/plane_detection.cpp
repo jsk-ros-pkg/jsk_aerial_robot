@@ -179,7 +179,7 @@ namespace sensor_plugin
     for (const auto& coeff : msg.coefficients) {
       tf::Vector3 norm_vec(coeff.values[0], coeff.values[1], coeff.values[2]);
       tf::Vector3 norm_vec_in_world_frame = uav_rot * (sensor_tf_.getBasis() * norm_vec) * -1;
-      double distance = std::abs((uav_rot * (sensor_tf_ * (norm_vec * -coeff.values[3]))).z());
+      double distance = std::abs((uav_rot * (sensor_tf_ * (norm_vec * -coeff.values[3]))).z()) + height_offset_;
 
       // if this is the ground plane, the norm vector should be [0, 0, 1]
       double angle = norm_vec_in_world_frame.angle(tf::Vector3(0, 0, 1));
@@ -249,6 +249,7 @@ namespace sensor_plugin
     getParam<double>("min_height", min_height_, 0.5);
     getParam<double>("max_height", max_height_, 15.0);
     getParam<double>("max_camera_angle", max_camera_angle_, 0.4);
+    getParam<double>("height_offset", height_offset_, 0.0);
   }
 };
 
