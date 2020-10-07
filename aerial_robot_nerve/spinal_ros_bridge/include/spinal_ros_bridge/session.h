@@ -157,11 +157,12 @@ private:
   // TODO: Total message timeout, implement primarily in ReadBuffer.
   void read_sync_header() {
     // Stop the tx from MCU, not sure whether the process should be here
-    if(terminate_start_flag_ )
+    if(terminate_start_flag_)
       {
+        terminate_start_flag_ = false;
         std::vector<uint8_t> message(0);
         write_message(message, rosserial_msgs::TopicInfo::ID_TX_STOP, client_version);
-        ROS_WARN("stop rosserial communication \n");
+        ROS_WARN("stop rosserial communication");
         ros::shutdown();
         return;
       }
@@ -410,6 +411,15 @@ private:
     if (error == boost::asio::error::operation_aborted) {
       return;
     }
+
+    if(terminate_start_flag_)
+      {
+        terminate_start_flag_ = false;
+        ROS_WARN("stop rosserial communication");
+        ros::shutdown();
+        return;
+      }
+
     ROS_WARN("Sync with device lost.");
     attempt_sync();
   }
