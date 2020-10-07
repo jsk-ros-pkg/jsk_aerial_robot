@@ -38,7 +38,6 @@
 #include <aerial_robot_estimation/sensor/base_plugin.h>
 #include <kalman_filter/kf_pos_vel_acc_plugin.h>
 #include <jsk_recognition_msgs/ModelCoefficientsArray.h>
-#include <pcl_msgs/ModelCoefficients.h>
 
 namespace sensor_plugin
 {
