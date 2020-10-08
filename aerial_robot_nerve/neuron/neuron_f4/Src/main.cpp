@@ -77,15 +77,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	motor_.update();
 	imu_.update();
 	servo_.update();
-
-        if (receive_flag_)
-          {
-            // TODO: should we stop CAN RX during following TX process?
-            //       or should we move this to HAL_TIM_PeriodElapsedCallback
-            receive_flag_ = false;
-            servo_.sendData();
-            imu_.sendData();
-          }
 }
 
 void CANDeviceManager::userReceiveMessagesCallback(uint8_t slave_id, uint8_t device_id, uint8_t message_id, uint32_t DLC, uint8_t* data)
@@ -172,6 +163,13 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+    if (receive_flag_)
+      {
+        receive_flag_ = false;
+        servo_.sendData();
+        imu_.sendData();
+      }
+    CANDeviceManager::CAN_ACTIVATE();
   }
   /* USER CODE END 3 */
 }

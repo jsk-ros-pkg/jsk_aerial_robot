@@ -24,6 +24,16 @@ namespace CANDeviceManager
 		CAN::CAN_START();
 	}
 
+  	void CAN_DEACTIVATE()
+	{
+		CAN::CAN_DEACTIVATE();
+	}
+
+  	void CAN_ACTIVATE()
+	{
+		CAN::CAN_ACTIVATE();
+	}
+
 	void init(CAN_HandleTypeDef* hcan, uint8_t slave_id, GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin)
 	{
 		CAN::init(hcan, slave_id);
@@ -83,6 +93,9 @@ void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef* hcan)
 	CANDeviceManager::can_timeout_count = 0;
 	CAN_RxHeaderTypeDef rx_header;
         uint8_t rx_data[8];
+
+        CANDeviceManager::CAN_DEACTIVATE();
+
         if (HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO1, &rx_header, rx_data) == HAL_OK)
           {
             uint8_t slave_id = CAN::getSlaveId(rx_header);
