@@ -262,7 +262,7 @@ bool HydrusXiUnderActuatedNavigator::plan()
   if(joint_positions_for_plan_.rows() == 0) return false;
 
   // initialize from the normal shape
-  bool singluar_form = true;
+  bool singular_form = true;
   if(control_gimbal_indices_.size() == 0)
     {
       const auto& joint_names = robot_model_->getJointNames();
@@ -272,7 +272,7 @@ bool HydrusXiUnderActuatedNavigator::plan()
         {
           if(joint_names.at(i).find("joint") != std::string::npos)
             {
-              if(fabs(joint_positions_for_plan_(joint_indices.at(i))) > 0.2) singluar_form = false;
+              if(fabs(joint_positions_for_plan_(joint_indices.at(i))) > 0.2) singular_form = false;
             }
         }
 
@@ -317,7 +317,7 @@ bool HydrusXiUnderActuatedNavigator::plan()
             }
 
           // hard-coding: singular line form
-          if(singluar_form && robot_model_->getRotorNum() == 4)
+          if(singular_form && robot_model_->getRotorNum() == 4)
             {
               opt_gimbal_angles_.at(0) = M_PI / 2;
               opt_gimbal_angles_.at(1) = - M_PI / 2;
