@@ -34,7 +34,7 @@
           timeout: 10
           reset_duration: 5
         - command: [0.78, 1.57, 0.78]
-          threshold: [0.02, 0.02, 0.02]
+          threshold: [0.03, 0.02, 0.02]
           timeout: 10
           reset_duration: 5
     </rosparam>
