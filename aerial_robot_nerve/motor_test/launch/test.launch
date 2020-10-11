@@ -30,8 +30,4 @@
     <param name="raise_duration" value="$(arg raise_duration)" />
     <param name="brake_duration" value="$(arg brake_duration)" />
   </node>
-
-  <arg name="node_start_delay" default="3.0" />
-  <node name="set_uav_info" pkg="motor_test" type="set_uav_info" output="screen" launch-prefix="bash -c 'sleep $(arg node_start_delay); $0 $@' " />
-
 </launch>
