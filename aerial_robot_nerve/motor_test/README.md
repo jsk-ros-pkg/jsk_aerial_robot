@@ -1,5 +1,6 @@
 ## Setting
-1. Set `NERVE_COMM = 0` and write firmware to spinal.
+1. Very important: set `NERVE_COMM = 0` and write firmware to spinal.
+
 2. Connect like this: 
 ```
 PC - spinal - ESC - rotor

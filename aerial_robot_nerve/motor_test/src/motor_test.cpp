@@ -54,7 +54,7 @@ public:
       }
     else
       {
-        ROS_ERROR("Failed to call service add_two_ints");
+        ROS_ERROR("Failed to call service /cfs_sensor_calib");
       }
 
     sps_on_pub_.publish(std_msgs::Empty());
