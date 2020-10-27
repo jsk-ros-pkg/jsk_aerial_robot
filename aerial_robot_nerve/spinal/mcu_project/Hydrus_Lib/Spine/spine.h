@@ -27,15 +27,13 @@
 #include <spinal/ServoControlCmd.h>
 #include <spinal/ServoTorqueCmd.h>
 #include <spinal/ServoTorqueStates.h>
-#include <spinal/Gyro.h>
+#include <spinal/NeuronImus.h>
 #include <spinal/GetBoardInfo.h>
 #include <spinal/SetBoardConfig.h>
 
 /* STL */
 #include <algorithm>
 #include <functional>
-
-#define SEND_GYRO 0
 
 // main subrutine for update enach instance
 namespace Spine

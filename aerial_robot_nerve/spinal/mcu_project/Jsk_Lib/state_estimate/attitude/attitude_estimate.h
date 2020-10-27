@@ -98,8 +98,6 @@ public:
     attitude_pub_("attitude", &attitude_msg_),
     desire_coord_sub_("desire_coordinate", &AttitudeEstimate::desireCoordCallback, this ),
     mag_declination_srv_("mag_declination", &AttitudeEstimate::magDeclinationCallback,this),
-    imu_list_(1),
-    imu_weights_(1,1),
     pub_smoothing_gyro_flag_(false)
   {}
 
@@ -111,7 +109,7 @@ public:
     nh_->subscribe< ros::Subscriber<spinal::DesireCoord, AttitudeEstimate> >(desire_coord_sub_);
     nh_->advertiseService(mag_declination_srv_);
 
-    imu_list_[0] = imu;
+    imu_ = imu;
     gps_ = gps;
 
     last_imu_pub_time_ = HAL_GetTick();
@@ -137,45 +135,22 @@ public:
           }
       }
 
-
-    if(imu_list_[0]->getUpdate())
+    if(imu_->getUpdate())
       {
         /* attitude estimation */
-        Vector3f gyro, acc, mag;
-        multiImuFusion(gyro, acc, mag);
-        estimator_->update(gyro, acc, mag);
+        estimator_->update(imu_->getGyro(),
+                           imu_->getAcc(),
+                           imu_->getMag());
+
 
         /* send message to ros*/
         if(nh_->connected())  publish();
 
         /* reset update status of imu*/
-        imu_list_[0]->setUpdate(false);
+        imu_->setUpdate(false);
       }
   }
 
-  void multiImuFusion(Vector3f& gyro, Vector3f& acc, Vector3f& mag )
-  {
-	  /* only gyro method */
-	  Vector3f sum_gyro = Vector3f();
-	  for(unsigned int i = 0; i < imu_list_.size(); i++)
-	  {
-		 sum_gyro += (imu_list_[i]->getGyro() * imu_weights_[i]);
-	  }
-	  gyro = sum_gyro;
-	  acc = imu_list_[0]->getAcc();
-	  mag = imu_list_[0]->getMag();
-  }
-
-  void addImu(IMU* imu, float weight)
-  {
-	  imu_list_.push_back(imu);
-	  imu_weights_.push_back(weight);
-  }
-
-  void setImuWeight(uint8_t index, float weight)
-  {
-	  imu_weights_[index] = weight;
-  }
 #endif
 
   /* send message via ros protocol */
@@ -264,9 +239,8 @@ private:
 
   EstimatorAlgorithm* estimator_;
 #ifndef SIMULATION
-  std::vector< IMU* > imu_list_;
+  IMU* imu_;
   GPS* gps_;
-  std::vector< float > imu_weights_;
 
   /* mag declination */
   ros::ServiceServer<spinal::MagDeclination::Request, spinal::MagDeclination::Response, AttitudeEstimate> mag_declination_srv_;

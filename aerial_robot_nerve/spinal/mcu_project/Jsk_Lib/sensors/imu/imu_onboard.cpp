@@ -3,25 +3,22 @@
  *
  *  Created on: 2016/11/01
  *      Author: anzai
+ *  Modify on:  2020/10/27
+ *      Author: zhao
  */
 
-#include "imu_basic.h"
+#include "imu_onboard.h"
 #include "flashmemory/flashmemory.h"
 
-IMU::IMU()
+IMUOnboard::IMUOnboard()
 {
 
 }
 
-void IMU::init()
+void IMUOnboard::init()
 {
-  acc_.zero();
-  gyro_.zero();
-  mag_.zero();
-  acc_v_.zero();
-  gyro_v_.zero();
-  mag_v_.zero();
-  mag_outlier_counter_ = 0;
+  IMU::init();
+
   gyro_bias_.zero();
   calib_gyro_ = true;
   calib_acc_ = false;
@@ -38,10 +35,13 @@ void IMU::init()
   gyro_calib_cnt_ = 0;
   acc_calib_cnt_ = 0;
   mag_calib_cnt_ = 0;
+
+  mag_outlier_counter_ = 0;
   mag_filtering_flag_ = false;
-  virtual_frame_ = false;
+
   raw_gyro_p_.zero();
   raw_acc_p_.zero();
+
   for (int i = 0; i < 3; i++) {
     FlashMemory::addValue(&(acc_bias_[i]), sizeof(float));
     FlashMemory::addValue(&(mag_bias_[i]), sizeof(float));
@@ -49,18 +49,18 @@ void IMU::init()
   }
 }
 
-void IMU::readCalibData()
+void IMUOnboard::readCalibData()
 {
   FlashMemory::read();
 }
 
-void IMU::writeCalibData()
+void IMUOnboard::writeCalibData()
 {
   FlashMemory::erase();
   FlashMemory::write();
 }
 
-void IMU::update()
+void IMUOnboard::update()
 {
   updateRawData();
   setUpdate(true);
@@ -70,7 +70,7 @@ void IMU::update()
   ledOutput();
 }
 
-void IMU::process (void)
+void IMUOnboard::process (void)
 {
   /* gyro part */
   raw_gyro_= raw_gyro_adc_;
@@ -184,7 +184,7 @@ void IMU::process (void)
 
 }
 
-void IMU::gyroCalib(bool flag, float duration)
+void IMUOnboard::gyroCalib(bool flag, float duration)
 {
   if(flag)
     { // start re-calib
@@ -200,7 +200,7 @@ void IMU::gyroCalib(bool flag, float duration)
     }
 }
 
-void IMU::accCalib(bool flag, float duration)
+void IMUOnboard::accCalib(bool flag, float duration)
 {
   if(flag)
     { // start re-calib
@@ -220,7 +220,7 @@ void IMU::accCalib(bool flag, float duration)
     }
 }
 
-void IMU::magCalib(bool flag, float duration)
+void IMUOnboard::magCalib(bool flag, float duration)
 {
   if(flag)
     { // start re-calib
@@ -239,7 +239,7 @@ void IMU::magCalib(bool flag, float duration)
     }
 }
 
-void IMU::resetCalib()
+void IMUOnboard::resetCalib()
 {
   gyro_bias_.zero();
   acc_bias_.zero();
@@ -247,6 +247,11 @@ void IMU::resetCalib()
   mag_min_ = Vector3f(1000,1000,1000);
   mag_max_ = Vector3f(-1000,-1000,-1000);
   mag_scale_ = Vector3f(1,1,1);
+}
+
+bool IMUOnboard::getCalibrated() {
+  if(!calib_acc_ && !calib_gyro_ && !calib_mag_) return true;
+  else return false;
 }
 
 

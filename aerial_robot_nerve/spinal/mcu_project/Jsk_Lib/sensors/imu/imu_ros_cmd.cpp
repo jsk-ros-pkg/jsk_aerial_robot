@@ -147,8 +147,8 @@ namespace IMU_ROS_CMD
       case spinal::ImuCalib::Request::SAVE_CALIB_DATA:
         {
           /* because we have more than one imu, so calling IMU::writeCalibData() is very inefficient */
-          FlashMemory::erase();
-          FlashMemory::write();
+          for(unsigned int i = 0; i < imu_.size(); i++)
+            imu_.at(i)->writeCalibData();
 
           res.success =true;
           res.data_length = 0;
@@ -177,7 +177,7 @@ namespace IMU_ROS_CMD
 
   void addImu(IMU* imu)
   {
-    imu_.push_back(imu);
+   imu_.push_back(imu);
   }
 }
 

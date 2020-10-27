@@ -16,8 +16,8 @@ namespace Spine
     CANMotorSendDevice can_motor_send_device_;
     std::vector<std::reference_wrapper<Servo>> servo_;
     std::vector<std::reference_wrapper<Servo>> servo_with_send_flag_;
+    std::vector<std::reference_wrapper<CANIMU>> imu_with_send_flag_;
     CANInitializer can_initializer_(neuron_);
-    std::vector<float> imu_weight_;
 
     uint8_t slave_num_;
     int8_t uav_model_ = -1;
@@ -29,15 +29,15 @@ namespace Spine
     /* ros */
     constexpr uint8_t SERVO_PUB_INTERVAL = 20; //[ms]
     constexpr uint8_t SERVO_TORQUE_PUB_INTERVAL = 1000; //[ms]
+    uint8_t NEURON_IMU_PUB_INTERVAL; // dynamic [ms]
     spinal::ServoStates servo_state_msg_;
     spinal::ServoTorqueStates servo_torque_state_msg_;
     ros::Publisher servo_state_pub_("servo/states", &servo_state_msg_);
     ros::Publisher servo_torque_state_pub_("servo/torque_states", &servo_torque_state_msg_);
 
-#if SEND_GYRO
-    hydrus::Gyro gyro_msg_;
-    ros::Publisher gyro_pub_("hydrus_gyro", &gyro_msg_);
-#endif
+    spinal::NeuronImus neuron_imus_msg_;
+    ros::Publisher neuron_imus_pub_("neuron_imus", &neuron_imus_msg_);
+
     ros::Subscriber<spinal::ServoControlCmd> servo_ctrl_sub_("servo/target_states", servoControlCallback);
     ros::Subscriber<spinal::ServoTorqueCmd> servo_torque_ctrl_sub_("servo/torque_enable", servoTorqueControlCallback);
 
@@ -49,6 +49,7 @@ namespace Spine
     ros::NodeHandle* nh_;
     uint32_t servo_last_pub_time_ = 0;
     uint32_t servo_torque_last_pub_time_ = 0;
+    uint32_t neuron_imu_last_pub_time_ = 0;
     unsigned int can_idle_count_ = 0;
     bool servo_control_flag_ = true;
 
@@ -123,9 +124,7 @@ namespace Spine
     nh_ = nh;
     nh_->advertise(servo_state_pub_);
     nh_->advertise(servo_torque_state_pub_);
-#if SEND_GYRO
-    nh_->advertise(gyro_pub_);
-#endif
+    nh_->advertise(neuron_imus_pub_);
 
     nh_->subscribe< ros::Subscriber<spinal::ServoControlCmd> >(servo_ctrl_sub_);
     nh_->subscribe< ros::Subscriber<spinal::ServoTorqueCmd> >(servo_torque_ctrl_sub_);
@@ -181,23 +180,21 @@ namespace Spine
     servo_torque_state_msg_.torque_enable_length = servo_.size();
     servo_torque_state_msg_.torque_enable = new uint8_t[servo_.size()];
 
-    /* other component */
-    imu_weight_.resize(slave_num_ + 1);
-
-    /* set IMU weights */
-    // no fusion
-    imu_weight_[0] = 1.0;
-    for (uint i = 1; i < imu_weight_.size(); i++) imu_weight_[i] = 0.0;
-
-    estimator_->getAttEstimator()->setImuWeight(0, imu_weight_[0]);
+    // set imu 
     for (int i = 0; i < slave_num_; i++) {
       HAL_Delay(100);
       neuron_.at(i).can_imu_.init();
-      if(i != baselink_) neuron_.at(i).can_imu_.setVirtualFrame(true);
-      estimator_->getAttEstimator()->addImu(&(neuron_.at(i).can_imu_), imu_weight_[i + 1]);
 
-      IMU_ROS_CMD::addImu(&(neuron_.at(i).can_imu_));
+      if(neuron_.at(i).can_imu_.getSendDataFlag())
+        {
+          IMU_ROS_CMD::addImu(&(neuron_.at(i).can_imu_)); // TODO: should for all neuron 
+          imu_with_send_flag_.push_back(neuron_.at(i).can_imu_);
+        }
     }
+    neuron_imus_msg_.neurons_length = imu_with_send_flag_.size();
+    neuron_imus_msg_.neurons = new spinal::NeuronImu[imu_with_send_flag_.size()]; // TODO: this is not adaptive for a change of imu_with_send_flag_num. So, if you change the status of send_flag in a certain neuron imu, please reboot spinal.
+    NEURON_IMU_PUB_INTERVAL = 2 * slave_num_; // the min interval (ms per message) that neuron publish the data
+    if(NEURON_IMU_PUB_INTERVAL < 10) NEURON_IMU_PUB_INTERVAL = 10; // the min interval that spinal rosserial can handle, that is 10 ms/message == 100 Hz.
 
     //set response for get_board_info
     board_info_res_.boards_length = slave_num_;
@@ -232,8 +229,6 @@ namespace Spine
     for (int i = 0; i < slave_num_; i++)
       neuron_.at(i).can_imu_.update();
 
-    //convertGyroFromJointvalues();
-
     /* ros publish */
     uint32_t now_time = HAL_GetTick();
     if( now_time - servo_last_pub_time_ >= SERVO_PUB_INTERVAL)
@@ -255,19 +250,33 @@ namespace Spine
 
         servo_state_pub_.publish(&servo_state_msg_);
         servo_last_pub_time_ = now_time;
+      }
 
-#if SEND_GYRO
+    if(now_time - neuron_imu_last_pub_time_ >= NEURON_IMU_PUB_INTERVAL)
+      {
         /* send gyro data */
-        gyro_msg_.stamp = nh_->now();
-        for (int i = 0; i < CAN::SLAVE_NUM; i++)
+        neuron_imus_msg_.stamp = nh_->now();
+        for (int i = 0; i < imu_with_send_flag_.size(); i++)
           {
-        	gyro_msg_.x[i] = can_imu_[i].getGyro().x / CANIMU::GYRO_SCALE;
-        	gyro_msg_.y[i] = can_imu_[i].getGyro().y / CANIMU::GYRO_SCALE;
-        	gyro_msg_.z[i] = can_imu_[i].getGyro().z / CANIMU::GYRO_SCALE;
-          }
-        gyro_pub_.publish(&gyro_msg_);
-#endif
+            spinal::NeuronImu imu;
 
+            ap::Vector3f acc = imu_with_send_flag_.at(i).get().getAcc();
+            ap::Vector3f gyro = imu_with_send_flag_.at(i).get().getGyro();
+            ap::Vector3f rpy = imu_with_send_flag_.at(i).get().getRPY();
+            imu.neuron_id = imu_with_send_flag_.at(i).get().getSlaveId();
+            imu.gyro[0] = gyro[0]; // / MPU9250_GYRO_SCALE;
+            imu.gyro[1] = gyro[1]; // / MPU9250_GYRO_SCALE;
+            imu.gyro[2] = gyro[2]; // / MPU9250_GYRO_SCALE;
+            imu.acc[0] = acc[0]; // / MPU9250_ACC_SCALE;
+            imu.acc[1] = acc[1]; // / MPU9250_ACC_SCALE;
+            imu.acc[2] = acc[2]; // / MPU9250_ACC_SCALE;
+            imu.rpy[0] = rpy[0]; // * 1000
+            imu.rpy[1] = rpy[1]; // * 1000
+            imu.rpy[2] = rpy[2]; // * 1000
+            neuron_imus_msg_.neurons[i] = imu;
+          }
+        neuron_imus_pub_.publish(&neuron_imus_msg_);
+        neuron_imu_last_pub_time_ = now_time;
       }
 
     if( now_time - servo_torque_last_pub_time_ >= SERVO_TORQUE_PUB_INTERVAL)
@@ -310,39 +319,5 @@ namespace Spine
   void setServoControlFlag(bool flag)
   {
           servo_control_flag_ = flag;
-  }
-
-  void convertGyroFromJointvalues()
-  {
-	  //It's mendokusai to implement for dragon, so comment out now.
-	  /*
-	  Vector3f gyro_v, acc_v, mag_v;
-	  double current_joint_angle[slave_num_ - 1];
-
-	  for (int i = 0; i < slave_num_ - 1; i++)
-		  current_joint_angle[i] = (can_servo_[i].getServoData().angle - 2048) * 2 * 3.1415926f / 4096;
-
-	  double theta = 0.0;
-
-	  for (int i = baselink_ - 1; i >= 0; i--)
-	  {
-		  theta -= current_joint_angle[i];
-		  Vector3f gyro = can_imu_[i].getGyro(true); // get the value in board frame
-		  gyro_v[0] = gyro[0] * cos(theta) - gyro[1] * sin(theta);
-		  gyro_v[1] = gyro[0] * sin(theta) + gyro[1] * cos(theta);
-		  gyro_v[2] = gyro[2];
-		  can_imu_[i].setGyroV(gyro_v);
-	  }
-	  theta = 0.0f;
-	  for (int i = baselink_; i < slave_num_ - 1; i++)
-	  {
-		  theta += current_joint_angle[i];
-		  Vector3f gyro = can_imu_[i + 1].getGyro(true); // get the value in board frame
-		  gyro_v[0] = gyro[0] * cos(theta) - gyro[1] * sin(theta);
-		  gyro_v[1] = gyro[0] * sin(theta) + gyro[1] * cos(theta);
-		  gyro_v[2] = gyro[2];
-		  can_imu_[i+1].setGyroV(gyro_v);
-	  }
-	  */
   }
 };

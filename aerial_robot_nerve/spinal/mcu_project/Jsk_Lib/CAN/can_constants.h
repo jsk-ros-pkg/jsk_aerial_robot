@@ -27,6 +27,16 @@ namespace CAN {
 	constexpr uint8_t MESSAGEID_SEND_GYRO = 0;
 	constexpr uint8_t MESSAGEID_SEND_ACC = 1;
 	constexpr uint8_t MESSAGEID_SEND_MAG = 2;
+    	constexpr uint8_t MESSAGEID_SEND_RPY = 3;
+      	constexpr uint8_t MESSAGEID_SEND_GYRO_CALIBRATE_INFO = 4;
+      	constexpr uint8_t MESSAGEID_SEND_ACC_CALIBRATE_INFO = 5;
+      	constexpr uint8_t MESSAGEID_CALIBRATE = 6;
+      	constexpr uint8_t IMU_CALIBRATE_REQUEST_DATA = 0;
+  	constexpr uint8_t IMU_CALIBRATE_GYRO = 1;
+  	constexpr uint8_t IMU_CALIBRATE_ACC = 2;
+    	constexpr uint8_t IMU_CALIBRATE_MAG = 3;
+      	constexpr uint8_t IMU_CALIBRATE_SAVE = 4;
+      	constexpr uint8_t IMU_CALIBRATE_RESET = 5;
 	constexpr uint8_t MESSAGEID_RECEIVE_PWM_0_5 = 0;
 	constexpr uint8_t MESSAGEID_RECEIVE_PWM_6_11 = 1;
 	constexpr uint8_t MESSAGEID_RECEIVE_SERVO_ANGLE = 0;

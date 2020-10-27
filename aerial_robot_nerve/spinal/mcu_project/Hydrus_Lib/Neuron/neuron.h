@@ -8,7 +8,7 @@
 #ifndef APPLICATION_HYDRUS_LIB_NEURON_NEURON_H_
 #define APPLICATION_HYDRUS_LIB_NEURON_NEURON_H_
 
-#include <CANDevice/imu/can_imu_mpu9250.h>
+#include <CANDevice/imu/can_imu.h>
 #include <CANDevice/motor/can_motor.h>
 #include <CANDevice/servo/can_servo.h>
 

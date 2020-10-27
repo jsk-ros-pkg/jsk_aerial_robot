@@ -96,7 +96,7 @@ bool start_processing_flag_ = false; //to prevent systick_callback starting  bef
 ros::NodeHandle nh_;
 
 #if IMU_FLAG
-IMUOnboard imu_;
+MPU9250 imu_; // TODO: please keep the consitence of class name with later sensor module, e.g., Baro, GPS
 #endif
 
 #if BARO_FLAG
@@ -220,7 +220,7 @@ int main(void){
   /* Sensors */
 #if IMU_FLAG
   /* we need to put IMU second, because of the unknown reason abou the ublox m8n compass/gps disconnect problem */
-  imu_.init(&hspi1, &hi2c2, &nh_);
+  imu_.init(&hspi1, &hi2c2);
   IMU_ROS_CMD::init(&nh_);
   IMU_ROS_CMD::addImu(&imu_);
 #endif

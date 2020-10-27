@@ -11,13 +11,12 @@
 
 #include "sensors/imu/imu_mpu9250.h"
 
-uint8_t IMUOnboard::adc_[SENSOR_DATA_LENGTH];
-uint32_t IMUOnboard::last_mag_time_;
+uint8_t MPU9250::adc_[SENSOR_DATA_LENGTH];
+uint32_t MPU9250::last_mag_time_;
 
-void IMUOnboard::init(SPI_HandleTypeDef* hspi, I2C_HandleTypeDef* hi2c, ros::NodeHandle* nh)
+void MPU9250::init(SPI_HandleTypeDef* hspi, I2C_HandleTypeDef* hi2c)
 {
-  nh_ = nh;
-  IMU::init();
+  IMUOnboard::init();
 
   use_external_mag_flag_ = false;
 
@@ -42,7 +41,7 @@ void IMUOnboard::init(SPI_HandleTypeDef* hspi, I2C_HandleTypeDef* hi2c, ros::Nod
 }
 
 
-void IMUOnboard::mpuWrite(uint8_t address, uint8_t value)
+void MPU9250::mpuWrite(uint8_t address, uint8_t value)
 {
   IMU_SPI_CS_L;
   HAL_SPI_Transmit(hspi_, &address, 1, 1000);
@@ -50,7 +49,7 @@ void IMUOnboard::mpuWrite(uint8_t address, uint8_t value)
   IMU_SPI_CS_H;
 }
 
-uint8_t IMUOnboard::mpuRead(uint8_t address)
+uint8_t MPU9250::mpuRead(uint8_t address)
 {
   uint8_t t_data[1] = {0};
   t_data[0] = address | 0x80;
@@ -62,7 +61,7 @@ uint8_t IMUOnboard::mpuRead(uint8_t address)
   return temp;
 }
 
-void IMUOnboard::gyroInit(void)
+void MPU9250::gyroInit(void)
 {
   HAL_Delay(100);
   //  mpuWrite( 0x6B, 0x80);             //PWR_MGMT_1    -- DEVICE_RESET 1
@@ -78,7 +77,7 @@ void IMUOnboard::gyroInit(void)
   //calib in the first time
 }
 
-void IMUOnboard::accInit (void)
+void MPU9250::accInit (void)
 {
   mpuWrite( 0x1C, 0x10); //ACCEL_CONFIG  -- AFS_SEL=2 (Full Scale = +/-8G)  ; ACCELL_HPF=0   //note something is wrong in the spec.
   HAL_Delay(1); 
@@ -88,7 +87,7 @@ void IMUOnboard::accInit (void)
 }
 
 
-void IMUOnboard::magInit(void)
+void MPU9250::magInit(void)
 {
   /* check whether use external magnetometer */
   /*
@@ -160,7 +159,7 @@ void IMUOnboard::magInit(void)
   last_mag_time_ = HAL_GetTick();
 }
 
-void IMUOnboard::ledOutput()
+void MPU9250::ledOutput()
 {
   /* calibration pattern */
   if(calib_acc_ || calib_gyro_ || calib_mag_)
@@ -181,7 +180,7 @@ void IMUOnboard::ledOutput()
 
 }
 
-void IMUOnboard::updateRawData()
+void MPU9250::updateRawData()
 {
   static int i = 0;
   uint8_t t_data[1];

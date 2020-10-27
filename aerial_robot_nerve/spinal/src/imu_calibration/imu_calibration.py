@@ -21,7 +21,7 @@ from python_qt_binding.QtWidgets import *
 
 import rospkg
 import rospy
-from spinal.msg import Imu
+from spinal.msg import Imu, NeuronImus
 from spinal.srv import *
 import rosgraph
 from rqt_gui_py.plugin import Plugin
@@ -160,9 +160,12 @@ class IMUCalibWidget(QWidget):
         robot_ns = imu_calib_srvs[0].split('/imu_calib')[0]
 
         self.imu_sub = rospy.Subscriber(robot_ns + '/imu', Imu, self.imu_callback)
+        self.neuron_imus_sub = rospy.Subscriber(robot_ns + '/neuron_imus', NeuronImus, self.neuron_imu_callback)
         self.imu_calib_data_client = rospy.ServiceProxy(robot_ns + '/imu_calib', ImuCalib)
 
         self.imu_stamp = rospy.get_time()
+        self.neuron_imu_stamp = rospy.get_time()
+        self.neuron_ids = []
         self.mag_view_start_flag = False
         self.mag_view_clear_flag = False
 
@@ -206,6 +209,30 @@ class IMUCalibWidget(QWidget):
             self.mag_data_plot.update_sample(msg.mag_data[0],
                                              msg.mag_data[1],
                                              msg.mag_data[2])
+
+    def neuron_imu_callback(self, msg):
+
+        if len(self.gyro_table_data) - 1 != len(msg.neurons):
+            rospy.logwarn("the number of gyro is not consistent {} vs {}".format(len(self.gyro_table_data) - 1, len(msg.neurons)))
+            return
+
+        if len(self.neuron_ids) == 0:
+            for neuron in msg.neurons:
+                self.neuron_ids.append(neuron.neuron_id)
+
+        if rospy.get_time() - self.neuron_imu_stamp < 0.1: #hard-coding
+            return
+
+        for i in range(len(msg.neurons)):
+            imu = msg.neurons[i]
+            self.gyro_table_data[i + 1][self.common_headers.index("value")] = "{0:.5f}".format(imu.gyro[0]) + ', ' + "{0:.5f}".format(imu.gyro[1]) + ', ' + "{0:.5f}".format(imu.gyro[2])
+
+            self.acc_table_data[i + 1][self.common_headers.index("value")] = "{0:.5f}".format(imu.acc[0]) + ', ' + "{0:.5f}".format(imu.acc[1]) + ', ' + "{0:.5f}".format(imu.acc[2])
+
+            self.att_table_data[i + 1][0] = "{0:.5f}".format(imu.rpy[0]) + ', ' + "{0:.5f}".format(imu.rpy[1]) + ', ' + "{0:.5f}".format(imu.rpy[2])
+
+        self.neuron_imu_stamp = rospy.get_time();
+
     def update_mag_plot(self):
         self.mag_data_plot.redraw()
 
@@ -230,8 +257,11 @@ class IMUCalibWidget(QWidget):
         self.att_table_widget.setHorizontalHeaderItem(i, item)
 
         for i in range(len(self.att_table_data)):
-            item = QTableWidgetItem('IMU' + str(i))
-            self.att_table_widget.setVerticalHeaderItem(i, item)
+            if i == 0:
+                self.att_table_widget.setVerticalHeaderItem(i, QTableWidgetItem('Spinal IMU'))
+            else:
+                self.att_table_widget.setVerticalHeaderItem(i, QTableWidgetItem('Neuron' + str(self.neuron_ids[i-1]) + ' IMU'))
+
 
         self.att_table_widget.resizeColumnsToContents()
         self.att_table_widget.show()
@@ -250,8 +280,10 @@ class IMUCalibWidget(QWidget):
             self.gyro_table_widget.setHorizontalHeaderItem(i, item)
 
         for i in range(len(self.gyro_table_data)):
-            item = QTableWidgetItem('IMU' + str(i))
-            self.gyro_table_widget.setVerticalHeaderItem(i, item)
+            if i == 0:
+                self.gyro_table_widget.setVerticalHeaderItem(i, QTableWidgetItem('Spinal IMU'))
+            else:
+                self.gyro_table_widget.setVerticalHeaderItem(i, QTableWidgetItem('Neuron' + str(self.neuron_ids[i-1]) + ' IMU'))
 
         self.gyro_table_widget.resizeColumnsToContents()
         self.gyro_table_widget.show()
@@ -270,8 +302,11 @@ class IMUCalibWidget(QWidget):
             self.acc_table_widget.setHorizontalHeaderItem(i, item)
 
         for i in range(len(self.acc_table_data)):
-            item = QTableWidgetItem('IMU' + str(i))
-            self.acc_table_widget.setVerticalHeaderItem(i, item)
+            if i == 0:
+                self.acc_table_widget.setVerticalHeaderItem(i, QTableWidgetItem('Spinal IMU'))
+            else:
+                self.acc_table_widget.setVerticalHeaderItem(i, QTableWidgetItem('Neuron' + str(self.neuron_ids[i-1]) + ' IMU'))
+
 
         self.acc_table_widget.resizeColumnsToContents()
         self.acc_table_widget.show()
@@ -290,8 +325,10 @@ class IMUCalibWidget(QWidget):
             self.mag_table_widget.setHorizontalHeaderItem(i, item)
 
         for i in range(len(self.mag_table_data)):
-            item = QTableWidgetItem('IMU' + str(i))
-            self.mag_table_widget.setVerticalHeaderItem(i, item)
+            if i == 0:
+                self.mag_table_widget.setVerticalHeaderItem(i, QTableWidgetItem('Spinal IMU'))
+            else:
+                self.mag_table_widget.setVerticalHeaderItem(i, QTableWidgetItem('Neuron' + str(self.neuron_ids[i-1]) + ' IMU'))
 
         self.mag_table_widget.resizeColumnsToContents()
         self.mag_table_widget.show()

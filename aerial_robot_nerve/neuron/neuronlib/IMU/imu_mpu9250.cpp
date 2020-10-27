@@ -15,17 +15,38 @@ uint8_t IMU::adc_[SENSOR_DATA_LENGTH];
 
 void IMU::init(SPI_HandleTypeDef* hspi)
 {
-  acc_.fill(0);
-  gyro_.fill(0);
-  mag_.fill(0);
+  acc_adc_.zero();
+  raw_acc_adc_.zero();
+  gyro_adc_.zero();
+  mag_adc_.zero();
+
+  acc_.zero();
+  gyro_.zero();
+  mag_.zero();
+  prev_mag_.zero();
+
+  acc_bias_sum_.zero();
+  gyro_bias_sum_.zero();
+  gyro_bias_.zero();
+  rpy_.zero();
+  gyro_calib_time_ = HAL_GetTick();
+  acc_calib_time_ = HAL_GetTick();
+  gyro_calib_duration_ = GYRO_DEFAULT_CALIB_DURATION;
+  acc_calib_duration_ = ACC_DEFAULT_CALIB_DURATION;
+  gyro_calib_cnt_ = 0;
+  acc_calib_cnt_ = 0;
 
   ahb_tx_suspend_flag_ = false;
 
+  acc_filter_cnt_ = 0; // complementary filter for attitude estimate
+
+  send_calib_data_ = false; // send calib data via CAN
+  calib_gyro_ = true;
+  calib_acc_ = false;
+  calib_mag_ = false;
+
   for(int i =0; i < SENSOR_DATA_LENGTH; i++)
-    {
-      dummy_[i] = 0;
-      adc_[i] = 0;
-    }
+    adc_[i] = 0;
 
   hspi_ = hspi;
   gyroInit();
@@ -37,12 +58,21 @@ void IMU::init(SPI_HandleTypeDef* hspi)
   hspi_->Instance->CR1 |= (uint32_t)(SPI_BAUDRATEPRESCALER_8); //8 = 13.5Mhz
 
   Flashmemory::addValue(&send_data_flag_, 2);
+
+  for (int i = 0; i < 3; i++) {
+    Flashmemory::addValue(&(acc_bias_[i]), sizeof(int16_t));
+    Flashmemory::addValue(&(mag_bias_[i]), sizeof(int16_t));
+  }
   Flashmemory::read();
 }
 
 void IMU::update()
 {
   pollingRead(); //read from SPI
+
+  calibrate();
+
+  attitude_estimate(); // estimate RPY attitude
 }
 
 void IMU::mpuWrite(uint8_t address, uint8_t value)
@@ -142,9 +172,10 @@ void IMU::pollingRead()
   /* we need add some delay between each sensor reading */
   /* previous code */
   /*gyro_[0] = (int16_t)(adc_[0] << 8 | adc_[1]) * 2000.0f / 32767.0f * M_PI / 180.0f  ; */
-  gyro_[0] = (int16_t)(adc_[0] << 8 | adc_[1]);
-  gyro_[1] = (int16_t)(adc_[2] << 8 | adc_[3]);
-  gyro_[2] = (int16_t)(adc_[4] << 8 | adc_[5]);
+  raw_gyro_adc_[0] = (int16_t)(adc_[0] << 8 | adc_[1]);
+  raw_gyro_adc_[1] = (int16_t)(adc_[2] << 8 | adc_[3]);
+  raw_gyro_adc_[2] = (int16_t)(adc_[4] << 8 | adc_[5]);
+
 
   t_data[0] = ACC_ADDRESS | 0x80;
   IMU_SPI_CS_L;
@@ -154,11 +185,10 @@ void IMU::pollingRead()
 
   /* we need add some delay between each sensor reading */
   /* previous code */
-   /*acc_[0] = (int16_t)(adc_[0] << 8 | adc_[1]) / 4096.0f * GRAVITY_MSS;*/
-  acc_[0] = (int16_t)(adc_[0] << 8 | adc_[1]);
-  acc_[1] = (int16_t)(adc_[2] << 8 | adc_[3]);
-  acc_[2] = (int16_t)(adc_[4] << 8 | adc_[5]);
-
+  /*acc_[0] = (int16_t)(adc_[0] << 8 | adc_[1]) / 4096.0f * GRAVITY_MSS;*/
+  raw_acc_adc_[0] = (int16_t)(adc_[0] << 8 | adc_[1]);
+  raw_acc_adc_[1] = (int16_t)(adc_[2] << 8 | adc_[3]);
+  raw_acc_adc_[2] = (int16_t)(adc_[4] << 8 | adc_[5]);
 
   if(i == MAG_PRESCALER)
     {
@@ -177,9 +207,9 @@ void IMU::pollingRead()
       //uT(10e-6 T)
       /* previous code */
       /*mag_[0] = (int16_t)(adc_[1] << 8 | adc_[0]) * 4912.0f / 32760.0f;*/
-      mag_[0] = (int16_t)(adc_[1] << 8 | adc_[0]);
-      mag_[1] = (int16_t)(adc_[3] << 8 | adc_[2]);
-      mag_[2] = (int16_t)(adc_[5] << 8 | adc_[4]);
+      raw_mag_adc_[0] = (int16_t)(adc_[1] << 8 | adc_[0]);
+      raw_mag_adc_[1] = (int16_t)(adc_[3] << 8 | adc_[2]);
+      raw_mag_adc_[2] = (int16_t)(adc_[5] << 8 | adc_[4]);
     }
   if(i == MAG_PRESCALER) i = 0;
   else i++;
@@ -187,18 +217,219 @@ void IMU::pollingRead()
   update_ = true;
 }
 
+void IMU::calibrate()
+{
+  /* gyro part */
+  gyro_adc_ = raw_gyro_adc_;
+  if (calib_gyro_) {
+    gyro_bias_sum_ += Vector3l((int32_t)raw_gyro_adc_.x, (int32_t)raw_gyro_adc_.y, (int32_t)raw_gyro_adc_.z);
+    gyro_calib_cnt_++;
+
+    if (gyro_calib_duration_ > 0 && HAL_GetTick() - gyro_calib_time_ >= gyro_calib_duration_)
+      {
+        gyro_bias_sum_ /= gyro_calib_cnt_;
+        gyro_bias_((int16_t)gyro_bias_sum_.x, (int16_t)gyro_bias_sum_.y, (int16_t)gyro_bias_sum_.z);
+        calib_gyro_ = false;
+      }
+
+    update_ = false;
+  }
+  else
+    gyro_adc_ -= gyro_bias_;
+
+  gyro_ =  Vector3f(gyro_adc_.x * GYRO_SCALE, gyro_adc_.y * GYRO_SCALE, gyro_adc_.z * GYRO_SCALE);
+
+
+  /* acc part */
+  acc_adc_ = raw_acc_adc_;
+  if (calib_acc_) {
+    acc_bias_sum_ += Vector3l((int32_t)raw_acc_adc_.x, (int32_t)raw_acc_adc_.y, (int32_t)(raw_acc_adc_.z - ACC_GRAVITY_RESOLUTION));
+    acc_calib_cnt_++;
+
+    if (acc_calib_duration_ > 0 && HAL_GetTick() - acc_calib_time_ >= acc_calib_duration_)
+      {
+        acc_bias_sum_ /= acc_calib_cnt_;
+        acc_bias_((int16_t)acc_bias_sum_.x, (int16_t)acc_bias_sum_.y, (int16_t)acc_bias_sum_.z);
+
+        calib_acc_ = false;
+      }
+
+    update_ = false;
+  }
+  else
+    acc_adc_ -= acc_bias_;
+
+  acc_ =  Vector3f(acc_adc_.x * ACC_SCALE, acc_adc_.y * ACC_SCALE, acc_adc_.z * ACC_SCALE);
+
+  /* mag part */
+  mag_adc_ = raw_mag_adc_ - mag_bias_; //bias
+  mag_ =  Vector3f(mag_adc_.x * MAG_SCALE, mag_adc_.y * MAG_SCALE, mag_adc_.z * MAG_SCALE);
+}
+
+void IMU::attitude_estimate()
+{
+  if(!update_)
+    {
+      attitdue_est_timestamp_ = HAL_GetTick();
+      return;
+    }
+
+  // complementary filter
+  int  valid_acc = 0;
+
+  float acc_magnitude = acc_ * acc_;
+  Vector3f est_g_b_tmp = est_g_;
+  Vector3f est_m_b_tmp = est_m_;
+
+  Vector3f gyro_rotate = gyro_ * (HAL_GetTick() - attitdue_est_timestamp_)  * 0.001f;
+
+  est_m_ += (est_m_b_tmp % gyro_rotate  ); //rotation by gyro
+  est_g_ += (est_g_b_tmp % gyro_rotate ); //rotation by gyro
+
+  if( G_MIN < acc_magnitude && acc_magnitude < G_MAX) valid_acc = 1;
+  else valid_acc = 0;
+
+  est_g_b_tmp = est_g_;
+  est_m_b_tmp = est_m_;
+
+  /* acc correction */
+  if ( valid_acc == 1 && acc_filter_cnt_ == 0)
+    est_g_ = (est_g_b_tmp * GYR_CMPF_FACTOR + acc_) * INV_GYR_CMPF_FACTOR;
+
+  /* mag correction */
+  if ( prev_mag_ != mag_ )
+    {
+      prev_mag_ = mag_;
+      est_m_ = (est_m_b_tmp * GYR_CMPFM_FACTOR  + mag_) * INV_GYR_CMPFM_FACTOR;
+    }
+
+  // Attitude of the estimated vector
+  float sq_g_x_sq_g_z = est_g_.x * est_g_.x + est_g_.z * est_g_.z;
+  float sq_g_y_sq_g_z = est_g_.y * est_g_.y + est_g_.z * est_g_.z;
+  float invG = ap::inv_sqrt(sq_g_x_sq_g_z + est_g_.y * est_g_.y);
+  rpy_.x = atan2f(est_g_.y , est_g_.z);
+  rpy_.y = atan2f(-est_g_.x , ap::inv_sqrt(sq_g_y_sq_g_z)* sq_g_y_sq_g_z);
+  rpy_.z = atan2f( est_m_.z * est_g_.y - est_m_.y * est_g_.z,
+                   est_m_.x * invG * sq_g_y_sq_g_z  - (est_m_.y * est_g_.y + est_m_.z * est_g_.z) * invG * est_g_.x );
+
+  /* update */
+  if(valid_acc) acc_filter_cnt_++;
+  if(acc_filter_cnt_ == PRESCLAER_ACC) acc_filter_cnt_ = 0;
+
+  attitdue_est_timestamp_ = HAL_GetTick();
+}
+
 void IMU::sendData()
 {
-	if (!(send_data_flag_ != 0)) return;
-	setMessage(CAN::MESSAGEID_SEND_GYRO, m_slave_id, 6, reinterpret_cast<uint8_t*>(gyro_.data()));
-	sendMessage(1);
-	setMessage(CAN::MESSAGEID_SEND_ACC, m_slave_id, 6, reinterpret_cast<uint8_t*>(acc_.data()));
-	sendMessage(1);
-	setMessage(CAN::MESSAGEID_SEND_MAG, m_slave_id, 6, reinterpret_cast<uint8_t*>(mag_.data()));
-	sendMessage(1);
+  if (send_data_flag_ == 0) return;
+
+  int16_t data[3];
+  data[0] = gyro_adc_.x;
+  data[1] = gyro_adc_.y;
+  data[2] = gyro_adc_.z;
+  setMessage(CAN::MESSAGEID_SEND_GYRO, m_slave_id, 6, reinterpret_cast<uint8_t*>(data));
+  sendMessage(1);
+  data[0] = acc_adc_.x;
+  data[1] = acc_adc_.y;
+  data[2] = acc_adc_.z;
+  setMessage(CAN::MESSAGEID_SEND_ACC, m_slave_id, 6, reinterpret_cast<uint8_t*>(data));
+  sendMessage(1);
+  //setMessage(CAN::MESSAGEID_SEND_MAG, m_slave_id, 6, reinterpret_cast<uint8_t*>(mag_.data()));
+  // hack: radian => x 1000 => int16
+  data[0] = (int16_t)(rpy_.x * 1000);
+  data[1] = (int16_t)(rpy_.y * 1000);
+  data[2] = (int16_t)(rpy_.z * 1000);
+  setMessage(CAN::MESSAGEID_SEND_RPY, m_slave_id, 6, reinterpret_cast<uint8_t*>(data));
+  sendMessage(1);
+
+  if(send_calib_data_)
+    {
+      send_calib_data_ = false;
+      data[0] = gyro_bias_.x;
+      data[1] = gyro_bias_.y;
+      data[2] = gyro_bias_.z;
+      setMessage(CAN::MESSAGEID_SEND_GYRO_CALIBRATE_INFO, m_slave_id, 6, reinterpret_cast<uint8_t*>(data));
+      sendMessage(1);
+
+      data[0] = acc_bias_.x;
+      data[1] = acc_bias_.y;
+      data[2] = acc_bias_.z;
+      setMessage(CAN::MESSAGEID_SEND_ACC_CALIBRATE_INFO, m_slave_id, 6, reinterpret_cast<uint8_t*>(data));
+      sendMessage(1);
+    }
 }
 
 void IMU::receiveDataCallback(uint8_t message_id, uint32_t DLC, uint8_t* data)
 {
-	return;
+  switch (message_id) {
+  case CAN::MESSAGEID_CALIBRATE:
+    {
+      uint8_t calibrate_command_id = data[0];
+      switch (calibrate_command_id) {
+      case CAN::IMU_CALIBRATE_REQUEST_DATA:
+        {
+          send_calib_data_ = true;
+          break;
+        }
+      case CAN::IMU_CALIBRATE_GYRO:
+        {
+          uint8_t calib_flag = data[1];
+          if(calib_flag)
+            {
+              // re-calib with infinite time
+              gyro_bias_.zero();
+              calib_gyro_ = true;
+              gyro_calib_duration_ = 0;
+              gyro_calib_time_ = HAL_GetTick();
+              gyro_calib_cnt_ = 0;
+            }
+          else
+            {
+              gyro_calib_duration_ = 1; // stop re-calib
+            }
+          break;
+        }
+      case CAN::IMU_CALIBRATE_ACC:
+        {
+          uint8_t calib_flag = data[1];
+          if(calib_flag)
+            {
+              // re-calib with infinite time
+              acc_bias_.zero();
+              calib_acc_ = true;
+              acc_calib_duration_ = 0;
+              acc_calib_time_ = HAL_GetTick();
+              acc_calib_cnt_ = 0;
+            }
+          else
+            {
+              acc_calib_duration_ = 1; // stop re-calib
+            }
+          break;
+        }
+      case CAN::IMU_CALIBRATE_MAG:
+        {
+          // TODO for implementation
+          break;
+        }
+      case CAN::IMU_CALIBRATE_RESET:
+        {
+          gyro_bias_.zero();
+          acc_bias_.zero();
+          mag_bias_.zero();
+          break;
+        }
+      case CAN::IMU_CALIBRATE_SAVE:
+        {
+          Flashmemory::erase();
+          Flashmemory::write();
+
+          send_calib_data_ = true; // tell the latest data to spinal via CAN
+          break;
+        }
+      }
+      break;
+    }
+  }
 }
+

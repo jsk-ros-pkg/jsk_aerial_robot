@@ -14,10 +14,7 @@
 
 #include "stm32f7xx_hal.h"
 #include "stm32f7xx_hal_dma.h"
-#include "config.h"
-/* #include "arm_math.h" */
-#include "math/AP_Math.h"
-#include "imu_basic.h"
+#include "imu_onboard.h"
 
 
 #define SENSOR_DATA_LENGTH 7
@@ -31,11 +28,11 @@
 #define EXTERNAL_MAG_PRESCALER 13 // external mag(HMC5883): 75Hz
 #define EXTERNAL_MAG_RATE 0.092f // 0.92mG/LSb -> 1G = 10e-4T -> uT = 0.092f
 
-class IMUOnboard : public IMU {
+class MPU9250 : public IMUOnboard {
 public:
-  IMUOnboard():IMU(){}
-  ~IMUOnboard(){}
-  void init(SPI_HandleTypeDef* hspi, I2C_HandleTypeDef* hi2c, ros::NodeHandle* nh);
+  MPU9250():IMUOnboard(){}
+  ~MPU9250(){}
+  void init(SPI_HandleTypeDef* hspi, I2C_HandleTypeDef* hi2c);
 
 private:
   static const uint8_t GYRO_DLPF_CFG = 0x03;//0x01 //0: 250Hz, 0.97ms; 3: 41Hz, 5.9ms(kduino); 4: 20Hz: 9.9ms
@@ -58,7 +55,6 @@ private:
 
   SPI_HandleTypeDef* hspi_;
   I2C_HandleTypeDef* hi2c_;
-  ros::NodeHandle* nh_;
 
   bool use_external_mag_flag_;
   uint32_t calib_indicator_time_; // ms
