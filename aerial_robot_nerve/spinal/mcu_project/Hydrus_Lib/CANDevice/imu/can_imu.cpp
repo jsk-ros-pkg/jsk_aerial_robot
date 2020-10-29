@@ -12,14 +12,7 @@ void CANIMU::init()
 {
   IMU::init();
 
-  if(send_data_flag_)
-    {
-      // get the calibration data from the neruon that send imu data
-      uint8_t send_data[1];
-      send_data[0] = CAN::IMU_CALIBRATE_REQUEST_DATA;
-      setMessage(CAN::MESSAGEID_CALIBRATE, m_slave_id, 1, send_data);
-      sendMessage(0);
-    }
+  init_calib_data_ = true;
 }
 
 void CANIMU::update()
@@ -53,6 +46,15 @@ void CANIMU::update()
 
 void CANIMU::sendData()
 {
+  if(send_data_flag_ && init_calib_data_)
+    {
+      // get the calibration data from the neruon that send imu data
+      uint8_t send_data[1];
+      send_data[0] = CAN::IMU_CALIBRATE_REQUEST_DATA;
+      setMessage(CAN::MESSAGEID_CALIBRATE, m_slave_id, 1, send_data);
+      sendMessage(0);
+      init_calib_data_ = false;
+    }
   return;
 }
 

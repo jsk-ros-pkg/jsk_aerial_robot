@@ -218,6 +218,7 @@ namespace Spine
 	  can_motor_send_device_.sendData();
 	  if (slave_num_ != 0) {
 		  neuron_.at(send_board_index).can_servo_.sendData();
+		  neuron_.at(send_board_index).can_imu_.sendData();
 		  send_board_index++;
 		  if (send_board_index == slave_num_) send_board_index = 0;
 	  }

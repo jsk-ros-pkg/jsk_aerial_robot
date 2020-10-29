@@ -17,6 +17,7 @@ private:
 	int16_t r_gyro_data[3], r_acc_data[3], r_mag_data[3], r_rpy_data[3];
 	int16_t r_gyro_calib[3], r_acc_calib[3];
 	bool send_data_flag_;
+	bool init_calib_data_;
 	Vector3f rpy_;
 public:
 	CANIMU(){}
