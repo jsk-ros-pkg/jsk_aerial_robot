@@ -48,11 +48,10 @@ int main(int argc, char* argv[])
   int baud;
   ros::param::param<int>("~baud", baud, 57600);
 
-  sleep(1.0);
-
   // Run boost::asio io service in a background thread.
   boost::asio::io_service io_service;
   new rosserial_server::SerialSession(io_service, port, baud);
+  ros::Duration(1.0).sleep();
   boost::thread(boost::bind(&boost::asio::io_service::run, &io_service));
 
   ros::MultiThreadedSpinner spinner(2);
