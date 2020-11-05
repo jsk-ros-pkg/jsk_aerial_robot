@@ -42,6 +42,7 @@
 #include <spinal/UavInfo.h>
 #include <spinal/PMatrixPseudoInverseWithInertia.h>
 #include <spinal/TorqueAllocationMatrixInv.h>
+#include <spinal/SetMRACParams.h>
 
 #define MAX_PWM  54000
 #define IDLE_DUTY 0.5f
@@ -214,6 +215,57 @@ private:
   void pwmsControl(void);
 
   void reset(void);
+
+
+  // MRAC control
+#define MATH_PI 3.141592f
+#define YAW_TORQUE_LIMIT 0.4f
+  void MRACinit(void);
+  void MRACReset(void);
+  void MRACupdate(ap::Vector3f angles, ap::Vector3f vel);
+
+  bool is_use_mrac_;
+  int mrac_log_rate_;
+  float mrac_target_cog_torque_[3];
+  ap::Vector3f mrac_ratio_;
+  ap::Vector3f rot_ref_; // reference model
+  ap::Vector3f rot_ref_d_; // differential of ref model
+  float gamma_[8]; // adaptive parameter
+  ap::Matrix3f k1m_; // ref model param
+  ap::Matrix3f k2m_; // ref model param
+  ap::Matrix3f K1_; // mrac param
+  ap::Matrix3f K2_; // mrac param
+  float kappa_[8]; // mrac leaning rate
+  float sigma_[8]; // constant sigma fix
+  float pc_psi_;
+  float attitude_p_;
+
+  ros::Publisher mrac_gamma_pub_;
+  ros::Publisher mrac_ref_model_pub_;
+  std_msgs::Float32MultiArray mrac_gamma_msg_;
+  std_msgs::Float32MultiArray mrac_ref_model_msg_;
+  uint8_t mrac_param_pub_control_;
+
+  #ifdef SIMULATION
+    ros::ServiceServer mrac_trigger_srv_;
+    bool setMRACTriggerCallback(std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& res);
+    ros::ServiceServer mrac_params_srv_;
+    bool setMRACParamsCallback(spinal::SetMRACParams::Request& req, spinal::SetMRACParams::Response& res);
+    // ros::Subscriber target_psi_sub_;
+    // ros::Subscriber pc_psi_sub_;
+  #else
+    ros::ServiceServer<std_srvs::SetBool::Request, std_srvs::SetBool::Response, AttitudeController> mrac_trigger_srv_;
+    void setMRACTriggerCallback(const std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& res);
+    ros::ServiceServer<spinal::SetMRACParams::Request, spinal::SetMRACParams::Response, AttitudeController> mrac_params_srv_;
+    void setMRACParamsCallback(const spinal::SetMRACParams::Request& req, spinal::SetMRACParams::Response& res);
+    // ros::Subscriber<std_msgs::Int16, AttitudeController> target_psi_sub_;
+    // ros::Subscriber<std_msgs::Float32, AttitudeController> pc_psi_sub_;
+  #endif
+  // void targetPsiCallback(const std_msgs::Int16& msg);
+  // void pcPsiCallback(const std_msgs::Float32& msg);
+  // bool target_psi_flag_;
+  // bool pc_psi_flag_;
+  // end of MRAC control
 
 
   float limit(float input, float limit)

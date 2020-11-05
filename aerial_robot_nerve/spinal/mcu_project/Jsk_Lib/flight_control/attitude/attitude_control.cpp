@@ -31,6 +31,13 @@ void AttitudeController::init(ros::NodeHandle* nh, StateEstimate* estimator)
   att_control_srv_ = nh_->advertiseService("set_attitude_control", &AttitudeController::setAttitudeControlCallback, this);
   torque_allocation_matrix_inv_sub_ = nh_->subscribe("torque_allocation_matrix_inv", 1, &AttitudeController::torqueAllocationMatrixInvCallback, this);
   sim_vol_sub_ = nh_->subscribe("set_sim_voltage", 1, &AttitudeController::setSimVolCallback, this);
+
+  // for mrac
+  mrac_trigger_srv_ = nh_->advertiseService("spinal_mrac_trigger", &AttitudeController::setMRACTriggerCallback, this);
+  mrac_params_srv_ = nh_->advertiseService("set_mrac_params", &AttitudeController::setMRACParamsCallback, this);
+  mrac_gamma_pub_ = nh_->advertise<std_msgs::Float32MultiArray>("mrac_gamma", 1);
+  mrac_ref_model_pub_ = nh_->advertise<std_msgs::Float32MultiArray>("mrac_ref_model", 1);
+
   baseInit();
 }
 
@@ -46,7 +53,12 @@ AttitudeController::AttitudeController():
   p_matrix_pseudo_inverse_inertia_sub_("p_matrix_pseudo_inverse_inertia", &AttitudeController::pMatrixInertiaCallback, this),
   pwm_test_sub_("pwm_test", &AttitudeController::pwmTestCallback, this ),
   att_control_srv_("set_attitude_control", &AttitudeController::setAttitudeControlCallback, this),
-  torque_allocation_matrix_inv_sub_("torque_allocation_matrix_inv", &AttitudeController::torqueAllocationMatrixInvCallback, this)
+  torque_allocation_matrix_inv_sub_("torque_allocation_matrix_inv", &AttitudeController::torqueAllocationMatrixInvCallback, this),
+  // for mrac
+  mrac_trigger_srv_("spinal_mrac_trigger", &AttitudeController::setMRACTriggerCallback, this),
+  mrac_params_srv_("set_mrac_params", &AttitudeController::setMRACParamsCallback, this),
+  mrac_gamma_pub_("mrac_gamma", &mrac_gamma_msg_),
+  mrac_ref_model_pub_("mrac_ref_model", &mrac_ref_model_msg_)
 {
 }
 
@@ -300,6 +312,9 @@ void AttitudeController::update(void)
               }
           }
 
+        // for mrac
+        if (is_use_mrac_) { MRACupdate(angles, vel); }
+
         float p_term = 0;
         float i_term = 0;
         float d_term = 0;
@@ -310,6 +325,19 @@ void AttitudeController::update(void)
                 p_term = error_angle[axis] * thrust_p_gain_[i][axis];
                 i_term = error_angle_i_[axis] * thrust_i_gain_[i][axis];
                 d_term = -vel[axis] * thrust_d_gain_[i][axis];
+
+                // Mix the output of Adaptive Control (MRAC)
+                if (is_use_mrac_) {
+                  float mrac_term = mrac_target_cog_torque_[axis] * thrust_p_gain_[i][axis];
+                  p_term = (1-mrac_ratio_[axis])*p_term + mrac_ratio_[axis] * mrac_term;
+                  i_term = (1-mrac_ratio_[axis])*i_term;
+                  if (axis != Z) { 
+                    // TODO Yaw is not considered in MRAC right now
+                    // because target yaw and current yaw value is not transferred from pc
+                    d_term = (1-mrac_ratio_[axis])*d_term;
+                  }
+                }
+
                 if(axis == X)
                   {
                     roll_pitch_term_[i] = p_term + i_term + d_term; // [N]
@@ -407,8 +435,189 @@ void AttitudeController::reset(void)
   failsafe_ = false;
   flight_command_last_stamp_ = HAL_GetTick();
 
+  if (is_use_mrac_) {
+    MRACReset();
+  }
+
 #ifdef SIMULATION
   prev_time_ = -1;
+#endif
+}
+
+void AttitudeController::MRACinit(void) 
+{
+  mrac_log_rate_ = 20;
+  mrac_ratio_[0] = 1; mrac_ratio_[1] = 1; mrac_ratio_[2] = 1;
+  k1m_[0][0] = 500; k1m_[1][1] = 500; k1m_[2][2] = 0.2;
+  k2m_[0][0] = 200; k2m_[1][1] = 200; k2m_[2][2] = 0.8;
+  K1_[0][0] = 1; K1_[1][1] = 1; K1_[2][2] = 2;
+  K2_[0][0] = 2; K2_[1][1] = 2; K2_[2][2] = 2;
+  kappa_[0] = 0.000001; kappa_[1] = 0.000001; kappa_[2] = 0.000001; kappa_[3] = 0.0000001; 
+  kappa_[4] = 0.0000001; kappa_[5] = 0.0000001; kappa_[6] = 2.; kappa_[7] = 2.; 
+  sigma_[0] = 0.1; sigma_[1] = 0.1; sigma_[2] = 0.01; sigma_[3] = 0.1; 
+  sigma_[4] = 0.1; sigma_[5] = 0.1; sigma_[6] = 0.0; sigma_[7] = 0.0; 
+  for (int i=0; i<8 ; i++) { // initialize adaptive param
+    //kappa_[i] = 0;
+    //sigma_[i] = 0;
+    gamma_[i] = 0;
+  }
+  attitude_p_ = 1.0;
+#ifdef SIMULATION
+  mrac_gamma_msg_.data.resize(8);
+  mrac_ref_model_msg_.data.resize(3); // X, Y, Z
+#else
+  mrac_gamma_msg_.data = (float*)malloc(sizeof(float)*8);
+  mrac_gamma_msg_.data_length = 8;
+  mrac_ref_model_msg_.data = (float*)malloc(sizeof(float)*3);
+  mrac_ref_model_msg_.data_length = 3;
+#endif
+}
+
+void AttitudeController::MRACReset(void)
+{
+  // initialize adaptive param
+  for (int i=0; i<8 ; i++) {
+    gamma_[i] = 0;
+  }
+  pc_psi_ = 0;
+  target_angle_[Z] = 0;
+  mrac_param_pub_control_ = 0;
+  for (int i = 0; i < 3; ++i) {
+    rot_ref_[i] = 0;
+    rot_ref_d_[i] = 0;
+    mrac_target_cog_torque_[i]=0;
+    mrac_ref_model_msg_.data[i]=0;
+  }
+  for (int i=0; i<8 ; i++) {
+    mrac_gamma_msg_.data[i] = 0;
+  }
+}
+
+void AttitudeController::MRACupdate(ap::Vector3f angles, ap::Vector3f vel)
+{
+  ap::Vector3f e_ref = angles - rot_ref_;
+  ap::Vector3f e_ref_dot = vel - rot_ref_d_;
+  ap::Vector3f rot_des; rot_des[0]=target_angle_[0]; rot_des[1]=target_angle_[1];
+  ap::Vector3f rot_des_d;
+  rot_des_d[0] = attitude_p_*(target_angle_[0]-angles[0]);
+  rot_des_d[1] = attitude_p_*(target_angle_[1]-angles[1]);
+  rot_des_d[2] = 0;
+  // yaw should be continuous
+  // closest to rot_ref_yaw in {target, target+2PI, target-2PI}
+  float target_yaw, diff_min=9999999.0f;
+  int rot_num = int ((rot_ref_[Z]+MATH_PI) / 2.0f / MATH_PI);
+  for (int i=-1; i<2; i++) {
+    float tmp_target_yaw = target_angle_[Z] + 2.0f*float(i+rot_num)*MATH_PI;
+    float tmp_diff = std::abs(tmp_target_yaw-rot_ref_[Z]);
+    if (diff_min > tmp_diff) {
+      target_yaw = tmp_target_yaw;
+      diff_min = tmp_diff;
+    }
+  }
+  float yaw_fixed; diff_min=9999999.0f;
+  for (int i=-1; i<2; i++) {
+    float tmp_yaw = pc_psi_ + 2.0f*float(i+rot_num)*MATH_PI;
+    float tmp_diff = std::abs(tmp_yaw-rot_ref_[Z]);
+    if (diff_min > tmp_diff) {
+      yaw_fixed = tmp_yaw;
+      diff_min = tmp_diff;
+    }
+  }
+  e_ref[Z] = yaw_fixed - rot_ref_[Z];
+  rot_des[2]=target_yaw;
+  ap::Vector3f p = K1_ * e_ref_dot - k1m_*(rot_des - rot_ref_) + k2m_*(rot_des_d - rot_ref_d_);
+  ap::Vector3f mrac_phi_gamma;
+  mrac_phi_gamma[0] = p[0]*gamma_[0] + p[1]*gamma_[3] + p[2]*gamma_[5] + gamma_[6];
+  mrac_phi_gamma[1] = p[1]*gamma_[1] + p[0]*gamma_[3] + p[2]*gamma_[4] + gamma_[7];
+  mrac_phi_gamma[2] = p[2]*gamma_[2] + p[0]*gamma_[4] + p[1]*gamma_[5];
+
+  // mrac target torque result
+  ap::Vector3f mracControlVal = K2_*(e_ref_dot + K1_*e_ref);
+
+  for(int axis = 0; axis < 3; axis++) {
+    mrac_target_cog_torque_[axis] = -mrac_phi_gamma[axis]-mracControlVal[axis];
+    mrac_ref_model_msg_.data[axis] = rot_ref_[axis];
+  }
+
+  // limit yaw torque
+  mrac_target_cog_torque_[Z] = limit(mrac_target_cog_torque_[Z], YAW_TORQUE_LIMIT);
+
+  // integral mrac parameter update
+  rot_ref_ = rot_ref_ + rot_ref_d_ * DELTA_T;
+  rot_ref_d_ = rot_ref_d_ + (k1m_*(rot_des - rot_ref_) + k2m_*(rot_des_d - rot_ref_d_)) * DELTA_T;
+  ap::Vector3f edotPlusK1e = e_ref_dot + K1_ * e_ref;
+  float gamma_dot[8];
+  gamma_dot[0] = kappa_[0] * ( edotPlusK1e[0]*p[0] );
+  gamma_dot[1] = kappa_[1] * ( edotPlusK1e[1]*p[1] );
+  gamma_dot[2] = kappa_[2] * ( edotPlusK1e[2]*p[2] );
+  gamma_dot[3] = kappa_[3] * ( edotPlusK1e[0]*p[1] + edotPlusK1e[1]*p[0] );
+  gamma_dot[4] = kappa_[4] * ( edotPlusK1e[1]*p[2] + edotPlusK1e[2]*p[0] );
+  gamma_dot[5] = kappa_[5] * ( edotPlusK1e[0]*p[2] + edotPlusK1e[2]*p[1] );
+  gamma_dot[6] = kappa_[6] * ( edotPlusK1e[0] );
+  gamma_dot[7] = kappa_[7] * ( edotPlusK1e[1] );
+  for (int i=0; i<8 ; i++) {
+    gamma_[i] = gamma_[i] + (gamma_dot[i] -sigma_[i]*gamma_[i])* DELTA_T;
+    // make sure diagonal of inertia is positive
+    if (i<3) {
+      if (gamma_[i] < 0) {
+        gamma_[i] = 0;
+      }
+    }
+    mrac_gamma_msg_.data[i] = gamma_[i];
+  }
+
+  if (mrac_param_pub_control_ > mrac_log_rate_) {
+#ifdef SIMULATION
+    mrac_gamma_pub_.publish(mrac_gamma_msg_);
+    mrac_ref_model_pub_.publish(mrac_ref_model_msg_);
+#else
+    mrac_gamma_pub_.publish(&mrac_gamma_msg_);
+    mrac_ref_model_pub_.publish(&mrac_ref_model_msg_);
+#endif
+    mrac_param_pub_control_ = 0;
+  } else {
+    mrac_param_pub_control_++;
+  }
+}
+
+#ifdef SIMULATION
+bool AttitudeController::setMRACTriggerCallback(std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& res)
+#else
+void AttitudeController::setMRACTriggerCallback(const std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& res)
+#endif
+{
+  is_use_mrac_ = req.data;
+  if (is_use_mrac_) {
+    MRACinit();
+  }
+  res.success = true;
+#ifdef SIMULATION
+  return true;
+#endif
+}
+
+#ifdef SIMULATION
+bool AttitudeController::setMRACParamsCallback(spinal::SetMRACParams::Request& req, spinal::SetMRACParams::Response& res)
+#else
+void AttitudeController::setMRACParamsCallback(const spinal::SetMRACParams::Request& req, spinal::SetMRACParams::Response& res)
+#endif
+{
+  mrac_log_rate_ = req.log_rate;
+  for (int axis=0; axis<3 ; axis++) {
+    mrac_ratio_[axis] = req.mrac_ratio[axis];
+    k1m_[axis][axis] = req.k1m[axis];
+    k2m_[axis][axis] = req.k2m[axis];
+    K1_[axis][axis] = req.K1[axis];
+    K2_[axis][axis] = req.K2[axis];
+  }
+  for (int i=0; i<8 ; i++) {
+    kappa_[i] = req.kappa[i];
+    sigma_[i] = req.sigma[i];
+  }
+  attitude_p_ = req.attitude_p;
+  res.success = true;
+#ifdef SIMULATION
+  return true;
 #endif
 }
 
