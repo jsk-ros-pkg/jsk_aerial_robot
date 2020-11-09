@@ -446,6 +446,14 @@ void AttitudeController::reset(void)
 
 void AttitudeController::MRACinit(void) 
 {
+#ifndef SIMULATION
+  nh_->advertise(mrac_gamma_pub_);
+  nh_->advertise(mrac_ref_model_pub_);
+
+  nh_->advertiseService(mrac_trigger_srv_);
+  nh_->advertiseService(mrac_params_srv_);
+#endif
+
   mrac_log_rate_ = 20;
   mrac_ratio_[0] = 1; mrac_ratio_[1] = 1; mrac_ratio_[2] = 1;
   k1m_[0][0] = 500; k1m_[1][1] = 500; k1m_[2][2] = 0.2;
