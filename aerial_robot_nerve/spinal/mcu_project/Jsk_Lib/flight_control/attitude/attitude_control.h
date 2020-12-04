@@ -43,6 +43,7 @@
 #include <spinal/PMatrixPseudoInverseWithInertia.h>
 #include <spinal/TorqueAllocationMatrixInv.h>
 #include <spinal/SetMRACParams.h>
+#include <spinal/YawFromPC.h>
 
 #define MAX_PWM  54000
 #define IDLE_DUTY 0.5f
@@ -217,14 +218,15 @@ private:
   void reset(void);
 
 
-  // MRAC control
+  /* MRAC control */
 #define MATH_PI 3.141592f
 #define YAW_TORQUE_LIMIT 0.4f
   void MRACinit(void);
-  void MRACReset(void);
+  void MRACReset(ap::Vector3f angles=ap::Vector3f(), ap::Vector3f vel=ap::Vector3f());
   void MRACupdate(ap::Vector3f angles, ap::Vector3f vel);
 
   bool is_use_mrac_;
+  bool mrac_reset_flag_;
   int mrac_log_rate_;
   float mrac_target_cog_torque_[3];
   ap::Vector3f mrac_ratio_;
@@ -251,21 +253,16 @@ private:
   bool setMRACTriggerCallback(std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& res);
   ros::ServiceServer mrac_params_srv_;
   bool setMRACParamsCallback(spinal::SetMRACParams::Request& req, spinal::SetMRACParams::Response& res);
-  // ros::Subscriber target_psi_sub_;
-  // ros::Subscriber pc_psi_sub_;
+  ros::Subscriber yaw_from_pc_sub_;
 #else
   ros::ServiceServer<std_srvs::SetBool::Request, std_srvs::SetBool::Response, AttitudeController> mrac_trigger_srv_;
   void setMRACTriggerCallback(const std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& res);
   ros::ServiceServer<spinal::SetMRACParams::Request, spinal::SetMRACParams::Response, AttitudeController> mrac_params_srv_;
   void setMRACParamsCallback(const spinal::SetMRACParams::Request& req, spinal::SetMRACParams::Response& res);
-  // ros::Subscriber<std_msgs::Int16, AttitudeController> target_psi_sub_;
-  // ros::Subscriber<std_msgs::Float32, AttitudeController> pc_psi_sub_;
+  ros::Subscriber<apinal::YawFromPC, AttitudeController> yaw_from_pc_sub_;
 #endif
-  // void targetPsiCallback(const std_msgs::Int16& msg);
-  // void pcPsiCallback(const std_msgs::Float32& msg);
-  // bool target_psi_flag_;
-  // bool pc_psi_flag_;
-  // end of MRAC control
+  void yawFromPCallback(const spinal::YawFromPC& msg);
+  /* end of MRAC control */
 
 
   float limit(float input, float limit)

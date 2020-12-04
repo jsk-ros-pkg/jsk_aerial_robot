@@ -37,6 +37,7 @@ void AttitudeController::init(ros::NodeHandle* nh, StateEstimate* estimator)
   mrac_params_srv_ = nh_->advertiseService("set_mrac_params", &AttitudeController::setMRACParamsCallback, this);
   mrac_gamma_pub_ = nh_->advertise<std_msgs::Float32MultiArray>("mrac_gamma", 1);
   mrac_ref_model_pub_ = nh_->advertise<std_msgs::Float32MultiArray>("mrac_ref_model", 1);
+  yaw_from_pc_sub_ = nh_->subscribe("yaw_from_pc", 1, &AttitudeController::yawFromPCallback, this);
 
   baseInit();
 }
@@ -58,7 +59,8 @@ AttitudeController::AttitudeController():
   mrac_trigger_srv_("spinal_mrac_trigger", &AttitudeController::setMRACTriggerCallback, this),
   mrac_params_srv_("set_mrac_params", &AttitudeController::setMRACParamsCallback, this),
   mrac_gamma_pub_("mrac_gamma", &mrac_gamma_msg_),
-  mrac_ref_model_pub_("mrac_ref_model", &mrac_ref_model_msg_)
+  mrac_ref_model_pub_("mrac_ref_model", &mrac_ref_model_msg_),
+  yaw_from_pc_sub_("yaw_from_pc", &AttitudeController::yawFromPCallback, this)
 {
 }
 
@@ -97,9 +99,9 @@ void AttitudeController::init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2
   // mrac
   nh_->advertise(mrac_gamma_pub_);
   nh_->advertise(mrac_ref_model_pub_);
-
   nh_->advertiseService(mrac_trigger_srv_);
   nh_->advertiseService(mrac_params_srv_);
+  nh_->subscribe< ros::Subscriber<spinal::YawFromPC, AttitudeController> >(yaw_from_pc_sub_);
 
   baseInit();
 }
@@ -133,6 +135,8 @@ void AttitudeController::baseInit()
 
   control_term_pub_last_time_ = 0;
   control_feedback_state_pub_last_time_ = 0;
+
+  MRACinit();
 
   reset();
 }
@@ -338,11 +342,7 @@ void AttitudeController::update(void)
                   float mrac_term = mrac_target_cog_torque_[axis] * thrust_p_gain_[i][axis];
                   p_term = (1-mrac_ratio_[axis])*p_term + mrac_ratio_[axis] * mrac_term;
                   i_term = (1-mrac_ratio_[axis])*i_term;
-                  if (axis != Z) { 
-                    // TODO Yaw is not considered in MRAC right now
-                    // because target yaw and current yaw value is not transferred from pc
-                    d_term = (1-mrac_ratio_[axis])*d_term;
-                  }
+                  d_term = (1-mrac_ratio_[axis])*d_term;
                 }
 
                 if(axis == X)
@@ -444,6 +444,7 @@ void AttitudeController::reset(void)
 
   if (is_use_mrac_) {
     MRACReset();
+    mrac_reset_flag_ = true;
   }
 
 #ifdef SIMULATION
@@ -457,18 +458,16 @@ void AttitudeController::MRACinit(void)
   mrac_ratio_[0] = 1; mrac_ratio_[1] = 1; mrac_ratio_[2] = 1;
   k1m_[0][0] = 500; k1m_[1][1] = 500; k1m_[2][2] = 0.2;
   k2m_[0][0] = 200; k2m_[1][1] = 200; k2m_[2][2] = 0.8;
-  K1_[0][0] = 1; K1_[1][1] = 1; K1_[2][2] = 2;
-  K2_[0][0] = 2; K2_[1][1] = 2; K2_[2][2] = 2;
+  K1_[0][0] = 0.1; K1_[1][1] = 0.1; K1_[2][2] = 0.2;
+  K2_[0][0] = 0.8; K2_[1][1] = 0.8; K2_[2][2] = 0.8;
   kappa_[0] = 0.000001; kappa_[1] = 0.000001; kappa_[2] = 0.000001; kappa_[3] = 0.0000001; 
-  kappa_[4] = 0.0000001; kappa_[5] = 0.0000001; kappa_[6] = 2.; kappa_[7] = 2.; 
+  kappa_[4] = 0.0000001; kappa_[5] = 0.0000001; kappa_[6] = 0.1; kappa_[7] = 0.1; 
   sigma_[0] = 0.1; sigma_[1] = 0.1; sigma_[2] = 0.01; sigma_[3] = 0.1; 
   sigma_[4] = 0.1; sigma_[5] = 0.1; sigma_[6] = 0.0; sigma_[7] = 0.0; 
   for (int i=0; i<8 ; i++) { // initialize adaptive param
-    //kappa_[i] = 0;
-    //sigma_[i] = 0;
     gamma_[i] = 0;
   }
-  attitude_p_ = 1.0;
+  attitude_p_ = 0.1;
 #ifdef SIMULATION
   mrac_gamma_msg_.data.resize(8);
   mrac_ref_model_msg_.data.resize(3); // X, Y, Z
@@ -478,30 +477,36 @@ void AttitudeController::MRACinit(void)
   mrac_ref_model_msg_.data = (float*)malloc(sizeof(float)*3);
   mrac_ref_model_msg_.data_length = 3;
 #endif
-}
 
-void AttitudeController::MRACReset(void)
-{
-  // initialize adaptive param
-  for (int i=0; i<8 ; i++) {
-    gamma_[i] = 0;
-  }
   pc_psi_ = 0;
   target_angle_[Z] = 0;
-  mrac_param_pub_control_ = 0;
+  MRACReset();
+  mrac_reset_flag_ = true;
+}
+
+void AttitudeController::MRACReset(ap::Vector3f angles, ap::Vector3f vel)
+{
+  // initialize adaptive param
+  rot_ref_ = angles;
+  rot_ref_d_ = vel;
+
   for (int i = 0; i < 3; ++i) {
-    rot_ref_[i] = 0;
-    rot_ref_d_[i] = 0;
     mrac_target_cog_torque_[i]=0;
     mrac_ref_model_msg_.data[i]=0;
   }
   for (int i=0; i<8 ; i++) {
+    gamma_[i] = 0;
     mrac_gamma_msg_.data[i] = 0;
   }
+  mrac_param_pub_control_ = 0;
 }
 
 void AttitudeController::MRACupdate(ap::Vector3f angles, ap::Vector3f vel)
 {
+  if (mrac_reset_flag_) {
+    MRACReset(angles, vel);
+    mrac_reset_flag_ = false;
+  }
   ap::Vector3f e_ref = angles - rot_ref_;
   ap::Vector3f e_ref_dot = vel - rot_ref_d_;
   ap::Vector3f rot_des; rot_des[0]=target_angle_[0]; rot_des[1]=target_angle_[1];
@@ -595,7 +600,7 @@ void AttitudeController::setMRACTriggerCallback(const std_srvs::SetBool::Request
 {
   is_use_mrac_ = req.data;
   if (is_use_mrac_) {
-    MRACinit();
+    mrac_reset_flag_ = true;
   }
   res.success = true;
 #ifdef SIMULATION
@@ -626,6 +631,12 @@ void AttitudeController::setMRACParamsCallback(const spinal::SetMRACParams::Requ
 #ifdef SIMULATION
   return true;
 #endif
+}
+
+void AttitudeController::yawFromPCallback(const spinal::YawFromPC& msg)
+{
+  pc_psi_ = msg.pc_yaw;
+  target_angle_[Z] = msg.target_yaw;
 }
 
 void AttitudeController::fourAxisCommandCallback( const spinal::FourAxisCommand &cmd_msg)

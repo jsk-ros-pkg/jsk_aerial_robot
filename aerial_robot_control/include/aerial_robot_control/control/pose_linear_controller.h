@@ -42,6 +42,7 @@
 #include <aerial_robot_msgs/PoseControlPid.h>
 #include <angles/angles.h>
 #include <dynamic_reconfigure/server.h>
+#include <spinal/YawFromPC.h>
 
 using PidControlDynamicConfig = dynamic_reconfigure::Server<aerial_robot_control::PidControlConfig>;
 
@@ -73,6 +74,9 @@ namespace aerial_robot_control
     std::vector<PID> pid_controllers_;
     std::vector<boost::shared_ptr<PidControlDynamicConfig> > pid_reconf_servers_;
     aerial_robot_msgs::PoseControlPid pid_msg_;
+
+    ros::Publisher yaw_from_pc_pub_;
+    spinal::YawFromPC yaw_from_pc_msg_;
 
     bool need_yaw_d_control_;
     bool start_rp_integration_;

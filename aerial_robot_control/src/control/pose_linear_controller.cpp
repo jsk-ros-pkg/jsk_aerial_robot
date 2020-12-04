@@ -180,6 +180,7 @@ namespace aerial_robot_control
 
 
     pid_pub_ = nh_.advertise<aerial_robot_msgs::PoseControlPid>("debug/pose/pid", 10);
+    yaw_from_pc_pub_ = nh_.advertise<spinal::YawFromPC>("yaw_from_pc", 1);
   }
 
   void PoseLinearController::reset()
@@ -328,12 +329,16 @@ namespace aerial_robot_control
     pid_msg_.yaw.err_p = err_yaw;
     pid_msg_.yaw.target_d = target_omega_.z();
     pid_msg_.yaw.err_d = target_omega_.z() - omega_.z();
+
+    yaw_from_pc_msg_.pc_yaw = rpy_.z();
+    yaw_from_pc_msg_.target_yaw = target_rpy_.z();
   }
 
   void PoseLinearController::sendCmd()
   {
     /* ros publish */
     pid_pub_.publish(pid_msg_);
+    yaw_from_pc_pub_.publish(yaw_from_pc_msg_);
   }
 
   void PoseLinearController::cfgPidCallback(aerial_robot_control::PidControlConfig &config, uint32_t level, std::vector<int> controller_indices)
