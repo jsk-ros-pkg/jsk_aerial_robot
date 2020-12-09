@@ -16,8 +16,6 @@ STOP_STATE = 6
 
 class SpinalMRACTrigger:
     def __init__(self):
-        rospy.init_node('spinal_mrac_trigger', anonymous=True)
-
         self.flight_state_ = ARM_OFF_STATE
         self.prev_flight_state_ = ARM_OFF_STATE
 
@@ -44,29 +42,48 @@ class SpinalMRACTrigger:
         except rospy.ServiceException, e:
             print "Service call failed: %s"%e
 
+        # disable MRAC in the beginning 
+        self.spinalMRACTrigger(False)
+        self.takeoff_mrac_wait_time_ = rospy.get_param("~takeoff_wait_time", 20)
+        self.takeoff_time_ = rospy.get_time()
         rospy.Subscriber("flight_state", UInt8, self.flightStateCallback, queue_size=10)
 
     def flightStateCallback(self, msg):
         self.prev_flight_state_ = self.flight_state_
         self.flight_state_ = msg.data
 
-        if self.prev_flight_state_ == TAKEOFF_STATE and self.flight_state_ == HOVER_STATE:
+        if self.prev_flight_state_ == ARM_ON_STATE and self.flight_state_ == TAKEOFF_STATE:
+            self.takeoff_time_ = rospy.get_time()
+            self.spinalMRACTrigger(False)
+        elif self.prev_flight_state_ == TAKEOFF_STATE and self.flight_state_ == TAKEOFF_STATE:
+            if not self.is_using_mrac_ and rospy.get_time() - self.takeoff_time_ > self.takeoff_mrac_wait_time_:
+                self.spinalMRACTrigger(True)
+        elif self.prev_flight_state_ == TAKEOFF_STATE and self.flight_state_ == HOVER_STATE:
             # enable state change when start hovering
-            try:
-                resp = self.spinal_mrac_trigger_(True)
-            except rospy.ServiceException, e:
-                print "Service call failed: %s"%e
+            if not self.is_using_mrac_:
+                self.spinalMRACTrigger(True)
+        elif self.flight_state_ == LAND_STATE:
+            pass
         elif self.prev_flight_state_ != self.flight_state_:
             # disable MRAC on state change
-            try:
-                resp = self.spinal_mrac_trigger_(False)
-            except rospy.ServiceException, e:
-                print "Service call failed: %s"%e
+            self.spinalMRACTrigger(False)
+
+    def spinalMRACTrigger(self, trigger):
+        try:
+            resp = self.spinal_mrac_trigger_(trigger)
+            self.is_using_mrac_ = trigger 
+            if trigger:
+                rospy.loginfo("MRAC: Triggering %r to spinal", trigger)
+        except rospy.ServiceException, e:
+            print "Service call failed: %s"%e
 
 if __name__ == '__main__':
+    rospy.init_node('spinal_mrac_trigger', anonymous=True)
+    enable_MRAC = rospy.get_param("~enable_MRAC")
+
     try:
-        spinal_mrac_trigger= SpinalMRACTrigger()
+        if enable_MRAC:
+            spinal_mrac_trigger= SpinalMRACTrigger()
         rospy.spin()
     except rospy.ROSInterruptException:
         pass
-

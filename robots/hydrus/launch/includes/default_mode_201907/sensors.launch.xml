@@ -32,6 +32,11 @@
     <rosparam file="$(find aerial_robot_base)/config/sensors/mocap.yaml" command="load" />
     <rosparam file="$(find aerial_robot_base)/config/sensors/altmeter/leddar_one.yaml" command="load" />
 
+    <node pkg="aerial_robot_control" type="spinal_mrac_trigger.py" name="spinal_mrac_trigger" output="screen">
+      <param name="enable_MRAC" type="bool" value="false"/>
+      <rosparam command="load" file="$(find hydrus)/config/quad/default_mode_201907/SpinalMRAC.yaml" />
+    </node>
+
   </group>
 
 </launch>
