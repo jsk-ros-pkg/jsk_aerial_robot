@@ -6,7 +6,7 @@
 
   <maintainer email="chou@jsk.imi.i.u-tokyo.ac.jp">Bakui Chou</maintainer>
   <license>BSD</license>
-  <url type="website">https://github.com/tongtybj/aerial_robot</url>
+  <url type="website">https://github.com/JSKAerialRobot/aerial_robot</url>
   <author email="chou@jsk.imi.i.u-tokyo.ac.jp">Bakui Chou</author>
 
   <buildtool_depend>catkin</buildtool_depend>

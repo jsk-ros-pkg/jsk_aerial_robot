@@ -21,8 +21,8 @@
 ## 2. tele-operation
    **note**: after the robot completely transforms to normal form
 
-   - **keyboard**: please check instruction [wiki](https://github.com/tongtybj/aerial_robot/wiki/keyboard_operation)
-   - **joystick**: please check instruction [wiki](https://github.com/tongtybj/aerial_robot/wiki/joystick_operation)
+   - **keyboard**: please check instruction [wiki](https://github.com/JSKAerialRobot/aerial_robot/wiki/keyboard_operation)
+   - **joystick**: please check instruction [wiki](https://github.com/JSKAerialRobot/aerial_robot/wiki/joystick_operation)
    
 ## 3. transformation demostration
    **note**: after the robot completely hovering with the message `Hovering!`
