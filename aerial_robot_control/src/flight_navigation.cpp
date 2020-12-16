@@ -230,6 +230,7 @@ void BaseNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & ms
       {
         /* should be in COG frame */
         xy_control_mode_ = ACC_CONTROL_MODE;
+	prev_xy_control_mode_ = ACC_CONTROL_MODE;
         switch(msg->control_frame)
           {
           case WORLD_FRAME:
