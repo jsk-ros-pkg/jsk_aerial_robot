@@ -213,15 +213,15 @@ class ControlTest(unittest.TestCase):
     def test_control(self):
         # step1: check the init form convergence
         init_form_checker = InitFormCheck()
-        assert init_form_checker.initFormCheck(), 'Cannot reach convergence for initial form'
+        self.assertTrue(init_form_checker.initFormCheck(), msg = 'Cannot reach convergence for initial form')
 
         # steup2: check hovering
         hovering_checker = HoveringCheck()
-        assert hovering_checker.hoveringCheck(), 'Cannot reach convergence for hovering'
+        self.assertTrue(hovering_checker.hoveringCheck(), msg = 'Cannot reach convergence for hovering')
 
         # steup3: check transformation
         transform_checker = TransformCheck()
-        assert transform_checker.transformCheck(), 'Cannot reach convergence for hovering'
+        self.assertTrue(transform_checker.transformCheck(), msg = 'Cannot reach convergence for hovering')
 
 
 if __name__ == '__main__':

@@ -110,7 +110,7 @@ class HoveringTest(unittest.TestCase):
     def test_hovering(self):
         rospy.sleep(self.hovering_delay)
         checker = HoveringCheck()
-        assert checker.hoveringCheck(), 'Cannot reach convergence'
+        self.assertTrue(checker.hoveringCheck(), msg='Cannot reach convergence')
 
 if __name__ == '__main__':
     print("start check hovering")
