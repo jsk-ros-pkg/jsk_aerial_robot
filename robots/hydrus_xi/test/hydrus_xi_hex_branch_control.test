@@ -22,7 +22,7 @@
   </test>
 
   <!-- 2. control -->
-  <test test-name="control_test" pkg="hydrus" type="control_check.py"  name="control_test" ns="$(arg robot_ns)"  time-limit="180" retry="1">
+  <test test-name="control_test" pkg="hydrus" type="control_check.py"  name="control_test" ns="$(arg robot_ns)"  time-limit="180" retry="3">
     <rosparam>
       init_joint_names: ['joint1', 'joint2', 'joint3', 'joint4', 'joint5', 'joint6']
       init_joint_angles: [0, 0, 0, 0, 0, 0]

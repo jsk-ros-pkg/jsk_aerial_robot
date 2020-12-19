@@ -4,48 +4,48 @@ Changelog for package dragon
 
 1.2.0 (2020-05-31)
 ------------------
-* Refactor aeiral_robot_base (`#406 <https://github.com/tongtybj/aerial_robot/issues/406>`_)
-* Fix bugs  (`#404 <https://github.com/tongtybj/aerial_robot/issues/404>`_)
-* Implement several extra control methods for dragon (`#401 <https://github.com/tongtybj/aerial_robot/issues/401>`_)
-* Add robot namespace for whole system (`#399 <https://github.com/tongtybj/aerial_robot/issues/399>`_)
-* Refactor aerial_robot_model/transformable_aerial_robot_model and implment Jacobians (`#398 <https://github.com/tongtybj/aerial_robot/issues/398>`_)
-* Refactor Gazebo system (`#391 <https://github.com/tongtybj/aerial_robot/issues/391>`_)
+* Refactor aeiral_robot_base (`#406 <https://github.com/JSKAerialRobot/aerial_robot/issues/406>`_)
+* Fix bugs  (`#404 <https://github.com/JSKAerialRobot/aerial_robot/issues/404>`_)
+* Implement several extra control methods for dragon (`#401 <https://github.com/JSKAerialRobot/aerial_robot/issues/401>`_)
+* Add robot namespace for whole system (`#399 <https://github.com/JSKAerialRobot/aerial_robot/issues/399>`_)
+* Refactor aerial_robot_model/transformable_aerial_robot_model and implment Jacobians (`#398 <https://github.com/JSKAerialRobot/aerial_robot/issues/398>`_)
+* Refactor Gazebo system (`#391 <https://github.com/JSKAerialRobot/aerial_robot/issues/391>`_)
 
 1.1.1 (2020-04-19)
 ------------------
-* Modify README.md of dragon (`#394 <https://github.com/tongtybj/aerial_robot/issues/394>`_)
-* Make the altitude control in landing phase safer (`#378 <https://github.com/tongtybj/aerial_robot/issues/378>`_)
-* GPS latitude/longitude waypoint (`#370 <https://github.com/tongtybj/aerial_robot/issues/370>`_)
+* Modify README.md of dragon (`#394 <https://github.com/JSKAerialRobot/aerial_robot/issues/394>`_)
+* Make the altitude control in landing phase safer (`#378 <https://github.com/JSKAerialRobot/aerial_robot/issues/378>`_)
+* GPS latitude/longitude waypoint (`#370 <https://github.com/JSKAerialRobot/aerial_robot/issues/370>`_)
 
 
 1.1.0 (2020-01-06)
 ------------------
-* Implementation for tilted Hydrus model (`#363 <https://github.com/tongtybj/aerial_robot/issues/363>`_)
+* Implementation for tilted Hydrus model (`#363 <https://github.com/JSKAerialRobot/aerial_robot/issues/363>`_)
 * Implement robot model and transform control (lqi gain generator) for tilted hydrus model.
-* Improve pwm saturation measures (`#362 <https://github.com/tongtybj/aerial_robot/issues/362>`_)
-* Correct rosbag record script (`#354 <https://github.com/tongtybj/aerial_robot/issues/354>`_)
-* Enable Kalman Filter based IMU-Mocap estimation for Dragon (`#350 <https://github.com/tongtybj/aerial_robot/issues/350>`_)
-* Add API to access private members in transformable_aerial_robot_model (`#285 <https://github.com/tongtybj/aerial_robot/issues/285>`_)
-* Add rostest (`#337 <https://github.com/tongtybj/aerial_robot/issues/337>`_)
+* Improve pwm saturation measures (`#362 <https://github.com/JSKAerialRobot/aerial_robot/issues/362>`_)
+* Correct rosbag record script (`#354 <https://github.com/JSKAerialRobot/aerial_robot/issues/354>`_)
+* Enable Kalman Filter based IMU-Mocap estimation for Dragon (`#350 <https://github.com/JSKAerialRobot/aerial_robot/issues/350>`_)
+* Add API to access private members in transformable_aerial_robot_model (`#285 <https://github.com/JSKAerialRobot/aerial_robot/issues/285>`_)
+* Add rostest (`#337 <https://github.com/JSKAerialRobot/aerial_robot/issues/337>`_)
 
 1.0.4 (2019-05-23)
 ------------------
-* Add actuator limit in servo_bridge (`#287 <https://github.com/tongtybj/aerial_robot/issues/287>`_)
-* Refactor the function "DragonRobotModel::updateRobotModelImpl" (`#284 <https://github.com/tongtybj/aerial_robot/issues/284>`_)
-* Add low pass filter function in servo bridge (`#289 <https://github.com/tongtybj/aerial_robot/issues/289>`_)
-* Update the configuration for dragon quad type (`#277 <https://github.com/tongtybj/aerial_robot/issues/277>`_)
+* Add actuator limit in servo_bridge (`#287 <https://github.com/JSKAerialRobot/aerial_robot/issues/287>`_)
+* Refactor the function "DragonRobotModel::updateRobotModelImpl" (`#284 <https://github.com/JSKAerialRobot/aerial_robot/issues/284>`_)
+* Add low pass filter function in servo bridge (`#289 <https://github.com/JSKAerialRobot/aerial_robot/issues/289>`_)
+* Update the configuration for dragon quad type (`#277 <https://github.com/JSKAerialRobot/aerial_robot/issues/277>`_)
 
 1.0.3 (2019-01-08)
 ------------------
-* Add launch_gazebo flag to bringup files (`#265 <https://github.com/tongtybj/aerial_robot/issues/265>`_)
-* Refactor the sensor plugins which uses `new Kalman Filter version <https://github.com/tongtybj/kalman_filter/tree/f7efb4d72131c02bf1632c6e4b400e2aeda60358>`_  (`#262 <https://github.com/tongtybj/aerial_robot/issues/262>`_
-* Add torque (effort) publishing process from Spinal (`#254 <https://github.com/tongtybj/aerial_robot/issues/254>`_)
+* Add launch_gazebo flag to bringup files (`#265 <https://github.com/JSKAerialRobot/aerial_robot/issues/265>`_)
+* Refactor the sensor plugins which uses `new Kalman Filter version <https://github.com/JSKAerialRobot/kalman_filter/tree/f7efb4d72131c02bf1632c6e4b400e2aeda60358>`_  (`#262 <https://github.com/JSKAerialRobot/aerial_robot/issues/262>`_
+* Add torque (effort) publishing process from Spinal (`#254 <https://github.com/JSKAerialRobot/aerial_robot/issues/254>`_)
 
 1.0.2 (2018-11-24)
 ------------------
-* Remove old simulation servo bridge config file, and update the integrated servo config file (`#230 <https://github.com/tongtybj/aerial_robot/issues/230>`_)
-* Add the gimbal vectoring test based on the desired tilt (`#229 <https://github.com/tongtybj/aerial_robot/issues/229>`_)
-* Remove the unecessary vel feed-back state approximation for CoG control in gazebo simulation situation (`#218 <https://github.com/tongtybj/aerial_robot/issues/218>`_)
+* Remove old simulation servo bridge config file, and update the integrated servo config file (`#230 <https://github.com/JSKAerialRobot/aerial_robot/issues/230>`_)
+* Add the gimbal vectoring test based on the desired tilt (`#229 <https://github.com/JSKAerialRobot/aerial_robot/issues/229>`_)
+* Remove the unecessary vel feed-back state approximation for CoG control in gazebo simulation situation (`#218 <https://github.com/JSKAerialRobot/aerial_robot/issues/218>`_)
 
 1.0.1 (2018-11-05)
 ------------------

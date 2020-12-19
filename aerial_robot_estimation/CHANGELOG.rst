@@ -4,8 +4,8 @@ Changelog for package aerial_robot_estimation
 
 1.2.0 (2020-05-31)
 ------------------
-* Refactor aerial_robot_base and aerial_robot_estimation (`#406 <https://github.com/tongtybj/aerial_robot/issues/406>`_)
-* Add robot namespace for whole system  (`#399 <https://github.com/tongtybj/aerial_robot/issues/399>`_)
+* Refactor aerial_robot_base and aerial_robot_estimation (`#406 <https://github.com/JSKAerialRobot/aerial_robot/issues/406>`_)
+* Add robot namespace for whole system  (`#399 <https://github.com/JSKAerialRobot/aerial_robot/issues/399>`_)
 
 1.1.1 (2020-04-19)
 ------------------

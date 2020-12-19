@@ -157,7 +157,7 @@ class TransformCheck(InitFormCheck, HoveringCheck):
 
                 # check the control stability
                 if err_xy > task['threshold'][0] or math.fabs(err_z) > task['threshold'][1] or math.fabs(err_yaw) > task['threshold'][2]:
-                    rospy.logwarn("devergence in [xy, z, yaw]: [% (%f, %f), %f, %f, %f]", err_xy, err_x, err_y, err_z, err_yaw)
+                    rospy.logwarn("devergence in [xy, z, yaw]: [%f (%f, %f), %f, %f]", err_xy, err_x, err_y, err_z, err_yaw)
                     if node_pid:
                         node_pid.kill()
                     return False
@@ -213,15 +213,15 @@ class ControlTest(unittest.TestCase):
     def test_control(self):
         # step1: check the init form convergence
         init_form_checker = InitFormCheck()
-        assert init_form_checker.initFormCheck(), 'Cannot reach convergence for initial form'
+        self.assertTrue(init_form_checker.initFormCheck(), msg = 'Cannot reach convergence for initial form')
 
         # steup2: check hovering
         hovering_checker = HoveringCheck()
-        assert hovering_checker.hoveringCheck(), 'Cannot reach convergence for hovering'
+        self.assertTrue(hovering_checker.hoveringCheck(), msg = 'Cannot reach convergence for hovering')
 
         # steup3: check transformation
         transform_checker = TransformCheck()
-        assert transform_checker.transformCheck(), 'Cannot reach convergence for hovering'
+        self.assertTrue(transform_checker.transformCheck(), msg = 'Cannot reach convergence for hovering')
 
 
 if __name__ == '__main__':
