@@ -50,7 +50,7 @@ namespace aerial_robot_control
         const double p_gain = 0, const double i_gain = 0, const double d_gain = 0,
         const double limit_sum = 1e6, const double limit_p = 1e6, const double limit_i = 1e6, const double limit_d = 1e6,
         const double limit_err_p = 1e6, const double limit_err_i = 1e6, const double limit_err_d = 1e6):
-      name_(name), result_(0), err_p_(0), err_i_(0), err_d_(0),
+      name_(name), result_(0), err_p_(0), err_i_(0), err_i_prev_(0), err_d_(0),
       target_p_(0), target_d_(0), val_p_(0), val_d_(0),
       p_term_(0), i_term_(0), d_term_(0)
     {
@@ -63,6 +63,7 @@ namespace aerial_robot_control
     virtual void update(const double err_p, const double du, const double err_d, const double feedforward_term = 0)
     {
       err_p_ = clamp(err_p, -limit_err_p_, limit_err_p_);
+      err_i_prev_ = err_i_;
       err_i_ = clamp(err_i_ + err_p_ * du, -limit_err_i_, limit_err_i_);
       err_d_ = clamp(err_d, -limit_err_d_, limit_err_d_);
 
@@ -75,7 +76,11 @@ namespace aerial_robot_control
 
     const double result() const { return result_; }
 
-    void reset() { err_i_ = 0;}
+    void reset()
+    {
+      err_i_ = 0;
+      err_i_prev_ = 0;
+    }
 
     const double& getPGain() const { return p_gain_; }
     const double& getIGain() const { return i_gain_; }
@@ -118,6 +123,7 @@ namespace aerial_robot_control
     const std::string getName() const { return name_;}
     const double& getErrP() const { return err_p_; }
     const double& getErrI() const { return err_i_; }
+    const double& getPrevErrI() const { return err_i_prev_; }
     const double& getErrD() const { return err_d_; }
     void setErrP(const double err_p) { err_p_ = err_p; }
     void setErrI(const double err_i) { err_i_ = err_i; }
@@ -132,7 +138,7 @@ namespace aerial_robot_control
     double result_;
     double p_gain_, i_gain_, d_gain_;
     double p_term_, i_term_, d_term_;
-    double err_p_, err_i_, err_d_;
+    double err_p_, err_i_, err_i_prev_, err_d_;
     double limit_sum_, limit_p_, limit_i_, limit_d_;
     double limit_err_p_, limit_err_i_, limit_err_d_;
     double target_p_, target_d_;

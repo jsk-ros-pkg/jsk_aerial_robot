@@ -59,6 +59,8 @@ namespace aerial_robot_control
     target_base_thrust_.resize(motor_num_);
 
     pid_msg_.z.total.resize(motor_num_);
+    z_limit_ = pid_controllers_.at(Z).getLimitSum();
+    pid_controllers_.at(Z).setLimitSum(1e6); // do not clamp the sum of PID terms for z axis
 
     rpy_gain_pub_ = nh_.advertise<spinal::RollPitchYawTerms>("rpy/gain", 1);
     flight_cmd_pub_ = nh_.advertise<spinal::FourAxisCommand>("four_axes/command", 1);
@@ -113,10 +115,10 @@ namespace aerial_robot_control
      // constraint z (also  I term)
     int index;
     double max_term = target_thrust_z_term.cwiseAbs().maxCoeff(&index);
-    double residual = max_term - pid_controllers_.at(Z).getLimitSum();
+    double residual = max_term - z_limit_;
     if(residual > 0)
       {
-        pid_controllers_.at(Z).setErrI(pid_controllers_.at(Z).getErrI() - residual / q_mat_inv_(index, Z) / pid_controllers_.at(Z).getIGain());
+        pid_controllers_.at(Z).setErrI(pid_controllers_.at(Z).getPrevErrI());
         target_thrust_z_term *= (1 - residual / max_term);
       }
 
