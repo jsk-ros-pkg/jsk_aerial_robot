@@ -1,7 +1,7 @@
 #include <ros/ros.h>
 #include <fstream>
+#include <geometry_msgs/WrenchStamped.h>
 #include <string>
-#include <std_msgs/Int32MultiArray.h>
 #include <std_msgs/UInt16.h>
 #include <std_msgs/Float32.h>
 #include <std_msgs/Empty.h>
@@ -35,13 +35,13 @@ public:
 
     std::string topic_name;
     nhp_.param("force_sensor_sub_name", topic_name, std::string("forces"));
-    force_snesor_sub_ = nh_.subscribe<std_msgs::Int32MultiArray>(topic_name, 1, &MotorTest::forceSensorCallback, this, ros::TransportHints().tcpNoDelay());
+    force_snesor_sub_ = nh_.subscribe(topic_name, 1, &MotorTest::forceSensorCallback, this, ros::TransportHints().tcpNoDelay());
     nhp_.param("power_info_sub_name", topic_name, std::string("power_info"));
-    power_info_sub_ = nh_.subscribe<takasako_sps::PowerInfo>(topic_name, 1, &MotorTest::powerInfoCallback, this, ros::TransportHints().tcpNoDelay());
+    power_info_sub_ = nh_.subscribe(topic_name, 1, &MotorTest::powerInfoCallback, this, ros::TransportHints().tcpNoDelay());
     nhp_.param("motor_pwm_sub_name", topic_name, std::string("power_pwm"));
     motor_pwm_pub_ = nh_.advertise<std_msgs::Float32>(topic_name,1);
 
-    start_cmd_sub_ =  nh_.subscribe<std_msgs::Empty>("start_log_cmd", 1,  &MotorTest::startCallback, this, ros::TransportHints().tcpNoDelay());
+    start_cmd_sub_ =  nh_.subscribe("start_log_cmd", 1,  &MotorTest::startCallback, this, ros::TransportHints().tcpNoDelay());
     sps_on_pub_ = nh.advertise<std_msgs::Empty>("/power_on_cmd", 1);
 
     ROS_WARN("run: %f, raise: %f, brake: %f", run_duration_, raise_duration_, brake_duration_);
@@ -54,7 +54,7 @@ public:
       }
     else
       {
-        ROS_ERROR("Failed to call service add_two_ints");
+        ROS_ERROR("Failed to call service /cfs_sensor_calib");
       }
 
     sps_on_pub_.publish(std_msgs::Empty());
@@ -113,22 +113,22 @@ private:
     currency_ = msg->currency;
   }
 
-  void forceSensorCallback(const std_msgs::Int32MultiArrayConstPtr & msg)
+  void forceSensorCallback(const geometry_msgs::WrenchStampedConstPtr & msg)
   {
     if(!start_flag_) return;
 
-    float force_norm = sqrt(msg->data[0]*msg->data[0] +
-                            msg->data[1]*msg->data[1] +
-                            msg->data[2]*msg->data[2]);
+    double force_norm = sqrt(msg->wrench.force.x * msg->wrench.force.x +
+                             msg->wrench.force.y * msg->wrench.force.y +
+                             msg->wrench.force.z * msg->wrench.force.z);
 
     ofs_ << pwm_value_ << " "
-        << msg->data[0] << " "
-        << msg->data[1] << " "
-        << msg->data[2] << " "
+        << msg->wrench.force.x << " "
+        << msg->wrench.force.y << " "
+        << msg->wrench.force.z << " "
         << force_norm << " "
-        << msg->data[3] << " "
-        << msg->data[4] << " "
-        << msg->data[5] << " "
+        << msg->wrench.torque.x << " "
+        << msg->wrench.torque.y << " "
+        << msg->wrench.torque.z << " "
         << currency_;
 
     if(test_mode_ == Mode::ONESHOT)

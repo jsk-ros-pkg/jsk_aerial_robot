@@ -598,7 +598,6 @@ void AttitudeController::maxYawGainIndex()
 void AttitudeController::pwmTestCallback(const std_msgs::Float32& pwm_msg)
 {
   pwm_test_flag_ = true;
-  start_control_flag_ = true;
   pwm_test_value_ = pwm_msg.data; //2000ms
 }
 
@@ -742,6 +741,15 @@ void AttitudeController::pwmConversion()
       return target_pwm / 100; // target_pwm is [%]
     };
 
+  if(pwm_test_flag_) /* motor pwm test */
+    {
+      for(int i = 0; i < MAX_MOTOR_NUMBER; i++)
+        {
+          target_pwm_[i] = pwm_test_value_;
+        }
+      return;
+    }
+
   if(motor_info_.size() == 0) return;
 
   /* update the factor regarding the robot voltage */
@@ -883,9 +891,6 @@ void AttitudeController::pwmConversion()
           /* constraint */
           if(target_pwm_[i] < min_duty_) target_pwm_[i]  = min_duty_;
           else if(target_pwm_[i]  > max_duty_) target_pwm_[i]  = max_duty_;
-
-          /* motor pwm test */
-          if(pwm_test_flag_) target_pwm_[i] = pwm_test_value_;
         }
 
       /* for ros */
