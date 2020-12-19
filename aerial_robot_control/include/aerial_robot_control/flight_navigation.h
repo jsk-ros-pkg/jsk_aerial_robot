@@ -473,16 +473,26 @@ namespace aerial_robot_navigation
       tf::Vector3 pos_cog = estimator_->getPos(Frame::COG, estimate_mode_);
       target_pos_.setX(pos_cog.x());
       target_pos_.setY(pos_cog.y());
+
+      // set the velocty to zero
+      target_vel_.setX(0);
+      target_vel_.setY(0);
     }
 
     void setTargetZFromCurrentState()
     {
       target_pos_.setZ(estimator_->getPos(Frame::COG, estimate_mode_).z());
+
+      // set the velocty to zero
+      target_vel_.setZ(0);
     }
 
     void setTargetYawFromCurrentState()
     {
       target_rpy_.setZ(estimator_->getState(State::YAW_COG, estimate_mode_)[0]);
+
+      // set the velocty to zero
+      target_omega_.setZ(0);
     }
 
     template<class T> void getParam(ros::NodeHandle nh, std::string param_name, T& param, T default_value)
