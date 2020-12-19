@@ -21,7 +21,7 @@
   </test>
 
   <!-- 2. control -->
-  <test test-name="control_test" pkg="hydrus" type="control_check.py"  name="control_test" ns="$(arg robot_ns)" time-limit="180" retry="1">
+  <test test-name="control_test" pkg="hydrus" type="control_check.py"  name="control_test" ns="$(arg robot_ns)" time-limit="180" retry="3">
     <rosparam>
       hovering_duration: 30.0
       convergence_thresholds: [0.02, 0.02, 0.02] # hovering threshold
