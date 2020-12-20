@@ -51,6 +51,7 @@
 
     ###########  Control  ###########
     <rosparam file="$(arg config_dir)/control/FullVectoringControlConfig.yaml" command="load" if="$(arg full_vectoring_mode)"/>
+    <param name = "controller/rotor_interfere_compensate" value = "false" unless = "$(arg real_machine)" />
     <rosparam file="$(arg config_dir)/control/LQIGimbalControlConfig.yaml" command="load" unless="$(arg full_vectoring_mode)"/>
 
     ###########  Navigation ###########
