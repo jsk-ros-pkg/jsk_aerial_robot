@@ -67,8 +67,6 @@ class InitFormCheck():
         # check convergence
         joint_angles = [self.joint_msg.position[i] for i in self.joint_map]
 
-        print joint_angles
-        print self.init_joint_angles
         angles_diff = [math.fabs(x - y) < self.angle_threshold for (x, y) in zip(self.init_joint_angles, joint_angles)]
         rospy.loginfo('joint angles convergence: %s: %s' %  (self.init_joint_names, angles_diff))
         if reduce(operator.mul, angles_diff):
@@ -94,20 +92,21 @@ class TransformCheck(InitFormCheck, HoveringCheck):
         self.joint_ctrl_sub = rospy.Subscriber('joints_ctrl', JointState, self._jointCtrlCallback)
         self.joint_ctrl_pub = rospy.Publisher('joints_ctrl', JointState, queue_size=1)
 
+        self.target_joint_angles = self.init_joint_angles
+
     def transformCheck(self):
         rospy.sleep(0.5)
 
         for param in self.params:
             index = self.params.index(param) + 1
             print "start task%d" % index
-            task = {'timeout': 10.0, 'threshold': [0.01, 0.01, 0.01], 'angle_threshold': [0.01], 'reset': self.init_joint_angles, 'reset_duration': 10.0}
+            task = {'timeout': 10.0, 'threshold': [0.01, 0.01, 0.01], 'angle_threshold': [0.01], 'reset': None, 'reset_duration': 10.0}
 
             task.update(param)
 
             print task
 
             deadline = rospy.Time.now() + rospy.Duration(task['timeout'])
-            print task['command']
 
             node_pid = None
             if isinstance(task['command'], list):
@@ -124,7 +123,7 @@ class TransformCheck(InitFormCheck, HoveringCheck):
                 print "string command"
                 # the rosrun command (TODO, the roslaunch)
                 node_command = shlex.split(task['command'])
-                assert node_command[0] == 'rosrun', 'please use rosrun command'
+                assert node_command[0] == 'rosrun' or node_command[0] == 'rostopic', 'please use rosrun command'
                 # start the rosnode
                 node_pid = subprocess.Popen(node_command)
 
@@ -171,7 +170,7 @@ class TransformCheck(InitFormCheck, HoveringCheck):
             joint_angles = [self.joint_msg.position[i] for i in self.joint_map]
             angles_diff = [math.fabs(x - y) < task['angle_threshold'] for (x, y) in zip(self.target_joint_angles, joint_angles)]
             if not reduce(operator.mul, angles_diff):
-                rospy.logwarn('angles diff is devergent: %s: %s' %  (self.init_joint_names, [(x - y) for (x,y) in zip(self.init_joint_angles, joint_angles)]))
+                rospy.logwarn('angles diff is devergent: %s: %s' %  (self.init_joint_names, [(x - y) for (x,y) in zip(self.target_joint_angles, joint_angles)]))
                 # cannot be convergent
                 return False
 
@@ -186,23 +185,31 @@ class TransformCheck(InitFormCheck, HoveringCheck):
                 joint_ctrl_msg.header.stamp = rospy.Time.now()
                 joint_ctrl_msg.position = self.target_joint_angles
                 self.joint_ctrl_pub.publish(joint_ctrl_msg)
-            else:
+
+                rospy.sleep(task['reset_duration'])
+                rospy.loginfo("reset the form")
+
+            elif isinstance(task['reset'], str):
                 # the rosrun command (TODO, the roslaunch)
                 node_command = shlex.split(task['reset'])
                 assert node_command[0] == 'rosrun', 'please use rosrun command'
                 # start the rosnode
                 node_pid = subprocess.Popen(node_command)
 
-            rospy.sleep(task['reset_duration'])
-            rospy.loginfo("reset the form")
+                rospy.sleep(task['reset_duration'])
+                rospy.loginfo("reset the form")
 
-            if node_pid:
                 node_pid.kill()
 
         return True
 
     def _jointCtrlCallback(self, msg):
-        self.target_joint_angles = msg.position
+        if len(msg.position) == len(self.target_joint_angles):
+            self.target_joint_angles = msg.position
+        else:
+            for i, postion in enumerate(msg.position):
+                index = self.init_joint_names.index(msg.name[i])
+                self.target_joint_angles[index] = msg.position[i]
 
 
 class ControlTest(unittest.TestCase):
