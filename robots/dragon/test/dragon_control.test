@@ -8,7 +8,7 @@
     <arg name="real_machine" value="False" />
     <arg name="simulation" value="True" />
     <arg name="robot_id" value="$(arg robot_id)"/>
-    <arg name="full_vectoring_mode"  value= "$(arg full_vectoring_mode)" />
+    <arg name="full_vectoring_mode"  value= "true" />
     <arg name="headless" value="$(arg headless)" />
   </include>
 
@@ -43,7 +43,7 @@
           reset: "rosrun dragon transformation_demo.py _mode:=0 _reset:=1"
           reset_duration: 10
         - command: "rosrun dragon transformation_demo.py _mode:=2 _reset:=0"
-          threshold: [0.15, 0.08, 0.12]
+          threshold: [0.15, 0.08, 0.15]
           angle_threshold: 0.02
           timeout: 15
           reset: "rosrun dragon transformation_demo.py _mode:=0 _reset:=1"

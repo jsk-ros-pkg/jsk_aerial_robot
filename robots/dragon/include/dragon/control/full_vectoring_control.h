@@ -45,6 +45,7 @@
 #include <tf_conversions/tf_eigen.h>
 #include <dragon/sensor/imu.h>
 #include <visualization_msgs/MarkerArray.h>
+#include <nlopt.hpp>
 
 namespace aerial_robot_control
 {
@@ -63,6 +64,22 @@ namespace aerial_robot_control
                     boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
                     boost::shared_ptr<aerial_robot_navigation::BaseNavigator> navigator,
                     double ctrl_loop_rate) override;
+
+    const boost::shared_ptr<Dragon::FullVectoringRobotModel> getDragonRobotModel() const { return dragon_robot_model_;}
+    const boost::shared_ptr<aerial_robot_model::RobotModel> getRobotModelForControl() const { return robot_model_for_control_;}
+
+    const Eigen::VectorXd getTargetWrenchAccCog()
+    {
+      std::lock_guard<std::mutex> lock(wrench_mutex_);
+      return target_wrench_acc_cog_;
+    }
+
+    void reset() override;
+
+    // only for read
+    const std::vector<int>& getRollLockedGimbal() const { return roll_locked_gimbal_; }
+    const std::vector<double>& getGimbalNominalAngles() const { return gimbal_nominal_angles_; }
+    const Eigen::Matrix3d& getNominalInertia() const { return nominal_inertia_; }
 
   private:
 
@@ -83,6 +100,12 @@ namespace aerial_robot_control
     double allocation_refine_threshold_;
     int allocation_refine_max_iteration_;
     Eigen::VectorXd target_wrench_acc_cog_;
+
+    /* nonlinear allocation for full vectoring  */
+    std::vector<double> prev_thrust_force_gimbal_angles_;
+    std::vector<double> gimbal_nominal_angles_;
+    std::vector<int> roll_locked_gimbal_;
+    Eigen::Matrix3d nominal_inertia_;
 
     /* external wrench */
     std::mutex wrench_mutex_;
@@ -114,13 +137,8 @@ namespace aerial_robot_control
     double overlap_dist_link_relax_thresh_;
     double overlap_dist_inter_joint_thresh_;
 
-
     void externalWrenchEstimate();
-    const Eigen::VectorXd getTargetWrenchAccCog()
-    {
-      std::lock_guard<std::mutex> lock(wrench_mutex_);
-      return target_wrench_acc_cog_;
-    }
+
     void setTargetWrenchAccCog(const Eigen::VectorXd target_wrench_acc_cog)
     {
       std::lock_guard<std::mutex> lock(wrench_mutex_);

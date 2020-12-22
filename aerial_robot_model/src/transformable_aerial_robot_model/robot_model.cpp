@@ -110,7 +110,15 @@ namespace aerial_robot_model {
     setCog(cog);
     mass_ = link_inertia.getMass();
 
+    setRootInertia(link_inertia.getRotationalInertia());
     setInertia((cog.Inverse() * link_inertia).getRotationalInertia());
+
+    // cog.Inverse() * link_inertia: 
+    // cog_offset_inertia << cog.p.y() * cog.p.y() + cog.p.z() * cog.p.z(), -cog.p.x() * cog.p.y(), -cog.p.x() * cog.p.z(),
+    //   -cog.p.x() * cog.p.y(), cog.p.x() * cog.p.x() + cog.p.z() * cog.p.z(), -cog.p.y() * cog.p.z(),
+    //   -cog.p.x() * cog.p.z(), -cog.p.y() * cog.p.z(), cog.p.x() * cog.p.x() + cog.p.y() * cog.p.y();
+    // ROS_INFO_STREAM("cog inertia1: \n" <<  aerial_robot_model::kdlToEigen(cog.M.Inverse()) *  (aerial_robot_model::kdlToEigen(link_inertia.getRotationalInertia()) - mass_ * cog_offset_inertia) * aerial_robot_model::kdlToEigen(cog.M));
+    // ROS_INFO_STREAM("cog inertia2: \n" << getInertia<Eigen::Matrix3d>());
     setCog2Baselink(cog.Inverse() * f_baselink);
 
     /* thrust point based on COG */

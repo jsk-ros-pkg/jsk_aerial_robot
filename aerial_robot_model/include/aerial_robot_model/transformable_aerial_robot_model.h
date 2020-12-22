@@ -206,6 +206,14 @@ namespace aerial_robot_model {
     Eigen::MatrixXd getSecondDerivativeRoot(std::string ref_frame, KDL::Vector offset = KDL::Vector::Zero());
     Eigen::VectorXd getHessian(std::string ref_frame, int joint_i, int joint_j, KDL::Vector offset = KDL::Vector::Zero());
 
+    void setRootInertia(const KDL::RotationalInertia inertia)
+    {
+      root_inertia_ = inertia;
+    }
+    const KDL::RotationalInertia& getRootInertia() const
+    {
+      return root_inertia_;
+    }
 
   private:
 
@@ -232,6 +240,7 @@ namespace aerial_robot_model {
     std::vector<int> link_joint_indices_; // index in KDL::JntArray
     std::vector<double> link_joint_lower_limits_, link_joint_upper_limits_;
     double link_length_;
+    KDL::RotationalInertia root_inertia_;
 
     double mass_;
     urdf::Model model_;
