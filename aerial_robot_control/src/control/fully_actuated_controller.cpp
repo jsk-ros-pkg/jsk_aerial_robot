@@ -125,10 +125,9 @@ namespace aerial_robot_control
     residual = max_term - pid_controllers_.at(Z).getLimitSum();
     if(residual > 0)
       {
-        pid_controllers_.at(Z).setErrI(pid_controllers_.at(Z).getErrI() - residual / q_mat_inv_(index, Z) / pid_controllers_.at(Z).getIGain());
+        pid_controllers_.at(Z).setErrI(pid_controllers_.at(Z).getPrevErrI());
         target_thrust_z_term *= (1 - residual / max_term);
       }
-
 
 
     for(int i = 0; i < motor_num_; i++)

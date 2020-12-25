@@ -16,6 +16,8 @@ void HydrusTiltedLQIController::initialize(ros::NodeHandle nh,
   pid_msg_.z.p_term.resize(1);
   pid_msg_.z.i_term.resize(1);
   pid_msg_.z.d_term.resize(1);
+  z_limit_ = pid_controllers_.at(Z).getLimitSum();
+  pid_controllers_.at(Z).setLimitSum(1e6); // do not clamp the sum of PID terms for z axis
 }
 
 void HydrusTiltedLQIController::controlCore()
@@ -38,10 +40,11 @@ void HydrusTiltedLQIController::controlCore()
   // constraint z (also  I term)
   int index;
   double max_term = target_thrust_z_term.cwiseAbs().maxCoeff(&index);
-  double residual = max_term - pid_controllers_.at(Z).getLimitSum();
+  double residual = max_term - z_limit_;
+
   if(residual > 0)
     {
-      pid_controllers_.at(Z).setErrI(pid_controllers_.at(Z).getErrI() - residual / allocate_scales(index) / pid_controllers_.at(Z).getIGain());
+      pid_controllers_.at(Z).setErrI(pid_controllers_.at(Z).getPrevErrI());
       target_thrust_z_term *= (1 - residual / max_term);
     }
 
