@@ -13,7 +13,7 @@
 # you will see them accessed via {{ site.title }}, {{ site.email }}, and so on.
 # You can create any custom variable you would like, and they will be accessible
 # in the templates via {{ site.myvariable }}.
-highlighter: pygments
-markdown: redcarpet
-redcarpet:
-  extensions: ["no_intra_emphasis", "fenced_code_blocks", "autolink", "strikethrough", "superscript", "tables"]
+markdown: CommonMarkGhPages
+commonmark:
+    options: ["SMART", "FOOTNOTES"]
+    extensions: ["strikethrough", "autolink", "table", "tagfilter"]
