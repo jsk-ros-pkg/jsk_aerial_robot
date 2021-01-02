@@ -1,39 +1,48 @@
 ---
+layout: default
+title: toppage
 ---
+
 # Introduction
-Development of special aerial robot which has multilinked structure. \
-**More Detail**: http://www.jsk.t.u-tokyo.ac.jp/research.html
+Development of special aerial robot which has multilinked structure.
+
 # Robots
-   ## Hydrus
+
+## Hydrus
+
    - location and introduction: check [README.md](https://github.com/tongtybj/aerial_robot/blob/master/robots/hydrus/README.md)
-   - special configuration: check [this page](https://github.com/tongtybj/aerial_robot/wiki/hydrus).
-   ## Dragon 
+   - special configuration: check [this page](hydrus).
+
+## Dragon 
+
    - location and introduction: check [README.md](https://github.com/tongtybj/aerial_robot/blob/master/robots/dragon/README.md)
-   - special configuration: check [this page](https://github.com/tongtybj/aerial_robot/wiki/dragon).
- ## Hydrus_xi
+   - special configuration: check [this page](dragon).
+
+## Hydrus_xi
+
    - location and introduction: check [README.md](https://github.com/tongtybj/aerial_robot/blob/master/robots/hydrus_xi/README.md)
   
 # Teleoperation
-   - [keyboard](https://github.com/tongtybj/aerial_robot/wiki/keyboard)
-   - [joystick](https://github.com/tongtybj/aerial_robot/wiki/joystick)
+   - [keyboard](keyboard)
+   - [joystick](joystick)
    
 # Visualization
-   - [interactive marker](https://github.com/tongtybj/aerial_robot/wiki/interactive_marker)
+   - [interactive marker](interactive_marker)
 
 # Network
-   - communication between remote PC and on-board processor: check [this page](https://github.com/tongtybj/aerial_robot/wiki/network)
-   - motion capture: check [this page](https://github.com/tongtybj/aerial_robot/wiki/Motion-Capture)
+   - communication between remote PC and on-board processor: check [this page](network)
+   - motion capture: check [this page](Motion-Capture)
 
 # Module
-- [spinal&neuron](https://github.com/tongtybj/aerial_robot/wiki/mcu)
-- [sensors](https://github.com/tongtybj/aerial_robot/wiki/sensors)
-- [actuators](https://github.com/tongtybj/aerial_robot/wiki/actuators)
-- [on-board processors](https://github.com/tongtybj/aerial_robot/wiki/onboard_procesors)
+- [spinal&neuron](mcu)
+- [sensors](sensors)
+- [actuators](actuators)
+- [on-board processors](onboard_procesors)
 
 # CI (Continuous Integration) 
-- virtual platform: [docker](https://github.com/tongtybj/aerial_robot/wiki/docker)
-- online build & test: [Travis](https://github.com/tongtybj/aerial_robot/wiki/travis) and [rostest](https://github.com/tongtybj/aerial_robot/wiki/rostest)
-- version management: [bloom](https://github.com/tongtybj/aerial_robot/wiki/bloom)
+- virtual platform: [docker](docker)
+- online build & test: [Travis](travis) and [rostest](rostest)
+- version management: [bloom](bloom)
 
 # Trouble Shooting
-- [trouble shooting](https://github.com/tongtybj/aerial_robot/wiki/trouble_shooting)
+- [trouble shooting](trouble_shooting)
