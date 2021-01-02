@@ -11,8 +11,8 @@ body {
 /* General & 'Reset' Stuff */
 
 .container {
-  width: 90%;
-  max-width: 600px;
+  width: 100%;
+  max-width: 800px;
   margin: 0 auto;
 }
 
@@ -146,7 +146,7 @@ ul li {
 }
 
 ul li:before {
-  content: ">>";
+  content: "-";
   font-family: Monaco, "Bitstream Vera Sans Mono", "Lucida Console", Terminal, monospace;
   font-size: 13px;
   color: #b5e853;
@@ -173,6 +173,14 @@ pre {
   text-wrap: normal;
   overflow: auto;
   overflow-y: hidden;
+}
+
+code {
+    display: inline-block;
+    padding: 0.1em 0.25em; /* 文字周りの余白 */
+    color: #e7edf3; /* 文字色 */
+    background-color: #000; /* 背景色 */
+    border-radius: 0px; /* 角丸 */
 }
 
 table {

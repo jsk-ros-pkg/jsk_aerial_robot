@@ -265,8 +265,9 @@ $ rosservice call /zed/reset_odometry "{}"
 - realsense d435/d435i:
   
   ```
-$ roslaunch  aerial_robot_perceptionrealsence.launch enable_pointcloud:=true aligh_depth:=false depth_registered_processing:=true alighn_depth:=true
-```
+  $ roslaunch  aerial_robot_perceptionrealsence.launch enable_pointcloud:=true aligh_depth:=false depth_registered_processing:=true alighn_depth:=true
+  ```
+
 - Plane detect:
 
   ```
