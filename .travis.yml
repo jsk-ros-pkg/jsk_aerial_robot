@@ -1,15 +1,15 @@
 sudo: required
-dist: trusty
+dist: bionic
 language: generic
 env:
-  matrix:
-      - ROS_DISTRO="kinetic"   REPOSITORY=http://packages.ros.org/ros/ubuntu
-      - ROS_DISTRO="melodic"   REPOSITORY=http://packages.ros.org/ros/ubuntu
-
+  - ROS_DISTRO=kinetic                 DOCKER_IMAGE=ubuntu:xenial
+  - ROS_DISTRO=melodic                 DOCKER_IMAGE=ubuntu:bionic
+  - ROS_DISTRO=noetic                  DOCKER_IMAGE=ubuntu:focal
+matrix:
+  allow_failures:
+    - env: ROS_DISTRO=noetic
 install:
-  - case $ROS_DISTRO in "kinetic") export DISTRO=xenial;; "melodic") export DISTRO=bionic ;; esac;
-  - export DOCKER_IMAGE=ubuntu:$DISTRO
   - export CI_SOURCE_PATH=$(pwd)
   - export REPOSITORY_NAME=${PWD##*/}
-  - docker images
-  - docker run -v $HOME:$HOME -e CI_SOURCE_PATH -e $REPOSITORY_NAME -e HOME -e DISTRO -e ROS_DISTRO -e REPOSITORY $DOCKER_IMAGE bash -c 'cd $CI_SOURCE_PATH; source .travis.sh'
+  - echo "Testing branch $TRAVIS_BRANCH of $REPOSITORY_NAME"
+  - docker run --rm -i -v $HOME:$HOME -e CI_SOURCE_PATH -e $REPOSITORY_NAME -e HOME -e DISTRO -e ROS_DISTRO -t $DOCKER_IMAGE bash -c 'cd $CI_SOURCE_PATH; source .travis.sh'

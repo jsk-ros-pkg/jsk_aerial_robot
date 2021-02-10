@@ -6,10 +6,18 @@ apt-get update -qq && apt-get install -y -q wget sudo lsb-release gnupg git sed 
 echo 'debconf debconf/frontend select Noninteractive' | sudo debconf-set-selections
 
 echo "Testing branch $TRAVIS_BRANCH of $REPOSITORY_NAME"
-sudo sh -c "echo \"deb ${REPOSITORY} `lsb_release -cs` main\" > /etc/apt/sources.list.d/ros-latest.list"
+sudo sh -c "echo \"deb http://packages.ros.org/ros-shadow-fixed/ubuntu `lsb_release -cs` main\" > /etc/apt/sources.list.d/ros-latest.list"
 wget http://packages.ros.org/ros.key -O - | sudo apt-key add -
 sudo apt-get update -qq
-sudo apt-get install -qq -y python-catkin-pkg python-rosdep python-catkin-tools python-wstool ros-${ROS_DISTRO}-catkin
+
+# Install ROS
+if [[ "$ROS_DISTRO" ==  "noetic" ]]; then
+    sudo apt-get install -y -q python3-catkin-pkg python3-catkin-tools python3-rosdep python3-wstool python3-rosinstall-generator python3-osrf-pycommon
+else
+    sudo apt-get install -y -q python-catkin-pkg python-catkin-tools python-rosdep python-wstool python-rosinstall-generator
+fi
+
+sudo apt-get install -q -y  ros-${ROS_DISTRO}-catkin
 
 source /opt/ros/${ROS_DISTRO}/setup.bash
 sudo rosdep init
