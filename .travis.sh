@@ -5,10 +5,14 @@ set -ex
 apt-get update -qq && apt-get install -y -q wget sudo lsb-release gnupg git sed # for docker
 echo 'debconf debconf/frontend select Noninteractive' | sudo debconf-set-selections
 
-echo "Testing branch $TRAVIS_BRANCH of $REPOSITORY_NAME"
 sudo sh -c "echo \"deb http://packages.ros.org/ros-shadow-fixed/ubuntu `lsb_release -cs` main\" > /etc/apt/sources.list.d/ros-latest.list"
 wget http://packages.ros.org/ros.key -O - | sudo apt-key add -
 sudo apt-get update -qq
+
+## workaround for following git problem:
+## "fatal: unknown value for config 'protocol.version': 2"
+## https://github.com/juju/charm-tools/issues/532
+git config --global --unset protocol.version
 
 # Install ROS
 if [[ "$ROS_DISTRO" ==  "noetic" ]]; then
