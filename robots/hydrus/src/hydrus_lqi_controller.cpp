@@ -108,7 +108,7 @@ void HydrusLQIController::controlCore()
   double residual = max_term - pid_controllers_.at(Z).getLimitSum();
   if(residual > 0)
     {
-      pid_controllers_.at(Z).setErrI(pid_controllers_.at(Z).getErrI() - residual / z_gains_.at(index)[1]);
+      pid_controllers_.at(Z).setErrI(pid_controllers_.at(Z).getPrevErrI());
       target_thrust_z_term *= (1 - residual / max_term);
     }
 
@@ -140,7 +140,7 @@ void HydrusLQIController::allocateYawTerm()
   double residual = max_term - pid_controllers_.at(YAW).getLimitSum();
   if(residual > 0)
     {
-      pid_controllers_.at(YAW).setErrI(pid_controllers_.at(YAW).getErrI() - residual / yaw_gains_.at(index)[1]);
+      pid_controllers_.at(YAW).setErrI(pid_controllers_.at(YAW).getPrevErrI());
       target_thrust_yaw_term *= (1 - residual / max_term);
     }
 

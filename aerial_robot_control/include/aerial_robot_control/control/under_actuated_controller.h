@@ -72,6 +72,8 @@ namespace aerial_robot_control
 
     double torque_allocation_matrix_inv_pub_interval_;
 
+    double z_limit_;
+
     bool hovering_approximate_;
 
     void setAttitudeGains();

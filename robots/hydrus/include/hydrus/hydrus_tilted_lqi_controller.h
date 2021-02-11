@@ -59,6 +59,8 @@ namespace aerial_robot_control
     double trans_constraint_weight_;
     double att_control_weight_;
 
+    double z_limit_;
+
     void controlCore() override;
     bool optimalGain() override;
     void publishGain() override;
