@@ -1,13 +1,19 @@
 <launch>
+
+  <arg name="robot_id" default=""/>
+  <arg name="mocap_id" value="1" if="$(eval robot_id == '')"/>
+  <arg name="mocap_id" value="1" if="$(eval robot_id == 1)"/>
+  <arg name="mocap_id" value="2" if="$(eval robot_id == 2)"/>
+
   <node pkg="mocap_optitrack"
     type="mocap_node"
     name="mocap_node"
     respawn="false"
     launch-prefix=""
     required="true">
-    <rosparam>
+    <rosparam subst_value="true">
       rigid_bodies:
-         '1':
+         '$(arg mocap_id)':
                pose: mocap/pose
                pose2d: mocap/ground_pose
                child_frame_id: baselink
