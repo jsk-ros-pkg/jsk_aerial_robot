@@ -2,6 +2,14 @@
 Changelog for package aerial_robot_model
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Replace the old repositoty name in CHANGELOG.rst (`#434 <https://github.com/JSKAerialRobot/aerial_robot/issues/434>`_)
+* Fix  naive assignment of the rotor direciton from the KDL model (`#418 <https://github.com/JSKAerialRobot/aerial_robot/issues/418>`_)
+* Fix bug: correct the dimension of the gravity force vector (`#414 <https://github.com/JSKAerialRobot/aerial_robot/issues/414>`_)
+* Implement gimbal vectoring planner for hydrus_xi under actuated model (`#405 <https://github.com/JSKAerialRobot/aerial_robot/issues/405>`_)
+
+
 1.2.0 (2020-05-31)
 ------------------
 * Refactor aeiral_robot_base (`#406 <https://github.com/JSKAerialRobot/aerial_robot/issues/406>`_)

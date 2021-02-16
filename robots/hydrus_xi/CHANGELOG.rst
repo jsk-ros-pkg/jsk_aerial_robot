@@ -2,6 +2,12 @@
 Changelog for package hydrus_xi
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Replace the old repositoty name in CHANGELOG.rst, and increase the retry times for hydrus_xi test in travis (`#434 <https://github.com/JSKAerialRobot/aerial_robot/issues/434>`_)
+* Singular-free deformation by hydrus xi quad type (`#421 <https://github.com/JSKAerialRobot/aerial_robot/issues/421>`_)
+* Implement gimbal vectoring planner for hydrus_xi under actuated model (`#405 <https://github.com/JSKAerialRobot/aerial_robot/issues/405>`_)
+
 1.2.0 (2020-05-31)
 ------------------
 * Refactor aeiral_robot_base (`#406 <https://github.com/JSKAerialRobot/aerial_robot/issues/406>`_)

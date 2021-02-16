@@ -2,6 +2,10 @@
 Changelog for package aerial_robot
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Replace the old repositoty name in CHANGELOG.rst (`#434 <https://github.com/JSKAerialRobot/aerial_robot/issues/434>`_)
+
 1.2.0 (2020-05-31)
 ------------------
 * refactoring aerial_robot_base (`#406 <https://github.com/JSKAerialRobot/aerial_robot/issues/406>`_)

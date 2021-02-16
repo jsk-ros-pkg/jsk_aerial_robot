@@ -2,6 +2,14 @@
 Changelog for package dragon
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Increase the retry times for Dragon and Hydrus gazebo test in Travis (`#443 <https://github.com/JSKAerialRobot/aerial_robot/issues/443>`_)
+* Replace the old repositoty name in CHANGELOG.rst, update the version of dependency repositories, and relax the position convergence threshold in rostest (`#434 <https://github.com/JSKAerialRobot/aerial_robot/issues/434>`_)
+* Automatically stop motors by checking the  impact  from the  ground in force landing phase. (`#419 <https://github.com/JSKAerialRobot/aerial_robot/issues/419>`_)
+* Fix insufficient link library of dragon_aerial_robot_controllib (`#412 <https://github.com/JSKAerialRobot/aerial_robot/issues/412>`_)
+
+
 1.2.0 (2020-05-31)
 ------------------
 * Refactor aeiral_robot_base (`#406 <https://github.com/JSKAerialRobot/aerial_robot/issues/406>`_)

@@ -2,6 +2,14 @@
 Changelog for package spinal
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Fix bugs in spinal regarding pwm test (`#440 <https://github.com/JSKAerialRobot/aerial_robot/issues/440>`_)
+* Replace the old repositoty name in CHANGELOG.rst (`#434 <https://github.com/JSKAerialRobot/aerial_robot/issues/434>`_)
+* Increase the initial IMU calibration duration since of the increase of the spinal initilization time (`#411 <https://github.com/JSKAerialRobot/aerial_robot/issues/411>`_)
+* Fixed bug of rosserial data buffer overflow add delay for Dynamixel XL430  (`#409 <https://github.com/JSKAerialRobot/aerial_robot/issues/409>`_)
+
+
 1.2.0 (2020-05-31)
 ------------------
 * Refactor aeiral_robot_base (`#406 <https://github.com/JSKAerialRobot/aerial_robot/issues/406>`_)
