@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package>
   <name>spinal_ros_bridge</name>
-  <version>1.2.0</version>
+  <version>1.2.1</version>
   <description>
     Serial (UART) Commnunication between brain (PC) and spinal based on rosserial_server, which is faster than general rosserial_server due to DMA burst mode.
   </description>

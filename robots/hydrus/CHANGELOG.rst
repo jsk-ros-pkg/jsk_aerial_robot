@@ -2,8 +2,8 @@
 Changelog for package hydrus
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.2.1 (2021-02-17)
+------------------
 * Refactor the process to avoid satuation in z and yaw axes (`#444 <https://github.com/JSKAerialRobot/aerial_robot/issues/444>`_)
 * Increase  retry times for Dragon and Hydrus gazebo test in Travis (`#443 <https://github.com/JSKAerialRobot/aerial_robot/issues/443>`_)
 * Replace the old repositoty name in CHANGELOG.rst, update the API of unittest, and update the version of dependency repositories (`#434 <https://github.com/JSKAerialRobot/aerial_robot/issues/434>`_)

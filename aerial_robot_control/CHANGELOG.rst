@@ -2,8 +2,8 @@
 Changelog for package aerial_robot_control
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.2.1 (2021-02-17)
+------------------
 * Refactor the process to avoid saturation in z and yaw axes (`#444 <https://github.com/JSKAerialRobot/aerial_robot/issues/444>`_)
 * Add demo to follow a circle trajectory (`#441 <https://github.com/JSKAerialRobot/aerial_robot/issues/441>`_)
 * Replace the old repositoty name in CHANGELOG.rst (`#434 <https://github.com/JSKAerialRobot/aerial_robot/issues/434>`_)

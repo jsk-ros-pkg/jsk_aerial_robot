@@ -2,8 +2,8 @@
 Changelog for package spinal_ros_bridge
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.2.1 (2021-02-17)
+------------------
 * Revert the wrong modification by `#422 <https://github.com/JSKAerialRobot/aerial_robot/issues/422>`_ (`#442 <https://github.com/JSKAerialRobot/aerial_robot/issues/442>`_)
 * Replace the old repositoty name in CHANGELOG.rst (`#434 <https://github.com/JSKAerialRobot/aerial_robot/issues/434>`_)
 * Refine the termination process of spinal rosserial (`#422 <https://github.com/JSKAerialRobot/aerial_robot/issues/422>`_)

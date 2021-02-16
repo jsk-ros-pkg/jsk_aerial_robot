@@ -2,8 +2,8 @@
 Changelog for package aerial_robot_base
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.2.1 (2021-02-17)
+------------------
 * Replace the old repositoty name in CHANGELOG.rst, correct the API of unittest, and update the version of dependency repositories (`#434 <https://github.com/JSKAerialRobot/aerial_robot/issues/434>`_)
 * Refine the script to calculate the tracking error RMS from rostopic (`#420 <https://github.com/JSKAerialRobot/aerial_robot/issues/420>`_)
 
