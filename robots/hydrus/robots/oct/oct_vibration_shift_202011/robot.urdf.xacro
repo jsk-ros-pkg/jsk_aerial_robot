@@ -1,0 +1,200 @@
+<?xml version="1.0"?>
+<robot
+    xmlns:xacro="http://www.ros.org/wiki/xacro" name="hydrus" >
+
+  <xacro:arg name="sim" default="false"/>
+
+  <xacro:arg name="fix_rotor" default="0"/>
+  <xacro:arg name="tilt_mode" default="1"/>
+  <xacro:arg name="tilt_angle" default="20"/>
+
+  <!-- basic kinematics model -->
+  <xacro:include filename="$(find hydrus)/urdf/common.xacro" />
+  <xacro:include filename="$(find hydrus)/urdf/link.urdf.xacro" />
+
+  <xacro:if value="$(arg sim)">
+    <xacro:hydrus_link links="8" self="1" rotor_direction="-1" with_battery = "1"  vibrate = "1" tilt_mode="$(arg tilt_mode)" tilt_angle="$(arg tilt_angle)" fix_rotor="$(arg fix_rotor)"/>
+    <xacro:hydrus_link links="8" self="2" rotor_direction="1"  with_battery = "1"  vibrate = "1" tilt_mode="$(arg tilt_mode)" tilt_angle="$(arg tilt_angle)" fix_rotor="$(arg fix_rotor)"/>
+    <xacro:hydrus_link links="8" self="3" rotor_direction="-1" with_battery = "1"  vibrate = "1" tilt_mode="$(arg tilt_mode)" tilt_angle="$(arg tilt_angle)" fix_rotor="$(arg fix_rotor)"/>
+    <xacro:hydrus_link links="8" self="4" rotor_direction="1"  with_battery = "1"  vibrate = "1" tilt_mode="$(arg tilt_mode)" tilt_angle="$(arg tilt_angle)" fix_rotor="$(arg fix_rotor)"/>
+    <xacro:hydrus_link links="8" self="5" rotor_direction="-1" with_battery = "1"  vibrate = "1" tilt_mode="$(arg tilt_mode)" tilt_angle="$(arg tilt_angle)" fix_rotor="$(arg fix_rotor)"/>
+    <xacro:hydrus_link links="8" self="6" rotor_direction="1"  with_battery = "1"  vibrate = "1" tilt_mode="$(arg tilt_mode)" tilt_angle="$(arg tilt_angle)" fix_rotor="$(arg fix_rotor)"/>
+    <xacro:hydrus_link links="8" self="7" rotor_direction="-1" with_battery = "1"  vibrate = "1" tilt_mode="$(arg tilt_mode)" tilt_angle="$(arg tilt_angle)" fix_rotor="$(arg fix_rotor)"/>
+    <xacro:hydrus_link links="8" self="8" rotor_direction="1"  with_battery = "1"  vibrate = "0" tilt_mode="$(arg tilt_mode)" tilt_angle="$(arg tilt_angle)" fix_rotor="$(arg fix_rotor)"/>
+  </xacro:if>
+  <xacro:unless value="$(arg sim)">
+    <xacro:hydrus_link links="8" self="1" rotor_direction="-1" with_battery = "1" tilt_mode="$(arg tilt_mode)" tilt_angle="$(arg tilt_angle)" fix_rotor="$(arg fix_rotor)"/>
+    <xacro:hydrus_link links="8" self="2" rotor_direction="1"  with_battery = "1" tilt_mode="$(arg tilt_mode)" tilt_angle="$(arg tilt_angle)" fix_rotor="$(arg fix_rotor)"/>
+    <xacro:hydrus_link links="8" self="3" rotor_direction="-1" with_battery = "1" tilt_mode="$(arg tilt_mode)" tilt_angle="$(arg tilt_angle)" fix_rotor="$(arg fix_rotor)"/>
+    <xacro:hydrus_link links="8" self="4" rotor_direction="1"  with_battery = "1" tilt_mode="$(arg tilt_mode)" tilt_angle="$(arg tilt_angle)" fix_rotor="$(arg fix_rotor)"/>
+    <xacro:hydrus_link links="8" self="5" rotor_direction="-1" with_battery = "1" tilt_mode="$(arg tilt_mode)" tilt_angle="$(arg tilt_angle)" fix_rotor="$(arg fix_rotor)"/>
+    <xacro:hydrus_link links="8" self="6" rotor_direction="1"  with_battery = "1" tilt_mode="$(arg tilt_mode)" tilt_angle="$(arg tilt_angle)" fix_rotor="$(arg fix_rotor)"/>
+    <xacro:hydrus_link links="8" self="7" rotor_direction="-1" with_battery = "1" tilt_mode="$(arg tilt_mode)" tilt_angle="$(arg tilt_angle)" fix_rotor="$(arg fix_rotor)"/>
+    <xacro:hydrus_link links="8" self="8" rotor_direction="1"  with_battery = "1" tilt_mode="$(arg tilt_mode)" tilt_angle="$(arg tilt_angle)" fix_rotor="$(arg fix_rotor)"/>
+  </xacro:unless>
+
+  <!-- onboard -->
+  <!-- 1.  processor -->
+  <!-- 1.1 flight controller -->
+  <xacro:extra_module name = "fc" parent = "link4" visible = "1"
+                      model_url = "package://hydrus/urdf/mesh/ver2/flight_controller/spinal.dae"> <!-- same with intel euclid -->
+    <origin xyz="${link_length / 2 + 0.2221} ${-4.4*0.001} 0.02135" rpy="0 0 0"/>
+    <inertial>
+      <mass value = "0.05" />
+      <origin xyz="${13*0.001} ${4.4*0.001} ${-9*0.001}" rpy="0 0 0"/>
+      <inertia
+          ixx="0.00001" ixy="0.0" ixz="0.0"
+          iyy="0.00001" iyz="0.0"
+          izz="0.00002"/>
+    </inertial>
+  </xacro:extra_module>
+  <!-- end: flight controller -->
+
+  <!-- 1.2 processor: jetson tx2 -->
+  <!-- confirm the inertial parameter with real machine -->
+  <xacro:extra_module name = "pc" parent = "link5" visible = "1"
+                      model_url = "package://hydrus/urdf/mesh/ver2/processor/jetson_tx2_unit.dae" >
+    <origin xyz="${link_length / 2 - 0.23775} 0.0 ${-0.01}" rpy="0 0 0"/>
+    <inertial>
+      <mass value = "0.181" />
+      <origin xyz="${18 * 0.001} ${4 * 0.001} ${-18 * 0.001}" rpy="0 0 0"/>
+      <inertia
+          ixx="0.00007" ixy="0.0" ixz="0.0"
+          iyy="0.00003" iyz="0.0"
+          izz="0.00009"/>
+    </inertial>
+  </xacro:extra_module>
+  <!-- end: processor: jetson tx2 -->
+
+  <!-- 2.  sensor -->
+  <!-- 2.1 leddar one -->
+  <xacro:extra_module name = "leddarone" parent = "link5" visible = "1"
+                      model_url = "package://hydrus/urdf/mesh/sensor/leddar_one_tx2_attached_mode.dae">
+    <origin xyz="${link_length/2 - 0.1855} 0.0 -0.0626" rpy="${pi} 0 0"/>
+    <inertial>
+      <origin xyz="-0.008 0.0 0.0" rpy="0 0 0"/>
+      <mass value="0.025"/>
+      <inertia
+          ixx="0.00001" iyy="0.000006" izz="0.00001"
+          ixy="0.000000" ixz="0.000000" iyz="0.000000"/>
+    </inertial>
+  </xacro:extra_module>
+  <!-- end: leddar one -->
+
+  <!-- 2.2 gps -->
+  <xacro:extra_module name = "gps" parent = "link4" visible = "1"
+                      model_url = "package://hydrus/urdf/mesh/sensor/gps_ublox_m8n.dae">
+    <origin xyz="${link_length/2 + 0.1925} 0.0 0.152" rpy="0 0 0"/>
+    <inertial>
+      <origin xyz="0.000000 0.000000 -0.013" rpy="0 0 0"/>
+      <mass value="0.042"/>
+      <inertia
+          ixx="0.00006" iyy="0.00006" izz="0.000007"
+          ixy="0.000000" ixz="0.000000" iyz="0.000000"/>
+    </inertial>
+  </xacro:extra_module>
+  <xacro:extra_module name = "magnet" parent = "gps">
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <inertial>
+      <mass value = "0.00001" />
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia
+          ixx="0.000001" ixy="0.0" ixz="0.0"
+          iyy="0.000001" iyz="0.0"
+          izz="0.000002"/>
+    </inertial>
+  </xacro:extra_module>
+  <!-- end: gps -->
+
+  <!-- neuron imus -->
+  <xacro:extra_module name = "neuron1_imu" parent = "link1">
+    <origin xyz="${0.03} 0 ${0.02}" rpy="0 0 0"/>
+    <inertial>
+      <mass value = "0.00001" />
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia
+          ixx="0.000001" ixy="0.0" ixz="0.0"
+          iyy="0.000001" iyz="0.0"
+          izz="0.000002"/>
+    </inertial>
+  </xacro:extra_module>
+  <xacro:extra_module name = "neuron2_imu" parent = "link2">
+    <origin xyz="${0.03} 0 ${0.02}" rpy="0 0 0"/>
+    <inertial>
+      <mass value = "0.00001" />
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia
+          ixx="0.000001" ixy="0.0" ixz="0.0"
+          iyy="0.000001" iyz="0.0"
+          izz="0.000002"/>
+    </inertial>
+  </xacro:extra_module>
+  <xacro:extra_module name = "neuron3_imu" parent = "link3">
+    <origin xyz="${0.03} 0 ${0.02}" rpy="0 0 0"/>
+    <inertial>
+      <mass value = "0.00001" />
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia
+          ixx="0.000001" ixy="0.0" ixz="0.0"
+          iyy="0.000001" iyz="0.0"
+          izz="0.000002"/>
+    </inertial>
+  </xacro:extra_module>
+  <xacro:extra_module name = "neuron4_imu" parent = "link4">
+    <origin xyz="${0.03} 0 ${0.02}" rpy="0 0 0"/>
+    <inertial>
+      <mass value = "0.00001" />
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia
+          ixx="0.000001" ixy="0.0" ixz="0.0"
+          iyy="0.000001" iyz="0.0"
+          izz="0.000002"/>
+    </inertial>
+  </xacro:extra_module>
+  <xacro:extra_module name = "neuron5_imu" parent = "link5">
+    <origin xyz="${0.03} 0 ${0.02}" rpy="0 0 0"/>
+    <inertial>
+      <mass value = "0.00001" />
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia
+          ixx="0.000001" ixy="0.0" ixz="0.0"
+          iyy="0.000001" iyz="0.0"
+          izz="0.000002"/>
+    </inertial>
+  </xacro:extra_module>
+  <xacro:extra_module name = "neuron6_imu" parent = "link6">
+    <origin xyz="${0.03} 0 ${0.02}" rpy="0 0 0"/>
+    <inertial>
+      <mass value = "0.00001" />
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia
+          ixx="0.000001" ixy="0.0" ixz="0.0"
+          iyy="0.000001" iyz="0.0"
+          izz="0.000002"/>
+    </inertial>
+  </xacro:extra_module>
+  <xacro:extra_module name = "neuron7_imu" parent = "link7">
+    <origin xyz="${0.03} 0 ${0.02}" rpy="0 0 0"/>
+    <inertial>
+      <mass value = "0.00001" />
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia
+          ixx="0.000001" ixy="0.0" ixz="0.0"
+          iyy="0.000001" iyz="0.0"
+          izz="0.000002"/>
+    </inertial>
+  </xacro:extra_module>
+  <xacro:extra_module name = "neuron8_imu" parent = "link8">
+    <origin xyz="${0.03} 0 ${0.02}" rpy="0 0 0"/>
+    <!-- <origin xyz="${link_length - 0.03} 0 ${0.02}" rpy="0 0 0"/> -->
+    <inertial>
+      <mass value = "0.00001" />
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia
+          ixx="0.000001" ixy="0.0" ixz="0.0"
+          iyy="0.000001" iyz="0.0"
+          izz="0.000002"/>
+    </inertial>
+  </xacro:extra_module>
+  <!-- end: neuron imus -->
+</robot>
