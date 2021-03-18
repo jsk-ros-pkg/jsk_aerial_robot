@@ -14,27 +14,16 @@ find_package(catkin REQUIRED COMPONENTS
   tf_conversions
   std_srvs
   dynamic_reconfigure
+  kdl_parser
+  urdf
   )
 
 find_package(Eigen3 REQUIRED)
 find_package(NLopt REQUIRED)
-# TODO Try building in catkin
-find_library(
-  RBDL_LIBRARY
-  REQUIRED
-  NAMES rbdl
-  PATHS /usr/local/lib
-  PATH_SUFFIXES lib
-  NO_DEFAULT_PATH
-  )
-find_library(
-  RBDL_URDFReader_LIBRARY
-  REQUIRED
-  NAMES rbdl_urdfreader
-  PATHS /usr/local/lib
-  PATH_SUFFIXES lib
-  NO_DEFAULT_PATH
-  )
+find_package(orocos_kdl REQUIRED)
+find_package(urdfdom_headers REQUIRED)
+include_directories(${orocos_kdl_INCLUDE_DIRS} ${urdfdom_headers_INCLUDE_DIRS})
+link_directories(${orocos_kdl_LIBRARY_DIRS})
 
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
 
@@ -58,7 +47,6 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O3 -g -DNDEBUG")
 
-
 ###########
 ## Build ##
 ###########
@@ -72,19 +60,7 @@ include_directories(
   ${Boost_INCLUDE_DIR}
   ${catkin_INCLUDE_DIRS}
   ${EIGEN3_INCLUDE_DIRS}
-  ${RBDL_INDLUDE_DIR}
 )
-
-# Source files for RBDL
-# SET (RBDL_BUILD_ADDON_URDFREADER "Build the (experimental) urdf reader" OFF)
-# SET (RBDL_USE_ROS_URDF_LIBRARY "" OFF)
-# SET (CMAKE_BUILD_TYPE "" Release)
-# ADD_SUBDIRECTORY( rbdl )
-
-add_library(rbdl_util
-  src/util/rbdl_util.cpp
-  )
-target_link_libraries(rbdl_util ${RBDL_LIBRARY} ${RBDL_URDFReader_LIBRARY})
 
 add_library(msg_utils
   src/util/msg_utils.cpp
@@ -93,7 +69,8 @@ target_link_libraries(msg_utils ${catkin_LIBRARIES} ${EIGEN3_LIBRARIES})
 
 add_executable(torsion_mode_calculator src/torsion_mode_calculator.cpp)
 target_link_libraries(torsion_mode_calculator ${catkin_LIBRARIES} msg_utils
-  ${RBDL_LIBRARY} ${RBDL_URDFReader_LIBRARY} rbdl_util)
+  ${orocos_kdl_LIBRARIES} 
+  )
 
 add_executable(null_space_shifter src/null_space_shifter.cpp)
 target_link_libraries(null_space_shifter ${catkin_LIBRARIES} ${EIGEN3_LIBRARIES} ${NLOPT_LIBRARIES} msg_utils)

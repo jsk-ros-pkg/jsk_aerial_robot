@@ -6,15 +6,11 @@
 #include <geometry_msgs/TransformStamped.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
-#include <rbdl/rbdl.h>
-#include <rbdl/rbdl_utils.h>
+#include <kdl/chaindynparam.hpp>
+#include <kdl/tree.hpp>
+#include <kdl_parser/kdl_parser.hpp>
+#include <urdf/model.h>
 
-#ifndef RBDL_BUILD_ADDON_URDFREADER
-#error "Error: RBDL addon URDFReader not enabled."
-#endif
-
-#include <rbdl/addons/urdfreader/urdfreader.h>
-#include <hydrus/util/rbdl_util.h>
 #include <hydrus/util/msg_utils.h>
 
 #include <Eigen/Dense>
@@ -27,9 +23,6 @@
 #include <hydrus/torsion_modeConfig.h>
 #define RECONFITURE_TORSION_MODE_FLAG 0
 #define TORSION_CONSTANT 1
-
-using namespace RigidBodyDynamics;
-using namespace RigidBodyDynamics::Math;
 
 class TorsionModeCalculator
 {
@@ -53,12 +46,14 @@ class TorsionModeCalculator
     ros::Publisher mode_pub_;
     ros::Publisher K_mode_pub_;
 
-    Model* model_;
     std::vector<unsigned int> torsion_dof_update_order_;
     std::vector<unsigned int> joint_dof_update_order_;
 
+    KDL::ChainDynParam* dyn_param_;
+    KDL::Chain kdl_chain_;
+    KDL::JntArray jnt_q_;
+
     std::string robot_ns_;
-    bool is_floating_;
     int rotor_num_;
     int torsion_num_;
     double torsion_constant_;
@@ -77,6 +72,5 @@ class TorsionModeCalculator
     dynamic_reconfigure::Server<hydrus::torsion_modeConfig>* reconf_server_;
     void cfgCallback(hydrus::torsion_modeConfig& config, uint32_t level);
 };
-
 
 #endif /* ifndef TORSION_MODE_CALCULATOR */
