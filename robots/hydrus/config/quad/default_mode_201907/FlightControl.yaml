@@ -1,4 +1,5 @@
 aerial_robot_control_name: aerial_robot_control/hydrus_tilted_lqi_controller
+# aerial_robot_control_name: aerial_robot_control/hydrus_tilted_lqi_adaptive_controller
 
 controller:
   xy:
@@ -51,3 +52,15 @@ controller:
     trans_constraint_weight: 100
     att_control_weight: 1
 
+mrac:
+  log_rate: 10
+  mrac_ratio: [1.0,1.0,0.0]
+  k1m: [500,500,0.2]
+  k2m: [200,200,0.8]
+  K1: [5.0,5.0,2.0]
+  K2: [10.0,10.0,2.0]
+  kappa: [0.000001,0.000001,0.000001,0.0000001,0.0000001,0.0000001,2.0,2.0]
+  sigma: [0.1,0.1,0.01,0.1,0.1,0.1,0.0,0.0]
+  attitude_p: 1.0
+
+  takeoff_wait_time: 10

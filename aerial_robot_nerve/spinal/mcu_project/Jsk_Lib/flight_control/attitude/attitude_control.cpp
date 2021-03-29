@@ -37,7 +37,7 @@ void AttitudeController::init(ros::NodeHandle* nh, StateEstimate* estimator)
   mrac_params_srv_ = nh_->advertiseService("set_mrac_params", &AttitudeController::setMRACParamsCallback, this);
   mrac_gamma_pub_ = nh_->advertise<std_msgs::Float32MultiArray>("mrac_gamma", 1);
   mrac_ref_model_pub_ = nh_->advertise<std_msgs::Float32MultiArray>("mrac_ref_model", 1);
-  yaw_from_pc_sub_ = nh_->subscribe("yaw_from_pc", 1, &AttitudeController::yawFromPCallback, this);
+  desire_yaw_sub_ = nh_->subscribe("desire_yaw", 1, &AttitudeController::desireYawCallback, this);
 
   baseInit();
 }
@@ -60,7 +60,7 @@ AttitudeController::AttitudeController():
   mrac_params_srv_("set_mrac_params", &AttitudeController::setMRACParamsCallback, this),
   mrac_gamma_pub_("mrac_gamma", &mrac_gamma_msg_),
   mrac_ref_model_pub_("mrac_ref_model", &mrac_ref_model_msg_),
-  yaw_from_pc_sub_("yaw_from_pc", &AttitudeController::yawFromPCallback, this)
+  desire_yaw_sub_("desire_yaw", &AttitudeController::desireYawCallback, this)
 {
 }
 
@@ -633,9 +633,9 @@ void AttitudeController::setMRACParamsCallback(const spinal::SetMRACParams::Requ
 #endif
 }
 
-void AttitudeController::yawFromPCallback(const spinal::YawFromPC& msg)
+void AttitudeController::desireYawCallback(const spinal::DesireYaw& msg)
 {
-  pc_psi_ = msg.pc_yaw;
+  pc_psi_ = msg.estimated_yaw;
   target_angle_[Z] = msg.target_yaw;
 }
 
