@@ -9,7 +9,7 @@ void HydrusTiltedLQITorsionShiftController::initialize(ros::NodeHandle nh,
                                            boost::shared_ptr<aerial_robot_navigation::BaseNavigator> navigator,
                                            double ctrl_loop_rate)
 {
-  HydrusTiltedLQIController::initialize(nh, nhp, robot_model, estimator, navigator, ctrl_loop_rate);
+  HydrusTiltedLQIAdaptiveController::initialize(nh, nhp, robot_model, estimator, navigator, ctrl_loop_rate);
 
   gain_shift_matrix_pub_stamp_ = ros::Time::now().toSec();
   K_gain_for_shift_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("K_gain_for_shift", 1);
@@ -103,7 +103,7 @@ bool HydrusTiltedLQITorsionShiftController::optimalGain()
 
 void HydrusTiltedLQITorsionShiftController::publishGain()
 {
-  HydrusTiltedLQIController::publishGain();
+  HydrusTiltedLQIAdaptiveController::publishGain();
 
   if (ros::Time::now().toSec() - gain_shift_matrix_pub_stamp_ > gain_shift_matrix_pub_interval_) {
     gain_shift_matrix_pub_stamp_ = ros::Time::now().toSec();
@@ -114,7 +114,7 @@ void HydrusTiltedLQITorsionShiftController::publishGain()
 
 void HydrusTiltedLQITorsionShiftController::rosParamInit()
 {
-  HydrusTiltedLQIController::rosParamInit();
+  HydrusTiltedLQIAdaptiveController::rosParamInit();
 
   ros::NodeHandle control_nh(nh_, "controller");
   ros::NodeHandle lqi_nh(control_nh, "lqi");

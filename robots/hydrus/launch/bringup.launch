@@ -19,9 +19,6 @@
   <arg name="robot_id" default="" />
   <arg name="robot_ns" value="hydrus$(arg robot_id)" />
   <arg name="config_dir" default="$(find hydrus)/config/$(arg type)" />
-  <arg name="use_model_with_sim_flag" default="False"/>
-  <arg name="model_flag" default="" />
-  <arg name="links" default="4" if="$(eval arg('type')=='multi')"/>
 
   <arg name="description_mode" value="urdf" unless="$(arg simulation)" />
   <arg name="description_mode" value="gazebo" if="$(arg simulation)" />
@@ -46,14 +43,7 @@
     <rosparam file="$(arg config_dir)/$(arg onboards_model)/MotorInfo.yaml" command="load" />
 
     ###########  Servo Config  ###########
-    <rosparam file="$(arg config_dir)/$(arg onboards_model)/Servo.yaml" command="load" unless="$(eval arg('type')=='multi')"/>
-    <group if="$(eval arg('type')=='multi')">
-      <rosparam file="$(arg config_dir)/$(arg onboards_model)/ServoCommon.yaml" command="load"/>
-      <include file="$(find hydrus)/launch/includes/$(arg onboards_model)/recursive_config.launch" >
-        <arg name="nr" value="$(eval arg('links')-1)"/>
-        <arg name="links" value="$(arg links)"/>
-      </include>
-    </group>
+    <rosparam file="$(arg config_dir)/$(arg onboards_model)/Servo.yaml" command="load" />
 
     ###########  Battery Config  ###########
     <rosparam file="$(arg config_dir)/$(arg onboards_model)/Battery.yaml" command="load" />
@@ -84,7 +74,6 @@
     <arg name="rviz_config" value="$(find hydrus)/config/rviz_config" />
     <arg name="rviz_init_pose" value="$(arg config_dir)/RvizInit.yaml" />
     <arg name="need_joint_state" value="false" if ="$(eval arg('simulation') + arg('real_machine') > 0)"/>
-    <arg name="model_options" value="links:=$(arg links)" if="$(eval arg('type')=='multi')"/>
   </include>
 
   ###########  Sensors ###########
@@ -92,8 +81,7 @@
     <arg name="real_machine" value="$(arg real_machine)" />
     <arg name="simulation" value="$(arg simulation)" />
     <arg name="robot_ns" value="$(arg robot_ns)" />
-    <arg name="links" value="$(arg links)" if="$(eval arg('type')=='multi')"/>
-    <arg name="robot_model" value="$(arg robot_model)" if="$(eval arg('type')=='multi' or arg('type')=='hex' or arg('type')=='oct')"/>
+    <arg name="robot_model" value="$(arg robot_model)" if="$(eval arg('type')=='hex' or arg('type')=='oct')"/>
   </include>
 
   ###########  Servo Bridge  ###########
@@ -110,9 +98,8 @@
     <arg name="spawn_y" value="$(arg spawn_y)" />
     <arg name="spawn_z" value="$(arg spawn_z)" />
     <arg name="spawn_yaw" value="$(arg spawn_yaw)" />
-    <arg name="use_model_with_sim_flag" value="$(arg use_model_with_sim_flag)" />
-    <arg name="model_options" value="links:=$(arg links)" if="$(eval arg('type')=='multi')"/>
-    <arg name="robot_model" value="$(arg robot_model)" if="$(arg use_model_with_sim_flag)"/>
+    <arg name="robot_model" value="$(arg robot_model)" if="$(eval arg('type')=='hex' or arg('type')=='oct')"/>
+    <arg name="model_options" value="sim:=true" if="$(eval arg('type')=='hex' or arg('type')=='oct')"/> 
   </include>
 
 </launch>

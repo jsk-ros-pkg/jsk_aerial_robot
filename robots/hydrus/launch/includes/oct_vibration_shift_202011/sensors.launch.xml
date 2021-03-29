@@ -70,11 +70,6 @@
       <param name="rate" type="int" value="10"/>
     </node>
 
-    <node pkg="aerial_robot_control" type="spinal_mrac_trigger.py" name="spinal_mrac_trigger" output="screen">
-      <param name="enable_MRAC" type="bool" value="true" />
-      <rosparam command="load" file="$(find hydrus)/config/oct/oct_vibration_shift_202011/SpinalMRAC.yaml" />
-    </node>
-
   </group>
 
 </launch>

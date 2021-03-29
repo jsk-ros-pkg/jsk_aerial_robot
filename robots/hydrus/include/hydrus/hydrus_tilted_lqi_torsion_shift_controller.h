@@ -35,13 +35,13 @@
 
 #pragma once
 
-#include <hydrus/hydrus_tilted_lqi_controller.h>
+#include <hydrus/hydrus_tilted_lqi_adaptive_controller.h>
 #include <hydrus/util/msg_utils.h>
 #include <std_msgs/Float32MultiArray.h>
 
 namespace aerial_robot_control
 {
-  class HydrusTiltedLQITorsionShiftController: public HydrusTiltedLQIController
+  class HydrusTiltedLQITorsionShiftController: public HydrusTiltedLQIAdaptiveController
   {
   public:
     HydrusTiltedLQITorsionShiftController() {}
