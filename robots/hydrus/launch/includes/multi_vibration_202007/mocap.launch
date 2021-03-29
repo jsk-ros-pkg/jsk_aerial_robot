@@ -1,0 +1,46 @@
+<launch>
+  <node pkg="mocap_optitrack"
+    type="mocap_node"
+    name="link_mocap_node"
+    respawn="false"
+    launch-prefix=""
+    required="true">
+    <rosparam>
+      rigid_bodies:
+         '1':
+               pose: mocap/link3/pose
+               pose2d: mocap/link3/ground_pose
+               child_frame_id: link3
+               parent_frame_id: world
+         '2':
+               pose: mocap/link1/pose
+               pose2d: mocap/link1/ground_pose
+               child_frame_id: link1
+               parent_frame_id: world
+         '3':
+               pose: mocap/link2/pose
+               pose2d: mocap/link2/ground_pose
+               child_frame_id: link2
+               parent_frame_id: world
+         '4':
+               pose: mocap/link4/pose
+               pose2d: mocap/link4/ground_pose
+               child_frame_id: link4
+               parent_frame_id: world
+         '5':
+               pose: mocap/link5/pose
+               pose2d: mocap/link5/ground_pose
+               child_frame_id: link5
+               parent_frame_id: world
+         '6':
+               pose: mocap/link6/pose
+               pose2d: mocap/link6/ground_pose
+               child_frame_id: link6
+               parent_frame_id: world
+      optitrack_config:
+         multicast_address:
+               239.255.42.99
+    </rosparam>
+  </node>
+
+</launch>

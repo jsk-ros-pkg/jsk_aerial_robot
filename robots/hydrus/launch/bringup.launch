@@ -19,6 +19,12 @@
   <arg name="robot_id" default="" />
   <arg name="robot_ns" value="hydrus$(arg robot_id)" />
   <arg name="config_dir" default="$(find hydrus)/config/$(arg type)" />
+  <arg name="links" default="4" if="$(eval arg('type')=='multi')"/>
+
+  <arg name="description_mode" value="urdf" unless="$(arg simulation)" />
+  <arg name="description_mode" value="gazebo" if="$(arg simulation)" />
+  <arg name="robot_model" value="$(find hydrus)/robots/$(arg type)/$(arg onboards_model)/robot.$(arg description_mode).xacro" unless="$(arg direct_model)"/>
+  <arg name="robot_model" value="$(arg direct_model_name)" if="$(arg direct_model)"/>
 
   ###########  Parameters  ###########
   <group ns="$(arg robot_ns)">
@@ -38,7 +44,14 @@
     <rosparam file="$(arg config_dir)/$(arg onboards_model)/MotorInfo.yaml" command="load" />
 
     ###########  Servo Config  ###########
-    <rosparam file="$(arg config_dir)/$(arg onboards_model)/Servo.yaml" command="load" />
+    <rosparam file="$(arg config_dir)/$(arg onboards_model)/Servo.yaml" command="load" unless="$(eval arg('type')=='multi')"/>
+    <group if="$(eval arg('type')=='multi')">
+      <rosparam file="$(arg config_dir)/$(arg onboards_model)/ServoCommon.yaml" command="load"/>
+      <include file="$(find hydrus)/launch/includes/$(arg onboards_model)/recursive_config.launch" >
+        <arg name="nr" value="$(eval arg('links')-1)"/>
+        <arg name="links" value="$(arg links)"/>
+      </include>
+    </group>
 
     ###########  Battery Config  ###########
     <rosparam file="$(arg config_dir)/$(arg onboards_model)/Battery.yaml" command="load" />
@@ -55,23 +68,21 @@
   </group>
 
   ###########  Base Platform  ###########
-  <node pkg="aerial_robot_base" type="aerial_robot_base_node" name="aerial_robot_base_node" ns="$(arg robot_ns)" output="screen" >
+  <node pkg="aerial_robot_base" type="aerial_robot_base_node" name="aerial_robot_base_node" ns="$(arg robot_ns)" output="screen">
     <param name="tf_prefix" value="$(arg robot_ns)"/>
     <param name="param_verbose" value="false"/>
     <param name="main_rate" value="40"/>
   </node>
 
   ###########  Robot Model  ###########
-  <arg name="description_mode" value="urdf" unless="$(arg simulation)" />
-  <arg name="description_mode" value="gazebo" if="$(arg simulation)" />
   <include file="$(find aerial_robot_model)/launch/aerial_robot_model.launch" >
     <arg name="headless" value="$(arg headless)" />
-    <arg name="robot_model" value="$(find hydrus)/robots/$(arg type)/$(arg onboards_model)/robot.$(arg description_mode).xacro" unless="$(arg direct_model)"/>
-    <arg name="robot_model" value="$(arg direct_model_name)" if="$(arg direct_model)"/>
+    <arg name="robot_model" value="$(arg robot_model)" />
     <arg name="robot_ns" value="$(arg robot_ns)" />
     <arg name="rviz_config" value="$(find hydrus)/config/rviz_config" />
     <arg name="rviz_init_pose" value="$(arg config_dir)/RvizInit.yaml" />
     <arg name="need_joint_state" value="false" if ="$(eval arg('simulation') + arg('real_machine') > 0)"/>
+    <arg name="model_options" value="links:=$(arg links)" if="$(eval arg('type')=='multi')"/>
   </include>
 
   ###########  Sensors ###########
@@ -79,7 +90,9 @@
     <arg name="real_machine" value="$(arg real_machine)" />
     <arg name="simulation" value="$(arg simulation)" />
     <arg name="robot_ns" value="$(arg robot_ns)" />
-  </include >
+    <arg name="links" value="$(arg links)" if="$(eval arg('type')=='multi')"/>
+    <arg name="robot_model" value="$(arg robot_model)" if="$(eval arg('type')=='multi')"/>
+  </include>
 
   ###########  Servo Bridge  ###########
   <node pkg="aerial_robot_model" type="servo_bridge_node" name="servo_bridge" ns="$(arg robot_ns)" output="screen" />
