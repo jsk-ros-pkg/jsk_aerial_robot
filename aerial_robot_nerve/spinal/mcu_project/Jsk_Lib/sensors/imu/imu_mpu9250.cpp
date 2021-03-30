@@ -96,30 +96,46 @@ void IMUOnboard::magInit(void)
    * since the module UBlox M8N has some problem with the gps/mag simultaneous polling.
    */
   HAL_Delay(4000); // wait for the setup of the Blox M8N module, especially for winter
+
+  mag_id_ = INTERNAL_MAG;
+
   uint8_t val[2];
-  val[0] = HMC58X3_R_CONFB;
-  val[1] = 0x20;
   int i2c_status = 1;
-  for(int i = 0; i < EXTERNAL_MAG_DU; i ++)
+
+  for(int i = 0; i < EXTERNAL_MAG_CHECK_COUNT; i ++)
     {
-      i2c_status = HAL_I2C_Master_Transmit(hi2c_, EXTERNAL_MAG_REGISTER , val, 2, 100);
-      if(i2c_status == 0) break;
+      /* check the existence of external magnetometer */
+
+      /* 1. LIS3MDL */
+      val[0] = LIS3MDL_PING;
+      i2c_status = HAL_I2C_Master_Transmit(hi2c_, LIS3MDL_MAG_REGISTER, val, 1, 100);
+      HAL_I2C_Master_Receive(hi2c_, LIS3MDL_MAG_REGISTER, val, 1, 100);
+
+      if(i2c_status == HAL_OK && val[0] == 61) //0b111101
+        {
+          mag_id_ = LIS3MDL;
+          HAL_Delay(10);
+          lis3mdlInit();
+          break;
+        }
+
+      /* 2. HMC58X3 */
+      val[0] = HMC58X3_R_CONFB;
+      val[1] = 0x20;
+      i2c_status = HAL_I2C_Master_Transmit(hi2c_, HMC58X3_MAG_REGISTER, val, 2, 100);
+
+      if(i2c_status == HAL_OK)
+        {
+          mag_id_ = HMC58X3;
+          HAL_Delay(10);
+          hmc58x3Init();
+          break;
+        }
       HAL_Delay(10);
     }
-  if(i2c_status  == HAL_OK)
-    {/* use external mag */
-      use_external_mag_flag_ = true;
-      HAL_Delay(10);
-      val[0] = HMC58X3_R_CONFA;
-      val[1] = 0x18;//Configuration Register A  -- 0 00 110 00  num samples: 1 ; output rate: 75Hz ; normal measurement mode
-      HAL_I2C_Master_Transmit(hi2c_, EXTERNAL_MAG_REGISTER , val, 2, 100);
-      HAL_Delay(10);
-      val[0] = HMC58X3_R_MODE;
-      val[1] =  0x00; //Mode register             -- 000000 00    continuous Conversion Mode
-      HAL_I2C_Master_Transmit(hi2c_, EXTERNAL_MAG_REGISTER , val, 2, 100);
-      HAL_Delay(1);
-    }
-  else
+
+
+  if(mag_id_ == INTERNAL_MAG)
     {/* use internal mag */
 
       HAL_Delay(10);
@@ -160,6 +176,40 @@ void IMUOnboard::magInit(void)
   last_mag_time_ = HAL_GetTick();
 }
 
+void IMUOnboard::lis3mdlInit(void)
+{
+  uint8_t val[2];
+  val[0] = LIS3MDL_CTRL_REG1;
+  val[1] = LIS3MDL_OM_XY_HIGH | LIS3MDL_FAST_ODR;
+  HAL_I2C_Master_Transmit(hi2c_, LIS3MDL_MAG_REGISTER, val, 2, 100);
+
+  val[0] = LIS3MDL_CTRL_REG3;
+  val[1] = LIS3MDL_CONTINUOUS_MODE;
+  HAL_I2C_Master_Transmit(hi2c_, LIS3MDL_MAG_REGISTER, val, 2, 100);
+
+  val[0] = LIS3MDL_CTRL_REG4;
+  val[1] = LIS3MDL_OM_Z_HIGH;
+  HAL_I2C_Master_Transmit(hi2c_, LIS3MDL_MAG_REGISTER, val, 2, 100);
+
+  val[0] = LIS3MDL_CTRL_REG5;
+  val[1] = LIS3MDL_BDU_MSBLSB;
+  HAL_I2C_Master_Transmit(hi2c_, LIS3MDL_MAG_REGISTER, val, 2, 100);
+}
+
+void IMUOnboard::hmc58x3Init(void)
+{
+  uint8_t val[2];
+
+  val[0] = HMC58X3_R_CONFA;
+  val[1] = 0x18;//Configuration Register A  -- 0 00 110 00  num samples: 1 ; output rate: 75Hz ; normal measurement mode
+  HAL_I2C_Master_Transmit(hi2c_, HMC58X3_MAG_REGISTER, val, 2, 100);
+  HAL_Delay(10);
+  val[0] = HMC58X3_R_MODE;
+  val[1] =  0x00; //Mode register             -- 000000 00    continuous Conversion Mode
+  HAL_I2C_Master_Transmit(hi2c_, HMC58X3_MAG_REGISTER, val, 2, 100);
+  HAL_Delay(1);
+}
+
 void IMUOnboard::ledOutput()
 {
   /* calibration pattern */
@@ -183,7 +233,7 @@ void IMUOnboard::ledOutput()
 
 void IMUOnboard::updateRawData()
 {
-  static int i = 0;
+  static int mag_cnt = 0;
   uint8_t t_data[1];
 
   t_data[0] = GYRO_ADDRESS | 0x80;
@@ -209,47 +259,76 @@ void IMUOnboard::updateRawData()
   raw_acc_adc_[1] = (int16_t)(adc_[2] << 8 | adc_[3]) / 4096.0f * GRAVITY_MSS;
   raw_acc_adc_[2] = (int16_t)(adc_[4] << 8 | adc_[5]) / 4096.0f * GRAVITY_MSS;
 
-  if(use_external_mag_flag_)
-    {/* use external mag */
-      if(i == EXTERNAL_MAG_PRESCALER)
-        {
-          uint8_t val[2];
-          val[0] = HMC58X3_DATA_REGISTER;
-          HAL_I2C_Master_Transmit(hi2c_, EXTERNAL_MAG_REGISTER , val, 1, 100);
-          HAL_I2C_Master_Receive(hi2c_, EXTERNAL_MAG_REGISTER , adc_, 6, 100);
+  switch(mag_id_)
+    {
+    case INTERNAL_MAG:
+      {
+        if(mag_cnt == MAG_READ_PRESCALER)
+          {
+            mag_cnt = 0;
 
-          //uT(10e-6 T) + transform
-          raw_mag_adc_[0] = (int16_t)(adc_[4] << 8 | adc_[5]) * -EXTERNAL_MAG_RATE;
-          raw_mag_adc_[1] = (int16_t)(adc_[0] << 8 | adc_[1]) * -EXTERNAL_MAG_RATE;
-          raw_mag_adc_[2] = (int16_t)(adc_[2] << 8 | adc_[3]) * -EXTERNAL_MAG_RATE;
-        }
-      if(i == EXTERNAL_MAG_PRESCALER) i =0;
-      else i++;
+            hspi_->Instance->CR1 &= (uint32_t)(~SPI_BAUDRATEPRESCALER_256); //reset
+            hspi_->Instance->CR1 |= (uint32_t)(SPI_BAUDRATEPRESCALER_64); //128 = 0.8Mhz
+            t_data[0] = MAG_SPI_ADDRESS | 0x80;
+            IMU_SPI_CS_L;
+            HAL_SPI_Transmit(hspi_, t_data, 1, 1000);
+            HAL_SPI_Receive(hspi_, adc_, 7, 1000);
+            IMU_SPI_CS_H;
+
+            hspi_->Instance->CR1 &= (uint32_t)(~SPI_BAUDRATEPRESCALER_256); //reset
+            hspi_->Instance->CR1 |= (uint32_t)(SPI_BAUDRATEPRESCALER_8); //8 = 13.5Mhz
+
+            //uT(10e-6 T) + transform
+            raw_mag_adc_[0] = (int16_t)(adc_[3] << 8 | adc_[2]) * 4912.0f / 32760.0f;
+            raw_mag_adc_[1] = (int16_t)(adc_[1] << 8 | adc_[0]) * 4912.0f / 32760.0f;
+            raw_mag_adc_[2] = (int16_t)(adc_[5] << 8 | adc_[4]) * 4912.0f / -32760.0f;
+          }
+        else mag_cnt++;
+
+        break;
+      }
+    case LIS3MDL:
+      {
+        if(mag_cnt == LIS3MDL_READ_PRESCALER)
+          {
+            mag_cnt = 0;
+
+            uint8_t val[2];
+            val[0] = (LIS3MDL_OUTX_L | 0x80);
+            HAL_I2C_Master_Transmit(hi2c_, LIS3MDL_MAG_REGISTER , val, 1, 100);
+            HAL_I2C_Master_Receive(hi2c_, LIS3MDL_MAG_REGISTER , adc_, 6, 100);
+
+            //uT(10e-6 T) + transform
+            raw_mag_adc_[0] = (int16_t)(adc_[1] << 8 | adc_[0]) * LIS3MDL_MAG_RATE;
+            raw_mag_adc_[1] = (int16_t)(adc_[3] << 8 | adc_[2]) * -LIS3MDL_MAG_RATE;
+            raw_mag_adc_[2] = (int16_t)(adc_[5] << 8 | adc_[4]) * -LIS3MDL_MAG_RATE;
+          }
+        else mag_cnt++;
+
+        break;
+      }
+    case HMC58X3:
+      {
+        if(mag_cnt == HMC58X3_READ_PRESCALER)
+          {
+            mag_cnt = 0;
+
+            uint8_t val[2];
+            val[0] = HMC58X3_DATA_REGISTER;
+            HAL_I2C_Master_Transmit(hi2c_, HMC58X3_MAG_REGISTER , val, 1, 100);
+            HAL_I2C_Master_Receive(hi2c_, HMC58X3_MAG_REGISTER , adc_, 6, 100);
+
+            //uT(10e-6 T) + transform
+            raw_mag_adc_[0] = (int16_t)(adc_[4] << 8 | adc_[5]) * -HMC58X3_RATE;
+            raw_mag_adc_[1] = (int16_t)(adc_[0] << 8 | adc_[1]) * -HMC58X3_RATE;
+            raw_mag_adc_[2] = (int16_t)(adc_[2] << 8 | adc_[3]) * -HMC58X3_RATE;
+          }
+        else mag_cnt++;
+
+        break;
+      }
     }
-  else
-    {/* use internal mag */
-      if(i == MAG_PRESCALER)
-        {
-          //mag is in low speed
-          hspi_->Instance->CR1 &= (uint32_t)(~SPI_BAUDRATEPRESCALER_256); //reset
-          hspi_->Instance->CR1 |= (uint32_t)(SPI_BAUDRATEPRESCALER_64); //128 = 0.8Mhz
-          t_data[0] = MAG_SPI_ADDRESS | 0x80;
-          IMU_SPI_CS_L;
-          HAL_SPI_Transmit(hspi_, t_data, 1, 1000);
-          HAL_SPI_Receive(hspi_, adc_, 7, 1000);
-          IMU_SPI_CS_H;
 
-          hspi_->Instance->CR1 &= (uint32_t)(~SPI_BAUDRATEPRESCALER_256); //reset
-          hspi_->Instance->CR1 |= (uint32_t)(SPI_BAUDRATEPRESCALER_8); //8 = 13.5Mhz
-
-          //uT(10e-6 T) + transform
-          raw_mag_adc_[0] = (int16_t)(adc_[3] << 8 | adc_[2]) * 4912.0f / 32760.0f;
-          raw_mag_adc_[1] = (int16_t)(adc_[1] << 8 | adc_[0]) * 4912.0f / 32760.0f;
-          raw_mag_adc_[2] = (int16_t)(adc_[5] << 8 | adc_[4]) * 4912.0f / -32760.0f;
-        }
-      if(i == MAG_PRESCALER) i = 0;
-      else i++;
-    }
   setUpdate(true); //no need?
 
 }
