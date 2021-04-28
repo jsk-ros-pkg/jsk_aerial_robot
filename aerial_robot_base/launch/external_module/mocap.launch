@@ -16,8 +16,9 @@
                child_frame_id: baselink
                parent_frame_id: world
       optitrack_config:
-         multicast_address:
-               239.255.42.99
+         multicast_address: 239.255.42.99
+         command_port: 1510
+         data_port: 1511
     </rosparam>
   </node>
 

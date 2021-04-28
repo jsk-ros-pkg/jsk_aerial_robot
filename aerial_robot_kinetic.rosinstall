@@ -16,12 +16,6 @@
     uri: https://github.com/JSKAerialRobot/sensor_interface.git
     version: da9c42f
 
-# motion capture(optitrack)
-- git:
-    local-name: mocap_optitrack
-    uri: https://github.com/tongtybj/mocap_optitrack.git
-    version: fix_multiple_rigid_bodies_parse_bug
-
 # realsense
 - git:
     local-name: realsense-ros
