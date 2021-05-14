@@ -21,6 +21,7 @@
   <run_depend>aerial_robot_estimation</run_depend>
   <run_depend>aerial_robot_model</run_depend>
   <run_depend>joy</run_depend>
+  <run_depend>mocap_optitrack</run_depend>
   <run_depend>roscpp</run_depend>
   <run_depend>rospy</run_depend>
   <run_depend>rostest</run_depend>
