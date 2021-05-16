@@ -37,6 +37,7 @@
 
 #include <aerial_robot_estimation/sensor/base_plugin.h>
 #include <geodesy/utm.h>
+#include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <kalman_filter/kf_pos_vel_acc_plugin.h>
 #include <nav_msgs/Odometry.h>
 #include <sensor_msgs/NavSatFix.h>
@@ -70,8 +71,8 @@ namespace sensor_plugin
       static tf::Vector3 wgs84ToNedLocalFrame(geographic_msgs::GeoPoint base_pos, geographic_msgs::GeoPoint target_pos);
       static geographic_msgs::GeoPoint NedLocalFrameToWgs84(tf::Vector3 diff_pos, geographic_msgs::GeoPoint base_pos);
 
-      const tf::Matrix3x3 getWolrdFrame() const { return world_frame_;}
-      const geographic_msgs::GeoPoint getHomePoint() const { return home_wgs84_point_;}
+      const bool isRtk() const {return is_rtk_gps_;}
+      const geographic_msgs::GeoPoint getBasePoint() const { return base_wgs84_point_;}
       const geographic_msgs::GeoPoint getCurrentPoint() const { return curr_wgs84_point_;}
 
     private:
@@ -79,26 +80,33 @@ namespace sensor_plugin
       ros::Publisher gps_pub_;
       ros::Subscriber gps_sub_, gps_full_sub_; /* from spinal */
       ros::Subscriber gps_ros_sub_; /* from ros */
+      ros::Subscriber rtk_gps_sub_; /* from rtk */
 
       /* ros param */
       double pos_noise_sigma_, vel_noise_sigma_;
       int min_est_sat_num_;
+
       bool ned_flag_;
       bool only_use_vel_;
-      tf::Matrix3x3 world_frame_;
+      bool only_use_pos_;
+      bool is_rtk_gps_; /* self is RTK GPS */
+      bool rtk_offset_; /* set the takeoff point as zero point for RTK mode */
 
       aerial_robot_msgs::States gps_state_;
 
-      geographic_msgs::GeoPoint home_wgs84_point_, curr_wgs84_point_;
+      geographic_msgs::GeoPoint base_wgs84_point_, curr_wgs84_point_;
 
       tf::Vector3 pos_, raw_pos_, prev_raw_pos_;
       tf::Vector3 vel_, raw_vel_;
+      tf::Vector3 pos_offset_;
 
       void gpsCallback(const spinal::Gps::ConstPtr & gps_msg);
       void gpsFullCallback(const spinal::GpsFull::ConstPtr & gps_full_msg);
       void gpsRosCallback(const sensor_msgs::NavSatFix::ConstPtr & gps_msg);
+      void rtkGpsCallback(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr & gps_msg);
       void estimateProcess();
       void rosParamInit();
+      void activate();
 
       /* utc time */
       /* https://github.com/KumarRobotics/ublox/blob/master/ublox_gps/include/ublox_gps/mkgmtime.h */

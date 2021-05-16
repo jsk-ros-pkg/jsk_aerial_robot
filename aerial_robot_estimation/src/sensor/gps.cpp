@@ -77,15 +77,14 @@ namespace sensor_plugin
     raw_pos_(0, 0, 0),
     prev_raw_pos_(0, 0, 0),
     vel_(0, 0, 0),
-    raw_vel_(0, 0, 0)
+    raw_vel_(0, 0, 0),
+    pos_offset_(0, 0, 0)
   {
     gps_state_.states.resize(2);
     gps_state_.states[0].id = "x";
-    gps_state_.states[0].state.resize(2);
+    gps_state_.states[0].state.resize(1);
     gps_state_.states[1].id = "y";
-    gps_state_.states[1].state.resize(2);
-
-    world_frame_.setIdentity();
+    gps_state_.states[1].state.resize(1);
   }
 
   void Gps::initialize(ros::NodeHandle nh,
@@ -107,8 +106,21 @@ namespace sensor_plugin
     getParam<std::string>("gps_ros_sub_name", topic_name, string("ros_fix"));
     gps_ros_sub_ = nh_.subscribe(topic_name, 5, &Gps::gpsRosCallback, this);
 
-    /* ros publisher of sensor_msgs::NavSatFix */
-    gps_pub_ = indexed_nhp_.advertise<sensor_msgs::NavSatFix>("ros_converted", 2);
+    if(is_rtk_gps_)
+      {
+        getParam<std::string>("rtk_pos_sub_name", topic_name, string("rtk_pos"));
+        rtk_gps_sub_ = nh_.subscribe(topic_name, 5, &Gps::rtkGpsCallback, this);
+
+        aerial_robot_msgs::State z_state;
+        z_state.id = "z";
+        z_state.state.resize(1);
+        gps_state_.states.push_back(z_state);
+      }
+    else
+      {
+        /* ros publisher of sensor_msgs::NavSatFix */
+        gps_pub_ = indexed_nhp_.advertise<sensor_msgs::NavSatFix>("ros_converted", 2);
+      }
   }
 
   void Gps::rosParamInit()
@@ -120,8 +132,11 @@ namespace sensor_plugin
     getParam<int>("min_est_sat_num", min_est_sat_num_, 4);
     getParam<double>("pos_noise_sigma", pos_noise_sigma_, 1.0);
     getParam<double>("vel_noise_sigma", vel_noise_sigma_, 0.1);
+    getParam<bool>("rtk", is_rtk_gps_, false);
+    getParam<bool>("rtk_offset", rtk_offset_, false);
 
-    if(ned_flag_) world_frame_.setRPY(M_PI, 0, 0);
+    if(is_rtk_gps_) only_use_pos_ = true;
+    else only_use_pos_ = false;
   }
 
   void Gps::gpsCallback(const spinal::Gps::ConstPtr & gps_msg)
@@ -129,13 +144,29 @@ namespace sensor_plugin
 
     if(!updateBaseLink2SensorTransform()) return;
 
+    /* check other gps modules */
+    bool has_rtk_gps = false;
+    for(const auto& handler: estimator_->getGpsHandlers())
+      {
+        if(handler.get() == this) continue;
+
+        if(boost::dynamic_pointer_cast<sensor_plugin::Gps>(handler)->isRtk())
+          {
+            has_rtk_gps = true;
+            only_use_vel_= true; // if has RTK GPS, we do not use the position information of normal GPS for fusion
+            ROS_DEBUG("has another RTK GPS");
+            break;
+          }
+      }
+
     /* temporal update */
-    curr_timestamp_ = gps_msg->stamp.toSec() + delay_;
+    double curr_timestamp = gps_msg->stamp.toSec() + delay_;
 
     /* assignment lat/lon, velocity */
     curr_wgs84_point_ = geodesy::toMsg(gps_msg->location[0], gps_msg->location[1]);
-    tf::Vector3 raw_vel_temp(gps_msg->velocity[0], gps_msg->velocity[1], 0);
-    raw_vel_ = world_frame_ * raw_vel_temp;
+    if(!has_rtk_gps || is_rtk_gps_) estimator_->setCurrGpsPoint(curr_wgs84_point_);
+
+    raw_vel_ = tf::Vector3(gps_msg->velocity[0], -gps_msg->velocity[1], 0); // NED frame -> XYZ frame
 
     /* to get the correction rotation and omega of baselink with the consideration of time delay */
     bool imu_initialized = false;
@@ -147,7 +178,6 @@ namespace sensor_plugin
             break;
           }
       }
-
     if(!imu_initialized)
       {
         ROS_WARN_THROTTLE(1, "gps: the imu is not initialized, wait");
@@ -170,62 +200,39 @@ namespace sensor_plugin
       {
         setStatus(Status::INIT);
 
-        if(!estimator_->getStateStatus(State::X_BASE, aerial_robot_estimation::EGOMOTION_ESTIMATE) ||
-           !estimator_->getStateStatus(State::Y_BASE, aerial_robot_estimation::EGOMOTION_ESTIMATE))
-          {
-            ROS_WARN("GPS: start gps kalman filter");
+        if(!is_rtk_gps_) activate();
 
-            /* fuser for 0: egomotion, 1: experiment */
-            for(int mode = 0; mode < 2; mode++)
-              {
-                if(!getFuserActivate(mode)) continue;
-                for(auto& fuser : estimator_->getFuser(mode))
-                  {
-                    boost::shared_ptr<kf_plugin::KalmanFilter> kf = fuser.second;
-                    int id = kf->getId();
-
-                    string plugin_name = fuser.first;
-                    if((id & (1 << State::X_BASE)) || (id & (1 << State::Y_BASE)))
-                      {
-                        if(plugin_name == "kalman_filter/kf_pos_vel_acc") kf->setMeasureFlag();
-                      }
-                  }
-              }
-          }
-
-        /* set the status */
-        estimator_->setStateStatus(State::X_BASE, aerial_robot_estimation::EGOMOTION_ESTIMATE, true);
-        estimator_->setStateStatus(State::Y_BASE, aerial_robot_estimation::EGOMOTION_ESTIMATE, true);
-        setStatus(Status::ACTIVE);
-
-        /* set home position */
-        home_wgs84_point_ = curr_wgs84_point_;
-        ROS_WARN("home lat/lon: [%f, %f] deg", home_wgs84_point_.latitude, home_wgs84_point_.longitude);
+        /* set base position */
+        base_wgs84_point_ = curr_wgs84_point_;
+        ROS_WARN("base lat/lon: [%f, %f] deg for %s GPS", base_wgs84_point_.latitude, base_wgs84_point_.longitude, is_rtk_gps_?std::string("RTK").c_str():std::string("normal").c_str());
         return;
       }
+
+    if(is_rtk_gps_) return; // do not do esimation
 
     /* get the position and velocity  w.r.t. the local frame (the origin is the initial takeoff place) */
     tf::Matrix3x3 r; r.setIdentity();
     tf::Vector3 omega(0,0,0);
-
     int mode = aerial_robot_estimation::EGOMOTION_ESTIMATE;
-    if(!estimator_->findRotOmega(curr_timestamp_, mode, r, omega))
+    if(!estimator_->findRotOmega(curr_timestamp, mode, r, omega) && estimator_->getFlyingFlag())
       ROS_WARN_STREAM("gps: the omega is not updated from findRotOmega");
 
     raw_vel_ += r * (- omega.cross(sensor_tf_.getOrigin())); //offset from gps to baselink
-    raw_pos_ = world_frame_ * Gps::wgs84ToNedLocalFrame(home_wgs84_point_, curr_wgs84_point_) - r * sensor_tf_.getOrigin();
 
-    double start_time = ros::Time::now().toSec();
+    tf::Matrix3x3 convert_frame; convert_frame.setRPY(M_PI, 0, 0); // NED -> XYZ
+    raw_pos_ = convert_frame * Gps::wgs84ToNedLocalFrame(base_wgs84_point_, curr_wgs84_point_) - r * sensor_tf_.getOrigin();
+
+    /* update timestamp for estimation */
+    curr_timestamp_ = curr_timestamp;
+
     estimateProcess();
-    //std::cout << "gps correction: " << ros::Time::now().toSec() - start_time << ", sat num: " << (int)gps_msg->sat_num << std::endl;
 
     /* update the timestamp */
-    gps_state_.header.stamp.fromSec(curr_timestamp_);
+    gps_state_.header.stamp.fromSec(curr_timestamp);
     gps_state_.states[0].state[0].x = raw_pos_[0];
     gps_state_.states[0].state[0].y = raw_vel_[0];
     gps_state_.states[1].state[0].x = raw_pos_[1];
     gps_state_.states[1].state[0].y = raw_vel_[1];
-
     state_pub_.publish(gps_state_);
 
     /* update */
@@ -276,13 +283,65 @@ namespace sensor_plugin
     spinal::Gps::Ptr spinal_gps_msg(new spinal::Gps());
     spinal_gps_msg->stamp = gps_msg->header.stamp;
     spinal_gps_msg->location[0] = gps_msg->latitude;
-
-    /* since we use hector_gazebo_plugins/GPS, the longitude has same direction with y axis, which is not correct with the real situation */
     spinal_gps_msg->location[1] = gps_msg->longitude;
 
-    if(gps_msg->status.status == sensor_msgs::NavSatStatus::STATUS_FIX)
+    if(gps_msg->status.status >= sensor_msgs::NavSatStatus::STATUS_FIX)
       spinal_gps_msg->sat_num = min_est_sat_num_; // temporarily
     gpsCallback(boost::const_pointer_cast<const spinal::Gps>(spinal_gps_msg));
+  }
+
+
+  void Gps::rtkGpsCallback(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr & rtk_gps_msg)
+  {
+    auto cov = rtk_gps_msg->pose.covariance;
+    if(cov[0] == 0 || cov[7] == 0 || cov[14] == 0)
+      {
+        // TODO: implement dynamic recovery if RTK GPS is disconnected in air
+        ROS_WARN_THROTTLE(1.0, "RTK GPS is not convergent, not recommend to fly. If this is the first bringup, please wait for few minute for covergence");
+        return;
+      }
+
+
+    /* temporal update */
+    curr_timestamp_ = rtk_gps_msg->header.stamp.toSec() + delay_;
+
+    /* pos accuracy */
+    pos_noise_sigma_ = cov[0];
+
+    /* get the position */
+    tf::Matrix3x3 r; r.setIdentity();
+    tf::Vector3 omega(0,0,0);
+    int mode = aerial_robot_estimation::EGOMOTION_ESTIMATE;
+    if(!estimator_->findRotOmega(curr_timestamp_, mode, r, omega) && estimator_->getFlyingFlag())
+      ROS_WARN_STREAM("gps: the omega is not updated from findRotOmega");
+
+    tf::Vector3 raw_pos;
+    tf::pointMsgToTF(rtk_gps_msg->pose.pose.position, raw_pos);
+
+    raw_pos_ = raw_pos  - r * sensor_tf_.getOrigin();
+
+    if(getStatus() == Status::INIT) pos_offset_ = raw_pos_;
+
+    if(rtk_offset_) raw_pos_ -= pos_offset_;
+    // TODO: add offset for z axis if we use altitude from RTK GPS
+
+    if(getStatus() == Status::INIT)
+      {
+        activate();
+        setStatus(Status::ACTIVE);
+      }
+
+    estimateProcess();
+
+    /* update the timestamp */
+    gps_state_.header.stamp.fromSec(curr_timestamp_);
+    gps_state_.states[0].state[0].x = raw_pos_[0];
+    gps_state_.states[1].state[0].x = raw_pos_[1];
+    gps_state_.states[2].state[0].x = raw_pos_[2];
+    state_pub_.publish(gps_state_);
+
+    /* update */
+    updateHealthStamp();
   }
 
   void Gps::estimateProcess()
@@ -325,9 +384,17 @@ namespace sensor_plugin
 
                     int index = id >> (State::X_BASE + 1);
 
-                    if(only_use_vel_)
+                    if(only_use_pos_)
                       {
-                        /* correction */
+                        VectorXd meas(1); meas <<  raw_pos_[index];
+                        vector<double> params = {kf_plugin::POS};
+                        VectorXd measure_sigma(1);
+                        measure_sigma << pos_noise_sigma_;
+                        kf->correction(meas, measure_sigma,
+                                       time_sync_?(curr_timestamp_):-1, params);
+                      }
+                    else if(only_use_vel_)
+                      {
                         VectorXd meas(1); meas <<  raw_vel_[index];
                         vector<double> params = {kf_plugin::VEL};
                         VectorXd measure_sigma(1);
@@ -338,7 +405,6 @@ namespace sensor_plugin
                       }
                     else
                       {
-                        /* correction */
                         VectorXd measure_sigma(2);
                         measure_sigma << pos_noise_sigma_, vel_noise_sigma_;
                         VectorXd meas(2); meas <<  raw_pos_[index], raw_vel_[index];
@@ -347,16 +413,47 @@ namespace sensor_plugin
                         kf->correction(meas, measure_sigma,
                                        time_sync_?(curr_timestamp_):-1, params);
                       }
-
-                    // VectorXd state = kf->getEstimateState();
-
-                    // estimator_->setState(index + 3, mode, 0, state(0));
-                    // estimator_->setState(index + 3, mode, 1, state(1));
                   }
               }
           }
       }
   }
+
+  void Gps::activate()
+  {
+    if(!estimator_->getStateStatus(State::X_BASE, aerial_robot_estimation::EGOMOTION_ESTIMATE) ||
+       !estimator_->getStateStatus(State::Y_BASE, aerial_robot_estimation::EGOMOTION_ESTIMATE))
+      {
+        ROS_WARN("GPS: start gps kalman filter");
+
+        /* fuser for 0: egomotion, 1: experiment */
+        for(int mode = 0; mode < 2; mode++)
+          {
+            if(!getFuserActivate(mode)) continue;
+            for(auto& fuser : estimator_->getFuser(mode))
+              {
+                boost::shared_ptr<kf_plugin::KalmanFilter> kf = fuser.second;
+                int id = kf->getId();
+
+                string plugin_name = fuser.first;
+                if((id & (1 << State::X_BASE)) || (id & (1 << State::Y_BASE)))
+                  {
+                    if(plugin_name == "kalman_filter/kf_pos_vel_acc")
+                      {
+                        kf->setInitState(raw_pos_[id >> (State::X_BASE + 1)], 0);
+                        kf->setMeasureFlag();
+                      }
+                  }
+              }
+          }
+      }
+
+    /* set the status */
+    estimator_->setStateStatus(State::X_BASE, aerial_robot_estimation::EGOMOTION_ESTIMATE, true);
+    estimator_->setStateStatus(State::Y_BASE, aerial_robot_estimation::EGOMOTION_ESTIMATE, true);
+    setStatus(Status::ACTIVE);
+  }
+
 
   /*
     AlvinXY: Lat/Long to X/Y (NED)
