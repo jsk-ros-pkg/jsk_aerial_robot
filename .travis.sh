@@ -13,7 +13,7 @@ sudo apt-get install -qq -y python-catkin-pkg python-rosdep python-catkin-tools 
 
 source /opt/ros/${ROS_DISTRO}/setup.bash
 sudo rosdep init
-rosdep update
+rosdep update --include-eol-distros
 # script:
 (cd ${CI_SOURCE_PATH}; git log --oneline | head -10)
 mkdir -p ~/catkin_ws/src
