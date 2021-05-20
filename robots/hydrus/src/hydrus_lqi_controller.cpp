@@ -445,35 +445,35 @@ void HydrusLQIController::cfgLQICallback(hydrus::LQIConfig &config, uint32_t lev
           lqi_roll_pitch_weight_.x() = config.roll_pitch_p;
           break;
         case Levels::RECONFIGURE_LQI_ROLL_PITCH_I:
-          ROS_INFO_STREAM_NAMED("LQI gain generator", "LQI gain generator: change the p gain weight of roll and pitch from " << lqi_roll_pitch_weight_.y() <<  " to "  << config.roll_pitch_i);
+          ROS_INFO_STREAM_NAMED("LQI gain generator", "LQI gain generator: change the i gain weight of roll and pitch from " << lqi_roll_pitch_weight_.y() <<  " to "  << config.roll_pitch_i);
           lqi_roll_pitch_weight_.y() = config.roll_pitch_i;
           break;
         case Levels::RECONFIGURE_LQI_ROLL_PITCH_D:
-          ROS_INFO_STREAM_NAMED("LQI gain generator", "LQI gain generator: change the p gain weight of roll and pitch from " << lqi_roll_pitch_weight_.z() <<  " to "  << config.roll_pitch_d);
+          ROS_INFO_STREAM_NAMED("LQI gain generator", "LQI gain generator: change the d gain weight of roll and pitch from " << lqi_roll_pitch_weight_.z() <<  " to "  << config.roll_pitch_d);
           lqi_roll_pitch_weight_.z() = config.roll_pitch_d;
           break;
         case Levels::RECONFIGURE_LQI_YAW_P:
-          ROS_INFO_STREAM_NAMED("LQI gain generator", "LQI gain generator: change the p gain weight of roll and pitch from " << lqi_yaw_weight_.x() <<  " to "  << config.yaw_p);
+          ROS_INFO_STREAM_NAMED("LQI gain generator", "LQI gain generator: change the p gain weight of yaw from " << lqi_yaw_weight_.x() <<  " to "  << config.yaw_p);
           lqi_yaw_weight_.x() = config.yaw_p;
           break;
         case Levels::RECONFIGURE_LQI_YAW_I:
-          ROS_INFO_STREAM_NAMED("LQI gain generator", "LQI gain generator: change the p gain weight of roll and pitch from " << lqi_yaw_weight_.y() <<  " to "  << config.yaw_i);
+          ROS_INFO_STREAM_NAMED("LQI gain generator", "LQI gain generator: change the i gain weight of yaw from " << lqi_yaw_weight_.y() <<  " to "  << config.yaw_i);
           lqi_yaw_weight_.y() = config.yaw_i;
           break;
         case Levels::RECONFIGURE_LQI_YAW_D:
-          ROS_INFO_STREAM_NAMED("LQI gain generator", "LQI gain generator: change the p gain weight of roll and pitch from " << lqi_yaw_weight_.z() <<  " to "  << config.yaw_d);
+          ROS_INFO_STREAM_NAMED("LQI gain generator", "LQI gain generator: change the d gain weight of yaw from " << lqi_yaw_weight_.z() <<  " to "  << config.yaw_d);
           lqi_yaw_weight_.z() = config.yaw_d;
           break;
         case Levels::RECONFIGURE_LQI_Z_P:
-          ROS_INFO_STREAM_NAMED("LQI gain generator", "LQI gain generator: change the p gain weight of roll and pitch from " << lqi_z_weight_.x() <<  " to "  << config.z_p);
+          ROS_INFO_STREAM_NAMED("LQI gain generator", "LQI gain generator: change the p gain weight of z from " << lqi_z_weight_.x() <<  " to "  << config.z_p);
           lqi_z_weight_.x() = config.z_p;
           break;
         case Levels::RECONFIGURE_LQI_Z_I:
-          ROS_INFO_STREAM_NAMED("LQI gain generator", "LQI gain generator: change the p gain weight of roll and pitch from " << lqi_z_weight_.y() <<  " to "  << config.z_i);
+          ROS_INFO_STREAM_NAMED("LQI gain generator", "LQI gain generator: change the i gain weight of z from " << lqi_z_weight_.y() <<  " to "  << config.z_i);
           lqi_z_weight_.y() = config.z_i;
           break;
         case Levels::RECONFIGURE_LQI_Z_D:
-          ROS_INFO_STREAM_NAMED("LQI gain generator", "LQI gain generator: change the p gain weight of roll and pitch from " << lqi_z_weight_.z() <<  " to "  << config.z_d);
+          ROS_INFO_STREAM_NAMED("LQI gain generator", "LQI gain generator: change the d gain weight of z from " << lqi_z_weight_.z() <<  " to "  << config.z_d);
           lqi_z_weight_.z() = config.z_d;
           break;
         default :
