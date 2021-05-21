@@ -13,7 +13,7 @@ sudo apt-get install -qq -y python-catkin-pkg python-rosdep python-catkin-tools 
 
 source /opt/ros/${ROS_DISTRO}/setup.bash
 sudo rosdep init
-rosdep update
+rosdep update --include-eol-distros
 # script:
 (cd ${CI_SOURCE_PATH}; git log --oneline | head -10)
 mkdir -p ~/catkin_ws/src
@@ -23,6 +23,17 @@ wstool init src
 wstool merge -t src src/aerial_robot/aerial_robot_${ROS_DISTRO}.rosinstall
 wstool update -t src
 rosdep install --from-paths src -y -q -r --ignore-src --rosdistro ${ROS_DISTRO} # -r is indisapensible
+
+if [ ${ROS_DISTRO} = 'kinetic' ]; then
+    path=~/.gazebo/models/sun
+    echo "manually download the sun gazebo model to ${path}"
+    mkdir -p ${path}
+    wget https://raw.githubusercontent.com/osrf/gazebo_models/master/sun/model-1_2.sdf -P ${path}
+    wget https://raw.githubusercontent.com/osrf/gazebo_models/master/sun/model-1_3.sdf -P ${path}
+    wget https://raw.githubusercontent.com/osrf/gazebo_models/master/sun/model-1_4.sdf -P ${path}
+    wget https://raw.githubusercontent.com/osrf/gazebo_models/master/sun/model.sdf -P ${path}
+    wget https://raw.githubusercontent.com/osrf/gazebo_models/master/sun/model.config -P ${path}
+fi
 
 # Build
 catkin config --cmake-args -DCMAKE_EXPORT_COMPILE_COMMANDS=ON

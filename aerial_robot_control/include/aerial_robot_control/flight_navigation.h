@@ -449,6 +449,11 @@ namespace aerial_robot_navigation
               xy_control_mode_ = VEL_CONTROL_MODE;
               ROS_INFO("x/y velocity control mode");
             }
+          if(msg->data == 2)
+            {
+              xy_control_mode_ = ACC_CONTROL_MODE;
+              ROS_INFO("x/y acceleration control mode");
+            }
         }
     }
 

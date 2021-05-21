@@ -55,7 +55,7 @@
     <link name="gimbal_link${self}">
       <inertial>
         <origin xyz="-0.006114 0.000001 0.032778" rpy="0 0 0"/>
-        <mass value="0.140963"/>
+        <mass value="0.260"/>
         <inertia
             ixx="0.001" iyy="0.001" izz="0.001"
             ixy="0" ixz="0" iyz="0"/>

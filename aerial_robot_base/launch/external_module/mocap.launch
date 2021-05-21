@@ -1,21 +1,26 @@
 <launch>
+
+  <arg name="robot_id" default="1"/>
+
   <node pkg="mocap_optitrack"
     type="mocap_node"
     name="mocap_node"
     respawn="false"
     launch-prefix=""
     required="true">
-    <rosparam>
+    <rosparam subst_value="true">
       rigid_bodies:
-         '1':
+         '$(arg robot_id)':
                pose: mocap/pose
                pose2d: mocap/ground_pose
                child_frame_id: baselink
                parent_frame_id: world
       optitrack_config:
-         multicast_address:
-               239.255.42.99
+         multicast_address: 239.255.42.99
+         command_port: 1510
+         data_port: 1511
     </rosparam>
+    <remap from="~mocap/pose" to="mocap/pose" />
   </node>
 
 </launch>
