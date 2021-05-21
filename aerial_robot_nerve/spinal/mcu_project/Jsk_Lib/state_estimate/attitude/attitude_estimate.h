@@ -54,7 +54,7 @@ class AttitudeEstimate
 public:
   ~AttitudeEstimate(){}
 #ifdef SIMULATION
-  AttitudeEstimate(): pub_smoothing_gyro_flag_(false)
+  AttitudeEstimate(): pub_acc_gyro_only_flag_(false)
   {
     tf_desired_coord_.setIdentity();
   }
@@ -196,14 +196,16 @@ public:
             imu_msg_.mag_data[i] = estimator_->getMag(Frame::BODY)[i];
             imu_msg_.acc_data[i] = estimator_->getAcc(Frame::BODY)[i];
 
-            if(pub_smoothing_gyro_flag_)
+            if(pub_acc_gyro_only_flag_)
+              {
                 imu_msg_.gyro_data[i] = estimator_->getSmoothAngular(Frame::BODY)[i];
+                imu_msg_.mag_data[i] = estimator_->getAngular(Frame::BODY)[i]; // workaround to publish the raw gyro data for control in ROS.
+              }
             else
               imu_msg_.gyro_data[i] = estimator_->getAngular(Frame::BODY)[i];
- #if ESTIMATE_TYPE == COMPLEMENTARY
+#if ESTIMATE_TYPE == COMPLEMENTARY
             imu_msg_.angles[i] = estimator_->getAttitude(Frame::BODY)[i]; // get the attitude at body frame3
 #endif
-            imu_msg_.mag_data[i] = estimator_->getAngular(Frame::BODY)[i]; // temporary
           }
 #ifdef SIMULATION
         imu_pub_.publish(imu_msg_);
@@ -244,7 +246,7 @@ public:
   inline const ap::Vector3f getAngular(uint8_t frame) { return estimator_->getAngular(frame); }
   inline const ap::Vector3f getSmoothAngular(uint8_t frame) { return estimator_->getSmoothAngular(frame); }
   inline const ap::Matrix3f getDesiredCoord()  { return estimator_->getDesiredCoord(); }
-  inline void setGyroSmoothFlag(bool flag) { pub_smoothing_gyro_flag_ = flag; }
+  inline void setPubAccGryoOnlyFlag(bool flag) { pub_acc_gyro_only_flag_ = flag; }
 
   static const uint8_t IMU_PUB_INTERVAL = 5; //10-> 100Hz, 2 -> 500Hz
   static const uint8_t ATTITUDE_PUB_INTERVAL = 100; //100 -> 10Hz
@@ -255,7 +257,7 @@ private:
 
   spinal::Imu imu_msg_;
   geometry_msgs::Vector3Stamped attitude_msg_;
-  bool pub_smoothing_gyro_flag_;
+  bool pub_acc_gyro_only_flag_;
 
 #ifdef SIMULATION
   ros::Subscriber desire_coord_sub_;

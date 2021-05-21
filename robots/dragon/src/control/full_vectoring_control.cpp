@@ -790,8 +790,8 @@ void DragonFullVectoringController::externalWrenchEstimate()
       return;
     }
 
-  Eigen::Vector3d vel_w, omega_cog; // temporary: use the filtered value
-  auto imu_handler = boost::dynamic_pointer_cast<sensor_plugin::Imu>(estimator_->getImuHandler(0));
+  Eigen::Vector3d vel_w, omega_cog; // workaround: use the filtered value
+  auto imu_handler = boost::dynamic_pointer_cast<sensor_plugin::DragonImu>(estimator_->getImuHandler(0));
   tf::vectorTFToEigen(imu_handler->getFilteredVelCog(), vel_w);
   tf::vectorTFToEigen(imu_handler->getFilteredOmegaCog(), omega_cog);
   Eigen::Matrix3d cog_rot;

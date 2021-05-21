@@ -50,10 +50,10 @@ namespace sensor_plugin
   class Imu :public sensor_plugin::SensorBase
   {
   public:
-    void initialize(ros::NodeHandle nh,
-                    boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
-                    boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
-                    string sensor_name, int index) override;
+    virtual void initialize(ros::NodeHandle nh,
+                            boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
+                            boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
+                            string sensor_name, int index) override;
 
     ~Imu() {}
     Imu();
@@ -63,31 +63,7 @@ namespace sensor_plugin
 
     inline void treatImuAsGroundTruth(bool flag) { treat_imu_as_ground_truth_ = flag; }
 
-    void setFilteredOmegaCog(const tf::Vector3 filtered_omega_cog)
-    {
-      boost::lock_guard<boost::mutex> lock(omega_mutex_);
-      filtered_omega_cog_ = filtered_omega_cog;
-    }
-
-    void setFilteredVelCog(const tf::Vector3 filtered_vel_cog)
-    {
-      boost::lock_guard<boost::mutex> lock(vel_mutex_);
-      filtered_vel_cog_ = filtered_vel_cog;
-    }
-
-    const tf::Vector3 getFilteredOmegaCog()
-    {
-      boost::lock_guard<boost::mutex> lock(omega_mutex_);
-      return filtered_omega_cog_;
-    }
-
-    const tf::Vector3 getFilteredVelCog()
-    {
-      boost::lock_guard<boost::mutex> lock(vel_mutex_);
-      filtered_vel_cog_;
-    }
-
-  private:
+  protected:
     ros::Publisher  acc_pub_;
     ros::Publisher  imu_pub_;
     ros::Subscriber imu_sub_;
@@ -125,18 +101,11 @@ namespace sensor_plugin
 
     ros::Time imu_stamp_;
 
-    void ImuCallback(const spinal::ImuConstPtr& imu_msg);
-    void estimateProcess();
+    virtual void ImuCallback(const spinal::ImuConstPtr& imu_msg);
+    virtual void estimateProcess();
     void publishAccData();
     void publishRosImuData();
     void rosParamInit();
-
-    // temporary
-    boost::mutex omega_mutex_;
-    boost::mutex vel_mutex_;
-    tf::Vector3 filtered_omega_baselink_;
-    tf::Vector3 filtered_vel_cog_;
-    tf::Vector3 filtered_omega_cog_;
   };
 };
 

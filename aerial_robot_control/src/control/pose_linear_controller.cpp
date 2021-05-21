@@ -141,8 +141,8 @@ namespace aerial_robot_control
     /* z */
     getParam<double>(z_nh, "landing_err_z", landing_err_z_, -0.5);
     getParam<double>(z_nh, "safe_landing_height",  safe_landing_height_, 0.5);
-    getParam<double>(z_nh, "force_landing_descending_rate",  force_landing_descending_rate_, -0.1);
-    if(force_landing_descending_rate_ >= 0) force_landing_descending_rate_ = -0.1;
+    getParam<double>(z_nh, "force_landing_descending_rate",  force_landing_descending_rate_, -0.5);
+    if(force_landing_descending_rate_ >= 0) force_landing_descending_rate_ = -0.5;
 
     loadParam(z_nh);
     pid_controllers_.push_back(PID("z", p_gain, i_gain, d_gain, limit_sum, limit_p, limit_i, limit_d, limit_err_p, limit_err_i, limit_err_d));

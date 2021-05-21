@@ -43,7 +43,7 @@
 #include <spinal/TorqueAllocationMatrixInv.h>
 #include <std_msgs/Float32MultiArray.h>
 #include <tf_conversions/tf_eigen.h>
-#include <aerial_robot_estimation/sensor/imu.h>
+#include <dragon/sensor/imu.h>
 #include <visualization_msgs/MarkerArray.h>
 
 namespace aerial_robot_control

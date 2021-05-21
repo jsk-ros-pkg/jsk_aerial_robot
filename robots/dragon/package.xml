@@ -22,6 +22,7 @@
   <run_depend>aerial_robot_control</run_depend>
   <run_depend>aerial_robot_model</run_depend>
   <run_depend>aerial_robot_msgs</run_depend>
+  <run_depend>aerial_robot_estimation</run_depend>
   <run_depend>roscpp</run_depend>
   <run_depend>hydrus</run_depend>
   <run_depend>pluginlib</run_depend>
@@ -31,6 +32,7 @@
     <aerial_robot_model plugin="${prefix}/plugins/robot_model_plugins.xml"/>
     <aerial_robot_control plugin="${prefix}/plugins/flight_control_plugins.xml" />
     <aerial_robot_control plugin="${prefix}/plugins/flight_navigation_plugin.xml" />
+    <aerial_robot_estimation plugin="${prefix}/plugins/sensor_plugins.xml" />
   </export>
 
 </package>
