@@ -672,6 +672,8 @@ void  AttitudeController::setUavModel(int8_t uav_model)
       if(uav_model_ == spinal::UavInfo::DRAGON)
         {
           rotor_devider_ = 2; // dual-rotor
+
+          estimator_->getAttEstimator()->setPubAccGryoOnlyFlag(true); // speical imu publish for dragon
         }
     }
 }
