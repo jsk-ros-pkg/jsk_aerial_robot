@@ -100,7 +100,7 @@ public:
     mag_declination_srv_("mag_declination", &AttitudeEstimate::magDeclinationCallback,this),
     imu_list_(1),
     imu_weights_(1,1),
-    pub_smoothing_gyro_flag_(false)
+	pub_acc_gyro_only_flag_(false)
   {}
 
   void init(IMU* imu, GPS* gps, ros::NodeHandle* nh)

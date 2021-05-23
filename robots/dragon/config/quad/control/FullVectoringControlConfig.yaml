@@ -11,7 +11,7 @@ controller:
   allocation_refine_threshold: 0.0001
 
   wrench_estimate_update_rate: 100
-  momentum_observer_force_weight: 5
+  momentum_observer_force_weight: 3 # heavy delay, less noise, 2, 2.5, 3, light delay, more noise. The old parameter 5 has bug
   momentum_observer_torque_weight: 2.5
 
   rotor_interfere_compensate: true

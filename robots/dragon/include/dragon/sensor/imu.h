@@ -72,7 +72,7 @@ namespace sensor_plugin
     const tf::Vector3 getFilteredVelCog()
     {
       boost::lock_guard<boost::mutex> lock(vel_mutex_);
-      filtered_vel_cog_;
+      return filtered_vel_cog_;
     }
 
   protected:
