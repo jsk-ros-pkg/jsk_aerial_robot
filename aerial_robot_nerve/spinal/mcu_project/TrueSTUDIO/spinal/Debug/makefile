@@ -13,7 +13,11 @@ RM := rm -rf
 -include Drivers/CMSIS/subdir.mk
 -include Application/ros_lib/subdir.mk
 -include Application/User/subdir.mk
--include Application/TrueSTUDIO/subdir.mk
+-include Application/Startup/subdir.mk
+-include Application/Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/subdir.mk
+-include Application/Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM7/r0p1/subdir.mk
+-include Application/Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS/subdir.mk
+-include Application/Middlewares/Third_Party/FreeRTOS/Source/subdir.mk
 -include Application/Jsk_Lib/sensors/imu/subdir.mk
 -include Application/Jsk_Lib/sensors/gps/subdir.mk
 -include Application/Jsk_Lib/sensors/encoder/subdir.mk

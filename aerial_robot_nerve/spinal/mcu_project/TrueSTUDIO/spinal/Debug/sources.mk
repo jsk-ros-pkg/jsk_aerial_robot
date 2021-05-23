@@ -43,7 +43,11 @@ Application/Jsk_Lib/sensors/baro \
 Application/Jsk_Lib/sensors/encoder \
 Application/Jsk_Lib/sensors/gps \
 Application/Jsk_Lib/sensors/imu \
-Application/TrueSTUDIO \
+Application/Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS \
+Application/Middlewares/Third_Party/FreeRTOS/Source \
+Application/Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM7/r0p1 \
+Application/Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang \
+Application/Startup \
 Application/User \
 Application/ros_lib \
 Drivers/CMSIS \

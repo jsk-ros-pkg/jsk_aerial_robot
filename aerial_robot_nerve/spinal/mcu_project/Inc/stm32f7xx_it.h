@@ -47,8 +47,8 @@
 /* USER CODE END EM */
 
 /* Exported functions prototypes ---------------------------------------------*/
-void SysTick_Handler(void);
 void CAN1_RX1_IRQHandler(void);
+void TIM1_TRG_COM_TIM11_IRQHandler(void);
 void USART3_IRQHandler(void);
 void DMA2_Stream2_IRQHandler(void);
 /* USER CODE BEGIN EFP */

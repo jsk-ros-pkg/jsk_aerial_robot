@@ -72,17 +72,22 @@
 		<nature>org.eclipse.cdt.core.ccnature</nature>
 		<nature>org.eclipse.cdt.managedbuilder.core.managedBuildNature</nature>
 		<nature>com.st.stm32cube.ide.mcu.MCUTSConvertedProjectNature</nature>
+		<nature>com.st.stm32cube.ide.mcu.MCUCubeIdeServicesRevAev2ProjectNature</nature>
+		<nature>com.st.stm32cube.ide.mcu.MCUNonUnderRootProjectNature</nature>
+		<nature>com.st.stm32cube.ide.mcu.MCUCubeProjectNature</nature>
+		<nature>com.st.stm32cube.ide.mcu.MCUSingleCpuProjectNature</nature>
+		<nature>com.st.stm32cube.ide.mcu.MCURootProjectNature</nature>
 	</natures>
 	<linkedResources>
-		<link>
-			<name>Application</name>
-			<type>2</type>
-			<locationURI>virtual:/virtual</locationURI>
-		</link>
 		<link>
 			<name>Drivers</name>
 			<type>2</type>
 			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>spinal.ioc</name>
+			<type>1</type>
+			<locationURI>PARENT-2-PROJECT_LOC/spinal.ioc</locationURI>
 		</link>
 		<link>
 			<name>Application/Hydrus_Lib</name>
@@ -95,19 +100,9 @@
 			<locationURI>PARENT-2-PROJECT_LOC/Jsk_Lib</locationURI>
 		</link>
 		<link>
-			<name>Application/Src</name>
+			<name>Application/Middlewares</name>
 			<type>2</type>
-			<locationURI>virtual:/virtual</locationURI>
-		</link>
-		<link>
-			<name>Application/TrueSTUDIO</name>
-			<type>2</type>
-			<locationURI>virtual:/virtual</locationURI>
-		</link>
-		<link>
-			<name>Application/User</name>
-			<type>2</type>
-			<locationURI>virtual:/virtual</locationURI>
+			<locationURI>PARENT-2-PROJECT_LOC/Middlewares</locationURI>
 		</link>
 		<link>
 			<name>Application/ros_lib</name>
@@ -125,16 +120,6 @@
 			<locationURI>virtual:/virtual</locationURI>
 		</link>
 		<link>
-			<name>Application/TrueSTUDIO/startup_stm32f746xx.s</name>
-			<type>1</type>
-			<locationURI>PARENT-1-PROJECT_LOC/startup_stm32f746xx.s</locationURI>
-		</link>
-		<link>
-			<name>Application/TrueSTUDIO/syscalls.c</name>
-			<type>1</type>
-			<locationURI>PARENT-1-PROJECT_LOC/syscalls.c</locationURI>
-		</link>
-		<link>
 			<name>Application/User/adc.c</name>
 			<type>1</type>
 			<locationURI>PARENT-2-PROJECT_LOC/Src/adc.c</locationURI>
@@ -148,6 +133,11 @@
 			<name>Application/User/dma.c</name>
 			<type>1</type>
 			<locationURI>PARENT-2-PROJECT_LOC/Src/dma.c</locationURI>
+		</link>
+		<link>
+			<name>Application/User/freertos.c</name>
+			<type>1</type>
+			<locationURI>PARENT-2-PROJECT_LOC/Src/freertos.c</locationURI>
 		</link>
 		<link>
 			<name>Application/User/gpio.c</name>
@@ -173,6 +163,11 @@
 			<name>Application/User/stm32f7xx_hal_msp.c</name>
 			<type>1</type>
 			<locationURI>PARENT-2-PROJECT_LOC/Src/stm32f7xx_hal_msp.c</locationURI>
+		</link>
+		<link>
+			<name>Application/User/stm32f7xx_hal_timebase_tim.c</name>
+			<type>1</type>
+			<locationURI>PARENT-2-PROJECT_LOC/Src/stm32f7xx_hal_timebase_tim.c</locationURI>
 		</link>
 		<link>
 			<name>Application/User/stm32f7xx_it.c</name>
