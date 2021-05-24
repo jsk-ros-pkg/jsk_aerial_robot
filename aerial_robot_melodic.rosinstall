@@ -16,6 +16,12 @@
     uri: https://github.com/JSKAerialRobot/sensor_interface.git
     version: da9c42f
 
+# RTK-GPS (forked)
+- git:
+    local-name: ublox_gps
+    uri: https://github.com/tongtybj/ublox.git
+    version: holybro_rtk_m8p
+
 # realsense
 #- git:
 #    local-name: realsense-ros
