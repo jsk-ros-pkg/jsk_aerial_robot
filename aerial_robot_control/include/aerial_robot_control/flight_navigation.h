@@ -443,6 +443,7 @@ namespace aerial_robot_navigation
         {
           if(msg->data == 0)
             {
+              setTargetXyFromCurrentState();
               xy_control_mode_ = POS_CONTROL_MODE;
               ROS_INFO("x/y position control mode");
             }
