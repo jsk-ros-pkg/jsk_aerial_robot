@@ -728,17 +728,10 @@ void BaseNavigator::update()
           {
             if(ros::Time::now().toSec() - gps_waypoint_time_ > gps_waypoint_check_du_)
               {
-                tf::Vector3 gps_waypoint_delta;
+                auto base_wp = estimator_->getCurrGpsPoint();
+                tf::Matrix3x3 convert_frame; convert_frame.setRPY(M_PI, 0, 0); // NED -> XYZ
+                tf::Vector3 gps_waypoint_delta =  convert_frame * sensor_plugin::Gps::wgs84ToNedLocalFrame(base_wp, target_wp_);
 
-                for (const auto& handler: estimator_->getGpsHandlers())
-                  {
-                    if(handler->getStatus() == Status::ACTIVE)
-                      {
-                        auto base_wp = boost::static_pointer_cast<sensor_plugin::Gps>(handler)->getCurrentPoint();
-                        gps_waypoint_delta = boost::static_pointer_cast<sensor_plugin::Gps>(handler)->getWolrdFrame() * sensor_plugin::Gps::wgs84ToNedLocalFrame(base_wp, target_wp_);
-                        break;
-                      }
-                  }
 
                 if(gps_waypoint_delta.length() < gps_waypoint_threshold_)
                   gps_waypoint_ = false;
@@ -779,17 +772,10 @@ void BaseNavigator::update()
               {
                 if(gps_waypoint_)
                   {
-                    tf::Vector3 gps_waypoint_delta;
+                    auto base_wp = estimator_->getCurrGpsPoint();
+                    tf::Matrix3x3 convert_frame; convert_frame.setRPY(M_PI, 0, 0); // NED -> XYZ
+                    tf::Vector3 gps_waypoint_delta =  convert_frame * sensor_plugin::Gps::wgs84ToNedLocalFrame(base_wp, target_wp_);
 
-                    for (const auto& handler: estimator_->getGpsHandlers())
-                      {
-                        if(handler->getStatus() == Status::ACTIVE)
-                          {
-                            auto base_wp = boost::static_pointer_cast<sensor_plugin::Gps>(handler)->getCurrentPoint();
-                            gps_waypoint_delta = boost::static_pointer_cast<sensor_plugin::Gps>(handler)->getWolrdFrame() * sensor_plugin::Gps::wgs84ToNedLocalFrame(base_wp, target_wp_);
-                            break;
-                          }
-                      }
                     ROS_WARN("back to pos nav control for GPS way point, gps waypoint delta: %f, %f", gps_waypoint_delta.x(), gps_waypoint_delta.y());
                     gps_waypoint_  = false;
                   }
