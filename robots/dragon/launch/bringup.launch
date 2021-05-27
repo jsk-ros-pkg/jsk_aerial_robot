@@ -3,6 +3,7 @@
   ###########  launch config  ###########
   <arg name="real_machine" default="True" />
   <arg name="simulation" default="False" />
+  <arg name="full_vectoring_mode"  default= "false" />
   <arg name="type" default="quad" />
   <arg name="onboards_model" default="euclid_201709" />
   <arg name="estimate_mode"  default= "1" />
@@ -32,7 +33,8 @@
 
     # DRAGON = 32 # 0x20, dragon type with full/over actuated property
     <param name="uav_model" value= "32" />
-    <rosparam file="$(arg config_dir)/RobotModel.yaml" command="load" />
+    <rosparam file="$(arg config_dir)/model/FullVectoringRobotModel.yaml" command="load" if="$(arg full_vectoring_mode)" />
+    <rosparam file="$(arg config_dir)/model/HydrusLikeRobotModel.yaml" command="load" unless="$(arg full_vectoring_mode)" />
 
     ###########  Motor Config  ###########
     <rosparam file="$(find dragon)/config/MotorInfo.yaml" command="load" />
@@ -44,11 +46,14 @@
     <rosparam file="$(arg config_dir)/Battery.yaml" command="load" />
 
     ###########  Sensor Fusion  ###########
-    <rosparam file="$(arg config_dir)/egomotion_estimation/$(arg onboards_model).yaml" command="load" />
-    <rosparam file="$(arg config_dir)/Simulation.yaml" command="load" if="$(arg simulation)"/>
+    <rosparam file="$(arg config_dir)/egomotion_estimation/$(arg onboards_model)/FullVectoring.yaml" command="load" if="$(arg full_vectoring_mode)" />
+    <rosparam file="$(arg config_dir)/egomotion_estimation/$(arg onboards_model)/HydrusLike.yaml" command="load" unless="$(arg full_vectoring_mode)" />
+    <rosparam file="$(arg config_dir)/Simulation.yaml" command="load" if="$(eval arg('simulation') and not arg('real_machine'))"/>
 
     ###########  Control  ###########
-    <rosparam file="$(arg config_dir)/GimbalControlConfig.yaml" command="load" />
+    <rosparam file="$(arg config_dir)/control/FullVectoringControlConfig.yaml" command="load" if="$(arg full_vectoring_mode)"/>
+    <param name = "controller/rotor_interfere_compensate" value = "false" if = "$(eval not arg('real_machine') and arg('simulation'))" /> <!-- ignore rotor interfer compensate in simulation mode -->
+    <rosparam file="$(arg config_dir)/control/LQIGimbalControlConfig.yaml" command="load" unless="$(arg full_vectoring_mode)"/>
 
     ###########  Navigation ###########
     <param name="flight_navigation_plugin_name" value="aerial_robot_navigation/dragon_navigation" />
@@ -72,7 +77,7 @@
     <arg name="robot_ns" value="$(arg robot_ns)" />
     <arg name="rviz_config" value="$(find dragon)/config/rviz_config" />
     <arg name="rviz_init_pose" value="$(arg config_dir)/RvizInit.yaml" />
-    <arg name="need_joint_state" value="false" if ="$(eval arg('simulation') + arg('real_machine') > 0)"/>
+    <arg name="need_joint_state" value="false" if ="$(eval arg('simulation') or arg('real_machine'))"/>
   </include >
 
   ###########  Sensors  ###########
@@ -86,7 +91,7 @@
   <node pkg="aerial_robot_model" type="servo_bridge_node" name="servo_bridge"  output="screen" ns="$(arg robot_ns)" />
 
   ########## Simulation in Gazebo #########
-  <include file="$(find aerial_robot_simulation)/launch/simulation.launch" if = "$(eval arg('simulation') * (1 - arg('real_machine')))" >
+  <include file="$(find aerial_robot_simulation)/launch/simulation.launch" if = "$(eval arg('simulation') and not arg('real_machine'))" >
     <arg name="robot_ns" default="$(arg robot_ns)" />
     <arg name="gui" default="false" if="$(arg headless)" />
     <arg name="headless" default="$(arg headless)" />

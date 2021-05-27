@@ -108,7 +108,7 @@ namespace aerial_robot_model {
       std::lock_guard<std::mutex> lock(mutex_seg_tf_);
       return seg_tf_map_;
     }
-    const KDL::Frame& getSegmentTf(const std::string seg_name)
+    const KDL::Frame getSegmentTf(const std::string seg_name)
     {
       std::lock_guard<std::mutex> lock(mutex_seg_tf_);
       return seg_tf_map_.at(seg_name);
@@ -121,7 +121,7 @@ namespace aerial_robot_model {
     const double getVerbose() const { return verbose_; }
 
     template<class T> T getCog();
-    template<class T> T getCogDesireOrientation() const;
+    template<class T> T getCogDesireOrientation();
     template<class T> T getCog2Baselink();
     template<class T> T getInertia();
     template<class T> std::vector<T> getRotorsNormalFromCog();
@@ -134,8 +134,15 @@ namespace aerial_robot_model {
     bool removeExtraModule(std::string module_name);
 
     void setBaselinkName(const std::string baselink) { baselink_ = baselink; }
-    void setCogDesireOrientation(double roll, double pitch, double yaw) { setCogDesireOrientation(KDL::Rotation::RPY(roll, pitch, yaw)); }
-    void setCogDesireOrientation(KDL::Rotation cog_desire_orientation) { cog_desire_orientation_  = cog_desire_orientation;}
+    void setCogDesireOrientation(double roll, double pitch, double yaw)
+    {
+      setCogDesireOrientation(KDL::Rotation::RPY(roll, pitch, yaw));
+    }
+    void setCogDesireOrientation(const KDL::Rotation cog_desire_orientation)
+    {
+      std::lock_guard<std::mutex> lock(mutex_desired_baselink_rot_);
+      cog_desire_orientation_  = cog_desire_orientation;
+    }
 
     KDL::JntArray convertEigenToKDL(const Eigen::VectorXd& joint_vector) {
       const auto& joint_indices = getJointIndices();
@@ -170,8 +177,8 @@ namespace aerial_robot_model {
 
     // control stability
     virtual void calcFeasibleControlJacobian();
-    void calcFeasibleControlFDists();
-    void calcFeasibleControlTDists();
+    virtual void calcFeasibleControlFDists();
+    virtual void calcFeasibleControlTDists();
     double calcTripleProduct(const Eigen::Vector3d& ui, const Eigen::Vector3d& uj, const Eigen::Vector3d& uk);
     std::vector<Eigen::Vector3d> calcV();
     const Eigen::VectorXd& getApproxFeasibleControlFDists() const {return approx_fc_f_dists_;}
@@ -234,6 +241,7 @@ namespace aerial_robot_model {
     std::mutex mutex_rotor_origin_;
     std::mutex mutex_rotor_normal_;
     std::mutex mutex_seg_tf_;
+    std::mutex mutex_desired_baselink_rot_;
 
 
     std::map<std::string, KDL::Frame> seg_tf_map_;
@@ -424,14 +432,15 @@ namespace aerial_robot_model {
     return aerial_robot_model::kdlToTf2(RobotModel::getCog2Baselink<KDL::Frame>());
   }
 
-  template<> inline Eigen::Matrix3d RobotModel::getCogDesireOrientation() const
+  template<> inline KDL::Rotation RobotModel::getCogDesireOrientation()
   {
-    return aerial_robot_model::kdlToEigen(cog_desire_orientation_);
+    std::lock_guard<std::mutex> lock(mutex_desired_baselink_rot_);
+    return cog_desire_orientation_;
   }
 
-  template<> inline KDL::Rotation RobotModel::getCogDesireOrientation() const
+  template<> inline Eigen::Matrix3d RobotModel::getCogDesireOrientation()
   {
-    return cog_desire_orientation_;
+    return aerial_robot_model::kdlToEigen(getCogDesireOrientation<KDL::Rotation>());
   }
 
   template<> inline KDL::RotationalInertia RobotModel::getInertia()

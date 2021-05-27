@@ -30,7 +30,7 @@ namespace aerial_robot_model {
   }
 
 
-  inline double RobotModel::calcTripleProduct(const Eigen::Vector3d& ui, const Eigen::Vector3d& uj, const Eigen::Vector3d& uk)
+  double RobotModel::calcTripleProduct(const Eigen::Vector3d& ui, const Eigen::Vector3d& uj, const Eigen::Vector3d& uk)
   {
     Eigen::Vector3d uixuj = ui.cross(uj);
     if (uixuj.norm() < 0.00001) {

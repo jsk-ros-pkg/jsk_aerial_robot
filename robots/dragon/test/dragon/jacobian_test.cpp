@@ -18,7 +18,7 @@ protected:
     nhp_ = ros::NodeHandle ("~");
     spinner_ = new ros::AsyncSpinner(0);
 
-    numerical_sovler_ = new DragonNumericalJacobian(nh_, nhp_, std::move(std::make_unique<DragonRobotModel>(true)));
+    numerical_sovler_ = new DragonNumericalJacobian(nh_, nhp_, std::move(std::make_unique<Dragon::HydrusLikeRobotModel>(true)));
 
     spinner_->start();
   }
@@ -67,7 +67,7 @@ int main(int argc, char **argv)
     }
   else
     {
-      DragonNumericalJacobian numerical_sovler(nh, nhp, std::move(std::make_unique<DragonRobotModel>(true)));
+      DragonNumericalJacobian numerical_sovler(nh, nhp, std::move(std::make_unique<Dragon::HydrusLikeRobotModel>(true)));
       ros::spin();
     }
 }

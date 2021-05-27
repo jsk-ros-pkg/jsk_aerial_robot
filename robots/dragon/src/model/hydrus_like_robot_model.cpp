@@ -1,6 +1,8 @@
-#include <dragon/dragon_robot_model.h>
+#include <dragon/model/hydrus_like_robot_model.h>
 
-DragonRobotModel::DragonRobotModel(bool init_with_rosparam, bool verbose, double fc_t_min_thre, double fc_rp_min_thre, double epsilon, double edf_radius, double edf_max_tilt) :
+using namespace Dragon;
+
+HydrusLikeRobotModel::HydrusLikeRobotModel(bool init_with_rosparam, bool verbose, double fc_t_min_thre, double fc_rp_min_thre, double epsilon, double edf_radius, double edf_max_tilt) :
   HydrusRobotModel(init_with_rosparam, verbose, fc_t_min_thre, fc_rp_min_thre, epsilon, 3),
   edf_radius_(edf_radius),
   edf_max_tilt_(edf_max_tilt)
@@ -47,14 +49,14 @@ DragonRobotModel::DragonRobotModel(bool init_with_rosparam, bool verbose, double
   wrench_comp_thrust_ = Eigen::VectorXd::Zero(rotor_num * 3); // init
 }
 
-void DragonRobotModel::getParamFromRos()
+void HydrusLikeRobotModel::getParamFromRos()
 {
   ros::NodeHandle nh;
   nh.param("edf_radius", edf_radius_, 0.035); //70mm EDF
   nh.param("edf_max_tilt", edf_max_tilt_, 0.26); //15 [deg]
 }
 
-bool DragonRobotModel::stabilityCheck(bool verbose)
+bool HydrusLikeRobotModel::stabilityCheck(bool verbose)
 {
   if(!HydrusRobotModel::stabilityCheck(verbose)) return false;
 
@@ -68,7 +70,7 @@ bool DragonRobotModel::stabilityCheck(bool verbose)
   return true;
 }
 
-bool DragonRobotModel::overlapCheck(bool verbose)
+bool HydrusLikeRobotModel::overlapCheck(bool verbose)
 {
   const std::vector<Eigen::Vector3d> edfs_origin_from_cog = getEdfsOriginFromCog<Eigen::Vector3d>();
   const int rotor_num = getRotorNum();
@@ -95,7 +97,7 @@ bool DragonRobotModel::overlapCheck(bool verbose)
   return true;
 }
 
-void DragonRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_positions)
+void HydrusLikeRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_positions)
 {
   /*
      Although we can use "aerial_robot_model::forwardKinematicsImpl()",
@@ -135,7 +137,6 @@ void DragonRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_positions
 
   /* normal robot model update */
   HydrusRobotModel::updateRobotModelImpl(gimbal_processed_joint_);
-
   /* special process for dual edf gimbal */
   /* set the edf position w.r.t CoG frame */
   const auto seg_frames = getSegmentsTf();
@@ -146,13 +147,13 @@ void DragonRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_positions
   edfs_origin_from_cog_ = f_edfs;
 }
 
-Eigen::MatrixXd DragonRobotModel::getJacobian(const KDL::JntArray& joint_positions, std::string segment_name, KDL::Vector offset)
+Eigen::MatrixXd HydrusLikeRobotModel::getJacobian(const KDL::JntArray& joint_positions, std::string segment_name, KDL::Vector offset)
 {
   Eigen::MatrixXd jacobian = aerial_robot_model::RobotModel::getJacobian(joint_positions, segment_name, offset);
   return jacobian * gimbal_jacobian_;
 }
 
-void DragonRobotModel::calcBasicKinematicsJacobian()
+void HydrusLikeRobotModel::calcBasicKinematicsJacobian()
 {
   aerial_robot_model::RobotModel::calcBasicKinematicsJacobian();
 
@@ -197,7 +198,7 @@ void DragonRobotModel::calcBasicKinematicsJacobian()
     }
 }
 
-void DragonRobotModel::calcCoGMomentumJacobian()
+void HydrusLikeRobotModel::calcCoGMomentumJacobian()
 {
   setCOGJacobian(Eigen::MatrixXd::Zero(3, 6 + getJointNum()));
   setLMomentumJacobian(Eigen::MatrixXd::Zero(3, 6 + getJointNum()));
@@ -205,7 +206,7 @@ void DragonRobotModel::calcCoGMomentumJacobian()
   aerial_robot_model::RobotModel::calcCoGMomentumJacobian();
 }
 
-void DragonRobotModel::updateJacobians(const KDL::JntArray& joint_positions, bool update_model)
+void HydrusLikeRobotModel::updateJacobians(const KDL::JntArray& joint_positions, bool update_model)
 {
 
   if(update_model) updateRobotModel(joint_positions);
@@ -270,7 +271,7 @@ void DragonRobotModel::updateJacobians(const KDL::JntArray& joint_positions, boo
   calcRotorOverlapJacobian();
 }
 
-void DragonRobotModel::calcRotorOverlapJacobian()
+void HydrusLikeRobotModel::calcRotorOverlapJacobian()
 {
   const std::vector<Eigen::Vector3d> u = getRotorsNormalFromCog<Eigen::Vector3d>();
   const std::vector<Eigen::MatrixXd>& u_jacobians = getUJacobians();
@@ -322,7 +323,7 @@ void DragonRobotModel::calcRotorOverlapJacobian()
 }
 
 
-std::vector<int> DragonRobotModel::getClosestRotorIndices()
+std::vector<int> HydrusLikeRobotModel::getClosestRotorIndices()
 {
   std::vector<int> rotor_indices;
   rotor_indices.push_back(rotor_i_);
@@ -330,7 +331,7 @@ std::vector<int> DragonRobotModel::getClosestRotorIndices()
   return rotor_indices;
 }
 
-bool DragonRobotModel::addExternalStaticWrench(const std::string wrench_name, const std::string reference_frame, const KDL::Vector offset, const Eigen::VectorXd wrench)
+bool HydrusLikeRobotModel::addExternalStaticWrench(const std::string wrench_name, const std::string reference_frame, const KDL::Vector offset, const Eigen::VectorXd wrench)
 {
   const auto seg_frames = getSegmentsTf();
   if(getTree().getSegment(reference_frame) == getTree().getSegments().end())
@@ -349,7 +350,7 @@ bool DragonRobotModel::addExternalStaticWrench(const std::string wrench_name, co
   return true;
 }
 
-bool DragonRobotModel::addExternalStaticWrench(const std::string wrench_name, const std::string reference_frame, const geometry_msgs::Point offset, const geometry_msgs::Wrench wrench)
+bool HydrusLikeRobotModel::addExternalStaticWrench(const std::string wrench_name, const std::string reference_frame, const geometry_msgs::Point offset, const geometry_msgs::Wrench wrench)
 {
   KDL::Vector offset_kdl;
   tf::pointMsgToKDL(offset, offset_kdl);
@@ -359,7 +360,7 @@ bool DragonRobotModel::addExternalStaticWrench(const std::string wrench_name, co
   return addExternalStaticWrench(wrench_name, reference_frame, offset_kdl, wrench_eigen);
 }
 
-bool DragonRobotModel::addExternalStaticWrench(const std::string wrench_name, const std::string reference_frame, const KDL::Vector offset, const KDL::Wrench wrench)
+bool HydrusLikeRobotModel::addExternalStaticWrench(const std::string wrench_name, const std::string reference_frame, const KDL::Vector offset, const KDL::Wrench wrench)
 {
   Eigen::VectorXd wrench_eigen(6);
   wrench_eigen.head(3) = aerial_robot_model::kdlToEigen(wrench.force);
@@ -368,7 +369,7 @@ bool DragonRobotModel::addExternalStaticWrench(const std::string wrench_name, co
   return addExternalStaticWrench(wrench_name, reference_frame, offset, wrench_eigen);
 }
 
-bool DragonRobotModel::removeExternalStaticWrench(const std::string wrench_name)
+bool HydrusLikeRobotModel::removeExternalStaticWrench(const std::string wrench_name)
 {
   if(external_wrench_map_.find(wrench_name) == external_wrench_map_.end())
     {
@@ -381,18 +382,18 @@ bool DragonRobotModel::removeExternalStaticWrench(const std::string wrench_name)
   return true;
 }
 
-void DragonRobotModel::resetExternalStaticWrench()
+void HydrusLikeRobotModel::resetExternalStaticWrench()
 {
   external_wrench_map_.clear();
 }
 
 
-void DragonRobotModel::calcExternalWrenchCompThrust()
+void HydrusLikeRobotModel::calcExternalWrenchCompThrust()
 {
   calcExternalWrenchCompThrust(external_wrench_map_);
 }
 
-void DragonRobotModel::calcExternalWrenchCompThrust(const std::map<std::string, DragonRobotModel::ExternalWrench>& external_wrench_map)
+void HydrusLikeRobotModel::calcExternalWrenchCompThrust(const std::map<std::string, Dragon::ExternalWrench>& external_wrench_map)
 {
   const auto seg_frames = getSegmentsTf();
   const int rotor_num = getRotorNum();
@@ -420,7 +421,7 @@ void DragonRobotModel::calcExternalWrenchCompThrust(const std::map<std::string, 
   ROS_DEBUG_STREAM("wrench_comp_thrust: " << wrench_comp_thrust_.transpose());
 }
 
-void DragonRobotModel::addCompThrustToStaticThrust()
+void HydrusLikeRobotModel::addCompThrustToStaticThrust()
 {
   Eigen::VectorXd static_thrust = getStaticThrust();
 
@@ -434,7 +435,7 @@ void DragonRobotModel::addCompThrustToStaticThrust()
   setStaticThrust(static_thrust);
 }
 
-void DragonRobotModel::addCompThrustToJointTorque()
+void HydrusLikeRobotModel::addCompThrustToJointTorque()
 {
   const int rotor_num = getRotorNum();
   const int joint_num = getJointNum();
@@ -458,7 +459,7 @@ void DragonRobotModel::addCompThrustToJointTorque()
   setJointTorque(joint_torque);
 }
 
-void DragonRobotModel::calcCompThrustJacobian()
+void HydrusLikeRobotModel::calcCompThrustJacobian()
 {
   // w.r.t root
   const auto& joint_positions = getJointPositions();
@@ -506,7 +507,7 @@ void DragonRobotModel::calcCompThrustJacobian()
 }
 
 
-void DragonRobotModel::addCompThrustToLambdaJacobian()
+void HydrusLikeRobotModel::addCompThrustToLambdaJacobian()
 {
   const Eigen::MatrixXd& lambda_jacobian = getLambdaJacobian();
   Eigen::MatrixXd augmented_lambda_jacobian = lambda_jacobian;
@@ -519,7 +520,7 @@ void DragonRobotModel::addCompThrustToLambdaJacobian()
   setLambdaJacobian(augmented_lambda_jacobian);
 }
 
-void DragonRobotModel::addCompThrustToJointTorqueJacobian()
+void HydrusLikeRobotModel::addCompThrustToJointTorqueJacobian()
 {
   const int rotor_num = getRotorNum();
   const int joint_num = getJointNum();
@@ -559,4 +560,4 @@ void DragonRobotModel::addCompThrustToJointTorqueJacobian()
 
 /* plugin registration */
 #include <pluginlib/class_list_macros.h>
-PLUGINLIB_EXPORT_CLASS(DragonRobotModel, aerial_robot_model::RobotModel);
+PLUGINLIB_EXPORT_CLASS(Dragon::HydrusLikeRobotModel, aerial_robot_model::RobotModel);

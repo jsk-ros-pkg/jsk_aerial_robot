@@ -265,6 +265,8 @@ void AttitudeController::update(void)
           target_angle_[X] = 0;
           target_angle_[Y] = 0;
           target_angle_[Z] = 0;
+
+          for(int i = 0; i < motor_number_; i++) extra_yaw_pi_term_[i] = 0;
         }
 
       // linear control method
@@ -414,7 +416,7 @@ void AttitudeController::reset(void)
 
 void AttitudeController::fourAxisCommandCallback( const spinal::FourAxisCommand &cmd_msg)
 {
-  if(!start_control_flag_ || force_landing_flag_) return; //do not receive command
+  if(!start_control_flag_) return; //do not receive command
 
   /* start failsafe func if not activate */
   if(!failsafe_) failsafe_ = true;
@@ -423,7 +425,7 @@ void AttitudeController::fourAxisCommandCallback( const spinal::FourAxisCommand 
   target_angle_[X] = cmd_msg.angles[0];
   target_angle_[Y] = cmd_msg.angles[1];
 
-  /* failsafe2-1: if the pitch and roll angle is too big, start force landing */
+  /* failsafe: if the pitch and roll angle is too big, start force landing */
   if(fabs(target_angle_[X]) > MAX_TILT_ANGLE || fabs(target_angle_[Y]) > MAX_TILT_ANGLE )
     {
       setForceLandingFlag(true);
@@ -433,7 +435,6 @@ void AttitudeController::fourAxisCommandCallback( const spinal::FourAxisCommand 
 #else
       nh_->logerror("failsafe: target angles are too large");
 #endif
-      return;
     }
 
   /* check the number of motor which should be equal to the ros thrust */
@@ -451,7 +452,13 @@ void AttitudeController::fourAxisCommandCallback( const spinal::FourAxisCommand 
     }
 #endif
 
-
+  if(force_landing_flag_)
+    {
+      float total_thrust = 0;
+      for(int i = 0; i < motor_number_; i++) total_thrust += cmd_msg.base_thrust[i];
+      float average_thrust = total_thrust / motor_number_;
+      if(average_thrust < force_landing_thrust_) return;
+    }
 
   for(int i = 0; i < motor_number_; i++)
     {
@@ -665,6 +672,8 @@ void  AttitudeController::setUavModel(int8_t uav_model)
       if(uav_model_ == spinal::UavInfo::DRAGON)
         {
           rotor_devider_ = 2; // dual-rotor
+
+          estimator_->getAttEstimator()->setPubAccGryoOnlyFlag(true); // speical imu publish for dragon
         }
     }
 }

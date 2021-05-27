@@ -1,4 +1,4 @@
-#include <dragon/lqi_gimbal_control.h>
+#include <dragon/control/lqi_gimbal_control.h>
 
 using namespace aerial_robot_model;
 using namespace aerial_robot_control;
@@ -17,7 +17,7 @@ void DragonLQIGimbalController::initialize(ros::NodeHandle nh, ros::NodeHandle n
   /* initialize the flight control */
   HydrusLQIController::initialize(nh, nhp, robot_model, estimator, navigator, ctrl_loop_rate);
 
-  dragon_robot_model_ = boost::dynamic_pointer_cast<DragonRobotModel>(robot_model);
+  dragon_robot_model_ = boost::dynamic_pointer_cast<Dragon::HydrusLikeRobotModel>(robot_model);
 
   /* initialize the matrix */
   P_xy_ = Eigen::MatrixXd::Zero(2, motor_num_ * 2);
@@ -234,7 +234,7 @@ void DragonLQIGimbalController::gimbalControl()
   Eigen::MatrixXd extended_cog_rot_inv = Eigen::MatrixXd::Zero(6, 6);
   extended_cog_rot_inv.topLeftCorner(3,3) = cog_rot_inv;
   extended_cog_rot_inv.bottomRightCorner(3,3) = cog_rot_inv;
-  std::map<std::string, DragonRobotModel::ExternalWrench> external_wrench_map = dragon_robot_model_->getExternalWrenchMap();
+  std::map<std::string, Dragon::ExternalWrench> external_wrench_map = dragon_robot_model_->getExternalWrenchMap();
   for(auto& wrench: external_wrench_map) wrench.second.wrench = extended_cog_rot_inv * wrench.second.wrench;
 
   dragon_robot_model_->calcExternalWrenchCompThrust(external_wrench_map);
@@ -259,7 +259,7 @@ void DragonLQIGimbalController::gimbalControl()
       if(control_verbose_)
         ROS_INFO("[gimbal control]: rotor%d, target_thrust vs target_z: [%f vs %f]", i+1, target_base_thrust_.at(i), z_control_terms.at(i));
 
-      if(!start_rp_integration_) // in the early stage of takeoff avoiding the large tilt angle,
+      if(!start_rp_integration_ || navigator_->getForceLandingFlag())
         f_i.setValue(f_xy(2 * i), f_xy(2 * i + 1), robot_model_->getStaticThrust()[i]);
 
       /* f -> gimbal angle */

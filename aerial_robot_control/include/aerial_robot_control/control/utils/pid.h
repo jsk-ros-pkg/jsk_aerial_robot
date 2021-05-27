@@ -80,6 +80,7 @@ namespace aerial_robot_control
     {
       err_i_ = 0;
       err_i_prev_ = 0;
+      result_ = 0;
     }
 
     const double& getPGain() const { return p_gain_; }

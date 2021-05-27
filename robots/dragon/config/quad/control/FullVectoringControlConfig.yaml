@@ -1,0 +1,69 @@
+aerial_robot_control_name: aerial_robot_control/dragon_full_vectoring
+
+controller:
+
+  control_verbose: false
+
+  # gimbal vectoring function check
+  gimbal_vectoring_check_flag: false
+
+  allocation_refine_max_iteration: 5
+  allocation_refine_threshold: 0.0001
+
+  wrench_estimate_update_rate: 100
+  momentum_observer_force_weight: 3 # heavy delay, less noise, 2, 2.5, 3, light delay, more noise. The old parameter 5 has bug
+  momentum_observer_torque_weight: 2.5
+
+  rotor_interfere_compensate: true
+  overlap_dist_link_thresh: 0.12
+  overlap_dist_link_relax_thresh: 0.14
+  overlap_dist_rotor_thresh: 0.1
+  overlap_dist_rotor_relax_thresh: 0.12
+  overlap_dist_inter_joint_thresh: 0.08
+  rotor_interfere_comp_wrench_lpf_rate: 0.1
+  rotor_interfere_torque_xy_weight: 5.0
+  rotor_interfere_force_dev_weight: 0.1
+  external_wrench_lpf_rate: 0.2
+  external_fz_bias_thresh: 1.0
+
+  xy:
+    p_gain: 3.6
+    i_gain: 0.03
+    d_gain: 4
+    limit_sum: 10
+    limit_p: 10 # [m/s^2]
+    limit_i: 10 # [m/s^2]
+    limit_d: 10 # [m/s^2]
+    force_landing_descending_rate: -1.0
+
+  z:
+    p_gain: 2.8
+    i_gain: 1.2
+    d_gain: 2.8
+    limit_err_p: 1.0
+    limit_sum: 28 # N for clamping thrust force
+    limit_p: 20 # m / s^2
+    limit_i: 20 # m / s^2
+    limit_d: 20 # m / s^2
+    landing_err_z: -0.4
+    force_landing_descending_rate: -0.5
+
+  roll_pitch:
+    p_gain: 15
+    i_gain: 0.3
+    d_gain: 5 # 5: good, 7: deverge in the takeoff phase
+    limit_sum: 10
+    limit_p: 10
+    limit_i: 10
+    limit_d: 10
+
+  yaw:
+    p_gain: 10
+    i_gain: 0.1
+    d_gain: 5
+    limit_sum: 10 # N for clamping thrust force
+    limit_p: 10
+    limit_i: 10
+    limit_d: 10
+    limit_err_p: 0.4
+    need_d_control: true

@@ -421,7 +421,6 @@ namespace sensor_plugin
         state_.states[2].state[1].z = acc_w_.z();
 
         state_pub_.publish(state_);
-
       }
     prev_time = imu_stamp_;
   }

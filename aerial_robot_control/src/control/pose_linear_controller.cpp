@@ -141,6 +141,8 @@ namespace aerial_robot_control
     /* z */
     getParam<double>(z_nh, "landing_err_z", landing_err_z_, -0.5);
     getParam<double>(z_nh, "safe_landing_height",  safe_landing_height_, 0.5);
+    getParam<double>(z_nh, "force_landing_descending_rate",  force_landing_descending_rate_, -0.5);
+    if(force_landing_descending_rate_ >= 0) force_landing_descending_rate_ = -0.5;
 
     loadParam(z_nh);
     pid_controllers_.push_back(PID("z", p_gain, i_gain, d_gain, limit_sum, limit_p, limit_i, limit_d, limit_err_p, limit_err_i, limit_err_d));
@@ -214,20 +216,6 @@ namespace aerial_robot_control
     // time diff
     double du = ros::Time::now().toSec() - control_timestamp_;
 
-    // roll/pitch integration flag
-    if(!start_rp_integration_)
-      {
-        if(pos_.z() - estimator_->getLandingHeight() > start_rp_integration_height_)
-          {
-            start_rp_integration_ = true;
-            spinal::FlightConfigCmd flight_config_cmd;
-            flight_config_cmd.cmd = spinal::FlightConfigCmd::INTEGRATION_CONTROL_ON_CMD;
-            navigator_->getFlightConfigPublisher().publish(flight_config_cmd);
-            ROS_WARN("start roll/pitch I control");
-          }
-      }
-
-
     // x & y
     switch(navigator_->getXyControlMode())
       {
@@ -247,8 +235,15 @@ namespace aerial_robot_control
         break;
       }
 
+    if(navigator_->getForceLandingFlag())
+      {
+        pid_controllers_.at(X).reset();
+        pid_controllers_.at(Y).reset();
+      }
+
     // z
     double err_z = target_pos_.z() - pos_.z();
+    double err_v_z = target_vel_.z() - vel_.z();
     double du_z = du;
     double z_p_limit = pid_controllers_.at(Z).getLimitP();
     bool final_landing_phase = false;
@@ -265,17 +260,41 @@ namespace aerial_robot_control
             final_landing_phase = true;
           }
       }
-    pid_controllers_.at(Z).update(err_z, du_z, target_vel_.z() - vel_.z(), target_acc_.z());
 
-    if(final_landing_phase)
+    if(navigator_->getForceLandingFlag())
+      {
+        pid_controllers_.at(Z).setLimitP(0); // no p control in force landing phase
+        err_z = force_landing_descending_rate_;
+        err_v_z = 0;
+        target_acc_.setZ(0);
+      }
+
+    pid_controllers_.at(Z).update(err_z, du_z, err_v_z, target_acc_.z());
+
+    if(pid_controllers_.at(Z).getErrI() < 0) pid_controllers_.at(Z).setErrI(0);
+
+    if(final_landing_phase || navigator_->getForceLandingFlag())
       {
         pid_controllers_.at(Z).setLimitP(z_p_limit); // revert z p limit
         pid_controllers_.at(Z).setErrP(0); // for derived controller which use err_p in feedback control (e.g., LQI)
       }
 
     // roll pitch
-    pid_controllers_.at(ROLL).update(target_rpy_.x() - rpy_.x(), du, target_omega_.x() - omega_.x());
-    pid_controllers_.at(PITCH).update(target_rpy_.y() - rpy_.y(), du, target_omega_.y() - omega_.y());
+    double du_rp = du;
+    if(!start_rp_integration_)
+      {
+        if(pos_.z() - estimator_->getLandingHeight() > start_rp_integration_height_)
+          {
+            start_rp_integration_ = true;
+            spinal::FlightConfigCmd flight_config_cmd;
+            flight_config_cmd.cmd = spinal::FlightConfigCmd::INTEGRATION_CONTROL_ON_CMD;
+            navigator_->getFlightConfigPublisher().publish(flight_config_cmd);
+            ROS_WARN_ONCE("start roll/pitch I control");
+          }
+        du_rp = 0;
+      }
+    pid_controllers_.at(ROLL).update(target_rpy_.x() - rpy_.x(), du_rp, target_omega_.x() - omega_.x());
+    pid_controllers_.at(PITCH).update(target_rpy_.y() - rpy_.y(), du_rp, target_omega_.y() - omega_.y());
 
     // yaw
     double err_yaw = angles::shortest_angular_distance(rpy_.z(), target_rpy_.z());
@@ -290,7 +309,7 @@ namespace aerial_robot_control
     control_timestamp_ = ros::Time::now().toSec();
 
     /* ros pub */
-    pid_msg_.header.stamp = ros::Time::now();
+    pid_msg_.header.stamp.fromSec(estimator_->getImuLatestTimeStamp());
     pid_msg_.x.total.at(0) = pid_controllers_.at(X).result();
     pid_msg_.x.p_term.at(0) = pid_controllers_.at(X).getPTerm();
     pid_msg_.x.i_term.at(0) = pid_controllers_.at(X).getITerm();

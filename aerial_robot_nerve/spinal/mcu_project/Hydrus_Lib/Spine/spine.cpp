@@ -172,7 +172,7 @@ namespace Spine
         {
           uav_model_ = spinal::UavInfo::DRAGON;
           /* special smoothing flag for dragon */
-          estimator_->getAttEstimator()->setGyroSmoothFlag(true);
+          estimator_->getAttEstimator()->setPubAccGryoOnlyFlag(true);
         }
 
     servo_state_msg_.servos_length = servo_with_send_flag_.size();

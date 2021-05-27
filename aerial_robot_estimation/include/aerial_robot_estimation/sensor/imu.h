@@ -50,10 +50,10 @@ namespace sensor_plugin
   class Imu :public sensor_plugin::SensorBase
   {
   public:
-    void initialize(ros::NodeHandle nh,
-                    boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
-                    boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
-                    string sensor_name, int index) override;
+    virtual void initialize(ros::NodeHandle nh,
+                            boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
+                            boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
+                            string sensor_name, int index) override;
 
     ~Imu() {}
     Imu();
@@ -62,7 +62,8 @@ namespace sensor_plugin
     inline ros::Time getStamp(){return imu_stamp_;}
 
     inline void treatImuAsGroundTruth(bool flag) { treat_imu_as_ground_truth_ = flag; }
-  private:
+
+  protected:
     ros::Publisher  acc_pub_;
     ros::Publisher  imu_pub_;
     ros::Subscriber imu_sub_;
@@ -100,8 +101,8 @@ namespace sensor_plugin
 
     ros::Time imu_stamp_;
 
-    void ImuCallback(const spinal::ImuConstPtr& imu_msg);
-    void estimateProcess();
+    virtual void ImuCallback(const spinal::ImuConstPtr& imu_msg);
+    virtual void estimateProcess();
     void publishAccData();
     void publishRosImuData();
     void rosParamInit();

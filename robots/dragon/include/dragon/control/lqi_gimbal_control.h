@@ -36,7 +36,7 @@
 #pragma once
 
 #include <hydrus/hydrus_lqi_controller.h>
-#include <dragon/dragon_robot_model.h>
+#include <dragon/model/hydrus_like_robot_model.h>
 #include <dragon/dragon_navigation.h>
 #include <gazebo_msgs/ApplyBodyWrench.h>
 #include <gazebo_msgs/BodyRequest.h>
@@ -79,7 +79,7 @@ namespace aerial_robot_control
     void attControlFeedbackStateCallback(const spinal::RollPitchYawTermConstPtr& msg);
     void extraVectoringForceCallback(const std_msgs::Float32MultiArrayConstPtr& msg);
 
-    boost::shared_ptr<DragonRobotModel> dragon_robot_model_;
+    boost::shared_ptr<Dragon::HydrusLikeRobotModel> dragon_robot_model_;
     Eigen::MatrixXd P_xy_;
 
     bool gimbal_vectoring_check_flag_;

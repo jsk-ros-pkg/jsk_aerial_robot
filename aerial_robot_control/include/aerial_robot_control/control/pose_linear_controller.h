@@ -80,6 +80,7 @@ namespace aerial_robot_control
 
     double landing_err_z_;
     double safe_landing_height_;
+    double force_landing_descending_rate_;
 
     tf::Vector3 pos_, target_pos_;
     tf::Vector3 vel_, target_vel_;

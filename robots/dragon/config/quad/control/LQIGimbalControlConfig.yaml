@@ -25,6 +25,7 @@ controller:
     limit_i: 20 # m / s^2
     limit_d: 20 # m / s^2
     landing_err_z: -0.4
+    force_landing_descending_rate: -0.2
 
   roll_pitch:
     p_gain: 20

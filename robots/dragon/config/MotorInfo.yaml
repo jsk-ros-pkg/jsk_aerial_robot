@@ -2,7 +2,7 @@ motor_info:
         min_pwm: 0.60 # = 1200 [ms]
         max_pwm: 0.86 # = 1720 [ms]
         min_thrust: 0 # [N]
-        force_landing_thrust: 7 #[N]
+        force_landing_thrust: 12 #[N]
         pwm_conversion_mode: 1 # Polynominal Mode
         vel_ref_num: 4
         ref1:        

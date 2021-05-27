@@ -2,7 +2,7 @@
 /*********************************************************************
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2020, JSK Lab
+ *  Copyright (c) 2021, JSK Lab
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -35,33 +35,59 @@
 
 #pragma once
 
-#include <hydrus/numerical_jacobians.h>
-#include <dragon/model/hydrus_like_robot_model.h>
+#include <aerial_robot_estimation/sensor/imu.h>
 
-class DragonNumericalJacobian : public HydrusNumericalJacobian
+using namespace Eigen;
+using namespace std;
+
+namespace sensor_plugin
 {
-public:
-  DragonNumericalJacobian(ros::NodeHandle nh, ros::NodeHandle nhp, std::unique_ptr<aerial_robot_model::RobotModel> robot_model = std::make_unique<aerial_robot_model::RobotModel>(true));
-  virtual ~DragonNumericalJacobian() = default;
+  class DragonImu :public sensor_plugin::Imu
+  {
+  public:
 
-  virtual bool checkJacobians() override;
+    void initialize(ros::NodeHandle nh,
+                    boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
+                    boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
+                    string sensor_name, int index) override;
 
-  virtual bool checkRotorOverlapJacobian();
-  virtual bool checkExternalWrenchCompensateThrustJacobian();
-  virtual bool checkThrsutForceJacobian(std::vector<int> joint_indices = std::vector<int>()) override;
+    void setFilteredOmegaCog(const tf::Vector3 filtered_omega_cog)
+    {
+      boost::lock_guard<boost::mutex> lock(omega_mutex_);
+      filtered_omega_cog_ = filtered_omega_cog;
+    }
 
-protected:
+    void setFilteredVelCog(const tf::Vector3 filtered_vel_cog)
+    {
+      boost::lock_guard<boost::mutex> lock(vel_mutex_);
+      filtered_vel_cog_ = filtered_vel_cog;
+    }
 
-  bool check_rotor_overlap_;
-  bool check_comp_thrust_;
-  double rotor_overlap_diff_thre_;
-  double comp_thrust_diff_thre_;
+    const tf::Vector3 getFilteredOmegaCog()
+    {
+      boost::lock_guard<boost::mutex> lock(omega_mutex_);
+      return filtered_omega_cog_;
+    }
 
-  Dragon::HydrusLikeRobotModel& getDragonRobotModel() const {return dynamic_cast<Dragon::HydrusLikeRobotModel&>(*robot_model_);}
+    const tf::Vector3 getFilteredVelCog()
+    {
+      boost::lock_guard<boost::mutex> lock(vel_mutex_);
+      return filtered_vel_cog_;
+    }
 
-  // numerical solution
-  virtual const Eigen::MatrixXd thrustForceNumericalJacobian(std::vector<int> joint_indices) override;
-  virtual const Eigen::MatrixXd jointTorqueNumericalJacobian(std::vector<int> joint_indices) override;
-  virtual const Eigen::MatrixXd overlapNumericalJacobian();
-  virtual const Eigen::MatrixXd compThrustNumericalJacobian();
+  protected:
+
+    void ImuCallback(const spinal::ImuConstPtr& imu_msg) override;
+
+    // work around to obtain filter states
+    boost::mutex omega_mutex_;
+    boost::mutex vel_mutex_;
+    tf::Vector3 filtered_vel_cog_;
+    tf::Vector3 filtered_omega_cog_;
+  };
 };
+
+
+
+
+
