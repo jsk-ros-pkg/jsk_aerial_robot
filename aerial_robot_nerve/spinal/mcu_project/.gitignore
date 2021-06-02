@@ -1,4 +1,5 @@
 ros_lib
+spinal
 
 ### https://gist.github.com/IvanZuy/8264427.js
 *.axf
@@ -26,4 +27,4 @@ ros_lib
 *.uvopt
 *.elf.*
 *.elf
-TrueSTUDIO/longzhu2/.settings/language.settings.xml 
+TrueSTUDIO/longzhu2/.settings/language.settings.xml
