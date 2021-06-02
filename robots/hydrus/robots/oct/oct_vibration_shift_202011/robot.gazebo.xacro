@@ -1,0 +1,320 @@
+<?xml version="1.0"?>
+<robot
+    xmlns:xacro="http://www.ros.org/wiki/xacro" name="hydrus" >
+
+  <xacro:arg name="robot_name" default="hydrus" />
+
+  <xacro:arg name="sim" default="false"/>
+  <xacro:arg name="fix_rotor" default="0"/>
+
+  <!-- robot urdf -->
+  <xacro:include filename="$(find hydrus)/robots/oct/oct_vibration_shift_202011/robot.urdf.xacro" />
+
+  <!-- gazebo plugin for default controller and sensors -->
+  <xacro:include filename="$(find aerial_robot_simulation)/xacro/spinal.gazebo.xacro" />
+  <xacro:gazebo_spinal robot_name="$(arg robot_name)" />
+
+  <xacro:if value="$(arg sim)">
+    <xacro:property name="kx" value="100" />
+    <gazebo>
+      <!-- joint torsional spring plugin -->
+      <plugin name="torsion1_torsional_spring" filename="libjoint_torsional_spring_plugin.so">
+        <kx>${kx}</kx>
+        <set_point>0</set_point>
+        <joint>torsion1</joint>
+      </plugin>
+      <plugin name="torsion2_torsional_spring" filename="libjoint_torsional_spring_plugin.so">
+        <kx>${kx}</kx>
+        <set_point>0</set_point>
+        <joint>torsion2</joint>
+      </plugin>
+      <plugin name="torsion3_torsional_spring" filename="libjoint_torsional_spring_plugin.so">
+        <kx>${kx}</kx>
+        <set_point>0</set_point>
+        <joint>torsion3</joint>
+      </plugin>
+      <plugin name="torsion4_torsional_spring" filename="libjoint_torsional_spring_plugin.so">
+        <kx>${kx}</kx>
+        <set_point>0</set_point>
+        <joint>torsion4</joint>
+      </plugin>
+      <plugin name="torsion5_torsional_spring" filename="libjoint_torsional_spring_plugin.so">
+        <kx>${kx}</kx>
+        <set_point>0</set_point>
+        <joint>torsion5</joint>
+      </plugin>
+      <plugin name="torsion6_torsional_spring" filename="libjoint_torsional_spring_plugin.so">
+        <kx>${kx}</kx>
+        <set_point>0</set_point>
+        <joint>torsion6</joint>
+      </plugin>
+      <plugin name="torsion7_torsional_spring" filename="libjoint_torsional_spring_plugin.so">
+        <kx>${kx}</kx>
+        <set_point>0</set_point>
+        <joint>torsion7</joint>
+      </plugin>
+    </gazebo>
+    <gazebo>
+      <plugin name="torsion_joint_state_publisher" filename="libgazebo_ros_joint_state_publisher.so">
+        <robotNamespace>/$(arg robot_name)/link_torsion_groundtruth</robotNamespace>
+        <!-- <robotNamespace>/$(arg robot_name)/link_torsion</robotNamespace> -->
+        <jointName>torsion1, torsion2, torsion3, torsion4, torsion5, torsion6, torsion7</jointName>
+        <updateRate>60.0</updateRate>
+        <alwaysOn>true</alwaysOn>
+      </plugin>
+    </gazebo>
+  </xacro:if>
+
+  <!-- neuron imu plugin -->
+  <gazebo reference="neuron1_imu">
+    <gravity>true</gravity>
+    <sensor name="neuron1_imu" type="imu">
+      <always_on>true</always_on>
+      <update_rate>60</update_rate>
+      <visualize>true</visualize>
+      <topic>__default_topic__</topic>
+      <plugin filename="libgazebo_ros_imu_sensor.so" name="imu_plugin">
+        <topicName>/$(arg robot_name)/neuron1_imu</topicName>
+        <bodyName>neuron1_imu</bodyName>
+        <updateRateHZ>60.0</updateRateHZ>
+        <!-- <gaussianNoise>0.001</gaussianNoise> -->
+        <gaussianNoise>0</gaussianNoise>
+        <xyzOffset>0 0 0</xyzOffset>
+        <rpyOffset>0 0 0</rpyOffset>
+        <frameName>neuron1_imu</frameName>
+      </plugin>
+      <pose>0 0 0 0 0 0</pose>
+    </sensor>
+  </gazebo>
+  <gazebo reference="fc">
+    <gravity>true</gravity>
+    <sensor name="main_imu" type="imu">
+      <always_on>true</always_on>
+      <update_rate>60</update_rate>
+      <visualize>true</visualize>
+      <topic>__default_topic__</topic>
+      <plugin filename="libgazebo_ros_imu_sensor.so" name="imu_plugin">
+        <topicName>/$(arg robot_name)/main_imu</topicName>
+        <bodyName>main_imu</bodyName>
+        <updateRateHZ>60.0</updateRateHZ>
+        <gaussianNoise>0</gaussianNoise>
+        <xyzOffset>0 0 0</xyzOffset>
+        <rpyOffset>0 0 0</rpyOffset>
+        <frameName>fc</frameName>
+      </plugin>
+      <pose>0 0 0 0 0 0</pose>
+    </sensor>
+  </gazebo>
+  <gazebo reference="neuron2_imu">
+    <gravity>true</gravity>
+    <sensor name="neuron2_imu" type="imu">
+      <always_on>true</always_on>
+      <update_rate>60</update_rate>
+      <visualize>true</visualize>
+      <topic>__default_topic__</topic>
+      <plugin filename="libgazebo_ros_imu_sensor.so" name="imu_plugin">
+        <topicName>/$(arg robot_name)/neuron2_imu</topicName>
+        <bodyName>neuron2_imu</bodyName>
+        <updateRateHZ>60.0</updateRateHZ>
+        <gaussianNoise>0</gaussianNoise>
+        <xyzOffset>0 0 0</xyzOffset>
+        <rpyOffset>0 0 0</rpyOffset>
+        <frameName>neuron2_imu</frameName>
+      </plugin>
+      <pose>0 0 0 0 0 0</pose>
+    </sensor>
+  </gazebo>
+  <gazebo reference="neuron3_imu">
+    <gravity>true</gravity>
+    <sensor name="neuron3_imu" type="imu">
+      <always_on>true</always_on>
+      <update_rate>60</update_rate>
+      <visualize>true</visualize>
+      <topic>__default_topic__</topic>
+      <plugin filename="libgazebo_ros_imu_sensor.so" name="imu_plugin">
+        <topicName>/$(arg robot_name)/neuron3_imu</topicName>
+        <bodyName>neuron3_imu</bodyName>
+        <updateRateHZ>60.0</updateRateHZ>
+        <gaussianNoise>0</gaussianNoise>
+        <xyzOffset>0 0 0</xyzOffset>
+        <rpyOffset>0 0 0</rpyOffset>
+        <frameName>neuron3_imu</frameName>
+      </plugin>
+      <pose>0 0 0 0 0 0</pose>
+    </sensor>
+  </gazebo>
+  <gazebo reference="neuron4_imu">
+    <gravity>true</gravity>
+    <sensor name="neuron4_imu" type="imu">
+      <always_on>true</always_on>
+      <update_rate>60</update_rate>
+      <visualize>true</visualize>
+      <topic>__default_topic__</topic>
+      <plugin filename="libgazebo_ros_imu_sensor.so" name="imu_plugin">
+        <topicName>/$(arg robot_name)/neuron4_imu</topicName>
+        <bodyName>neuron4_imu</bodyName>
+        <updateRateHZ>60.0</updateRateHZ>
+        <gaussianNoise>0</gaussianNoise>
+        <xyzOffset>0 0 0</xyzOffset>
+        <rpyOffset>0 0 0</rpyOffset>
+        <frameName>neuron4_imu</frameName>
+      </plugin>
+      <pose>0 0 0 0 0 0</pose>
+    </sensor>
+  </gazebo>
+  <gazebo reference="neuron5_imu">
+    <gravity>true</gravity>
+    <sensor name="neuron5_imu" type="imu">
+      <always_on>true</always_on>
+      <update_rate>60</update_rate>
+      <visualize>true</visualize>
+      <topic>__default_topic__</topic>
+      <plugin filename="libgazebo_ros_imu_sensor.so" name="imu_plugin">
+        <topicName>/$(arg robot_name)/neuron5_imu</topicName>
+        <bodyName>neuron5_imu</bodyName>
+        <updateRateHZ>60.0</updateRateHZ>
+        <gaussianNoise>0</gaussianNoise>
+        <xyzOffset>0 0 0</xyzOffset>
+        <rpyOffset>0 0 0</rpyOffset>
+        <frameName>neuron5_imu</frameName>
+      </plugin>
+      <pose>0 0 0 0 0 0</pose>
+    </sensor>
+  </gazebo>
+  <gazebo reference="neuron6_imu">
+    <gravity>true</gravity>
+    <sensor name="neuron6_imu" type="imu">
+      <always_on>true</always_on>
+      <update_rate>60</update_rate>
+      <visualize>true</visualize>
+      <topic>__default_topic__</topic>
+      <plugin filename="libgazebo_ros_imu_sensor.so" name="imu_plugin">
+        <topicName>/$(arg robot_name)/neuron6_imu</topicName>
+        <bodyName>neuron6_imu</bodyName>
+        <updateRateHZ>60.0</updateRateHZ>
+        <gaussianNoise>0</gaussianNoise>
+        <xyzOffset>0 0 0</xyzOffset>
+        <rpyOffset>0 0 0</rpyOffset>
+        <frameName>neuron6_imu</frameName>
+      </plugin>
+      <pose>0 0 0 0 0 0</pose>
+    </sensor>
+  </gazebo>
+  <gazebo reference="neuron7_imu">
+    <gravity>true</gravity>
+    <sensor name="neuron7_imu" type="imu">
+      <always_on>true</always_on>
+      <update_rate>60</update_rate>
+      <visualize>true</visualize>
+      <topic>__default_topic__</topic>
+      <plugin filename="libgazebo_ros_imu_sensor.so" name="imu_plugin">
+        <topicName>/$(arg robot_name)/neuron7_imu</topicName>
+        <bodyName>neuron7_imu</bodyName>
+        <updateRateHZ>60.0</updateRateHZ>
+        <gaussianNoise>0</gaussianNoise>
+        <xyzOffset>0 0 0</xyzOffset>
+        <rpyOffset>0 0 0</rpyOffset>
+        <frameName>neuron7_imu</frameName>
+      </plugin>
+      <pose>0 0 0 0 0 0</pose>
+    </sensor>
+  <gazebo reference="neuron8_imu">
+    <gravity>true</gravity>
+    <sensor name="neuron8_imu" type="imu">
+      <always_on>true</always_on>
+      <update_rate>60</update_rate>
+      <visualize>true</visualize>
+      <topic>__default_topic__</topic>
+      <plugin filename="libgazebo_ros_imu_sensor.so" name="imu_plugin">
+        <topicName>/$(arg robot_name)/neuron8_imu</topicName>
+        <bodyName>neuron8_imu</bodyName>
+        <updateRateHZ>60.0</updateRateHZ>
+        <gaussianNoise>0</gaussianNoise>
+        <xyzOffset>0 0 0</xyzOffset>
+        <rpyOffset>0 0 0</rpyOffset>
+        <frameName>neuron8_imu</frameName>
+      </plugin>
+      <pose>0 0 0 0 0 0</pose>
+    </sensor>
+  </gazebo>
+  </gazebo>
+  <!-- end of neuron imu plugin -->
+
+  <!-- publish real position of neurons -->
+  <gazebo>
+    <!-- TODO neuron?_imu does not work as bodyName why? -->
+    <plugin filename="libgazebo_ros_p3d.so" name="neuron1_groundtruth">
+      <bodyName>link1</bodyName>
+      <topicName>/$(arg robot_name)/mocap/link1/pose</topicName>
+      <updateRate>100</updateRate>
+      <gaussianNoise>0.001</gaussianNoise>
+      <xyzOffset>0 0 0</xyzOffset>
+      <rpyOffset>0 0 0</rpyOffset>
+      <frameName>world</frameName>
+    </plugin>
+    <plugin filename="libgazebo_ros_p3d.so" name="neuron2_groundtruth">
+      <bodyName>link2</bodyName>
+      <topicName>/$(arg robot_name)/mocap/link2/pose</topicName>
+      <updateRate>100</updateRate>
+      <gaussianNoise>0.001</gaussianNoise>
+      <xyzOffset>0 0 0</xyzOffset>
+      <rpyOffset>0 0 0</rpyOffset>
+      <frameName>world</frameName>
+    </plugin>
+    <plugin filename="libgazebo_ros_p3d.so" name="neuron3_groundtruth">
+      <bodyName>link3</bodyName>
+      <topicName>/$(arg robot_name)/mocap/link3/pose</topicName>
+      <updateRate>100</updateRate>
+      <gaussianNoise>0.001</gaussianNoise>
+      <xyzOffset>0 0 0</xyzOffset>
+      <rpyOffset>0 0 0</rpyOffset>
+      <frameName>world</frameName>
+    </plugin>
+    <plugin filename="libgazebo_ros_p3d.so" name="neuron4_groundtruth">
+      <bodyName>link4</bodyName>
+      <topicName>/$(arg robot_name)/mocap/link4/pose</topicName>
+      <updateRate>100</updateRate>
+      <gaussianNoise>0.001</gaussianNoise>
+      <xyzOffset>0 0 0</xyzOffset>
+      <rpyOffset>0 0 0</rpyOffset>
+      <frameName>world</frameName>
+    </plugin>
+    <plugin filename="libgazebo_ros_p3d.so" name="neuron5_groundtruth">
+      <bodyName>link5</bodyName>
+      <topicName>/$(arg robot_name)/mocap/link5/pose</topicName>
+      <updateRate>100</updateRate>
+      <gaussianNoise>0.001</gaussianNoise>
+      <xyzOffset>0 0 0</xyzOffset>
+      <rpyOffset>0 0 0</rpyOffset>
+      <frameName>world</frameName>
+    </plugin>
+    <plugin filename="libgazebo_ros_p3d.so" name="neuron6_groundtruth">
+      <bodyName>link6</bodyName>
+      <topicName>/$(arg robot_name)/mocap/link6/pose</topicName>
+      <updateRate>100</updateRate>
+      <gaussianNoise>0.001</gaussianNoise>
+      <xyzOffset>0 0 0</xyzOffset>
+      <rpyOffset>0 0 0</rpyOffset>
+      <frameName>world</frameName>
+    </plugin>
+    <plugin filename="libgazebo_ros_p3d.so" name="neuron7_groundtruth">
+      <bodyName>link7</bodyName>
+      <topicName>/$(arg robot_name)/mocap/link7/pose</topicName>
+      <updateRate>100</updateRate>
+      <gaussianNoise>0.001</gaussianNoise>
+      <xyzOffset>0 0 0</xyzOffset>
+      <rpyOffset>0 0 0</rpyOffset>
+      <frameName>world</frameName>
+    </plugin>
+    <plugin filename="libgazebo_ros_p3d.so" name="neuron8_groundtruth">
+      <bodyName>link8</bodyName>
+      <topicName>/$(arg robot_name)/mocap/link8/pose</topicName>
+      <updateRate>100</updateRate>
+      <gaussianNoise>0.001</gaussianNoise>
+      <xyzOffset>0 0 0</xyzOffset>
+      <rpyOffset>0 0 0</rpyOffset>
+      <frameName>world</frameName>
+    </plugin>
+  </gazebo>
+  <!-- end of publish real position of neurons -->
+</robot>

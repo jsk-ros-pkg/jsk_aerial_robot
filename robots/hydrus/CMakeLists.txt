@@ -14,14 +14,24 @@ find_package(catkin REQUIRED COMPONENTS
   tf_conversions
   std_srvs
   dynamic_reconfigure
+  kdl_parser
+  urdf
   )
 
 find_package(Eigen3 REQUIRED)
+find_package(NLopt REQUIRED)
+find_package(orocos_kdl REQUIRED)
+find_package(urdfdom_headers REQUIRED)
+include_directories(${orocos_kdl_INCLUDE_DIRS} ${urdfdom_headers_INCLUDE_DIRS})
+link_directories(${orocos_kdl_LIBRARY_DIRS})
 
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
 
 generate_dynamic_reconfigure_options(
-  cfg/LQI.cfg)
+  cfg/LQI.cfg
+  cfg/torsionNullSpaceShifter.cfg
+  cfg/torsion_mode.cfg
+  )
 
 catkin_package(
   INCLUDE_DIRS include test
@@ -36,7 +46,6 @@ if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE RelWithDebInfo)
 endif()
 set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O3 -g -DNDEBUG")
-
 
 ###########
 ## Build ##
@@ -53,6 +62,19 @@ include_directories(
   ${EIGEN3_INCLUDE_DIRS}
 )
 
+add_library(msg_utils
+  src/util/msg_utils.cpp
+  )
+target_link_libraries(msg_utils ${catkin_LIBRARIES} ${EIGEN3_LIBRARIES})
+
+add_executable(torsion_mode_calculator src/torsion_mode_calculator.cpp)
+target_link_libraries(torsion_mode_calculator ${catkin_LIBRARIES} msg_utils
+  ${orocos_kdl_LIBRARIES} 
+  )
+
+add_executable(null_space_shifter src/null_space_shifter.cpp)
+target_link_libraries(null_space_shifter ${catkin_LIBRARIES} ${EIGEN3_LIBRARIES} ${NLOPT_LIBRARIES} msg_utils)
+
 add_library(hydrus_robot_model
   src/hydrus_robot_model.cpp
   src/hydrus_tilted_robot_model.cpp)
@@ -61,9 +83,21 @@ target_link_libraries(hydrus_robot_model ${catkin_LIBRARIES})
 ### flight control plugin
 add_library(hydrus_controller_pluginlib
   src/hydrus_lqi_controller.cpp
-  src/hydrus_tilted_lqi_controller.cpp)
-target_link_libraries(hydrus_controller_pluginlib hydrus_robot_model ${catkin_LIBRARIES} ${EIGEN3_LIBRARIES})
+  src/hydrus_tilted_lqi_controller.cpp
+  src/hydrus_tilted_lqi_adaptive_controller.cpp
+  src/hydrus_tilted_lqi_torsion_shift_controller.cpp
+  )
+target_link_libraries(hydrus_controller_pluginlib hydrus_robot_model 
+  ${catkin_LIBRARIES} ${EIGEN3_LIBRARIES}
+  ${NLOPT_LIBRARIES} msg_utils
+  )
 add_dependencies(hydrus_controller_pluginlib aerial_robot_msgs_generate_messages_cpp spinal_generate_messages_cpp ${PROJECT_NAME}_gencfg)
+
+add_library(torsion_estimator src/torsion_estimator.cpp)
+target_link_libraries(torsion_estimator
+  ${catkin_LIBRARIES} ${EIGEN3_LIBRARIES} msg_utils)
+add_executable(torsion_estimator_node src/torsion_estimator_node.cpp)
+target_link_libraries(torsion_estimator_node torsion_estimator ${catkin_LIBRARIES}  ${EIGEN3_LIBRARIES})
 
 # test
 # pre-build test code

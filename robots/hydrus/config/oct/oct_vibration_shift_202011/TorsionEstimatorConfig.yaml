@@ -1,0 +1,6 @@
+kf_step_rate: 30.0
+
+torsion_vel_cutoff_freq: 3.0
+torsion_vel_q: 1.0
+torsion_cutoff_freq: 3.0
+torsion_q: 1.0

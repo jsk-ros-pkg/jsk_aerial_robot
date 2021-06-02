@@ -1,0 +1,68 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="throttle" default="15" />
+
+  <node pkg="mocap_optitrack"
+    type="mocap_node"
+    name="link_mocap_node"
+    respawn="false"
+    launch-prefix=""
+    required="true">
+    <rosparam>
+      rigid_bodies:
+         '1':
+               pose: mocap/link4/pose
+               pose2d: mocap/link4/ground_pose
+               child_frame_id: link4
+               parent_frame_id: world
+         '2':
+               pose: mocap/link1/pose
+               pose2d: mocap/link1/ground_pose
+               child_frame_id: link1
+               parent_frame_id: world
+         '3':
+               pose: mocap/link2/pose
+               pose2d: mocap/link2/ground_pose
+               child_frame_id: link2
+               parent_frame_id: world
+         '4':
+               pose: mocap/link3/pose
+               pose2d: mocap/link3/ground_pose
+               child_frame_id: link3
+               parent_frame_id: world
+         '5':
+               pose: mocap/link5/pose
+               pose2d: mocap/link5/ground_pose
+               child_frame_id: link5
+               parent_frame_id: world
+         '6':
+               pose: mocap/link6/pose
+               pose2d: mocap/link6/ground_pose
+               child_frame_id: link6
+               parent_frame_id: world
+         '7':
+               pose: mocap/link7/pose
+               pose2d: mocap/link7/ground_pose
+               child_frame_id: link7
+               parent_frame_id: world
+         '8':
+               pose: mocap/link8/pose
+               pose2d: mocap/link8/ground_pose
+               child_frame_id: link8
+               parent_frame_id: world
+      optitrack_config:
+         multicast_address:
+               239.255.42.99
+    </rosparam>
+  </node>
+
+  <node name="link1_mocap_pose_throttler" type="throttle" pkg="topic_tools" args="messages mocap/link1/pose $(arg throttle) mocap/link1/pose_throttled" />
+  <node name="link2_mocap_pose_throttler" type="throttle" pkg="topic_tools" args="messages mocap/link2/pose $(arg throttle) mocap/link2/pose_throttled" />
+  <node name="link3_mocap_pose_throttler" type="throttle" pkg="topic_tools" args="messages mocap/link3/pose $(arg throttle) mocap/link3/pose_throttled" />
+  <node name="link4_mocap_pose_throttler" type="throttle" pkg="topic_tools" args="messages mocap/link4/pose $(arg throttle) mocap/link4/pose_throttled" />
+  <node name="link5_mocap_pose_throttler" type="throttle" pkg="topic_tools" args="messages mocap/link5/pose $(arg throttle) mocap/link5/pose_throttled" />
+  <node name="link6_mocap_pose_throttler" type="throttle" pkg="topic_tools" args="messages mocap/link6/pose $(arg throttle) mocap/link6/pose_throttled" />
+  <node name="link7_mocap_pose_throttler" type="throttle" pkg="topic_tools" args="messages mocap/link7/pose $(arg throttle) mocap/link7/pose_throttled" />
+  <node name="link8_mocap_pose_throttler" type="throttle" pkg="topic_tools" args="messages mocap/link8/pose $(arg throttle) mocap/link8/pose_throttled" />
+
+</launch>

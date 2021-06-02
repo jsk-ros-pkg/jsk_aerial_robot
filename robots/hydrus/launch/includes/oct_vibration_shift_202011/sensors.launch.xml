@@ -1,0 +1,75 @@
+<?xml version="1.0"?>
+<launch>
+
+  <arg name="real_machine" default="false" />
+  <arg name="simulation" default="false" />
+  <arg name="robot_ns" default="hydrus" />
+  <arg name="links" default="8" />
+  <arg name="robot_model"/>
+  <arg name="mocap_for_torsion" default="true" />
+
+  <group ns="$(arg robot_ns)">
+
+    <group if="$(arg real_machine)">
+      <group unless="$(arg simulation)">
+        <!-- fc & IMU & GPS -->
+        <include file="$(find spinal_ros_bridge)/launch/serial.launch" >
+          <arg name="baud" value="921600" />
+          <arg name="port" value="/dev/flight_controller" />
+        </include>
+
+        <!-- vo by realsense t265 -->
+        <include file="$(find realsense2_camera)/launch/multi_t265_odom.launch" >
+          <arg name="throttle_rate" value="80.0"/>
+          <arg name="reset_duration" value = "0.5" />
+        </include>
+	
+        <!-- mocap -->
+        <include file="$(find aerial_robot_base)/launch/external_module/mocap.launch" />
+        <include file="$(find hydrus)/launch/includes/oct_vibration_shift_202011/mocap.launch" >
+          <arg name="throttle" value="30"/>
+        </include>
+
+        <!-- leddar one -->
+        <include file="$(find leddar_one)/launch/leddar_one.launch" >
+          <arg name="port" value="/dev/leddarone" />
+        </include>
+
+      </group>
+      <group if="$(arg simulation)">
+        <node pkg="nodelet" type="nodelet" name="realsense2_camera_manager" ns="camera" args="manager" />
+      </group>
+
+    </group>
+
+    <!-- basic configuration for sensors (e.g. noise sigma) -->
+    <rosparam file="$(find hydrus)/config/sensors/imu/spinal.yaml" command="load" />
+    <rosparam file="$(find aerial_robot_base)/config/sensors/gps/ublox_m8n.yaml" command="load" />
+    <rosparam file="$(find aerial_robot_base)/config/sensors/mocap.yaml" command="load" />
+    <rosparam file="$(find aerial_robot_base)/config/sensors/altmeter/leddar_one.yaml" command="load" />
+
+    <node pkg="hydrus" type="torsion_estimator_node" name="torsion_estimator" output="screen">
+      <param name="links" type="int" value="$(arg links)"/>
+      <param name="robot_name" value="$(arg robot_ns)"/>
+      <param name="simulation" value="$(arg simulation)"/>
+      <param name="use_mocap" value="$(arg mocap_for_torsion)"/>
+      <param name="mocap_frame_name_suffix" value="/pose_throttled"/>
+      <rosparam command="load" file="$(find hydrus)/config/oct/oct_vibration_shift_202011/TorsionEstimatorConfig.yaml" />
+    </node>
+
+    <node pkg="hydrus" type="torsion_mode_calculator" name="torsion_mode_calculator" output="screen">
+      <param name="robot_description_control" command="rosrun xacro xacro '$(arg robot_model)' robot_name:=$(arg robot_ns) sim:=true fix_rotor:=1"/>
+      <param name="robot_ns" type="str" value="$(arg robot_ns)" />
+      <param name="rate" type="int" value="30"/>
+      <param name="mode_num" type="int" value="4"/>
+      <param name="torsion_constant" type="double" value="100.0"/>
+      <param name="rotor_num" type="int" value="$(arg links)"/>
+    </node>
+
+    <node pkg="hydrus" type="null_space_shifter" name="null_space_shifter" output="screen">
+      <param name="rate" type="int" value="10"/>
+    </node>
+
+  </group>
+
+</launch>

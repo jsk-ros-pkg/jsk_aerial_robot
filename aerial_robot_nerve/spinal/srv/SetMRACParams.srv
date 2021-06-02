@@ -1,0 +1,11 @@
+uint8 log_rate
+float32[] mrac_ratio # [0,1] X,Y,Z
+float32[] k1m # set diag, length 3, X Y Z
+float32[] k2m # set diag, length 3, X Y Z
+float32[] K1 # set diag, length 3, X Y Z
+float32[] K2 # set diag, length 3, X Y Z
+float32[] kappa # length 8
+float32[] sigma # length 8
+float32 attitude_p
+---
+bool success

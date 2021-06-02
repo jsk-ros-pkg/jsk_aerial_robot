@@ -25,16 +25,20 @@ find_package(catkin REQUIRED COMPONENTS
   tf_conversions
   urdf
   visualization_msgs
+  gazebo_ros
   )
 
 find_package(orocos_kdl REQUIRED)
 find_package(urdfdom_headers REQUIRED)
 find_package(Eigen3 REQUIRED)
+# Find Gazebo
+find_package(gazebo REQUIRED)
 
-include_directories(${orocos_kdl_INCLUDE_DIRS} ${urdfdom_headers_INCLUDE_DIRS})
-link_directories(${orocos_kdl_LIBRARY_DIRS})
 
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
+include_directories(${orocos_kdl_INCLUDE_DIRS} ${urdfdom_headers_INCLUDE_DIRS} ${GAZEBO_INCLUDE_DIRS})
+link_directories(${orocos_kdl_LIBRARY_DIRS} ${GAZEBO_LIBRARY_DIRS})
+
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GAZEBO_CXX_FLAGS} -std=c++14")
 
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE RelWithDebInfo)
@@ -55,7 +59,7 @@ generate_messages(
 catkin_package(
   INCLUDE_DIRS include test
   LIBRARIES transformable_aerial_robot_model transformable_aerial_robot_model_ros numerical_jacobians
-  CATKIN_DEPENDS eigen_conversions interactive_markers spinal tf tf_conversions
+  CATKIN_DEPENDS eigen_conversions interactive_markers spinal tf tf_conversions gazebo_ros
 )
 
 ###########
@@ -96,6 +100,10 @@ target_link_libraries(rotor_tf_publisher ${catkin_LIBRARIES} ${orocos_kdl_LIBRAR
 
 add_executable(interactive_marker_tf_broadcaster src/utils/interactive_marker_tf_broadcaster.cpp)
 target_link_libraries(interactive_marker_tf_broadcaster ${catkin_LIBRARIES})
+
+# Build plugin
+add_library(joint_torsional_spring_plugin SHARED src/gazebo_joint_torsional_spring.cpp)
+target_link_libraries(joint_torsional_spring_plugin ${GAZEBO_LIBRARIES})
 
 ## for rostest
 add_library(numerical_jacobians test/aerial_robot_model/numerical_jacobians.cpp)

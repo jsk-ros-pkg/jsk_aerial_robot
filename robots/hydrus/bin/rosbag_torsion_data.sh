@@ -1,0 +1,3 @@
+#!/bin/bash
+
+rosrun hydrus rosbag_control_data.sh ${1:-hydrus} ${1:-hydrus}/mocap/link1/pose_throttled ${1:-hydrus}/mocap/link2/pose_throttled ${1:-hydrus}/mocap/link3/pose_throttled ${1:-hydrus}/mocap/link4/pose_throttled ${1:-hydrus}/mocap/link5/pose_throttled ${1:-hydrus}/mocap/link6/pose_throttled ${1:-hydrus}/mocap/link7/pose_throttled ${1:-hydrus}/mocap/link8/pose_throttled ${1:-hydrus}/torsion_estimator/torsion_estimate ${1:-hydrus}/link_torsion/joint_states ${1:-hydrus}/torsion_eigens ${1:-hydrus}/torsion_mode_matrix ${1:-hydrus}/torsion_B_matrix ${1:-hydrus}/K_mode ${1:-hydrus}/B_eom_kernel ${1:-hydrus}/K_gain_for_shift ${1:-hydrus}/K_gain_null_space_shifted ${1:-hydrus}/kernel_mix_ratio ${1:-hydrus}/mrac_gamma ${1:-hydrus}/mrac_ref_model ${@:2}
