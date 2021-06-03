@@ -66,6 +66,8 @@ typedef struct
 /* External variables --------------------------------------------------------*/
 extern CAN_HandleTypeDef hcan1;
 extern UART_HandleTypeDef huart3;
+extern TIM_HandleTypeDef htim11;
+
 /* USER CODE BEGIN EV */
 
 /* USER CODE END EV */
@@ -73,19 +75,6 @@ extern UART_HandleTypeDef huart3;
 /******************************************************************************/
 /*           Cortex-M7 Processor Interruption and Exception Handlers          */
 /******************************************************************************/
-/**
-  * @brief This function handles System tick timer.
-  */
-void SysTick_Handler(void)
-{
-  /* USER CODE BEGIN SysTick_IRQn 0 */
-
-  /* USER CODE END SysTick_IRQn 0 */
-  HAL_IncTick();
-  /* USER CODE BEGIN SysTick_IRQn 1 */
-  HAL_SYSTICK_IRQHandler(); // https://community.st.com/s/question/0D50X00009yHWejSAG/halsystickirqhandler-call-is-missing-in-cubemx-v5-generated-systickhandler
-  /* USER CODE END SysTick_IRQn 1 */
-}
 
 /******************************************************************************/
 /* STM32F7xx Peripheral Interrupt Handlers                                    */
@@ -106,6 +95,20 @@ void CAN1_RX1_IRQHandler(void)
   /* USER CODE BEGIN CAN1_RX1_IRQn 1 */
 
   /* USER CODE END CAN1_RX1_IRQn 1 */
+}
+
+/**
+  * @brief This function handles TIM1 trigger and commutation interrupts and TIM11 global interrupt.
+  */
+void TIM1_TRG_COM_TIM11_IRQHandler(void)
+{
+  /* USER CODE BEGIN TIM1_TRG_COM_TIM11_IRQn 0 */
+
+  /* USER CODE END TIM1_TRG_COM_TIM11_IRQn 0 */
+  HAL_TIM_IRQHandler(&htim11);
+  /* USER CODE BEGIN TIM1_TRG_COM_TIM11_IRQn 1 */
+
+  /* USER CODE END TIM1_TRG_COM_TIM11_IRQn 1 */
 }
 
 /**
