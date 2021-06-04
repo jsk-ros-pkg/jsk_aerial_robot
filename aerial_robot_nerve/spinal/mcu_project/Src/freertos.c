@@ -49,6 +49,8 @@
 
 /* USER CODE END Variables */
 osThreadId defaultTaskHandle;
+osTimerId LedTimerHandle;
+uint8_t led_status;
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
@@ -56,11 +58,15 @@ osThreadId defaultTaskHandle;
 /* USER CODE END FunctionPrototypes */
 
 void StartDefaultTask(void const * argument);
+void leDTimerCallback(void const * argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
 /* GetIdleTaskMemory prototype (linked to static allocation support) */
 void vApplicationGetIdleTaskMemory( StaticTask_t **ppxIdleTaskTCBBuffer, StackType_t **ppxIdleTaskStackBuffer, uint32_t *pulIdleTaskStackSize );
+
+/* GetTimerTaskMemory prototype (linked to static allocation support) */
+void vApplicationGetTimerTaskMemory( StaticTask_t **ppxTimerTaskTCBBuffer, StackType_t **ppxTimerTaskStackBuffer, uint32_t *pulTimerTaskStackSize );
 
 /* USER CODE BEGIN GET_IDLE_TASK_MEMORY */
 static StaticTask_t xIdleTaskTCBBuffer;
@@ -75,6 +81,19 @@ void vApplicationGetIdleTaskMemory( StaticTask_t **ppxIdleTaskTCBBuffer, StackTy
 }
 /* USER CODE END GET_IDLE_TASK_MEMORY */
 
+/* USER CODE BEGIN GET_TIMER_TASK_MEMORY */
+static StaticTask_t xTimerTaskTCBBuffer;
+static StackType_t xTimerStack[configTIMER_TASK_STACK_DEPTH];
+
+void vApplicationGetTimerTaskMemory( StaticTask_t **ppxTimerTaskTCBBuffer, StackType_t **ppxTimerTaskStackBuffer, uint32_t *pulTimerTaskStackSize )
+{
+  *ppxTimerTaskTCBBuffer = &xTimerTaskTCBBuffer;
+  *ppxTimerTaskStackBuffer = &xTimerStack[0];
+  *pulTimerTaskStackSize = configTIMER_TASK_STACK_DEPTH;
+  /* place for user code */
+}
+/* USER CODE END GET_TIMER_TASK_MEMORY */
+
 /**
   * @brief  FreeRTOS initialization
   * @param  None
@@ -82,7 +101,7 @@ void vApplicationGetIdleTaskMemory( StaticTask_t **ppxIdleTaskTCBBuffer, StackTy
   */
 void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN Init */
-
+  led_status = 0;
   /* USER CODE END Init */
 
   /* USER CODE BEGIN RTOS_MUTEX */
@@ -93,8 +112,14 @@ void MX_FREERTOS_Init(void) {
   /* add semaphores, ... */
   /* USER CODE END RTOS_SEMAPHORES */
 
+  /* Create the timer(s) */
+  /* definition and creation of LedTimer */
+  osTimerDef(LedTimer, leDTimerCallback);
+  LedTimerHandle = osTimerCreate(osTimer(LedTimer), osTimerPeriodic, (void*) &led_status);
+
   /* USER CODE BEGIN RTOS_TIMERS */
   /* start timers, add new ones, ... */
+  osTimerStart(LedTimerHandle, 100); // 100 ms
   /* USER CODE END RTOS_TIMERS */
 
   /* USER CODE BEGIN RTOS_QUEUES */
@@ -127,12 +152,28 @@ void StartDefaultTask(void const * argument)
   {
     osDelay(1000);
     LED0_H;
-    LED1_L;
     osDelay(1000);
     LED0_L;
-    LED1_H;
   }
   /* USER CODE END StartDefaultTask */
+}
+
+/* leDTimerCallback function */
+void leDTimerCallback(void const * argument)
+{
+  /* USER CODE BEGIN leDTimerCallback */
+  uint16_t *ledState = pvTimerGetTimerID((TimerHandle_t)argument);
+  if (*ledState == 0)
+    {
+      *ledState = 1;
+      LED1_L;
+    }
+  else
+    {
+    *ledState = 0;
+    LED1_H;
+    }
+  /* USER CODE END leDTimerCallback */
 }
 
 /* Private application code --------------------------------------------------*/
