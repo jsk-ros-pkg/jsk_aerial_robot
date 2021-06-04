@@ -46,11 +46,10 @@
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN Variables */
-
+uint16_t led_status;
 /* USER CODE END Variables */
 osThreadId defaultTaskHandle;
 osTimerId LedTimerHandle;
-uint8_t led_status;
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
@@ -144,35 +143,22 @@ void MX_FREERTOS_Init(void) {
   * @retval None
   */
 /* USER CODE END Header_StartDefaultTask */
-void StartDefaultTask(void const * argument)
+__weak void StartDefaultTask(void const * argument)
 {
   /* USER CODE BEGIN StartDefaultTask */
   /* Infinite loop */
   for(;;)
   {
-    osDelay(1000);
-    LED0_H;
-    osDelay(1000);
-    LED0_L;
+    osDelay(1);
   }
   /* USER CODE END StartDefaultTask */
 }
 
 /* leDTimerCallback function */
-void leDTimerCallback(void const * argument)
+__weak void leDTimerCallback(void const * argument)
 {
   /* USER CODE BEGIN leDTimerCallback */
-  uint16_t *ledState = pvTimerGetTimerID((TimerHandle_t)argument);
-  if (*ledState == 0)
-    {
-      *ledState = 1;
-      LED1_L;
-    }
-  else
-    {
-    *ledState = 0;
-    LED1_H;
-    }
+
   /* USER CODE END leDTimerCallback */
 }
 

@@ -122,6 +122,8 @@ FlightControl controller_;
 ExtraServo extra_servo_;
 #endif
 
+extern uint16_t led_status; // remove modifier "extern", if add "extern uint16_t led_status;" in main.h
+
 extern "C"
 {
 /* USER CODE END PV */
@@ -130,6 +132,32 @@ extern "C"
 void SystemClock_Config(void);
 void MX_FREERTOS_Init(void);
 /* USER CODE BEGIN PFP */
+
+  void StartDefaultTask(void const * argument)
+  {
+    for(;;)
+      {
+        osDelay(1000);
+        LED0_H;
+        osDelay(1000);
+        LED0_L;
+      }
+  }
+
+  void leDTimerCallback(void const * argument)
+  {
+    uint16_t* ledState = reinterpret_cast<uint16_t*>(pvTimerGetTimerID((TimerHandle_t)argument));
+    if (*ledState == 0)
+      {
+        *ledState = 1;
+        LED1_L;
+      }
+    else
+      {
+        *ledState = 0;
+        LED1_H;
+      }
+  }
 }
 /* USER CODE END PFP */
 
