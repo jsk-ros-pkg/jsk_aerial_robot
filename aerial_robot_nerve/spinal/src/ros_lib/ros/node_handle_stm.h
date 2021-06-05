@@ -40,6 +40,8 @@
 
 namespace ros {
 
+const int SPIN_UNAVAILABLE = -3;
+
   /* Node Handle */
   template<class Hardware,
            int MAX_SUBSCRIBERS=25,
@@ -70,7 +72,17 @@ namespace ros {
      */
     virtual int publish()
     {
-      return parent::hardware_.publish();
+      return  parent::hardware_.publish();
+    }
+
+    int spinOnce() override
+    {
+      bool has_data = parent::hardware_.rx_available();
+
+      int status =  parent::spinOnce();
+
+      if(has_data) return status;
+      else return SPIN_UNAVAILABLE;
     }
   };
 }

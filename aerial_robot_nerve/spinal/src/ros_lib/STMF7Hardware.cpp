@@ -91,15 +91,31 @@ namespace tx
 
   int publish()
   {
-    int status = HAL_OK;
     if (subscript_in_progress_ != subscript_to_add_)
       {
-        status = HAL_UART_Transmit(tx_huart_, tx_buffer_unit_[subscript_in_progress_].tx_data_, tx_buffer_unit_[subscript_in_progress_].tx_len_, 10);
+        /*
+          Timeout value of > 1 ms is necessary for the initial pub/sub/srv topic info transmit (check with 2 ms, with max length of 120 (+8))
+          1 ms will induce "Rejecting message on topicId=x, length=xx with bad checksum.", whcih prevent the propoer send of TWO topic info.
+
+          This occurs for the long topic name and topic types, such as
+          - p_matrix_pseudo_inverse_inertia, type: spinal/PMatrixPseudoInverseWithInertia, length=120
+          - extra_servo_torque_enable, type: spinal/ServoTorqueCmd, length=97
+          - rpy/feedback_state, type: spinal/RollPitchYawTerm, length=92
+
+          This Timeout is not HAL_Delay().
+          Please check HAL_UART_Transmit and UART_WaitOnFlagUntilTimeout(huart, UART_FLAG_TXE, RESET, tickstart, Timeout)
+        */
+        int status = HAL_UART_Transmit(tx_huart_, tx_buffer_unit_[subscript_in_progress_].tx_data_, tx_buffer_unit_[subscript_in_progress_].tx_len_, 2);
 
         subscript_in_progress_++;
         if (subscript_in_progress_ == TX_BUFFER_SIZE) subscript_in_progress_ = 0;
+
+        return status;
       }
-    return status;
+    else
+      {
+        return BUFFER_EMPTY;
+      }
   }
 
   void write(uint8_t * new_data, unsigned int new_size)

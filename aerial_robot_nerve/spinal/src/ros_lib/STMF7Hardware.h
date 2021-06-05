@@ -13,6 +13,7 @@
 #include "stm32f7xx_hal_uart.h"
 #include "stm32f7xx_hal_dma.h"
 
+#define BUFFER_EMPTY  -1
 #define TX_BUFFER_SIZE 512
 #define TX_BUFFER_WIDTH 512
 #define RX_BUFFER_SIZE 512
@@ -127,6 +128,11 @@ public:
   {
 	  rx::init(huart);
 	  tx::init(huart);
+  }
+
+  bool rx_available()
+  {
+    return rx::available();
   }
 
   int read()

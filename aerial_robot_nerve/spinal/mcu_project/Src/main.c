@@ -158,7 +158,40 @@ void MX_FREERTOS_Init(void);
         LED1_H;
       }
   }
+
+  void rosSpinTask(void const * argument)
+  {
+    for(;;)
+      {
+        /* ros spin means to get data from UART RX ring buffer and to call callback functions  */
+        if(nh_.spinOnce() == ros::SPIN_UNAVAILABLE)
+          {
+            /* if no data in ring buffer, we kindly sleep for 1ms */
+            osDelay(1);
+          }
+      }
+  }
+
+  /*
+   * We set a lower priority for publish task than rosSpinTask
+   * Since,  UART_Transmit needs a timeout to wait for the flag of UART TX to be ready (about 2 ms for about 100bytes)
+   * - HAL_UART_Transmit(tx_huart_, tx_buffer_unit_[subscript_in_progress_].tx_data_, tx_buffer_unit_[subscript_in_progress_].tx_len_, 2);
+   * TODO: use DMA to send UART TX
+   */
+  void rosPublishTask(void const * argument)
+  {
+    for(;;)
+      {
+        /* publish one message from ring buffer */
+        if(nh_.publish() == BUFFER_EMPTY)
+          {
+            /* if no messages in ring buffer, we kindly sleep for 1ms */
+            osDelay(1);
+          }
+      }
+  }
 }
+
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/

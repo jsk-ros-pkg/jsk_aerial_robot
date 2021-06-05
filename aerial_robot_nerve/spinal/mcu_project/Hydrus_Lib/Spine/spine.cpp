@@ -107,6 +107,7 @@ namespace Spine
   {
 	  can_idle_count_ = 3000;
 	  //need this cheap delay
+          // TODO: use osDelay in freertos
 	  for (int i = 0; i < 1000000; ++i) {
 			  asm("nop");
 	  }

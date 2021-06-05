@@ -49,6 +49,8 @@
 uint16_t led_status;
 /* USER CODE END Variables */
 osThreadId defaultTaskHandle;
+osThreadId rosSpinHandle;
+osThreadId rosPublishHandle;
 osTimerId LedTimerHandle;
 
 /* Private function prototypes -----------------------------------------------*/
@@ -57,6 +59,8 @@ osTimerId LedTimerHandle;
 /* USER CODE END FunctionPrototypes */
 
 void StartDefaultTask(void const * argument);
+void rosSpinTask(void const * argument);
+void rosPublishTask(void const * argument);
 void leDTimerCallback(void const * argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
@@ -127,8 +131,16 @@ void MX_FREERTOS_Init(void) {
 
   /* Create the thread(s) */
   /* definition and creation of defaultTask */
-  osThreadDef(defaultTask, StartDefaultTask, osPriorityNormal, 0, 128);
+  osThreadDef(defaultTask, StartDefaultTask, osPriorityIdle, 0, 128);
   defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
+
+  /* definition and creation of rosSpin */
+  osThreadDef(rosSpin, rosSpinTask, osPriorityNormal, 0, 128);
+  rosSpinHandle = osThreadCreate(osThread(rosSpin), NULL);
+
+  /* definition and creation of rosPublish */
+  osThreadDef(rosPublish, rosPublishTask, osPriorityBelowNormal, 0, 128);
+  rosPublishHandle = osThreadCreate(osThread(rosPublish), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -152,6 +164,42 @@ __weak void StartDefaultTask(void const * argument)
     osDelay(1);
   }
   /* USER CODE END StartDefaultTask */
+}
+
+/* USER CODE BEGIN Header_rosSpinTask */
+/**
+* @brief Function implementing the rosSpin thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_rosSpinTask */
+__weak void rosSpinTask(void const * argument)
+{
+  /* USER CODE BEGIN rosSpinTask */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END rosSpinTask */
+}
+
+/* USER CODE BEGIN Header_rosPublishTask */
+/**
+* @brief Function implementing the rosPublish thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_rosPublishTask */
+__weak void rosPublishTask(void const * argument)
+{
+  /* USER CODE BEGIN rosPublishTask */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END rosPublishTask */
 }
 
 /* leDTimerCallback function */
