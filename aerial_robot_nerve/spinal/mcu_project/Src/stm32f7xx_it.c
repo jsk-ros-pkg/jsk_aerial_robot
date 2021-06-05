@@ -65,7 +65,6 @@ typedef struct
 
 /* External variables --------------------------------------------------------*/
 extern CAN_HandleTypeDef hcan1;
-extern DMA_HandleTypeDef hdma_usart1_rx;
 extern UART_HandleTypeDef huart3;
 /* USER CODE BEGIN EV */
 
@@ -124,24 +123,6 @@ void USART3_IRQHandler(void)
   /* rx callback */
   if(huart3.RxXferCount == 0) GPS_RxCpltCallback(&huart3);
   /* USER CODE END USART3_IRQn 1 */
-}
-
-/**
-  * @brief This function handles DMA2 stream2 global interrupt.
-  */
-void DMA2_Stream2_IRQHandler(void)
-{
-  /* USER CODE BEGIN DMA2_Stream2_IRQn 0 */
-  DMA_Base_Registers *regs;
-  regs = (DMA_Base_Registers *)(hdma_usart1_rx.StreamBaseAddress);
-  if ((regs->ISR & (DMA_FLAG_TCIF0_4 << hdma_usart1_rx.StreamIndex)) != RESET)
-    Rosserial_RxCpltCallback(( UART_HandleTypeDef* )((DMA_HandleTypeDef* )(&hdma_usart1_rx))->Parent );
-
-  /* USER CODE END DMA2_Stream2_IRQn 0 */
-  HAL_DMA_IRQHandler(&hdma_usart1_rx);
-  /* USER CODE BEGIN DMA2_Stream2_IRQn 1 */
-
-  /* USER CODE END DMA2_Stream2_IRQn 1 */
 }
 
 /* USER CODE BEGIN 1 */

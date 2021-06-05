@@ -12,36 +12,42 @@
 /* RX */
 namespace
 {
-uint8_t rx_value_[RX_PACKET_SIZE];
-RingBuffer<uint8_t, RX_BUFFER_SIZE>  rx_buf_;
+  uint8_t rx_buf_[RX_BUFFER_SIZE];
+  UART_HandleTypeDef *rx_huart_;
+  uint32_t rd_ptr_ = 0;
 }
 
 namespace rx
 {
  void init(UART_HandleTypeDef *huart)
  {
-    HAL_UART_Receive_DMA(huart, rx_value_, RX_PACKET_SIZE); //1byte receive protocol
-    __HAL_UART_DISABLE_IT(huart, UART_IT_RXNE);
+   __HAL_UART_DISABLE_IT(huart, UART_IT_PE);
+   __HAL_UART_DISABLE_IT(huart, UART_IT_ERR);
+   HAL_UART_Receive_DMA(huart, rx_buf_, RX_BUFFER_SIZE);
+
+   memset(rx_buf_, 0, sizeof(rx_buf_));
+   rx_huart_ = huart;
+  }
+
+  bool available()
+  {
+    uint32_t dma_write_ptr =  (RX_BUFFER_SIZE - rx_huart_->hdmarx->Instance->NDTR) % (RX_BUFFER_SIZE);
+    return (rd_ptr_ != dma_write_ptr);
   }
 
   int read()
   {
-    if(!rx::available()) return -1;
-
-    uint8_t r_data = 0;
-    rx_buf_.pop(r_data);
-    return  r_data;
+    uint32_t dma_write_ptr =  (RX_BUFFER_SIZE - rx_huart_->hdmarx->Instance->NDTR) % (RX_BUFFER_SIZE);
+    int c = -1;
+    if(rd_ptr_ != dma_write_ptr)
+      {
+        c = (int)rx_buf_[rd_ptr_++];
+        rd_ptr_ %= RX_BUFFER_SIZE;
+      }
+    return c;
   }
-
-  bool available() { return rx_buf_.length(); }
-  uint8_t* getRxValueP() { return rx_value_; }
 };
 
-void Rosserial_RxCpltCallback(UART_HandleTypeDef *huart)
-{
-  for(int i = 0; i < RX_PACKET_SIZE; i++)
-    rx_buf_.push(rx_value_[i]);
-}
 
 
 /* TX */

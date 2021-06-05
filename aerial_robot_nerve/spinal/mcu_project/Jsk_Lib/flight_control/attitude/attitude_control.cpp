@@ -632,6 +632,8 @@ void AttitudeController::setMotorNumber(uint8_t motor_number)
     }
   else
     {
+	  if(motor_number == 0) return;
+
       size_t control_term_msg_size  = motor_number;
 
 #ifdef SIMULATION

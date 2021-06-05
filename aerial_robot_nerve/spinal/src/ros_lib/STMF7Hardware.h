@@ -16,7 +16,6 @@
 #define TX_BUFFER_SIZE 512
 #define TX_BUFFER_WIDTH 512
 #define RX_BUFFER_SIZE 512
-#define RX_PACKET_SIZE 16
 
 template <typename T,  int SIZE>
 class RingBuffer
@@ -85,9 +84,7 @@ namespace rx
   void init(UART_HandleTypeDef *huart);
   int read();
   bool available();
-  uint8_t* getRxValueP();
-  RingBuffer<uint8_t, RX_PACKET_SIZE>* getRxBuffer();
-  uint8_t getBurstSize();
+
 };
 
 /* TX */
