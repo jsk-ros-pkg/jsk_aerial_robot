@@ -122,7 +122,7 @@ FlightControl controller_;
 ExtraServo extra_servo_;
 #endif
 
-extern uint16_t led_status; // remove modifier "extern", if add "extern uint16_t led_status;" in main.h
+extern osSemaphoreId CoreProcessSemHandle; // defined in Src/freertos.c
 
 extern "C"
 {
@@ -133,29 +133,57 @@ void SystemClock_Config(void);
 void MX_FREERTOS_Init(void);
 /* USER CODE BEGIN PFP */
 
-  void StartDefaultTask(void const * argument)
+  // timer callback to evoke coreTask at 1KHz
+  void coreEvokeCallback(void const * argument)
+  {
+    /*
+      We need to create another indipendent task to run the core function (following coreTask),
+      since block action in timer callback function is not allowed.
+    */
+    osSemaphoreRelease (CoreProcessSemHandle);
+  }
+
+  // main subrutine for update enach instance
+  void coreTask(void const * argument)
   {
     for(;;)
       {
-        osDelay(1000);
-        LED0_H;
-        osDelay(1000);
-        LED0_L;
-      }
-  }
+        // RTOS semephre
+        osSemaphoreWait(CoreProcessSemHandle, osWaitForever);
 
-  void leDTimerCallback(void const * argument)
-  {
-    uint16_t* ledState = reinterpret_cast<uint16_t*>(pvTimerGetTimerID((TimerHandle_t)argument));
-    if (*ledState == 0)
-      {
-        *ledState = 1;
-        LED1_L;
-      }
-    else
-      {
-        *ledState = 0;
-        LED1_H;
+        if(!start_processing_flag_) return;
+
+#if NERVE_COMM
+        Spine::send();
+#endif
+
+        /* sensors */
+#if IMU_FLAG
+        imu_.update();
+#endif
+
+#if BARO_FLAG
+        baro_.update();
+#endif
+
+#if GPS_FLAG
+        gps_.update();
+#endif
+
+        encoder_.update();
+
+        /* state estimate */
+#if (ATTITUDE_ESTIMATE_FLAG || HEIGHT_ESTIMATE_FLAG || POS_ESTIMATE_FLAG)
+        estimator_.update();
+#endif
+
+#if FLIGHT_CONTROL_FLAG
+        controller_.update();
+#endif
+
+#if NERVE_COMM
+        Spine::update();
+#endif
       }
   }
 
@@ -196,46 +224,6 @@ void MX_FREERTOS_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-// main subrutine for update enach instance
-void HAL_SYSTICK_Callback(void)
-{
- if(!start_processing_flag_) return;
-
-#if NERVE_COMM
-  Spine::send();
-#endif
-
-  /* sensors */
-#if IMU_FLAG
-  imu_.update();
-#endif
-
-#if BARO_FLAG
-  baro_.update();
-#endif
-
-#if GPS_FLAG
-  gps_.update();
-#endif
-
-encoder_.update();
-
-  /* state estimate */
-#if (ATTITUDE_ESTIMATE_FLAG || HEIGHT_ESTIMATE_FLAG || POS_ESTIMATE_FLAG)
-  estimator_.update();
-#endif
-
-#if FLIGHT_CONTROL_FLAG
-  controller_.update();
-#endif
-
-#if NERVE_COMM
-  Spine::update();
-#endif
-
- /* ros communication */
-  nh_.spinOnce();
-}
 
 /* USER CODE END 0 */
 
@@ -374,22 +362,10 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    nh_.publish();
 #if FLIGHT_CONTROL_FLAG
     battery_status_.update();
 #endif
 
-
-#if 0
-    /* test logging: 1Hz */
-    if(HAL_GetTick() - now_time > 1000)
-      {
-        char s[20] = {'\0'};
-        snprintf(s, 20, "time is %d", now_time);
-        nh_.logwarn(s);
-        now_time = HAL_GetTick();
-      }
-#endif
   }
   /* USER CODE END 3 */
 }

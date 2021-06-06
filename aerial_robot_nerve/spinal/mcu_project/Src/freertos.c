@@ -51,7 +51,9 @@ uint16_t led_status;
 osThreadId defaultTaskHandle;
 osThreadId rosSpinHandle;
 osThreadId rosPublishHandle;
-osTimerId LedTimerHandle;
+osThreadId coreProcessHandle;
+osTimerId CoreTimerHandle;
+osSemaphoreId CoreProcessSemHandle;
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
@@ -61,7 +63,8 @@ osTimerId LedTimerHandle;
 void StartDefaultTask(void const * argument);
 void rosSpinTask(void const * argument);
 void rosPublishTask(void const * argument);
-void leDTimerCallback(void const * argument);
+void coreTask(void const * argument);
+void coreEvokeCallback(void const * argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -104,25 +107,30 @@ void vApplicationGetTimerTaskMemory( StaticTask_t **ppxTimerTaskTCBBuffer, Stack
   */
 void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN Init */
-  led_status = 0;
+
   /* USER CODE END Init */
 
   /* USER CODE BEGIN RTOS_MUTEX */
   /* add mutexes, ... */
   /* USER CODE END RTOS_MUTEX */
 
+  /* Create the semaphores(s) */
+  /* definition and creation of CoreProcessSem */
+  osSemaphoreDef(CoreProcessSem);
+  CoreProcessSemHandle = osSemaphoreCreate(osSemaphore(CoreProcessSem), 1);
+
   /* USER CODE BEGIN RTOS_SEMAPHORES */
   /* add semaphores, ... */
   /* USER CODE END RTOS_SEMAPHORES */
 
   /* Create the timer(s) */
-  /* definition and creation of LedTimer */
-  osTimerDef(LedTimer, leDTimerCallback);
-  LedTimerHandle = osTimerCreate(osTimer(LedTimer), osTimerPeriodic, (void*) &led_status);
+  /* definition and creation of CoreTimer */
+  osTimerDef(CoreTimer, coreEvokeCallback);
+  CoreTimerHandle = osTimerCreate(osTimer(CoreTimer), osTimerPeriodic, NULL);
 
   /* USER CODE BEGIN RTOS_TIMERS */
   /* start timers, add new ones, ... */
-  osTimerStart(LedTimerHandle, 100); // 100 ms
+  osTimerStart(CoreTimerHandle, 1); // 1 ms (1kHz)
   /* USER CODE END RTOS_TIMERS */
 
   /* USER CODE BEGIN RTOS_QUEUES */
@@ -141,6 +149,10 @@ void MX_FREERTOS_Init(void) {
   /* definition and creation of rosPublish */
   osThreadDef(rosPublish, rosPublishTask, osPriorityBelowNormal, 0, 128);
   rosPublishHandle = osThreadCreate(osThread(rosPublish), NULL);
+
+  /* definition and creation of coreProcess */
+  osThreadDef(coreProcess, coreTask, osPriorityRealtime, 0, 128);
+  coreProcessHandle = osThreadCreate(osThread(coreProcess), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -202,12 +214,30 @@ __weak void rosPublishTask(void const * argument)
   /* USER CODE END rosPublishTask */
 }
 
-/* leDTimerCallback function */
-__weak void leDTimerCallback(void const * argument)
+/* USER CODE BEGIN Header_coreTask */
+/**
+* @brief Function implementing the coreProcess thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_coreTask */
+__weak void coreTask(void const * argument)
 {
-  /* USER CODE BEGIN leDTimerCallback */
+  /* USER CODE BEGIN coreTask */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END coreTask */
+}
 
-  /* USER CODE END leDTimerCallback */
+/* coreEvokeCallback function */
+__weak void coreEvokeCallback(void const * argument)
+{
+  /* USER CODE BEGIN coreEvokeCallback */
+
+  /* USER CODE END coreEvokeCallback */
 }
 
 /* Private application code --------------------------------------------------*/
