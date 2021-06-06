@@ -35,6 +35,10 @@
 #include <algorithm>
 #include <functional>
 
+/* RTOS */
+#include "cmsis_os.h"
+
+
 #define SEND_GYRO 0
 
 // main subrutine for update enach instance

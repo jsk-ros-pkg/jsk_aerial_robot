@@ -14,8 +14,8 @@
 #include "stm32f7xx_hal_dma.h"
 
 #define BUFFER_EMPTY  -1
-#define TX_BUFFER_SIZE 512
-#define TX_BUFFER_WIDTH 512
+#define TX_BUFFER_SIZE 50 // can not be too small, to handle the first void negotiateTopics() process which send the topic information at the same time.
+#define TX_BUFFER_WIDTH 512 // can not be too small, to handle the large size topic such as board information
 #define RX_BUFFER_SIZE 512
 
 template <typename T,  int SIZE>

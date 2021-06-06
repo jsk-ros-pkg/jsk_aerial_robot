@@ -34,6 +34,7 @@ void CANInitializer::configDevice(const spinal::SetBoardConfig::Request& req)
 			send_data[0] = CAN::BOARD_CONFIG_SET_SLAVE_ID;
 			send_data[1] = new_slave_id;
 			sendMessage(CAN::MESSAGEID_RECEIVE_BOARD_CONFIG_REQUEST, slave_id, 2, send_data, 1);
+                        // timeout of 1ms is OK for RTOS, since this function is called from nh_.spinOnce which is called in a lower priority task
 			break;
 		}
 		case spinal::SetBoardConfig::Request::SET_IMU_SEND_FLAG:

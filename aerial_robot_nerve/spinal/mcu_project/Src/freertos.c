@@ -27,10 +27,16 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "config.h"
+#include <stdbool.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
+typedef struct // same type defined in can_device_manager.h whcih has C++ description thus cannot loaded in this C file
+{
+  CAN_RxHeaderTypeDef rx_header;
+  uint8_t rx_data[8];
+} can_msg;
 
 /* USER CODE END PTD */
 
@@ -46,12 +52,14 @@
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN Variables */
-uint16_t led_status;
+extern bool start_processing_flag_;
+osMailQId canMsgMailHandle;
 /* USER CODE END Variables */
 osThreadId defaultTaskHandle;
 osThreadId rosSpinHandle;
 osThreadId rosPublishHandle;
 osThreadId coreProcessHandle;
+osThreadId canRxHandle;
 osTimerId CoreTimerHandle;
 osSemaphoreId CoreProcessSemHandle;
 
@@ -64,6 +72,7 @@ void StartDefaultTask(void const * argument);
 void rosSpinTask(void const * argument);
 void rosPublishTask(void const * argument);
 void coreTask(void const * argument);
+void canRxTask(void const * argument);
 void coreEvokeCallback(void const * argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
@@ -135,6 +144,9 @@ void MX_FREERTOS_Init(void) {
 
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
+  /* add mail queue for CAN RX */
+  osMailQDef(CanMail, 8, can_msg); // defualt: 16
+  canMsgMailHandle = osMailCreate(osMailQ(CanMail), NULL);
   /* USER CODE END RTOS_QUEUES */
 
   /* Create the thread(s) */
@@ -153,6 +165,10 @@ void MX_FREERTOS_Init(void) {
   /* definition and creation of coreProcess */
   osThreadDef(coreProcess, coreTask, osPriorityRealtime, 0, 128);
   coreProcessHandle = osThreadCreate(osThread(coreProcess), NULL);
+
+  /* definition and creation of canRx */
+  osThreadDef(canRx, canRxTask, osPriorityRealtime, 0, 128);
+  canRxHandle = osThreadCreate(osThread(canRx), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -230,6 +246,24 @@ __weak void coreTask(void const * argument)
     osDelay(1);
   }
   /* USER CODE END coreTask */
+}
+
+/* USER CODE BEGIN Header_canRxTask */
+/**
+* @brief Function implementing the canRx thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_canRxTask */
+__weak void canRxTask(void const * argument)
+{
+  /* USER CODE BEGIN canRxTask */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END canRxTask */
 }
 
 /* coreEvokeCallback function */

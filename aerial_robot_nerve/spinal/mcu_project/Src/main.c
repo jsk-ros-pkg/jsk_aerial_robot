@@ -131,6 +131,7 @@ extern "C"
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 void MX_FREERTOS_Init(void);
+static void MX_NVIC_Init(void);
 /* USER CODE BEGIN PFP */
 
   // timer callback to evoke coreTask at 1KHz
@@ -218,6 +219,17 @@ void MX_FREERTOS_Init(void);
           }
       }
   }
+
+  void StartDefaultTask(void const * argument)
+  {
+    for(;;)
+      {
+        osDelay(1000);
+        LED2_H;
+        osDelay(1000);
+        LED2_L;
+      }
+  }
 }
 
 /* USER CODE END PFP */
@@ -277,6 +289,9 @@ int main(void)
   MX_TIM2_Init();
   MX_TIM3_Init();
   MX_TIM5_Init();
+
+  /* Initialize interrupts */
+  MX_NVIC_Init();
   /* USER CODE BEGIN 2 */
   /* ROS Interface between board and PC */
   nh_.initNode(&huart1);
@@ -430,6 +445,17 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
+}
+
+/**
+  * @brief NVIC Configuration.
+  * @retval None
+  */
+static void MX_NVIC_Init(void)
+{
+  /* CAN1_RX1_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(CAN1_RX1_IRQn, 6, 0);
+  HAL_NVIC_EnableIRQ(CAN1_RX1_IRQn);
 }
 
 /* USER CODE BEGIN 4 */
