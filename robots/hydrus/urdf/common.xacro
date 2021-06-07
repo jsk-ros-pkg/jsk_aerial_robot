@@ -26,7 +26,7 @@
   <xacro:property name="max_force" value="20.0" /> <!-- [N] -->
   <xacro:property name="min_force" value="1.0" /> <!-- [N] -->
 
-  <xacro:macro name="link_model" params="type with_leg:=${with_leg} old_version:=${old_version} tilt_mode:=${tilt_mode} tilt_angle:=${tilt_angle}">
+  <xacro:macro name="link_model" params="type with_leg:=${with_leg} old_version:=${old_version} tilt_mode:=${tilt_mode} tilt_angle:=${tilt_angle} prop_15inch:=${prop_15inch}">
     <!-- for fcl in planning -->
     <collision>
       <xacro:if value="${with_leg == 1}">
@@ -54,7 +54,12 @@
         <origin rpy="0 0 0" xyz="${link_length* 0.5} 0 0"/>
         <geometry>
           <xacro:if value="${tilt_mode == 1}">
-            <mesh filename="package://hydrus/urdf/mesh/ver2/link/tilt_${tilt_angle}deg_link${type}.dae"/>
+            <xacro:if value="${prop_15inch == 1}">
+              <mesh filename="package://hydrus/urdf/mesh/ver2/link/tilt_${tilt_angle}deg_15inch_link${type}.dae"/>
+            </xacro:if>
+            <xacro:unless value="${prop_15inch == 1}">
+              <mesh filename="package://hydrus/urdf/mesh/ver2/link/tilt_${tilt_angle}deg_link${type}.dae"/>
+            </xacro:unless>
           </xacro:if>
           <xacro:unless value="${tilt_mode == 1}">
             <mesh filename="package://hydrus/urdf/mesh/ver2/link/link${type}.dae"/>
