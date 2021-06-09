@@ -52,7 +52,6 @@ typedef struct // same type defined in can_device_manager.h whcih has C++ descri
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN Variables */
-extern bool start_processing_flag_;
 osMailQId canMsgMailHandle;
 /* USER CODE END Variables */
 osThreadId defaultTaskHandle;

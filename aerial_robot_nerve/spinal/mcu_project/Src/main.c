@@ -122,7 +122,9 @@ FlightControl controller_;
 ExtraServo extra_servo_;
 #endif
 
-extern osSemaphoreId CoreProcessSemHandle; // defined in Src/freertos.c
+// defined in Src/freertos.c
+extern osSemaphoreId CoreProcessSemHandle;
+extern osMailQId canMsgMailHandle;
 
 extern "C"
 {
@@ -362,6 +364,7 @@ int main(void)
   start_processing_flag_ = true;
   uint32_t now_time = HAL_GetTick();
 
+  Spine::useRTOS(&canMsgMailHandle); // use RTOS for CAN in spianl
   /* USER CODE END 2 */
 
   /* Call init function for freertos objects (in freertos.c) */

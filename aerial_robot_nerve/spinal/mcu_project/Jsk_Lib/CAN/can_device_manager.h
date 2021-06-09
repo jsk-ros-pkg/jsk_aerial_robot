@@ -10,6 +10,7 @@
 
 #include "can_core.h"
 #include "can_device.h"
+#include "cmsis_os.h"
 
 typedef struct
 {
@@ -21,6 +22,7 @@ namespace CANDeviceManager
 {
 	void init(CAN_HandleTypeDef* hcan, GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin);
 	void addDevice(CANDevice& device);
+  	void useRTOS(osMailQId* handle);
 	void tick(int cycle /* ms */);
 	bool connected();
   	void receiveMessage();

@@ -7,10 +7,6 @@
 
 #include "can_device_manager.h"
 #include <map>
-#include "cmsis_os.h"
-
-extern osMailQId canMsgMailHandle;
-extern bool start_processing_flag_;
 
 namespace CANDeviceManager
 {
@@ -20,6 +16,7 @@ namespace CANDeviceManager
 		constexpr int CAN_MAX_TIMEOUT_COUNT = 100;
 		GPIO_TypeDef* m_GPIOx;
 		uint16_t m_GPIO_Pin;
+		osMailQId* canMsgMailHandle = NULL;
 	}
 
 	void init(CAN_HandleTypeDef* hcan, GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin)
@@ -27,6 +24,11 @@ namespace CANDeviceManager
 		CAN::init(hcan);
 		m_GPIOx = GPIOx;
 		m_GPIO_Pin = GPIO_Pin;
+	}
+
+	void useRTOS(osMailQId* handle)
+	{
+		canMsgMailHandle = handle;
 	}
 
 	int makeCommunicationId(uint8_t device_id, uint8_t slave_id)
@@ -92,25 +94,25 @@ void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef* hcan)
 {
   CANDeviceManager::can_timeout_count = 0;
 
-  if(start_processing_flag_)
-    {
-      /* add data to RTOS queue */
-      can_msg *msg = (can_msg *)osMailAlloc(canMsgMailHandle, 0);
-
-      if (msg == NULL) return; //allocation is not ready, exit
-
-      if (HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO1, &(msg->rx_header), msg->rx_data) == HAL_OK)
-        {
-          osMailPut(canMsgMailHandle, msg);
-        }
-    }
-  else
+  if(CANDeviceManager::canMsgMailHandle == NULL)
     {
       can_msg msg;
       if (HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO1, &msg.rx_header, msg.rx_data) == HAL_OK)
         {
           /* directly call receivemessage, since RTOS is not initialized */
           CANDeviceManager::receiveMessage(msg);
+        }
+    }
+  else
+    {
+      /* add data to RTOS queue */
+      can_msg *msg = (can_msg *)osMailAlloc(*CANDeviceManager::canMsgMailHandle, 0);
+
+      if (msg == NULL) return; //allocation is not ready, exit
+
+      if (HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO1, &(msg->rx_header), msg->rx_data) == HAL_OK)
+        {
+          osMailPut(*CANDeviceManager::canMsgMailHandle, msg);
         }
     }
 }
@@ -122,15 +124,21 @@ extern "C"
   {
     for(;;)
       {
+        if(CANDeviceManager::canMsgMailHandle == NULL)
+          {
+            osDelay(1);
+            continue;
+          }
+
         // get data from RTOS queue if available
-        osEvent event = osMailGet(canMsgMailHandle, osWaitForever);
+        osEvent event = osMailGet(*CANDeviceManager::canMsgMailHandle, osWaitForever);
 
         if (event.status == osEventMail)
           {
             can_msg *msg = (can_msg*)event.value.p;
 
             CANDeviceManager::receiveMessage(*msg);
-            osMailFree(canMsgMailHandle, msg);
+            osMailFree(*CANDeviceManager::canMsgMailHandle, msg);
           }
       }
   }

@@ -293,6 +293,11 @@ namespace Spine
     }
   }
 
+  void useRTOS(osMailQId* handle)
+  {
+    CANDeviceManager::useRTOS(handle);
+  }
+
   void setMotorPwm(uint16_t pwm, uint8_t motor)
   {
 	  neuron_.at(motor).can_motor_.setPwm(pwm);
