@@ -144,7 +144,7 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
   /* add mail queue for CAN RX */
-  osMailQDef(CanMail, 8, can_msg); // defualt: 16
+  osMailQDef(CanMail, 20, can_msg); // defualt: 20 (in case of initializer sendBoardConfig (4 servo: 1 + 4 x 3 = 13 packets))
   canMsgMailHandle = osMailCreate(osMailQ(CanMail), NULL);
   /* USER CODE END RTOS_QUEUES */
 
