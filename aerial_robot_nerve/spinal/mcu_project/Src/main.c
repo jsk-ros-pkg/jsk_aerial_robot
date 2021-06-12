@@ -222,6 +222,7 @@ static void MX_NVIC_Init(void);
       }
   }
 
+#if 1
   void StartDefaultTask(void const * argument)
   {
     for(;;)
@@ -232,6 +233,19 @@ static void MX_NVIC_Init(void);
         LED2_L;
       }
   }
+#endif 
+  
+#if FLIGHT_CONTROL_FLAG
+  void voltageTask(void const * argument)
+  {
+    for(;;)
+      {
+        battery_status_.update();
+        osDelay(VOLTAGE_CHECK_INTERVAL);
+      }
+  }
+#endif
+
 }
 
 /* USER CODE END PFP */
@@ -380,10 +394,6 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-#if FLIGHT_CONTROL_FLAG
-    battery_status_.update();
-#endif
-
   }
   /* USER CODE END 3 */
 }

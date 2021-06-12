@@ -59,6 +59,7 @@ osThreadId rosSpinHandle;
 osThreadId rosPublishHandle;
 osThreadId coreProcessHandle;
 osThreadId canRxHandle;
+osThreadId voltageHandle;
 osTimerId CoreTimerHandle;
 osSemaphoreId CoreProcessSemHandle;
 
@@ -72,6 +73,7 @@ void rosSpinTask(void const * argument);
 void rosPublishTask(void const * argument);
 void coreTask(void const * argument);
 void canRxTask(void const * argument);
+void voltageTask(void const * argument);
 void coreEvokeCallback(void const * argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
@@ -169,6 +171,10 @@ void MX_FREERTOS_Init(void) {
   osThreadDef(canRx, canRxTask, osPriorityRealtime, 0, 128);
   canRxHandle = osThreadCreate(osThread(canRx), NULL);
 
+  /* definition and creation of voltage */
+  osThreadDef(voltage, voltageTask, osPriorityLow, 0, 128);
+  voltageHandle = osThreadCreate(osThread(voltage), NULL);
+
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
@@ -263,6 +269,24 @@ __weak void canRxTask(void const * argument)
     osDelay(1);
   }
   /* USER CODE END canRxTask */
+}
+
+/* USER CODE BEGIN Header_voltageTask */
+/**
+* @brief Function implementing the voltage thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_voltageTask */
+__weak void voltageTask(void const * argument)
+{
+  /* USER CODE BEGIN voltageTask */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1000);
+  }
+  /* USER CODE END voltageTask */
 }
 
 /* coreEvokeCallback function */
