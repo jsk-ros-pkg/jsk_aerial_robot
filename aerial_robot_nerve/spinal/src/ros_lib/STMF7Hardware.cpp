@@ -37,6 +37,15 @@ namespace rx
 
   int read()
   {
+    /* handle RX Overrun Error */
+    if ( __HAL_UART_GET_FLAG(rx_huart_, UART_FLAG_ORE) )
+      {
+        __HAL_UART_CLEAR_FLAG(rx_huart_,
+                              UART_CLEAR_NEF | UART_CLEAR_OREF | UART_FLAG_RXNE | UART_FLAG_ORE);
+        HAL_UART_Receive_DMA(rx_huart_, rx_buf_, RX_BUFFER_SIZE);
+      }
+
+
     uint32_t dma_write_ptr =  (RX_BUFFER_SIZE - rx_huart_->hdmarx->Instance->NDTR) % (RX_BUFFER_SIZE);
     int c = -1;
     if(rd_ptr_ != dma_write_ptr)
@@ -122,13 +131,8 @@ namespace tx
 
   void write(uint8_t * new_data, unsigned int new_size)
   {
-    /* if subscript comes around and get to one in progress_, then wait. */
-    if (subscript_in_progress_ == subscript_to_add_ + 1 || ( subscript_to_add_ == TX_BUFFER_SIZE - 1 && subscript_in_progress_ == 0) )
-      {
-        //TODO: address the overflow
-        while(subscript_in_progress_ == subscript_to_add_ + 1 || ( subscript_to_add_ == TX_BUFFER_SIZE - 1 && subscript_in_progress_ == 0)){}
-      //  return;
-      }
+    /* if subscript comes around and get to one in progress_, skip */
+    if (subscript_in_progress_ == (subscript_to_add_ + 1) % TX_BUFFER_SIZE) return;
 
     tx_buffer_unit_[subscript_to_add_].tx_len_ = new_size;
     memcpy(tx_buffer_unit_[subscript_to_add_].tx_data_, new_data, new_size);
