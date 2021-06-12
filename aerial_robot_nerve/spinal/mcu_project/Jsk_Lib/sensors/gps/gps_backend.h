@@ -17,9 +17,10 @@
 #include "config.h"
 #include <ros.h>
 #include <std_msgs/UInt8.h>
+#include <spinal/Gps.h>
+#include <spinal/GpsFull.h>
 
-#define GPS_RX_SIZE 4 //match the dma rule(circuler mode=> MBurst Value)
-#define RING_BUFFER_SIZE 400
+#define GPS_BUFFER_SIZE 512
 
 using namespace ap;
 
@@ -57,12 +58,12 @@ struct GPS_State {
   float speed_accuracy;
   float horizontal_accuracy;
   float vertical_accuracy;
-  bool have_vertical_velocity:1;      ///< does this GPS give vertical velocity?
-  bool have_speed_accuracy:1;
-  bool have_horizontal_accuracy:1;
-  bool have_vertical_accuracy:1;
+  bool have_vertical_velocity;      ///< does this GPS give vertical velocity? // Note: please do not use ":1" to specify 1 bit, which induces hard fault in RTOS 
+  bool have_speed_accuracy;
+  bool have_horizontal_accuracy;
+  bool have_vertical_accuracy;
   uint32_t last_gps_time_ms;          ///< the system time we got the last GPS timestamp, milliseconds
-  bool mag_valid: 1;
+  bool mag_valid;
   float mag_dec;
 };
 
@@ -78,7 +79,7 @@ class GPS_Backend
 public:
   GPS_Backend():
     gps_config_sub_("gps_config_cmd", &GPS_Backend::gpsConfigCallback, this),
-    update_(false)
+    gps_pub_("gps", &gps_msg_)  // gps_full_pub_("gps_full", &gps_full_msg_)
   {
     state_.status = NO_FIX;
     state_.mag_valid = false;
@@ -88,10 +89,10 @@ public:
 
   virtual void update() = 0;
 
-  GPS_State getGpsState() { return state_; }
-  const Location &location() const { return state_.location; }
-  const Location &location(uint8_t instance) const { return state_.location; }
-  const Vector3f &velocity() const { return state_.velocity; }  // 3D velocity in NED format
+  const GPS_State& getGpsState() { return state_; }
+  const Location& location() const { return state_.location; }
+  const Location& location(uint8_t instance) const { return state_.location; }
+  const Vector3f& velocity() const { return state_.velocity; }  // 3D velocity in NED format
   float ground_speed() const { return state_.ground_speed; }  // ground speed in m/s
   uint32_t ground_speed_cm(void) { return ground_speed() * 100; }   // ground speed in cm/s
   int32_t ground_course_cd() const { return state_.ground_course_cd; }  // ground course in centidegrees
@@ -102,14 +103,6 @@ public:
   bool getMagValid() const { return state_.mag_valid; }
   float getMagDeclination() const { return state_.mag_dec; }
 
-
-  /* UART */
-  UART_HandleTypeDef* getHuart() { return huart_; }
-  /* RX */
-  void startReceive();
-  static uint8_t* getRxBuf();
-
-  /* TX */
   void write(const uint8_t data_byte)
   {
     uint8_t data[1];
@@ -122,23 +115,28 @@ public:
     HAL_UART_Transmit(huart_, (uint8_t *)data_byte, size, 100); //timeout: 100[ms]
   }
 
-  /* flag  */
-  bool getUpdate() { return update_; }
-  void setUpdate(bool update) { update_ = update; }
 
 protected:
 
   UART_HandleTypeDef *huart_;
   ros::NodeHandle* nh_;
   ros::Subscriber<std_msgs::UInt8, GPS_Backend> gps_config_sub_;
+  ros::Publisher gps_pub_;
+  spinal::Gps gps_msg_;
+  // ros::Publisher gps_full_pub_;
+  //spinal::GpsFull gps_full_msg_;
 
   GPS_State state_; ///< public state for this instance
   GPS_timing timing_;
-  bool update_;
 
   void init(UART_HandleTypeDef* huart, ros::NodeHandle* nh);
-
   void gpsConfigCallback(const std_msgs::UInt8& config_msg){}
+
+  virtual void publish();
+  virtual void processMessage() = 0;
+
+  bool available();
+  int read();
 
 };
 

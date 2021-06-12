@@ -222,7 +222,7 @@ static void MX_NVIC_Init(void);
       }
   }
 
-#if 1
+#if 0
   void StartDefaultTask(void const * argument)
   {
     for(;;)
