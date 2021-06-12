@@ -12,6 +12,7 @@
 #include "stm32f7xx_hal.h"
 #include "stm32f7xx_hal_uart.h"
 #include "stm32f7xx_hal_dma.h"
+#include "cmsis_os.h"
 
 #define BUFFER_EMPTY  -1
 #define TX_BUFFER_SIZE 50 // can not be too small, to handle the first void negotiateTopics() process which send the topic information at the same time.
@@ -97,7 +98,7 @@ struct TxBufferUnit{
 
 namespace tx
 {
-  void init(UART_HandleTypeDef *huart);
+  void init(UART_HandleTypeDef *huart, osMutexId *mutex);
   int publish();
   void write(uint8_t * new_data, unsigned int new_size);
 
@@ -111,6 +112,7 @@ namespace tx
 class STMF7Hardware {
 public:
   typedef UART_HandleTypeDef serial_class;
+  typedef osMutexId mutex_class;
 
   STMF7Hardware(){}
 
@@ -124,10 +126,10 @@ public:
     // do nothing
   }
 
-  void init(serial_class* huart)
+  void init(serial_class* huart, mutex_class* mutex = NULL)
   {
-	  rx::init(huart);
-	  tx::init(huart);
+    rx::init(huart);
+    tx::init(huart, mutex);
   }
 
   bool rx_available()

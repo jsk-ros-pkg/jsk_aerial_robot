@@ -125,6 +125,7 @@ ExtraServo extra_servo_;
 // defined in Src/freertos.c
 extern osSemaphoreId CoreProcessSemHandle;
 extern osMailQId canMsgMailHandle;
+extern osMutexId rosPubMutexHandle;
 
 extern "C"
 {
@@ -310,7 +311,7 @@ int main(void)
   MX_NVIC_Init();
   /* USER CODE BEGIN 2 */
   /* ROS Interface between board and PC */
-  nh_.initNode(&huart1);
+  nh_.initNode(&huart1, &rosPubMutexHandle);
 
   /* Flash Memory */
   FlashMemory::init(0x08080000, FLASH_SECTOR_6);

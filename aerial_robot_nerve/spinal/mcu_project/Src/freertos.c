@@ -61,6 +61,7 @@ osThreadId coreProcessHandle;
 osThreadId canRxHandle;
 osThreadId voltageHandle;
 osTimerId CoreTimerHandle;
+osMutexId rosPubMutexHandle;
 osSemaphoreId CoreProcessSemHandle;
 
 /* Private function prototypes -----------------------------------------------*/
@@ -119,6 +120,10 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN Init */
 
   /* USER CODE END Init */
+  /* Create the mutex(es) */
+  /* definition and creation of rosPubMutex */
+  osMutexDef(rosPubMutex);
+  rosPubMutexHandle = osMutexCreate(osMutex(rosPubMutex));
 
   /* USER CODE BEGIN RTOS_MUTEX */
   /* add mutexes, ... */
@@ -164,7 +169,7 @@ void MX_FREERTOS_Init(void) {
   rosPublishHandle = osThreadCreate(osThread(rosPublish), NULL);
 
   /* definition and creation of coreProcess */
-  osThreadDef(coreProcess, coreTask, osPriorityRealtime, 0, 128);
+  osThreadDef(coreProcess, coreTask, osPriorityRealtime, 0, 256);
   coreProcessHandle = osThreadCreate(osThread(coreProcess), NULL);
 
   /* definition and creation of canRx */

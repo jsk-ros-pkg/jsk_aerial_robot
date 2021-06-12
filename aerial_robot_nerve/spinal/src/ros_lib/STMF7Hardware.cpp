@@ -62,6 +62,7 @@ namespace rx
 /* TX */
 namespace
 {
+  osMutexId *mutex_;
   UART_HandleTypeDef *tx_huart_;
   struct TxBufferUnit<TX_BUFFER_WIDTH> tx_buffer_unit_[TX_BUFFER_SIZE];
   uint8_t subscript_in_progress_;
@@ -71,9 +72,11 @@ namespace
 
 namespace tx
 {
-  void init(UART_HandleTypeDef *huart)
+  void init(UART_HandleTypeDef *huart, osMutexId *mutex)
   {
     tx_huart_ = huart;
+    mutex_ = mutex;
+
     idle_flag_ = true;
     subscript_in_progress_ = 0;
     subscript_to_add_ = 0;
@@ -118,8 +121,14 @@ namespace tx
         */
         int status = HAL_UART_Transmit(tx_huart_, tx_buffer_unit_[subscript_in_progress_].tx_data_, tx_buffer_unit_[subscript_in_progress_].tx_len_, 10);
 
+
+        /* mutex to avoid access from task of higher priority running "write" */
+        //if(mutex_ != NULL) osMutexWait(*mutex_, osWaitForever);
+
         subscript_in_progress_++;
         if (subscript_in_progress_ == TX_BUFFER_SIZE) subscript_in_progress_ = 0;
+
+        //if(mutex_ != NULL)  osMutexRelease(*mutex_);
 
         return status;
       }
@@ -131,15 +140,21 @@ namespace tx
 
   void write(uint8_t * new_data, unsigned int new_size)
   {
+    /* mutex to avoid access from task with higher priority to call "write" or "publish" */
+    if(mutex_ != NULL) osMutexWait(*mutex_, osWaitForever);
+
     /* if subscript comes around and get to one in progress_, skip */
-    if (subscript_in_progress_ == (subscript_to_add_ + 1) % TX_BUFFER_SIZE) return;
+    if (subscript_in_progress_ != (subscript_to_add_ + 1) % TX_BUFFER_SIZE)
+      {
+        tx_buffer_unit_[subscript_to_add_].tx_len_ = new_size;
+        memcpy(tx_buffer_unit_[subscript_to_add_].tx_data_, new_data, new_size);
 
-    tx_buffer_unit_[subscript_to_add_].tx_len_ = new_size;
-    memcpy(tx_buffer_unit_[subscript_to_add_].tx_data_, new_data, new_size);
+        subscript_to_add_++;
 
-    subscript_to_add_++;
+        if (subscript_to_add_ == TX_BUFFER_SIZE) subscript_to_add_ = 0;
+      }
 
-    if (subscript_to_add_ == TX_BUFFER_SIZE) subscript_to_add_ = 0;
+    if(mutex_ != NULL) osMutexRelease(*mutex_);
   }
 
 };
