@@ -28,6 +28,8 @@
 #include <Spine/spine.h>
 /* battery status */
 #include "battery_status/battery_status.h"
+/* RTOS */
+#include "cmsis_os.h"
 #endif
 #include "state_estimate/state_estimate.h"
 
@@ -74,7 +76,7 @@ public:
 #ifdef SIMULATION
   void init(ros::NodeHandle* nh, StateEstimate* estimator);
 #else
-  void init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2, StateEstimate* estimator, BatteryStatus* bat, ros::NodeHandle* nh);
+  void init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2, StateEstimate* estimator, BatteryStatus* bat, ros::NodeHandle* nh, osMutexId* mutex = NULL);
 #endif
 
   void baseInit(); // common part in both pc and board
@@ -139,6 +141,7 @@ private:
   void setAttitudeControlCallback(const std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& res) { att_control_flag_ = req.data; }
 
   BatteryStatus* bat_;
+  osMutexId* mutex_;
 #endif
 
   StateEstimate* estimator_;

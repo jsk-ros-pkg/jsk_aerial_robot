@@ -28,7 +28,7 @@ namespace Spine
 
     /* ros */
     constexpr uint8_t SERVO_PUB_INTERVAL = 20; //[ms]
-    constexpr uint8_t SERVO_TORQUE_PUB_INTERVAL = 1000; //[ms]
+    constexpr uint32_t SERVO_TORQUE_PUB_INTERVAL = 1000; //[ms]
     spinal::ServoStates servo_state_msg_;
     spinal::ServoTorqueStates servo_torque_state_msg_;
     ros::Publisher servo_state_pub_("servo/states", &servo_state_msg_);

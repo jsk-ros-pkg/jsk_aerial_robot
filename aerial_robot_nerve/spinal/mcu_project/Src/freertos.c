@@ -62,6 +62,7 @@ osThreadId canRxHandle;
 osThreadId voltageHandle;
 osTimerId CoreTimerHandle;
 osMutexId rosPubMutexHandle;
+osMutexId flightControlMutexHandle;
 osSemaphoreId CoreProcessSemHandle;
 
 /* Private function prototypes -----------------------------------------------*/
@@ -124,6 +125,10 @@ void MX_FREERTOS_Init(void) {
   /* definition and creation of rosPubMutex */
   osMutexDef(rosPubMutex);
   rosPubMutexHandle = osMutexCreate(osMutex(rosPubMutex));
+
+  /* definition and creation of flightControlMutex */
+  osMutexDef(flightControlMutex);
+  flightControlMutexHandle = osMutexCreate(osMutex(flightControlMutex));
 
   /* USER CODE BEGIN RTOS_MUTEX */
   /* add mutexes, ... */

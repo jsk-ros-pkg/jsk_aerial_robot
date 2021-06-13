@@ -126,6 +126,7 @@ ExtraServo extra_servo_;
 extern osSemaphoreId CoreProcessSemHandle;
 extern osMailQId canMsgMailHandle;
 extern osMutexId rosPubMutexHandle;
+extern osMutexId flightControlMutexHandle;
 
 extern "C"
 {
@@ -361,7 +362,7 @@ int main(void)
   /* BATTERY_STATUS */
   battery_status_.init(&hadc2, &nh_);
   /* Start Attitude Control */
-  controller_.init(&htim4, &htim8, &estimator_, &battery_status_, &nh_);
+  controller_.init(&htim4, &htim8, &estimator_, &battery_status_, &nh_, &flightControlMutexHandle);
 
 #if NERVE_COMM
   controller_.setUavModel(Spine::getUavModel());
