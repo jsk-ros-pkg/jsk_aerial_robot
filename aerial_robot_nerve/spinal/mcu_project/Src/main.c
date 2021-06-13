@@ -124,6 +124,7 @@ ExtraServo extra_servo_;
 
 // defined in Src/freertos.c
 extern osSemaphoreId CoreProcessSemHandle;
+extern osSemaphoreId Uart1TxSemHandle;
 extern osMailQId canMsgMailHandle;
 extern osMutexId rosPubMutexHandle;
 extern osMutexId flightControlMutexHandle;
@@ -312,7 +313,7 @@ int main(void)
   MX_NVIC_Init();
   /* USER CODE BEGIN 2 */
   /* ROS Interface between board and PC */
-  nh_.initNode(&huart1, &rosPubMutexHandle);
+  nh_.initNode(&huart1, &rosPubMutexHandle, &Uart1TxSemHandle);
 
   /* Flash Memory */
   FlashMemory::init(0x08080000, FLASH_SECTOR_6);
@@ -471,6 +472,12 @@ static void MX_NVIC_Init(void)
   /* CAN1_RX1_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(CAN1_RX1_IRQn, 6, 0);
   HAL_NVIC_EnableIRQ(CAN1_RX1_IRQn);
+  /* DMA2_Stream7_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA2_Stream7_IRQn, 6, 0);
+  HAL_NVIC_EnableIRQ(DMA2_Stream7_IRQn);
+  /* USART1_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(USART1_IRQn, 6, 0);
+  HAL_NVIC_EnableIRQ(USART1_IRQn);
 }
 
 /* USER CODE BEGIN 4 */

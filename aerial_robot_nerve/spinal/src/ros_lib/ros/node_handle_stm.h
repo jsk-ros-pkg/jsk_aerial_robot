@@ -59,8 +59,10 @@ const int SPIN_UNAVAILABLE = -3;
 	}
 
     /* Start a named seiral port */
-    void initNode(typename Hardware::serial_class* port, typename Hardware::mutex_class* mutex = NULL){
-      parent::hardware_.init(port, mutex);
+    void initNode(typename Hardware::serial_class* port,
+                  typename Hardware::mutex_class* mutex = NULL,
+                  typename Hardware::semaphore_class* semaphore = NULL){
+      parent::hardware_.init(port, mutex, semaphore);
       parent::mode_ = 0;
       parent::bytes_ = 0;
       parent::index_ = 0;

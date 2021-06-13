@@ -8,22 +8,34 @@
 #include "STMF7Hardware.h"
 #include <string.h>
 
-void STMF7Hardware::init(UART_HandleTypeDef *huart, osMutexId *mutex)
+namespace
+{
+  osSemaphoreId *tx_semaphore_;
+};
+
+void txDmaCallback (DMA_HandleTypeDef* hdma);
+
+void STMF7Hardware::init(UART_HandleTypeDef *huart, osMutexId *mutex, osSemaphoreId  *semaphore)
 {
   huart_ = huart;
-
-  /* rx */
   __HAL_UART_DISABLE_IT(huart, UART_IT_PE);
   __HAL_UART_DISABLE_IT(huart, UART_IT_ERR);
+  __HAL_UART_DISABLE_IT(huart, UART_IT_TXE);
+  __HAL_UART_DISABLE_IT(huart, UART_IT_RXNE);
+  __HAL_UART_DISABLE_IT(huart, UART_IT_RTO);
+  __HAL_UART_DISABLE_IT(huart, UART_IT_IDLE);
+
+  /* rx */
   HAL_UART_Receive_DMA(huart, rx_buf_, RX_BUFFER_SIZE);
   memset(rx_buf_, 0, sizeof(rx_buf_));
 
-
   /* tx */
   tx_mutex_ = mutex;
+  tx_semaphore_ = semaphore;
 
   subscript_in_progress_ = 0;
   subscript_to_add_ = 0;
+  tx_idle_ = true;
 
   for(int i = 0; i < TX_BUFFER_SIZE; i++)
     {
@@ -64,22 +76,34 @@ int STMF7Hardware::publish()
 {
   if (subscript_in_progress_ != subscript_to_add_)
     {
-      /*
-        Timeout value of > 1 ms is necessary for the initial pub/sub/srv topic info transmit (check with 2 ms, with max length of 120 (+8))
-        1 ms will induce "Rejecting message on topicId=x, length=xx with bad checksum.", whcih prevent the propoer send of TWO topic info.
+      int status = HAL_OK;
+      if(tx_semaphore_ == NULL)
+        {
+          /*
+            Timeout value of > 1 ms is necessary for the initial pub/sub/srv topic info transmit (check with 2 ms, with max length of 120 (+8))
+            1 ms will induce "Rejecting message on topicId=x, length=xx with bad checksum.", whcih prevent the propoer send of TWO topic info.
 
-        P.S.: 10 ms might be necessary to handle large service response, e.g., spinal/GetBoardInfo for multilinks with more than eight links
+            P.S.: 10 ms might be necessary to handle large service response, e.g., spinal/GetBoardInfo for multilinks with more than eight links
 
-        This occurs for the long topic name and topic types, such as
-        - p_matrix_pseudo_inverse_inertia, type: spinal/PMatrixPseudoInverseWithInertia, length=120
-        - extra_servo_torque_enable, type: spinal/ServoTorqueCmd, length=97
-        - rpy/feedback_state, type: spinal/RollPitchYawTerm, length=92
+            This occurs for the long topic name and topic types, such as
+            - p_matrix_pseudo_inverse_inertia, type: spinal/PMatrixPseudoInverseWithInertia, length=120
+            - extra_servo_torque_enable, type: spinal/ServoTorqueCmd, length=97
+            - rpy/feedback_state, type: spinal/RollPitchYawTerm, length=92
 
-        This Timeout is not HAL_Delay().
-        Please check HAL_UART_Transmit and UART_WaitOnFlagUntilTimeout(huart, UART_FLAG_TXE, RESET, tickstart, Timeout)
-      */
-      int status = HAL_UART_Transmit(huart_, tx_buffer_unit_[subscript_in_progress_].tx_data_, tx_buffer_unit_[subscript_in_progress_].tx_len_, 10);
+            This Timeout is not HAL_Delay().
+            Please check HAL_UART_Transmit and UART_WaitOnFlagUntilTimeout(huart, UART_FLAG_TXE, RESET, tickstart, Timeout)
+          */
+          status = HAL_UART_Transmit(huart_, tx_buffer_unit_[subscript_in_progress_].tx_data_, tx_buffer_unit_[subscript_in_progress_].tx_len_, 10);
+        }
+      else
+        {
+          // use DMA with semaphore
+          if (!tx_idle_) osSemaphoreWait(*tx_semaphore_, osWaitForever);
+          status = HAL_UART_Transmit_DMA(huart_, tx_buffer_unit_[subscript_in_progress_].tx_data_, tx_buffer_unit_[subscript_in_progress_].tx_len_);
+          //__HAL_DMA_DISABLE_IT(huart_->hdmatx, DMA_IT_HT);
 
+          tx_idle_ = false;
+        }
 
       /* mutex to avoid access from task of higher priority running "write" */
       if(tx_mutex_ != NULL) osMutexWait(*tx_mutex_, osWaitForever);
@@ -93,6 +117,7 @@ int STMF7Hardware::publish()
     }
   else
     {
+      tx_idle_ = true;
       return BUFFER_EMPTY;
     }
 }
@@ -139,4 +164,9 @@ void STMF7Hardware::write(uint8_t * new_data, unsigned int new_size)
     }
 
   if(tx_mutex_ != NULL) osMutexRelease(*tx_mutex_);
+}
+
+void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
+{
+  osSemaphoreRelease (*tx_semaphore_);
 }

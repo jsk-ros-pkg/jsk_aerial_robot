@@ -30,6 +30,7 @@ class STMF7Hardware {
 public:
   typedef UART_HandleTypeDef serial_class;
   typedef osMutexId mutex_class;
+  typedef osSemaphoreId semaphore_class;
 
   STMF7Hardware(){}
 
@@ -43,7 +44,7 @@ public:
     // do nothing
   }
 
-  void init(serial_class* huart, mutex_class* mutex = NULL);
+  void init(serial_class* huart, mutex_class* mutex = NULL, osSemaphoreId  *semaphore = NULL);
 
   uint32_t time()
   {
@@ -70,9 +71,8 @@ private:
   struct TxBufferUnit<TX_BUFFER_WIDTH> tx_buffer_unit_[TX_BUFFER_SIZE];
   uint8_t subscript_in_progress_;
   uint8_t subscript_to_add_;
+  bool tx_idle_;
 
 };
-
-
 
 #endif
