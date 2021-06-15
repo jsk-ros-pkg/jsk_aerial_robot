@@ -17,6 +17,7 @@
 #include "flashmemory.h"
 #include "can_core.h"
 #include "Encoder/mag_encoder.h"
+#include "cmsis_os.h"
 
 /* first should set the baudrate to 1000000*/
 /* uncomment following macro, and set the uart baudrate to 57143(M
@@ -262,7 +263,7 @@ public:
     if(byte_to_add_ - byte_in_progress_ >= 0)
       return (byte_to_add_ - byte_in_progress_);
     else 
-      return (byte_to_add_ - (buffer_length_ - byte_in_progress_));
+      return (byte_to_add_ + (buffer_length_ - byte_in_progress_));
   }
 
 private:
@@ -312,7 +313,7 @@ class DynamixelSerial
 public:
   DynamixelSerial(){}
 
-  void init(UART_HandleTypeDef* huart, I2C_HandleTypeDef* hi2c);
+  void init(UART_HandleTypeDef* huart, I2C_HandleTypeDef* hi2c, osMutexId* mutex = NULL);
   void ping();
   void reboot(uint8_t servo_index);
   void setTorque(uint8_t servo_index);
@@ -329,16 +330,15 @@ public:
 
 private:
   UART_HandleTypeDef* huart_; // uart handlercmdReadPresentPosition
+  osMutexId* mutex_; // for UART (RS485) I/O mutex
   MagEncoder encoder_handler_;
-  uint8_t status_packet_instruction_;
   RingBuffer<std::pair<uint8_t, uint8_t>, 64> instruction_buffer_;
   unsigned int servo_num_;
   std::array<ServoData, MAX_SERVO_NUM> servo_;
   uint16_t ttl_rs485_mixed_;
-  uint32_t current_time_;
 
   void transmitInstructionPacket(uint8_t id, uint16_t len, uint8_t instruction, uint8_t* parameters);
-  int8_t readStatusPacket(void);
+  int8_t readStatusPacket(uint8_t status_packet_instruction);
 
   void cmdPing(uint8_t id);
   void cmdReboot(uint8_t id);

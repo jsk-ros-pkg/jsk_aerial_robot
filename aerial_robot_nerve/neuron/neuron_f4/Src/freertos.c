@@ -57,7 +57,9 @@ osThreadId idleTaskHandle;
 osThreadId coreTaskHandle;
 osThreadId canRxTaskHandle;
 osThreadId canTxTaskHandle;
+osThreadId servoTaskHandle;
 osTimerId coreTimerHandle;
+osMutexId servoMutexHandle;
 osSemaphoreId coreTaskSemHandle;
 osSemaphoreId canTxSemHandle;
 
@@ -70,6 +72,7 @@ void idleTaskCallback(void const * argument);
 void coreTaskCallback(void const * argument);
 void canRxCallback(void const * argument);
 void canTxCallback(void const * argument);
+void servoTaskCallback(void const * argument);
 void coreEvokeCallback(void const * argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
@@ -115,6 +118,10 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN Init */
 
   /* USER CODE END Init */
+  /* Create the mutex(es) */
+  /* definition and creation of servoMutex */
+  osMutexDef(servoMutex);
+  servoMutexHandle = osMutexCreate(osMutex(servoMutex));
 
   /* USER CODE BEGIN RTOS_MUTEX */
   /* add mutexes, ... */
@@ -164,8 +171,12 @@ void MX_FREERTOS_Init(void) {
   canRxTaskHandle = osThreadCreate(osThread(canRxTask), NULL);
 
   /* definition and creation of canTxTask */
-  osThreadDef(canTxTask, canTxCallback, osPriorityNormal, 0, 128);
+  osThreadDef(canTxTask, canTxCallback, osPriorityAboveNormal, 0, 128);
   canTxTaskHandle = osThreadCreate(osThread(canTxTask), NULL);
+
+  /* definition and creation of servoTask */
+  osThreadDef(servoTask, servoTaskCallback, osPriorityNormal, 0, 512);
+  servoTaskHandle = osThreadCreate(osThread(servoTask), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -243,6 +254,24 @@ __weak void canTxCallback(void const * argument)
     osDelay(1);
   }
   /* USER CODE END canTxCallback */
+}
+
+/* USER CODE BEGIN Header_servoTaskCallback */
+/**
+* @brief Function implementing the servoTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_servoTaskCallback */
+__weak void servoTaskCallback(void const * argument)
+{
+  /* USER CODE BEGIN servoTaskCallback */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END servoTaskCallback */
 }
 
 /* coreEvokeCallback function */

@@ -59,6 +59,7 @@
 extern osSemaphoreId coreTaskSemHandle;
 extern osSemaphoreId canTxSemHandle;
 extern osMailQId canMsgMailHandle;
+extern osMutexId servoMutexHandle;
 
 bool start_process_flag_ = false;
 bool receive_flag_ = false;
@@ -107,7 +108,6 @@ void coreTaskCallback(void const * argument)
     CANDeviceManager::tick(1);
     motor_.update();
     imu_.update();
-    // servo_.update(); // TODO: move to servoUpdateTask
   }
 }
 
@@ -121,6 +121,15 @@ void canTxCallback(void const * argument)
       servo_.sendData();
       imu_.sendData();
     }
+}
+
+void servoTaskCallback(void const * argument)
+{
+  for(;;)
+  {
+    servo_.update();
+    osDelay(1); // 1ms sleep is OK
+  }
 }
 
 }
@@ -190,10 +199,11 @@ int main(void)
   motor_ = Motor(slave_id);
   imu_ = IMU(slave_id);
   servo_ = Servo(slave_id);
+
   Initializer initializer(slave_id, servo_, imu_);
   motor_.init(&htim1);
   HAL_Delay(300); //wait servo init
-  servo_.init(&huart2, &hi2c1);
+  servo_.init(&huart2, &hi2c1, &servoMutexHandle);
   imu_.init(&hspi1);
   CANDeviceManager::init(&hcan1, slave_id, GPIOC, GPIO_PIN_13);
   CANDeviceManager::addDevice(&motor_);
