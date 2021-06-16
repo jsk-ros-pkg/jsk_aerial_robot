@@ -178,7 +178,7 @@ void MX_FREERTOS_Init(void) {
   coreProcessHandle = osThreadCreate(osThread(coreProcess), NULL);
 
   /* definition and creation of canRx */
-  osThreadDef(canRx, canRxTask, osPriorityRealtime, 0, 128);
+  osThreadDef(canRx, canRxTask, osPriorityRealtime, 0, 256);
   canRxHandle = osThreadCreate(osThread(canRx), NULL);
 
   /* definition and creation of voltage */
