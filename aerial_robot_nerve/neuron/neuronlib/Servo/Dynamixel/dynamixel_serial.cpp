@@ -224,147 +224,145 @@ void DynamixelSerial::update()
 
 
   /* process the instruction from the instruction buffer */
-  while (true) {
-    std::pair<uint8_t, uint8_t> instruction;
-    if(!instruction_buffer_.pop(instruction))
-      break;
-    bool read_status_packet_flag = false;
+  std::pair<uint8_t, uint8_t> instruction;
+  if(!instruction_buffer_.pop(instruction))
+    return;
+  bool read_status_packet_flag = false;
 
-    uint8_t servo_index = instruction.second;
+  uint8_t servo_index = instruction.second;
 
-    if (mutex_ != NULL)  osMutexWait(*mutex_, osWaitForever);
+  if (mutex_ != NULL)  osMutexWait(*mutex_, osWaitForever);
 
-    /* set command */
+  /* set command */
+  switch (instruction.first) {
+  case INST_SET_GOAL_POS: /* send angle command to servo */
+    cmdSyncWriteGoalPosition();
+    break;
+  case INST_SET_TORQUE: /* send torque enable flag */
+    cmdWriteTorqueEnable(servo_index);
+    break;
+  case INST_SET_HOMING_OFFSET:
+    cmdWriteHomingOffset(servo_index);
+    break;
+  case INST_SET_POSITION_GAINS:
+    cmdWritePositionGains(servo_index);
+    break;
+  case INST_SET_CURRENT_LIMIT:
+    cmdWriteCurrentLimit(servo_index);
+    break;
+  case INST_SET_PROFILE_VELOCITY:
+    cmdWriteProfileVelocity(servo_index);
+    break;
+  default:
+    break;
+  }
+
+  /* get command */
+  if (ttl_rs485_mixed_ != 0) {
     switch (instruction.first) {
-    case INST_SET_GOAL_POS: /* send angle command to servo */
-      cmdSyncWriteGoalPosition();
+    case INST_GET_PRESENT_POS: /* read servo position(angle) */
+      if(!servo_[servo_index].send_data_flag_ && !servo_[servo_index].first_get_pos_flag_) break;
+      cmdReadPresentPosition(servo_index);
+      readStatusPacket(instruction.first);
       break;
-    case INST_SET_TORQUE: /* send torque enable flag */
-      cmdWriteTorqueEnable(servo_index);
+    case INST_GET_PRESENT_CURRENT: /* read servo load */
+      if(!servo_[servo_index].send_data_flag_) break;
+      cmdReadPresentCurrent(servo_index);
+      readStatusPacket(instruction.first);
       break;
-    case INST_SET_HOMING_OFFSET:
-      cmdWriteHomingOffset(servo_index);
+    case INST_GET_PRESENT_TEMPERATURE: /* read servo temp */
+      if(!servo_[servo_index].send_data_flag_) break;
+      cmdReadPresentTemperature(servo_index);
+      readStatusPacket(instruction.first);
       break;
-    case INST_SET_POSITION_GAINS:
-      cmdWritePositionGains(servo_index);
+    case INST_GET_PRESENT_MOVING: /* read servo movement */
+      if(!servo_[servo_index].send_data_flag_) break;
+      cmdReadMoving(servo_index);
+      readStatusPacket(instruction.first);
       break;
-    case INST_SET_CURRENT_LIMIT:
-      cmdWriteCurrentLimit(servo_index);
+    case INST_GET_HARDWARE_ERROR_STATUS:
+      if(!servo_[servo_index].send_data_flag_) break;
+      cmdReadHardwareErrorStatus(servo_index);
+      readStatusPacket(instruction.first);
       break;
-    case INST_SET_PROFILE_VELOCITY:
-      cmdWriteProfileVelocity(servo_index);
+    case INST_GET_HOMING_OFFSET:
+      for (unsigned int i = 0; i < servo_num_; ++i) {
+        cmdReadHomingOffset(i);
+        readStatusPacket(instruction.first);
+      }
+      break;
+    case INST_GET_POSITION_GAINS:
+      for (unsigned int i = 0; i < servo_num_; ++i) {
+        cmdReadPositionGains(i);
+        readStatusPacket(instruction.first);
+      }
+      break;
+    case INST_GET_PROFILE_VELOCITY:
+      for (unsigned int i = 0; i < servo_num_; ++i) {
+        cmdReadProfileVelocity(i);
+        readStatusPacket(instruction.first);
+      }
+      break;
+    case INST_GET_CURRENT_LIMIT:
+      for (unsigned int i = 0; i < servo_num_; ++i) {
+        cmdReadCurrentLimit(i);
+        readStatusPacket(instruction.first);
+      }
       break;
     default:
       break;
     }
-
-    /* get command */
-    if (ttl_rs485_mixed_ != 0) {
-      switch (instruction.first) {
-      case INST_GET_PRESENT_POS: /* read servo position(angle) */
-        if(!servo_[servo_index].send_data_flag_ && !servo_[servo_index].first_get_pos_flag_) break;
-        cmdReadPresentPosition(servo_index);
+  } else {
+    switch (instruction.first) {
+    case INST_GET_PRESENT_POS: /* read servo position(angle) */
+      cmdSyncReadPresentPosition(false);
+      read_status_packet_flag = true;
+      break;
+    case INST_GET_PRESENT_CURRENT: /* read servo load */
+      cmdSyncReadPresentCurrent(false);
+      read_status_packet_flag = true;
+      break;
+    case INST_GET_PRESENT_TEMPERATURE: /* read servo temp */
+      cmdSyncReadPresentTemperature(false);
+      read_status_packet_flag = true;
+      break;
+    case INST_GET_PRESENT_MOVING: /* read servo movement */
+      cmdSyncReadMoving(false);
+      read_status_packet_flag = true;
+      break;
+    case INST_GET_HARDWARE_ERROR_STATUS:
+      cmdSyncReadHardwareErrorStatus(false);
+      read_status_packet_flag = true;
+      break;
+    case INST_GET_HOMING_OFFSET:
+      cmdSyncReadHomingOffset(false);
+      read_status_packet_flag = true;
+      break;
+    case INST_GET_POSITION_GAINS:
+      cmdSyncReadPositionGains(false);
+      read_status_packet_flag = true;
+      break;
+    case INST_GET_PROFILE_VELOCITY:
+      cmdSyncReadProfileVelocity(false);
+      read_status_packet_flag = true;
+      break;
+    case INST_GET_CURRENT_LIMIT:
+      cmdSyncReadCurrentLimit(false);
+      read_status_packet_flag = true;
+      break;
+    default:
+      break;
+    }
+    /* receive data process */
+    if(read_status_packet_flag) {
+      for (unsigned int i = 0; i < servo_num_; i++) {
+        if(!servo_[i].send_data_flag_ && !servo_[i].first_get_pos_flag_) continue;
         readStatusPacket(instruction.first);
-        break;
-      case INST_GET_PRESENT_CURRENT: /* read servo load */
-        if(!servo_[servo_index].send_data_flag_) break;
-        cmdReadPresentCurrent(servo_index);
-        readStatusPacket(instruction.first);
-        break;
-      case INST_GET_PRESENT_TEMPERATURE: /* read servo temp */
-        if(!servo_[servo_index].send_data_flag_) break;
-        cmdReadPresentTemperature(servo_index);
-        readStatusPacket(instruction.first);
-        break;
-      case INST_GET_PRESENT_MOVING: /* read servo movement */
-        if(!servo_[servo_index].send_data_flag_) break;
-        cmdReadMoving(servo_index);
-        readStatusPacket(instruction.first);
-        break;
-      case INST_GET_HARDWARE_ERROR_STATUS:
-        if(!servo_[servo_index].send_data_flag_) break;
-        cmdReadHardwareErrorStatus(servo_index);
-        readStatusPacket(instruction.first);
-        break;
-      case INST_GET_HOMING_OFFSET:
-        for (unsigned int i = 0; i < servo_num_; ++i) {
-          cmdReadHomingOffset(i);
-          readStatusPacket(instruction.first);
-        }
-        break;
-      case INST_GET_POSITION_GAINS:
-        for (unsigned int i = 0; i < servo_num_; ++i) {
-          cmdReadPositionGains(i);
-          readStatusPacket(instruction.first);
-        }
-        break;
-      case INST_GET_PROFILE_VELOCITY:
-        for (unsigned int i = 0; i < servo_num_; ++i) {
-          cmdReadProfileVelocity(i);
-          readStatusPacket(instruction.first);
-        }
-        break;
-      case INST_GET_CURRENT_LIMIT:
-        for (unsigned int i = 0; i < servo_num_; ++i) {
-          cmdReadCurrentLimit(i);
-          readStatusPacket(instruction.first);
-        }
-        break;
-      default:
-        break;
-      }
-    } else {
-      switch (instruction.first) {
-      case INST_GET_PRESENT_POS: /* read servo position(angle) */
-        cmdSyncReadPresentPosition(false);
-        read_status_packet_flag = true;
-        break;
-      case INST_GET_PRESENT_CURRENT: /* read servo load */
-        cmdSyncReadPresentCurrent(false);
-        read_status_packet_flag = true;
-        break;
-      case INST_GET_PRESENT_TEMPERATURE: /* read servo temp */
-        cmdSyncReadPresentTemperature(false);
-        read_status_packet_flag = true;
-        break;
-      case INST_GET_PRESENT_MOVING: /* read servo movement */
-        cmdSyncReadMoving(false);
-        read_status_packet_flag = true;
-        break;
-      case INST_GET_HARDWARE_ERROR_STATUS:
-        cmdSyncReadHardwareErrorStatus(false);
-        read_status_packet_flag = true;
-        break;
-      case INST_GET_HOMING_OFFSET:
-        cmdSyncReadHomingOffset(false);
-        read_status_packet_flag = true;
-        break;
-      case INST_GET_POSITION_GAINS:
-        cmdSyncReadPositionGains(false);
-        read_status_packet_flag = true;
-        break;
-      case INST_GET_PROFILE_VELOCITY:
-        cmdSyncReadProfileVelocity(false);
-        read_status_packet_flag = true;
-        break;
-      case INST_GET_CURRENT_LIMIT:
-        cmdSyncReadCurrentLimit(false);
-        read_status_packet_flag = true;
-        break;
-      default:
-        break;
-      }
-      /* receive data process */
-      if(read_status_packet_flag) {
-        for (unsigned int i = 0; i < servo_num_; i++) {
-          if(!servo_[i].send_data_flag_ && !servo_[i].first_get_pos_flag_) continue;
-          readStatusPacket(instruction.first);
-        }
       }
     }
-
-    if (mutex_ != NULL) osMutexRelease(*mutex_);
   }
+
+  if (mutex_ != NULL) osMutexRelease(*mutex_);
 }
 
 /* Transmit instruction packet to Dynamixel */
@@ -445,7 +443,14 @@ int8_t DynamixelSerial::readStatusPacket(uint8_t status_packet_instruction)
 
 	while(!read_end_flag) {
 		HAL_StatusTypeDef receive_status = HAL_UART_Receive(huart_, &rx_data, 1, 1);
-		if(receive_status == HAL_TIMEOUT) return -1;
+		if(receive_status == HAL_TIMEOUT)
+                  {
+                    __HAL_UART_CLEAR_FLAG(huart_, UART_FLAG_RXNE);
+                    __HAL_UART_CLEAR_PEFLAG(huart_);
+                    __HAL_UART_CLEAR_OREFLAG(huart_);
+                    __HAL_UART_CLEAR_FEFLAG(huart_);
+                    return -1;
+                  }
 
 		switch (status_stage) {
 		case READ_HEADER0:
@@ -551,6 +556,12 @@ int8_t DynamixelSerial::readStatusPacket(uint8_t status_packet_instruction)
 	}
 
 	auto s = std::find(servo_.begin(), servo_.end(), ServoData(servo_id));
+
+        /* clear UART RX */
+        __HAL_UART_CLEAR_FLAG(huart_, UART_FLAG_RXNE);
+        __HAL_UART_CLEAR_PEFLAG(huart_);
+        __HAL_UART_CLEAR_OREFLAG(huart_);
+        __HAL_UART_CLEAR_FEFLAG(huart_);
 
 	/* read success */
 	switch (status_packet_instruction) {

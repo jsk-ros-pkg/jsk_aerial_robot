@@ -210,6 +210,7 @@ int main(void)
   CANDeviceManager::addDevice(&imu_);
   CANDeviceManager::addDevice(&servo_);
   CANDeviceManager::addDevice(&initializer);
+  CANDeviceManager::useRTOS(&canMsgMailHandle);
 
   start_process_flag_ = true;
 
