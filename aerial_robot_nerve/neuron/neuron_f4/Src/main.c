@@ -189,9 +189,17 @@ int main(void)
   MX_NVIC_Init();
   /* USER CODE BEGIN 2 */
   Flashmemory::init(0x08160000, FLASH_SECTOR_15); //64th page
-  uint16_t slave_id;
+  uint16_t slave_id = 0;
   Flashmemory::addValue(&slave_id, 2);
-  Flashmemory::read();
+  /* workaround to definitely read the value for salve_id from flashmemory, because some problem in RTOS system in init system (because of std::vector?) */
+  int cnt = 10; // In fact, only need twice, 10 times is just in case.
+  while(cnt > 0)
+    {
+      HAL_StatusTypeDef status = Flashmemory::read();
+      if(status == HAL_OK) break;
+      cnt --;
+    }
+
   if (slave_id == 0 || slave_id > 14) {
     slave_id = 1;
     Flashmemory::erase();
