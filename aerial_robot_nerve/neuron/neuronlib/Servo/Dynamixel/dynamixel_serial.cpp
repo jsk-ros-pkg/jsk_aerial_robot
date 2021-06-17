@@ -7,6 +7,13 @@ void DynamixelSerial::init(UART_HandleTypeDef* huart, I2C_HandleTypeDef* hi2c, o
         mutex_ = mutex;
 	servo_num_ = 0;
 
+        /* rx */
+        __HAL_UART_DISABLE_IT(huart, UART_IT_PE);
+        __HAL_UART_DISABLE_IT(huart, UART_IT_ERR);
+        HAL_UART_Receive_DMA(huart, rx_buf_, RX_BUFFER_SIZE);
+        rd_ptr_ = 0;
+        memset(rx_buf_, 0, sizeof(rx_buf_));
+
 	std::fill(servo_.begin(), servo_.end(), ServoData(255));
 
 	//initialize servo motors
@@ -442,13 +449,9 @@ int8_t DynamixelSerial::readStatusPacket(uint8_t status_packet_instruction)
 	uint8_t servo_id;
 
 	while(!read_end_flag) {
-		HAL_StatusTypeDef receive_status = HAL_UART_Receive(huart_, &rx_data, 1, 1);
+		HAL_StatusTypeDef receive_status = read(&rx_data, 1);
 		if(receive_status == HAL_TIMEOUT)
                   {
-                    __HAL_UART_CLEAR_FLAG(huart_, UART_FLAG_RXNE);
-                    __HAL_UART_CLEAR_PEFLAG(huart_);
-                    __HAL_UART_CLEAR_OREFLAG(huart_);
-                    __HAL_UART_CLEAR_FEFLAG(huart_);
                     return -1;
                   }
 
@@ -1034,3 +1037,36 @@ uint16_t DynamixelSerial::calcCRC16(uint16_t crc_accum, uint8_t *data_blk_ptr, i
 	}
 	return crc_accum;
 }
+
+HAL_StatusTypeDef DynamixelSerial::read(uint8_t* data,  uint32_t timeout)
+{
+  /* handle RX Overrun Error */
+  if ( __HAL_UART_GET_FLAG(huart_, UART_FLAG_ORE) )
+    {
+      __HAL_UART_CLEAR_FLAG(huart_, UART_FLAG_RXNE);
+      __HAL_UART_CLEAR_PEFLAG(huart_);
+      __HAL_UART_CLEAR_OREFLAG(huart_);
+      __HAL_UART_CLEAR_FEFLAG(huart_);
+
+      HAL_UART_Receive_DMA(huart_, rx_buf_, RX_BUFFER_SIZE);
+    }
+
+  uint32_t tick_start = HAL_GetTick();
+
+  while (true)
+    {
+      uint32_t dma_write_ptr =  (RX_BUFFER_SIZE - huart_->hdmarx->Instance->NDTR) % (RX_BUFFER_SIZE);
+      if(rd_ptr_ != dma_write_ptr)
+        {
+          *data = (int)rx_buf_[rd_ptr_++];
+          rd_ptr_ %= RX_BUFFER_SIZE;
+          return HAL_OK;
+        }
+
+      if (((HAL_GetTick() - tick_start) > timeout) || (timeout == 0U))
+        {
+          return HAL_TIMEOUT;
+        }
+    }
+}
+
