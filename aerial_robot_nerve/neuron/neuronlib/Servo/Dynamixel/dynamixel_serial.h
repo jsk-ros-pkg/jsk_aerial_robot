@@ -302,6 +302,7 @@ public:
 	bool led_;
 	bool torque_enable_;
 	bool first_get_pos_flag_;
+
 	int32_t getNewHomingOffset() const {return calib_value_ + homing_offset_ - present_position_;}
 	void setPresentPosition(int32_t present_position) {present_position_ = present_position + internal_offset_;}
 	int32_t getPresentPosition() const {return present_position_;}
@@ -340,6 +341,12 @@ private:
   unsigned int servo_num_;
   std::array<ServoData, MAX_SERVO_NUM> servo_;
   uint16_t ttl_rs485_mixed_;
+  uint32_t set_pos_tick_;
+  uint32_t get_pos_tick_;
+  uint32_t get_load_tick_;
+  uint32_t get_temp_tick_;
+  uint32_t get_move_tick_;
+  uint32_t get_error_tick_;
 
   /* uart rx */
   uint8_t rx_buf_[RX_BUFFER_SIZE];
