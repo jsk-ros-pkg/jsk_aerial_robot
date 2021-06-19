@@ -603,7 +603,7 @@ int8_t DynamixelSerial::readStatusPacket(uint8_t status_packet_instruction)
 	{
 		int32_t present_position = ((parameters[3] << 24) & 0xFF000000) | ((parameters[2] << 16) & 0xFF0000) | ((parameters[1] << 8) & 0xFF00) | (parameters[0] & 0xFF);
 		if (s != servo_.end()) {
-                  s->hardware_error_status_ &= (1 << ENCODER_CONNECT_ERROR - 1); // &= 0b01111111
+                  s->hardware_error_status_ &= ((1 << ENCODER_CONNECT_ERROR) - 1); // &= 0b01111111
                   if(s->external_encoder_flag_) {
                     encoder_handler_.update();
                     if(encoder_handler_.connected()) {
