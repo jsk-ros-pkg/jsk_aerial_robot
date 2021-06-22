@@ -112,6 +112,8 @@ ros::Publisher test_pub_("/imu", &imu_msg_);
 ros::Publisher test_pub2_("/test_pub1", &test_msg_);
 ros::Publisher test_pub3_("/test_pub2", &test_msg_);
 
+uint32_t servo_msg_cnt = 0;
+uint32_t max_cnt_diff = 0;
 uint32_t servo_msg_recv_t = 0;
 uint32_t servo_msg_echo_t = 0;
 uint32_t max_du = 0;
@@ -154,15 +156,21 @@ void testCallback(const std_msgs::Empty& msg)
 
 void test2Callback(const spinal::ServoControlCmd& msg)
 {
-  if(HAL_GetTick() - servo_msg_recv_t > 2000) // 2000 ms
+  uint32_t cnt = (uint32_t)msg.index[0] + ((uint32_t)msg.index[1] << 8) + ((uint32_t)msg.index[2] << 16) + ((uint32_t)msg.index[3] << 24);
+
+  if( abs((int32_t)servo_msg_cnt - (int32_t)cnt) > 100) // 100 topics
     {
       // reset
       servo_msg_recv_t = 0;
       servo_msg_echo_t = 0;
+      servo_msg_cnt = cnt;
 
       max_du = 0;
       min_du = 1e6;
+
+      max_cnt_diff = 0;
     }
+
   if(servo_msg_recv_t == 0)
     {
       servo_msg_recv_t = HAL_GetTick();
@@ -174,16 +182,18 @@ void test2Callback(const spinal::ServoControlCmd& msg)
       if(max_du < du) max_du = du;
       if(min_du > du) min_du = du;
 
+      uint32_t cnt_diff = cnt - servo_msg_cnt;
+      if(max_cnt_diff < cnt_diff) max_cnt_diff = cnt_diff;
+
       if (HAL_GetTick() - servo_msg_echo_t > 1000) // 1000 ms
         {
           char buffer[50];
-          sprintf (buffer, "%d, %d, %d", du, max_du, min_du);
+          sprintf (buffer, "%d, %d, %d, %d, %d", du, max_du, min_du, cnt_diff, max_cnt_diff);
           nh_.logerror(buffer);
-          //std::string message = std::to_string(du) + std::string(", ") + std::to_string(max_du) + std::string(", ") + std::to_string(min_du);
-          //nh_.logerror(message.c_str());
           servo_msg_echo_t = HAL_GetTick();
         }
       servo_msg_recv_t = HAL_GetTick();
+      servo_msg_cnt= cnt;
     }
 }
 
@@ -267,8 +277,6 @@ int main(void)
   while (1)
     {
       HAL_IWDG_Refresh(&hiwdg1);
-
-     MX_LWIP_Process();
 
 #if LWIP_NETIF_LINK_CALLBACK
       Ethernet_Link_Periodic_Handle(&gnetif);

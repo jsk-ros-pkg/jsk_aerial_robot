@@ -20,7 +20,15 @@ joint_msg.angles = [1] * joint_num
 
 loop_rate = rospy.Rate(rate)
 
+cnt = 0
+
+time.sleep(1.0)
+
 while not rospy.is_shutdown():
+
+    for i in range(4):
+        joint_msg.index[i] = (cnt >> (8 * i)) & 0xff
     pub.publish(joint_msg)
     loop_rate.sleep()
+    cnt +=1
 
