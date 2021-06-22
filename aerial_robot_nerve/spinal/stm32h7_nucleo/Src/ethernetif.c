@@ -6,41 +6,41 @@
   ******************************************************************************
   * This notice applies to any and all portions of this file
   * that are not between comment pairs USER CODE BEGIN and
-  * USER CODE END. Other portions of this file, whether 
+  * USER CODE END. Other portions of this file, whether
   * inserted by the user or by software development tools
   * are owned by their respective copyright owners.
   *
-  * Copyright (c) 2019 STMicroelectronics International N.V. 
+  * Copyright (c) 2021 STMicroelectronics International N.V.
   * All rights reserved.
   *
-  * Redistribution and use in source and binary forms, with or without 
+  * Redistribution and use in source and binary forms, with or without
   * modification, are permitted, provided that the following conditions are met:
   *
-  * 1. Redistribution of source code must retain the above copyright notice, 
+  * 1. Redistribution of source code must retain the above copyright notice,
   *    this list of conditions and the following disclaimer.
   * 2. Redistributions in binary form must reproduce the above copyright notice,
   *    this list of conditions and the following disclaimer in the documentation
   *    and/or other materials provided with the distribution.
-  * 3. Neither the name of STMicroelectronics nor the names of other 
-  *    contributors to this software may be used to endorse or promote products 
+  * 3. Neither the name of STMicroelectronics nor the names of other
+  *    contributors to this software may be used to endorse or promote products
   *    derived from this software without specific written permission.
-  * 4. This software, including modifications and/or derivative works of this 
+  * 4. This software, including modifications and/or derivative works of this
   *    software, must execute solely and exclusively on microcontroller or
   *    microprocessor devices manufactured by or for STMicroelectronics.
-  * 5. Redistribution and use of this software other than as permitted under 
-  *    this license is void and will automatically terminate your rights under 
-  *    this license. 
+  * 5. Redistribution and use of this software other than as permitted under
+  *    this license is void and will automatically terminate your rights under
+  *    this license.
   *
-  * THIS SOFTWARE IS PROVIDED BY STMICROELECTRONICS AND CONTRIBUTORS "AS IS" 
-  * AND ANY EXPRESS, IMPLIED OR STATUTORY WARRANTIES, INCLUDING, BUT NOT 
-  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A 
+  * THIS SOFTWARE IS PROVIDED BY STMICROELECTRONICS AND CONTRIBUTORS "AS IS"
+  * AND ANY EXPRESS, IMPLIED OR STATUTORY WARRANTIES, INCLUDING, BUT NOT
+  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
   * PARTICULAR PURPOSE AND NON-INFRINGEMENT OF THIRD PARTY INTELLECTUAL PROPERTY
-  * RIGHTS ARE DISCLAIMED TO THE FULLEST EXTENT PERMITTED BY LAW. IN NO EVENT 
+  * RIGHTS ARE DISCLAIMED TO THE FULLEST EXTENT PERMITTED BY LAW. IN NO EVENT
   * SHALL STMICROELECTRONICS OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
   * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-  * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, 
-  * OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF 
-  * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING 
+  * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA,
+  * OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+  * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
   * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
   * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   *
@@ -76,18 +76,18 @@
 /* USER CODE END 1 */
 
 /* Private variables ---------------------------------------------------------*/
-/* 
+/*
 @Note: This interface is implemented to operate in zero-copy mode only:
         - Rx buffers are allocated statically and passed directly to the LwIP stack
           they will return back to DMA after been processed by the stack.
-        - Tx Buffers will be allocated from LwIP stack memory heap, 
+        - Tx Buffers will be allocated from LwIP stack memory heap,
           then passed to ETH HAL driver.
 
-@Notes: 
-  1.a. ETH DMA Rx descriptors must be contiguous, the default count is 4, 
+@Notes:
+  1.a. ETH DMA Rx descriptors must be contiguous, the default count is 4,
        to customize it please redefine ETH_RX_DESC_CNT in ETH GUI (Rx Descriptor Length)
        so that updated value will be generated in stm32xxxx_hal_conf.h
-  1.b. ETH DMA Tx descriptors must be contiguous, the default count is 4, 
+  1.b. ETH DMA Tx descriptors must be contiguous, the default count is 4,
        to customize it please redefine ETH_TX_DESC_CNT in ETH GUI (Tx Descriptor Length)
        so that updated value will be generated in stm32xxxx_hal_conf.h
 
@@ -111,7 +111,7 @@ __attribute__((at(0x30040000))) ETH_DMADescTypeDef  DMARxDscrTab[ETH_RX_DESC_CNT
 __attribute__((at(0x30040060))) ETH_DMADescTypeDef  DMATxDscrTab[ETH_TX_DESC_CNT]; /* Ethernet Tx DMA Descriptors */
 __attribute__((at(0x30040200))) uint8_t Rx_Buff[ETH_RX_DESC_CNT][ETH_MAX_PACKET_SIZE]; /* Ethernet Receive Buffer */
 
-#elif defined ( __GNUC__ ) /* GNU Compiler */ 
+#elif defined ( __GNUC__ ) /* GNU Compiler */
 
 ETH_DMADescTypeDef DMARxDscrTab[ETH_RX_DESC_CNT] __attribute__((section(".RxDecripSection"))); /* Ethernet Rx DMA Descriptors */
 ETH_DMADescTypeDef DMATxDscrTab[ETH_TX_DESC_CNT] __attribute__((section(".TxDecripSection")));   /* Ethernet Tx DMA Descriptors */
@@ -158,15 +158,14 @@ void HAL_ETH_MspInit(ETH_HandleTypeDef* ethHandle)
   if(ethHandle->Instance==ETH)
   {
   /* USER CODE BEGIN ETH_MspInit 0 */
-		dmc_puts("HAL_ETH_MspInit\n");
 
   /* USER CODE END ETH_MspInit 0 */
     /* Enable Peripheral clock */
     __HAL_RCC_ETH1MAC_CLK_ENABLE();
     __HAL_RCC_ETH1TX_CLK_ENABLE();
     __HAL_RCC_ETH1RX_CLK_ENABLE();
-  
-    /**ETH GPIO Configuration    
+
+    /**ETH GPIO Configuration
     PC1     ------> ETH_MDC
     PA1     ------> ETH_REF_CLK
     PA2     ------> ETH_MDIO
@@ -175,7 +174,7 @@ void HAL_ETH_MspInit(ETH_HandleTypeDef* ethHandle)
     PC5     ------> ETH_RXD1
     PB13     ------> ETH_TXD1
     PG11     ------> ETH_TX_EN
-    PG13     ------> ETH_TXD0 
+    PG13     ------> ETH_TXD0
     */
     GPIO_InitStruct.Pin = RMII_MDC_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
@@ -228,15 +227,14 @@ void HAL_ETH_MspDeInit(ETH_HandleTypeDef* ethHandle)
   if(ethHandle->Instance==ETH)
   {
   /* USER CODE BEGIN ETH_MspDeInit 0 */
-		dmc_puts("HAL_ETH_MspDeInit\n");
 
   /* USER CODE END ETH_MspDeInit 0 */
     /* Disable Peripheral clock */
     __HAL_RCC_ETH1MAC_CLK_DISABLE();
     __HAL_RCC_ETH1TX_CLK_DISABLE();
     __HAL_RCC_ETH1RX_CLK_DISABLE();
-  
-    /**ETH GPIO Configuration    
+
+    /**ETH GPIO Configuration
     PC1     ------> ETH_MDC
     PA1     ------> ETH_REF_CLK
     PA2     ------> ETH_MDIO
@@ -245,7 +243,7 @@ void HAL_ETH_MspDeInit(ETH_HandleTypeDef* ethHandle)
     PC5     ------> ETH_RXD1
     PB13     ------> ETH_TXD1
     PG11     ------> ETH_TX_EN
-    PG13     ------> ETH_TXD0 
+    PG13     ------> ETH_TXD0
     */
     HAL_GPIO_DeInit(GPIOC, RMII_MDC_Pin|RMII_RXD0_Pin|RMII_RXD1_Pin);
 
@@ -271,7 +269,7 @@ void HAL_ETH_MspDeInit(ETH_HandleTypeDef* ethHandle)
 /* USER CODE END 4 */
 
 /*******************************************************************************
-                       LL Driver Interface ( LwIP stack --> ETH) 
+                       LL Driver Interface ( LwIP stack --> ETH)
 *******************************************************************************/
 /**
  * @brief In this function, the hardware should be initialized.
@@ -281,10 +279,10 @@ void HAL_ETH_MspDeInit(ETH_HandleTypeDef* ethHandle)
  *        for this ethernetif
  */
 static void low_level_init(struct netif *netif)
-{ 
+{
   uint32_t idx = 0;
   HAL_StatusTypeDef hal_eth_init_status;
-  
+
   /* Init ETH */
 
    uint8_t MACAddr[6] ;
@@ -315,17 +313,16 @@ static void low_level_init(struct netif *netif)
   for(idx = 0; idx < ETH_RX_DESC_CNT; idx ++)
   {
     HAL_ETH_DescAssignMemory(&heth, idx, Rx_Buff[idx], NULL);
-    
+
     /* Set Custom pbuf free function */
     rx_pbuf[idx].custom_free_function = pbuf_free_custom;
   }
-  
- 
-#if LWIP_ARP || LWIP_ETHERNET 
+
+#if LWIP_ARP || LWIP_ETHERNET
 
   /* set MAC hardware address length */
   netif->hwaddr_len = ETH_HWADDR_LEN;
-  
+
   /* set MAC hardware address */
   netif->hwaddr[0] =  heth.Init.MACAddr[0];
   netif->hwaddr[1] =  heth.Init.MACAddr[1];
@@ -333,20 +330,19 @@ static void low_level_init(struct netif *netif)
   netif->hwaddr[3] =  heth.Init.MACAddr[3];
   netif->hwaddr[4] =  heth.Init.MACAddr[4];
   netif->hwaddr[5] =  heth.Init.MACAddr[5];
-  
+
   /* maximum transfer unit */
   netif->mtu = 1500;
-  
+
   /* Accept broadcast address and ARP traffic */
   /* don't set NETIF_FLAG_ETHARP if this device is not an ethernet one */
   #if LWIP_ARP
     netif->flags |= NETIF_FLAG_BROADCAST | NETIF_FLAG_ETHARP;
-  #else 
+  #else
     netif->flags |= NETIF_FLAG_BROADCAST;
   #endif /* LWIP_ARP */
-  
 
-/* USER CODE BEGIN PHY_PRE_CONFIG */ 
+/* USER CODE BEGIN PHY_PRE_CONFIG */
   ETH_MACConfigTypeDef MACConf;
   HAL_ETH_GetMACConfig(&heth, &MACConf);
   MACConf.DuplexMode = ETH_FULLDUPLEX_MODE;
@@ -354,7 +350,7 @@ static void low_level_init(struct netif *netif)
   HAL_ETH_SetMACConfig(&heth, &MACConf);
     
 /* USER CODE END PHY_PRE_CONFIG */
-  
+
   /* Set PHY IO functions */
   LAN8742_RegisterBusIO(&LAN8742, &LAN8742_IOCtx);
 
@@ -362,23 +358,23 @@ static void low_level_init(struct netif *netif)
   LAN8742_Init(&LAN8742);
 
   if (hal_eth_init_status == HAL_OK)
-  {    
+  {
     netif_set_up(netif);
     netif_set_link_up(netif);
     HAL_ETH_Start(&heth);
   }
-  else 
+  else
   {
     Error_Handler();
   }
 
-/* USER CODE BEGIN PHY_POST_CONFIG */ 
+/* USER CODE BEGIN PHY_POST_CONFIG */
     
 /* USER CODE END PHY_POST_CONFIG */
 
 #endif /* LWIP_ARP || LWIP_ETHERNET */
 
-/* USER CODE BEGIN LOW_LEVEL_INIT */ 
+/* USER CODE BEGIN LOW_LEVEL_INIT */
     
 /* USER CODE END LOW_LEVEL_INIT */
 }
@@ -405,37 +401,37 @@ static err_t low_level_output(struct netif *netif, struct pbuf *p)
   struct pbuf *q;
   err_t errval = ERR_OK;
   ETH_BufferTypeDef Txbuffer[ETH_TX_DESC_CNT];
-  
+
   for(q = p; q != NULL; q = q->next)
   {
-    if(i >= ETH_TX_DESC_CNT)	
+    if(i >= ETH_TX_DESC_CNT)
       return ERR_IF;
-    
+
     Txbuffer[i].buffer = q->payload;
     Txbuffer[i].len = q->len;
     framelen += q->len;
-    
+
     if(i>0)
     {
       Txbuffer[i-1].next = &Txbuffer[i];
     }
-    
+
     if(q->next == NULL)
     {
       Txbuffer[i].next = NULL;
     }
-    
+
     i++;
   }
 
   TxConfig.Length = framelen;
   TxConfig.TxBuffer = Txbuffer;
-  
+
   /* Clean and Invalidate data cache */
   SCB_CleanInvalidateDCache();
-  
+
   HAL_ETH_Transmit(&heth, &TxConfig, 0);
-  
+
   return errval;
 }
 
@@ -452,18 +448,17 @@ static struct pbuf * low_level_input(struct netif *netif)
   struct pbuf *p = NULL;
   ETH_BufferTypeDef RxBuff;
   uint32_t framelength = 0;
-  
-  
+
   if (HAL_ETH_IsRxDataAvailable(&heth))
   {
     /* Clean and Invalidate data cache */
     SCB_CleanInvalidateDCache();
-  
+
     HAL_ETH_GetRxDataBuffer(&heth, &RxBuff);
     HAL_ETH_GetRxDataLength(&heth, &framelength);
-    
+
     p = pbuf_alloced_custom(PBUF_RAW, framelength, PBUF_POOL, &rx_pbuf[current_pbuf_idx], RxBuff.buffer, framelength);
-    
+
     if(current_pbuf_idx < (ETH_RX_DESC_CNT -1))
     {
       current_pbuf_idx++;
@@ -472,7 +467,7 @@ static struct pbuf * low_level_input(struct netif *netif)
     {
       current_pbuf_idx = 0;
     }
-    
+
     return p;
   }
   else
@@ -497,21 +492,21 @@ void ethernetif_input(struct netif *netif)
 
   /* move received packet into a new pbuf */
   p = low_level_input(netif);
-    
+
   /* no packet could be read, silently ignore this */
   if (p == NULL) return;
-    
+
   /* entry point to the LwIP stack */
   err = netif->input(p, netif);
-    
+
   if (err != ERR_OK)
   {
     LWIP_DEBUGF(NETIF_DEBUG, ("ethernetif_input: IP input error\n"));
     pbuf_free(p);
-    p = NULL;    
+    p = NULL;
   }
   HAL_ETH_BuildRxDescriptors(&heth);
-  
+
 }
 
 #if !LWIP_ARP
@@ -522,18 +517,18 @@ void ethernetif_input(struct netif *netif)
  * @return ERR_OK if ...
  */
 static err_t low_level_output_arp_off(struct netif *netif, struct pbuf *q, const ip4_addr_t *ipaddr)
-{  
+{
   err_t errval;
   errval = ERR_OK;
+
+/* USER CODE BEGIN 5 */
     
-/* USER CODE BEGIN 5 */ 
-    
-/* USER CODE END 5 */  
-    
+/* USER CODE END 5 */
+
   return errval;
-  
+
 }
-#endif /* LWIP_ARP */ 
+#endif /* LWIP_ARP */
 
 /**
  * Should be called at the beginning of the program to set up the
@@ -550,7 +545,7 @@ static err_t low_level_output_arp_off(struct netif *netif, struct pbuf *q, const
 err_t ethernetif_init(struct netif *netif)
 {
   LWIP_ASSERT("netif != NULL", (netif != NULL));
-  
+
 #if LWIP_NETIF_HOSTNAME
   /* Initialize interface hostname */
   netif->hostname = "lwip";
@@ -573,7 +568,7 @@ err_t ethernetif_init(struct netif *netif)
 #endif /* LWIP_ARP */
 #endif /* LWIP_ARP || LWIP_ETHERNET */
 #endif /* LWIP_IPV4 */
- 
+
 #if LWIP_IPV6
   netif->output_ip6 = ethip6_output;
 #endif /* LWIP_IPV6 */
@@ -640,14 +635,14 @@ u32_t sys_now(void)
   * @retval 0 if OK, -1 if ERROR
   */
 int32_t ETH_PHY_IO_Init(void)
-{  
+{
   /* We assume that MDIO GPIO configuration is already done
-     in the ETH_MspInit() else it should be done here 
+     in the ETH_MspInit() else it should be done here
   */
-  
+
   /* Configure the MDIO Clock */
   HAL_ETH_SetMDIOClockRange(&heth);
-  
+
   return 0;
 }
 
@@ -665,7 +660,7 @@ int32_t ETH_PHY_IO_DeInit (void)
   * @brief  Read a PHY register through the MDIO interface.
   * @param  DevAddr: PHY port address
   * @param  RegAddr: PHY register address
-  * @param  pRegVal: pointer to hold the register value 
+  * @param  pRegVal: pointer to hold the register value
   * @retval 0 if OK -1 if Error
   */
 int32_t ETH_PHY_IO_ReadReg(uint32_t DevAddr, uint32_t RegAddr, uint32_t *pRegVal)
@@ -674,7 +669,7 @@ int32_t ETH_PHY_IO_ReadReg(uint32_t DevAddr, uint32_t RegAddr, uint32_t *pRegVal
   {
     return -1;
   }
-  
+
   return 0;
 }
 
@@ -682,7 +677,7 @@ int32_t ETH_PHY_IO_ReadReg(uint32_t DevAddr, uint32_t RegAddr, uint32_t *pRegVal
   * @brief  Write a value to a PHY register through the MDIO interface.
   * @param  DevAddr: PHY port address
   * @param  RegAddr: PHY register address
-  * @param  RegVal: Value to be written 
+  * @param  RegVal: Value to be written
   * @retval 0 if OK -1 if Error
   */
 int32_t ETH_PHY_IO_WriteReg(uint32_t DevAddr, uint32_t RegAddr, uint32_t RegVal)
@@ -691,7 +686,7 @@ int32_t ETH_PHY_IO_WriteReg(uint32_t DevAddr, uint32_t RegAddr, uint32_t RegVal)
   {
     return -1;
   }
-  
+
   return 0;
 }
 
