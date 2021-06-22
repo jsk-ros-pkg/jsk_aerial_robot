@@ -24,14 +24,14 @@
 
 ## usage:
 
-1. create a new Ethernet connection with static IP (192.168.25.xxx, xxx: except 238) in host PC.
+1. create a new Ethernet connection with static IP address **192.168.25.100** in host PC. This IP address is hard-coding written [here](https://github.com/tongtybj/aerial_robot_private/blob/spinal_stm32h7/aerial_robot_nerve/spinal/stm32h7_nucleo/Src/main.cpp#L248)
    please check the connection by `ping`:
 
    ```
    $ ping 192.168.25.238
    ```
 
-2. rosserial based on ethernet UDP.
+2. rosserial based on ethernet UDP. Please use [this branch](https://github.com/tongtybj/rosserial/tree/spinal)
 
    ```
    $ roslaunch rosserial_server udp_socket.launch client_addr:="192.168.25.238" client_port:=12345 server_port:=12345  --screen -v
