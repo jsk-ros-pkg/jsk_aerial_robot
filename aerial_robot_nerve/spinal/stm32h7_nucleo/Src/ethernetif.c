@@ -4,45 +4,15 @@
   * Description        : This file provides code for the configuration
   *                      of the ethernetif.c MiddleWare.
   ******************************************************************************
-  * This notice applies to any and all portions of this file
-  * that are not between comment pairs USER CODE BEGIN and
-  * USER CODE END. Other portions of this file, whether
-  * inserted by the user or by software development tools
-  * are owned by their respective copyright owners.
+  * @attention
   *
-  * Copyright (c) 2021 STMicroelectronics International N.V.
-  * All rights reserved.
+  * <h2><center>&copy; Copyright (c) 2021 STMicroelectronics.
+  * All rights reserved.</center></h2>
   *
-  * Redistribution and use in source and binary forms, with or without
-  * modification, are permitted, provided that the following conditions are met:
-  *
-  * 1. Redistribution of source code must retain the above copyright notice,
-  *    this list of conditions and the following disclaimer.
-  * 2. Redistributions in binary form must reproduce the above copyright notice,
-  *    this list of conditions and the following disclaimer in the documentation
-  *    and/or other materials provided with the distribution.
-  * 3. Neither the name of STMicroelectronics nor the names of other
-  *    contributors to this software may be used to endorse or promote products
-  *    derived from this software without specific written permission.
-  * 4. This software, including modifications and/or derivative works of this
-  *    software, must execute solely and exclusively on microcontroller or
-  *    microprocessor devices manufactured by or for STMicroelectronics.
-  * 5. Redistribution and use of this software other than as permitted under
-  *    this license is void and will automatically terminate your rights under
-  *    this license.
-  *
-  * THIS SOFTWARE IS PROVIDED BY STMICROELECTRONICS AND CONTRIBUTORS "AS IS"
-  * AND ANY EXPRESS, IMPLIED OR STATUTORY WARRANTIES, INCLUDING, BUT NOT
-  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
-  * PARTICULAR PURPOSE AND NON-INFRINGEMENT OF THIRD PARTY INTELLECTUAL PROPERTY
-  * RIGHTS ARE DISCLAIMED TO THE FULLEST EXTENT PERMITTED BY LAW. IN NO EVENT
-  * SHALL STMICROELECTRONICS OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-  * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-  * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA,
-  * OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-  * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
-  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
-  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+  * This software component is licensed by ST under Ultimate Liberty license
+  * SLA0044, the "License"; You may not use this file except in compliance with
+  * the License. You may obtain a copy of the License at:
+  *                             www.st.com/SLA0044
   *
   ******************************************************************************
   */
@@ -71,6 +41,10 @@
 #define IFNAME0 's'
 #define IFNAME1 't'
 
+/* ETH Setting  */
+#define ETH_DMA_TRANSMIT_TIMEOUT               ( 20U )
+/* ETH_RX_BUFFER_SIZE parameter is defined in lwipopts.h */
+
 /* USER CODE BEGIN 1 */
 
 /* USER CODE END 1 */
@@ -79,7 +53,7 @@
 /*
 @Note: This interface is implemented to operate in zero-copy mode only:
         - Rx buffers are allocated statically and passed directly to the LwIP stack
-          they will return back to DMA after been processed by the stack.
+          they will return back to ETH DMA after been processed by the stack.
         - Tx Buffers will be allocated from LwIP stack memory heap,
           then passed to ETH HAL driver.
 
@@ -92,8 +66,10 @@
        so that updated value will be generated in stm32xxxx_hal_conf.h
 
   2.a. Rx Buffers number must be between ETH_RX_DESC_CNT and 2*ETH_RX_DESC_CNT
-  2.b. Rx Buffers must have the same size: ETH_MAX_PACKET_SIZE, this value must
+  2.b. Rx Buffers must have the same size: ETH_RX_BUFFER_SIZE, this value must
        passed to ETH DMA in the init field (heth.Init.RxBuffLen)
+  2.c  The RX Ruffers addresses and sizes must be properly defined to be aligned
+       to L1-CACHE line size (32 bytes).
 */
 
 #if defined ( __ICCARM__ ) /*!< IAR Compiler */
@@ -103,19 +79,19 @@ ETH_DMADescTypeDef  DMARxDscrTab[ETH_RX_DESC_CNT]; /* Ethernet Rx DMA Descriptor
 #pragma location=0x30040060
 ETH_DMADescTypeDef  DMATxDscrTab[ETH_TX_DESC_CNT]; /* Ethernet Tx DMA Descriptors */
 #pragma location=0x30040200
-uint8_t Rx_Buff[ETH_RX_DESC_CNT][ETH_MAX_PACKET_SIZE]; /* Ethernet Receive Buffers */
+uint8_t Rx_Buff[ETH_RX_DESC_CNT][ETH_RX_BUFFER_SIZE]; /* Ethernet Receive Buffers */
 
 #elif defined ( __CC_ARM )  /* MDK ARM Compiler */
 
 __attribute__((at(0x30040000))) ETH_DMADescTypeDef  DMARxDscrTab[ETH_RX_DESC_CNT]; /* Ethernet Rx DMA Descriptors */
 __attribute__((at(0x30040060))) ETH_DMADescTypeDef  DMATxDscrTab[ETH_TX_DESC_CNT]; /* Ethernet Tx DMA Descriptors */
-__attribute__((at(0x30040200))) uint8_t Rx_Buff[ETH_RX_DESC_CNT][ETH_MAX_PACKET_SIZE]; /* Ethernet Receive Buffer */
+__attribute__((at(0x30040200))) uint8_t Rx_Buff[ETH_RX_DESC_CNT][ETH_RX_BUFFER_SIZE]; /* Ethernet Receive Buffer */
 
 #elif defined ( __GNUC__ ) /* GNU Compiler */
 
 ETH_DMADescTypeDef DMARxDscrTab[ETH_RX_DESC_CNT] __attribute__((section(".RxDecripSection"))); /* Ethernet Rx DMA Descriptors */
 ETH_DMADescTypeDef DMATxDscrTab[ETH_TX_DESC_CNT] __attribute__((section(".TxDecripSection")));   /* Ethernet Tx DMA Descriptors */
-uint8_t Rx_Buff[ETH_RX_DESC_CNT][ETH_MAX_PACKET_SIZE] __attribute__((section(".RxArraySection"))); /* Ethernet Receive Buffers */
+uint8_t Rx_Buff[ETH_RX_DESC_CNT][ETH_RX_BUFFER_SIZE] __attribute__((section(".RxArraySection"))); /* Ethernet Receive Buffers */
 
 #endif
 
@@ -123,12 +99,12 @@ uint8_t Rx_Buff[ETH_RX_DESC_CNT][ETH_MAX_PACKET_SIZE] __attribute__((section(".R
 
 /* USER CODE END 2 */
 
-uint32_t current_pbuf_idx = 0;
-
 /* Global Ethernet handle */
 ETH_HandleTypeDef heth;
 ETH_TxPacketConfig TxConfig;
-struct pbuf_custom rx_pbuf[ETH_RX_DESC_CNT];
+
+/* Memory Pool Declaration */
+LWIP_MEMPOOL_DECLARE(RX_POOL, 10, sizeof(struct pbuf_custom), "Zero-copy RX PBUF pool");
 
 /* Private function prototypes -----------------------------------------------*/
 int32_t ETH_PHY_IO_Init(void);
@@ -154,7 +130,7 @@ void Error_Handler(void);
 
 void HAL_ETH_MspInit(ETH_HandleTypeDef* ethHandle)
 {
-  GPIO_InitTypeDef GPIO_InitStruct;
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
   if(ethHandle->Instance==ETH)
   {
   /* USER CODE BEGIN ETH_MspInit 0 */
@@ -165,6 +141,10 @@ void HAL_ETH_MspInit(ETH_HandleTypeDef* ethHandle)
     __HAL_RCC_ETH1TX_CLK_ENABLE();
     __HAL_RCC_ETH1RX_CLK_ENABLE();
 
+    __HAL_RCC_GPIOC_CLK_ENABLE();
+    __HAL_RCC_GPIOA_CLK_ENABLE();
+    __HAL_RCC_GPIOB_CLK_ENABLE();
+    __HAL_RCC_GPIOG_CLK_ENABLE();
     /**ETH GPIO Configuration
     PC1     ------> ETH_MDC
     PA1     ------> ETH_REF_CLK
@@ -280,10 +260,9 @@ void HAL_ETH_MspDeInit(ETH_HandleTypeDef* ethHandle)
  */
 static void low_level_init(struct netif *netif)
 {
+  HAL_StatusTypeDef hal_eth_init_status = HAL_OK;
   uint32_t idx = 0;
-  HAL_StatusTypeDef hal_eth_init_status;
-
-  /* Init ETH */
+  /* Start ETH HAL Init */
 
    uint8_t MACAddr[6] ;
   heth.Instance = ETH;
@@ -310,13 +289,10 @@ static void low_level_init(struct netif *netif)
   TxConfig.ChecksumCtrl = ETH_CHECKSUM_IPHDR_PAYLOAD_INSERT_PHDR_CALC;
   TxConfig.CRCPadCtrl = ETH_CRC_PAD_INSERT;
 
-  for(idx = 0; idx < ETH_RX_DESC_CNT; idx ++)
-  {
-    HAL_ETH_DescAssignMemory(&heth, idx, Rx_Buff[idx], NULL);
+  /* End ETH HAL Init */
 
-    /* Set Custom pbuf free function */
-    rx_pbuf[idx].custom_free_function = pbuf_free_custom;
-  }
+  /* Initialize the RX POOL */
+  LWIP_MEMPOOL_INIT(RX_POOL);
 
 #if LWIP_ARP || LWIP_ETHERNET
 
@@ -332,7 +308,7 @@ static void low_level_init(struct netif *netif)
   netif->hwaddr[5] =  heth.Init.MACAddr[5];
 
   /* maximum transfer unit */
-  netif->mtu = 1500;
+  netif->mtu = ETH_MAX_PAYLOAD;
 
   /* Accept broadcast address and ARP traffic */
   /* don't set NETIF_FLAG_ETHARP if this device is not an ethernet one */
@@ -342,6 +318,11 @@ static void low_level_init(struct netif *netif)
     netif->flags |= NETIF_FLAG_BROADCAST;
   #endif /* LWIP_ARP */
 
+  for(idx = 0; idx < ETH_RX_DESC_CNT; idx ++)
+  {
+    HAL_ETH_DescAssignMemory(&heth, idx, Rx_Buff[idx], NULL);
+  }
+
 /* USER CODE BEGIN PHY_PRE_CONFIG */
   ETH_MACConfigTypeDef MACConf;
   HAL_ETH_GetMACConfig(&heth, &MACConf);
@@ -350,7 +331,6 @@ static void low_level_init(struct netif *netif)
   HAL_ETH_SetMACConfig(&heth, &MACConf);
     
 /* USER CODE END PHY_PRE_CONFIG */
-
   /* Set PHY IO functions */
   LAN8742_RegisterBusIO(&LAN8742, &LAN8742_IOCtx);
 
@@ -359,19 +339,13 @@ static void low_level_init(struct netif *netif)
 
   if (hal_eth_init_status == HAL_OK)
   {
-    netif_set_up(netif);
-    netif_set_link_up(netif);
-    HAL_ETH_Start(&heth);
+  /* Get link state */
+  ethernet_link_check_state(netif);
   }
   else
   {
     Error_Handler();
   }
-
-/* USER CODE BEGIN PHY_POST_CONFIG */
-    
-/* USER CODE END PHY_POST_CONFIG */
-
 #endif /* LWIP_ARP || LWIP_ETHERNET */
 
 /* USER CODE BEGIN LOW_LEVEL_INIT */
@@ -397,10 +371,12 @@ static void low_level_init(struct netif *netif)
 
 static err_t low_level_output(struct netif *netif, struct pbuf *p)
 {
-   uint32_t i=0, framelen = 0;
+  uint32_t i=0;
   struct pbuf *q;
   err_t errval = ERR_OK;
   ETH_BufferTypeDef Txbuffer[ETH_TX_DESC_CNT];
+
+  memset(Txbuffer, 0 , ETH_TX_DESC_CNT*sizeof(ETH_BufferTypeDef));
 
   for(q = p; q != NULL; q = q->next)
   {
@@ -409,7 +385,6 @@ static err_t low_level_output(struct netif *netif, struct pbuf *p)
 
     Txbuffer[i].buffer = q->payload;
     Txbuffer[i].len = q->len;
-    framelen += q->len;
 
     if(i>0)
     {
@@ -424,13 +399,10 @@ static err_t low_level_output(struct netif *netif, struct pbuf *p)
     i++;
   }
 
-  TxConfig.Length = framelen;
+  TxConfig.Length =  p->tot_len;
   TxConfig.TxBuffer = Txbuffer;
 
-  /* Clean and Invalidate data cache */
-  SCB_CleanInvalidateDCache();
-
-  HAL_ETH_Transmit(&heth, &TxConfig, 0);
+  HAL_ETH_Transmit(&heth, &TxConfig, ETH_DMA_TRANSMIT_TIMEOUT);
 
   return errval;
 }
@@ -446,27 +418,34 @@ static err_t low_level_output(struct netif *netif, struct pbuf *p)
 static struct pbuf * low_level_input(struct netif *netif)
 {
   struct pbuf *p = NULL;
-  ETH_BufferTypeDef RxBuff;
-  uint32_t framelength = 0;
+  ETH_BufferTypeDef RxBuff[ETH_RX_DESC_CNT];
+  uint32_t framelength = 0, i = 0;
+  struct pbuf_custom* custom_pbuf;
+
+  memset(RxBuff, 0 , ETH_RX_DESC_CNT*sizeof(ETH_BufferTypeDef));
+
+  for(i = 0; i < ETH_RX_DESC_CNT -1; i++)
+  {
+    RxBuff[i].next=&RxBuff[i+1];
+  }
 
   if (HAL_ETH_IsRxDataAvailable(&heth))
   {
-    /* Clean and Invalidate data cache */
-    SCB_CleanInvalidateDCache();
-
-    HAL_ETH_GetRxDataBuffer(&heth, &RxBuff);
+    HAL_ETH_GetRxDataBuffer(&heth, RxBuff);
     HAL_ETH_GetRxDataLength(&heth, &framelength);
 
-    p = pbuf_alloced_custom(PBUF_RAW, framelength, PBUF_POOL, &rx_pbuf[current_pbuf_idx], RxBuff.buffer, framelength);
+    /* Build Rx descriptor to be ready for next data reception */
+    HAL_ETH_BuildRxDescriptors(&heth);
 
-    if(current_pbuf_idx < (ETH_RX_DESC_CNT -1))
-    {
-      current_pbuf_idx++;
-    }
-    else
-    {
-      current_pbuf_idx = 0;
-    }
+#if !defined(DUAL_CORE) || defined(CORE_CM7)
+    /* Invalidate data cache for ETH Rx Buffers */
+    SCB_InvalidateDCache_by_Addr((uint32_t *)RxBuff->buffer, framelength);
+#endif
+
+    custom_pbuf  = (struct pbuf_custom*)LWIP_MEMPOOL_ALLOC(RX_POOL);
+    custom_pbuf->custom_free_function = pbuf_free_custom;
+
+    p = pbuf_alloced_custom(PBUF_RAW, framelength, PBUF_REF, custom_pbuf, RxBuff->buffer, framelength);
 
     return p;
   }
@@ -505,7 +484,6 @@ void ethernetif_input(struct netif *netif)
     pbuf_free(p);
     p = NULL;
   }
-  HAL_ETH_BuildRxDescriptors(&heth);
 
 }
 
@@ -588,14 +566,9 @@ err_t ethernetif_init(struct netif *netif)
   */
 void pbuf_free_custom(struct pbuf *p)
 {
-  if(p!=NULL)
-  {
-    p->flags = 0;
-    p->next = NULL;
-    p->len = p->tot_len = 0;
-    p->ref = 0;
-    p->payload = NULL;
-  }
+  struct pbuf_custom* custom_pbuf = (struct pbuf_custom*)p;
+
+  LWIP_MEMPOOL_FREE(RX_POOL, custom_pbuf);
 }
 
 /* USER CODE BEGIN 6 */
@@ -699,6 +672,68 @@ int32_t ETH_PHY_IO_GetTick(void)
   return HAL_GetTick();
 }
 
+/**
+  * @brief  Check the ETH link state then update ETH driver and netif link accordingly.
+  * @param  argument: netif
+  * @retval None
+  */
+void ethernet_link_check_state(struct netif *netif)
+{
+  ETH_MACConfigTypeDef MACConf;
+  uint32_t PHYLinkState;
+  uint32_t linkchanged = 0, speed = 0, duplex =0;
+
+  PHYLinkState = LAN8742_GetLinkState(&LAN8742);
+
+  if(netif_is_link_up(netif) && (PHYLinkState <= LAN8742_STATUS_LINK_DOWN))
+  {
+    HAL_ETH_Stop(&heth);
+    netif_set_down(netif);
+    netif_set_link_down(netif);
+  }
+  else if(!netif_is_link_up(netif) && (PHYLinkState > LAN8742_STATUS_LINK_DOWN))
+  {
+    switch (PHYLinkState)
+    {
+    case LAN8742_STATUS_100MBITS_FULLDUPLEX:
+      duplex = ETH_FULLDUPLEX_MODE;
+      speed = ETH_SPEED_100M;
+      linkchanged = 1;
+      break;
+    case LAN8742_STATUS_100MBITS_HALFDUPLEX:
+      duplex = ETH_HALFDUPLEX_MODE;
+      speed = ETH_SPEED_100M;
+      linkchanged = 1;
+      break;
+    case LAN8742_STATUS_10MBITS_FULLDUPLEX:
+      duplex = ETH_FULLDUPLEX_MODE;
+      speed = ETH_SPEED_10M;
+      linkchanged = 1;
+      break;
+    case LAN8742_STATUS_10MBITS_HALFDUPLEX:
+      duplex = ETH_HALFDUPLEX_MODE;
+      speed = ETH_SPEED_10M;
+      linkchanged = 1;
+      break;
+    default:
+      break;
+    }
+
+    if(linkchanged)
+    {
+      /* Get MAC Config MAC */
+      HAL_ETH_GetMACConfig(&heth, &MACConf);
+      MACConf.DuplexMode = duplex;
+      MACConf.Speed = speed;
+      HAL_ETH_SetMACConfig(&heth, &MACConf);
+
+      HAL_ETH_Start(&heth);
+      netif_set_up(netif);
+      netif_set_link_up(netif);
+    }
+  }
+
+}
 /* USER CODE BEGIN 8 */
 /**
   * @brief  This function notify user about link status changement.

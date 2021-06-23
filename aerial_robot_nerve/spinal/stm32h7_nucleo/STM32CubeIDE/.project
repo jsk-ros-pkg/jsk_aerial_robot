@@ -143,6 +143,11 @@
 			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_eth_ex.c</locationURI>
 		</link>
 		<link>
+			<name>Drivers/STM32H7xx_HAL_Driver/stm32h7xx_hal_exti.c</name>
+			<type>1</type>
+			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_exti.c</locationURI>
+		</link>
+		<link>
 			<name>Drivers/STM32H7xx_HAL_Driver/stm32h7xx_hal_flash.c</name>
 			<type>1</type>
 			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_flash.c</locationURI>
@@ -208,6 +213,11 @@
 			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_rng.c</locationURI>
 		</link>
 		<link>
+			<name>Drivers/STM32H7xx_HAL_Driver/stm32h7xx_hal_rng_ex.c</name>
+			<type>1</type>
+			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_rng_ex.c</locationURI>
+		</link>
+		<link>
 			<name>Drivers/STM32H7xx_HAL_Driver/stm32h7xx_hal_rtc.c</name>
 			<type>1</type>
 			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_rtc.c</locationURI>
@@ -248,6 +258,21 @@
 			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_uart_ex.c</locationURI>
 		</link>
 		<link>
+			<name>Middlewares/LwIP/altcp.c</name>
+			<type>1</type>
+			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/Middlewares/Third_Party/LwIP/src/core/altcp.c</locationURI>
+		</link>
+		<link>
+			<name>Middlewares/LwIP/altcp_alloc.c</name>
+			<type>1</type>
+			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/Middlewares/Third_Party/LwIP/src/core/altcp_alloc.c</locationURI>
+		</link>
+		<link>
+			<name>Middlewares/LwIP/altcp_tcp.c</name>
+			<type>1</type>
+			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/Middlewares/Third_Party/LwIP/src/core/altcp_tcp.c</locationURI>
+		</link>
+		<link>
 			<name>Middlewares/LwIP/api_lib.c</name>
 			<type>1</type>
 			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/Middlewares/Third_Party/LwIP/src/api/api_lib.c</locationURI>
@@ -266,6 +291,16 @@
 			<name>Middlewares/LwIP/autoip.c</name>
 			<type>1</type>
 			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/Middlewares/Third_Party/LwIP/src/core/ipv4/autoip.c</locationURI>
+		</link>
+		<link>
+			<name>Middlewares/LwIP/bridgeif.c</name>
+			<type>1</type>
+			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/Middlewares/Third_Party/LwIP/src/netif/bridgeif.c</locationURI>
+		</link>
+		<link>
+			<name>Middlewares/LwIP/bridgeif_fdb.c</name>
+			<type>1</type>
+			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/Middlewares/Third_Party/LwIP/src/netif/bridgeif_fdb.c</locationURI>
 		</link>
 		<link>
 			<name>Middlewares/LwIP/ccp.c</name>
@@ -363,6 +398,11 @@
 			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/Middlewares/Third_Party/LwIP/src/core/ipv6/icmp6.c</locationURI>
 		</link>
 		<link>
+			<name>Middlewares/LwIP/if_api.c</name>
+			<type>1</type>
+			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/Middlewares/Third_Party/LwIP/src/api/if_api.c</locationURI>
+		</link>
+		<link>
 			<name>Middlewares/LwIP/igmp.c</name>
 			<type>1</type>
 			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/Middlewares/Third_Party/LwIP/src/core/ipv4/igmp.c</locationURI>
@@ -436,6 +476,16 @@
 			<name>Middlewares/LwIP/lowpan6.c</name>
 			<type>1</type>
 			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/Middlewares/Third_Party/LwIP/src/netif/lowpan6.c</locationURI>
+		</link>
+		<link>
+			<name>Middlewares/LwIP/lowpan6_ble.c</name>
+			<type>1</type>
+			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/Middlewares/Third_Party/LwIP/src/netif/lowpan6_ble.c</locationURI>
+		</link>
+		<link>
+			<name>Middlewares/LwIP/lowpan6_common.c</name>
+			<type>1</type>
+			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/Middlewares/Third_Party/LwIP/src/netif/lowpan6_common.c</locationURI>
 		</link>
 		<link>
 			<name>Middlewares/LwIP/magic.c</name>
@@ -601,6 +651,11 @@
 			<name>Middlewares/LwIP/vj.c</name>
 			<type>1</type>
 			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/Middlewares/Third_Party/LwIP/src/netif/ppp/vj.c</locationURI>
+		</link>
+		<link>
+			<name>Middlewares/LwIP/zepif.c</name>
+			<type>1</type>
+			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/Middlewares/Third_Party/LwIP/src/netif/zepif.c</locationURI>
 		</link>
 		<link>
 			<name>Drivers/BSP/Components/lan8742.c</name>

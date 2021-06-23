@@ -75,7 +75,7 @@ int STMH7Hardware::read(uint8_t* data, uint16_t length)
 void STMH7Hardware::write(uint8_t * new_data, uint16_t new_size)
 {
   p_ = pbuf_alloc(PBUF_TRANSPORT, new_size, PBUF_RAM);
-  p_->payload = new_data;
+  memcpy(p_->payload, new_data, new_size);
   udp_sendto(pcb_, p_, &dst_addr_, dst_port_);
   pbuf_free(p_);  /* necessary: free the pbuf */
 }
