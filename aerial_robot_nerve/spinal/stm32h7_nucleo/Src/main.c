@@ -49,8 +49,8 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "cmsis_os.h"
 #include "i2c.h"
-#include "iwdg.h"
 #include "lwip.h"
 #include "rng.h"
 #include "rtc.h"
@@ -113,32 +113,23 @@ uint32_t servo_msg_echo_t = 0;
 uint32_t max_du = 0;
 uint32_t min_du = 1e6;
 
+extern osSemaphoreId coreTaskSemHandle;
+
+extern "C"
+{
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MPU_Config(void);
+void MX_FREERTOS_Init(void);
+static void MX_NVIC_Init(void);
 /* USER CODE BEGIN PFP */
-
+}
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
-void HAL_SYSTICK_Callback(void)
-{
-  if(!start_processing_flag_) return;
-
-  //if(HAL_GetTick() - msTick > 1000)
-    {
-      imu_msg_.stamp = nh_.now();
-      test_pub_.publish(&imu_msg_);
-      msTick = HAL_GetTick();
-    }
-
-  /* ros communication */
-  nh_.spinOnce();
-}
 
 void testCallback(const std_msgs::Empty& msg)
 {
@@ -189,6 +180,66 @@ void test2Callback(const spinal::ServoControlCmd& msg)
     }
 }
 
+extern "C"
+{
+  // timer callback to evoke coreTask at 1KHz
+  void coreTaskEvokeCb(void const * argument)
+  {
+    osSemaphoreRelease (coreTaskSemHandle);
+  }
+
+  void initTaskFunc(void const * argument)
+  {
+    for(;;)
+      {
+        osDelay(10000);
+      }
+  }
+
+  // main subrutine for update enach instance
+  void coreTaskFunc(void const * argument)
+  {
+    MX_LWIP_Init();
+
+    /* ros node */
+    ip4_addr_t dst_addr;
+    IP4_ADDR(&dst_addr,192,168,25,100);
+
+    nh_.initNode(dst_addr, 12345,12345);
+
+    ros::Subscriber<std_msgs::Empty> test_sub_("/test_sub", &testCallback);
+    ros::Subscriber<spinal::ServoControlCmd> test2_sub_("/target_servo_sub", &test2Callback);
+
+    nh_.advertise(test_pub_);
+    nh_.advertise(test_pub2_);
+    nh_.advertise(test_pub3_);
+    nh_.subscribe< ros::Subscriber<std_msgs::Empty> >(test_sub_);
+    nh_.subscribe< ros::Subscriber<spinal::ServoControlCmd> >(test2_sub_);
+
+    osSemaphoreWait(coreTaskSemHandle, osWaitForever);
+
+    for(;;)
+      {
+        osSemaphoreWait(coreTaskSemHandle, osWaitForever);
+
+        imu_msg_.stamp = nh_.now();
+        test_pub_.publish(&imu_msg_);
+      }
+  }
+
+  void rosSpinTaskFunc(void const * argument)
+  {
+    for(;;)
+      {
+        /* ros spin means to get data from UART RX ring buffer and to call callback functions  */
+        if(nh_.spinOnce() == ros::SPIN_UNAVAILABLE)
+          {
+            /* if no data in ring buffer, we kindly sleep for 1ms */
+            osDelay(1);
+          }
+      }
+  }
+}
 
 /* USER CODE END 0 */
 
@@ -231,50 +282,30 @@ int main(void)
   MX_GPIO_Init();
   MX_USART3_UART_Init();
   MX_RNG_Init();
-  MX_IWDG1_Init();
-  MX_LWIP_Init();
   MX_SPI1_Init();
   MX_I2C2_Init();
   MX_TIM1_Init();
   MX_TIM3_Init();
   MX_UART5_Init();
   MX_RTC_Init();
+
+  /* Initialize interrupts */
+  MX_NVIC_Init();
   /* USER CODE BEGIN 2 */
-
-  ip4_addr_t dst_addr;
-  IP4_ADDR(&dst_addr,192,168,25,100);
-
-  nh_.initNode(dst_addr, 12345,12345);
-
-  ros::Subscriber<std_msgs::Empty> test_sub_("/test_sub", &testCallback);
-  ros::Subscriber<spinal::ServoControlCmd> test2_sub_("/target_servo_sub", &test2Callback);
-
-  nh_.advertise(test_pub_);
-  nh_.advertise(test_pub2_);
-  nh_.advertise(test_pub3_);
-  nh_.subscribe< ros::Subscriber<std_msgs::Empty> >(test_sub_);
-  nh_.subscribe< ros::Subscriber<spinal::ServoControlCmd> >(test2_sub_);
-
-  start_processing_flag_ = true;
-
 
   /* USER CODE END 2 */
 
+  /* Call init function for freertos objects (in freertos.c) */
+  MX_FREERTOS_Init();
+  /* Start scheduler */
+  osKernelStart();
+
+  /* We should never get here as control is now taken by the scheduler */
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
     /* USER CODE END WHILE */
-    /* need some code here, otherwise the process will stop */
-    HAL_IWDG_Refresh(&hiwdg1);
-
-#if LWIP_NETIF_LINK_CALLBACK
-    Ethernet_Link_Periodic_Handle(&gnetif);
-#endif
-
-#if LWIP_DHCP
-    DHCP_Periodic_Handle(&gnetif);
-#endif
 
     /* USER CODE BEGIN 3 */
   }
@@ -352,6 +383,20 @@ void SystemClock_Config(void)
   }
 }
 
+/**
+  * @brief NVIC Configuration.
+  * @retval None
+  */
+static void MX_NVIC_Init(void)
+{
+  /* ETH_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(ETH_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(ETH_IRQn);
+  /* ETH_WKUP_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(ETH_WKUP_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(ETH_WKUP_IRQn);
+}
+
 /* USER CODE BEGIN 4 */
 
 /* USER CODE END 4 */
@@ -412,6 +457,26 @@ void MPU_Config(void)
   /* Enables the MPU */
   HAL_MPU_Enable(MPU_PRIVILEGED_DEFAULT);
 
+}
+/**
+  * @brief  Period elapsed callback in non blocking mode
+  * @note   This function is called  when TIM12 interrupt took place, inside
+  * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
+  * a global variable "uwTick" used as application time base.
+  * @param  htim : TIM handle
+  * @retval None
+  */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+  /* USER CODE BEGIN Callback 0 */
+
+  /* USER CODE END Callback 0 */
+  if (htim->Instance == TIM12) {
+    HAL_IncTick();
+  }
+  /* USER CODE BEGIN Callback 1 */
+
+  /* USER CODE END Callback 1 */
 }
 
 /**

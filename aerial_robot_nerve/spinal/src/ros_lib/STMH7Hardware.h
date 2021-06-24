@@ -13,7 +13,9 @@
 #include "lwip.h"
 #include "lwip/udp.h"
 #include <cstring>
+#include "cmsis_os.h"
 
+#define BUFFER_EMPTY  -1
 #define RX_BUFFER_SIZE 512 // byte
 
 template <typename T,  int SIZE>
@@ -25,8 +27,6 @@ public:
     byte_to_pop_ = 0;
     byte_to_push_ = 0;
     buffer_length_ = (uint16_t)SIZE;
-
-    lock_ = false;
   }
   ~RingBuffer(){  }
 
@@ -35,12 +35,7 @@ public:
     if (byte_to_pop_ + len <= byte_to_push_)
       {
         std::memcpy(pop_buf, &buf_[byte_to_pop_], sizeof(T) * len);
-        lock_ = true;
-        {
-          byte_to_pop_ += len;
-        }
-        lock_ = false;
-
+        byte_to_pop_ += len;
         return true;
       }
     else
@@ -54,18 +49,14 @@ public:
             if (byte_to_pop_ + len <= buffer_length_)
               {
                 std::memcpy(pop_buf, &buf_[byte_to_pop_], sizeof(T) * len);
-                lock_ = true;
                 byte_to_pop_ += len;
                 if (byte_to_pop_ == buffer_length_) byte_to_pop_ = 0;
-                lock_ = false;
               }
             else
               {
                 std::memcpy(pop_buf, &buf_[byte_to_pop_], sizeof(T) * (buffer_length_ - byte_to_pop_));
                 std::memcpy(&pop_buf[buffer_length_ - byte_to_pop_], &buf_[0], sizeof(T) * (byte_to_pop_ + len - buffer_length_));
-                lock_ = true;
                 byte_to_pop_ = byte_to_pop_ + len - buffer_length_;
-                lock_ = false;
                 return true;
               }
           }
@@ -76,54 +67,39 @@ public:
 
   bool push(T* push_buf, uint16_t len = 1)
   {
-    /* forcibly write the buffer, regardless of the byte_to_pop */
+    /* TODO: forcibly write the buffer, regardless of the byte_to_pop */
 
     if (byte_to_push_ + len <=  buffer_length_)
       {
         std::memcpy(&buf_[byte_to_push_], push_buf, sizeof(T) * len);
 
-        lock_ = true;
-        {
-          byte_to_push_ += len;
+        byte_to_push_ += len;
 
-          if (byte_to_push_ == buffer_length_)
-            {
-              byte_to_push_ = 0;
-            }
-        }
-        lock_ = false;
+        if (byte_to_push_ == buffer_length_)
+          {
+            byte_to_push_ = 0;
+          }
       }
     else
       {
         std::memcpy(&buf_[byte_to_push_], push_buf, sizeof(T) * (buffer_length_ - byte_to_push_));
         uint16_t residual = len - buffer_length_ + byte_to_push_;
         std::memcpy(&buf_[0], &push_buf[buffer_length_ - byte_to_push_], sizeof(T) * residual);
-
-        lock_ = true;
-        {
-          byte_to_push_ = residual;
-        }
-        lock_ = false;
+        byte_to_push_ = residual;
       }
 
     return true;
   }
 
-  uint16_t length()
+  bool available()
   {
-    if(lock_) return 0;
-
-    if(byte_to_push_ - byte_to_pop_ >= 0)
-      return (byte_to_push_ - byte_to_pop_);
-    else
-      return (byte_to_push_ + buffer_length_ - byte_to_pop_);
+    return (byte_to_push_ != byte_to_pop_);
   }
 
 private:
   T buf_[SIZE];
   uint16_t byte_to_pop_, byte_to_push_;
   uint16_t buffer_length_;
-  bool lock_;
 };
 
 class STMH7Hardware {
@@ -137,6 +113,7 @@ public:
   void init(char *portName){}
 
   void init(const ip4_addr_t dst_addr, const uint16_t src_port, const uint16_t dst_port);
+  bool rx_available();
   int read();
   int read(uint8_t* data, uint16_t length);
   void write(uint8_t* data, uint16_t length);

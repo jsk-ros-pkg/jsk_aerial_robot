@@ -32,7 +32,6 @@ namespace
   }
 }
 
-
 void STMH7Hardware::init(const ip4_addr_t dst_addr, const uint16_t src_port, const uint16_t dst_port)
 {
   dst_addr_ = dst_addr;
@@ -53,23 +52,18 @@ void STMH7Hardware::init(const ip4_addr_t dst_addr, const uint16_t src_port, con
   udp_recv(pcb_, udpRecvCb, NULL);
 }
 
+bool STMH7Hardware::rx_available()
+{
+  return rx_buf_.available();
+}
+
 int STMH7Hardware::read()
 {
-  if(rx_buf_.length() == 0) return -1;
+  if(!rx_buf_.available()) return -1;
 
   uint8_t r_data = 0;
   rx_buf_.pop(&r_data);
   return  r_data;
-}
-
-int STMH7Hardware::read(uint8_t* data, uint16_t length)
-{
-  if(rx_buf_.length() == 0) return -1;
-  if(length > rx_buf_.length()) return -1;
-
-  rx_buf_.pop(data, length);
-
-  return  1;
 }
 
 void STMH7Hardware::write(uint8_t * new_data, uint16_t new_size)

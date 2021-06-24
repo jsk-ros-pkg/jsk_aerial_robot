@@ -10,11 +10,8 @@
 <includepath>../Middlewares/Third_Party/LwIP/system</includepath>
 <includepath>../Drivers/STM32H7xx_HAL_Driver/Inc</includepath>
 <includepath>../Drivers/STM32H7xx_HAL_Driver/Inc/Legacy</includepath>
-<includepath>../Middlewares/Third_Party/FatFs/src</includepath>
 <includepath>../Drivers/BSP/Components/lan8742</includepath>
 <includepath>../Middlewares/Third_Party/LwIP/src/include/netif/ppp</includepath>
-<includepath>../Middlewares/ST/STM32_USB_Device_Library/Core/Inc</includepath>
-<includepath>../Middlewares/ST/STM32_USB_Device_Library/Class/MSC/Inc</includepath>
 <includepath>../Drivers/CMSIS/Device/ST/STM32H7xx/Include</includepath>
 <includepath>../Middlewares/Third_Party/LwIP/src/include/lwip</includepath>
 <includepath>../Middlewares/Third_Party/LwIP/src/include/lwip/apps</includepath>
@@ -29,6 +26,11 @@
 <includepath>../Middlewares/Third_Party/LwIP/system/arch</includepath>
 <includepath>../Drivers/CMSIS/Include</includepath>
 <includepath>../ros_lib</includepath>
+<includepath>../Middlewares/Third_Party/LwIP/src/include/posix</includepath>
+<includepath>../Middlewares/Third_Party/LwIP/src/include/posix/sys</includepath>
+<includepath>../Middlewares/Third_Party/FreeRTOS/Source/include</includepath>
+<includepath>../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS</includepath>
+<includepath>../Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F</includepath>
 
 </language>
 <language name="C++ Source File">
@@ -37,11 +39,8 @@
 <includepath>../Middlewares/Third_Party/LwIP/system</includepath>
 <includepath>../Drivers/STM32H7xx_HAL_Driver/Inc</includepath>
 <includepath>../Drivers/STM32H7xx_HAL_Driver/Inc/Legacy</includepath>
-<includepath>../Middlewares/Third_Party/FatFs/src</includepath>
 <includepath>../Drivers/BSP/Components/lan8742</includepath>
 <includepath>../Middlewares/Third_Party/LwIP/src/include/netif/ppp</includepath>
-<includepath>../Middlewares/ST/STM32_USB_Device_Library/Core/Inc</includepath>
-<includepath>../Middlewares/ST/STM32_USB_Device_Library/Class/MSC/Inc</includepath>
 <includepath>../Drivers/CMSIS/Device/ST/STM32H7xx/Include</includepath>
 <includepath>../Middlewares/Third_Party/LwIP/src/include/lwip</includepath>
 <includepath>../Middlewares/Third_Party/LwIP/src/include/lwip/apps</includepath>
@@ -56,6 +55,11 @@
 <includepath>../Middlewares/Third_Party/LwIP/system/arch</includepath>
 <includepath>../Drivers/CMSIS/Include</includepath>
 <includepath>../ros_lib</includepath>
+<includepath>../Middlewares/Third_Party/LwIP/src/include/posix</includepath>
+<includepath>../Middlewares/Third_Party/LwIP/src/include/posix/sys</includepath>
+<includepath>../Middlewares/Third_Party/FreeRTOS/Source/include</includepath>
+<includepath>../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS</includepath>
+<includepath>../Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F</includepath>
 
 </language>
 <language name="Object File">
