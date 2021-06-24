@@ -35,7 +35,6 @@ void STMF7Hardware::init(UART_HandleTypeDef *huart, osMutexId *mutex, osSemaphor
 
   subscript_in_progress_ = 0;
   subscript_to_add_ = 0;
-  tx_idle_ = true;
 
   for(int i = 0; i < TX_BUFFER_SIZE; i++)
     {
@@ -98,11 +97,8 @@ int STMF7Hardware::publish()
       else
         {
           // use DMA with semaphore
-          if (!tx_idle_) osSemaphoreWait(*tx_semaphore_, osWaitForever);
+          osSemaphoreWait(*tx_semaphore_, osWaitForever);
           status = HAL_UART_Transmit_DMA(huart_, tx_buffer_unit_[subscript_in_progress_].tx_data_, tx_buffer_unit_[subscript_in_progress_].tx_len_);
-          //__HAL_DMA_DISABLE_IT(huart_->hdmatx, DMA_IT_HT);
-
-          tx_idle_ = false;
         }
 
       /* mutex to avoid access from task of higher priority running "write" */
@@ -117,7 +113,6 @@ int STMF7Hardware::publish()
     }
   else
     {
-      tx_idle_ = true;
       return BUFFER_EMPTY;
     }
 }
@@ -169,4 +164,12 @@ void STMF7Hardware::write(uint8_t * new_data, unsigned int new_size)
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
 {
   osSemaphoreRelease (*tx_semaphore_);
+}
+
+void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
+{
+  if ((huart->ErrorCode & HAL_UART_ERROR_DMA) != 0U)
+    {
+      osSemaphoreRelease (*tx_semaphore_); // force relase semaphore if DMA TX fails
+    }
 }

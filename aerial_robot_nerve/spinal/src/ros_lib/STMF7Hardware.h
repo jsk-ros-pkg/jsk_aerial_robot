@@ -71,7 +71,6 @@ private:
   struct TxBufferUnit<TX_BUFFER_WIDTH> tx_buffer_unit_[TX_BUFFER_SIZE];
   uint8_t subscript_in_progress_;
   uint8_t subscript_to_add_;
-  bool tx_idle_;
 
 };
 
