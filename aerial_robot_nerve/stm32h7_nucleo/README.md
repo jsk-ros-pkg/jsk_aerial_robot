@@ -2,8 +2,8 @@
 
 ## requirement:
 
-1. [STM32CubeMX](https://www.st.com/ja/development-tools/stm32cubemx.html), please use the version of **v5.0.1**, and the version of `STM32H7` is **v1.3.0**.
-2. [Truestudio](https://www.st.com/ja/development-tools/truestudio.html), please use version of **9.3.0**, otherwise, the flash would fail.
+1. [STM32CubeMX](https://www.st.com/ja/development-tools/stm32cubemx.html), please use the version of [here](https://github.com/tongtybj/aerial_robot/blob/PR/feature/STM32H7_ETH/aerial_robot_nerve/stm32h7_nucleo/stm32h7_nucleo.ioc#L604).
+2. [STM32CubeIDE](https://www.st.com/ja/development-tools/stm32cubeide.html)
 3. [Nucleo-H743ZI](https://www.st.com/ja/evaluation-tools/nucleo-h743zi.html)
 
 ## compile:
@@ -11,16 +11,16 @@
 0. prepare the `ros_lib` for MCU:
 
    ```
-   $ rosrun spinal make_libraries.py
+   $ catkin bt
    ```
 
-1. build in Truestudio by:
+1. build in STMCubeIDE by:
 
    ```
-   $ rosrun spinal true_studio.sh
+   $ rosrun stm32h7_nucleo cube_ide.sh
    ```
 
-2. flash to the Nucleo-H743ZI
+2. flash to the Nucleo-H743ZI via STM32CubeIDE
 
 ## usage:
 
@@ -34,7 +34,7 @@
 2. rosserial based on ethernet UDP. Please use [this branch](https://github.com/tongtybj/rosserial/tree/spinal)
 
    ```
-   $ roslaunch rosserial_server udp_socket.launch client_addr:="192.168.25.238" client_port:=12345 server_port:=12345  --screen -v
+   $ roslaunch spinal_ros_bridge udp_socket.launch addr:="192.168.25.238" port:=12345 server_port:=12345
    ```
 
 3. perform the load test
@@ -53,7 +53,7 @@
       $ rosrun spinal load_test.py
       ```
 
-      **note**: you can see the log in the terminal launching `udp_socket.launch`, such as, `[ERROR] [1560932626.875748081]: 2, 3, 1`. This means the current interval is 2 [ms], the max interval is 3 [ms], the min interval is 1 [ms].
+      **note**: you can see the log in the terminal launching `udp_socket.launch`, such as, `[ERROR] [1560932626.875748081]: 2, 3, 1, 1, 2`. This means the current temporal interval between two receive topics in MCU is 2 [ms], the max interval is 3 [ms], the min interval is 1 [ms]; the current sequence id interval between two receive topics in MCU is 1 [frame], the max interval is [frames].
 
 
 ### Option: generate from STM32CubeMX:
