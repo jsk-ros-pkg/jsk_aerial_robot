@@ -47,6 +47,11 @@ target_link_libraries(serial_node ${catkin_LIBRARIES})
 set_target_properties(serial_node PROPERTIES OUTPUT_NAME serial_node PREFIX "")
 add_dependencies(serial_node ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_generate_messages_cpp)
 
+add_executable(udp_socket_node src/udp_socket_node.cpp)
+target_link_libraries(udp_socket_node ${catkin_LIBRARIES})
+add_dependencies(udp_socket_node ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_generate_messages_cpp)
+
+
 add_executable(multi_thread_test_node src/multi_thread_test.cpp)
 target_link_libraries(multi_thread_test_node ${catkin_LIBRARIES})
 
