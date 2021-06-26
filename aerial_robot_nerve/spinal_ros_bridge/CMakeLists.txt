@@ -42,6 +42,8 @@ include_directories(
     ${catkin_INCLUDE_DIRS}
 )
 
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
+
 add_executable(serial_node src/serial_node.cpp)
 target_link_libraries(serial_node ${catkin_LIBRARIES})
 set_target_properties(serial_node PROPERTIES OUTPUT_NAME serial_node PREFIX "")
