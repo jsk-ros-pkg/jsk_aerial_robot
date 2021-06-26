@@ -1,4 +1,4 @@
-/* 
+/*
  * Software License Agreement (BSD License)
  *
  * Copyright (c) 2011, Willow Garage, Inc.
@@ -32,15 +32,52 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _ROS_H_
-#define _ROS_H_
-
-#include "ros/node_handle_stm.h"
+#include <math.h>
+#include "ros/duration.h"
 
 namespace ros
 {
-  /* be sure the max size of publisher and subscriber, as well as the size of message */
-  typedef NodeHandleStm_<50, 50, 512, 512> NodeHandle;
+void normalizeSecNSecSigned(int32_t &sec, int32_t &nsec)
+{
+  int32_t nsec_part = nsec;
+  int32_t sec_part = sec;
+
+  while (nsec_part > 1000000000L)
+  {
+    nsec_part -= 1000000000L;
+    ++sec_part;
+  }
+  while (nsec_part < 0)
+  {
+    nsec_part += 1000000000L;
+    --sec_part;
+  }
+  sec = sec_part;
+  nsec = nsec_part;
 }
 
-#endif
+Duration& Duration::operator+=(const Duration &rhs)
+{
+  sec += rhs.sec;
+  nsec += rhs.nsec;
+  normalizeSecNSecSigned(sec, nsec);
+  return *this;
+}
+
+Duration& Duration::operator-=(const Duration &rhs)
+{
+  sec += -rhs.sec;
+  nsec += -rhs.nsec;
+  normalizeSecNSecSigned(sec, nsec);
+  return *this;
+}
+
+Duration& Duration::operator*=(double scale)
+{
+  sec *= scale;
+  nsec *= scale;
+  normalizeSecNSecSigned(sec, nsec);
+  return *this;
+}
+
+}
