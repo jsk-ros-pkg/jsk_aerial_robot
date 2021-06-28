@@ -64,6 +64,7 @@ osTimerId CoreTimerHandle;
 osMutexId rosPubMutexHandle;
 osMutexId flightControlMutexHandle;
 osSemaphoreId CoreProcessSemHandle;
+osSemaphoreId Uart1TxSemHandle;
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
@@ -138,6 +139,10 @@ void MX_FREERTOS_Init(void) {
   /* definition and creation of CoreProcessSem */
   osSemaphoreDef(CoreProcessSem);
   CoreProcessSemHandle = osSemaphoreCreate(osSemaphore(CoreProcessSem), 1);
+
+  /* definition and creation of Uart1TxSem */
+  osSemaphoreDef(Uart1TxSem);
+  Uart1TxSemHandle = osSemaphoreCreate(osSemaphore(Uart1TxSem), 1);
 
   /* USER CODE BEGIN RTOS_SEMAPHORES */
   /* add semaphores, ... */
