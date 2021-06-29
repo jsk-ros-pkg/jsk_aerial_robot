@@ -38,6 +38,16 @@
 			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/stm32h7_nucleo.ioc</locationURI>
 		</link>
 		<link>
+			<name>Application/Hydrus_Lib</name>
+			<type>2</type>
+			<locationURI>PARENT-2-PROJECT_LOC/spinal/mcu_project/Hydrus_Lib</locationURI>
+		</link>
+		<link>
+			<name>Application/Jsk_Lib</name>
+			<type>2</type>
+			<locationURI>PARENT-1-PROJECT_LOC/Jsk_Lib</locationURI>
+		</link>
+		<link>
 			<name>Application/ros_lib</name>
 			<type>2</type>
 			<locationURI>PARENT-1-PROJECT_LOC/ros_lib</locationURI>
@@ -46,6 +56,11 @@
 			<name>Application/User/ethernetif.c</name>
 			<type>1</type>
 			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/Src/ethernetif.c</locationURI>
+		</link>
+		<link>
+			<name>Application/User/fdcan.c</name>
+			<type>1</type>
+			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/Src/fdcan.c</locationURI>
 		</link>
 		<link>
 			<name>Application/User/freertos.c</name>
@@ -151,6 +166,11 @@
 			<name>Drivers/STM32H7xx_HAL_Driver/stm32h7xx_hal_exti.c</name>
 			<type>1</type>
 			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_exti.c</locationURI>
+		</link>
+		<link>
+			<name>Drivers/STM32H7xx_HAL_Driver/stm32h7xx_hal_fdcan.c</name>
+			<type>1</type>
+			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_fdcan.c</locationURI>
 		</link>
 		<link>
 			<name>Drivers/STM32H7xx_HAL_Driver/stm32h7xx_hal_flash.c</name>

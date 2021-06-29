@@ -50,6 +50,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "cmsis_os.h"
+#include "fdcan.h"
 #include "i2c.h"
 #include "lwip.h"
 #include "rng.h"
@@ -73,6 +74,10 @@
 #include <std_msgs/Empty.h>
 #include <spinal/ServoControlCmd.h>
 #include <spinal/Imu.h>
+
+/* Internal Communication System */
+#include <Spine/spine.h>
+
 
 /* USER CODE END Includes */
 
@@ -118,6 +123,7 @@ uint32_t max_du = 0;
 uint32_t min_du = 1e6;
 
 extern osSemaphoreId coreTaskSemHandle;
+extern osMailQId canMsgMailHandle;
 
 extern "C"
 {
@@ -192,20 +198,12 @@ extern "C"
     osSemaphoreRelease (coreTaskSemHandle);
   }
 
-  void initTaskFunc(void const * argument)
-  {
-    for(;;)
-      {
-        osDelay(10000);
-      }
-  }
-
   // main subrutine for update enach instance
   void coreTaskFunc(void const * argument)
   {
     MX_LWIP_Init();
 
-    /* ros node */
+    /* ros node init */
     ip4_addr_t dst_addr;
     IP4_ADDR(&dst_addr,192,168,25,100);
 
@@ -223,8 +221,10 @@ extern "C"
       {
         osSemaphoreWait(coreTaskSemHandle, osWaitForever);
 
+        Spine::send();
         imu_msg_.stamp = nh_.now();
         test_pub_.publish(&imu_msg_);
+        Spine::update();
       }
   }
 
@@ -289,10 +289,16 @@ int main(void)
   MX_TIM3_Init();
   MX_UART5_Init();
   MX_RTC_Init();
+  MX_FDCAN1_Init();
 
   /* Initialize interrupts */
   MX_NVIC_Init();
   /* USER CODE BEGIN 2 */
+
+  /* NERVE */
+  /* TODO: should be called in coreTask, but we have to replace all the HAL_Delay() to os Delay() */
+  Spine::init(&hfdcan1, &nh_, LD1_GPIO_Port, LD1_Pin);
+  Spine::useRTOS(&canMsgMailHandle); // use RTOS for CAN in spianl
 
   /* USER CODE END 2 */
 
@@ -331,6 +337,9 @@ void SystemClock_Config(void)
   __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
 
   while(!__HAL_PWR_GET_FLAG(PWR_FLAG_VOSRDY)) {}
+  /** Macro to configure the PLL clock source
+  */
+  __HAL_RCC_PLL_PLLSOURCE_CONFIG(RCC_PLLSOURCE_HSE);
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
   */
@@ -371,9 +380,19 @@ void SystemClock_Config(void)
     Error_Handler();
   }
   PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_RTC|RCC_PERIPHCLK_USART3
-                              |RCC_PERIPHCLK_UART5|RCC_PERIPHCLK_RNG
-                              |RCC_PERIPHCLK_SPI1|RCC_PERIPHCLK_I2C2;
+                              |RCC_PERIPHCLK_FDCAN|RCC_PERIPHCLK_UART5
+                              |RCC_PERIPHCLK_RNG|RCC_PERIPHCLK_SPI1
+                              |RCC_PERIPHCLK_I2C2;
+  PeriphClkInitStruct.PLL2.PLL2M = 1;
+  PeriphClkInitStruct.PLL2.PLL2N = 100;
+  PeriphClkInitStruct.PLL2.PLL2P = 2;
+  PeriphClkInitStruct.PLL2.PLL2Q = 10;
+  PeriphClkInitStruct.PLL2.PLL2R = 2;
+  PeriphClkInitStruct.PLL2.PLL2RGE = RCC_PLL2VCIRANGE_3;
+  PeriphClkInitStruct.PLL2.PLL2VCOSEL = RCC_PLL2VCOWIDE;
+  PeriphClkInitStruct.PLL2.PLL2FRACN = 0;
   PeriphClkInitStruct.Spi123ClockSelection = RCC_SPI123CLKSOURCE_PLL;
+  PeriphClkInitStruct.FdcanClockSelection = RCC_FDCANCLKSOURCE_PLL2;
   PeriphClkInitStruct.Usart234578ClockSelection = RCC_USART234578CLKSOURCE_D2PCLK1;
   PeriphClkInitStruct.RngClockSelection = RCC_RNGCLKSOURCE_HSI48;
   PeriphClkInitStruct.I2c123ClockSelection = RCC_I2C123CLKSOURCE_D2PCLK1;
@@ -396,6 +415,9 @@ static void MX_NVIC_Init(void)
   /* ETH_WKUP_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(ETH_WKUP_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(ETH_WKUP_IRQn);
+  /* FDCAN1_IT0_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(FDCAN1_IT0_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(FDCAN1_IT0_IRQn);
 }
 
 /* USER CODE BEGIN 4 */

@@ -31,6 +31,8 @@
 <includepath>../Middlewares/Third_Party/FreeRTOS/Source/include</includepath>
 <includepath>../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS</includepath>
 <includepath>../Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F</includepath>
+<includepath>../../spinal/mcu_project/Hydrus_Lib</includepath>
+<includepath>../Jsk_Lib</includepath>
 
 </language>
 <language name="C++ Source File">
@@ -60,6 +62,8 @@
 <includepath>../Middlewares/Third_Party/FreeRTOS/Source/include</includepath>
 <includepath>../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS</includepath>
 <includepath>../Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F</includepath>
+<includepath>../../spinal/mcu_project/Hydrus_Lib</includepath>
+<includepath>../Jsk_Lib</includepath>
 
 </language>
 <language name="Object File">

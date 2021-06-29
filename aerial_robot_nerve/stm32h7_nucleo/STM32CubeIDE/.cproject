@@ -134,6 +134,10 @@
                                     <listOptionValue builtIn="false" value="../../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS"/>
                                     									
                                     <listOptionValue builtIn="false" value="../../Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F"/>
+                                    									
+                                    <listOptionValue builtIn="false" value="../../../spinal/mcu_project/Hydrus_Lib"/>
+                                    									
+                                    <listOptionValue builtIn="false" value="../../Jsk_Lib"/>
                                     								
                                 </option>
                                 								
@@ -200,6 +204,10 @@
                                     <listOptionValue builtIn="false" value="../../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS"/>
                                     									
                                     <listOptionValue builtIn="false" value="../../Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F"/>
+                                    									
+                                    <listOptionValue builtIn="false" value="../../../spinal/mcu_project/Hydrus_Lib"/>
+                                    									
+                                    <listOptionValue builtIn="false" value="../../Jsk_Lib"/>
                                     								
                                 </option>
                                 								

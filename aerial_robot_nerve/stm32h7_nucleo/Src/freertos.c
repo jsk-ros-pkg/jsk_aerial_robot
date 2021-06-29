@@ -31,6 +31,11 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
+typedef struct // same type defined in can_device_manager.h whcih has C++ description thus cannot loaded in this C file
+{
+  FDCAN_RxHeaderTypeDef rx_header;
+  uint8_t rx_data[8];
+} can_msg;
 
 /* USER CODE END PTD */
 
@@ -46,10 +51,12 @@
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN Variables */
-
+osMailQId canMsgMailHandle;
 /* USER CODE END Variables */
 osThreadId coreTaskHandle;
 osThreadId rosSpinTaskHandle;
+osThreadId idleTaskHandle;
+osThreadId canRxHandle;
 osTimerId coreTaskTimerHandle;
 osSemaphoreId coreTaskSemHandle;
 
@@ -60,6 +67,8 @@ osSemaphoreId coreTaskSemHandle;
 
 void coreTaskFunc(void const * argument);
 void rosSpinTaskFunc(void const * argument);
+void idleTaskFunc(void const * argument);
+void canRxTask(void const * argument);
 void coreTaskEvokeCb(void const * argument);
 
 extern void MX_LWIP_Init(void);
@@ -133,6 +142,9 @@ void MX_FREERTOS_Init(void) {
 
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
+  /* add mail queue for CAN RX */
+  osMailQDef(CanMail, 20, can_msg); // defualt: 20 (in case of initializer sendBoardConfig (4 servo: 1 + 4 x 3 = 13 packets))
+  canMsgMailHandle = osMailCreate(osMailQ(CanMail), NULL);
   /* USER CODE END RTOS_QUEUES */
 
   /* Create the thread(s) */
@@ -143,6 +155,14 @@ void MX_FREERTOS_Init(void) {
   /* definition and creation of rosSpinTask */
   osThreadDef(rosSpinTask, rosSpinTaskFunc, osPriorityNormal, 0, 256);
   rosSpinTaskHandle = osThreadCreate(osThread(rosSpinTask), NULL);
+
+  /* definition and creation of idleTask */
+  osThreadDef(idleTask, idleTaskFunc, osPriorityIdle, 0, 128);
+  idleTaskHandle = osThreadCreate(osThread(idleTask), NULL);
+
+  /* definition and creation of canRx */
+  osThreadDef(canRx, canRxTask, osPriorityRealtime, 0, 256);
+  canRxHandle = osThreadCreate(osThread(canRx), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -186,6 +206,43 @@ __weak void rosSpinTaskFunc(void const * argument)
     osDelay(1);
   }
   /* USER CODE END rosSpinTaskFunc */
+}
+
+/* USER CODE BEGIN Header_idleTaskFunc */
+/**
+* @brief Function implementing the idleTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_idleTaskFunc */
+__weak void idleTaskFunc(void const * argument)
+{
+  /* USER CODE BEGIN idleTaskFunc */
+  /* Infinite loop */
+  for(;;)
+  {
+    HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
+    osDelay(1000);
+  }
+  /* USER CODE END idleTaskFunc */
+}
+
+/* USER CODE BEGIN Header_canRxTask */
+/**
+* @brief Function implementing the canRx thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_canRxTask */
+__weak void canRxTask(void const * argument)
+{
+  /* USER CODE BEGIN canRxTask */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END canRxTask */
 }
 
 /* coreTaskEvokeCb function */

@@ -24,7 +24,7 @@ namespace Spine
     uint8_t baselink_ = 2;
 
     /* sensor fusion */
-    StateEstimate* estimator_;
+    //StateEstimate* estimator_;
 
     /* ros */
     constexpr uint8_t SERVO_PUB_INTERVAL = 20; //[ms]
@@ -116,13 +116,13 @@ namespace Spine
     res.success = true;
   }
 
-  void init(CAN_HandleTypeDef* hcan, ros::NodeHandle* nh, StateEstimate* estimator, GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin)
+  void init(FDCAN_HandleTypeDef* hcan, ros::NodeHandle* nh, GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin)
   {
     /* CAN */
     CANDeviceManager::init(hcan, GPIOx, GPIO_Pin);
 
     /* Estimation */
-    estimator_ = estimator;
+    //estimator_ = estimator;
 
     /* ros */
     nh_ = nh;
@@ -177,7 +177,7 @@ namespace Spine
         {
           uav_model_ = spinal::UavInfo::DRAGON;
           /* special smoothing flag for dragon */
-          estimator_->getAttEstimator()->setPubAccGryoOnlyFlag(true);
+          //estimator_->getAttEstimator()->setPubAccGryoOnlyFlag(true);
         }
 
     servo_state_msg_.servos_length = servo_with_send_flag_.size();
@@ -193,14 +193,14 @@ namespace Spine
     imu_weight_[0] = 1.0;
     for (uint i = 1; i < imu_weight_.size(); i++) imu_weight_[i] = 0.0;
 
-    estimator_->getAttEstimator()->setImuWeight(0, imu_weight_[0]);
+    //estimator_->getAttEstimator()->setImuWeight(0, imu_weight_[0]);
     for (int i = 0; i < slave_num_; i++) {
       HAL_Delay(100);
-      neuron_.at(i).can_imu_.init();
-      if(i != baselink_) neuron_.at(i).can_imu_.setVirtualFrame(true);
-      estimator_->getAttEstimator()->addImu(&(neuron_.at(i).can_imu_), imu_weight_[i + 1]);
+      //neuron_.at(i).can_imu_.init();
+      //if(i != baselink_) neuron_.at(i).can_imu_.setVirtualFrame(true);
+      //estimator_->getAttEstimator()->addImu(&(neuron_.at(i).can_imu_), imu_weight_[i + 1]);
 
-      IMU_ROS_CMD::addImu(&(neuron_.at(i).can_imu_));
+      //IMU_ROS_CMD::addImu(&(neuron_.at(i).can_imu_));
     }
 
     //set response for get_board_info
@@ -230,8 +230,8 @@ namespace Spine
 
   void update(void)
   {
-    for (int i = 0; i < slave_num_; i++)
-      neuron_.at(i).can_imu_.update();
+    // for (int i = 0; i < slave_num_; i++)
+    //   neuron_.at(i).can_imu_.update();
 
     //convertGyroFromJointvalues();
 
