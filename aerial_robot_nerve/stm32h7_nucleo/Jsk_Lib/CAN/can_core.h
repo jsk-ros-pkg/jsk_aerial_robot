@@ -38,7 +38,26 @@ namespace CAN {
   }
 
   inline uint32_t getDlc(FDCAN_RxHeaderTypeDef rx_header) {
-    return rx_header.DataLength >> 16;
+    uint8_t dlc = rx_header.DataLength >> 16;
+    if (dlc <= 8) return dlc;
+
+    switch (rx_header.DataLength) {
+    case FDCAN_DLC_BYTES_12:
+      return 12;
+    case FDCAN_DLC_BYTES_16:
+      return 16;
+    case FDCAN_DLC_BYTES_20:
+      return 20;
+    case FDCAN_DLC_BYTES_24:
+      return 24;
+    case FDCAN_DLC_BYTES_32:
+      return 32;
+    case FDCAN_DLC_BYTES_48:
+      return 48;
+    case FDCAN_DLC_BYTES_64:
+      return 64;
+    }
+
   }
 }
 

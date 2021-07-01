@@ -15,7 +15,7 @@
 typedef struct
 {
   FDCAN_RxHeaderTypeDef rx_header;
-  uint8_t rx_data[8];
+  uint8_t rx_data[64];
 } can_msg;
 
 namespace CANDeviceManager

@@ -34,7 +34,7 @@
 typedef struct // same type defined in can_device_manager.h whcih has C++ description thus cannot loaded in this C file
 {
   FDCAN_RxHeaderTypeDef rx_header;
-  uint8_t rx_data[8];
+  uint8_t rx_data[64];
 } can_msg;
 
 /* USER CODE END PTD */
@@ -143,7 +143,7 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
   /* add mail queue for CAN RX */
-  osMailQDef(CanMail, 20, can_msg); // defualt: 20 (in case of initializer sendBoardConfig (4 servo: 1 + 4 x 3 = 13 packets))
+  osMailQDef(CanMail, 10, can_msg); // defualt: 20 for 8 data bytes (in case of initializer sendBoardConfig (4 servo: 1 + 4 x 3 = 13 packets)); 10 for 64 data bytes
   canMsgMailHandle = osMailCreate(osMailQ(CanMail), NULL);
   /* USER CODE END RTOS_QUEUES */
 

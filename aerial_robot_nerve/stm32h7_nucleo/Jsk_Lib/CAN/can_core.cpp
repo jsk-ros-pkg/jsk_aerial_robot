@@ -13,7 +13,7 @@ namespace CAN {
     //CAN bus registers
     FDCAN_HandleTypeDef* hfdcan_;
     FDCAN_TxHeaderTypeDef tx_header_;
-    uint8_t tx_data_[8]; // TODO: change to 64 data bytes
+    uint8_t tx_data_[64]; // TODO: change to 64 data bytes
   }
 
   void init(FDCAN_HandleTypeDef* hfdcan)
@@ -38,10 +38,19 @@ namespace CAN {
     tx_header_.IdType = FDCAN_STANDARD_ID;
     tx_header_.TxFrameType = FDCAN_DATA_FRAME;
     tx_header_.ErrorStateIndicator = FDCAN_ESI_ACTIVE;
-    tx_header_.BitRateSwitch = FDCAN_BRS_OFF;
-    tx_header_.FDFormat = FDCAN_CLASSIC_CAN;
+
+    tx_header_.BitRateSwitch = FDCAN_BRS_ON; // FDCAN_BRS_OFF;
+
     tx_header_.TxEventFifoControl = FDCAN_NO_TX_EVENTS;
     tx_header_.MessageMarker = 0;
+
+    // www.programmersought.com/article/43428259685/#TDC_568
+    // The SSP location is defined as the sum of the measurement delay from the FDCAN_TX
+    // pin to the FDCAN_RX pin, plus the transmitter delay compensation offset configured
+    // by the TDCO [6: 0] field.
+    // TdcOffset = DataTimeSeg1 * DataPrescaler.
+    HAL_FDCAN_ConfigTxDelayCompensation(hfdcan_, 7, 0); //Configure hfdcan1
+    HAL_FDCAN_EnableTxDelayCompensation(hfdcan_); //Enable TDC of hfdcan1
   }
 
   FDCAN_HandleTypeDef* getHcanInstance()
@@ -53,10 +62,56 @@ namespace CAN {
   {
     tx_header_.Identifier = (((device_id & ((1 << DEVICE_ID_LEN) - 1))  << (MESSAGE_ID_LEN + SLAVE_ID_LEN))) | ((message_id & ((1 << MESSAGE_ID_LEN) - 1)) << SLAVE_ID_LEN) | (slave_id & ((1 << SLAVE_ID_LEN) - 1));
 
-    //tx_header_.DataLength = FDCAN_DLC_BYTES_8; // sample
-    // TODO: we only support 8byte  data
-    tx_header_.DataLength =  dlc << 16;
-    
+    if (dlc <= 8) { // calssic  model
+      tx_header_.FDFormat = FDCAN_CLASSIC_CAN;
+      tx_header_.DataLength =  dlc << 16;
+    }
+    else {
+      tx_header_.FDFormat = FDCAN_FD_CAN;
+      switch(dlc) {
+      case 12:
+        {
+          tx_header_.DataLength = FDCAN_DLC_BYTES_12;
+          break;
+        }
+      case 16:
+        {
+          tx_header_.DataLength = FDCAN_DLC_BYTES_16;
+          break;
+        }
+      case 20:
+        {
+          tx_header_.DataLength = FDCAN_DLC_BYTES_20;
+          break;
+        }
+      case 24:
+        {
+          tx_header_.DataLength = FDCAN_DLC_BYTES_24;
+          break;
+        }
+      case 32:
+        {
+          tx_header_.DataLength = FDCAN_DLC_BYTES_32;
+          break;
+        }
+      case 48:
+        {
+          tx_header_.DataLength = FDCAN_DLC_BYTES_48;
+          break;
+        }
+      case 64:
+        {
+          tx_header_.DataLength = FDCAN_DLC_BYTES_64;
+          break;
+        }
+      default:
+        {
+          // Not supported
+          return;
+        }
+      }
+    }
+
     memcpy(tx_data_, data, sizeof(uint8_t) * dlc);
 
     uint32_t tickstart = HAL_GetTick();
