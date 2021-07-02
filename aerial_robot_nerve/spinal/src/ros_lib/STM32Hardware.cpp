@@ -11,9 +11,11 @@
 namespace
 {
 #ifdef STM32H7
-  RingBuffer<uint8_t, RX_BUFFER_SIZE>  rx_buf_ __attribute__((section(".UartRxBufferSection"))); // general rx buffer
+  RingBuffer<uint8_t, RX_BUFFER_SIZE>  rx_buf_ __attribute__((section(".UartRxBufferSection")));
+  struct TxBufferUnit<TX_BUFFER_WIDTH> uart_tx_buffer_unit_[TX_BUFFER_SIZE]  __attribute__((section(".UartTxBufferSection")));
 #else
-  RingBuffer<uint8_t, RX_BUFFER_SIZE>  rx_buf_; // general rx buffer
+  RingBuffer<uint8_t, RX_BUFFER_SIZE>  rx_buf_;
+  struct TxBufferUnit<TX_BUFFER_WIDTH> uart_tx_buffer_unit_[TX_BUFFER_SIZE];
 #endif
 
 #if SUPPORT_RTOS

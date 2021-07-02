@@ -61,6 +61,7 @@ osThreadId rosPublishHandle;
 osTimerId coreTaskTimerHandle;
 osMutexId rosPubMutexHandle;
 osSemaphoreId coreTaskSemHandle;
+osSemaphoreId uartTxSemHandle;
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
@@ -131,6 +132,10 @@ void MX_FREERTOS_Init(void) {
   /* definition and creation of coreTaskSem */
   osSemaphoreDef(coreTaskSem);
   coreTaskSemHandle = osSemaphoreCreate(osSemaphore(coreTaskSem), 1);
+
+  /* definition and creation of uartTxSem */
+  osSemaphoreDef(uartTxSem);
+  uartTxSemHandle = osSemaphoreCreate(osSemaphore(uartTxSem), 1);
 
   /* USER CODE BEGIN RTOS_SEMAPHORES */
   /* add semaphores, ... */

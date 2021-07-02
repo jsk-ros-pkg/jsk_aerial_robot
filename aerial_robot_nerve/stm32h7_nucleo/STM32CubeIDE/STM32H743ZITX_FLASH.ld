@@ -163,6 +163,8 @@ SECTIONS
   .uart_sec (NOLOAD) : {
     . = ABSOLUTE(0x24040000);
     *(.UartRxBufferSection)
+    . = ABSOLUTE(0x24040400);
+    *(.UartTxBufferSection)
   } >RAM_D1 AT> FLASH
 
   .lwip_sec (NOLOAD) : {

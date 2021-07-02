@@ -149,7 +149,6 @@ private:
   /* rx */
   uint32_t uart_rxdma_rd_ptr_ = 0;
   /* tx */
-  struct TxBufferUnit<TX_BUFFER_WIDTH> uart_tx_buffer_unit_[TX_BUFFER_SIZE];
   uint8_t uart_tx_subscript_in_progress_;
   uint8_t uart_tx_subscript_to_add_;
 

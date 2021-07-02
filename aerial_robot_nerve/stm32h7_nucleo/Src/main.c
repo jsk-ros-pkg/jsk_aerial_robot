@@ -130,6 +130,7 @@ bool canfd_send_tx_ = false;
 extern osSemaphoreId coreTaskSemHandle;
 extern osMailQId canMsgMailHandle;
 extern osMutexId rosPubMutexHandle;
+extern osSemaphoreId uartTxSemHandle;
 
 extern "C"
 {
@@ -214,7 +215,8 @@ extern "C"
     IP4_ADDR(&dst_addr,192,168,25,100);
 
     //nh_.initNode(dst_addr, 12345,12345);
-    nh_.initNode(&huart2, &rosPubMutexHandle, NULL);
+    nh_.initNode(&huart2, &rosPubMutexHandle, &uartTxSemHandle);
+    //nh_.initNode(&huart2, &rosPubMutexHandle, NULL); // no DMA for TX
 
     nh_.advertise(test_pub_);
     nh_.advertise(test_pub2_);
@@ -474,6 +476,12 @@ static void MX_NVIC_Init(void)
   /* FDCAN1_IT0_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(FDCAN1_IT0_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(FDCAN1_IT0_IRQn);
+  /* USART2_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(USART2_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(USART2_IRQn);
+  /* DMA1_Stream1_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Stream1_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Stream1_IRQn);
 }
 
 /* USER CODE BEGIN 4 */
@@ -539,6 +547,21 @@ void MPU_Config(void)
   MPU_InitStruct.Number = MPU_REGION_NUMBER3;
   MPU_InitStruct.BaseAddress = 0x24040000;
   MPU_InitStruct.Size = MPU_REGION_SIZE_1KB;
+  MPU_InitStruct.SubRegionDisable = 0x0;
+  MPU_InitStruct.TypeExtField = MPU_TEX_LEVEL0;
+  MPU_InitStruct.AccessPermission = MPU_REGION_FULL_ACCESS;
+  MPU_InitStruct.DisableExec = MPU_INSTRUCTION_ACCESS_ENABLE;
+  MPU_InitStruct.IsShareable = MPU_ACCESS_NOT_SHAREABLE;
+  MPU_InitStruct.IsCacheable = MPU_ACCESS_NOT_CACHEABLE;
+  MPU_InitStruct.IsBufferable = MPU_ACCESS_NOT_BUFFERABLE;
+
+  HAL_MPU_ConfigRegion(&MPU_InitStruct);
+  /** Initializes and configures the Region and the memory to be protected
+  */
+  MPU_InitStruct.Enable = MPU_REGION_ENABLE;
+  MPU_InitStruct.Number = MPU_REGION_NUMBER4;
+  MPU_InitStruct.BaseAddress = 0x24040400;
+  MPU_InitStruct.Size = MPU_REGION_SIZE_16KB;
   MPU_InitStruct.SubRegionDisable = 0x0;
   MPU_InitStruct.TypeExtField = MPU_TEX_LEVEL0;
   MPU_InitStruct.AccessPermission = MPU_REGION_FULL_ACCESS;
