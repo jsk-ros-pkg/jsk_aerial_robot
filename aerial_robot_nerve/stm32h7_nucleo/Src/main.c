@@ -105,6 +105,10 @@ spinal::Imu imu_msg_;
 ros::Publisher test_pub_("/imu", &imu_msg_);
 ros::Publisher test_pub2_("/test_pub1", &test_msg_);
 ros::Publisher test_pub3_("/test_pub2", &test_msg_);
+void testCallback(const std_msgs::Empty& msg);
+ros::Subscriber<std_msgs::Empty> test_sub_("/test_sub", &testCallback);
+void test2Callback(const spinal::ServoControlCmd& msg);
+ros::Subscriber<spinal::ServoControlCmd> test2_sub_("/target_servo_sub", &test2Callback);
 
 uint32_t servo_msg_cnt = 0;
 uint32_t max_cnt_diff = 0;
@@ -206,9 +210,6 @@ extern "C"
     IP4_ADDR(&dst_addr,192,168,25,100);
 
     nh_.initNode(dst_addr, 12345,12345);
-
-    ros::Subscriber<std_msgs::Empty> test_sub_("/test_sub", &testCallback);
-    ros::Subscriber<spinal::ServoControlCmd> test2_sub_("/target_servo_sub", &test2Callback);
 
     nh_.advertise(test_pub_);
     nh_.advertise(test_pub2_);
