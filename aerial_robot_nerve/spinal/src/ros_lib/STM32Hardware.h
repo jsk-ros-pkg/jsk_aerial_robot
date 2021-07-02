@@ -9,14 +9,15 @@
 #ifndef STMH32_HARDWARE_H_
 #define STMH32_HARDWARE_H_
 
-#define SUPPORT_RTOS 0
-#define SUPPORT_LWIP 0
+#define SUPPORT_RTOS 1
+#define SUPPORT_LWIP 1
 
 #if defined (STM32F756xx) || defined (STM32F746xx) || defined (STM32F745xx) || defined (STM32F765xx) || \
     defined (STM32F767xx) || defined (STM32F769xx) || defined (STM32F777xx) || defined (STM32F779xx) || \
     defined (STM32F722xx) || defined (STM32F723xx) || defined (STM32F732xx) || defined (STM32F733xx) || \
     defined (STM32F730xx) || defined (STM32F750xx)
 #include "stm32f7xx_hal.h"
+#define STM32F7
 #endif
 
 #if defined (STM32H743xx) || defined (STM32H753xx)  || defined (STM32H750xx) || defined (STM32H742xx) || \
@@ -24,6 +25,7 @@
     defined (STM32H7A3xx) || defined (STM32H7A3xxQ) || defined (STM32H7B3xx) || defined (STM32H7B3xxQ) || defined (STM32H7B0xx)  || defined (STM32H7B0xxQ) || \
     defined (STM32H735xx) || defined (STM32H733xx)  || defined (STM32H730xx) || defined (STM32H730xxQ)  || defined (STM32H725xx) || defined (STM32H723xx)
 #include "stm32h7xx_hal.h"
+#define STM32H7
 #endif
 
 #if SUPPORT_RTOS

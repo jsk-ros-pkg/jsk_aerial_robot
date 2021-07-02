@@ -160,8 +160,11 @@ SECTIONS
   } >DTCMRAM
 
   
+  .uart_sec (NOLOAD) : {
+    . = ABSOLUTE(0x24040000);
+    *(.UartRxBufferSection)
+  } >RAM_D1 AT> FLASH
 
-  
   .lwip_sec (NOLOAD) : {
     . = ABSOLUTE(0x30040000);
     *(.RxDecripSection) 

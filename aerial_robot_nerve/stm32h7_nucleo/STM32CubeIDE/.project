@@ -83,6 +83,11 @@
 			<locationURI>PARENT-1-PROJECT_LOC/ros_lib</locationURI>
 		</link>
 		<link>
+			<name>Application/User/dma.c</name>
+			<type>1</type>
+			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/Src/dma.c</locationURI>
+		</link>
+		<link>
 			<name>Application/User/ethernetif.c</name>
 			<type>1</type>
 			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/Src/ethernetif.c</locationURI>

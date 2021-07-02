@@ -10,7 +10,11 @@
 
 namespace
 {
+#ifdef STM32H7
+  RingBuffer<uint8_t, RX_BUFFER_SIZE>  rx_buf_ __attribute__((section(".UartRxBufferSection"))); // general rx buffer
+#else
   RingBuffer<uint8_t, RX_BUFFER_SIZE>  rx_buf_; // general rx buffer
+#endif
 
 #if SUPPORT_RTOS
   osSemaphoreId *tx_semaphore_;

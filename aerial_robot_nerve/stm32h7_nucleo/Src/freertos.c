@@ -57,7 +57,9 @@ osThreadId coreTaskHandle;
 osThreadId rosSpinTaskHandle;
 osThreadId idleTaskHandle;
 osThreadId canRxHandle;
+osThreadId rosPublishHandle;
 osTimerId coreTaskTimerHandle;
+osMutexId rosPubMutexHandle;
 osSemaphoreId coreTaskSemHandle;
 
 /* Private function prototypes -----------------------------------------------*/
@@ -69,6 +71,7 @@ void coreTaskFunc(void const * argument);
 void rosSpinTaskFunc(void const * argument);
 void idleTaskFunc(void const * argument);
 void canRxTask(void const * argument);
+void rosPublishTask(void const * argument);
 void coreTaskEvokeCb(void const * argument);
 
 extern void MX_LWIP_Init(void);
@@ -115,6 +118,10 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN Init */
 
   /* USER CODE END Init */
+  /* Create the mutex(es) */
+  /* definition and creation of rosPubMutex */
+  osMutexDef(rosPubMutex);
+  rosPubMutexHandle = osMutexCreate(osMutex(rosPubMutex));
 
   /* USER CODE BEGIN RTOS_MUTEX */
   /* add mutexes, ... */
@@ -163,6 +170,10 @@ void MX_FREERTOS_Init(void) {
   /* definition and creation of canRx */
   osThreadDef(canRx, canRxTask, osPriorityRealtime, 0, 256);
   canRxHandle = osThreadCreate(osThread(canRx), NULL);
+
+  /* definition and creation of rosPublish */
+  osThreadDef(rosPublish, rosPublishTask, osPriorityBelowNormal, 0, 128);
+  rosPublishHandle = osThreadCreate(osThread(rosPublish), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -243,6 +254,24 @@ __weak void canRxTask(void const * argument)
     osDelay(1);
   }
   /* USER CODE END canRxTask */
+}
+
+/* USER CODE BEGIN Header_rosPublishTask */
+/**
+* @brief Function implementing the rosPublish thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_rosPublishTask */
+__weak void rosPublishTask(void const * argument)
+{
+  /* USER CODE BEGIN rosPublishTask */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END rosPublishTask */
 }
 
 /* coreTaskEvokeCb function */
