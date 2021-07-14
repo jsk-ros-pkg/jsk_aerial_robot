@@ -38,6 +38,32 @@ include_directories(
   ${NLOPT_INCLUDE_DIRS}
 )
 
+# dragon euslisp model generation
+add_custom_command(OUTPUT ${PROJECT_SOURCE_DIR}/robots/quad/dragon.l
+  COMMAND rosrun euscollada collada2eus dragon.dae dragon.yaml dragon.l
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/robots/quad
+  DEPENDS ${PROJECT_SOURCE_DIR}/robots/quad/dragon.dae
+          ${PROJECT_SOURCE_DIR}/robots/quad/dragon.yaml)
+add_custom_command(OUTPUT ${PROJECT_SOURCE_DIR}/robots/quad/dragon.dae
+  COMMAND rosrun collada_urdf urdf_to_collada dragon.urdf dragon.dae
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/robots/quad
+  DEPENDS ${PROJECT_SOURCE_DIR}/robots/quad/dragon.urdf)
+add_custom_command(OUTPUT ${PROJECT_SOURCE_DIR}/robots/quad/dragon.urdf
+  COMMAND ROS_PACKAGE_PATH=${PROJECT_SOURCE_DIR}:$ENV{ROS_PACKAGE_PATH} rosrun xacro xacro euclid_201709.urdf.xacro > dragon.urdf
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/robots/quad
+  DEPENDS ${PROJECT_SOURCE_DIR}/robots/quad/euclid_201709.urdf.xacro
+          ${PROJECT_SOURCE_DIR}/urdf/dragon_common.xacro
+          ${PROJECT_SOURCE_DIR}/urdf/dragon_link.urdf.xacro)
+
+# gte collada-dom version
+find_package(PkgConfig)
+pkg_check_modules(COLLADA collada-dom>=2.4.4)
+if(${COLLADA_FOUND})
+  add_custom_target(generate_dragon_default_lisp ALL DEPENDS ${PROJECT_SOURCE_DIR}/robots/quad/dragon.l)
+else()
+  pkg_check_modules(COLLADA collada-dom)
+  message(WARNING "urdf_to_collada requries collada-dom >= 2.4.4, installed version is ${COLLADA_VERSION}")
+endif()
 
 add_library(dragon_sensor_pluginlib  src/sensor/imu.cpp)
 target_link_libraries(dragon_sensor_pluginlib ${catkin_LIBRARIES})
