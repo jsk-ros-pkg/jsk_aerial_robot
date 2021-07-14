@@ -1,20 +1,19 @@
 #!/usr/bin/env roseus
 
-(require "package://pr2eus/robot-interface.l")
-(load "package://dragon/euslisp/quad/dragon-utils.l")
+(require :aerial-robot-interface "package://aerial_robot_base/euslisp/aerial-robot-interface.l")
+(require :dragon-utils "package://dragon/euslisp/quad/dragon-utils.l")
 
 
 (defclass dragon-interface
-  :super robot-interface
+  :super aerial-robot-interface
   :slots ()
   )
 
 
 (defmethod dragon-interface
   (:init (&rest args)
-    (prog1 (send-super* :init :robot dragon-robot :joint-states-topic "/dragon/joint_states" args)
-      (send self :add-controller :larm-controller)
-    ))
+    (prog1 (send-super* :init :robot dragon-robot :namespace "dragon" args)
+      (send self :add-controller :larm-controller)))
   (:default-controller ()
     (append
       (send self :larm-controller)))
@@ -36,3 +35,6 @@
   (setq *ri* (instance dragon-interface :init))
   (send *robot* :angle-vector (send *ri* :state :potentio-vector))
   (objects (list *robot*)))
+
+
+(provide :dragon-interface "package://dragon/euslisp/quad/dragon-interface.l)
