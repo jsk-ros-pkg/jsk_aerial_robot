@@ -177,6 +177,11 @@ ServoBridge::ServoBridge(ros::NodeHandle nh, ros::NodeHandle nhp): nh_(nh),nhp_(
     }
 
   if(!simulation_mode_) servo_states_pub_ = nh_.advertise<sensor_msgs::JointState>("joint_states", 1);
+
+  /* create simple action server to support followjointtrajectory */
+  as_ = std::make_shared<actionlib::SimpleActionServer<control_msgs::FollowJointTrajectoryAction>>(nh_, std::string("follow_joint_trajectory"), boost::bind(&ServoBridge::followJointTrajectoryCallback, this, _1), false);
+
+  as_->start();
 }
 
 void ServoBridge::servoStatesCallback(const spinal::ServoStatesConstPtr& state_msg, const string& servo_group_name)
@@ -298,4 +303,320 @@ bool ServoBridge::servoTorqueCtrlCallback(std_srvs::SetBool::Request &req, std_s
 
   return true;
 }
+
+void ServoBridge::followJointTrajectoryCallback(const control_msgs::FollowJointTrajectoryGoalConstPtr &goal)
+{
+  int num_points = goal->trajectory.points.size();
+
+  // make sure the joints in the goal are in joints of the controller
+  std::vector<SingleServoHandlePtr> servos;
+  std::vector<std::string> groups;
+
+  for(const auto& name : goal->trajectory.joint_names)
+    {
+      for(const auto& servo_group : servos_handler_)
+        {
+          auto servo_handler = find_if(servo_group.second.begin(), servo_group.second.end(),
+                                       [&](SingleServoHandlePtr s) {return name  == s->getName();});
+
+          if(servo_handler != servo_group.second.end())
+            {
+              servos.push_back(*servo_handler);
+              groups.push_back(servo_group.first);
+            }
+        }
+    }
+
+  if(servos.size() != goal->trajectory.joint_names.size())
+    {
+      std::string msg("Incoming trajectory joints do not match the joints of the controller");
+      control_msgs::FollowJointTrajectoryResult res;
+      res.error_code = control_msgs::FollowJointTrajectoryResult::INVALID_JOINTS;
+      ROS_ERROR_STREAM(msg);
+      as_->setAborted(res, msg);
+      return;
+    }
+
+  // make sure trajectory is not empty
+  if(num_points == 0)
+    {
+      std::string msg("Incoming trajectory is empty");
+      control_msgs::FollowJointTrajectoryResult res;
+      res.error_code = control_msgs::FollowJointTrajectoryResult::INVALID_GOAL;
+      ROS_ERROR_STREAM(msg);
+      as_->setAborted(res, msg);
+      return;
+    }
+
+  // correlate the joints we're commanding to the joints in the message
+  std::vector<double> durations (num_points, 0.0);
+
+  // find out the duration of each segment in the trajectory
+  durations.at(0) = goal->trajectory.points.at(0).time_from_start.toSec();
+  for(int i = 1; i < num_points; i++)
+    durations.at(i) = (goal->trajectory.points.at(i).time_from_start - goal->trajectory.points.at(i-1).time_from_start).toSec();
+
+  if (goal->trajectory.points[0].positions.empty())
+    {
+      std::string msg("First point of trajectory has no positions");
+      control_msgs::FollowJointTrajectoryResult res;
+      res.error_code = control_msgs::FollowJointTrajectoryResult::INVALID_GOAL;
+      ROS_ERROR_STREAM(msg);
+      as_->setAborted(res, msg);
+      return;
+    }
+
+  struct Segment
+  {
+    double start_time; // trajectory segment start time
+    double end_time; // trajectory segment end time
+    std::vector<double> positions;
+    std::vector<double> velocities;
+
+    Segment(int num_joints):
+      start_time(0),
+      end_time(0),
+      positions(num_joints, 0),
+      velocities(num_joints, 0)
+    {}
+  };
+
+  std::vector<Segment> trajectory;
+  ros::Time time = ros::Time::now() + ros::Duration(0.01);
+
+  for(int i = 0; i < num_points; i++)
+    {
+      double seg_start_time = 0;
+      double seg_duration = 0;
+      Segment seg{(int)goal->trajectory.joint_names.size()};
+
+      if(goal->trajectory.header.stamp == ros::Time(0.0))
+        seg.start_time = (time + goal->trajectory.points.at(i).time_from_start).toSec() - durations.at(i);
+      else
+        seg.start_time = (goal->trajectory.header.stamp + goal->trajectory.points.at(i).time_from_start).toSec() - durations.at(i);
+
+      seg.end_time = seg.start_time + durations.at(i);
+
+      // Checks that the incoming segment has the right number of elements.
+      if(goal->trajectory.points[i].velocities.size() > 0 && goal->trajectory.points[i].velocities.size() != goal->trajectory.joint_names.size())
+        {
+          std::string msg = std::string("Command point ") + std::to_string(i) + std::string(" has wrong amount of velocities");
+          control_msgs::FollowJointTrajectoryResult res;
+          res.error_code = control_msgs::FollowJointTrajectoryResult::INVALID_GOAL;
+          ROS_ERROR_STREAM(msg);
+          as_->setAborted(res, msg);
+          return;
+        }
+
+      if(goal->trajectory.points[i].positions.size() != goal->trajectory.joint_names.size())
+        {
+          std::string msg = std::string("Command point ") + std::to_string(i) + std::string(" has wrong amount of positions");
+          control_msgs::FollowJointTrajectoryResult res;
+          res.error_code = control_msgs::FollowJointTrajectoryResult::INVALID_GOAL;
+          ROS_ERROR_STREAM(msg);
+          as_->setAborted(res, msg);
+          return;
+        }
+
+      for(int j = 0; j < goal->trajectory.joint_names.size(); j++)
+        {
+          if(goal->trajectory.points.at(i).velocities.size() > 0)
+            seg.velocities.at(j) = goal->trajectory.points.at(i).velocities.at(j);
+
+          seg.positions.at(j) = goal->trajectory.points.at(i).positions.at(j);
+        }
+
+      trajectory.push_back(seg);
+    }
+
+  ROS_INFO("Trajectory start requested at %.3lf, waiting...", goal->trajectory.header.stamp.toSec());
+
+  ros::Rate rate(1000);
+  while(goal->trajectory.header.stamp > time)
+    {
+      time = ros::Time::now();
+      rate.sleep();
+    }
+
+  double total_duration = std::accumulate(durations.begin(), durations.end(), 0);
+  ROS_INFO("Trajectory start time is %.3lf, end time is %.3lf, total duration is %.3lf", time.toSec(),  time.toSec() + total_duration, total_duration);
+
+  std::map <std::string, spinal::ServoControlCmd> target_angle_group_msg;
+  for (const auto& servo_group : servos_handler_)
+    target_angle_group_msg.insert(std::make_pair(servo_group.first, spinal::ServoControlCmd()));
+
+  control_msgs::FollowJointTrajectoryFeedback feedback;
+  feedback.joint_names = goal->trajectory.joint_names;
+  feedback.header.stamp = time;
+  feedback.desired.positions.resize(goal->trajectory.joint_names.size());
+  feedback.actual.positions.resize(goal->trajectory.joint_names.size());
+  feedback.error.positions.resize(goal->trajectory.joint_names.size());
+
+  for(int seg = 0; seg < trajectory.size(); seg++)
+    {
+      ROS_DEBUG("current segment is %d time left %f cur time %f", seg, durations.at(seg) - (time.toSec() - trajectory.at(seg).start_time), time.toSec());
+
+      if(durations.at(seg) == 0)
+        {
+          ROS_DEBUG("skipping segment %d with duration of 0 seconds", seg);
+          continue;
+        }
+
+      for(int j = 0; j < goal->trajectory.joint_names.size(); j++)
+        {
+          auto servo = servos.at(j);
+          auto servo_group_name = groups.at(j);
+
+          servo->setTargetAngleVal(trajectory.at(seg).positions.at(j), ValueType::RADIAN);
+          // TODO: currently, velocity is not supported in our system.
+
+          auto& target_angle_msg = target_angle_group_msg.at(servo_group_name);
+          target_angle_msg.index.push_back(servo->getId());
+          target_angle_msg.angles.push_back(servo->getTargetAngleVal(ValueType::BIT));
+
+          if(simulation_mode_)
+            {
+              std_msgs::Float64 msg;
+              msg.data = trajectory.at(seg).positions.at(j);
+
+              auto servo_group = servos_handler_.at(servo_group_name);
+              auto servo_handler = find_if(servo_group.begin(), servo_group.end(),
+                                           [&](SingleServoHandlePtr s) {return servo->getName()  == s->getName();});
+
+              servo_ctrl_sim_pubs_.at(servo_group_name).at(distance(servo_group.begin(), servo_handler)).publish(msg);
+            }
+        }
+
+      for(const auto& servo_group: target_angle_group_msg)
+        {
+          if(servo_group.second.index.size() > 0)
+            servo_ctrl_pubs_[servo_group.first].publish(servo_group.second);
+        }
+
+      while(time.toSec() < trajectory.at(seg).end_time)
+        {
+          // check if new trajectory was received, if so abort current trajectory execution
+          // by setting the goal to the current position
+          if (as_->isPreemptRequested())
+            {
+              for(int j = 0; j < goal->trajectory.joint_names.size(); j++)
+                {
+                  auto servo = servos.at(j);
+                  auto servo_group_name = groups.at(j);
+
+                  servo->setTargetAngleVal(servo->getCurrAngleVal(ValueType::RADIAN), ValueType::RADIAN);
+
+                  auto& target_angle_msg = target_angle_group_msg.at(servo_group_name);
+                  target_angle_msg.index.push_back(servo->getId());
+                  target_angle_msg.angles.push_back(servo->getTargetAngleVal(ValueType::BIT));
+
+                  if(simulation_mode_)
+                    {
+                      std_msgs::Float64 msg;
+                      msg.data = trajectory.at(seg).positions.at(j);
+
+                      auto servo_group = servos_handler_.at(servo_group_name);
+                      auto servo_handler = find_if(servo_group.begin(), servo_group.end(),
+                                                   [&](SingleServoHandlePtr s) {return servo->getName()  == s->getName();});
+
+                      servo_ctrl_sim_pubs_.at(servo_group_name).at(distance(servo_group.begin(), servo_handler)).publish(msg);
+                    }
+                }
+
+              for(const auto& servo_group: target_angle_group_msg)
+                {
+                  if(servo_group.second.index.size() > 0)
+                    servo_ctrl_pubs_[servo_group.first].publish(servo_group.second);
+                }
+
+              as_->setPreempted();
+              if(as_->isNewGoalAvailable())
+                ROS_WARN("New trajectory received. Aborting old trajectory.");
+              else
+                ROS_WARN("Canceled trajectory following action");
+              return;
+            }
+
+          if((time - feedback.header.stamp).toSec() > 0.1) // 10 Hz
+            {
+              feedback.header.stamp = time;
+              for(int j = 0; j < goal->trajectory.joint_names.size(); j++)
+                {
+                  const auto servo = servos.at(j);
+                  feedback.desired.positions.at(j) = servo->getTargetAngleVal(ValueType::RADIAN);
+                  feedback.actual.positions.at(j) = servo->getCurrAngleVal(ValueType::RADIAN);
+                  feedback.error.positions.at(j) = feedback.desired.positions.at(j) - feedback.actual.positions.at(j);
+                }
+              as_->publishFeedback(feedback);
+            }
+
+          rate.sleep();
+          time = ros::Time::now();
+        }
+
+      // Verify trajectory constraints
+      for(int j = 0; j < goal->trajectory.joint_names.size(); j++)
+        {
+          const auto servo = servos.at(j);
+          auto tol = find_if(goal->path_tolerance.begin(), goal->path_tolerance.end(),
+                             [&](control_msgs::JointTolerance s) {return servo->getName() == s.name;});
+
+          if(tol == goal->path_tolerance.end()) continue;
+
+          double pos_err = fabs(servo->getTargetAngleVal(ValueType::RADIAN) - servo->getCurrAngleVal(ValueType::RADIAN));
+          double pos_tol = tol->position;
+          if(pos_tol > 0 && pos_err > pos_tol)
+            {
+              std::string msg = std::string("Unsatisfied position tolerance for ") + servo->getName() + std::string(", trajectory point") \
+              + std::to_string(seg) + std::string(", ") + std::to_string(pos_err) + std::string(" is larger than ") \
+              + std::to_string(pos_tol);
+
+              ROS_WARN_STREAM(msg);
+              control_msgs::FollowJointTrajectoryResult res;
+              res.error_code = control_msgs::FollowJointTrajectoryResult::PATH_TOLERANCE_VIOLATED;
+              as_->setAborted(res, msg);
+              return;
+            }
+        }
+    }
+
+  for(int j = 0; j < goal->trajectory.joint_names.size(); j++)
+    {
+      const auto servo = servos.at(j);
+      ROS_DEBUG("desired pos was %f, actual pos is %f, error is %f", trajectory.back().positions.at(j), servo->getCurrAngleVal(ValueType::RADIAN),
+                servo->getCurrAngleVal(ValueType::RADIAN) - servo->getCurrAngleVal(ValueType::RADIAN));
+    }
+
+  // Checks that we have ended inside the goal constraints
+  for(int j = 0; j < goal->trajectory.joint_names.size(); j++)
+    {
+      const auto servo = servos.at(j);
+      auto tol = find_if(goal->path_tolerance.begin(), goal->path_tolerance.end(),
+                         [&](control_msgs::JointTolerance s) {return servo->getName() == s.name;});
+      if(tol == goal->goal_tolerance.end()) continue;
+
+      double pos_err = fabs(servo->getTargetAngleVal(ValueType::RADIAN) - servo->getCurrAngleVal(ValueType::RADIAN));
+      double pos_tol = tol->position;
+
+      if(pos_tol > 0 && pos_err > pos_tol)
+        {
+          std::string msg = std::string("Aborting because ") + servo->getName() + std::string(" wound up outside the goal constraints, ") +
+            std::to_string(pos_err) + std::string(" is larger than ") + std::to_string(pos_tol);
+
+          ROS_WARN_STREAM(msg);
+          control_msgs::FollowJointTrajectoryResult res;
+          res.error_code = control_msgs::FollowJointTrajectoryResult::GOAL_TOLERANCE_VIOLATED;
+          as_->setAborted(res, msg);
+          return;
+        }
+    }
+
+  std::string msg("Trajectory execution successfully completed");
+  ROS_INFO_STREAM(msg);
+
+  control_msgs::FollowJointTrajectoryResult res;
+  res.error_code = control_msgs::FollowJointTrajectoryResult::SUCCESSFUL;
+  as_->setSucceeded(res, msg);
+}
+
 

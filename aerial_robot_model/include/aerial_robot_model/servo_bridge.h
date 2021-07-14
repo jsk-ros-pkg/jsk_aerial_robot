@@ -58,8 +58,13 @@
 #include <kalman_filter/lpf_filter.h>
 
 /* util */
+#include <numeric>
 #include <string>
 #include <boost/algorithm/clamp.hpp>
+
+/* action server */
+#include <actionlib/server/simple_action_server.h>
+#include <control_msgs/FollowJointTrajectoryAction.h>
 
 using namespace std;
 
@@ -209,9 +214,13 @@ protected:
   bool simulation_mode_;
   int send_init_joint_pose_cnt_;
 
+  std::shared_ptr<actionlib::SimpleActionServer<control_msgs::FollowJointTrajectoryAction>> as_; 
+
   void servoStatesCallback(const spinal::ServoStatesConstPtr& state_msg, const std::string& servo_group_name);
   void servoCtrlCallback(const sensor_msgs::JointStateConstPtr& joints_ctrl_msg, const std::string& servo_group_name);
   bool servoTorqueCtrlCallback(std_srvs::SetBool::Request &req, std_srvs::SetBool::Response &res, const std::string& servo_group_name);
+
+  void followJointTrajectoryCallback(const control_msgs::FollowJointTrajectoryGoalConstPtr &goal);
 
 public:
   ServoBridge(ros::NodeHandle nh, ros::NodeHandle nhp);
