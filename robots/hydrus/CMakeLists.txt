@@ -49,6 +49,33 @@ include_directories(
   ${EIGEN3_INCLUDE_DIRS}
 )
 
+# hydrus euslisp model generation
+add_custom_command(OUTPUT ${PROJECT_SOURCE_DIR}/robots/quad/default_mode_201907/hydrus.l
+  COMMAND rosrun euscollada collada2eus hydrus.dae hydrus.yaml hydrus.l
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/robots/quad/default_mode_201907
+  DEPENDS ${PROJECT_SOURCE_DIR}/robots/quad/default_mode_201907/hydrus.dae
+          ${PROJECT_SOURCE_DIR}/robots/quad/default_mode_201907/hydrus.yaml)
+add_custom_command(OUTPUT ${PROJECT_SOURCE_DIR}/robots/quad/default_mode_201907/hydrus.dae
+  COMMAND rosrun collada_urdf urdf_to_collada hydrus.urdf hydrus.dae
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/robots/quad/default_mode_201907
+  DEPENDS ${PROJECT_SOURCE_DIR}/robots/quad/default_mode_201907/hydrus.urdf)
+add_custom_command(OUTPUT ${PROJECT_SOURCE_DIR}/robots/quad/default_mode_201907/hydrus.urdf
+  COMMAND ROS_PACKAGE_PATH=${PROJECT_SOURCE_DIR}:$ENV{ROS_PACKAGE_PATH} rosrun xacro xacro robot.urdf.xacro > hydrus.urdf
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/robots/quad/default_mode_201907
+  DEPENDS ${PROJECT_SOURCE_DIR}/robots/quad/default_mode_201907/robot.urdf.xacro
+          ${PROJECT_SOURCE_DIR}/urdf/common.xacro
+          ${PROJECT_SOURCE_DIR}/urdf/link.urdf.xacro)
+
+# gte collada-dom version
+find_package(PkgConfig)
+pkg_check_modules(COLLADA collada-dom>=2.4.4)
+if(${COLLADA_FOUND})
+  add_custom_target(generate_hydrus_default_lisp ALL DEPENDS ${PROJECT_SOURCE_DIR}/robots/quad/default_mode_201907/hydrus.l)
+else()
+  pkg_check_modules(COLLADA collada-dom)
+  message(WARNING "urdf_to_collada requries collada-dom >= 2.4.4, installed version is ${COLLADA_VERSION}")
+endif()
+
 add_library(hydrus_robot_model
   src/hydrus_robot_model.cpp
   src/hydrus_tilted_robot_model.cpp)
