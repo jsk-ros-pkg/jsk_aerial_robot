@@ -14,7 +14,7 @@
   <build_depend>aerial_robot_control</build_depend>
   <build_depend>aerial_robot_model</build_depend>
   <build_depend>aerial_robot_msgs</build_depend>
-  <build_depend>collada_urdf</build_depend>
+  <build_depend>collada_urdf_jsk_patch</build_depend>
   <build_depend>euscollada</build_depend>
   <build_depend>roscpp</build_depend>
   <build_depend>hydrus</build_depend>
