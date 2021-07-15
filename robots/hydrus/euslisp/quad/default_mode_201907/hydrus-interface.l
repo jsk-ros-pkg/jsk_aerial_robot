@@ -23,7 +23,11 @@
         (cons :controller-action "/hydrus/follow_joint_trajectory")
         (cons :controller-state "/hydrus/follow_joint_trajectory/state")
         (cons :action-type control_msgs::FollowJointTrajectoryAction)
-        (cons :joint-names (list "joint1" "joint2" "joint3"))))))
+        (cons :joint-names (list "joint1" "joint2" "joint3")))))
+  ;; TODO: start-grasp
+  (:start-grasp (&rest args) t)
+  ;; TODO: stop-grasp
+  (:stop-grasp (&rest args) t))
 
 
 (defun hydrus-init ()
