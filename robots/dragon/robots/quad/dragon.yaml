@@ -8,6 +8,7 @@ larm:
 
 angle-vector:
   reset-pose: [0, 0, 0, 0, 0, 0]
+  reset-manip-pose: [0, 90, 0, 90, 0, 90]
 
 larm-end-coords:
   parent: link4 
