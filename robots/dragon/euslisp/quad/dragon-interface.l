@@ -26,7 +26,11 @@
         (cons :joint-names
               (list "joint1_pitch" "joint1_yaw"
                     "joint2_pitch" "joint2_yaw"
-                    "joint3_pitch" "joint3_yaw"))))))
+                    "joint3_pitch" "joint3_yaw")))))
+  ;; TODO: start-grasp
+  (:start-grasp (&rest args) t)
+  ;; TODO: stop-grasp
+  (:stop-grasp (&rest args) t))
 
 
 (defun dragon-init ()
