@@ -5,6 +5,7 @@ larm:
 
 angle-vector:
   reset-pose: [0, 0, 0]
+  reset-manip-pose: [90, 90, 90]
 
 larm-end-coords:
   parent: leg5
