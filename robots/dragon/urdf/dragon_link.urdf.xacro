@@ -87,6 +87,30 @@
     </link>
     <xacro:damping_factor link ="link${self}"/>
 
+    <link name="link${self}_edge">
+      <inertial>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <mass value="0.00001"/>
+        <inertia
+            ixx="0.000001" ixy="0.0" ixz="0.0"
+            iyy="0.000001" iyz="0.0"
+            izz="0.000002"/>
+      </inertial>
+    </link>
+    <joint name="link${self}_edge_fixed_joint" type="fixed">
+      <xacro:if value="${child > 0}">
+        <parent link="link${self}"/>
+        <child link="link${self}_edge"/>
+        <origin rpy="0 0 0" xyz="${link_length} 0 0"/>
+      </xacro:if>
+      <xacro:if value="${parent > 0}">
+        <parent link="link${self}_edge"/>
+        <child link="link${self}"/>
+        <origin rpy="0 0 0" xyz="${-1 * link_length} 0 0 "/>
+      </xacro:if>
+      <axis xyz="0 0 1"/>
+    </joint>
+
     <!-- gimbal roll -->
     <joint name="gimbal${self}_roll" type="revolute">
       <limit effort="3" lower="-3.14" upper="3.14" velocity="12.5"/>
@@ -215,16 +239,18 @@
     <xacro:unless value="${self == child or self == parent}">
       <joint name="joint${self}_pitch" type="revolute">
         <limit effort="10.0" lower="${-pi/2}" upper="${pi/2}" velocity="0.1"/>
+        <xacro:if value="${child > 0}">
+          <parent link="link${self}_edge"/>
+          <child link="inter_joint${self}"/>
+          <origin rpy="0 0 0" xyz="0 0 0"/>
+          <axis xyz="0 1 0"/>
+        </xacro:if>
         <xacro:if value="${parent > 0}">
           <parent link="inter_joint${self}"/>
-          <child link="link${self}"/>
+          <child link="link${self}_edge"/>
+          <origin rpy="0 0 0" xyz="${-2 * inter_joint_x_offset} 0 0"/>
+          <axis xyz="0 -1 0"/>
         </xacro:if>
-        <xacro:if value="${child > 0}">
-          <parent link="link${self}"/>
-          <child link="inter_joint${self}"/>
-        </xacro:if>
-        <origin rpy="0 0 0" xyz="${link_length} 0 0"/>
-        <axis xyz="0 1 0"/>
         <dynamics damping="0.9" friction="0.05"/>
       </joint>
 
@@ -239,7 +265,12 @@
               ixy="0" ixz="0.0" iyz="0.0"/>
         </inertial>
         <visual>
-          <origin rpy="0 0 0" xyz="${inter_joint_x_offset} 0 0"/>
+          <xacro:if value="${child > 0}">
+            <origin rpy="0 0 0" xyz="${inter_joint_x_offset} 0 0"/>
+          </xacro:if>
+          <xacro:if value="${parent > 0}">
+            <origin rpy="0 0 0" xyz="${-1 * inter_joint_x_offset} 0 0"/>
+          </xacro:if>
           <geometry>
             <mesh filename="package://dragon/urdf/mesh/inter_joint_junction.dae"/>
           </geometry>
@@ -251,13 +282,15 @@
         <xacro:if value="${child > 0}">
           <parent link="inter_joint${self}"/>
           <child link="link${child}"/>
+          <origin rpy="0 0 0" xyz="${2 * inter_joint_x_offset} 0 0"/>
+          <axis xyz="0 0 1"/>
         </xacro:if>
         <xacro:if value="${parent > 0}">
           <parent link="link${parent}"/>
           <child link="inter_joint${self}"/>
+          <origin rpy="0 0 0" xyz="0 0 0"/>
+          <axis xyz="0 0 -1"/>
         </xacro:if>
-        <origin rpy="0 0 0" xyz="${2 * inter_joint_x_offset} 0 0"/>
-        <axis xyz="0 0 1"/>
         <dynamics damping="0.9" friction="0.05"/>
       </joint>
 
