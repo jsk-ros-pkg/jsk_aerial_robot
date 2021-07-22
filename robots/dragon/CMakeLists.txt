@@ -65,9 +65,9 @@ add_custom_command(OUTPUT ${PROJECT_SOURCE_DIR}/robots/quad/dragon.dae
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/robots/quad
   DEPENDS ${PROJECT_SOURCE_DIR}/robots/quad/dragon.urdf)
 add_custom_command(OUTPUT ${PROJECT_SOURCE_DIR}/robots/quad/dragon.urdf
-  COMMAND ROS_PACKAGE_PATH=${PROJECT_SOURCE_DIR}:$ENV{ROS_PACKAGE_PATH} rosrun xacro xacro euclid_201709.urdf.xacro > dragon.urdf
+  COMMAND ROS_PACKAGE_PATH=${PROJECT_SOURCE_DIR}:$ENV{ROS_PACKAGE_PATH} rosrun xacro xacro euclid_201709_head.urdf.xacro > dragon.urdf
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/robots/quad
-  DEPENDS ${PROJECT_SOURCE_DIR}/robots/quad/euclid_201709.urdf.xacro
+  DEPENDS ${PROJECT_SOURCE_DIR}/robots/quad/euclid_201709_head.urdf.xacro
           ${PROJECT_SOURCE_DIR}/urdf/dragon_common.xacro
           ${PROJECT_SOURCE_DIR}/urdf/dragon_link.urdf.xacro)
 

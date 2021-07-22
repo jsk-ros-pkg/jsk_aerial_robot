@@ -1,6 +1,7 @@
-larm:
+head:
   - joint1_pitch: joint1-p
   - joint1_yaw: joint1-y
+larm:
   - joint2_pitch: joint2-p
   - joint2_yaw: joint2-y
   - joint3_pitch: joint3-p
@@ -10,7 +11,11 @@ angle-vector:
   reset-pose: [0, 0, 0, 0, 0, 0]
   reset-manip-pose: [0, 90, 0, 90, 0, 90]
 
+head-end-coords:
+  parent: link1
+  translate: [0, 0, 0]
+  rotate: [0, 0, 1, 180]
 larm-end-coords:
-  parent: link4 
+  parent: link4
   translate: [0.4, 0, 0]
   rotate: [0, 1, 0, 0]
