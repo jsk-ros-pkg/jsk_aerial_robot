@@ -3,7 +3,7 @@
     xmlns:xacro="http://www.ros.org/wiki/xacro" name="dragon_link" >
 
   <!-- D-H kai description(different from prof.nakamura) -->
-  <xacro:macro name="dragon_module" params="self child baselink">
+  <xacro:macro name="dragon_module" params="self child:=-1 parent:=-1 root baselink">
 
     <!-- link -->
     <link name="link${self}">
@@ -212,11 +212,17 @@
 
     <xacro:damping_factor link ="thrust${self}"/>
     <!-- joint -->
-    <xacro:unless value="${self == child}">
+    <xacro:unless value="${self == child or self == parent}">
       <joint name="joint${self}_pitch" type="revolute">
         <limit effort="10.0" lower="${-pi/2}" upper="${pi/2}" velocity="0.1"/>
-        <parent link="link${self}"/>
-        <child link="inter_joint${self}"/>
+        <xacro:if value="${parent > 0}">
+          <parent link="inter_joint${self}"/>
+          <child link="link${self}"/>
+        </xacro:if>
+        <xacro:if value="${child > 0}">
+          <parent link="link${self}"/>
+          <child link="inter_joint${self}"/>
+        </xacro:if>
         <origin rpy="0 0 0" xyz="${link_length} 0 0"/>
         <axis xyz="0 1 0"/>
         <dynamics damping="0.9" friction="0.05"/>
@@ -242,8 +248,14 @@
 
       <joint name="joint${self}_yaw" type="revolute">
         <limit effort="10.0" lower="${-pi/2}" upper="${pi/2}" velocity="0.1"/>
-        <parent link="inter_joint${self}"/>
-        <child link="link${child}"/>
+        <xacro:if value="${child > 0}">
+          <parent link="inter_joint${self}"/>
+          <child link="link${child}"/>
+        </xacro:if>
+        <xacro:if value="${parent > 0}">
+          <parent link="link${parent}"/>
+          <child link="inter_joint${self}"/>
+        </xacro:if>
         <origin rpy="0 0 0" xyz="${2 * inter_joint_x_offset} 0 0"/>
         <axis xyz="0 0 1"/>
         <dynamics damping="0.9" friction="0.05"/>
@@ -253,10 +265,9 @@
         <mu1>0.2</mu1>
         <mu2>0.2</mu2>
       </gazebo>
-
     </xacro:unless>
 
-    <xacro:if value="${self == 1}">
+    <xacro:if value="${root}">
       <!-- dummy root link for KDL -->
       <link name="root">
         <inertial>
@@ -297,7 +308,7 @@
     </xacro:if>
 
     <!-- hardware interface -->
-    <xacro:unless value="${self == child}">
+    <xacro:if value="${self != child and self != parent}">
       <transmission name="joint${self}_pitch_tran">
         <type>transmission_interface/SimpleTransmission</type>
         <joint name="joint${self}_pitch">
@@ -322,7 +333,7 @@
           <mechanicalReduction>1</mechanicalReduction>
         </actuator>
       </transmission>
-    </xacro:unless>
+    </xacro:if>
 
     <transmission name="gimbal${self}_roll_tran">
       <type>transmission_interface/SimpleTransmission</type>
