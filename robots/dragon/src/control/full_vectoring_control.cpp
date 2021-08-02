@@ -31,6 +31,9 @@ void DragonFullVectoringController::initialize(ros::NodeHandle nh, ros::NodeHand
   rotor_interfere_wrench_pub_ = nh_.advertise<geometry_msgs::WrenchStamped>("rotor_interfere_wrench", 1);
   interfrence_marker_pub_ = nh_.advertise<visualization_msgs::MarkerArray>("interference_markers", 1);
 
+  add_external_wrench_sub_ = nh_.subscribe(std::string("apply_external_wrench"), 1, &DragonFullVectoringController::addExternalWrenchCallback, this);
+  clear_external_wrench_service_ = nh_.advertiseService(std::string("clear_external_wrench"), &DragonFullVectoringController::clearExternalWrenchCallback, this);
+
   rotor_interfere_comp_wrench_ = Eigen::VectorXd::Zero(6); // reset
   est_external_wrench_ = Eigen::VectorXd::Zero(6);
   init_sum_momentum_ = Eigen::VectorXd::Zero(6);
@@ -542,6 +545,22 @@ void DragonFullVectoringController::controlCore()
   for(int i = 0; i < overlap_rotors_.size(); i++) ss << overlap_rotors_.at(i) << " -> " << overlap_segments_.at(i) << "; ";
   if(overlap_rotors_.size() > 0) ROS_DEBUG_STREAM("rotor interference: " << ss.str());
 
+
+  // external wrench compensation
+  // TODO: should be included in every iteration
+  Eigen::MatrixXd cog_rot_inv = aerial_robot_model::kdlToEigen(KDL::Rotation::RPY(rpy_.x(), rpy_.y(), rpy_.z()).Inverse());
+  Eigen::MatrixXd extended_cog_rot_inv = Eigen::MatrixXd::Zero(6, 6);
+  extended_cog_rot_inv.topLeftCorner(3,3) = cog_rot_inv;
+  extended_cog_rot_inv.bottomRightCorner(3,3) = cog_rot_inv;
+  std::map<std::string, Dragon::ExternalWrench> external_wrench_map = dragon_robot_model_->getExternalWrenchMap();
+  for(auto& wrench: external_wrench_map) wrench.second.wrench = extended_cog_rot_inv * wrench.second.wrench;
+  Eigen::VectorXd sum_external_wrench = dragon_robot_model_->calcExternalWrenchSum(external_wrench_map);
+  Eigen::VectorXd sum_external_acc = Eigen::VectorXd::Zero(6);
+  sum_external_acc.head(3) = mass_inv * sum_external_wrench.head(3);
+  sum_external_acc.tail(3) = inertia_inv * sum_external_wrench.tail(3);
+  target_wrench_acc_cog += sum_external_acc;
+
+
   setTargetWrenchAccCog(target_wrench_acc_cog);
   // TODO: we need to compensate a nonlinear term w x (Jw) for rotational motion.
   // solution1: using the raw angular velocity: https://ieeexplore.ieee.org/document/5717652, problem is the noisy of raw omega
@@ -845,6 +864,18 @@ void DragonFullVectoringController::externalWrenchEstimate()
   estimate_external_wrench_pub_.publish(wrench_msg);
 
   prev_est_wrench_timestamp_ = ros::Time::now().toSec();
+}
+
+/* external wrench */
+void DragonFullVectoringController::addExternalWrenchCallback(const gazebo_msgs::ApplyBodyWrenchRequest::ConstPtr& msg)
+{
+  dragon_robot_model_->addExternalStaticWrench(msg->body_name, msg->reference_frame, msg->reference_point, msg->wrench);
+}
+
+bool DragonFullVectoringController::clearExternalWrenchCallback(gazebo_msgs::BodyRequest::Request& req, gazebo_msgs::BodyRequest::Response& res)
+{
+  dragon_robot_model_->removeExternalStaticWrench(req.body_name);
+  return true;
 }
 
 

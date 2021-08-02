@@ -336,8 +336,11 @@ bool HydrusLikeRobotModel::addExternalStaticWrench(const std::string wrench_name
   const auto seg_frames = getSegmentsTf();
   if(getTree().getSegment(reference_frame) == getTree().getSegments().end())
     {
-      ROS_WARN_STREAM(reference_frame << " can not be found in segment map.");
-      return false;
+      if (reference_frame != std::string("cog"))
+        {
+          ROS_WARN_STREAM(reference_frame << " can not be found in segment map.");
+          return false;
+        }
     }
 
   external_wrench_map_[wrench_name] =  ExternalWrench{reference_frame, offset, wrench};
@@ -378,6 +381,7 @@ bool HydrusLikeRobotModel::removeExternalStaticWrench(const std::string wrench_n
     }
 
   external_wrench_map_.erase(wrench_name);
+  ROS_INFO_STREAM("remove wrench of " << wrench_name);
 
   return true;
 }
@@ -393,14 +397,12 @@ void HydrusLikeRobotModel::calcExternalWrenchCompThrust()
   calcExternalWrenchCompThrust(external_wrench_map_);
 }
 
-void HydrusLikeRobotModel::calcExternalWrenchCompThrust(const std::map<std::string, Dragon::ExternalWrench>& external_wrench_map)
+Eigen::VectorXd HydrusLikeRobotModel::calcExternalWrenchSum(const std::map<std::string, Dragon::ExternalWrench>& external_wrench_map)
 {
-  const auto seg_frames = getSegmentsTf();
-  const int rotor_num = getRotorNum();
-  const int joint_num = getJointNum();
-  const std::string baselink = getBaselinkName();
-  const auto& thrust_wrench_allocations = getThrustWrenchAllocations();
+  // Note: external_wrench_map is w.r.t CoG frame, not World frame.
 
+  const auto seg_frames = getSegmentsTf();
+  const std::string baselink = getBaselinkName();
   Eigen::MatrixXd root_rot = aerial_robot_model::kdlToEigen(getCogDesireOrientation<KDL::Rotation>() * seg_frames.at(baselink).M.Inverse());
   Eigen::VectorXd wrench_sum = Eigen::VectorXd::Zero(6);
 
@@ -408,10 +410,26 @@ void HydrusLikeRobotModel::calcExternalWrenchCompThrust(const std::map<std::stri
   for(const auto& wrench : external_wrench_map)
     {
       Eigen::MatrixXd jacobi_root = Eigen::MatrixXd::Identity(6, 6);
-      Eigen::Vector3d p = root_rot * aerial_robot_model::kdlToEigen(seg_frames.at(wrench.second.frame) * wrench.second.offset);
+      Eigen::Vector3d p(0,0,0);
+      if (wrench.second.frame != std::string("cog"))
+        {
+          p = root_rot * aerial_robot_model::kdlToEigen(seg_frames.at(wrench.second.frame) * wrench.second.offset);
+        }
+
       jacobi_root.topRightCorner(3,3) = - aerial_robot_model::skew(p);
       wrench_sum += jacobi_root.transpose() * wrench.second.wrench;
     }
+
+  return wrench_sum;
+}
+
+void HydrusLikeRobotModel::calcExternalWrenchCompThrust(const std::map<std::string, Dragon::ExternalWrench>& external_wrench_map)
+{
+  // Note: external_wrench_map is w.r.t CoG frame, not World frame.
+
+  const int rotor_num = getRotorNum();
+  const auto& thrust_wrench_allocations = getThrustWrenchAllocations();
+  Eigen::VectorXd wrench_sum = calcExternalWrenchSum(external_wrench_map);
 
   // TODO: redandunt!
   for (unsigned int i = 0; i < rotor_num; ++i)

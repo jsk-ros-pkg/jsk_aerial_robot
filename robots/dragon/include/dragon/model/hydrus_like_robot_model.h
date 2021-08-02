@@ -73,6 +73,7 @@ namespace Dragon
     void calcBasicKinematicsJacobian() override;
     void calcCoGMomentumJacobian() override;
     void calcCompThrustJacobian();
+    Eigen::VectorXd calcExternalWrenchSum(const std::map<std::string, Dragon::ExternalWrench>& external_wrench_map);
     void calcExternalWrenchCompThrust();
     void calcExternalWrenchCompThrust(const std::map<std::string, ExternalWrench>& external_wrench_map);
     void calcRotorOverlapJacobian();

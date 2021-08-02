@@ -37,6 +37,8 @@
 
 #include <aerial_robot_control/control/pose_linear_controller.h>
 #include <dragon/model/full_vectoring_robot_model.h>
+#include <gazebo_msgs/ApplyBodyWrenchRequest.h>
+#include <gazebo_msgs/BodyRequest.h>
 #include <geometry_msgs/WrenchStamped.h>
 #include <spinal/FourAxisCommand.h>
 #include <spinal/RollPitchYawTerm.h>
@@ -114,6 +116,11 @@ namespace aerial_robot_control
     double overlap_dist_link_relax_thresh_;
     double overlap_dist_inter_joint_thresh_;
 
+    /* external wrench */
+    ros::Subscriber add_external_wrench_sub_;
+    ros::ServiceServer clear_external_wrench_service_;
+    void addExternalWrenchCallback(const gazebo_msgs::ApplyBodyWrenchRequest::ConstPtr& msg);
+    bool clearExternalWrenchCallback(gazebo_msgs::BodyRequest::Request& req, gazebo_msgs::BodyRequest::Response& res);
 
     void externalWrenchEstimate();
     const Eigen::VectorXd getTargetWrenchAccCog()
