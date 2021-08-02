@@ -59,7 +59,7 @@ controller:
 
   yaw:
     p_gain: 10
-    i_gain: 0.1
+    i_gain: 0.3
     d_gain: 5
     limit_sum: 10 # N for clamping thrust force
     limit_p: 10
