@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package>
   <name>hydrus</name>
-  <version>1.2.1</version>
+  <version>1.2.2</version>
   <description>The basic packages for hydrus</description>
 
   <maintainer email="chou@jsk.imi.i.u-tokyo.ac.jp">Bakui Chou</maintainer>

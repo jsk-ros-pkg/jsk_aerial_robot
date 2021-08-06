@@ -2,8 +2,8 @@
 Changelog for package hydrus_xi
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.2.2 (2021-08-06)
+------------------
 * Fix gimbal link module weight for hydrus_xi  (`#460 <https://github.com/JSKAerialRobot/aerial_robot/issues/460>`_)
 
 1.2.1 (2021-02-17)

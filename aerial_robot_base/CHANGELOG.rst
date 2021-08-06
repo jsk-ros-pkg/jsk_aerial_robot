@@ -2,8 +2,8 @@
 Changelog for package aerial_robot_base
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.2.2 (2021-08-06)
+------------------
 * Add launch and yaml files for RTK GPS (`#472 <https://github.com/JSKAerialRobot/aerial_robot/issues/472>`_)
 * Refactor launch of mocap (`#451 <https://github.com/JSKAerialRobot/aerial_robot/issues/451>`_, `#464 <https://github.com/JSKAerialRobot/aerial_robot/issues/464>`_)
 

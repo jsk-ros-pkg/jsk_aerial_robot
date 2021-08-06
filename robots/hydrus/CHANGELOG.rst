@@ -2,8 +2,8 @@
 Changelog for package hydrus
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.2.2 (2021-08-06)
+------------------
 * Add Hydrusx 15inch propeller model (`#477 <https://github.com/JSKAerialRobot/aerial_robot/issues/477>`_)
 * Full Thrust Vectoring Modeling and Control for Multilinked Aerial Robot With Two DoF Force Vectoring Apparatus (`#474 <https://github.com/JSKAerialRobot/aerial_robot/issues/474>`_)
 * Support RTK GPS for sensor fusion (`#472 <https://github.com/JSKAerialRobot/aerial_robot/issues/472>`_)

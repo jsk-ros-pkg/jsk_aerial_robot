@@ -2,8 +2,8 @@
 Changelog for package spinal
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.2.2 (2021-08-06)
+------------------
 * Full Thrust Vectoring Modeling and Control for Multilinked Aerial Robot With Two DoF Force Vectoring Apparatus (`#474 <https://github.com/JSKAerialRobot/aerial_robot/issues/474>`_)
 * Refactor interface in spinal to handle more external magnetometer built in GPS module (e.g., LIS3MDL)  (`#458 <https://github.com/JSKAerialRobot/aerial_robot/issues/458>`_)
 
