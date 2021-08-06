@@ -215,6 +215,10 @@ class ServoMonitor(Plugin):
 
     def error2string(self, error):
         error_list = []
+        if error & 0b10000000:
+            error_list.append('Encoder Connection Error')
+        if error & 0b1000000:
+            error_list.append('Resoluation Ratio Error')
         if error & 0b100000:
             error_list.append('Overload Error')
         if error & 0b10000:

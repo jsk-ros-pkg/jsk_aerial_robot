@@ -1,6 +1,6 @@
 eclipse.preferences.version=1
 environment/buildEnvironmentInclude/com.atollic.truestudio.exe.debug.1518366166/CPATH/delimiter=\:
-environment/buildEnvironmentInclude/com.atollic.truestudio.exe.debug.1518366166/CPATH/operation=replace
+environment/buildEnvironmentInclude/com.atollic.truestudio.exe.debug.1518366166/CPATH/operation=remove
 environment/buildEnvironmentInclude/com.atollic.truestudio.exe.debug.1518366166/CPATH/value=/usr/local/cuda/include\:/usr/local/include
 environment/buildEnvironmentInclude/com.atollic.truestudio.exe.debug.1518366166/C_INCLUDE_PATH/delimiter=\:
 environment/buildEnvironmentInclude/com.atollic.truestudio.exe.debug.1518366166/C_INCLUDE_PATH/operation=remove

@@ -84,7 +84,6 @@ class BoardConfigurator(Plugin):
         try:
             param_tree = rospy.get_param(robot_ns + "/servo_controller")
             ctrl_pub_topic = 'servo/target_states'
-            print "OKOKOKOKOKOKOKOKOKOKO"
 
             for key in param_tree.keys():
                 if param_tree[key]['ctrl_pub_topic'] == ctrl_pub_topic:
@@ -142,6 +141,8 @@ class BoardConfigurator(Plugin):
                     servo.appendRow([QStandardItem('profile_velocity'), QStandardItem(str(s.profile_velocity))])
                     servo.appendRow([QStandardItem('send_data_flag'), QStandardItem(str(bool(s.send_data_flag)))])
                     servo.appendRow([QStandardItem('current_limit'), QStandardItem(str(s.current_limit))])
+                    servo.appendRow([QStandardItem('external_encoder_flag'), QStandardItem(str(bool(s.external_encoder_flag)))])
+                    servo.appendRow([QStandardItem('resolution[joint:servo]'), QStandardItem(str(s.joint_resolution) + ' : ' + str(s.servo_resolution))])
                     servos.appendRow(servo)
                 board.appendRow(servos)
                 self.model.appendRow(board)
@@ -163,7 +164,7 @@ class BoardConfigurator(Plugin):
         value = self._widget.boardInfoTreeView.currentIndex().sibling(row, 1).data()
 
         board_param_list = ['board_id', 'imu_send_data_flag', 'dynamixel_ttl_rs485_mixed']
-        servo_param_list = ['pid_gain', 'profile_velocity', 'current_limit', 'send_data_flag']
+        servo_param_list = ['pid_gain', 'profile_velocity', 'current_limit', 'send_data_flag', 'external_encoder_flag', 'resolution[joint:servo]']
 
         if value and (param in servo_param_list):
             servo_index = self._widget.boardInfoTreeView.currentIndex().parent().data()
@@ -254,6 +255,25 @@ class BoardConfigurator(Plugin):
                 print(e)
                 return
             req.command = req.SET_DYNAMIXEL_TTL_RS485_MIXED
+        elif self._command == 'external_encoder_flag':
+            try:
+                req.data.append(int(self._servo_index))
+                req.data.append(distutils.util.strtobool(self._widget.lineEdit.text()))
+            except ValueError as e:
+                print(e)
+                return
+            req.command = req.SET_SERVO_EXTERNAL_ENCODER_FLAG
+        elif self._command == 'resolution[joint:servo]':
+            try:
+                req.data.append(int(self._servo_index))
+                resolutions = map(lambda x: int(x), self._widget.lineEdit.text().split(':'))
+                if len(resolutions) != 2:
+                    raise ValueError('Input 2 resoultion(int)')
+                req.data.extend(resolutions)
+            except ValueError as e:
+                print(e)
+                return
+            req.command = req.SET_SERVO_RESOLUTION_RATIO
 
 
         rospy.loginfo('published message')
