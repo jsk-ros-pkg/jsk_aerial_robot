@@ -2,8 +2,8 @@
 Changelog for package spinal
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.3.0 (2021-08-06)
+------------------
 * Implement RTOS for spinal and neuron  (`#483 <https://github.com/JSKAerialRobot/aerial_robot/issues/483>`_)
 * Migrate the HAL_Driver to the latest version for spinal and neuron (`#417 <https://github.com/JSKAerialRobot/aerial_robot/issues/417>`_)
 * Implement external magnetic encoder for joint servo in neuron (`#416 <https://github.com/JSKAerialRobot/aerial_robot/issues/416>`_)
