@@ -21,8 +21,9 @@
 #include <std_msgs/Float32.h>
 #include <config.h>
 
-#define VOLTAGE_CECK_INTERVAL 20 //500 //500ms
-#define ROS_PUB_INTERVAL 100 //20[ms]; 500[ms]
+#define VOLTAGE_CHECK_INTERVAL 20 // ms
+#define ROS_PUB_INTERVAL 100 //ms
+
 /* https://www.sparkfun.com/datasheets/Sensors/DC%20Voltage%20and%20Current%20Sense%20PCB%20Spec%20Sheet.pdf */
 
 class BatteryStatus
@@ -44,6 +45,7 @@ public:
     hadc_ = hadc;
 
     voltage_ = -1;
+    ros_pub_last_time_ = HAL_GetTick();
 
     FlashMemory::addValue(&adc_scale_, sizeof(float));
 
@@ -53,6 +55,7 @@ public:
   void adcScaleCallback(const std_msgs::Float32& cmd_msg)
   {
     adc_scale_ = cmd_msg.data;
+    voltage_ = -1; // reset
     FlashMemory::erase();
     FlashMemory::write();
     nh_->loginfo("overwrite adc sacle");
@@ -60,27 +63,20 @@ public:
 
   void update()
   {
-    static uint32_t last_time = HAL_GetTick();
-    static uint32_t ros_pub_last_time = HAL_GetTick();
+    if(HAL_ADC_PollForConversion(hadc_,10) == HAL_OK)
+      adc_value_ = HAL_ADC_GetValue(hadc_);
 
-    if(HAL_GetTick() - last_time > VOLTAGE_CECK_INTERVAL)
+    HAL_ADC_Start(hadc_);
+
+    float voltage =  adc_scale_ * adc_value_;
+    if(voltage_ < 0) voltage_ = voltage;
+
+    /* filtering */
+    if(voltage  > 0) voltage_ = 0.99 * voltage_  + 0.01 * voltage;
+
+    if(HAL_GetTick() - ros_pub_last_time_ > ROS_PUB_INTERVAL)
       {
-        last_time = HAL_GetTick();
-        if(HAL_ADC_PollForConversion(hadc_,10) == HAL_OK)
-          adc_value_ = HAL_ADC_GetValue(hadc_);
-        HAL_ADC_Start(hadc_);
-
-        float voltage =  adc_scale_ * adc_value_;
-        if(voltage_ < 0) voltage_ = voltage;
-
-        /* filtering */
-        if(voltage  > 0) voltage_ = 0.99 * voltage_  + 0.01 * voltage;
-
-      }
-
-    if(HAL_GetTick() - ros_pub_last_time > ROS_PUB_INTERVAL)
-      {
-        ros_pub_last_time = HAL_GetTick();
+        ros_pub_last_time_ = HAL_GetTick();
         voltage_status_msg_.data = voltage_;
         voltage_status_pub_.publish(&voltage_status_msg_);
       }
@@ -99,6 +95,8 @@ private:
   float adc_value_;
   float adc_scale_;
   float voltage_;
+
+  uint32_t ros_pub_last_time_;
 };
 
 #endif

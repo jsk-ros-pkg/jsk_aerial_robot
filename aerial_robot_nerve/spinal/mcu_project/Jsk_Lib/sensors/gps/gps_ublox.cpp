@@ -12,59 +12,31 @@
 #include "sensors/gps/gps_ublox.h"
 #include "config.h"
 
-namespace
-{
-  /* State machine state for parsing gps packet */
-  uint8_t step_ = 0;
-  uint8_t msg_id_ = 0;
-  uint16_t payload_length_ = 0;
-  uint16_t payload_counter_ = 0;
-  uint8_t ck_a_ = 0;
-  uint8_t ck_b_ = 0;
-  uint8_t class_ = 0;
-
-  bool start_receive_ = false;
-  uint32_t start_delay = 5000; //start delay
-  uint32_t init_time_;
-  bool receive_packet_ = false;
-  uint8_t packet_buf_[UBLOX_PACKET_MAX_SIZE];
-}
-
 GPS::GPS(): GPS_Backend()
 {
+  step_ = 0;
+  msg_id_ = 0;
+  payload_length_ = 0;
+  payload_counter_ = 0;
+  ck_a_ = 0;
+  ck_b_ = 0;
+  class_ = 0;
+
+  led_ = false;
 }
 
 void GPS::init(UART_HandleTypeDef *huart, ros::NodeHandle* nh)
 {
-  init_time_ = HAL_GetTick();
   GPS_Backend::init(huart, nh);
+  LED2_L;
 }
 
-void GPS::update()
+void GPS::processMessage()
 {
-  if(!start_receive_)
-  {
-	  if(HAL_GetTick() - init_time_ > start_delay)
-	  {
-		  /* start usart revceive */
-		  startReceive();
-		  start_receive_ = true;
-	  }
-  }
-
-  LED2_L;
-
-  if(!receive_packet_) return;
-
-  /* date copy */
-  memcpy(raw_packet_.bytes, packet_buf_, UBLOX_PACKET_MAX_SIZE);
-
   switch (msg_id_)
     {
     case MSG_PVT:
       {
-        LED2_H;
-
         /* https://www.u-blox.com/sites/default/files/products/documents/u-blox8-M8_ReceiverDescrProtSpec_(UBX-13003221)_Public.pdf */
 
         /* iTow: GPS time of week */
@@ -94,7 +66,6 @@ void GPS::update()
             state_.mag_valid = false;
           }
 
-
         /* fix type and status */
         state_.status = raw_packet_.pvt.fix_type;
 
@@ -118,8 +89,7 @@ void GPS::update()
         state_.hdop        = raw_packet_.pvt.position_DOP;
         state_.num_sats    = raw_packet_.pvt.satellites;
 
-        /* asynchronized update */
-        update_ = true;
+        publish();
 
         break;
       }
@@ -153,8 +123,6 @@ void GPS::update()
         break;
       }
     }
-
-  receive_packet_ = false;
 }
 
 void GPS::updateChecksum(uint8_t *data, uint16_t len, uint8_t &ck_a, uint8_t &ck_b)
@@ -205,27 +173,26 @@ void GPS::configureRate(uint16_t rate)
   sendMessage(CLASS_CFG, MSG_CFG_RATE, &msg, sizeof(msg));
 }
 
-extern "C" void GPS_RxCpltCallback(UART_HandleTypeDef *huart)
+void GPS::update()
 {
-  //LED0_L; //debug
-  for(std::size_t i = 0; i < GPS_RX_SIZE; i++)
+  while (true)
     {
-      uint8_t data = (GPS_Backend::getRxBuf())[i];
+      int data = GPS_Backend::read();
+      if (data < 0)
+        return; // finish
 
       switch(step_)
         {
         case 1:
-          if (PREAMBLE2 == data) {
-            step_++;
-            break;
-          }
+          if (PREAMBLE2 == data)
+            {
+              step_++;
+              break;
+            }
           step_ = 0;
           /* no break */
         case 0:
-          if(PREAMBLE1 == data)
-            {
-              step_++;
-            }
+          if(PREAMBLE1 == data) step_++;
           break;
         case 2:
           step_++;
@@ -247,7 +214,7 @@ extern "C" void GPS_RxCpltCallback(UART_HandleTypeDef *huart)
           ck_b_ += (ck_a_ += data);   // checksum byte
 
           payload_length_ += (uint16_t)(data<<8);
-          if (payload_length_ > sizeof(packet_buf_))
+          if (payload_length_ > sizeof(raw_packet_.bytes))
             {
               // assume any payload bigger then what we know about is noise
               payload_length_ = 0;
@@ -257,29 +224,35 @@ extern "C" void GPS_RxCpltCallback(UART_HandleTypeDef *huart)
           break;
         case 6: /* Receive message data */
           ck_b_ += (ck_a_ += data); // checksum byte
-          if (payload_counter_ < sizeof(packet_buf_))
-            packet_buf_[payload_counter_] = data;
+          if (payload_counter_ < sizeof(raw_packet_.bytes))
+            raw_packet_.bytes[payload_counter_] = data;
 
           if (++payload_counter_ == payload_length_) step_++;
           break;
         case 7:     /* Checksum and message processing */
           step_++;
-          if (ck_a_ != data) {
-            step_ = 0;
-          }
+          if (ck_a_ != data) step_ = 0;
+
           break;
         case 8:
           step_ = 0;
-          if (ck_b_ != data) {
-            break; // bad checksum
-          }
-          /* receive some package */
-          receive_packet_= true;
-          //LED0_H; //debug
+          if (ck_b_ != data) break; // bad checksum
+
+
+          if (led_)
+            {
+              LED2_H;
+              led_ = false;
+            }
+          else
+            {
+              LED2_L;
+              led_ = true;
+            }
+
+          processMessage();
+
           break;
         }
     }
-
-  HAL_UART_Receive_IT(huart, GPS_Backend::getRxBuf() , GPS_RX_SIZE);
 }
-

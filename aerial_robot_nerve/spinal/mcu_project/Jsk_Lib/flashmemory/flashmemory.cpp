@@ -29,7 +29,7 @@ namespace FlashMemory {
 		data.push_back(tmp_data);
 	}
 
-	void read(){
+	HAL_StatusTypeDef read(){
 		HAL_StatusTypeDef status = HAL_ERROR;
 		status = FLASH_WaitForLastOperation((uint32_t)FLASH_TIMEOUT_VALUE);
 
@@ -43,6 +43,8 @@ namespace FlashMemory {
 
 		/* If the program operation is completed, disable the PG Bit */
 	    FLASH->CR &= (~FLASH_CR_PG);
+
+            return status;
 	}
 
 	void erase(){

@@ -17,6 +17,7 @@ namespace CANDeviceManager
 		constexpr int CAN_MAX_TIMEOUT_COUNT = 100;
 		GPIO_TypeDef* m_GPIOx;
 		uint16_t m_GPIO_Pin;
+ 		osMailQId* canMsgMailHandle = NULL;
 	}
 
   	void CAN_START()
@@ -40,6 +41,11 @@ namespace CANDeviceManager
 		m_GPIOx = GPIOx;
 		m_GPIO_Pin = GPIO_Pin;
                 CAN_START();
+	}
+
+	void useRTOS(osMailQId* handle)
+	{
+		canMsgMailHandle = handle;
 	}
 
 	int makeCommunicationId(uint8_t device_id, uint8_t slave_id)
@@ -86,27 +92,71 @@ namespace CANDeviceManager
 	{
 
 	}
+
+  void receiveMessage(can_msg msg)
+  {
+    uint8_t slave_id = CAN::getSlaveId(msg.rx_header);
+    uint8_t device_id = CAN::getDeviceId(msg.rx_header);
+    uint8_t message_id = CAN::getMessageId(msg.rx_header);
+    uint32_t dlc = CAN::getDlc(msg.rx_header);
+
+    if (device_id >= CANDeviceManager::can_device_list.size()) return;
+    CANDeviceManager::can_device_list[device_id]->receiveDataCallback(message_id, dlc, msg.rx_data);
+    CANDeviceManager::userReceiveMessagesCallback(slave_id, device_id, message_id, dlc, msg.rx_data);
+  }
 }
 
 void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef* hcan)
 {
-	CANDeviceManager::can_timeout_count = 0;
-	CAN_RxHeaderTypeDef rx_header;
-        uint8_t rx_data[8];
+  CANDeviceManager::can_timeout_count = 0;
 
-        CANDeviceManager::CAN_DEACTIVATE();
+  if(CANDeviceManager::canMsgMailHandle == NULL)
+    {
+      can_msg msg;
+      if (HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO1, &msg.rx_header, msg.rx_data) == HAL_OK)
+        {
+          /* directly call receivemessage, since RTOS is not initialized */
+          CANDeviceManager::receiveMessage(msg);
+        }
+    }
+  else
+    {
+      /* add data to RTOS queue */
+      can_msg *msg = (can_msg *)osMailAlloc(*CANDeviceManager::canMsgMailHandle, 0);
 
-        if (HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO1, &rx_header, rx_data) == HAL_OK)
-          {
-            uint8_t slave_id = CAN::getSlaveId(rx_header);
-            uint8_t device_id = CAN::getDeviceId(rx_header);
-            uint8_t message_id = CAN::getMessageId(rx_header);
-            uint32_t dlc = CAN::getDlc(rx_header);
+      if (msg == NULL) return; //allocation is not ready, exit
 
-            if (device_id >= CANDeviceManager::can_device_list.size()) return;
-            CANDeviceManager::can_device_list[device_id]->receiveDataCallback(message_id, dlc, rx_data);
-            CANDeviceManager::userReceiveMessagesCallback(slave_id, device_id, message_id, dlc, rx_data);
-          }
+      if (HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO1, &(msg->rx_header), msg->rx_data) == HAL_OK)
+        {
+          osMailPut(*CANDeviceManager::canMsgMailHandle, msg);
+        }
+    }
 }
 
+extern "C"
+{
+  /* The callback function for CAN TX task in RTOS */
+  void canRxCallback(void const * argument)
+  {
+    for(;;)
+      {
+        if(CANDeviceManager::canMsgMailHandle == NULL)
+          {
+            osDelay(1);
+            continue;
+          }
+
+        // get data from RTOS queue if available
+        osEvent event = osMailGet(*CANDeviceManager::canMsgMailHandle, osWaitForever);
+
+        if (event.status == osEventMail)
+          {
+            can_msg *msg = (can_msg*)event.value.p;
+
+            CANDeviceManager::receiveMessage(*msg);
+            osMailFree(*CANDeviceManager::canMsgMailHandle, msg);
+          }
+      }
+  }
+}
 

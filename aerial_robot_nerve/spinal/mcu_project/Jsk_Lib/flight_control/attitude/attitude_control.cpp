@@ -50,7 +50,7 @@ AttitudeController::AttitudeController():
 {
 }
 
-void AttitudeController::init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2, StateEstimate* estimator, BatteryStatus* bat, ros::NodeHandle* nh)
+void AttitudeController::init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2, StateEstimate* estimator, BatteryStatus* bat, ros::NodeHandle* nh, osMutexId* mutex)
 {
 
   pwm_htim1_ = htim1;
@@ -58,6 +58,7 @@ void AttitudeController::init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2
   nh_ = nh;
   estimator_ = estimator;
   bat_ = bat;
+  mutex_ = mutex;
 
   HAL_TIM_PWM_Start(pwm_htim1_,TIM_CHANNEL_1);
   HAL_TIM_PWM_Start(pwm_htim1_,TIM_CHANNEL_2);
@@ -206,6 +207,15 @@ void AttitudeController::pwmsControl(void)
 
 void AttitudeController::update(void)
 {
+#ifndef SIMULATION
+  /* mutex to wait for the completion of update of ros callback function */
+  if(mutex_ != NULL)
+    {
+      osMutexWait(*mutex_, osWaitForever);
+      osMutexRelease(*mutex_);
+    }
+#endif
+
   if(start_control_flag_ && att_control_flag_)
     {
       /* failsafe 1: check the timeout of the flight command receive process */
@@ -418,15 +428,9 @@ void AttitudeController::fourAxisCommandCallback( const spinal::FourAxisCommand 
 {
   if(!start_control_flag_) return; //do not receive command
 
-  /* start failsafe func if not activate */
-  if(!failsafe_) failsafe_ = true;
-  flight_command_last_stamp_ = HAL_GetTick();
-
-  target_angle_[X] = cmd_msg.angles[0];
-  target_angle_[Y] = cmd_msg.angles[1];
 
   /* failsafe: if the pitch and roll angle is too big, start force landing */
-  if(fabs(target_angle_[X]) > MAX_TILT_ANGLE || fabs(target_angle_[Y]) > MAX_TILT_ANGLE )
+  if(fabs(cmd_msg.angles[0]) > MAX_TILT_ANGLE || fabs(cmd_msg.angles[1]) > MAX_TILT_ANGLE )
     {
       setForceLandingFlag(true);
 #ifdef SIMULATION
@@ -460,6 +464,19 @@ void AttitudeController::fourAxisCommandCallback( const spinal::FourAxisCommand 
       if(average_thrust < force_landing_thrust_) return;
     }
 
+
+#ifndef SIMULATION
+  /* mutex to protect the completion of following update  */
+  if(mutex_ != NULL) osMutexWait(*mutex_, osWaitForever);
+#endif
+
+  /* start failsafe func if not activate */
+  if(!failsafe_) failsafe_ = true;
+  flight_command_last_stamp_ = HAL_GetTick();
+
+  target_angle_[X] = cmd_msg.angles[0];
+  target_angle_[Y] = cmd_msg.angles[1];
+
   for(int i = 0; i < motor_number_; i++)
     {
       // base thrust is about the z control
@@ -469,10 +486,20 @@ void AttitudeController::fourAxisCommandCallback( const spinal::FourAxisCommand 
       if(max_yaw_term_index_ != -1)
         extra_yaw_pi_term_[i] = cmd_msg.angles[Z] * thrust_d_gain_[i][Z] / thrust_d_gain_[max_yaw_term_index_][Z];
     }
+
+#ifndef SIMULATION
+  /* mutex to protect the completion of following update  */
+  if(mutex_ != NULL) osMutexRelease(*mutex_);
+#endif
 }
 
 void AttitudeController::pwmInfoCallback( const spinal::PwmInfo &info_msg)
 {
+#ifndef SIMULATION
+  /* mutex to protect the completion of following update  */
+  if(mutex_ != NULL) osMutexWait(*mutex_, osWaitForever);
+#endif
+
   force_landing_thrust_ = info_msg.force_landing_thrust;
 
   min_duty_ = info_msg.min_pwm;
@@ -495,6 +522,11 @@ void AttitudeController::pwmInfoCallback( const spinal::PwmInfo &info_msg)
 #ifdef SIMULATION
   if(sim_voltage_== 0) sim_voltage_ = motor_info_[0].voltage;
 #endif
+
+#ifndef SIMULATION
+  /* mutex to protect the completion of following update  */
+  if(mutex_ != NULL) osMutexRelease(*mutex_);
+#endif
 }
 
 void AttitudeController::rpyGainCallback( const spinal::RollPitchYawTerms &gain_msg)
@@ -514,6 +546,11 @@ void AttitudeController::rpyGainCallback( const spinal::RollPitchYawTerms &gain_
       nh_->logerror("rpy gain: motor number is not identical between fc and pc");
       return;
     }
+#endif
+
+#ifndef SIMULATION
+  /* mutex to protect the completion of following update  */
+  if(mutex_ != NULL) osMutexWait(*mutex_, osWaitForever);
 #endif
 
 #ifdef SIMULATION
@@ -546,6 +583,11 @@ void AttitudeController::rpyGainCallback( const spinal::RollPitchYawTerms &gain_
         }
     }
   maxYawGainIndex();
+
+#ifndef SIMULATION
+  /* mutex to protect the completion of following update  */
+  if(mutex_ != NULL) osMutexRelease(*mutex_);
+#endif
 }
 
 void AttitudeController::torqueAllocationMatrixInvCallback(const spinal::TorqueAllocationMatrixInv& msg)
@@ -560,6 +602,11 @@ void AttitudeController::torqueAllocationMatrixInvCallback(const spinal::TorqueA
   if(msg.rows_length != motor_number_) return;
 #endif
 
+#ifndef SIMULATION
+  /* mutex to protect the completion of following update  */
+  if(mutex_ != NULL) osMutexWait(*mutex_, osWaitForever);
+#endif
+
   for (int i = 0; i < motor_number_; i++)
     {
       torque_allocation_matrix_inv_[i][X] = msg.rows[i].x * 0.001f;
@@ -570,6 +617,11 @@ void AttitudeController::torqueAllocationMatrixInvCallback(const spinal::TorqueA
   thrustGainMapping(); // gain mapping
 
   maxYawGainIndex();
+
+#ifndef SIMULATION
+  /* mutex to protect the completion of following update  */
+  if(mutex_ != NULL) osMutexRelease(*mutex_);
+#endif
 }
 
 void AttitudeController::thrustGainMapping()
@@ -632,6 +684,8 @@ void AttitudeController::setMotorNumber(uint8_t motor_number)
     }
   else
     {
+	  if(motor_number == 0) return;
+
       size_t control_term_msg_size  = motor_number;
 
 #ifdef SIMULATION
@@ -694,6 +748,11 @@ void AttitudeController::pMatrixInertiaCallback(const spinal::PMatrixPseudoInver
     }
 #endif
 
+#ifndef SIMULATION
+  /* mutex to protect the completion of following update  */
+  if(mutex_ != NULL) osMutexWait(*mutex_, osWaitForever);
+#endif
+
   for(int i = 0; i < motor_number_; i ++)
     {
       p_matrix_pseudo_inverse_[i][0] = msg.pseudo_inverse[i].r * 0.001f;
@@ -705,6 +764,11 @@ void AttitudeController::pMatrixInertiaCallback(const spinal::PMatrixPseudoInver
   inertia_ = ap::Matrix3f(msg.inertia[0] * 0.001f, msg.inertia[3] * 0.001f, msg.inertia[5] * 0.001f,
                           msg.inertia[3] * 0.001f, msg.inertia[1] * 0.001f, msg.inertia[4] * 0.001f,
                           msg.inertia[5] * 0.001f, msg.inertia[4] * 0.001f, msg.inertia[2] * 0.001f);
+
+#ifndef SIMULATION
+  /* mutex to protect the completion of following update  */
+  if(mutex_ != NULL) osMutexRelease(*mutex_);
+#endif
 }
 
 bool AttitudeController::activated()

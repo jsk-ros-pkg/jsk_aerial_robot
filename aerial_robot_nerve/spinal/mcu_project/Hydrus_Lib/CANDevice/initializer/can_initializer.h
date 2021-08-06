@@ -24,6 +24,7 @@ public:
 	void configDevice(const spinal::SetBoardConfig::Request& req);
 	void sendData() override;
 	void receiveDataCallback(uint8_t slave_id, uint8_t message_id, uint32_t DLC, uint8_t* data) override;
+	void addDevice(uint8_t slave_id);
 };
 
 

@@ -40,6 +40,8 @@
 
 namespace ros {
 
+const int SPIN_UNAVAILABLE = -3;
+
   /* Node Handle */
   template<class Hardware,
            int MAX_SUBSCRIBERS=25,
@@ -57,8 +59,10 @@ namespace ros {
 	}
 
     /* Start a named seiral port */
-    void initNode(typename Hardware::serial_class* port){
-      parent::hardware_.init(port);
+    void initNode(typename Hardware::serial_class* port,
+                  typename Hardware::mutex_class* mutex = NULL,
+                  typename Hardware::semaphore_class* semaphore = NULL){
+      parent::hardware_.init(port, mutex, semaphore);
       parent::mode_ = 0;
       parent::bytes_ = 0;
       parent::index_ = 0;
@@ -70,7 +74,17 @@ namespace ros {
      */
     virtual int publish()
     {
-      return parent::hardware_.publish();
+      return  parent::hardware_.publish();
+    }
+
+    int spinOnce() override
+    {
+      bool has_data = parent::hardware_.rx_available();
+
+      int status =  parent::spinOnce();
+
+      if(has_data) return status;
+      else return SPIN_UNAVAILABLE;
     }
   };
 }

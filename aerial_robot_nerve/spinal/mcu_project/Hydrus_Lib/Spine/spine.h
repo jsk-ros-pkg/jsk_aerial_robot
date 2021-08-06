@@ -35,6 +35,10 @@
 #include <algorithm>
 #include <functional>
 
+/* RTOS */
+#include "cmsis_os.h"
+
+
 #define SEND_GYRO 0
 
 // main subrutine for update enach instance
@@ -47,6 +51,7 @@ namespace Spine
   void convertGyroFromJointvalues();
   uint8_t getSlaveNum();
   int8_t getUavModel();
+  void useRTOS(osMailQId* handle);
   void setServoControlFlag(bool flag);
   void servoControlCallback(const spinal::ServoControlCmd& control_msg);
   void servoTorqueControlCallback(const spinal::ServoTorqueCmd& control_msg);

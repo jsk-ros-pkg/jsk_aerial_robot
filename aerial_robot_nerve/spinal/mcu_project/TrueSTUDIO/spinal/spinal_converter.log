@@ -1,0 +1,33 @@
+Project: spinal
+Converter: Atollic TrueSTUDIO project converter
+Date: 20210414
+
+Post-build step might need some manual actions.
+Warning: MCU STM32F746VG matched multiple possible MCUs: [STM32F746VGHx, STM32F746VGTx]
+Unknown value type "" for id com.atollic.truestudio.gcc.symbols.defined on tool com.atollic.truestudio.exe.debug.toolchain.as
+Unknown value type "" for id com.atollic.truestudio.common_options.target.interwork on tool com.atollic.truestudio.exe.debug.toolchain.as
+Option com.atollic.truestudio.common_options.target.endianess is no longer supported
+Option com.atollic.truestudio.common_options.target.instr_set is no longer supported
+Unknown value type "" for id com.atollic.truestudio.common_options.target.interwork on tool com.atollic.truestudio.exe.debug.toolchain.gcc
+Option com.atollic.truestudio.common_options.target.endianess is no longer supported
+Option com.atollic.truestudio.common_options.target.instr_set is no longer supported
+Unknown value type "" for id com.atollic.truestudio.ld.libraries.list on tool com.atollic.truestudio.exe.debug.toolchain.ld
+Unknown value type "" for id com.atollic.truestudio.ld.libraries.searchpath on tool com.atollic.truestudio.exe.debug.toolchain.ld
+Unknown value type "" for id com.atollic.truestudio.ld.misc.genmapfile on tool com.atollic.truestudio.exe.debug.toolchain.ld
+Unknown value type "" for id com.atollic.truestudio.common_options.target.interwork on tool com.atollic.truestudio.exe.debug.toolchain.ld
+Option com.atollic.truestudio.common_options.target.endianess is no longer supported
+Option com.atollic.truestudio.common_options.target.instr_set is no longer supported
+Unrecognized tool command 'arm-atollic-eabi-g++ -c' for tool id com.atollic.truestudio.exe.debug.toolchain.gpp
+Unknown value type "" for id com.atollic.truestudio.gpp.optimization.fno_rtti on tool com.atollic.truestudio.exe.debug.toolchain.gpp
+Unknown value type "" for id com.atollic.truestudio.gpp.optimization.fno_exceptions on tool com.atollic.truestudio.exe.debug.toolchain.gpp
+Unknown value type "" for id com.atollic.truestudio.common_options.target.interwork on tool com.atollic.truestudio.exe.debug.toolchain.gpp
+Unknown value type "" for id com.atollic.truestudio.gpp.symbols.undefined on tool com.atollic.truestudio.exe.debug.toolchain.gpp
+Option com.atollic.truestudio.common_options.target.endianess is no longer supported
+Option com.atollic.truestudio.common_options.target.instr_set is no longer supported
+Unrecognized tool command 'arm-atollic-eabi-g++' for tool id com.atollic.truestudio.exe.debug.toolchain.ldcc
+Unknown value type "" for id com.atollic.truestudio.ldcc.misc.genmapfile on tool com.atollic.truestudio.exe.debug.toolchain.ldcc
+Unknown value type "" for id com.atollic.truestudio.common_options.target.interwork on tool com.atollic.truestudio.exe.debug.toolchain.ldcc
+Option com.atollic.truestudio.common_options.target.endianess is no longer supported
+Option com.atollic.truestudio.common_options.target.instr_set is no longer supported
+Unrecognized tool command 'arm-atollic-reports.jar' for tool id com.atollic.truestudio.exe.debug.toolchain.secoutput
+Option com.atollic.truestudio.secoutput.general.convert is no longer supported

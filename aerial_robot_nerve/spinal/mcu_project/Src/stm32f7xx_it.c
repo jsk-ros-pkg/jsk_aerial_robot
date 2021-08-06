@@ -65,8 +65,10 @@ typedef struct
 
 /* External variables --------------------------------------------------------*/
 extern CAN_HandleTypeDef hcan1;
-extern DMA_HandleTypeDef hdma_usart1_rx;
-extern UART_HandleTypeDef huart3;
+extern DMA_HandleTypeDef hdma_usart1_tx;
+extern UART_HandleTypeDef huart1;
+extern TIM_HandleTypeDef htim11;
+
 /* USER CODE BEGIN EV */
 
 /* USER CODE END EV */
@@ -74,19 +76,6 @@ extern UART_HandleTypeDef huart3;
 /******************************************************************************/
 /*           Cortex-M7 Processor Interruption and Exception Handlers          */
 /******************************************************************************/
-/**
-  * @brief This function handles System tick timer.
-  */
-void SysTick_Handler(void)
-{
-  /* USER CODE BEGIN SysTick_IRQn 0 */
-
-  /* USER CODE END SysTick_IRQn 0 */
-  HAL_IncTick();
-  /* USER CODE BEGIN SysTick_IRQn 1 */
-  HAL_SYSTICK_IRQHandler(); // https://community.st.com/s/question/0D50X00009yHWejSAG/halsystickirqhandler-call-is-missing-in-cubemx-v5-generated-systickhandler
-  /* USER CODE END SysTick_IRQn 1 */
-}
 
 /******************************************************************************/
 /* STM32F7xx Peripheral Interrupt Handlers                                    */
@@ -110,38 +99,45 @@ void CAN1_RX1_IRQHandler(void)
 }
 
 /**
-  * @brief This function handles USART3 global interrupt.
+  * @brief This function handles TIM1 trigger and commutation interrupts and TIM11 global interrupt.
   */
-void USART3_IRQHandler(void)
+void TIM1_TRG_COM_TIM11_IRQHandler(void)
 {
-  /* USER CODE BEGIN USART3_IRQn 0 */
+  /* USER CODE BEGIN TIM1_TRG_COM_TIM11_IRQn 0 */
 
-  /* USER CODE END USART3_IRQn 0 */
-  HAL_UART_IRQHandler(&huart3);
-  /* USER CODE BEGIN USART3_IRQn 1 */
-  /* recovery */
-  if(huart3.ErrorCode != HAL_UART_ERROR_NONE) GPS_ErrorCpltCallback(&huart3);
-  /* rx callback */
-  if(huart3.RxXferCount == 0) GPS_RxCpltCallback(&huart3);
-  /* USER CODE END USART3_IRQn 1 */
+  /* USER CODE END TIM1_TRG_COM_TIM11_IRQn 0 */
+  HAL_TIM_IRQHandler(&htim11);
+  /* USER CODE BEGIN TIM1_TRG_COM_TIM11_IRQn 1 */
+
+  /* USER CODE END TIM1_TRG_COM_TIM11_IRQn 1 */
 }
 
 /**
-  * @brief This function handles DMA2 stream2 global interrupt.
+  * @brief This function handles USART1 global interrupt.
   */
-void DMA2_Stream2_IRQHandler(void)
+void USART1_IRQHandler(void)
 {
-  /* USER CODE BEGIN DMA2_Stream2_IRQn 0 */
-  DMA_Base_Registers *regs;
-  regs = (DMA_Base_Registers *)(hdma_usart1_rx.StreamBaseAddress);
-  if ((regs->ISR & (DMA_FLAG_TCIF0_4 << hdma_usart1_rx.StreamIndex)) != RESET)
-    Rosserial_RxCpltCallback(( UART_HandleTypeDef* )((DMA_HandleTypeDef* )(&hdma_usart1_rx))->Parent );
+  /* USER CODE BEGIN USART1_IRQn 0 */
 
-  /* USER CODE END DMA2_Stream2_IRQn 0 */
-  HAL_DMA_IRQHandler(&hdma_usart1_rx);
-  /* USER CODE BEGIN DMA2_Stream2_IRQn 1 */
+  /* USER CODE END USART1_IRQn 0 */
+  HAL_UART_IRQHandler(&huart1);
+  /* USER CODE BEGIN USART1_IRQn 1 */
 
-  /* USER CODE END DMA2_Stream2_IRQn 1 */
+  /* USER CODE END USART1_IRQn 1 */
+}
+
+/**
+  * @brief This function handles DMA2 stream7 global interrupt.
+  */
+void DMA2_Stream7_IRQHandler(void)
+{
+  /* USER CODE BEGIN DMA2_Stream7_IRQn 0 */
+
+  /* USER CODE END DMA2_Stream7_IRQn 0 */
+  HAL_DMA_IRQHandler(&hdma_usart1_tx);
+  /* USER CODE BEGIN DMA2_Stream7_IRQn 1 */
+
+  /* USER CODE END DMA2_Stream7_IRQn 1 */
 }
 
 /* USER CODE BEGIN 1 */

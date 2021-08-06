@@ -34,6 +34,7 @@ void CANInitializer::configDevice(const spinal::SetBoardConfig::Request& req)
 			send_data[0] = CAN::BOARD_CONFIG_SET_SLAVE_ID;
 			send_data[1] = new_slave_id;
 			sendMessage(CAN::MESSAGEID_RECEIVE_BOARD_CONFIG_REQUEST, slave_id, 2, send_data, 1);
+                        // timeout of 1ms is OK for RTOS, since this function is called from nh_.spinOnce which is called in a lower priority task
 			break;
 		}
 		case spinal::SetBoardConfig::Request::SET_IMU_SEND_FLAG:
@@ -159,60 +160,86 @@ void CANInitializer::configDevice(const spinal::SetBoardConfig::Request& req)
 	}
 }
 
+
+void CANInitializer::addDevice(uint8_t slave_id)
+{
+  neuron_.push_back(Neuron(slave_id));
+}
+
 void CANInitializer::receiveDataCallback(uint8_t slave_id, uint8_t message_id, uint32_t DLC, uint8_t* data)
 {
-	switch (message_id) {
-	case CAN::MESSAGEID_SEND_ENUM_RESPONSE:
-		neuron_.push_back(Neuron(slave_id));
-		break;
-	case CAN::MESSAGEID_SEND_INITIAL_CONFIG_0:
-		{
-			auto slave = std::find(neuron_.begin(), neuron_.end(), Neuron(slave_id));
-			if (slave == neuron_.end()) return;
-			if (slave->getInitialized()) {
-				slave->can_imu_.setSendDataFlag((data[1] != 0) ? true : false);
-				slave->can_servo_.setDynamixelTTLRS485Mixed((data[2] != 0) ? true : false);
-				return;
-			}
-			slave->can_motor_ = CANMotor(slave_id);
-			slave->can_servo_ = CANServo(slave_id, data[0], (data[2] != 0) ? true : false);
-			slave->can_imu_ = CANIMU(slave_id, (data[1] != 0) ? true : false);
-			slave->setInitialized();
-		}
-		break;
-	case CAN::MESSAGEID_SEND_INITIAL_CONFIG_1:
-		{
-			auto slave = std::find(neuron_.begin(), neuron_.end(), Neuron(slave_id));
-			if (slave == neuron_.end()) return;
-			uint8_t servo_index = data[0];
-			slave->can_servo_.servo_[servo_index].id_ = data[1];
-			slave->can_servo_.servo_[servo_index].p_gain_ = (data[3] << 8) | data[2];
-			slave->can_servo_.servo_[servo_index].i_gain_ = (data[5] << 8) | data[4];
-			slave->can_servo_.servo_[servo_index].d_gain_ = (data[7] << 8) | data[6];
-		}
-		break;
-	case CAN::MESSAGEID_SEND_INITIAL_CONFIG_2:
-		{
-			auto slave = std::find(neuron_.begin(), neuron_.end(), Neuron(slave_id));
-			if (slave == neuron_.end()) return;
-			uint8_t servo_index = data[0];
-			slave->can_servo_.servo_[servo_index].present_position_ = (data[2] << 8) | data[1];
-			slave->can_servo_.servo_[servo_index].goal_position_ = (data[2] << 8) | data[1];
-			slave->can_servo_.servo_[servo_index].profile_velocity_ = (data[4] << 8) | data[3];
-			slave->can_servo_.servo_[servo_index].current_limit_ = (data[6] << 8) | data[5];
-			slave->can_servo_.servo_[servo_index].send_data_flag_ = data[7];
-		}
-		break;
-        case CAN::MESSAGEID_SEND_INITIAL_CONFIG_3:
-		{
-			auto slave = std::find(neuron_.begin(), neuron_.end(), Neuron(slave_id));
-			if (slave == neuron_.end()) return;
-			uint8_t servo_index = data[0];
-                        slave->can_servo_.servo_[servo_index].error_ = data[1];
-			slave->can_servo_.servo_[servo_index].external_encoder_flag_ = data[2];
-                        slave->can_servo_.servo_[servo_index].joint_resolution_ = (data[4] << 8) | data[3];
-                        slave->can_servo_.servo_[servo_index].servo_resolution_ = (data[6] << 8) | data[5];
-		}
-		break;
-	}
+  if(message_id == CAN::MESSAGEID_SEND_ENUM_RESPONSE)
+    {
+      /*
+        Important feature1:
+         Directly call "push_back" will induce hard default in RTOS task, due to the wrong malloc process in RTOS.
+         Thus, provide an another function "addDevice" to wrapper this function can avoid the direct calling (reserve in stack zone).
+         Please refer to the register mechanism in ARM: https://qiita.com/edo_m18/items/a7c747c5bed600dca977
+         https://developer.arm.com/documentation/dui0646/a/cortex-m7-peripherals/system-control-block
+       */
+      //neuron_.push_back(Neuron(slave_id));
+      addDevice(slave_id);
+      return;
+    }
+
+  /*
+    Important feature2:
+    std::find in RTOS also induces hard default.
+    Thus, use the most trivial search method using for() as follows
+  */
+  int index = -1;
+  for (int i = 0; i < neuron_.size(); i++)
+    {
+      if(neuron_[i].getSlaveId() == slave_id) index = i;
+    }
+  if (index == -1) return;
+
+  switch (message_id)
+    {
+    case CAN::MESSAGEID_SEND_INITIAL_CONFIG_0:
+      {
+        if (neuron_[index].getInitialized()) {
+          neuron_[index].can_imu_.setSendDataFlag((data[1] != 0) ? true : false);
+          neuron_[index].can_servo_.setDynamixelTTLRS485Mixed((data[2] != 0) ? true : false);
+          return;
+        }
+        neuron_[index].can_motor_ = CANMotor(slave_id);
+        neuron_[index].can_servo_ = CANServo(slave_id, data[0], (data[2] != 0) ? true : false);
+        neuron_[index].can_imu_ = CANIMU(slave_id, (data[1] != 0) ? true : false);
+        neuron_[index].setInitialized();
+        break;
+      }
+    case CAN::MESSAGEID_SEND_INITIAL_CONFIG_1:
+      {
+        uint8_t servo_index = data[0];
+        neuron_[index].can_servo_.servo_[servo_index].id_ = data[1];
+        neuron_[index].can_servo_.servo_[servo_index].p_gain_ = (data[3] << 8) | data[2];
+        neuron_[index].can_servo_.servo_[servo_index].i_gain_ = (data[5] << 8) | data[4];
+        neuron_[index].can_servo_.servo_[servo_index].d_gain_ = (data[7] << 8) | data[6];
+        break;
+      }
+    case CAN::MESSAGEID_SEND_INITIAL_CONFIG_2:
+      {
+        uint8_t servo_index = data[0];
+        neuron_[index].can_servo_.servo_[servo_index].present_position_ = (data[2] << 8) | data[1];
+        neuron_[index].can_servo_.servo_[servo_index].goal_position_ = (data[2] << 8) | data[1];
+        neuron_[index].can_servo_.servo_[servo_index].profile_velocity_ = (data[4] << 8) | data[3];
+        neuron_[index].can_servo_.servo_[servo_index].current_limit_ = (data[6] << 8) | data[5];
+        neuron_[index].can_servo_.servo_[servo_index].send_data_flag_ = data[7];
+        break;
+      }
+    case CAN::MESSAGEID_SEND_INITIAL_CONFIG_3:
+      {
+        uint8_t servo_index = data[0];
+        neuron_[index].can_servo_.servo_[servo_index].error_ = data[1];
+        neuron_[index].can_servo_.servo_[servo_index].external_encoder_flag_ = data[2];
+        neuron_[index].can_servo_.servo_[servo_index].joint_resolution_ = (data[4] << 8) | data[3];
+        neuron_[index].can_servo_.servo_[servo_index].servo_resolution_ = (data[6] << 8) | data[5];
+        break;
+      }
+    default:
+      {
+        break;
+      }
+    }
 }

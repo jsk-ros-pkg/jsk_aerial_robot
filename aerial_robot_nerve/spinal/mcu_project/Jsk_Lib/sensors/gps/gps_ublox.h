@@ -26,8 +26,6 @@
 #define UBX_MSG_TYPES 2
 
 #define UBLOX_MAX_PORTS 6
-#define INIT_RATE 1000	 //200: 200ms
-#define MEASURE_RATE 100	 //200: 200ms
 
 #define RATE_PVT 1
 #define RATE_POSLLH 0
@@ -72,7 +70,7 @@ class GPS : public GPS_Backend
 public:
   GPS();
   void init(UART_HandleTypeDef *huart, ros::NodeHandle* nh);
-  void update();
+  void update() override;
 
 private:
   // u-blox UBX protocol essentials
@@ -399,12 +397,21 @@ private:
     uint8_t bytes[UBLOX_PACKET_MAX_SIZE];
   }raw_packet_;
 
+  uint8_t step_ = 0;
+  uint8_t msg_id_ = 0;
+  uint16_t payload_length_ = 0;
+  uint16_t payload_counter_ = 0;
+  uint8_t ck_a_ = 0;
+  uint8_t ck_b_ = 0;
+  uint8_t class_ = 0;
 
+  bool led_;
+
+  void processMessage() override;
   void updateChecksum(uint8_t *data, uint16_t len, uint8_t &ck_a, uint8_t &ck_b);
   void sendMessage(uint8_t msg_class, uint8_t msg_id, void *msg, uint16_t size);
   void configureRate(uint16_t rate);
   bool configureMessageRate(uint8_t msg_class, uint8_t msg_id, uint8_t rate);
-
 };
 
 #endif // __GPS_UBLOX_H_

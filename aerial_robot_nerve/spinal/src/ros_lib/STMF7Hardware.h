@@ -12,83 +12,12 @@
 #include "stm32f7xx_hal.h"
 #include "stm32f7xx_hal_uart.h"
 #include "stm32f7xx_hal_dma.h"
+#include "cmsis_os.h"
 
-#define TX_BUFFER_SIZE 512
-#define TX_BUFFER_WIDTH 512
+#define BUFFER_EMPTY  -1
+#define TX_BUFFER_SIZE 128
+#define TX_BUFFER_WIDTH 64 // byte
 #define RX_BUFFER_SIZE 512
-#define RX_PACKET_SIZE 16
-
-template <typename T,  int SIZE>
-class RingBuffer
-{
-public:
-  RingBuffer()
-  {
-    byte_in_progress_ = 0;
-    byte_to_add_ = 0;
-    buffer_length_ = (uint16_t)SIZE;
-  }
-  ~RingBuffer(){  }
-
-  bool pop(T& pop_value)
-  {
-    if (byte_in_progress_ != byte_to_add_)
-      {
-        pop_value =  buf_[byte_in_progress_];
-
-        byte_in_progress_++;
-        if (byte_in_progress_ == buffer_length_)
-          byte_in_progress_ = 0;
-
-        return true;
-      }
-    return false;
-  }
-
-  bool push(T new_value)
-  {
-    // the process node should have higher priority than the rx it callback
-#if 0
-    if ((byte_in_progress_ == (byte_to_add_ + 1)) || ( (byte_to_add_ == (buffer_length_ - 1) )&& (byte_in_progress_ == 0)) ) return false;
-#endif
-
-    buf_[byte_to_add_] = new_value;
-
-    byte_to_add_++;
-
-    if (byte_to_add_ == buffer_length_)
-      {
-        byte_to_add_ = 0;
-      }
-    return true;
-  }
-
-  uint16_t length()
-  {
-    if(byte_to_add_ - byte_in_progress_ >= 0)
-      return (byte_to_add_ - byte_in_progress_);
-    else 
-      return (byte_to_add_ - (buffer_length_ - byte_in_progress_));
-  }
-
-private:
-  T buf_[SIZE];
-  int16_t byte_in_progress_, byte_to_add_;
-  uint16_t buffer_length_;
-};
-
-
-
-/* RX */
-namespace rx
-{
-  void init(UART_HandleTypeDef *huart);
-  int read();
-  bool available();
-  uint8_t* getRxValueP();
-  RingBuffer<uint8_t, RX_PACKET_SIZE>* getRxBuffer();
-  uint8_t getBurstSize();
-};
 
 /* TX */
 template<int BUFFER_LENGTH>
@@ -97,22 +26,11 @@ struct TxBufferUnit{
   uint16_t tx_len_;
 } ;
 
-namespace tx
-{
-  void init(UART_HandleTypeDef *huart);
-  int publish();
-  void write(uint8_t * new_data, unsigned int new_size);
-
-  uint8_t subscriptInProgress();
-  uint8_t subscriptToAdd();
-  uint8_t  getCurrentTransmitBufferLen();
-  uint8_t*  getCurrentTransmitBufferP();
-};
-
-
 class STMF7Hardware {
 public:
   typedef UART_HandleTypeDef serial_class;
+  typedef osMutexId mutex_class;
+  typedef osSemaphoreId semaphore_class;
 
   STMF7Hardware(){}
 
@@ -126,28 +44,34 @@ public:
     // do nothing
   }
 
-  void init(serial_class* huart)
+  void init(serial_class* huart, mutex_class* mutex = NULL, osSemaphoreId  *semaphore = NULL);
+
+  uint32_t time()
   {
-	  rx::init(huart);
-	  tx::init(huart);
+    return HAL_GetTick();
   }
 
-  int read()
-  {
-    return rx::read();
-  }
+  /* rx */
+  bool rx_available();
+  int read();
 
-  void write(uint8_t* data, unsigned int length){
-    tx::write(data, length);
-  }
+  /* tx */
+  void write(uint8_t* data, unsigned int length);
+  int publish();
 
-  int publish(){
-    return tx::publish();
-  }
+private:
+  UART_HandleTypeDef *huart_;
 
-  uint32_t time(){return HAL_GetTick();}
+  /* rx */
+  uint8_t rx_buf_[RX_BUFFER_SIZE];
+  uint32_t rd_ptr_ = 0;
+
+  /* tx */
+  osMutexId *tx_mutex_;
+  struct TxBufferUnit<TX_BUFFER_WIDTH> tx_buffer_unit_[TX_BUFFER_SIZE];
+  uint8_t subscript_in_progress_;
+  uint8_t subscript_to_add_;
+
 };
-
-
 
 #endif

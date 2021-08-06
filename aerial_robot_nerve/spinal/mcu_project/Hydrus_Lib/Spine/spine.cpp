@@ -28,7 +28,7 @@ namespace Spine
 
     /* ros */
     constexpr uint8_t SERVO_PUB_INTERVAL = 20; //[ms]
-    constexpr uint8_t SERVO_TORQUE_PUB_INTERVAL = 1000; //[ms]
+    constexpr uint32_t SERVO_TORQUE_PUB_INTERVAL = 1000; //[ms]
     spinal::ServoStates servo_state_msg_;
     spinal::ServoTorqueStates servo_torque_state_msg_;
     ros::Publisher servo_state_pub_("servo/states", &servo_state_msg_);
@@ -51,6 +51,10 @@ namespace Spine
     uint32_t servo_torque_last_pub_time_ = 0;
     unsigned int can_idle_count_ = 0;
     bool servo_control_flag_ = true;
+
+    uint32_t can_tx_idle_start_time_ = 0; // for pause CAN TX -> TODO: change to another task for spinal process
+    uint32_t CAN_TX_PAUSE_TIME = 2000; // 2000 ms for 1Khz task rate. TODO: change to another task for spinal process
+    unsigned int send_board_index = 0; // incremental board id assignment for CAN TX
 
     uint32_t last_connected_time_ =0;
   }
@@ -105,13 +109,11 @@ namespace Spine
 
   void boardConfigCallback(const spinal::SetBoardConfig::Request& req, spinal::SetBoardConfig::Response& res)
   {
-	  can_idle_count_ = 3000;
-	  //need this cheap delay
-	  for (int i = 0; i < 1000000; ++i) {
-			  asm("nop");
-	  }
-	  can_initializer_.configDevice(req);
-	  res.success = true;
+    /* Pause the spinal sending command for neuron to have enough time for flashmemory erase&write */
+    can_tx_idle_start_time_ = HAL_GetTick();
+    can_initializer_.configDevice(req);
+
+    res.success = true;
   }
 
   void init(CAN_HandleTypeDef* hcan, ros::NodeHandle* nh, StateEstimate* estimator, GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin)
@@ -214,11 +216,8 @@ namespace Spine
 
   void send()
   {
-	static int send_board_index = 0;
-	if (can_idle_count_ > 0) {
-		can_idle_count_--;
-		return;
-	}
+	if(HAL_GetTick() < can_tx_idle_start_time_ + CAN_TX_PAUSE_TIME) return;
+
 	if(HAL_GetTick() % 2 == 0) {
 	  can_motor_send_device_.sendData();
 	  if (slave_num_ != 0) {
@@ -292,6 +291,11 @@ namespace Spine
     	if(nh_->connected()) nh_->logerror("CAN is not connected");
     	last_connected_time_ = now_time;
     }
+  }
+
+  void useRTOS(osMailQId* handle)
+  {
+    CANDeviceManager::useRTOS(handle);
   }
 
   void setMotorPwm(uint16_t pwm, uint8_t motor)
