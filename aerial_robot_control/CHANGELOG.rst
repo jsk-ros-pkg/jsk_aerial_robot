@@ -2,6 +2,9 @@
 Changelog for package aerial_robot_control
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 1.2.2 (2021-08-06)
 ------------------
 * Fix bug about switching the flight navigation mode in x,y,z,yaw (`#492 <https://github.com/JSKAerialRobot/aerial_robot/issues/492>`_)

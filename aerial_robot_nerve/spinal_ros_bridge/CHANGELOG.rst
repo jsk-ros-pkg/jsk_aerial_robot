@@ -2,6 +2,10 @@
 Changelog for package spinal_ros_bridge
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Refactor DMA implementation for UART RX (rosserial) (`#483 <https://github.com/JSKAerialRobot/aerial_robot/issues/483>`_)
+
 1.2.2 (2021-08-06)
 ------------------
 

@@ -2,6 +2,9 @@
 Changelog for package aerial_robot_estimation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 1.2.2 (2021-08-06)
 ------------------
 * Dynamic offset calculation in plane detectionMerge (`#484 <https://github.com/JSKAerialRobot/aerial_robot/issues/484>`_)

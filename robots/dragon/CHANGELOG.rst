@@ -2,6 +2,9 @@
 Changelog for package dragon
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 1.2.2 (2021-08-06)
 ------------------
 * Fix name in dragon.urdf.xacro (`#487 <https://github.com/JSKAerialRobot/aerial_robot/issues/487>`_)

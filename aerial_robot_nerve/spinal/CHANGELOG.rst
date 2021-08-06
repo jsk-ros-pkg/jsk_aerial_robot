@@ -2,6 +2,13 @@
 Changelog for package spinal
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Implement RTOS for spinal and neuron  (`#483 <https://github.com/JSKAerialRobot/aerial_robot/issues/483>`_)
+* Migrate the HAL_Driver to the latest version for spinal and neuron (`#417 <https://github.com/JSKAerialRobot/aerial_robot/issues/417>`_)
+* Implement external magnetic encoder for joint servo in neuron (`#416 <https://github.com/JSKAerialRobot/aerial_robot/issues/416>`_)
+
+
 1.2.2 (2021-08-06)
 ------------------
 * Full Thrust Vectoring Modeling and Control for Multilinked Aerial Robot With Two DoF Force Vectoring Apparatus (`#474 <https://github.com/JSKAerialRobot/aerial_robot/issues/474>`_)
