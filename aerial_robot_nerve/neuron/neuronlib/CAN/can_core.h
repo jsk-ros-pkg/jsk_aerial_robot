@@ -17,35 +17,38 @@
 namespace CAN {
 	void init(CAN_HandleTypeDef* hcan, uint8_t slave_id);
 	CAN_HandleTypeDef* getHcanInstance();
-	void setMessage(uint8_t device_id, uint8_t message_id, uint8_t slave_id, uint32_t dlc, uint8_t* data);
-	inline void Receive_IT()
+	void sendMessage(uint8_t device_id, uint8_t message_id, uint8_t slave_id, uint32_t DLC, uint8_t* data, uint32_t timeout);
+
+  	inline void CAN_START()
 	{
-		HAL_CAN_Receive_IT(getHcanInstance(), CAN_FIFO1);
+		HAL_CAN_Start(getHcanInstance());
+		HAL_CAN_ActivateNotification(getHcanInstance(), CAN_IT_RX_FIFO1_MSG_PENDING);
 	}
 
-	inline void sendMessage(int timeout)
+  	inline void CAN_DEACTIVATE()
 	{
-		HAL_CAN_Transmit(getHcanInstance(), timeout);
+		HAL_CAN_DeactivateNotification(getHcanInstance(), CAN_IT_RX_FIFO1_MSG_PENDING);
 	}
 
-	inline uint8_t getDeviceId(CAN_HandleTypeDef* hcan) {
-		return static_cast<uint8_t>(((hcan->pRxMsg->StdId) >> (MESSAGE_ID_LEN + SLAVE_ID_LEN)) & ((1 << DEVICE_ID_LEN) - 1));
+  	inline void CAN_ACTIVATE()
+	{
+		HAL_CAN_ActivateNotification(getHcanInstance(), CAN_IT_RX_FIFO1_MSG_PENDING);
 	}
 
-	inline uint8_t getMessageId(CAN_HandleTypeDef* hcan) {
-		return static_cast<uint8_t>(((hcan->pRxMsg->StdId) >> SLAVE_ID_LEN) & ((1 << MESSAGE_ID_LEN) - 1));
+	inline uint8_t getDeviceId(CAN_RxHeaderTypeDef rx_header) {
+		return static_cast<uint8_t>(((rx_header.StdId) >> (MESSAGE_ID_LEN + SLAVE_ID_LEN)) & ((1 << DEVICE_ID_LEN) - 1));
 	}
 
-	inline uint8_t getSlaveId(CAN_HandleTypeDef* hcan) {
-		return static_cast<uint8_t>((hcan->pRxMsg->StdId) & ((1 << SLAVE_ID_LEN) - 1));
+	inline uint8_t getMessageId(CAN_RxHeaderTypeDef rx_header) {
+		return static_cast<uint8_t>(((rx_header.StdId) >> SLAVE_ID_LEN) & ((1 << MESSAGE_ID_LEN) - 1));
 	}
 
-	inline uint32_t getDlc(CAN_HandleTypeDef* hcan) {
-		return hcan->pRxMsg->DLC;
+	inline uint8_t getSlaveId(CAN_RxHeaderTypeDef rx_header) {
+		return static_cast<uint8_t>((rx_header.StdId) & ((1 << SLAVE_ID_LEN) - 1));
 	}
 
-	inline uint8_t* getData(CAN_HandleTypeDef* hcan) {
-		return hcan->pRxMsg->Data;
+	inline uint32_t getDlc(CAN_RxHeaderTypeDef rx_header) {
+		return rx_header.DLC;
 	}
 }
 

@@ -20,7 +20,9 @@ namespace CANDeviceManager
 	bool isTimeout();
 	void userSendMessages();
 	void userReceiveMessagesCallback(uint8_t slave_id, uint8_t device_id, uint8_t message_id, uint32_t DLC, uint8_t* data);
-	void Receive_IT();
+	void CAN_START();
+  	void CAN_ACTIVATE();
+  	void CAN_DEACTIVATE();
 }
 
 #endif /* APPLICATION_CAN_CAN_DEVICE_MANAGER_H_ */
