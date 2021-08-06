@@ -2,6 +2,9 @@
 Changelog for package spinal_ros_bridge
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 1.2.1 (2021-02-17)
 ------------------
 * Revert the wrong modification by `#422 <https://github.com/JSKAerialRobot/aerial_robot/issues/422>`_ (`#442 <https://github.com/JSKAerialRobot/aerial_robot/issues/442>`_)

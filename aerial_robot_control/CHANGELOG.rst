@@ -2,6 +2,14 @@
 Changelog for package aerial_robot_control
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Fix bug about switching the flight navigation mode in x,y,z,yaw (`#492 <https://github.com/JSKAerialRobot/aerial_robot/issues/492>`_)
+* Fix bug about switching flight control mode by xyControlModeCallback (`#476 <https://github.com/JSKAerialRobot/aerial_robot/issues/476>`_)
+* Enable acc nav mode via teleop_command/ctrl_mode (`#470 <https://github.com/JSKAerialRobot/aerial_robot/issues/470>`_)
+* Fixed bug: enable acc nav mode (`#449 <https://github.com/JSKAerialRobot/aerial_robot/issues/449>`_)
+
+
 1.2.1 (2021-02-17)
 ------------------
 * Refactor the process to avoid saturation in z and yaw axes (`#444 <https://github.com/JSKAerialRobot/aerial_robot/issues/444>`_)

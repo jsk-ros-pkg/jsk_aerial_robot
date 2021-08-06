@@ -2,6 +2,9 @@
 Changelog for package motor_test
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 1.2.1 (2021-02-17)
 ------------------
 * Refine the pwm test mode for motor thrust measurement (`#440 <https://github.com/JSKAerialRobot/aerial_robot/issues/440>`_)

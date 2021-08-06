@@ -2,6 +2,13 @@
 Changelog for package hydrus
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Add Hydrusx 15inch propeller model (`#477 <https://github.com/JSKAerialRobot/aerial_robot/issues/477>`_)
+* Full Thrust Vectoring Modeling and Control for Multilinked Aerial Robot With Two DoF Force Vectoring Apparatus (`#474 <https://github.com/JSKAerialRobot/aerial_robot/issues/474>`_)
+* Support RTK GPS for sensor fusion (`#472 <https://github.com/JSKAerialRobot/aerial_robot/issues/472>`_)
+* Fix log message of gain reconfiguration (`#468 <https://github.com/JSKAerialRobot/aerial_robot/issues/468>`_)
+
 1.2.1 (2021-02-17)
 ------------------
 * Refactor the process to avoid satuation in z and yaw axes (`#444 <https://github.com/JSKAerialRobot/aerial_robot/issues/444>`_)

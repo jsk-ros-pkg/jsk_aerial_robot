@@ -2,6 +2,11 @@
 Changelog for package dragon
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Fix name in dragon.urdf.xacro (`#487 <https://github.com/JSKAerialRobot/aerial_robot/issues/487>`_)
+* Full Thrust Vectoring Modeling and Control for Multilinked Aerial Robot With Two DoF Force Vectoring Apparatus (`#474 <https://github.com/JSKAerialRobot/aerial_robot/issues/474>`_)
+
 1.2.1 (2021-02-17)
 ------------------
 * Increase the retry times for Dragon and Hydrus gazebo test in Travis (`#443 <https://github.com/JSKAerialRobot/aerial_robot/issues/443>`_)

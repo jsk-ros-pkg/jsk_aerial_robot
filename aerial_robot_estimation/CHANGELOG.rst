@@ -2,6 +2,12 @@
 Changelog for package aerial_robot_estimation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Dynamic offset calculation in plane detectionMerge (`#484 <https://github.com/JSKAerialRobot/aerial_robot/issues/484>`_)
+* Full Thrust Vectoring Modeling and Control for Multilinked Aerial Robot With Two DoF Force Vectoring Apparatus (`#474 <https://github.com/JSKAerialRobot/aerial_robot/issues/474>`_)
+* RTK GPS for sensor fusion (`#472 <https://github.com/JSKAerialRobot/aerial_robot/issues/472>`_)
+
 1.2.1 (2021-02-17)
 ------------------
 * Replace the old repositoty name in CHANGELOG.rst (`#434 <https://github.com/JSKAerialRobot/aerial_robot/issues/434>`_)
