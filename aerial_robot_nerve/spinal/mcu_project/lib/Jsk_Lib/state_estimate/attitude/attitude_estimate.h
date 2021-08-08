@@ -195,7 +195,7 @@ public:
             imu_msg_.acc_data[i] = estimator_->getAcc(Frame::BODY)[i];
             imu_msg_.gyro_data[i] = estimator_->getAngular(Frame::BODY)[i];
 #if ESTIMATE_TYPE == COMPLEMENTARY
-            imu_msg_.angles[i] = estimator_->getAttitude(Frame::BODY)[i]; // get the attitude at body frame3
+            imu_msg_.angles[i] = estimator_->getAttitude(Frame::VIRTUAL)[i]; // workaround to avoid the singularity of RPY Euler angles. 
 #endif
           }
 #ifdef SIMULATION

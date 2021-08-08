@@ -89,14 +89,24 @@ void DragonNavigator::landingProcess()
           joint_control_pub_.publish(joint_control_msg);
           final_target_baselink_rot_.setValue(0, 0, 0);
 
-          double curr_roll = estimator_->getState(State::ROLL_BASE, estimate_mode_)[0];
-          double curr_pitch = estimator_->getState(State::PITCH_BASE, estimate_mode_)[0];
 
-          if(fabs(fabs(curr_pitch) - M_PI/2) < 0.05 && fabs(curr_roll) > M_PI/2) // singularity of XYZ Euler
-            curr_roll = 0;
+          tf::Vector3 base_euler = estimator_->getEuler(Frame::BASELINK, estimate_mode_);
 
-          /* force set the current deisre tilt to current estimated tilt */
-          curr_target_baselink_rot_.setValue(curr_roll, curr_pitch, 0);
+
+          if(fabs(fabs(base_euler.y()) - M_PI/2) > 0.2)
+            {
+              /* force set the current deisre tilt to current estimated tilt */
+              curr_target_baselink_rot_.setValue(base_euler.x(), base_euler.y(), 0); // case1
+            }
+          else
+            { // singularity of XYZ Euler
+
+              if(fabs(fabs(curr_target_baselink_rot_.y()) - M_PI/2) > 0.2)
+                curr_target_baselink_rot_.setValue(0, base_euler.y(), 0); // case2
+
+              // case3: use the last curr_target_baselink_rot_
+            }
+
         }
 
       level_flag_ = true;
