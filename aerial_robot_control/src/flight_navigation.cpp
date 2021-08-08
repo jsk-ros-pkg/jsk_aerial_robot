@@ -212,7 +212,7 @@ void BaseNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr& msg
         }
         case LOCAL_FRAME: {
           tf::Vector3 target_vel = frameConversion(tf::Vector3(msg->target_vel_x, msg->target_vel_y, 0),
-                                                   estimator_->getState(State::YAW_COG, estimate_mode_)[0]);
+                                                   estimator_->getEuler(Frame::COG, estimate_mode_).z());
           setTargetVelX(target_vel.x());
           setTargetVelY(target_vel.y());
           break;
@@ -251,7 +251,7 @@ void BaseNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr& msg
         }
         case LOCAL_FRAME: {
           tf::Vector3 target_acc = frameConversion(tf::Vector3(msg->target_acc_x, msg->target_acc_y, 0),
-                                                   estimator_->getState(State::YAW_COG, estimate_mode_)[0]);
+                                                   estimator_->getEuler(Frame::COG, estimate_mode_).z());
           setTargetAccX(target_acc.x());
           setTargetAccY(target_acc.y());
           break;
@@ -454,7 +454,7 @@ void BaseNavigator::joyStickControl(const sensor_msgs::JoyConstPtr& joy_msg)
   /* this is the yaw_angle control */
   if (fabs(joy_cmd.axes[PS3_AXIS_STICK_RIGHT_LEFTWARDS]) > joy_yaw_deadzone_)
   {
-    double target_yaw = estimator_->getState(State::YAW_COG, estimate_mode_)[0] +
+    double target_yaw = estimator_->getEuler(Frame::COG, estimate_mode_).z() +
                         joy_cmd.axes[PS3_AXIS_STICK_RIGHT_LEFTWARDS] * max_target_yaw_rate_;
     setTargetYaw(angles::normalize_angle(target_yaw));
     setTargetOmageZ(joy_cmd.axes[PS3_AXIS_STICK_RIGHT_LEFTWARDS] * max_target_yaw_rate_);
@@ -538,7 +538,7 @@ void BaseNavigator::joyStickControl(const sensor_msgs::JoyConstPtr& joy_msg)
                                teleop_local_frame_tf);
 
           target_acc_ = frameConversion(target_acc, tf::Matrix3x3(tf::createQuaternionFromYaw(
-                                                        estimator_->getState(State::YAW_COG, estimate_mode_)[0])) *
+                                                        estimator_->getEuler(Frame::COG, estimate_mode_).z())) *
                                                         teleop_local_frame_tf.getBasis());
         }
       }
@@ -562,7 +562,7 @@ void BaseNavigator::joyStickControl(const sensor_msgs::JoyConstPtr& joy_msg)
         if (control_frame_ == LOCAL_FRAME)
         {
           tf::Vector3 target_vel_tmp = target_vel;
-          target_vel = frameConversion(target_vel_tmp, estimator_->getState(State::YAW_COG, estimate_mode_)[0]);
+          target_vel = frameConversion(target_vel_tmp, estimator_->getEuler(Frame::COG, estimate_mode_).z());
         }
 
         /* interpolation for vel target */
