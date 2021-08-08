@@ -48,7 +48,7 @@ namespace sensor_plugin
     sensor_plugin::SensorBase(),
     calib_count_(200),
     acc_b_(0, 0, 0),
-    cog_euler_(0, 0, 0),
+    wz_b_(0, 0, 0),
     omega_(0, 0, 0),
     mag_(0, 0, 0),
     acc_bias_b_(0, 0, 0),
@@ -102,7 +102,7 @@ namespace sensor_plugin
         acc_b_[i] = imu_msg->acc_data[i]; // baselink frame
         omega_[i] = imu_msg->gyro_data[i];  // baselink frame
         mag_[i] = imu_msg->mag_data[i];  // baselink frame
-        cog_euler_[i] = imu_msg->angles[i];  // cog frame, workaround to avoid the singularity of RPY Euler angles.
+        wz_b_[i] = imu_msg->angles[i];  // workaround to avoid the singularity of RPY Euler angles.
       }
 
     estimateProcess();
@@ -124,6 +124,12 @@ namespace sensor_plugin
     tf::Transform cog2baselink_tf;
     tf::transformKDLToTF(robot_model_->getCog2Baselink<KDL::Frame>(), cog2baselink_tf);
 
+    // convert to CoG frame, since in the current system, CoG frame is never being sigular due to RPY euler
+    tf::Vector3 wz_c = cog2baselink_tf.getBasis() * wz_b_;
+    tf::Vector3 cog_euler;
+    cog_euler[0] = atan2(wz_c.y() , wz_c.z());
+    cog_euler[1] = atan2(-wz_c.x() , sqrt(wz_c.y() * wz_c.y() + wz_c.z() * wz_c.z()));
+
 
     // 1. egomotion estimate mode
     //  check whether have valid rotation from VO sensor
@@ -139,12 +145,13 @@ namespace sensor_plugin
                 // we replace the yaw angle from the spinal with the value from VO.
                 double r,p,y;
                 cog_rot_by_vo.getRPY(r, p, y);
-                cog_euler_[2] = y;
+                cog_euler[2] = y;
                 break;
               }
           }
       }
-    cog_rot_.at(aerial_robot_estimation::EGOMOTION_ESTIMATE).setRPY(cog_euler_[0], cog_euler_[1], cog_euler_[2]);
+
+    cog_rot_.at(aerial_robot_estimation::EGOMOTION_ESTIMATE).setRPY(cog_euler[0], cog_euler[1], cog_euler[2]);
     estimator_->setOrientation(Frame::COG, aerial_robot_estimation::EGOMOTION_ESTIMATE, cog_rot_.at(aerial_robot_estimation::EGOMOTION_ESTIMATE));
     base_rot_.at(aerial_robot_estimation::EGOMOTION_ESTIMATE) = cog_rot_.at(aerial_robot_estimation::EGOMOTION_ESTIMATE) * cog2baselink_tf.getBasis();
     estimator_->setOrientation(Frame::BASELINK, aerial_robot_estimation::EGOMOTION_ESTIMATE, base_rot_.at(aerial_robot_estimation::EGOMOTION_ESTIMATE));
@@ -152,17 +159,15 @@ namespace sensor_plugin
     estimator_->setAngularVel(Frame::COG, aerial_robot_estimation::EGOMOTION_ESTIMATE, cog2baselink_tf.getBasis() * omega_);
     estimator_->setAngularVel(Frame::BASELINK, aerial_robot_estimation::EGOMOTION_ESTIMATE, omega_);
 
-
     // 2. experiment estimate mode
-    tf::Vector3 euler = cog_euler_;
     if(estimator_->getStateStatus(State::CoG::Rot, aerial_robot_estimation::GROUND_TRUTH))
       {
         tf::Matrix3x3 gt_cog_rot = estimator_->getOrientation(Frame::COG, aerial_robot_estimation::GROUND_TRUTH);
         double r,p,y;
         gt_cog_rot.getRPY(r, p, y);
-        euler[2] = y;
+        cog_euler[2] = y;
       }
-    cog_rot_.at(aerial_robot_estimation::EXPERIMENT_ESTIMATE).setRPY(euler[0], euler[1], euler[2]);
+    cog_rot_.at(aerial_robot_estimation::EXPERIMENT_ESTIMATE).setRPY(cog_euler[0], cog_euler[1], cog_euler[2]);
     estimator_->setOrientation(Frame::COG, aerial_robot_estimation::EXPERIMENT_ESTIMATE, cog_rot_.at(aerial_robot_estimation::EXPERIMENT_ESTIMATE));
     base_rot_.at(aerial_robot_estimation::EXPERIMENT_ESTIMATE) = cog_rot_.at(aerial_robot_estimation::EXPERIMENT_ESTIMATE) * cog2baselink_tf.getBasis();
     estimator_->setOrientation(Frame::BASELINK, aerial_robot_estimation::EXPERIMENT_ESTIMATE, base_rot_.at(aerial_robot_estimation::EXPERIMENT_ESTIMATE));
