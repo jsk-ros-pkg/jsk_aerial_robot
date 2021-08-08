@@ -26,10 +26,10 @@
 class ComplementaryAHRS: public EstimatorAlgorithm
 {
 public:
-  ComplementaryAHRS():EstimatorAlgorithm(), est_g_(),  est_m_(){}
+  ComplementaryAHRS():EstimatorAlgorithm()
+  {}
 
 private:
-  std::array<ap::Vector3f, 2> est_g_,  est_m_;
 
   /* core esitmation process, using body frame */
   void estimation() 
