@@ -497,7 +497,7 @@ namespace aerial_robot_navigation
 
     void setTargetYawFromCurrentState()
     {
-      target_rpy_.setZ(estimator_->getState(State::YAW_COG, estimate_mode_)[0]);
+      target_rpy_.setZ(estimator_->getEuler(Frame::COG, estimate_mode_).z());
 
       // set the velocty to zero
       target_omega_.setZ(0);
