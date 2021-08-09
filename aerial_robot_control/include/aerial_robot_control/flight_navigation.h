@@ -73,14 +73,16 @@ namespace aerial_robot_navigation
     inline tf::Vector3 getTargetVel() {return target_vel_;}
     inline tf::Vector3 getTargetAcc() {return target_acc_;}
     inline tf::Vector3 getTargetRPY() {return target_rpy_;}
-    inline tf::Vector3 getTargetOmega() {return target_omega_;}
+    inline tf::Vector3 getTargetOmega() {return target_omega_;} 
 
     inline void setTargetRoll(float value) { target_rpy_.setX(value); }
-    inline void setTargetOmageX(float value) { target_omega_.setX(value); }
+    inline void setTargetOmegaX(float value) { target_omega_.setX(value); }
     inline void setTargetPitch(float value) { target_rpy_.setY(value); }
-    inline void setTargetOmageY(float value) { target_omega_.setY(value); }
+    inline void setTargetOmegaY(float value) { target_omega_.setY(value); }
     inline void setTargetYaw(float value) { target_rpy_.setZ(value); }
-    inline void setTargetOmageZ(float value) { target_omega_.setZ(value); }
+    inline void setTargetOmegaZ(float value) { target_omega_.setZ(value); }
+    inline void setTargetRPY(tf::Vector3 value) { target_rpy_ = value; }
+    inline void setTargetOmega(tf::Vector3 value) { target_omega_ = value; }
     inline void setTargetPosX( float value){  target_pos_.setX(value);}
     inline void setTargetVelX( float value){  target_vel_.setX(value);}
     inline void setTargetAccX( float value){  target_acc_.setX(value);}

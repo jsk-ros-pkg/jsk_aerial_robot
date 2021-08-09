@@ -543,6 +543,10 @@ void DragonFullVectoringController::controlCore()
   if(overlap_rotors_.size() > 0) ROS_DEBUG_STREAM("rotor interference: " << ss.str());
 
   setTargetWrenchAccCog(target_wrench_acc_cog);
+  // TODO: we need to compensate a nonlinear term w x (Jw) for rotational motion.
+  // solution1: using the raw angular velocity: https://ieeexplore.ieee.org/document/5717652, problem is the noisy of raw omega
+  // solution2: using the target angular velocity: https://ieeexplore.ieee.org/document/6669644, problem is the larget gap between true  omega and target one. but this paper claim this is oK
+  // solution3: ignore this term for low angular motion <- current is this
 
 #if 1 // iteratively find the target force and target gimbal angles
   KDL::Rotation cog_desire_orientation = robot_model_->getCogDesireOrientation<KDL::Rotation>();
