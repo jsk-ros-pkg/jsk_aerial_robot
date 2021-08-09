@@ -211,9 +211,13 @@ namespace aerial_robot_control
     target_acc_ = navigator_->getTargetAcc();
 
     rpy_ = estimator_->getEuler(Frame::COG, estimate_mode_);
+    tf::Matrix3x3 rot; rot.setRPY(rpy_.x(), rpy_.y(), rpy_.z());
     omega_ = estimator_->getAngularVel(Frame::COG, estimate_mode_);
     target_rpy_ = navigator_->getTargetRPY();
-    target_omega_ = navigator_->getTargetOmega();
+    tf::Matrix3x3 target_rot; target_rot.setRPY(target_rpy_.x(), target_rpy_.y(), target_rpy_.z());
+    tf::Vector3 target_omega = navigator_->getTargetOmega(); // w.r.t. target cog frame
+    target_omega_ = rot.inverse() * target_rot * target_omega; // w.r.t. current cog frame
+
 
     // time diff
     double du = ros::Time::now().toSec() - control_timestamp_;
