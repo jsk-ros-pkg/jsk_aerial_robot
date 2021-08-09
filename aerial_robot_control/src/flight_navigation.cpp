@@ -139,12 +139,12 @@ void BaseNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & ms
   if(msg->yaw_nav_mode == aerial_robot_msgs::FlightNav::POS_MODE)
     {
       setTargetYaw(angles::normalize_angle(msg->target_yaw));
-      setTargetOmageZ(0);
+      setTargetOmegaZ(0);
     }
   if(msg->yaw_nav_mode == aerial_robot_msgs::FlightNav::POS_VEL_MODE)
     {
       setTargetYaw(angles::normalize_angle(msg->target_yaw));
-      setTargetOmageZ(msg->target_omega_z);
+      setTargetOmegaZ(msg->target_omega_z);
     }
 
   /* xy control */
@@ -445,7 +445,7 @@ void BaseNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
       double target_yaw = estimator_->getEuler(Frame::COG, estimate_mode_).z()
         + joy_cmd.axes[PS3_AXIS_STICK_RIGHT_LEFTWARDS] * max_target_yaw_rate_;
       setTargetYaw(angles::normalize_angle(target_yaw));
-      setTargetOmageZ(joy_cmd.axes[PS3_AXIS_STICK_RIGHT_LEFTWARDS] * max_target_yaw_rate_);
+      setTargetOmegaZ(joy_cmd.axes[PS3_AXIS_STICK_RIGHT_LEFTWARDS] * max_target_yaw_rate_);
 
       yaw_control_flag_ = true;
     }
@@ -455,7 +455,7 @@ void BaseNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
         {
           yaw_control_flag_= false;
           setTargetYawFromCurrentState();
-          setTargetOmageZ(0);
+          setTargetOmegaZ(0);
           ROS_INFO("Joy Control: fixed yaw state, target yaw angle is %f", getTargetRPY().z());
         }
     }

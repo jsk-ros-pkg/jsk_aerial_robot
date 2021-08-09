@@ -36,8 +36,11 @@
 #pragma once
 
 #include <aerial_robot_control/flight_navigation.h>
+#include <kdl_conversions/kdl_msg.h>
 #include <sensor_msgs/JointState.h>
+#include <nav_msgs/Odometry.h>
 #include <spinal/DesireCoord.h>
+
 
 namespace aerial_robot_navigation
 {
@@ -59,7 +62,7 @@ namespace aerial_robot_navigation
     ros::Publisher curr_target_baselink_rot_pub_;
     ros::Publisher joint_control_pub_;
     ros::Subscriber final_target_baselink_rot_sub_;
-    ros::Subscriber target_baselink_rot_sub_;
+    ros::Subscriber target_rotation_motion_sub_;
 
     void halt() override;
     void reset() override;
@@ -71,7 +74,7 @@ namespace aerial_robot_navigation
     void rosParamInit() override;
 
     void setFinalTargetBaselinkRotCallback(const spinal::DesireCoordConstPtr & msg);
-    void targetBaselinkRotCallback(const spinal::DesireCoordConstPtr& msg);
+    void targetRotationMotionCallback(const nav_msgs::OdometryConstPtr& msg);
 
     /* target baselink rotation */
     double prev_rotation_stamp_;

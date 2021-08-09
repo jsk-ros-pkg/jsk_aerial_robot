@@ -23,6 +23,7 @@ void DragonNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   curr_target_baselink_rot_pub_ = nh_.advertise<spinal::DesireCoord>("desire_coordinate", 1);
   joint_control_pub_ = nh_.advertise<sensor_msgs::JointState>("joints_ctrl", 1);
   final_target_baselink_rot_sub_ = nh_.subscribe("final_target_baselink_rot", 1, &DragonNavigator::setFinalTargetBaselinkRotCallback, this);
+  target_rotation_motion_sub_ = nh_.subscribe("target_rotation_motion", 1, &DragonNavigator::targetRotationMotionCallback, this);
 
   prev_rotation_stamp_ = ros::Time::now().toSec();
 }
@@ -42,6 +43,45 @@ void DragonNavigator::setFinalTargetBaselinkRotCallback(const spinal::DesireCoor
 {
   final_target_baselink_rot_.setValue(msg->roll, msg->pitch, msg->yaw);
 }
+
+void DragonNavigator::targetRotationMotionCallback(const nav_msgs::OdometryConstPtr& msg)
+{
+  std::string frame = msg->header.frame_id;
+
+  if(frame != std::string("cog") && frame != std::string("baselink"))
+    {
+      ROS_ERROR("frame %s is not support in target rotation motion",frame.c_str());
+      return;
+    }
+
+  tf::Quaternion q;
+  tf::quaternionMsgToTF(msg->pose.pose.orientation, q);
+
+  tf::Vector3 w;
+  tf::vector3MsgToTF(msg->twist.twist.angular, w);
+
+  // special process for current special definition of tranformation between CoG and Baselink
+  if(frame == std::string("baselink"))
+    {
+      // Note: omit to publish the desired baselink rot (euler),
+      // and directly send to aerial model
+      KDL::Rotation rot;
+      tf::quaternionMsgToKDL(msg->pose.pose.orientation, rot);
+      robot_model_->setCogDesireOrientation(rot);
+
+      // convert to target CoG frame from Baselink frame
+      setTargetOmega(tf::Matrix3x3(q) * w);
+    }
+  else
+    { // CoG frame
+
+      // This should be the standard process to receive desired rotation motion (orientation + angular velocity)
+      double r,p,y; tf::Matrix3x3(q).getRPY(r, p, y);
+      setTargetRPY(tf::Vector3(r, p, y));
+      setTargetOmega(w);
+    }
+}
+
 
 void DragonNavigator::baselinkRotationProcess()
 {
