@@ -8,9 +8,10 @@ DragonNavigator::DragonNavigator():
   servo_torque_(false),
   level_flag_(false),
   landing_flag_(false),
-  curr_target_baselink_rot_(0, 0, 0),
-  final_target_baselink_rot_(0, 0, 0)
+  eq_cog_world_(false)
 {
+  curr_target_baselink_rot_.setRPY(0, 0, 0);
+  final_target_baselink_rot_.setRPY(0, 0, 0);
 }
 
 void DragonNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
@@ -20,9 +21,10 @@ void DragonNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   /* initialize the flight control */
   BaseNavigator::initialize(nh, nhp, robot_model, estimator);
 
-  curr_target_baselink_rot_pub_ = nh_.advertise<spinal::DesireCoord>("desire_coordinate", 1);
+  target_baselink_rpy_pub_ = nh_.advertise<spinal::DesireCoord>("desire_coordinate", 1); // to spinal
   joint_control_pub_ = nh_.advertise<sensor_msgs::JointState>("joints_ctrl", 1);
-  final_target_baselink_rot_sub_ = nh_.subscribe("final_target_baselink_rot", 1, &DragonNavigator::setFinalTargetBaselinkRotCallback, this);
+  final_target_baselink_rot_sub_ = nh_.subscribe("final_target_baselink_rot", 1, &DragonNavigator::targetBaselinkRotCallback, this);
+  final_target_baselink_rpy_sub_ = nh_.subscribe("final_target_baselink_rpy", 1, &DragonNavigator::targetBaselinkRPYCallback, this);
   target_rotation_motion_sub_ = nh_.subscribe("target_rotation_motion", 1, &DragonNavigator::targetRotationMotionCallback, this);
 
   prev_rotation_stamp_ = ros::Time::now().toSec();
@@ -30,6 +32,18 @@ void DragonNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
 
 void DragonNavigator::update()
 {
+  if(eq_cog_world_ && robot_model_->getCogDesireOrientation<KDL::Rotation>() != KDL::Rotation::Identity())
+    {
+      // Note: this means we can not use targetBaselinkRPY at first
+      // we can only use targetBaselinkRot
+      tf::Quaternion q_base, q_cog;
+      estimator_->getOrientation(Frame::COG, estimate_mode_).getRotation(q_cog);
+      estimator_->getOrientation(Frame::BASELINK, estimate_mode_).getRotation(q_base);
+      if(q_cog != q_base)
+        setTargetYaw(0); // set the target yaw as zero, similar to pitch and roll, since CoG is identical with world frame
+    }
+
+
   BaseNavigator::update();
 
   baselinkRotationProcess();
@@ -39,9 +53,21 @@ void DragonNavigator::update()
 
 }
 
-void DragonNavigator::setFinalTargetBaselinkRotCallback(const spinal::DesireCoordConstPtr & msg)
+void DragonNavigator::targetBaselinkRotCallback(const geometry_msgs::QuaternionStampedConstPtr & msg)
 {
-  final_target_baselink_rot_.setValue(msg->roll, msg->pitch, msg->yaw);
+  tf::quaternionMsgToTF(msg->quaternion, final_target_baselink_rot_);
+
+  // special process
+  if(getTargetRPY().z() != 0)
+    {
+      curr_target_baselink_rot_.setRPY(0, 0, getTargetRPY().z());
+      eq_cog_world_ = true;
+    }
+}
+
+void DragonNavigator::targetBaselinkRPYCallback(const geometry_msgs::Vector3StampedConstPtr & msg)
+{
+  final_target_baselink_rot_.setRPY(msg->vector.x, msg->vector.y, msg->vector.z);
 }
 
 void DragonNavigator::targetRotationMotionCallback(const nav_msgs::OdometryConstPtr& msg)
@@ -70,6 +96,7 @@ void DragonNavigator::targetRotationMotionCallback(const nav_msgs::OdometryConst
       robot_model_->setCogDesireOrientation(rot);
 
       // convert to target CoG frame from Baselink frame
+      eq_cog_world_ = true;
       setTargetOmega(tf::Matrix3x3(q) * w);
     }
   else
@@ -89,15 +116,24 @@ void DragonNavigator::baselinkRotationProcess()
 
   if(ros::Time::now().toSec() - prev_rotation_stamp_ > baselink_rot_pub_interval_)
     {
-      if((final_target_baselink_rot_- curr_target_baselink_rot_).length() > baselink_rot_change_thresh_)
-        curr_target_baselink_rot_ += ((final_target_baselink_rot_ - curr_target_baselink_rot_).normalize() * baselink_rot_change_thresh_);
+      tf::Quaternion delta_q = curr_target_baselink_rot_.inverse() * final_target_baselink_rot_;
+      double angle = delta_q.getAngle();
+      if (angle > M_PI) angle -= 2 * M_PI;
+
+      if(fabs(angle) > baselink_rot_change_thresh_)
+        {
+          curr_target_baselink_rot_ *= tf::Quaternion(delta_q.getAxis(), fabs(angle) / angle * baselink_rot_change_thresh_);
+        }
       else
         curr_target_baselink_rot_ = final_target_baselink_rot_;
 
-      spinal::DesireCoord target_baselink_rot_msg;
-      target_baselink_rot_msg.roll = curr_target_baselink_rot_.x();
-      target_baselink_rot_msg.pitch = curr_target_baselink_rot_.y();
-      curr_target_baselink_rot_pub_.publish(target_baselink_rot_msg);
+      spinal::DesireCoord msg;
+      double r,p,y;
+      tf::Matrix3x3(curr_target_baselink_rot_).getRPY(r, p, y);
+      msg.roll = r;
+      msg.pitch = p;
+      msg.yaw = y;
+      target_baselink_rpy_pub_.publish(msg);
 
       prev_rotation_stamp_ = ros::Time::now().toSec();
     }
@@ -125,28 +161,54 @@ void DragonNavigator::landingProcess()
                 }
             }
 
-
           joint_control_pub_.publish(joint_control_msg);
-          final_target_baselink_rot_.setValue(0, 0, 0);
 
-
-          tf::Vector3 base_euler = estimator_->getEuler(Frame::BASELINK, estimate_mode_);
-
-
-          if(fabs(fabs(base_euler.y()) - M_PI/2) > 0.2)
+          if (!eq_cog_world_)
             {
-              /* force set the current deisre tilt to current estimated tilt */
-              curr_target_baselink_rot_.setValue(base_euler.x(), base_euler.y(), 0); // case1
+              final_target_baselink_rot_.setRPY(0, 0, 0);
+
+              tf::Vector3 base_euler = estimator_->getEuler(Frame::BASELINK, estimate_mode_);
+
+              if(fabs(fabs(base_euler.y()) - M_PI/2) > 0.2)
+                {
+                  /* force set the current deisre tilt to current estimated tilt */
+                  curr_target_baselink_rot_.setRPY(base_euler.x(), base_euler.y(), 0); // case1
+                }
+              else
+                { // singularity of XYZ Euler
+
+                  double r,p,y;
+                  tf::Matrix3x3(curr_target_baselink_rot_).getRPY(r,p,y);
+                  if(fabs(fabs(p) - M_PI/2) > 0.2)
+                    curr_target_baselink_rot_.setRPY(0, base_euler.y(), 0); // case2
+
+                  // case3: use the last curr_target_baselink_rot_
+                }
             }
           else
-            { // singularity of XYZ Euler
+            {
+              tf::Quaternion base_rot;
+              estimator_->getOrientation(Frame::BASELINK, estimate_mode_).getRotation(base_rot);
 
-              if(fabs(fabs(curr_target_baselink_rot_.y()) - M_PI/2) > 0.2)
-                curr_target_baselink_rot_.setValue(0, base_euler.y(), 0); // case2
+              double delta_angle = (curr_target_baselink_rot_.inverse() * base_rot).getAngle();
+              if (delta_angle > M_PI) delta_angle -= 2 * M_PI;
+              if(fabs(delta_angle) > 0.2)
+                {
+                  curr_target_baselink_rot_ = base_rot;
+                }
 
-              // case3: use the last curr_target_baselink_rot_
+              tf::Vector3 cross_v =  tf::Vector3(0,0,1).cross(tf::Matrix3x3(curr_target_baselink_rot_.inverse()) * tf::Vector3(0,0,1));
+              tf::Quaternion delta_q(cross_v.normalized(), asin(cross_v.length()));
+              final_target_baselink_rot_ = curr_target_baselink_rot_ * delta_q;
+              ROS_DEBUG("final_target_baselink_rot_: [%f, %f, %f, %f]", final_target_baselink_rot_.x(), final_target_baselink_rot_.y(),
+                       final_target_baselink_rot_.z(), final_target_baselink_rot_.w());
+              // Note: normalize quaterinon just in case that curr_target_baselink_rot is not a perfect quaternion (e.g., manual rostopic pub)
+              double r,p,y;
+              tf::Matrix3x3(final_target_baselink_rot_).getRPY(r,p,y);
+              final_target_baselink_rot_.setRPY(0, 0, y);
+              ROS_DEBUG("refine final_target_baselink_rot_: [%f, %f, %f, %f]", final_target_baselink_rot_.x(), final_target_baselink_rot_.y(),
+                       final_target_baselink_rot_.z(), final_target_baselink_rot_.w());
             }
-
         }
 
       level_flag_ = true;
@@ -174,7 +236,9 @@ void DragonNavigator::landingProcess()
             }
         }
 
-      if(curr_target_baselink_rot_.length()) already_level = false;
+      double r,p,y;
+      tf::Matrix3x3(curr_target_baselink_rot_).getRPY(r,p,y);
+      if(fabs(r) > 0.01 || fabs(p) > 0.01) already_level = false;
 
       if(already_level && getNaviState() == HOVER_STATE)
         {
