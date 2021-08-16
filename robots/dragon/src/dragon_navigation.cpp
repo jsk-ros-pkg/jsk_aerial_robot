@@ -56,6 +56,7 @@ void DragonNavigator::update()
 void DragonNavigator::targetBaselinkRotCallback(const geometry_msgs::QuaternionStampedConstPtr & msg)
 {
   tf::quaternionMsgToTF(msg->quaternion, final_target_baselink_rot_);
+  target_omega_.setValue(0,0,0); // for sure to reset the target angular velocity
 
   // special process
   if(getTargetRPY().z() != 0)
@@ -68,6 +69,7 @@ void DragonNavigator::targetBaselinkRotCallback(const geometry_msgs::QuaternionS
 void DragonNavigator::targetBaselinkRPYCallback(const geometry_msgs::Vector3StampedConstPtr & msg)
 {
   final_target_baselink_rot_.setRPY(msg->vector.x, msg->vector.y, msg->vector.z);
+    target_omega_.setValue(0,0,0); // for sure to reset the target angular velocity
 }
 
 void DragonNavigator::targetRotationMotionCallback(const nav_msgs::OdometryConstPtr& msg)
@@ -89,15 +91,27 @@ void DragonNavigator::targetRotationMotionCallback(const nav_msgs::OdometryConst
   // special process for current special definition of tranformation between CoG and Baselink
   if(frame == std::string("baselink"))
     {
-      // Note: omit to publish the desired baselink rot (euler),
       // and directly send to aerial model
       KDL::Rotation rot;
       tf::quaternionMsgToKDL(msg->pose.pose.orientation, rot);
+
+      double qx,qy,qz,qw;
+      rot.GetQuaternion(qx,qy,qz,qw);
       robot_model_->setCogDesireOrientation(rot);
+      tf::quaternionMsgToTF(msg->pose.pose.orientation, curr_target_baselink_rot_);
 
       // convert to target CoG frame from Baselink frame
       eq_cog_world_ = true;
       setTargetOmega(tf::Matrix3x3(q) * w);
+
+      // send to spinal
+      spinal::DesireCoord msg;
+      double r,p,y;
+      rot.GetRPY(r, p, y);
+      msg.roll = r;
+      msg.pitch = p;
+      msg.yaw = y;
+      target_baselink_rpy_pub_.publish(msg);
     }
   else
     { // CoG frame
@@ -127,6 +141,11 @@ void DragonNavigator::baselinkRotationProcess()
       else
         curr_target_baselink_rot_ = final_target_baselink_rot_;
 
+      KDL::Rotation rot;
+      tf::quaternionTFToKDL(curr_target_baselink_rot_, rot);
+      robot_model_->setCogDesireOrientation(rot);
+
+      // send to spinal
       spinal::DesireCoord msg;
       double r,p,y;
       tf::Matrix3x3(curr_target_baselink_rot_).getRPY(r, p, y);
@@ -143,6 +162,8 @@ void DragonNavigator::landingProcess()
 {
   if(getForceLandingFlag() || getNaviState() == LAND_STATE)
     {
+      target_omega_.setValue(0,0,0); // for sure to  target angular velocity is zero
+
       if(!level_flag_)
         {
           const auto joint_state = robot_model_->kdlJointToMsg(robot_model_->getJointPositions());
@@ -308,6 +329,14 @@ void DragonNavigator::reset()
 
   level_flag_ = false;
   landing_flag_ = false;
+
+  // reset SO3
+  eq_cog_world_ = false;
+  curr_target_baselink_rot_.setRPY(0, 0, 0);
+  final_target_baselink_rot_.setRPY(0, 0, 0);
+  KDL::Rotation rot;
+  tf::quaternionTFToKDL(curr_target_baselink_rot_, rot);
+  robot_model_->setCogDesireOrientation(rot);
 }
 
 
