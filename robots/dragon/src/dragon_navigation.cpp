@@ -225,10 +225,9 @@ void DragonNavigator::landingProcess()
                 }
               else
                 {
-                  tf::Quaternion delta_q(cross_v.normalized(), asin(cross_v.length()));
+                  // IMPORTANT: to avoid NaN because of asin(angle) when angle > 1, thus use tfAsin which has clamping process before do asin
+                  tf::Quaternion delta_q(cross_v, tfAsin(cross_v.length()));
                   final_target_baselink_rot_ = curr_target_baselink_rot_ * delta_q;
-                  ROS_DEBUG("final_target_baselink_rot_: [%f, %f, %f, %f]", final_target_baselink_rot_.x(), final_target_baselink_rot_.y(),
-                            final_target_baselink_rot_.z(), final_target_baselink_rot_.w());
                   // Note: normalize quaterinon just in case that curr_target_baselink_rot is not a perfect quaternion (e.g., manual rostopic pub)
                   double r,p,y;
                   tf::Matrix3x3(final_target_baselink_rot_).getRPY(r,p,y);
