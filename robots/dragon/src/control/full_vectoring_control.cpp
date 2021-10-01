@@ -6,6 +6,7 @@ using namespace aerial_robot_control;
 namespace
 {
   int cnt = 0;
+  double ave_cnt = 0;
   double thrustSumFunc(const std::vector<double> &x, std::vector<double> &grad, void *ptr)
   {
     aerial_robot_model::RobotModel *robot_model = reinterpret_cast<aerial_robot_model::RobotModel*>(ptr);
@@ -163,9 +164,8 @@ namespace
 
 
         // v = p x u + k u
-        // partial(v_i) / partial(phi_j) = partial(p_i) x u_i / partial(phi_j) + p_i x partial(u_i) / partial(phi_j) + k partial(u_i) / partial(phi_j)
-        // sum_i lambda_i (partial(v_i) / partial(phi_j)) = sum_i lambda_i (partial(p_i) x u_i / partial(phi_j)) + lambda_j (p_j x partial(u_j) / partial(phi_j) + k partial(u_j) / partial(phi_j))
-        // TODO: add the derivative of the inertial, necessary
+        // partial(v_i) / partial(phi_j) = partial(p_i) / partial(phi_j) x u_i + p_i x partial(u_i) / partial(phi_j) + k partial(u_i) / partial(phi_j)
+        // sum_i lambda_i (partial(v_i) / partial(phi_j)) = sum_i lambda_i (partial(p_i) / partial(phi_j) x u_i) + lambda_j (p_j x partial(u_j) / partial(phi_j) + k partial(u_j) / partial(phi_j))
 
         // partial(p_j) / partial(phi_j) => the change of CoG
         std::string joint_name = std::string("gimbal") + std::to_string(j + 1) + std::string("_roll");
@@ -189,12 +189,13 @@ namespace
 
         Eigen::Vector3d sum_partial_v_p_k_phi_j(0,0,0);
         for(int k = 0; k < rotor_num; k++)
-          sum_partial_v_p_k_phi_j -= x[k] * kdlToEigen(cog.M.Inverse() * partial_cog_phi_j).cross(u.at(k));
+          sum_partial_v_p_k_phi_j -= x[k] * kdlToEigen(cog.M.Inverse() * partial_cog_phi_j).cross(u.at(k)); // circle 1 of memo
 
         // partial(p_j) / partial(phi_j) also has an additional term partial_v_p_j_phi_j =  R^{cog}_{L_j} partial(R^{L_j}_{g_roll_j}(phi_j)) p^{g_roll_j}_{g_pitch_j}
-        Eigen::Vector3d partial_v_p_j_phi_j =  lambda_j * (R_L_j * partial_R_phi_j * p_gimal_roll_pitch).cross(u.at(j));
-        Eigen::Vector3d partial_v_u_j_phi_j = lambda_j * (p.at(j).cross(partial_u_j_phi_j) +  sigma.at(j + 1) * m_f_rate * partial_u_j_phi_j);
+        Eigen::Vector3d partial_v_p_j_phi_j =  lambda_j * (R_L_j * partial_R_phi_j * p_gimal_roll_pitch).cross(u.at(j)); // circle 2 in memo
+        Eigen::Vector3d partial_v_u_j_phi_j = lambda_j * (p.at(j).cross(partial_u_j_phi_j) +  sigma.at(j + 1) * m_f_rate * partial_u_j_phi_j); // circle 3 + 4 in memo
 
+        // derivative of inertial for cog torque
         Eigen::Matrix3d R_g_roll_j_root = kdlToEigen(seg_tf_map.at(joint_child_segment_name).M);
         Eigen::Matrix3d local_inertia = R_g_roll_j_root.transpose() * kdlToEigen(inertia.RefPoint(c).getRotationalInertia()) * R_g_roll_j_root;
         Eigen::Matrix3d partial_cog_inertia_phi_j = R_L_j * partial_R_phi_j * local_inertia * R_g_roll_j.transpose() +  R_g_roll_j * local_inertia * partial_R_phi_j.transpose() * R_L_j.transpose()  + kdlToEigen(cog.M).transpose() * (m * deInertiaCoGOffset(c, a * (c-r)) - robot_model->getMass() * deInertiaCoGOffset(cog.p, partial_cog_phi_j)) * kdlToEigen(cog.M);
@@ -921,6 +922,9 @@ void DragonFullVectoringController::controlCore()
   int gimbal_lock_num = std::accumulate(roll_locked_gimbal_.begin(), roll_locked_gimbal_.end(), 0);
   Eigen::MatrixXd full_q_mat = Eigen::MatrixXd::Zero(6, 3 * motor_num_ - gimbal_lock_num);
 
+  std::vector<float> init_thrust_force;
+  std::vector<double> init_gimbal_angles;
+
   double t = ros::Time::now().toSec();
   for(int j = 0; j < allocation_refine_max_iteration_; j++)
     {
@@ -1004,6 +1008,12 @@ void DragonFullVectoringController::controlCore()
       robot_model_for_control_->updateRobotModel(gimbal_processed_joint);
       rotors_origin_from_cog = robot_model_for_control_->getRotorsOriginFromCog<Eigen::Vector3d>();
 
+      if (j == 0)
+        {
+          init_thrust_force = target_base_thrust_;
+          init_gimbal_angles = target_gimbal_angles_;
+        }
+
       double max_diff = 1e-6;
       for(int i = 0; i < motor_num_; i++)
         {
@@ -1031,33 +1041,33 @@ void DragonFullVectoringController::controlCore()
   std::vector<double> thrust_force_gimbal_angles(motor_num_ * 3  - gimbal_lock_num, 0); // thrust_force: rotor_num + gimbal_angles: rotor_num x 2
   Eigen::VectorXd static_thrust =  dragon_robot_model_->getStaticThrust();
 
-  // initialize from hovering state,
+  // initialize
   int col = 0;
-  //if(prev_thrust_force_gimbal_angles_.size() > 0) // assign from the previous value, worse performance
-  if(0)
+  for(int i = 0; i < motor_num_; i++)
     {
-      thrust_force_gimbal_angles = prev_thrust_force_gimbal_angles_;
-    }
-  else
-    {
-      for(int i = 0; i < motor_num_; i++)
-        {
-          thrust_force_gimbal_angles.at(i) = target_wrench_acc_cog(2) * robot_model_->getMass() / motor_num_; // thrust force
+      // thrust force
+      // thrust_force_gimbal_angles.at(i) = target_wrench_acc_cog(2) * robot_model_->getMass() / motor_num_; // from hovering force
+      thrust_force_gimbal_angles.at(i) = init_thrust_force.at(i); // from iteration 1 of static allocation
 
-          if(roll_locked_gimbal_.at(i) == 0)
-            {
-              thrust_force_gimbal_angles.at(motor_num_ + col) = gimbal_nominal_angles_.at(2 * i); // gimbal roll
-              thrust_force_gimbal_angles.at(motor_num_ + col + 1) = gimbal_nominal_angles_.at(2 * i + 1); // gimbal pitch
-              col += 2;
-            }
-          else
-            {
-              thrust_force_gimbal_angles.at(motor_num_ + col) = gimbal_nominal_angles_.at(2 * i + 1); // gimbal pitch
-              col += 1;
-            }
+      if(roll_locked_gimbal_.at(i) == 0)
+        {
+          // from approximate hovering condition
+          // thrust_force_gimbal_angles.at(motor_num_ + col) = gimbal_nominal_angles_.at(2 * i); // gimbal roll
+          // thrust_force_gimbal_angles.at(motor_num_ + col + 1) = gimbal_nominal_angles_.at(2 * i + 1); // gimbal pitch
+
+          thrust_force_gimbal_angles.at(motor_num_ + col) = init_gimbal_angles.at(2 * i); // gimbal roll
+          thrust_force_gimbal_angles.at(motor_num_ + col + 1) = init_gimbal_angles.at(2 * i + 1); // gimbal pitch
+
+          col += 2;
+        }
+      else
+        {
+          // from approximate hovering condition
+          // thrust_force_gimbal_angles.at(motor_num_ + col) = gimbal_nominal_angles_.at(2 * i + 1); // gimbal pitch
+          thrust_force_gimbal_angles.at(motor_num_ + col) = init_gimbal_angles.at(2 * i + 1); // gimbal pitch
+          col += 1;
         }
     }
-  std::vector<double> init_thrust_force_gimbal_angles = thrust_force_gimbal_angles;
 
   // calculate sqp, check whether the inverse allocation equals to the desired wrench.
   double thrust_force_sum = 0;
@@ -1118,7 +1128,13 @@ void DragonFullVectoringController::controlCore()
           }
       }
 
-    ROS_INFO_STREAM_THROTTLE(1.0, "constraint result: " <<  result << "; count: " << cnt << "; time: " << ros::Time::now().toSec() - start_time
+    if(ave_cnt == 0) ave_cnt = cnt;
+    else{
+      ave_cnt = 0.6 * ave_cnt + 0.4 * cnt;
+    }
+
+
+    ROS_INFO_STREAM_THROTTLE(1.0, "constraint result: " <<  result << "; average count: " << ave_cnt << "; time: " << ros::Time::now().toSec() - start_time
                              <<  "\n original result: " << ss_orig.str() << "; " << orig_thrust_sum
                              << "\n nonlinear result: " << ss_nonlinear.str() << "; " << nonlinear_thrust_sum);
 
