@@ -939,8 +939,21 @@ void DragonFullVectoringController::controlCore()
 
   roll_locked_gimbal_ = dragon_robot_model_->getRollLockedGimbal();
   gimbal_nominal_angles_ = dragon_robot_model_->getGimbalNominalAngles();
-  const auto links_rotation_from_cog = dragon_robot_model_->getLinksRotationFromCog<Eigen::Matrix3d>();
   const auto& joint_index_map = dragon_robot_model_->getJointIndexMap();
+
+  // Note: the update of dragon_robot_model_ may be (absolutely in gazebo) slowed than robot_model_for_control_.
+  //       so we can not trust the kinematics updated by dragon_robot_model_, only trust robot_model_for_control_.
+  //       do not use getLinksRotationFromCog() from dragon_robot_model_.
+  // const auto links_rotation_from_cog = dragon_robot_model_->getLinksRotationFromCog<Eigen::Matrix3d>();
+  const auto seg_tf_map = robot_model_for_control_->getSegmentsTf();
+  const KDL::Rotation cog_rot = seg_tf_map.at(robot_model_for_control_->getBaselinkName()).M * cog_desire_orientation.Inverse();
+  std::vector<Eigen::Matrix3d> links_rotation_from_cog; // workaround to solve the sync issue of kinematics update
+  for(int i = 0; i < motor_num_; i++)
+    {
+      std::string name = std::string("link") + std::to_string(i + 1);
+      links_rotation_from_cog.push_back(kdlToEigen(cog_rot.Inverse() * seg_tf_map.at(name).M));
+    }
+
 
   int gimbal_lock_num = std::accumulate(roll_locked_gimbal_.begin(), roll_locked_gimbal_.end(), 0);
   Eigen::MatrixXd full_q_mat = Eigen::MatrixXd::Zero(6, 3 * motor_num_ - gimbal_lock_num);
