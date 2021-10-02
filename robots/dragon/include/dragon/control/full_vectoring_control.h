@@ -94,6 +94,9 @@ namespace aerial_robot_control
 
     boost::shared_ptr<Dragon::FullVectoringRobotModel> dragon_robot_model_;
     boost::shared_ptr<aerial_robot_model::RobotModel> robot_model_for_control_;
+    bool enable_static_allocation_method_;
+    bool enable_nonlinear_allocation_method_;
+    bool enable_gradient_allocation_method_;
     std::vector<float> target_base_thrust_;
     std::vector<double> target_gimbal_angles_;
     Eigen::VectorXd target_vectoring_f_;

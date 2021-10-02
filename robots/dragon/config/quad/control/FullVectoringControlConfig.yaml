@@ -7,8 +7,14 @@ controller:
   # gimbal vectoring function check
   gimbal_vectoring_check_flag: false
 
-  allocation_refine_max_iteration: 5
-  allocation_refine_threshold: 0.0001
+
+  # choose a method for thrust, gimbal allocation, defualt please choose gradient (gradient descent) method
+  enable_static_allocation_method: false
+  enable_nonlinear_allocation_method: false
+  enable_gradient_allocation_method: true
+
+  allocation_refine_max_iteration: 5 # for both
+  allocation_refine_threshold: 0.0001 # for static allocation
 
   wrench_estimate_update_rate: 100
   momentum_observer_force_weight: 3 # heavy delay, less noise, 2, 2.5, 3, light delay, more noise. The old parameter 5 has bug
