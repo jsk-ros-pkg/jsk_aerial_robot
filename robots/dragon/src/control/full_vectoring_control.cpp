@@ -5,8 +5,10 @@ using namespace aerial_robot_control;
 
 namespace
 {
-  int cnt = 0;
-  double ave_cnt = 0;
+  // for nonlinear optimization
+  int sqp_cnt_ = 0;
+  double sqp_ave_cnt_ = 0;
+
   double thrustSumFunc(const std::vector<double> &x, std::vector<double> &grad, void *ptr)
   {
     aerial_robot_model::RobotModel *robot_model = reinterpret_cast<aerial_robot_model::RobotModel*>(ptr);
@@ -25,7 +27,7 @@ namespace
           grad.at(i) = 2 * x.at(i); // lambda
       }
 
-    cnt++;
+    sqp_cnt_++;
 
     return  force_sq_sum;
   }
@@ -967,14 +969,13 @@ void DragonFullVectoringController::controlCore()
             }
         }
 
-      // TODO: check!!
       inertia_inv = robot_model_for_control_->getInertia<Eigen::Matrix3d>().inverse(); // update
       full_q_mat.topRows(3) =  mass_inv * full_q_mat.topRows(3) ;
       full_q_mat.bottomRows(3) =  inertia_inv * full_q_mat.bottomRows(3);
       Eigen::MatrixXd full_q_mat_inv = aerial_robot_model::pseudoinverse(full_q_mat);
       target_vectoring_f_ = full_q_mat_inv * target_wrench_acc_cog;
 
-      if(control_verbose_) ROS_DEBUG_STREAM("vectoring force for control in iteration "<< j+1 << ": " << target_vectoring_f_.transpose());
+      if(control_verbose_) ROS_DEBUG_STREAM("[iterative static allocation method] vectoring force for control in iteration "<< j+1 << ": " << target_vectoring_f_.transpose());
       last_col = 0;
       for(int i = 0; i < motor_num_; i++)
         {
@@ -1025,6 +1026,8 @@ void DragonFullVectoringController::controlCore()
         {
           init_thrust_force = target_base_thrust_;
           init_gimbal_angles = target_gimbal_angles_;
+
+          if(!enable_static_allocation_method_) break;
         }
 
       double max_diff = 1e-6;
@@ -1034,200 +1037,274 @@ void DragonFullVectoringController::controlCore()
           if(diff > max_diff) max_diff = diff;
         }
 
-      if(control_verbose_) ROS_DEBUG_STREAM("refine rotor origin in control: iteration "<< j+1 << ", max_diff: " << max_diff);
+      if(control_verbose_) ROS_DEBUG_STREAM("[iterative static allocation method] iteration: "<< j+1 << ", max_diff: " << max_diff);
 
       if(max_diff < allocation_refine_threshold_)
         {
-          if(control_verbose_) ROS_INFO_STREAM("refine rotor origin in control: converge in iteration " << j+1 << " max_diff " << max_diff << ", use " << ros::Time::now().toSec() - t << "sec");
+          if(control_verbose_)
+            {
+              std::stringstream ss;
+              ss << "thrust: ";
+              double thrust_sum = 0;
+              for(int i = 0; i < motor_num_; i++)
+                {
+                  ss << target_base_thrust_.at(i) << ", ";
+                  thrust_sum += (target_base_thrust_.at(i) * target_base_thrust_.at(i));
+                }
+              ss << "gimbal: ";
+              int col = 0;
+              for(int i = 0; i < motor_num_; i++)
+                ss << "(" << target_gimbal_angles_.at(2 * i) << ", " << target_gimbal_angles_.at(2 * i + 1) << ") ";
+
+
+              Eigen::MatrixXd Q = robot_model_for_control_->calcWrenchMatrixOnCoG();
+              Eigen::VectorXd target_wrench_cog = Eigen::VectorXd::Zero(6);
+              target_wrench_cog.head(3) = robot_model_for_control_->getMass() * target_wrench_acc_cog.head(3);
+              target_wrench_cog.tail(3) = robot_model_for_control_->getInertia<Eigen::Matrix3d>() * target_wrench_acc_cog.tail(3);
+              Eigen::VectorXd  target_thrust_vec = Eigen::VectorXd::Zero(motor_num_);
+              for (int i = 0; i < motor_num_; i++) target_thrust_vec(i) = target_base_thrust_.at(i);
+              Eigen::VectorXd allocated_wrench = Q * target_thrust_vec;
+              Eigen::VectorXd wrench_diff = allocated_wrench - target_wrench_cog;
+              ROS_INFO_STREAM("[iterative static allocation method] converge in iteration " << j+1 << ", max diff of rotor position deviation" << max_diff << ", wrench diff: " << wrench_diff.transpose() << ", use " << ros::Time::now().toSec() - t << "sec"
+                              <<  "\n allocation result: " << ss.str() << "; squre sum of thrust force: " << thrust_sum);
+            }
+
           break;
         }
 
       if(j == allocation_refine_max_iteration_ - 1)
         {
-          ROS_WARN_STREAM("refine rotor origin in control: can not converge in iteration " << j+1 << " max_diff " << max_diff);
+          ROS_INFO_STREAM("[iterative static allocation method] can not converge in iteration " << j+1 << ", max diff of rotor position deviation" << max_diff << ", use " << ros::Time::now().toSec() - t << "sec");
         }
     }
 
-#if 1
-  // Alternative method: Calcualte strictly from nonlinear optimization:
-  // Note: please do setGimbalNominalAngles(), setRollLockedGimbal() first, and also update robot_model_for_plan first.
-  std::vector<double> thrust_force_gimbal_angles(motor_num_ * 3  - gimbal_lock_num, 0); // thrust_force: rotor_num + gimbal_angles: rotor_num x 2
-  Eigen::VectorXd static_thrust =  dragon_robot_model_->getStaticThrust();
-
-  // initialize
-  int col = 0;
-  for(int i = 0; i < motor_num_; i++)
+  // Strict allocation from nonlinear optimization
+  if(enable_nonlinear_allocation_method_)
     {
-      // thrust force
-      // thrust_force_gimbal_angles.at(i) = target_wrench_acc_cog(2) * robot_model_->getMass() / motor_num_; // from hovering force
-      thrust_force_gimbal_angles.at(i) = init_thrust_force.at(i); // from iteration 1 of static allocation
-
-      if(roll_locked_gimbal_.at(i) == 0)
+      std::vector<double> thrust_force_gimbal_angles(motor_num_ * 3  - gimbal_lock_num, 0); // thrust_force: rotor_num + gimbal_angles: rotor_num x 2
+      // initialize
+      int col = 0;
+      for(int i = 0; i < motor_num_; i++)
         {
-          // from approximate hovering condition
-          // thrust_force_gimbal_angles.at(motor_num_ + col) = gimbal_nominal_angles_.at(2 * i); // gimbal roll
-          // thrust_force_gimbal_angles.at(motor_num_ + col + 1) = gimbal_nominal_angles_.at(2 * i + 1); // gimbal pitch
+          // thrust force
+          thrust_force_gimbal_angles.at(i) = init_thrust_force.at(i); // from iteration 1 of static allocation
 
-          thrust_force_gimbal_angles.at(motor_num_ + col) = init_gimbal_angles.at(2 * i); // gimbal roll
-          thrust_force_gimbal_angles.at(motor_num_ + col + 1) = init_gimbal_angles.at(2 * i + 1); // gimbal pitch
-
-          col += 2;
-        }
-      else
-        {
-          // from approximate hovering condition
-          // thrust_force_gimbal_angles.at(motor_num_ + col) = gimbal_nominal_angles_.at(2 * i + 1); // gimbal pitch
-          thrust_force_gimbal_angles.at(motor_num_ + col) = init_gimbal_angles.at(2 * i + 1); // gimbal pitch
-          col += 1;
-        }
-    }
-
-  // calculate sqp, check whether the inverse allocation equals to the desired wrench.
-  double thrust_force_sum = 0;
-  cnt = 0;
-  double start_time = ros::Time::now().toSec();
-  nlopt::opt full_vectoring_allocation_solver(nlopt::LD_SLSQP, motor_num_ * 3 - gimbal_lock_num);
-  full_vectoring_allocation_solver.set_xtol_rel(1e-4); // => IMPORTANT: related to computation time
-  full_vectoring_allocation_solver.set_maxeval(100); // 100 times
-
-  std::vector<double>lower_bounds(motor_num_ * 3  - gimbal_lock_num, -1e6);
-  nominal_inertia_ = robot_model_->getInertia<Eigen::Matrix3d>();
-  for(int i = 0; i < motor_num_; i++) lower_bounds.at(i) = 0;
-  full_vectoring_allocation_solver.set_lower_bounds(lower_bounds);
-  full_vectoring_allocation_solver.set_upper_bounds(std::vector<double>(motor_num_ * 3 - gimbal_lock_num, 1e6)); // TODO: no bounds
-  full_vectoring_allocation_solver.set_min_objective(thrustSumFunc, robot_model_for_control_.get());
-  std::vector<double>tol(6, 1e-5); // => IMPORTANT: related to computation time (1e-8 is too stric)
-  full_vectoring_allocation_solver.add_equality_mconstraint(wrenchAllocationEqCons, this, tol);
-  auto result = full_vectoring_allocation_solver.optimize(thrust_force_gimbal_angles, thrust_force_sum);
-  for(int i = 0; i < thrust_force_gimbal_angles.size() - motor_num_; i++)
-    {
-      double val = thrust_force_gimbal_angles.at(i + motor_num_);
-      if(val > M_PI) thrust_force_gimbal_angles.at(i + motor_num_) -= 2 * M_PI;
-      if(val < -M_PI) thrust_force_gimbal_angles.at(i + motor_num_) += 2 * M_PI;
-    }
-  prev_thrust_force_gimbal_angles_ = thrust_force_gimbal_angles;
-
-  // evaluate result
-  {
-    std::stringstream ss_orig;
-    std::stringstream ss_nonlinear;
-    ss_orig << "thrust: ";
-    ss_nonlinear << "thrust: ";
-    double orig_thrust_sum = 0;
-    double nonlinear_thrust_sum = 0;
-    for(int i = 0; i < motor_num_; i++)
-      {
-        ss_orig << target_base_thrust_.at(i) << ", ";
-        orig_thrust_sum += (target_base_thrust_.at(i) * target_base_thrust_.at(i));
-        ss_nonlinear << thrust_force_gimbal_angles.at(i) << ", ";
-        nonlinear_thrust_sum += (thrust_force_gimbal_angles.at(i) * thrust_force_gimbal_angles.at(i));
-      }
-    ss_orig << "gimbal: ";
-    ss_nonlinear << "gimbal: ";
-    col = 0;
-    for(int i = 0; i < motor_num_; i++)
-      {
-        ss_orig << "(" << target_gimbal_angles_.at(2 * i) << ", " << target_gimbal_angles_.at(2 * i + 1) << ") ";
-
-        if(roll_locked_gimbal_.at(i) == 0)
-          {
-            ss_nonlinear << "(" << thrust_force_gimbal_angles.at(motor_num_ + col) << ", " << thrust_force_gimbal_angles.at(motor_num_ + col + 1) << ") ";
-            col += 2;
-          }
-        else
-          { // roll is locked
-            ss_nonlinear << "(" << gimbal_nominal_angles_.at(2 * i)  << ", " << thrust_force_gimbal_angles.at(motor_num_ + col) << ") ";
-            col += 1;
-          }
-      }
-
-    if(ave_cnt == 0) ave_cnt = cnt;
-    else{
-      ave_cnt = 0.6 * ave_cnt + 0.4 * cnt;
-    }
-
-
-    ROS_INFO_STREAM_THROTTLE(1.0, "constraint result: " <<  result << "; average count: " << ave_cnt << "; time: " << ros::Time::now().toSec() - start_time
-                             <<  "\n original result: " << ss_orig.str() << "; " << orig_thrust_sum
-                             << "\n nonlinear result: " << ss_nonlinear.str() << "; " << nonlinear_thrust_sum);
-
-    // debug
-    if(cnt > 50)
-      {
-        ROS_WARN_STREAM("constraint result: " <<  result << "; count: " << cnt << "; time: " << ros::Time::now().toSec() - start_time
-                        <<  "\n original result: " << ss_orig.str() << "; " << orig_thrust_sum
-                        << "\n nonlinear result: " << ss_nonlinear.str() << "; " << nonlinear_thrust_sum);
-      }
-
-    // check the allocation
-    gimbal_processed_joint = robot_model_for_control_->getJointPositions();
-    col = 0;
-    for(int i = 0; i < motor_num_; i++)
-      {
-        std::string s = std::to_string(i + 1);
-        if(roll_locked_gimbal_.at(i) == 0)
-          {
-            gimbal_processed_joint(joint_index_map.find(std::string("gimbal") + s + std::string("_roll"))->second) = thrust_force_gimbal_angles[motor_num_ + col];
-            gimbal_processed_joint(joint_index_map.find(std::string("gimbal") + s + std::string("_pitch"))->second) = thrust_force_gimbal_angles[motor_num_ + col + 1];
-            col += 2;
-          }
-        else
-          {
-            gimbal_processed_joint(joint_index_map.find(std::string("gimbal") + s + std::string("_pitch"))->second) = thrust_force_gimbal_angles[motor_num_ + col];
-            col +=1;
-          }
-      }
-    robot_model_for_control_->updateRobotModel(gimbal_processed_joint);
-
-    Eigen::MatrixXd Q = robot_model_for_control_->calcWrenchMatrixOnCoG();
-    Eigen::VectorXd target_wrench_cog = Eigen::VectorXd::Zero(6);
-    target_wrench_cog.head(3) = robot_model_for_control_->getMass() * target_wrench_acc_cog.head(3);
-    target_wrench_cog.tail(3) = robot_model_for_control_->getInertia<Eigen::Matrix3d>() * target_wrench_acc_cog.tail(3);
-    Eigen::VectorXd wrench_diff = Q * Eigen::Map<Eigen::VectorXd, Eigen::Unaligned>(thrust_force_gimbal_angles.data(), motor_num_) - target_wrench_cog;
-
-    if(wrench_diff.cwiseAbs().maxCoeff() > 1e-4)
-      {
-        ROS_WARN_STREAM("The nonlinear full vectoring allocation has bad result with wrench diff of " << wrench_diff.cwiseAbs().maxCoeff() << "; vector: " << wrench_diff.transpose() << "; count: " << cnt << "; target wrench:" << target_wrench_cog.transpose()  <<  "\n Q: \n" << Q);
-        Eigen::VectorXd result = Eigen::Map<Eigen::VectorXd, Eigen::Unaligned>(thrust_force_gimbal_angles.data(), thrust_force_gimbal_angles.size());
-        ROS_WARN_STREAM("original result: " << ss_orig.str() << "; " << orig_thrust_sum  << "\n nonlinear result: " << ss_nonlinear.str() << "; " << nonlinear_thrust_sum);
-        std::cout << "roll_locked_gimbal_:";
-        for(int i = 0; i < motor_num_; i++) std::cout << roll_locked_gimbal_.at(i) << ", ";
-        std::cout << std::endl;
-
-        if(wrench_diff.cwiseAbs().maxCoeff() > 1e-2)
-          throw;
-      }
-  }
-
-  // assign to control input
-  col = 0;
-  for(int i = 0; i < motor_num_; i++)
-    {
-      target_base_thrust_.at(i) = thrust_force_gimbal_angles.at(i);
-      if(!start_rp_integration_)
-        {
-          target_gimbal_angles_.at(2 * i) = gimbal_nominal_angles_.at(2 * i);
-          target_gimbal_angles_.at(2 * i + 1) = gimbal_nominal_angles_.at(2 * i + 1);
-        }
-      else
-        {
           if(roll_locked_gimbal_.at(i) == 0)
             {
-              target_gimbal_angles_.at(2 * i) = thrust_force_gimbal_angles.at(motor_num_ + col);
-              target_gimbal_angles_.at(2 * i + 1) = thrust_force_gimbal_angles.at(motor_num_ + col + 1);
+              thrust_force_gimbal_angles.at(motor_num_ + col) = init_gimbal_angles.at(2 * i); // gimbal roll
+              thrust_force_gimbal_angles.at(motor_num_ + col + 1) = init_gimbal_angles.at(2 * i + 1); // gimbal pitch
+
               col += 2;
             }
           else
             {
-              target_gimbal_angles_.at(2 * i) = gimbal_nominal_angles_.at(2 * i); // lock the gimbal roll
-              target_gimbal_angles_.at(2 * i + 1) = thrust_force_gimbal_angles.at(motor_num_ + col);
-
+              thrust_force_gimbal_angles.at(motor_num_ + col) = init_gimbal_angles.at(2 * i + 1); // gimbal pitch
               col += 1;
+            }
+        }
+
+      // calculate sqp, check whether the inverse allocation equals to the desired wrench.
+      double thrust_force_sum = 0;
+      sqp_cnt_ = 0;
+      t = ros::Time::now().toSec();
+      nlopt::opt full_vectoring_allocation_solver(nlopt::LD_SLSQP, motor_num_ * 3 - gimbal_lock_num);
+      full_vectoring_allocation_solver.set_xtol_rel(1e-4); // => IMPORTANT: related to computation time
+      full_vectoring_allocation_solver.set_maxeval(100); // 100 times
+
+      std::vector<double>lower_bounds(motor_num_ * 3  - gimbal_lock_num, -1e6);
+      nominal_inertia_ = robot_model_->getInertia<Eigen::Matrix3d>();
+      for(int i = 0; i < motor_num_; i++) lower_bounds.at(i) = 0;
+      full_vectoring_allocation_solver.set_lower_bounds(lower_bounds);
+      full_vectoring_allocation_solver.set_upper_bounds(std::vector<double>(motor_num_ * 3 - gimbal_lock_num, 1e6)); // TODO: no bounds
+      full_vectoring_allocation_solver.set_min_objective(thrustSumFunc, robot_model_for_control_.get());
+      std::vector<double>tol(6, 1e-5); // => IMPORTANT: related to computation time (1e-8 is too stric)
+      full_vectoring_allocation_solver.add_equality_mconstraint(wrenchAllocationEqCons, this, tol);
+      auto result = full_vectoring_allocation_solver.optimize(thrust_force_gimbal_angles, thrust_force_sum);
+      for(int i = 0; i < thrust_force_gimbal_angles.size() - motor_num_; i++)
+        {
+          double val = thrust_force_gimbal_angles.at(i + motor_num_);
+          if(val > M_PI) thrust_force_gimbal_angles.at(i + motor_num_) -= 2 * M_PI;
+          if(val < -M_PI) thrust_force_gimbal_angles.at(i + motor_num_) += 2 * M_PI;
+        }
+      prev_thrust_force_gimbal_angles_ = thrust_force_gimbal_angles;
+      if(sqp_ave_cnt_ == 0) sqp_ave_cnt_ = sqp_cnt_;
+      else sqp_ave_cnt_ = 0.6 * sqp_ave_cnt_ + 0.4 * sqp_cnt_;
+
+      if(sqp_cnt_ > 50) ROS_WARN_STREAM("[strict nonlinear allocation] SQP constraint result: " <<  result << "; count: " << sqp_cnt_ << "; time: " << ros::Time::now().toSec() - t);
+      if(control_verbose_)
+        {
+          std::stringstream ss;
+          ss << "thrust: ";
+          double thrust_sum = 0;
+          for(int i = 0; i < motor_num_; i++)
+            {
+              ss << thrust_force_gimbal_angles.at(i) << ", ";
+              thrust_sum += (thrust_force_gimbal_angles.at(i) * thrust_force_gimbal_angles.at(i));
+            }
+          ss << "gimbal: ";
+          col = 0;
+          for(int i = 0; i < motor_num_; i++)
+            {
+              if(roll_locked_gimbal_.at(i) == 0)
+                {
+                  ss << "(" << thrust_force_gimbal_angles.at(motor_num_ + col) << ", " << thrust_force_gimbal_angles.at(motor_num_ + col + 1) << ") ";
+                  col += 2;
+                }
+              else
+                { // roll is locked
+                  ss << "(" << gimbal_nominal_angles_.at(2 * i)  << ", " << thrust_force_gimbal_angles.at(motor_num_ + col) << ") ";
+                  col += 1;
+                }
+            }
+
+          // check the allocation
+          gimbal_processed_joint = robot_model_for_control_->getJointPositions();
+          col = 0;
+          for(int i = 0; i < motor_num_; i++)
+            {
+              std::string s = std::to_string(i + 1);
+              if(roll_locked_gimbal_.at(i) == 0)
+                {
+                  gimbal_processed_joint(joint_index_map.find(std::string("gimbal") + s + std::string("_roll"))->second) = thrust_force_gimbal_angles[motor_num_ + col];
+                  gimbal_processed_joint(joint_index_map.find(std::string("gimbal") + s + std::string("_pitch"))->second) = thrust_force_gimbal_angles[motor_num_ + col + 1];
+                  col += 2;
+                }
+              else
+                {
+                  gimbal_processed_joint(joint_index_map.find(std::string("gimbal") + s + std::string("_pitch"))->second) = thrust_force_gimbal_angles[motor_num_ + col];
+                  col +=1;
+                }
+            }
+          robot_model_for_control_->updateRobotModel(gimbal_processed_joint);
+
+          Eigen::MatrixXd Q = robot_model_for_control_->calcWrenchMatrixOnCoG();
+          Eigen::VectorXd target_wrench_cog = Eigen::VectorXd::Zero(6);
+          target_wrench_cog.head(3) = robot_model_for_control_->getMass() * target_wrench_acc_cog.head(3);
+          target_wrench_cog.tail(3) = robot_model_for_control_->getInertia<Eigen::Matrix3d>() * target_wrench_acc_cog.tail(3);
+          Eigen::VectorXd allocated_wrench = Q * Eigen::Map<Eigen::VectorXd, Eigen::Unaligned>(thrust_force_gimbal_angles.data(), motor_num_);
+          Eigen::VectorXd wrench_diff = allocated_wrench - target_wrench_cog;
+
+          ROS_INFO_STREAM("[strict nonlinear allocation], sqp result:  " <<  result  << "; count: " << sqp_cnt_ << "; average count: " << sqp_ave_cnt_ << ", wrench diff is : "
+                          << wrench_diff.transpose() << "; time: " << ros::Time::now().toSec() - t
+                          <<  "\n allocation result: " << ss.str() << "; squre sum of thrust force: " << thrust_sum);
+
+
+          if(wrench_diff.cwiseAbs().maxCoeff() > 1e-3)
+            {
+              ROS_WARN_STREAM("[strict nonlinear allocation] can not converge in iteration " << sqp_cnt_ << ", the max wrench diff is: " << wrench_diff.cwiseAbs().maxCoeff() << "; vector: " << wrench_diff.transpose() << "; target wrench:" << target_wrench_cog.transpose());
             }
         }
     }
 
-#endif
+  // Allocation based on gradient descent method
+  if(enable_gradient_allocation_method_)
+    {
+      // initialize
+      std::vector<double> thrust_force_gimbal_angles(motor_num_ * 3  - gimbal_lock_num, 0); // thrust_force: rotor_num + gimbal_angles: rotor_num x 2
+      int col = 0;
+      t = ros::Time::now().toSec();
+      for(int i = 0; i < motor_num_; i++)
+        {
+          // thrust force
+          thrust_force_gimbal_angles.at(i) = init_thrust_force.at(i); // from iteration 1 of static allocation
+
+          if(roll_locked_gimbal_.at(i) == 0)
+            {
+              thrust_force_gimbal_angles.at(motor_num_ + col) = init_gimbal_angles.at(2 * i); // gimbal roll
+              thrust_force_gimbal_angles.at(motor_num_ + col + 1) = init_gimbal_angles.at(2 * i + 1); // gimbal pitch
+
+              col += 2;
+            }
+          else
+            {
+              thrust_force_gimbal_angles.at(motor_num_ + col) = init_gimbal_angles.at(2 * i + 1); // gimbal pitch
+              col += 1;
+            }
+        }
+      std::vector<double> wrench_diff(6,0);
+      std::vector<double> grad(6 * thrust_force_gimbal_angles.size(), 0);
+
+      for(int j = 0; j <= allocation_refine_max_iteration_; j++)
+        {
+          wrenchAllocationEqCons(6, wrench_diff.data(), thrust_force_gimbal_angles.size(), thrust_force_gimbal_angles.data(), grad.data(), this);
+          Eigen::MatrixXd grad_matrix =  Eigen::Map<Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>>(grad.data(), 6, thrust_force_gimbal_angles.size());
+          Eigen::VectorXd wrench_diff_vec = Eigen::Map<Eigen::VectorXd, Eigen::Unaligned>(wrench_diff.data(),wrench_diff.size());
+          if(control_verbose_) ROS_DEBUG_STREAM("[gradient descent allocation method] iteration: " << j << ", wrench diff: " << wrench_diff_vec.transpose());
+          if (wrench_diff_vec.head(3).norm() < 0.001 && wrench_diff_vec.tail(3).norm() < 0.001) // TODO: rosparam
+            {
+              if(control_verbose_)
+                {
+                  std::stringstream ss;
+                  ss << "thrust: ";
+                  double thrust_sum = 0;
+                  for(int i = 0; i < motor_num_; i++)
+                    {
+                      ss << thrust_force_gimbal_angles.at(i) << ", ";
+                      thrust_sum += (thrust_force_gimbal_angles.at(i) * thrust_force_gimbal_angles.at(i));
+                    }
+                  ss << "gimbal: ";
+                  col = 0;
+                  for(int i = 0; i < motor_num_; i++)
+                    {
+                      if(roll_locked_gimbal_.at(i) == 0)
+                        {
+                          ss << "(" << thrust_force_gimbal_angles.at(motor_num_ + col) << ", " << thrust_force_gimbal_angles.at(motor_num_ + col + 1) << ") ";
+                          col += 2;
+                        }
+                      else
+                        { // roll is locked
+                          ss << "(" << gimbal_nominal_angles_.at(2 * i)  << ", " << thrust_force_gimbal_angles.at(motor_num_ + col) << ") ";
+                          col += 1;
+                        }
+                    }
+
+                  ROS_INFO_STREAM("[gradient descent allocation method] iteration: " << j << ", final wrench diff: " << wrench_diff_vec.transpose()
+                                  << ", use " << ros::Time::now().toSec() - t << "sec"
+                                  << "\n allocation result: " << ss.str() << "; squre sum of thrust force:" << thrust_sum);
+                }
+
+              break;
+            }
+
+          if(j == allocation_refine_max_iteration_)
+            {
+              ROS_WARN_STREAM("[gradient descent allocation method] can not converge in iteration: " << allocation_refine_max_iteration_ << ", final wrench diff: " << wrench_diff_vec.transpose());
+              break;
+            }
+
+          Eigen::VectorXd delta_x = aerial_robot_model::pseudoinverse(grad_matrix) * -wrench_diff_vec; // parameter of rate
+          for(int k = 0; k < thrust_force_gimbal_angles.size(); k++)
+            thrust_force_gimbal_angles.at(k) += delta_x(k);
+        }
+
+      // assign to control input
+      col = 0;
+      for(int i = 0; i < motor_num_; i++)
+        {
+          target_base_thrust_.at(i) = thrust_force_gimbal_angles.at(i);
+          if(!start_rp_integration_)
+            {
+              target_gimbal_angles_.at(2 * i) = gimbal_nominal_angles_.at(2 * i);
+              target_gimbal_angles_.at(2 * i + 1) = gimbal_nominal_angles_.at(2 * i + 1);
+            }
+          else
+            {
+              if(roll_locked_gimbal_.at(i) == 0)
+                {
+                  target_gimbal_angles_.at(2 * i) = thrust_force_gimbal_angles.at(motor_num_ + col);
+                  target_gimbal_angles_.at(2 * i + 1) = thrust_force_gimbal_angles.at(motor_num_ + col + 1);
+                  col += 2;
+                }
+              else
+                {
+                  target_gimbal_angles_.at(2 * i) = gimbal_nominal_angles_.at(2 * i); // lock the gimbal roll
+                  target_gimbal_angles_.at(2 * i + 1) = thrust_force_gimbal_angles.at(motor_num_ + col);
+
+                  col += 1;
+                }
+            }
+        }
+    }
 }
 
 void DragonFullVectoringController::externalWrenchEstimate()
@@ -1343,6 +1420,9 @@ void DragonFullVectoringController::rosParamInit()
   ros::NodeHandle control_nh(nh_, "controller");
   getParam<bool>(control_nh, "decoupling", decoupling_, false);
   getParam<bool>(control_nh, "gimbal_vectoring_check_flag", gimbal_vectoring_check_flag_, false);
+  getParam<bool>(control_nh, "enable_static_allocation_method", enable_static_allocation_method_, true);
+  getParam<bool>(control_nh, "enable_nonlinear_allocation_method", enable_nonlinear_allocation_method_, false);
+  getParam<bool>(control_nh, "enable_gradient_allocation_method", enable_gradient_allocation_method_, false);
   getParam<double>(control_nh, "allocation_refine_threshold", allocation_refine_threshold_, 0.01);
   getParam<int>(control_nh, "allocation_refine_max_iteration", allocation_refine_max_iteration_, 1);
 
