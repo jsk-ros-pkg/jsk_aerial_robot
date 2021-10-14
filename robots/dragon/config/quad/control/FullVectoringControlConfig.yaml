@@ -9,9 +9,9 @@ controller:
 
 
   # choose a method for thrust, gimbal allocation, defualt please choose gradient (gradient descent) method
-  enable_static_allocation_method: false
+  enable_static_allocation_method: true
   enable_nonlinear_allocation_method: false
-  enable_gradient_allocation_method: true
+  enable_gradient_allocation_method: false
 
   allocation_refine_max_iteration: 5 # for both
   allocation_refine_threshold: 0.0001 # for static allocation
@@ -31,6 +31,21 @@ controller:
   rotor_interfere_force_dev_weight: 0.1
   external_wrench_lpf_rate: 0.2
   external_fz_bias_thresh: 1.0
+
+
+  # allocation strategy
+
+  ## sr inverse for thrust+gimbal_pitch allocation
+  sr_inverse_sigma: 0.5 # 1.0
+  sr_inverse_thrust_diff_thresh: 1.5
+  sr_inverse_wrench_diff_thresh: 0.05 # 0.01 is better
+
+  ## fix gimbal roll
+  fctmin_thresh: 0.15 #0.15
+  fctmin_hard_thresh: 0.1 #0.15
+  fixed_gimbal_roll_offset: 0.4
+  fixed_gimbal_roll_id: 1
+  gimbal_roll_change_thresh: 0.02 # 0.01 is more stable for current rotation change
 
   xy:
     p_gain: 3.6

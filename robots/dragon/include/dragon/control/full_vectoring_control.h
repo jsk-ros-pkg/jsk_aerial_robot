@@ -37,6 +37,7 @@
 
 #include <aerial_robot_control/control/pose_linear_controller.h>
 #include <dragon/model/full_vectoring_robot_model.h>
+#include <dragon/dragon_navigation.h>
 #include <gazebo_msgs/ApplyBodyWrenchRequest.h>
 #include <gazebo_msgs/BodyRequest.h>
 #include <geometry_msgs/WrenchStamped.h>
@@ -97,7 +98,7 @@ namespace aerial_robot_control
     bool enable_static_allocation_method_;
     bool enable_nonlinear_allocation_method_;
     bool enable_gradient_allocation_method_;
-    std::vector<float> target_base_thrust_;
+    std::vector<double> target_base_thrust_;
     std::vector<double> target_gimbal_angles_;
     Eigen::VectorXd target_vectoring_f_;
     bool decoupling_;
@@ -106,8 +107,24 @@ namespace aerial_robot_control
     int allocation_refine_max_iteration_;
     Eigen::VectorXd target_wrench_acc_cog_;
 
+    /* SR inverse for allocation */
+    double sr_inverse_sigma_;
+    double sr_inverse_wrench_diff_thresh_;
+    double sr_inverse_thrust_diff_thresh_;
+
+    /* modification of gimbal roll method to enhance FC Tmin */
+    bool low_fctmin_;
+    double fctmin_thresh_; //, fctmin_hard_thresh_;
+    int low_fctmin_cnt_, normal_fctmin_cnt_;
+    int fctmin_status_change_thresh_;
+    double fixed_gimbal_roll_offset_; // heuristic
+    int fixed_gimbal_roll_id_;  // heuristic
+    bool smooth_change_;
+    double gimbal_roll_change_thresh_;
+    double gimbal_roll_offset_;
+
     /* nonlinear allocation for full vectoring  */
-    std::vector<double> prev_thrust_force_gimbal_angles_;
+    std::vector<double> prev_target_gimbal_angles_;
     std::vector<double> gimbal_nominal_angles_;
     std::vector<int> roll_locked_gimbal_;
     Eigen::Matrix3d nominal_inertia_;
@@ -149,6 +166,14 @@ namespace aerial_robot_control
     void addExternalWrenchCallback(const gazebo_msgs::ApplyBodyWrenchRequest::ConstPtr& msg);
     bool clearExternalWrenchCallback(gazebo_msgs::BodyRequest::Request& req, gazebo_msgs::BodyRequest::Response& res);
     void externalWrenchEstimate();
+
+    /* allocation method */
+    bool staticIterativeAllocation(const int iterative_cnt, const double iterative_threshold, const Eigen::VectorXd target_wrench_acc_cog, KDL::JntArray& gimbal_processed_joint, const std::vector<Eigen::Matrix3d>& links_rotation_from_cog, std::vector<double>& thrust_forces, std::vector<double>& gimbal_angles, Eigen::VectorXd& vectoring_forces);
+    bool strictNonlinearAllocation(const Eigen::VectorXd target_wrench_acc_cog, KDL::JntArray& gimbal_processed_joint, const std::vector<Eigen::Matrix3d>& links_rotation_from_cog);
+    bool gradientDescentAllocation(const int iterative_cnt, const Eigen::VectorXd target_wrench_acc_cog, KDL::JntArray& gimbal_processed_joint, const std::vector<Eigen::Matrix3d>& links_rotation_from_cog, std::vector<double>& thrust_forces, std::vector<double>& gimbal_angles);
+
+    bool srInverseAllocation(const Eigen::MatrixXd& q, const Eigen::VectorXd& nominal_x, const Eigen::VectorXd& y, const Eigen::VectorXd& nominal_thrust_force, std::vector<double>& thrust_force, std::vector<double>& gimbal_angles);
+
 
     void setTargetWrenchAccCog(const Eigen::VectorXd target_wrench_acc_cog)
     {

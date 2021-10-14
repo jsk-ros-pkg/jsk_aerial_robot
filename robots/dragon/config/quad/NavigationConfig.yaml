@@ -29,5 +29,5 @@ navigation:
   force_landing_auto_stop_flag: false
 
   # desire tilt
-  baselink_rot_pub_interval: 0.2
-  baselink_rot_change_thresh: 0.04 # 0.2 hz -> 0.04; 0.01 hz-> 0.02
+  baselink_rot_pub_interval: 0.05
+  baselink_rot_change_thresh: 0.01 # 0.2 sec (5 hz) -> 0.04; 0.1 sec (10 hz)-> 0.02; 0.05 sec (20 hz) -> 0.01
