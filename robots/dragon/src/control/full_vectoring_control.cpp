@@ -602,12 +602,14 @@ void DragonFullVectoringController::rotorInterfereCompensation()
 
                   if(t(0) < 0)
                     {
-                      if(j == 0 && t(0) > overlap_dist_link_relax_thresh_) overlap_link = true; // relax for the end of the link
+                      double dist_link_end = (p_link - (p_rotor + u_rotor * t(1))).norm();
+                      if(j == 0 && dist_link_end < overlap_dist_link_relax_thresh_) overlap_link = true;
                       else overlap_link = false;
                     }
                   if(t(0) > link_length)
                     {
-                      if(j == motor_num_ - 1 && t(0) < link_length + overlap_dist_link_relax_thresh_) overlap_link = true; // relax for the end of the link
+                      double dist_link_end = (p_link + u_link * link_length - (p_rotor + u_rotor * t(1))).norm();
+                      if(j == motor_num_ - 1 && dist_link_end < overlap_dist_link_relax_thresh_) overlap_link = true;
                       else overlap_link = false;
                     }
                 }
