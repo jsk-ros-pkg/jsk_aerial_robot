@@ -399,7 +399,7 @@ void BaseNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
     }
 
   /* landing */
-  if(joy_cmd.buttons[PS3_BUTTON_CROSS_RIGHT] == 1 && joy_cmd.buttons[PS3_BUTTON_ACTION_SQUARE] == 1)
+  if(joy_cmd.buttons[PS3_BUTTON_CROSS_RIGHT] == 1 || joy_cmd.buttons[PS3_BUTTON_ACTION_SQUARE] == 1)
     {
       if(force_att_control_flag_) return;
 
