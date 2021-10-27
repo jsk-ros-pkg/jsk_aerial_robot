@@ -118,7 +118,6 @@ namespace aerial_robot_control
     int low_fctmin_cnt_, normal_fctmin_cnt_;
     int fctmin_status_change_thresh_;
     double fixed_gimbal_roll_offset_; // heuristic
-    int fixed_gimbal_roll_id_;  // heuristic
     bool smooth_change_;
     double gimbal_roll_change_thresh_;
     double gimbal_roll_offset_;

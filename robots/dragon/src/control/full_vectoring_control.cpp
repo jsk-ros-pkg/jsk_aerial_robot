@@ -954,7 +954,7 @@ void DragonFullVectoringController::controlCore()
       target_wrench_acc_cog_low_freq += rotor_interfere_comp_acc;
     }
 
-  ss.clear();
+  ss.str("");
   for(int i = 0; i < overlap_rotors_.size(); i++) ss << overlap_rotors_.at(i) << " -> " << overlap_segments_.at(i) << "; ";
   if(overlap_rotors_.size() > 0) ROS_DEBUG_STREAM("rotor interference: " << ss.str());
 
@@ -1077,8 +1077,8 @@ void DragonFullVectoringController::controlCore()
 
   if ((low_fctmin_ || smooth_change_) && gimbal_lock_num == 0)
     {
-      // heuristic gimbal2 roll + 0.4 rad
-      int id = fixed_gimbal_roll_id_;
+      // heuristic strategy for even number model (e.g. quad-link): neighbouring gimbal has opposite tilt directoin
+      int pivot_id = motor_num_ / 2 - 1;  // consider the center two gimbals as pivot gimbals
 
       if (smooth_change_)
         {
@@ -1104,19 +1104,37 @@ void DragonFullVectoringController::controlCore()
             }
         }
 
-      double angle_diff = target_gimbal_angles_.at(2 * id) - prev_target_gimbal_angles_.at(2 * id); // this is adaptable for external wrench
+      double angle_diff = target_gimbal_angles_.at(2 * pivot_id) - prev_target_gimbal_angles_.at(2 * pivot_id); // this is adaptable for external wrench
       int direction = angle_diff / fabs(angle_diff);
-      locked_angles.at(id) = target_gimbal_angles_.at(2 * id) - direction * gimbal_roll_offset_;
+      locked_angles.at(pivot_id) = target_gimbal_angles_.at(2 * pivot_id) - direction * gimbal_roll_offset_;
+      locked_angles.at(pivot_id+1) = target_gimbal_angles_.at(2 * (pivot_id+1)) - (-direction) * gimbal_roll_offset_; // neighoubring gimbal has opposite titling direction
 
-      if(control_verbose_) ROS_INFO_STREAM(" before fctmin mod, gimbal roll angles: " << target_gimbal_angles_.at(0) << ", " << target_gimbal_angles_.at(2) << ", " << target_gimbal_angles_.at(4) << ", " << target_gimbal_angles_.at(6));
+      if(control_verbose_)
+        {
+          ss.str("");
+          for(int i = 0; i < motor_num_; i++)
+            ss << target_gimbal_angles_.at(2 * i) << ", ";
+          ROS_INFO_STREAM(" before fctmin mod, gimbal roll angles: " << ss.str());
+        }
 
       roll_locked_gimbal_ = std::vector<int>(motor_num_, 0);
-      roll_locked_gimbal_.at(id) = 1;
+      roll_locked_gimbal_.at(pivot_id) = 1;
+      roll_locked_gimbal_.at(pivot_id+1) = 1;
 
-      gimbal_nominal_angles_.at(2 * id) = locked_angles.at(id);
+      gimbal_nominal_angles_.at(2 * pivot_id) = locked_angles.at(pivot_id);
+      gimbal_nominal_angles_.at(2 * (pivot_id+1)) = locked_angles.at(pivot_id+1);
       staticIterativeAllocation(1, allocation_refine_threshold_, target_wrench_acc_cog_low_freq, gimbal_processed_joint, links_rotation_from_cog, target_base_thrust_, target_gimbal_angles_, target_vectoring_f_);
 
-      if(control_verbose_) ROS_INFO_STREAM(" after fctmin mod, gimbal roll angles: " << target_gimbal_angles_.at(0) << ", " << target_gimbal_angles_.at(2) << ", " << target_gimbal_angles_.at(4) << ", " << target_gimbal_angles_.at(6) << ", force: " << target_base_thrust_.at(0) << ", " << target_base_thrust_.at(1)  << ", " << target_base_thrust_.at(2)  << ", " << target_base_thrust_.at(3));
+      if(control_verbose_)
+        {
+          ss.str("");
+          for(int i = 0; i < motor_num_; i++)
+            ss << target_gimbal_angles_.at(2 * i) << ", ";
+          ss << "force: ";
+          for(int i = 0; i < motor_num_; i++)
+            ss << target_base_thrust_.at(i) << ", ";
+          ROS_INFO_STREAM(" after fctmin mod, gimbal roll angles: " << ss.str());
+        }
     }
 
   std::vector<double> thrust_force_nominal = target_base_thrust_;
@@ -1829,7 +1847,6 @@ void DragonFullVectoringController::rosParamInit()
   //getParam<double>(control_nh, "fctmin_hard_thresh", fctmin_hard_thresh_, 0.1);
   getParam<int>(control_nh, "fctmin_status_change_thresh", fctmin_status_change_thresh_, 10); // 10 / 40 = 0.25 Hz
   getParam<double>(control_nh, "fixed_gimbal_roll_offset", fixed_gimbal_roll_offset_, 0.4);
-  getParam<int>(control_nh, "fixed_gimbal_roll_id", fixed_gimbal_roll_id_, 1);
   getParam<double>(control_nh, "gimbal_roll_change_thresh", gimbal_roll_change_thresh_, 0.05);
 
   getParam<double>(control_nh, "sr_inverse_sigma", sr_inverse_sigma_, 0.1);
