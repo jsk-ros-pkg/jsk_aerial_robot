@@ -20,7 +20,8 @@ controller:
   momentum_observer_force_weight: 3 # heavy delay, less noise, 2, 2.5, 3, light delay, more noise. The old parameter 5 has bug
   momentum_observer_torque_weight: 2.5
 
-  rotor_interfere_compensate: true
+  rotor_interfere_compensate: true # enable compensation
+  disable_torque_compensate: false # force disanble torque compensation, only compensate force if true
   overlap_dist_link_thresh: 0.12
   overlap_dist_link_relax_thresh: 0.14
   overlap_dist_rotor_thresh: 0.1

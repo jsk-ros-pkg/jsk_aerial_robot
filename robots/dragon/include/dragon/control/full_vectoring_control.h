@@ -139,6 +139,7 @@ namespace aerial_robot_control
     double prev_est_wrench_timestamp_;
 
     bool rotor_interfere_compensate_;
+    bool disable_torque_compensate_;
     double fz_bias_;
     double tx_bias_;
     double ty_bias_;
