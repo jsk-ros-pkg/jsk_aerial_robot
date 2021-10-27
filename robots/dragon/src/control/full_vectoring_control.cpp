@@ -945,7 +945,10 @@ void DragonFullVectoringController::controlCore()
     }
 
   if(rotor_interfere_compensate_) // TODO move this scope
-    target_wrench_acc_cog += rotor_interfere_comp_acc;
+    {
+      target_wrench_acc_cog += rotor_interfere_comp_acc;
+      target_wrench_acc_cog_low_freq += rotor_interfere_comp_acc;
+    }
 
   std::stringstream ss;
   for(int i = 0; i < overlap_rotors_.size(); i++) ss << overlap_rotors_.at(i) << " -> " << overlap_segments_.at(i) << "; ";
