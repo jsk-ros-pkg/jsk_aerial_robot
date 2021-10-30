@@ -40,11 +40,8 @@ void DragonLQIGimbalController::initialize(ros::NodeHandle nh, ros::NodeHandle n
   att_control_feedback_state_sub_ = nh_.subscribe("rpy/feedback_state", 1, &DragonLQIGimbalController::attControlFeedbackStateCallback, this);
   extra_vectoring_force_sub_ = nh_.subscribe("extra_vectoring_force", 1, &DragonLQIGimbalController::extraVectoringForceCallback, this);
 
-  std::string service_name;
-  nh_.param("apply_external_wrench", service_name, std::string("apply_external_wrench"));
-  add_external_wrench_service_ = nh_.advertiseService(service_name, &DragonLQIGimbalController::addExternalWrenchCallback, this);
-  nh_.param("clear_external_wrench", service_name, std::string("clear_external_wrench"));
-  clear_external_wrench_service_ = nh_.advertiseService(service_name, &DragonLQIGimbalController::clearExternalWrenchCallback, this);
+  add_external_wrench_sub_ = nh_.subscribe(std::string("apply_external_wrench"), 1, &DragonLQIGimbalController::addExternalWrenchCallback, this);
+  clear_external_wrench_sub_ = nh_.subscribe(std::string("clear_external_wrench"), 1, &DragonLQIGimbalController::clearExternalWrenchCallback, this);
 
   //message
   pid_msg_.yaw.total.resize(1);
@@ -302,20 +299,14 @@ void DragonLQIGimbalController::sendCmd()
 }
 
 /* external wrench */
-bool DragonLQIGimbalController::addExternalWrenchCallback(gazebo_msgs::ApplyBodyWrench::Request& req, gazebo_msgs::ApplyBodyWrench::Response& res)
+void DragonLQIGimbalController::addExternalWrenchCallback(const aerial_robot_msgs::ApplyWrench::ConstPtr& msg)
 {
-  if(dragon_robot_model_->addExternalStaticWrench(req.body_name, req.reference_frame, req.reference_point, req.wrench))
-    res.success  = true;
-  else
-    res.success  = false;
-
-  return true;
+  dragon_robot_model_->addExternalStaticWrench(msg->name, msg->reference_frame, msg->reference_point, msg->wrench);
 }
 
-bool DragonLQIGimbalController::clearExternalWrenchCallback(gazebo_msgs::BodyRequest::Request& req, gazebo_msgs::BodyRequest::Response& res)
+void DragonLQIGimbalController::clearExternalWrenchCallback(const std_msgs::String::ConstPtr& msg)
 {
-  dragon_robot_model_->removeExternalStaticWrench(req.body_name);
-  return true;
+  dragon_robot_model_->removeExternalStaticWrench(msg->data);
 }
 
 /* extra vectoring force  */

@@ -38,10 +38,9 @@
 #include <hydrus/hydrus_lqi_controller.h>
 #include <dragon/model/hydrus_like_robot_model.h>
 #include <dragon/dragon_navigation.h>
-#include <gazebo_msgs/ApplyBodyWrench.h>
-#include <gazebo_msgs/BodyRequest.h>
-#include <ros/ros.h>
+#include <aerial_robot_msgs/ApplyWrench.h>
 #include <std_msgs/Float32MultiArray.h>
+#include <std_msgs/String.h>
 #include <spinal/RollPitchYawTerm.h>
 
 namespace aerial_robot_control
@@ -92,9 +91,9 @@ namespace aerial_robot_control
 
 
     /* external wrench */
-    ros::ServiceServer add_external_wrench_service_, clear_external_wrench_service_;
-    bool addExternalWrenchCallback(gazebo_msgs::ApplyBodyWrench::Request& req, gazebo_msgs::ApplyBodyWrench::Response& res);
-    bool clearExternalWrenchCallback(gazebo_msgs::BodyRequest::Request& req, gazebo_msgs::BodyRequest::Response& res);
+    ros::Subscriber add_external_wrench_sub_, clear_external_wrench_sub_;
+    void addExternalWrenchCallback(const aerial_robot_msgs::ApplyWrench::ConstPtr& msg);
+    void clearExternalWrenchCallback(const std_msgs::String::ConstPtr& msg);
 
     /* extra vectoring force (i.e., for grasping) */
     Eigen::VectorXd extra_vectoring_force_;

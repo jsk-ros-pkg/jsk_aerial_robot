@@ -7,6 +7,8 @@ controller:
   # gimbal vectoring function check
   gimbal_vectoring_check_flag: false
 
+  # use integral (old) or separated (new) vectoring control method
+  integral_vectoring_allocation: false
 
   # choose a method for thrust, gimbal allocation, defualt please choose gradient (gradient descent) method
   enable_static_allocation_method: true
@@ -21,7 +23,7 @@ controller:
   momentum_observer_torque_weight: 2.5
 
   rotor_interfere_compensate: true # enable compensation
-  disable_torque_compensate: false # force disanble torque compensation, only compensate force if true
+  disable_torque_compensate: false # force disable torque compensation, only compensate force if true
   overlap_dist_link_thresh: 0.12
   overlap_dist_link_relax_thresh: 0.14
   overlap_dist_rotor_thresh: 0.1
@@ -39,7 +41,7 @@ controller:
   ## sr inverse for thrust+gimbal_pitch allocation
   sr_inverse_sigma: 0.5 # 1.0
   sr_inverse_thrust_diff_thresh: 1.5
-  sr_inverse_wrench_diff_thresh: 0.05 # 0.01 is better
+  sr_inverse_acc_diff_thresh: 0.05 # 0.01 is better
 
   ## fix gimbal roll
   fctmin_thresh: 0.15 #0.15
