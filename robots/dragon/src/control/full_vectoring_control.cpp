@@ -1124,6 +1124,7 @@ void DragonFullVectoringController::controlCore()
       gimbal_nominal_angles_.at(2 * pivot_id) = locked_angles.at(pivot_id);
       gimbal_nominal_angles_.at(2 * (pivot_id+1)) = locked_angles.at(pivot_id+1);
       staticIterativeAllocation(1, allocation_refine_threshold_, target_wrench_acc_cog_low_freq, gimbal_processed_joint, links_rotation_from_cog, target_base_thrust_, target_gimbal_angles_, target_vectoring_f_);
+      rotors_origin_from_cog = robot_model_for_control_->getRotorsOriginFromCog<Eigen::Vector3d>();
 
       if(control_verbose_)
         {
@@ -1382,8 +1383,6 @@ bool DragonFullVectoringController::staticIterativeAllocation(const int iterativ
             }
         }
 
-      if (iterative_cnt == 1) return true;
-
       std::vector<Eigen::Vector3d> prev_rotors_origin_from_cog = rotors_origin_from_cog;
       for(int i = 0; i < motor_num_; ++i)
         {
@@ -1393,6 +1392,8 @@ bool DragonFullVectoringController::staticIterativeAllocation(const int iterativ
         }
       robot_model_for_control_->updateRobotModel(gimbal_processed_joint);
       rotors_origin_from_cog = robot_model_for_control_->getRotorsOriginFromCog<Eigen::Vector3d>();
+
+      if (iterative_cnt == 1) return true;
 
       double max_diff = 1e-6;
       for(int i = 0; i < motor_num_; i++)
