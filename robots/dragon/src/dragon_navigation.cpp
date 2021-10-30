@@ -8,7 +8,8 @@ DragonNavigator::DragonNavigator():
   servo_torque_(false),
   level_flag_(false),
   landing_flag_(false),
-  eq_cog_world_(false)
+  eq_cog_world_(false),
+  check_before_takeoff_(true)
 {
   curr_target_baselink_rot_.setRPY(0, 0, 0);
   final_target_baselink_rot_.setRPY(0, 0, 0);
@@ -43,6 +44,19 @@ void DragonNavigator::update()
         setTargetYaw(0); // set the target yaw as zero, similar to pitch and roll, since CoG is identical with world frame
     }
 
+  if (getNaviState() == TAKEOFF_STATE && check_before_takeoff_)
+    {
+      ROS_INFO("Check before takeoff");
+      check_before_takeoff_ = false;
+      tf::Vector3 omega = estimator_->getAngularVel(Frame::COG, estimate_mode_);
+      tf::Vector3 vel = estimator_->getVel(Frame::COG, estimate_mode_);
+      if (omega.length() > 1 || vel.length() > 1)
+        {
+          ROS_ERROR("The angular velocity is insane! Stop motor. Linear: [%f, %f, %f]; angular: [%f, %f, %f]",
+                    vel.x(), vel.y(), vel.z(), omega.x(), omega.y(), omega.z());
+          setNaviState(STOP_STATE);
+        }
+    }
 
   BaseNavigator::update();
 
@@ -325,6 +339,8 @@ void DragonNavigator::servoTorqueProcess()
 void DragonNavigator::reset()
 {
   BaseNavigator::reset();
+
+  check_before_takeoff_ = true;
 
   level_flag_ = false;
   landing_flag_ = false;

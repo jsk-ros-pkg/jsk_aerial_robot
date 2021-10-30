@@ -85,6 +85,9 @@ namespace aerial_robot_navigation
     tf::Quaternion curr_target_baselink_rot_, final_target_baselink_rot_;
     bool eq_cog_world_;
 
+    /* takeoff process */
+    bool check_before_takeoff_;
+
     /* landing process */
     bool level_flag_;
     bool landing_flag_;
