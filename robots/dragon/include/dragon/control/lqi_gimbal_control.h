@@ -39,7 +39,7 @@
 #include <dragon/model/hydrus_like_robot_model.h>
 #include <dragon/dragon_navigation.h>
 #include <aerial_robot_msgs/ApplyWrench.h>
-#include <std_msgs/Float32MultiArray.h>
+#include <aerial_robot_msgs/ForceList.h>
 #include <std_msgs/String.h>
 #include <spinal/RollPitchYawTerm.h>
 
@@ -76,7 +76,6 @@ namespace aerial_robot_control
     void allocateYawTerm() override {} // do nothing
 
     void attControlFeedbackStateCallback(const spinal::RollPitchYawTermConstPtr& msg);
-    void extraVectoringForceCallback(const std_msgs::Float32MultiArrayConstPtr& msg);
 
     boost::shared_ptr<Dragon::HydrusLikeRobotModel> dragon_robot_model_;
     Eigen::MatrixXd P_xy_;
@@ -96,7 +95,8 @@ namespace aerial_robot_control
     void clearExternalWrenchCallback(const std_msgs::String::ConstPtr& msg);
 
     /* extra vectoring force (i.e., for grasping) */
-    Eigen::VectorXd extra_vectoring_force_;
+    std::vector<Eigen::Vector3d> extra_vectoring_forces_;
+    void extraVectoringForceCallback(const aerial_robot_msgs::ForceListConstPtr& msg);
 
   };
 };

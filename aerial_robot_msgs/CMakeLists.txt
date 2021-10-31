@@ -21,6 +21,7 @@ add_message_files(FILES
   Acc.msg
   WrenchAllocationMatrix.msg
   ApplyWrench.msg
+  ForceList.msg
 )
 
 ## Generate added messages and services

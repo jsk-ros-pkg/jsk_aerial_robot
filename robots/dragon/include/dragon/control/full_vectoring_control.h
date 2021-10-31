@@ -36,6 +36,7 @@
 #pragma once
 
 #include <aerial_robot_msgs/ApplyWrench.h>
+#include <aerial_robot_msgs/ForceList.h>
 #include <aerial_robot_control/control/pose_linear_controller.h>
 #include <dragon/model/full_vectoring_robot_model.h>
 #include <dragon/dragon_navigation.h>
@@ -171,17 +172,22 @@ namespace aerial_robot_control
     double overlap_dist_link_relax_thresh_;
     double overlap_dist_inter_joint_thresh_;
 
-
-    /* external wrench */
+    /* external (static) wrench compensation */
     ros::Subscriber add_external_wrench_sub_, clear_external_wrench_sub_;
     void addExternalWrenchCallback(const aerial_robot_msgs::ApplyWrench::ConstPtr& msg);
     void clearExternalWrenchCallback(const std_msgs::String::ConstPtr& msg);
+
+    /* extra vectoring force (i.e., for grasping) */
+    ros::Subscriber extra_vectoring_force_sub_;
+    std::vector<Eigen::Vector3d> extra_vectoring_forces_;
+    void extraVectoringForceCallback(const aerial_robot_msgs::ForceListConstPtr& msg);
+
     void externalWrenchEstimate();
 
     /* allocation method */
-    bool staticIterativeAllocation(const int iterative_cnt, const double iterative_threshold, const Eigen::VectorXd target_acc, const std::map<std::string, Dragon::ExternalWrench>& external_wrench_map, KDL::JntArray& gimbal_processed_joint, const std::vector<Eigen::Matrix3d>& links_rotation_from_cog, std::vector<double>& thrust_forces, std::vector<double>& gimbal_angles, Eigen::VectorXd& vectoring_forces);
-    bool strictNonlinearAllocation(const Eigen::VectorXd target_acc, const std::map<std::string, Dragon::ExternalWrench>& external_wrench_map, KDL::JntArray& gimbal_processed_joint, const std::vector<Eigen::Matrix3d>& links_rotation_from_cog);
-    bool gradientDescentAllocation(const int iterative_cnt, const Eigen::VectorXd target_acc, const std::map<std::string, Dragon::ExternalWrench>& external_wrench_map, KDL::JntArray& gimbal_processed_joint, const std::vector<Eigen::Matrix3d>& links_rotation_from_cog, std::vector<double>& thrust_forces, std::vector<double>& gimbal_angles);
+    bool staticIterativeAllocation(const int iterative_cnt, const double iterative_threshold, const Eigen::VectorXd target_acc, const std::map<std::string, Dragon::ExternalWrench>& external_wrench_map, const std::vector<Eigen::Vector3d>& extra_vectoring_forces, KDL::JntArray& gimbal_processed_joint, const std::vector<Eigen::Matrix3d>& links_rotation_from_cog, std::vector<double>& thrust_forces, std::vector<double>& gimbal_angles, Eigen::VectorXd& vectoring_forces);
+    bool strictNonlinearAllocation(const Eigen::VectorXd target_acc, const std::map<std::string, Dragon::ExternalWrench>& external_wrench_map, const std::vector<Eigen::Vector3d>& extra_vectoring_forces, KDL::JntArray& gimbal_processed_joint, const std::vector<Eigen::Matrix3d>& links_rotation_from_cog);
+    bool gradientDescentAllocation(const int iterative_cnt, const Eigen::VectorXd target_acc, const std::map<std::string, Dragon::ExternalWrench>& external_wrench_map, const std::vector<Eigen::Vector3d>& extra_vectoring_forces, KDL::JntArray& gimbal_processed_joint, const std::vector<Eigen::Matrix3d>& links_rotation_from_cog, std::vector<double>& thrust_forces, std::vector<double>& gimbal_angles);
 
     bool srInverseAllocation(const Eigen::MatrixXd& q_wrench, const Eigen::VectorXd& nominal_f, const Eigen::VectorXd& target_wrench, const Eigen::VectorXd& nominal_thrust_force, std::vector<double>& thrust_force, std::vector<double>& gimbal_angles);
 
