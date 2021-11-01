@@ -859,8 +859,8 @@ void DragonFullVectoringController::controlCore()
 
   tf::Matrix3x3 uav_rot = estimator_->getOrientation(Frame::COG, estimate_mode_);
   tf::Vector3 target_lin_acc_w(pid_controllers_.at(X).result(),
-                                  pid_controllers_.at(Y).result(),
-                                  pid_controllers_.at(Z).result());
+                               pid_controllers_.at(Y).result(),
+                               pid_controllers_.at(Z).result());
   tf::Vector3 target_lin_acc = uav_rot.inverse() * target_lin_acc_w;
   Eigen::VectorXd target_acc = Eigen::VectorXd::Zero(6);
   target_acc.head(3) = Eigen::Vector3d(target_lin_acc.x(), target_lin_acc.y(), target_lin_acc.z());
@@ -874,6 +874,13 @@ void DragonFullVectoringController::controlCore()
   tf::Vector3 target_lin_acc_w_low_freq(pid_controllers_.at(X).getPTerm() + pid_controllers_.at(X).getITerm(),
                                         pid_controllers_.at(Y).getPTerm() + pid_controllers_.at(Y).getITerm(),
                                         pid_controllers_.at(Z).getPTerm() + pid_controllers_.at(Z).getITerm());
+  // include d control term if non-zero target velocity
+  for(int i = 0; i < 3; i++)
+    {
+      if(fabs(target_vel_[i]) > gimbal_roll_target_lin_vel_thresh_)
+        target_lin_acc_w_low_freq[i] = pid_controllers_.at(X + i).result();
+    }
+
   tf::Vector3 target_lin_acc_w_high_freq(pid_controllers_.at(X).getDTerm(),
                                          pid_controllers_.at(Y).getDTerm(),
                                          pid_controllers_.at(Z).getDTerm());
@@ -885,6 +892,13 @@ void DragonFullVectoringController::controlCore()
   tf::Vector3 target_ang_acc_low_freq(pid_controllers_.at(ROLL).getPTerm() + pid_controllers_.at(ROLL).getITerm(),
                                       pid_controllers_.at(PITCH).getPTerm() + pid_controllers_.at(PITCH).getITerm(),
                                       pid_controllers_.at(YAW).getPTerm() + pid_controllers_.at(YAW).getITerm());
+  // include d control term if non-zero target velocity
+  for(int i = 0; i < 3; i++)
+    {
+      if(fabs(target_omega_[i]) > gimbal_roll_target_ang_vel_thresh_)
+        target_ang_acc_low_freq[i] = pid_controllers_.at(ROLL + i).result();
+    }
+
   tf::Vector3 target_ang_acc_high_freq(pid_controllers_.at(ROLL).getDTerm(),
                                        pid_controllers_.at(PITCH).getDTerm(),
                                        pid_controllers_.at(YAW).getDTerm());
@@ -2050,6 +2064,9 @@ void DragonFullVectoringController::rosParamInit()
   getParam<int>(control_nh, "fctmin_status_change_thresh", fctmin_status_change_thresh_, 10); // 10 / 40 = 0.25 Hz
   getParam<double>(control_nh, "fixed_gimbal_roll_offset", fixed_gimbal_roll_offset_, 0.4);
   getParam<double>(control_nh, "gimbal_roll_change_thresh", gimbal_roll_change_thresh_, 0.05);
+
+  getParam<double>(control_nh, "gimbal_roll_target_lin_vel_thresh", gimbal_roll_target_lin_vel_thresh_, 0.2); // m/s
+  getParam<double>(control_nh, "gimbal_roll_target_angin_vel_thresh", gimbal_roll_target_ang_vel_thresh_, 0.1); // rad/s
 
   getParam<double>(control_nh, "sr_inverse_sigma", sr_inverse_sigma_, 0.1);
   getParam<double>(control_nh, "sr_inverse_thrust_diff_thresh", sr_inverse_thrust_diff_thresh_, 1.0);

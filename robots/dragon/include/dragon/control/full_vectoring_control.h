@@ -125,6 +125,7 @@ namespace aerial_robot_control
     double sr_inverse_thrust_diff_thresh_;
 
     /* modification of gimbal roll method to enhance FC Tmin */
+    double gimbal_roll_target_lin_vel_thresh_, gimbal_roll_target_ang_vel_thresh_; // threshold to decide whether uses gimbal roll angles to handle velocity control term.
     bool low_fctmin_;
     double fctmin_thresh_; //, fctmin_hard_thresh_;
     int low_fctmin_cnt_, normal_fctmin_cnt_;

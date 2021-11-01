@@ -18,7 +18,7 @@ navigation:
   cmd_vel_lev2_gain : 2.0
 
   gain_tunning_mode: 0
-  max_target_tilt_angle: 0.2
+  nav_vel_limit: 0.2
   cmd_angle_lev2_gain : 1.5
 
   # gps waypoint
