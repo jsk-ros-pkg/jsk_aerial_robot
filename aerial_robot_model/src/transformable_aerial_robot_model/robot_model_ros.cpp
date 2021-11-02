@@ -9,7 +9,7 @@ namespace aerial_robot_model {
     // subscriber
     joint_state_sub_ = nh_.subscribe("joint_states", 1, &RobotModelRos::jointStateCallback, this);
     // service server
-    add_extra_module_service_ = nh_.advertiseService("add_extra_module", &RobotModelRos::addExtraModuleCallback, this);
+    extra_module_sub_ = nh_.subscribe("add_extra_module", 1, &RobotModelRos::extraModuleCallback, this);
 
     // rosparam
     nhp_.param("tf_prefix", tf_prefix_, std::string(""));
@@ -48,37 +48,36 @@ namespace aerial_robot_model {
     br_.sendTransform(tf);
   }
 
-  bool RobotModelRos::addExtraModuleCallback(aerial_robot_model::AddExtraModule::Request &req, aerial_robot_model::AddExtraModule::Response &res)
+  void RobotModelRos::extraModuleCallback(const aerial_robot_msgs::ExtraModuleConstPtr& msg)
   {
-    switch(req.action)
+    switch(msg->action)
       {
-      case aerial_robot_model::AddExtraModule::Request::ADD:
+      case aerial_robot_msgs::ExtraModule::ADD:
         {
           geometry_msgs::TransformStamped ts;
-          ts.transform = req.transform;
+          ts.transform = msg->transform;
           KDL::Frame f = tf2::transformToKDL(ts);
-          KDL::RigidBodyInertia rigid_body_inertia(req.inertia.m, KDL::Vector(req.inertia.com.x, req.inertia.com.y, req.inertia.com.z),
-                                                   KDL::RotationalInertia(req.inertia.ixx, req.inertia.iyy,
-                                                                          req.inertia.izz, req.inertia.ixy,
-                                                                          req.inertia.ixz, req.inertia.iyz));
-          res.status = robot_model_->addExtraModule(req.module_name, req.parent_link_name, f, rigid_body_inertia);
-          return res.status;
+          KDL::RigidBodyInertia rigid_body_inertia(msg->inertia.m, KDL::Vector(msg->inertia.com.x, msg->inertia.com.y, msg->inertia.com.z),
+                                                   KDL::RotationalInertia(msg->inertia.ixx, msg->inertia.iyy,
+                                                                          msg->inertia.izz, msg->inertia.ixy,
+                                                                          msg->inertia.ixz, msg->inertia.iyz));
+          robot_model_->addExtraModule(msg->module_name, msg->parent_link_name, f, rigid_body_inertia);
           break;
         }
-      case aerial_robot_model::AddExtraModule::Request::REMOVE:
+      case aerial_robot_msgs::ExtraModule::REMOVE:
         {
-          res.status = robot_model_->removeExtraModule(req.module_name);
-          return res.status;
+          robot_model_->removeExtraModule(msg->module_name);
+          break;
+        }
+      case aerial_robot_msgs::ExtraModule::CLEAR:
+        {
+          robot_model_->clearExtraModules();
           break;
         }
       default:
         {
-          ROS_WARN("[extra module]: wrong action %d", req.action);
-          return false;
-          break;
+          ROS_WARN("[extra module]: wrong action %d", msg->action);
         }
       }
-    ROS_ERROR("[extra module]: should not reach here ");
-    return false;
   }
 } //namespace aerial_robot_model

@@ -36,7 +36,7 @@
 #pragma once
 
 #include <aerial_robot_model/transformable_aerial_robot_model.h>
-#include <aerial_robot_model/AddExtraModule.h>
+#include <aerial_robot_msgs/ExtraModule.h>
 #include <pluginlib/class_loader.h>
 #include <spinal/DesireCoord.h>
 #include <tf/tf.h>
@@ -57,7 +57,7 @@ namespace aerial_robot_model {
 
   private:
     //private attributes
-    ros::ServiceServer add_extra_module_service_;
+    ros::Subscriber extra_module_sub_;
     ros::Subscriber joint_state_sub_;
     tf2_ros::TransformBroadcaster br_;
     sensor_msgs::JointState joint_state_;
@@ -69,7 +69,7 @@ namespace aerial_robot_model {
 
     //private functions
     void jointStateCallback(const sensor_msgs::JointStateConstPtr& state);
-    bool addExtraModuleCallback(aerial_robot_model::AddExtraModule::Request& req, aerial_robot_model::AddExtraModule::Response& res);
+    void extraModuleCallback(const aerial_robot_msgs::ExtraModuleConstPtr& msg);
     void desireCoordinateCallback(const spinal::DesireCoordConstPtr& msg);
   };
 } //namespace aerial_robot_model

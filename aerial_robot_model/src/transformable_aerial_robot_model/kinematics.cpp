@@ -4,36 +4,32 @@ namespace aerial_robot_model {
 
   bool RobotModel::addExtraModule(std::string module_name, std::string parent_link_name, KDL::Frame transform, KDL::RigidBodyInertia inertia)
   {
-    if(extra_module_map_.find(module_name) == extra_module_map_.end())
+    if(inertia_map_.find(parent_link_name) == inertia_map_.end())
       {
-        if(inertia_map_.find(parent_link_name) == inertia_map_.end())
-          {
-            ROS_WARN("[extra module]: fail to add new extra module %s, because its parent link (%s) does not exist", module_name.c_str(), parent_link_name.c_str());
-            return false;
-          }
-
-        if(!aerial_robot_model::isValidRotation(transform.M))
-          {
-            ROS_WARN("[extra module]: fail to add new extra module %s, because its orientation is invalid", module_name.c_str());
-            return false;
-          }
-
-        if(inertia.getMass() <= 0)
-          {
-            ROS_WARN("[extra module]: fail to add new extra module %s, becuase its mass %f is invalid", module_name.c_str(), inertia.getMass());
-            return false;
-          }
-
-        KDL::Segment extra_module(parent_link_name, KDL::Joint(KDL::Joint::None), transform, inertia);
-        extra_module_map_.insert(std::make_pair(module_name, extra_module));
-        ROS_INFO("[extra module]: succeed to add new extra module %s", module_name.c_str());
-        return true;
-      }
-    else
-      {
-        ROS_WARN("[extra module]: fail to add new extra module %s, becuase it already exists", module_name.c_str());
+        ROS_WARN("[extra module]: fail to add new extra module %s, because its parent link (%s) does not exist", module_name.c_str(), parent_link_name.c_str());
         return false;
       }
+
+    if(!aerial_robot_model::isValidRotation(transform.M))
+      {
+        ROS_WARN("[extra module]: fail to add new extra module %s, because its orientation is invalid", module_name.c_str());
+        return false;
+      }
+
+    if(inertia.getMass() <= 0)
+      {
+        ROS_WARN("[extra module]: fail to add new extra module %s, becuase its mass %f is invalid", module_name.c_str(), inertia.getMass());
+        return false;
+      }
+
+    if(extra_module_map_.find(module_name) == extra_module_map_.end())
+      ROS_DEBUG("[extra module]: succeed to add new extra module %s", module_name.c_str());
+    else
+      ROS_DEBUG("[extra module]: update extra module %s", module_name.c_str());
+
+    extra_module_map_[module_name] = KDL::Segment(parent_link_name, KDL::Joint(KDL::Joint::None), transform, inertia);
+
+    return true;
   }
 
   void RobotModel::calcBasicKinematicsJacobian()
@@ -116,6 +112,11 @@ namespace aerial_robot_model {
     l_momentum_jacobian_.leftCols(3) = Eigen::MatrixXd::Zero(3, 3);
     l_momentum_jacobian_.middleCols(3, 3) = getInertia<Eigen::Matrix3d>() * root_rot; // aready converted
     l_momentum_jacobian_.rightCols(joint_num) = root_rot * l_momentum_jacobian_.rightCols(joint_num);
+  }
+
+  void RobotModel::clearExtraModules()
+  {
+    extra_module_map_.clear();
   }
 
   KDL::Frame RobotModel::forwardKinematicsImpl(std::string link, const KDL::JntArray& joint_positions) const

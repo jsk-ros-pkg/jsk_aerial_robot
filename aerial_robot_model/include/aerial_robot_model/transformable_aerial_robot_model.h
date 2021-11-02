@@ -74,6 +74,7 @@ namespace aerial_robot_model {
     bool addExtraModule(std::string module_name, std::string parent_link_name, KDL::Frame transform, KDL::RigidBodyInertia inertia);
     virtual void calcBasicKinematicsJacobian();
     virtual void calcCoGMomentumJacobian();
+    void clearExtraModules();
     const Eigen::MatrixXd& getCOGJacobian() const {return cog_jacobian_;}
 
     template<class T> T forwardKinematics(std::string link, const KDL::JntArray& joint_positions) const;
@@ -83,6 +84,8 @@ namespace aerial_robot_model {
 
     const std::string getBaselinkName() const { return baselink_; }
     const std::vector<Eigen::MatrixXd>& getCOGCoordJacobians() const {return cog_coord_jacobians_;}
+    const std::map<std::string, KDL::Segment>& getExtraModules() const {return extra_module_map_;}
+    std::map<std::string, KDL::Segment>& getExtraModules() {return extra_module_map_;}
     const std::map<std::string, KDL::RigidBodyInertia>& getInertiaMap() const { return inertia_map_; }
     const int getJointNum() const { return joint_num_;}
     const KDL::JntArray& getJointPositions() const { return joint_positions_; }

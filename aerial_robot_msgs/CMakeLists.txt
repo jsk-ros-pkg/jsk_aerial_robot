@@ -11,6 +11,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## Declare ROS messages and services
 add_message_files(FILES
   DynamicReconfigureLevels.msg
+  ExtraModule.msg
   FourAxisGain.msg
   AerialRobotStatus.msg
   FlightNav.msg
