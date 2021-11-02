@@ -932,9 +932,8 @@ void DragonFullVectoringController::controlCore()
   if(navigator_->getForceLandingFlag() && target_lin_acc_w.z() < 5.0) // heuristic measures to avoid to large gimbal angles after force land
     start_rp_integration_ = false;
 
-  Eigen::Matrix3d inertia_inv = robot_model_->getInertia<Eigen::Matrix3d>().inverse();
-  double mass_inv =  1 / robot_model_->getMass();
-
+  // update robot_model_for_control_;
+  robot_model_for_control_->getExtraModules() = robot_model_->getExtraModules(); // connect the extra module between two robot models
   KDL::Rotation cog_desire_orientation = robot_model_->getCogDesireOrientation<KDL::Rotation>();
   robot_model_for_control_->setCogDesireOrientation(cog_desire_orientation); // update the cog orientation
   KDL::JntArray gimbal_processed_joint = dragon_robot_model_->getJointPositions();
@@ -969,7 +968,7 @@ void DragonFullVectoringController::controlCore()
   rotorInterfereCompensation();
 
   Eigen::VectorXd rotor_interfere_comp_acc = Eigen::VectorXd::Zero(6);
-  rotor_interfere_comp_acc(2) = mass_inv * rotor_interfere_comp_wrench_(2);
+  rotor_interfere_comp_acc(2) = 1 / robot_model_->getMass() * rotor_interfere_comp_wrench_(2);
 
   bool torque_comp = false;
   std::stringstream ss;
@@ -993,7 +992,7 @@ void DragonFullVectoringController::controlCore()
   if(torque_comp)
     {
       ROS_INFO_STREAM(ss.str());
-      rotor_interfere_comp_acc.tail(3) = inertia_inv * rotor_interfere_comp_wrench_.tail(3);
+      rotor_interfere_comp_acc.tail(3) = robot_model_->getInertia<Eigen::Matrix3d>().inverse() * rotor_interfere_comp_wrench_.tail(3);
     }
 
   if(rotor_interfere_compensate_) // TODO move this scope
@@ -1216,8 +1215,8 @@ void DragonFullVectoringController::controlCore()
             }
 
           Eigen::VectorXd target_wrench = calcExternalWrenchSum(external_wrench_map);
-          target_wrench.head(3) += dragon_robot_model_->getMass() * target_acc.head(3);
-          target_wrench.tail(3) += robot_model_for_control_->getInertia<Eigen::Matrix3d>() * target_acc.tail(3); // TODO: consider the external weight such as grasped object
+          target_wrench.head(3) += robot_model_for_control_->getMass() * target_acc.head(3);
+          target_wrench.tail(3) += robot_model_for_control_->getInertia<Eigen::Matrix3d>() * target_acc.tail(3);
           Eigen::VectorXd vectoring_forces = aerial_robot_model::pseudoinverse(full_q_mat) * target_wrench;
 
           for(int i = 0; i < motor_num_; i++)
@@ -1481,7 +1480,7 @@ bool DragonFullVectoringController::staticIterativeAllocation(const int iterativ
         }
 
       Eigen::VectorXd target_wrench = calcExternalWrenchSum(external_wrench_map);
-      target_wrench.head(3) += dragon_robot_model_->getMass() * target_acc.head(3);
+      target_wrench.head(3) += robot_model_for_control_->getMass() * target_acc.head(3);
       target_wrench.tail(3) += robot_model_for_control_->getInertia<Eigen::Matrix3d>() * target_acc.tail(3); // TODO: consider the external weight such as grasped object
       vectoring_forces = aerial_robot_model::pseudoinverse(full_q_mat) * target_wrench;
 
@@ -1489,8 +1488,10 @@ bool DragonFullVectoringController::staticIterativeAllocation(const int iterativ
       // condition: no gimbal roll lock
       // simaple linear addition, which is OK for near hovering joint configuration (roll and pitch: 0.5; roll or pitch: 0.78)
       if (extra_vectoring_forces.size() > 0 && gimbal_lock_num == 0)
-      for(int i = 0; i < motor_num_; i++)
-        vectoring_forces.segment(3 * i, 3) += extra_vectoring_forces.at(i);
+        {
+          for(int i = 0; i < motor_num_; i++)
+            vectoring_forces.segment(3 * i, 3) += extra_vectoring_forces.at(i);
+        }
 
 
       if(control_verbose_) ROS_DEBUG_STREAM("[iterative static allocation method] vectoring force for control in iteration "<< j+1 << ": " << vectoring_forces.transpose());
@@ -1632,7 +1633,6 @@ bool DragonFullVectoringController::strictNonlinearAllocation(const Eigen::Vecto
   full_vectoring_allocation_solver.set_maxeval(100); // 100 times, TODO: rosparameter
 
   std::vector<double>lower_bounds(motor_num_ * 3  - gimbal_lock_num, -1e6);
-  nominal_inertia_ = robot_model_->getInertia<Eigen::Matrix3d>();
   for(int i = 0; i < motor_num_; i++) lower_bounds.at(i) = 0;
   full_vectoring_allocation_solver.set_lower_bounds(lower_bounds);
   full_vectoring_allocation_solver.set_upper_bounds(std::vector<double>(motor_num_ * 3 - gimbal_lock_num, 1e6)); // TODO: no bounds
@@ -1849,8 +1849,8 @@ bool DragonFullVectoringController::srInverseAllocation(const Eigen::MatrixXd& q
   Eigen::VectorXd acc_diff = Eigen::VectorXd::Zero(6);
   Eigen::VectorXd sr_thrust_force_vec = Eigen::VectorXd::Zero(motor_num_);
 
-  Eigen::Matrix3d inertia_inv = robot_model_for_control_->getInertia<Eigen::Matrix3d>().inverse(); // TODO: consider the external weight such as grasped object
-  double mass_inv =  1 / dragon_robot_model_->getMass();
+  double mass_inv =  1 / robot_model_for_control_->getMass();
+  Eigen::Matrix3d inertia_inv = robot_model_for_control_->getInertia<Eigen::Matrix3d>().inverse();
   Eigen::MatrixXd q = Eigen::MatrixXd::Zero(6, 2 * motor_num_); // q for acceleration
   q.topRows(3) =  mass_inv * q_wrench.topRows(3) ;
   q.bottomRows(3) =  inertia_inv * q_wrench.bottomRows(3);

@@ -85,7 +85,7 @@ namespace aerial_robot_control
     // only for read
     const std::vector<int>& getRollLockedGimbal() const { return roll_locked_gimbal_; }
     const std::vector<double>& getGimbalNominalAngles() const { return gimbal_nominal_angles_; }
-    const Eigen::Matrix3d& getNominalInertia() const { return nominal_inertia_; }
+
 
   private:
 
@@ -139,7 +139,6 @@ namespace aerial_robot_control
     std::vector<double> prev_target_gimbal_angles_;
     std::vector<double> gimbal_nominal_angles_;
     std::vector<int> roll_locked_gimbal_;
-    Eigen::Matrix3d nominal_inertia_;
 
     /* external wrench */
     std::mutex wrench_mutex_;
