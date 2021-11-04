@@ -83,7 +83,7 @@ void DragonNavigator::targetBaselinkRotCallback(const geometry_msgs::QuaternionS
 void DragonNavigator::targetBaselinkRPYCallback(const geometry_msgs::Vector3StampedConstPtr & msg)
 {
   final_target_baselink_rot_.setRPY(msg->vector.x, msg->vector.y, msg->vector.z);
-    target_omega_.setValue(0,0,0); // for sure to reset the target angular velocity
+  target_omega_.setValue(0,0,0); // for sure to reset the target angular velocity
 }
 
 void DragonNavigator::targetRotationMotionCallback(const nav_msgs::OdometryConstPtr& msg)
@@ -113,6 +113,7 @@ void DragonNavigator::targetRotationMotionCallback(const nav_msgs::OdometryConst
       rot.GetQuaternion(qx,qy,qz,qw);
       robot_model_->setCogDesireOrientation(rot);
       tf::quaternionMsgToTF(msg->pose.pose.orientation, curr_target_baselink_rot_);
+      final_target_baselink_rot_ = curr_target_baselink_rot_;
 
       // convert to target CoG frame from Baselink frame
       eq_cog_world_ = true;
