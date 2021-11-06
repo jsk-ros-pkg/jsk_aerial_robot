@@ -32,17 +32,6 @@ void DragonNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
 
 void DragonNavigator::update()
 {
-  if(eq_cog_world_ && robot_model_->getCogDesireOrientation<KDL::Rotation>() != KDL::Rotation::Identity())
-    {
-      // Note: this means we can not use targetBaselinkRPY at first
-      // we can only use targetBaselinkRot
-      tf::Quaternion q_base, q_cog;
-      estimator_->getOrientation(Frame::COG, estimate_mode_).getRotation(q_cog);
-      estimator_->getOrientation(Frame::BASELINK, estimate_mode_).getRotation(q_base);
-      if(q_cog != q_base)
-        setTargetYaw(0); // set the target yaw as zero, similar to pitch and roll, since CoG is identical with world frame
-    }
-
 
   BaseNavigator::update();
 

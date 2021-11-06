@@ -469,6 +469,13 @@ void DragonFullVectoringController::rotorInterfereCompensation()
 void DragonFullVectoringController::controlCore()
 {
   /* TODO: saturation of z control */
+
+  // workaround to handle speical definition of CoG desired orientation
+  if(boost::dynamic_pointer_cast<aerial_robot_navigation::DragonNavigator>(navigator_)->getEqCoGWorldFlag())
+    {
+      navigator_->setTargetYaw(0);
+    }
+
   PoseLinearController::controlCore();
 
   tf::Matrix3x3 uav_rot = estimator_->getOrientation(Frame::COG, estimate_mode_);
