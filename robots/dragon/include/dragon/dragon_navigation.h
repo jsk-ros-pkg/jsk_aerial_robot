@@ -59,6 +59,7 @@ namespace aerial_robot_navigation
     void update() override;
 
     inline const bool getLandingFlag() const { return landing_flag_; }
+    inline const bool getEqCoGWorldFlag() const { return eq_cog_world_; }
 
   private:
     ros::Publisher target_baselink_rpy_pub_; // to spinal
