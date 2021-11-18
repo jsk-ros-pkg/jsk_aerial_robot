@@ -1088,7 +1088,7 @@ void DragonFullVectoringController::controlCore()
 
           // check the Feasible Control Force and Torque with all
           std::vector<Eigen::Vector3d> rotors_origin_from_cog = robot_model_for_control_->getRotorsOriginFromCog<Eigen::Vector3d>();
-          std::vector<double> locked_angles(4);
+          std::vector<double> locked_angles(motor_num_);
           for(int i = 0; i < motor_num_; i++) locked_angles.at(i) = target_gimbal_angles_.at(2 * i);
           std::vector<int> roll_locked_gimbal(motor_num_, 1);
           auto f_min_list = dragon_robot_model_->calcFeasibleControlFxyDists(roll_locked_gimbal, locked_angles, motor_num_, links_rotation_from_cog);
