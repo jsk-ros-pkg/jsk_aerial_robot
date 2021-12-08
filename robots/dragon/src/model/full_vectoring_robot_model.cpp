@@ -397,15 +397,51 @@ void FullVectoringRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_po
           setStaticThrust(static_thrust);
 
           setVectoringForceWrenchMatrix(full_q_mat);
-          hover_vectoring_f_ = hover_vectoring_f;
+
+          // convert hovering vectoring f to CoG coord
+          hover_vectoring_f_ = Eigen::VectorXd::Zero(3 * getRotorNum());
+          Eigen::MatrixXd mask(3,2); mask << 1, 0, 0, 0, 0, 1;
+          int col = 0;
+          for(int i = 0; i < getRotorNum(); i++)
+            {
+              if(roll_locked_gimbal.at(i) == 0)
+                {
+                  hover_vectoring_f_.segment(3 * i, 3) = aerial_robot_model::kdlToEigen(links_rotation_from_cog.at(i)) * hover_vectoring_f.segment(col, 3);
+                  col += 3;
+                }
+              else
+                { /* gimbal lock: 2Dof */
+                  hover_vectoring_f_.segment(3 * i, 3) =  aerial_robot_model::kdlToEigen(links_rotation_from_cog.at(i)) * aerial_robot_model::kdlToEigen(KDL::Rotation::RPY(gimbal_nominal_angles_curr.at(i * 2), 0, 0)) * mask * hover_vectoring_f.segment(col, 2);
+                  col += 2;
+                }
+            }
+
           break;
         }
 
       if(j == robot_model_refine_max_iteration_ - 1)
         {
           setStaticThrust(static_thrust);
-          hover_vectoring_f_ = hover_vectoring_f;
           setVectoringForceWrenchMatrix(full_q_mat);
+
+          // convert hovering vectoring f to CoG coord
+          hover_vectoring_f_ = Eigen::VectorXd::Zero(3 * getRotorNum());
+          Eigen::MatrixXd mask(3,2); mask << 1, 0, 0, 0, 0, 1;
+          int col = 0;
+          for(int i = 0; i < getRotorNum(); i++)
+            {
+              if(roll_locked_gimbal.at(i) == 0)
+                {
+                  hover_vectoring_f_.segment(3 * i, 3) = aerial_robot_model::kdlToEigen(links_rotation_from_cog.at(i)) * hover_vectoring_f.segment(col, 3);
+                  col += 3;
+                }
+              else
+                { /* gimbal lock: 2Dof */
+                  hover_vectoring_f_.segment(3 * i, 3) =  aerial_robot_model::kdlToEigen(links_rotation_from_cog.at(i)) * aerial_robot_model::kdlToEigen(KDL::Rotation::RPY(gimbal_nominal_angles_curr.at(i * 2), 0, 0)) * mask * hover_vectoring_f.segment(col, 2);
+                  col += 2;
+                }
+            }
+
           ROS_WARN_STREAM_NAMED("robot_model", "refine rotor origin: can not converge in iteration " << j+1 << " max_diff " << max_diff);
         }
     }
@@ -650,6 +686,57 @@ there is a diffiretial chain about the roll angle. But we here approximate it to
   return locked_angles;
 #endif
 }
+
+
+void FullVectoringRobotModel::calcStaticThrust()
+{
+  calcWrenchMatrixOnRoot(); // TODO: redundant, but necessary for calculate external wrench comp thrust static for current mode.
+}
+
+void FullVectoringRobotModel::addCompThrustToStaticThrust()
+{
+  vectoring_thrust_ = wrench_comp_thrust_ + hover_vectoring_f_;
+
+  Eigen::VectorXd static_thrust = getStaticThrust();
+  for(int i = 0; i < getRotorNum(); i++)
+    static_thrust(i) = vectoring_thrust_.segment(3 * i, 3).norm();
+  setStaticThrust(static_thrust);
+}
+
+void FullVectoringRobotModel::calcJointTorque(const bool update_jacobian)
+{
+  const auto& sigma = getRotorDirection();
+  const auto& joint_positions = getJointPositions();
+  const auto& thrust_coord_jacobians = getThrustCoordJacobians();
+  const auto& inertia_map = getInertiaMap();
+  const int joint_num = getJointNum();
+  const int rotor_num = getRotorNum();
+  const double m_f_rate = getMFRate();
+
+  if(update_jacobian)
+    calcBasicKinematicsJacobian(); // update thrust_coord_jacobians_
+
+  Eigen::VectorXd joint_torque = Eigen::VectorXd::Zero(joint_num);
+
+  // update coord jacobians for cog point and convert to joint torque
+  std::vector<Eigen::MatrixXd> cog_coord_jacobians;
+  for(const auto& inertia : inertia_map)
+    {
+      cog_coord_jacobians.push_back(RobotModel::getJacobian(joint_positions, inertia.first, inertia.second.getCOG()));
+      joint_torque -= cog_coord_jacobians.back().rightCols(joint_num).transpose() * inertia.second.getMass() * (-getGravity());
+    }
+  setCOGCoordJacobians(cog_coord_jacobians); // TODO: should not update jacobian here
+
+  // thrust
+  for (int i = 0; i < rotor_num; ++i) {
+    Eigen::VectorXd wrench = Eigen::VectorXd::Zero(6);
+    wrench.head(3) = hover_vectoring_f_.segment(3 * i, 3);
+    joint_torque -= thrust_coord_jacobians.at(i).rightCols(joint_num).transpose() * wrench;
+  }
+
+  setJointTorque(joint_torque);
+}
+
 
 /* plugin registration */
 #include <pluginlib/class_list_macros.h>

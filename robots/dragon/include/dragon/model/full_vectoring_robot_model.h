@@ -55,6 +55,9 @@ namespace Dragon
     virtual ~FullVectoringRobotModel() = default;
 
 
+    void addCompThrustToStaticThrust() override;
+    void calcJointTorque(const bool update_jacobian = true) override;
+
     inline boost::shared_ptr<aerial_robot_model::RobotModel> getRobotModelForPlan() { return robot_model_for_plan_;}
     inline const Eigen::VectorXd& getHoverVectoringF() const {return hover_vectoring_f_;}
 
@@ -121,7 +124,7 @@ namespace Dragon
     /* gimbal roll angle optimization problem */
     std::vector<double>  calcBestLockGimbalRoll(const std::vector<int>& gimbal_roll_lock, const std::vector<int>& prev_gimbal_roll_lock, const std::vector<double>& prev_opt_locked_roll_angles);
 
-    void calcStaticThrust() override {}; // do nothing
+    void calcStaticThrust() override;
     void calcFeasibleControlFDists() {}; // do nothing
     void calcFeasibleControlTDists() {}; // do nothing
   };

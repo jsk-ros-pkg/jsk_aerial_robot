@@ -65,7 +65,7 @@ namespace Dragon
 
     //public functions
     void addCompThrustToJointTorque();
-    void addCompThrustToStaticThrust();
+    virtual void addCompThrustToStaticThrust();
     bool addExternalStaticWrench(const std::string wrench_name, const std::string reference_frame, const geometry_msgs::Point offset, const geometry_msgs::Wrench wrench);
     bool addExternalStaticWrench(const std::string wrench_name, const std::string reference_frame, const KDL::Vector offset, const KDL::Wrench wrench);
     bool addExternalStaticWrench(const std::string wrench_name, const std::string reference_frame, const KDL::Vector offset, const Eigen::VectorXd wrench);
@@ -152,8 +152,6 @@ namespace Dragon
     double min_dist_;
 
     std::map<std::string, ExternalWrench> external_wrench_map_;
-    Eigen::VectorXd wrench_comp_thrust_;
-    Eigen::VectorXd vectoring_thrust_;
     Eigen::MatrixXd vectoring_q_mat_;
     Eigen::MatrixXd comp_thrust_jacobian_;
 
@@ -169,6 +167,9 @@ namespace Dragon
     void getParamFromRos();
 
   protected:
+
+    Eigen::VectorXd wrench_comp_thrust_;
+    Eigen::VectorXd vectoring_thrust_;
 
     void setCompThrustJacobian(const Eigen::MatrixXd comp_thrust_jacobian) { comp_thrust_jacobian_ = comp_thrust_jacobian; }
 
