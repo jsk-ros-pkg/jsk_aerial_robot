@@ -1,7 +1,7 @@
-ros_lib
-spinal
+# stm32cubemx
+.mxproject
 
-### https://gist.github.com/IvanZuy/8264427.js
+# files
 *.axf
 *.htm
 *.Inp
@@ -27,4 +27,3 @@ spinal
 *.uvopt
 *.elf.*
 *.elf
-TrueSTUDIO/longzhu2/.settings/language.settings.xml

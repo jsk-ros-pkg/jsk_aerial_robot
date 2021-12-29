@@ -76,8 +76,8 @@ spinal_dir = rospack.get_path(THIS_PACKAGE)
 path = "./"
 # need correct inputs
 if (len(sys.argv) < 2):
-    # default path: ../spinal/
-    path = spinal_dir + "/../spinal/mcu_project"
+    # default path:
+    path = spinal_dir + "/../spinal/mcu_project/lib"
 else:
     # get output path
     path = sys.argv[1]

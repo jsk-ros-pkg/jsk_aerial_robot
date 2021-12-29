@@ -1,3 +1,3 @@
 #!/bin/bash
 
-stm32cubeide `rospack find spinal`/mcu_project/STM32CubeIDE/.project
+stm32cubeide `rospack find spinal`/mcu_project/boards/${1:-stm32F7}/STM32CubeIDE/.project
