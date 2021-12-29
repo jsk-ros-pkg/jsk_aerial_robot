@@ -58,7 +58,7 @@ generate_messages(
   std_msgs
 )
 
-set(SPINAL_DIRS mcu_project/Jsk_Lib)
+set(SPINAL_DIRS mcu_project/lib/Jsk_Lib)
 
 catkin_package(
   INCLUDE_DIRS  ${SPINAL_DIRS}
