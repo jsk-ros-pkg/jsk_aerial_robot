@@ -7,18 +7,17 @@
   *          This file contains:
   *           - Data structures and the address mapping for all peripherals
   *           - Peripheral's registers declarations and bits definition
-  *           - Macros to access peripheral’s registers hardware
+  *           - Macros to access peripheral's registers hardware
   *
   ******************************************************************************
   * @attention
   *
-  * <h2><center>&copy; Copyright (c) 2016 STMicroelectronics.
-  * All rights reserved.</center></h2>
+  * Copyright (c) 2016 STMicroelectronics.
+  * All rights reserved.
   *
-  * This software component is licensed by ST under BSD 3-Clause license,
-  * the "License"; You may not use this file except in compliance with the
-  * License. You may obtain a copy of the License at:
-  *                        opensource.org/licenses/BSD-3-Clause
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
   *
   ******************************************************************************
   */
@@ -165,13 +164,13 @@ typedef enum
  * @brief Configuration of the Cortex-M7 Processor and Core Peripherals
  */
 #define __CM7_REV                 0x0001U  /*!< Cortex-M7 revision r0p1                       */
-#define __MPU_PRESENT             1       /*!< CM7 provides an MPU                           */
-#define __NVIC_PRIO_BITS          4       /*!< CM7 uses 4 Bits for the Priority Levels       */
-#define __Vendor_SysTickConfig    0       /*!< Set to 1 if different SysTick Config is used  */
-#define __FPU_PRESENT             1       /*!< FPU present                                   */
-#define __ICACHE_PRESENT          1       /*!< CM7 instruction cache present                 */
-#define __DCACHE_PRESENT          1       /*!< CM7 data cache present                        */
-#include "core_cm7.h"                     /*!< Cortex-M7 processor and core peripherals      */
+#define __MPU_PRESENT             1U       /*!< CM7 provides an MPU                           */
+#define __NVIC_PRIO_BITS          4U       /*!< CM7 uses 4 Bits for the Priority Levels       */
+#define __Vendor_SysTickConfig    0U       /*!< Set to 1 if different SysTick Config is used  */
+#define __FPU_PRESENT             1U       /*!< FPU present                                   */
+#define __ICACHE_PRESENT          1U       /*!< CM7 instruction cache present                 */
+#define __DCACHE_PRESENT          1U       /*!< CM7 data cache present                        */
+#include "core_cm7.h"                      /*!< Cortex-M7 processor and core peripherals      */
 
 
 #include "system_stm32f7xx.h"
@@ -477,7 +476,8 @@ typedef struct
   __IO uint32_t PTPTTLR;
   __IO uint32_t RESERVED8;
   __IO uint32_t PTPTSSR;
-  uint32_t      RESERVED9[565];
+  __IO uint32_t PTPPPSCR;
+  uint32_t      RESERVED9[564];
   __IO uint32_t DMABMR;
   __IO uint32_t DMATPDR;
   __IO uint32_t DMARPDR;
@@ -1403,6 +1403,15 @@ typedef struct
 /** @addtogroup Exported_constants
   * @{
   */
+
+  /** @addtogroup Hardware_Constant_Definition
+    * @{
+    */
+#define LSI_STARTUP_TIME 40U /*!< LSI Maximum startup time in us */
+
+  /**
+    * @}
+    */
 
   /** @addtogroup Peripheral_Registers_Bits_Definition
   * @{
@@ -13247,6 +13256,30 @@ typedef struct
 #define SYSCFG_MEMRMP_SWP_FMC_1         (0x2UL << SYSCFG_MEMRMP_SWP_FMC_Pos)    /*!< 0x00000800 */
 
 /******************  Bit definition for SYSCFG_PMC register  ******************/
+#define SYSCFG_PMC_I2C1_FMP_Pos         (0U)
+#define SYSCFG_PMC_I2C1_FMP_Msk         (0x1UL << SYSCFG_PMC_I2C1_FMP_Pos)      /*!< 0x00000001 */
+#define SYSCFG_PMC_I2C1_FMP             SYSCFG_PMC_I2C1_FMP_Msk                /*!< I2C1_FMP I2C1 Fast Mode + Enable */
+#define SYSCFG_PMC_I2C2_FMP_Pos         (1U)
+#define SYSCFG_PMC_I2C2_FMP_Msk         (0x1UL << SYSCFG_PMC_I2C2_FMP_Pos)      /*!< 0x00000002 */
+#define SYSCFG_PMC_I2C2_FMP             SYSCFG_PMC_I2C2_FMP_Msk                /*!< I2C2_FMP I2C2 Fast Mode + Enable */
+#define SYSCFG_PMC_I2C3_FMP_Pos         (2U)
+#define SYSCFG_PMC_I2C3_FMP_Msk         (0x1UL << SYSCFG_PMC_I2C3_FMP_Pos)      /*!< 0x00000004 */
+#define SYSCFG_PMC_I2C3_FMP             SYSCFG_PMC_I2C3_FMP_Msk                /*!< I2C3_FMP I2C3 Fast Mode + Enable */
+#define SYSCFG_PMC_I2C4_FMP_Pos         (3U)
+#define SYSCFG_PMC_I2C4_FMP_Msk         (0x1UL << SYSCFG_PMC_I2C4_FMP_Pos)      /*!< 0x00000008 */
+#define SYSCFG_PMC_I2C4_FMP             SYSCFG_PMC_I2C4_FMP_Msk                /*!< I2C4_FMP I2C4 Fast Mode + Enable */
+#define SYSCFG_PMC_I2C_PB6_FMP_Pos      (4U)
+#define SYSCFG_PMC_I2C_PB6_FMP_Msk      (0x1UL << SYSCFG_PMC_I2C_PB6_FMP_Pos)   /*!< 0x00000010 */
+#define SYSCFG_PMC_I2C_PB6_FMP          SYSCFG_PMC_I2C_PB6_FMP_Msk             /*!< PB6_FMP Fast Mode + Enable */
+#define SYSCFG_PMC_I2C_PB7_FMP_Pos      (5U)
+#define SYSCFG_PMC_I2C_PB7_FMP_Msk      (0x1UL << SYSCFG_PMC_I2C_PB7_FMP_Pos)   /*!< 0x00000020 */
+#define SYSCFG_PMC_I2C_PB7_FMP          SYSCFG_PMC_I2C_PB7_FMP_Msk             /*!< PB7_FMP Fast Mode + Enable */
+#define SYSCFG_PMC_I2C_PB8_FMP_Pos      (6U)
+#define SYSCFG_PMC_I2C_PB8_FMP_Msk      (0x1UL << SYSCFG_PMC_I2C_PB8_FMP_Pos)   /*!< 0x00000040 */
+#define SYSCFG_PMC_I2C_PB8_FMP          SYSCFG_PMC_I2C_PB8_FMP_Msk             /*!< PB8_FMP Fast Mode + Enable */
+#define SYSCFG_PMC_I2C_PB9_FMP_Pos      (7U)
+#define SYSCFG_PMC_I2C_PB9_FMP_Msk      (0x1UL << SYSCFG_PMC_I2C_PB9_FMP_Pos)   /*!< 0x00000080 */
+#define SYSCFG_PMC_I2C_PB9_FMP          SYSCFG_PMC_I2C_PB9_FMP_Msk             /*!< PB9_FMP Fast Mode + Enable */
 
 #define SYSCFG_PMC_ADCxDC2_Pos          (16U)
 #define SYSCFG_PMC_ADCxDC2_Msk          (0x7UL << SYSCFG_PMC_ADCxDC2_Pos)       /*!< 0x00070000 */
@@ -15569,6 +15602,11 @@ typedef struct
 #define ETH_PTPTSSR_TSSO_Msk                          (0x1UL << ETH_PTPTSSR_TSSO_Pos) /*!< 0x00000010 */
 #define ETH_PTPTSSR_TSSO                              ETH_PTPTSSR_TSSO_Msk     /* Time stamp seconds overflow */
 
+/* Bit definition for Ethernet PTP PPS Control Register */
+#define ETH_PTPPPSCR_PPSFREQ_Pos                      (0U)
+#define ETH_PTPPPSCR_PPSFREQ_Msk                      (0x0FUL << ETH_PTPPPSCR_PPSFREQ_Pos) /*!< 0x0000000F */
+#define ETH_PTPPPSCR_PPSFREQ                          ETH_PTPPPSCR_PPSFREQ_Msk    /*  PPS frequency selection */
+
 /******************************************************************************/
 /*                 Ethernet DMA Registers bits definition                     */
 /******************************************************************************/
@@ -17857,4 +17895,3 @@ typedef struct
 #endif /* __STM32F746xx_H */
 
 
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
