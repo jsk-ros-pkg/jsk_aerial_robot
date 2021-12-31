@@ -38,9 +38,39 @@
 			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/stm32h7_nucleo.ioc</locationURI>
 		</link>
 		<link>
-			<name>Application/Hydrus_Lib</name>
+			<name>Application/Hydrus_Lib/CANDevice/initializer</name>
 			<type>2</type>
-			<locationURI>PARENT-2-PROJECT_LOC/spinal/mcu_project/Hydrus_Lib</locationURI>
+			<locationURI>PARENT-2-PROJECT_LOC/spinal/mcu_project/Hydrus_Lib/CANDevice/initializer</locationURI>
+		</link>
+		<link>
+			<name>Application/Hydrus_Lib/CANDevice/motor</name>
+			<type>2</type>
+			<locationURI>PARENT-2-PROJECT_LOC/spinal/mcu_project/Hydrus_Lib/CANDevice/motor</locationURI>
+		</link>
+		<link>
+			<name>Application/Hydrus_Lib/CANDevice/servo</name>
+			<type>2</type>
+			<locationURI>PARENT-2-PROJECT_LOC/spinal/mcu_project/Hydrus_Lib/CANDevice/servo</locationURI>
+		</link>
+		<link>
+			<name>Application/Hydrus_Lib/Neuron</name>
+			<type>2</type>
+			<locationURI>PARENT-2-PROJECT_LOC/spinal/mcu_project/Hydrus_Lib/Neuron</locationURI>
+		</link>
+		<link>
+			<name>Application/Hydrus_Lib/Spine</name>
+			<type>2</type>
+			<locationURI>PARENT-1-PROJECT_LOC/Hydrus_Lib/Spine</locationURI>
+		</link>
+		<link>
+			<name>Application/Hydrus_Lib/CANDevice/imu</name>
+			<type>2</type>
+			<locationURI>PARENT-1-PROJECT_LOC/Hydrus_Lib/CANDevice/imu</locationURI>
+		</link>
+		<link>
+			<name>Application/Hydrus_Lib/CANDevice/test</name>
+			<type>2</type>
+			<locationURI>PARENT-1-PROJECT_LOC/Hydrus_Lib/CANDevice/test</locationURI>
 		</link>
 		<link>
 			<name>Application/Jsk_Lib</name>

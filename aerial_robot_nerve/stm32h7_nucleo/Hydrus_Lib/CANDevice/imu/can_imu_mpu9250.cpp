@@ -10,17 +10,17 @@
 
 void CANIMU::updateRawData()
 {
-	/* transform */
-	raw_gyro_adc_[0] = -r_gyro_data[1] * GYRO_SCALE;
-	raw_gyro_adc_[1] = r_gyro_data[0] * GYRO_SCALE;
-	raw_gyro_adc_[2] = r_gyro_data[2] * GYRO_SCALE;
-	raw_acc_adc_[0] = -r_acc_data[1] * ACC_SCALE;
-	raw_acc_adc_[1] = r_acc_data[0] * ACC_SCALE;
-	raw_acc_adc_[2] = r_acc_data[2] * ACC_SCALE;
+	// /* transform */
+	// raw_gyro_adc_[0] = -r_gyro_data[1] * GYRO_SCALE;
+	// raw_gyro_adc_[1] = r_gyro_data[0] * GYRO_SCALE;
+	// raw_gyro_adc_[2] = r_gyro_data[2] * GYRO_SCALE;
+	// raw_acc_adc_[0] = -r_acc_data[1] * ACC_SCALE;
+	// raw_acc_adc_[1] = r_acc_data[0] * ACC_SCALE;
+	// raw_acc_adc_[2] = r_acc_data[2] * ACC_SCALE;
 
-	raw_mag_adc_[0] = -r_mag_data[0] * MAG_SCALE;
-	raw_mag_adc_[1] = r_mag_data[1] * MAG_SCALE;
-	raw_mag_adc_[2] = -r_mag_data[2] * MAG_SCALE;
+	// raw_mag_adc_[0] = -r_mag_data[0] * MAG_SCALE;
+	// raw_mag_adc_[1] = r_mag_data[1] * MAG_SCALE;
+	// raw_mag_adc_[2] = -r_mag_data[2] * MAG_SCALE;
 }
 
 void CANIMU::sendData()
