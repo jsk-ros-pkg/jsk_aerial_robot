@@ -90,5 +90,5 @@ add_library(spinal_flight_controller
 target_link_libraries(spinal_flight_controller ${catkin_LIBRARIES} spinal_math)
 add_dependencies(spinal_flight_controller ${PROJECT_NAME}_generate_messages_cpp)
 
-add_custom_target(${PROJECT_NAME}_generate_ros_lib ALL COMMAND ${CATKIN_DEVEL_PREFIX}/env.sh ${PYTHON_EXECUTABLE}  ${PROJECT_SOURCE_DIR}/scripts/make_libraries.py --save_path ${PROJECT_SOURCE_DIR}/mcu_project --support_rtos)
+add_custom_target(${PROJECT_NAME}_generate_ros_lib ALL COMMAND ${CATKIN_DEVEL_PREFIX}/env.sh ${PYTHON_EXECUTABLE}  ${PROJECT_SOURCE_DIR}/scripts/make_libraries.py --save_path ${PROJECT_SOURCE_DIR}/mcu_project/lib --support_rtos)
 add_dependencies(${PROJECT_NAME}_generate_ros_lib ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_generate_messages_cpp)
