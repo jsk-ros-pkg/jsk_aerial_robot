@@ -95,3 +95,18 @@ https://drive.google.com/uc?export=view&id=1TKMwXH4Lm9L4QMkjgN_sgr2S7u54GGa7
 
 - The external transmitter board also support the connect of neuron. Please check https://drive.google.com/uc?export=view&id=1WYRR4KZtqjQvnGTJE5B0apQbLLGStGB4
 - To check the calssi CAN mode for STM32F4 based Neuron. Please connect the neuron with general way.
+
+
+## 3. UART rosserial mode
+
+### cables:
+
+- yellow: Rx (USE-serial board) - Tx (D53 in nucleo board)
+- green:  Tx (USE-serial board) - Rx (D52 in nucleo board)
+- black1: GND
+- black2: A0 in nucleo board - 3.3V for jumping to uart mode
+
+### command:
+```
+$ roslaunch spinal_ros_bridge serial.launch
+```

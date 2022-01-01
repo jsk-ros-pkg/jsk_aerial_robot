@@ -126,6 +126,7 @@ uint32_t min_du = 1e6;
 CANFDTest canfd_test_;
 bool canfd_test_mode_ = false;
 bool canfd_send_tx_ = false;
+bool uart_mode_ = false;
 
 extern osSemaphoreId coreTaskSemHandle;
 extern osMailQId canMsgMailHandle;
@@ -211,12 +212,17 @@ extern "C"
     MX_LWIP_Init();
 
     /* ros node init */
-    ip4_addr_t dst_addr;
-    IP4_ADDR(&dst_addr,192,168,25,100);
-
-    //nh_.initNode(dst_addr, 12345,12345);
-    nh_.initNode(&huart2, &rosPubMutexHandle, &uartTxSemHandle);
-    //nh_.initNode(&huart2, &rosPubMutexHandle, NULL); // no DMA for TX
+    if(uart_mode_)
+      {
+        nh_.initNode(&huart2, &rosPubMutexHandle, &uartTxSemHandle);
+        //nh_.initNode(&huart2, &rosPubMutexHandle, NULL); // no DMA for TX
+      }
+    else
+      {
+        ip4_addr_t dst_addr;
+        IP4_ADDR(&dst_addr,192,168,25,100);
+        nh_.initNode(dst_addr, 12345,12345);
+      }
 
     nh_.advertise(test_pub_);
     nh_.advertise(test_pub2_);
@@ -226,20 +232,34 @@ extern "C"
 
     osSemaphoreWait(coreTaskSemHandle, osWaitForever);
 
+    int imu_pub_interval = 0;
+    if (uart_mode_) imu_pub_interval = 5;
     uint32_t imu_pub_t = HAL_GetTick();
+    uint32_t can_test_t = HAL_GetTick();
 
     for(;;)
       {
         osSemaphoreWait(coreTaskSemHandle, osWaitForever);
 
-        Spine::send();
-        if (HAL_GetTick() - imu_pub_t >= 5)
+        if (!canfd_test_mode_) Spine::send();
+        if (HAL_GetTick() - imu_pub_t >= imu_pub_interval)
           {
             imu_msg_.stamp = nh_.now();
             test_pub_.publish(&imu_msg_);
             imu_pub_t = HAL_GetTick();
           }
-        Spine::update();
+        if (!canfd_test_mode_) Spine::update();
+
+        if (canfd_test_mode_)
+          {
+            CANDeviceManager::tick(1);
+            if (HAL_GetTick() - can_test_t > 100) // 10ms
+              {
+                if (canfd_send_tx_)
+                  canfd_test_.sendData();
+                can_test_t = HAL_GetTick();
+              }
+          }
       }
   }
 
@@ -266,6 +286,20 @@ extern "C"
             /* if no messages in ring buffer, we kindly sleep for 1ms */
             osDelay(1);
           }
+      }
+  }
+
+  void idleTaskFunc(void const * argument)
+  {
+    for(;;)
+      {
+        if(HAL_GPIO_ReadPin(USER_Btn_GPIO_Port, USER_Btn_Pin) == GPIO_PIN_SET)
+          {
+            canfd_send_tx_ = true;
+          }
+
+        if (canfd_test_mode_) HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
+        osDelay(1000);
       }
   }
 }
@@ -325,6 +359,14 @@ int main(void)
   MX_NVIC_Init();
   /* USER CODE BEGIN 2 */
 
+
+  /* switch between ETH/UART rosserial */
+  if(HAL_GPIO_ReadPin(UART_MODE_GPIO_Port, UART_MODE_Pin) == GPIO_PIN_SET)
+    {
+      uart_mode_ = true;
+    }
+
+  /* switch CAN/CANFD test mode */
   if(HAL_GPIO_ReadPin(USER_Btn_GPIO_Port, USER_Btn_Pin) == GPIO_PIN_SET)
     {
       canfd_test_mode_ = true;
