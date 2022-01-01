@@ -2,6 +2,13 @@
 Changelog for package hydrus_xi
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.3.0 (2021-08-06)
+------------------
+
+1.2.2 (2021-08-06)
+------------------
+* Fix gimbal link module weight for hydrus_xi  (`#460 <https://github.com/JSKAerialRobot/aerial_robot/issues/460>`_)
+
 1.2.1 (2021-02-17)
 ------------------
 * Replace the old repositoty name in CHANGELOG.rst, and increase the retry times for hydrus_xi test in travis (`#434 <https://github.com/JSKAerialRobot/aerial_robot/issues/434>`_)

@@ -2,6 +2,14 @@
 Changelog for package aerial_robot_base
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.3.0 (2021-08-06)
+------------------
+
+1.2.2 (2021-08-06)
+------------------
+* Add launch and yaml files for RTK GPS (`#472 <https://github.com/JSKAerialRobot/aerial_robot/issues/472>`_)
+* Refactor launch of mocap (`#451 <https://github.com/JSKAerialRobot/aerial_robot/issues/451>`_, `#464 <https://github.com/JSKAerialRobot/aerial_robot/issues/464>`_)
+
 1.2.1 (2021-02-17)
 ------------------
 * Replace the old repositoty name in CHANGELOG.rst, correct the API of unittest, and update the version of dependency repositories (`#434 <https://github.com/JSKAerialRobot/aerial_robot/issues/434>`_)

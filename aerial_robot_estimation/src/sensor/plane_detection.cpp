@@ -57,6 +57,16 @@ namespace sensor_plugin
     rosParamInit();
     getParam<std::string>("plane_detection_sub_topic_name", plane_detection_sub_topic_name_, std::string("output_coefficients"));
     plane_sub_ = nh_.subscribe(plane_detection_sub_topic_name_, 10, &PlaneDetection::planeCallback, this);
+    timer_ = nh_.createTimer(ros::Duration(1.0 / timer_freq_), &PlaneDetection::timerCallback, this);
+    queue_length_ = static_cast<int>(state_save_time_ * timer_freq_);
+  }
+
+  void PlaneDetection::timerCallback(const ros::TimerEvent& e)
+  {
+    pos_z_queue_.push_back(std::make_pair<double, double>(ros::Time::now().toSec(), static_cast<double>(estimator_->getPos(Frame::BASELINK, aerial_robot_estimation::EGOMOTION_ESTIMATE).z())));
+    if (pos_z_queue_.size() > queue_length_) {
+       pos_z_queue_.pop_front();
+    }
   }
 
   void PlaneDetection::planeCallback(const jsk_recognition_msgs::ModelCoefficientsArray& msg)
@@ -128,6 +138,31 @@ namespace sensor_plugin
       }
 
       // 4. if a valid plane is found, initialize kalman filter
+
+      // 4.1 if dynamic_offset is true, set height_offset
+      if (dynamic_offset_) {
+        bool good_timestamp_found = false;
+        double uav_z_good;
+        double pos_z_timestamp;
+
+        for (const auto& pos_z : pos_z_queue_) {
+          if (pos_z.first > msg.header.stamp.toSec()) {
+            uav_z_good = pos_z.second;
+            pos_z_timestamp = pos_z.first;
+            good_timestamp_found = true;
+            break;
+          }
+        }
+
+        if (!good_timestamp_found) {
+          uav_z_good = estimator_->getPos(Frame::BASELINK, aerial_robot_estimation::EGOMOTION_ESTIMATE).z();
+          pos_z_timestamp = pos_z_queue_.back().first;
+        }
+
+        height_offset_ = uav_z_good - raw_plane_pos_z_;
+        ROS_DEBUG("Set dynamic_offset. offset: %f, timestamp_diff: %f, good_timestamp_found: %s", height_offset_, static_cast<float>(std::abs(pos_z_timestamp - msg.header.stamp.toSec())), good_timestamp_found ? "true" : "false");
+      }
+
       setStatus(Status::INIT);
       ROS_INFO_STREAM(indexed_nhp_.getNamespace()  << ": start kalman filter");
       /* fuser for 0: egomotion, 1: experiment */
@@ -249,7 +284,14 @@ namespace sensor_plugin
     getParam<double>("min_height", min_height_, 0.5);
     getParam<double>("max_height", max_height_, 15.0);
     getParam<double>("max_camera_angle", max_camera_angle_, 0.4);
+    getParam<bool>("dynamic_offset", dynamic_offset_, false);
     getParam<double>("height_offset", height_offset_, 0.0);
+    getParam<int>("timer_freq", timer_freq_, 100);
+    getParam<double>("state_save_time", state_save_time_, 1.2);
+
+    if (dynamic_offset_) {
+      height_offset_ = 0.0;
+    }
   }
 };
 

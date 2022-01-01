@@ -1,0 +1,9 @@
+# stm32cubemx
+.mxproject
+
+
+# files for IDE project
+Debug
+*.elf.*
+*.elf
+*.bak

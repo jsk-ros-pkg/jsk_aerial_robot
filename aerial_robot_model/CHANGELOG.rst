@@ -2,6 +2,13 @@
 Changelog for package aerial_robot_model
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.3.0 (2021-08-06)
+------------------
+
+1.2.2 (2021-08-06)
+------------------
+* Full Thrust Vectoring Modeling and Control for Multilinked Aerial Robot With Two DoF Force Vectoring Apparatus (`#474 <https://github.com/JSKAerialRobot/aerial_robot/issues/474>`_)
+
 1.2.1 (2021-02-17)
 ------------------
 * Replace the old repositoty name in CHANGELOG.rst (`#434 <https://github.com/JSKAerialRobot/aerial_robot/issues/434>`_)

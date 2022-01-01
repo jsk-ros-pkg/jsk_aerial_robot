@@ -139,6 +139,7 @@ void BaseNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & ms
   if(msg->yaw_nav_mode == aerial_robot_msgs::FlightNav::POS_MODE)
     {
       setTargetYaw(angles::normalize_angle(msg->target_yaw));
+      setTargetOmageZ(0);
     }
   if(msg->yaw_nav_mode == aerial_robot_msgs::FlightNav::POS_VEL_MODE)
     {
@@ -176,6 +177,8 @@ void BaseNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & ms
 
         setTargetPosX(target_cog_pos.x());
         setTargetPosY(target_cog_pos.y());
+        setTargetVelX(0);
+        setTargetVelY(0);
 
         break;
       }
@@ -231,6 +234,7 @@ void BaseNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & ms
         /* should be in COG frame */
         xy_control_mode_ = ACC_CONTROL_MODE;
         prev_xy_control_mode_ = ACC_CONTROL_MODE;
+
         switch(msg->control_frame)
           {
           case WORLD_FRAME:
@@ -267,10 +271,12 @@ void BaseNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & ms
     {
       /* special */
       addTargetPosZ(msg->target_pos_diff_z);
+      setTargetVelZ(0);
     }
   else if(msg->pos_z_nav_mode == aerial_robot_msgs::FlightNav::POS_MODE)
     {
       setTargetPosZ(msg->target_pos_z);
+      setTargetVelZ(0);
     }
   else if(msg->pos_z_nav_mode == aerial_robot_msgs::FlightNav::POS_VEL_MODE)
     {

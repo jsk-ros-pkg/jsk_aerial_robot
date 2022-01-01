@@ -38,6 +38,7 @@
 #include <aerial_robot_estimation/sensor/base_plugin.h>
 #include <kalman_filter/kf_pos_vel_acc_plugin.h>
 #include <jsk_recognition_msgs/ModelCoefficientsArray.h>
+#include <deque>
 
 namespace sensor_plugin
 {
@@ -56,6 +57,7 @@ namespace sensor_plugin
   private:
     /* ros */
     ros::Subscriber plane_sub_;
+    ros::Timer timer_;
 
     std::string plane_detection_sub_topic_name_;
     aerial_robot_msgs::States plane_detection_state_;
@@ -66,18 +68,24 @@ namespace sensor_plugin
     double plane_noise_sigma_;
     double min_height_, max_height_;
     double max_camera_angle_;
+    bool dynamic_offset_;
     double height_offset_;
+    int timer_freq_;
+    double state_save_time_;
 
     /* estimation */
     double raw_plane_pos_z_;
     double prev_raw_plane_pos_z_;
     double raw_plane_vel_z_;
+    int queue_length_;
+    std::deque<std::pair<double, double> > pos_z_queue_; // first: timestamp second: pos_z
 
     bool findValidPlane(const jsk_recognition_msgs::ModelCoefficientsArray& msg);
     bool isCameraAngleValid();
     void estimateProcess() override;
     void rosParamInit();
     void planeCallback(const jsk_recognition_msgs::ModelCoefficientsArray& msg);
+    void timerCallback(const ros::TimerEvent& e);
   };
 
 };

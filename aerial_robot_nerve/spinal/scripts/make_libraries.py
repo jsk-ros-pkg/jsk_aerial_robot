@@ -74,7 +74,7 @@ rospack = rospkg.RosPack()
 spinal_dir = rospack.get_path("spinal")
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--save_path', default=os.path.join(spinal_dir, 'mcu_project'),
+parser.add_argument('--save_path', default=os.path.join(spinal_dir, 'mcu_project/lib'),
                     help='path to save ros_lib')
 
 parser.add_argument('--support_rtos', action='store_true',
@@ -84,8 +84,6 @@ parser.add_argument('--support_ethernet', action='store_true',
 
 args = parser.parse_args()
 args.save_path = os.path.join(args.save_path, 'ros_lib')
-
-
 
 # remove the old directory
 if os.path.exists(args.save_path):
