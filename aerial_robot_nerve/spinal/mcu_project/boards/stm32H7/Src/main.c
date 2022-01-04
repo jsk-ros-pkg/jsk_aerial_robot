@@ -147,6 +147,9 @@ int main(void)
   MX_USART3_UART_Init();
   /* USER CODE BEGIN 2 */
 
+  HAL_GPIO_TogglePin(LED0_GPIO_Port, LED0_Pin);
+  //HAL_GPIO_TogglePin(LED1_GPIO_Port, LED1_Pin);
+  HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -154,7 +157,10 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
-
+    HAL_GPIO_TogglePin(LED0_GPIO_Port, LED0_Pin);
+    HAL_GPIO_TogglePin(LED1_GPIO_Port, LED1_Pin);
+    HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
+    HAL_Delay(1000);
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
@@ -315,7 +321,9 @@ static void MX_ETH_Init(void)
 {
 
   /* USER CODE BEGIN ETH_Init 0 */
-
+#ifndef USE_ETH
+  return;
+#endif
   /* USER CODE END ETH_Init 0 */
 
   /* USER CODE BEGIN ETH_Init 1 */

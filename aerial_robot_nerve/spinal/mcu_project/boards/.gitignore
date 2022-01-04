@@ -7,3 +7,4 @@ Debug
 *.elf.*
 *.elf
 *.bak
+*.launch
