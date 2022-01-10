@@ -36,9 +36,9 @@ cog_z = float(argvs[3]) * .001
 i_xx = float(argvs[4])
 i_yy = float(argvs[5])
 i_zz = float(argvs[6])
-i_xy = float(argvs[7])
-i_xz = float(argvs[8])
-i_yz = float(argvs[9])
+i_xy = -float(argvs[7])
+i_xz = -float(argvs[8])
+i_yz = -float(argvs[9])
 mass = float(argvs[10])
 
 cog_i_xx = i_xx - (cog_y * cog_y  + cog_z * cog_z) * mass
