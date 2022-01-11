@@ -8,3 +8,6 @@ Debug
 *.elf
 *.bak
 *.launch
+
+# libraries
+ros_lib

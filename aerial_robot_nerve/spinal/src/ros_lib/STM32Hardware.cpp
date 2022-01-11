@@ -57,7 +57,7 @@ void STM32Hardware::init(UART_HandleTypeDef *huart, osMutexId *mutex, osSemaphor
 
   /* rx */
   HAL_UART_Receive_DMA(huart, rx_buf_.getBuf(), RX_BUFFER_SIZE);
-  memset(rx_buf_.getBuf(), 0, sizeof(rx_buf_.getBuf()));
+  memset(rx_buf_.getBuf(), 0, RX_BUFFER_SIZE);
 
   /* tx */
   tx_mutex_ = mutex;

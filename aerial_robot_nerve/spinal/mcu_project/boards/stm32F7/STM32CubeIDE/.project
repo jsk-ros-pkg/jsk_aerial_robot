@@ -50,7 +50,7 @@
 		<link>
 			<name>Application/ros_lib</name>
 			<type>2</type>
-			<locationURI>PARENT-3-PROJECT_LOC/lib/ros_lib</locationURI>
+			<locationURI>PARENT-1-PROJECT_LOC/ros_lib</locationURI>
 		</link>
 		<link>
 			<name>Application/User/adc.c</name>

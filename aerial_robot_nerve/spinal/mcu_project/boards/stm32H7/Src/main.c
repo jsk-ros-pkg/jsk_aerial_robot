@@ -25,6 +25,15 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
+#include <cstring>
+#include <string>
+
+#include <ros.h>
+#include <std_msgs/String.h>
+#include <std_msgs/Empty.h>
+#include <spinal/ServoControlCmd.h>
+#include <spinal/Imu.h>
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -79,15 +88,43 @@ SPI_HandleTypeDef hspi1;
 
 UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart3;
+DMA_HandleTypeDef hdma_usart1_rx;
+DMA_HandleTypeDef hdma_usart1_tx;
 
-osThreadId defaultTaskHandle;
+osThreadId coreTaskHandle;
+osThreadId rosSpinTaskHandle;
+osThreadId idleTaskHandle;
+osThreadId rosPublishHandle;
+osTimerId coreTaskTimerHandle;
+osMutexId rosPubMutexHandle;
+osSemaphoreId coreTaskSemHandle;
+osSemaphoreId uartTxSemHandle;
 /* USER CODE BEGIN PV */
+ros::NodeHandle nh_;
+std_msgs::String test_msg_;
+spinal::Imu imu_msg_;
+ros::Publisher test_pub_("/imu", &imu_msg_);
+ros::Publisher test_pub2_("/test_pub1", &test_msg_);
+ros::Publisher test_pub3_("/test_pub2", &test_msg_);
+void testCallback(const std_msgs::Empty& msg);
+ros::Subscriber<std_msgs::Empty> test_sub_("/test_sub", &testCallback);
+void test2Callback(const spinal::ServoControlCmd& msg);
+ros::Subscriber<spinal::ServoControlCmd> test2_sub_("/target_servo_sub", &test2Callback);
+
+uint32_t servo_msg_cnt = 0;
+uint32_t max_cnt_diff = 0;
+uint32_t servo_msg_recv_t = 0;
+uint32_t servo_msg_echo_t = 0;
+uint32_t max_du = 0;
+uint32_t min_du = 1e6;
 
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
+static void MPU_Config(void);
 static void MX_GPIO_Init(void);
+static void MX_DMA_Init(void);
 static void MX_FDCAN1_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_SPI1_Init(void);
@@ -96,7 +133,11 @@ static void MX_ETH_Init(void);
 static void MX_I2C3_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_USART3_UART_Init(void);
-void StartDefaultTask(void const * argument);
+void coreTaskFunc(void const * argument);
+void rosSpinTaskFunc(void const * argument);
+void idleTaskFunc(void const * argument);
+void rosPublishTask(void const * argument);
+void coreTaskEvokeCb(void const * argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -104,6 +145,55 @@ void StartDefaultTask(void const * argument);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+void testCallback(const std_msgs::Empty& msg)
+{
+  test_msg_.data = std::string("sub echo ok").c_str();
+  test_pub2_.publish(&test_msg_);
+}
+
+void test2Callback(const spinal::ServoControlCmd& msg)
+{
+  uint32_t cnt = (uint32_t)msg.index[0] + ((uint32_t)msg.index[1] << 8) + ((uint32_t)msg.index[2] << 16) + ((uint32_t)msg.index[3] << 24);
+
+  if( abs((int32_t)servo_msg_cnt - (int32_t)cnt) > 100) // 100 topics
+    {
+      // reset
+      servo_msg_recv_t = 0;
+      servo_msg_echo_t = 0;
+      servo_msg_cnt = cnt;
+
+      max_du = 0;
+      min_du = 1e6;
+
+      max_cnt_diff = 0;
+    }
+
+  if(servo_msg_recv_t == 0)
+    {
+      servo_msg_recv_t = HAL_GetTick();
+      servo_msg_echo_t = HAL_GetTick();
+    }
+  else
+    {
+      uint32_t du = HAL_GetTick() - servo_msg_recv_t;
+      if(max_du < du) max_du = du;
+      if(min_du > du) min_du = du;
+
+      uint32_t cnt_diff = cnt - servo_msg_cnt;
+      if(max_cnt_diff < cnt_diff) max_cnt_diff = cnt_diff;
+
+      if (HAL_GetTick() - servo_msg_echo_t > 1000) // 1000 ms
+        {
+          char buffer[50];
+          sprintf (buffer, "%d, %d, %d, %d, %d", (int)du, (int)max_du, (int)min_du, (int)cnt_diff, (int)max_cnt_diff);
+          nh_.logerror(buffer);
+          servo_msg_echo_t = HAL_GetTick();
+        }
+      servo_msg_recv_t = HAL_GetTick();
+      servo_msg_cnt= cnt;
+    }
+}
+
 
 /* USER CODE END 0 */
 
@@ -116,6 +206,9 @@ int main(void)
   /* USER CODE BEGIN 1 */
 
   /* USER CODE END 1 */
+
+  /* MPU Configuration--------------------------------------------------------*/
+  MPU_Config();
 
   /* Enable I-Cache---------------------------------------------------------*/
   SCB_EnableICache();
@@ -141,6 +234,7 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_DMA_Init();
   MX_FDCAN1_Init();
   MX_I2C1_Init();
   MX_SPI1_Init();
@@ -151,21 +245,45 @@ int main(void)
   MX_USART3_UART_Init();
   /* USER CODE BEGIN 2 */
 
+  // workaround for the wired generation of STMCubeMX
+  HAL_NVIC_DisableIRQ(DMA1_Stream0_IRQn); // we do not need DMA Interrupt for UART RX, circular mode
+
   HAL_GPIO_TogglePin(LED0_GPIO_Port, LED0_Pin);
-  //HAL_GPIO_TogglePin(LED1_GPIO_Port, LED1_Pin);
+  HAL_GPIO_TogglePin(LED1_GPIO_Port, LED1_Pin);
   HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
   /* USER CODE END 2 */
+
+  /* Create the mutex(es) */
+  /* definition and creation of rosPubMutex */
+  osMutexDef(rosPubMutex);
+  rosPubMutexHandle = osMutexCreate(osMutex(rosPubMutex));
 
   /* USER CODE BEGIN RTOS_MUTEX */
   /* add mutexes, ... */
   /* USER CODE END RTOS_MUTEX */
 
+  /* Create the semaphores(s) */
+  /* definition and creation of coreTaskSem */
+  osSemaphoreDef(coreTaskSem);
+  coreTaskSemHandle = osSemaphoreCreate(osSemaphore(coreTaskSem), 1);
+
+  /* definition and creation of uartTxSem */
+  osSemaphoreDef(uartTxSem);
+  uartTxSemHandle = osSemaphoreCreate(osSemaphore(uartTxSem), 1);
+
   /* USER CODE BEGIN RTOS_SEMAPHORES */
   /* add semaphores, ... */
   /* USER CODE END RTOS_SEMAPHORES */
 
+  /* Create the timer(s) */
+  /* definition and creation of coreTaskTimer */
+  osTimerDef(coreTaskTimer, coreTaskEvokeCb);
+  coreTaskTimerHandle = osTimerCreate(osTimer(coreTaskTimer), osTimerPeriodic, NULL);
+
   /* USER CODE BEGIN RTOS_TIMERS */
   /* start timers, add new ones, ... */
+  osTimerStart(coreTaskTimerHandle, 1); // 1 ms (1kHz)
+
   /* USER CODE END RTOS_TIMERS */
 
   /* USER CODE BEGIN RTOS_QUEUES */
@@ -173,9 +291,21 @@ int main(void)
   /* USER CODE END RTOS_QUEUES */
 
   /* Create the thread(s) */
-  /* definition and creation of defaultTask */
-  osThreadDef(defaultTask, StartDefaultTask, osPriorityNormal, 0, 128);
-  defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
+  /* definition and creation of coreTask */
+  osThreadDef(coreTask, coreTaskFunc, osPriorityRealtime, 0, 512);
+  coreTaskHandle = osThreadCreate(osThread(coreTask), NULL);
+
+  /* definition and creation of rosSpinTask */
+  osThreadDef(rosSpinTask, rosSpinTaskFunc, osPriorityNormal, 0, 256);
+  rosSpinTaskHandle = osThreadCreate(osThread(rosSpinTask), NULL);
+
+  /* definition and creation of idleTask */
+  osThreadDef(idleTask, idleTaskFunc, osPriorityIdle, 0, 128);
+  idleTaskHandle = osThreadCreate(osThread(idleTask), NULL);
+
+  /* definition and creation of rosPublish */
+  osThreadDef(rosPublish, rosPublishTask, osPriorityBelowNormal, 0, 128);
+  rosPublishHandle = osThreadCreate(osThread(rosPublish), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -603,7 +733,7 @@ static void MX_USART1_UART_Init(void)
 
   /* USER CODE END USART1_Init 1 */
   huart1.Instance = USART1;
-  huart1.Init.BaudRate = 115200;
+  huart1.Init.BaudRate = 921600;
   huart1.Init.WordLength = UART_WORDLENGTH_8B;
   huart1.Init.StopBits = UART_STOPBITS_1;
   huart1.Init.Parity = UART_PARITY_NONE;
@@ -684,6 +814,25 @@ static void MX_USART3_UART_Init(void)
 }
 
 /**
+  * Enable DMA controller clock
+  */
+static void MX_DMA_Init(void)
+{
+
+  /* DMA controller clock enable */
+  __HAL_RCC_DMA1_CLK_ENABLE();
+
+  /* DMA interrupt init */
+  /* DMA1_Stream0_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Stream0_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Stream0_IRQn);
+  /* DMA1_Stream1_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Stream1_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Stream1_IRQn);
+
+}
+
+/**
   * @brief GPIO Initialization Function
   * @param None
   * @retval None
@@ -749,28 +898,178 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE END 4 */
 
-/* USER CODE BEGIN Header_StartDefaultTask */
+/* USER CODE BEGIN Header_coreTaskFunc */
 /**
-  * @brief  Function implementing the defaultTask thread.
+  * @brief  Function implementing the coreTask thread.
   * @param  argument: Not used
   * @retval None
   */
-/* USER CODE END Header_StartDefaultTask */
-__weak void StartDefaultTask(void const * argument)
+/* USER CODE END Header_coreTaskFunc */
+void coreTaskFunc(void const * argument)
 {
   /* USER CODE BEGIN 5 */
-  /* Infinite loop */
+#ifdef USE_ETH
+  MX_LWIP_Init();
+#endif
+
+  /* ros node init */
+#ifndef USE_ETH
+  nh_.initNode(&huart1, &rosPubMutexHandle, &uartTxSemHandle);
+  //nh_.initNode(&huart1, &rosPubMutexHandle, NULL); // no DMA for TX
+#else
+
+  ip4_addr_t dst_addr;
+  IP4_ADDR(&dst_addr,192,168,25,100);
+  nh_.initNode(dst_addr, 12345,12345);
+#endif
+
+  nh_.advertise(test_pub_);
+  nh_.advertise(test_pub2_);
+  nh_.advertise(test_pub3_);
+  nh_.subscribe< ros::Subscriber<std_msgs::Empty> >(test_sub_);
+  nh_.subscribe< ros::Subscriber<spinal::ServoControlCmd> >(test2_sub_);
+
+  osSemaphoreWait(coreTaskSemHandle, osWaitForever);
+
+  int imu_pub_interval = 0;
+#ifndef USE_ETH
+  imu_pub_interval = 5;
+#endif
+
+  uint32_t imu_pub_t = HAL_GetTick();
+
   for(;;)
-  {
-    HAL_GPIO_TogglePin(LED0_GPIO_Port, LED0_Pin);
-    HAL_GPIO_TogglePin(LED1_GPIO_Port, LED1_Pin);
-    HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
-    osDelay(1000);
-  }
+    {
+      osSemaphoreWait(coreTaskSemHandle, osWaitForever);
+
+      //Spine::send();
+      if (HAL_GetTick() - imu_pub_t >= imu_pub_interval)
+        {
+          imu_msg_.stamp = nh_.now();
+          test_pub_.publish(&imu_msg_);
+          imu_pub_t = HAL_GetTick();
+        }
+      //Spine::update();
+    }
+
   /* USER CODE END 5 */
 }
 
- /**
+/* USER CODE BEGIN Header_rosSpinTaskFunc */
+/**
+* @brief Function implementing the rosSpinTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_rosSpinTaskFunc */
+void rosSpinTaskFunc(void const * argument)
+{
+  /* USER CODE BEGIN rosSpinTaskFunc */
+  for(;;)
+    {
+      /* ros spin means to get data from UART RX ring buffer and to call callback functions  */
+      if(nh_.spinOnce() == ros::SPIN_UNAVAILABLE)
+        {
+          /* if no data in ring buffer, we kindly sleep for 1ms */
+          osDelay(1);
+        }
+  }
+  /* USER CODE END rosSpinTaskFunc */
+}
+
+/* USER CODE BEGIN Header_idleTaskFunc */
+/**
+* @brief Function implementing the idleTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_idleTaskFunc */
+void idleTaskFunc(void const * argument)
+{
+  /* USER CODE BEGIN idleTaskFunc */
+  for(;;)
+  {
+    HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
+    osDelay(1000);
+  }
+  /* USER CODE END idleTaskFunc */
+}
+
+/* USER CODE BEGIN Header_rosPublishTask */
+/**
+* @brief Function implementing the rosPublish thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_rosPublishTask */
+void rosPublishTask(void const * argument)
+{
+  /* USER CODE BEGIN rosPublishTask */
+  for(;;)
+    {
+      /* publish one message from ring buffer */
+      if(nh_.publish() == BUFFER_EMPTY)
+        {
+          /* if no messages in ring buffer, we kindly sleep for 1ms */
+          osDelay(1);
+        }
+
+  }
+  /* USER CODE END rosPublishTask */
+}
+
+/* coreTaskEvokeCb function */
+void coreTaskEvokeCb(void const * argument)
+{
+  /* USER CODE BEGIN coreTaskEvokeCb */
+  // timer callback to evoke coreTask at 1KHz
+  osSemaphoreRelease (coreTaskSemHandle);
+  /* USER CODE END coreTaskEvokeCb */
+}
+
+/* MPU Configuration */
+
+void MPU_Config(void)
+{
+  MPU_Region_InitTypeDef MPU_InitStruct = {0};
+
+  /* Disables the MPU */
+  HAL_MPU_Disable();
+  /** Initializes and configures the Region and the memory to be protected
+  */
+  MPU_InitStruct.Enable = MPU_REGION_ENABLE;
+  MPU_InitStruct.Number = MPU_REGION_NUMBER0;
+  MPU_InitStruct.BaseAddress = 0x24040000;
+  MPU_InitStruct.Size = MPU_REGION_SIZE_1KB;
+  MPU_InitStruct.SubRegionDisable = 0x0;
+  MPU_InitStruct.TypeExtField = MPU_TEX_LEVEL1;
+  MPU_InitStruct.AccessPermission = MPU_REGION_FULL_ACCESS;
+  MPU_InitStruct.DisableExec = MPU_INSTRUCTION_ACCESS_ENABLE;
+  MPU_InitStruct.IsShareable = MPU_ACCESS_NOT_SHAREABLE;
+  MPU_InitStruct.IsCacheable = MPU_ACCESS_NOT_CACHEABLE;
+  MPU_InitStruct.IsBufferable = MPU_ACCESS_NOT_BUFFERABLE;
+
+  HAL_MPU_ConfigRegion(&MPU_InitStruct);
+  /** Initializes and configures the Region and the memory to be protected
+  */
+  MPU_InitStruct.Enable = MPU_REGION_ENABLE;
+  MPU_InitStruct.Number = MPU_REGION_NUMBER1;
+  MPU_InitStruct.BaseAddress = 0x24040400;
+  MPU_InitStruct.Size = MPU_REGION_SIZE_16KB;
+  MPU_InitStruct.SubRegionDisable = 0x0;
+  MPU_InitStruct.TypeExtField = MPU_TEX_LEVEL0;
+  MPU_InitStruct.AccessPermission = MPU_REGION_FULL_ACCESS;
+  MPU_InitStruct.DisableExec = MPU_INSTRUCTION_ACCESS_ENABLE;
+  MPU_InitStruct.IsShareable = MPU_ACCESS_SHAREABLE;
+  MPU_InitStruct.IsCacheable = MPU_ACCESS_CACHEABLE;
+  MPU_InitStruct.IsBufferable = MPU_ACCESS_NOT_BUFFERABLE;
+
+  HAL_MPU_ConfigRegion(&MPU_InitStruct);
+  /* Enables the MPU */
+  HAL_MPU_Enable(MPU_PRIVILEGED_DEFAULT);
+
+}
+/**
   * @brief  Period elapsed callback in non blocking mode
   * @note   This function is called  when TIM12 interrupt took place, inside
   * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment

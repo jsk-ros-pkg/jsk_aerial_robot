@@ -126,7 +126,7 @@
 									<listOptionValue builtIn="false" value="../../Drivers/STM32F7xx_HAL_Driver/Inc/Legacy"/>
 									<listOptionValue builtIn="false" value="../../Drivers/CMSIS/Device/ST/STM32F7xx/Include"/>
 									<listOptionValue builtIn="false" value="../../Drivers/CMSIS/Include"/>
-									<listOptionValue builtIn="false" value="../../../../lib/ros_lib"/>
+									<listOptionValue builtIn="false" value="../../ros_lib"/>
 									<listOptionValue builtIn="false" value="../../../../lib/Jsk_Lib"/>
 									<listOptionValue builtIn="false" value="../../Middlewares/Third_Party/FreeRTOS/Source/include"/>
 									<listOptionValue builtIn="false" value="../../Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM7/r0p1"/>
@@ -142,7 +142,7 @@
 									<listOptionValue builtIn="false" value="../../Drivers/STM32F7xx_HAL_Driver/Inc/Legacy"/>
 									<listOptionValue builtIn="false" value="../../Drivers/CMSIS/Device/ST/STM32F7xx/Include"/>
 									<listOptionValue builtIn="false" value="../../Drivers/CMSIS/Include"/>
-									<listOptionValue builtIn="false" value="../../../../lib/ros_lib"/>
+									<listOptionValue builtIn="false" value="../../ros_lib"/>
 									<listOptionValue builtIn="false" value="../../../../lib/Jsk_Lib"/>
 									<listOptionValue builtIn="false" value="../../../../lib/Hydrus_Lib"/>
 									<listOptionValue builtIn="false" value="../../Middlewares/Third_Party/FreeRTOS/Source/include"/>
