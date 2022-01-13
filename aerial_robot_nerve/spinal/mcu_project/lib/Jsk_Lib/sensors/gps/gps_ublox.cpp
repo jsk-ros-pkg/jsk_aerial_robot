@@ -12,6 +12,11 @@
 #include "sensors/gps/gps_ublox.h"
 #include "config.h"
 
+// workaround
+#define LED2_H      HAL_GPIO_WritePin(GPIOE,GPIO_PIN_4,GPIO_PIN_RESET)
+#define LED2_L      HAL_GPIO_WritePin(GPIOE,GPIO_PIN_4,GPIO_PIN_SET)
+
+
 GPS::GPS(): GPS_Backend()
 {
   step_ = 0;
@@ -21,14 +26,17 @@ GPS::GPS(): GPS_Backend()
   ck_a_ = 0;
   ck_b_ = 0;
   class_ = 0;
-
-  led_ = false;
 }
 
-void GPS::init(UART_HandleTypeDef *huart, ros::NodeHandle* nh)
+void GPS::init(UART_HandleTypeDef *huart, ros::NodeHandle* nh,
+               GPIO_TypeDef* led_port, uint16_t led_pin)
 {
   GPS_Backend::init(huart, nh);
-  LED2_L;
+
+  led_port_ = led_port;
+  led_pin_ = led_pin;
+
+  GPIO_H(led_port_, led_pin_); // LED OFF
 }
 
 void GPS::processMessage()
@@ -238,17 +246,7 @@ void GPS::update()
           step_ = 0;
           if (ck_b_ != data) break; // bad checksum
 
-
-          if (led_)
-            {
-              LED2_H;
-              led_ = false;
-            }
-          else
-            {
-              LED2_L;
-              led_ = true;
-            }
+          HAL_GPIO_TogglePin(led_port_, led_pin_);
 
           processMessage();
 

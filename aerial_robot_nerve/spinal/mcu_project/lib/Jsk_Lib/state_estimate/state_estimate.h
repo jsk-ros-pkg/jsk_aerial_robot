@@ -13,7 +13,6 @@
 #define __STATE_ESTIMATE_H
 
 #ifndef SIMULATION
-#include "stm32f7xx_hal.h"
 #include "config.h"
 #include <ros.h>
 #include <spinal/MagDeclination.h>

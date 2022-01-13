@@ -12,25 +12,19 @@
 #ifndef __IMU_H
 #define __IMU_H
 
-#include "stm32f7xx_hal.h"
-#include "stm32f7xx_hal_dma.h"
 #include "config.h"
-/* #include "arm_math.h" */
 #include "math/AP_Math.h"
 #include "imu_basic.h"
 
-
 #define SENSOR_DATA_LENGTH 7
-
-#define IMU_SPI_CS_H       HAL_GPIO_WritePin(GPIOB,GPIO_PIN_6,GPIO_PIN_SET)
-#define IMU_SPI_CS_L      HAL_GPIO_WritePin(GPIOB,GPIO_PIN_6,GPIO_PIN_RESET)
-
 
 class IMUOnboard : public IMU {
 public:
   IMUOnboard():IMU(){}
   ~IMUOnboard(){}
-  void init(SPI_HandleTypeDef* hspi, I2C_HandleTypeDef* hi2c, ros::NodeHandle* nh);
+  void init(SPI_HandleTypeDef* hspi, I2C_HandleTypeDef* hi2c, ros::NodeHandle* nh,
+            GPIO_TypeDef* spi_cs_port, uint16_t spi_cs_pin,
+            GPIO_TypeDef* led_port, uint16_t led_pin);
 
   enum{INTERNAL_MAG = 0, LIS3MDL = 1, HMC58X3 = 2,};
 
@@ -87,6 +81,11 @@ private:
   SPI_HandleTypeDef* hspi_;
   I2C_HandleTypeDef* hi2c_;
   ros::NodeHandle* nh_;
+
+  GPIO_TypeDef* spi_cs_port_;
+  uint16_t spi_cs_pin_;
+  GPIO_TypeDef* led_port_;
+  uint16_t led_pin_;
 
   bool use_external_mag_flag_;
   uint32_t calib_indicator_time_; // ms

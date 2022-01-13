@@ -12,7 +12,6 @@
 #ifndef __POSITION_CONTROL_H
 #define __POSITION_CONTROL_H
 
-#include "stm32f7xx_hal.h"
 #include "config.h"
 #include <ros.h>
 

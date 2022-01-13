@@ -142,6 +142,7 @@ static void MX_NVIC_Init(void);
   // timer callback to evoke coreTask at 1KHz
   void coreEvokeCallback(void const * argument)
   {
+    if(FlashMemory::isLock()) return; // avoid overflow of ros publish buffer in rosserial UART mode
     /*
       We need to create another indipendent task to run the core function (following coreTask),
       since block action in timer callback function is not allowed.
@@ -317,17 +318,18 @@ int main(void)
 
   /* Flash Memory */
   FlashMemory::init(0x08080000, FLASH_SECTOR_6);
+  // Sector6: 0x0808 0000 (256KB); https://www.stmcu.jp/download/?dlid=51585_jp
 
   /* Sensors */
 #if IMU_FLAG
   /* we need to put IMU second, because of the unknown reason abou the ublox m8n compass/gps disconnect problem */
-  imu_.init(&hspi1, &hi2c2, &nh_);
+  imu_.init(&hspi1, &hi2c2, &nh_, IMUCS_GPIO_Port, IMUCS_Pin, LED0_GPIO_Port, LED0_Pin);
   IMU_ROS_CMD::init(&nh_);
   IMU_ROS_CMD::addImu(&imu_);
 #endif
 
 #if BARO_FLAG
-  baro_.init(&hi2c1, &nh_);
+  baro_.init(&hi2c1, &nh_, BAROCS_GPIO_Port, BAROCS_Pin);
 #endif
 
 
@@ -356,7 +358,7 @@ int main(void)
 
 #if NERVE_COMM
   /* NERVE */
-  Spine::init(&hcan1, &nh_, &estimator_, GPIOE, GPIO_PIN_3);
+  Spine::init(&hcan1, &nh_, &estimator_, LED1_GPIO_Port, LED1_Pin);
 #endif
 
 #if FLIGHT_CONTROL_FLAG
@@ -371,7 +373,7 @@ int main(void)
 #endif
 
 #if GPS_FLAG
-  gps_.init(&huart3, &nh_);
+  gps_.init(&huart3, &nh_, LED2_GPIO_Port, LED2_Pin);
 #endif
 
 #endif

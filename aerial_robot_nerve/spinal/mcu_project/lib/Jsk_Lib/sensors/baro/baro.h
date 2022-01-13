@@ -12,7 +12,6 @@
 #ifndef __BARO_H
 #define __BARO_H
 
-#include "stm32f7xx_hal.h"
 #include <stdint.h>
 #include <utility>
 #include "config.h"

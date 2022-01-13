@@ -3,7 +3,11 @@
 
 namespace
 {
+#ifdef STM32H7
+  uint8_t rx_buf_[GPS_BUFFER_SIZE] __attribute__((section(".GpsRxBufferSection")));
+#else
   uint8_t rx_buf_[GPS_BUFFER_SIZE];
+#endif
   uint32_t rd_ptr_ = 0;
 }
 
@@ -21,12 +25,12 @@ void GPS_Backend::init(UART_HandleTypeDef* huart, ros::NodeHandle* nh)
    __HAL_UART_DISABLE_IT(huart, UART_IT_ERR);
    HAL_UART_Receive_DMA(huart, rx_buf_, RX_BUFFER_SIZE);
 
-   memset(rx_buf_, 0, sizeof(rx_buf_));
+   memset(rx_buf_, 0, RX_BUFFER_SIZE);
 }
 
 bool GPS_Backend::available()
 {
-  uint32_t dma_write_ptr =  (GPS_BUFFER_SIZE - huart_->hdmarx->Instance->NDTR) % (GPS_BUFFER_SIZE);
+  uint32_t dma_write_ptr =  (GPS_BUFFER_SIZE - __HAL_DMA_GET_COUNTER(huart_->hdmarx)) % (GPS_BUFFER_SIZE);
   return (rd_ptr_ != dma_write_ptr);
 }
 
@@ -40,7 +44,7 @@ int GPS_Backend::read()
       HAL_UART_Receive_DMA(huart_, rx_buf_, RX_BUFFER_SIZE); // restart
     }
 
-  uint32_t dma_write_ptr =  (GPS_BUFFER_SIZE - huart_->hdmarx->Instance->NDTR) % (GPS_BUFFER_SIZE);
+  uint32_t dma_write_ptr =  (GPS_BUFFER_SIZE - __HAL_DMA_GET_COUNTER(huart_->hdmarx)) % (GPS_BUFFER_SIZE);
   int c = -1;
   if(rd_ptr_ != dma_write_ptr)
     {

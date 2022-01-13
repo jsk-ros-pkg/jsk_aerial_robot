@@ -7,23 +7,28 @@
 #ifndef __CONFIG_H
 #define __CONFIG_H
 
+#if defined (STM32F756xx) || defined (STM32F746xx) || defined (STM32F745xx) || defined (STM32F765xx) || \
+    defined (STM32F767xx) || defined (STM32F769xx) || defined (STM32F777xx) || defined (STM32F779xx) || \
+    defined (STM32F722xx) || defined (STM32F723xx) || defined (STM32F732xx) || defined (STM32F733xx) || \
+    defined (STM32F730xx) || defined (STM32F750xx)
 #include "stm32f7xx_hal.h"
+#define STM32F7
+#endif
+
+#if defined (STM32H743xx) || defined (STM32H753xx)  || defined (STM32H750xx) || defined (STM32H742xx) || \
+    defined (STM32H745xx) || defined (STM32H755xx)  || defined (STM32H747xx) || defined (STM32H757xx) || \
+    defined (STM32H7A3xx) || defined (STM32H7A3xxQ) || defined (STM32H7B3xx) || defined (STM32H7B3xxQ) || defined (STM32H7B0xx)  || defined (STM32H7B0xxQ) || \
+    defined (STM32H735xx) || defined (STM32H733xx)  || defined (STM32H730xx) || defined (STM32H730xxQ)  || defined (STM32H725xx) || defined (STM32H723xx)
+#include "stm32h7xx_hal.h"
+#define STM32H7
+#endif
+
+// define function
+#define GPIO_H(port, pin) HAL_GPIO_WritePin(port, pin, GPIO_PIN_SET)
+#define GPIO_L(port, pin) HAL_GPIO_WritePin(port, pin, GPIO_PIN_RESET)
 
 //0. Comm Type
-#define NERVE_COMM 1
-
-//1. GPIO Macro
-//1.1 LEDS
-#define LED0_H       HAL_GPIO_WritePin(GPIOE,GPIO_PIN_2,GPIO_PIN_RESET)
-#define LED0_L      HAL_GPIO_WritePin(GPIOE,GPIO_PIN_2,GPIO_PIN_SET)
-#define LED1_H       HAL_GPIO_WritePin(GPIOE,GPIO_PIN_3,GPIO_PIN_RESET)
-#define LED1_L      HAL_GPIO_WritePin(GPIOE,GPIO_PIN_3,GPIO_PIN_SET)
-#define LED2_H       HAL_GPIO_WritePin(GPIOE,GPIO_PIN_4,GPIO_PIN_RESET)
-#define LED2_L      HAL_GPIO_WritePin(GPIOE,GPIO_PIN_4,GPIO_PIN_SET)
-
-//1.2 DEBUG
-#define DEBUG_H      HAL_GPIO_WritePin(GPIOB,GPIO_PIN_0,GPIO_PIN_SET)
-#define DEBUG_L      HAL_GPIO_WritePin(GPIOB,GPIO_PIN_0,GPIO_PIN_RESET)
+#define NERVE_COMM 0
 
 //2. Enable Flags
 //* Please set/reset follwing flags according to your utility.
@@ -35,6 +40,7 @@
 #define BARO_FLAG 1
 //2.1.3 GPS Sensor
 #define GPS_FLAG 1
+
 
 //2.2 State Estimate
 //2.2.1 Attitude Estimate

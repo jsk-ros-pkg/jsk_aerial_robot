@@ -13,7 +13,6 @@
 #define __ATTITUDE_ESTIMATE_H
 
 #ifndef SIMULATION
-#include "stm32f7xx_hal.h"
 #include "config.h"
 #include <math/AP_Math.h>
 

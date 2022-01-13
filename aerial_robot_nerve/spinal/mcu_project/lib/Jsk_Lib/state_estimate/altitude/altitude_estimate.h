@@ -12,7 +12,6 @@
 #ifndef __ALTITUDE_ESTIMATE_H
 #define __ALTITUDE_ESTIMATE_H
 
-#include "stm32f7xx_hal.h"
 #include "config.h"
 /*  #include "arm_math.h" */
 #include <ros.h>

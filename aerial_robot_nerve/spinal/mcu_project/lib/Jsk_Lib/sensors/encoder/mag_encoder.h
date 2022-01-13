@@ -12,9 +12,10 @@
 #ifndef __MAG_ENCODER_H
 #define __MAG_ENCODER_H
 
+#include "config.h"
 #include <ros.h>
 #include <std_msgs/UInt16.h>
-#include "stm32f7xx_hal.h"
+
 
 class MagEncoder
 {

@@ -13,7 +13,6 @@
 #define __ATTITUDE_CONTROL_H
 
 #ifndef SIMULATION
-#include "stm32f7xx_hal.h"
 #include "config.h"
 #include <ros.h>
 #else
@@ -25,7 +24,9 @@
 
 #ifndef SIMULATION
 /* state estimate  */
+#if NERVE_COMM
 #include <Spine/spine.h>
+#endif
 /* battery status */
 #include "battery_status/battery_status.h"
 /* RTOS */
@@ -45,7 +46,6 @@
 #include <spinal/PMatrixPseudoInverseWithInertia.h>
 #include <spinal/TorqueAllocationMatrixInv.h>
 
-#define MAX_PWM  54000
 #define IDLE_DUTY 0.5f
 #define FORCE_LANDING_INTEGRAL 0.0025f // 500Hz * 0.0025 = 1.25 N / sec
 

@@ -14,10 +14,17 @@
 uint8_t IMUOnboard::adc_[SENSOR_DATA_LENGTH];
 uint32_t IMUOnboard::last_mag_time_;
 
-void IMUOnboard::init(SPI_HandleTypeDef* hspi, I2C_HandleTypeDef* hi2c, ros::NodeHandle* nh)
+void IMUOnboard::init(SPI_HandleTypeDef* hspi, I2C_HandleTypeDef* hi2c, ros::NodeHandle* nh,
+                      GPIO_TypeDef* spi_cs_port, uint16_t spi_cs_pin,
+                      GPIO_TypeDef* led_port, uint16_t led_pin)
 {
   nh_ = nh;
   IMU::init();
+
+  spi_cs_port_ = spi_cs_port;
+  spi_cs_pin_ = spi_cs_pin;
+  led_port_ = led_port;
+  led_pin_ = led_pin;
 
   use_external_mag_flag_ = false;
 
@@ -36,18 +43,25 @@ void IMUOnboard::init(SPI_HandleTypeDef* hspi, I2C_HandleTypeDef* hi2c, ros::Nod
   accInit();
   magInit();
 
-  /* change to 13.5Mhz for polling sensor data from acc, gyro and mag */
+  /* change to higher for polling sensor data from acc, gyro and mag */
   hspi_->Instance->CR1 &= (uint32_t)(~SPI_BAUDRATEPRESCALER_256); //reset
-  hspi_->Instance->CR1 |= (uint32_t)(SPI_BAUDRATEPRESCALER_8); //8 = 13.5Mhz
+#ifdef STM32F7
+  hspi_->Instance->CR1 |= (uint32_t)(SPI_BAUDRATEPRESCALER_8); //8 = 13.5Mhz, 108MHz
+#endif
+
+#ifdef STM32H7
+  hspi_->Instance->CR1 |= (uint32_t)(SPI_BAUDRATEPRESCALER_8); //16 = 12.5Mhz, 200MHz
+#endif
+
 }
 
 
 void IMUOnboard::mpuWrite(uint8_t address, uint8_t value)
 {
-  IMU_SPI_CS_L;
+  GPIO_L(spi_cs_port_, spi_cs_pin_);
   HAL_SPI_Transmit(hspi_, &address, 1, 1000);
   HAL_SPI_Transmit(hspi_, &value, 1, 1000);
-  IMU_SPI_CS_H;
+  GPIO_H(spi_cs_port_, spi_cs_pin_);
 }
 
 uint8_t IMUOnboard::mpuRead(uint8_t address)
@@ -55,10 +69,10 @@ uint8_t IMUOnboard::mpuRead(uint8_t address)
   uint8_t t_data[1] = {0};
   t_data[0] = address | 0x80;
   uint8_t temp;
-  IMU_SPI_CS_L;
+  GPIO_L(spi_cs_port_, spi_cs_pin_);
   HAL_SPI_Transmit(hspi_, t_data, 1, 1000);
   HAL_SPI_Receive(hspi_, &temp, 1, 1000);
-  IMU_SPI_CS_H;
+  GPIO_H(spi_cs_port_, spi_cs_pin_);
   return temp;
 }
 
@@ -215,18 +229,18 @@ void IMUOnboard::ledOutput()
   if(calib_acc_ || calib_gyro_ || calib_mag_)
     {
       if(HAL_GetTick() - calib_indicator_time_ < 100) //ms
-        LED0_H;
+        GPIO_L(led_port_, led_pin_);
       else if(HAL_GetTick() - calib_indicator_time_ < 200) //ms
-        LED0_L;
+        GPIO_H(led_port_, led_pin_);
       else if(HAL_GetTick() - calib_indicator_time_ < 300) //ms
-        LED0_H;
+        GPIO_L(led_port_, led_pin_);
       else if(HAL_GetTick() - calib_indicator_time_ < 400) //ms
-        LED0_L;
+        GPIO_H(led_port_, led_pin_);
 
       if(HAL_GetTick() - calib_indicator_time_ > 1000) //ms
         calib_indicator_time_ = HAL_GetTick();
     }
-  else LED0_H;
+  else GPIO_L(led_port_, led_pin_);
 
 }
 
@@ -236,11 +250,10 @@ void IMUOnboard::updateRawData()
   uint8_t t_data[1];
 
   t_data[0] = GYRO_ADDRESS | 0x80;
-
-  IMU_SPI_CS_L;
+  GPIO_L(spi_cs_port_, spi_cs_pin_);
   HAL_SPI_Transmit(hspi_, t_data, 1, 1000);
   HAL_SPI_Receive(hspi_, adc_, 6, 1000);
-  IMU_SPI_CS_H;
+  GPIO_H(spi_cs_port_, spi_cs_pin_);
 
   /* we need add some delay between each sensor reading */
   raw_gyro_adc_[0] = (int16_t)(adc_[0] << 8 | adc_[1]) * 2000.0f / 32767.0f * M_PI / 180.0f  ;
@@ -248,10 +261,10 @@ void IMUOnboard::updateRawData()
   raw_gyro_adc_[2] = (int16_t)(adc_[4] << 8 | adc_[5]) * 2000.0f / 32767.0f * M_PI / 180.0f  ;
 
   t_data[0] = ACC_ADDRESS | 0x80;
-  IMU_SPI_CS_L;
+  GPIO_L(spi_cs_port_, spi_cs_pin_);
   HAL_SPI_Transmit(hspi_, t_data, 1, 1000);
   HAL_SPI_Receive(hspi_, adc_, 6, 1000);
-  IMU_SPI_CS_H;
+  GPIO_H(spi_cs_port_, spi_cs_pin_);
 
   /* we need add some delay between each sensor reading */
   raw_acc_adc_[0] = (int16_t)(adc_[0] << 8 | adc_[1]) / 4096.0f * GRAVITY_MSS;
@@ -269,10 +282,10 @@ void IMUOnboard::updateRawData()
             hspi_->Instance->CR1 &= (uint32_t)(~SPI_BAUDRATEPRESCALER_256); //reset
             hspi_->Instance->CR1 |= (uint32_t)(SPI_BAUDRATEPRESCALER_64); //128 = 0.8Mhz
             t_data[0] = MAG_SPI_ADDRESS | 0x80;
-            IMU_SPI_CS_L;
+            GPIO_L(spi_cs_port_, spi_cs_pin_);
             HAL_SPI_Transmit(hspi_, t_data, 1, 1000);
             HAL_SPI_Receive(hspi_, adc_, 7, 1000);
-            IMU_SPI_CS_H;
+            GPIO_H(spi_cs_port_, spi_cs_pin_);
 
             hspi_->Instance->CR1 &= (uint32_t)(~SPI_BAUDRATEPRESCALER_256); //reset
             hspi_->Instance->CR1 |= (uint32_t)(SPI_BAUDRATEPRESCALER_8); //8 = 13.5Mhz

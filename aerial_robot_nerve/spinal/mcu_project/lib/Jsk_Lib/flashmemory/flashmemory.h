@@ -9,7 +9,9 @@
 #define APPLICATION_JSK_LIB_FLASHMEMORY_FLASHMEMORY_H_
 
 #include <vector>
-#include "stm32f7xx_hal.h"
+#include "config.h"
+
+#define FLASHWORD_SIZE 32
 
 namespace FlashMemory {
 	void init(uint32_t data_address, uint32_t data_sector);
@@ -17,6 +19,7 @@ namespace FlashMemory {
 	HAL_StatusTypeDef read();
 	void erase();
 	void write();
+	bool isLock();
 }
 
 

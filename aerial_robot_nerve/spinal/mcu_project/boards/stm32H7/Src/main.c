@@ -34,6 +34,19 @@
 #include <spinal/ServoControlCmd.h>
 #include <spinal/Imu.h>
 
+#include "flashmemory/flashmemory.h"
+#include "sensors/imu/imu_mpu9250.h"
+#include "sensors/imu/imu_ros_cmd.h"
+#include "sensors/baro/baro_ms5611.h"
+#include "sensors/gps/gps_ublox.h"
+#include "sensors/encoder/mag_encoder.h"
+
+
+#include "battery_status/battery_status.h"
+
+#include "state_estimate/state_estimate.h"
+#include "flight_control/flight_control.h"
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -86,37 +99,38 @@ I2C_HandleTypeDef hi2c3;
 
 SPI_HandleTypeDef hspi1;
 
+TIM_HandleTypeDef htim1;
+TIM_HandleTypeDef htim4;
+
 UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart3;
 DMA_HandleTypeDef hdma_usart1_rx;
 DMA_HandleTypeDef hdma_usart1_tx;
+DMA_HandleTypeDef hdma_usart3_rx;
 
 osThreadId coreTaskHandle;
 osThreadId rosSpinTaskHandle;
 osThreadId idleTaskHandle;
 osThreadId rosPublishHandle;
+osThreadId voltageHandle;
 osTimerId coreTaskTimerHandle;
 osMutexId rosPubMutexHandle;
+osMutexId flightControlMutexHandle;
 osSemaphoreId coreTaskSemHandle;
 osSemaphoreId uartTxSemHandle;
 /* USER CODE BEGIN PV */
-ros::NodeHandle nh_;
-std_msgs::String test_msg_;
-spinal::Imu imu_msg_;
-ros::Publisher test_pub_("/imu", &imu_msg_);
-ros::Publisher test_pub2_("/test_pub1", &test_msg_);
-ros::Publisher test_pub3_("/test_pub2", &test_msg_);
-void testCallback(const std_msgs::Empty& msg);
-ros::Subscriber<std_msgs::Empty> test_sub_("/test_sub", &testCallback);
-void test2Callback(const spinal::ServoControlCmd& msg);
-ros::Subscriber<spinal::ServoControlCmd> test2_sub_("/target_servo_sub", &test2Callback);
 
-uint32_t servo_msg_cnt = 0;
-uint32_t max_cnt_diff = 0;
-uint32_t servo_msg_recv_t = 0;
-uint32_t servo_msg_echo_t = 0;
-uint32_t max_du = 0;
-uint32_t min_du = 1e6;
+ros::NodeHandle nh_;
+
+/* sensor instances */
+IMUOnboard imu_;
+Baro baro_;
+GPS gps_;
+BatteryStatus battery_status_;
+
+
+StateEstimate estimator_;
+FlightControl controller_;
 
 /* USER CODE END PV */
 
@@ -133,10 +147,13 @@ static void MX_ETH_Init(void);
 static void MX_I2C3_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_USART3_UART_Init(void);
+static void MX_TIM1_Init(void);
+static void MX_TIM4_Init(void);
 void coreTaskFunc(void const * argument);
 void rosSpinTaskFunc(void const * argument);
 void idleTaskFunc(void const * argument);
 void rosPublishTask(void const * argument);
+void voltageTask(void const * argument);
 void coreTaskEvokeCb(void const * argument);
 
 /* USER CODE BEGIN PFP */
@@ -145,55 +162,6 @@ void coreTaskEvokeCb(void const * argument);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-void testCallback(const std_msgs::Empty& msg)
-{
-  test_msg_.data = std::string("sub echo ok").c_str();
-  test_pub2_.publish(&test_msg_);
-}
-
-void test2Callback(const spinal::ServoControlCmd& msg)
-{
-  uint32_t cnt = (uint32_t)msg.index[0] + ((uint32_t)msg.index[1] << 8) + ((uint32_t)msg.index[2] << 16) + ((uint32_t)msg.index[3] << 24);
-
-  if( abs((int32_t)servo_msg_cnt - (int32_t)cnt) > 100) // 100 topics
-    {
-      // reset
-      servo_msg_recv_t = 0;
-      servo_msg_echo_t = 0;
-      servo_msg_cnt = cnt;
-
-      max_du = 0;
-      min_du = 1e6;
-
-      max_cnt_diff = 0;
-    }
-
-  if(servo_msg_recv_t == 0)
-    {
-      servo_msg_recv_t = HAL_GetTick();
-      servo_msg_echo_t = HAL_GetTick();
-    }
-  else
-    {
-      uint32_t du = HAL_GetTick() - servo_msg_recv_t;
-      if(max_du < du) max_du = du;
-      if(min_du > du) min_du = du;
-
-      uint32_t cnt_diff = cnt - servo_msg_cnt;
-      if(max_cnt_diff < cnt_diff) max_cnt_diff = cnt_diff;
-
-      if (HAL_GetTick() - servo_msg_echo_t > 1000) // 1000 ms
-        {
-          char buffer[50];
-          sprintf (buffer, "%d, %d, %d, %d, %d", (int)du, (int)max_du, (int)min_du, (int)cnt_diff, (int)max_cnt_diff);
-          nh_.logerror(buffer);
-          servo_msg_echo_t = HAL_GetTick();
-        }
-      servo_msg_recv_t = HAL_GetTick();
-      servo_msg_cnt= cnt;
-    }
-}
-
 
 /* USER CODE END 0 */
 
@@ -243,20 +211,71 @@ int main(void)
   MX_I2C3_Init();
   MX_USART1_UART_Init();
   MX_USART3_UART_Init();
+  MX_TIM1_Init();
+  MX_TIM4_Init();
   /* USER CODE BEGIN 2 */
 
   // workaround for the wired generation of STMCubeMX
-  HAL_NVIC_DisableIRQ(DMA1_Stream0_IRQn); // we do not need DMA Interrupt for UART RX, circular mode
+  HAL_NVIC_DisableIRQ(DMA1_Stream0_IRQn); // we do not need DMA Interrupt for USART1 RX, circular mode
+  HAL_NVIC_DisableIRQ(DMA1_Stream2_IRQn); // we do not need DMA Interrupt for USART3 RX, circular mode
 
   HAL_GPIO_TogglePin(LED0_GPIO_Port, LED0_Pin);
   HAL_GPIO_TogglePin(LED1_GPIO_Port, LED1_Pin);
   HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
+
+  /* Flash Memory */
+  FlashMemory::init(0x081E0000, FLASH_SECTOR_7);
+  //FlashMemory::init(0x081E0020, FLASH_SECTOR_7);
+  // Bank2, Sector7: 0x081E 0000 (128KB); https://www.stmcu.jp/download/?dlid=51599_jp
+  // BANK1 (with Sector7) cuases the flash failure by STLink from the second time. So we use BANK_2, which is tested OK
+
+  // It semms like the first 64 byte of flashmemory for data is easily to be overwritten by zero, when re-flash the flash memory.
+  // A possible reason is the power supply from stlink does not contain 3.3V output.
+  // which is the only difference compared with the old version (STM32F7)
+  // So, we introduce following dummy data for a workaround to avoid the vanishment of stored data in flash memory.
+  uint8_t dummy_data[64];
+  memset(dummy_data, 1, 64);
+  FlashMemory::addValue(dummy_data, 64);
+
+#if 0 // test flash memory
+
+  uint8_t test_data[128];
+  for(int i = 0; i < 128; i++)
+    test_data[i] = i;
+  FlashMemory::addValue(test_data, 128);
+
+  int32_t test_int = -1234;
+  //int32_t test_int;
+  FlashMemory::addValue(&test_int, sizeof(test_int));
+
+  float test_float = 1.1f;
+  //float test_float;
+  FlashMemory::addValue(&test_float, sizeof(test_float));
+
+  /* FlashMemory::erase(); */
+  /* FlashMemory::write(); */
+  FlashMemory::read();
+#endif
+
+  imu_.init(&hspi1, &hi2c3, &nh_, IMUCS_GPIO_Port, IMUCS_Pin, LED0_GPIO_Port, LED0_Pin);
+  baro_.init(&hi2c1, &nh_, BAROCS_GPIO_Port, BAROCS_Pin);
+  gps_.init(&huart3, &nh_, LED2_GPIO_Port, LED2_Pin);
+  battery_status_.init(&hadc1, &nh_);
+  estimator_.init(&imu_, &baro_, &gps_, &nh_);  // imu + baro + gps => att + alt + pos(xy)
+  controller_.init(&htim1, &htim4, &estimator_, &battery_status_, &nh_, &flightControlMutexHandle);
+
+  FlashMemory::read(); //IMU calib data (including IMU in neurons)
+
   /* USER CODE END 2 */
 
   /* Create the mutex(es) */
   /* definition and creation of rosPubMutex */
   osMutexDef(rosPubMutex);
   rosPubMutexHandle = osMutexCreate(osMutex(rosPubMutex));
+
+  /* definition and creation of flightControlMutex */
+  osMutexDef(flightControlMutex);
+  flightControlMutexHandle = osMutexCreate(osMutex(flightControlMutex));
 
   /* USER CODE BEGIN RTOS_MUTEX */
   /* add mutexes, ... */
@@ -306,6 +325,10 @@ int main(void)
   /* definition and creation of rosPublish */
   osThreadDef(rosPublish, rosPublishTask, osPriorityBelowNormal, 0, 128);
   rosPublishHandle = osThreadCreate(osThread(rosPublish), NULL);
+
+  /* definition and creation of voltage */
+  osThreadDef(voltage, voltageTask, osPriorityLow, 0, 128);
+  voltageHandle = osThreadCreate(osThread(voltage), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -433,7 +456,7 @@ static void MX_ADC1_Init(void)
   */
   hadc1.Instance = ADC1;
   hadc1.Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV12;
-  hadc1.Init.Resolution = ADC_RESOLUTION_16B;
+  hadc1.Init.Resolution = ADC_RESOLUTION_12B;
   hadc1.Init.ScanConvMode = ADC_SCAN_DISABLE;
   hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
   hadc1.Init.LowPowerAutoWait = DISABLE;
@@ -459,9 +482,9 @@ static void MX_ADC1_Init(void)
   }
   /** Configure Regular Channel
   */
-  sConfig.Channel = ADC_CHANNEL_19;
+  sConfig.Channel = ADC_CHANNEL_15;
   sConfig.Rank = ADC_REGULAR_RANK_1;
-  sConfig.SamplingTime = ADC_SAMPLETIME_1CYCLE_5;
+  sConfig.SamplingTime = ADC_SAMPLETIME_2CYCLES_5;
   sConfig.SingleDiff = ADC_SINGLE_ENDED;
   sConfig.OffsetNumber = ADC_OFFSET_NONE;
   sConfig.Offset = 0;
@@ -593,7 +616,7 @@ static void MX_I2C1_Init(void)
 
   /* USER CODE END I2C1_Init 1 */
   hi2c1.Instance = I2C1;
-  hi2c1.Init.Timing = 0x10C0ECFF;
+  hi2c1.Init.Timing = 0x009034B6;
   hi2c1.Init.OwnAddress1 = 0;
   hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
   hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
@@ -639,7 +662,7 @@ static void MX_I2C3_Init(void)
 
   /* USER CODE END I2C3_Init 1 */
   hi2c3.Instance = I2C3;
-  hi2c3.Init.Timing = 0x10C0ECFF;
+  hi2c3.Init.Timing = 0x009034B6;
   hi2c3.Init.OwnAddress1 = 0;
   hi2c3.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
   hi2c3.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
@@ -688,11 +711,11 @@ static void MX_SPI1_Init(void)
   hspi1.Instance = SPI1;
   hspi1.Init.Mode = SPI_MODE_MASTER;
   hspi1.Init.Direction = SPI_DIRECTION_2LINES;
-  hspi1.Init.DataSize = SPI_DATASIZE_4BIT;
+  hspi1.Init.DataSize = SPI_DATASIZE_8BIT;
   hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
   hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
   hspi1.Init.NSS = SPI_NSS_SOFT;
-  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
+  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_256;
   hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
   hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
   hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
@@ -714,6 +737,170 @@ static void MX_SPI1_Init(void)
   /* USER CODE BEGIN SPI1_Init 2 */
 
   /* USER CODE END SPI1_Init 2 */
+
+}
+
+/**
+  * @brief TIM1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM1_Init(void)
+{
+
+  /* USER CODE BEGIN TIM1_Init 0 */
+
+  /* USER CODE END TIM1_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+  TIM_OC_InitTypeDef sConfigOC = {0};
+  TIM_BreakDeadTimeConfigTypeDef sBreakDeadTimeConfig = {0};
+
+  /* USER CODE BEGIN TIM1_Init 1 */
+
+  /* USER CODE END TIM1_Init 1 */
+  htim1.Instance = TIM1;
+  htim1.Init.Prescaler = 3;
+  htim1.Init.CounterMode = TIM_COUNTERMODE_CENTERALIGNED1;
+  htim1.Init.Period = 50000;
+  htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim1.Init.RepetitionCounter = 0;
+  htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim1, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_PWM_Init(&htim1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterOutputTrigger2 = TIM_TRGO2_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim1, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sConfigOC.OCMode = TIM_OCMODE_PWM1;
+  sConfigOC.Pulse = 10000;
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+  sConfigOC.OCNPolarity = TIM_OCNPOLARITY_HIGH;
+  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+  sConfigOC.OCIdleState = TIM_OCIDLESTATE_RESET;
+  sConfigOC.OCNIdleState = TIM_OCNIDLESTATE_RESET;
+  if (HAL_TIM_PWM_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sConfigOC.Pulse = 0;
+  if (HAL_TIM_PWM_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_PWM_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_PWM_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_4) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sBreakDeadTimeConfig.OffStateRunMode = TIM_OSSR_DISABLE;
+  sBreakDeadTimeConfig.OffStateIDLEMode = TIM_OSSI_DISABLE;
+  sBreakDeadTimeConfig.LockLevel = TIM_LOCKLEVEL_OFF;
+  sBreakDeadTimeConfig.DeadTime = 0;
+  sBreakDeadTimeConfig.BreakState = TIM_BREAK_DISABLE;
+  sBreakDeadTimeConfig.BreakPolarity = TIM_BREAKPOLARITY_HIGH;
+  sBreakDeadTimeConfig.BreakFilter = 0;
+  sBreakDeadTimeConfig.Break2State = TIM_BREAK2_DISABLE;
+  sBreakDeadTimeConfig.Break2Polarity = TIM_BREAK2POLARITY_HIGH;
+  sBreakDeadTimeConfig.Break2Filter = 0;
+  sBreakDeadTimeConfig.AutomaticOutput = TIM_AUTOMATICOUTPUT_DISABLE;
+  if (HAL_TIMEx_ConfigBreakDeadTime(&htim1, &sBreakDeadTimeConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM1_Init 2 */
+
+  /* USER CODE END TIM1_Init 2 */
+  HAL_TIM_MspPostInit(&htim1);
+
+}
+
+/**
+  * @brief TIM4 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM4_Init(void)
+{
+
+  /* USER CODE BEGIN TIM4_Init 0 */
+
+  /* USER CODE END TIM4_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+  TIM_OC_InitTypeDef sConfigOC = {0};
+
+  /* USER CODE BEGIN TIM4_Init 1 */
+
+  /* USER CODE END TIM4_Init 1 */
+  htim4.Instance = TIM4;
+  htim4.Init.Prescaler = 3;
+  htim4.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim4.Init.Period = 50000;
+  htim4.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim4.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim4) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim4, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_PWM_Init(&htim4) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim4, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sConfigOC.OCMode = TIM_OCMODE_PWM1;
+  sConfigOC.Pulse = 10000;
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+  if (HAL_TIM_PWM_ConfigChannel(&htim4, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_PWM_ConfigChannel(&htim4, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_PWM_ConfigChannel(&htim4, &sConfigOC, TIM_CHANNEL_3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_PWM_ConfigChannel(&htim4, &sConfigOC, TIM_CHANNEL_4) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM4_Init 2 */
+
+  /* USER CODE END TIM4_Init 2 */
+  HAL_TIM_MspPostInit(&htim4);
 
 }
 
@@ -781,7 +968,7 @@ static void MX_USART3_UART_Init(void)
 
   /* USER CODE END USART3_Init 1 */
   huart3.Instance = USART3;
-  huart3.Init.BaudRate = 115200;
+  huart3.Init.BaudRate = 19200;
   huart3.Init.WordLength = UART_WORDLENGTH_8B;
   huart3.Init.StopBits = UART_STOPBITS_1;
   huart3.Init.Parity = UART_PARITY_NONE;
@@ -829,6 +1016,9 @@ static void MX_DMA_Init(void)
   /* DMA1_Stream1_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Stream1_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(DMA1_Stream1_IRQn);
+  /* DMA1_Stream2_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Stream2_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Stream2_IRQn);
 
 }
 
@@ -861,22 +1051,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_MEDIUM;
   HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : PE9 PE11 PE13 PE14 */
-  GPIO_InitStruct.Pin = GPIO_PIN_9|GPIO_PIN_11|GPIO_PIN_13|GPIO_PIN_14;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  GPIO_InitStruct.Alternate = GPIO_AF1_TIM1;
-  HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : PD12 PD13 PD14 PD15 */
-  GPIO_InitStruct.Pin = GPIO_PIN_12|GPIO_PIN_13|GPIO_PIN_14|GPIO_PIN_15;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  GPIO_InitStruct.Alternate = GPIO_AF2_TIM4;
-  HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 
   /*Configure GPIO pin : IMUCS_Pin */
   GPIO_InitStruct.Pin = IMUCS_Pin;
@@ -912,7 +1086,15 @@ void coreTaskFunc(void const * argument)
   MX_LWIP_Init();
 #endif
 
-  /* ros node init */
+  /* it is better to init this Node before register publisher/subscriber
+     since we have to use LWIP/Ethernet after start RTOS,
+     we have to first do registration before following initNode.
+     Or, we can move the senser init funcs to following scope,
+     which contains the HAL_Delay that effecting the RTOS tick.
+     TODO: please try.
+  */
+
+  /* ros node hardware init */
 #ifndef USE_ETH
   nh_.initNode(&huart1, &rosPubMutexHandle, &uartTxSemHandle);
   //nh_.initNode(&huart1, &rosPubMutexHandle, NULL); // no DMA for TX
@@ -923,11 +1105,8 @@ void coreTaskFunc(void const * argument)
   nh_.initNode(dst_addr, 12345,12345);
 #endif
 
-  nh_.advertise(test_pub_);
-  nh_.advertise(test_pub2_);
-  nh_.advertise(test_pub3_);
-  nh_.subscribe< ros::Subscriber<std_msgs::Empty> >(test_sub_);
-  nh_.subscribe< ros::Subscriber<spinal::ServoControlCmd> >(test2_sub_);
+  IMU_ROS_CMD::init(&nh_);
+  IMU_ROS_CMD::addImu(&imu_);
 
   osSemaphoreWait(coreTaskSemHandle, osWaitForever);
 
@@ -943,12 +1122,21 @@ void coreTaskFunc(void const * argument)
       osSemaphoreWait(coreTaskSemHandle, osWaitForever);
 
       //Spine::send();
-      if (HAL_GetTick() - imu_pub_t >= imu_pub_interval)
-        {
-          imu_msg_.stamp = nh_.now();
-          test_pub_.publish(&imu_msg_);
-          imu_pub_t = HAL_GetTick();
-        }
+
+      // test
+      /* if (HAL_GetTick() - imu_pub_t >= imu_pub_interval) */
+      /*   { */
+      /*     imu_msg_.stamp = nh_.now(); */
+      /*     test_pub_.publish(&imu_msg_); */
+      /*     imu_pub_t = HAL_GetTick(); */
+      /*   } */
+
+      imu_.update();
+      baro_.update();
+      gps_.update();
+      estimator_.update();
+      controller_.update();
+
       //Spine::update();
     }
 
@@ -989,7 +1177,7 @@ void idleTaskFunc(void const * argument)
   /* USER CODE BEGIN idleTaskFunc */
   for(;;)
   {
-    HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
+    // HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
     osDelay(1000);
   }
   /* USER CODE END idleTaskFunc */
@@ -1018,10 +1206,30 @@ void rosPublishTask(void const * argument)
   /* USER CODE END rosPublishTask */
 }
 
+/* USER CODE BEGIN Header_voltageTask */
+/**
+* @brief Function implementing the voltage thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_voltageTask */
+void voltageTask(void const * argument)
+{
+  /* USER CODE BEGIN voltageTask */
+  /* Infinite loop */
+  for(;;)
+  {
+    battery_status_.update();
+    osDelay(VOLTAGE_CHECK_INTERVAL);
+  }
+  /* USER CODE END voltageTask */
+}
+
 /* coreTaskEvokeCb function */
 void coreTaskEvokeCb(void const * argument)
 {
   /* USER CODE BEGIN coreTaskEvokeCb */
+  if(FlashMemory::isLock()) return; // avoid overflow of ros publish buffer in rosserial UART mode
   // timer callback to evoke coreTask at 1KHz
   osSemaphoreRelease (coreTaskSemHandle);
   /* USER CODE END coreTaskEvokeCb */
@@ -1062,6 +1270,21 @@ void MPU_Config(void)
   MPU_InitStruct.DisableExec = MPU_INSTRUCTION_ACCESS_ENABLE;
   MPU_InitStruct.IsShareable = MPU_ACCESS_SHAREABLE;
   MPU_InitStruct.IsCacheable = MPU_ACCESS_CACHEABLE;
+  MPU_InitStruct.IsBufferable = MPU_ACCESS_NOT_BUFFERABLE;
+
+  HAL_MPU_ConfigRegion(&MPU_InitStruct);
+  /** Initializes and configures the Region and the memory to be protected
+  */
+  MPU_InitStruct.Enable = MPU_REGION_ENABLE;
+  MPU_InitStruct.Number = MPU_REGION_NUMBER2;
+  MPU_InitStruct.BaseAddress = 0x24044400;
+  MPU_InitStruct.Size = MPU_REGION_SIZE_1KB;
+  MPU_InitStruct.SubRegionDisable = 0x0;
+  MPU_InitStruct.TypeExtField = MPU_TEX_LEVEL1;
+  MPU_InitStruct.AccessPermission = MPU_REGION_FULL_ACCESS;
+  MPU_InitStruct.DisableExec = MPU_INSTRUCTION_ACCESS_ENABLE;
+  MPU_InitStruct.IsShareable = MPU_ACCESS_NOT_SHAREABLE;
+  MPU_InitStruct.IsCacheable = MPU_ACCESS_NOT_CACHEABLE;
   MPU_InitStruct.IsBufferable = MPU_ACCESS_NOT_BUFFERABLE;
 
   HAL_MPU_ConfigRegion(&MPU_InitStruct);

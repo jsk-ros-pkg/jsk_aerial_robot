@@ -13,7 +13,6 @@
 #define __FLIGHT_CONTROL_H
 
 #ifndef SIMULATION
-#include "stm32f7xx_hal.h"
 #include "config.h"
 #include <ros.h>
 #else

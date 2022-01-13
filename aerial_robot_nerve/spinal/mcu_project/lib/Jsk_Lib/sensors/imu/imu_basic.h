@@ -9,7 +9,6 @@
 #define APPLICATION_JSK_LIB_SENSORS_IMU_IMU_BASIC_H_
 
 #include "math/AP_Math.h"
-#include "stm32f7xx_hal.h"
 #include <ros.h>
 #include <std_msgs/UInt8.h>
 #include "config.h"

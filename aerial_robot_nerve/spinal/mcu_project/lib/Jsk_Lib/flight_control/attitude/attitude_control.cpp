@@ -186,20 +186,20 @@ void AttitudeController::pwmsControl(void)
 #endif
 
   /* direct pwm type */
-  pwm_htim1_->Instance->CCR1 = (uint32_t)(target_pwm_[0] * MAX_PWM);
-  pwm_htim1_->Instance->CCR2 = (uint32_t)(target_pwm_[1] * MAX_PWM);
-  pwm_htim1_->Instance->CCR3 = (uint32_t)(target_pwm_[2] * MAX_PWM);
-  pwm_htim1_->Instance->CCR4 = (uint32_t)(target_pwm_[3] * MAX_PWM);
+  pwm_htim1_->Instance->CCR1 = (uint32_t)(target_pwm_[0] * pwm_htim1_->Init.Period);
+  pwm_htim1_->Instance->CCR2 = (uint32_t)(target_pwm_[1] * pwm_htim1_->Init.Period);
+  pwm_htim1_->Instance->CCR3 = (uint32_t)(target_pwm_[2] * pwm_htim1_->Init.Period);
+  pwm_htim1_->Instance->CCR4 = (uint32_t)(target_pwm_[3] * pwm_htim1_->Init.Period);
 
   if(motor_number_ > 4)
     {
-      pwm_htim2_->Instance->CCR1 =   (uint32_t)(target_pwm_[4] * MAX_PWM);
-      pwm_htim2_->Instance->CCR2 =  (uint32_t)(target_pwm_[5] * MAX_PWM);
+      pwm_htim2_->Instance->CCR1 =   (uint32_t)(target_pwm_[4] * pwm_htim2_->Init.Period);
+      pwm_htim2_->Instance->CCR2 =  (uint32_t)(target_pwm_[5] * pwm_htim2_->Init.Period);
     }
   if(motor_number_ > 6)
     {
-      pwm_htim2_->Instance->CCR3 = (uint32_t)(target_pwm_[6] * MAX_PWM);
-      pwm_htim2_->Instance->CCR4 =  (uint32_t)(target_pwm_[7] * MAX_PWM);
+      pwm_htim2_->Instance->CCR3 = (uint32_t)(target_pwm_[6] * pwm_htim2_->Init.Period);
+      pwm_htim2_->Instance->CCR4 =  (uint32_t)(target_pwm_[7] * pwm_htim2_->Init.Period);
     }
 
 #endif

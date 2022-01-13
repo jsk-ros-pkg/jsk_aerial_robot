@@ -45,7 +45,8 @@ ITCMRAM    (xrw)    : ORIGIN = 0x00000000,   LENGTH = 64K
 RAM_D1    (xrw)    : ORIGIN = 0x24000000,   LENGTH = 512K
 RAM_D2    (xrw)    : ORIGIN = 0x30000000,   LENGTH = 288K
 RAM_D3    (xrw)    : ORIGIN = 0x38000000,   LENGTH = 64K
-FLASH    (rx)    : ORIGIN = 0x8000000,   LENGTH = 2048K
+FLASH    (rx)    : ORIGIN = 0x8000000,   LENGTH = 1920K /* 2048 - 128 = 1920  */
+DATA     (rx)    : ORIGIN = 0x081E0000, LENGTH = 128K
 }
 
 /* Sections */
@@ -185,6 +186,8 @@ PROVIDE ( _end = . );
 *(.UartRxBufferSection)
 . = ABSOLUTE(0x24040400);
 *(.UartTxBufferSection)
+. = ABSOLUTE(0x24044400);
+*(.GpsRxBufferSection)
 } >RAM_D1 AT> FLASH
 
   /* Remove information from the compiler libraries */

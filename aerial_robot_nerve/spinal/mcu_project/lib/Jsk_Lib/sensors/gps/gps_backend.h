@@ -11,7 +11,6 @@
 #ifndef GPS_BACKEND_H
 #define GPS_BACKEND_H
 
-#include "stm32f7xx_hal.h"
 #include "util/ring_buffer.h"
 #include "math/AP_Math.h"
 #include "config.h"

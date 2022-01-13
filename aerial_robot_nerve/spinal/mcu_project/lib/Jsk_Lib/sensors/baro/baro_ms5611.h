@@ -15,18 +15,18 @@
 
 #include "sensors/baro/baro.h"
 
-#define BARO_H      HAL_GPIO_WritePin(GPIOE,GPIO_PIN_1,GPIO_PIN_SET)
-#define BARO_L      HAL_GPIO_WritePin(GPIOE,GPIO_PIN_1,GPIO_PIN_RESET)
+// #define BARO_H      HAL_GPIO_WritePin(GPIOE,GPIO_PIN_1,GPIO_PIN_SET)
+// #define BARO_L      HAL_GPIO_WritePin(GPIOE,GPIO_PIN_1,GPIO_PIN_RESET)
 
 class Baro :public BaroBackend
 {
 public:
-  //BaroMS5611(AP_Baro &baro, AP_HAL::OwnPtr<AP_HAL::Device> dev, bool use_timer);
   Baro();
 
   void update(bool calibrate = false);
   void accumulate();
-  void init(I2C_HandleTypeDef* hi2c, ros::NodeHandle* nh);
+  void init(I2C_HandleTypeDef* hi2c, ros::NodeHandle* nh,
+            GPIO_TypeDef* baro_ctrl_port, uint16_t baro_ctrl_pin);
 
   static const uint8_t MS561101BA_ADDRESS =  0xEC;  // 0x76<<1;
 
@@ -75,6 +75,9 @@ private:
 
   uint16_t readCalibWord(uint8_t word);
   uint32_t readAdc();
+
+  GPIO_TypeDef* baro_ctrl_port_;
+  uint16_t baro_ctrl_pin_;
 
   uint32_t test_value;
 

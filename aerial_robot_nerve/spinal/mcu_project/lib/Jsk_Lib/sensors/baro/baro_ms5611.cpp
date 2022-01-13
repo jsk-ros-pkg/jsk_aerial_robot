@@ -18,13 +18,17 @@ Baro::Baro(): BaroBackend(), baro_config_sub_("baro_config_cmd", &Baro::baroConf
   tp_updated_ = false;
 }
 
-void Baro::init(I2C_HandleTypeDef* hi2c, ros::NodeHandle* nh)
+void Baro::init(I2C_HandleTypeDef* hi2c, ros::NodeHandle* nh,
+                GPIO_TypeDef* baro_ctrl_port, uint16_t baro_ctrl_pin)
 {
   i2c_handle_ = hi2c;
   nh_ = nh;
   nh_->subscribe< ros::Subscriber<std_msgs::UInt8, Baro> >(baro_config_sub_);
 
-  BARO_H;
+  baro_ctrl_port_ = baro_ctrl_port;
+  baro_ctrl_pin_ = baro_ctrl_pin;
+
+  GPIO_H(baro_ctrl_port_, baro_ctrl_pin_);
   //reset
   uint8_t reg[1];
   reg[0] = CMD_MS56XX_RESET;

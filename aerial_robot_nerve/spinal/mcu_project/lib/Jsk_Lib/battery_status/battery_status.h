@@ -12,14 +12,12 @@
 #ifndef __BATTERY_STATUS_H
 #define __BATTERY_STATUS_H
 
-#include "stm32f7xx_hal.h"
+#include <config.h>
 #include "flashmemory/flashmemory.h"
-#include "adc.h"
 
 /* ros */
 #include <ros.h>
 #include <std_msgs/Float32.h>
-#include <config.h>
 
 #define VOLTAGE_CHECK_INTERVAL 20 // ms
 #define ROS_PUB_INTERVAL 100 //ms

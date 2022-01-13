@@ -12,7 +12,6 @@
 #error "Please define __cplusplus, because this is a c++ based file "
 #endif
 
-#include "stm32f7xx_hal.h"
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdbool.h>

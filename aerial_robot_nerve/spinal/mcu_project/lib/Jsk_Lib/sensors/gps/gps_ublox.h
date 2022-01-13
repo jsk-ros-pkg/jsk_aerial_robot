@@ -69,7 +69,8 @@ class GPS : public GPS_Backend
 {
 public:
   GPS();
-  void init(UART_HandleTypeDef *huart, ros::NodeHandle* nh);
+  void init(UART_HandleTypeDef *huart, ros::NodeHandle* nh,
+            GPIO_TypeDef* led_port, uint16_t led_pin);
   void update() override;
 
 private:
@@ -405,7 +406,8 @@ private:
   uint8_t ck_b_ = 0;
   uint8_t class_ = 0;
 
-  bool led_;
+  GPIO_TypeDef* led_port_;
+  uint16_t led_pin_;
 
   void processMessage() override;
   void updateChecksum(uint8_t *data, uint16_t len, uint8_t &ck_a, uint8_t &ck_b);
