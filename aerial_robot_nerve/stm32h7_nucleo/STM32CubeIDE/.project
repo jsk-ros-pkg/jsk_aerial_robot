@@ -40,22 +40,22 @@
 		<link>
 			<name>Application/Hydrus_Lib/CANDevice/initializer</name>
 			<type>2</type>
-			<locationURI>PARENT-2-PROJECT_LOC/spinal/mcu_project/Hydrus_Lib/CANDevice/initializer</locationURI>
+			<locationURI>PARENT-2-PROJECT_LOC/spinal/mcu_project/lib/Hydrus_Lib/CANDevice/initializer</locationURI>
 		</link>
 		<link>
 			<name>Application/Hydrus_Lib/CANDevice/motor</name>
 			<type>2</type>
-			<locationURI>PARENT-2-PROJECT_LOC/spinal/mcu_project/Hydrus_Lib/CANDevice/motor</locationURI>
+			<locationURI>PARENT-2-PROJECT_LOC/spinal/mcu_project/lib/Hydrus_Lib/CANDevice/motor</locationURI>
 		</link>
 		<link>
 			<name>Application/Hydrus_Lib/CANDevice/servo</name>
 			<type>2</type>
-			<locationURI>PARENT-2-PROJECT_LOC/spinal/mcu_project/Hydrus_Lib/CANDevice/servo</locationURI>
+			<locationURI>PARENT-2-PROJECT_LOC/spinal/mcu_project/lib/Hydrus_Lib/CANDevice/servo</locationURI>
 		</link>
 		<link>
 			<name>Application/Hydrus_Lib/Neuron</name>
 			<type>2</type>
-			<locationURI>PARENT-2-PROJECT_LOC/spinal/mcu_project/Hydrus_Lib/Neuron</locationURI>
+			<locationURI>PARENT-2-PROJECT_LOC/spinal/mcu_project/lib/Hydrus_Lib/Neuron</locationURI>
 		</link>
 		<link>
 			<name>Application/Hydrus_Lib/Spine</name>
