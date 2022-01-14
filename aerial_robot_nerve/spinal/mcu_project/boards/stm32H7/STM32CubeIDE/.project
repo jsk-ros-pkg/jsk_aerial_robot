@@ -38,54 +38,19 @@
 			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/spinal.ioc</locationURI>
 		</link>
 		<link>
-			<name>Application/flashmemory</name>
-			<type>2</type>
-			<locationURI>PARENT-3-PROJECT_LOC/lib/Jsk_Lib/flashmemory</locationURI>
-		</link>
-		<link>
-			<name>Application/flight_control</name>
-			<type>2</type>
-			<locationURI>PARENT-3-PROJECT_LOC/lib/Jsk_Lib/flight_control</locationURI>
-		</link>
-		<link>
-			<name>Application/math</name>
-			<type>2</type>
-			<locationURI>PARENT-3-PROJECT_LOC/lib/Jsk_Lib/math</locationURI>
-		</link>
-		<link>
 			<name>Application/ros_lib</name>
 			<type>2</type>
 			<locationURI>PARENT-1-PROJECT_LOC/ros_lib</locationURI>
 		</link>
 		<link>
-			<name>Application/sensors</name>
+			<name>Application/Jsk_Lib</name>
 			<type>2</type>
-			<locationURI>PARENT-3-PROJECT_LOC/lib/Jsk_Lib/sensors</locationURI>
+			<locationURI>PARENT-3-PROJECT_LOC/lib/Jsk_Lib</locationURI>
 		</link>
 		<link>
-			<name>Application/state_estimate</name>
+			<name>Application/Hydrus_Lib</name>
 			<type>2</type>
-			<locationURI>PARENT-3-PROJECT_LOC/lib/Jsk_Lib/state_estimate</locationURI>
-		</link>
-		<link>
-			<name>Application/Hydrus_Lib/CAN</name>
-			<type>2</type>
-			<locationURI>PARENT-5-PROJECT_LOC/stm32h7_nucleo/Jsk_Lib/CAN</locationURI>
-		</link>
-		<link>
-			<name>Application/Hydrus_Lib/CANDevice</name>
-			<type>2</type>
-			<locationURI>PARENT-3-PROJECT_LOC/lib/Hydrus_Lib/CANDevice</locationURI>
-		</link>
-		<link>
-			<name>Application/Hydrus_Lib/Neuron</name>
-			<type>2</type>
-			<locationURI>PARENT-3-PROJECT_LOC/lib/Hydrus_Lib/Neuron</locationURI>
-		</link>
-		<link>
-			<name>Application/Hydrus_Lib/Spine</name>
-			<type>2</type>
-			<locationURI>PARENT-5-PROJECT_LOC/stm32h7_nucleo/Hydrus_Lib/Spine</locationURI>
+			<locationURI>PARENT-3-PROJECT_LOC/lib/Hydrus_Lib</locationURI>
 		</link>
 		<link>
 			<name>Application/User/freertos.c</name>

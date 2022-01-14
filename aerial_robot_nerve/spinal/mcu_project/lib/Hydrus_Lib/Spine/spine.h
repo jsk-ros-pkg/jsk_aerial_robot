@@ -7,7 +7,6 @@
 #ifndef __SPINE_H
 #define __SPINE_H
 
-#include "stm32f7xx_hal.h"
 #include <config.h>
 #include <ros.h>
 #include <CAN/can_device_manager.h>
@@ -38,6 +37,14 @@
 /* RTOS */
 #include "cmsis_os.h"
 
+#ifdef STM32F7
+using CAN_GeranlHandleTypeDef = CAN_HandleTypeDef;
+#endif
+
+#ifdef STM32H7
+using CAN_GeranlHandleTypeDef = FDCAN_HandleTypeDef;
+#endif
+
 
 #define SEND_GYRO 0
 
@@ -46,7 +53,7 @@ namespace Spine
 {
   void send(void);
   void update(void);
-  void init(CAN_HandleTypeDef* hcan, ros::NodeHandle* nh, StateEstimate* estimator, GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin);
+  void init(CAN_GeranlHandleTypeDef* hcan, ros::NodeHandle* nh, StateEstimate* estimator, GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin);
   void setMotorPwm(uint16_t pwm, uint8_t motor);
   void convertGyroFromJointvalues();
   uint8_t getSlaveNum();

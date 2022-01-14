@@ -153,6 +153,8 @@ static void MX_NVIC_Init(void);
   // main subrutine for update enach instance
   void coreTask(void const * argument)
   {
+    imu_.gyroCalib(true, IMU::GYRO_DEFAULT_CALIB_DURATION); // re-calibrate gyroscope because of the HAL_Delay in spine init
+
     for(;;)
       {
         // RTOS semephre

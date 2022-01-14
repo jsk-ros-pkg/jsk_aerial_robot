@@ -223,13 +223,8 @@ int main(void)
   HAL_NVIC_DisableIRQ(DMA1_Stream0_IRQn); // we do not need DMA Interrupt for USART1 RX, circular mode
   HAL_NVIC_DisableIRQ(DMA1_Stream2_IRQn); // we do not need DMA Interrupt for USART3 RX, circular mode
 
-  HAL_GPIO_TogglePin(LED0_GPIO_Port, LED0_Pin);
-  HAL_GPIO_TogglePin(LED1_GPIO_Port, LED1_Pin);
-  HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
-
   /* Flash Memory */
   FlashMemory::init(0x081E0000, FLASH_SECTOR_7);
-  //FlashMemory::init(0x081E0020, FLASH_SECTOR_7);
   // Bank2, Sector7: 0x081E 0000 (128KB); https://www.stmcu.jp/download/?dlid=51599_jp
   // BANK1 (with Sector7) cuases the flash failure by STLink from the second time. So we use BANK_2, which is tested OK
 
@@ -270,7 +265,7 @@ int main(void)
 
   FlashMemory::read(); //IMU calib data (including IMU in neurons)
 
-  Spine::init(&hfdcan1, &nh_, LED1_GPIO_Port, LED1_Pin);
+  Spine::init(&hfdcan1, &nh_, &estimator_, LED1_GPIO_Port, LED1_Pin);
   Spine::useRTOS(&canMsgMailHandle); // use RTOS for CAN in spianl
 
   /* USER CODE END 2 */
@@ -1122,15 +1117,9 @@ void coreTaskFunc(void const * argument)
 
   IMU_ROS_CMD::init(&nh_);
   IMU_ROS_CMD::addImu(&imu_);
+  imu_.gyroCalib(true, IMU::GYRO_DEFAULT_CALIB_DURATION); // re-calibrate gyroscope because of the HAL_Delay in spine init
 
   osSemaphoreWait(coreTaskSemHandle, osWaitForever);
-
-  int imu_pub_interval = 0;
-#ifndef USE_ETH
-  imu_pub_interval = 5;
-#endif
-
-  uint32_t imu_pub_t = HAL_GetTick();
 
   for(;;)
     {

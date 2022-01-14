@@ -37,11 +37,6 @@ private:
   uint32_t gyro_calib_cnt_, acc_calib_cnt_, mag_calib_cnt_;
   Vector3f acc_bias_, gyro_bias_, mag_bias_, mag_scale_;
 
-
-  static constexpr uint32_t GYRO_DEFAULT_CALIB_DURATION = 7000; // 7s
-  static constexpr uint32_t ACC_DEFAULT_CALIB_DURATION = 5000; // 5s
-  static constexpr uint32_t MAG_DEFAULT_CALIB_DURATION = 60000; // 60s
-  static constexpr float MAG_GENERAL_THRESH = 20.0f;
   void readCalibData(void);
   void writeCalibData(void);
   void process (void);
@@ -106,6 +101,12 @@ public:
   void resetCalib() ;
   inline bool getVirtualFrame() {return virtual_frame_;}
   inline void setVirtualFrame(bool virtual_frame) { virtual_frame_ = virtual_frame;}
+
+  static constexpr uint32_t GYRO_DEFAULT_CALIB_DURATION = 3; // 3s
+  static constexpr uint32_t ACC_DEFAULT_CALIB_DURATION = 5; // 5s
+  static constexpr uint32_t MAG_DEFAULT_CALIB_DURATION = 60; // 60s
+  static constexpr float MAG_GENERAL_THRESH = 20.0f;
+
 };
 
 

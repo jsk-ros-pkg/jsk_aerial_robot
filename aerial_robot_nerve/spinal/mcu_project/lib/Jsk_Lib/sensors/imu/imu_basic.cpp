@@ -26,12 +26,9 @@ void IMU::init()
   calib_gyro_ = true;
   calib_acc_ = false;
   calib_mag_ = false;
-  gyro_calib_duration_ = GYRO_DEFAULT_CALIB_DURATION;
-#if NERVE_COMM
-  gyro_calib_duration_ += 5500; // idle duration because of can initialization
-#endif
-  acc_calib_duration_ = ACC_DEFAULT_CALIB_DURATION;
-  mag_calib_duration_ = MAG_DEFAULT_CALIB_DURATION;
+  gyro_calib_duration_ = GYRO_DEFAULT_CALIB_DURATION * 1000;
+  acc_calib_duration_ = ACC_DEFAULT_CALIB_DURATION * 1000;
+  mag_calib_duration_ = MAG_DEFAULT_CALIB_DURATION * 1000;
   gyro_calib_time_ = HAL_GetTick();
   acc_calib_time_ = HAL_GetTick();
   mag_calib_time_ = HAL_GetTick();
