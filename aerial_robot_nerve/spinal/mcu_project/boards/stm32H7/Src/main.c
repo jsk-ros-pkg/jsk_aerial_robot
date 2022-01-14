@@ -41,11 +41,12 @@
 #include "sensors/gps/gps_ublox.h"
 #include "sensors/encoder/mag_encoder.h"
 
-
 #include "battery_status/battery_status.h"
 
 #include "state_estimate/state_estimate.h"
 #include "flight_control/flight_control.h"
+
+#include <Spine/spine.h>
 
 /* USER CODE END Includes */
 
@@ -113,12 +114,14 @@ osThreadId rosSpinTaskHandle;
 osThreadId idleTaskHandle;
 osThreadId rosPublishHandle;
 osThreadId voltageHandle;
+osThreadId canRxHandle;
 osTimerId coreTaskTimerHandle;
 osMutexId rosPubMutexHandle;
 osMutexId flightControlMutexHandle;
 osSemaphoreId coreTaskSemHandle;
 osSemaphoreId uartTxSemHandle;
 /* USER CODE BEGIN PV */
+osMailQId canMsgMailHandle;
 
 ros::NodeHandle nh_;
 
@@ -154,6 +157,7 @@ void rosSpinTaskFunc(void const * argument);
 void idleTaskFunc(void const * argument);
 void rosPublishTask(void const * argument);
 void voltageTask(void const * argument);
+void canRxTask(void const * argument);
 void coreTaskEvokeCb(void const * argument);
 
 /* USER CODE BEGIN PFP */
@@ -266,6 +270,9 @@ int main(void)
 
   FlashMemory::read(); //IMU calib data (including IMU in neurons)
 
+  Spine::init(&hfdcan1, &nh_, LED1_GPIO_Port, LED1_Pin);
+  Spine::useRTOS(&canMsgMailHandle); // use RTOS for CAN in spianl
+
   /* USER CODE END 2 */
 
   /* Create the mutex(es) */
@@ -307,6 +314,10 @@ int main(void)
 
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
+  /* add mail queue for CAN RX */
+  osMailQDef(CanMail, 10, can_msg); // defualt: 20 for 8 data bytes (in case of initializer sendBoardConfig (4 servo: 1 + 4 x 3 = 13 packets)); 10 for 64 data bytes
+  canMsgMailHandle = osMailCreate(osMailQ(CanMail), NULL);
+
   /* USER CODE END RTOS_QUEUES */
 
   /* Create the thread(s) */
@@ -329,6 +340,10 @@ int main(void)
   /* definition and creation of voltage */
   osThreadDef(voltage, voltageTask, osPriorityLow, 0, 128);
   voltageHandle = osThreadCreate(osThread(voltage), NULL);
+
+  /* definition and creation of canRx */
+  osThreadDef(canRx, canRxTask, osPriorityRealtime, 0, 256);
+  canRxHandle = osThreadCreate(osThread(canRx), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -563,33 +578,33 @@ static void MX_FDCAN1_Init(void)
 
   /* USER CODE END FDCAN1_Init 1 */
   hfdcan1.Instance = FDCAN1;
-  hfdcan1.Init.FrameFormat = FDCAN_FRAME_CLASSIC;
+  hfdcan1.Init.FrameFormat = FDCAN_FRAME_FD_BRS;
   hfdcan1.Init.Mode = FDCAN_MODE_NORMAL;
-  hfdcan1.Init.AutoRetransmission = DISABLE;
+  hfdcan1.Init.AutoRetransmission = ENABLE;
   hfdcan1.Init.TransmitPause = DISABLE;
   hfdcan1.Init.ProtocolException = DISABLE;
   hfdcan1.Init.NominalPrescaler = 1;
-  hfdcan1.Init.NominalSyncJumpWidth = 1;
-  hfdcan1.Init.NominalTimeSeg1 = 2;
-  hfdcan1.Init.NominalTimeSeg2 = 2;
+  hfdcan1.Init.NominalSyncJumpWidth = 16;
+  hfdcan1.Init.NominalTimeSeg1 = 63;
+  hfdcan1.Init.NominalTimeSeg2 = 16;
   hfdcan1.Init.DataPrescaler = 1;
-  hfdcan1.Init.DataSyncJumpWidth = 1;
-  hfdcan1.Init.DataTimeSeg1 = 1;
-  hfdcan1.Init.DataTimeSeg2 = 1;
+  hfdcan1.Init.DataSyncJumpWidth = 2;
+  hfdcan1.Init.DataTimeSeg1 = 7;
+  hfdcan1.Init.DataTimeSeg2 = 2;
   hfdcan1.Init.MessageRAMOffset = 0;
-  hfdcan1.Init.StdFiltersNbr = 0;
+  hfdcan1.Init.StdFiltersNbr = 1;
   hfdcan1.Init.ExtFiltersNbr = 0;
-  hfdcan1.Init.RxFifo0ElmtsNbr = 0;
-  hfdcan1.Init.RxFifo0ElmtSize = FDCAN_DATA_BYTES_8;
+  hfdcan1.Init.RxFifo0ElmtsNbr = 1;
+  hfdcan1.Init.RxFifo0ElmtSize = FDCAN_DATA_BYTES_64;
   hfdcan1.Init.RxFifo1ElmtsNbr = 0;
   hfdcan1.Init.RxFifo1ElmtSize = FDCAN_DATA_BYTES_8;
   hfdcan1.Init.RxBuffersNbr = 0;
   hfdcan1.Init.RxBufferSize = FDCAN_DATA_BYTES_8;
   hfdcan1.Init.TxEventsNbr = 0;
   hfdcan1.Init.TxBuffersNbr = 0;
-  hfdcan1.Init.TxFifoQueueElmtsNbr = 0;
+  hfdcan1.Init.TxFifoQueueElmtsNbr = 10;
   hfdcan1.Init.TxFifoQueueMode = FDCAN_TX_FIFO_OPERATION;
-  hfdcan1.Init.TxElmtSize = FDCAN_DATA_BYTES_8;
+  hfdcan1.Init.TxElmtSize = FDCAN_DATA_BYTES_64;
   if (HAL_FDCAN_Init(&hfdcan1) != HAL_OK)
   {
     Error_Handler();
@@ -1121,15 +1136,7 @@ void coreTaskFunc(void const * argument)
     {
       osSemaphoreWait(coreTaskSemHandle, osWaitForever);
 
-      //Spine::send();
-
-      // test
-      /* if (HAL_GetTick() - imu_pub_t >= imu_pub_interval) */
-      /*   { */
-      /*     imu_msg_.stamp = nh_.now(); */
-      /*     test_pub_.publish(&imu_msg_); */
-      /*     imu_pub_t = HAL_GetTick(); */
-      /*   } */
+      Spine::send();
 
       imu_.update();
       baro_.update();
@@ -1137,7 +1144,7 @@ void coreTaskFunc(void const * argument)
       estimator_.update();
       controller_.update();
 
-      //Spine::update();
+      Spine::update();
     }
 
   /* USER CODE END 5 */
@@ -1223,6 +1230,25 @@ void voltageTask(void const * argument)
     osDelay(VOLTAGE_CHECK_INTERVAL);
   }
   /* USER CODE END voltageTask */
+}
+
+/* USER CODE BEGIN Header_canRxTask */
+/**
+* @brief Function implementing the canRx thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_canRxTask */
+__weak void canRxTask(void const * argument)
+{
+  /* USER CODE BEGIN canRxTask */
+  /* Infinite loop */
+  for(;;)
+  {
+    HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
+    osDelay(1000);
+  }
+  /* USER CODE END canRxTask */
 }
 
 /* coreTaskEvokeCb function */

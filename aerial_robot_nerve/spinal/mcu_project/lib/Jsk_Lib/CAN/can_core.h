@@ -8,8 +8,22 @@
 #ifndef APPLICATION_CAN_CAN_CORE_H_
 #define APPLICATION_CAN_CAN_CORE_H_
 
+#if defined (STM32F756xx) || defined (STM32F746xx) || defined (STM32F745xx) || defined (STM32F765xx) || \
+    defined (STM32F767xx) || defined (STM32F769xx) || defined (STM32F777xx) || defined (STM32F779xx) || \
+    defined (STM32F722xx) || defined (STM32F723xx) || defined (STM32F732xx) || defined (STM32F733xx) || \
+    defined (STM32F730xx) || defined (STM32F750xx)
+#include "stm32f7xx_hal.h"
+#endif
+
+#if defined (STM32H743xx) || defined (STM32H753xx)  || defined (STM32H750xx) || defined (STM32H742xx) || \
+    defined (STM32H745xx) || defined (STM32H755xx)  || defined (STM32H747xx) || defined (STM32H757xx) || \
+    defined (STM32H7A3xx) || defined (STM32H7A3xxQ) || defined (STM32H7B3xx) || defined (STM32H7B3xxQ) || defined (STM32H7B0xx)  || defined (STM32H7B0xxQ) || \
+    defined (STM32H735xx) || defined (STM32H733xx)  || defined (STM32H730xx) || defined (STM32H730xxQ)  || defined (STM32H725xx) || defined (STM32H723xx)
+#include "stm32h7xx_hal.h"
+#endif
+
+
 #include "stdint.h"
-#include "can.h"
 #include "string.h"
 #include <vector>
 #include "can_constants.h"

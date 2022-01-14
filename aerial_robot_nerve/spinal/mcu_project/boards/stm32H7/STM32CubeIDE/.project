@@ -68,6 +68,26 @@
 			<locationURI>PARENT-3-PROJECT_LOC/lib/Jsk_Lib/state_estimate</locationURI>
 		</link>
 		<link>
+			<name>Application/Hydrus_Lib/CAN</name>
+			<type>2</type>
+			<locationURI>PARENT-5-PROJECT_LOC/stm32h7_nucleo/Jsk_Lib/CAN</locationURI>
+		</link>
+		<link>
+			<name>Application/Hydrus_Lib/CANDevice</name>
+			<type>2</type>
+			<locationURI>PARENT-3-PROJECT_LOC/lib/Hydrus_Lib/CANDevice</locationURI>
+		</link>
+		<link>
+			<name>Application/Hydrus_Lib/Neuron</name>
+			<type>2</type>
+			<locationURI>PARENT-3-PROJECT_LOC/lib/Hydrus_Lib/Neuron</locationURI>
+		</link>
+		<link>
+			<name>Application/Hydrus_Lib/Spine</name>
+			<type>2</type>
+			<locationURI>PARENT-5-PROJECT_LOC/stm32h7_nucleo/Hydrus_Lib/Spine</locationURI>
+		</link>
+		<link>
 			<name>Application/User/freertos.c</name>
 			<type>1</type>
 			<locationURI>PARENT-1-PROJECT_LOC/Src/freertos.c</locationURI>
@@ -281,6 +301,21 @@
 			<name>Middlewares/FreeRTOS/timers.c</name>
 			<type>1</type>
 			<locationURI>PARENT-1-PROJECT_LOC/Middlewares/Third_Party/FreeRTOS/Source/timers.c</locationURI>
+		</link>
+		<link>
+			<name>Application/Hydrus_Lib/CANDevice/initializer</name>
+			<type>2</type>
+			<locationURI>PARENT-3-PROJECT_LOC/lib/Hydrus_Lib/CANDevice/initializer</locationURI>
+		</link>
+		<link>
+			<name>Application/Hydrus_Lib/CANDevice/motor</name>
+			<type>2</type>
+			<locationURI>PARENT-3-PROJECT_LOC/lib/Hydrus_Lib/CANDevice/motor</locationURI>
+		</link>
+		<link>
+			<name>Application/Hydrus_Lib/CANDevice/servo</name>
+			<type>2</type>
+			<locationURI>PARENT-3-PROJECT_LOC/lib/Hydrus_Lib/CANDevice/servo</locationURI>
 		</link>
 	</linkedResources>
 </projectDescription>
