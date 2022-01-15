@@ -77,6 +77,7 @@
 #include <spinal/Imu.h>
 
 /* Internal Communication System */
+#include <flashmemory/flashmemory.h>
 #include <Spine/spine.h>
 #include <CANDevice/test/canfd_test.h>
 
@@ -100,6 +101,8 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
+StateEstimate estimator_;
+
 uint32_t msTick = 0;
 uint32_t msTickPrevious = 0;
 
@@ -359,6 +362,19 @@ int main(void)
   MX_NVIC_Init();
   /* USER CODE BEGIN 2 */
 
+ /* Flash Memory */
+  FlashMemory::init(0x081E0000, FLASH_SECTOR_7);
+  // Bank2, Sector7: 0x081E 0000 (128KB); https://www.stmcu.jp/download/?dlid=51599_jp
+  // BANK1 (with Sector7) cuases the flash failure by STLink from the second time. So we use BANK_2, which is tested OK
+
+  // It semms like the first 64 byte of flashmemory for data is easily to be overwritten by zero, when re-flash the flash memory.
+  // A possible reason is the power supply from stlink does not contain 3.3V output.
+  // which is the only difference compared with the old version (STM32F7)
+  // So, we introduce following dummy data for a workaround to avoid the vanishment of stored data in flash memory.
+  uint8_t dummy_data[64];
+  memset(dummy_data, 1, 64);
+  FlashMemory::addValue(dummy_data, 64);
+
 
   /* switch between ETH/UART rosserial */
   if(HAL_GPIO_ReadPin(UART_MODE_GPIO_Port, UART_MODE_Pin) == GPIO_PIN_SET)
@@ -388,7 +404,7 @@ int main(void)
   /* TODO: should be called in coreTask, but we have to replace all the HAL_Delay() to os Delay() */
   if(!canfd_test_mode_)
     {
-      Spine::init(&hfdcan1, &nh_, LD1_GPIO_Port, LD1_Pin);
+      Spine::init(&hfdcan1, &nh_, &estimator_, LD1_GPIO_Port, LD1_Pin);
       Spine::useRTOS(&canMsgMailHandle); // use RTOS for CAN in spianl
     }
   else

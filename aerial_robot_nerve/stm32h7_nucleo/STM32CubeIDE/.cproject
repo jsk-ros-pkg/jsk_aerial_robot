@@ -102,8 +102,6 @@
 									<listOptionValue builtIn="false" value="../../Middlewares/Third_Party/FreeRTOS/Source/include"/>
 									<listOptionValue builtIn="false" value="../../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS"/>
 									<listOptionValue builtIn="false" value="../../Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F"/>
-									<listOptionValue builtIn="false" value="../../Jsk_Lib"/>
-									<listOptionValue builtIn="false" value="../../Hydrus_Lib"/>
 									<listOptionValue builtIn="false" value="../../../spinal/mcu_project/lib/Jsk_Lib"/>
 									<listOptionValue builtIn="false" value="../../../spinal/mcu_project/lib/Hydrus_Lib"/>
 								</option>

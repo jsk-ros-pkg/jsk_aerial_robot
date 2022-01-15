@@ -38,44 +38,29 @@
 			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/stm32h7_nucleo.ioc</locationURI>
 		</link>
 		<link>
-			<name>Application/Hydrus_Lib/CANDevice/initializer</name>
+			<name>Application/Jsk_Lib/CAN</name>
 			<type>2</type>
-			<locationURI>PARENT-2-PROJECT_LOC/spinal/mcu_project/lib/Hydrus_Lib/CANDevice/initializer</locationURI>
+			<locationURI>PARENT-2-PROJECT_LOC/spinal/mcu_project/lib/Jsk_Lib/CAN</locationURI>
 		</link>
 		<link>
-			<name>Application/Hydrus_Lib/CANDevice/motor</name>
+			<name>Application/Jsk_Lib/flashmemory</name>
 			<type>2</type>
-			<locationURI>PARENT-2-PROJECT_LOC/spinal/mcu_project/lib/Hydrus_Lib/CANDevice/motor</locationURI>
+			<locationURI>PARENT-2-PROJECT_LOC/spinal/mcu_project/lib/Jsk_Lib/flashmemory</locationURI>
 		</link>
 		<link>
-			<name>Application/Hydrus_Lib/CANDevice/servo</name>
+			<name>Application/Jsk_Lib/math</name>
 			<type>2</type>
-			<locationURI>PARENT-2-PROJECT_LOC/spinal/mcu_project/lib/Hydrus_Lib/CANDevice/servo</locationURI>
+			<locationURI>PARENT-2-PROJECT_LOC/spinal/mcu_project/lib/Jsk_Lib/math</locationURI>
 		</link>
 		<link>
-			<name>Application/Hydrus_Lib/Neuron</name>
+			<name>Application/Jsk_Lib/sensors</name>
 			<type>2</type>
-			<locationURI>PARENT-2-PROJECT_LOC/spinal/mcu_project/lib/Hydrus_Lib/Neuron</locationURI>
+			<locationURI>PARENT-2-PROJECT_LOC/spinal/mcu_project/lib/Jsk_Lib/sensors</locationURI>
 		</link>
 		<link>
-			<name>Application/Hydrus_Lib/Spine</name>
+			<name>Application/Hydrus_Lib</name>
 			<type>2</type>
-			<locationURI>PARENT-1-PROJECT_LOC/Hydrus_Lib/Spine</locationURI>
-		</link>
-		<link>
-			<name>Application/Hydrus_Lib/CANDevice/imu</name>
-			<type>2</type>
-			<locationURI>PARENT-1-PROJECT_LOC/Hydrus_Lib/CANDevice/imu</locationURI>
-		</link>
-		<link>
-			<name>Application/Hydrus_Lib/CANDevice/test</name>
-			<type>2</type>
-			<locationURI>PARENT-1-PROJECT_LOC/Hydrus_Lib/CANDevice/test</locationURI>
-		</link>
-		<link>
-			<name>Application/Jsk_Lib</name>
-			<type>2</type>
-			<locationURI>PARENT-1-PROJECT_LOC/Jsk_Lib</locationURI>
+			<locationURI>PARENT-2-PROJECT_LOC/spinal/mcu_project/lib/Hydrus_Lib</locationURI>
 		</link>
 		<link>
 			<name>Application/ros_lib</name>
