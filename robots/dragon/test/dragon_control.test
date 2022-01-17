@@ -49,7 +49,7 @@
           reset: "rosrun dragon transformation_demo.py _mode:=0 _reset:=1"
           reset_duration: 10
     </rosparam>
-    <param name="init_form_duration" value="25.0" />
+    <param name="init_form_duration" value="30.0" />
     <param name="init_angle_threshold" value="0.04" />
   </test>
 
@@ -83,7 +83,7 @@
              reset_duration: 0
           -->
     </rosparam>
-    <param name="init_form_duration" value="25.0" />
+    <param name="init_form_duration" value="30.0" />
     <param name="init_angle_threshold" value="0.04" />
   </test>
 
