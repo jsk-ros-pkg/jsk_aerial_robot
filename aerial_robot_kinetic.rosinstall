@@ -14,7 +14,7 @@
 - git:
     local-name: sensor_interface
     uri: https://github.com/JSKAerialRobot/sensor_interface.git
-    version: da9c42f
+    version: ec854cc
 
 # RTK-GPS (forked)
 - git:
