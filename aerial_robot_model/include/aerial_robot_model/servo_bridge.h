@@ -199,10 +199,11 @@ protected:
   ros::NodeHandle nhp_;
 
   ros::Publisher servo_states_pub_;
-  vector<ros::Subscriber> servo_states_subs_;
-  vector<ros::Subscriber> servo_ctrl_subs_;
+  map<string, ros::Subscriber> servo_states_subs_;
+  map<string, ros::Subscriber> servo_ctrl_subs_;
+  map<string, bool> no_real_state_flags_;
   map<string, ros::Publisher> servo_ctrl_pubs_;
-  vector<ros::ServiceServer> servo_torque_ctrl_srvs_;
+  map<string, ros::ServiceServer> servo_torque_ctrl_srvs_;
   map<string, ros::Publisher> servo_torque_ctrl_pubs_;
   map<string, vector<ros::Publisher> > servo_ctrl_sim_pubs_; // TODO: should be actionlib, trajectory controller
 
