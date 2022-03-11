@@ -190,6 +190,30 @@ PROVIDE ( _end = . );
 *(.GpsRxBufferSection)
 } >RAM_D1 AT> FLASH
 
+
+
+/* the MPU and memory setting for LWIP Ethernet */
+/* https://community.st.com/s/article/FAQ-Ethernet-not-working-on-STM32H7x3 */
+
+/* 256 bytes at 0x30040000 configured as Shared Device, MPU region 2 (required for overlapping) */
+/* This is for RX and TX DMA descriptors */
+/* 16 kb at 0x30044000 configured as write-through, MPU region 1 */
+/* This is for TX buffers allocated by LwIP */
+/* 16 kb at 0x30040000 configured as non-cacheable, MPU region 0 (required for overlapping) */
+/* This is for RX buffer used by the Ethernet driver */
+
+.lwip_sec (NOLOAD) : {
+. = ABSOLUTE(0x30040000);
+*(.RxDecripSection) 
+
+. = ABSOLUTE(0x30040060);
+*(.TxDecripSection)
+
+. = ABSOLUTE(0x30040200);
+*(.RxArraySection) 
+} >RAM_D2 AT> FLASH
+
+
   /* Remove information from the compiler libraries */
   /DISCARD/ :
   {
