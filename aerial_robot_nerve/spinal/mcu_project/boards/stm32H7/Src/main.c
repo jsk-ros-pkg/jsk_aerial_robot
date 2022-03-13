@@ -305,7 +305,7 @@ int main(void)
   rosPublishHandle = osThreadCreate(osThread(rosPublish), NULL);
 
   /* definition and creation of voltage */
-  osThreadDef(voltage, voltageTask, osPriorityLow, 0, 128);
+  osThreadDef(voltage, voltageTask, osPriorityLow, 0, 256);
   voltageHandle = osThreadCreate(osThread(voltage), NULL);
 
   /* definition and creation of canRx */
