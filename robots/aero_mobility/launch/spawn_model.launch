@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<launch>
+  <group ns="aero_mobility">
+    <param name="robot_description" command="$(find xacro)/xacro.py $(find aero_mobility)/urdf/robot.gazebo.xacro" />
+  </group>
+  <!-- Spawn a robot into Gazebo -->
+  <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" args="-param aero_mobility/robot_description -urdf -model aero_mobility" />
+</launch>

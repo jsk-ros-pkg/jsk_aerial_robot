@@ -7,29 +7,22 @@
   <thrust_link name="thrust" />
 
   <!-- kinematics [m] -->
-  <xacro:property name="rotor_x_front" value="${1.25 - 0.01}" />
-  <xacro:property name="rotor_x_middle" value="${1.25 - 0.01 - 0.8}" />
-  <xacro:property name="rotor_y" value="${1}" />
+  <xacro:property name="rotor_x_front" value="${1.2005}" />
+  <xacro:property name="rotor_x_middle" value="${0.4005}" />
+  <xacro:property name="rotor_y" value="${0.9415}" />
+  <xacro:property name="rotor_z" value="${0.0763}" />
 
   <!-- dynamics -->
-  <m_f_rate value="-0.0172" /> <!-- drug torque rate -->
+  <m_f_rate value="-0.0369" /> <!-- drug torque rate -->
   <xacro:property name="max_force" value="160.0" /> <!-- [N] -->
   <xacro:property name="min_force" value="1.0" /> <!-- [N] -->
 
   <!-- friction -->
-  <xacro:macro name="friction" params="self">
-    <gazebo reference="main_body">
-      <mu1>0.1</mu1>
-      <mu2>0.1</mu2>
-    </gazebo>
-  </xacro:macro>
-
   <xacro:macro name="damping_factor" params="link">
     <gazebo reference="main_body">
       <dampingFactor>0.00</dampingFactor>
     </gazebo>
   </xacro:macro>
-
 
   <xacro:macro name="extra_module" params="name parent *origin *inertial visible:=0 model_url:=1 scale:=1">
     <joint name="${parent}2${name}" type="fixed">
@@ -50,12 +43,12 @@
     </link>
   </xacro:macro>
 
-  <xacro:macro name="propeller_module" params="id x y direction">
+  <xacro:macro name="propeller_module" params="id x y z direction">
     <joint name="rotor${id}" type="continuous">
       <limit effort="100.0" lower="${min_force}" upper="${max_force}" velocity="0.5"/>
       <parent link="main_body"/>
       <child link="thrust${id}"/>
-      <origin rpy="0 0 0" xyz="${x} ${y} 0.1"/>
+      <origin rpy="0 0 0" xyz="${x} ${y} ${z}"/>
       <axis xyz="0 0 ${direction}"/>
     </joint>
 
@@ -82,17 +75,49 @@
       </visual>
     </link>
     <xacro:damping_factor link ="thrust${id}"/>
+
+    <transmission name="rotor_tran${id}">
+      <type>transmission_interface/SimpleTransmission</type>
+      <joint name="rotor${id}">
+        <!-- TODO: effort is torque, maybe position is enough -->
+        <hardwareInterface>RotorInterface</hardwareInterface>
+      </joint>
+      <actuator name="rotor${id}">
+        <!-- TODO: effort is torque, maybe position is enough -->
+        <hardwareInterface>RotorInterface</hardwareInterface>
+        <mechanicalReduction>1</mechanicalReduction>
+      </actuator>
+    </transmission>
+
   </xacro:macro>
 
-  <!-- main_body -->
-  <link name="main_body">
+  <!-- dummy root link for KDL -->
+  <link name="root">
     <inertial>
-      <mass value = "0.00001" />
       <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.00001"/>
       <inertia
           ixx="0.000001" ixy="0.0" ixz="0.0"
           iyy="0.000001" iyz="0.0"
           izz="0.000002"/>
+    </inertial>
+  </link>
+  <joint name="root_joint" type="fixed">
+    <parent link="root"/>
+    <child link="main_body"/>
+    <origin rpy="0 0 0" xyz="0 0 0"/>
+    <axis xyz="0 0 1"/>
+  </joint>
+
+  <!-- main_body -->
+  <link name="main_body">
+    <inertial>
+      <mass value = "24.05" />
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia
+          ixx="9.596" ixy="0.004" ixz="0.0"
+          iyy="10.354" iyz="0.0"
+          izz="19.894"/>
     </inertial>
     <visual>
       <origin rpy="0 0 ${pi/2}" xyz="0 0 0"/>
@@ -103,7 +128,7 @@
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <box size="2.5 2 0.2" />
+        <box size="2.5 2 0.16" />
       </geometry>
     </collision>
   </link>
@@ -123,14 +148,14 @@
 
 
   <!-- propellers -->
-  <xacro:propeller_module id = "1" x = "${rotor_x_front}" y = "${rotor_y}" direction = "1" />
-  <xacro:propeller_module id = "2" x = "${rotor_x_middle}" y = "${rotor_y}" direction = "-1" />
-  <xacro:propeller_module id = "3" x = "${-rotor_x_middle}" y = "${rotor_y}" direction = "1" />
-  <xacro:propeller_module id = "4" x = "${-rotor_x_front}" y = "${rotor_y}" direction = "-1" />
-  <xacro:propeller_module id = "5" x = "${-rotor_x_front}" y = "${-rotor_y}" direction = "1" />
-  <xacro:propeller_module id = "6" x = "${-rotor_x_middle}" y = "${-rotor_y}" direction = "-1" />
-  <xacro:propeller_module id = "7" x = "${rotor_x_middle}" y = "${-rotor_y}" direction = "1" />
-  <xacro:propeller_module id = "8" x = "${rotor_x_front}" y = "${-rotor_y}" direction = "-1" />
+  <xacro:propeller_module id = "1" x = "${rotor_x_front}" y = "${rotor_y}" z = "${rotor_z}" direction = "1" />
+  <xacro:propeller_module id = "2" x = "${rotor_x_middle}" y = "${rotor_y}" z = "${rotor_z}" direction = "-1" />
+  <xacro:propeller_module id = "3" x = "${-rotor_x_middle}" y = "${rotor_y}" z = "${rotor_z}" direction = "1" />
+  <xacro:propeller_module id = "4" x = "${-rotor_x_front}" y = "${rotor_y}" z = "${rotor_z}"  direction = "-1" />
+  <xacro:propeller_module id = "5" x = "${-rotor_x_front}" y = "${-rotor_y}" z = "${rotor_z}" direction = "1" />
+  <xacro:propeller_module id = "6" x = "${-rotor_x_middle}" y = "${-rotor_y}" z = "${rotor_z}" direction = "-1" />
+  <xacro:propeller_module id = "7" x = "${rotor_x_middle}" y = "${-rotor_y}" z = "${rotor_z}" direction = "1" />
+  <xacro:propeller_module id = "8" x = "${rotor_x_front}" y = "${-rotor_y}" z = "${rotor_z}" direction = "-1" />
 
 
 </robot>

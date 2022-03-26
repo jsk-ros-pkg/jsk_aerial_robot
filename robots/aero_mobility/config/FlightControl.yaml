@@ -1,10 +1,10 @@
-aerial_robot_control_name: aerial_robot_control/hydrus_lqi_controller
+aerial_robot_control_name: aerial_robot_control/hydrus_tilted_lqi_controller
 
 controller:
   xy:
-    p_gain: 2.3
-    i_gain: 0.02
-    d_gain: 4.0
+    p_gain: 1.0
+    i_gain: 0.05
+    d_gain: 2.0
     limit_sum: 3
     limit_p: 3
     limit_i: 1.5
@@ -15,10 +15,10 @@ controller:
     i_gain: 1.55
     d_gain: 3.4
     limit_err_p: 1.0
-    limit_sum: 16.5 # N for clamping thrust force
-    limit_p: 10 # m / s^2
-    limit_i: 15 # m / s^2
-    limit_d: 10 # m / s^2
+    limit_sum: 160 # N for clamping thrust force
+    limit_p: 160 # m / s^2
+    limit_i: 160 # m / s^2
+    limit_d: 160 # m / s^2
     landing_err_z: -0.55
     force_landing_descending_rate: -0.6
 
@@ -36,9 +36,9 @@ controller:
     gyro_moment_compensation: true
     clamp_gain: true
 
-    roll_pitch_p: 1000
+    roll_pitch_p: 2000
     roll_pitch_i: 10
-    roll_pitch_d: 100
+    roll_pitch_d: 200
 
     yaw_p: 100
     yaw_i: 0.5

@@ -15,7 +15,7 @@
   <arg name="spawn_z" default="0.0"/>
   <arg name="spawn_yaw" default="0.0"/>
   <arg name="robot_id" default="" />
-  <arg name="robot_ns" value="aero_mobility(arg robot_id)" />
+  <arg name="robot_ns" value="aero_mobility$(arg robot_id)" />
   <arg name="config_dir" default="$(find aero_mobility)/config/" />
 
   ###########  Parameters  ###########
@@ -34,9 +34,6 @@
 
     ###########  Motor Config  ###########
     <rosparam file="$(arg config_dir)/MotorInfo.yaml" command="load" />
-
-    ###########  Servo Config  ###########
-    <rosparam file="$(arg config_dir)/Servo.yaml" command="load" />
 
     ###########  Battery Config  ###########
     <rosparam file="$(arg config_dir)/Battery.yaml" command="load" />
@@ -64,10 +61,11 @@
   <arg name="description_mode" value="gazebo" if="$(arg simulation)" />
   <include file="$(find aerial_robot_model)/launch/aerial_robot_model.launch" >
     <arg name="headless" value="$(arg headless)" />
-    <arg name="robot_model" value="$(find aero_mobility)/robots/robot.$(arg description_mode).xacro" unless="$(arg direct_model)"/>
+    <arg name="robot_model" value="$(find aero_mobility)/urdf/robot.$(arg description_mode).xacro" unless="$(arg direct_model)"/>
     <arg name="robot_model" value="$(arg direct_model_name)" if="$(arg direct_model)"/>
     <arg name="robot_ns" value="$(arg robot_ns)" />
     <arg name="rviz_config" value="$(find aero_mobility)/config/rviz_config" />
+    <arg name="rviz_init_pose" value="$(arg config_dir)/RvizInit.yaml" />
     <arg name="need_joint_state" value="false" if ="$(eval arg('simulation') or arg('real_machine'))"/>
   </include>
 

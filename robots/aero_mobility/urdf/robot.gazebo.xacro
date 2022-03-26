@@ -1,14 +1,19 @@
 <?xml version="1.0"?>
 <robot
-    xmlns:xacro="http://www.ros.org/wiki/xacro" name="hydrus" >
+    xmlns:xacro="http://www.ros.org/wiki/xacro" name="aero_mobility" >
 
-  <xacro:arg name="robot_name" default="hydrus" />
+  <xacro:arg name="robot_name" default="aero_mobility" />
 
   <!-- robot urdf -->
-  <xacro:include filename="$(find hydrus)/robots/quad/default_mode_201907/robot.urdf.xacro" />
+  <xacro:include filename="$(find aero_mobility)/urdf/robot.urdf.xacro" />
 
   <!-- gazebo plugin for default controller and sensors -->
   <xacro:include filename="$(find aerial_robot_simulation)/xacro/spinal.gazebo.xacro" />
   <xacro:gazebo_spinal robot_name="$(arg robot_name)" />
 
+  <gazebo reference="main_body">
+    <mu1>0.1</mu1>
+    <mu2>0.1</mu2>
+  </gazebo>
+  
 </robot>
