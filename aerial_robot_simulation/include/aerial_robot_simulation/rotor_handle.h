@@ -77,6 +77,7 @@ namespace hardware_interface
 
       motor_nh.param("rotor_force_noise", rotor_force_noise_, 0.0); // N
       motor_nh.param("dual_rotor_moment_noise", dual_rotor_moment_noise_, 0.0);
+      motor_nh.param("speed_rate", speed_rate_, 1.0); // N/(rad/s) , this is a virtual linear rate of speed-f
     }
 
     inline std::string getName() const {return name_;}
@@ -102,6 +103,11 @@ namespace hardware_interface
     }
     inline void setCommand(double command); //no implement here
 
+    inline double getSpeed() const
+    {
+      return *force_ / speed_rate_;
+    }
+
   private:
     std::string name_;
     boost::shared_ptr<double> force_;
@@ -109,6 +115,7 @@ namespace hardware_interface
     double f_pwm_rate_;
     double f_pwm_offset_;
     double m_f_rate_;
+    double speed_rate_;
     double pwm_rate_;
     double max_pwm_;
 
