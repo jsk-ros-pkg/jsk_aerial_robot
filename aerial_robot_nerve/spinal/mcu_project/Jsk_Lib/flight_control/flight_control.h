@@ -57,6 +57,7 @@ public:
     integrate_flag_ = false;
   }
 
+  inline bool getStartControlFlag() { return start_control_flag_; }
   inline AttitudeController& getAttController(){ return att_controller_;}
 
   void useGroundTruth(bool flag) { att_controller_.useGroundTruth(flag); }
