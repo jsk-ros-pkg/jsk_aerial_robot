@@ -1059,6 +1059,20 @@ void coreTaskFunc(void const * argument)
       controller_.update();
 
       Spine::update();
+
+      // Workaround to handle the BUSY->TIMEOUT Error problem of ETH handler in STM32H7
+      // We observe this is occasionally occur, but the ETH DMA is valid.
+      if (heth.ErrorCode & HAL_ETH_ERROR_TIMEOUT)
+        {
+          // force to restart ETH transmit
+          heth.gState = HAL_ETH_STATE_READY;
+          ETH_TxDescListTypeDef *dmatxdesclist = &(heth.TxDescList);
+          for (uint32_t i = 0; i < (uint32_t)ETH_TX_DESC_CNT; i++)
+            {
+              ETH_DMADescTypeDef *dmatxdesc = (ETH_DMADescTypeDef *)dmatxdesclist->TxDesc[i];
+              CLEAR_BIT(dmatxdesc->DESC3, ETH_DMATXNDESCRF_OWN);
+            }
+        }
     }
 
   /* USER CODE END 5 */

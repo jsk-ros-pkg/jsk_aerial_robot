@@ -52,7 +52,7 @@
    - publish topic to device
 
       ```
-      $ rosrun spinal load_test.py
+      $ rosrun stm32h7_nucleo load_test.py
       ```
 
       **note**: you can see the log in the terminal launching `udp_socket.launch`, such as, `[ERROR] [1560932626.875748081]: 2, 3, 1, 1, 2`. This means the current temporal interval between two receive topics in MCU is 2 [ms], the max interval is 3 [ms], the min interval is 1 [ms]; the current sequence id interval between two receive topics in MCU is 1 [frame], the max interval is [frames].
