@@ -7,8 +7,10 @@ motor_info: # TODO: update
         pwm_conversion_mode: 0 # SQRT Mode
         vel_ref_num: 1
         ref1:
-                voltage: 12
+                voltage: 50
                 max_thrust: 15 # N
-                polynominal2: 0.778514483 # 0.07983707 # x10
-                polynominal1: -83.356154265 # -6.627443098 # x10
-                polynominal0: 222.7523230182 # 12.3593793002 # x1
+                polynominal2: 0.01556302 # 0.07983707 # x10
+                polynominal1: -1.66712308 # -6.627443098 # x10
+                polynominal0: 4.455046 # 12.3593793002 # x1
+
+        speed_rate: 10.0
