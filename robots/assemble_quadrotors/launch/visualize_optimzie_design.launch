@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<launch>
+  ###########  visualize the rotor configuration in rviz  ###########
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find assemble_quadrotors)/config/opt_design/config.rviz"/>
+
+  ###########  visualize the feasible control force/torque convex by matplot  ###########
+  <node name="feasible_control_convex" pkg="assemble_quadrotors" type="feasible_control_convex_plot.py" />
+
+</launch>

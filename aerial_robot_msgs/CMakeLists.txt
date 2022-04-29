@@ -16,6 +16,7 @@ add_message_files(FILES
   States.msg
   Acc.msg
   WrenchAllocationMatrix.msg
+  FeasibleControlConvexInfo.msg
 )
 
 ## Generate added messages and services
