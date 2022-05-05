@@ -35,20 +35,39 @@
 
 #include <assemble_quadrotors/optimal_design.h>
 
-void calcRotorConfiguration(const std::vector<double>& x, const int unit_rotor_num, const double m_f_rate, std::vector<Eigen::Vector3d>& p, std::vector<Eigen::Vector3d>& u, std::vector<Eigen::Vector3d>& v, std::vector<double>& direct)
+void calcRotorConfiguration(const std::vector<double>& x, const int unit_rotor_num, const double pos_bound, const double m_f_rate, std::vector<Eigen::Vector3d>& p, std::vector<Eigen::Vector3d>& u, std::vector<Eigen::Vector3d>& v, std::vector<double>& direct)
 {
   p.clear();
   u.clear();
   v.clear();
   direct.clear();
 
-  // x: [p_x, p_y, p_z, ang1, ang2] * n/2
+  Eigen::Vector3d  unit1_center_pos(pos_bound, 0, 0);
+  // x: [ang1, ang2] * n/2
+
   for(int i = 0; i < unit_rotor_num; i++) {
     double direct_i = std::pow(-1, i);
-    Eigen::Vector3d p_i(x.at(5 * i), x.at(5 * i + 1), x.at(5 * i + 2));
+    Eigen::Vector3d p_i;
+    switch(i) {
+    case 0:
+      p_i = unit1_center_pos + Eigen::Vector3d(-pos_bound/2, -pos_bound/2, 0);
+      break;
+    case 1:
+      p_i = unit1_center_pos + Eigen::Vector3d(+pos_bound/2, -pos_bound/2, 0);
+      break;
+    case 2:
+      p_i = unit1_center_pos + Eigen::Vector3d(+pos_bound/2, +pos_bound/2, 0);
+      break;
+    case 3:
+      p_i = unit1_center_pos + Eigen::Vector3d(-pos_bound/2, +pos_bound/2, 0);
+      break;
+    default:
+      break;
+    }
+
     // http://fnorio.com/0098spherical_trigonometry1/spherical_trigonometry1.html
-    double ang1 = x.at(5 *i + 3);
-    double ang2 = x.at(5 *i + 4);
+    double ang1 = x.at(2 *i);
+    double ang2 = x.at(2 *i + 1);
     Eigen::Vector3d u_i(sin(ang1) * cos(ang2), sin(ang1) * sin(ang2), cos(ang1));
     Eigen::Vector3d v_i = p_i.cross(u_i) - m_f_rate * direct_i * u_i;
     //std::cout<< "m_f_rate: " << m_f_rate <<  "; pi: " << p_i.transpose() << "; u_i: " << u_i.transpose() << "; vi: " << v_i.transpose() << std::endl;
@@ -161,7 +180,7 @@ double objectiveFunc(const std::vector<double> &x, std::vector<double> &grad, vo
   std::vector<Eigen::Vector3d> u;
   std::vector<Eigen::Vector3d> v;
   std::vector<double> direct;
-  calcRotorConfiguration(x, planner->unit_rotor_num_, planner->m_f_rate_, p, u, v, direct);
+  calcRotorConfiguration(x, planner->unit_rotor_num_, planner->pos_bound_, planner->m_f_rate_, p, u, v, direct);
 
   // get the fc_f_min and fc_t_min
   double fc_f_min = calcFeasibleControlFDists(u, planner->max_thrust_, planner->unit_mass_ * planner->units_num_);
@@ -174,7 +193,7 @@ double objectiveFunc(const std::vector<double> &x, std::vector<double> &grad, vo
 OptimalDesign::OptimalDesign(ros::NodeHandle nh, ros::NodeHandle nhp)
 {
   // intialize variables
-  nhp.param("unit_rotor_num", unit_rotor_num_, 3);
+  nhp.param("unit_rotor_num", unit_rotor_num_, 4);
   nhp.param("unit_mass", unit_mass_, 0.5); // [kg]
   nhp.param("max_thrust", max_thrust_, 5.0); // [N]
   nhp.param("fc_fmin_weight", fc_f_min_weight_, 1.0);
@@ -191,31 +210,23 @@ OptimalDesign::OptimalDesign(ros::NodeHandle nh, ros::NodeHandle nhp)
 
 
   // design the optimiazation problem
-  // x: [p_x, p_y, p_z, ang1, ang2] * n
+  // x: [ang1, ang2] * n
+  // p_x: fixed
   // n: the number of rotors in unit module, which means the half of the two-assemble model
   // p_x, p_y, p_z: 3D position
   // ang1, ang2: 2D angles describing the rotor normal
-  nlopt::opt optimizer_solver(nlopt::GN_ISRES, 5 * unit_rotor_num_); // chose the proper optimization model
+  nlopt::opt optimizer_solver(nlopt::GN_ISRES, 2 * unit_rotor_num_); // chose the proper optimization model
   optimizer_solver.set_max_objective(objectiveFunc, this); // register "this" as the second arg in objectiveFunc
 
   // set bounds
-  std::vector<double> lb(5 * unit_rotor_num_);
-  std::vector<double> ub(5 * unit_rotor_num_);
+  std::vector<double> lb(2 * unit_rotor_num_);
+  std::vector<double> ub(2 * unit_rotor_num_);
   for(int i = 0; i < unit_rotor_num_; i++) {
-    lb.at(5 * i) = 0; // lower bound of pos_x
-    ub.at(5 * i) = pos_bound_; // upper bound of pos_x
+    lb.at(2 * i) = 0; // lower bound of ang1
+    ub.at(2 * i) = 0.4; // 0.4rad = 20deg upper bound of ang1 => no downward rotor
 
-    lb.at(5 * i + 1) = -pos_bound_; // lower bound of pos_y
-    ub.at(5 * i + 1) = pos_bound_; // upper bound of pos_y
-
-    lb.at(5 * i + 2) = -pos_bound_; // lower bound of pos_z
-    ub.at(5 * i + 2) = pos_bound_; // upper bound of pos_z
-
-    lb.at(5 * i + 3) = 0; // lower bound of ang1
-    ub.at(5 * i + 3) = M_PI/2; // upper bound of ang1 => no downward rotor
-
-    lb.at(5 * i + 4) = 0; // lower bound of ang1
-    ub.at(5 * i + 4) = 2 * M_PI; // upper bound of ang1
+    lb.at(2 * i + 1) = 0; // lower bound of ang1
+    ub.at(2 * i + 1) = 2 * M_PI; // upper bound of ang1
   }
   optimizer_solver.set_lower_bounds(lb);
   optimizer_solver.set_upper_bounds(ub);
@@ -227,31 +238,11 @@ OptimalDesign::OptimalDesign(ros::NodeHandle nh, ros::NodeHandle nhp)
   nhp.param("max_eval", max_eval, 1000000);
   optimizer_solver.set_maxeval(max_eval);
   double max_val;
-  std::vector<double> opt_x(5 * unit_rotor_num_);
-
-
-  // initial
-  // rotor1
-  int i = 0;
-  opt_x.at(5 * i) = pos_bound_ / 2;
-  opt_x.at(5 * i + 1) = 0;
-  opt_x.at(5 * i + 2) = 0;
-  opt_x.at(5 * i + 3) = 0.3;
-  opt_x.at(5 * i + 4) = M_PI;
-  // rotor2
-  i = 1;
-  opt_x.at(5 * i) = pos_bound_;
-  opt_x.at(5 * i + 1) = pos_bound_/2;
-  opt_x.at(5 * i + 2) = 0;
-  opt_x.at(5 * i + 3) = 0.3;
-  opt_x.at(5 * i + 4) = M_PI/2;
-  // rotor2
-  i = 2;
-  opt_x.at(5 * i) = pos_bound_;
-  opt_x.at(5 * i + 1) = -pos_bound_/2;
-  opt_x.at(5 * i + 2) = 0;
-  opt_x.at(5 * i + 3) = 0.3;
-  opt_x.at(5 * i + 4) = 3 * M_PI/2;
+  std::vector<double> opt_x(2 * unit_rotor_num_, 0);
+  // for(int i = 0; i < unit_rotor_num_; i++) {
+  //   opt_x.at(2 * i) = 0.2;
+  //   opt_x.at(2 * i + 1) = 0.2 * std::pow(-1, i);
+  // }
 
   bool search_flag;
   nhp.param("search_flag", search_flag, true);
@@ -267,7 +258,7 @@ OptimalDesign::OptimalDesign(ros::NodeHandle nh, ros::NodeHandle nhp)
   std::vector<Eigen::Vector3d> u;
   std::vector<Eigen::Vector3d> v;
   std::vector<double> direct;
-  calcRotorConfiguration(opt_x, unit_rotor_num_, m_f_rate_, p, u, v, direct);
+  calcRotorConfiguration(opt_x, unit_rotor_num_, pos_bound_, m_f_rate_, p, u, v, direct);
 
   // get the fc_f_min and fc_t_min
   double fc_f_min = calcFeasibleControlFDists(u, max_thrust_, unit_mass_ * units_num_);
