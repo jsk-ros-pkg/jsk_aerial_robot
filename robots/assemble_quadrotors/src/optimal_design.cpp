@@ -35,6 +35,8 @@
 
 #include <assemble_quadrotors/optimal_design.h>
 
+int cnt = 0;
+
 void calcRotorConfiguration(const std::vector<double>& x, const int unit_rotor_num, const double pos_bound, const double m_f_rate, std::vector<Eigen::Vector3d>& p, std::vector<Eigen::Vector3d>& u, std::vector<Eigen::Vector3d>& v, std::vector<double>& direct)
 {
   p.clear();
@@ -186,6 +188,16 @@ double objectiveFunc(const std::vector<double> &x, std::vector<double> &grad, vo
   double fc_f_min = calcFeasibleControlFDists(u, planner->max_thrust_, planner->unit_mass_ * planner->units_num_);
   double fc_t_min = calcFeasibleControlTDists(v, planner->max_thrust_);
 
+  if (cnt % 10000 == 0) {
+    std::stringstream ss;
+    ss << "fc_f_min: " << fc_f_min << "; fc_t_min: " << fc_t_min;
+    // ss << "; u: ";
+    // for(auto& u_i : u) ss << u_i.transpose() << ", ";
+    std::cout << ss.str() << std::endl;
+  }
+
+   cnt++;
+
   return planner->fc_f_min_weight_ * fc_f_min + planner->fc_t_min_weight_ * fc_t_min;
 }
 
@@ -231,18 +243,12 @@ OptimalDesign::OptimalDesign(ros::NodeHandle nh, ros::NodeHandle nhp)
   optimizer_solver.set_lower_bounds(lb);
   optimizer_solver.set_upper_bounds(ub);
 
-  // TODO: add inequality (equality) constraints. e.g.:
-  // optimizer_solver.add_inequality_constraint(cons_func, this, 1e-8);
   optimizer_solver.set_xtol_rel(1e-4); //1e-4
   int max_eval;
-  nhp.param("max_eval", max_eval, 1000000);
+  nhp.param("max_eval", max_eval, 100000);
   optimizer_solver.set_maxeval(max_eval);
   double max_val;
-  std::vector<double> opt_x(2 * unit_rotor_num_, 0);
-  // for(int i = 0; i < unit_rotor_num_; i++) {
-  //   opt_x.at(2 * i) = 0.2;
-  //   opt_x.at(2 * i + 1) = 0.2 * std::pow(-1, i);
-  // }
+  std::vector<double> opt_x(2 * unit_rotor_num_, 0.01);
 
   bool search_flag;
   nhp.param("search_flag", search_flag, true);
@@ -252,6 +258,10 @@ OptimalDesign::OptimalDesign(ros::NodeHandle nh, ros::NodeHandle nhp)
         ROS_WARN_STREAM("the optimize solution does not succeed, result is " << result);
     }
 
+  std::stringstream ss;
+  ss << "opt x: ";
+  for(auto& x_i: opt_x) ss << x_i << ", ";
+  std::cout << ss.str() << std::endl;
 
   // get the p, u, v and direction
   std::vector<Eigen::Vector3d> p;
@@ -263,6 +273,14 @@ OptimalDesign::OptimalDesign(ros::NodeHandle nh, ros::NodeHandle nhp)
   // get the fc_f_min and fc_t_min
   double fc_f_min = calcFeasibleControlFDists(u, max_thrust_, unit_mass_ * units_num_);
   double fc_t_min = calcFeasibleControlTDists(v, max_thrust_);
+
+
+  ss << "final fc_f_min: " << fc_f_min << "; fc_t_min: " << fc_t_min;
+  ss << "; u: ";
+  for(auto& u_i : u) ss << u_i.transpose() << ", ";
+
+  std::cout << ss.str() << std::endl;
+
 
   aerial_robot_msgs::FeasibleControlConvexInfo msg;
   msg.header.stamp = ros::Time::now();
