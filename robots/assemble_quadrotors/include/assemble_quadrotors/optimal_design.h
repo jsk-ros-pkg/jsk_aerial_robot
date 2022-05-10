@@ -42,6 +42,8 @@
 #include <aerial_robot_msgs/FeasibleControlConvexInfo.h>
 #include <visualization_msgs/MarkerArray.h>
 #include <tf/transform_datatypes.h>
+#include <numeric>
+#include <vector>
 
 class OptimalDesign
 {
@@ -60,4 +62,5 @@ public:
 
   ros::Publisher visualize_pub_;
   ros::Publisher feasible_control_info_pub_;
+  ros::Publisher feasible_control_info_pub_unit_;
 };

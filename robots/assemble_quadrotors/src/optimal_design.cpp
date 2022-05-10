@@ -38,59 +38,149 @@
 
 int cnt = 0;
 
-void calcRotorConfiguration(const std::vector<double>& x, const int unit_rotor_num, const double pos_bound, const double m_f_rate, std::vector<Eigen::Vector3d>& p, std::vector<Eigen::Vector3d>& u, std::vector<Eigen::Vector3d>& v, std::vector<double>& direct)
+void calcRotorConfiguration(const std::vector<double>& x, const int unit_rotor_num, const double pos_bound, const double m_f_rate, std::vector<Eigen::Vector3d>& p, std::vector<Eigen::Vector3d>& u, std::vector<Eigen::Vector3d>& v, std::vector<double>& direct, const bool unit_calc)
 {
   p.clear();
   u.clear();
   v.clear();
   direct.clear();
 
-  Eigen::Vector3d  unit1_center_pos(pos_bound, 0, 0);
-  // x: [ang1, ang2] * n/2
-
-  for(int i = 0; i < unit_rotor_num; i++) {
-    double direct_i = std::pow(-1, i);
-    Eigen::Vector3d p_i;
-    switch(i) {
-    case 0:
-      p_i = unit1_center_pos + Eigen::Vector3d(-pos_bound/2, -pos_bound/2, 0);
-      break;
-    case 1:
-      p_i = unit1_center_pos + Eigen::Vector3d(+pos_bound/2, -pos_bound/2, 0);
-      break;
-    case 2:
-      p_i = unit1_center_pos + Eigen::Vector3d(+pos_bound/2, +pos_bound/2, 0);
-      break;
-    case 3:
-      p_i = unit1_center_pos + Eigen::Vector3d(-pos_bound/2, +pos_bound/2, 0);
-      break;
-    default:
-      break;
+  // determine the origin point by the type of calclation
+  Eigen::Vector3d  unit1_center_pos;
+  if(unit_calc == true){
+    unit1_center_pos(0) = 0;
+    unit1_center_pos(1) = 0;
+    unit1_center_pos(2) = 0;
+    // x: [ang1, ang2] * n/2
+    for(int i = 0; i < unit_rotor_num; i++) {
+      double direct_i = std::pow(-1, i);
+      Eigen::Vector3d p_i;
+      switch(i) {
+      case 0:
+        p_i = unit1_center_pos + Eigen::Vector3d(-pos_bound/2, -pos_bound/2, 0);
+        break;
+      case 1:
+        p_i = unit1_center_pos + Eigen::Vector3d(+pos_bound/2, -pos_bound/2, 0);
+        break;
+      case 2:
+        p_i = unit1_center_pos + Eigen::Vector3d(+pos_bound/2, +pos_bound/2, 0);
+        break;
+      case 3:
+        p_i = unit1_center_pos + Eigen::Vector3d(-pos_bound/2, +pos_bound/2, 0);
+        break;
+      default:
+        break;
+      }
+      // http://fnorio.com/0098spherical_trigonometry1/spherical_trigonometry1.html
+      double ang1 = x.at(2 *i);
+      double ang2 = x.at(2 *i + 1);
+      Eigen::Vector3d u_i(sin(ang1) * cos(ang2), sin(ang1) * sin(ang2), cos(ang1));
+      Eigen::Vector3d v_i = p_i.cross(u_i) - m_f_rate * direct_i * u_i;
+      //std::cout<< "m_f_rate: " << m_f_rate <<  "; pi: " << p_i.transpose() << "; u_i: " << u_i.transpose() << "; vi: " << v_i.transpose() << std::endl;
+      p.push_back(p_i); // append rotor position
+      u.push_back(u_i); // append rotor force normal
+      v.push_back(v_i); // append rotor torque normal
+      direct.push_back(direct_i); // append propeller rotating direction
     }
+  }else{
+    unit1_center_pos(0) = pos_bound;
+    unit1_center_pos(1) = 0;
+    unit1_center_pos(2) = 0;
 
-    // http://fnorio.com/0098spherical_trigonometry1/spherical_trigonometry1.html
-    double ang1 = x.at(2 *i);
-    double ang2 = x.at(2 *i + 1);
-    Eigen::Vector3d u_i(sin(ang1) * cos(ang2), sin(ang1) * sin(ang2), cos(ang1));
-    Eigen::Vector3d v_i = p_i.cross(u_i) - m_f_rate * direct_i * u_i;
-    //std::cout<< "m_f_rate: " << m_f_rate <<  "; pi: " << p_i.transpose() << "; u_i: " << u_i.transpose() << "; vi: " << v_i.transpose() << std::endl;
-    p.push_back(p_i); // append rotor position
-    u.push_back(u_i); // append rotor force normal
-    v.push_back(v_i); // append rotor torque normal
-    direct.push_back(direct_i); // append propeller rotating direction
+    // x: [ang1, ang2] * n/2
 
-    // the mirror rotor
-    // simplest rule: rotate the unit around the z axis
-    double direct_i_mirror = std::pow(-1, i); // append propeller rotating direction (same direction)
-    Eigen::Vector3d p_i_mirror = Eigen::AngleAxisd(M_PI, Eigen::Vector3d::UnitZ()) * p_i;
-    Eigen::Vector3d u_i_mirror = Eigen::AngleAxisd(M_PI, Eigen::Vector3d::UnitZ()) * u_i;
-    Eigen::Vector3d v_i_mirror = p_i_mirror.cross(u_i_mirror) - m_f_rate * direct_i_mirror * u_i_mirror;
-    p.push_back(p_i_mirror);
-    u.push_back(u_i_mirror);
-    v.push_back(v_i_mirror);
-    direct.push_back(direct_i_mirror);
-    //std::cout<< "m_f_rate: " << m_f_rate <<  "; pi: " << p_i_mirror.transpose() << "; u_i: " << u_i_mirror.transpose() << "; vi: " << v_i_mirror.transpose() << std::endl;
+    for(int i = 0; i < unit_rotor_num; i++) {
+      double direct_i = std::pow(-1, i);
+      Eigen::Vector3d p_i;
+      switch(i) {
+      case 0:
+        p_i = unit1_center_pos + Eigen::Vector3d(-pos_bound/2, -pos_bound/2, 0);
+        break;
+      case 1:
+        p_i = unit1_center_pos + Eigen::Vector3d(+pos_bound/2, -pos_bound/2, 0);
+        break;
+      case 2:
+        p_i = unit1_center_pos + Eigen::Vector3d(+pos_bound/2, +pos_bound/2, 0);
+        break;
+      case 3:
+        p_i = unit1_center_pos + Eigen::Vector3d(-pos_bound/2, +pos_bound/2, 0);
+        break;
+      default:
+        break;
+      }
+
+      // http://fnorio.com/0098spherical_trigonometry1/spherical_trigonometry1.html
+      double ang1 = x.at(2 *i);
+      double ang2 = x.at(2 *i + 1);
+      Eigen::Vector3d u_i(sin(ang1) * cos(ang2), sin(ang1) * sin(ang2), cos(ang1));
+      Eigen::Vector3d v_i = p_i.cross(u_i) - m_f_rate * direct_i * u_i;
+      //std::cout<< "m_f_rate: " << m_f_rate <<  "; pi: " << p_i.transpose() << "; u_i: " << u_i.transpose() << "; vi: " << v_i.transpose() << std::endl;
+      p.push_back(p_i); // append rotor position
+      u.push_back(u_i); // append rotor force normal
+      v.push_back(v_i); // append rotor torque normal
+      direct.push_back(direct_i); // append propeller rotating direction
+
+      // the mirror rotor
+      // simplest rule: rotate the unit around the z axis
+      double direct_i_mirror = std::pow(-1, i); // append propeller rotating direction (same direction)
+      Eigen::Vector3d p_i_mirror = Eigen::AngleAxisd(M_PI, Eigen::Vector3d::UnitZ()) * p_i;
+      Eigen::Vector3d u_i_mirror = Eigen::AngleAxisd(M_PI, Eigen::Vector3d::UnitZ()) * u_i;
+      Eigen::Vector3d v_i_mirror = p_i_mirror.cross(u_i_mirror) - m_f_rate * direct_i_mirror * u_i_mirror;
+      p.push_back(p_i_mirror);
+      u.push_back(u_i_mirror);
+      v.push_back(v_i_mirror);
+      direct.push_back(direct_i_mirror);
+    }
   }
+
+  // for(int i = 0; i < unit_rotor_num; i++) {
+  //   double direct_i = std::pow(-1, i);
+  //   Eigen::Vector3d p_i;
+  //   switch(i) {
+  //   case 0:
+  //     p_i = unit1_center_pos + Eigen::Vector3d(-pos_bound/2, -pos_bound/2, 0);
+  //     break;
+  //   case 1:
+  //     p_i = unit1_center_pos + Eigen::Vector3d(+pos_bound/2, -pos_bound/2, 0);
+  //     break;
+  //   case 2:
+  //     p_i = unit1_center_pos + Eigen::Vector3d(+pos_bound/2, +pos_bound/2, 0);
+  //     break;
+  //   case 3:
+  //     p_i = unit1_center_pos + Eigen::Vector3d(-pos_bound/2, +pos_bound/2, 0);
+  //     break;
+  //   default:
+  //     break;
+  //   }
+
+  //   // http://fnorio.com/0098spherical_trigonometry1/spherical_trigonometry1.html
+  //   double ang1 = x.at(2 *i);
+  //   double ang2 = x.at(2 *i + 1);
+  //   Eigen::Vector3d u_i(sin(ang1) * cos(ang2), sin(ang1) * sin(ang2), cos(ang1));
+  //   Eigen::Vector3d v_i = p_i.cross(u_i) - m_f_rate * direct_i * u_i;
+  //   //std::cout<< "m_f_rate: " << m_f_rate <<  "; pi: " << p_i.transpose() << "; u_i: " << u_i.transpose() << "; vi: " << v_i.transpose() << std::endl;
+  //   p.push_back(p_i); // append rotor position
+  //   u.push_back(u_i); // append rotor force normal
+  //   v.push_back(v_i); // append rotor torque normal
+  //   direct.push_back(direct_i); // append propeller rotating direction
+  // }
+
+  // // the mirror rotor
+  // // simplest rule: rotate the unit around the z axis
+  // for(int i = 0; i< unit_rotor_num; i++){
+  //   const Eigen::Vector3d& p_i = p.at(i);
+  //   const Eigen::Vector3d& u_i = u.at(i);
+  //   const Eigen::Vector3d& v_i = v.at(i);
+  //   double direct_i_mirror = std::pow(-1, i); // append propeller rotating direction (same direction)
+  //   Eigen::Vector3d p_i_mirror = Eigen::AngleAxisd(M_PI, Eigen::Vector3d::UnitZ()) * p_i;
+  //   Eigen::Vector3d u_i_mirror = Eigen::AngleAxisd(M_PI, Eigen::Vector3d::UnitZ()) * u_i;
+  //   Eigen::Vector3d v_i_mirror = p_i_mirror.cross(u_i_mirror) - m_f_rate * direct_i_mirror * u_i_mirror;
+  //   p.push_back(p_i_mirror);
+  //   u.push_back(u_i_mirror);
+  //   v.push_back(v_i_mirror);
+  //   direct.push_back(direct_i_mirror);
+  // }
+
 }
 
 
@@ -104,9 +194,11 @@ double calcTripleProduct(const Eigen::Vector3d& ui, const Eigen::Vector3d& uj, c
   return uixuj.dot(uk) / uixuj.norm();
 }
 
+
 // copy and modified from https://github.com/jsk-ros-pkg/jsk_aerial_robot/blob/master/aerial_robot_model/src/transformable_aerial_robot_model/stability.cpp#L56-L86
 double calcFeasibleControlFDists(const std::vector<Eigen::Vector3d>& u, const double thrust_max, const double mass)
 {
+
   const int rotor_num = u.size();
   Eigen::VectorXd fc_f_dists = Eigen::VectorXd::Zero(rotor_num * (rotor_num - 1));
   Eigen::Vector3d gravity_force(0, 0, mass * 9.8); // considering the gravity
@@ -141,6 +233,7 @@ double calcFeasibleControlFDists(const std::vector<Eigen::Vector3d>& u, const do
 // copy and modified from https://github.com/jsk-ros-pkg/jsk_aerial_robot/blob/master/aerial_robot_model/src/transformable_aerial_robot_model/stability.cpp#L88-L114
 double calcFeasibleControlTDists(const std::vector<Eigen::Vector3d>& v, const double thrust_max)
 {
+
   const int rotor_num = v.size();
   Eigen::VectorXd fc_t_dists = Eigen::VectorXd::Zero(rotor_num * (rotor_num - 1));
 
@@ -183,7 +276,7 @@ double objectiveFunc(const std::vector<double> &x, std::vector<double> &grad, vo
   std::vector<Eigen::Vector3d> u;
   std::vector<Eigen::Vector3d> v;
   std::vector<double> direct;
-  calcRotorConfiguration(x, planner->unit_rotor_num_, planner->pos_bound_, planner->m_f_rate_, p, u, v, direct);
+  calcRotorConfiguration(x, planner->unit_rotor_num_, planner->pos_bound_, planner->m_f_rate_, p, u, v, direct, false);
 
   // get the fc_f_min and fc_t_min
   double fc_f_min = calcFeasibleControlFDists(u, planner->max_thrust_, planner->unit_mass_ * planner->units_num_);
@@ -192,6 +285,8 @@ double objectiveFunc(const std::vector<double> &x, std::vector<double> &grad, vo
   if (cnt % 10000 == 0) {
     std::stringstream ss;
     ss << "fc_f_min: " << fc_f_min << "; fc_t_min: " << fc_t_min;
+    // ss << "opt x: ";
+    // for(auto& x_i: x) ss << x_i << ", ";
     // ss << "; u: ";
     // for(auto& u_i : u) ss << u_i.transpose() << ", ";
     std::cout << ss.str() << std::endl;
@@ -201,6 +296,15 @@ double objectiveFunc(const std::vector<double> &x, std::vector<double> &grad, vo
 
   return planner->fc_f_min_weight_ * fc_f_min + planner->fc_t_min_weight_ * fc_t_min;
 }
+
+// set the  bounds by constrains of unit rotor
+double unitConstraint(const std::vector<double> &x, std::vector<double> &grad, void *ptr)
+{
+  OptimalDesign *planner = reinterpret_cast<OptimalDesign*>(ptr);
+
+  return (9.8 * planner->unit_mass_ - (cos(x[0]) + cos(x[1]) + cos(x[2]) + cos(x[3]))  * planner->max_thrust_ );
+}
+
 
 
 OptimalDesign::OptimalDesign(ros::NodeHandle nh, ros::NodeHandle nhp)
@@ -218,7 +322,7 @@ OptimalDesign::OptimalDesign(ros::NodeHandle nh, ros::NodeHandle nhp)
 
   visualize_pub_ = nh.advertise<visualization_msgs::MarkerArray>("rotor_configuration_markers", 1);
   feasible_control_info_pub_ = nh.advertise<aerial_robot_msgs::FeasibleControlConvexInfo>("feasible_control_convex_info", 1);
-
+  feasible_control_info_pub_unit_ = nh.advertise<aerial_robot_msgs::FeasibleControlConvexInfo>("feasible_control_convex_info_unit", 1);
   ros::Duration(1.0).sleep();
 
 
@@ -231,18 +335,21 @@ OptimalDesign::OptimalDesign(ros::NodeHandle nh, ros::NodeHandle nhp)
   nlopt::opt optimizer_solver(nlopt::GN_ISRES, 2 * unit_rotor_num_); // chose the proper optimization model
   optimizer_solver.set_max_objective(objectiveFunc, this); // register "this" as the second arg in objectiveFunc
 
-  // set bounds
+  //set bounds
   std::vector<double> lb(2 * unit_rotor_num_);
   std::vector<double> ub(2 * unit_rotor_num_);
   for(int i = 0; i < unit_rotor_num_; i++) {
-    lb.at(2 * i) = 0; // lower bound of ang1
-    ub.at(2 * i) = 0.4; // 0.4rad = 20deg upper bound of ang1 => no downward rotor
+    lb.at(2 * i) = -M_PI;
+    ub.at(2 * i) = M_PI;
 
     lb.at(2 * i + 1) = 0; // lower bound of ang1
     ub.at(2 * i + 1) = 2 * M_PI; // upper bound of ang1
   }
   optimizer_solver.set_lower_bounds(lb);
   optimizer_solver.set_upper_bounds(ub);
+
+  optimizer_solver.add_inequality_constraint(unitConstraint, this);
+
 
   optimizer_solver.set_xtol_rel(1e-4); //1e-4
   int max_eval;
@@ -264,25 +371,40 @@ OptimalDesign::OptimalDesign(ros::NodeHandle nh, ros::NodeHandle nhp)
   for(auto& x_i: opt_x) ss << x_i << ", ";
   std::cout << ss.str() << std::endl;
 
-  // get the p, u, v and direction
+  // get the p, u, v and direction of assembled rotors
   std::vector<Eigen::Vector3d> p;
   std::vector<Eigen::Vector3d> u;
   std::vector<Eigen::Vector3d> v;
   std::vector<double> direct;
-  calcRotorConfiguration(opt_x, unit_rotor_num_, pos_bound_, m_f_rate_, p, u, v, direct);
+  calcRotorConfiguration(opt_x, unit_rotor_num_, pos_bound_, m_f_rate_, p, u, v, direct, false);
 
-  // get the fc_f_min and fc_t_min
+  // get the p, u, v and direction of a unit rotor
+  std::vector<Eigen::Vector3d> p_unit;
+  std::vector<Eigen::Vector3d> u_unit;
+  std::vector<Eigen::Vector3d> v_unit;
+  std::vector<double> direct_unit;
+  calcRotorConfiguration(opt_x, unit_rotor_num_, pos_bound_, m_f_rate_, p_unit, u_unit, v_unit, direct_unit, true);
+
+
+  // get the fc_f_min and fc_t_min of assembled rotors
   double fc_f_min = calcFeasibleControlFDists(u, max_thrust_, unit_mass_ * units_num_);
   double fc_t_min = calcFeasibleControlTDists(v, max_thrust_);
 
+  // get the fc_f_min and fc_t_min of a unit rotor
+  double fc_f_min_unit = calcFeasibleControlFDists(u_unit, max_thrust_, unit_mass_);
+  double fc_t_min_unit = calcFeasibleControlTDists(v_unit, max_thrust_);
+
+
 
   ss << "final fc_f_min: " << fc_f_min << "; fc_t_min: " << fc_t_min;
-  ss << "; u: ";
+  ss << "; ui: ";
   for(auto& u_i : u) ss << u_i.transpose() << ", ";
+  ss << "; ui_unit: ";
+  for(auto& u_i_unit : u_unit) ss << u_i_unit.transpose() << ", ";
 
   std::cout << ss.str() << std::endl;
 
-
+  // publish the info of assembled rotors
   aerial_robot_msgs::FeasibleControlConvexInfo msg;
   msg.header.stamp = ros::Time::now();
 
@@ -307,6 +429,33 @@ OptimalDesign::OptimalDesign(ros::NodeHandle nh, ros::NodeHandle nhp)
   msg.total_mass = units_num_ * unit_mass_;
 
   feasible_control_info_pub_.publish(msg);
+
+  // publish the info of unit rotor
+  aerial_robot_msgs::FeasibleControlConvexInfo msg_unit;
+  msg_unit.header.stamp = ros::Time::now();
+
+  for(const auto& u_i: u_unit) {
+    geometry_msgs::Vector3 vec;
+    vec.x = u_i.x() * max_thrust_;
+    vec.y = u_i.y() * max_thrust_;
+    vec.z = u_i.z() * max_thrust_;
+    msg_unit.u.push_back(vec);
+  }
+  msg_unit.fc_f_min = fc_f_min_unit;
+
+  for(const auto& v_i: v_unit) {
+    geometry_msgs::Vector3 vec;
+    vec.x = v_i.x() * max_thrust_;
+    vec.y = v_i.y() * max_thrust_;
+    vec.z = v_i.z() * max_thrust_;
+    msg_unit.v.push_back(vec);
+  }
+  msg_unit.fc_t_min = fc_t_min_unit;
+
+  msg_unit.total_mass = unit_mass_;
+
+  feasible_control_info_pub_unit_.publish(msg_unit);
+
 
 
   visualization_msgs::MarkerArray marker_msg;

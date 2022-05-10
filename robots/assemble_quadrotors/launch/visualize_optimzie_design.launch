@@ -6,4 +6,8 @@
   ###########  visualize the feasible control force/torque convex by matplot  ###########
   <node name="feasible_control_convex" pkg="assemble_quadrotors" type="feasible_control_convex_plot.py" />
 
+  ###########  visualize the feasible control force/torque convex by matplot  ###########
+  <node name="feasible_control_convex_unit" pkg="assemble_quadrotors" type="feasible_control_convex_plot_unit.py" />
+
+
 </launch>
