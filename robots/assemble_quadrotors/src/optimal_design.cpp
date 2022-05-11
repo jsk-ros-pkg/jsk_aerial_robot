@@ -274,19 +274,25 @@ double objectiveFunc(const std::vector<double> &x, std::vector<double> &grad, vo
   double fc_f_min = calcFeasibleControlFDists(u, planner->max_thrust_, planner->unit_mass_ * planner->units_num_);
   double fc_t_min = calcFeasibleControlTDists(v, planner->max_thrust_);
 
+  // penalty against rotor angle
+  double penalty_rate = 0.0;
+  double angle_penalty =  0;
+  for(int i; i < x.size() / 2; i++){
+    double penalty_i =  abs(x[i*2]) * penalty_rate ;
+    angle_penalty += penalty_i;
+  }
+
   if (cnt % 10000 == 0) {
     std::stringstream ss;
-    ss << "fc_f_min: " << fc_f_min << "; fc_t_min: " << fc_t_min;
-    // ss << "opt x: ";
-    // for(auto& x_i: x) ss << x_i << ", ";
-    // ss << "; u: ";
-    // for(auto& u_i : u) ss << u_i.transpose() << ", ";
+    ss << "fc_f_min: " << fc_f_min << "; fc_t_min: " << fc_t_min << "/n";
     std::cout << ss.str() << std::endl;
+    std::cout << "angle_penalty: " << angle_penalty << std::endl;
+    std::cout << "value: " << (planner->fc_f_min_weight_ * fc_f_min + planner->fc_t_min_weight_ * fc_t_min + angle_penalty) << std::endl;
   }
 
    cnt++;
 
-  return planner->fc_f_min_weight_ * fc_f_min + planner->fc_t_min_weight_ * fc_t_min;
+  return planner->fc_f_min_weight_ * fc_f_min + planner->fc_t_min_weight_ * fc_t_min + angle_penalty;
 }
 
 // set the  bounds by constrains of unit rotor
@@ -294,7 +300,7 @@ double unitConstraint(const std::vector<double> &x, std::vector<double> &grad, v
 {
   OptimalDesign *planner = reinterpret_cast<OptimalDesign*>(ptr);
 
-  return (9.8 * planner->unit_mass_ - (cos(x[0]) + cos(x[1]) + cos(x[2]) + cos(x[3]))  * planner->max_thrust_ );
+  return (9.8 * planner->unit_mass_ - (cos(x[0]) + cos(x[1]) + cos(x[2]) + cos(x[3]))  * planner->max_thrust_);
 }
 
 
@@ -324,15 +330,15 @@ OptimalDesign::OptimalDesign(ros::NodeHandle nh, ros::NodeHandle nhp)
   // n: the number of rotors in unit module, which means the half of the two-assemble model
   // p_x, p_y, p_z: 3D position
   // ang1, ang2: 2D angles describing the rotor normal
-  nlopt::opt optimizer_solver(nlopt::GN_ISRES, 2 * unit_rotor_num_); // chose the proper optimization model
+  nlopt::opt optimizer_solver(nlopt::GN_ISRES, unit_rotor_num_); // chose the proper optimization model
   optimizer_solver.set_max_objective(objectiveFunc, this); // register "this" as the second arg in objectiveFunc
 
   //set bounds
-  std::vector<double> lb(2 * unit_rotor_num_);
-  std::vector<double> ub(2 * unit_rotor_num_);
-  for(int i = 0; i < unit_rotor_num_; i++) {
-    lb.at(2 * i) = -M_PI;
-    ub.at(2 * i) = M_PI;
+  std::vector<double> lb(unit_rotor_num_);
+  std::vector<double> ub(unit_rotor_num_);
+  for(int i = 0; i < unit_rotor_num_ / 2; i++) {
+    lb.at(2 * i) = -M_PI/2;
+    ub.at(2 * i) = M_PI/2;
 
     lb.at(2 * i + 1) = 0; // lower bound of ang1
     ub.at(2 * i + 1) = 2 * M_PI; // upper bound of ang1
@@ -390,11 +396,6 @@ OptimalDesign::OptimalDesign(ros::NodeHandle nh, ros::NodeHandle nhp)
 
 
   ss << "final fc_f_min: " << fc_f_min << "; fc_t_min: " << fc_t_min;
-  ss << "; ui: ";
-  for(auto& u_i : u) ss << u_i.transpose() << ", ";
-  ss << "; ui_unit: ";
-  for(auto& u_i_unit : u_unit) ss << u_i_unit.transpose() << ", ";
-
   std::cout << ss.str() << std::endl;
 
   // publish the info of assembled rotors
