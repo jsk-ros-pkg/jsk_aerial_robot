@@ -47,91 +47,82 @@ void calcRotorConfiguration(const std::vector<double>& x, const int unit_rotor_n
 
   // determine the origin point by the type of calclation
   Eigen::Vector3d  unit1_center_pos;
+  int calc_num;
+
   if(unit_calc == true){
     unit1_center_pos(0) = 0;
     unit1_center_pos(1) = 0;
     unit1_center_pos(2) = 0;
-    // x: [ang1, ang2] * n/2
-    for(int i = 0; i < unit_rotor_num; i++) {
-      double direct_i = std::pow(-1, i);
-      Eigen::Vector3d p_i;
-      switch(i) {
-      case 0:
-        p_i = unit1_center_pos + Eigen::Vector3d(-pos_bound/2, -pos_bound/2, 0);
-        break;
-      case 1:
-        p_i = unit1_center_pos + Eigen::Vector3d(+pos_bound/2, -pos_bound/2, 0);
-        break;
-      case 2:
-        p_i = unit1_center_pos + Eigen::Vector3d(+pos_bound/2, +pos_bound/2, 0);
-        break;
-      case 3:
-        p_i = unit1_center_pos + Eigen::Vector3d(-pos_bound/2, +pos_bound/2, 0);
-        break;
-      default:
-        break;
-      }
-      // http://fnorio.com/0098spherical_trigonometry1/spherical_trigonometry1.html
-      double ang1 = x.at(2 *i);
-      double ang2 = x.at(2 *i + 1);
-      Eigen::Vector3d u_i(sin(ang1) * cos(ang2), sin(ang1) * sin(ang2), cos(ang1));
-      Eigen::Vector3d v_i = p_i.cross(u_i) - m_f_rate * direct_i * u_i;
-      //std::cout<< "m_f_rate: " << m_f_rate <<  "; pi: " << p_i.transpose() << "; u_i: " << u_i.transpose() << "; vi: " << v_i.transpose() << std::endl;
-      p.push_back(p_i); // append rotor position
-      u.push_back(u_i); // append rotor force normal
-      v.push_back(v_i); // append rotor torque normal
-      direct.push_back(direct_i); // append propeller rotating direction
-    }
+    calc_num = unit_rotor_num / 4;
   }else{
     unit1_center_pos(0) = pos_bound;
     unit1_center_pos(1) = 0;
     unit1_center_pos(2) = 0;
-
+    calc_num = unit_rotor_num /2;
+  }
     // x: [ang1, ang2] * n/2
 
-    for(int i = 0; i < unit_rotor_num; i++) {
-      double direct_i = std::pow(-1, i);
-      Eigen::Vector3d p_i;
-      switch(i) {
-      case 0:
-        p_i = unit1_center_pos + Eigen::Vector3d(-pos_bound/2, -pos_bound/2, 0);
-        break;
-      case 1:
-        p_i = unit1_center_pos + Eigen::Vector3d(+pos_bound/2, -pos_bound/2, 0);
-        break;
-      case 2:
-        p_i = unit1_center_pos + Eigen::Vector3d(+pos_bound/2, +pos_bound/2, 0);
-        break;
-      case 3:
-        p_i = unit1_center_pos + Eigen::Vector3d(-pos_bound/2, +pos_bound/2, 0);
-        break;
-      default:
-        break;
-      }
-
-      // http://fnorio.com/0098spherical_trigonometry1/spherical_trigonometry1.html
-      double ang1 = x.at(2 *i);
-      double ang2 = x.at(2 *i + 1);
-      Eigen::Vector3d u_i(sin(ang1) * cos(ang2), sin(ang1) * sin(ang2), cos(ang1));
-      Eigen::Vector3d v_i = p_i.cross(u_i) - m_f_rate * direct_i * u_i;
-      //std::cout<< "m_f_rate: " << m_f_rate <<  "; pi: " << p_i.transpose() << "; u_i: " << u_i.transpose() << "; vi: " << v_i.transpose() << std::endl;
-      p.push_back(p_i); // append rotor position
-      u.push_back(u_i); // append rotor force normal
-      v.push_back(v_i); // append rotor torque normal
-      direct.push_back(direct_i); // append propeller rotating direction
-
-      // the mirror rotor
-      // simplest rule: rotate the unit around the z axis
-      double direct_i_mirror = std::pow(-1, i); // append propeller rotating direction (same direction)
-      Eigen::Vector3d p_i_mirror = Eigen::AngleAxisd(M_PI, Eigen::Vector3d::UnitZ()) * p_i;
-      Eigen::Vector3d u_i_mirror = Eigen::AngleAxisd(M_PI, Eigen::Vector3d::UnitZ()) * u_i;
-      Eigen::Vector3d v_i_mirror = p_i_mirror.cross(u_i_mirror) - m_f_rate * direct_i_mirror * u_i_mirror;
-      p.push_back(p_i_mirror);
-      u.push_back(u_i_mirror);
-      v.push_back(v_i_mirror);
-      direct.push_back(direct_i_mirror);
+  for(int i = 0; i < calc_num; i++) {
+    double direct_i = std::pow(-1, i);
+    Eigen::Vector3d p_i;
+    Eigen::Vector3d p_i_pair;
+    switch(i) {
+    case 0:
+      p_i = unit1_center_pos + Eigen::Vector3d(-pos_bound/2, -pos_bound/2, 0);
+      p_i_pair = unit1_center_pos + Eigen::Vector3d(+pos_bound/2, -pos_bound/2, 0);
+      break;
+    case 1:
+      p_i = unit1_center_pos + Eigen::Vector3d(+pos_bound/2, +pos_bound/2, 0);
+      p_i_pair= unit1_center_pos + Eigen::Vector3d(-pos_bound/2, +pos_bound/2, 0);
+      break;
+    default:
+      break;
     }
+
+    // http://fnorio.com/0098spherical_trigonometry1/spherical_trigonometry1.html
+    double ang1 = x.at(0);
+    double ang2 = x.at(1);
+    double ang1_pair = x.at(2);
+    double ang2_pair = x.at(3);
+    Eigen::Vector3d u_i(sin(ang1) * cos(ang2) * std::pow(-1, i), sin(ang1) * sin(ang2) * std::pow(-1, i), cos(ang1));
+    Eigen::Vector3d v_i = p_i.cross(u_i) - m_f_rate * direct_i * u_i;
+    //std::cout<< "m_f_rate: " << m_f_rate <<  "; pi: " << p_i.transpose() << "; u_i: " << u_i.transpose() << "; vi: " << v_i.transpose() << std::endl;
+    p.push_back(p_i); // append rotor position
+    u.push_back(u_i); // append rotor force normal
+    v.push_back(v_i); // append rotor torque normal
+    direct.push_back(direct_i); // append propeller rotating direction
+
+    // the mirror rotor
+    // simplest rule: rotate the unit around the z axis
+    double direct_i_mirror = std::pow(-1, i); // append propeller rotating direction (same direction)
+    Eigen::Vector3d p_i_mirror = Eigen::AngleAxisd(M_PI, Eigen::Vector3d::UnitZ()) * p_i;
+    Eigen::Vector3d u_i_mirror = Eigen::AngleAxisd(M_PI, Eigen::Vector3d::UnitZ()) * u_i;
+    Eigen::Vector3d v_i_mirror = p_i_mirror.cross(u_i_mirror) - m_f_rate * direct_i_mirror * u_i_mirror;
+    p.push_back(p_i_mirror);
+    u.push_back(u_i_mirror);
+    v.push_back(v_i_mirror);
+    direct.push_back(direct_i_mirror);
+
+    //pair rotors
+    Eigen::Vector3d u_i_pair(sin(ang1_pair) * cos(ang2_pair) * std::pow(-1, i), sin(ang1_pair) * sin(ang2_pair) * std::pow(-1, i), cos(ang1_pair));
+    Eigen::Vector3d v_i_pair = p_i_pair.cross(u_i_pair) - m_f_rate * direct_i * u_i_pair;
+    //std::cout<< "m_f_rate: " << m_f_rate <<  "; pi: " << p_i.transpose() << "; u_i: " << u_i.transpose() << "; vi: " << v_i.transpose() << std::endl;
+    p.push_back(p_i_pair); // append rotor position
+    u.push_back(u_i_pair); // append rotor force normal
+    v.push_back(v_i_pair); // append rotor torque normal
+    direct.push_back(direct_i); // append propeller rotating direction
+
+    // the mirror rotor
+    // simplest rule: rotate the unit around the z axis
+    Eigen::Vector3d p_i_pair_mirror = Eigen::AngleAxisd(M_PI, Eigen::Vector3d::UnitZ()) * p_i_pair;
+    Eigen::Vector3d u_i_pair_mirror = Eigen::AngleAxisd(M_PI, Eigen::Vector3d::UnitZ()) * u_i_pair;
+    Eigen::Vector3d v_i_pair_mirror = p_i_pair_mirror.cross(u_i_pair_mirror) - m_f_rate * direct_i_mirror * u_i_pair_mirror;
+    p.push_back(p_i_pair_mirror);
+    u.push_back(u_i_pair_mirror);
+    v.push_back(v_i_pair_mirror);
+    direct.push_back(direct_i_mirror);
   }
+
 
   // for(int i = 0; i < unit_rotor_num; i++) {
   //   double direct_i = std::pow(-1, i);
@@ -276,6 +267,7 @@ double objectiveFunc(const std::vector<double> &x, std::vector<double> &grad, vo
   std::vector<Eigen::Vector3d> u;
   std::vector<Eigen::Vector3d> v;
   std::vector<double> direct;
+
   calcRotorConfiguration(x, planner->unit_rotor_num_, planner->pos_bound_, planner->m_f_rate_, p, u, v, direct, false);
 
   // get the fc_f_min and fc_t_min
@@ -356,7 +348,8 @@ OptimalDesign::OptimalDesign(ros::NodeHandle nh, ros::NodeHandle nhp)
   nhp.param("max_eval", max_eval, 100000);
   optimizer_solver.set_maxeval(max_eval);
   double max_val;
-  std::vector<double> opt_x(2 * unit_rotor_num_, 0.01);
+  //std::vector<double> opt_x(2 * unit_rotor_num_, 0.01);
+  std::vector<double> opt_x(unit_rotor_num_, 0.01);
 
   bool search_flag;
   nhp.param("search_flag", search_flag, true);
