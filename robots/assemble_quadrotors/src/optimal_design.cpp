@@ -364,10 +364,17 @@ OptimalDesign::OptimalDesign(ros::NodeHandle nh, ros::NodeHandle nhp)
       if (result != nlopt::SUCCESS)
         ROS_WARN_STREAM("the optimize solution does not succeed, result is " << result);
     }
+  // modify opt_x from sphere coordinates to euler angles
+  std::vector<double> opt_x_rpy(unit_rotor_num_ * 3 / 2,0); //[roll, pich, yaw ]*unit_rotor_num_ /2
+  for(int i = 0; i < unit_rotor_num_ /2 ; i++){
+    opt_x_rpy[i*3] = 0; // roll
+    opt_x_rpy[i*3+1] = opt_x[i*2]; // pich
+    opt_x_rpy[i*3+2] = opt_x[i*2+1]; // yaw
+  }
 
   std::stringstream ss;
-  ss << "opt x: ";
-  for(auto& x_i: opt_x) ss << x_i << ", ";
+  ss << "opt x(roll pich yaw): ";
+  for(auto& opt_x_i: opt_x_rpy) ss << opt_x_i << ", ";
   std::cout << ss.str() << std::endl;
 
   // get the p, u, v and direction of assembled rotors

@@ -15,6 +15,7 @@
   <arg name="spawn_z" default="0.0"/>
   <arg name="spawn_yaw" default="0.0"/>
   <arg name="robot_id" default="" />
+  <arg name="fully_actuated" default="true" />
   <arg name="robot_ns" value="assemble_quadrotors$(arg robot_id)" />
   <arg name="config_dir" default="$(find assemble_quadrotors)/config/" />
 
@@ -39,7 +40,8 @@
     <rosparam file="$(arg config_dir)/Battery.yaml" command="load" />
 
     ###########  Control  ###########
-    <rosparam file="$(arg config_dir)/FlightControl.yaml" command="load" />
+    <rosparam file="$(arg config_dir)/FlightControlFullyActuated.yaml" command="load"  if="$(arg fully_actuated)"/>
+    <rosparam file="$(arg config_dir)/FlightControlUnderActuated.yaml" command="load"  unless="$(arg fully_actuated)"/>
 
     ###########  Sensor Fusion  ###########
     <rosparam file="$(arg config_dir)/StateEstimation.yaml" command="load" />
@@ -61,7 +63,7 @@
   <arg name="description_mode" value="gazebo" if="$(arg simulation)" />
   <include file="$(find aerial_robot_model)/launch/aerial_robot_model.launch" >
     <arg name="headless" value="$(arg headless)" />
-    <arg name="robot_model" value="$(find assemble_quadrotors)/urdf/robot.$(arg description_mode).xacro" unless="$(arg direct_model)"/>
+    <arg name="robot_model" value="$(find assemble_quadrotors)/urdf/assemble_dual_quadrotor.$(arg description_mode).xacro" unless="$(arg direct_model)"/>
     <arg name="robot_model" value="$(arg direct_model_name)" if="$(arg direct_model)"/>
     <arg name="robot_ns" value="$(arg robot_ns)" />
     <arg name="rviz_config" value="$(find assemble_quadrotors)/config/rviz_config" />
