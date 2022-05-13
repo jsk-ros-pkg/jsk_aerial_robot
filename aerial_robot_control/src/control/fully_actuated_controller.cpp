@@ -58,7 +58,7 @@ namespace aerial_robot_control
     rosParamInit();
 
     q_mat_.resize(6, motor_num_);
-    q_mat_.resize(motor_num_, 6);
+    q_mat_inv_.resize(motor_num_, 6);
     target_base_thrust_.resize(motor_num_);
 
     pid_msg_.x.total.resize(motor_num_),
