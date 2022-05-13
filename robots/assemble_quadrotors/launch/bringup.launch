@@ -31,7 +31,8 @@
 
     # Drone = 0
     <param name="uav_model" value= "0" />
-    <rosparam file="$(arg config_dir)/RobotModel.yaml" command="load" />
+    <rosparam file="$(arg config_dir)/RobotModelFullyActuated.yaml" command="load"  if="$(arg fully_actuated)"/>
+    <rosparam file="$(arg config_dir)/RobotModelUnderActuated.yaml" command="load"  unless="$(arg fully_actuated)"/>
 
     ###########  Motor Config  ###########
     <rosparam file="$(arg config_dir)/MotorInfo.yaml" command="load" />
