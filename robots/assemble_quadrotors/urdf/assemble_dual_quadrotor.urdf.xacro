@@ -17,7 +17,7 @@
   <xacro:property name="opt_yaw_2" value="${1.11166}" />
 
   <!-- dynamics -->
-  <m_f_rate value="-0.0369" /> <!-- drag torque rate -->
+  <m_f_rate value="0" /> <!-- drag torque rate, the true value should be -0.006 -->
   <xacro:property name="max_force" value="15.0" /> <!-- [N] -->
   <xacro:property name="min_force" value="0.0" /> <!-- [N] -->
 

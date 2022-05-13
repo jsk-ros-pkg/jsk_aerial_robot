@@ -3,7 +3,6 @@ motor_info: # TODO: update
         max_pwm: 0.96 # 1920 [ms]
         min_thrust: 0 #  [N]
         force_landing_thrust: 6.5 #[N]
-        m_f_rate: -0.0369
         pwm_conversion_mode: 0 # SQRT Mode
         vel_ref_num: 1
         ref1:
