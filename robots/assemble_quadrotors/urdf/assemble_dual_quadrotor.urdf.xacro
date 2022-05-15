@@ -11,13 +11,17 @@
   <!-- kinematics [m] -->
   <xacro:property name="pos_bound" value="${0.25}" />
   <xacro:property name="rotor_z" value="${0.025}" />
-  <xacro:property name="opt_pich_1" value="${-1.0659}" />
-  <xacro:property name="opt_yaw_1" value="${5.82404}" />
-  <xacro:property name="opt_pich_2" value="${1.05148}" />
-  <xacro:property name="opt_yaw_2" value="${1.11166}" />
+  <xacro:property name="opt_pich_1" value="${0.523596}" />
+  <xacro:property name="opt_yaw_1" value="${6.14803}" />
+  <xacro:property name="opt_pich_2" value="${-0.523596}" />
+  <xacro:property name="opt_yaw_2" value="${3.61207}" />
+  <xacro:property name="opt_pich_3" value="${-0.523581}" />
+  <xacro:property name="opt_yaw_3" value="${1.43561}" />
+  <xacro:property name="opt_pich_4" value="${-0.523598}" />
+  <xacro:property name="opt_yaw_4" value="${2.04117}" />
 
   <!-- dynamics -->
-  <m_f_rate value="0" /> <!-- drag torque rate, the true value should be -0.006 -->
+  <m_f_rate value="-0.006" /> <!-- drag torque rate, the true value should be -0.006 -->
   <xacro:property name="max_force" value="15.0" /> <!-- [N] -->
   <xacro:property name="min_force" value="0.0" /> <!-- [N] -->
 
@@ -181,11 +185,11 @@
   <!-- propellers -->
   <xacro:propeller_module bodyid ="1" id = "1" x = "${-pos_bound/2}" y = "${-pos_bound/2}" z = "${rotor_z}" pich = "${opt_pich_1}" yaw = "${opt_yaw_1}" direction = "1" />
   <xacro:propeller_module bodyid ="1" id = "2" x = "${pos_bound/2}" y = "${-pos_bound/2}" z = "${rotor_z}" pich = "${opt_pich_2}" yaw = "${opt_yaw_2}"  direction = "-1" />
-  <xacro:propeller_module bodyid ="1" id = "3" x = "${pos_bound/2}" y = "${pos_bound/2}" z = "${rotor_z}"  pich = "${-opt_pich_1}" yaw = "${opt_yaw_1}" direction = "1" />
-  <xacro:propeller_module bodyid ="1" id = "4" x = "${-pos_bound/2}" y = "${pos_bound/2}" z = "${rotor_z}"  pich = "${-opt_pich_2}" yaw = "${opt_yaw_2}"  direction = "-1" />
+  <xacro:propeller_module bodyid ="1" id = "3" x = "${pos_bound/2}" y = "${pos_bound/2}" z = "${rotor_z}"  pich = "${opt_pich_3}" yaw = "${opt_yaw_3}" direction = "1" />
+  <xacro:propeller_module bodyid ="1" id = "4" x = "${-pos_bound/2}" y = "${pos_bound/2}" z = "${rotor_z}"  pich = "${opt_pich_4}" yaw = "${opt_yaw_4}"  direction = "-1" />
   <xacro:propeller_module bodyid ="2" id = "5" x = "${pos_bound/2}" y = "${pos_bound/2}" z = "${rotor_z}"  pich = "${-opt_pich_1}" yaw = "${opt_yaw_1}" direction = "-1" />
   <xacro:propeller_module bodyid ="2" id = "6" x = "${-pos_bound/2}" y = "${pos_bound/2}" z = "${rotor_z}"  pich = "${-opt_pich_2}" yaw = "${opt_yaw_2}" direction = "1" />
-  <xacro:propeller_module bodyid ="2" id = "7" x = "${-pos_bound/2}" y = "${-pos_bound/2}" z = "${rotor_z}"   pich = "${opt_pich_1}" yaw = "${opt_yaw_1}" direction = "-1" />
-  <xacro:propeller_module bodyid ="2" id = "8" x = "${pos_bound/2}" y = "${-pos_bound/2}" z = "${rotor_z}"  pich = "${opt_pich_2}" yaw = "${opt_yaw_2}"  direction = "2" />
+  <xacro:propeller_module bodyid ="2" id = "7" x = "${-pos_bound/2}" y = "${-pos_bound/2}" z = "${rotor_z}"   pich = "${-opt_pich_3}" yaw = "${opt_yaw_3}" direction = "-1" />
+  <xacro:propeller_module bodyid ="2" id = "8" x = "${pos_bound/2}" y = "${-pos_bound/2}" z = "${rotor_z}"  pich = "${-opt_pich_4}" yaw = "${opt_yaw_4}"  direction = "2" />
 
 </robot>
