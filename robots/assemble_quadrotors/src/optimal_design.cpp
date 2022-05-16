@@ -84,7 +84,7 @@ void calcRotorConfiguration(const std::vector<double>& x, const int unit_rotor_n
     // http://fnorio.com/0098spherical_trigonometry1/spherical_trigonometry1.html
     double ang1 = x.at(i*2);
     double ang2 = x.at(i*2+1);
-    Eigen::Vector3d u_i(sin(ang1) * cos(ang2) * std::pow(-1, i), sin(ang1) * sin(ang2) * std::pow(-1, i), cos(ang1));
+    Eigen::Vector3d u_i(sin(ang1) * cos(ang2), sin(ang1) * sin(ang2), cos(ang1));
     Eigen::Vector3d v_i = p_i.cross(u_i) - m_f_rate * direct_i * u_i;
     //std::cout<< "m_f_rate: " << m_f_rate <<  "; pi: " << p_i.transpose() << "; u_i: " << u_i.transpose() << "; vi: " << v_i.transpose() << std::endl;
     p.push_back(p_i); // append rotor position
@@ -238,7 +238,7 @@ double unitFzConstraint(const std::vector<double> &x, std::vector<double> &grad,
 }
 
 // set the  bounds by constrains of unit rotor torque
-double unitFxFyCeonstraint(const std::vector<double> &x, std::vector<double> &grad, void *ptr)
+double unitFxFyTCeonstraint(const std::vector<double> &x, std::vector<double> &grad, void *ptr)
 {
   OptimalDesign *planner = reinterpret_cast<OptimalDesign*>(ptr);
 
@@ -248,15 +248,21 @@ double unitFxFyCeonstraint(const std::vector<double> &x, std::vector<double> &gr
   std::vector<Eigen::Vector3d> v;
   std::vector<double> direct;
 
-  calcRotorConfiguration(x, planner->unit_rotor_num_, planner->pos_bound_, planner->m_f_rate_, p, u, v, direct, false);
+  calcRotorConfiguration(x, planner->unit_rotor_num_, planner->pos_bound_, planner->m_f_rate_, p, u, v, direct, true);
 
   double fx_sum = 0;
   double fy_sum = 0;
-  for(int i = 0; i< planner->unit_rotor_num_ * 2; i++){
+  double tx_sum = 0;
+  double ty_sum = 0;
+  double tz_sum = 0;
+  for(int i = 0; i< planner->unit_rotor_num_; i++){
     fx_sum += u[i][0] * planner-> max_thrust_ ;
     fy_sum += u[i][1] * planner-> max_thrust_ ;
+    tx_sum += v[i][0] * planner-> max_thrust_ ;
+    ty_sum += v[i][1] * planner-> max_thrust_ ;
+    tz_sum += v[i][2] * planner-> max_thrust_ ;
   }
-  return ( pow(fx_sum, 2) + pow(fy_sum,2) );
+  return ( (pow(fx_sum, 2) + pow(fy_sum,2) + pow(tx_sum,2) + pow(ty_sum,2) + pow(tz_sum,2)) - 0.01);
 }
 
 
@@ -293,8 +299,8 @@ OptimalDesign::OptimalDesign(ros::NodeHandle nh, ros::NodeHandle nhp)
   std::vector<double> lb(unit_rotor_num_ * 2);
   std::vector<double> ub(unit_rotor_num_ * 2);
   for(int i = 0; i < unit_rotor_num_; i++) {
-    lb.at(2 * i) = -M_PI/6;
-    ub.at(2 * i) = M_PI/6;
+    lb.at(2 * i) = -M_PI/7;
+    ub.at(2 * i) = M_PI/7;
 
     lb.at(2 * i + 1) = 0; // lower bound of ang1
     ub.at(2 * i + 1) = 2 * M_PI; // upper bound of ang1
@@ -302,8 +308,8 @@ OptimalDesign::OptimalDesign(ros::NodeHandle nh, ros::NodeHandle nhp)
   optimizer_solver.set_lower_bounds(lb);
   optimizer_solver.set_upper_bounds(ub);
 
-  optimizer_solver.add_inequality_constraint(unitFzConstraint, this);
-  optimizer_solver.add_equality_constraint(unitFxFyCeonstraint, this);
+  optimizer_solver.add_inequality_constraint(unitFzConstraint, this, 1e-8);
+  optimizer_solver.add_inequality_constraint(unitFxFyTCeonstraint, this, 1e-8);
 
 
   optimizer_solver.set_xtol_rel(1e-4); //1e-4
@@ -322,18 +328,7 @@ OptimalDesign::OptimalDesign(ros::NodeHandle nh, ros::NodeHandle nhp)
       if (result != nlopt::SUCCESS)
         ROS_WARN_STREAM("the optimize solution does not succeed, result is " << result);
     }
-  // modify opt_x from sphere coordinates to euler angles
-  std::vector<double> opt_x_rpy(unit_rotor_num_ * 3 ,0); //[roll, pich, yaw ]*unit_rotor_num_ /2
-  for(int i = 0; i < unit_rotor_num_ ; i++){
-    opt_x_rpy[i*3] = 0; // roll
-    opt_x_rpy[i*3+1] = opt_x[i*2]; // pich
-    opt_x_rpy[i*3+2] = opt_x[i*2+1]; // yaw
-  }
 
-  std::stringstream ss;
-  ss << "opt x(roll pich yaw): ";
-  for(auto& opt_x_i: opt_x_rpy) ss << opt_x_i << ", ";
-  std::cout << ss.str() << std::endl;
 
   // get the p, u, v and direction of assembled rotors
   std::vector<Eigen::Vector3d> p;
@@ -358,12 +353,69 @@ OptimalDesign::OptimalDesign(ros::NodeHandle nh, ros::NodeHandle nhp)
   double fc_f_min_unit = calcFeasibleControlFDists(u_unit, max_thrust_, unit_mass_);
   double fc_t_min_unit = calcFeasibleControlTDists(v_unit, max_thrust_);
 
+  // modify opt_x from sphere coordinates to euler angles
+  std::vector<double> opt_x_rpy(unit_rotor_num_ * 3 ,0); //[roll, pitch, yaw ]*unit_rotor_num_ /2
+  std::vector<double> opt_x_rpy_ref(unit_rotor_num_ * 3 ,0); //[roll, pitch, yaw ]*unit_rotor_num_ /2
+  for(int i = 0; i < unit_rotor_num_ ; i++){
+    opt_x_rpy[i*3] = 0; // roll
+    opt_x_rpy[i*3+1] = opt_x[i*2]; // pitch
+    opt_x_rpy[i*3+2] = opt_x[i*2+1]; // yaw
 
+    opt_x_rpy_ref[i*3+2] = atan2(u.at(i*2).y(), u.at(i*2).x());
+    Eigen::Vector3d u_original_pos = Eigen::AngleAxisd(-opt_x_rpy_ref[i*3+2], Eigen::Vector3d::UnitZ()) * u.at(i*2); // inverse rotation of u
+    double pitch_sign = u_original_pos.x() / fabs(u_original_pos.x());
+    opt_x_rpy_ref[i*3] = 0; // roll
+    opt_x_rpy_ref[i*3+1] = atan2(sqrt(u_original_pos.x() * u_original_pos.x() + u_original_pos.y() * u_original_pos.y()), u_original_pos.z()) * pitch_sign; // pich
+
+  }
+
+  double fx_sum = 0;
+  double fy_sum = 0;
+  double tx_sum = 0;
+  double ty_sum = 0;
+  double tz_sum = 0;
+  for(int i = 0; i< unit_rotor_num_; i++){
+    fx_sum += u_unit[i][0] * max_thrust_ ;
+    fy_sum += u_unit[i][1] * max_thrust_ ;
+    tx_sum += v_unit[i][0] * max_thrust_ ;
+    ty_sum += v_unit[i][1] * max_thrust_ ;
+    tz_sum += v_unit[i][2] * max_thrust_ ;
+  }
+  std::cout << "fx_sum : " << fx_sum << std::endl;
+  std::cout << "fy_sum : " << fy_sum << std::endl;
+  std::cout << "tx_sum : " << tx_sum << std::endl;
+  std::cout << "ty_sum : " << ty_sum << std::endl;
+  std::cout << "tz_sum : " << tz_sum << std::endl;
+
+  std::cout << "fz : " <<(9.8*unit_mass_  - (cos(opt_x[0]) + cos(opt_x[2]) + cos(opt_x[4]) + cos(opt_x[6]))  * max_thrust_ )<< std::endl;
+
+
+  std::stringstream ss;
+  ss << "u: ";
+  for(auto& u_i: u) ss << u_i << ", ";
+  std::cout << ss.str() << std::endl;
+  ss.str("");
+  ss.clear(std::stringstream::goodbit);
+
+  ss << "opt x(roll pich yaw): ";
+  for(auto& opt_x_i: opt_x_rpy) ss << opt_x_i << ", ";
+  std::cout << ss.str() << std::endl;
+  ss.str("");
+  ss.clear(std::stringstream::goodbit);
+
+
+  ss << "opt x(roll pich yaw) ref:\n";
+  for(auto& opt_x_i: opt_x_rpy_ref) ss << opt_x_i << ", ";
+  std::cout << ss.str() << std::endl;
+  ss.str("");
+  ss.clear(std::stringstream::goodbit);
 
   ss << "final fc_f_min: " << fc_f_min << "; fc_t_min: " << fc_t_min;
   std::cout << ss.str() << std::endl;
+  ss.str("");
+  ss.clear(std::stringstream::goodbit);
 
-  // publish the info of assembled rotors
+    // publish the info of assembled rotors
   aerial_robot_msgs::FeasibleControlConvexInfo msg;
   msg.header.stamp = ros::Time::now();
 
@@ -448,8 +500,10 @@ OptimalDesign::OptimalDesign(ros::NodeHandle nh, ros::NodeHandle nhp)
     marker.pose.position.x = p.at(j).x();
     marker.pose.position.y = p.at(j).y();
     marker.pose.position.z = p.at(j).z();
-    double pitch = atan2(sqrt(u.at(j).x() * u.at(j).x() + u.at(j).y() * u.at(j).y()), u.at(j).z());
     double yaw = atan2(u.at(j).y(), u.at(j).x());
+    Eigen::Vector3d u_original_pos = Eigen::AngleAxisd(-yaw, Eigen::Vector3d::UnitZ()) * u.at(j); // inverse rotation of u
+    double pitch_sign = u_original_pos.x() / fabs(u_original_pos.x());
+    double pitch = atan2(sqrt(u_original_pos.x() * u_original_pos.x() + u_original_pos.y() * u_original_pos.y()), u_original_pos.z());
     marker.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, pitch, yaw);
     marker.scale.x = pos_bound_/2;
     marker.scale.y = pos_bound_/2;

@@ -9,16 +9,29 @@
 
 
   <!-- kinematics [m] -->
+
+  <!-- <xacro:property name="pos_bound" value="${0.25}" /> -->
+  <!-- <xacro:property name="rotor_z" value="${0.025}" /> -->
+  <!-- <xacro:property name="opt_pich_1" value="${0.336552}" /> -->
+  <!-- <xacro:property name="opt_yaw_1" value="${-1.14659}" /> -->
+  <!-- <xacro:property name="opt_pich_2" value="${0.448796}" /> -->
+  <!-- <xacro:property name="opt_yaw_2" value="${-2.59263}" /> -->
+  <!-- <xacro:property name="opt_pich_3" value="${0.448799}" /> -->
+  <!-- <xacro:property name="opt_yaw_3" value="${1.98912}" /> -->
+  <!-- <xacro:property name="opt_pich_4" value="${0.448788}" /> -->
+  <!-- <xacro:property name="opt_yaw_4" value="${0.289195}" /> -->
+
+
   <xacro:property name="pos_bound" value="${0.25}" />
   <xacro:property name="rotor_z" value="${0.025}" />
-  <xacro:property name="opt_pich_1" value="${0.523596}" />
-  <xacro:property name="opt_yaw_1" value="${6.14803}" />
-  <xacro:property name="opt_pich_2" value="${-0.523596}" />
-  <xacro:property name="opt_yaw_2" value="${3.61207}" />
-  <xacro:property name="opt_pich_3" value="${-0.523581}" />
-  <xacro:property name="opt_yaw_3" value="${1.43561}" />
-  <xacro:property name="opt_pich_4" value="${-0.523598}" />
-  <xacro:property name="opt_yaw_4" value="${2.04117}" />
+  <xacro:property name="opt_pich_1" value="${0.448795}" />
+  <xacro:property name="opt_yaw_1" value="${0.390763}" />
+  <xacro:property name="opt_pich_2" value="${0.448794}" />
+  <xacro:property name="opt_yaw_2" value="${-1.96091}" />
+  <xacro:property name="opt_pich_3" value="${0.448798}" />
+  <xacro:property name="opt_yaw_3" value="${1.96155}" />
+  <xacro:property name="opt_pich_4" value="${0.448798}" />
+  <xacro:property name="opt_yaw_4" value="${-0.390119}" />
 
   <!-- dynamics -->
   <m_f_rate value="-0.006" /> <!-- drag torque rate, the true value should be -0.006 -->
@@ -168,7 +181,7 @@
 
   <!-- spinal -->
   <xacro:extra_module name = "fc" parent = "main_body" visible = "0" >
-    <origin xyz="${-pos_bound} 0 0" rpy="0 0 0"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
     <inertial>
       <mass value = "0.05" />
       <origin xyz="0 0 0" rpy="0 0 0"/>
@@ -187,9 +200,10 @@
   <xacro:propeller_module bodyid ="1" id = "2" x = "${pos_bound/2}" y = "${-pos_bound/2}" z = "${rotor_z}" pich = "${opt_pich_2}" yaw = "${opt_yaw_2}"  direction = "-1" />
   <xacro:propeller_module bodyid ="1" id = "3" x = "${pos_bound/2}" y = "${pos_bound/2}" z = "${rotor_z}"  pich = "${opt_pich_3}" yaw = "${opt_yaw_3}" direction = "1" />
   <xacro:propeller_module bodyid ="1" id = "4" x = "${-pos_bound/2}" y = "${pos_bound/2}" z = "${rotor_z}"  pich = "${opt_pich_4}" yaw = "${opt_yaw_4}"  direction = "-1" />
-  <xacro:propeller_module bodyid ="2" id = "5" x = "${pos_bound/2}" y = "${pos_bound/2}" z = "${rotor_z}"  pich = "${-opt_pich_1}" yaw = "${opt_yaw_1}" direction = "-1" />
-  <xacro:propeller_module bodyid ="2" id = "6" x = "${-pos_bound/2}" y = "${pos_bound/2}" z = "${rotor_z}"  pich = "${-opt_pich_2}" yaw = "${opt_yaw_2}" direction = "1" />
-  <xacro:propeller_module bodyid ="2" id = "7" x = "${-pos_bound/2}" y = "${-pos_bound/2}" z = "${rotor_z}"   pich = "${-opt_pich_3}" yaw = "${opt_yaw_3}" direction = "-1" />
-  <xacro:propeller_module bodyid ="2" id = "8" x = "${pos_bound/2}" y = "${-pos_bound/2}" z = "${rotor_z}"  pich = "${-opt_pich_4}" yaw = "${opt_yaw_4}"  direction = "2" />
+
+  <xacro:propeller_module bodyid ="2" id = "5" x = "${pos_bound/2}" y = "${pos_bound/2}" z = "${rotor_z}"  pich = "${opt_pich_1}" yaw = "${-opt_yaw_1}" direction = "1" />
+  <xacro:propeller_module bodyid ="2" id = "6" x = "${-pos_bound/2}" y = "${pos_bound/2}" z = "${rotor_z}"  pich = "${opt_pich_2}" yaw = "${-opt_yaw_2}" direction = "-1" />
+  <xacro:propeller_module bodyid ="2" id = "7" x = "${-pos_bound/2}" y = "${-pos_bound/2}" z = "${rotor_z}"   pich = "${opt_pich_3}" yaw = "${-opt_yaw_3}" direction = "1" />
+  <xacro:propeller_module bodyid ="2" id = "8" x = "${pos_bound/2}" y = "${-pos_bound/2}" z = "${rotor_z}"  pich = "${opt_pich_4}" yaw = "${-opt_yaw_4}"  direction = "-1" />
 
 </robot>
