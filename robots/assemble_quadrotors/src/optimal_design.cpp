@@ -299,8 +299,8 @@ OptimalDesign::OptimalDesign(ros::NodeHandle nh, ros::NodeHandle nhp)
   std::vector<double> lb(unit_rotor_num_ * 2);
   std::vector<double> ub(unit_rotor_num_ * 2);
   for(int i = 0; i < unit_rotor_num_; i++) {
-    lb.at(2 * i) = -M_PI/7;
-    ub.at(2 * i) = M_PI/7;
+    lb.at(2 * i) = -M_PI/5;
+    ub.at(2 * i) = M_PI/5;
 
     lb.at(2 * i + 1) = 0; // lower bound of ang1
     ub.at(2 * i + 1) = 2 * M_PI; // upper bound of ang1
