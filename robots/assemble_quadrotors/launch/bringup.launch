@@ -1,4 +1,4 @@
-<?xml version="1.0"?>
+<?xml version="1.0" encoding="utf-8"?>
 <launch>
   ###########  launch config  ###########
   <arg name="real_machine" default="True" />
@@ -16,7 +16,8 @@
   <arg name="spawn_yaw" default="0.0"/>
   <arg name="robot_id" default="" />
   <arg name="fully_actuated" default="true" />
-  <arg name="unit_calc" default="false" />
+  <arg name="airframe" default="whole" />
+  <arg name="female" default="false" />
   <arg name="robot_ns" value="assemble_quadrotors$(arg robot_id)" />
   <arg name="config_dir" default="$(find assemble_quadrotors)/config/" />
 
@@ -65,8 +66,9 @@
   <arg name="description_mode" value="gazebo" if="$(arg simulation)" />
   <include file="$(find aerial_robot_model)/launch/aerial_robot_model.launch" >
     <arg name="headless" value="$(arg headless)" />
-    <arg name="robot_model" value="$(find assemble_quadrotors)/urdf/unit_rotor.$(arg description_mode).xacro" if="$(arg unit_calc)"/>
-    <arg name="robot_model" value="$(find assemble_quadrotors)/urdf/assemble_dual_quadrotor.$(arg description_mode).xacro" unless="$(arg unit_calc)"/>
+    <arg name="robot_model" value="$(find assemble_quadrotors)/urdf/assemble_dual_quadrotors_whole.$(arg description_mode).xacro" if="$(eval airframe == 'whole')"/>
+    <arg name="robot_model" value="$(find assemble_quadrotors)/urdf/assemble_dual_quadrotors_male.$(arg description_mode).xacro" if="$(eval airframe == 'male')"/>
+    <arg name="robot_model" value="$(find assemble_quadrotors)/urdf/assemble_dual_quadrotors_female.$(arg description_mode).xacro" if="$(eval airframe == 'female')"/>
     <arg name="robot_model" value="$(arg direct_model_name)" if="$(arg direct_model)"/>
     <arg name="robot_ns" value="$(arg robot_ns)"/>
     <arg name="rviz_config" value="$(find assemble_quadrotors)/config/rviz_config" />
