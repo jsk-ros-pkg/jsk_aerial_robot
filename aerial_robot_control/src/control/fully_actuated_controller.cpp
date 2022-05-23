@@ -186,6 +186,8 @@ namespace aerial_robot_control
   void FullyActuatedController::sendFourAxisCommand()
   {
     spinal::FourAxisCommand flight_command_data;
+    flight_command_data.angles[0] = navigator_->getTargetRPY().x();
+    flight_command_data.angles[1] = navigator_->getTargetRPY().y();
     flight_command_data.angles[2] = candidate_yaw_term_;
     flight_command_data.base_thrust = target_base_thrust_;
     flight_cmd_pub_.publish(flight_command_data);

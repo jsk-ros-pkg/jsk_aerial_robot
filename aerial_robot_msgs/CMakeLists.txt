@@ -7,6 +7,7 @@ find_package(catkin REQUIRED COMPONENTS roscpp std_msgs geometry_msgs message_ge
 ## Declare ROS messages and services
 add_message_files(FILES
   DynamicReconfigureLevels.msg
+  RollPitchNav.msg
   FourAxisGain.msg
   AerialRobotStatus.msg
   FlightNav.msg

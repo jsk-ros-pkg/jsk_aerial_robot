@@ -4,6 +4,7 @@
 #include <aerial_robot_estimation/sensor/gps.h>
 #include <aerial_robot_estimation/state_estimation.h>
 #include <aerial_robot_msgs/FlightNav.h>
+#include <aerial_robot_msgs/RollPitchNav.h>
 #include <angles/angles.h>
 #include <geometry_msgs/Vector3Stamped.h>
 #include <ros/ros.h>
@@ -215,6 +216,7 @@ namespace aerial_robot_navigation
     ros::Subscriber joy_stick_sub_;
     ros::Subscriber flight_nav_sub_;
     ros::Subscriber stop_teleop_sub_;
+    ros::Subscriber roll_pitch_sub_;
 
     boost::shared_ptr<aerial_robot_model::RobotModel> robot_model_;
     boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator_;
@@ -296,6 +298,7 @@ namespace aerial_robot_navigation
 
     virtual void rosParamInit();
     void naviCallback(const aerial_robot_msgs::FlightNavConstPtr & msg);
+    void rollPitchCallback(const aerial_robot_msgs::RollPitchNavConstPtr & msg);
     void joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg);
     void batteryCheckCallback(const std_msgs::Float32ConstPtr &msg);
 
