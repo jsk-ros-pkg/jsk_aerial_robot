@@ -48,6 +48,12 @@ if [ ${ROS_DISTRO} = 'kinetic' ]; then
     wget https://raw.githubusercontent.com/osrf/gazebo_models/master/sun/model-1_4.sdf -P ${path}
     wget https://raw.githubusercontent.com/osrf/gazebo_models/master/sun/model.sdf -P ${path}
     wget https://raw.githubusercontent.com/osrf/gazebo_models/master/sun/model.config -P ${path}
+
+    path=~/.gazebo/models/ground_plane
+    echo "manually download the ground_plane gazebo model to ${path}"
+    mkdir -p ${path}
+    wget https://raw.githubusercontent.com/osrf/gazebo_models/master/ground_plane/model.sdf -P ${path}
+    wget https://raw.githubusercontent.com/osrf/gazebo_models/master/ground_plane/model.config -P ${path}
 fi
 
 # Build
