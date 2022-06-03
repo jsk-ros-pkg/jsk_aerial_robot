@@ -125,7 +125,7 @@ private:
   ros::Publisher anti_gyro_pub_;
   ros::ServiceServer att_control_srv_;
 
-  bool setAttitudeControlCallback(std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& res) { att_control_flag_ = req.data; }
+  bool setAttitudeControlCallback(std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& res) { att_control_flag_ = req.data; return true;}
   void setSimVolCallback(const std_msgs::Float32 vol_msg) { sim_voltage_ = vol_msg.data; }
   float sim_voltage_;
 
