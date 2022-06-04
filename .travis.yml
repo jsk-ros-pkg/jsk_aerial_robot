@@ -12,4 +12,4 @@ install:
   - export CI_SOURCE_PATH=$(pwd)
   - export REPOSITORY_NAME=${PWD##*/}
   - docker images
-  - docker run -v $HOME:$HOME -e CI_SOURCE_PATH -e $REPOSITORY_NAME -e HOME -e DISTRO -e ROS_DISTRO -e REPOSITORY $DOCKER_IMAGE bash -c 'cd $CI_SOURCE_PATH; source .travis.sh'
+  - docker run -v $HOME:$HOME -e CI_SOURCE_PATH -e REPOSITORY_NAME -e HOME -e DISTRO -e ROS_DISTRO -e REPOSITORY $DOCKER_IMAGE bash -c 'cd $CI_SOURCE_PATH; source .travis.sh'
