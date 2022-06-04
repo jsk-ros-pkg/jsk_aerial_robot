@@ -34,6 +34,7 @@
  *********************************************************************/
 
 #include <aerial_robot_estimation/sensor/base_plugin.h>
+#include <aerial_robot_estimation/sensor/imu.h>
 #include <aerial_robot_estimation/state_estimation.h>
 
 using namespace aerial_robot_estimation;
@@ -78,23 +79,17 @@ void StateEstimator::initialize(ros::NodeHandle nh, ros::NodeHandle nh_private, 
   full_state_pub_ = nh_.advertise<aerial_robot_msgs::States>("uav/full_state", 1);
 
   nhp_.param("tf_prefix", tf_prefix_, std::string(""));
-  nh_.param ("estimation/update_rate", update_rate_, 100.0);
 
-  update_thread_ = boost::thread([this]()
-                                 {
-                                   ros::Rate loop_rate(update_rate_);
-                                   while(ros::ok())
-                                     {
-                                       statePublish();
-                                       loop_rate.sleep();
-                                     }
-                                 });
+  double rate;
+  nhp_.param("state_pub_rate", rate, 100.0);
+  state_pub_timer_ = nh_.createTimer(ros::Duration(1.0 / rate), &StateEstimator::statePublish, this);
 }
 
-void StateEstimator::statePublish()
+void StateEstimator::statePublish(const ros::TimerEvent & e)
 {
+  ros::Time imu_stamp = boost::dynamic_pointer_cast<sensor_plugin::Imu>(imu_handlers_.at(0))->getStamp();
   aerial_robot_msgs::States full_state;
-  full_state.header.stamp = ros::Time::now();
+  full_state.header.stamp = imu_stamp;
 
   for(int axis = 0; axis < State::TOTAL_NUM; axis++)
     {
@@ -151,7 +146,7 @@ void StateEstimator::statePublish()
   full_state_pub_.publish(full_state);
 
   nav_msgs::Odometry odom_state;
-  odom_state.header.stamp = ros::Time::now();
+  odom_state.header.stamp = imu_stamp;
   odom_state.header.frame_id = std::string("/world");
 
   /* Baselink */
@@ -176,8 +171,12 @@ void StateEstimator::statePublish()
 
   tf::Transform world2baselink_tf;
   tf::poseMsgToTF(odom_state.pose.pose, world2baselink_tf);
-  br_.sendTransform(tf::StampedTransform(world2baselink_tf * root2baselink_tf.inverse(), ros::Time::now(), "world", tf::resolve(tf_prefix_, std::string("root"))));
-
+  geometry_msgs::TransformStamped transformStamped;
+  tf::transformStampedTFToMsg(tf::StampedTransform(world2baselink_tf * root2baselink_tf.inverse(),
+                                                   imu_stamp, "world",
+                                                   tf::resolve(tf_prefix_, std::string("root"))),
+                              transformStamped);
+  br_.sendTransform(transformStamped);
 
   /* COG */
   /* Rotation */
@@ -189,7 +188,6 @@ void StateEstimator::statePublish()
   tf::pointTFToMsg(getPos(Frame::COG, estimate_mode_), odom_state.pose.pose.position);
   tf::vector3TFToMsg(getVel(Frame::COG, estimate_mode_), odom_state.twist.twist.linear);
   cog_odom_pub_.publish(odom_state);
-
 
 }
 
