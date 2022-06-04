@@ -8,19 +8,25 @@
 - git:
     local-name: kalman_filter
     uri: https://github.com/JSKAerialRobot/kalman_filter.git
-    version: 24e297d
+    version: 012b925
 
 # the sensor interface
 - git:
     local-name: sensor_interface
     uri: https://github.com/JSKAerialRobot/sensor_interface.git
-    version: ec854cc
+    version: c4570c0 
 
 # RTK-GPS (forked)
 - git:
     local-name: ublox_gps
     uri: https://github.com/tongtybj/ublox.git
     version: holybro_rtk_m8p
+
+# rosserial (forked)
+- git:
+    local-name: rosserial
+    uri: https://github.com/tongtybj/rosserial.git
+    version: kinetic-devel
 
 # realsense
 - git:

@@ -7,7 +7,7 @@
 # kalman filter
 - git:
     local-name: kalman_filter
-    uri: https://github.com/JSKAerialRobot/kalman_filter.git
+    uri: https://github.com/tongtybj/kalman_filter.git
     version: 012b925
 
 # the sensor interface
