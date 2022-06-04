@@ -2,7 +2,7 @@
 
 set -ex
 
-apt-get update -qq && apt-get install -y -q wget sudo lsb-release gnupg git sed # for docker
+apt-get update -qq && apt-get install -y -q wget sudo lsb-release gnupg git sed build-essential # for docker
 echo 'debconf debconf/frontend select Noninteractive' | sudo debconf-set-selections
 
 echo "Testing branch $TRAVIS_BRANCH of $REPOSITORY_NAME"
