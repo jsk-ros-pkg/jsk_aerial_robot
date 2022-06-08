@@ -35,7 +35,7 @@ if __name__ == "__main__":
             req.body_name = 'force1'
             clear_wrench_to_robot = rospy.ServiceProxy(robot_clear_wrench_name, BodyRequest)
             resp1 = clear_wrench_to_robot(req)
-        except rospy.ServiceException, e:
+        except rospy.ServiceException as e:
             print("Service call failed: %s"%e)
 
         # to gazebo
@@ -44,7 +44,7 @@ if __name__ == "__main__":
             req.body_name = rospy.get_namespace().strip('/') +'::' + reference_frame
             clear_wrench_to_gazebo = rospy.ServiceProxy(gazebo_clear_wrench_name, BodyRequest)
             resp1 = clear_wrench_to_gazebo(req)
-        except rospy.ServiceException, e:
+        except rospy.ServiceException as e:
             print("Service call failed: %s"%e)
 
 
@@ -64,7 +64,7 @@ if __name__ == "__main__":
             req.wrench = wrench
             apply_wrench_to_robot = rospy.ServiceProxy(robot_apply_wrench_name, ApplyBodyWrench)
             resp1 = apply_wrench_to_robot(req)
-        except rospy.ServiceException, e:
+        except rospy.ServiceException as e:
             print("Service call failed: %s"%e)
 
         # to gazebo
@@ -76,6 +76,6 @@ if __name__ == "__main__":
             req.duration.secs = -1
             apply_wrench_to_gazebo = rospy.ServiceProxy(gazebo_apply_wrench_name, ApplyBodyWrench)
             resp1 = apply_wrench_to_gazebo(req)
-        except rospy.ServiceException, e:
+        except rospy.ServiceException as e:
             print("Service call failed: %s"%e)
 

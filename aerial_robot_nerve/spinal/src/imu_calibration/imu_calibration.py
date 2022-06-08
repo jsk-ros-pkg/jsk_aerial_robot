@@ -331,7 +331,7 @@ class IMUCalibWidget(QWidget):
             # change to debug log
             rospy.logdebug("number of imu: %d", len(self.gyro_table_data))
 
-        except rospy.ServiceException, e:
+        except rospy.ServiceException as e:
             rospy.logerr("/imu_calib service call failed: %s"%e)
 
 
@@ -340,7 +340,7 @@ class IMUCalibWidget(QWidget):
             req = ImuCalibRequest()
             req.command = req.RESET_CALIB_DATA
             res = self.imu_calib_data_client(req)
-        except rospy.ServiceException, e:
+        except rospy.ServiceException as e:
             rospy.logerr("/imu_calib service call failed: %s"%e)
 
 
@@ -352,7 +352,7 @@ class IMUCalibWidget(QWidget):
             req = ImuCalibRequest()
             req.command = req.SAVE_CALIB_DATA
             res = self.imu_calib_data_client(req)
-        except rospy.ServiceException, e:
+        except rospy.ServiceException as e:
             rospy.logerr("/imu_calib service call failed: %s"%e)
 
         rospy.sleep(2.0)
@@ -366,7 +366,7 @@ class IMUCalibWidget(QWidget):
             req.data.append(flag) # start or stop
             req.data.append(0) # do calibration until the stop trigger
             res = self.imu_calib_data_client(req)
-        except rospy.ServiceException, e:
+        except rospy.ServiceException as e:
             rospy.logerr("/imu_calib service call failed: %s"%e)
 
         if not flag: # stop calibration
@@ -381,7 +381,7 @@ class IMUCalibWidget(QWidget):
             req.data.append(flag) # start or stop
             req.data.append(0) # do calibration until the stop trigger
             res = self.imu_calib_data_client(req)
-        except rospy.ServiceException, e:
+        except rospy.ServiceException as e:
             rospy.logerr("/imu_calib service call failed: %s"%e)
 
         if not flag: # stop calibration
@@ -396,7 +396,7 @@ class IMUCalibWidget(QWidget):
             req.data.append(flag) # start or stop
             req.data.append(0) # do calibration until the stop trigger
             res = self.imu_calib_data_client(req)
-        except rospy.ServiceException, e:
+        except rospy.ServiceException as e:
             rospy.logerr("/imu_calib service call failed: %s"%e)
 
         self.mag_view_start_flag = flag # for visualization
@@ -417,9 +417,9 @@ class IMUCalibWidget(QWidget):
             req.data.append(0) # hard-coding: imu0
             req.data.append(req.CALIB_MAG)
             req.data.extend([0, 0, 0, 1, 1, 1]) # mag bias and scale
-            print req.data
+            print(req.data)
             res = self.imu_calib_data_client(req)
-        except rospy.ServiceException, e:
+        except rospy.ServiceException as e:
             rospy.logerr("/imu_calib service call failed: %s"%e)
 
         self.mag_view_start_flag = flag # for visualization
@@ -443,7 +443,7 @@ class IMUCalibWidget(QWidget):
                 req.data.extend(bias)
                 req.data.extend(scale) # mag bias and scale
                 res = self.imu_calib_data_client(req)
-            except rospy.ServiceException, e:
+            except rospy.ServiceException as e:
                 rospy.logerr("/imu_calib service call failed: %s"%e)
 
             rospy.sleep(0.5)
@@ -533,7 +533,7 @@ class IMUCalibWidget(QWidget):
             res = self.mag_declination_client(req)
 
             #print(float(self.mag_dec_line_edit.text()))
-        except rospy.ServiceException, e:
+        except rospy.ServiceException as e:
             rospy.logerr("/mag_declination service for set decalination call failed: %s"%e)
 
         rospy.sleep(3.0) # wait for the flash write
@@ -547,7 +547,7 @@ class IMUCalibWidget(QWidget):
             res = self.mag_declination_client(req)
 
             self.mag_dec.setText('Magnetic Declination: ' + str(res.data))
-        except rospy.ServiceException, e:
+        except rospy.ServiceException as e:
             rospy.logerr("/mag_declination service for get decalination call failed: %s"%e)
 
 
@@ -631,8 +631,8 @@ class ImuCalibrator(Plugin):
 
         args, unknowns = parser.parse_known_args(context.argv())
         if not args.quiet:
-            print 'arguments: ', args
-            print 'unknowns: ', unknowns
+            print('arguments: {}'.format(args))
+            print('unknowns: {}'.format(unknowns))
 
 
         self._widget = IMUCalibWidget(args.limit, args.unit)

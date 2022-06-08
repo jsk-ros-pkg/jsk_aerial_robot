@@ -20,15 +20,15 @@ Argvs:
 10: mass
 """
 
-print msg
+print(msg)
 
 #print argvs
 
 if (argc != 11):
-    print 'Argvs is not enough'
+    print('Argvs is not enough')
     quit()
 
-print argvs
+print(argvs)
 
 cog_x = float(argvs[1]) * .001
 cog_y = float(argvs[2]) * .001
