@@ -16,12 +16,12 @@
   <exec_depend>aerial_robot_control</exec_depend>
   <exec_depend>aerial_robot_model</exec_depend>
   <exec_depend>aerial_robot_msgs</exec_depend>
-  <exec_depend>motor_test</exec_depend>
-  <exec_depend>spinal</exec_depend>
   <exec_depend>aerial_robot_simulation</exec_depend>
+  <exec_depend>dragon</exec_depend>
   <exec_depend>hydrus</exec_depend>
   <exec_depend>hydrus_xi</exec_depend>
-  <exec_depend>dragon</exec_depend>
+  <exec_depend>motor_test</exec_depend>
+  <exec_depend>spinal</exec_depend>
   <exec_depend condition="$ROS_PYTHON_VERSION == 3">python-is-python3</exec_depend>
 
   <export>
