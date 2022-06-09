@@ -50,7 +50,9 @@ class BoardConfigurator(Plugin):
 
         self._widget = QWidget()
 
-        ui_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'BoardConfigurator.ui')
+        rp = rospkg.RosPack()
+        ui_file = os.path.join(
+            rp.get_path('spinal'), 'resource', 'board_configurator.ui')
 
         loadUi(ui_file, self._widget)
 

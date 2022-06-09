@@ -1,5 +1,5 @@
 <library path="src">
-  <class name="BoardConfigurator" type="board_configurator.board_configurator.BoardConfigurator" base_class_type="rqt_gui_py::Plugin">
+  <class name="BoardConfigurator" type="spinal.board_configurator.BoardConfigurator" base_class_type="rqt_gui_py::Plugin">
     <description>
       Configurator for aerial robot boards
     </description>
@@ -13,7 +13,7 @@
       <statustip>Configurator for aerial robot boards</statustip>
     </qtgui>
     </class>
-  <class name="ServoMonitor" type="servo_monitor.servo_monitor.ServoMonitor" base_class_type="rqt_gui_py::Plugin">
+  <class name="ServoMonitor" type="spinal.servo_monitor.ServoMonitor" base_class_type="rqt_gui_py::Plugin">
     <description>
       Servo monitor for transformable aerial robot hardware
     </description>
@@ -28,7 +28,7 @@
     </qtgui>
   </class>
 
-  <class name="ImuCalibration" type="imu_calibration.imu_calibration.ImuCalibrator" base_class_type="rqt_gui_py::Plugin">
+  <class name="ImuCalibration" type="spinal.imu_calibration.ImuCalibrator" base_class_type="rqt_gui_py::Plugin">
     <description>
       IMU calibration
     </description>

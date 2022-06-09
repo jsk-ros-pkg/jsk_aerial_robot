@@ -120,8 +120,8 @@ class IMUCalibWidget(QWidget):
         self.setObjectName('ImuCalibWidget')
 
         rp = rospkg.RosPack()
-        #ui_file = os.path.join(rp.get_path('spinal'), '', 'plot3d.ui')
-        ui_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'imu_calib.ui')
+        ui_file = os.path.join(
+            rp.get_path('spinal'), 'resource', 'imu_calibration.ui')
 
         loadUi(ui_file, self)
         self.mag_data_plot = MatDataPlot3D(self, limit, unit)
@@ -307,7 +307,7 @@ class IMUCalibWidget(QWidget):
             self.mag_table_data = []
             self.att_table_data = []
 
-            for i in range(len(res.data) / self.calib_data_len):
+            for i in range(len(res.data) // self.calib_data_len):
                 gyro_data = []
                 gyro_data.extend([None])
                 gyro_data.append("{0:.5f}".format(res.data[i * self.calib_data_len + 0]) + ', ' + "{0:.5f}".format(res.data[i * self.calib_data_len + 1]) + ', ' + "{0:.5f}".format(res.data[i * self.calib_data_len + 2])) # bias
