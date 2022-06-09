@@ -19,10 +19,13 @@ jobs:
           fetch-depth: 0
       - name: catkin lint setup
         run: |
-          sudo apt-get install -y -q python3-pip
+          sudo apt-get install -y -q python3-pip python3-wstool
           sudo pip3 install catkin_lint rosdep
           sudo rosdep init
           rosdep update
       - name: catkin lint test
         run: |
+          wstool init
+          wstool merge aerial_robot_noetic.rosinstall
+          wstool update
           ROS_DISTRO=noetic catkin_lint --resolve-env --strict $PWD
