@@ -54,7 +54,7 @@ catkin_package(
   INCLUDE_DIRS include test
   LIBRARIES transformable_aerial_robot_model transformable_aerial_robot_model_ros numerical_jacobians
   CATKIN_DEPENDS eigen_conversions geometry_msgs interactive_markers kalman_filter kdl_parser message_runtime pluginlib sensor_msgs spinal std_msgs tf tf_conversions tf2_eigen tf2_geometry_msgs tf2_kdl tf2_ros tf_conversions urdf visualization_msgs
-  DEPENDS Eigen3 orocos_kdl urdfdom_headers
+  DEPENDS orocos_kdl urdfdom_headers
 )
 
 ###########

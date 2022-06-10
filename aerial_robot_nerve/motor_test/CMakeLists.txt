@@ -8,13 +8,13 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   std_srvs
   geometry_msgs
+  takasako_sps
 )
 
 find_package(Boost REQUIRED COMPONENTS system)
 
 catkin_package(
-  CATKIN_DEPENDS roscpp std_msgs std_srvs geometry_msgs
-
+  CATKIN_DEPENDS roscpp std_msgs std_srvs geometry_msgs takasako_sps
 )
 
 include_directories(

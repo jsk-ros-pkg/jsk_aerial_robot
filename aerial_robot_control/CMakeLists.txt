@@ -39,7 +39,6 @@ catkin_package(
   INCLUDE_DIRS include
   LIBRARIES control_utils flight_control_pluginlib flight_navigation
   CATKIN_DEPENDS aerial_robot_estimation aerial_robot_model aerial_robot_msgs dynamic_reconfigure pluginlib roscpp spinal tf
-  DEPENDS EIGEN3
 )
 
 include_directories(
