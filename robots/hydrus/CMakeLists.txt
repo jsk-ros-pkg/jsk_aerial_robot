@@ -24,7 +24,6 @@ catkin_package(
   INCLUDE_DIRS include test
   LIBRARIES hydrus_robot_model hydrus_controller_pluginlib hydrus_numerical_jacobians
   CATKIN_DEPENDS roscpp aerial_robot_msgs aerial_robot_control aerial_robot_model spinal eigen_conversions tf_conversions std_srvs dynamic_reconfigure
-  DEPENDS EIGEN3 
 )
 
 # Eigen requires optimization to get good performance

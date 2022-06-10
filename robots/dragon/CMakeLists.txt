@@ -24,7 +24,6 @@ catkin_package(
   INCLUDE_DIRS include test
   LIBRARIES dragon_robot_model dragon_aerial_robot_controllib dragon_navigation dragon_numerical_jacobians
   CATKIN_DEPENDS   aerial_robot_control aerial_robot_model aerial_robot_msgs hydrus pluginlib roscpp
-  DEPENDS EIGEN3 NLopt
 )
 
 ###########

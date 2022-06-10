@@ -23,7 +23,6 @@ catkin_package(
   INCLUDE_DIRS include
   LIBRARIES  hydrus_xi_fully_actuated_robot_model
   CATKIN_DEPENDS  aerial_robot_base aerial_robot_control aerial_robot_model aerial_robot_msgs aerial_robot_simulation angles hydrus roscpp rospy spinal
-  DEPENDS NLopt OsqpEigen
   )
 
 if(NOT CMAKE_BUILD_TYPE)
@@ -53,7 +52,7 @@ install(DIRECTORY include/${PROJECT_NAME}/
   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION})
 
 install(TARGETS hydrus_xi_jacobian_test
-  LIBRARY DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
 install(TARGETS hydrus_xi_under_actuated_navigation hydrus_xi_fully_actuated_robot_model
@@ -67,7 +66,6 @@ install(DIRECTORY config scripts plugins launch
 
 install(FILES flight_navigation_plugin.xml
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
-  USE_SOURCE_PERMISSIONS
 )
 
 
