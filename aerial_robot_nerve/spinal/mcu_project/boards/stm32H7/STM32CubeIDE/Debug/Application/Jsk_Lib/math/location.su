@@ -1,0 +1,30 @@
+cmath:279:3:constexpr float std::fmod(float, float)	16	static
+cmath:611:3:constexpr bool std::isnan(float)	16	static
+AP_Math.h:33:20:bool ap::is_zero(float)	16	static
+AP_Math.h:76:21:float ap::constrain_float(float, float, float)	24	static
+AP_Math.h:101:21:float ap::radians(float)	16	static
+AP_Math.h:111:21:float ap::sq(float)	16	static
+AP_Math.h:116:21:float ap::pythagorous2(float, float)	24	static
+location.cpp:36:7:float ap::longitude_scale(const ap::Location&)	24	static
+location.cpp:62:7:float ap::get_distance(const ap::Location&, const ap::Location&)	32	static
+location.cpp:70:10:uint32_t ap::get_distance_cm(const ap::Location&, const ap::Location&)	16	static
+location.cpp:76:9:int32_t ap::get_bearing_cd(const ap::Location&, const ap::Location&)	40	static
+location.cpp:90:6:bool ap::location_passed_point(const ap::Location&, const ap::Location&, const ap::Location&)	24	static
+location.cpp:104:7:float ap::location_path_proportion(const ap::Location&, const ap::Location&, const ap::Location&)	56	static
+location.cpp:125:6:void ap::location_update(ap::Location&, float, float)	32	static
+location.cpp:135:6:void ap::location_offset(ap::Location&, float, float)	40	static
+location.cpp:149:10:ap::Vector2f ap::location_diff(const ap::Location&, const ap::Location&)	48	static
+location.cpp:158:9:int32_t ap::wrap_360_cd(int32_t)	16	static
+location.cpp:172:9:int32_t ap::wrap_180_cd(int32_t)	16	static
+location.cpp:186:7:float ap::wrap_360_cd_float(float)	16	static
+location.cpp:200:7:float ap::wrap_180_cd_float(float)	16	static
+location.cpp:214:7:float ap::wrap_PI(float)	16	static
+location.cpp:228:7:float ap::wrap_2PI(float)	16	static
+location.cpp:242:6:bool ap::locations_are_same(const ap::Location&, const ap::Location&)	16	static
+location.cpp:249:6:bool ap::location_sanitize(const ap::Location&, ap::Location&)	24	static
+location.cpp:291:6:void ap::wgsllh2ecef(const Vector3d&, ap::Vector3d&)	48	static
+location.cpp:301:6:void ap::wgsecef2llh(const Vector3d&, ap::Vector3d&)	144	static
+vector2.h:51:5:ap::Vector2<T>::Vector2(T, T) [with T = float]	24	static
+vector3.h:131:15:const T& ap::Vector3<T>::operator[](uint8_t) const [with T = double]	24	static
+vector3.h:123:9:T& ap::Vector3<T>::operator[](uint8_t) [with T = double]	24	static
+cmath:1297:5:constexpr typename __gnu_cxx::__promote_2<_Tp, _Up>::__type std::copysign(_Tp, _Up) [with _Tp = float; _Up = double]	24	static

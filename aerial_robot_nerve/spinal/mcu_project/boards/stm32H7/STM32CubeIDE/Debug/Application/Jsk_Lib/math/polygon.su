@@ -1,0 +1,2 @@
+polygon.cpp:41:6:bool ap::Polygon_outside(const Vector2l&, const Vector2l*, unsigned int)	72	static
+polygon.cpp:91:6:bool ap::Polygon_complete(const Vector2l*, unsigned int)	16	static

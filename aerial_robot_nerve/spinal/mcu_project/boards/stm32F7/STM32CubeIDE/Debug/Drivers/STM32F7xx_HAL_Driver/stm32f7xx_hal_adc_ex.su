@@ -1,0 +1,15 @@
+stm32f7xx_hal_adc_ex.c:147:19:HAL_ADCEx_InjectedStart	32	static
+stm32f7xx_hal_adc_ex.c:244:19:HAL_ADCEx_InjectedStart_IT	32	static
+stm32f7xx_hal_adc_ex.c:349:19:HAL_ADCEx_InjectedStop	24	static
+stm32f7xx_hal_adc_ex.c:403:19:HAL_ADCEx_InjectedPollForConversion	24	static
+stm32f7xx_hal_adc_ex.c:474:19:HAL_ADCEx_InjectedStop_IT	24	static
+stm32f7xx_hal_adc_ex.c:536:10:HAL_ADCEx_InjectedGetValue	24	static
+stm32f7xx_hal_adc_ex.c:587:19:HAL_ADCEx_MultiModeStart_DMA	32	static
+stm32f7xx_hal_adc_ex.c:708:19:HAL_ADCEx_MultiModeStop_DMA	24	static
+stm32f7xx_hal_adc_ex.c:755:10:HAL_ADCEx_MultiModeGetValue	16	static
+stm32f7xx_hal_adc_ex.c:767:13:HAL_ADCEx_InjectedConvCpltCallback	16	static
+stm32f7xx_hal_adc_ex.c:784:19:HAL_ADCEx_InjectedConfigChannel	16	static
+stm32f7xx_hal_adc_ex.c:940:19:HAL_ADCEx_MultiModeConfigChannel	16	static
+stm32f7xx_hal_adc_ex.c:979:13:ADC_MultiModeDMAConvCplt	24	static
+stm32f7xx_hal_adc_ex.c:1032:13:ADC_MultiModeDMAHalfConvCplt	24	static
+stm32f7xx_hal_adc_ex.c:1045:13:ADC_MultiModeDMAError	24	static

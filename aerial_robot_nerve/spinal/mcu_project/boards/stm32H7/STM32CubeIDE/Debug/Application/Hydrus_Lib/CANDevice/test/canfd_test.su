@@ -1,0 +1,5 @@
+can_device.h:25:2:CANDevice::CANDevice(uint8_t, uint8_t)	16	static
+can_device.h:28:7:void CANDevice::sendMessage(uint8_t, uint8_t, uint32_t, uint8_t*, uint32_t)	32	static
+canfd_test.cpp:11:1:CANFDTest::CANFDTest()	24	static
+canfd_test.cpp:17:6:virtual void CANFDTest::sendData()	24	static
+canfd_test.cpp:23:6:virtual void CANFDTest::receiveDataCallback(uint8_t, uint8_t, uint32_t, uint8_t*)	32	static

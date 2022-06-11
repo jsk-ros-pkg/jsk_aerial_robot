@@ -1,0 +1,12 @@
+imu_basic.h:84:8:void IMU::setUpdate(bool)	16	static
+imu_mpu9250.cpp:17:6:void IMUOnboard::init(SPI_HandleTypeDef*, I2C_HandleTypeDef*, ros::NodeHandle*, GPIO_TypeDef*, uint16_t, GPIO_TypeDef*, uint16_t)	32	static
+imu_mpu9250.cpp:59:6:void IMUOnboard::mpuWrite(uint8_t, uint8_t)	16	static
+imu_mpu9250.cpp:67:9:uint8_t IMUOnboard::mpuRead(uint8_t)	24	static
+imu_mpu9250.cpp:79:6:void IMUOnboard::gyroInit()	16	static
+imu_mpu9250.cpp:95:6:void IMUOnboard::accInit()	16	static
+imu_mpu9250.cpp:105:6:void IMUOnboard::magInit()	40	static
+imu_mpu9250.cpp:192:6:void IMUOnboard::lis3mdlInit()	32	static
+imu_mpu9250.cpp:212:6:void IMUOnboard::hmc58x3Init()	32	static
+imu_mpu9250.cpp:226:6:virtual void IMUOnboard::ledOutput()	16	static
+imu_mpu9250.cpp:247:6:virtual void IMUOnboard::updateRawData()	48	static
+vector3.h:123:9:T& ap::Vector3<T>::operator[](uint8_t) [with T = float]	24	static

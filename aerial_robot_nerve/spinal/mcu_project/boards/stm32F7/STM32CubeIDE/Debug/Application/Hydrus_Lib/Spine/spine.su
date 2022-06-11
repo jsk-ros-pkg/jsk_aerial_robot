@@ -1,0 +1,439 @@
+STM32Hardware.h:196:12:uint32_t STM32Hardware::time()	16	static
+time.h:51:3:ros::Time::Time()	16	static
+msg.h:45:7:constexpr ros::Msg::Msg()	16	static
+publisher.h:48:3:ros::Publisher::Publisher(const char*, ros::Msg*, int)	24	static
+publisher.h:53:7:int ros::Publisher::publish(const ros::Msg*)	16	static
+new:173:33:void* operator new(std::size_t, void*)	16	static
+can_device.h:25:2:CANDevice::CANDevice(uint8_t, uint8_t)	16	static
+imu_basic.h:103:15:void IMU::setVirtualFrame(bool)	16	static
+can_imu_mpu9250.h:24:7:bool CANIMU::getSendDataFlag() const	16	static
+gthr-default.h:229:1:int __gthread_key_delete(__gthread_key_t)	16	static
+can_motor.h:23:7:void CANMotor::setPwm(uint16_t)	16	static
+stl_vector.h:125:14:std::_Vector_base<std::reference_wrapper<CANMotor>, std::allocator<std::reference_wrapper<CANMotor> > >::_Vector_impl::~_Vector_impl()	16	static
+stl_vector.h:285:7:std::_Vector_base<_Tp, _Alloc>::_Vector_base() [with _Tp = std::reference_wrapper<CANMotor>; _Alloc = std::allocator<std::reference_wrapper<CANMotor> >]	16	static
+stl_vector.h:484:7:std::vector<_Tp, _Alloc>::vector() [with _Tp = std::reference_wrapper<CANMotor>; _Alloc = std::allocator<std::reference_wrapper<CANMotor> >]	16	static
+can_motor.h:32:2:CANMotorSendDevice::CANMotorSendDevice()	16	static
+can_motor.h:35:7:void CANMotorSendDevice::addMotor(CANMotor&)	32	static
+can_servo.h:37:10:uint8_t Servo::getId() const	16	static
+can_servo.h:38:10:uint8_t Servo::getIndex() const	16	static
+can_servo.h:39:11:uint16_t Servo::getPGain() const	16	static
+can_servo.h:40:11:uint16_t Servo::getIGain() const	16	static
+can_servo.h:41:11:uint16_t Servo::getDGain() const	16	static
+can_servo.h:42:10:int16_t Servo::getPresentPosition() const	16	static
+can_servo.h:43:11:uint16_t Servo::getProfileVelocity() const	16	static
+can_servo.h:44:10:int16_t Servo::getPresentCurrent() const	16	static
+can_servo.h:45:11:uint16_t Servo::getCurrentLimit() const	16	static
+can_servo.h:46:7:bool Servo::getSendDataFlag() const	16	static
+can_servo.h:47:7:bool Servo::getExternalEncoderFlag() const	16	static
+can_servo.h:48:11:uint16_t Servo::getJointResolution() const	16	static
+can_servo.h:49:11:uint16_t Servo::getServoResolution() const	16	static
+can_servo.h:50:10:uint8_t Servo::getPresentTemperature() const	16	static
+can_servo.h:52:10:uint8_t Servo::getError() const	16	static
+can_servo.h:54:7:void Servo::setIndex(uint8_t)	16	static
+can_servo.h:55:7:void Servo::setGoalPosition(int16_t)	16	static
+can_servo.h:56:7:void Servo::setTorqueEnable(bool)	16	static
+stl_vector.h:125:14:std::_Vector_base<Servo, std::allocator<Servo> >::_Vector_impl::~_Vector_impl()	16	static
+can_servo.h:69:7:bool CANServo::getDynamixelTTLRS485Mixed() const	16	static
+can_servo.h:59:7:CANServo::~CANServo()	16	static
+neuron.h:36:10:uint8_t Neuron::getSlaveId() const	16	static
+attitude_estimate.h:168:8:void AttitudeEstimate::addImu(IMU*, float)	24	static
+attitude_estimate.h:174:8:void AttitudeEstimate::setImuWeight(uint8_t, float)	24	static
+attitude_estimate.h:248:15:void AttitudeEstimate::setPubAccGryoOnlyFlag(bool)	16	static
+state_estimate.h:96:21:AttitudeEstimate* StateEstimate::getAttEstimator()	16	static
+SetBoardConfig.h:34:5:spinal::SetBoardConfigRequest::SetBoardConfigRequest()	16	static
+SetBoardConfig.h:40:17:virtual int spinal::SetBoardConfigRequest::serialize(unsigned char*) const	32	static
+SetBoardConfig.h:65:17:virtual int spinal::SetBoardConfigRequest::deserialize(unsigned char*)	32	static
+SetBoardConfig.h:95:18:virtual const char* spinal::SetBoardConfigRequest::getType()	16	static
+SetBoardConfig.h:96:18:virtual const char* spinal::SetBoardConfigRequest::getMD5()	16	static
+SetBoardConfig.h:106:5:spinal::SetBoardConfigResponse::SetBoardConfigResponse()	16	static
+SetBoardConfig.h:111:17:virtual int spinal::SetBoardConfigResponse::serialize(unsigned char*) const	24	static
+SetBoardConfig.h:124:17:virtual int spinal::SetBoardConfigResponse::deserialize(unsigned char*)	24	static
+SetBoardConfig.h:138:18:virtual const char* spinal::SetBoardConfigResponse::getType()	16	static
+SetBoardConfig.h:139:18:virtual const char* spinal::SetBoardConfigResponse::getMD5()	16	static
+can_initializer.h:22:2:CANInitializer::CANInitializer(std::vector<Neuron>&)	16	static
+ServoState.h:26:5:spinal::ServoState::ServoState()	16	static
+ServoState.h:35:17:virtual int spinal::ServoState::serialize(unsigned char*) const	32	static
+ServoState.h:63:17:virtual int spinal::ServoState::deserialize(unsigned char*)	32	static
+ServoState.h:93:18:virtual const char* spinal::ServoState::getType()	16	static
+ServoState.h:94:18:virtual const char* spinal::ServoState::getMD5()	16	static
+ServoStates.h:24:5:spinal::ServoStates::ServoStates()	16	static
+ServoStates.h:30:17:virtual int spinal::ServoStates::serialize(unsigned char*) const	24	static
+ServoStates.h:54:17:virtual int spinal::ServoStates::deserialize(unsigned char*)	32	static
+ServoStates.h:82:18:virtual const char* spinal::ServoStates::getType()	16	static
+ServoStates.h:83:18:virtual const char* spinal::ServoStates::getMD5()	16	static
+ServoControlCmd.h:24:5:spinal::ServoControlCmd::ServoControlCmd()	16	static
+ServoControlCmd.h:30:17:virtual int spinal::ServoControlCmd::serialize(unsigned char*) const	32	static
+ServoControlCmd.h:60:17:virtual int spinal::ServoControlCmd::deserialize(unsigned char*)	40	static
+ServoControlCmd.h:99:18:virtual const char* spinal::ServoControlCmd::getType()	16	static
+ServoControlCmd.h:100:18:virtual const char* spinal::ServoControlCmd::getMD5()	16	static
+ServoTorqueCmd.h:24:5:spinal::ServoTorqueCmd::ServoTorqueCmd()	16	static
+ServoTorqueCmd.h:30:17:virtual int spinal::ServoTorqueCmd::serialize(unsigned char*) const	32	static
+ServoTorqueCmd.h:54:17:virtual int spinal::ServoTorqueCmd::deserialize(unsigned char*)	40	static
+ServoTorqueCmd.h:86:18:virtual const char* spinal::ServoTorqueCmd::getType()	16	static
+ServoTorqueCmd.h:87:18:virtual const char* spinal::ServoTorqueCmd::getMD5()	16	static
+ServoTorqueStates.h:20:5:spinal::ServoTorqueStates::ServoTorqueStates()	16	static
+ServoTorqueStates.h:25:17:virtual int spinal::ServoTorqueStates::serialize(unsigned char*) const	24	static
+ServoTorqueStates.h:40:17:virtual int spinal::ServoTorqueStates::deserialize(unsigned char*)	32	static
+ServoTorqueStates.h:59:18:virtual const char* spinal::ServoTorqueStates::getType()	16	static
+ServoTorqueStates.h:60:18:virtual const char* spinal::ServoTorqueStates::getMD5()	16	static
+ServoInfo.h:36:5:spinal::ServoInfo::ServoInfo()	16	static
+ServoInfo.h:50:17:virtual int spinal::ServoInfo::serialize(unsigned char*) const	24	static
+ServoInfo.h:83:17:virtual int spinal::ServoInfo::deserialize(unsigned char*)	24	static
+ServoInfo.h:116:18:virtual const char* spinal::ServoInfo::getType()	16	static
+ServoInfo.h:117:18:virtual const char* spinal::ServoInfo::getMD5()	16	static
+BoardInfo.h:27:5:spinal::BoardInfo::BoardInfo()	16	static
+BoardInfo.h:35:17:virtual int spinal::BoardInfo::serialize(unsigned char*) const	24	static
+BoardInfo.h:55:17:virtual int spinal::BoardInfo::deserialize(unsigned char*)	32	static
+BoardInfo.h:79:18:virtual const char* spinal::BoardInfo::getType()	16	static
+BoardInfo.h:80:18:virtual const char* spinal::BoardInfo::getMD5()	16	static
+GetBoardInfo.h:18:5:spinal::GetBoardInfoRequest::GetBoardInfoRequest()	16	static
+GetBoardInfo.h:22:17:virtual int spinal::GetBoardInfoRequest::serialize(unsigned char*) const	24	static
+GetBoardInfo.h:28:17:virtual int spinal::GetBoardInfoRequest::deserialize(unsigned char*)	24	static
+GetBoardInfo.h:34:18:virtual const char* spinal::GetBoardInfoRequest::getType()	16	static
+GetBoardInfo.h:35:18:virtual const char* spinal::GetBoardInfoRequest::getMD5()	16	static
+GetBoardInfo.h:47:5:spinal::GetBoardInfoResponse::GetBoardInfoResponse()	16	static
+GetBoardInfo.h:52:17:virtual int spinal::GetBoardInfoResponse::serialize(unsigned char*) const	24	static
+GetBoardInfo.h:66:17:virtual int spinal::GetBoardInfoResponse::deserialize(unsigned char*)	32	static
+GetBoardInfo.h:84:18:virtual const char* spinal::GetBoardInfoResponse::getType()	16	static
+GetBoardInfo.h:85:18:virtual const char* spinal::GetBoardInfoResponse::getMD5()	16	static
+stl_vector.h:125:14:std::_Vector_base<Neuron, std::allocator<Neuron> >::_Vector_impl::~_Vector_impl()	16	static
+stl_vector.h:285:7:std::_Vector_base<_Tp, _Alloc>::_Vector_base() [with _Tp = Neuron; _Alloc = std::allocator<Neuron>]	16	static
+stl_vector.h:484:7:std::vector<_Tp, _Alloc>::vector() [with _Tp = Neuron; _Alloc = std::allocator<Neuron>]	16	static
+stl_vector.h:125:14:std::_Vector_base<std::reference_wrapper<Servo>, std::allocator<std::reference_wrapper<Servo> > >::_Vector_impl::~_Vector_impl()	16	static
+stl_vector.h:285:7:std::_Vector_base<_Tp, _Alloc>::_Vector_base() [with _Tp = std::reference_wrapper<Servo>; _Alloc = std::allocator<std::reference_wrapper<Servo> >]	16	static
+stl_vector.h:484:7:std::vector<_Tp, _Alloc>::vector() [with _Tp = std::reference_wrapper<Servo>; _Alloc = std::allocator<std::reference_wrapper<Servo> >]	16	static
+stl_vector.h:125:14:std::_Vector_base<float, std::allocator<float> >::_Vector_impl::~_Vector_impl()	16	static
+stl_vector.h:285:7:std::_Vector_base<_Tp, _Alloc>::_Vector_base() [with _Tp = float; _Alloc = std::allocator<float>]	16	static
+stl_vector.h:484:7:std::vector<_Tp, _Alloc>::vector() [with _Tp = float; _Alloc = std::allocator<float>]	16	static
+msg.h:45:7:constexpr ros::Msg& ros::Msg::operator=(const ros::Msg&)	16	static
+ServoInfo.h:12:9:constexpr spinal::ServoInfo& spinal::ServoInfo::operator=(const spinal::ServoInfo&)	16	static
+BoardInfo.h:13:9:constexpr spinal::BoardInfo& spinal::BoardInfo::operator=(const spinal::BoardInfo&)	16	static
+GetBoardInfo.h:39:9:constexpr spinal::GetBoardInfoResponse& spinal::GetBoardInfoResponse::operator=(const spinal::GetBoardInfoResponse&)	16	static
+spine.cpp:62:8:void Spine::boardInfoCallback(const Request&, spinal::GetBoardInfo::Response&)	48	static
+spine.cpp:88:8:void Spine::servoControlCallback(const spinal::ServoControlCmd&)	24	static
+spine.cpp:97:8:void Spine::servoTorqueControlCallback(const spinal::ServoTorqueCmd&)	32	static
+spine.cpp:110:8:void Spine::boardConfigCallback(const Request&, spinal::SetBoardConfig::Response&)	16	static
+spine.cpp:119:8:void Spine::init(CAN_GeranlHandleTypeDef*, ros::NodeHandle*, StateEstimate*, GPIO_TypeDef*, uint16_t)	80	static
+spine.cpp:217:8:void Spine::send()	8	static
+ServoState.h:12:9:constexpr spinal::ServoState& spinal::ServoState::operator=(const spinal::ServoState&)	16	static
+spine.cpp:231:8:void Spine::update()	56	static
+spine.cpp:294:8:void Spine::useRTOS(os_mailQ_cb**)	16	static
+spine.cpp:299:8:void Spine::setMotorPwm(uint16_t, uint8_t)	16	static
+spine.cpp:304:11:uint8_t Spine::getSlaveNum()	4	static
+spine.cpp:309:10:int8_t Spine::getUavModel()	4	static
+spine.cpp:314:8:void Spine::setServoControlFlag(bool)	16	static
+stl_vector.h:128:2:std::_Vector_base<_Tp, _Alloc>::_Vector_impl::_Vector_impl() [with _Tp = std::reference_wrapper<CANMotor>; _Alloc = std::allocator<std::reference_wrapper<CANMotor> >]	16	static
+allocator.h:153:7:std::allocator< <template-parameter-1-1> >::~allocator() [with _Tp = std::reference_wrapper<CANMotor>]	16	static
+stl_vector.h:330:7:std::_Vector_base<_Tp, _Alloc>::~_Vector_base() [with _Tp = std::reference_wrapper<CANMotor>; _Alloc = std::allocator<std::reference_wrapper<CANMotor> >]	16	static
+stl_vector.h:675:7:std::vector<_Tp, _Alloc>::~vector() [with _Tp = std::reference_wrapper<CANMotor>; _Alloc = std::allocator<std::reference_wrapper<CANMotor> >]	24	static
+refwrap.h:315:2:std::reference_wrapper<_Tp>::reference_wrapper(_Up&&) [with _Up = CANMotor&; <template-parameter-2-2> = void; <template-parameter-2-3> = CANMotor*; _Tp = CANMotor]	16	static
+stl_vector.h:1200:7:void std::vector<_Tp, _Alloc>::push_back(std::vector<_Tp, _Alloc>::value_type&&) [with _Tp = std::reference_wrapper<CANMotor>; _Alloc = std::allocator<std::reference_wrapper<CANMotor> >]	16	static
+allocator.h:153:7:std::allocator< <template-parameter-1-1> >::~allocator() [with _Tp = Servo]	16	static
+stl_vector.h:330:7:std::_Vector_base<_Tp, _Alloc>::~_Vector_base() [with _Tp = Servo; _Alloc = std::allocator<Servo>]	16	static
+stl_vector.h:675:7:std::vector<_Tp, _Alloc>::~vector() [with _Tp = Servo; _Alloc = std::allocator<Servo>]	24	static
+subscriber.h:44:7:ros::Subscriber_::Subscriber_()	16	static
+stl_vector.h:675:7:std::vector<_Tp, _Alloc>::~vector() [with _Tp = float; _Alloc = std::allocator<float>]	24	static
+allocator.h:138:7:std::allocator< <template-parameter-1-1> >::allocator() [with _Tp = float]	16	static
+allocator.h:153:7:std::allocator< <template-parameter-1-1> >::~allocator() [with _Tp = float]	16	static
+node_handle.h:415:8:bool ros::NodeHandle_<Hardware, MAX_SUBSCRIBERS, MAX_PUBLISHERS, INPUT_SIZE, OUTPUT_SIZE>::advertise(ros::Publisher&) [with Hardware = STM32Hardware; int MAX_SUBSCRIBERS = 50; int MAX_PUBLISHERS = 50; int INPUT_SIZE = 512; int OUTPUT_SIZE = 512]	24	static
+stl_vector.h:915:7:std::vector<_Tp, _Alloc>::size_type std::vector<_Tp, _Alloc>::size() const [with _Tp = IMU*; _Alloc = std::allocator<IMU*>]	16	static
+stl_vector.h:1040:7:std::vector<_Tp, _Alloc>::reference std::vector<_Tp, _Alloc>::operator[](std::vector<_Tp, _Alloc>::size_type) [with _Tp = float; _Alloc = std::allocator<float>]	16	static
+stl_vector.h:1184:7:void std::vector<_Tp, _Alloc>::push_back(const value_type&) [with _Tp = IMU*; _Alloc = std::allocator<IMU*>]	16	static
+stl_vector.h:1184:7:void std::vector<_Tp, _Alloc>::push_back(const value_type&) [with _Tp = float; _Alloc = std::allocator<float>]	16	static
+node_handle.h:392:8:ros::Time ros::NodeHandle_<Hardware, MAX_SUBSCRIBERS, MAX_PUBLISHERS, INPUT_SIZE, OUTPUT_SIZE>::now() [with Hardware = STM32Hardware; int MAX_SUBSCRIBERS = 50; int MAX_PUBLISHERS = 50; int INPUT_SIZE = 512; int OUTPUT_SIZE = 512]	24	static
+stl_vector.h:128:2:std::_Vector_base<_Tp, _Alloc>::_Vector_impl::_Vector_impl() [with _Tp = Neuron; _Alloc = std::allocator<Neuron>]	16	static
+allocator.h:153:7:std::allocator< <template-parameter-1-1> >::~allocator() [with _Tp = Neuron]	16	static
+stl_vector.h:330:7:std::_Vector_base<_Tp, _Alloc>::~_Vector_base() [with _Tp = Neuron; _Alloc = std::allocator<Neuron>]	16	static
+stl_vector.h:128:2:std::_Vector_base<_Tp, _Alloc>::_Vector_impl::_Vector_impl() [with _Tp = std::reference_wrapper<Servo>; _Alloc = std::allocator<std::reference_wrapper<Servo> >]	16	static
+allocator.h:153:7:std::allocator< <template-parameter-1-1> >::~allocator() [with _Tp = std::reference_wrapper<Servo>]	16	static
+stl_vector.h:330:7:std::_Vector_base<_Tp, _Alloc>::~_Vector_base() [with _Tp = std::reference_wrapper<Servo>; _Alloc = std::allocator<std::reference_wrapper<Servo> >]	16	static
+stl_vector.h:128:2:std::_Vector_base<_Tp, _Alloc>::_Vector_impl::_Vector_impl() [with _Tp = float; _Alloc = std::allocator<float>]	16	static
+stl_vector.h:330:7:std::_Vector_base<_Tp, _Alloc>::~_Vector_base() [with _Tp = float; _Alloc = std::allocator<float>]	16	static
+subscriber.h:107:3:ros::Subscriber<MsgT, void>::Subscriber(const char*, ros::Subscriber<MsgT, void>::CallbackT, int) [with MsgT = spinal::ServoControlCmd]	24	static
+subscriber.h:107:3:ros::Subscriber<MsgT, void>::Subscriber(const char*, ros::Subscriber<MsgT, void>::CallbackT, int) [with MsgT = spinal::ServoTorqueCmd]	24	static
+service_server.h:94:3:ros::ServiceServer<MReq, MRes, void>::ServiceServer(const char*, ros::ServiceServer<MReq, MRes, void>::CallbackT) [with MReq = spinal::GetBoardInfoRequest; MRes = spinal::GetBoardInfoResponse]	24	static
+service_server.h:94:3:ros::ServiceServer<MReq, MRes, void>::ServiceServer(const char*, ros::ServiceServer<MReq, MRes, void>::CallbackT) [with MReq = spinal::SetBoardConfigRequest; MRes = spinal::SetBoardConfigResponse]	24	static
+stl_vector.h:1089:7:std::vector<_Tp, _Alloc>::reference std::vector<_Tp, _Alloc>::at(std::vector<_Tp, _Alloc>::size_type) [with _Tp = Neuron; _Alloc = std::allocator<Neuron>]	16	static
+stl_vector.h:1089:7:std::vector<_Tp, _Alloc>::reference std::vector<_Tp, _Alloc>::at(std::vector<_Tp, _Alloc>::size_type) [with _Tp = Servo; _Alloc = std::allocator<Servo>]	16	static
+stl_vector.h:1089:7:std::vector<_Tp, _Alloc>::reference std::vector<_Tp, _Alloc>::at(std::vector<_Tp, _Alloc>::size_type) [with _Tp = std::reference_wrapper<Servo>; _Alloc = std::allocator<std::reference_wrapper<Servo> >]	16	static
+refwrap.h:329:7:_Tp& std::reference_wrapper<_Tp>::get() const [with _Tp = Servo]	16	static
+node_handle.h:432:8:bool ros::NodeHandle_<Hardware, MAX_SUBSCRIBERS, MAX_PUBLISHERS, INPUT_SIZE, OUTPUT_SIZE>::subscribe(SubscriberT&) [with SubscriberT = ros::Subscriber<spinal::ServoControlCmd>; Hardware = STM32Hardware; int MAX_SUBSCRIBERS = 50; int MAX_PUBLISHERS = 50; int INPUT_SIZE = 512; int OUTPUT_SIZE = 512]	24	static
+node_handle.h:432:8:bool ros::NodeHandle_<Hardware, MAX_SUBSCRIBERS, MAX_PUBLISHERS, INPUT_SIZE, OUTPUT_SIZE>::subscribe(SubscriberT&) [with SubscriberT = ros::Subscriber<spinal::ServoTorqueCmd>; Hardware = STM32Hardware; int MAX_SUBSCRIBERS = 50; int MAX_PUBLISHERS = 50; int INPUT_SIZE = 512; int OUTPUT_SIZE = 512]	24	static
+node_handle.h:448:8:bool ros::NodeHandle_<Hardware, MAX_SUBSCRIBERS, MAX_PUBLISHERS, INPUT_SIZE, OUTPUT_SIZE>::advertiseService(ros::ServiceServer<MReq, MRes, ObjT>&) [with MReq = spinal::GetBoardInfoRequest; MRes = spinal::GetBoardInfoResponse; ObjT = void; Hardware = STM32Hardware; int MAX_SUBSCRIBERS = 50; int MAX_PUBLISHERS = 50; int INPUT_SIZE = 512; int OUTPUT_SIZE = 512]	24	static
+node_handle.h:448:8:bool ros::NodeHandle_<Hardware, MAX_SUBSCRIBERS, MAX_PUBLISHERS, INPUT_SIZE, OUTPUT_SIZE>::advertiseService(ros::ServiceServer<MReq, MRes, ObjT>&) [with MReq = spinal::SetBoardConfigRequest; MRes = spinal::SetBoardConfigResponse; ObjT = void; Hardware = STM32Hardware; int MAX_SUBSCRIBERS = 50; int MAX_PUBLISHERS = 50; int INPUT_SIZE = 512; int OUTPUT_SIZE = 512]	24	static
+stl_vector.h:915:7:std::vector<_Tp, _Alloc>::size_type std::vector<_Tp, _Alloc>::size() const [with _Tp = Neuron; _Alloc = std::allocator<Neuron>]	16	static
+stl_vector.h:915:7:std::vector<_Tp, _Alloc>::size_type std::vector<_Tp, _Alloc>::size() const [with _Tp = Servo; _Alloc = std::allocator<Servo>]	16	static
+stl_vector.h:915:7:std::vector<_Tp, _Alloc>::size_type std::vector<_Tp, _Alloc>::size() const [with _Tp = std::reference_wrapper<Servo>; _Alloc = std::allocator<std::reference_wrapper<Servo> >]	16	static
+refwrap.h:315:2:std::reference_wrapper<_Tp>::reference_wrapper(_Up&&) [with _Up = Servo&; <template-parameter-2-2> = void; <template-parameter-2-3> = Servo*; _Tp = Servo]	16	static
+stl_vector.h:1200:7:void std::vector<_Tp, _Alloc>::push_back(std::vector<_Tp, _Alloc>::value_type&&) [with _Tp = std::reference_wrapper<Servo>; _Alloc = std::allocator<std::reference_wrapper<Servo> >]	16	static
+stl_vector.h:934:7:void std::vector<_Tp, _Alloc>::resize(std::vector<_Tp, _Alloc>::size_type) [with _Tp = float; _Alloc = std::allocator<float>]	16	static
+stl_vector.h:915:7:std::vector<_Tp, _Alloc>::size_type std::vector<_Tp, _Alloc>::size() const [with _Tp = float; _Alloc = std::allocator<float>]	16	static
+allocator.h:138:7:std::allocator< <template-parameter-1-1> >::allocator() [with _Tp = std::reference_wrapper<CANMotor>]	16	static
+stl_vector.h:94:2:std::_Vector_base<_Tp, _Alloc>::_Vector_impl_data::_Vector_impl_data() [with _Tp = std::reference_wrapper<CANMotor>; _Alloc = std::allocator<std::reference_wrapper<CANMotor> >]	16	static
+new_allocator.h:89:7:__gnu_cxx::new_allocator<_Tp>::~new_allocator() [with _Tp = std::reference_wrapper<CANMotor>]	16	static
+stl_vector.h:347:7:void std::_Vector_base<_Tp, _Alloc>::_M_deallocate(std::_Vector_base<_Tp, _Alloc>::pointer, std::size_t) [with _Tp = std::reference_wrapper<CANMotor>; _Alloc = std::allocator<std::reference_wrapper<CANMotor> >]	24	static
+stl_vector.h:273:7:std::_Vector_base<_Tp, _Alloc>::_Tp_alloc_type& std::_Vector_base<_Tp, _Alloc>::_M_get_Tp_allocator() [with _Tp = std::reference_wrapper<CANMotor>; _Alloc = std::allocator<std::reference_wrapper<CANMotor> >]	16	static
+stl_construct.h:203:5:void std::_Destroy(_ForwardIterator, _ForwardIterator, std::allocator<_T2>&) [with _ForwardIterator = std::reference_wrapper<CANMotor>*; _Tp = std::reference_wrapper<CANMotor>]	24	static
+move.h:74:5:constexpr _Tp&& std::forward(typename std::remove_reference<_Tp>::type&) [with _Tp = CANMotor&]	16	static
+refwrap.h:300:19:static _Tp* std::reference_wrapper<_Tp>::_S_fun(_Tp&) [with _Tp = CANMotor]	16	static
+move.h:99:5:constexpr typename std::remove_reference<_Tp>::type&& std::move(_Tp&&) [with _Tp = std::reference_wrapper<CANMotor>&]	16	static
+vector.tcc:109:7:) [with _Args = {std::reference_wrapper<CANMotor>}; _Tp = std::reference_wrapper<CANMotor>; _Alloc = std::allocator<std::reference_wrapper<CANMotor> >]	24	static
+new_allocator.h:89:7:__gnu_cxx::new_allocator<_Tp>::~new_allocator() [with _Tp = Servo]	16	static
+stl_vector.h:347:7:void std::_Vector_base<_Tp, _Alloc>::_M_deallocate(std::_Vector_base<_Tp, _Alloc>::pointer, std::size_t) [with _Tp = Servo; _Alloc = std::allocator<Servo>]	24	static
+stl_vector.h:273:7:std::_Vector_base<_Tp, _Alloc>::_Tp_alloc_type& std::_Vector_base<_Tp, _Alloc>::_M_get_Tp_allocator() [with _Tp = Servo; _Alloc = std::allocator<Servo>]	16	static
+stl_construct.h:203:5:void std::_Destroy(_ForwardIterator, _ForwardIterator, std::allocator<_T2>&) [with _ForwardIterator = Servo*; _Tp = Servo]	24	static
+stl_vector.h:273:7:std::_Vector_base<_Tp, _Alloc>::_Tp_alloc_type& std::_Vector_base<_Tp, _Alloc>::_M_get_Tp_allocator() [with _Tp = IMU*; _Alloc = std::allocator<IMU*>]	16	static
+stl_construct.h:203:5:void std::_Destroy(_ForwardIterator, _ForwardIterator, std::allocator<_T2>&) [with _ForwardIterator = IMU**; _Tp = IMU*]	24	static
+stl_vector.h:273:7:std::_Vector_base<_Tp, _Alloc>::_Tp_alloc_type& std::_Vector_base<_Tp, _Alloc>::_M_get_Tp_allocator() [with _Tp = float; _Alloc = std::allocator<float>]	16	static
+stl_construct.h:203:5:void std::_Destroy(_ForwardIterator, _ForwardIterator, std::allocator<_T2>&) [with _ForwardIterator = float*; _Tp = float]	24	static
+new_allocator.h:80:7:__gnu_cxx::new_allocator<_Tp>::new_allocator() [with _Tp = float]	16	static
+new_allocator.h:89:7:__gnu_cxx::new_allocator<_Tp>::~new_allocator() [with _Tp = float]	16	static
+alloc_traits.h:482:2:) [with _Up = IMU*; _Args = {IMU* const&}; _Tp = IMU*]	24	static
+stl_vector.h:826:7:std::vector<_Tp, _Alloc>::iterator std::vector<_Tp, _Alloc>::end() [with _Tp = IMU*; _Alloc = std::allocator<IMU*>]	24	static
+stl_vector.h:441:7:static constexpr bool std::vector<_Tp, _Alloc>::_S_use_relocate() [with _Tp = IMU*; _Alloc = std::allocator<IMU*>]	16	static
+stl_vector.h:428:7:static constexpr bool std::vector<_Tp, _Alloc>::_S_nothrow_relocate(std::true_type) [with _Tp = IMU*; _Alloc = std::allocator<IMU*>]	16	static
+vector.tcc:426:7:) [with _Args = {IMU* const&}; _Tp = IMU*; _Alloc = std::allocator<IMU*>]	64	static
+alloc_traits.h:482:2:) [with _Up = float; _Args = {const float&}; _Tp = float]	24	static
+stl_vector.h:826:7:std::vector<_Tp, _Alloc>::iterator std::vector<_Tp, _Alloc>::end() [with _Tp = float; _Alloc = std::allocator<float>]	24	static
+stl_vector.h:441:7:static constexpr bool std::vector<_Tp, _Alloc>::_S_use_relocate() [with _Tp = float; _Alloc = std::allocator<float>]	16	static
+stl_vector.h:428:7:static constexpr bool std::vector<_Tp, _Alloc>::_S_nothrow_relocate(std::true_type) [with _Tp = float; _Alloc = std::allocator<float>]	16	static
+vector.tcc:426:7:) [with _Args = {const float&}; _Tp = float; _Alloc = std::allocator<float>]	64	static
+allocator.h:138:7:std::allocator< <template-parameter-1-1> >::allocator() [with _Tp = Neuron]	16	static
+stl_vector.h:94:2:std::_Vector_base<_Tp, _Alloc>::_Vector_impl_data::_Vector_impl_data() [with _Tp = Neuron; _Alloc = std::allocator<Neuron>]	16	static
+new_allocator.h:89:7:__gnu_cxx::new_allocator<_Tp>::~new_allocator() [with _Tp = Neuron]	16	static
+stl_vector.h:347:7:void std::_Vector_base<_Tp, _Alloc>::_M_deallocate(std::_Vector_base<_Tp, _Alloc>::pointer, std::size_t) [with _Tp = Neuron; _Alloc = std::allocator<Neuron>]	24	static
+allocator.h:138:7:std::allocator< <template-parameter-1-1> >::allocator() [with _Tp = std::reference_wrapper<Servo>]	16	static
+stl_vector.h:94:2:std::_Vector_base<_Tp, _Alloc>::_Vector_impl_data::_Vector_impl_data() [with _Tp = std::reference_wrapper<Servo>; _Alloc = std::allocator<std::reference_wrapper<Servo> >]	16	static
+new_allocator.h:89:7:__gnu_cxx::new_allocator<_Tp>::~new_allocator() [with _Tp = std::reference_wrapper<Servo>]	16	static
+stl_vector.h:347:7:void std::_Vector_base<_Tp, _Alloc>::_M_deallocate(std::_Vector_base<_Tp, _Alloc>::pointer, std::size_t) [with _Tp = std::reference_wrapper<Servo>; _Alloc = std::allocator<std::reference_wrapper<Servo> >]	24	static
+stl_vector.h:94:2:std::_Vector_base<_Tp, _Alloc>::_Vector_impl_data::_Vector_impl_data() [with _Tp = float; _Alloc = std::allocator<float>]	16	static
+stl_vector.h:347:7:void std::_Vector_base<_Tp, _Alloc>::_M_deallocate(std::_Vector_base<_Tp, _Alloc>::pointer, std::size_t) [with _Tp = float; _Alloc = std::allocator<float>]	24	static
+stl_vector.h:1067:7:void std::vector<_Tp, _Alloc>::_M_range_check(std::vector<_Tp, _Alloc>::size_type) const [with _Tp = Neuron; _Alloc = std::allocator<Neuron>]	16	static
+stl_vector.h:1040:7:std::vector<_Tp, _Alloc>::reference std::vector<_Tp, _Alloc>::operator[](std::vector<_Tp, _Alloc>::size_type) [with _Tp = Neuron; _Alloc = std::allocator<Neuron>]	16	static
+stl_vector.h:1067:7:void std::vector<_Tp, _Alloc>::_M_range_check(std::vector<_Tp, _Alloc>::size_type) const [with _Tp = Servo; _Alloc = std::allocator<Servo>]	16	static
+stl_vector.h:1040:7:std::vector<_Tp, _Alloc>::reference std::vector<_Tp, _Alloc>::operator[](std::vector<_Tp, _Alloc>::size_type) [with _Tp = Servo; _Alloc = std::allocator<Servo>]	16	static
+stl_vector.h:1067:7:void std::vector<_Tp, _Alloc>::_M_range_check(std::vector<_Tp, _Alloc>::size_type) const [with _Tp = std::reference_wrapper<Servo>; _Alloc = std::allocator<std::reference_wrapper<Servo> >]	16	static
+stl_vector.h:1040:7:std::vector<_Tp, _Alloc>::reference std::vector<_Tp, _Alloc>::operator[](std::vector<_Tp, _Alloc>::size_type) [with _Tp = std::reference_wrapper<Servo>; _Alloc = std::allocator<std::reference_wrapper<Servo> >]	16	static
+move.h:74:5:constexpr _Tp&& std::forward(typename std::remove_reference<_Tp>::type&) [with _Tp = Servo&]	16	static
+refwrap.h:300:19:static _Tp* std::reference_wrapper<_Tp>::_S_fun(_Tp&) [with _Tp = Servo]	16	static
+move.h:99:5:constexpr typename std::remove_reference<_Tp>::type&& std::move(_Tp&&) [with _Tp = std::reference_wrapper<Servo>&]	16	static
+vector.tcc:109:7:) [with _Args = {std::reference_wrapper<Servo>}; _Tp = std::reference_wrapper<Servo>; _Alloc = std::allocator<std::reference_wrapper<Servo> >]	24	static
+vector.tcc:611:5:void std::vector<_Tp, _Alloc>::_M_default_append(std::vector<_Tp, _Alloc>::size_type) [with _Tp = float; _Alloc = std::allocator<float>]	48	static
+stl_vector.h:1789:7:void std::vector<_Tp, _Alloc>::_M_erase_at_end(std::vector<_Tp, _Alloc>::pointer) [with _Tp = float; _Alloc = std::allocator<float>]	32	static
+new_allocator.h:80:7:__gnu_cxx::new_allocator<_Tp>::new_allocator() [with _Tp = std::reference_wrapper<CANMotor>]	16	static
+alloc_traits.h:469:7:static void std::allocator_traits<std::allocator<_Tp1> >::deallocate(std::allocator_traits<std::allocator<_Tp1> >::allocator_type&, std::allocator_traits<std::allocator<_Tp1> >::pointer, std::allocator_traits<std::allocator<_Tp1> >::size_type) [with _Tp = std::reference_wrapper<CANMotor>]	24	static
+stl_construct.h:127:5:void std::_Destroy(_ForwardIterator, _ForwardIterator) [with _ForwardIterator = std::reference_wrapper<CANMotor>*]	16	static
+move.h:47:5:constexpr _Tp* std::__addressof(_Tp&) [with _Tp = CANMotor]	16	static
+move.h:74:5:constexpr _Tp&& std::forward(typename std::remove_reference<_Tp>::type&) [with _Tp = std::reference_wrapper<CANMotor>]	16	static
+alloc_traits.h:482:2:) [with _Up = std::reference_wrapper<CANMotor>; _Args = {std::reference_wrapper<CANMotor>}; _Tp = std::reference_wrapper<CANMotor>]	24	static
+stl_vector.h:826:7:std::vector<_Tp, _Alloc>::iterator std::vector<_Tp, _Alloc>::end() [with _Tp = std::reference_wrapper<CANMotor>; _Alloc = std::allocator<std::reference_wrapper<CANMotor> >]	24	static
+stl_vector.h:441:7:static constexpr bool std::vector<_Tp, _Alloc>::_S_use_relocate() [with _Tp = std::reference_wrapper<CANMotor>; _Alloc = std::allocator<std::reference_wrapper<CANMotor> >]	16	static
+stl_vector.h:428:7:static constexpr bool std::vector<_Tp, _Alloc>::_S_nothrow_relocate(std::true_type) [with _Tp = std::reference_wrapper<CANMotor>; _Alloc = std::allocator<std::reference_wrapper<CANMotor> >]	16	static
+vector.tcc:426:7:) [with _Args = {std::reference_wrapper<CANMotor>}; _Tp = std::reference_wrapper<CANMotor>; _Alloc = std::allocator<std::reference_wrapper<CANMotor> >]	64	static
+alloc_traits.h:469:7:static void std::allocator_traits<std::allocator<_Tp1> >::deallocate(std::allocator_traits<std::allocator<_Tp1> >::allocator_type&, std::allocator_traits<std::allocator<_Tp1> >::pointer, std::allocator_traits<std::allocator<_Tp1> >::size_type) [with _Tp = Servo]	24	static
+stl_construct.h:127:5:void std::_Destroy(_ForwardIterator, _ForwardIterator) [with _ForwardIterator = Servo*]	16	static
+stl_vector.h:347:7:void std::_Vector_base<_Tp, _Alloc>::_M_deallocate(std::_Vector_base<_Tp, _Alloc>::pointer, std::size_t) [with _Tp = IMU*; _Alloc = std::allocator<IMU*>]	24	static
+stl_construct.h:127:5:void std::_Destroy(_ForwardIterator, _ForwardIterator) [with _ForwardIterator = IMU**]	16	static
+stl_construct.h:127:5:void std::_Destroy(_ForwardIterator, _ForwardIterator) [with _ForwardIterator = float*]	16	static
+stl_vector.h:1773:7:static std::vector<_Tp, _Alloc>::size_type std::vector<_Tp, _Alloc>::_S_max_size(const _Tp_alloc_type&) [with _Tp = IMU*; _Alloc = std::allocator<IMU*>]	24	static
+stl_vector.h:1773:7:static std::vector<_Tp, _Alloc>::size_type std::vector<_Tp, _Alloc>::_S_max_size(const _Tp_alloc_type&) [with _Tp = float; _Alloc = std::allocator<float>]	24	static
+move.h:74:5:constexpr _Tp&& std::forward(typename std::remove_reference<_Tp>::type&) [with _Tp = IMU* const&]	16	static
+new_allocator.h:144:2:) [with _Up = IMU*; _Args = {IMU* const&}; _Tp = IMU*]	32	static
+stl_iterator.h:806:7:__gnu_cxx::__normal_iterator<_Iterator, _Container>::__normal_iterator(const _Iterator&) [with _Iterator = IMU**; _Container = std::vector<IMU*>]	16	static
+stl_vector.h:1753:7:std::vector<_Tp, _Alloc>::size_type std::vector<_Tp, _Alloc>::_M_check_len(std::vector<_Tp, _Alloc>::size_type, const char*) const [with _Tp = IMU*; _Alloc = std::allocator<IMU*>]	40	static
+stl_vector.h:808:7:std::vector<_Tp, _Alloc>::iterator std::vector<_Tp, _Alloc>::begin() [with _Tp = IMU*; _Alloc = std::allocator<IMU*>]	24	static
+stl_iterator.h:989:5:typename __gnu_cxx::__normal_iterator<_Iterator, _Container>::difference_type __gnu_cxx::operator-(const __gnu_cxx::__normal_iterator<_Iterator, _Container>&, const __gnu_cxx::__normal_iterator<_Iterator, _Container>&) [with _Iterator = IMU**; _Container = std::vector<IMU*>]	24	static
+stl_vector.h:340:7:std::_Vector_base<_Tp, _Alloc>::pointer std::_Vector_base<_Tp, _Alloc>::_M_allocate(std::size_t) [with _Tp = IMU*; _Alloc = std::allocator<IMU*>]	16	static
+stl_vector.h:462:7:static std::vector<_Tp, _Alloc>::pointer std::vector<_Tp, _Alloc>::_S_relocate(std::vector<_Tp, _Alloc>::pointer, std::vector<_Tp, _Alloc>::pointer, std::vector<_Tp, _Alloc>::pointer, std::vector<_Tp, _Alloc>::_Tp_alloc_type&) [with _Tp = IMU*; _Alloc = std::allocator<IMU*>]	48	static
+stl_iterator.h:871:7:const _Iterator& __gnu_cxx::__normal_iterator<_Iterator, _Container>::base() const [with _Iterator = IMU**; _Container = std::vector<IMU*>]	16	static
+stl_uninitialized.h:323:5:_ForwardIterator std::__uninitialized_move_if_noexcept_a(_InputIterator, _InputIterator, _ForwardIterator, _Allocator&) [with _InputIterator = IMU**; _ForwardIterator = IMU**; _Allocator = std::allocator<IMU*>]	32	static
+move.h:74:5:constexpr _Tp&& std::forward(typename std::remove_reference<_Tp>::type&) [with _Tp = const float&]	16	static
+new_allocator.h:144:2:) [with _Up = float; _Args = {const float&}; _Tp = float]	32	static
+stl_iterator.h:806:7:__gnu_cxx::__normal_iterator<_Iterator, _Container>::__normal_iterator(const _Iterator&) [with _Iterator = float*; _Container = std::vector<float>]	16	static
+stl_vector.h:1753:7:std::vector<_Tp, _Alloc>::size_type std::vector<_Tp, _Alloc>::_M_check_len(std::vector<_Tp, _Alloc>::size_type, const char*) const [with _Tp = float; _Alloc = std::allocator<float>]	40	static
+stl_vector.h:808:7:std::vector<_Tp, _Alloc>::iterator std::vector<_Tp, _Alloc>::begin() [with _Tp = float; _Alloc = std::allocator<float>]	24	static
+stl_iterator.h:989:5:typename __gnu_cxx::__normal_iterator<_Iterator, _Container>::difference_type __gnu_cxx::operator-(const __gnu_cxx::__normal_iterator<_Iterator, _Container>&, const __gnu_cxx::__normal_iterator<_Iterator, _Container>&) [with _Iterator = float*; _Container = std::vector<float>]	24	static
+stl_vector.h:340:7:std::_Vector_base<_Tp, _Alloc>::pointer std::_Vector_base<_Tp, _Alloc>::_M_allocate(std::size_t) [with _Tp = float; _Alloc = std::allocator<float>]	16	static
+stl_vector.h:462:7:static std::vector<_Tp, _Alloc>::pointer std::vector<_Tp, _Alloc>::_S_relocate(std::vector<_Tp, _Alloc>::pointer, std::vector<_Tp, _Alloc>::pointer, std::vector<_Tp, _Alloc>::pointer, std::vector<_Tp, _Alloc>::_Tp_alloc_type&) [with _Tp = float; _Alloc = std::allocator<float>]	48	static
+stl_iterator.h:871:7:const _Iterator& __gnu_cxx::__normal_iterator<_Iterator, _Container>::base() const [with _Iterator = float*; _Container = std::vector<float>]	16	static
+stl_uninitialized.h:323:5:_ForwardIterator std::__uninitialized_move_if_noexcept_a(_InputIterator, _InputIterator, _ForwardIterator, _Allocator&) [with _InputIterator = float*; _ForwardIterator = float*; _Allocator = std::allocator<float>]	32	static
+new_allocator.h:80:7:__gnu_cxx::new_allocator<_Tp>::new_allocator() [with _Tp = Neuron]	16	static
+alloc_traits.h:469:7:static void std::allocator_traits<std::allocator<_Tp1> >::deallocate(std::allocator_traits<std::allocator<_Tp1> >::allocator_type&, std::allocator_traits<std::allocator<_Tp1> >::pointer, std::allocator_traits<std::allocator<_Tp1> >::size_type) [with _Tp = Neuron]	24	static
+new_allocator.h:80:7:__gnu_cxx::new_allocator<_Tp>::new_allocator() [with _Tp = std::reference_wrapper<Servo>]	16	static
+alloc_traits.h:469:7:static void std::allocator_traits<std::allocator<_Tp1> >::deallocate(std::allocator_traits<std::allocator<_Tp1> >::allocator_type&, std::allocator_traits<std::allocator<_Tp1> >::pointer, std::allocator_traits<std::allocator<_Tp1> >::size_type) [with _Tp = std::reference_wrapper<Servo>]	24	static
+alloc_traits.h:469:7:static void std::allocator_traits<std::allocator<_Tp1> >::deallocate(std::allocator_traits<std::allocator<_Tp1> >::allocator_type&, std::allocator_traits<std::allocator<_Tp1> >::pointer, std::allocator_traits<std::allocator<_Tp1> >::size_type) [with _Tp = float]	24	static
+move.h:47:5:constexpr _Tp* std::__addressof(_Tp&) [with _Tp = Servo]	16	static
+move.h:74:5:constexpr _Tp&& std::forward(typename std::remove_reference<_Tp>::type&) [with _Tp = std::reference_wrapper<Servo>]	16	static
+alloc_traits.h:482:2:) [with _Up = std::reference_wrapper<Servo>; _Args = {std::reference_wrapper<Servo>}; _Tp = std::reference_wrapper<Servo>]	24	static
+stl_vector.h:826:7:std::vector<_Tp, _Alloc>::iterator std::vector<_Tp, _Alloc>::end() [with _Tp = std::reference_wrapper<Servo>; _Alloc = std::allocator<std::reference_wrapper<Servo> >]	24	static
+stl_vector.h:441:7:static constexpr bool std::vector<_Tp, _Alloc>::_S_use_relocate() [with _Tp = std::reference_wrapper<Servo>; _Alloc = std::allocator<std::reference_wrapper<Servo> >]	16	static
+stl_vector.h:428:7:static constexpr bool std::vector<_Tp, _Alloc>::_S_nothrow_relocate(std::true_type) [with _Tp = std::reference_wrapper<Servo>; _Alloc = std::allocator<std::reference_wrapper<Servo> >]	16	static
+vector.tcc:426:7:) [with _Args = {std::reference_wrapper<Servo>}; _Tp = std::reference_wrapper<Servo>; _Alloc = std::allocator<std::reference_wrapper<Servo> >]	64	static
+stl_vector.h:920:7:std::vector<_Tp, _Alloc>::size_type std::vector<_Tp, _Alloc>::max_size() const [with _Tp = float; _Alloc = std::allocator<float>]	16	static
+stl_uninitialized.h:661:5:_ForwardIterator std::__uninitialized_default_n_a(_ForwardIterator, _Size, std::allocator<_Tp>&) [with _ForwardIterator = float*; _Size = unsigned int; _Tp = float]	24	static
+new_allocator.h:119:7:void __gnu_cxx::new_allocator<_Tp>::deallocate(__gnu_cxx::new_allocator<_Tp>::pointer, __gnu_cxx::new_allocator<_Tp>::size_type) [with _Tp = std::reference_wrapper<CANMotor>]	24	static
+stl_construct.h:117:9:static void std::_Destroy_aux<true>::__destroy(_ForwardIterator, _ForwardIterator) [with _ForwardIterator = std::reference_wrapper<CANMotor>*]	16	static
+new_allocator.h:144:2:) [with _Up = std::reference_wrapper<CANMotor>; _Args = {std::reference_wrapper<CANMotor>}; _Tp = std::reference_wrapper<CANMotor>]	32	static
+stl_iterator.h:806:7:__gnu_cxx::__normal_iterator<_Iterator, _Container>::__normal_iterator(const _Iterator&) [with _Iterator = std::reference_wrapper<CANMotor>*; _Container = std::vector<std::reference_wrapper<CANMotor> >]	16	static
+stl_vector.h:1753:7:std::vector<_Tp, _Alloc>::size_type std::vector<_Tp, _Alloc>::_M_check_len(std::vector<_Tp, _Alloc>::size_type, const char*) const [with _Tp = std::reference_wrapper<CANMotor>; _Alloc = std::allocator<std::reference_wrapper<CANMotor> >]	40	static
+stl_vector.h:808:7:std::vector<_Tp, _Alloc>::iterator std::vector<_Tp, _Alloc>::begin() [with _Tp = std::reference_wrapper<CANMotor>; _Alloc = std::allocator<std::reference_wrapper<CANMotor> >]	24	static
+stl_iterator.h:989:5:typename __gnu_cxx::__normal_iterator<_Iterator, _Container>::difference_type __gnu_cxx::operator-(const __gnu_cxx::__normal_iterator<_Iterator, _Container>&, const __gnu_cxx::__normal_iterator<_Iterator, _Container>&) [with _Iterator = std::reference_wrapper<CANMotor>*; _Container = std::vector<std::reference_wrapper<CANMotor> >]	24	static
+stl_vector.h:340:7:std::_Vector_base<_Tp, _Alloc>::pointer std::_Vector_base<_Tp, _Alloc>::_M_allocate(std::size_t) [with _Tp = std::reference_wrapper<CANMotor>; _Alloc = std::allocator<std::reference_wrapper<CANMotor> >]	16	static
+stl_vector.h:462:7:static std::vector<_Tp, _Alloc>::pointer std::vector<_Tp, _Alloc>::_S_relocate(std::vector<_Tp, _Alloc>::pointer, std::vector<_Tp, _Alloc>::pointer, std::vector<_Tp, _Alloc>::pointer, std::vector<_Tp, _Alloc>::_Tp_alloc_type&) [with _Tp = std::reference_wrapper<CANMotor>; _Alloc = std::allocator<std::reference_wrapper<CANMotor> >]	48	static
+stl_iterator.h:871:7:const _Iterator& __gnu_cxx::__normal_iterator<_Iterator, _Container>::base() const [with _Iterator = std::reference_wrapper<CANMotor>*; _Container = std::vector<std::reference_wrapper<CANMotor> >]	16	static
+stl_uninitialized.h:323:5:_ForwardIterator std::__uninitialized_move_if_noexcept_a(_InputIterator, _InputIterator, _ForwardIterator, _Allocator&) [with _InputIterator = std::reference_wrapper<CANMotor>*; _ForwardIterator = std::reference_wrapper<CANMotor>*; _Allocator = std::allocator<std::reference_wrapper<CANMotor> >]	32	static
+alloc_traits.h:495:2:static void std::allocator_traits<std::allocator<_Tp1> >::destroy(std::allocator_traits<std::allocator<_Tp1> >::allocator_type&, _Up*) [with _Up = std::reference_wrapper<CANMotor>; _Tp = std::reference_wrapper<CANMotor>]	16	static
+new_allocator.h:119:7:void __gnu_cxx::new_allocator<_Tp>::deallocate(__gnu_cxx::new_allocator<_Tp>::pointer, __gnu_cxx::new_allocator<_Tp>::size_type) [with _Tp = Servo]	24	static
+stl_construct.h:117:9:static void std::_Destroy_aux<true>::__destroy(_ForwardIterator, _ForwardIterator) [with _ForwardIterator = Servo*]	16	static
+stl_algobase.h:198:5:constexpr const _Tp& std::min(const _Tp&, const _Tp&) [with _Tp = unsigned int]	16	static
+stl_algobase.h:222:5:constexpr const _Tp& std::max(const _Tp&, const _Tp&) [with _Tp = unsigned int]	16	static
+alloc_traits.h:469:7:static void std::allocator_traits<std::allocator<_Tp1> >::deallocate(std::allocator_traits<std::allocator<_Tp1> >::allocator_type&, std::allocator_traits<std::allocator<_Tp1> >::pointer, std::allocator_traits<std::allocator<_Tp1> >::size_type) [with _Tp = IMU*]	24	static
+stl_construct.h:117:9:static void std::_Destroy_aux<true>::__destroy(_ForwardIterator, _ForwardIterator) [with _ForwardIterator = IMU**]	16	static
+stl_construct.h:117:9:static void std::_Destroy_aux<true>::__destroy(_ForwardIterator, _ForwardIterator) [with _ForwardIterator = float*]	16	static
+alloc_traits.h:505:7:static std::allocator_traits<std::allocator<_Tp1> >::size_type std::allocator_traits<std::allocator<_Tp1> >::max_size(const allocator_type&) [with _Tp = IMU*]	16	static
+alloc_traits.h:505:7:static std::allocator_traits<std::allocator<_Tp1> >::size_type std::allocator_traits<std::allocator<_Tp1> >::max_size(const allocator_type&) [with _Tp = float]	16	static
+stl_vector.h:920:7:std::vector<_Tp, _Alloc>::size_type std::vector<_Tp, _Alloc>::max_size() const [with _Tp = IMU*; _Alloc = std::allocator<IMU*>]	16	static
+alloc_traits.h:443:7:static _Tp* std::allocator_traits<std::allocator<_Tp1> >::allocate(std::allocator_traits<std::allocator<_Tp1> >::allocator_type&, std::allocator_traits<std::allocator<_Tp1> >::size_type) [with _Tp = IMU*]	16	static
+stl_vector.h:450:7:static std::vector<_Tp, _Alloc>::pointer std::vector<_Tp, _Alloc>::_S_do_relocate(std::vector<_Tp, _Alloc>::pointer, std::vector<_Tp, _Alloc>::pointer, std::vector<_Tp, _Alloc>::pointer, std::vector<_Tp, _Alloc>::_Tp_alloc_type&, std::true_type) [with _Tp = IMU*; _Alloc = std::allocator<IMU*>]	24	static
+stl_iterator.h:1242:5:_ReturnType std::__make_move_if_noexcept_iterator(_Tp*) [with _Tp = IMU*; _ReturnType = std::move_iterator<IMU**>]	24	static
+stl_uninitialized.h:305:5:_ForwardIterator std::__uninitialized_copy_a(_InputIterator, _InputIterator, _ForwardIterator, std::allocator<_Tp>&) [with _InputIterator = std::move_iterator<IMU**>; _ForwardIterator = IMU**; _Tp = IMU*]	24	static
+alloc_traits.h:443:7:static _Tp* std::allocator_traits<std::allocator<_Tp1> >::allocate(std::allocator_traits<std::allocator<_Tp1> >::allocator_type&, std::allocator_traits<std::allocator<_Tp1> >::size_type) [with _Tp = float]	16	static
+stl_vector.h:450:7:static std::vector<_Tp, _Alloc>::pointer std::vector<_Tp, _Alloc>::_S_do_relocate(std::vector<_Tp, _Alloc>::pointer, std::vector<_Tp, _Alloc>::pointer, std::vector<_Tp, _Alloc>::pointer, std::vector<_Tp, _Alloc>::_Tp_alloc_type&, std::true_type) [with _Tp = float; _Alloc = std::allocator<float>]	24	static
+stl_iterator.h:1242:5:_ReturnType std::__make_move_if_noexcept_iterator(_Tp*) [with _Tp = float; _ReturnType = std::move_iterator<float*>]	24	static
+stl_uninitialized.h:305:5:_ForwardIterator std::__uninitialized_copy_a(_InputIterator, _InputIterator, _ForwardIterator, std::allocator<_Tp>&) [with _InputIterator = std::move_iterator<float*>; _ForwardIterator = float*; _Tp = float]	24	static
+new_allocator.h:119:7:void __gnu_cxx::new_allocator<_Tp>::deallocate(__gnu_cxx::new_allocator<_Tp>::pointer, __gnu_cxx::new_allocator<_Tp>::size_type) [with _Tp = Neuron]	24	static
+new_allocator.h:119:7:void __gnu_cxx::new_allocator<_Tp>::deallocate(__gnu_cxx::new_allocator<_Tp>::pointer, __gnu_cxx::new_allocator<_Tp>::size_type) [with _Tp = std::reference_wrapper<Servo>]	24	static
+new_allocator.h:119:7:void __gnu_cxx::new_allocator<_Tp>::deallocate(__gnu_cxx::new_allocator<_Tp>::pointer, __gnu_cxx::new_allocator<_Tp>::size_type) [with _Tp = float]	24	static
+new_allocator.h:144:2:) [with _Up = std::reference_wrapper<Servo>; _Args = {std::reference_wrapper<Servo>}; _Tp = std::reference_wrapper<Servo>]	32	static
+stl_iterator.h:806:7:__gnu_cxx::__normal_iterator<_Iterator, _Container>::__normal_iterator(const _Iterator&) [with _Iterator = std::reference_wrapper<Servo>*; _Container = std::vector<std::reference_wrapper<Servo> >]	16	static
+stl_vector.h:1753:7:std::vector<_Tp, _Alloc>::size_type std::vector<_Tp, _Alloc>::_M_check_len(std::vector<_Tp, _Alloc>::size_type, const char*) const [with _Tp = std::reference_wrapper<Servo>; _Alloc = std::allocator<std::reference_wrapper<Servo> >]	40	static
+stl_vector.h:808:7:std::vector<_Tp, _Alloc>::iterator std::vector<_Tp, _Alloc>::begin() [with _Tp = std::reference_wrapper<Servo>; _Alloc = std::allocator<std::reference_wrapper<Servo> >]	24	static
+stl_iterator.h:989:5:typename __gnu_cxx::__normal_iterator<_Iterator, _Container>::difference_type __gnu_cxx::operator-(const __gnu_cxx::__normal_iterator<_Iterator, _Container>&, const __gnu_cxx::__normal_iterator<_Iterator, _Container>&) [with _Iterator = std::reference_wrapper<Servo>*; _Container = std::vector<std::reference_wrapper<Servo> >]	24	static
+stl_vector.h:340:7:std::_Vector_base<_Tp, _Alloc>::pointer std::_Vector_base<_Tp, _Alloc>::_M_allocate(std::size_t) [with _Tp = std::reference_wrapper<Servo>; _Alloc = std::allocator<std::reference_wrapper<Servo> >]	16	static
+stl_vector.h:462:7:static std::vector<_Tp, _Alloc>::pointer std::vector<_Tp, _Alloc>::_S_relocate(std::vector<_Tp, _Alloc>::pointer, std::vector<_Tp, _Alloc>::pointer, std::vector<_Tp, _Alloc>::pointer, std::vector<_Tp, _Alloc>::_Tp_alloc_type&) [with _Tp = std::reference_wrapper<Servo>; _Alloc = std::allocator<std::reference_wrapper<Servo> >]	48	static
+stl_iterator.h:871:7:const _Iterator& __gnu_cxx::__normal_iterator<_Iterator, _Container>::base() const [with _Iterator = std::reference_wrapper<Servo>*; _Container = std::vector<std::reference_wrapper<Servo> >]	16	static
+stl_vector.h:273:7:std::_Vector_base<_Tp, _Alloc>::_Tp_alloc_type& std::_Vector_base<_Tp, _Alloc>::_M_get_Tp_allocator() [with _Tp = std::reference_wrapper<Servo>; _Alloc = std::allocator<std::reference_wrapper<Servo> >]	16	static
+stl_uninitialized.h:323:5:_ForwardIterator std::__uninitialized_move_if_noexcept_a(_InputIterator, _InputIterator, _ForwardIterator, _Allocator&) [with _InputIterator = std::reference_wrapper<Servo>*; _ForwardIterator = std::reference_wrapper<Servo>*; _Allocator = std::allocator<std::reference_wrapper<Servo> >]	32	static
+alloc_traits.h:495:2:static void std::allocator_traits<std::allocator<_Tp1> >::destroy(std::allocator_traits<std::allocator<_Tp1> >::allocator_type&, _Up*) [with _Up = std::reference_wrapper<Servo>; _Tp = std::reference_wrapper<Servo>]	16	static
+stl_construct.h:203:5:void std::_Destroy(_ForwardIterator, _ForwardIterator, std::allocator<_T2>&) [with _ForwardIterator = std::reference_wrapper<Servo>*; _Tp = std::reference_wrapper<Servo>]	24	static
+stl_vector.h:277:7:const _Tp_alloc_type& std::_Vector_base<_Tp, _Alloc>::_M_get_Tp_allocator() const [with _Tp = float; _Alloc = std::allocator<float>]	16	static
+stl_uninitialized.h:592:5:_ForwardIterator std::__uninitialized_default_n(_ForwardIterator, _Size) [with _ForwardIterator = float*; _Size = unsigned int]	24	static
+stl_vector.h:920:7:std::vector<_Tp, _Alloc>::size_type std::vector<_Tp, _Alloc>::max_size() const [with _Tp = std::reference_wrapper<CANMotor>; _Alloc = std::allocator<std::reference_wrapper<CANMotor> >]	16	static
+stl_vector.h:915:7:std::vector<_Tp, _Alloc>::size_type std::vector<_Tp, _Alloc>::size() const [with _Tp = std::reference_wrapper<CANMotor>; _Alloc = std::allocator<std::reference_wrapper<CANMotor> >]	16	static
+alloc_traits.h:443:7:static _Tp* std::allocator_traits<std::allocator<_Tp1> >::allocate(std::allocator_traits<std::allocator<_Tp1> >::allocator_type&, std::allocator_traits<std::allocator<_Tp1> >::size_type) [with _Tp = std::reference_wrapper<CANMotor>]	16	static
+stl_vector.h:450:7:static std::vector<_Tp, _Alloc>::pointer std::vector<_Tp, _Alloc>::_S_do_relocate(std::vector<_Tp, _Alloc>::pointer, std::vector<_Tp, _Alloc>::pointer, std::vector<_Tp, _Alloc>::pointer, std::vector<_Tp, _Alloc>::_Tp_alloc_type&, std::true_type) [with _Tp = std::reference_wrapper<CANMotor>; _Alloc = std::allocator<std::reference_wrapper<CANMotor> >]	24	static
+stl_iterator.h:1242:5:_ReturnType std::__make_move_if_noexcept_iterator(_Tp*) [with _Tp = std::reference_wrapper<CANMotor>; _ReturnType = std::move_iterator<std::reference_wrapper<CANMotor>*>]	24	static
+stl_uninitialized.h:305:5:_ForwardIterator std::__uninitialized_copy_a(_InputIterator, _InputIterator, _ForwardIterator, std::allocator<_Tp>&) [with _InputIterator = std::move_iterator<std::reference_wrapper<CANMotor>*>; _ForwardIterator = std::reference_wrapper<CANMotor>*; _Tp = std::reference_wrapper<CANMotor>]	24	static
+new_allocator.h:151:2:void __gnu_cxx::new_allocator<_Tp>::destroy(_Up*) [with _Up = std::reference_wrapper<CANMotor>; _Tp = std::reference_wrapper<CANMotor>]	16	static
+new_allocator.h:119:7:void __gnu_cxx::new_allocator<_Tp>::deallocate(__gnu_cxx::new_allocator<_Tp>::pointer, __gnu_cxx::new_allocator<_Tp>::size_type) [with _Tp = IMU*]	24	static
+new_allocator.h:132:7:__gnu_cxx::new_allocator<_Tp>::size_type __gnu_cxx::new_allocator<_Tp>::max_size() const [with _Tp = IMU*]	16	static
+new_allocator.h:132:7:__gnu_cxx::new_allocator<_Tp>::size_type __gnu_cxx::new_allocator<_Tp>::max_size() const [with _Tp = float]	16	static
+stl_vector.h:277:7:const _Tp_alloc_type& std::_Vector_base<_Tp, _Alloc>::_M_get_Tp_allocator() const [with _Tp = IMU*; _Alloc = std::allocator<IMU*>]	16	static
+new_allocator.h:102:7:_Tp* __gnu_cxx::new_allocator<_Tp>::allocate(__gnu_cxx::new_allocator<_Tp>::size_type, const void*) [with _Tp = IMU*]	24	static
+stl_uninitialized.h:958:5:_ForwardIterator std::__relocate_a(_InputIterator, _InputIterator, _ForwardIterator, _Allocator&) [with _InputIterator = IMU**; _ForwardIterator = IMU**; _Allocator = std::allocator<IMU*>]	32	static
+stl_iterator.h:1057:7:std::move_iterator<_Iterator>::move_iterator(std::move_iterator<_Iterator>::iterator_type) [with _Iterator = IMU**]	16	static
+stl_uninitialized.h:115:5:_ForwardIterator std::uninitialized_copy(_InputIterator, _InputIterator, _ForwardIterator) [with _InputIterator = std::move_iterator<IMU**>; _ForwardIterator = IMU**]	32	static
+new_allocator.h:102:7:_Tp* __gnu_cxx::new_allocator<_Tp>::allocate(__gnu_cxx::new_allocator<_Tp>::size_type, const void*) [with _Tp = float]	24	static
+stl_uninitialized.h:958:5:_ForwardIterator std::__relocate_a(_InputIterator, _InputIterator, _ForwardIterator, _Allocator&) [with _InputIterator = float*; _ForwardIterator = float*; _Allocator = std::allocator<float>]	32	static
+stl_iterator.h:1057:7:std::move_iterator<_Iterator>::move_iterator(std::move_iterator<_Iterator>::iterator_type) [with _Iterator = float*]	16	static
+stl_uninitialized.h:115:5:_ForwardIterator std::uninitialized_copy(_InputIterator, _InputIterator, _ForwardIterator) [with _InputIterator = std::move_iterator<float*>; _ForwardIterator = float*]	32	static
+stl_vector.h:920:7:std::vector<_Tp, _Alloc>::size_type std::vector<_Tp, _Alloc>::max_size() const [with _Tp = std::reference_wrapper<Servo>; _Alloc = std::allocator<std::reference_wrapper<Servo> >]	16	static
+alloc_traits.h:443:7:static _Tp* std::allocator_traits<std::allocator<_Tp1> >::allocate(std::allocator_traits<std::allocator<_Tp1> >::allocator_type&, std::allocator_traits<std::allocator<_Tp1> >::size_type) [with _Tp = std::reference_wrapper<Servo>]	16	static
+stl_vector.h:450:7:static std::vector<_Tp, _Alloc>::pointer std::vector<_Tp, _Alloc>::_S_do_relocate(std::vector<_Tp, _Alloc>::pointer, std::vector<_Tp, _Alloc>::pointer, std::vector<_Tp, _Alloc>::pointer, std::vector<_Tp, _Alloc>::_Tp_alloc_type&, std::true_type) [with _Tp = std::reference_wrapper<Servo>; _Alloc = std::allocator<std::reference_wrapper<Servo> >]	24	static
+stl_iterator.h:1242:5:_ReturnType std::__make_move_if_noexcept_iterator(_Tp*) [with _Tp = std::reference_wrapper<Servo>; _ReturnType = std::move_iterator<std::reference_wrapper<Servo>*>]	24	static
+stl_uninitialized.h:305:5:_ForwardIterator std::__uninitialized_copy_a(_InputIterator, _InputIterator, _ForwardIterator, std::allocator<_Tp>&) [with _InputIterator = std::move_iterator<std::reference_wrapper<Servo>*>; _ForwardIterator = std::reference_wrapper<Servo>*; _Tp = std::reference_wrapper<Servo>]	24	static
+new_allocator.h:151:2:void __gnu_cxx::new_allocator<_Tp>::destroy(_Up*) [with _Up = std::reference_wrapper<Servo>; _Tp = std::reference_wrapper<Servo>]	16	static
+stl_construct.h:127:5:void std::_Destroy(_ForwardIterator, _ForwardIterator) [with _ForwardIterator = std::reference_wrapper<Servo>*]	16	static
+stl_uninitialized.h:561:9:static _ForwardIterator std::__uninitialized_default_n_1<true>::__uninit_default_n(_ForwardIterator, _Size) [with _ForwardIterator = float*; _Size = unsigned int]	24	static
+stl_vector.h:1773:7:static std::vector<_Tp, _Alloc>::size_type std::vector<_Tp, _Alloc>::_S_max_size(const _Tp_alloc_type&) [with _Tp = std::reference_wrapper<CANMotor>; _Alloc = std::allocator<std::reference_wrapper<CANMotor> >]	24	static
+stl_vector.h:277:7:const _Tp_alloc_type& std::_Vector_base<_Tp, _Alloc>::_M_get_Tp_allocator() const [with _Tp = std::reference_wrapper<CANMotor>; _Alloc = std::allocator<std::reference_wrapper<CANMotor> >]	16	static
+new_allocator.h:102:7:_Tp* __gnu_cxx::new_allocator<_Tp>::allocate(__gnu_cxx::new_allocator<_Tp>::size_type, const void*) [with _Tp = std::reference_wrapper<CANMotor>]	24	static
+stl_uninitialized.h:958:5:_ForwardIterator std::__relocate_a(_InputIterator, _InputIterator, _ForwardIterator, _Allocator&) [with _InputIterator = std::reference_wrapper<CANMotor>*; _ForwardIterator = std::reference_wrapper<CANMotor>*; _Allocator = std::allocator<std::reference_wrapper<CANMotor> >]	32	static
+stl_iterator.h:1057:7:std::move_iterator<_Iterator>::move_iterator(std::move_iterator<_Iterator>::iterator_type) [with _Iterator = std::reference_wrapper<CANMotor>*]	16	static
+stl_uninitialized.h:115:5:_ForwardIterator std::uninitialized_copy(_InputIterator, _InputIterator, _ForwardIterator) [with _InputIterator = std::move_iterator<std::reference_wrapper<CANMotor>*>; _ForwardIterator = std::reference_wrapper<CANMotor>*]	32	static
+stl_algobase.h:802:5:_OI std::fill_n(_OI, _Size, const _Tp&) [with _OI = float*; _Size = unsigned int; _Tp = float]	24	static
+stl_algobase.h:280:5:_Iterator std::__niter_base(_Iterator) [with _Iterator = IMU**]	16	static
+stl_uninitialized.h:924:5:std::__enable_if_t<std::__is_bitwise_relocatable<_Tp>::value, _Tp*> std::__relocate_a_1(_Tp*, _Tp*, _Tp*, std::allocator<_T2>&) [with _Tp = IMU*; _Up = IMU*]	32	static
+stl_uninitialized.h:99:9:static _ForwardIterator std::__uninitialized_copy<true>::__uninit_copy(_InputIterator, _InputIterator, _ForwardIterator) [with _InputIterator = std::move_iterator<IMU**>; _ForwardIterator = IMU**]	24	static
+stl_algobase.h:280:5:_Iterator std::__niter_base(_Iterator) [with _Iterator = float*]	16	static
+stl_uninitialized.h:924:5:std::__enable_if_t<std::__is_bitwise_relocatable<_Tp>::value, _Tp*> std::__relocate_a_1(_Tp*, _Tp*, _Tp*, std::allocator<_T2>&) [with _Tp = float; _Up = float]	32	static
+stl_uninitialized.h:99:9:static _ForwardIterator std::__uninitialized_copy<true>::__uninit_copy(_InputIterator, _InputIterator, _ForwardIterator) [with _InputIterator = std::move_iterator<float*>; _ForwardIterator = float*]	24	static
+stl_vector.h:1773:7:static std::vector<_Tp, _Alloc>::size_type std::vector<_Tp, _Alloc>::_S_max_size(const _Tp_alloc_type&) [with _Tp = std::reference_wrapper<Servo>; _Alloc = std::allocator<std::reference_wrapper<Servo> >]	24	static
+stl_vector.h:277:7:const _Tp_alloc_type& std::_Vector_base<_Tp, _Alloc>::_M_get_Tp_allocator() const [with _Tp = std::reference_wrapper<Servo>; _Alloc = std::allocator<std::reference_wrapper<Servo> >]	16	static
+new_allocator.h:102:7:_Tp* __gnu_cxx::new_allocator<_Tp>::allocate(__gnu_cxx::new_allocator<_Tp>::size_type, const void*) [with _Tp = std::reference_wrapper<Servo>]	24	static
+stl_uninitialized.h:958:5:_ForwardIterator std::__relocate_a(_InputIterator, _InputIterator, _ForwardIterator, _Allocator&) [with _InputIterator = std::reference_wrapper<Servo>*; _ForwardIterator = std::reference_wrapper<Servo>*; _Allocator = std::allocator<std::reference_wrapper<Servo> >]	32	static
+stl_iterator.h:1057:7:std::move_iterator<_Iterator>::move_iterator(std::move_iterator<_Iterator>::iterator_type) [with _Iterator = std::reference_wrapper<Servo>*]	16	static
+stl_uninitialized.h:115:5:_ForwardIterator std::uninitialized_copy(_InputIterator, _InputIterator, _ForwardIterator) [with _InputIterator = std::move_iterator<std::reference_wrapper<Servo>*>; _ForwardIterator = std::reference_wrapper<Servo>*]	32	static
+stl_construct.h:117:9:static void std::_Destroy_aux<true>::__destroy(_ForwardIterator, _ForwardIterator) [with _ForwardIterator = std::reference_wrapper<Servo>*]	16	static
+alloc_traits.h:505:7:static std::allocator_traits<std::allocator<_Tp1> >::size_type std::allocator_traits<std::allocator<_Tp1> >::max_size(const allocator_type&) [with _Tp = std::reference_wrapper<CANMotor>]	16	static
+new_allocator.h:132:7:__gnu_cxx::new_allocator<_Tp>::size_type __gnu_cxx::new_allocator<_Tp>::max_size() const [with _Tp = std::reference_wrapper<CANMotor>]	16	static
+stl_algobase.h:280:5:_Iterator std::__niter_base(_Iterator) [with _Iterator = std::reference_wrapper<CANMotor>*]	16	static
+stl_uninitialized.h:936:5:_ForwardIterator std::__relocate_a_1(_InputIterator, _InputIterator, _ForwardIterator, _Allocator&) [with _InputIterator = std::reference_wrapper<CANMotor>*; _ForwardIterator = std::reference_wrapper<CANMotor>*; _Allocator = std::allocator<std::reference_wrapper<CANMotor> >]	40	static
+stl_uninitialized.h:76:9:static _ForwardIterator std::__uninitialized_copy<_TrivialValueTypes>::__uninit_copy(_InputIterator, _InputIterator, _ForwardIterator) [with _InputIterator = std::move_iterator<std::reference_wrapper<CANMotor>*>; _ForwardIterator = std::reference_wrapper<CANMotor>*; bool _TrivialValueTypes = false]	40	static
+stl_algobase.h:295:5:_Iterator std::__niter_wrap(const _Iterator&, _Iterator) [with _Iterator = IMU**]	16	static
+stl_algobase.h:767:5:typename __gnu_cxx::__enable_if<std::__is_scalar<_Tp>::__value, _OutputIterator>::__type std::__fill_n_a(_OutputIterator, _Size, const _Tp&) [with _OutputIterator = float*; _Size = unsigned int; _Tp = float]	32	static
+stl_algobase.h:295:5:_Iterator std::__niter_wrap(const _Iterator&, _Iterator) [with _Iterator = float*]	16	static
+stl_algobase.h:465:5:_OI std::copy(_II, _II, _OI) [with _II = std::move_iterator<IMU**>; _OI = IMU**]	32	static
+stl_algobase.h:465:5:_OI std::copy(_II, _II, _OI) [with _II = std::move_iterator<float*>; _OI = float*]	32	static
+alloc_traits.h:505:7:static std::allocator_traits<std::allocator<_Tp1> >::size_type std::allocator_traits<std::allocator<_Tp1> >::max_size(const allocator_type&) [with _Tp = std::reference_wrapper<Servo>]	16	static
+new_allocator.h:132:7:__gnu_cxx::new_allocator<_Tp>::size_type __gnu_cxx::new_allocator<_Tp>::max_size() const [with _Tp = std::reference_wrapper<Servo>]	16	static
+stl_algobase.h:280:5:_Iterator std::__niter_base(_Iterator) [with _Iterator = std::reference_wrapper<Servo>*]	16	static
+stl_uninitialized.h:936:5:_ForwardIterator std::__relocate_a_1(_InputIterator, _InputIterator, _ForwardIterator, _Allocator&) [with _InputIterator = std::reference_wrapper<Servo>*; _ForwardIterator = std::reference_wrapper<Servo>*; _Allocator = std::allocator<std::reference_wrapper<Servo> >]	40	static
+stl_uninitialized.h:76:9:static _ForwardIterator std::__uninitialized_copy<_TrivialValueTypes>::__uninit_copy(_InputIterator, _InputIterator, _ForwardIterator) [with _InputIterator = std::move_iterator<std::reference_wrapper<Servo>*>; _ForwardIterator = std::reference_wrapper<Servo>*; bool _TrivialValueTypes = false]	40	static
+move.h:47:5:constexpr _Tp* std::__addressof(_Tp&) [with _Tp = std::reference_wrapper<CANMotor>]	16	static
+stl_uninitialized.h:905:5:void std::__relocate_object_a(_Tp*, _Up*, _Allocator&) [with _Tp = std::reference_wrapper<CANMotor>; _Up = std::reference_wrapper<CANMotor>; _Allocator = std::allocator<std::reference_wrapper<CANMotor> >]	24	static
+stl_iterator.h:1157:5:bool std::operator!=(const std::move_iterator<_IteratorL>&, const std::move_iterator<_IteratorL>&) [with _Iterator = std::reference_wrapper<CANMotor>*]	16	static
+stl_iterator.h:1078:7:std::move_iterator<_Iterator>& std::move_iterator<_Iterator>::operator++() [with _Iterator = std::reference_wrapper<CANMotor>*]	16	static
+stl_iterator.h:1070:7:std::move_iterator<_Iterator>::reference std::move_iterator<_Iterator>::operator*() const [with _Iterator = std::reference_wrapper<CANMotor>*]	16	static
+stl_construct.h:74:5:) [with _T1 = std::reference_wrapper<CANMotor>; _Args = {std::reference_wrapper<CANMotor>}]	24	static
+stl_iterator.h:1262:5:base())) std::__miter_base(std::move_iterator<_IteratorL>) [with _Iterator = IMU**]	16	static
+stl_algobase.h:438:5:_OI std::__copy_move_a2(_II, _II, _OI) [with bool _IsMove = true; _II = IMU**; _OI = IMU**]	32	static
+stl_iterator.h:1262:5:base())) std::__miter_base(std::move_iterator<_IteratorL>) [with _Iterator = float*]	16	static
+stl_algobase.h:438:5:_OI std::__copy_move_a2(_II, _II, _OI) [with bool _IsMove = true; _II = float*; _OI = float*]	32	static
+move.h:47:5:constexpr _Tp* std::__addressof(_Tp&) [with _Tp = std::reference_wrapper<Servo>]	16	static
+stl_uninitialized.h:905:5:void std::__relocate_object_a(_Tp*, _Up*, _Allocator&) [with _Tp = std::reference_wrapper<Servo>; _Up = std::reference_wrapper<Servo>; _Allocator = std::allocator<std::reference_wrapper<Servo> >]	24	static
+stl_iterator.h:1157:5:bool std::operator!=(const std::move_iterator<_IteratorL>&, const std::move_iterator<_IteratorL>&) [with _Iterator = std::reference_wrapper<Servo>*]	16	static
+stl_iterator.h:1078:7:std::move_iterator<_Iterator>& std::move_iterator<_Iterator>::operator++() [with _Iterator = std::reference_wrapper<Servo>*]	16	static
+stl_iterator.h:1070:7:std::move_iterator<_Iterator>::reference std::move_iterator<_Iterator>::operator*() const [with _Iterator = std::reference_wrapper<Servo>*]	16	static
+stl_construct.h:74:5:) [with _T1 = std::reference_wrapper<Servo>; _Args = {std::reference_wrapper<Servo>}]	24	static
+stl_iterator.h:1145:5:bool std::operator==(const std::move_iterator<_IteratorL>&, const std::move_iterator<_IteratorL>&) [with _Iterator = std::reference_wrapper<CANMotor>*]	24	static
+stl_iterator.h:1066:7:std::move_iterator<_Iterator>::iterator_type std::move_iterator<_Iterator>::base() const [with _Iterator = IMU**]	16	static
+cpp_type_traits.h:428:5:_Iterator std::__miter_base(_Iterator) [with _Iterator = IMU**]	16	static
+stl_algobase.h:393:5:_OI std::__copy_move_a(_II, _II, _OI) [with bool _IsMove = true; _II = IMU**; _OI = IMU**]	32	static
+stl_iterator.h:1066:7:std::move_iterator<_Iterator>::iterator_type std::move_iterator<_Iterator>::base() const [with _Iterator = float*]	16	static
+cpp_type_traits.h:428:5:_Iterator std::__miter_base(_Iterator) [with _Iterator = float*]	16	static
+stl_algobase.h:393:5:_OI std::__copy_move_a(_II, _II, _OI) [with bool _IsMove = true; _II = float*; _OI = float*]	32	static
+stl_iterator.h:1145:5:bool std::operator==(const std::move_iterator<_IteratorL>&, const std::move_iterator<_IteratorL>&) [with _Iterator = std::reference_wrapper<Servo>*]	24	static
+stl_iterator.h:1066:7:std::move_iterator<_Iterator>::iterator_type std::move_iterator<_Iterator>::base() const [with _Iterator = std::reference_wrapper<CANMotor>*]	16	static
+stl_algobase.h:375:2:static _Tp* std::__copy_move<_IsMove, true, std::random_access_iterator_tag>::__copy_m(const _Tp*, const _Tp*, _Tp*) [with _Tp = IMU*; bool _IsMove = true]	32	static
+stl_algobase.h:375:2:static _Tp* std::__copy_move<_IsMove, true, std::random_access_iterator_tag>::__copy_m(const _Tp*, const _Tp*, _Tp*) [with _Tp = float; bool _IsMove = true]	32	static
+stl_iterator.h:1066:7:std::move_iterator<_Iterator>::iterator_type std::move_iterator<_Iterator>::base() const [with _Iterator = std::reference_wrapper<Servo>*]	16	static
+can_motor.h:27:7:CANMotorSendDevice::~CANMotorSendDevice()	16	static
+spine.cpp:319:2:void __static_initialization_and_destruction_0(int, int)	16	static
+service_server.h:102:16:void ros::ServiceServer<MReq, MRes, void>::callback(unsigned char*) [with MReq = spinal::SetBoardConfigRequest; MRes = spinal::SetBoardConfigResponse]	16	static
+service_server.h:116:15:int ros::ServiceServer<MReq, MRes, void>::getEndpointType() [with MReq = spinal::SetBoardConfigRequest; MRes = spinal::SetBoardConfigResponse]	16	static
+service_server.h:108:24:const char* ros::ServiceServer<MReq, MRes, void>::getMsgType() [with MReq = spinal::SetBoardConfigRequest; MRes = spinal::SetBoardConfigResponse]	16	static
+service_server.h:112:24:const char* ros::ServiceServer<MReq, MRes, void>::getMsgMD5() [with MReq = spinal::SetBoardConfigRequest; MRes = spinal::SetBoardConfigResponse]	16	static
+service_server.h:102:16:void ros::ServiceServer<MReq, MRes, void>::callback(unsigned char*) [with MReq = spinal::GetBoardInfoRequest; MRes = spinal::GetBoardInfoResponse]	16	static
+service_server.h:116:15:int ros::ServiceServer<MReq, MRes, void>::getEndpointType() [with MReq = spinal::GetBoardInfoRequest; MRes = spinal::GetBoardInfoResponse]	16	static
+service_server.h:108:24:const char* ros::ServiceServer<MReq, MRes, void>::getMsgType() [with MReq = spinal::GetBoardInfoRequest; MRes = spinal::GetBoardInfoResponse]	16	static
+service_server.h:112:24:const char* ros::ServiceServer<MReq, MRes, void>::getMsgMD5() [with MReq = spinal::GetBoardInfoRequest; MRes = spinal::GetBoardInfoResponse]	16	static
+subscriber.h:114:16:void ros::Subscriber<MsgT, void>::callback(unsigned char*) [with MsgT = spinal::ServoTorqueCmd]	16	static
+subscriber.h:128:15:int ros::Subscriber<MsgT, void>::getEndpointType() [with MsgT = spinal::ServoTorqueCmd]	16	static
+subscriber.h:120:24:const char* ros::Subscriber<MsgT, void>::getMsgType() [with MsgT = spinal::ServoTorqueCmd]	16	static
+subscriber.h:124:24:const char* ros::Subscriber<MsgT, void>::getMsgMD5() [with MsgT = spinal::ServoTorqueCmd]	16	static
+subscriber.h:114:16:void ros::Subscriber<MsgT, void>::callback(unsigned char*) [with MsgT = spinal::ServoControlCmd]	16	static
+subscriber.h:128:15:int ros::Subscriber<MsgT, void>::getEndpointType() [with MsgT = spinal::ServoControlCmd]	16	static
+subscriber.h:120:24:const char* ros::Subscriber<MsgT, void>::getMsgType() [with MsgT = spinal::ServoControlCmd]	16	static
+subscriber.h:124:24:const char* ros::Subscriber<MsgT, void>::getMsgMD5() [with MsgT = spinal::ServoControlCmd]	16	static
+stl_vector.h:675:7:std::vector<_Tp, _Alloc>::~vector() [with _Tp = std::reference_wrapper<Servo>; _Alloc = std::allocator<std::reference_wrapper<Servo> >]	24	static
+stl_vector.h:675:7:std::vector<_Tp, _Alloc>::~vector() [with _Tp = Neuron; _Alloc = std::allocator<Neuron>]	24	static
+stl_vector.h:273:7:std::_Vector_base<_Tp, _Alloc>::_Tp_alloc_type& std::_Vector_base<_Tp, _Alloc>::_M_get_Tp_allocator() [with _Tp = Neuron; _Alloc = std::allocator<Neuron>]	16	static
+stl_construct.h:203:5:void std::_Destroy(_ForwardIterator, _ForwardIterator, std::allocator<_T2>&) [with _ForwardIterator = Neuron*; _Tp = Neuron]	24	static
+stl_construct.h:127:5:void std::_Destroy(_ForwardIterator, _ForwardIterator) [with _ForwardIterator = Neuron*]	16	static
+stl_construct.h:105:9:static void std::_Destroy_aux<<anonymous> >::__destroy(_ForwardIterator, _ForwardIterator) [with _ForwardIterator = Neuron*; bool <anonymous> = false]	16	static
+move.h:47:5:constexpr _Tp* std::__addressof(_Tp&) [with _Tp = Neuron]	16	static
+neuron.h:15:7:Neuron::~Neuron()	16	static
+stl_construct.h:97:5:void std::_Destroy(_Tp*) [with _Tp = Neuron]	16	static
+spine.cpp:319:2:cpp)	8	static
+spine.cpp:319:2:cpp)	8	static

@@ -1,0 +1,12 @@
+msg.h:45:7:constexpr ros::Msg::Msg()	16	static
+publisher.h:48:3:ros::Publisher::Publisher(const char*, ros::Msg*, int)	24	static
+publisher.h:53:7:int ros::Publisher::publish(const ros::Msg*)	16	static
+UInt16.h:18:5:std_msgs::UInt16::UInt16()	16	static
+UInt16.h:23:17:virtual int std_msgs::UInt16::serialize(unsigned char*) const	24	static
+UInt16.h:32:17:virtual int std_msgs::UInt16::deserialize(unsigned char*)	24	static
+UInt16.h:41:18:virtual const char* std_msgs::UInt16::getType()	16	static
+UInt16.h:42:18:virtual const char* std_msgs::UInt16::getMD5()	16	static
+mag_encoder.cpp:14:1:MagEncoder::MagEncoder()	16	static
+mag_encoder.cpp:19:6:void MagEncoder::init(I2C_HandleTypeDef*, ros::NodeHandle*)	24	static
+mag_encoder.cpp:29:6:void MagEncoder::update()	40	static
+node_handle.h:415:8:bool ros::NodeHandle_<Hardware, MAX_SUBSCRIBERS, MAX_PUBLISHERS, INPUT_SIZE, OUTPUT_SIZE>::advertise(ros::Publisher&) [with Hardware = STM32Hardware; int MAX_SUBSCRIBERS = 50; int MAX_PUBLISHERS = 50; int INPUT_SIZE = 512; int OUTPUT_SIZE = 512]	24	static

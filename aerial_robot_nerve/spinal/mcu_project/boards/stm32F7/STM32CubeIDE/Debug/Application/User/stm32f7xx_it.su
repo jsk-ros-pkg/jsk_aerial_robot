@@ -1,0 +1,4 @@
+stm32f7xx_it.c:90:6:CAN1_RX1_IRQHandler	8	static
+stm32f7xx_it.c:104:6:TIM1_TRG_COM_TIM11_IRQHandler	8	static
+stm32f7xx_it.c:118:6:USART1_IRQHandler	8	static
+stm32f7xx_it.c:132:6:DMA2_Stream7_IRQHandler	8	static

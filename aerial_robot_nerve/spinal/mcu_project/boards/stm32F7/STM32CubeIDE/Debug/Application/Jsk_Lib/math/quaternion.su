@@ -1,0 +1,30 @@
+cmath:463:3:constexpr float std::sqrt(float)	16	static
+quaternion.h:37:5:ap::Quaternion::Quaternion()	0	static
+quaternion.h:42:5:ap::Quaternion::Quaternion(float, float, float, float)	0	static
+AP_Math.h:111:21:float ap::sq(float)	0	static
+quaternion.cpp:31:6:void ap::Quaternion::rotation_matrix(ap::Matrix3f&) const	0	static
+quaternion.cpp:57:6:void ap::Quaternion::from_rotation_matrix(const Matrix3f&)	32	static
+quaternion.cpp:103:6:void ap::Quaternion::earth_to_body(ap::Vector3f&) const	56	static
+quaternion.cpp:111:6:void ap::Quaternion::from_euler(float, float, float)	32	static
+quaternion.cpp:127:6:void ap::Quaternion::from_vector312(float, float, float)	64	static
+quaternion.cpp:135:6:void ap::Quaternion::from_axis_angle(ap::Vector3f)	32	static
+quaternion.cpp:146:6:void ap::Quaternion::from_axis_angle(const Vector3f&, float)	24	static
+quaternion.cpp:159:6:void ap::Quaternion::rotate(const Vector3f&)	32	static
+quaternion.cpp:165:6:void ap::Quaternion::to_axis_angle(ap::Vector3f&)	40	static
+quaternion.cpp:174:6:void ap::Quaternion::from_axis_angle_fast(ap::Vector3f)	24	static
+quaternion.cpp:184:6:void ap::Quaternion::from_axis_angle_fast(const Vector3f&, float)	8	static
+quaternion.cpp:195:6:void ap::Quaternion::rotate_fast(const Vector3f&)	16	static
+quaternion.cpp:223:7:float ap::Quaternion::get_euler_roll() const	0	static
+quaternion.cpp:229:7:float ap::Quaternion::get_euler_pitch() const	0	static
+quaternion.cpp:235:7:float ap::Quaternion::get_euler_yaw() const	0	static
+quaternion.cpp:241:6:void ap::Quaternion::to_euler(float&, float&, float&) const	24	static
+quaternion.cpp:249:10:ap::Vector3f ap::Quaternion::to_vector312() const	72	static
+quaternion.cpp:256:7:float ap::Quaternion::length() const	16	static
+quaternion.cpp:261:12:ap::Quaternion ap::Quaternion::inverse() const	56	static
+quaternion.cpp:266:6:void ap::Quaternion::normalize()	8	static
+quaternion.cpp:279:12:ap::Quaternion ap::Quaternion::operator*(const ap::Quaternion&) const	64	static
+quaternion.cpp:299:13:ap::Quaternion& ap::Quaternion::operator*=(const ap::Quaternion&)	0	static
+quaternion.cpp:318:12:ap::Quaternion ap::Quaternion::operator/(const ap::Quaternion&) const	64	static
+matrix3.h:57:5:ap::Matrix3<T>::Matrix3() [with T = float]	8	static
+vector3.h:80:5:ap::Vector3<T>::Vector3(T, T, T) [with T = float]	0	static
+vector3.h:75:5:ap::Vector3<T>::Vector3() [with T = float]	0	static

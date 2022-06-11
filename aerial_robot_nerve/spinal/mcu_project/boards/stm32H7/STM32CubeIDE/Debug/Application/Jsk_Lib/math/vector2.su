@@ -1,0 +1,23 @@
+cmath:584:3:constexpr bool std::isinf(float)	0	static
+cmath:611:3:constexpr bool std::isnan(float)	0	static
+AP_Math.h:30:20:bool ap::is_equal(float, float)	0	static
+AP_Math.h:111:21:float ap::sq(float)	0	static
+AP_Math.h:116:21:float ap::pythagorous2(float, float)	16	static
+vector2.cpp:32:7:float ap::Vector2<T>::length() const [with T = float]	0	static
+vector2.cpp:40:3:T ap::Vector2<T>::operator*(const ap::Vector2<T>&) const [with T = float]	0	static
+vector2.cpp:47:3:T ap::Vector2<T>::operator%(const ap::Vector2<T>&) const [with T = float]	0	static
+vector2.cpp:53:13:ap::Vector2<T>& ap::Vector2<T>::operator*=(T) [with T = float]	0	static
+vector2.cpp:60:13:ap::Vector2<T>& ap::Vector2<T>::operator/=(T) [with T = float]	0	static
+vector2.cpp:67:13:ap::Vector2<T>& ap::Vector2<T>::operator-=(const ap::Vector2<T>&) [with T = float]	0	static
+vector2.cpp:86:13:ap::Vector2<T>& ap::Vector2<T>::operator+=(const ap::Vector2<T>&) [with T = float]	0	static
+vector2.cpp:93:12:ap::Vector2<T> ap::Vector2<T>::operator/(T) const [with T = float]	32	static
+vector2.cpp:99:12:ap::Vector2<T> ap::Vector2<T>::operator*(T) const [with T = float]	32	static
+vector2.cpp:111:12:ap::Vector2<T> ap::Vector2<T>::operator+(const ap::Vector2<T>&) const [with T = float]	32	static
+vector2.cpp:105:12:ap::Vector2<T> ap::Vector2<T>::operator-(const ap::Vector2<T>&) const [with T = float]	32	static
+vector2.cpp:117:12:ap::Vector2<T> ap::Vector2<T>::operator-() const [with T = float]	32	static
+vector2.cpp:123:6:bool ap::Vector2<T>::operator==(const ap::Vector2<T>&) const [with T = float]	8	static
+vector2.cpp:129:6:bool ap::Vector2<T>::operator!=(const ap::Vector2<T>&) const [with T = float]	8	static
+vector2.cpp:74:6:bool ap::Vector2<T>::is_nan() const [with T = float]	8	static
+vector2.cpp:80:6:bool ap::Vector2<T>::is_inf() const [with T = float]	8	static
+vector2.cpp:135:7:float ap::Vector2<T>::angle(const ap::Vector2<T>&) const [with T = float]	24	static
+vector2.h:51:5:ap::Vector2<T>::Vector2(T, T) [with T = float]	0	static

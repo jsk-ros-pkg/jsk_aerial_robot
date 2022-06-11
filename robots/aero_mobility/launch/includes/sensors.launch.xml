@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<launch>
+
+  <arg name="real_machine" default="false" />
+  <arg name="simulation" default="false" />
+  <arg name="robot_ns" default="aero_mobility" />
+
+  <group ns="$(arg robot_ns)">
+
+    <group if="$(arg real_machine)">
+      <group unless="$(arg simulation)">
+        <!-- fc & IMU & GPS -->
+        <include file="$(find spinal_ros_bridge)/launch/serial.launch" >
+          <arg name="baud" value="921600" />
+          <arg name="port" value="/dev/flight_controller" />
+        </include>
+
+        <!-- mocap -->
+        <include file="$(find aerial_robot_base)/launch/external_module/mocap.launch" />
+
+      </group>
+    </group>
+
+    <!-- basic configuration for sensors (e.g. noise sigma) -->
+    <rosparam file="$(find aero_mobility)/config/sensors/imu/spinal.yaml" command="load" />
+    <rosparam file="$(find aerial_robot_base)/config/sensors/gps/ublox_m8n.yaml" command="load" />
+    <rosparam file="$(find aerial_robot_base)/config/sensors/mocap.yaml" command="load" />
+    <rosparam file="$(find aerial_robot_base)/config/sensors/altmeter/leddar_one.yaml" command="load" />
+
+  </group>
+
+</launch>

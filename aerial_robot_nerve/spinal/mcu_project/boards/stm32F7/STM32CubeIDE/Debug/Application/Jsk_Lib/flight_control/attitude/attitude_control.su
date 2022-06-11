@@ -1,0 +1,234 @@
+cmath:241:3:constexpr float std::fabs(float)	16	static
+msg.h:45:7:constexpr ros::Msg::Msg()	16	static
+Log.h:25:5:rosserial_msgs::Log::Log()	16	static
+Log.h:31:17:virtual int rosserial_msgs::Log::serialize(unsigned char*) const	24	static
+Log.h:44:17:virtual int rosserial_msgs::Log::deserialize(unsigned char*)	32	static
+Log.h:61:18:virtual const char* rosserial_msgs::Log::getType()	16	static
+Log.h:62:18:virtual const char* rosserial_msgs::Log::getMD5()	16	static
+publisher.h:48:3:ros::Publisher::Publisher(const char*, ros::Msg*, int)	24	static
+publisher.h:53:7:int ros::Publisher::publish(const ros::Msg*)	16	static
+new:173:33:void* operator new(std::size_t, void*)	16	static
+gthr-default.h:229:1:int __gthread_key_delete(__gthread_key_t)	16	static
+estimator.h:107:16:ap::Vector3f EstimatorAlgorithm::getAttitude(uint8_t)	48	static
+estimator.h:108:16:ap::Vector3f EstimatorAlgorithm::getAngular(uint8_t)	48	static
+attitude_estimate.h:244:29:const Vector3f AttitudeEstimate::getAttitude(uint8_t)	48	static
+attitude_estimate.h:245:29:const Vector3f AttitudeEstimate::getAngular(uint8_t)	48	static
+attitude_estimate.h:248:15:void AttitudeEstimate::setPubAccGryoOnlyFlag(bool)	16	static
+state_estimate.h:96:21:AttitudeEstimate* StateEstimate::getAttEstimator()	16	static
+Float32.h:18:5:std_msgs::Float32::Float32()	16	static
+Float32.h:23:17:virtual int std_msgs::Float32::serialize(unsigned char*) const	24	static
+Float32.h:39:17:virtual int std_msgs::Float32::deserialize(unsigned char*)	24	static
+Float32.h:56:18:virtual const char* std_msgs::Float32::getType()	16	static
+Float32.h:57:18:virtual const char* std_msgs::Float32::getMD5()	16	static
+battery_status.h:87:16:float BatteryStatus::getVoltage()	16	static
+SetBool.h:19:5:std_srvs::SetBoolRequest::SetBoolRequest()	16	static
+SetBool.h:24:17:virtual int std_srvs::SetBoolRequest::serialize(unsigned char*) const	24	static
+SetBool.h:37:17:virtual int std_srvs::SetBoolRequest::deserialize(unsigned char*)	24	static
+SetBool.h:51:18:virtual const char* std_srvs::SetBoolRequest::getType()	16	static
+SetBool.h:52:18:virtual const char* std_srvs::SetBoolRequest::getMD5()	16	static
+SetBool.h:64:5:std_srvs::SetBoolResponse::SetBoolResponse()	16	static
+SetBool.h:70:17:virtual int std_srvs::SetBoolResponse::serialize(unsigned char*) const	32	static
+SetBool.h:88:17:virtual int std_srvs::SetBoolResponse::deserialize(unsigned char*)	32	static
+SetBool.h:111:18:virtual const char* std_srvs::SetBoolResponse::getType()	16	static
+SetBool.h:112:18:virtual const char* std_srvs::SetBoolResponse::getMD5()	16	static
+Pwms.h:20:5:spinal::Pwms::Pwms()	16	static
+Pwms.h:25:17:virtual int spinal::Pwms::serialize(unsigned char*) const	24	static
+Pwms.h:41:17:virtual int spinal::Pwms::deserialize(unsigned char*)	32	static
+Pwms.h:61:18:virtual const char* spinal::Pwms::getType()	16	static
+Pwms.h:62:18:virtual const char* spinal::Pwms::getMD5()	16	static
+FourAxisCommand.h:21:5:spinal::FourAxisCommand::FourAxisCommand()	16	static
+FourAxisCommand.h:27:17:virtual int spinal::FourAxisCommand::serialize(unsigned char*) const	40	static
+FourAxisCommand.h:62:17:virtual int spinal::FourAxisCommand::deserialize(unsigned char*)	40	static
+FourAxisCommand.h:103:18:virtual const char* spinal::FourAxisCommand::getType()	16	static
+FourAxisCommand.h:104:18:virtual const char* spinal::FourAxisCommand::getMD5()	16	static
+RollPitchYawTerm.h:30:5:spinal::RollPitchYawTerm::RollPitchYawTerm()	16	static
+RollPitchYawTerm.h:41:17:virtual int spinal::RollPitchYawTerm::serialize(unsigned char*) const	48	static
+RollPitchYawTerm.h:103:17:virtual int spinal::RollPitchYawTerm::deserialize(unsigned char*)	48	static
+RollPitchYawTerm.h:172:18:virtual const char* spinal::RollPitchYawTerm::getType()	16	static
+RollPitchYawTerm.h:173:18:virtual const char* spinal::RollPitchYawTerm::getMD5()	16	static
+RollPitchYawTerms.h:21:5:spinal::RollPitchYawTerms::RollPitchYawTerms()	16	static
+RollPitchYawTerms.h:26:17:virtual int spinal::RollPitchYawTerms::serialize(unsigned char*) const	24	static
+RollPitchYawTerms.h:40:17:virtual int spinal::RollPitchYawTerms::deserialize(unsigned char*)	32	static
+RollPitchYawTerms.h:58:18:virtual const char* spinal::RollPitchYawTerms::getType()	16	static
+RollPitchYawTerms.h:59:18:virtual const char* spinal::RollPitchYawTerms::getMD5()	16	static
+MotorInfo.h:23:5:spinal::MotorInfo::MotorInfo()	16	static
+MotorInfo.h:30:17:virtual int spinal::MotorInfo::serialize(unsigned char*) const	40	static
+MotorInfo.h:68:17:virtual int spinal::MotorInfo::deserialize(unsigned char*)	40	static
+MotorInfo.h:109:18:virtual const char* spinal::MotorInfo::getType()	16	static
+MotorInfo.h:110:18:virtual const char* spinal::MotorInfo::getMD5()	16	static
+PwmInfo.h:31:5:spinal::PwmInfo::PwmInfo()	16	static
+PwmInfo.h:41:17:virtual int spinal::PwmInfo::serialize(unsigned char*) const	40	static
+PwmInfo.h:97:17:virtual int spinal::PwmInfo::deserialize(unsigned char*)	48	static
+PwmInfo.h:161:18:virtual const char* spinal::PwmInfo::getType()	16	static
+PwmInfo.h:162:18:virtual const char* spinal::PwmInfo::getMD5()	16	static
+PMatrixPseudoInverseUnit.h:22:5:spinal::PMatrixPseudoInverseUnit::PMatrixPseudoInverseUnit()	16	static
+PMatrixPseudoInverseUnit.h:29:17:virtual int spinal::PMatrixPseudoInverseUnit::serialize(unsigned char*) const	32	static
+PMatrixPseudoInverseUnit.h:59:17:virtual int spinal::PMatrixPseudoInverseUnit::deserialize(unsigned char*)	32	static
+PMatrixPseudoInverseUnit.h:92:18:virtual const char* spinal::PMatrixPseudoInverseUnit::getType()	16	static
+PMatrixPseudoInverseUnit.h:93:18:virtual const char* spinal::PMatrixPseudoInverseUnit::getMD5()	16	static
+PMatrixPseudoInverseWithInertia.h:22:5:spinal::PMatrixPseudoInverseWithInertia::PMatrixPseudoInverseWithInertia()	16	static
+PMatrixPseudoInverseWithInertia.h:28:17:virtual int spinal::PMatrixPseudoInverseWithInertia::serialize(unsigned char*) const	32	static
+PMatrixPseudoInverseWithInertia.h:52:17:virtual int spinal::PMatrixPseudoInverseWithInertia::deserialize(unsigned char*)	40	static
+PMatrixPseudoInverseWithInertia.h:81:18:virtual const char* spinal::PMatrixPseudoInverseWithInertia::getType()	16	static
+PMatrixPseudoInverseWithInertia.h:82:18:virtual const char* spinal::PMatrixPseudoInverseWithInertia::getMD5()	16	static
+Vector3Int16.h:22:5:spinal::Vector3Int16::Vector3Int16()	16	static
+Vector3Int16.h:29:17:virtual int spinal::Vector3Int16::serialize(unsigned char*) const	32	static
+Vector3Int16.h:59:17:virtual int spinal::Vector3Int16::deserialize(unsigned char*)	32	static
+Vector3Int16.h:92:18:virtual const char* spinal::Vector3Int16::getType()	16	static
+Vector3Int16.h:93:18:virtual const char* spinal::Vector3Int16::getMD5()	16	static
+TorqueAllocationMatrixInv.h:21:5:spinal::TorqueAllocationMatrixInv::TorqueAllocationMatrixInv()	16	static
+TorqueAllocationMatrixInv.h:26:17:virtual int spinal::TorqueAllocationMatrixInv::serialize(unsigned char*) const	24	static
+TorqueAllocationMatrixInv.h:40:17:virtual int spinal::TorqueAllocationMatrixInv::deserialize(unsigned char*)	32	static
+TorqueAllocationMatrixInv.h:58:18:virtual const char* spinal::TorqueAllocationMatrixInv::getType()	16	static
+TorqueAllocationMatrixInv.h:59:18:virtual const char* spinal::TorqueAllocationMatrixInv::getMD5()	16	static
+attitude_control.h:95:8:void AttitudeController::setForceLandingFlag(bool)	16	static
+attitude_control.h:141:8:void AttitudeController::setAttitudeControlCallback(const Request&, std_srvs::SetBool::Response&)	24	static
+stl_vector.h:285:7:std::_Vector_base<_Tp, _Alloc>::_Vector_base() [with _Tp = spinal::MotorInfo; _Alloc = std::allocator<spinal::MotorInfo>]	16	static
+stl_vector.h:484:7:std::vector<_Tp, _Alloc>::vector() [with _Tp = spinal::MotorInfo; _Alloc = std::allocator<spinal::MotorInfo>]	16	static
+attitude_control.cpp:39:1:AttitudeController::AttitudeController()	80	static
+attitude_control.cpp:53:6:void AttitudeController::init(TIM_HandleTypeDef*, TIM_HandleTypeDef*, StateEstimate*, BatteryStatus*, ros::NodeHandle*, QueueDefinition**)	24	static
+attitude_control.cpp:90:6:void AttitudeController::baseInit()	16	static
+attitude_control.cpp:122:6:void AttitudeController::pwmsControl()	24	static
+attitude_control.cpp:208:6:void AttitudeController::update()	136	static
+attitude_control.cpp:384:6:void AttitudeController::reset()	32	static
+attitude_control.cpp:427:6:void AttitudeController::fourAxisCommandCallback(const spinal::FourAxisCommand&)	32	static
+attitude_control.cpp:496:6:void AttitudeController::pwmInfoCallback(const spinal::PwmInfo&)	24	static
+attitude_control.cpp:532:6:void AttitudeController::rpyGainCallback(const spinal::RollPitchYawTerms&)	24	static
+attitude_control.cpp:593:6:void AttitudeController::torqueAllocationMatrixInvCallback(const spinal::TorqueAllocationMatrixInv&)	24	static
+attitude_control.cpp:627:6:void AttitudeController::thrustGainMapping()	24	static
+attitude_control.cpp:641:6:void AttitudeController::maxYawGainIndex()	24	static
+attitude_control.cpp:657:6:void AttitudeController::pwmTestCallback(const std_msgs::Float32&)	16	static
+attitude_control.cpp:663:6:void AttitudeController::setStartControlFlag(bool)	16	static
+attitude_control.cpp:670:6:void AttitudeController::setMotorNumber(uint8_t)	40	static
+attitude_control.cpp:707:7:void AttitudeController::setUavModel(int8_t)	16	static
+attitude_control.cpp:735:6:void AttitudeController::pMatrixInertiaCallback(const spinal::PMatrixPseudoInverseWithInertia&)	64	static
+attitude_control.cpp:774:6:bool AttitudeController::activated()	16	static
+attitude_control.cpp:783:18:AttitudeController::pwmConversion()::<lambda(float)>	48	static
+attitude_control.cpp:781:6:void AttitudeController::pwmConversion()	120	static
+msg.h:129:15:static void ros::Msg::varToArr(A, V) [with A = unsigned char*; V = long unsigned int]	24	static
+msg.h:137:15:static void ros::Msg::arrToVar(V&, A) [with V = long unsigned int; A = unsigned char*]	24	static
+subscriber.h:44:7:ros::Subscriber_::Subscriber_()	16	static
+vector3.h:75:5:ap::Vector3<T>::Vector3() [with T = float]	16	static
+matrix3.h:57:5:ap::Matrix3<T>::Matrix3() [with T = float]	16	static
+array:185:7:std::array<_Tp, _Nm>::value_type& std::array<_Tp, _Nm>::operator[](std::array<_Tp, _Nm>::size_type) [with _Tp = ap::Vector3<float>; unsigned int _Nm = 2]	16	static
+node_handle.h:415:8:bool ros::NodeHandle_<Hardware, MAX_SUBSCRIBERS, MAX_PUBLISHERS, INPUT_SIZE, OUTPUT_SIZE>::advertise(ros::Publisher&) [with Hardware = STM32Hardware; int MAX_SUBSCRIBERS = 50; int MAX_PUBLISHERS = 50; int INPUT_SIZE = 512; int OUTPUT_SIZE = 512]	24	static
+vector3.h:123:9:T& ap::Vector3<T>::operator[](uint8_t) [with T = float]	24	static
+subscriber.h:66:3:ros::Subscriber<MsgT, ObjT>::Subscriber(const char*, ros::Subscriber<MsgT, ObjT>::CallbackT, ObjT*, int) [with MsgT = spinal::FourAxisCommand; ObjT = AttitudeController]	24	static
+subscriber.h:66:3:ros::Subscriber<MsgT, ObjT>::Subscriber(const char*, ros::Subscriber<MsgT, ObjT>::CallbackT, ObjT*, int) [with MsgT = spinal::PwmInfo; ObjT = AttitudeController]	24	static
+subscriber.h:66:3:ros::Subscriber<MsgT, ObjT>::Subscriber(const char*, ros::Subscriber<MsgT, ObjT>::CallbackT, ObjT*, int) [with MsgT = spinal::RollPitchYawTerms; ObjT = AttitudeController]	24	static
+subscriber.h:66:3:ros::Subscriber<MsgT, ObjT>::Subscriber(const char*, ros::Subscriber<MsgT, ObjT>::CallbackT, ObjT*, int) [with MsgT = std_msgs::Float32; ObjT = AttitudeController]	24	static
+subscriber.h:66:3:ros::Subscriber<MsgT, ObjT>::Subscriber(const char*, ros::Subscriber<MsgT, ObjT>::CallbackT, ObjT*, int) [with MsgT = spinal::PMatrixPseudoInverseWithInertia; ObjT = AttitudeController]	24	static
+subscriber.h:66:3:ros::Subscriber<MsgT, ObjT>::Subscriber(const char*, ros::Subscriber<MsgT, ObjT>::CallbackT, ObjT*, int) [with MsgT = spinal::TorqueAllocationMatrixInv; ObjT = AttitudeController]	24	static
+service_server.h:52:3:ros::ServiceServer<MReq, MRes, ObjT>::ServiceServer(const char*, ros::ServiceServer<MReq, MRes, ObjT>::CallbackT, ObjT*) [with MReq = std_srvs::SetBoolRequest; MRes = std_srvs::SetBoolResponse; ObjT = AttitudeController]	24	static
+stl_vector.h:128:2:std::_Vector_base<_Tp, _Alloc>::_Vector_impl::_Vector_impl() [with _Tp = spinal::MotorInfo; _Alloc = std::allocator<spinal::MotorInfo>]	16	static
+node_handle.h:432:8:bool ros::NodeHandle_<Hardware, MAX_SUBSCRIBERS, MAX_PUBLISHERS, INPUT_SIZE, OUTPUT_SIZE>::subscribe(SubscriberT&) [with SubscriberT = ros::Subscriber<spinal::FourAxisCommand, AttitudeController>; Hardware = STM32Hardware; int MAX_SUBSCRIBERS = 50; int MAX_PUBLISHERS = 50; int INPUT_SIZE = 512; int OUTPUT_SIZE = 512]	24	static
+node_handle.h:432:8:bool ros::NodeHandle_<Hardware, MAX_SUBSCRIBERS, MAX_PUBLISHERS, INPUT_SIZE, OUTPUT_SIZE>::subscribe(SubscriberT&) [with SubscriberT = ros::Subscriber<spinal::PwmInfo, AttitudeController>; Hardware = STM32Hardware; int MAX_SUBSCRIBERS = 50; int MAX_PUBLISHERS = 50; int INPUT_SIZE = 512; int OUTPUT_SIZE = 512]	24	static
+node_handle.h:432:8:bool ros::NodeHandle_<Hardware, MAX_SUBSCRIBERS, MAX_PUBLISHERS, INPUT_SIZE, OUTPUT_SIZE>::subscribe(SubscriberT&) [with SubscriberT = ros::Subscriber<spinal::RollPitchYawTerms, AttitudeController>; Hardware = STM32Hardware; int MAX_SUBSCRIBERS = 50; int MAX_PUBLISHERS = 50; int INPUT_SIZE = 512; int OUTPUT_SIZE = 512]	24	static
+node_handle.h:432:8:bool ros::NodeHandle_<Hardware, MAX_SUBSCRIBERS, MAX_PUBLISHERS, INPUT_SIZE, OUTPUT_SIZE>::subscribe(SubscriberT&) [with SubscriberT = ros::Subscriber<std_msgs::Float32, AttitudeController>; Hardware = STM32Hardware; int MAX_SUBSCRIBERS = 50; int MAX_PUBLISHERS = 50; int INPUT_SIZE = 512; int OUTPUT_SIZE = 512]	24	static
+node_handle.h:432:8:bool ros::NodeHandle_<Hardware, MAX_SUBSCRIBERS, MAX_PUBLISHERS, INPUT_SIZE, OUTPUT_SIZE>::subscribe(SubscriberT&) [with SubscriberT = ros::Subscriber<spinal::PMatrixPseudoInverseWithInertia, AttitudeController>; Hardware = STM32Hardware; int MAX_SUBSCRIBERS = 50; int MAX_PUBLISHERS = 50; int INPUT_SIZE = 512; int OUTPUT_SIZE = 512]	24	static
+node_handle.h:432:8:bool ros::NodeHandle_<Hardware, MAX_SUBSCRIBERS, MAX_PUBLISHERS, INPUT_SIZE, OUTPUT_SIZE>::subscribe(SubscriberT&) [with SubscriberT = ros::Subscriber<spinal::TorqueAllocationMatrixInv, AttitudeController>; Hardware = STM32Hardware; int MAX_SUBSCRIBERS = 50; int MAX_PUBLISHERS = 50; int INPUT_SIZE = 512; int OUTPUT_SIZE = 512]	24	static
+node_handle.h:448:8:bool ros::NodeHandle_<Hardware, MAX_SUBSCRIBERS, MAX_PUBLISHERS, INPUT_SIZE, OUTPUT_SIZE>::advertiseService(ros::ServiceServer<MReq, MRes, ObjT>&) [with MReq = std_srvs::SetBoolRequest; MRes = std_srvs::SetBoolResponse; ObjT = AttitudeController; Hardware = STM32Hardware; int MAX_SUBSCRIBERS = 50; int MAX_PUBLISHERS = 50; int INPUT_SIZE = 512; int OUTPUT_SIZE = 512]	24	static
+stl_vector.h:934:7:void std::vector<_Tp, _Alloc>::resize(std::vector<_Tp, _Alloc>::size_type) [with _Tp = spinal::MotorInfo; _Alloc = std::allocator<spinal::MotorInfo>]	16	static
+node_handle.h:573:8:void ros::NodeHandle_<Hardware, MAX_SUBSCRIBERS, MAX_PUBLISHERS, INPUT_SIZE, OUTPUT_SIZE>::logerror(const char*) [with Hardware = STM32Hardware; int MAX_SUBSCRIBERS = 50; int MAX_PUBLISHERS = 50; int INPUT_SIZE = 512; int OUTPUT_SIZE = 512]	16	static
+stl_vector.h:1184:7:void std::vector<_Tp, _Alloc>::push_back(const value_type&) [with _Tp = spinal::MotorInfo; _Alloc = std::allocator<spinal::MotorInfo>]	16	static
+matrix3.h:65:5:ap::Matrix3<T>::Matrix3(T, T, T, T, T, T, T, T, T) [with T = float]	48	static
+stl_vector.h:1040:7:std::vector<_Tp, _Alloc>::reference std::vector<_Tp, _Alloc>::operator[](std::vector<_Tp, _Alloc>::size_type) [with _Tp = spinal::MotorInfo; _Alloc = std::allocator<spinal::MotorInfo>]	16	static
+stl_vector.h:915:7:std::vector<_Tp, _Alloc>::size_type std::vector<_Tp, _Alloc>::size() const [with _Tp = spinal::MotorInfo; _Alloc = std::allocator<spinal::MotorInfo>]	16	static
+array:55:7:static constexpr _Tp& std::__array_traits<_Tp, _Nm>::_S_ref(const _Tp (&)[_Nm], std::size_t) [with _Tp = ap::Vector3<float>; unsigned int _Nm = 2]	16	static
+node_handle.h:552:8:void ros::NodeHandle_<Hardware, MAX_SUBSCRIBERS, MAX_PUBLISHERS, INPUT_SIZE, OUTPUT_SIZE>::log(char, const char*) [with Hardware = STM32Hardware; int MAX_SUBSCRIBERS = 50; int MAX_PUBLISHERS = 50; int INPUT_SIZE = 512; int OUTPUT_SIZE = 512]	40	static
+stl_vector.h:273:7:std::_Vector_base<_Tp, _Alloc>::_Tp_alloc_type& std::_Vector_base<_Tp, _Alloc>::_M_get_Tp_allocator() [with _Tp = spinal::MotorInfo; _Alloc = std::allocator<spinal::MotorInfo>]	16	static
+stl_construct.h:203:5:void std::_Destroy(_ForwardIterator, _ForwardIterator, std::allocator<_T2>&) [with _ForwardIterator = spinal::MotorInfo*; _Tp = spinal::MotorInfo]	24	static
+allocator.h:138:7:std::allocator< <template-parameter-1-1> >::allocator() [with _Tp = spinal::MotorInfo]	16	static
+stl_vector.h:94:2:std::_Vector_base<_Tp, _Alloc>::_Vector_impl_data::_Vector_impl_data() [with _Tp = spinal::MotorInfo; _Alloc = std::allocator<spinal::MotorInfo>]	16	static
+stl_vector.h:347:7:void std::_Vector_base<_Tp, _Alloc>::_M_deallocate(std::_Vector_base<_Tp, _Alloc>::pointer, std::size_t) [with _Tp = spinal::MotorInfo; _Alloc = std::allocator<spinal::MotorInfo>]	24	static
+stl_vector.h:441:7:static constexpr bool std::vector<_Tp, _Alloc>::_S_use_relocate() [with _Tp = spinal::MotorInfo; _Alloc = std::allocator<spinal::MotorInfo>]	16	static
+stl_vector.h:428:7:static constexpr bool std::vector<_Tp, _Alloc>::_S_nothrow_relocate(std::true_type) [with _Tp = spinal::MotorInfo; _Alloc = std::allocator<spinal::MotorInfo>]	16	static
+vector.tcc:611:5:void std::vector<_Tp, _Alloc>::_M_default_append(std::vector<_Tp, _Alloc>::size_type) [with _Tp = spinal::MotorInfo; _Alloc = std::allocator<spinal::MotorInfo>]	48	static
+stl_vector.h:1789:7:void std::vector<_Tp, _Alloc>::_M_erase_at_end(std::vector<_Tp, _Alloc>::pointer) [with _Tp = spinal::MotorInfo; _Alloc = std::allocator<spinal::MotorInfo>]	32	static
+alloc_traits.h:482:2:) [with _Up = spinal::MotorInfo; _Args = {const spinal::MotorInfo&}; _Tp = spinal::MotorInfo]	24	static
+stl_vector.h:826:7:std::vector<_Tp, _Alloc>::iterator std::vector<_Tp, _Alloc>::end() [with _Tp = spinal::MotorInfo; _Alloc = std::allocator<spinal::MotorInfo>]	24	static
+vector.tcc:426:7:) [with _Args = {const spinal::MotorInfo&}; _Tp = spinal::MotorInfo; _Alloc = std::allocator<spinal::MotorInfo>]	64	static
+vector3.h:80:5:ap::Vector3<T>::Vector3(T, T, T) [with T = float]	24	static
+stl_construct.h:127:5:void std::_Destroy(_ForwardIterator, _ForwardIterator) [with _ForwardIterator = spinal::MotorInfo*]	16	static
+new_allocator.h:80:7:__gnu_cxx::new_allocator<_Tp>::new_allocator() [with _Tp = spinal::MotorInfo]	16	static
+alloc_traits.h:469:7:static void std::allocator_traits<std::allocator<_Tp1> >::deallocate(std::allocator_traits<std::allocator<_Tp1> >::allocator_type&, std::allocator_traits<std::allocator<_Tp1> >::pointer, std::allocator_traits<std::allocator<_Tp1> >::size_type) [with _Tp = spinal::MotorInfo]	24	static
+stl_vector.h:920:7:std::vector<_Tp, _Alloc>::size_type std::vector<_Tp, _Alloc>::max_size() const [with _Tp = spinal::MotorInfo; _Alloc = std::allocator<spinal::MotorInfo>]	16	static
+stl_uninitialized.h:661:5:_ForwardIterator std::__uninitialized_default_n_a(_ForwardIterator, _Size, std::allocator<_Tp>&) [with _ForwardIterator = spinal::MotorInfo*; _Size = unsigned int; _Tp = spinal::MotorInfo]	24	static
+stl_vector.h:1753:7:std::vector<_Tp, _Alloc>::size_type std::vector<_Tp, _Alloc>::_M_check_len(std::vector<_Tp, _Alloc>::size_type, const char*) const [with _Tp = spinal::MotorInfo; _Alloc = std::allocator<spinal::MotorInfo>]	40	static
+stl_vector.h:340:7:std::_Vector_base<_Tp, _Alloc>::pointer std::_Vector_base<_Tp, _Alloc>::_M_allocate(std::size_t) [with _Tp = spinal::MotorInfo; _Alloc = std::allocator<spinal::MotorInfo>]	16	static
+stl_vector.h:462:7:static std::vector<_Tp, _Alloc>::pointer std::vector<_Tp, _Alloc>::_S_relocate(std::vector<_Tp, _Alloc>::pointer, std::vector<_Tp, _Alloc>::pointer, std::vector<_Tp, _Alloc>::pointer, std::vector<_Tp, _Alloc>::_Tp_alloc_type&) [with _Tp = spinal::MotorInfo; _Alloc = std::allocator<spinal::MotorInfo>]	48	static
+stl_uninitialized.h:323:5:_ForwardIterator std::__uninitialized_move_if_noexcept_a(_InputIterator, _InputIterator, _ForwardIterator, _Allocator&) [with _InputIterator = spinal::MotorInfo*; _ForwardIterator = spinal::MotorInfo*; _Allocator = std::allocator<spinal::MotorInfo>]	32	static
+move.h:74:5:constexpr _Tp&& std::forward(typename std::remove_reference<_Tp>::type&) [with _Tp = const spinal::MotorInfo&]	16	static
+msg.h:45:7:constexpr ros::Msg::Msg(const ros::Msg&)	16	static
+MotorInfo.h:12:9:constexpr spinal::MotorInfo::MotorInfo(const spinal::MotorInfo&)	24	static
+new_allocator.h:144:2:) [with _Up = spinal::MotorInfo; _Args = {const spinal::MotorInfo&}; _Tp = spinal::MotorInfo]	32	static
+stl_iterator.h:806:7:__gnu_cxx::__normal_iterator<_Iterator, _Container>::__normal_iterator(const _Iterator&) [with _Iterator = spinal::MotorInfo*; _Container = std::vector<spinal::MotorInfo>]	16	static
+stl_vector.h:808:7:std::vector<_Tp, _Alloc>::iterator std::vector<_Tp, _Alloc>::begin() [with _Tp = spinal::MotorInfo; _Alloc = std::allocator<spinal::MotorInfo>]	24	static
+stl_iterator.h:989:5:typename __gnu_cxx::__normal_iterator<_Iterator, _Container>::difference_type __gnu_cxx::operator-(const __gnu_cxx::__normal_iterator<_Iterator, _Container>&, const __gnu_cxx::__normal_iterator<_Iterator, _Container>&) [with _Iterator = spinal::MotorInfo*; _Container = std::vector<spinal::MotorInfo>]	24	static
+stl_iterator.h:871:7:const _Iterator& __gnu_cxx::__normal_iterator<_Iterator, _Container>::base() const [with _Iterator = spinal::MotorInfo*; _Container = std::vector<spinal::MotorInfo>]	16	static
+alloc_traits.h:495:2:static void std::allocator_traits<std::allocator<_Tp1> >::destroy(std::allocator_traits<std::allocator<_Tp1> >::allocator_type&, _Up*) [with _Up = spinal::MotorInfo; _Tp = spinal::MotorInfo]	16	static
+stl_algobase.h:198:5:constexpr const _Tp& std::min(const _Tp&, const _Tp&) [with _Tp = unsigned int]	16	static
+stl_algobase.h:222:5:constexpr const _Tp& std::max(const _Tp&, const _Tp&) [with _Tp = unsigned int]	16	static
+stl_construct.h:117:9:static void std::_Destroy_aux<true>::__destroy(_ForwardIterator, _ForwardIterator) [with _ForwardIterator = spinal::MotorInfo*]	16	static
+new_allocator.h:119:7:void __gnu_cxx::new_allocator<_Tp>::deallocate(__gnu_cxx::new_allocator<_Tp>::pointer, __gnu_cxx::new_allocator<_Tp>::size_type) [with _Tp = spinal::MotorInfo]	24	static
+stl_vector.h:1773:7:static std::vector<_Tp, _Alloc>::size_type std::vector<_Tp, _Alloc>::_S_max_size(const _Tp_alloc_type&) [with _Tp = spinal::MotorInfo; _Alloc = std::allocator<spinal::MotorInfo>]	24	static
+stl_vector.h:277:7:const _Tp_alloc_type& std::_Vector_base<_Tp, _Alloc>::_M_get_Tp_allocator() const [with _Tp = spinal::MotorInfo; _Alloc = std::allocator<spinal::MotorInfo>]	16	static
+stl_uninitialized.h:592:5:_ForwardIterator std::__uninitialized_default_n(_ForwardIterator, _Size) [with _ForwardIterator = spinal::MotorInfo*; _Size = unsigned int]	24	static
+alloc_traits.h:443:7:static _Tp* std::allocator_traits<std::allocator<_Tp1> >::allocate(std::allocator_traits<std::allocator<_Tp1> >::allocator_type&, std::allocator_traits<std::allocator<_Tp1> >::size_type) [with _Tp = spinal::MotorInfo]	16	static
+stl_vector.h:450:7:static std::vector<_Tp, _Alloc>::pointer std::vector<_Tp, _Alloc>::_S_do_relocate(std::vector<_Tp, _Alloc>::pointer, std::vector<_Tp, _Alloc>::pointer, std::vector<_Tp, _Alloc>::pointer, std::vector<_Tp, _Alloc>::_Tp_alloc_type&, std::true_type) [with _Tp = spinal::MotorInfo; _Alloc = std::allocator<spinal::MotorInfo>]	24	static
+stl_iterator.h:1242:5:_ReturnType std::__make_move_if_noexcept_iterator(_Tp*) [with _Tp = spinal::MotorInfo; _ReturnType = std::move_iterator<spinal::MotorInfo*>]	24	static
+stl_uninitialized.h:305:5:_ForwardIterator std::__uninitialized_copy_a(_InputIterator, _InputIterator, _ForwardIterator, std::allocator<_Tp>&) [with _InputIterator = std::move_iterator<spinal::MotorInfo*>; _ForwardIterator = spinal::MotorInfo*; _Tp = spinal::MotorInfo]	24	static
+new_allocator.h:151:2:void __gnu_cxx::new_allocator<_Tp>::destroy(_Up*) [with _Up = spinal::MotorInfo; _Tp = spinal::MotorInfo]	16	static
+alloc_traits.h:505:7:static std::allocator_traits<std::allocator<_Tp1> >::size_type std::allocator_traits<std::allocator<_Tp1> >::max_size(const allocator_type&) [with _Tp = spinal::MotorInfo]	16	static
+stl_uninitialized.h:539:9:static _ForwardIterator std::__uninitialized_default_n_1<_TrivialValueType>::__uninit_default_n(_ForwardIterator, _Size) [with _ForwardIterator = spinal::MotorInfo*; _Size = unsigned int; bool _TrivialValueType = false]	24	static
+new_allocator.h:102:7:_Tp* __gnu_cxx::new_allocator<_Tp>::allocate(__gnu_cxx::new_allocator<_Tp>::size_type, const void*) [with _Tp = spinal::MotorInfo]	24	static
+stl_uninitialized.h:958:5:_ForwardIterator std::__relocate_a(_InputIterator, _InputIterator, _ForwardIterator, _Allocator&) [with _InputIterator = spinal::MotorInfo*; _ForwardIterator = spinal::MotorInfo*; _Allocator = std::allocator<spinal::MotorInfo>]	32	static
+stl_iterator.h:1057:7:std::move_iterator<_Iterator>::move_iterator(std::move_iterator<_Iterator>::iterator_type) [with _Iterator = spinal::MotorInfo*]	16	static
+stl_uninitialized.h:115:5:_ForwardIterator std::uninitialized_copy(_InputIterator, _InputIterator, _ForwardIterator) [with _InputIterator = std::move_iterator<spinal::MotorInfo*>; _ForwardIterator = spinal::MotorInfo*]	32	static
+new_allocator.h:132:7:__gnu_cxx::new_allocator<_Tp>::size_type __gnu_cxx::new_allocator<_Tp>::max_size() const [with _Tp = spinal::MotorInfo]	16	static
+move.h:47:5:constexpr _Tp* std::__addressof(_Tp&) [with _Tp = spinal::MotorInfo]	16	static
+stl_construct.h:74:5:) [with _T1 = spinal::MotorInfo; _Args = {}]	16	static
+stl_algobase.h:280:5:_Iterator std::__niter_base(_Iterator) [with _Iterator = spinal::MotorInfo*]	16	static
+stl_uninitialized.h:936:5:_ForwardIterator std::__relocate_a_1(_InputIterator, _InputIterator, _ForwardIterator, _Allocator&) [with _InputIterator = spinal::MotorInfo*; _ForwardIterator = spinal::MotorInfo*; _Allocator = std::allocator<spinal::MotorInfo>]	40	static
+stl_uninitialized.h:76:9:static _ForwardIterator std::__uninitialized_copy<_TrivialValueTypes>::__uninit_copy(_InputIterator, _InputIterator, _ForwardIterator) [with _InputIterator = std::move_iterator<spinal::MotorInfo*>; _ForwardIterator = spinal::MotorInfo*; bool _TrivialValueTypes = false]	40	static
+stl_uninitialized.h:905:5:void std::__relocate_object_a(_Tp*, _Up*, _Allocator&) [with _Tp = spinal::MotorInfo; _Up = spinal::MotorInfo; _Allocator = std::allocator<spinal::MotorInfo>]	24	static
+stl_iterator.h:1157:5:bool std::operator!=(const std::move_iterator<_IteratorL>&, const std::move_iterator<_IteratorL>&) [with _Iterator = spinal::MotorInfo*]	16	static
+stl_iterator.h:1078:7:std::move_iterator<_Iterator>& std::move_iterator<_Iterator>::operator++() [with _Iterator = spinal::MotorInfo*]	16	static
+stl_iterator.h:1070:7:std::move_iterator<_Iterator>::reference std::move_iterator<_Iterator>::operator*() const [with _Iterator = spinal::MotorInfo*]	16	static
+msg.h:45:7:constexpr ros::Msg::Msg(ros::Msg&&)	16	static
+MotorInfo.h:12:9:constexpr spinal::MotorInfo::MotorInfo(spinal::MotorInfo&&)	24	static
+stl_construct.h:74:5:) [with _T1 = spinal::MotorInfo; _Args = {spinal::MotorInfo}]	24	static
+move.h:99:5:constexpr typename std::remove_reference<_Tp>::type&& std::move(_Tp&&) [with _Tp = spinal::MotorInfo&]	16	static
+alloc_traits.h:482:2:) [with _Up = spinal::MotorInfo; _Args = {spinal::MotorInfo}; _Tp = spinal::MotorInfo]	24	static
+stl_iterator.h:1145:5:bool std::operator==(const std::move_iterator<_IteratorL>&, const std::move_iterator<_IteratorL>&) [with _Iterator = spinal::MotorInfo*]	24	static
+move.h:74:5:constexpr _Tp&& std::forward(typename std::remove_reference<_Tp>::type&) [with _Tp = spinal::MotorInfo]	16	static
+new_allocator.h:144:2:) [with _Up = spinal::MotorInfo; _Args = {spinal::MotorInfo}; _Tp = spinal::MotorInfo]	32	static
+stl_iterator.h:1066:7:std::move_iterator<_Iterator>::iterator_type std::move_iterator<_Iterator>::base() const [with _Iterator = spinal::MotorInfo*]	16	static
+service_server.h:61:16:void ros::ServiceServer<MReq, MRes, ObjT>::callback(unsigned char*) [with MReq = std_srvs::SetBoolRequest; MRes = std_srvs::SetBoolResponse; ObjT = AttitudeController]	16	static
+service_server.h:75:15:int ros::ServiceServer<MReq, MRes, ObjT>::getEndpointType() [with MReq = std_srvs::SetBoolRequest; MRes = std_srvs::SetBoolResponse; ObjT = AttitudeController]	16	static
+service_server.h:67:24:const char* ros::ServiceServer<MReq, MRes, ObjT>::getMsgType() [with MReq = std_srvs::SetBoolRequest; MRes = std_srvs::SetBoolResponse; ObjT = AttitudeController]	16	static
+service_server.h:71:24:const char* ros::ServiceServer<MReq, MRes, ObjT>::getMsgMD5() [with MReq = std_srvs::SetBoolRequest; MRes = std_srvs::SetBoolResponse; ObjT = AttitudeController]	16	static
+subscriber.h:74:16:void ros::Subscriber<MsgT, ObjT>::callback(unsigned char*) [with MsgT = spinal::TorqueAllocationMatrixInv; ObjT = AttitudeController]	16	static
+subscriber.h:88:15:int ros::Subscriber<MsgT, ObjT>::getEndpointType() [with MsgT = spinal::TorqueAllocationMatrixInv; ObjT = AttitudeController]	16	static
+subscriber.h:80:24:const char* ros::Subscriber<MsgT, ObjT>::getMsgType() [with MsgT = spinal::TorqueAllocationMatrixInv; ObjT = AttitudeController]	16	static
+subscriber.h:84:24:const char* ros::Subscriber<MsgT, ObjT>::getMsgMD5() [with MsgT = spinal::TorqueAllocationMatrixInv; ObjT = AttitudeController]	16	static
+subscriber.h:74:16:void ros::Subscriber<MsgT, ObjT>::callback(unsigned char*) [with MsgT = spinal::PMatrixPseudoInverseWithInertia; ObjT = AttitudeController]	16	static
+subscriber.h:88:15:int ros::Subscriber<MsgT, ObjT>::getEndpointType() [with MsgT = spinal::PMatrixPseudoInverseWithInertia; ObjT = AttitudeController]	16	static
+subscriber.h:80:24:const char* ros::Subscriber<MsgT, ObjT>::getMsgType() [with MsgT = spinal::PMatrixPseudoInverseWithInertia; ObjT = AttitudeController]	16	static
+subscriber.h:84:24:const char* ros::Subscriber<MsgT, ObjT>::getMsgMD5() [with MsgT = spinal::PMatrixPseudoInverseWithInertia; ObjT = AttitudeController]	16	static
+subscriber.h:74:16:void ros::Subscriber<MsgT, ObjT>::callback(unsigned char*) [with MsgT = std_msgs::Float32; ObjT = AttitudeController]	16	static
+subscriber.h:88:15:int ros::Subscriber<MsgT, ObjT>::getEndpointType() [with MsgT = std_msgs::Float32; ObjT = AttitudeController]	16	static
+subscriber.h:80:24:const char* ros::Subscriber<MsgT, ObjT>::getMsgType() [with MsgT = std_msgs::Float32; ObjT = AttitudeController]	16	static
+subscriber.h:84:24:const char* ros::Subscriber<MsgT, ObjT>::getMsgMD5() [with MsgT = std_msgs::Float32; ObjT = AttitudeController]	16	static
+subscriber.h:74:16:void ros::Subscriber<MsgT, ObjT>::callback(unsigned char*) [with MsgT = spinal::RollPitchYawTerms; ObjT = AttitudeController]	16	static
+subscriber.h:88:15:int ros::Subscriber<MsgT, ObjT>::getEndpointType() [with MsgT = spinal::RollPitchYawTerms; ObjT = AttitudeController]	16	static
+subscriber.h:80:24:const char* ros::Subscriber<MsgT, ObjT>::getMsgType() [with MsgT = spinal::RollPitchYawTerms; ObjT = AttitudeController]	16	static
+subscriber.h:84:24:const char* ros::Subscriber<MsgT, ObjT>::getMsgMD5() [with MsgT = spinal::RollPitchYawTerms; ObjT = AttitudeController]	16	static
+subscriber.h:74:16:void ros::Subscriber<MsgT, ObjT>::callback(unsigned char*) [with MsgT = spinal::PwmInfo; ObjT = AttitudeController]	16	static
+subscriber.h:88:15:int ros::Subscriber<MsgT, ObjT>::getEndpointType() [with MsgT = spinal::PwmInfo; ObjT = AttitudeController]	16	static
+subscriber.h:80:24:const char* ros::Subscriber<MsgT, ObjT>::getMsgType() [with MsgT = spinal::PwmInfo; ObjT = AttitudeController]	16	static
+subscriber.h:84:24:const char* ros::Subscriber<MsgT, ObjT>::getMsgMD5() [with MsgT = spinal::PwmInfo; ObjT = AttitudeController]	16	static
+subscriber.h:74:16:void ros::Subscriber<MsgT, ObjT>::callback(unsigned char*) [with MsgT = spinal::FourAxisCommand; ObjT = AttitudeController]	16	static
+subscriber.h:88:15:int ros::Subscriber<MsgT, ObjT>::getEndpointType() [with MsgT = spinal::FourAxisCommand; ObjT = AttitudeController]	16	static
+subscriber.h:80:24:const char* ros::Subscriber<MsgT, ObjT>::getMsgType() [with MsgT = spinal::FourAxisCommand; ObjT = AttitudeController]	16	static
+subscriber.h:84:24:const char* ros::Subscriber<MsgT, ObjT>::getMsgMD5() [with MsgT = spinal::FourAxisCommand; ObjT = AttitudeController]	16	static

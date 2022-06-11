@@ -3,7 +3,7 @@
   ###########  launch config  ###########
   <arg name="real_machine" default="True" />
   <arg name="simulation" default="False" />
-  <arg name="estimate_mode"  default= "0" />
+  <arg name="estimate_mode"  default= "1" />
   <arg name="sim_estimate_mode"  default= "2" />
   <arg name="headless" default="True" />
   <arg name="worldtype" default="$(find aerial_robot_simulation)/gazebo_model/world/empty.world" />
@@ -37,7 +37,7 @@
     <rosparam file="$(arg config_dir)/RobotModelUnderActuated.yaml" command="load"  unless="$(arg fully_actuated)"/>
 
     ###########  Motor Config  ###########
-    <rosparam file="$(arg config_dir)/MotorInfo.yaml" command="load" />
+    <rosparam file="$(arg config_dir)/MotorInfo_5inch.yaml" command="load" />
 
     ###########  Battery Config  ###########
     <rosparam file="$(arg config_dir)/Battery.yaml" command="load" />
@@ -69,6 +69,7 @@
     <arg name="robot_model" value="$(find assemble_quadrotors)/urdf/assemble_dual_quadrotors_whole.$(arg description_mode).xacro" if="$(eval airframe == 'whole')"/>
     <arg name="robot_model" value="$(find assemble_quadrotors)/urdf/assemble_dual_quadrotors_male.$(arg description_mode).xacro" if="$(eval airframe == 'male')"/>
     <arg name="robot_model" value="$(find assemble_quadrotors)/urdf/assemble_dual_quadrotors_female.$(arg description_mode).xacro" if="$(eval airframe == 'female')"/>
+    <arg name="robot_model" value="$(find assemble_quadrotors)/urdf/assemble_dual_quadrotor_test.$(arg description_mode).xacro" if="$(eval airframe == 'test')"/>
     <arg name="robot_model" value="$(arg direct_model_name)" if="$(arg direct_model)"/>
     <arg name="robot_ns" value="$(arg robot_ns)"/>
     <arg name="rviz_config" value="$(find assemble_quadrotors)/config/rviz_config" />
@@ -95,5 +96,8 @@
     <arg name="spawn_z" value="$(arg spawn_z)" />
     <arg name="spawn_yaw" value="$(arg spawn_yaw)" />
   </include>
+
+  ######## work around to evoke robot model update #######
+  <node pkg="assemble_quadrotors" type="joint_state_pub.py" name="joint_state_pub" ns="$(arg robot_ns)"/>
 
 </launch>

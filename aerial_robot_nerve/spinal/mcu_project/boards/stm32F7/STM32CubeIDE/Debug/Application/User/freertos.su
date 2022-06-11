@@ -1,0 +1,10 @@
+freertos.c:94:6:vApplicationGetIdleTaskMemory	24	static
+freertos.c:107:6:vApplicationGetTimerTaskMemory	24	static
+freertos.c:121:6:MX_FREERTOS_Init	240	static
+freertos.c:206:13:StartDefaultTask	16	static
+freertos.c:224:13:rosSpinTask	16	static
+freertos.c:242:13:rosPublishTask	16	static
+freertos.c:260:13:coreTask	16	static
+freertos.c:278:13:canRxTask	16	static
+freertos.c:296:13:voltageTask	16	static
+freertos.c:308:13:coreEvokeCallback	16	static

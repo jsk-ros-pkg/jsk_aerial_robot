@@ -1,0 +1,341 @@
+core_cm7.h:2229:22:void SCB_EnableICache()	4	static,ignoring_inline_asm
+core_cm7.h:2281:22:void SCB_EnableDCache()	24	static,ignoring_inline_asm
+cmath:482:3:constexpr float std::tan(float)	16	static
+gthr-default.h:229:1:int __gthread_key_delete(__gthread_key_t)	16	static
+STM32Hardware.h:170:3:STM32Hardware::STM32Hardware()	16	static
+STM32Hardware.h:180:3:STM32Hardware::~STM32Hardware()	16	static
+STM32Hardware.h:182:8:void STM32Hardware::init()	16	static
+STM32Hardware.h:196:12:uint32_t STM32Hardware::time()	16	static
+time.h:51:3:ros::Time::Time()	16	static
+msg.h:45:7:constexpr ros::Msg::Msg()	16	static
+Time.h:19:5:std_msgs::Time::Time()	16	static
+Time.h:24:17:virtual int std_msgs::Time::serialize(unsigned char*) const	24	static
+Time.h:40:17:virtual int std_msgs::Time::deserialize(unsigned char*)	24	static
+Time.h:56:18:virtual const char* std_msgs::Time::getType()	16	static
+Time.h:57:18:virtual const char* std_msgs::Time::getMD5()	16	static
+TopicInfo.h:34:5:rosserial_msgs::TopicInfo::TopicInfo()	16	static
+TopicInfo.h:43:17:virtual int rosserial_msgs::TopicInfo::serialize(unsigned char*) const	40	static
+TopicInfo.h:77:17:virtual int rosserial_msgs::TopicInfo::deserialize(unsigned char*)	48	static
+TopicInfo.h:124:18:virtual const char* rosserial_msgs::TopicInfo::getType()	16	static
+TopicInfo.h:125:18:virtual const char* rosserial_msgs::TopicInfo::getMD5()	16	static
+Log.h:25:5:rosserial_msgs::Log::Log()	16	static
+Log.h:31:17:virtual int rosserial_msgs::Log::serialize(unsigned char*) const	24	static
+Log.h:44:17:virtual int rosserial_msgs::Log::deserialize(unsigned char*)	32	static
+Log.h:61:18:virtual const char* rosserial_msgs::Log::getType()	16	static
+Log.h:62:18:virtual const char* rosserial_msgs::Log::getMD5()	16	static
+RequestParam.h:71:5:rosserial_msgs::RequestParamResponse::RequestParamResponse()	16	static
+RequestParam.h:78:17:virtual int rosserial_msgs::RequestParamResponse::serialize(unsigned char*) const	48	static
+RequestParam.h:130:17:virtual int rosserial_msgs::RequestParamResponse::deserialize(unsigned char*)	64	static
+RequestParam.h:200:18:virtual const char* rosserial_msgs::RequestParamResponse::getType()	16	static
+RequestParam.h:201:18:virtual const char* rosserial_msgs::RequestParamResponse::getMD5()	16	static
+publisher.h:48:3:ros::Publisher::Publisher(const char*, ros::Msg*, int)	24	static
+publisher.h:53:7:int ros::Publisher::publish(const ros::Msg*)	16	static
+publisher.h:57:7:int ros::Publisher::getEndpointType()	16	static
+Imu.h:23:5:spinal::Imu::Imu()	16	static
+Imu.h:32:17:virtual int spinal::Imu::serialize(unsigned char*) const	56	static
+Imu.h:96:17:virtual int spinal::Imu::deserialize(unsigned char*)	56	static
+Imu.h:164:18:virtual const char* spinal::Imu::getType()	16	static
+Imu.h:165:18:virtual const char* spinal::Imu::getMD5()	16	static
+UInt8.h:18:5:std_msgs::UInt8::UInt8()	16	static
+UInt8.h:23:17:virtual int std_msgs::UInt8::serialize(unsigned char*) const	24	static
+UInt8.h:31:17:virtual int std_msgs::UInt8::deserialize(unsigned char*)	24	static
+UInt8.h:39:18:virtual const char* std_msgs::UInt8::getType()	16	static
+UInt8.h:40:18:virtual const char* std_msgs::UInt8::getMD5()	16	static
+imu_basic.h:55:12:ap::Vector3f IMU::getGyro(bool)	48	static
+imu_basic.h:63:12:ap::Vector3f IMU::getAcc(bool)	48	static
+imu_basic.h:71:12:ap::Vector3f IMU::getMag(bool)	48	static
+imu_basic.h:83:8:bool IMU::getUpdate()	16	static
+imu_basic.h:84:8:void IMU::setUpdate(bool)	16	static
+imu_mpu9250.h:23:3:IMUOnboard::IMUOnboard()	16	static
+imu_mpu9250.h:24:3:IMUOnboard::~IMUOnboard()	16	static
+baro.h:28:3:BaroBackend::~BaroBackend()	16	static
+baro.h:64:8:bool BaroBackend::getUpdate()	16	static
+baro.h:65:8:void BaroBackend::setUpdate(bool)	16	static
+baro.h:67:16:float BaroBackend::getPressure()	16	static
+baro.h:68:16:float BaroBackend::getTemperature()	16	static
+baro.h:69:16:float BaroBackend::getAltitude()	16	static
+gps_backend.h:87:11:GPS_Backend::~GPS_Backend()	16	static
+gps_backend.h:87:11:virtual GPS_Backend::~GPS_Backend()	16	static
+gps_backend.h:102:8:bool GPS_Backend::getMagValid() const	16	static
+gps_backend.h:103:9:float GPS_Backend::getMagDeclination() const	16	static
+Float32.h:18:5:std_msgs::Float32::Float32()	16	static
+Float32.h:23:17:virtual int std_msgs::Float32::serialize(unsigned char*) const	24	static
+Float32.h:39:17:virtual int std_msgs::Float32::deserialize(unsigned char*)	24	static
+Float32.h:56:18:virtual const char* std_msgs::Float32::getType()	16	static
+Float32.h:57:18:virtual const char* std_msgs::Float32::getMD5()	16	static
+battery_status.h:30:3:BatteryStatus::BatteryStatus()	32	static
+battery_status.h:35:3:BatteryStatus::~BatteryStatus()	16	static
+battery_status.h:38:8:void BatteryStatus::init(ADC_HandleTypeDef*, ros::NodeHandle*)	24	static
+battery_status.h:53:8:void BatteryStatus::adcScaleCallback(const std_msgs::Float32&)	16	static
+battery_status.h:62:8:void BatteryStatus::update()	24	static
+MagDeclination.h:23:5:spinal::MagDeclinationRequest::MagDeclinationRequest()	16	static
+MagDeclination.h:29:17:virtual int spinal::MagDeclinationRequest::serialize(unsigned char*) const	24	static
+MagDeclination.h:47:17:virtual int spinal::MagDeclinationRequest::deserialize(unsigned char*)	24	static
+MagDeclination.h:66:18:virtual const char* spinal::MagDeclinationRequest::getType()	16	static
+MagDeclination.h:67:18:virtual const char* spinal::MagDeclinationRequest::getMD5()	16	static
+MagDeclination.h:79:5:spinal::MagDeclinationResponse::MagDeclinationResponse()	16	static
+MagDeclination.h:85:17:virtual int spinal::MagDeclinationResponse::serialize(unsigned char*) const	32	static
+MagDeclination.h:108:17:virtual int spinal::MagDeclinationResponse::deserialize(unsigned char*)	32	static
+MagDeclination.h:133:18:virtual const char* spinal::MagDeclinationResponse::getType()	16	static
+MagDeclination.h:134:18:virtual const char* spinal::MagDeclinationResponse::getMD5()	16	static
+DesireCoord.h:24:5:spinal::DesireCoord::DesireCoord()	16	static
+DesireCoord.h:32:17:virtual int spinal::DesireCoord::serialize(unsigned char*) const	32	static
+DesireCoord.h:70:17:virtual int spinal::DesireCoord::deserialize(unsigned char*)	32	static
+DesireCoord.h:111:18:virtual const char* spinal::DesireCoord::getType()	16	static
+DesireCoord.h:112:18:virtual const char* spinal::DesireCoord::getMD5()	16	static
+Header.h:23:5:std_msgs::Header::Header()	16	static
+Header.h:30:17:virtual int std_msgs::Header::serialize(unsigned char*) const	24	static
+Header.h:56:17:virtual int std_msgs::Header::deserialize(unsigned char*)	32	static
+Header.h:86:18:virtual const char* std_msgs::Header::getType()	16	static
+Header.h:87:18:virtual const char* std_msgs::Header::getMD5()	16	static
+Vector3.h:22:5:geometry_msgs::Vector3::Vector3()	16	static
+Vector3.h:29:17:virtual int geometry_msgs::Vector3::serialize(unsigned char*) const	48	static
+Vector3.h:77:17:virtual int geometry_msgs::Vector3::deserialize(unsigned char*)	264	static
+Vector3.h:128:18:virtual const char* geometry_msgs::Vector3::getType()	16	static
+Vector3.h:129:18:virtual const char* geometry_msgs::Vector3::getMD5()	16	static
+Vector3Stamped.h:22:5:geometry_msgs::Vector3Stamped::Vector3Stamped()	16	static
+Vector3Stamped.h:28:17:virtual int geometry_msgs::Vector3Stamped::serialize(unsigned char*) const	24	static
+Vector3Stamped.h:36:17:virtual int geometry_msgs::Vector3Stamped::deserialize(unsigned char*)	24	static
+Vector3Stamped.h:44:18:virtual const char* geometry_msgs::Vector3Stamped::getType()	16	static
+Vector3Stamped.h:45:18:virtual const char* geometry_msgs::Vector3Stamped::getMD5()	16	static
+array:94:12:std::array<ap::Vector3<float>, 2>::array()	24	static
+estimator.h:39:3:EstimatorAlgorithm::EstimatorAlgorithm()	16	static
+estimator.h:67:8:void EstimatorAlgorithm::coordinateUpdate(float, float, float)	24	static
+estimator.h:73:8:void EstimatorAlgorithm::update(const Vector3f&, const Vector3f&, const Vector3f&)	40	static
+estimator.h:92:16:virtual void EstimatorAlgorithm::estimation()	16	static
+estimator.h:107:16:ap::Vector3f EstimatorAlgorithm::getAttitude(uint8_t)	48	static
+estimator.h:108:16:ap::Vector3f EstimatorAlgorithm::getAngular(uint8_t)	48	static
+estimator.h:109:16:ap::Vector3f EstimatorAlgorithm::getSmoothAngular(uint8_t)	48	static
+estimator.h:110:16:ap::Vector3f EstimatorAlgorithm::getAcc(uint8_t)	48	static
+estimator.h:111:16:ap::Vector3f EstimatorAlgorithm::getMag(uint8_t)	48	static
+estimator.h:115:8:bool EstimatorAlgorithm::getMagDecValid()	16	static
+estimator.h:116:9:float EstimatorAlgorithm::getMagDeclination()	16	static
+estimator.h:117:8:void EstimatorAlgorithm::setMagDeclination(float)	16	static
+estimator.h:148:8:void EstimatorAlgorithm::filterFunction(ap::Vector3f, ap::Vector3f&)	128	static
+complementary_ahrs.h:29:3:ComplementaryAHRS::ComplementaryAHRS()	16	static
+complementary_ahrs.h:35:8:virtual void ComplementaryAHRS::estimation()	176	static
+attitude_estimate.h:54:3:AttitudeEstimate::~AttitudeEstimate()	16	static
+attitude_estimate.h:95:3:AttitudeEstimate::AttitudeEstimate()	64	static
+attitude_estimate.h:105:8:void AttitudeEstimate::init(IMU*, GPS*, ros::NodeHandle*)	32	static
+attitude_estimate.h:128:8:void AttitudeEstimate::update()	64	static
+attitude_estimate.h:155:8:void AttitudeEstimate::multiImuFusion(ap::Vector3f&, ap::Vector3f&, ap::Vector3f&)	72	static
+attitude_estimate.h:181:8:void AttitudeEstimate::publish()	152	static
+attitude_estimate.h:276:8:void AttitudeEstimate::magDeclinationCallback(const Request&, spinal::MagDeclination::Response&)	24	static
+attitude_estimate.h:308:8:void AttitudeEstimate::desireCoordCallback(const spinal::DesireCoord&)	16	static
+Barometer.h:25:5:spinal::Barometer::Barometer()	16	static
+Barometer.h:33:17:virtual int spinal::Barometer::serialize(unsigned char*) const	32	static
+Barometer.h:79:17:virtual int spinal::Barometer::deserialize(unsigned char*)	32	static
+Barometer.h:128:18:virtual const char* spinal::Barometer::getType()	16	static
+Barometer.h:129:18:virtual const char* spinal::Barometer::getMD5()	16	static
+altitude_estimate.h:31:3:AltitudeEstimate::AltitudeEstimate()	16	static
+altitude_estimate.h:33:3:AltitudeEstimate::~AltitudeEstimate()	16	static
+altitude_estimate.h:39:9:void AltitudeEstimate::init(IMU*, Baro*, ros::NodeHandle*)	24	static
+altitude_estimate.h:50:8:void AltitudeEstimate::update()	16	static
+altitude_estimate.h:95:8:void AltitudeEstimate::publish()	32	static
+pos_estimate.h:29:3:PosEstimate::PosEstimate()	16	static
+pos_estimate.h:30:3:PosEstimate::~PosEstimate()	16	static
+pos_estimate.h:32:9:void PosEstimate::init(IMU*, GPS*, ros::NodeHandle*)	24	static
+pos_estimate.h:39:8:void PosEstimate::update()	16	static
+state_estimate.h:36:3:StateEstimate::StateEstimate()	16	static
+state_estimate.h:39:3:StateEstimate::~StateEstimate()	16	static
+state_estimate.h:48:9:void StateEstimate::init(IMU*, Baro*, GPS*, ros::NodeHandle*)	24	static
+state_estimate.h:87:8:void StateEstimate::update()	16	static
+UavInfo.h:26:5:spinal::UavInfo::UavInfo()	16	static
+UavInfo.h:33:17:virtual int spinal::UavInfo::serialize(unsigned char*) const	24	static
+UavInfo.h:45:17:virtual int spinal::UavInfo::deserialize(unsigned char*)	24	static
+UavInfo.h:57:18:virtual const char* spinal::UavInfo::getType()	16	static
+UavInfo.h:58:18:virtual const char* spinal::UavInfo::getMD5()	16	static
+attitude_control.h:74:3:AttitudeController::~AttitudeController()	16	static
+attitude_control.h:92:8:void AttitudeController::setIntegrateFlag(bool)	16	static
+attitude_control.h:93:8:bool AttitudeController::getForceLandingFlag()	16	static
+attitude_control.h:95:8:void AttitudeController::setForceLandingFlag(bool)	16	static
+FlightConfigCmd.h:23:5:spinal::FlightConfigCmd::FlightConfigCmd()	16	static
+FlightConfigCmd.h:28:17:virtual int spinal::FlightConfigCmd::serialize(unsigned char*) const	24	static
+FlightConfigCmd.h:36:17:virtual int spinal::FlightConfigCmd::deserialize(unsigned char*)	24	static
+FlightConfigCmd.h:44:18:virtual const char* spinal::FlightConfigCmd::getType()	16	static
+FlightConfigCmd.h:45:18:virtual const char* spinal::FlightConfigCmd::getMD5()	16	static
+flight_control.h:40:3:FlightControl::~FlightControl()	16	static
+flight_control.h:63:3:FlightControl::FlightControl()	40	static
+flight_control.h:71:8:void FlightControl::init(TIM_HandleTypeDef*, TIM_HandleTypeDef*, StateEstimate*, BatteryStatus*, ros::NodeHandle*, QueueDefinition**)	40	static
+flight_control.h:100:8:void FlightControl::update()	16	static
+flight_control.h:117:8:void FlightControl::setMotorNumber(uint8_t)	16	static
+flight_control.h:122:8:void FlightControl::setUavModel(int8_t)	16	static
+flight_control.h:159:8:void FlightControl::flightConfigCallback(const spinal::FlightConfigCmd&)	16	static
+flight_control.h:225:6:void FlightControl::uavInfoConfigCallback(const spinal::UavInfo&)	16	static
+main.cpp:149:5:int main()	320	static
+main.cpp:342:6:void SystemClock_Config()	312	static
+main.cpp:424:13:void MX_ADC1_Init()	48	static
+main.cpp:489:13:void MX_FDCAN1_Init()	8	static
+main.cpp:542:13:void MX_I2C1_Init()	8	static
+main.cpp:588:13:void MX_I2C3_Init()	8	static
+main.cpp:634:13:void MX_SPI1_Init()	8	static
+main.cpp:682:13:void MX_TIM1_Init()	112	static
+main.cpp:775:13:void MX_TIM4_Init()	64	static
+main.cpp:846:13:void MX_USART1_UART_Init()	8	static
+main.cpp:894:13:void MX_USART3_UART_Init()	8	static
+main.cpp:940:13:void MX_DMA_Init()	16	static
+main.cpp:964:13:void MX_GPIO_Init()	56	static
+main.cpp:1016:6:void coreTaskFunc(const void*)	32	static
+main.cpp:1088:6:void rosSpinTaskFunc(const void*)	16	static
+main.cpp:1110:6:void idleTaskFunc(const void*)	16	static
+main.cpp:1128:6:void rosPublishTask(const void*)	16	static
+main.cpp:1151:6:void voltageTask(const void*)	16	static
+main.cpp:1170:13:void canRxTask(const void*)	16	static
+main.cpp:1183:6:void coreTaskEvokeCb(const void*)	16	static
+main.cpp:1194:6:void MPU_Config()	24	static
+main.cpp:1302:6:void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef*)	16	static
+main.cpp:1319:6:void Error_Handler()	4	static,ignoring_inline_asm
+msg.h:129:15:static void ros::Msg::varToArr(A, V) [with A = unsigned char*; V = long unsigned int]	24	static
+msg.h:137:15:static void ros::Msg::arrToVar(V&, A) [with V = long unsigned int; A = unsigned char*]	24	static
+subscriber.h:44:7:ros::Subscriber_::Subscriber_()	16	static
+vector3.h:75:5:ap::Vector3<T>::Vector3() [with T = float]	16	static
+subscriber.h:66:3:ros::Subscriber<MsgT, ObjT>::Subscriber(const char*, ros::Subscriber<MsgT, ObjT>::CallbackT, ObjT*, int) [with MsgT = std_msgs::Float32; ObjT = BatteryStatus]	24	static
+node_handle.h:415:8:bool ros::NodeHandle_<Hardware, MAX_SUBSCRIBERS, MAX_PUBLISHERS, INPUT_SIZE, OUTPUT_SIZE>::advertise(ros::Publisher&) [with Hardware = STM32Hardware; int MAX_SUBSCRIBERS = 50; int MAX_PUBLISHERS = 50; int INPUT_SIZE = 512; int OUTPUT_SIZE = 512]	24	static
+node_handle.h:432:8:bool ros::NodeHandle_<Hardware, MAX_SUBSCRIBERS, MAX_PUBLISHERS, INPUT_SIZE, OUTPUT_SIZE>::subscribe(SubscriberT&) [with SubscriberT = ros::Subscriber<std_msgs::Float32, BatteryStatus>; Hardware = STM32Hardware; int MAX_SUBSCRIBERS = 50; int MAX_PUBLISHERS = 50; int INPUT_SIZE = 512; int OUTPUT_SIZE = 512]	24	static
+node_handle.h:565:8:void ros::NodeHandle_<Hardware, MAX_SUBSCRIBERS, MAX_PUBLISHERS, INPUT_SIZE, OUTPUT_SIZE>::loginfo(const char*) [with Hardware = STM32Hardware; int MAX_SUBSCRIBERS = 50; int MAX_PUBLISHERS = 50; int INPUT_SIZE = 512; int OUTPUT_SIZE = 512]	16	static
+matrix3.h:57:5:ap::Matrix3<T>::Matrix3() [with T = float]	16	static
+matrix3.h:194:17:void ap::Matrix3<T>::identity() [with T = float]	16	static
+array:185:7:std::array<_Tp, _Nm>::value_type& std::array<_Tp, _Nm>::operator[](std::array<_Tp, _Nm>::size_type) [with _Tp = ap::Vector3<float>; unsigned int _Nm = 2]	16	static
+stl_vector.h:675:7:std::vector<_Tp, _Alloc>::~vector() [with _Tp = IMU*; _Alloc = std::allocator<IMU*>]	24	static
+stl_vector.h:675:7:std::vector<_Tp, _Alloc>::~vector() [with _Tp = float; _Alloc = std::allocator<float>]	24	static
+subscriber.h:66:3:ros::Subscriber<MsgT, ObjT>::Subscriber(const char*, ros::Subscriber<MsgT, ObjT>::CallbackT, ObjT*, int) [with MsgT = spinal::DesireCoord; ObjT = AttitudeEstimate]	24	static
+allocator.h:138:7:std::allocator< <template-parameter-1-1> >::allocator() [with _Tp = IMU*]	16	static
+allocator.h:153:7:std::allocator< <template-parameter-1-1> >::~allocator() [with _Tp = IMU*]	16	static
+stl_vector.h:507:7:std::vector<_Tp, _Alloc>::vector(std::vector<_Tp, _Alloc>::size_type, const allocator_type&) [with _Tp = IMU*; _Alloc = std::allocator<IMU*>]	32	static
+allocator.h:138:7:std::allocator< <template-parameter-1-1> >::allocator() [with _Tp = float]	16	static
+allocator.h:153:7:std::allocator< <template-parameter-1-1> >::~allocator() [with _Tp = float]	16	static
+stl_vector.h:519:7:std::vector<_Tp, _Alloc>::vector(std::vector<_Tp, _Alloc>::size_type, const value_type&, const allocator_type&) [with _Tp = float; _Alloc = std::allocator<float>]	32	static
+service_server.h:52:3:ros::ServiceServer<MReq, MRes, ObjT>::ServiceServer(const char*, ros::ServiceServer<MReq, MRes, ObjT>::CallbackT, ObjT*) [with MReq = spinal::MagDeclinationRequest; MRes = spinal::MagDeclinationResponse; ObjT = AttitudeEstimate]	24	static
+node_handle.h:432:8:bool ros::NodeHandle_<Hardware, MAX_SUBSCRIBERS, MAX_PUBLISHERS, INPUT_SIZE, OUTPUT_SIZE>::subscribe(SubscriberT&) [with SubscriberT = ros::Subscriber<spinal::DesireCoord, AttitudeEstimate>; Hardware = STM32Hardware; int MAX_SUBSCRIBERS = 50; int MAX_PUBLISHERS = 50; int INPUT_SIZE = 512; int OUTPUT_SIZE = 512]	24	static
+node_handle.h:448:8:bool ros::NodeHandle_<Hardware, MAX_SUBSCRIBERS, MAX_PUBLISHERS, INPUT_SIZE, OUTPUT_SIZE>::advertiseService(ros::ServiceServer<MReq, MRes, ObjT>&) [with MReq = spinal::MagDeclinationRequest; MRes = spinal::MagDeclinationResponse; ObjT = AttitudeEstimate; Hardware = STM32Hardware; int MAX_SUBSCRIBERS = 50; int MAX_PUBLISHERS = 50; int INPUT_SIZE = 512; int OUTPUT_SIZE = 512]	24	static
+stl_vector.h:1040:7:std::vector<_Tp, _Alloc>::reference std::vector<_Tp, _Alloc>::operator[](std::vector<_Tp, _Alloc>::size_type) [with _Tp = IMU*; _Alloc = std::allocator<IMU*>]	16	static
+node_handle.h:363:16:bool ros::NodeHandle_<Hardware, MAX_SUBSCRIBERS, MAX_PUBLISHERS, INPUT_SIZE, OUTPUT_SIZE>::connected() [with Hardware = STM32Hardware; int MAX_SUBSCRIBERS = 50; int MAX_PUBLISHERS = 50; int INPUT_SIZE = 512; int OUTPUT_SIZE = 512]	16	static
+stl_vector.h:915:7:std::vector<_Tp, _Alloc>::size_type std::vector<_Tp, _Alloc>::size() const [with _Tp = IMU*; _Alloc = std::allocator<IMU*>]	16	static
+stl_vector.h:1040:7:std::vector<_Tp, _Alloc>::reference std::vector<_Tp, _Alloc>::operator[](std::vector<_Tp, _Alloc>::size_type) [with _Tp = float; _Alloc = std::allocator<float>]	16	static
+node_handle.h:392:8:ros::Time ros::NodeHandle_<Hardware, MAX_SUBSCRIBERS, MAX_PUBLISHERS, INPUT_SIZE, OUTPUT_SIZE>::now() [with Hardware = STM32Hardware; int MAX_SUBSCRIBERS = 50; int MAX_PUBLISHERS = 50; int INPUT_SIZE = 512; int OUTPUT_SIZE = 512]	24	static
+vector3.h:123:9:T& ap::Vector3<T>::operator[](uint8_t) [with T = float]	24	static
+stl_vector.h:675:7:std::vector<_Tp, _Alloc>::~vector() [with _Tp = spinal::MotorInfo; _Alloc = std::allocator<spinal::MotorInfo>]	24	static
+subscriber.h:66:3:ros::Subscriber<MsgT, ObjT>::Subscriber(const char*, ros::Subscriber<MsgT, ObjT>::CallbackT, ObjT*, int) [with MsgT = spinal::UavInfo; ObjT = FlightControl]	24	static
+subscriber.h:66:3:ros::Subscriber<MsgT, ObjT>::Subscriber(const char*, ros::Subscriber<MsgT, ObjT>::CallbackT, ObjT*, int) [with MsgT = spinal::FlightConfigCmd; ObjT = FlightControl]	24	static
+node_handle.h:432:8:bool ros::NodeHandle_<Hardware, MAX_SUBSCRIBERS, MAX_PUBLISHERS, INPUT_SIZE, OUTPUT_SIZE>::subscribe(SubscriberT&) [with SubscriberT = ros::Subscriber<spinal::UavInfo, FlightControl>; Hardware = STM32Hardware; int MAX_SUBSCRIBERS = 50; int MAX_PUBLISHERS = 50; int INPUT_SIZE = 512; int OUTPUT_SIZE = 512]	24	static
+node_handle.h:432:8:bool ros::NodeHandle_<Hardware, MAX_SUBSCRIBERS, MAX_PUBLISHERS, INPUT_SIZE, OUTPUT_SIZE>::subscribe(SubscriberT&) [with SubscriberT = ros::Subscriber<spinal::FlightConfigCmd, FlightControl>; Hardware = STM32Hardware; int MAX_SUBSCRIBERS = 50; int MAX_PUBLISHERS = 50; int INPUT_SIZE = 512; int OUTPUT_SIZE = 512]	24	static
+node_handle.h:104:7:ros::NodeHandle_<STM32Hardware, 50, 50, 512, 512>::~NodeHandle_()	16	static
+node_handle_stm.h:56:5:ros::NodeHandleStm_<MAX_SUBSCRIBERS, MAX_PUBLISHERS, INPUT_SIZE, OUTPUT_SIZE>::NodeHandleStm_() [with int MAX_SUBSCRIBERS = 50; int MAX_PUBLISHERS = 50; int INPUT_SIZE = 512; int OUTPUT_SIZE = 512]	16	static
+node_handle_stm.h:62:10:void ros::NodeHandleStm_<MAX_SUBSCRIBERS, MAX_PUBLISHERS, INPUT_SIZE, OUTPUT_SIZE>::initNode(UART_HandleTypeDef*, QueueDefinition**, QueueDefinition**) [with int MAX_SUBSCRIBERS = 50; int MAX_PUBLISHERS = 50; int INPUT_SIZE = 512; int OUTPUT_SIZE = 512]	24	static
+node_handle_stm.h:87:9:int ros::NodeHandleStm_<MAX_SUBSCRIBERS, MAX_PUBLISHERS, INPUT_SIZE, OUTPUT_SIZE>::spinOnce() [with int MAX_SUBSCRIBERS = 50; int MAX_PUBLISHERS = 50; int INPUT_SIZE = 512; int OUTPUT_SIZE = 512]	24	static
+node_handle_stm.h:82:17:int ros::NodeHandleStm_<MAX_SUBSCRIBERS, MAX_PUBLISHERS, INPUT_SIZE, OUTPUT_SIZE>::publish() [with int MAX_SUBSCRIBERS = 50; int MAX_PUBLISHERS = 50; int INPUT_SIZE = 512; int OUTPUT_SIZE = 512]	16	static
+node_handle.h:552:8:void ros::NodeHandle_<Hardware, MAX_SUBSCRIBERS, MAX_PUBLISHERS, INPUT_SIZE, OUTPUT_SIZE>::log(char, const char*) [with Hardware = STM32Hardware; int MAX_SUBSCRIBERS = 50; int MAX_PUBLISHERS = 50; int INPUT_SIZE = 512; int OUTPUT_SIZE = 512]	40	static
+array:55:7:static constexpr _Tp& std::__array_traits<_Tp, _Nm>::_S_ref(const _Tp (&)[_Nm], std::size_t) [with _Tp = ap::Vector3<float>; unsigned int _Nm = 2]	16	static
+stl_vector.h:125:14:std::_Vector_base<IMU*, std::allocator<IMU*> >::_Vector_impl::~_Vector_impl()	16	static
+stl_vector.h:330:7:std::_Vector_base<_Tp, _Alloc>::~_Vector_base() [with _Tp = IMU*; _Alloc = std::allocator<IMU*>]	16	static
+stl_vector.h:273:7:std::_Vector_base<_Tp, _Alloc>::_Tp_alloc_type& std::_Vector_base<_Tp, _Alloc>::_M_get_Tp_allocator() [with _Tp = IMU*; _Alloc = std::allocator<IMU*>]	16	static
+stl_construct.h:203:5:void std::_Destroy(_ForwardIterator, _ForwardIterator, std::allocator<_T2>&) [with _ForwardIterator = IMU**; _Tp = IMU*]	24	static
+stl_vector.h:125:14:std::_Vector_base<float, std::allocator<float> >::_Vector_impl::~_Vector_impl()	16	static
+stl_vector.h:330:7:std::_Vector_base<_Tp, _Alloc>::~_Vector_base() [with _Tp = float; _Alloc = std::allocator<float>]	16	static
+stl_vector.h:273:7:std::_Vector_base<_Tp, _Alloc>::_Tp_alloc_type& std::_Vector_base<_Tp, _Alloc>::_M_get_Tp_allocator() [with _Tp = float; _Alloc = std::allocator<float>]	16	static
+stl_construct.h:203:5:void std::_Destroy(_ForwardIterator, _ForwardIterator, std::allocator<_T2>&) [with _ForwardIterator = float*; _Tp = float]	24	static
+new_allocator.h:80:7:__gnu_cxx::new_allocator<_Tp>::new_allocator() [with _Tp = IMU*]	16	static
+new_allocator.h:89:7:__gnu_cxx::new_allocator<_Tp>::~new_allocator() [with _Tp = IMU*]	16	static
+stl_vector.h:1764:7:static std::vector<_Tp, _Alloc>::size_type std::vector<_Tp, _Alloc>::_S_check_init_len(std::vector<_Tp, _Alloc>::size_type, const allocator_type&) [with _Tp = IMU*; _Alloc = std::allocator<IMU*>]	32	static
+stl_vector.h:300:7:std::_Vector_base<_Tp, _Alloc>::_Vector_base(std::size_t, const allocator_type&) [with _Tp = IMU*; _Alloc = std::allocator<IMU*>]	24	static
+stl_vector.h:1600:7:void std::vector<_Tp, _Alloc>::_M_default_initialize(std::vector<_Tp, _Alloc>::size_type) [with _Tp = IMU*; _Alloc = std::allocator<IMU*>]	24	static
+new_allocator.h:80:7:__gnu_cxx::new_allocator<_Tp>::new_allocator() [with _Tp = float]	16	static
+new_allocator.h:89:7:__gnu_cxx::new_allocator<_Tp>::~new_allocator() [with _Tp = float]	16	static
+stl_vector.h:1764:7:static std::vector<_Tp, _Alloc>::size_type std::vector<_Tp, _Alloc>::_S_check_init_len(std::vector<_Tp, _Alloc>::size_type, const allocator_type&) [with _Tp = float; _Alloc = std::allocator<float>]	32	static
+stl_vector.h:300:7:std::_Vector_base<_Tp, _Alloc>::_Vector_base(std::size_t, const allocator_type&) [with _Tp = float; _Alloc = std::allocator<float>]	24	static
+stl_vector.h:1590:7:void std::vector<_Tp, _Alloc>::_M_fill_initialize(std::vector<_Tp, _Alloc>::size_type, const value_type&) [with _Tp = float; _Alloc = std::allocator<float>]	32	static
+stl_vector.h:125:14:std::_Vector_base<spinal::MotorInfo, std::allocator<spinal::MotorInfo> >::_Vector_impl::~_Vector_impl()	16	static
+stl_vector.h:330:7:std::_Vector_base<_Tp, _Alloc>::~_Vector_base() [with _Tp = spinal::MotorInfo; _Alloc = std::allocator<spinal::MotorInfo>]	16	static
+stl_vector.h:273:7:std::_Vector_base<_Tp, _Alloc>::_Tp_alloc_type& std::_Vector_base<_Tp, _Alloc>::_M_get_Tp_allocator() [with _Tp = spinal::MotorInfo; _Alloc = std::allocator<spinal::MotorInfo>]	16	static
+stl_construct.h:203:5:void std::_Destroy(_ForwardIterator, _ForwardIterator, std::allocator<_T2>&) [with _ForwardIterator = spinal::MotorInfo*; _Tp = spinal::MotorInfo]	24	static
+node_handle.h:50:7:constexpr ros::NodeHandleBase_::NodeHandleBase_()	16	static
+node_handle.h:128:3:ros::NodeHandle_<Hardware, MAX_SUBSCRIBERS, MAX_PUBLISHERS, INPUT_SIZE, OUTPUT_SIZE>::NodeHandle_() [with Hardware = STM32Hardware; int MAX_SUBSCRIBERS = 50; int MAX_PUBLISHERS = 50; int INPUT_SIZE = 512; int OUTPUT_SIZE = 512]	32	static
+node_handle.h:159:8:void ros::NodeHandle_<Hardware, MAX_SUBSCRIBERS, MAX_PUBLISHERS, INPUT_SIZE, OUTPUT_SIZE>::initNode() [with Hardware = STM32Hardware; int MAX_SUBSCRIBERS = 50; int MAX_PUBLISHERS = 50; int INPUT_SIZE = 512; int OUTPUT_SIZE = 512]	16	static
+node_handle.h:212:15:int ros::NodeHandle_<Hardware, MAX_SUBSCRIBERS, MAX_PUBLISHERS, INPUT_SIZE, OUTPUT_SIZE>::spinOnce() [with Hardware = STM32Hardware; int MAX_SUBSCRIBERS = 50; int MAX_PUBLISHERS = 50; int INPUT_SIZE = 512; int OUTPUT_SIZE = 512]	24	static
+node_handle.h:511:15:int ros::NodeHandle_<Hardware, MAX_SUBSCRIBERS, MAX_PUBLISHERS, INPUT_SIZE, OUTPUT_SIZE>::publish(int, const ros::Msg*) [with Hardware = STM32Hardware; int MAX_SUBSCRIBERS = 50; int MAX_PUBLISHERS = 50; int INPUT_SIZE = 512; int OUTPUT_SIZE = 512]	40	static
+stl_vector.h:347:7:void std::_Vector_base<_Tp, _Alloc>::_M_deallocate(std::_Vector_base<_Tp, _Alloc>::pointer, std::size_t) [with _Tp = IMU*; _Alloc = std::allocator<IMU*>]	24	static
+stl_construct.h:127:5:void std::_Destroy(_ForwardIterator, _ForwardIterator) [with _ForwardIterator = IMU**]	16	static
+stl_vector.h:347:7:void std::_Vector_base<_Tp, _Alloc>::_M_deallocate(std::_Vector_base<_Tp, _Alloc>::pointer, std::size_t) [with _Tp = float; _Alloc = std::allocator<float>]	24	static
+stl_construct.h:127:5:void std::_Destroy(_ForwardIterator, _ForwardIterator) [with _ForwardIterator = float*]	16	static
+stl_vector.h:1773:7:static std::vector<_Tp, _Alloc>::size_type std::vector<_Tp, _Alloc>::_S_max_size(const _Tp_alloc_type&) [with _Tp = IMU*; _Alloc = std::allocator<IMU*>]	24	static
+allocator.h:141:7:std::allocator< <template-parameter-1-1> >::allocator(const std::allocator< <template-parameter-1-1> >&) [with _Tp = IMU*]	16	static
+stl_vector.h:133:2:std::_Vector_base<_Tp, _Alloc>::_Vector_impl::_Vector_impl(const _Tp_alloc_type&) [with _Tp = IMU*; _Alloc = std::allocator<IMU*>]	16	static
+stl_vector.h:356:7:void std::_Vector_base<_Tp, _Alloc>::_M_create_storage(std::size_t) [with _Tp = IMU*; _Alloc = std::allocator<IMU*>]	16	static
+stl_uninitialized.h:661:5:_ForwardIterator std::__uninitialized_default_n_a(_ForwardIterator, _Size, std::allocator<_Tp>&) [with _ForwardIterator = IMU**; _Size = unsigned int; _Tp = IMU*]	24	static
+stl_vector.h:1773:7:static std::vector<_Tp, _Alloc>::size_type std::vector<_Tp, _Alloc>::_S_max_size(const _Tp_alloc_type&) [with _Tp = float; _Alloc = std::allocator<float>]	24	static
+allocator.h:141:7:std::allocator< <template-parameter-1-1> >::allocator(const std::allocator< <template-parameter-1-1> >&) [with _Tp = float]	16	static
+stl_vector.h:133:2:std::_Vector_base<_Tp, _Alloc>::_Vector_impl::_Vector_impl(const _Tp_alloc_type&) [with _Tp = float; _Alloc = std::allocator<float>]	16	static
+stl_vector.h:356:7:void std::_Vector_base<_Tp, _Alloc>::_M_create_storage(std::size_t) [with _Tp = float; _Alloc = std::allocator<float>]	16	static
+stl_uninitialized.h:382:5:_ForwardIterator std::__uninitialized_fill_n_a(_ForwardIterator, _Size, const _Tp&, std::allocator<_Tp2>&) [with _ForwardIterator = float*; _Size = unsigned int; _Tp = float; _Tp2 = float]	24	static
+stl_vector.h:340:7:std::_Vector_base<_Tp, _Alloc>::pointer std::_Vector_base<_Tp, _Alloc>::_M_allocate(std::size_t) [with _Tp = IMU*; _Alloc = std::allocator<IMU*>]	16	static
+stl_vector.h:340:7:std::_Vector_base<_Tp, _Alloc>::pointer std::_Vector_base<_Tp, _Alloc>::_M_allocate(std::size_t) [with _Tp = float; _Alloc = std::allocator<float>]	16	static
+allocator.h:153:7:std::allocator< <template-parameter-1-1> >::~allocator() [with _Tp = spinal::MotorInfo]	16	static
+stl_vector.h:347:7:void std::_Vector_base<_Tp, _Alloc>::_M_deallocate(std::_Vector_base<_Tp, _Alloc>::pointer, std::size_t) [with _Tp = spinal::MotorInfo; _Alloc = std::allocator<spinal::MotorInfo>]	24	static
+stl_construct.h:127:5:void std::_Destroy(_ForwardIterator, _ForwardIterator) [with _ForwardIterator = spinal::MotorInfo*]	16	static
+node_handle.h:372:8:void ros::NodeHandle_<Hardware, MAX_SUBSCRIBERS, MAX_PUBLISHERS, INPUT_SIZE, OUTPUT_SIZE>::requestSyncTime() [with Hardware = STM32Hardware; int MAX_SUBSCRIBERS = 50; int MAX_PUBLISHERS = 50; int INPUT_SIZE = 512; int OUTPUT_SIZE = 512]	32	static
+node_handle.h:480:8:void ros::NodeHandle_<Hardware, MAX_SUBSCRIBERS, MAX_PUBLISHERS, INPUT_SIZE, OUTPUT_SIZE>::negotiateTopics() [with Hardware = STM32Hardware; int MAX_SUBSCRIBERS = 50; int MAX_PUBLISHERS = 50; int INPUT_SIZE = 512; int OUTPUT_SIZE = 512]	56	static
+node_handle.h:379:8:void ros::NodeHandle_<Hardware, MAX_SUBSCRIBERS, MAX_PUBLISHERS, INPUT_SIZE, OUTPUT_SIZE>::syncTime(uint8_t*) [with Hardware = STM32Hardware; int MAX_SUBSCRIBERS = 50; int MAX_PUBLISHERS = 50; int INPUT_SIZE = 512; int OUTPUT_SIZE = 512]	32	static
+node_handle.h:573:8:void ros::NodeHandle_<Hardware, MAX_SUBSCRIBERS, MAX_PUBLISHERS, INPUT_SIZE, OUTPUT_SIZE>::logerror(const char*) [with Hardware = STM32Hardware; int MAX_SUBSCRIBERS = 50; int MAX_PUBLISHERS = 50; int INPUT_SIZE = 512; int OUTPUT_SIZE = 512]	16	static
+alloc_traits.h:469:7:static void std::allocator_traits<std::allocator<_CharT> >::deallocate(std::allocator_traits<std::allocator<_CharT> >::allocator_type&, std::allocator_traits<std::allocator<_CharT> >::pointer, std::allocator_traits<std::allocator<_CharT> >::size_type) [with _Tp = IMU*]	24	static
+stl_construct.h:117:9:static void std::_Destroy_aux<true>::__destroy(_ForwardIterator, _ForwardIterator) [with _ForwardIterator = IMU**]	16	static
+alloc_traits.h:469:7:static void std::allocator_traits<std::allocator<_CharT> >::deallocate(std::allocator_traits<std::allocator<_CharT> >::allocator_type&, std::allocator_traits<std::allocator<_CharT> >::pointer, std::allocator_traits<std::allocator<_CharT> >::size_type) [with _Tp = float]	24	static
+stl_construct.h:117:9:static void std::_Destroy_aux<true>::__destroy(_ForwardIterator, _ForwardIterator) [with _ForwardIterator = float*]	16	static
+alloc_traits.h:505:7:static std::allocator_traits<std::allocator<_CharT> >::size_type std::allocator_traits<std::allocator<_CharT> >::max_size(const allocator_type&) [with _Tp = IMU*]	16	static
+stl_algobase.h:198:5:constexpr const _Tp& std::min(const _Tp&, const _Tp&) [with _Tp = unsigned int]	16	static
+new_allocator.h:83:7:__gnu_cxx::new_allocator<_Tp>::new_allocator(const __gnu_cxx::new_allocator<_Tp>&) [with _Tp = IMU*]	16	static
+stl_vector.h:94:2:std::_Vector_base<_Tp, _Alloc>::_Vector_impl_data::_Vector_impl_data() [with _Tp = IMU*; _Alloc = std::allocator<IMU*>]	16	static
+stl_uninitialized.h:592:5:_ForwardIterator std::__uninitialized_default_n(_ForwardIterator, _Size) [with _ForwardIterator = IMU**; _Size = unsigned int]	24	static
+alloc_traits.h:505:7:static std::allocator_traits<std::allocator<_CharT> >::size_type std::allocator_traits<std::allocator<_CharT> >::max_size(const allocator_type&) [with _Tp = float]	16	static
+new_allocator.h:83:7:__gnu_cxx::new_allocator<_Tp>::new_allocator(const __gnu_cxx::new_allocator<_Tp>&) [with _Tp = float]	16	static
+stl_vector.h:94:2:std::_Vector_base<_Tp, _Alloc>::_Vector_impl_data::_Vector_impl_data() [with _Tp = float; _Alloc = std::allocator<float>]	16	static
+stl_uninitialized.h:256:5:_ForwardIterator std::uninitialized_fill_n(_ForwardIterator, _Size, const _Tp&) [with _ForwardIterator = float*; _Size = unsigned int; _Tp = float]	32	static
+alloc_traits.h:443:7:static _Tp* std::allocator_traits<std::allocator<_CharT> >::allocate(std::allocator_traits<std::allocator<_CharT> >::allocator_type&, std::allocator_traits<std::allocator<_CharT> >::size_type) [with _Tp = IMU*]	16	static
+alloc_traits.h:443:7:static _Tp* std::allocator_traits<std::allocator<_CharT> >::allocate(std::allocator_traits<std::allocator<_CharT> >::allocator_type&, std::allocator_traits<std::allocator<_CharT> >::size_type) [with _Tp = float]	16	static
+new_allocator.h:89:7:__gnu_cxx::new_allocator<_Tp>::~new_allocator() [with _Tp = spinal::MotorInfo]	16	static
+alloc_traits.h:469:7:static void std::allocator_traits<std::allocator<_CharT> >::deallocate(std::allocator_traits<std::allocator<_CharT> >::allocator_type&, std::allocator_traits<std::allocator<_CharT> >::pointer, std::allocator_traits<std::allocator<_CharT> >::size_type) [with _Tp = spinal::MotorInfo]	24	static
+stl_construct.h:117:9:static void std::_Destroy_aux<true>::__destroy(_ForwardIterator, _ForwardIterator) [with _ForwardIterator = spinal::MotorInfo*]	16	static
+node_handle.h:402:8:void ros::NodeHandle_<Hardware, MAX_SUBSCRIBERS, MAX_PUBLISHERS, INPUT_SIZE, OUTPUT_SIZE>::setNow(ros::Time&) [with Hardware = STM32Hardware; int MAX_SUBSCRIBERS = 50; int MAX_PUBLISHERS = 50; int INPUT_SIZE = 512; int OUTPUT_SIZE = 512]	24	static
+new_allocator.h:119:7:void __gnu_cxx::new_allocator<_Tp>::deallocate(__gnu_cxx::new_allocator<_Tp>::pointer, __gnu_cxx::new_allocator<_Tp>::size_type) [with _Tp = IMU*]	24	static
+new_allocator.h:119:7:void __gnu_cxx::new_allocator<_Tp>::deallocate(__gnu_cxx::new_allocator<_Tp>::pointer, __gnu_cxx::new_allocator<_Tp>::size_type) [with _Tp = float]	24	static
+new_allocator.h:132:7:__gnu_cxx::new_allocator<_Tp>::size_type __gnu_cxx::new_allocator<_Tp>::max_size() const [with _Tp = IMU*]	16	static
+stl_uninitialized.h:561:9:static _ForwardIterator std::__uninitialized_default_n_1<true>::__uninit_default_n(_ForwardIterator, _Size) [with _ForwardIterator = IMU**; _Size = unsigned int]	24	static
+new_allocator.h:132:7:__gnu_cxx::new_allocator<_Tp>::size_type __gnu_cxx::new_allocator<_Tp>::max_size() const [with _Tp = float]	16	static
+stl_uninitialized.h:238:9:static _ForwardIterator std::__uninitialized_fill_n<true>::__uninit_fill_n(_ForwardIterator, _Size, const _Tp&) [with _ForwardIterator = float*; _Size = unsigned int; _Tp = float]	24	static
+new_allocator.h:102:7:_Tp* __gnu_cxx::new_allocator<_Tp>::allocate(__gnu_cxx::new_allocator<_Tp>::size_type, const void*) [with _Tp = IMU*]	24	static
+new_allocator.h:102:7:_Tp* __gnu_cxx::new_allocator<_Tp>::allocate(__gnu_cxx::new_allocator<_Tp>::size_type, const void*) [with _Tp = float]	24	static
+new_allocator.h:119:7:void __gnu_cxx::new_allocator<_Tp>::deallocate(__gnu_cxx::new_allocator<_Tp>::pointer, __gnu_cxx::new_allocator<_Tp>::size_type) [with _Tp = spinal::MotorInfo]	24	static
+stl_algobase.h:802:5:_OI std::fill_n(_OI, _Size, const _Tp&) [with _OI = IMU**; _Size = unsigned int; _Tp = IMU*]	24	static
+stl_algobase.h:802:5:_OI std::fill_n(_OI, _Size, const _Tp&) [with _OI = float*; _Size = unsigned int; _Tp = float]	24	static
+stl_algobase.h:280:5:_Iterator std::__niter_base(_Iterator) [with _Iterator = IMU**]	16	static
+stl_algobase.h:280:5:_Iterator std::__niter_base(_Iterator) [with _Iterator = float*]	16	static
+stl_algobase.h:767:5:typename __gnu_cxx::__enable_if<std::__is_scalar<_Tp>::__value, _OutputIterator>::__type std::__fill_n_a(_OutputIterator, _Size, const _Tp&) [with _OutputIterator = IMU**; _Size = unsigned int; _Tp = IMU*]	32	static
+stl_algobase.h:295:5:_Iterator std::__niter_wrap(const _Iterator&, _Iterator) [with _Iterator = IMU**]	16	static
+stl_algobase.h:767:5:typename __gnu_cxx::__enable_if<std::__is_scalar<_Tp>::__value, _OutputIterator>::__type std::__fill_n_a(_OutputIterator, _Size, const _Tp&) [with _OutputIterator = float*; _Size = unsigned int; _Tp = float]	32	static
+stl_algobase.h:295:5:_Iterator std::__niter_wrap(const _Iterator&, _Iterator) [with _Iterator = float*]	16	static
+gps_ublox.h:68:7:GPS::~GPS()	16	static
+gps_ublox.h:68:7:virtual GPS::~GPS()	16	static
+baro_ms5611.h:21:7:Baro::~Baro()	16	static
+node_handle_stm.h:50:9:ros::NodeHandleStm_<50, 50, 512, 512>::~NodeHandleStm_()	16	static
+main.cpp:1328:1:void __static_initialization_and_destruction_0(int, int)	16	static
+subscriber.h:74:16:void ros::Subscriber<MsgT, ObjT>::callback(unsigned char*) [with MsgT = spinal::FlightConfigCmd; ObjT = FlightControl]	16	static
+subscriber.h:88:15:int ros::Subscriber<MsgT, ObjT>::getEndpointType() [with MsgT = spinal::FlightConfigCmd; ObjT = FlightControl]	16	static
+subscriber.h:80:24:const char* ros::Subscriber<MsgT, ObjT>::getMsgType() [with MsgT = spinal::FlightConfigCmd; ObjT = FlightControl]	16	static
+subscriber.h:84:24:const char* ros::Subscriber<MsgT, ObjT>::getMsgMD5() [with MsgT = spinal::FlightConfigCmd; ObjT = FlightControl]	16	static
+subscriber.h:74:16:void ros::Subscriber<MsgT, ObjT>::callback(unsigned char*) [with MsgT = spinal::UavInfo; ObjT = FlightControl]	16	static
+subscriber.h:88:15:int ros::Subscriber<MsgT, ObjT>::getEndpointType() [with MsgT = spinal::UavInfo; ObjT = FlightControl]	16	static
+subscriber.h:80:24:const char* ros::Subscriber<MsgT, ObjT>::getMsgType() [with MsgT = spinal::UavInfo; ObjT = FlightControl]	16	static
+subscriber.h:84:24:const char* ros::Subscriber<MsgT, ObjT>::getMsgMD5() [with MsgT = spinal::UavInfo; ObjT = FlightControl]	16	static
+service_server.h:61:16:void ros::ServiceServer<MReq, MRes, ObjT>::callback(unsigned char*) [with MReq = spinal::MagDeclinationRequest; MRes = spinal::MagDeclinationResponse; ObjT = AttitudeEstimate]	16	static
+service_server.h:75:15:int ros::ServiceServer<MReq, MRes, ObjT>::getEndpointType() [with MReq = spinal::MagDeclinationRequest; MRes = spinal::MagDeclinationResponse; ObjT = AttitudeEstimate]	16	static
+service_server.h:67:24:const char* ros::ServiceServer<MReq, MRes, ObjT>::getMsgType() [with MReq = spinal::MagDeclinationRequest; MRes = spinal::MagDeclinationResponse; ObjT = AttitudeEstimate]	16	static
+service_server.h:71:24:const char* ros::ServiceServer<MReq, MRes, ObjT>::getMsgMD5() [with MReq = spinal::MagDeclinationRequest; MRes = spinal::MagDeclinationResponse; ObjT = AttitudeEstimate]	16	static
+subscriber.h:74:16:void ros::Subscriber<MsgT, ObjT>::callback(unsigned char*) [with MsgT = spinal::DesireCoord; ObjT = AttitudeEstimate]	16	static
+subscriber.h:88:15:int ros::Subscriber<MsgT, ObjT>::getEndpointType() [with MsgT = spinal::DesireCoord; ObjT = AttitudeEstimate]	16	static
+subscriber.h:80:24:const char* ros::Subscriber<MsgT, ObjT>::getMsgType() [with MsgT = spinal::DesireCoord; ObjT = AttitudeEstimate]	16	static
+subscriber.h:84:24:const char* ros::Subscriber<MsgT, ObjT>::getMsgMD5() [with MsgT = spinal::DesireCoord; ObjT = AttitudeEstimate]	16	static
+subscriber.h:74:16:void ros::Subscriber<MsgT, ObjT>::callback(unsigned char*) [with MsgT = std_msgs::Float32; ObjT = BatteryStatus]	16	static
+subscriber.h:88:15:int ros::Subscriber<MsgT, ObjT>::getEndpointType() [with MsgT = std_msgs::Float32; ObjT = BatteryStatus]	16	static
+subscriber.h:80:24:const char* ros::Subscriber<MsgT, ObjT>::getMsgType() [with MsgT = std_msgs::Float32; ObjT = BatteryStatus]	16	static
+subscriber.h:84:24:const char* ros::Subscriber<MsgT, ObjT>::getMsgMD5() [with MsgT = std_msgs::Float32; ObjT = BatteryStatus]	16	static
+main.cpp:1328:1:cpp)	8	static
+main.cpp:1328:1:cpp)	8	static

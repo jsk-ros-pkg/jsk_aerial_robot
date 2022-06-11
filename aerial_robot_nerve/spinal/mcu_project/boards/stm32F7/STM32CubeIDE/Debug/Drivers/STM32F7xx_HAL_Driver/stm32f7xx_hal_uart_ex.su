@@ -1,0 +1,5 @@
+stm32f7xx_hal_uart_ex.c:150:19:HAL_RS485Ex_Init	32	static
+stm32f7xx_hal_uart_ex.c:347:19:HAL_MultiProcessorEx_AddressLength_Set	16	static
+stm32f7xx_hal_uart_ex.c:494:19:HAL_UARTEx_ReceiveToIdle	40	static
+stm32f7xx_hal_uart_ex.c:619:19:HAL_UARTEx_ReceiveToIdle_IT	56	static,ignoring_inline_asm
+stm32f7xx_hal_uart_ex.c:681:19:HAL_UARTEx_ReceiveToIdle_DMA	56	static,ignoring_inline_asm

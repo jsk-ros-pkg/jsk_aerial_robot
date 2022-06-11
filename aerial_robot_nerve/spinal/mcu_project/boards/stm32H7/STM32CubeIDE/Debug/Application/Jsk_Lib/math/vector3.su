@@ -1,0 +1,51 @@
+AP_Math.h:30:20:bool ap::is_equal(float, float)	0	static
+AP_Math.h:111:21:float ap::sq(float)	0	static
+AP_Math.h:121:21:float ap::pythagorous3(float, float, float)	16	static
+vector3.cpp:36:6:void ap::Vector3<T>::rotate(Rotation) [with T = float]	0	static
+vector3.cpp:246:6:void ap::Vector3<T>::rotate_inverse(Rotation) [with T = float]	96	static
+vector3.cpp:281:7:float ap::Vector3<T>::length() const [with T = float]	0	static
+vector3.cpp:267:12:ap::Vector3<T> ap::Vector3<T>::operator%(const ap::Vector3<T>&) const [with T = float]	48	static
+vector3.cpp:275:3:T ap::Vector3<T>::operator*(const ap::Vector3<T>&) const [with T = float]	0	static
+vector3.cpp:372:12:ap::Vector3<T> ap::Vector3<T>::operator*(const ap::Matrix3<T>&) const [with T = float]	104	static
+vector3.cpp:381:12:ap::Matrix3<T> ap::Vector3<T>::mul_rowcol(const ap::Vector3<T>&) const [with T = float]	8	static
+vector3.cpp:287:13:ap::Vector3<T>& ap::Vector3<T>::operator*=(T) [with T = float]	0	static
+vector3.cpp:294:13:ap::Vector3<T>& ap::Vector3<T>::operator/=(T) [with T = float]	0	static
+vector3.cpp:301:13:ap::Vector3<T>& ap::Vector3<T>::operator-=(const ap::Vector3<T>&) [with T = float]	0	static
+vector3.cpp:308:13:ap::Vector3<T>& ap::Vector3<T>::operator+=(const ap::Vector3<T>&) [with T = float]	0	static
+vector3.cpp:315:12:ap::Vector3<T> ap::Vector3<T>::operator/(T) const [with T = float]	48	static
+vector3.cpp:321:12:ap::Vector3<T> ap::Vector3<T>::operator*(T) const [with T = float]	48	static
+vector3.cpp:333:12:ap::Vector3<T> ap::Vector3<T>::operator+(const ap::Vector3<T>&) const [with T = float]	48	static
+vector3.cpp:327:12:ap::Vector3<T> ap::Vector3<T>::operator-(const ap::Vector3<T>&) const [with T = float]	48	static
+vector3.cpp:339:12:ap::Vector3<T> ap::Vector3<T>::operator-() const [with T = float]	48	static
+vector3.cpp:345:6:bool ap::Vector3<T>::operator==(const ap::Vector3<T>&) const [with T = float]	8	static
+vector3.cpp:351:6:bool ap::Vector3<T>::operator!=(const ap::Vector3<T>&) const [with T = float]	8	static
+vector3.cpp:357:7:float ap::Vector3<T>::angle(const ap::Vector3<T>&) const [with T = float]	24	static
+vector3.cpp:36:6:void ap::Vector3<T>::rotate(Rotation) [with T = double]	16	static
+vector3.cpp:246:6:void ap::Vector3<T>::rotate_inverse(Rotation) [with T = double]	176	static
+vector3.cpp:281:7:float ap::Vector3<T>::length() const [with T = double]	0	static
+vector3.cpp:267:12:ap::Vector3<T> ap::Vector3<T>::operator%(const ap::Vector3<T>&) const [with T = double]	96	static
+vector3.cpp:275:3:T ap::Vector3<T>::operator*(const ap::Vector3<T>&) const [with T = double]	0	static
+vector3.cpp:372:12:ap::Vector3<T> ap::Vector3<T>::operator*(const ap::Matrix3<T>&) const [with T = double]	176	static
+vector3.cpp:381:12:ap::Matrix3<T> ap::Vector3<T>::mul_rowcol(const ap::Vector3<T>&) const [with T = double]	24	static
+vector3.cpp:287:13:ap::Vector3<T>& ap::Vector3<T>::operator*=(T) [with T = double]	0	static
+vector3.cpp:294:13:ap::Vector3<T>& ap::Vector3<T>::operator/=(T) [with T = double]	0	static
+vector3.cpp:301:13:ap::Vector3<T>& ap::Vector3<T>::operator-=(const ap::Vector3<T>&) [with T = double]	0	static
+vector3.cpp:308:13:ap::Vector3<T>& ap::Vector3<T>::operator+=(const ap::Vector3<T>&) [with T = double]	0	static
+vector3.cpp:315:12:ap::Vector3<T> ap::Vector3<T>::operator/(T) const [with T = double]	88	static
+vector3.cpp:321:12:ap::Vector3<T> ap::Vector3<T>::operator*(T) const [with T = double]	88	static
+vector3.cpp:333:12:ap::Vector3<T> ap::Vector3<T>::operator+(const ap::Vector3<T>&) const [with T = double]	88	static
+vector3.cpp:327:12:ap::Vector3<T> ap::Vector3<T>::operator-(const ap::Vector3<T>&) const [with T = double]	88	static
+vector3.cpp:339:12:ap::Vector3<T> ap::Vector3<T>::operator-() const [with T = double]	88	static
+vector3.cpp:345:6:bool ap::Vector3<T>::operator==(const ap::Vector3<T>&) const [with T = double]	8	static
+vector3.cpp:351:6:bool ap::Vector3<T>::operator!=(const ap::Vector3<T>&) const [with T = double]	8	static
+vector3.cpp:357:7:float ap::Vector3<T>::angle(const ap::Vector3<T>&) const [with T = double]	24	static
+vector3.h:80:5:ap::Vector3<T>::Vector3(T, T, T) [with T = float]	0	static
+matrix3.h:65:5:ap::Matrix3<T>::Matrix3(T, T, T, T, T, T, T, T, T) [with T = float]	32	static
+matrix3.h:157:33:ap::Vector3<T> ap::Matrix3<T>::colx() const [with T = float]	48	static
+matrix3.h:163:23:ap::Vector3<T> ap::Matrix3<T>::coly() const [with T = float]	48	static
+matrix3.h:169:23:ap::Vector3<T> ap::Matrix3<T>::colz() const [with T = float]	48	static
+vector3.h:80:5:ap::Vector3<T>::Vector3(T, T, T) [with T = double]	0	static
+matrix3.h:65:5:ap::Matrix3<T>::Matrix3(T, T, T, T, T, T, T, T, T) [with T = double]	48	static
+matrix3.h:157:33:ap::Vector3<T> ap::Matrix3<T>::colx() const [with T = double]	88	static
+matrix3.h:163:23:ap::Vector3<T> ap::Matrix3<T>::coly() const [with T = double]	88	static
+matrix3.h:169:23:ap::Vector3<T> ap::Matrix3<T>::colz() const [with T = double]	88	static

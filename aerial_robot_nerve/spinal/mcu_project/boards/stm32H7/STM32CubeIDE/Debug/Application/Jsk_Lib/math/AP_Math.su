@@ -1,0 +1,4 @@
+cmath:611:3:constexpr bool std::isnan(float)	16	static
+AP_Math.cpp:10:7:float ap::safe_asin(float)	16	static
+AP_Math.cpp:29:7:float ap::safe_sqrt(float)	24	static
+AP_Math.cpp:39:7:float ap::inv_sqrt(float)	32	static

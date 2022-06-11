@@ -1,0 +1,1 @@
+edc.cpp:55:10:uint16_t ap::crc16_ccitt(const uint8_t*, uint32_t, uint16_t)	32	static
