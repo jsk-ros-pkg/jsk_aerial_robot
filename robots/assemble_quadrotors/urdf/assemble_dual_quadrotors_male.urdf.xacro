@@ -12,7 +12,7 @@
 
   <xacro:property name="pos_bound" value="${0.22628}" />
   <xacro:property name="center_dis" value="${0.393}" />
-  <xacro:property name="rotor_z" value="${0.025}" />
+  <xacro:property name="rotor_z" value="${0.05}" />
   <xacro:property name="opt_pich_1" value="${0.523525}" />
   <xacro:property name="opt_yaw_1" value="${0.73108}" />
   <xacro:property name="opt_pich_2" value="${0.523535}" />
