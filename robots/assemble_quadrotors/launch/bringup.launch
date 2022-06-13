@@ -15,8 +15,8 @@
   <arg name="spawn_z" default="0.0"/>
   <arg name="spawn_yaw" default="0.0"/>
   <arg name="robot_id" default="" />
-  <arg name="fully_actuated" default="true" />
   <arg name="airframe" default="whole" />
+  <arg name="fully_actuated" default="true" />
   <arg name="female" default="false" />
   <arg name="robot_ns" value="assemble_quadrotors$(arg robot_id)" />
   <arg name="config_dir" default="$(find assemble_quadrotors)/config/" />
@@ -43,9 +43,9 @@
     <rosparam file="$(arg config_dir)/Battery.yaml" command="load" />
 
     ###########  Control  ###########
-    <rosparam file="$(arg config_dir)/FlightControlFullyActuated.yaml" command="load"  if="$(arg fully_actuated)"/>
-    <rosparam file="$(arg config_dir)/FlightControlUnderActuated.yaml" command="load"  unless="$(arg fully_actuated)"/>
-
+    <rosparam file="$(arg config_dir)/FlightControlFullyActuated.yaml" command="load"  if="$(eval airframe == 'whole')"/>
+    <rosparam file="$(arg config_dir)/FlightControlUnderActuated.yaml" command="load"  if="$(eval airframe == 'test')"/>
+    <rosparam file="$(arg config_dir)/FlightControlUnderActuated_tilt.yaml" command="load"  if="$(eval airframe == 'male' or airframe == 'female' or airframe == 'neutral')"/>
     ###########  Sensor Fusion  ###########
     <rosparam file="$(arg config_dir)/StateEstimation.yaml" command="load" />
     <rosparam file="$(arg config_dir)/Simulation.yaml" command="load" if="$(eval arg('simulation') and not arg('real_machine'))"/>
@@ -70,6 +70,7 @@
     <arg name="robot_model" value="$(find assemble_quadrotors)/urdf/assemble_dual_quadrotors_male.$(arg description_mode).xacro" if="$(eval airframe == 'male')"/>
     <arg name="robot_model" value="$(find assemble_quadrotors)/urdf/assemble_dual_quadrotors_female.$(arg description_mode).xacro" if="$(eval airframe == 'female')"/>
     <arg name="robot_model" value="$(find assemble_quadrotors)/urdf/assemble_dual_quadrotor_test.$(arg description_mode).xacro" if="$(eval airframe == 'test')"/>
+    <arg name="robot_model" value="$(find assemble_quadrotors)/urdf/assemble_dual_quadrotors_neutral.$(arg description_mode).xacro" if="$(eval airframe == 'neutral')"/>
     <arg name="robot_model" value="$(arg direct_model_name)" if="$(arg direct_model)"/>
     <arg name="robot_ns" value="$(arg robot_ns)"/>
     <arg name="rviz_config" value="$(find assemble_quadrotors)/config/rviz_config" />

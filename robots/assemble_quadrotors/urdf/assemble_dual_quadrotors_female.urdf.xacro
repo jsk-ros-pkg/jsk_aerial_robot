@@ -66,7 +66,7 @@
       <!-- visual & collisiont -->
       <inertial>
         <origin xyz="0 0 0" rpy="0 0 0"/>
-        <mass value="0.0091"/>
+        <mass value="0.0052"/>
         <inertia
             ixx="0.00000807" ixy="0.0" ixz="0.0"
             iyy="0.00000807" iyz="0.0"
@@ -76,10 +76,10 @@
         <origin rpy="0 0 0" xyz="0 0 0"/>
         <geometry>
           <xacro:if value="${direction == 1}">
-            <mesh filename="package://assemble_quadrotors/urdf/mesh/6_inchi_propeller.dae" />
+            <mesh filename="package://assemble_quadrotors/urdf/mesh/5_inchi_propeller.STL" />
           </xacro:if>
           <xacro:unless value="${direction == 1}">
-	    <mesh filename="package://assemble_quadrotors/urdf/mesh/6_inchi_propeller.dae" />
+	    <mesh filename="package://assemble_quadrotors/urdf/mesh/5_inchi_propeller.STL" />
           </xacro:unless>
         </geometry>
       </visual>
@@ -122,21 +122,17 @@
   <!-- main_body -->
   <link name="main_body">
     <inertial>
-      <mass value = "0.6757" />
-      <origin xyz="0 0 0" rpy="0 0 0"/>
-      <!-- <inertia -->
-      <!--     ixx="0.002125" ixy="0.00001389" ixz="0.00060374" -->
-      <!--     iyy="0.005992" iyz="-0.00000414" -->
-      <!--     izz="0.007684"/> -->
+      <mass value = "0.75397839" />
+      <origin xyz="0 0 0 " rpy="0 0 0"/>
       <inertia
-          ixx="0.00210931" ixy="-0.00000293" ixz="0.00048177"
-          iyy="0.00506536" iyz="-0.00000639"
-          izz="0.00677356"/>
+          ixx="0.00558137" ixy="-0.00014117" ixz="-0.00047401"
+          iyy="0.00776130" iyz="0.00003630"
+          izz="0.01172792"/>
     </inertial>
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://assemble_quadrotors/urdf/mesh/assemble_dual_quadrotors_female_body.dae" />
+        <mesh filename="package://assemble_quadrotors/urdf/mesh/Assemble_dual_quadrotors_v3_female.STL" />
       </geometry>
     </visual>
     <collision>
@@ -161,10 +157,10 @@
   </xacro:extra_module>
 
   <!-- propellers -->
-  <xacro:propeller_module id = "1" x = "${-pos_bound/2}" y = "${-pos_bound/2}" z = "${rotor_z}" pich = "${opt_pich_1}" yaw = "${opt_yaw_1}" direction = "1" />
-  <xacro:propeller_module id = "2" x = "${pos_bound/2}" y = "${-pos_bound/2}" z = "${rotor_z}" pich = "${opt_pich_2}" yaw = "${opt_yaw_2}"  direction = "-1" />
-  <xacro:propeller_module id = "3" x = "${pos_bound/2}" y = "${pos_bound/2}" z = "${rotor_z}"  pich = "${opt_pich_3}" yaw = "${opt_yaw_3}" direction = "1" />
-  <xacro:propeller_module id = "4" x = "${-pos_bound/2}" y = "${pos_bound/2}" z = "${rotor_z}"  pich = "${opt_pich_4}" yaw = "${opt_yaw_4}"  direction = "-1" />
+  <xacro:propeller_module id = "1" x = "-0.1044" y = "-0.12014" z = "0.05402" pich = "${opt_pich_4}" yaw = "${opt_yaw_4}" direction = "1" />
+  <xacro:propeller_module id = "2" x = "0.10705" y = "-0.10827" z = "0.05946" pich = "${opt_pich_3}" yaw = "${opt_yaw_3}"  direction = "-1" />
+  <xacro:propeller_module id = "3" x = "0.10474" y = "0.10579" z = "0.05404"  pich = "${opt_pich_2}" yaw = "${opt_yaw_2}" direction = "1" />
+  <xacro:propeller_module id = "4" x = "-0.10757" y = "0.12281" z = "0.05404"  pich = "${opt_pich_1}" yaw = "${opt_yaw_1}"  direction = "-1" />
 
 
 </robot>

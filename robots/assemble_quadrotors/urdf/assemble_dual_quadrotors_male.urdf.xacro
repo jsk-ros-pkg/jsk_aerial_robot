@@ -76,10 +76,10 @@
         <origin rpy="0 0 0" xyz="0 0 0"/>
         <geometry>
           <xacro:if value="${direction == 1}">
-            <mesh filename="package://assemble_quadrotors/urdf/mesh/6_inchi_propeller.dae" />
+            <mesh filename="package://assemble_quadrotors/urdf/mesh/5_inchi_propeller.STL" />
           </xacro:if>
           <xacro:unless value="${direction == 1}">
-	    <mesh filename="package://assemble_quadrotors/urdf/mesh/6_inchi_propeller.dae" />
+	    <mesh filename="package://assemble_quadrotors/urdf/mesh/5_inchi_propeller.STL" />
           </xacro:unless>
         </geometry>
       </visual>
@@ -122,17 +122,18 @@
   <!-- main_body -->
   <link name="main_body">
     <inertial>
-      <mass value = "0.6583" />
+      <!-- <mass value = "0.79154967" /> -->
+      <mass value = "0.79154967" />
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <inertia
-          ixx="0.002127" ixy="-0.00001259" ixz="-0.0005813"
-          iyy="0.005264" iyz="0.00000375"
-          izz="0.006936"/>
+          ixx="0.00565753" ixy="-0.00012094" ixz="0.00049859"
+          iyy="0.00763738" iyz="0.00003798"
+          izz="0.01152518"/>
     </inertial>
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://assemble_quadrotors/urdf/mesh/assemble_dual_quadrotors_male_body.dae" />
+        <mesh filename="package://assemble_quadrotors/urdf/mesh/Assemble_dual_quadrotors_v3_male.STL"/>
       </geometry>
     </visual>
     <collision>
