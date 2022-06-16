@@ -237,9 +237,11 @@ int main(void)
 
   FlashMemory::read(); //IMU calib data (including IMU in neurons)
 
+#if NERVE_COMM        
   Spine::init(&hfdcan1, &nh_, &estimator_, LED1_GPIO_Port, LED1_Pin);
   Spine::useRTOS(&canMsgMailHandle); // use RTOS for CAN in spianl
-
+#endif
+  
   /* USER CODE END 2 */
 
   /* Create the mutex(es) */
@@ -1050,7 +1052,9 @@ void coreTaskFunc(void const * argument)
     {
       osSemaphoreWait(coreTaskSemHandle, osWaitForever);
 
+#if NERVE_COMM
       Spine::send();
+#endif
 
       imu_.update();
       baro_.update();
@@ -1058,7 +1062,9 @@ void coreTaskFunc(void const * argument)
       estimator_.update();
       controller_.update();
 
+#if NERVE_COMM      
       Spine::update();
+#endif
 
       // Workaround to handle the BUSY->TIMEOUT Error problem of ETH handler in STM32H7
       // We observe this is occasionally occur, but the ETH DMA is valid.
