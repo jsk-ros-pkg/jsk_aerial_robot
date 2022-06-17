@@ -37,7 +37,7 @@
     <rosparam file="$(arg config_dir)/RobotModelUnderActuated.yaml" command="load"  unless="$(arg fully_actuated)"/>
 
     ###########  Motor Config  ###########
-    <rosparam file="$(arg config_dir)/MotorInfo_5inch.yaml" command="load" />
+    <rosparam file="$(arg config_dir)/MotorInfo_F35.yaml" command="load" />
 
     ###########  Battery Config  ###########
     <rosparam file="$(arg config_dir)/Battery.yaml" command="load" />
