@@ -198,6 +198,8 @@ namespace aerial_robot_control
 
     controlCore();
     sendCmd();
+
+    return true;
   }
 
   void PoseLinearController::controlCore()

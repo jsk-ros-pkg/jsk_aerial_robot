@@ -25,5 +25,7 @@
   <run_depend>roscpp</run_depend>
   <run_depend>rospy</run_depend>
   <run_depend>rostest</run_depend>
+  <run_depend>ublox_gps</run_depend>
+  <run_depend>ntrip_ros</run_depend>
 
 </package>

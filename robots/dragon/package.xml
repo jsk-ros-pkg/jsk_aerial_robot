@@ -16,17 +16,19 @@
   <build_depend>aerial_robot_msgs</build_depend>
   <build_depend>roscpp</build_depend>
   <build_depend>hydrus</build_depend>
-  <build_depend>cmake_modules</build_depend>
   <build_depend>pluginlib</build_depend>
 
   <run_depend>aerial_robot_control</run_depend>
   <run_depend>aerial_robot_model</run_depend>
   <run_depend>aerial_robot_msgs</run_depend>
   <run_depend>aerial_robot_estimation</run_depend>
+  <run_depend>aerial_robot_simulation</run_depend>
+  <run_depend>aerial_robot_base</run_depend>
   <run_depend>roscpp</run_depend>
   <run_depend>hydrus</run_depend>
   <run_depend>pluginlib</run_depend>
-  <run_depend>rostest</run_depend>
+
+  <test_depend>rostest</test_depend>
 
   <export>
     <aerial_robot_model plugin="${prefix}/plugins/robot_model_plugins.xml"/>

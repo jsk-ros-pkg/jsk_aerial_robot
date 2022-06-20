@@ -1,5 +1,7 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.0.2)
 project(aerial_robot_model)
+
+add_compile_options(-std=c++14)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -12,7 +14,6 @@ find_package(catkin REQUIRED COMPONENTS
   kdl_parser
   message_generation
   pluginlib
-  roscpp
   sensor_msgs
   spinal
   std_msgs
@@ -32,9 +33,6 @@ find_package(urdfdom_headers REQUIRED)
 find_package(Eigen3 REQUIRED)
 
 include_directories(${orocos_kdl_INCLUDE_DIRS} ${urdfdom_headers_INCLUDE_DIRS})
-link_directories(${orocos_kdl_LIBRARY_DIRS})
-
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
 
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE RelWithDebInfo)
@@ -55,7 +53,8 @@ generate_messages(
 catkin_package(
   INCLUDE_DIRS include test
   LIBRARIES transformable_aerial_robot_model transformable_aerial_robot_model_ros numerical_jacobians
-  CATKIN_DEPENDS eigen_conversions interactive_markers spinal tf tf_conversions
+  CATKIN_DEPENDS eigen_conversions geometry_msgs interactive_markers kalman_filter kdl_parser message_runtime pluginlib sensor_msgs spinal std_msgs tf tf_conversions tf2_eigen tf2_geometry_msgs tf2_kdl tf2_ros tf_conversions urdf visualization_msgs
+  DEPENDS orocos_kdl urdfdom_headers
 )
 
 ###########
@@ -102,5 +101,18 @@ add_library(numerical_jacobians test/aerial_robot_model/numerical_jacobians.cpp)
 target_link_libraries(numerical_jacobians transformable_aerial_robot_model ${catkin_LIBRARIES})
 
 
-install(DIRECTORY launch
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
+install(DIRECTORY include/${PROJECT_NAME}/ test/${PROJECT_NAME}/
+  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION})
+
+install(TARGETS transformable_aerial_robot_model transformable_aerial_robot_model_ros servo_bridge numerical_jacobians
+  DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+)
+
+install(TARGETS rotor_tf_publisher interactive_marker_tf_broadcaster servo_bridge_node
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+install(DIRECTORY launch script
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+  USE_SOURCE_PERMISSIONS
+)

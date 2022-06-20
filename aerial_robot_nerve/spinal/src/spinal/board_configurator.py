@@ -32,7 +32,7 @@ class BoardConfigurator(Plugin):
         # choose the first robot name
         robot_ns = board_info_srvs[0].split('/get_board_info')[0]
 
-        print robot_ns
+        print("robot namespace: {}".format(robot_ns))
         self.get_board_info_client_ = rospy.ServiceProxy(robot_ns + '/get_board_info', GetBoardInfo)
         self.set_board_config_client_ = rospy.ServiceProxy(robot_ns + '/set_board_config', SetBoardConfig)
         self.servo_torque_pub_ = rospy.Publisher(robot_ns + '/servo/torque_enable', ServoTorqueCmd, queue_size = 1)
@@ -45,12 +45,14 @@ class BoardConfigurator(Plugin):
                       help="Put plugin in silent mode")
         args, unknowns = parser.parse_known_args(context.argv())
         if not args.quiet:
-            print 'arguments: ', args
-            print 'unknowns: ', unknowns
+            print('arguments: {}'.format(args))
+            print('unknowns: {}'.format(unknowns))
 
         self._widget = QWidget()
 
-        ui_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'BoardConfigurator.ui')
+        rp = rospkg.RosPack()
+        ui_file = os.path.join(
+            rp.get_path('spinal'), 'resource', 'board_configurator.ui')
 
         loadUi(ui_file, self._widget)
 
@@ -149,7 +151,7 @@ class BoardConfigurator(Plugin):
                 # span container columns
                 self._widget.boardInfoTreeView.setFirstColumnSpanned(i, self._widget.boardInfoTreeView.rootIndex(), True)
 
-        except rospy.ServiceException, e:
+        except rospy.ServiceException as e:
             rospy.logerr("/get_board_info service call failed: %s"%e)
 
         self._widget.boardInfoTreeView.setColumnWidth(0, 250)
@@ -284,5 +286,5 @@ class BoardConfigurator(Plugin):
             rospy.loginfo(bool(res.success))
             rospy.sleep(1)
             self.updateButtonCallback()
-        except rospy.ServiceException, e:
-            print "/set_board_config service call failed: %s"%e
+        except rospy.ServiceException as e:
+            print("/set_board_config service call failed: {}".format(e))

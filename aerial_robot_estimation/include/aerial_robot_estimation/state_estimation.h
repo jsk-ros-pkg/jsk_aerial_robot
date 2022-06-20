@@ -52,8 +52,9 @@
 #include <ros/ros.h>
 #include <sensor_msgs/JointState.h>
 #include <std_msgs/UInt8.h>
-#include <tf/transform_broadcaster.h>
+#include <tf/tf.h>
 #include <tf/transform_datatypes.h>
+#include <tf2_ros/transform_broadcaster.h>
 #include <utility>
 #include <vector>
 
@@ -127,8 +128,6 @@ namespace aerial_robot_estimation
 
     virtual ~StateEstimator()
     {
-      update_thread_.interrupt();
-      update_thread_.join();
     }
 
     void initialize(ros::NodeHandle nh, ros::NodeHandle nh_private, boost::shared_ptr<aerial_robot_model::RobotModel> robot_model);
@@ -440,9 +439,8 @@ namespace aerial_robot_estimation
     ros::NodeHandle nh_;
     ros::NodeHandle nhp_;
     ros::Publisher full_state_pub_, baselink_odom_pub_, cog_odom_pub_;
-    tf::TransformBroadcaster br_;
-
-    boost::thread update_thread_;
+    tf2_ros::TransformBroadcaster br_;
+    ros::Timer state_pub_timer_;
 
     vector< boost::shared_ptr<sensor_plugin::SensorBase> > sensors_;
     boost::shared_ptr< pluginlib::ClassLoader<sensor_plugin::SensorBase> > sensor_plugin_ptr_;
@@ -458,7 +456,6 @@ namespace aerial_robot_estimation
     /* ros param */
     bool param_verbose_;
     int estimate_mode_; /* main estimte mode */
-    double update_rate_;
 
     /* robot model (kinematics)  */
     boost::shared_ptr<aerial_robot_model::RobotModel> robot_model_;
@@ -492,17 +489,7 @@ namespace aerial_robot_estimation
     /* latitude & longitude point */
     geographic_msgs::GeoPoint curr_wgs84_poiont_;
 
-    void statePublish();
+    void statePublish(const ros::TimerEvent & e);
     void rosParamInit();
-
-    void update()
-    {
-      ros::Rate loop_rate(update_rate_);
-      while(ros::ok())
-        {
-          statePublish();
-          loop_rate.sleep();
-        }
-    }
   };
 };

@@ -11,6 +11,8 @@ jobs:
             DOCKER_IMAGE : ubuntu:xenial
           - ROS_DISTRO : melodic
             DOCKER_IMAGE : ubuntu:bionic
+          - ROS_DISTRO : noetic
+            DOCKER_IMAGE : ubuntu:focal
     steps:
       - name: Setup OS
         run: |

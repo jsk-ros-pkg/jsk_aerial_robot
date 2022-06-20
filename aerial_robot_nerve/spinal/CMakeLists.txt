@@ -1,19 +1,20 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.0.2)
 project(spinal)
 
-
-## Compile as C++11, supported in ROS Kinetic and newer
-add_compile_options(-std=c++11)
+add_compile_options(-std=c++14)
 
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   std_srvs
+  std_msgs
   message_generation
   rospy
   rosserial_msgs
   rqt_gui
   rqt_gui_py
 )
+
+catkin_python_setup()
 
 add_message_files(
   FILES
@@ -65,8 +66,7 @@ set(SPINAL_DIRS mcu_project/lib/Jsk_Lib)
 catkin_package(
   INCLUDE_DIRS  ${SPINAL_DIRS}
   LIBRARIES spinal_flight_controller spinal_math
-  CATKIN_DEPENDS roscpp rospy rqt_gui rqt_gui_py
-#  DEPENDS system_lib
+  CATKIN_DEPENDS roscpp std_srvs std_msgs rospy rqt_gui rqt_gui_py message_runtime
 )
 
 include_directories(
@@ -99,3 +99,24 @@ add_custom_target(${PROJECT_NAME}_generate_stm32h7_ros_lib ALL COMMAND ${CATKIN_
 add_dependencies(${PROJECT_NAME}_generate_stm32h7_ros_lib ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_generate_messages_cpp)
 
 
+install(DIRECTORY ${SPINAL_DIRS}
+  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION})
+
+install(DIRECTORY bin
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+  USE_SOURCE_PERMISSIONS
+  )
+
+
+install(DIRECTORY scripts resource
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+  USE_SOURCE_PERMISSIONS
+  )
+
+install(FILES rqt_gui_plugin.xml
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+  )
+
+install(TARGETS spinal_math spinal_flight_controller
+  DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+)

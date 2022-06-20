@@ -100,7 +100,6 @@ namespace sensor_plugin
 
     double servo_min_angle_, servo_max_angle_;
     int servo_index_;
-    tf::TransformBroadcaster br_;
 
     tf::Transform world_offset_tf_; // ^{w}H_{w_vo}: transform from true world frame to the vo/vio world frame
     tf::Transform baselink_tf_; // ^{w}H_{b}: transform from true world frame to the baselink frame, but is estimated by vo/vio
