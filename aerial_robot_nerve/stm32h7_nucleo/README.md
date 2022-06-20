@@ -36,7 +36,7 @@
 2. rosserial based on ethernet UDP. Please use [this branch](https://github.com/tongtybj/rosserial/tree/spinal)
 
    ```
-   $ roslaunch spinal_ros_bridge udp_socket.launch addr:="192.168.25.238" port:=12345 server_port:=12345
+   $ roslaunch spinal bridge.launch mode:=udp
    ```
 
 3. perform the load test
@@ -108,5 +108,5 @@ https://drive.google.com/uc?export=view&id=1TKMwXH4Lm9L4QMkjgN_sgr2S7u54GGa7
 
 ### command:
 ```
-$ roslaunch spinal_ros_bridge serial.launch
+$ roslaunch spinal bridge.launch mode:=serial
 ```
