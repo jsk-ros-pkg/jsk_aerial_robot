@@ -1,14 +1,15 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.0.2)
 project(dragon)
 
 add_compile_options(-std=c++14)
 
 find_package(catkin REQUIRED COMPONENTS
-  roscpp
-  hydrus
   aerial_robot_control
   aerial_robot_model
   aerial_robot_msgs
+  hydrus
+  pluginlib
+  roscpp
 )
 
 find_package(Eigen3 REQUIRED)
@@ -22,8 +23,7 @@ find_package(NLopt REQUIRED)
 catkin_package(
   INCLUDE_DIRS include test
   LIBRARIES dragon_robot_model dragon_aerial_robot_controllib dragon_navigation dragon_numerical_jacobians
-  CATKIN_DEPENDS hydrus
-  DEPENDS EIGEN3
+  CATKIN_DEPENDS   aerial_robot_control aerial_robot_model aerial_robot_msgs hydrus pluginlib roscpp
 )
 
 ###########
@@ -61,7 +61,30 @@ target_link_libraries(dragon_numerical_jacobians dragon_robot_model ${catkin_LIB
 add_executable(dragon_jacobian_test test/dragon/jacobian_test.cpp)
 target_link_libraries(dragon_jacobian_test dragon_numerical_jacobians ${catkin_LIBRARIES} ${GTEST_LIBRARIES})
 
+install(DIRECTORY include/${PROJECT_NAME}/ test/${PROJECT_NAME}/
+  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION})
+
+install(TARGETS dragon_jacobian_test
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+install(TARGETS dragon_sensor_pluginlib dragon_robot_model dragon_aerial_robot_controllib dragon_navigation dragon_numerical_jacobians
+  DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+)
+
+install(DIRECTORY config scripts plugins launch images
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+  USE_SOURCE_PERMISSIONS
+)
+
+install(DIRECTORY bin
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+  USE_SOURCE_PERMISSIONS
+)
+
+
 if(CATKIN_ENABLE_TESTING)
-  find_package(catkin REQUIRED COMPONENTS rostest)
+  find_package(rostest REQUIRED)
   add_subdirectory(test)
 endif()
+

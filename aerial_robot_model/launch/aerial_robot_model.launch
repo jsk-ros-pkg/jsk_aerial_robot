@@ -9,16 +9,16 @@
 
   <group ns="$(arg robot_ns)">
     <!-- set robot_description to rosparameter server -->
-    <param name="robot_description" command="$(find xacro)/xacro.py '$(arg robot_model)' robot_name:=$(arg robot_ns)  $(arg model_options)" />
+    <param name="robot_description" command="$(find xacro)/xacro '$(arg robot_model)' robot_name:=$(arg robot_ns)  $(arg model_options)" />
 
     <!-- joint state publisher if necessary -->
     <rosparam file ="$(arg rviz_init_pose)" command="load"/>
     <node name="$(anon joint_state_publisher_gui)" pkg="joint_state_publisher_gui" type="joint_state_publisher_gui" if="$(arg need_joint_state)">
-      <param name="robot_description" command="$(find xacro)/xacro.py '$(arg robot_model)' $(arg model_options)" />
+      <param name="robot_description" command="$(find xacro)/xacro '$(arg robot_model)' $(arg model_options)" />
     </node >
 
     <!-- tf publisher from joint_state -->
-    <node name="$(anon robot_state_publisher)" pkg="robot_state_publisher" type="state_publisher">
+    <node name="$(anon robot_state_publisher)" pkg="robot_state_publisher" type="robot_state_publisher">
       <param name="tf_prefix" value="$(arg robot_ns)" />
     </node>
     <node name="$(anon rotor_tf_publisher)" pkg="aerial_robot_model" type="rotor_tf_publisher" unless="$(arg need_joint_state)">

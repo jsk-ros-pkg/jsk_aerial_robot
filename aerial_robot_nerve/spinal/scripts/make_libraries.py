@@ -83,7 +83,7 @@ else:
     path = sys.argv[1]
     if path[-1] == "/":
         path = path[0:-1]
-    print "\nExporting to %s" % path
+    print("\nExporting to %s" % path)
 
 # remove the old directory
 if os.path.exists(path+"/ros_lib/"):

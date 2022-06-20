@@ -17,7 +17,8 @@
     <rosparam file="$(find cfs_sensor)/config/$(arg force_sensor).yaml" command="load" />
   </node>
 
-  <include file="$(find spinal_ros_bridge)/launch/serial.launch" >
+  <include file="$(find rosserial_server)/launch/serial.launch" >
+    <arg name="port" value="/dev/ttyUSB0" />
     <arg name="baud" value="921600" />
   </include>
 

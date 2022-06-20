@@ -73,6 +73,8 @@ bool DragonLQIGimbalController::update()
   if(gimbal_vectoring_check_flag_) return false;
 
   HydrusLQIController::update();
+
+  return true;
 }
 
 

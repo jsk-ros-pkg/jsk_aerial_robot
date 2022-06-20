@@ -25,5 +25,5 @@ if __name__ == "__main__":
         for i in range(0, link_num - 1):
             joint.position[i] = -joint.position[i]
             pub.publish(joint)
-            print joint.position
+            print("joint angles: {}".format(joint.position))
             time.sleep(duration)

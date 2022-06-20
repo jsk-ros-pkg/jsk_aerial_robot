@@ -2,7 +2,7 @@
 
 set -ex
 
-apt-get update -qq && apt-get install -y -q wget sudo lsb-release gnupg git sed # for docker
+apt-get update -qq && apt-get install -y -q wget sudo lsb-release gnupg git sed build-essential # for docker
 echo 'debconf debconf/frontend select Noninteractive' | sudo debconf-set-selections
 
 echo "Testing branch $TRAVIS_BRANCH of $REPOSITORY_NAME"
@@ -10,14 +10,14 @@ sudo sh -c "echo \"deb ${REPOSITORY} `lsb_release -cs` main\" > /etc/apt/sources
 wget http://packages.ros.org/ros.key -O - | sudo apt-key add -
 sudo apt-get update -qq
 
-
 # Install ROS
 if [[ "$ROS_DISTRO" ==  "noetic" ]]; then
-    sudo apt-get install -y -q python3-catkin-pkg python3-catkin-tools python3-rosdep python3-wstool python3-rosinstall-generator python3-osrf-pycommon
+    sudo apt-get install -y -q python3-catkin-pkg python3-catkin-tools python3-rosdep python3-wstool python3-rosinstall-generator python3-osrf-pycommon python-is-python3
 else
     sudo apt-get install -y -q python-catkin-pkg python-catkin-tools python-rosdep python-wstool python-rosinstall-generator
 fi
 sudo apt-get install -y -q ros-$ROS_DISTRO-catkin
+
 source /opt/ros/${ROS_DISTRO}/setup.bash
 
 # Setup for rosdep
@@ -62,5 +62,5 @@ fi
 # Build
 catkin config --cmake-args -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 catkin build -p1 -j1 --no-status
-catkin run_tests -p1 -j1 --no-status aerial_robot --no-deps
+catkin build --catkin-make-args run_tests -- -i --no-deps --no-status -p 1 -j 1 aerial_robot
 catkin_test_results --verbose build || catkin_test_results --all build

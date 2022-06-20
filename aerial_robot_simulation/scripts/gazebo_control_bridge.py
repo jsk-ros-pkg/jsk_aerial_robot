@@ -24,8 +24,8 @@ class GazeboControlBridge:
         try:
             controller_loader = rospy.ServiceProxy(controller_manager_name, LoadController)
             controller_loader.wait_for_service(timeout=shutdown_timeout)
-        except rospy.ServiceException, e:
-            print "Service call failed: %s"%e
+        except rospy.ServiceException as e:
+            print("Service call failed: %s"%e)
 
         if not rospy.has_param("actuator_controller"):
             rospy.logerr("you have to define the actuator controller (e.g. joint)")
@@ -84,8 +84,8 @@ class GazeboControlBridge:
                 rospy.loginfo("start controllers")
             else:
                 rospy.logerr("can not start controller")
-        except rospy.ServiceException, e:
-            print "Service call failed: %s"%e
+        except rospy.ServiceException as e:
+            print("Service call failed: %s"%e)
 
         # send init pose
         time.sleep(1)

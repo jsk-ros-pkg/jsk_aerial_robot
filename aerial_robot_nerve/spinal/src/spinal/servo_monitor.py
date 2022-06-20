@@ -53,7 +53,8 @@ class ServoMonitor(Plugin):
 
         self._widget = QWidget()
 
-        ui_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'ServoMonitor.ui')
+        rp = rospkg.RosPack()
+        ui_file = os.path.join(rp.get_path('spinal'), 'resource', 'servo_monitor.ui')
 
         loadUi(ui_file, self._widget)
 
@@ -191,7 +192,7 @@ class ServoMonitor(Plugin):
         try:
             res = self.set_board_config_client_(req)
             rospy.loginfo(bool(res.success))
-        except rospy.ServiceException, e:
+        except rospy.ServiceException as e:
             print("/set_board_config service call failed: %s"%e)
 
     def boardReboot(self):
@@ -210,7 +211,7 @@ class ServoMonitor(Plugin):
         try:
             res = self.set_board_config_client_(req)
             rospy.loginfo(bool(res.success))
-        except rospy.ServiceException, e:
+        except rospy.ServiceException as e:
             print("/set_board_config service call failed: %s"%e)
 
     def error2string(self, error):
@@ -295,5 +296,5 @@ class ServoMonitor(Plugin):
 
                     self._table_data.append(rowData)
 
-        except rospy.ServiceException, e:
+        except rospy.ServiceException as e:
             rospy.logerr("/get_board_info service call failed: %s"%e)

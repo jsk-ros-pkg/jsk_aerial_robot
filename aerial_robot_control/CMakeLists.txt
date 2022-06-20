@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.0.2)
 project(aerial_robot_control)
 
 add_compile_options(-std=c++11)
@@ -38,8 +38,7 @@ set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O3 -g -DNDEBUG")
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES control_utils flight_control_pluginlib flight_navigation
-  CATKIN_DEPENDS aerial_robot_estimation aerial_robot_model aerial_robot_msgs roscpp spinal
-  DEPENDS EIGEN3
+  CATKIN_DEPENDS aerial_robot_estimation aerial_robot_model aerial_robot_msgs dynamic_reconfigure pluginlib roscpp spinal tf
 )
 
 include_directories(
@@ -66,3 +65,15 @@ add_dependencies(flight_control_pluginlib  ${PROJECT_NAME}_gencfg)
 ### flight navigation
 add_library (flight_navigation src/flight_navigation.cpp)
 target_link_libraries (flight_navigation ${catkin_LIBRARIES})
+
+install(DIRECTORY include/${PROJECT_NAME}/
+  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION})
+
+install(TARGETS control_utils flight_control_pluginlib flight_navigation
+  DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+)
+
+install(DIRECTORY scripts plugins
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+  USE_SOURCE_PERMISSIONS
+)
