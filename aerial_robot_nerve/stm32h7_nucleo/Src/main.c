@@ -232,8 +232,8 @@ extern "C"
     nh_.advertise(test_pub_);
     nh_.advertise(test_pub2_);
     nh_.advertise(test_pub3_);
-    nh_.subscribe< ros::Subscriber<std_msgs::Empty> >(test_sub_);
-    nh_.subscribe< ros::Subscriber<spinal::ServoControlCmd> >(test2_sub_);
+    nh_.subscribe(test_sub_);
+    nh_.subscribe(test2_sub_);
 
     osSemaphoreWait(coreTaskSemHandle, osWaitForever);
 

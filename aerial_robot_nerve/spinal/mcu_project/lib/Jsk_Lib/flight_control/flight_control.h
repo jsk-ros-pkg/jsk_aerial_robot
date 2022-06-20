@@ -75,9 +75,9 @@ public:
     /* config ack to ROS */
     nh_->advertise(config_ack_pub_);
     /* uav & motor type */
-    nh_->subscribe< ros::Subscriber<spinal::UavInfo, FlightControl> >(uav_info_sub_);
+    nh_->subscribe(uav_info_sub_);
     /* flight control base config */
-    nh_->subscribe< ros::Subscriber<spinal::FlightConfigCmd, FlightControl> >(flight_config_sub_);
+    nh_->subscribe(flight_config_sub_);
 
     estimator_ = estimator;
 

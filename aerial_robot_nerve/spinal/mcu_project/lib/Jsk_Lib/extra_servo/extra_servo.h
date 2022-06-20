@@ -41,9 +41,9 @@ public:
     nh_ = nh;
 
     /* servo control sub */
-    nh_->subscribe< ros::Subscriber<spinal::ServoControlCmd, ExtraServo> >(extra_servo_control_sub_);
-    nh_->subscribe< ros::Subscriber<spinal::ServoTorqueCmd, ExtraServo> >(extra_servo_torque_control_sub_);
-    nh_->subscribe< ros::Subscriber<spinal::ServoControlCmd, ExtraServo> >(extra_servo_init_duty_sub_);
+    nh_->subscribe(extra_servo_control_sub_);
+    nh_->subscribe(extra_servo_torque_control_sub_);
+    nh_->subscribe(extra_servo_init_duty_sub_);
 
     pwm_htim1_ = t1;
     pwm_htim2_ = t2;

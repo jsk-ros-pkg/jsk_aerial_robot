@@ -15,7 +15,7 @@ void GPS_Backend::init(UART_HandleTypeDef* huart, ros::NodeHandle* nh)
 {
   huart_ =huart;
   nh_ = nh;
-  nh_->subscribe< ros::Subscriber<std_msgs::UInt8, GPS_Backend> >(gps_config_sub_);
+  nh_->subscribe(gps_config_sub_);
   nh_->advertise(gps_pub_);
   // nh_->advertise(gps_full_pub_);
 

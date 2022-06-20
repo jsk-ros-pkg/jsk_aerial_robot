@@ -107,7 +107,7 @@ public:
     nh_ = nh;
     nh_->advertise(imu_pub_);
     nh_->advertise(attitude_pub_);
-    nh_->subscribe< ros::Subscriber<spinal::DesireCoord, AttitudeEstimate> >(desire_coord_sub_);
+    nh_->subscribe(desire_coord_sub_);
     nh_->advertiseService(mag_declination_srv_);
 
     imu_list_[0] = imu;

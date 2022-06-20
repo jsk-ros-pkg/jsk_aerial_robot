@@ -132,8 +132,8 @@ namespace Spine
     nh_->advertise(gyro_pub_);
 #endif
 
-    nh_->subscribe< ros::Subscriber<spinal::ServoControlCmd> >(servo_ctrl_sub_);
-    nh_->subscribe< ros::Subscriber<spinal::ServoTorqueCmd> >(servo_torque_ctrl_sub_);
+    nh_->subscribe(servo_ctrl_sub_);
+    nh_->subscribe(servo_torque_ctrl_sub_);
 
     nh_->advertiseService(board_info_srv_);
     nh_->advertiseService(board_config_srv_);

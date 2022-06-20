@@ -39,7 +39,7 @@ public:
   {
     nh_ = nh;
     nh_->advertise(voltage_status_pub_);
-    nh_->subscribe<ros::Subscriber<std_msgs::Float32, BatteryStatus> >(adc_scale_sub_);
+    nh_->subscribe(adc_scale_sub_);
     hadc_ = hadc;
 
     voltage_ = -1;

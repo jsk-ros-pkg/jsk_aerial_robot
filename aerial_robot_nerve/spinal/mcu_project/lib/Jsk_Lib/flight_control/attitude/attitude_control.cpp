@@ -74,12 +74,12 @@ void AttitudeController::init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2
   nh_->advertise(control_term_pub_);
   nh_->advertise(control_feedback_state_pub_);
 
-  nh_->subscribe< ros::Subscriber<spinal::FourAxisCommand, AttitudeController> >(four_axis_cmd_sub_);
-  nh_->subscribe< ros::Subscriber<spinal::PwmInfo, AttitudeController> >(pwm_info_sub_);
-  nh_->subscribe< ros::Subscriber<spinal::RollPitchYawTerms, AttitudeController> >(rpy_gain_sub_);
-  nh_->subscribe< ros::Subscriber<std_msgs::Float32, AttitudeController> >(pwm_test_sub_);
-  nh_->subscribe< ros::Subscriber<spinal::PMatrixPseudoInverseWithInertia, AttitudeController> >(p_matrix_pseudo_inverse_inertia_sub_);
-  nh_->subscribe< ros::Subscriber<spinal::TorqueAllocationMatrixInv, AttitudeController> >(torque_allocation_matrix_inv_sub_);
+  nh_->subscribe(four_axis_cmd_sub_);
+  nh_->subscribe(pwm_info_sub_);
+  nh_->subscribe(rpy_gain_sub_);
+  nh_->subscribe(pwm_test_sub_);
+  nh_->subscribe(p_matrix_pseudo_inverse_inertia_sub_);
+  nh_->subscribe(torque_allocation_matrix_inv_sub_);
 
   nh_->advertiseService(att_control_srv_);
 
