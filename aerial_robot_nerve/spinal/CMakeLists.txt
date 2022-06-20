@@ -108,7 +108,7 @@ install(DIRECTORY bin
   )
 
 
-install(DIRECTORY scripts resource
+install(DIRECTORY scripts resource launch
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
   USE_SOURCE_PERMISSIONS
   )
