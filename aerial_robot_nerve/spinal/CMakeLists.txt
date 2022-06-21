@@ -9,7 +9,6 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   message_generation
   rospy
-  rosserial_msgs
   rqt_gui
   rqt_gui_py
 )
@@ -57,7 +56,6 @@ add_service_files(
 
 generate_messages(
   DEPENDENCIES
-  rosserial_msgs
   std_msgs
 )
 

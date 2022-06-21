@@ -18,3 +18,13 @@ catkin_package(
 
 add_custom_target(${PROJECT_NAME}_generate_ros_lib ALL COMMAND ${CATKIN_DEVEL_PREFIX}/env.sh ${PYTHON_EXECUTABLE}  ${PROJECT_SOURCE_DIR}/scripts/make_libraries.py --save_path ${PROJECT_SOURCE_DIR} --support_rtos --support_ethernet)
 add_dependencies(${PROJECT_NAME}_generate_ros_lib ${catkin_EXPORTED_TARGETS})
+
+install(DIRECTORY bin
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+  USE_SOURCE_PERMISSIONS
+  )
+
+install(DIRECTORY scripts
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+  USE_SOURCE_PERMISSIONS
+  )
