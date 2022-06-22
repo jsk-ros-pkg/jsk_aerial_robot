@@ -212,7 +212,7 @@ class BoardConfigurator(Plugin):
         elif self._command == 'pid_gain':
             try:
                 req.data.append(int(self._servo_index))
-                pid_gains = map(lambda x: int(x), self._widget.lineEdit.text().split(','))
+                pid_gains = list(map(lambda x: int(x), self._widget.lineEdit.text().split(',')))
                 if len(pid_gains) != 3:
                     raise ValueError('Input 3 gains(int)')
                 req.data.extend(pid_gains)
@@ -268,7 +268,7 @@ class BoardConfigurator(Plugin):
         elif self._command == 'resolution[joint:servo]':
             try:
                 req.data.append(int(self._servo_index))
-                resolutions = map(lambda x: int(x), self._widget.lineEdit.text().split(':'))
+                resolutions = list(map(lambda x: int(x), self._widget.lineEdit.text().split(':')))
                 if len(resolutions) != 2:
                     raise ValueError('Input 2 resoultion(int)')
                 req.data.extend(resolutions)
