@@ -86,7 +86,7 @@ namespace
 
     Eigen::Vector3d p_gimal_roll_pitch = kdlToEigen(seg_tf_map.at(std::string("gimbal1_roll_module")).Inverse() * seg_tf_map.at(std::string("gimbal1_pitch_module")).p);
 
-    //get Q: WrenchAllocationMatrix
+    // get Q: WrenchAllocationMatrix
     Eigen::MatrixXd Q(6, rotor_num);
     Eigen::VectorXd lambda = Eigen::VectorXd::Zero(rotor_num); // thrust force
     for (unsigned int i = 0; i < rotor_num; ++i) {
@@ -99,15 +99,12 @@ namespace
     Eigen::VectorXd target_wrench_cog = Eigen::VectorXd::Zero(6);
     target_wrench_cog.head(3) = robot_model->getMass() * target_wrench_acc_cog.head(3);
     target_wrench_cog.tail(3) = robot_model->getInertia<Eigen::Matrix3d>() * target_wrench_acc_cog.tail(3);
-    //target_wrench_cog.tail(3) = controller->getNominalInertia() * target_wrench_acc_cog.tail(3); // approximately assume the inertial is constant regardless of change in gimbal angles
 
     Eigen::VectorXd wrench_diff = Q * lambda - target_wrench_cog;
-    //ROS_INFO_STREAM("Q * lambda: " << (Q * lambda).transpose() << "; wrench_diff: " << wrench_diff.transpose() << "; lambda: " << lambda.transpose() << "; target wrench: " << target_wrench_cog.transpose() <<  "\n Q: \n" << Q);
     for(int i = 0; i < m; i++) result[i] = wrench_diff(i);
 
     if(grad == NULL) return;
 
-#if 1 // analytical solution
     // g(theta, phi, lambda) = Q(theta, phi) lambda - target_wrench_cog = 0
     col = 0;
 
@@ -269,93 +266,6 @@ namespace
             col += 1;
           }
       }
-
-    // Eigen::MatrixXd grad_matrix = Eigen::MatrixXd::Zero(m, n);
-    // // bug of Eigen::Map
-    // for(int i = 0; i < m; i++)
-    //   {
-    //     for(int j = 0; j <  n; j++)
-    //       {
-    //         grad_matrix(i,j) = grad[i * n + j];
-    //       }
-    //   }
-    // ROS_INFO_STREAM("cons grad matrix: \n" << grad_matrix);
-
-#endif
-
-#if 0 // numerical
-    /* Numerical solution */
-    double delta = 0.000001;
-    Eigen::MatrixXd grad_dash = Eigen::MatrixXd::Zero(m,n);
-    KDL::JntArray nominal_gimbal_processed_joint = robot_model->getJointPositions();
-    grad_dash.leftCols(rotor_num) = Q;
-    col = 0;
-    for(int j = 0; j < rotor_num; j++)
-      {
-        Eigen::MatrixXd Q_dash(6, rotor_num);
-        std::string s = std::to_string(j + 1);
-
-        if(roll_locked_gimbal.at(j) == 0)
-          {
-            gimbal_processed_joint = nominal_gimbal_processed_joint;
-            gimbal_processed_joint(joint_index_map.find(std::string("gimbal") + s + std::string("_roll"))->second) = x[rotor_num + col] + delta;
-            robot_model->updateRobotModel(gimbal_processed_joint);
-            std::vector<Eigen::Vector3d> p_dash = robot_model->getRotorsOriginFromCog<Eigen::Vector3d>();
-            std::vector<Eigen::Vector3d> u_dash = robot_model->getRotorsNormalFromCog<Eigen::Vector3d>();
-
-            for (unsigned int i = 0; i < rotor_num; ++i)
-              {
-                Q_dash.block(0, i, 3, 1) = u_dash.at(i);
-                Q_dash.block(3, i, 3, 1) = p_dash.at(i).cross(u_dash.at(i)) + m_f_rate * sigma.at(i + 1) * u_dash.at(i);
-              }
-            grad_dash.col(rotor_num + col) = (Q_dash - Q) * lambda / delta;
-            Eigen::Vector3d target_torque_cog_bash = robot_model->getInertia<Eigen::Matrix3d>() * target_wrench_acc_cog.tail(3);
-            grad_dash.block(3, rotor_num + col, 3, 1) -= (target_torque_cog_bash - target_wrench_cog.tail(3)) / delta;
-
-            gimbal_processed_joint = nominal_gimbal_processed_joint;
-            gimbal_processed_joint(joint_index_map.find(std::string("gimbal") + s + std::string("_pitch"))->second) = x[rotor_num + col + 1] + delta;
-            robot_model->updateRobotModel(gimbal_processed_joint);
-            p_dash = robot_model->getRotorsOriginFromCog<Eigen::Vector3d>();
-            u_dash = robot_model->getRotorsNormalFromCog<Eigen::Vector3d>();
-            for (unsigned int i = 0; i < rotor_num; ++i)
-              {
-                Q_dash.block(0, i, 3, 1) = u_dash.at(i);
-                Q_dash.block(3, i, 3, 1) = p_dash.at(i).cross(u_dash.at(i)) + m_f_rate * sigma.at(i + 1) * u_dash.at(i);
-              }
-            grad_dash.col(rotor_num + col + 1) = (Q_dash - Q) * lambda / delta;
-            target_torque_cog_bash = robot_model->getInertia<Eigen::Matrix3d>() * target_wrench_acc_cog.tail(3);
-            grad_dash.block(3, rotor_num + col + 1, 3, 1) -= (target_torque_cog_bash - target_wrench_cog.tail(3)) / delta;
-
-            col += 2;
-          }
-        else
-          {
-            gimbal_processed_joint = nominal_gimbal_processed_joint;
-            gimbal_processed_joint(joint_index_map.find(std::string("gimbal") + s + std::string("_pitch"))->second) = x[rotor_num + col] + delta;
-            robot_model->updateRobotModel(gimbal_processed_joint);
-            std::vector<Eigen::Vector3d> p_dash = robot_model->getRotorsOriginFromCog<Eigen::Vector3d>();
-            std::vector<Eigen::Vector3d> u_dash = robot_model->getRotorsNormalFromCog<Eigen::Vector3d>();
-            for (unsigned int i = 0; i < rotor_num; ++i)
-              {
-                Q_dash.block(0, i, 3, 1) = u_dash.at(i);
-                Q_dash.block(3, i, 3, 1) = p_dash.at(i).cross(u_dash.at(i)) + m_f_rate * sigma.at(i + 1) * u_dash.at(i);
-              }
-            grad_dash.col(rotor_num + col) = (Q_dash - Q) * lambda / delta;
-            Eigen::Vector3d target_torque_cog_bash = robot_model->getInertia<Eigen::Matrix3d>() * target_wrench_acc_cog.tail(3);
-            grad_dash.block(3, rotor_num + col, 3, 1) -= (target_torque_cog_bash - target_wrench_cog.tail(3)) / delta;
-
-            col += 1;
-          }
-      }
-
-    for(int i = 0; i < m; i++)
-      {
-        for(int j = 0; j < n; j++)
-          grad[i * n + j] = grad_dash(i,j);
-      }
-
-    //ROS_INFO_STREAM("grad_dash: \n" << grad_dash);
-#endif
   }
 };
 

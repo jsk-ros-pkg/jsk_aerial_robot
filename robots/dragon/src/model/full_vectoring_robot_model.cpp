@@ -88,11 +88,6 @@ there is a diffiretial chain about the roll angle. But we here approximate it to
 
     cnt++;
 
-    // debug
-    // std::cout << "state in opt func: ";
-    // for(auto v: x) std::cout << v << ", ";
-    // std::cout << std::endl;
-
     return  force_sq_sum;
   }
 
@@ -102,10 +97,6 @@ there is a diffiretial chain about the roll angle. But we here approximate it to
        0 ~rotor_num: thrust_force -> lambda
        no locked gimbal: rotor_num ~ 3 * rotor_num: (gimbal_roll, gimbal_pitch) * rotor_num
     */
-    // std::cout << "cons: ";
-    // for(int i = 0; i < n; i++) std::cout << x[i] << ", ";
-    //  std::cout << std::endl;
-
 
     Dragon::FullVectoringRobotModel *dragon_robot_model = reinterpret_cast<Dragon::FullVectoringRobotModel*>(ptr);
     const auto roll_locked_gimbal = dragon_robot_model->getRollLockedGimbal();
@@ -171,7 +162,6 @@ there is a diffiretial chain about the roll angle. But we here approximate it to
 
     if(grad == NULL) return;
 
-#if 1 // analytical solution
     // g(theta, phi, lambda) = Q(theta, phi) lambda - target_wrench_cog = 0
     col = 0;
     std::vector<Eigen::MatrixXd> d_root_inertia_list(rotor_num * 2); //debug
@@ -336,108 +326,6 @@ there is a diffiretial chain about the roll angle. But we here approximate it to
             col += 1;
           }
       }
-
-    // Eigen::MatrixXd grad_matrix = Eigen::MatrixXd::Zero(m, n);
-    // // bug of Eigen::Map
-    // for(int i = 0; i < m; i++)
-    //   {
-    //     for(int j = 0; j <  n; j++)
-    //       {
-    //         grad_matrix(i,j) = grad[i * n + j];
-    //       }
-    //   }
-    // ROS_INFO_STREAM("cons grad matrix: \n" << grad_matrix);
-
-#endif
-
-#if 0 // numerical
-    /* Numerical solution */
-    double delta = 0.00000001;
-    Eigen::MatrixXd grad_dash = Eigen::MatrixXd::Zero(m,n);
-    KDL::JntArray nominal_gimbal_processed_joint = robot_model->getJointPositions();
-    Eigen::MatrixXd inertia = robot_model->getInertia<Eigen::Matrix3d>();
-    Eigen::MatrixXd root_inertia = kdlToEigen(robot_model->getRootInertia());
-    std::vector<Eigen::MatrixXd> d_root_inertia_dash_list(rotor_num * 2);
-    std::vector<Eigen::MatrixXd> d_cog_inertia_dash_list(rotor_num * 2);
-    grad_dash.leftCols(rotor_num) = Q;
-    col = 0;
-
-    for(int j = 0; j < rotor_num; j++)
-      {
-        Eigen::MatrixXd Q_dash(6, rotor_num);
-        std::string s = std::to_string(j + 1);
-
-        if(roll_locked_gimbal.at(j) == 0)
-          {
-            gimbal_processed_joint = nominal_gimbal_processed_joint;
-            gimbal_processed_joint(joint_index_map.find(std::string("gimbal") + s + std::string("_roll"))->second) = x[rotor_num + col] + delta;
-            robot_model->updateRobotModel(gimbal_processed_joint);
-            std::vector<Eigen::Vector3d> p_dash = robot_model->getRotorsOriginFromCog<Eigen::Vector3d>();
-            std::vector<Eigen::Vector3d> u_dash = robot_model->getRotorsNormalFromCog<Eigen::Vector3d>();
-
-            for (unsigned int i = 0; i < rotor_num; ++i)
-              {
-                Q_dash.block(0, i, 3, 1) = u_dash.at(i);
-                Q_dash.block(3, i, 3, 1) = p_dash.at(i).cross(u_dash.at(i)) + m_f_rate * sigma.at(i + 1) * u_dash.at(i);
-              }
-            grad_dash.col(rotor_num + col) = (Q_dash - Q) * lambda / delta;
-
-            Eigen::MatrixXd root_inertia_dash = kdlToEigen(robot_model->getRootInertia());
-            Eigen::MatrixXd inertia_dash = robot_model->getInertia<Eigen::Matrix3d>();
-            d_root_inertia_dash_list.at(2 * j) = (root_inertia_dash - root_inertia) / delta;
-            d_cog_inertia_dash_list.at(2 * j) = (inertia_dash - inertia) / delta;
-
-            gimbal_processed_joint = nominal_gimbal_processed_joint;
-            gimbal_processed_joint(joint_index_map.find(std::string("gimbal") + s + std::string("_pitch"))->second) = x[rotor_num + col + 1] + delta;
-            robot_model->updateRobotModel(gimbal_processed_joint);
-            p_dash = robot_model->getRotorsOriginFromCog<Eigen::Vector3d>();
-            u_dash = robot_model->getRotorsNormalFromCog<Eigen::Vector3d>();
-            for (unsigned int i = 0; i < rotor_num; ++i)
-              {
-                Q_dash.block(0, i, 3, 1) = u_dash.at(i);
-                Q_dash.block(3, i, 3, 1) = p_dash.at(i).cross(u_dash.at(i)) + m_f_rate * sigma.at(i + 1) * u_dash.at(i);
-              }
-            grad_dash.col(rotor_num + col + 1) = (Q_dash - Q) * lambda / delta;
-
-            root_inertia_dash = kdlToEigen(robot_model->getRootInertia());
-            inertia_dash = robot_model->getInertia<Eigen::Matrix3d>();
-            d_root_inertia_dash_list.at(2 * j + 1) = (root_inertia_dash - root_inertia) / delta;
-            d_cog_inertia_dash_list.at(2 * j + 1) = (inertia_dash - inertia) / delta;
-
-            col += 2;
-          }
-        else
-          {
-            gimbal_processed_joint = nominal_gimbal_processed_joint;
-            gimbal_processed_joint(joint_index_map.find(std::string("gimbal") + s + std::string("_pitch"))->second) = x[rotor_num + col] + delta;
-            robot_model->updateRobotModel(gimbal_processed_joint);
-            std::vector<Eigen::Vector3d> p_dash = robot_model->getRotorsOriginFromCog<Eigen::Vector3d>();
-            std::vector<Eigen::Vector3d> u_dash = robot_model->getRotorsNormalFromCog<Eigen::Vector3d>();
-            for (unsigned int i = 0; i < rotor_num; ++i)
-              {
-                Q_dash.block(0, i, 3, 1) = u_dash.at(i);
-                Q_dash.block(3, i, 3, 1) = p_dash.at(i).cross(u_dash.at(i)) + m_f_rate * sigma.at(i + 1) * u_dash.at(i);
-              }
-            grad_dash.col(rotor_num + col) = (Q_dash - Q) * lambda / delta;
-
-            col += 1;
-          }
-      }
-
-    for(int i = 0; i < m; i++)
-      {
-        for(int j = 0; j < n; j++)
-          grad[i * n + j] = grad_dash(i,j);
-      }
-
-    ROS_INFO_STREAM("grad_dash: \n" << grad_dash << "\n");
-#endif
-
-    // std::cout << "d_cog_inertia_list: " << std::endl << std::endl;
-    // for(auto mat: d_cog_inertia_list) std::cout << mat << std::endl << std::endl;
-
-    // std::cout << "d_cog_inertia_dash_list: " << std::endl << std::endl;
-    // for(auto mat: d_cog_inertia_dash_list) std::cout << mat << std::endl << std::endl;
   }
 }
 
