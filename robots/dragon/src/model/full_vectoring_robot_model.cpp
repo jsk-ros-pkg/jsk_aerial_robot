@@ -164,7 +164,6 @@ there is a diffiretial chain about the roll angle. But we here approximate it to
 
     // g(theta, phi, lambda) = Q(theta, phi) lambda - target_wrench_cog = 0
     col = 0;
-    std::vector<Eigen::MatrixXd> d_root_inertia_list(rotor_num * 2); //debug
     std::vector<Eigen::MatrixXd> d_cog_inertia_list(rotor_num * 2);
     for(int j = 0; j < rotor_num; j++)
       {
@@ -248,7 +247,6 @@ there is a diffiretial chain about the roll angle. But we here approximate it to
         Eigen::Matrix3d R_g_roll_j_root = kdlToEigen(seg_tf_map.at(joint_child_segment_name).M);
         Eigen::Matrix3d local_inertia = R_g_roll_j_root.transpose() * kdlToEigen(inertia.RefPoint(c).getRotationalInertia()) * R_g_roll_j_root;
         // debug
-        d_root_inertia_list.at(2 * j) = R_L_j_root * partial_R_phi_j * local_inertia * R_g_roll_j_root.transpose() +  R_g_roll_j_root * local_inertia * partial_R_phi_j.transpose() * R_L_j_root.transpose() + m * deInertiaCoGOffset(c, a * (c-r));
         d_cog_inertia_list.at(2 * j) = R_L_j * partial_R_phi_j * local_inertia * R_g_roll_j.transpose() +  R_g_roll_j * local_inertia * partial_R_phi_j.transpose() * R_L_j.transpose()  + kdlToEigen(cog.M).transpose() * (m * deInertiaCoGOffset(c, a * (c-r)) - robot_model->getMass() * deInertiaCoGOffset(cog.p, partial_cog_phi_j)) * kdlToEigen(cog.M);
 
         Eigen::Vector3d sum_partial_v_p_k_phi_j(0,0,0);
@@ -286,7 +284,6 @@ there is a diffiretial chain about the roll angle. But we here approximate it to
         Eigen::Matrix3d R_g_pitch_j_root = kdlToEigen(seg_tf_map.at(joint_child_segment_name).M);
         Eigen::Matrix3d R_g_pitch_j = kdlToEigen(cog.M.Inverse()) * R_g_pitch_j_root;
         local_inertia = R_g_pitch_j_root.transpose() * kdlToEigen(inertia.RefPoint(c).getRotationalInertia()) * R_g_pitch_j_root;
-        d_root_inertia_list.at(2 * j + 1) = R_g_roll_j_root * partial_R_theta_j * local_inertia * R_g_pitch_j_root.transpose() +  R_g_pitch_j_root * local_inertia * partial_R_theta_j.transpose() * R_g_roll_j_root.transpose() + m * deInertiaCoGOffset(c, a * (c-r));
         d_cog_inertia_list.at(2 * j + 1) = R_g_roll_j * partial_R_theta_j * local_inertia * R_g_pitch_j.transpose() +  R_g_pitch_j * local_inertia * partial_R_theta_j.transpose() * R_g_roll_j.transpose() + kdlToEigen(cog.M).transpose() * (m * deInertiaCoGOffset(c, a * (c-r)) - robot_model->getMass() * deInertiaCoGOffset(cog.p, partial_cog_theta_j)) * kdlToEigen(cog.M);
 
         Eigen::Vector3d sum_partial_v_p_k_theta_j(0,0,0);
