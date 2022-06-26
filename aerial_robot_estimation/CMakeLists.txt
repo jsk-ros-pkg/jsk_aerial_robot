@@ -1,7 +1,7 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.0.2)
 project(aerial_robot_estimation)
 
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+add_compile_options(-std=c++14)
 
 find_package(catkin REQUIRED COMPONENTS
   aerial_robot_model
@@ -14,11 +14,9 @@ find_package(catkin REQUIRED COMPONENTS
   kalman_filter
   nav_msgs
   nodelet
-  roscpp
-  rospy
+  pluginlib
   sensor_msgs
   spinal
-  std_msgs
   tf
   tf_conversions
   jsk_recognition_msgs
@@ -33,7 +31,7 @@ generate_dynamic_reconfigure_options(
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES ${PROJECT_NAME} sensor_pluginlib
-  CATKIN_DEPENDS geodesy kalman_filter nodelet spinal tf tf_conversions
+  CATKIN_DEPENDS aerial_robot_model aerial_robot_msgs cv_bridge dynamic_reconfigure geodesy geographic_msgs geometry_msgs kalman_filter nav_msgs nodelet pluginlib sensor_msgs spinal tf tf_conversions jsk_recognition_msgs
 )
 
 include_directories(
@@ -43,7 +41,7 @@ include_directories(
 
 ### state estimation
 add_library(aerial_robot_estimation
-  src/state_estimation)
+  src/state_estimation.cpp)
 target_link_libraries(aerial_robot_estimation ${catkin_LIBRARIES})
 
 ### sensor plugins
@@ -66,7 +64,6 @@ target_link_libraries(kf_baro_bias_pluginlib ${catkin_LIBRARIES})
 add_dependencies(kf_baro_bias_pluginlib ${PROJECT_NAME}_gencfg)
 
 set(USE_GPU OFF)
-set(CMAKE_BUILD_TYPE Release)
 
 if(USE_GPU)
   add_definitions(-DUSE_GPU)
@@ -74,3 +71,15 @@ endif()
 
 add_library(optical_flow src/vision/optical_flow.cpp)
 target_link_libraries(optical_flow ${catkin_LIBRARIES})
+
+install(DIRECTORY include/${PROJECT_NAME}/
+  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION})
+
+install(TARGETS aerial_robot_estimation sensor_pluginlib kf_baro_bias_pluginlib optical_flow
+  DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+)
+
+install(DIRECTORY launch plugins config
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+  USE_SOURCE_PERMISSIONS
+)

@@ -16,6 +16,9 @@ import rosgraph
 from functools import partial
 from operator import add
 import xml.etree.ElementTree as ET
+import sys
+
+PYTHON_VERSION = sys.version_info[0]
 
 
 class ServoMonitor(Plugin):
@@ -53,7 +56,8 @@ class ServoMonitor(Plugin):
 
         self._widget = QWidget()
 
-        ui_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'ServoMonitor.ui')
+        rp = rospkg.RosPack()
+        ui_file = os.path.join(rp.get_path('spinal'), 'resource', 'servo_monitor.ui')
 
         loadUi(ui_file, self._widget)
 
@@ -135,8 +139,8 @@ class ServoMonitor(Plugin):
             rospy.logerr("No servo exists")
             return
         msg = ServoTorqueCmd()
-        msg.index = chr(servo_index)
-        msg.torque_enable = chr(enable)
+        msg.index = [servo_index]
+        msg.torque_enable = [enable]
         self.servo_torque_pub_.publish(msg)
 
     def servoOn(self):
@@ -151,8 +155,8 @@ class ServoMonitor(Plugin):
             rospy.logerr("No servo exists")
             return
         msg = ServoTorqueCmd()
-        msg.index = reduce(add, [chr(i) for i in range(servo_num)])
-        msg.torque_enable = reduce(add, [chr(enable)] * servo_num)
+        msg.index = list(range(servo_num))
+        msg.torque_enable = [enable] * servo_num
         self.servo_torque_pub_.publish(msg)
 
     def allServoOnButtonCallback(self):
@@ -180,8 +184,8 @@ class ServoMonitor(Plugin):
 
         #need to disable servo torque
         servo_trq_msg = ServoTorqueCmd()
-        servo_trq_msg.index = chr(servo_index)
-        servo_trq_msg.torque_enable = chr(0)
+        servo_trq_msg.index = [servo_index]
+        servo_trq_msg.torque_enable = [0]
         self.servo_torque_pub_.publish(servo_trq_msg)
         rospy.sleep(0.5)
 
@@ -191,7 +195,7 @@ class ServoMonitor(Plugin):
         try:
             res = self.set_board_config_client_(req)
             rospy.loginfo(bool(res.success))
-        except rospy.ServiceException, e:
+        except rospy.ServiceException as e:
             print("/set_board_config service call failed: %s"%e)
 
     def boardReboot(self):
@@ -210,7 +214,7 @@ class ServoMonitor(Plugin):
         try:
             res = self.set_board_config_client_(req)
             rospy.loginfo(bool(res.success))
-        except rospy.ServiceException, e:
+        except rospy.ServiceException as e:
             print("/set_board_config service call failed: %s"%e)
 
     def error2string(self, error):
@@ -244,7 +248,9 @@ class ServoMonitor(Plugin):
 
     def servoTorqueStatesCallback(self, msg):
         for i, s in enumerate(msg.torque_enable):
-            self._table_data[i][self._headers.index("torque")] = "on" if bool(ord(s)) else "off"
+            if PYTHON_VERSION == 2:
+                s = ord(s)
+            self._table_data[i][self._headers.index("torque")] = "on" if bool(s) else "off"
 
     def update(self):
         if not self._table_data:
@@ -295,5 +301,5 @@ class ServoMonitor(Plugin):
 
                     self._table_data.append(rowData)
 
-        except rospy.ServiceException, e:
+        except rospy.ServiceException as e:
             rospy.logerr("/get_board_info service call failed: %s"%e)

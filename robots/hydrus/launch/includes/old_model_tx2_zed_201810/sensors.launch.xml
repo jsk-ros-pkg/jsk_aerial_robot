@@ -10,7 +10,7 @@
     <group if="$(arg real_machine)">
       <group unless="$(arg simulation)">
         <!-- fc & IMU & GPS -->
-        <include file="$(find spinal_ros_bridge)/launch/serial.launch" >
+        <include file="$(find rosserial_server)/launch/serial.launch" >
           <arg name="baud" value="921600" />
           <arg name="port" value="/dev/flight_controller" />
         </include>

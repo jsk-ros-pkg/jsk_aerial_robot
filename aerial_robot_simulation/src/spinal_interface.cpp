@@ -42,6 +42,8 @@ namespace hardware_interface
   {
     joint_num_ = joint_num;
     spinal_state_estimator_.init(&nh);
+
+    return true;
   }
 
   void SpinalInterface::stateEstimate()
