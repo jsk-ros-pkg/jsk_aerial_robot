@@ -58,8 +58,8 @@ class InitPose(object):
                                            rospy.get_namespace() + 'robot_description',
                                            self.joint_names,
                                            self.init_angles)
-            except rospy.ServiceException, e:
-                print "Service call failed: %s"%e
+            except rospy.ServiceException as e:
+                print("Service call failed: %s"%e)
 
 
             if  max_diff_angle < self.angle_thresh:
@@ -68,8 +68,8 @@ class InitPose(object):
                     try:
                         clear_joint_torque = rospy.ServiceProxy('/gazebo/clear_joint_forces', JointRequest)
                         clear_joint_torque(j)
-                    except rospy.ServiceException, e:
-                        print "Service call failed: %s"%e
+                    except rospy.ServiceException as e:
+                        print("Service call failed: %s"%e)
 
                 break
 
