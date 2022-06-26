@@ -3,7 +3,7 @@
   ###########  launch config  ###########
   <arg name="real_machine" default="True" />
   <arg name="simulation" default="False" />
-  <arg name="full_vectoring_mode"  default= "false" />
+  <arg name="full_vectoring_mode"  default= "true" />
   <arg name="type" default="quad" />
   <arg name="onboards_model" default="euclid_201709" />
   <arg name="estimate_mode"  default= "1" />
