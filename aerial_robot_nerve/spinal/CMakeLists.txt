@@ -59,7 +59,7 @@ generate_messages(
   std_msgs
 )
 
-set(SPINAL_DIRS mcu_project/Jsk_Lib)
+set(SPINAL_DIRS mcu_project/lib/Jsk_Lib)
 
 catkin_package(
   INCLUDE_DIRS  ${SPINAL_DIRS}
@@ -88,6 +88,15 @@ add_library(spinal_flight_controller
 target_link_libraries(spinal_flight_controller ${catkin_LIBRARIES} spinal_math)
 add_dependencies(spinal_flight_controller ${PROJECT_NAME}_generate_messages_cpp)
 
+# generate ros_lib for STM32F7
+add_custom_target(${PROJECT_NAME}_generate_stm32f7_ros_lib ALL COMMAND ${CATKIN_DEVEL_PREFIX}/env.sh ${PYTHON_EXECUTABLE}  ${PROJECT_SOURCE_DIR}/scripts/make_libraries.py --save_path ${PROJECT_SOURCE_DIR}/mcu_project/boards/stm32F7 --support_rtos)
+add_dependencies(${PROJECT_NAME}_generate_stm32f7_ros_lib ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_generate_messages_cpp)
+
+# generate ros_lib for STM32H7
+add_custom_target(${PROJECT_NAME}_generate_stm32h7_ros_lib ALL COMMAND ${CATKIN_DEVEL_PREFIX}/env.sh ${PYTHON_EXECUTABLE}  ${PROJECT_SOURCE_DIR}/scripts/make_libraries.py --save_path ${PROJECT_SOURCE_DIR}/mcu_project/boards/stm32H7 --support_rtos --support_ethernet)
+add_dependencies(${PROJECT_NAME}_generate_stm32h7_ros_lib ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_generate_messages_cpp)
+
+
 install(DIRECTORY ${SPINAL_DIRS}
   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION})
 
@@ -97,7 +106,7 @@ install(DIRECTORY bin
   )
 
 
-install(DIRECTORY scripts resource
+install(DIRECTORY scripts resource launch
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
   USE_SOURCE_PERMISSIONS
   )

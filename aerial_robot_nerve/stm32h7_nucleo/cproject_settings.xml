@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cdtprojectproperties>
+<section name="org.eclipse.cdt.internal.ui.wizards.settingswizards.IncludePaths">
+<language name="s,S">
+
+</language>
+<language name="C Source File">
+<includepath>../Inc</includepath>
+<includepath>../Middlewares/Third_Party/LwIP/src/include</includepath>
+<includepath>../Middlewares/Third_Party/LwIP/system</includepath>
+<includepath>../Drivers/STM32H7xx_HAL_Driver/Inc</includepath>
+<includepath>../Drivers/STM32H7xx_HAL_Driver/Inc/Legacy</includepath>
+<includepath>../Drivers/BSP/Components/lan8742</includepath>
+<includepath>../Middlewares/Third_Party/LwIP/src/include/netif/ppp</includepath>
+<includepath>../Drivers/CMSIS/Device/ST/STM32H7xx/Include</includepath>
+<includepath>../Middlewares/Third_Party/LwIP/src/include/lwip</includepath>
+<includepath>../Middlewares/Third_Party/LwIP/src/include/lwip/apps</includepath>
+<includepath>../Middlewares/Third_Party/LwIP/src/include/lwip/priv</includepath>
+<includepath>../Middlewares/Third_Party/LwIP/src/include/lwip/prot</includepath>
+<includepath>../Middlewares/Third_Party/LwIP/src/include/netif</includepath>
+<includepath>../Middlewares/Third_Party/LwIP/src/include/compat/posix</includepath>
+<includepath>../Middlewares/Third_Party/LwIP/src/include/compat/posix/arpa</includepath>
+<includepath>../Middlewares/Third_Party/LwIP/src/include/compat/posix/net</includepath>
+<includepath>../Middlewares/Third_Party/LwIP/src/include/compat/posix/sys</includepath>
+<includepath>../Middlewares/Third_Party/LwIP/src/include/compat/stdc</includepath>
+<includepath>../Middlewares/Third_Party/LwIP/system/arch</includepath>
+<includepath>../Drivers/CMSIS/Include</includepath>
+<includepath>../ros_lib</includepath>
+<includepath>../Middlewares/Third_Party/LwIP/src/include/posix</includepath>
+<includepath>../Middlewares/Third_Party/LwIP/src/include/posix/sys</includepath>
+<includepath>../Middlewares/Third_Party/FreeRTOS/Source/include</includepath>
+<includepath>../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS</includepath>
+<includepath>../Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F</includepath>
+<includepath>../../spinal/mcu_project/Hydrus_Lib</includepath>
+<includepath>../Jsk_Lib</includepath>
+
+</language>
+<language name="C++ Source File">
+<includepath>../Inc</includepath>
+<includepath>../Middlewares/Third_Party/LwIP/src/include</includepath>
+<includepath>../Middlewares/Third_Party/LwIP/system</includepath>
+<includepath>../Drivers/STM32H7xx_HAL_Driver/Inc</includepath>
+<includepath>../Drivers/STM32H7xx_HAL_Driver/Inc/Legacy</includepath>
+<includepath>../Drivers/BSP/Components/lan8742</includepath>
+<includepath>../Middlewares/Third_Party/LwIP/src/include/netif/ppp</includepath>
+<includepath>../Drivers/CMSIS/Device/ST/STM32H7xx/Include</includepath>
+<includepath>../Middlewares/Third_Party/LwIP/src/include/lwip</includepath>
+<includepath>../Middlewares/Third_Party/LwIP/src/include/lwip/apps</includepath>
+<includepath>../Middlewares/Third_Party/LwIP/src/include/lwip/priv</includepath>
+<includepath>../Middlewares/Third_Party/LwIP/src/include/lwip/prot</includepath>
+<includepath>../Middlewares/Third_Party/LwIP/src/include/netif</includepath>
+<includepath>../Middlewares/Third_Party/LwIP/src/include/compat/posix</includepath>
+<includepath>../Middlewares/Third_Party/LwIP/src/include/compat/posix/arpa</includepath>
+<includepath>../Middlewares/Third_Party/LwIP/src/include/compat/posix/net</includepath>
+<includepath>../Middlewares/Third_Party/LwIP/src/include/compat/posix/sys</includepath>
+<includepath>../Middlewares/Third_Party/LwIP/src/include/compat/stdc</includepath>
+<includepath>../Middlewares/Third_Party/LwIP/system/arch</includepath>
+<includepath>../Drivers/CMSIS/Include</includepath>
+<includepath>../ros_lib</includepath>
+<includepath>../Middlewares/Third_Party/LwIP/src/include/posix</includepath>
+<includepath>../Middlewares/Third_Party/LwIP/src/include/posix/sys</includepath>
+<includepath>../Middlewares/Third_Party/FreeRTOS/Source/include</includepath>
+<includepath>../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS</includepath>
+<includepath>../Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F</includepath>
+<includepath>../../spinal/mcu_project/Hydrus_Lib</includepath>
+<includepath>../Jsk_Lib</includepath>
+
+</language>
+<language name="Object File">
+
+</language>
+</section>
+<section name="org.eclipse.cdt.internal.ui.wizards.settingswizards.Macros">
+<language name="s,S">
+
+</language>
+<language name="C Source File">
+<macro>
+<name>USE_HAL_DRIVER</name><value/>
+</macro>
+<macro>
+<name>STM32H743xx</name><value/>
+</macro>
+<macro>
+<name>DEBUG</name><value/>
+</macro>
+
+</language>
+<language name="C++ Source File">
+<macro>
+<name>USE_HAL_DRIVER</name><value/>
+</macro>
+<macro>
+<name>STM32H743xx</name><value/>
+</macro>
+<macro>
+<name>DEBUG</name><value/>
+</macro>
+
+</language>
+<language name="Object File">
+
+</language>
+</section>
+</cdtprojectproperties>

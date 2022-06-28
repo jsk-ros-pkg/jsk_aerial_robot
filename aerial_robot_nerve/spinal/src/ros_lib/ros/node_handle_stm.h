@@ -35,7 +35,7 @@
 #ifndef ROS_NODE_HANDLE_STM_H_
 #define ROS_NODE_HANDLE_STM_H_
 
-
+#include "STM32Hardware.h"
 #include "node_handle.h"
 
 namespace ros {
@@ -43,31 +43,38 @@ namespace ros {
 const int SPIN_UNAVAILABLE = -3;
 
   /* Node Handle */
-  template<class Hardware,
-           int MAX_SUBSCRIBERS=25,
+  template<int MAX_SUBSCRIBERS=25,
            int MAX_PUBLISHERS=25,
            int INPUT_SIZE=512,
            int OUTPUT_SIZE=512>
-  class NodeHandleStm_ : public NodeHandle_<Hardware,MAX_SUBSCRIBERS, MAX_PUBLISHERS, INPUT_SIZE, OUTPUT_SIZE>
+  class NodeHandleStm_ : public NodeHandle_<STM32Hardware,MAX_SUBSCRIBERS, MAX_PUBLISHERS, INPUT_SIZE, OUTPUT_SIZE>
   {
-	typedef NodeHandle_<Hardware, MAX_SUBSCRIBERS, MAX_PUBLISHERS, INPUT_SIZE, OUTPUT_SIZE> parent;
+    typedef NodeHandle_<STM32Hardware, MAX_SUBSCRIBERS, MAX_PUBLISHERS, INPUT_SIZE, OUTPUT_SIZE> parent;
 
   public:
 
-	NodeHandleStm_(): parent::NodeHandle_()
-	{
-	}
+    NodeHandleStm_(): parent::NodeHandle_()
+    {
+    }
 
     /* Start a named seiral port */
-    void initNode(typename Hardware::serial_class* port,
-                  typename Hardware::mutex_class* mutex = NULL,
-                  typename Hardware::semaphore_class* semaphore = NULL){
+#if SUPPORT_RTOS
+    void initNode(UART_HandleTypeDef* port,
+                  osMutexId* mutex,
+                  osSemaphoreId* semaphore){
+      parent::initNode();
       parent::hardware_.init(port, mutex, semaphore);
-      parent::mode_ = 0;
-      parent::bytes_ = 0;
-      parent::index_ = 0;
-      parent::topic_ = 0;
     };
+#endif
+
+    /* Start a UDP port */
+#if SUPPORT_LWIP
+    void initNode(ip4_addr_t dst_addr, uint16_t src_port, uint16_t dst_port)
+    {
+      parent::initNode();
+      parent::hardware_.init(dst_addr, src_port, dst_port);
+    }
+#endif
 
     /* This function goes in your loop() function, it handles
      *  serial tx data and ouput for publishers.
