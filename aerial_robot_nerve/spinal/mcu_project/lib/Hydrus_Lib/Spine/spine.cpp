@@ -176,8 +176,6 @@ namespace Spine
     if(gimbal_servo_num  == 2 * slave_num_)
       {
         uav_model_ = spinal::UavInfo::DRAGON;
-        /* special smoothing flag for dragon */
-        estimator_->getAttEstimator()->setPubAccGryoOnlyFlag(true);
       }
 
     servo_state_msg_.servos_length = servo_with_send_flag_.size();

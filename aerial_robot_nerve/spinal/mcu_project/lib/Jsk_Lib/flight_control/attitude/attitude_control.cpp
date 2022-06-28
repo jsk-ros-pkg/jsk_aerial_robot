@@ -703,13 +703,9 @@ void  AttitudeController::setUavModel(int8_t uav_model)
   /* check the uav model which has spine system */
   uav_model_ = uav_model;
 
-  if(uav_model_ == spinal::UavInfo::DRAGON)
-    {
-      rotor_devider_ = 2; // dual-rotor
-
-      estimator_->getAttEstimator()->setPubAccGryoOnlyFlag(true); // speical imu publish for dragon
-    }
-
+  if(uav_model_ == spinal::UavInfo::DRAGON) {
+    rotor_devider_ = 2; // dual-rotor
+  }
 }
 
 void AttitudeController::pMatrixInertiaCallback(const spinal::PMatrixPseudoInverseWithInertia& msg)
