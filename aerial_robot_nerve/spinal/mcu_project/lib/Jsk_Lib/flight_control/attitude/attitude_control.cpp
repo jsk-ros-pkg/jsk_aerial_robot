@@ -701,29 +701,15 @@ void AttitudeController::setMotorNumber(uint8_t motor_number)
 void  AttitudeController::setUavModel(int8_t uav_model)
 {
   /* check the uav model which has spine system */
-  if(uav_model_ != -1)
-    {
-      if(uav_model_ != uav_model)
-        {
-          uav_model_ = -1;
-#ifdef SIMULATION
-          ROS_ERROR("ATTENTION: UAV model is not set");
-#else
-          nh_->logerror("ATTENTION: UAV model is not set");
-#endif
-        }
-    }
-  else
-    {
-      uav_model_ = uav_model;
+  uav_model_ = uav_model;
 
-      if(uav_model_ == spinal::UavInfo::DRAGON)
-        {
-          rotor_devider_ = 2; // dual-rotor
+  if(uav_model_ == spinal::UavInfo::DRAGON)
+    {
+      rotor_devider_ = 2; // dual-rotor
 
-          estimator_->getAttEstimator()->setPubAccGryoOnlyFlag(true); // speical imu publish for dragon
-        }
+      estimator_->getAttEstimator()->setPubAccGryoOnlyFlag(true); // speical imu publish for dragon
     }
+
 }
 
 void AttitudeController::pMatrixInertiaCallback(const spinal::PMatrixPseudoInverseWithInertia& msg)
