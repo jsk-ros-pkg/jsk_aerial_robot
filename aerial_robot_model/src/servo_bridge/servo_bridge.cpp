@@ -181,11 +181,11 @@ ServoBridge::ServoBridge(ros::NodeHandle nh, ros::NodeHandle nhp): nh_(nh),nhp_(
 
 void ServoBridge::servoStatesCallback(const spinal::ServoStatesConstPtr& state_msg, const string& servo_group_name)
 {
-  if(state_msg->servos.size() != servos_handler_[servo_group_name].size())
-    {
-      ROS_ERROR("[servo bridge, servo state callback]: the joint num from rosparam %d is not equal with ros msgs %d", (int)servos_handler_[servo_group_name].size(), (int)state_msg->servos.size());
-      return;
-    }
+  // if(state_msg->servos.size() != servos_handler_[servo_group_name].size())
+  //   {
+  //     ROS_ERROR("[servo bridge, servo state callback]: the joint num from rosparam %d is not equal with ros msgs %d", (int)servos_handler_[servo_group_name].size(), (int)state_msg->servos.size());
+  //     return;
+  //   }
 
   for(auto it: state_msg->servos)
     {
@@ -195,8 +195,9 @@ void ServoBridge::servoStatesCallback(const spinal::ServoStatesConstPtr& state_m
 
       if(servo_handler == servos_handler_[servo_group_name].end())
         {
-          ROS_ERROR("[servo bridge, servo state callback]: no matching joint handler for servo index %d", it.index);
-          return;
+          // ROS_ERROR("[servo bridge, servo state callback]: no matching joint handler for servo index %d", it.index);
+          // return;
+          continue;
         }
       (*servo_handler)->setCurrAngleVal((double)it.angle, ValueType::BIT); // angle (position)
       (*servo_handler)->setCurrTorqueVal((double)it.load); // torque (effort)
