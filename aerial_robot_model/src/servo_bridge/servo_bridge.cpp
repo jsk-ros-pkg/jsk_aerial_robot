@@ -54,14 +54,61 @@ ServoBridge::ServoBridge(ros::NodeHandle nh, ros::NodeHandle nhp): nh_(nh),nhp_(
   if (!urdf_model.initParam("robot_description"))
     ROS_ERROR("Failed to extract urdf model from rosparam");
 
+  /* common param and topics (between servo_bridge and spinal_ros_bridge) */
+  ros::NodeHandle nh_controller(nh_, "servo_controller");
+  std::string state_sub_topic, ctrl_pub_topic, torque_pub_topic;
+  nh_controller.param("state_sub_topic", state_sub_topic, std::string("servo/states"));
+  nh_controller.param("ctrl_pub_topic", ctrl_pub_topic, std::string("servo/target_states"));
+  nh_controller.param("torque_pub_topic", torque_pub_topic, std::string("servo/torque_enable"));
+  /* common subsriber: get servo states (i.e. joint angles) from real machine (spinal_ros_bridge) */
+  servo_states_subs_.insert(make_pair("common", nh_.subscribe<spinal::ServoStates>(state_sub_topic, 10, boost::bind(&ServoBridge::servoStatesCallback, this, _1, "common"))));
+  /* common publisher: target servo state to real machine (spinal_ros_bridge) */
+  servo_ctrl_pubs_.insert(make_pair("common", nh_.advertise<spinal::ServoControlCmd>(ctrl_pub_topic, 1)));
+  /* common publisher: torque on/off command */
+  servo_torque_ctrl_pubs_.insert(make_pair("common", nh_.advertise<spinal::ServoTorqueCmd>(torque_pub_topic, 1)));
+
+
   /* get additional config for servos from ros parameters */
   XmlRpc::XmlRpcValue all_servos_params;
   nh_.getParam("servo_controller", all_servos_params);
 
   for(auto servo_group_params: all_servos_params)
     {
-      ROS_ASSERT(servo_group_params.second.getType() == XmlRpc::XmlRpcValue::TypeStruct);
+      if (servo_group_params.second.getType() != XmlRpc::XmlRpcValue::TypeStruct)
+        continue;
 
+      std::string group_name = servo_group_params.first;
+
+      /* check whether has feedback state from real machine */
+      no_real_state_flags_.insert(make_pair(group_name, false));
+      if(servo_group_params.second.hasMember("no_real_state"))
+        no_real_state_flags_.at(group_name) = servo_group_params.second["no_real_state"];
+
+      /* pub, sub, and srv */
+      /* mandatory subscriber: target servo state from controller */
+      servo_ctrl_subs_.insert(make_pair(group_name, nh_.subscribe<sensor_msgs::JointState>(group_name + string("_ctrl"), 10, boost::bind(&ServoBridge::servoCtrlCallback, this, _1, group_name))));
+      /* mandatory service: get torque enalbe/disable flag  */
+      servo_torque_ctrl_srvs_.insert(make_pair(group_name, nh_.advertiseService<std_srvs::SetBool::Request, std_srvs::SetBool::Response>(servo_group_params.first + string("/torque_enable"), boost::bind(&ServoBridge::servoTorqueCtrlCallback, this, _1, _2, servo_group_params.first))));
+
+      if(servo_group_params.second.hasMember("state_sub_topic"))
+        {
+          /* option: servo states (i.e. joint angles) from real machine (spinal_ros_bridge) */
+          servo_states_subs_.insert(make_pair(group_name, nh_.subscribe<spinal::ServoStates>((string)servo_group_params.second["state_sub_topic"], 10, boost::bind(&ServoBridge::servoStatesCallback, this, _1, servo_group_params.first))));
+        }
+
+      if(servo_group_params.second.hasMember("ctrl_pub_topic"))
+        {
+          /* option: publish target servo state to real machine (spinal_ros_bridge) */
+          servo_ctrl_pubs_.insert(make_pair(group_name, nh_.advertise<spinal::ServoControlCmd>(servo_group_params.second["ctrl_pub_topic"], 1)));
+        }
+
+      if(servo_group_params.second.hasMember("torque_pub_topic"))
+        {
+          /* option: torque on/off */
+          servo_torque_ctrl_pubs_.insert(make_pair(group_name, nh_.advertise<spinal::ServoTorqueCmd>((string)servo_group_params.second["torque_pub_topic"], 1)));
+        }
+
+      /* servo handler */
       ServoGroupHandler servo_group_handler;
       for(auto servo_params : servo_group_params.second)
         {
@@ -90,7 +137,7 @@ ServoBridge::ServoBridge(ros::NodeHandle nh, ros::NodeHandle nhp): nh_(nh),nhp_(
               double cutoff_freq = servo_group_params.second.hasMember("cutoff_freq")?
                 servo_group_params.second["cutoff_freq"]:(servo_params.second.hasMember("cutoff_freq")?servo_params.second["cutoff_freq"]: XmlRpc::XmlRpcValue(0.0));
 
-              servo_group_handler.push_back(SingleServoHandlePtr(new SingleServoHandle(servo_params.second["name"], servo_params.second["id"], angle_sgn, zero_point_offset, angle_scale, upper_limit, lower_limit, torque_scale, servo_group_params.second.hasMember("state_sub_topic"), filter_flag, sample_freq, cutoff_freq)));
+              servo_group_handler.push_back(SingleServoHandlePtr(new SingleServoHandle(servo_params.second["name"], servo_params.second["id"], angle_sgn, zero_point_offset, angle_scale, upper_limit, lower_limit, torque_scale, !no_real_state_flags_.at(group_name), filter_flag, sample_freq, cutoff_freq)));
 
               /* rosparam and load controller for gazebo */
               if(simulation_mode_)
@@ -157,23 +204,6 @@ ServoBridge::ServoBridge(ros::NodeHandle nh, ros::NodeHandle nhp): nh_(nh),nhp_(
         }
 
       servos_handler_.insert(make_pair(servo_group_params.first, servo_group_handler));
-
-      /* ros pub/sub, service */
-      /* Get servo states (i.e. joint angles) from real machine, if necessary */
-      if(servo_group_params.second.hasMember("state_sub_topic"))
-        servo_states_subs_.push_back(nh_.subscribe<spinal::ServoStates>((string)servo_group_params.second["state_sub_topic"], 10, boost::bind(&ServoBridge::servoStatesCallback, this, _1, servo_group_params.first)));
-
-      /* subscribe target servo state from controller */
-      servo_ctrl_subs_.push_back(nh_.subscribe<sensor_msgs::JointState>(servo_group_params.first + string("_ctrl"), 10, boost::bind(&ServoBridge::servoCtrlCallback, this, _1, servo_group_params.first)));
-      /* publish target servo state to real machine */
-      servo_ctrl_pubs_.insert(make_pair(servo_group_params.first, nh_.advertise<spinal::ServoControlCmd>(servo_group_params.second["ctrl_pub_topic"], 1)));
-
-      /* torque on/off */
-      if(servo_group_params.second.hasMember("torque_pub_topic"))
-        {
-          servo_torque_ctrl_srvs_.push_back(nh_.advertiseService<std_srvs::SetBool::Request, std_srvs::SetBool::Response>(servo_group_params.first + string("/torque_enable"), boost::bind(&ServoBridge::servoTorqueCtrlCallback, this, _1, _2, servo_group_params.first)));
-          servo_torque_ctrl_pubs_.insert(make_pair(servo_group_params.first, nh_.advertise<spinal::ServoTorqueCmd>((string)servo_group_params.second["torque_pub_topic"], 1)));
-        }
     }
 
   if(!simulation_mode_) servo_states_pub_ = nh_.advertise<sensor_msgs::JointState>("joint_states", 1);
@@ -181,26 +211,67 @@ ServoBridge::ServoBridge(ros::NodeHandle nh, ros::NodeHandle nhp): nh_(nh),nhp_(
 
 void ServoBridge::servoStatesCallback(const spinal::ServoStatesConstPtr& state_msg, const string& servo_group_name)
 {
-  if(state_msg->servos.size() != servos_handler_[servo_group_name].size())
+  /* independent group servo process without state publish */
+  if(servo_group_name != std::string("common"))
     {
-      ROS_ERROR("[servo bridge, servo state callback]: the joint num from rosparam %d is not equal with ros msgs %d", (int)servos_handler_[servo_group_name].size(), (int)state_msg->servos.size());
+      for(auto it: state_msg->servos)
+        {
+          auto servo_handler = find_if(servos_handler_[servo_group_name].begin(),
+                                       servos_handler_[servo_group_name].end(),
+                                       [&](SingleServoHandlePtr s) {return it.index == s->getId();} );
+
+          if(servo_handler == servos_handler_[servo_group_name].end())
+            {
+              ROS_ERROR("[servo bridge, servo state callback]: no matching joint handler for servo index %d", it.index);
+              return;
+            }
+          (*servo_handler)->setCurrAngleVal((double)it.angle, ValueType::BIT); // angle (position)
+          (*servo_handler)->setCurrTorqueVal((double)it.load); // torque (effort)
+        }
+
+      // finish process
       return;
     }
 
+
+  /* group of "common", search in all group */
   for(auto it: state_msg->servos)
     {
-      auto servo_handler = find_if(servos_handler_[servo_group_name].begin(),
-                                   servos_handler_[servo_group_name].end(),
-                                   [&](SingleServoHandlePtr s) {return it.index == s->getId();} );
-
-      if(servo_handler == servos_handler_[servo_group_name].end())
+      for(auto servo_group: servos_handler_)
         {
-          ROS_ERROR("[servo bridge, servo state callback]: no matching joint handler for servo index %d", it.index);
-          return;
+          // no real state from real machine, skip
+          if(no_real_state_flags_.at(servo_group.first))
+            {
+              ROS_DEBUG_STREAM(servo_group.first << ", no real state, skip");
+              continue;
+            }
+
+          // has independent servo state process
+          if(servo_states_subs_.find(servo_group.first) != servo_states_subs_.end())
+            {
+              ROS_DEBUG_STREAM(servo_group.first << ", do not process in common group, skip");
+              continue;
+            }
+
+          auto servo_handler = find_if(servos_handler_[servo_group.first].begin(),
+                                       servos_handler_[servo_group.first].end(),
+                                       [&](SingleServoHandlePtr s) {return it.index == s->getId();});
+
+          if(servo_handler == servos_handler_[servo_group.first].end())
+            {
+              // search in next servo group
+              continue;
+            }
+
+          (*servo_handler)->setCurrAngleVal((double)it.angle, ValueType::BIT); // angle (position)
+          (*servo_handler)->setCurrTorqueVal((double)it.load); // torque (effort)
+
+          ROS_DEBUG("servo index: %d, find in group %s", it.index, servo_group.first.c_str());
+
+          break; // search next servo state from real machine
         }
-      (*servo_handler)->setCurrAngleVal((double)it.angle, ValueType::BIT); // angle (position)
-      (*servo_handler)->setCurrTorqueVal((double)it.load); // torque (effort)
     }
+
 
   sensor_msgs::JointState servo_states_msg;
   servo_states_msg.header.stamp = state_msg->stamp;
@@ -282,19 +353,25 @@ void ServoBridge::servoCtrlCallback(const sensor_msgs::JointStateConstPtr& servo
         }
     }
 
-  servo_ctrl_pubs_[servo_group_name].publish(target_angle_msg);
+  if (servo_ctrl_pubs_.find(servo_group_name) != servo_ctrl_pubs_.end())
+    servo_ctrl_pubs_[servo_group_name].publish(target_angle_msg);
+  else
+    servo_ctrl_pubs_["common"].publish(target_angle_msg);
 }
 
 bool ServoBridge::servoTorqueCtrlCallback(std_srvs::SetBool::Request &req, std_srvs::SetBool::Response &res, const std::string& servo_group_name)
 {
-  spinal::ServoTorqueCmd torque_off_msg;
+  spinal::ServoTorqueCmd torque_msg;
   for(auto servo_handler: servos_handler_[servo_group_name])
     {
-      torque_off_msg.index.push_back(servo_handler->getId());
-      torque_off_msg.torque_enable.push_back(req.data);
+      torque_msg.index.push_back(servo_handler->getId());
+      torque_msg.torque_enable.push_back(req.data);
     }
 
-  servo_torque_ctrl_pubs_[servo_group_name].publish(torque_off_msg);
+  if (servo_torque_ctrl_pubs_.find(servo_group_name) != servo_torque_ctrl_pubs_.end())
+    servo_torque_ctrl_pubs_[servo_group_name].publish(torque_msg);
+  else
+    servo_torque_ctrl_pubs_["common"].publish(torque_msg);
 
   return true;
 }
