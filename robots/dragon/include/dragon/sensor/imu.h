@@ -36,6 +36,7 @@
 #pragma once
 
 #include <aerial_robot_estimation/sensor/imu.h>
+#include <geometry_msgs/Vector3Stamped.h>
 
 using namespace Eigen;
 using namespace std;
@@ -84,6 +85,9 @@ namespace sensor_plugin
     boost::mutex vel_mutex_;
     tf::Vector3 filtered_vel_cog_;
     tf::Vector3 filtered_omega_cog_;
+    IirFilter lpf_omega_; // for gyro
+
+    ros::Publisher omega_filter_pub_; // debug
   };
 };
 
