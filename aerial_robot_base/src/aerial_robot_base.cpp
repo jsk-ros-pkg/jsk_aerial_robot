@@ -76,6 +76,15 @@ AerialRobotBase::AerialRobotBase(ros::NodeHandle nh, ros::NodeHandle nh_private)
 
 }
 
+AerialRobotBase::~AerialRobotBase()
+{
+  // stop manually to avoid following error (message)
+  // terminate called after throwing an instance of 'boost::exception_detail::clone_impl<boost::exception_detail::error_info_injector<boost::lock_error> >'
+  // what():  boost: mutex lock failed in pthread_mutex_lock: Invalid argument
+  main_timer_.stop();
+  main_loop_spinner_.stop();
+}
+
 void AerialRobotBase::mainFunc(const ros::TimerEvent & e)
 {
   navigator_->update();
