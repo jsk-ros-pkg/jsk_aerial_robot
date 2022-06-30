@@ -14,7 +14,7 @@ class AerialRobotBase
 {
  public:
   AerialRobotBase(ros::NodeHandle nh, ros::NodeHandle nh_private);
-  ~AerialRobotBase() {};
+  ~AerialRobotBase();
 
   void mainFunc(const ros::TimerEvent & e);
 
