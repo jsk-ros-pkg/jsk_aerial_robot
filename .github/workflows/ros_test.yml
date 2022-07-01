@@ -3,8 +3,9 @@ on: [push, pull_request]
 jobs:
   ci:
     runs-on: ubuntu-latest
-    name: ci
+    name: ros_build_test
     strategy:
+      fail-fast: false
       matrix:
         include:
           - ROS_DISTRO : kinetic
