@@ -2,8 +2,8 @@
 Changelog for package spinal
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.3.1 (2022-07-02)
+------------------
 * [Spinal] Improve the process of servo bridge (`#499 <https://github.com/jsk-ros-pkg/aerial_robot/issues/499>`_)
 * [DRAGON] add IIR LPF for IMU gyro data (`#514 <https://github.com/jsk-ros-pkg/aerial_robot/issues/514>`_)
 * [Spinal] simplify the model assignment process in spinal (`#498 <https://github.com/jsk-ros-pkg/aerial_robot/issues/498>`_)
