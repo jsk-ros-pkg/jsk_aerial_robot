@@ -5,6 +5,7 @@
   <arg name="sim" default="False"/>
   <arg name="real_machine" default="$(arg rm)"/>
   <arg name="simulation" default="$(arg sim)"/>
+  <arg name="full_vectoring_mode"  default= "false" />
   <arg name="type" default="octo"/>
   <arg name="onboards_model" default="v1_default"/>
   <arg name="estimate_mode" default="0"/>
@@ -20,7 +21,7 @@
   <arg name="spawn_yaw" default="0.0"/>
   <arg name="robot_id" default=""/>
   <arg name="robot_ns" value="tiger$(arg robot_id)"/>
-  <arg name="config_dir" default="$(find tiger)/config/$(arg type)/$(arg onboards_model)"/>
+  <arg name="config_dir" default="$(find tiger)/config/$(arg type)"/>
 
   ###########  Parameters  ###########
   <group ns="$(arg robot_ns)">
@@ -34,7 +35,9 @@
 
     ###########  UAV Config  ###########
     <param name="uav_model" value= "32" /> <!-- TODO temp: dragon control -->
-    <rosparam file="$(arg config_dir)/RobotModel.yaml" command="load"/>
+    <rosparam file="$(arg config_dir)/model/FullVectoringRobotModel.yaml" command="load" if="$(arg full_vectoring_mode)" />
+    <rosparam file="$(arg config_dir)/model/HydrusLikeRobotModel.yaml" command="load" unless="$(arg full_vectoring_mode)" />
+
 
     ###########  Motor Config  ###########
     <rosparam file="$(arg config_dir)/MotorInfo.yaml" command="load"/>
@@ -46,7 +49,9 @@
     <rosparam file="$(arg config_dir)/Battery.yaml" command="load"/>
 
     ###########  Control  ###########
-    <rosparam file="$(arg config_dir)/FlightControl.yaml" command="load"/>
+    <rosparam file="$(arg config_dir)/control/FullVectoringControlConfig.yaml" command="load" if="$(arg full_vectoring_mode)"/>
+    <param name = "controller/rotor_interfere_compensate" value = "false" if = "$(eval not arg('real_machine') and arg('simulation'))" /> <!-- ignore rotor interfer compensate in simulation mode -->
+    <rosparam file="$(arg config_dir)/control/LQIGimbalControlConfig.yaml" command="load" unless="$(arg full_vectoring_mode)"/>
 
     ###########  Sensor Fusion  ###########
     <rosparam file="$(arg config_dir)/StateEstimation.yaml" command="load"/>

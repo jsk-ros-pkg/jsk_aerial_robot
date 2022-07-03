@@ -1,16 +1,16 @@
 servo_controller:
+  state_sub_topic: servo/states
+  ctrl_pub_topic: servo/target_states
+  torque_pub_topic: servo/torque_enable
+
   joints:
-    state_sub_topic: servo/states
-    ctrl_pub_topic: servo/target_states
-    torque_pub_topic: servo/torque_enable
+    angle_sgn: 1
     angle_scale: 0.00076699
     zero_point_offset: 2047
     torque_scale: 1.0 # TODO please update the scale
 
     # for low pass filter
     filter_flag: false
-    sample_freq: 50.0 # 50Hz
-    cutoff_freq: 10.0 # 10Hz, test
 
     # for simulation
     simulation:
@@ -84,8 +84,7 @@ servo_controller:
       angle_sgn: -1
 
   gimbals:
-    ctrl_pub_topic: servo/target_states
-    torque_pub_topic: servo/torque_enable
+
     angle_sgn: -1
     zero_point_offset: 2047
 
