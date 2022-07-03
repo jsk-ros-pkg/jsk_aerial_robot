@@ -54,7 +54,7 @@ void DragonFullVectoringController::initialize(ros::NodeHandle nh, ros::NodeHand
                                           });
 }
 
-void DragonFullVectoringController::rotorInterfereCompensation()
+void DragonFullVectoringController::rotorInterfereEstimate()
 {
   //rotor interference compensation based on previous robot model
   overlap_positions_.clear();
@@ -464,6 +464,44 @@ void DragonFullVectoringController::rotorInterfereCompensation()
     }
 
   interfrence_marker_pub_.publish(interference_marker_msg);
+
+  if(overlap_rotors_.size() > 0)
+    {
+      std::stringstream ss;
+      for(int i = 0; i < overlap_rotors_.size(); i++)
+        ss << overlap_rotors_.at(i) << " -> " << overlap_segments_.at(i) << "; ";
+      ROS_DEBUG_STREAM("rotor interference: " << ss.str());
+    }
+}
+
+void DragonFullVectoringController::rotorInterfereCompensate(Eigen::VectorXd& target_wrench_acc)
+{
+  double mass_inv =  1 / robot_model_->getMass();
+  Eigen::Matrix3d inertia_inv = robot_model_->getInertia<Eigen::Matrix3d>().inverse();
+
+  Eigen::VectorXd rotor_interfere_comp_acc = Eigen::VectorXd::Zero(6);
+  rotor_interfere_comp_acc(2) = mass_inv * rotor_interfere_comp_wrench_(2);
+
+  bool torque_comp = false;
+  if(overlap_positions_.size() == 1)
+    {
+      ROS_INFO_STREAM("compsensate the torque resulted from rotor interference: " << overlap_rotors_.at(0) << " to " << overlap_segments_.at(0));
+      torque_comp = true;
+    }
+
+  if(overlap_positions_.size() == 2)
+    {
+      if(overlap_rotors_.at(0).substr(0, 6) == overlap_rotors_.at(1).substr(0, 6))
+        {
+          ROS_INFO_STREAM("do rotor interference torque compensation: " << overlap_rotors_.at(0) << " and " << overlap_rotors_.at(1));
+          torque_comp = true;
+        }
+    }
+
+  if(torque_comp)
+    rotor_interfere_comp_acc.tail(3) = inertia_inv * rotor_interfere_comp_wrench_.tail(3);
+
+  target_wrench_acc += rotor_interfere_comp_acc;
 }
 
 void DragonFullVectoringController::controlCore()
@@ -508,39 +546,9 @@ void DragonFullVectoringController::controlCore()
   Eigen::Matrix3d inertia_inv = robot_model_->getInertia<Eigen::Matrix3d>().inverse();
   double mass_inv =  1 / robot_model_->getMass();
 
-  // rotor interference compensation
-  rotorInterfereCompensation();
-
-  Eigen::VectorXd rotor_interfere_comp_acc = Eigen::VectorXd::Zero(6);
-  rotor_interfere_comp_acc(2) = mass_inv * rotor_interfere_comp_wrench_(2);
-
-  bool torque_comp = false;
-  if(overlap_positions_.size() == 1)
-    {
-      ROS_INFO_STREAM("compsensate the torque resulted from rotor interference: " << overlap_rotors_.at(0) << " to " << overlap_segments_.at(0));
-      torque_comp = true;
-    }
-
-  if(overlap_positions_.size() == 2)
-    {
-      if(overlap_rotors_.at(0).substr(0, 6) == overlap_rotors_.at(1).substr(0, 6))
-        {
-          ROS_INFO_STREAM("do rotor interference torque compensation: " << overlap_rotors_.at(0) << " and " << overlap_rotors_.at(1));
-          torque_comp = true;
-        }
-    }
-
-  if(torque_comp)
-    {
-      rotor_interfere_comp_acc.tail(3) = inertia_inv * rotor_interfere_comp_wrench_.tail(3);
-    }
-
-  if(rotor_interfere_compensate_) // TODO move this scope
-    target_wrench_acc_cog += rotor_interfere_comp_acc;
-
-  std::stringstream ss;
-  for(int i = 0; i < overlap_rotors_.size(); i++) ss << overlap_rotors_.at(i) << " -> " << overlap_segments_.at(i) << "; ";
-  if(overlap_rotors_.size() > 0) ROS_DEBUG_STREAM("rotor interference: " << ss.str());
+  // rotor interference
+  if(rotor_interfere_estimate_) rotorInterfereEstimate();
+  if(rotor_interfere_compensate_) rotorInterfereCompensate(target_wrench_acc_cog);
 
   setTargetWrenchAccCog(target_wrench_acc_cog);
 
@@ -903,7 +911,10 @@ void DragonFullVectoringController::rosParamInit()
   momentum_observer_matrix_.topRows(3) *= force_weight;
   momentum_observer_matrix_.bottomRows(3) *= torque_weight;
 
+  getParam<bool>(control_nh, "rotor_interfere_estimate", rotor_interfere_estimate_, true);
   getParam<bool>(control_nh, "rotor_interfere_compensate", rotor_interfere_compensate_, true);
+  if(rotor_interfere_compensate_) rotor_interfere_estimate_ = true;
+
   getParam<double>(control_nh, "external_wrench_lpf_rate", wrench_lpf_rate_, 0.5);
   getParam<double>(control_nh, "external_fz_bias_thresh", fz_bias_thresh_, 1.0);
   getParam<double>(control_nh, "rotor_interfere_comp_wrench_lpf_rate", comp_wrench_lpf_rate_, 0.5);

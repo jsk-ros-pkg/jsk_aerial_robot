@@ -93,6 +93,7 @@ namespace aerial_robot_control
     Eigen::VectorXd integrate_term_;
     double prev_est_wrench_timestamp_;
 
+    bool rotor_interfere_estimate_;
     bool rotor_interfere_compensate_;
     double fz_bias_;
     double tx_bias_;
@@ -128,7 +129,8 @@ namespace aerial_robot_control
     }
 
     void controlCore() override;
-    void rotorInterfereCompensation();
+    void rotorInterfereEstimate();
+    void rotorInterfereCompensate(Eigen::VectorXd& target_wrench_acc);
     void rosParamInit();
     void sendCmd();
   };
