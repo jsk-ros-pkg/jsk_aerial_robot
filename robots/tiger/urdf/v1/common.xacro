@@ -14,6 +14,7 @@
   <!-- dynamics -->
   <xacro:property name="max_force" value="36"/> ### [N]
   <xacro:property name="max_joint_torque" value="6.6"/>  ### [N]
+  <xacro:property name="max_joint_vel" value="0.1"/>  ### [N]
 
   <baselink name="fc" />
   <thrust_link name="thrust" />
