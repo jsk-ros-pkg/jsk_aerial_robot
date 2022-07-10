@@ -99,7 +99,7 @@ class ServoMonitor(Plugin):
             param_tree = rospy.get_param(robot_ns + "/servo_controller")
 
             for key in param_tree.keys():
-                if 'angle_scale' in param_tree[key]:
+                if isinstance(param_tree[key], dict):
                     for elem in [l for l in param_tree[key].keys() if 'controller' in l]:
                         self.joint_id_name_map[param_tree[key][elem]['id']] = param_tree[key][elem]['name']
         except:
