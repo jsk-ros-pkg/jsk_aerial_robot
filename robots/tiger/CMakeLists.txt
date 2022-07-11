@@ -20,6 +20,8 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
 )
 
+find_package(NLopt REQUIRED)
+
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 
@@ -110,8 +112,8 @@ find_package(catkin REQUIRED COMPONENTS
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES tiger
+  INCLUDE_DIRS include
+  LIBRARIES tiger_robot_model
 #  CATKIN_DEPENDS aerial_robot_base aerial_robot_model aerial_robot_msgs aerial_robot_simulation dragon roscpp sensor_msgs spinal std_msgs
 #  DEPENDS system_lib
 )
@@ -123,8 +125,9 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
-# include
+  include
   ${catkin_INCLUDE_DIRS}
+  x${NLOPT_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
@@ -198,6 +201,12 @@ include_directories(
 #   # myfile2
 #   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 # )
+
+add_library(tiger_robot_model
+  src/model/hydrus_like_robot_model.cpp
+  src/model/full_vectoring_robot_model.cpp)
+target_link_libraries(tiger_robot_model ${catkin_LIBRARIES} ${NLOPT_LIBRARIES})
+
 
 #############
 ## Testing ##

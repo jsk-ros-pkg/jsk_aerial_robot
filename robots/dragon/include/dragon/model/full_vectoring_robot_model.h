@@ -119,7 +119,6 @@ namespace Dragon
 
     //private functions
     void getParamFromRos();
-    void updateRobotModelImpl(const KDL::JntArray& joint_positions) override;
 
     /* gimbal roll angle optimization problem */
     std::vector<double>  calcBestLockGimbalRoll(const std::vector<int>& gimbal_roll_lock, const std::vector<int>& prev_gimbal_roll_lock, const std::vector<double>& prev_opt_locked_roll_angles);
@@ -127,6 +126,9 @@ namespace Dragon
     void calcStaticThrust() override;
     void calcFeasibleControlFDists() {}; // do nothing
     void calcFeasibleControlTDists() {}; // do nothing
+
+  protected:
+    virtual void updateRobotModelImpl(const KDL::JntArray& joint_positions) override;
   };
 
   template<> inline std::vector<KDL::Vector> FullVectoringRobotModel::getGimbalRollOriginFromCog() const

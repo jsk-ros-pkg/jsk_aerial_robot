@@ -173,7 +173,7 @@ namespace Dragon
 
     void setCompThrustJacobian(const Eigen::MatrixXd comp_thrust_jacobian) { comp_thrust_jacobian_ = comp_thrust_jacobian; }
 
-    void updateRobotModelImpl(const KDL::JntArray& joint_positions) override;
+    virtual void updateRobotModelImpl(const KDL::JntArray& joint_positions) override;
   };
 
 template<> inline KDL::JntArray HydrusLikeRobotModel::getGimbalProcessedJoint()

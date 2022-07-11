@@ -78,11 +78,9 @@
   <exec_depend>spinal</exec_depend>
   <exec_depend>std_msgs</exec_depend>
   <exec_depend>aerial_robot_control</exec_depend>
+  <exec_depend>pluginlib</exec_depend>
 
-
-  <!-- The export tag contains other, unspecified, tags -->
   <export>
-    <!-- Other tools can request additional information be placed here -->
-
+    <aerial_robot_model plugin="${prefix}/plugins/robot_model_plugins.xml"/>
   </export>
 </package>
