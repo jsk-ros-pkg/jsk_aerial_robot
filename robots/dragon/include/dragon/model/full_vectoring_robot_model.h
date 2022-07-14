@@ -117,6 +117,8 @@ namespace Dragon
     std::vector<Eigen::Vector3d> overlap_positions_;
     std::vector<double> overlap_magnitudes_;
 
+    double thrust_force_weight_, joint_torque_weight_;
+
     //private functions
     void getParamFromRos();
 

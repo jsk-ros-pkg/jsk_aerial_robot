@@ -106,6 +106,9 @@ void FullVectoringRobotModel::getParamFromRos()
   nh.param("gimbal_roll_change_threshold", gimbal_roll_change_threshold_, 0.02); // rad/s
   nh.param("min_force_weight", min_force_weight_, 1.0);
   nh.param("min_torque_weight", min_torque_weight_, 1.0);
+
+  nh.param("thrust_force_weight", thrust_force_weight_, 1.0);
+  nh.param("joint_torque_weight", joint_torque_weight_, 1.0);
 }
 
 void FullVectoringRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_positions)
@@ -317,11 +320,59 @@ void FullVectoringRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_po
 
   /* 5.2. convergence  */
   double t = ros::Time::now().toSec();
+
+  // for considering joint torque
+  robot_model_for_plan_->calcBasicKinematicsJacobian(); // for get joint torque
+  const auto& thrust_coord_jacobians = robot_model_for_plan_->getThrustCoordJacobians();
+  const int joint_num = robot_model_for_plan_->getJointNum();
+  const int link_joint_num = robot_model_for_plan_->getLinkJointIndices().size();
+  const int rotor_num = robot_model_for_plan_->getRotorNum();
+  const int f_ndof = 3 * getRotorNum() - gimbal_lock_num;
+
+  Eigen::MatrixXd A1_all = Eigen::MatrixXd::Zero(joint_num, f_ndof);
+  int cnt = 0;
+  for (int i = 0; i < rotor_num; i++) {
+    Eigen::MatrixXd a = -thrust_coord_jacobians.at(i).topRows(3).rightCols(joint_num).transpose();
+    Eigen::MatrixXd r = aerial_robot_model::kdlToEigen(links_rotation_from_cog.at(i));
+    if(roll_locked_gimbal.at(i) == 0) { /* 3DoF */
+      // describe force w.r.t. local (link) frame
+      A1_all.middleCols(cnt, 3) = a * r;
+      cnt += 3;
+    }
+    else { /* gimbal lock: 2Dof */
+      // describe force w.r.t. local (link) frame
+      Eigen::MatrixXd mask(3,2);
+      mask << 1, 0, 0, 0, 0, 1;
+      Eigen::MatrixXd r_dash = aerial_robot_model::kdlToEigen(KDL::Rotation::RPY(gimbal_nominal_angles_curr.at(i * 2), 0, 0));
+      A1_all.middleCols(cnt, 2) = a * r * r_dash * mask;
+      cnt += 2;
+    }
+  }
+  Eigen::VectorXd b1_all = Eigen::VectorXd::Zero(joint_num);
+  for(const auto& inertia : robot_model_for_plan_->getInertiaMap()) {
+    Eigen::MatrixXd cog_coord_jacobian = robot_model_for_plan_->getJacobian(gimbal_processed_joint, inertia.first, inertia.second.getCOG());
+    b1_all -= cog_coord_jacobian.rightCols(joint_num).transpose() * inertia.second.getMass() * (-getGravity());
+  }
+
+  // only consider link joint
+  Eigen::MatrixXd A1 = Eigen::MatrixXd::Zero(link_joint_num, f_ndof);
+  Eigen::VectorXd b1 = Eigen::VectorXd::Zero(link_joint_num);
+  cnt = 0;
+  for(int i = 0; i < joint_num; i++) {
+    if(robot_model_for_plan_->getJointNames().at(i) == robot_model_for_plan_->getLinkJointNames().at(cnt))
+      {
+        A1.row(cnt) = A1_all.row(i);
+        b1(cnt) = b1_all(i);
+        cnt++;
+      }
+    if(cnt == link_joint_num) break;
+  }
+
   for(int j = 0; j < robot_model_refine_max_iteration_; j++)
     {
       /* 5.2.1. update the wrench allocation matrix  */
       std::vector<Eigen::Vector3d> rotors_origin_from_cog = robot_model_for_plan_->getRotorsOriginFromCog<Eigen::Vector3d>();
-      Eigen::MatrixXd full_q_mat = Eigen::MatrixXd::Zero(6, 3 * getRotorNum() - gimbal_lock_num);
+      Eigen::MatrixXd full_q_mat = Eigen::MatrixXd::Zero(6, f_ndof);
       Eigen::MatrixXd wrench_map = Eigen::MatrixXd::Zero(6, 3);
       wrench_map.block(0, 0, 3, 3) = Eigen::MatrixXd::Identity(3, 3);
       Eigen::MatrixXd mask(3,2);
@@ -346,7 +397,69 @@ void FullVectoringRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_po
         }
 
       /* 5.2.2. update the vectoring force for hovering and the gimbal angles */
-      Eigen::VectorXd hover_vectoring_f = aerial_robot_model::pseudoinverse(full_q_mat) * getGravity() * robot_model_for_plan_->getMass();
+      //Eigen::VectorXd hover_vectoring_f = aerial_robot_model::pseudoinverse(full_q_mat) * getGravity() * robot_model_for_plan_->getMass();
+
+      // consider joint torque
+#if 0
+      // update the joint due to the gravity every iteration because of the slight change in gimbal angles
+      robot_model_for_plan_->calcBasicKinematicsJacobian();
+      A1_all = Eigen::MatrixXd::Zero(joint_num, f_ndof);
+      cnt = 0;
+      for (int i = 0; i < rotor_num; i++) {
+        Eigen::MatrixXd a = -thrust_coord_jacobians.at(i).topRows(3).rightCols(joint_num).transpose();
+        Eigen::MatrixXd r = aerial_robot_model::kdlToEigen(links_rotation_from_cog.at(i));
+        if(roll_locked_gimbal.at(i) == 0) { /* 3DoF */
+          // describe force w.r.t. local (link) frame
+          A1_all.middleCols(cnt, 3) = a * r;
+          cnt += 3;
+        }
+        else { /* gimbal lock: 2Dof */
+          // describe force w.r.t. local (link) frame
+          Eigen::MatrixXd r_dash = aerial_robot_model::kdlToEigen(KDL::Rotation::RPY(gimbal_nominal_angles_curr.at(i * 2), 0, 0));
+          A1_all.middleCols(cnt, 2) = a * r * r_dash * mask;
+          cnt += 2;
+        }
+      }
+
+      b1_all = Eigen::VectorXd::Zero(joint_num);
+      for(const auto& inertia : robot_model_for_plan_->getInertiaMap()) {
+        Eigen::MatrixXd cog_coord_jacobian = robot_model_for_plan_->getJacobian(gimbal_processed_joint, inertia.first, inertia.second.getCOG());
+        b1_all -= cog_coord_jacobian.rightCols(joint_num).transpose() * inertia.second.getMass() * (-getGravity());
+        // auto t = cog_coord_jacobian.rightCols(joint_num).transpose() * inertia.second.getMass() * (-getGravity());
+        // ROS_INFO_STREAM("segment: " << inertia.first << "; cog torque: " << t.head(10).transpose());
+      }
+
+      // only consider link joint
+      A1 = Eigen::MatrixXd::Zero(link_joint_num, f_ndof);
+      b1 = Eigen::VectorXd::Zero(link_joint_num);
+      cnt = 0;
+      for(int i = 0; i < joint_num; i++) {
+        if(robot_model_for_plan_->getJointNames().at(i) == robot_model_for_plan_->getLinkJointNames().at(cnt))
+          {
+            A1.row(cnt) = A1_all.row(i);
+            b1(cnt) = b1_all(i);
+            cnt++;
+          }
+        if(cnt == link_joint_num) break;
+      }
+#endif
+
+      Eigen::VectorXd b2 = -getGravity() * robot_model_for_plan_->getMass();
+      Eigen::MatrixXd A2 = full_q_mat;
+
+      Eigen::MatrixXd W1 = thrust_force_weight_ * Eigen::MatrixXd::Identity(full_q_mat.cols(), full_q_mat.cols());
+      Eigen::MatrixXd W2 = joint_torque_weight_ * Eigen::MatrixXd::Identity(joint_num, joint_num);
+      Eigen::MatrixXd Psi = (W1 + A1.transpose() * W2 * A1).inverse();
+
+      Eigen::MatrixXd C = Psi * A2.transpose() * (A2 * Psi * A2.transpose()).inverse();
+      Eigen::MatrixXd E = Eigen::MatrixXd::Identity(full_q_mat.cols(), full_q_mat.cols());
+      Eigen::VectorXd hover_vectoring_f = - C * b2 - (E - C * A2) * Psi * A1.transpose() * W2 * b1;
+
+      ROS_INFO_STREAM_THROTTLE(1.0, "hovering thrust raw is: " << hover_vectoring_f.transpose());
+      ROS_INFO_STREAM_THROTTLE(1.0, "total static wrench is: " << (A2 * hover_vectoring_f + b2).transpose());
+      ROS_INFO_STREAM_THROTTLE(1.0, "total static joint torque is: " << (A1 * hover_vectoring_f + b1).transpose());
+
+
       Eigen::VectorXd static_thrust = Eigen::VectorXd::Zero(getRotorNum());
       if(debug_verbose_) ROS_DEBUG_STREAM("vectoring force for hovering in iteration "<< j+1 << ": " << hover_vectoring_f.transpose());
       last_col = 0;
@@ -415,7 +528,6 @@ void FullVectoringRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_po
                   col += 2;
                 }
             }
-
           break;
         }
 
@@ -724,14 +836,16 @@ void FullVectoringRobotModel::calcJointTorque(const bool update_jacobian)
     {
       cog_coord_jacobians.push_back(RobotModel::getJacobian(joint_positions, inertia.first, inertia.second.getCOG()));
       joint_torque -= cog_coord_jacobians.back().rightCols(joint_num).transpose() * inertia.second.getMass() * (-getGravity());
+      // auto t = cog_coord_jacobians.back().rightCols(joint_num).transpose() * inertia.second.getMass() * (-getGravity());
+      // ROS_INFO_STREAM("segment: " << inertia.first << "; cog torque: " << t.head(10).transpose());
     }
   setCOGCoordJacobians(cog_coord_jacobians); // TODO: should not update jacobian here
 
+  // ROS_INFO_STREAM_THROTTLE(1.0, "cog joint torque: " << joint_torque.transpose());
+
   // thrust
   for (int i = 0; i < rotor_num; ++i) {
-    Eigen::VectorXd wrench = Eigen::VectorXd::Zero(6);
-    wrench.head(3) = hover_vectoring_f_.segment(3 * i, 3);
-    joint_torque -= thrust_coord_jacobians.at(i).rightCols(joint_num).transpose() * wrench;
+    joint_torque -= thrust_coord_jacobians.at(i).topRows(3).rightCols(joint_num).transpose() * hover_vectoring_f_.segment(3 * i, 3);
   }
 
   setJointTorque(joint_torque);

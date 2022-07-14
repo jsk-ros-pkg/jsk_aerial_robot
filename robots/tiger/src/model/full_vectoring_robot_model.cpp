@@ -49,6 +49,7 @@ void FullVectoringRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_po
 
   calcJointTorque(true);
   const auto& joint_torque = getJointTorque();
+  ROS_INFO_STREAM_THROTTLE(1.0, "hovering thrust is: " << getHoverVectoringF().transpose());
   ROS_INFO_THROTTLE(1.0, "joint static torque for Limb1 is: [%f, %f, %f, %f]", joint_torque(0), joint_torque(1), joint_torque(4), joint_torque(5));
 }
 

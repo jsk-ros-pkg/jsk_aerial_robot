@@ -16,3 +16,6 @@ min_force_weight: 1.0
 min_torque_weight: 1.0
 
 edf_max_tilt: 0.05
+
+thrust_force_weight: 1.0
+joint_torque_weight: 0.0 # no consideration about joint torque
