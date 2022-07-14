@@ -6,7 +6,8 @@
 .LSOverride
 
 # Icon must end with two \r
-Icon
+Icon
+
 
 # Thumbnails
 ._*
@@ -102,3 +103,6 @@ tags
 
 # python
 *.pyc
+
+# vscode
+.vscode
