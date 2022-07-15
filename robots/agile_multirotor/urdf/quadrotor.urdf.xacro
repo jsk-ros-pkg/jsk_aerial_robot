@@ -132,8 +132,9 @@
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
+      <!-- real quadrotor's size -->
       <geometry>
-        <box size="0.3525 0.26 0.092" />
+        <sphere radius="0.47"/>
       </geometry>
     </collision>
   </link>

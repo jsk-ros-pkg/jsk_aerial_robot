@@ -39,18 +39,23 @@
     </include>
 
     <!-- Obstacle1 -->
+    <!-- set model name to show the difference of tree -->
+    <model name="sub_target_tree1" >
     <include>
       <uri>model://cylinder1</uri>
       <pose>1 0 1 0 0 0</pose>
       <static>true</static>
     </include>
+    </model>
 
     <!-- Obstacle2 -->
+    <model name="sub_target_tree2" >
     <include>
       <uri>model://cylinder1</uri>
       <pose>1 1 1 0 0 0</pose>
       <static>true</static>
     </include>
+    </model>
     
   </world>
 </sdf>
