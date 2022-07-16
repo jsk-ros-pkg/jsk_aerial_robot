@@ -18,6 +18,8 @@ add_message_files(FILES
   Acc.msg
   WrenchAllocationMatrix.msg
   FeasibleControlConvexInfo.msg
+  Obstacle.msg
+  ObstacleArray.msg
 )
 
 ## Generate added messages and services
