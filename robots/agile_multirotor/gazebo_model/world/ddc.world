@@ -43,7 +43,7 @@
     <model name="sub_target_tree1" >
     <include>
       <uri>model://cylinder1</uri>
-      <pose>1 0 1 0 0 0</pose>
+      <pose>2 0 1 0 0 0</pose>
       <static>true</static>
     </include>
     </model>
@@ -52,7 +52,7 @@
     <model name="sub_target_tree2" >
     <include>
       <uri>model://cylinder1</uri>
-      <pose>1 1 1 0 0 0</pose>
+      <pose>2 1 1 0 0 0</pose>
       <static>true</static>
     </include>
     </model>

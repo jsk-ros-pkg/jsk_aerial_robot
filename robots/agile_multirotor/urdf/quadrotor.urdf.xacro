@@ -130,11 +130,11 @@
 	<mesh filename="package://agile_multirotor/urdf/mesh/quadrotor.stl" />
       </geometry>
     </visual>
+    <!-- collision is not sphere to be able to  -->
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
-      <!-- real quadrotor's size -->
       <geometry>
-        <sphere radius="0.47"/>
+        <box size="0.3525 0.26 0.092" />
       </geometry>
     </collision>
   </link>

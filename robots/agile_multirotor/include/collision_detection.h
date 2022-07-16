@@ -12,6 +12,8 @@
 #include <string>
 #include <gazebo_msgs/ModelStates.h> 
 #include <geometry_msgs/Pose.h>
+#include <std_msgs/Bool.h>
+#include <cmath>
 
 class CollisionDetection
 {
@@ -23,7 +25,8 @@ public:
 private:
   ros::NodeHandle nh;
   ros::Subscriber sub;
-  const double radius_drone = 0.47;
+  ros::Publisher pub;
+  const double radius_drone = 0.47/2;
   const double radius_tree1 = 0.5;
 
 //   // unit configurable parameters
@@ -41,3 +44,4 @@ private:
 };
 
 int getIndex(std::vector<std::string> v, std::string value);
+double distance_2d(geometry_msgs::Pose a, geometry_msgs::Pose b);
