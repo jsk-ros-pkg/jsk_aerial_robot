@@ -327,7 +327,7 @@ void FullVectoringRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_po
   const int joint_num = robot_model_for_plan_->getJointNum();
   const int link_joint_num = robot_model_for_plan_->getLinkJointIndices().size();
   const int rotor_num = robot_model_for_plan_->getRotorNum();
-  const int f_ndof = 3 * getRotorNum() - gimbal_lock_num;
+  const int f_ndof = 3 * rotor_num - gimbal_lock_num;
 
   Eigen::MatrixXd A1_all = Eigen::MatrixXd::Zero(joint_num, f_ndof);
   int cnt = 0;
@@ -367,6 +367,10 @@ void FullVectoringRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_po
       }
     if(cnt == link_joint_num) break;
   }
+  Eigen::MatrixXd W1 = thrust_force_weight_ * Eigen::MatrixXd::Identity(f_ndof, f_ndof);
+  Eigen::MatrixXd W2 = joint_torque_weight_ * Eigen::MatrixXd::Identity(joint_num, joint_num);
+  Eigen::MatrixXd Psi = (W1 + A1.transpose() * W2 * A1).inverse();
+
 
   for(int j = 0; j < robot_model_refine_max_iteration_; j++)
     {
@@ -446,18 +450,13 @@ void FullVectoringRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_po
 
       Eigen::VectorXd b2 = -getGravity() * robot_model_for_plan_->getMass();
       Eigen::MatrixXd A2 = full_q_mat;
-
-      Eigen::MatrixXd W1 = thrust_force_weight_ * Eigen::MatrixXd::Identity(full_q_mat.cols(), full_q_mat.cols());
-      Eigen::MatrixXd W2 = joint_torque_weight_ * Eigen::MatrixXd::Identity(joint_num, joint_num);
-      Eigen::MatrixXd Psi = (W1 + A1.transpose() * W2 * A1).inverse();
-
       Eigen::MatrixXd C = Psi * A2.transpose() * (A2 * Psi * A2.transpose()).inverse();
-      Eigen::MatrixXd E = Eigen::MatrixXd::Identity(full_q_mat.cols(), full_q_mat.cols());
+      Eigen::MatrixXd E = Eigen::MatrixXd::Identity(f_ndof, f_ndof);
       Eigen::VectorXd hover_vectoring_f = - C * b2 - (E - C * A2) * Psi * A1.transpose() * W2 * b1;
 
-      ROS_INFO_STREAM_THROTTLE(1.0, "hovering thrust raw is: " << hover_vectoring_f.transpose());
-      ROS_INFO_STREAM_THROTTLE(1.0, "total static wrench is: " << (A2 * hover_vectoring_f + b2).transpose());
-      ROS_INFO_STREAM_THROTTLE(1.0, "total static joint torque is: " << (A1 * hover_vectoring_f + b1).transpose());
+      // ROS_INFO_STREAM_THROTTLE(1.0, "hovering thrust raw is: " << hover_vectoring_f.transpose());
+      // ROS_INFO_STREAM_THROTTLE(1.0, "total static wrench is: " << (A2 * hover_vectoring_f + b2).transpose());
+      // ROS_INFO_STREAM_THROTTLE(1.0, "total static joint torque is: " << (A1 * hover_vectoring_f + b1).transpose());
 
 
       Eigen::VectorXd static_thrust = Eigen::VectorXd::Zero(getRotorNum());

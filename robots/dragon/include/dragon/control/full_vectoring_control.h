@@ -63,6 +63,7 @@ namespace aerial_robot_control
                     boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
                     boost::shared_ptr<aerial_robot_navigation::BaseNavigator> navigator,
                     double ctrl_loop_rate) override;
+    void reset() override;
 
   private:
 
@@ -115,6 +116,9 @@ namespace aerial_robot_control
     double overlap_dist_link_relax_thresh_;
     double overlap_dist_inter_joint_thresh_;
 
+    double thrust_force_weight_, joint_torque_weight_;
+    double joint_torque_thresh_;
+    bool on_ground_;
 
     void externalWrenchEstimate();
     const Eigen::VectorXd getTargetWrenchAccCog()

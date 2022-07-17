@@ -27,6 +27,10 @@ controller:
   external_wrench_lpf_rate: 0.2
   external_fz_bias_thresh: 1.0
 
+  thrust_force_weight: 1.0
+  joint_torque_weight: 10.0 # 10.0 ~ 20.0
+  joint_torque_thresh: 1.0 # = target_acc_z / gravity
+
   xy:
     p_gain: 3.6
     i_gain: 0.03
