@@ -26,3 +26,5 @@ motor_info: # TODO: update
                 polynominal2: -0.005535287 # -0.0005535287 # x10
                 polynominal1:  3.491470057 # 0.3491470057 # x10
                 polynominal0:  -18.637065433 # -18.637065433 # x1
+
+        speed_rate: 10.0 # rad/s/N
