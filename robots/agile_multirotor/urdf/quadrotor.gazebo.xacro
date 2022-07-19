@@ -14,6 +14,23 @@
   <gazebo reference="main_body">
     <mu1>0.1</mu1>
     <mu2>0.1</mu2>
+    <material>Gazebo/Red</material>
+  </gazebo>
+
+  <gazebo reference="thrust1">
+    <material>Gazebo/Black</material>
+  </gazebo>
+
+  <gazebo reference="thrust2">
+    <material>Gazebo/Black</material>
+  </gazebo>
+
+  <gazebo reference="thrust3">
+    <material>Gazebo/Black</material>
+  </gazebo>
+
+  <gazebo reference="thrust4">
+    <material>Gazebo/Black</material>
   </gazebo>
 
 </robot>
