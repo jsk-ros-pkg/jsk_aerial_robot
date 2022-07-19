@@ -6,7 +6,7 @@
   <arg name="estimate_mode"  default= "1" />
   <arg name="sim_estimate_mode"  default= "2" />
   <arg name="headless" default="True" />
-  <arg name="worldtype" default="$(find agile_multirotor)/gazebo_model/world/ddc.world" />
+  <arg name="worldtype" default="world1" />
   <arg name="launch_gazebo" default="True" />
   <arg name="direct_model" default="False" />
   <arg name="direct_model_name" />
@@ -82,7 +82,6 @@
     <arg name="gui" default="false" if="$(arg headless)" />
     <arg name="headless" default="$(arg headless)" />
     <arg name="launch_gazebo" default="$(arg launch_gazebo)" />
-    <arg name="worldtype" value="$(arg worldtype)" />
     <arg name="spawn_x" value="$(arg spawn_x)" />
     <arg name="spawn_y" value="$(arg spawn_y)" />
     <arg name="spawn_z" value="$(arg spawn_z)" />
@@ -91,5 +90,11 @@
 
   ######## work around to evoke robot model update #######
   <node pkg="agile_multirotor" type="joint_state_pub.py" name="joint_state_pub" ns="$(arg robot_ns)"/>
+
+  ####### collision world ############
+  <node pkg="agile_multirotor" type="obstacle_world.py" name="obstacle_world" output="screen" ns="$(arg robot_ns)">
+    <param name="rate" value="20.0" />
+    <param name="obstacle_world_file" value="$(find agile_multirotor)/config/obstacle_world/$(arg worldtype).csv" />
+  </node>
 
 </launch>
