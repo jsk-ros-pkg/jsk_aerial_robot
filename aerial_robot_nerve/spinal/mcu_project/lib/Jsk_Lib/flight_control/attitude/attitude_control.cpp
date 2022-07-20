@@ -217,10 +217,17 @@ void AttitudeController::update(void)
          (int32_t)(HAL_GetTick() - flight_command_last_stamp_) > FLIGHT_COMMAND_TIMEOUT)
         {
           /* timeout => start force landing */
+          float time_now = HAL_GetTick() / 1000.0f;
+          float command_last_stamp = flight_command_last_stamp_ / 1000.0f;
 #ifdef SIMULATION
-          ROS_ERROR("failsafe: cannot connect with ROS. time now: %d, time last stamp: %d", HAL_GetTick(), flight_command_last_stamp_);
+          ROS_ERROR("[spinal] failsafe: cannot get new flight command. time now: %.3f, last command stamp: %.3f",
+                    time_now, command_last_stamp);
+
 #else
-          nh_->logerror("failsafe: cannot connect with ROS");
+          char msg[120];
+          sprintf(msg, "[spinal] failsafe: cannot get new flight command. time now: %.3f, last command stamp: %.3f",
+                  time_now, command_last_stamp);
+          nh_->logerror(msg);
 #endif
           setForceLandingFlag(true);
         }
@@ -253,11 +260,15 @@ void AttitudeController::update(void)
       if(!force_landing_flag_  && (fabs(angles[X]) > MAX_TILT_ANGLE || fabs(angles[Y]) > MAX_TILT_ANGLE))
         {
 #ifdef SIMULATION
-          ROS_ERROR("failsafe: the roll pitch angles are too large, roll: %f (%f), pitch: %f (%f)",
-                    angles[X], MAX_TILT_ANGLE, angles[Y], MAX_TILT_ANGLE);
+          ROS_ERROR("[spinal] failsafe: current angles are too large, roll: %.3f (%.3f), pitch: %.3f (%.3f)",
+                  angles[X], MAX_TILT_ANGLE, angles[Y], MAX_TILT_ANGLE);
 #else
-          nh_->logerror("failsafe: the roll pitch angles are too large");
+          char msg[100];
+          sprintf(msg, "[spinal] failsafe: current angles are too large, roll: %.3f (%.3f), pitch: %.3f (%.3f)",
+                  angles[X], MAX_TILT_ANGLE, angles[Y], MAX_TILT_ANGLE);
+          nh_->logerror(msg);
 #endif
+
           setForceLandingFlag(true);
           error_angle_i_[X] = 0;
           error_angle_i_[Y] = 0;
@@ -428,10 +439,14 @@ void AttitudeController::fourAxisCommandCallback( const spinal::FourAxisCommand 
     {
       setForceLandingFlag(true);
 #ifdef SIMULATION
-      ROS_ERROR("failsafe: target angles are too large, roll: %f (%f), pitch: %f ()%f",
+      ROS_ERROR("[spinal] failsafe: target angles are too large, roll: %.3f (%.3f), pitch: %.3f (%.3f)",
                 target_angle_[X], MAX_TILT_ANGLE, target_angle_[Y], MAX_TILT_ANGLE);
+
 #else
-      nh_->logerror("failsafe: target angles are too large");
+      char msg[100];
+      sprintf(msg, "[spinal] failsafe: target angles are too large, roll: %.3f (%.3f), pitch: %.3f (%.3f)",
+              target_angle_[X], MAX_TILT_ANGLE, target_angle_[Y], MAX_TILT_ANGLE);
+      nh_->logerror(msg);
 #endif
     }
 
@@ -439,13 +454,15 @@ void AttitudeController::fourAxisCommandCallback( const spinal::FourAxisCommand 
 #ifdef SIMULATION
   if(cmd_msg.base_thrust.size() != motor_number_)
     {
-      ROS_ERROR("fource axis commnd: motor number is not identical between fc and pc");
+      ROS_ERROR("[spinal] four axis commnd: motor number is not same between spinal (%d) and ros (%d)", motor_number_, (int)cmd_msg.base_thrust.size());
       return;
     }
 #else
   if(cmd_msg.base_thrust_length != motor_number_)
     {
-      nh_->logerror("fource axis commnd: motor number is not identical between fc and pc");
+      char msg[100];
+      sprintf(msg, "[spinal] four axis commnd: motor number is not same between spinal (%d) and ros (%d)", motor_number_, cmd_msg.base_thrust_length);
+      nh_->logerror(msg);
       return;
     }
 #endif
@@ -531,13 +548,15 @@ void AttitudeController::rpyGainCallback( const spinal::RollPitchYawTerms &gain_
 #ifdef SIMULATION
   if(gain_msg.motors.size() != motor_number_ && gain_msg.motors.size() != 1)
     {
-      ROS_ERROR("rpy gain: motor number is not identical between fc:%d and pc:%d", motor_number_, (int)gain_msg.motors.size());
+      ROS_ERROR("[spinal] rpy gain: motor number is not same between spinal:%d and ros:%d", motor_number_, (int)gain_msg.motors.size());
       return;
     }
 #else
   if(gain_msg.motors_length != motor_number_ && gain_msg.motors_length != 1)
     {
-      nh_->logerror("rpy gain: motor number is not identical between fc and pc");
+      char msg[100];
+      sprintf(msg, "[spinal] rpy gain: motor number is not same between spinal:%d and ros:%d", motor_number_, gain_msg.motors_length);
+      nh_->logerror(msg);
       return;
     }
 #endif
@@ -587,13 +606,17 @@ void AttitudeController::rpyGainCallback( const spinal::RollPitchYawTerms &gain_
 void AttitudeController::torqueAllocationMatrixInvCallback(const spinal::TorqueAllocationMatrixInv& msg)
 {
 #ifdef SIMULATION
-  if(msg.rows.size() != motor_number_)
-    {
-      if(motor_number_ > 0) ROS_ERROR("torqueAllocationMatrixInvCallback: motor number is not identical between fc(%d) and pc(%ld)", motor_number_, msg.rows.size());
-      return;
-    }
+  if(msg.rows.size() != motor_number_ && motor_number_ > 0) {
+    ROS_ERROR("[spinal] torque allocation matrix_inv: motor number is not same between fc(%d) and pc(%d)", motor_number_, (int)msg.rows.size());
+    return;
+  }
 #else
-  if(msg.rows_length != motor_number_) return;
+  if(msg.rows_length != motor_number_  && motor_number_ > 0) {
+    char err_msg[120];
+    sprintf(err_msg, "[spinal] torque allocation matrix_inv: motor number is not same between fc(%d) and pc(%d)", motor_number_, msg.rows_length);
+    nh_->logerror(err_msg);
+    return;
+  }
 #endif
 
 #ifndef SIMULATION
@@ -670,15 +693,17 @@ void AttitudeController::setMotorNumber(uint8_t motor_number)
         {
           motor_number_ = 0;
 #ifdef SIMULATION
-          ROS_ERROR("ATTENTION: motor number is 0");
+          ROS_ERROR("[spinal] motor number cannot be updated (previous: %d, current: %d), reset to 0", motor_number_, motor_number);
 #else
-          nh_->logerror("ATTENTION: motor number is 0");
+          char msg[120];
+          sprintf(msg, "[spinal] motor number cannot be updated (previous: %d, current: %d), reset to 0", motor_number_, motor_number);
+          nh_->logerror(msg);
 #endif
         }
     }
   else
     {
-	  if(motor_number == 0) return;
+      if(motor_number == 0) return;
 
       size_t control_term_msg_size  = motor_number;
 
@@ -706,20 +731,32 @@ void  AttitudeController::setUavModel(int8_t uav_model)
   if(uav_model_ == spinal::UavInfo::DRAGON) {
     rotor_devider_ = 2; // dual-rotor
   }
+
+#ifdef SIMULATION
+  ROS_INFO("[spinal] uav model update to %d", uav_model_);
+#else
+  char msg[40];
+  sprintf(msg, "[spinal] uav model update to %d", uav_model_);
+  nh_->loginfo(msg);
+#endif
 }
 
 void AttitudeController::pMatrixInertiaCallback(const spinal::PMatrixPseudoInverseWithInertia& msg)
 {
 #ifdef SIMULATION
-  if(msg.pseudo_inverse.size() != motor_number_)
+  if(msg.pseudo_inverse.size() != motor_number_ && motor_number_ > 0)
     {
-      if(motor_number_ > 0) ROS_ERROR("p matrix pseudo inverse and inertia commnd: motor number is not identical between fc and pc");
+      ROS_ERROR("[spinal] p matrix pseudo inverse and inertia command: motor number is not same between spinal (%d) and ros (%d)",
+                motor_number_, (int)msg.pseudo_inverse.size());
       return;
     }
 #else
-  if(msg.pseudo_inverse_length != motor_number_)
+  if(msg.pseudo_inverse_length != motor_number_ && motor_number_ > 0)
     {
-      nh_->logerror("p matrix pseudo inverse and inertia commnd: motor number is not identical between fc and pc");
+      char err_msg[120];
+      sprintf(err_msg, "[spinal] p matrix pseudo inverse and inertia command: motor number is not same between spinal (%d) and ros (%d)",
+              motor_number_, msg.pseudo_inverse_length);
+      nh_->logerror(err_msg);
       return;
     }
 #endif
