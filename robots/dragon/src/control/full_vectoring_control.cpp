@@ -628,7 +628,7 @@ void DragonFullVectoringController::controlCore()
     if(cnt == link_joint_num) break;
   }
   Eigen::MatrixXd W1 = thrust_force_weight_ * Eigen::MatrixXd::Identity(f_ndof, f_ndof);
-  Eigen::MatrixXd W2 = joint_torque_weight_ * Eigen::MatrixXd::Identity(joint_num, joint_num);
+  Eigen::MatrixXd W2 = joint_torque_weight_ * Eigen::MatrixXd::Identity(link_joint_num, link_joint_num);
   Eigen::MatrixXd Psi = (W1 + A1.transpose() * W2 * A1).inverse();
 
 
