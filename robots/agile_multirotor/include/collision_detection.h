@@ -1,13 +1,6 @@
 #pragma once
 
 #include <ros/ros.h>
-// #include <nlopt.hpp>
-// #include <Eigen/Core>
-// #include <Eigen/Geometry>
-// #include <aerial_robot_msgs/FeasibleControlConvexInfo.h>
-// #include <visualization_msgs/MarkerArray.h>
-// #include <tf/transform_datatypes.h>
-// #include <numeric>
 #include <vector>
 #include <string>
 #include <gazebo_msgs/ModelStates.h> 
