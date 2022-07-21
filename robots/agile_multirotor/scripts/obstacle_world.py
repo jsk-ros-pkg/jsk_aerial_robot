@@ -84,7 +84,8 @@ class ObostacleWorld:
         rospy.wait_for_service('/gazebo/delete_model')
         try:
             delete_model = rospy.ServiceProxy('/gazebo/delete_model', DeleteModel)
-            resp = delete_model(name)
+            # resp = delete_model(name)
+            print("try works well")
         except rospy.ServiceException as e:
             print("Service call failed: %s" % e)
 
