@@ -88,6 +88,14 @@ void StateEstimator::initialize(ros::NodeHandle nh, ros::NodeHandle nh_private, 
 void StateEstimator::statePublish(const ros::TimerEvent & e)
 {
   ros::Time imu_stamp = boost::dynamic_pointer_cast<sensor_plugin::Imu>(imu_handlers_.at(0))->getStamp();
+
+  if (imu_stamp.toSec() == 0)
+    {
+      // use the ros time now
+      imu_stamp = ros::Time::now();
+    }
+
+
   aerial_robot_msgs::States full_state;
   full_state.header.stamp = imu_stamp;
 
