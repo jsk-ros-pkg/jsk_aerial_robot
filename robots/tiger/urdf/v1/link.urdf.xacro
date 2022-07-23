@@ -239,7 +239,7 @@
     <joint name="edf${self}_left_mount" type="fixed">
       <child link="edf${self}_left"/>
       <parent link="gimbal${self}_pitch_module"/>
-      <origin rpy="0 0 0" xyz="0.1335 0 0 "/>
+      <origin rpy="0 0 0" xyz="0 0.1335 0 "/>
       <axis xyz="0 0 1"/>
     </joint>
     <link name="edf${self}_left">
@@ -255,7 +255,7 @@
     <joint name="edf${self}_right_mount" type="fixed">
       <child link="edf${self}_right"/>
       <parent link="gimbal${self}_pitch_module"/>
-      <origin rpy="0 0 0" xyz="-0.1335 0 0 "/>
+      <origin rpy="0 0 0" xyz="0 -0.1335 0 "/>
       <axis xyz="0 0 1"/>
     </joint>
     <link name="edf${self}_right">
