@@ -13,11 +13,11 @@
               ixx="0.000074" iyy="0.000079" izz="0.000079"
               ixy="-0.000009" iyz="0.000001" ixz="-0.000009"/>
         </inertial>
-        <xacro:mesh_model type="link/joint_junction_link_belt">
+        <xacro:mesh_model type="link/joint_junction_link">
           <origin xyz="0 0 0" rpy="0 0 0"/>
         </xacro:mesh_model>
       </xacro:if>
-      <xacro:if value="${type == 'wire_belt'}">
+      <xacro:if value="${type == 'large_pitch_pulley'}">
         <inertial>
           <mass value="0.103"/>
           <origin xyz="0.028 -0.007 -0.003" rpy="0 0 0"/>
@@ -25,7 +25,19 @@
               ixx="0.000087" iyy="0.000087" izz="0.000096"
               ixy="-0.000016" iyz="-0.000002" ixz="0.000010"/>
         </inertial>
-        <xacro:mesh_model type="link/joint_junction_link_wire_belt">
+        <xacro:mesh_model type="link/joint_junction_link_large_pitch_pulley">
+          <origin xyz="0 0 0" rpy="0 0 0"/>
+        </xacro:mesh_model>
+      </xacro:if>
+      <xacro:if value="${type == 'wire'}">
+        <inertial>
+          <mass value="0.103"/>
+          <origin xyz="0.028 -0.007 -0.003" rpy="0 0 0"/>
+          <inertia
+              ixx="0.000087" iyy="0.000087" izz="0.000096"
+              ixy="-0.000016" iyz="-0.000002" ixz="0.000010"/>
+        </inertial>
+        <xacro:mesh_model type="link/joint_junction_link_wire">
           <origin xyz="0 0 0" rpy="0 0 0"/>
         </xacro:mesh_model>
       </xacro:if>
@@ -102,10 +114,10 @@
     <xacro:friction link="center_link"/>
     <xacro:damping_factor link="center_link"/>
 
-    <xacro:tiger_joint_junction_link self="${child1}" child="link${child1}" leg="${leg}" type="wire_belt"/>
-    <xacro:tiger_joint_junction_link self="${child2}" child="link${child2}" leg="${leg}" type="wire_belt"/>
-    <xacro:tiger_joint_junction_link self="${child3}" child="link${child3}" leg="${leg}" type="wire_belt"/>
-    <xacro:tiger_joint_junction_link self="${child4}" child="link${child4}" leg="${leg}" type="wire_belt"/>
+    <xacro:tiger_joint_junction_link self="${child1}" child="link${child1}" leg="${leg}" type="large_pitch_pulley"/>
+    <xacro:tiger_joint_junction_link self="${child2}" child="link${child2}" leg="${leg}" type="large_pitch_pulley"/>
+    <xacro:tiger_joint_junction_link self="${child3}" child="link${child3}" leg="${leg}" type="large_pitch_pulley"/>
+    <xacro:tiger_joint_junction_link self="${child4}" child="link${child4}" leg="${leg}" type="large_pitch_pulley"/>
 
     #### joints ####
     <joint name="joint${child1}_yaw" type="revolute">
