@@ -9,6 +9,7 @@ find_package(catkin REQUIRED COMPONENTS
   aerial_robot_msgs
   aerial_robot_control
   aerial_robot_model
+  eigen_conversions
   )
 
 include_directories(
@@ -29,3 +30,6 @@ catkin_package(
 ###########
 add_executable(collision_detection_node src/collision_detection.cpp)
 target_link_libraries(collision_detection_node ${catkin_LIBRARIES} ${NLOPT_LIBRARIES})
+
+add_executable(observation_conversion_node src/observation_cal.cpp)
+target_link_libraries(observation_conversion_node ${catkin_LIBRARIES} ${NLOPT_LIBRARIES})
