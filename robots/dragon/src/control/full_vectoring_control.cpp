@@ -602,7 +602,7 @@ void DragonFullVectoringController::controlCore()
   if(navigator_->getNaviState() == aerial_robot_navigation::TAKEOFF_STATE) {
     if (on_ground_) {
       g = target_wrench_acc_cog(Z) * real_g.normalized();
-      ROS_INFO_THROTTLE(0.1, "reduced g");
+      // ROS_INFO_THROTTLE(0.1, "reduced g");
     }
 
     if (target_wrench_acc_cog(Z) > joint_torque_thresh_ * real_g.norm()) {
@@ -674,9 +674,9 @@ void DragonFullVectoringController::controlCore()
       Eigen::MatrixXd C = Psi * A2.transpose() * (A2 * Psi * A2.transpose()).inverse();
       Eigen::MatrixXd E = Eigen::MatrixXd::Identity(f_ndof, f_ndof);
       target_vectoring_f_ = - C * b2 - (E - C * A2) * Psi * A1.transpose() * W2 * b1;
-      ROS_INFO_STREAM_THROTTLE(1.0, "total acc is : " << target_wrench_acc_cog.transpose() << "; diff is: " << (A2 * target_vectoring_f_ + b2).transpose());
-      ROS_INFO_STREAM_THROTTLE(1.0, "total joint torque is: " << (A1 * target_vectoring_f_ + b1).transpose());
-      ROS_INFO_STREAM_THROTTLE(1.0, "target thrust is: " << target_vectoring_f_.transpose());
+      // ROS_INFO_STREAM_THROTTLE(1.0, "total acc is : " << target_wrench_acc_cog.transpose() << "; diff is: " << (A2 * target_vectoring_f_ + b2).transpose());
+      // ROS_INFO_STREAM_THROTTLE(1.0, "total joint torque is: " << (A1 * target_vectoring_f_ + b1).transpose());
+      // ROS_INFO_STREAM_THROTTLE(1.0, "target thrust is: " << target_vectoring_f_.transpose());
 
 
       if(control_verbose_) ROS_DEBUG_STREAM("vectoring force for control in iteration "<< j+1 << ": " << target_vectoring_f_.transpose());
