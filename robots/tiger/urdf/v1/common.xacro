@@ -8,7 +8,7 @@
   <xacro:property name="center_link_radius" value="0.169"/>
   <xacro:property name="center_link_height" value="0.0928"/>
   <xacro:property name="leg_radius" value="0.01"/>
-  <xacro:property name="leg_length" value="0.1005"/>
+  <xacro:property name="leg_length" value="0.1045"/>
   <xacro:property name="end_leg_length" value="0.1325"/>
 
   <!-- dynamics -->

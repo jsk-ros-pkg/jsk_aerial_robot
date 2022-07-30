@@ -21,67 +21,67 @@ servo_controller:
     controller01:
       id: 0
       name: joint1_yaw
-      angle_sgn: 1
+      angle_sgn: -1
     controller02:
       id: 1
       name: joint1_pitch
-      angle_sgn: 1
+      angle_sgn: -1
     controller03:
       id: 4
       name: joint2_yaw
-      angle_sgn: 1
+      angle_sgn: -1
     controller04:
       id: 5
       name: joint2_pitch
-      angle_sgn: -1
+      angle_sgn: 1
     controller05:
       id: 8
       name: joint3_yaw
-      angle_sgn: 1
+      angle_sgn: -1
     controller06:
       id: 9
       name: joint3_pitch
-      angle_sgn: 1
+      angle_sgn: -1
     controller07:
       id: 12
       name: joint4_yaw
-      angle_sgn: 1
+      angle_sgn: -1
     controller08:
       id: 13
       name: joint4_pitch
-      angle_sgn: -1
+      angle_sgn: 1
     controller09:
       id: 16
       name: joint5_yaw
-      angle_sgn: 1
+      angle_sgn: -1
     controller10:
       id: 17
       name: joint5_pitch
-      angle_sgn: 1
+      angle_sgn: -1
     controller11:
       id: 20
       name: joint6_yaw
-      angle_sgn: 1
+      angle_sgn: -1
     controller12:
       id: 21
       name: joint6_pitch
-      angle_sgn: -1
+      angle_sgn: 1
     controller13:
       id: 24
       name: joint7_yaw
-      angle_sgn: 1
+      angle_sgn: -1
     controller14:
       id: 25
       name: joint7_pitch
-      angle_sgn: 1
+      angle_sgn: -1
     controller15:
       id: 28
       name: joint8_yaw
-      angle_sgn: 1
+      angle_sgn: -1
     controller16:
       id: 29
       name: joint8_pitch
-      angle_sgn: -1
+      angle_sgn: 1
 
   gimbals:
 

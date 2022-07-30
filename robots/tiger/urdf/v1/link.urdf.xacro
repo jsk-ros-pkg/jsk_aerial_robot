@@ -8,10 +8,10 @@
       <xacro:if value="${type == 'belt'}">
         <inertial>
           <mass value="0.095"/>
-          <origin xyz="0.026 -0.004 0.004" rpy="0 0 0"/>
+          <origin xyz="0.026 0.004 0.004" rpy="0 0 0"/>
           <inertia
               ixx="0.000074" iyy="0.000079" izz="0.000079"
-              ixy="-0.000009" iyz="0.000001" ixz="-0.000009"/>
+              ixy="0.000009" iyz="-0.000001" ixz="-0.000009"/>
         </inertial>
         <xacro:mesh_model type="link/joint_junction_link">
           <origin xyz="0 0 0" rpy="0 0 0"/>
@@ -20,10 +20,10 @@
       <xacro:if value="${type == 'large_pitch_pulley'}">
         <inertial>
           <mass value="0.103"/>
-          <origin xyz="0.028 -0.007 -0.003" rpy="0 0 0"/>
+          <origin xyz="0.028 0.007 0.003" rpy="0 0 0"/>
           <inertia
               ixx="0.000087" iyy="0.000087" izz="0.000096"
-              ixy="-0.000016" iyz="-0.000002" ixz="0.000010"/>
+              ixy="0.000016" iyz="-0.000002" ixz="-0.000010"/>
         </inertial>
         <xacro:mesh_model type="link/joint_junction_link_large_pitch_pulley">
           <origin xyz="0 0 0" rpy="0 0 0"/>
@@ -57,11 +57,11 @@
     <xacro:joint_transmission joint="joint${self}_pitch"/>
 
     <xacro:if value="${leg == 1}">
-      <xacro:extra_module_with_collision name="joint_junction_leg${self}" parent="joint_junction_link${self}" visible="1" model_url="package://tiger/urdf/v1/mesh/leg/leg.dae">
-        <origin xyz="0 0 -0.0323" rpy="0 0 ${pi/2}"/>
+      <xacro:extra_module_with_collision name="joint_junction_leg${self}" parent="joint_junction_link${self}" visible="1" model_url="package://tiger/urdf/v1/mesh/leg/long_leg.dae">
+        <origin xyz="0 0 -0.0283" rpy="0 0 ${pi/2}"/>
         <inertial>
-          <mass value="0.024"/>
-          <origin xyz="0 0 -0.047" rpy="0 0 0"/>
+          <mass value="0.027"/>
+          <origin xyz="0 0 -0.046" rpy="0 0 0"/>
           <inertia
               ixx="0.000029" iyy="0.000029" izz="0.000002"
               ixy="0.000000" iyz="0.000000" ixz="0.000000"/>
@@ -69,7 +69,7 @@
         <xacro:leg_collision_model/>
       </xacro:extra_module_with_collision>
     </xacro:if>
- 
+
   </xacro:macro>
 
   #### CENTER LINK ####
@@ -96,10 +96,10 @@
     <link name="center_link">
       <inertial>
         <mass value="1.1780349"/>
-        <origin xyz="0.0000000 0.0001434 -0.0335345" rpy="0 0 0"/>
+        <origin xyz="0.0 0.0 0.027" rpy="0 0 0"/>
         <inertia
-            ixx="0.0095261" iyy="0.0095185" izz="0.0171496"
-            ixy="0.0000000" iyz="0.0000057" ixz="0.0000000" />
+            ixx="0.009512" iyy="0.009512" izz="0.017150"
+            ixy="0.000000" iyz="0.000000" ixz="0.000000" />
       </inertial>
       <xacro:mesh_model type="link/center_link">
         <origin xyz="0 0 0" rpy="0 0 0"/>
@@ -170,10 +170,10 @@
       <xacro:if value="${link_type == 'general'}">
         <inertial>
           <mass value="0.523"/>
-          <origin xyz="0.257 -0.002 0.017" rpy="0 0 0"/>
+          <origin xyz="0.257 -0.002 0.004" rpy="0 0 0"/>
           <inertia
-              ixx="0.000383" iyy="0.021153" izz="0.020931"
-              ixy="0.000250" iyz="-0.000021" ixz="0.000494" />
+              ixx="0.000519" iyy="0.021290" izz="0.020931"
+              ixy="-0.000246" iyz="-0.000044" ixz="0.001893" />
         </inertial>
         <xacro:mesh_model type="link/general_link">
           <origin xyz="0 0 0" rpy="0 0 0"/>
@@ -183,10 +183,10 @@
       <xacro:if value="${link_type == 'end'}">
         <inertial>
           <mass value="0.347"/>
-          <origin xyz="0.157 -0.015 0" rpy="0 0 0"/>
+          <origin xyz="0.157 0.015 0" rpy="0 0 0"/>
           <inertia
               ixx="0.000276" iyy="0.008551" izz="0.008772"
-              ixy="0.000606" iyz="-0.000002" ixz="-0.000029" />
+              ixy="-0.000606" iyz="0.000001" ixz="-0.000031" />
         </inertial>
         <xacro:mesh_model type="link/end_link">
           <origin xyz="0 0 0" rpy="0 0 0"/>
@@ -341,7 +341,7 @@
       <xacro:if value="${link_type == 'end'}">
         <xacro:extra_module_with_collision name="end_leg${self}" parent="link${self}" visible="1"
                             model_url="package://tiger/urdf/v1/mesh/leg/end_leg.dae">
-          <origin xyz="0.160 0.0 0.0" rpy="0 0 0"/>
+          <origin xyz="${0.160 + 0.335} 0.0 0.0" rpy="0 0 0"/>
           <inertial>
             <mass value="0.055"/>
             <origin xyz="0.0000000 0.0000 -0.035" rpy="0 0 0"/>
