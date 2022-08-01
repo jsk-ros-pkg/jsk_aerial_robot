@@ -135,6 +135,7 @@ class ObostacleWorld:
                     "</sdf>"
 
         ret = gazebo_interface.spawn_sdf_model_client(name, model_xml, "obstacle", Pose(Point(p[0], p[1], p[2]), Quaternion(0,0,0,1)), '', '/gazebo')
+        # set obstacle in model_xml setting (we cannot change obstacle shape now...)
 
         return ret
 
