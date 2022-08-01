@@ -7,4 +7,4 @@ float64 t
 int64 num
 
 # Obstacle array
-aerial_robot_msgs/Obstacle[] obstacles
+float64[] boxel

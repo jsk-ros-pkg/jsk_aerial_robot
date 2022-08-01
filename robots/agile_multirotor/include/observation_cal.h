@@ -1,6 +1,4 @@
 #include <cmath>
-#include <gazebo_msgs/ModelStates.h>
-#include <geometry_msgs/Pose.h>
 #include <ros/ros.h>
 #include <std_msgs/Bool.h>
 #include <string>
@@ -10,11 +8,11 @@
 #include <cstdlib>
 #include <eigen_conversions/eigen_msg.h>
 // https://github.com/ros/geometry/blob/noetic-devel/eigen_conversions/include/eigen_conversions/eigen_msg.h
+#include <aerial_robot_msgs/ObstacleArray.h>
 #include <fstream>
+#include <nav_msgs/Odometry.h>
 #include <sstream>
 #include <std_msgs/Float64MultiArray.h>
-// #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
-#define PI 3.14159265359
 
 using Scalar = double;
 static constexpr int Dynamic = Eigen::Dynamic;
@@ -30,9 +28,8 @@ Scalar max_detection_range_ = 20;
 
 class ObstacleCalculator {
 public:
-  ObstacleCalculator();
+  ObstacleCalculator(ros::NodeHandle nh, ros::NodeHandle pnh);
   ~ObstacleCalculator() {}
-  void CalculatorCallback(const gazebo_msgs::ModelStates::ConstPtr &msg);
 
   Vector<Cuts * Cuts>
   getsphericalboxel(const std::vector<Eigen::Vector3d> &converted_positions,
@@ -44,15 +41,16 @@ public:
   Eigen::Vector3d getCartesianFromAng(Scalar t, Scalar f);
 
 private:
-  ros::NodeHandle nh;
-  ros::Subscriber sub;
-  ros::Publisher pub;
+  ros::NodeHandle nh_;
+  ros::NodeHandle pnh_;
+  ros::Subscriber odom_sub_;
+  ros::Publisher obs_pub_;
+
+  std::vector<Eigen::Vector3d> positions_;
+  std::vector<Scalar> radius_list_;
+  int call_;
+
+  std::vector<std::string> split(std::string &input, char delimiter);
+
+  void CalculatorCallback(const nav_msgs::Odometry::ConstPtr &msg);
 };
-
-std::vector<Eigen::Vector3d> positions;
-std::vector<Scalar> radius_list;
-int call;
-int N_obstacle;
-
-int getIndex(std::vector<std::string> v, std::string value);
-std::vector<std::string> split(std::string &input, char delimiter);
