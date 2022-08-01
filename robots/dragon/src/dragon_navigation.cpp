@@ -75,16 +75,15 @@ void DragonNavigator::landingProcess()
             {
               if(joint_state.name[i].find("joint") != std::string::npos)
                 {
-                  double target_cmd;
-                  if(joint_state.name[i].find("pitch") != std::string::npos)
+                  double target_cmd = joint_state.position[i];
+                  if(joint_state.name[i].find("pitch") != std::string::npos) {
                     target_cmd = 0;
-                  else target_cmd = joint_state.position[i];
+                  }
 
+                  joint_control_msg.name.push_back(joint_state.name[i]);
                   joint_control_msg.position.push_back(target_cmd);
-
                 }
             }
-
 
           joint_control_pub_.publish(joint_control_msg);
           final_target_baselink_rot_.setValue(0, 0, 0);
