@@ -261,6 +261,8 @@ namespace aerial_robot_control
             pid_controllers_.at(Z).setLimitP(0); // no p control in final safe landing phase
             final_landing_phase = true;
           }
+
+        if(err_z > 0) err_z = 0; // avoid unexpected ascending because of increase in I term
       }
 
     if(navigator_->getForceLandingFlag())
