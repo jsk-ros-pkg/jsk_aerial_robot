@@ -688,10 +688,6 @@ void DragonFullVectoringController::controlCore()
               Eigen::Vector3d f_i = target_vectoring_f_.segment(last_col, 3);
               target_base_thrust_.at(i) = f_i.norm();
 
-              /* before takeoff, the form is level -> joint_pitch = 0*/
-              if(!start_rp_integration_)
-                f_i.z() = dragon_robot_model_->getHoverVectoringF()[last_col + 2]; // approximation: stable state
-
               double gimbal_i_roll = atan2(-f_i.y(), f_i.z());
               double gimbal_i_pitch = atan2(f_i.x(), -f_i.y() * sin(gimbal_i_roll) + f_i.z() * cos(gimbal_i_roll));
 
@@ -705,16 +701,19 @@ void DragonFullVectoringController::controlCore()
               Eigen::VectorXd f_i = target_vectoring_f_.segment(last_col, 2);
               target_base_thrust_.at(i) = f_i.norm();
 
-              /* before takeoff, the form is level -> joint_pitch = 0*/
-              if(!start_rp_integration_)
-                f_i(1) = dragon_robot_model_->getHoverVectoringF()[last_col + 1]; // approximation: stable state
-
               target_gimbal_angles_.at(2 * i) = gimbal_nominal_angles.at(2 * i); // lock the gimbal roll
               target_gimbal_angles_.at(2 * i + 1) = atan2(f_i(0), f_i(1));
 
               last_col += 2;
             }
         }
+
+      /* before leave ground in takeoff phase, no active gimbal control, so use nominal values */
+      if(!start_rp_integration_)
+        {
+          target_gimbal_angles_ = gimbal_nominal_angles;
+        }
+
 
       std::vector<Eigen::Vector3d> prev_rotors_origin_from_cog = rotors_origin_from_cog;
       for(int i = 0; i < motor_num_; ++i)
