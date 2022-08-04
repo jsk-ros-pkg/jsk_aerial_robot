@@ -102,4 +102,9 @@
   <node pkg="agile_multirotor" type="observation_conversion_node" name="observation_conversion" output="screen" ns="$(arg robot_ns)">
     <param name="cfg_path" value="$(find agile_multirotor)/config/obstacle_world/$(arg worldtype).csv" />
   </node>
+
+  <node pkg="agile_multirotor" type="policy_navigator.py" name="policy_navigator" output="screen" ns="$(arg robot_ns)">
+    <param name="ppo_path" value="$(find agile_multirotor)/linvel_policy" />
+  </node>
+
 </launch>
