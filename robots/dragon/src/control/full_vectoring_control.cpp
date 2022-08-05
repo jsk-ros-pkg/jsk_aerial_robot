@@ -709,11 +709,10 @@ void DragonFullVectoringController::controlCore()
         }
 
       /* before leave ground in takeoff phase, no active gimbal control, so use nominal values */
-      if(!start_rp_integration_)
+      if(!start_rp_integration_ && target_wrench_acc_cog(Z) < takeoff_acc_z_thresh_)
         {
           target_gimbal_angles_ = gimbal_nominal_angles;
         }
-
 
       std::vector<Eigen::Vector3d> prev_rotors_origin_from_cog = rotors_origin_from_cog;
       for(int i = 0; i < motor_num_; ++i)
@@ -1008,6 +1007,8 @@ void DragonFullVectoringController::rosParamInit()
   getParam<double>(control_nh, "overlap_dist_link_relax_thresh", overlap_dist_link_relax_thresh_, 0.08);
   getParam<double>(control_nh, "overlap_dist_rotor_relax_thresh", overlap_dist_rotor_relax_thresh_, 0.08);
   getParam<double>(control_nh, "overlap_dist_inter_joint_thresh", overlap_dist_inter_joint_thresh_, 0.08);
+
+  getParam<double>(control_nh, "takeoff_acc_z_thresh", takeoff_acc_z_thresh_, 8.0);
 
   getParam<double>(control_nh, "thrust_force_weight", thrust_force_weight_, 1.0);
   getParam<double>(control_nh, "joint_torque_weight", joint_torque_weight_, 1.0);

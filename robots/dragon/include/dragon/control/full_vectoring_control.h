@@ -116,6 +116,8 @@ namespace aerial_robot_control
     double overlap_dist_link_relax_thresh_;
     double overlap_dist_inter_joint_thresh_;
 
+    double takeoff_acc_z_thresh_;
+
     double thrust_force_weight_, joint_torque_weight_;
     double joint_torque_thresh_;
     bool on_ground_;
