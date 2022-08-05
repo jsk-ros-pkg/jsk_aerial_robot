@@ -103,8 +103,8 @@
     <param name="cfg_path" value="$(find agile_multirotor)/config/obstacle_world/$(arg worldtype).csv" />
   </node>
 
-  <node pkg="agile_multirotor" type="policy_navigator.py" name="policy_navigator" output="screen" ns="$(arg robot_ns)">
+  <!-- <node pkg="agile_multirotor" type="policy_navigator.py" name="policy_navigator" output="screen" ns="$(arg robot_ns)" launch-prefix="xterm -fn 10x20 -e python -m pdb">
     <param name="ppo_path" value="$(find agile_multirotor)/linvel_policy" />
-  </node>
+  </node> -->
 
 </launch>
