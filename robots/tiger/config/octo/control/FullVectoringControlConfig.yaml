@@ -28,7 +28,7 @@ controller:
   external_fz_bias_thresh: 1.0
 
   thrust_force_weight: 1.0
-  joint_torque_weight: 10.0 # 10.0 ~ 20.0
+  joint_torque_weight: 0.0 # 10.0 ~ 20.0
   joint_torque_thresh: 1.0 # = target_acc_z / gravity
 
   xy:
