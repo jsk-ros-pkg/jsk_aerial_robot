@@ -661,19 +661,28 @@ void DragonFullVectoringController::controlCore()
             }
         }
 
-      // TODO: check!!
+
+      // the offset for the joint torque constraint
+      tf::Vector3 acc_bias_w(0, 0, pid_controllers_.at(Z).result());
+      //tf::Vector3 acc_bias_w(0, 0, pid_controllers_.at(Z).getPTerm() + pid_controllers_.at(Z).getITerm());
+      tf::Vector3 acc_bias_cog = uav_rot.inverse() * acc_bias_w;
+      Eigen::VectorXd wrench_bias = Eigen::VectorXd::Zero(6);
+      wrench_bias.head(3) = Eigen::Vector3d(acc_bias_cog.x(), acc_bias_cog.y(), acc_bias_cog.z());
+
+
       inertia_inv = robot_model_for_control_->getInertia<Eigen::Matrix3d>().inverse(); // update
-      full_q_mat.topRows(3) =  mass_inv * full_q_mat.topRows(3) ;
+      full_q_mat.topRows(3) =  mass_inv * full_q_mat.topRows(3);
       full_q_mat.bottomRows(3) =  inertia_inv * full_q_mat.bottomRows(3);
-      //Eigen::MatrixXd full_q_mat_inv = aerial_robot_model::pseudoinverse(full_q_mat);
-      //target_vectoring_f_ = full_q_mat_inv * target_wrench_acc_cog;
+      Eigen::MatrixXd full_q_mat_inv = aerial_robot_model::pseudoinverse(full_q_mat);
+      target_vectoring_f_ = full_q_mat_inv * (target_wrench_acc_cog - wrench_bias);
 
       //consider joint torque
-      Eigen::VectorXd b2 = -target_wrench_acc_cog;
+      Eigen::VectorXd b2 = -wrench_bias; // only consider the bias 
       Eigen::MatrixXd A2 = full_q_mat;
       Eigen::MatrixXd C = Psi * A2.transpose() * (A2 * Psi * A2.transpose()).inverse();
       Eigen::MatrixXd E = Eigen::MatrixXd::Identity(f_ndof, f_ndof);
-      target_vectoring_f_ = - C * b2 - (E - C * A2) * Psi * A1.transpose() * W2 * b1;
+      target_vectoring_f_ += (- C * b2 - (E - C * A2) * Psi * A1.transpose() * W2 * b1);
+      // target_vectoring_f_ = (- C * (-target_wrench_acc_cog) - (E - C * A2) * Psi * A1.transpose() * W2 * b1); // all components for joint torque restraint
       // ROS_INFO_STREAM_THROTTLE(1.0, "total acc is : " << target_wrench_acc_cog.transpose() << "; diff is: " << (A2 * target_vectoring_f_ + b2).transpose());
       // ROS_INFO_STREAM_THROTTLE(1.0, "total joint torque is: " << (A1 * target_vectoring_f_ + b1).transpose());
       // ROS_INFO_STREAM_THROTTLE(1.0, "target thrust is: " << target_vectoring_f_.transpose());
