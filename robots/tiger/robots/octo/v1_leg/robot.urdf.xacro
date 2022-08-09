@@ -1,0 +1,45 @@
+<?xml version="1.0"?>
+<robot
+    xmlns:xacro="http://www.ros.org/wiki/xacro" name="tiger" >
+
+  <xacro:include filename="$(find tiger)/robots/octo/v1_default/robot.urdf.xacro" />
+
+  <xacro:property name="foot_radius" value="0.04"/>
+  <xacro:property name="foot_mass" value="0.02"/>
+
+  <xacro:macro name="foot_ball" params="parent">
+    <joint name="${parent}2${parent}_foot" type="revolute">
+      <parent link="${parent}"/>
+      <child link="${parent}_foot"/>
+      <origin xyz="${general_link_length - 0.0115} 0 0" rpy="0 0 0"/>
+      <limit lower="0" upper="0" effort="100" velocity="100"/>
+      <axis xyz="0 0 1" />
+    </joint>
+    <link name="${parent}_foot">
+      <inertial>
+        <mass value="${foot_mass}"/>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <inertia
+            ixx="${0.4 * foot_mass * foot_radius * foot_radius}"
+            iyy="${0.4 * foot_mass * foot_radius * foot_radius}"
+            izz="${0.4 * foot_mass * foot_radius * foot_radius}"
+            ixy="0" iyz="0" ixz="0"/>
+      </inertial>
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry> <sphere radius="${foot_radius}"/> </geometry>
+        <material name="black">  <color rgba="0 0 0 1"/> </material>
+      </visual>
+      <collision>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry> <sphere radius="${foot_radius}"/> </geometry>
+      </collision>
+    </link>
+  </xacro:macro>
+
+  <xacro:foot_ball parent="link2" />
+  <xacro:foot_ball parent="link4" />
+  <xacro:foot_ball parent="link6" />
+  <xacro:foot_ball parent="link8" />
+
+</robot>
