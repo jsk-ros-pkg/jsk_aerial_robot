@@ -1,17 +1,17 @@
 zeros:
   joint1_yaw: 0.0
-  joint1_pitch: 0.0
+  joint1_pitch: -0.3
   joint2_yaw: 0.0
-  joint2_pitch: 0.0
+  joint2_pitch: 1.4
   joint3_yaw: 0.0
-  joint3_pitch: 0.0
+  joint3_pitch: -0.3
   joint4_yaw: 0.0
-  joint4_pitch: 0.0
+  joint4_pitch: 1.4
   joint5_yaw: 0.0
-  joint5_pitch: 0.0
+  joint5_pitch: -0.3
   joint6_yaw: 0.0
-  joint6_pitch: 0.0
+  joint6_pitch: 1.4
   joint7_yaw: 0.0
-  joint7_pitch: 0.0
+  joint7_pitch: -0.3
   joint8_yaw: 0.0
-  joint8_pitch: 0.0
+  joint8_pitch: 1.4
