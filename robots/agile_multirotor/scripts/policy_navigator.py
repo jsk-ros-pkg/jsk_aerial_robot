@@ -16,7 +16,7 @@ from scipy.spatial.transform import Rotation as R
 from stable_baselines3.common.utils import get_device
 from stable_baselines3.ppo.policies import MlpPolicy
 
-from squaternion import Quaternion
+# from squaternion import Quaternion
 
 
 class AgileQuadState:
@@ -44,7 +44,7 @@ class AgilePilotNode:
         rospy.init_node('policy_navigator', anonymous=False)
 
         self.vision_based = vision_based
-        self.ppo_path = rospy.get_param("ppo_path")
+        self.ppo_path = rospy.get_param("~ppo_path")
         self.publish_commands = False
         self.state = None
         self.goal_lin_vel = np.array([5,0,0],dtype="float32")
