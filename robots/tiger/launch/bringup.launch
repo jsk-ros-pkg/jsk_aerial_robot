@@ -5,7 +5,7 @@
   <arg name="sim" default="False"/>
   <arg name="real_machine" default="$(arg rm)"/>
   <arg name="simulation" default="$(arg sim)"/>
-  <arg name="full_vectoring_mode"  default= "false" />
+  <arg name="full_vectoring_mode"  default= "true" />
   <arg name="type" default="octo"/>
   <arg name="onboards_model" default="v1_leg"/>
   <arg name="estimate_mode" default="0"/>

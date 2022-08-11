@@ -21,6 +21,7 @@ find_package(catkin REQUIRED COMPONENTS
 )
 
 find_package(NLopt REQUIRED)
+find_package(OsqpEigen REQUIRED)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -127,7 +128,8 @@ catkin_package(
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
-  x${NLOPT_INCLUDE_DIRS}
+  ${NLOPT_INCLUDE_DIRS}
+  ${OsqpEigen_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
@@ -205,7 +207,7 @@ include_directories(
 add_library(tiger_robot_model
   src/model/hydrus_like_robot_model.cpp
   src/model/full_vectoring_robot_model.cpp)
-target_link_libraries(tiger_robot_model ${catkin_LIBRARIES} ${NLOPT_LIBRARIES})
+target_link_libraries(tiger_robot_model ${catkin_LIBRARIES} ${NLOPT_LIBRARIES} ${OsqpEigen_LIBRARIES})
 
 
 #############

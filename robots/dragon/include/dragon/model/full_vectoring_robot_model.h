@@ -117,9 +117,6 @@ namespace Dragon
     std::vector<Eigen::Vector3d> overlap_positions_;
     std::vector<double> overlap_magnitudes_;
 
-    double thrust_force_weight_, joint_torque_weight_;
-    double joint_torque_limit_;
-
     //private functions
     void getParamFromRos();
 
@@ -132,6 +129,8 @@ namespace Dragon
 
   protected:
     virtual void updateRobotModelImpl(const KDL::JntArray& joint_positions) override;
+
+    double thrust_force_weight_, joint_torque_weight_;
   };
 
   template<> inline std::vector<KDL::Vector> FullVectoringRobotModel::getGimbalRollOriginFromCog() const

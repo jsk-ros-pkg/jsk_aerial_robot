@@ -50,6 +50,8 @@ namespace Tiger
 
   protected:
     void updateRobotModelImpl(const KDL::JntArray& joint_positions) override;
+
+    double joint_torque_limit_;
   };
 };
 
