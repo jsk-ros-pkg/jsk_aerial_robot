@@ -40,7 +40,7 @@
 namespace ros
 {
   /* be sure the max size of publisher and subscriber, as well as the size of message */
-  typedef NodeHandleStm_<50, 50, 512, 512> NodeHandle;
+  typedef NodeHandleStm_<50, 50, 512, 1024> NodeHandle;
 }
 
 #endif
