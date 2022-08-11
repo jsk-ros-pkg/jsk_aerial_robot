@@ -586,14 +586,20 @@ void AttitudeController::rpyGainCallback( const spinal::RollPitchYawTerms &gain_
 
 void AttitudeController::torqueAllocationMatrixInvCallback(const spinal::TorqueAllocationMatrixInv& msg)
 {
+  if(motor_number_ == 0) return;
+
 #ifdef SIMULATION
   if(msg.rows.size() != motor_number_)
     {
-      if(motor_number_ > 0) ROS_ERROR("torqueAllocationMatrixInvCallback: motor number is not identical between fc(%d) and pc(%ld)", motor_number_, msg.rows.size());
+      ROS_ERROR("torqueAllocationMatrixInvCallback: motor number is not identical between fc(%d) and pc(%ld)", motor_number_, msg.rows.size());
       return;
     }
 #else
-  if(msg.rows_length != motor_number_) return;
+  if(msg.rows_length != motor_number_)
+    {
+      nh_->logerror("torqueAllocationMatrixInvCallback: motor number is not identical between fc and pc");
+      return;
+    }
 #endif
 
 #ifndef SIMULATION
@@ -710,6 +716,8 @@ void  AttitudeController::setUavModel(int8_t uav_model)
 
 void AttitudeController::pMatrixInertiaCallback(const spinal::PMatrixPseudoInverseWithInertia& msg)
 {
+  if(motor_number_ == 0) return;
+
 #ifdef SIMULATION
   if(msg.pseudo_inverse.size() != motor_number_)
     {
