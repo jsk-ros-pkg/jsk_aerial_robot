@@ -45,6 +45,7 @@ FullVectoringRobotModel::FullVectoringRobotModel(bool init_with_rosparam, bool v
   ros::NodeHandle nh;
 
   nh.param("joint_torque_limit", joint_torque_limit_, 3.0);
+  nh.param("init_untouch_leg", untouch_leg_, -1);
 }
 
 void FullVectoringRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_positions)
@@ -60,7 +61,6 @@ void FullVectoringRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_po
   const int link_joint_num = getLinkJointIndices().size();
   const int rotor_num = getRotorNum();
   const int fr_ndof = 3 * rotor_num;
-  const int fe_ndof = 3 * rotor_num / 2;
 
   Eigen::MatrixXd A1_fr_all = Eigen::MatrixXd::Zero(joint_num, fr_ndof);
   Eigen::MatrixXd A2_fr = Eigen::MatrixXd::Zero(6, fr_ndof);
@@ -73,30 +73,57 @@ void FullVectoringRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_po
       A2_fr.middleCols(3 * i, 3) = thrust_coord_jacobians.at(i).topRows(3).leftCols(6).transpose() * r;
   }
 
+  const int leg_num = rotor_num / 2;
+  if (untouch_leg_ >= leg_num)
+    {
+      ROS_WARN_ONCE("The untouch leg ID exceeds the total leg number, reset to -1");
+      untouch_leg_ = -1;
+    }
+  const int fe_num =  leg_num - (int)(untouch_leg_ >= 0);
+  const int fe_ndof = 3 * fe_num;
+
   Eigen::MatrixXd A1_fe_all = Eigen::MatrixXd::Zero(joint_num, fe_ndof);
   Eigen::MatrixXd A2_fe = Eigen::MatrixXd::Zero(6, fe_ndof);
   std::vector<Eigen::MatrixXd> ee_coord_jacobians;
-  for (int i = 0; i < rotor_num / 2; i++) {
+  int cnt = 0;
+  for (int i = 0; i < leg_num; i++) {
+
+    if (untouch_leg_ == i) continue;
+
     std::string name = std::string("link") + std::to_string((i + 1) *2) + std::string("_foot");
+
     Eigen::MatrixXd jac = RobotModel::getJacobian(gimbal_processed_joint, name);
     ee_coord_jacobians.push_back(jac);
-    A1_fe_all.middleCols(3 * i, 3) = -jac.topRows(3).rightCols(joint_num).transpose();
-    A2_fe.middleCols(3 * i, 3) = jac.topRows(3).leftCols(6).transpose();
+
+    A1_fe_all.middleCols(3 * cnt, 3) = -jac.topRows(3).rightCols(joint_num).transpose();
+    A2_fe.middleCols(3 * cnt, 3) = jac.topRows(3).leftCols(6).transpose();
+
+    cnt ++;
   }
+
 
   Eigen::VectorXd b1_all = Eigen::VectorXd::Zero(joint_num);
   Eigen::VectorXd b2 = Eigen::VectorXd::Zero(6);
   for(const auto& inertia : getInertiaMap()) {
-    Eigen::MatrixXd cog_coord_jacobian = RobotModel::getJacobian(gimbal_processed_joint, inertia.first, inertia.second.getCOG());
-    b1_all -= cog_coord_jacobian.rightCols(joint_num).transpose() * inertia.second.getMass() * (-getGravity());
-    b2 += cog_coord_jacobian.leftCols(6).transpose() * inertia.second.getMass() * (-getGravity());
+
+    Eigen::MatrixXd cog_coord_jacobian
+      = RobotModel::getJacobian(gimbal_processed_joint, inertia.first, inertia.second.getCOG());
+
+    b1_all
+      -= cog_coord_jacobian.rightCols(joint_num).transpose()
+      * inertia.second.getMass() * (-getGravity());
+
+    b2
+      += cog_coord_jacobian.leftCols(6).transpose()
+      * inertia.second.getMass() * (-getGravity());
   }
 
   // only consider link joint
   Eigen::MatrixXd A1_fe = Eigen::MatrixXd::Zero(link_joint_num, fe_ndof);
   Eigen::MatrixXd A1_fr = Eigen::MatrixXd::Zero(link_joint_num, fr_ndof);
   Eigen::VectorXd b1 = Eigen::VectorXd::Zero(link_joint_num);
-  int cnt = 0;
+
+  cnt = 0;
   for(int i = 0; i < joint_num; i++) {
     if(getJointNames().at(i) == getLinkJointNames().at(cnt))
       {
@@ -108,51 +135,49 @@ void FullVectoringRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_po
     if(cnt == link_joint_num) break;
   }
 
-  // 1. only use joint torque for stand
-  OsqpEigen::Solver qp_solver;
-  qp_solver.settings()->setVerbosity(false);
-  qp_solver.settings()->setWarmStart(true);
-  /*** set the initial data of the QP solver ***/
-  qp_solver.data()->setNumberOfVariables(fe_ndof);
-  qp_solver.data()->setNumberOfConstraints(6);
 
-  /*
-    cost function:
-    (A1 fe + b1)^T (A1 fe + b1)
-    = f^T A1^T A1 f + 2 b1^T A1 f + cons
-  */
-  Eigen::MatrixXd A1 = A1_fe;
-  Eigen::MatrixXd A2 = A2_fe;
-  Eigen::MatrixXd hessian = A1.transpose() * A1;
-  Eigen::SparseMatrix<double> hessian_sparse = hessian.sparseView();
-  qp_solver.data()->setHessianMatrix(hessian_sparse);
+  if (untouch_leg_ == -1) {
+      // 1. only use joint torque for stand
+      OsqpEigen::Solver qp_solver;
+      qp_solver.settings()->setVerbosity(false);
+      qp_solver.settings()->setWarmStart(true);
+      /*** set the initial data of the QP solver ***/
+      qp_solver.data()->setNumberOfVariables(fe_ndof);
+      qp_solver.data()->setNumberOfConstraints(6);
 
-  Eigen::VectorXd gradient = b1.transpose() * A1;
-  qp_solver.data()->setGradient(gradient);
+      /*
+        cost function:
+        (A1_fe fe + b1)^T (A1_fe fe + b1)
+        = f^T A1_fe^T A1_fe f + 2 b1^T A1_fe f + cons
+      */
+      Eigen::MatrixXd hessian = A1_fe.transpose() * A1_fe;
+      Eigen::SparseMatrix<double> hessian_sparse = hessian.sparseView();
+      qp_solver.data()->setHessianMatrix(hessian_sparse);
 
-  /* equality constraint: zero total wnrech */
-  Eigen::SparseMatrix<double> constraint_sparse = (-A2).sparseView();
-  qp_solver.data()->setLinearConstraintsMatrix(constraint_sparse);
-  qp_solver.data()->setLowerBound(b2);
-  qp_solver.data()->setUpperBound(b2);
+      Eigen::VectorXd gradient = b1.transpose() * A1_fe;
+      qp_solver.data()->setGradient(gradient);
 
-  if(!qp_solver.initSolver()) {
-    ROS_ERROR("can not initialize qp solver");
-  }
+      /* equality constraint: zero total wnrech */
+      Eigen::SparseMatrix<double> constraint_sparse = (-A2_fe).sparseView();
+      qp_solver.data()->setLinearConstraintsMatrix(constraint_sparse);
+      qp_solver.data()->setLowerBound(b2);
+      qp_solver.data()->setUpperBound(b2);
 
-  double s_t = ros::Time::now().toSec();
-  bool res = qp_solver.solve();
-  ROS_INFO_STREAM_ONCE("QP solve: " << ros::Time::now().toSec() - s_t);
-  if(!res) {
-    ROS_ERROR("can not solve QP");
-  }
-  else {
+      if(!qp_solver.initSolver()) {
+        ROS_ERROR("can not initialize qp solver");
+      }
 
-    Eigen::VectorXd fe = qp_solver.getSolution();
-    Eigen::VectorXd tor = b1 + A1 * fe;
-    ROS_INFO_STREAM_ONCE("[QP] Fe: " << fe.transpose());
-    ROS_INFO_STREAM_ONCE("[QP] Joint Torque: " << tor.transpose());
-    ROS_INFO_STREAM_ONCE("[QP] Wrench: " << (A2 * fe + b2).transpose());
+      bool res = qp_solver.solve();
+      if(!res) {
+        ROS_ERROR("can not solve QP");
+      }
+      else {
+        Eigen::VectorXd fe = qp_solver.getSolution();
+        Eigen::VectorXd tor = b1 + A1_fe * fe;
+        ROS_INFO_STREAM_ONCE("[QP] Fe: " << fe.transpose());
+        ROS_INFO_STREAM_ONCE("[QP] Joint Torque: " << tor.transpose());
+        ROS_INFO_STREAM_ONCE("[QP] Wrench: " << (A2_fe * fe + b2).transpose());
+      }
   }
 
   // 2. use thrust force and joint torque for standing, cost func for joint torque
@@ -167,11 +192,11 @@ void FullVectoringRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_po
     f_all^T W1 f_all + (A1 f_all + b1)^T W2 (A1 f_all + b1)
     = f^T (W1 + A1^T W2 A1) f + 2 b1^T A1 f + cons
   */
-  A1 = Eigen::MatrixXd::Zero(link_joint_num, fr_ndof + fe_ndof);
+  Eigen::MatrixXd A1 = Eigen::MatrixXd::Zero(link_joint_num, fr_ndof + fe_ndof);
   A1.leftCols(fr_ndof) = A1_fr;
   A1.rightCols(fe_ndof) = A1_fe;
 
-  A2 = Eigen::MatrixXd::Zero(6, fr_ndof + fe_ndof);
+  Eigen::MatrixXd A2 = Eigen::MatrixXd::Zero(6, fr_ndof + fe_ndof);
   A2.leftCols(fr_ndof) = A2_fr;
   A2.rightCols(fe_ndof) = A2_fe;
 
@@ -196,8 +221,8 @@ void FullVectoringRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_po
     ROS_ERROR("can not initialize qp solver");
   }
 
-  s_t = ros::Time::now().toSec();
-  res = qp_solver2.solve();
+  double s_t = ros::Time::now().toSec();
+  bool res = qp_solver2.solve();
   ROS_INFO_STREAM_ONCE("QP solve: " << ros::Time::now().toSec() - s_t);
   if(!res) {
     ROS_ERROR("can not solve QP");

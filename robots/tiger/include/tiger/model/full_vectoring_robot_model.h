@@ -52,6 +52,7 @@ namespace Tiger
     void updateRobotModelImpl(const KDL::JntArray& joint_positions) override;
 
     double joint_torque_limit_;
+    int untouch_leg_; // start from 0: [0, leg_num -1]
   };
 };
 
