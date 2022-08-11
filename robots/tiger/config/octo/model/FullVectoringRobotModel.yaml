@@ -19,3 +19,4 @@ edf_max_tilt: 0.05
 
 thrust_force_weight: 1.0
 joint_torque_weight: 10.0 # 10.0 ~ 20.0
+joint_torque_limit: 3.5

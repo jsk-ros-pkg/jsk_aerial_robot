@@ -34,6 +34,7 @@
  *********************************************************************/
 
 #include <dragon/model/full_vectoring_robot_model.h>
+#include <OsqpEigen/OsqpEigen.h>
 
 using namespace Dragon;
 
@@ -109,6 +110,7 @@ void FullVectoringRobotModel::getParamFromRos()
 
   nh.param("thrust_force_weight", thrust_force_weight_, 1.0);
   nh.param("joint_torque_weight", joint_torque_weight_, 1.0);
+  nh.param("joint_torque_limit", joint_torque_limit_, 3.0);
 }
 
 void FullVectoringRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_positions)
@@ -637,6 +639,50 @@ void FullVectoringRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_po
   ROS_INFO_STREAM_ONCE("Joint Torque: " << tor.transpose());
   ROS_INFO_STREAM_ONCE("Wrench: " << (A2 * fe + b2).transpose());
 
+  // WIP: use QP to solve the same problem
+  OsqpEigen::Solver qp_solver;
+  qp_solver.settings()->setVerbosity(false);
+  qp_solver.settings()->setWarmStart(true);
+  /*** set the initial data of the QP solver ***/
+  qp_solver.data()->setNumberOfVariables(fe_ndof);
+  qp_solver.data()->setNumberOfConstraints(6);
+
+  /*
+     cost function:
+     (A1 fe + b1)^T (A1 fe + b1)
+    = f^T A1^T A1 f + 2 b1^T A1 f + cons
+  */
+  Eigen::MatrixXd hessian = A1.transpose() * A1;
+  Eigen::SparseMatrix<double> hessian_sparse = hessian.sparseView();
+  qp_solver.data()->setHessianMatrix(hessian_sparse);
+
+  Eigen::VectorXd gradient = b1.transpose() * A1;
+  qp_solver.data()->setGradient(gradient);
+
+  /* equality constraint: zero total wnrech */
+  Eigen::SparseMatrix<double> constraint_sparse = (-A2).sparseView();
+  qp_solver.data()->setLinearConstraintsMatrix(constraint_sparse);
+  qp_solver.data()->setLowerBound(b2);
+  qp_solver.data()->setUpperBound(b2);
+
+  if(!qp_solver.initSolver()) {
+      ROS_ERROR("can not initialize qp solver");
+  }
+
+  double s_t = ros::Time::now().toSec();
+  bool res = qp_solver.solve();
+  ROS_INFO_STREAM_ONCE("QP solve: " << ros::Time::now().toSec() - s_t);
+  if(!res) {
+      ROS_ERROR("can not solve QP");
+  }
+  else {
+
+    Eigen::VectorXd fe_qp = qp_solver.getSolution();
+    Eigen::VectorXd tor_qp = b1 + A1 * fe;
+    ROS_INFO_STREAM_ONCE("[QP] Fe: " << fe_qp.transpose());
+    ROS_INFO_STREAM_ONCE("[QP] Joint Torque: " << tor_qp.transpose());
+    ROS_INFO_STREAM_ONCE("[QP] Wrench: " << (A2 * fe_qp + b2).transpose());
+  }
 
   // WIP: calcualte the contact force in foots with the consideration of thrust force
   Eigen::MatrixXd A1_fe = A1;
@@ -653,6 +699,7 @@ void FullVectoringRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_po
   Eigen::MatrixXd W1_fr = thrust_force_weight_ * Eigen::MatrixXd::Identity(f_ndof, f_ndof);
   W1 = Eigen::MatrixXd::Zero(f_ndof + fe_ndof, f_ndof + fe_ndof);
   W1.block(0, 0, f_ndof, f_ndof) = W1_fr;
+  //W1.block(f_ndof, f_ndof, fe_ndof, fe_ndof) = 0.1 * Eigen::MatrixXd::Identity(fe_ndof, fe_ndof);;
   Psi = (W1 + A1.transpose() * W2 * A1).inverse();
 
   C = Psi * A2.transpose() * (A2 * Psi * A2.transpose()).inverse();
@@ -667,6 +714,108 @@ void FullVectoringRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_po
   ROS_INFO_STREAM_ONCE("Contact force for stand: " << f_all.tail(fe_ndof).transpose());
   ROS_INFO_STREAM_ONCE("Joint Torque: " << (A1 * f_all + b1).transpose());
   ROS_INFO_STREAM_ONCE("Wrench: " << (A2 * f_all + b2).transpose());
+
+
+  /*** set the initial data of the QP solver ***/
+  OsqpEigen::Solver qp_solver2;
+  qp_solver2.settings()->setVerbosity(false);
+  qp_solver2.settings()->setWarmStart(true);
+  qp_solver2.data()->setNumberOfVariables(f_ndof + fe_ndof);
+  qp_solver2.data()->setNumberOfConstraints(6);
+
+  /*
+     cost function:
+     f_all^T W1 f_all + (A1 f_all + b1)^T W2 (A1 f_all + b1)
+    = f^T (W1 + A1^T W2 A1) f + 2 b1^T A1 f + cons
+  */
+  // ROS_INFO_STREAM_ONCE("W1: \n" << W1);
+  // ROS_INFO_STREAM_ONCE("W2: \n" << W2);
+  Eigen::MatrixXd hessian2 = W1 + A1.transpose() * W2 * A1;
+  Eigen::SparseMatrix<double> hessian_sparse2 = hessian2.sparseView();
+  qp_solver2.data()->setHessianMatrix(hessian_sparse2);
+
+  Eigen::VectorXd gradient2 = b1.transpose() * A1;
+  qp_solver2.data()->setGradient(gradient2);
+
+  /* equality constraint: zero total wnrech */
+  Eigen::SparseMatrix<double> constraint_sparse2 = (-A2).sparseView();
+  qp_solver2.data()->setLinearConstraintsMatrix(constraint_sparse2);
+  qp_solver2.data()->setLowerBound(b2);
+  qp_solver2.data()->setUpperBound(b2);
+
+  if(!qp_solver2.initSolver()) {
+      ROS_ERROR("can not initialize qp solver");
+  }
+
+  s_t = ros::Time::now().toSec();
+  res = qp_solver2.solve();
+  ROS_INFO_STREAM_ONCE("QP solve: " << ros::Time::now().toSec() - s_t);
+  if(!res) {
+      ROS_ERROR("can not solve QP");
+  }
+  else {
+
+    Eigen::VectorXd f_all_qp = qp_solver2.getSolution();
+
+    ROS_INFO_STREAM_ONCE("[QP] Thrust force for stand: " << f_all_qp.head(f_ndof).transpose());
+    ROS_INFO_STREAM_ONCE("[QP] Contact force for stand: " << f_all_qp.tail(fe_ndof).transpose());
+    ROS_INFO_STREAM_ONCE("[QP] Joint Torque: " << (A1 * f_all_qp + b1).transpose());
+    ROS_INFO_STREAM_ONCE("[QP] Wrench: " << (A2 * f_all_qp + b2).transpose());
+  }
+
+  OsqpEigen::Solver qp_solver3;
+  qp_solver3.settings()->setVerbosity(false);
+  qp_solver3.settings()->setWarmStart(true);
+  qp_solver3.data()->setNumberOfVariables(f_ndof + fe_ndof);
+  qp_solver3.data()->setNumberOfConstraints(6 + link_joint_num);
+
+  /*
+    cost function: f_all^T W1 f_all
+  */
+  Eigen::MatrixXd hessian3 = W1;
+  Eigen::SparseMatrix<double> hessian_sparse3 = hessian3.sparseView();
+  qp_solver3.data()->setHessianMatrix(hessian_sparse3);
+
+  Eigen::VectorXd gradient3 = Eigen::VectorXd::Zero(f_ndof + fe_ndof);
+  qp_solver3.data()->setGradient(gradient3);
+
+  /* equality constraint: zero total wnrech */
+  Eigen::MatrixXd constraints = Eigen::MatrixXd::Zero(6 + link_joint_num, f_ndof + fe_ndof);
+  constraints.topRows(6) = A2;
+  constraints.bottomRows(link_joint_num) = A1;
+  Eigen::SparseMatrix<double> constraint_sparse3 = constraints.sparseView();
+  qp_solver3.data()->setLinearConstraintsMatrix(constraint_sparse3);
+  Eigen::VectorXd b = Eigen::VectorXd::Zero(6 + link_joint_num);
+  b.head(6) = -b2;
+  b.tail(link_joint_num) = -b1;
+  Eigen::VectorXd max_torque = Eigen::VectorXd::Zero(6 + link_joint_num);
+  max_torque.tail(link_joint_num) = joint_torque_limit_ * Eigen::VectorXd::Ones(link_joint_num);
+
+  Eigen::VectorXd lower_bound = b - max_torque;
+  Eigen::VectorXd upper_bound = b + max_torque;
+  qp_solver3.data()->setLowerBound(lower_bound);
+  qp_solver3.data()->setUpperBound(upper_bound);
+
+  if(!qp_solver3.initSolver()) {
+    ROS_ERROR("can not initialize qp solver");
+  }
+
+  s_t = ros::Time::now().toSec();
+  res = qp_solver3.solve();
+  ROS_INFO_STREAM_ONCE("QP solve: " << ros::Time::now().toSec() - s_t);
+  if(!res) {
+    ROS_ERROR("can not solve QP");
+  }
+  else {
+
+    Eigen::VectorXd f_all_neq = qp_solver3.getSolution();
+
+    ROS_INFO_STREAM_ONCE("[QP] Thrust force for stand: " << f_all_neq.head(f_ndof).transpose());
+    ROS_INFO_STREAM_ONCE("[QP] Contact force for stand: " << f_all_neq.tail(fe_ndof).transpose());
+    ROS_INFO_STREAM_ONCE("[QP] Joint Torque: " << (A1 * f_all_neq + b1).transpose());
+    ROS_INFO_STREAM_ONCE("[QP] Wrench: " << (A2 * f_all_neq + b2).transpose());
+  }
+
 
   return;
   Eigen::Matrix3d inertia_inv = getInertia<Eigen::Matrix3d>().inverse();
