@@ -2,7 +2,7 @@
 /*********************************************************************
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2020, JSK Lab
+ *  Copyright (c) 2022, JSK Lab
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -35,29 +35,42 @@
 
 #pragma once
 
-#include <dragon/model/full_vectoring_robot_model.h>
+#include <aerial_robot_control/control/pose_linear_controller.h>
+#include <tiger/model/full_vectoring_robot_model.h>
+#include <spinal/FourAxisCommand.h>
+#include <std_msgs/Float32MultiArray.h>
 
-namespace Tiger
+namespace aerial_robot_control
 {
-  class FullVectoringRobotModel : public Dragon::FullVectoringRobotModel
+  namespace Tiger
   {
-  public:
-    FullVectoringRobotModel(bool init_with_rosparam = true,
-                            bool verbose = false,
-                            double edf_radius = 0,
-                            double edf_max_tilt = 0);
-    virtual ~FullVectoringRobotModel() = default;
+    class WalkController: public PoseLinearController
+    {
+    public:
+      WalkController();
+      ~WalkController() {}
 
-    inline const Eigen::VectorXd& getStaticVectoringF() const {return static_vectoring_f_;}
-    inline void setStaticVectoringF(Eigen::VectorXd f) { static_vectoring_f_ = f; }
+      void initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
+                      boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
+                      boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
+                      boost::shared_ptr<aerial_robot_navigation::BaseNavigator> navigator,
+                      double ctrl_loop_rate) override;
+      bool update() override;
 
-  protected:
-    void updateRobotModelImpl(const KDL::JntArray& joint_positions) override;
+    private:
 
-    double joint_torque_limit_;
-    int untouch_leg_; // start from 0: [0, leg_num -1]
+      ros::Publisher flight_cmd_pub_; //for spinal
+      ros::Publisher gimbal_control_pub_;
+      ros::Publisher target_vectoring_force_pub_;
 
-    Eigen::VectorXd static_vectoring_f_;
+      boost::shared_ptr<::Tiger::FullVectoringRobotModel> tiger_robot_model_;
+
+      std::vector<float> target_base_thrust_;
+      std::vector<double> target_gimbal_angles_;
+      Eigen::VectorXd target_vectoring_f_;
+
+      void rosParamInit();
+      virtual void sendCmd() override;
+    };
   };
 };
-

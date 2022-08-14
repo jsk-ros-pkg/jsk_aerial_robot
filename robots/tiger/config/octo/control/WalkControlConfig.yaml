@@ -1,0 +1,25 @@
+aerial_robot_control_name: aerial_robot_control/tiger_walk
+
+controller:
+
+  control_verbose: false
+
+  roll_pitch:
+    p_gain: 15
+    i_gain: 0.3
+    d_gain: 5
+    limit_sum: 10
+    limit_p: 10
+    limit_i: 10
+    limit_d: 10
+
+  yaw:
+    p_gain: 10
+    i_gain: 0.1
+    d_gain: 5
+    limit_sum: 10 # N for clamping thrust force
+    limit_p: 10
+    limit_i: 10
+    limit_d: 10
+    limit_err_p: 0.4
+    need_d_control: true

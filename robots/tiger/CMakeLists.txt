@@ -16,6 +16,7 @@ find_package(catkin REQUIRED COMPONENTS
   dragon
   roscpp
   sensor_msgs
+  pluginlib
   spinal
   std_msgs
 )
@@ -114,8 +115,8 @@ find_package(OsqpEigen REQUIRED)
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
   INCLUDE_DIRS include
-  LIBRARIES tiger_robot_model
-#  CATKIN_DEPENDS aerial_robot_base aerial_robot_model aerial_robot_msgs aerial_robot_simulation dragon roscpp sensor_msgs spinal std_msgs
+  LIBRARIES tiger_robot_model tiger_controllib
+  CATKIN_DEPENDS aerial_robot_base aerial_robot_model aerial_robot_msgs aerial_robot_simulation dragon roscpp sensor_msgs spinal std_msgs
 #  DEPENDS system_lib
 )
 
@@ -208,6 +209,9 @@ add_library(tiger_robot_model
   src/model/hydrus_like_robot_model.cpp
   src/model/full_vectoring_robot_model.cpp)
 target_link_libraries(tiger_robot_model ${catkin_LIBRARIES} ${NLOPT_LIBRARIES} ${OsqpEigen_LIBRARIES})
+
+add_library(tiger_controllib src/control/walk_control.cpp)
+target_link_libraries (tiger_controllib ${catkin_LIBRARIES} tiger_robot_model)
 
 
 #############
