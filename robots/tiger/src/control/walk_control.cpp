@@ -154,7 +154,6 @@ bool WalkController::update()
   }
   target_vectoring_force_pub_.publish(target_vectoring_force_msg);
 
-
   // send control command to robot
   if (navigator_->getNaviState() == aerial_robot_navigation::ARM_ON_STATE) {
     sendCmd();
