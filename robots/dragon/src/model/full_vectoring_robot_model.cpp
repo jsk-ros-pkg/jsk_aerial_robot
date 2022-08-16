@@ -631,11 +631,11 @@ void FullVectoringRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_po
   Eigen::VectorXd fe = - C * b2 - (E - C * A2) * Psi * A1.transpose() * b1;
   Eigen::VectorXd tor = b1 + A1 * fe;
   //ROS_INFO_STREAM_THROTTLE(1.0, "Fe: " << fe.transpose());
-  ROS_INFO_STREAM_THROTTLE(1.0, "Joint Torque: " << tor.transpose());
+  //ROS_INFO_STREAM_THROTTLE(1.0, "Joint Torque: " << tor.transpose());
   //ROS_INFO_STREAM_THROTTLE(1.0, "Wrench: " << (A2 * fe + b2).transpose());
-  // ROS_INFO_STREAM_ONCE("Fe: " << fe.transpose());
-  // ROS_INFO_STREAM_ONCE("Joint Torque: " << tor.transpose());
-  // ROS_INFO_STREAM_ONCE("Wrench: " << (A2 * fe + b2).transpose());
+  ROS_INFO_STREAM_ONCE("Fe: " << fe.transpose());
+  ROS_INFO_STREAM_ONCE("Joint Torque: " << tor.transpose());
+  ROS_INFO_STREAM_ONCE("Wrench: " << (A2 * fe + b2).transpose());
 
   // WIP: calcualte the contact force in foots with the consideration of thrust force
   Eigen::MatrixXd A1_fe = A1;
@@ -662,10 +662,17 @@ void FullVectoringRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_po
   // ROS_INFO_STREAM_THROTTLE(1.0, "Contact force for stand: " << f_all.tail(fe_ndof).transpose());
   // ROS_INFO_STREAM_THROTTLE(1.0, "Joint Torque: " << (A1 * f_all + b1).transpose());
   // ROS_INFO_STREAM_THROTTLE(1.0, "Wrench: " << (A2 * f_all + b2).transpose());
-  ROS_INFO_STREAM_ONCE("Thrust force for stand: " << f_all.head(f_ndof).transpose());
-  ROS_INFO_STREAM_ONCE("Contact force for stand: " << f_all.tail(fe_ndof).transpose());
-  ROS_INFO_STREAM_ONCE("Joint Torque: " << (A1 * f_all + b1).transpose());
-  ROS_INFO_STREAM_ONCE("Wrench: " << (A2 * f_all + b2).transpose());
+  Eigen::VectorXd fr = f_all.head(f_ndof);
+  ROS_INFO_STREAM_ONCE("[ANALYI2] Thrust force for stand: " << fr.transpose());
+  ROS_INFO_STREAM_ONCE("[ANALYI2] Contact force for stand: " << f_all.tail(fe_ndof).transpose());
+  ROS_INFO_STREAM_ONCE("[ANALYI2] Joint Torque: " << (A1 * f_all + b1).transpose());
+  ROS_INFO_STREAM_ONCE("[ANALYI2] Wrench: " << (A2 * f_all + b2).transpose());
+
+  Eigen::VectorXd lambda = Eigen::VectorXd::Zero(rotor_num);
+  for(int i = 0; i < rotor_num; i++) {
+    lambda(i) = fr.segment(3 * i, 3).norm();
+  }
+  ROS_INFO_STREAM_ONCE("[ANALYI2] Thrust force lambda: " << lambda.transpose());
 
   return;
   Eigen::Matrix3d inertia_inv = getInertia<Eigen::Matrix3d>().inverse();

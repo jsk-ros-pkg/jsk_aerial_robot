@@ -49,7 +49,9 @@ namespace Tiger
     virtual ~FullVectoringRobotModel() = default;
 
     inline const Eigen::VectorXd& getStaticVectoringF() const {return static_vectoring_f_;}
+    inline const Eigen::VectorXd& getStaticJointT() const {return static_joint_t_;}
     inline void setStaticVectoringF(Eigen::VectorXd f) { static_vectoring_f_ = f; }
+    inline void setStaticJointT(Eigen::VectorXd t) { static_joint_t_ = t; }
 
   protected:
     void updateRobotModelImpl(const KDL::JntArray& joint_positions) override;
@@ -58,6 +60,7 @@ namespace Tiger
     int untouch_leg_; // start from 0: [0, leg_num -1]
 
     Eigen::VectorXd static_vectoring_f_;
+    Eigen::VectorXd static_joint_t_;
   };
 };
 

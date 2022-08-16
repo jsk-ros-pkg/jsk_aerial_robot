@@ -48,6 +48,7 @@ FullVectoringRobotModel::FullVectoringRobotModel(bool init_with_rosparam, bool v
   nh.param("init_untouch_leg", untouch_leg_, -1);
 
   static_vectoring_f_ = Eigen::VectorXd::Zero(0);
+  static_joint_t_ = Eigen::VectorXd::Zero(0);
 }
 
 void FullVectoringRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_positions)
@@ -176,9 +177,9 @@ void FullVectoringRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_po
       else {
         Eigen::VectorXd fe = qp_solver.getSolution();
         Eigen::VectorXd tor = b1 + A1_fe * fe;
-        ROS_INFO_STREAM_ONCE("[QP] Fe: " << fe.transpose());
-        ROS_INFO_STREAM_ONCE("[QP] Joint Torque: " << tor.transpose());
-        ROS_INFO_STREAM_ONCE("[QP] Wrench: " << (A2_fe * fe + b2).transpose());
+        ROS_INFO_STREAM_ONCE("[QP1] Fe: " << fe.transpose());
+        ROS_INFO_STREAM_ONCE("[QP1] Joint Torque: " << tor.transpose());
+        ROS_INFO_STREAM_ONCE("[QP1] Wrench: " << (A2_fe * fe + b2).transpose());
       }
   }
 
@@ -192,7 +193,7 @@ void FullVectoringRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_po
   /*
     cost function:
     f_all^T W1 f_all + (A1 f_all + b1)^T W2 (A1 f_all + b1)
-    = f^T (W1 + A1^T W2 A1) f + 2 b1^T A1 f + cons
+    = f^T (W1 + A1^T W2 A1) f + 2 b1^T W2 A1 f + cons
   */
   Eigen::MatrixXd A1 = Eigen::MatrixXd::Zero(link_joint_num, fr_ndof + fe_ndof);
   A1.leftCols(fr_ndof) = A1_fr;
@@ -210,7 +211,7 @@ void FullVectoringRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_po
   Eigen::SparseMatrix<double> hessian_sparse2 = hessian2.sparseView();
   qp_solver2.data()->setHessianMatrix(hessian_sparse2);
 
-  Eigen::VectorXd gradient2 = b1.transpose() * A1;
+  Eigen::VectorXd gradient2 = b1.transpose() * W2 * A1;
   qp_solver2.data()->setGradient(gradient2);
 
   /* equality constraint: zero total wnrech */
@@ -225,7 +226,7 @@ void FullVectoringRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_po
 
   double s_t = ros::Time::now().toSec();
   bool res = qp_solver2.solve();
-  ROS_INFO_STREAM_ONCE("QP solve: " << ros::Time::now().toSec() - s_t);
+  ROS_INFO_STREAM_ONCE("QP2 solve: " << ros::Time::now().toSec() - s_t);
   if(!res) {
     ROS_ERROR("can not solve QP");
   }
@@ -233,10 +234,10 @@ void FullVectoringRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_po
 
     Eigen::VectorXd f_all = qp_solver2.getSolution();
 
-    ROS_INFO_STREAM_ONCE("[QP] Thrust force for stand: " << f_all.head(fr_ndof).transpose());
-    ROS_INFO_STREAM_ONCE("[QP] Contact force for stand: " << f_all.tail(fe_ndof).transpose());
-    ROS_INFO_STREAM_ONCE("[QP] Joint Torque: " << (A1 * f_all + b1).transpose());
-    ROS_INFO_STREAM_ONCE("[QP] Wrench: " << (A2 * f_all + b2).transpose());
+    ROS_INFO_STREAM_ONCE("[QP2] Thrust force for stand: " << f_all.head(fr_ndof).transpose());
+    ROS_INFO_STREAM_ONCE("[QP2] Contact force for stand: " << f_all.tail(fe_ndof).transpose());
+    ROS_INFO_STREAM_ONCE("[QP2] Joint Torque: " << (A1 * f_all + b1).transpose());
+    ROS_INFO_STREAM_ONCE("[QP2] Wrench: " << (A2 * f_all + b2).transpose());
   }
 
   // 3. use thrust force and joint torque, constraint for joint torque
@@ -279,7 +280,7 @@ void FullVectoringRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_po
 
   s_t = ros::Time::now().toSec();
   res = qp_solver3.solve();
-  ROS_INFO_STREAM_ONCE("QP solve: " << ros::Time::now().toSec() - s_t);
+  ROS_INFO_STREAM_ONCE("QP3 solve: " << ros::Time::now().toSec() - s_t);
   if(!res) {
     ROS_ERROR("can not solve QP");
   }
@@ -289,27 +290,90 @@ void FullVectoringRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_po
     Eigen::VectorXd fr = f_all_neq.head(fr_ndof);
     Eigen::VectorXd fe = f_all_neq.tail(fe_ndof);
 
-    // ROS_INFO_STREAM_ONCE("[QP] Thrust force for stand: " << fr.transpose());
-    // ROS_INFO_STREAM_ONCE("[QP] Contact force for stand: " << fe.transpose());
-    // ROS_INFO_STREAM_ONCE("[QP] Joint Torque: " << (A1 * f_all_neq + b1).transpose());
-    // ROS_INFO_STREAM_ONCE("[QP] Wrench: " << (A2 * f_all_neq + b2).transpose());
+    Eigen::VectorXd tor = A1 * f_all_neq + b1;
 
-    ROS_INFO_STREAM_THROTTLE(1.0, "[QP] Thrust force for stand: " << fr.transpose());
-    ROS_INFO_STREAM_THROTTLE(1.0, "[QP] Contact force for stand: " << fe.transpose());
-    ROS_INFO_STREAM_THROTTLE(1.0, "[QP] Joint Torque: " << (A1 * f_all_neq + b1).transpose());
-    //ROS_INFO_STREAM_THROTTLE(1.0, "[QP] Wrench: " << (A2 * f_all_neq + b2).transpose());
+    ROS_INFO_STREAM_ONCE("[QP3] Thrust force for stand: " << fr.transpose());
+    ROS_INFO_STREAM_ONCE("[QP3] Contact force for stand: " << fe.transpose());
+    ROS_INFO_STREAM_ONCE("[QP3] Joint Torque: " << tor.transpose());
+    ROS_INFO_STREAM_ONCE("[QP3] Wrench: " << (A2 * f_all_neq + b2).transpose());
+
+    // ROS_INFO_STREAM_THROTTLE(1.0, "[QP3] Thrust force for stand: " << fr.transpose());
+    // ROS_INFO_STREAM_THROTTLE(1.0, "[QP3] Contact force for stand: " << fe.transpose());
+    // ROS_INFO_STREAM_THROTTLE(1.0, "[QP3] Joint Torque: " << (A1 * f_all_neq + b1).transpose());
+    // ROS_INFO_STREAM_THROTTLE(1.0, "[QP3] Wrench: " << (A2 * f_all_neq + b2).transpose());
 
     Eigen::VectorXd lambda = Eigen::VectorXd::Zero(rotor_num);
     for(int i = 0; i < rotor_num; i++) {
       lambda(i) = fr.segment(3 * i, 3).norm();
     }
 
-    //ROS_INFO_STREAM_ONCE("[QP] Thrust force lambda: " << lambda.transpose());
-    ROS_INFO_STREAM_THROTTLE(1.0, "[QP] Thrust force lambda: " << lambda.transpose());
+    ROS_INFO_STREAM_ONCE("[QP3] Thrust force lambda: " << lambda.transpose());
+    // ROS_INFO_STREAM_THROTTLE(1.0, "[QP3] Thrust force lambda: " << lambda.transpose());
 
     setStaticVectoringF(fr);
+    setStaticJointT(tor);
   }
 
+  // 4. use thrust force and joint torque, cost and constraint for joint torque
+  OsqpEigen::Solver qp_solver4;
+  qp_solver4.settings()->setVerbosity(false);
+  qp_solver4.settings()->setWarmStart(true);
+  qp_solver4.data()->setNumberOfVariables(fr_ndof + fe_ndof);
+  qp_solver4.data()->setNumberOfConstraints(6 + link_joint_num);
+
+  /*
+    cost function:
+    f_all^T W1 f_all + (A1 f_all + b1)^T W2 (A1 f_all + b1)
+    = f^T (W1 + A1^T W2 A1) f + 2 b1^T A1 f + cons
+  */
+  qp_solver4.data()->setHessianMatrix(hessian_sparse2);
+  qp_solver4.data()->setGradient(gradient2);
+
+  /* equality constraint: zero total wnrech */
+  constraints = Eigen::MatrixXd::Zero(6 + link_joint_num, fr_ndof + fe_ndof);
+  constraints.topRows(6) = A2;
+  constraints.bottomRows(link_joint_num) = A1;
+  Eigen::SparseMatrix<double> constraint_sparse4 = constraints.sparseView();
+  qp_solver4.data()->setLinearConstraintsMatrix(constraint_sparse4);
+  qp_solver4.data()->setLowerBound(lower_bound);
+  qp_solver4.data()->setUpperBound(upper_bound);
+
+  if(!qp_solver4.initSolver()) {
+    ROS_ERROR("can not initialize qp solver");
+  }
+
+  s_t = ros::Time::now().toSec();
+  res = qp_solver4.solve();
+  ROS_INFO_STREAM_ONCE("QP4 solve: " << ros::Time::now().toSec() - s_t);
+  if(!res) {
+    ROS_ERROR("can not solve QP4");
+  }
+  else {
+
+    Eigen::VectorXd f_all_neq = qp_solver4.getSolution();
+    Eigen::VectorXd fr = f_all_neq.head(fr_ndof);
+    Eigen::VectorXd fe = f_all_neq.tail(fe_ndof);
+
+    ROS_INFO_STREAM_ONCE("[QP4] Thrust force for stand: " << fr.transpose());
+    ROS_INFO_STREAM_ONCE("[QP4] Contact force for stand: " << fe.transpose());
+    ROS_INFO_STREAM_ONCE("[QP4] Joint Torque: " << (A1 * f_all_neq + b1).transpose());
+    ROS_INFO_STREAM_ONCE("[QP4] Wrench: " << (A2 * f_all_neq + b2).transpose());
+
+    // ROS_INFO_STREAM_THROTTLE(1.0, "[QP4] Thrust force for stand: " << fr.transpose());
+    // ROS_INFO_STREAM_THROTTLE(1.0, "[QP4] Contact force for stand: " << fe.transpose());
+    // ROS_INFO_STREAM_THROTTLE(1.0, "[QP4] Joint Torque: " << (A1 * f_all_neq + b1).transpose());
+    // ROS_INFO_STREAM_THROTTLE(1.0, "[QP4] Wrench: " << (A2 * f_all_neq + b2).transpose());
+
+    Eigen::VectorXd lambda = Eigen::VectorXd::Zero(rotor_num);
+    for(int i = 0; i < rotor_num; i++) {
+      lambda(i) = fr.segment(3 * i, 3).norm();
+    }
+
+    ROS_INFO_STREAM_ONCE("[QP4] Thrust force lambda: " << lambda.transpose());
+    // ROS_INFO_STREAM_THROTTLE(1.0, "[QP4] Thrust force lambda: " << lambda.transpose());
+
+    // setStaticVectoringF(fr);
+  }
 
 }
 
