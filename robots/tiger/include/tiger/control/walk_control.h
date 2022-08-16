@@ -61,6 +61,7 @@ namespace aerial_robot_control
 
       ros::Publisher flight_cmd_pub_; //for spinal
       ros::Publisher gimbal_control_pub_;
+      ros::Publisher joint_control_pub_;
       ros::Publisher target_vectoring_force_pub_;
 
       boost::shared_ptr<::Tiger::FullVectoringRobotModel> tiger_robot_model_;
@@ -68,6 +69,12 @@ namespace aerial_robot_control
       std::vector<float> target_base_thrust_;
       std::vector<double> target_gimbal_angles_;
       Eigen::VectorXd target_vectoring_f_;
+
+      sensor_msgs::JointState target_joint_state_;
+      sensor_msgs::JointState compliance_joint_state_;
+
+      double joint_ctrl_rate_;
+      double tor_kp_;
 
       void rosParamInit();
       virtual void sendCmd() override;

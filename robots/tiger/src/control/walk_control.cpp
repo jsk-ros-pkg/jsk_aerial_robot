@@ -57,14 +57,28 @@ void WalkController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   /* initialize the gimbal target angles */
   target_base_thrust_.resize(motor_num_);
   target_gimbal_angles_.resize(motor_num_ * 2, 0);
+  target_joint_state_.position.resize(0);
+  target_joint_state_.name.resize(0);
 
   gimbal_control_pub_ = nh_.advertise<sensor_msgs::JointState>("gimbals_ctrl", 1);
+  joint_control_pub_ = nh_.advertise<sensor_msgs::JointState>("joints_ctrl", 1);
   flight_cmd_pub_ = nh_.advertise<spinal::FourAxisCommand>("four_axes/command", 1);
   target_vectoring_force_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("debug/target_vectoring_force", 1);
 }
 
 void WalkController::rosParamInit()
 {
+  ros::NodeHandle control_nh(nh_, "controller");
+  getParam<double>(control_nh, "joint_ctrl_rate", joint_ctrl_rate_, 1.0); // 1 Hz
+
+  // calculate the torque_position Kp
+  double angle_scale;
+  getParam<double>(nh_, "servo_controller/joints/angle_scale", angle_scale, 1.0);
+  double torque_load_scale;
+  getParam<double>(nh_, "servo_controller/joints/torque_scale", torque_load_scale, 1.0);
+  double load_kp;
+  getParam<double>(nh_, "servo_controller/joints/load_kp", load_kp, 1.0); // KP / 128
+  tor_kp_ = torque_load_scale * load_kp / angle_scale;
 }
 
 bool WalkController::update()
@@ -72,13 +86,21 @@ bool WalkController::update()
   ControlBase::update();
 
   // skip before the model initialization
-  if (tiger_robot_model_->getStaticVectoringF().size() == 0) {
+  if (tiger_robot_model_->getStaticVectoringF().size() == 0 ||
+      tiger_robot_model_->getStaticJointT().size() == 0) {
     return false;
   }
 
+  if (target_joint_state_.position.size() == 0) {
+    target_joint_state_ = tiger_robot_model_->getGimbalProcessedJoint<sensor_msgs::JointState>();
+    compliance_joint_state_.name = tiger_robot_model_->getLinkJointNames();
+    compliance_joint_state_.position.resize(compliance_joint_state_.name.size(), 0);
+  }
 
   if (navigator_->getNaviState() == aerial_robot_navigation::START_STATE) {
     control_timestamp_ = ros::Time::now().toSec();
+
+    target_joint_state_ = tiger_robot_model_->getGimbalProcessedJoint<sensor_msgs::JointState>();
   }
 
   // only consider the static balance
@@ -95,6 +117,30 @@ bool WalkController::update()
     target_gimbal_angles_.at(2 * i + 1) = pitch;
   }
   target_vectoring_f_ = static_thrust_force;
+
+  // consider the compliance of joint control
+  Eigen::VectorXd static_joint_torque = tiger_robot_model_->getStaticJointT();
+
+  const auto& names = compliance_joint_state_.name;
+  auto& positions = compliance_joint_state_.position;
+  for(int i = 0; i < names.size(); i++) {
+
+    auto n = names.at(i);
+    const auto& v = target_joint_state_.name;
+    auto res = std::find(v.begin(), v.end(), n);
+
+    if (res == v.end()) {
+      ROS_ERROR_STREAM("[Tiger] joint torque compiance control, cannot find " << n);
+      continue;
+    }
+
+    auto id = std::distance(v.begin(), res);
+
+    double tor = static_joint_torque(i);
+    double delta_angle = tor / tor_kp_;
+    double compliance_angle = target_joint_state_.position.at(id) + delta_angle;
+    positions.at(i) = compliance_angle;
+  }
 
   // TODO: add feed-back control
   if (navigator_->getNaviState() == aerial_robot_navigation::ARM_ON_STATE) {
@@ -134,6 +180,13 @@ void WalkController::sendCmd()
     gimbal_control_msg.position.push_back(target_gimbal_angles_.at(i));
 
   gimbal_control_pub_.publish(gimbal_control_msg);
+
+  /* send joint control command */
+  double st = compliance_joint_state_.header.stamp.toSec();
+  if (ros::Time::now().toSec() - st > 1 / joint_ctrl_rate_) {
+    compliance_joint_state_.header.stamp = ros::Time::now();
+    joint_control_pub_.publish(compliance_joint_state_);
+  }
 }
 
 /* plugin registration */
