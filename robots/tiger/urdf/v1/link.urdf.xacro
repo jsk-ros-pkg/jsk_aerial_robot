@@ -46,7 +46,7 @@
     <xacro:damping_factor link="joint_junction_link${self}"/>
 
     <joint name="joint${self}_pitch" type="revolute">
-      <limit effort="${max_joint_torque}" lower="${-pi/2}" upper="${pi/2}" velocity="${max_joint_vel}"/>
+      <limit effort="${max_joint_torque}" lower="${-pi/2 - 0.34}" upper="${pi/2 + 0.34}" velocity="${max_joint_vel}"/>
       <parent link="joint_junction_link${self}"/>
       <child link="${child}"/>
       <origin rpy="0 0 0" xyz="0.0515 0.0 0.0"/>
@@ -121,7 +121,7 @@
 
     #### joints ####
     <joint name="joint${child1}_yaw" type="revolute">
-      <limit effort="${max_joint_torque}" lower="${-pi/2}" upper="${pi/2}" velocity="${max_joint_vel}"/>
+      <limit effort="${max_joint_torque}" lower="${-pi/2 - 0.34}" upper="${pi/2 + 0.34}" velocity="${max_joint_vel}"/>
       <parent link="center_link"/>
       <child link="joint_junction_link${child1}"/>
       <origin rpy="0 0 ${pi / 4}" xyz="0.12233 0.12233 -0.0155"/>
@@ -130,7 +130,7 @@
     </joint>
 
     <joint name="joint${child2}_yaw" type="revolute">
-      <limit effort="${max_joint_torque}" lower="${-pi/2}" upper="${pi/2}" velocity="${max_joint_vel}"/>
+      <limit effort="${max_joint_torque}" lower="${-pi/2 - 0.34}" upper="${pi/2 + 0.34}" velocity="${max_joint_vel}"/>
       <parent link="center_link"/>
       <child link="joint_junction_link${child2}"/>
       <origin rpy="0 0 ${pi * 3 / 4}" xyz="-0.12233 0.12233 -0.0155"/>
@@ -139,7 +139,7 @@
     </joint>
 
     <joint name="joint${child3}_yaw" type="revolute">
-      <limit effort="${max_joint_torque}" lower="${-pi/2}" upper="${pi/2}" velocity="${max_joint_vel}"/>
+      <limit effort="${max_joint_torque}" lower="${-pi/2 - 0.34}" upper="${pi/2 + 0.34}" velocity="${max_joint_vel}"/>
       <parent link="center_link"/>
       <child link="joint_junction_link${child3}"/>
       <origin rpy="0 0 ${pi * 5 / 4}" xyz="-0.12233 -0.12233 -0.0155"/>
@@ -148,7 +148,7 @@
     </joint>
 
     <joint name="joint${child4}_yaw" type="revolute">
-      <limit effort="${max_joint_torque}" lower="${-pi/2}" upper="${pi/2}" velocity="${max_joint_vel}"/>
+      <limit effort="${max_joint_torque}" lower="${-pi/2 - 0.34}" upper="${pi/2 + 0.34}" velocity="${max_joint_vel}"/>
       <parent link="center_link"/>
       <child link="joint_junction_link${child4}"/>
       <origin rpy="0 0 ${pi * 7 / 4}" xyz="0.12233 -0.12233 -0.0155"/>
@@ -284,7 +284,7 @@
     #### link joint ####
     <xacro:unless value="${self == child}">
       <joint name="joint${child}_yaw" type="revolute">
-        <limit effort="${max_joint_torque}" lower="${-pi/2}" upper="${pi}" velocity="${max_joint_vel}"/>
+        <limit effort="${max_joint_torque}" lower="${-pi/2 - 0.34}" upper="${pi/2 + 0.34}" velocity="${max_joint_vel}"/>
         <parent link="link${self}"/>
         <child link="joint_junction_link${child}"/>
         <origin rpy="0 0 0" xyz="${general_link_length} 0 0"/>

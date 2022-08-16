@@ -39,6 +39,9 @@
 #include <tiger/model/full_vectoring_robot_model.h>
 #include <spinal/FourAxisCommand.h>
 #include <std_msgs/Float32MultiArray.h>
+#include <spinal/ServoTorqueCmd.h>
+#include <std_msgs/Empty.h>
+#include <std_srvs/SetBool.h>
 
 namespace aerial_robot_control
 {
@@ -63,6 +66,10 @@ namespace aerial_robot_control
       ros::Publisher gimbal_control_pub_;
       ros::Publisher joint_control_pub_;
       ros::Publisher target_vectoring_force_pub_;
+      ros::Publisher joint_torque_pub_;
+      ros::Subscriber joint_force_compliance_sub_;
+      ros::Subscriber joint_no_load_sub_;
+      ros::ServiceServer joint_yaw_torque_srv_, joint_pitch_torque_srv_;
 
       boost::shared_ptr<::Tiger::FullVectoringRobotModel> tiger_robot_model_;
 
@@ -71,13 +78,18 @@ namespace aerial_robot_control
       Eigen::VectorXd target_vectoring_f_;
 
       sensor_msgs::JointState target_joint_state_;
-      sensor_msgs::JointState compliance_joint_state_;
-
       double joint_ctrl_rate_;
       double tor_kp_;
 
+      bool force_joint_torque_;
+      double joint_no_load_end_t_;
+
       void rosParamInit();
       virtual void sendCmd() override;
+
+      bool servoTorqueCtrlCallback(std_srvs::SetBool::Request &req, std_srvs::SetBool::Response &res, const std::string& name);
+      void jointForceComplianceCallback(const std_msgs::EmptyConstPtr& msg);
+      void jointNoLoadCallback(const std_msgs::EmptyConstPtr& msg);
     };
   };
 };

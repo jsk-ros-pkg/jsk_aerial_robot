@@ -326,7 +326,7 @@ namespace aerial_robot_navigation
       if(!estimator_->getStateStatus(State::Z_BASE, estimate_mode_))
         {
           ROS_ERROR("Flight Navigation: No correct sensor fusion for z(altitude), can not fly");
-          return;
+          // return;
         }
 
       for(const auto& handler: estimator_->getGpsHandlers())

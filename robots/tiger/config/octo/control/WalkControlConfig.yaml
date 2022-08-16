@@ -4,6 +4,8 @@ controller:
 
   control_verbose: false
 
+  joint_ctrl_rate: 10.0 # 10 Hz
+
   roll_pitch:
     p_gain: 15
     i_gain: 0.3
