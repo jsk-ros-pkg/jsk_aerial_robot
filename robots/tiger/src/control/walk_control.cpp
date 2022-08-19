@@ -306,7 +306,16 @@ void WalkController::sendCmd()
 
     if (ros::Time::now().toSec() - st > 1 / joint_ctrl_rate_) {
       target_joint_state_.header.stamp = ros::Time::now();
-      joint_control_pub_.publish(target_joint_state_);
+
+      sensor_msgs::JointState joint_msg;
+      joint_msg.header = target_joint_state_.header;
+      for (int i = 0; i < target_joint_state_.name.size(); i++) {
+        if (target_joint_state_.name.at(i).find("pitch") != std::string::npos) {
+          joint_msg.name.push_back(target_joint_state_.name.at(i));
+          joint_msg.position.push_back(target_joint_state_.position.at(i));
+        }
+      }
+      joint_control_pub_.publish(joint_msg);
     }
   }
 
