@@ -4,24 +4,14 @@ controller:
 
   control_verbose: false
 
-  joint_ctrl_rate: 10.0 # 10 Hz
+  walk:
+    joint_ctrl_rate: 10.0 # 10 Hz
 
-  roll_pitch:
-    p_gain: 15
-    i_gain: 0.3
-    d_gain: 5
-    limit_sum: 10
-    limit_p: 10
-    limit_i: 10
-    limit_d: 10
+    z:
+      p_gain: 200 # N/m: 2N/0.01m
+      i_gain: 50 # N/m
+      d_gain: 0
+      limit_sum: 20
+      limit_p: 20
+      limit_i: 20
 
-  yaw:
-    p_gain: 10
-    i_gain: 0.1
-    d_gain: 5
-    limit_sum: 10 # N for clamping thrust force
-    limit_p: 10
-    limit_i: 10
-    limit_d: 10
-    limit_err_p: 0.4
-    need_d_control: true

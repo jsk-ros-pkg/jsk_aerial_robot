@@ -39,7 +39,12 @@ using namespace aerial_robot_model;
 using namespace aerial_robot_control::Tiger;
 
 WalkController::WalkController():
-  PoseLinearController()
+  PoseLinearController(),
+  walk_pid_controllers_(0),
+  baselink_target_pos_(0,0,0),
+  baselink_target_rpy_(0,0,0),
+  force_joint_torque_(false),
+  joint_no_load_end_t_(0)
 {
 }
 
@@ -59,6 +64,7 @@ void WalkController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   target_gimbal_angles_.resize(motor_num_ * 2, 0);
   target_joint_state_.position.resize(0);
   target_joint_state_.name.resize(0);
+  target_vectoring_f_ = Eigen::VectorXd::Zero(3 * motor_num_);
 
   gimbal_control_pub_ = nh_.advertise<sensor_msgs::JointState>("gimbals_ctrl", 1);
   joint_control_pub_ = nh_.advertise<sensor_msgs::JointState>("joints_ctrl", 1);
@@ -74,15 +80,47 @@ void WalkController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
 
   target_joint_state_.name = tiger_robot_model_->getLinkJointNames();
   target_joint_state_.position.resize(target_joint_state_.name.size(), 0);
-
-  force_joint_torque_ = false;
-  joint_no_load_end_t_ = 0;
 }
 
 void WalkController::rosParamInit()
 {
-  ros::NodeHandle control_nh(nh_, "controller");
-  getParam<double>(control_nh, "joint_ctrl_rate", joint_ctrl_rate_, 1.0); // 1 Hz
+  ros::NodeHandle walk_control_nh(nh_, "controller/walk");
+  getParam<double>(walk_control_nh, "joint_ctrl_rate", joint_ctrl_rate_, 1.0); // 1 Hz
+
+  ros::NodeHandle xy_nh(walk_control_nh, "xy");
+  ros::NodeHandle z_nh(walk_control_nh, "z");
+
+  double limit_sum, limit_p, limit_i, limit_d;
+  double limit_err_p, limit_err_i, limit_err_d;
+  double p_gain, i_gain, d_gain;
+
+  auto loadParam = [&, this](ros::NodeHandle nh)
+    {
+      getParam<double>(nh, "limit_sum", limit_sum, 1.0e6);
+      getParam<double>(nh, "limit_p", limit_p, 1.0e6);
+      getParam<double>(nh, "limit_i", limit_i, 1.0e6);
+      getParam<double>(nh, "limit_d", limit_d, 1.0e6);
+      getParam<double>(nh, "limit_err_p", limit_err_p, 1.0e6);
+      getParam<double>(nh, "limit_err_i", limit_err_i, 1.0e6);
+      getParam<double>(nh, "limit_err_d", limit_err_d, 1.0e6);
+
+      getParam<double>(nh, "p_gain", p_gain, 0.0);
+      getParam<double>(nh, "i_gain", i_gain, 0.0);
+      getParam<double>(nh, "d_gain", d_gain, 0.0);
+    };
+
+  loadParam(xy_nh);
+  walk_pid_controllers_.push_back(PID("x", p_gain, i_gain, d_gain, limit_sum, limit_p, limit_i, limit_d, limit_err_p, limit_err_i, limit_err_d));
+  walk_pid_controllers_.push_back(PID("y", p_gain, i_gain, d_gain, limit_sum, limit_p, limit_i, limit_d, limit_err_p, limit_err_i, limit_err_d));
+
+  std::vector<int> indices = {X, Y};
+  walk_pid_reconf_servers_.push_back(boost::make_shared<PidControlDynamicConfig>(xy_nh));
+  walk_pid_reconf_servers_.back()->setCallback(boost::bind(&WalkController::cfgPidCallback, this, _1, _2, indices));
+
+  loadParam(z_nh);
+  walk_pid_controllers_.push_back(PID("z", p_gain, i_gain, d_gain, limit_sum, limit_p, limit_i, limit_d, limit_err_p, limit_err_i, limit_err_d));
+  walk_pid_reconf_servers_.push_back(boost::make_shared<PidControlDynamicConfig>(z_nh));
+  walk_pid_reconf_servers_.back()->setCallback(boost::bind(&WalkController::cfgPidCallback, this, _1, _2, std::vector<int>(1, Z)));
 
   // calculate the torque_position Kp
   double angle_scale;
@@ -106,12 +144,90 @@ bool WalkController::update()
 
   if (navigator_->getNaviState() == aerial_robot_navigation::START_STATE) {
     control_timestamp_ = ros::Time::now().toSec();
+
+    // set the target position for baselink
+    ROS_INFO("[Walk] set initial position as target position");
+    baselink_target_pos_ = estimator_->getPos(Frame::BASELINK, estimate_mode_);
+    baselink_target_rpy_ = estimator_->getEuler(Frame::BASELINK, estimate_mode_);
   }
 
-  // only consider the static balance
+
+  // feed-forwared control: compensate the static balance
   Eigen::VectorXd static_thrust_force = tiger_robot_model_->getStaticVectoringF();
+  target_vectoring_f_ = static_thrust_force;
+
+
+  // feed-back control:  baselink position control
+  Eigen::VectorXd target_wrench = Eigen::VectorXd::Zero(6);
+
+  if (navigator_->getNaviState() == aerial_robot_navigation::ARM_ON_STATE) {
+
+    // PoseLinearController::controlCore(); // TODO: no need?
+
+    tf::Vector3 baselink_pos = estimator_->getPos(Frame::BASELINK, estimate_mode_);
+    tf::Vector3 baselink_rpy = estimator_->getEuler(Frame::BASELINK, estimate_mode_);
+
+    tf::Vector3 pos_err = baselink_target_pos_ - baselink_pos;
+    tf::Vector3 rpy_err = baselink_target_rpy_ - baselink_rpy;
+
+    // time diff
+    double du = ros::Time::now().toSec() - control_timestamp_;
+
+    // z
+    walk_pid_controllers_.at(Z).update(pos_err.z(), du, 0);
+
+    // w.r.t. world frame
+    tf::Vector3 target_acc(walk_pid_controllers_.at(X).result(),
+                           walk_pid_controllers_.at(Y).result(),
+                           walk_pid_controllers_.at(Z).result());
+
+    // assign to target wrench
+    target_wrench.head(3) = Eigen::Vector3d(target_acc.x(), target_acc.y(), target_acc.z());
+
+
+    // ros pub
+    pid_msg_.z.total.at(0) =  walk_pid_controllers_.at(Z).result();
+    pid_msg_.z.p_term.at(0) = walk_pid_controllers_.at(Z).getPTerm();
+    pid_msg_.z.i_term.at(0) = walk_pid_controllers_.at(Z).getITerm();
+    pid_msg_.z.d_term.at(0) = walk_pid_controllers_.at(Z).getDTerm();
+    pid_msg_.z.target_p = baselink_target_pos_.z();
+    pid_msg_.z.err_p = pos_err.z();
+    pid_msg_.z.target_d = 0;
+    pid_msg_.z.err_d = 0;
+    ROS_INFO_STREAM_THROTTLE(1.0, "[fb control] z control: " << walk_pid_controllers_.at(Z).result()
+                             << "; pos err: " << pos_err.z()
+                             << "; P term: " << walk_pid_controllers_.at(Z).getPTerm()
+                             << "; I term: " << walk_pid_controllers_.at(Z).getITerm());
+
+    // update
+    control_timestamp_ = ros::Time::now().toSec();
+  }
+
+  // allocation
+  // use all vecotoring angles
+  // consider cog and baselink are all level
+  const auto rotors_origin = tiger_robot_model_->getRotorsOriginFromCog<Eigen::Vector3d>();
+  const auto links_rot = tiger_robot_model_->getLinksRotationFromCog<Eigen::Matrix3d>();
+
+  // Note: only consider the inside links
+  Eigen::MatrixXd q_mat = Eigen::MatrixXd::Zero(6, 3 * motor_num_ / 2);
+  Eigen::MatrixXd wrench_map = Eigen::MatrixXd::Zero(6, 3);
+  wrench_map.block(0, 0, 3, 3) = Eigen::MatrixXd::Identity(3, 3);
+  for(int i = 0; i < motor_num_ / 2; i++) {
+      wrench_map.block(3, 0, 3, 3) = aerial_robot_model::skew(rotors_origin.at(2 * i));
+      q_mat.middleCols(3 * i, 3) = wrench_map * links_rot.at(2 * i);
+    }
+  auto q_mat_inv = aerial_robot_model::pseudoinverse(q_mat);
+  Eigen::VectorXd fb_vectoring_f = q_mat_inv * target_wrench; // feed-back control
+  for(int i = 0; i < motor_num_ / 2; i++) {
+    target_vectoring_f_.segment(3 * 2 * i, 3) += fb_vectoring_f.segment(3 * i, 3);
+  }
+  ROS_INFO_STREAM_THROTTLE(1.0, "[fb control] fb vectoring f: " << fb_vectoring_f.transpose());
+
+
+  // target lambda and gimbal angles
   for(int i = 0; i < motor_num_; i++) {
-    Eigen::Vector3d f = static_thrust_force.segment(3 * i, 3);
+    Eigen::Vector3d f = target_vectoring_f_.segment(3 * i, 3);
 
     double lambda = f.norm();
     double roll = atan2(-f.y(), f.z());
@@ -121,9 +237,9 @@ bool WalkController::update()
     target_gimbal_angles_.at(2 * i) = roll;
     target_gimbal_angles_.at(2 * i + 1) = pitch;
   }
-  target_vectoring_f_ = static_thrust_force;
 
-  // consider the compliance of joint control
+
+  // joint control compliance
   auto current_joint_state = tiger_robot_model_->getGimbalProcessedJoint<sensor_msgs::JointState>();
   Eigen::VectorXd static_joint_torque = tiger_robot_model_->getStaticJointT();
 
@@ -161,10 +277,15 @@ bool WalkController::update()
     positions.at(i) = target_angle;
   }
 
-  // TODO: add feed-back control
-  if (navigator_->getNaviState() == aerial_robot_navigation::ARM_ON_STATE) {
-    PoseLinearController::controlCore();
-  }
+  // send control command to robot
+  sendCmd();
+
+  return true;
+}
+
+void WalkController::sendCmd()
+{
+  PoseLinearController::sendCmd();
 
   // send ros message for monitoring
   std_msgs::Float32MultiArray target_vectoring_force_msg;
@@ -185,31 +306,22 @@ bool WalkController::update()
     }
   }
 
-  // send control command to robot
   if (navigator_->getNaviState() == aerial_robot_navigation::ARM_ON_STATE) {
-    sendCmd();
+
+    /* send base throttle command */
+    spinal::FourAxisCommand flight_command_data;
+    flight_command_data.base_thrust = target_base_thrust_;
+    flight_cmd_pub_.publish(flight_command_data);
+
+    /* send gimbal control command */
+    sensor_msgs::JointState gimbal_control_msg;
+    gimbal_control_msg.header.stamp = ros::Time::now();
+
+    for(int i = 0; i < motor_num_ * 2; i++)
+      gimbal_control_msg.position.push_back(target_gimbal_angles_.at(i));
+
+    gimbal_control_pub_.publish(gimbal_control_msg);
   }
-
-  return true;
-}
-
-void WalkController::sendCmd()
-{
-  PoseLinearController::sendCmd();
-
-  /* send base throttle command */
-  spinal::FourAxisCommand flight_command_data;
-  flight_command_data.base_thrust = target_base_thrust_;
-  flight_cmd_pub_.publish(flight_command_data);
-
-  /* send gimbal control command */
-  sensor_msgs::JointState gimbal_control_msg;
-  gimbal_control_msg.header.stamp = ros::Time::now();
-
-  for(int i = 0; i < motor_num_ * 2; i++)
-    gimbal_control_msg.position.push_back(target_gimbal_angles_.at(i));
-
-  gimbal_control_pub_.publish(gimbal_control_msg);
 }
 
 bool WalkController::servoTorqueCtrlCallback(std_srvs::SetBool::Request &req, std_srvs::SetBool::Response &res, const std::string& name)
@@ -239,6 +351,40 @@ void WalkController::jointForceComplianceCallback(const std_msgs::EmptyConstPtr&
 void WalkController::jointNoLoadCallback(const std_msgs::EmptyConstPtr& msg)
 {
   joint_no_load_end_t_ = ros::Time::now().toSec() + 5.0; // 10.0 is a paramter
+}
+
+void WalkController::cfgPidCallback(aerial_robot_control::PidControlConfig &config, uint32_t level, std::vector<int> controller_indices)
+{
+  using Levels = aerial_robot_msgs::DynamicReconfigureLevels;
+  if(config.pid_control_flag)
+    {
+      switch(level)
+        {
+        case Levels::RECONFIGURE_P_GAIN:
+          for(const auto& index: controller_indices)
+            {
+              walk_pid_controllers_.at(index).setPGain(config.p_gain);
+              ROS_INFO_STREAM("change p gain for walk PID controller '" << walk_pid_controllers_.at(index).getName() << "'");
+            }
+          break;
+        case Levels::RECONFIGURE_I_GAIN:
+          for(const auto& index: controller_indices)
+            {
+              walk_pid_controllers_.at(index).setIGain(config.i_gain);
+              ROS_INFO_STREAM("change i gain for walk PID controller '" << walk_pid_controllers_.at(index).getName() << "'");
+            }
+          break;
+        case Levels::RECONFIGURE_D_GAIN:
+          for(const auto& index: controller_indices)
+            {
+              walk_pid_controllers_.at(index).setDGain(config.d_gain);
+              ROS_INFO_STREAM("change d gain for walk PID controller '" << walk_pid_controllers_.at(index).getName() << "'");
+            }
+          break;
+        default :
+          break;
+        }
+    }
 }
 
 

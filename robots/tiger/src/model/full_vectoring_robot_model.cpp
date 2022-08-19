@@ -307,7 +307,7 @@ void FullVectoringRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_po
     }
 
     ROS_INFO_STREAM_ONCE("[QP3] Thrust force lambda: " << lambda.transpose());
-    ROS_INFO_STREAM_THROTTLE(1.0, "[QP3] Thrust force lambda: " << lambda.transpose());
+    // ROS_INFO_STREAM_THROTTLE(1.0, "[QP3] Thrust force lambda: " << lambda.transpose());
 
     // setStaticVectoringF(fr);
     // setStaticJointT(tor);

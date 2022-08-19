@@ -73,6 +73,9 @@ namespace aerial_robot_control
 
       boost::shared_ptr<::Tiger::FullVectoringRobotModel> tiger_robot_model_;
 
+      std::vector<PID> walk_pid_controllers_;
+      std::vector<boost::shared_ptr<PidControlDynamicConfig> > walk_pid_reconf_servers_;
+
       std::vector<float> target_base_thrust_;
       std::vector<double> target_gimbal_angles_;
       Eigen::VectorXd target_vectoring_f_;
@@ -84,12 +87,17 @@ namespace aerial_robot_control
       bool force_joint_torque_;
       double joint_no_load_end_t_;
 
+      tf::Vector3 baselink_target_pos_;
+      tf::Vector3 baselink_target_rpy_;
+
       void rosParamInit();
       virtual void sendCmd() override;
 
       bool servoTorqueCtrlCallback(std_srvs::SetBool::Request &req, std_srvs::SetBool::Response &res, const std::string& name);
       void jointForceComplianceCallback(const std_msgs::EmptyConstPtr& msg);
       void jointNoLoadCallback(const std_msgs::EmptyConstPtr& msg);
+
+      void cfgPidCallback(aerial_robot_control::PidControlConfig &config, uint32_t level, std::vector<int> controller_indices) override;
     };
   };
 };
