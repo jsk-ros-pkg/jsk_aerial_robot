@@ -88,6 +88,7 @@ namespace aerial_robot_control
       double joint_no_load_end_t_;
 
       tf::Vector3 baselink_target_pos_;
+      tf::Vector3 baselink_target_vel_;
       tf::Vector3 baselink_target_rpy_;
 
       void rosParamInit();

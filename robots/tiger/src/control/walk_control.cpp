@@ -42,6 +42,7 @@ WalkController::WalkController():
   PoseLinearController(),
   walk_pid_controllers_(0),
   baselink_target_pos_(0,0,0),
+  baselink_target_vel_(0,0,0),
   baselink_target_rpy_(0,0,0),
   force_joint_torque_(false),
   joint_no_load_end_t_(0)
@@ -86,7 +87,6 @@ void WalkController::rosParamInit()
 {
   ros::NodeHandle walk_control_nh(nh_, "controller/walk");
   getParam<double>(walk_control_nh, "joint_ctrl_rate", joint_ctrl_rate_, 1.0); // 1 Hz
-
   ros::NodeHandle xy_nh(walk_control_nh, "xy");
   ros::NodeHandle z_nh(walk_control_nh, "z");
 
@@ -142,13 +142,17 @@ bool WalkController::update()
     return false;
   }
 
+  tf::Vector3 baselink_pos = estimator_->getPos(Frame::BASELINK, estimate_mode_);
+  tf::Vector3 baselink_vel = estimator_->getVel(Frame::BASELINK, estimate_mode_);
+  tf::Vector3 baselink_rpy = estimator_->getEuler(Frame::BASELINK, estimate_mode_);
+
   if (navigator_->getNaviState() == aerial_robot_navigation::START_STATE) {
     control_timestamp_ = ros::Time::now().toSec();
 
     // set the target position for baselink
     ROS_INFO("[Walk] set initial position as target position");
-    baselink_target_pos_ = estimator_->getPos(Frame::BASELINK, estimate_mode_);
-    baselink_target_rpy_ = estimator_->getEuler(Frame::BASELINK, estimate_mode_);
+    baselink_target_pos_ = baselink_pos;
+    baselink_target_rpy_ = baselink_rpy;
   }
 
 
@@ -164,17 +168,15 @@ bool WalkController::update()
 
     // PoseLinearController::controlCore(); // TODO: no need?
 
-    tf::Vector3 baselink_pos = estimator_->getPos(Frame::BASELINK, estimate_mode_);
-    tf::Vector3 baselink_rpy = estimator_->getEuler(Frame::BASELINK, estimate_mode_);
-
     tf::Vector3 pos_err = baselink_target_pos_ - baselink_pos;
+    tf::Vector3 vel_err = baselink_target_vel_ - baselink_vel;
     tf::Vector3 rpy_err = baselink_target_rpy_ - baselink_rpy;
 
     // time diff
     double du = ros::Time::now().toSec() - control_timestamp_;
 
     // z
-    walk_pid_controllers_.at(Z).update(pos_err.z(), du, 0);
+    walk_pid_controllers_.at(Z).update(pos_err.z(), du, vel_err.z());
 
     // w.r.t. world frame
     tf::Vector3 target_acc(walk_pid_controllers_.at(X).result(),
@@ -192,12 +194,14 @@ bool WalkController::update()
     pid_msg_.z.d_term.at(0) = walk_pid_controllers_.at(Z).getDTerm();
     pid_msg_.z.target_p = baselink_target_pos_.z();
     pid_msg_.z.err_p = pos_err.z();
-    pid_msg_.z.target_d = 0;
-    pid_msg_.z.err_d = 0;
-    ROS_INFO_STREAM_THROTTLE(1.0, "[fb control] z control: " << walk_pid_controllers_.at(Z).result()
-                             << "; pos err: " << pos_err.z()
-                             << "; P term: " << walk_pid_controllers_.at(Z).getPTerm()
-                             << "; I term: " << walk_pid_controllers_.at(Z).getITerm());
+    pid_msg_.z.target_d = baselink_target_vel_.z();
+    pid_msg_.z.err_d = vel_err.z();
+    // ROS_INFO_STREAM_THROTTLE(1.0, "[fb control] z control: "
+    //                          << walk_pid_controllers_.at(Z).result()
+    //                          << "; pos err: " << pos_err.z()
+    //                          << "; vel err: " << vel_err.z()
+    //                          << "; P term: " << walk_pid_controllers_.at(Z).getPTerm()
+    //                          << "; I term: " << walk_pid_controllers_.at(Z).getITerm());
 
     // update
     control_timestamp_ = ros::Time::now().toSec();

@@ -8,10 +8,11 @@ controller:
     joint_ctrl_rate: 10.0 # 10 Hz
 
     z:
-      p_gain: 200 # N/m: 2N/0.01m
-      i_gain: 50 # N/m
-      d_gain: 0
-      limit_sum: 20
-      limit_p: 20
-      limit_i: 20
+      p_gain: 200.0 # N/m: 2N/0.01m
+      i_gain: 0.0 # 20.0 N/m
+      d_gain: 0.0
+      limit_sum: 20.0
+      limit_p: 20.0
+      limit_i: 20.0
+      limit_d: 10.0
 
