@@ -1,6 +1,6 @@
 # Teleop Basic Param
 
-flight_navigation_plugin_name: aerial_robot_navigation/dragon_navigation
+flight_navigation_plugin_name: aerial_robot_navigation/tiger/walk_navigation
 
 navigation:
   xy_control_mode: 0

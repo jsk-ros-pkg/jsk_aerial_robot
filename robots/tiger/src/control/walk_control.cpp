@@ -41,9 +41,6 @@ using namespace aerial_robot_control::Tiger;
 WalkController::WalkController():
   PoseLinearController(),
   walk_pid_controllers_(0),
-  baselink_target_pos_(0,0,0),
-  baselink_target_vel_(0,0,0),
-  baselink_target_rpy_(0,0,0),
   force_joint_torque_(false),
   joint_no_load_end_t_(0)
 {
@@ -59,6 +56,7 @@ void WalkController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   rosParamInit();
 
   tiger_robot_model_ = boost::dynamic_pointer_cast<::Tiger::FullVectoringRobotModel>(robot_model);
+  tiger_walk_navigator_ = boost::dynamic_pointer_cast<aerial_robot_navigation::Tiger::WalkNavigator>(navigator);
 
   /* initialize the gimbal target angles */
   target_base_thrust_.resize(motor_num_);
@@ -142,19 +140,31 @@ bool WalkController::update()
     return false;
   }
 
+  if (navigator_->getNaviState() == aerial_robot_navigation::START_STATE) {
+    control_timestamp_ = ros::Time::now().toSec();
+  }
+
+  // thrust control
+  thrustControl();
+
+  // joint control
+  jointControl();
+
+  // send control command to robot
+  sendCmd();
+
+  return true;
+}
+
+void WalkController::thrustControl()
+{
   tf::Vector3 baselink_pos = estimator_->getPos(Frame::BASELINK, estimate_mode_);
   tf::Vector3 baselink_vel = estimator_->getVel(Frame::BASELINK, estimate_mode_);
   tf::Vector3 baselink_rpy = estimator_->getEuler(Frame::BASELINK, estimate_mode_);
 
-  if (navigator_->getNaviState() == aerial_robot_navigation::START_STATE) {
-    control_timestamp_ = ros::Time::now().toSec();
-
-    // set the target position for baselink
-    ROS_INFO("[Walk] set initial position as target position");
-    baselink_target_pos_ = baselink_pos;
-    baselink_target_rpy_ = baselink_rpy;
-  }
-
+  tf::Vector3 baselink_target_pos = tiger_walk_navigator_->getTargetBaselinkPos();
+  tf::Vector3 baselink_target_vel = tiger_walk_navigator_->getTargetBaselinkVel();
+  tf::Vector3 baselink_target_rpy = tiger_walk_navigator_->getTargetBaselinkRpy();
 
   // feed-forwared control: compensate the static balance
   Eigen::VectorXd static_thrust_force = tiger_robot_model_->getStaticVectoringF();
@@ -168,9 +178,9 @@ bool WalkController::update()
 
     // PoseLinearController::controlCore(); // TODO: no need?
 
-    tf::Vector3 pos_err = baselink_target_pos_ - baselink_pos;
-    tf::Vector3 vel_err = baselink_target_vel_ - baselink_vel;
-    tf::Vector3 rpy_err = baselink_target_rpy_ - baselink_rpy;
+    tf::Vector3 pos_err = baselink_target_pos - baselink_pos;
+    tf::Vector3 vel_err = baselink_target_vel - baselink_vel;
+    tf::Vector3 rpy_err = baselink_target_rpy - baselink_rpy;
 
     // time diff
     double du = ros::Time::now().toSec() - control_timestamp_;
@@ -192,9 +202,9 @@ bool WalkController::update()
     pid_msg_.z.p_term.at(0) = walk_pid_controllers_.at(Z).getPTerm();
     pid_msg_.z.i_term.at(0) = walk_pid_controllers_.at(Z).getITerm();
     pid_msg_.z.d_term.at(0) = walk_pid_controllers_.at(Z).getDTerm();
-    pid_msg_.z.target_p = baselink_target_pos_.z();
+    pid_msg_.z.target_p = baselink_target_pos.z();
     pid_msg_.z.err_p = pos_err.z();
-    pid_msg_.z.target_d = baselink_target_vel_.z();
+    pid_msg_.z.target_d = baselink_target_vel.z();
     pid_msg_.z.err_d = vel_err.z();
     // ROS_INFO_STREAM_THROTTLE(1.0, "[fb control] z control: "
     //                          << walk_pid_controllers_.at(Z).result()
@@ -218,9 +228,9 @@ bool WalkController::update()
   Eigen::MatrixXd wrench_map = Eigen::MatrixXd::Zero(6, 3);
   wrench_map.block(0, 0, 3, 3) = Eigen::MatrixXd::Identity(3, 3);
   for(int i = 0; i < motor_num_ / 2; i++) {
-      wrench_map.block(3, 0, 3, 3) = aerial_robot_model::skew(rotors_origin.at(2 * i));
-      q_mat.middleCols(3 * i, 3) = wrench_map * links_rot.at(2 * i);
-    }
+    wrench_map.block(3, 0, 3, 3) = aerial_robot_model::skew(rotors_origin.at(2 * i));
+    q_mat.middleCols(3 * i, 3) = wrench_map * links_rot.at(2 * i);
+  }
   auto q_mat_inv = aerial_robot_model::pseudoinverse(q_mat);
   Eigen::VectorXd fb_vectoring_f = q_mat_inv * target_wrench; // feed-back control
   for(int i = 0; i < motor_num_ / 2; i++) {
@@ -241,9 +251,11 @@ bool WalkController::update()
     target_gimbal_angles_.at(2 * i) = roll;
     target_gimbal_angles_.at(2 * i + 1) = pitch;
   }
+}
 
-
-  // joint control compliance
+void WalkController::jointControl()
+{
+  // joint torque control
   auto current_joint_state = tiger_robot_model_->getGimbalProcessedJoint<sensor_msgs::JointState>();
   Eigen::VectorXd static_joint_torque = tiger_robot_model_->getStaticJointT();
 
@@ -280,11 +292,6 @@ bool WalkController::update()
     double target_angle = current_joint_state.position.at(id) + delta_angle;
     positions.at(i) = target_angle;
   }
-
-  // send control command to robot
-  sendCmd();
-
-  return true;
 }
 
 void WalkController::sendCmd()

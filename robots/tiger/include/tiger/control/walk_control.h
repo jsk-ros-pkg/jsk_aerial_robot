@@ -37,6 +37,7 @@
 
 #include <aerial_robot_control/control/pose_linear_controller.h>
 #include <tiger/model/full_vectoring_robot_model.h>
+#include <tiger/navigation/walk_navigation.h>
 #include <spinal/FourAxisCommand.h>
 #include <std_msgs/Float32MultiArray.h>
 #include <spinal/ServoTorqueCmd.h>
@@ -72,6 +73,7 @@ namespace aerial_robot_control
       ros::ServiceServer joint_yaw_torque_srv_, joint_pitch_torque_srv_;
 
       boost::shared_ptr<::Tiger::FullVectoringRobotModel> tiger_robot_model_;
+      boost::shared_ptr<aerial_robot_navigation::Tiger::WalkNavigator> tiger_walk_navigator_;
 
       std::vector<PID> walk_pid_controllers_;
       std::vector<boost::shared_ptr<PidControlDynamicConfig> > walk_pid_reconf_servers_;
@@ -87,10 +89,6 @@ namespace aerial_robot_control
       bool force_joint_torque_;
       double joint_no_load_end_t_;
 
-      tf::Vector3 baselink_target_pos_;
-      tf::Vector3 baselink_target_vel_;
-      tf::Vector3 baselink_target_rpy_;
-
       void rosParamInit();
       virtual void sendCmd() override;
 
@@ -99,6 +97,9 @@ namespace aerial_robot_control
       void jointNoLoadCallback(const std_msgs::EmptyConstPtr& msg);
 
       void cfgPidCallback(aerial_robot_control::PidControlConfig &config, uint32_t level, std::vector<int> controller_indices) override;
+
+      void jointControl();
+      void thrustControl();
     };
   };
 };

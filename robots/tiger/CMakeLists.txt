@@ -214,6 +214,10 @@ add_library(tiger_controllib src/control/walk_control.cpp)
 target_link_libraries (tiger_controllib ${catkin_LIBRARIES} tiger_robot_model)
 
 
+add_library(tiger_navigation src/navigation/walk_navigation.cpp)
+target_link_libraries(tiger_navigation ${catkin_LIBRARIES})
+
+
 #############
 ## Testing ##
 #############

@@ -1,0 +1,5 @@
+<library path="lib/libtiger_navigation">
+  <class name="aerial_robot_navigation/tiger/walk_navigation" type="aerial_robot_navigation::Tiger::WalkNavigator" base_class_type="aerial_robot_navigation::BaseNavigator">
+    <description> tiger walk navigation plugin</description>
+  </class>
+</library>
