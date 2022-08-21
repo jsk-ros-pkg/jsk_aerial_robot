@@ -86,8 +86,10 @@ namespace aerial_robot_control
       double joint_ctrl_rate_;
       double tor_kp_;
 
-      bool force_joint_torque_;
+      bool force_joint_control_;
       double joint_no_load_end_t_;
+
+      double joint_torque_control_thresh_;
 
       void rosParamInit();
       virtual void sendCmd() override;

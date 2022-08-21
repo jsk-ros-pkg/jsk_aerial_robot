@@ -36,7 +36,7 @@
 #pragma once
 
 #include <aerial_robot_control/flight_navigation.h>
-
+#include <tiger/model/full_vectoring_robot_model.h>
 
 namespace aerial_robot_navigation
 {
@@ -57,12 +57,18 @@ namespace aerial_robot_navigation
       inline tf::Vector3 getTargetBaselinkPos() {return target_pos_;}
       inline tf::Vector3 getTargetBaselinkRpy() {return target_rpy_;}
       inline tf::Vector3 getTargetBaselinkVel() {return target_vel_;}
+      inline sensor_msgs::JointState getTargetJointState() {return target_joint_state_;}
+
 
     private:
 
       tf::Vector3 target_pos_;
       tf::Vector3 target_vel_;
       tf::Vector3 target_rpy_;
+
+      sensor_msgs::JointState target_joint_state_;
+
+      boost::shared_ptr<::Tiger::FullVectoringRobotModel> tiger_robot_model_;
 
       void halt() override;
       void reset() override;

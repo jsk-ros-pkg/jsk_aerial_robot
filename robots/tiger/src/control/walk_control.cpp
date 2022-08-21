@@ -41,7 +41,7 @@ using namespace aerial_robot_control::Tiger;
 WalkController::WalkController():
   PoseLinearController(),
   walk_pid_controllers_(0),
-  force_joint_torque_(false),
+  force_joint_control_(false),
   joint_no_load_end_t_(0)
 {
 }
@@ -85,6 +85,7 @@ void WalkController::rosParamInit()
 {
   ros::NodeHandle walk_control_nh(nh_, "controller/walk");
   getParam<double>(walk_control_nh, "joint_ctrl_rate", joint_ctrl_rate_, 1.0); // 1 Hz
+  getParam<double>(walk_control_nh, "joint_torque_control_thresh", joint_torque_control_thresh_, 2.0); // 2 Nm
   ros::NodeHandle xy_nh(walk_control_nh, "xy");
   ros::NodeHandle z_nh(walk_control_nh, "z");
 
@@ -255,13 +256,40 @@ void WalkController::thrustControl()
 
 void WalkController::jointControl()
 {
-  // joint torque control
+  // basically, use position control for all joints
+  target_joint_state_ = tiger_walk_navigator_->getTargetJointState();
+
+
+  // use torque control for necessary joints
   auto current_joint_state = tiger_robot_model_->getGimbalProcessedJoint<sensor_msgs::JointState>();
   Eigen::VectorXd static_joint_torque = tiger_robot_model_->getStaticJointT();
 
   const auto& names = target_joint_state_.name;
   auto& positions = target_joint_state_.position;
   for(int i = 0; i < names.size(); i++) {
+
+    bool need_torque_control = true;
+
+    double tor = static_joint_torque(i);
+
+    if (fabs(tor) < joint_torque_control_thresh_) {
+      need_torque_control = false;
+    }
+
+    if (joint_no_load_end_t_ > ros::Time::now().toSec()) {
+
+      if (joint_no_load_end_t_ - ros::Time::now().toSec() < 0.1) {
+        force_joint_control_ = false;
+      }
+      else {
+        force_joint_control_ = true;
+      }
+
+      need_torque_control = true;
+      tor = 0;
+    }
+
+    if (!need_torque_control) continue;
 
     auto n = names.at(i);
     const auto& v = current_joint_state.name;
@@ -271,26 +299,12 @@ void WalkController::jointControl()
       ROS_ERROR_STREAM("[Tiger] joint torque compiance control, cannot find " << n);
       continue;
     }
-
     auto id = std::distance(v.begin(), res);
 
-    double tor = static_joint_torque(i);
-
-    if (joint_no_load_end_t_ > ros::Time::now().toSec()) {
-
-      tor = 0;
-
-      if (joint_no_load_end_t_ - ros::Time::now().toSec() < 0.1) {
-        force_joint_torque_ = false;
-      }
-      else {
-        force_joint_torque_ = true;
-      }
-    }
-
+    double current_angle = current_joint_state.position.at(id);
     double delta_angle = tor / tor_kp_;
-    double target_angle = current_joint_state.position.at(id) + delta_angle;
-    positions.at(i) = target_angle;
+
+    positions.at(i) = current_angle + delta_angle;
   }
 }
 
@@ -307,22 +321,13 @@ void WalkController::sendCmd()
 
   // send joint compliance command
   if (navigator_->getNaviState() == aerial_robot_navigation::ARM_ON_STATE ||
-      force_joint_torque_) {
+      force_joint_control_) {
 
     double st = target_joint_state_.header.stamp.toSec();
 
     if (ros::Time::now().toSec() - st > 1 / joint_ctrl_rate_) {
       target_joint_state_.header.stamp = ros::Time::now();
-
-      sensor_msgs::JointState joint_msg;
-      joint_msg.header = target_joint_state_.header;
-      for (int i = 0; i < target_joint_state_.name.size(); i++) {
-        if (target_joint_state_.name.at(i).find("pitch") != std::string::npos) {
-          joint_msg.name.push_back(target_joint_state_.name.at(i));
-          joint_msg.position.push_back(target_joint_state_.position.at(i));
-        }
-      }
-      joint_control_pub_.publish(joint_msg);
+      joint_control_pub_.publish(target_joint_state_);
     }
   }
 
@@ -358,14 +363,14 @@ bool WalkController::servoTorqueCtrlCallback(std_srvs::SetBool::Request &req, st
   }
   joint_torque_pub_.publish(torque_msg);
 
-  if (!req.data) force_joint_torque_ = false;
+  if (!req.data) force_joint_control_ = false;
 
   return true;
 }
 
 void WalkController::jointForceComplianceCallback(const std_msgs::EmptyConstPtr& msg)
 {
-  force_joint_torque_ = true;
+  force_joint_control_ = true;
 }
 
 void WalkController::jointNoLoadCallback(const std_msgs::EmptyConstPtr& msg)
