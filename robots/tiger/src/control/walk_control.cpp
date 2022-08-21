@@ -186,6 +186,12 @@ void WalkController::thrustControl()
     // time diff
     double du = ros::Time::now().toSec() - control_timestamp_;
 
+    // x
+    walk_pid_controllers_.at(X).update(pos_err.x(), du, vel_err.x());
+
+    // y
+    walk_pid_controllers_.at(Y).update(pos_err.y(), du, vel_err.y());
+
     // z
     walk_pid_controllers_.at(Z).update(pos_err.z(), du, vel_err.z());
 
@@ -199,6 +205,24 @@ void WalkController::thrustControl()
 
 
     // ros pub
+    pid_msg_.x.total.at(0) =  walk_pid_controllers_.at(X).result();
+    pid_msg_.x.p_term.at(0) = walk_pid_controllers_.at(X).getPTerm();
+    pid_msg_.x.i_term.at(0) = walk_pid_controllers_.at(X).getITerm();
+    pid_msg_.x.d_term.at(0) = walk_pid_controllers_.at(X).getDTerm();
+    pid_msg_.x.target_p = baselink_target_pos.x();
+    pid_msg_.x.err_p = pos_err.x();
+    pid_msg_.x.target_d = baselink_target_vel.x();
+    pid_msg_.x.err_d = vel_err.x();
+
+    pid_msg_.y.total.at(0) =  walk_pid_controllers_.at(Y).result();
+    pid_msg_.y.p_term.at(0) = walk_pid_controllers_.at(Y).getPTerm();
+    pid_msg_.y.i_term.at(0) = walk_pid_controllers_.at(Y).getITerm();
+    pid_msg_.y.d_term.at(0) = walk_pid_controllers_.at(Y).getDTerm();
+    pid_msg_.y.target_p = baselink_target_pos.y();
+    pid_msg_.y.err_p = pos_err.y();
+    pid_msg_.y.target_d = baselink_target_vel.y();
+    pid_msg_.y.err_d = vel_err.y();
+
     pid_msg_.z.total.at(0) =  walk_pid_controllers_.at(Z).result();
     pid_msg_.z.p_term.at(0) = walk_pid_controllers_.at(Z).getPTerm();
     pid_msg_.z.i_term.at(0) = walk_pid_controllers_.at(Z).getITerm();
@@ -207,12 +231,6 @@ void WalkController::thrustControl()
     pid_msg_.z.err_p = pos_err.z();
     pid_msg_.z.target_d = baselink_target_vel.z();
     pid_msg_.z.err_d = vel_err.z();
-    // ROS_INFO_STREAM_THROTTLE(1.0, "[fb control] z control: "
-    //                          << walk_pid_controllers_.at(Z).result()
-    //                          << "; pos err: " << pos_err.z()
-    //                          << "; vel err: " << vel_err.z()
-    //                          << "; P term: " << walk_pid_controllers_.at(Z).getPTerm()
-    //                          << "; I term: " << walk_pid_controllers_.at(Z).getITerm());
 
     // update
     control_timestamp_ = ros::Time::now().toSec();

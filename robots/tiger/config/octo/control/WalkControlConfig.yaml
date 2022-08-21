@@ -7,6 +7,15 @@ controller:
   walk:
     joint_ctrl_rate: 10.0 # 10 Hz
 
+    xy:
+      p_gain: 0.0 # N/m:
+      i_gain: 0.0 #
+      d_gain: 0.0
+      limit_sum: 0.0
+      limit_p: 0.0
+      limit_i: 0.0
+      limit_d: 0.0
+
     z:
       p_gain: 200.0 # N/m: 2N/0.01m
       i_gain: 0.0 # 20.0 N/m
