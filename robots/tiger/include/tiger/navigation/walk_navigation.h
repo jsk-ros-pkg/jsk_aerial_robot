@@ -54,19 +54,23 @@ namespace aerial_robot_navigation
 
       void update() override;
 
-      inline tf::Vector3 getTargetBaselinkPos() {return target_pos_;}
-      inline tf::Vector3 getTargetBaselinkRpy() {return target_rpy_;}
-      inline tf::Vector3 getTargetBaselinkVel() {return target_vel_;}
+      inline tf::Vector3 getTargetBaselinkPos() {return target_baselink_pos_;}
+      inline tf::Vector3 getTargetBaselinkRpy() {return target_baselink_rpy_;}
+      inline tf::Vector3 getTargetBaselinkVel() {return target_baselink_vel_;}
       inline sensor_msgs::JointState getTargetJointState() {return target_joint_state_;}
 
 
     private:
 
-      tf::Vector3 target_pos_;
-      tf::Vector3 target_vel_;
-      tf::Vector3 target_rpy_;
+      tf::Vector3 target_baselink_pos_;
+      tf::Vector3 target_baselink_vel_;
+      tf::Vector3 target_baselink_rpy_;
 
       sensor_msgs::JointState target_joint_state_;
+      std::vector<KDL::Frame> target_leg_ends_;
+
+      ros::Subscriber target_baselink_pos_sub_;
+      ros::Subscriber target_baselink_delta_pos_sub_;
 
       boost::shared_ptr<::Tiger::FullVectoringRobotModel> tiger_robot_model_;
 
@@ -74,6 +78,9 @@ namespace aerial_robot_navigation
       void reset() override;
 
       void rosParamInit() override;
+
+      void targetBaselinkPosCallback(const geometry_msgs::Vector3StampedConstPtr& msg);
+      void targetBaselinkDeltaPosCallback(const geometry_msgs::Vector3StampedConstPtr& msg);
 
     };
   };
