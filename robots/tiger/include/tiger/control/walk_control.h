@@ -60,6 +60,7 @@ namespace aerial_robot_control
                       boost::shared_ptr<aerial_robot_navigation::BaseNavigator> navigator,
                       double ctrl_loop_rate) override;
       bool update() override;
+      void reset() override;
 
     private:
 
@@ -86,8 +87,7 @@ namespace aerial_robot_control
       Eigen::VectorXd target_vectoring_f_;
 
       sensor_msgs::JointState target_joint_state_;
-      std::vector<double> prev_target_joint_angles_;
-      std::vector<bool> joint_converge_;
+      std::vector<double> prev_navi_target_joint_angles_;
       double joint_ctrl_rate_;
       double tor_kp_;
 

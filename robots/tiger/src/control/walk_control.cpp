@@ -41,11 +41,10 @@ using namespace aerial_robot_control::Tiger;
 WalkController::WalkController():
   PoseLinearController(),
   walk_pid_controllers_(0),
-  joint_converge_(0),
   joint_index_map_(0),
   force_joint_control_(false),
   joint_no_load_end_t_(0),
-  prev_target_joint_angles_(0)
+  prev_navi_target_joint_angles_(0)
 {
 }
 
@@ -82,13 +81,12 @@ void WalkController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
 
   target_joint_state_.name = tiger_robot_model_->getLinkJointNames();
   int joint_num = tiger_robot_model_->getLinkJointNames().size();
-  target_joint_state_.position.resize(joint_num, 0);
+  target_joint_state_.position.assign(joint_num, 0);
 
-  joint_converge_.resize(joint_num, true);
 
-  std::stringstream ss;
-  for(auto n: tiger_robot_model_->getLinkJointNames()) ss << n << ", ";
-  ROS_WARN_STREAM("joint names: " << ss.str());
+  // std::stringstream ss;
+  // for(auto n: tiger_robot_model_->getLinkJointNames()) ss << n << ", ";
+  // ROS_WARN_STREAM("joint names: " << ss.str());
 }
 
 void WalkController::rosParamInit()
@@ -293,19 +291,22 @@ void WalkController::thrustControl()
 void WalkController::jointControl()
 {
   // basically, use position control for all joints
-  auto navigator_target_joint_angle = tiger_walk_navigator_->getTargetJointState().position;
-  if (!samejointAngles(target_joint_state_.position, navigator_target_joint_angle)) {
-    if (prev_target_joint_angles_.size() == 0) {
-      prev_target_joint_angles_ = navigator_target_joint_angle;
-    }
-    else {
-      prev_target_joint_angles_ = target_joint_state_.position;
-      joint_converge_.resize(prev_target_joint_angles_.size(), false);
-    }
-
-    target_joint_state_.position = navigator_target_joint_angle;
+  auto navi_target_joint_angles = tiger_walk_navigator_->getTargetJointState().position;
+  target_joint_state_.position = navi_target_joint_angles;
+  if (prev_navi_target_joint_angles_.size() == 0) {
+    prev_navi_target_joint_angles_ = navi_target_joint_angles;
+  }
+  if (navigator_->getNaviState() == aerial_robot_navigation::START_STATE) {
+    prev_navi_target_joint_angles_ = navi_target_joint_angles;
   }
 
+  // std::stringstream ss1, ss2;
+  // for (int i = 0; i < prev_navi_target_joint_angles_.size(); i++) {
+  //   ss1 << prev_navi_target_joint_angles_.at(i) << ", ";
+  //   ss2 << navi_target_joint_angles.at(i) << ", ";
+  // }
+  // ROS_INFO_STREAM("prev_navi_target_joint_angles: " << ss1.str());
+  // ROS_INFO_STREAM("navi_target_joint_angles: " << ss2.str());
 
   // use torque control for joints that needs large torque load
   auto current_angles = getCurrentJointAngles();
@@ -318,8 +319,8 @@ void WalkController::jointControl()
     bool need_torque_control = true;
 
     double current_angle = current_angles.at(i);
-    double target_angle  = target_joint_state_.position.at(i);
-    double prev_target_angle  = prev_target_joint_angles_.at(i);
+    double navi_target_angle  = navi_target_joint_angles.at(i);
+    double prev_navi_target_angle  = prev_navi_target_joint_angles_.at(i);
     double tor = static_joint_torque(i);
 
     // no torque control if torque is small
@@ -330,33 +331,39 @@ void WalkController::jointControl()
 
     // modify the target torque according to the target joint state
     // special algorithm for the additional pulley mechanism with non-final axis encoder
-    if (!joint_converge_[i]) {
+    //if (prev_navi_target_angle != navi_target_angle) { // Bug: too strict for acos func
+    if (fabs(prev_navi_target_angle - navi_target_angle) > 1e-4
+        && need_torque_control) {
+
+      ROS_WARN("[Tiger][Control] %s not converge. %lf VS %lf", names.at(i).c_str(), prev_navi_target_angle, navi_target_angle);
 
       // the case of inside pitch joint (e.g., joint1_pitch)
       if (tor > 0) {
 
-        double modified_target_angle = target_angle + servo_angle_bias_;
+        double modified_navi_target_angle = navi_target_angle + servo_angle_bias_;
 
-        if (target_angle > prev_target_angle) {
-          if (current_angle >= modified_target_angle) {
+        if (navi_target_angle > prev_navi_target_angle) {
+          if (current_angle >= modified_navi_target_angle) {
             // the joint converges
-            joint_converge_.at(i) = true;
-            ROS_INFO_STREAM("[Tiger][Control]" << names.at(i) << " reaches the new target angle " << target_angle);
+            prev_navi_target_joint_angles_.at(i) = navi_target_joint_angles.at(i);
+            ROS_INFO_STREAM("[Tiger][Control]" << names.at(i) << " reaches the new target angle " << navi_target_angle);
           }
           else {
             // increase servo torque to reach the target angle, feedforwardly
             tor = clamp(tor * servo_torque_change_rate_, servo_max_torque_);
+            ROS_INFO_STREAM("[Tiger][Control]" << names.at(i) << " increase torque.");
           }
         }
-        if (target_angle < prev_target_angle) {
-          if (current_angle <= modified_target_angle) {
+        if (navi_target_angle < prev_navi_target_angle) {
+          if (current_angle <= modified_navi_target_angle) {
             // the joint converges
-            joint_converge_.at(i) = true;
-            ROS_INFO_STREAM("[Tiger][Control]" << names.at(i) << " reaches the new target angle " << target_angle);
+            prev_navi_target_joint_angles_.at(i) = navi_target_joint_angles.at(i);
+            ROS_INFO_STREAM("[Tiger][Control]" << names.at(i) << " reaches the new target angle " << navi_target_angle);
           }
           else {
             // decrease servo torque to reach the target angle, feedforwardly
             tor = clamp(tor / servo_torque_change_rate_, servo_max_torque_);
+            ROS_INFO_STREAM("[Tiger][Control]" << names.at(i) << " decrease torque.");
           }
         }
       }
@@ -364,34 +371,35 @@ void WalkController::jointControl()
       // the case of outside pitch joint (e.g., joint2_pitch)
       if (tor < 0) {
 
-        double modified_target_angle = target_angle - servo_angle_bias_;
+        double modified_navi_target_angle = navi_target_angle - servo_angle_bias_;
 
-        if (target_angle < prev_target_angle) {
-          if (current_angle <= modified_target_angle) {
+        if (navi_target_angle < prev_navi_target_angle) {
+          if (current_angle <= modified_navi_target_angle) {
             // the joint converges
-            joint_converge_.at(i) = true;
-            ROS_INFO_STREAM("[Tiger][Control]" << names.at(i) << " reaches the new target angle " << target_angle);
+            prev_navi_target_joint_angles_.at(i) = navi_target_joint_angles.at(i);
+            ROS_INFO_STREAM("[Tiger][Control]" << names.at(i) << " reaches the new target angle " << navi_target_angle);
           }
           else {
             // increase servo torque to reach the target angle, feedforwardly
             tor = clamp(tor * servo_torque_change_rate_, servo_max_torque_);
+            ROS_INFO_STREAM("[Tiger][Control]" << names.at(i) << " increase torque.");
           }
         }
 
-        if (target_angle > prev_target_angle) {
+        if (navi_target_angle > prev_navi_target_angle) {
 
-          if (current_angle >= modified_target_angle) {
+          if (current_angle >= modified_navi_target_angle) {
             // the joint converges
-            joint_converge_.at(i) = true;
-            ROS_INFO_STREAM("[Tiger][Control]" << names.at(i) << " reaches the new target angle " << target_angle);
+            prev_navi_target_joint_angles_.at(i) = navi_target_joint_angles.at(i);
+            ROS_INFO_STREAM("[Tiger][Control]" << names.at(i) << " reaches the new target angle " << navi_target_angle);
           }
           else {
             // increase servo torque to reach the target angle, feedforwardly
             tor = clamp(tor / servo_torque_change_rate_, servo_max_torque_);
+            ROS_INFO_STREAM("[Tiger][Control]" << names.at(i) << " decrease torque.");
           }
         }
       }
-
     }
 
     // compliance to fit the current joint angles
@@ -414,6 +422,7 @@ void WalkController::jointControl()
 
     target_angles.at(i) = current_angle + delta_angle;
   }
+
 }
 
 void WalkController::sendCmd()
@@ -572,6 +581,12 @@ bool WalkController::samejointAngles(std::vector<double> group_a, std::vector<do
   }
 
   return res;
+}
+
+void WalkController::reset()
+{
+  PoseLinearController::reset();
+  prev_navi_target_joint_angles_.resize(0);
 }
 
 /* plugin registration */

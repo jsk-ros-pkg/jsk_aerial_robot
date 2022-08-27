@@ -86,6 +86,16 @@ void WalkNavigator::update()
     target_baselink_rpy_ = baselink_rpy;
   }
 
+  if (getNaviState() == aerial_robot_navigation::START_STATE) {
+
+    // set the target position for baselink
+    ROS_INFO("[Walk][Navigator] set initial position and joint angles as target ones");
+    target_baselink_pos_ = baselink_pos;
+    target_baselink_rpy_ = baselink_rpy;
+
+    // set target leg end frame (position)
+    target_leg_ends_ = curr_leg_ends;
+  }
 
   // calculate the target joint angles from baselink and end position
   KDL::Frame fw_target_baselink;
@@ -93,7 +103,6 @@ void WalkNavigator::update()
                                                  target_baselink_rpy_.y(),
                                                  target_baselink_rpy_.x());
   tf::vectorTFToKDL(target_baselink_pos_, fw_target_baselink.p);
-
 
   double l0 = -1; // distance from "joint_junction_linkx" to "linkx"
   double l1 = -1; // distance from "linkx" to "linkx+1"
@@ -146,7 +155,6 @@ void WalkNavigator::update()
     KDL::Frame fp1_end = fw_joint_pitch1.Inverse() * fw_end;  // w.r.t. pitch1 frame
     double x_e = fp1_end.p.x();
     double y_e = - fp1_end.p.z(); // w.r.t pitch1 frame
-    // ROS_ERROR_STREAM("leg end" << i + 1 << ": " << x_e << ", " << y_e);
     double b = l1 * l1 - x_e * x_e - y_e * y_e - l2 * l2;
     double b_d = b / (- 2 * l2);
     double d = sqrt(x_e * x_e + y_e * y_e);
@@ -178,30 +186,13 @@ void WalkNavigator::update()
       ROS_ERROR_STREAM("[Tiger][Navigator] name order is different. ID" << i << " name is " << names.at(4 * i));
     }
   }
-  // ROS_INFO_STREAM_THROTTLE(1.0, "[Tiger][Navigator] analytical joint angles from leg end and baselink: " << ss.str());
+  ROS_DEBUG_STREAM_THROTTLE(1.0, "[Tiger][Navigator] analytical joint angles from leg end and baselink: " << ss.str());
+
   std_msgs::Float32MultiArray msg;
   for(int i = 0; i < target_angles.size(); i++) {
     msg.data.push_back(target_angles.at(i));
   }
   target_joint_angles_pub_.publish(msg);
-
-
-
-
-  if (getNaviState() == aerial_robot_navigation::START_STATE) {
-
-    // set the target position for baselink
-    ROS_INFO("[Walk][Navigator] set initial position and joint angles as target ones");
-    target_baselink_pos_ = baselink_pos;
-    target_baselink_rpy_ = baselink_rpy;
-
-    // set target joint angles
-    target_joint_state_.position = getCurrentJointAngles();
-
-    // set target leg end frame (position)
-    target_leg_ends_ = curr_leg_ends;
-  }
-
 }
 
 void WalkNavigator::setJointIndexMap()
@@ -280,6 +271,8 @@ void WalkNavigator::targetBaselinkDeltaPosCallback(const geometry_msgs::Vector3S
   tf::Vector3 delta_pos;
   tf::vector3MsgToTF(msg->vector, delta_pos);
   target_baselink_pos_ += delta_pos;
+
+  ROS_ERROR("get new target baselink");
 }
 
 
