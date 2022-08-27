@@ -37,6 +37,7 @@
 
 #include <aerial_robot_control/flight_navigation.h>
 #include <tiger/model/full_vectoring_robot_model.h>
+#include <std_msgs/Float32MultiArray.h>
 
 namespace aerial_robot_navigation
 {
@@ -66,11 +67,13 @@ namespace aerial_robot_navigation
       tf::Vector3 target_baselink_vel_;
       tf::Vector3 target_baselink_rpy_;
 
+      std::vector<int> joint_index_map_;
       sensor_msgs::JointState target_joint_state_;
       std::vector<KDL::Frame> target_leg_ends_;
 
       ros::Subscriber target_baselink_pos_sub_;
       ros::Subscriber target_baselink_delta_pos_sub_;
+      ros::Publisher target_joint_angles_pub_;
 
       boost::shared_ptr<::Tiger::FullVectoringRobotModel> tiger_robot_model_;
 
@@ -82,6 +85,9 @@ namespace aerial_robot_navigation
       void targetBaselinkPosCallback(const geometry_msgs::Vector3StampedConstPtr& msg);
       void targetBaselinkDeltaPosCallback(const geometry_msgs::Vector3StampedConstPtr& msg);
 
+      // utils
+      void setJointIndexMap();
+      std::vector<double> getCurrentJointAngles();
     };
   };
 };

@@ -78,11 +78,16 @@ namespace aerial_robot_control
       std::vector<PID> walk_pid_controllers_;
       std::vector<boost::shared_ptr<PidControlDynamicConfig> > walk_pid_reconf_servers_;
 
+      std::vector<int> joint_index_map_;
+
+
       std::vector<float> target_base_thrust_;
       std::vector<double> target_gimbal_angles_;
       Eigen::VectorXd target_vectoring_f_;
 
       sensor_msgs::JointState target_joint_state_;
+      std::vector<double> prev_target_joint_angles_;
+      std::vector<bool> joint_converge_;
       double joint_ctrl_rate_;
       double tor_kp_;
 
@@ -90,6 +95,9 @@ namespace aerial_robot_control
       double joint_no_load_end_t_;
 
       double joint_torque_control_thresh_;
+      double servo_max_torque_;
+      double servo_torque_change_rate_;
+      double servo_angle_bias_;
 
       void rosParamInit();
       virtual void sendCmd() override;
@@ -102,6 +110,12 @@ namespace aerial_robot_control
 
       void jointControl();
       void thrustControl();
+
+      // utils
+      void setJointIndexMap();
+      std::vector<double> getCurrentJointAngles();
+      inline double clamp(double v, double b) { return std::min(std::max(v, -b), b); }
+      bool samejointAngles(std::vector<double> group_a, std::vector<double> group_b);
     };
   };
 };

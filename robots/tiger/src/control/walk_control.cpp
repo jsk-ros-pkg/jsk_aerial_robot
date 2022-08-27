@@ -41,8 +41,11 @@ using namespace aerial_robot_control::Tiger;
 WalkController::WalkController():
   PoseLinearController(),
   walk_pid_controllers_(0),
+  joint_converge_(0),
+  joint_index_map_(0),
   force_joint_control_(false),
-  joint_no_load_end_t_(0)
+  joint_no_load_end_t_(0),
+  prev_target_joint_angles_(0)
 {
 }
 
@@ -78,7 +81,14 @@ void WalkController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   joint_force_compliance_sub_ = nh_.subscribe<std_msgs::Empty>("joint_force_comliance", 1, &WalkController::jointForceComplianceCallback, this);
 
   target_joint_state_.name = tiger_robot_model_->getLinkJointNames();
-  target_joint_state_.position.resize(target_joint_state_.name.size(), 0);
+  int joint_num = tiger_robot_model_->getLinkJointNames().size();
+  target_joint_state_.position.resize(joint_num, 0);
+
+  joint_converge_.resize(joint_num, true);
+
+  std::stringstream ss;
+  for(auto n: tiger_robot_model_->getLinkJointNames()) ss << n << ", ";
+  ROS_WARN_STREAM("joint names: " << ss.str());
 }
 
 void WalkController::rosParamInit()
@@ -86,6 +96,9 @@ void WalkController::rosParamInit()
   ros::NodeHandle walk_control_nh(nh_, "controller/walk");
   getParam<double>(walk_control_nh, "joint_ctrl_rate", joint_ctrl_rate_, 1.0); // 1 Hz
   getParam<double>(walk_control_nh, "joint_torque_control_thresh", joint_torque_control_thresh_, 2.0); // 2 Nm
+  getParam<double>(walk_control_nh, "servo_angle_bias", servo_angle_bias_, 0.02); // 0.02 rad
+  getParam<double>(walk_control_nh, "servo_max_torque", servo_max_torque_, 6.0); // 6.0 Nm
+  getParam<double>(walk_control_nh, "servo_torque_change_rate", servo_torque_change_rate_, 1.5); // rate
   ros::NodeHandle xy_nh(walk_control_nh, "xy");
   ros::NodeHandle z_nh(walk_control_nh, "z");
 
@@ -139,6 +152,11 @@ bool WalkController::update()
   if (tiger_robot_model_->getStaticVectoringF().size() == 0 ||
       tiger_robot_model_->getStaticJointT().size() == 0) {
     return false;
+  }
+
+  // set (initialize) joint index map
+  if (joint_index_map_.size() == 0) {
+    setJointIndexMap();
   }
 
   if (navigator_->getNaviState() == aerial_robot_navigation::START_STATE) {
@@ -255,7 +273,7 @@ void WalkController::thrustControl()
   for(int i = 0; i < motor_num_ / 2; i++) {
     target_vectoring_f_.segment(3 * 2 * i, 3) += fb_vectoring_f.segment(3 * i, 3);
   }
-  ROS_INFO_STREAM_THROTTLE(1.0, "[fb control] fb vectoring f: " << fb_vectoring_f.transpose());
+  // ROS_INFO_STREAM_THROTTLE(1.0, "[fb control] fb vectoring f: " << fb_vectoring_f.transpose());
 
 
   // target lambda and gimbal angles
@@ -275,25 +293,104 @@ void WalkController::thrustControl()
 void WalkController::jointControl()
 {
   // basically, use position control for all joints
-  target_joint_state_ = tiger_walk_navigator_->getTargetJointState();
+  auto navigator_target_joint_angle = tiger_walk_navigator_->getTargetJointState().position;
+  if (!samejointAngles(target_joint_state_.position, navigator_target_joint_angle)) {
+    if (prev_target_joint_angles_.size() == 0) {
+      prev_target_joint_angles_ = navigator_target_joint_angle;
+    }
+    else {
+      prev_target_joint_angles_ = target_joint_state_.position;
+      joint_converge_.resize(prev_target_joint_angles_.size(), false);
+    }
+
+    target_joint_state_.position = navigator_target_joint_angle;
+  }
 
 
-  // use torque control for necessary joints
-  auto current_joint_state = tiger_robot_model_->getGimbalProcessedJoint<sensor_msgs::JointState>();
+  // use torque control for joints that needs large torque load
+  auto current_angles = getCurrentJointAngles();
   Eigen::VectorXd static_joint_torque = tiger_robot_model_->getStaticJointT();
 
   const auto& names = target_joint_state_.name;
-  auto& positions = target_joint_state_.position;
+  auto& target_angles = target_joint_state_.position;
   for(int i = 0; i < names.size(); i++) {
 
     bool need_torque_control = true;
 
+    double current_angle = current_angles.at(i);
+    double target_angle  = target_joint_state_.position.at(i);
+    double prev_target_angle  = prev_target_joint_angles_.at(i);
     double tor = static_joint_torque(i);
 
+    // no torque control if torque is small
+    // or has force-position control flag (free leg)
     if (fabs(tor) < joint_torque_control_thresh_) {
       need_torque_control = false;
     }
 
+    // modify the target torque according to the target joint state
+    // special algorithm for the additional pulley mechanism with non-final axis encoder
+    if (!joint_converge_[i]) {
+
+      // the case of inside pitch joint (e.g., joint1_pitch)
+      if (tor > 0) {
+
+        double modified_target_angle = target_angle + servo_angle_bias_;
+
+        if (target_angle > prev_target_angle) {
+          if (current_angle >= modified_target_angle) {
+            // the joint converges
+            joint_converge_.at(i) = true;
+          }
+          else {
+            // increase servo torque to reach the target angle, feedforwardly
+            tor = clamp(tor * servo_torque_change_rate_, servo_max_torque_);
+          }
+        }
+        if (target_angle < prev_target_angle) {
+          if (current_angle <= modified_target_angle) {
+            // the joint converges
+            joint_converge_.at(i) = true;
+          }
+          else {
+            // decrease servo torque to reach the target angle, feedforwardly
+            tor = clamp(tor / servo_torque_change_rate_, servo_max_torque_);
+          }
+        }
+      }
+
+      // the case of outside pitch joint (e.g., joint2_pitch)
+      if (tor < 0) {
+
+        double modified_target_angle = target_angle - servo_angle_bias_;
+
+        if (target_angle < prev_target_angle) {
+          if (current_angle <= modified_target_angle) {
+            // the joint converges
+            joint_converge_.at(i) = true;
+          }
+          else {
+            // increase servo torque to reach the target angle, feedforwardly
+            tor = clamp(tor * servo_torque_change_rate_, servo_max_torque_);
+          }
+        }
+
+        if (target_angle > prev_target_angle) {
+
+          if (current_angle >= modified_target_angle) {
+            // the joint converges
+            joint_converge_.at(i) = true;
+          }
+          else {
+            // increase servo torque to reach the target angle, feedforwardly
+            tor = clamp(tor / servo_torque_change_rate_, servo_max_torque_);
+          }
+        }
+      }
+
+    }
+
+    // compliance to fit the current joint angles
     if (joint_no_load_end_t_ > ros::Time::now().toSec()) {
 
       if (joint_no_load_end_t_ - ros::Time::now().toSec() < 0.1) {
@@ -309,20 +406,9 @@ void WalkController::jointControl()
 
     if (!need_torque_control) continue;
 
-    auto n = names.at(i);
-    const auto& v = current_joint_state.name;
-    auto res = std::find(v.begin(), v.end(), n);
-
-    if (res == v.end()) {
-      ROS_ERROR_STREAM("[Tiger] joint torque compiance control, cannot find " << n);
-      continue;
-    }
-    auto id = std::distance(v.begin(), res);
-
-    double current_angle = current_joint_state.position.at(id);
     double delta_angle = tor / tor_kp_;
 
-    positions.at(i) = current_angle + delta_angle;
+    target_angles.at(i) = current_angle + delta_angle;
   }
 }
 
@@ -430,6 +516,59 @@ void WalkController::cfgPidCallback(aerial_robot_control::PidControlConfig &conf
     }
 }
 
+
+// utils
+void WalkController::setJointIndexMap()
+{
+  const auto current_joint_state = tiger_robot_model_->getGimbalProcessedJoint<sensor_msgs::JointState>();
+  const auto& search_v = current_joint_state.name;
+
+  joint_index_map_.resize(0); // resize
+  const auto& joint_names = target_joint_state_.name;
+  for(const auto& n: joint_names) {
+
+    auto res = std::find(search_v.begin(), search_v.end(), n);
+
+    if (res == search_v.end()) {
+      ROS_ERROR_STREAM("[Tiger] joint index mapping, cannot find " << n);
+      continue;
+    }
+
+    auto id = std::distance(search_v.begin(), res);
+
+    joint_index_map_.push_back(id);
+  }
+}
+
+std::vector<double> WalkController::getCurrentJointAngles()
+{
+  const auto current_joint_state = tiger_robot_model_->getGimbalProcessedJoint<sensor_msgs::JointState>();
+  std::vector<double> angles(0);
+  for(const auto id: joint_index_map_) {
+    angles.push_back(current_joint_state.position.at(id));
+  }
+
+  return angles;
+}
+
+bool WalkController::samejointAngles(std::vector<double> group_a, std::vector<double> group_b)
+{
+  bool res = true;
+
+  if (group_a.size() != group_b.size()) {
+    ROS_ERROR_STREAM("[Tiger][Control] compare joint angles between two groups, but the sizes are different. " <<  group_a.size() << "VS " << group_b.size());
+    return false;
+  }
+
+  for (int i = 0; i < group_a.size(); i++) {
+    if (group_a.at(i) != group_b.at(i)) {
+        res = false;
+        break;
+      }
+  }
+
+  return res;
+}
 
 /* plugin registration */
 #include <pluginlib/class_list_macros.h>

@@ -6,6 +6,10 @@ controller:
 
   walk:
     joint_ctrl_rate: 10.0 # 10 Hz
+    joint_torque_control_thresh: 2.0 # Nm
+    servo_angle_bias: 0.02 # rad
+    servo_max_torque: 6 # Nm
+    servo_torque_change_rate: 1.5
 
     xy:
       p_gain: 0.0 # N/m:
@@ -20,8 +24,8 @@ controller:
       p_gain: 200.0 # N/m: 2N/0.01m
       i_gain: 0.0 # 20.0 N/m
       d_gain: 0.0
-      limit_sum: 20.0
-      limit_p: 20.0
-      limit_i: 20.0
+      limit_sum: 10.0
+      limit_p: 10.0
+      limit_i: 10.0
       limit_d: 10.0
 

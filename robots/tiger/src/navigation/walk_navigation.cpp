@@ -5,6 +5,7 @@ using namespace aerial_robot_navigation::Tiger;
 
 WalkNavigator::WalkNavigator():
   BaseNavigator(),
+  joint_index_map_(0),
   target_baselink_pos_(0,0,0),
   target_baselink_vel_(0,0,0),
   target_baselink_rpy_(0,0,0),
@@ -23,6 +24,8 @@ void WalkNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
 
   target_baselink_pos_sub_ = nh_.subscribe("walk/baselink/traget/pos", 1, &WalkNavigator::targetBaselinkPosCallback, this);
   target_baselink_delta_pos_sub_ = nh_.subscribe("walk/baselink/traget/delta_pos", 1, &WalkNavigator::targetBaselinkDeltaPosCallback, this);
+
+  target_joint_angles_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("debug/nav/target_joint_angles", 1); // for debug
 }
 
 void WalkNavigator::update()
@@ -35,7 +38,6 @@ void WalkNavigator::update()
     return;
   }
 
-
   auto current_joint_state = tiger_robot_model_->getGimbalProcessedJoint<sensor_msgs::JointState>();
 
   // TODO: add new states for walk/stand.
@@ -47,27 +49,16 @@ void WalkNavigator::update()
 
   // target joint angles
   if (target_joint_state_.name.size() == 0) {
+
     // initialize the target joint
     target_joint_state_.name = tiger_robot_model_->getLinkJointNames();
-    target_joint_state_.position.resize(target_joint_state_.name.size(), 0);
+    target_joint_state_.position.resize(target_joint_state_.name.size());
+
+    // set (initialize) joint index map
+    setJointIndexMap();
 
     // set target joint angles
-    const auto& names = target_joint_state_.name;
-    auto& positions = target_joint_state_.position;
-    for(int i = 0; i < names.size(); i++) {
-
-      auto n = names.at(i);
-      const auto& v = current_joint_state.name;
-      auto res = std::find(v.begin(), v.end(), n);
-
-      if (res == v.end()) {
-        ROS_ERROR_STREAM("[Tiger][Navigator] joint target angles initialization, cannot find " << n);
-        continue;
-      }
-
-      auto id = std::distance(v.begin(), res);
-      positions.at(i) = current_joint_state.position.at(id);
-    }
+    target_joint_state_.position = getCurrentJointAngles();
   }
 
   // get target leg position w.r.t. world frame
@@ -90,6 +81,9 @@ void WalkNavigator::update()
 
   if (target_leg_ends_.size() == 0) {
     target_leg_ends_ = curr_leg_ends;
+
+    target_baselink_pos_ = baselink_pos;
+    target_baselink_rpy_ = baselink_rpy;
   }
 
 
@@ -105,7 +99,10 @@ void WalkNavigator::update()
   double l1 = -1; // distance from "linkx" to "linkx+1"
   double l2 = -1; // distance from "linkx+1" to "linkx+1_foot"
 
-  Eigen::VectorXd leg_angles = Eigen::VectorXd::Zero(3 * leg_num);
+  const auto& names = target_joint_state_.name;
+  auto& target_angles = target_joint_state_.position;
+  std::stringstream ss;
+
   for (int i = 0; i < leg_num; i++) {
     std::string yaw_frame_name = std::string("joint_junction_link") + std::to_string(2 * i + 1);
     KDL::Frame fr_joint_yaw = seg_tf_map.at(yaw_frame_name); // w.r.t. root link
@@ -155,10 +152,12 @@ void WalkNavigator::update()
     double d = sqrt(x_e * x_e + y_e * y_e);
     double b_dd = b_d / d;
     if (fabs(b_dd) > 1) {
-      ROS_ERROR_STREAM("[Tiger][Navigator] leg " << i + 1 << ": b_dd exceeds the valid scope: " << b_dd);
-      leg_angles.segment(3 * i, 3) = Eigen::Vector3d::Zero();
+      ROS_ERROR_STREAM("[Tiger][Navigator] leg " << i + 1 << ": b_dd exceeds the valid scope: " << b_dd
+                       << "; end pos: " << aerial_robot_model::kdlToEigen(fw_end.p).transpose()
+                       << "; baselink pos: " << aerial_robot_model::kdlToEigen(fw_target_baselink.p).transpose());
       continue;
     }
+
     double phi = atan2(y_e, x_e);
     double theta2_d = acos(b_dd) + phi;
     if (theta2_d < 0) {
@@ -167,10 +166,26 @@ void WalkNavigator::update()
     double theta1 = atan2(y_e - l2 * sin(theta2_d), x_e - l2 * cos(theta2_d));
     double theta2 = theta2_d - theta1;
 
-    leg_angles.segment(3 * i, 3) = Eigen::Vector3d(angle, theta1, theta2);
-  }
+    // set the target joint angles
+    if(names.at(4 * i) == std::string("joint") + std::to_string(2*i+1) + std::string("_yaw")) {
+      target_angles.at(4 * i) = angle;
+      target_angles.at(4 * i + 1) = theta1;
+      target_angles.at(4 * i + 3) = theta2;
 
-  ROS_INFO_STREAM_THROTTLE(1.0, "[Tiger][Navigator] analytical joint angles from leg end and baselink: " << leg_angles.transpose());
+      ss << "(" << angle << ", " << theta1 << ", 0" << ", " << theta2 << ") ";
+    }
+    else {
+      ROS_ERROR_STREAM("[Tiger][Navigator] name order is different. ID" << i << " name is " << names.at(4 * i));
+    }
+  }
+  // ROS_INFO_STREAM_THROTTLE(1.0, "[Tiger][Navigator] analytical joint angles from leg end and baselink: " << ss.str());
+  std_msgs::Float32MultiArray msg;
+  for(int i = 0; i < target_angles.size(); i++) {
+    msg.data.push_back(target_angles.at(i));
+  }
+  target_joint_angles_pub_.publish(msg);
+
+
 
 
   if (getNaviState() == aerial_robot_navigation::START_STATE) {
@@ -181,22 +196,7 @@ void WalkNavigator::update()
     target_baselink_rpy_ = baselink_rpy;
 
     // set target joint angles
-    const auto& names = target_joint_state_.name;
-    auto& positions = target_joint_state_.position;
-    for(int i = 0; i < names.size(); i++) {
-
-      auto n = names.at(i);
-      const auto& v = current_joint_state.name;
-      auto res = std::find(v.begin(), v.end(), n);
-
-      if (res == v.end()) {
-        ROS_ERROR_STREAM("[Tiger][Navigator] joint target angles in start state, cannot find " << n);
-        continue;
-      }
-
-      auto id = std::distance(v.begin(), res);
-      positions.at(i) = current_joint_state.position.at(id);
-    }
+    target_joint_state_.position = getCurrentJointAngles();
 
     // set target leg end frame (position)
     target_leg_ends_ = curr_leg_ends;
@@ -204,6 +204,38 @@ void WalkNavigator::update()
 
 }
 
+void WalkNavigator::setJointIndexMap()
+{
+  const auto current_joint_state = tiger_robot_model_->getGimbalProcessedJoint<sensor_msgs::JointState>();
+  const auto& search_v = current_joint_state.name;
+
+  joint_index_map_.resize(0); // resize
+  const auto& joint_names = target_joint_state_.name;
+  for(const auto& n: joint_names) {
+
+    auto res = std::find(search_v.begin(), search_v.end(), n);
+
+    if (res == search_v.end()) {
+      ROS_ERROR_STREAM("[Tiger][Navigator] joint index mapping, cannot find " << n);
+      continue;
+    }
+
+    auto id = std::distance(search_v.begin(), res);
+
+    joint_index_map_.push_back(id);
+  }
+}
+
+std::vector<double> WalkNavigator::getCurrentJointAngles()
+{
+  const auto current_joint_state = tiger_robot_model_->getGimbalProcessedJoint<sensor_msgs::JointState>();
+  std::vector<double> angles(0);
+  for(const auto id: joint_index_map_) {
+    angles.push_back(current_joint_state.position.at(id));
+  }
+
+  return angles;
+}
 
 
 
