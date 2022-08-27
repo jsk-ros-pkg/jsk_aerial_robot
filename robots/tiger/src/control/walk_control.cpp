@@ -341,6 +341,7 @@ void WalkController::jointControl()
           if (current_angle >= modified_target_angle) {
             // the joint converges
             joint_converge_.at(i) = true;
+            ROS_INFO_STREAM("[Tiger][Control]" << names.at(i) << " reaches the new target angle " << target_angle);
           }
           else {
             // increase servo torque to reach the target angle, feedforwardly
@@ -351,6 +352,7 @@ void WalkController::jointControl()
           if (current_angle <= modified_target_angle) {
             // the joint converges
             joint_converge_.at(i) = true;
+            ROS_INFO_STREAM("[Tiger][Control]" << names.at(i) << " reaches the new target angle " << target_angle);
           }
           else {
             // decrease servo torque to reach the target angle, feedforwardly
@@ -368,6 +370,7 @@ void WalkController::jointControl()
           if (current_angle <= modified_target_angle) {
             // the joint converges
             joint_converge_.at(i) = true;
+            ROS_INFO_STREAM("[Tiger][Control]" << names.at(i) << " reaches the new target angle " << target_angle);
           }
           else {
             // increase servo torque to reach the target angle, feedforwardly
@@ -380,6 +383,7 @@ void WalkController::jointControl()
           if (current_angle >= modified_target_angle) {
             // the joint converges
             joint_converge_.at(i) = true;
+            ROS_INFO_STREAM("[Tiger][Control]" << names.at(i) << " reaches the new target angle " << target_angle);
           }
           else {
             // increase servo torque to reach the target angle, feedforwardly
