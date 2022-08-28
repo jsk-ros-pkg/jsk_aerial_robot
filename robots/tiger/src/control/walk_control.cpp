@@ -335,8 +335,6 @@ void WalkController::jointControl()
     if (fabs(prev_navi_target_angle - navi_target_angle) > 1e-4
         && need_torque_control) {
 
-      ROS_WARN("[Tiger][Control] %s not converge. %lf VS %lf", names.at(i).c_str(), prev_navi_target_angle, navi_target_angle);
-
       // the case of inside pitch joint (e.g., joint1_pitch)
       if (tor > 0) {
 
@@ -366,6 +364,10 @@ void WalkController::jointControl()
             ROS_INFO_STREAM("[Tiger][Control]" << names.at(i) << " decrease torque.");
           }
         }
+
+        ROS_WARN("[Tiger][Control] %s not converge. prev target: %f, curr target: %f, modified target: %f, curr pos: %f",
+                 names.at(i).c_str(), prev_navi_target_angle, navi_target_angle,
+                 modified_navi_target_angle, current_angle);
       }
 
       // the case of outside pitch joint (e.g., joint2_pitch)
@@ -399,6 +401,10 @@ void WalkController::jointControl()
             ROS_INFO_STREAM("[Tiger][Control]" << names.at(i) << " decrease torque.");
           }
         }
+
+        ROS_WARN("[Tiger][Control] %s not converge. prev target: %f, curr target: %f, modified target: %f, curr pos: %f",
+                 names.at(i).c_str(), prev_navi_target_angle, navi_target_angle,
+                 modified_navi_target_angle, current_angle);
       }
     }
 
