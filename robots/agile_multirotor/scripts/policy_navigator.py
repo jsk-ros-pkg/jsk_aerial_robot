@@ -21,7 +21,7 @@ from stable_baselines3.ppo.policies import MlpPolicy
 
 class AgileQuadState:
     def __init__(self, quad_state):
-        self.t = quad_state.t
+        # self.t = quad_state.t
 
         self.pos = np.array([quad_state.pose.pose.position.x,
                              quad_state.pose.pose.position.y,
@@ -60,10 +60,10 @@ class AgilePilotNode:
         
 
         # Observation subscribers
-        self.odom_sub = rospy.Subscriber("/" + quad_name + "/uav/cog/state", Odometry, self.state_callback,
+        self.odom_sub = rospy.Subscriber("/" + quad_name + "/uav/cog/odom", Odometry, self.state_callback,
                                          queue_size=1, tcp_nodelay=True)
 
-        self.obstacle_sub = rospy.Subscriber("/" + quad_name + "/multirotor/polar_pixel", ObstacleArray,
+        self.obstacle_sub = rospy.Subscriber("/" + quad_name + "/polar_pixel", ObstacleArray,
                                              self.obstacle_callback, queue_size=1, tcp_nodelay=True)
 
         # Command publishers
@@ -88,7 +88,7 @@ class AgilePilotNode:
         if self.publish_commands:
             self.linvel_pub.publish(vel_msg)
 
-    def rl_example(state, obstacles, rl_policy=None):
+    def rl_example(self, state, obstacles, rl_policy=None):
         policy, obs_mean, obs_var, act_mean, act_std = rl_policy
         obs_vec = np.array(obstacles.boxel)
 
@@ -139,7 +139,7 @@ class AgilePilotNode:
 
         return command
     
-    def load_rl_policy(policy_path):
+    def load_rl_policy(self, policy_path):
         print("============ policy_path: ", policy_path)
         policy_dir = policy_path  + "/policy.pth"
         rms_dir = policy_path + "/rms.npz"
@@ -154,6 +154,10 @@ class AgilePilotNode:
         # # -- load saved varaiables 
         device = get_device("auto")
         saved_variables = torch.load(policy_dir, map_location=device)
+        print("type of saved_variables[data]", type(saved_variables["data"]),'\n')
+        for key in saved_variables["data"]:
+            print("key",key)
+
         # Create policy object
         policy = MlpPolicy(**saved_variables["data"])
         #
@@ -164,24 +168,12 @@ class AgilePilotNode:
 
         return policy, obs_mean, obs_var, act_mean, act_std
 
-    # def publish_command(self, command):
-    #     vel_msg = TwistStamped()
-    #     vel_msg.header.stamp = rospy.Time(command.t)
-    #     vel_msg.twist.linear.x = command.velocity[0]
-    #     vel_msg.twist.linear.y = command.velocity[1]
-    #     vel_msg.twist.linear.z = command.velocity[2]
-    #     vel_msg.twist.angular.x = 0.0
-    #     vel_msg.twist.angular.y = 0.0
-    #     vel_msg.twist.angular.z = command.yawrate
-    #     if self.publish_commands:
-    #         self.linvel_pub.publish(vel_msg)
-    #         return
 
     def start_callback(self, data):
         print("Start publishing commands!")
         self.publish_commands = True
     
-    def normalize_obs(obs, obs_mean, obs_var):
+    def normalize_obs(self, obs, obs_mean, obs_var):
         return (obs - obs_mean) / np.sqrt(obs_var + 1e-8)
 
 
