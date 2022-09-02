@@ -9,7 +9,8 @@ WalkNavigator::WalkNavigator():
   target_baselink_pos_(0,0,0),
   target_baselink_vel_(0,0,0),
   target_baselink_rpy_(0,0,0),
-  target_leg_ends_(0)
+  target_leg_ends_(0),
+  target_link_rots_(0)
 {
 }
 
@@ -21,6 +22,7 @@ void WalkNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   BaseNavigator::initialize(nh, nhp, robot_model, estimator);
 
   tiger_robot_model_ = boost::dynamic_pointer_cast<::Tiger::FullVectoringRobotModel>(robot_model);
+  robot_model_for_nav_ = boost::make_shared<aerial_robot_model::RobotModel>();
 
   target_baselink_pos_sub_ = nh_.subscribe("walk/baselink/traget/pos", 1, &WalkNavigator::targetBaselinkPosCallback, this);
   target_baselink_delta_pos_sub_ = nh_.subscribe("walk/baselink/traget/delta_pos", 1, &WalkNavigator::targetBaselinkDeltaPosCallback, this);
@@ -59,6 +61,11 @@ void WalkNavigator::update()
 
     // set target joint angles
     target_joint_state_.position = getCurrentJointAngles();
+  }
+
+  // target link rotation
+  if (target_link_rots_.size() == 0) {
+    target_link_rots_.resize(tiger_robot_model_->getRotorNum());
   }
 
   // get target leg position w.r.t. world frame
@@ -193,6 +200,23 @@ void WalkNavigator::update()
     msg.data.push_back(target_angles.at(i));
   }
   target_joint_angles_pub_.publish(msg);
+
+  // get the target link orientation
+  for(int i = 0; i < joint_index_map_.size(); i++) {
+    auto id = joint_index_map_.at(i);
+    current_joint_state.position.at(id) = target_angles.at(i);
+  }
+
+  robot_model_for_nav_->updateRobotModel(current_joint_state);
+  const auto& target_seg_tf_map = robot_model_for_nav_->getSegmentsTf();
+  for(int i = 0; i < tiger_robot_model_->getRotorNum(); i++) {
+    std::string link_name = std::string("link") + std::to_string(i+1);
+    KDL::Frame fr_target_link = target_seg_tf_map.at(link_name);
+    KDL::Frame fb_target_link = fr_baselink.Inverse() * fr_target_link;
+    KDL::Frame fw_target_link = fw_target_baselink * fb_target_link;
+    target_link_rots_.at(i) = fw_target_link.M;
+  }
+
 }
 
 void WalkNavigator::setJointIndexMap()

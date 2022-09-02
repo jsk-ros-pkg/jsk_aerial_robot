@@ -68,6 +68,7 @@ namespace aerial_robot_control
       ros::Publisher gimbal_control_pub_;
       ros::Publisher joint_control_pub_;
       ros::Publisher target_vectoring_force_pub_;
+      ros::Publisher link_rot_thrust_force_pub_;
       ros::Publisher joint_torque_pub_;
       ros::Subscriber joint_force_compliance_sub_;
       ros::Subscriber joint_no_load_sub_;
@@ -99,6 +100,9 @@ namespace aerial_robot_control
       double servo_torque_change_rate_;
       double servo_angle_bias_;
 
+      double link_rot_f_control_i_thresh_;
+      std::vector<Eigen::Vector3d> fw_i_terms_;
+
       void rosParamInit();
       virtual void sendCmd() override;
 
@@ -115,6 +119,7 @@ namespace aerial_robot_control
       void setJointIndexMap();
       std::vector<double> getCurrentJointAngles();
       inline double clamp(double v, double b) { return std::min(std::max(v, -b), b); }
+      Eigen::VectorXd clamp(Eigen::VectorXd v, double b);
       bool samejointAngles(std::vector<double> group_a, std::vector<double> group_b);
     };
   };

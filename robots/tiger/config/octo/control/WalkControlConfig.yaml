@@ -29,3 +29,10 @@ controller:
       limit_i: 20.0
       limit_d: 20.0
 
+    link:
+      p_gain: 25.0 # N/rad: 0.2 rad -> 5 N
+      i_gain: 0.0
+      limit_sum: 5.0
+      limit_p: 5.0
+      limit_i: 5.0
+      limit_d: 5.0

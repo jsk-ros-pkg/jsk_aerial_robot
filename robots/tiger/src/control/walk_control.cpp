@@ -71,6 +71,7 @@ void WalkController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   joint_control_pub_ = nh_.advertise<sensor_msgs::JointState>("joints_ctrl", 1);
   flight_cmd_pub_ = nh_.advertise<spinal::FourAxisCommand>("four_axes/command", 1);
   target_vectoring_force_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("debug/target_vectoring_force", 1);
+  link_rot_thrust_force_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("debug/link_rot_thrust_force", 1);
 
   joint_torque_pub_ = nh_.advertise<spinal::ServoTorqueCmd>("servo/torque_enable", 1);
   joint_yaw_torque_srv_ = nh_.advertiseService<std_srvs::SetBool::Request, std_srvs::SetBool::Response>("joint_yaw/torque_enable", boost::bind(&WalkController::servoTorqueCtrlCallback, this, _1, _2, "yaw"));
@@ -83,10 +84,9 @@ void WalkController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   int joint_num = tiger_robot_model_->getLinkJointNames().size();
   target_joint_state_.position.assign(joint_num, 0);
 
-
-  // std::stringstream ss;
-  // for(auto n: tiger_robot_model_->getLinkJointNames()) ss << n << ", ";
-  // ROS_WARN_STREAM("joint names: " << ss.str());
+  for (int i = 0; i < motor_num_; i++) {
+    fw_i_terms_.push_back(Eigen::Vector3d::Zero());
+  }
 }
 
 void WalkController::rosParamInit()
@@ -97,6 +97,8 @@ void WalkController::rosParamInit()
   getParam<double>(walk_control_nh, "servo_angle_bias", servo_angle_bias_, 0.02); // 0.02 rad
   getParam<double>(walk_control_nh, "servo_max_torque", servo_max_torque_, 6.0); // 6.0 Nm
   getParam<double>(walk_control_nh, "servo_torque_change_rate", servo_torque_change_rate_, 1.5); // rate
+  getParam<double>(walk_control_nh, "link_rot_f_control_i_thresh", link_rot_f_control_i_thresh_, 0.06); // rad
+
   ros::NodeHandle xy_nh(walk_control_nh, "xy");
   ros::NodeHandle z_nh(walk_control_nh, "z");
 
@@ -123,14 +125,24 @@ void WalkController::rosParamInit()
   walk_pid_controllers_.push_back(PID("x", p_gain, i_gain, d_gain, limit_sum, limit_p, limit_i, limit_d, limit_err_p, limit_err_i, limit_err_d));
   walk_pid_controllers_.push_back(PID("y", p_gain, i_gain, d_gain, limit_sum, limit_p, limit_i, limit_d, limit_err_p, limit_err_i, limit_err_d));
 
-  std::vector<int> indices = {X, Y};
+  std::vector<int> xy_indices = {X, Y};
   walk_pid_reconf_servers_.push_back(boost::make_shared<PidControlDynamicConfig>(xy_nh));
-  walk_pid_reconf_servers_.back()->setCallback(boost::bind(&WalkController::cfgPidCallback, this, _1, _2, indices));
+  walk_pid_reconf_servers_.back()->setCallback(boost::bind(&WalkController::cfgPidCallback, this, _1, _2, xy_indices));
 
   loadParam(z_nh);
   walk_pid_controllers_.push_back(PID("z", p_gain, i_gain, d_gain, limit_sum, limit_p, limit_i, limit_d, limit_err_p, limit_err_i, limit_err_d));
   walk_pid_reconf_servers_.push_back(boost::make_shared<PidControlDynamicConfig>(z_nh));
-  walk_pid_reconf_servers_.back()->setCallback(boost::bind(&WalkController::cfgPidCallback, this, _1, _2, std::vector<int>(1, Z)));
+  std::vector<int> z_indices = {Z};
+  walk_pid_reconf_servers_.back()->setCallback(boost::bind(&WalkController::cfgPidCallback, this, _1, _2, z_indices));
+
+  // for link-wise rotation control
+  ros::NodeHandle link_nh(walk_control_nh, "link");
+  loadParam(link_nh);
+  walk_pid_controllers_.push_back(PID("link", p_gain, i_gain, d_gain, limit_sum, limit_p, limit_i, limit_d, limit_err_p, limit_err_i, limit_err_d));
+  walk_pid_reconf_servers_.push_back(boost::make_shared<PidControlDynamicConfig>(link_nh));
+  std::vector<int> link_indices = {Z+1};
+  walk_pid_reconf_servers_.back()->setCallback(boost::bind(&WalkController::cfgPidCallback, this, _1, _2, link_indices));
+
 
   // calculate the torque_position Kp
   double angle_scale;
@@ -175,6 +187,10 @@ bool WalkController::update()
 
 void WalkController::thrustControl()
 {
+  if (navigator_->getNaviState() != aerial_robot_navigation::ARM_ON_STATE) {
+    return;
+  }
+
   tf::Vector3 baselink_pos = estimator_->getPos(Frame::BASELINK, estimate_mode_);
   tf::Vector3 baselink_vel = estimator_->getVel(Frame::BASELINK, estimate_mode_);
   tf::Vector3 baselink_rpy = estimator_->getEuler(Frame::BASELINK, estimate_mode_);
@@ -183,74 +199,69 @@ void WalkController::thrustControl()
   tf::Vector3 baselink_target_vel = tiger_walk_navigator_->getTargetBaselinkVel();
   tf::Vector3 baselink_target_rpy = tiger_walk_navigator_->getTargetBaselinkRpy();
 
-  // feed-forwared control: compensate the static balance
+  // 1. feed-forwared control: compensate the static balance
   Eigen::VectorXd static_thrust_force = tiger_robot_model_->getStaticVectoringF();
   target_vectoring_f_ = static_thrust_force;
 
 
-  // feed-back control:  baselink position control
+  // 2. feed-back control:  baselink position control
   Eigen::VectorXd target_wrench = Eigen::VectorXd::Zero(6);
 
-  if (navigator_->getNaviState() == aerial_robot_navigation::ARM_ON_STATE) {
+  tf::Vector3 pos_err = baselink_target_pos - baselink_pos;
+  tf::Vector3 vel_err = baselink_target_vel - baselink_vel;
+  tf::Vector3 rpy_err = baselink_target_rpy - baselink_rpy;
 
-    // PoseLinearController::controlCore(); // TODO: no need?
+  // time diff
+  double du = ros::Time::now().toSec() - control_timestamp_;
 
-    tf::Vector3 pos_err = baselink_target_pos - baselink_pos;
-    tf::Vector3 vel_err = baselink_target_vel - baselink_vel;
-    tf::Vector3 rpy_err = baselink_target_rpy - baselink_rpy;
+  // x
+  walk_pid_controllers_.at(X).update(pos_err.x(), du, vel_err.x());
 
-    // time diff
-    double du = ros::Time::now().toSec() - control_timestamp_;
+  // y
+  walk_pid_controllers_.at(Y).update(pos_err.y(), du, vel_err.y());
 
-    // x
-    walk_pid_controllers_.at(X).update(pos_err.x(), du, vel_err.x());
+  // z
+  walk_pid_controllers_.at(Z).update(pos_err.z(), du, vel_err.z());
 
-    // y
-    walk_pid_controllers_.at(Y).update(pos_err.y(), du, vel_err.y());
+  // w.r.t. world frame
+  tf::Vector3 target_acc(walk_pid_controllers_.at(X).result(),
+                         walk_pid_controllers_.at(Y).result(),
+                         walk_pid_controllers_.at(Z).result());
 
-    // z
-    walk_pid_controllers_.at(Z).update(pos_err.z(), du, vel_err.z());
-
-    // w.r.t. world frame
-    tf::Vector3 target_acc(walk_pid_controllers_.at(X).result(),
-                           walk_pid_controllers_.at(Y).result(),
-                           walk_pid_controllers_.at(Z).result());
-
-    // assign to target wrench
-    target_wrench.head(3) = Eigen::Vector3d(target_acc.x(), target_acc.y(), target_acc.z());
+  // assign to target wrench
+  target_wrench.head(3) = Eigen::Vector3d(target_acc.x(), target_acc.y(), target_acc.z());
 
 
-    // ros pub
-    pid_msg_.x.total.at(0) =  walk_pid_controllers_.at(X).result();
-    pid_msg_.x.p_term.at(0) = walk_pid_controllers_.at(X).getPTerm();
-    pid_msg_.x.i_term.at(0) = walk_pid_controllers_.at(X).getITerm();
-    pid_msg_.x.d_term.at(0) = walk_pid_controllers_.at(X).getDTerm();
-    pid_msg_.x.target_p = baselink_target_pos.x();
-    pid_msg_.x.err_p = pos_err.x();
-    pid_msg_.x.target_d = baselink_target_vel.x();
-    pid_msg_.x.err_d = vel_err.x();
+  // ros pub
+  pid_msg_.x.total.at(0) =  walk_pid_controllers_.at(X).result();
+  pid_msg_.x.p_term.at(0) = walk_pid_controllers_.at(X).getPTerm();
+  pid_msg_.x.i_term.at(0) = walk_pid_controllers_.at(X).getITerm();
+  pid_msg_.x.d_term.at(0) = walk_pid_controllers_.at(X).getDTerm();
+  pid_msg_.x.target_p = baselink_target_pos.x();
+  pid_msg_.x.err_p = pos_err.x();
+  pid_msg_.x.target_d = baselink_target_vel.x();
+  pid_msg_.x.err_d = vel_err.x();
 
-    pid_msg_.y.total.at(0) =  walk_pid_controllers_.at(Y).result();
-    pid_msg_.y.p_term.at(0) = walk_pid_controllers_.at(Y).getPTerm();
-    pid_msg_.y.i_term.at(0) = walk_pid_controllers_.at(Y).getITerm();
-    pid_msg_.y.d_term.at(0) = walk_pid_controllers_.at(Y).getDTerm();
-    pid_msg_.y.target_p = baselink_target_pos.y();
-    pid_msg_.y.err_p = pos_err.y();
-    pid_msg_.y.target_d = baselink_target_vel.y();
-    pid_msg_.y.err_d = vel_err.y();
+  pid_msg_.y.total.at(0) =  walk_pid_controllers_.at(Y).result();
+  pid_msg_.y.p_term.at(0) = walk_pid_controllers_.at(Y).getPTerm();
+  pid_msg_.y.i_term.at(0) = walk_pid_controllers_.at(Y).getITerm();
+  pid_msg_.y.d_term.at(0) = walk_pid_controllers_.at(Y).getDTerm();
+  pid_msg_.y.target_p = baselink_target_pos.y();
+  pid_msg_.y.err_p = pos_err.y();
+  pid_msg_.y.target_d = baselink_target_vel.y();
+  pid_msg_.y.err_d = vel_err.y();
 
-    pid_msg_.z.total.at(0) =  walk_pid_controllers_.at(Z).result();
-    pid_msg_.z.p_term.at(0) = walk_pid_controllers_.at(Z).getPTerm();
-    pid_msg_.z.i_term.at(0) = walk_pid_controllers_.at(Z).getITerm();
-    pid_msg_.z.d_term.at(0) = walk_pid_controllers_.at(Z).getDTerm();
-    pid_msg_.z.target_p = baselink_target_pos.z();
-    pid_msg_.z.err_p = pos_err.z();
-    pid_msg_.z.target_d = baselink_target_vel.z();
-    pid_msg_.z.err_d = vel_err.z();
+  pid_msg_.z.total.at(0) =  walk_pid_controllers_.at(Z).result();
+  pid_msg_.z.p_term.at(0) = walk_pid_controllers_.at(Z).getPTerm();
+  pid_msg_.z.i_term.at(0) = walk_pid_controllers_.at(Z).getITerm();
+  pid_msg_.z.d_term.at(0) = walk_pid_controllers_.at(Z).getDTerm();
+  pid_msg_.z.target_p = baselink_target_pos.z();
+  pid_msg_.z.err_p = pos_err.z();
+  pid_msg_.z.target_d = baselink_target_vel.z();
+  pid_msg_.z.err_d = vel_err.z();
 
-    // update
-    control_timestamp_ = ros::Time::now().toSec();
-  }
+  // update
+  control_timestamp_ = ros::Time::now().toSec();
 
   // allocation
   // use all vecotoring angles
@@ -274,7 +285,67 @@ void WalkController::thrustControl()
   // ROS_INFO_STREAM_THROTTLE(1.0, "[fb control] fb vectoring f: " << fb_vectoring_f.transpose());
 
 
-  // target lambda and gimbal angles
+  // 3. feed-back control: link-wise rotation control
+  Eigen::VectorXd fb_vectoring_l = Eigen::VectorXd::Zero(3 * motor_num_);
+  auto target_link_rots = tiger_walk_navigator_->getTargetLinkRots();
+  const auto& seg_tf_map = tiger_robot_model_->getSegmentsTf();
+  KDL::Frame fr_baselink = seg_tf_map.at(tiger_robot_model_->getBaselinkName());
+  tf::Transform tf_w_baselink(estimator_->getOrientation(Frame::BASELINK, estimate_mode_), baselink_pos);
+  KDL::Frame fw_baselink;
+  tf::transformTFToKDL(tf_w_baselink, fw_baselink);
+  double p_gain = walk_pid_controllers_.back().getPGain();
+  double i_gain = walk_pid_controllers_.back().getIGain();
+  double limit_sum = walk_pid_controllers_.back().getLimitSum();
+  double limit_p = walk_pid_controllers_.back().getLimitP();
+  double limit_i = walk_pid_controllers_.back().getLimitI();
+
+  // ROS_INFO_STREAM("p gain: " << p_gain << "; i gain: " << i_gain << "; limit sum: " << limit_sum << "; limit p: " << limit_p << "; limit i: " << limit_i);
+  std::stringstream ss;
+  for(int i = 0; i < motor_num_; i++) {
+    std::string link_name = std::string("link") + std::to_string(i+1);
+    KDL::Frame fr_link = seg_tf_map.at(link_name);
+    KDL::Frame fb_link = fr_baselink.Inverse() * fr_link;
+    KDL::Frame fw_link = fw_baselink * fb_link;
+
+    // calculate the control vector from
+    Eigen::Vector3d a = -aerial_robot_model::kdlToEigen(fw_link.M.UnitX());
+    Eigen::Vector3d b = -aerial_robot_model::kdlToEigen(target_link_rots.at(i).UnitX());
+    Eigen::Vector3d c = a.cross(b);
+    Eigen::Vector3d d = c.cross(a);
+    Eigen::Vector3d d_temp = b - a;
+    double theta = asin(c.norm());
+
+    // PI control
+    // P term
+    Eigen::Vector3d fw_p_term = clamp(p_gain * d, limit_p);
+
+    // I term
+    if (fabs(theta) > link_rot_f_control_i_thresh_) {
+      fw_i_terms_.at(i) = clamp(fw_i_terms_.at(i) + i_gain * d, limit_i);
+    }
+
+    Eigen::Vector3d fw = clamp(fw_p_term + fw_i_terms_.at(i), limit_sum);
+    Eigen::Vector3d fb = aerial_robot_model::kdlToEigen(fw_link.M.Inverse()) * fw;
+
+    fb_vectoring_l.segment(3 * i, 3) = fb;
+
+    //ROS_INFO_STREAM("link" << i+1 << ", a: " << a.transpose() << ", b:" << b.transpose() << ", d: " << d.transpose() << ", d_temp: " << d_temp.transpose() << ", fb " << fb.transpose() << ", theta: " << theta);
+    ss << theta << ", ";
+  }
+  target_vectoring_f_ += fb_vectoring_l;
+  //ROS_INFO_STREAM_THROTTLE(1.0, "[Tiger][Control] thrust control for link-wise rotation, thrust vector: " << fb_vectoring_l.transpose());
+  //ROS_INFO_STREAM_THROTTLE(1.0, "[Tiger] [Control] [Link Rot] theta: " << ss.str());
+  ROS_INFO_STREAM("[Tiger][Control] thrust control for link-wise rotation, thrust vector: " << fb_vectoring_l.transpose());
+  ROS_INFO_STREAM("[Tiger] [Control] [Link Rot] theta: " << ss.str());
+
+  std_msgs::Float32MultiArray msg;
+  for(int i = 0; i < fb_vectoring_l.size(); i++) {
+    msg.data.push_back(fb_vectoring_l(i));
+  }
+  link_rot_thrust_force_pub_.publish(msg);
+
+
+  // 4. target lambda and gimbal angles
   for(int i = 0; i < motor_num_; i++) {
     Eigen::Vector3d f = target_vectoring_f_.segment(3 * i, 3);
 
@@ -593,6 +664,22 @@ void WalkController::reset()
 {
   PoseLinearController::reset();
   prev_navi_target_joint_angles_.resize(0);
+
+  for (int i = 0; i < motor_num_; i++) {
+    fw_i_terms_.push_back(Eigen::Vector3d::Zero());
+  }
+}
+
+Eigen::VectorXd WalkController::clamp(Eigen::VectorXd v, double b)
+{
+  if (b < 0) {
+      ROS_ERROR("vector clamp: b (%f) should not be negative", b);
+      return v;
+    }
+
+  if (v.norm() <= b) return v;
+
+  return v.normalized() * b;
 }
 
 /* plugin registration */

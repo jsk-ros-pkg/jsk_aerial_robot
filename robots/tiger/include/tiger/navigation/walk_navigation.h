@@ -59,7 +59,7 @@ namespace aerial_robot_navigation
       inline tf::Vector3 getTargetBaselinkRpy() {return target_baselink_rpy_;}
       inline tf::Vector3 getTargetBaselinkVel() {return target_baselink_vel_;}
       inline sensor_msgs::JointState getTargetJointState() {return target_joint_state_;}
-
+      inline std::vector<KDL::Rotation> getTargetLinkRots() {return target_link_rots_;}
 
     private:
 
@@ -70,12 +70,14 @@ namespace aerial_robot_navigation
       std::vector<int> joint_index_map_;
       sensor_msgs::JointState target_joint_state_;
       std::vector<KDL::Frame> target_leg_ends_;
+      std::vector<KDL::Rotation> target_link_rots_;
 
       ros::Subscriber target_baselink_pos_sub_;
       ros::Subscriber target_baselink_delta_pos_sub_;
       ros::Publisher target_joint_angles_pub_;
 
       boost::shared_ptr<::Tiger::FullVectoringRobotModel> tiger_robot_model_;
+      boost::shared_ptr<aerial_robot_model::RobotModel> robot_model_for_nav_;
 
       void halt() override;
       void reset() override;
