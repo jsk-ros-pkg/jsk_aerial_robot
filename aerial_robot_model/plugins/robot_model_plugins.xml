@@ -1,0 +1,7 @@
+<library path="lib/librobot_model_pluginlib">
+
+  <class name="multirotor_robot_model" type="MultirotorRobotModel" base_class_type="aerial_robot_model::RobotModel">
+    <description>plugin for general multirotor model </description>
+  </class>
+
+</library>

@@ -43,7 +43,7 @@ namespace aerial_robot_model  {
   class NumericalJacobian
   {
   public:
-    NumericalJacobian(ros::NodeHandle nh, ros::NodeHandle nhp, std::unique_ptr<aerial_robot_model::RobotModel> robot_model = std::make_unique<aerial_robot_model::RobotModel>(true));
+    NumericalJacobian(ros::NodeHandle nh, ros::NodeHandle nhp, std::unique_ptr<transformable::RobotModel> robot_model = std::make_unique<transformable::RobotModel>(true));
     virtual ~NumericalJacobian() = default;
 
     virtual bool checkJacobians();
@@ -60,7 +60,7 @@ namespace aerial_robot_model  {
     ros::Subscriber desire_coordinate_sub_;
     ros::NodeHandle nh_;
     ros::NodeHandle nhp_;
-    std::unique_ptr<aerial_robot_model::RobotModel> robot_model_;
+    std::unique_ptr<aerial_robot_model::transformable::RobotModel> robot_model_;
 
     bool rostest_;
 
@@ -79,7 +79,7 @@ namespace aerial_robot_model  {
     double feasible_control_force_diff_thre_;
     double feasible_control_torque_diff_thre_;
 
-    aerial_robot_model::RobotModel& getRobotModel() const { return *robot_model_; }
+    aerial_robot_model::transformable::RobotModel& getRobotModel() const { return *robot_model_; }
 
     void jointStateCallback(const sensor_msgs::JointStateConstPtr& state);
     void desireCoordinateCallback(const spinal::DesireCoordConstPtr& msg);

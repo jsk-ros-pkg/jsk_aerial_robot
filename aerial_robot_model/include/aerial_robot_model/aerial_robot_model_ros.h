@@ -2,7 +2,7 @@
 /*********************************************************************
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2020, JSK Lab
+ *  Copyright (c) 2018, JSK Lab
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -35,33 +35,45 @@
 
 #pragma once
 
-#include <hydrus/numerical_jacobians.h>
-#include <dragon/model/hydrus_like_robot_model.h>
+#include <aerial_robot_model/aerial_robot_model.h>
+#include <aerial_robot_model/AddExtraModule.h>
+#include <pluginlib/class_loader.h>
+#include <spinal/DesireCoord.h>
+#include <tf/tf.h>
+#include <tf2_ros/transform_broadcaster.h>
+#include <tf2_ros/static_transform_broadcaster.h>
 
-class DragonNumericalJacobian : public HydrusNumericalJacobian
-{
-public:
-  DragonNumericalJacobian(ros::NodeHandle nh, ros::NodeHandle nhp, std::unique_ptr<aerial_robot_model::transformable::RobotModel> robot_model = std::make_unique<aerial_robot_model::transformable::RobotModel>(true));
-  virtual ~DragonNumericalJacobian() = default;
 
-  virtual bool checkJacobians() override;
+namespace aerial_robot_model {
 
-  virtual bool checkRotorOverlapJacobian();
-  virtual bool checkExternalWrenchCompensateThrustJacobian();
-  virtual bool checkThrsutForceJacobian(std::vector<int> joint_indices = std::vector<int>()) override;
+  //Transformable Aerial Robot Model with ROS functions
+  class RobotModelRos {
+  public:
+    RobotModelRos(ros::NodeHandle nh, ros::NodeHandle nhp);
+    virtual ~RobotModelRos() = default;
 
-protected:
+    //public functions
+    sensor_msgs::JointState getJointState() const { return joint_state_; }
 
-  bool check_rotor_overlap_;
-  bool check_comp_thrust_;
-  double rotor_overlap_diff_thre_;
-  double comp_thrust_diff_thre_;
+    const boost::shared_ptr<aerial_robot_model::RobotModel> getRobotModel() const { return robot_model_; }
 
-  Dragon::HydrusLikeRobotModel& getDragonRobotModel() const {return dynamic_cast<Dragon::HydrusLikeRobotModel&>(*robot_model_);}
+  private:
+    //private attributes
+    ros::ServiceServer add_extra_module_service_;
+    ros::Subscriber desire_coordinate_sub_;
+    ros::Subscriber joint_state_sub_;
+    tf2_ros::TransformBroadcaster br_;
+    tf2_ros::StaticTransformBroadcaster static_br_;
+    sensor_msgs::JointState joint_state_;
+    ros::NodeHandle nh_;
+    ros::NodeHandle nhp_;
+    pluginlib::ClassLoader<aerial_robot_model::RobotModel> robot_model_loader_;
+    boost::shared_ptr<aerial_robot_model::RobotModel> robot_model_;
+    std::string tf_prefix_;
 
-  // numerical solution
-  virtual const Eigen::MatrixXd thrustForceNumericalJacobian(std::vector<int> joint_indices) override;
-  virtual const Eigen::MatrixXd jointTorqueNumericalJacobian(std::vector<int> joint_indices) override;
-  virtual const Eigen::MatrixXd overlapNumericalJacobian();
-  virtual const Eigen::MatrixXd compThrustNumericalJacobian();
-};
+    //private functions
+    void jointStateCallback(const sensor_msgs::JointStateConstPtr& state);
+    bool addExtraModuleCallback(aerial_robot_model::AddExtraModule::Request& req, aerial_robot_model::AddExtraModule::Response& res);
+    void desireCoordinateCallback(const spinal::DesireCoordConstPtr& msg);
+  };
+} //namespace aerial_robot_model

@@ -40,9 +40,9 @@
 #include <cmath>
 #include <time.h>
 
-using namespace aerial_robot_model;
+using namespace aerial_robot_model::transformable;
 
-class HydrusXiFullyActuatedRobotModel : public aerial_robot_model::RobotModel {
+class HydrusXiFullyActuatedRobotModel : public aerial_robot_model::transformable::RobotModel {
 public:
   HydrusXiFullyActuatedRobotModel(bool init_with_rosparam = true,
                                   bool verbose = false,

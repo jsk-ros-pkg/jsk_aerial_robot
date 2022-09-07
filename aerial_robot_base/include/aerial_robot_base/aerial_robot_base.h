@@ -6,7 +6,7 @@
 #include <aerial_robot_control/control/control_base.h>
 #include <aerial_robot_control/flight_navigation.h>
 #include <aerial_robot_estimation/state_estimation.h>
-#include <aerial_robot_model/transformable_aerial_robot_model_ros.h>
+#include <aerial_robot_model/aerial_robot_model_ros.h>
 
 using namespace std;
 

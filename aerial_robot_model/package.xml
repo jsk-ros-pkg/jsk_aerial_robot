@@ -55,4 +55,8 @@
   <run_depend>visualization_msgs</run_depend>
   <run_depend>xacro</run_depend>
 
+  <export>
+    <aerial_robot_model plugin="${prefix}/plugins/robot_model_plugins.xml"/>
+  </export>
+
 </package>

@@ -191,7 +191,7 @@ bool HydrusLQIController::checkRobotModel()
 {
   lqi_mode_ = hydrus_robot_model_->getWrenchDof();
 
-  if(robot_model_->getMass() == 0)
+  if(!robot_model_->initialized())
     {
       ROS_DEBUG_NAMED("LQI gain generator", "LQI gain generator: robot model is not initiliazed");
       return false;

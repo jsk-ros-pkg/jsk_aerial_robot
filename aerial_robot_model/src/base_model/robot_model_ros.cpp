@@ -1,4 +1,4 @@
-#include <aerial_robot_model/transformable_aerial_robot_model_ros.h>
+#include <aerial_robot_model/aerial_robot_model_ros.h>
 
 namespace aerial_robot_model {
   RobotModelRos::RobotModelRos(ros::NodeHandle nh, ros::NodeHandle nhp):
@@ -6,12 +6,6 @@ namespace aerial_robot_model {
     nhp_(nhp),
     robot_model_loader_("aerial_robot_model", "aerial_robot_model::RobotModel")
   {
-    // subscriber
-    desire_coordinate_sub_ = nh_.subscribe("desire_coordinate", 1, &RobotModelRos::desireCoordinateCallback, this);
-    joint_state_sub_ = nh_.subscribe("joint_states", 1, &RobotModelRos::jointStateCallback, this);
-    // service server
-    add_extra_module_service_ = nh_.advertiseService("add_extra_module", &RobotModelRos::addExtraModuleCallback, this);
-
     // rosparam
     nhp_.param("tf_prefix", tf_prefix_, std::string(""));
 
@@ -33,6 +27,22 @@ namespace aerial_robot_model {
         ROS_ERROR("can not find plugin rosparameter for robot model, use default class: aerial_robot_model::RobotModel");
         robot_model_ = boost::make_shared<aerial_robot_model::RobotModel>();
       }
+
+    if (robot_model_->getJointNum() == 0) {
+      // broadcast static tf between root and CoG
+      // refering: https://github.com/ros/robot_state_publisher/blob/rolling/src/robot_state_publisher.cpp#L130
+      geometry_msgs::TransformStamped tf = robot_model_->getCog<geometry_msgs::TransformStamped>();
+      tf.header.stamp = ros::Time::now();
+      tf.header.frame_id = tf::resolve(tf_prefix_, robot_model_->getRootFrameName());
+      tf.child_frame_id = tf::resolve(tf_prefix_, std::string("cog"));
+      static_br_.sendTransform(tf);
+    }
+    else {
+      joint_state_sub_ = nh_.subscribe("joint_states", 1, &RobotModelRos::jointStateCallback, this);
+    }
+
+    desire_coordinate_sub_ = nh_.subscribe("desire_coordinate", 1, &RobotModelRos::desireCoordinateCallback, this);
+    add_extra_module_service_ = nh_.advertiseService("add_extra_module", &RobotModelRos::addExtraModuleCallback, this);
  }
 
   void RobotModelRos::jointStateCallback(const sensor_msgs::JointStateConstPtr& state)
@@ -40,8 +50,7 @@ namespace aerial_robot_model {
     joint_state_ = *state;
     robot_model_->updateRobotModel(*state);
 
-    ROS_INFO_ONCE("initialized robot model, the mass is %f", robot_model_->getMass());
-
+    // TODO1: tf for root -> cog in case of fixed aerial robot
     geometry_msgs::TransformStamped tf = robot_model_->getCog<geometry_msgs::TransformStamped>();
     tf.header = state->header;
     tf.header.frame_id = tf::resolve(tf_prefix_, robot_model_->getRootFrameName());
