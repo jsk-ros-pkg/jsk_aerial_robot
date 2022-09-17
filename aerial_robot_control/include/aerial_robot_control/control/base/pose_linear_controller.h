@@ -37,13 +37,13 @@
 
 #include <aerial_robot_control/control/base/base.h>
 #include <aerial_robot_control/control/utils/pid.h>
-#include <aerial_robot_control/PidControlConfig.h>
+#include <aerial_robot_control/PIDConfig.h>
 #include <aerial_robot_msgs/DynamicReconfigureLevels.h>
 #include <aerial_robot_msgs/PoseControlPid.h>
 #include <angles/angles.h>
 #include <dynamic_reconfigure/server.h>
 
-using PidControlDynamicConfig = dynamic_reconfigure::Server<aerial_robot_control::PidControlConfig>;
+using PidControlDynamicConfig = dynamic_reconfigure::Server<aerial_robot_control::PIDConfig>;
 
 namespace aerial_robot_control
 {
@@ -92,7 +92,7 @@ namespace aerial_robot_control
     virtual void sendCmd();
 
 
-    void cfgPidCallback(aerial_robot_control::PidControlConfig &config, uint32_t level, std::vector<int> controller_indices);
+    void cfgPidCallback(aerial_robot_control::PIDConfig &config, uint32_t level, std::vector<int> controller_indices);
   };
 
 };

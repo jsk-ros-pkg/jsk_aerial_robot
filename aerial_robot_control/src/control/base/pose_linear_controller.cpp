@@ -357,7 +357,7 @@ namespace aerial_robot_control
     pid_pub_.publish(pid_msg_);
   }
 
-  void PoseLinearController::cfgPidCallback(aerial_robot_control::PidControlConfig &config, uint32_t level, std::vector<int> controller_indices)
+  void PoseLinearController::cfgPidCallback(aerial_robot_control::PIDConfig &config, uint32_t level, std::vector<int> controller_indices)
   {
     using Levels = aerial_robot_msgs::DynamicReconfigureLevels;
     if(config.pid_control_flag)

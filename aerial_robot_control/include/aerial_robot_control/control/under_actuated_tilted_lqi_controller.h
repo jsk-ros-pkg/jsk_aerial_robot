@@ -2,7 +2,7 @@
 /*********************************************************************
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2020, JSK Lab
+ *  Copyright (c) 2022, JSK Lab
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -35,17 +35,16 @@
 
 #pragma once
 
-#include <aerial_robot_control/control/under_actuated_tilted_lqi_controller.h>
-#include <spinal/PMatrixPseudoInverseWithInertia.h>
-#include <thread>
+#include <aerial_robot_control/control/under_actuated_lqi_controller.h>
+#include <spinal/DesireCoord.h>
 
 namespace aerial_robot_control
 {
-  class HydrusTiltedLQIController: public UnderActuatedTiltedLQIController
+  class UnderActuatedTiltedLQIController: public UnderActuatedLQIController
   {
   public:
-    HydrusTiltedLQIController();
-    ~HydrusTiltedLQIController() = default;
+    UnderActuatedTiltedLQIController() {}
+    virtual ~UnderActuatedTiltedLQIController() = default;
 
     void initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
                     boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
@@ -54,6 +53,18 @@ namespace aerial_robot_control
                     double ctrl_loop_rate);
 
   protected:
-    bool checkRobotModel() override;
+
+    ros::Publisher desired_baselink_rot_pub_;
+
+    double trans_constraint_weight_;
+    double att_control_weight_;
+
+    double z_limit_;
+
+    void controlCore() override;
+    bool optimalGain() override;
+    void publishGain() override;
+    void rosParamInit() override;
+
   };
 };

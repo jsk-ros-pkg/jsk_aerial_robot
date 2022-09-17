@@ -2,7 +2,7 @@
 /*********************************************************************
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2020, JSK Lab
+ *  Copyright (c) 2022, JSK Lab
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -35,17 +35,24 @@
 
 #pragma once
 
-#include <aerial_robot_control/control/under_actuated_tilted_lqi_controller.h>
+#include <aerial_robot_control/control/under_actuated_controller.h>
+#include <aerial_robot_control/control/utils/care.h>
+#include <aerial_robot_control/LQIConfig.h>
+#include <aerial_robot_msgs/FourAxisGain.h>
+#include <dynamic_reconfigure/server.h>
+#include <spinal/RollPitchYawTerms.h>
 #include <spinal/PMatrixPseudoInverseWithInertia.h>
+#include <ros/ros.h>
 #include <thread>
 
 namespace aerial_robot_control
 {
-  class HydrusTiltedLQIController: public UnderActuatedTiltedLQIController
+  class UnderActuatedLQIController: public PoseLinearController
   {
+
   public:
-    HydrusTiltedLQIController();
-    ~HydrusTiltedLQIController() = default;
+    UnderActuatedLQIController();
+    virtual ~UnderActuatedLQIController();
 
     void initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
                     boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
@@ -54,6 +61,53 @@ namespace aerial_robot_control
                     double ctrl_loop_rate);
 
   protected:
-    bool checkRobotModel() override;
+
+    ros::Publisher flight_cmd_pub_; // for spinal
+    ros::Publisher rpy_gain_pub_; // for spinal
+    ros::Publisher four_axis_gain_pub_;
+    ros::Publisher p_matrix_pseudo_inverse_inertia_pub_;
+
+    bool verbose_;
+    boost::shared_ptr<dynamic_reconfigure::Server<aerial_robot_control::LQIConfig> > lqi_server_;
+    dynamic_reconfigure::Server<aerial_robot_control::LQIConfig>::CallbackType dynamic_reconf_func_lqi_;
+
+    double target_roll_, target_pitch_;
+    double candidate_yaw_term_;
+    std::vector<float> target_base_thrust_;
+
+    int lqi_mode_;
+    bool clamp_gain_;
+    Eigen::MatrixXd K_;
+
+    Eigen::Vector3d lqi_roll_pitch_weight_, lqi_yaw_weight_, lqi_z_weight_;
+    std::vector<double> r_; // matrix R
+
+    std::vector<Eigen::Vector3d> pitch_gains_, roll_gains_, yaw_gains_, z_gains_;
+
+    bool gyro_moment_compensation_;
+
+    bool realtime_update_;
+    std::thread gain_generator_thread_;
+
+    //private functions
+    virtual bool checkRobotModel();
+    void resetGain() { K_ = Eigen::MatrixXd(); }
+
+    virtual void rosParamInit();
+    virtual void controlCore() override;
+
+    virtual bool optimalGain();
+    virtual void clampGain();
+    virtual void publishGain();
+
+    virtual void sendCmd() override;
+    virtual void sendFourAxisCommand();
+
+    virtual void allocateYawTerm();
+    void cfgLQICallback(aerial_robot_control::LQIConfig &config, uint32_t level); //dynamic reconfigure
+
+    void sendRotationalInertiaComp();
+
+    void gainGeneratorFunc();
   };
 };

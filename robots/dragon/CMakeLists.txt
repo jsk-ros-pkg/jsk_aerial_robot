@@ -48,7 +48,7 @@ target_link_libraries(dragon_robot_model ${catkin_LIBRARIES} ${NLOPT_LIBRARIES})
 
 add_library(dragon_aerial_robot_controllib src/control/lqi_gimbal_control.cpp src/control/full_vectoring_control.cpp)
 target_link_libraries (dragon_aerial_robot_controllib dragon_robot_model dragon_navigation dragon_sensor_pluginlib ${catkin_LIBRARIES} ${Eigen3_LIBRARIES})
-add_dependencies(dragon_aerial_robot_controllib aerial_robot_msgs_generate_messages_cpp hydrus_gencfg)
+add_dependencies(dragon_aerial_robot_controllib aerial_robot_msgs_generate_messages_cpp)
 
 add_library(dragon_navigation src/dragon_navigation.cpp)
 target_link_libraries(dragon_navigation ${catkin_LIBRARIES})

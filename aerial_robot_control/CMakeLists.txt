@@ -17,7 +17,8 @@ find_package(catkin REQUIRED COMPONENTS
 find_package(Eigen3 REQUIRED)
 
 generate_dynamic_reconfigure_options(
-  cfg/PidControl.cfg
+  cfg/PID.cfg
+  cfg/LQI.cfg
   )
 
 ### Temporary soulition because of https://github.com/ros/ros_comm/issues/1404
@@ -57,9 +58,11 @@ target_link_libraries(control_utils ${EIGEN3_LIBRARIES})
 add_library(flight_control_pluginlib
   src/control/base/pose_linear_controller.cpp
   src/control/fully_actuated_controller.cpp
-  src/control/under_actuated_controller.cpp)
+  src/control/under_actuated_controller.cpp
+  src/control/under_actuated_lqi_controller.cpp
+  src/control/under_actuated_tilted_lqi_controller.cpp)
 
-target_link_libraries(flight_control_pluginlib ${catkin_LIBRARIES})
+target_link_libraries(flight_control_pluginlib ${catkin_LIBRARIES} control_utils)
 add_dependencies(flight_control_pluginlib  ${PROJECT_NAME}_gencfg)
 
 ### flight navigation
