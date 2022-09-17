@@ -4,4 +4,8 @@
     <description>plugin for general multirotor model </description>
   </class>
 
+  <class name="underactuated_tilted_robot_model" type="UnderactuatedTiltedRobotModel" base_class_type="aerial_robot_model::RobotModel">
+    <description>plugin for underactuated tilted robot model </description>
+  </class>
+
 </library>

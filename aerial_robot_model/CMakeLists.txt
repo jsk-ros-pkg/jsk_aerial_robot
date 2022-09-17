@@ -88,9 +88,9 @@ target_link_libraries(aerial_robot_model_ros aerial_robot_model ${catkin_LIBRARI
 add_dependencies(aerial_robot_model_ros ${PROJECT_NAME}_generate_messages_cpp spinal_generate_messages_cpp)
 
 add_library(robot_model_pluginlib
-  src/model/plugin/multirotor_robot_model.cpp)
+  src/model/plugin/multirotor_robot_model.cpp
+  src/model/plugin/tilted_underactuated_robot_model.cpp)
 target_link_libraries(robot_model_pluginlib ${catkin_LIBRARIES} aerial_robot_model)
-
 
 add_library(servo_bridge src/servo_bridge/servo_bridge.cpp)
 target_link_libraries(servo_bridge ${catkin_LIBRARIES})
