@@ -111,7 +111,7 @@ target_link_libraries(numerical_jacobians aerial_robot_model ${catkin_LIBRARIES}
 install(DIRECTORY include/${PROJECT_NAME}/ test/${PROJECT_NAME}/
   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION})
 
-install(TARGETS aerial_robot_model aerial_robot_model_ros servo_bridge numerical_jacobians
+install(TARGETS aerial_robot_model aerial_robot_model_ros robot_model_pluginlib servo_bridge numerical_jacobians
   DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 )
 
@@ -119,7 +119,7 @@ install(TARGETS rotor_tf_publisher interactive_marker_tf_broadcaster servo_bridg
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
-install(DIRECTORY launch script
+install(DIRECTORY launch script plugins
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
   USE_SOURCE_PERMISSIONS
 )
