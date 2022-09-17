@@ -35,7 +35,7 @@
 
 #pragma once
 
-#include <aerial_robot_control/control/control_base.h>
+#include <aerial_robot_control/control/base/base.h>
 #include <aerial_robot_control/control/utils/pid.h>
 #include <aerial_robot_control/PidControlConfig.h>
 #include <aerial_robot_msgs/DynamicReconfigureLevels.h>

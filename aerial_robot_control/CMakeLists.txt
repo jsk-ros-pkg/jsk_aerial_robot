@@ -55,7 +55,7 @@ target_link_libraries(control_utils ${EIGEN3_LIBRARIES})
 
 ### flight control plugin
 add_library(flight_control_pluginlib
-  src/control/pose_linear_controller.cpp
+  src/control/base/pose_linear_controller.cpp
   src/control/fully_actuated_controller.cpp
   src/control/under_actuated_controller.cpp)
 
