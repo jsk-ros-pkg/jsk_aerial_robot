@@ -1,4 +1,4 @@
-#include <aerial_robot_model/aerial_robot_model_ros.h>
+#include <aerial_robot_model/model/aerial_robot_model_ros.h>
 
 namespace aerial_robot_model {
   RobotModelRos::RobotModelRos(ros::NodeHandle nh, ros::NodeHandle nhp):

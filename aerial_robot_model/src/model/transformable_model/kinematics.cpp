@@ -1,4 +1,4 @@
-#include <aerial_robot_model/transformable_aerial_robot_model.h>
+#include <aerial_robot_model/model/transformable_aerial_robot_model.h>
 
 using namespace aerial_robot_model::transformable;
 

@@ -35,8 +35,8 @@
 
 #pragma once
 
-#include <aerial_robot_model/kdl_utils.h>
-#include <aerial_robot_model/math_utils.h>
+#include <aerial_robot_model/utils/kdl_utils.h>
+#include <aerial_robot_model/utils/math_utils.h>
 #include <cmath>
 #include <eigen_conversions/eigen_kdl.h>
 #include <Eigen/Core>

@@ -1,4 +1,4 @@
-#include <aerial_robot_model/aerial_robot_model.h>
+#include <aerial_robot_model/model/aerial_robot_model.h>
 
 namespace aerial_robot_model {
 

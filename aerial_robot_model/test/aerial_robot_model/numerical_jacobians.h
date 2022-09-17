@@ -35,7 +35,7 @@
 
 #pragma once
 
-#include <aerial_robot_model/transformable_aerial_robot_model.h>
+#include <aerial_robot_model/model/transformable_aerial_robot_model.h>
 #include <spinal/DesireCoord.h>
 
 namespace aerial_robot_model  {

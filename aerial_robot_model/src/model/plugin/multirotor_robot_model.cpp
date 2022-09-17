@@ -2,7 +2,7 @@
 /*********************************************************************
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2016, JSK Lab
+ *  Copyright (c) 2022, JSK Lab
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -33,21 +33,13 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 
-#pragma once
+#include <aerial_robot_model/model/plugin/multirotor_robot_model.h>
 
-#include <aerial_robot_model/model/transformable_aerial_robot_model.h>
-#include <algorithm>
-#include <cmath>
-#include <time.h>
+MultirotorRobotModel::MultirotorRobotModel(bool init_with_rosparam, bool verbose, double fc_t_min_thre, double epsilon):
+  RobotModel(init_with_rosparam, verbose, 0, fc_t_min_thre, epsilon)
+{
+}
 
-using namespace aerial_robot_model::transformable;
-
-class HydrusXiFullyActuatedRobotModel : public aerial_robot_model::transformable::RobotModel {
-public:
-  HydrusXiFullyActuatedRobotModel(bool init_with_rosparam = true,
-                                  bool verbose = false,
-                                  double fc_f_min_thre = 0,
-                                  double fc_t_min_thre = 0,
-                                  double epsilon = 10.0);
-  virtual ~HydrusXiFullyActuatedRobotModel() = default;
-};
+/* plugin registration */
+#include <pluginlib/class_list_macros.h>
+PLUGINLIB_EXPORT_CLASS(MultirotorRobotModel, aerial_robot_model::RobotModel);
