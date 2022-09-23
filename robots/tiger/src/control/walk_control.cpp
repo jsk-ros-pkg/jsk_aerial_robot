@@ -202,7 +202,7 @@ void WalkController::thrustControl()
   // 1. feed-forwared control: compensate the static balance
   Eigen::VectorXd static_thrust_force = tiger_robot_model_->getStaticVectoringF();
   target_vectoring_f_ = static_thrust_force;
-
+  ROS_INFO_STREAM("[Tiger] [Control] total thrust vector init: " << target_vectoring_f_.transpose());
 
   // 2. feed-back control:  baselink position control
   Eigen::VectorXd target_wrench = Eigen::VectorXd::Zero(6);
@@ -283,6 +283,8 @@ void WalkController::thrustControl()
     target_vectoring_f_.segment(3 * 2 * i, 3) += fb_vectoring_f.segment(3 * i, 3);
   }
   // ROS_INFO_STREAM_THROTTLE(1.0, "[fb control] fb vectoring f: " << fb_vectoring_f.transpose());
+  ROS_INFO_STREAM("[Tiger] [Control] fb vectoring f: " << fb_vectoring_f.transpose());
+  ROS_INFO_STREAM("[Tiger] [Control] total thrust vector after fc center: " << target_vectoring_f_.transpose());
 
 
   // 3. feed-back control: link-wise rotation control
@@ -337,6 +339,7 @@ void WalkController::thrustControl()
   //ROS_INFO_STREAM_THROTTLE(1.0, "[Tiger] [Control] [Link Rot] theta: " << ss.str());
   ROS_INFO_STREAM("[Tiger][Control] thrust control for link-wise rotation, thrust vector: " << fb_vectoring_l.transpose());
   ROS_INFO_STREAM("[Tiger] [Control] [Link Rot] theta: " << ss.str());
+  ROS_INFO_STREAM("[Tiger] [Control] total thrust vector after fc link: " << target_vectoring_f_.transpose());
 
   std_msgs::Float32MultiArray msg;
   for(int i = 0; i < fb_vectoring_l.size(); i++) {
