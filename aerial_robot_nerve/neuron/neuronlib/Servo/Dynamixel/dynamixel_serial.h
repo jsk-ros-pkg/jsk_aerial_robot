@@ -22,6 +22,40 @@
 
 //#########################################################################
 
+//################ define - Dynamixel Model table ############################
+#define XC330_M077	0x4A6
+#define XC330_M288	0x4B0
+#define XC330_M181	0x4B0
+#define XC330_T181	0x4BA
+#define XC330_T288	0x4C4
+#define XL430_W250	0x4CE
+#define DXL430_W250	0x442 // 2XL430_W250
+#define XC430_W150	0x42E
+#define XC430_W250	0x438
+#define DXC430_W250	0x488 // 2XC430_W250
+#define XM430_W210	0x406
+#define XH430_W210	0x3F2
+#define XH430_V210	0x41A
+#define XD430_T210	0x3F3
+#define XM430_W350	0x3FC
+#define XH430_W350	0x3E8
+#define XH430_V350	0x410
+#define XD430_T350	0x3E9
+#define XW430_T200	0x500
+#define XW430_T333	0x4F6
+#define XM540_W150	0x46A
+#define XH540_W150	0x456
+#define XH540_V150	0x47E
+#define XM540_W270	0x460
+#define XH540_W270	0x44C
+#define XH540_V270	0x474
+#define XW540_T140	0x49C
+#define XW540_T260	0x492
+#define MX_28	0x1E
+#define MX_64	0x137
+#define MX_106	0x141
+
+
 //################ define - Dynamixel Hex control table ######################
 
 #define CTRL_MODEL_NUMBER             	0x00
@@ -104,6 +138,7 @@
 #define PRESENT_CURRENT_BYTE_LEN		2
 #define PRESENT_TEMPERATURE_BYTE_LEN	1
 #define MOVING_BYTE_LEN 				1
+#define MODEL_NUMBER_BYTE_LEN 				2
 #define HARDWARE_ERROR_STATUS_BYTE_LEN	1
 #define POSITION_GAINS_BYTE_LEN			6
 #define PROFILE_VELOCITY_BYTE_LEN		4
@@ -176,6 +211,7 @@
 #define INST_SET_POSITION_GAINS			13
 #define INST_SET_PROFILE_VELOCITY		14
 #define INST_SET_TORQUE					15
+#define INST_GET_MODEL_NUMBER				16
 
 //instruction frequency: 0 means no process
 #define SET_POS_DU 20 //[msec], 20ms => 50Hz
@@ -269,6 +305,7 @@ public:
         uint8_t present_temp_;
 	int16_t present_current_;
 	uint8_t moving_;
+  	uint16_t model_number_;
 	uint8_t hardware_error_status_;
 	uint16_t p_gain_, i_gain_, d_gain_;
 	uint16_t profile_velocity_;
@@ -346,6 +383,7 @@ private:
   inline void cmdReadHardwareErrorStatus(uint8_t servo_index);
   inline void cmdReadHomingOffset(uint8_t servo_index);
   inline void cmdReadMoving(uint8_t servo_index);
+  inline void cmdReadModelNumber(uint8_t servo_index);
   inline void cmdReadPositionGains(uint8_t servo_index);
   inline void cmdReadPresentCurrent(uint8_t servo_index);
   inline void cmdReadPresentPosition(uint8_t servo_index);
@@ -361,6 +399,7 @@ private:
   inline void cmdSyncReadHardwareErrorStatus(bool send_all = true);
   inline void cmdSyncReadHomingOffset(bool send_all = true);
   inline void cmdSyncReadMoving(bool send_all = true);
+  inline void cmdSyncReadModelNumber(bool send_all = true);
   inline void cmdSyncReadPositionGains(bool send_all = true);
   inline void cmdSyncReadPresentCurrent(bool send_all = true);
   inline void cmdSyncReadPresentPosition(bool send_all = true);
@@ -377,6 +416,7 @@ private:
   inline void getCurrentLimit();
   inline void getPositionGains();
   inline void getProfileVelocity();
+  inline void getModelNumber();
 
   uint16_t calcCRC16(uint16_t crc_accum, uint8_t *data_blk_ptr, int data_blk_size);
 };
