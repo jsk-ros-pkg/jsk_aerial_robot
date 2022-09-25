@@ -68,6 +68,7 @@ void DynamixelSerial::init(UART_HandleTypeDef* huart, I2C_HandleTypeDef* hi2c, o
 	getCurrentLimit();
 	getPositionGains();
 	getProfileVelocity();
+        getModelNumber();
 
 
         //initialize encoder: only can support one encoder
@@ -645,6 +646,11 @@ int8_t DynamixelSerial::readStatusPacket(uint8_t status_packet_instruction)
 			s->moving_ = parameters[0];
 		}
 		return 0;
+	case INST_GET_MODEL_NUMBER:
+		if (s != servo_.end()) {
+			s->model_number_ = ((parameters[1] << 8) & 0xFF00) | (parameters[0] & 0xFF);
+		}
+		return 0;
 	case INST_GET_HOMING_OFFSET:
 		if (s != servo_.end()) {
 			s->homing_offset_ = ((parameters[3] << 24) & 0xFF000000) | ((parameters[2] << 16) & 0xFF0000) | ((parameters[1] << 8) & 0xFF00) | (parameters[0] & 0xFF);
@@ -762,6 +768,11 @@ void DynamixelSerial::cmdReadMoving(uint8_t servo_index)
 	cmdRead(servo_[servo_index].id_, CTRL_MOVING, MOVING_BYTE_LEN);
 }
 
+void DynamixelSerial::cmdReadModelNumber(uint8_t servo_index)
+{
+	cmdRead(servo_[servo_index].id_, CTRL_MODEL_NUMBER, MODEL_NUMBER_BYTE_LEN);
+}
+
 void DynamixelSerial::cmdReadPositionGains(uint8_t servo_index)
 {
 	cmdRead(servo_[servo_index].id_, CTRL_POSITION_D_GAIN, POSITION_GAINS_BYTE_LEN);
@@ -866,6 +877,11 @@ void DynamixelSerial::cmdSyncReadMoving(bool send_all)
 	cmdSyncRead(CTRL_MOVING, MOVING_BYTE_LEN, send_all);
 }
 
+void DynamixelSerial::cmdSyncReadModelNumber(bool send_all)
+{
+	cmdSyncRead(CTRL_MODEL_NUMBER, MODEL_NUMBER_BYTE_LEN, send_all);
+}
+
 void DynamixelSerial::cmdSyncReadPositionGains(bool send_all)
 {
 	cmdSyncRead(CTRL_POSITION_D_GAIN, POSITION_GAINS_BYTE_LEN, send_all);
@@ -961,6 +977,22 @@ void DynamixelSerial::setStatusReturnLevel()
 {
 	cmdWriteStatusReturnLevel(BROADCAST_ID, READ);
 }
+
+void DynamixelSerial::getModelNumber()
+{
+	if (ttl_rs485_mixed_ != 0) {
+		for (unsigned int i = 0; i < servo_num_; ++i) {
+			cmdReadModelNumber(i);
+			readStatusPacket(INST_GET_MODEL_NUMBER);
+		}
+	} else {
+		cmdSyncReadModelNumber();
+		for (unsigned int i = 0; i < servo_num_; i++) {
+			readStatusPacket(INST_GET_MODEL_NUMBER);
+		}
+	}
+}
+
 
 void DynamixelSerial::getHomingOffset()
 {
