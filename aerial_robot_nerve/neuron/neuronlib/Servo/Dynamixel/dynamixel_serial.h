@@ -134,6 +134,7 @@
 #define LED_BYTE_LEN					1
 #define STATUS_RETURN_LEVEL_BYTE_LEN	1
 #define GOAL_POSITION_BYTE_LEN			4
+#define GOAL_CURRENT_BYTE_LEN			2
 #define PRESENT_POSITION_BYTE_LEN		4
 #define PRESENT_CURRENT_BYTE_LEN		2
 #define PRESENT_TEMPERATURE_BYTE_LEN	1
@@ -299,6 +300,7 @@ public:
 	uint8_t id_;
   	int32_t present_position_;
 	int32_t goal_position_;
+  	int16_t goal_current_;
         int32_t calib_value_;
 	int32_t homing_offset_;
         int32_t internal_offset_;
@@ -396,6 +398,7 @@ private:
   inline void cmdWriteProfileVelocity(uint8_t servo_index);
   inline void cmdWriteStatusReturnLevel(uint8_t id, uint8_t set);
   inline void cmdWriteTorqueEnable(uint8_t servo_index);
+  inline void cmdWriteGoalCurrent(uint8_t servo_index);
   inline void cmdSyncReadCurrentLimit(bool send_all = true);
   inline void cmdSyncReadHardwareErrorStatus(bool send_all = true);
   inline void cmdSyncReadHomingOffset(bool send_all = true);

@@ -86,6 +86,16 @@ void DynamixelSerial::init(UART_HandleTypeDef* huart, I2C_HandleTypeDef* hi2c, o
             if(servo_[i].external_encoder_flag_) encoder_handler_.setOffset(servo_[i].joint_offset_);
           }
 	}
+
+        // [WIP] set goal current once
+        for (unsigned int i = 0; i < servo_num_; i++) {
+          uint16_t model_number = servo_[i].model_number_;
+          if (model_number == XH430_W350 || model_number == XH430_V350) {
+            servo_[i].goal_current_ = 300; // hard-coding
+            cmdWriteGoalCurrent(i);
+          }
+	}
+
 }
 
 void DynamixelSerial::ping()
@@ -868,10 +878,17 @@ void DynamixelSerial::cmdWriteStatusReturnLevel(uint8_t id, uint8_t set)
 
 void DynamixelSerial::cmdWriteTorqueEnable(uint8_t servo_index)
 {
-
 	uint8_t	parameter = (uint8_t)((servo_[servo_index].torque_enable_) ? 1 : 0);
-
 	cmdWrite(servo_[servo_index].id_, CTRL_TORQUE_ENABLE, &parameter, TORQUE_ENABLE_BYTE_LEN);
+}
+
+void DynamixelSerial::cmdWriteGoalCurrent(uint8_t servo_index)
+{
+	int16_t cur = servo_[servo_index].goal_current_;
+	uint8_t parameters[GOAL_CURRENT_BYTE_LEN];
+	parameters[0] = (uint8_t)(cur & 0xFF);
+	parameters[1] = (uint8_t)((cur >> 8) & 0xFF);
+	cmdWrite(servo_[servo_index].id_, CTRL_GOAL_CURRENT, parameters, GOAL_CURRENT_BYTE_LEN);
 }
 
 void DynamixelSerial::cmdSyncReadCurrentLimit(bool send_all)
