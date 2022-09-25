@@ -614,11 +614,13 @@ void BaseNavigator::update()
   if(estimator_->getUnhealthLevel() == Sensor::UNHEALTH_LEVEL3 && !force_landing_flag_)
     {
       if(getNaviState() == TAKEOFF_STATE || getNaviState() == HOVER_STATE  || getNaviState() == LAND_STATE)
-        ROS_WARN("Sensor Unhealth Level%d: force landing state", estimator_->getUnhealthLevel());
-      spinal::FlightConfigCmd flight_config_cmd;
-      flight_config_cmd.cmd = spinal::FlightConfigCmd::FORCE_LANDING_CMD;
-      flight_config_pub_.publish(flight_config_cmd);
-      force_landing_flag_ = true;
+        {
+          ROS_WARN("Sensor Unhealth Level%d: force landing state", estimator_->getUnhealthLevel());
+          spinal::FlightConfigCmd flight_config_cmd;
+          flight_config_cmd.cmd = spinal::FlightConfigCmd::FORCE_LANDING_CMD;
+          flight_config_pub_.publish(flight_config_cmd);
+          force_landing_flag_ = true;
+        }
     }
 
   if(getNaviState() == TAKEOFF_STATE || getNaviState() == HOVER_STATE)
