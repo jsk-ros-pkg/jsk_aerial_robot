@@ -19,29 +19,9 @@
 #include "Encoder/mag_encoder.h"
 #include "cmsis_os.h"
 
-/* first should set the baudrate to 1000000*/
-/* uncomment following macro, and set the uart baudrate to 57143(M
- * X28), then the buadrate will change */
-/* then comment following macro, change the baudrate back to 1000000 */
-
-/* second, should set some setting to the servo */
-/* 1. the responce delay: which is very important for MX28AR,
- *  uncomment the INIT_SETTING marcro, and comment again after the setting
- *  we observed that the RX of uart will turn to 0, after the tx process
- *  therefore, we set the delay of rx after rx to be 0 => no 0V after rx
- *  2. the voltage: we set the voltage limit according to the battery(4s: 17V)
- */
-
-//#define SET_BAUD
-//#define SET_ID
-//#define PING_TEST
-//#define LED_TEST
-//#define INIT_SETTING
-//#define SERVO_TEST
-//#define WHEEL_TEST
-//#define SET_HOMING_OFFSET
 
 //#########################################################################
+
 //################ define - Dynamixel Hex control table ######################
 
 #define CTRL_MODEL_NUMBER             	0x00
