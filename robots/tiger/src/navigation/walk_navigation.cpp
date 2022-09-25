@@ -10,7 +10,9 @@ WalkNavigator::WalkNavigator():
   target_baselink_vel_(0,0,0),
   target_baselink_rpy_(0,0,0),
   target_leg_ends_(0),
-  target_link_rots_(0)
+  target_link_rots_(0),
+  free_leg_id_(-1),
+  raise_leg_flag_(false)
 {
 }
 
@@ -26,6 +28,9 @@ void WalkNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
 
   target_baselink_pos_sub_ = nh_.subscribe("walk/baselink/traget/pos", 1, &WalkNavigator::targetBaselinkPosCallback, this);
   target_baselink_delta_pos_sub_ = nh_.subscribe("walk/baselink/traget/delta_pos", 1, &WalkNavigator::targetBaselinkDeltaPosCallback, this);
+
+  raise_leg_sub_ = nh_.subscribe("walk/raise_leg", 1, &WalkNavigator::raiseLegCallback, this);
+  lower_leg_sub_ = nh_.subscribe("walk/lower_leg", 1, &WalkNavigator::lowerLegCallback, this);
 
   target_joint_angles_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("debug/nav/target_joint_angles", 1); // for debug
 }
@@ -48,8 +53,6 @@ void WalkNavigator::update()
     return;
   }
 
-  auto current_joint_state = tiger_robot_model_->getGimbalProcessedJoint<sensor_msgs::JointState>();
-
   // TODO: add new states for walk/stand.
   // e.g., idle stand state, joint move state, fee joint end state
 
@@ -70,6 +73,8 @@ void WalkNavigator::update()
     // set target joint angles
     target_joint_state_.position = getCurrentJointAngles();
   }
+
+  auto current_joint_angles = getCurrentJointAngles();
 
   // target link rotation
   if (target_link_rots_.size() == 0) {
@@ -190,16 +195,46 @@ void WalkNavigator::update()
     double theta2 = theta2_d - theta1;
 
     // set the target joint angles
-    if(names.at(4 * i) == std::string("joint") + std::to_string(2*i+1) + std::string("_yaw")) {
-      target_angles.at(4 * i) = angle;
-      target_angles.at(4 * i + 1) = theta1;
-      target_angles.at(4 * i + 3) = theta2;
-
-      ss << "(" << angle << ", " << theta1 << ", 0" << ", " << theta2 << ") ";
-    }
-    else {
+    if(names.at(4 * i) != std::string("joint") + std::to_string(2*i+1) + std::string("_yaw")) {
       ROS_ERROR_STREAM("[Tiger][Navigator] name order is different. ID" << i << " name is " << names.at(4 * i));
+      continue;
     }
+
+    // special process for raising leg
+    if (i == free_leg_id_) {
+
+      // TODO: change the joint1_yaw for walk
+
+      double current_angle = current_joint_angles.at(4 * i + 1);
+
+      // raise leg
+      if (raise_leg_flag_) {
+        theta1 -= raise_angle_;
+        tiger_robot_model_->setFreeleg(free_leg_id_);
+        ROS_WARN_STREAM_ONCE("[Tiger] leg" << i + 1 << " leave the ground, joint" << i * 2 +1 << "_pitch" << ", curr angle: " << current_angle << "; target angle: " << theta1);
+      }
+
+      // lower leg
+      if (lower_leg_flag_) {
+
+        if (theta1 - current_angle < 0.1) {
+          // touch detection by delta angle
+
+          lower_leg_flag_ = false;
+          tiger_robot_model_->resetFreeleg();
+
+          ROS_WARN_STREAM("[Tiger] leg" << i + 1 << " touches the ground, joint" << i * 2 +1 << "_pitch" << ", curr angle: " << current_angle << "; target angle: " << theta1);
+
+        }
+      }
+    }
+
+    target_angles.at(4 * i) = angle;
+    target_angles.at(4 * i + 1) = theta1;
+    target_angles.at(4 * i + 3) = theta2;
+
+    ss << "(" << target_angles.at(4 * i) << ", " << target_angles.at(4 * i + 1) << ", "
+       << target_angles.at(4 * i + 2) << ", " << target_angles.at(4 * i + 3) << ") ";
   }
   ROS_DEBUG_STREAM_THROTTLE(1.0, "[Tiger][Navigator] analytical joint angles from leg end and baselink: " << ss.str());
 
@@ -210,12 +245,13 @@ void WalkNavigator::update()
   target_joint_angles_pub_.publish(msg);
 
   // get the target link orientation
+  auto joint_state = tiger_robot_model_->getGimbalProcessedJoint<sensor_msgs::JointState>();
   for(int i = 0; i < joint_index_map_.size(); i++) {
     auto id = joint_index_map_.at(i);
-    current_joint_state.position.at(id) = target_angles.at(i);
+    joint_state.position.at(id) = target_angles.at(i);
   }
 
-  robot_model_for_nav_->updateRobotModel(current_joint_state);
+  robot_model_for_nav_->updateRobotModel(joint_state);
   const auto& target_seg_tf_map = robot_model_for_nav_->getSegmentsTf();
   for(int i = 0; i < tiger_robot_model_->getRotorNum(); i++) {
     std::string link_name = std::string("link") + std::to_string(i+1);
@@ -229,8 +265,8 @@ void WalkNavigator::update()
 
 void WalkNavigator::setJointIndexMap()
 {
-  const auto current_joint_state = tiger_robot_model_->getGimbalProcessedJoint<sensor_msgs::JointState>();
-  const auto& search_v = current_joint_state.name;
+  const auto joint_state = tiger_robot_model_->getGimbalProcessedJoint<sensor_msgs::JointState>();
+  const auto& search_v = joint_state.name;
 
   joint_index_map_.resize(0); // resize
   const auto& joint_names = target_joint_state_.name;
@@ -251,10 +287,10 @@ void WalkNavigator::setJointIndexMap()
 
 std::vector<double> WalkNavigator::getCurrentJointAngles()
 {
-  const auto current_joint_state = tiger_robot_model_->getGimbalProcessedJoint<sensor_msgs::JointState>();
+  const auto joint_state = tiger_robot_model_->getGimbalProcessedJoint<sensor_msgs::JointState>();
   std::vector<double> angles(0);
   for(const auto id: joint_index_map_) {
-    angles.push_back(current_joint_state.position.at(id));
+    angles.push_back(joint_state.position.at(id));
   }
 
   return angles;
@@ -290,7 +326,8 @@ void WalkNavigator::rosParamInit()
 {
   BaseNavigator::rosParamInit();
 
-  ros::NodeHandle navi_nh(nh_, "navigation");
+  ros::NodeHandle nh(nh_, "navigation");
+  getParam<double>(nh, "raise_angle", raise_angle_, 0.2);
 }
 
 void WalkNavigator::targetBaselinkPosCallback(const geometry_msgs::Vector3StampedConstPtr& msg)
@@ -305,6 +342,19 @@ void WalkNavigator::targetBaselinkDeltaPosCallback(const geometry_msgs::Vector3S
   target_baselink_pos_ += delta_pos;
 
   ROS_ERROR("get new target baselink");
+}
+
+void WalkNavigator::raiseLegCallback(const std_msgs::UInt8ConstPtr& msg)
+{
+  free_leg_id_ = msg->data;
+  raise_leg_flag_ = true;
+  lower_leg_flag_ = false;
+}
+
+void WalkNavigator::lowerLegCallback(const std_msgs::EmptyConstPtr& msg)
+{
+  lower_leg_flag_ = true;
+  raise_leg_flag_ = false;
 }
 
 

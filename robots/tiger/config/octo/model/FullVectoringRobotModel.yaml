@@ -21,4 +21,4 @@ thrust_force_weight: 1.0
 joint_torque_weight: 1.0 # 10.0 ~ 20.0
 joint_torque_limit: 4.0
 
-#init_untouch_leg: 0
+#init_free_leg: 0

@@ -45,7 +45,7 @@ FullVectoringRobotModel::FullVectoringRobotModel(bool init_with_rosparam, bool v
   ros::NodeHandle nh;
 
   nh.param("joint_torque_limit", joint_torque_limit_, 3.0);
-  nh.param("init_untouch_leg", untouch_leg_, -1);
+  nh.param("init_free_leg", free_leg_id_, -1);
 
   static_vectoring_f_ = Eigen::VectorXd::Zero(0);
   static_joint_t_ = Eigen::VectorXd::Zero(0);
@@ -77,12 +77,12 @@ void FullVectoringRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_po
   }
 
   const int leg_num = rotor_num / 2;
-  if (untouch_leg_ >= leg_num)
+  if (free_leg_id_ >= leg_num)
     {
       ROS_WARN_ONCE("The untouch leg ID exceeds the total leg number, reset to -1");
-      untouch_leg_ = -1;
+      free_leg_id_ = -1;
     }
-  const int fe_num =  leg_num - (int)(untouch_leg_ >= 0);
+  const int fe_num =  leg_num - (int)(free_leg_id_ >= 0);
   const int fe_ndof = 3 * fe_num;
 
   Eigen::MatrixXd A1_fe_all = Eigen::MatrixXd::Zero(joint_num, fe_ndof);
@@ -91,7 +91,7 @@ void FullVectoringRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_po
   int cnt = 0;
   for (int i = 0; i < leg_num; i++) {
 
-    if (untouch_leg_ == i) continue;
+    if (free_leg_id_ == i) continue;
 
     std::string name = std::string("link") + std::to_string((i + 1) *2) + std::string("_foot");
 
@@ -139,7 +139,7 @@ void FullVectoringRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_po
   }
 
 
-  if (untouch_leg_ == -1) {
+  if (free_leg_id_ == -1) {
       // 1. only use joint torque for stand
       OsqpEigen::Solver qp_solver;
       qp_solver.settings()->setVerbosity(false);

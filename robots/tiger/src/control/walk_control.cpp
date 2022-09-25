@@ -386,6 +386,10 @@ void WalkController::jointControl()
   auto current_angles = getCurrentJointAngles();
   Eigen::VectorXd static_joint_torque = tiger_robot_model_->getStaticJointT();
 
+  if (current_angles.size() == 0 || navi_target_joint_angles.size() == 0) {
+    return;
+  }
+
   const auto& names = target_joint_state_.name;
   auto& target_angles = target_joint_state_.position;
   for(int i = 0; i < names.size(); i++) {

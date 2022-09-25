@@ -53,11 +53,14 @@ namespace Tiger
     inline void setStaticVectoringF(Eigen::VectorXd f) { static_vectoring_f_ = f; }
     inline void setStaticJointT(Eigen::VectorXd t) { static_joint_t_ = t; }
 
+    inline void setFreeleg(int id) { free_leg_id_ = id; }
+    inline void resetFreeleg() { free_leg_id_ = -1; }
+
   protected:
     void updateRobotModelImpl(const KDL::JntArray& joint_positions) override;
 
     double joint_torque_limit_;
-    int untouch_leg_; // start from 0: [0, leg_num -1]
+    int free_leg_id_; // start from 0: [0, leg_num -1]; -1: non touched leg
 
     Eigen::VectorXd static_vectoring_f_;
     Eigen::VectorXd static_joint_t_;
