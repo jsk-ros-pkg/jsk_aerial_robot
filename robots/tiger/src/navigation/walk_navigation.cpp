@@ -32,6 +32,14 @@ void WalkNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
 
 void WalkNavigator::update()
 {
+  if (getNaviState() == aerial_robot_navigation::START_STATE) {
+    if(estimator_->getUnhealthLevel() == Sensor::UNHEALTH_LEVEL3){
+      ROS_WARN("Sensor Unhealth, cannot arming");
+      setNaviState(ARM_OFF_STATE);
+      return;
+    }
+  }
+
   BaseNavigator::update();
 
   // skip before the model initialization
