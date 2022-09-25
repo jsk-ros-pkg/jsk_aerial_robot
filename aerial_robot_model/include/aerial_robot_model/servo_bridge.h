@@ -139,8 +139,10 @@ public:
       {
         return boost::algorithm::clamp(curr_angle_val_ * angle_sgn_ / angle_scale_ + zero_point_offset_, INT16_MIN/2, INT16_MAX/2);
       }
-    else if(value_type == ValueType::RADIAN)
-      return curr_angle_val_;
+    else // ValueType::RADIAN
+      {
+        return curr_angle_val_;
+      }
   }
 
   const double getTargetAngleVal(int value_type) const
@@ -149,8 +151,10 @@ public:
       {
         return boost::algorithm::clamp(target_angle_val_ * angle_sgn_ / angle_scale_ + zero_point_offset_, INT16_MIN/2, INT16_MAX/2);
       }
-    else if(value_type == ValueType::RADIAN)
-      return target_angle_val_;
+    else // ValueType::RADIAN
+      {
+        return target_angle_val_;
+      }
   }
 
   inline const double getCurrTorqueVal() const
@@ -195,10 +199,11 @@ protected:
   ros::NodeHandle nhp_;
 
   ros::Publisher servo_states_pub_;
-  vector<ros::Subscriber> servo_states_subs_;
-  vector<ros::Subscriber> servo_ctrl_subs_;
+  map<string, ros::Subscriber> servo_states_subs_;
+  map<string, ros::Subscriber> servo_ctrl_subs_;
+  map<string, bool> no_real_state_flags_;
   map<string, ros::Publisher> servo_ctrl_pubs_;
-  vector<ros::ServiceServer> servo_torque_ctrl_srvs_;
+  map<string, ros::ServiceServer> servo_torque_ctrl_srvs_;
   map<string, ros::Publisher> servo_torque_ctrl_pubs_;
   map<string, vector<ros::Publisher> > servo_ctrl_sim_pubs_; // TODO: should be actionlib, trajectory controller
 

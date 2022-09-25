@@ -36,6 +36,7 @@ import rospy
 import unittest
 import rostest
 import operator
+from functools import reduce
 import shlex
 import subprocess
 import math
@@ -99,18 +100,18 @@ class TransformCheck(InitFormCheck, HoveringCheck):
 
         for param in self.params:
             index = self.params.index(param) + 1
-            print "start task%d" % index
-            task = {'timeout': 10.0, 'threshold': [0.01, 0.01, 0.01], 'angle_threshold': [0.01], 'reset': None, 'reset_duration': 10.0}
+            print("start task%d" % index)
+            task = {'timeout': 10.0, 'threshold': [0.01, 0.01, 0.01], 'angle_threshold': 0.01, 'reset': None, 'reset_duration': 10.0}
 
             task.update(param)
 
-            print task
+            print(task)
 
             deadline = rospy.Time.now() + rospy.Duration(task['timeout'])
 
             node_pid = None
             if isinstance(task['command'], list):
-                print "joint ctrl"
+                print("joint ctrl")
                 # the target joint angles
                 assert len(task['command']) == len(self.init_joint_angles), 'the length of target joint angles from init_joint_anlges is wrong'
 
@@ -120,7 +121,7 @@ class TransformCheck(InitFormCheck, HoveringCheck):
                 joint_ctrl_msg.position = self.target_joint_angles
                 self.joint_ctrl_pub.publish(joint_ctrl_msg)
             else:
-                print "string command"
+                print("string command")
                 # the rosrun command (TODO, the roslaunch)
                 node_command = shlex.split(task['command'])
                 assert node_command[0] == 'rosrun' or node_command[0] == 'rostopic', 'please use rosrun command'
@@ -138,12 +139,14 @@ class TransformCheck(InitFormCheck, HoveringCheck):
                 if self.joint_msg is None or self.control_msg is None:
                     continue
 
-                err_x = self.control_msg.x.err_p;
-                err_y = self.control_msg.y.err_p;
-                err_z = self.control_msg.z.err_p;
-                err_yaw = self.control_msg.yaw.err_p;
-                err_xy = math.sqrt(err_x * err_x + err_y * err_y);
-                rospy.loginfo_throttle(1, 'errors in [xy, z, yaw]: [%f (%f, %f), %f, %f]' %  (err_xy, err_x, err_y, err_z, err_yaw))
+                err_x = self.control_msg.x.err_p
+                err_y = self.control_msg.y.err_p
+                err_z = self.control_msg.z.err_p
+                err_yaw = self.control_msg.yaw.err_p
+                err_xy = math.sqrt(err_x * err_x + err_y * err_y)
+
+                joint_angles = [self.joint_msg.position[i] for i in self.joint_map]
+                rospy.loginfo_throttle(1, "errors in [xy, z, yaw]: [{} ({}, {}), {}, {}]; joint angles: {}".format(err_xy, err_x, err_y, err_z, err_yaw, joint_angles))
 
                 if err_xy > max_error_xy:
                     max_error_xy = err_xy
@@ -228,7 +231,7 @@ class ControlTest(unittest.TestCase):
 
         # steup3: check transformation
         transform_checker = TransformCheck()
-        self.assertTrue(transform_checker.transformCheck(), msg = 'Cannot reach convergence for hovering')
+        self.assertTrue(transform_checker.transformCheck(), msg = 'Cannot reach convergence for transforming hovering')
 
 
 if __name__ == '__main__':

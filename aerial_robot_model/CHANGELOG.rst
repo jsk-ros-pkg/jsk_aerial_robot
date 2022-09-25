@@ -2,6 +2,13 @@
 Changelog for package aerial_robot_model
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.3.1 (2022-07-02)
+------------------
+* [Spinal] Improve the process of servo bridge (`#499 <https://github.com/jsk-ros-pkg/aerial_robot/issues/499>`_)
+* Fix the bug about the conversion of inertia tensor from SolidEdge (`#511 <https://github.com/jsk-ros-pkg/aerial_robot/issues/511>`_)
+* Support ROS Noetic with Ubuntu Focal (`#507 <https://github.com/jsk-ros-pkg/aerial_robot/issues/507>`_)
+
+
 1.3.0 (2021-08-06)
 ------------------
 

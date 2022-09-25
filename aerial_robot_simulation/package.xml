@@ -1,14 +1,14 @@
 <?xml version="1.0"?>
 <package>
   <name>aerial_robot_simulation</name>
-  <version>1.3.0</version>
+  <version>1.3.1</version>
   <description>The aerial_robot_simulation package</description>
 
   <maintainer email="chou@jsk.imi.i.u-tokyo.ac.jp">chou</maintainer>
 
   <license>BSD</license>
 
-  <author >Moju Zhao</author>
+  <author>Moju Zhao</author>
 
   <buildtool_depend>catkin</buildtool_depend>
 
@@ -19,11 +19,7 @@
   <build_depend>gazebo_ros_control</build_depend>
   <build_depend>kdl_parser</build_depend>
   <build_depend>liburdfdom-headers-dev</build_depend>
-  <build_depend>orocos_kdl</build_depend>
   <build_depend>roscpp</build_depend>
-  <build_depend>ros_control</build_depend>
-  <build_depend>ros_control</build_depend>
-  <build_depend>ros_controllers</build_depend>
   <build_depend>spinal</build_depend>
   <build_depend>tf</build_depend>
 
@@ -31,13 +27,13 @@
   <run_depend>aerial_robot_estimation</run_depend>
   <run_depend>aerial_robot_msgs</run_depend>
   <run_depend>aerial_robot_model</run_depend>
+  <run_depend>controller_manager</run_depend>
   <run_depend>controller_interface</run_depend>
+  <run_depend>gazebo_ros</run_depend>
   <run_depend>gazebo_ros_control</run_depend>
   <run_depend>hector_gazebo_plugins</run_depend>
   <run_depend>kdl_parser</run_depend>
-  <run_depend>orocos_kdl</run_depend>
   <run_depend>roscpp</run_depend>
-  <run_depend>ros_control</run_depend>
   <run_depend>ros_controllers</run_depend>
   <run_depend>spinal</run_depend>
   <run_depend>tf</run_depend>

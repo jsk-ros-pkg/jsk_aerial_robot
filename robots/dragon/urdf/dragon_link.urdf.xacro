@@ -10,11 +10,18 @@
       <!-- head -->
       <xacro:if value="${self == 1}">
         <inertial>
+          <origin xyz="${link_length* 0.5 + 15.09 * 0.001} ${-6.67 * 0.001} ${-27.21 * 0.001}" rpy="0 0 0"/>
+          <mass value="0.7968" />
+          <inertia
+              ixx="0.00095" iyy="0.0151" izz="0.0148"
+              ixy="-0.00098" ixz="0.0003" iyz="0.0001"/>
+          <!--
           <origin xyz="${link_length* 0.5 + 18.25 * 0.001} ${-7.17 * 0.001} ${-25.73 * 0.001}" rpy="0 0 0"/>
           <mass value="0.7408" />
           <inertia
               ixx="0.00095" iyy="0.0143" izz="0.0139"
               ixy="-0.00099" ixz="0.0003" iyz="0.0001"/>
+          -->
         </inertial>
         <xacro:link_model type="head_link" />
       </xacro:if>
@@ -23,11 +30,18 @@
         <!-- tail -->
         <xacro:if value="${self == child}">
           <inertial>
+            <origin xyz="${link_length* 0.5 - 44.26 * 0.001} ${-0.11 * 0.001} ${-20.72 * 0.001}" rpy="0 0 0"/>
+            <mass value="0.7943" />
+            <inertia
+                ixx="0.0012" iyy="0.0145" izz="0.0134"
+                ixy="0.0" ixz="0.0003" iyz="0.0000"/>
+            <!--
             <origin xyz="${link_length* 0.5 - 45.44 * 0.001} ${-0.12 * 0.001} ${-18.74 * 0.001}" rpy="0 0 0"/>
             <mass value="0.7383" />
             <inertia
                 ixx="0.0012" iyy="0.0137" izz="0.0126"
                 ixy="0.0" ixz="0.0002" iyz="0.0"/>
+            -->
           </inertial>
           <xacro:link_model type="end_link" />
         </xacro:if>
@@ -35,22 +49,36 @@
           <!-- baselink -->
           <xacro:if value="${baselink}">
             <inertial>
+              <origin xyz="${link_length* 0.5 + 9.54 * 0.001} ${-4.74 * 0.001} ${-15.68 * 0.001}" rpy="0 0 0"/>
+              <mass value="1.1348" />
+              <inertia
+                  ixx="0.0018" iyy="0.0228" izz="0.0219"
+                  ixy="-0.0009" ixz="-0.0006" iyz="0.0001"/>
+              <!--
               <origin xyz="${link_length* 0.5 + 11.92 * 0.001} ${-4.98 * 0.001} ${-14.07 * 0.001}" rpy="0 0 0"/>
               <mass value="1.07879" />
               <inertia
                   ixx="0.0018" iyy="0.0219" izz="0.0211"
                   ixy="-0.001" ixz="-0.0007" iyz="0.0001"/>
+              -->
             </inertial>
             <xacro:link_model type="baselink" />
           </xacro:if>
           <!-- general -->
           <xacro:unless value="${baselink}">
             <inertial>
+              <origin xyz="${link_length* 0.5 - 12.78 * 0.001} ${-5.80 * 0.001} ${-16.95 * 0.001}" rpy="0 0 0"/>
+              <mass value="0.9289" />
+              <inertia
+                  ixx="0.0015" iyy="0.0198" izz="0.0189"
+                  ixy="-0.0008" ixz="-0.0001" iyz="0.0001"/>
+              <!--
               <origin xyz="${link_length* 0.5 - 11.75 * 0.001} ${-6.17 * 0.001} ${-15.04 * 0.001}" rpy="0 0 0"/>
               <mass value="0.8729" />
               <inertia
                   ixx="0.0015" iyy="0.0189" izz="0.0181"
                   ixy="-0.0008" ixz="-0.0002" iyz="0.0001"/>
+              -->
             </inertial>
             <xacro:link_model type="general_link" />
           </xacro:unless>
@@ -71,10 +99,10 @@
 
     <link name="gimbal${self}_roll_module">
       <inertial>
-        <origin xyz="${gimbal_roll_x_offset - 17.67 * 0.001} ${0.42 * 0.001} ${15.23 * 0.001}" rpy="0 0 0"/>
-        <mass value="0.4578" />
+        <origin xyz="${gimbal_roll_x_offset - 17.60 * 0.001} ${0.42 * 0.001} ${15.48 * 0.001}" rpy="0 0 0"/>
+        <mass value="0.4604" />
         <inertia
-            ixx="0.0004" iyy="0.0005" izz="0.0003"
+            ixx="0.0004" iyy="0.0004" izz="0.0003"
             ixy="0" ixz="-0.0003" iyz="0"/>
       </inertial>
       <visual>
@@ -114,10 +142,10 @@
 
     <link name="gimbal${self}_pitch_module">
       <inertial>
-        <origin xyz="0 ${0.46 * 0.001}  ${-7.3 * 0.001}" rpy="0 0 0"/>
-        <mass value="0.4235" />
+        <origin xyz="0 ${0.33 * 0.001}  ${-8.71 * 0.001}" rpy="0 0 0"/>
+        <mass value="0.5301" />
         <inertia
-            ixx="0.0048" iyy="0.0002" izz="0.0048"
+            ixx="0.0061" iyy="0.0001" izz="0.0061"
             ixy="0.0" ixz="0.0" iyz="0.0"/>
       </inertial>
       <visual>
@@ -139,7 +167,7 @@
 
     <link name="thrust${self}">
       <inertial>
-        <origin xyz="0 0 0.1" rpy="0 0 0"/>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
         <mass value="0.0001"/>
         <inertia
             ixx="0.00001" ixy="0.0" ixz="0.0"

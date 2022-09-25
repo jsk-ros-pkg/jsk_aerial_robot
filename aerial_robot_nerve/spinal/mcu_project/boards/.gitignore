@@ -1,0 +1,13 @@
+# stm32cubemx
+.mxproject
+
+
+# files for IDE project
+Debug
+*.elf.*
+*.elf
+*.bak
+*.launch
+
+# libraries
+ros_lib

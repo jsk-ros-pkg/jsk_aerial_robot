@@ -30,11 +30,13 @@
       tasks:
         - command: [0, 1.57, 1.57]
           threshold: [0.05, 0.05, 0.06]
+          angle_threshold: 0.025
           reset: [1.57, 1.57, 1.57]
           timeout: 10
           reset_duration: 5
         - command: [0.78, 1.57, 0.78]
           threshold: [0.03, 0.02, 0.02]
+          angle_threshold: 0.025
           timeout: 10
           reset_duration: 5
     </rosparam>

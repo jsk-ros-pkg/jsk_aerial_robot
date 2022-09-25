@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
-<package>
+<package format="3">
   <name>aerial_robot</name>
-  <version>1.3.0</version>
+  <version>1.3.1</version>
   <description>Software of JSK lab for aerial robot</description>
 
   <maintainer email="chou@jsk.imi.i.u-tokyo.ac.jp">Moju Zhao</maintainer>
@@ -12,17 +12,17 @@
 
   <buildtool_depend>catkin</buildtool_depend>
 
-  <run_depend>aerial_robot_base</run_depend>
-  <run_depend>aerial_robot_control</run_depend>
-  <run_depend>aerial_robot_model</run_depend>
-  <run_depend>aerial_robot_msgs</run_depend>
-  <run_depend>motor_test</run_depend>
-  <run_depend>spinal_ros_bridge</run_depend>
-  <run_depend>spinal</run_depend>
-  <run_depend>aerial_robot_simulation</run_depend>
-  <run_depend>hydrus</run_depend>
-  <run_depend>hydrus_xi</run_depend>
-  <run_depend>dragon</run_depend>
+  <exec_depend>aerial_robot_base</exec_depend>
+  <exec_depend>aerial_robot_control</exec_depend>
+  <exec_depend>aerial_robot_model</exec_depend>
+  <exec_depend>aerial_robot_msgs</exec_depend>
+  <exec_depend>aerial_robot_simulation</exec_depend>
+  <exec_depend>dragon</exec_depend>
+  <exec_depend>hydrus</exec_depend>
+  <exec_depend>hydrus_xi</exec_depend>
+  <exec_depend>motor_test</exec_depend>
+  <exec_depend>spinal</exec_depend>
+  <exec_depend condition="$ROS_PYTHON_VERSION == 3">python-is-python3</exec_depend>
 
   <export>
     <metapackage/>

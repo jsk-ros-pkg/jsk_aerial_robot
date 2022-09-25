@@ -2,6 +2,12 @@
 Changelog for package aerial_robot_control
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.3.1 (2022-07-02)
+------------------
+
+* Fix bug of non-return function for boolean function to support ROS Noetic with Ubuntu Focal (`#507 <https://github.com/jsk-ros-pkg/aerial_robot/issues/507>`_)
+* Fix intialization bug for fully actuated control (`#502 <https://github.com/jsk-ros-pkg/aerial_robot/issues/502>`_)
+
 1.3.0 (2021-08-06)
 ------------------
 

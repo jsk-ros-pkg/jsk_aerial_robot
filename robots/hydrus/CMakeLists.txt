@@ -1,9 +1,8 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.0.2)
 project(hydrus)
 
-## Find catkin macros and libraries
-## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
-## is used, also find other catkin packages
+add_compile_options(-std=c++14)
+
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   aerial_robot_msgs
@@ -18,16 +17,13 @@ find_package(catkin REQUIRED COMPONENTS
 
 find_package(Eigen3 REQUIRED)
 
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
-
 generate_dynamic_reconfigure_options(
   cfg/LQI.cfg)
 
 catkin_package(
   INCLUDE_DIRS include test
   LIBRARIES hydrus_robot_model hydrus_controller_pluginlib hydrus_numerical_jacobians
-  CATKIN_DEPENDS roscpp aerial_robot_control aerial_robot_model aerial_robot_msgs spinal tf_conversions eigen_conversions
-  DEPENDS EIGEN3
+  CATKIN_DEPENDS roscpp aerial_robot_msgs aerial_robot_control aerial_robot_model spinal eigen_conversions tf_conversions std_srvs dynamic_reconfigure
 )
 
 # Eigen requires optimization to get good performance
@@ -72,8 +68,31 @@ target_link_libraries(hydrus_numerical_jacobians hydrus_robot_model ${catkin_LIB
 add_executable(hydrus_jacobian_test test/hydrus/jacobian_test.cpp)
 target_link_libraries(hydrus_jacobian_test hydrus_numerical_jacobians ${catkin_LIBRARIES} ${GTEST_LIBRARIES})
 
+
+install(DIRECTORY include/${PROJECT_NAME}/ test/${PROJECT_NAME}/
+  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION})
+
+install(TARGETS hydrus_jacobian_test
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+install(TARGETS hydrus_robot_model hydrus_controller_pluginlib hydrus_numerical_jacobians
+  DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+)
+
+install(DIRECTORY config scripts plugins launch
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+  USE_SOURCE_PERMISSIONS
+)
+
+install(DIRECTORY bin
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+  USE_SOURCE_PERMISSIONS
+)
+
+
 if(CATKIN_ENABLE_TESTING)
-  find_package(catkin REQUIRED COMPONENTS rostest)
+  find_package(rostest REQUIRED)
   add_subdirectory(test)
 endif()
 

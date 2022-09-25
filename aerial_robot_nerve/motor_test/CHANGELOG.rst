@@ -2,6 +2,13 @@
 Changelog for package motor_test
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.3.1 (2022-07-02)
+------------------
+* Modify README.md for motor test (`#509 <https://github.com/jsk-ros-pkg/aerial_robot/issues/509>`_)
+* Support ROS Noetic with Ubuntu Focal (`#507 <https://github.com/jsk-ros-pkg/aerial_robot/issues/507>`_)
+* Support different series of force sensor for motor thrust test (`#496 <https://github.com/jsk-ros-pkg/aerial_robot/issues/496>`_)
+
+
 1.3.0 (2021-08-06)
 ------------------
 

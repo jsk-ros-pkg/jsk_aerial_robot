@@ -1,8 +1,9 @@
 servo_controller:
+  state_sub_topic: servo/states
+  ctrl_pub_topic: servo/target_states
+  torque_pub_topic: servo/torque_enable
+
   joints:
-    state_sub_topic: servo/states
-    ctrl_pub_topic: servo/target_states
-    torque_pub_topic: servo/torque_enable
     angle_sgn: -1
     angle_scale: 0.00076699
     zero_point_offset: 2047
@@ -33,8 +34,7 @@ servo_controller:
       name: joint6
 
   gimbals:
-    ctrl_pub_topic: servo/target_states
-    torque_pub_topic: servo/torque_enable
+    no_real_state: false # true if there is no servo state from real machine
     angle_sgn: -1
     angle_scale: 0.001534
     zero_point_offset: 2047

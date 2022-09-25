@@ -2,6 +2,11 @@
 Changelog for package aerial_robot_base
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.3.1 (2022-07-02)
+------------------
+* [aerial_robot_base]  Explicitly stop timer and async spinner for safe destruction (`#515 <https://github.com/jsk-ros-pkg/aerial_robot/issues/515>`_)
+* Improve the ros spin process for supporting ROS Noetic with Ubuntu Focal (`#507 <https://github.com/jsk-ros-pkg/aerial_robot/issues/507>`_)
+
 1.3.0 (2021-08-06)
 ------------------
 

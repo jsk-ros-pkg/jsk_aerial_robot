@@ -33,21 +33,21 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-THIS_PACKAGE = "spinal"
-
 __usage__ = """
 make_libraries.py generates the STM32 rosserial library files.  It
 requires the location of your STM32 project folder.
 
-rosrun spinal make_libraries.py <output_path>
+rosrun spinal make_libraries.py  --output_path <output_path> --support_rtos --support_lwip
 """
 
+import os
 import rospkg
 import rosserial_client
+import argparse
 from rosserial_client.make_library import *
 
+
 # for copying files
-#import shutil
 from distutils.dir_util import copy_tree
 
 ROS_TO_EMBEDDED_TYPES = {
@@ -71,29 +71,41 @@ ROS_TO_EMBEDDED_TYPES = {
 }
 
 rospack = rospkg.RosPack()
-spinal_dir = rospack.get_path(THIS_PACKAGE)
+spinal_dir = rospack.get_path("spinal")
 
-path = "./"
-# need correct inputs
-if (len(sys.argv) < 2):
-    # default path: ../spinal/
-    path = spinal_dir + "/../spinal/mcu_project"
-else:
-    # get output path
-    path = sys.argv[1]
-    if path[-1] == "/":
-        path = path[0:-1]
-    print "\nExporting to %s" % path
+parser = argparse.ArgumentParser()
+parser.add_argument('--save_path', default=os.path.join(spinal_dir, 'mcu_project/lib'),
+                    help='path to save ros_lib')
+
+parser.add_argument('--support_rtos', action='store_true',
+                    help='whether support FreeRTOS')
+parser.add_argument('--support_ethernet', action='store_true',
+                    help='whether support ethernet (LWIP)')
+
+args = parser.parse_args()
+args.save_path = os.path.join(args.save_path, 'ros_lib')
 
 # remove the old directory
-if os.path.exists(path+"/ros_lib/"):
-    shutil.rmtree(path+"/ros_lib/")
+if os.path.exists(args.save_path):
+    shutil.rmtree(args.save_path)
 
 # copy ros_lib stuff in
-rosserial_client_copy_files(rospack, path+"/ros_lib/")
+rosserial_client_copy_files(rospack, args.save_path + '/')
 
-copy_tree(spinal_dir+"/src/ros_lib", path+"/ros_lib")
+copy_tree(os.path.join(spinal_dir, "src/ros_lib"), args.save_path)
 
 # generate messages
-rosserial_generate(rospack, path+"/ros_lib", ROS_TO_EMBEDDED_TYPES)
+rosserial_generate(rospack, args.save_path, ROS_TO_EMBEDDED_TYPES)
+
+# edit files according to options
+filename = os.path.join(args.save_path, 'STM32Hardware.h')
+with open(filename) as f:
+    data_lines = f.read()
+
+if args.support_rtos:
+    data_lines = data_lines.replace("#define SUPPORT_RTOS 0", "#define SUPPORT_RTOS 1")
+if args.support_ethernet:
+    data_lines = data_lines.replace("#define SUPPORT_LWIP 0", "#define SUPPORT_LWIP 1")
+with open(filename, mode="w") as f:
+    f.write(data_lines)
 

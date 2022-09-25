@@ -1,0 +1,31 @@
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    name: catkin_lint
+
+    steps:
+      - name: Setup OS
+        run: |
+          sudo apt-get update -y
+          sudo apt-get upgrade -y
+      - name: Setup Git
+        run: |
+          sudo apt-get install -y git
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: catkin lint setup
+        run: |
+          sudo apt-get install -y -q python3-pip python3-wstool
+          sudo pip3 install catkin_lint rosdep
+          sudo rosdep init
+          rosdep update
+      - name: catkin lint test
+        run: |
+          wstool init
+          wstool merge aerial_robot_noetic.rosinstall
+          wstool update
+          ROS_DISTRO=noetic catkin_lint --resolve-env --strict $PWD --skip-path kalman_filter --skip-path ublox_gps --skip-path aerial_robot_3rdparty  --skip-path rosserial

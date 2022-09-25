@@ -2,6 +2,16 @@
 Changelog for package spinal
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.3.1 (2022-07-02)
+------------------
+* [Spinal] Improve the process of servo bridge (`#499 <https://github.com/jsk-ros-pkg/aerial_robot/issues/499>`_)
+* [DRAGON] add IIR LPF for IMU gyro data (`#514 <https://github.com/jsk-ros-pkg/aerial_robot/issues/514>`_)
+* [Spinal] simplify the model assignment process in spinal (`#498 <https://github.com/jsk-ros-pkg/aerial_robot/issues/498>`_)
+* [Spinal] Support STM32H7 chip (`#504 <https://github.com/jsk-ros-pkg/aerial_robot/issues/504>`_)
+* Correct the python scripts for rqt gui to be compatible in ros noetic (`#510 <https://github.com/jsk-ros-pkg/aerial_robot/issues/510>`_)
+* Support ROS Noetic with Ubuntu Focal (`#507 <https://github.com/jsk-ros-pkg/aerial_robot/issues/507>`_)
+
+
 1.3.0 (2021-08-06)
 ------------------
 * Implement RTOS for spinal and neuron  (`#483 <https://github.com/JSKAerialRobot/aerial_robot/issues/483>`_)

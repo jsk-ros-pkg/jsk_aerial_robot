@@ -43,5 +43,7 @@ estimation:
 sensor_plugin:
         imu:
                 estimate_mode: 3 # 1<<0 + 1<<1
+                sample_freq: 200.0
+                cutoff_freq: 10.0
         mocap:
                 estimate_mode: 6 # 1<<1 + 1<<2

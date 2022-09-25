@@ -36,14 +36,11 @@
 #define _ROS_H_
 
 #include "ros/node_handle_stm.h"
-#include "STMF7Hardware.h"
-
-
 
 namespace ros
 {
   /* be sure the max size of publisher and subscriber, as well as the size of message */
-  typedef NodeHandleStm_<STMF7Hardware, 50, 50, 512, 512> NodeHandle;
+  typedef NodeHandleStm_<50, 50, 512, 1024> NodeHandle;
 }
 
 #endif

@@ -1,12 +1,14 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.0.2)
 project(hydrus_xi)
 
 add_compile_options(-std=c++14)
 
 find_package(catkin REQUIRED COMPONENTS
+  aerial_robot_base
   aerial_robot_control
   aerial_robot_model
   aerial_robot_msgs
+  aerial_robot_simulation
   angles
   hydrus
   roscpp
@@ -14,15 +16,13 @@ find_package(catkin REQUIRED COMPONENTS
   spinal
   )
 
-find_package(rostest REQUIRED)
-
 find_package(NLopt REQUIRED)
 find_package(OsqpEigen REQUIRED)
 
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES  hydrus_xi_fully_actuated_robot_model
-  CATKIN_DEPENDS aerial_robot_control aerial_robot_model aerial_robot_msgs roscpp rospy spinal
+  CATKIN_DEPENDS  aerial_robot_base aerial_robot_control aerial_robot_model aerial_robot_msgs aerial_robot_simulation angles hydrus roscpp rospy spinal
   )
 
 if(NOT CMAKE_BUILD_TYPE)
@@ -48,7 +48,28 @@ target_link_libraries(hydrus_xi_fully_actuated_robot_model ${catkin_LIBRARIES})
 add_executable(hydrus_xi_jacobian_test test/hydrus_xi/jacobian_test.cpp)
 target_link_libraries(hydrus_xi_jacobian_test hydrus_xi_fully_actuated_robot_model ${catkin_LIBRARIES} ${GTEST_LIBRARIES})
 
+install(DIRECTORY include/${PROJECT_NAME}/
+  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION})
+
+install(TARGETS hydrus_xi_jacobian_test
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+install(TARGETS hydrus_xi_under_actuated_navigation hydrus_xi_fully_actuated_robot_model
+  DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+)
+
+install(DIRECTORY config scripts plugins launch
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+  USE_SOURCE_PERMISSIONS
+)
+
+install(FILES flight_navigation_plugin.xml
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+)
+
+
 if(CATKIN_ENABLE_TESTING)
-  find_package(catkin REQUIRED COMPONENTS rostest)
+  find_package(rostest REQUIRED)
   add_subdirectory(test)
 endif()

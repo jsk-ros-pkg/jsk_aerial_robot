@@ -2,6 +2,15 @@
 Changelog for package dragon
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.3.1 (2022-07-02)
+------------------
+* [Spinal] Improve the process of servo bridge (`#499 <https://github.com/jsk-ros-pkg/aerial_robot/issues/499>`_)
+* [DRAGON] add IIR LPF for IMU gyro data (`#514 <https://github.com/jsk-ros-pkg/aerial_robot/issues/514>`_)
+* [Spinal] Support STM32H7 chip (`#504 <https://github.com/jsk-ros-pkg/aerial_robot/issues/504>`_)
+* [Dragon] update the rotor and link configuration (`#497 <https://github.com/jsk-ros-pkg/aerial_robot/issues/497>`_)
+* Support ROS Noetic with Ubuntu Focal (`#507 <https://github.com/jsk-ros-pkg/aerial_robot/issues/507>`_)
+
+
 1.3.0 (2021-08-06)
 ------------------
 

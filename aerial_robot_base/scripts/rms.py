@@ -52,7 +52,7 @@ if __name__=="__main__":
 
         rospy.init_node('rms_error')
 
-        print msg
+        print(msg)
         try:
                 while(True):
                         key = getKey()
@@ -80,8 +80,8 @@ if __name__=="__main__":
                         rospy.sleep(0.001)
 
         except Exception as e:
-                print e
-                print repr(e)
+                print(e)
+                print(repr(e))
 
         finally:
                 termios.tcsetattr(sys.stdin, termios.TCSADRAIN, settings)
