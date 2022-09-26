@@ -23,7 +23,7 @@ namespace mavros_msgs
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       union {
@@ -57,7 +57,7 @@ namespace mavros_msgs
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       union {
@@ -93,8 +93,8 @@ namespace mavros_msgs
      return offset;
     }
 
-    const char * getType(){ return "mavros_msgs/ParamValue"; };
-    const char * getMD5(){ return "e2cb1c7a0f6ef0c62d450cd9362c980d"; };
+    virtual const char * getType() override { return "mavros_msgs/ParamValue"; };
+    virtual const char * getMD5() override { return "e2cb1c7a0f6ef0c62d450cd9362c980d"; };
 
   };
 

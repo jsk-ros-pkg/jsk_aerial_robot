@@ -22,7 +22,7 @@ static const char GETLIGHTPROPERTIES[] = "gazebo_msgs/GetLightProperties";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       uint32_t length_light_name = strlen(this->light_name);
@@ -33,7 +33,7 @@ static const char GETLIGHTPROPERTIES[] = "gazebo_msgs/GetLightProperties";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       uint32_t length_light_name;
@@ -48,8 +48,8 @@ static const char GETLIGHTPROPERTIES[] = "gazebo_msgs/GetLightProperties";
      return offset;
     }
 
-    const char * getType(){ return GETLIGHTPROPERTIES; };
-    const char * getMD5(){ return "4fb676dfb4741fc866365702a859441c"; };
+    virtual const char * getType() override { return GETLIGHTPROPERTIES; };
+    virtual const char * getMD5() override { return "4fb676dfb4741fc866365702a859441c"; };
 
   };
 
@@ -79,7 +79,7 @@ static const char GETLIGHTPROPERTIES[] = "gazebo_msgs/GetLightProperties";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       offset += this->diffuse.serialize(outbuffer + offset);
@@ -140,7 +140,7 @@ static const char GETLIGHTPROPERTIES[] = "gazebo_msgs/GetLightProperties";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       offset += this->diffuse.deserialize(inbuffer + offset);
@@ -209,8 +209,8 @@ static const char GETLIGHTPROPERTIES[] = "gazebo_msgs/GetLightProperties";
      return offset;
     }
 
-    const char * getType(){ return GETLIGHTPROPERTIES; };
-    const char * getMD5(){ return "9a19ddd5aab4c13b7643d1722c709f1f"; };
+    virtual const char * getType() override { return GETLIGHTPROPERTIES; };
+    virtual const char * getMD5() override { return "9a19ddd5aab4c13b7643d1722c709f1f"; };
 
   };
 

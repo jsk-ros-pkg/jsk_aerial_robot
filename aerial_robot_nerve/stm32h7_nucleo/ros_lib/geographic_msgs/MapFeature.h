@@ -27,12 +27,12 @@ namespace geographic_msgs
 
     MapFeature():
       id(),
-      components_length(0), components(NULL),
-      props_length(0), props(NULL)
+      components_length(0), st_components(), components(nullptr),
+      props_length(0), st_props(), props(nullptr)
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       offset += this->id.serialize(outbuffer + offset);
@@ -55,7 +55,7 @@ namespace geographic_msgs
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       offset += this->id.deserialize(inbuffer + offset);
@@ -86,8 +86,8 @@ namespace geographic_msgs
      return offset;
     }
 
-    const char * getType(){ return "geographic_msgs/MapFeature"; };
-    const char * getMD5(){ return "e2505ace5e8da8a15b610eaf62bdefae"; };
+    virtual const char * getType() override { return "geographic_msgs/MapFeature"; };
+    virtual const char * getMD5() override { return "e2505ace5e8da8a15b610eaf62bdefae"; };
 
   };
 

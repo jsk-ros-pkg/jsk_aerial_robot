@@ -43,7 +43,7 @@ static const char SETMAVFRAME[] = "mavros_msgs/SetMavFrame";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       *(outbuffer + offset + 0) = (this->mav_frame >> (8 * 0)) & 0xFF;
@@ -51,7 +51,7 @@ static const char SETMAVFRAME[] = "mavros_msgs/SetMavFrame";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       this->mav_frame =  ((uint8_t) (*(inbuffer + offset)));
@@ -59,8 +59,8 @@ static const char SETMAVFRAME[] = "mavros_msgs/SetMavFrame";
      return offset;
     }
 
-    const char * getType(){ return SETMAVFRAME; };
-    const char * getMD5(){ return "10d9e03dcd8d648e58b34bad2a28091f"; };
+    virtual const char * getType() override { return SETMAVFRAME; };
+    virtual const char * getMD5() override { return "10d9e03dcd8d648e58b34bad2a28091f"; };
 
   };
 
@@ -75,7 +75,7 @@ static const char SETMAVFRAME[] = "mavros_msgs/SetMavFrame";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       union {
@@ -88,7 +88,7 @@ static const char SETMAVFRAME[] = "mavros_msgs/SetMavFrame";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       union {
@@ -102,8 +102,8 @@ static const char SETMAVFRAME[] = "mavros_msgs/SetMavFrame";
      return offset;
     }
 
-    const char * getType(){ return SETMAVFRAME; };
-    const char * getMD5(){ return "358e233cde0c8a8bcfea4ce193f8fc15"; };
+    virtual const char * getType() override { return SETMAVFRAME; };
+    virtual const char * getMD5() override { return "358e233cde0c8a8bcfea4ce193f8fc15"; };
 
   };
 

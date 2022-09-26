@@ -22,22 +22,22 @@ static const char SETMODELSTATE[] = "gazebo_msgs/SetModelState";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       offset += this->model_state.serialize(outbuffer + offset);
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       offset += this->model_state.deserialize(inbuffer + offset);
      return offset;
     }
 
-    const char * getType(){ return SETMODELSTATE; };
-    const char * getMD5(){ return "cb042b0e91880f4661b29ea5b6234350"; };
+    virtual const char * getType() override { return SETMODELSTATE; };
+    virtual const char * getMD5() override { return "cb042b0e91880f4661b29ea5b6234350"; };
 
   };
 
@@ -55,7 +55,7 @@ static const char SETMODELSTATE[] = "gazebo_msgs/SetModelState";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       union {
@@ -73,7 +73,7 @@ static const char SETMODELSTATE[] = "gazebo_msgs/SetModelState";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       union {
@@ -96,8 +96,8 @@ static const char SETMODELSTATE[] = "gazebo_msgs/SetModelState";
      return offset;
     }
 
-    const char * getType(){ return SETMODELSTATE; };
-    const char * getMD5(){ return "2ec6f3eff0161f4257b808b12bc830c2"; };
+    virtual const char * getType() override { return SETMODELSTATE; };
+    virtual const char * getMD5() override { return "2ec6f3eff0161f4257b808b12bc830c2"; };
 
   };
 

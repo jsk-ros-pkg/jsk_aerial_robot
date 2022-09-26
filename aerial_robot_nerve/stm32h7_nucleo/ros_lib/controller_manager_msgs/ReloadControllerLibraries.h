@@ -21,7 +21,7 @@ static const char RELOADCONTROLLERLIBRARIES[] = "controller_manager_msgs/ReloadC
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       union {
@@ -34,7 +34,7 @@ static const char RELOADCONTROLLERLIBRARIES[] = "controller_manager_msgs/ReloadC
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       union {
@@ -48,8 +48,8 @@ static const char RELOADCONTROLLERLIBRARIES[] = "controller_manager_msgs/ReloadC
      return offset;
     }
 
-    const char * getType(){ return RELOADCONTROLLERLIBRARIES; };
-    const char * getMD5(){ return "18442b59be9479097f11c543bddbac62"; };
+    virtual const char * getType() override { return RELOADCONTROLLERLIBRARIES; };
+    virtual const char * getMD5() override { return "18442b59be9479097f11c543bddbac62"; };
 
   };
 
@@ -64,7 +64,7 @@ static const char RELOADCONTROLLERLIBRARIES[] = "controller_manager_msgs/ReloadC
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       union {
@@ -77,7 +77,7 @@ static const char RELOADCONTROLLERLIBRARIES[] = "controller_manager_msgs/ReloadC
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       union {
@@ -91,8 +91,8 @@ static const char RELOADCONTROLLERLIBRARIES[] = "controller_manager_msgs/ReloadC
      return offset;
     }
 
-    const char * getType(){ return RELOADCONTROLLERLIBRARIES; };
-    const char * getMD5(){ return "6f6da3883749771fac40d6deb24a8c02"; };
+    virtual const char * getType() override { return RELOADCONTROLLERLIBRARIES; };
+    virtual const char * getMD5() override { return "6f6da3883749771fac40d6deb24a8c02"; };
 
   };
 

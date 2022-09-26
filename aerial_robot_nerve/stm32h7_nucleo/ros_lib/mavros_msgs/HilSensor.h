@@ -46,7 +46,7 @@ namespace mavros_msgs
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       offset += this->header.serialize(outbuffer + offset);
@@ -101,7 +101,7 @@ namespace mavros_msgs
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       offset += this->header.deserialize(inbuffer + offset);
@@ -160,8 +160,8 @@ namespace mavros_msgs
      return offset;
     }
 
-    const char * getType(){ return "mavros_msgs/HilSensor"; };
-    const char * getMD5(){ return "2a892891e5c40d6dd1066bf1f394b5dc"; };
+    virtual const char * getType() override { return "mavros_msgs/HilSensor"; };
+    virtual const char * getMD5() override { return "2a892891e5c40d6dd1066bf1f394b5dc"; };
 
   };
 

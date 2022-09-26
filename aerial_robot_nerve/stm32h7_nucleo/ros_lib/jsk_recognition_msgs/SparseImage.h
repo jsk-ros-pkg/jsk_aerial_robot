@@ -32,12 +32,12 @@ namespace jsk_recognition_msgs
       header(),
       width(0),
       height(0),
-      data16_length(0), data16(NULL),
-      data32_length(0), data32(NULL)
+      data16_length(0), st_data16(), data16(nullptr),
+      data32_length(0), st_data32(), data32(nullptr)
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       offset += this->header.serialize(outbuffer + offset);
@@ -76,7 +76,7 @@ namespace jsk_recognition_msgs
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       offset += this->header.deserialize(inbuffer + offset);
@@ -123,8 +123,8 @@ namespace jsk_recognition_msgs
      return offset;
     }
 
-    const char * getType(){ return "jsk_recognition_msgs/SparseImage"; };
-    const char * getMD5(){ return "7c361d829424bc5984fc0a1831f84751"; };
+    virtual const char * getType() override { return "jsk_recognition_msgs/SparseImage"; };
+    virtual const char * getMD5() override { return "7c361d829424bc5984fc0a1831f84751"; };
 
   };
 

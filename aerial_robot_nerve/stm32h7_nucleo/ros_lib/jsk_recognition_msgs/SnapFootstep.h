@@ -22,22 +22,22 @@ static const char SNAPFOOTSTEP[] = "jsk_recognition_msgs/SnapFootstep";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       offset += this->input.serialize(outbuffer + offset);
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       offset += this->input.deserialize(inbuffer + offset);
      return offset;
     }
 
-    const char * getType(){ return SNAPFOOTSTEP; };
-    const char * getMD5(){ return "acbed27d6a2c527657315248d9480de2"; };
+    virtual const char * getType() override { return SNAPFOOTSTEP; };
+    virtual const char * getMD5() override { return "acbed27d6a2c527657315248d9480de2"; };
 
   };
 
@@ -52,22 +52,22 @@ static const char SNAPFOOTSTEP[] = "jsk_recognition_msgs/SnapFootstep";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       offset += this->output.serialize(outbuffer + offset);
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       offset += this->output.deserialize(inbuffer + offset);
      return offset;
     }
 
-    const char * getType(){ return SNAPFOOTSTEP; };
-    const char * getMD5(){ return "626bcd752f55cb0f7d967a8b0b14cc89"; };
+    virtual const char * getType() override { return SNAPFOOTSTEP; };
+    virtual const char * getMD5() override { return "626bcd752f55cb0f7d967a8b0b14cc89"; };
 
   };
 

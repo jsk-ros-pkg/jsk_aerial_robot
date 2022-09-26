@@ -24,7 +24,7 @@ static const char FILETRUNCATE[] = "mavros_msgs/FileTruncate";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       uint32_t length_file_path = strlen(this->file_path);
@@ -44,7 +44,7 @@ static const char FILETRUNCATE[] = "mavros_msgs/FileTruncate";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       uint32_t length_file_path;
@@ -68,8 +68,8 @@ static const char FILETRUNCATE[] = "mavros_msgs/FileTruncate";
      return offset;
     }
 
-    const char * getType(){ return FILETRUNCATE; };
-    const char * getMD5(){ return "8153dbfb1601dd12c2e69aba3171d186"; };
+    virtual const char * getType() override { return FILETRUNCATE; };
+    virtual const char * getMD5() override { return "8153dbfb1601dd12c2e69aba3171d186"; };
 
   };
 
@@ -87,7 +87,7 @@ static const char FILETRUNCATE[] = "mavros_msgs/FileTruncate";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       union {
@@ -110,7 +110,7 @@ static const char FILETRUNCATE[] = "mavros_msgs/FileTruncate";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       union {
@@ -135,8 +135,8 @@ static const char FILETRUNCATE[] = "mavros_msgs/FileTruncate";
      return offset;
     }
 
-    const char * getType(){ return FILETRUNCATE; };
-    const char * getMD5(){ return "85394f2e941a8937ac567a617f06157f"; };
+    virtual const char * getType() override { return FILETRUNCATE; };
+    virtual const char * getMD5() override { return "85394f2e941a8937ac567a617f06157f"; };
 
   };
 

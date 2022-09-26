@@ -22,22 +22,22 @@ static const char UPDATEGEOGRAPHICMAP[] = "geographic_msgs/UpdateGeographicMap";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       offset += this->updates.serialize(outbuffer + offset);
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       offset += this->updates.deserialize(inbuffer + offset);
      return offset;
     }
 
-    const char * getType(){ return UPDATEGEOGRAPHICMAP; };
-    const char * getMD5(){ return "8d8da723a1fadc5f7621a18b4e72fc3b"; };
+    virtual const char * getType() override { return UPDATEGEOGRAPHICMAP; };
+    virtual const char * getMD5() override { return "8d8da723a1fadc5f7621a18b4e72fc3b"; };
 
   };
 
@@ -55,7 +55,7 @@ static const char UPDATEGEOGRAPHICMAP[] = "geographic_msgs/UpdateGeographicMap";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       union {
@@ -73,7 +73,7 @@ static const char UPDATEGEOGRAPHICMAP[] = "geographic_msgs/UpdateGeographicMap";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       union {
@@ -96,8 +96,8 @@ static const char UPDATEGEOGRAPHICMAP[] = "geographic_msgs/UpdateGeographicMap";
      return offset;
     }
 
-    const char * getType(){ return UPDATEGEOGRAPHICMAP; };
-    const char * getMD5(){ return "38b8954d32a849f31d78416b12bff5d1"; };
+    virtual const char * getType() override { return UPDATEGEOGRAPHICMAP; };
+    virtual const char * getMD5() override { return "38b8954d32a849f31d78416b12bff5d1"; };
 
   };
 

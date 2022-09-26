@@ -30,7 +30,7 @@ namespace spinal
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       *(outbuffer + offset + 0) = (this->motor_num >> (8 * 0)) & 0xFF;
@@ -42,7 +42,7 @@ namespace spinal
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       this->motor_num =  ((uint8_t) (*(inbuffer + offset)));
@@ -54,8 +54,8 @@ namespace spinal
      return offset;
     }
 
-    const char * getType(){ return "spinal/UavInfo"; };
-    const char * getMD5(){ return "9df05674c34b7ea4b3399195c6c615ca"; };
+    virtual const char * getType() override { return "spinal/UavInfo"; };
+    virtual const char * getMD5() override { return "9df05674c34b7ea4b3399195c6c615ca"; };
 
   };
 

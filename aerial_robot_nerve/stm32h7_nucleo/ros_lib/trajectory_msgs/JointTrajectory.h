@@ -27,12 +27,12 @@ namespace trajectory_msgs
 
     JointTrajectory():
       header(),
-      joint_names_length(0), joint_names(NULL),
-      points_length(0), points(NULL)
+      joint_names_length(0), st_joint_names(), joint_names(nullptr),
+      points_length(0), st_points(), points(nullptr)
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       offset += this->header.serialize(outbuffer + offset);
@@ -59,7 +59,7 @@ namespace trajectory_msgs
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       offset += this->header.deserialize(inbuffer + offset);
@@ -98,8 +98,8 @@ namespace trajectory_msgs
      return offset;
     }
 
-    const char * getType(){ return "trajectory_msgs/JointTrajectory"; };
-    const char * getMD5(){ return "65b4f94a94d1ed67169da35a02f33d3f"; };
+    virtual const char * getType() override { return "trajectory_msgs/JointTrajectory"; };
+    virtual const char * getMD5() override { return "65b4f94a94d1ed67169da35a02f33d3f"; };
 
   };
 

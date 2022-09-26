@@ -35,7 +35,7 @@ namespace jsk_recognition_msgs
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       offset += this->header.serialize(outbuffer + offset);
@@ -59,7 +59,7 @@ namespace jsk_recognition_msgs
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       offset += this->header.deserialize(inbuffer + offset);
@@ -84,8 +84,8 @@ namespace jsk_recognition_msgs
      return offset;
     }
 
-    const char * getType(){ return "jsk_recognition_msgs/BoundingBox"; };
-    const char * getMD5(){ return "f4b35de043f6031fe29bcfe43eeb9dca"; };
+    virtual const char * getType() override { return "jsk_recognition_msgs/BoundingBox"; };
+    virtual const char * getMD5() override { return "f4b35de043f6031fe29bcfe43eeb9dca"; };
 
   };
 

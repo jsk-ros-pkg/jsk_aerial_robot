@@ -37,7 +37,7 @@ namespace mavros_msgs
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       offset += this->header.serialize(outbuffer + offset);
@@ -68,7 +68,7 @@ namespace mavros_msgs
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       offset += this->header.deserialize(inbuffer + offset);
@@ -99,8 +99,8 @@ namespace mavros_msgs
      return offset;
     }
 
-    const char * getType(){ return "mavros_msgs/LogEntry"; };
-    const char * getMD5(){ return "a1428fc1ec4b2bfc8ab0c0ead7cce571"; };
+    virtual const char * getType() override { return "mavros_msgs/LogEntry"; };
+    virtual const char * getMD5() override { return "a1428fc1ec4b2bfc8ab0c0ead7cce571"; };
 
   };
 

@@ -26,7 +26,7 @@ namespace ublox_msgs
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       *(outbuffer + offset + 0) = (this->clsID >> (8 * 0)) & 0xFF;
@@ -36,7 +36,7 @@ namespace ublox_msgs
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       this->clsID =  ((uint8_t) (*(inbuffer + offset)));
@@ -46,8 +46,8 @@ namespace ublox_msgs
      return offset;
     }
 
-    const char * getType(){ return "ublox_msgs/Ack"; };
-    const char * getMD5(){ return "fc3270816d86d7c962dbc4b52a6c5386"; };
+    virtual const char * getType() override { return "ublox_msgs/Ack"; };
+    virtual const char * getMD5() override { return "fc3270816d86d7c962dbc4b52a6c5386"; };
 
   };
 

@@ -41,13 +41,13 @@ namespace geographic_msgs
       header(),
       id(),
       bounds(),
-      points_length(0), points(NULL),
-      segments_length(0), segments(NULL),
-      props_length(0), props(NULL)
+      points_length(0), st_points(), points(nullptr),
+      segments_length(0), st_segments(), segments(nullptr),
+      props_length(0), st_props(), props(nullptr)
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       offset += this->header.serialize(outbuffer + offset);
@@ -80,7 +80,7 @@ namespace geographic_msgs
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       offset += this->header.deserialize(inbuffer + offset);
@@ -125,8 +125,8 @@ namespace geographic_msgs
      return offset;
     }
 
-    const char * getType(){ return "geographic_msgs/RouteNetwork"; };
-    const char * getMD5(){ return "fd717c0a34a7c954deed32c6847f30a8"; };
+    virtual const char * getType() override { return "geographic_msgs/RouteNetwork"; };
+    virtual const char * getMD5() override { return "fd717c0a34a7c954deed32c6847f30a8"; };
 
   };
 

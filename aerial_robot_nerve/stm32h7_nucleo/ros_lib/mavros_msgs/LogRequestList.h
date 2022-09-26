@@ -24,7 +24,7 @@ static const char LOGREQUESTLIST[] = "mavros_msgs/LogRequestList";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       *(outbuffer + offset + 0) = (this->start >> (8 * 0)) & 0xFF;
@@ -36,7 +36,7 @@ static const char LOGREQUESTLIST[] = "mavros_msgs/LogRequestList";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       this->start =  ((uint16_t) (*(inbuffer + offset)));
@@ -48,8 +48,8 @@ static const char LOGREQUESTLIST[] = "mavros_msgs/LogRequestList";
      return offset;
     }
 
-    const char * getType(){ return LOGREQUESTLIST; };
-    const char * getMD5(){ return "43d5acd48e3ef1843fa7f45876501c02"; };
+    virtual const char * getType() override { return LOGREQUESTLIST; };
+    virtual const char * getMD5() override { return "43d5acd48e3ef1843fa7f45876501c02"; };
 
   };
 
@@ -64,7 +64,7 @@ static const char LOGREQUESTLIST[] = "mavros_msgs/LogRequestList";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       union {
@@ -77,7 +77,7 @@ static const char LOGREQUESTLIST[] = "mavros_msgs/LogRequestList";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       union {
@@ -91,8 +91,8 @@ static const char LOGREQUESTLIST[] = "mavros_msgs/LogRequestList";
      return offset;
     }
 
-    const char * getType(){ return LOGREQUESTLIST; };
-    const char * getMD5(){ return "358e233cde0c8a8bcfea4ce193f8fc15"; };
+    virtual const char * getType() override { return LOGREQUESTLIST; };
+    virtual const char * getMD5() override { return "358e233cde0c8a8bcfea4ce193f8fc15"; };
 
   };
 

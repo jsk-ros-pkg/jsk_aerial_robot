@@ -24,7 +24,7 @@ namespace jsk_recognition_msgs
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       offset += this->start_point.serialize(outbuffer + offset);
@@ -32,7 +32,7 @@ namespace jsk_recognition_msgs
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       offset += this->start_point.deserialize(inbuffer + offset);
@@ -40,8 +40,8 @@ namespace jsk_recognition_msgs
      return offset;
     }
 
-    const char * getType(){ return "jsk_recognition_msgs/Segment"; };
-    const char * getMD5(){ return "0125c553546d7123dccaeab992a9e29e"; };
+    virtual const char * getType() override { return "jsk_recognition_msgs/Segment"; };
+    virtual const char * getMD5() override { return "0125c553546d7123dccaeab992a9e29e"; };
 
   };
 

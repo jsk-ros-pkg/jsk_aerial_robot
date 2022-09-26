@@ -29,12 +29,12 @@ namespace aerial_robot_msgs
 
     State():
       id(""),
-      state_length(0), state(NULL),
-      reserves_length(0), reserves(NULL)
+      state_length(0), st_state(), state(nullptr),
+      reserves_length(0), st_reserves(), reserves(nullptr)
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       uint32_t length_id = strlen(this->id);
@@ -70,7 +70,7 @@ namespace aerial_robot_msgs
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       uint32_t length_id;
@@ -119,8 +119,8 @@ namespace aerial_robot_msgs
      return offset;
     }
 
-    const char * getType(){ return "aerial_robot_msgs/State"; };
-    const char * getMD5(){ return "5a670218e8d0304e57d6b78071c0bfbd"; };
+    virtual const char * getType() override { return "aerial_robot_msgs/State"; };
+    virtual const char * getMD5() override { return "5a670218e8d0304e57d6b78071c0bfbd"; };
 
   };
 

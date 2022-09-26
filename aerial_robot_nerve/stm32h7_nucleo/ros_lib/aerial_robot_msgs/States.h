@@ -23,11 +23,11 @@ namespace aerial_robot_msgs
 
     States():
       header(),
-      states_length(0), states(NULL)
+      states_length(0), st_states(), states(nullptr)
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       offset += this->header.serialize(outbuffer + offset);
@@ -42,7 +42,7 @@ namespace aerial_robot_msgs
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       offset += this->header.deserialize(inbuffer + offset);
@@ -61,8 +61,8 @@ namespace aerial_robot_msgs
      return offset;
     }
 
-    const char * getType(){ return "aerial_robot_msgs/States"; };
-    const char * getMD5(){ return "73b0da733af1017fc4584aa1e9b313a2"; };
+    virtual const char * getType() override { return "aerial_robot_msgs/States"; };
+    virtual const char * getMD5() override { return "73b0da733af1017fc4584aa1e9b313a2"; };
 
   };
 

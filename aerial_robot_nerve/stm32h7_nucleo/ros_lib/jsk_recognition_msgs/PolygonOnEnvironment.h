@@ -28,7 +28,7 @@ static const char POLYGONONENVIRONMENT[] = "jsk_recognition_msgs/PolygonOnEnviro
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       *(outbuffer + offset + 0) = (this->environment_id >> (8 * 0)) & 0xFF;
@@ -45,7 +45,7 @@ static const char POLYGONONENVIRONMENT[] = "jsk_recognition_msgs/PolygonOnEnviro
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       this->environment_id =  ((uint32_t) (*(inbuffer + offset)));
@@ -62,8 +62,8 @@ static const char POLYGONONENVIRONMENT[] = "jsk_recognition_msgs/PolygonOnEnviro
      return offset;
     }
 
-    const char * getType(){ return POLYGONONENVIRONMENT; };
-    const char * getMD5(){ return "5c876f97015e6a599aa3c09455882c02"; };
+    virtual const char * getType() override { return POLYGONONENVIRONMENT; };
+    virtual const char * getMD5() override { return "5c876f97015e6a599aa3c09455882c02"; };
 
   };
 
@@ -81,7 +81,7 @@ static const char POLYGONONENVIRONMENT[] = "jsk_recognition_msgs/PolygonOnEnviro
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       union {
@@ -99,7 +99,7 @@ static const char POLYGONONENVIRONMENT[] = "jsk_recognition_msgs/PolygonOnEnviro
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       union {
@@ -122,8 +122,8 @@ static const char POLYGONONENVIRONMENT[] = "jsk_recognition_msgs/PolygonOnEnviro
      return offset;
     }
 
-    const char * getType(){ return POLYGONONENVIRONMENT; };
-    const char * getMD5(){ return "5d3fee08bf23ddff8ab543476a855d3f"; };
+    virtual const char * getType() override { return POLYGONONENVIRONMENT; };
+    virtual const char * getMD5() override { return "5d3fee08bf23ddff8ab543476a855d3f"; };
 
   };
 

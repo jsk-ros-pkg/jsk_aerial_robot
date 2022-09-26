@@ -27,7 +27,7 @@ static const char FILEREAD[] = "mavros_msgs/FileRead";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       uint32_t length_file_path = strlen(this->file_path);
@@ -56,7 +56,7 @@ static const char FILEREAD[] = "mavros_msgs/FileRead";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       uint32_t length_file_path;
@@ -89,8 +89,8 @@ static const char FILEREAD[] = "mavros_msgs/FileRead";
      return offset;
     }
 
-    const char * getType(){ return FILEREAD; };
-    const char * getMD5(){ return "c83da8c18af06c9d7d1b66667fa2bb6b"; };
+    virtual const char * getType() override { return FILEREAD; };
+    virtual const char * getMD5() override { return "c83da8c18af06c9d7d1b66667fa2bb6b"; };
 
   };
 
@@ -107,13 +107,13 @@ static const char FILEREAD[] = "mavros_msgs/FileRead";
       _r_errno_type r_errno;
 
     FileReadResponse():
-      data_length(0), data(NULL),
+      data_length(0), st_data(), data(nullptr),
       success(0),
       r_errno(0)
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       *(outbuffer + offset + 0) = (this->data_length >> (8 * 0)) & 0xFF;
@@ -145,7 +145,7 @@ static const char FILEREAD[] = "mavros_msgs/FileRead";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       uint32_t data_lengthT = ((uint32_t) (*(inbuffer + offset))); 
@@ -183,8 +183,8 @@ static const char FILEREAD[] = "mavros_msgs/FileRead";
      return offset;
     }
 
-    const char * getType(){ return FILEREAD; };
-    const char * getMD5(){ return "729aa1e22d45390356095d59a2993cb4"; };
+    virtual const char * getType() override { return FILEREAD; };
+    virtual const char * getMD5() override { return "729aa1e22d45390356095d59a2993cb4"; };
 
   };
 

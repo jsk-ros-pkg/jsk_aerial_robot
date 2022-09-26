@@ -21,7 +21,7 @@ static const char FILECLOSE[] = "mavros_msgs/FileClose";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       uint32_t length_file_path = strlen(this->file_path);
@@ -32,7 +32,7 @@ static const char FILECLOSE[] = "mavros_msgs/FileClose";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       uint32_t length_file_path;
@@ -47,8 +47,8 @@ static const char FILECLOSE[] = "mavros_msgs/FileClose";
      return offset;
     }
 
-    const char * getType(){ return FILECLOSE; };
-    const char * getMD5(){ return "a1f82596372c52a517e1fe32d1e998e8"; };
+    virtual const char * getType() override { return FILECLOSE; };
+    virtual const char * getMD5() override { return "a1f82596372c52a517e1fe32d1e998e8"; };
 
   };
 
@@ -66,7 +66,7 @@ static const char FILECLOSE[] = "mavros_msgs/FileClose";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       union {
@@ -89,7 +89,7 @@ static const char FILECLOSE[] = "mavros_msgs/FileClose";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       union {
@@ -114,8 +114,8 @@ static const char FILECLOSE[] = "mavros_msgs/FileClose";
      return offset;
     }
 
-    const char * getType(){ return FILECLOSE; };
-    const char * getMD5(){ return "85394f2e941a8937ac567a617f06157f"; };
+    virtual const char * getType() override { return FILECLOSE; };
+    virtual const char * getMD5() override { return "85394f2e941a8937ac567a617f06157f"; };
 
   };
 

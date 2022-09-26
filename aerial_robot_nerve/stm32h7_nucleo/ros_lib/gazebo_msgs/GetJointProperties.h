@@ -21,7 +21,7 @@ static const char GETJOINTPROPERTIES[] = "gazebo_msgs/GetJointProperties";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       uint32_t length_joint_name = strlen(this->joint_name);
@@ -32,7 +32,7 @@ static const char GETJOINTPROPERTIES[] = "gazebo_msgs/GetJointProperties";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       uint32_t length_joint_name;
@@ -47,8 +47,8 @@ static const char GETJOINTPROPERTIES[] = "gazebo_msgs/GetJointProperties";
      return offset;
     }
 
-    const char * getType(){ return GETJOINTPROPERTIES; };
-    const char * getMD5(){ return "0be1351618e1dc030eb7959d9a4902de"; };
+    virtual const char * getType() override { return GETJOINTPROPERTIES; };
+    virtual const char * getMD5() override { return "0be1351618e1dc030eb7959d9a4902de"; };
 
   };
 
@@ -82,15 +82,15 @@ static const char GETJOINTPROPERTIES[] = "gazebo_msgs/GetJointProperties";
 
     GetJointPropertiesResponse():
       type(0),
-      damping_length(0), damping(NULL),
-      position_length(0), position(NULL),
-      rate_length(0), rate(NULL),
+      damping_length(0), st_damping(), damping(nullptr),
+      position_length(0), st_position(), position(nullptr),
+      rate_length(0), st_rate(), rate(nullptr),
       success(0),
       status_message("")
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       *(outbuffer + offset + 0) = (this->type >> (8 * 0)) & 0xFF;
@@ -173,7 +173,7 @@ static const char GETJOINTPROPERTIES[] = "gazebo_msgs/GetJointProperties";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       this->type =  ((uint8_t) (*(inbuffer + offset)));
@@ -276,8 +276,8 @@ static const char GETJOINTPROPERTIES[] = "gazebo_msgs/GetJointProperties";
      return offset;
     }
 
-    const char * getType(){ return GETJOINTPROPERTIES; };
-    const char * getMD5(){ return "cd7b30a39faa372283dc94c5f6457f82"; };
+    virtual const char * getType() override { return GETJOINTPROPERTIES; };
+    virtual const char * getMD5() override { return "cd7b30a39faa372283dc94c5f6457f82"; };
 
   };
 

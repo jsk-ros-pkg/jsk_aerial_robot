@@ -44,7 +44,7 @@ namespace stereo_msgs
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       offset += this->header.serialize(outbuffer + offset);
@@ -103,7 +103,7 @@ namespace stereo_msgs
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       offset += this->header.deserialize(inbuffer + offset);
@@ -167,8 +167,8 @@ namespace stereo_msgs
      return offset;
     }
 
-    const char * getType(){ return "stereo_msgs/DisparityImage"; };
-    const char * getMD5(){ return "04a177815f75271039fa21f16acad8c9"; };
+    virtual const char * getType() override { return "stereo_msgs/DisparityImage"; };
+    virtual const char * getMD5() override { return "04a177815f75271039fa21f16acad8c9"; };
 
   };
 

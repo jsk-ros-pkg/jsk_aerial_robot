@@ -27,7 +27,7 @@ namespace jsk_recognition_msgs
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       offset += this->header.serialize(outbuffer + offset);
@@ -46,7 +46,7 @@ namespace jsk_recognition_msgs
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       offset += this->header.deserialize(inbuffer + offset);
@@ -70,8 +70,8 @@ namespace jsk_recognition_msgs
      return offset;
     }
 
-    const char * getType(){ return "jsk_recognition_msgs/ContactSensor"; };
-    const char * getMD5(){ return "364b2b952a51d85dfa877e334264e361"; };
+    virtual const char * getType() override { return "jsk_recognition_msgs/ContactSensor"; };
+    virtual const char * getMD5() override { return "364b2b952a51d85dfa877e334264e361"; };
 
   };
 

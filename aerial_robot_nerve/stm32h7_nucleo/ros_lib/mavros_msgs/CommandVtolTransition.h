@@ -27,7 +27,7 @@ static const char COMMANDVTOLTRANSITION[] = "mavros_msgs/CommandVtolTransition";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       offset += this->header.serialize(outbuffer + offset);
@@ -36,7 +36,7 @@ static const char COMMANDVTOLTRANSITION[] = "mavros_msgs/CommandVtolTransition";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       offset += this->header.deserialize(inbuffer + offset);
@@ -45,8 +45,8 @@ static const char COMMANDVTOLTRANSITION[] = "mavros_msgs/CommandVtolTransition";
      return offset;
     }
 
-    const char * getType(){ return COMMANDVTOLTRANSITION; };
-    const char * getMD5(){ return "0f073c606cdf8c014b856a5033900f3e"; };
+    virtual const char * getType() override { return COMMANDVTOLTRANSITION; };
+    virtual const char * getMD5() override { return "0f073c606cdf8c014b856a5033900f3e"; };
 
   };
 
@@ -64,7 +64,7 @@ static const char COMMANDVTOLTRANSITION[] = "mavros_msgs/CommandVtolTransition";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       union {
@@ -79,7 +79,7 @@ static const char COMMANDVTOLTRANSITION[] = "mavros_msgs/CommandVtolTransition";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       union {
@@ -95,8 +95,8 @@ static const char COMMANDVTOLTRANSITION[] = "mavros_msgs/CommandVtolTransition";
      return offset;
     }
 
-    const char * getType(){ return COMMANDVTOLTRANSITION; };
-    const char * getMD5(){ return "1cd894375e4e3d2861d2222772894fdb"; };
+    virtual const char * getType() override { return COMMANDVTOLTRANSITION; };
+    virtual const char * getMD5() override { return "1cd894375e4e3d2861d2222772894fdb"; };
 
   };
 

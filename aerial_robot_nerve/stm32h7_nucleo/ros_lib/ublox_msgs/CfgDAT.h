@@ -53,7 +53,7 @@ namespace ublox_msgs
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       *(outbuffer + offset + 0) = (this->datumNum >> (8 * 0)) & 0xFF;
@@ -164,7 +164,7 @@ namespace ublox_msgs
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       this->datumNum =  ((uint16_t) (*(inbuffer + offset)));
@@ -284,8 +284,8 @@ namespace ublox_msgs
      return offset;
     }
 
-    const char * getType(){ return "ublox_msgs/CfgDAT"; };
-    const char * getMD5(){ return "05d7a26d8a386fd3054953454a03b113"; };
+    virtual const char * getType() override { return "ublox_msgs/CfgDAT"; };
+    virtual const char * getMD5() override { return "05d7a26d8a386fd3054953454a03b113"; };
 
   };
 

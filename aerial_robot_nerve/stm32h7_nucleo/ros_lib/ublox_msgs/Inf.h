@@ -19,11 +19,11 @@ namespace ublox_msgs
       enum { CLASS_ID =  4 };
 
     Inf():
-      str_length(0), str(NULL)
+      str_length(0), st_str(), str(nullptr)
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       *(outbuffer + offset + 0) = (this->str_length >> (8 * 0)) & 0xFF;
@@ -38,7 +38,7 @@ namespace ublox_msgs
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       uint32_t str_lengthT = ((uint32_t) (*(inbuffer + offset))); 
@@ -57,8 +57,8 @@ namespace ublox_msgs
      return offset;
     }
 
-    const char * getType(){ return "ublox_msgs/Inf"; };
-    const char * getMD5(){ return "d1c433234e5eccc57045e40aca48eb6e"; };
+    virtual const char * getType() override { return "ublox_msgs/Inf"; };
+    virtual const char * getMD5() override { return "d1c433234e5eccc57045e40aca48eb6e"; };
 
   };
 

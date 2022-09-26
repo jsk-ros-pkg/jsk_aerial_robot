@@ -23,11 +23,11 @@ static const char WAYPOINTPUSH[] = "mavros_msgs/WaypointPush";
 
     WaypointPushRequest():
       start_index(0),
-      waypoints_length(0), waypoints(NULL)
+      waypoints_length(0), st_waypoints(), waypoints(nullptr)
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       *(outbuffer + offset + 0) = (this->start_index >> (8 * 0)) & 0xFF;
@@ -44,7 +44,7 @@ static const char WAYPOINTPUSH[] = "mavros_msgs/WaypointPush";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       this->start_index =  ((uint16_t) (*(inbuffer + offset)));
@@ -65,8 +65,8 @@ static const char WAYPOINTPUSH[] = "mavros_msgs/WaypointPush";
      return offset;
     }
 
-    const char * getType(){ return WAYPOINTPUSH; };
-    const char * getMD5(){ return "b97216c84680b216429bf6c603ab2e03"; };
+    virtual const char * getType() override { return WAYPOINTPUSH; };
+    virtual const char * getMD5() override { return "b97216c84680b216429bf6c603ab2e03"; };
 
   };
 
@@ -84,7 +84,7 @@ static const char WAYPOINTPUSH[] = "mavros_msgs/WaypointPush";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       union {
@@ -102,7 +102,7 @@ static const char WAYPOINTPUSH[] = "mavros_msgs/WaypointPush";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       union {
@@ -121,8 +121,8 @@ static const char WAYPOINTPUSH[] = "mavros_msgs/WaypointPush";
      return offset;
     }
 
-    const char * getType(){ return WAYPOINTPUSH; };
-    const char * getMD5(){ return "90e0074a42480231d34eed864d14365e"; };
+    virtual const char * getType() override { return WAYPOINTPUSH; };
+    virtual const char * getMD5() override { return "90e0074a42480231d34eed864d14365e"; };
 
   };
 

@@ -85,7 +85,7 @@ namespace ublox_msgs
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       *(outbuffer + offset + 0) = (this->portID >> (8 * 0)) & 0xFF;
@@ -120,7 +120,7 @@ namespace ublox_msgs
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       this->portID =  ((uint8_t) (*(inbuffer + offset)));
@@ -155,8 +155,8 @@ namespace ublox_msgs
      return offset;
     }
 
-    const char * getType(){ return "ublox_msgs/CfgPRT"; };
-    const char * getMD5(){ return "a4f010a61091571f886628b406ed3edb"; };
+    virtual const char * getType() override { return "ublox_msgs/CfgPRT"; };
+    virtual const char * getMD5() override { return "a4f010a61091571f886628b406ed3edb"; };
 
   };
 

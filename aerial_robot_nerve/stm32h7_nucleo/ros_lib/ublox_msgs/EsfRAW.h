@@ -23,11 +23,11 @@ namespace ublox_msgs
 
     EsfRAW():
       reserved0(),
-      blocks_length(0), blocks(NULL)
+      blocks_length(0), st_blocks(), blocks(nullptr)
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       for( uint32_t i = 0; i < 4; i++){
@@ -45,7 +45,7 @@ namespace ublox_msgs
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       for( uint32_t i = 0; i < 4; i++){
@@ -67,8 +67,8 @@ namespace ublox_msgs
      return offset;
     }
 
-    const char * getType(){ return "ublox_msgs/EsfRAW"; };
-    const char * getMD5(){ return "b942250c5ec94c6b6e69c63d82d9a946"; };
+    virtual const char * getType() override { return "ublox_msgs/EsfRAW"; };
+    virtual const char * getMD5() override { return "b942250c5ec94c6b6e69c63d82d9a946"; };
 
   };
 

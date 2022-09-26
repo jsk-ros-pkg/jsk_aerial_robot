@@ -144,20 +144,20 @@ namespace mavros_msgs
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
      return offset;
     }
 
-    const char * getType(){ return "mavros_msgs/CommandCode"; };
-    const char * getMD5(){ return "ca752c43f2b771d01f4565fb87c197e3"; };
+    virtual const char * getType() override { return "mavros_msgs/CommandCode"; };
+    virtual const char * getMD5() override { return "ca752c43f2b771d01f4565fb87c197e3"; };
 
   };
 

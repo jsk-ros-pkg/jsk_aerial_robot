@@ -30,7 +30,7 @@ namespace spinal
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       *(outbuffer + offset + 0) = (this->stamp.sec >> (8 * 0)) & 0xFF;
@@ -76,7 +76,7 @@ namespace spinal
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       this->stamp.sec =  ((uint32_t) (*(inbuffer + offset)));
@@ -125,8 +125,8 @@ namespace spinal
      return offset;
     }
 
-    const char * getType(){ return "spinal/Barometer"; };
-    const char * getMD5(){ return "b732c389660333d48fe976feb5768402"; };
+    virtual const char * getType() override { return "spinal/Barometer"; };
+    virtual const char * getMD5() override { return "b732c389660333d48fe976feb5768402"; };
 
   };
 

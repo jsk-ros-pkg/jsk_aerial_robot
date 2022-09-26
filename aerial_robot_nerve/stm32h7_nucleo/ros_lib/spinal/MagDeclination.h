@@ -26,7 +26,7 @@ static const char MAGDECLINATION[] = "spinal/MagDeclination";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       *(outbuffer + offset + 0) = (this->command >> (8 * 0)) & 0xFF;
@@ -44,7 +44,7 @@ static const char MAGDECLINATION[] = "spinal/MagDeclination";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       this->command =  ((uint8_t) (*(inbuffer + offset)));
@@ -63,8 +63,8 @@ static const char MAGDECLINATION[] = "spinal/MagDeclination";
      return offset;
     }
 
-    const char * getType(){ return MAGDECLINATION; };
-    const char * getMD5(){ return "e9881e6fbef8b978f6ba0f240790a5a7"; };
+    virtual const char * getType() override { return MAGDECLINATION; };
+    virtual const char * getMD5() override { return "e9881e6fbef8b978f6ba0f240790a5a7"; };
 
   };
 
@@ -82,7 +82,7 @@ static const char MAGDECLINATION[] = "spinal/MagDeclination";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       union {
@@ -105,7 +105,7 @@ static const char MAGDECLINATION[] = "spinal/MagDeclination";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       union {
@@ -130,8 +130,8 @@ static const char MAGDECLINATION[] = "spinal/MagDeclination";
      return offset;
     }
 
-    const char * getType(){ return MAGDECLINATION; };
-    const char * getMD5(){ return "642006b1c660a7d50a8e465c7ed1d33a"; };
+    virtual const char * getType() override { return MAGDECLINATION; };
+    virtual const char * getMD5() override { return "642006b1c660a7d50a8e465c7ed1d33a"; };
 
   };
 

@@ -67,7 +67,7 @@ namespace spinal
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       *(outbuffer + offset + 0) = (this->stamp.sec >> (8 * 0)) & 0xFF;
@@ -160,7 +160,7 @@ namespace spinal
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       this->stamp.sec =  ((uint32_t) (*(inbuffer + offset)));
@@ -258,8 +258,8 @@ namespace spinal
      return offset;
     }
 
-    const char * getType(){ return "spinal/GpsFull"; };
-    const char * getMD5(){ return "05ebd68b847d9ec86915e2f1d0c24f52"; };
+    virtual const char * getType() override { return "spinal/GpsFull"; };
+    virtual const char * getMD5() override { return "05ebd68b847d9ec86915e2f1d0c24f52"; };
 
   };
 

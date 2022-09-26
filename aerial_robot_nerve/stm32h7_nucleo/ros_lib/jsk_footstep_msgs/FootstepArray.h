@@ -23,11 +23,11 @@ namespace jsk_footstep_msgs
 
     FootstepArray():
       header(),
-      footsteps_length(0), footsteps(NULL)
+      footsteps_length(0), st_footsteps(), footsteps(nullptr)
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       offset += this->header.serialize(outbuffer + offset);
@@ -42,7 +42,7 @@ namespace jsk_footstep_msgs
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       offset += this->header.deserialize(inbuffer + offset);
@@ -61,8 +61,8 @@ namespace jsk_footstep_msgs
      return offset;
     }
 
-    const char * getType(){ return "jsk_footstep_msgs/FootstepArray"; };
-    const char * getMD5(){ return "385bc396845a4680214262a4679d83b3"; };
+    virtual const char * getType() override { return "jsk_footstep_msgs/FootstepArray"; };
+    virtual const char * getMD5() override { return "385bc396845a4680214262a4679d83b3"; };
 
   };
 

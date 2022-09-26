@@ -4,8 +4,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include "ros/msg.h"
-#include "geometry_msgs/Inertia.h"
 #include "geometry_msgs/Transform.h"
+#include "geometry_msgs/Inertia.h"
 
 namespace aerial_robot_model
 {
@@ -37,7 +37,7 @@ static const char ADDEXTRAMODULE[] = "aerial_robot_model/AddExtraModule";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       union {
@@ -62,7 +62,7 @@ static const char ADDEXTRAMODULE[] = "aerial_robot_model/AddExtraModule";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       union {
@@ -96,8 +96,8 @@ static const char ADDEXTRAMODULE[] = "aerial_robot_model/AddExtraModule";
      return offset;
     }
 
-    const char * getType(){ return ADDEXTRAMODULE; };
-    const char * getMD5(){ return "33b8aa7e2f783985962bf82f0cd13f9f"; };
+    virtual const char * getType() override { return ADDEXTRAMODULE; };
+    virtual const char * getMD5() override { return "33b8aa7e2f783985962bf82f0cd13f9f"; };
 
   };
 
@@ -112,7 +112,7 @@ static const char ADDEXTRAMODULE[] = "aerial_robot_model/AddExtraModule";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       union {
@@ -125,7 +125,7 @@ static const char ADDEXTRAMODULE[] = "aerial_robot_model/AddExtraModule";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       union {
@@ -139,8 +139,8 @@ static const char ADDEXTRAMODULE[] = "aerial_robot_model/AddExtraModule";
      return offset;
     }
 
-    const char * getType(){ return ADDEXTRAMODULE; };
-    const char * getMD5(){ return "3a1255d4d998bd4d6585c64639b5ee9a"; };
+    virtual const char * getType() override { return ADDEXTRAMODULE; };
+    virtual const char * getMD5() override { return "3a1255d4d998bd4d6585c64639b5ee9a"; };
 
   };
 

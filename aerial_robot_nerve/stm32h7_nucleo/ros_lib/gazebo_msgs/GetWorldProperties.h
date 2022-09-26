@@ -18,20 +18,20 @@ static const char GETWORLDPROPERTIES[] = "gazebo_msgs/GetWorldProperties";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
      return offset;
     }
 
-    const char * getType(){ return GETWORLDPROPERTIES; };
-    const char * getMD5(){ return "d41d8cd98f00b204e9800998ecf8427e"; };
+    virtual const char * getType() override { return GETWORLDPROPERTIES; };
+    virtual const char * getMD5() override { return "d41d8cd98f00b204e9800998ecf8427e"; };
 
   };
 
@@ -53,14 +53,14 @@ static const char GETWORLDPROPERTIES[] = "gazebo_msgs/GetWorldProperties";
 
     GetWorldPropertiesResponse():
       sim_time(0),
-      model_names_length(0), model_names(NULL),
+      model_names_length(0), st_model_names(), model_names(nullptr),
       rendering_enabled(0),
       success(0),
       status_message("")
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       union {
@@ -111,7 +111,7 @@ static const char GETWORLDPROPERTIES[] = "gazebo_msgs/GetWorldProperties";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       union {
@@ -177,8 +177,8 @@ static const char GETWORLDPROPERTIES[] = "gazebo_msgs/GetWorldProperties";
      return offset;
     }
 
-    const char * getType(){ return GETWORLDPROPERTIES; };
-    const char * getMD5(){ return "36bb0f2eccf4d8be971410c22818ba3f"; };
+    virtual const char * getType() override { return GETWORLDPROPERTIES; };
+    virtual const char * getMD5() override { return "36bb0f2eccf4d8be971410c22818ba3f"; };
 
   };
 

@@ -4,8 +4,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include "ros/msg.h"
-#include "jsk_recognition_msgs/SnapItRequest.h"
 #include "geometry_msgs/Pose.h"
+#include "jsk_recognition_msgs/SnapItRequest.h"
 
 namespace jsk_recognition_msgs
 {
@@ -23,22 +23,22 @@ static const char CALLSNAPIT[] = "jsk_recognition_msgs/CallSnapIt";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       offset += this->request.serialize(outbuffer + offset);
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       offset += this->request.deserialize(inbuffer + offset);
      return offset;
     }
 
-    const char * getType(){ return CALLSNAPIT; };
-    const char * getMD5(){ return "5bf1ef2f060949ff03f39c08eb7bc6de"; };
+    virtual const char * getType() override { return CALLSNAPIT; };
+    virtual const char * getMD5() override { return "5bf1ef2f060949ff03f39c08eb7bc6de"; };
 
   };
 
@@ -53,22 +53,22 @@ static const char CALLSNAPIT[] = "jsk_recognition_msgs/CallSnapIt";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       offset += this->transformation.serialize(outbuffer + offset);
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       offset += this->transformation.deserialize(inbuffer + offset);
      return offset;
     }
 
-    const char * getType(){ return CALLSNAPIT; };
-    const char * getMD5(){ return "d787e2767b5ea7b19a81c647df92a8de"; };
+    virtual const char * getType() override { return CALLSNAPIT; };
+    virtual const char * getMD5() override { return "d787e2767b5ea7b19a81c647df92a8de"; };
 
   };
 

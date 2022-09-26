@@ -54,20 +54,20 @@ namespace gazebo_msgs
       _vel_type * vel;
 
     ODEJointProperties():
-      damping_length(0), damping(NULL),
-      hiStop_length(0), hiStop(NULL),
-      loStop_length(0), loStop(NULL),
-      erp_length(0), erp(NULL),
-      cfm_length(0), cfm(NULL),
-      stop_erp_length(0), stop_erp(NULL),
-      stop_cfm_length(0), stop_cfm(NULL),
-      fudge_factor_length(0), fudge_factor(NULL),
-      fmax_length(0), fmax(NULL),
-      vel_length(0), vel(NULL)
+      damping_length(0), st_damping(), damping(nullptr),
+      hiStop_length(0), st_hiStop(), hiStop(nullptr),
+      loStop_length(0), st_loStop(), loStop(nullptr),
+      erp_length(0), st_erp(), erp(nullptr),
+      cfm_length(0), st_cfm(), cfm(nullptr),
+      stop_erp_length(0), st_stop_erp(), stop_erp(nullptr),
+      stop_cfm_length(0), st_stop_cfm(), stop_cfm(nullptr),
+      fudge_factor_length(0), st_fudge_factor(), fudge_factor(nullptr),
+      fmax_length(0), st_fmax(), fmax(nullptr),
+      vel_length(0), st_vel(), vel(nullptr)
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       *(outbuffer + offset + 0) = (this->damping_length >> (8 * 0)) & 0xFF;
@@ -283,7 +283,7 @@ namespace gazebo_msgs
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       uint32_t damping_lengthT = ((uint32_t) (*(inbuffer + offset))); 
@@ -549,8 +549,8 @@ namespace gazebo_msgs
      return offset;
     }
 
-    const char * getType(){ return "gazebo_msgs/ODEJointProperties"; };
-    const char * getMD5(){ return "1b744c32a920af979f53afe2f9c3511f"; };
+    virtual const char * getType() override { return "gazebo_msgs/ODEJointProperties"; };
+    virtual const char * getMD5() override { return "1b744c32a920af979f53afe2f9c3511f"; };
 
   };
 

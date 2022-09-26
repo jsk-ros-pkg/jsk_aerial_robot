@@ -22,11 +22,11 @@ namespace pcl_msgs
 
     PointIndices():
       header(),
-      indices_length(0), indices(NULL)
+      indices_length(0), st_indices(), indices(nullptr)
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       offset += this->header.serialize(outbuffer + offset);
@@ -50,7 +50,7 @@ namespace pcl_msgs
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       offset += this->header.deserialize(inbuffer + offset);
@@ -79,8 +79,8 @@ namespace pcl_msgs
      return offset;
     }
 
-    const char * getType(){ return "pcl_msgs/PointIndices"; };
-    const char * getMD5(){ return "458c7998b7eaf99908256472e273b3d4"; };
+    virtual const char * getType() override { return "pcl_msgs/PointIndices"; };
+    virtual const char * getMD5() override { return "458c7998b7eaf99908256472e273b3d4"; };
 
   };
 

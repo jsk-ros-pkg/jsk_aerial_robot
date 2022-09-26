@@ -40,16 +40,16 @@ namespace jsk_recognition_msgs
 
     ClassificationResult():
       header(),
-      labels_length(0), labels(NULL),
-      label_names_length(0), label_names(NULL),
-      label_proba_length(0), label_proba(NULL),
-      probabilities_length(0), probabilities(NULL),
+      labels_length(0), st_labels(), labels(nullptr),
+      label_names_length(0), st_label_names(), label_names(nullptr),
+      label_proba_length(0), st_label_proba(), label_proba(nullptr),
+      probabilities_length(0), st_probabilities(), probabilities(nullptr),
       classifier(""),
-      target_names_length(0), target_names(NULL)
+      target_names_length(0), st_target_names(), target_names(nullptr)
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       offset += this->header.serialize(outbuffer + offset);
@@ -139,7 +139,7 @@ namespace jsk_recognition_msgs
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       offset += this->header.deserialize(inbuffer + offset);
@@ -263,8 +263,8 @@ namespace jsk_recognition_msgs
      return offset;
     }
 
-    const char * getType(){ return "jsk_recognition_msgs/ClassificationResult"; };
-    const char * getMD5(){ return "cce1f8edabff85a20e9cc013e319497c"; };
+    virtual const char * getType() override { return "jsk_recognition_msgs/ClassificationResult"; };
+    virtual const char * getMD5() override { return "cce1f8edabff85a20e9cc013e319497c"; };
 
   };
 

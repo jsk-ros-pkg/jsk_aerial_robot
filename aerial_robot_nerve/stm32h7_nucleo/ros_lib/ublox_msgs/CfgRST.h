@@ -47,7 +47,7 @@ namespace ublox_msgs
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       *(outbuffer + offset + 0) = (this->navBbrMask >> (8 * 0)) & 0xFF;
@@ -60,7 +60,7 @@ namespace ublox_msgs
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       this->navBbrMask =  ((uint16_t) (*(inbuffer + offset)));
@@ -73,8 +73,8 @@ namespace ublox_msgs
      return offset;
     }
 
-    const char * getType(){ return "ublox_msgs/CfgRST"; };
-    const char * getMD5(){ return "a1d02f583dd30373e526af3ea4137f5d"; };
+    virtual const char * getType() override { return "ublox_msgs/CfgRST"; };
+    virtual const char * getMD5() override { return "a1d02f583dd30373e526af3ea4137f5d"; };
 
   };
 

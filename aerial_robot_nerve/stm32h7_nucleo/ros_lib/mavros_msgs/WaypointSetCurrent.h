@@ -21,7 +21,7 @@ static const char WAYPOINTSETCURRENT[] = "mavros_msgs/WaypointSetCurrent";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       *(outbuffer + offset + 0) = (this->wp_seq >> (8 * 0)) & 0xFF;
@@ -30,7 +30,7 @@ static const char WAYPOINTSETCURRENT[] = "mavros_msgs/WaypointSetCurrent";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       this->wp_seq =  ((uint16_t) (*(inbuffer + offset)));
@@ -39,8 +39,8 @@ static const char WAYPOINTSETCURRENT[] = "mavros_msgs/WaypointSetCurrent";
      return offset;
     }
 
-    const char * getType(){ return WAYPOINTSETCURRENT; };
-    const char * getMD5(){ return "9541369175e0776b0fef1c988db6840f"; };
+    virtual const char * getType() override { return WAYPOINTSETCURRENT; };
+    virtual const char * getMD5() override { return "9541369175e0776b0fef1c988db6840f"; };
 
   };
 
@@ -55,7 +55,7 @@ static const char WAYPOINTSETCURRENT[] = "mavros_msgs/WaypointSetCurrent";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       union {
@@ -68,7 +68,7 @@ static const char WAYPOINTSETCURRENT[] = "mavros_msgs/WaypointSetCurrent";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       union {
@@ -82,8 +82,8 @@ static const char WAYPOINTSETCURRENT[] = "mavros_msgs/WaypointSetCurrent";
      return offset;
     }
 
-    const char * getType(){ return WAYPOINTSETCURRENT; };
-    const char * getMD5(){ return "358e233cde0c8a8bcfea4ce193f8fc15"; };
+    virtual const char * getType() override { return WAYPOINTSETCURRENT; };
+    virtual const char * getMD5() override { return "358e233cde0c8a8bcfea4ce193f8fc15"; };
 
   };
 

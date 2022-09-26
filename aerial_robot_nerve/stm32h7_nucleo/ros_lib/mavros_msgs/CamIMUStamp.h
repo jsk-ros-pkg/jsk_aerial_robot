@@ -24,7 +24,7 @@ namespace mavros_msgs
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       *(outbuffer + offset + 0) = (this->frame_stamp.sec >> (8 * 0)) & 0xFF;
@@ -50,7 +50,7 @@ namespace mavros_msgs
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       this->frame_stamp.sec =  ((uint32_t) (*(inbuffer + offset)));
@@ -77,8 +77,8 @@ namespace mavros_msgs
      return offset;
     }
 
-    const char * getType(){ return "mavros_msgs/CamIMUStamp"; };
-    const char * getMD5(){ return "ac22af9031671dd528a56f12d0986660"; };
+    virtual const char * getType() override { return "mavros_msgs/CamIMUStamp"; };
+    virtual const char * getMD5() override { return "ac22af9031671dd528a56f12d0986660"; };
 
   };
 

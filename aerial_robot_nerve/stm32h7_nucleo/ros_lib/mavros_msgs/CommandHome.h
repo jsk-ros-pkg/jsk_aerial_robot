@@ -33,7 +33,7 @@ static const char COMMANDHOME[] = "mavros_msgs/CommandHome";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       union {
@@ -86,7 +86,7 @@ static const char COMMANDHOME[] = "mavros_msgs/CommandHome";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       union {
@@ -144,8 +144,8 @@ static const char COMMANDHOME[] = "mavros_msgs/CommandHome";
      return offset;
     }
 
-    const char * getType(){ return COMMANDHOME; };
-    const char * getMD5(){ return "af3ed5fc0724380793eba353ee384c9a"; };
+    virtual const char * getType() override { return COMMANDHOME; };
+    virtual const char * getMD5() override { return "af3ed5fc0724380793eba353ee384c9a"; };
 
   };
 
@@ -163,7 +163,7 @@ static const char COMMANDHOME[] = "mavros_msgs/CommandHome";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       union {
@@ -178,7 +178,7 @@ static const char COMMANDHOME[] = "mavros_msgs/CommandHome";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       union {
@@ -194,8 +194,8 @@ static const char COMMANDHOME[] = "mavros_msgs/CommandHome";
      return offset;
     }
 
-    const char * getType(){ return COMMANDHOME; };
-    const char * getMD5(){ return "1cd894375e4e3d2861d2222772894fdb"; };
+    virtual const char * getType() override { return COMMANDHOME; };
+    virtual const char * getMD5() override { return "1cd894375e4e3d2861d2222772894fdb"; };
 
   };
 

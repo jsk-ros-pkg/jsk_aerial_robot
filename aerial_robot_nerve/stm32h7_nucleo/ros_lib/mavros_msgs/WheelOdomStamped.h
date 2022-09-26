@@ -22,11 +22,11 @@ namespace mavros_msgs
 
     WheelOdomStamped():
       header(),
-      data_length(0), data(NULL)
+      data_length(0), st_data(), data(nullptr)
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       offset += this->header.serialize(outbuffer + offset);
@@ -54,7 +54,7 @@ namespace mavros_msgs
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       offset += this->header.deserialize(inbuffer + offset);
@@ -87,8 +87,8 @@ namespace mavros_msgs
      return offset;
     }
 
-    const char * getType(){ return "mavros_msgs/WheelOdomStamped"; };
-    const char * getMD5(){ return "fb60495edd59d3fcf90e173153ae8a9a"; };
+    virtual const char * getType() override { return "mavros_msgs/WheelOdomStamped"; };
+    virtual const char * getMD5() override { return "fb60495edd59d3fcf90e173153ae8a9a"; };
 
   };
 

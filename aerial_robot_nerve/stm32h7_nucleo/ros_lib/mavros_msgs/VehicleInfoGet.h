@@ -30,7 +30,7 @@ static const char VEHICLEINFOGET[] = "mavros_msgs/VehicleInfoGet";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       *(outbuffer + offset + 0) = (this->sysid >> (8 * 0)) & 0xFF;
@@ -47,7 +47,7 @@ static const char VEHICLEINFOGET[] = "mavros_msgs/VehicleInfoGet";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       this->sysid =  ((uint8_t) (*(inbuffer + offset)));
@@ -65,8 +65,8 @@ static const char VEHICLEINFOGET[] = "mavros_msgs/VehicleInfoGet";
      return offset;
     }
 
-    const char * getType(){ return VEHICLEINFOGET; };
-    const char * getMD5(){ return "c1911e97179d4b379a979e2ab8e01e5c"; };
+    virtual const char * getType() override { return VEHICLEINFOGET; };
+    virtual const char * getMD5() override { return "c1911e97179d4b379a979e2ab8e01e5c"; };
 
   };
 
@@ -82,11 +82,11 @@ static const char VEHICLEINFOGET[] = "mavros_msgs/VehicleInfoGet";
 
     VehicleInfoGetResponse():
       success(0),
-      vehicles_length(0), vehicles(NULL)
+      vehicles_length(0), st_vehicles(), vehicles(nullptr)
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       union {
@@ -107,7 +107,7 @@ static const char VEHICLEINFOGET[] = "mavros_msgs/VehicleInfoGet";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       union {
@@ -133,8 +133,8 @@ static const char VEHICLEINFOGET[] = "mavros_msgs/VehicleInfoGet";
      return offset;
     }
 
-    const char * getType(){ return VEHICLEINFOGET; };
-    const char * getMD5(){ return "7b33b68f66a6b66456d3bed6fe1dfda0"; };
+    virtual const char * getType() override { return VEHICLEINFOGET; };
+    virtual const char * getMD5() override { return "7b33b68f66a6b66456d3bed6fe1dfda0"; };
 
   };
 

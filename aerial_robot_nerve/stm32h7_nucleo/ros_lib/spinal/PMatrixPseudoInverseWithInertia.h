@@ -20,12 +20,12 @@ namespace spinal
       int16_t inertia[6];
 
     PMatrixPseudoInverseWithInertia():
-      pseudo_inverse_length(0), pseudo_inverse(NULL),
+      pseudo_inverse_length(0), st_pseudo_inverse(), pseudo_inverse(nullptr),
       inertia()
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       *(outbuffer + offset + 0) = (this->pseudo_inverse_length >> (8 * 0)) & 0xFF;
@@ -49,7 +49,7 @@ namespace spinal
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       uint32_t pseudo_inverse_lengthT = ((uint32_t) (*(inbuffer + offset))); 
@@ -78,8 +78,8 @@ namespace spinal
      return offset;
     }
 
-    const char * getType(){ return "spinal/PMatrixPseudoInverseWithInertia"; };
-    const char * getMD5(){ return "e67a441fd1d34930b8789fd5b10a7fe7"; };
+    virtual const char * getType() override { return "spinal/PMatrixPseudoInverseWithInertia"; };
+    virtual const char * getMD5() override { return "e67a441fd1d34930b8789fd5b10a7fe7"; };
 
   };
 

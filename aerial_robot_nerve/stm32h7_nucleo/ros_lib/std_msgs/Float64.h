@@ -20,7 +20,7 @@ namespace std_msgs
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       union {
@@ -40,7 +40,7 @@ namespace std_msgs
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       union {
@@ -61,8 +61,8 @@ namespace std_msgs
      return offset;
     }
 
-    const char * getType(){ return "std_msgs/Float64"; };
-    const char * getMD5(){ return "fdb28210bfa9d7c91146260178d9a584"; };
+    virtual const char * getType() override { return "std_msgs/Float64"; };
+    virtual const char * getMD5() override { return "fdb28210bfa9d7c91146260178d9a584"; };
 
   };
 

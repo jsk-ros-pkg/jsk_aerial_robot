@@ -35,7 +35,7 @@ static const char SETMODE[] = "mavros_msgs/SetMode";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       *(outbuffer + offset + 0) = (this->base_mode >> (8 * 0)) & 0xFF;
@@ -48,7 +48,7 @@ static const char SETMODE[] = "mavros_msgs/SetMode";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       this->base_mode =  ((uint8_t) (*(inbuffer + offset)));
@@ -65,8 +65,8 @@ static const char SETMODE[] = "mavros_msgs/SetMode";
      return offset;
     }
 
-    const char * getType(){ return SETMODE; };
-    const char * getMD5(){ return "d770431847cad3a8f50a81ec70ddf0e2"; };
+    virtual const char * getType() override { return SETMODE; };
+    virtual const char * getMD5() override { return "d770431847cad3a8f50a81ec70ddf0e2"; };
 
   };
 
@@ -81,7 +81,7 @@ static const char SETMODE[] = "mavros_msgs/SetMode";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       union {
@@ -94,7 +94,7 @@ static const char SETMODE[] = "mavros_msgs/SetMode";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       union {
@@ -108,8 +108,8 @@ static const char SETMODE[] = "mavros_msgs/SetMode";
      return offset;
     }
 
-    const char * getType(){ return SETMODE; };
-    const char * getMD5(){ return "a70bfe6329ecf8f8d858daa6f3db7655"; };
+    virtual const char * getType() override { return SETMODE; };
+    virtual const char * getMD5() override { return "a70bfe6329ecf8f8d858daa6f3db7655"; };
 
   };
 

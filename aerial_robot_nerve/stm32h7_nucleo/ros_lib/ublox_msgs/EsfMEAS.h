@@ -56,12 +56,12 @@ namespace ublox_msgs
       timeTag(0),
       flags(0),
       id(0),
-      data_length(0), data(NULL),
-      calibTtag_length(0), calibTtag(NULL)
+      data_length(0), st_data(), data(nullptr),
+      calibTtag_length(0), st_calibTtag(), calibTtag(nullptr)
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       *(outbuffer + offset + 0) = (this->timeTag >> (8 * 0)) & 0xFF;
@@ -102,7 +102,7 @@ namespace ublox_msgs
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       this->timeTag =  ((uint32_t) (*(inbuffer + offset)));
@@ -151,8 +151,8 @@ namespace ublox_msgs
      return offset;
     }
 
-    const char * getType(){ return "ublox_msgs/EsfMEAS"; };
-    const char * getMD5(){ return "2ee2c25c5689cb0a12cc22f118ece178"; };
+    virtual const char * getType() override { return "ublox_msgs/EsfMEAS"; };
+    virtual const char * getMD5() override { return "2ee2c25c5689cb0a12cc22f118ece178"; };
 
   };
 

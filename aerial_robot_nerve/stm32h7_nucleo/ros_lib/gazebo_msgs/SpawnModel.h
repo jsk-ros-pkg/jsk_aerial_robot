@@ -34,7 +34,7 @@ static const char SPAWNMODEL[] = "gazebo_msgs/SpawnModel";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       uint32_t length_model_name = strlen(this->model_name);
@@ -61,7 +61,7 @@ static const char SPAWNMODEL[] = "gazebo_msgs/SpawnModel";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       uint32_t length_model_name;
@@ -104,8 +104,8 @@ static const char SPAWNMODEL[] = "gazebo_msgs/SpawnModel";
      return offset;
     }
 
-    const char * getType(){ return SPAWNMODEL; };
-    const char * getMD5(){ return "6d0eba5753761cd57e6263a056b79930"; };
+    virtual const char * getType() override { return SPAWNMODEL; };
+    virtual const char * getMD5() override { return "6d0eba5753761cd57e6263a056b79930"; };
 
   };
 
@@ -123,7 +123,7 @@ static const char SPAWNMODEL[] = "gazebo_msgs/SpawnModel";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       union {
@@ -141,7 +141,7 @@ static const char SPAWNMODEL[] = "gazebo_msgs/SpawnModel";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       union {
@@ -164,8 +164,8 @@ static const char SPAWNMODEL[] = "gazebo_msgs/SpawnModel";
      return offset;
     }
 
-    const char * getType(){ return SPAWNMODEL; };
-    const char * getMD5(){ return "2ec6f3eff0161f4257b808b12bc830c2"; };
+    virtual const char * getType() override { return SPAWNMODEL; };
+    virtual const char * getMD5() override { return "2ec6f3eff0161f4257b808b12bc830c2"; };
 
   };
 

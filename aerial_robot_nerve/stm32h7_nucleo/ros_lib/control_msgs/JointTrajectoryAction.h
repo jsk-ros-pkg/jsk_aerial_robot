@@ -29,7 +29,7 @@ namespace control_msgs
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       offset += this->action_goal.serialize(outbuffer + offset);
@@ -38,7 +38,7 @@ namespace control_msgs
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       offset += this->action_goal.deserialize(inbuffer + offset);
@@ -47,8 +47,8 @@ namespace control_msgs
      return offset;
     }
 
-    const char * getType(){ return "control_msgs/JointTrajectoryAction"; };
-    const char * getMD5(){ return "a04ba3ee8f6a2d0985a6aeaf23d9d7ad"; };
+    virtual const char * getType() override { return "control_msgs/JointTrajectoryAction"; };
+    virtual const char * getMD5() override { return "a04ba3ee8f6a2d0985a6aeaf23d9d7ad"; };
 
   };
 

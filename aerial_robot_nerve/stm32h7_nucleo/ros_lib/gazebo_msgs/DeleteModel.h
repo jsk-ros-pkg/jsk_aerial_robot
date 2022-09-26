@@ -21,7 +21,7 @@ static const char DELETEMODEL[] = "gazebo_msgs/DeleteModel";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       uint32_t length_model_name = strlen(this->model_name);
@@ -32,7 +32,7 @@ static const char DELETEMODEL[] = "gazebo_msgs/DeleteModel";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       uint32_t length_model_name;
@@ -47,8 +47,8 @@ static const char DELETEMODEL[] = "gazebo_msgs/DeleteModel";
      return offset;
     }
 
-    const char * getType(){ return DELETEMODEL; };
-    const char * getMD5(){ return "ea31c8eab6fc401383cf528a7c0984ba"; };
+    virtual const char * getType() override { return DELETEMODEL; };
+    virtual const char * getMD5() override { return "ea31c8eab6fc401383cf528a7c0984ba"; };
 
   };
 
@@ -66,7 +66,7 @@ static const char DELETEMODEL[] = "gazebo_msgs/DeleteModel";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       union {
@@ -84,7 +84,7 @@ static const char DELETEMODEL[] = "gazebo_msgs/DeleteModel";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       union {
@@ -107,8 +107,8 @@ static const char DELETEMODEL[] = "gazebo_msgs/DeleteModel";
      return offset;
     }
 
-    const char * getType(){ return DELETEMODEL; };
-    const char * getMD5(){ return "2ec6f3eff0161f4257b808b12bc830c2"; };
+    virtual const char * getType() override { return DELETEMODEL; };
+    virtual const char * getMD5() override { return "2ec6f3eff0161f4257b808b12bc830c2"; };
 
   };
 

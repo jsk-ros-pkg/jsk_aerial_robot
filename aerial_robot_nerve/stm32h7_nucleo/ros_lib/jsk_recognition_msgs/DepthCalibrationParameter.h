@@ -28,14 +28,14 @@ namespace jsk_recognition_msgs
       _use_abs_type use_abs;
 
     DepthCalibrationParameter():
-      coefficients2_length(0), coefficients2(NULL),
-      coefficients1_length(0), coefficients1(NULL),
-      coefficients0_length(0), coefficients0(NULL),
+      coefficients2_length(0), st_coefficients2(), coefficients2(nullptr),
+      coefficients1_length(0), st_coefficients1(), coefficients1(nullptr),
+      coefficients0_length(0), st_coefficients0(), coefficients0(nullptr),
       use_abs(0)
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       *(outbuffer + offset + 0) = (this->coefficients2_length >> (8 * 0)) & 0xFF;
@@ -111,7 +111,7 @@ namespace jsk_recognition_msgs
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       uint32_t coefficients2_lengthT = ((uint32_t) (*(inbuffer + offset))); 
@@ -203,8 +203,8 @@ namespace jsk_recognition_msgs
      return offset;
     }
 
-    const char * getType(){ return "jsk_recognition_msgs/DepthCalibrationParameter"; };
-    const char * getMD5(){ return "d8318983ee0a76ad66ecf4b504350888"; };
+    virtual const char * getType() override { return "jsk_recognition_msgs/DepthCalibrationParameter"; };
+    virtual const char * getMD5() override { return "d8318983ee0a76ad66ecf4b504350888"; };
 
   };
 

@@ -30,7 +30,7 @@ namespace theora_image_transport
 
     Packet():
       header(),
-      data_length(0), data(NULL),
+      data_length(0), st_data(), data(nullptr),
       b_o_s(0),
       e_o_s(0),
       granulepos(0),
@@ -38,7 +38,7 @@ namespace theora_image_transport
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       offset += this->header.serialize(outbuffer + offset);
@@ -102,7 +102,7 @@ namespace theora_image_transport
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       offset += this->header.deserialize(inbuffer + offset);
@@ -174,8 +174,8 @@ namespace theora_image_transport
      return offset;
     }
 
-    const char * getType(){ return "theora_image_transport/Packet"; };
-    const char * getMD5(){ return "33ac4e14a7cff32e7e0d65f18bb410f3"; };
+    virtual const char * getType() override { return "theora_image_transport/Packet"; };
+    virtual const char * getMD5() override { return "33ac4e14a7cff32e7e0d65f18bb410f3"; };
 
   };
 

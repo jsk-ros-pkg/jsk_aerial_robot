@@ -45,7 +45,7 @@ static const char SETATTITUDEGAINS[] = "spinal/SetAttitudeGains";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       union {
@@ -141,7 +141,7 @@ static const char SETATTITUDEGAINS[] = "spinal/SetAttitudeGains";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       union {
@@ -246,8 +246,8 @@ static const char SETATTITUDEGAINS[] = "spinal/SetAttitudeGains";
      return offset;
     }
 
-    const char * getType(){ return SETATTITUDEGAINS; };
-    const char * getMD5(){ return "baad126f11e35087f7592bf3e181f0d9"; };
+    virtual const char * getType() override { return SETATTITUDEGAINS; };
+    virtual const char * getMD5() override { return "baad126f11e35087f7592bf3e181f0d9"; };
 
   };
 
@@ -262,7 +262,7 @@ static const char SETATTITUDEGAINS[] = "spinal/SetAttitudeGains";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       union {
@@ -275,7 +275,7 @@ static const char SETATTITUDEGAINS[] = "spinal/SetAttitudeGains";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       union {
@@ -289,8 +289,8 @@ static const char SETATTITUDEGAINS[] = "spinal/SetAttitudeGains";
      return offset;
     }
 
-    const char * getType(){ return SETATTITUDEGAINS; };
-    const char * getMD5(){ return "358e233cde0c8a8bcfea4ce193f8fc15"; };
+    virtual const char * getType() override { return SETATTITUDEGAINS; };
+    virtual const char * getMD5() override { return "358e233cde0c8a8bcfea4ce193f8fc15"; };
 
   };
 

@@ -41,12 +41,12 @@ namespace mavros_msgs
       name(""),
       value_float(0),
       value_int(0),
-      data_length(0), data(NULL),
+      data_length(0), st_data(), data(nullptr),
       type(0)
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       offset += this->header.serialize(outbuffer + offset);
@@ -107,7 +107,7 @@ namespace mavros_msgs
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       offset += this->header.deserialize(inbuffer + offset);
@@ -180,8 +180,8 @@ namespace mavros_msgs
      return offset;
     }
 
-    const char * getType(){ return "mavros_msgs/DebugValue"; };
-    const char * getMD5(){ return "af412ff7223c64155e7e3c6b7508eaaa"; };
+    virtual const char * getType() override { return "mavros_msgs/DebugValue"; };
+    virtual const char * getMD5() override { return "af412ff7223c64155e7e3c6b7508eaaa"; };
 
   };
 

@@ -22,22 +22,22 @@ static const char SETLINKSTATE[] = "gazebo_msgs/SetLinkState";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       offset += this->link_state.serialize(outbuffer + offset);
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       offset += this->link_state.deserialize(inbuffer + offset);
      return offset;
     }
 
-    const char * getType(){ return SETLINKSTATE; };
-    const char * getMD5(){ return "22a2c757d56911b6f27868159e9a872d"; };
+    virtual const char * getType() override { return SETLINKSTATE; };
+    virtual const char * getMD5() override { return "22a2c757d56911b6f27868159e9a872d"; };
 
   };
 
@@ -55,7 +55,7 @@ static const char SETLINKSTATE[] = "gazebo_msgs/SetLinkState";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       union {
@@ -73,7 +73,7 @@ static const char SETLINKSTATE[] = "gazebo_msgs/SetLinkState";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       union {
@@ -96,8 +96,8 @@ static const char SETLINKSTATE[] = "gazebo_msgs/SetLinkState";
      return offset;
     }
 
-    const char * getType(){ return SETLINKSTATE; };
-    const char * getMD5(){ return "2ec6f3eff0161f4257b808b12bc830c2"; };
+    virtual const char * getType() override { return SETLINKSTATE; };
+    virtual const char * getMD5() override { return "2ec6f3eff0161f4257b808b12bc830c2"; };
 
   };
 

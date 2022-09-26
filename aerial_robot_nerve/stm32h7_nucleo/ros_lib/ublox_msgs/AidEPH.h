@@ -34,13 +34,13 @@ namespace ublox_msgs
     AidEPH():
       svid(0),
       how(0),
-      sf1d_length(0), sf1d(NULL),
-      sf2d_length(0), sf2d(NULL),
-      sf3d_length(0), sf3d(NULL)
+      sf1d_length(0), st_sf1d(), sf1d(nullptr),
+      sf2d_length(0), st_sf2d(), sf2d(nullptr),
+      sf3d_length(0), st_sf3d(), sf3d(nullptr)
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       *(outbuffer + offset + 0) = (this->svid >> (8 * 0)) & 0xFF;
@@ -92,7 +92,7 @@ namespace ublox_msgs
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       this->svid =  ((uint32_t) (*(inbuffer + offset)));
@@ -156,8 +156,8 @@ namespace ublox_msgs
      return offset;
     }
 
-    const char * getType(){ return "ublox_msgs/AidEPH"; };
-    const char * getMD5(){ return "796d86b27ebfe497b3a42695f2e69e13"; };
+    virtual const char * getType() override { return "ublox_msgs/AidEPH"; };
+    virtual const char * getMD5() override { return "796d86b27ebfe497b3a42695f2e69e13"; };
 
   };
 

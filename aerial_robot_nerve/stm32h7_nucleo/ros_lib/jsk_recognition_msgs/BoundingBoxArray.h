@@ -23,11 +23,11 @@ namespace jsk_recognition_msgs
 
     BoundingBoxArray():
       header(),
-      boxes_length(0), boxes(NULL)
+      boxes_length(0), st_boxes(), boxes(nullptr)
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       offset += this->header.serialize(outbuffer + offset);
@@ -42,7 +42,7 @@ namespace jsk_recognition_msgs
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       offset += this->header.deserialize(inbuffer + offset);
@@ -61,8 +61,8 @@ namespace jsk_recognition_msgs
      return offset;
     }
 
-    const char * getType(){ return "jsk_recognition_msgs/BoundingBoxArray"; };
-    const char * getMD5(){ return "c8f4a8bb1acd18ce778d183912bb472d"; };
+    virtual const char * getType() override { return "jsk_recognition_msgs/BoundingBoxArray"; };
+    virtual const char * getMD5() override { return "c8f4a8bb1acd18ce778d183912bb472d"; };
 
   };
 

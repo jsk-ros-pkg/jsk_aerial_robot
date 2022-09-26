@@ -63,7 +63,7 @@ namespace ublox_msgs
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       union {
@@ -135,7 +135,7 @@ namespace ublox_msgs
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       union {
@@ -211,8 +211,8 @@ namespace ublox_msgs
      return offset;
     }
 
-    const char * getType(){ return "ublox_msgs/RxmRAWX_Meas"; };
-    const char * getMD5(){ return "d6a580262875bf83a377ba14dcdd659f"; };
+    virtual const char * getType() override { return "ublox_msgs/RxmRAWX_Meas"; };
+    virtual const char * getMD5() override { return "d6a580262875bf83a377ba14dcdd659f"; };
 
   };
 

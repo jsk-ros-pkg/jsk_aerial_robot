@@ -28,13 +28,13 @@ namespace gazebo_msgs
       _twist_type * twist;
 
     ModelStates():
-      name_length(0), name(NULL),
-      pose_length(0), pose(NULL),
-      twist_length(0), twist(NULL)
+      name_length(0), st_name(), name(nullptr),
+      pose_length(0), st_pose(), pose(nullptr),
+      twist_length(0), st_twist(), twist(nullptr)
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       *(outbuffer + offset + 0) = (this->name_length >> (8 * 0)) & 0xFF;
@@ -68,7 +68,7 @@ namespace gazebo_msgs
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       uint32_t name_lengthT = ((uint32_t) (*(inbuffer + offset))); 
@@ -118,8 +118,8 @@ namespace gazebo_msgs
      return offset;
     }
 
-    const char * getType(){ return "gazebo_msgs/ModelStates"; };
-    const char * getMD5(){ return "48c080191eb15c41858319b4d8a609c2"; };
+    virtual const char * getType() override { return "gazebo_msgs/ModelStates"; };
+    virtual const char * getMD5() override { return "48c080191eb15c41858319b4d8a609c2"; };
 
   };
 

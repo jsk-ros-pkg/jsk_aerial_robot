@@ -26,12 +26,12 @@ namespace jsk_recognition_msgs
 
     Spectrum():
       header(),
-      amplitude_length(0), amplitude(NULL),
-      frequency_length(0), frequency(NULL)
+      amplitude_length(0), st_amplitude(), amplitude(nullptr),
+      frequency_length(0), st_frequency(), frequency(nullptr)
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       offset += this->header.serialize(outbuffer + offset);
@@ -72,7 +72,7 @@ namespace jsk_recognition_msgs
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       offset += this->header.deserialize(inbuffer + offset);
@@ -123,8 +123,8 @@ namespace jsk_recognition_msgs
      return offset;
     }
 
-    const char * getType(){ return "jsk_recognition_msgs/Spectrum"; };
-    const char * getMD5(){ return "df74a130749a91198632eab1192d1cc9"; };
+    virtual const char * getType() override { return "jsk_recognition_msgs/Spectrum"; };
+    virtual const char * getMD5() override { return "df74a130749a91198632eab1192d1cc9"; };
 
   };
 

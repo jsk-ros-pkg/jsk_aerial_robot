@@ -4,9 +4,9 @@
 #include <string.h>
 #include <stdlib.h>
 #include "ros/msg.h"
+#include "geometry_msgs/Vector3.h"
 #include "std_msgs/Header.h"
 #include "geometry_msgs/Point.h"
-#include "geometry_msgs/Vector3.h"
 
 namespace jsk_recognition_msgs
 {
@@ -30,7 +30,7 @@ static const char TRANSFORMSCREENPOINT[] = "jsk_recognition_msgs/TransformScreen
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       union {
@@ -63,7 +63,7 @@ static const char TRANSFORMSCREENPOINT[] = "jsk_recognition_msgs/TransformScreen
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       union {
@@ -99,8 +99,8 @@ static const char TRANSFORMSCREENPOINT[] = "jsk_recognition_msgs/TransformScreen
      return offset;
     }
 
-    const char * getType(){ return TRANSFORMSCREENPOINT; };
-    const char * getMD5(){ return "3796b576f471dba594bd202be056132c"; };
+    virtual const char * getType() override { return TRANSFORMSCREENPOINT; };
+    virtual const char * getMD5() override { return "3796b576f471dba594bd202be056132c"; };
 
   };
 
@@ -121,7 +121,7 @@ static const char TRANSFORMSCREENPOINT[] = "jsk_recognition_msgs/TransformScreen
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       offset += this->header.serialize(outbuffer + offset);
@@ -130,7 +130,7 @@ static const char TRANSFORMSCREENPOINT[] = "jsk_recognition_msgs/TransformScreen
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       offset += this->header.deserialize(inbuffer + offset);
@@ -139,8 +139,8 @@ static const char TRANSFORMSCREENPOINT[] = "jsk_recognition_msgs/TransformScreen
      return offset;
     }
 
-    const char * getType(){ return TRANSFORMSCREENPOINT; };
-    const char * getMD5(){ return "b4d4e89e36c63a48672ef02dabdec610"; };
+    virtual const char * getType() override { return TRANSFORMSCREENPOINT; };
+    virtual const char * getMD5() override { return "b4d4e89e36c63a48672ef02dabdec610"; };
 
   };
 

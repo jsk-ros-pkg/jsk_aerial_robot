@@ -19,11 +19,11 @@ namespace spinal
       _rows_type * rows;
 
     TorqueAllocationMatrixInv():
-      rows_length(0), rows(NULL)
+      rows_length(0), st_rows(), rows(nullptr)
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       *(outbuffer + offset + 0) = (this->rows_length >> (8 * 0)) & 0xFF;
@@ -37,7 +37,7 @@ namespace spinal
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       uint32_t rows_lengthT = ((uint32_t) (*(inbuffer + offset))); 
@@ -55,8 +55,8 @@ namespace spinal
      return offset;
     }
 
-    const char * getType(){ return "spinal/TorqueAllocationMatrixInv"; };
-    const char * getMD5(){ return "048fbe8a4e819a7453eec7556fbdc879"; };
+    virtual const char * getType() override { return "spinal/TorqueAllocationMatrixInv"; };
+    virtual const char * getMD5() override { return "048fbe8a4e819a7453eec7556fbdc879"; };
 
   };
 

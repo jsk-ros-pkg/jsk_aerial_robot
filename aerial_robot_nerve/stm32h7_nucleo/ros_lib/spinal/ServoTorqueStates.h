@@ -18,11 +18,11 @@ namespace spinal
       _torque_enable_type * torque_enable;
 
     ServoTorqueStates():
-      torque_enable_length(0), torque_enable(NULL)
+      torque_enable_length(0), st_torque_enable(), torque_enable(nullptr)
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       *(outbuffer + offset + 0) = (this->torque_enable_length >> (8 * 0)) & 0xFF;
@@ -37,7 +37,7 @@ namespace spinal
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       uint32_t torque_enable_lengthT = ((uint32_t) (*(inbuffer + offset))); 
@@ -56,8 +56,8 @@ namespace spinal
      return offset;
     }
 
-    const char * getType(){ return "spinal/ServoTorqueStates"; };
-    const char * getMD5(){ return "a690708f2dc38a03d93a1e5fa2b4ae3d"; };
+    virtual const char * getType() override { return "spinal/ServoTorqueStates"; };
+    virtual const char * getMD5() override { return "a690708f2dc38a03d93a1e5fa2b4ae3d"; };
 
   };
 

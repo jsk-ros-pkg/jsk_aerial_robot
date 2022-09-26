@@ -24,7 +24,7 @@ static const char MESSAGEINTERVAL[] = "mavros_msgs/MessageInterval";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       *(outbuffer + offset + 0) = (this->message_id >> (8 * 0)) & 0xFF;
@@ -45,7 +45,7 @@ static const char MESSAGEINTERVAL[] = "mavros_msgs/MessageInterval";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       this->message_id =  ((uint32_t) (*(inbuffer + offset)));
@@ -67,8 +67,8 @@ static const char MESSAGEINTERVAL[] = "mavros_msgs/MessageInterval";
      return offset;
     }
 
-    const char * getType(){ return MESSAGEINTERVAL; };
-    const char * getMD5(){ return "e0211a7928924521de24f3981706be52"; };
+    virtual const char * getType() override { return MESSAGEINTERVAL; };
+    virtual const char * getMD5() override { return "e0211a7928924521de24f3981706be52"; };
 
   };
 
@@ -83,7 +83,7 @@ static const char MESSAGEINTERVAL[] = "mavros_msgs/MessageInterval";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       union {
@@ -96,7 +96,7 @@ static const char MESSAGEINTERVAL[] = "mavros_msgs/MessageInterval";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       union {
@@ -110,8 +110,8 @@ static const char MESSAGEINTERVAL[] = "mavros_msgs/MessageInterval";
      return offset;
     }
 
-    const char * getType(){ return MESSAGEINTERVAL; };
-    const char * getMD5(){ return "358e233cde0c8a8bcfea4ce193f8fc15"; };
+    virtual const char * getType() override { return MESSAGEINTERVAL; };
+    virtual const char * getMD5() override { return "358e233cde0c8a8bcfea4ce193f8fc15"; };
 
   };
 

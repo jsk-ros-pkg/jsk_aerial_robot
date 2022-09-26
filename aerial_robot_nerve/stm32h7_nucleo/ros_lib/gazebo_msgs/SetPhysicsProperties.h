@@ -32,7 +32,7 @@ static const char SETPHYSICSPROPERTIES[] = "gazebo_msgs/SetPhysicsProperties";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       union {
@@ -68,7 +68,7 @@ static const char SETPHYSICSPROPERTIES[] = "gazebo_msgs/SetPhysicsProperties";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       union {
@@ -106,8 +106,8 @@ static const char SETPHYSICSPROPERTIES[] = "gazebo_msgs/SetPhysicsProperties";
      return offset;
     }
 
-    const char * getType(){ return SETPHYSICSPROPERTIES; };
-    const char * getMD5(){ return "abd9f82732b52b92e9d6bb36e6a82452"; };
+    virtual const char * getType() override { return SETPHYSICSPROPERTIES; };
+    virtual const char * getMD5() override { return "abd9f82732b52b92e9d6bb36e6a82452"; };
 
   };
 
@@ -125,7 +125,7 @@ static const char SETPHYSICSPROPERTIES[] = "gazebo_msgs/SetPhysicsProperties";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       union {
@@ -143,7 +143,7 @@ static const char SETPHYSICSPROPERTIES[] = "gazebo_msgs/SetPhysicsProperties";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       union {
@@ -166,8 +166,8 @@ static const char SETPHYSICSPROPERTIES[] = "gazebo_msgs/SetPhysicsProperties";
      return offset;
     }
 
-    const char * getType(){ return SETPHYSICSPROPERTIES; };
-    const char * getMD5(){ return "2ec6f3eff0161f4257b808b12bc830c2"; };
+    virtual const char * getType() override { return SETPHYSICSPROPERTIES; };
+    virtual const char * getMD5() override { return "2ec6f3eff0161f4257b808b12bc830c2"; };
 
   };
 

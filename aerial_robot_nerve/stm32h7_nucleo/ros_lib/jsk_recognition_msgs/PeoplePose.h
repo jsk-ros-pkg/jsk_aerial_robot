@@ -27,13 +27,13 @@ namespace jsk_recognition_msgs
       _scores_type * scores;
 
     PeoplePose():
-      limb_names_length(0), limb_names(NULL),
-      poses_length(0), poses(NULL),
-      scores_length(0), scores(NULL)
+      limb_names_length(0), st_limb_names(), limb_names(nullptr),
+      poses_length(0), st_poses(), poses(nullptr),
+      scores_length(0), st_scores(), scores(nullptr)
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       *(outbuffer + offset + 0) = (this->limb_names_length >> (8 * 0)) & 0xFF;
@@ -76,7 +76,7 @@ namespace jsk_recognition_msgs
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       uint32_t limb_names_lengthT = ((uint32_t) (*(inbuffer + offset))); 
@@ -136,8 +136,8 @@ namespace jsk_recognition_msgs
      return offset;
     }
 
-    const char * getType(){ return "jsk_recognition_msgs/PeoplePose"; };
-    const char * getMD5(){ return "24f6e59dae1b7cbd9d480f0008a5a515"; };
+    virtual const char * getType() override { return "jsk_recognition_msgs/PeoplePose"; };
+    virtual const char * getMD5() override { return "24f6e59dae1b7cbd9d480f0008a5a515"; };
 
   };
 

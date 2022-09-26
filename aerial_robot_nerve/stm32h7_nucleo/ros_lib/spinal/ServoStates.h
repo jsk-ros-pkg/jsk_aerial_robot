@@ -23,11 +23,11 @@ namespace spinal
 
     ServoStates():
       stamp(),
-      servos_length(0), servos(NULL)
+      servos_length(0), st_servos(), servos(nullptr)
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       *(outbuffer + offset + 0) = (this->stamp.sec >> (8 * 0)) & 0xFF;
@@ -51,7 +51,7 @@ namespace spinal
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       this->stamp.sec =  ((uint32_t) (*(inbuffer + offset)));
@@ -79,8 +79,8 @@ namespace spinal
      return offset;
     }
 
-    const char * getType(){ return "spinal/ServoStates"; };
-    const char * getMD5(){ return "8ab23ee17ec1578fba9ec2244276b0ef"; };
+    virtual const char * getType() override { return "spinal/ServoStates"; };
+    virtual const char * getMD5() override { return "8ab23ee17ec1578fba9ec2244276b0ef"; };
 
   };
 

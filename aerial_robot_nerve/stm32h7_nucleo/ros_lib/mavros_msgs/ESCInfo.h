@@ -35,11 +35,11 @@ namespace mavros_msgs
       count(0),
       connection_type(0),
       info(0),
-      esc_info_length(0), esc_info(NULL)
+      esc_info_length(0), st_esc_info(), esc_info(nullptr)
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       offset += this->header.serialize(outbuffer + offset);
@@ -63,7 +63,7 @@ namespace mavros_msgs
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       offset += this->header.deserialize(inbuffer + offset);
@@ -91,8 +91,8 @@ namespace mavros_msgs
      return offset;
     }
 
-    const char * getType(){ return "mavros_msgs/ESCInfo"; };
-    const char * getMD5(){ return "63fa145856ba5b9bdcaf4b1f55eaa549"; };
+    virtual const char * getType() override { return "mavros_msgs/ESCInfo"; };
+    virtual const char * getMD5() override { return "63fa145856ba5b9bdcaf4b1f55eaa549"; };
 
   };
 

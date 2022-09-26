@@ -38,7 +38,7 @@ namespace spinal
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       union {
@@ -100,7 +100,7 @@ namespace spinal
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       union {
@@ -169,8 +169,8 @@ namespace spinal
      return offset;
     }
 
-    const char * getType(){ return "spinal/RollPitchYawTerm"; };
-    const char * getMD5(){ return "14a179f5309ca5bc435eceedda0bcca3"; };
+    virtual const char * getType() override { return "spinal/RollPitchYawTerm"; };
+    virtual const char * getMD5() override { return "14a179f5309ca5bc435eceedda0bcca3"; };
 
   };
 

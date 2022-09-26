@@ -27,7 +27,7 @@ static const char FILEOPEN[] = "mavros_msgs/FileOpen";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       uint32_t length_file_path = strlen(this->file_path);
@@ -40,7 +40,7 @@ static const char FILEOPEN[] = "mavros_msgs/FileOpen";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       uint32_t length_file_path;
@@ -57,8 +57,8 @@ static const char FILEOPEN[] = "mavros_msgs/FileOpen";
      return offset;
     }
 
-    const char * getType(){ return FILEOPEN; };
-    const char * getMD5(){ return "5d3365f008508e7b1c9862cdbc4459de"; };
+    virtual const char * getType() override { return FILEOPEN; };
+    virtual const char * getMD5() override { return "5d3365f008508e7b1c9862cdbc4459de"; };
 
   };
 
@@ -79,7 +79,7 @@ static const char FILEOPEN[] = "mavros_msgs/FileOpen";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       *(outbuffer + offset + 0) = (this->size >> (8 * 0)) & 0xFF;
@@ -107,7 +107,7 @@ static const char FILEOPEN[] = "mavros_msgs/FileOpen";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       this->size =  ((uint32_t) (*(inbuffer + offset)));
@@ -137,8 +137,8 @@ static const char FILEOPEN[] = "mavros_msgs/FileOpen";
      return offset;
     }
 
-    const char * getType(){ return FILEOPEN; };
-    const char * getMD5(){ return "0ff9b1d5b96094ef5adccef61431a04f"; };
+    virtual const char * getType() override { return FILEOPEN; };
+    virtual const char * getMD5() override { return "0ff9b1d5b96094ef5adccef61431a04f"; };
 
   };
 

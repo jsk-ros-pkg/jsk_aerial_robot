@@ -20,11 +20,11 @@ namespace spinal
 
     FourAxisCommand():
       angles(),
-      base_thrust_length(0), base_thrust(NULL)
+      base_thrust_length(0), st_base_thrust(), base_thrust(nullptr)
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       for( uint32_t i = 0; i < 3; i++){
@@ -59,7 +59,7 @@ namespace spinal
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       for( uint32_t i = 0; i < 3; i++){
@@ -100,8 +100,8 @@ namespace spinal
      return offset;
     }
 
-    const char * getType(){ return "spinal/FourAxisCommand"; };
-    const char * getMD5(){ return "058c4b50fedc70ca5454fb118cb70947"; };
+    virtual const char * getType() override { return "spinal/FourAxisCommand"; };
+    virtual const char * getMD5() override { return "058c4b50fedc70ca5454fb118cb70947"; };
 
   };
 

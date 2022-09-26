@@ -18,11 +18,11 @@ namespace spinal
       _motor_value_type * motor_value;
 
     Pwms():
-      motor_value_length(0), motor_value(NULL)
+      motor_value_length(0), st_motor_value(), motor_value(nullptr)
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       *(outbuffer + offset + 0) = (this->motor_value_length >> (8 * 0)) & 0xFF;
@@ -38,7 +38,7 @@ namespace spinal
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       uint32_t motor_value_lengthT = ((uint32_t) (*(inbuffer + offset))); 
@@ -58,8 +58,8 @@ namespace spinal
      return offset;
     }
 
-    const char * getType(){ return "spinal/Pwms"; };
-    const char * getMD5(){ return "2c8c334b8b8efa66767058af395f7c74"; };
+    virtual const char * getType() override { return "spinal/Pwms"; };
+    virtual const char * getMD5() override { return "2c8c334b8b8efa66767058af395f7c74"; };
 
   };
 

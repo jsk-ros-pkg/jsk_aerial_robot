@@ -23,11 +23,11 @@ namespace controller_manager_msgs
 
     ControllersStatistics():
       header(),
-      controller_length(0), controller(NULL)
+      controller_length(0), st_controller(), controller(nullptr)
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       offset += this->header.serialize(outbuffer + offset);
@@ -42,7 +42,7 @@ namespace controller_manager_msgs
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       offset += this->header.deserialize(inbuffer + offset);
@@ -61,8 +61,8 @@ namespace controller_manager_msgs
      return offset;
     }
 
-    const char * getType(){ return "controller_manager_msgs/ControllersStatistics"; };
-    const char * getMD5(){ return "a154c347736773e3700d1719105df29d"; };
+    virtual const char * getType() override { return "controller_manager_msgs/ControllersStatistics"; };
+    virtual const char * getMD5() override { return "a154c347736773e3700d1719105df29d"; };
 
   };
 

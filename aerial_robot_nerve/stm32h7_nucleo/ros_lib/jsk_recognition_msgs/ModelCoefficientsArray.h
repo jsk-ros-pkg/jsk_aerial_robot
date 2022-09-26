@@ -23,11 +23,11 @@ namespace jsk_recognition_msgs
 
     ModelCoefficientsArray():
       header(),
-      coefficients_length(0), coefficients(NULL)
+      coefficients_length(0), st_coefficients(), coefficients(nullptr)
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       offset += this->header.serialize(outbuffer + offset);
@@ -42,7 +42,7 @@ namespace jsk_recognition_msgs
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       offset += this->header.deserialize(inbuffer + offset);
@@ -61,8 +61,8 @@ namespace jsk_recognition_msgs
      return offset;
     }
 
-    const char * getType(){ return "jsk_recognition_msgs/ModelCoefficientsArray"; };
-    const char * getMD5(){ return "059efee897c3f4ae027a493e30c4c26b"; };
+    virtual const char * getType() override { return "jsk_recognition_msgs/ModelCoefficientsArray"; };
+    virtual const char * getMD5() override { return "059efee897c3f4ae027a493e30c4c26b"; };
 
   };
 

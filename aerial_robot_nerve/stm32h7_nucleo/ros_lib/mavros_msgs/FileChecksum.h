@@ -21,7 +21,7 @@ static const char FILECHECKSUM[] = "mavros_msgs/FileChecksum";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       uint32_t length_file_path = strlen(this->file_path);
@@ -32,7 +32,7 @@ static const char FILECHECKSUM[] = "mavros_msgs/FileChecksum";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       uint32_t length_file_path;
@@ -47,8 +47,8 @@ static const char FILECHECKSUM[] = "mavros_msgs/FileChecksum";
      return offset;
     }
 
-    const char * getType(){ return FILECHECKSUM; };
-    const char * getMD5(){ return "a1f82596372c52a517e1fe32d1e998e8"; };
+    virtual const char * getType() override { return FILECHECKSUM; };
+    virtual const char * getMD5() override { return "a1f82596372c52a517e1fe32d1e998e8"; };
 
   };
 
@@ -69,7 +69,7 @@ static const char FILECHECKSUM[] = "mavros_msgs/FileChecksum";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       *(outbuffer + offset + 0) = (this->crc32 >> (8 * 0)) & 0xFF;
@@ -97,7 +97,7 @@ static const char FILECHECKSUM[] = "mavros_msgs/FileChecksum";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       this->crc32 =  ((uint32_t) (*(inbuffer + offset)));
@@ -127,8 +127,8 @@ static const char FILECHECKSUM[] = "mavros_msgs/FileChecksum";
      return offset;
     }
 
-    const char * getType(){ return FILECHECKSUM; };
-    const char * getMD5(){ return "8ecf737b97670b745ca39c7b185cc756"; };
+    virtual const char * getType() override { return FILECHECKSUM; };
+    virtual const char * getMD5() override { return "8ecf737b97670b745ca39c7b185cc756"; };
 
   };
 

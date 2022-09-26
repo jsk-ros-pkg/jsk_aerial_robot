@@ -27,11 +27,11 @@ namespace geographic_msgs
     WayPoint():
       id(),
       position(),
-      props_length(0), props(NULL)
+      props_length(0), st_props(), props(nullptr)
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       offset += this->id.serialize(outbuffer + offset);
@@ -47,7 +47,7 @@ namespace geographic_msgs
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       offset += this->id.deserialize(inbuffer + offset);
@@ -67,8 +67,8 @@ namespace geographic_msgs
      return offset;
     }
 
-    const char * getType(){ return "geographic_msgs/WayPoint"; };
-    const char * getMD5(){ return "ef04f823aef332455a49eaec3f1761b7"; };
+    virtual const char * getType() override { return "geographic_msgs/WayPoint"; };
+    virtual const char * getMD5() override { return "ef04f823aef332455a49eaec3f1761b7"; };
 
   };
 

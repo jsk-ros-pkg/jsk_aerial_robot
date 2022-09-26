@@ -4,9 +4,9 @@
 #include <string.h>
 #include <stdlib.h>
 #include "ros/msg.h"
-#include "sensor_msgs/RegionOfInterest.h"
-#include "ros/duration.h"
 #include "ros/time.h"
+#include "ros/duration.h"
+#include "sensor_msgs/RegionOfInterest.h"
 
 namespace polled_camera
 {
@@ -36,7 +36,7 @@ static const char GETPOLLEDIMAGE[] = "polled_camera/GetPolledImage";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       uint32_t length_response_namespace = strlen(this->response_namespace);
@@ -68,7 +68,7 @@ static const char GETPOLLEDIMAGE[] = "polled_camera/GetPolledImage";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       uint32_t length_response_namespace;
@@ -104,8 +104,8 @@ static const char GETPOLLEDIMAGE[] = "polled_camera/GetPolledImage";
      return offset;
     }
 
-    const char * getType(){ return GETPOLLEDIMAGE; };
-    const char * getMD5(){ return "c77ed43e530fd48e9e7a2a93845e154c"; };
+    virtual const char * getType() override { return GETPOLLEDIMAGE; };
+    virtual const char * getMD5() override { return "c77ed43e530fd48e9e7a2a93845e154c"; };
 
   };
 
@@ -126,7 +126,7 @@ static const char GETPOLLEDIMAGE[] = "polled_camera/GetPolledImage";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       union {
@@ -154,7 +154,7 @@ static const char GETPOLLEDIMAGE[] = "polled_camera/GetPolledImage";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       union {
@@ -187,8 +187,8 @@ static const char GETPOLLEDIMAGE[] = "polled_camera/GetPolledImage";
      return offset;
     }
 
-    const char * getType(){ return GETPOLLEDIMAGE; };
-    const char * getMD5(){ return "dbf1f851bc511800e6129ccd5a3542ab"; };
+    virtual const char * getType() override { return GETPOLLEDIMAGE; };
+    virtual const char * getMD5() override { return "dbf1f851bc511800e6129ccd5a3542ab"; };
 
   };
 

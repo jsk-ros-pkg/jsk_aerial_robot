@@ -25,11 +25,11 @@ namespace ublox_msgs
     MonVER():
       swVersion(),
       hwVersion(),
-      extension_length(0), extension(NULL)
+      extension_length(0), st_extension(), extension(nullptr)
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       for( uint32_t i = 0; i < 30; i++){
@@ -51,7 +51,7 @@ namespace ublox_msgs
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       for( uint32_t i = 0; i < 30; i++){
@@ -77,8 +77,8 @@ namespace ublox_msgs
      return offset;
     }
 
-    const char * getType(){ return "ublox_msgs/MonVER"; };
-    const char * getMD5(){ return "83c8a03d7744e76cc085d953e1a5a293"; };
+    virtual const char * getType() override { return "ublox_msgs/MonVER"; };
+    virtual const char * getMD5() override { return "83c8a03d7744e76cc085d953e1a5a293"; };
 
   };
 

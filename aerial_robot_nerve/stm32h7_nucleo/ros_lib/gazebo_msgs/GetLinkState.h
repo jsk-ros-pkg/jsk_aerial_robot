@@ -25,7 +25,7 @@ static const char GETLINKSTATE[] = "gazebo_msgs/GetLinkState";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       uint32_t length_link_name = strlen(this->link_name);
@@ -41,7 +41,7 @@ static const char GETLINKSTATE[] = "gazebo_msgs/GetLinkState";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       uint32_t length_link_name;
@@ -65,8 +65,8 @@ static const char GETLINKSTATE[] = "gazebo_msgs/GetLinkState";
      return offset;
     }
 
-    const char * getType(){ return GETLINKSTATE; };
-    const char * getMD5(){ return "7551675c30aaa71f7c288d4864552001"; };
+    virtual const char * getType() override { return GETLINKSTATE; };
+    virtual const char * getMD5() override { return "7551675c30aaa71f7c288d4864552001"; };
 
   };
 
@@ -87,7 +87,7 @@ static const char GETLINKSTATE[] = "gazebo_msgs/GetLinkState";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       offset += this->link_state.serialize(outbuffer + offset);
@@ -106,7 +106,7 @@ static const char GETLINKSTATE[] = "gazebo_msgs/GetLinkState";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       offset += this->link_state.deserialize(inbuffer + offset);
@@ -130,8 +130,8 @@ static const char GETLINKSTATE[] = "gazebo_msgs/GetLinkState";
      return offset;
     }
 
-    const char * getType(){ return GETLINKSTATE; };
-    const char * getMD5(){ return "8ba55ad34f9c072e75c0de57b089753b"; };
+    virtual const char * getType() override { return GETLINKSTATE; };
+    virtual const char * getMD5() override { return "8ba55ad34f9c072e75c0de57b089753b"; };
 
   };
 

@@ -30,7 +30,7 @@ namespace control_msgs
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       offset += this->header.serialize(outbuffer + offset);
@@ -79,7 +79,7 @@ namespace control_msgs
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       offset += this->header.deserialize(inbuffer + offset);
@@ -131,8 +131,8 @@ namespace control_msgs
      return offset;
     }
 
-    const char * getType(){ return "control_msgs/SingleJointPositionFeedback"; };
-    const char * getMD5(){ return "8cee65610a3d08e0a1bded82f146f1fd"; };
+    virtual const char * getType() override { return "control_msgs/SingleJointPositionFeedback"; };
+    virtual const char * getMD5() override { return "8cee65610a3d08e0a1bded82f146f1fd"; };
 
   };
 

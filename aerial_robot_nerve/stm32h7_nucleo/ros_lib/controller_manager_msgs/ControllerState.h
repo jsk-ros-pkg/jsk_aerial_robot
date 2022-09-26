@@ -28,11 +28,11 @@ namespace controller_manager_msgs
       name(""),
       state(""),
       type(""),
-      claimed_resources_length(0), claimed_resources(NULL)
+      claimed_resources_length(0), st_claimed_resources(), claimed_resources(nullptr)
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       uint32_t length_name = strlen(this->name);
@@ -61,7 +61,7 @@ namespace controller_manager_msgs
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       uint32_t length_name;
@@ -106,8 +106,8 @@ namespace controller_manager_msgs
      return offset;
     }
 
-    const char * getType(){ return "controller_manager_msgs/ControllerState"; };
-    const char * getMD5(){ return "aeb6b261d97793ab74099a3740245272"; };
+    virtual const char * getType() override { return "controller_manager_msgs/ControllerState"; };
+    virtual const char * getMD5() override { return "aeb6b261d97793ab74099a3740245272"; };
 
   };
 

@@ -24,7 +24,7 @@ static const char FILERENAME[] = "mavros_msgs/FileRename";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       uint32_t length_old_path = strlen(this->old_path);
@@ -40,7 +40,7 @@ static const char FILERENAME[] = "mavros_msgs/FileRename";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       uint32_t length_old_path;
@@ -64,8 +64,8 @@ static const char FILERENAME[] = "mavros_msgs/FileRename";
      return offset;
     }
 
-    const char * getType(){ return FILERENAME; };
-    const char * getMD5(){ return "e4a29684c4f7a3290a1bec0a9de2ed01"; };
+    virtual const char * getType() override { return FILERENAME; };
+    virtual const char * getMD5() override { return "e4a29684c4f7a3290a1bec0a9de2ed01"; };
 
   };
 
@@ -83,7 +83,7 @@ static const char FILERENAME[] = "mavros_msgs/FileRename";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       union {
@@ -106,7 +106,7 @@ static const char FILERENAME[] = "mavros_msgs/FileRename";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       union {
@@ -131,8 +131,8 @@ static const char FILERENAME[] = "mavros_msgs/FileRename";
      return offset;
     }
 
-    const char * getType(){ return FILERENAME; };
-    const char * getMD5(){ return "85394f2e941a8937ac567a617f06157f"; };
+    virtual const char * getType() override { return FILERENAME; };
+    virtual const char * getMD5() override { return "85394f2e941a8937ac567a617f06157f"; };
 
   };
 

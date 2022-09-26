@@ -27,7 +27,7 @@ static const char GETGEOPATH[] = "geographic_msgs/GetGeoPath";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       offset += this->start.serialize(outbuffer + offset);
@@ -35,7 +35,7 @@ static const char GETGEOPATH[] = "geographic_msgs/GetGeoPath";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       offset += this->start.deserialize(inbuffer + offset);
@@ -43,8 +43,8 @@ static const char GETGEOPATH[] = "geographic_msgs/GetGeoPath";
      return offset;
     }
 
-    const char * getType(){ return GETGEOPATH; };
-    const char * getMD5(){ return "cad6de11e4ae4ca568785186e1f99f89"; };
+    virtual const char * getType() override { return GETGEOPATH; };
+    virtual const char * getMD5() override { return "cad6de11e4ae4ca568785186e1f99f89"; };
 
   };
 
@@ -77,7 +77,7 @@ static const char GETGEOPATH[] = "geographic_msgs/GetGeoPath";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       union {
@@ -113,7 +113,7 @@ static const char GETGEOPATH[] = "geographic_msgs/GetGeoPath";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       union {
@@ -155,8 +155,8 @@ static const char GETGEOPATH[] = "geographic_msgs/GetGeoPath";
      return offset;
     }
 
-    const char * getType(){ return GETGEOPATH; };
-    const char * getMD5(){ return "0562f4b72e4d5b8e5fa142bd7363638c"; };
+    virtual const char * getType() override { return GETGEOPATH; };
+    virtual const char * getMD5() override { return "0562f4b72e4d5b8e5fa142bd7363638c"; };
 
   };
 

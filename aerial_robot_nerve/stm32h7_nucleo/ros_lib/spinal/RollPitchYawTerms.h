@@ -19,11 +19,11 @@ namespace spinal
       _motors_type * motors;
 
     RollPitchYawTerms():
-      motors_length(0), motors(NULL)
+      motors_length(0), st_motors(), motors(nullptr)
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       *(outbuffer + offset + 0) = (this->motors_length >> (8 * 0)) & 0xFF;
@@ -37,7 +37,7 @@ namespace spinal
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       uint32_t motors_lengthT = ((uint32_t) (*(inbuffer + offset))); 
@@ -55,8 +55,8 @@ namespace spinal
      return offset;
     }
 
-    const char * getType(){ return "spinal/RollPitchYawTerms"; };
-    const char * getMD5(){ return "e02c97843dff2be50cd609663998aa9e"; };
+    virtual const char * getType() override { return "spinal/RollPitchYawTerms"; };
+    virtual const char * getMD5() override { return "e02c97843dff2be50cd609663998aa9e"; };
 
   };
 

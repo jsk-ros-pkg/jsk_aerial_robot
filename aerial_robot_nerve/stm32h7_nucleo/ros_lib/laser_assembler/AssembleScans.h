@@ -26,7 +26,7 @@ static const char ASSEMBLESCANS[] = "laser_assembler/AssembleScans";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       *(outbuffer + offset + 0) = (this->begin.sec >> (8 * 0)) & 0xFF;
@@ -52,7 +52,7 @@ static const char ASSEMBLESCANS[] = "laser_assembler/AssembleScans";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       this->begin.sec =  ((uint32_t) (*(inbuffer + offset)));
@@ -78,8 +78,8 @@ static const char ASSEMBLESCANS[] = "laser_assembler/AssembleScans";
      return offset;
     }
 
-    const char * getType(){ return ASSEMBLESCANS; };
-    const char * getMD5(){ return "b341004f74e15bf5e1b2053a9183bdc7"; };
+    virtual const char * getType() override { return ASSEMBLESCANS; };
+    virtual const char * getMD5() override { return "b341004f74e15bf5e1b2053a9183bdc7"; };
 
   };
 
@@ -94,22 +94,22 @@ static const char ASSEMBLESCANS[] = "laser_assembler/AssembleScans";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       offset += this->cloud.serialize(outbuffer + offset);
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       offset += this->cloud.deserialize(inbuffer + offset);
      return offset;
     }
 
-    const char * getType(){ return ASSEMBLESCANS; };
-    const char * getMD5(){ return "4217b28a903e4ad7869a83b3653110ff"; };
+    virtual const char * getType() override { return ASSEMBLESCANS; };
+    virtual const char * getMD5() override { return "4217b28a903e4ad7869a83b3653110ff"; };
 
   };
 

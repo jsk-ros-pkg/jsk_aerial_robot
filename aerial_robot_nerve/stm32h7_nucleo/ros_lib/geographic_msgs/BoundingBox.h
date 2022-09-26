@@ -24,7 +24,7 @@ namespace geographic_msgs
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       offset += this->min_pt.serialize(outbuffer + offset);
@@ -32,7 +32,7 @@ namespace geographic_msgs
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       offset += this->min_pt.deserialize(inbuffer + offset);
@@ -40,8 +40,8 @@ namespace geographic_msgs
      return offset;
     }
 
-    const char * getType(){ return "geographic_msgs/BoundingBox"; };
-    const char * getMD5(){ return "f62e8b5e390a3ac7603250d46e8f8446"; };
+    virtual const char * getType() override { return "geographic_msgs/BoundingBox"; };
+    virtual const char * getMD5() override { return "f62e8b5e390a3ac7603250d46e8f8446"; };
 
   };
 

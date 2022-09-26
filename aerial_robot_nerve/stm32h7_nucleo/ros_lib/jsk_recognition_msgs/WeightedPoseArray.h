@@ -25,12 +25,12 @@ namespace jsk_recognition_msgs
 
     WeightedPoseArray():
       header(),
-      weights_length(0), weights(NULL),
+      weights_length(0), st_weights(), weights(nullptr),
       poses()
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       offset += this->header.serialize(outbuffer + offset);
@@ -55,7 +55,7 @@ namespace jsk_recognition_msgs
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       offset += this->header.deserialize(inbuffer + offset);
@@ -85,8 +85,8 @@ namespace jsk_recognition_msgs
      return offset;
     }
 
-    const char * getType(){ return "jsk_recognition_msgs/WeightedPoseArray"; };
-    const char * getMD5(){ return "40f180494a75a8797b1c2ba81b2cb4c0"; };
+    virtual const char * getType() override { return "jsk_recognition_msgs/WeightedPoseArray"; };
+    virtual const char * getMD5() override { return "40f180494a75a8797b1c2ba81b2cb4c0"; };
 
   };
 

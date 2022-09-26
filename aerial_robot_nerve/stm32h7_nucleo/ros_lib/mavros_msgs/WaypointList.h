@@ -22,11 +22,11 @@ namespace mavros_msgs
 
     WaypointList():
       current_seq(0),
-      waypoints_length(0), waypoints(NULL)
+      waypoints_length(0), st_waypoints(), waypoints(nullptr)
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       *(outbuffer + offset + 0) = (this->current_seq >> (8 * 0)) & 0xFF;
@@ -43,7 +43,7 @@ namespace mavros_msgs
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       this->current_seq =  ((uint16_t) (*(inbuffer + offset)));
@@ -64,8 +64,8 @@ namespace mavros_msgs
      return offset;
     }
 
-    const char * getType(){ return "mavros_msgs/WaypointList"; };
-    const char * getMD5(){ return "0605a2df153acd9a4a4823385ed81b57"; };
+    virtual const char * getType() override { return "mavros_msgs/WaypointList"; };
+    virtual const char * getMD5() override { return "0605a2df153acd9a4a4823385ed81b57"; };
 
   };
 

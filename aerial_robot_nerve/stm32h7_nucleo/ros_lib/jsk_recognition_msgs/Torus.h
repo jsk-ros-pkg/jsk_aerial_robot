@@ -34,7 +34,7 @@ namespace jsk_recognition_msgs
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       offset += this->header.serialize(outbuffer + offset);
@@ -77,7 +77,7 @@ namespace jsk_recognition_msgs
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       offset += this->header.deserialize(inbuffer + offset);
@@ -123,8 +123,8 @@ namespace jsk_recognition_msgs
      return offset;
     }
 
-    const char * getType(){ return "jsk_recognition_msgs/Torus"; };
-    const char * getMD5(){ return "7172d433485e406ce56f4cf6e9ab1062"; };
+    virtual const char * getType() override { return "jsk_recognition_msgs/Torus"; };
+    virtual const char * getMD5() override { return "7172d433485e406ce56f4cf6e9ab1062"; };
 
   };
 

@@ -19,20 +19,20 @@ static const char GETBOARDINFO[] = "spinal/GetBoardInfo";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
      return offset;
     }
 
-    const char * getType(){ return GETBOARDINFO; };
-    const char * getMD5(){ return "d41d8cd98f00b204e9800998ecf8427e"; };
+    virtual const char * getType() override { return GETBOARDINFO; };
+    virtual const char * getMD5() override { return "d41d8cd98f00b204e9800998ecf8427e"; };
 
   };
 
@@ -45,11 +45,11 @@ static const char GETBOARDINFO[] = "spinal/GetBoardInfo";
       _boards_type * boards;
 
     GetBoardInfoResponse():
-      boards_length(0), boards(NULL)
+      boards_length(0), st_boards(), boards(nullptr)
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       *(outbuffer + offset + 0) = (this->boards_length >> (8 * 0)) & 0xFF;
@@ -63,7 +63,7 @@ static const char GETBOARDINFO[] = "spinal/GetBoardInfo";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       uint32_t boards_lengthT = ((uint32_t) (*(inbuffer + offset))); 
@@ -81,8 +81,8 @@ static const char GETBOARDINFO[] = "spinal/GetBoardInfo";
      return offset;
     }
 
-    const char * getType(){ return GETBOARDINFO; };
-    const char * getMD5(){ return "66fd709be8b736fcb084865c0e818d87"; };
+    virtual const char * getType() override { return GETBOARDINFO; };
+    virtual const char * getMD5() override { return "66fd709be8b736fcb084865c0e818d87"; };
 
   };
 

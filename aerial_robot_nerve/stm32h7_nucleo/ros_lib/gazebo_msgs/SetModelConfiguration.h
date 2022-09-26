@@ -29,12 +29,12 @@ static const char SETMODELCONFIGURATION[] = "gazebo_msgs/SetModelConfiguration";
     SetModelConfigurationRequest():
       model_name(""),
       urdf_param_name(""),
-      joint_names_length(0), joint_names(NULL),
-      joint_positions_length(0), joint_positions(NULL)
+      joint_names_length(0), st_joint_names(), joint_names(nullptr),
+      joint_positions_length(0), st_joint_positions(), joint_positions(nullptr)
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       uint32_t length_model_name = strlen(this->model_name);
@@ -83,7 +83,7 @@ static const char SETMODELCONFIGURATION[] = "gazebo_msgs/SetModelConfiguration";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       uint32_t length_model_name;
@@ -153,8 +153,8 @@ static const char SETMODELCONFIGURATION[] = "gazebo_msgs/SetModelConfiguration";
      return offset;
     }
 
-    const char * getType(){ return SETMODELCONFIGURATION; };
-    const char * getMD5(){ return "160eae60f51fabff255480c70afa289f"; };
+    virtual const char * getType() override { return SETMODELCONFIGURATION; };
+    virtual const char * getMD5() override { return "160eae60f51fabff255480c70afa289f"; };
 
   };
 
@@ -172,7 +172,7 @@ static const char SETMODELCONFIGURATION[] = "gazebo_msgs/SetModelConfiguration";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       union {
@@ -190,7 +190,7 @@ static const char SETMODELCONFIGURATION[] = "gazebo_msgs/SetModelConfiguration";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       union {
@@ -213,8 +213,8 @@ static const char SETMODELCONFIGURATION[] = "gazebo_msgs/SetModelConfiguration";
      return offset;
     }
 
-    const char * getType(){ return SETMODELCONFIGURATION; };
-    const char * getMD5(){ return "2ec6f3eff0161f4257b808b12bc830c2"; };
+    virtual const char * getType() override { return SETMODELCONFIGURATION; };
+    virtual const char * getMD5() override { return "2ec6f3eff0161f4257b808b12bc830c2"; };
 
   };
 

@@ -31,15 +31,15 @@ static const char SWITCHCONTROLLER[] = "controller_manager_msgs/SwitchController
       enum { STRICT = 2 };
 
     SwitchControllerRequest():
-      start_controllers_length(0), start_controllers(NULL),
-      stop_controllers_length(0), stop_controllers(NULL),
+      start_controllers_length(0), st_start_controllers(), start_controllers(nullptr),
+      stop_controllers_length(0), st_stop_controllers(), stop_controllers(nullptr),
       strictness(0),
       start_asap(0),
       timeout(0)
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       *(outbuffer + offset + 0) = (this->start_controllers_length >> (8 * 0)) & 0xFF;
@@ -100,7 +100,7 @@ static const char SWITCHCONTROLLER[] = "controller_manager_msgs/SwitchController
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       uint32_t start_controllers_lengthT = ((uint32_t) (*(inbuffer + offset))); 
@@ -180,8 +180,8 @@ static const char SWITCHCONTROLLER[] = "controller_manager_msgs/SwitchController
      return offset;
     }
 
-    const char * getType(){ return SWITCHCONTROLLER; };
-    const char * getMD5(){ return "36d99a977432b71d4bf16ce5847949d7"; };
+    virtual const char * getType() override { return SWITCHCONTROLLER; };
+    virtual const char * getMD5() override { return "36d99a977432b71d4bf16ce5847949d7"; };
 
   };
 
@@ -196,7 +196,7 @@ static const char SWITCHCONTROLLER[] = "controller_manager_msgs/SwitchController
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       union {
@@ -209,7 +209,7 @@ static const char SWITCHCONTROLLER[] = "controller_manager_msgs/SwitchController
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       union {
@@ -223,8 +223,8 @@ static const char SWITCHCONTROLLER[] = "controller_manager_msgs/SwitchController
      return offset;
     }
 
-    const char * getType(){ return SWITCHCONTROLLER; };
-    const char * getMD5(){ return "6f6da3883749771fac40d6deb24a8c02"; };
+    virtual const char * getType() override { return SWITCHCONTROLLER; };
+    virtual const char * getMD5() override { return "6f6da3883749771fac40d6deb24a8c02"; };
 
   };
 

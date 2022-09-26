@@ -34,11 +34,11 @@ namespace spinal
       min_thrust(0),
       force_landing_thrust(0),
       pwm_conversion_mode(0),
-      motor_info_length(0), motor_info(NULL)
+      motor_info_length(0), st_motor_info(), motor_info(nullptr)
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       union {
@@ -94,7 +94,7 @@ namespace spinal
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       union {
@@ -158,8 +158,8 @@ namespace spinal
      return offset;
     }
 
-    const char * getType(){ return "spinal/PwmInfo"; };
-    const char * getMD5(){ return "eec31372c8b2144723787801d78deb56"; };
+    virtual const char * getType() override { return "spinal/PwmInfo"; };
+    virtual const char * getMD5() override { return "eec31372c8b2144723787801d78deb56"; };
 
   };
 

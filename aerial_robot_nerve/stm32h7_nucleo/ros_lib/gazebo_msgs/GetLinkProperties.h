@@ -22,7 +22,7 @@ static const char GETLINKPROPERTIES[] = "gazebo_msgs/GetLinkProperties";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       uint32_t length_link_name = strlen(this->link_name);
@@ -33,7 +33,7 @@ static const char GETLINKPROPERTIES[] = "gazebo_msgs/GetLinkProperties";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       uint32_t length_link_name;
@@ -48,8 +48,8 @@ static const char GETLINKPROPERTIES[] = "gazebo_msgs/GetLinkProperties";
      return offset;
     }
 
-    const char * getType(){ return GETLINKPROPERTIES; };
-    const char * getMD5(){ return "7d82d60381f1b66a30f2157f60884345"; };
+    virtual const char * getType() override { return GETLINKPROPERTIES; };
+    virtual const char * getMD5() override { return "7d82d60381f1b66a30f2157f60884345"; };
 
   };
 
@@ -94,7 +94,7 @@ static const char GETLINKPROPERTIES[] = "gazebo_msgs/GetLinkProperties";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       offset += this->com.serialize(outbuffer + offset);
@@ -218,7 +218,7 @@ static const char GETLINKPROPERTIES[] = "gazebo_msgs/GetLinkProperties";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       offset += this->com.deserialize(inbuffer + offset);
@@ -355,8 +355,8 @@ static const char GETLINKPROPERTIES[] = "gazebo_msgs/GetLinkProperties";
      return offset;
     }
 
-    const char * getType(){ return GETLINKPROPERTIES; };
-    const char * getMD5(){ return "a8619f92d17cfcc3958c0fd13299443d"; };
+    virtual const char * getType() override { return GETLINKPROPERTIES; };
+    virtual const char * getMD5() override { return "a8619f92d17cfcc3958c0fd13299443d"; };
 
   };
 

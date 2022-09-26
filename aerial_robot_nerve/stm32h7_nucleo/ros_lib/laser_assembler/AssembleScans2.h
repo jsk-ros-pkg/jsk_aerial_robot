@@ -4,8 +4,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include "ros/msg.h"
-#include "sensor_msgs/PointCloud2.h"
 #include "ros/time.h"
+#include "sensor_msgs/PointCloud2.h"
 
 namespace laser_assembler
 {
@@ -26,7 +26,7 @@ static const char ASSEMBLESCANS2[] = "laser_assembler/AssembleScans2";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       *(outbuffer + offset + 0) = (this->begin.sec >> (8 * 0)) & 0xFF;
@@ -52,7 +52,7 @@ static const char ASSEMBLESCANS2[] = "laser_assembler/AssembleScans2";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       this->begin.sec =  ((uint32_t) (*(inbuffer + offset)));
@@ -78,8 +78,8 @@ static const char ASSEMBLESCANS2[] = "laser_assembler/AssembleScans2";
      return offset;
     }
 
-    const char * getType(){ return ASSEMBLESCANS2; };
-    const char * getMD5(){ return "b341004f74e15bf5e1b2053a9183bdc7"; };
+    virtual const char * getType() override { return ASSEMBLESCANS2; };
+    virtual const char * getMD5() override { return "b341004f74e15bf5e1b2053a9183bdc7"; };
 
   };
 
@@ -94,22 +94,22 @@ static const char ASSEMBLESCANS2[] = "laser_assembler/AssembleScans2";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       offset += this->cloud.serialize(outbuffer + offset);
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       offset += this->cloud.deserialize(inbuffer + offset);
      return offset;
     }
 
-    const char * getType(){ return ASSEMBLESCANS2; };
-    const char * getMD5(){ return "96cec5374164b3b3d1d7ef5d7628a7ed"; };
+    virtual const char * getType() override { return ASSEMBLESCANS2; };
+    virtual const char * getMD5() override { return "96cec5374164b3b3d1d7ef5d7628a7ed"; };
 
   };
 

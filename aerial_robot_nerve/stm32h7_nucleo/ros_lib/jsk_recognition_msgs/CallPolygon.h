@@ -22,7 +22,7 @@ static const char CALLPOLYGON[] = "jsk_recognition_msgs/CallPolygon";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       uint32_t length_filename = strlen(this->filename);
@@ -33,7 +33,7 @@ static const char CALLPOLYGON[] = "jsk_recognition_msgs/CallPolygon";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       uint32_t length_filename;
@@ -48,8 +48,8 @@ static const char CALLPOLYGON[] = "jsk_recognition_msgs/CallPolygon";
      return offset;
     }
 
-    const char * getType(){ return CALLPOLYGON; };
-    const char * getMD5(){ return "030824f52a0628ead956fb9d67e66ae9"; };
+    virtual const char * getType() override { return CALLPOLYGON; };
+    virtual const char * getMD5() override { return "030824f52a0628ead956fb9d67e66ae9"; };
 
   };
 
@@ -64,22 +64,22 @@ static const char CALLPOLYGON[] = "jsk_recognition_msgs/CallPolygon";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       offset += this->points.serialize(outbuffer + offset);
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       offset += this->points.deserialize(inbuffer + offset);
      return offset;
     }
 
-    const char * getType(){ return CALLPOLYGON; };
-    const char * getMD5(){ return "5f7fab179463c3091ade3556924563da"; };
+    virtual const char * getType() override { return CALLPOLYGON; };
+    virtual const char * getMD5() override { return "5f7fab179463c3091ade3556924563da"; };
 
   };
 

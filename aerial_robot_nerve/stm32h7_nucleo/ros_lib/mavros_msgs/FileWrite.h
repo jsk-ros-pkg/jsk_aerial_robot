@@ -25,11 +25,11 @@ static const char FILEWRITE[] = "mavros_msgs/FileWrite";
     FileWriteRequest():
       file_path(""),
       offset(0),
-      data_length(0), data(NULL)
+      data_length(0), st_data(), data(nullptr)
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       uint32_t length_file_path = strlen(this->file_path);
@@ -58,7 +58,7 @@ static const char FILEWRITE[] = "mavros_msgs/FileWrite";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       uint32_t length_file_path;
@@ -95,8 +95,8 @@ static const char FILEWRITE[] = "mavros_msgs/FileWrite";
      return offset;
     }
 
-    const char * getType(){ return FILEWRITE; };
-    const char * getMD5(){ return "cf1a270aa1398f3f1fac1649fe2275ef"; };
+    virtual const char * getType() override { return FILEWRITE; };
+    virtual const char * getMD5() override { return "cf1a270aa1398f3f1fac1649fe2275ef"; };
 
   };
 
@@ -114,7 +114,7 @@ static const char FILEWRITE[] = "mavros_msgs/FileWrite";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       union {
@@ -137,7 +137,7 @@ static const char FILEWRITE[] = "mavros_msgs/FileWrite";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       union {
@@ -162,8 +162,8 @@ static const char FILEWRITE[] = "mavros_msgs/FileWrite";
      return offset;
     }
 
-    const char * getType(){ return FILEWRITE; };
-    const char * getMD5(){ return "85394f2e941a8937ac567a617f06157f"; };
+    virtual const char * getType() override { return FILEWRITE; };
+    virtual const char * getMD5() override { return "85394f2e941a8937ac567a617f06157f"; };
 
   };
 

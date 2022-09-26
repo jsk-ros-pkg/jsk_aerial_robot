@@ -18,20 +18,20 @@ static const char PARAMPUSH[] = "mavros_msgs/ParamPush";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
      return offset;
     }
 
-    const char * getType(){ return PARAMPUSH; };
-    const char * getMD5(){ return "d41d8cd98f00b204e9800998ecf8427e"; };
+    virtual const char * getType() override { return PARAMPUSH; };
+    virtual const char * getMD5() override { return "d41d8cd98f00b204e9800998ecf8427e"; };
 
   };
 
@@ -49,7 +49,7 @@ static const char PARAMPUSH[] = "mavros_msgs/ParamPush";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       union {
@@ -67,7 +67,7 @@ static const char PARAMPUSH[] = "mavros_msgs/ParamPush";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       union {
@@ -86,8 +86,8 @@ static const char PARAMPUSH[] = "mavros_msgs/ParamPush";
      return offset;
     }
 
-    const char * getType(){ return PARAMPUSH; };
-    const char * getMD5(){ return "d3fc4d8cefa193382985a92a041a2a3d"; };
+    virtual const char * getType() override { return PARAMPUSH; };
+    virtual const char * getMD5() override { return "d3fc4d8cefa193382985a92a041a2a3d"; };
 
   };
 

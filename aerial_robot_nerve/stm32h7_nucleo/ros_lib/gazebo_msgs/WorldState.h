@@ -37,14 +37,14 @@ namespace gazebo_msgs
 
     WorldState():
       header(),
-      name_length(0), name(NULL),
-      pose_length(0), pose(NULL),
-      twist_length(0), twist(NULL),
-      wrench_length(0), wrench(NULL)
+      name_length(0), st_name(), name(nullptr),
+      pose_length(0), st_pose(), pose(nullptr),
+      twist_length(0), st_twist(), twist(nullptr),
+      wrench_length(0), st_wrench(), wrench(nullptr)
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       offset += this->header.serialize(outbuffer + offset);
@@ -87,7 +87,7 @@ namespace gazebo_msgs
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       offset += this->header.deserialize(inbuffer + offset);
@@ -150,8 +150,8 @@ namespace gazebo_msgs
      return offset;
     }
 
-    const char * getType(){ return "gazebo_msgs/WorldState"; };
-    const char * getMD5(){ return "de1a9de3ab7ba97ac0e9ec01a4eb481e"; };
+    virtual const char * getType() override { return "gazebo_msgs/WorldState"; };
+    virtual const char * getMD5() override { return "de1a9de3ab7ba97ac0e9ec01a4eb481e"; };
 
   };
 

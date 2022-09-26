@@ -21,7 +21,7 @@ static const char PARAMPULL[] = "mavros_msgs/ParamPull";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       union {
@@ -34,7 +34,7 @@ static const char PARAMPULL[] = "mavros_msgs/ParamPull";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       union {
@@ -48,8 +48,8 @@ static const char PARAMPULL[] = "mavros_msgs/ParamPull";
      return offset;
     }
 
-    const char * getType(){ return PARAMPULL; };
-    const char * getMD5(){ return "16415b4e049d3f92df764eeb461102b7"; };
+    virtual const char * getType() override { return PARAMPULL; };
+    virtual const char * getMD5() override { return "16415b4e049d3f92df764eeb461102b7"; };
 
   };
 
@@ -67,7 +67,7 @@ static const char PARAMPULL[] = "mavros_msgs/ParamPull";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       union {
@@ -85,7 +85,7 @@ static const char PARAMPULL[] = "mavros_msgs/ParamPull";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       union {
@@ -104,8 +104,8 @@ static const char PARAMPULL[] = "mavros_msgs/ParamPull";
      return offset;
     }
 
-    const char * getType(){ return PARAMPULL; };
-    const char * getMD5(){ return "5601e883220b149a3209512e966299f0"; };
+    virtual const char * getType() override { return PARAMPULL; };
+    virtual const char * getMD5() override { return "5601e883220b149a3209512e966299f0"; };
 
   };
 

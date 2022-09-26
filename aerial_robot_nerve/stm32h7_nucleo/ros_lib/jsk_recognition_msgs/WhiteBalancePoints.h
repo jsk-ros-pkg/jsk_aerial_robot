@@ -24,7 +24,7 @@ static const char WHITEBALANCEPOINTS[] = "jsk_recognition_msgs/WhiteBalancePoint
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       for( uint32_t i = 0; i < 3; i++){
@@ -43,7 +43,7 @@ static const char WHITEBALANCEPOINTS[] = "jsk_recognition_msgs/WhiteBalancePoint
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       for( uint32_t i = 0; i < 3; i++){
@@ -63,8 +63,8 @@ static const char WHITEBALANCEPOINTS[] = "jsk_recognition_msgs/WhiteBalancePoint
      return offset;
     }
 
-    const char * getType(){ return WHITEBALANCEPOINTS; };
-    const char * getMD5(){ return "c114e8c81fa040c23390d86cd0cb8e3a"; };
+    virtual const char * getType() override { return WHITEBALANCEPOINTS; };
+    virtual const char * getMD5() override { return "c114e8c81fa040c23390d86cd0cb8e3a"; };
 
   };
 
@@ -79,22 +79,22 @@ static const char WHITEBALANCEPOINTS[] = "jsk_recognition_msgs/WhiteBalancePoint
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       offset += this->output.serialize(outbuffer + offset);
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       offset += this->output.deserialize(inbuffer + offset);
      return offset;
     }
 
-    const char * getType(){ return WHITEBALANCEPOINTS; };
-    const char * getMD5(){ return "6db5ac8d8316fdb3e0c62197115f87cd"; };
+    virtual const char * getType() override { return WHITEBALANCEPOINTS; };
+    virtual const char * getMD5() override { return "6db5ac8d8316fdb3e0c62197115f87cd"; };
 
   };
 

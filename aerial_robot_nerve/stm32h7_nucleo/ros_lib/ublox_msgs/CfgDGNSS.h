@@ -26,7 +26,7 @@ namespace ublox_msgs
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       *(outbuffer + offset + 0) = (this->dgnssMode >> (8 * 0)) & 0xFF;
@@ -38,7 +38,7 @@ namespace ublox_msgs
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       this->dgnssMode =  ((uint8_t) (*(inbuffer + offset)));
@@ -50,8 +50,8 @@ namespace ublox_msgs
      return offset;
     }
 
-    const char * getType(){ return "ublox_msgs/CfgDGNSS"; };
-    const char * getMD5(){ return "2ec4391f93581f9db720bbc0af2b613e"; };
+    virtual const char * getType() override { return "ublox_msgs/CfgDGNSS"; };
+    virtual const char * getMD5() override { return "2ec4391f93581f9db720bbc0af2b613e"; };
 
   };
 

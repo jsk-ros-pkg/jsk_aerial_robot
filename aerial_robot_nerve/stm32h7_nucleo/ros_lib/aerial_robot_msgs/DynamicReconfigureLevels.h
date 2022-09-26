@@ -35,20 +35,20 @@ namespace aerial_robot_msgs
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
      return offset;
     }
 
-    const char * getType(){ return "aerial_robot_msgs/DynamicReconfigureLevels"; };
-    const char * getMD5(){ return "ed3d0732cfbb793bcb46da1ed7b2273e"; };
+    virtual const char * getType() override { return "aerial_robot_msgs/DynamicReconfigureLevels"; };
+    virtual const char * getMD5() override { return "ed3d0732cfbb793bcb46da1ed7b2273e"; };
 
   };
 

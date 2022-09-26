@@ -29,7 +29,7 @@ namespace jsk_recognition_msgs
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       union {
@@ -75,7 +75,7 @@ namespace jsk_recognition_msgs
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       union {
@@ -125,8 +125,8 @@ namespace jsk_recognition_msgs
      return offset;
     }
 
-    const char * getType(){ return "jsk_recognition_msgs/HeightmapConfig"; };
-    const char * getMD5(){ return "f2f90f6dd5aeedef48b062e1a4aabb89"; };
+    virtual const char * getType() override { return "jsk_recognition_msgs/HeightmapConfig"; };
+    virtual const char * getMD5() override { return "f2f90f6dd5aeedef48b062e1a4aabb89"; };
 
   };
 

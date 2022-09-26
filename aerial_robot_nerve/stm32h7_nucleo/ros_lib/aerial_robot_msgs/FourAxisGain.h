@@ -62,22 +62,22 @@ namespace aerial_robot_msgs
       _yaw_d_gain_type * yaw_d_gain;
 
     FourAxisGain():
-      pitch_p_gain_length(0), pitch_p_gain(NULL),
-      pitch_i_gain_length(0), pitch_i_gain(NULL),
-      pitch_d_gain_length(0), pitch_d_gain(NULL),
-      roll_p_gain_length(0), roll_p_gain(NULL),
-      roll_i_gain_length(0), roll_i_gain(NULL),
-      roll_d_gain_length(0), roll_d_gain(NULL),
-      z_p_gain_length(0), z_p_gain(NULL),
-      z_i_gain_length(0), z_i_gain(NULL),
-      z_d_gain_length(0), z_d_gain(NULL),
-      yaw_p_gain_length(0), yaw_p_gain(NULL),
-      yaw_i_gain_length(0), yaw_i_gain(NULL),
-      yaw_d_gain_length(0), yaw_d_gain(NULL)
+      pitch_p_gain_length(0), st_pitch_p_gain(), pitch_p_gain(nullptr),
+      pitch_i_gain_length(0), st_pitch_i_gain(), pitch_i_gain(nullptr),
+      pitch_d_gain_length(0), st_pitch_d_gain(), pitch_d_gain(nullptr),
+      roll_p_gain_length(0), st_roll_p_gain(), roll_p_gain(nullptr),
+      roll_i_gain_length(0), st_roll_i_gain(), roll_i_gain(nullptr),
+      roll_d_gain_length(0), st_roll_d_gain(), roll_d_gain(nullptr),
+      z_p_gain_length(0), st_z_p_gain(), z_p_gain(nullptr),
+      z_i_gain_length(0), st_z_i_gain(), z_i_gain(nullptr),
+      z_d_gain_length(0), st_z_d_gain(), z_d_gain(nullptr),
+      yaw_p_gain_length(0), st_yaw_p_gain(), yaw_p_gain(nullptr),
+      yaw_i_gain_length(0), st_yaw_i_gain(), yaw_i_gain(nullptr),
+      yaw_d_gain_length(0), st_yaw_d_gain(), yaw_d_gain(nullptr)
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       *(outbuffer + offset + 0) = (this->pitch_p_gain_length >> (8 * 0)) & 0xFF;
@@ -287,7 +287,7 @@ namespace aerial_robot_msgs
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       uint32_t pitch_p_gain_lengthT = ((uint32_t) (*(inbuffer + offset))); 
@@ -557,8 +557,8 @@ namespace aerial_robot_msgs
      return offset;
     }
 
-    const char * getType(){ return "aerial_robot_msgs/FourAxisGain"; };
-    const char * getMD5(){ return "3c6a2479670464c17ccfa32890752308"; };
+    virtual const char * getType() override { return "aerial_robot_msgs/FourAxisGain"; };
+    virtual const char * getMD5() override { return "3c6a2479670464c17ccfa32890752308"; };
 
   };
 

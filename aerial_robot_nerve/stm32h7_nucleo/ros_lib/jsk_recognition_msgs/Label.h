@@ -23,7 +23,7 @@ namespace jsk_recognition_msgs
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       union {
@@ -44,7 +44,7 @@ namespace jsk_recognition_msgs
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       union {
@@ -70,8 +70,8 @@ namespace jsk_recognition_msgs
      return offset;
     }
 
-    const char * getType(){ return "jsk_recognition_msgs/Label"; };
-    const char * getMD5(){ return "8fe5a440459dcada9c353c016dfb49d2"; };
+    virtual const char * getType() override { return "jsk_recognition_msgs/Label"; };
+    virtual const char * getMD5() override { return "8fe5a440459dcada9c353c016dfb49d2"; };
 
   };
 

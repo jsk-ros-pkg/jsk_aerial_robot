@@ -22,7 +22,7 @@ static const char QUERYTRAJECTORYSTATE[] = "control_msgs/QueryTrajectoryState";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       *(outbuffer + offset + 0) = (this->time.sec >> (8 * 0)) & 0xFF;
@@ -38,7 +38,7 @@ static const char QUERYTRAJECTORYSTATE[] = "control_msgs/QueryTrajectoryState";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       this->time.sec =  ((uint32_t) (*(inbuffer + offset)));
@@ -54,8 +54,8 @@ static const char QUERYTRAJECTORYSTATE[] = "control_msgs/QueryTrajectoryState";
      return offset;
     }
 
-    const char * getType(){ return QUERYTRAJECTORYSTATE; };
-    const char * getMD5(){ return "556a4fb76023a469987922359d08a844"; };
+    virtual const char * getType() override { return QUERYTRAJECTORYSTATE; };
+    virtual const char * getMD5() override { return "556a4fb76023a469987922359d08a844"; };
 
   };
 
@@ -80,14 +80,14 @@ static const char QUERYTRAJECTORYSTATE[] = "control_msgs/QueryTrajectoryState";
       _acceleration_type * acceleration;
 
     QueryTrajectoryStateResponse():
-      name_length(0), name(NULL),
-      position_length(0), position(NULL),
-      velocity_length(0), velocity(NULL),
-      acceleration_length(0), acceleration(NULL)
+      name_length(0), st_name(), name(nullptr),
+      position_length(0), st_position(), position(nullptr),
+      velocity_length(0), st_velocity(), velocity(nullptr),
+      acceleration_length(0), st_acceleration(), acceleration(nullptr)
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       *(outbuffer + offset + 0) = (this->name_length >> (8 * 0)) & 0xFF;
@@ -168,7 +168,7 @@ static const char QUERYTRAJECTORYSTATE[] = "control_msgs/QueryTrajectoryState";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       uint32_t name_lengthT = ((uint32_t) (*(inbuffer + offset))); 
@@ -272,8 +272,8 @@ static const char QUERYTRAJECTORYSTATE[] = "control_msgs/QueryTrajectoryState";
      return offset;
     }
 
-    const char * getType(){ return QUERYTRAJECTORYSTATE; };
-    const char * getMD5(){ return "1f1a6554ad060f44d013e71868403c1a"; };
+    virtual const char * getType() override { return QUERYTRAJECTORYSTATE; };
+    virtual const char * getMD5() override { return "1f1a6554ad060f44d013e71868403c1a"; };
 
   };
 

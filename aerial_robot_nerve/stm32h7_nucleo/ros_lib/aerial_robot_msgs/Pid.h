@@ -38,10 +38,10 @@ namespace aerial_robot_msgs
       _err_d_type err_d;
 
     Pid():
-      total_length(0), total(NULL),
-      p_term_length(0), p_term(NULL),
-      i_term_length(0), i_term(NULL),
-      d_term_length(0), d_term(NULL),
+      total_length(0), st_total(), total(nullptr),
+      p_term_length(0), st_p_term(), p_term(nullptr),
+      i_term_length(0), st_i_term(), i_term(nullptr),
+      d_term_length(0), st_d_term(), d_term(nullptr),
       target_p(0),
       err_p(0),
       target_d(0),
@@ -49,7 +49,7 @@ namespace aerial_robot_msgs
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       *(outbuffer + offset + 0) = (this->total_length >> (8 * 0)) & 0xFF;
@@ -163,7 +163,7 @@ namespace aerial_robot_msgs
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       uint32_t total_lengthT = ((uint32_t) (*(inbuffer + offset))); 
@@ -301,8 +301,8 @@ namespace aerial_robot_msgs
      return offset;
     }
 
-    const char * getType(){ return "aerial_robot_msgs/Pid"; };
-    const char * getMD5(){ return "db161b2062dd6acaa882c985d44815a8"; };
+    virtual const char * getType() override { return "aerial_robot_msgs/Pid"; };
+    virtual const char * getMD5() override { return "db161b2062dd6acaa882c985d44815a8"; };
 
   };
 

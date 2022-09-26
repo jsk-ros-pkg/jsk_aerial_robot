@@ -25,7 +25,7 @@ static const char SAVEMESH[] = "jsk_recognition_msgs/SaveMesh";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       uint32_t length_ground_frame_id = strlen(this->ground_frame_id);
@@ -37,7 +37,7 @@ static const char SAVEMESH[] = "jsk_recognition_msgs/SaveMesh";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       uint32_t length_ground_frame_id;
@@ -53,8 +53,8 @@ static const char SAVEMESH[] = "jsk_recognition_msgs/SaveMesh";
      return offset;
     }
 
-    const char * getType(){ return SAVEMESH; };
-    const char * getMD5(){ return "aedbb75b25dc1f22d6170286e35b1132"; };
+    virtual const char * getType() override { return SAVEMESH; };
+    virtual const char * getMD5() override { return "aedbb75b25dc1f22d6170286e35b1132"; };
 
   };
 
@@ -69,7 +69,7 @@ static const char SAVEMESH[] = "jsk_recognition_msgs/SaveMesh";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       union {
@@ -82,7 +82,7 @@ static const char SAVEMESH[] = "jsk_recognition_msgs/SaveMesh";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       union {
@@ -96,8 +96,8 @@ static const char SAVEMESH[] = "jsk_recognition_msgs/SaveMesh";
      return offset;
     }
 
-    const char * getType(){ return SAVEMESH; };
-    const char * getMD5(){ return "358e233cde0c8a8bcfea4ce193f8fc15"; };
+    virtual const char * getType() override { return SAVEMESH; };
+    virtual const char * getMD5() override { return "358e233cde0c8a8bcfea4ce193f8fc15"; };
 
   };
 

@@ -25,11 +25,11 @@ namespace jsk_recognition_msgs
     VectorArray():
       header(),
       vector_dim(0),
-      data_length(0), data(NULL)
+      data_length(0), st_data(), data(nullptr)
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       offset += this->header.serialize(outbuffer + offset);
@@ -67,7 +67,7 @@ namespace jsk_recognition_msgs
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       offset += this->header.deserialize(inbuffer + offset);
@@ -111,8 +111,8 @@ namespace jsk_recognition_msgs
      return offset;
     }
 
-    const char * getType(){ return "jsk_recognition_msgs/VectorArray"; };
-    const char * getMD5(){ return "5755776409eb8318e94c95cd52de2b69"; };
+    virtual const char * getType() override { return "jsk_recognition_msgs/VectorArray"; };
+    virtual const char * getMD5() override { return "5755776409eb8318e94c95cd52de2b69"; };
 
   };
 

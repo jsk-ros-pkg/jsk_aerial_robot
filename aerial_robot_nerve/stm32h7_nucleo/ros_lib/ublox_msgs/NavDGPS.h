@@ -44,11 +44,11 @@ namespace ublox_msgs
       numCh(0),
       status(0),
       reserved1(0),
-      sv_length(0), sv(NULL)
+      sv_length(0), st_sv(), sv(nullptr)
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       *(outbuffer + offset + 0) = (this->iTOW >> (8 * 0)) & 0xFF;
@@ -105,7 +105,7 @@ namespace ublox_msgs
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       this->iTOW =  ((uint32_t) (*(inbuffer + offset)));
@@ -170,8 +170,8 @@ namespace ublox_msgs
      return offset;
     }
 
-    const char * getType(){ return "ublox_msgs/NavDGPS"; };
-    const char * getMD5(){ return "b40fcf35e803e9b5ccedf7c1c7ca332d"; };
+    virtual const char * getType() override { return "ublox_msgs/NavDGPS"; };
+    virtual const char * getMD5() override { return "b40fcf35e803e9b5ccedf7c1c7ca332d"; };
 
   };
 

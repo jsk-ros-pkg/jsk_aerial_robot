@@ -22,11 +22,11 @@ namespace pcl_msgs
 
     ModelCoefficients():
       header(),
-      values_length(0), values(NULL)
+      values_length(0), st_values(), values(nullptr)
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       offset += this->header.serialize(outbuffer + offset);
@@ -50,7 +50,7 @@ namespace pcl_msgs
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       offset += this->header.deserialize(inbuffer + offset);
@@ -79,8 +79,8 @@ namespace pcl_msgs
      return offset;
     }
 
-    const char * getType(){ return "pcl_msgs/ModelCoefficients"; };
-    const char * getMD5(){ return "ca27dea75e72cb894cd36f9e5005e93e"; };
+    virtual const char * getType() override { return "pcl_msgs/ModelCoefficients"; };
+    virtual const char * getMD5() override { return "ca27dea75e72cb894cd36f9e5005e93e"; };
 
   };
 

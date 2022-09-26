@@ -33,15 +33,15 @@ namespace trajectory_msgs
       _time_from_start_type time_from_start;
 
     JointTrajectoryPoint():
-      positions_length(0), positions(NULL),
-      velocities_length(0), velocities(NULL),
-      accelerations_length(0), accelerations(NULL),
-      effort_length(0), effort(NULL),
+      positions_length(0), st_positions(), positions(nullptr),
+      velocities_length(0), st_velocities(), velocities(nullptr),
+      accelerations_length(0), st_accelerations(), accelerations(nullptr),
+      effort_length(0), st_effort(), effort(nullptr),
       time_from_start()
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       *(outbuffer + offset + 0) = (this->positions_length >> (8 * 0)) & 0xFF;
@@ -141,7 +141,7 @@ namespace trajectory_msgs
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       uint32_t positions_lengthT = ((uint32_t) (*(inbuffer + offset))); 
@@ -261,8 +261,8 @@ namespace trajectory_msgs
      return offset;
     }
 
-    const char * getType(){ return "trajectory_msgs/JointTrajectoryPoint"; };
-    const char * getMD5(){ return "f3cd1e1c4d320c79d6985c904ae5dcd3"; };
+    virtual const char * getType() override { return "trajectory_msgs/JointTrajectoryPoint"; };
+    virtual const char * getMD5() override { return "f3cd1e1c4d320c79d6985c904ae5dcd3"; };
 
   };
 

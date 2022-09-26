@@ -30,7 +30,7 @@ static const char COMMANDACK[] = "mavros_msgs/CommandAck";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       *(outbuffer + offset + 0) = (this->command >> (8 * 0)) & 0xFF;
@@ -48,7 +48,7 @@ static const char COMMANDACK[] = "mavros_msgs/CommandAck";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       this->command =  ((uint16_t) (*(inbuffer + offset)));
@@ -66,8 +66,8 @@ static const char COMMANDACK[] = "mavros_msgs/CommandAck";
      return offset;
     }
 
-    const char * getType(){ return COMMANDACK; };
-    const char * getMD5(){ return "1972b10ca14298d11f768e548d4d9e68"; };
+    virtual const char * getType() override { return COMMANDACK; };
+    virtual const char * getMD5() override { return "1972b10ca14298d11f768e548d4d9e68"; };
 
   };
 
@@ -85,7 +85,7 @@ static const char COMMANDACK[] = "mavros_msgs/CommandAck";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       union {
@@ -100,7 +100,7 @@ static const char COMMANDACK[] = "mavros_msgs/CommandAck";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       union {
@@ -116,8 +116,8 @@ static const char COMMANDACK[] = "mavros_msgs/CommandAck";
      return offset;
     }
 
-    const char * getType(){ return COMMANDACK; };
-    const char * getMD5(){ return "1cd894375e4e3d2861d2222772894fdb"; };
+    virtual const char * getType() override { return COMMANDACK; };
+    virtual const char * getMD5() override { return "1cd894375e4e3d2861d2222772894fdb"; };
 
   };
 

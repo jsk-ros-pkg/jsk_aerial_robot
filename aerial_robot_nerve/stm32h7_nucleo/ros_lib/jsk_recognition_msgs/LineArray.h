@@ -23,11 +23,11 @@ namespace jsk_recognition_msgs
 
     LineArray():
       header(),
-      lines_length(0), lines(NULL)
+      lines_length(0), st_lines(), lines(nullptr)
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       offset += this->header.serialize(outbuffer + offset);
@@ -42,7 +42,7 @@ namespace jsk_recognition_msgs
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       offset += this->header.deserialize(inbuffer + offset);
@@ -61,8 +61,8 @@ namespace jsk_recognition_msgs
      return offset;
     }
 
-    const char * getType(){ return "jsk_recognition_msgs/LineArray"; };
-    const char * getMD5(){ return "1571346a320fd11e0b7dc11a90a72ddf"; };
+    virtual const char * getType() override { return "jsk_recognition_msgs/LineArray"; };
+    virtual const char * getMD5() override { return "1571346a320fd11e0b7dc11a90a72ddf"; };
 
   };
 

@@ -24,7 +24,7 @@ static const char COMMANDTRIGGERINTERVAL[] = "mavros_msgs/CommandTriggerInterval
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       union {
@@ -50,7 +50,7 @@ static const char COMMANDTRIGGERINTERVAL[] = "mavros_msgs/CommandTriggerInterval
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       union {
@@ -78,8 +78,8 @@ static const char COMMANDTRIGGERINTERVAL[] = "mavros_msgs/CommandTriggerInterval
      return offset;
     }
 
-    const char * getType(){ return COMMANDTRIGGERINTERVAL; };
-    const char * getMD5(){ return "54f6167a076ced593aa096ea6eb1a519"; };
+    virtual const char * getType() override { return COMMANDTRIGGERINTERVAL; };
+    virtual const char * getMD5() override { return "54f6167a076ced593aa096ea6eb1a519"; };
 
   };
 
@@ -97,7 +97,7 @@ static const char COMMANDTRIGGERINTERVAL[] = "mavros_msgs/CommandTriggerInterval
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       union {
@@ -112,7 +112,7 @@ static const char COMMANDTRIGGERINTERVAL[] = "mavros_msgs/CommandTriggerInterval
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       union {
@@ -128,8 +128,8 @@ static const char COMMANDTRIGGERINTERVAL[] = "mavros_msgs/CommandTriggerInterval
      return offset;
     }
 
-    const char * getType(){ return COMMANDTRIGGERINTERVAL; };
-    const char * getMD5(){ return "1cd894375e4e3d2861d2222772894fdb"; };
+    virtual const char * getType() override { return COMMANDTRIGGERINTERVAL; };
+    virtual const char * getMD5() override { return "1cd894375e4e3d2861d2222772894fdb"; };
 
   };
 

@@ -33,11 +33,11 @@ static const char SETBOARDCONFIG[] = "spinal/SetBoardConfig";
 
     SetBoardConfigRequest():
       command(0),
-      data_length(0), data(NULL)
+      data_length(0), st_data(), data(nullptr)
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       *(outbuffer + offset + 0) = (this->command >> (8 * 0)) & 0xFF;
@@ -62,7 +62,7 @@ static const char SETBOARDCONFIG[] = "spinal/SetBoardConfig";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       this->command =  ((uint8_t) (*(inbuffer + offset)));
@@ -92,8 +92,8 @@ static const char SETBOARDCONFIG[] = "spinal/SetBoardConfig";
      return offset;
     }
 
-    const char * getType(){ return SETBOARDCONFIG; };
-    const char * getMD5(){ return "a479adad61b9876d2f6bebef8341cf8b"; };
+    virtual const char * getType() override { return SETBOARDCONFIG; };
+    virtual const char * getMD5() override { return "a479adad61b9876d2f6bebef8341cf8b"; };
 
   };
 
@@ -108,7 +108,7 @@ static const char SETBOARDCONFIG[] = "spinal/SetBoardConfig";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       union {
@@ -121,7 +121,7 @@ static const char SETBOARDCONFIG[] = "spinal/SetBoardConfig";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       union {
@@ -135,8 +135,8 @@ static const char SETBOARDCONFIG[] = "spinal/SetBoardConfig";
      return offset;
     }
 
-    const char * getType(){ return SETBOARDCONFIG; };
-    const char * getMD5(){ return "358e233cde0c8a8bcfea4ce193f8fc15"; };
+    virtual const char * getType() override { return SETBOARDCONFIG; };
+    virtual const char * getMD5() override { return "358e233cde0c8a8bcfea4ce193f8fc15"; };
 
   };
 

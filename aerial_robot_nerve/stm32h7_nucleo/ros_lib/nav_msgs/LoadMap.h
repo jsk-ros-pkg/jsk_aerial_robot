@@ -22,7 +22,7 @@ static const char LOADMAP[] = "nav_msgs/LoadMap";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       uint32_t length_map_url = strlen(this->map_url);
@@ -33,7 +33,7 @@ static const char LOADMAP[] = "nav_msgs/LoadMap";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       uint32_t length_map_url;
@@ -48,8 +48,8 @@ static const char LOADMAP[] = "nav_msgs/LoadMap";
      return offset;
     }
 
-    const char * getType(){ return LOADMAP; };
-    const char * getMD5(){ return "3813ba1ae85fbcd4dc88c90f1426b90b"; };
+    virtual const char * getType() override { return LOADMAP; };
+    virtual const char * getMD5() override { return "3813ba1ae85fbcd4dc88c90f1426b90b"; };
 
   };
 
@@ -72,7 +72,7 @@ static const char LOADMAP[] = "nav_msgs/LoadMap";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       offset += this->map.serialize(outbuffer + offset);
@@ -81,7 +81,7 @@ static const char LOADMAP[] = "nav_msgs/LoadMap";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       offset += this->map.deserialize(inbuffer + offset);
@@ -90,8 +90,8 @@ static const char LOADMAP[] = "nav_msgs/LoadMap";
      return offset;
     }
 
-    const char * getType(){ return LOADMAP; };
-    const char * getMD5(){ return "079b9c828e9f7c1918bf86932fd7267e"; };
+    virtual const char * getType() override { return LOADMAP; };
+    virtual const char * getMD5() override { return "079b9c828e9f7c1918bf86932fd7267e"; };
 
   };
 

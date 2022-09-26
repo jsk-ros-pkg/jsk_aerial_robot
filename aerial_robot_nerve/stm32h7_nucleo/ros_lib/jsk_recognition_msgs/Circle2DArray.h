@@ -23,11 +23,11 @@ namespace jsk_recognition_msgs
 
     Circle2DArray():
       header(),
-      circles_length(0), circles(NULL)
+      circles_length(0), st_circles(), circles(nullptr)
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       offset += this->header.serialize(outbuffer + offset);
@@ -42,7 +42,7 @@ namespace jsk_recognition_msgs
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       offset += this->header.deserialize(inbuffer + offset);
@@ -61,8 +61,8 @@ namespace jsk_recognition_msgs
      return offset;
     }
 
-    const char * getType(){ return "jsk_recognition_msgs/Circle2DArray"; };
-    const char * getMD5(){ return "7c3f0f08758538a1e02ce600cf99132f"; };
+    virtual const char * getType() override { return "jsk_recognition_msgs/Circle2DArray"; };
+    virtual const char * getMD5() override { return "7c3f0f08758538a1e02ce600cf99132f"; };
 
   };
 

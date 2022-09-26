@@ -21,7 +21,7 @@ static const char FILEMAKEDIR[] = "mavros_msgs/FileMakeDir";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       uint32_t length_dir_path = strlen(this->dir_path);
@@ -32,7 +32,7 @@ static const char FILEMAKEDIR[] = "mavros_msgs/FileMakeDir";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       uint32_t length_dir_path;
@@ -47,8 +47,8 @@ static const char FILEMAKEDIR[] = "mavros_msgs/FileMakeDir";
      return offset;
     }
 
-    const char * getType(){ return FILEMAKEDIR; };
-    const char * getMD5(){ return "401d5cf5f836aaa9ebdc0897f75da874"; };
+    virtual const char * getType() override { return FILEMAKEDIR; };
+    virtual const char * getMD5() override { return "401d5cf5f836aaa9ebdc0897f75da874"; };
 
   };
 
@@ -66,7 +66,7 @@ static const char FILEMAKEDIR[] = "mavros_msgs/FileMakeDir";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       union {
@@ -89,7 +89,7 @@ static const char FILEMAKEDIR[] = "mavros_msgs/FileMakeDir";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       union {
@@ -114,8 +114,8 @@ static const char FILEMAKEDIR[] = "mavros_msgs/FileMakeDir";
      return offset;
     }
 
-    const char * getType(){ return FILEMAKEDIR; };
-    const char * getMD5(){ return "85394f2e941a8937ac567a617f06157f"; };
+    virtual const char * getType() override { return FILEMAKEDIR; };
+    virtual const char * getMD5() override { return "85394f2e941a8937ac567a617f06157f"; };
 
   };
 

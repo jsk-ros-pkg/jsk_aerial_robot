@@ -18,20 +18,20 @@ static const char WAYPOINTPULL[] = "mavros_msgs/WaypointPull";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
      return offset;
     }
 
-    const char * getType(){ return WAYPOINTPULL; };
-    const char * getMD5(){ return "d41d8cd98f00b204e9800998ecf8427e"; };
+    virtual const char * getType() override { return WAYPOINTPULL; };
+    virtual const char * getMD5() override { return "d41d8cd98f00b204e9800998ecf8427e"; };
 
   };
 
@@ -49,7 +49,7 @@ static const char WAYPOINTPULL[] = "mavros_msgs/WaypointPull";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       union {
@@ -67,7 +67,7 @@ static const char WAYPOINTPULL[] = "mavros_msgs/WaypointPull";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       union {
@@ -86,8 +86,8 @@ static const char WAYPOINTPULL[] = "mavros_msgs/WaypointPull";
      return offset;
     }
 
-    const char * getType(){ return WAYPOINTPULL; };
-    const char * getMD5(){ return "a8d9ecef8fb37028d2db2a9aa4ed7e79"; };
+    virtual const char * getType() override { return WAYPOINTPULL; };
+    virtual const char * getMD5() override { return "a8d9ecef8fb37028d2db2a9aa4ed7e79"; };
 
   };
 

@@ -33,11 +33,11 @@ namespace ublox_msgs
       numTrkChHw(0),
       numTrkChUse(0),
       numConfigBlocks(0),
-      blocks_length(0), blocks(NULL)
+      blocks_length(0), st_blocks(), blocks(nullptr)
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       *(outbuffer + offset + 0) = (this->msgVer >> (8 * 0)) & 0xFF;
@@ -59,7 +59,7 @@ namespace ublox_msgs
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       this->msgVer =  ((uint8_t) (*(inbuffer + offset)));
@@ -85,8 +85,8 @@ namespace ublox_msgs
      return offset;
     }
 
-    const char * getType(){ return "ublox_msgs/CfgGNSS"; };
-    const char * getMD5(){ return "c1777482e22a0ac50132c66d3284e86f"; };
+    virtual const char * getType() override { return "ublox_msgs/CfgGNSS"; };
+    virtual const char * getMD5() override { return "c1777482e22a0ac50132c66d3284e86f"; };
 
   };
 

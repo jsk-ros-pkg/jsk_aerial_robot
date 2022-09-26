@@ -29,7 +29,7 @@ namespace ublox_msgs
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       *(outbuffer + offset + 0) = (this->sensStatus1 >> (8 * 0)) & 0xFF;
@@ -43,7 +43,7 @@ namespace ublox_msgs
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       this->sensStatus1 =  ((uint8_t) (*(inbuffer + offset)));
@@ -57,8 +57,8 @@ namespace ublox_msgs
      return offset;
     }
 
-    const char * getType(){ return "ublox_msgs/EsfSTATUS_Sens"; };
-    const char * getMD5(){ return "642a0b5f53044e3a4dd28074dc540ef3"; };
+    virtual const char * getType() override { return "ublox_msgs/EsfSTATUS_Sens"; };
+    virtual const char * getMD5() override { return "642a0b5f53044e3a4dd28074dc540ef3"; };
 
   };
 

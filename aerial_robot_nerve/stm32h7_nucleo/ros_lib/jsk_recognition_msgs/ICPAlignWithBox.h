@@ -5,8 +5,8 @@
 #include <stdlib.h>
 #include "ros/msg.h"
 #include "jsk_recognition_msgs/BoundingBox.h"
-#include "sensor_msgs/PointCloud2.h"
 #include "jsk_recognition_msgs/ICPResult.h"
+#include "sensor_msgs/PointCloud2.h"
 
 namespace jsk_recognition_msgs
 {
@@ -27,7 +27,7 @@ static const char ICPALIGNWITHBOX[] = "jsk_recognition_msgs/ICPAlignWithBox";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       offset += this->target_cloud.serialize(outbuffer + offset);
@@ -35,7 +35,7 @@ static const char ICPALIGNWITHBOX[] = "jsk_recognition_msgs/ICPAlignWithBox";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       offset += this->target_cloud.deserialize(inbuffer + offset);
@@ -43,8 +43,8 @@ static const char ICPALIGNWITHBOX[] = "jsk_recognition_msgs/ICPAlignWithBox";
      return offset;
     }
 
-    const char * getType(){ return ICPALIGNWITHBOX; };
-    const char * getMD5(){ return "9431a0df63f5a2625b973e92c6229cf3"; };
+    virtual const char * getType() override { return ICPALIGNWITHBOX; };
+    virtual const char * getMD5() override { return "9431a0df63f5a2625b973e92c6229cf3"; };
 
   };
 
@@ -59,22 +59,22 @@ static const char ICPALIGNWITHBOX[] = "jsk_recognition_msgs/ICPAlignWithBox";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       offset += this->result.serialize(outbuffer + offset);
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       offset += this->result.deserialize(inbuffer + offset);
      return offset;
     }
 
-    const char * getType(){ return ICPALIGNWITHBOX; };
-    const char * getMD5(){ return "a511a876c2be142caffd78741c68e4cf"; };
+    virtual const char * getType() override { return ICPALIGNWITHBOX; };
+    virtual const char * getMD5() override { return "a511a876c2be142caffd78741c68e4cf"; };
 
   };
 

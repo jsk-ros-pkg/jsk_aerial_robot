@@ -83,7 +83,7 @@ namespace ublox_msgs
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       *(outbuffer + offset + 0) = (this->version >> (8 * 0)) & 0xFF;
@@ -146,7 +146,7 @@ namespace ublox_msgs
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       this->version =  ((uint16_t) (*(inbuffer + offset)));
@@ -209,8 +209,8 @@ namespace ublox_msgs
      return offset;
     }
 
-    const char * getType(){ return "ublox_msgs/CfgNAVX5"; };
-    const char * getMD5(){ return "10b967e4bf2a0c03e74705b79c79a211"; };
+    virtual const char * getType() override { return "ublox_msgs/CfgNAVX5"; };
+    virtual const char * getMD5() override { return "10b967e4bf2a0c03e74705b79c79a211"; };
 
   };
 

@@ -25,7 +25,7 @@ static const char SETJOINTPROPERTIES[] = "gazebo_msgs/SetJointProperties";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       uint32_t length_joint_name = strlen(this->joint_name);
@@ -37,7 +37,7 @@ static const char SETJOINTPROPERTIES[] = "gazebo_msgs/SetJointProperties";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       uint32_t length_joint_name;
@@ -53,8 +53,8 @@ static const char SETJOINTPROPERTIES[] = "gazebo_msgs/SetJointProperties";
      return offset;
     }
 
-    const char * getType(){ return SETJOINTPROPERTIES; };
-    const char * getMD5(){ return "331fd8f35fd27e3c1421175590258e26"; };
+    virtual const char * getType() override { return SETJOINTPROPERTIES; };
+    virtual const char * getMD5() override { return "331fd8f35fd27e3c1421175590258e26"; };
 
   };
 
@@ -72,7 +72,7 @@ static const char SETJOINTPROPERTIES[] = "gazebo_msgs/SetJointProperties";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       union {
@@ -90,7 +90,7 @@ static const char SETJOINTPROPERTIES[] = "gazebo_msgs/SetJointProperties";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       union {
@@ -113,8 +113,8 @@ static const char SETJOINTPROPERTIES[] = "gazebo_msgs/SetJointProperties";
      return offset;
     }
 
-    const char * getType(){ return SETJOINTPROPERTIES; };
-    const char * getMD5(){ return "2ec6f3eff0161f4257b808b12bc830c2"; };
+    virtual const char * getType() override { return SETJOINTPROPERTIES; };
+    virtual const char * getMD5() override { return "2ec6f3eff0161f4257b808b12bc830c2"; };
 
   };
 

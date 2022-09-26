@@ -28,11 +28,11 @@ namespace spinal
       slave_id(0),
       imu_send_data_flag(0),
       dynamixel_ttl_rs485_mixed(0),
-      servos_length(0), servos(NULL)
+      servos_length(0), st_servos(), servos(nullptr)
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       *(outbuffer + offset + 0) = (this->slave_id >> (8 * 0)) & 0xFF;
@@ -52,7 +52,7 @@ namespace spinal
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       this->slave_id =  ((uint8_t) (*(inbuffer + offset)));
@@ -76,8 +76,8 @@ namespace spinal
      return offset;
     }
 
-    const char * getType(){ return "spinal/BoardInfo"; };
-    const char * getMD5(){ return "96d77913b56f07c2f03bd01269f08893"; };
+    virtual const char * getType() override { return "spinal/BoardInfo"; };
+    virtual const char * getMD5() override { return "96d77913b56f07c2f03bd01269f08893"; };
 
   };
 

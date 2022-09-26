@@ -26,11 +26,11 @@ namespace ublox_msgs
     RxmALM():
       svid(0),
       week(0),
-      dwrd_length(0), dwrd(NULL)
+      dwrd_length(0), st_dwrd(), dwrd(nullptr)
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       *(outbuffer + offset + 0) = (this->svid >> (8 * 0)) & 0xFF;
@@ -58,7 +58,7 @@ namespace ublox_msgs
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       this->svid =  ((uint32_t) (*(inbuffer + offset)));
@@ -90,8 +90,8 @@ namespace ublox_msgs
      return offset;
     }
 
-    const char * getType(){ return "ublox_msgs/RxmALM"; };
-    const char * getMD5(){ return "97a9e7864105ab31fc93f2e4bef9de26"; };
+    virtual const char * getType() override { return "ublox_msgs/RxmALM"; };
+    virtual const char * getMD5() override { return "97a9e7864105ab31fc93f2e4bef9de26"; };
 
   };
 

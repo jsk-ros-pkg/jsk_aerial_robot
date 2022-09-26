@@ -22,7 +22,7 @@ static const char FILELIST[] = "mavros_msgs/FileList";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       uint32_t length_dir_path = strlen(this->dir_path);
@@ -33,7 +33,7 @@ static const char FILELIST[] = "mavros_msgs/FileList";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       uint32_t length_dir_path;
@@ -48,8 +48,8 @@ static const char FILELIST[] = "mavros_msgs/FileList";
      return offset;
     }
 
-    const char * getType(){ return FILELIST; };
-    const char * getMD5(){ return "401d5cf5f836aaa9ebdc0897f75da874"; };
+    virtual const char * getType() override { return FILELIST; };
+    virtual const char * getMD5() override { return "401d5cf5f836aaa9ebdc0897f75da874"; };
 
   };
 
@@ -66,13 +66,13 @@ static const char FILELIST[] = "mavros_msgs/FileList";
       _r_errno_type r_errno;
 
     FileListResponse():
-      list_length(0), list(NULL),
+      list_length(0), st_list(), list(nullptr),
       success(0),
       r_errno(0)
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       *(outbuffer + offset + 0) = (this->list_length >> (8 * 0)) & 0xFF;
@@ -103,7 +103,7 @@ static const char FILELIST[] = "mavros_msgs/FileList";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       uint32_t list_lengthT = ((uint32_t) (*(inbuffer + offset))); 
@@ -140,8 +140,8 @@ static const char FILELIST[] = "mavros_msgs/FileList";
      return offset;
     }
 
-    const char * getType(){ return FILELIST; };
-    const char * getMD5(){ return "3cf4be333d40be8a08832e3b61ed4336"; };
+    virtual const char * getType() override { return FILELIST; };
+    virtual const char * getMD5() override { return "3cf4be333d40be8a08832e3b61ed4336"; };
 
   };
 

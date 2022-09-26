@@ -28,12 +28,12 @@ namespace jsk_recognition_msgs
 
     ParallelEdge():
       header(),
-      cluster_indices_length(0), cluster_indices(NULL),
-      coefficients_length(0), coefficients(NULL)
+      cluster_indices_length(0), st_cluster_indices(), cluster_indices(nullptr),
+      coefficients_length(0), st_coefficients(), coefficients(nullptr)
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       offset += this->header.serialize(outbuffer + offset);
@@ -56,7 +56,7 @@ namespace jsk_recognition_msgs
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       offset += this->header.deserialize(inbuffer + offset);
@@ -87,8 +87,8 @@ namespace jsk_recognition_msgs
      return offset;
     }
 
-    const char * getType(){ return "jsk_recognition_msgs/ParallelEdge"; };
-    const char * getMD5(){ return "3a550d5b6275fe0a1580ebf8a62dd336"; };
+    virtual const char * getType() override { return "jsk_recognition_msgs/ParallelEdge"; };
+    virtual const char * getMD5() override { return "3a550d5b6275fe0a1580ebf8a62dd336"; };
 
   };
 

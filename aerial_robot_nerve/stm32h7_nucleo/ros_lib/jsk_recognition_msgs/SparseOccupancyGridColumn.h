@@ -22,11 +22,11 @@ namespace jsk_recognition_msgs
 
     SparseOccupancyGridColumn():
       column_index(0),
-      cells_length(0), cells(NULL)
+      cells_length(0), st_cells(), cells(nullptr)
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       union {
@@ -50,7 +50,7 @@ namespace jsk_recognition_msgs
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       union {
@@ -79,8 +79,8 @@ namespace jsk_recognition_msgs
      return offset;
     }
 
-    const char * getType(){ return "jsk_recognition_msgs/SparseOccupancyGridColumn"; };
-    const char * getMD5(){ return "55074b193e722d5ead092ffe27f06522"; };
+    virtual const char * getType() override { return "jsk_recognition_msgs/SparseOccupancyGridColumn"; };
+    virtual const char * getMD5() override { return "55074b193e722d5ead092ffe27f06522"; };
 
   };
 

@@ -29,11 +29,11 @@ static const char IMUCALIB[] = "spinal/ImuCalib";
 
     ImuCalibRequest():
       command(0),
-      data_length(0), data(NULL)
+      data_length(0), st_data(), data(nullptr)
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       *(outbuffer + offset + 0) = (this->command >> (8 * 0)) & 0xFF;
@@ -58,7 +58,7 @@ static const char IMUCALIB[] = "spinal/ImuCalib";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       this->command =  ((uint8_t) (*(inbuffer + offset)));
@@ -88,8 +88,8 @@ static const char IMUCALIB[] = "spinal/ImuCalib";
      return offset;
     }
 
-    const char * getType(){ return IMUCALIB; };
-    const char * getMD5(){ return "14e26c097b8383580f6ca809a0e33f9a"; };
+    virtual const char * getType() override { return IMUCALIB; };
+    virtual const char * getMD5() override { return "14e26c097b8383580f6ca809a0e33f9a"; };
 
   };
 
@@ -105,11 +105,11 @@ static const char IMUCALIB[] = "spinal/ImuCalib";
 
     ImuCalibResponse():
       success(0),
-      data_length(0), data(NULL)
+      data_length(0), st_data(), data(nullptr)
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       union {
@@ -139,7 +139,7 @@ static const char IMUCALIB[] = "spinal/ImuCalib";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       union {
@@ -175,8 +175,8 @@ static const char IMUCALIB[] = "spinal/ImuCalib";
      return offset;
     }
 
-    const char * getType(){ return IMUCALIB; };
-    const char * getMD5(){ return "f52e183781a78fdf83d51e914c2363e3"; };
+    virtual const char * getType() override { return IMUCALIB; };
+    virtual const char * getMD5() override { return "f52e183781a78fdf83d51e914c2363e3"; };
 
   };
 

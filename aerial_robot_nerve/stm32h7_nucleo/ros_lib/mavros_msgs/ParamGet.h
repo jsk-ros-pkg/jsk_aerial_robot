@@ -22,7 +22,7 @@ static const char PARAMGET[] = "mavros_msgs/ParamGet";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       uint32_t length_param_id = strlen(this->param_id);
@@ -33,7 +33,7 @@ static const char PARAMGET[] = "mavros_msgs/ParamGet";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       uint32_t length_param_id;
@@ -48,8 +48,8 @@ static const char PARAMGET[] = "mavros_msgs/ParamGet";
      return offset;
     }
 
-    const char * getType(){ return PARAMGET; };
-    const char * getMD5(){ return "a0c8304d59f465712790120c3fc4b7d0"; };
+    virtual const char * getType() override { return PARAMGET; };
+    virtual const char * getMD5() override { return "a0c8304d59f465712790120c3fc4b7d0"; };
 
   };
 
@@ -67,7 +67,7 @@ static const char PARAMGET[] = "mavros_msgs/ParamGet";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       union {
@@ -81,7 +81,7 @@ static const char PARAMGET[] = "mavros_msgs/ParamGet";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       union {
@@ -96,8 +96,8 @@ static const char PARAMGET[] = "mavros_msgs/ParamGet";
      return offset;
     }
 
-    const char * getType(){ return PARAMGET; };
-    const char * getMD5(){ return "790d22b22b9dbf32a8e8d55578e25477"; };
+    virtual const char * getType() override { return PARAMGET; };
+    virtual const char * getMD5() override { return "790d22b22b9dbf32a8e8d55578e25477"; };
 
   };
 

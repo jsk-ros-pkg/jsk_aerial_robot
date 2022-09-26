@@ -72,7 +72,7 @@ namespace ublox_msgs
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       *(outbuffer + offset + 0) = (this->gnssId >> (8 * 0)) & 0xFF;
@@ -112,7 +112,7 @@ namespace ublox_msgs
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       this->gnssId =  ((uint8_t) (*(inbuffer + offset)));
@@ -155,8 +155,8 @@ namespace ublox_msgs
      return offset;
     }
 
-    const char * getType(){ return "ublox_msgs/NavSAT_SV"; };
-    const char * getMD5(){ return "902ea92ca9ebf53188dcf1cdef64a9a1"; };
+    virtual const char * getType() override { return "ublox_msgs/NavSAT_SV"; };
+    virtual const char * getMD5() override { return "902ea92ca9ebf53188dcf1cdef64a9a1"; };
 
   };
 

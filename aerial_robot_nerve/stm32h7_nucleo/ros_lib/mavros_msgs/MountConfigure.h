@@ -51,7 +51,7 @@ static const char MOUNTCONFIGURE[] = "mavros_msgs/MountConfigure";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       offset += this->header.serialize(outbuffer + offset);
@@ -87,7 +87,7 @@ static const char MOUNTCONFIGURE[] = "mavros_msgs/MountConfigure";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       offset += this->header.deserialize(inbuffer + offset);
@@ -126,8 +126,8 @@ static const char MOUNTCONFIGURE[] = "mavros_msgs/MountConfigure";
      return offset;
     }
 
-    const char * getType(){ return MOUNTCONFIGURE; };
-    const char * getMD5(){ return "6abfbffc4f7b14d5b05955b1813ae50e"; };
+    virtual const char * getType() override { return MOUNTCONFIGURE; };
+    virtual const char * getMD5() override { return "6abfbffc4f7b14d5b05955b1813ae50e"; };
 
   };
 
@@ -145,7 +145,7 @@ static const char MOUNTCONFIGURE[] = "mavros_msgs/MountConfigure";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       union {
@@ -160,7 +160,7 @@ static const char MOUNTCONFIGURE[] = "mavros_msgs/MountConfigure";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       union {
@@ -176,8 +176,8 @@ static const char MOUNTCONFIGURE[] = "mavros_msgs/MountConfigure";
      return offset;
     }
 
-    const char * getType(){ return MOUNTCONFIGURE; };
-    const char * getMD5(){ return "1cd894375e4e3d2861d2222772894fdb"; };
+    virtual const char * getType() override { return MOUNTCONFIGURE; };
+    virtual const char * getMD5() override { return "1cd894375e4e3d2861d2222772894fdb"; };
 
   };
 

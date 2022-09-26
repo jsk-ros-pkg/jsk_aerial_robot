@@ -38,16 +38,16 @@ namespace aerial_robot_msgs
       _t_z_type * t_z;
 
     WrenchAllocationMatrix():
-      f_x_length(0), f_x(NULL),
-      f_y_length(0), f_y(NULL),
-      f_z_length(0), f_z(NULL),
-      t_x_length(0), t_x(NULL),
-      t_y_length(0), t_y(NULL),
-      t_z_length(0), t_z(NULL)
+      f_x_length(0), st_f_x(), f_x(nullptr),
+      f_y_length(0), st_f_y(), f_y(nullptr),
+      f_z_length(0), st_f_z(), f_z(nullptr),
+      t_x_length(0), st_t_x(), t_x(nullptr),
+      t_y_length(0), st_t_y(), t_y(nullptr),
+      t_z_length(0), st_t_z(), t_z(nullptr)
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       *(outbuffer + offset + 0) = (this->f_x_length >> (8 * 0)) & 0xFF;
@@ -179,7 +179,7 @@ namespace aerial_robot_msgs
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       uint32_t f_x_lengthT = ((uint32_t) (*(inbuffer + offset))); 
@@ -341,8 +341,8 @@ namespace aerial_robot_msgs
      return offset;
     }
 
-    const char * getType(){ return "aerial_robot_msgs/WrenchAllocationMatrix"; };
-    const char * getMD5(){ return "210f7f48d0b8c031cdcdabd2fecc9eca"; };
+    virtual const char * getType() override { return "aerial_robot_msgs/WrenchAllocationMatrix"; };
+    virtual const char * getMD5() override { return "210f7f48d0b8c031cdcdabd2fecc9eca"; };
 
   };
 

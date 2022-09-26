@@ -52,7 +52,7 @@ namespace ublox_msgs
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       *(outbuffer + offset + 0) = (this->bitfield0 >> (8 * 0)) & 0xFF;
@@ -132,7 +132,7 @@ namespace ublox_msgs
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       this->bitfield0 =  ((uint32_t) (*(inbuffer + offset)));
@@ -218,8 +218,8 @@ namespace ublox_msgs
      return offset;
     }
 
-    const char * getType(){ return "ublox_msgs/EsfINS"; };
-    const char * getMD5(){ return "975d05e9503737524d7e47a42cb9fff1"; };
+    virtual const char * getType() override { return "ublox_msgs/EsfINS"; };
+    virtual const char * getMD5() override { return "975d05e9503737524d7e47a42cb9fff1"; };
 
   };
 

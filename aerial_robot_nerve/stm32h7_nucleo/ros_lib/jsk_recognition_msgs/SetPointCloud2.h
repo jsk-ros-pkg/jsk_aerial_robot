@@ -25,7 +25,7 @@ static const char SETPOINTCLOUD2[] = "jsk_recognition_msgs/SetPointCloud2";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       offset += this->cloud.serialize(outbuffer + offset);
@@ -37,7 +37,7 @@ static const char SETPOINTCLOUD2[] = "jsk_recognition_msgs/SetPointCloud2";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       offset += this->cloud.deserialize(inbuffer + offset);
@@ -53,8 +53,8 @@ static const char SETPOINTCLOUD2[] = "jsk_recognition_msgs/SetPointCloud2";
      return offset;
     }
 
-    const char * getType(){ return SETPOINTCLOUD2; };
-    const char * getMD5(){ return "f233222fb244758562fcd56961c317c9"; };
+    virtual const char * getType() override { return SETPOINTCLOUD2; };
+    virtual const char * getMD5() override { return "f233222fb244758562fcd56961c317c9"; };
 
   };
 
@@ -69,7 +69,7 @@ static const char SETPOINTCLOUD2[] = "jsk_recognition_msgs/SetPointCloud2";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       uint32_t length_output = strlen(this->output);
@@ -80,7 +80,7 @@ static const char SETPOINTCLOUD2[] = "jsk_recognition_msgs/SetPointCloud2";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       uint32_t length_output;
@@ -95,8 +95,8 @@ static const char SETPOINTCLOUD2[] = "jsk_recognition_msgs/SetPointCloud2";
      return offset;
     }
 
-    const char * getType(){ return SETPOINTCLOUD2; };
-    const char * getMD5(){ return "0825d95fdfa2c8f4bbb4e9c74bccd3fd"; };
+    virtual const char * getType() override { return SETPOINTCLOUD2; };
+    virtual const char * getMD5() override { return "0825d95fdfa2c8f4bbb4e9c74bccd3fd"; };
 
   };
 

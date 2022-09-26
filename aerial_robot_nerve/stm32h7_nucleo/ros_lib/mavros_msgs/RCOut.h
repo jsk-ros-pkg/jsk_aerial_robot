@@ -22,11 +22,11 @@ namespace mavros_msgs
 
     RCOut():
       header(),
-      channels_length(0), channels(NULL)
+      channels_length(0), st_channels(), channels(nullptr)
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       offset += this->header.serialize(outbuffer + offset);
@@ -43,7 +43,7 @@ namespace mavros_msgs
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       offset += this->header.deserialize(inbuffer + offset);
@@ -64,8 +64,8 @@ namespace mavros_msgs
      return offset;
     }
 
-    const char * getType(){ return "mavros_msgs/RCOut"; };
-    const char * getMD5(){ return "52cacf104bab5ae3b103cfe176590713"; };
+    virtual const char * getType() override { return "mavros_msgs/RCOut"; };
+    virtual const char * getMD5() override { return "52cacf104bab5ae3b103cfe176590713"; };
 
   };
 

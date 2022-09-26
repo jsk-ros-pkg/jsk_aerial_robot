@@ -22,12 +22,12 @@ namespace spinal
       _angles_type * angles;
 
     ServoControlCmd():
-      index_length(0), index(NULL),
-      angles_length(0), angles(NULL)
+      index_length(0), st_index(), index(nullptr),
+      angles_length(0), st_angles(), angles(nullptr)
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       *(outbuffer + offset + 0) = (this->index_length >> (8 * 0)) & 0xFF;
@@ -57,7 +57,7 @@ namespace spinal
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       uint32_t index_lengthT = ((uint32_t) (*(inbuffer + offset))); 
@@ -96,8 +96,8 @@ namespace spinal
      return offset;
     }
 
-    const char * getType(){ return "spinal/ServoControlCmd"; };
-    const char * getMD5(){ return "7b019fc22cfaf6e7fcb8bd9471a1cbba"; };
+    virtual const char * getType() override { return "spinal/ServoControlCmd"; };
+    virtual const char * getMD5() override { return "7b019fc22cfaf6e7fcb8bd9471a1cbba"; };
 
   };
 

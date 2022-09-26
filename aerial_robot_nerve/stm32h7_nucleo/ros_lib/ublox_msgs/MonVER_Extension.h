@@ -19,7 +19,7 @@ namespace ublox_msgs
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       for( uint32_t i = 0; i < 30; i++){
@@ -29,7 +29,7 @@ namespace ublox_msgs
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       for( uint32_t i = 0; i < 30; i++){
@@ -39,8 +39,8 @@ namespace ublox_msgs
      return offset;
     }
 
-    const char * getType(){ return "ublox_msgs/MonVER_Extension"; };
-    const char * getMD5(){ return "ef92c9d93e6bd2c2701384b0595ac2b4"; };
+    virtual const char * getType() override { return "ublox_msgs/MonVER_Extension"; };
+    virtual const char * getMD5() override { return "ef92c9d93e6bd2c2701384b0595ac2b4"; };
 
   };
 

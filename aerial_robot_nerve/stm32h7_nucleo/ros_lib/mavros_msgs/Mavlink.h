@@ -61,12 +61,12 @@ namespace mavros_msgs
       compid(0),
       msgid(0),
       checksum(0),
-      payload64_length(0), payload64(NULL),
-      signature_length(0), signature(NULL)
+      payload64_length(0), st_payload64(), payload64(nullptr),
+      signature_length(0), st_signature(), signature(nullptr)
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       offset += this->header.serialize(outbuffer + offset);
@@ -122,7 +122,7 @@ namespace mavros_msgs
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       offset += this->header.deserialize(inbuffer + offset);
@@ -186,8 +186,8 @@ namespace mavros_msgs
      return offset;
     }
 
-    const char * getType(){ return "mavros_msgs/Mavlink"; };
-    const char * getMD5(){ return "41093e1fd0f3eea1da2aa33a177e5ba6"; };
+    virtual const char * getType() override { return "mavros_msgs/Mavlink"; };
+    virtual const char * getMD5() override { return "41093e1fd0f3eea1da2aa33a177e5ba6"; };
 
   };
 

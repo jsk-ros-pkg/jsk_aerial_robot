@@ -21,7 +21,7 @@ static const char DELETELIGHT[] = "gazebo_msgs/DeleteLight";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       uint32_t length_light_name = strlen(this->light_name);
@@ -32,7 +32,7 @@ static const char DELETELIGHT[] = "gazebo_msgs/DeleteLight";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       uint32_t length_light_name;
@@ -47,8 +47,8 @@ static const char DELETELIGHT[] = "gazebo_msgs/DeleteLight";
      return offset;
     }
 
-    const char * getType(){ return DELETELIGHT; };
-    const char * getMD5(){ return "4fb676dfb4741fc866365702a859441c"; };
+    virtual const char * getType() override { return DELETELIGHT; };
+    virtual const char * getMD5() override { return "4fb676dfb4741fc866365702a859441c"; };
 
   };
 
@@ -66,7 +66,7 @@ static const char DELETELIGHT[] = "gazebo_msgs/DeleteLight";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       union {
@@ -84,7 +84,7 @@ static const char DELETELIGHT[] = "gazebo_msgs/DeleteLight";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       union {
@@ -107,8 +107,8 @@ static const char DELETELIGHT[] = "gazebo_msgs/DeleteLight";
      return offset;
     }
 
-    const char * getType(){ return DELETELIGHT; };
-    const char * getMD5(){ return "2ec6f3eff0161f4257b808b12bc830c2"; };
+    virtual const char * getType() override { return DELETELIGHT; };
+    virtual const char * getMD5() override { return "2ec6f3eff0161f4257b808b12bc830c2"; };
 
   };
 

@@ -33,7 +33,7 @@ namespace ublox_msgs
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       *(outbuffer + offset + 0) = (this->measRate >> (8 * 0)) & 0xFF;
@@ -48,7 +48,7 @@ namespace ublox_msgs
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       this->measRate =  ((uint16_t) (*(inbuffer + offset)));
@@ -63,8 +63,8 @@ namespace ublox_msgs
      return offset;
     }
 
-    const char * getType(){ return "ublox_msgs/CfgRATE"; };
-    const char * getMD5(){ return "13e27469d3f7d85353464015f687d6b2"; };
+    virtual const char * getType() override { return "ublox_msgs/CfgRATE"; };
+    virtual const char * getMD5() override { return "13e27469d3f7d85353464015f687d6b2"; };
 
   };
 

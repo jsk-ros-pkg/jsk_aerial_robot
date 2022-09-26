@@ -33,11 +33,11 @@ namespace ublox_msgs
       week(0),
       numSV(0),
       reserved1(0),
-      sv_length(0), sv(NULL)
+      sv_length(0), st_sv(), sv(nullptr)
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       union {
@@ -73,7 +73,7 @@ namespace ublox_msgs
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       union {
@@ -115,8 +115,8 @@ namespace ublox_msgs
      return offset;
     }
 
-    const char * getType(){ return "ublox_msgs/RxmRAW"; };
-    const char * getMD5(){ return "d30ff396119937adec288ba58915e228"; };
+    virtual const char * getType() override { return "ublox_msgs/RxmRAW"; };
+    virtual const char * getMD5() override { return "d30ff396119937adec288ba58915e228"; };
 
   };
 

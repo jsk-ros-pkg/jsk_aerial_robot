@@ -23,11 +23,11 @@ namespace jsk_recognition_msgs
 
     HistogramWithRange():
       header(),
-      bins_length(0), bins(NULL)
+      bins_length(0), st_bins(), bins(nullptr)
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       offset += this->header.serialize(outbuffer + offset);
@@ -42,7 +42,7 @@ namespace jsk_recognition_msgs
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       offset += this->header.deserialize(inbuffer + offset);
@@ -61,8 +61,8 @@ namespace jsk_recognition_msgs
      return offset;
     }
 
-    const char * getType(){ return "jsk_recognition_msgs/HistogramWithRange"; };
-    const char * getMD5(){ return "aa922a22cbdcbdcc1146f30df5b605b8"; };
+    virtual const char * getType() override { return "jsk_recognition_msgs/HistogramWithRange"; };
+    virtual const char * getMD5() override { return "aa922a22cbdcbdcc1146f30df5b605b8"; };
 
   };
 

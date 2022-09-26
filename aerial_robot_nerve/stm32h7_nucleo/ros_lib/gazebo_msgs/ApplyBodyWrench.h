@@ -4,10 +4,10 @@
 #include <string.h>
 #include <stdlib.h>
 #include "ros/msg.h"
-#include "ros/duration.h"
-#include "geometry_msgs/Wrench.h"
 #include "ros/time.h"
+#include "geometry_msgs/Wrench.h"
 #include "geometry_msgs/Point.h"
+#include "ros/duration.h"
 
 namespace gazebo_msgs
 {
@@ -40,7 +40,7 @@ static const char APPLYBODYWRENCH[] = "gazebo_msgs/ApplyBodyWrench";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       uint32_t length_body_name = strlen(this->body_name);
@@ -78,7 +78,7 @@ static const char APPLYBODYWRENCH[] = "gazebo_msgs/ApplyBodyWrench";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       uint32_t length_body_name;
@@ -124,8 +124,8 @@ static const char APPLYBODYWRENCH[] = "gazebo_msgs/ApplyBodyWrench";
      return offset;
     }
 
-    const char * getType(){ return APPLYBODYWRENCH; };
-    const char * getMD5(){ return "e37e6adf97eba5095baa77dffb71e5bd"; };
+    virtual const char * getType() override { return APPLYBODYWRENCH; };
+    virtual const char * getMD5() override { return "e37e6adf97eba5095baa77dffb71e5bd"; };
 
   };
 
@@ -143,7 +143,7 @@ static const char APPLYBODYWRENCH[] = "gazebo_msgs/ApplyBodyWrench";
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       union {
@@ -161,7 +161,7 @@ static const char APPLYBODYWRENCH[] = "gazebo_msgs/ApplyBodyWrench";
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       union {
@@ -184,8 +184,8 @@ static const char APPLYBODYWRENCH[] = "gazebo_msgs/ApplyBodyWrench";
      return offset;
     }
 
-    const char * getType(){ return APPLYBODYWRENCH; };
-    const char * getMD5(){ return "2ec6f3eff0161f4257b808b12bc830c2"; };
+    virtual const char * getType() override { return APPLYBODYWRENCH; };
+    virtual const char * getMD5() override { return "2ec6f3eff0161f4257b808b12bc830c2"; };
 
   };
 

@@ -47,7 +47,7 @@ namespace spinal
     {
     }
 
-    virtual int serialize(unsigned char *outbuffer) const
+    virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
       *(outbuffer + offset + 0) = (this->id >> (8 * 0)) & 0xFF;
@@ -80,7 +80,7 @@ namespace spinal
       return offset;
     }
 
-    virtual int deserialize(unsigned char *inbuffer)
+    virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
       this->id =  ((uint8_t) (*(inbuffer + offset)));
@@ -113,8 +113,8 @@ namespace spinal
      return offset;
     }
 
-    const char * getType(){ return "spinal/ServoInfo"; };
-    const char * getMD5(){ return "8485b0923dc96bd6fbbd277cbf5cd19d"; };
+    virtual const char * getType() override { return "spinal/ServoInfo"; };
+    virtual const char * getMD5() override { return "8485b0923dc96bd6fbbd277cbf5cd19d"; };
 
   };
 
