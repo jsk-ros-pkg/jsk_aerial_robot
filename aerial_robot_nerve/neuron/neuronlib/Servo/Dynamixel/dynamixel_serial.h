@@ -278,7 +278,7 @@ private:
 class ServoData {
 public:
 	ServoData(){}
-	ServoData(uint8_t id): id_(id), torque_enable_(false), first_get_pos_flag_(true){}
+  ServoData(uint8_t id): id_(id), torque_enable_(false), first_get_pos_flag_(true), internal_offset_(0){}
 
 	uint8_t id_;
   	int32_t present_position_;
@@ -323,6 +323,7 @@ public:
   void reboot(uint8_t servo_index);
   void setTorque(uint8_t servo_index);
   void setHomingOffset(uint8_t servo_index);
+  void setRoundOffset(uint8_t servo_index, int32_t ref_value);
   void setPositionGains(uint8_t servo_index);
   void setProfileVelocity(uint8_t servo_index);
   void setCurrentLimit(uint8_t servo_index);

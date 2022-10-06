@@ -105,6 +105,17 @@ void DynamixelSerial::setTorque(uint8_t servo_index)
   instruction_buffer_.push(std::make_pair(INST_SET_TORQUE, servo_index));
 }
 
+void DynamixelSerial::setRoundOffset(uint8_t servo_index, int32_t ref_value)
+{
+  ServoData& s = servo_[servo_index];
+  if (s.torque_enable_) return; // cannot process if torque is enable
+
+  // workaround to update the internal offset for pulley type in the case that has round gap
+  int32_t diff = ref_value - s.present_position_;
+  if (diff > 2047) s.internal_offset_ += 4096;
+  if (diff < -2047) s.internal_offset_ -= 4096;
+}
+
 void DynamixelSerial::setHomingOffset(uint8_t servo_index)
 {
   if(servo_[servo_index].external_encoder_flag_){
@@ -622,7 +633,6 @@ int8_t DynamixelSerial::readStatusPacket(uint8_t status_packet_instruction)
                   }
                   else {
                     if (s->first_get_pos_flag_) {
-                      s->internal_offset_ = std::floor(present_position / 4096.0) * -4096;
                       s->first_get_pos_flag_ = false;
                     }
                     s->setPresentPosition(present_position);

@@ -180,6 +180,13 @@ void Initializer::receiveDataCallback(uint8_t message_id, uint32_t DLC, uint8_t*
                     }
                     break;
 		}
+		case CAN::BOARD_CONFIG_SET_SERVO_ROUND_OFFSET:
+		{
+			uint8_t servo_index = data[1];
+			int32_t ref_value = ((data[5] << 24) & 0xFF000000) | ((data[4] << 16) & 0xFF0000) | ((data[3] << 8) & 0xFF00) | ((data[2] << 0) & 0xFF);
+			servo_.servo_handler_.setRoundOffset(servo_index, ref_value);
+			break;
+		}
 		default:
 			break;
 		}

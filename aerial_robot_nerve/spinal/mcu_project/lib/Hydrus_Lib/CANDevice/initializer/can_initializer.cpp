@@ -155,6 +155,20 @@ void CANInitializer::configDevice(const spinal::SetBoardConfig::Request& req)
 			sendMessage(CAN::MESSAGEID_RECEIVE_BOARD_CONFIG_REQUEST, slave_id, 2, send_data, 1);
 			break;
 		}
+		case CAN::BOARD_CONFIG_SET_SERVO_ROUND_OFFSET:
+		{
+			uint8_t servo_index = static_cast<uint8_t>(req.data[1]);
+			int32_t ref_value = req.data[2];
+			uint8_t send_data[6];
+			send_data[0] = CAN::BOARD_CONFIG_SET_SERVO_ROUND_OFFSET;
+			send_data[1] = servo_index;
+			send_data[2] = ref_value & 0xFF;
+			send_data[3] = (ref_value >> 8) & 0xFF;
+			send_data[4] = (ref_value >> 16) & 0xFF;
+			send_data[5] = (ref_value >> 24) & 0xFF;
+			sendMessage(CAN::MESSAGEID_RECEIVE_BOARD_CONFIG_REQUEST, slave_id, 6, send_data, 1);
+			break;
+		}
 		default:
 			break;
 	}

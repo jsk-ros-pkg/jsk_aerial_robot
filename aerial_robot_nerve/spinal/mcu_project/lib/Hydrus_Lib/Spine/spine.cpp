@@ -111,8 +111,10 @@ namespace Spine
   {
     /* Pause the spinal sending command for neuron to have enough time for flashmemory erase&write */
     can_tx_idle_start_time_ = HAL_GetTick();
+    // TODO: change the return value to bool
     can_initializer_.configDevice(req);
 
+    // TODO: please add string type message for consoling
     res.success = true;
   }
 

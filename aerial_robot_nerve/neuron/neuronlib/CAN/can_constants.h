@@ -51,6 +51,7 @@ namespace CAN {
 	constexpr uint8_t BOARD_CONFIG_SET_DYNAMIXEL_TTL_RS485_MIXED = 8;
         constexpr uint8_t BOARD_CONFIG_SET_EXTERNAL_ENCODER_FLAG = 9;
         constexpr uint8_t BOARD_CONFIG_SET_RESOLUTION_RATIO = 10;
+	constexpr uint8_t BOARD_CONFIG_SET_SERVO_ROUND_OFFSET = 11;
 }
 
 
