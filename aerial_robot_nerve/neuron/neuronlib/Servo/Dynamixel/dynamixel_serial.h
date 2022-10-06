@@ -55,6 +55,13 @@
 #define MX_64	0x137
 #define MX_106	0x141
 
+//################ define - Dynamixel operating mode table ######################
+#define CURRENT_CONTROL_MODE 0
+#define VELOCITY_CONTROL_MODE 1
+#define POSITION_CONTROL_MODE 3
+#define EXTENDED_POSITION_CONTROL_MODE 4
+#define CURRENT_BASE_POSITION_CONTROL_MODE 5
+#define PWM_CONTROL_MODE 16
 
 //################ define - Dynamixel Hex control table ######################
 
@@ -139,6 +146,7 @@
 #define PRESENT_CURRENT_BYTE_LEN		2
 #define PRESENT_TEMPERATURE_BYTE_LEN	1
 #define MOVING_BYTE_LEN 				1
+#define OPERATING_MODE_BYTE_LEN 			1
 #define MODEL_NUMBER_BYTE_LEN 				2
 #define HARDWARE_ERROR_STATUS_BYTE_LEN	1
 #define POSITION_GAINS_BYTE_LEN			6
@@ -213,6 +221,7 @@
 #define INST_SET_PROFILE_VELOCITY		14
 #define INST_SET_TORQUE					15
 #define INST_GET_MODEL_NUMBER				16
+#define INST_GET_OPERATING_MODE				17
 
 //instruction frequency: 0 means no process
 #define SET_POS_DU 20 //[msec], 20ms => 50Hz
@@ -308,6 +317,7 @@ public:
 	int16_t present_current_;
 	uint8_t moving_;
   	uint16_t model_number_;
+	uint8_t operating_mode_;
 	uint8_t hardware_error_status_;
 	uint16_t p_gain_, i_gain_, d_gain_;
 	uint16_t profile_velocity_;
@@ -386,6 +396,7 @@ private:
   inline void cmdReadHomingOffset(uint8_t servo_index);
   inline void cmdReadMoving(uint8_t servo_index);
   inline void cmdReadModelNumber(uint8_t servo_index);
+  inline void cmdReadOperatingMode(uint8_t servo_index);
   inline void cmdReadPositionGains(uint8_t servo_index);
   inline void cmdReadPresentCurrent(uint8_t servo_index);
   inline void cmdReadPresentPosition(uint8_t servo_index);
@@ -403,6 +414,7 @@ private:
   inline void cmdSyncReadHomingOffset(bool send_all = true);
   inline void cmdSyncReadMoving(bool send_all = true);
   inline void cmdSyncReadModelNumber(bool send_all = true);
+  inline void cmdSyncReadOperatingMode(bool send_all = true);
   inline void cmdSyncReadPositionGains(bool send_all = true);
   inline void cmdSyncReadPresentCurrent(bool send_all = true);
   inline void cmdSyncReadPresentPosition(bool send_all = true);
@@ -420,6 +432,7 @@ private:
   inline void getPositionGains();
   inline void getProfileVelocity();
   inline void getModelNumber();
+  inline void getOperatingMode();
 
   uint16_t calcCRC16(uint16_t crc_accum, uint8_t *data_blk_ptr, int data_blk_size);
 };
