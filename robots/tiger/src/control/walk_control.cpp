@@ -202,7 +202,7 @@ void WalkController::thrustControl()
   // 1. feed-forwared control: compensate the static balance
   Eigen::VectorXd static_thrust_force = tiger_robot_model_->getStaticVectoringF();
   target_vectoring_f_ = static_thrust_force;
-  ROS_INFO_STREAM("[Tiger] [Control] total thrust vector init: " << target_vectoring_f_.transpose());
+  //ROS_INFO_STREAM("[Tiger] [Control] total thrust vector init: " << target_vectoring_f_.transpose());
 
   // 2. feed-back control:  baselink position control
   Eigen::VectorXd target_wrench = Eigen::VectorXd::Zero(6);
@@ -283,8 +283,8 @@ void WalkController::thrustControl()
     target_vectoring_f_.segment(3 * 2 * i, 3) += fb_vectoring_f.segment(3 * i, 3);
   }
   // ROS_INFO_STREAM_THROTTLE(1.0, "[fb control] fb vectoring f: " << fb_vectoring_f.transpose());
-  ROS_INFO_STREAM("[Tiger] [Control] fb vectoring f: " << fb_vectoring_f.transpose());
-  ROS_INFO_STREAM("[Tiger] [Control] total thrust vector after fc center: " << target_vectoring_f_.transpose());
+  // ROS_INFO_STREAM("[Tiger] [Control] fb vectoring f: " << fb_vectoring_f.transpose());
+  // ROS_INFO_STREAM("[Tiger] [Control] total thrust vector after fc center: " << target_vectoring_f_.transpose());
 
 
   // 3. feed-back control: link-wise rotation control
@@ -310,8 +310,17 @@ void WalkController::thrustControl()
     KDL::Frame fw_link = fw_baselink * fb_link;
 
     // calculate the control vector from
-    Eigen::Vector3d a = -aerial_robot_model::kdlToEigen(fw_link.M.UnitX());
-    Eigen::Vector3d b = -aerial_robot_model::kdlToEigen(target_link_rots.at(i).UnitX());
+    // negative means the pivot point is the leg end point
+    int direct = -1;
+
+    if (i / 2 == tiger_robot_model_->getFreeleg()) {
+      // motor on a free leg, pivot point should be shift from leg end point to center joint
+      // ROS_INFO_STREAM("motor" << i << " is on the free leg");
+      direct = 1;
+    }
+
+    Eigen::Vector3d a = direct * aerial_robot_model::kdlToEigen(fw_link.M.UnitX());
+    Eigen::Vector3d b = direct * aerial_robot_model::kdlToEigen(target_link_rots.at(i).UnitX());
     Eigen::Vector3d c = a.cross(b);
     Eigen::Vector3d d = c.cross(a);
     Eigen::Vector3d d_temp = b - a;
@@ -331,15 +340,16 @@ void WalkController::thrustControl()
 
     fb_vectoring_l.segment(3 * i, 3) = fb;
 
-    //ROS_INFO_STREAM("link" << i+1 << ", a: " << a.transpose() << ", b:" << b.transpose() << ", d: " << d.transpose() << ", d_temp: " << d_temp.transpose() << ", fb " << fb.transpose() << ", theta: " << theta);
-    ss << theta << ", ";
+    // if (i == 0)
+    //   ROS_INFO_STREAM("link" << i+1 << ", a: " << a.transpose() << ", b:" << b.transpose() << ", d: " << d.transpose() << ", d_temp: " << d_temp.transpose() << ", fb " << fb.transpose() << ", theta: " << theta);
+    // ss << theta << ", ";
   }
   target_vectoring_f_ += fb_vectoring_l;
   //ROS_INFO_STREAM_THROTTLE(1.0, "[Tiger][Control] thrust control for link-wise rotation, thrust vector: " << fb_vectoring_l.transpose());
   //ROS_INFO_STREAM_THROTTLE(1.0, "[Tiger] [Control] [Link Rot] theta: " << ss.str());
   ROS_INFO_STREAM("[Tiger][Control] thrust control for link-wise rotation, thrust vector: " << fb_vectoring_l.transpose());
-  ROS_INFO_STREAM("[Tiger] [Control] [Link Rot] theta: " << ss.str());
-  ROS_INFO_STREAM("[Tiger] [Control] total thrust vector after fc link: " << target_vectoring_f_.transpose());
+  // ROS_INFO_STREAM("[Tiger] [Control] [Link Rot] theta: " << ss.str());
+  // ROS_INFO_STREAM("[Tiger] [Control] total thrust vector after fc link: " << target_vectoring_f_.transpose());
 
   std_msgs::Float32MultiArray msg;
   for(int i = 0; i < fb_vectoring_l.size(); i++) {
@@ -379,8 +389,9 @@ void WalkController::jointControl()
   //   ss1 << prev_navi_target_joint_angles_.at(i) << ", ";
   //   ss2 << navi_target_joint_angles.at(i) << ", ";
   // }
-  // ROS_INFO_STREAM("prev_navi_target_joint_angles: " << ss1.str());
-  // ROS_INFO_STREAM("navi_target_joint_angles: " << ss2.str());
+  //ROS_INFO_STREAM("prev_navi_target_joint_angles: " << ss1.str());
+  //ROS_INFO_STREAM("navi_target_joint_angles: " << ss2.str());
+
 
   // use torque control for joints that needs large torque load
   auto current_angles = getCurrentJointAngles();
@@ -507,6 +518,9 @@ void WalkController::jointControl()
     target_angles.at(i) = current_angle + delta_angle;
   }
 
+  // std::stringstream ss;
+  // ss << "prev target: " << prev_navi_target_joint_angles_.at(1) << ", current target: " << navi_target_joint_angles.at(1) << ", final target: " << target_angles.at(1) << ", current angle" << current_angles.at(1)  << ", torque: " << static_joint_torque(1);
+  // ROS_INFO_STREAM(ss.str());
 }
 
 void WalkController::sendCmd()

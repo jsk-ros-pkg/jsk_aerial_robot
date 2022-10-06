@@ -54,6 +54,7 @@ namespace Tiger
     inline void setStaticJointT(Eigen::VectorXd t) { static_joint_t_ = t; }
 
     inline void setFreeleg(int id) { free_leg_id_ = id; }
+    inline const int getFreeleg() const { return free_leg_id_; }
     inline void resetFreeleg() { free_leg_id_ = -1; }
 
   protected:
