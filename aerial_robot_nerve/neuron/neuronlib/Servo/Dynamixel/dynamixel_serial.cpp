@@ -88,16 +88,15 @@ void DynamixelSerial::init(UART_HandleTypeDef* huart, I2C_HandleTypeDef* hi2c, o
           }
 	}
 
-        // [WIP] set goal current once
-        // for (unsigned int i = 0; i < servo_num_; i++) {
-        //   uint16_t model_number = servo_[i].model_number_;
-        //   if (model_number == XH430_W350 ||
-        //       model_number == XM430_W350 ||
-        //       model_number == XH430_V350) {
-        //     servo_[i].goal_current_ = 2; // hard-coding
-        //     cmdWriteGoalCurrent(i);
-        //   }
-	// }
+	//  set initial goal current if necessary
+        for (unsigned int i = 0; i < servo_num_; i++) {
+          uint8_t operating_mode = servo_[i].operating_mode_;
+          uint16_t current_limit = servo_[i].current_limit_;
+          if (operating_mode == CURRENT_BASE_POSITION_CONTROL_MODE) {
+            servo_[i].goal_current_ = current_limit * 0.8; // workaround: set 80% of the overload threshold
+            cmdWriteGoalCurrent(i);
+          }
+	}
 
 }
 
