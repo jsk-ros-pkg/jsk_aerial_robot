@@ -205,37 +205,37 @@
 
 //for instruction buffer
 #define INST_GET_CURRENT_LIMIT			0
-#define INST_GET_HARDWARE_ERROR_STATUS  1
+#define INST_GET_HARDWARE_ERROR_STATUS		1
 #define INST_GET_HOMING_OFFSET			2
 #define INST_GET_POSITION_GAINS			3
 #define INST_GET_PRESENT_CURRENT		4
 #define INST_GET_PRESENT_MOVING			5
 #define INST_GET_PRESENT_POS			6
-#define INST_GET_PRESENT_TEMPERATURE	7
+#define INST_GET_PRESENT_TEMPERATURE		7
 #define INST_GET_PROFILE_VELOCITY		8
-#define INST_PING						9
+#define INST_PING				9
 #define INST_SET_CURRENT_LIMIT			10
-#define INST_SET_GOAL_POS 				11
+#define INST_SET_GOAL_COMMAND			11
 #define INST_SET_HOMING_OFFSET			12
 #define INST_SET_POSITION_GAINS			13
 #define INST_SET_PROFILE_VELOCITY		14
-#define INST_SET_TORQUE					15
-#define INST_GET_MODEL_NUMBER				16
-#define INST_GET_OPERATING_MODE				17
+#define INST_SET_TORQUE				15
+#define INST_GET_MODEL_NUMBER			16
+#define INST_GET_OPERATING_MODE			17
 
 //instruction frequency: 0 means no process
-#define SET_POS_DU 20 //[msec], 20ms => 50Hz
-#define SET_POS_OFFSET 0 // offset from SET_POS
+#define SET_COMMAND_DU 20 //[msec], 20ms => 50Hz
+#define SET_COMMAND_OFFSET 0 // offset from SET_COMMAND
 #define GET_POS_DU 20 //[msec], 20ms => 50Hz
-#define GET_POS_OFFSET 10 //offset from GET_POS
+#define GET_POS_OFFSET 10 //offset from SET_COMMAND
 #define GET_LOAD_DU 200 //[msec], 200ms => 5Hz
-#define GET_LOAD_OFFSET 0 //offset from GET_LOAD
+#define GET_LOAD_OFFSET 0 //offset from SET_COMMAND
 #define GET_TEMP_DU 200 //[msec], 200ms => 5Hz
-#define GET_TEMP_OFFSET 50 //offset from GET_TEMP
+#define GET_TEMP_OFFSET 50 //offset from SET_COMMAND
 #define GET_MOVE_DU 200 //[msec], 200ms => 5Hz
-#define GET_MOVE_OFFSET 100 //offset from GET_MOVE
+#define GET_MOVE_OFFSET 100 //offset from SET_COMMAND
 #define GET_HARDWARE_ERROR_STATUS_DU 200 //[msec], 200ms => 5Hz
-#define GET_HARDWARE_ERROR_STATUS_OFFSET 150
+#define GET_HARDWARE_ERROR_STATUS_OFFSET 150 //offset from SET_COMMAND
 
 /* please define the gpio which control the IO direction */
 #define WE HAL_GPIO_WritePin(RS485EN_GPIO_Port, RS485EN_Pin, GPIO_PIN_SET);
@@ -342,7 +342,8 @@ public:
 	int32_t getPresentPosition() const {return present_position_;}
 	void setGoalPosition(int32_t goal_position) {goal_position_ = resolution_ratio_ * goal_position - internal_offset_;}
 	int32_t getGoalPosition() const {return goal_position_;}
-
+	void setGoalCurrent(int16_t goal_current) {goal_current_ = goal_current;}
+	int16_t getGoalCurrent() const { return goal_current_;}
 	bool operator==(const ServoData& r) const {return this->id_ == r.id_;}
 };
 
@@ -375,7 +376,7 @@ private:
   unsigned int servo_num_;
   std::array<ServoData, MAX_SERVO_NUM> servo_;
   uint16_t ttl_rs485_mixed_;
-  uint32_t set_pos_tick_;
+  uint32_t set_command_tick_;
   uint32_t get_pos_tick_;
   uint32_t get_load_tick_;
   uint32_t get_temp_tick_;
@@ -426,6 +427,7 @@ private:
   inline void cmdSyncReadPresentTemperature(bool send_all = true);
   inline void cmdSyncReadProfileVelocity(bool send_all = true);
   inline void cmdSyncWriteGoalPosition();
+  inline void cmdSyncWriteGoalCurrent();
   inline void cmdSyncWriteLed();
   inline void cmdSyncWritePositionGains();
   inline void cmdSyncWriteProfileVelocity();
