@@ -55,5 +55,14 @@ void Servo::receiveDataCallback(uint8_t message_id, uint32_t DLC, uint8_t* data)
 			}
 			break;
 		}
+		case CAN::MESSAGEID_RECEIVE_SERVO_CURRENT:
+		{
+			for (unsigned int i = 0; i < servo_handler_.getServoNum(); i++) {
+				ServoData& s = servo_handler_.getServo()[i];
+				int16_t goal_current = (int16_t)(((data[i * 2 + 1] << 8) & 0xFF00) | (data[i * 2] & 0xFF));
+				s.setGoalCurrent(goal_current);
+			}
+			break;
+		}
 	}
 }

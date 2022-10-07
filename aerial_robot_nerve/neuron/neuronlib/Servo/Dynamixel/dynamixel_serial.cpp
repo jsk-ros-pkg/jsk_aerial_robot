@@ -6,7 +6,7 @@ void DynamixelSerial::init(UART_HandleTypeDef* huart, I2C_HandleTypeDef* hi2c, o
 	huart_ = huart;
         mutex_ = mutex;
 	servo_num_ = 0;
-	set_pos_tick_ = 0;
+	set_command_tick_ = 0;
 	get_pos_tick_ = 0;
 	get_load_tick_ = 0;
 	get_temp_tick_ = 0;
@@ -97,7 +97,6 @@ void DynamixelSerial::init(UART_HandleTypeDef* huart, I2C_HandleTypeDef* hi2c, o
             cmdWriteGoalCurrent(i);
           }
 	}
-
 }
 
 void DynamixelSerial::ping()
@@ -202,11 +201,11 @@ void DynamixelSerial::update()
   uint32_t current_time = HAL_GetTick();
 
   /* send position command to servo */
-  if(current_time >= set_pos_tick_ + SET_POS_DU && SET_POS_DU > 0) {
-    if (set_pos_tick_ == 0) set_pos_tick_ = current_time + SET_POS_OFFSET; // init
-    else set_pos_tick_ = current_time;
+  if(current_time >= set_command_tick_ + SET_COMMAND_DU && SET_COMMAND_DU > 0) {
+    if (set_command_tick_ == 0) set_command_tick_ = current_time + SET_COMMAND_OFFSET; // init
+    else set_command_tick_ = current_time;
 
-    instruction_buffer_.push(std::make_pair(INST_SET_GOAL_POS, 0)); // broadcast
+    instruction_buffer_.push(std::make_pair(INST_SET_GOAL_COMMAND, 0)); // broadcast both target pos and current
   }
 
   /* read servo position(angle) */
@@ -224,7 +223,6 @@ void DynamixelSerial::update()
   }
 
   /* read servo load */
-
   if(current_time >= get_load_tick_ + GET_LOAD_DU && GET_LOAD_DU > 0) {
     if (get_load_tick_ == 0) get_load_tick_ = current_time + GET_LOAD_OFFSET; // init
     else get_load_tick_ = current_time;
@@ -239,7 +237,6 @@ void DynamixelSerial::update()
   }
 
   /* read servo temperature */
-
   if(current_time >= get_temp_tick_ + GET_TEMP_DU && GET_TEMP_DU > 0) {
     if (get_temp_tick_ == 0) get_temp_tick_ = current_time + GET_TEMP_OFFSET;  // init
     else get_temp_tick_ = current_time;
@@ -293,8 +290,9 @@ void DynamixelSerial::update()
 
       /* set command */
       switch (instruction.first) {
-      case INST_SET_GOAL_POS: /* send angle command to servo */
+      case INST_SET_GOAL_COMMAND: /* send angle and current command to servo */
         cmdSyncWriteGoalPosition();
+        cmdSyncWriteGoalCurrent();
         break;
       case INST_SET_TORQUE: /* send torque enable flag */
         cmdWriteTorqueEnable(servo_index);
@@ -965,6 +963,24 @@ void DynamixelSerial::cmdSyncWriteGoalPosition()
 	}
 
 	cmdSyncWrite(CTRL_GOAL_POSITION, parameters, GOAL_POSITION_BYTE_LEN);
+}
+
+void DynamixelSerial::cmdSyncWriteGoalCurrent()
+{
+	uint8_t parameters[INSTRUCTION_PACKET_SIZE];
+
+	for (unsigned int i = 0; i < servo_num_; i++) {
+		// uint8_t operating_mode = servo_[i].operating_mode;
+		// if (operating_mode != EXTENDED_POSITION_CONTROL_MODE &&
+		//     operating_mode != CURRENT_BASE_POSITION_CONTROL_MODE) {
+		//   continue
+		// }
+		int16_t goal_current = servo_[i].goal_current_;
+		parameters[i * 2 + 0] = (uint8_t)(goal_current & 0xFF);
+		parameters[i * 2 + 1] = (uint8_t)((goal_current >> 8) & 0xFF);
+	}
+        
+	cmdSyncWrite(CTRL_GOAL_CURRENT, parameters, GOAL_CURRENT_BYTE_LEN);
 }
 
 void DynamixelSerial::cmdSyncWriteLed()
