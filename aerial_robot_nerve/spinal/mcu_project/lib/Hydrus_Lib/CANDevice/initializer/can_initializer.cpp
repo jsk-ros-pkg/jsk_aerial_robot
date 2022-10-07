@@ -225,6 +225,8 @@ void CANInitializer::receiveDataCallback(uint8_t slave_id, uint8_t message_id, u
         neuron_[index].can_servo_.servo_[servo_index].goal_position_ = (data[2] << 8) | data[1];
         neuron_[index].can_servo_.servo_[servo_index].profile_velocity_ = (data[4] << 8) | data[3];
         neuron_[index].can_servo_.servo_[servo_index].current_limit_ = (data[6] << 8) | data[5];
+        neuron_[index].can_servo_.servo_[servo_index].goal_current_ = neuron_[index].can_servo_.servo_[servo_index].current_limit_ * 0.8;
+        // TODO: get goal current from neuron
         neuron_[index].can_servo_.servo_[servo_index].send_data_flag_ = data[7];
         break;
       }
