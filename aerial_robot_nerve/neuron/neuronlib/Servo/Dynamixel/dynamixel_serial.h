@@ -304,7 +304,12 @@ private:
 class ServoData {
 public:
 	ServoData(){}
-  ServoData(uint8_t id): id_(id), torque_enable_(false), first_get_pos_flag_(true), internal_offset_(0){}
+	ServoData(uint8_t id):
+          id_(id),
+          torque_enable_(false),
+          first_get_pos_flag_(true),
+          goal_current_(0)
+  {}
 
 	uint8_t id_;
   	int32_t present_position_;
