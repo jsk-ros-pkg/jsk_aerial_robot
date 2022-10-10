@@ -66,10 +66,11 @@ namespace aerial_robot_control
 
       ros::Publisher flight_cmd_pub_; //for spinal
       ros::Publisher gimbal_control_pub_;
-      ros::Publisher joint_control_pub_;
+      ros::Publisher joint_angle_pub_;
+      ros::Publisher joint_torque_pub_;
       ros::Publisher target_vectoring_force_pub_;
       ros::Publisher link_rot_thrust_force_pub_;
-      ros::Publisher joint_torque_pub_;
+      ros::Publisher joint_servo_enable_pub_;
       ros::Subscriber joint_force_compliance_sub_;
       ros::Subscriber joint_no_load_sub_;
       ros::ServiceServer joint_yaw_torque_srv_, joint_pitch_torque_srv_;
@@ -87,18 +88,22 @@ namespace aerial_robot_control
       std::vector<double> target_gimbal_angles_;
       Eigen::VectorXd target_vectoring_f_;
 
-      sensor_msgs::JointState target_joint_state_;
+      sensor_msgs::JointState target_joint_angles_;
+      sensor_msgs::JointState target_joint_torques_;
       std::vector<double> prev_navi_target_joint_angles_;
       double joint_ctrl_rate_;
       double tor_kp_;
 
-      bool force_joint_control_;
-      double joint_no_load_end_t_;
+      bool joint_soft_compliance_;
+      double joint_compliance_end_t_;
 
       double joint_torque_control_thresh_;
       double servo_max_torque_;
       double servo_torque_change_rate_;
       double servo_angle_bias_;
+
+      double angle_scale_;
+      double torque_load_scale_;
 
       double link_rot_f_control_i_thresh_;
       std::vector<Eigen::Vector3d> fw_i_terms_;
@@ -107,12 +112,12 @@ namespace aerial_robot_control
       virtual void sendCmd() override;
 
       bool servoTorqueCtrlCallback(std_srvs::SetBool::Request &req, std_srvs::SetBool::Response &res, const std::string& name);
-      void jointForceComplianceCallback(const std_msgs::EmptyConstPtr& msg);
-      void jointNoLoadCallback(const std_msgs::EmptyConstPtr& msg);
+      void jointSoftComplianceCallback(const std_msgs::EmptyConstPtr& msg);
 
       void cfgPidCallback(aerial_robot_control::PidControlConfig &config, uint32_t level, std::vector<int> controller_indices) override;
 
       void jointControl();
+      void jointSoftComplianceControl();
       void thrustControl();
 
       // utils

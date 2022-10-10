@@ -9,7 +9,7 @@ controller:
     joint_torque_control_thresh: 2.0 # Nm
     servo_angle_bias: 0.02 # rad
     servo_max_torque: 6 # Nm
-    servo_torque_change_rate: 3.0
+    servo_torque_change_rate: 2.0
 
     xy:
       p_gain: 0.0 # N/m:
