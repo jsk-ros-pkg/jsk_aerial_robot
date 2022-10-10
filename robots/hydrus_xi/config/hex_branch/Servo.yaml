@@ -1,7 +1,4 @@
 servo_controller:
-  state_sub_topic: servo/states
-  ctrl_pub_topic: servo/target_states
-  torque_pub_topic: servo/torque_enable
 
   joints:
     angle_sgn: -1
