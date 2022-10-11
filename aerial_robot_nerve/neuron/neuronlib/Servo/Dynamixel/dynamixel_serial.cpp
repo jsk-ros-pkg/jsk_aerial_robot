@@ -129,20 +129,26 @@ void DynamixelSerial::setHomingOffset(uint8_t servo_index)
   else{
     if (mutex_ != NULL)  osMutexWait(*mutex_, osWaitForever);
 
-    if(!servo_[servo_index].send_data_flag_)
-      {
-        cmdReadPresentPosition(servo_index);
-        readStatusPacket(INST_GET_PRESENT_POS);
-      }
-
+    // reset homing offset and internal offset
+    servo_[servo_index].homing_offset_ = 0;
+    servo_[servo_index].internal_offset_ = 0;
     cmdWriteHomingOffset(servo_index);
-    getHomingOffset();
+    cmdReadHomingOffset(servo_index);
+    readStatusPacket(INST_GET_HOMING_OFFSET);
 
-    if(!servo_[servo_index].send_data_flag_)
-      {
-        cmdReadPresentPosition(servo_index);
-        readStatusPacket(INST_GET_PRESENT_POS);
-      }
+    // read updated position
+    cmdReadPresentPosition(servo_index);
+    readStatusPacket(INST_GET_PRESENT_POS);
+
+    // set new homing offset
+    servo_[servo_index].updateHomingOffset();
+    cmdWriteHomingOffset(servo_index);
+    cmdReadHomingOffset(servo_index);
+    readStatusPacket(INST_GET_HOMING_OFFSET);
+
+    // read updated position
+    cmdReadPresentPosition(servo_index);
+    readStatusPacket(INST_GET_PRESENT_POS);
 
     if (mutex_ != NULL) osMutexRelease(*mutex_);
   }
@@ -633,6 +639,7 @@ int8_t DynamixelSerial::readStatusPacket(uint8_t status_packet_instruction)
                   }
                   else {
                     if (s->first_get_pos_flag_) {
+                      s->internal_offset_ = std::floor(present_position / 4096.0) * -4096; // to convert [0, 4096]
                       s->first_get_pos_flag_ = false;
                     }
                     s->setPresentPosition(present_position);
@@ -809,7 +816,7 @@ void DynamixelSerial::cmdWriteCurrentLimit(uint8_t servo_index)
 
 void DynamixelSerial::cmdWriteHomingOffset(uint8_t servo_index)
 {
-	int32_t homing_offset = servo_[servo_index].getNewHomingOffset();
+	int32_t homing_offset = servo_[servo_index].homing_offset_;
 	uint8_t parameters[4];
 	parameters[0] = (uint8_t)(homing_offset & 0xFF);
 	parameters[1] = (uint8_t)((homing_offset >> 8) & 0xFF);
@@ -1107,4 +1114,3 @@ HAL_StatusTypeDef DynamixelSerial::read(uint8_t* data,  uint32_t timeout)
         }
     }
 }
-

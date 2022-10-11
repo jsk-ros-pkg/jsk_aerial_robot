@@ -303,7 +303,7 @@ public:
 	bool torque_enable_;
 	bool first_get_pos_flag_;
 
-	int32_t getNewHomingOffset() const {return calib_value_ + homing_offset_ - present_position_;}
+	void updateHomingOffset() { homing_offset_ = calib_value_ - present_position_;}
 	void setPresentPosition(int32_t present_position) {present_position_ = present_position + internal_offset_;}
 	int32_t getPresentPosition() const {return present_position_;}
 	void setGoalPosition(int32_t goal_position) {goal_position_ = resolution_ratio_ * goal_position - internal_offset_;}
