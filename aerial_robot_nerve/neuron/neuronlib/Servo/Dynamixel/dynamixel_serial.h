@@ -278,7 +278,14 @@ private:
 class ServoData {
 public:
 	ServoData(){}
-  ServoData(uint8_t id): id_(id), torque_enable_(false), first_get_pos_flag_(true), internal_offset_(0){}
+	ServoData(uint8_t id):
+          id_(id),
+          internal_offset_(0),
+          hardware_error_status_(0),
+          torque_enable_(false),
+          force_servo_off_(false),
+          first_get_pos_flag_(true)
+  {}
 
 	uint8_t id_;
   	int32_t present_position_;
@@ -301,6 +308,7 @@ public:
         float resolution_ratio_;
 	bool led_;
 	bool torque_enable_;
+  	bool force_servo_off_;
 	bool first_get_pos_flag_;
 
 	void updateHomingOffset() { homing_offset_ = calib_value_ - present_position_;}
