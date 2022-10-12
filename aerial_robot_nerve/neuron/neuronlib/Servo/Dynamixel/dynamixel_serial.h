@@ -308,6 +308,8 @@ public:
           id_(id),
           torque_enable_(false),
           first_get_pos_flag_(true),
+          force_servo_off_(false),
+          hardware_error_status_(0),
           goal_current_(0)
   {}
 
@@ -335,6 +337,7 @@ public:
         float resolution_ratio_;
 	bool led_;
 	bool torque_enable_;
+  	bool force_servo_off_;
 	bool first_get_pos_flag_;
 
 	void updateHomingOffset() { homing_offset_ = calib_value_ - present_position_;}
