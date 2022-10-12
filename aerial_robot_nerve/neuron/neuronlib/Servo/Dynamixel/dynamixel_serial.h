@@ -132,33 +132,36 @@
 #define COMMAND_BULK_WRITE				0x93
 
 //################ Instruction packet lengths #############################
-#define PING_LEN						3
-#define READ_INST_LEN					7
+#define PING_LEN				3
+#define READ_INST_LEN				7
 #define HOMING_OFFSET_BYTE_LEN			4
 #define SET_STATUS_RETURN_LEVEL_LEN		3
-#define REBOOT_LEN						3
+#define REBOOT_LEN				3
 #define TORQUE_ENABLE_BYTE_LEN			1
-#define LED_BYTE_LEN					1
-#define STATUS_RETURN_LEVEL_BYTE_LEN	1
+#define LED_BYTE_LEN				1
+#define STATUS_RETURN_LEVEL_BYTE_LEN		1
 #define GOAL_POSITION_BYTE_LEN			4
 #define GOAL_CURRENT_BYTE_LEN			2
 #define PRESENT_POSITION_BYTE_LEN		4
 #define PRESENT_CURRENT_BYTE_LEN		2
-#define PRESENT_TEMPERATURE_BYTE_LEN	1
-#define MOVING_BYTE_LEN 				1
-#define OPERATING_MODE_BYTE_LEN 			1
-#define MODEL_NUMBER_BYTE_LEN 				2
-#define HARDWARE_ERROR_STATUS_BYTE_LEN	1
+#define PRESENT_TEMPERATURE_BYTE_LEN		1
+#define MOVING_BYTE_LEN 			1
+#define OPERATING_MODE_BYTE_LEN 		1
+#define MODEL_NUMBER_BYTE_LEN 			2
+#define HARDWARE_ERROR_STATUS_BYTE_LEN		1
 #define POSITION_GAINS_BYTE_LEN			6
 #define PROFILE_VELOCITY_BYTE_LEN		4
 #define CURRENT_LIMIT_BYTE_LEN			2
+#define SHUTDOWN_BYTE_LEN			1
+#define RETURN_DELAY_TIME_BYTE_LEN		1
+#define TEMPERATURE_LIMIT_BYTE_LEN		1
 
 //#########################################################################
 //############################ Specials ###################################
 
 #define NONE					0x00
 #define READ					0x01
-#define ALL						0x02
+#define ALL					0x02
 
 #define BROADCAST_ID           	0xFE
 
@@ -175,33 +178,30 @@
 #define PING_TRIAL_NUM			100
 
 //read status packet
-#define READ_HEADER0					0
-#define READ_HEADER1					1
-#define READ_HEADER2					2
-#define READ_HEADER3					3
-#define READ_SERVOID					4
-#define READ_LENL						5
-#define READ_LENH						6
-#define READ_INSTRUCTION				7
-#define READ_ERROR						8
-#define READ_PARAMETER		 			9
-#define READ_CHECKSUML 					10
-#define READ_CHECKSUMH					11
+#define READ_HEADER0				0
+#define READ_HEADER1				1
+#define READ_HEADER2				2
+#define READ_HEADER3				3
+#define READ_SERVOID				4
+#define READ_LENL				5
+#define READ_LENH				6
+#define READ_INSTRUCTION			7
+#define READ_ERROR				8
+#define READ_PARAMETER				9
+#define READ_CHECKSUML 				10
+#define READ_CHECKSUMH				11
 #define STATUS_PACKET_INSTRUCTION		0x55
+#define NO_ERROR				0
 
 //error
-#define ERROR_NO_ERROR					0
-#define ERROR_RESULT_FAIL				1
-#define ERROR_INSTRUCTION_ERROR			2
-#define ERROR_CRC_ERROR					3
-#define ERROR_DATA_RANGE_ERROR			4
-#define ERROR_DATA_LENGTH_ERROR			5
-#define ERROR_DATA_LIMIT_ERROR			6
-#define ERROR_ACCESS_ERROR				7
+#define INPUT_VOLTAGE_ERROR			0
+#define OVERHEATING_ERROR			2
+#define MOTOR_ENCODER_ERROR			3
+#define ELECTRICAL_SHOCK_ERROR			4
+#define OVERLOAD_ERROR				5
 //addintional error status for external encoder
-#define RESOLUTION_RATIO_ERROR 6
-#define ENCODER_CONNECT_ERROR 7
-
+#define RESOLUTION_RATIO_ERROR			6
+#define ENCODER_CONNECT_ERROR			7
 
 //for instruction buffer
 #define INST_GET_CURRENT_LIMIT			0
@@ -236,6 +236,12 @@
 #define GET_MOVE_OFFSET 100 //offset from SET_COMMAND
 #define GET_HARDWARE_ERROR_STATUS_DU 200 //[msec], 200ms => 5Hz
 #define GET_HARDWARE_ERROR_STATUS_OFFSET 150 //offset from SET_COMMAND
+
+// pre-defined configuration for dynamixel
+#define TEMPERATURE_LIMIT			60
+#define RETURN_DELAY_TIME			25
+#define SHUTDOWN_BIT				1 << OVERHEATING_ERROR | 1 << ELECTRICAL_SHOCK_ERROR
+
 
 /* please define the gpio which control the IO direction */
 #define WE HAL_GPIO_WritePin(RS485EN_GPIO_Port, RS485EN_Pin, GPIO_PIN_SET);
@@ -310,6 +316,7 @@ public:
           first_get_pos_flag_(true),
           force_servo_off_(false),
           hardware_error_status_(0),
+          operating_mode_(0),
           goal_current_(0)
   {}
 
@@ -324,6 +331,7 @@ public:
 	int16_t present_current_;
 	uint8_t moving_;
   	uint16_t model_number_;
+	uint8_t shutdown_bit_;
 	uint8_t operating_mode_;
 	uint8_t hardware_error_status_;
 	uint16_t p_gain_, i_gain_, d_gain_;
@@ -435,6 +443,9 @@ private:
   inline void cmdSyncWritePositionGains();
   inline void cmdSyncWriteProfileVelocity();
   inline void cmdSyncWriteTorqueEnable();
+  inline void cmdSyncWriteShutdownBit();
+  inline void cmdSyncWriteReturnDelayTime();
+  inline void cmdSyncWriteTemperatureLimit();
 
   inline void setStatusReturnLevel();
   inline void getHomingOffset();
