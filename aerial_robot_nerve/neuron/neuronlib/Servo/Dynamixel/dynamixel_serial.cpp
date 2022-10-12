@@ -282,9 +282,20 @@ void DynamixelSerial::update()
       instruction_buffer_.push(std::make_pair(INST_GET_HARDWARE_ERROR_STATUS, 0));
     }
 
-    // check the latest error status
+    // check the latest error status with original rule
     for (unsigned int i = 0; i < servo_num_; i++) {
       if (servo_[i].hardware_error_status_ != 0) {
+
+        // ingnore overload error for current based position control
+        if (servo_[i].hardware_error_status_ == (1 << OVERLOAD_ERROR)) {
+          if (servo_[i].operating_mode_ == CURRENT_BASE_POSITION_CONTROL_MODE) {
+            if (servo_[i].goal_current_ < servo_[i].current_limit_) {
+              servo_[i].force_servo_off_ = false;
+              continue;
+            }
+          }
+        }
+
         servo_[i].force_servo_off_ = true;
 
         if (servo_[i].torque_enable_) {
