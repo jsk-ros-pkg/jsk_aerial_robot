@@ -11,16 +11,16 @@ import math
 class JointRoughCalib:
     def __init__(self):
 
-        master = rosgraph.Master('/rostopic')
-        try:
-            _, _, srvs = master.getSystemState()
-        except socket.error:
-            raise ROSTopicIOException('Unable to communicate with master!')
-        board_info_srvs = [srv[0] for srv in srvs if '/set_board_info' in srv[0]]
-        # choose the first robot name
-
-        # robot_ns = board_info_srvs[0].split('/get_board_info')[0]
-        robot_ns = 'dragon'
+        robot_ns = rospy.get_param("robot_ns", "")
+        if not robot_ns:
+            master = rosgraph.Master('/rostopic')
+            try:
+                _, _, srvs = master.getSystemState()
+            except socket.error:
+                raise ROSTopicIOException('Unable to communicate with master!')
+            board_info_srvs = [srv[0] for srv in srvs if '/get_board_info' in srv[0]]
+            # choose the first robot name
+            robot_ns = board_info_srvs[0].split('/get_board_info')[0]
 
         rospy.loginfo('robot name is {}'.format(robot_ns))
 
@@ -68,10 +68,10 @@ class JointRoughCalib:
         get_board_info_client = rospy.ServiceProxy(robot_ns + '/get_board_info', GetBoardInfo)
         try:
             res = get_board_info_client()
-            c = 0
+            c = -1
             for i, b in enumerate(res.boards):
                 for j, s in enumerate(b.servos):
-
+                    c += 1
                     if c not in joint_id_name_map.keys():
                         # not joint type (maybe gimbal)
                         continue
@@ -84,8 +84,8 @@ class JointRoughCalib:
 
                     config = calib_joints[name]
                     config["slave_id"] = b.slave_id
-                    config["servo_id"] = s.id
-                    c += 1
+                    config["servo_id"] = j
+
 
         except rospy.ServiceException as e:
             rospy.logerr("/get_board_info service call failed: %s"%e)
@@ -133,7 +133,7 @@ class JointRoughCalib:
                 rospy.loginfo('data: ' + str(req.data))
                 try:
                     res = set_board_config_client(req)
-                    rospy.loginfo(bool(res.success))
+                    rospy.loginfo("the result is {}".format(bool(res.success)))
                     timeout = 3
                     rospy.sleep(timeout) # WIP: wait for finish update in spinal-neuron
                     rospy.loginfo('wait {} [sec] for update angle'.format(timeout))
@@ -142,7 +142,7 @@ class JointRoughCalib:
                     angle = self.joint_states.position[index]
                     diff = math.fabs(angle - ref)
                     if diff > thresh:
-                        rospy.logerror("calibrate fail for {}, current: {}, ref: {}".format(k, angle, ref))
+                        rospy.logerr("calibrate fail for {}, current: {}, ref: {}".format(k, angle, ref))
                         return
                 except rospy.ServiceException as e:
                     print("/set_board_config service call failed: {}".format(e))
