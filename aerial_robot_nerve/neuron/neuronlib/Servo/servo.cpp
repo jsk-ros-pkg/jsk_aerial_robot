@@ -26,6 +26,7 @@ void Servo::sendData()
 			CANServoData data(static_cast<int16_t>(s.getPresentPosition()),
 							  s.present_temp_,
 							  s.moving_,
+							  s.force_servo_off_,
 							  s.present_current_,
 							  s.hardware_error_status_);
 			sendMessage(CAN::MESSAGEID_SEND_SERVO_LIST[i], m_slave_id, 8, reinterpret_cast<uint8_t*>(&data), 1);
@@ -48,10 +49,12 @@ void Servo::receiveDataCallback(uint8_t message_id, uint32_t DLC, uint8_t* data)
 				}
 				s.setGoalPosition(goal_pos);
 				bool torque_enable = (((data[i * 2 + 1] >> 7) & 0x01) != 0) ? true : false;
-				if (s.torque_enable_ != torque_enable) {
-					s.torque_enable_ = torque_enable;
-					servo_handler_.setTorque(i);
-				}
+                                if (!s.force_servo_off_) {
+                                  if (s.torque_enable_ != torque_enable) {
+                                    s.torque_enable_ = torque_enable;
+                                    servo_handler_.setTorque(i);
+                                  }
+                                }
 			}
 			break;
 		}
