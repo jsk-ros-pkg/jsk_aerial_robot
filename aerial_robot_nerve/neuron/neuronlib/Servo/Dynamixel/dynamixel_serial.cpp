@@ -45,6 +45,11 @@ void DynamixelSerial::init(UART_HandleTypeDef* huart, I2C_HandleTypeDef* hi2c, o
 	}
 	cmdSyncWriteLed();
 
+        // pre-define configuration
+	cmdSyncWriteShutdownBit();
+	cmdSyncWriteReturnDelayTime();
+	cmdSyncWriteTemperatureLimit();
+
 	for (int i = 0; i < MAX_SERVO_NUM; i++) {
 		Flashmemory::addValue(&(servo_[i].p_gain_), 2);
 		Flashmemory::addValue(&(servo_[i].i_gain_), 2);
@@ -567,7 +572,7 @@ int8_t DynamixelSerial::readStatusPacket(uint8_t status_packet_instruction)
 			}
 			break;
 		case READ_ERROR:
-			if ((rx_data & 0x7F) == ERROR_NO_ERROR) {
+			if ((rx_data & 0x7F) == NO_ERROR) {
 				status_stage++;
 			} else {
 				return -1;
@@ -1048,6 +1053,38 @@ void DynamixelSerial::cmdSyncWriteTorqueEnable()
 	cmdSyncWrite(CTRL_TORQUE_ENABLE, parameters, TORQUE_ENABLE_BYTE_LEN);
 }
 
+void DynamixelSerial::cmdSyncWriteShutdownBit()
+{
+	uint8_t parameters[INSTRUCTION_PACKET_SIZE];
+
+	for (unsigned int i = 0; i < servo_num_; i++) {
+		parameters[i] = SHUTDOWN_BIT;
+	}
+
+	cmdSyncWrite(CTRL_SHUTDOWN, parameters, SHUTDOWN_BYTE_LEN);
+}
+
+void DynamixelSerial::cmdSyncWriteReturnDelayTime()
+{
+	uint8_t parameters[INSTRUCTION_PACKET_SIZE];
+
+	for (unsigned int i = 0; i < servo_num_; i++) {
+		parameters[i] = RETURN_DELAY_TIME;
+	}
+
+	cmdSyncWrite(CTRL_RETURN_DELAY_TIME, parameters, RETURN_DELAY_TIME_BYTE_LEN);
+}
+
+void DynamixelSerial::cmdSyncWriteTemperatureLimit()
+{
+	uint8_t parameters[INSTRUCTION_PACKET_SIZE];
+
+	for (unsigned int i = 0; i < servo_num_; i++) {
+		parameters[i] = TEMPERATURE_LIMIT;
+	}
+
+	cmdSyncWrite(CTRL_TEMPERATURE_LIMIT, parameters, TEMPERATURE_LIMIT_BYTE_LEN);
+}
 
 void DynamixelSerial::setStatusReturnLevel()
 {
