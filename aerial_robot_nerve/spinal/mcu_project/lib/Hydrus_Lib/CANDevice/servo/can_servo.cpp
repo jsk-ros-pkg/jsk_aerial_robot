@@ -9,7 +9,7 @@
 
 bool Servo::getTorqueEnable()
 {
-  if(error_ != 0) torque_enable_ = false;
+  if(error_ != 0 && (error_ & 0x20 == 0)) torque_enable_ = false; // WIP: ignore overload error
   return torque_enable_;
 }
 
