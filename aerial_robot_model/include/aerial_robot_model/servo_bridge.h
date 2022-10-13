@@ -221,6 +221,7 @@ protected:
   ros::Publisher servo_states_pub_;
   map<string, ros::Subscriber> servo_states_subs_;
   map<string, ros::Subscriber> servo_ctrl_subs_;
+  map<string, ros::Subscriber> servo_torque_ctrl_subs_;
   map<string, ros::Subscriber> servo_torque_subs_;
   map<string, bool> no_real_state_flags_;
   map<string, ros::Publisher> servo_target_pos_pubs_;
