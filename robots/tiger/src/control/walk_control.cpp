@@ -314,9 +314,14 @@ void WalkController::thrustControl()
     int direct = -1;
 
     if (i / 2 == tiger_robot_model_->getFreeleg()) {
-      // motor on a free leg, pivot point should be shift from leg end point to center joint
-      // ROS_INFO_STREAM("motor" << i << " is on the free leg");
-      direct = 1;
+      // no contorl for free leg which may induce unstability
+      continue;
+    }
+
+    if (i % 2 == 1) {
+      // outer link (e.g., link2)
+      // no control for outer link since the effector is too small
+      continue;
     }
 
     Eigen::Vector3d a = direct * aerial_robot_model::kdlToEigen(fw_link.M.UnitX());
@@ -338,11 +343,15 @@ void WalkController::thrustControl()
     Eigen::Vector3d fw = clamp(fw_p_term + fw_i_terms_.at(i), limit_sum);
     Eigen::Vector3d fb = aerial_robot_model::kdlToEigen(fw_link.M.Inverse()) * fw;
 
+    if (i % 2 == 0) {
+      // inner link (e.g., link1)
+      // no downward force in world frame
+      if (fb.z() < 0) fb.z() = 0;
+    }
+
     fb_vectoring_l.segment(3 * i, 3) = fb;
 
-    // if (i == 0)
-    //   ROS_INFO_STREAM("link" << i+1 << ", a: " << a.transpose() << ", b:" << b.transpose() << ", d: " << d.transpose() << ", d_temp: " << d_temp.transpose() << ", fb " << fb.transpose() << ", theta: " << theta);
-    // ss << theta << ", ";
+    // ROS_INFO_STREAM("link" << i+1 << ", a: " << a.transpose() << ", b:" << b.transpose() << ", d: " << d.transpose() << ", d_temp: " << d_temp.transpose() << ", fb " << fb.transpose() << ", theta: " << theta);
   }
   target_vectoring_f_ += fb_vectoring_l;
   //ROS_INFO_STREAM_THROTTLE(1.0, "[Tiger][Control] thrust control for link-wise rotation, thrust vector: " << fb_vectoring_l.transpose());
@@ -427,7 +436,7 @@ void WalkController::jointControl()
 
     // position control for yaw joints
     if (name.find("yaw") != std::string::npos) {
-      ROS_INFO_STREAM("position control for: " << name);
+      // ROS_INFO_STREAM("position control for: " << name);
       continue;
     }
 
