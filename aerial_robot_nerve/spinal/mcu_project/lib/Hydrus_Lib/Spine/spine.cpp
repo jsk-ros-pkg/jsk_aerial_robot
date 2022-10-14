@@ -233,8 +233,12 @@ namespace Spine
     if(HAL_GetTick() < can_tx_idle_start_time_ + CAN_TX_PAUSE_TIME) return;
 
     if(HAL_GetTick() % 2 == 0) {
+      // 500Hz
       can_motor_send_device_.sendData();
+    }
+    else {
       if (slave_num_ != 0) {
+        // 500Hz
         neuron_.at(send_board_index).can_servo_.sendData();
         send_board_index++;
         if (send_board_index == slave_num_) send_board_index = 0;
