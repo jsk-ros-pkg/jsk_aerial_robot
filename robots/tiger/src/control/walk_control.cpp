@@ -77,7 +77,7 @@ void WalkController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   joint_servo_enable_pub_ = nh_.advertise<spinal::ServoTorqueCmd>("servo/torque_enable", 1);
   joint_yaw_torque_srv_ = nh_.advertiseService<std_srvs::SetBool::Request, std_srvs::SetBool::Response>("joint_yaw/torque_enable", boost::bind(&WalkController::servoTorqueCtrlCallback, this, _1, _2, "yaw"));
   joint_pitch_torque_srv_ = nh_.advertiseService<std_srvs::SetBool::Request, std_srvs::SetBool::Response>("joint_pitch/torque_enable", boost::bind(&WalkController::servoTorqueCtrlCallback, this, _1, _2, "pitch"));
-  joint_force_compliance_sub_ = nh_.subscribe<std_msgs::Empty>("joint_force_comliance", 1, &WalkController::jointSoftComplianceCallback, this);
+  joint_force_compliance_sub_ = nh_.subscribe<std_msgs::Empty>("joint_force_compliance", 1, &WalkController::jointSoftComplianceCallback, this);
 
   target_joint_angles_.name = tiger_robot_model_->getLinkJointNames();
   int joint_num = tiger_robot_model_->getLinkJointNames().size();
@@ -473,6 +473,10 @@ void WalkController::jointControl()
       continue;
     }
 
+    // set joint angles
+    // large diff from real target angles to reach the target joint torque: torque control
+    double extra_angle_err = 0.1; // for enough margin for large angle error
+    target_angles.at(i) += (tor / fabs(tor) * extra_angle_err);
 
     // Note: tor > 0: inner pitch joint (e.g., joint1_pitch)
     //       tor < 0: outer pitch joint (e.g., joint2_pitch)
@@ -492,11 +496,6 @@ void WalkController::jointControl()
           if (tor > 0) {
             tor = clamp(tor * servo_torque_change_rate_, servo_max_torque_);
             ROS_INFO_STREAM("[Tiger][Control]" << name << " increase torque.");
-
-            // set joint angles
-            // large diff from real target angles to reach the target joint torque: torque control
-            double extra_angle_err = 0.05; // for enough margin for large angle error
-            target_angles.at(i) += (tor / fabs(tor) * extra_angle_err);
           }
           else {
             // increase servo torque to reach the target angle, feedforwardly
@@ -531,11 +530,6 @@ void WalkController::jointControl()
             // increase servo torque to reach the target angle, feedforwardly
             tor = clamp(tor * servo_torque_change_rate_, servo_max_torque_);
             ROS_INFO_STREAM("[Tiger][Control]" << name << " increase torque.");
-
-            // set joint angles
-            // large diff from real target angles to reach the target joint torque: torque control
-            double extra_angle_err = 0.05; // for enough margin for large angle error
-            target_angles.at(i) += (tor / fabs(tor) * extra_angle_err);
           }
         }
       }
