@@ -244,8 +244,8 @@ class BoardConfigurator(Plugin):
             req.command = req.SET_SERVO_CURRENT_LIMIT
             #need to disable servo torque
             servo_trq_msg = ServoTorqueCmd()
-            servo_trq_msg.index = chr(self._current_servo_serial_index)
-            servo_trq_msg.torque_enable = chr(0)
+            servo_trq_msg.index = [self._current_servo_serial_index]
+            servo_trq_msg.torque_enable = [0]
             self.servo_torque_pub_.publish(servo_trq_msg)
             rospy.sleep(0.5)
         elif self._command == 'dynamixel_ttl_rs485_mixed':

@@ -225,16 +225,17 @@ void CANInitializer::receiveDataCallback(uint8_t slave_id, uint8_t message_id, u
         neuron_[index].can_servo_.servo_[servo_index].goal_position_ = (data[2] << 8) | data[1];
         neuron_[index].can_servo_.servo_[servo_index].profile_velocity_ = (data[4] << 8) | data[3];
         neuron_[index].can_servo_.servo_[servo_index].current_limit_ = (data[6] << 8) | data[5];
-        neuron_[index].can_servo_.servo_[servo_index].send_data_flag_ = data[7];
+        neuron_[index].can_servo_.servo_[servo_index].send_data_flag_ = data[7] & 0x01;
+        neuron_[index].can_servo_.servo_[servo_index].external_encoder_flag_ = data[7] & 0x02;
         break;
       }
     case CAN::MESSAGEID_SEND_INITIAL_CONFIG_3:
       {
         uint8_t servo_index = data[0];
         neuron_[index].can_servo_.servo_[servo_index].error_ = data[1];
-        neuron_[index].can_servo_.servo_[servo_index].external_encoder_flag_ = data[2];
-        neuron_[index].can_servo_.servo_[servo_index].joint_resolution_ = (data[4] << 8) | data[3];
-        neuron_[index].can_servo_.servo_[servo_index].servo_resolution_ = (data[6] << 8) | data[5];
+        neuron_[index].can_servo_.servo_[servo_index].goal_current_ = (data[3] << 8) | data[2];
+        neuron_[index].can_servo_.servo_[servo_index].joint_resolution_ = (data[5] << 8) | data[4];
+        neuron_[index].can_servo_.servo_[servo_index].servo_resolution_ = (data[7] << 8) | data[6];
         break;
       }
     default:

@@ -20,6 +20,8 @@ import sys
 
 PYTHON_VERSION = sys.version_info[0]
 
+if PYTHON_VERSION == 3:
+    from functools import reduce
 
 class ServoMonitor(Plugin):
 
