@@ -182,7 +182,6 @@ void AttitudeController::pwmsControl(void)
     Spine::setMotorPwm(target_pwm_[i] * 2000 - 1000, i);
 #endif
   }
-  return;
 #endif
 
   /* direct pwm type */
