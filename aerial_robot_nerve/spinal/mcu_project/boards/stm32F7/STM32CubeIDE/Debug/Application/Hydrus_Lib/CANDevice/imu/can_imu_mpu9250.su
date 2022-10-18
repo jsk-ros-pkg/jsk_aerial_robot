@@ -1,5 +1,0 @@
-imu_basic.h:46:16:virtual void IMU::ledOutput()	16	static
-can_imu_mpu9250.cpp:11:6:virtual void CANIMU::updateRawData()	24	static
-can_imu_mpu9250.cpp:26:6:virtual void CANIMU::sendData()	16	static
-can_imu_mpu9250.cpp:31:6:virtual void CANIMU::receiveDataCallback(uint8_t, uint8_t, uint32_t, uint8_t*)	24	static
-vector3.h:123:9:T& ap::Vector3<T>::operator[](uint8_t) [with T = float]	24	static

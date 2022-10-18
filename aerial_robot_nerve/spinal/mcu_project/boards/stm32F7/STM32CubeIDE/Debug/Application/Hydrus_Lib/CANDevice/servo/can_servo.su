@@ -1,6 +1,0 @@
-can_device.h:28:7:void CANDevice::sendMessage(uint8_t, uint8_t, uint32_t, uint8_t*, uint32_t)	32	static
-can_servo.cpp:10:6:bool Servo::getTorqueEnable()	16	static
-can_servo.cpp:16:6:virtual void CANServo::sendData()	48	static
-can_servo.cpp:25:6:virtual void CANServo::receiveDataCallback(uint8_t, uint8_t, uint32_t, uint8_t*)	40	static
-stl_vector.h:915:7:std::vector<_Tp, _Alloc>::size_type std::vector<_Tp, _Alloc>::size() const [with _Tp = Servo; _Alloc = std::allocator<Servo>]	16	static
-stl_vector.h:1040:7:std::vector<_Tp, _Alloc>::reference std::vector<_Tp, _Alloc>::operator[](std::vector<_Tp, _Alloc>::size_type) [with _Tp = Servo; _Alloc = std::allocator<Servo>]	16	static

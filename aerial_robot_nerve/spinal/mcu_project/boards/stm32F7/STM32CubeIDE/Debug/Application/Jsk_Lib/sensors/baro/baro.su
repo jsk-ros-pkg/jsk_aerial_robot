@@ -1,9 +1,0 @@
-baro.h:42:9:float BaroBackend::getTemperature() const	16	static
-baro.h:67:16:float BaroBackend::getPressure()	16	static
-baro.h:68:16:float BaroBackend::getTemperature()	16	static
-baro.h:69:16:float BaroBackend::getAltitude()	16	static
-baro.cpp:19:1:BaroBackend::BaroBackend()	16	static
-baro.cpp:35:7:float BaroBackend::getAltitudeDifference(float, float) const	48	static
-baro.cpp:52:7:float BaroBackend::getEAS2TAS()	32	static
-baro.cpp:69:7:float BaroBackend::getAirDensityRatio()	24	static
-baro.cpp:82:6:void BaroBackend::baseUpdate()	24	static
