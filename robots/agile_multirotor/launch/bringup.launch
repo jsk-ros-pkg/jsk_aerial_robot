@@ -91,13 +91,17 @@
   ######## work around to evoke robot model update #######
   <node pkg="agile_multirotor" type="joint_state_pub.py" name="joint_state_pub" ns="$(arg robot_ns)"/>
 
-  ####### collision world ############
-  <node pkg="agile_multirotor" type="obstacle_world.py" name="obstacle_world" output="screen" ns="$(arg robot_ns)">
-    <param name="rate" value="20.0" />
-    <param name="obstacle_world_file" value="$(find agile_multirotor)/config/obstacle_world/$(arg worldtype).csv" />
-  </node>
+  ####### Simulation collision world ############
+  <group if= "$(eval arg('simulation') and not arg('real_machine'))">
+    <node pkg="agile_multirotor" type="obstacle_world.py" name="obstacle_world" output="screen" ns="$(arg robot_ns)">
+      <param name="rate" value="20.0" />
+      <param name="obstacle_world_file" value="$(find agile_multirotor)/config/obstacle_world/$(arg worldtype).csv" />
+    </node>
 
-  <node pkg="agile_multirotor" type="depth_image_correction.py" name="depth_image_correction" output="screen" ns="$(arg robot_ns)"/> 
+    <node pkg="agile_multirotor" type="depth_image_correction.py" name="depth_image_correction" output="screen" ns="$(arg robot_ns)"/> 
+  </group>
+
+  ####### Polar Pixel calculation  ############
 
   <node pkg="agile_multirotor" type="observation_conversion_node" name="observation_conversion" output="screen" ns="$(arg robot_ns)">
     <param name="cfg_path" value="$(find agile_multirotor)/config/obstacle_world/$(arg worldtype).csv" />
