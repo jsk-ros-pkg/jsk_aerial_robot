@@ -447,15 +447,18 @@ void WalkController::jointControl()
 
       if (j % 2 == 0) {
         // inner joint (e.g., joint1_pitch)
-        // torque rule: set the torque bound as the static torque (small value).
+        // torque rule: set the torque bound as the static torque (small value) for raise and max torque for lower.
         //              joint is expected to raise / lower quick,
         // angle rule: basic position control
 
         // set joint torque
         target_joint_torques_.name.push_back(name);
+        if (tiger_walk_navigator_->getLowerLegFlag()) {
+          tor = servo_max_torque_; // largest torque to lower leg
+        }
         target_joint_torques_.effort.push_back(tor);
 
-        ROS_INFO_STREAM(name << ", free leg mode, use static torque:" << tor);
+        ROS_INFO_STREAM(name << ", free leg mode, use static torque:" << tor  << "; target angle: " << target_angles.at(i) << "; current angle: " << current_angle);
       }
 
       if (j % 2 == 1) {
@@ -467,7 +470,7 @@ void WalkController::jointControl()
         target_joint_torques_.name.push_back(name);
         target_joint_torques_.effort.push_back(servo_max_torque_);
 
-        ROS_INFO_STREAM(name << ", free leg mode, use max torque:" << servo_max_torque_);
+        ROS_INFO_STREAM(name << ", free leg mode, use max torque:" << servo_max_torque_ << "; target angle: " << target_angles.at(i) << "; current angle: " << current_angle);
       }
 
       continue;
