@@ -211,6 +211,12 @@ void WalkController::thrustControl()
   tf::Vector3 vel_err = baselink_target_vel - baselink_vel;
   tf::Vector3 rpy_err = baselink_target_rpy - baselink_rpy;
 
+  // no negative (downward) force along z axis
+  if (pos_err.z() < 0) {
+    // set pos error in z axis to zero => no downward force
+    pos_err.setZ(0);
+  }
+
   // time diff
   double du = ros::Time::now().toSec() - control_timestamp_;
 
