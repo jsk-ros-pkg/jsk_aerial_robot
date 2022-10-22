@@ -8,7 +8,6 @@ find_package(catkin REQUIRED COMPONENTS
   aerial_robot_control
   aerial_robot_model
   aerial_robot_msgs
-  aerial_robot_simulation
   angles
   hydrus
   roscpp
@@ -22,7 +21,7 @@ find_package(OsqpEigen REQUIRED)
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES  hydrus_xi_fully_actuated_robot_model
-  CATKIN_DEPENDS  aerial_robot_base aerial_robot_control aerial_robot_model aerial_robot_msgs aerial_robot_simulation angles hydrus roscpp rospy spinal
+  CATKIN_DEPENDS  aerial_robot_base aerial_robot_control aerial_robot_model aerial_robot_msgs angles hydrus roscpp rospy spinal
   )
 
 if(NOT CMAKE_BUILD_TYPE)

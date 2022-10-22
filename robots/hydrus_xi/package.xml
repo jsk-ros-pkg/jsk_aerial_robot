@@ -13,13 +13,13 @@
   <depend>aerial_robot_control</depend>
   <depend>aerial_robot_model</depend>
   <depend>aerial_robot_msgs</depend>
-  <depend>aerial_robot_simulation</depend>
   <depend>angles</depend>
   <depend>hydrus</depend>
   <depend>roscpp</depend>
   <depend>rospy</depend>
   <depend>spinal</depend>
 
+  <exec_depend>aerial_robot_simulation</exec_depend>
   <test_depend>rostest</test_depend>
 
   <export>
