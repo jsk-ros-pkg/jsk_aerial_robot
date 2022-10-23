@@ -92,7 +92,7 @@ namespace sensor_plugin
 
     for(int i = 0; i < 3; i++)
       {
-        if(std::isnan(imu_msg->acc_data[i]) || std::isnan(imu_msg->angles[i]) ||
+        if(std::isnan(imu_msg->acc_data[i]) || std::isnan(imu_msg->gravity[i]) ||
            std::isnan(imu_msg->gyro_data[i]) || std::isnan(imu_msg->mag_data[i]))
           {
             ROS_ERROR_THROTTLE(1.0, "IMU sensor publishes Nan value!");
@@ -102,7 +102,7 @@ namespace sensor_plugin
         acc_b_[i] = imu_msg->acc_data[i]; // baselink frame
         omega_[i] = imu_msg->gyro_data[i];  // baselink frame
         mag_[i] = imu_msg->mag_data[i];  // baselink frame
-        wz_b_[i] = imu_msg->angles[i];  // workaround to avoid the singularity of RPY Euler angles.
+        wz_b_[i] = imu_msg->gravity[i];  // workaround to avoid the singularity of RPY Euler angles.
       }
 
     estimateProcess();

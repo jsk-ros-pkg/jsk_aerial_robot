@@ -194,7 +194,10 @@ class IMUCalibWidget(QWidget):
 
         self.mag_table_data[0][self.common_headers.index("value")] = "{0:.5f}".format(msg.mag_data[0]) + ', ' + "{0:.5f}".format(msg.mag_data[1]) + ', ' + "{0:.5f}".format(msg.mag_data[2])
 
-        self.att_table_data[0][0] = "{0:.5f}".format(msg.angles[0]) + ', ' + "{0:.5f}".format(msg.angles[1]) + ', ' + "{0:.5f}".format(msg.angles[2])
+        g = msg.gravity
+        roll = np.arctan2(g[1], g[2])
+        pitch = np.arctan2(-g[0], np.sqrt(g[1] * g[1] + g[2] * g[2]));
+        self.att_table_data[0][0] = "{0:.5f}".format(roll) + ', ' + "{0:.5f}".format(pitch) + ', ' + "----"
 
 
         self.imu_stamp = rospy.get_time();
