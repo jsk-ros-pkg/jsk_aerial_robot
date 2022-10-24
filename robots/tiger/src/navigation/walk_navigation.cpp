@@ -217,7 +217,7 @@ void WalkNavigator::update()
       // lower leg
       if (lower_leg_flag_) {
 
-        if (theta1 - current_angle < 0.1) {
+        if (theta1 - current_angle < lower_touchdown_thresh_) {
           // touch detection by delta angle
 
           lower_leg_flag_ = false;
@@ -328,6 +328,7 @@ void WalkNavigator::rosParamInit()
 
   ros::NodeHandle nh(nh_, "navigation");
   getParam<double>(nh, "raise_angle", raise_angle_, 0.2);
+  getParam<double>(nh, "lower_touchdown_thresh", lower_touchdown_thresh_, 0.05);
 }
 
 void WalkNavigator::targetBaselinkPosCallback(const geometry_msgs::Vector3StampedConstPtr& msg)

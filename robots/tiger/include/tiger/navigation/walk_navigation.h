@@ -79,6 +79,7 @@ namespace aerial_robot_navigation
       bool raise_leg_flag_;
       bool lower_leg_flag_;
       double raise_angle_;
+      double lower_touchdown_thresh_;
 
       ros::Subscriber target_baselink_pos_sub_;
       ros::Subscriber target_baselink_delta_pos_sub_;
