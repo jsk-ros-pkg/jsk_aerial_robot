@@ -358,6 +358,91 @@ void WalkNavigator::lowerLegCallback(const std_msgs::EmptyConstPtr& msg)
 }
 
 
+void WalkNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
+{
+  sensor_msgs::Joy joy_cmd;
+  if(joy_msg->axes.size() == PS3_AXES && joy_msg->buttons.size() == PS3_BUTTONS) {
+      joy_cmd = (*joy_msg);
+  }
+  else if(joy_msg->axes.size() == PS4_AXES && joy_msg->buttons.size() == PS4_BUTTONS) {
+      joy_cmd = ps4joyToPs3joyConvert(*joy_msg);
+  }
+  else {
+      ROS_WARN("the joystick type is not supported (buttons: %d, axes: %d)", (int)joy_msg->buttons.size(), (int)joy_msg->axes.size());
+      return;
+  }
+
+  static sensor_msgs::Joy prev_joy_cmd = joy_cmd;
+
+  /* joint pitch servo */
+  if (joy_cmd.buttons[PS3_BUTTON_ACTION_TRIANGLE] == 1) {
+    if (prev_joy_cmd.buttons[PS3_BUTTON_ACTION_TRIANGLE] == 1) {
+      return;
+    }
+
+    /* servo on */
+    ros::ServiceClient client = nh_.serviceClient<std_srvs::SetBool>("joint_pitch/torque_enable");
+    std_srvs::SetBool srv;
+    srv.request.data = true;
+    return;
+  }
+
+  if (joy_cmd.buttons[PS3_BUTTON_ACTION_CROSS] == 1) {
+    if (prev_joy_cmd.buttons[PS3_BUTTON_ACTION_CROSS] == 1) {
+      return;
+    }
+
+    /* servo off */
+    ros::ServiceClient client = nh_.serviceClient<std_srvs::SetBool>("joint_pitch/torque_enable");
+    std_srvs::SetBool srv;
+    srv.request.data = false;
+    return;
+  }
+
+  /* raise test */
+  if(joy_cmd.buttons[PS3_BUTTON_CROSS_UP] == 1) {
+    if (raise_leg_flag_) {
+        return;
+      }
+
+    free_leg_id_ = 0;
+    raise_leg_flag_ = true;
+    lower_leg_flag_ = false;
+    ROS_INFO("[Joy, raise leg1 up test]");
+
+    return;
+  }
+
+  /* lower test */
+  if(joy_cmd.buttons[PS3_BUTTON_CROSS_DOWN] == 1) {
+    if (lower_leg_flag_) {
+        return;
+      }
+
+    lower_leg_flag_ = true;
+    raise_leg_flag_ = false;
+    ROS_INFO("[Joy, lower leg1 down test]");
+
+    return;
+  }
+
+
+  /* quick land command */
+  if(joy_cmd.buttons[PS3_BUTTON_ACTION_SQUARE] == 1){
+
+    if(getNaviState() == LAND_STATE) return;
+
+    if(getNaviState() == ARM_ON_STATE)
+      {
+        setNaviState(STOP_STATE);
+        ROS_ERROR("Joy Conrol: not land, but disarm motors directly");
+      }
+    return;
+  }
+
+  BaseNavigator::joyStickControl(joy_msg);
+}
+
 /* plugin registration */
 #include <pluginlib/class_list_macros.h>
 PLUGINLIB_EXPORT_CLASS(aerial_robot_navigation::Tiger::WalkNavigator, aerial_robot_navigation::BaseNavigator);

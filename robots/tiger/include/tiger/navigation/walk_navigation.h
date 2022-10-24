@@ -94,6 +94,8 @@ namespace aerial_robot_navigation
 
       void rosParamInit() override;
 
+      void joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg) override;
+
       void targetBaselinkPosCallback(const geometry_msgs::Vector3StampedConstPtr& msg);
       void targetBaselinkDeltaPosCallback(const geometry_msgs::Vector3StampedConstPtr& msg);
       void raiseLegCallback(const std_msgs::UInt8ConstPtr& msg);
