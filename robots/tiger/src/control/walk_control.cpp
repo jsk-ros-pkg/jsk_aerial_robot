@@ -435,6 +435,11 @@ void WalkController::jointControl()
     std::string name = names.at(i);
     int j = atoi(name.substr(5,1).c_str()) - 1; // start from 0
 
+    // no joint torque control if robot is not armed
+    if (navigator_->getNaviState() != aerial_robot_navigation::ARM_ON_STATE) {
+      return;
+    }
+
     // position control for small joint torque
     if (fabs(tor) < joint_torque_control_thresh_) {
       continue;
