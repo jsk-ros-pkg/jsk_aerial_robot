@@ -29,6 +29,10 @@ class ObostacleWorld:
         self.lock = threading.Lock()
 
         rate = rospy.get_param('~rate', 40.0) # Hz
+        spawn_x = rospy.get_param('~spawn_x', 0) #init x
+        spawn_y = rospy.get_param('~spawn_y', 0) #init y
+        print("spawn_x: ",spawn_x, "spawn_y: ",spawn_y)
+
         rospy.Timer(rospy.Duration(1.0/rate), self.mainProcess)
 
         # debug
@@ -47,9 +51,10 @@ class ObostacleWorld:
         self.obs = dict()
         for i in range(len(df)):
             name = 'obj' + str(i+1)
-            self.obs[name] = {'p': np.array(df.loc[i, 1:3].tolist()), 'r': df.at[0,8]}
+            self.obs[name] = {'p': np.array(df.loc[i, 1:3].tolist())+np.array([spawn_x,spawn_y,0]), 'r': df.at[0,8]}
             self.obs[name]['p'][2] = self.h / 2
             self.spwanObstacle(name, self.m, self.obs[name]['p'], self.obs[name]['r'], self.h)
+            # print("self.obs: ",self.obs)
 
     def odomCb(self, msg):
         self.lock.acquire()
