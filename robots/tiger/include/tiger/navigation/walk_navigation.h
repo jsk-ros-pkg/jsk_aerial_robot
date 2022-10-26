@@ -62,6 +62,7 @@ namespace aerial_robot_navigation
       inline tf::Vector3 getTargetBaselinkVel() {return target_baselink_vel_;}
       inline sensor_msgs::JointState getTargetJointState() {return target_joint_state_;}
       inline std::vector<KDL::Rotation> getTargetLinkRots() {return target_link_rots_;}
+      inline bool getRaiseLegFlag() const { return raise_leg_flag_; }
       inline bool getLowerLegFlag() const { return lower_leg_flag_; }
 
     private:

@@ -100,6 +100,7 @@ void WalkController::rosParamInit()
   getParam<double>(walk_control_nh, "servo_max_torque", servo_max_torque_, 6.0); // 6.0 Nm
   getParam<double>(walk_control_nh, "servo_torque_change_rate", servo_torque_change_rate_, 1.5); // rate
   getParam<double>(walk_control_nh, "link_rot_f_control_i_thresh", link_rot_f_control_i_thresh_, 0.06); // rad
+  getParam<bool>(walk_control_nh, "opposite_free_leg_joint_torque_control_mode", opposite_free_leg_joint_torque_control_mode_, true);
 
   ros::NodeHandle xy_nh(walk_control_nh, "xy");
   ros::NodeHandle z_nh(walk_control_nh, "z");
@@ -426,7 +427,9 @@ void WalkController::jointControl()
   Eigen::VectorXd static_joint_torque = tiger_robot_model_->getStaticJointT();
   const auto& names = target_joint_angles_.name;
   auto& target_angles = target_joint_angles_.position;
-  for(int i = 0; i < names.size(); i++) {
+  int joint_num = names.size();
+  int leg_num = joint_num / 4;
+  for(int i = 0; i < joint_num; i++) {
 
     double current_angle = current_angles.at(i);
     double navi_target_angle  = navi_target_joint_angles.at(i);
@@ -434,6 +437,7 @@ void WalkController::jointControl()
     double tor = static_joint_torque(i);
     std::string name = names.at(i);
     int j = atoi(name.substr(5,1).c_str()) - 1; // start from 0
+    int leg_id = j / 2;
 
     // no joint torque control if robot is not armed
     if (navigator_->getNaviState() != aerial_robot_navigation::ARM_ON_STATE) {
@@ -452,7 +456,7 @@ void WalkController::jointControl()
     }
 
     // heuristic rule for joints in free leg
-    if (j / 2 == tiger_robot_model_->getFreeleg()) {
+    if (leg_id == tiger_robot_model_->getFreeleg()) {
 
       prev_navi_target_joint_angles_.at(i) = navi_target_joint_angles.at(i);
 
@@ -484,6 +488,36 @@ void WalkController::jointControl()
         ROS_INFO_STREAM(name << ", free leg mode, use max torque:" << servo_max_torque_ << "; target angle: " << target_angles.at(i) << "; current angle: " << current_angle);
       }
 
+      continue;
+    }
+
+    // heuristic rule for joints in opposite of free leg
+    if ((leg_id + leg_num / 2) % leg_num == tiger_robot_model_->getFreeleg()) {
+
+      prev_navi_target_joint_angles_.at(i) = navi_target_joint_angles.at(i);
+
+      if (j % 2 == 0) {
+        // inner joint (e.g., joint5_pitch)
+
+        // torque rule: set the torque bound as the max torque to resist the torque from opposite raised leg.
+        target_joint_torques_.name.push_back(name);
+        target_joint_torques_.effort.push_back(servo_max_torque_);
+
+        // angle rule:
+        double extra_angle_err = 0;
+        if (opposite_free_leg_joint_torque_control_mode_) {
+          // rule1: large diff from real target angles to reach the target joint torque
+          extra_angle_err = 0.1; // for enough margin for large angle error
+        }
+        else {
+          // rule2: basic position control
+          extra_angle_err = servo_angle_bias_; // add bais due to the pulley
+        }
+        target_angles.at(i) += (tor / fabs(tor) * extra_angle_err);
+
+
+        ROS_INFO_STREAM(name << ", opposite free leg mode, use max torque:" << servo_max_torque_  << "; target angle: " << target_angles.at(i) << "; current angle: " << current_angle << "; real target angle: " << navi_target_angle);
+      }
       continue;
     }
 

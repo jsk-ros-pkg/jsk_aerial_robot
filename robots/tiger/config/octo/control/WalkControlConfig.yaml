@@ -10,6 +10,7 @@ controller:
     servo_angle_bias: 0.02 # rad
     servo_max_torque: 6 # Nm
     servo_torque_change_rate: 2.0
+    opposite_free_leg_joint_torque_control_mode: true
 
     xy:
       p_gain: 0.0 # N/m:

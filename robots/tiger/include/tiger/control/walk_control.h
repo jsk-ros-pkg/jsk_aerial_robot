@@ -105,6 +105,8 @@ namespace aerial_robot_control
       double angle_scale_;
       double torque_load_scale_;
 
+      bool opposite_free_leg_joint_torque_control_mode_;
+
       double link_rot_f_control_i_thresh_;
       std::vector<Eigen::Vector3d> fw_i_terms_;
 
