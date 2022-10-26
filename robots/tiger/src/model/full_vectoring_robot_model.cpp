@@ -359,9 +359,9 @@ void FullVectoringRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_po
     ROS_INFO_STREAM_ONCE("[QP4] Joint Torque: " << tor.transpose());
     ROS_INFO_STREAM_ONCE("[QP4] Wrench: " << (A2 * f_all_neq + b2).transpose());
 
-    ROS_INFO_STREAM_THROTTLE(1.0, "[QP4] Thrust force for stand: " << fr.transpose());
-    ROS_INFO_STREAM_THROTTLE(1.0, "[QP4] Contact force for stand: " << fe.transpose());
-    ROS_INFO_STREAM_THROTTLE(1.0, "[QP4] Joint Torque: " << (A1 * f_all_neq + b1).transpose());
+    // ROS_INFO_STREAM_THROTTLE(1.0, "[QP4] Thrust force for stand: " << fr.transpose());
+    // ROS_INFO_STREAM_THROTTLE(1.0, "[QP4] Contact force for stand: " << fe.transpose());
+    // ROS_INFO_STREAM_THROTTLE(1.0, "[QP4] Joint Torque: " << (A1 * f_all_neq + b1).transpose());
     //ROS_INFO_STREAM_THROTTLE(1.0, "[QP4] Wrench: " << (A2 * f_all_neq + b2).transpose());
 
     Eigen::VectorXd lambda = Eigen::VectorXd::Zero(rotor_num);
@@ -370,7 +370,7 @@ void FullVectoringRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_po
     }
 
     ROS_INFO_STREAM_ONCE("[QP4] Thrust force lambda: " << lambda.transpose());
-    ROS_INFO_STREAM_THROTTLE(1.0, "[QP4] Thrust force lambda: " << lambda.transpose());
+    //ROS_INFO_STREAM_THROTTLE(1.0, "[QP4] Thrust force lambda: " << lambda.transpose());
 
     setStaticVectoringF(fr);
     setStaticJointT(tor);
