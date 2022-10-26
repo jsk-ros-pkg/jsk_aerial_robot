@@ -429,7 +429,7 @@ void WalkNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
 
 
   /* quick land command */
-  if(joy_cmd.buttons[PS3_BUTTON_ACTION_SQUARE] == 1){
+  if(joy_cmd.buttons[PS3_BUTTON_ACTION_SQUARE] == 1 || joy_cmd.buttons[PS3_BUTTON_CROSS_RIGHT] == 1){
 
     if(getNaviState() == LAND_STATE) return;
 
