@@ -378,6 +378,7 @@ void WalkNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
   /* joint pitch servo */
   if (joy_cmd.buttons[PS3_BUTTON_ACTION_TRIANGLE] == 1) {
     if (prev_joy_cmd.buttons[PS3_BUTTON_ACTION_TRIANGLE] == 1) {
+      prev_joy_cmd = joy_cmd;
       return;
     }
 
@@ -385,11 +386,20 @@ void WalkNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
     ros::ServiceClient client = nh_.serviceClient<std_srvs::SetBool>("joint_pitch/torque_enable");
     std_srvs::SetBool srv;
     srv.request.data = true;
+
+    if (client.call(srv))
+      ROS_INFO("[Tiger][Joy] enable the pitch joint torque");
+    else
+      ROS_ERROR("Failed to call service joint_pitch/torque_enable");
+
+    prev_joy_cmd = joy_cmd;
     return;
+
   }
 
   if (joy_cmd.buttons[PS3_BUTTON_ACTION_CROSS] == 1) {
     if (prev_joy_cmd.buttons[PS3_BUTTON_ACTION_CROSS] == 1) {
+      prev_joy_cmd = joy_cmd;
       return;
     }
 
@@ -397,6 +407,13 @@ void WalkNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
     ros::ServiceClient client = nh_.serviceClient<std_srvs::SetBool>("joint_pitch/torque_enable");
     std_srvs::SetBool srv;
     srv.request.data = false;
+
+    if (client.call(srv))
+      ROS_INFO("[Tiger][Joy] disable the pitch joint torque");
+    else
+      ROS_ERROR("Failed to call service joint_pitch/torque_enable");
+
+    prev_joy_cmd = joy_cmd;
     return;
   }
 
@@ -442,6 +459,8 @@ void WalkNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
   }
 
   BaseNavigator::joyStickControl(joy_msg);
+
+  prev_joy_cmd = joy_cmd;
 }
 
 /* plugin registration */
