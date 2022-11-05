@@ -21,4 +21,5 @@ thrust_force_weight: 1.0
 joint_torque_weight: 1.0 # 10.0 ~ 20.0
 joint_torque_limit: 4.0
 
+calculate_walk_statics: true
 #init_free_leg: 0

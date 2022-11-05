@@ -43,6 +43,7 @@
 #include <spinal/ServoTorqueCmd.h>
 #include <std_msgs/Empty.h>
 #include <std_srvs/SetBool.h>
+#include <OsqpEigen/OsqpEigen.h>
 
 namespace aerial_robot_control
 {
@@ -83,6 +84,8 @@ namespace aerial_robot_control
 
       std::vector<int> joint_index_map_;
 
+      Eigen::VectorXd static_thrust_force_;
+      Eigen::VectorXd static_joint_torque_;
 
       std::vector<float> target_base_thrust_;
       std::vector<double> target_gimbal_angles_;
@@ -98,12 +101,16 @@ namespace aerial_robot_control
       double joint_compliance_end_t_;
 
       double joint_torque_control_thresh_;
+      double joint_static_torque_limit_;
       double servo_max_torque_;
       double servo_torque_change_rate_;
       double servo_angle_bias_;
 
       double angle_scale_;
       double torque_load_scale_;
+
+      double thrust_force_weight_;
+      double joint_torque_weight_;
 
       bool opposite_free_leg_joint_torque_control_mode_;
 
@@ -118,6 +125,7 @@ namespace aerial_robot_control
 
       void cfgPidCallback(aerial_robot_control::PidControlConfig &config, uint32_t level, std::vector<int> controller_indices) override;
 
+      void calcStaticBalance();
       void jointControl();
       void jointSoftComplianceControl();
       void thrustControl();

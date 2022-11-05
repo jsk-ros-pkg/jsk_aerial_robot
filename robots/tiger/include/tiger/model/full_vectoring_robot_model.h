@@ -60,6 +60,8 @@ namespace Tiger
   protected:
     void updateRobotModelImpl(const KDL::JntArray& joint_positions) override;
 
+    bool calculate_walk_statics_;
+
     double joint_torque_limit_;
     int free_leg_id_; // start from 0: [0, leg_num -1]; -1: non touched leg
 

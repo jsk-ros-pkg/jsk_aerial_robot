@@ -222,6 +222,7 @@ void WalkNavigator::update()
 
           lower_leg_flag_ = false;
           tiger_robot_model_->resetFreeleg();
+          free_leg_id_ = -1;
 
           ROS_WARN_STREAM("[Tiger] leg" << i + 1 << " touches the ground, joint" << i * 2 +1 << "_pitch" << ", curr angle: " << current_angle << "; target angle: " << theta1);
 

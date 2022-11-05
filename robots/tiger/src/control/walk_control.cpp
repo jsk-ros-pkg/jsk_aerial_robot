@@ -66,6 +66,7 @@ void WalkController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   target_joint_angles_.position.resize(0);
   target_joint_angles_.name.resize(0);
   target_vectoring_f_ = Eigen::VectorXd::Zero(3 * motor_num_);
+  static_thrust_force_ = Eigen::VectorXd::Zero(3 * motor_num_);
 
   gimbal_control_pub_ = nh_.advertise<sensor_msgs::JointState>("gimbals_ctrl", 1);
   joint_angle_pub_ = nh_.advertise<sensor_msgs::JointState>("joints_ctrl", 1);
@@ -85,6 +86,7 @@ void WalkController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
 
   target_joint_torques_.name.resize(0);
   target_joint_torques_.position.resize(0);
+  static_joint_torque_ = Eigen::VectorXd::Zero(joint_num);
 
   for (int i = 0; i < motor_num_; i++) {
     fw_i_terms_.push_back(Eigen::Vector3d::Zero());
@@ -98,9 +100,13 @@ void WalkController::rosParamInit()
   getParam<double>(walk_control_nh, "joint_torque_control_thresh", joint_torque_control_thresh_, 2.0); // 2 Nm
   getParam<double>(walk_control_nh, "servo_angle_bias", servo_angle_bias_, 0.02); // 0.02 rad
   getParam<double>(walk_control_nh, "servo_max_torque", servo_max_torque_, 6.0); // 6.0 Nm
+  getParam<double>(walk_control_nh, "joint_static_torque_limit", joint_static_torque_limit_, 3.0); // 3.0 Nm
   getParam<double>(walk_control_nh, "servo_torque_change_rate", servo_torque_change_rate_, 1.5); // rate
   getParam<double>(walk_control_nh, "link_rot_f_control_i_thresh", link_rot_f_control_i_thresh_, 0.06); // rad
   getParam<bool>(walk_control_nh, "opposite_free_leg_joint_torque_control_mode", opposite_free_leg_joint_torque_control_mode_, true);
+
+  getParam<double>(walk_control_nh, "thrust_force_weight", thrust_force_weight_, 1.0);
+  getParam<double>(walk_control_nh, "joint_torque_weight", joint_torque_weight_, 1.0);
 
   ros::NodeHandle xy_nh(walk_control_nh, "xy");
   ros::NodeHandle z_nh(walk_control_nh, "z");
@@ -160,8 +166,7 @@ bool WalkController::update()
   ControlBase::update();
 
   // skip before the model initialization
-  if (tiger_robot_model_->getStaticVectoringF().size() == 0 ||
-      tiger_robot_model_->getStaticJointT().size() == 0) {
+  if (tiger_robot_model_->getMass() == 0) {
     return false;
   }
 
@@ -173,6 +178,9 @@ bool WalkController::update()
   if (navigator_->getNaviState() == aerial_robot_navigation::START_STATE) {
     control_timestamp_ = ros::Time::now().toSec();
   }
+
+  // static balance
+  calcStaticBalance();
 
   // thrust control
   thrustControl();
@@ -201,9 +209,8 @@ void WalkController::thrustControl()
   tf::Vector3 baselink_target_rpy = tiger_walk_navigator_->getTargetBaselinkRpy();
 
   // 1. feed-forwared control: compensate the static balance
-  Eigen::VectorXd static_thrust_force = tiger_robot_model_->getStaticVectoringF();
-  target_vectoring_f_ = static_thrust_force;
-  //ROS_INFO_STREAM("[Tiger] [Control] total thrust vector init: " << target_vectoring_f_.transpose());
+  target_vectoring_f_ = static_thrust_force_;
+  //ROS_INFO_STREAM("[Tiger] [Control] total thrust vector init: " << static_thrust_force_.transpose());
 
   // 2. feed-back control:  baselink position control
   Eigen::VectorXd target_wrench = Eigen::VectorXd::Zero(6);
@@ -320,7 +327,7 @@ void WalkController::thrustControl()
     // negative means the pivot point is the leg end point
     int direct = -1;
 
-    if (i / 2 == tiger_robot_model_->getFreeleg()) {
+    if (i / 2 == tiger_walk_navigator_->getFreeleg()) {
       // no contorl for free leg which may induce unstability
       continue;
     }
@@ -424,7 +431,6 @@ void WalkController::jointControl()
   }
 
   // use torque control for joints that needs large torque load
-  Eigen::VectorXd static_joint_torque = tiger_robot_model_->getStaticJointT();
   const auto& names = target_joint_angles_.name;
   auto& target_angles = target_joint_angles_.position;
   int joint_num = names.size();
@@ -434,7 +440,7 @@ void WalkController::jointControl()
     double current_angle = current_angles.at(i);
     double navi_target_angle  = navi_target_joint_angles.at(i);
     double prev_navi_target_angle  = prev_navi_target_joint_angles_.at(i);
-    double tor = static_joint_torque(i);
+    double tor = static_joint_torque_(i);
     std::string name = names.at(i);
     int j = atoi(name.substr(5,1).c_str()) - 1; // start from 0
     int leg_id = j / 2;
@@ -456,7 +462,7 @@ void WalkController::jointControl()
     }
 
     // heuristic rule for joints in free leg
-    if (leg_id == tiger_robot_model_->getFreeleg()) {
+    if (leg_id == tiger_walk_navigator_->getFreeleg()) {
 
       prev_navi_target_joint_angles_.at(i) = navi_target_joint_angles.at(i);
 
@@ -492,7 +498,7 @@ void WalkController::jointControl()
     }
 
     // heuristic rule for joints in opposite of free leg
-    if ((leg_id + leg_num / 2) % leg_num == tiger_robot_model_->getFreeleg()) {
+    if ((leg_id + leg_num / 2) % leg_num == tiger_walk_navigator_->getFreeleg()) {
 
       prev_navi_target_joint_angles_.at(i) = navi_target_joint_angles.at(i);
 
@@ -591,6 +597,179 @@ void WalkController::jointControl()
     target_joint_torques_.name.push_back(names.at(i));
     target_joint_torques_.effort.push_back(tor);
   }
+}
+
+void WalkController::calcStaticBalance()
+{
+  const KDL::JntArray gimbal_processed_joint = tiger_robot_model_->getGimbalProcessedJoint<KDL::JntArray>();
+  const std::vector<KDL::Rotation> links_rotation_from_cog = tiger_robot_model_->getLinksRotationFromCog<KDL::Rotation>();
+  const int joint_num = tiger_robot_model_->getJointNum();
+  const int link_joint_num = tiger_robot_model_->getLinkJointIndices().size();
+  const int rotor_num = tiger_robot_model_->getRotorNum();
+  const int fr_ndof = 3 * rotor_num;
+
+  Eigen::MatrixXd A1_fr_all = Eigen::MatrixXd::Zero(joint_num, fr_ndof);
+  Eigen::MatrixXd A2_fr = Eigen::MatrixXd::Zero(6, fr_ndof);
+
+  for (int i = 0; i < rotor_num; i++) {
+    std::string seg_name = std::string("thrust") + std::to_string(i + 1);
+    Eigen::MatrixXd jac = robot_model_->getJacobian(gimbal_processed_joint, seg_name);
+    Eigen::MatrixXd r = aerial_robot_model::kdlToEigen(links_rotation_from_cog.at(i));
+    // describe force w.r.t. local (link) frame
+    A1_fr_all.middleCols(3 * i, 3) = -jac.topRows(3).rightCols(joint_num).transpose() * r;
+    A2_fr.middleCols(3 * i, 3) = jac.topRows(3).leftCols(6).transpose() * r;
+  }
+
+  const int leg_num = rotor_num / 2;
+  int free_leg_id = tiger_walk_navigator_->getFreeleg();
+  if (free_leg_id >= leg_num)
+    {
+      ROS_WARN_ONCE("[Tiger][Walk][Static] the untouch leg ID exceeds the total leg number, force reset to -1");
+      free_leg_id = -1;
+    }
+  const int fe_num =  leg_num - (int)(free_leg_id >= 0);
+  const int fe_ndof = 3 * fe_num;
+
+  Eigen::MatrixXd A1_fe_all = Eigen::MatrixXd::Zero(joint_num, fe_ndof);
+  Eigen::MatrixXd A2_fe = Eigen::MatrixXd::Zero(6, fe_ndof);
+  std::vector<Eigen::MatrixXd> ee_coord_jacobians;
+  int cnt = 0;
+  for (int i = 0; i < leg_num; i++) {
+
+    if (free_leg_id == i) continue;
+
+    std::string name = std::string("link") + std::to_string((i + 1) *2) + std::string("_foot");
+
+    Eigen::MatrixXd jac = robot_model_->getJacobian(gimbal_processed_joint, name);
+    ee_coord_jacobians.push_back(jac);
+
+    A1_fe_all.middleCols(3 * cnt, 3) = -jac.topRows(3).rightCols(joint_num).transpose();
+    A2_fe.middleCols(3 * cnt, 3) = jac.topRows(3).leftCols(6).transpose();
+
+    cnt ++;
+  }
+
+
+  Eigen::VectorXd b1_all = Eigen::VectorXd::Zero(joint_num);
+  Eigen::VectorXd b2 = Eigen::VectorXd::Zero(6);
+  for(const auto& inertia : tiger_robot_model_->getInertiaMap()) {
+
+    Eigen::MatrixXd cog_coord_jacobian
+      = robot_model_->getJacobian(gimbal_processed_joint, inertia.first, inertia.second.getCOG());
+
+    b1_all
+      -= cog_coord_jacobian.rightCols(joint_num).transpose()
+      * inertia.second.getMass() * (-tiger_robot_model_->getGravity());
+
+    b2
+      += cog_coord_jacobian.leftCols(6).transpose()
+      * inertia.second.getMass() * (-tiger_robot_model_->getGravity());
+  }
+
+  // only consider link joint
+  Eigen::MatrixXd A1_fe = Eigen::MatrixXd::Zero(link_joint_num, fe_ndof);
+  Eigen::MatrixXd A1_fr = Eigen::MatrixXd::Zero(link_joint_num, fr_ndof);
+  Eigen::VectorXd b1 = Eigen::VectorXd::Zero(link_joint_num);
+
+  cnt = 0;
+  for(int i = 0; i < joint_num; i++) {
+    if(tiger_robot_model_->getJointNames().at(i) == tiger_robot_model_->getLinkJointNames().at(cnt))
+      {
+        A1_fe.row(cnt) = A1_fe_all.row(i);
+        A1_fr.row(cnt) = A1_fr_all.row(i);
+        b1(cnt) = b1_all(i);
+        cnt++;
+      }
+    if(cnt == link_joint_num) break;
+  }
+
+
+  Eigen::MatrixXd A1 = Eigen::MatrixXd::Zero(link_joint_num, fr_ndof + fe_ndof);
+  A1.leftCols(fr_ndof) = A1_fr;
+  A1.rightCols(fe_ndof) = A1_fe;
+
+  Eigen::MatrixXd A2 = Eigen::MatrixXd::Zero(6, fr_ndof + fe_ndof);
+  A2.leftCols(fr_ndof) = A2_fr;
+  A2.rightCols(fe_ndof) = A2_fe;
+
+  Eigen::MatrixXd W1 = Eigen::MatrixXd::Zero(fr_ndof + fe_ndof, fr_ndof + fe_ndof);
+  W1.topLeftCorner(fr_ndof, fr_ndof) = thrust_force_weight_ * Eigen::MatrixXd::Identity(fr_ndof, fr_ndof);
+  Eigen::MatrixXd W2 = joint_torque_weight_ * Eigen::MatrixXd::Identity(link_joint_num, link_joint_num);
+
+  // 4. use thrust force and joint torque, cost and constraint for joint torque
+  OsqpEigen::Solver qp_solver;
+  qp_solver.settings()->setVerbosity(false);
+  qp_solver.settings()->setWarmStart(true);
+  qp_solver.data()->setNumberOfVariables(fr_ndof + fe_ndof);
+  qp_solver.data()->setNumberOfConstraints(6 + link_joint_num);
+
+  /*
+    cost function:
+    f_all^T W1 f_all + (A1 f_all + b1)^T W2 (A1 f_all + b1)
+    = f^T (W1 + A1^T W2 A1) f + 2 b1^T A1 f + cons
+  */
+  Eigen::MatrixXd hessian = W1 + A1.transpose() * W2 * A1;
+  Eigen::SparseMatrix<double> hessian_sparse = hessian.sparseView();
+  Eigen::VectorXd gradient = b1.transpose() * W2 * A1;
+  qp_solver.data()->setHessianMatrix(hessian_sparse);
+  qp_solver.data()->setGradient(gradient);
+
+  /* equality constraint: zero total wnrech */
+  Eigen::MatrixXd constraints = Eigen::MatrixXd::Zero(6 + link_joint_num, fr_ndof + fe_ndof);
+  constraints.topRows(6) = A2;
+  constraints.bottomRows(link_joint_num) = A1;
+  Eigen::SparseMatrix<double> constraint_sparse = constraints.sparseView();
+  qp_solver.data()->setLinearConstraintsMatrix(constraint_sparse);
+
+  Eigen::VectorXd b = Eigen::VectorXd::Zero(6 + link_joint_num);
+  b.head(6) = -b2;
+  b.tail(link_joint_num) = -b1;
+  Eigen::VectorXd max_torque = Eigen::VectorXd::Zero(6 + link_joint_num);
+  max_torque.tail(link_joint_num) = joint_static_torque_limit_ * Eigen::VectorXd::Ones(link_joint_num);
+  Eigen::VectorXd lower_bound = b - max_torque;
+  Eigen::VectorXd upper_bound = b + max_torque;
+  qp_solver.data()->setLowerBound(lower_bound);
+  qp_solver.data()->setUpperBound(upper_bound);
+
+  std::string prefix("[Tiger][Walk][Static]");
+  if(!qp_solver.initSolver()) {
+    ROS_ERROR_STREAM(prefix << " can not initialize qp solver");
+    return;
+  }
+
+  double s_t = ros::Time::now().toSec();
+  bool res = qp_solver.solve();
+  ROS_INFO_STREAM_ONCE(prefix << " QP solve time: " << ros::Time::now().toSec() - s_t);
+
+  if(!res) {
+    ROS_ERROR_STREAM(prefix << "can not solve QP");
+    return;
+  }
+
+  Eigen::VectorXd f_all_neq = qp_solver.getSolution();
+  Eigen::VectorXd fr = f_all_neq.head(fr_ndof);
+  Eigen::VectorXd fe = f_all_neq.tail(fe_ndof);
+  Eigen::VectorXd tor = A1 * f_all_neq + b1;
+  Eigen::VectorXd lambda = Eigen::VectorXd::Zero(rotor_num);
+  for(int i = 0; i < rotor_num; i++) {
+    lambda(i) = fr.segment(3 * i, 3).norm();
+  }
+
+  ROS_INFO_STREAM_ONCE(prefix << " Thrust force for stand: " << fr.transpose());
+  ROS_INFO_STREAM_ONCE(prefix << " Contact force for stand: " << fe.transpose());
+  ROS_INFO_STREAM_ONCE(prefix << " Joint Torque: " << tor.transpose());
+  ROS_INFO_STREAM_ONCE(prefix << " Wrench: " << (A2 * f_all_neq + b2).transpose());
+  ROS_INFO_STREAM_ONCE(prefix << " Thrust force lambda: " << lambda.transpose());
+
+  // ROS_INFO_STREAM_THROTTLE(1.0, prefix << " Thrust force for stand: " << fr.transpose());
+  // ROS_INFO_STREAM_THROTTLE(1.0, prefix << " Contact force for stand: " << fe.transpose());
+  // ROS_INFO_STREAM_THROTTLE(1.0, prefix << " Joint Torque: " << (A1 * f_all_neq + b1).transpose());
+  // ROS_INFO_STREAM_THROTTLE(1.0, prefix << " Wrench: " << (A2 * f_all_neq + b2).transpose());
+  // ROS_INFO_STREAM_THROTTLE(1.0, prefix << " Thrust force lambda: " << lambda.transpose());
+
+  // set static thrust force and joint torque
+  static_thrust_force_ = fr;
+  static_joint_torque_ = tor;
 }
 
 void WalkController::jointSoftComplianceControl()

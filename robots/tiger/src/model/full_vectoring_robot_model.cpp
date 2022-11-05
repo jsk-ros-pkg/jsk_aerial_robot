@@ -44,16 +44,19 @@ FullVectoringRobotModel::FullVectoringRobotModel(bool init_with_rosparam, bool v
 {
   ros::NodeHandle nh;
 
+  nh.param("calculate_walk_statics", calculate_walk_statics_, false);
+
   nh.param("joint_torque_limit", joint_torque_limit_, 3.0);
   nh.param("init_free_leg", free_leg_id_, -1);
-
-  static_vectoring_f_ = Eigen::VectorXd::Zero(0);
-  static_joint_t_ = Eigen::VectorXd::Zero(0);
 }
 
 void FullVectoringRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_positions)
 {
   Dragon::FullVectoringRobotModel::updateRobotModelImpl(joint_positions);
+
+  if (!calculate_walk_statics_) {
+    return;
+  }
 
   KDL::JntArray gimbal_processed_joint = getGimbalProcessedJoint<KDL::JntArray>();
   std::vector<KDL::Rotation> links_rotation_from_cog = getLinksRotationFromCog<KDL::Rotation>();

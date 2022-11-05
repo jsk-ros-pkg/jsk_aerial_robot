@@ -12,6 +12,11 @@ controller:
     servo_torque_change_rate: 2.0
     opposite_free_leg_joint_torque_control_mode: true
 
+    thrust_force_weight: 1.0
+    joint_torque_weight: 1.0 # 10.0 ~ 20.0
+    joint_static_torque_limit: 4.0
+
+
     xy:
       p_gain: 0.0 # N/m:
       i_gain: 0.0 #

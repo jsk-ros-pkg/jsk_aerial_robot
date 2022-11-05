@@ -64,6 +64,7 @@ namespace aerial_robot_navigation
       inline std::vector<KDL::Rotation> getTargetLinkRots() {return target_link_rots_;}
       inline bool getRaiseLegFlag() const { return raise_leg_flag_; }
       inline bool getLowerLegFlag() const { return lower_leg_flag_; }
+      inline int getFreeleg() const { return free_leg_id_; }
 
     private:
 
