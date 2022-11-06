@@ -634,6 +634,11 @@ void WalkController::calcStaticBalance()
 
   Eigen::MatrixXd A1_fe_all = Eigen::MatrixXd::Zero(joint_num, fe_ndof);
   Eigen::MatrixXd A2_fe = Eigen::MatrixXd::Zero(6, fe_ndof);
+  const tf::Vector3 rpy = estimator_->getEuler(Frame::BASELINK, estimate_mode_);
+  Eigen::MatrixXd rot
+    = aerial_robot_model::kdlToEigen(KDL::Rotation::RPY(rpy.x(), rpy.y(), 0)); // no yaw
+  //rot = Eigen::Matrix3d::Identity(); // debug. No consideration of baselink rotation
+  // ROS_INFO_STREAM_THROTTLE(1.0, "baselink rotation, roll: " << rpy.x() << ", pitch: " << rpy.y());
 
   int cnt = 0;
   for (int i = 0; i < leg_num; i++) {
@@ -644,7 +649,7 @@ void WalkController::calcStaticBalance()
 
     // describe jacobian w.r.t the world frame, thus need baselink rotation
     Eigen::MatrixXd jac
-      = (robot_model_->orig::getJacobian(gimbal_processed_joint, name)).topRows(3);
+      = rot * (robot_model_->orig::getJacobian(gimbal_processed_joint, name)).topRows(3);
 
     A1_fe_all.middleCols(3 * cnt, 3) = -jac.rightCols(joint_num).transpose();
     A2_fe.middleCols(3 * cnt, 3) = jac.leftCols(6).transpose();
@@ -658,7 +663,7 @@ void WalkController::calcStaticBalance()
 
     // describe jacobian w.r.t the world frame, thus need baselink rotation
     Eigen::MatrixXd jac
-      = (robot_model_->orig::getJacobian(gimbal_processed_joint,
+      = rot * (robot_model_->orig::getJacobian(gimbal_processed_joint,
                                          inertia.first,
                                          inertia.second.getCOG())).topRows(3);
 
