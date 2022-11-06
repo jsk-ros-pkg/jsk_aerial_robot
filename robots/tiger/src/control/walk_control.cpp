@@ -601,6 +601,7 @@ void WalkController::jointControl()
 
 void WalkController::calcStaticBalance()
 {
+  using orig = aerial_robot_model::RobotModel;
   const KDL::JntArray gimbal_processed_joint = tiger_robot_model_->getGimbalProcessedJoint<KDL::JntArray>();
   const std::vector<KDL::Rotation> links_rotation_from_cog = tiger_robot_model_->getLinksRotationFromCog<KDL::Rotation>();
   const int joint_num = tiger_robot_model_->getJointNum();
@@ -613,11 +614,12 @@ void WalkController::calcStaticBalance()
 
   for (int i = 0; i < rotor_num; i++) {
     std::string seg_name = std::string("thrust") + std::to_string(i + 1);
-    Eigen::MatrixXd jac = robot_model_->getJacobian(gimbal_processed_joint, seg_name);
+    Eigen::MatrixXd jac
+      = tiger_robot_model_->orig::getJacobian(gimbal_processed_joint, seg_name).topRows(3);
     Eigen::MatrixXd r = aerial_robot_model::kdlToEigen(links_rotation_from_cog.at(i));
     // describe force w.r.t. local (link) frame
-    A1_fr_all.middleCols(3 * i, 3) = -jac.topRows(3).rightCols(joint_num).transpose() * r;
-    A2_fr.middleCols(3 * i, 3) = jac.topRows(3).leftCols(6).transpose() * r;
+    A1_fr_all.middleCols(3 * i, 3) = -jac.rightCols(joint_num).transpose() * r;
+    A2_fr.middleCols(3 * i, 3) = jac.leftCols(6).transpose() * r;
   }
 
   const int leg_num = rotor_num / 2;
@@ -632,7 +634,7 @@ void WalkController::calcStaticBalance()
 
   Eigen::MatrixXd A1_fe_all = Eigen::MatrixXd::Zero(joint_num, fe_ndof);
   Eigen::MatrixXd A2_fe = Eigen::MatrixXd::Zero(6, fe_ndof);
-  std::vector<Eigen::MatrixXd> ee_coord_jacobians;
+
   int cnt = 0;
   for (int i = 0; i < leg_num; i++) {
 
@@ -640,30 +642,29 @@ void WalkController::calcStaticBalance()
 
     std::string name = std::string("link") + std::to_string((i + 1) *2) + std::string("_foot");
 
-    Eigen::MatrixXd jac = robot_model_->getJacobian(gimbal_processed_joint, name);
-    ee_coord_jacobians.push_back(jac);
+    // describe jacobian w.r.t the world frame, thus need baselink rotation
+    Eigen::MatrixXd jac
+      = (robot_model_->orig::getJacobian(gimbal_processed_joint, name)).topRows(3);
 
-    A1_fe_all.middleCols(3 * cnt, 3) = -jac.topRows(3).rightCols(joint_num).transpose();
-    A2_fe.middleCols(3 * cnt, 3) = jac.topRows(3).leftCols(6).transpose();
+    A1_fe_all.middleCols(3 * cnt, 3) = -jac.rightCols(joint_num).transpose();
+    A2_fe.middleCols(3 * cnt, 3) = jac.leftCols(6).transpose();
 
     cnt ++;
   }
-
 
   Eigen::VectorXd b1_all = Eigen::VectorXd::Zero(joint_num);
   Eigen::VectorXd b2 = Eigen::VectorXd::Zero(6);
   for(const auto& inertia : tiger_robot_model_->getInertiaMap()) {
 
-    Eigen::MatrixXd cog_coord_jacobian
-      = robot_model_->getJacobian(gimbal_processed_joint, inertia.first, inertia.second.getCOG());
+    // describe jacobian w.r.t the world frame, thus need baselink rotation
+    Eigen::MatrixXd jac
+      = (robot_model_->orig::getJacobian(gimbal_processed_joint,
+                                         inertia.first,
+                                         inertia.second.getCOG())).topRows(3);
 
-    b1_all
-      -= cog_coord_jacobian.rightCols(joint_num).transpose()
-      * inertia.second.getMass() * (-tiger_robot_model_->getGravity());
-
-    b2
-      += cog_coord_jacobian.leftCols(6).transpose()
-      * inertia.second.getMass() * (-tiger_robot_model_->getGravity());
+    Eigen::VectorXd g = inertia.second.getMass() * (-tiger_robot_model_->getGravity3d());
+    b1_all -= jac.rightCols(joint_num).transpose() * g;
+    b2 += jac.leftCols(6).transpose() * g;
   }
 
   // only consider link joint
