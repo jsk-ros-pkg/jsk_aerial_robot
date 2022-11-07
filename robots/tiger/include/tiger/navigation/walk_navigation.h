@@ -41,6 +41,14 @@
 #include <std_msgs/UInt8.h>
 #include <std_msgs/Empty.h>
 
+namespace aerial_robot_control
+{
+  namespace Tiger
+  {
+    class WalkController;
+  };
+};
+
 namespace aerial_robot_navigation
 {
   namespace Tiger
@@ -65,6 +73,10 @@ namespace aerial_robot_navigation
       inline bool getRaiseLegFlag() const { return raise_leg_flag_; }
       inline bool getLowerLegFlag() const { return lower_leg_flag_; }
       inline int getFreeleg() const { return free_leg_id_; }
+
+      void setController(aerial_robot_control::Tiger::WalkController* controller){
+        walk_controller_ = controller;
+      }
 
     private:
 
@@ -91,6 +103,7 @@ namespace aerial_robot_navigation
 
       boost::shared_ptr<::Tiger::FullVectoringRobotModel> tiger_robot_model_;
       boost::shared_ptr<aerial_robot_model::RobotModel> robot_model_for_nav_;
+      aerial_robot_control::Tiger::WalkController* walk_controller_;
 
       void halt() override;
       void reset() override;
@@ -103,6 +116,10 @@ namespace aerial_robot_navigation
       void targetBaselinkDeltaPosCallback(const geometry_msgs::Vector3StampedConstPtr& msg);
       void raiseLegCallback(const std_msgs::UInt8ConstPtr& msg);
       void lowerLegCallback(const std_msgs::EmptyConstPtr& msg);
+
+      void raiseLeg(int leg_id);
+      void lowerLeg();
+      void contactLeg();
 
       // utils
       void setJointIndexMap();

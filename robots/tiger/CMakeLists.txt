@@ -215,7 +215,7 @@ target_link_libraries (tiger_controllib ${catkin_LIBRARIES} tiger_robot_model  $
 
 
 add_library(tiger_navigation src/navigation/walk_navigation.cpp)
-target_link_libraries(tiger_navigation ${catkin_LIBRARIES})
+target_link_libraries(tiger_navigation ${catkin_LIBRARIES} ${OsqpEigen_LIBRARIES}) # no need to add tiger_controllib
 
 
 #############

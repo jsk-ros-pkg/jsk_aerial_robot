@@ -63,6 +63,8 @@ namespace aerial_robot_control
       bool update() override;
       void reset() override;
 
+      void resetRaiseLegForce();
+
     private:
 
       ros::Publisher flight_cmd_pub_; //for spinal
@@ -113,6 +115,11 @@ namespace aerial_robot_control
       double joint_torque_weight_;
 
       bool opposite_free_leg_joint_torque_control_mode_;
+
+      double free_leg_force_ratio_;
+      double raise_leg_force_i_gain_;
+      double modify_leg_force_i_gain_;
+      double lower_leg_force_i_gain_;
 
       double link_rot_f_control_i_thresh_;
       std::vector<Eigen::Vector3d> fw_i_terms_;

@@ -44,7 +44,8 @@ WalkController::WalkController():
   joint_index_map_(0),
   joint_soft_compliance_(false),
   joint_compliance_end_t_(0),
-  prev_navi_target_joint_angles_(0)
+  prev_navi_target_joint_angles_(0),
+  free_leg_force_ratio_(0)
 {
 }
 
@@ -59,6 +60,7 @@ void WalkController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
 
   tiger_robot_model_ = boost::dynamic_pointer_cast<::Tiger::FullVectoringRobotModel>(robot_model);
   tiger_walk_navigator_ = boost::dynamic_pointer_cast<aerial_robot_navigation::Tiger::WalkNavigator>(navigator);
+  tiger_walk_navigator_->setController(this);
 
   /* initialize the gimbal target angles */
   target_base_thrust_.resize(motor_num_);
@@ -103,6 +105,10 @@ void WalkController::rosParamInit()
   getParam<double>(walk_control_nh, "joint_static_torque_limit", joint_static_torque_limit_, 3.0); // 3.0 Nm
   getParam<double>(walk_control_nh, "servo_torque_change_rate", servo_torque_change_rate_, 1.5); // rate
   getParam<double>(walk_control_nh, "link_rot_f_control_i_thresh", link_rot_f_control_i_thresh_, 0.06); // rad
+  getParam<double>(walk_control_nh, "raise_leg_force_i_gain", raise_leg_force_i_gain_, 1.0); // / s
+  getParam<double>(walk_control_nh, "modify_leg_force_i_gain", modify_leg_force_i_gain_, 1.0); // / s
+  getParam<double>(walk_control_nh, "lower_leg_force_i_gain", lower_leg_force_i_gain_, 1.0); // / s
+
   getParam<bool>(walk_control_nh, "opposite_free_leg_joint_torque_control_mode", opposite_free_leg_joint_torque_control_mode_, true);
 
   getParam<double>(walk_control_nh, "thrust_force_weight", thrust_force_weight_, 1.0);
@@ -840,6 +846,11 @@ void WalkController::sendCmd()
 
     gimbal_control_pub_.publish(gimbal_control_msg);
   }
+}
+
+void WalkController::resetRaiseLegForce()
+{
+  free_leg_force_ratio_ = 0;
 }
 
 bool WalkController::servoTorqueCtrlCallback(std_srvs::SetBool::Request &req, std_srvs::SetBool::Response &res, const std::string& name)

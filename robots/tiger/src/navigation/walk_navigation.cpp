@@ -1,4 +1,5 @@
 #include <tiger/navigation/walk_navigation.h>
+#include <tiger/control/walk_control.h>
 
 using namespace aerial_robot_model;
 using namespace aerial_robot_navigation::Tiger;
@@ -26,6 +27,7 @@ void WalkNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   tiger_robot_model_ = boost::dynamic_pointer_cast<::Tiger::FullVectoringRobotModel>(robot_model);
   robot_model_for_nav_ = boost::make_shared<aerial_robot_model::RobotModel>();
 
+
   target_baselink_pos_sub_ = nh_.subscribe("walk/baselink/traget/pos", 1, &WalkNavigator::targetBaselinkPosCallback, this);
   target_baselink_delta_pos_sub_ = nh_.subscribe("walk/baselink/traget/delta_pos", 1, &WalkNavigator::targetBaselinkDeltaPosCallback, this);
 
@@ -33,6 +35,7 @@ void WalkNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   lower_leg_sub_ = nh_.subscribe("walk/lower_leg", 1, &WalkNavigator::lowerLegCallback, this);
 
   target_joint_angles_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("debug/nav/target_joint_angles", 1); // for debug
+
 }
 
 void WalkNavigator::update()
@@ -210,7 +213,7 @@ void WalkNavigator::update()
       // raise leg
       if (raise_leg_flag_) {
         theta1 -= raise_angle_;
-        tiger_robot_model_->setFreeleg(free_leg_id_);
+
         ROS_WARN_STREAM_ONCE("[Tiger] leg" << i + 1 << " leave the ground, joint" << i * 2 +1 << "_pitch" << ", curr angle: " << current_angle << "; target angle: " << theta1);
       }
 
@@ -220,9 +223,7 @@ void WalkNavigator::update()
         if (theta1 - current_angle < lower_touchdown_thresh_) {
           // touch detection by delta angle
 
-          lower_leg_flag_ = false;
-          tiger_robot_model_->resetFreeleg();
-          free_leg_id_ = -1;
+          contactLeg();
 
           ROS_WARN_STREAM("[Tiger] leg" << i + 1 << " touches the ground, joint" << i * 2 +1 << "_pitch" << ", curr angle: " << current_angle << "; target angle: " << theta1);
 
@@ -323,6 +324,30 @@ void WalkNavigator::halt()
     ROS_ERROR("Failed to call service gimbals/torque_enable");
 }
 
+void WalkNavigator::raiseLeg(int leg_id)
+{
+  free_leg_id_ = leg_id;
+  raise_leg_flag_ = true;
+  lower_leg_flag_ = false;
+
+  tiger_robot_model_->setFreeleg(free_leg_id_);
+  walk_controller_->resetRaiseLegForce();
+}
+
+void WalkNavigator::lowerLeg()
+{
+  lower_leg_flag_ = true;
+  raise_leg_flag_ = false;
+}
+
+void WalkNavigator::contactLeg()
+{
+  lower_leg_flag_ = false;
+  raise_leg_flag_ = false;
+  tiger_robot_model_->resetFreeleg();
+  free_leg_id_ = -1;
+}
+
 void WalkNavigator::rosParamInit()
 {
   BaseNavigator::rosParamInit();
@@ -348,15 +373,12 @@ void WalkNavigator::targetBaselinkDeltaPosCallback(const geometry_msgs::Vector3S
 
 void WalkNavigator::raiseLegCallback(const std_msgs::UInt8ConstPtr& msg)
 {
-  free_leg_id_ = msg->data;
-  raise_leg_flag_ = true;
-  lower_leg_flag_ = false;
+  raiseLeg(msg->data);
 }
 
 void WalkNavigator::lowerLegCallback(const std_msgs::EmptyConstPtr& msg)
 {
-  lower_leg_flag_ = true;
-  raise_leg_flag_ = false;
+  lowerLeg();
 }
 
 
@@ -424,9 +446,7 @@ void WalkNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
         return;
       }
 
-    free_leg_id_ = 0;
-    raise_leg_flag_ = true;
-    lower_leg_flag_ = false;
+    raiseLeg(0);
     ROS_INFO("[Joy, raise leg1 up test]");
 
     return;
@@ -438,8 +458,7 @@ void WalkNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
         return;
       }
 
-    lower_leg_flag_ = true;
-    raise_leg_flag_ = false;
+    lowerLeg();
     ROS_INFO("[Joy, lower leg1 down test]");
 
     return;
