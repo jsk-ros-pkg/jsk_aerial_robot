@@ -450,11 +450,6 @@ void WalkController::jointControl()
       return;
     }
 
-    // position control for small joint torque
-    if (fabs(tor) < joint_torque_control_thresh_) {
-      continue;
-    }
-
     // position control for yaw joints
     if (name.find("yaw") != std::string::npos) {
       // ROS_INFO_STREAM("position control for: " << name);
@@ -524,6 +519,11 @@ void WalkController::jointControl()
 
         ROS_INFO_STREAM(name << ", opposite free leg mode, use max torque:" << servo_max_torque_  << "; target angle: " << target_angles.at(i) << "; current angle: " << current_angle << "; real target angle: " << navi_target_angle);
       }
+      continue;
+    }
+
+    // position control for small joint torque
+    if (fabs(tor) < joint_torque_control_thresh_) {
       continue;
     }
 
