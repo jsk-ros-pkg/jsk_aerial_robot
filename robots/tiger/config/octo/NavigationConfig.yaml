@@ -30,5 +30,14 @@ navigation:
   gps_waypoint_threshold: 3.0
   gps_waypoint_check_du: 1.0
 
-  raise_angle: 0.2
-  lower_touchdown_thresh: 0.05
+  # walk
+  walk:
+    raise_angle: 0.2
+    lower_touchdown_thresh: 0.05
+    constant_angle_thresh: 0.02
+    check_interval: 0.1
+    converge_time_thresh: 0.5
+
+    failsafe:
+      baselink_rot_thresh: 0.2
+      opposite_raise_leg_thresh: 0.1

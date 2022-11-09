@@ -63,7 +63,9 @@ namespace aerial_robot_control
       bool update() override;
       void reset() override;
 
-      void resetRaiseLegForce();
+      void startRaiseTransition();
+      void startLowerLeg();
+      void startContactTransition(int leg_id);
 
     private:
 
@@ -115,11 +117,25 @@ namespace aerial_robot_control
       double joint_torque_weight_;
 
       bool opposite_free_leg_joint_torque_control_mode_;
+      bool raise_leg_large_torque_control_;
 
-      double free_leg_force_ratio_;
       double raise_leg_force_i_gain_;
       double modify_leg_force_i_gain_;
       double lower_leg_force_i_gain_;
+      double contact_leg_force_i_gain_;
+      double free_leg_force_ratio_;
+
+      Eigen::VectorXd raise_static_thrust_force_;
+      double contact_transtion_init_ratio_;
+      double lower_leg_speed_;
+
+      double prev_t_;
+      double prev_v_;
+      double check_interval_;
+
+      bool raise_transition_;
+      bool contact_transition_;
+      int contact_leg_id_;
 
       double link_rot_f_control_i_thresh_;
       std::vector<Eigen::Vector3d> fw_i_terms_;

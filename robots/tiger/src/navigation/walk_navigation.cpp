@@ -13,7 +13,8 @@ WalkNavigator::WalkNavigator():
   target_leg_ends_(0),
   target_link_rots_(0),
   free_leg_id_(-1),
-  raise_leg_flag_(false)
+  raise_leg_flag_(false),
+  lower_leg_flag_(false)
 {
 }
 
@@ -220,13 +221,33 @@ void WalkNavigator::update()
       // lower leg
       if (lower_leg_flag_) {
 
-        if (theta1 - current_angle < lower_touchdown_thresh_) {
-          // touch detection by delta angle
+        bool contact = false;
+        double t = ros::Time::now().toSec();
+        static double start_t = t;
+        static double prev_t = t;
+        static double prev_v = current_angle;
 
+        if (t - prev_t > check_interval_) {
+          // touch detection by
+          // - small delta angle around the touch-down target angle
+          // - constant angle for a while
+          if (theta1 - current_angle < lower_touchdown_thresh_ &&
+              fabs(current_angle - prev_v) < constant_angle_thresh_) {
+            if (t - start_t > converge_time_thresh_) {
+              contact = true;
+            }
+          }
+          else {
+            start_t = t;
+          }
+
+          prev_v = current_angle;
+          prev_t = t;
+        }
+
+        if (contact) {
+          ROS_WARN_STREAM("[Tiger][Walk][Navigator] leg" << i + 1 << " touches the ground, joint" << i * 2 +1 << "_pitch" << ", curr angle: " << current_angle << "; target angle: " << theta1);
           contactLeg();
-
-          ROS_WARN_STREAM("[Tiger] leg" << i + 1 << " touches the ground, joint" << i * 2 +1 << "_pitch" << ", curr angle: " << current_angle << "; target angle: " << theta1);
-
         }
       }
     }
@@ -238,7 +259,7 @@ void WalkNavigator::update()
     ss << "(" << target_angles.at(4 * i) << ", " << target_angles.at(4 * i + 1) << ", "
        << target_angles.at(4 * i + 2) << ", " << target_angles.at(4 * i + 3) << ") ";
   }
-  ROS_DEBUG_STREAM_THROTTLE(1.0, "[Tiger][Navigator] analytical joint angles from leg end and baselink: " << ss.str());
+  ROS_DEBUG_STREAM_THROTTLE(1.0, "[Tiger][Walk][Navigator] analytical joint angles from leg end and baselink: " << ss.str());
 
   std_msgs::Float32MultiArray msg;
   for(int i = 0; i < target_angles.size(); i++) {
@@ -263,6 +284,41 @@ void WalkNavigator::update()
     target_link_rots_.at(i) = fw_target_link.M;
   }
 
+  failSafeAction();
+}
+
+void WalkNavigator::failSafeAction()
+{
+  // baselink rotation
+  tf::Matrix3x3 rot = estimator_->getOrientation(Frame::BASELINK, estimate_mode_);
+  tf::Vector3 zb = rot * tf::Vector3(0,0,1);
+  double theta = atan2(sqrt(zb.x() * zb.x() + zb.y() * zb.y()), zb.z());
+
+  if (theta > baselink_rot_thresh_){
+    ROS_WARN_STREAM("[Tiger][Walk][Navigation] baselink rotation is abnormal, tool tiled: " << theta);
+
+    if (raise_leg_flag_) {
+      lowerLeg();
+      ROS_WARN_STREAM("[Tiger][Walk][Navigation] instantly lower the raised leg" << free_leg_id_ + 1);
+    }
+  }
+
+  // pitch joint of opposite of raise leg
+  if (raise_leg_flag_) {
+    int leg_num = tiger_robot_model_->getRotorNum() / 2;
+    int leg_id = (free_leg_id_ + leg_num / 2) % leg_num;
+    int j = 4 * leg_id + 1;
+    double target_angle = target_joint_state_.position.at(j);
+    double current_angle = getCurrentJointAngles().at(j);
+    std::string name = target_joint_state_.name.at(j);
+
+    //ROS_INFO_STREAM("[Tiger][Walk][Navigation] " << name << ", target angle  " << target_angle << ", current angle: " << current_angle);
+    if (target_angle - current_angle > opposite_raise_leg_thresh_) {
+      ROS_WARN_STREAM("[Tiger][Walk][Navigation] " << name << " is overload because of raising leg, target angle  " << target_angle << ", current angle: " << current_angle);
+      ROS_WARN_STREAM("[Tiger][Walk][Navigation] instantly lower the raising leg" << free_leg_id_ + 1);
+      lowerLeg();
+    }
+  }
 }
 
 void WalkNavigator::setJointIndexMap()
@@ -331,13 +387,14 @@ void WalkNavigator::raiseLeg(int leg_id)
   lower_leg_flag_ = false;
 
   tiger_robot_model_->setFreeleg(free_leg_id_);
-  walk_controller_->resetRaiseLegForce();
+  walk_controller_->startRaiseTransition();
 }
 
 void WalkNavigator::lowerLeg()
 {
   lower_leg_flag_ = true;
   raise_leg_flag_ = false;
+  walk_controller_->startLowerLeg();
 }
 
 void WalkNavigator::contactLeg()
@@ -345,6 +402,7 @@ void WalkNavigator::contactLeg()
   lower_leg_flag_ = false;
   raise_leg_flag_ = false;
   tiger_robot_model_->resetFreeleg();
+  walk_controller_->startContactTransition(free_leg_id_);
   free_leg_id_ = -1;
 }
 
@@ -352,9 +410,16 @@ void WalkNavigator::rosParamInit()
 {
   BaseNavigator::rosParamInit();
 
-  ros::NodeHandle nh(nh_, "navigation");
-  getParam<double>(nh, "raise_angle", raise_angle_, 0.2);
-  getParam<double>(nh, "lower_touchdown_thresh", lower_touchdown_thresh_, 0.05);
+  ros::NodeHandle nh_walk(nh_, "navigation/walk");
+  getParam<double>(nh_walk, "raise_angle", raise_angle_, 0.2);
+  getParam<double>(nh_walk, "lower_touchdown_thresh", lower_touchdown_thresh_, 0.05);
+  getParam<double>(nh_walk, "constant_angle_thresh", constant_angle_thresh_, 0.02);
+  getParam<double>(nh_walk, "check_interval", check_interval_, 0.1);
+  getParam<double>(nh_walk, "converge_time_thresh", converge_time_thresh_, 0.5);
+
+  ros::NodeHandle nh_failsafe(nh_walk, "failsafe");
+  getParam<double>(nh_failsafe, "baselink_rot_thresh", baselink_rot_thresh_, 0.2);
+  getParam<double>(nh_failsafe, "opposite_raise_leg_thresh", opposite_raise_leg_thresh_, 0.1);
 }
 
 void WalkNavigator::targetBaselinkPosCallback(const geometry_msgs::Vector3StampedConstPtr& msg)
@@ -446,8 +511,8 @@ void WalkNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
         return;
       }
 
-    raiseLeg(0);
     ROS_INFO("[Joy, raise leg1 up test]");
+    raiseLeg(0);
 
     return;
   }
@@ -458,8 +523,12 @@ void WalkNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
         return;
       }
 
-    lowerLeg();
+    if (!raise_leg_flag_) {
+        return;
+      }
+
     ROS_INFO("[Joy, lower leg1 down test]");
+    lowerLeg();
 
     return;
   }

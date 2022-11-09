@@ -45,7 +45,10 @@ WalkController::WalkController():
   joint_soft_compliance_(false),
   joint_compliance_end_t_(0),
   prev_navi_target_joint_angles_(0),
-  free_leg_force_ratio_(0)
+  free_leg_force_ratio_(0),
+  raise_transition_(false),
+  contact_transition_(false),
+  contact_leg_id_(-1)
 {
 }
 
@@ -108,11 +111,17 @@ void WalkController::rosParamInit()
   getParam<double>(walk_control_nh, "raise_leg_force_i_gain", raise_leg_force_i_gain_, 1.0); // / s
   getParam<double>(walk_control_nh, "modify_leg_force_i_gain", modify_leg_force_i_gain_, 1.0); // / s
   getParam<double>(walk_control_nh, "lower_leg_force_i_gain", lower_leg_force_i_gain_, 1.0); // / s
+  getParam<double>(walk_control_nh, "contact_leg_force_i_gain", contact_leg_force_i_gain_, 1.0); // / s
 
   getParam<bool>(walk_control_nh, "opposite_free_leg_joint_torque_control_mode", opposite_free_leg_joint_torque_control_mode_, true);
+  getParam<bool>(walk_control_nh, "raise_leg_large_torque_control", raise_leg_large_torque_control_, true);
+  getParam<double>(walk_control_nh, "lower_leg_speed", lower_leg_speed_, 0.5);
 
   getParam<double>(walk_control_nh, "thrust_force_weight", thrust_force_weight_, 1.0);
   getParam<double>(walk_control_nh, "joint_torque_weight", joint_torque_weight_, 1.0);
+
+  getParam<double>(walk_control_nh, "check_interval", check_interval_, 0.1);
+
 
   ros::NodeHandle xy_nh(walk_control_nh, "xy");
   ros::NodeHandle z_nh(walk_control_nh, "z");
@@ -206,6 +215,8 @@ void WalkController::thrustControl()
     return;
   }
 
+  double du = ros::Time::now().toSec() - control_timestamp_;
+
   tf::Vector3 baselink_pos = estimator_->getPos(Frame::BASELINK, estimate_mode_);
   tf::Vector3 baselink_vel = estimator_->getVel(Frame::BASELINK, estimate_mode_);
   tf::Vector3 baselink_rpy = estimator_->getEuler(Frame::BASELINK, estimate_mode_);
@@ -217,6 +228,98 @@ void WalkController::thrustControl()
   // 1. feed-forwared control: compensate the static balance
   target_vectoring_f_ = static_thrust_force_;
   //ROS_INFO_STREAM("[Tiger] [Control] total thrust vector init: " << static_thrust_force_.transpose());
+
+  // transition in different phase
+
+  // a) transition from fully contact to raise mode
+  if (raise_transition_) {
+    free_leg_force_ratio_ += raise_leg_force_i_gain_ * du;
+
+    // TODO: determine the complete of transition by leg raise or leave ground.
+
+    if (free_leg_force_ratio_ > 1) {
+      // complete transition
+
+      free_leg_force_ratio_ = 1;
+      raise_transition_ = false;
+      ROS_INFO("[Tiger][Walk][Thrust Control] complete raise transition");
+    }
+
+    // do transition
+    Eigen::VectorXd delta_vec = static_thrust_force_ - raise_static_thrust_force_;
+    target_vectoring_f_ = raise_static_thrust_force_ + free_leg_force_ratio_ * delta_vec;
+  }
+
+  // b) transition from lower to fully contact mode
+  if (contact_transition_) {
+    free_leg_force_ratio_ -= contact_leg_force_i_gain_ * du;
+
+    if (free_leg_force_ratio_ < 0) {
+      // complete transition
+
+      free_leg_force_ratio_ = 0;
+      contact_transition_ = false;
+      ROS_INFO("[Tiger][Walk][Thrust Control] complete contact transition");
+    }
+
+    // do transition
+    Eigen::VectorXd delta_vec = raise_static_thrust_force_ - static_thrust_force_;
+    double ratio = free_leg_force_ratio_ / contact_transtion_init_ratio_;
+    target_vectoring_f_ = static_thrust_force_ + ratio * delta_vec;
+  }
+
+  // constant modification in raise different case
+  // a) raise phase
+  if (tiger_walk_navigator_->getRaiseLegFlag() && !raise_transition_) {
+
+    int leg_id = tiger_walk_navigator_->getFreeleg();
+    int j = 4 * leg_id + 1;
+    double angle = getCurrentJointAngles().at(j);
+
+    double target_angle = target_joint_angles_.position.at(j);
+    double t = ros::Time::now().toSec();
+    if (t - prev_t_ > check_interval_) {
+      if (target_angle - angle > 0) {
+        // only consider the over raised situation
+        free_leg_force_ratio_ -= modify_leg_force_i_gain_ * du;
+
+        ROS_INFO_STREAM("[Tiger][Walk][Thrust Control] raise leg" << leg_id+1 << " is over raised, target angle of " << target_joint_angles_.name.at(j) << " is " << target_angle << ", current angle is " << angle << ", force ratio is " << free_leg_force_ratio_);
+      }
+      prev_t_ = t;
+    }
+
+    // only modifiy the rotors in free leg
+    target_vectoring_f_.segment(6 * leg_id, 6) *= free_leg_force_ratio_;
+  }
+
+  // b) lower phase
+  if (tiger_walk_navigator_->getLowerLegFlag()) {
+
+    int leg_id = tiger_walk_navigator_->getFreeleg();
+    int j = 4 * leg_id + 1;
+    double angle = getCurrentJointAngles().at(j);
+
+    double t = ros::Time::now().toSec();
+    if (t - prev_t_ > check_interval_) {
+      if (angle - prev_v_ < lower_leg_speed_ * check_interval_) {
+        free_leg_force_ratio_ -= lower_leg_force_i_gain_ * (t - prev_t_);
+
+        // Hard-coding to avoid too small ratio
+        double thresh = 0.6;
+        if (free_leg_force_ratio_ < thresh) {
+          free_leg_force_ratio_ = thresh;
+        }
+
+        ROS_INFO_STREAM("[Tiger][Walk][Thrust Control] lower leg" << leg_id+1 << ", previous joint angle of " << target_joint_angles_.name.at(j)  << " is " << prev_v_ << ", current angle is " << angle << ", force ratio is " << free_leg_force_ratio_);
+      }
+
+      prev_v_ = angle;
+      prev_t_ = t;
+    }
+
+    // only modifiy the rotors in free leg
+    target_vectoring_f_.segment(6 * leg_id, 6) *= free_leg_force_ratio_;
+  }
 
   // 2. feed-back control:  baselink position control
   Eigen::VectorXd target_wrench = Eigen::VectorXd::Zero(6);
@@ -230,9 +333,6 @@ void WalkController::thrustControl()
     // set pos error in z axis to zero => no downward force
     pos_err.setZ(0);
   }
-
-  // time diff
-  double du = ros::Time::now().toSec() - control_timestamp_;
 
   // x
   walk_pid_controllers_.at(X).update(pos_err.x(), du, vel_err.x());
@@ -466,6 +566,9 @@ void WalkController::jointControl()
     if (leg_id == tiger_walk_navigator_->getFreeleg()) {
 
       prev_navi_target_joint_angles_.at(i) = navi_target_joint_angles.at(i);
+      bool lower_flag = tiger_walk_navigator_->getLowerLegFlag();
+      bool raise_flag = tiger_walk_navigator_->getRaiseLegFlag();
+      std::string status = raise_flag?std::string("raise"):std::string("lower");
 
       if (j % 2 == 0) {
         // inner joint (e.g., joint1_pitch)
@@ -475,12 +578,12 @@ void WalkController::jointControl()
 
         // set joint torque
         target_joint_torques_.name.push_back(name);
-        if (tiger_walk_navigator_->getLowerLegFlag()) {
+        if (lower_flag && raise_leg_large_torque_control_) {
           tor = servo_max_torque_; // largest torque to lower leg
         }
         target_joint_torques_.effort.push_back(tor);
 
-        ROS_INFO_STREAM(name << ", free leg mode, use static torque:" << tor  << "; target angle: " << target_angles.at(i) << "; current angle: " << current_angle);
+        ROS_INFO_STREAM(" " << name << ", " << status << ", torque:" << tor  << "; target angle: " << target_angles.at(i) << "; current angle: " << current_angle);
       }
 
       if (j % 2 == 1) {
@@ -492,7 +595,7 @@ void WalkController::jointControl()
         target_joint_torques_.name.push_back(name);
         target_joint_torques_.effort.push_back(servo_max_torque_);
 
-        ROS_INFO_STREAM(name << ", free leg mode, use max torque:" << servo_max_torque_ << "; target angle: " << target_angles.at(i) << "; current angle: " << current_angle);
+        ROS_INFO_STREAM(" " << name << ", " << status << ", torque:" << servo_max_torque_ << "; target angle: " << target_angles.at(i) << "; current angle: " << current_angle);
       }
 
       continue;
@@ -506,9 +609,13 @@ void WalkController::jointControl()
       if (j % 2 == 0) {
         // inner joint (e.g., joint5_pitch)
 
-        // torque rule: set the torque bound as the max torque to resist the torque from opposite raised leg.
+          if (raise_leg_large_torque_control_) {
+            // torque rule: set the torque bound as the max torque to resist the torque from opposite raised leg.
+            tor = servo_max_torque_;
+          }
+
         target_joint_torques_.name.push_back(name);
-        target_joint_torques_.effort.push_back(servo_max_torque_);
+        target_joint_torques_.effort.push_back(tor);
 
         // angle rule:
         double extra_angle_err = 0;
@@ -523,7 +630,7 @@ void WalkController::jointControl()
         target_angles.at(i) += (tor / fabs(tor) * extra_angle_err);
 
 
-        ROS_INFO_STREAM(name << ", opposite free leg mode, use max torque:" << servo_max_torque_  << "; target angle: " << target_angles.at(i) << "; current angle: " << current_angle << "; real target angle: " << navi_target_angle);
+        ROS_INFO_STREAM(" " << name << ", opposite free leg, torque:" << tor  << "; target angle: " << target_angles.at(i) << "; current angle: " << current_angle << "; real target angle: " << navi_target_angle);
       }
       continue;
     }
@@ -848,10 +955,41 @@ void WalkController::sendCmd()
   }
 }
 
-void WalkController::resetRaiseLegForce()
+void WalkController::startRaiseTransition()
 {
+  raise_transition_ = true;
   free_leg_force_ratio_ = 0;
+  raise_static_thrust_force_ = static_thrust_force_; // record the thrust force for raise
+  prev_t_ = ros::Time::now().toSec();
+  ROS_INFO_STREAM("[Tiger][Walk][Thrust Control] start raise transition");
 }
+
+void WalkController::startLowerLeg()
+{
+  prev_t_ = ros::Time::now().toSec();
+
+  auto current_angles = getCurrentJointAngles();
+  int leg_id = tiger_walk_navigator_->getFreeleg();
+  if (leg_id < 0) {
+    ROS_ERROR_STREAM("[Tiger][Walk][Thrust Control] no valid leg to lower, leg id is " << leg_id);
+  }
+
+  prev_v_ = current_angles.at(4 * leg_id + 1); // hard-coding for pitch angle
+
+  ROS_INFO_STREAM("[Tiger][Walk][Thrust Control] start lower leg, start angle is " << prev_v_);
+}
+
+void WalkController::startContactTransition(int leg_id)
+{
+  contact_transition_ = true;
+  contact_transtion_init_ratio_ = free_leg_force_ratio_;
+  contact_leg_id_ = leg_id;
+  raise_static_thrust_force_ = static_thrust_force_; // record the thrust force for raise
+  raise_static_thrust_force_.segment(6 * contact_leg_id_, 6) *= contact_transtion_init_ratio_;
+
+  ROS_INFO_STREAM("[Tiger][Walk][Thrust Control] start contact transition");
+}
+
 
 bool WalkController::servoTorqueCtrlCallback(std_srvs::SetBool::Request &req, std_srvs::SetBool::Response &res, const std::string& name)
 {

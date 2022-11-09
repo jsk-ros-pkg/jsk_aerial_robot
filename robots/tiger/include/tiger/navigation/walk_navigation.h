@@ -94,6 +94,11 @@ namespace aerial_robot_navigation
       bool lower_leg_flag_;
       double raise_angle_;
       double lower_touchdown_thresh_;
+      double constant_angle_thresh_;
+      double baselink_rot_thresh_;
+      double opposite_raise_leg_thresh_;
+      double check_interval_;
+      double converge_time_thresh_;
 
       ros::Subscriber target_baselink_pos_sub_;
       ros::Subscriber target_baselink_delta_pos_sub_;
@@ -120,6 +125,8 @@ namespace aerial_robot_navigation
       void raiseLeg(int leg_id);
       void lowerLeg();
       void contactLeg();
+
+      void failSafeAction();
 
       // utils
       void setJointIndexMap();
