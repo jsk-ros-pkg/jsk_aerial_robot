@@ -578,9 +578,9 @@ void WalkController::jointControl()
 
         // set joint torque
         target_joint_torques_.name.push_back(name);
-        if (lower_flag && raise_leg_large_torque_control_) {
-          tor = servo_max_torque_; // largest torque to lower leg
-        }
+        // if (lower_flag && raise_leg_large_torque_control_) {
+        //   tor = servo_max_torque_; // largest torque to lower leg
+        // }
         target_joint_torques_.effort.push_back(tor);
 
         ROS_INFO_STREAM(" " << name << ", " << status << ", torque:" << tor  << "; target angle: " << target_angles.at(i) << "; current angle: " << current_angle);
