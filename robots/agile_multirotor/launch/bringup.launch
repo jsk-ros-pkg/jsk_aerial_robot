@@ -107,8 +107,8 @@
 
   <node pkg="agile_multirotor" type="observation_conversion_node" name="observation_conversion" output="screen" ns="$(arg robot_ns)">
     <param name="cfg_path" value="$(find agile_multirotor)/config/obstacle_world/$(arg worldtype).csv" />
-      <param name="spawn_x" type="double" value="$(arg spawn_x)" />
-      <param name="spawn_y" type="double" value="$(arg spawn_y)" />
+    <param name="spawn_x" type="double" value="$(arg spawn_x)" />
+    <param name="spawn_y" type="double" value="$(arg spawn_y)" />
   </node>
 
   <!-- <node pkg="agile_multirotor" type="policy_navigator.py" name="policy_navigator" output="screen" ns="$(arg robot_ns)" launch-prefix="xterm -fn 10x20 -e python -m pdb">
