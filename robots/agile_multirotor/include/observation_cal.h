@@ -21,7 +21,8 @@ using Matrix = Eigen::Matrix<Scalar, rows, cols>;
 template <int rows = Dynamic> using Vector = Matrix<rows, 1>;
 
 enum Vision : int {
-  Cuts = 8,
+  Theta_Cuts = 16,
+  Phi_Cuts = 4,
 };
 
 Scalar max_detection_range_ = 20;
@@ -31,7 +32,7 @@ public:
   ObstacleCalculator(ros::NodeHandle nh, ros::NodeHandle pnh);
   ~ObstacleCalculator() {}
 
-  Vector<Cuts * Cuts>
+  Vector<Vision::Theta_Cuts * Vision::Phi_Cuts>
   getsphericalboxel(const std::vector<Eigen::Vector3d> &converted_positions,
                     const Eigen::Vector3d &v);
   Scalar
@@ -49,6 +50,9 @@ private:
   std::vector<Eigen::Vector3d> positions_;
   std::vector<Scalar> radius_list_;
   int call_;
+
+  std::vector<Scalar> theta_list_;
+  std::vector<Scalar> phi_list_;
 
   std::vector<std::string> split(std::string &input, char delimiter);
 

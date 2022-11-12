@@ -33,6 +33,9 @@ ObstacleCalculator::ObstacleCalculator(ros::NodeHandle nh, ros::NodeHandle pnh)
                             &ObstacleCalculator::CalculatorCallback, this);
   obs_pub_ = nh_.advertise<aerial_robot_msgs::ObstacleArray>(
       "/multirotor/polar_pixel", 1);
+
+  theta_list_ = {5,15,25,35,45,60,75,90};
+  phi_list_ = {5,15};
 }
 
 void ObstacleCalculator::CalculatorCallback(
@@ -53,14 +56,14 @@ void ObstacleCalculator::CalculatorCallback(
     converted_positions.push_back(converted_pos);
   }
 
-  Vector<Cuts *Cuts> sphericalboxel =
+  Vector<Vision::Theta_Cuts *Vision::Phi_Cuts> sphericalboxel =
       getsphericalboxel(converted_positions, poll_v);
 
   aerial_robot_msgs::ObstacleArray obstacle_msg;
   //   obstacle_msg.header.stamp = ros::Time(state.t);
 
   obstacle_msg.header = msg->header;
-  for (size_t i = 0; i < Cuts * Cuts; ++i) {
+  for (size_t i = 0; i < Vision::Theta_Cuts * Vision::Phi_Cuts; ++i) {
     obstacle_msg.boxel.push_back(sphericalboxel[i]);
   }
 
@@ -75,15 +78,18 @@ void ObstacleCalculator::CalculatorCallback(
   //   }
 }
 
-Vector<Cuts * Cuts> ObstacleCalculator::getsphericalboxel(
+Vector<Vision::Theta_Cuts * Vision::Phi_Cuts> ObstacleCalculator::getsphericalboxel(
     const std::vector<Eigen::Vector3d> &converted_positions,
     const Eigen::Vector3d &v) {
-  Vector<Cuts * Cuts> obstacle_obs;
-  for (int t = -Cuts / 2; t < Cuts / 2; ++t) {
-    for (int p = -Cuts / 2; p < Cuts / 2; ++p) {
-      Scalar tcell = (t + 0.5) * (M_PI / 2 / Cuts);
-      Scalar pcell = (p + 0.5) * (M_PI / 2 / Cuts);
-      obstacle_obs[(t + Cuts / 2) * Cuts + (p + Cuts / 2)] =
+  Vector<Vision::Theta_Cuts * Vision::Phi_Cuts> obstacle_obs;
+  for (int t = -Vision::Theta_Cuts / 2; t < Vision::Theta_Cuts / 2; ++t) {
+    Scalar theta = (t >= 0) ? theta_list_[t] : -theta_list_[(-t) - 1];  //[deg]
+    for (int p = -Vision::Phi_Cuts / 2; p < Vision::Phi_Cuts / 2; ++p) {
+      Scalar phi = (p >= 0) ? phi_list_[p] : -phi_list_[(-p) - 1];  //[deg]
+
+      Scalar tcell = theta * (M_PI / 180);
+      Scalar pcell = phi* (M_PI / 180);
+      obstacle_obs[(t + Vision::Theta_Cuts / 2) * Vision::Phi_Cuts + (p + Vision::Phi_Cuts / 2)] =
           getClosestDistance(converted_positions, v, tcell, pcell);
     }
   }
