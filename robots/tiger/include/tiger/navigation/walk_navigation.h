@@ -37,9 +37,22 @@
 
 #include <aerial_robot_control/flight_navigation.h>
 #include <tiger/model/full_vectoring_robot_model.h>
+#include <geometry_msgs/PoseArray.h>
 #include <std_msgs/Float32MultiArray.h>
 #include <std_msgs/UInt8.h>
 #include <std_msgs/Empty.h>
+#include <std_msgs/Bool.h>
+
+namespace WalkPattern
+{
+  enum
+    {
+      PHASE0, // idle, all leg contact with ground
+      PHASE1, // raise leg
+      PHASE2, // lower leg
+      PHASE3, // move center link
+    };
+};
 
 namespace aerial_robot_control
 {
@@ -89,6 +102,8 @@ namespace aerial_robot_navigation
       std::vector<KDL::Frame> target_leg_ends_;
       std::vector<KDL::Rotation> target_link_rots_;
 
+      bool reset_target_flag_;
+
       int free_leg_id_; // start from 0: [0, leg_num -1]
       bool raise_leg_flag_;
       bool lower_leg_flag_;
@@ -100,18 +115,34 @@ namespace aerial_robot_navigation
       double check_interval_;
       double converge_time_thresh_;
 
+      bool walk_flag_;
+      int walk_total_cycle_;
+      int walk_cycle_cnt_;
+      double walk_stride_;
+      bool walk_debug_;
+      int walk_debug_legs_;
+      bool walk_move_baselink_;
+      bool walk_cycle_reset_target_;
+      double walk_pattern_converge_du_;
+      double baselink_converge_thresh_;
+      double move_leg_joint_err_thresh_;
+      int leg_motion_phase_;
+
+      double converge_timestamp_;
+
       ros::Subscriber target_baselink_pos_sub_;
       ros::Subscriber target_baselink_delta_pos_sub_;
       ros::Subscriber raise_leg_sub_;
       ros::Subscriber lower_leg_sub_;
+      ros::Subscriber walk_sub_;
       ros::Publisher target_joint_angles_pub_;
+      ros::Publisher target_leg_ends_pub_;
 
       boost::shared_ptr<::Tiger::FullVectoringRobotModel> tiger_robot_model_;
       boost::shared_ptr<aerial_robot_model::RobotModel> robot_model_for_nav_;
       aerial_robot_control::Tiger::WalkController* walk_controller_;
 
       void halt() override;
-      void reset() override;
 
       void rosParamInit() override;
 
@@ -121,8 +152,13 @@ namespace aerial_robot_navigation
       void targetBaselinkDeltaPosCallback(const geometry_msgs::Vector3StampedConstPtr& msg);
       void raiseLegCallback(const std_msgs::UInt8ConstPtr& msg);
       void lowerLegCallback(const std_msgs::EmptyConstPtr& msg);
+      void walkCallback(const std_msgs::BoolConstPtr& msg);
+
+      void walkPattern();
+      void resetWalkPattern();
 
       void raiseLeg(int leg_id);
+      void raiseLeg();
       void lowerLeg();
       void contactLeg();
 

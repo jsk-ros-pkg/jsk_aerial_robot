@@ -1048,7 +1048,6 @@ void WalkController::cfgPidCallback(aerial_robot_control::PidControlConfig &conf
     }
 }
 
-
 // utils
 void WalkController::setJointIndexMap()
 {
@@ -1100,6 +1099,11 @@ bool WalkController::samejointAngles(std::vector<double> group_a, std::vector<do
   }
 
   return res;
+}
+
+bool WalkController::getContactTransition()
+{
+  return contact_transition_;
 }
 
 void WalkController::reset()

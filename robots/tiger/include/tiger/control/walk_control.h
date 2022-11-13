@@ -67,6 +67,8 @@ namespace aerial_robot_control
       void startLowerLeg();
       void startContactTransition(int leg_id);
 
+      bool getContactTransition();
+
     private:
 
       ros::Publisher flight_cmd_pub_; //for spinal

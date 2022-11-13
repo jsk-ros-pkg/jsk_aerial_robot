@@ -12,9 +12,12 @@ WalkNavigator::WalkNavigator():
   target_baselink_rpy_(0,0,0),
   target_leg_ends_(0),
   target_link_rots_(0),
+  reset_target_flag_(false),
   free_leg_id_(-1),
   raise_leg_flag_(false),
-  lower_leg_flag_(false)
+  lower_leg_flag_(false),
+  walk_flag_(false),
+  leg_motion_phase_(WalkPattern::PHASE0)
 {
 }
 
@@ -34,9 +37,213 @@ void WalkNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
 
   raise_leg_sub_ = nh_.subscribe("walk/raise_leg", 1, &WalkNavigator::raiseLegCallback, this);
   lower_leg_sub_ = nh_.subscribe("walk/lower_leg", 1, &WalkNavigator::lowerLegCallback, this);
+  walk_sub_ = nh_.subscribe("walk/enable", 1, &WalkNavigator::walkCallback, this);
 
   target_joint_angles_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("debug/nav/target_joint_angles", 1); // for debug
+  target_leg_ends_pub_ = nh_.advertise<geometry_msgs::PoseArray>("debug/nav/target_leg_ends", 1); // for debug
 
+}
+
+void WalkNavigator::walkPattern()
+{
+  /*
+    simple walking pattern:
+    - Straight line walk along x axis.
+    - Every leg move along x axis with `walk_stride` at each step.
+    - Leg will raise (raise inner joint pitch angle), and also move joint yaw angle at the same time.
+    - Center link also move with `walk_stride`/`leg_num` at each step.
+    - A circle means all leg finish move one time
+   */
+
+  if (!walk_flag_) {
+    return;
+  }
+
+  switch(leg_motion_phase_) {
+  case WalkPattern::PHASE0:
+    {
+      // all legs contact to the ground
+      std::string prefix("[Tiger][Walk][Phase0]");
+
+      // start raise leg mode for this leg
+      raiseLeg();
+
+      // update the foot postion, and thus the joint angles
+      target_leg_ends_.at(free_leg_id_).p += KDL::Vector(walk_stride_, 0, 0); // along x axis
+
+      // reset the timestamp to check joint convergence
+      converge_timestamp_ = ros::Time::now().toSec();
+
+      // shift to PHASE1
+      ROS_INFO_STREAM(prefix << " shift from PHASE0 to PHASE1 for leg" << free_leg_id_ + 1);
+      leg_motion_phase_ = WalkPattern::PHASE1;
+
+      break;
+    }
+  case WalkPattern::PHASE1:
+    {
+      // free leg is raising
+      std::string prefix("[Tiger][Walk][Phase1]");
+
+      // check the yaw joint of free leg to lower leg
+      int j = 4 * free_leg_id_;
+      double target_angle = target_joint_state_.position.at(j);
+      double current_angle = getCurrentJointAngles().at(j);
+      double err = target_angle - current_angle;
+      if (fabs(err) > move_leg_joint_err_thresh_) {
+        // joint angle error too big
+
+        ROS_INFO_STREAM_THROTTLE(0.1, prefix << " the angle error of joint" << j/2 << "_yaw does not converge, " << err << "(" << move_leg_joint_err_thresh_ << ")");
+
+        // reset the timestamp to check joint convergence
+        converge_timestamp_ = ros::Time::now().toSec();
+
+        break;
+      }
+
+      double t = converge_timestamp_ - ros::Time::now().toSec();
+      if (t < walk_pattern_converge_du_) {
+        // no reach enough convergence time
+        ROS_INFO_STREAM_THROTTLE(0.1, prefix << " not reach enough convergence time for joint, start from" << converge_timestamp_  << ", last " << t);
+        break;
+      }
+
+      // reach the target joint yaw to lower leg
+      lowerLeg();
+
+      // reset the timestamp to check joint convergence
+      converge_timestamp_ = ros::Time::now().toSec();
+
+      // shift to PHASE2
+      ROS_INFO_STREAM(prefix << " shift from PHASE1 to PHASE2 for leg" << free_leg_id_ + 1);
+      leg_motion_phase_ = WalkPattern::PHASE2;
+
+      break;
+    }
+  case WalkPattern::PHASE2:
+    {
+      // free leg is lowering
+      std::string prefix("[Tiger][Walk][Phase2]");
+
+      if (lower_leg_flag_) {
+        // still in lowering phase, skip
+        ROS_INFO_STREAM_THROTTLE(0.1, prefix << " still in lowering phase, skip");
+
+        break;
+      }
+
+      if (walk_controller_->getContactTransition()) {
+        // still in contact transition, skip
+        ROS_INFO_STREAM_THROTTLE(0.1, prefix << " finish lowering, but still in ground contact transition, skip");
+
+        break;
+      }
+
+      if (walk_debug_) {
+        if (walk_debug_legs_ == 0) {
+          // only test single leg raise & lower
+
+          // shift to PHASE0
+          ROS_INFO_STREAM(prefix << " debug mode, finish walk");
+          walk_flag_ = false;
+          break;
+        }
+      }
+
+      // move center link
+      walk_move_baselink_ = false;
+      if (free_leg_id_ == 0 || free_leg_id_ == 3) {
+        // WIP: the leg selection.
+        //      only move baselink for leg1 and leg4 (front legs)
+        int leg_num = tiger_robot_model_->getRotorNum() / 2;
+        // WIP: forward move
+        double distance = walk_stride_ / 2;
+        target_baselink_pos_ += tf::Vector3(distance, 0, 0);
+        walk_move_baselink_ = true;
+      }
+
+      // shift to PHASE3
+      ROS_INFO_STREAM(prefix << " shift from PHASE2 to PHASE3 for leg" << free_leg_id_ + 1);
+      leg_motion_phase_ = WalkPattern::PHASE3;
+
+      break;
+    }
+  case WalkPattern::PHASE3:
+    {
+      // baselink is move
+      std::string prefix("[Tiger][Walk][Phase3]");
+
+      if (walk_move_baselink_) {
+
+        // move center link
+        tf::Vector3 baselink_pos = estimator_->getPos(Frame::BASELINK, estimate_mode_);
+        double err = target_baselink_pos_.x() - baselink_pos.x();
+
+        if (fabs(err) > baselink_converge_thresh_) {
+          // no reach enough convergence position
+          ROS_INFO_STREAM_THROTTLE(0.1, prefix << " no reach enough convergence position, target x: " << target_baselink_pos_.x() << ", current x: " << baselink_pos.x() << ", converge thresh: " << baselink_converge_thresh_);
+
+          // reset the timestamp to check baselink convergence
+          converge_timestamp_ = ros::Time::now().toSec();
+
+          break;
+        }
+
+        double t = converge_timestamp_ - ros::Time::now().toSec();
+        if (t < walk_pattern_converge_du_) {
+          // no reach enough convergence time
+          ROS_INFO_STREAM_THROTTLE(0.1, prefix << " not reach enough convergence time for baselink move, start from" << converge_timestamp_  << ", last " << t);
+          break;
+        }
+      }
+
+      ROS_INFO_STREAM(prefix << " finish move of leg" << free_leg_id_ + 1 << " in walk cycle of " << walk_cycle_cnt_);
+
+      // reset target joint angles to reset joint torque control
+      if (walk_cycle_reset_target_) {
+        reset_target_flag_ = true;
+      }
+
+      // move next leg with following rule:
+      // front-left (0) -> front-right (3) -> back-right (2) -> back-left (1)
+
+      if (walk_debug_) {
+        if ((walk_debug_legs_ == 1 && free_leg_id_ == 0) ||
+            (walk_debug_legs_ == 2 && free_leg_id_ == 3) ||
+            (walk_debug_legs_ == 3 && free_leg_id_ == 2) ||
+            (walk_debug_legs_ == 4 && free_leg_id_ == 1)) {
+          ROS_INFO_STREAM(prefix << " debug mode, finish walk");
+          walk_flag_ = false;
+          break;
+        }
+      }
+
+      free_leg_id_ --;
+      if (free_leg_id_ < 0) free_leg_id_ += 4;
+
+      // check whether finish one cycle
+      if (free_leg_id_ == 0) {
+        walk_cycle_cnt_ ++;
+      }
+      if (walk_cycle_cnt_ == walk_total_cycle_) {
+        ROS_INFO_STREAM(prefix << " finish walk with totla cycle of " << walk_total_cycle_);
+        walk_flag_ = false;
+      }
+
+      leg_motion_phase_ = WalkPattern::PHASE0; // back to Phase0 to move next leg.
+
+      break;
+    }
+  default:
+    break;
+  }
+}
+
+void WalkNavigator::resetWalkPattern()
+{
+  free_leg_id_ = 0;
+  walk_cycle_cnt_ = 0;
+  leg_motion_phase_ = WalkPattern::PHASE0;
 }
 
 void WalkNavigator::update()
@@ -56,6 +263,8 @@ void WalkNavigator::update()
       tiger_robot_model_->getStaticJointT().size() == 0) {
     return;
   }
+
+  walkPattern();
 
   // TODO: add new states for walk/stand.
   // e.g., idle stand state, joint move state, fee joint end state
@@ -85,7 +294,7 @@ void WalkNavigator::update()
     target_link_rots_.resize(tiger_robot_model_->getRotorNum());
   }
 
-  // get target leg position w.r.t. world frame
+  // get current leg position w.r.t. world frame
   const auto& seg_tf_map = tiger_robot_model_->getSegmentsTf();
   if(seg_tf_map.size() == 0) return;
   tf::Transform tf_w_baselink(estimator_->getOrientation(Frame::BASELINK, estimate_mode_), baselink_pos);
@@ -103,29 +312,34 @@ void WalkNavigator::update()
     curr_leg_ends.push_back(fw_end);
   }
 
+  // initialize targets
   if (target_leg_ends_.size() == 0) {
-    target_leg_ends_ = curr_leg_ends;
-
-    target_baselink_pos_ = baselink_pos;
-    target_baselink_rpy_ = baselink_rpy;
+    reset_target_flag_ = true;
   }
 
+  // reset targets
   if (getNaviState() == aerial_robot_navigation::START_STATE) {
-
-    // set the target position for baselink
     ROS_INFO("[Walk][Navigator] set initial position and joint angles as target ones");
+    reset_target_flag_ = true;
+  }
+
+  if (reset_target_flag_) {
+    // set the target position for baselink
     target_baselink_pos_ = baselink_pos;
     target_baselink_rpy_ = baselink_rpy;
 
     // set target leg end frame (position)
     target_leg_ends_ = curr_leg_ends;
+
+    reset_target_flag_ = false;
   }
 
   // calculate the target joint angles from baselink and end position
   KDL::Frame fw_target_baselink;
-  fw_target_baselink.M = KDL::Rotation::EulerZYX(target_baselink_rpy_.z(),
-                                                 target_baselink_rpy_.y(),
-                                                 target_baselink_rpy_.x());
+  fw_target_baselink.M
+    = KDL::Rotation::EulerZYX(target_baselink_rpy_.z(),
+                              target_baselink_rpy_.y(),
+                              target_baselink_rpy_.x());
   tf::vectorTFToKDL(target_baselink_pos_, fw_target_baselink.p);
 
   double l0 = -1; // distance from "joint_junction_linkx" to "linkx"
@@ -198,6 +412,23 @@ void WalkNavigator::update()
     double theta1 = atan2(y_e - l2 * sin(theta2_d), x_e - l2 * cos(theta2_d));
     double theta2 = theta2_d - theta1;
 
+    // check validity
+    if(fabs(angle) > M_PI /2 ) {
+      ROS_ERROR_STREAM("[Tiger][Navigator] joint" << i * 2 + 1 << "_yaw exceeds the valid range, angle is " << angle);
+      continue;
+    }
+
+    if(fabs(theta1) > M_PI /2 ) {
+      ROS_ERROR_STREAM("[Tiger][Navigator] joint" << i * 2 + 1 << "_pitch exceeds the valid range, angle is " << theta1);
+      continue;
+    }
+
+    if(fabs(theta2) > M_PI /2 ) {
+      ROS_ERROR_STREAM("[Tiger][Navigator] joint" << i * 2 + 2 << "_pitch exceeds the valid range, angle is " << theta2);
+      continue;
+    }
+
+
     // set the target joint angles
     if(names.at(4 * i) != std::string("joint") + std::to_string(2*i+1) + std::string("_yaw")) {
       ROS_ERROR_STREAM("[Tiger][Navigator] name order is different. ID" << i << " name is " << names.at(4 * i));
@@ -206,8 +437,6 @@ void WalkNavigator::update()
 
     // special process for raising leg
     if (i == free_leg_id_) {
-
-      // TODO: change the joint1_yaw for walk
 
       double current_angle = current_joint_angles.at(4 * i + 1);
 
@@ -261,12 +490,6 @@ void WalkNavigator::update()
   }
   ROS_DEBUG_STREAM_THROTTLE(1.0, "[Tiger][Walk][Navigator] analytical joint angles from leg end and baselink: " << ss.str());
 
-  std_msgs::Float32MultiArray msg;
-  for(int i = 0; i < target_angles.size(); i++) {
-    msg.data.push_back(target_angles.at(i));
-  }
-  target_joint_angles_pub_.publish(msg);
-
   // get the target link orientation
   auto joint_state = tiger_robot_model_->getGimbalProcessedJoint<sensor_msgs::JointState>();
   for(int i = 0; i < joint_index_map_.size(); i++) {
@@ -285,6 +508,23 @@ void WalkNavigator::update()
   }
 
   failSafeAction();
+
+  // publish for debug
+  std_msgs::Float32MultiArray msg;
+  for(int i = 0; i < target_angles.size(); i++) {
+    msg.data.push_back(target_angles.at(i));
+  }
+  target_joint_angles_pub_.publish(msg);
+
+  geometry_msgs::PoseArray poses_msg;
+  poses_msg.header.stamp = ros::Time::now();
+  for(const auto& f: target_leg_ends_) {
+    geometry_msgs::Pose pose;
+    tf::poseKDLToMsg(f, pose);
+    poses_msg.poses.push_back(pose);
+  }
+  target_leg_ends_pub_.publish(poses_msg);
+
 }
 
 void WalkNavigator::failSafeAction()
@@ -355,12 +595,6 @@ std::vector<double> WalkNavigator::getCurrentJointAngles()
 }
 
 
-
-void WalkNavigator::reset()
-{
-}
-
-
 void WalkNavigator::halt()
 {
   ros::ServiceClient client = nh_.serviceClient<std_srvs::SetBool>("joints/torque_enable");
@@ -380,14 +614,20 @@ void WalkNavigator::halt()
     ROS_ERROR("Failed to call service gimbals/torque_enable");
 }
 
-void WalkNavigator::raiseLeg(int leg_id)
+void WalkNavigator::raiseLeg()
 {
-  free_leg_id_ = leg_id;
   raise_leg_flag_ = true;
   lower_leg_flag_ = false;
 
   tiger_robot_model_->setFreeleg(free_leg_id_);
   walk_controller_->startRaiseTransition();
+}
+
+
+void WalkNavigator::raiseLeg(int leg_id)
+{
+  free_leg_id_ = leg_id;
+  raiseLeg();
 }
 
 void WalkNavigator::lowerLeg()
@@ -410,6 +650,7 @@ void WalkNavigator::rosParamInit()
 {
   BaseNavigator::rosParamInit();
 
+
   ros::NodeHandle nh_walk(nh_, "navigation/walk");
   getParam<double>(nh_walk, "raise_angle", raise_angle_, 0.2);
   getParam<double>(nh_walk, "lower_touchdown_thresh", lower_touchdown_thresh_, 0.05);
@@ -417,9 +658,22 @@ void WalkNavigator::rosParamInit()
   getParam<double>(nh_walk, "check_interval", check_interval_, 0.1);
   getParam<double>(nh_walk, "converge_time_thresh", converge_time_thresh_, 0.5);
 
+  ros::NodeHandle nh_walk_pattern(nh_walk, "pattern");
+  getParam<int>(nh_walk_pattern, "total_cycle", walk_total_cycle_, 1);
+  getParam<double>(nh_walk_pattern, "stride", walk_stride_, 0.2);
+  getParam<double>(nh_walk_pattern, "move_leg_joint_err_thresh", move_leg_joint_err_thresh_, 0.05);
+  getParam<double>(nh_walk_pattern, "baselink_converge_thresh", baselink_converge_thresh_, 0.05);
+  getParam<double>(nh_walk_pattern, "converge_du", walk_pattern_converge_du_, 0.5);
+  getParam<bool>(nh_walk_pattern, "walk_cycle_reset_target", walk_cycle_reset_target_, true);
+  getParam<bool>(nh_walk_pattern, "debug", walk_debug_, false);
+  getParam<int>(nh_walk_pattern, "debug_legs", walk_debug_legs_, 0);
+
+
   ros::NodeHandle nh_failsafe(nh_walk, "failsafe");
   getParam<double>(nh_failsafe, "baselink_rot_thresh", baselink_rot_thresh_, 0.2);
   getParam<double>(nh_failsafe, "opposite_raise_leg_thresh", opposite_raise_leg_thresh_, 0.1);
+
+
 }
 
 void WalkNavigator::targetBaselinkPosCallback(const geometry_msgs::Vector3StampedConstPtr& msg)
@@ -444,6 +698,22 @@ void WalkNavigator::raiseLegCallback(const std_msgs::UInt8ConstPtr& msg)
 void WalkNavigator::lowerLegCallback(const std_msgs::EmptyConstPtr& msg)
 {
   lowerLeg();
+}
+
+void WalkNavigator::walkCallback(const std_msgs::BoolConstPtr& msg)
+{
+  resetWalkPattern();
+  walk_flag_ = msg->data;
+
+  if (!walk_flag_) {
+    // abort process here
+
+    if (raise_leg_flag_) {
+      ROS_WARN_STREAM("[Tiger][Walk][Navigation] instantly lower the raised leg" << free_leg_id_ + 1 << " during the walk pattern");
+      lowerLeg();
+    }
+  }
+
 }
 
 
