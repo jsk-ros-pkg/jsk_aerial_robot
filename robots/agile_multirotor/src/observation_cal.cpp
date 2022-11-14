@@ -4,10 +4,10 @@ ObstacleCalculator::ObstacleCalculator(ros::NodeHandle nh, ros::NodeHandle pnh)
     : nh_(nh), pnh_(pnh), call_(0) {
 
   std::string file;
-  double spawn_x, spawn_y;
+  double shift_x, shift_y;
   pnh_.getParam("cfg_path", file);
-  pnh_.getParam("spawn_x", spawn_x);
-  pnh_.getParam("spawn_y", spawn_y);
+  pnh_.getParam("shift_x", shift_x);
+  pnh_.getParam("shift_y", shift_y);
   //   file = file + ".csv";
   std::cout << "file name is " << file << std::endl;
   std::ifstream ifs(file);
@@ -20,10 +20,10 @@ ObstacleCalculator::ObstacleCalculator(ros::NodeHandle nh, ros::NodeHandle pnh)
   while (std::getline(ifs, line)) {
     std::vector<std::string> strvec = split(line, ',');
     Eigen::Vector3d tree_pos;
-    tree_pos(0) = stof(strvec.at(1))+spawn_x;
-    // std::cout << "spawn_x is: " << spawn_x << std::endl;
+    tree_pos(0) = stof(strvec.at(1))+shift_x;
+    // std::cout << "shift_x is: " << shift_x << std::endl;
     // std::cout << "tree_pos(0) is: " << tree_pos(0) << std::endl;
-    tree_pos(1) = stof(strvec.at(2))+spawn_y;
+    tree_pos(1) = stof(strvec.at(2))+shift_y;
     tree_pos(2) = 0;
     positions_.push_back(tree_pos);
     radius_list_.push_back(stof(strvec.at(8)));
