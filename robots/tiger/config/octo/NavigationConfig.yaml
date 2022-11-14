@@ -42,6 +42,9 @@ navigation:
       baselink_rot_thresh: 0.2
       opposite_raise_leg_thresh: 0.1
 
+    simulation: false
+    simulated_joint_lpf_rate: 0.2
+
     pattern:
       total_cycle: 1
       stride: 0.2 # stride for individual leg [m]
@@ -50,4 +53,4 @@ navigation:
       baselink_converge_thresh: 0.05 # check the convergence of baselink [m]
       walk_cycle_reset_target_: true # use the actual state (e.g., joint angles) in the end of walk cycle
       debug: false
-      debug_legs: 0
+      debug_legs: 4

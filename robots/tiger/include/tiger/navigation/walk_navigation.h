@@ -37,11 +37,13 @@
 
 #include <aerial_robot_control/flight_navigation.h>
 #include <tiger/model/full_vectoring_robot_model.h>
+#include <nav_msgs/Odometry.h>
 #include <geometry_msgs/PoseArray.h>
 #include <std_msgs/Float32MultiArray.h>
 #include <std_msgs/UInt8.h>
 #include <std_msgs/Empty.h>
 #include <std_msgs/Bool.h>
+#include <spinal/FlightConfigCmd.h>
 
 namespace WalkPattern
 {
@@ -119,6 +121,7 @@ namespace aerial_robot_navigation
       int walk_total_cycle_;
       int walk_cycle_cnt_;
       double walk_stride_;
+      int walk_leg_id_; // the move leg id in walk pattern, different from free_leg_id
       bool walk_debug_;
       int walk_debug_legs_;
       bool walk_move_baselink_;
@@ -127,6 +130,10 @@ namespace aerial_robot_navigation
       double baselink_converge_thresh_;
       double move_leg_joint_err_thresh_;
       int leg_motion_phase_;
+
+      bool walk_simulation_;
+      sensor_msgs::JointState simulated_joint_state_;
+      double simulated_joint_lpf_rate_;
 
       double converge_timestamp_;
 
@@ -137,6 +144,11 @@ namespace aerial_robot_navigation
       ros::Subscriber walk_sub_;
       ros::Publisher target_joint_angles_pub_;
       ros::Publisher target_leg_ends_pub_;
+
+      ros::Publisher simulate_baselink_pose_pub_;
+      ros::Publisher simulate_joint_angles_pub_;
+      ros::Publisher simulate_flight_config_pub_;
+      ros::Subscriber simulate_flight_config_sub_;
 
       boost::shared_ptr<::Tiger::FullVectoringRobotModel> tiger_robot_model_;
       boost::shared_ptr<aerial_robot_model::RobotModel> robot_model_for_nav_;
@@ -153,16 +165,18 @@ namespace aerial_robot_navigation
       void raiseLegCallback(const std_msgs::UInt8ConstPtr& msg);
       void lowerLegCallback(const std_msgs::EmptyConstPtr& msg);
       void walkCallback(const std_msgs::BoolConstPtr& msg);
+      void simulateFlightConfigCallback(const spinal::FlightConfigCmdConstPtr& msg);
 
       void walkPattern();
       void resetWalkPattern();
 
       void raiseLeg(int leg_id);
-      void raiseLeg();
       void lowerLeg();
       void contactLeg();
 
       void failSafeAction();
+
+      void simulate();
 
       // utils
       void setJointIndexMap();
