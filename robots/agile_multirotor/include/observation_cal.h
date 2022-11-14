@@ -22,7 +22,7 @@ template <int rows = Dynamic> using Vector = Matrix<rows, 1>;
 
 enum Vision : int {
   Theta_Cuts = 16,
-  Phi_Cuts = 4,
+  Phi_Cuts = 2,
 };
 
 Scalar max_detection_range_ = 20;

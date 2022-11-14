@@ -35,7 +35,7 @@ ObstacleCalculator::ObstacleCalculator(ros::NodeHandle nh, ros::NodeHandle pnh)
       "/multirotor/polar_pixel", 1);
 
   theta_list_ = {5,15,25,35,45,60,75,90};
-  phi_list_ = {5,15};
+  phi_list_ = {5};
 }
 
 void ObstacleCalculator::CalculatorCallback(
