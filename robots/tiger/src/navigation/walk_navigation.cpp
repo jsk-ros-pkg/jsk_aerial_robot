@@ -891,32 +891,69 @@ void WalkNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
     return;
   }
 
-  /* raise test */
-  if(joy_cmd.buttons[PS3_BUTTON_CROSS_UP] == 1) {
-    if (raise_leg_flag_) {
+
+
+  if(joy_cmd.buttons[PS3_BUTTON_REAR_LEFT_2] == 1) {
+    /* walk test */
+
+    if(joy_cmd.buttons[PS3_BUTTON_CROSS_UP] == 1) {
+      if (!walk_flag_) {
+        walk_flag_ = true;
+        resetWalkPattern();
+        ROS_INFO("[Tiger][Walk][Navigation][Joy] walk pattern start");
+      }
+      return;
+    }
+
+    if(joy_cmd.buttons[PS3_BUTTON_CROSS_DOWN] == 1) {
+
+      // abort process here
+
+      if (walk_flag_) {
+        walk_flag_ = false;
+        resetWalkPattern();
+        ROS_INFO("[Tiger][Walk][Navigation][Joy] walk pattern abort");
+
+        if (raise_leg_flag_) {
+          ROS_WARN_STREAM("[Tiger][Walk][Navigation][Joy] instantly lower the raised leg"
+                          << free_leg_id_ + 1 << " during the walk pattern");
+          lowerLeg();
+        }
+      }
+      return;
+    }
+  } else {
+
+    /* raise/lower test */
+    if(joy_cmd.buttons[PS3_BUTTON_CROSS_UP] == 1) {
+
+      /* raise test */
+      if (raise_leg_flag_) {
         return;
       }
 
-    ROS_INFO("[Joy, raise leg1 up test]");
-    raiseLeg(0);
+      ROS_INFO("[Joy, raise leg1 up test]");
+      raiseLeg(0);
 
-    return;
-  }
+      return;
+    }
 
-  /* lower test */
-  if(joy_cmd.buttons[PS3_BUTTON_CROSS_DOWN] == 1) {
-    if (lower_leg_flag_) {
+    /* lower test */
+    if(joy_cmd.buttons[PS3_BUTTON_CROSS_DOWN] == 1) {
+      if (lower_leg_flag_) {
         return;
       }
 
-    if (!raise_leg_flag_) {
+      if (!raise_leg_flag_) {
         return;
       }
 
-    ROS_INFO("[Joy, lower leg1 down test]");
-    lowerLeg();
+      ROS_INFO("[Joy, lower leg1 down test]");
+      lowerLeg();
 
-    return;
+      return;
+    }
+
   }
 
 
