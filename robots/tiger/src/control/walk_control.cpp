@@ -601,18 +601,19 @@ void WalkController::jointControl()
       continue;
     }
 
-    // heuristic rule for joints in opposite of free leg
-    if ((leg_id + leg_num / 2) % leg_num == tiger_walk_navigator_->getFreeleg()) {
-
-      prev_navi_target_joint_angles_.at(i) = navi_target_joint_angles.at(i);
+    // heuristic rule for joints in rest of the legs when there is a free leg
+    // if ((leg_id + leg_num / 2) % leg_num == tiger_walk_navigator_->getFreeleg()) {
+    if (tiger_walk_navigator_->getFreeleg() != -1 &&
+        leg_id != tiger_walk_navigator_->getFreeleg()) {
 
       if (j % 2 == 0) {
         // inner joint (e.g., joint5_pitch)
 
-          if (raise_leg_large_torque_control_) {
-            // torque rule: set the torque bound as the max torque to resist the torque from opposite raised leg.
-            tor = servo_max_torque_;
-          }
+        prev_navi_target_joint_angles_.at(i) = navi_target_joint_angles.at(i);
+        if (raise_leg_large_torque_control_) {
+          // torque rule: set the torque bound as the max torque to resist the torque from opposite raised leg.
+          tor = servo_max_torque_;
+        }
 
         target_joint_torques_.name.push_back(name);
         target_joint_torques_.effort.push_back(tor);
@@ -630,9 +631,9 @@ void WalkController::jointControl()
         target_angles.at(i) += (tor / fabs(tor) * extra_angle_err);
 
 
-        ROS_INFO_STREAM(" " << name << ", opposite free leg, torque:" << tor  << "; target angle: " << target_angles.at(i) << "; current angle: " << current_angle << "; real target angle: " << navi_target_angle);
+        // ROS_INFO_STREAM(" " << name << ", opposite free leg, torque:" << tor  << "; target angle: " << target_angles.at(i) << "; current angle: " << current_angle << "; real target angle: " << navi_target_angle);
+        continue;
       }
-      continue;
     }
 
     // position control for small joint torque
