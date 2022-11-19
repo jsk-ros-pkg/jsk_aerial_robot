@@ -578,9 +578,12 @@ void WalkController::jointControl()
 
         // set joint torque
         target_joint_torques_.name.push_back(name);
-        // if (lower_flag && raise_leg_large_torque_control_) {
-        //   tor = servo_max_torque_; // largest torque to lower leg
-        // }
+        if (lower_flag && lower_leg_force_i_gain_ == 0) {
+          // use large torque to lower leg instead of decrease thrust force
+          tor = servo_max_torque_;
+          double extra_angle_err = 0.1; // for enough margin for large angle error
+          target_angles.at(i) += (tor / fabs(tor) * extra_angle_err);
+        }
         target_joint_torques_.effort.push_back(tor);
 
         ROS_INFO_STREAM(" " << name << ", " << status << ", torque:" << tor  << "; target angle: " << target_angles.at(i) << "; current angle: " << current_angle);

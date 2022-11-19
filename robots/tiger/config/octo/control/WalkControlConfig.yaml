@@ -21,7 +21,7 @@ controller:
 
     raise_leg_force_i_gain: 100.0 # 2.0 #  /s
     modify_leg_force_i_gain: 0.1 # /s
-    lower_leg_force_i_gain: 0.5 # /s
+    lower_leg_force_i_gain: 0 # 0.5 # /s
     contact_leg_force_i_gain: 0.5 #2.0 # /s
 
     check_interval: 0.1
