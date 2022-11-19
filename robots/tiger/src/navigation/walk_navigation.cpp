@@ -451,17 +451,18 @@ void WalkNavigator::update()
     double theta2 = theta2_d - theta1;
 
     // check validity
-    if(fabs(angle) > M_PI /2 ) {
+    double angle_limit = 1.65;
+    if(fabs(angle) > angle_limit ) {
       ROS_ERROR_STREAM("[Tiger][Navigator] joint" << i * 2 + 1 << "_yaw exceeds the valid range, angle is " << angle);
       continue;
     }
 
-    if(fabs(theta1) > M_PI /2 ) {
+    if(fabs(theta1) > angle_limit ) {
       ROS_ERROR_STREAM("[Tiger][Navigator] joint" << i * 2 + 1 << "_pitch exceeds the valid range, angle is " << theta1);
       continue;
     }
 
-    if(fabs(theta2) > M_PI /2 ) {
+    if(fabs(theta2) > angle_limit) {
       ROS_ERROR_STREAM("[Tiger][Navigator] joint" << i * 2 + 2 << "_pitch exceeds the valid range, angle is " << theta2);
       continue;
     }
