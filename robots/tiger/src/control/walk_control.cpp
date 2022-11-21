@@ -581,7 +581,7 @@ void WalkController::jointControl()
         if (lower_flag && lower_leg_force_i_gain_ == 0) {
           // use large torque to lower leg instead of decrease thrust force
           tor = servo_max_torque_;
-          double extra_angle_err = 0.1; // for enough margin for large angle error
+          double extra_angle_err = servo_angle_bias_; // workaround: for enough margin to touch ground
           target_angles.at(i) += (tor / fabs(tor) * extra_angle_err);
         }
         target_joint_torques_.effort.push_back(tor);
