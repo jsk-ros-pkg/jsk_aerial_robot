@@ -647,6 +647,14 @@ void WalkController::jointControl()
     // set joint angles
     // large diff from real target angles to reach the target joint torque: torque control
     double extra_angle_err = 0.1; // for enough margin for large angle error
+
+    // in contact transition
+    if (contact_transition_) {
+      // no extra angle error for outer joint pitch in free leg in contact transition (e.g., joint2_pitch)
+      if (leg_id == contact_leg_id_ && j % 2 == 1) {
+        extra_angle_err = 0.0;
+      }
+    }
     target_angles.at(i) += (tor / fabs(tor) * extra_angle_err);
 
     // Note: tor > 0: inner pitch joint (e.g., joint1_pitch)
