@@ -48,6 +48,7 @@ WalkController::WalkController():
   free_leg_force_ratio_(0),
   raise_transition_(false),
   contact_transition_(false),
+  set_servo_limit_torque_(false),
   contact_leg_id_(-1)
 {
 }
@@ -104,6 +105,7 @@ void WalkController::rosParamInit()
   getParam<double>(walk_control_nh, "joint_ctrl_rate", joint_ctrl_rate_, 1.0); // 1 Hz
   getParam<double>(walk_control_nh, "joint_torque_control_thresh", joint_torque_control_thresh_, 2.0); // 2 Nm
   getParam<double>(walk_control_nh, "servo_angle_bias", servo_angle_bias_, 0.02); // 0.02 rad
+  getParam<double>(walk_control_nh, "servo_angle_bias_torque", servo_angle_bias_torque_, 4.0); // 4.0 Nm
   getParam<double>(walk_control_nh, "servo_max_torque", servo_max_torque_, 6.0); // 6.0 Nm
   getParam<double>(walk_control_nh, "joint_static_torque_limit", joint_static_torque_limit_, 3.0); // 3.0 Nm
   getParam<double>(walk_control_nh, "servo_torque_change_rate", servo_torque_change_rate_, 1.5); // rate
@@ -113,6 +115,7 @@ void WalkController::rosParamInit()
   getParam<double>(walk_control_nh, "lower_leg_force_i_gain", lower_leg_force_i_gain_, 1.0); // / s
   getParam<double>(walk_control_nh, "contact_leg_force_i_gain", contact_leg_force_i_gain_, 1.0); // / s
 
+  getParam<bool>(walk_control_nh, "all_joint_position_control", all_joint_position_control_, true);
   getParam<bool>(walk_control_nh, "opposite_free_leg_joint_torque_control_mode", opposite_free_leg_joint_torque_control_mode_, true);
   getParam<bool>(walk_control_nh, "raise_leg_large_torque_control", raise_leg_large_torque_control_, true);
   getParam<double>(walk_control_nh, "lower_leg_speed", lower_leg_speed_, 0.5);
@@ -536,11 +539,52 @@ void WalkController::jointControl()
     return;
   }
 
-  // use torque control for joints that needs large torque load
+
   const auto& names = target_joint_angles_.name;
   auto& target_angles = target_joint_angles_.position;
   int joint_num = names.size();
   int leg_num = joint_num / 4;
+
+  // use position control for all joints
+  if (all_joint_position_control_) {
+
+    // modification for target joint angle
+    for(int i = 0; i < joint_num; i++) {
+      double tor = static_joint_torque_(i);
+      std::string name = names.at(i);
+      int j = atoi(name.substr(5,1).c_str()) - 1; // start from 0
+      int leg_id = j / 2;
+
+      // WIP: add extra delta angle to deal with pulley strench
+      // TODO: move this function to
+      //       1. servo_bridge
+      //       2. neuron
+      double bias = servo_angle_bias_;
+      if (contact_transition_ && leg_id == contact_leg_id_ && j % 2 == 1) {
+        // no extra angle error for outer joint pitch in free leg in contact transition
+        // e.g., joint2_pitch
+        bias = 0.0;
+      }
+      target_angles.at(i) += (tor / servo_angle_bias_torque_ * bias);
+
+      // set the servo limit torque just once
+      if (!set_servo_limit_torque_ &&
+          navigator_->getNaviState() == aerial_robot_navigation::ARM_ON_STATE) {
+        target_joint_torques_.name.push_back(name);
+        target_joint_torques_.effort.push_back(servo_max_torque_);
+      }
+    }
+
+    if (!set_servo_limit_torque_ &&
+        navigator_->getNaviState() == aerial_robot_navigation::ARM_ON_STATE) {
+      set_servo_limit_torque_ = true;
+    }
+
+    return;
+  }
+
+
+  // use torque control for joints that needs large torque load
   for(int i = 0; i < joint_num; i++) {
 
     double current_angle = current_angles.at(i);

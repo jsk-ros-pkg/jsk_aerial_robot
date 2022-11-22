@@ -106,11 +106,14 @@ namespace aerial_robot_control
       bool joint_soft_compliance_;
       double joint_compliance_end_t_;
 
+      bool set_servo_limit_torque_;
+      bool all_joint_position_control_;
       double joint_torque_control_thresh_;
       double joint_static_torque_limit_;
       double servo_max_torque_;
       double servo_torque_change_rate_;
       double servo_angle_bias_;
+      double servo_angle_bias_torque_;
 
       double angle_scale_;
       double torque_load_scale_;
