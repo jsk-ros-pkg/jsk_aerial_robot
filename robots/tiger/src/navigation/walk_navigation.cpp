@@ -12,7 +12,8 @@ WalkNavigator::WalkNavigator():
   target_baselink_rpy_(0,0,0),
   target_leg_ends_(0),
   target_link_rots_(0),
-  reset_target_flag_(false),
+  reset_baselink_flag_(false),
+  reset_leg_ends_flag_(false),
   free_leg_id_(-1),
   raise_leg_flag_(false),
   lower_leg_flag_(false),
@@ -230,9 +231,14 @@ void WalkNavigator::walkPattern()
 
       ROS_INFO_STREAM(prefix << " finish move of leg" << walk_leg_id_ + 1 << " in walk cycle of " << walk_cycle_cnt_);
 
-      // reset target joint angles to reset joint torque control
-      if (walk_cycle_reset_target_) {
-        reset_target_flag_ = true;
+      // reset the target leg ends to further update the target joint angles
+      if (walk_cycle_reset_leg_end_) {
+        reset_leg_ends_flag_ = true;
+      }
+
+      // reset the target baselink to further update the target joint angles
+      if (walk_cycle_reset_baselink_) {
+        reset_baselink_flag_ = true;
       }
 
       // instant update to the target joint angle
@@ -357,25 +363,30 @@ void WalkNavigator::update()
 
   // initialize targets
   if (target_leg_ends_.size() == 0) {
-    reset_target_flag_ = true;
+    reset_baselink_flag_ = true;
+    reset_leg_ends_flag_ = true;
   }
 
   // reset targets
   if (getNaviState() == aerial_robot_navigation::START_STATE) {
     ROS_INFO("[Walk][Navigator] set initial position and joint angles as target ones");
-    reset_target_flag_ = true;
+
+    reset_baselink_flag_ = true;
+    reset_leg_ends_flag_ = true;
   }
 
-  if (reset_target_flag_) {
-    // set the target position for baselink
-    target_baselink_pos_ = baselink_pos;
-    target_baselink_rpy_ = baselink_rpy;
-
-    // set target leg end frame (position)
-    target_leg_ends_ = curr_leg_ends;
-
-    reset_target_flag_ = false;
+  // update target baselink pose
+  if (reset_baselink_flag_) {
+    resetTargetBaselink(baselink_pos, baselink_rpy);
+    reset_baselink_flag_ = false;
   }
+
+  // update target leg end frame (position)
+  if (reset_leg_ends_flag_) {
+    resetTargetLegEnds(curr_leg_ends);
+    reset_leg_ends_flag_ = false;
+  }
+
 
   // calculate the target joint angles from baselink and end position
   KDL::Frame fw_target_baselink;
@@ -400,8 +411,6 @@ void WalkNavigator::update()
     KDL::Frame fb_joint_yaw = fr_baselink.Inverse() * fr_joint_yaw; // w.r.t. baselink
     KDL::Frame fw_joint_yaw = fw_target_baselink * fb_joint_yaw; // w.r.t. world frame
 
-
-    //KDL::Frame fw_end = curr_leg_ends.at(i); // TODO: change from curr_leg_ens to target_leg_ends
     KDL::Frame fw_end = target_leg_ends_.at(i);
     KDL::Frame fy_end = fw_joint_yaw.Inverse() * fw_end; // w.r.t. yaw (yaw1) frame.
     KDL::Vector p = fy_end.p;
@@ -659,6 +668,18 @@ void WalkNavigator::failSafeAction()
   }
 }
 
+void WalkNavigator::resetTargetBaselink(tf::Vector3 pos, tf::Vector3 rpy)
+{
+  target_baselink_pos_ = pos;
+  target_baselink_rpy_ = rpy;
+}
+
+void WalkNavigator::resetTargetLegEnds(std::vector<KDL::Frame> frames)
+{
+  target_leg_ends_ = frames;
+}
+
+
 void WalkNavigator::setJointIndexMap()
 {
   const auto joint_state = tiger_robot_model_->getGimbalProcessedJoint<sensor_msgs::JointState>();
@@ -761,7 +782,8 @@ void WalkNavigator::rosParamInit()
   getParam<double>(nh_walk_pattern, "move_leg_joint_err_thresh", move_leg_joint_err_thresh_, 0.05);
   getParam<double>(nh_walk_pattern, "baselink_converge_thresh", baselink_converge_thresh_, 0.05);
   getParam<double>(nh_walk_pattern, "converge_du", walk_pattern_converge_du_, 0.5);
-  getParam<bool>(nh_walk_pattern, "walk_cycle_reset_target", walk_cycle_reset_target_, true);
+  getParam<bool>(nh_walk_pattern, "reset_leg_end", walk_cycle_reset_leg_end_, true);
+  getParam<bool>(nh_walk_pattern, "reset_baselink", walk_cycle_reset_baselink_, false);
   getParam<bool>(nh_walk_pattern, "debug", walk_debug_, false);
   getParam<int>(nh_walk_pattern, "debug_legs", walk_debug_legs_, 0);
 

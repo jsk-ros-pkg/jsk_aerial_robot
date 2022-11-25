@@ -104,7 +104,8 @@ namespace aerial_robot_navigation
       std::vector<KDL::Frame> target_leg_ends_;
       std::vector<KDL::Rotation> target_link_rots_;
 
-      bool reset_target_flag_;
+      bool reset_baselink_flag_;
+      bool reset_leg_ends_flag_;
 
       int free_leg_id_; // start from 0: [0, leg_num -1]
       bool raise_leg_flag_;
@@ -126,7 +127,8 @@ namespace aerial_robot_navigation
       bool walk_debug_;
       int walk_debug_legs_;
       bool walk_move_baselink_;
-      bool walk_cycle_reset_target_;
+      bool walk_cycle_reset_baselink_;
+      bool walk_cycle_reset_leg_end_;
       double walk_pattern_converge_du_;
       double baselink_converge_thresh_;
       double move_leg_joint_err_thresh_;
@@ -167,6 +169,9 @@ namespace aerial_robot_navigation
       void lowerLegCallback(const std_msgs::EmptyConstPtr& msg);
       void walkCallback(const std_msgs::BoolConstPtr& msg);
       void simulateFlightConfigCallback(const spinal::FlightConfigCmdConstPtr& msg);
+
+      void resetTargetBaselink(tf::Vector3 pos, tf::Vector3 rpy);
+      void resetTargetLegEnds(std::vector<KDL::Frame> frames);
 
       void walkPattern();
       void resetWalkPattern();
