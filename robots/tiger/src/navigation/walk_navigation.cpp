@@ -94,6 +94,10 @@ void WalkNavigator::walkPattern()
 
       // start raise leg mode for this leg
       raiseLeg(walk_leg_id_);
+      if (walk_leg_id_ == 0 || walk_leg_id_ == 3) {
+        // workaround: set larget raise angle for front legs
+        raise_angle_ = raise_angle_orig_ * 2;
+      }
 
       // update the foot postion, and thus the joint angles
       target_leg_ends_.at(walk_leg_id_).p += KDL::Vector(walk_stride_, 0, 0); // along x axis
@@ -136,6 +140,7 @@ void WalkNavigator::walkPattern()
       }
 
       // reach the target joint yaw to lower leg
+      raise_angle_ = raise_angle_orig_;
       lowerLeg();
 
       // reset the timestamp to check joint convergence
@@ -742,6 +747,7 @@ void WalkNavigator::rosParamInit()
 
   ros::NodeHandle nh_walk(nh_, "navigation/walk");
   getParam<double>(nh_walk, "raise_angle", raise_angle_, 0.2);
+  raise_angle_orig_ = raise_angle_;
   getParam<double>(nh_walk, "lower_touchdown_thresh", lower_touchdown_thresh_, 0.05);
   getParam<double>(nh_walk, "constant_angle_thresh", constant_angle_thresh_, 0.02);
   getParam<double>(nh_walk, "check_interval", check_interval_, 0.1);
