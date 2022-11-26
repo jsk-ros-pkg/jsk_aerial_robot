@@ -14,7 +14,7 @@ controller:
 
     thrust_force_weight: 1.0
     joint_torque_weight: 1.0 # 10.0 ~ 20.0
-    joint_static_torque_limit: 4.0
+    joint_static_torque_limit: 3.0
 
     all_joint_position_control: true
 
@@ -22,10 +22,10 @@ controller:
     raise_leg_large_torque_control: true
     lower_leg_speed: 0.5 # rad/s
 
-    raise_leg_force_i_gain: 100.0 # 2.0 #  /s
+    raise_leg_force_i_gain: 2.0 #  /s
     modify_leg_force_i_gain: 0.1 # /s
     lower_leg_force_i_gain: 0 # 0.5 # /s
-    contact_leg_force_i_gain: 0.5 #2.0 # /s
+    contact_leg_force_i_gain: 1.0 # /s
 
     check_interval: 0.1
 

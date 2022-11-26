@@ -46,12 +46,12 @@ navigation:
     simulated_joint_lpf_rate: 0.2
 
     pattern:
-      total_cycle: 1
+      total_cycle: 2
       stride: 0.2 # stride for individual leg [m]
       move_leg_joint_err_thresh: 0.05 # check the convergence of joint motion in joint_yaw [rad]
       converge_du: 0.5 # [s]
       baselink_converge_thresh: 0.05 # check the convergence of baselink [m]
-      reset_leg_end: true # use the actual state (e.g., joint angles) to reset leg ends
+      reset_leg_end: false # use the actual state (e.g., joint angles) to reset leg ends
       reset_baselink: false # use the actual state (e.g., joint angles) to reset baselink
       debug: false
       debug_legs: 4
