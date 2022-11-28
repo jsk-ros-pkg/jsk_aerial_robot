@@ -114,6 +114,8 @@ void WalkController::rosParamInit()
   getParam<double>(walk_control_nh, "modify_leg_force_i_gain", modify_leg_force_i_gain_, 1.0); // / s
   getParam<double>(walk_control_nh, "lower_leg_force_i_gain", lower_leg_force_i_gain_, 1.0); // / s
   getParam<double>(walk_control_nh, "contact_leg_force_i_gain", contact_leg_force_i_gain_, 1.0); // / s
+  getParam<double>(walk_control_nh, "lower_leg_force_ratio_thresh", lower_leg_force_ratio_thresh_, 0.9);
+  getParam<double>(walk_control_nh, "modify_leg_force_ratio_thresh", modify_leg_force_ratio_thresh_, 0.9);
 
   getParam<bool>(walk_control_nh, "all_joint_position_control", all_joint_position_control_, true);
   getParam<bool>(walk_control_nh, "opposite_free_leg_joint_torque_control_mode", opposite_free_leg_joint_torque_control_mode_, true);
@@ -286,6 +288,10 @@ void WalkController::thrustControl()
         // only consider the over raised situation
         free_leg_force_ratio_ -= modify_leg_force_i_gain_ * du;
 
+        if (free_leg_force_ratio_ < modify_leg_force_ratio_thresh_) {
+          free_leg_force_ratio_ = modify_leg_force_ratio_thresh_;
+        }
+
         ROS_INFO_STREAM("[Tiger][Walk][Thrust Control] raise leg" << leg_id+1 << " is over raised, target angle of " << target_joint_angles_.name.at(j) << " is " << target_angle << ", current angle is " << angle << ", force ratio is " << free_leg_force_ratio_);
       }
       prev_t_ = t;
@@ -307,10 +313,8 @@ void WalkController::thrustControl()
       if (angle - prev_v_ < lower_leg_speed_ * check_interval_) {
         free_leg_force_ratio_ -= lower_leg_force_i_gain_ * (t - prev_t_);
 
-        // Hard-coding to avoid too small ratio
-        double thresh = 0.6;
-        if (free_leg_force_ratio_ < thresh) {
-          free_leg_force_ratio_ = thresh;
+        if (free_leg_force_ratio_ < lower_leg_force_ratio_thresh_) {
+          free_leg_force_ratio_ = lower_leg_force_ratio_thresh_;
         }
 
         ROS_INFO_STREAM("[Tiger][Walk][Thrust Control] lower leg" << leg_id+1 << ", previous joint angle of " << target_joint_angles_.name.at(j)  << " is " << prev_v_ << ", current angle is " << angle << ", force ratio is " << free_leg_force_ratio_);

@@ -27,6 +27,9 @@ controller:
     lower_leg_force_i_gain: 0 # 0.5 # /s
     contact_leg_force_i_gain: 1.0 # /s
 
+    modify_leg_force_ratio_thresh: 0.9
+    lower_leg_force_ratio_thresh: 0.9
+
     check_interval: 0.1
 
 

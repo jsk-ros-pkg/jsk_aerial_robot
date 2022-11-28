@@ -128,6 +128,8 @@ namespace aerial_robot_control
       double modify_leg_force_i_gain_;
       double lower_leg_force_i_gain_;
       double contact_leg_force_i_gain_;
+      double lower_leg_force_ratio_thresh_;
+      double modify_leg_force_ratio_thresh_;
       double free_leg_force_ratio_;
 
       Eigen::VectorXd raise_static_thrust_force_;
