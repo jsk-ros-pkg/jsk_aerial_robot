@@ -112,6 +112,7 @@ namespace aerial_robot_navigation
       bool lower_leg_flag_;
       double raise_angle_;
       double raise_angle_orig_;
+      double front_leg_raise_ratio_;
       double lower_touchdown_thresh_;
       double constant_angle_thresh_;
       double baselink_rot_thresh_;

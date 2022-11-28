@@ -97,7 +97,7 @@ void WalkNavigator::walkPattern()
       raiseLeg(walk_leg_id_);
       if (walk_leg_id_ == 0 || walk_leg_id_ == 3) {
         // workaround: set larget raise angle for front legs
-        raise_angle_ = raise_angle_orig_ * 2;
+        raise_angle_ = raise_angle_orig_ * front_leg_raise_ratio_;
       }
 
       // update the foot postion, and thus the joint angles
@@ -781,12 +781,12 @@ void WalkNavigator::rosParamInit()
   getParam<double>(nh_walk_pattern, "stride", walk_stride_, 0.2);
   getParam<double>(nh_walk_pattern, "move_leg_joint_err_thresh", move_leg_joint_err_thresh_, 0.05);
   getParam<double>(nh_walk_pattern, "baselink_converge_thresh", baselink_converge_thresh_, 0.05);
+  getParam<double>(nh_walk_pattern, "front_leg_raise_ratio", front_leg_raise_ratio_, 1.0);
   getParam<double>(nh_walk_pattern, "converge_du", walk_pattern_converge_du_, 0.5);
   getParam<bool>(nh_walk_pattern, "reset_leg_end", walk_cycle_reset_leg_end_, true);
   getParam<bool>(nh_walk_pattern, "reset_baselink", walk_cycle_reset_baselink_, false);
   getParam<bool>(nh_walk_pattern, "debug", walk_debug_, false);
   getParam<int>(nh_walk_pattern, "debug_legs", walk_debug_legs_, 0);
-
 
   ros::NodeHandle nh_failsafe(nh_walk, "failsafe");
   getParam<double>(nh_failsafe, "baselink_rot_thresh", baselink_rot_thresh_, 0.2);
