@@ -116,6 +116,7 @@ void WalkController::rosParamInit()
   getParam<double>(walk_control_nh, "contact_leg_force_i_gain", contact_leg_force_i_gain_, 1.0); // / s
   getParam<double>(walk_control_nh, "lower_leg_force_ratio_thresh", lower_leg_force_ratio_thresh_, 0.9);
   getParam<double>(walk_control_nh, "modify_leg_force_ratio_thresh", modify_leg_force_ratio_thresh_, 0.9);
+  getParam<double>(walk_control_nh, "modify_leg_force_margin", modify_leg_force_margin_, 0.05); // rad
 
   getParam<bool>(walk_control_nh, "all_joint_position_control", all_joint_position_control_, true);
   getParam<bool>(walk_control_nh, "opposite_free_leg_joint_torque_control_mode", opposite_free_leg_joint_torque_control_mode_, true);
@@ -284,9 +285,9 @@ void WalkController::thrustControl()
     double target_angle = target_joint_angles_.position.at(j);
     double t = ros::Time::now().toSec();
     if (t - prev_t_ > check_interval_) {
-      if (target_angle - angle > 0) {
+      if (target_angle - angle > modify_leg_force_margin_) {
         // only consider the over raised situation
-        free_leg_force_ratio_ -= modify_leg_force_i_gain_ * du;
+        free_leg_force_ratio_ -= modify_leg_force_i_gain_ * (t - prev_t_);
 
         if (free_leg_force_ratio_ < modify_leg_force_ratio_thresh_) {
           free_leg_force_ratio_ = modify_leg_force_ratio_thresh_;
