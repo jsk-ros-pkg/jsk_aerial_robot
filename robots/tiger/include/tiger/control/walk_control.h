@@ -106,7 +106,7 @@ namespace aerial_robot_control
       bool joint_soft_compliance_;
       double joint_compliance_end_t_;
 
-      bool set_servo_limit_torque_;
+      bool set_init_servo_torque_;
       bool all_joint_position_control_;
       double joint_torque_control_thresh_;
       double joint_static_torque_limit_;

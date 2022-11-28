@@ -51,7 +51,7 @@ navigation:
       move_leg_joint_err_thresh: 0.05 # check the convergence of joint motion in joint_yaw [rad]
       converge_du: 0.5 # [s]
       baselink_converge_thresh: 0.05 # check the convergence of baselink [m]
-      front_leg_raise_ratio: 2.0 # the ratio to enlarger the raise angle for front leg
+      front_leg_raise_ratio: 1.0 # the ratio to enlarger the raise angle for front leg
       reset_leg_end: false # use the actual state (e.g., joint angles) to reset leg ends
       reset_baselink: false # use the actual state (e.g., joint angles) to reset baselink
       debug: false

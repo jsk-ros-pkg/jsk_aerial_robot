@@ -48,7 +48,7 @@ WalkController::WalkController():
   free_leg_force_ratio_(0),
   raise_transition_(false),
   contact_transition_(false),
-  set_servo_limit_torque_(false),
+  set_init_servo_torque_(false),
   contact_leg_id_(-1)
 {
 }
@@ -553,8 +553,12 @@ void WalkController::jointControl()
   if (all_joint_position_control_) {
 
     // modification for target joint angle
+
+    bool raise_flag = tiger_walk_navigator_->getRaiseLegFlag();
+    int free_leg_id = tiger_walk_navigator_->getFreeleg();
+
     for(int i = 0; i < joint_num; i++) {
-      double tor = static_joint_torque_(i);
+      double tor = servo_max_torque_;
       std::string name = names.at(i);
       int j = atoi(name.substr(5,1).c_str()) - 1; // start from 0
       int leg_id = j / 2;
@@ -571,17 +575,28 @@ void WalkController::jointControl()
       }
       target_angles.at(i) += (tor / servo_angle_bias_torque_ * bias);
 
-      // set the servo limit torque just once
-      if (!set_servo_limit_torque_ &&
-          navigator_->getNaviState() == aerial_robot_navigation::ARM_ON_STATE) {
-        target_joint_torques_.name.push_back(name);
-        target_joint_torques_.effort.push_back(servo_max_torque_);
+      // set the servo limit torque
+      if (navigator_->getNaviState() != aerial_robot_navigation::ARM_ON_STATE) {
+        continue;
       }
+
+      // only consider the yaw angle in the initialize phase
+      if (name.find("yaw") != std::string::npos && set_init_servo_torque_) {
+        continue;
+      }
+
+      // modify the joint torque to static one for the raise leg
+      if (raise_flag && leg_id == free_leg_id && j % 2 == 0) {
+        tor = static_joint_torque_(i);
+      }
+
+      target_joint_torques_.name.push_back(name);
+      target_joint_torques_.effort.push_back(tor);
     }
 
-    if (!set_servo_limit_torque_ &&
-        navigator_->getNaviState() == aerial_robot_navigation::ARM_ON_STATE) {
-      set_servo_limit_torque_ = true;
+    if (navigator_->getNaviState() == aerial_robot_navigation::ARM_ON_STATE &&
+        !set_init_servo_torque_) {
+      set_init_servo_torque_ = true;
     }
 
     return;
