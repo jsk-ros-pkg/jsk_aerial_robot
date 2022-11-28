@@ -23,8 +23,8 @@ controller:
     lower_leg_speed: 0.5 # rad/s
 
     raise_leg_force_i_gain: 100.0 #  /s imediately
-    modify_leg_force_i_gain: 0.1 # /s
-    lower_leg_force_i_gain: 0.1 # /s
+    modify_leg_force_i_gain: 0.05 # /s
+    lower_leg_force_i_gain: 0.05 # /s
     contact_leg_force_i_gain: 1.0 # /s
 
     modify_leg_force_ratio_thresh: 0.9
