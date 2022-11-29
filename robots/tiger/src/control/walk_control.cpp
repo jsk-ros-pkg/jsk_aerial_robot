@@ -41,6 +41,7 @@ using namespace aerial_robot_control::Tiger;
 WalkController::WalkController():
   PoseLinearController(),
   walk_pid_controllers_(0),
+  joint_torque_controllers_(0),
   joint_index_map_(0),
   joint_soft_compliance_(false),
   joint_compliance_end_t_(0),
@@ -80,6 +81,7 @@ void WalkController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   flight_cmd_pub_ = nh_.advertise<spinal::FourAxisCommand>("four_axes/command", 1);
   target_vectoring_force_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("debug/target_vectoring_force", 1);
   link_rot_thrust_force_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("debug/link_rot_thrust_force", 1);
+  extra_joint_torque_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("debug/extra_joint_torque", 1);
 
   joint_servo_enable_pub_ = nh_.advertise<spinal::ServoTorqueCmd>("servo/torque_enable", 1);
   joint_yaw_torque_srv_ = nh_.advertiseService<std_srvs::SetBool::Request, std_srvs::SetBool::Response>("joint_yaw/torque_enable", boost::bind(&WalkController::servoTorqueCtrlCallback, this, _1, _2, "yaw"));
@@ -174,6 +176,17 @@ void WalkController::rosParamInit()
   walk_pid_reconf_servers_.back()->setCallback(boost::bind(&WalkController::cfgPidCallback, this, _1, _2, link_indices));
 
 
+  // for joint pid control
+  ros::NodeHandle joint_nh(walk_control_nh, "joint");
+  loadParam(joint_nh);
+  for (auto name: robot_model_->getLinkJointNames()) {
+    joint_torque_controllers_.push_back(PID(name, p_gain, i_gain, d_gain, limit_sum, limit_p, limit_i, limit_d, limit_err_p, limit_err_i, limit_err_d));
+  }
+  int joint_num = robot_model_->getLinkJointNames().size();
+  target_extra_joint_torque_ = Eigen::VectorXd::Zero(joint_num);
+  getParam<double>(joint_nh, "joint_error_angle_thresh", joint_error_angle_thresh_, 0.02);
+
+
   // calculate the torque_position Kp
   getParam<double>(nh_, "servo_controller/joints/angle_scale", angle_scale_, 1.0);
   getParam<double>(nh_, "servo_controller/joints/torque_scale", torque_load_scale_, 1.0);
@@ -200,14 +213,15 @@ bool WalkController::update()
     control_timestamp_ = ros::Time::now().toSec();
   }
 
+  // joint control
+  jointControl();
+
   // static balance
   calcStaticBalance();
 
   // thrust control
   thrustControl();
 
-  // joint control
-  jointControl();
 
   // send control command to robot
   sendCmd();
@@ -601,6 +615,52 @@ void WalkController::jointControl()
       set_init_servo_torque_ = true;
     }
 
+    // feedback control about joint torque
+    double du = ros::Time::now().toSec() - control_timestamp_;
+    for(int i = 0; i < joint_num; i++) {
+      std::string name = names.at(i);
+      int j = atoi(name.substr(5,1).c_str()) - 1; // start from 0
+      int leg_id = j / 2;
+
+      double current_angle = current_angles.at(i);
+      double target_angle  = target_angles.at(i);
+      double err = target_angle - current_angle;
+      double tor = static_joint_torque_(i);
+
+      // TODO: consider whether skip yaw joint
+      // if (name.find("yaw") != std::string::npos) {
+      //   target_extra_joint_torque_(i) = 0;
+      //   continue;
+      // }
+
+      // skip the free leg
+      if (leg_id == free_leg_id) {
+        joint_torque_controllers_.at(i).reset();
+        target_extra_joint_torque_(i) = 0;
+        continue;
+      }
+
+      // skip if angle error is too small
+      if (fabs(err) < joint_error_angle_thresh_) {
+        target_extra_joint_torque_(i) = 0;
+        continue;
+      }
+
+      // only consider if the joint servo torque is potentially saturated
+      if (err * tor  < joint_error_angle_thresh_) {
+        target_extra_joint_torque_(i) = 0;
+        continue;
+      }
+
+      joint_torque_controllers_.at(i).update(err, du, 0);
+      target_extra_joint_torque_(i) = joint_torque_controllers_.at(i).result();
+    }
+    std_msgs::Float32MultiArray msg;
+    for(int i = 0; i < target_extra_joint_torque_.size(); i++) {
+      msg.data.push_back(target_extra_joint_torque_(i));
+    }
+    extra_joint_torque_pub_.publish(msg);
+
     return;
   }
 
@@ -919,7 +979,17 @@ void WalkController::calcStaticBalance()
 
   Eigen::VectorXd b = Eigen::VectorXd::Zero(6 + link_joint_num);
   b.head(6) = -b2;
-  b.tail(link_joint_num) = -b1;
+  // tor - A1 * f_all_neq - b1 = 0
+  // tor = A1 * f_all_neq + b1
+  // - max_torque <  A1 * f_all_neq + b1 < max_torque
+  // -b - max_torque < A1 * f_all_neq < -b + max_torque
+
+  // tor - A1 * f_all_neq - b1 - target_extra_joint_torque_ = 0
+  // tor - A1 * f_all_neq - b1 = target_extra_joint_torque_
+  // tor = A1 * f_all_neq + b1 + target_extra_joint_torque_
+  // - max_torque <  A1 * f_all_neq + b1 + target_extra_joint_torque_ < max_torque
+  // -b - target_extra_joint_torque_ - max_torque < A1 * f_all_neq < -b - target_extra_joint_torque_+ max_torque
+  b.tail(link_joint_num) = -b1 - target_extra_joint_torque_;
   Eigen::VectorXd max_torque = Eigen::VectorXd::Zero(6 + link_joint_num);
   max_torque.tail(link_joint_num) = joint_static_torque_limit_ * Eigen::VectorXd::Ones(link_joint_num);
   Eigen::VectorXd lower_bound = b - max_torque;
@@ -945,7 +1015,7 @@ void WalkController::calcStaticBalance()
   Eigen::VectorXd f_all_neq = qp_solver.getSolution();
   Eigen::VectorXd fr = f_all_neq.head(fr_ndof);
   Eigen::VectorXd fe = f_all_neq.tail(fe_ndof);
-  Eigen::VectorXd tor = A1 * f_all_neq + b1;
+  Eigen::VectorXd tor = A1 * f_all_neq + b1 + target_extra_joint_torque_;
   Eigen::VectorXd lambda = Eigen::VectorXd::Zero(rotor_num);
   for(int i = 0; i < rotor_num; i++) {
     lambda(i) = fr.segment(3 * i, 3).norm();

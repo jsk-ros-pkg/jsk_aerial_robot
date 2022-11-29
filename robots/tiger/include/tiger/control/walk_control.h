@@ -77,6 +77,7 @@ namespace aerial_robot_control
       ros::Publisher joint_torque_pub_;
       ros::Publisher target_vectoring_force_pub_;
       ros::Publisher link_rot_thrust_force_pub_;
+      ros::Publisher extra_joint_torque_pub_;
       ros::Publisher joint_servo_enable_pub_;
       ros::Subscriber joint_force_compliance_sub_;
       ros::Subscriber joint_no_load_sub_;
@@ -88,6 +89,8 @@ namespace aerial_robot_control
       std::vector<PID> walk_pid_controllers_;
       std::vector<boost::shared_ptr<PidControlDynamicConfig> > walk_pid_reconf_servers_;
 
+      std::vector<PID> joint_torque_controllers_;
+
       std::vector<int> joint_index_map_;
 
       Eigen::VectorXd static_thrust_force_;
@@ -96,6 +99,7 @@ namespace aerial_robot_control
       std::vector<float> target_base_thrust_;
       std::vector<double> target_gimbal_angles_;
       Eigen::VectorXd target_vectoring_f_;
+      Eigen::VectorXd target_extra_joint_torque_;
 
       sensor_msgs::JointState target_joint_angles_;
       sensor_msgs::JointState target_joint_torques_;
@@ -108,6 +112,7 @@ namespace aerial_robot_control
 
       bool set_init_servo_torque_;
       bool all_joint_position_control_;
+      double joint_error_angle_thresh_;
       double joint_torque_control_thresh_;
       double joint_static_torque_limit_;
       double servo_max_torque_;

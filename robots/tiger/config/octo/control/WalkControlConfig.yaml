@@ -58,3 +58,13 @@ controller:
       limit_p: 5.0
       limit_i: 5.0
       limit_d: 5.0
+
+    joint:
+      joint_error_angle_thresh: 0.02 # rad
+
+      p_gain: 20.0 # Nm/rad: 0.1 rad -> 2 Nm
+      i_gain: 0.1
+      limit_sum: 0.0
+      limit_p: 4.0
+      limit_i: 4.0
+      limit_d: 4.0
