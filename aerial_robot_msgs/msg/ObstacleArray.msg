@@ -8,3 +8,6 @@ int64 num
 
 # Obstacle array
 float64[] boxel
+
+float64[] C_vel_obs
+float64[] R_vel_obs
