@@ -559,7 +559,6 @@ void WalkController::jointControl()
     int free_leg_id = tiger_walk_navigator_->getFreeleg();
 
     for(int i = 0; i < joint_num; i++) {
-      double tor = servo_max_torque_;
       std::string name = names.at(i);
       int j = atoi(name.substr(5,1).c_str()) - 1; // start from 0
       int leg_id = j / 2;
@@ -574,9 +573,11 @@ void WalkController::jointControl()
         // e.g., joint2_pitch
         bias = 0.0;
       }
+      double tor = static_joint_torque_(i);
       target_angles.at(i) += (tor / servo_angle_bias_torque_ * bias);
 
       // set the servo limit torque
+      tor = servo_max_torque_;
       if (navigator_->getNaviState() != aerial_robot_navigation::ARM_ON_STATE) {
         continue;
       }
