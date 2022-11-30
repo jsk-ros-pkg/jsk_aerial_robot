@@ -87,6 +87,7 @@ namespace aerial_robot_navigation
       inline std::vector<KDL::Rotation> getTargetLinkRots() {return target_link_rots_;}
       inline bool getRaiseLegFlag() const { return raise_leg_flag_; }
       inline bool getLowerLegFlag() const { return lower_leg_flag_; }
+      inline bool isRaiseLegConverge() const { return raise_converge_; }
       inline int getFreeleg() const { return free_leg_id_; }
 
       void setController(aerial_robot_control::Tiger::WalkController* controller){
@@ -110,6 +111,7 @@ namespace aerial_robot_navigation
       int free_leg_id_; // start from 0: [0, leg_num -1]
       bool raise_leg_flag_;
       bool lower_leg_flag_;
+      bool raise_converge_;
       double raise_angle_;
       double raise_angle_orig_;
       double front_leg_raise_ratio_;

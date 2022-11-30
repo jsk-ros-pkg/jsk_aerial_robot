@@ -17,6 +17,7 @@ WalkNavigator::WalkNavigator():
   free_leg_id_(-1),
   raise_leg_flag_(false),
   lower_leg_flag_(false),
+  raise_converge_(false),
   walk_flag_(false),
   walk_leg_id_(-1),
   leg_motion_phase_(WalkPattern::PHASE0)
@@ -117,8 +118,14 @@ void WalkNavigator::walkPattern()
       // free leg is raising
       std::string prefix("[Tiger][Walk][Phase1]");
 
-      // check the yaw joint of free leg to lower leg
+      // check the pitch joint of free leg to lower leg
       int j = 4 * walk_leg_id_;
+      if (!raise_converge_) {
+        ROS_INFO_STREAM_THROTTLE(0.1, prefix << " the angle error of joint" << j/2 << "_pitch does not converge");
+        break;
+      }
+
+      // check the yaw joint of free leg to lower leg
       double target_angle = target_joint_state_.position.at(j);
       double current_angle = getCurrentJointAngles().at(j);
       double err = target_angle - current_angle;
@@ -497,7 +504,14 @@ void WalkNavigator::update()
       if (raise_leg_flag_) {
         theta1 -= raise_angle_;
 
-        ROS_WARN_STREAM_ONCE("[Tiger] leg" << i + 1 << " leave the ground, joint" << i * 2 +1 << "_pitch" << ", curr angle: " << current_angle << "; target angle: " << theta1);
+        if (theta1 - current_angle > -0.02) {
+
+          if (!raise_converge_) {
+            ROS_WARN_STREAM("[Tiger] leg" << i + 1 << " reach the raise goal, joint" << i * 2 +1 << "_pitch" << ", curr angle: " << current_angle << "; target angle: " << theta1);
+          }
+
+          raise_converge_ = true;
+        }
       }
 
       // lower leg
@@ -739,6 +753,7 @@ void WalkNavigator::raiseLeg(int leg_id)
   free_leg_id_ = leg_id;
 
   raise_leg_flag_ = true;
+  raise_converge_ = false;
   lower_leg_flag_ = false;
 
   tiger_robot_model_->setFreeleg(free_leg_id_);
@@ -749,6 +764,7 @@ void WalkNavigator::lowerLeg()
 {
   lower_leg_flag_ = true;
   raise_leg_flag_ = false;
+  raise_converge_ = false;
   walk_controller_->startLowerLeg();
 }
 
@@ -756,6 +772,7 @@ void WalkNavigator::contactLeg()
 {
   lower_leg_flag_ = false;
   raise_leg_flag_ = false;
+  raise_converge_ = false;
   tiger_robot_model_->resetFreeleg();
   walk_controller_->startContactTransition(free_leg_id_);
   free_leg_id_ = -1;

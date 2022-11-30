@@ -124,6 +124,7 @@ void WalkController::rosParamInit()
   getParam<bool>(walk_control_nh, "opposite_free_leg_joint_torque_control_mode", opposite_free_leg_joint_torque_control_mode_, true);
   getParam<bool>(walk_control_nh, "raise_leg_large_torque_control", raise_leg_large_torque_control_, true);
   getParam<double>(walk_control_nh, "lower_leg_speed", lower_leg_speed_, 0.5);
+  getParam<double>(walk_control_nh, "raise_leg_resist_torque", raise_leg_resist_torque_, 1.5);
 
   getParam<double>(walk_control_nh, "thrust_force_weight", thrust_force_weight_, 1.0);
   getParam<double>(walk_control_nh, "joint_torque_weight", joint_torque_weight_, 1.0);
@@ -297,9 +298,10 @@ void WalkController::thrustControl()
     double angle = getCurrentJointAngles().at(j);
 
     double target_angle = target_joint_angles_.position.at(j);
+    bool raise_converge = tiger_walk_navigator_->isRaiseLegConverge();
     double t = ros::Time::now().toSec();
     if (t - prev_t_ > check_interval_) {
-      if (target_angle - angle > modify_leg_force_margin_) {
+      if (target_angle - angle > modify_leg_force_margin_ && raise_converge) {
         // only consider the over raised situation
         free_leg_force_ratio_ -= modify_leg_force_i_gain_ * (t - prev_t_);
 
@@ -322,6 +324,7 @@ void WalkController::thrustControl()
     int leg_id = tiger_walk_navigator_->getFreeleg();
     int j = 4 * leg_id + 1;
     double angle = getCurrentJointAngles().at(j);
+    double target_angle = target_joint_angles_.position.at(j);
 
     double t = ros::Time::now().toSec();
     if (t - prev_t_ > check_interval_) {
@@ -332,7 +335,7 @@ void WalkController::thrustControl()
           free_leg_force_ratio_ = lower_leg_force_ratio_thresh_;
         }
 
-        ROS_INFO_STREAM("[Tiger][Walk][Thrust Control] lower leg" << leg_id+1 << ", previous joint angle of " << target_joint_angles_.name.at(j)  << " is " << prev_v_ << ", current angle is " << angle << ", force ratio is " << free_leg_force_ratio_);
+        ROS_INFO_STREAM("[Tiger][Walk][Thrust Control] lower leg" << leg_id+1 << ", previous joint angle of " << target_joint_angles_.name.at(j)  << " is " << prev_v_ << ", current angle is " << angle <<  ", target angle is " << target_angle << ", force ratio is " << free_leg_force_ratio_);
       }
 
       prev_v_ = angle;
@@ -570,6 +573,7 @@ void WalkController::jointControl()
     // modification for target joint angle
 
     bool raise_flag = tiger_walk_navigator_->getRaiseLegFlag();
+    bool raise_converge = tiger_walk_navigator_->isRaiseLegConverge();
     int free_leg_id = tiger_walk_navigator_->getFreeleg();
 
     for(int i = 0; i < joint_num; i++) {
@@ -601,9 +605,17 @@ void WalkController::jointControl()
         continue;
       }
 
-      // modify the joint torque to static one for the raise leg
-      if (raise_flag && leg_id == free_leg_id && j % 2 == 0) {
-        tor = static_joint_torque_(i);
+      // special process for inside pitch joint of the free leg
+      if (leg_id == free_leg_id && j % 2 == 0) {
+
+        if (raise_flag && !raise_converge) {
+          // WIP: set a target angle that should contact the ground
+          target_angles.at(i) = current_angles.at(i) + 0.1;
+          if (!raise_transition_) {
+            tor = static_joint_torque_(i);
+            // tor = raise_leg_resist_torque_; // TODO: compare
+          }
+        }
       }
 
       target_joint_torques_.name.push_back(name);
