@@ -37,8 +37,6 @@ ObstacleCalculator::ObstacleCalculator(ros::NodeHandle nh, ros::NodeHandle pnh)
   theta_list_ = {5,15,25,35,45,60,75,90,105,120,135};//should change Theta_Cuts if you change this theta's num
   // phi_list_ = {5};
 
-  const Scalar max_detection_range_ = 10;
-
   hydrus_theta_ = {0,60,0};
   hydrus_l_ = 0.6;
   hydrus_r_ = 0.2;
@@ -122,19 +120,14 @@ Scalar ObstacleCalculator::getClosestDistance(
     const Eigen::Vector3d &v, Scalar tcell, Scalar fcell) {
   Eigen::Vector3d Cell = getCartesianFromAng(tcell, fcell);
   Scalar rmin = max_detection_range_;
-  Eigen::Vector3d pos;
-  //   Scalar radius;
-  Scalar radius = radius_list_[0];
-  // object type is set to first object
 
   for (int i = 0; i < positions_.size(); i++) {
-    pos = converted_positions[i];
-    // radius = radius_list_[i];
+    Eigen::Vector3d pos = converted_positions[i];
+    Scalar radius = radius_list_[i];
     Eigen::Vector3d alpha = Cell.cross(v);
     Eigen::Vector3d beta = pos.cross(v);
     Scalar a = std::pow(alpha.norm(), 2);
-    if (a == 0)
-      continue;
+    if (a == 0) continue;
     Scalar b = alpha.dot(beta);
     Scalar c = std::pow(beta.norm(), 2) - std::pow(radius, 2);
     Scalar D = std::pow(b, 2) - a * c;
@@ -145,7 +138,7 @@ Scalar ObstacleCalculator::getClosestDistance(
       }
     }
   }
-  return rmin / max_detection_range_;
+   return rmin / max_detection_range_;
 }
 
 Eigen::Vector3d ObstacleCalculator::getCartesianFromAng(Scalar theta,
@@ -195,7 +188,6 @@ void ObstacleCalculator::get_hydrus_sphericalboxel(
       //   ROS_INFO("angle: %lf,%lf",vel_theta,vel_phi);
       //   ROS_INFO("C_vel_obs_distance_[i]: %lf",C_vel_obs_distance_[i]);
       }
-  }
   else{
     C_vel_obs_distance_[i] = max_detection_range_;
   }

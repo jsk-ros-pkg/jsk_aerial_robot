@@ -70,7 +70,7 @@ private:
   Scalar hydrus_l_;
   Scalar hydrus_r_;
   
-  Scalar max_detection_range_;
+ const Scalar max_detection_range_ = 10;
 
 
   std::vector<std::string> split(std::string &input, char delimiter);
