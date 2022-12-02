@@ -122,6 +122,7 @@ void WalkController::rosParamInit()
 
   getParam<bool>(walk_control_nh, "all_joint_position_control", all_joint_position_control_, true);
   getParam<bool>(walk_control_nh, "opposite_free_leg_joint_torque_control_mode", opposite_free_leg_joint_torque_control_mode_, true);
+  getParam<bool>(walk_control_nh, "free_leg_torque_mode", free_leg_torque_mode_, false);
   getParam<bool>(walk_control_nh, "raise_leg_large_torque_control", raise_leg_large_torque_control_, true);
   getParam<double>(walk_control_nh, "lower_leg_speed", lower_leg_speed_, 0.5);
 
@@ -605,7 +606,7 @@ void WalkController::jointControl()
       }
 
       // special process for inside pitch joint of the free leg
-      if (leg_id == free_leg_id && j % 2 == 0) {
+      if (free_leg_torque_mode_ && leg_id == free_leg_id && j % 2 == 0) {
 
         if (raise_flag && !raise_converge) {
           // WIP: set a target angle that should contact the ground
