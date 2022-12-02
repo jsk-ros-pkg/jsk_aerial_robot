@@ -124,7 +124,6 @@ void WalkController::rosParamInit()
   getParam<bool>(walk_control_nh, "opposite_free_leg_joint_torque_control_mode", opposite_free_leg_joint_torque_control_mode_, true);
   getParam<bool>(walk_control_nh, "raise_leg_large_torque_control", raise_leg_large_torque_control_, true);
   getParam<double>(walk_control_nh, "lower_leg_speed", lower_leg_speed_, 0.5);
-  getParam<double>(walk_control_nh, "raise_leg_resist_torque", raise_leg_resist_torque_, 1.5);
 
   getParam<double>(walk_control_nh, "thrust_force_weight", thrust_force_weight_, 1.0);
   getParam<double>(walk_control_nh, "joint_torque_weight", joint_torque_weight_, 1.0);
@@ -613,7 +612,6 @@ void WalkController::jointControl()
           target_angles.at(i) = current_angles.at(i) + 0.1;
           if (!raise_transition_) {
             tor = static_joint_torque_(i);
-            // tor = raise_leg_resist_torque_; // TODO: compare
           }
         }
       }

@@ -139,7 +139,6 @@ namespace aerial_robot_control
       double free_leg_force_ratio_;
 
       Eigen::VectorXd raise_static_thrust_force_;
-      double raise_leg_resist_torque_;
       double contact_transtion_init_ratio_;
       double lower_leg_speed_;
 
