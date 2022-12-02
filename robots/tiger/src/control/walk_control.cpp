@@ -120,6 +120,10 @@ void WalkController::rosParamInit()
   getParam<double>(walk_control_nh, "modify_leg_force_ratio_thresh", modify_leg_force_ratio_thresh_, 0.9);
   getParam<double>(walk_control_nh, "modify_leg_force_margin", modify_leg_force_margin_, 0.05); // rad
 
+  getParam<double>(walk_control_nh, "raise_leg_burst_p_gain", raise_leg_burst_p_gain_, 0.5); // max_ratio / max_error
+  getParam<double>(walk_control_nh, "raise_leg_burst_thresh", raise_leg_burst_thresh_, 0.1);
+  getParam<double>(walk_control_nh, "raise_leg_burst_bias", raise_leg_burst_bias_, 0.1);
+
   getParam<bool>(walk_control_nh, "all_joint_position_control", all_joint_position_control_, true);
   getParam<bool>(walk_control_nh, "opposite_free_leg_joint_torque_control_mode", opposite_free_leg_joint_torque_control_mode_, true);
   getParam<bool>(walk_control_nh, "free_leg_torque_mode", free_leg_torque_mode_, false);
@@ -296,9 +300,9 @@ void WalkController::thrustControl()
     int leg_id = tiger_walk_navigator_->getFreeleg();
     int j = 4 * leg_id + 1;
     double angle = getCurrentJointAngles().at(j);
-
-    double target_angle = target_joint_angles_.position.at(j);
+    double target_angle = tiger_walk_navigator_->getTargetJointState().position.at(j);
     bool raise_converge = tiger_walk_navigator_->isRaiseLegConverge();
+
     double t = ros::Time::now().toSec();
     if (t - prev_t_ > check_interval_) {
       if (target_angle - angle > modify_leg_force_margin_ && raise_converge) {
@@ -345,6 +349,28 @@ void WalkController::thrustControl()
     // only modifiy the rotors in free leg
     target_vectoring_f_.segment(6 * leg_id, 6) *= free_leg_force_ratio_;
   }
+
+  // c) burst thrust force for better raising
+  if (tiger_walk_navigator_->getRaiseLegFlag() &&
+      !tiger_walk_navigator_->isRaiseLegConverge()) {
+    int leg_id = tiger_walk_navigator_->getFreeleg();
+    int j = 4 * leg_id + 1;
+    double angle = getCurrentJointAngles().at(j);
+    double target_angle = tiger_walk_navigator_->getTargetJointState().position.at(j);
+
+    double err = angle - target_angle - raise_leg_burst_bias_;
+    err = std::max(err, 0.0); // err should be non-nengative
+    double burst_force_ratio = raise_leg_burst_p_gain_ * err;
+    burst_force_ratio = std::min(raise_leg_burst_thresh_, burst_force_ratio);
+
+    Eigen::VectorXd orig_vec = target_vectoring_f_.segment(6 * leg_id, 6);
+    target_vectoring_f_.segment(6 * leg_id, 6) += burst_force_ratio * static_thrust_force_.segment(6 * leg_id, 6);
+    if (raise_leg_burst_p_gain_ > 0) {
+      ROS_INFO_STREAM_THROTTLE(check_interval_, "[Tiger][Walk][Thrust Control] burst raise for leg" << leg_id+1 << ", " << target_joint_angles_.name.at(j) << ", current angle is " << angle <<  ", target angle is " << target_angle << ", burst force ratio is " << burst_force_ratio);
+      //ROS_INFO_STREAM_THROTTLE(check_interval_, "[Tiger][Walk][Thrust Control] burst raise for leg" << leg_id+1 << ", " << target_joint_angles_.name.at(j) << ", current angle is " << angle <<  ", target angle is " << target_angle << ", burst force ratio is " << burst_force_ratio << ", orig force vector force free leg: " << orig_vec.transpose() << ", bursted thrust: " << target_vectoring_f_.segment(6 * leg_id, 6).transpose());
+    }
+  }
+
 
   // 2. feed-back control:  baselink position control
   Eigen::VectorXd target_wrench = Eigen::VectorXd::Zero(6);
@@ -577,6 +603,7 @@ void WalkController::jointControl()
     int free_leg_id = tiger_walk_navigator_->getFreeleg();
 
     for(int i = 0; i < joint_num; i++) {
+      double tor = static_joint_torque_(i);
       std::string name = names.at(i);
       int j = atoi(name.substr(5,1).c_str()) - 1; // start from 0
       int leg_id = j / 2;
@@ -585,14 +612,13 @@ void WalkController::jointControl()
       // TODO: move this function to
       //       1. servo_bridge
       //       2. neuron
-      double bias = servo_angle_bias_;
+      double bias = tor / servo_angle_bias_torque_ * servo_angle_bias_;
       if (contact_transition_ && leg_id == contact_leg_id_ && j % 2 == 1) {
         // no extra angle error for outer joint pitch in free leg in contact transition
         // e.g., joint2_pitch
         bias = 0.0;
       }
-      double tor = static_joint_torque_(i);
-      target_angles.at(i) += (tor / servo_angle_bias_torque_ * bias);
+      target_angles.at(i) += bias;
 
       // set the servo limit torque
       tor = servo_max_torque_;
@@ -609,8 +635,7 @@ void WalkController::jointControl()
       if (free_leg_torque_mode_ && leg_id == free_leg_id && j % 2 == 0) {
 
         if (raise_flag && !raise_converge) {
-          // WIP: set a target angle that should contact the ground
-          target_angles.at(i) = current_angles.at(i) + 0.1;
+          target_angles.at(i) = prev_free_leg_target_angle_;
           if (!raise_transition_) {
             tor = static_joint_torque_(i);
           }
@@ -1119,6 +1144,11 @@ void WalkController::startRaiseTransition()
   free_leg_force_ratio_ = 0;
   raise_static_thrust_force_ = static_thrust_force_; // record the thrust force for raise
   prev_t_ = ros::Time::now().toSec();
+
+  int free_leg_id = tiger_walk_navigator_->getFreeleg();
+  int i = free_leg_id * 4 + 1;
+  prev_free_leg_target_angle_ = target_joint_angles_.position.at(i);
+  // ROS_WARN_STREAM("debug: " << target_joint_angles_.name.at(i) << ", prev_free_leg_target_angle: " << prev_free_leg_target_angle_);
   ROS_INFO_STREAM("[Tiger][Walk][Thrust Control] start raise transition");
 }
 

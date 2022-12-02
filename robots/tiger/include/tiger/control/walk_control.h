@@ -104,6 +104,7 @@ namespace aerial_robot_control
       sensor_msgs::JointState target_joint_angles_;
       sensor_msgs::JointState target_joint_torques_;
       std::vector<double> prev_navi_target_joint_angles_;
+      double prev_free_leg_target_angle_;
       double joint_ctrl_rate_;
       double tor_kp_;
 
@@ -138,6 +139,10 @@ namespace aerial_robot_control
       double modify_leg_force_ratio_thresh_;
       double modify_leg_force_margin_;
       double free_leg_force_ratio_;
+
+      double raise_leg_burst_p_gain_;
+      double raise_leg_burst_thresh_;
+      double raise_leg_burst_bias_;
 
       Eigen::VectorXd raise_static_thrust_force_;
       double contact_transtion_init_ratio_;

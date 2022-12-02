@@ -504,10 +504,10 @@ void WalkNavigator::update()
       if (raise_leg_flag_) {
         theta1 -= raise_angle_;
 
-        if (theta1 - current_angle > -0.02) {
+        if (current_angle - theta1 < raise_converge_thresh_) {
 
           if (!raise_converge_) {
-            ROS_WARN_STREAM("[Tiger] leg" << i + 1 << " reach the raise goal, joint" << i * 2 +1 << "_pitch" << ", curr angle: " << current_angle << "; target angle: " << theta1);
+            ROS_WARN_STREAM("[Tiger] leg" << i + 1 << " reach the raise goal, joint" << i * 2 +1 << "_pitch" << ", curr angle: " << current_angle << "; target angle: " << theta1 << ", raise_converge_threshold: " << raise_converge_thresh_);
           }
 
           raise_converge_ = true;
@@ -787,6 +787,7 @@ void WalkNavigator::rosParamInit()
   getParam<double>(nh_walk, "raise_angle", raise_angle_, 0.2);
   raise_angle_orig_ = raise_angle_;
   getParam<double>(nh_walk, "lower_touchdown_thresh", lower_touchdown_thresh_, 0.05);
+  getParam<double>(nh_walk, "raise_converge_thresh", raise_converge_thresh_, 0.05);
   getParam<double>(nh_walk, "constant_angle_thresh", constant_angle_thresh_, 0.02);
   getParam<double>(nh_walk, "check_interval", check_interval_, 0.1);
   getParam<double>(nh_walk, "converge_time_thresh", converge_time_thresh_, 0.5);

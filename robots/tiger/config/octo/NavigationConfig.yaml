@@ -33,6 +33,7 @@ navigation:
   # walk
   walk:
     raise_angle: 0.2
+    raise_converge_thresh: 0.05
     lower_touchdown_thresh: 0.05
     constant_angle_thresh: 0.02
     check_interval: 0.1
