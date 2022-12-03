@@ -121,18 +121,37 @@ void WalkNavigator::walkPattern()
       // check the pitch joint of free leg to lower leg
       int j = 4 * walk_leg_id_;
       if (!raise_converge_) {
-        ROS_INFO_STREAM_THROTTLE(0.1, prefix << " the angle error of joint" << j/2 << "_pitch does not converge");
+        // reset the timestamp to check joint convergence
+        converge_timestamp_ = ros::Time::now().toSec();
+
+        ROS_INFO_STREAM_THROTTLE(0.1, prefix << " the angle error of joint" << j/2 + 1 << "_pitch does not converge");
         break;
       }
 
-      // check the yaw joint of free leg to lower leg
+      // check the inside yaw joint of free leg to lower leg
       double target_angle = target_joint_state_.position.at(j);
       double current_angle = getCurrentJointAngles().at(j);
       double err = target_angle - current_angle;
-      if (fabs(err) > move_leg_joint_err_thresh_) {
+      if (fabs(err) > move_leg_joint_err_thresh_ ) {
         // joint angle error too big
 
-        ROS_INFO_STREAM_THROTTLE(0.1, prefix << " the angle error of joint" << j/2 << "_yaw does not converge, " << err << "(" << move_leg_joint_err_thresh_ << ")");
+        ROS_INFO_STREAM_THROTTLE(0.1, prefix << " the angle error of joint" << j/2 + 1 << "_yaw does not converge, " << err << "(" << move_leg_joint_err_thresh_ << ")");
+
+        // reset the timestamp to check joint convergence
+        converge_timestamp_ = ros::Time::now().toSec();
+
+        break;
+      }
+
+      // check the outside pitch joint of free leg to lower leg
+      target_angle = target_joint_state_.position.at(j + 3);
+      current_angle = getCurrentJointAngles().at(j + 3);
+      err = target_angle - current_angle;
+      //ROS_INFO_STREAM(prefix << " joint" << j/2 + 2 << "_pitch, target angle: " << target_angle << "; current angle: " << current_angle);
+      if (fabs(err) > move_leg_joint_err_thresh_ ) {
+        // joint angle error too big
+
+        ROS_INFO_STREAM_THROTTLE(0.1, prefix << " the angle error of joint" << j/2 + 2 << "_pitch does not converge, " << err << "(" << move_leg_joint_err_thresh_ << ")");
 
         // reset the timestamp to check joint convergence
         converge_timestamp_ = ros::Time::now().toSec();

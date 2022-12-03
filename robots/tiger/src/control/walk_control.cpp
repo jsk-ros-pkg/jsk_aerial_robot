@@ -91,6 +91,7 @@ void WalkController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   target_joint_angles_.name = tiger_robot_model_->getLinkJointNames();
   int joint_num = tiger_robot_model_->getLinkJointNames().size();
   target_joint_angles_.position.assign(joint_num, 0);
+  prior_raise_leg_target_joint_angles_ = target_joint_angles_;
 
   target_joint_torques_.name.resize(0);
   target_joint_torques_.position.resize(0);
@@ -631,19 +632,28 @@ void WalkController::jointControl()
         continue;
       }
 
-      // special process for inside pitch joint of the free leg
-      if (free_leg_torque_mode_ && leg_id == free_leg_id && j % 2 == 0) {
+      target_joint_torques_.name.push_back(name);
+      target_joint_torques_.effort.push_back(tor);
+    }
 
-        if (raise_flag && !raise_converge) {
-          target_angles.at(i) = prev_free_leg_target_angle_;
-          if (!raise_transition_) {
-            tor = static_joint_torque_(i);
-          }
+    // special process raise leg
+    if (raise_flag && !raise_converge) {
+      // inside pitch joint of the free leg
+      if (free_leg_torque_mode_) {
+        int i = free_leg_id * 4 + 1;
+        target_angles.at(i) = prior_raise_leg_target_joint_angles_.position.at(i);
+        if (!raise_transition_) {
+          int j = free_leg_id * 2;
+          target_joint_torques_.effort.at(j) = static_joint_torque_(i);
         }
       }
 
-      target_joint_torques_.name.push_back(name);
-      target_joint_torques_.effort.push_back(tor);
+      // inside yaw joint of the free leg
+      int i = free_leg_id * 4;
+      target_angles.at(i) = prior_raise_leg_target_joint_angles_.position.at(i);
+      // outside pitch joint of the free leg
+      i = free_leg_id * 4 + 3;
+      target_angles.at(i) = prior_raise_leg_target_joint_angles_.position.at(i);
     }
 
     if (navigator_->getNaviState() == aerial_robot_navigation::ARM_ON_STATE &&
@@ -1147,8 +1157,8 @@ void WalkController::startRaiseTransition()
 
   int free_leg_id = tiger_walk_navigator_->getFreeleg();
   int i = free_leg_id * 4 + 1;
-  prev_free_leg_target_angle_ = target_joint_angles_.position.at(i);
-  // ROS_WARN_STREAM("debug: " << target_joint_angles_.name.at(i) << ", prev_free_leg_target_angle: " << prev_free_leg_target_angle_);
+
+  prior_raise_leg_target_joint_angles_ = target_joint_angles_;
   ROS_INFO_STREAM("[Tiger][Walk][Thrust Control] start raise transition");
 }
 

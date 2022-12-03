@@ -104,7 +104,7 @@ namespace aerial_robot_control
       sensor_msgs::JointState target_joint_angles_;
       sensor_msgs::JointState target_joint_torques_;
       std::vector<double> prev_navi_target_joint_angles_;
-      double prev_free_leg_target_angle_;
+      sensor_msgs::JointState prior_raise_leg_target_joint_angles_;
       double joint_ctrl_rate_;
       double tor_kp_;
 
