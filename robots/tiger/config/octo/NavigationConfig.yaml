@@ -34,7 +34,7 @@ navigation:
   walk:
     raise_angle: 0.2
     raise_converge_thresh: 0.05
-    lower_touchdown_thresh: 0.05
+    lower_touchdown_thresh: 0.1
     constant_angle_thresh: 0.02
     check_interval: 0.1
     converge_time_thresh: 0.5
@@ -47,7 +47,7 @@ navigation:
     simulated_joint_lpf_rate: 0.2
 
     pattern:
-      total_cycle: 2
+      total_cycle: 5
       stride: 0.2 # stride for individual leg [m]
       move_leg_joint_err_thresh: 0.05 # check the convergence of joint motion in joint_yaw [rad]
       converge_du: 0.5 # [s]

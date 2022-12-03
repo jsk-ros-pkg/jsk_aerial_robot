@@ -121,8 +121,8 @@ void WalkNavigator::walkPattern()
       // check the pitch joint of free leg to lower leg
       int j = 4 * walk_leg_id_;
       if (!raise_converge_) {
-        // reset the timestamp to check joint convergence
-        converge_timestamp_ = ros::Time::now().toSec();
+        // NOTE: do not need to consider the convernge of this joint
+        // converge_timestamp_ = ros::Time::now().toSec();
 
         ROS_INFO_STREAM_THROTTLE(0.1, prefix << " the angle error of joint" << j/2 + 1 << "_pitch does not converge");
         break;
@@ -159,12 +159,12 @@ void WalkNavigator::walkPattern()
         break;
       }
 
-      double t = ros::Time::now().toSec() - converge_timestamp_;
-      if (t < walk_pattern_converge_du_) {
-        // no reach enough convergence time
-        ROS_INFO_STREAM_THROTTLE(0.1, prefix << " not reach enough convergence time for joint, start from " << converge_timestamp_  << ", last " << t);
-        break;
-      }
+      // double t = ros::Time::now().toSec() - converge_timestamp_;
+      // if (t < walk_pattern_converge_du_) {
+      //   // no reach enough convergence time
+      //   ROS_INFO_STREAM_THROTTLE(0.1, prefix << " not reach enough convergence time for joint, start from " << converge_timestamp_  << ", last " << t);
+      //   break;
+      // }
 
       // reach the target joint yaw to lower leg
       raise_angle_ = raise_angle_orig_;

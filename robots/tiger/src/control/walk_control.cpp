@@ -128,6 +128,7 @@ void WalkController::rosParamInit()
   getParam<bool>(walk_control_nh, "all_joint_position_control", all_joint_position_control_, true);
   getParam<bool>(walk_control_nh, "opposite_free_leg_joint_torque_control_mode", opposite_free_leg_joint_torque_control_mode_, true);
   getParam<bool>(walk_control_nh, "free_leg_torque_mode", free_leg_torque_mode_, false);
+  getParam<bool>(walk_control_nh, "raise_separate_motion", raise_separate_motion_, false);
   getParam<bool>(walk_control_nh, "raise_leg_large_torque_control", raise_leg_large_torque_control_, true);
   getParam<double>(walk_control_nh, "lower_leg_speed", lower_leg_speed_, 0.5);
 
@@ -639,8 +640,9 @@ void WalkController::jointControl()
     // special process raise leg
     if (raise_flag && !raise_converge) {
       // inside pitch joint of the free leg
+      int i = free_leg_id * 4 + 1;
       if (free_leg_torque_mode_) {
-        int i = free_leg_id * 4 + 1;
+
         target_angles.at(i) = prior_raise_leg_target_joint_angles_.position.at(i);
         if (!raise_transition_) {
           int j = free_leg_id * 2;
@@ -648,12 +650,16 @@ void WalkController::jointControl()
         }
       }
 
-      // inside yaw joint of the free leg
-      int i = free_leg_id * 4;
-      target_angles.at(i) = prior_raise_leg_target_joint_angles_.position.at(i);
-      // outside pitch joint of the free leg
-      i = free_leg_id * 4 + 3;
-      target_angles.at(i) = prior_raise_leg_target_joint_angles_.position.at(i);
+      if (raise_separate_motion_) {
+        if (prior_raise_leg_target_joint_angles_.position.at(i) - current_angles.at(i) < 0.05) {
+          // inside yaw joint of the free leg
+          i = free_leg_id * 4;
+          target_angles.at(i) = prior_raise_leg_target_joint_angles_.position.at(i);
+          // outside pitch joint of the free leg
+          i = free_leg_id * 4 + 3;
+          target_angles.at(i) = prior_raise_leg_target_joint_angles_.position.at(i);
+        }
+      }
     }
 
     if (navigator_->getNaviState() == aerial_robot_navigation::ARM_ON_STATE &&

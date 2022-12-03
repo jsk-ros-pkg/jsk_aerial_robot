@@ -18,12 +18,13 @@ controller:
 
     all_joint_position_control: true
 
-    free_leg_torque_mode: true
+    free_leg_torque_mode: false
+    raise_separate_motion: true
     opposite_free_leg_joint_torque_control_mode: true
     raise_leg_large_torque_control: true
     lower_leg_speed: 0.5 # rad/s
 
-    raise_leg_force_i_gain: 2.0 #  /s imediately
+    raise_leg_force_i_gain: 100.0 #  /s imediately
     modify_leg_force_i_gain: 0.0 # /s
     lower_leg_force_i_gain: 0.0 # /s
     contact_leg_force_i_gain: 1.0 # /s
@@ -31,7 +32,7 @@ controller:
     modify_leg_force_ratio_thresh: 0.9
     lower_leg_force_ratio_thresh: 0.9
 
-    raise_leg_burst_p_gain: 1.0 # ration / rad. e.g.,  0.1 / 0.1
+    raise_leg_burst_p_gain: 0.0 # ration / rad. e.g.,  0.1 / 0.1
     raise_leg_burst_thresh: 0.1 # ratio
     raise_leg_burst_bias: 0.1 # rad
 
