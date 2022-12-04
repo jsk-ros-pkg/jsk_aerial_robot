@@ -31,7 +31,7 @@ void WalkNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   /* initialize the flight control */
   BaseNavigator::initialize(nh, nhp, robot_model, estimator);
 
-  tiger_robot_model_ = boost::dynamic_pointer_cast<::Tiger::FullVectoringRobotModel>(robot_model);
+  tiger_robot_model_ = boost::dynamic_pointer_cast<::Tiger::GroundRobotModel>(robot_model);
   robot_model_for_nav_ = boost::make_shared<aerial_robot_model::RobotModel>();
 
 

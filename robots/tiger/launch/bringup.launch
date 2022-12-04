@@ -5,6 +5,7 @@
   <arg name="sim" default="False"/>
   <arg name="real_machine" default="$(arg rm)"/>
   <arg name="simulation" default="$(arg sim)"/>
+  <arg name="ground_mode"  default= "true" />
   <arg name="full_vectoring_mode"  default= "true" />
   <arg name="type" default="octo"/>
   <arg name="onboards_model" default="v1_leg"/>
@@ -35,8 +36,9 @@
 
     ###########  UAV Config  ###########
     <param name="uav_model" value= "32" /> <!-- TODO temp: dragon control -->
-    <rosparam file="$(arg config_dir)/model/FullVectoringRobotModel.yaml" command="load" if="$(arg full_vectoring_mode)" />
-    <rosparam file="$(arg config_dir)/model/HydrusLikeRobotModel.yaml" command="load" unless="$(arg full_vectoring_mode)" />
+    <rosparam file="$(arg config_dir)/model/GroundRobotModel.yaml" command="load" if="$(arg ground_mode)" />
+    <rosparam file="$(arg config_dir)/model/FullVectoringRobotModel.yaml" command="load" if="$(eval not arg('ground_mode') and arg('full_vectoring_mode'))" />
+    <rosparam file="$(arg config_dir)/model/HydrusLikeRobotModel.yaml" command="load" if="$(eval not arg('ground_mode') and not arg('full_vectoring_mode'))" />
 
 
     ###########  Motor Config  ###########
@@ -49,10 +51,11 @@
     <rosparam file="$(arg config_dir)/Battery.yaml" command="load"/>
 
     ###########  Control  ###########
-    <rosparam file="$(arg config_dir)/control/FullVectoringControlConfig.yaml" command="load" if="$(eval arg('full_vectoring_mode') and arg('onboards_model') != 'v1_leg')" />
+    <rosparam file="$(arg config_dir)/control/WalkControlConfig.yaml" command="load" if="$(arg ground_mode)" />
+    <rosparam file="$(arg config_dir)/control/FullVectoringControlConfig.yaml" command="load" if="$(eval not arg('ground_mode') and arg('full_vectoring_mode'))" />
+    <rosparam file="$(arg config_dir)/control/LQIGimbalControlConfig.yaml" command="load" if="$(eval not arg('ground_mode') and not arg('full_vectoring_mode'))" />
     <param name = "controller/rotor_interfere_compensate" value = "false" if = "$(eval not arg('real_machine') and arg('simulation'))" /> <!-- ignore rotor interfer compensate in simulation mode -->
-    <rosparam file="$(arg config_dir)/control/LQIGimbalControlConfig.yaml" command="load" if="$(eval not arg('full_vectoring_mode') and arg('onboards_model') != 'v1_leg')"/>
-    <rosparam file="$(arg config_dir)/control/WalkControlConfig.yaml" command="load" if="$(eval arg('onboards_model') == 'v1_leg')"/>
+
 
     ###########  Sensor Fusion  ###########
     <rosparam file="$(arg config_dir)/StateEstimation.yaml" command="load"/>

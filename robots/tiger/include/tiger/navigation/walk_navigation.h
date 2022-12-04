@@ -36,7 +36,7 @@
 #pragma once
 
 #include <aerial_robot_control/flight_navigation.h>
-#include <tiger/model/full_vectoring_robot_model.h>
+#include <tiger/model/ground_robot_model.h>
 #include <nav_msgs/Odometry.h>
 #include <geometry_msgs/PoseArray.h>
 #include <std_msgs/Float32MultiArray.h>
@@ -157,7 +157,7 @@ namespace aerial_robot_navigation
       ros::Publisher simulate_flight_config_pub_;
       ros::Subscriber simulate_flight_config_sub_;
 
-      boost::shared_ptr<::Tiger::FullVectoringRobotModel> tiger_robot_model_;
+      boost::shared_ptr<::Tiger::GroundRobotModel> tiger_robot_model_;
       boost::shared_ptr<aerial_robot_model::RobotModel> robot_model_for_nav_;
       aerial_robot_control::Tiger::WalkController* walk_controller_;
 

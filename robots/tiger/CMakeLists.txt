@@ -207,7 +207,7 @@ include_directories(
 
 add_library(tiger_robot_model
   src/model/hydrus_like_robot_model.cpp
-  src/model/full_vectoring_robot_model.cpp)
+  src/model/ground_robot_model.cpp)
 target_link_libraries(tiger_robot_model ${catkin_LIBRARIES} ${NLOPT_LIBRARIES} ${OsqpEigen_LIBRARIES})
 
 add_library(tiger_controllib src/control/walk_control.cpp)

@@ -39,14 +39,14 @@
 
 namespace Tiger
 {
-  class FullVectoringRobotModel : public Dragon::FullVectoringRobotModel
+  class GroundRobotModel : public Dragon::FullVectoringRobotModel
   {
   public:
-    FullVectoringRobotModel(bool init_with_rosparam = true,
+    GroundRobotModel(bool init_with_rosparam = true,
                             bool verbose = false,
                             double edf_radius = 0,
                             double edf_max_tilt = 0);
-    virtual ~FullVectoringRobotModel() = default;
+    virtual ~GroundRobotModel() = default;
 
     inline const Eigen::VectorXd& getStaticVectoringF() const {return static_vectoring_f_;}
     inline const Eigen::VectorXd& getStaticJointT() const {return static_joint_t_;}

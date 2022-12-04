@@ -36,7 +36,7 @@
 #pragma once
 
 #include <aerial_robot_control/control/pose_linear_controller.h>
-#include <tiger/model/full_vectoring_robot_model.h>
+#include <tiger/model/ground_robot_model.h>
 #include <tiger/navigation/walk_navigation.h>
 #include <spinal/FourAxisCommand.h>
 #include <std_msgs/Float32MultiArray.h>
@@ -83,7 +83,7 @@ namespace aerial_robot_control
       ros::Subscriber joint_no_load_sub_;
       ros::ServiceServer joint_yaw_torque_srv_, joint_pitch_torque_srv_;
 
-      boost::shared_ptr<::Tiger::FullVectoringRobotModel> tiger_robot_model_;
+      boost::shared_ptr<::Tiger::GroundRobotModel> tiger_robot_model_;
       boost::shared_ptr<aerial_robot_navigation::Tiger::WalkNavigator> tiger_walk_navigator_;
 
       std::vector<PID> walk_pid_controllers_;

@@ -33,13 +33,13 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 
-#include <tiger/model/full_vectoring_robot_model.h>
+#include <tiger/model/ground_robot_model.h>
 #include <OsqpEigen/OsqpEigen.h>
 
 using namespace Tiger;
 
 
-FullVectoringRobotModel::FullVectoringRobotModel(bool init_with_rosparam, bool verbose, double edf_radius, double edf_max_tilt) :
+GroundRobotModel::GroundRobotModel(bool init_with_rosparam, bool verbose, double edf_radius, double edf_max_tilt) :
   Dragon::FullVectoringRobotModel(init_with_rosparam, verbose, edf_radius, edf_max_tilt)
 {
   ros::NodeHandle nh;
@@ -50,7 +50,7 @@ FullVectoringRobotModel::FullVectoringRobotModel(bool init_with_rosparam, bool v
   nh.param("init_free_leg", free_leg_id_, -1);
 }
 
-void FullVectoringRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_positions)
+void GroundRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_positions)
 {
   Dragon::FullVectoringRobotModel::updateRobotModelImpl(joint_positions);
 
@@ -420,4 +420,4 @@ void FullVectoringRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_po
 
 /* plugin registration */
 #include <pluginlib/class_list_macros.h>
-PLUGINLIB_EXPORT_CLASS(Tiger::FullVectoringRobotModel, aerial_robot_model::RobotModel);
+PLUGINLIB_EXPORT_CLASS(Tiger::GroundRobotModel, aerial_robot_model::RobotModel);

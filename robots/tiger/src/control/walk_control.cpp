@@ -63,7 +63,7 @@ void WalkController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   PoseLinearController::initialize(nh, nhp, robot_model, estimator, navigator, ctrl_loop_rate);
   rosParamInit();
 
-  tiger_robot_model_ = boost::dynamic_pointer_cast<::Tiger::FullVectoringRobotModel>(robot_model);
+  tiger_robot_model_ = boost::dynamic_pointer_cast<::Tiger::GroundRobotModel>(robot_model);
   tiger_walk_navigator_ = boost::dynamic_pointer_cast<aerial_robot_navigation::Tiger::WalkNavigator>(navigator);
   tiger_walk_navigator_->setController(this);
 
