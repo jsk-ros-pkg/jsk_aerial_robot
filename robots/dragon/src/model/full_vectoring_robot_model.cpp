@@ -330,7 +330,6 @@ void FullVectoringRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_po
   const int f_ndof = 3 * rotor_num - gimbal_lock_num;
 
   Eigen::MatrixXd A1_all = Eigen::MatrixXd::Zero(joint_num, f_ndof);
-  Eigen::MatrixXd A2 = Eigen::MatrixXd::Zero(6, f_ndof);
   int cnt = 0;
   for (int i = 0; i < rotor_num; i++) {
     Eigen::MatrixXd a = -thrust_coord_jacobians.at(i).topRows(3).rightCols(joint_num).transpose();
@@ -338,7 +337,6 @@ void FullVectoringRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_po
     if(roll_locked_gimbal.at(i) == 0) { /* 3DoF */
       // describe force w.r.t. local (link) frame
       A1_all.middleCols(cnt, 3) = a * r;
-      A2.middleCols(cnt, 3) = thrust_coord_jacobians.at(i).topRows(3).leftCols(6).transpose() * r;
       cnt += 3;
     }
     else { /* gimbal lock: 2Dof */
@@ -347,17 +345,13 @@ void FullVectoringRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_po
       mask << 1, 0, 0, 0, 0, 1;
       Eigen::MatrixXd r_dash = aerial_robot_model::kdlToEigen(KDL::Rotation::RPY(gimbal_nominal_angles_curr.at(i * 2), 0, 0));
       A1_all.middleCols(cnt, 2) = a * r * r_dash * mask;
-      A2.middleCols(cnt, 3) = thrust_coord_jacobians.at(i).topRows(3).leftCols(6).transpose() * r * r_dash * mask;
       cnt += 2;
     }
   }
-
   Eigen::VectorXd b1_all = Eigen::VectorXd::Zero(joint_num);
-  Eigen::VectorXd b2 = Eigen::VectorXd::Zero(6);
   for(const auto& inertia : robot_model_for_plan_->getInertiaMap()) {
     Eigen::MatrixXd cog_coord_jacobian = robot_model_for_plan_->getJacobian(gimbal_processed_joint, inertia.first, inertia.second.getCOG());
     b1_all -= cog_coord_jacobian.rightCols(joint_num).transpose() * inertia.second.getMass() * (-getGravity());
-    b2 += cog_coord_jacobian.leftCols(6).transpose() * inertia.second.getMass() * (-getGravity());
   }
 
   // only consider link joint
@@ -407,13 +401,7 @@ void FullVectoringRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_po
         }
 
       /* 5.2.2. update the vectoring force for hovering and the gimbal angles */
-      // Eigen::VectorXd hover_vectoring_f_temp = aerial_robot_model::pseudoinverse(full_q_mat) * getGravity() * robot_model_for_plan_->getMass();
-      // ROS_INFO_STREAM_THROTTLE(1.0, "hovering thrust without joint torque is: " << hover_vectoring_f_temp.transpose());
-
-      Eigen::VectorXd hover_vectoring_f_root = -aerial_robot_model::pseudoinverse(A2) * b2;
-      // ROS_INFO_STREAM_THROTTLE(1.0, "hovering thrust without joint torque root is: " << hover_vectoring_f_root.transpose());
-      ROS_INFO_STREAM_ONCE("hovering thrust without joint torque root is: " << hover_vectoring_f_root.transpose());
-
+      //Eigen::VectorXd hover_vectoring_f = aerial_robot_model::pseudoinverse(full_q_mat) * getGravity() * robot_model_for_plan_->getMass();
 
       // consider joint torque
 #if 0
@@ -460,14 +448,14 @@ void FullVectoringRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_po
       }
 #endif
 
-      Eigen::VectorXd b2_cog = -getGravity() * robot_model_for_plan_->getMass();
-      Eigen::MatrixXd A2_cog = full_q_mat;
-      Eigen::MatrixXd C = Psi * A2_cog.transpose() * (A2_cog * Psi * A2_cog.transpose()).inverse();
+      Eigen::VectorXd b2 = -getGravity() * robot_model_for_plan_->getMass();
+      Eigen::MatrixXd A2 = full_q_mat;
+      Eigen::MatrixXd C = Psi * A2.transpose() * (A2 * Psi * A2.transpose()).inverse();
       Eigen::MatrixXd E = Eigen::MatrixXd::Identity(f_ndof, f_ndof);
-      Eigen::VectorXd hover_vectoring_f = - C * b2_cog - (E - C * A2_cog) * Psi * A1.transpose() * W2 * b1;
+      Eigen::VectorXd hover_vectoring_f = - C * b2 - (E - C * A2) * Psi * A1.transpose() * W2 * b1;
 
       // ROS_INFO_STREAM_THROTTLE(1.0, "hovering thrust raw is: " << hover_vectoring_f.transpose());
-      // ROS_INFO_STREAM_THROTTLE(1.0, "total static wrench is: " << (A2_cog * hover_vectoring_f + b2_cog).transpose());
+      // ROS_INFO_STREAM_THROTTLE(1.0, "total static wrench is: " << (A2 * hover_vectoring_f + b2).transpose());
       // ROS_INFO_STREAM_THROTTLE(1.0, "total static joint torque is: " << (A1 * hover_vectoring_f + b1).transpose());
 
 
@@ -594,85 +582,6 @@ void FullVectoringRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_po
   setGimbalNominalAngles(gimbal_nominal_angles_curr);
   setGimbalProcessedJoint(gimbal_processed_joint);
   setRollLockedGimbal(roll_locked_gimbal);
-
-
-  Eigen::MatrixXd A1_fr = A1;
-  Eigen::MatrixXd A2_fr = A2;
-
-  // WIP: calculate the contact force in foots
-  const int fe_ndof = 3 * rotor_num / 2;
-  A1_all = Eigen::MatrixXd::Zero(joint_num, fe_ndof);
-  A2 = Eigen::MatrixXd::Zero(6, fe_ndof);
-  std::vector<Eigen::MatrixXd> ee_coord_jacobians;
-  for (int i = 0; i < rotor_num / 2; i++) {
-    std::string name = std::string("link") + std::to_string((i + 1) *2) + std::string("_foot");
-    Eigen::MatrixXd jac = RobotModel::getJacobian(gimbal_processed_joint, name);
-    ee_coord_jacobians.push_back(jac);
-    A1_all.middleCols(3 * i, 3) = -jac.topRows(3).rightCols(joint_num).transpose();
-    A2.middleCols(3 * i, 3) = jac.topRows(3).leftCols(6).transpose();
-  }
-  A1 = Eigen::MatrixXd::Zero(link_joint_num, fe_ndof);
-
-  cnt = 0;
-  for(int i = 0; i < joint_num; i++) {
-    if(getJointNames().at(i) == getLinkJointNames().at(cnt)) {
-        A1.row(cnt) = A1_all.row(i);
-        cnt++;
-      }
-    if(cnt == link_joint_num) break;
-  }
-
-  // ROS_INFO_STREAM_THROTTLE(1.0, "b1: " << b1.transpose());
-  // ROS_INFO_STREAM_THROTTLE(1.0, "b2: " << b2.transpose());
-
-  Psi = (A1.transpose() * A1).inverse();
-  Eigen::MatrixXd C = Psi * A2.transpose() * (A2 * Psi * A2.transpose()).inverse();
-  Eigen::MatrixXd E = Eigen::MatrixXd::Identity(fe_ndof, fe_ndof);
-  Eigen::VectorXd fe = - C * b2 - (E - C * A2) * Psi * A1.transpose() * b1;
-  Eigen::VectorXd tor = b1 + A1 * fe;
-  //ROS_INFO_STREAM_THROTTLE(1.0, "Fe: " << fe.transpose());
-  //ROS_INFO_STREAM_THROTTLE(1.0, "Joint Torque: " << tor.transpose());
-  //ROS_INFO_STREAM_THROTTLE(1.0, "Wrench: " << (A2 * fe + b2).transpose());
-  ROS_INFO_STREAM_ONCE("Fe: " << fe.transpose());
-  ROS_INFO_STREAM_ONCE("Joint Torque: " << tor.transpose());
-  ROS_INFO_STREAM_ONCE("Wrench: " << (A2 * fe + b2).transpose());
-
-  // WIP: calcualte the contact force in foots with the consideration of thrust force
-  Eigen::MatrixXd A1_fe = A1;
-  Eigen::MatrixXd A2_fe = A2;
-
-  A1 = Eigen::MatrixXd::Zero(link_joint_num, f_ndof + fe_ndof);
-  A1.leftCols(f_ndof) = A1_fr;
-  A1.rightCols(fe_ndof) = A1_fe;
-
-  A2 = Eigen::MatrixXd::Zero(6, f_ndof + fe_ndof);
-  A2.leftCols(f_ndof) = A2_fr;
-  A2.rightCols(fe_ndof) = A2_fe;
-
-  Eigen::MatrixXd W1_fr = thrust_force_weight_ * Eigen::MatrixXd::Identity(f_ndof, f_ndof);
-  W1 = Eigen::MatrixXd::Zero(f_ndof + fe_ndof, f_ndof + fe_ndof);
-  W1.topLeftCorner(f_ndof, f_ndof) = W1_fr;
-  Psi = (W1 + A1.transpose() * W2 * A1).inverse();
-
-  C = Psi * A2.transpose() * (A2 * Psi * A2.transpose()).inverse();
-  E = Eigen::MatrixXd::Identity(f_ndof + fe_ndof, f_ndof + fe_ndof);
-  Eigen::VectorXd f_all = - C * b2 - (E - C * A2) * Psi * A1.transpose() * W2 * b1;
-
-  // ROS_INFO_STREAM_THROTTLE(1.0, "Thrust force for stand: " << f_all.head(f_ndof).transpose());
-  // ROS_INFO_STREAM_THROTTLE(1.0, "Contact force for stand: " << f_all.tail(fe_ndof).transpose());
-  // ROS_INFO_STREAM_THROTTLE(1.0, "Joint Torque: " << (A1 * f_all + b1).transpose());
-  // ROS_INFO_STREAM_THROTTLE(1.0, "Wrench: " << (A2 * f_all + b2).transpose());
-  Eigen::VectorXd fr = f_all.head(f_ndof);
-  ROS_INFO_STREAM_ONCE("[ANALYI2] Thrust force for stand: " << fr.transpose());
-  ROS_INFO_STREAM_ONCE("[ANALYI2] Contact force for stand: " << f_all.tail(fe_ndof).transpose());
-  ROS_INFO_STREAM_ONCE("[ANALYI2] Joint Torque: " << (A1 * f_all + b1).transpose());
-  ROS_INFO_STREAM_ONCE("[ANALYI2] Wrench: " << (A2 * f_all + b2).transpose());
-
-  Eigen::VectorXd lambda = Eigen::VectorXd::Zero(rotor_num);
-  for(int i = 0; i < rotor_num; i++) {
-    lambda(i) = fr.segment(3 * i, 3).norm();
-  }
-  ROS_INFO_STREAM_ONCE("[ANALYI2] Thrust force lambda: " << lambda.transpose());
 
   return;
   Eigen::Matrix3d inertia_inv = getInertia<Eigen::Matrix3d>().inverse();
