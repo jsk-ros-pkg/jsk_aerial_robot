@@ -4,6 +4,10 @@
     <description>plugin for hydrus-like tiger robot model </description>
   </class>
 
+  <class name="tiger/full_vectoring_robot_model" type="Tiger::FullVectoringRobotModel" base_class_type="aerial_robot_model::RobotModel">
+    <description>plugin for full vectoring tiger robot model </description>
+  </class>
+
   <class name="tiger/ground_robot_model" type="Tiger::GroundRobotModel" base_class_type="aerial_robot_model::RobotModel">
     <description>plugin for fround tiger robot model </description>
   </class>
