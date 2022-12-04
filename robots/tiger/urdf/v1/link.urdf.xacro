@@ -325,7 +325,12 @@
     <xacro:if value="${battery == 1}">
       <xacro:extra_module name="bat${self}" parent="link${self}" visible="1"
                           model_url="package://tiger/urdf/v1/mesh/battery/ZIPPY-3000-25C-6S.dae">
-        <origin xyz="0.410 0.0 -0.039" rpy="${-pi/2} 0 0"/>
+        <xacro:if value="${link_type == 'general'}">
+          <origin xyz="0.430 0.0 -0.039" rpy="${-pi/2} 0 0"/>
+        </xacro:if>
+        <xacro:if value="${link_type == 'end'}">
+          <origin xyz="0.410 0.0 -0.039" rpy="${-pi/2} 0 0"/>
+        </xacro:if>
         <inertial>
           <mass value="0.417"/>
           <origin xyz="-0.001 0.0 0.0" rpy="0 0 0"/>
