@@ -41,7 +41,7 @@ navigation:
 
     failsafe:
       baselink_rot_thresh: 0.2
-      opposite_raise_leg_thresh: 0.1
+      opposite_raise_leg_thresh: 0.2
 
     simulation: false
     simulated_joint_lpf_rate: 0.2
