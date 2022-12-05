@@ -334,8 +334,7 @@ void WalkNavigator::update()
   BaseNavigator::update();
 
   // skip before the model initialization
-  if (tiger_robot_model_->getStaticVectoringF().size() == 0 ||
-      tiger_robot_model_->getStaticJointT().size() == 0) {
+  if (tiger_robot_model_->getMass() == 0) {
     return;
   }
 
