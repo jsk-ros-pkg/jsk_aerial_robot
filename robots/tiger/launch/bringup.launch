@@ -62,7 +62,8 @@
     <rosparam file="$(arg config_dir)/Simulation.yaml" command="load" if="$(arg simulation)"/>
 
     ###########  Navigation  ###########
-    <rosparam file="$(arg config_dir)/NavigationConfig.yaml" command="load"/>
+    <rosparam file="$(arg config_dir)/navigate/WalkNavigateConfig.yaml" command="load" if="$(arg ground_mode)" />
+    <rosparam file="$(arg config_dir)/navigate/FlightNavigateConfig.yaml" command="load" unless="$(arg ground_mode)" />
   </group>
 
   ###########  Base Platform  ###########
