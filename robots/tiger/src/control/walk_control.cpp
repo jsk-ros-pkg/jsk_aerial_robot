@@ -111,6 +111,7 @@ void WalkController::rosParamInit()
   getParam<double>(walk_control_nh, "servo_angle_bias_torque", servo_angle_bias_torque_, 4.0); // 4.0 Nm
   getParam<double>(walk_control_nh, "servo_max_torque", servo_max_torque_, 6.0); // 6.0 Nm
   getParam<double>(walk_control_nh, "joint_static_torque_limit", joint_static_torque_limit_, 3.0); // 3.0 Nm
+  getParam<double>(walk_control_nh, "raise_joint_static_torque_limit", raise_joint_static_torque_limit_, 3.0); // 3.0 Nm
   getParam<double>(walk_control_nh, "servo_torque_change_rate", servo_torque_change_rate_, 1.5); // rate
   getParam<double>(walk_control_nh, "link_rot_f_control_i_thresh", link_rot_f_control_i_thresh_, 0.06); // rad
   getParam<double>(walk_control_nh, "raise_leg_force_i_gain", raise_leg_force_i_gain_, 1.0); // / s
@@ -1044,6 +1045,10 @@ void WalkController::calcStaticBalance()
   b.tail(link_joint_num) = -b1 - target_extra_joint_torque_;
   Eigen::VectorXd max_torque = Eigen::VectorXd::Zero(6 + link_joint_num);
   max_torque.tail(link_joint_num) = joint_static_torque_limit_ * Eigen::VectorXd::Ones(link_joint_num);
+
+  if (free_leg_id != -1) {
+    max_torque.tail(link_joint_num) = raise_joint_static_torque_limit_ * Eigen::VectorXd::Ones(link_joint_num);
+  }
   Eigen::VectorXd lower_bound = b - max_torque;
   Eigen::VectorXd upper_bound = b + max_torque;
   qp_solver.data()->setLowerBound(lower_bound);

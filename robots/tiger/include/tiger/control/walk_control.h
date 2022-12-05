@@ -118,6 +118,7 @@ namespace aerial_robot_control
       double joint_error_angle_thresh_;
       double joint_torque_control_thresh_;
       double joint_static_torque_limit_;
+      double raise_joint_static_torque_limit_;
       double servo_max_torque_;
       double servo_torque_change_rate_;
       double servo_angle_bias_;
