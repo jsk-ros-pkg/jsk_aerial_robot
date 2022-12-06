@@ -36,6 +36,8 @@ configure_commands = ['SET_SERVO_SEND_DATA_FLAG',
                       'SET_SERVO_EXTERNAL_ENCODER_FLAG',
                       'SET_SERVO_RESOLUTION_RATIO']
 
+configure_commands = ['SET_SERVO_PID_GAIN']
+
 req = SetBoardConfigRequest()
 for neuron_id in args.neuron_id:
     neuron_id = int(neuron_id)
@@ -47,9 +49,11 @@ for neuron_id in args.neuron_id:
                 req.data = [neuron_id, servo_id, 1]
 
             if command == 'SET_SERVO_PID_GAIN':
-                if servo_id == 2: # gimbal roll
+                if servo_id == 0 or servo_id == 1: #joints
+                    req.data = [neuron_id, servo_id, 3000, 0, 2500]
+                elif servo_id == 2: # gimbal roll
                     req.data = [neuron_id, servo_id, 1200, 0, 10000]
-                else:
+                else: # gimbal pitch
                     req.data = [neuron_id, servo_id, 3000, 200, 2500]
 
             if command == 'SET_SERVO_PROFILE_VEL':
