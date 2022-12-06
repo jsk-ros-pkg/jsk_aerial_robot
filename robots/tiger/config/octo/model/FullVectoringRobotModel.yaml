@@ -4,7 +4,7 @@ robot_model_plugin_name: tiger/full_vectoring_robot_model
 
 # gimbal lock
 debug_verbose: false
-gimbal_lock_threshold: 0.3 # rad
+gimbal_lock_threshold: 0.0 # no gimbal roll lock
 link_att_threshold: 0.2 # rad
 lock_status_change_threshold: 10
 gimbal_delta_angle: 0.3
