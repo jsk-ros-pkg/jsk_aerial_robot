@@ -39,7 +39,6 @@
 ServoBridge::ServoBridge(ros::NodeHandle nh, ros::NodeHandle nhp): nh_(nh),nhp_(nhp)
 {
   nh_.param("/use_sim_time", simulation_mode_, false);
-  simulation_mode_ = false;
 
   if(simulation_mode_)
     {
