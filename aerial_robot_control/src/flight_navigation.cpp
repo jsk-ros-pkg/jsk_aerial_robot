@@ -406,6 +406,13 @@ void BaseNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
       if(getNaviState() == LAND_STATE) return;
       if(!teleop_flag_) return; /* can not do the process if other processs are running */
 
+      if(getNaviState() == ARM_ON_STATE)
+        {
+          setNaviState(STOP_STATE);
+          ROS_ERROR("Joy Conrol: not land, but disarm motors directly");
+          return;
+        }
+
       setNaviState(LAND_STATE);
       //update
       setTargetXyFromCurrentState();
@@ -705,24 +712,17 @@ void BaseNavigator::update()
         //for estimator landing mode
         estimator_->setLandingMode(true);
 
-        if (getNaviState() > START_STATE)
+        if (fabs(delta.z()) > z_convergent_thresh_) convergent_start_time_ = ros::Time::now().toSec();
+
+        if (ros::Time::now().toSec() - convergent_start_time_ > convergent_duration_)
           {
-            if (fabs(delta.z()) > z_convergent_thresh_) convergent_start_time_ = ros::Time::now().toSec();
+            convergent_start_time_ = ros::Time::now().toSec();
 
-            if (ros::Time::now().toSec() - convergent_start_time_ > convergent_duration_)
-              {
-                convergent_start_time_ = ros::Time::now().toSec();
+            ROS_ERROR("disarm motors");
+            setNaviState(STOP_STATE);
 
-                ROS_ERROR("disarm motors");
-                setNaviState(STOP_STATE);
-
-                setTargetXyFromCurrentState();
-                setTargetYawFromCurrentState();
-              }
-          }
-        else
-          {
-            setNaviState(ARM_OFF_STATE);
+            setTargetXyFromCurrentState();
+            setTargetYawFromCurrentState();
           }
         break;
       }

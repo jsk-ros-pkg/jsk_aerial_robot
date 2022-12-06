@@ -630,12 +630,12 @@ void FullVectoringRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_po
   Eigen::MatrixXd E = Eigen::MatrixXd::Identity(fe_ndof, fe_ndof);
   Eigen::VectorXd fe = - C * b2 - (E - C * A2) * Psi * A1.transpose() * b1;
   Eigen::VectorXd tor = b1 + A1 * fe;
-  // ROS_INFO_STREAM_THROTTLE(1.0, "Fe: " << fe.transpose());
-  // ROS_INFO_STREAM_THROTTLE(1.0, "Joint Torque: " << tor.transpose());
-  // ROS_INFO_STREAM_THROTTLE(1.0, "Wrench: " << (A2 * fe + b2).transpose());
-  ROS_INFO_STREAM_ONCE("Fe: " << fe.transpose());
-  ROS_INFO_STREAM_ONCE("Joint Torque: " << tor.transpose());
-  ROS_INFO_STREAM_ONCE("Wrench: " << (A2 * fe + b2).transpose());
+  //ROS_INFO_STREAM_THROTTLE(1.0, "Fe: " << fe.transpose());
+  ROS_INFO_STREAM_THROTTLE(1.0, "Joint Torque: " << tor.transpose());
+  //ROS_INFO_STREAM_THROTTLE(1.0, "Wrench: " << (A2 * fe + b2).transpose());
+  // ROS_INFO_STREAM_ONCE("Fe: " << fe.transpose());
+  // ROS_INFO_STREAM_ONCE("Joint Torque: " << tor.transpose());
+  // ROS_INFO_STREAM_ONCE("Wrench: " << (A2 * fe + b2).transpose());
 
   // WIP: calcualte the contact force in foots with the consideration of thrust force
   Eigen::MatrixXd A1_fe = A1;

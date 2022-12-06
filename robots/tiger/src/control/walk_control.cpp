@@ -71,10 +71,11 @@ bool WalkController::update()
 {
   ControlBase::update();
 
-  // workaround: skip before the model initialization
-  if (tiger_robot_model_->getMass() == 0) {
-    return true;
+  // skip before the model initialization
+  if (tiger_robot_model_->getStaticVectoringF().size() == 0) {
+    return false;
   }
+
 
   if (navigator_->getNaviState() == aerial_robot_navigation::START_STATE) {
     control_timestamp_ = ros::Time::now().toSec();

@@ -4,6 +4,7 @@
 
   <xacro:include filename="$(find tiger)/robots/octo/tiger_v1_base.urdf.xacro" />
 
+  <!-- <xacro:tiger_v1 end_leg="false" battery="false"/> -->
   <xacro:tiger_v1 end_leg="false" />
 
   #### flight controller ####

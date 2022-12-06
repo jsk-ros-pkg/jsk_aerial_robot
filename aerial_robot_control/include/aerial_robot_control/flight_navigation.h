@@ -403,6 +403,15 @@ namespace aerial_robot_navigation
 
       if(!teleop_flag_) return;
 
+      if(getNaviState() < ARM_ON_STATE) return;
+
+      if(getNaviState() == ARM_ON_STATE)
+        {
+          setNaviState(STOP_STATE);
+          ROS_ERROR("not land, but disarm motors directly");
+          return;
+        }
+
       setNaviState(LAND_STATE);
 
       setTargetXyFromCurrentState();

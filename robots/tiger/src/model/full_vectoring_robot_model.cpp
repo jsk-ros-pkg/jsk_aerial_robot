@@ -46,6 +46,8 @@ FullVectoringRobotModel::FullVectoringRobotModel(bool init_with_rosparam, bool v
 
   nh.param("joint_torque_limit", joint_torque_limit_, 3.0);
   nh.param("init_untouch_leg", untouch_leg_, -1);
+
+  static_vectoring_f_ = Eigen::VectorXd::Zero(0);
 }
 
 void FullVectoringRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_positions)
@@ -287,16 +289,23 @@ void FullVectoringRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_po
     Eigen::VectorXd fr = f_all_neq.head(fr_ndof);
     Eigen::VectorXd fe = f_all_neq.tail(fe_ndof);
 
-    ROS_INFO_STREAM_ONCE("[QP] Thrust force for stand: " << fr.transpose());
-    ROS_INFO_STREAM_ONCE("[QP] Contact force for stand: " << fe.transpose());
-    ROS_INFO_STREAM_ONCE("[QP] Joint Torque: " << (A1 * f_all_neq + b1).transpose());
-    ROS_INFO_STREAM_ONCE("[QP] Wrench: " << (A2 * f_all_neq + b2).transpose());
+    // ROS_INFO_STREAM_ONCE("[QP] Thrust force for stand: " << fr.transpose());
+    // ROS_INFO_STREAM_ONCE("[QP] Contact force for stand: " << fe.transpose());
+    // ROS_INFO_STREAM_ONCE("[QP] Joint Torque: " << (A1 * f_all_neq + b1).transpose());
+    // ROS_INFO_STREAM_ONCE("[QP] Wrench: " << (A2 * f_all_neq + b2).transpose());
+
+    ROS_INFO_STREAM_THROTTLE(1.0, "[QP] Thrust force for stand: " << fr.transpose());
+    ROS_INFO_STREAM_THROTTLE(1.0, "[QP] Contact force for stand: " << fe.transpose());
+    ROS_INFO_STREAM_THROTTLE(1.0, "[QP] Joint Torque: " << (A1 * f_all_neq + b1).transpose());
+    //ROS_INFO_STREAM_THROTTLE(1.0, "[QP] Wrench: " << (A2 * f_all_neq + b2).transpose());
 
     Eigen::VectorXd lambda = Eigen::VectorXd::Zero(rotor_num);
     for(int i = 0; i < rotor_num; i++) {
       lambda(i) = fr.segment(3 * i, 3).norm();
     }
-    ROS_INFO_STREAM_ONCE("[QP] Thrust force lambda: " << lambda.transpose());
+
+    //ROS_INFO_STREAM_ONCE("[QP] Thrust force lambda: " << lambda.transpose());
+    ROS_INFO_STREAM_THROTTLE(1.0, "[QP] Thrust force lambda: " << lambda.transpose());
 
     setStaticVectoringF(fr);
   }
