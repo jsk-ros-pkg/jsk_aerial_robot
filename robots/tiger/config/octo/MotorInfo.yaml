@@ -1,6 +1,6 @@
 motor_info:
-  min_pwm: 0.58
-  max_pwm: 0.85 # Not affected by voltage
+  min_pwm: 0.54
+  max_pwm: 0.92 # Not affected by voltage
   min_thrust: 0
   force_landing_thrust: 7 #[N]
   pwm_conversion_mode: 1 # Polynominal Mode
