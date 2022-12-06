@@ -2,7 +2,7 @@
 /*********************************************************************
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2017, JSK Lab
+ *  Copyright (c) 2022, JSK Lab
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -35,58 +35,30 @@
 
 #pragma once
 
-#include <aerial_robot_control/flight_navigation.h>
-#include <sensor_msgs/JointState.h>
-#include <spinal/DesireCoord.h>
+#include <dragon/dragon_navigation.h>
 
 namespace aerial_robot_navigation
 {
-  class DragonNavigator : public BaseNavigator
+  namespace Tiger
   {
-  public:
-    DragonNavigator();
-    ~DragonNavigator(){}
+    class FlightNavigator : public DragonNavigator
+    {
+    public:
+      FlightNavigator();
+      ~FlightNavigator(){}
 
-    void initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
-                    boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
-                    boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator) override;
+      void initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
+                      boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
+                      boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator) override;
 
-    void update() override;
+    private:
 
-    inline const bool getLandingFlag() const { return landing_flag_; }
+      void landingProcess() override;
 
-  protected:
-    ros::Publisher curr_target_baselink_rot_pub_;
-    ros::Publisher joint_control_pub_;
-    ros::Subscriber final_target_baselink_rot_sub_;
-    ros::Subscriber target_baselink_rot_sub_;
+      // parameter
+      double inside_land_pitch_angle_;
+      double outside_land_pitch_angle_;
 
-    void halt() override;
-    void reset() override;
-
-    void servoTorqueProcess();
-    virtual void landingProcess();
-    void gimbalControl();
-    void baselinkRotationProcess();
-    void rosParamInit() override;
-
-    void setFinalTargetBaselinkRotCallback(const spinal::DesireCoordConstPtr & msg);
-    void targetBaselinkRotCallback(const spinal::DesireCoordConstPtr& msg);
-
-    /* target baselink rotation */
-    double prev_rotation_stamp_;
-    std::vector<double> target_gimbal_angles_;
-    tf::Vector3 curr_target_baselink_rot_, final_target_baselink_rot_;
-
-    /* landing process */
-    bool level_flag_;
-    bool landing_flag_;
-    bool servo_torque_;
-
-    /* rosparam */
-    double height_thresh_;
-    string joints_torque_control_srv_name_, gimbals_torque_control_srv_name_;
-    double baselink_rot_change_thresh_;
-    double baselink_rot_pub_interval_;
+    };
   };
 };
