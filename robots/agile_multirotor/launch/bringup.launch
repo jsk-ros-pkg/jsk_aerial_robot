@@ -21,6 +21,7 @@
   <arg name="airframe" default="quadrotor" />
   <arg name="robot_ns" value="multirotor$(arg robot_id)" />
   <arg name="config_dir" default="$(find agile_multirotor)/config/" />
+  <arg name="hokuyo" default="False" />
 
   ###########  Parameters  ###########
   <group ns="$(arg robot_ns)">
@@ -117,5 +118,11 @@
   <!-- <node pkg="agile_multirotor" type="policy_navigator.py" name="policy_navigator" output="screen" ns="$(arg robot_ns)" launch-prefix="xterm -fn 10x20 -e python -m pdb">
     <param name="ppo_path" value="$(find agile_multirotor)/linvel_policy" />
   </node> -->
+
+  ####### HOKUYO sensor launch  ############
+  <group if= "$(eval not arg('simulation') and arg('real_machine') and arg('hokuyo'))">
+  <include file="$(find agile_multirotor)/launch/urg_node.launch" >
+   </include>
+   </group>
 
 </launch>
