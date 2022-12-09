@@ -117,12 +117,12 @@
   <!-- main_body -->
   <link name="main_body">
     <inertial>
-      <mass value = "0.58229687" />
-      <origin xyz="-0.001214 0.00090575 -0.00144420" rpy="0 0 0"/>
+      <mass value = "0.807" />
+      <origin xyz="-0.0006654 0.0005569 -0.007939" rpy="0 0 0"/>
       <inertia
-          ixx="0.00371935" ixy="0.0000" ixz="0.0000"
-          iyy="0.00414867" iyz="0.00000"
-          izz="0.00745213"/>
+          ixx="0.004284" ixy="0.0000" ixz="0.0000"
+          iyy="0.004642" iyz="0.00000"
+          izz="0.007742"/>
     </inertial>
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -161,7 +161,7 @@
   <!-- hokuyo 2D LiDAR -->
   <xacro:include filename="$(find hector_sensors_description)/urdf/hokuyo_utm30lx.urdf.xacro" />
   <xacro:hokuyo_utm30lx_model name="laser" parent="main_body">
-    <origin xyz="0.0 0.0 0.06" rpy="0 0 0"/>
+    <origin xyz="0.0 0.0 0.076" rpy="0 0 0"/>
   </xacro:hokuyo_utm30lx_model>
 
 </robot>
