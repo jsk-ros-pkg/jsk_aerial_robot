@@ -31,5 +31,5 @@ navigation:
   gps_waypoint_check_du: 1.0
 
   land:
-    inside_land_pitch_angle: -0.1
-    outside_land_pitch_angle: 0.2
+    inside_land_pitch_angle: -0.25
+    outside_land_pitch_angle: 0.72
