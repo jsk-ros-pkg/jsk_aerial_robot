@@ -1044,6 +1044,33 @@ void WalkNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
       }
       return;
     }
+  } else if (joy_cmd.buttons[PS3_BUTTON_REAR_LEFT_1] == 1) {
+
+    if (joy_cmd.buttons[PS3_BUTTON_CROSS_UP] == 1) {
+      if (prev_joy_cmd.buttons[PS3_BUTTON_CROSS_UP] == 1) {
+        prev_joy_cmd = joy_cmd;
+        return;
+      }
+
+      target_baselink_pos_ += tf::Vector3(0, 0, 0.2);
+      ROS_INFO_STREAM("stand-up");
+
+      prev_joy_cmd = joy_cmd;
+      return;
+    }
+
+    if(joy_cmd.buttons[PS3_BUTTON_CROSS_DOWN] == 1) {
+      if (prev_joy_cmd.buttons[PS3_BUTTON_CROSS_DOWN] == 1) {
+        prev_joy_cmd = joy_cmd;
+        return;
+      }
+
+      target_baselink_pos_ -= tf::Vector3(0, 0, 0.2);
+      ROS_INFO_STREAM("sit-down");
+
+      prev_joy_cmd = joy_cmd;
+      return;
+    }
   } else {
 
     /* raise/lower test */
