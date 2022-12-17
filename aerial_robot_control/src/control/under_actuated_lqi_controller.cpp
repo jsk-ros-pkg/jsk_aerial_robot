@@ -498,7 +498,7 @@ void UnderActuatedLQIController::cfgLQICallback(aerial_robot_control::LQIConfig 
           break;
         }
 
-      if (realtime_update_) {
+      if (!realtime_update_) {
         // instantly modify gain if no joint angles
 
         if(optimalGain()) {
