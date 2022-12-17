@@ -1,0 +1,161 @@
+<?xml version="1.0"?>
+<robot
+    xmlns:xacro="http://www.ros.org/wiki/xacro" name="module_quadrotor" >
+
+  <!-- general attribute -->
+  <baselink name="fc" />
+  <thrust_link name="thrust" />
+
+  <!-- kinematics [m] -->
+  <xacro:property name="rotor_x" value="0.070" />
+  <xacro:property name="rotor_y" value="0.086" />
+  <xacro:property name="rotor_z" value="0.026" />
+
+  <!-- dynamics -->
+  <m_f_rate value="-0.011" /> <!-- drag torque rate -->
+  <xacro:property name="max_force" value="8.0" /> <!-- [N] -->
+  <xacro:property name="min_force" value="0.0" /> <!-- [N] -->
+
+  <!-- friction -->
+  <xacro:macro name="damping_factor" params="link">
+    <gazebo reference="main_body">
+      <dampingFactor>0.00</dampingFactor>
+    </gazebo>
+  </xacro:macro>
+
+  <xacro:macro name="extra_module" params="name parent *origin *inertial visible:=0 model_url:=1 scale:=1">
+    <joint name="${parent}2${name}" type="fixed">
+      <parent link="${parent}"/>
+      <child link="${name}"/>
+      <xacro:insert_block name="origin" />
+    </joint>
+    <link name="${name}">
+      <xacro:insert_block name="inertial" />
+      <xacro:if value="${visible == 1}">
+        <visual>
+          <origin rpy="0 0 0" xyz="0 0 0"/>
+          <geometry>
+            <mesh filename="${model_url}" scale= "${scale} ${scale} ${scale}"/>
+          </geometry>
+        </visual>
+      </xacro:if>
+    </link>
+  </xacro:macro>
+
+  <xacro:macro name="propeller_module" params="id x y z direction">
+    <joint name="rotor${id}" type="continuous">
+      <limit effort="100.0" lower="${min_force}" upper="${max_force}" velocity="0.5"/>
+      <parent link="main_body"/>
+      <child link="thrust${id}"/>
+      <origin rpy="0 0 0" xyz="${x} ${y} ${z}"/>
+      <axis xyz="0 0 ${direction}"/>
+    </joint>
+
+    <link name="thrust${id}">
+      <!-- visual & collisiont -->
+      <inertial>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <mass value="0.0091"/>
+        <inertia
+            ixx="0.00000807" ixy="0.0" ixz="0.0"
+            iyy="0.00000807" iyz="0.0"
+            izz="0.00001612"/>
+      </inertial>
+      <visual>
+        <origin rpy="0 0 0" xyz="0 0 0"/>
+        <geometry>
+          <mesh filename="package://mini_quadrotor/urdf/mesh/prop_5inch.dae" />
+        </geometry>
+      </visual>
+    </link>
+    <xacro:damping_factor link ="thrust${id}"/>
+
+    <transmission name="rotor_tran${id}">
+      <type>transmission_interface/SimpleTransmission</type>
+      <joint name="rotor${id}">
+        <!-- TODO: effort is torque, maybe position is enough -->
+        <hardwareInterface>RotorInterface</hardwareInterface>
+      </joint>
+      <actuator name="rotor${id}">
+        <!-- TODO: effort is torque, maybe position is enough -->
+        <hardwareInterface>RotorInterface</hardwareInterface>
+        <mechanicalReduction>1</mechanicalReduction>
+      </actuator>
+    </transmission>
+
+  </xacro:macro>
+
+  <!-- dummy root link for KDL -->
+  <link name="root">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.00001"/>
+      <inertia
+          ixx="0.000001" ixy="0.0" ixz="0.0"
+          iyy="0.000001" iyz="0.0"
+          izz="0.000002"/>
+    </inertial>
+  </link>
+  <joint name="root_joint" type="fixed">
+    <parent link="root"/>
+    <child link="main_body"/>
+    <origin rpy="0 0 0" xyz="0 0 0"/>
+    <axis xyz="0 0 1"/>
+  </joint>
+
+  <!-- main_body -->
+  <link name="main_body">
+    <inertial>
+      <mass value = "0.432" />
+      <origin xyz="0 0 0.017" rpy="0 0 0"/>
+      <inertia
+          ixx="0.0021" ixy="0" ixz="0"
+          iyy="0.0015" iyz="0"
+          izz="0.0032"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://mini_quadrotor/urdf/mesh/main_body.dae" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <box size="0.28 0.28 0.072" />
+      </geometry>
+    </collision>
+  </link>
+
+  <!-- spinal -->
+  <xacro:extra_module name = "fc" parent = "main_body" visible = "0" >
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <inertial>
+      <mass value = "00" />
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia
+          ixx="0.0" ixy="0.0" ixz="0.0"
+          iyy="0.0" iyz="0.0" izz="0.0"/>
+    </inertial>
+  </xacro:extra_module>
+
+  <!-- battery -->
+  <xacro:extra_module name = "battery" parent = "main_body" visible = "1" model_url = "package://mini_quadrotor/urdf/mesh/turnigy_3S_2200mAh.dae" >
+    <origin xyz="0.0105 0 -0.012" rpy="0 0 0"/>
+    <inertial>
+      <mass value = "0.188" />
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia
+          ixx="0.0" ixy="0.0" ixz="0.0"
+          iyy="0.0002" iyz="0.0" izz="0.0002"/>
+    </inertial>
+  </xacro:extra_module>
+
+  <!-- propellers -->
+  <xacro:propeller_module id = "1" x = "${-rotor_x}" y = "${-rotor_y}" z = "${rotor_z}" direction = "-1" />
+  <xacro:propeller_module id = "2" x = "${rotor_x}" y = "${-rotor_y}" z = "${rotor_z}" direction = "1" />
+  <xacro:propeller_module id = "3" x = "${rotor_x}" y = "${rotor_y}" z = "${rotor_z}" direction = "-1" />
+  <xacro:propeller_module id = "4" x = "${-rotor_x}" y = "${rotor_y}" z = "${rotor_z}"  direction = "1" />
+
+
+</robot>

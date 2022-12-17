@@ -1,0 +1,54 @@
+aerial_robot_control_name: aerial_robot_control/under_actuated_tilted_lqi_controller
+
+controller:
+  xy:
+    p_gain: 5.0
+    i_gain: 0.05
+    d_gain: 3.0
+    limit_sum: 3
+    limit_p: 3
+    limit_i: 1.5
+    limit_d: 3
+
+  z:
+    p_gain: 5.0
+    i_gain: 1.0
+    d_gain: 5.0
+    limit_err_p: 1.0
+    limit_sum: 10 # N for clamping thrust force
+    limit_p: 10 # m / s^2
+    limit_i: 15 # m / s^2
+    limit_d: 10 # m / s^2
+    landing_err_z: -0.55
+    force_landing_descending_rate: -0.6
+
+  yaw:
+    limit_sum: 6.0 # N for clamping thrust force
+    limit_p: 4.0
+    limit_i: 4.0
+    limit_d: 4.0
+    limit_err_p: 0.4
+    need_d_control: false
+
+  # LQI gain generator
+  lqi:
+    gain_generate_rate: 15.0
+    gyro_moment_compensation: true
+    clamp_gain: true
+
+    roll_pitch_p: 20
+    roll_pitch_i: 0.5
+    roll_pitch_d: 0.15
+
+    yaw_p: 60
+    yaw_i: 0.5
+    yaw_d: 1.0
+
+    r1: 1.0
+    r2: 1.0
+    r3: 1.0
+    r4: 1.0
+
+    trans_constraint_weight: 100
+    att_control_weight: 1
+

@@ -1,0 +1,94 @@
+<?xml version="1.0"?>
+<launch>
+  ###########  launch config  ###########
+  <arg name="rm" default="True" />
+  <arg name="sim" default="False" />
+  <arg name="real_machine" default="$(arg rm)" />
+  <arg name="simulation" default="$(arg sim)" />
+  <arg name="type" default="quad" />
+  <arg name="estimate_mode"  default= "0" />
+  <arg name="sim_estimate_mode"  default= "2" />
+  <arg name="headless" default="True" />
+  <arg name="worldtype" default="$(find aerial_robot_simulation)/gazebo_model/world/empty.world" />
+  <arg name="launch_gazebo" default="True" />
+  <arg name="direct_model" default="False" />
+  <arg name="direct_model_name" />
+  <arg name="spawn_x" default="0.0"/>
+  <arg name="spawn_y" default="0.0"/>
+  <arg name="spawn_z" default="0.0"/>
+  <arg name="spawn_yaw" default="0.0"/>
+  <arg name="robot_id" default="" />
+  <arg name="robot_ns" value="quadrotor$(arg robot_id)" />
+  <arg name="config_dir" default="$(find mini_quadrotor)/config" />
+
+  ###########  Parameters  ###########
+  <group ns="$(arg robot_ns)">
+
+    ###########  Basic Param  ###########
+    # EGOMOTION_ESTIMATE = 0
+    # EXPERIMENT_ESTIMATE = 1. for unstable mocap, use this mode
+    # GROUND_TRUTH = 2
+    <param name="estimation/mode" value= "$(arg sim_estimate_mode)" if="$(arg simulation)" />
+    <param name="estimation/mode" value= "$(arg estimate_mode)" if="$(arg real_machine)"/>
+
+    <param name="uav_model" value= "0" />
+    <rosparam file="$(arg config_dir)/RobotModel.yaml" command="load" />
+
+    ###########  Motor Config  ###########
+    <rosparam file="$(arg config_dir)/MotorInfo.yaml" command="load" />
+
+    ###########  Battery Config  ###########
+    <rosparam file="$(arg config_dir)/Battery.yaml" command="load" />
+
+    ###########  Control  ###########
+    <rosparam file="$(arg config_dir)/FlightControl.yaml" command="load" />
+
+    ###########  Sensor Fusion  ###########
+    <rosparam file="$(arg config_dir)/StateEstimation.yaml" command="load" />
+    <rosparam file="$(arg config_dir)/Simulation.yaml" command="load" if="$(eval arg('simulation') and not arg('real_machine'))"/>
+
+    ###########  Navigation  ###########
+    <rosparam file="$(arg config_dir)/NavigationConfig.yaml" command="load" />
+  </group>
+
+  ###########  Base Platform  ###########
+  <node pkg="aerial_robot_base" type="aerial_robot_base_node" name="aerial_robot_base_node" ns="$(arg robot_ns)" output="screen" >
+    <param name="tf_prefix" value="$(arg robot_ns)"/>
+    <param name="param_verbose" value="false"/>
+    <param name="main_rate" value="40"/>
+  </node>
+
+  ###########  Robot Model  ###########
+  <arg name="description_mode" value="urdf" unless="$(arg simulation)" />
+  <arg name="description_mode" value="gazebo" if="$(arg simulation)" />
+  <include file="$(find aerial_robot_model)/launch/aerial_robot_model.launch" >
+    <arg name="headless" value="$(arg headless)" />
+    <arg name="robot_model" value="$(find mini_quadrotor)/urdf/robot.$(arg description_mode).xacro" unless="$(arg direct_model)"/>
+    <arg name="robot_model" value="$(arg direct_model_name)" if="$(arg direct_model)"/>
+    <arg name="robot_ns" value="$(arg robot_ns)" />
+    <arg name="rviz_config" value="$(arg config_dir)/rviz_config" />
+    <arg name="rviz_init_pose" value="$(arg config_dir)/RvizInit.yaml" />
+    <arg name="need_joint_state" value="false" if ="$(eval arg('simulation') or arg('real_machine'))"/>
+  </include>
+
+  ###########  Sensors ###########
+  <include file="$(find mini_quadrotor)/launch/includes/sensors.launch.xml" >
+    <arg name="real_machine" value="$(arg real_machine)" />
+    <arg name="simulation" value="$(arg simulation)" />
+    <arg name="robot_ns" value="$(arg robot_ns)" />
+  </include >
+
+  ########## Simulation in Gazebo #########
+  <include file="$(find aerial_robot_simulation)/launch/simulation.launch" if = "$(eval arg('simulation') and not arg('real_machine'))" >
+    <arg name="robot_ns" default="$(arg robot_ns)" />
+    <arg name="gui" default="false" if="$(arg headless)" />
+    <arg name="headless" default="$(arg headless)" />
+    <arg name="launch_gazebo" default="$(arg launch_gazebo)" />
+    <arg name="worldtype" value="$(arg worldtype)" />
+    <arg name="spawn_x" value="$(arg spawn_x)" />
+    <arg name="spawn_y" value="$(arg spawn_y)" />
+    <arg name="spawn_z" value="$(arg spawn_z)" />
+    <arg name="spawn_yaw" value="$(arg spawn_yaw)" />
+  </include>
+
+</launch>
