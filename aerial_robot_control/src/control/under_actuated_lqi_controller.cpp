@@ -127,6 +127,21 @@ void UnderActuatedLQIController::gainGeneratorFunc()
 }
 
 
+void UnderActuatedLQIController::activate()
+{
+  ControlBase::activate();
+
+  // publish gains in start phase for general multirotor
+  if(optimalGain()) {
+    clampGain();
+    publishGain();
+    ROS_INFO_NAMED("LQI gain generator", "LQI gain generator: send LQI gains");
+  }
+  else {
+    ROS_ERROR_NAMED("LQI gain generator", "LQI gain generator: can not solve hamilton matrix");
+  }
+}
+
 void UnderActuatedLQIController::sendCmd()
 {
   PoseLinearController::sendCmd();
@@ -148,20 +163,6 @@ void UnderActuatedLQIController::sendFourAxisCommand()
 void UnderActuatedLQIController::controlCore()
 {
   PoseLinearController::controlCore();
-
-  if (navigator_->getNaviState() == aerial_robot_navigation::START_STATE && robot_model_->getJointNum() == 0) {
-
-    // publish gains in start phase for general multirotor
-
-    if(optimalGain()) {
-      clampGain();
-      publishGain();
-      ROS_INFO_NAMED("LQI gain generator", "LQI gain generator: send LQI gains");
-    }
-    else {
-      ROS_ERROR_NAMED("LQI gain generator", "LQI gain generator: can not solve hamilton matrix");
-    }
-  }
 
   tf::Vector3 target_acc_w(pid_controllers_.at(X).result(),
                            pid_controllers_.at(Y).result(),

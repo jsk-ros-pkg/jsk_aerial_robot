@@ -60,6 +60,8 @@ namespace aerial_robot_control
                     boost::shared_ptr<aerial_robot_navigation::BaseNavigator> navigator,
                     double ctrl_loop_rate);
 
+    void activate() override;
+
   protected:
 
     ros::Publisher flight_cmd_pub_; // for spinal
