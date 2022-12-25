@@ -1,7 +1,0 @@
-<library path="lib/libtiger_controllib">
-
-  <class name="aerial_robot_control/tiger_walk" type="aerial_robot_control::Tiger::WalkController" base_class_type="aerial_robot_control::ControlBase">
-    <description> tiger control plugin: walk control </description>
-  </class>
-
-</library>

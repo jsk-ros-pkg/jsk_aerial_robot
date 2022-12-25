@@ -1,0 +1,15 @@
+<library path="lib/libspider_robot_model">
+
+  <class name="spider/hydrus_like_robot_model" type="Spider::HydrusLikeRobotModel" base_class_type="aerial_robot_model::RobotModel">
+    <description>plugin for hydrus-like spider robot model </description>
+  </class>
+
+  <class name="spider/full_vectoring_robot_model" type="Spider::FullVectoringRobotModel" base_class_type="aerial_robot_model::RobotModel">
+    <description>plugin for full vectoring spider robot model </description>
+  </class>
+
+  <class name="spider/ground_robot_model" type="Spider::GroundRobotModel" base_class_type="aerial_robot_model::RobotModel">
+    <description>plugin for fround spider robot model </description>
+  </class>
+
+</library>
