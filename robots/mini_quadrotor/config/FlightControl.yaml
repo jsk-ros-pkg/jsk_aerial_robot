@@ -19,7 +19,7 @@ controller:
     limit_p: 20 # m / s^2
     limit_i: 40 # m / s^2
     limit_d: 20 # m / s^2
-    landing_err_z: -0.55
+    landing_err_z: -0.2
     force_landing_descending_rate: -0.6
 
   yaw:
