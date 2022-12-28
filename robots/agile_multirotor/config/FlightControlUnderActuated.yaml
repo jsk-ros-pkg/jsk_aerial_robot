@@ -12,14 +12,14 @@ controller:
 
   z:
     p_gain: 5.0
-    i_gain: 1.0
+    i_gain: 2.5
     d_gain: 5.0
     limit_err_p: 1.0
     limit_sum: 160 # N for clamping thrust force
     limit_p: 160 # m / s^2
     limit_i: 160 # m / s^2
     limit_d: 160 # m / s^2
-    landing_err_z: -0.55
+    landing_err_z: -0.3
     force_landing_descending_rate: -0.6
 
   yaw:
