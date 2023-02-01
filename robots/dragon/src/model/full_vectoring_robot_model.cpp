@@ -651,6 +651,12 @@ there is a diffiretial chain about the roll angle. But we here approximate it to
 #endif
 }
 
+bool FullVectoringRobotModel::stabilityCheck(bool verbose)
+{
+  return aerial_robot_model::RobotModel::stabilityCheck(verbose);
+}
+
+
 /* plugin registration */
 #include <pluginlib/class_list_macros.h>
 PLUGINLIB_EXPORT_CLASS(Dragon::FullVectoringRobotModel, aerial_robot_model::RobotModel);
