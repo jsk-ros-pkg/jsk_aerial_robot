@@ -2,6 +2,10 @@
 Changelog for package aerial_robot_control
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Refactor the flight navigation procedure: add message to inform user that ready for takeoff (`#528 <https://github.com/jsk-ros-pkg/aerial_robot/issues/528>`_)
+
 1.3.1 (2022-07-02)
 ------------------
 

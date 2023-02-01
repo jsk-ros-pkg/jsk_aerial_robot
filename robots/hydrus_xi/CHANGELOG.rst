@@ -2,6 +2,10 @@
 Changelog for package hydrus_xi
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* [Hydrus XI] refactor the description about dependency (`#536 <https://github.com/jsk-ros-pkg/aerial_robot/issues/536>`_)
+
 1.3.1 (2022-07-02)
 ------------------
 * [Spinal] Improve the process of servo bridge (`#499 <https://github.com/jsk-ros-pkg/aerial_robot/issues/499>`_)
