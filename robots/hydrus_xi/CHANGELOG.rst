@@ -2,8 +2,8 @@
 Changelog for package hydrus_xi
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.3.2 (2023-02-01)
+------------------
 * [Hydrus XI] refactor the description about dependency (`#536 <https://github.com/jsk-ros-pkg/aerial_robot/issues/536>`_)
 
 1.3.1 (2022-07-02)

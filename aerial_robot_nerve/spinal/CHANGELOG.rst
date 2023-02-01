@@ -2,8 +2,8 @@
 Changelog for package spinal
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.3.2 (2023-02-01)
+------------------
 * [Spinal][CAN] fix bug about the motor pwm in spinal-neuron system (`#538 <https://github.com/jsk-ros-pkg/aerial_robot/issues/538>`_)
 * [rqt][spinal] fix the compatibility in Python3 (`#535 <https://github.com/jsk-ros-pkg/aerial_robot/issues/535>`_)
 * [Spinal][Neuron][Servo] solve the joint pulley round offset problem (`#534 <https://github.com/jsk-ros-pkg/aerial_robot/issues/534>`_)

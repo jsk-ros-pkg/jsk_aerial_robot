@@ -2,8 +2,8 @@
 Changelog for package aerial_robot_estimation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.3.2 (2023-02-01)
+------------------
 * Refactor the subscruber transport hint for moacp pose subscriber (`#524 <https://github.com/jsk-ros-pkg/aerial_robot/issues/524>`_)
 
 1.3.1 (2022-07-02)
