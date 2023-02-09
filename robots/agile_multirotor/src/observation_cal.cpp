@@ -119,6 +119,8 @@ Scalar ObstacleCalculator::getClosestDistance(
     Scalar D = std::pow(b, 2) - a * c;
     if (0 <= D) {
       Scalar dist = (b - std::sqrt(D)) / a;
+      if (dist < 0)
+        continue;
       rmin = std::min(dist, rmin);
     }
   }
