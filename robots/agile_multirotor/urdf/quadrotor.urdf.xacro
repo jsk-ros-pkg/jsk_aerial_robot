@@ -127,14 +127,17 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-	<mesh filename="package://agile_multirotor/urdf/mesh/quadrotor.stl" />
+	<!-- <mesh filename="package://agile_multirotor/urdf/mesh/quadrotor.stl" /> -->
+        <cylinder length="0.3" radius="0.48"/>
       </geometry>
     </visual>
     <!-- collision is not sphere to be able to  -->
     <collision>
-      <origin rpy="0 0 0" xyz="0 0 -0.05"/>
+      <origin rpy="0 0 0" xyz="0 0 0.00"/>
       <geometry>
-        <box size="0.3525 0.26 0.04" />
+        <!-- <box size="0.3525 0.26 0.04" /> -->
+        <!-- length should be smaller not to collide to myself -->
+        <cylinder length="0.04" radius="0.50"/>
       </geometry>
     </collision>
   </link>
