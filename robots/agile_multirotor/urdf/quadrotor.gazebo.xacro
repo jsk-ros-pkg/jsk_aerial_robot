@@ -12,8 +12,8 @@
   <xacro:gazebo_spinal robot_name="$(arg robot_name)" />
 
   <gazebo reference="main_body">
-    <mu1>0.1</mu1>
-    <mu2>0.1</mu2>
+    <mu1>1.0</mu1>
+    <mu2>1.0</mu2>
     <material>Gazebo/Red</material>
   </gazebo>
 
