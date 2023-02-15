@@ -21,6 +21,7 @@
 	<natures>
 		<nature>com.st.stm32cube.ide.mcu.MCUProjectNature</nature>
 		<nature>org.eclipse.cdt.core.cnature</nature>
+		<nature>org.eclipse.cdt.core.ccnature</nature>
 		<nature>com.st.stm32cube.ide.mcu.MCUCubeIdeServicesRevAev2ProjectNature</nature>
 		<nature>com.st.stm32cube.ide.mcu.MCUNonUnderRootProjectNature</nature>
 		<nature>com.st.stm32cube.ide.mcu.MCUCubeProjectNature</nature>
@@ -167,9 +168,9 @@
 			<locationURI>PARENT-1-PROJECT_LOC/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_ll_adc.c</locationURI>
 		</link>
 		<link>
-			<name>Application/User/Core/main.c</name>
+			<name>Application/User/Core/main.cpp</name>
 			<type>1</type>
-			<locationURI>PARENT-1-PROJECT_LOC/Core/Src/main.c</locationURI>
+			<locationURI>PARENT-1-PROJECT_LOC/Core/Src/main.cpp</locationURI>
 		</link>
 		<link>
 			<name>Application/User/Core/stm32g4xx_hal_msp.c</name>
