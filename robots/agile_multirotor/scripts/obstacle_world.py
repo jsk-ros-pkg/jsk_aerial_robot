@@ -101,6 +101,7 @@ class ObstacleWorld:
                     "<model name='{}'>".format(name)  + \
                     "<allow_auto_disable>true</allow_auto_disable>" + \
                     "<pose> 0 0 0 0 0 0 </pose>" + \
+                    "<static>true</static>" + \
                     "<link name='link'>" + \
                     "<velocity_decay>" + \
                     "<linear>0.01</linear>" + \
@@ -161,6 +162,7 @@ class ObstacleWorld:
                     "<model name='{}'>".format(name)  + \
                     "<allow_auto_disable>true</allow_auto_disable>" + \
                     "<pose> 0 0 0 0 0 0 </pose>" + \
+                    "<static>true</static>" + \
                     "<link name='link'>" + \
                     "<velocity_decay>" + \
                     "<linear>0.01</linear>" + \
