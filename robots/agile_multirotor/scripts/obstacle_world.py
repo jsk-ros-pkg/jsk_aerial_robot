@@ -35,7 +35,7 @@ class ObstacleWorld:
 
         rospy.Timer(rospy.Duration(1.0/rate), self.mainProcess)
 
-        wall_y_position = 1.5
+        wall_y_position = 1.75
         # debug
         # r = 0.5
         # p = [0, 0, 0] # x, y, z
