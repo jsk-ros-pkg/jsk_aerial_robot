@@ -13,7 +13,7 @@ import ros_numpy as ros_np
 import threading
 from copy import deepcopy
 
-class ObostacleWorld:
+class ObstacleWorld:
     def __init__(self):
         self.sdf_version = rospy.get_param('~gazebo/sdf_version', 1.4)
 
@@ -148,5 +148,5 @@ class ObostacleWorld:
 if __name__=="__main__":
     rospy.init_node("obsracle_world")
 
-    world = ObostacleWorld()
+    world = ObstacleWorld()
     rospy.spin()
