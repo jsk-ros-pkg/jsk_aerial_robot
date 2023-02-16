@@ -38,6 +38,11 @@
 			<locationURI>PARENT-1-PROJECT_LOC/neuron_g4.ioc</locationURI>
 		</link>
 		<link>
+			<name>Application/neuronlib/IMU</name>
+			<type>2</type>
+			<locationURI>PARENT-2-PROJECT_LOC/neuronlib/IMU</locationURI>
+		</link>
+		<link>
 			<name>Drivers/CMSIS/system_stm32g4xx.c</name>
 			<type>1</type>
 			<locationURI>PARENT-1-PROJECT_LOC/Core/Src/system_stm32g4xx.c</locationURI>
