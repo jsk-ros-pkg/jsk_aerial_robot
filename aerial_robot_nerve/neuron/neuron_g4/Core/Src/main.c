@@ -112,7 +112,7 @@ int main(void)
   MX_USART2_UART_Init();
   MX_USART3_UART_Init();
   /* USER CODE BEGIN 2 */
-  Flashmemory::init(0x0803F800, FLASH_BANK_1, 127); //last page in bank1
+  Flashmemory::init(0x0807F000, FLASH_BANK_1, 127); //last page in bank1
 
   // flashmemory test
 #if 0
