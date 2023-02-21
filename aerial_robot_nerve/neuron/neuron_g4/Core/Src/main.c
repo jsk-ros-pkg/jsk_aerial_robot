@@ -23,6 +23,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "imu_mpu9250.h"
+#include "flashmemory.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -111,6 +112,65 @@ int main(void)
   MX_USART2_UART_Init();
   MX_USART3_UART_Init();
   /* USER CODE BEGIN 2 */
+  Flashmemory::init(0x0803F800, FLASH_BANK_1, 127); //last page in bank1
+
+  // flashmemory test
+#if 0
+#if 0 // write
+  uint8_t test[10];
+  for(int i = 0; i < 10; i++) {
+    test[i] = i;
+  }
+  Flashmemory::addValue(test, 10);
+
+  float a = -3.1415926f;
+  Flashmemory::addValue(&a, 4);
+
+  int16_t b = 12345;
+  Flashmemory::addValue(&b, 2);
+
+  bool c = false;
+  Flashmemory::addValue(&c, 1);
+
+  Flashmemory::erase();
+  Flashmemory::write();
+#else // read
+
+  uint8_t test[10];
+  Flashmemory::addValue(test, 10);
+
+  float a;
+  Flashmemory::addValue(&a, 4);
+
+  int16_t b;
+  Flashmemory::addValue(&b, 2);
+
+  bool c;
+  Flashmemory::addValue(&c, 1);
+
+  Flashmemory::read();
+
+#endif
+#endif
+
+  uint16_t slave_id = 0;
+  Flashmemory::addValue(&slave_id, 2);
+  /* workaround to definitely read the value for salve_id from flashmemory, because some problem in RTOS system in init system (because of std::vector?) */
+  int cnt = 10; // In fact, only need twice, 10 times is just in case.
+  while(cnt > 0)
+    {
+      HAL_StatusTypeDef status = Flashmemory::read();
+      if(status == HAL_OK) break;
+      cnt --;
+    }
+
+  if (slave_id == 0 || slave_id > 14) {
+    slave_id = 1;
+    Flashmemory::erase();
+    Flashmemory::write();
+    return 0;
+  }
+
   imu_ = IMU();
   imu_.init(&hspi1);
   /* USER CODE END 2 */
