@@ -33,8 +33,7 @@ class ObstacleWorld:
         shift_y = rospy.get_param('~shift_y', 0) #init y
         print("shift_x: ",shift_x, "shift_y: ",shift_y)
 
-
-        wall_y_position = 1.75
+        wall_y_position = 1.5
         # debug
         # r = 0.5
         # p = [0, 0, 0] # x, y, z
