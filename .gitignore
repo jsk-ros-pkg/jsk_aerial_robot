@@ -109,3 +109,5 @@ tags
 
 # virtual env
 /agileflight
+
+/robots/hydrus/config/obstacle_world/
