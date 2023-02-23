@@ -12,8 +12,14 @@
 #error "Please define __cplusplus, because this is a c++ based file "
 #endif
 
-#include "can_device.h"
-#include "flashmemory.h"
+// #include "can_device.h"
+// #include "flashmemory.h"
+
+#include "stm32g4xx_hal.h"
+#include "stdint.h"
+#include "string.h"
+#include <array>
+
 
 using Vector3d = std::array<int16_t, 3>;
 
@@ -31,11 +37,12 @@ using Vector3d = std::array<int16_t, 3>;
 
 class Initializer;
 
-class IMU : public CANDevice {
+//class IMU : public CANDevice {
+class IMU {
 public:
 
   IMU(){}
-  IMU(uint8_t slave_id):CANDevice(CAN::DEVICEID_IMU, slave_id){}
+  //IMU(uint8_t slave_id):CANDevice(CAN::DEVICEID_IMU, slave_id){}
   ~IMU(){}
   void init(SPI_HandleTypeDef* hspi);
   void update();
@@ -64,8 +71,8 @@ public:
 
   static  uint8_t adc_[SENSOR_DATA_LENGTH];
 
-  void sendData() override;
-  void receiveDataCallback(uint8_t message_id, uint32_t DLC, uint8_t* data) override;
+  //void sendData() override;
+  //void receiveDataCallback(uint8_t message_id, uint32_t DLC, uint8_t* data) override;
 
 private:
 

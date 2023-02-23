@@ -36,8 +36,8 @@ void IMU::init(SPI_HandleTypeDef* hspi)
   hspi_->Instance->CR1 &= (uint32_t)(~SPI_BAUDRATEPRESCALER_256); //reset
   hspi_->Instance->CR1 |= (uint32_t)(SPI_BAUDRATEPRESCALER_8); //8 = 13.5Mhz
 
-  Flashmemory::addValue(&send_data_flag_, 2);
-  Flashmemory::read();
+  // Flashmemory::addValue(&send_data_flag_, 2);
+  // Flashmemory::read();
 }
 
 void IMU::update()
@@ -187,15 +187,16 @@ void IMU::pollingRead()
   update_ = true;
 }
 
-void IMU::sendData()
-{
-	if (!(send_data_flag_ != 0)) return;
-	sendMessage(CAN::MESSAGEID_SEND_GYRO, m_slave_id, 6, reinterpret_cast<uint8_t*>(gyro_.data()), 1);
-	sendMessage(CAN::MESSAGEID_SEND_ACC, m_slave_id, 6, reinterpret_cast<uint8_t*>(acc_.data()), 1);
-	sendMessage(CAN::MESSAGEID_SEND_MAG, m_slave_id, 6, reinterpret_cast<uint8_t*>(mag_.data()), 1);
-}
 
-void IMU::receiveDataCallback(uint8_t message_id, uint32_t DLC, uint8_t* data)
-{
-	return;
-}
+// void IMU::sendData()
+// {
+// 	if (!(send_data_flag_ != 0)) return;
+// 	sendMessage(CAN::MESSAGEID_SEND_GYRO, m_slave_id, 6, reinterpret_cast<uint8_t*>(gyro_.data()), 1);
+// 	sendMessage(CAN::MESSAGEID_SEND_ACC, m_slave_id, 6, reinterpret_cast<uint8_t*>(acc_.data()), 1);
+// 	sendMessage(CAN::MESSAGEID_SEND_MAG, m_slave_id, 6, reinterpret_cast<uint8_t*>(mag_.data()), 1);
+// }
+
+// void IMU::receiveDataCallback(uint8_t message_id, uint32_t DLC, uint8_t* data)
+// {
+// 	return;
+// }
