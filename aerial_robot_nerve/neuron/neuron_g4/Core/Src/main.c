@@ -184,6 +184,7 @@ int main(void)
   servo_ = Servo(slave_id);
 
   imu_.init(&hspi1);
+  HAL_Delay(300); //wait servo init
   servo_.init(&huart2, &hi2c1, &servoMutexHandle);
 
   /* USER CODE END 2 */
