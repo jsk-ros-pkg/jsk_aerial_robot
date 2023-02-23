@@ -51,7 +51,7 @@ void Motor::receiveDataCallback(uint8_t message_id, uint32_t DLC, uint8_t* data)
 
 void Motor::setPwm(uint16_t pwm)
 {
-	pwm_htim_->Instance->CCR1 = (uint32_t)((pwm + 1000.0f) / 2000.0f *  MAX_PWM);
+	pwm_htim_->Instance->CCR1 = (uint32_t)((pwm + 1000.0f) / 2000.0f *  pwm_htim_->Init.Period);
 	return;
 }
 
