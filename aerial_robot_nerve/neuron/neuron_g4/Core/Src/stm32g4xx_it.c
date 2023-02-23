@@ -56,7 +56,7 @@
 
 /* External variables --------------------------------------------------------*/
 extern DMA_HandleTypeDef hdma_usart2_rx;
-extern TIM_HandleTypeDef htim15;
+extern TIM_HandleTypeDef htim8;
 
 /* USER CODE BEGIN EV */
 
@@ -175,17 +175,17 @@ void DMA1_Channel1_IRQHandler(void)
 }
 
 /**
-  * @brief This function handles TIM1 break interrupt and TIM15 global interrupt.
+  * @brief This function handles TIM8 update interrupt.
   */
-void TIM1_BRK_TIM15_IRQHandler(void)
+void TIM8_UP_IRQHandler(void)
 {
-  /* USER CODE BEGIN TIM1_BRK_TIM15_IRQn 0 */
+  /* USER CODE BEGIN TIM8_UP_IRQn 0 */
 
-  /* USER CODE END TIM1_BRK_TIM15_IRQn 0 */
-  HAL_TIM_IRQHandler(&htim15);
-  /* USER CODE BEGIN TIM1_BRK_TIM15_IRQn 1 */
+  /* USER CODE END TIM8_UP_IRQn 0 */
+  HAL_TIM_IRQHandler(&htim8);
+  /* USER CODE BEGIN TIM8_UP_IRQn 1 */
 
-  /* USER CODE END TIM1_BRK_TIM15_IRQn 1 */
+  /* USER CODE END TIM8_UP_IRQn 1 */
 }
 
 /* USER CODE BEGIN 1 */
