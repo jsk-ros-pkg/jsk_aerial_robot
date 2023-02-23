@@ -22,8 +22,9 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "imu_mpu9250.h"
 #include "flashmemory.h"
+#include "imu_mpu9250.h"
+#include "servo.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -51,15 +52,20 @@ SPI_HandleTypeDef hspi1;
 
 UART_HandleTypeDef huart2;
 UART_HandleTypeDef huart3;
+DMA_HandleTypeDef hdma_usart2_rx;
 
 osThreadId idleTaskHandle;
+osThreadId servoTaskHandle;
+osMutexId servoMutexHandle;
 /* USER CODE BEGIN PV */
 IMU imu_;
+Servo servo_;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
+static void MX_DMA_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_FDCAN1_Init(void);
 static void MX_I2C1_Init(void);
@@ -67,6 +73,7 @@ static void MX_SPI1_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_USART3_UART_Init(void);
 void idleTaskCallback(void const * argument);
+void servoTaskCallback(void const * argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -105,6 +112,7 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_DMA_Init();
   MX_ADC1_Init();
   MX_FDCAN1_Init();
   MX_I2C1_Init();
@@ -112,6 +120,7 @@ int main(void)
   MX_USART2_UART_Init();
   MX_USART3_UART_Init();
   /* USER CODE BEGIN 2 */
+  HAL_NVIC_DisableIRQ(DMA1_Channel1_IRQn);
   Flashmemory::init(0x0807F000, FLASH_BANK_1, 127); //last page in bank1
 
   // flashmemory test
@@ -172,8 +181,17 @@ int main(void)
   }
 
   imu_ = IMU();
+  servo_ = Servo(slave_id);
+
   imu_.init(&hspi1);
+  servo_.init(&huart2, &hi2c1, &servoMutexHandle);
+
   /* USER CODE END 2 */
+
+  /* Create the mutex(es) */
+  /* definition and creation of servoMutex */
+  osMutexDef(servoMutex);
+  servoMutexHandle = osMutexCreate(osMutex(servoMutex));
 
   /* USER CODE BEGIN RTOS_MUTEX */
   /* add mutexes, ... */
@@ -195,6 +213,10 @@ int main(void)
   /* definition and creation of idleTask */
   osThreadDef(idleTask, idleTaskCallback, osPriorityIdle, 0, 128);
   idleTaskHandle = osThreadCreate(osThread(idleTask), NULL);
+
+  /* definition and creation of servoTask */
+  osThreadDef(servoTask, servoTaskCallback, osPriorityNormal, 0, 512);
+  servoTaskHandle = osThreadCreate(osThread(servoTask), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -470,7 +492,7 @@ static void MX_USART2_UART_Init(void)
 
   /* USER CODE END USART2_Init 1 */
   huart2.Instance = USART2;
-  huart2.Init.BaudRate = 115200;
+  huart2.Init.BaudRate = 1000000;
   huart2.Init.WordLength = UART_WORDLENGTH_8B;
   huart2.Init.StopBits = UART_STOPBITS_1;
   huart2.Init.Parity = UART_PARITY_NONE;
@@ -551,6 +573,23 @@ static void MX_USART3_UART_Init(void)
 }
 
 /**
+  * Enable DMA controller clock
+  */
+static void MX_DMA_Init(void)
+{
+
+  /* DMA controller clock enable */
+  __HAL_RCC_DMAMUX1_CLK_ENABLE();
+  __HAL_RCC_DMA1_CLK_ENABLE();
+
+  /* DMA interrupt init */
+  /* DMA1_Channel1_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Channel1_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Channel1_IRQn);
+
+}
+
+/**
   * @brief GPIO Initialization Function
   * @param None
   * @retval None
@@ -612,15 +651,36 @@ __weak void idleTaskCallback(void const * argument)
   /* Infinite loop */
   for(;;)
   {
-    // HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
-    imu_.update();
-    osDelay(100);
-    Vector3d acc = imu_.getAcc();
-    float acc_z = acc[2] / 4096.0f * 9.8f;
-    Vector3d mag = imu_.getMag();
-    float mag_z = mag[2]  * 4912.0f / 32760.0f;
+    HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+    osDelay(1000);
+
+    /* imu_.update(); */
+    /* osDelay(100); */
+    /* Vector3d acc = imu_.getAcc(); */
+    /* float acc_z = acc[2] / 4096.0f * 9.8f; */
+    /* Vector3d mag = imu_.getMag(); */
+    /* float mag_z = mag[2]  * 4912.0f / 32760.0f; */
   }
   /* USER CODE END 5 */
+}
+
+/* USER CODE BEGIN Header_servoTaskCallback */
+/**
+* @brief Function implementing the servoTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_servoTaskCallback */
+__weak void servoTaskCallback(void const * argument)
+{
+  /* USER CODE BEGIN servoTaskCallback */
+  /* Infinite loop */
+  for(;;)
+  {
+    servo_.update();
+    osDelay(1); // 1ms sleep is OK
+  }
+  /* USER CODE END servoTaskCallback */
 }
 
 /**

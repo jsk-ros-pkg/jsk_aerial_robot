@@ -10,6 +10,7 @@
 
 #include <inttypes.h>
 #include <stdlib.h>
+#include <string.h>
 #include <array>
 #include <algorithm>
 #include <utility>
@@ -211,9 +212,6 @@
 #define GET_HARDWARE_ERROR_STATUS_DU 200 //[msec], 200ms => 5Hz
 #define GET_HARDWARE_ERROR_STATUS_OFFSET 150
 
-/* please define the gpio which control the IO direction */
-#define WE HAL_GPIO_WritePin(RS485EN_GPIO_Port, RS485EN_Pin, GPIO_PIN_SET);
-#define RE HAL_GPIO_WritePin(RS485EN_GPIO_Port, RS485EN_Pin, GPIO_PIN_RESET);
 
 /* DMA circular rx buffer size */
 #define RX_BUFFER_SIZE 512
