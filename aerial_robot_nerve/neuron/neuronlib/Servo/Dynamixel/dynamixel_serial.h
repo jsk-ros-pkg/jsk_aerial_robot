@@ -16,7 +16,7 @@
 #include <utility>
 #include <cmath>
 #include "flashmemory.h"
-#include "can_core.h"
+//#include "can_core.h"
 #include "Encoder/mag_encoder.h"
 #include "cmsis_os.h"
 
