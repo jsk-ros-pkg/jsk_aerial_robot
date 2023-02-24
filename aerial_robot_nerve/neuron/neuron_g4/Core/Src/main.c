@@ -742,13 +742,6 @@ __weak void idleTaskCallback(void const * argument)
   {
     HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
     osDelay(1000);
-
-    /* imu_.update(); */
-    /* osDelay(100); */
-    /* Vector3d acc = imu_.getAcc(); */
-    /* float acc_z = acc[2] / 4096.0f * 9.8f; */
-    /* Vector3d mag = imu_.getMag(); */
-    /* float mag_z = mag[2]  * 4912.0f / 32760.0f; */
   }
   /* USER CODE END 5 */
 }
