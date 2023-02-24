@@ -25,6 +25,7 @@
 #include "can_device_manager.h"
 #include "flashmemory.h"
 #include "imu_mpu9250.h"
+#include "initializer.h"
 #include "motor.h"
 #include "servo.h"
 /* USER CODE END Includes */
@@ -60,8 +61,16 @@ DMA_HandleTypeDef hdma_usart2_rx;
 
 osThreadId idleTaskHandle;
 osThreadId servoTaskHandle;
+osThreadId coreTaskHandle;
+osThreadId canRxTaskHandle;
+osThreadId canTxTaskHandle;
+osTimerId coreTimerHandle;
 osMutexId servoMutexHandle;
+osSemaphoreId coreTaskSemHandle;
+osSemaphoreId canTxSemHandle;
 /* USER CODE BEGIN PV */
+osMailQId canMsgMailHandle;
+
 IMU imu_;
 Motor motor_;
 Servo servo_;
@@ -80,6 +89,10 @@ static void MX_USART3_UART_Init(void);
 static void MX_TIM1_Init(void);
 void idleTaskCallback(void const * argument);
 void servoTaskCallback(void const * argument);
+void coreTaskCallback(void const * argument);
+void canRxCallback(void const * argument);
+void canTxCallback(void const * argument);
+void coreEvokeCallback(void const * argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -190,12 +203,19 @@ int main(void)
   imu_ = IMU();
   motor_ = Motor(slave_id);
   servo_ = Servo(slave_id);
+  Initializer initializer(slave_id, servo_, imu_);
 
   imu_.init(&hspi1);
   motor_.init(&htim1);
   HAL_Delay(300); //wait servo init
   servo_.init(&huart2, &hi2c1, &servoMutexHandle);
+
   CANDeviceManager::init(&hfdcan1, slave_id, GPIOC, GPIO_PIN_13);
+  CANDeviceManager::addDevice(&motor_);
+  CANDeviceManager::addDevice(&imu_);
+  CANDeviceManager::addDevice(&servo_);
+  CANDeviceManager::addDevice(&initializer);
+  CANDeviceManager::useRTOS(&canMsgMailHandle);
 
   /* USER CODE END 2 */
 
@@ -208,16 +228,34 @@ int main(void)
   /* add mutexes, ... */
   /* USER CODE END RTOS_MUTEX */
 
+  /* Create the semaphores(s) */
+  /* definition and creation of coreTaskSem */
+  osSemaphoreDef(coreTaskSem);
+  coreTaskSemHandle = osSemaphoreCreate(osSemaphore(coreTaskSem), 1);
+
+  /* definition and creation of canTxSem */
+  osSemaphoreDef(canTxSem);
+  canTxSemHandle = osSemaphoreCreate(osSemaphore(canTxSem), 1);
+
   /* USER CODE BEGIN RTOS_SEMAPHORES */
   /* add semaphores, ... */
   /* USER CODE END RTOS_SEMAPHORES */
 
+  /* Create the timer(s) */
+  /* definition and creation of coreTimer */
+  osTimerDef(coreTimer, coreEvokeCallback);
+  coreTimerHandle = osTimerCreate(osTimer(coreTimer), osTimerPeriodic, NULL);
+
   /* USER CODE BEGIN RTOS_TIMERS */
   /* start timers, add new ones, ... */
+  osTimerStart(coreTimerHandle, 1); // 1 ms (1kHz)
   /* USER CODE END RTOS_TIMERS */
 
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
+  /* add mail queue for CAN RX */
+  osMailQDef(CanMail, 20, can_msg); // this is for the margin set for spinal: initializer sendBoardConfig (4 servo: 1 + 4 x 3 = 13 packets -> 20)
+  canMsgMailHandle = osMailCreate(osMailQ(CanMail), NULL);
   /* USER CODE END RTOS_QUEUES */
 
   /* Create the thread(s) */
@@ -228,6 +266,18 @@ int main(void)
   /* definition and creation of servoTask */
   osThreadDef(servoTask, servoTaskCallback, osPriorityNormal, 0, 512);
   servoTaskHandle = osThreadCreate(osThread(servoTask), NULL);
+
+  /* definition and creation of coreTask */
+  osThreadDef(coreTask, coreTaskCallback, osPriorityRealtime, 0, 256);
+  coreTaskHandle = osThreadCreate(osThread(coreTask), NULL);
+
+  /* definition and creation of canRxTask */
+  osThreadDef(canRxTask, canRxCallback, osPriorityRealtime, 0, 256);
+  canRxTaskHandle = osThreadCreate(osThread(canRxTask), NULL);
+
+  /* definition and creation of canTxTask */
+  osThreadDef(canTxTask, canTxCallback, osPriorityAboveNormal, 0, 128);
+  canTxTaskHandle = osThreadCreate(osThread(canTxTask), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -509,7 +559,7 @@ static void MX_TIM1_Init(void)
   /* USER CODE END TIM1_Init 1 */
   htim1.Instance = TIM1;
   htim1.Init.Prescaler = 4-1;
-  htim1.Init.CounterMode = TIM_COUNTERMODE_CENTERALIGNED1;
+  htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim1.Init.Period = 39999;
   htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim1.Init.RepetitionCounter = 0;
@@ -724,6 +774,14 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+/* USER CODE BEGIN 0 */
+
+void CANDeviceManager::userReceiveMessagesCallback(uint8_t slave_id, uint8_t device_id, uint8_t message_id, uint32_t DLC, uint8_t* data)
+{
+  if (device_id == CAN::DEVICEID_SERVO && message_id == CAN::MESSAGEID_RECEIVE_SERVO_ANGLE) {
+      osSemaphoreRelease(canTxSemHandle);
+  }
+}
 
 /* USER CODE END 4 */
 
@@ -734,13 +792,13 @@ static void MX_GPIO_Init(void)
   * @retval None
   */
 /* USER CODE END Header_idleTaskCallback */
-__weak void idleTaskCallback(void const * argument)
+void idleTaskCallback(void const * argument)
 {
   /* USER CODE BEGIN 5 */
   /* Infinite loop */
   for(;;)
   {
-    HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+    // HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
     osDelay(1000);
   }
   /* USER CODE END 5 */
@@ -753,7 +811,7 @@ __weak void idleTaskCallback(void const * argument)
 * @retval None
 */
 /* USER CODE END Header_servoTaskCallback */
-__weak void servoTaskCallback(void const * argument)
+void servoTaskCallback(void const * argument)
 {
   /* USER CODE BEGIN servoTaskCallback */
   /* Infinite loop */
@@ -763,6 +821,81 @@ __weak void servoTaskCallback(void const * argument)
     osDelay(1); // 1ms sleep is OK
   }
   /* USER CODE END servoTaskCallback */
+}
+
+/* USER CODE BEGIN Header_coreTaskCallback */
+/**
+* @brief Function implementing the coreTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_coreTaskCallback */
+void coreTaskCallback(void const * argument)
+{
+  /* USER CODE BEGIN coreTaskCallback */
+  /* Infinite loop */
+  for(;;)
+  {
+    // RTOS semephre
+    osSemaphoreWait(coreTaskSemHandle, osWaitForever);
+
+    CANDeviceManager::tick(1);
+    motor_.update();
+    imu_.update();
+  }
+  /* USER CODE END coreTaskCallback */
+}
+
+/* USER CODE BEGIN Header_canRxCallback */
+/**
+* @brief Function implementing the canRxTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_canRxCallback */
+__weak void canRxCallback(void const * argument)
+{
+  /* USER CODE BEGIN canRxCallback */
+  /* Infinite loop */
+  for(;;)
+    {
+      osDelay(1);
+  }
+  /* USER CODE END canRxCallback */
+}
+
+/* USER CODE BEGIN Header_canTxCallback */
+/**
+* @brief Function implementing the canTxTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_canTxCallback */
+void canTxCallback(void const * argument)
+{
+  /* USER CODE BEGIN canTxCallback */
+  /* Infinite loop */
+  for(;;)
+  {
+    // RTOS semephre
+    osSemaphoreWait(canTxSemHandle, osWaitForever);
+
+    servo_.sendData();
+    imu_.sendData();
+  }
+  /* USER CODE END canTxCallback */
+}
+
+/* coreEvokeCallback function */
+void coreEvokeCallback(void const * argument)
+{
+  /* USER CODE BEGIN coreEvokeCallback */
+  /*
+    We need to create another indipendent task to run the core function (following coreTask).
+    since block action in timer callback function is not allowed.
+  */
+  osSemaphoreRelease(coreTaskSemHandle);
+  /* USER CODE END coreEvokeCallback */
 }
 
 /**

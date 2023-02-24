@@ -155,8 +155,11 @@ void HAL_FDCAN_RxFifo1Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)
 }
 #endif
 
+#if defined(STM32F1) || defined(STM32F4)
+// project of STM32F4 is generated from an old version of STM32CubeMx that need extern C
 extern "C"
 {
+#endif
   /* The callback function for CAN TX task in RTOS */
   void canRxCallback(void const * argument)
   {
@@ -180,5 +183,6 @@ extern "C"
           }
       }
   }
+#if defined(STM32F1) || defined(STM32F4)
 }
-
+#endif
