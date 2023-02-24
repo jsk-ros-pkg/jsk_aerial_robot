@@ -142,7 +142,6 @@ namespace Flashmemory {
 #elif defined(STM32G473xx)
     uint64_t temp = 0xFFFFFFFFFFFFFFFF;
     uint32_t cnt = 0;
-    bool flag = false;
     for (unsigned int i = 0; i != data.size(); i++){
       for (unsigned int j = 0; j != data[i].size; j++) {
 
