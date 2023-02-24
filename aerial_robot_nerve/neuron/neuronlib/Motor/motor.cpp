@@ -7,7 +7,7 @@
  */
 
 #include "motor.h"
-
+#include "CAN/can_device_manager.h"
 
 void Motor::init(TIM_HandleTypeDef* htim)
 {

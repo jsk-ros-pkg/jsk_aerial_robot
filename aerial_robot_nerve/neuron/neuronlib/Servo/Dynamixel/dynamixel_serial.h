@@ -15,9 +15,9 @@
 #include <algorithm>
 #include <utility>
 #include <cmath>
-#include "flashmemory.h"
-#include "can_core.h"
-#include "Encoder/mag_encoder.h"
+#include "Flashmemory/flashmemory.h"
+#include "CAN/can_core.h"
+#include "Servo/Encoder/mag_encoder.h"
 #include "cmsis_os.h"
 
 /* first should set the baudrate to 1000000*/

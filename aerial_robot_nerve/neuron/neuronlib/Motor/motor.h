@@ -9,7 +9,7 @@
 #ifndef APPLICATION_MOTOR_TEMP_MOTOR_H_
 #define APPLICATION_MOTOR_TEMP_MOTOR_H_
 
-#include "can_device_manager.h"
+#include "CAN/can_device.h"
 
 #define IDLE_DUTY 0.5f // 1000[usec] / 2000[usec]
 #define MIN_DUTY_DEFAULT  0.55f   //1100 / 2000

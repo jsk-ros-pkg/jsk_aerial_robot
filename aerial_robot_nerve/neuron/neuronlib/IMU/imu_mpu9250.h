@@ -12,8 +12,8 @@
 #error "Please define __cplusplus, because this is a c++ based file "
 #endif
 
-#include "can_device.h"
-#include "flashmemory.h"
+#include "CAN/can_device.h"
+#include "Flashmemory/flashmemory.h"
 
 using Vector3d = std::array<int16_t, 3>;
 

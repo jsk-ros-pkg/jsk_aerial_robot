@@ -22,12 +22,12 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "can_device_manager.h"
-#include "flashmemory.h"
-#include "imu_mpu9250.h"
-#include "initializer.h"
-#include "motor.h"
-#include "servo.h"
+#include "CAN/can_device_manager.h"
+#include "Flashmemory/flashmemory.h"
+#include "IMU/imu_mpu9250.h"
+#include "Initializer/initializer.h"
+#include "Motor/motor.h"
+#include "Servo/servo.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
