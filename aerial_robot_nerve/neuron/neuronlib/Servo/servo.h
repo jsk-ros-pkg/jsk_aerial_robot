@@ -8,20 +8,21 @@
 #ifndef APPLICATION_SERVO_TEMP_SERVO_H_
 #define APPLICATION_SERVO_TEMP_SERVO_H_
 
-//#include "can_device.h"
-#include "stm32g4xx_hal.h"
+#include "can_device.h"
 #include "Dynamixel/dynamixel_serial.h"
 #include <algorithm>
 
 class Initializer;
 
-class Servo
+class Servo : public CANDevice
 {
 public:
 	Servo(){}
-	Servo(uint8_t slave_id){}
+	Servo(uint8_t slave_id):CANDevice(CAN::DEVICEID_SERVO, slave_id){}
 	void init(UART_HandleTypeDef* huart, I2C_HandleTypeDef* hi2c, osMutexId* mutex);
 	void update();
+	void sendData() override;
+	void receiveDataCallback(uint8_t message_id, uint32_t DLC, uint8_t* data) override;
 
 private:
 	struct CANServoData{
