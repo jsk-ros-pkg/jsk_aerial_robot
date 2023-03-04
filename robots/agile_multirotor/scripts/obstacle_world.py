@@ -51,7 +51,7 @@ class ObstacleWorld:
             self.obs = dict()
             for i in range(len(df)):
                 name = 'obj' + str(i+1)
-                self.obs[name] = {'p': np.array(df.loc[i, 1:3].tolist())+np.array([shift_x,shift_y,0]), 'r': df.at[0,8]}
+                self.obs[name] = {'p': np.array(df.loc[i, 1:3].tolist())+np.array([shift_x+20,shift_y,0]), 'r': df.at[0,8]}
                 self.obs[name]['p'][2] = self.h / 2
                 self.spwanObstacle(name, self.m, self.obs[name]['p'], self.obs[name]['r'], self.h)
             rospy.Timer(rospy.Duration(1.0/rate), self.mainProcess)
