@@ -13,7 +13,7 @@ import ros_numpy as ros_np
 import threading
 from copy import deepcopy
 
-class ObostacleWorld:
+class ObstacleWorld:
     def __init__(self):
         self.sdf_version = rospy.get_param('~gazebo/sdf_version', 1.4)
 
@@ -33,8 +33,7 @@ class ObostacleWorld:
         shift_y = rospy.get_param('~shift_y', 0) #init y
         print("shift_x: ",shift_x, "shift_y: ",shift_y)
 
-        rospy.Timer(rospy.Duration(1.0/rate), self.mainProcess)
-
+        wall_y_position = 1.5
         # debug
         # r = 0.5
         # p = [0, 0, 0] # x, y, z
@@ -47,14 +46,20 @@ class ObostacleWorld:
             rospy.logerr("no valid obsracle world file")
             return
 
-        df = pd.read_csv(file, header=None)
-        self.obs = dict()
-        for i in range(len(df)):
-            name = 'obj' + str(i+1)
-            self.obs[name] = {'p': np.array(df.loc[i, 1:3].tolist())+np.array([shift_x,shift_y,0]), 'r': df.at[0,8]}
-            self.obs[name]['p'][2] = self.h / 2
-            self.spwanObstacle(name, self.m, self.obs[name]['p'], self.obs[name]['r'], self.h)
+        try:
+            df = pd.read_csv(file, header=None)
+            self.obs = dict()
+            for i in range(len(df)):
+                name = 'obj' + str(i+1)
+                self.obs[name] = {'p': np.array(df.loc[i, 1:3].tolist())+np.array([shift_x,shift_y,0]), 'r': df.at[0,8]}
+                self.obs[name]['p'][2] = self.h / 2
+                self.spwanObstacle(name, self.m, self.obs[name]['p'], self.obs[name]['r'], self.h)
+            rospy.Timer(rospy.Duration(1.0/rate), self.mainProcess)
+        except pd.errors.EmptyDataError as e:
+            print("tree data is empty")
             # print("self.obs: ",self.obs)
+        self.spawnWall("right_wall", 0.5, np.array([2,wall_y_position,2]) + np.array([shift_x,shift_y,0]) , 6, 0.01, 4)
+        self.spawnWall("left_wall", 0.5, np.array([2,-wall_y_position,2]) + np.array([shift_x,shift_y,0]), 6, 0.01, 4)
 
     def odomCb(self, msg):
         self.lock.acquire()
@@ -98,6 +103,7 @@ class ObostacleWorld:
                     "<model name='{}'>".format(name)  + \
                     "<allow_auto_disable>true</allow_auto_disable>" + \
                     "<pose> 0 0 0 0 0 0 </pose>" + \
+                    "<static>true</static>" + \
                     "<link name='link'>" + \
                     "<velocity_decay>" + \
                     "<linear>0.01</linear>" + \
@@ -144,9 +150,67 @@ class ObostacleWorld:
 
         return ret
 
+    def spawnWall(self, name, m, p, w, t, h):
+
+        rospy.wait_for_service('/gazebo/delete_model')
+        try:
+            delete_model = rospy.ServiceProxy('/gazebo/delete_model', DeleteModel)
+            # resp = delete_model(name)
+            print("try works well")
+        except rospy.ServiceException as e:
+            print("Service call failed: %s" % e)
+
+        model_xml =  "<sdf version='{}'>".format(self.sdf_version) + \
+                    "<model name='{}'>".format(name)  + \
+                    "<allow_auto_disable>true</allow_auto_disable>" + \
+                    "<pose> 0 0 0 0 0 0 </pose>" + \
+                    "<static>true</static>" + \
+                    "<link name='link'>" + \
+                    "<velocity_decay>" + \
+                    "<linear>0.01</linear>" + \
+                    "<angular>0.01</angular>" + \
+                    "</velocity_decay>" + \
+                    "<inertial><mass> {} </mass>".format(m) + \
+                    "<inertia>" + \
+                    "<ixx> {} </ixx>".format(m*(t**2+h**2)/12) +\
+                    "<iyy> {} </iyy>".format(m*(h**2+w**2)/12) + \
+                    "<izz> {} </izz>".format(m*(w**2+t**2)/12) + \
+                    "<ixy> 0.0 </ixy>" + \
+                    "<ixz> 0.0 </ixz>" + \
+                    "<iyz> 0.0 </iyz>" + \
+                    "</inertia>" + \
+                    "</inertial>"  + \
+                    "<collision name='collision'>" + \
+                    "<geometry>" + \
+                    "<box>"  + \
+                    "<size>{} {} {} </size>".format(w, t, h) + \
+                    "</box>" + \
+                    "</geometry>" + \
+                    "</collision>" + \
+                    "<visual name='visual'>" + \
+                    "<geometry>" + \
+                    "<box>"  + \
+                    "<size>{} {} {} </size>".format(w, t, h) + \
+                    "</box>" + \
+                    "</geometry>" + \
+                    "<material>"  + \
+                    "<ambient> 0.4 0.2 0.0 0.3 </ambient>"  + \
+                    "<diffuse> 0.4 0.2 0.0 0.3 </diffuse>"  + \
+                    "<specular>0.1 0.1 0.1 0.3</specular>"  + \
+                    "<emissive>0 0 0 0</emissive>"  + \
+                    "</material>" + \
+                    "</visual>" + \
+                    "</link>"  + \
+                    "</model>" + \
+                    "</sdf>"
+
+        ret = gazebo_interface.spawn_sdf_model_client(name, model_xml, "obstacle", Pose(Point(p[0], p[1], p[2]), Quaternion(0,0,0,1)), '', '/gazebo')
+        # set obstacle in model_xml setting (we cannot change obstacle shape now...)
+
+        return ret
 
 if __name__=="__main__":
     rospy.init_node("obsracle_world")
 
-    world = ObostacleWorld()
+    world = ObstacleWorld()
     rospy.spin()
