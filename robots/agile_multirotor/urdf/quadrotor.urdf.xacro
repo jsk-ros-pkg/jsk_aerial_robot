@@ -117,18 +117,18 @@
   <!-- main_body -->
   <link name="main_body">
     <inertial>
-      <mass value = "1.30" />
+      <mass value = "0.847" />
       <origin xyz="-0.0006654 0.0005569 -0.007939" rpy="0 0 0"/>
       <inertia
-          ixx="0.04" ixy="0.0000" ixz="0.0000"
-          iyy="0.04" iyz="0.00000"
-          izz="0.06"/>
+          ixx="0.00664" ixy="0.0000" ixz="0.0000"
+          iyy="0.00714" iyz="0.00000"
+          izz="0.00916"/>
     </inertial>
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
 	<!-- <mesh filename="package://agile_multirotor/urdf/mesh/quadrotor.stl" /> -->
-        <cylinder length="0.3" radius="0.50"/>
+        <cylinder length="0.3" radius="0.25"/>
       </geometry>
     </visual>
     <!-- collision is not sphere to be able to  -->
@@ -137,7 +137,7 @@
       <geometry>
         <!-- <box size="0.3525 0.26 0.04" /> -->
         <!-- length should be smaller not to collide to myself -->
-        <cylinder length="0.005" radius="0.50"/>
+        <cylinder length="0.005" radius="0.25"/>
       </geometry>
     </collision>
   </link>
