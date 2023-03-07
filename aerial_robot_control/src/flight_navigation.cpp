@@ -9,6 +9,7 @@ BaseNavigator::BaseNavigator():
   target_acc_(0, 0, 0),
   target_rpy_(0, 0, 0),
   target_omega_(0, 0, 0),
+  i_term_fix_(false),
   force_att_control_flag_(false),
   low_voltage_flag_(false),
   prev_xy_control_mode_(ACC_CONTROL_MODE),
@@ -702,6 +703,7 @@ void BaseNavigator::update()
           {
             convergent_start_time_ = ros::Time::now().toSec();
             setNaviState(HOVER_STATE);
+            i_term_fix_ = true;
             ROS_WARN("Hovering!");
 
           }

@@ -75,6 +75,7 @@ namespace aerial_robot_navigation
     inline tf::Vector3 getTargetAcc() {return target_acc_;}
     inline tf::Vector3 getTargetRPY() {return target_rpy_;}
     inline tf::Vector3 getTargetOmega() {return target_omega_;}
+    inline bool getITermFix() {return i_term_fix_;}
 
     inline void setTargetRoll(float value) { target_rpy_.setX(value); }
     inline void setTargetOmageX(float value) { target_omega_.setX(value); }
@@ -244,6 +245,7 @@ namespace aerial_robot_navigation
     /* target value */
     tf::Vector3 target_pos_, target_vel_, target_acc_;
     tf::Vector3 target_rpy_, target_omega_;
+    bool i_term_fix_;
 
     double takeoff_height_;
 

@@ -60,16 +60,20 @@ namespace aerial_robot_control
 
     virtual ~PID() = default;
 
-    virtual void update(const double err_p, const double du, const double err_d, const double feedforward_term = 0)
+    virtual void update(const double err_p, const double du, const double err_d, const double feedforward_term = 0, const bool i_term_fix = false)
     {
       err_p_ = clamp(err_p, -limit_err_p_, limit_err_p_);
-      err_i_prev_ = err_i_;
-      err_i_ = clamp(err_i_ + err_p_ * du, -limit_err_i_, limit_err_i_);
       err_d_ = clamp(err_d, -limit_err_d_, limit_err_d_);
 
       p_term_ = clamp(err_p_ * p_gain_, -limit_p_, limit_p_);
-      i_term_ = clamp(err_i_ * i_gain_, -limit_i_, limit_i_);
       d_term_ = clamp(err_d_ * d_gain_, -limit_d_, limit_d_);
+
+      if(!i_term_fix)
+        {
+          err_i_prev_ = err_i_;
+          err_i_ = clamp(err_i_ + err_p_ * du, -limit_err_i_, limit_err_i_);
+          i_term_ = clamp(err_i_ * i_gain_, -limit_i_, limit_i_);
+        }
 
       result_ = clamp(p_term_ + i_term_ + d_term_ + feedforward_term, -limit_sum_, limit_sum_);
     }
