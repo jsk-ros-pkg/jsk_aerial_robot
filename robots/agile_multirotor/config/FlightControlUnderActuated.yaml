@@ -5,8 +5,8 @@ controller:
     p_gain: 5.0
     i_gain: 0.05
     d_gain: 3.0
-    limit_sum: 3
-    limit_p: 3
+    limit_sum: 9.5
+    limit_p: 5
     limit_i: 1.5
     limit_d: 3
 
