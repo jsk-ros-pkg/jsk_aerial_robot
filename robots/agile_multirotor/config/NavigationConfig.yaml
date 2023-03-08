@@ -20,6 +20,7 @@ navigation:
 
   cmd_vel_lev2_gain : 2.0
   nav_vel_limit : 1.0
+  vel_nav_threshold : 5.0 # controlled max term by gain maximaization
 
   gain_tunning_mode: 0
   max_target_tilt_angle: 0.2
