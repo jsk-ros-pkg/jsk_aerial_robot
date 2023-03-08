@@ -4,11 +4,11 @@ controller:
   xy:
     p_gain: 5.0
     i_gain: 0.05
-    d_gain: 3.0
-    limit_sum: 9.5
-    limit_p: 5
+    d_gain: 2.0
+    limit_sum: 6.5
+    limit_p: 3
     limit_i: 1.5
-    limit_d: 3
+    limit_d: 2
 
   z:
     p_gain: 5.0
