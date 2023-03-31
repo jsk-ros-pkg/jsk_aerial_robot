@@ -22,7 +22,7 @@ servo_controller:
       name: joint1
       angle_sgn: -1
       simulation:
-        init_value: 0
+        init_value: rad(pi/2)
       #angle_max: 1.58 # you can specify for each controller
 
       #simulaton:  # you can specify for each controller
@@ -34,9 +34,9 @@ servo_controller:
       id: 1
       name: joint2
       simulation:
-        init_value: rad(pi/3)
+        init_value: rad(pi/2)
     controller3:
       id: 2
       name: joint3
       simulation:
-        init_value: 0
+        init_value: rad(pi/2)

@@ -17,7 +17,7 @@
                 ixx="0.001804" iyy="0.017972" izz="0.019248"
                 ixy="0.000021" ixz="0.000372" iyz="0.000000"/>
           </inertial>
-          <xacro:link_model type="head" />
+          <!-- <xacro:link_model type="head" /> -->
         </xacro:if>
 
         <xacro:unless value="${self == 1}">
@@ -31,7 +31,7 @@
                   ixx="0.001758" iyy="0.013619" izz="0.014910"
                   ixy="0.000020" ixz="-0.000076" iyz="0.000000"/>
             </inertial>
-            <xacro:link_model type="end" />
+            <!-- <xacro:link_model type="end" /> -->
           </xacro:if>
 
           <xacro:unless value="${self == links}">
@@ -43,7 +43,7 @@
                   ixx="0.001828" iyy="0.021127" izz="0.022388"
                   ixy="0.000021" ixz="0.000260" iyz="0.000000"/>
             </inertial>
-            <xacro:link_model type="general" />
+            <!-- <xacro:link_model type="general" /> -->
           </xacro:unless>
 
         </xacro:unless>
@@ -84,7 +84,7 @@
                   ixy="0.00000" ixz="0.00067" iyz="0.00000"/>
             </inertial>
           </xacro:unless>
-          <xacro:link_model type="1" />
+          <!-- <xacro:link_model type="1" /> -->
         </xacro:if>
 
         <xacro:unless value="${self == 1}">
@@ -120,7 +120,7 @@
                     ixy="0.00000" ixz="-0.00067" iyz="0.00000"/>
               </inertial>
             </xacro:unless>
-            <xacro:link_model type="4" />
+            <!-- <xacro:link_model type="4" /> -->
           </xacro:if>
 
 
@@ -156,7 +156,7 @@
                       ixy="0.00000" ixz="0.00001" iyz="0.00000"/>
                 </inertial>
               </xacro:unless>
-              <xacro:link_model type="2" />
+              <!-- <xacro:link_model type="2" /> -->
             </xacro:if>
             <!-- general -->
             <xacro:unless value="${self == links/2}">
@@ -189,7 +189,7 @@
                       ixy="0.00000" ixz="-0.00077" iyz="0.00000"/>
                 </inertial>
               </xacro:unless>
-              <xacro:link_model type="3" />
+              <!-- <xacro:link_model type="3" /> -->
             </xacro:unless>
           </xacro:unless>
         </xacro:unless>
@@ -227,12 +227,12 @@
             iyy="0.00001" iyz="0.0"
             izz="0.00002"/>
       </inertial>
-      <collision>
+      <!-- <collision>
         <origin rpy="0 0 0" xyz="0 0 0"/>
         <geometry>
           <cylinder length="0.1" radius="${protector_radius + 0.01}"/>
         </geometry>
-      </collision>
+      </collision> -->
     </link>
     <xacro:damping_factor link ="thrust${self}"/>
 
