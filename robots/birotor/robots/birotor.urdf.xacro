@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<robot
+    xmlns:xacro="http://www.ros.org/wiki/xacro" name="birotor" >
+
+  <xacro:include filename="$(find birotor)/urdf/birotor.urdf.xacro" />
+  <xacro:include filename="$(find birotor)/urdf/common.xacro" />
+
+  <xacro:birotor_center_link child1="1" child2="2"/>
+  <xacro:birotor_thrust_link self="1" rotor_direction="1"/>
+  <xacro:birotor_thrust_link self="2" rotor_direction="-1"/>
+
+</robot>
