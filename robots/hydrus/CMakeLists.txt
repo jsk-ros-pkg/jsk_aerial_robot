@@ -90,6 +90,8 @@ install(DIRECTORY bin
   USE_SOURCE_PERMISSIONS
 )
 
+add_executable(observation_conversion_node src/observation_cal.cpp)
+target_link_libraries(observation_conversion_node ${catkin_LIBRARIES} ${NLOPT_LIBRARIES})
 
 if(CATKIN_ENABLE_TESTING)
   find_package(rostest REQUIRED)

@@ -9,6 +9,7 @@ BaseNavigator::BaseNavigator():
   target_acc_(0, 0, 0),
   target_rpy_(0, 0, 0),
   target_omega_(0, 0, 0),
+  i_term_fix_(false),
   force_att_control_flag_(false),
   low_voltage_flag_(false),
   prev_xy_control_mode_(ACC_CONTROL_MODE),
@@ -40,6 +41,8 @@ void BaseNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   estimator_ = estimator;
 
   navi_sub_ = nh_.subscribe("uav/nav", 1, &BaseNavigator::naviCallback, this, ros::TransportHints().tcpNoDelay());
+
+  roll_pitch_sub_ = nh_.subscribe("uav/roll_pitch_nav", 1, &BaseNavigator::rollPitchCallback, this, ros::TransportHints().tcpNoDelay());
 
   battery_sub_ = nh_.subscribe("battery_voltage_status", 1, &BaseNavigator::batteryCheckCallback, this);
   flight_status_ack_sub_ = nh_.subscribe("flight_config_ack", 1, &BaseNavigator::flightStatusAckCallback, this, ros::TransportHints().tcpNoDelay());
@@ -283,6 +286,11 @@ void BaseNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & ms
       setTargetPosZ(msg->target_pos_z);
       setTargetVelZ(msg->target_vel_z);
     }
+}
+
+void BaseNavigator::rollPitchCallback(const aerial_robot_msgs::RollPitchNavConstPtr & msg){
+  setTargetRoll(msg->target_roll);
+  setTargetPitch(msg->target_pitch);
 }
 
 const sensor_msgs::Joy BaseNavigator::ps4joyToPs3joyConvert(const sensor_msgs::Joy& ps4_joy_msg)
@@ -697,6 +705,7 @@ void BaseNavigator::update()
           {
             convergent_start_time_ = ros::Time::now().toSec();
             setNaviState(HOVER_STATE);
+            i_term_fix_ = true;
             ROS_WARN("Hovering!");
 
           }

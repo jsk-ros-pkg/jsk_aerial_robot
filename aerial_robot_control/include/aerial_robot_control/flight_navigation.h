@@ -4,6 +4,7 @@
 #include <aerial_robot_estimation/sensor/gps.h>
 #include <aerial_robot_estimation/state_estimation.h>
 #include <aerial_robot_msgs/FlightNav.h>
+#include <aerial_robot_msgs/RollPitchNav.h>
 #include <angles/angles.h>
 #include <geometry_msgs/Vector3Stamped.h>
 #include <ros/ros.h>
@@ -74,6 +75,7 @@ namespace aerial_robot_navigation
     inline tf::Vector3 getTargetAcc() {return target_acc_;}
     inline tf::Vector3 getTargetRPY() {return target_rpy_;}
     inline tf::Vector3 getTargetOmega() {return target_omega_;}
+    inline bool getITermFix() {return i_term_fix_;}
 
     inline void setTargetRoll(float value) { target_rpy_.setX(value); }
     inline void setTargetOmageX(float value) { target_omega_.setX(value); }
@@ -215,6 +217,7 @@ namespace aerial_robot_navigation
     ros::Subscriber joy_stick_sub_;
     ros::Subscriber flight_nav_sub_;
     ros::Subscriber stop_teleop_sub_;
+    ros::Subscriber roll_pitch_sub_;
 
     boost::shared_ptr<aerial_robot_model::RobotModel> robot_model_;
     boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator_;
@@ -242,6 +245,7 @@ namespace aerial_robot_navigation
     /* target value */
     tf::Vector3 target_pos_, target_vel_, target_acc_;
     tf::Vector3 target_rpy_, target_omega_;
+    bool i_term_fix_;
 
     double takeoff_height_;
 
@@ -296,6 +300,7 @@ namespace aerial_robot_navigation
 
     virtual void rosParamInit();
     void naviCallback(const aerial_robot_msgs::FlightNavConstPtr & msg);
+    void rollPitchCallback(const aerial_robot_msgs::RollPitchNavConstPtr & msg);
     void joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg);
     void batteryCheckCallback(const std_msgs::Float32ConstPtr &msg);
 

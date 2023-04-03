@@ -54,5 +54,6 @@
   <run_depend>urdf</run_depend>
   <run_depend>visualization_msgs</run_depend>
   <run_depend>xacro</run_depend>
+  <run_depend>hector_sensors_description</run_depend>
 
 </package>

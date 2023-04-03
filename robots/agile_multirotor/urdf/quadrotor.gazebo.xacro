@@ -1,0 +1,147 @@
+<?xml version="1.0"?>
+<robot
+    xmlns:xacro="http://www.ros.org/wiki/xacro" name="quadrotor" >
+
+  <xacro:arg name="robot_name" default="multirotor" />
+
+  <!-- robot urdf -->
+  <xacro:include filename="$(find agile_multirotor)/urdf/quadrotor.urdf.xacro" />
+
+  <!-- gazebo plugin for default controller and sensors -->
+  <xacro:include filename="$(find aerial_robot_simulation)/xacro/spinal.gazebo.xacro" />
+  <xacro:gazebo_spinal robot_name="$(arg robot_name)" />
+
+  <gazebo reference="main_body">
+    <mu1>1.0</mu1>
+    <mu2>1.0</mu2>
+    <material>Gazebo/Red</material>
+  </gazebo>
+
+  <gazebo reference="thrust1">
+    <material>Gazebo/Black</material>
+  </gazebo>
+
+  <gazebo reference="thrust2">
+    <material>Gazebo/Black</material>
+  </gazebo>
+
+  <gazebo reference="thrust3">
+    <material>Gazebo/Black</material>
+  </gazebo>
+
+  <gazebo reference="thrust4">
+    <material>Gazebo/Black</material>
+  </gazebo>
+
+  <!-- sensors -->
+  <!-- 1. stereo camera: depth, color camera -->
+  <xacro:extra_module name = "rgbd_camera_frame" parent = "main_body">
+    <origin xyz="0.13 0.0 0.0" rpy="0 0 0"/>
+    <inertial>
+      <mass value = "0.00001" />
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia
+          ixx="0.000001" ixy="0.0" ixz="0.0"
+          iyy="0.000001" iyz="0.0"
+          izz="0.000002"/>
+    </inertial>
+  </xacro:extra_module>
+  <xacro:extra_module name = "rgbd_camera_optical_frame" parent = "rgbd_camera_frame">
+    <origin xyz="0 0 0" rpy="${-pi / 2} 0 ${-pi / 2}"/>
+    <inertial>
+      <mass value = "0.00001" />
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia
+          ixx="0.000001" ixy="0.0" ixz="0.0"
+          iyy="0.000001" iyz="0.0"
+          izz="0.000002"/>
+    </inertial>
+  </xacro:extra_module>
+
+  <!-- gazebo plugin -->
+  <gazebo reference="rgbd_camera_frame">
+    <sensor type="depth" name="rgbd_depth_camera">
+      <update_rate>20.0</update_rate>
+      <camera name="head">
+        <horizontal_fov>1.57</horizontal_fov>
+        <image>
+          <width>1280</width>
+          <height>720</height>
+          <format>RGB</format>
+        </image>
+        <clip>
+          <near>0.02</near>
+          <far>300</far>
+        </clip>
+        <noise>
+          <type>gaussian</type>
+          <mean>0.0</mean>
+          <stddev>0.007</stddev>
+        </noise>
+      </camera>
+      <plugin name="depth_camera" filename="libgazebo_ros_openni_kinect.so">
+        <robotNamespace>$(arg robot_name)</robotNamespace>
+        <baseline>0.06</baseline>
+        <alwaysOn>true</alwaysOn>
+        <updateRate>0.0</updateRate>
+        <cameraName>rgbd</cameraName>
+        <imageTopicName>rgb/image_rect_color</imageTopicName>
+        <cameraInfoTopicName>rgb/camera_info</cameraInfoTopicName>
+        <depthImageTopicName>depth/depth_registered</depthImageTopicName>
+        <depthImageInfoTopicName>depth/camera_info</depthImageInfoTopicName>
+        <pointCloudTopicName>point_cloud/cloud_registered</pointCloudTopicName>
+        <frameName>rgbd_camera_optical_frame</frameName>
+        <pointCloudCutoff>0.05</pointCloudCutoff>
+        <pointCloudCutoffMax>10.0</pointCloudCutoffMax>
+        <distortionK1>0</distortionK1>
+        <distortionK2>0</distortionK2>
+        <distortionK3>0</distortionK3>
+        <distortionT1>0</distortionT1>
+        <distortionT2>0</distortionT2>
+        <CxPrime>0</CxPrime>
+        <Cx>0</Cx>
+        <Cy>0</Cy>
+        <focalLength>0</focalLength>
+        <hackBaseline>0</hackBaseline>
+      </plugin>
+    </sensor>
+  </gazebo>
+
+  <!-- hokuyo -->
+  <xacro:property name="ray_count" default="1081" />
+  <xacro:property name="max_angle" default="135" />
+  <gazebo reference="laser_frame">
+    <sensor type="ray" name="laser">
+      <always_on>true</always_on>
+      <update_rate>40</update_rate>
+      <pose>0 0 0 0 0 0</pose>
+      <visualize>false</visualize>
+      <ray>
+        <scan>
+          <horizontal>
+            <samples>${ray_count}</samples>
+            <resolution>1</resolution>
+            <min_angle>${-max_angle * M_PI/180}</min_angle>
+            <max_angle>${max_angle * M_PI/180}</max_angle>
+          </horizontal>
+        </scan>
+        <range>
+          <min>0.1</min>
+          <max>20.0</max>
+          <resolution>0.01</resolution>
+        </range>
+        <noise>
+          <type>gaussian</type>
+          <mean>0.0</mean>
+          <stddev>0.004</stddev>
+        </noise>
+      </ray>
+      <plugin name="gazebo_ros_laser_controller" filename="libgazebo_ros_laser.so">
+        <robotNamespace>$(arg robot_name)</robotNamespace>
+        <topicName>scan</topicName>
+        <frameName>laser_frame</frameName>
+      </plugin>
+    </sensor>
+  </gazebo>
+
+</robot>

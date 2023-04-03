@@ -12,7 +12,7 @@ servo_controller:
     # for simulation
     simulation:
       pid: {p: 50.0, i: 0.01, d: 2.0}
-      init_value: 1.57
+      init_value: 1.57  
       type: effort_controllers/JointPositionController
 
     # should be in order in terms of kinematics model
@@ -21,6 +21,8 @@ servo_controller:
       id: 0
       name: joint1
       angle_sgn: -1
+      simulation:
+        init_value: 0
       #angle_max: 1.58 # you can specify for each controller
 
       #simulaton:  # you can specify for each controller
@@ -31,7 +33,10 @@ servo_controller:
     controller2:
       id: 1
       name: joint2
+      simulation:
+        init_value: rad(pi/3)
     controller3:
       id: 2
       name: joint3
-
+      simulation:
+        init_value: 0
