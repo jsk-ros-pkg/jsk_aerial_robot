@@ -54,6 +54,8 @@
   <run_depend>urdf</run_depend>
   <run_depend>visualization_msgs</run_depend>
   <run_depend>xacro</run_depend>
+  <run_depend>hector_gazebo_thermal_camera</run_depend>
+  <run_depend>velodyne_gazebo_plugins</run_depend>
   <run_depend>hector_sensors_description</run_depend>
 
 </package>
