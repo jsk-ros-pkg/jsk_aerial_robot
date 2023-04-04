@@ -1,0 +1,21 @@
+### full vectoring robot model
+
+robot_model_plugin_name: spidar/full_vectoring_robot_model
+
+# gimbal lock
+debug_verbose: false
+gimbal_lock_threshold: 0.3 # rad
+link_att_threshold: 0.2 # rad
+lock_status_change_threshold: 10
+gimbal_delta_angle: 0.3
+robot_model_refine_max_iteration: 5
+robot_model_refine_threshold: 0.01
+gimbal_roll_change_threshold: 0.04
+
+min_force_weight: 1.0
+min_torque_weight: 1.0
+
+edf_max_tilt: 0.05
+
+thrust_force_weight: 1.0
+joint_torque_weight: 10.0 # 10.0 ~ 20.0

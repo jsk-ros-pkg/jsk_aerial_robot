@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<robot
+    xmlns:xacro="http://www.ros.org/wiki/xacro" name="spidar" >
+
+  <xacro:include filename="$(find spidar)/robots/octo/spidar_v1_base.urdf.xacro" />
+
+  <xacro:spidar_v1/>
+
+  #### flight controller ####
+  <xacro:extra_module name = "fc" parent = "center_link" visible = "1"
+                      model_url = "package://spidar/urdf/v1/mesh/board/spinal.dae">
+    <origin xyz="-0.0129 -0.0044 0.0398284" rpy="0 0 0"/>
+    <inertial>
+      <mass value="0.0354160"/>
+      <origin xyz="0.0128576 0.0044678 -0.0226530" rpy="0 0 0"/>
+      <inertia
+          ixx="0.0000225" iyy="0.0000225" izz="0.0000346"
+          ixy="-0.0000001" iyz="0.0000000" ixz="0.0000000" />
+    </inertial>
+  </xacro:extra_module>
+
+  <xacro:extra_module name = "pc" parent = "center_link" visible = "0">
+    <origin xyz="0 0.089888 0.002" rpy="${pi/2} 0 0"/>
+    <inertial>
+      <mass value="0.1411331"/>
+      <origin xyz="0.0008915 0.0304136 0.0271590" rpy="0 0 0"/>
+      <inertia
+          ixx="0.0000768" iyy="0.0001380" izz="0.0001493"
+          ixy="0.0000018" iyz="0.0000071" ixz="-0.0000024" />
+    </inertial>
+  </xacro:extra_module>
+
+</robot>

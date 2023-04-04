@@ -1,0 +1,9 @@
+<library path="lib/libspidar_navigation">
+  <class name="aerial_robot_navigation/spidar/walk_navigation" type="aerial_robot_navigation::Spider::WalkNavigator" base_class_type="aerial_robot_navigation::BaseNavigator">
+    <description> spidar walk navigation plugin</description>
+  </class>
+
+  <class name="aerial_robot_navigation/spidar/flight_navigation" type="aerial_robot_navigation::Spider::FlightNavigator" base_class_type="aerial_robot_navigation::BaseNavigator">
+    <description> spidar flight navigation plugin</description>
+  </class>
+</library>

@@ -1,7 +1,0 @@
-<library path="lib/libspider_controllib">
-
-  <class name="aerial_robot_control/spider_walk" type="aerial_robot_control::Spider::WalkController" base_class_type="aerial_robot_control::ControlBase">
-    <description> spider control plugin: walk control </description>
-  </class>
-
-</library>
