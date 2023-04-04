@@ -16,13 +16,13 @@
     </link>
     <joint name="root_joint" type="fixed">
       <parent link="root"/>
-      <child link="fc"/>
+      <child link="base_link"/>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <axis xyz="0 0 1"/>
     </joint>
 
     ## link
-    <link name="fc">
+    <link name="base_link">
       <inertial>
         <origin xyz="0 0 0" rpy="0 0 0"/>
         <mass value="0.970304"/>
@@ -32,7 +32,7 @@
       </inertial>
       <visual>
         <geometry>
-          <mesh filename="package://birotor/urdf/mesh/kxr_flight_unit_base_link.STL" scale="0.001 0.001 0.001"/>
+          <mesh filename="package://birotor/urdf/mesh/kxr_flight_unit_base_link.dae" scale="0.001 0.001 0.001"/>
           <origin rpy="0 0 0" xyz="0 0 0"/>
         </geometry>
       </visual>
@@ -44,21 +44,38 @@
       </collision>
     </link>
 
-    <xacro:damping_factor link="fc"/>
+    <xacro:damping_factor link="base_link"/>
+
+    <link name="fc">
+      <inertial>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <mass value="0.00001"/>
+        <inertia
+            ixx="0.000001" ixy="0.0" ixz="0.0"
+            iyy="0.000001" iyz="0.0"
+            izz="0.000002"/>
+      </inertial>
+    </link>
+    <joint name="fc_joint" type="fixed">
+      <child link="fc"/>
+      <parent link="base_link"/>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <axis xyz="0 0 1"/>
+    </joint>
 
     ## joints
-    <joint name="joint${child1}" type="revolute">
+    <joint name="gimbal${child1}" type="revolute">
       <limit effort="6.6" lower="-1.57" upper="1.57" velocity="3.0"/>
-      <parent link="fc"/>
+      <parent link="base_link"/>
       <child link="gimbal_link${child1}"/>
       <origin rpy="0 0 0" xyz="0 0.154 0.051"/>
       <axis xyz="0 1 0"/>
       <dynamics damping="0.8" friction="0.0"/>
     </joint>
 
-    <joint name="joint${child2}" type="revolute">
+    <joint name="gimbal${child2}" type="revolute">
       <limit effort="6.6" lower="-1.57" upper="1.57" velocity="3.0"/>
-      <parent link="fc"/>
+      <parent link="base_link"/>
       <child link="gimbal_link${child2}"/>
       <origin rpy="0 0 0" xyz="0 -0.154 0.051"/>
       <axis xyz="0 1 0"/>
@@ -68,7 +85,7 @@
     #### hardware interface ####
     <transmission name="joint_tran${child1}">
       <type>transmission_interface/SimpleTransmission</type>
-      <joint name="joint${child1}">
+      <joint name="gimbal${child1}">
         <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
       </joint>
       <actuator name="servo${child1}">
@@ -79,7 +96,7 @@
 
     <transmission name="joint_tran${child2}">
       <type>transmission_interface/SimpleTransmission</type>
-      <joint name="joint${child2}">
+      <joint name="gimbal${child2}">
         <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
       </joint>
       <actuator name="servo${child2}">
@@ -88,7 +105,7 @@
       </actuator>
     </transmission>
 
-    <xacro:friction self="fc"/>
+    <xacro:friction self="base_link"/>
   </xacro:macro>
 
   <xacro:macro name="birotor_thrust_link" params="self rotor_direction">
@@ -111,7 +128,7 @@
       <visual>
         <origin rpy="0 0 ${pi/2 - pi/2 * rotor_direction}" xyz="0.0 0.0 0.0"/>
         <geometry>
-          <mesh filename="package://birotor/urdf/mesh/thrust_link_left_straight.STL" scale="0.001 0.001 0.001"/>
+          <mesh filename="package://birotor/urdf/mesh/thrust_link_left_straight.dae" scale="0.001 0.001 0.001"/>
         </geometry>
       </visual>
     </link>
