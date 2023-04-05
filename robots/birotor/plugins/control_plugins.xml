@@ -1,0 +1,5 @@
+<library path="lib/libbirotor_controller">
+  <class name="aerial_robot_control/birotor_controller" type="aerial_robot_control::BirotorController" base_class_type="aerial_robot_control::ControlBase">
+    <description>plugin for birotor control </description>
+  </class>
+</library>

@@ -1,0 +1,5 @@
+<library path="lib/libbirotor_robot_model">
+  <class name="birotor_robot_model" type="BirotorRobotModel" base_class_type="aerial_robot_model::RobotModel">
+    <description>plugin for birotor robot model </description>
+  </class>
+</library>
