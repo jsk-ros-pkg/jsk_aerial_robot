@@ -1,0 +1,5 @@
+<library path="lib/libtrirotor_controller">
+  <class name="aerial_robot_control/trirotor_controller" type="aerial_robot_control::TrirotorController" base_class_type="aerial_robot_control::ControlBase">
+    <description>plugin for trirotor control </description>
+  </class>
+</library>
