@@ -1,0 +1,5 @@
+<library path="lib/libtrirotor_robot_model">
+  <class name="trirotor_robot_model" type="TrirotorRobotModel" base_class_type="aerial_robot_model::RobotModel">
+    <description>plugin for trirotor robot model </description>
+  </class>
+</library>
