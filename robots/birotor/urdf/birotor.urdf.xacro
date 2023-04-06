@@ -150,7 +150,7 @@
     <link name="thrust${self}">
       <inertial>
         <origin xyz="0 0 0" rpy="0 0 0"/>
-        <mass value="0.2"/>
+        <mass value="0.00001"/>
         <inertia
             ixx="0.001" ixy="0.0" ixz="0.0"
             iyy="0.001" iyz="0.0"
