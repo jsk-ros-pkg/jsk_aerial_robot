@@ -109,6 +109,8 @@
   </xacro:extra_module>
   <!-- end: gps -->
 
+  <xacro:property name="body_radius" value=".50" />
+
   <link name="dummy_body">
     <inertial>
       <mass value = "0.0001" />
@@ -121,13 +123,13 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <cylinder length="0.30" radius="0.50"/>
+        <cylinder length="0.30" radius="${body_radius}"/>
       </geometry>
     </visual>
     <collision>
         <origin rpy="0 0 0" xyz="0 0 0"/>
         <geometry>
-          <cylinder length="0.02" radius="0.50"/>
+          <cylinder length="0.02" radius="${body_radius}"/>
         </geometry>
     </collision>
   </link>
