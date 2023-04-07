@@ -35,9 +35,10 @@ ObstacleCalculator::ObstacleCalculator(ros::NodeHandle nh, ros::NodeHandle pnh)
       "/hydrus/polar_pixel", 1);
 
   theta_list_ = {5,15,25,35,45,60,75,90,105,120,135};//should change Theta_Cuts if you change this theta's num
+  acc_theta_list_ = {1,4,7,10};
   // phi_list_ = {5};
 
-  hydrus_theta_ = {0,60,0};
+  hydrus_theta_ = {90,90,90};
   hydrus_l_ = 0.6;
   hydrus_r_ = 0.2;
 
@@ -67,17 +68,23 @@ void ObstacleCalculator::CalculatorCallback(
     converted_positions.push_back(converted_pos);
   }
 
-  Vector<Vision::Theta_Cuts> sphericalboxel =
-      getsphericalboxel(converted_positions, poll_v);
-      
+  std::vector<Scalar> sphericalboxel =
+      getsphericalboxel(converted_positions, poll_v, theta_list_);
+
+  std::vector<Scalar> acc_sphericalboxel =
+      getsphericalboxel(converted_positions, poll_v, acc_theta_list_);
+
   get_hydrus_sphericalboxel(converted_positions, poll_v, R_T, vel, omega);
 
   aerial_robot_msgs::ObstacleArray obstacle_msg;
   //   obstacle_msg.header.stamp = ros::Time(state.t);
 
   obstacle_msg.header = msg->header;
-  for (size_t i = 0; i < Vision::Theta_Cuts; ++i) {
+  for (size_t i = 0; i < sphericalboxel.size(); ++i) {
     obstacle_msg.boxel.push_back(sphericalboxel[i]);
+  }
+  for (size_t i = 0; i < acc_sphericalboxel.size(); ++i) {
+    obstacle_msg.acc_boxel.push_back(acc_sphericalboxel[i]);
   }
   for (size_t i = 0; i < Vision::Corner_Num; ++i) {
     obstacle_msg.C_vel_obs.push_back(C_vel_obs_distance_[i]);
@@ -97,19 +104,20 @@ void ObstacleCalculator::CalculatorCallback(
   //   }
 }
 
-Vector<Vision::Theta_Cuts > ObstacleCalculator::getsphericalboxel(
+std::vector<Scalar> ObstacleCalculator::getsphericalboxel(
     const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> &converted_positions,
-    const Eigen::Vector3d &v) {
-  Vector<Vision::Theta_Cuts > obstacle_obs;
-  for (int t = -Vision::Theta_Cuts / 2; t < Vision::Theta_Cuts / 2; ++t) {
-    Scalar theta = (t >= 0) ? theta_list_[t] : -theta_list_[(-t) - 1];  //[deg]
+    const Eigen::Vector3d &v, const std::vector<Scalar> &theta_list) {
+  std::vector<Scalar> obstacle_obs;
+  size_t size = theta_list.size();
+  for (int t = -(int)size; t < (int)size; ++t) {
+    Scalar theta = (t >= 0) ? theta_list[t] : -theta_list[(-t) - 1];  //[deg]
     // for (int p = -Vision::Phi_Cuts / 2; p < Vision::Phi_Cuts / 2; ++p) {
     //   Scalar phi = (p >= 0) ? phi_list_[p] : -phi_list_[(-p) - 1];  //[deg]
 
       Scalar tcell = theta * (M_PI / 180);
       // Scalar pcell = phi* (M_PI / 180);
-      obstacle_obs[t + Vision::Theta_Cuts / 2] =
-          getClosestDistance(converted_positions, v, tcell, 0);
+      Scalar closest_distance = getClosestDistance(converted_positions, v, tcell, 0);
+      obstacle_obs.push_back(closest_distance);
     // }
   }
   return obstacle_obs;

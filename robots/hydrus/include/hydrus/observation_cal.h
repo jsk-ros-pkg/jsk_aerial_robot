@@ -35,9 +35,9 @@ public:
   ObstacleCalculator(ros::NodeHandle nh, ros::NodeHandle pnh);
   ~ObstacleCalculator() {}
 
-  Vector<Vision::Theta_Cuts>
+  std::vector<Scalar>
   getsphericalboxel(const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> &converted_positions,
-                    const Eigen::Vector3d &v);
+                    const Eigen::Vector3d &v, const std::vector<Scalar> &theta_list);
   Scalar
   getClosestDistance(const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> &converted_positions,
                      const Eigen::Vector3d &v, Scalar tcell, Scalar fcell);
@@ -58,7 +58,7 @@ private:
   std::vector<Scalar> radius_list_;
   int call_;
 
-  std::vector<Scalar> theta_list_;
+  std::vector<Scalar> theta_list_, acc_theta_list_;
   // std::vector<Scalar> phi_list_;
 
   std::vector<Eigen::Vector2d> C_list_;
