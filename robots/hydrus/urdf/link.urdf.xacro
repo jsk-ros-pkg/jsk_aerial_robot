@@ -258,39 +258,39 @@
       <!-- head -->
       <xacro:if value="${self == 1}">
         <xacro:if value="${old_version == 1}">
-          <xacro:standard_leg_old_version parent = "link${self}" >
+          <!-- <xacro:standard_leg_old_version parent = "link${self}" >
             <origin xyz="${head_leg_offset_old_version} 0.0 0" rpy="0 0 0"/>
-          </xacro:standard_leg_old_version>
+          </xacro:standard_leg_old_version> -->
         </xacro:if>
         <xacro:unless value="${old_version == 1}">
-          <xacro:standard_leg_end parent = "link${self}" >
+          <!-- <xacro:standard_leg_end parent = "link${self}" >
             <origin xyz="${head_leg_offset} 0.0 0" rpy="0 0 0"/>
-          </xacro:standard_leg_end>
+          </xacro:standard_leg_end> -->
         </xacro:unless>
       </xacro:if>
       <xacro:unless value="${self == 1}">
         <xacro:if value="${old_version == 1}">
-        <xacro:standard_leg_old_version parent = "link${self}" >
+        <!-- <xacro:standard_leg_old_version parent = "link${self}" >
           <origin xyz="${general_leg_offset_old_version} 0.0 0" rpy="0 0 0"/>
-        </xacro:standard_leg_old_version>
+        </xacro:standard_leg_old_version> -->
         </xacro:if>
         <xacro:unless value="${old_version == 1}">
-          <xacro:standard_leg_joint parent = "link${self}" >
+          <!-- <xacro:standard_leg_joint parent = "link${self}" >
             <origin xyz="0.0 0.0 0" rpy="0 0 0"/>
-          </xacro:standard_leg_joint>
+          </xacro:standard_leg_joint> -->
         </xacro:unless>
 
         <!-- tail -->
         <xacro:if value="${self == links}">
           <xacro:if value="${old_version == 1}">
-            <xacro:standard_leg_old_version parent = "link${self}" self= "${self + 1}" >
+            <!-- <xacro:standard_leg_old_version parent = "link${self}" self= "${self + 1}" >
               <origin xyz="${end_leg_offset_old_version} 0.0 0" rpy="0 0 0"/>
-            </xacro:standard_leg_old_version>
+            </xacro:standard_leg_old_version> -->
           </xacro:if>
           <xacro:unless value="${old_version == 1}">
-            <xacro:standard_leg_end parent = "link${self}" self= "${self + 1}" >
+            <!-- <xacro:standard_leg_end parent = "link${self}" self= "${self + 1}" >
               <origin xyz="${end_leg_offset} 0.0 0" rpy="0 0 0"/>
-            </xacro:standard_leg_end>
+            </xacro:standard_leg_end> -->
           </xacro:unless>
         </xacro:if>
       </xacro:unless>
