@@ -32,7 +32,7 @@
       </inertial>
       <visual>
         <geometry>
-          <mesh filename="package://trirotor/urdf/mesh/kxr_flight_trirotor_base_link.STL" scale="0.001 0.001 0.001"/>
+          <mesh filename="package://trirotor/urdf/mesh/kxr_flight_trirotor_base_link.dae" scale="0.001 0.001 0.001"/>
           <origin rpy="0 0 0" xyz="0 0 0"/>
         </geometry>
       </visual>
