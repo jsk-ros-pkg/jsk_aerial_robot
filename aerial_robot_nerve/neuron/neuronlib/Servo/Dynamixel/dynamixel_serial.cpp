@@ -631,7 +631,14 @@ int8_t DynamixelSerial::readStatusPacket(uint8_t status_packet_instruction)
                         s->first_get_pos_flag_ = false;
                       }
 
-                      // TODO: check tooth jump
+                      // check tooth jump
+                      int32_t offset = s->resolution_ratio_ * s->present_position_ - present_position;
+                      int32_t diff = offset - s->internal_offset_; // this should be proportional to joint load.
+                      // TODO: use diff to estimate the joint torque
+                      uint32_t diff_thresh = 100; // TODO: paramter
+                      if (abs(diff) > diff_thresh) {
+                        s->hardware_error_status_ |= 1 << TOOTH_JUMP_ERROR;
+                      }
                     }
                     else {
                       s->hardware_error_status_ |= 1 << ENCODER_CONNECT_ERROR; // |= 0b10000000:  encoder is not connected

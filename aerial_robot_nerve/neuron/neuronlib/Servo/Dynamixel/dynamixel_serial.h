@@ -177,7 +177,7 @@
 //addintional error status for external encoder
 #define RESOLUTION_RATIO_ERROR 6
 #define ENCODER_CONNECT_ERROR 7
-
+#define TOOTH_JUMP_ERROR 1
 
 //for instruction buffer
 #define INST_GET_CURRENT_LIMIT			0
