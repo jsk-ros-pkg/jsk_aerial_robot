@@ -676,7 +676,7 @@ int8_t DynamixelSerial::readStatusPacket(uint8_t status_packet_instruction)
 		return 0;
 	case INST_GET_HARDWARE_ERROR_STATUS:
 		if (s != servo_.end()) {
-                  s->hardware_error_status_ &=  ((1 << RESOLUTION_RATIO_ERROR) + (1 << ENCODER_CONNECT_ERROR));  //  &= 0b11000000;
+                  s->hardware_error_status_ &=  ((1 << PULLEY_SKIP_ERROR) + (1 << RESOLUTION_RATIO_ERROR) + (1 << ENCODER_CONNECT_ERROR));  //  &= 0b11000010;
                   s->hardware_error_status_ |= parameters[0];
 		}
 		return 0;
