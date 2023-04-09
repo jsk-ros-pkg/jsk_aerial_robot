@@ -15,7 +15,6 @@ find_package(catkin REQUIRED COMPONENTS
 find_package(Eigen3 REQUIRED)
 
 catkin_package(
-  # LIBRARIES birotor_robot_model
   CATKIN_DEPENDS   aerial_robot_control aerial_robot_estimation aerial_robot_model aerial_robot_msgs pluginlib roscpp
 )
 
@@ -29,3 +28,8 @@ target_link_libraries(birotor_controller ${catkin_LIBRARIES})
 
 add_library(birotor_robot_model src/model/birotor_robot_model.cpp)
 target_link_libraries(birotor_robot_model ${catkin_LIBRARIES})
+
+install(DIRECTORY config plugins launch
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+  USE_SOURCE_PERMISSIONS
+  )
