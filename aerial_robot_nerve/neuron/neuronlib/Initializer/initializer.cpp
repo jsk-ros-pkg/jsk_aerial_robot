@@ -19,7 +19,9 @@ void Initializer::sendBoardConfig()
 	data[0] = servo_.servo_handler_.getServoNum();
 	data[1] = imu_.send_data_flag_ ? 1 : 0;
 	data[2] = servo_.servo_handler_.getTTLRS485Mixed();
-	sendMessage(CAN::MESSAGEID_SEND_INITIAL_CONFIG_0, m_slave_id, 3, data, 1);
+	data[3] = servo_.servo_handler_.getPulleySkipThresh() & 0xFF;
+	data[4] = (servo_.servo_handler_.getPulleySkipThresh() >> 8) & 0xFF;
+	sendMessage(CAN::MESSAGEID_SEND_INITIAL_CONFIG_0, m_slave_id, 5, data, 1);
 	for (unsigned int i = 0; i < servo_.servo_handler_.getServoNum(); i++) {
 		const ServoData& s = servo_.servo_handler_.getServo()[i];
 		data[0] = i;
@@ -185,6 +187,15 @@ void Initializer::receiveDataCallback(uint8_t message_id, uint32_t DLC, uint8_t*
 			uint8_t servo_index = data[1];
 			int32_t ref_value = ((data[5] << 24) & 0xFF000000) | ((data[4] << 16) & 0xFF0000) | ((data[3] << 8) & 0xFF00) | ((data[2] << 0) & 0xFF);
 			servo_.servo_handler_.setRoundOffset(servo_index, ref_value);
+			break;
+		}
+		case CAN::BOARD_CONFIG_SET_SERVO_PULLEY_SKIP_THRESH:
+		{
+			uint16_t thresh = ((data[2] << 8) & 0xFF00) | (data[1] & 0xFF);
+			servo_.servo_handler_.setPulleySkipThresh(thresh);
+			Flashmemory::erase();
+			Flashmemory::write();
+
 			break;
 		}
 		default:

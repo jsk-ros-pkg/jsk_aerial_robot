@@ -60,7 +60,7 @@ class CANServo : public CANDevice
 {
 public:
 	CANServo(){}
-	CANServo(uint8_t slave_id, unsigned int servo_num, bool dynamixel_ttl_rs485_mixed):CANDevice(CAN::DEVICEID_SERVO, slave_id), servo_(servo_num), dynamixel_ttl_rs485_mixed_(dynamixel_ttl_rs485_mixed){}
+  CANServo(uint8_t slave_id, unsigned int servo_num, bool dynamixel_ttl_rs485_mixed, uint16_t thresh):CANDevice(CAN::DEVICEID_SERVO, slave_id), servo_(servo_num), dynamixel_ttl_rs485_mixed_(dynamixel_ttl_rs485_mixed), pulley_skip_thresh_(thresh){}
 	void setServoNum(unsigned int servo_num) {servo_.resize(servo_num);}
 	void sendServoConfigRequest();
 	void sendData() override;
@@ -68,8 +68,12 @@ public:
 	std::vector<Servo> servo_;
 	bool getDynamixelTTLRS485Mixed() const {return dynamixel_ttl_rs485_mixed_;}
 	void setDynamixelTTLRS485Mixed(bool dynamixel_ttl_rs485_mixed) {dynamixel_ttl_rs485_mixed_ = dynamixel_ttl_rs485_mixed;}
+	uint16_t getPulleySkipThresh() const {return pulley_skip_thresh_;}
+	void setPulleySkipThresh(uint16_t value) {pulley_skip_thresh_ = value;}
+
 private:
 	bool dynamixel_ttl_rs485_mixed_;
+	uint16_t pulley_skip_thresh_;
 	struct CANServoData{
 		int16_t angle;
 		uint8_t temperature;

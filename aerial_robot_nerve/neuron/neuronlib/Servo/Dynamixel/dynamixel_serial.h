@@ -177,7 +177,7 @@
 //addintional error status for external encoder
 #define RESOLUTION_RATIO_ERROR 6
 #define ENCODER_CONNECT_ERROR 7
-#define TOOTH_JUMP_ERROR 1
+#define PULLEY_SKIP_ERROR 1
 
 //for instruction buffer
 #define INST_GET_CURRENT_LIMIT			0
@@ -331,6 +331,8 @@ public:
   unsigned int getServoNum() const {return servo_num_;}
   uint16_t getTTLRS485Mixed() const {return ttl_rs485_mixed_;}
   void setTTLRS485Mixed(uint16_t flag) {ttl_rs485_mixed_ = flag;}
+  uint16_t getPulleySkipThresh() const {return pulley_skip_thresh_;}
+  void setPulleySkipThresh(uint16_t value) {pulley_skip_thresh_ = value;}
   std::array<ServoData, MAX_SERVO_NUM>& getServo() {return servo_;}
   const std::array<ServoData, MAX_SERVO_NUM>& getServo() const {return servo_;}
 
@@ -342,6 +344,7 @@ private:
   unsigned int servo_num_;
   std::array<ServoData, MAX_SERVO_NUM> servo_;
   uint16_t ttl_rs485_mixed_;
+  uint16_t pulley_skip_thresh_;
   uint32_t set_pos_tick_;
   uint32_t get_pos_tick_;
   uint32_t get_load_tick_;
