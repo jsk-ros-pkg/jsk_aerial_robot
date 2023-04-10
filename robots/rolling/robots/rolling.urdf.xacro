@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<robot
+    xmlns:xacro="http://www.ros.org/wiki/xacro" name="rolling" >
+
+  <xacro:include filename="$(find rolling)/urdf/rolling_link.urdf.xacro" />
+  <xacro:include filename="$(find rolling)/urdf/common.xacro" />
+
+  <xacro:rolling_base_link child1="1" child2="2" />
+
+</robot>
