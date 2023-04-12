@@ -127,8 +127,8 @@ void CANInitializer::configDevice(const spinal::SetBoardConfig::Request& req)
                 case spinal::SetBoardConfig::Request::SET_SERVO_RESOLUTION_RATIO:
                 {
                   uint8_t servo_index = static_cast<uint8_t>(req.data[1]);
-                  uint16_t joint_resolution = static_cast<uint16_t>(req.data[2]);
-                  uint16_t servo_resolution = static_cast<uint16_t>(req.data[3]);
+                  int16_t joint_resolution = static_cast<int16_t>(req.data[2]);
+                  int16_t servo_resolution = static_cast<int16_t>(req.data[3]);
                   uint8_t send_data[6];
                   send_data[0] = CAN::BOARD_CONFIG_SET_RESOLUTION_RATIO;
                   send_data[1] = servo_index;

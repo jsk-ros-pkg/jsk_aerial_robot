@@ -169,7 +169,7 @@ void Initializer::receiveDataCallback(uint8_t message_id, uint32_t DLC, uint8_t*
                       s.servo_resolution_ = ((data[5] << 8) & 0xFF00) | (data[4] & 0xFF);
                       s.hardware_error_status_ &= ((1 << RESOLUTION_RATIO_ERROR) - 1); // 0b00111111: reset
 
-                      if(s.servo_resolution_ == 65535 || s.joint_resolution_ == 65535){
+                      if(static_cast<uint16_t>(s.servo_resolution_) == 65535 || static_cast<uint16_t>(s.joint_resolution_) == 65535){
                         s.hardware_error_status_ |= (1 << RESOLUTION_RATIO_ERROR);  // 0b01000000;
                         s.resolution_ratio_ = 1;
                       }

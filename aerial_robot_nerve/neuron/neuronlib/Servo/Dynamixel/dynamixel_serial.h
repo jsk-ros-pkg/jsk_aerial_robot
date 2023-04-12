@@ -296,8 +296,8 @@ public:
 	uint16_t send_data_flag_;
         uint16_t external_encoder_flag_;
         int32_t joint_offset_;
-        uint16_t joint_resolution_;
-        uint16_t servo_resolution_;
+        int16_t joint_resolution_;
+        int16_t servo_resolution_;
         float resolution_ratio_;
 	bool led_;
 	bool torque_enable_;
