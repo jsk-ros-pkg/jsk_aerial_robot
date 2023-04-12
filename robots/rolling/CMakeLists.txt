@@ -22,3 +22,14 @@ include_directories(
   include
   ${catkin_INCLUDE_DIRS}
   )
+
+add_library(rolling_controller src/control/rolling_controller.cpp)
+target_link_libraries(rolling_controller ${catkin_LIBRARIES})
+
+add_library(rolling_robot_model src/model/rolling_robot_model.cpp)
+target_link_libraries(rolling_robot_model ${catkin_LIBRARIES})
+
+install(DIRECTORY config plugins launch
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+  USE_SOURCE_PERMISSIONS
+  )
