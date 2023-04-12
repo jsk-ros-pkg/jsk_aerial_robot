@@ -5,6 +5,11 @@
   <xacro:include filename="$(find rolling)/urdf/rolling_link.urdf.xacro" />
   <xacro:include filename="$(find rolling)/urdf/common.xacro" />
 
-  <xacro:rolling_base_link child1="1" child2="2" />
+  <xacro:rolling_base_link child1="1" child2="2" child3="3" child4="4" />
+
+  <xacro:rolling_thrust_link self="1" rotor_direction="1" />
+  <xacro:rolling_thrust_link self="2" rotor_direction="-1"/>
+  <xacro:rolling_thrust_link self="3" rotor_direction="1"/>
+  <xacro:rolling_thrust_link self="4" rotor_direction="-1"/>
 
 </robot>
