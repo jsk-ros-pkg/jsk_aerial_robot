@@ -29,7 +29,7 @@
         <origin xyz="0 0 0" rpy="0 0 0"/>
         <mass value="1.0"/>
         <inertia
-            ixx="0.00001" iyy="0.00001" izz="0.00001"
+            ixx="0.01" iyy="0.01" izz="0.01"
             ixy="0.00001" ixz="0.00001" iyz="0.00001"/>
       </inertial>
       <visual>
@@ -72,7 +72,7 @@
       <limit effort="6.6" lower="-1.57" upper="1.57" velocity="3.0"/>
       <parent link="base_link"/>
       <child link="gimbal_link${child1}"/>
-      <origin rpy="0 ${pi/2} 0" xyz="${cylinder_radius} 0 0"/>
+      <origin rpy="0 ${pi/2} 0" xyz="${cylinder_radius - 0.2} 0 0"/>
       <axis xyz="1 0 0"/>
       <dynamics damping="0.8" friction="0.0"/>
     </joint>
@@ -81,7 +81,7 @@
       <limit effort="6.6" lower="-1.57" upper="1.57" velocity="3.0"/>
       <parent link="base_link"/>
       <child link="gimbal_link${child2}"/>
-      <origin rpy="0 0 0" xyz="0 0 ${cylinder_radius}"/>
+      <origin rpy="0 0 0" xyz="0 0 ${cylinder_radius - 0.2}"/>
       <axis xyz="1 0 0"/>
       <dynamics damping="0.8" friction="0.0"/>
     </joint>
@@ -90,7 +90,7 @@
       <limit effort="6.6" lower="-1.57" upper="1.57" velocity="3.0"/>
       <parent link="base_link"/>
       <child link="gimbal_link${child3}"/>
-      <origin rpy="0 ${-pi/2} 0" xyz="${- cylinder_radius} 0 0"/>
+      <origin rpy="0 ${-pi/2} 0" xyz="${- cylinder_radius + 0.2} 0 0"/>
       <axis xyz="1 0 0"/>
       <dynamics damping="0.8" friction="0.0"/>
     </joint>
@@ -99,7 +99,7 @@
       <limit effort="6.6" lower="-1.57" upper="1.57" velocity="3.0"/>
       <parent link="base_link"/>
       <child link="gimbal_link${child4}"/>
-      <origin rpy="0 ${pi} 0" xyz="0 0 ${- cylinder_radius}"/>
+      <origin rpy="0 ${pi} 0" xyz="0 0 ${- cylinder_radius + 0.2}"/>
       <axis xyz="1 0 0"/>
       <dynamics damping="0.8" friction="0.0"/>
     </joint>
@@ -149,18 +149,27 @@
       </actuator>
     </transmission>
 
+    <xacro:friction link="base_link"/>
   </xacro:macro>
 
   <xacro:macro name="rolling_thrust_link" params="self rotor_direction">
+    ## link
+    #### rotor parent link (virtual) ####
     <link name="gimbal_link${self}">
       <inertial>
         <origin xyz="0 0 0" rpy="0 0 0"/>
-        <mass value="0.00001"/>
+        <mass value="0.1"/>
         <inertia
-            ixx="0.000001" ixy="0.0" ixz="0.0"
-            iyy="0.000001" iyz="0.0"
-            izz="0.000001"/>
+            ixx="0.001" ixy="0.0" ixz="0.0"
+            iyy="0.001" iyz="0.0"
+            izz="0.001"/>
       </inertial>
+      <collision>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <geometry>
+          <cylinder radius="0.2" length="0.05"/>
+        </geometry>
+      </collision>
       <visual>
         <origin xyz="0 0 0" rpy="0 0 0" />
         <geometry>
@@ -192,6 +201,7 @@
             izz="0.001"/>
       </inertial>
     </link>
+    <xacro:damping_factor link="thrust${self}" />
 
     #### joints ####
     #### rotor parent link joint (virtual) ####
@@ -199,7 +209,7 @@
       <parent link="gimbal_link${self}"/>
       <child link="rotor_parent${self}"/>
       <origin rpy="0 0 0" xyz="0 0 0"/>
-      <axis xyz="0 0 1"/>
+      <axis xyz="0 0 ${rotor_direction}"/>
     </joint>
 
     #### rotor joint (virtual) ####
