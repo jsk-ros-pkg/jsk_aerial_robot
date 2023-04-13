@@ -49,6 +49,49 @@ include_directories(
   ${EIGEN3_INCLUDE_DIRS}
 )
 
+macro(get_urdf_to_collada _urdf_to_collada_exe)
+  find_package(collada_urdf_jsk_patch QUIET)
+  find_package(collada_urdf REQUIRED)
+  if (collada_urdf_jsk_patch_FOUND)
+    set(${_urdf_to_collada_exe} ${collada_urdf_jsk_patch_PREFIX}/lib/collada_urdf_jsk_patch/urdf_to_collada)
+  elseif (collada_urdf_FOUND)
+    set(${_urdf_to_collada_exe} ${collada_urdf_PREFIX}/lib/collada_urdf/urdf_to_collada)
+  endif (collada_urdf_jsk_patch_FOUND)
+  if(NOT EXISTS "${${_urdf_to_collada_exe}}")
+    message(FATAL_ERROR "could not find ${${_urdf_to_collada_exe}}")
+  endif()
+endmacro(get_urdf_to_collada _urdf_to_collada_exe)
+
+get_urdf_to_collada(_urdf_to_collada_exe)
+message(STATUS "Found ${_urdf_to_collada_exe}")
+
+# hydrus euslisp model generation
+add_custom_command(OUTPUT ${PROJECT_SOURCE_DIR}/robots/quad/default_mode_201907/hydrus.l
+  COMMAND rosrun euscollada collada2eus hydrus.dae hydrus.yaml hydrus.l
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/robots/quad/default_mode_201907
+  DEPENDS ${PROJECT_SOURCE_DIR}/robots/quad/default_mode_201907/hydrus.dae
+          ${PROJECT_SOURCE_DIR}/robots/quad/default_mode_201907/hydrus.yaml)
+add_custom_command(OUTPUT ${PROJECT_SOURCE_DIR}/robots/quad/default_mode_201907/hydrus.dae
+  COMMAND ${_urdf_to_collada_exe} hydrus.urdf hydrus.dae
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/robots/quad/default_mode_201907
+  DEPENDS ${PROJECT_SOURCE_DIR}/robots/quad/default_mode_201907/hydrus.urdf)
+add_custom_command(OUTPUT ${PROJECT_SOURCE_DIR}/robots/quad/default_mode_201907/hydrus.urdf
+  COMMAND ROS_PACKAGE_PATH=${PROJECT_SOURCE_DIR}:$ENV{ROS_PACKAGE_PATH} rosrun xacro xacro robot.urdf.xacro > hydrus.urdf
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/robots/quad/default_mode_201907
+  DEPENDS ${PROJECT_SOURCE_DIR}/robots/quad/default_mode_201907/robot.urdf.xacro
+          ${PROJECT_SOURCE_DIR}/urdf/common.xacro
+          ${PROJECT_SOURCE_DIR}/urdf/link.urdf.xacro)
+
+# gte collada-dom version
+find_package(PkgConfig)
+pkg_check_modules(COLLADA collada-dom>=2.4.4)
+if(${COLLADA_FOUND})
+  add_custom_target(generate_hydrus_default_lisp ALL DEPENDS ${PROJECT_SOURCE_DIR}/robots/quad/default_mode_201907/hydrus.l)
+else()
+  pkg_check_modules(COLLADA collada-dom)
+  message(WARNING "urdf_to_collada requries collada-dom >= 2.4.4, installed version is ${COLLADA_VERSION}")
+endif()
+
 add_library(hydrus_robot_model
   src/hydrus_robot_model.cpp
   src/hydrus_tilted_robot_model.cpp)

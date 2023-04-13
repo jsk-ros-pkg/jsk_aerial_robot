@@ -1,0 +1,13 @@
+larm:
+  - joint1: joint1-y
+  - joint2: joint2-y
+  - joint3: joint3-y
+
+angle-vector:
+  reset-pose: [0, 0, 0]
+  reset-manip-pose: [90, 90, 90]
+
+larm-end-coords:
+  parent: leg5
+  translate: [0, 0, 0]
+  rotate: [0, 1, 0, 0]
