@@ -120,7 +120,13 @@ void DynamixelSerial::setRoundOffset(uint8_t servo_index, int32_t ref_value)
 void DynamixelSerial::setHomingOffset(uint8_t servo_index)
 {
   if(servo_[servo_index].external_encoder_flag_){
-	servo_[servo_index].joint_offset_ = servo_[servo_index].calib_value_ + servo_[servo_index].joint_offset_ - servo_[servo_index].present_position_;
+	 int32_t joint_offset = servo_[servo_index].calib_value_ + servo_[servo_index].joint_offset_ - servo_[servo_index].present_position_;
+	 if(joint_offset >= 0){
+		 servo_[servo_index].joint_offset_ = joint_offset % 4096;
+	 }
+	 else {
+		 servo_[servo_index].joint_offset_ = joint_offset % -4096;
+	 }
 	// servo_[servo_index].joint_offset_ = servo_[servo_index].calib_value_; // debug
 	encoder_handler_.setOffset(servo_[servo_index].joint_offset_);
 	servo_[servo_index].first_get_pos_flag_ = true;
