@@ -105,16 +105,16 @@
 
   ####### Simulation collision world ############
   <group if= "$(eval arg('simulation') and not arg('real_machine'))">
-    <node pkg="hydrus" type="obstacle_world.py" name="obstacle_world" output="screen" ns="$(arg robot_ns)">
+    <node pkg="agile_multirotor" type="obstacle_world.py" name="obstacle_world" output="screen" ns="$(arg robot_ns)">
       <param name="rate" value="20.0" />
-      <param name="obstacle_world_file" value="$(find hydrus)/config/obstacle_world/$(arg tree).csv" />
+      <param name="obstacle_world_file" value="$(find agile_multirotor)/config/obstacle_world/$(arg tree).csv" />
       <param name="shift_x" value="$(arg shift_x)" />
       <param name="shift_y" value="$(arg shift_y)" />
     </node>
   </group>
 
   <node pkg="hydrus" type="observation_conversion_node" name="observation_conversion" output="screen" ns="$(arg robot_ns)">
-    <param name="cfg_path" value="$(find hydrus)/config/obstacle_world/$(arg tree).csv" />
+    <param name="cfg_path" value="$(find agile_multirotor)/config/obstacle_world/$(arg tree).csv" />
     <param name="shift_x" type="double" value="$(arg shift_x)" />
     <param name="shift_y" type="double" value="$(arg shift_y)" />
   </node>
