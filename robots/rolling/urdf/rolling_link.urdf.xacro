@@ -4,7 +4,7 @@
 
   <xacro:property name="cylinder_radius" value="1.0"/>
 
-  <xacro:macro name="rolling_base_link" params="child1 child2 child3 child4">
+  <xacro:macro name="rolling_base_link" params="child1 child2 child3 child4 child5 child6">
     <link name="root">
       <inertial>
         <origin xyz="0 0 0" rpy="0 0 0"/>
@@ -29,7 +29,7 @@
         <origin xyz="0 0 0" rpy="0 0 0"/>
         <mass value="1.0"/>
         <inertia
-            ixx="0.01" iyy="0.01" izz="0.01"
+            ixx="${0.5 * 1.0 * cylinder_radius * cylinder_radius}" iyy="${0.5 * 1.0 * cylinder_radius * cylinder_radius}" izz="${0.25 * 1.0 * cylinder_radius * cylinder_radius}"
             ixy="0.00001" ixz="0.00001" iyz="0.00001"/>
       </inertial>
       <visual>
@@ -77,11 +77,11 @@
       <dynamics damping="0.8" friction="0.0"/>
     </joint>
 
-  <joint name="gimbal${child2}" type="revolute">
+    <joint name="gimbal${child2}" type="revolute">
       <limit effort="6.6" lower="-1.57" upper="1.57" velocity="3.0"/>
       <parent link="base_link"/>
       <child link="gimbal_link${child2}"/>
-      <origin rpy="0 0 0" xyz="0 0 ${cylinder_radius - 0.2}"/>
+      <origin rpy="0 ${pi/2 -  pi/3 } 0" xyz="${(cylinder_radius - 0.2) * cos(pi / 3)} 0 ${(cylinder_radius - 0.2) * sin(pi / 3)}"/>
       <axis xyz="1 0 0"/>
       <dynamics damping="0.8" friction="0.0"/>
     </joint>
@@ -90,7 +90,7 @@
       <limit effort="6.6" lower="-1.57" upper="1.57" velocity="3.0"/>
       <parent link="base_link"/>
       <child link="gimbal_link${child3}"/>
-      <origin rpy="0 ${-pi/2} 0" xyz="${- cylinder_radius + 0.2} 0 0"/>
+      <origin rpy="0 ${pi/2 - pi / 3 * 2} 0" xyz="${(cylinder_radius - 0.2) * cos(pi / 3 * 2)} 0 ${(cylinder_radius - 0.2) * sin(pi / 3 * 2)}"/>
       <axis xyz="1 0 0"/>
       <dynamics damping="0.8" friction="0.0"/>
     </joint>
@@ -99,10 +99,29 @@
       <limit effort="6.6" lower="-1.57" upper="1.57" velocity="3.0"/>
       <parent link="base_link"/>
       <child link="gimbal_link${child4}"/>
-      <origin rpy="0 ${pi} 0" xyz="0 0 ${- cylinder_radius + 0.2}"/>
+      <origin rpy="0 ${pi/2 - pi / 3 * 3} 0" xyz="${(cylinder_radius - 0.2) * cos(pi / 3 * 3)} 0 ${(cylinder_radius - 0.2) * sin(pi / 3 * 3)}"/>
       <axis xyz="1 0 0"/>
       <dynamics damping="0.8" friction="0.0"/>
     </joint>
+
+    <joint name="gimbal${child5}" type="revolute">
+      <limit effort="6.6" lower="-1.57" upper="1.57" velocity="3.0"/>
+      <parent link="base_link"/>
+      <child link="gimbal_link${child5}"/>
+      <origin rpy="0 ${pi/2 - pi / 3 * 4} 0" xyz="${(cylinder_radius - 0.2) * cos(pi / 3 * 4)} 0 ${(cylinder_radius - 0.2) * sin(pi / 3 * 4)}"/>
+      <axis xyz="1 0 0"/>
+      <dynamics damping="0.8" friction="0.0"/>
+    </joint>
+
+    <joint name="gimbal${child6}" type="revolute">
+      <limit effort="6.6" lower="-1.57" upper="1.57" velocity="3.0"/>
+      <parent link="base_link"/>
+      <child link="gimbal_link${child6}"/>
+      <origin rpy="0 ${pi/2 - pi / 3 * 5} 0" xyz="${(cylinder_radius - 0.2) * cos(pi / 3 * 5)} 0 ${(cylinder_radius - 0.2) * sin(pi / 3 * 5)}"/>
+      <axis xyz="1 0 0"/>
+      <dynamics damping="0.8" friction="0.0"/>
+    </joint>
+
 
     #### hardware interface ####
     <transmission name="joint_tran${child1}">
@@ -149,6 +168,28 @@
       </actuator>
     </transmission>
 
+    <transmission name="joint_tran${child5}">
+      <type>transmission_interface/SimpleTransmission</type>
+      <joint name="gimbal${child5}">
+        <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+      </joint>
+      <actuator name="servo${child5}">
+        <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+        <mechanicalReduction>1</mechanicalReduction>
+      </actuator>
+    </transmission>
+
+    <transmission name="joint_tran${child6}">
+      <type>transmission_interface/SimpleTransmission</type>
+      <joint name="gimbal${child6}">
+        <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+      </joint>
+      <actuator name="servo${child6}">
+        <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+        <mechanicalReduction>1</mechanicalReduction>
+      </actuator>
+    </transmission>
+
     <xacro:friction link="base_link"/>
   </xacro:macro>
 
@@ -160,9 +201,9 @@
         <origin xyz="0 0 0" rpy="0 0 0"/>
         <mass value="0.1"/>
         <inertia
-            ixx="0.001" ixy="0.0" ixz="0.0"
-            iyy="0.001" iyz="0.0"
-            izz="0.001"/>
+            ixx="${0.25 * 0.1 * 0.2 * 0.2}" ixy="0.0" ixz="0.0"
+            iyy="${0.25 * 0.1 * 0.2 * 0.2}" iyz="0.0"
+            izz="${0.5 * 0.1 * 0.2 * 0.2}"/>
       </inertial>
       <collision>
         <origin xyz="0 0 0" rpy="0 0 0" />
