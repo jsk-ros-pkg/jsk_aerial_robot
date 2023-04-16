@@ -11,7 +11,7 @@ servo_controller:
       name: gimbal1
       simulation:
         pid: {p: 5.0, i: 0.1, d: 0.1, i_clamp_max: 2.0, i_clamp_min: -2.0}
-        init_value: 0
+        init_value: 0.3
         type: effort_controllers/JointPositionController
 
     controller2:
@@ -19,7 +19,7 @@ servo_controller:
       name: gimbal2
       simulation:
         pid: {p: 5.0, i: 0.1, d: 0.1, i_clamp_max: 2.0, i_clamp_min: -2.0}
-        init_value: 0 
+        init_value: -0.3
         type: effort_controllers/JointPositionController
 
     controller3:
@@ -27,7 +27,7 @@ servo_controller:
       name: gimbal3
       simulation:
         pid: {p: 5.0, i: 0.1, d: 0.1, i_clamp_max: 2.0, i_clamp_min: -2.0}
-        init_value: 0 
+        init_value: 0.3
         type: effort_controllers/JointPositionController
 
     controller4:
@@ -35,5 +35,21 @@ servo_controller:
       name: gimbal4
       simulation:
         pid: {p: 5.0, i: 0.1, d: 0.1, i_clamp_max: 2.0, i_clamp_min: -2.0}
-        init_value: 0 
+        init_value: -0.3
+        type: effort_controllers/JointPositionController
+
+    controller5:
+      id: 5
+      name: gimbal5
+      simulation:
+        pid: {p: 5.0, i: 0.1, d: 0.1, i_clamp_max: 2.0, i_clamp_min: -2.0}
+        init_value: 0.3
+        type: effort_controllers/JointPositionController
+
+    controller6:
+      id: 6
+      name: gimbal6
+      simulation:
+        pid: {p: 5.0, i: 0.1, d: 0.1, i_clamp_max: 2.0, i_clamp_min: -2.0}
+        init_value: -0.3
         type: effort_controllers/JointPositionController
