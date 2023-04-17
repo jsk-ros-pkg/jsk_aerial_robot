@@ -29,6 +29,9 @@ target_link_libraries(trirotor_controller ${catkin_LIBRARIES})
 add_library(trirotor_robot_model src/model/trirotor_robot_model.cpp)
 target_link_libraries(trirotor_robot_model ${catkin_LIBRARIES})
 
+add_library(trirotor_navigation src/trirotor_navigation.cpp)
+target_link_libraries(trirotor_navigation ${catkin_LIBRARIES})
+
 install(DIRECTORY config plugins launch
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
   USE_SOURCE_PERMISSIONS
