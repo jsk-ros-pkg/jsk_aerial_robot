@@ -49,6 +49,7 @@
    <rosparam file="$(arg config_dir)/Simulation.yaml" command="load" if="$(eval arg('simulation') and not arg('real_machine'))"/>
 
    ###########  Navigation  ###########
+   <param name="flight_navigation_plugin_name" value="aerial_robot_navigation/trirotor_navigation" />
    <rosparam file="$(arg config_dir)/NavigationConfig.yaml" command="load" />
 
   </group>

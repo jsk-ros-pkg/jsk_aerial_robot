@@ -1,0 +1,5 @@
+<library path="lib/libtrirotor_navigation">
+  <class name="aerial_robot_navigation/trirotor_navigation" type="aerial_robot_navigation::TrirotorNavigator" base_class_type="aerial_robot_navigation::BaseNavigator">
+    <description>plugin for trirotor navigation </description>
+  </class>
+</library>
