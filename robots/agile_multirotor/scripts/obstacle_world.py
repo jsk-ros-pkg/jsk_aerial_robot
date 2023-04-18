@@ -33,7 +33,7 @@ class ObstacleWorld:
         shift_y = rospy.get_param('~shift_y', 0) #init y
         print("shift_x: ",shift_x, "shift_y: ",shift_y)
 
-        wall_y_position = 1.5
+        wall_y_position = 1.8
         # debug
         # r = 0.5
         # p = [0, 0, 0] # x, y, z
@@ -58,6 +58,8 @@ class ObstacleWorld:
         except pd.errors.EmptyDataError as e:
             print("tree data is empty")
             # print("self.obs: ",self.obs)
+        self.spawnWall("right_wall", 0.5, np.array([2,wall_y_position,2]) + np.array([shift_x,shift_y,0]) , 6, 0.01, 4)
+        self.spawnWall("left_wall", 0.5, np.array([2,-wall_y_position,2]) + np.array([shift_x,shift_y,0]), 6, 0.01, 4)
 
     def odomCb(self, msg):
         self.lock.acquire()
