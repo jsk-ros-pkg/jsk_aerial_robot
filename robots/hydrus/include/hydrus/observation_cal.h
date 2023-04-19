@@ -37,15 +37,16 @@ public:
 
   std::vector<Scalar>
   getsphericalboxel(const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> &converted_positions,
-                    const Eigen::Vector3d &v, const std::vector<Scalar> &theta_list);
+                    const Vector<3> &poll_y, const Eigen::Vector3d &poll_z, const std::vector<Scalar> &theta_list, Eigen::Vector3d &pos);
   Scalar
   getClosestDistance(const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> &converted_positions,
-                     const Eigen::Vector3d &v, Scalar tcell, Scalar fcell);
+                     const Vector<3> &poll_y, const Eigen::Vector3d &poll_z, Scalar tcell, Scalar fcell, Eigen::Vector3d &quad_pos);
 
   void get_hydrus_sphericalboxel(
   const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> &converted_positions,
-  const Eigen::Vector3d &v, const Eigen::Matrix3d &R_T,const Eigen::Vector3d &vel, const Eigen::Vector3d &omega);
-  
+  const Vector<3> &poll_y, const Eigen::Vector3d &poll_z, const Eigen::Matrix3d &R_T,const Eigen::Vector3d &vel, const Eigen::Vector3d &omega, Eigen::Vector3d &pos);
+  Scalar calc_dist_from_wall(Scalar sign, const Vector<3>& Cell, const Vector<3> &poll_y, Eigen::Vector3d &quad_pos) const;
+
   Eigen::Vector3d getCartesianFromAng(Scalar t, Scalar f);
   bool set_collision_point();
 private:
@@ -69,6 +70,8 @@ private:
   std::vector<Scalar> hydrus_theta_;
   Scalar hydrus_l_;
   Scalar hydrus_r_;
+
+  Scalar wall_pos_;
   
  const Scalar max_detection_range_ = 10;
 

@@ -37,6 +37,7 @@ ObstacleCalculator::ObstacleCalculator(ros::NodeHandle nh, ros::NodeHandle pnh)
   theta_list_ = {5,15,25,35,45,60,75,90,105, 120, 134};//should change Theta_Cuts if you change this theta's num
   acc_theta_list_ = {1,4,7,10};
   // phi_list_ = {5};
+  wall_pos_ = 1.75;
 
   hydrus_theta_ = {90,90,90};
   hydrus_l_ = 0.6;
@@ -54,7 +55,8 @@ void ObstacleCalculator::CalculatorCallback(
   tf::quaternionMsgToEigen(msg->pose.pose.orientation, quat);
   Eigen::Matrix3d R = quat.toRotationMatrix();
   Eigen::Matrix3d R_T = R.transpose();
-  Eigen::Vector3d poll_v(R_T(0, 2), R_T(1, 2), R_T(2, 2));
+  Eigen::Vector3d poll_y(R_T(0, 1), R_T(1, 1), R_T(2, 1));
+  Eigen::Vector3d poll_z(R_T(0, 2), R_T(1, 2), R_T(2, 2));
 
   Eigen::Vector3d vel;
   tf::vectorMsgToEigen(msg->twist.twist.linear, vel);
@@ -69,12 +71,12 @@ void ObstacleCalculator::CalculatorCallback(
   }
 
   std::vector<Scalar> sphericalboxel =
-      getsphericalboxel(converted_positions, poll_v, theta_list_);
+      getsphericalboxel(converted_positions, poll_y, poll_z, theta_list_, pos);
 
   std::vector<Scalar> acc_sphericalboxel =
-      getsphericalboxel(converted_positions, poll_v, acc_theta_list_);
+      getsphericalboxel(converted_positions, poll_y, poll_z, acc_theta_list_, pos);
 
-  get_hydrus_sphericalboxel(converted_positions, poll_v, R_T, vel, omega);
+  get_hydrus_sphericalboxel(converted_positions, poll_y, poll_z, R_T, vel, omega, pos);
 
   aerial_robot_msgs::ObstacleArray obstacle_msg;
   //   obstacle_msg.header.stamp = ros::Time(state.t);
@@ -106,7 +108,7 @@ void ObstacleCalculator::CalculatorCallback(
 
 std::vector<Scalar> ObstacleCalculator::getsphericalboxel(
     const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> &converted_positions,
-    const Eigen::Vector3d &v, const std::vector<Scalar> &theta_list) {
+    const Vector<3> &poll_y, const Eigen::Vector3d &poll_z, const std::vector<Scalar> &theta_list, Eigen::Vector3d &pos) {
   std::vector<Scalar> obstacle_obs;
   size_t size = theta_list.size();
   for (int t = -(int)size; t < (int)size; ++t) {
@@ -116,7 +118,7 @@ std::vector<Scalar> ObstacleCalculator::getsphericalboxel(
 
       Scalar tcell = theta * (M_PI / 180);
       // Scalar pcell = phi* (M_PI / 180);
-      Scalar closest_distance = getClosestDistance(converted_positions, v, tcell, 0);
+      Scalar closest_distance = getClosestDistance(converted_positions, poll_y, poll_z, tcell, 0, pos);
       obstacle_obs.push_back(closest_distance);
     // }
   }
@@ -125,15 +127,17 @@ std::vector<Scalar> ObstacleCalculator::getsphericalboxel(
 
 Scalar ObstacleCalculator::getClosestDistance(
     const std::vector<Vector<3>, Eigen::aligned_allocator<Vector<3>>> &converted_positions,
-    const Eigen::Vector3d &v, Scalar tcell, Scalar fcell) {
+    const Vector<3> &poll_y, const Eigen::Vector3d &poll_z, Scalar tcell, Scalar fcell, Eigen::Vector3d &quad_pos) {
   Eigen::Vector3d Cell = getCartesianFromAng(tcell, fcell);
-  Scalar rmin = max_detection_range_;
+  Scalar y_p = calc_dist_from_wall(1, Cell, poll_y, quad_pos);
 
+  Scalar y_n = calc_dist_from_wall(-1, Cell, poll_y, quad_pos);
+  Scalar rmin = std::min(std::min(y_p, y_n), max_detection_range_);
   for (int i = 0; i < positions_.size(); i++) {
     Eigen::Vector3d pos = converted_positions[i];
     Scalar radius = radius_list_[i];
-    Eigen::Vector3d alpha = Cell.cross(v);
-    Eigen::Vector3d beta = pos.cross(v);
+    Eigen::Vector3d alpha = Cell.cross(poll_z);
+    Eigen::Vector3d beta = pos.cross(poll_z);
     Scalar a = std::pow(alpha.norm(), 2);
     if (a == 0) continue;
     Scalar b = alpha.dot(beta);
@@ -147,6 +151,13 @@ Scalar ObstacleCalculator::getClosestDistance(
     }
   }
    return rmin / max_detection_range_;
+}
+
+Scalar ObstacleCalculator::calc_dist_from_wall(Scalar sign, const Vector<3>& Cell, const Vector<3> &poll_y, Eigen::Vector3d &quad_pos) const {
+  Scalar y_d= (sign*wall_pos_ - quad_pos[1]);
+  Scalar cos_theta = Cell.dot(poll_y);
+  if (cos_theta*y_d <= 0) return max_detection_range_;
+  else return y_d/cos_theta;
 }
 
 Eigen::Vector3d ObstacleCalculator::getCartesianFromAng(Scalar theta,
@@ -169,8 +180,8 @@ std::vector<std::string> ObstacleCalculator::split(std::string &input,
 
 void ObstacleCalculator::get_hydrus_sphericalboxel(
   const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> &converted_positions,
-  const Eigen::Vector3d &v, const Eigen::Matrix3d &R_T,
-  const Eigen::Vector3d &vel, const Eigen::Vector3d &omega) {
+  const Vector<3> &poll_y, const Eigen::Vector3d &poll_z, const Eigen::Matrix3d &R_T,
+  const Eigen::Vector3d &vel, const Eigen::Vector3d &omega, Eigen::Vector3d &pos) {
   for (size_t i = 0; i < C_list_.size(); i++) {
     Vector<3> b_p_ref{C_list_[i](0), C_list_[i](1), 0};
     std::vector<Vector<3>, Eigen::aligned_allocator<Vector<3>>> pos_from_corner;
@@ -190,7 +201,7 @@ void ObstacleCalculator::get_hydrus_sphericalboxel(
                 std::sqrt(std::pow(body_vel[0], 2) + std::pow(body_vel[1], 2)));
 
     C_vel_obs_distance_[i] =
-      getClosestDistance(pos_from_corner, v, vel_theta, vel_phi) * max_detection_range_;
+      getClosestDistance(pos_from_corner, poll_y, poll_z, vel_theta, vel_phi, pos) * max_detection_range_;
       // if (C_vel_obs_distance_[i]<-10000){
       //   ROS_INFO("body_vel: %lf,%lf,%lf",body_vel[0],body_vel[1],body_vel[2]);
       //   ROS_INFO("angle: %lf,%lf",vel_theta,vel_phi);
@@ -219,7 +230,7 @@ void ObstacleCalculator::get_hydrus_sphericalboxel(
       std::atan(body_vel[2] /
                 std::sqrt(std::pow(body_vel[0], 2) + std::pow(body_vel[1], 2)));
     R_vel_obs_distance_[i] =
-      getClosestDistance(pos_from_corner, v, vel_theta, vel_phi) * max_detection_range_;
+      getClosestDistance(pos_from_corner, poll_y, poll_z, vel_theta, vel_phi, pos) * max_detection_range_;
     }
     else{
     R_vel_obs_distance_[i] = max_detection_range_;
