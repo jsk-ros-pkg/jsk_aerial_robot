@@ -24,6 +24,7 @@ using Vector = Matrix<rows, 1>;
 
 enum Vision : int {
   Theta_Cuts = 22,
+  ACC_Theta_Cuts = 8,
   // Phi_Cuts = 2,
   Corner_Num = 5,
   Rotor_Num = 4,
@@ -35,9 +36,12 @@ public:
   ObstacleCalculator(ros::NodeHandle nh, ros::NodeHandle pnh);
   ~ObstacleCalculator() {}
 
-  std::vector<Scalar>
-  getsphericalboxel(const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> &converted_positions,
+  template <typename T>
+  T getsphericalboxel(const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> &converted_positions,
                     const Vector<3> &poll_y, const Eigen::Vector3d &poll_z, const std::vector<Scalar> &theta_list, Eigen::Vector3d &pos);
+  template <typename T>
+  T getsphericalboxel(const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> &converted_positions,
+                    const Vector<3> &poll_y, const Eigen::Vector3d &poll_z, const std::vector<Scalar> &theta_list, Eigen::Vector3d &pos, Eigen::Vector3d &vel);
   Scalar
   getClosestDistance(const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> &converted_positions,
                      const Vector<3> &poll_y, const Eigen::Vector3d &poll_z, Scalar tcell, Scalar fcell, Eigen::Vector3d &quad_pos);
