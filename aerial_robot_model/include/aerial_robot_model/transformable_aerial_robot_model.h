@@ -206,7 +206,6 @@ namespace aerial_robot_model {
     Eigen::MatrixXd getSecondDerivativeRoot(std::string ref_frame, KDL::Vector offset = KDL::Vector::Zero());
     Eigen::VectorXd getHessian(std::string ref_frame, int joint_i, int joint_j, KDL::Vector offset = KDL::Vector::Zero());
 
-
   private:
 
     //private attributes

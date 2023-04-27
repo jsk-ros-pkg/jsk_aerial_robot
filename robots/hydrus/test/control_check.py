@@ -208,7 +208,7 @@ class TransformCheck(InitFormCheck, HoveringCheck):
 
     def _jointCtrlCallback(self, msg):
         if len(msg.position) == len(self.target_joint_angles):
-            self.target_joint_angles = msg.position
+            self.target_joint_angles = list(msg.position)
         else:
             for i, postion in enumerate(msg.position):
                 index = self.init_joint_names.index(msg.name[i])
