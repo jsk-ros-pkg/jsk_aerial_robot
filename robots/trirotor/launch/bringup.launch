@@ -42,7 +42,8 @@
    <rosparam file="$(arg config_dir)/Battery.yaml" command="load" />
 
    ###########  Control  ###########
-   <rosparam file="$(arg config_dir)/TrirotorControl.yaml" command="load"/>
+   <rosparam file="$(arg config_dir)/TrirotorControl.yaml" command="load" if="$(eval not arg('simulation'))"/>
+   <rosparam file="$(arg config_dir)/TrirotorControl_sim.yaml" command="load" if="$(arg simulation )"/>
 
    ###########  Sensor Fusion  ###########
    <rosparam file="$(arg config_dir)/StateEstimation.yaml" command="load" />
