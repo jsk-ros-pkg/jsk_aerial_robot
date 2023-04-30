@@ -36,6 +36,7 @@ void TrirotorController::rosParamInit()
 
 void TrirotorController::controlCore()
 {
+  std::vector<Eigen::MatrixXd> mask = trirotor_robot_model_->getRotorMasks();
   PoseLinearController::controlCore();
 
   tf::Matrix3x3 uav_rot = estimator_->getOrientation(Frame::COG, estimate_mode_);
@@ -87,18 +88,10 @@ void TrirotorController::controlCore()
   std::vector<Eigen::Vector3d> rotors_origin_from_cog = trirotor_robot_model_->getRotorsOriginFromCog<Eigen::Vector3d>();
   Eigen::MatrixXd wrench_map = Eigen::MatrixXd::Zero(6, 3);
   wrench_map.block(0, 0, 3, 3) =  Eigen::MatrixXd::Identity(3, 3);
-  Eigen::MatrixXd mask1(3, 2), mask2(3, 2);
-  mask1 << 1, 0, 0, 0, 0, 1;
-  mask2 << 0, 0, 1, 0, 0, 1;
   int last_col = 0;
   for(int i = 0; i < motor_num_; i++){
     wrench_map.block(3, 0, 3, 3) = aerial_robot_model::skew(base_rot_ag_cog.transpose() *  rotors_origin_from_cog.at(i));
-    if(i == 2){
-      full_q_mat.middleCols(last_col, 2) = wrench_map * mask2;
-    }
-    else{
-      full_q_mat.middleCols(last_col, 2) = wrench_map * mask1;
-    }
+    full_q_mat.middleCols(last_col, 2) = wrench_map * mask[i];
     last_col += 2;
   }
 
