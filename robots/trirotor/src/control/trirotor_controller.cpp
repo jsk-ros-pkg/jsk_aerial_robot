@@ -15,6 +15,7 @@ void TrirotorController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
                                    )
 {
   PoseLinearController::initialize(nh, nhp, robot_model, estimator, navigator, ctrl_loop_rate);
+  trirotor_robot_model_ = boost::dynamic_pointer_cast<TrirotorRobotModel>(robot_model);
 
   rosParamInit();
 
@@ -50,6 +51,15 @@ void TrirotorController::controlCore()
   double target_ang_acc_z = pid_controllers_.at(YAW).result();
   target_wrench_acc_cog.tail(3) = Eigen::Vector3d(target_ang_acc_x, target_ang_acc_y, target_ang_acc_z);
 
+  // coversion of target wrench from cog frame to baselink frame
+  std::vector<KDL::Rotation> links_frame_from_cog = trirotor_robot_model_->getLinksRotationFromCog<KDL::Rotation>();
+  tf::Quaternion q;  tf::quaternionKDLToTF(links_frame_from_cog.at(0), q);
+  Eigen::Matrix3d base_rot_ag_cog; tf::matrixTFToEigen(tf::Matrix3x3(q),base_rot_ag_cog);
+
+  Eigen::VectorXd target_wrench_acc_base = Eigen::VectorXd::Zero(6);
+  target_wrench_acc_base.head(3) = base_rot_ag_cog.transpose() * target_wrench_acc_cog.head(3);
+  target_wrench_acc_base.tail(3) = base_rot_ag_cog.transpose() * target_wrench_acc_cog.tail(3);
+
   pid_msg_.roll.total.at(0) = target_ang_acc_x;
   pid_msg_.roll.p_term.at(0) = pid_controllers_.at(ROLL).getPTerm();
   pid_msg_.roll.i_term.at(0) = pid_controllers_.at(ROLL).getITerm();
@@ -69,12 +79,12 @@ void TrirotorController::controlCore()
 
   Eigen::MatrixXd full_q_mat = Eigen::MatrixXd::Zero(6, 2 * motor_num_);
 
-  Eigen::Matrix3d inertia_inv = robot_model_->getInertia<Eigen::Matrix3d>().inverse();
-  double mass_inv = 1 / robot_model_->getMass();
+  Eigen::Matrix3d inertia_inv = (base_rot_ag_cog.transpose() * trirotor_robot_model_->getInertia<Eigen::Matrix3d>()).inverse();
+  double mass_inv = 1 / trirotor_robot_model_->getMass();
 
   double t = ros::Time::now().toSec();
 
-  std::vector<Eigen::Vector3d> rotors_origin_from_cog = robot_model_->getRotorsOriginFromCog<Eigen::Vector3d>();
+  std::vector<Eigen::Vector3d> rotors_origin_from_cog = trirotor_robot_model_->getRotorsOriginFromCog<Eigen::Vector3d>();
   Eigen::MatrixXd wrench_map = Eigen::MatrixXd::Zero(6, 3);
   wrench_map.block(0, 0, 3, 3) =  Eigen::MatrixXd::Identity(3, 3);
   Eigen::MatrixXd mask1(3, 2), mask2(3, 2);
@@ -82,7 +92,7 @@ void TrirotorController::controlCore()
   mask2 << 0, 0, 1, 0, 0, 1;
   int last_col = 0;
   for(int i = 0; i < motor_num_; i++){
-    wrench_map.block(3, 0, 3, 3) = aerial_robot_model::skew(rotors_origin_from_cog.at(i));
+    wrench_map.block(3, 0, 3, 3) = aerial_robot_model::skew(base_rot_ag_cog.transpose() *  rotors_origin_from_cog.at(i));
     if(i == 2){
       full_q_mat.middleCols(last_col, 2) = wrench_map * mask2;
     }
@@ -94,17 +104,15 @@ void TrirotorController::controlCore()
 
   full_q_mat.topRows(3) = mass_inv * full_q_mat.topRows(3);
   full_q_mat.bottomRows(3) = inertia_inv * full_q_mat.bottomRows(3);
-
-  // Eigen::MatrixXd full_q_mat_inv = full_q_mat.inverse();
   Eigen::MatrixXd full_q_mat_inv = aerial_robot_model::pseudoinverse(full_q_mat);
-  target_vectoring_f_ = full_q_mat_inv * target_wrench_acc_cog;
-
+  target_vectoring_f_ = full_q_mat_inv * target_wrench_acc_base;
   last_col = 0;
   for(int i = 0; i < motor_num_; i++){
     Eigen::VectorXd f_i = target_vectoring_f_.segment(last_col, 2);
-    target_base_thrust_.at(i) = f_i.norm();
 
-    target_gimbal_angles_.at(i) = atan2(f_i(0), f_i(1));
+    target_base_thrust_.at(i) = f_i.norm();
+    target_gimbal_angles_.at(i) = atan2(f_i[0], f_i[1]);
+    target_gimbal_angles_.at(i) = atan2(f_i[0], f_i[1]);
 
     last_col += 2;
   }

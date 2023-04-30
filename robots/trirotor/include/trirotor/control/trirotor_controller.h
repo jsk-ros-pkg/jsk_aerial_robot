@@ -6,6 +6,7 @@
 #include <aerial_robot_estimation/state_estimation.h>
 #include <std_msgs/Float32MultiArray.h>
 #include <spinal/FourAxisCommand.h>
+#include <trirotor/model/trirotor_robot_model.h>
 
 namespace aerial_robot_control
 {
@@ -27,7 +28,7 @@ namespace aerial_robot_control
     ros::Publisher gimbal_control_pub_;
     ros::Publisher target_vectoring_force_pub_;
 
-    // boost::shared_ptr<aerial_robot_model::RobotModel> robot_model_for_control_;
+    boost::shared_ptr<TrirotorRobotModel> trirotor_robot_model_;
 
     std::vector<float> target_base_thrust_;
     std::vector<double> target_gimbal_angles_;
