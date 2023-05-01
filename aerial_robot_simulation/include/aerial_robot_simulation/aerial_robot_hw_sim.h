@@ -96,6 +96,9 @@ protected:
 #endif
   std::string baselink_parent_;
 
+  double start_t_;
+  double spinal_init_wait_time_;
+
   uint8_t control_mode_;
   ros::Subscriber sim_vel_sub_, sim_pos_sub_;
   ros::Publisher ground_truth_pub_;

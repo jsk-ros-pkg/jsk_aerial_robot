@@ -58,7 +58,6 @@ namespace aerial_robot_model {
   private:
     //private attributes
     ros::ServiceServer add_extra_module_service_;
-    ros::Subscriber desire_coordinate_sub_;
     ros::Subscriber joint_state_sub_;
     tf2_ros::TransformBroadcaster br_;
     sensor_msgs::JointState joint_state_;
