@@ -16,6 +16,7 @@ void RollingController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
                                    double ctrl_loop_rate)
 {
   PoseLinearController::initialize(nh, nhp, robot_model, estimator, navigator, ctrl_loop_rate);
+  rolling_robot_model_ = boost::dynamic_pointer_cast<RollingRobotModel>(robot_model_);
 
   rosParamInit();
 
@@ -69,48 +70,65 @@ void RollingController::controlCore()
   pid_msg_.pitch.target_d = target_omega_.y();
   pid_msg_.pitch.err_d = pid_controllers_.at(PITCH).getErrD();
 
-  Eigen::MatrixXd full_q_mat = Eigen::MatrixXd::Zero(6, 2 * motor_num_);
-
   Eigen::Matrix3d inertia_inv = robot_model_->getInertia<Eigen::Matrix3d>().inverse();
   double mass_inv = 1 / robot_model_->getMass();
 
+  // std::vector<Eigen::Vector3d> rotors_origin_from_cog = robot_model_->getRotorsOriginFromCog<Eigen::Vector3d>();
+
   double t = ros::Time::now().toSec();
 
-  std::vector<Eigen::Vector3d> rotors_origin_from_cog = robot_model_->getRotorsOriginFromCog<Eigen::Vector3d>();
   Eigen::MatrixXd wrench_map = Eigen::MatrixXd::Zero(6, 3);
   wrench_map.block(0, 0, 3, 3) =  Eigen::MatrixXd::Identity(3, 3);
-  Eigen::MatrixXd mask1(3, 2), mask2(3, 2);
-  mask1 << 1, 0, 0, 0, 0, 1;
-  mask2 << 0, 0, 1, 0, 0, 1;
-  int last_col = 0;
+
+  robot_model_->updateRobotModel(robot_model_->getJointPositions());
+  const auto p = robot_model_->getRotorsOriginFromCog<Eigen::Vector3d>();
+  const auto u = robot_model_->getRotorsNormalFromCog<Eigen::Vector3d>();
+
+  // for(int i = 0; i < motor_num_; i++){
+  //   std::cout << p.at(i).x() << " " << p.at(i).y() << " " << p.at(i).z() << " " << std::endl;
+  //   std::cout << u.at(i).x() << " " << u.at(i).y() << " " << u.at(i).z() << " " << std::endl;
+  //   std::cout << std::endl;
+  // }
+
+  auto q = robot_model_->calcWrenchMatrixOnCoG();
+
+  // std::cout << q << std::endl;
+  // std::cout << std::endl;
+
+  q.topRows(3) = mass_inv * q.topRows(3);
+  q.bottomRows(3) = inertia_inv * q.bottomRows(3);
+
+  // std::cout << q << std::endl;
+  // std::cout << std::endl;
+
+  auto q_inv = aerial_robot_model::pseudoinverse(q);
+
+  // std::cout << q_inv << std::endl;
+  // std::cout << std::endl;
+
+  target_vectoring_f_ = q_inv * target_wrench_acc_cog;
+
   for(int i = 0; i < motor_num_; i++){
-    wrench_map.block(3, 0, 3, 3) = aerial_robot_model::skew(rotors_origin_from_cog.at(i));
-    if(i == 2){
-      full_q_mat.middleCols(last_col, 2) = wrench_map * mask2;
-    }
-    else{
-      full_q_mat.middleCols(last_col, 2) = wrench_map * mask1;
-    }
-    last_col += 2;
+    target_base_thrust_.at(i) = target_vectoring_f_(i);
+    // std::cout << target_base_thrust_.at(i) << " ";
   }
+  // std::cout << std::endl;
 
-  full_q_mat.topRows(3) = mass_inv * full_q_mat.topRows(3);
-  full_q_mat.bottomRows(3) = inertia_inv * full_q_mat.bottomRows(3);
+  // int last_col = 0;
+  // const auto
+  // for(int i = 0; i < motor_num_; i++){
+  //   wrench_map.block(3, 0, 3, 3) = aerial_robot_model::skew(rotors_origin_from_cog.at(i));
+  // }
 
-  Eigen::MatrixXd full_q_mat_inv = aerial_robot_model::pseudoinverse(full_q_mat);
-  target_vectoring_f_ = full_q_mat_inv * target_wrench_acc_cog;
+  // last_col = 0;
+  // for(int i = 0; i < motor_num_; i++){
+  //   Eigen::VectorXd f_i = target_vectoring_f_.segment(last_col, 2);
+  //   target_base_thrust_.at(i) = f_i.norm();
 
-  last_col = 0;
-  for(int i = 0; i < motor_num_; i++){
-    Eigen::VectorXd f_i = target_vectoring_f_.segment(last_col, 2);
-    target_base_thrust_.at(i) = f_i.norm();
+  //   target_gimbal_angles_.at(i) = atan2(f_i(0), f_i(1));
 
-    target_gimbal_angles_.at(i) = atan2(f_i(0), f_i(1));
-
-    last_col += 2;
-  }
+  //   last_col += 2;
 }
-
 
 
 void RollingController::sendCmd()
@@ -121,12 +139,12 @@ void RollingController::sendCmd()
   flight_command_data.base_thrust = target_base_thrust_;
   flight_cmd_pub_.publish(flight_command_data);
 
-  sensor_msgs::JointState gimbal_control_msg;
-  gimbal_control_msg.header.stamp = ros::Time::now();
-  for(int i = 0; i < motor_num_; i++){
-    gimbal_control_msg.position.push_back(target_gimbal_angles_.at(i));
-  }
-  gimbal_control_pub_.publish(gimbal_control_msg);
+  // sensor_msgs::JointState gimbal_control_msg;
+  // gimbal_control_msg.header.stamp = ros::Time::now();
+  // for(int i = 0; i < motor_num_; i++){
+  //   gimbal_control_msg.position.push_back(target_gimbal_angles_.at(i));
+  // }
+  // gimbal_control_pub_.publish(gimbal_control_msg);
 
   std_msgs::Float32MultiArray target_vectoring_force_msg;
   for(int i = 0; i < target_vectoring_f_.size(); i++){
