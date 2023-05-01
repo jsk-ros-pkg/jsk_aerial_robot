@@ -8,7 +8,7 @@ find_package(catkin REQUIRED COMPONENTS
   aerial_robot_estimation
   aerial_robot_model
   aerial_robot_msgs
-  hydrus
+  hydrus_xi
   pluginlib
   roscpp
   )
@@ -16,7 +16,7 @@ find_package(catkin REQUIRED COMPONENTS
 find_package(Eigen3 REQUIRED)
 
 catkin_package(
-  CATKIN_DEPENDS aerial_robot_control aerial_robot_estimation aerial_robot_model aerial_robot_msgs hydrus pluginlib roscpp
+  CATKIN_DEPENDS aerial_robot_control aerial_robot_estimation aerial_robot_model aerial_robot_msgs hydrus_xi pluginlib roscpp
 )
 
 include_directories(
