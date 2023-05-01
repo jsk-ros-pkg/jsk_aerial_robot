@@ -2,11 +2,11 @@
 
 #pragma once
 
-#include <aerial_robot_model/transformable_aerial_robot_model.h>
+#include <hydrus_xi/hydrus_xi_fully_actuated_robot_model.h>
 
 using namespace aerial_robot_model;
 
-class RollingRobotModel : public aerial_robot_model::RobotModel {
+class RollingRobotModel : public HydrusXiFullyActuatedRobotModel {
 public:
   RollingRobotModel(bool init_with_rosparam = true,
                     bool verbose = false,
