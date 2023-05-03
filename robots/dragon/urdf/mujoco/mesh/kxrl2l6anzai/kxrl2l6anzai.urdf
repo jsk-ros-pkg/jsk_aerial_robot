@@ -1,0 +1,887 @@
+<?xml version="1.0"?>
+<robot name="kxrl2l6anzai"
+       xmlns:xi="http://www.w3.org/2001/XInclude">
+  <link name="torso">
+    <visual>
+      <origin xyz="-8e-06 0 0.228482" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://mujoco_robot_description/model/kxrl2l6anzai/torso_mesh.stl" scale="1 1 1" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="-8e-06 0 0.228482" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://mujoco_robot_description/model/kxrl2l6anzai/torso_mesh.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.001" />
+      <origin xyz="0 0 0" rpy="0 -0 0"/>
+      <inertia ixx="0.001212" ixy="-8.36259e-06" ixz="-1.68721e-06" iyy="0.001204" iyz="1.31245e-06" izz="0.002036"/>
+    </inertial>
+  </link>
+  <link name="HEAD_LINK0">
+    <visual>
+      <origin xyz="-0.00725 0 0.061" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://mujoco_robot_description/model/kxrl2l6anzai/HEAD_LINK0_mesh.stl" scale="1 1 1" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="-0.00725 0 0.061" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://mujoco_robot_description/model/kxrl2l6anzai/HEAD_LINK0_mesh.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.035534" />
+      <origin xyz="0 4.58412e-19 0.020213" rpy="0 -0 0"/>
+      <inertia ixx="3.77457e-05" ixy="2.93587e-21" ixz="8.61164e-09" iyy="4.18029e-05" iyz="-5.25778e-09" izz="2.52695e-05"/>
+    </inertial>
+  </link>
+  <link name="HEAD_LINK1">
+    <visual>
+      <origin xyz="0 0 0.033" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://mujoco_robot_description/model/kxrl2l6anzai/HEAD_LINK1_mesh.stl" scale="1 1 1" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0.033" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://mujoco_robot_description/model/kxrl2l6anzai/HEAD_LINK1_mesh.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.15765" />
+      <origin xyz="0.005545 -2.91368e-20 0.014462" rpy="0 -0 0"/>
+      <inertia ixx="0.001184" ixy="-9.80842e-10" ixz="6.34046e-10" iyy="0.000173" iyz="1.5468e-08" izz="0.001093"/>
+    </inertial>
+  </link>
+  <link name="LARM_LINK0">
+    <visual>
+      <origin xyz="-0.00725 0.0485 0.0435" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://mujoco_robot_description/model/kxrl2l6anzai/LARM_LINK0_mesh.stl" scale="1 1 1" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="-0.00725 0.0485 0.0435" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://mujoco_robot_description/model/kxrl2l6anzai/LARM_LINK0_mesh.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.012372" />
+      <origin xyz="-6.07153e-18 0 0.011158" rpy="0 -0 0"/>
+      <inertia ixx="2.43468e-05" ixy="-1.08409e-09" ixz="7.48566e-10" iyy="1.24677e-05" iyz="1.65208e-08" izz="1.59549e-05"/>
+    </inertial>
+  </link>
+  <link name="LARM_LINK1">
+    <visual>
+      <origin xyz="0 0.028 0" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://mujoco_robot_description/model/kxrl2l6anzai/LARM_LINK1_mesh.stl" scale="1 1 1" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0.028 0" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://mujoco_robot_description/model/kxrl2l6anzai/LARM_LINK1_mesh.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.061776" />
+      <origin xyz="-0.015591 0 -0.00811" rpy="0 -0 0"/>
+      <inertia ixx="7.29447e-05" ixy="1.50384e-08" ixz="-2.07075e-08" iyy="5.06065e-05" iyz="-1.15288e-07" izz="7.45855e-05"/>
+    </inertial>
+  </link>
+  <link name="LARM_LINK2">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://mujoco_robot_description/model/kxrl2l6anzai/LARM_LINK2_mesh.stl" scale="1 1 1" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://mujoco_robot_description/model/kxrl2l6anzai/LARM_LINK2_mesh.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.021242" />
+      <origin xyz="8.67362e-19 0 -0.030824" rpy="0 -0 0"/>
+      <inertia ixx="4.76444e-05" ixy="-2.58116e-09" ixz="2.09072e-09" iyy="1.68729e-05" iyz="3.68918e-08" izz="3.61984e-05"/>
+    </inertial>
+  </link>
+  <link name="LARM_LINK3">
+    <visual>
+      <origin xyz="0 0 -0.058" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://mujoco_robot_description/model/kxrl2l6anzai/LARM_LINK3_mesh.stl" scale="1 1 1" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 -0.058" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://mujoco_robot_description/model/kxrl2l6anzai/LARM_LINK3_mesh.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.062768" />
+      <origin xyz="-0.019738 2.60729e-11 -0.007827" rpy="0 -0 0"/>
+      <inertia ixx="6.33931e-05" ixy="2.17113e-08" ixz="1.26419e-08" iyy="4.80157e-05" iyz="-1.78467e-07" izz="6.8922e-05"/>
+    </inertial>
+  </link>
+  <link name="LARM_LINK4">
+    <visual>
+      <origin xyz="0 0 -0.05" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://mujoco_robot_description/model/kxrl2l6anzai/LARM_LINK4_mesh.stl" scale="1 1 1" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 -0.05" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://mujoco_robot_description/model/kxrl2l6anzai/LARM_LINK4_mesh.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.014484" />
+      <origin xyz="0 0 0.015218" rpy="0 -0 0"/>
+      <inertia ixx="4.9522e-05" ixy="-1.60032e-09" ixz="1.45668e-09" iyy="3.05945e-05" iyz="2.14238e-08" izz="2.30352e-05"/>
+    </inertial>
+  </link>
+  <link name="LARM_LINK5">
+    <visual>
+      <origin xyz="0 0 -0.038" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://mujoco_robot_description/model/kxrl2l6anzai/LARM_LINK5_mesh.stl" scale="1 1 1" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 -0.038" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://mujoco_robot_description/model/kxrl2l6anzai/LARM_LINK5_mesh.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.061776" />
+      <origin xyz="-0.015591 0 -0.00811" rpy="0 -0 0"/>
+      <inertia ixx="8.89748e-05" ixy="1.50384e-08" ixz="-2.07075e-08" iyy="7.5009e-05" iyz="-1.15288e-07" izz="7.08008e-05"/>
+    </inertial>
+  </link>
+  <link name="LARM_LINK6">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://mujoco_robot_description/model/kxrl2l6anzai/LARM_LINK6_mesh.stl" scale="1 1 1" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://mujoco_robot_description/model/kxrl2l6anzai/LARM_LINK6_mesh.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.012372" />
+      <origin xyz="-6.07153e-18 0 0.011158" rpy="0 -0 0"/>
+      <inertia ixx="0.000191" ixy="-1.08803e-09" ixz="7.45099e-09" iyy="0.000151" iyz="1.04967e-08" izz="7.50286e-05"/>
+    </inertial>
+  </link>
+  <link name="LARM_LINK7">
+    <visual>
+      <origin xyz="0 0.021 -0.0505" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://mujoco_robot_description/model/kxrl2l6anzai/LARM_LINK7_mesh.stl" scale="1 1 1" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0.021 -0.0505" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://mujoco_robot_description/model/kxrl2l6anzai/LARM_LINK7_mesh.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.013908" />
+      <origin xyz="2.60209e-18 0.035082 -0.036273" rpy="0 -0 0"/>
+      <inertia ixx="0.000119" ixy="-2.54028e-09" ixz="-2.35822e-09" iyy="8.77738e-05" iyz="-1.52851e-07" izz="4.80606e-05"/>
+    </inertial>
+  </link>
+  <link name="LARM_LINK8">
+    <visual>
+      <origin xyz="0 0 -0.061" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://mujoco_robot_description/model/kxrl2l6anzai/LARM_LINK8_mesh.stl" scale="1 1 1" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 -0.061" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://mujoco_robot_description/model/kxrl2l6anzai/LARM_LINK8_mesh.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.013908" />
+      <origin xyz="4.33681e-18 0.002569 -0.052529" rpy="0 -0 0"/>
+      <inertia ixx="0.000118" ixy="-2.54028e-09" ixz="-2.35822e-09" iyy="0.000102" iyz="-1.52851e-07" izz="3.22989e-05"/>
+    </inertial>
+  </link>
+  <link name="LLEG_LINK0">
+    <visual>
+      <origin xyz="0 0.0235 -0.0605" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://mujoco_robot_description/model/kxrl2l6anzai/LLEG_LINK0_mesh.stl" scale="1 1 1" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0.0235 -0.0605" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://mujoco_robot_description/model/kxrl2l6anzai/LLEG_LINK0_mesh.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.012372" />
+      <origin xyz="-6.31747e-18 0 0.011158" rpy="0 -0 0"/>
+      <inertia ixx="2.46453e-05" ixy="-1.08409e-09" ixz="7.48566e-10" iyy="2.26954e-05" iyz="1.65208e-08" izz="6.70267e-06"/>
+    </inertial>
+  </link>
+  <link name="LLEG_LINK1">
+    <visual>
+      <origin xyz="0 0 -0.028" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://mujoco_robot_description/model/kxrl2l6anzai/LLEG_LINK1_mesh.stl" scale="1 1 1" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 -0.028" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://mujoco_robot_description/model/kxrl2l6anzai/LLEG_LINK1_mesh.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.061776" />
+      <origin xyz="-0.015591 0 -0.00811" rpy="0 -0 0"/>
+      <inertia ixx="7.13461e-05" ixy="1.50384e-08" ixz="-2.07075e-08" iyy="7.78177e-05" iyz="-1.15288e-07" izz="4.88384e-05"/>
+    </inertial>
+  </link>
+  <link name="LLEG_LINK2">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://mujoco_robot_description/model/kxrl2l6anzai/LLEG_LINK2_mesh.stl" scale="1 1 1" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://mujoco_robot_description/model/kxrl2l6anzai/LLEG_LINK2_mesh.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.025166" />
+      <origin xyz="7.75187e-19 0 -0.032713" rpy="0 -0 0"/>
+      <inertia ixx="0.000113" ixy="-2.27142e-09" ixz="1.80148e-09" iyy="0.000108" iyz="3.35902e-08" izz="1.34603e-05"/>
+    </inertial>
+  </link>
+  <link name="LLEG_LINK3">
+    <visual>
+      <origin xyz="0 0 -0.058" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://mujoco_robot_description/model/kxrl2l6anzai/LLEG_LINK3_mesh.stl" scale="1 1 1" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 -0.058" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://mujoco_robot_description/model/kxrl2l6anzai/LLEG_LINK3_mesh.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.055049" />
+      <origin xyz="0.010892 0 -0.013685" rpy="0 -0 0"/>
+      <inertia ixx="0.000186" ixy="5.70585e-08" ixz="1.76606e-08" iyy="0.000177" iyz="-6.55478e-07" izz="3.84933e-05"/>
+    </inertial>
+  </link>
+  <link name="LLEG_LINK4">
+    <visual>
+      <origin xyz="0 0 -0.057976" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://mujoco_robot_description/model/kxrl2l6anzai/LLEG_LINK4_mesh.stl" scale="1 1 1" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 -0.057976" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://mujoco_robot_description/model/kxrl2l6anzai/LLEG_LINK4_mesh.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.061776" />
+      <origin xyz="-0.015591 0 -0.00811" rpy="0 -0 0"/>
+      <inertia ixx="0.000185" ixy="1.50384e-08" ixz="-2.07075e-08" iyy="0.000192" iyz="-1.15288e-07" izz="4.88384e-05"/>
+    </inertial>
+  </link>
+  <link name="LLEG_LINK5">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://mujoco_robot_description/model/kxrl2l6anzai/LLEG_LINK5_mesh.stl" scale="1 1 1" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://mujoco_robot_description/model/kxrl2l6anzai/LLEG_LINK5_mesh.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.034088" />
+      <origin xyz="-7.61549e-06 0.005841 -0.024808" rpy="0 -0 0"/>
+      <inertia ixx="0.000344" ixy="6.51398e-09" ixz="1.25882e-08" iyy="0.000246" iyz="-2.42528e-07" izz="0.000103"/>
+    </inertial>
+  </link>
+  <link name="RARM_LINK0">
+    <visual>
+      <origin xyz="-0.00725 -0.049 0.0435" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://mujoco_robot_description/model/kxrl2l6anzai/RARM_LINK0_mesh.stl" scale="1 1 1" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="-0.00725 -0.049 0.0435" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://mujoco_robot_description/model/kxrl2l6anzai/RARM_LINK0_mesh.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.012372" />
+      <origin xyz="-6.07153e-18 0 0.011158" rpy="0 -0 0"/>
+      <inertia ixx="2.45301e-05" ixy="-1.08409e-09" ixz="7.48566e-10" iyy="1.24677e-05" iyz="1.65208e-08" izz="1.61383e-05"/>
+    </inertial>
+  </link>
+  <link name="RARM_LINK1">
+    <visual>
+      <origin xyz="0 -0.028 0" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://mujoco_robot_description/model/kxrl2l6anzai/RARM_LINK1_mesh.stl" scale="1 1 1" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 -0.028 0" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://mujoco_robot_description/model/kxrl2l6anzai/RARM_LINK1_mesh.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.061776" />
+      <origin xyz="-0.015591 0 -0.00811" rpy="0 -0 0"/>
+      <inertia ixx="7.3289e-05" ixy="1.50384e-08" ixz="-2.07075e-08" iyy="5.06065e-05" iyz="-1.15288e-07" izz="7.49299e-05"/>
+    </inertial>
+  </link>
+  <link name="RARM_LINK2">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://mujoco_robot_description/model/kxrl2l6anzai/RARM_LINK2_mesh.stl" scale="1 1 1" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://mujoco_robot_description/model/kxrl2l6anzai/RARM_LINK2_mesh.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.021242" />
+      <origin xyz="8.67362e-19 0 -0.030824" rpy="0 -0 0"/>
+      <inertia ixx="4.80281e-05" ixy="-2.58116e-09" ixz="2.09072e-09" iyy="1.68729e-05" iyz="3.68918e-08" izz="3.65822e-05"/>
+    </inertial>
+  </link>
+  <link name="RARM_LINK3">
+    <visual>
+      <origin xyz="0 0 -0.058" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://mujoco_robot_description/model/kxrl2l6anzai/RARM_LINK3_mesh.stl" scale="1 1 1" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 -0.058" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://mujoco_robot_description/model/kxrl2l6anzai/RARM_LINK3_mesh.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.062768" />
+      <origin xyz="-0.019738 2.60729e-11 -0.007827" rpy="0 -0 0"/>
+      <inertia ixx="6.37001e-05" ixy="2.17113e-08" ixz="1.26419e-08" iyy="4.80157e-05" iyz="-1.78467e-07" izz="6.9229e-05"/>
+    </inertial>
+  </link>
+  <link name="RARM_LINK4">
+    <visual>
+      <origin xyz="0 0 -0.05" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://mujoco_robot_description/model/kxrl2l6anzai/RARM_LINK4_mesh.stl" scale="1 1 1" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 -0.05" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://mujoco_robot_description/model/kxrl2l6anzai/RARM_LINK4_mesh.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.014484" />
+      <origin xyz="0 0 0.015218" rpy="0 -0 0"/>
+      <inertia ixx="4.97522e-05" ixy="-1.60032e-09" ixz="1.45668e-09" iyy="3.05945e-05" iyz="2.14238e-08" izz="2.32654e-05"/>
+    </inertial>
+  </link>
+  <link name="RARM_LINK5">
+    <visual>
+      <origin xyz="0 0 -0.038" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://mujoco_robot_description/model/kxrl2l6anzai/RARM_LINK5_mesh.stl" scale="1 1 1" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 -0.038" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://mujoco_robot_description/model/kxrl2l6anzai/RARM_LINK5_mesh.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.061776" />
+      <origin xyz="-0.015591 0 -0.00811" rpy="0 -0 0"/>
+      <inertia ixx="8.92819e-05" ixy="1.50384e-08" ixz="-2.07075e-08" iyy="7.5009e-05" iyz="-1.15288e-07" izz="7.11078e-05"/>
+    </inertial>
+  </link>
+  <link name="RARM_LINK6">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://mujoco_robot_description/model/kxrl2l6anzai/RARM_LINK6_mesh.stl" scale="1 1 1" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://mujoco_robot_description/model/kxrl2l6anzai/RARM_LINK6_mesh.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.012372" />
+      <origin xyz="-6.07153e-18 0 0.011158" rpy="0 -0 0"/>
+      <inertia ixx="0.000191" ixy="-1.08803e-09" ixz="7.45099e-09" iyy="0.000151" iyz="1.04967e-08" izz="7.55877e-05"/>
+    </inertial>
+  </link>
+  <link name="RARM_LINK7">
+    <visual>
+      <origin xyz="0 -0.021 -0.0505" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://mujoco_robot_description/model/kxrl2l6anzai/RARM_LINK7_mesh.stl" scale="1 1 1" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 -0.021 -0.0505" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://mujoco_robot_description/model/kxrl2l6anzai/RARM_LINK7_mesh.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.013908" />
+      <origin xyz="-3.46945e-18 -0.035082 -0.036273" rpy="0 -0 0"/>
+      <inertia ixx="0.00012" ixy="-2.54028e-09" ixz="-2.35822e-09" iyy="8.77738e-05" iyz="-1.52851e-07" izz="4.83789e-05"/>
+    </inertial>
+  </link>
+  <link name="RARM_LINK8">
+    <visual>
+      <origin xyz="0 0 -0.061" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://mujoco_robot_description/model/kxrl2l6anzai/RARM_LINK8_mesh.stl" scale="1 1 1" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 -0.061" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://mujoco_robot_description/model/kxrl2l6anzai/RARM_LINK8_mesh.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.013908" />
+      <origin xyz="-6.93889e-18 -0.002569 -0.052529" rpy="0 -0 0"/>
+      <inertia ixx="0.000118" ixy="-2.54028e-09" ixz="-2.35822e-09" iyy="0.000102" iyz="-1.52851e-07" izz="3.25329e-05"/>
+    </inertial>
+  </link>
+  <link name="RLEG_LINK0">
+    <visual>
+      <origin xyz="0 -0.0235 -0.0605" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://mujoco_robot_description/model/kxrl2l6anzai/RLEG_LINK0_mesh.stl" scale="1 1 1" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 -0.0235 -0.0605" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://mujoco_robot_description/model/kxrl2l6anzai/RLEG_LINK0_mesh.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.012372" />
+      <origin xyz="-6.31747e-18 0 0.011158" rpy="0 -0 0"/>
+      <inertia ixx="2.46453e-05" ixy="-1.08409e-09" ixz="7.48566e-10" iyy="2.26954e-05" iyz="1.65208e-08" izz="6.70267e-06"/>
+    </inertial>
+  </link>
+  <link name="RLEG_LINK1">
+    <visual>
+      <origin xyz="0 0 -0.028" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://mujoco_robot_description/model/kxrl2l6anzai/RLEG_LINK1_mesh.stl" scale="1 1 1" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 -0.028" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://mujoco_robot_description/model/kxrl2l6anzai/RLEG_LINK1_mesh.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.061776" />
+      <origin xyz="-0.015591 0 -0.00811" rpy="0 -0 0"/>
+      <inertia ixx="7.13461e-05" ixy="1.50384e-08" ixz="-2.07075e-08" iyy="7.78177e-05" iyz="-1.15288e-07" izz="4.88384e-05"/>
+    </inertial>
+  </link>
+  <link name="RLEG_LINK2">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://mujoco_robot_description/model/kxrl2l6anzai/RLEG_LINK2_mesh.stl" scale="1 1 1" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://mujoco_robot_description/model/kxrl2l6anzai/RLEG_LINK2_mesh.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.025166" />
+      <origin xyz="7.75187e-19 0 -0.032713" rpy="0 -0 0"/>
+      <inertia ixx="0.000113" ixy="-2.27142e-09" ixz="1.80148e-09" iyy="0.000108" iyz="3.35902e-08" izz="1.34603e-05"/>
+    </inertial>
+  </link>
+  <link name="RLEG_LINK3">
+    <visual>
+      <origin xyz="0 0 -0.058" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://mujoco_robot_description/model/kxrl2l6anzai/RLEG_LINK3_mesh.stl" scale="1 1 1" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 -0.058" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://mujoco_robot_description/model/kxrl2l6anzai/RLEG_LINK3_mesh.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.055049" />
+      <origin xyz="0.010892 0 -0.013685" rpy="0 -0 0"/>
+      <inertia ixx="0.000186" ixy="5.70585e-08" ixz="1.76606e-08" iyy="0.000177" iyz="-6.55478e-07" izz="3.84933e-05"/>
+    </inertial>
+  </link>
+  <link name="RLEG_LINK4">
+    <visual>
+      <origin xyz="0 0 -0.057976" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://mujoco_robot_description/model/kxrl2l6anzai/RLEG_LINK4_mesh.stl" scale="1 1 1" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 -0.057976" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://mujoco_robot_description/model/kxrl2l6anzai/RLEG_LINK4_mesh.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.061776" />
+      <origin xyz="-0.015591 0 -0.00811" rpy="0 -0 0"/>
+      <inertia ixx="0.000185" ixy="1.50384e-08" ixz="-2.07075e-08" iyy="0.000192" iyz="-1.15288e-07" izz="4.88384e-05"/>
+    </inertial>
+  </link>
+  <link name="RLEG_LINK5">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://mujoco_robot_description/model/kxrl2l6anzai/RLEG_LINK5_mesh.stl" scale="1 1 1" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://mujoco_robot_description/model/kxrl2l6anzai/RLEG_LINK5_mesh.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.034088" />
+      <origin xyz="7.61549e-06 -0.005841 -0.024808" rpy="0 -0 0"/>
+      <inertia ixx="0.000344" ixy="6.51398e-09" ixz="1.25882e-08" iyy="0.000246" iyz="-2.42528e-07" izz="0.000103"/>
+    </inertial>
+  </link>
+  <joint name="HEAD_JOINT0" type="continuous">
+    <parent link="torso"/>
+    <child  link="HEAD_LINK0"/>
+    <origin xyz="-0.00725 0 0.061" rpy="0 -0 0 "/>
+    <axis   xyz="0 0 1"/>
+    <limit lower="-3.14159" upper="3.14159" effort="100" velocity="0.5" />
+    <dynamics damping="0.2" friction="0" />
+  </joint>
+  <joint name="HEAD_JOINT1" type="continuous">
+    <parent link="HEAD_LINK0"/>
+    <child  link="HEAD_LINK1"/>
+    <origin xyz="0 0 0.033" rpy="0 -0 0 "/>
+    <axis   xyz="0 1 0"/>
+    <limit lower="-3.14159" upper="3.14159" effort="100" velocity="0.5" />
+    <dynamics damping="0.2" friction="0" />
+  </joint>
+  <joint name="LARM_JOINT0" type="continuous">
+    <parent link="torso"/>
+    <child  link="LARM_LINK0"/>
+    <origin xyz="-0.00725 0.0485 0.0435" rpy="0 -0 0 "/>
+    <axis   xyz="0 1 0"/>
+    <limit lower="-3.14159" upper="3.14159" effort="100" velocity="0.5" />
+    <dynamics damping="0.2" friction="0" />
+  </joint>
+  <joint name="LARM_JOINT1" type="continuous">
+    <parent link="LARM_LINK0"/>
+    <child  link="LARM_LINK1"/>
+    <origin xyz="0 0.028 0" rpy="0 -0 0 "/>
+    <axis   xyz="0 0 1"/>
+    <limit lower="-3.14159" upper="3.14159" effort="100" velocity="0.5" />
+    <dynamics damping="0.2" friction="0" />
+  </joint>
+  <joint name="LARM_JOINT2" type="continuous">
+    <parent link="LARM_LINK1"/>
+    <child  link="LARM_LINK2"/>
+    <origin xyz="0 0 0" rpy="0 -0 0 "/>
+    <axis   xyz="1 0 0"/>
+    <limit lower="-3.14159" upper="3.14159" effort="100" velocity="0.5" />
+    <dynamics damping="0.2" friction="0" />
+  </joint>
+  <joint name="LARM_JOINT3" type="continuous">
+    <parent link="LARM_LINK2"/>
+    <child  link="LARM_LINK3"/>
+    <origin xyz="0 0 -0.058" rpy="0 -0 0 "/>
+    <axis   xyz="0 1 0"/>
+    <limit lower="-3.14159" upper="3.14159" effort="100" velocity="0.5" />
+    <dynamics damping="0.2" friction="0" />
+  </joint>
+  <joint name="LARM_JOINT4" type="continuous">
+    <parent link="LARM_LINK3"/>
+    <child  link="LARM_LINK4"/>
+    <origin xyz="0 0 -0.05" rpy="0 -0 0 "/>
+    <axis   xyz="0 0 1"/>
+    <limit lower="-3.14159" upper="3.14159" effort="100" velocity="0.5" />
+    <dynamics damping="0.2" friction="0" />
+  </joint>
+  <joint name="LARM_JOINT5" type="continuous">
+    <parent link="LARM_LINK4"/>
+    <child  link="LARM_LINK5"/>
+    <origin xyz="0 0 -0.038" rpy="0 -0 0 "/>
+    <axis   xyz="0 1 0"/>
+    <limit lower="-3.14159" upper="3.14159" effort="100" velocity="0.5" />
+    <dynamics damping="0.2" friction="0" />
+  </joint>
+  <joint name="LARM_JOINT6" type="continuous">
+    <parent link="LARM_LINK5"/>
+    <child  link="LARM_LINK6"/>
+    <origin xyz="0 0 0" rpy="0 -0 0 "/>
+    <axis   xyz="1 0 0"/>
+    <limit lower="-3.14159" upper="3.14159" effort="100" velocity="0.5" />
+    <dynamics damping="0.2" friction="0" />
+  </joint>
+  <joint name="LARM_JOINT7" type="continuous">
+    <parent link="LARM_LINK6"/>
+    <child  link="LARM_LINK7"/>
+    <origin xyz="0 0.021 -0.0505" rpy="0 -0 0 "/>
+    <axis   xyz="1 0 0"/>
+    <limit lower="-3.14159" upper="3.14159" effort="100" velocity="0.5" />
+    <dynamics damping="0.2" friction="0" />
+  </joint>
+  <joint name="LARM_JOINT8" type="continuous">
+    <parent link="LARM_LINK6"/>
+    <child  link="LARM_LINK8"/>
+    <origin xyz="0 0 -0.061" rpy="0 -0 0 "/>
+    <axis   xyz="-1 1.09536e-16 5.47679e-17"/>
+    <limit lower="-3.14159" upper="3.14159" effort="100" velocity="0.5" />
+    <dynamics damping="0.2" friction="0" />
+  </joint>
+  <joint name="LLEG_JOINT0" type="continuous">
+    <parent link="torso"/>
+    <child  link="LLEG_LINK0"/>
+    <origin xyz="0 0.0235 -0.0605" rpy="0 -0 0 "/>
+    <axis   xyz="0 0 1"/>
+    <limit lower="-3.14159" upper="3.14159" effort="100" velocity="0.5" />
+    <dynamics damping="0.2" friction="0" />
+  </joint>
+  <joint name="LLEG_JOINT1" type="continuous">
+    <parent link="LLEG_LINK0"/>
+    <child  link="LLEG_LINK1"/>
+    <origin xyz="0 0 -0.028" rpy="0 -0 0 "/>
+    <axis   xyz="1 0 0"/>
+    <limit lower="-3.14159" upper="3.14159" effort="100" velocity="0.5" />
+    <dynamics damping="0.2" friction="0" />
+  </joint>
+  <joint name="LLEG_JOINT2" type="continuous">
+    <parent link="LLEG_LINK1"/>
+    <child  link="LLEG_LINK2"/>
+    <origin xyz="0 0 0" rpy="0 -0 0 "/>
+    <axis   xyz="0 1 0"/>
+    <limit lower="-3.14159" upper="3.14159" effort="100" velocity="0.5" />
+    <dynamics damping="0.2" friction="0" />
+  </joint>
+  <joint name="LLEG_JOINT3" type="continuous">
+    <parent link="LLEG_LINK2"/>
+    <child  link="LLEG_LINK3"/>
+    <origin xyz="0 0 -0.058" rpy="0 -0 0 "/>
+    <axis   xyz="0 1 0"/>
+    <limit lower="-3.14159" upper="3.14159" effort="100" velocity="0.5" />
+    <dynamics damping="0.2" friction="0" />
+  </joint>
+  <joint name="LLEG_JOINT4" type="continuous">
+    <parent link="LLEG_LINK3"/>
+    <child  link="LLEG_LINK4"/>
+    <origin xyz="0 0 -0.057976" rpy="0 -0 0 "/>
+    <axis   xyz="0 1 0"/>
+    <limit lower="-3.14159" upper="3.14159" effort="100" velocity="0.5" />
+    <dynamics damping="0.2" friction="0" />
+  </joint>
+  <joint name="LLEG_JOINT5" type="continuous">
+    <parent link="LLEG_LINK4"/>
+    <child  link="LLEG_LINK5"/>
+    <origin xyz="0 0 0" rpy="0 -0 0 "/>
+    <axis   xyz="1 0 0"/>
+    <limit lower="-3.14159" upper="3.14159" effort="100" velocity="0.5" />
+    <dynamics damping="0.2" friction="0" />
+  </joint>
+  <joint name="RARM_JOINT0" type="continuous">
+    <parent link="torso"/>
+    <child  link="RARM_LINK0"/>
+    <origin xyz="-0.00725 -0.049 0.0435" rpy="0 -0 0 "/>
+    <axis   xyz="0 1 0"/>
+    <limit lower="-3.14159" upper="3.14159" effort="100" velocity="0.5" />
+    <dynamics damping="0.2" friction="0" />
+  </joint>
+  <joint name="RARM_JOINT1" type="continuous">
+    <parent link="RARM_LINK0"/>
+    <child  link="RARM_LINK1"/>
+    <origin xyz="0 -0.028 0" rpy="0 -0 0 "/>
+    <axis   xyz="0 0 1"/>
+    <limit lower="-3.14159" upper="3.14159" effort="100" velocity="0.5" />
+    <dynamics damping="0.2" friction="0" />
+  </joint>
+  <joint name="RARM_JOINT2" type="continuous">
+    <parent link="RARM_LINK1"/>
+    <child  link="RARM_LINK2"/>
+    <origin xyz="0 0 0" rpy="0 -0 0 "/>
+    <axis   xyz="1 0 0"/>
+    <limit lower="-3.14159" upper="3.14159" effort="100" velocity="0.5" />
+    <dynamics damping="0.2" friction="0" />
+  </joint>
+  <joint name="RARM_JOINT3" type="continuous">
+    <parent link="RARM_LINK2"/>
+    <child  link="RARM_LINK3"/>
+    <origin xyz="0 0 -0.058" rpy="0 -0 0 "/>
+    <axis   xyz="0 1 0"/>
+    <limit lower="-3.14159" upper="3.14159" effort="100" velocity="0.5" />
+    <dynamics damping="0.2" friction="0" />
+  </joint>
+  <joint name="RARM_JOINT4" type="continuous">
+    <parent link="RARM_LINK3"/>
+    <child  link="RARM_LINK4"/>
+    <origin xyz="0 0 -0.05" rpy="0 -0 0 "/>
+    <axis   xyz="0 0 1"/>
+    <limit lower="-3.14159" upper="3.14159" effort="100" velocity="0.5" />
+    <dynamics damping="0.2" friction="0" />
+  </joint>
+  <joint name="RARM_JOINT5" type="continuous">
+    <parent link="RARM_LINK4"/>
+    <child  link="RARM_LINK5"/>
+    <origin xyz="0 0 -0.038" rpy="0 -0 0 "/>
+    <axis   xyz="0 1 0"/>
+    <limit lower="-3.14159" upper="3.14159" effort="100" velocity="0.5" />
+    <dynamics damping="0.2" friction="0" />
+  </joint>
+  <joint name="RARM_JOINT6" type="continuous">
+    <parent link="RARM_LINK5"/>
+    <child  link="RARM_LINK6"/>
+    <origin xyz="0 0 0" rpy="0 -0 0 "/>
+    <axis   xyz="1 0 0"/>
+    <limit lower="-3.14159" upper="3.14159" effort="100" velocity="0.5" />
+    <dynamics damping="0.2" friction="0" />
+  </joint>
+  <joint name="RARM_JOINT7" type="continuous">
+    <parent link="RARM_LINK6"/>
+    <child  link="RARM_LINK7"/>
+    <origin xyz="0 -0.021 -0.0505" rpy="0 -0 0 "/>
+    <axis   xyz="-1 1.22465e-16 6.16298e-33"/>
+    <limit lower="-3.14159" upper="3.14159" effort="100" velocity="0.5" />
+    <dynamics damping="0.2" friction="0" />
+  </joint>
+  <joint name="RARM_JOINT8" type="continuous">
+    <parent link="RARM_LINK6"/>
+    <child  link="RARM_LINK8"/>
+    <origin xyz="0 0 -0.061" rpy="0 -0 0 "/>
+    <axis   xyz="1 -2.32e-16 5.47679e-17"/>
+    <limit lower="-3.14159" upper="3.14159" effort="100" velocity="0.5" />
+    <dynamics damping="0.2" friction="0" />
+  </joint>
+  <joint name="RLEG_JOINT0" type="continuous">
+    <parent link="torso"/>
+    <child  link="RLEG_LINK0"/>
+    <origin xyz="0 -0.0235 -0.0605" rpy="0 -0 0 "/>
+    <axis   xyz="0 0 1"/>
+    <limit lower="-3.14159" upper="3.14159" effort="100" velocity="0.5" />
+    <dynamics damping="0.2" friction="0" />
+  </joint>
+  <joint name="RLEG_JOINT1" type="continuous">
+    <parent link="RLEG_LINK0"/>
+    <child  link="RLEG_LINK1"/>
+    <origin xyz="0 0 -0.028" rpy="0 -0 0 "/>
+    <axis   xyz="1 0 0"/>
+    <limit lower="-3.14159" upper="3.14159" effort="100" velocity="0.5" />
+    <dynamics damping="0.2" friction="0" />
+  </joint>
+  <joint name="RLEG_JOINT2" type="continuous">
+    <parent link="RLEG_LINK1"/>
+    <child  link="RLEG_LINK2"/>
+    <origin xyz="0 0 0" rpy="0 -0 0 "/>
+    <axis   xyz="0 1 0"/>
+    <limit lower="-3.14159" upper="3.14159" effort="100" velocity="0.5" />
+    <dynamics damping="0.2" friction="0" />
+  </joint>
+  <joint name="RLEG_JOINT3" type="continuous">
+    <parent link="RLEG_LINK2"/>
+    <child  link="RLEG_LINK3"/>
+    <origin xyz="0 0 -0.058" rpy="0 -0 0 "/>
+    <axis   xyz="0 1 0"/>
+    <limit lower="-3.14159" upper="3.14159" effort="100" velocity="0.5" />
+    <dynamics damping="0.2" friction="0" />
+  </joint>
+  <joint name="RLEG_JOINT4" type="continuous">
+    <parent link="RLEG_LINK3"/>
+    <child  link="RLEG_LINK4"/>
+    <origin xyz="0 0 -0.057976" rpy="0 -0 0 "/>
+    <axis   xyz="0 1 0"/>
+    <limit lower="-3.14159" upper="3.14159" effort="100" velocity="0.5" />
+    <dynamics damping="0.2" friction="0" />
+  </joint>
+  <joint name="RLEG_JOINT5" type="continuous">
+    <parent link="RLEG_LINK4"/>
+    <child  link="RLEG_LINK5"/>
+    <origin xyz="0 0 0" rpy="0 -0 0 "/>
+    <axis   xyz="1 0 0"/>
+    <limit lower="-3.14159" upper="3.14159" effort="100" velocity="0.5" />
+    <dynamics damping="0.2" friction="0" />
+  </joint>
+</robot>
