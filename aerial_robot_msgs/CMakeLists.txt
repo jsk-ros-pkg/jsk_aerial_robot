@@ -13,6 +13,7 @@ add_message_files(FILES
   DynamicReconfigureLevels.msg
   FourAxisGain.msg
   AerialRobotStatus.msg
+  ControlInput.msg
   FlightNav.msg
   PoseControlPid.msg
   Pid.msg
