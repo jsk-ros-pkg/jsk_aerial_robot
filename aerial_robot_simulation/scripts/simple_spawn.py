@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import rospy
 import mujoco
+from mujoco import viewer
 import os
 
 class SimpleSpawn:
@@ -8,16 +9,13 @@ class SimpleSpawn:
         rospy.init_node("simple_spawn", anonymous=True)
 
         #init mujoco model
-        mj_path = mujoco_py.utils.discover_mujoco()
         xml_path = rospy.get_param('~model')
-        model = mujoco_py.load_model_from_path(xml_path)
-        self.sim = mujoco_py.MjSim(model)
-
-        viewer = mujoco_py.MjViewer(self.sim)
+        self.model = mujoco.MjModel.from_xml_path(xml_path)
+        self.data = mujoco.MjData(self.model)
+        viewer.launch(self.model, self.data)
 
         while not rospy.is_shutdown():
-            self.sim.step()
-            viewer.render()
+            mujoco.mj_step(self.model, self.data)
 
 if __name__ == '__main__':
     node = SimpleSpawn()

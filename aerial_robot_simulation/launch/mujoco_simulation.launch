@@ -1,7 +1,7 @@
 <launch>
   <arg name="model" default="$(find dragon)/urdf/mujoco/dragon.xml"/>
 
-  <node pkg="aerial_robot_simulation" type="simple_spawn.py" name="simple_spawn" output="screen">
+  <node pkg="aerial_robot_simulation" type="mujoco_ros_interface.py" name="mujoco_ros_interface" output="screen">
     <param name="model" value="$(arg model)"/>
   </node>
 </launch>
