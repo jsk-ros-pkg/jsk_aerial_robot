@@ -11,7 +11,8 @@
         <mesh name="ducted_fan_end_link" file="ducted_fan_end_link.stl" />
     </asset>
     <worldbody>
-        <geom pos="0.212 0 0" type="mesh" contype="0" conaffinity="0" group="1" mesh="ducted_fan_head_link" />
+      <geom name="floor" pos="0 0 0" size="2 2 .2" type="plane"  conaffinity="1" rgba="1 1 1 1" condim="3"/>
+      <geom pos="0.212 0 0" type="mesh" contype="0" conaffinity="0" group="1" mesh="ducted_fan_head_link" />
         <body name="gimbal1_roll_module" pos="0.212 0 0">
             <inertial pos="-0.0276 0.00042 0.01548" quat="0.938888 0 0.344224 0" mass="0.4604" diaginertia="0.000366667 0.000366667 0.000366667" />
             <joint name="gimbal1_roll" pos="0 0 0" axis="1 0 0" limited="true" range="-3.14 3.14" damping="0.1" />
