@@ -1,7 +1,16 @@
 <launch>
   <arg name="model" default="$(find dragon)/urdf/mujoco/dragon.xml"/>
+  <arg name="robot_ns" default="uav" />
 
-  <node pkg="aerial_robot_simulation" type="mujoco_ros_interface.py" name="mujoco_ros_interface" output="screen">
-    <param name="model" value="$(arg model)"/>
-  </node>
+  <group ns="$(arg robot_ns)">
+    <node pkg="aerial_robot_simulation" type="mujoco_ros_interface.py" name="mujoco_ros_interface" output="screen">
+      <rosparam command="load" file="$(find aerial_robot_simulation)/config/init_pose.yaml" />
+      <param name="model" value="$(arg model)"/>
+    </node>
+
+    <node pkg="aerial_robot_simulation" type="mujoco_flight_controller.py" name="mujoco_flight_controller" output="screen">
+      <rosparam command="load" file="$(find aerial_robot_simulation)/config/ControlParams.yaml" />
+    </node>
+  </group>
+
 </launch>
