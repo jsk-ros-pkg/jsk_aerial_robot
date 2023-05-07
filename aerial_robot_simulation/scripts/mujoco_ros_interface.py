@@ -9,16 +9,15 @@ import tf
 from aerial_robot_msgs.msg import ControlInput, WrenchAllocationMatrix
 from geometry_msgs.msg import PoseStamped, TwistStamped
 from sensor_msgs.msg import JointState
-from spinal.msg import FourAxisCommand, TorqueAllocationMatrixInv
+from spinal.msg import FourAxisCommand, TorqueAllocationMatrixInv, Imu
 from pid import PI_D
 from mujoco_flight_controller import mujocoFlightController
 from mujoco_navigation import mujocoNavigator
 import time
+from rosgraph_msgs.msg import Clock
 
 class MujocoRosInterface:
     def __init__(self):
-        rospy.init_node("mujoco_ros_interface", anonymous=True)
-
         #init mujoco model
         xml_path = rospy.get_param('~model')
         self.model = mujoco.MjModel.from_xml_path(xml_path)
@@ -61,12 +60,19 @@ class MujocoRosInterface:
         self.mocap_pub = rospy.Publisher("mocap/pose", PoseStamped, queue_size=1)
         self.twist_pub = rospy.Publisher("twist", TwistStamped, queue_size=1)
         self.wrench_mat_pub = rospy.Publisher("wrench_allocation_mat", WrenchAllocationMatrix, queue_size=1)
+        self.imu_pub = rospy.Publisher("imu", Imu, queue_size=1)
+        self.clock_pub = rospy.Publisher('/clock',Clock, queue_size=10)
 
         # ros subscriber
         ctrl_sub = rospy.Subscriber("ctrl_input", ControlInput, self.ctrlCallback)
 
         # ros timer
         timer100 = rospy.Timer(rospy.Duration(0.01), self.timerCallback)
+        clock = rospy.Timer(rospy.Duration(0.001), self.clockCallback)
+
+        # ros time
+        self.sim_clock = Clock()
+        self.zero_time = rospy.get_time()
 
         self.viewer = viewer.launch_passive(self.model, self.data)
         self.viewer.sync()
@@ -124,7 +130,7 @@ class MujocoRosInterface:
 
     def timerCallback(self, event):
         self.cnt = (self.cnt + 1) % 20
-        now = rospy.Time.now()
+        now = rospy.Time.from_sec(rospy.get_time() - self.zero_time)
         now_time = rospy.get_time()
 
         # print(now_time)
@@ -179,6 +185,14 @@ class MujocoRosInterface:
         twist.twist.angular.z = qvel[5]
         self.twist_pub.publish(twist)
 
+        imu = Imu()
+        imu.stamp = now
+        imu.acc_data = np.zeros(3)
+        imu.gyro_data = np.zeros(3)
+        imu.mag_data = np.zeros(3)
+        imu.angles = np.zeros(3)
+        self.imu_pub.publish(imu)
+
         # wrench allocation matrix
         self.calcWrenchMat()
         self.wrench_mat_pub.publish(self.wrench_allocation_mat)
@@ -188,7 +202,13 @@ class MujocoRosInterface:
         self.prev_time = now_time
 
 
+    def clockCallback(self, event):
+        # print("clock")
+        self.sim_clock = rospy.Time.from_sec(rospy.get_time() - self.zero_time)
+        self.clock_pub.publish(self.sim_clock)
+
 if __name__ == '__main__':
+    rospy.init_node("mujoco_ros_interface", anonymous=True)
     node = MujocoRosInterface()
 
     rospy.spin()

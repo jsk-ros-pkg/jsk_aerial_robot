@@ -46,10 +46,16 @@ class mujocoFlightController:
         # ros subscriber
         self.pose = PoseStamped()
         self.twist = TwistStamped()
+        self.wrench_allocation_mat =  WrenchAllocationMatrix()
+        self.torque_allocation_matrix_inv = TorqueAllocationMatrixInv()
+        self.four_axis_command = FourAxisCommand()
+
         self.mocap_sub = rospy.Subscriber("mocap/pose", PoseStamped, self.mocapCallback)
         self.twist_sub = rospy.Subscriber("twist", TwistStamped, self.twistCallback)
-        self.wrench_allocation_mat =  WrenchAllocationMatrix()
         self.wrench_allocation_mat_sub = rospy.Subscriber("wrench_allocation_mat", WrenchAllocationMatrix, self.wrenchAllocationMatrixCallback)
+        self.torque_allocation_matrix_inv_sub = rospy.Subscriber("torque_allocation_matrix_inv", TorqueAllocationMatrixInv, self.torqueAllocationMatrixInvCallback)
+        self.four_axis_commnad_sub = rospy.Subscriber("four_axes/command", FourAxisCommand, self.fourAxisCommandCallback)
+
         self.takeoff_sub = rospy.Subscriber("teleop_command/takeoff", Empty, self.takeoffCallback)
         self.halt_sub = rospy.Subscriber("teleop_command/halt", Empty, self.haltCallback)
 
@@ -97,6 +103,12 @@ class mujocoFlightController:
         self.torque_allocation_mat[2] = msg.t_y
         self.torque_allocation_mat[3] = msg.t_z
         self.torque_allocation_mat_inv = np.linalg.pinv(self.torque_allocation_mat)
+
+    def torqueAllocationMatrixInvCallback(self, msg):
+        self.torque_allocation_matrix_inv = msg
+
+    def fourAxisCommandCallback(self, msg):
+        self.four_axis_command = msg
 
     def timerCallback(self, event):
         now_time = rospy.get_time()
