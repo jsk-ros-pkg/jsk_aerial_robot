@@ -1,5 +1,6 @@
 import time
 import warnings
+from aerial_robot_msgs.msg import Pid
 
 from simple_pid import *
 
@@ -84,14 +85,14 @@ class PI_D(PID):
         return output
 
     def getDebugMsg(self):
-        msg = PIDControllerState()
-        msg.setpoint = self.setpoint
-        msg.pos_state = self._state
-        msg.pos_error = self._error
-        msg.vel_state = self._vel_state
-        msg.output = self._output
-        msg.p_term = self._proportional
-        msg.i_term = self._integral
-        msg.d_term = self._derivative
+        msg = Pid()
+        msg.target_p = self.setpoint
+        msg.err_p = self._error
+        msg.target_d = 0
+        msg.err_d = 0 - self._vel_state
+        msg.total.append(self._output)
+        msg.p_term.append(self._proportional)
+        msg.i_term.append(self._integral)
+        msg.d_term.append(self._derivative)
 
         return msg
