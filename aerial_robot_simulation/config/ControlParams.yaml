@@ -1,6 +1,8 @@
-x_pid_param: [2.0, 0.1, 6.0]
-y_pid_param: [2.0, 0.1, 6.0]
-z_pid_param: [4.0, 1.5, 2.2]
-roll_pid_param: [0.6, 0.02, 0.4]
-pitch_pid_param: [0.2, 0.02, 0.08]
-yaw_pid_param: [0.15, 0.002, 0.08]
+x_pid_param: [0.1, 0.01, 6.0]
+y_pid_param: [0.1, 0.01, 6.0]
+z_pid_param: [50, 5, 1.0]
+roll_pid_param: [8, 1, 20.0]
+pitch_pid_param: [8, 1, 20.0]
+yaw_pid_param: [2, 0.1, 1.0]
+
+takeoff_height: 1.2
