@@ -7,6 +7,7 @@ GimbalrotorRobotModel::GimbalrotorRobotModel(bool init_with_rosparam, bool verbo
   const int joint_num = getJointNum();
 
   links_rotation_from_cog_.resize(rotor_num);
+  thrust_coords_rot_.resize(rotor_num);
   mask_calc_flag_ = false;
 }
 
@@ -51,7 +52,15 @@ void GimbalrotorRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_posi
   /* normal robot model update */
   RobotModel::updateRobotModelImpl(gimbal_processed_joint_);
 
-  calcThrustMask();
+  const auto seg_tf_map = getSegmentsTf();
+
+  /* get local coords of thrust links */
+  for(int i = 0; i < getRotorNum(); ++i)
+    {
+      std::string thrust = "gimbal_parent" + std::to_string(i + 1);
+      KDL::Frame f = seg_tf_map.at(thrust);
+      thrust_coords_rot_[i] = cog_frame.Inverse() * f.M;
+    }
 }
 
 /* plugin registration */
