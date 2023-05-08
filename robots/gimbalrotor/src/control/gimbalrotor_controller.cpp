@@ -36,7 +36,6 @@ void GimbalrotorController::rosParamInit()
 
 void GimbalrotorController::controlCore()
 {
-  std::vector<Eigen::MatrixXd> mask = gimbalerotor_robot_model_->getRotorMasks();
   PoseLinearController::controlCore();
 
   tf::Matrix3x3 uav_rot = estimator_->getOrientation(Frame::COG, estimate_mode_);
@@ -51,16 +50,6 @@ void GimbalrotorController::controlCore()
   double target_ang_acc_y = pid_controllers_.at(PITCH).result();
   double target_ang_acc_z = pid_controllers_.at(YAW).result();
   target_wrench_acc_cog.tail(3) = Eigen::Vector3d(target_ang_acc_x, target_ang_acc_y, target_ang_acc_z);
-
-  // coversion of target wrench from cog frame to baselink frame
-  std::vector<KDL::Rotation> links_frame_from_cog = gimbalerotor_robot_model_->getLinksRotationFromCog<KDL::Rotation>();
-  tf::Quaternion q;  tf::quaternionKDLToTF(links_frame_from_cog.at(0), q);
-  Eigen::Matrix3d base_rot_ag_cog; tf::matrixTFToEigen(tf::Matrix3x3(q),base_rot_ag_cog);
-
-  Eigen::VectorXd target_wrench_acc_base = Eigen::VectorXd::Zero(6);
-  target_wrench_acc_base.head(3) = base_rot_ag_cog.transpose() * target_wrench_acc_cog.head(3);
-  target_wrench_acc_base.tail(3) = base_rot_ag_cog.transpose() * target_wrench_acc_cog.tail(3);
-
   pid_msg_.roll.total.at(0) = target_ang_acc_x;
   pid_msg_.roll.p_term.at(0) = pid_controllers_.at(ROLL).getPTerm();
   pid_msg_.roll.i_term.at(0) = pid_controllers_.at(ROLL).getITerm();
@@ -78,35 +67,56 @@ void GimbalrotorController::controlCore()
   pid_msg_.pitch.target_d = target_omega_.y();
   pid_msg_.pitch.err_d = pid_controllers_.at(PITCH).getErrD();
 
-  Eigen::MatrixXd full_q_mat = Eigen::MatrixXd::Zero(6, 2 * motor_num_);
+  Eigen::MatrixXd full_q_mat = Eigen::MatrixXd::Zero(6, 3 * motor_num_);
 
-  Eigen::Matrix3d inertia_inv = (base_rot_ag_cog.transpose() * gimbalerotor_robot_model_->getInertia<Eigen::Matrix3d>()).inverse();
+  Eigen::Matrix3d inertia_inv = (gimbalerotor_robot_model_->getInertia<Eigen::Matrix3d>()).inverse();
   double mass_inv = 1 / gimbalerotor_robot_model_->getMass();
 
   double t = ros::Time::now().toSec();
 
   std::vector<Eigen::Vector3d> rotors_origin_from_cog = gimbalerotor_robot_model_->getRotorsOriginFromCog<Eigen::Vector3d>();
+
   Eigen::MatrixXd wrench_map = Eigen::MatrixXd::Zero(6, 3);
   wrench_map.block(0, 0, 3, 3) =  Eigen::MatrixXd::Identity(3, 3);
   int last_col = 0;
+
+  /* calculate normal allocation */
   for(int i = 0; i < motor_num_; i++){
-    wrench_map.block(3, 0, 3, 3) = aerial_robot_model::skew(base_rot_ag_cog.transpose() *  rotors_origin_from_cog.at(i));
-    full_q_mat.middleCols(last_col, 2) = wrench_map * mask[i];
-    last_col += 2;
+    wrench_map.block(3, 0, 3, 3) = aerial_robot_model::skew(rotors_origin_from_cog.at(i));
+    full_q_mat.middleCols(last_col, 3) = wrench_map;
+    last_col += 3;
   }
 
   full_q_mat.topRows(3) = mass_inv * full_q_mat.topRows(3);
   full_q_mat.bottomRows(3) = inertia_inv * full_q_mat.bottomRows(3);
-  Eigen::MatrixXd full_q_mat_inv = aerial_robot_model::pseudoinverse(full_q_mat);
-  target_vectoring_f_ = full_q_mat_inv * target_wrench_acc_base;
+
+  /* calculate masked rotation matrix */
+  std::vector<KDL::Rotation> thrust_coords_rot = gimbalerotor_robot_model_->getThrustCoordRot<KDL::Rotation>();
+  std::vector<Eigen::MatrixXd> masked_rot;
+  for(int i = 0; i < motor_num_; i++){
+    tf::Quaternion r;  tf::quaternionKDLToTF(thrust_coords_rot.at(i), r);
+    Eigen::Matrix3d conv_cog_from_thrust; tf::matrixTFToEigen(tf::Matrix3x3(r),conv_cog_from_thrust);
+    Eigen::MatrixXd mask(3, 2);
+    mask << 0, 0, 1, 0, 0, 1;
+    masked_rot.push_back(conv_cog_from_thrust * mask);
+  }
+
+  /* calculate integrated allocation */
+  Eigen::MatrixXd integrated_rot = Eigen::MatrixXd::Zero(3*motor_num_, 2 * motor_num_);
+  Eigen::MatrixXd integrated_map = Eigen::MatrixXd::Zero(6, 3 * motor_num_);
+  for(int i = 0; i< motor_num_; i++){
+    integrated_rot.block(3*i,2*i,3,2) = masked_rot[i];
+  }
+  integrated_map = full_q_mat * integrated_rot;
+
+  Eigen::MatrixXd integrated_map_inv = aerial_robot_model::pseudoinverse(integrated_map);
+  target_vectoring_f_ = integrated_map_inv * target_wrench_acc_cog;
   last_col = 0;
+
   for(int i = 0; i < motor_num_; i++){
     Eigen::VectorXd f_i = target_vectoring_f_.segment(last_col, 2);
-
     target_base_thrust_.at(i) = f_i.norm();
-    target_gimbal_angles_.at(i) = atan2(f_i[0], f_i[1]);
-    target_gimbal_angles_.at(i) = atan2(f_i[0], f_i[1]);
-
+    target_gimbal_angles_.at(i) = atan2(-f_i[0], f_i[1]);
     last_col += 2;
   }
 }
