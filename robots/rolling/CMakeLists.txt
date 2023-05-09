@@ -33,7 +33,7 @@ target_link_libraries(rolling_robot_model ${catkin_LIBRARIES})
 add_library(rolling_navigation src/rolling_navigation.cpp)
 target_link_libraries(rolling_navigation ${catkin_LIBRARIES})
 
-install(DIRECTORY config plugins launch
+install(DIRECTORY config launch plugins scripts
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
   USE_SOURCE_PERMISSIONS
   )
