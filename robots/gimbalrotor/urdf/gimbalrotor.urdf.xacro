@@ -31,7 +31,7 @@
             ixy="0.00000" ixz="0.0000" iyz="0.00000"/>
       </inertial>
       <visual>
-        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <origin xyz="0 0 -0.0165" rpy="0 0 0"/>
         <geometry>
           <mesh filename="package://gimbalrotor/urdf/mesh/base_link.STL"/>
         </geometry>
@@ -112,7 +112,7 @@
         <origin xyz="0 0 0" rpy="0 0 0"/>
         <geometry>
           <box size="0.131 0.0325 0.065"/>
-        </geometry>
+        </geometry>p
       </collision>
     </link>
     <joint name="base_arm_joint${child2}" type="fixed">
