@@ -5,3 +5,9 @@ zeros:
   gimbal4: 0
   gimbal5: 0
   gimbal6: 0
+  joint1: 0.0
+  joint2: 0.0
+  joint3: 0.0
+  joint4: 0.0
+  joint5: 0.0
+

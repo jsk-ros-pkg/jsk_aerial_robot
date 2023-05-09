@@ -18,27 +18,27 @@ servo_controller:
       id: 7
       name: joint1
       simulation:
-        init_value: 1.0472
+        init_value: 0
     controller2:
       id: 8
       name: joint2
       simulation:
-        init_value: 1.0472
+        init_value: 0
     controller3:
       id: 9
       name: joint3
       simulation:
-        init_value: 1.0472
+        init_value: 0
     controller4:
       id: 10
       name: joint4
       simulation:
-        init_value: 1.0472
+        init_value: 0
     controller5:
       id: 11
       name: joint5
       simulation:
-        init_value: 1.0472
+        init_value: 0
 
   gimbals:
     no_real_state: false # true if there is no servo state from real machine

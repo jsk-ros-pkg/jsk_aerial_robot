@@ -18,6 +18,7 @@
   <arg name="config_dir" default="$(find rolling)/config"/>
   <arg name="robot_id" default="" />
   <arg name="robot_ns" value="rolling$(arg robot_id)" />
+  <arg name="servo_neutral" default="False" />
 
   ###########  Parameters  ###########
   <group ns="$(arg robot_ns)">
@@ -36,10 +37,8 @@
     <rosparam file="$(arg config_dir)/MotorInfo.yaml" command="load" />
 
     ###########  Servo Config  ###########
-    <rosparam file="$(arg config_dir)/Servo.yaml" command="load" />
-
-    ###########  Servo Config  ###########
-    <rosparam file="$(arg config_dir)/Servo.yaml" command="load" />
+    <rosparam file="$(arg config_dir)/Servo.yaml" command="load" unless="$(arg servo_neutral)"/>
+    <rosparam file="$(arg config_dir)/ServoNeutral.yaml" command="load" if="$(arg servo_neutral)"/>
 
    ###########  Battery Config  ###########
    <rosparam file="$(arg config_dir)/Battery.yaml" command="load" />
