@@ -5,7 +5,7 @@ controller:
   wrench_allocation_matrix_pub_interval: 0.1
 
   xy:
-    p_gain: 2.5
+    p_gain: 2.0
     i_gain: 0.05
     d_gain: 1.5
     limit_sum: 4.0
