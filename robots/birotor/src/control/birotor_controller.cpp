@@ -16,6 +16,8 @@ void BirotorController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
 {
   PoseLinearController::initialize(nh, nhp, robot_model, estimator, navigator, ctrl_loop_rate);
 
+  birotor_robot_model_ = boost::dynamic_pointer_cast<BirotorRobotModel>(robot_model);
+
   rosParamInit();
 
   target_base_thrust_.resize(motor_num_);
@@ -24,7 +26,6 @@ void BirotorController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   flight_cmd_pub_ = nh_.advertise<spinal::FourAxisCommand>("four_axes/command", 1);
   gimbal_control_pub_ = nh_.advertise<sensor_msgs::JointState>("gimbals_ctrl", 1);
   target_vectoring_force_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("debug/target_vectoring_force", 1);
-
 }
 
 void BirotorController::rosParamInit()
@@ -37,18 +38,56 @@ void BirotorController::controlCore()
 {
   PoseLinearController::controlCore();
 
+  // wrench allocation matrix
+  const std::vector<Eigen::Vector3d> rotors_origin_from_cog = robot_model_->getRotorsOriginFromCog<Eigen::Vector3d>();
+  double uav_mass_inv = 1.0 / robot_model_->getMass();
+  Eigen::Matrix3d inertia_inv = robot_model_->getInertia<Eigen::Matrix3d>().inverse();
+
+  Eigen::MatrixXd q_mat_four_axis = Eigen::MatrixXd::Zero(4, 3 * motor_num_);
+  Eigen::MatrixXd wrench_map_four_axis =  Eigen::MatrixXd::Zero(4, 3);
+  wrench_map_four_axis(0, 2) = 1 * uav_mass_inv;
+  int last_col = 0;
+  for(int i = 0; i < motor_num_; i++)
+    {
+      wrench_map_four_axis.block(1, 0, 3, 3) = aerial_robot_model::skew(rotors_origin_from_cog.at(i));
+      q_mat_four_axis.middleCols(last_col, 3) = wrench_map_four_axis;
+      last_col += 3;
+    }
+  q_mat_four_axis.bottomRows(3) = inertia_inv * q_mat_four_axis.bottomRows(3);
+
+  /* calculate masked rotation matrix */
+  std::vector<KDL::Rotation> rotors_coord_rot = birotor_robot_model_->getRotorsCoordRot<KDL::Rotation>();
+  std::vector<Eigen::MatrixXd> masked_rot;
+  for(int i = 0; i < motor_num_; i++)
+    {
+      tf::Quaternion r;  tf::quaternionKDLToTF(rotors_coord_rot.at(i), r);
+      Eigen::Matrix3d conv_cog_from_thrust; tf::matrixTFToEigen(tf::Matrix3x3(r), conv_cog_from_thrust);
+      Eigen::MatrixXd mask(3, 2);
+      mask << 0, 0, 1, 0, 0, 1;
+      masked_rot.push_back(conv_cog_from_thrust * mask);
+    }
+
+  /* calculate integrated allocation */
+  Eigen::MatrixXd integrated_rot = Eigen::MatrixXd::Zero(3 * motor_num_, 2 * motor_num_);
+  for(int i = 0; i < motor_num_; i++)
+    {
+      integrated_rot.block(3 * i, 2 * i, 3, 2) = masked_rot[i];
+    }
+
+  Eigen::MatrixXd q_mat = q_mat_four_axis * integrated_rot;
+  Eigen::MatrixXd q_mat_inv = aerial_robot_model::pseudoinverse(q_mat);
+
   tf::Vector3 target_acc_w(pid_controllers_.at(X).result(),
                            pid_controllers_.at(Y).result(),
                            pid_controllers_.at(Z).result());
+
+  tf::Vector3 target_acc_dash = (tf::Matrix3x3(tf::createQuaternionFromYaw(rpy_.z()))).inverse() * target_acc_w;
 
   double target_ang_acc_x = pid_controllers_.at(ROLL).result();
   double target_ang_acc_y = pid_controllers_.at(PITCH).result();
   double target_ang_acc_z = pid_controllers_.at(YAW).result();
 
-  tf::Vector3 target_acc_dash = (tf::Matrix3x3(tf::createQuaternionFromYaw(rpy_.z()))).inverse() * target_acc_w;
-
-  float target_roll;
-  float target_pitch;
+  double target_roll, target_pitch;
   if(hovering_approximate_)
     {
       target_pitch = target_acc_dash.x() / aerial_robot_estimation::G;
@@ -69,63 +108,17 @@ void BirotorController::controlCore()
   target_wrench_acc_cog(0) = target_acc_dash.z();
   target_wrench_acc_cog.tail(3) = Eigen::Vector3d(pid_controllers_.at(ROLL).result(), pid_controllers_.at(PITCH).result(), pid_controllers_.at(YAW).result());
 
-  pid_msg_.roll.total.at(0) = target_ang_acc_x;
-  pid_msg_.roll.p_term.at(0) = pid_controllers_.at(ROLL).getPTerm();
-  pid_msg_.roll.i_term.at(0) = pid_controllers_.at(ROLL).getITerm();
-  pid_msg_.roll.d_term.at(0) = pid_controllers_.at(ROLL).getDTerm();
-  pid_msg_.roll.target_p = target_rpy_.x();
-  pid_msg_.roll.err_p = pid_controllers_.at(ROLL).getErrP();
-  pid_msg_.roll.target_d = target_omega_.x();
-  pid_msg_.roll.err_d = pid_controllers_.at(ROLL).getErrD();
-  pid_msg_.pitch.total.at(0) = target_ang_acc_y;
-  pid_msg_.pitch.p_term.at(0) = pid_controllers_.at(PITCH).getPTerm();
-  pid_msg_.pitch.i_term.at(0) = pid_controllers_.at(PITCH).getITerm();
-  pid_msg_.pitch.d_term.at(0) = pid_controllers_.at(PITCH).getDTerm();
-  pid_msg_.pitch.target_p = target_rpy_.y();
-  pid_msg_.pitch.err_p = pid_controllers_.at(PITCH).getErrP();
-  pid_msg_.pitch.target_d = target_omega_.y();
-  pid_msg_.pitch.err_d = pid_controllers_.at(PITCH).getErrD();
-
-  Eigen::MatrixXd full_q_mat = Eigen::MatrixXd::Zero(6, 2 * motor_num_);
-
-  Eigen::Matrix3d inertia_inv = robot_model_->getInertia<Eigen::Matrix3d>().inverse();
-  double mass_inv = 1 / robot_model_->getMass();
-
-  double t = ros::Time::now().toSec();
-
-  std::vector<Eigen::Vector3d> rotors_origin_from_cog = robot_model_->getRotorsOriginFromCog<Eigen::Vector3d>();
-  Eigen::MatrixXd wrench_map = Eigen::MatrixXd::Zero(6, 3);
-  wrench_map.block(0, 0, 3, 3) =  Eigen::MatrixXd::Identity(3, 3);
-  Eigen::MatrixXd mask(3, 2);
-  mask << 1, 0, 0, 0, 0, 1;
-  int last_col = 0;
-  for(int i = 0; i < motor_num_; i++){
-    wrench_map.block(3, 0, 3, 3) = aerial_robot_model::skew(rotors_origin_from_cog.at(i));
-    full_q_mat.middleCols(last_col, 2) = wrench_map * mask;
-    last_col += 2;
-  }
-
-  Eigen::MatrixXd allocation_mat = Eigen::MatrixXd::Zero(4, 4);
-  full_q_mat.topRows(3) = mass_inv * full_q_mat.topRows(3);
-  full_q_mat.bottomRows(3) = inertia_inv * full_q_mat.bottomRows(3);
-
-  allocation_mat.topRows(1) = full_q_mat.row(2);
-  allocation_mat.bottomRows(3) = full_q_mat.bottomRows(3);
-
-  Eigen::MatrixXd allocation_mat_inv = allocation_mat.inverse();
-  target_vectoring_f_ = allocation_mat_inv * target_wrench_acc_cog;
+  target_vectoring_f_ = q_mat_inv * target_wrench_acc_cog;
 
   last_col = 0;
   for(int i = 0; i < motor_num_; i++){
     Eigen::VectorXd f_i = target_vectoring_f_.segment(last_col, 2);
     target_base_thrust_.at(i) = f_i.norm();
 
-    target_gimbal_angles_.at(i) = atan2(f_i(0), f_i(1));
+    target_gimbal_angles_.at(i) = atan2(-f_i(0), f_i(1));
 
     last_col += 2;
   }
-
-
 }
 
 void BirotorController::sendCmd()
