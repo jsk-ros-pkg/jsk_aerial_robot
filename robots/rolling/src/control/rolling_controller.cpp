@@ -17,29 +17,42 @@ void RollingController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
                                    double ctrl_loop_rate)
 {
   PoseLinearController::initialize(nh, nhp, robot_model, estimator, navigator, ctrl_loop_rate);
+
   rolling_robot_model_ = boost::dynamic_pointer_cast<RollingRobotModel>(robot_model_);
-
-  q_mat_ = robot_model_->calcWrenchMatrixOnCoG();
-  q_mat_inv_ = aerial_robot_model::pseudoinverse(q_mat_);
-
-  rosParamInit();
+  robot_model_for_control_ = boost::make_shared<aerial_robot_model::RobotModel>();
 
   target_base_thrust_.resize(motor_num_);
   target_gimbal_angles_.resize(motor_num_, 0);
 
-  rolling_mode_ = false;
+  full_lambda_trans_.resize(2 * motor_num_);
+  full_lambda_rot_.resize(2 * motor_num_);
+  full_lambda_all_.resize(2 * motor_num_);
+  full_q_mat_.resize(6, 2 * motor_num_);
+  full_q_mat_inv_.resize(2 * motor_num_, 6);
 
+  q_mat_.resize(6, motor_num_);
+  q_mat_inv_.resize(motor_num_, 6);
+
+  rosParamInit();
+
+  rpy_gain_pub_ = nh_.advertise<spinal::RollPitchYawTerms>("rpy/gain", 1);
   flight_cmd_pub_ = nh_.advertise<spinal::FourAxisCommand>("four_axes/command", 1);
   gimbal_control_pub_ = nh_.advertise<sensor_msgs::JointState>("gimbals_ctrl", 1);
+  torque_allocation_matrix_inv_pub_ = nh_.advertise<spinal::TorqueAllocationMatrixInv>("torque_allocation_matrix_inv", 1);
   target_vectoring_force_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("debug/target_vectoring_force", 1);
   wrench_allocation_matrix_pub_ = nh_.advertise<aerial_robot_msgs::WrenchAllocationMatrix>("debug/wrench_allocation_matrix", 1);
-  torque_allocation_matrix_inv_pub_ = nh_.advertise<spinal::TorqueAllocationMatrixInv>("torque_allocation_matrix_inv", 1);
+}
+
+void RollingController::reset()
+{
+  PoseLinearController::reset();
+
+  setAttitudeGains();
 }
 
 void RollingController::rosParamInit()
 {
   ros::NodeHandle control_nh(nh_, "controller");
-  getParam<bool>(control_nh, "hovering_approximate", hovering_approximate_, false);
   getParam<double>(control_nh, "torque_allocation_matrix_inv_pub_interval", torque_allocation_matrix_inv_pub_interval_, 0.05);
 }
 
@@ -81,7 +94,7 @@ void RollingController::controlCore()
     start_rp_integration_ = false;
 
   /* calculate normal allocation */
-  Eigen::MatrixXd full_q_mat = Eigen::MatrixXd::Zero(6, 3 * motor_num_);
+  Eigen::MatrixXd wrench_matrix = Eigen::MatrixXd::Zero(6, 3 * motor_num_);
 
   Eigen::MatrixXd wrench_map = Eigen::MatrixXd::Zero(6, 3);
   wrench_map.block(0, 0, 3, 3) =  Eigen::MatrixXd::Identity(3, 3);
@@ -91,52 +104,70 @@ void RollingController::controlCore()
   for(int i = 0; i < motor_num_; i++)
     {
       wrench_map.block(3, 0, 3, 3) = aerial_robot_model::skew(rotors_origin_from_cog.at(i));
-      full_q_mat.middleCols(last_col, 3) = wrench_map;
+      wrench_matrix.middleCols(last_col, 3) = wrench_map;
       last_col += 3;
     }
 
   Eigen::Matrix3d inertia_inv = rolling_robot_model_->getInertia<Eigen::Matrix3d>().inverse();
   double mass_inv = 1 / rolling_robot_model_->getMass();
-  full_q_mat.topRows(3) = mass_inv * full_q_mat.topRows(3);
-  full_q_mat.bottomRows(3) = inertia_inv * full_q_mat.bottomRows(3);
+  wrench_matrix.topRows(3) = mass_inv * wrench_matrix.topRows(3);
+  wrench_matrix.bottomRows(3) = inertia_inv * wrench_matrix.bottomRows(3);
 
   /* calculate masked and integrated rotaion matrix */
   Eigen::MatrixXd integrated_rot = Eigen::MatrixXd::Zero(3 * motor_num_, 2 * motor_num_);
   const auto rotors_coord_rotation_from_cog = rolling_robot_model_->getRotorsCoordFromCog<Eigen::Matrix3d>();
   Eigen::MatrixXd mask(3, 2);
   mask << 0, 0, 1, 0, 0, 1;
-  for(int i = 0; i < motor_num_; i++){
-    integrated_rot.block(3 * i, 2 * i, 3, 2) = rotors_coord_rotation_from_cog.at(i) * mask;
-  }
+  for(int i = 0; i < motor_num_; i++)
+    {
+      integrated_rot.block(3 * i, 2 * i, 3, 2) = rotors_coord_rotation_from_cog.at(i) * mask;
+    }
 
   /* calculate integarated allocation */
-  Eigen::MatrixXd integrated_mat = full_q_mat * integrated_rot;
-  q_mat_ = integrated_mat;
+  full_q_mat_ = wrench_matrix * integrated_rot;
+  full_q_mat_inv_ = aerial_robot_model::pseudoinverse(full_q_mat_);
 
   /* actuator mapping */
-  Eigen::MatrixXd integrated_mat_inv = aerial_robot_model::pseudoinverse(integrated_mat);
-  q_mat_inv_ = integrated_mat_inv;
-
-  target_vectoring_f_ = integrated_mat_inv * target_wrench_acc_cog;
+  full_lambda_trans_ = full_q_mat_inv_.leftCols(3) * target_wrench_acc_cog.head(3);
+  full_lambda_rot_ = full_q_mat_inv_.rightCols(3) * target_wrench_acc_cog.tail(3);
+  full_lambda_all_ = full_lambda_trans_ + full_lambda_rot_;
 
   last_col = 0;
   for(int i = 0; i < motor_num_; i++)
     {
-      Eigen::VectorXd f_i = target_vectoring_f_.segment(last_col, 2);
-      target_gimbal_angles_.at(i) = atan2(-f_i[0], f_i[1]);
-      target_base_thrust_.at(i) = f_i.norm();
+      Eigen::VectorXd full_lambda_trans_i = full_lambda_trans_.segment(last_col, 2);
+      Eigen::VectorXd full_lambda_all_i = full_lambda_all_.segment(last_col, 2);
+      target_gimbal_angles_.at(i) = atan2(-full_lambda_all_i(0), full_lambda_all_i(1));
+      // target_base_thrust_.at(i) = f_i.norm();
+      target_base_thrust_.at(i) = full_lambda_trans_i.norm();
       last_col += 2;
     }
+
+  /* update robot model by calculated gimbal angle */
+  const auto& joint_index_map = rolling_robot_model_->getJointIndexMap();
+  KDL::JntArray gimbal_processed_joint = rolling_robot_model_->getJointPositions();
+  for(int i = 0; i < motor_num_; i++)
+    {
+      std::string s = std::to_string(i + 1);
+      gimbal_processed_joint(joint_index_map.find(std::string("gimbal") + s)->second) = target_gimbal_angles_.at(i);
+    }
+  robot_model_for_control_->updateRobotModel(gimbal_processed_joint);
+  q_mat_ = robot_model_for_control_->calcWrenchMatrixOnCoG();
+  q_mat_inv_ = aerial_robot_model::pseudoinverse(q_mat_);
+
+  // special process for yaw since the bandwidth between PC and spinal
+  double max_yaw_scale = 0; // for reconstruct yaw control term in spinal
+  for (unsigned int i = 0; i < motor_num_; i++)
+    {
+      if(q_mat_inv_(i, YAW) > max_yaw_scale) max_yaw_scale = q_mat_inv_(i, YAW);
+    }
+  candidate_yaw_term_ = pid_controllers_.at(YAW).result() * max_yaw_scale;
 }
 
 
 void RollingController::sendCmd()
 {
   PoseLinearController::sendCmd();
-
-  spinal::FourAxisCommand flight_command_data;
-  flight_command_data.base_thrust = target_base_thrust_;
-  flight_cmd_pub_.publish(flight_command_data);
 
   sensor_msgs::JointState gimbal_control_msg;
   gimbal_control_msg.header.stamp = ros::Time::now();
@@ -146,9 +177,10 @@ void RollingController::sendCmd()
   gimbal_control_pub_.publish(gimbal_control_msg);
 
   std_msgs::Float32MultiArray target_vectoring_force_msg;
-  for(int i = 0; i < target_vectoring_f_.size(); i++){
-    target_vectoring_force_msg.data.push_back(target_vectoring_f_(i));
-  }
+  for(int i = 0; i < full_lambda_all_.size(); i++)
+    {
+      target_vectoring_force_msg.data.push_back(full_lambda_all_(i));
+    }
   target_vectoring_force_pub_.publish(target_vectoring_force_msg);
 
   aerial_robot_msgs::WrenchAllocationMatrix wrench_allocation_matrix_msg;
@@ -163,8 +195,17 @@ void RollingController::sendCmd()
     }
   wrench_allocation_matrix_pub_.publish(wrench_allocation_matrix_msg);
 
-  sendTorqueAllocationMatrixInv();
+  sendFourAxisCommand();
 
+  sendTorqueAllocationMatrixInv();
+}
+
+void RollingController::sendFourAxisCommand()
+{
+  spinal::FourAxisCommand flight_command_data;
+  flight_command_data.angles[2] = candidate_yaw_term_;
+  flight_command_data.base_thrust = target_base_thrust_;
+  flight_cmd_pub_.publish(flight_command_data);
 }
 
 void RollingController::sendTorqueAllocationMatrixInv()
@@ -172,6 +213,7 @@ void RollingController::sendTorqueAllocationMatrixInv()
   if (ros::Time::now().toSec() - torque_allocation_matrix_inv_pub_stamp_ > torque_allocation_matrix_inv_pub_interval_)
     {
       torque_allocation_matrix_inv_pub_stamp_ = ros::Time::now().toSec();
+
       spinal::TorqueAllocationMatrixInv torque_allocation_matrix_inv_msg;
       torque_allocation_matrix_inv_msg.rows.resize(motor_num_);
       Eigen::MatrixXd torque_allocation_matrix_inv = q_mat_inv_.rightCols(3);
@@ -185,6 +227,21 @@ void RollingController::sendTorqueAllocationMatrixInv()
         }
       torque_allocation_matrix_inv_pub_.publish(torque_allocation_matrix_inv_msg);
     }
+}
+
+void RollingController::setAttitudeGains()
+{
+  spinal::RollPitchYawTerms rpy_gain_msg; //for rosserial
+  /* to flight controller via rosserial scaling by 1000 */
+  rpy_gain_msg.motors.resize(1);
+  rpy_gain_msg.motors.at(0).roll_p = pid_controllers_.at(ROLL).getPGain() * 1000;
+  rpy_gain_msg.motors.at(0).roll_i = pid_controllers_.at(ROLL).getIGain() * 1000;
+  rpy_gain_msg.motors.at(0).roll_d = pid_controllers_.at(ROLL).getDGain() * 1000;
+  rpy_gain_msg.motors.at(0).pitch_p = pid_controllers_.at(PITCH).getPGain() * 1000;
+  rpy_gain_msg.motors.at(0).pitch_i = pid_controllers_.at(PITCH).getIGain() * 1000;
+  rpy_gain_msg.motors.at(0).pitch_d = pid_controllers_.at(PITCH).getDGain() * 1000;
+  rpy_gain_msg.motors.at(0).yaw_d = pid_controllers_.at(YAW).getDGain() * 1000;
+  rpy_gain_pub_.publish(rpy_gain_msg);
 }
 
 /* plugin registration */
