@@ -103,66 +103,66 @@ void RollingController::controlCore()
 
   for(int j = 0; j < allocation_refine_max_iteration_; j++)
     {
-  /* calculate normal allocation */
-  Eigen::MatrixXd wrench_matrix = Eigen::MatrixXd::Zero(6, 3 * motor_num_);
-  Eigen::MatrixXd wrench_map = Eigen::MatrixXd::Zero(6, 3);
-  wrench_map.block(0, 0, 3, 3) =  Eigen::MatrixXd::Identity(3, 3);
+      /* calculate normal allocation */
+      Eigen::MatrixXd wrench_matrix = Eigen::MatrixXd::Zero(6, 3 * motor_num_);
+      Eigen::MatrixXd wrench_map = Eigen::MatrixXd::Zero(6, 3);
+      wrench_map.block(0, 0, 3, 3) =  Eigen::MatrixXd::Identity(3, 3);
 
-  int last_col = 0;
-  std::vector<Eigen::Vector3d> rotors_origin_from_cog = robot_model_for_control_->getRotorsOriginFromCog<Eigen::Vector3d>();
-  for(int i = 0; i < motor_num_; i++)
-    {
-      wrench_map.block(3, 0, 3, 3) = aerial_robot_model::skew(rotors_origin_from_cog.at(i));
-      wrench_matrix.middleCols(last_col, 3) = wrench_map;
-      last_col += 3;
-    }
+      int last_col = 0;
+      std::vector<Eigen::Vector3d> rotors_origin_from_cog = robot_model_for_control_->getRotorsOriginFromCog<Eigen::Vector3d>();
+      for(int i = 0; i < motor_num_; i++)
+        {
+          wrench_map.block(3, 0, 3, 3) = aerial_robot_model::skew(rotors_origin_from_cog.at(i));
+          wrench_matrix.middleCols(last_col, 3) = wrench_map;
+          last_col += 3;
+        }
 
-  Eigen::Matrix3d inertia_inv = robot_model_for_control_->getInertia<Eigen::Matrix3d>().inverse();
-  double mass_inv = 1 / robot_model_->getMass();
-  wrench_matrix.topRows(3) = mass_inv * wrench_matrix.topRows(3);
-  wrench_matrix.bottomRows(3) = inertia_inv * wrench_matrix.bottomRows(3);
+      Eigen::Matrix3d inertia_inv = robot_model_for_control_->getInertia<Eigen::Matrix3d>().inverse();
+      double mass_inv = 1 / robot_model_->getMass();
+      wrench_matrix.topRows(3) = mass_inv * wrench_matrix.topRows(3);
+      wrench_matrix.bottomRows(3) = inertia_inv * wrench_matrix.bottomRows(3);
 
-  /* calculate masked and integrated rotaion matrix */
-  Eigen::MatrixXd integrated_rot = Eigen::MatrixXd::Zero(3 * motor_num_, 2 * motor_num_);
-  const auto rotors_coord_rotation_from_cog = rolling_robot_model_->getRotorsCoordFromCog<Eigen::Matrix3d>();
-  Eigen::MatrixXd mask(3, 2);
-  mask << 0, 0, 1, 0, 0, 1;
-  for(int i = 0; i < motor_num_; i++)
-    {
-      integrated_rot.block(3 * i, 2 * i, 3, 2) = rotors_coord_rotation_from_cog.at(i) * mask;
-    }
+      /* calculate masked and integrated rotaion matrix */
+      Eigen::MatrixXd integrated_rot = Eigen::MatrixXd::Zero(3 * motor_num_, 2 * motor_num_);
+      const auto rotors_coord_rotation_from_cog = rolling_robot_model_->getRotorsCoordFromCog<Eigen::Matrix3d>();
+      Eigen::MatrixXd mask(3, 2);
+      mask << 0, 0, 1, 0, 0, 1;
+      for(int i = 0; i < motor_num_; i++)
+        {
+          integrated_rot.block(3 * i, 2 * i, 3, 2) = rotors_coord_rotation_from_cog.at(i) * mask;
+        }
 
-  /* calculate integarated allocation */
-  full_q_mat_ = wrench_matrix * integrated_rot;
-  full_q_mat_inv_ = aerial_robot_model::pseudoinverse(full_q_mat_);
+      /* calculate integarated allocation */
+      full_q_mat_ = wrench_matrix * integrated_rot;
+      full_q_mat_inv_ = aerial_robot_model::pseudoinverse(full_q_mat_);
 
-  /* actuator mapping */
-  full_lambda_trans_ = full_q_mat_inv_.leftCols(3) * target_wrench_acc_cog.head(3);
-  full_lambda_rot_ = full_q_mat_inv_.rightCols(3) * target_wrench_acc_cog.tail(3);
-  full_lambda_all_ = full_lambda_trans_ + full_lambda_rot_;
+      /* actuator mapping */
+      full_lambda_trans_ = full_q_mat_inv_.leftCols(3) * target_wrench_acc_cog.head(3);
+      full_lambda_rot_ = full_q_mat_inv_.rightCols(3) * target_wrench_acc_cog.tail(3);
+      full_lambda_all_ = full_lambda_trans_ + full_lambda_rot_;
 
-  last_col = 0;
-  for(int i = 0; i < motor_num_; i++)
-    {
-      Eigen::VectorXd full_lambda_trans_i = full_lambda_trans_.segment(last_col, 2);
-      Eigen::VectorXd full_lambda_all_i = full_lambda_all_.segment(last_col, 2);
-      target_gimbal_angles_.at(i) = atan2(-full_lambda_all_i(0), full_lambda_all_i(1));
-      target_base_thrust_.at(i) = full_lambda_trans_i.norm();
-      last_col += 2;
-    }
+      last_col = 0;
+      for(int i = 0; i < motor_num_; i++)
+        {
+          Eigen::VectorXd full_lambda_trans_i = full_lambda_trans_.segment(last_col, 2);
+          Eigen::VectorXd full_lambda_all_i = full_lambda_all_.segment(last_col, 2);
+          target_gimbal_angles_.at(i) = atan2(-full_lambda_all_i(0), full_lambda_all_i(1));
+          target_base_thrust_.at(i) = full_lambda_trans_i.norm();
+          last_col += 2;
+        }
 
-  /* update robot model by calculated gimbal angle */
-  const auto& joint_index_map = robot_model_->getJointIndexMap();
-  gimbal_processed_joint = robot_model_for_control_->getJointPositions();
-  for(int i = 0; i < motor_num_; i++)
-    {
-      std::string s = std::to_string(i + 1);
-      gimbal_processed_joint(joint_index_map.find(std::string("gimbal") + s)->second) = target_gimbal_angles_.at(i);
-    }
+      /* update robot model by calculated gimbal angle */
+      const auto& joint_index_map = robot_model_->getJointIndexMap();
+      gimbal_processed_joint = robot_model_for_control_->getJointPositions();
+      for(int i = 0; i < motor_num_; i++)
+        {
+          std::string s = std::to_string(i + 1);
+          gimbal_processed_joint(joint_index_map.find(std::string("gimbal") + s)->second) = target_gimbal_angles_.at(i);
+        }
 
-  std::vector<Eigen::Vector3d> prev_rotors_origin_from_cog = rotors_origin_from_cog;
-  robot_model_for_control_->updateRobotModel(gimbal_processed_joint);
-  rotors_origin_from_cog = robot_model_for_control_->getRotorsOriginFromCog<Eigen::Vector3d>();
+      std::vector<Eigen::Vector3d> prev_rotors_origin_from_cog = rotors_origin_from_cog;
+      robot_model_for_control_->updateRobotModel(gimbal_processed_joint);
+      rotors_origin_from_cog = robot_model_for_control_->getRotorsOriginFromCog<Eigen::Vector3d>();
 
       double max_diff = 1e-6;
       for(int i = 0; i < motor_num_; i++)
