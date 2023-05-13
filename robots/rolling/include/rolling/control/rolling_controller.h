@@ -47,6 +47,8 @@ namespace aerial_robot_control
     double candidate_yaw_term_;
     double torque_allocation_matrix_inv_pub_stamp_;
     double torque_allocation_matrix_inv_pub_interval_;
+    double allocation_refine_threshold_;
+    int allocation_refine_max_iteration_;
 
     void controlCore() override;
     void reset() override;
