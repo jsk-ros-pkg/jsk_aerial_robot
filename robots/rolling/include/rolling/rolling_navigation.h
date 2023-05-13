@@ -17,6 +17,7 @@ namespace aerial_robot_navigation
                     boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator) override;
 
     void update() override;
+    void reset() override;
 
   private:
     ros::Publisher curr_target_baselink_rot_pub_;
