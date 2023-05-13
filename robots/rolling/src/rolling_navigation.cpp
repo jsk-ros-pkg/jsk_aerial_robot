@@ -22,12 +22,24 @@ void RollingNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   prev_rotation_stamp_ = ros::Time::now().toSec();
 }
 
+void RollingNavigator::reset()
+{
+  BaseNavigator::reset();
+
+  curr_target_baselink_rot_.setValue(0, 0, 0);
+  final_target_baselink_rot_.setValue(0, 0, 0);
+
+  spinal::DesireCoord target_baselink_rot_msg;
+  target_baselink_rot_msg.roll = curr_target_baselink_rot_.x();
+  target_baselink_rot_msg.pitch = curr_target_baselink_rot_.y();
+  curr_target_baselink_rot_pub_.publish(target_baselink_rot_msg);
+}
+
 void RollingNavigator::update()
 {
   BaseNavigator::update();
 
   baselinkRotationProcess();
-
 }
 
 void RollingNavigator::setFinalTargetBaselinkRotCallback(const spinal::DesireCoordConstPtr & msg)
