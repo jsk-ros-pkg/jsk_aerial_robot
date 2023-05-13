@@ -54,6 +54,8 @@ void RollingController::rosParamInit()
 {
   ros::NodeHandle control_nh(nh_, "controller");
   getParam<double>(control_nh, "torque_allocation_matrix_inv_pub_interval", torque_allocation_matrix_inv_pub_interval_, 0.05);
+  getParam<double>(control_nh, "allocation_refine_threshold", allocation_refine_threshold_, 0.01);
+  getParam<int>(control_nh, "allocation_refine_max_iteration", allocation_refine_max_iteration_, 1);
 }
 
 void RollingController::controlCore()
@@ -93,14 +95,21 @@ void RollingController::controlCore()
   if(navigator_->getForceLandingFlag() && target_acc_w.z() < 5.0) // heuristic measures to avoid to large gimbal angles after force land
     start_rp_integration_ = false;
 
+  /* iterarively calcurate rotor origin */
+  KDL::Rotation cog_desire_orientation = robot_model_->getCogDesireOrientation<KDL::Rotation>();
+  robot_model_for_control_->setCogDesireOrientation(cog_desire_orientation);
+  KDL::JntArray gimbal_processed_joint = robot_model_->getJointPositions();
+  robot_model_for_control_->updateRobotModel(gimbal_processed_joint);
+
+  for(int j = 0; j < allocation_refine_max_iteration_; j++)
+    {
   /* calculate normal allocation */
   Eigen::MatrixXd wrench_matrix = Eigen::MatrixXd::Zero(6, 3 * motor_num_);
-
   Eigen::MatrixXd wrench_map = Eigen::MatrixXd::Zero(6, 3);
   wrench_map.block(0, 0, 3, 3) =  Eigen::MatrixXd::Identity(3, 3);
 
   int last_col = 0;
-  std::vector<Eigen::Vector3d> rotors_origin_from_cog = rolling_robot_model_->getRotorsOriginFromCog<Eigen::Vector3d>();
+  std::vector<Eigen::Vector3d> rotors_origin_from_cog = robot_model_for_control_->getRotorsOriginFromCog<Eigen::Vector3d>();
   for(int i = 0; i < motor_num_; i++)
     {
       wrench_map.block(3, 0, 3, 3) = aerial_robot_model::skew(rotors_origin_from_cog.at(i));
@@ -108,8 +117,8 @@ void RollingController::controlCore()
       last_col += 3;
     }
 
-  Eigen::Matrix3d inertia_inv = rolling_robot_model_->getInertia<Eigen::Matrix3d>().inverse();
-  double mass_inv = 1 / rolling_robot_model_->getMass();
+  Eigen::Matrix3d inertia_inv = robot_model_for_control_->getInertia<Eigen::Matrix3d>().inverse();
+  double mass_inv = 1 / robot_model_->getMass();
   wrench_matrix.topRows(3) = mass_inv * wrench_matrix.topRows(3);
   wrench_matrix.bottomRows(3) = inertia_inv * wrench_matrix.bottomRows(3);
 
@@ -138,20 +147,47 @@ void RollingController::controlCore()
       Eigen::VectorXd full_lambda_trans_i = full_lambda_trans_.segment(last_col, 2);
       Eigen::VectorXd full_lambda_all_i = full_lambda_all_.segment(last_col, 2);
       target_gimbal_angles_.at(i) = atan2(-full_lambda_all_i(0), full_lambda_all_i(1));
-      // target_base_thrust_.at(i) = f_i.norm();
       target_base_thrust_.at(i) = full_lambda_trans_i.norm();
       last_col += 2;
     }
 
   /* update robot model by calculated gimbal angle */
-  const auto& joint_index_map = rolling_robot_model_->getJointIndexMap();
-  KDL::JntArray gimbal_processed_joint = rolling_robot_model_->getJointPositions();
+  const auto& joint_index_map = robot_model_->getJointIndexMap();
+  gimbal_processed_joint = robot_model_for_control_->getJointPositions();
   for(int i = 0; i < motor_num_; i++)
     {
       std::string s = std::to_string(i + 1);
       gimbal_processed_joint(joint_index_map.find(std::string("gimbal") + s)->second) = target_gimbal_angles_.at(i);
     }
+
+  std::vector<Eigen::Vector3d> prev_rotors_origin_from_cog = rotors_origin_from_cog;
   robot_model_for_control_->updateRobotModel(gimbal_processed_joint);
+  rotors_origin_from_cog = robot_model_for_control_->getRotorsOriginFromCog<Eigen::Vector3d>();
+
+      double max_diff = 1e-6;
+      for(int i = 0; i < motor_num_; i++)
+        {
+          double diff = (rotors_origin_from_cog.at(i) - prev_rotors_origin_from_cog.at(i)).norm();
+          if(max_diff < diff) max_diff = diff;
+        }
+
+      if(control_verbose_)
+        {
+          // ROS_DEBUG_STREAM("refine rotor origin in control: iteration "<< j+1 << ", max_diff: " << max_diff);  // din't work
+          ROS_WARN_STREAM("refine rotor origin in control: iteration "<< j+1 << ", max_diff: " << max_diff);      // worked
+        }
+      if(max_diff < allocation_refine_threshold_)
+        {
+          break;
+        }
+      if(j == allocation_refine_max_iteration_ - 1)
+        {
+          ROS_WARN_STREAM("refine rotor origin in control: can not converge in iteration " << j+1 << " max_diff: " << max_diff);
+        }
+    }  /* iterarively calcurate rotor origin */
+
+
+  /* calculate allocation matrix for realtime control */
   q_mat_ = robot_model_for_control_->calcWrenchMatrixOnCoG();
   q_mat_inv_ = aerial_robot_model::pseudoinverse(q_mat_);
 
