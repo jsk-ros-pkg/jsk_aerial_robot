@@ -238,7 +238,7 @@
 
     #### gimbal joints ####
     <joint name="gimbal${self}" type="revolute">
-      <limit effort="6.6" lower="-1.57" upper="1.57" velocity="3.0"/>
+      <limit effort="6.6" lower="-2.0" upper="2.0" velocity="3.0"/>
       <parent link="rotor_arm${self}"/>
       <child link="gimbal_link${self}"/>
       <origin rpy="0 0 0" xyz="0.077 0 0.0385"/>
