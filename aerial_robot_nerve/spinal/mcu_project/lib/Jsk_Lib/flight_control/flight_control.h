@@ -33,6 +33,7 @@
 /* ros */
 #include <spinal/FlightConfigCmd.h>
 #include <spinal/UavInfo.h>
+#include <std_msgs/UInt8.h>
 
 class FlightControl
 {
@@ -48,6 +49,7 @@ public:
     config_ack_pub_ = nh_->advertise<std_msgs::UInt8>("flight_config_ack", 1);
     uav_info_sub_ = nh_->subscribe("uav_info", 1, &FlightControl::uavInfoConfigCallback, this);
     flight_config_sub_ = nh_->subscribe("flight_config_cmd", 1, &FlightControl::flightConfigCallback, this);
+    gimbal_dof_sub_ = nh_->subscribe("gimbal_dof", 1, &FlightControl::gimbalDofCallback, this);
 
     att_controller_.init(nh, estimator);
 
@@ -64,6 +66,7 @@ public:
     config_ack_pub_("flight_config_ack", &config_ack_msg_),
     uav_info_sub_("uav_info", &FlightControl::uavInfoConfigCallback, this ),
     flight_config_sub_("flight_config_cmd", &FlightControl::flightConfigCallback, this ),
+    gimbal_dof_sub_("gimbal_dof", &FlightControl::gimbalDofCallback, this ),
     att_controller_()
   {
   }
@@ -78,6 +81,8 @@ public:
     nh_->subscribe(uav_info_sub_);
     /* flight control base config */
     nh_->subscribe(flight_config_sub_);
+    /* gimbal dof info */
+    nh_->subscribe(gimbal_dof_sub_);
 
     estimator_ = estimator;
 
@@ -137,15 +142,18 @@ private:
 #ifdef SIMULATION
   ros::Subscriber uav_info_sub_;
   ros::Subscriber flight_config_sub_;
+  ros::Subscriber gimbal_dof_sub_;
 #else
   ros::Subscriber<spinal::UavInfo, FlightControl> uav_info_sub_;
   ros::Subscriber<spinal::FlightConfigCmd, FlightControl> flight_config_sub_;
+  ros::Subscriber<std_msgs::UInt8, FlightControl> gimbal_dof_sub_;
 #endif
 
   bool start_control_flag_;
   bool pwm_test_flag_;
   bool integrate_flag_;
   bool force_landing_flag_;
+  bool gimbal_set_flag_;
 
   AttitudeController att_controller_;
 #ifndef SIMULATION
@@ -225,7 +233,17 @@ private:
 void uavInfoConfigCallback(const spinal::UavInfo& config_msg)
   {
     setUavModel(config_msg.uav_model);
-    setMotorNumber(config_msg.motor_num);
+    setMotorNumber(config_msg.motor_num * (att_controller_.getGimbalDof() + 1) );
+  }
+
+/* get DoF of gimbal rotation */
+void gimbalDofCallback(const std_msgs::UInt8& gimbal_msg)
+  {
+    if(gimbal_msg.data && !gimbal_set_flag_)
+      {
+        att_controller_.setGimbalDof(gimbal_msg.data);
+        gimbal_set_flag_ = true;
+      }
   }
 
 };
