@@ -7,6 +7,7 @@
   <arg name="sim_estimate_mode"  default= "2" />
   <arg name="headless" default="True" />
   <arg name="worldtype" default="RT_R_7_env150" />
+  <arg name="nav_exec" default="True" />
   <arg name="launch_gazebo" default="True" />
   <arg name="direct_model" default="False" />
   <arg name="direct_model_name" />
@@ -58,6 +59,7 @@
     <param name="tf_prefix" value="$(arg robot_ns)"/>
     <param name="param_verbose" value="false"/>
     <param name="main_rate" value="40"/>
+    <param name="nav_exec" value="$(arg nav_exec)"/>
   </node>
 
   ###########  Robot Model  ###########

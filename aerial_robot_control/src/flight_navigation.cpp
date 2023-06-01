@@ -139,6 +139,7 @@ void BaseNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & ms
 
   if(force_att_control_flag_) return;
 
+  if (nav_exec_){
   /* yaw */
   if(msg->yaw_nav_mode == aerial_robot_msgs::FlightNav::POS_MODE)
     {
@@ -287,6 +288,8 @@ void BaseNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & ms
       setTargetPosZ(msg->target_pos_z);
       setTargetVelZ(msg->target_vel_z);
     }
+  }
+
   std_msgs::Duration duration_msg;
   ros::Duration exec_time_diff = ros::Time::now() - msg->header.stamp;
   duration_msg.data = exec_time_diff;
@@ -847,6 +850,7 @@ void BaseNavigator::update()
 void BaseNavigator::rosParamInit()
 {
   getParam<bool>(nhp_, "param_verbose", param_verbose_, false);
+  getParam<bool>(nhp_, "nav_exec", nav_exec_, true);
 
   ros::NodeHandle nh(nh_, "navigation");
   getParam<int>(nh, "xy_control_mode", xy_control_mode_, 0);

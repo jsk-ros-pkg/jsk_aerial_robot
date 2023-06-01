@@ -225,6 +225,7 @@ namespace aerial_robot_navigation
     boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator_;
 
     bool param_verbose_;
+    bool nav_exec_;
 
     bool start_able_;
     uint8_t navi_state_;
