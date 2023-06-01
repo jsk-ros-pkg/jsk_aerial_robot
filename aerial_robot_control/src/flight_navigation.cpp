@@ -68,6 +68,7 @@ void BaseNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   flight_config_pub_ = nh_.advertise<spinal::FlightConfigCmd>("flight_config_cmd", 10);
   power_info_pub_ = nh_.advertise<geometry_msgs::Vector3Stamped>("uav_power", 10);
   flight_state_pub_ = nh_.advertise<std_msgs::UInt8>("flight_state", 1);
+  policy_time_pub_ = nh_.advertise<std_msgs::Duration>("debug/policy/process/time", 10);
 
   estimate_mode_ = estimator_->getEstimateMode();
   force_landing_start_time_ = ros::Time::now();
@@ -286,6 +287,10 @@ void BaseNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & ms
       setTargetPosZ(msg->target_pos_z);
       setTargetVelZ(msg->target_vel_z);
     }
+  std_msgs::Duration duration_msg;
+  ros::Duration exec_time_diff = ros::Time::now() - msg->header.stamp;
+  duration_msg.data = exec_time_diff;
+  policy_time_pub_.publish(duration_msg);
 }
 
 void BaseNavigator::rollPitchCallback(const aerial_robot_msgs::RollPitchNavConstPtr & msg){
