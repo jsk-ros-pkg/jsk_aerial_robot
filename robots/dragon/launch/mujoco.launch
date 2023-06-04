@@ -41,6 +41,8 @@
 
     ###########  Servo Config  ###########
     <rosparam file="$(arg config_dir)/Servo.yaml" command="load" />
+    <rosparam command="load" file="$(find dragon)/config/ServoOrder.yaml" />
+    <rosparam command="load" file="$(find dragon)/config/RotorList.yaml" />
 
     ###########  Battery Config  ###########
     <rosparam file="$(arg config_dir)/Battery.yaml" command="load" />
@@ -88,7 +90,8 @@
   </include >
 
   ###########  Servo Bridge  ###########
-  <node pkg="aerial_robot_model" type="servo_bridge_node" name="servo_bridge"  output="screen" ns="$(arg robot_ns)" />
+  <node pkg="aerial_robot_model" type="servo_bridge_node" name="servo_bridge"  output="screen" ns="$(arg robot_ns)" >
+  </node>
 
   ########## Simulation in Gazebo #########
   <!-- <include file="$(find aerial_robot_simulation)/launch/simulation.launch" if = "$(eval arg('simulation') and not arg('real_machine'))" > -->
@@ -105,6 +108,7 @@
 
   <include file="$(find aerial_robot_simulation)/launch/mujoco_simulation.launch" >
     <arg name="robot_ns" value="$(arg robot_ns)" />
+    <arg name="rotor_list" value="$(find dragon)/config/RotorList.yaml"/>
+    <arg name="model" value="$(find dragon)/urdf/mujoco/dragon.xml" />
   </include>
-
 </launch>
