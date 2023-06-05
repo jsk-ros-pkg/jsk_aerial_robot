@@ -50,12 +50,12 @@
 
         <body name="inter_joint1" pos="0.424 0 0">
             <inertial pos="0.02918 -0.00427 -0.00155" mass="0.1329" fullinertia="0.0001 0.0001 0.0001 0.0 0.0 0.0" />
-            <joint name="joint1_pitch" pos="0 0 0" axis="0 1 0" limited="true" range="-1.5708 1.5708" damping="0.2" frictionloss="0.05" />
+            <joint name="joint1_pitch" pos="0 0 0" axis="0 1 0" limited="true" range="-1.5708 1.5708" damping="30" frictionloss="0.05" />
             <geom pos="0.02575 0 0" type="mesh" contype="1" conaffinity="0" group="1" mesh="inter_joint_junction" />
 
             <body name="link2" pos="0.0515 0 0">
                 <inertial pos="0.221541 -0.00473999 -0.0156795" mass="1.13481" fullinertia="0.0018 0.0228 0.0219 -0.0009 -0.0006 0.0001" />
-                <joint name="joint1_yaw" pos="0 0 0" axis="0 0 1" limited="true" range="-1.5708 1.5708" damping="0.2" frictionloss="0.05" />
+                <joint name="joint1_yaw" pos="0 0 0" axis="0 0 1" limited="true" range="-1.5708 1.5708" damping="30" frictionloss="0.05" />
                 <geom pos="0.212 0 0" type="mesh" contype="1" conaffinity="0" group="1" mesh="ducted_fan_baselink" />
                 <site name="fc" pos="0.316 -0.004 0.043" />
 
@@ -79,12 +79,12 @@
 
                 <body name="inter_joint2" pos="0.424 0 0">
                     <inertial pos="0.02918 -0.00427 -0.00155" mass="0.1329" fullinertia="0.0001 0.0001 0.0001 0.0 0.0 0.0" />
-                    <joint name="joint2_pitch" pos="0 0 0" axis="0 1 0" limited="true" range="-1.5708 1.5708" damping="0.2" frictionloss="0.05" />
+                    <joint name="joint2_pitch" pos="0 0 0" axis="0 1 0" limited="true" range="-1.5708 1.5708" damping="30" frictionloss="0.05" />
                     <geom pos="0.02575 0 0" type="mesh" contype="1" conaffinity="0" group="1" mesh="inter_joint_junction" />
 
                     <body name="link3" pos="0.0515 0 0">
                         <inertial pos="0.19922 -0.0058 -0.01695" mass="0.9289" fullinertia="0.0015 0.0198 0.0189 -0.0008 -0.0001 0.0001" />
-                        <joint name="joint2_yaw" pos="0 0 0" axis="0 0 1" limited="true" range="-1.5708 1.5708" damping="0.2" frictionloss="0.05" />
+                        <joint name="joint2_yaw" pos="0 0 0" axis="0 0 1" limited="true" range="-1.5708 1.5708" damping="30" frictionloss="0.05" />
                         <geom pos="0.212 0 0" type="mesh" contype="1" conaffinity="0" group="1" mesh="ducted_fan_general_link" />
 
                         <body name="gimbal3_roll_module" pos="0.212 0 0">
@@ -107,12 +107,12 @@
 
                         <body name="inter_joint3" pos="0.424 0 0">
                             <inertial pos="0.02918 -0.00427 -0.00155" mass="0.1329" fullinertia="0.0001 0.0001 0.0001 0.0 0.0 0.0" />
-                            <joint name="joint3_pitch" pos="0 0 0" axis="0 1 0" limited="true" range="-1.5708 1.5708" damping="0.2" frictionloss="0.05" />
+                            <joint name="joint3_pitch" pos="0 0 0" axis="0 1 0" limited="true" range="-1.5708 1.5708" damping="30" frictionloss="0.05" />
                             <geom pos="0.02575 0 0" type="mesh" contype="1" conaffinity="0" group="1" mesh="inter_joint_junction" />
 
                             <body name="link4" pos="0.0515 0 0">
                                 <inertial pos="0.16774 -0.00011 -0.02072" mass="0.7943" fullinertia="0.0012 0.0145 0.0134 0.0 0.0003 0.0" />
-                                <joint name="joint3_yaw" pos="0 0 0" axis="0 0 1" limited="true" range="-1.5708 1.5708" damping="0.2" frictionloss="0.05" />
+                                <joint name="joint3_yaw" pos="0 0 0" axis="0 0 1" limited="true" range="-1.5708 1.5708" damping="30" frictionloss="0.05" />
                                 <geom pos="0.212 0 0" type="mesh" contype="1" conaffinity="0" group="1" mesh="ducted_fan_end_link" />
 
                                 <body name="gimbal4_roll_module" pos="0.212 0 0">
@@ -142,21 +142,21 @@
       </worldbody>
 
       <actuator>
-        <position name="joint1_pitch" kp="4" joint="joint1_pitch" />
-        <position name="joint1_yaw"   kp="4" joint="joint1_yaw" />
-        <position name="joint2_pitch" kp="4" joint="joint2_pitch" />
-        <position name="joint2_yaw"   kp="4" joint="joint2_yaw" />
-        <position name="joint3_pitch" kp="4" joint="joint3_pitch" />
-        <position name="joint3_yaw"   kp="4" joint="joint3_yaw" />
+        <position name="joint1_pitch" kp="40" joint="joint1_pitch" />
+        <position name="joint1_yaw"   kp="40" joint="joint1_yaw" />
+        <position name="joint2_pitch" kp="40" joint="joint2_pitch" />
+        <position name="joint2_yaw"   kp="40" joint="joint2_yaw" />
+        <position name="joint3_pitch" kp="40" joint="joint3_pitch" />
+        <position name="joint3_yaw"   kp="40" joint="joint3_yaw" />
 
-        <position name="gimbal1_pitch" kp="4" joint="gimbal1_pitch" />
-        <position name="gimbal1_roll"  kp="4" joint="gimbal1_roll" />
-        <position name="gimbal2_pitch" kp="4" joint="gimbal2_pitch" />
-        <position name="gimbal2_roll"  kp="4" joint="gimbal2_roll" />
-        <position name="gimbal3_pitch" kp="4" joint="gimbal3_pitch" />
-        <position name="gimbal3_roll"  kp="4" joint="gimbal3_roll" />
-        <position name="gimbal4_pitch" kp="4" joint="gimbal4_pitch" />
-        <position name="gimbal4_roll"  kp="4" joint="gimbal4_roll" />
+        <position name="gimbal1_pitch" kp="40" joint="gimbal1_pitch" />
+        <position name="gimbal1_roll"  kp="40" joint="gimbal1_roll" />
+        <position name="gimbal2_pitch" kp="40" joint="gimbal2_pitch" />
+        <position name="gimbal2_roll"  kp="40" joint="gimbal2_roll" />
+        <position name="gimbal3_pitch" kp="40" joint="gimbal3_pitch" />
+        <position name="gimbal3_roll"  kp="40" joint="gimbal3_roll" />
+        <position name="gimbal4_pitch" kp="40" joint="gimbal4_pitch" />
+        <position name="gimbal4_roll"  kp="40" joint="gimbal4_roll" />
 
         <motor name="rotor1" ctrllimited="true" ctrlrange="0.0 30.0" gear="0 0 1 0 0 -0.02" site="rotor1" />
         <motor name="rotor2" ctrllimited="true" ctrlrange="0.0 30.0" gear="0 0 1 0 0 0.02" site="rotor2" />
