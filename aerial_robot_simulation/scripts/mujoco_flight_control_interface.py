@@ -13,19 +13,25 @@ import tf
 class mujocoFlightControlInterface:
     def __init__(self):
         # ros publisher
-        self.flight_config_command_pub = rospy.Publisher("flight_config_ack", UInt8, queue_size=1)
+        self.flight_config_ack_pub = rospy.Publisher("flight_config_ack", UInt8, queue_size=1)
         self.battery_voltage_pub = rospy.Publisher("battery_voltage_status", Float32, queue_size=1)
 
         # ros subscriber
-        self.start_sub = rospy.Subscriber("teleop_command/start", Empty, self.startCallback)
+        self.flight_config_cmd_sub = rospy.Subscriber("flight_config_cmd", FlightConfigCmd, self.flightConfigCallback)
 
         # ros timer
         self.timer = rospy.Timer(rospy.Duration(0.1), self.timerCallback)
 
-    def startCallback(self, msg):
-        msg = UInt8()
-        msg.data = FlightConfigCmd.ARM_ON_CMD
-        self.flight_config_command_pub.publish(msg)
+    def flightConfigCallback(self, msg):
+        if msg.cmd == FlightConfigCmd.ARM_ON_CMD:
+            flight_config_ack_msg = UInt8()
+            flight_config_ack_msg.data = FlightConfigCmd.ARM_ON_CMD
+            self.flight_config_ack_pub.publish(flight_config_ack_msg)
+
+        elif msg.cmd == FlightConfigCmd.ARM_OFF_CMD:
+            flight_config_ack_msg = UInt8()
+            flight_config_ack_msg.data = FlightConfigCmd.ARM_OFF_CMD
+            self.flight_config_ack_pub.publish(flight_config_ack_msg)
 
     def timerCallback(self, event):
         msg = Float32()

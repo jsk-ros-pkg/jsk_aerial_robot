@@ -12,8 +12,6 @@ from geometry_msgs.msg import PoseStamped, TwistStamped
 from sensor_msgs.msg import JointState
 from spinal.msg import FourAxisCommand, TorqueAllocationMatrixInv, Imu
 from pid import PI_D
-from mujoco_flight_controller import mujocoFlightController
-from mujoco_navigation import mujocoNavigator
 import time
 from rosgraph_msgs.msg import Clock
 
@@ -38,11 +36,6 @@ class MujocoRosInterface:
         # paramter for control
         self.mass = None
 
-        self.pos = np.zeros(3)
-        self.rpy = np.zeros(3)
-        self.prev_pos =np.zeros(3)
-        self.prev_rpy = np.zeros(3)
-
         self.mass = np.sum(np.array(self.data.cinert)[:, -1])
         print("mass=", self.mass)
         print()
@@ -63,12 +56,11 @@ class MujocoRosInterface:
         ctrl_sub = rospy.Subscriber("mujoco/ctrl_input", ControlInput, self.ctrlCallback)
 
         # ros timer
-        timer100 = rospy.Timer(rospy.Duration(0.01), self.timerCallback)
+        timer = rospy.Timer(rospy.Duration(0.01), self.timerCallback)
 
         # ros time
         self.sim_clock = Clock()
         self.zero_time = rospy.get_time()
-
         clock = rospy.Timer(rospy.Duration(0.001), self.clockCallback)
 
         self.viewer = viewer.launch_passive(self.model, self.data)
@@ -145,7 +137,6 @@ class MujocoRosInterface:
         imu = Imu()
         imu.stamp = self.getNowTime()
         for i in range(self.model.nsensor):
-            # print(self.model.sensor(i))
             if self.model.sensor(i).name == "acc":
                 imu.acc_data = self.data.sensordata[self.model.sensor(i).adr[0]:self.model.sensor(i).adr[0]+self.model.sensor(i).dim[0]]
             if self.model.sensor(i).name == "gyro":
@@ -154,10 +145,6 @@ class MujocoRosInterface:
                 imu.mag_data = self.data.sensordata[self.model.sensor(i).adr[0]:self.model.sensor(i).adr[0]+self.model.sensor(i).dim[0]]
         imu.angles = rpy
         self.imu_pub.publish(imu)
-
-        self.prev_pos = self.pos
-        self.prev_rpy = self.rpy
-
 
     def clockCallback(self, event):
         # print("clock")
