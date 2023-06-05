@@ -63,6 +63,23 @@ class MujocoRosInterface:
         self.zero_time = rospy.get_time()
         clock = rospy.Timer(rospy.Duration(0.001), self.clockCallback)
 
+        # ros param
+        joint_param = rospy.get_param("servo_controller/joints")
+        gimbal_param = rospy.get_param("servo_controller/gimbals")
+
+        ## init joints from rosparam ##
+        for i in range(len(self.joint_names)):
+            controller_name = "controller" + "{}".format(i + 1)
+            joint_config = joint_param.get(controller_name)
+            if joint_config is not None:
+                if joint_config.get('simulation')is not None:
+                    if joint_config.get('simulation').get('init_value'):
+                        joint_name = joint_config.get('name')
+                        joint_init_value = joint_config.get('simulation').get('init_value')
+                        actuator_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_ACTUATOR, joint_name)
+                        self.control_input[actuator_id] = joint_init_value
+
+
         self.viewer = viewer.launch_passive(self.model, self.data)
         self.viewer.sync()
 
