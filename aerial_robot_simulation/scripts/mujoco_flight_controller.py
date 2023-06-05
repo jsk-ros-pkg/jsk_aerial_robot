@@ -8,7 +8,7 @@ import numpy as np
 from aerial_robot_msgs.msg import ControlInput, WrenchAllocationMatrix, PoseControlPid
 from geometry_msgs.msg import PoseStamped, TwistStamped
 from sensor_msgs.msg import JointState
-from std_msgs.msg import Empty
+from std_msgs.msg import Empty, UInt8
 from spinal.msg import FourAxisCommand, TorqueAllocationMatrixInv, FlightConfigCmd
 from pid import PI_D
 import tf
@@ -40,8 +40,9 @@ class mujocoFlightController:
 
         # ros publisher
         self.control_input = ControlInput()
-        self.ctrl_input_pub = rospy.Publisher("ctrl_input", ControlInput, queue_size=1)
+        self.ctrl_input_pub = rospy.Publisher("mujoco/ctrl_input", ControlInput, queue_size=1)
         self.pid_pub = rospy.Publisher("pid", PoseControlPid, queue_size=1)
+        self.flight_config_command_pub = rospy.Publisher("flight_config_ack", UInt8, queue_size=1)
 
         # ros subscriber
         self.pose = PoseStamped()
@@ -67,7 +68,7 @@ class mujocoFlightController:
         timer = rospy.Timer(rospy.Duration(0.01), self.timerCallback)
 
     def takeoffCallback(self, msg):
-        self.takeoff_flag = True
+        # self.takeoff_flag = True
         rpy = tf.transformations.euler_from_quaternion([self.pose.pose.orientation.x, self.pose.pose.orientation.y, self.pose.pose.orientation.z, self.pose.pose.orientation.w])
         self.target_rpy[2] = rpy[2]
         self.x_pid.setpoint = self.pose.pose.position.x
@@ -77,6 +78,9 @@ class mujocoFlightController:
         self.pitch_pid.setpoint = 0.0
         self.yaw_pid.setpoint = rpy[2]
         print("xyz=[", self.pose.pose.position.x, self.pose.pose.position.y, self.takeoff_height, "], yaw=", rpy[2])
+        msg = UInt8()
+        msg.data = FlightConfigCmd.ARM_ON_CMD
+        self.flight_config_command_pub.publish(msg)
 
     def haltCallback(self, msg):
         self.takeoff_flag = False
