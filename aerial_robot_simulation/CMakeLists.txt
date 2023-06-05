@@ -1,6 +1,11 @@
 cmake_minimum_required(VERSION 3.0.2)
 project(aerial_robot_simulation)
 
+set(MUJOCO_ROOT_DIR "$ENV{HOME}/.mujoco/mujoco-2.3.5")
+set(MUJOCO_INCLUDE_DIR "${MUJOCO_ROOT_DIR}/include")
+set(MUJOCO_LIB_DIR "${MUJOCO_ROOT_DIR}/lib")
+set(MUJOCO_SIM_DIR "${MUJOCO_ROOT_DIR}/simulate")
+
 add_compile_options(-std=c++11 ${GAZEBO_CXX_FLAGS})
 
 find_package(catkin REQUIRED COMPONENTS
@@ -35,6 +40,7 @@ catkin_package(
 include_directories(
   ${catkin_INCLUDE_DIRS}
   ${GAZEBO_INCLUDE_DIRS}
+  ${MUJOCO_INCLUDE_DIR}
   include
   )
 
