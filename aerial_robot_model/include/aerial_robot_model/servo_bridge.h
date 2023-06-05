@@ -41,6 +41,7 @@
 #include <ros/ros.h>
 
 /* ros msg */
+#include <aerial_robot_msgs/ControlInput.h>
 #include <std_msgs/UInt8.h>
 #include <std_msgs/Int8.h>
 #include <std_msgs/Empty.h>
@@ -199,6 +200,7 @@ protected:
   ros::NodeHandle nhp_;
 
   ros::Publisher servo_states_pub_;
+  ros::Publisher mujoco_control_input_pub_;
   map<string, ros::Subscriber> servo_states_subs_;
   map<string, ros::Subscriber> servo_ctrl_subs_;
   map<string, bool> no_real_state_flags_;
@@ -213,6 +215,8 @@ protected:
   bool send_init_joint_pose_;
   bool simulation_mode_;
   int send_init_joint_pose_cnt_;
+  vector<string> joint_servo_order_;
+  vector<string> gimbal_servo_order_;
 
   void servoStatesCallback(const spinal::ServoStatesConstPtr& state_msg, const std::string& servo_group_name);
   void servoCtrlCallback(const sensor_msgs::JointStateConstPtr& joints_ctrl_msg, const std::string& servo_group_name);
