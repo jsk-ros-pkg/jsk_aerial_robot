@@ -24,10 +24,8 @@ class MujocoRosInterface:
         self.joint_names = [self.model.joint(i).name for i in range(self.model.njnt)]
         self.joint_names = self.joint_names[1:] # remove root
         self.actuator_names = [self.model.actuator(i).name for i in range(self.model.nu)]
-        # self.site_names = [self.model.site(i).name for i in range(self.model.nsite)]
         self.control_input = [0] * self.model.nu
         self.rotor_list = rospy.get_param('rotor_list')
-        print(self.rotor_list)
 
         mujoco.mj_step(self.model, self.data)
 
@@ -36,16 +34,13 @@ class MujocoRosInterface:
 
         self.mass = np.sum(np.array(self.data.cinert)[:, -1])
         print("mass=", self.mass)
-        print()
         print("joint list=", self.joint_names)
-        print()
         print("actuator list=", self.actuator_names)
-        print()
+        print("rotor list=", self.rotor_list)
 
         # ros publisher
         self.joint_state_pub = rospy.Publisher("joint_states", JointState, queue_size=1)
         self.mocap_pub = rospy.Publisher("mocap/pose", PoseStamped, queue_size=1)
-        self.twist_pub = rospy.Publisher("twist", TwistStamped, queue_size=1)
         self.imu_pub = rospy.Publisher("imu", Imu, queue_size=1)
         self.clock_pub = rospy.Publisher('/clock',Clock, queue_size=10)
 
@@ -54,7 +49,8 @@ class MujocoRosInterface:
         ctrl_sub = rospy.Subscriber("mujoco/ctrl_input", ControlInput, self.ctrlCallback)
 
         # ros timer
-        timer = rospy.Timer(rospy.Duration(0.01), self.timerCallback)
+        self.cnt = 0
+        timer = rospy.Timer(rospy.Duration(0.005), self.timerCallback)
 
         # ros time
         self.sim_clock = Clock()
@@ -111,27 +107,9 @@ class MujocoRosInterface:
 
 
     def timerCallback(self, event):
+        self.cnt = self.cnt + 1
         now = self.getNowTime()
 
-        # joint state
-        js = JointState()
-        js.header.stamp = self.getNowTime()
-        js.name = self.joint_names
-        joint_pos = self.data.qpos # including root (7 elements in the head of data)
-        joint_pos_addr = self.model.jnt_qposadr
-        joint_vel = self.data.qvel # including root (6 elements in the head of data)
-        joint_vel_addr = self.model.jnt_dofadr
-        joint_force = self.data.actuator_force
-
-        for i in range(len(self.joint_names)):
-            js.position.append(joint_pos[i + 7])
-            js.velocity.append(joint_vel[i + 6])
-            # js.position.append(joint_pos[joint_pos_addr[i]])
-            # js.velocity.append(joint_vel[joint_vel_addr[i]])
-            js.effort.append(joint_force[i])
-        self.joint_state_pub.publish(js)
-
-        # mocap (pos and quat)
         fc_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_SITE ,"fc")
         fc_pos = self.data.site_xpos[fc_id]
         fc_rot_mat = self.data.site_xmat[fc_id].reshape(3, 3)
@@ -139,18 +117,8 @@ class MujocoRosInterface:
         fc_sim_trans[0:3, 0:3] = fc_rot_mat
         fc_sim_trans[3, 3] = 1
         fc_quat = tf.transformations.quaternion_from_matrix(fc_sim_trans)
-        ps = PoseStamped()
-        ps.header.stamp = self.getNowTime()
-        ps.pose.position.x = fc_pos[0]
-        ps.pose.position.y = fc_pos[1]
-        ps.pose.position.z = fc_pos[2]
-        ps.pose.orientation.x = fc_quat[0]
-        ps.pose.orientation.y = fc_quat[1]
-        ps.pose.orientation.z = fc_quat[2]
-        ps.pose.orientation.w = fc_quat[3]
-        self.mocap_pub.publish(ps)
 
-        # imu
+        # imu (200 Hz)
         rpy = tf.transformations.euler_from_quaternion([fc_quat[0], fc_quat[1], fc_quat[2], fc_quat[3]])
         imu = Imu()
         imu.stamp = self.getNowTime()
@@ -163,6 +131,39 @@ class MujocoRosInterface:
                 imu.mag_data = self.data.sensordata[self.model.sensor(i).adr[0]:self.model.sensor(i).adr[0]+self.model.sensor(i).dim[0]]
         imu.angles = rpy
         self.imu_pub.publish(imu)
+
+        # mocap (pos and quat, 100 Hz)
+        if self.cnt % 2 == 0:
+            ps = PoseStamped()
+            ps.header.stamp = self.getNowTime()
+            ps.pose.position.x = fc_pos[0]
+            ps.pose.position.y = fc_pos[1]
+            ps.pose.position.z = fc_pos[2]
+            ps.pose.orientation.x = fc_quat[0]
+            ps.pose.orientation.y = fc_quat[1]
+            ps.pose.orientation.z = fc_quat[2]
+            ps.pose.orientation.w = fc_quat[3]
+            self.mocap_pub.publish(ps)
+
+        # joint state (50 Hz)
+        if self.cnt % 4 == 0:
+            js = JointState()
+            js.header.stamp = self.getNowTime()
+            js.name = self.joint_names
+            joint_pos = self.data.qpos # including root (7 elements in the head of data)
+            joint_pos_addr = self.model.jnt_qposadr
+            joint_vel = self.data.qvel # including root (6 elements in the head of data)
+            joint_vel_addr = self.model.jnt_dofadr
+            joint_force = self.data.actuator_force
+
+            for i in range(len(self.joint_names)):
+                js.position.append(joint_pos[i + 7])
+                js.velocity.append(joint_vel[i + 6])
+                # js.position.append(joint_pos[joint_pos_addr[i]])
+                # js.velocity.append(joint_vel[joint_vel_addr[i]])
+                js.effort.append(joint_force[i])
+            self.joint_state_pub.publish(js)
+
 
     def clockCallback(self, event):
         # print("clock")
