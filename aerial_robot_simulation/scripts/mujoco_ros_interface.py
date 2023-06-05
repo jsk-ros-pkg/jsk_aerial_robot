@@ -5,13 +5,11 @@ import mujoco
 from mujoco import viewer
 import os
 import numpy as np
-import quaternion
 import tf
 from aerial_robot_msgs.msg import ControlInput
 from geometry_msgs.msg import PoseStamped, TwistStamped
 from sensor_msgs.msg import JointState
 from spinal.msg import FourAxisCommand, TorqueAllocationMatrixInv, Imu
-from pid import PI_D
 import time
 from rosgraph_msgs.msg import Clock
 
@@ -136,21 +134,24 @@ class MujocoRosInterface:
         # mocap (pos and quat)
         fc_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_SITE ,"fc")
         fc_pos = self.data.site_xpos[fc_id]
-        fc_rot = self.data.site_xmat[fc_id].reshape(3, 3)
-        fc_quat = quaternion.from_rotation_matrix(fc_rot)
+        fc_rot_mat = self.data.site_xmat[fc_id].reshape(3, 3)
+        fc_sim_trans = np.zeros((4, 4))
+        fc_sim_trans[0:3, 0:3] = fc_rot_mat
+        fc_sim_trans[3, 3] = 1
+        fc_quat = tf.transformations.quaternion_from_matrix(fc_sim_trans)
         ps = PoseStamped()
         ps.header.stamp = self.getNowTime()
         ps.pose.position.x = fc_pos[0]
         ps.pose.position.y = fc_pos[1]
         ps.pose.position.z = fc_pos[2]
-        ps.pose.orientation.x = fc_quat.x
-        ps.pose.orientation.y = fc_quat.y
-        ps.pose.orientation.z = fc_quat.z
-        ps.pose.orientation.w = fc_quat.w
+        ps.pose.orientation.x = fc_quat[0]
+        ps.pose.orientation.y = fc_quat[1]
+        ps.pose.orientation.z = fc_quat[2]
+        ps.pose.orientation.w = fc_quat[3]
         self.mocap_pub.publish(ps)
 
         # imu
-        rpy = tf.transformations.euler_from_quaternion([fc_quat.x, fc_quat.y, fc_quat.z, fc_quat.w])
+        rpy = tf.transformations.euler_from_quaternion([fc_quat[0], fc_quat[1], fc_quat[2], fc_quat[3]])
         imu = Imu()
         imu.stamp = self.getNowTime()
         for i in range(self.model.nsensor):
