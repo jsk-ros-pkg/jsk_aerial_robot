@@ -219,7 +219,7 @@ namespace aerial_robot_navigation
     ros::Subscriber flight_nav_sub_;
     ros::Subscriber stop_teleop_sub_;
     ros::Subscriber roll_pitch_sub_;
-    ros::Publisher  policy_time_pub_;
+    ros::Publisher  policy_pos_time_pub_;
 
     boost::shared_ptr<aerial_robot_model::RobotModel> robot_model_;
     boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator_;
