@@ -41,6 +41,7 @@ void BaseNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   estimator_ = estimator;
 
   navi_sub_ = nh_.subscribe("uav/nav", 1, &BaseNavigator::naviCallback, this, ros::TransportHints().tcpNoDelay());
+  hokuyo_time_sub_ = nh_.subscribe("debug/hokuyo_time", 1, &BaseNavigator::hokuyoTimeCallback, this, ros::TransportHints().tcpNoDelay());
 
   roll_pitch_sub_ = nh_.subscribe("uav/roll_pitch_nav", 1, &BaseNavigator::rollPitchCallback, this, ros::TransportHints().tcpNoDelay());
 
@@ -69,6 +70,7 @@ void BaseNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   power_info_pub_ = nh_.advertise<geometry_msgs::Vector3Stamped>("uav_power", 10);
   flight_state_pub_ = nh_.advertise<std_msgs::UInt8>("flight_state", 1);
   policy_pos_time_pub_ = nh_.advertise<std_msgs::Duration>("debug/policy/pos/time", 10);
+  policy_scan_time_pub_ = nh_.advertise<std_msgs::Duration>("debug/policy/scan/time", 10);
 
   estimate_mode_ = estimator_->getEstimateMode();
   force_landing_start_time_ = ros::Time::now();
@@ -294,6 +296,13 @@ void BaseNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & ms
   ros::Duration exec_time_diff = ros::Time::now() - msg->header.stamp;
   duration_msg.data = exec_time_diff;
   policy_pos_time_pub_.publish(duration_msg);
+}
+
+void BaseNavigator::hokuyoTimeCallback(const std_msgs::TimeConstPtr & msg){
+  std_msgs::Duration duration_msg;
+  ros::Duration exec_time_diff = ros::Time::now() - msg->data;
+  duration_msg.data = exec_time_diff;
+  policy_scan_time_pub_.publish(duration_msg);
 }
 
 void BaseNavigator::rollPitchCallback(const aerial_robot_msgs::RollPitchNavConstPtr & msg){

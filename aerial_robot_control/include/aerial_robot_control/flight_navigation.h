@@ -15,6 +15,7 @@
 #include <std_msgs/Int8.h>
 #include <std_msgs/UInt8.h>
 #include <std_msgs/Duration.h>
+#include <std_msgs/Time.h>
 
 namespace aerial_robot_navigation
 {
@@ -207,6 +208,7 @@ namespace aerial_robot_navigation
     ros::Publisher  power_info_pub_;
     ros::Publisher  flight_state_pub_;
     ros::Subscriber navi_sub_;
+    ros::Subscriber hokuyo_time_sub_;
     ros::Subscriber battery_sub_;
     ros::Subscriber flight_status_ack_sub_;
     ros::Subscriber takeoff_sub_;
@@ -220,6 +222,7 @@ namespace aerial_robot_navigation
     ros::Subscriber stop_teleop_sub_;
     ros::Subscriber roll_pitch_sub_;
     ros::Publisher  policy_pos_time_pub_;
+    ros::Publisher  policy_scan_time_pub_;
 
     boost::shared_ptr<aerial_robot_model::RobotModel> robot_model_;
     boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator_;
@@ -303,6 +306,7 @@ namespace aerial_robot_navigation
 
     virtual void rosParamInit();
     void naviCallback(const aerial_robot_msgs::FlightNavConstPtr & msg);
+    void hokuyoTimeCallback(const std_msgs::TimeConstPtr & msg);
     void rollPitchCallback(const aerial_robot_msgs::RollPitchNavConstPtr & msg);
     void joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg);
     void batteryCheckCallback(const std_msgs::Float32ConstPtr &msg);
