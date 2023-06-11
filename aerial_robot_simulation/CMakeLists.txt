@@ -5,6 +5,7 @@ set(MUJOCO_ROOT_DIR "$ENV{HOME}/.mujoco/mujoco-2.3.5")
 set(MUJOCO_INCLUDE_DIR "${MUJOCO_ROOT_DIR}/include")
 set(MUJOCO_LIB_DIR "${MUJOCO_ROOT_DIR}/lib")
 set(MUJOCO_SIM_DIR "${MUJOCO_ROOT_DIR}/simulate")
+file(GLOB LIB_MUJOCO ${MUJOCO_LIB_DIR}/libmujoco.so)
 
 add_compile_options(-std=c++11 ${GAZEBO_CXX_FLAGS})
 
@@ -57,6 +58,9 @@ target_link_libraries(spinal_interface ${catkin_LIBRARIES})
 add_library(aerial_robot_hw_sim src/aerial_robot_hw_sim.cpp)
 target_link_libraries(aerial_robot_hw_sim spinal_interface ${catkin_LIBRARIES} ${GAZEBO_LIBRARIES} ${orocos_kdl_LIBRARIES})
 
+add_library(visualization_utils src/visualization_utils.cpp)
+target_link_libraries(visualization_utils ${catkin_LIBRARIES} ${MUJOCO_INCLUDE_DIR})
+
 install(DIRECTORY include/${PROJECT_NAME}/
   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION})
 
@@ -73,3 +77,11 @@ install(DIRECTORY scripts
 install(FILES aerial_robot_hw_sim_plugins.xml flight_controllers_plugins.xml
         DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )
+
+add_executable(mujoco_ros_control src/mujoco_ros_control.cpp)
+target_link_libraries(mujoco_ros_control
+  ${catkin_LIBRARIES}
+  glfw
+  ${LIB_MUJOCO}
+  visualization_utils
+  )
