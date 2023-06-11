@@ -106,9 +106,16 @@
   <!--   <arg name="spawn_yaw" value="$(arg spawn_yaw)" /> -->
   <!-- </include> -->
 
-  <include file="$(find aerial_robot_simulation)/launch/mujoco_simulation.launch" >
+  <!-- <include file="$(find aerial_robot_simulation)/launch/mujoco_simulation.launch" > -->
+  <!--   <arg name="robot_ns" value="$(arg robot_ns)" /> -->
+  <!--   <arg name="rotor_list" value="$(find dragon)/config/RotorList.yaml"/> -->
+  <!--   <arg name="model" value="$(find dragon)/urdf/mujoco/dragon.xml" /> -->
+  <!-- </include> -->
+
+  <include file="$(find aerial_robot_simulation)/launch/mujoco.launch" >
     <arg name="robot_ns" value="$(arg robot_ns)" />
     <arg name="rotor_list" value="$(find dragon)/config/RotorList.yaml"/>
     <arg name="model" value="$(find dragon)/urdf/mujoco/dragon.xml" />
   </include>
+
 </launch>

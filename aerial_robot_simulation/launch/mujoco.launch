@@ -1,0 +1,16 @@
+<launch>
+  <arg name="model" default="$(find dragon)/urdf/mujoco/dragon.xml"/>
+  <arg name="rotor_list" default="" />
+  <arg name="robot_ns" default="uav" />
+
+  <group ns="$(arg robot_ns)">
+    <!-- <node pkg="aerial_robot_simulation" type="mujoco_ros_control" name="mujoco_ros_control" output="screen" launch-prefix="gdb -\-args"> -->
+    <node pkg="aerial_robot_simulation" type="mujoco_ros_control" name="mujoco_ros_control" output="screen">
+      <param name="model" value="$(arg model)"/>
+      <param name="rotor_list" value="$(arg rotor_list)" />
+    </node>
+
+    <node pkg="aerial_robot_simulation" type="mujoco_flight_control_interface.py" name="mujoco_flight_controller" output="screen"/>
+  </group>
+
+</launch>
