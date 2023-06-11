@@ -57,6 +57,16 @@ MujocoRosControl::MujocoRosControl(ros::NodeHandle nh):
   // init joints from rosparam
   XmlRpc::XmlRpcValue joint_servos_params;
   nh_.getParam("servo_controller/joints", joint_servos_params);
+  for(int i = 0; i < joint_names_.size(); i++)
+    {
+      std::string controller_name = "controller" + std::to_string(i);
+      if(joint_servos_params[controller_name].valid())
+        {
+          double init_value = static_cast<double>(joint_servos_params[controller_name]["simulation"]["init_value"]);
+          std::string servo_name = static_cast<std::string>(joint_servos_params[controller_name]["name"]);
+          control_input_.at((mj_name2id(mujoco_model_, mjtObj_::mjOBJ_ACTUATOR, servo_name.c_str()))) = init_value;
+        }
+    }
 
   MujocoVisualizationUtils &mujoco_visualization_utils = MujocoVisualizationUtils::getInstance();
 
