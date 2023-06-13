@@ -6,6 +6,7 @@ RollingRobotModel::RollingRobotModel(bool init_with_rosparam, bool verbose, doub
   const int rotor_num = getRotorNum();
   rotors_coord_rotation_from_cog_.resize(rotor_num);
   links_rotation_from_cog_.resize(rotor_num);
+  gimbal_nominal_angles_.resize(rotor_num);
 }
 
 void RollingRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_positions)
@@ -28,12 +29,21 @@ void RollingRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_position
       links_rotation_from_cog_[i] = cog_frame.Inverse() * f.M;
     }
 
+  /* rotor's coordinate */
   for(int i = 0; i < getRotorNum(); ++i)
     {
       std::string s = std::to_string(i + 1);
       KDL::Frame f;
       fk_solver.JntToCart(joint_positions, f, std::string("rotor_coord") + s);
       rotors_coord_rotation_from_cog_[i] = cog_frame.Inverse() * f.M;
+    }
+
+  /* gimbal nominal angle */
+  for(int i = 0; i < getRotorNum(); i++)
+    {
+      double r, p, y;
+      links_rotation_from_cog_.at(i).GetRPY(r, p, y);
+      gimbal_nominal_angles_.at(i) = -r;
     }
 }
 

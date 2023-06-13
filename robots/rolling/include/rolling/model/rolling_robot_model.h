@@ -14,12 +14,14 @@ public:
                     double epsilon = 10);
   virtual ~RollingRobotModel() = default;
 
+  std::vector<double> getGimbalNominalAngles(){return gimbal_nominal_angles_;}
   template <class T> std::vector<T> getRotorsCoordFromCog();
   template <class T> std::vector<T> getLinksRotationFromCog();
 
 private:
   std::vector<KDL::Rotation> rotors_coord_rotation_from_cog_;
   std::vector<KDL::Rotation> links_rotation_from_cog_;
+  std::vector<double> gimbal_nominal_angles_;
   std::mutex rotors_coord_rotation_mutex_;
   std::mutex links_rotation_mutex_;
 
