@@ -51,6 +51,32 @@
       </joint>
     </xacro:if>
 
+    <!-- cylinder collision model  -->
+    <xacro:if value="${baselink}">
+      <link name="cylinder_collision">
+        <inertial>
+          <origin xyz="0 0 0" rpy="0 0 0"/>
+          <mass value="0.00001"/>
+          <inertia
+              ixx="0.000001" ixy="0.0" ixz="0.0"
+              iyy="0.000001" iyz="0.0"
+              izz="0.000001"/>
+        </inertial>
+        <collision>
+          <geometry>
+            <cylinder radius="0.4" length="0.03"/>
+          </geometry>
+        </collision>
+      </link>
+      <joint name="cylinder_collision_joint" type="fixed">
+        <parent link="link${self}"/>
+        <child link="cylinder_collision"/>
+        <origin rpy="0 0 0" xyz="0.262 0.153 0"/>
+        <axis xyz="0 0 1"/>
+      </joint>
+      <xacro:friction link="cylinder_collision"/>
+    </xacro:if>
+
     <!-- set the fcu frame -->
     <xacro:if value="${baselink}">
       <link name="fc">
@@ -88,9 +114,9 @@
         <xacro:black/>
       </visual>
       <collision>
-        <origin xyz="0 0 ${rotor_offset}" />
+        <origin xyz="0 0 ${rotor_offset}" rpy="0 ${(self % 2 * 2 - 1) * rotor_tilt} 0" />
         <geometry>
-          <cylinder radius="0.2" length="0.05" />
+          <cylinder radius="0.1" length="0.05" />
         </geometry>
       </collision>
     </link>
