@@ -23,4 +23,16 @@
     </gazebo>
   </xacro:macro>
 
+  <xacro:macro name="glay">
+    <material name="glay" >
+      <color rgba="0.5 0.5 0.5 1.0" />
+    </material>
+  </xacro:macro>
+
+  <xacro:macro name="black">
+    <material name="black" >
+      <color rgba="0 0 0 1.0" />
+    </material>
+  </xacro:macro>
+
 </robot>
