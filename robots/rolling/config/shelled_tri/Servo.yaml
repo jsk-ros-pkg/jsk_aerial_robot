@@ -18,27 +18,12 @@ servo_controller:
       id: 7
       name: joint1
       simulation:
-        init_value: 0
+        init_value: 2.08
     controller2:
       id: 8
       name: joint2
       simulation:
-        init_value: 0
-    controller3:
-      id: 9
-      name: joint3
-      simulation:
-        init_value: 0
-    controller4:
-      id: 10
-      name: joint4
-      simulation:
-        init_value: 0
-    controller5:
-      id: 11
-      name: joint5
-      simulation:
-        init_value: 0
+        init_value: 2.08
 
   gimbals:
     no_real_state: false # true if there is no servo state from real machine
@@ -65,30 +50,6 @@ servo_controller:
     controller3:
       id: 3
       name: gimbal3
-      simulation:
-        pid: {p: 5.0, i: 0.1, d: 0.1, i_clamp_max: 2.0, i_clamp_min: -2.0}
-        init_value: 0
-        type: effort_controllers/JointPositionController
-
-    controller4:
-      id: 4
-      name: gimbal4
-      simulation:
-        pid: {p: 5.0, i: 0.1, d: 0.1, i_clamp_max: 2.0, i_clamp_min: -2.0}
-        init_value: 0
-        type: effort_controllers/JointPositionController
-
-    controller5:
-      id: 5
-      name: gimbal5
-      simulation:
-        pid: {p: 5.0, i: 0.1, d: 0.1, i_clamp_max: 2.0, i_clamp_min: -2.0}
-        init_value: 0
-        type: effort_controllers/JointPositionController
-
-    controller6:
-      id: 6
-      name: gimbal6
       simulation:
         pid: {p: 5.0, i: 0.1, d: 0.1, i_clamp_max: 2.0, i_clamp_min: -2.0}
         init_value: 0
