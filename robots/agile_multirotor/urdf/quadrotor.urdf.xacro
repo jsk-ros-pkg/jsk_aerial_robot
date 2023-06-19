@@ -43,12 +43,12 @@
     <link name="${name}">
       <xacro:insert_block name="inertial" />
       <xacro:if value="${visible == 1}">
-        <visual>
+        <!-- <visual>
           <origin rpy="0 0 0" xyz="0 0 0"/>
           <geometry>
             <mesh filename="${model_url}" scale= "${scale} ${scale} ${scale}"/>
           </geometry>
-        </visual>
+        </visual> -->
       </xacro:if>
     </link>
   </xacro:macro>
@@ -72,12 +72,12 @@
             iyy="0.00000807" iyz="0.0"
             izz="0.00001612"/>
       </inertial>
-      <visual>
+      <!-- <visual>
         <origin rpy="0 0 0" xyz="0 0 0"/>
         <geometry>
 	    <mesh filename="package://agile_multirotor/urdf/mesh/5_inch_propeller.stl" />
         </geometry>
-      </visual>
+      </visual> -->
     </link>
     <xacro:damping_factor link ="thrust${id}"/>
 
@@ -141,6 +141,29 @@
       </geometry>
     </collision>
   </link>
+
+  <link name="dummy_body_visualize">
+    <inertial>
+      <mass value = "0.0001" />
+      <origin xyz="0 0 0 " rpy="0 0 0"/>
+      <inertia
+          ixx="0.000001" ixy="0.0000" ixz="0.0000"
+          iyy="0.000001" iyz="0.00000"
+          izz="0.000001"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+       <mesh filename="package://agile_multirotor/urdf/mesh/quadrotor.stl" />
+      </geometry>
+    </visual>
+  </link>
+
+  <joint name="dummy_joint_2" type="fixed">
+    <parent link="main_body"/>
+    <child link="dummy_body_visualize"/>
+    <origin rpy="0 0 0" xyz="0.0 0.0 0.0"/>
+  </joint>
 
   <!-- spinal -->
   <xacro:extra_module name = "fc" parent = "main_body" visible = "0" >

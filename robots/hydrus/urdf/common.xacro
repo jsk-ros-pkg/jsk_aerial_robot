@@ -43,7 +43,7 @@
       </xacro:unless>
     </collision>
 
-    <visual>
+    <!-- <visual>
       <xacro:if value="${old_version == 1}">
         <origin rpy="0 0 0" xyz="${link_length* 0.5} 0 0"/>
         <geometry>
@@ -66,7 +66,7 @@
           </xacro:unless>
         </geometry>
       </xacro:unless>
-    </visual>
+    </visual> -->
   </xacro:macro>
 
   <xacro:macro name="extra_module" params="name parent *origin *inertial visible:=0 model_url:=1 scale:=1">
@@ -78,12 +78,12 @@
     <link name="${name}">
       <xacro:insert_block name="inertial" />
       <xacro:if value="${visible == 1}">
-        <visual>
+        <!-- <visual>
           <origin rpy="0 0 0" xyz="0 0 0"/>
           <geometry>
             <mesh filename="${model_url}" scale= "${scale} ${scale} ${scale}"/>
           </geometry>
-        </visual>
+        </visual> -->
       </xacro:if>
     </link>
   </xacro:macro>

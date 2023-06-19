@@ -12,7 +12,7 @@
   <xacro:hydrus_link links="4" self="4" rotor_direction="1"  with_battery = "0" />
 
   <!-- special battery arrangement -->
-  <xacro:extra_module name = "bat1" parent = "link1" visible = "0"
+  <xacro:extra_module name = "bat1" parent = "link1" visible = "1"
                       model_url = "package://hydrus/urdf/mesh/battery/Kypom-3000-6s.dae" >
     <origin xyz="${link_length/2} 0.0 -0.048" rpy="0 0 0"/>
     <inertial>
@@ -24,7 +24,7 @@
     </inertial>
   </xacro:extra_module>
 
-  <xacro:extra_module name = "bat2" parent = "link4" visible = "0"
+  <xacro:extra_module name = "bat2" parent = "link4" visible = "1"
                       model_url = "package://hydrus/urdf/mesh/battery/Kypom-3000-6s.dae" >
     <origin xyz="${link_length/2} 0.0 -0.048" rpy="0 0 0"/>
     <inertial>
@@ -39,7 +39,7 @@
   <!-- onboard -->
   <!-- 1.  processor -->
   <!-- 1.1 flight controller -->
-  <xacro:extra_module name = "fc" parent = "link2" visible = "0"
+  <xacro:extra_module name = "fc" parent = "link2" visible = "1"
                       model_url = "package://hydrus/urdf/mesh/ver2/flight_controller/spinal.dae"> <!-- same with intel euclid -->
     <origin xyz="${link_length / 2 + 0.2221} ${-4.4*0.001} 0.02135" rpy="0 0 0"/>
     <inertial>
@@ -55,7 +55,7 @@
 
   <!-- 1.2 processor: jetson tx2 -->
   <!-- confirm the inertial parameter with real machine -->
-  <xacro:extra_module name = "pc" parent = "link3" visible = "0"
+  <xacro:extra_module name = "pc" parent = "link3" visible = "1"
                       model_url = "package://hydrus/urdf/mesh/ver2/processor/jetson_tx2_unit.dae" >
     <origin xyz="${link_length / 2 - 0.23775} 0.0 ${-0.01}" rpy="0 0 0"/>
     <inertial>
@@ -109,7 +109,10 @@
   </xacro:extra_module>
   <!-- end: gps -->
 
-  <xacro:property name="body_radius" value=".50" />
+  <xacro:property name="body_radius" value="0.50" />
+  <material name="Dummy_body_color">
+    <color rgba="1.0 1.0 1.0 0.5"/>
+  </material>
 
   <link name="dummy_body">
     <inertial>
@@ -125,6 +128,7 @@
       <geometry>
         <cylinder length="0.30" radius="${body_radius}"/>
       </geometry>
+      <material name="Dummy_body_color"/>
     </visual>
     <collision>
         <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -134,9 +138,34 @@
     </collision>
   </link>
 
-  <joint name="dummy_joint" type="fixed">
+  <joint name="dummy_joint_1" type="fixed">
     <parent link="link1"/>
     <child link="dummy_body"/>
+    <origin rpy="0 0 0" xyz="${link_length* 0.5} ${link_length* 0.5} 0.0"/>
+  </joint>
+
+   <link name="dummy_body_visualize">
+    <inertial>
+      <mass value = "0.0001" />
+      <origin xyz="0 0 0 " rpy="0 0 0"/>
+      <inertia
+          ixx="0.000001" ixy="0.0000" ixz="0.0000"
+          iyy="0.000001" iyz="0.00000"
+          izz="0.000001"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+       <mesh
+        scale="2 2 2"
+        filename="package://agile_multirotor/urdf/mesh/quadrotor.stl" />
+      </geometry>
+    </visual>
+  </link>
+
+  <joint name="dummy_joint_2" type="fixed">
+    <parent link="link1"/>
+    <child link="dummy_body_visualize"/>
     <origin rpy="0 0 0" xyz="${link_length* 0.5} ${link_length* 0.5} 0.0"/>
   </joint>
 

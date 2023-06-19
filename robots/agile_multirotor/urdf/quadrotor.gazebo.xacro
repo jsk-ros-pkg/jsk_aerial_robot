@@ -14,6 +14,9 @@
   <gazebo reference="main_body">
     <mu1>1.0</mu1>
     <mu2>1.0</mu2>
+    <material>Gazebo/GreyTransparent</material>
+  </gazebo>
+  <gazebo reference="dummy_body_visualize">
     <material>Gazebo/Red</material>
   </gazebo>
 
