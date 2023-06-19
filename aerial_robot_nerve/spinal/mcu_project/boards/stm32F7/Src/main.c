@@ -70,6 +70,7 @@
 
 /* Extra Servo */
 #include "extra_servo/extra_servo.h"
+#include "kondo_servo/kondo_servo.h"
 
 
 /* Internal Communication System */
@@ -120,6 +121,8 @@ StateEstimate estimator_;
 BatteryStatus battery_status_;
 FlightControl controller_;
 ExtraServo extra_servo_;
+KondoServo kondo_servo_;
+
 #endif
 
 // defined in Src/freertos.c
@@ -252,6 +255,15 @@ static void MX_NVIC_Init(void);
   }
 #endif
 
+  void kondoServoTaskCallback(void const * argument)
+  {
+	  for(;;)
+	  {
+		  kondo_servo_.update();
+		  osDelay(KONDO_SERVO_UPDATE_INTERVAL);
+	  }
+  }
+
 }
 
 /* USER CODE END PFP */
@@ -354,6 +366,7 @@ int main(void)
 
   /* Extra Servo Control */
   extra_servo_.init(&htim3, &htim5, &nh_);
+  kondo_servo_.init(&huart3, &nh_);
 
   /* Magnetic Encoder */
   encoder_.init(&hi2c2, &nh_);
