@@ -71,7 +71,7 @@ public:
   {
   }
 
-  void init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2, StateEstimate* estimator, BatteryStatus* bat, ros::NodeHandle* nh, osMutexId* mutex = NULL)
+  void init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2, StateEstimate* estimator, KondoServo* kondo_servo, BatteryStatus* bat, ros::NodeHandle* nh, osMutexId* mutex = NULL)
   {
     nh_ = nh;
 
@@ -85,7 +85,7 @@ public:
     nh_->subscribe(gimbal_dof_sub_);
 
     estimator_ = estimator;
-
+    kondo_servo_ = kondo_servo;
     bat_ = bat;
 
     pwm_htim1_ = htim1;
@@ -93,7 +93,7 @@ public:
 
     mutex_ = mutex;
 
-    att_controller_.init(htim1, htim2, estimator, bat, nh, mutex);
+    att_controller_.init(htim1, htim2, estimator, kondo_servo, bat, nh, mutex);
     //pos_controller_.init(estimator_, &att_controller_, nh_);
 
     start_control_flag_ = false;
@@ -158,6 +158,7 @@ private:
   AttitudeController att_controller_;
 #ifndef SIMULATION
   StateEstimate* estimator_;
+  KondoServo* kondo_servo_;
   BatteryStatus* bat_;
   TIM_HandleTypeDef* pwm_htim1_;
   TIM_HandleTypeDef*  pwm_htim2_;
