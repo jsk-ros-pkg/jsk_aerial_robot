@@ -111,10 +111,13 @@
 
   ####### Polar Pixel calculation  ############
 
-  <node pkg="agile_multirotor" type="observation_conversion_node" name="observation_conversion" output="screen" ns="$(arg robot_ns)">
+  <node pkg="agile_multirotor" type="common_observation_conversion_node" name="common_observation_conversion" output="screen" ns="$(arg robot_ns)">
     <param name="cfg_path" value="$(find agile_multirotor)/config/obstacle_world/$(arg worldtype).csv" />
     <param name="shift_x" type="double" value="$(arg shift_x)" />
     <param name="shift_y" type="double" value="$(arg shift_y)" />
+    <param name="shift_y" type="double" value="$(arg shift_y)" />
+    <param name="robot_ns" value="$(arg robot_ns)"/>
+    <param name="print_poll_y" type="bool" value="false" />
   </node>
 
   <!-- <node pkg="agile_multirotor" type="policy_navigator.py" name="policy_navigator" output="screen" ns="$(arg robot_ns)" launch-prefix="xterm -fn 10x20 -e python -m pdb">

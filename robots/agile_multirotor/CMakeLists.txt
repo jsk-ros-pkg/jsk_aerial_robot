@@ -33,3 +33,6 @@ target_link_libraries(collision_detection_node ${catkin_LIBRARIES} ${NLOPT_LIBRA
 
 add_executable(observation_conversion_node src/observation_cal.cpp)
 target_link_libraries(observation_conversion_node ${catkin_LIBRARIES} ${NLOPT_LIBRARIES})
+
+add_executable(common_observation_conversion_node src/common_observation_cal.cpp)
+target_link_libraries(common_observation_conversion_node ${catkin_LIBRARIES} ${NLOPT_LIBRARIES})
