@@ -380,7 +380,7 @@ int main(void)
   /* BATTERY_STATUS */
   battery_status_.init(&hadc2, &nh_);
   /* Start Attitude Control */
-  controller_.init(&htim4, &htim8, &estimator_, &battery_status_, &nh_, &flightControlMutexHandle);
+  controller_.init(&htim4, &htim8, &estimator_, &kondo_servo_, &battery_status_, &nh_, &flightControlMutexHandle);
 
 #if NERVE_COMM
   controller_.setUavModel(Spine::getUavModel());

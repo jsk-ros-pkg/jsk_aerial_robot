@@ -52,13 +52,15 @@ AttitudeController::AttitudeController():
 {
 }
 
-void AttitudeController::init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2, StateEstimate* estimator, BatteryStatus* bat, ros::NodeHandle* nh, osMutexId* mutex)
+void AttitudeController::init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2, StateEstimate* estimator, KondoServo* kondo_servo,
+                              BatteryStatus* bat, ros::NodeHandle* nh, osMutexId* mutex)
 {
 
   pwm_htim1_ = htim1;
   pwm_htim2_ = htim2;
   nh_ = nh;
   estimator_ = estimator;
+  kondo_servo_ = kondo_servo;
   bat_ = bat;
   mutex_ = mutex;
 

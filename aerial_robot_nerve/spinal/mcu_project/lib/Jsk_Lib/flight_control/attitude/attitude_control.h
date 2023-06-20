@@ -32,6 +32,8 @@
 #include "battery_status/battery_status.h"
 /* RTOS */
 #include "cmsis_os.h"
+/* gimbal servo*/
+#include <kondo_servo/kondo_servo.h>
 #endif
 #include "state_estimate/state_estimate.h"
 
@@ -77,7 +79,7 @@ public:
 #ifdef SIMULATION
   void init(ros::NodeHandle* nh, StateEstimate* estimator);
 #else
-  void init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2, StateEstimate* estimator, BatteryStatus* bat, ros::NodeHandle* nh, osMutexId* mutex = NULL);
+  void init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2, StateEstimate* estimator, KondoServo* kondo_servo, BatteryStatus* bat, ros::NodeHandle* nh, osMutexId* mutex = NULL);
 #endif
 
   void baseInit(); // common part in both pc and board
@@ -146,10 +148,10 @@ private:
 
   BatteryStatus* bat_;
   osMutexId* mutex_;
+  KondoServo* kondo_servo_;
 #endif
 
   StateEstimate* estimator_;
-
   int8_t uav_model_;
   uint16_t motor_number_;
   uint8_t gimbal_dof_;
