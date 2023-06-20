@@ -16,6 +16,7 @@
 #include <ros.h>
 #include <spinal/ServoControlCmd.h>
 #include <spinal/ServoState.h>
+#include <map>
 
 #define MAX_SERVO_NUM 32
 #define KONDO_SERVO_UPDATE_INTERVAL 10
@@ -156,15 +157,32 @@ public:
             send_flag = true;
             spinal::ServoState servo;
             servo.index = i;
-            servo.angle = kondoPos2RadConv(current_position_[i]);
+            servo.angle = current_position_[i];
             servo_state_msg_.servos[i] = servo;
           }
         if(send_flag) servo_state_pub_.publish(&servo_state_msg_);
       }
   }
+
+  void setTargetPos(const std::map<uint16_t, float>& servo_map)
+  {
+    for(auto servo : servo_map) {
+      uint16_t id = servo.first;
+      float angle = servo.second;
+      uint16_t target_pos = rad2KondoPosConv(angle);
+
+      if(KONDO_SERVO_POSITION_MIN <= target_pos && target_pos <= KONDO_SERVO_POSITION_MAX)
+        {
+          activated_[id] = true;
+          target_position_[id] = target_pos;
+        }
+    }
+  }
+
+  
   uint16_t rad2KondoPosConv(float angle)
   {
-    uint16_t kondo_pos = -(uint16_t)((KONDO_SERVO_POSITION_MAX-KONDO_SERVO_POSITION_MIN)*(angle - KONDO_SERVO_ANGLE_MIN)/(KONDO_SERVO_ANGLE_MAX - KONDO_SERVO_ANGLE_MIN) + KONDO_SERVO_POSITION_MIN); //min-max normarization
+    uint16_t kondo_pos = (uint16_t)((KONDO_SERVO_POSITION_MAX-KONDO_SERVO_POSITION_MIN)*(-angle - KONDO_SERVO_ANGLE_MIN)/(KONDO_SERVO_ANGLE_MAX - KONDO_SERVO_ANGLE_MIN) + KONDO_SERVO_POSITION_MIN); //min-max normarization
 
     return kondo_pos;
   }
