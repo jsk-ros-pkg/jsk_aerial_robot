@@ -224,7 +224,7 @@ void ObstacleCalculator::get_common_sphericalboxel(
     Vector<3> w_vel =
       vel + omega.cross(R * b_p_ref);
     Vector<3> w_vel_2d = {w_vel[0], w_vel[1], 0};
-    if (w_vel_2d.norm()>1E-3){
+    if (w_vel_2d.norm()>0.1){
     Vector<3> body_vel = R_T * w_vel_2d;
     Scalar vel_theta = std::atan2(body_vel[1], body_vel[0]);
     Scalar vel_phi =
