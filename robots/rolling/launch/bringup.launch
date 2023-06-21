@@ -31,7 +31,7 @@
     <param name="estimation/mode" value= "$(arg estimate_mode)" if="$(arg real_machine)"/>
 
     ###########  Robot Model  ###########
-    <rosparam file="$(arg config_dir)/RobotModel.yaml" command="load" />
+    <rosparam file="$(arg config_dir)/$(arg type)/RobotModel.yaml" command="load" />
 
     ###########  Motor Config  ###########
     <rosparam file="$(arg config_dir)/MotorInfo.yaml" command="load" />

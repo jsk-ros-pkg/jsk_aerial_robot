@@ -9,6 +9,8 @@
 #include <spinal/TorqueAllocationMatrixInv.h>
 #include <std_msgs/Float32MultiArray.h>
 #include <rolling/model/rolling_robot_model.h>
+#include <sensor_msgs/JointState.h>
+#include <tf2_ros/transform_broadcaster.h>
 
 namespace aerial_robot_control
 {
@@ -31,6 +33,8 @@ namespace aerial_robot_control
     ros::Publisher torque_allocation_matrix_inv_pub_; //for spinal
     ros::Publisher target_vectoring_force_pub_;
     ros::Publisher wrench_allocation_matrix_pub_;
+    ros::Subscriber joint_state_sub_;
+    tf2_ros::TransformBroadcaster br_;
 
     boost::shared_ptr<RollingRobotModel> rolling_robot_model_;
     boost::shared_ptr<aerial_robot_model::RobotModel> robot_model_for_control_;
@@ -49,6 +53,8 @@ namespace aerial_robot_control
     double torque_allocation_matrix_inv_pub_interval_;
     double allocation_refine_threshold_;
     int allocation_refine_max_iteration_;
+    double circle_radius_;
+    std::string tf_prefix_;
 
     void controlCore() override;
     void reset() override;
@@ -57,5 +63,6 @@ namespace aerial_robot_control
     void sendFourAxisCommand();
     void sendTorqueAllocationMatrixInv();
     void setAttitudeGains();
+    void jointStateCallback(const sensor_msgs::JointStateConstPtr & msg);
   };
 };
