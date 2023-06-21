@@ -15,15 +15,22 @@ public:
   virtual ~RollingRobotModel() = default;
 
   std::vector<double> getGimbalNominalAngles(){return gimbal_nominal_angles_;}
+  template <class T> T getContactPoint();
   template <class T> std::vector<T> getRotorsCoordFromCog();
   template <class T> std::vector<T> getLinksRotationFromCog();
+  void setCircleRadius(double radius) {circle_radius_ = radius;}
 
 private:
   std::vector<KDL::Rotation> rotors_coord_rotation_from_cog_;
   std::vector<KDL::Rotation> links_rotation_from_cog_;
+  std::vector<KDL::Vector> rotors_origin_from_contact_point_;
+  std::vector<KDL::Vector> rotors_normal_from_contact_point_;
+  KDL::Frame contact_point_;
   std::vector<double> gimbal_nominal_angles_;
   std::mutex rotors_coord_rotation_mutex_;
   std::mutex links_rotation_mutex_;
+  std::string thrust_link_;
+  double circle_radius_;
 
 protected:
   void updateRobotModelImpl(const KDL::JntArray& joint_positions) override;
@@ -50,4 +57,14 @@ template<> inline std::vector<KDL::Rotation> RollingRobotModel::getLinksRotation
 template<> inline std::vector<Eigen::Matrix3d> RollingRobotModel::getLinksRotationFromCog()
 {
   return aerial_robot_model::kdlToEigen(getLinksRotationFromCog<KDL::Rotation>());
+}
+
+template<> inline KDL::Frame RollingRobotModel::getContactPoint()
+{
+  return contact_point_;
+}
+
+template<> inline geometry_msgs::TransformStamped RollingRobotModel::getContactPoint()
+{
+  return aerial_robot_model::kdlToMsg(RollingRobotModel::getContactPoint<KDL::Frame>());
 }

@@ -41,6 +41,8 @@ void RollingController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   torque_allocation_matrix_inv_pub_ = nh_.advertise<spinal::TorqueAllocationMatrixInv>("torque_allocation_matrix_inv", 1);
   target_vectoring_force_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("debug/target_vectoring_force", 1);
   wrench_allocation_matrix_pub_ = nh_.advertise<aerial_robot_msgs::WrenchAllocationMatrix>("debug/wrench_allocation_matrix", 1);
+  joint_state_sub_ = nh_.subscribe("joint_states", 1, &RollingController::jointStateCallback, this);
+
 }
 
 void RollingController::reset()
@@ -53,9 +55,13 @@ void RollingController::reset()
 void RollingController::rosParamInit()
 {
   ros::NodeHandle control_nh(nh_, "controller");
+  ros::NodeHandle base_nh(nh_, "aerial_robot_base_node");
   getParam<double>(control_nh, "torque_allocation_matrix_inv_pub_interval", torque_allocation_matrix_inv_pub_interval_, 0.05);
   getParam<double>(control_nh, "allocation_refine_threshold", allocation_refine_threshold_, 0.01);
   getParam<int>(control_nh, "allocation_refine_max_iteration", allocation_refine_max_iteration_, 1);
+  getParam<double>(nh_, "circle_radius", circle_radius_, 0.5);
+  rolling_robot_model_->setCircleRadius(circle_radius_);
+  getParam<string>(base_nh, "tf_prefix", tf_prefix_, std::string(""));
 }
 
 void RollingController::controlCore()
@@ -69,6 +75,7 @@ void RollingController::controlCore()
   tf::Vector3 target_acc_cog = uav_rot.inverse() * target_acc_w;
   Eigen::VectorXd target_wrench_acc_cog = Eigen::VectorXd::Zero(6);
   target_wrench_acc_cog.head(3) = Eigen::Vector3d(target_acc_cog.x(), target_acc_cog.y(), target_acc_cog.z());
+
 
   double target_ang_acc_x = pid_controllers_.at(ROLL).result();
   double target_ang_acc_y = pid_controllers_.at(PITCH).result();
@@ -114,6 +121,7 @@ void RollingController::controlCore()
         {
           wrench_map.block(3, 0, 3, 3) = aerial_robot_model::skew(rotors_origin_from_cog.at(i));
           wrench_matrix.middleCols(last_col, 3) = wrench_map;
+
           last_col += 3;
         }
 
@@ -136,10 +144,12 @@ void RollingController::controlCore()
       full_q_mat_ = wrench_matrix * integrated_rot;
       full_q_mat_inv_ = aerial_robot_model::pseudoinverse(full_q_mat_);
 
+
       /* actuator mapping */
       full_lambda_trans_ = full_q_mat_inv_.leftCols(3) * target_wrench_acc_cog.head(3);
       full_lambda_rot_ = full_q_mat_inv_.rightCols(3) * target_wrench_acc_cog.tail(3);
       full_lambda_all_ = full_lambda_trans_ + full_lambda_rot_;
+
 
       last_col = 0;
       for(int i = 0; i < motor_num_; i++)
@@ -148,6 +158,7 @@ void RollingController::controlCore()
           Eigen::VectorXd full_lambda_all_i = full_lambda_all_.segment(last_col, 2);
           target_gimbal_angles_.at(i) = atan2(-full_lambda_all_i(0), full_lambda_all_i(1));
           target_base_thrust_.at(i) = full_lambda_trans_i.norm();
+
           last_col += 2;
         }
 
@@ -279,6 +290,18 @@ void RollingController::setAttitudeGains()
   rpy_gain_msg.motors.at(0).yaw_d = pid_controllers_.at(YAW).getDGain() * 1000;
   rpy_gain_pub_.publish(rpy_gain_msg);
 }
+
+void RollingController::jointStateCallback(const sensor_msgs::JointStateConstPtr & state)
+{
+  sensor_msgs::JointState joint_state = *state;
+  geometry_msgs::TransformStamped tf = rolling_robot_model_->getContactPoint<geometry_msgs::TransformStamped>();
+  tf.header = state->header;
+  tf.header.frame_id = tf::resolve(tf_prefix_, std::string("root"));
+  tf.child_frame_id = tf::resolve(tf_prefix_, std::string("contact_point"));
+  br_.sendTransform(tf);
+}
+
+
 
 /* plugin registration */
 #include <pluginlib/class_list_macros.h>
