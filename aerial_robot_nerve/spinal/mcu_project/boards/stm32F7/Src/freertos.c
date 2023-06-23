@@ -193,7 +193,7 @@ void MX_FREERTOS_Init(void) {
   voltageHandle = osThreadCreate(osThread(voltage), NULL);
 
   /* definition and creation of kondoServoTask */
-  osThreadDef(kondoServoTask, kondoServoTaskCallback, osPriorityNormal, 0, 128);
+  osThreadDef(kondoServoTask, kondoServoTaskCallback, osPriorityLow, 0, 256);
   kondoServoTaskHandle = osThreadCreate(osThread(kondoServoTask), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */

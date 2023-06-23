@@ -32,17 +32,17 @@ private:
   UART_HandleTypeDef* port_;
   spinal::ServoStates servo_state_msg_;
   ros::NodeHandle* nh_;
-  ros::Subscriber<spinal::ServoControlCmd, KondoServo> kondo_servo_control_sub_;
-  ros::Publisher servo_state_pub_;
+  // ros::Subscriber<spinal::ServoControlCmd, KondoServo> kondo_servo_control_sub_;
+  // ros::Publisher servo_state_pub_;
   uint16_t target_position_[MAX_SERVO_NUM];
   uint16_t current_position_[MAX_SERVO_NUM];
   bool activated_[MAX_SERVO_NUM];
 
 public:
   ~KondoServo(){}
-  KondoServo():
-    kondo_servo_control_sub_("kondo_servo_cmd", &KondoServo::servoControlCallback, this),
-    servo_state_pub_("kondo_servo_states", &servo_state_msg_)
+  KondoServo()// :
+    // kondo_servo_control_sub_("kondo_servo_cmd", &KondoServo::servoControlCallback, this),
+    // servo_state_pub_("kondo_servo_states", &servo_state_msg_)
   {
   }
 
@@ -51,15 +51,15 @@ public:
     port_ = port;
     nh_ = nh;
 
-    nh_->subscribe(kondo_servo_control_sub_);
-    nh_->advertise(servo_state_pub_);
+    // nh_->subscribe(kondo_servo_control_sub_);
+    // nh_->advertise(servo_state_pub_);
 
-    /* TODO: add search process to access only existing motors*/
-    for(int i = 0; i < MAX_SERVO_NUM; i++)
-      {
-        target_position_[i] = readPosition(i);
-        activated_[i] = false;
-      }
+    // /* TODO: add search process to access only existing motors*/
+    // for(int i = 0; i < MAX_SERVO_NUM; i++)
+    //   {
+    //     target_position_[i] = readPosition(i);
+    //     activated_[i] = false;
+    //   }
 
     /* TODO: define the msg size dynamically depending on avilable servo numer*/
     servo_state_msg_.servos_length = MAX_SERVO_NUM;
@@ -68,7 +68,7 @@ public:
 
   void update()
   {
-    sendServoState();
+    // sendServoState();
     for(int i = 0; i < MAX_SERVO_NUM; i++)
       {
         if(activated_[i])
@@ -93,11 +93,12 @@ public:
 
     HAL_HalfDuplex_EnableTransmitter(port_);
     ret = HAL_UART_Transmit(port_, tx_buff, tx_size, 1);
-    if(ret == HAL_OK)
-      {
-        HAL_HalfDuplex_EnableReceiver(port_);
-      }
-    ret = HAL_UART_Receive(port_, rx_buff, rx_size, 1);
+    // if(ret == HAL_OK)
+    //   {
+    //     HAL_HalfDuplex_EnableReceiver(port_);
+    //   }
+    // ret = HAL_UART_Receive(port_, rx_buff, rx_size, 1);
+    //TODO:DMA
   }
 
   uint16_t readPosition(int id)
@@ -127,42 +128,42 @@ public:
       }
   }
 
-  void servoControlCallback(const spinal::ServoControlCmd& cmd_msg)
-  {
-    for(int i = 0; i < cmd_msg.index_length; i++)
-      {
-        if(0 <= cmd_msg.index[i] && cmd_msg.index[i] < MAX_SERVO_NUM)
-          {
-            if(KONDO_SERVO_POSITION_MIN <= cmd_msg.angles[i] && cmd_msg.angles[i] <= KONDO_SERVO_POSITION_MAX)
-              {
-                activated_[cmd_msg.index[i]] = true;
-                target_position_[cmd_msg.index[i]] = cmd_msg.angles[i];
-              }
-            else if(cmd_msg.angles[i] == 0)
-              {
-                activated_[cmd_msg.index[i]] = false;
-              }
-          }
-      }
-  }
+  // void servoControlCallback(const spinal::ServoControlCmd& cmd_msg)
+  // {
+  //   for(int i = 0; i < cmd_msg.index_length; i++)
+  //     {
+  //       if(0 <= cmd_msg.index[i] && cmd_msg.index[i] < MAX_SERVO_NUM)
+  //         {
+  //           if(KONDO_SERVO_POSITION_MIN <= cmd_msg.angles[i] && cmd_msg.angles[i] <= KONDO_SERVO_POSITION_MAX)
+  //             {
+  //               activated_[cmd_msg.index[i]] = true;
+  //               target_position_[cmd_msg.index[i]] = cmd_msg.angles[i];
+  //             }
+  //           else if(cmd_msg.angles[i] == 0)
+  //             {
+  //               activated_[cmd_msg.index[i]] = false;
+  //             }
+  //         }
+  //     }
+  // }
 
-  void sendServoState()
-  {
-    servo_state_msg_.stamp = nh_->now();
-    bool send_flag = false;
-    for (unsigned int i = 0; i < MAX_SERVO_NUM; i++)
-      {
-    	if(activated_[i])
-          {
-            send_flag = true;
-            spinal::ServoState servo;
-            servo.index = i;
-            servo.angle = current_position_[i];
-            servo_state_msg_.servos[i] = servo;
-          }
-        if(send_flag) servo_state_pub_.publish(&servo_state_msg_);
-      }
-  }
+  // void sendServoState()
+  // {
+  //   servo_state_msg_.stamp = nh_->now();
+  //   bool send_flag = false;
+  //   for (unsigned int i = 0; i < MAX_SERVO_NUM; i++)
+  //     {
+  //   	if(activated_[i])
+  //         {
+  //           send_flag = true;
+  //           spinal::ServoState servo;
+  //           servo.index = i;
+  //           servo.angle = current_position_[i];
+  //           servo_state_msg_.servos[i] = servo;
+  //         }
+  //       if(send_flag) servo_state_pub_.publish(&servo_state_msg_);
+  //     }
+  // }
 
   void setTargetPos(const std::map<uint16_t, float>& servo_map)
   {
@@ -171,7 +172,16 @@ public:
       float angle = servo.second;
       uint16_t target_pos = rad2KondoPosConv(angle);
 
-      if(KONDO_SERVO_POSITION_MIN <= target_pos && target_pos <= KONDO_SERVO_POSITION_MAX)
+      // temporary command to free servo is angle = 100.0
+      if(angle == 100.0)
+        {
+          activated_[id] = false;
+          target_position_[id] = 7500;
+          // char buf[100];
+          // sprintf(buf, "servo id: %d is freed!", id);
+          // nh_->l
+        }
+      else if(KONDO_SERVO_POSITION_MIN <= target_pos && target_pos <= KONDO_SERVO_POSITION_MAX)
         {
           activated_[id] = true;
           target_position_[id] = target_pos;
