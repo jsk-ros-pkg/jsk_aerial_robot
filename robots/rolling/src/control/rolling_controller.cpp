@@ -41,8 +41,10 @@ void RollingController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   torque_allocation_matrix_inv_pub_ = nh_.advertise<spinal::TorqueAllocationMatrixInv>("torque_allocation_matrix_inv", 1);
   target_vectoring_force_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("debug/target_vectoring_force", 1);
   wrench_allocation_matrix_pub_ = nh_.advertise<aerial_robot_msgs::WrenchAllocationMatrix>("debug/wrench_allocation_matrix", 1);
+  ground_mode_sub_ = nh_.subscribe("ground_mode", 1, &RollingController::groundModeCallback, this);
   joint_state_sub_ = nh_.subscribe("joint_states", 1, &RollingController::jointStateCallback, this);
 
+  ground_mode_ = 0;
 }
 
 void RollingController::reset()
@@ -50,6 +52,7 @@ void RollingController::reset()
   PoseLinearController::reset();
 
   setAttitudeGains();
+  ground_mode_ = 0;
 }
 
 void RollingController::rosParamInit()
@@ -289,6 +292,13 @@ void RollingController::setAttitudeGains()
   rpy_gain_msg.motors.at(0).pitch_d = pid_controllers_.at(PITCH).getDGain() * 1000;
   rpy_gain_msg.motors.at(0).yaw_d = pid_controllers_.at(YAW).getDGain() * 1000;
   rpy_gain_pub_.publish(rpy_gain_msg);
+}
+
+void RollingController::groundModeCallback(const std_msgs::Int16Ptr & msg)
+{
+  ground_mode_ = msg->data;
+  tf::Vector3 rot = tf::Vector3(initial_roll_tilt_, 0, 0);
+  rolling_navigator_->setFinalTargetBaselinkRot(rot);
 }
 
 void RollingController::jointStateCallback(const sensor_msgs::JointStateConstPtr & state)
