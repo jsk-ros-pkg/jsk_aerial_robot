@@ -118,6 +118,7 @@
     <param name="shift_y" type="double" value="$(arg shift_y)" />
     <param name="robot_ns" value="$(arg robot_ns)"/>
     <param name="print_poll_y" type="bool" value="false" />
+    <param name="vel_calc_boundary" type="double" value="0.30" />
   </node>
 
   <!-- <node pkg="agile_multirotor" type="policy_navigator.py" name="policy_navigator" output="screen" ns="$(arg robot_ns)" launch-prefix="xterm -fn 10x20 -e python -m pdb">

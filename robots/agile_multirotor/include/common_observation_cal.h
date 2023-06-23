@@ -79,6 +79,7 @@ private:
   
   const Scalar max_detection_range_ = 10;
   bool print_poll_y_;
+  Scalar vel_calc_boundary_;
 
 
   std::vector<std::string> split(std::string &input, char delimiter);

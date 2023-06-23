@@ -10,6 +10,7 @@ ObstacleCalculator::ObstacleCalculator(ros::NodeHandle nh, ros::NodeHandle pnh)
   pnh_.getParam("shift_y", shift_y);
   pnh_.getParam("robot_ns", quad_name);
   pnh_.getParam("print_poll_y", print_poll_y_);
+  pnh_.getParam("vel_calc_boundary", vel_calc_boundary_);
   //   file = file + ".csv";
   std::cout << "file name is " << file << std::endl;
   std::ifstream ifs(file);
@@ -134,9 +135,16 @@ T ObstacleCalculator::getsphericalboxel(
 template <typename T>
 T ObstacleCalculator::getsphericalboxel(const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> &converted_positions,
                   const Vector<3> &poll_y, const Eigen::Vector3d &poll_z, const std::vector<Scalar> &theta_list, Eigen::Vector3d &pos, Eigen::Vector3d &body_vel){
-  Scalar vel_theta = std::atan2(body_vel[1], body_vel[0]);
-  Scalar vel_phi = std::atan(body_vel[2] / std::sqrt(std::pow(body_vel[0], 2) +
-                                                     std::pow(body_vel[1], 2)));
+  Scalar vel_theta, vel_phi;
+  if (body_vel.norm() < vel_calc_boundary_){
+    vel_theta = 0;
+    vel_phi = 0;
+  }
+  else {
+    vel_theta = std::atan2(body_vel[1], body_vel[0]);
+    vel_phi = std::atan(body_vel[2] / std::sqrt(std::pow(body_vel[0], 2) +
+                                                       std::pow(body_vel[1], 2)));
+  }
   T obstacle_obs;
   size_t size = theta_list.size();
   for (int t = -(int)size; t < (int)size; ++t) {
@@ -224,7 +232,7 @@ void ObstacleCalculator::get_common_sphericalboxel(
     Vector<3> w_vel =
       vel + omega.cross(R * b_p_ref);
     Vector<3> w_vel_2d = {w_vel[0], w_vel[1], 0};
-    if (w_vel_2d.norm()>0.1){
+    if (w_vel_2d.norm()>vel_calc_boundary_){
     Vector<3> body_vel = R_T * w_vel_2d;
     Scalar vel_theta = std::atan2(body_vel[1], body_vel[0]);
     Scalar vel_phi =
@@ -254,7 +262,7 @@ void ObstacleCalculator::get_common_sphericalboxel(
       vel + omega.cross(R * b_p_ref);
     Vector<3> w_vel_2d = {w_vel[0], w_vel[1], 0};
 
-    if (w_vel_2d.norm()>1E-3){
+    if (w_vel_2d.norm()>vel_calc_boundary_){
     Vector<3> body_vel = R_T * w_vel_2d;
     Scalar vel_theta = std::atan2(body_vel[1], body_vel[0]);
     Scalar vel_phi =
