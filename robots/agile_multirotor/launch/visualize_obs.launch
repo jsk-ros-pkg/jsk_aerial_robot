@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<launch>
+  ###########  launch config  ###########
+  <arg name="body_r" default="0.25" />
+  <arg name="shift_x" default="0.0"/>
+  <arg name="shift_y" default="0.0"/>
+  <arg name="robot_ns" default="multirotor" />
+  <arg name="rviz_config" value="$(find agile_multirotor)/config/visualize_obs_rviz_config" />
+
+  <group ns="$(arg robot_ns)">
+  ###########  Obs_polar_pixel Conversion  ###########
+  <node pkg="agile_multirotor" name="obs_polar_pixel_visualize_node" type="obs_polar_pixel_to_visualize.py" >
+    <param name="robot_ns" type="str" value="$(arg robot_ns)" />
+    <param name="body_r" type="double" value="$(arg body_r)" />
+    <param name="shift_x" type="double" value="$(arg shift_x)" />
+    <param name="shift_y" type="double" value="$(arg shift_y)" />
+  </node>
+
+  ###########  Rviz Visualization  ###########
+  <node name="$(anon rviz)" pkg="rviz" type="rviz" args="-d $(arg rviz_config)" respawn="true"/>
+
+  </group>
+
+</launch>
