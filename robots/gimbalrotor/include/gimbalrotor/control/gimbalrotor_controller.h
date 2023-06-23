@@ -27,6 +27,7 @@ namespace aerial_robot_control
   private:
     ros::Publisher flight_cmd_pub_;
     ros::Publisher gimbal_control_pub_;
+    ros::Publisher gimbal_state_pub_;
     ros::Publisher target_vectoring_force_pub_;
     ros::Publisher rpy_gain_pub_; //for spinal
     ros::Publisher torque_allocation_matrix_inv_pub_; //for spinal
@@ -52,6 +53,7 @@ namespace aerial_robot_control
     void controlCore() override;
     void sendCmd() override;
     void sendFourAxisCommand();
+    void sendGimbalCommand();
     void sendTorqueAllocationMatrixInv();
     void setAttitudeGains();
 

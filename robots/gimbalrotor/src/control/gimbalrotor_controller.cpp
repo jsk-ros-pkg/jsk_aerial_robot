@@ -27,6 +27,7 @@ namespace aerial_robot_control
 
     flight_cmd_pub_ = nh_.advertise<spinal::FourAxisCommand>("four_axes/command", 1);
     gimbal_control_pub_ = nh_.advertise<sensor_msgs::JointState>("gimbals_ctrl", 1);
+    gimbal_state_pub_ = nh_.advertise<sensor_msgs::JointState>("joint_states", 1);
     target_vectoring_force_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("debug/target_vectoring_force", 1);
     rpy_gain_pub_ = nh_.advertise<spinal::RollPitchYawTerms>("rpy/gain", 1);
     torque_allocation_matrix_inv_pub_ = nh_.advertise<spinal::TorqueAllocationMatrixInv>("torque_allocation_matrix_inv", 1);
@@ -45,10 +46,12 @@ namespace aerial_robot_control
     ros::NodeHandle control_nh(nh_, "controller");
     getParam<int>(control_nh, "gimbal_dof", gimbal_dof_, 1);
     getParam<bool>(control_nh, "gimbal_calc_in_fc", gimbal_calc_in_fc_, true);
+    getParam<double>(control_nh, "send_cmd_thre", send_cmd_thre_, 2);
   }
 
   bool GimbalrotorController::update()
   {
+    sendGimbalCommand();
     if(gimbal_calc_in_fc_){
       std_msgs::UInt8 msg;
       msg.data = gimbal_dof_;
@@ -93,10 +96,12 @@ namespace aerial_robot_control
 
     Eigen::MatrixXd full_q_mat = Eigen::MatrixXd::Zero(6, 3 * motor_num_);
 
-    Eigen::Matrix3d inertia_inv = (gimbalerotor_robot_model_->getInertia<Eigen::Matrix3d>()).inverse();
     double mass_inv = 1 / gimbalerotor_robot_model_->getMass();
 
+    Eigen::Matrix3d inertia_inv = (gimbalerotor_robot_model_->getInertia<Eigen::Matrix3d>()).inverse();
+
     double t = ros::Time::now().toSec();
+    
 
     std::vector<Eigen::Vector3d> rotors_origin_from_cog = gimbalerotor_robot_model_->getRotorsOriginFromCog<Eigen::Vector3d>();
 
@@ -167,25 +172,18 @@ namespace aerial_robot_control
     PoseLinearController::sendCmd();
 
     sendFourAxisCommand();
-
+    
     if(gimbal_calc_in_fc_){
       sendTorqueAllocationMatrixInv();
     }
     else
       {
-    sensor_msgs::JointState gimbal_control_msg;
-    gimbal_control_msg.header.stamp = ros::Time::now();
-    for(int i = 0; i < motor_num_; i++){
-      gimbal_control_msg.position.push_back(target_gimbal_angles_.at(i));
-    }
-    gimbal_control_pub_.publish(gimbal_control_msg);
-
-    std_msgs::Float32MultiArray target_vectoring_force_msg;
-    for(int i = 0; i < target_vectoring_f_.size(); i++){
-      target_vectoring_f_ = target_vectoring_f_trans_ + target_vectoring_f_rot_;
-      target_vectoring_force_msg.data.push_back(target_vectoring_f_(i));
-    }
-    target_vectoring_force_pub_.publish(target_vectoring_force_msg);
+        std_msgs::Float32MultiArray target_vectoring_force_msg;
+        for(int i = 0; i < target_vectoring_f_.size(); i++){
+          target_vectoring_f_ = target_vectoring_f_trans_ + target_vectoring_f_rot_;
+          target_vectoring_force_msg.data.push_back(target_vectoring_f_(i));
+        }
+        target_vectoring_force_pub_.publish(target_vectoring_force_msg);
 
       }
   }
@@ -206,6 +204,20 @@ namespace aerial_robot_control
     flight_cmd_pub_.publish(flight_command_data);
   }
 
+  void GimbalrotorController::sendGimbalCommand()
+  {
+    sensor_msgs::JointState gimbal_state_msg;
+    gimbal_state_msg.header.stamp = ros::Time::now();
+    for(int i = 0; i < motor_num_; i++){
+      gimbal_state_msg.position.push_back(target_gimbal_angles_.at(i));
+      std::string gimbal_name = "gimbal" + std::to_string(i+1);
+      gimbal_state_msg.name.push_back(gimbal_name);
+    }
+    gimbal_state_pub_.publish(gimbal_state_msg);
+    // gimbalerotor_robot_model_->RobotModel::updateRobotModelImpl(gimbal_control_msg);
+
+  }
+  
   void GimbalrotorController::sendTorqueAllocationMatrixInv()
   {
     spinal::TorqueAllocationMatrixInv torque_allocation_matrix_inv_msg;
