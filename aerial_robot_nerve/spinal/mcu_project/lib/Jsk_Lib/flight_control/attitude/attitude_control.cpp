@@ -52,8 +52,7 @@ AttitudeController::AttitudeController():
 {
 }
 
-void AttitudeController::init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2, StateEstimate* estimator, KondoServo* kondo_servo,
-                              BatteryStatus* bat, ros::NodeHandle* nh, osMutexId* mutex)
+void AttitudeController::init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2, StateEstimate* estimator, KondoServo* kondo_servo,BatteryStatus* bat, ros::NodeHandle* nh, osMutexId* mutex)
 {
 
   pwm_htim1_ = htim1;
@@ -496,7 +495,6 @@ void AttitudeController::pwmInfoCallback( const spinal::PwmInfo &info_msg)
   /* mutex to protect the completion of following update  */
   if(mutex_ != NULL) osMutexWait(*mutex_, osWaitForever);
 #endif
-
   force_landing_thrust_ = info_msg.force_landing_thrust;
 
   min_duty_ = info_msg.min_pwm;
@@ -506,7 +504,6 @@ void AttitudeController::pwmInfoCallback( const spinal::PwmInfo &info_msg)
   min_thrust_ = info_msg.min_thrust; // make a variant min_duty_
 
   motor_info_.resize(0);
-
 #ifdef SIMULATION
   for(int i = 0; i < info_msg.motor_info.size(); i++)
 #else
@@ -515,7 +512,6 @@ void AttitudeController::pwmInfoCallback( const spinal::PwmInfo &info_msg)
       {
         motor_info_.push_back(info_msg.motor_info[i]);
       }
-
 #ifdef SIMULATION
   if(sim_voltage_== 0) sim_voltage_ = motor_info_[0].voltage;
 #endif
@@ -986,7 +982,6 @@ void AttitudeController::pwmConversion()
       /* for ros */
       pwms_msg_.motor_value[i] = (target_pwm_[i] * 2000);
     }
-  //TODO: send target gimbal angles in real machiene
 #ifdef SIMULATION
   //TODO: directly send target gimbal angles to gazebo
   if(gimbal_dof_){
@@ -997,5 +992,22 @@ void AttitudeController::pwmConversion()
     }
     gimbal_control_pub_.publish(gimbal_control_msg);
   }
+#else
+  if(gimbal_dof_){
+    std::map<uint16_t, float> gimbal_map;
+    for(int i = 0; i < motor_number_ / (gimbal_dof_ + 1); i++){
+      if(start_control_flag_)
+        {
+          gimbal_map[i+1] = target_gimbal_angles_[i];
+          int target_angle = (int)(target_gimbal_angles_[i]*10);
+        }
+      else
+        {
+          gimbal_map[i+1] = 100.0;
+        }
+    }
+    kondo_servo_->setTargetPos(gimbal_map);
+  }
 #endif
+  
 }
