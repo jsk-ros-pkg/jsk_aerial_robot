@@ -115,7 +115,6 @@
     <param name="cfg_path" value="$(find agile_multirotor)/config/obstacle_world/$(arg worldtype).csv" />
     <param name="shift_x" type="double" value="$(arg shift_x)" />
     <param name="shift_y" type="double" value="$(arg shift_y)" />
-    <param name="shift_y" type="double" value="$(arg shift_y)" />
     <param name="robot_ns" value="$(arg robot_ns)"/>
     <param name="print_poll_y" type="bool" value="false" />
     <param name="vel_calc_boundary" type="double" value="0.30" />
@@ -126,6 +125,7 @@
   </node> -->
 
   ####### HOKUYO sensor launch  ############
+  <!-- real exec to use hokuyo sensor  -->
   <group if= "$(eval not arg('simulation') and arg('real_machine') and arg('hokuyo'))">
   <include file="$(find agile_multirotor)/launch/urg_node.launch" >
    </include>
