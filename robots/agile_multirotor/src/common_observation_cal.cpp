@@ -4,10 +4,10 @@ ObstacleCalculator::ObstacleCalculator(ros::NodeHandle nh, ros::NodeHandle pnh)
     : nh_(nh), pnh_(pnh), call_(0) {
 
   std::string file, quad_name;
-  double shift_x, shift_y;
+  shift_x_, shift_y_;
   pnh_.getParam("cfg_path", file);
-  pnh_.getParam("shift_x", shift_x);
-  pnh_.getParam("shift_y", shift_y);
+  pnh_.getParam("shift_x", shift_x_);
+  pnh_.getParam("shift_y", shift_y_);
   pnh_.getParam("robot_ns", quad_name);
   pnh_.getParam("print_poll_y", print_poll_y_);
   pnh_.getParam("vel_calc_boundary", vel_calc_boundary_);
@@ -23,10 +23,10 @@ ObstacleCalculator::ObstacleCalculator(ros::NodeHandle nh, ros::NodeHandle pnh)
   while (std::getline(ifs, line)) {
     std::vector<std::string> strvec = split(line, ',');
     Eigen::Vector3d tree_pos;
-    tree_pos(0) = stof(strvec.at(1))+shift_x;
-    // std::cout << "shift_x is: " << shift_x << std::endl;
+    tree_pos(0) = stof(strvec.at(1))+shift_x_; //world coodinate
+    // std::cout << "shift_x is: " << shift_x_ << std::endl;
     // std::cout << "tree_pos(0) is: " << tree_pos(0) << std::endl;
-    tree_pos(1) = stof(strvec.at(2))+shift_y;
+    tree_pos(1) = stof(strvec.at(2))+shift_y_; //world coodinate
     tree_pos(2) = 0;
     positions_.push_back(tree_pos);
     radius_list_.push_back(stof(strvec.at(8)));
@@ -168,10 +168,11 @@ Scalar ObstacleCalculator::getClosestDistance(
     }
   }
   Eigen::Vector3d Cell = getCartesianFromAng(tcell, fcell);
-  Scalar y_p = calc_dist_from_wall(1, Cell, poll_y, quad_pos);
+  Eigen::Vector3d quad_wall_pos = quad_pos - Eigen::Vector3d(shift_x_, shift_y_, 0); // obstacle coordinate
+  Scalar y_p = calc_dist_from_wall(1, Cell, poll_y, quad_wall_pos); //[m]
 
-  Scalar y_n = calc_dist_from_wall(-1, Cell, poll_y, quad_pos);
-  Scalar rmin = std::min(std::min(y_p, y_n), max_detection_range_);
+  Scalar y_n = calc_dist_from_wall(-1, Cell, poll_y, quad_wall_pos); //[m]
+  Scalar rmin = std::min(std::min(y_p, y_n), max_detection_range_); //[m] from wall
   for (int i = 0; i < positions_.size(); i++) {
     Eigen::Vector3d pos = converted_positions[i];
     Scalar radius = radius_list_[i];

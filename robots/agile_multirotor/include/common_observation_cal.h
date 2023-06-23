@@ -81,6 +81,8 @@ private:
   bool print_poll_y_;
   Scalar vel_calc_boundary_;
 
+  double shift_x_, shift_y_;
+
 
   std::vector<std::string> split(std::string &input, char delimiter);
 
