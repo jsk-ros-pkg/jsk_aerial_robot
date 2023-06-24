@@ -633,9 +633,13 @@ int8_t DynamixelSerial::readStatusPacket(uint8_t status_packet_instruction)
                     if(encoder_handler_.connected()) {
                       s->present_position_ = (int32_t)(encoder_handler_.getValue()); // use external encoder value instead of servo internal encoder value
 
+                      int32_t internal_offset = s->resolution_ratio_ * s->present_position_ - present_position;
                       if (s->first_get_pos_flag_) {
-                        s->internal_offset_ = s->resolution_ratio_ * s->present_position_ - present_position;
+                        s->internal_offset_ = internal_offset;
                         s->first_get_pos_flag_ = false;
+                      }
+                      else {
+                        s->internal_offset_ = (1 - s->lfp_rate_) * internal_offset + s->lfp_rate_ * s->internal_offset_;
                       }
 
                       // check pulley skip
