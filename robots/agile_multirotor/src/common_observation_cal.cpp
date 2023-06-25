@@ -37,7 +37,7 @@ ObstacleCalculator::ObstacleCalculator(ros::NodeHandle nh, ros::NodeHandle pnh)
   obs_pub_ = nh_.advertise<aerial_robot_msgs::ObstacleArray>(
       "/" + quad_name + "/polar_pixel", 1);
 
-  theta_list_ = {5,15,25,35,45,60,75,90,105, 120, 134};//should change Theta_Cuts if you change this theta's num
+  theta_list_ = {5,15,25,35,45,60,75,90,105, 120};//should change Theta_Cuts if you change this theta's num
   acc_theta_list_ = {1,4,7,10};
   // phi_list_ = {5};
   wall_pos_ = 1.75;
