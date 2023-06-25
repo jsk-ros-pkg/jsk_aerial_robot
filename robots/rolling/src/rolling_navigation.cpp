@@ -42,6 +42,11 @@ void RollingNavigator::update()
   baselinkRotationProcess();
 }
 
+void RollingNavigator::setFinalTargetBaselinkRot(tf::Vector3 rot)
+{
+  final_target_baselink_rot_.setValue(rot.x(), rot.y(), rot.z());
+}
+
 void RollingNavigator::setFinalTargetBaselinkRotCallback(const spinal::DesireCoordConstPtr & msg)
 {
   final_target_baselink_rot_.setValue(msg->roll, msg->pitch, msg->yaw);
