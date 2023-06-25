@@ -18,6 +18,8 @@ namespace aerial_robot_navigation
 
     void update() override;
     void reset() override;
+    void setFinalTargetBaselinkRot(tf::Vector3 rot);
+    inline tf::Vector3 getCurrTargetBaselinkRot() {return curr_target_baselink_rot_;}
 
   private:
     ros::Publisher curr_target_baselink_rot_pub_;

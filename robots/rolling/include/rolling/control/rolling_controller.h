@@ -9,8 +9,12 @@
 #include <spinal/TorqueAllocationMatrixInv.h>
 #include <std_msgs/Float32MultiArray.h>
 #include <rolling/model/rolling_robot_model.h>
+#include <rolling/rolling_navigation.h>
+#include <std_msgs/Int16.h>
 #include <sensor_msgs/JointState.h>
 #include <tf2_ros/transform_broadcaster.h>
+#include <OsqpEigen/OsqpEigen.h>
+#include <nlopt.hpp>
 
 namespace aerial_robot_control
 {
@@ -32,16 +36,19 @@ namespace aerial_robot_control
     ros::Publisher gimbal_control_pub_;
     ros::Publisher torque_allocation_matrix_inv_pub_; //for spinal
     ros::Publisher target_vectoring_force_pub_;
+    ros::Publisher target_wrench_acc_cog_pub_;
     ros::Publisher wrench_allocation_matrix_pub_;
     ros::Subscriber ground_mode_sub_;
     ros::Subscriber joint_state_sub_;
     tf2_ros::TransformBroadcaster br_;
 
+    boost::shared_ptr<aerial_robot_navigation::RollingNavigator> rolling_navigator_;
     boost::shared_ptr<RollingRobotModel> rolling_robot_model_;
     boost::shared_ptr<aerial_robot_model::RobotModel> robot_model_for_control_;
 
     std::vector<float> target_base_thrust_;
     std::vector<double> target_gimbal_angles_;
+    Eigen::VectorXd target_wrench_acc_cog_;
     Eigen::VectorXd full_lambda_trans_;
     Eigen::VectorXd full_lambda_rot_;
     Eigen::VectorXd full_lambda_all_;
@@ -56,6 +63,7 @@ namespace aerial_robot_control
     int allocation_refine_max_iteration_;
     int ground_mode_;
     double circle_radius_;
+    double initial_roll_tilt_;
     std::string tf_prefix_;
 
     void controlCore() override;
@@ -67,5 +75,8 @@ namespace aerial_robot_control
     void setAttitudeGains();
     void groundModeCallback(const std_msgs::Int16Ptr & msg);
     void jointStateCallback(const sensor_msgs::JointStateConstPtr & msg);
+    void flightControl();
+    void groundControl();
+    void wrenchAllocationFromCog();
   };
 };
