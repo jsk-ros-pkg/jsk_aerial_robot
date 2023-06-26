@@ -21,12 +21,12 @@
         </geometry>
         <xacro:glay/>
       </visual>
-      <collision>
-        <origin xyz="0.225 0 0" rpy="0 0 0" />
-        <geometry>
-          <box size="0.6135 0.052 0.15" />
-        </geometry>
-      </collision>
+      <!-- <collision> -->
+      <!--   <origin xyz="0.225 0 0" rpy="0 0 0" /> -->
+      <!--   <geometry> -->
+      <!--     <box size="0.6135 0.052 0.15" /> -->
+      <!--   </geometry> -->
+      <!-- </collision> -->
     </link>
     ### link${self} ###
     <xacro:friction link="link${self}" />
@@ -74,7 +74,7 @@
         <origin rpy="0 0 0" xyz="0.262 0.153 0"/>
         <axis xyz="0 0 1"/>
       </joint>
-      <xacro:friction link="cylinder_collision"/>
+      <xacro:large_friction link="cylinder_collision"/>
     </xacro:if>
 
     <!-- set the fcu frame -->
