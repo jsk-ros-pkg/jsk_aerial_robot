@@ -18,6 +18,9 @@ public:
   template <class T> T getContactPoint();
   template <class T> std::vector<T> getRotorsCoordFromCog();
   template <class T> std::vector<T> getLinksRotationFromCog();
+  template <class T> std::vector<T> getRotorsOriginFromContactPoint();
+  template <class T> std::vector<T> getRotorsNormalFromContactPoint();
+  template <class T> T getInertiaContactPoint();
   void setCircleRadius(double radius) {circle_radius_ = radius;}
 
 private:
@@ -31,6 +34,7 @@ private:
   std::mutex links_rotation_mutex_;
   std::string thrust_link_;
   double circle_radius_;
+  KDL::RotationalInertia link_inertia_contact_point_;
 
 protected:
   void updateRobotModelImpl(const KDL::JntArray& joint_positions) override;
@@ -59,6 +63,26 @@ template<> inline std::vector<Eigen::Matrix3d> RollingRobotModel::getLinksRotati
   return aerial_robot_model::kdlToEigen(getLinksRotationFromCog<KDL::Rotation>());
 }
 
+template<> inline std::vector<KDL::Vector> RollingRobotModel::getRotorsOriginFromContactPoint()
+{
+  return rotors_origin_from_contact_point_;
+}
+
+template<> inline std::vector<Eigen::Vector3d> RollingRobotModel::getRotorsOriginFromContactPoint()
+{
+  return aerial_robot_model::kdlToEigen(RollingRobotModel::getRotorsOriginFromContactPoint<KDL::Vector>());
+}
+
+template<> inline std::vector<KDL::Vector> RollingRobotModel::getRotorsNormalFromContactPoint()
+{
+  return rotors_normal_from_contact_point_;
+}
+
+template<> inline std::vector<Eigen::Vector3d> RollingRobotModel::getRotorsNormalFromContactPoint()
+{
+  return aerial_robot_model::kdlToEigen(RollingRobotModel::getRotorsNormalFromContactPoint<KDL::Vector>());
+}
+
 template<> inline KDL::Frame RollingRobotModel::getContactPoint()
 {
   return contact_point_;
@@ -68,3 +92,14 @@ template<> inline geometry_msgs::TransformStamped RollingRobotModel::getContactP
 {
   return aerial_robot_model::kdlToMsg(RollingRobotModel::getContactPoint<KDL::Frame>());
 }
+
+template<> inline KDL::RotationalInertia RollingRobotModel::getInertiaContactPoint()
+{
+  return link_inertia_contact_point_;
+}
+
+template<> inline Eigen::Matrix3d RollingRobotModel::getInertiaContactPoint()
+{
+  return aerial_robot_model::kdlToEigen(RollingRobotModel::getInertiaContactPoint<KDL::RotationalInertia>());
+}
+

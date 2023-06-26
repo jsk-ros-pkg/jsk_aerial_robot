@@ -52,10 +52,22 @@ void RollingRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_position
     }
 
   /* contact point */
+  KDL::RigidBodyInertia link_inertia = KDL::RigidBodyInertia::Zero();
+  std::map<std::string, KDL::RigidBodyInertia> inertia_map = RobotModel::getInertiaMap();
+  for(const auto& inertia : inertia_map)
+    {
+      KDL::Frame f = seg_tf_map.at(inertia.first);
+      link_inertia = link_inertia + f * inertia.second;
+    }
+
   KDL::Frame cog = getCog<KDL::Frame>();
-  KDL::Vector contact_point_offset = KDL::Vector(0, 0, -circle_radius_);
-  contact_point_.p = cog.p + cog.M * contact_point_offset;
+  KDL::Frame cog2baselink = getCog2Baselink<KDL::Frame>();
+  KDL::Vector contact_point_offset = KDL::Vector(0, -circle_radius_, 0);
+  contact_point_.p = cog.p + cog.M * cog2baselink.M * contact_point_offset;
   contact_point_.M = cog.M;
+
+  link_inertia_contact_point_ = (contact_point_.Inverse() * link_inertia).getRotationalInertia();
+
   for(int i = 0; i < getRotorNum(); i++)
     {
       std::string rotor = thrust_link_ + std::to_string(i + 1);
