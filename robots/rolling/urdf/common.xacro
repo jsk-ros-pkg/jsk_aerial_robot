@@ -16,6 +16,14 @@
       <mu2>0.4</mu2>
     </gazebo>
   </xacro:macro>
+ 
+  <!-- large friction -->
+  <xacro:macro name="large_friction" params="link">
+    <gazebo reference="${link}">
+      <mu1>1.5</mu1>
+      <mu2>1.5</mu2>
+    </gazebo>
+  </xacro:macro>
 
   <xacro:macro name="damping_factor" params="link">
     <gazebo reference="${link}">
