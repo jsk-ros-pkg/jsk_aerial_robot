@@ -65,6 +65,7 @@ namespace aerial_robot_control
     double circle_radius_;
     double initial_roll_tilt_;
     std::string tf_prefix_;
+    bool gain_updated_;
 
     void controlCore() override;
     void reset() override;

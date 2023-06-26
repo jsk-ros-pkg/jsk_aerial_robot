@@ -48,6 +48,7 @@ void RollingController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   joint_state_sub_ = nh_.subscribe("joint_states", 1, &RollingController::jointStateCallback, this);
 
   ground_mode_ = 0;
+  gain_updated_ = false;
 }
 
 void RollingController::reset()
@@ -56,6 +57,7 @@ void RollingController::reset()
 
   setAttitudeGains();
   ground_mode_ = 0;
+  gain_updated_ = false;
 }
 
 void RollingController::rosParamInit()
@@ -75,6 +77,23 @@ void RollingController::rosParamInit()
 
 void RollingController::controlCore()
 {
+  if(!gain_updated_)
+    {
+      if(ground_mode_)
+        {
+          ros::NodeHandle ground_control_nh(nh_, "ground_controller");
+          ros::NodeHandle xy_nh(ground_control_nh, "xy");
+          ros::NodeHandle x_nh(ground_control_nh, "x");
+          ros::NodeHandle y_nh(ground_control_nh, "y");
+          ros::NodeHandle z_nh(ground_control_nh, "z");
+          ros::NodeHandle roll_pitch_nh(ground_control_nh, "roll_pitch");
+          ros::NodeHandle roll_nh(ground_control_nh, "roll");
+          ros::NodeHandle pitch_nh(ground_control_nh, "pitch");
+          ros::NodeHandle yaw_nh(ground_control_nh, "yaw");
+        }
+      gain_updated_ = true;
+    }
+
   groundControl();
 
   std::vector<Eigen::Vector3d> rotor_origin = rolling_robot_model_->getRotorsOriginFromContactPoint<Eigen::Vector3d>();
@@ -412,6 +431,7 @@ void RollingController::groundModeCallback(const std_msgs::Int16Ptr & msg)
   int prev_ground_mode = ground_mode_;
   ground_mode_ = msg->data;
   ROS_INFO_STREAM("[control] changed mode from " << prev_ground_mode << " to " << ground_mode_);
+  gain_updated_ = false;
 }
 
 void RollingController::jointStateCallback(const sensor_msgs::JointStateConstPtr & state)
