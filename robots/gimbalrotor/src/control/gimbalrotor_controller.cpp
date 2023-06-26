@@ -46,7 +46,6 @@ namespace aerial_robot_control
     ros::NodeHandle control_nh(nh_, "controller");
     getParam<int>(control_nh, "gimbal_dof", gimbal_dof_, 1);
     getParam<bool>(control_nh, "gimbal_calc_in_fc", gimbal_calc_in_fc_, true);
-    getParam<double>(control_nh, "send_cmd_thre", send_cmd_thre_, 2);
   }
 
   bool GimbalrotorController::update()
@@ -214,7 +213,6 @@ namespace aerial_robot_control
       gimbal_state_msg.name.push_back(gimbal_name);
     }
     gimbal_state_pub_.publish(gimbal_state_msg);
-    // gimbalerotor_robot_model_->RobotModel::updateRobotModelImpl(gimbal_control_msg);
 
   }
   
