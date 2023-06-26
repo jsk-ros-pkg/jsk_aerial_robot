@@ -4,7 +4,7 @@
   <arg name="real_machine" default="True" />
   <arg name="simulation" default="False" />
   <arg name="control_mode" default="0" />
-  <arg name="estimate_mode"  default= "0" />
+  <arg name="estimate_mode"  default= "1" />
   <arg name="sim_estimate_mode"  default= "2" />
   <arg name="headless" default="True" />
   <arg name="worldtype" default="$(find aerial_robot_simulation)/gazebo_model/world/empty.world" />
