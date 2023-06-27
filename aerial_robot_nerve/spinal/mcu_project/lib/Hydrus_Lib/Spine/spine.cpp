@@ -67,6 +67,7 @@ namespace Spine
       board.imu_send_data_flag = neuron.can_imu_.getSendDataFlag() ? 1 : 0;
       board.dynamixel_ttl_rs485_mixed = neuron.can_servo_.getDynamixelTTLRS485Mixed() ? 1 : 0;
       board.servo_pulley_skip_thresh = neuron.can_servo_.getPulleySkipThresh();
+      board.servo_internal_offset_lpf_rate_percentage = neuron.can_servo_.getInternalOffsetLPFRate() * 100;
       board.slave_id = neuron.getSlaveId();
 
       for (unsigned int j = 0; j < board.servos_length; j++) {

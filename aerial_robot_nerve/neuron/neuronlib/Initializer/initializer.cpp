@@ -21,7 +21,8 @@ void Initializer::sendBoardConfig()
 	data[2] = servo_.servo_handler_.getTTLRS485Mixed();
 	data[3] = servo_.servo_handler_.getPulleySkipThresh() & 0xFF;
 	data[4] = (servo_.servo_handler_.getPulleySkipThresh() >> 8) & 0xFF;
-	sendMessage(CAN::MESSAGEID_SEND_INITIAL_CONFIG_0, m_slave_id, 5, data, 1);
+	data[5] = (uint8_t)(servo_.servo_handler_.getInternalOffsetLPFRate() * 100); // special process, x100
+	sendMessage(CAN::MESSAGEID_SEND_INITIAL_CONFIG_0, m_slave_id, 6, data, 1);
 	for (unsigned int i = 0; i < servo_.servo_handler_.getServoNum(); i++) {
 		const ServoData& s = servo_.servo_handler_.getServo()[i];
 		data[0] = i;
@@ -193,6 +194,15 @@ void Initializer::receiveDataCallback(uint8_t message_id, uint32_t DLC, uint8_t*
 		{
 			uint16_t thresh = ((data[2] << 8) & 0xFF00) | (data[1] & 0xFF);
 			servo_.servo_handler_.setPulleySkipThresh(thresh);
+			Flashmemory::erase();
+			Flashmemory::write();
+
+			break;
+		}
+		case CAN::BOARD_CONFIG_SET_SERVO_INTERNAL_OFFSET_LPF_RATE:
+		{
+			float rate = data[1] / 100.0f;
+			servo_.servo_handler_.setInternalOffsetLPFRate(rate);
 			Flashmemory::erase();
 			Flashmemory::write();
 

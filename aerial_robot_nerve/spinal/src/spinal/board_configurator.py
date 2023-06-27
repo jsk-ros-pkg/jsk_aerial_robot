@@ -131,6 +131,7 @@ class BoardConfigurator(Plugin):
                 board.appendRow([QStandardItem('imu_send_data_flag'), QStandardItem(str(bool(b.imu_send_data_flag)))])
                 board.appendRow([QStandardItem('dynamixel_ttl_rs485_mixed'), QStandardItem(str(bool(b.dynamixel_ttl_rs485_mixed)))])
                 board.appendRow([QStandardItem('servo_pulley_skip_thresh'), QStandardItem(str(b.servo_pulley_skip_thresh))])
+                board.appendRow([QStandardItem('servo_internal_offset_lpf_rate'), QStandardItem(str(b.servo_internal_offset_lpf_rate_percentage / 100.0))])
                 servos = QStandardItem('servo (' + str(len(b.servos)) + ')')
                 for j, s in enumerate(b.servos):
                     servo = QStandardItem(str(j))
@@ -164,7 +165,7 @@ class BoardConfigurator(Plugin):
         param = self._widget.boardInfoTreeView.currentIndex().sibling(row, 0).data()
         value = self._widget.boardInfoTreeView.currentIndex().sibling(row, 1).data()
 
-        board_param_list = ['board_id', 'imu_send_data_flag', 'dynamixel_ttl_rs485_mixed', 'servo_pulley_skip_thresh']
+        board_param_list = ['board_id', 'imu_send_data_flag', 'dynamixel_ttl_rs485_mixed', 'servo_pulley_skip_thresh', 'servo_internal_offset_lpf_rate']
         servo_param_list = ['pid_gain', 'profile_velocity', 'current_limit', 'send_data_flag', 'external_encoder_flag', 'resolution[joint:servo]']
 
         if value and (param in servo_param_list):
@@ -271,6 +272,13 @@ class BoardConfigurator(Plugin):
                 print(e)
                 return
             req.command = req.SET_SERVO_EXTERNAL_ENCODER_FLAG
+        elif self._command == 'servo_internal_offset_lpf_rate':
+            try:
+                req.data.append(int(float(self._widget.lineEdit.text()) * 100))
+            except ValueError as e:
+                print(e)
+                return
+            req.command = req.SET_SERVO_INTERNAL_OFFSET_LPF_RATE
         elif self._command == 'resolution[joint:servo]':
             try:
                 req.data.append(int(self._servo_index))

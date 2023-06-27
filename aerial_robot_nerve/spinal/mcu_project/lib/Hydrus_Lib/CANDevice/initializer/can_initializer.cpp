@@ -179,6 +179,15 @@ void CANInitializer::configDevice(const spinal::SetBoardConfig::Request& req)
 			sendMessage(CAN::MESSAGEID_RECEIVE_BOARD_CONFIG_REQUEST, slave_id, 3, send_data, 1);
 			break;
 		}
+		case CAN::BOARD_CONFIG_SET_SERVO_INTERNAL_OFFSET_LPF_RATE:
+		{
+			uint8_t percentage = static_cast<uint8_t>(req.data[1]);
+			uint8_t send_data[2];
+			send_data[0] = CAN::BOARD_CONFIG_SET_SERVO_INTERNAL_OFFSET_LPF_RATE;
+			send_data[1] = percentage;
+			sendMessage(CAN::MESSAGEID_RECEIVE_BOARD_CONFIG_REQUEST, slave_id, 2, send_data, 1);
+			break;
+		}
 		default:
 			break;
 	}
@@ -227,10 +236,12 @@ void CANInitializer::receiveDataCallback(uint8_t slave_id, uint8_t message_id, u
           neuron_[index].can_servo_.setDynamixelTTLRS485Mixed((data[2] != 0) ? true : false);
           uint16_t thresh = (data[4] << 8) | data[3];
           neuron_[index].can_servo_.setPulleySkipThresh(thresh);
+          float rate = data[5] / 100.0f; // percentage
+          neuron_[index].can_servo_.setInternalOffsetLPFRate(rate);
           return;
         }
         neuron_[index].can_motor_ = CANMotor(slave_id);
-        neuron_[index].can_servo_ = CANServo(slave_id, data[0], (data[2] != 0) ? true : false, (data[4] << 8) | data[3]);
+        neuron_[index].can_servo_ = CANServo(slave_id, data[0], (data[2] != 0) ? true : false, (data[4] << 8) | data[3], data[5] / 100.0f);
         neuron_[index].can_imu_ = CANIMU(slave_id, (data[1] != 0) ? true : false);
         neuron_[index].setInitialized();
         break;
