@@ -18,6 +18,7 @@
   <arg name="config_dir" default="$(find gimbalrotor)/config"/>
   <arg name="robot_id" default="" />
   <arg name="robot_ns" value="gimbalrotor$(arg robot_id)" />
+  <arg name="airframe" default="quad" />
 
   ###########  Parameters  ###########
   <group ns="$(arg robot_ns)">
@@ -36,14 +37,18 @@
    <rosparam file="$(arg config_dir)/MotorInfo.yaml" command="load" />
 
    ###########  Servo Config  ###########
-   <rosparam file="$(arg config_dir)/Servo.yaml" command="load" />
+   <rosparam file="$(arg config_dir)/quad/Servo.yaml" command="load" if="$(eval airframe =='quad')"/>
+   <rosparam file="$(arg config_dir)/tri/Servo.yaml" command="load" if="$(eval airframe =='tri')"/>
 
    ###########  Battery Config  ###########
    <rosparam file="$(arg config_dir)/Battery.yaml" command="load" />
 
    ###########  Control  ###########
-   <rosparam file="$(arg config_dir)/GimbalrotorControl.yaml" command="load" if="$(eval not arg('simulation'))"/>
-   <rosparam file="$(arg config_dir)/GimbalrotorControl_sim.yaml" command="load" if="$(arg simulation )"/>
+   <rosparam file="$(arg config_dir)/quad/GimbalrotorControl.yaml" command="load" if="$(eval airframe=='quad' and not simulation)"/>
+   <rosparam file="$(arg config_dir)/quad/GimbalrotorControl_sim.yaml" command="load" if="$(eval airframe=='quad' and simulation)"/>
+   
+   <rosparam file="$(arg config_dir)/tri/GimbalrotorControl.yaml" command="load" if="$(eval airframe=='tri' and not simulation)"/>
+   <rosparam file="$(arg config_dir)/tri/GimbalrotorControl_sim.yaml" command="load" if="$(eval airframe=='tri' and simulation)"/>
 
    ###########  Sensor Fusion  ###########
    <rosparam file="$(arg config_dir)/StateEstimation.yaml" command="load" />
@@ -67,8 +72,8 @@
   <arg name="description_mode" value="gazebo" if="$(arg simulation)" />
   <include file="$(find aerial_robot_model)/launch/aerial_robot_model.launch" >
     <arg name="headless" value="$(arg headless)" />
-    <arg name="robot_model" value="$(find gimbalrotor)/robots/gimbalrotor.$(arg description_mode).xacro" unless="$(arg direct_model)"/>
-    <arg name="robot_model" value="$(arg direct_model_name)" if="$(arg direct_model)"/>
+    <arg name="robot_model" value="$(find gimbalrotor)/robots/quad/gimbalrotor.$(arg description_mode).xacro" if="$(eval airframe=='quad')"/>
+    <arg name="robot_model" value="$(find gimbalrotor)/robots/tri/gimbalrotor.$(arg description_mode).xacro" if="$(eval airframe=='tri')"/>
     <arg name="robot_ns" value="$(arg robot_ns)" />
     <arg name="rviz_config" value="$(arg config_dir)/rviz_config" />
     <arg name="rviz_init_pose" value="$(arg config_dir)/RvizInit.yaml" />
