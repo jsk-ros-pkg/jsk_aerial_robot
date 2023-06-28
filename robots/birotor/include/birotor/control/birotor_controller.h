@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include <aerial_robot_control/control/pose_linear_controller.h>
+#include <aerial_robot_control/control/base/pose_linear_controller.h>
 #include <spinal/FourAxisCommand.h>
 #include <std_msgs/Float32MultiArray.h>
 #include <birotor/model/birotor_robot_model.h>
