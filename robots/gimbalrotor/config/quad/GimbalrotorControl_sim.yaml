@@ -6,9 +6,9 @@ controller:
   gimbal_calc_in_fc : true
 
   xy:
-    p_gain: 1.5
+    p_gain: 2.0
     i_gain: 0.05
-    d_gain: 1.0
+    d_gain: 1.5
     limit_sum: 4.0
     limit_p: 12.0
     limit_i: 12.0
@@ -26,9 +26,9 @@ controller:
     force_landing_descending_rate: -0.5
 
   roll_pitch:
-    p_gain: 10.0
+    p_gain: 15.0
     i_gain: 1.0
-    d_gain: 4.0
+    d_gain: 10.0
     limit_sum: 20.0
     limit_p: 20.0
     limit_i: 20.0
@@ -37,7 +37,7 @@ controller:
     start_rp_integration_height: 0.01
 
   yaw:
-    p_gain: 1.0
+    p_gain: 5.0
     i_gain: 1.0
     d_gain: 4.0
     limit_err_p: 0.4
