@@ -2,8 +2,9 @@
 
 namespace aerial_robot_model {
 
-  RobotModel::RobotModel(bool init_with_rosparam, bool verbose, double fc_f_min_thre, double fc_t_min_thre, double epsilon):
+  RobotModel::RobotModel(bool init_with_rosparam, bool verbose, bool fixed_model, double fc_f_min_thre, double fc_t_min_thre, double epsilon):
     verbose_(verbose),
+    fixed_model_(fixed_model),
     fc_f_min_thre_(fc_f_min_thre),
     fc_t_min_thre_(fc_t_min_thre),
     epsilon_(epsilon),
@@ -29,7 +30,7 @@ namespace aerial_robot_model {
     staticsInit();
 
     // update robot model instantly for fixed model
-    if (joint_num_ == 0) {
+    if (fixed_model_) {
       updateRobotModel();
     }
   }
@@ -276,7 +277,7 @@ namespace aerial_robot_model {
         extra_module_map_.insert(std::make_pair(module_name, extra_module));
         ROS_INFO("[extra module]: succeed to add new extra module %s", module_name.c_str());
 
-        if (joint_num_ == 0) {
+        if (fixed_model_) {
           // update robot model instantly
           updateRobotModel();
         }
@@ -303,7 +304,7 @@ namespace aerial_robot_model {
         extra_module_map_.erase(module_name);
         ROS_INFO("[extra module]: succeed to remove the extra module %s", module_name.c_str());
 
-        if (joint_num_ == 0) {
+        if (fixed_model_) {
           // update robot model instantly
           updateRobotModel();
         }

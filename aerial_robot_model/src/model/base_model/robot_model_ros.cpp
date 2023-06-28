@@ -28,7 +28,7 @@ namespace aerial_robot_model {
         robot_model_ = boost::make_shared<aerial_robot_model::RobotModel>();
       }
 
-    if (robot_model_->getJointNum() == 0) {
+    if (robot_model_->isModelFixed()) {
       // broadcast static tf between root and CoG
       // refering: https://github.com/ros/robot_state_publisher/blob/rolling/src/robot_state_publisher.cpp#L130
       geometry_msgs::TransformStamped tf = robot_model_->getCog<geometry_msgs::TransformStamped>();
@@ -50,7 +50,6 @@ namespace aerial_robot_model {
     joint_state_ = *state;
     robot_model_->updateRobotModel(*state);
 
-    // TODO1: tf for root -> cog in case of fixed aerial robot
     geometry_msgs::TransformStamped tf = robot_model_->getCog<geometry_msgs::TransformStamped>();
     tf.header = state->header;
     tf.header.frame_id = tf::resolve(tf_prefix_, robot_model_->getRootFrameName());

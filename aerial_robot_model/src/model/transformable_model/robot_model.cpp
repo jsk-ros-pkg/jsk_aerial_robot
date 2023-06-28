@@ -3,7 +3,7 @@
 using namespace aerial_robot_model::transformable;
 
 RobotModel::RobotModel(bool init_with_rosparam, bool verbose, double fc_f_min_thre, double fc_t_min_thre, double epsilon):
-  aerial_robot_model::RobotModel(init_with_rosparam, verbose, fc_f_min_thre, fc_t_min_thre, epsilon)
+  aerial_robot_model::RobotModel(init_with_rosparam, verbose, false /* non-fixed model */, fc_f_min_thre, fc_t_min_thre, epsilon)
 {
   std::function<void (const KDL::TreeElement&) > recursiveSegmentCheck = [&recursiveSegmentCheck, this](const KDL::TreeElement& tree_element)
     {

@@ -61,7 +61,7 @@ namespace aerial_robot_model {
   //Basic Aerial Robot Model
   class RobotModel {
   public:
-    RobotModel(bool init_with_rosparam = true, bool verbose = false, double fc_f_min_thre = 0, double fc_t_min_thre = 0, double epsilon = 10.0);
+    RobotModel(bool init_with_rosparam = true, bool verbose = false, bool fixed_model = true, double fc_f_min_thre = 0, double fc_t_min_thre = 0, double epsilon = 10.0);
     virtual ~RobotModel() = default;
 
     void updateRobotModel();
@@ -70,6 +70,7 @@ namespace aerial_robot_model {
 
     // kinematics
     const bool initialized() const { return initialized_; }
+    const bool isModelFixed() const {return fixed_model_; }
     const std::string getBaselinkName() const { return baselink_; }
     const std::map<std::string, KDL::RigidBodyInertia>& getInertiaMap() const { return inertia_map_; }
     const double getMass() const { return mass_; }
@@ -169,6 +170,7 @@ namespace aerial_robot_model {
 
     // kinematics
     bool initialized_;
+    bool fixed_model_;
     double mass_;
     urdf::Model model_;
     std::string baselink_;
