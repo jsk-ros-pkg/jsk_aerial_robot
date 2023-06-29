@@ -2,6 +2,12 @@
 Changelog for package dragon
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.3.2 (2023-02-01)
+------------------
+* [Dragon] improve operation procedure (`#528 <https://github.com/jsk-ros-pkg/aerial_robot/issues/528>`_)
+* [Spinal][Neuron][Servo] solve the joint pulley round offset problem Merge pull request (`#534 <https://github.com/jsk-ros-pkg/aerial_robot/issues/534>`_)
+
+
 1.3.1 (2022-07-02)
 ------------------
 * [Spinal] Improve the process of servo bridge (`#499 <https://github.com/jsk-ros-pkg/aerial_robot/issues/499>`_)

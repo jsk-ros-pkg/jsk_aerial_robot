@@ -2,6 +2,9 @@
 Changelog for package aerial_robot_base
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.3.2 (2023-02-01)
+------------------
+
 1.3.1 (2022-07-02)
 ------------------
 * [aerial_robot_base]  Explicitly stop timer and async spinner for safe destruction (`#515 <https://github.com/jsk-ros-pkg/aerial_robot/issues/515>`_)

@@ -111,8 +111,10 @@ namespace Spine
   {
     /* Pause the spinal sending command for neuron to have enough time for flashmemory erase&write */
     can_tx_idle_start_time_ = HAL_GetTick();
+    // TODO: change the return value to bool
     can_initializer_.configDevice(req);
 
+    // TODO: please add string type message for consoling
     res.success = true;
   }
 
@@ -214,6 +216,8 @@ namespace Spine
 
   void send()
   {
+    if (slave_num_ == 0) return;
+
     if(HAL_GetTick() < can_tx_idle_start_time_ + CAN_TX_PAUSE_TIME) return;
 
     if(HAL_GetTick() % 2 == 0) {
@@ -228,6 +232,8 @@ namespace Spine
 
   void update(void)
   {
+    if (slave_num_ == 0) return;
+
     for (int i = 0; i < slave_num_; i++)
       neuron_.at(i).can_imu_.update();
 
@@ -284,7 +290,7 @@ namespace Spine
 
     if(now_time - last_connected_time_ > 1000 /* ms */)
       {
-        if(nh_->connected()) nh_->logerror("CAN is not connected");
+        if(nh_->connected()) nh_->logerror("CAN disconnected!!");
         last_connected_time_ = now_time;
       }
   }
@@ -296,6 +302,9 @@ namespace Spine
 
   void setMotorPwm(uint16_t pwm, uint8_t motor)
   {
+    if(slave_num_ == 0) {
+      return;
+    }
     neuron_.at(motor).can_motor_.setPwm(pwm);
   }
 

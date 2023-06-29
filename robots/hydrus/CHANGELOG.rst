@@ -2,6 +2,10 @@
 Changelog for package hydrus
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.3.2 (2023-02-01)
+------------------
+* [Hydrus][Controller]Fix bug about thrust allocation in tilted robot (`#539 <https://github.com/jsk-ros-pkg/aerial_robot/issues/539>`_)
+
 1.3.1 (2022-07-02)
 ------------------
 * [Spinal] Improve the process of servo bridge (`#499 <https://github.com/jsk-ros-pkg/aerial_robot/issues/499>`_)

@@ -587,7 +587,7 @@ void BaseNavigator::update()
           if(xy_control_mode_ == VEL_CONTROL_MODE ||
              xy_control_mode_ == POS_CONTROL_MODE)
             {
-              ROS_ERROR("No estimation for X, Y state, change to attitude control mode");
+              ROS_WARN("No estimation for X, Y state, change to attitude control mode");
               prev_xy_control_mode_ = xy_control_mode_;
               xy_control_mode_ = ACC_CONTROL_MODE;
             }
@@ -597,9 +597,11 @@ void BaseNavigator::update()
           if(xy_control_mode_ == ACC_CONTROL_MODE &&
              prev_xy_control_mode_ != ACC_CONTROL_MODE)
             {
-              ROS_ERROR("Estimation for X, Y state is established, siwtch back to the xy control mode");
+              ROS_INFO("Estimation for X, Y state is established, siwtch back to the xy control mode");
               xy_control_mode_ = prev_xy_control_mode_;
             }
+
+          ROS_INFO_ONCE("\n \n ======================  \n Ready for takeoff !!! \n ====================== \n");
         }
     }
 

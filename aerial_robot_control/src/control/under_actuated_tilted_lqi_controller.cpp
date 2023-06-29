@@ -75,7 +75,8 @@ void UnderActuatedTiltedLQIController::controlCore()
     }
 
   Eigen::VectorXd f = robot_model_->getStaticThrust();
-  Eigen::VectorXd allocate_scales = f / f.sum() * robot_model_->getMass();
+  Eigen::VectorXd g = robot_model_->getGravity();
+  Eigen::VectorXd allocate_scales = f / g.norm();
   Eigen::VectorXd target_thrust_z_term = allocate_scales * target_acc_w.length();
 
   // constraint z (also  I term)

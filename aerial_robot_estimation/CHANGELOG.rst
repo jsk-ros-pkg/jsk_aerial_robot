@@ -2,6 +2,10 @@
 Changelog for package aerial_robot_estimation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.3.2 (2023-02-01)
+------------------
+* Refactor the subscruber transport hint for moacp pose subscriber (`#524 <https://github.com/jsk-ros-pkg/aerial_robot/issues/524>`_)
+
 1.3.1 (2022-07-02)
 ------------------
 * Improve the ros spin process and support ROS Noetic with Ubuntu Focal (`#507 <https://github.com/jsk-ros-pkg/aerial_robot/issues/507>`_)
