@@ -86,7 +86,7 @@ void UnderActuatedLQIController::initialize(ros::NodeHandle nh,
   pid_msg_.yaw.i_term.resize(motor_num_);
   pid_msg_.yaw.d_term.resize(motor_num_);
 
-  if (robot_model_->getJointNum() > 0) realtime_update_ = true;
+  if (!robot_model_->isModelFixed()) realtime_update_ = true;
   if (realtime_update_) {
     gain_generator_thread_ = std::thread(boost::bind(&UnderActuatedLQIController::gainGeneratorFunc, this));
   }
