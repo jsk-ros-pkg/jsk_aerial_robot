@@ -35,12 +35,14 @@
 
 #pragma once
 
-#include <aerial_robot_model/transformable_aerial_robot_model.h>
+#include <aerial_robot_model/model/aerial_robot_model.h>
 #include <aerial_robot_model/AddExtraModule.h>
 #include <pluginlib/class_loader.h>
 #include <spinal/DesireCoord.h>
 #include <tf/tf.h>
 #include <tf2_ros/transform_broadcaster.h>
+#include <tf2_ros/static_transform_broadcaster.h>
+
 
 namespace aerial_robot_model {
 
@@ -61,6 +63,7 @@ namespace aerial_robot_model {
     ros::Subscriber desire_coordinate_sub_;
     ros::Subscriber joint_state_sub_;
     tf2_ros::TransformBroadcaster br_;
+    tf2_ros::StaticTransformBroadcaster static_br_;
     sensor_msgs::JointState joint_state_;
     ros::NodeHandle nh_;
     ros::NodeHandle nhp_;

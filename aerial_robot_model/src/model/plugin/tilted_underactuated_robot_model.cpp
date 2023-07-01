@@ -1,8 +1,8 @@
-// -*- mode: c++ -*-
+ // -*- mode: c++ -*-
 /*********************************************************************
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2020, JSK Lab
+ *  Copyright (c) 2022, JSK Lab
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -33,35 +33,39 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 
-#pragma once
+#include <aerial_robot_model/model/plugin/underactuated_tilted_robot_model.h>
 
-#include <hydrus/numerical_jacobians.h>
-#include <dragon/model/hydrus_like_robot_model.h>
-
-class DragonNumericalJacobian : public HydrusNumericalJacobian
+UnderactuatedTiltedRobotModel::UnderactuatedTiltedRobotModel(bool init_with_rosparam, bool verbose, double fc_t_min_thre, double epsilon):
+  RobotModel(init_with_rosparam, verbose, fc_t_min_thre, 0, epsilon)
 {
-public:
-  DragonNumericalJacobian(ros::NodeHandle nh, ros::NodeHandle nhp, std::unique_ptr<aerial_robot_model::transformable::RobotModel> robot_model = std::make_unique<aerial_robot_model::transformable::RobotModel>(true));
-  virtual ~DragonNumericalJacobian() = default;
 
-  virtual bool checkJacobians() override;
+  // calc static thrust
+  calcWrenchMatrixOnRoot(); // update Q matrix
 
-  virtual bool checkRotorOverlapJacobian();
-  virtual bool checkExternalWrenchCompensateThrustJacobian();
-  virtual bool checkThrsutForceJacobian(std::vector<int> joint_indices = std::vector<int>()) override;
+  /* calculate the static thrust on CoG frame */
+  /* note: can not calculate in root frame, since the projected f_x, f_y is different in CoG and root */
+  Eigen::MatrixXd wrench_mat_on_cog = calcWrenchMatrixOnCoG();
+  Eigen::VectorXd static_thrust = aerial_robot_model::pseudoinverse(wrench_mat_on_cog.middleRows(2, 4)) * getGravity().segment(2,4) * getMass();
 
-protected:
+  // update robot  model
+  /* special process to find the hovering axis for tilt model */
+  Eigen::MatrixXd cog_rot_inv = aerial_robot_model::kdlToEigen(getCogDesireOrientation<KDL::Rotation>().Inverse());
+  Eigen::VectorXd f = cog_rot_inv * wrench_mat_on_cog.topRows(3) * static_thrust;
 
-  bool check_rotor_overlap_;
-  bool check_comp_thrust_;
-  double rotor_overlap_diff_thre_;
-  double comp_thrust_diff_thre_;
+  double f_norm_roll = atan2(f(1), f(2));
+  double f_norm_pitch = atan2(-f(0), sqrt(f(1)*f(1) + f(2)*f(2)));
 
-  Dragon::HydrusLikeRobotModel& getDragonRobotModel() const {return dynamic_cast<Dragon::HydrusLikeRobotModel&>(*robot_model_);}
+  /* set the hoverable frame as CoG and reupdate model */
+  setCogDesireOrientation(f_norm_roll, f_norm_pitch, 0);
+  updateRobotModel();
 
-  // numerical solution
-  virtual const Eigen::MatrixXd thrustForceNumericalJacobian(std::vector<int> joint_indices) override;
-  virtual const Eigen::MatrixXd jointTorqueNumericalJacobian(std::vector<int> joint_indices) override;
-  virtual const Eigen::MatrixXd overlapNumericalJacobian();
-  virtual const Eigen::MatrixXd compThrustNumericalJacobian();
-};
+  if(getVerbose())
+  {
+    ROS_INFO_STREAM("f_norm_pitch: " << f_norm_pitch << "; f_norm_roll: " << f_norm_roll);
+    ROS_INFO_STREAM("rescaled static thrust: " << getStaticThrust().transpose());
+  }
+}
+
+/* plugin registration */
+#include <pluginlib/class_list_macros.h>
+PLUGINLIB_EXPORT_CLASS(UnderactuatedTiltedRobotModel, aerial_robot_model::RobotModel);

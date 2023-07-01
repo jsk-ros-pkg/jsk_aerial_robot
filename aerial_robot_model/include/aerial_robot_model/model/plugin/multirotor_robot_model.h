@@ -1,8 +1,8 @@
-// -*- mode: c++ -*-
+ // -*- mode: c++ -*-
 /*********************************************************************
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2020, JSK Lab
+ *  Copyright (c) 2022, JSK Lab
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -35,33 +35,12 @@
 
 #pragma once
 
-#include <hydrus/numerical_jacobians.h>
-#include <dragon/model/hydrus_like_robot_model.h>
+#include <aerial_robot_model/model/aerial_robot_model.h>
 
-class DragonNumericalJacobian : public HydrusNumericalJacobian
-{
+class MultirotorRobotModel : public aerial_robot_model::RobotModel {
+
 public:
-  DragonNumericalJacobian(ros::NodeHandle nh, ros::NodeHandle nhp, std::unique_ptr<aerial_robot_model::transformable::RobotModel> robot_model = std::make_unique<aerial_robot_model::transformable::RobotModel>(true));
-  virtual ~DragonNumericalJacobian() = default;
-
-  virtual bool checkJacobians() override;
-
-  virtual bool checkRotorOverlapJacobian();
-  virtual bool checkExternalWrenchCompensateThrustJacobian();
-  virtual bool checkThrsutForceJacobian(std::vector<int> joint_indices = std::vector<int>()) override;
-
-protected:
-
-  bool check_rotor_overlap_;
-  bool check_comp_thrust_;
-  double rotor_overlap_diff_thre_;
-  double comp_thrust_diff_thre_;
-
-  Dragon::HydrusLikeRobotModel& getDragonRobotModel() const {return dynamic_cast<Dragon::HydrusLikeRobotModel&>(*robot_model_);}
-
-  // numerical solution
-  virtual const Eigen::MatrixXd thrustForceNumericalJacobian(std::vector<int> joint_indices) override;
-  virtual const Eigen::MatrixXd jointTorqueNumericalJacobian(std::vector<int> joint_indices) override;
-  virtual const Eigen::MatrixXd overlapNumericalJacobian();
-  virtual const Eigen::MatrixXd compThrustNumericalJacobian();
+  MultirotorRobotModel(bool init_with_rosparam = true, bool verbose = false, double fc_t_min_thre = 0, double epsilon = 10.0);
+  virtual ~MultirotorRobotModel() = default;
 };
+

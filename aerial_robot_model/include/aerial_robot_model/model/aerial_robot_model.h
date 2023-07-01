@@ -35,8 +35,8 @@
 
 #pragma once
 
-#include <aerial_robot_model/kdl_utils.h>
-#include <aerial_robot_model/math_utils.h>
+#include <aerial_robot_model/utils/kdl_utils.h>
+#include <aerial_robot_model/utils/math_utils.h>
 #include <cmath>
 #include <eigen_conversions/eigen_kdl.h>
 #include <Eigen/Core>
@@ -58,32 +58,25 @@
 
 namespace aerial_robot_model {
 
-
- //Transformable Aerial Robot Model
+  //Basic Aerial Robot Model
   class RobotModel {
   public:
-    RobotModel(bool init_with_rosparam = true, bool verbose = false, double fc_f_min_thre = 0, double fc_t_min_thre = 0, double epsilon = 10.0);
+    RobotModel(bool init_with_rosparam = true, bool verbose = false, bool fixed_model = true, double fc_f_min_thre = 0, double fc_t_min_thre = 0, double epsilon = 10.0);
     virtual ~RobotModel() = default;
 
-    virtual void updateJacobians();
-    virtual void updateJacobians(const KDL::JntArray& joint_positions, bool update_model = true);
-    void updateRobotModel(const KDL::JntArray& joint_positions) { updateRobotModelImpl(joint_positions); }
-    void updateRobotModel(const sensor_msgs::JointState& state) { updateRobotModel(jointMsgToKdl(state)); }
+    void updateRobotModel();
+    void updateRobotModel(const KDL::JntArray& joint_positions);
+    void updateRobotModel(const sensor_msgs::JointState& state);
 
     // kinematics
-    bool addExtraModule(std::string module_name, std::string parent_link_name, KDL::Frame transform, KDL::RigidBodyInertia inertia);
-    virtual void calcBasicKinematicsJacobian();
-    virtual void calcCoGMomentumJacobian();
-    const Eigen::MatrixXd& getCOGJacobian() const {return cog_jacobian_;}
-
-    template<class T> T forwardKinematics(std::string link, const KDL::JntArray& joint_positions) const;
-    template<class T> T forwardKinematics(std::string link, const sensor_msgs::JointState& state) const;
-    std::map<std::string, KDL::Frame> fullForwardKinematics(const KDL::JntArray& joint_positions) {return fullForwardKinematicsImpl(joint_positions); }
-    std::map<std::string, KDL::Frame> fullForwardKinematics(const sensor_msgs::JointState& state) {return fullForwardKinematics(jointMsgToKdl(state)); }
-
+    const bool initialized() const { return initialized_; }
+    const bool isModelFixed() const {return fixed_model_; }
     const std::string getBaselinkName() const { return baselink_; }
-    const std::vector<Eigen::MatrixXd>& getCOGCoordJacobians() const {return cog_coord_jacobians_;}
     const std::map<std::string, KDL::RigidBodyInertia>& getInertiaMap() const { return inertia_map_; }
+    const double getMass() const { return mass_; }
+    const int getRotorNum() const { return rotor_num_; }
+    const std::map<int, int>& getRotorDirection() { return rotor_direction_; }
+    const std::string getRootFrameName() const { return GetTreeElementSegment(tree_.getRootSegment()->second).getName(); }
     const int getJointNum() const { return joint_num_;}
     const KDL::JntArray& getJointPositions() const { return joint_positions_; }
     const std::map<std::string, uint32_t>& getJointIndexMap() const { return joint_index_map_; }
@@ -92,32 +85,24 @@ namespace aerial_robot_model {
     const std::vector<std::string>& getJointNames() const { return joint_names_; }
     const std::vector<int>& getJointIndices() const { return joint_indices_; }
     const std::vector<std::string>& getJointParentLinkNames() const { return joint_parent_link_names_; }
-    const std::vector<std::string>& getLinkJointNames() const { return link_joint_names_; }
-    const std::vector<int>& getLinkJointIndices() const { return link_joint_indices_; }
-    const std::vector<double>& getLinkJointLowerLimits() const { return link_joint_lower_limits_; }
-    const std::vector<double>& getLinkJointUpperLimits() const { return link_joint_upper_limits_; }
-    const Eigen::MatrixXd& getLMomentumJacobian() const {return l_momentum_jacobian_;}
-    const double getLinkLength() const { return link_length_; }
-    const double getMass() const { return mass_; }
-    const std::vector<Eigen::MatrixXd>& getPJacobians() const {return p_jacobians_;}
-    const int getRotorNum() const { return rotor_num_; }
-    const std::map<int, int>& getRotorDirection() { return rotor_direction_; }
-    const std::string getRootFrameName() const { return GetTreeElementSegment(tree_.getRootSegment()->second).getName(); }
-    const std::map<std::string, KDL::Frame> getSegmentsTf()
-    {
+
+    const std::map<std::string, KDL::Frame> getSegmentsTf() {
       std::lock_guard<std::mutex> lock(mutex_seg_tf_);
       return seg_tf_map_;
     }
-    const KDL::Frame getSegmentTf(const std::string seg_name)
-    {
+
+    const KDL::Frame getSegmentTf(const std::string seg_name) {
       std::lock_guard<std::mutex> lock(mutex_seg_tf_);
       return seg_tf_map_.at(seg_name);
     }
 
-    const std::vector<Eigen::MatrixXd>& getThrustCoordJacobians() const {return thrust_coord_jacobians_;}
+    template<class T> T forwardKinematics(std::string link, const KDL::JntArray& joint_positions) const;
+    template<class T> T forwardKinematics(std::string link, const sensor_msgs::JointState& state) const;
+    std::map<std::string, KDL::Frame> fullForwardKinematics(const KDL::JntArray& joint_positions) {return fullForwardKinematicsImpl(joint_positions); }
+    std::map<std::string, KDL::Frame> fullForwardKinematics(const sensor_msgs::JointState& state) {return fullForwardKinematics(jointMsgToKdl(state)); }
+
     const KDL::Tree& getTree() const { return tree_; }
     const urdf::Model& getUrdfModel() const { return model_; }
-    const std::vector<Eigen::MatrixXd>& getUJacobians() const {return u_jacobians_;}
     const double getVerbose() const { return verbose_; }
 
     template<class T> T getCog();
@@ -131,8 +116,6 @@ namespace aerial_robot_model {
     KDL::JntArray jointMsgToKdl(const sensor_msgs::JointState& state) const;
     sensor_msgs::JointState kdlJointToMsg(const KDL::JntArray& joint_positions) const;
 
-    bool removeExtraModule(std::string module_name);
-
     void setBaselinkName(const std::string baselink) { baselink_ = baselink; }
     void setCogDesireOrientation(double roll, double pitch, double yaw)
     {
@@ -144,29 +127,17 @@ namespace aerial_robot_model {
       cog_desire_orientation_  = cog_desire_orientation;
     }
 
-    KDL::JntArray convertEigenToKDL(const Eigen::VectorXd& joint_vector) {
-      const auto& joint_indices = getJointIndices();
-      KDL::JntArray joint_positions(getTree().getNrOfJoints());
-      for (unsigned int i = 0; i < joint_indices.size(); ++i) {
-        joint_positions(joint_indices.at(i)) = joint_vector(i);
-      }
-      return joint_positions;
-    }
+    bool addExtraModule(std::string module_name, std::string parent_link_name, KDL::Frame transform, KDL::RigidBodyInertia inertia);
+    bool removeExtraModule(std::string module_name);
 
     // statics (static thrust, joint torque)
     Eigen::VectorXd calcGravityWrenchOnRoot();
-    virtual void calcLambdaJacobian();
-    virtual void calcJointTorque(const bool update_jacobian = true);
-    virtual void calcJointTorqueJacobian();
     virtual void calcStaticThrust();
     Eigen::MatrixXd calcWrenchMatrixOnCoG();
     virtual void calcWrenchMatrixOnRoot();
 
     const Eigen::VectorXd& getGravity() const {return gravity_;}
     const Eigen::VectorXd& getGravity3d() const {return gravity_3d_;}
-    const Eigen::VectorXd& getJointTorque() const {return joint_torque_;}
-    const Eigen::MatrixXd& getJointTorqueJacobian() const {return joint_torque_jacobian_;}
-    const Eigen::MatrixXd& getLambdaJacobian() const {return lambda_jacobian_;}
     const double getMFRate() const  {return m_f_rate_;}
     const Eigen::VectorXd& getStaticThrust() const {return static_thrust_;}
     const std::vector<Eigen::MatrixXd>& getThrustWrenchAllocations() const {return thrust_wrench_allocations_;}
@@ -176,20 +147,15 @@ namespace aerial_robot_model {
     const double getThrustLowerLimit() const {return thrust_min_;}
 
     // control stability
-    virtual void calcFeasibleControlJacobian();
     virtual void calcFeasibleControlFDists();
     virtual void calcFeasibleControlTDists();
     double calcTripleProduct(const Eigen::Vector3d& ui, const Eigen::Vector3d& uj, const Eigen::Vector3d& uk);
     std::vector<Eigen::Vector3d> calcV();
-    const Eigen::VectorXd& getApproxFeasibleControlFDists() const {return approx_fc_f_dists_;}
-    const Eigen::VectorXd& getApproxFeasibleControlTDists() const {return approx_fc_t_dists_;}
     const double getEpsilon() const {return epsilon_;}
     const Eigen::VectorXd& getFeasibleControlFDists() const {return fc_f_dists_;}
-    const Eigen::MatrixXd& getFeasibleControlFDistsJacobian() const { return fc_f_dists_jacobian_; }
     const double& getFeasibleControlFMin()  const {return fc_f_min_;}
     const double& getFeasibleControlFMinThre()  const {return fc_f_min_thre_;}
     const Eigen::VectorXd& getFeasibleControlTDists() const {return fc_t_dists_;}
-    const Eigen::MatrixXd& getFeasibleControlTDistsJacobian() const { return fc_t_dists_jacobian_; }
     const double& getFeasibleControlTMin()  const {return fc_t_min_;}
     const double& getFeasibleControlTMinThre()  const {return fc_t_min_thre_;}
 
@@ -198,43 +164,62 @@ namespace aerial_robot_model {
 
     virtual bool stabilityCheck(bool verbose = true);
 
-
-    // jacobian
-    virtual Eigen::MatrixXd convertJacobian(const Eigen::MatrixXd& in);
-    virtual Eigen::MatrixXd getJacobian(const KDL::JntArray& joint_positions, std::string segment_name, KDL::Vector offset = KDL::Vector::Zero());
-    Eigen::MatrixXd getSecondDerivative(std::string ref_frame, int joint_i, KDL::Vector offset = KDL::Vector::Zero());
-    Eigen::MatrixXd getSecondDerivativeRoot(std::string ref_frame, KDL::Vector offset = KDL::Vector::Zero());
-    Eigen::VectorXd getHessian(std::string ref_frame, int joint_i, int joint_j, KDL::Vector offset = KDL::Vector::Zero());
-
+    KDL::JntArray convertEigenToKDL(const Eigen::VectorXd& joint_vector);
 
   private:
 
-    //private attributes
-
     // kinematics
+    bool initialized_;
+    bool fixed_model_;
+    double mass_;
+    urdf::Model model_;
     std::string baselink_;
     KDL::Frame cog_;
     KDL::Rotation cog_desire_orientation_;
     KDL::Frame cog2baselink_transform_;
-
-    std::map<std::string, KDL::Segment> extra_module_map_;
-    std::map<std::string, KDL::RigidBodyInertia> inertia_map_;
-    std::map<std::string, uint32_t> joint_index_map_; // index in KDL::JntArray
-    std::map<std::string, std::vector<std::string> > joint_segment_map_;
-    std::map<std::string, int> joint_hierachy_;
 
     std::vector<std::string> joint_names_; // index in KDL::JntArray
     std::vector<int> joint_indices_; // index in KDL::JntArray
     std::vector<std::string> joint_parent_link_names_; // index in KDL::JntArray
     KDL::JntArray joint_positions_;
     KDL::RotationalInertia link_inertia_cog_;
-    std::vector<std::string> link_joint_names_; // index in KDL::JntArray
-    std::vector<int> link_joint_indices_; // index in KDL::JntArray
-    std::vector<double> link_joint_lower_limits_, link_joint_upper_limits_;
-    double link_length_;
+    std::map<std::string, KDL::Segment> extra_module_map_;
+    std::map<std::string, KDL::RigidBodyInertia> inertia_map_;
+    std::map<std::string, uint32_t> joint_index_map_; // index in KDL::JntArray
+    std::map<std::string, std::vector<std::string> > joint_segment_map_;
+    std::map<std::string, int> joint_hierachy_;
+    std::map<std::string, KDL::Frame> seg_tf_map_;
+    int joint_num_;
+    int rotor_num_;
+    std::vector<KDL::Vector> rotors_origin_from_cog_;
+    std::vector<KDL::Vector> rotors_normal_from_cog_;
+    KDL::Tree tree_;
+    std::string thrust_link_;
+    bool verbose_;
 
-    double mass_;
-    urdf::Model model_;
+
+    // statics (static thrust, joint torque)
+    Eigen::VectorXd gravity_;
+    Eigen::VectorXd gravity_3d_;
+    double m_f_rate_; //moment / force rate
+    Eigen::MatrixXd q_mat_;
+    std::map<int, int> rotor_direction_;
+    Eigen::VectorXd static_thrust_;
+    double thrust_max_;
+    double thrust_min_;
+    std::vector<Eigen::VectorXd> thrust_wrench_units_;
+    std::vector<Eigen::MatrixXd> thrust_wrench_allocations_;
+
+    // control stability
+    double epsilon_;
+    Eigen::VectorXd fc_f_dists_; // distances to the plane of feasible control force convex
+    Eigen::VectorXd fc_t_dists_; // distances to the plane of feasible control torque convex
+    double fc_f_min_;
+    double fc_t_min_;
+    double fc_f_min_thre_;
+    double fc_t_min_thre_;
+
+    // mutex
     std::mutex mutex_cog_;
     std::mutex mutex_cog2baselink_;
     std::mutex mutex_inertia_;
@@ -244,62 +229,22 @@ namespace aerial_robot_model {
     std::mutex mutex_desired_baselink_rot_;
 
 
-    std::map<std::string, KDL::Frame> seg_tf_map_;
-
-    std::vector<Eigen::MatrixXd> u_jacobians_; //thrust direction vector index:rotor
-    std::vector<Eigen::MatrixXd> p_jacobians_; //thrust position index:rotor
-
-    int joint_num_;
-    int rotor_num_;
-    std::vector<KDL::Vector> rotors_origin_from_cog_;
-    std::vector<KDL::Vector> rotors_normal_from_cog_;
-    KDL::Tree tree_;
-    std::string thrust_link_;
-    bool verbose_;
-    Eigen::MatrixXd cog_jacobian_; //cog jacobian
-    Eigen::MatrixXd l_momentum_jacobian_; //angular_momemtum jacobian
-
-    // statics (static thrust, joint torque)
-    std::vector<Eigen::MatrixXd> cog_coord_jacobians_;
-    Eigen::VectorXd gravity_;
-    Eigen::VectorXd gravity_3d_;
-    Eigen::VectorXd joint_torque_;
-    Eigen::MatrixXd joint_torque_jacobian_; // joint torque
-    Eigen::MatrixXd lambda_jacobian_; //thrust force
-    double m_f_rate_; //moment / force rate
-    Eigen::MatrixXd q_mat_;
-    std::map<int, int> rotor_direction_;
-    Eigen::VectorXd static_thrust_;
-    std::vector<Eigen::MatrixXd> thrust_coord_jacobians_;
-    double thrust_max_;
-    double thrust_min_;
-    std::vector<Eigen::VectorXd> thrust_wrench_units_;
-    std::vector<Eigen::MatrixXd> thrust_wrench_allocations_;
-
-    // control stability
-    Eigen::VectorXd approx_fc_f_dists_;
-    Eigen::VectorXd approx_fc_t_dists_;
-    double epsilon_;
-    Eigen::VectorXd fc_f_dists_; // distances to the plane of feasible control force convex
-    Eigen::VectorXd fc_t_dists_; // distances to the plane of feasible control torque convex
-    Eigen::MatrixXd fc_f_dists_jacobian_;
-    Eigen::MatrixXd fc_t_dists_jacobian_;
-    double fc_f_min_;
-    double fc_t_min_;
-    double fc_f_min_thre_;
-    double fc_t_min_thre_;
-
     //private functions
-    KDL::Frame forwardKinematicsImpl(std::string link, const KDL::JntArray& joint_positions) const;
-    std::map<std::string, KDL::Frame> fullForwardKinematicsImpl(const KDL::JntArray& joint_positions);
     void getParamFromRos();
-    KDL::RigidBodyInertia inertialSetup(const KDL::TreeElement& tree_element);
-    void jointSegmentSetupRecursive(const KDL::TreeElement& tree_element, std::vector<std::string> current_joints);
-    void makeJointSegmentMap();
-    void resolveLinkLength();
     void kinematicsInit();
     void stabilityInit();
     void staticsInit();
+
+
+    KDL::RigidBodyInertia inertialSetup(const KDL::TreeElement& tree_element);
+    void jointSegmentSetupRecursive(const KDL::TreeElement& tree_element, std::vector<std::string> current_joints);
+    void makeJointSegmentMap();
+
+    KDL::Frame forwardKinematicsImpl(std::string link, const KDL::JntArray& joint_positions) const;
+    std::map<std::string, KDL::Frame> fullForwardKinematicsImpl(const KDL::JntArray& joint_positions);
+
+  protected:
+    virtual void updateRobotModelImpl(const KDL::JntArray& joint_positions);
 
     void setCog(const KDL::Frame cog)
     {
@@ -332,23 +277,11 @@ namespace aerial_robot_model {
       seg_tf_map_ = seg_tf_map;
     }
 
-  protected:
-
-    // folllowing functions can be only accessed from derived class
-    void setCOGCoordJacobians(const std::vector<Eigen::MatrixXd> cog_coord_jacobians) {cog_coord_jacobians_ = cog_coord_jacobians;}
-    void setCOGJacobian(const Eigen::MatrixXd cog_jacobian) {cog_jacobian_ = cog_jacobian;}
-    void setJointTorque(const Eigen::VectorXd joint_torque) {joint_torque_ = joint_torque;}
-    void setJointTorqueJacobian(const Eigen::MatrixXd joint_torque_jacobian) {joint_torque_jacobian_ = joint_torque_jacobian;}
-    void setLambdaJacobian(const Eigen::MatrixXd lambda_jacobian) {lambda_jacobian_ = lambda_jacobian;}
-    void setLMomentumJacobian(const Eigen::MatrixXd l_momentum_jacobian) {l_momentum_jacobian_ = l_momentum_jacobian;}
-    void setPJacobians(const std::vector<Eigen::MatrixXd> p_jacobians) {p_jacobians_ = p_jacobians;}
     void setStaticThrust(const Eigen::VectorXd static_thrust) {static_thrust_ = static_thrust;}
-    void setThrustTCoordJacobians(const std::vector<Eigen::MatrixXd> thrust_coord_jacobians) {thrust_coord_jacobians_ = thrust_coord_jacobians;}
     void setThrustWrenchMatrix(const Eigen::MatrixXd q_mat) {q_mat_ = q_mat;}
-    void setUJacobians(const std::vector<Eigen::MatrixXd> u_jacobians) {u_jacobians_ = u_jacobians;}
 
-    virtual void updateRobotModelImpl(const KDL::JntArray& joint_positions);
   };
+
 
   template<> inline Eigen::Affine3d RobotModel::forwardKinematics(std::string link, const KDL::JntArray& joint_positions) const
   {
@@ -495,4 +428,4 @@ namespace aerial_robot_model {
   {
     return aerial_robot_model::kdlToTf2(RobotModel::getRotorsOriginFromCog<KDL::Vector>());
   }
-} //namespace aerial_robot_model
+} // namespace aerial_robot_model

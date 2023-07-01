@@ -52,7 +52,7 @@ generate_messages(
 
 catkin_package(
   INCLUDE_DIRS include test
-  LIBRARIES transformable_aerial_robot_model transformable_aerial_robot_model_ros numerical_jacobians
+  LIBRARIES aerial_robot_model aerial_robot_model_ros numerical_jacobians robot_model_pluginlib
   CATKIN_DEPENDS eigen_conversions geometry_msgs interactive_markers kalman_filter kdl_parser message_runtime pluginlib sensor_msgs spinal std_msgs tf tf_conversions tf2_eigen tf2_geometry_msgs tf2_kdl tf2_ros tf_conversions urdf visualization_msgs
   DEPENDS orocos_kdl urdfdom_headers
 )
@@ -73,17 +73,24 @@ include_directories(
   ${EIGEN3_INCLUDE_DIRS}
 )
 
-add_library(transformable_aerial_robot_model
-  src/transformable_aerial_robot_model/robot_model.cpp
-  src/transformable_aerial_robot_model/jacobians.cpp
-  src/transformable_aerial_robot_model/kinematics.cpp
-  src/transformable_aerial_robot_model/stability.cpp
-  src/transformable_aerial_robot_model/statics.cpp)
-target_link_libraries(transformable_aerial_robot_model ${catkin_LIBRARIES} ${orocos_kdl_LIBRARIES} ${EIGEN3_LIBRARIES})
 
-add_library(transformable_aerial_robot_model_ros src/transformable_aerial_robot_model/robot_model_ros.cpp)
-target_link_libraries(transformable_aerial_robot_model_ros transformable_aerial_robot_model ${catkin_LIBRARIES} ${orocos_kdl_LIBRARIES} ${EIGEN3_LIBRARIES})
-add_dependencies(transformable_aerial_robot_model_ros ${PROJECT_NAME}_generate_messages_cpp spinal_generate_messages_cpp)
+add_library(aerial_robot_model
+  src/model/base_model/robot_model.cpp
+  src/model/transformable_model/robot_model.cpp
+  src/model/transformable_model/jacobians.cpp
+  src/model/transformable_model/kinematics.cpp
+  src/model/transformable_model/stability.cpp
+  src/model/transformable_model/statics.cpp)
+target_link_libraries(aerial_robot_model ${catkin_LIBRARIES} ${orocos_kdl_LIBRARIES} ${EIGEN3_LIBRARIES})
+
+add_library(aerial_robot_model_ros src/model/base_model/robot_model_ros.cpp)
+target_link_libraries(aerial_robot_model_ros aerial_robot_model ${catkin_LIBRARIES} ${orocos_kdl_LIBRARIES} ${EIGEN3_LIBRARIES})
+add_dependencies(aerial_robot_model_ros ${PROJECT_NAME}_generate_messages_cpp spinal_generate_messages_cpp)
+
+add_library(robot_model_pluginlib
+  src/model/plugin/multirotor_robot_model.cpp
+  src/model/plugin/tilted_underactuated_robot_model.cpp)
+target_link_libraries(robot_model_pluginlib ${catkin_LIBRARIES} aerial_robot_model)
 
 add_library(servo_bridge src/servo_bridge/servo_bridge.cpp)
 target_link_libraries(servo_bridge ${catkin_LIBRARIES})
@@ -98,13 +105,13 @@ target_link_libraries(interactive_marker_tf_broadcaster ${catkin_LIBRARIES})
 
 ## for rostest
 add_library(numerical_jacobians test/aerial_robot_model/numerical_jacobians.cpp)
-target_link_libraries(numerical_jacobians transformable_aerial_robot_model ${catkin_LIBRARIES})
+target_link_libraries(numerical_jacobians aerial_robot_model ${catkin_LIBRARIES})
 
 
 install(DIRECTORY include/${PROJECT_NAME}/ test/${PROJECT_NAME}/
   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION})
 
-install(TARGETS transformable_aerial_robot_model transformable_aerial_robot_model_ros servo_bridge numerical_jacobians
+install(TARGETS aerial_robot_model aerial_robot_model_ros robot_model_pluginlib servo_bridge numerical_jacobians
   DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 )
 
@@ -112,7 +119,7 @@ install(TARGETS rotor_tf_publisher interactive_marker_tf_broadcaster servo_bridg
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
-install(DIRECTORY launch script
+install(DIRECTORY launch script plugins
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
   USE_SOURCE_PERMISSIONS
 )
