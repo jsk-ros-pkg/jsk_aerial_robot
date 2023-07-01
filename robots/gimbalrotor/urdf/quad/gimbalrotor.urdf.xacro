@@ -24,22 +24,22 @@
     ## link
     <link name="base_link">
       <inertial>
-        <origin xyz="0.0 0.0 0.0165" rpy="0 0 0"/>
-        <mass value="0.1753"/>
+        <origin xyz="-0.0081803 0.0 0.1184962" rpy="0 0 0"/>
+        <mass value="1.82"/>
         <inertia
-            ixx="0.0004" iyy="0.0004" izz="0.0008"
-            ixy="0.00000" ixz="0.0000" iyz="0.00000"/>
-      </inertial>
+            ixx="0.0511797" iyy="0.0835848" izz="0.1010814"
+            ixy="-0.0000001" ixz="-0.0015934" iyz="0.0000027"/>
+      </inertial>   
       <visual>
-        <origin xyz="0 0 -0.0165" rpy="0 0 0"/>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
         <geometry>
-          <mesh filename="package://gimbalrotor/urdf/quad/mesh/base_link.STL"/>
+          <mesh filename="package://gimbalrotor/urdf/quad/mesh/base_link.dae"/>
         </geometry>
       </visual>
       <collision>
-        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <origin xyz="0 0 0.1205" rpy="0 0 0"/>
         <geometry>
-          <box size="0.25 0.25 0.035"/>
+          <box size="0.52 0.52 0.241"/>
         </geometry>
       </collision>
     </link>
@@ -59,124 +59,76 @@
     <joint name="fc_joint" type="fixed">
       <child link="fc"/>
       <parent link="base_link"/>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <origin rpy="0 0 0" xyz="0 0 0.12947"/>
       <axis xyz="0 0 1"/>
     </joint>
 
-    ## rotor arms
+    ## dummy rotor arms
     <link name="rotor_arm${child1}">
       <inertial>
-        <origin xyz="0.0486 0 0.0161" rpy="0 0 0"/>
-        <mass value="0.088"/>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <mass value="0.0001"/>
         <inertia
             ixx="0.000001" ixy="0.0" ixz="0.0"
             iyy="0.0001" iyz="0.0"
             izz="0.0001"/>
       </inertial>
-      <visual>
-        <origin xyz="0 0 0" rpy="0 0 0"/>
-        <geometry>
-          <mesh filename="package://gimbalrotor/urdf/quad/mesh/rotor_arm.STL"/>
-        </geometry>
-      </visual>
-      <collision>
-        <origin xyz="0 0 0" rpy="0 0 0"/>
-        <geometry>
-          <box size="0.131 0.0325 0.065"/>
-        </geometry>
-      </collision>
     </link>
     <joint name="base_arm_joint${child1}" type="fixed">
       <parent link="base_link"/>
       <child link="rotor_arm${child1}"/>
-      <origin rpy="0 0 ${pi/4}" xyz="0.051 0.051 0.0"/>
+      <origin rpy="0 0 ${pi/4}" xyz="0.12488 0.12509 0.1185"/>
       <axis xyz="0 0 1"/>
     </joint>
 
     <link name="rotor_arm${child2}">
       <inertial>
         <origin xyz="0.0486 0 0.0161" rpy="0 0 0"/>
-        <mass value="0.088"/>
+        <mass value="0.0001"/>
         <inertia
             ixx="0.000001" ixy="0.0" ixz="0.0"
             iyy="0.0001" iyz="0.0"
             izz="0.0001"/>
       </inertial>
-      <visual>
-        <origin xyz="0 0 0" rpy="0 0 0"/>
-        <geometry>
-          <mesh filename="package://gimbalrotor/urdf/quad/mesh/rotor_arm.STL"/>
-        </geometry>
-      </visual>
-      <collision>
-        <origin xyz="0 0 0" rpy="0 0 0"/>
-        <geometry>
-          <box size="0.131 0.0325 0.065"/>
-        </geometry>p
-      </collision>
     </link>
     <joint name="base_arm_joint${child2}" type="fixed">
       <parent link="base_link"/>
       <child link="rotor_arm${child2}"/>
-      <origin rpy="0 0 ${pi*3.0/4.0}" xyz="-0.051 0.051 0.0"/>
+      <origin rpy="0 0 ${pi*3.0/4.0}" xyz="-0.12488 0.12509 0.1185"/>
       <axis xyz="0 0 1"/>
     </joint>
 
     <link name="rotor_arm${child3}">
       <inertial>
         <origin xyz="0.0486 0 0.0161" rpy="0 0 0"/>
-        <mass value="0.088"/>
+        <mass value="0.0001"/>
         <inertia
             ixx="0.000001" ixy="0.0" ixz="0.0"
             iyy="0.0001" iyz="0.0"
             izz="0.0001"/>
       </inertial>
-      <visual>
-        <origin xyz="0 0 0" rpy="0 0 0"/>
-        <geometry>
-          <mesh filename="package://gimbalrotor/urdf/quad/mesh/rotor_arm.STL"/>
-        </geometry>
-      </visual>
-      <collision>
-        <origin xyz="0 0 0" rpy="0 0 0"/>
-        <geometry>
-          <box size="0.131 0.0325 0.065"/>
-        </geometry>
-      </collision>
     </link>
     <joint name="base_arm_joint${child3}" type="fixed">
       <parent link="base_link"/>
       <child link="rotor_arm${child3}"/>
-      <origin rpy="0 0 ${pi*5.0/4.0}" xyz="-0.051 -0.051 0.0"/>
+      <origin rpy="0 0 ${pi*5.0/4.0}" xyz="-0.12488 -0.12509 0.1185"/>
       <axis xyz="0 0 1"/>
     </joint>
 
     <link name="rotor_arm${child4}">
       <inertial>
         <origin xyz="0.0486 0 0.0161" rpy="0 0 0"/>
-        <mass value="0.088"/>
+        <mass value="0.0001"/>
         <inertia
             ixx="0.000001" ixy="0.0" ixz="0.0"
             iyy="0.0001" iyz="0.0"
             izz="0.0001"/>
       </inertial>
-      <visual>
-        <origin xyz="0 0 0" rpy="0 0 0"/>
-        <geometry>
-          <mesh filename="package://gimbalrotor/urdf/quad/mesh/rotor_arm.STL"/>
-        </geometry>
-      </visual>
-      <collision>
-        <origin xyz="0 0 0" rpy="0 0 0"/>
-        <geometry>
-          <box size="0.131 0.0325 0.065"/>
-        </geometry>
-      </collision>
     </link>
     <joint name="base_arm_joint${child4}" type="fixed">
       <parent link="base_link"/>
       <child link="rotor_arm${child4}"/>
-      <origin rpy="0 0 ${-pi/4.0}" xyz="0.051 -0.051 0.0"/>
+      <origin rpy="0 0 ${-pi/4.0}" xyz="0.12488 -0.12509 0.1185"/>
       <axis xyz="0 0 1"/>
     </joint>
 
@@ -188,22 +140,22 @@
     #### rotor parent link (virtual) ####
     <link name="gimbal_link${self}">
       <inertial>
-        <origin xyz="0.018 0.00 0.00438" rpy="0 0 0"/>
-        <mass value="0.1095"/>
+        <origin xyz="0.02284089 0.0 0.00720578" rpy="0 0 0"/>
+        <mass value="0.1333"/>
         <inertia
-            ixx="0.00002989" iyy="0.00002848" izz="0.0002698"
-            ixy="0.0000" ixz="-0.0000" iyz="0.00000"/>
+            ixx="0.00005310" iyy="0.00005269" izz="0.00005333"
+            ixy="-0.00000001" ixz="0.00000064" iyz="0.00000"/>
       </inertial>
       <collision>
         <origin xyz="0.0 0 0" rpy="0 0 0"/>
         <geometry>
-          <cylinder radius="0.018" length="0.033"/>
+          <cylinder radius="0.02" length="0.033"/>
         </geometry>
       </collision>
       <visual>
         <origin xyz="0 0 0" rpy="0 0 0"/>
         <geometry>
-          <mesh filename="package://gimbalrotor/urdf/quad/mesh/rotor_module.STL"/>
+          <mesh filename="package://gimbalrotor/urdf/quad/mesh/rotor_module.dae"/>
         </geometry>
       </visual>
     </link>
@@ -238,10 +190,10 @@
 
     #### gimbal joints ####
     <joint name="gimbal${self}" type="revolute">
-      <limit effort="6.6" lower="-2.0" upper="2.0" velocity="3.0"/>
+      <limit effort="6.6" lower="-1.57" upper="1.57" velocity="3.0"/>
       <parent link="rotor_arm${self}"/>
       <child link="gimbal_link${self}"/>
-      <origin rpy="0 0 0" xyz="0.077 0 0.0385"/>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
       <axis xyz="1 0 0"/>
       <dynamics damping="0.8" friction="0.0"/>
     </joint>
