@@ -11,4 +11,80 @@
   <xacro:gimbalrotor_thrust_link self="3" rotor_direction="1"/>
   <xacro:gimbalrotor_thrust_link self="4" rotor_direction="-1"/>
 
+
+  ##### dummy grasp links ####
+  <joint name="base_dummy_arm_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="dummy_arm"/>
+    <origin xyz="0.22 0 0.1455" rpy="0 0 0"/>
+  </joint>
+
+  <link name="dummy_arm">
+    <inertial>
+      <mass value = "0.01" />
+      <origin xyz="0.05 0 0" rpy="0 0 0"/>
+      <inertia
+          ixx="0.0001" ixy="0.0000" ixz="0.0000"
+          iyy="0.0001" iyz="0.0000" izz="0.0001"/>
+    </inertial>
+  </link>
+
+  <joint name="dummy_arm_palm_joint" type="revolute">
+    <parent link="dummy_arm"/>
+    <child link="dummy_palm"/>
+    <origin xyz="0.02 0 0" rpy="0 0 0"/>
+    <axis xyz="1 0 0"/>
+    <limit lower="0" upper="0" effort="0" velocity="0"/>
+    <dynamics damping="0.2" friction="0.02"/>
+  </joint>
+
+  <link name="dummy_palm">
+    <inertial>
+      <mass value = "0.001" />
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia
+          ixx="0.0001" ixy="0.0000" ixz="0.0000"
+          iyy="0.0001" iyz="0.0000" izz="0.0001"/>
+    </inertial>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.04 0.04 0.04"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="dummy_palm_gripper_joint" type="revolute">
+    <parent link="dummy_palm"/>
+    <child link="dummy_gripper"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <axis xyz="1 0 0"/>
+    <limit lower="0" upper="0" effort="0" velocity="0"/>
+    <dynamics damping="0.2" friction="0.02"/>
+  </joint>
+
+
+  <link name="dummy_gripper">
+    <inertial>
+      <mass value = "0.001" />
+      <origin xyz="0.0 0 0" rpy="0 0 0"/>
+      <inertia
+          ixx="0.0001" ixy="0.0000" ixz="0.0000"
+          iyy="0.0001" iyz="0.0000" izz="0.0001"/>
+    </inertial>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.04 0.04 0.04"/>
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="0 0 0" rpy="0.0 0 0"/>
+      <geometry>
+        <box size="0.04 0.04 0.04"/>
+      </geometry>
+    </visual>
+  </link>
+
+    
 </robot>
