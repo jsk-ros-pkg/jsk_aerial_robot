@@ -89,7 +89,7 @@ add_dependencies(aerial_robot_model_ros ${PROJECT_NAME}_generate_messages_cpp sp
 
 add_library(robot_model_pluginlib
   src/model/plugin/multirotor_robot_model.cpp
-  src/model/plugin/tilted_underactuated_robot_model.cpp)
+  src/model/plugin/underactuated_tilted_robot_model.cpp)
 target_link_libraries(robot_model_pluginlib ${catkin_LIBRARIES} aerial_robot_model)
 
 add_library(servo_bridge src/servo_bridge/servo_bridge.cpp)

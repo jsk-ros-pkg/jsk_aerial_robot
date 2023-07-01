@@ -2,7 +2,7 @@
 /*********************************************************************
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2020, JSK Lab
+ *  Copyright (c) 2022, JSK Lab
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -32,18 +32,19 @@
  *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
+
 #pragma once
 
-#include <aerial_robot_control/control/flatness_pid_controller.h>
-#include <numeric>
+#include <aerial_robot_control/control/under_actuated_lqi_controller.h>
+#include <spinal/DesireCoord.h>
 
 namespace aerial_robot_control
 {
-  class AgileFlatnessPid : virtual public aerial_robot_control::FlatnessPid
+  class UnderActuatedTiltedLQIController: public UnderActuatedLQIController
   {
   public:
-    AgileFlatnessPid();
-    ~AgileFlatnessPid(){}
+    UnderActuatedTiltedLQIController() {}
+    virtual ~UnderActuatedTiltedLQIController() = default;
 
     void initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
                     boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
@@ -51,11 +52,19 @@ namespace aerial_robot_control
                     boost::shared_ptr<aerial_robot_navigation::BaseNavigator> navigator,
                     double ctrl_loop_rate);
 
-    void pidUpdate() override;
+  protected:
+
+    ros::Publisher desired_baselink_rot_pub_;
+
+    double trans_constraint_weight_;
+    double att_control_weight_;
+
+    double z_limit_;
+
+    void controlCore() override;
+    bool optimalGain() override;
+    void publishGain() override;
+    void rosParamInit() override;
+
   };
 };
-
-/* plugin registration */
-
-#include <pluginlib/class_list_macros.h>
-PLUGINLIB_EXPORT_CLASS(aerial_robot_control::AgileFlatnessPid, aerial_robot_control::ControlBase);
