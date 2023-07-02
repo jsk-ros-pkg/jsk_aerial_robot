@@ -86,7 +86,7 @@ namespace aerial_robot_model {
       }
     if(!found_thrust_link)
       {
-        ROS_ERROR_STREAM("Can not find the link named '" << baselink_ << "' in urdf model");
+        ROS_ERROR_STREAM("Can not find the link named '" << thrust_link_ << "' in urdf model");
         return;
       }
 
