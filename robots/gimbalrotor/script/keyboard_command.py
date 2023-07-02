@@ -20,20 +20,32 @@ if __name__=="__main__":
         settings = termios.tcgetattr(sys.stdin)
         rospy.init_node("keyboard_command")
 
-        ns = "/gimbalrotor/teleop_command"
-        ns1 = "/gimbalrotor1/teleop_command"
-        ns2 = "/gimbalrotor2/teleop_command"
-        land_pub_1 = rospy.Publisher(ns1 + '/land', Empty, queue_size=1)
-        land_pub_2 = rospy.Publisher(ns2 + '/land', Empty, queue_size=1)
-        halt_pub = rospy.Publisher(ns + '/halt', Empty, queue_size=1)
-        start_pub_1 = rospy.Publisher(ns1 + '/start', Empty, queue_size=1)
-        start_pub_2 = rospy.Publisher(ns2 + '/start', Empty, queue_size=1)
-        takeoff_pub_1 = rospy.Publisher(ns1 + '/takeoff', Empty, queue_size=1)
-        takeoff_pub_2 = rospy.Publisher(ns2 + '/takeoff', Empty, queue_size=1)
-        force_landing_pub = rospy.Publisher(ns + '/force_landing', Empty, queue_size=1)
-        ctrl_mode_pub = rospy.Publisher(ns + '/ctrl_mode', Int8, queue_size=1)
-        motion_start_pub = rospy.Publisher('task_start', Empty, queue_size=1)
+        master = rosgraph.Master('/rostopic')
+        try:
+                _, subs, _ = master.getSystemState()
 
+        except socket.error:
+                raise ROSTopicIOException("Unable to communicate with master!")
+
+        teleop_topics = [topic[0] for topic in subs if 'teleop_command/start' in topic[0]]
+        robot_names = [topic.split('/teleop')[0] for topic in teleop_topics]
+
+        land_pubs = []
+        halt_pubs = []
+        start_pubs = []
+        takeoff_pubs = []
+        force_landing_pubs = []
+        ctrl_mode_pubs = []
+        motion_start_pubs =[]
+        for name in robot_names:
+                ns = name + "/teleop_command"
+                land_pubs.append(rospy.Publisher(ns + '/land', Empty, queue_size=1))
+                halt_pubs.append(rospy.Publisher(ns + '/halt', Empty, queue_size=1))
+                start_pubs.append(rospy.Publisher(ns + '/start', Empty, queue_size=1))
+                takeoff_pubs.append(rospy.Publisher(ns + '/takeoff', Empty, queue_size=1))
+                force_landing_pubs.append(rospy.Publisher(ns + '/force_landing', Empty, queue_size=1))
+                ctrl_mode_pubs.append(rospy.Publisher(ns + '/ctrl_mode', Int8, queue_size=1))
+                motion_start_pubs.append(rospy.Publisher('task_start', Empty, queue_size=1))
 
         #the way to write publisher in python
         comm=Int8()
@@ -44,31 +56,34 @@ if __name__=="__main__":
                         print("the key value is {}".format(ord(key)))
                         # takeoff and landing
                         if key == 'l':
-                                land_pub_1.publish(Empty())
-                                land_pub_2.publish(Empty())
-                                #for hydra joints
+                                for land_pub in land_pubs:
+                                        land_pub.publish(Empty())
+                                        #for hydra joints
                         if key == 'r':
-                                start_pub_1.publish(Empty())
-                                start_pub_2.publish(Empty())
-                                #for hydra joints
+                                for start_pub in start_pubs:
+                                        start_pub.publish(Empty())
+                                        #for hydra joints
                         if key == 'h':
-                                halt_pub.publish(Empty())
-                                 #for hydra joints
+                                for halt_pub in halt_pubs:
+                                        halt_pub.publish(Empty())
+                                        #for hydra joints
                         if key == 'f':
-                                force_landing_pub.publish(Empty())
+                                for force_landing_pub in force_landing_pubs:
+                                        force_landing_pub.publish(Empty())
                         if key == 't':
-                                takeoff_pub_1.publish(Empty())
-                                takeoff_pub_2.publish(Empty())
-                        if key == 'u':
-                                stair_pub.publish(Empty())
+                                for takeoff_pub in takeoff_pubs:
+                                        takeoff_pub.publish(Empty())
                         if key == 'x':
-                                motion_start_pub.publish()
+                                for motion_start_pub in motion_start_pubs:
+                                        motion_start_pub.publish()
                         if key == 'v':
                                 comm.data = 1
-                                ctrl_mode_pub.publish(comm)
+                                for ctrl_mode_pub in ctrl_mode_pubs:
+                                        ctrl_mode_pub.publish(comm)
                         if key == 'p':
                                 comm.data = 0
-                                ctrl_mode_pub.publish(comm)
+                                for ctrl_mode_pub in ctrl_mode_pubs:
+                                        ctrl_mode_pub.publish(comm)
                         if key == '\x03':
                                 break
                         rospy.sleep(0.001)
