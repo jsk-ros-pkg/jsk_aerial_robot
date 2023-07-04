@@ -523,35 +523,35 @@ void BaseNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
   /* mode oriented state */
   switch (xy_control_mode_)
     {
-    case ACC_CONTROL_MODE:
-      {
-        if(teleop_flag_)
-          {
-            control_frame_ = WORLD_FRAME;
-            if(joy_cmd.buttons[PS3_BUTTON_REAR_LEFT_2]) control_frame_ = LOCAL_FRAME;
+    // case ACC_CONTROL_MODE:
+    //   {
+    //     if(teleop_flag_)
+    //       {
+    //         control_frame_ = WORLD_FRAME;
+    //         if(joy_cmd.buttons[PS3_BUTTON_REAR_LEFT_2]) control_frame_ = LOCAL_FRAME;
 
-            /* acc command */
-            target_acc_.setValue(joy_cmd.axes[PS3_AXIS_STICK_LEFT_UPWARDS] * max_target_tilt_angle_ * aerial_robot_estimation::G,
-                                 joy_cmd.axes[PS3_AXIS_STICK_LEFT_LEFTWARDS] * max_target_tilt_angle_ * aerial_robot_estimation::G, 0);
+    //         /* acc command */
+    //         target_acc_.setValue(joy_cmd.axes[PS3_AXIS_STICK_LEFT_UPWARDS] * max_target_tilt_angle_ * aerial_robot_estimation::G,
+    //                              joy_cmd.axes[PS3_AXIS_STICK_LEFT_LEFTWARDS] * max_target_tilt_angle_ * aerial_robot_estimation::G, 0);
 
-            if(control_frame_ == LOCAL_FRAME)
-              {
-                tf::Vector3 target_acc = target_acc_;
-                /* convert the frame */
-                const auto segments_tf = robot_model_->getSegmentsTf();
-                if(segments_tf.find(teleop_local_frame_) == segments_tf.end())
-                  {
-                    ROS_ERROR("can not find %s in kinematics model", teleop_local_frame_.c_str());
-                    target_acc.setValue(0,0,0);
-                  }
-                tf::Transform teleop_local_frame_tf;
-                tf::transformKDLToTF(segments_tf.at(robot_model_->getBaselinkName()).Inverse() * segments_tf.at(teleop_local_frame_), teleop_local_frame_tf);
+    //         if(control_frame_ == LOCAL_FRAME)
+    //           {
+    //             tf::Vector3 target_acc = target_acc_;
+    //             /* convert the frame */
+    //             const auto segments_tf = robot_model_->getSegmentsTf();
+    //             if(segments_tf.find(teleop_local_frame_) == segments_tf.end())
+    //               {
+    //                 ROS_ERROR("can not find %s in kinematics model", teleop_local_frame_.c_str());
+    //                 target_acc.setValue(0,0,0);
+    //               }
+    //             tf::Transform teleop_local_frame_tf;
+    //             tf::transformKDLToTF(segments_tf.at(robot_model_->getBaselinkName()).Inverse() * segments_tf.at(teleop_local_frame_), teleop_local_frame_tf);
 
-                target_acc_ = frameConversion(target_acc,  tf::Matrix3x3(tf::createQuaternionFromYaw(estimator_->getState(State::YAW_COG, estimate_mode_)[0])) * teleop_local_frame_tf.getBasis());
-              }
-          }
-        break;
-      }
+    //             target_acc_ = frameConversion(target_acc,  tf::Matrix3x3(tf::createQuaternionFromYaw(estimator_->getState(State::YAW_COG, estimate_mode_)[0])) * teleop_local_frame_tf.getBasis());
+    //           }
+    //       }
+    //     break;
+    //   }
     case VEL_CONTROL_MODE:
       {
         if(teleop_flag_)
