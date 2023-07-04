@@ -10,6 +10,13 @@ RollingRobotModel::RollingRobotModel(bool init_with_rosparam, bool verbose, doub
   rotors_origin_from_contact_point_.resize(rotor_num);
   rotors_normal_from_contact_point_.resize(rotor_num);
   thrust_link_ = "thrust";
+
+  ros::NodeHandle nh;
+  feasible_control_force_pub_  = nh.advertise<geometry_msgs::PoseArray>("feasible_control_force_convex", 1);
+  feasible_control_torque_pub_ = nh.advertise<geometry_msgs::PoseArray>("feasible_control_torque_convex", 1);
+  feasible_control_force_radius_pub_  = nh.advertise<std_msgs::Float32>("feasible_control_force_radius", 1);
+  feasible_control_torque_radius_pub_ = nh.advertise<std_msgs::Float32>("feasible_control_torque_radius", 1);
+
 }
 
 void RollingRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_positions)
@@ -73,11 +80,79 @@ void RollingRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_position
       std::string rotor = thrust_link_ + std::to_string(i + 1);
       KDL::Frame f = seg_tf_map.at(rotor);
       rotors_origin_from_contact_point_.at(i) = (contact_point_.Inverse() * f).p;
-      // std::cout << rotors_origin_from_contact_point_.at(i).x() << " " << rotors_origin_from_contact_point_.at(i).y() << " " << rotors_origin_from_contact_point_.at(i).z() << std::endl;
       rotors_normal_from_contact_point_.at(i) = (contact_point_.Inverse() * f).M * KDL::Vector(0, 0, 1);
     }
-  // std::cout << std::endl;
 
+
+  geometry_msgs::PoseArray feasible_force_array_msg;
+  geometry_msgs::PoseArray feasible_torque_array_msg;
+  std_msgs::Float32 feasible_force_radius_msg;
+  std_msgs::Float32 feasible_torque_radius_msg;
+
+  std::vector<Eigen::Vector3d> v;
+  auto t_min_list = calcFeasibleControlTDists(v);
+  geometry_msgs::PoseArray fc_torque_array_msg;
+  std_msgs::Float32 fc_torque_radius_msg;
+  for(const auto& torque_v: v)
+    {
+      geometry_msgs::Pose tmp;
+      tmp.position.x = torque_v.x();
+      tmp.position.y = torque_v.y();
+      tmp.position.z = torque_v.z();
+      fc_torque_array_msg.poses.push_back(tmp);
+    }
+  fc_torque_radius_msg.data = t_min_list.minCoeff();
+
+  feasible_control_torque_pub_.publish(fc_torque_array_msg);
+  feasible_control_torque_radius_pub_.publish(fc_torque_radius_msg);
+
+  feasible_control_force_pub_.publish(feasible_force_array_msg);
+  feasible_control_force_radius_pub_.publish(feasible_force_radius_msg);
+}
+
+Eigen::VectorXd RollingRobotModel::calcFeasibleControlTDists(std::vector<Eigen::Vector3d>&v)
+{
+  v.clear();
+  const int rotor_num = getRotorNum();
+  const auto& sigma = getRotorDirection();
+  const double m_f_rate = getMFRate();
+  for(int i = 0; i < rotor_num; i++)
+    {
+      Eigen::Vector3d p = getRotorsOriginFromCog<Eigen::Vector3d>().at(i);
+      Eigen::Vector3d y_axis_i = kdlToEigen(rotors_coord_rotation_from_cog_.at(i)).col(1);
+      Eigen::Vector3d z_axis_i = kdlToEigen(rotors_coord_rotation_from_cog_.at(i)).col(2);
+      v.push_back(p.cross(y_axis_i));
+      v.push_back(p.cross(z_axis_i) + m_f_rate * sigma.at(i + 1) * z_axis_i);
+    }
+
+  // std::cout << "size of v = " << v.size() << std::endl;
+  Eigen::VectorXd t_min(v.size() * (v.size() - 1) / 2);
+  int t_min_index = 0;
+  for(int i = 0; i < v.size(); ++i)
+    {
+      for(int j = i + 1; j < v.size(); ++j)
+        {
+          if(i == j) continue;
+          double t_min_ij = 0.0;
+          if(v.at(i).cross(v.at(j)).norm() < 1e-5)
+            {
+              t_min_ij = 1e6;
+              ROS_DEBUG_NAMED("robot_model", "the direction of v%d and v%d are too close, so no plane can generate by these two vector", i , j);
+            }
+          else
+            {
+              for(int k = 0; k < v.size(); ++k)
+                {
+                  if(i == k || j == k) continue;
+                  double v_triple_product = calcTripleProduct(v.at(i), v.at(j), v.at(k));
+                  t_min_ij += fabs(v_triple_product);
+                }
+            }
+          t_min(t_min_index) = t_min_ij;
+          t_min_index++;
+        }
+    }
+  return t_min;
 }
 
 /* plugin registration */

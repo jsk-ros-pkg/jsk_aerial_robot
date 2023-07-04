@@ -2,6 +2,9 @@
 
 #pragma once
 
+#include <ros/ros.h>
+#include <std_msgs/Float32.h>
+#include <geometry_msgs/PoseArray.h>
 #include <hydrus_xi/hydrus_xi_fully_actuated_robot_model.h>
 
 using namespace aerial_robot_model;
@@ -23,7 +26,12 @@ public:
   template <class T> T getInertiaContactPoint();
   void setCircleRadius(double radius) {circle_radius_ = radius;}
 
+  Eigen::VectorXd calcFeasibleControlFDists(std::vector<Eigen::Vector3d>&u);
+  Eigen::VectorXd calcFeasibleControlTDists(std::vector<Eigen::Vector3d>&v);
+
 private:
+  ros::Publisher feasible_control_force_pub_, feasible_control_torque_pub_;
+  ros::Publisher feasible_control_force_radius_pub_, feasible_control_torque_radius_pub_;
   std::vector<KDL::Rotation> rotors_coord_rotation_from_cog_;
   std::vector<KDL::Rotation> links_rotation_from_cog_;
   std::vector<KDL::Vector> rotors_origin_from_contact_point_;
