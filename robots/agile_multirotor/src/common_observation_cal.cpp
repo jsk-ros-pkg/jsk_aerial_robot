@@ -56,7 +56,11 @@ void ObstacleCalculator::CalculatorCallback(
   tf::pointMsgToEigen(msg->pose.pose.position, pos);
   Eigen::Quaternion<Scalar> quat;
   tf::quaternionMsgToEigen(msg->pose.pose.orientation, quat);
-  Eigen::Matrix3d R = quat.toRotationMatrix();
+  Eigen::Vector3d euler = quat.toRotationMatrix().eulerAngles(0, 1, 2);
+  // set attitude as the yaw = 0.0
+  Eigen::Matrix3d R = (Eigen::AngleAxis<Scalar>(euler[0], Vector<3>::UnitX()) *
+        Eigen::AngleAxis<Scalar>(euler[1], Vector<3>::UnitY()) *
+        Eigen::AngleAxis<Scalar>(0.0, Vector<3>::UnitZ())).toRotationMatrix();
   Eigen::Matrix3d R_T = R.transpose();
   Eigen::Vector3d poll_y(R_T(0, 1), R_T(1, 1), R_T(2, 1));
   Eigen::Vector3d poll_z(R_T(0, 2), R_T(1, 2), R_T(2, 2));
