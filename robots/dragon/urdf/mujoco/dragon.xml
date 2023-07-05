@@ -1,5 +1,5 @@
 <mujoco model="dragon">
-  <compiler coordinate="local" convexhull="false" angle="radian" balanceinertia="true" />
+  <compiler coordinate="local" convexhull="false" angle="radian" balanceinertia="true" meshdir="mesh"/>
   <option timestep="0.005" gravity="0 0 -9.81" collision="all"/>
   <option density="1" viscosity="1e-3" collision="all"/>
   <option integrator="implicit" />
