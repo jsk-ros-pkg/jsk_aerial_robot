@@ -8,6 +8,8 @@ from aerial_robot_msgs.msg import ObstacleArray
 from sensor_msgs.msg import LaserScan
 from visualization_msgs.msg import Marker
 import numpy as np
+import tf
+from scipy.spatial.transform import Rotation as R
 
 class AgileQuadState:
     def __init__(self, quad_state,transition):
@@ -68,12 +70,14 @@ class PolarPixelVisualizeNode:
 
 
     def obs_polar_pixel_conversion_callback(self, obs_polar_pixel: ObstacleArray):
+        if self.state is None:
+            return
         vel_calc_boundary = 0.3
         # state_data: ObstacleArray
         # state_data header is 0 , should examine if it works
         obs_pp_visualize = LaserScan()
         obs_pp_visualize.header.stamp = obs_polar_pixel.header.stamp
-        obs_pp_visualize.header.frame_id = "multirotor/laser_frame"
+        obs_pp_visualize.header.frame_id = "multirotor/debug/transition"
         obs_pp_visualize.angle_min = -self.max_rad
         obs_pp_visualize.angle_max = self.max_rad
         obs_pp_visualize.angle_increment = self.resolution_rad
@@ -85,6 +89,8 @@ class PolarPixelVisualizeNode:
         vel_direction = 0 if np.linalg.norm(np.array([self.state.vel[0], self.state.vel[1]]))<vel_calc_boundary \
             else np.arctan2(self.state.vel[1], self.state.vel[0]) # rad
 
+        # multirotor/debug/transition is world coordinate's depth sensor output, and obs_polar_pixel should be converted to world coordinate
+        # so there are no needs to change yaw direction of obs_polar_pixel to examine if it works
         for theta, obs_depth in zip(self.theta_list, obs_polar_pixel.boxel):
             idx:int  = int((theta + self.max_rad)/self.resolution_rad)
             if idx < self.range_num:
@@ -122,6 +128,13 @@ class PolarPixelVisualizeNode:
         marker_data.color.g = 1.0
         marker_data.color.b = 1.0
         self.quadrotor_pos_pub.publish(marker_data)
+
+        br = tf.TransformBroadcaster()
+        br.sendTransform((self.state.pos[0] + self.translation_position[0], self.state.pos[1] + self.translation_position[1], self.state.pos[2]),
+                        (0, 0, 0, 1),
+                        rospy.Time.now(),
+                        "multirotor/debug/transition",
+                        "world")
 
     def start_callback(self, data):
         self.publish_commands = True
