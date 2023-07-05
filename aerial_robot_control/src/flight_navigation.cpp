@@ -270,8 +270,65 @@ void BaseNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & ms
 
         break;
       }
+    case aerial_robot_msgs::FlightNav::POS_VEL_ACC_MODE:
+      {
+
+        /* should be in COG frame */
+        xy_control_mode_ = POS_CONTROL_MODE;
+        prev_xy_control_mode_ = POS_CONTROL_MODE;
+
+
+        tf::Vector3 target_cog_pos(msg->target_pos_x, msg->target_pos_y, 0);
+        if(msg->target == aerial_robot_msgs::FlightNav::BASELINK)
+          {
+            /* check the transformation */
+            tf::Transform cog2baselink_tf;
+            tf::transformKDLToTF(robot_model_->getCog2Baselink<KDL::Frame>(), cog2baselink_tf);
+            target_cog_pos -= tf::Matrix3x3(tf::createQuaternionFromYaw(getTargetRPY().z()))
+              * cog2baselink_tf.getOrigin();
+          }
+
+        tf::Vector3 target_delta = getTargetPos() - target_cog_pos;
+        target_delta.setZ(0);
+
+        if(target_delta.length() > vel_nav_threshold_)
+          {
+            ROS_WARN("start vel nav control for waypoint");
+            vel_based_waypoint_ = true;
+            xy_control_mode_ = VEL_CONTROL_MODE;
+          }
+
+        if(!vel_based_waypoint_)
+          xy_control_mode_ = POS_CONTROL_MODE;
+
+        setTargetPosX(target_cog_pos.x());
+        setTargetPosY(target_cog_pos.y());
+        setTargetVelX(msg->target_vel_x);
+        setTargetVelY(msg->target_vel_y);
+
+        switch(msg->control_frame)
+          {
+          case WORLD_FRAME:
+            {
+              target_acc_.setValue(msg->target_acc_x, msg->target_acc_y, 0);
+              break;
+            }
+          case LOCAL_FRAME:
+            {
+              tf::Vector3 target_acc = frameConversion(tf::Vector3(msg->target_acc_x, msg->target_acc_y, 0), estimator_->getState(State::YAW_COG, estimate_mode_)[0]);
+              setTargetAccX(target_acc.x());
+              setTargetAccY(target_acc.y());
+              break;
+            }
+          default:
+            {
+              break;
+            }
+          }
+        break;
+      }
     }
-  if(msg->pos_xy_nav_mode != aerial_robot_msgs::FlightNav::ACC_MODE) target_acc_.setValue(0,0,0);
+  if(!(msg->pos_xy_nav_mode == aerial_robot_msgs::FlightNav::ACC_MODE || msg->pos_xy_nav_mode == aerial_robot_msgs::FlightNav::POS_VEL_ACC_MODE)) target_acc_.setValue(0,0,0);
 
   /* z */
   if(msg->pos_z_nav_mode == aerial_robot_msgs::FlightNav::VEL_MODE)
