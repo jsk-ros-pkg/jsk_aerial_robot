@@ -36,7 +36,7 @@ class PolarPixelVisualizeNode:
         shift_x = rospy.get_param("~shift_x")
         shift_y = rospy.get_param("~shift_y")
 
-        theta_list = np.array([5,15,25,35,45,60,75,90, 105, 120, 134]) #deg
+        theta_list = np.array([5,15,25,35,45,60,75,90, 105, 120]) #deg
         acc_theta_list = np.array([1, 4, 7, 10]) #deg
         max_deg = 135 #deg
         resolution_deg = 0.25 #deg
