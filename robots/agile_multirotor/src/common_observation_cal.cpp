@@ -9,7 +9,7 @@ ObstacleCalculator::ObstacleCalculator(ros::NodeHandle nh, ros::NodeHandle pnh)
   pnh_.getParam("shift_x", shift_x_);
   pnh_.getParam("shift_y", shift_y_);
   pnh_.getParam("robot_ns", quad_name);
-  pnh_.getParam("print_poll_y", print_poll_y_);
+  pnh_.getParam("print_yaw", print_yaw_);
   pnh_.getParam("vel_calc_boundary", vel_calc_boundary_);
   //   file = file + ".csv";
   std::cout << "file name is " << file << std::endl;
@@ -57,6 +57,9 @@ void ObstacleCalculator::CalculatorCallback(
   Eigen::Quaternion<Scalar> quat;
   tf::quaternionMsgToEigen(msg->pose.pose.orientation, quat);
   Eigen::Vector3d euler = quat.toRotationMatrix().eulerAngles(0, 1, 2);
+  if (print_yaw_) {
+    std::cout << "yaw is " << euler[2] << std::endl;
+  }
   // set attitude as the yaw = 0.0
   if (euler[2] > M_PI /2) euler[2] = M_PI;
   else if (euler[2] < -M_PI /2) euler[2] = -M_PI;
@@ -169,11 +172,6 @@ T ObstacleCalculator::getsphericalboxel(const std::vector<Eigen::Vector3d, Eigen
 Scalar ObstacleCalculator::getClosestDistance(
     const std::vector<Vector<3>, Eigen::aligned_allocator<Vector<3>>> &converted_positions,
     const Vector<3> &poll_y, const Eigen::Vector3d &poll_z, Scalar tcell, Scalar fcell, Eigen::Vector3d &quad_pos) {
-  if (print_poll_y_) {
-    for (int i= 0; i < 3; i++) {
-      std::cout << "poll_y: " << poll_y[i] << std::endl;
-    }
-  }
   Eigen::Vector3d Cell = getCartesianFromAng(tcell, fcell);
   Eigen::Vector3d quad_wall_pos = quad_pos - Eigen::Vector3d(shift_x_, shift_y_, 0); // obstacle coordinate
   Scalar y_p = calc_dist_from_wall(1, Cell, poll_y, quad_wall_pos); //[m]
