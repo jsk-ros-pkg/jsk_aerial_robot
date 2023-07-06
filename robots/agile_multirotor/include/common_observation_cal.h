@@ -78,7 +78,7 @@ private:
   Scalar wall_pos_;
   
   const Scalar max_detection_range_ = 10;
-  bool print_poll_y_;
+  bool print_yaw_;
   Scalar vel_calc_boundary_;
 
   double shift_x_, shift_y_;
