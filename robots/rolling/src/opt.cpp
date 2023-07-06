@@ -15,8 +15,8 @@ public:
     start_sub_ = nh_.subscribe<std_msgs::Empty>("start_log", 1, &Opt::startCallback, this);
     radius_sub_ = nhp_.subscribe<std_msgs::Float32>("/rolling/feasible_control_torque_radius", 1, &Opt::radiusCallback, this);
 
-    nh_.param("step_num", step_num_, 100);
-    nh_.param("hz", hz_, 10);
+    nh_.param("step_num", step_num_, 50);
+    nh_.param("hz", hz_, 30);
     nh_.param("max_tilt", max_tilt_, M_PI/4.0);
 
     ROS_INFO("waiting start log");
@@ -87,7 +87,7 @@ private:
 
     if(reset_flag_)
       {
-        usleep(1000 * 1000);
+        usleep(500 * 1000);
         reset_flag_ = false;
       }
 
