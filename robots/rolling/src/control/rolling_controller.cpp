@@ -94,22 +94,23 @@ void RollingController::controlCore()
       gain_updated_ = true;
     }
 
-  groundControl();
+  flightControl();
+  // groundControl();
 
-  std::vector<Eigen::Vector3d> rotor_origin = rolling_robot_model_->getRotorsOriginFromContactPoint<Eigen::Vector3d>();
+  // std::vector<Eigen::Vector3d> rotor_origin = rolling_robot_model_->getRotorsOriginFromContactPoint<Eigen::Vector3d>();
   // for(int i = 0; i < motor_num_; i++)
   //   {
   //     std::cout << rotor_origin.at(i) << std::endl;
   //   }
   // std::cout << std::endl;
-  std::vector<Eigen::Vector3d> rotor_normal = rolling_robot_model_->getRotorsNormalFromContactPoint<Eigen::Vector3d>();
+  // std::vector<Eigen::Vector3d> rotor_normal = rolling_robot_model_->getRotorsNormalFromContactPoint<Eigen::Vector3d>();
   // for(int i = 0; i < motor_num_; i++)
   //   {
   //     std::cout << rotor_normal.at(i) << std::endl;
   //   }
   // std::cout << std::endl;
-  Eigen::Matrix3d inertia_cog = robot_model_->getInertia<Eigen::Matrix3d>();
-  Eigen::Matrix3d inertia_cp = rolling_robot_model_->getInertiaContactPoint<Eigen::Matrix3d>();
+  // Eigen::Matrix3d inertia_cog = robot_model_->getInertia<Eigen::Matrix3d>();
+  // Eigen::Matrix3d inertia_cp = rolling_robot_model_->getInertiaContactPoint<Eigen::Matrix3d>();
   // std::cout << inertia_cog << std::endl;
   // std::cout << inertia_cp << std::endl;
   // std::cout << std::endl;
