@@ -38,6 +38,10 @@ target_link_libraries(rolling_robot_model ${catkin_LIBRARIES})
 add_library(rolling_navigation src/rolling_navigation.cpp)
 target_link_libraries(rolling_navigation ${catkin_LIBRARIES})
 
+add_executable(opt src/opt.cpp)
+target_link_libraries(opt
+  ${catkin_LIBRARIES})
+
 install(DIRECTORY config launch plugins scripts
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
   USE_SOURCE_PERMISSIONS
