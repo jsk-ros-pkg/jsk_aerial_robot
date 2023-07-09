@@ -38,9 +38,15 @@ target_link_libraries(rolling_robot_model ${catkin_LIBRARIES})
 add_library(rolling_navigation src/rolling_navigation.cpp)
 target_link_libraries(rolling_navigation ${catkin_LIBRARIES})
 
-add_executable(opt src/opt.cpp)
+add_executable(opt src/design/opt.cpp)
 target_link_libraries(opt
   ${catkin_LIBRARIES})
+
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
+
+add_executable(optimal_design src/design/optimal_design.cpp)
+target_link_libraries(optimal_design
+  ${catkin_LIBRARIES} ${NLOPT_LIBRARIES})
 
 install(DIRECTORY config launch plugins scripts
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
