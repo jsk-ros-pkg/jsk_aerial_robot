@@ -54,11 +54,14 @@ private:
   {
     std::string file_name  = std::string("opt_") + std::to_string((int)ros::Time::now().toSec()) + std::string(".txt");
     ofs_.open(file_name, std::ios::out);
-    std::vector<std::string> rotors(3);
-    rotors.at(0) = "gimbal_coord1";
-    rotors.at(1) = "gimbal_coord2";
-    rotors.at(2) = "gimbal_coord3";
-    joint_state_msg_.name = rotors;
+    std::vector<std::string> gimbals(6);
+    gimbals.at(0) = "gimbal1";
+    gimbals.at(1) = "gimbal2";
+    gimbals.at(2) = "gimbal3";
+    gimbals.at(3) = "gimbal_pitch1";
+    gimbals.at(4) = "gimbal_pitch2";
+    gimbals.at(5) = "gimbal_pitch3";
+    joint_state_msg_.name = gimbals;
     ROS_INFO("start searching");
     start_flag_ = true;
     reset_flag_ = true;
@@ -77,7 +80,7 @@ private:
   void optFunc(const ros::TimerEvent & e)
   {
     if(!start_flag_) return;
-    std::vector<double> radians(3);
+    std::vector<double> radians(6);
     radians.at(0) = cntToRadianConvertion(rotor1_tilt_cnt_);
     radians.at(1) = cntToRadianConvertion(rotor2_tilt_cnt_);
     radians.at(2) = cntToRadianConvertion(rotor3_tilt_cnt_);
