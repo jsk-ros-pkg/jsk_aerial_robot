@@ -32,10 +32,14 @@ public:
 private:
   ros::Publisher feasible_control_force_pub_, feasible_control_torque_pub_;
   ros::Publisher feasible_control_force_radius_pub_, feasible_control_torque_radius_pub_;
+  ros::Publisher rotor_origin_pub_;
+  ros::Publisher rotor_normal_pub_;
   std::vector<KDL::Rotation> rotors_coord_rotation_from_cog_;
   std::vector<KDL::Rotation> links_rotation_from_cog_;
   std::vector<KDL::Vector> rotors_origin_from_contact_point_;
   std::vector<KDL::Vector> rotors_normal_from_contact_point_;
+  std::vector<KDL::Vector> rotors_x_axis_from_cog_;
+  std::vector<KDL::Vector> rotors_y_axis_from_cog_;
   KDL::Frame contact_point_;
   std::vector<double> gimbal_nominal_angles_;
   std::mutex rotors_coord_rotation_mutex_;
