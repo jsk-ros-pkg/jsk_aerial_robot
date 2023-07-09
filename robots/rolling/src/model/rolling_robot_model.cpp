@@ -9,6 +9,8 @@ RollingRobotModel::RollingRobotModel(bool init_with_rosparam, bool verbose, doub
   gimbal_nominal_angles_.resize(rotor_num);
   rotors_origin_from_contact_point_.resize(rotor_num);
   rotors_normal_from_contact_point_.resize(rotor_num);
+  rotors_x_axis_from_cog_.resize(rotor_num);
+  rotors_y_axis_from_cog_.resize(rotor_num);
   thrust_link_ = "thrust";
 
   ros::NodeHandle nh;
@@ -16,7 +18,8 @@ RollingRobotModel::RollingRobotModel(bool init_with_rosparam, bool verbose, doub
   feasible_control_torque_pub_ = nh.advertise<geometry_msgs::PoseArray>("feasible_control_torque_convex", 1);
   feasible_control_force_radius_pub_  = nh.advertise<std_msgs::Float32>("feasible_control_force_radius", 1);
   feasible_control_torque_radius_pub_ = nh.advertise<std_msgs::Float32>("feasible_control_torque_radius", 1);
-
+  rotor_origin_pub_ = nh.advertise<geometry_msgs::PoseArray>("debug/rotor_origin", 1);
+  rotor_normal_pub_ = nh.advertise<geometry_msgs::PoseArray>("debug/rotor_normal", 1);
 }
 
 void RollingRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_positions)
@@ -29,6 +32,7 @@ void RollingRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_position
 
   /* special process */
   KDL::Frame f_baselink;
+  KDL::Frame cog = getCog<KDL::Frame>();
   fk_solver.JntToCart(joint_positions, f_baselink, getBaselinkName());
   const KDL::Rotation cog_frame = f_baselink.M * getCogDesireOrientation<KDL::Rotation>().Inverse();
 
@@ -41,7 +45,16 @@ void RollingRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_position
       links_rotation_from_cog_[i] = cog_frame.Inverse() * f.M;
     }
 
-  /* rotor's coordinate */
+  // rotor's y and z axis
+  for(int i = 0; i < getRotorNum(); i++)
+    {
+      std::string rotor = thrust_link_ + std::to_string(i + 1);
+      KDL::Frame f = seg_tf_map.at(rotor);
+      rotors_x_axis_from_cog_.at(i) = (cog.Inverse() * f).M * KDL::Vector(1, 0, 0);
+      rotors_y_axis_from_cog_.at(i) = (cog.Inverse() * f).M * KDL::Vector(0, 1, 0);
+    }
+
+  /* rotor's neutral coordinate */
   for(int i = 0; i < getRotorNum(); ++i)
     {
       std::string s = std::to_string(i + 1);
@@ -67,7 +80,6 @@ void RollingRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_position
       link_inertia = link_inertia + f * inertia.second;
     }
 
-  KDL::Frame cog = getCog<KDL::Frame>();
   KDL::Frame cog2baselink = getCog2Baselink<KDL::Frame>();
   KDL::Vector contact_point_offset = KDL::Vector(0, -circle_radius_, 0);
   contact_point_.p = cog.p + cog.M * cog2baselink.M * contact_point_offset;
