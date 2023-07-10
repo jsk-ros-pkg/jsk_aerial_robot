@@ -127,7 +127,7 @@ class ApproachState(smach.State):
         self.z_offset = 0
         self.x_tol = 0.01
         self.y_tol = 0.01
-        self.z_tol = 0.02
+        self.z_tol = 0.01
         self.roll_tol = 0.08
         self.pich_tol = 0.08
         self.yaw_tol = 0.08
