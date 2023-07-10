@@ -1,0 +1,38 @@
+cmake_minimum_required(VERSION 3.0.2)
+project(beetle)
+
+add_compile_options(-std=c++14)
+
+find_package(catkin REQUIRED COMPONENTS
+  aerial_robot_control
+  aerial_robot_estimation
+  aerial_robot_model
+  aerial_robot_msgs
+  gimbalrotor
+  )
+
+find_package(Eigen3 REQUIRED)
+
+catkin_package(
+  CATKIN_DEPENDS aerial_robot_control aerial_robot_model aerial_robot_msgs pluginlib roscpp gimbalrotor
+)
+
+include_directories(
+  include
+  ${catkin_INCLUDE_DIRS}
+  ${EIGEN3_INCLUDE_DIRS}
+  )
+
+add_library(beetle_controller src/control/beetle_controller.cpp)
+target_link_libraries(beetle_controller ${catkin_LIBRARIES})
+
+add_library(beetle_robot_model src/model/beetle_robot_model.cpp)
+target_link_libraries(beetle_robot_model ${catkin_LIBRARIES})
+
+add_library(beetle_navigation src/beetle_navigation.cpp)
+target_link_libraries(beetle_navigation ${catkin_LIBRARIES})
+
+install(DIRECTORY config plugins launch
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+  USE_SOURCE_PERMISSIONS
+  )
