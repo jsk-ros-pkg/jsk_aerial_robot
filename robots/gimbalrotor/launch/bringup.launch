@@ -93,7 +93,7 @@
   ########## Simulation in Gazebo #########
   <include file="$(find aerial_robot_simulation)/launch/simulation.launch" if = "$(eval arg('simulation') and not arg('real_machine'))" >
     <arg name="robot_ns" default="$(arg robot_ns)" />
-    <arg name="gui" value="$(arg gui)" if="$(arg headless)"/>
+    <arg name="gui" value="false" if="$(arg headless)"/>
     <arg name="headless" default="$(arg headless)" />
     <arg name="launch_gazebo" default="$(arg launch_gazebo)" />
     <arg name="worldtype" value="$(arg worldtype)" />
