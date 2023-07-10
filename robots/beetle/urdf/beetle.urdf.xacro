@@ -63,74 +63,33 @@
       <axis xyz="0 0 1"/>
     </joint>
 
+    ## rotor arm macro
+    <xacro:macro name="dummy_rotor_arm" params="id x y z yaw">
+      ## link
+      <link name="rotor_arm${id}">
+        <inertial>
+          <origin xyz="0 0 0" rpy="0 0 0"/>
+          <mass value="0.0001"/>
+          <inertia
+              ixx="0.000001" ixy="0.0" ixz="0.0"
+              iyy="0.0001" iyz="0.0"
+              izz="0.0001"/>
+        </inertial>
+      </link>
+      ## joint
+      <joint name="base_arm_joint${id}" type="fixed">
+        <parent link="base_link"/>
+        <child link="rotor_arm${id}"/>
+        <origin rpy="0 0 ${yaw}" xyz="${x} ${y} ${z}"/>
+        <axis xyz="0 0 1"/>
+      </joint>
+    </xacro:macro>
+
     ## dummy rotor arms
-    <link name="rotor_arm${child1}">
-      <inertial>
-        <origin xyz="0 0 0" rpy="0 0 0"/>
-        <mass value="0.0001"/>
-        <inertia
-            ixx="0.000001" ixy="0.0" ixz="0.0"
-            iyy="0.0001" iyz="0.0"
-            izz="0.0001"/>
-      </inertial>
-    </link>
-    <joint name="base_arm_joint${child1}" type="fixed">
-      <parent link="base_link"/>
-      <child link="rotor_arm${child1}"/>
-      <origin rpy="0 0 ${pi/4}" xyz="0.12488 0.12509 0.1185"/>
-      <axis xyz="0 0 1"/>
-    </joint>
-
-    <link name="rotor_arm${child2}">
-      <inertial>
-        <origin xyz="0.0486 0 0.0161" rpy="0 0 0"/>
-        <mass value="0.0001"/>
-        <inertia
-            ixx="0.000001" ixy="0.0" ixz="0.0"
-            iyy="0.0001" iyz="0.0"
-            izz="0.0001"/>
-      </inertial>
-    </link>
-    <joint name="base_arm_joint${child2}" type="fixed">
-      <parent link="base_link"/>
-      <child link="rotor_arm${child2}"/>
-      <origin rpy="0 0 ${pi*3.0/4.0}" xyz="-0.12488 0.12509 0.1185"/>
-      <axis xyz="0 0 1"/>
-    </joint>
-
-    <link name="rotor_arm${child3}">
-      <inertial>
-        <origin xyz="0.0486 0 0.0161" rpy="0 0 0"/>
-        <mass value="0.0001"/>
-        <inertia
-            ixx="0.000001" ixy="0.0" ixz="0.0"
-            iyy="0.0001" iyz="0.0"
-            izz="0.0001"/>
-      </inertial>
-    </link>
-    <joint name="base_arm_joint${child3}" type="fixed">
-      <parent link="base_link"/>
-      <child link="rotor_arm${child3}"/>
-      <origin rpy="0 0 ${pi*5.0/4.0}" xyz="-0.12488 -0.12509 0.1185"/>
-      <axis xyz="0 0 1"/>
-    </joint>
-
-    <link name="rotor_arm${child4}">
-      <inertial>
-        <origin xyz="0.0486 0 0.0161" rpy="0 0 0"/>
-        <mass value="0.0001"/>
-        <inertia
-            ixx="0.000001" ixy="0.0" ixz="0.0"
-            iyy="0.0001" iyz="0.0"
-            izz="0.0001"/>
-      </inertial>
-    </link>
-    <joint name="base_arm_joint${child4}" type="fixed">
-      <parent link="base_link"/>
-      <child link="rotor_arm${child4}"/>
-      <origin rpy="0 0 ${-pi/4.0}" xyz="0.12488 -0.12509 0.1185"/>
-      <axis xyz="0 0 1"/>
-    </joint>
+    <xacro:dummy_rotor_arm id = "${child1}" x = "0.12488" y="0.12509" z = "0.1185" yaw = "${pi/4.0}"/>
+    <xacro:dummy_rotor_arm id = "${child2}" x = "-0.12488" y="0.12509" z = "0.1185" yaw = "${pi*3.0/4.0}"/>
+    <xacro:dummy_rotor_arm id = "${child3}" x = "-0.12488" y="-0.12509" z = "0.1185" yaw = "${pi*5.0/4.0}"/>
+    <xacro:dummy_rotor_arm id = "${child4}" x = "0.12488" y="-0.12509" z = "0.1185" yaw = "${-pi/4.0}"/>
 
     <xacro:friction self="base_link"/>
   </xacro:macro>
