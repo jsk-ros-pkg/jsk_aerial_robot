@@ -177,13 +177,20 @@ namespace aerial_robot_control
     }
     else
       {
+        sensor_msgs::JointState gimbal_control_msg;
+        gimbal_control_msg.header.stamp = ros::Time::now();
+        for(int i = 0; i < motor_num_; i++){
+          gimbal_control_msg.position.push_back(target_gimbal_angles_.at(i));
+        }
+        gimbal_control_pub_.publish(gimbal_control_msg);
+        
         std_msgs::Float32MultiArray target_vectoring_force_msg;
         for(int i = 0; i < target_vectoring_f_.size(); i++){
           target_vectoring_f_ = target_vectoring_f_trans_ + target_vectoring_f_rot_;
           target_vectoring_force_msg.data.push_back(target_vectoring_f_(i));
         }
         target_vectoring_force_pub_.publish(target_vectoring_force_msg);
-
+        
       }
   }
 
