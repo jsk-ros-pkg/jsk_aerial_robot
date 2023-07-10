@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <launch>
-  <arg name="spawn_x_1" default="0.0"/>
+  <arg name="headless" default="false"/>
+  <arg name="spawn_x_1" default="-2.0"/>
   <arg name="spawn_y_1" default="0.0"/>
   <arg name="spawn_yaw_1" default="0.0"/>
-  <arg name="spawn_x_2" default="1.0"/>
+  <arg name="spawn_x_2" default="0.0"/>
   <arg name="spawn_y_2" default="0.0"/>
   <arg name="spawn_yaw_2" default="0.0"/>
   <arg name="spawn_x_3" default="2.0"/>
@@ -14,37 +15,41 @@
       <arg name="robot_id" value="1"/>
       <arg name="real_machine" value="false"/>
       <arg name="simulation" value="true"/>
-      <arg name="headless" value="false"/>
+      <arg name="headless" value="$(arg headless)"/>
       <arg name="launch_gazebo" value="true"/>
       <arg name="estimate_mode" value="1"/>
       <arg name="spawn_x" default="$(arg spawn_x_1)"/>
       <arg name="spawn_y" default="$(arg spawn_y_1)"/>
       <arg name="spawn_yaw" default="$(arg spawn_yaw_1)"/>
+      <!-- <arg name="airframe" default="tri"/> -->
     </include>
 
     <include file="$(find gimbalrotor)/launch/bringup.launch">
       <arg name="robot_id" value="2"/>
       <arg name="real_machine" value="false"/>
       <arg name="simulation" value="true"/>
-      <arg name="headless" value="false"/>
+      <arg name="headless" value="$(arg headless)"/>
       <arg name="launch_gazebo" value="false"/>
       <arg name="estimate_mode" value="1"/>
       <arg name="spawn_x" default="$(arg spawn_x_2)"/>
       <arg name="spawn_y" default="$(arg spawn_y_2)"/>
       <arg name="spawn_yaw" default="$(arg spawn_yaw_2)"/>
+      <!-- <arg name="airframe" default="tri"/> -->
     </include>
 
     <include file="$(find gimbalrotor)/launch/bringup.launch">
       <arg name="robot_id" value="3"/>
       <arg name="real_machine" value="false"/>
       <arg name="simulation" value="true"/>
-      <arg name="headless" value="false"/>
+      <arg name="headless" value="$(arg headless)"/>
       <arg name="launch_gazebo" value="false"/>
       <arg name="estimate_mode" value="1"/>
       <arg name="spawn_x" default="$(arg spawn_x_3)"/>
       <arg name="spawn_y" default="$(arg spawn_y_3)"/>
       <arg name="spawn_yaw" default="$(arg spawn_yaw_3)"/>
+      <!-- <arg name="airframe" value="tri"/> -->
     </include>
+
   </group>
 
 </launch>
