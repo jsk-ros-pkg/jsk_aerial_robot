@@ -24,13 +24,15 @@ Standby -> Approach -> Assembly
 class StandbyState(smach.State):
     def __init__(self):
         smach.State.__init__(self, outcomes=['done','in_process'])
-
+        #rosparams
+        self.leader =  rospy.get_param("/assemble_demo/leader", "gimbalrotor2")
+        self.follower =  rospy.get_param("/assemble_demo/follower", "gimbalrotor1")
         # tf listener and broadcaster
         self.listener = tf.TransformListener()
         self.br = tf.TransformBroadcaster()
         # publisher
-        self.follower_nav_pub = rospy.Publisher("gimbalrotor1/uav/nav", FlightNav, queue_size=10)
-        self.follower_att_pub = rospy.Publisher("gimbalrotor1/final_target_baselink_rot", DesireCoord, queue_size=10)
+        self.follower_nav_pub = rospy.Publisher(self.follower+"/uav/nav", FlightNav, queue_size=10)
+        self.follower_att_pub = rospy.Publisher(self.follower+"/final_target_baselink_rot", DesireCoord, queue_size=10)
         # parameters
         self.frame_size = 0.52
         self.x_offset = 0.1
@@ -38,11 +40,11 @@ class StandbyState(smach.State):
         self.z_offset = 0
         self.x_tol = 0.01
         self.y_tol = 0.01
-        self.z_tol = 0.02
+        self.z_tol = 0.01
         self.roll_tol = 0.08
         self.pich_tol = 0.08
         self.yaw_tol = 0.08
-        self.root_fc_dis = 0.129947
+        self.root_fc_dis = 0.129947 #set from urdf
         self.target_offset = np.array([-(self.frame_size + self.x_offset), self.y_offset, self.z_offset]) # position offset while StandbyState
         self.pos_error_tol = np.array([self.x_tol, self.y_tol, self.z_tol]) # position error torelance
         self.att_error_tol = np.array([self.roll_tol, self.pich_tol, self.yaw_tol]) # attitude error torelance
@@ -54,11 +56,11 @@ class StandbyState(smach.State):
         # calculate now follower position in leader coordinate
         #TODO: determine leader namespace dynamically
         try:
-            leader_from_world = self.listener.lookupTransform('/world', '/gimbalrotor2/root', rospy.Time(0))
+            leader_from_world = self.listener.lookupTransform('/world', self.leader+'/root', rospy.Time(0))
         except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
             return 'in_process'
         try:
-            follower_from_leader = self.listener.lookupTransform('/gimbalrotor2/root', '/gimbalrotor1/root', rospy.Time(0))
+            follower_from_leader = self.listener.lookupTransform(self.leader+'/root', self.follower+'/root', rospy.Time(0))
         except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
             return 'in_process'
 
@@ -68,7 +70,7 @@ class StandbyState(smach.State):
                               tf.transformations.quaternion_from_euler(0, 0, 0),
                               rospy.Time.now(),
                               "follower_target_odom",
-                              "/gimbalrotor2/root")
+                              self.leader+"/root")
 
         # convert target position from leader coord to world coord
         try:
@@ -109,13 +111,15 @@ class StandbyState(smach.State):
 class ApproachState(smach.State):
     def __init__(self):
         smach.State.__init__(self, outcomes=['done','in_process','fail'])
-
+        # rosparam
+        self.leader =  rospy.get_param("/assemble_demo/leader", "gimbalrotor2")
+        self.follower =  rospy.get_param("/assemble_demo/follower", "gimbalrotor1")
         # tf listener and broadcaster
         self.listener = tf.TransformListener()
         self.br = tf.TransformBroadcaster()
         # publisher
-        self.follower_nav_pub = rospy.Publisher("gimbalrotor1/uav/nav", FlightNav, queue_size=10)
-        self.follower_att_pub = rospy.Publisher("gimbalrotor1/final_target_baselink_rot", DesireCoord, queue_size=10)
+        self.follower_nav_pub = rospy.Publisher(self.follower+"/uav/nav", FlightNav, queue_size=10)
+        self.follower_att_pub = rospy.Publisher(self.follower+"/final_target_baselink_rot", DesireCoord, queue_size=10)
         # parameters
         self.frame_size = 0.52
         self.x_offset = 0
@@ -150,7 +154,7 @@ class ApproachState(smach.State):
         # calculate now follower position in leader coordinate
         #TODO: determine leader namespace dynamically
         try:
-            follower_from_leader = self.listener.lookupTransform('/gimbalrotor2/root', '/gimbalrotor1/root', rospy.Time(0))
+            follower_from_leader = self.listener.lookupTransform(self.leader+'/root', self.follower+'/root', rospy.Time(0))
         except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
             return 'in_process'
 
@@ -160,7 +164,7 @@ class ApproachState(smach.State):
                               tf.transformations.quaternion_from_euler(0, 0, 0),
                               rospy.Time.now(),
                               "follower_target_odom",
-                              "/gimbalrotor2/root")
+                              self.leader+"/root")
 
         # convert target position from leader coord to world coord
         try:
@@ -203,10 +207,13 @@ class ApproachState(smach.State):
 class AssemblyState(smach.State):
     def __init__(self):
         smach.State.__init__(self, outcomes=['done'])
+        # rosparam
+        self.leader =  rospy.get_param("/assemble_demo/leader", "gimbalrotor1")
+        self.follower =  rospy.get_param("/assemble_demo/follower", "gimbalrotor2")
         # publisher
-        self.follower_peg_pub = rospy.Publisher("gimbalrotor1/peg_insertion", Bool, queue_size=10)
-        self.follower_docking_pub = rospy.Publisher("gimbalrotor1/docking_cmd", Bool, queue_size=10)
-        self.follower_nav_pub = rospy.Publisher("gimbalrotor1/uav/nav", FlightNav, queue_size=10)
+        self.follower_peg_pub = rospy.Publisher(self.follower+"/peg_insertion", Bool, queue_size=10)
+        self.follower_docking_pub = rospy.Publisher(self.follower+"/docking_cmd", Bool, queue_size=10)
+        self.follower_nav_pub = rospy.Publisher(self.follower+"/uav/nav", FlightNav, queue_size=10)
 
     def execute(self, userdata):
         rospy.loginfo('assembled!')
