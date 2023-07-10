@@ -13,21 +13,11 @@ GimbalrotorRobotModel::GimbalrotorRobotModel(bool init_with_rosparam, bool verbo
 void GimbalrotorRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_positions)
 {
   KDL::TreeFkSolverPos_recursive fk_solver(getTree());
-  /* special process */
+  // /* special process */
   KDL::Frame f_baselink;
   fk_solver.JntToCart(joint_positions, f_baselink, getBaselinkName());
   const KDL::Rotation cog_frame = f_baselink.M * getCogDesireOrientation<KDL::Rotation>().Inverse();
-  const auto joint_index_map = getJointIndexMap();
-  gimbal_processed_joint_ = joint_positions;
-  /* link based on COG */
-  for(int i = 0; i < getRotorNum(); ++i)
-    {
-      KDL::Frame f;
-      links_rotation_from_cog_[i] = cog_frame.Inverse() * f.M;
-    }
-  /* normal robot model update */
-  RobotModel::updateRobotModelImpl(gimbal_processed_joint_);
-
+  RobotModel::updateRobotModelImpl(joint_positions);
   const auto seg_tf_map = getSegmentsTf();
 
   /* get local coords of thrust links */
