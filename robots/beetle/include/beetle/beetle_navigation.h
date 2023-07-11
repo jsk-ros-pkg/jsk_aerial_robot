@@ -3,6 +3,7 @@
 #pragma once
 
 #include <gimbalrotor/gimbalrotor_navigation.h>
+#include <beetle/model/beetle_robot_model.h>
 
 namespace aerial_robot_navigation
 {
@@ -18,5 +19,9 @@ namespace aerial_robot_navigation
 
     void update() override;
 
+  private:
+    void rotateContactPointFrame();
+    tf2_ros::TransformBroadcaster br_;
+    boost::shared_ptr<BeetleRobotModel> beetle_robot_model_;
   };
 };
