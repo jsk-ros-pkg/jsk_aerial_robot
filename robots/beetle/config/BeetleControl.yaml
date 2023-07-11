@@ -1,4 +1,4 @@
-aerial_robot_control_name: aerial_robot_control/gimbalrotor_controller
+aerial_robot_control_name: aerial_robot_control/beetle_controller
 
 controller:
   torque_allocation_matrix_inv_pub_interval: 0.05
