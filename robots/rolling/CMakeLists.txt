@@ -42,6 +42,10 @@ add_executable(opt src/design/opt.cpp)
 target_link_libraries(opt
   ${catkin_LIBRARIES})
 
+add_executable(full_search src/design/full_search.cpp)
+target_link_libraries(full_search
+  ${catkin_LIBRARIES})
+
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
 
 add_executable(optimal_design src/design/optimal_design.cpp)
