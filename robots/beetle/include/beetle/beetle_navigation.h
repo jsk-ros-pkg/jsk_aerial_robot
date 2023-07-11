@@ -7,6 +7,13 @@
 
 namespace aerial_robot_navigation
 {
+  /* target frmae*/
+  enum target_framea
+    {
+     COG,
+     BASE_LINK,
+     CONTACT_POINT
+    };
   class BeetleNavigator : public GimbalrotorNavigator
   {
   public:
@@ -20,6 +27,7 @@ namespace aerial_robot_navigation
     void update() override;
 
   private:
+    void naviCallback(const aerial_robot_msgs::FlightNavConstPtr & msg) override;
     void rotateContactPointFrame();
     tf2_ros::TransformBroadcaster br_;
     boost::shared_ptr<BeetleRobotModel> beetle_robot_model_;
