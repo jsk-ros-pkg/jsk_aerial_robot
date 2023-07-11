@@ -14,7 +14,11 @@
   <arg name="spawn_y_4" default="0.0"/>
   <arg name="spawn_yaw_4" default="0.0"/>
   <group>
+<<<<<<< Updated upstream
     <include file="$(find gimbalrotor)/launch/bringup.launch">
+=======
+    <include file="$(find beetle)/launch/bringup.launch">
+>>>>>>> Stashed changes
       <arg name="robot_id" value="1"/>
       <arg name="real_machine" value="false"/>
       <arg name="simulation" value="true"/>
@@ -27,7 +31,11 @@
       <!-- <arg name="airframe" default="tri"/> -->
     </include>
 
+<<<<<<< Updated upstream
     <include file="$(find gimbalrotor)/launch/bringup.launch">
+=======
+    <include file="$(find beetle)/launch/bringup.launch">
+>>>>>>> Stashed changes
       <arg name="robot_id" value="2"/>
       <arg name="real_machine" value="false"/>
       <arg name="simulation" value="true"/>
@@ -40,7 +48,11 @@
       <!-- <arg name="airframe" default="tri"/> -->
     </include>
 
+<<<<<<< Updated upstream
     <include file="$(find gimbalrotor)/launch/bringup.launch">
+=======
+    <include file="$(find beetle)/launch/bringup.launch">
+>>>>>>> Stashed changes
       <arg name="robot_id" value="3"/>
       <arg name="real_machine" value="false"/>
       <arg name="simulation" value="true"/>
@@ -53,7 +65,11 @@
       <!-- <arg name="airframe" value="tri"/> -->
     </include>
 
+<<<<<<< Updated upstream
     <include file="$(find gimbalrotor)/launch/bringup.launch">
+=======
+    <include file="$(find beetle)/launch/bringup.launch">
+>>>>>>> Stashed changes
       <arg name="robot_id" value="4"/>
       <arg name="real_machine" value="false"/>
       <arg name="simulation" value="true"/>
