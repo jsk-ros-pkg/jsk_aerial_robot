@@ -269,17 +269,8 @@ void BaseNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & ms
   /* z */
   if(msg->pos_z_nav_mode == aerial_robot_msgs::FlightNav::VEL_MODE)
     {
-      tf::Vector3 target_cog_pos(0, 0, msg->target_pos_z);
-      if(msg->target == aerial_robot_msgs::FlightNav::BASELINK)
-        {
-          /* check the transformation */
-          tf::Transform cog2baselink_tf;
-          tf::transformKDLToTF(robot_model_->getCog2Baselink<KDL::Frame>(), cog2baselink_tf);
-          target_cog_pos -= cog2baselink_tf.getOrigin();
-        }
-
       /* special */
-      addTargetPosZ(target_cog_pos.z());
+      addTargetPosZ(msg->target_pos_diff_z);
       setTargetVelZ(0);
     }
   else if(msg->pos_z_nav_mode == aerial_robot_msgs::FlightNav::POS_MODE)
