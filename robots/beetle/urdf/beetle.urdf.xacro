@@ -31,7 +31,7 @@
             ixy="-0.0000001" ixz="-0.0015934" iyz="0.0000027"/>
       </inertial>   
       <visual>
-        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <origin xyz="0 0 0" rpy="0 0 3.141592"/>
         <geometry>
           <mesh filename="package://beetle/urdf/mesh/base_link.dae"/>
         </geometry>
@@ -90,6 +90,24 @@
     <xacro:dummy_rotor_arm id = "${child2}" x = "-0.12488" y="0.12509" z = "0.1185" yaw = "${pi*3.0/4.0}"/>
     <xacro:dummy_rotor_arm id = "${child3}" x = "-0.12488" y="-0.12509" z = "0.1185" yaw = "${pi*5.0/4.0}"/>
     <xacro:dummy_rotor_arm id = "${child4}" x = "0.12488" y="-0.12509" z = "0.1185" yaw = "${-pi/4.0}"/>
+
+    ## dummy link for the contact point coordinate
+      <link name="contact_point">
+        <inertial>
+          <origin xyz="0 0 0" rpy="0 0 0"/>
+          <mass value="0.0001"/>
+          <inertia
+              ixx="0.000001" ixy="0.0" ixz="0.0"
+              iyy="0.0001" iyz="0.0"
+              izz="0.0001"/>
+        </inertial>
+      </link>
+      <joint name="cp_base_joint" type="fixed">
+        <parent link="base_link"/>
+        <child link="contact_point"/>
+        <origin rpy="0 0 0" xyz="0.26 0 0"/>
+        <axis xyz="0 0 1"/>
+      </joint>    
 
     <xacro:friction self="base_link"/>
   </xacro:macro>
