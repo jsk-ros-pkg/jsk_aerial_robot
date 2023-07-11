@@ -15,6 +15,8 @@ void BeetleRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_positions
   variable_cp_frame.M = fix_cp_frame.M * getCogDesireOrientation<KDL::Rotation>().Inverse();
   variable_cp_frame.p = fix_cp_frame.p;
   setContactFrame(variable_cp_frame);
+  KDL::Frame Cog2Cp;
+  setCog2Cp(getCog<KDL::Frame>().Inverse() * variable_cp_frame);
 }
 
 /* plugin registration */
