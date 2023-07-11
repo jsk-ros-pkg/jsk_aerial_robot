@@ -18,6 +18,189 @@ void BeetleNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   beetle_robot_model_ = boost::dynamic_pointer_cast<BeetleRobotModel>(robot_model);
 }
 
+void BeetleNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & msg)
+{
+
+  if(getNaviState() == TAKEOFF_STATE || BaseNavigator::getNaviState() == LAND_STATE) return;
+
+  gps_waypoint_ = false;
+
+  if(force_att_control_flag_) return;
+
+  /* yaw */
+  if(msg->yaw_nav_mode == aerial_robot_msgs::FlightNav::POS_MODE)
+    {
+      setTargetYaw(angles::normalize_angle(msg->target_yaw));
+      setTargetOmageZ(0);
+    }
+  if(msg->yaw_nav_mode == aerial_robot_msgs::FlightNav::POS_VEL_MODE)
+    {
+      setTargetYaw(angles::normalize_angle(msg->target_yaw));
+      setTargetOmageZ(msg->target_omega_z);
+    }
+
+  /* xy control */
+  switch(msg->pos_xy_nav_mode)
+    {
+    case aerial_robot_msgs::FlightNav::POS_MODE:
+      {
+        tf::Vector3 target_cog_pos(msg->target_pos_x, msg->target_pos_y, 0);
+        if(msg->target == aerial_robot_msgs::FlightNav::BASELINK)
+          {
+            /* check the transformation */
+            tf::Transform cog2baselink_tf;
+            tf::transformKDLToTF(robot_model_->getCog2Baselink<KDL::Frame>(), cog2baselink_tf);
+            target_cog_pos -= tf::Matrix3x3(tf::createQuaternionFromYaw(getTargetRPY().z()))
+              * cog2baselink_tf.getOrigin();
+          }
+        else if(msg->target == CONTACT_POINT)
+          {
+            /* check the transformation */
+            tf::Transform cog2cp_tf;
+            tf::transformKDLToTF(beetle_robot_model_->getCog2Cp<KDL::Frame>(), cog2cp_tf);
+            target_cog_pos -= cog2cp_tf.getOrigin();
+          }
+
+        tf::Vector3 target_delta = getTargetPos() - target_cog_pos;
+        target_delta.setZ(0);
+
+        if(target_delta.length() > vel_nav_threshold_)
+          {
+            ROS_WARN("start vel nav control for waypoint");
+            vel_based_waypoint_ = true;
+            xy_control_mode_ = VEL_CONTROL_MODE;
+          }
+
+        if(!vel_based_waypoint_)
+          xy_control_mode_ = POS_CONTROL_MODE;
+
+        setTargetPosX(target_cog_pos.x());
+        setTargetPosY(target_cog_pos.y());
+        setTargetVelX(0);
+        setTargetVelY(0);
+
+        break;
+      }
+    case aerial_robot_msgs::FlightNav::VEL_MODE:
+      {
+        if(msg->target == aerial_robot_msgs::FlightNav::BASELINK)
+          {
+            ROS_ERROR("[Flight nav] can not do vel nav for baselink");
+            return;
+          }
+        /* should be in COG frame */
+        xy_control_mode_ = VEL_CONTROL_MODE;
+        switch(msg->control_frame)
+          {
+          case WORLD_FRAME:
+            {
+              setTargetVelX(msg->target_vel_x);
+              setTargetVelY(msg->target_vel_y);
+              break;
+            }
+          case LOCAL_FRAME:
+            {
+              tf::Vector3 target_vel = frameConversion(tf::Vector3(msg->target_vel_x, msg->target_vel_y, 0),  estimator_->getState(State::YAW_COG, estimate_mode_)[0]);
+              setTargetVelX(target_vel.x());
+              setTargetVelY(target_vel.y());
+              break;
+            }
+          default:
+            {
+              break;
+            }
+          }
+        break;
+      }
+    case aerial_robot_msgs::FlightNav::POS_VEL_MODE:
+      {
+        if(msg->target == aerial_robot_msgs::FlightNav::BASELINK)
+          {
+            ROS_ERROR("[Flight nav] can not do pos_vel nav for baselink");
+            return;
+          }
+
+        xy_control_mode_ = POS_CONTROL_MODE;
+        setTargetPosX(msg->target_pos_x);
+        setTargetPosY(msg->target_pos_y);
+        setTargetVelX(msg->target_vel_x);
+        setTargetVelY(msg->target_vel_y);
+
+        break;
+      }
+    case aerial_robot_msgs::FlightNav::ACC_MODE:
+      {
+        /* should be in COG frame */
+        xy_control_mode_ = ACC_CONTROL_MODE;
+        prev_xy_control_mode_ = ACC_CONTROL_MODE;
+
+        switch(msg->control_frame)
+          {
+          case WORLD_FRAME:
+            {
+              target_acc_.setValue(msg->target_acc_x, msg->target_acc_y, 0);
+              break;
+            }
+          case LOCAL_FRAME:
+            {
+              tf::Vector3 target_acc = frameConversion(tf::Vector3(msg->target_acc_x, msg->target_acc_y, 0), estimator_->getState(State::YAW_COG, estimate_mode_)[0]);
+              setTargetAccX(target_acc.x());
+              setTargetAccY(target_acc.y());
+              break;
+            }
+          default:
+            {
+              break;
+            }
+          }
+        break;
+      }
+    case aerial_robot_msgs::FlightNav::GPS_WAYPOINT_MODE:
+      {
+        target_wp_ = geodesy::toMsg(msg->target_pos_x, msg->target_pos_y);
+        gps_waypoint_ = true;
+
+        break;
+      }
+    }
+  if(msg->pos_xy_nav_mode != aerial_robot_msgs::FlightNav::ACC_MODE) target_acc_.setValue(0,0,0);
+
+  /* z */
+  if(msg->pos_z_nav_mode == aerial_robot_msgs::FlightNav::VEL_MODE)
+    {
+      tf::Vector3 target_cog_pos(0, 0, msg->target_pos_z);
+      if(msg->target == aerial_robot_msgs::FlightNav::BASELINK)
+        {
+          /* check the transformation */
+          tf::Transform cog2baselink_tf;
+          tf::transformKDLToTF(robot_model_->getCog2Baselink<KDL::Frame>(), cog2baselink_tf);
+          target_cog_pos -= cog2baselink_tf.getOrigin();
+        }
+      else if(msg->target == CONTACT_POINT)
+        {
+          /* check the transformation */
+          tf::Transform cog2cp_tf;
+          tf::transformKDLToTF(beetle_robot_model_->getCog2Cp<KDL::Frame>(), cog2cp_tf);
+          target_cog_pos -= cog2cp_tf.getOrigin();
+        }
+
+      /* special */
+      addTargetPosZ(target_cog_pos.z());
+      setTargetVelZ(0);
+    }
+  else if(msg->pos_z_nav_mode == aerial_robot_msgs::FlightNav::POS_MODE)
+    {
+      setTargetPosZ(msg->target_pos_z);
+      setTargetVelZ(0);
+    }
+  else if(msg->pos_z_nav_mode == aerial_robot_msgs::FlightNav::POS_VEL_MODE)
+    {
+      setTargetPosZ(msg->target_pos_z);
+      setTargetVelZ(msg->target_vel_z);
+    }
+
+}
+
 void BeetleNavigator::update()
 {
   rotateContactPointFrame();
