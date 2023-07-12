@@ -112,22 +112,35 @@ void thrustSearch()
                   min_tau_z = std::min(min_tau_z, torque(2));
                   max_tau_z = std::max(max_tau_z, torque(2));
 
-                  double fc_t_x_min = std::min(fabs(min_tau_x), fabs(max_tau_x));
-                  double fc_t_y_min = std::min(fabs(min_tau_y), fabs(max_tau_y));
-                  double fc_t_z_min = std::min(fabs(min_tau_z), fabs(max_tau_z));
+                  double fc_t_x_min;
+                  double fc_t_y_min;
+                  double fc_t_z_min;
+
+                  if(min_tau_x > 0.0 || max_tau_x < 0.0) fc_t_x_min = 0.0;
+                  else  fc_t_x_min = std::min(fabs(min_tau_x), fabs(max_tau_x));
+
+                  if(min_tau_y > 0.0 || max_tau_y < 0.0) fc_t_y_min = 0.0;
+                  else  fc_t_y_min = std::min(fabs(min_tau_y), fabs(max_tau_y));
+
+                  if(min_tau_z > 0.0 || max_tau_z < 0.0) fc_t_z_min = 0.0;
+                  else  fc_t_z_min = std::min(fabs(min_tau_z), fabs(max_tau_z));
+
                   fc_t_min = std::max(fc_t_min, std::min(fc_t_x_min, std::min(fc_t_y_min, fc_t_z_min)));
+
                 }
             }
         }
     }
 
-if(fc_t_min > fc_t_min_max)
-  {
-    fc_t_min_max = fc_t_min;
-    max_theta.at(0) = theta.at(0);
-    max_theta.at(1) = theta.at(1);
-    max_theta.at(2) = theta.at(2);
-  }
+
+
+  if(fc_t_min > fc_t_min_max)
+    {
+      fc_t_min_max = fc_t_min;
+      max_theta.at(0) = theta.at(0);
+      max_theta.at(1) = theta.at(1);
+      max_theta.at(2) = theta.at(2);
+    }
 
 }
 
@@ -145,18 +158,9 @@ int main(int argc, char **argv)
           for(int k = 0; k < theta_count_max + 1; k++)
             {
               fc_t_min = 0.0;
-              bool plus = false;
-              bool minus = false;
-              theta.at(0) = (double)i  / theta_count_max * theta_max;
-              theta.at(1) = -(double)j / theta_count_max * theta_max;
-              theta.at(2) = (double)k  / theta_count_max * theta_max;
-              if(theta.at(0) > 0.0) plus = true;
-              if(theta.at(0) < 0.0) minus = true;
-              if(theta.at(1) > 0.0) plus = true;
-              if(theta.at(1) < 0.0) minus = true;
-              if(theta.at(2) > 0.0) plus = true;
-              if(theta.at(2) < 0.0) minus = true;
-              if(!plus || !minus) continue;
+              theta.at(0) = (double)i / theta_count_max * 2.0 * theta_max - theta_max;
+              theta.at(1) = (double)j / theta_count_max * 2.0 * theta_max - theta_max;
+              theta.at(2) = (double)k / theta_count_max * 2.0 * theta_max - theta_max;
 
               for(int l = 0; l < phi_count_max + 1; l++)
                 {
