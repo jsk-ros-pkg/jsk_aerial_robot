@@ -90,6 +90,28 @@ void thrustSearch()
   double min_tau_z = 1e6;
   double max_tau_z = -1e6;
 
+  bool flag = true;
+  bool v_x_plus = false;
+  bool v_x_minus = false;
+  bool v_y_plus = false;
+  bool v_y_minus = false;
+  bool v_z_plus = false;
+  bool v_z_minus = false;
+
+  for(int i = 0; i < v.size(); i++)
+    {
+      if(v.at(i)(0) > 0.0) v_x_plus = true;
+      if(v.at(i)(0) < 0.0) v_x_minus = true;
+      if(v.at(i)(1) > 0.0) v_y_plus = true;
+      if(v.at(i)(1) < 0.0) v_y_minus = true;
+      if(v.at(i)(2) > 0.0) v_z_plus = true;
+      if(v.at(i)(2) < 0.0) v_z_minus = true;
+    }
+
+  if(v_x_plus && v_x_minus && v_y_plus && v_y_minus && v_z_plus && v_z_minus) flag = true;
+  else flag = false;
+
+  if(flag){
   for(int i = 0; i < thrust_count_max + 1; i++)
     {
       for(int j = 0; j < thrust_count_max + 1; j++)
@@ -103,7 +125,7 @@ void thrustSearch()
               Eigen::Vector3d force  = u.at(0) * thrust0 + u.at(1) * thrust1 + u.at(2) * thrust2;
               Eigen::Vector3d torque = v.at(0) * thrust0 + v.at(1) * thrust1 + v.at(2) * thrust2;
 
-              if(fabs(force(0)) < 0.5 && fabs(force(1)) < 0.5 && force(2) > mass * 9.8)
+              if(force(2) > mass * 9.8)
                 {
                   min_tau_x = std::min(min_tau_x, torque(0));
                   max_tau_x = std::max(max_tau_x, torque(0));
@@ -131,8 +153,7 @@ void thrustSearch()
             }
         }
     }
-
-
+  }
 
   if(fc_t_min > fc_t_min_max)
     {
