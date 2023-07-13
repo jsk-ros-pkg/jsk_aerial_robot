@@ -28,6 +28,11 @@ std::vector<double> max_theta(rotor_num);
 
 double fc_t_min = 0.0;
 double fc_t_min_max = 0.0;
+double cost = 0.0;
+double cost_max = 0.0;
+
+double fc_t_min_weight = 1.0;
+double theta_weight = 2.0;
 
 std::ofstream ofs;
 
@@ -67,12 +72,6 @@ void calcRotorConfiguration(const std::vector<double>& phi, const std::vector<do
   v.push_back(p.at(0).cross(u.at(0)) + m_f_rate * direct.at(0) * u.at(0));
   v.push_back(p.at(1).cross(u.at(1)) + m_f_rate * direct.at(1) * u.at(1));
   v.push_back(p.at(2).cross(u.at(2)) + m_f_rate * direct.at(2) * u.at(2));
-
-  // determine the origin point by the type of calclation
-
-  // x: [ang1, ang2] * n/2
-
-  // http://fnorio.com/0098spherical_trigonometry1/spherical_trigonometry1.html
 }
 
 void thrustSearch()
@@ -155,9 +154,12 @@ void thrustSearch()
     }
   }
 
-  if(fc_t_min > fc_t_min_max)
+  cost = fc_t_min_weight * fc_t_min - theta_weight * (theta.at(0) * theta.at(0) + theta.at(1) * theta.at(1) + theta.at(2) * theta.at(2));
+
+  if(cost > cost_max)
     {
       fc_t_min_max = fc_t_min;
+      cost_max = cost;
       max_theta.at(0) = theta.at(0);
       max_theta.at(1) = theta.at(1);
       max_theta.at(2) = theta.at(2);
