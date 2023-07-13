@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+# rosrun rolling rotor_tilt_plot.py _filepath:=PATH/TO/DATA/FROM/CURRENT/DIRECTORY
+
 import rospy
 from matplotlib import pyplot as plt
 import numpy as np
@@ -7,7 +9,7 @@ from mpl_toolkits.mplot3d import Axes3D
 
 rospy.init_node("rotor_tilt_plot")
 
-filepath = rospy.get_param("filepath", "../data/opt_0_1935_direction_sum_1.txt")
+filepath = rospy.get_param("~filepath", "../data/opt_0_1935_direction_sum_1.txt")
 
 f = open(filepath)
 line = f.read().split('\n')
@@ -17,12 +19,14 @@ rotor2_list = []
 rotor3_list = []
 value_list = []
 
-for i in range(len(line) - 2):
-    line_i  = line[i].split(" ")
+for i in range(len(line) - 3): # modify offset according to input data
+    line_i  = line[i+1].split(" ")
     rotor1_list.append(float(line_i[0]))
     rotor2_list.append(float(line_i[1]))
     rotor3_list.append(float(line_i[2]))
     value_list.append(float(line_i[3]))
+
+print(len(rotor1_list))
 
 fig = plt.figure()
 ax = fig.add_subplot(1, 1, 1, projection='3d')
