@@ -22,6 +22,7 @@ void RollingController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   rolling_robot_model_ = boost::dynamic_pointer_cast<RollingRobotModel>(robot_model_);
   robot_model_for_control_ = boost::make_shared<aerial_robot_model::RobotModel>();
 
+  rotor_tilt_.resize(motor_num_);
   target_base_thrust_.resize(motor_num_);
   target_gimbal_angles_.resize(motor_num_, 0);
 
@@ -73,6 +74,16 @@ void RollingController::rosParamInit()
   rolling_robot_model_->setCircleRadius(circle_radius_);
 
   getParam<string>(base_nh, "tf_prefix", tf_prefix_, std::string(""));
+
+  double rotor_tilt1;
+  double rotor_tilt2;
+  double rotor_tilt3;
+  getParam<double>(control_nh, "rotor_tilt1", rotor_tilt1, 0.0);
+  rotor_tilt_.at(0) = rotor_tilt1;
+  getParam<double>(control_nh, "rotor_tilt2", rotor_tilt2, 0.0);
+  rotor_tilt_.at(1) = rotor_tilt2;
+  getParam<double>(control_nh, "rotor_tilt3", rotor_tilt3, 0.0);
+  rotor_tilt_.at(2) = rotor_tilt3;
 }
 
 void RollingController::controlCore()
@@ -269,24 +280,22 @@ void RollingController::wrenchAllocationFromCog()
 
       /* calculate masked and integrated rotaion matrix */
       Eigen::MatrixXd integrated_rot = Eigen::MatrixXd::Zero(3 * motor_num_, 2 * motor_num_);
-      const auto rotors_coord_rotation_from_cog = rolling_robot_model_->getRotorsCoordFromCog<Eigen::Matrix3d>();
+      const auto links_rotation_from_cog = rolling_robot_model_->getLinksRotationFromCog<Eigen::Matrix3d>();
       Eigen::MatrixXd mask(3, 2);
       mask << 0, 0, 1, 0, 0, 1;
       for(int i = 0; i < motor_num_; i++)
         {
-          integrated_rot.block(3 * i, 2 * i, 3, 2) = rotors_coord_rotation_from_cog.at(i) * mask;
+          integrated_rot.block(3 * i, 2 * i, 3, 2) = links_rotation_from_cog.at(i) * mask;
         }
 
       /* calculate integarated allocation */
       full_q_mat_ = wrench_matrix * integrated_rot;
       full_q_mat_inv_ = aerial_robot_model::pseudoinverse(full_q_mat_);
 
-
       /* actuator mapping */
       full_lambda_trans_ = full_q_mat_inv_.leftCols(3) * target_wrench_acc_cog_.head(3);
       full_lambda_rot_ = full_q_mat_inv_.rightCols(3) * target_wrench_acc_cog_.tail(3);
       full_lambda_all_ = full_lambda_trans_ + full_lambda_rot_;
-
 
       last_col = 0;
       for(int i = 0; i < motor_num_; i++)
@@ -294,7 +303,7 @@ void RollingController::wrenchAllocationFromCog()
           Eigen::VectorXd full_lambda_trans_i = full_lambda_trans_.segment(last_col, 2);
           Eigen::VectorXd full_lambda_all_i = full_lambda_all_.segment(last_col, 2);
           target_gimbal_angles_.at(i) = atan2(-full_lambda_all_i(0), full_lambda_all_i(1));
-          target_base_thrust_.at(i) = full_lambda_trans_i.norm();
+          target_base_thrust_.at(i) = full_lambda_trans_i.norm() / fabs(cos(rotor_tilt_.at(i)));
 
           last_col += 2;
         }
