@@ -168,6 +168,12 @@ void BeetleNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & 
   /* z */
   if(msg->pos_z_nav_mode == aerial_robot_msgs::FlightNav::VEL_MODE)
     {
+      /* special */
+      addTargetPosZ(msg->target_pos_diff_z);
+      setTargetVelZ(0);
+    }
+  else if(msg->pos_z_nav_mode == aerial_robot_msgs::FlightNav::POS_MODE)
+    {
       tf::Vector3 target_cog_pos(0, 0, msg->target_pos_z);
       if(msg->target == aerial_robot_msgs::FlightNav::BASELINK)
         {
@@ -184,14 +190,9 @@ void BeetleNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & 
           target_cog_pos -= cog2cp_tf.getOrigin();
         }
 
-      /* special */
-      addTargetPosZ(target_cog_pos.z());
-      setTargetVelZ(0);
-    }
-  else if(msg->pos_z_nav_mode == aerial_robot_msgs::FlightNav::POS_MODE)
-    {
-      setTargetPosZ(msg->target_pos_z);
-      setTargetVelZ(0);
+      setTargetPosZ(target_cog_pos.z());
+      setTargetVelZ(0);      
+
     }
   else if(msg->pos_z_nav_mode == aerial_robot_msgs::FlightNav::POS_VEL_MODE)
     {
