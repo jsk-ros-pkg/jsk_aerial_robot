@@ -31,14 +31,14 @@ class ContactState(smach.State):
         self.edge_nav_pub = rospy.Publisher(self.edge_module+"/uav/nav", FlightNav, queue_size=10)
         self.edge_att_pub = rospy.Publisher(self.edge_module+"/final_target_baselink_rot", DesireCoord, queue_size=10)
         # parameters
-        self.target_x = 3.0
-        self.target_y = 0
-        self.target_z = 0.5
+        self.target_x = 3.3
+        self.target_y = 1.5
+        self.target_z = 1.0
         self.target_roll = 0
-        self.target_pitch = 0.6
+        self.target_pitch = 0.5
         self.target_yaw = 0
-        self.x_tol = 0.01
-        self.y_tol = 0.01
+        self.x_tol = 0.23
+        self.y_tol = 0.23
         self.z_tol = 0.01
         self.roll_tol = 0.08
         self.pich_tol = 0.08
@@ -58,6 +58,7 @@ class ContactState(smach.State):
         except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
             return 'in_process'
         pos_error = np.array(self.target_pos - edge_from_world[0])
+        rospy.loginfo(pos_error)
         att_error = np.array(self.target_att)-tf.transformations.euler_from_quaternion(baselink_from_world[1])
 
         if np.all(np.less(np.abs(pos_error),self.pos_error_tol)) and np.all(np.less(np.abs(att_error),self.att_error_tol)):
@@ -98,12 +99,12 @@ class StandbyState(smach.State):
         self.follower_att_pub = rospy.Publisher(self.follower+"/final_target_baselink_rot", DesireCoord, queue_size=10)
         # parameters
         self.frame_size = 0.52
-        self.x_offset = 0.1
+        self.x_offset = 0.02
         self.y_offset = 0
         self.z_offset = 0
-        self.x_tol = 0.01
-        self.y_tol = 0.01
-        self.z_tol = 0.01
+        self.x_tol = 0.005
+        self.y_tol = 0.005
+        self.z_tol = 0.005
         self.roll_tol = 0.08
         self.pich_tol = 0.08
         self.yaw_tol = 0.08
@@ -188,19 +189,16 @@ class ApproachState(smach.State):
         self.x_offset = 0
         self.y_offset = 0
         self.z_offset = 0
-        self.x_tol = 0.01
-        self.y_tol = 0.01
-        self.z_tol = 0.01
-        self.roll_tol = 0.08
-        self.pich_tol = 0.08
-        self.yaw_tol = 0.08
-        self.roll_tol = 0.08
-        self.pich_tol = 0.08
-        self.yaw_tol = 0.08
+        self.x_tol = 0.02
+        self.y_tol = 0.1
+        self.z_tol = 0.1
+        self.roll_tol = 0.5
+        self.pich_tol = 0.5
+        self.yaw_tol = 0.5
         self.root_fc_dis = 0.129947
         self.x_danger_thre = 0.02
-        self.y_danger_thre = 0.2
-        self.z_danger_thre = 0.2
+        self.y_danger_thre = 0.05
+        self.z_danger_thre = 0.05
         self.roll_danger_thre = 0.35
         self.pich_danger_thre = 0.35
         self.yaw_danger_thre = 0.35
