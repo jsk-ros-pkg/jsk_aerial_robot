@@ -24,11 +24,11 @@
     ## link
     <link name="base_link">
       <inertial>
-        <origin xyz="-0.0081803 0.0 0.1184962" rpy="0 0 0"/>
-        <mass value="1.82"/>
+        <origin xyz="0.0048861 0.0001638 0.1407979" rpy="0 0 0"/>
+        <mass value="2.24"/>
         <inertia
-            ixx="0.0511797" iyy="0.0835848" izz="0.1010814"
-            ixy="-0.0000001" ixz="-0.0015934" iyz="0.0000027"/>
+            ixx="0.0466335" iyy="0.0763754" izz="0.1025914"
+            ixy="-0.0000023" ixz="-0.0007664" iyz="-0.0000396"/>
       </inertial>   
       <visual>
         <origin xyz="0 0 0" rpy="0 0 3.141592"/>
@@ -117,11 +117,11 @@
     #### rotor parent link (virtual) ####
     <link name="gimbal_link${self}">
       <inertial>
-        <origin xyz="0.02284089 0.0 0.00720578" rpy="0 0 0"/>
-        <mass value="0.1333"/>
+        <origin xyz="0.02239457 0.0 0.00766902" rpy="0 0 0"/>
+        <mass value="0.15429"/>
         <inertia
-            ixx="0.00005310" iyy="0.00005269" izz="0.00005333"
-            ixy="-0.00000001" ixz="0.00000064" iyz="0.00000"/>
+            ixx="0.00006797" iyy="0.00006788" izz="0.00007058"
+            ixy="0.00000001" ixz="0.00000122" iyz="0.00000"/>
       </inertial>
       <collision>
         <origin xyz="0.0 0 0" rpy="0 0 0"/>
