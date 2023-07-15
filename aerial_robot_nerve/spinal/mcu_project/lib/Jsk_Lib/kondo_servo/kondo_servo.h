@@ -32,7 +32,7 @@ private:
   UART_HandleTypeDef* port_;
   spinal::ServoStates servo_state_msg_;
   ros::NodeHandle* nh_;
-  // ros::Subscriber<spinal::ServoControlCmd, KondoServo> kondo_servo_control_sub_;
+  ros::Subscriber<spinal::ServoControlCmd, KondoServo> kondo_servo_control_sub_;
   // ros::Publisher servo_state_pub_;
   uint16_t target_position_[MAX_SERVO_NUM];
   uint16_t current_position_[MAX_SERVO_NUM];
@@ -40,8 +40,8 @@ private:
 
 public:
   ~KondoServo(){}
-  KondoServo()// :
-    // kondo_servo_control_sub_("kondo_servo_cmd", &KondoServo::servoControlCallback, this),
+  KondoServo():
+    kondo_servo_control_sub_("kondo_servo_cmd", &KondoServo::servoControlCallback, this)
     // servo_state_pub_("kondo_servo_states", &servo_state_msg_)
   {
   }
@@ -51,7 +51,7 @@ public:
     port_ = port;
     nh_ = nh;
 
-    // nh_->subscribe(kondo_servo_control_sub_);
+    nh_->subscribe(kondo_servo_control_sub_);
     // nh_->advertise(servo_state_pub_);
 
     // /* TODO: add search process to access only existing motors*/
@@ -128,24 +128,24 @@ public:
       }
   }
 
-  // void servoControlCallback(const spinal::ServoControlCmd& cmd_msg)
-  // {
-  //   for(int i = 0; i < cmd_msg.index_length; i++)
-  //     {
-  //       if(0 <= cmd_msg.index[i] && cmd_msg.index[i] < MAX_SERVO_NUM)
-  //         {
-  //           if(KONDO_SERVO_POSITION_MIN <= cmd_msg.angles[i] && cmd_msg.angles[i] <= KONDO_SERVO_POSITION_MAX)
-  //             {
-  //               activated_[cmd_msg.index[i]] = true;
-  //               target_position_[cmd_msg.index[i]] = cmd_msg.angles[i];
-  //             }
-  //           else if(cmd_msg.angles[i] == 0)
-  //             {
-  //               activated_[cmd_msg.index[i]] = false;
-  //             }
-  //         }
-  //     }
-  // }
+  void servoControlCallback(const spinal::ServoControlCmd& cmd_msg)
+  {
+    for(int i = 0; i < cmd_msg.index_length; i++)
+      {
+        if(0 <= cmd_msg.index[i] && cmd_msg.index[i] < MAX_SERVO_NUM)
+          {
+            if(KONDO_SERVO_POSITION_MIN <= cmd_msg.angles[i] && cmd_msg.angles[i] <= KONDO_SERVO_POSITION_MAX)
+              {
+                activated_[cmd_msg.index[i]] = true;
+                target_position_[cmd_msg.index[i]] = cmd_msg.angles[i];
+              }
+            else if(cmd_msg.angles[i] == 0)
+              {
+                activated_[cmd_msg.index[i]] = false;
+              }
+          }
+      }
+  }
 
   // void sendServoState()
   // {
