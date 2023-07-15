@@ -39,6 +39,7 @@ double fc_t_min_weight = 1.0;
 double theta_weight = 2.0;
 
 std::ofstream ofs;
+std::ofstream ofs1;
 
 void calcRotorConfiguration(const std::vector<double>& phi, const std::vector<double>& theta, const double m_f_rate, std::vector<Eigen::Vector3d>& p, std::vector<Eigen::Vector3d>& u, std::vector<Eigen::Vector3d>& v, std::vector<double>& direct)
 {
@@ -86,6 +87,7 @@ void thrustSearch()
   std::vector<double> direct;
   calcRotorConfiguration(phi, theta, m_f_rate, p, u, v, direct);
 
+  bool flag = false;
   for(int i = 0; i < thrust_count_max + 1; i++)
     {
       for(int j = 0; j < thrust_count_max + 1; j++)
@@ -101,10 +103,17 @@ void thrustSearch()
 
               if(force(2) > mass * 9.8)
                 {
+                  flag = true;
                   ofs << torque(0) << " " << torque(1) << " " << torque(2) << std::endl;
                 }
             }
         }
+    }
+  if(flag)
+    {
+      ofs1 << v.at(0)(0) << " " << v.at(0)(1) << " " << v.at(0)(2) << std::endl;
+      ofs1 << v.at(1)(0) << " " << v.at(1)(1) << " " << v.at(1)(2) << std::endl;
+      ofs1 << v.at(2)(0) << " " << v.at(2)(1) << " " << v.at(2)(2) << std::endl;
     }
 }
 
@@ -113,6 +122,8 @@ int main(int argc, char **argv)
   time_t t = time(NULL);
   std::string filename = std::string("fc_t_list") + std::to_string(t) + std::string(".txt");
   ofs.open(filename, std::ios::out);
+  filename = std::string("v_list") + std::to_string(t) + std::string(".txt");
+  ofs1.open(filename, std::ios::out);
 
   theta.at(0) = theta1;
   theta.at(1) = theta2;
