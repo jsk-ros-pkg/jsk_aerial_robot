@@ -8,6 +8,10 @@ controller:
   allocation_refine_threshold: 0.0001
   initial_roll_tilt: 0.8
 
+  rotor_tilt1: 0.1
+  rotor_tilt2: -0.1
+  rotor_tilt3: 0.0
+
   xy:
     p_gain: 2.5
     i_gain: 0.05
