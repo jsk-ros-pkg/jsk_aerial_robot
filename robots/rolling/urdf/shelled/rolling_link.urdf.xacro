@@ -19,7 +19,7 @@
       <visual>
         <origin rpy="0 0 0" xyz="0 0 0"/>
         <geometry>
-          <mesh filename="package://rolling/urdf/shelled/mesh/link.STL" scale="0.001 0.001 0.001"/>
+          <mesh filename="package://rolling/urdf/shelled/mesh/link.dae" scale="0.001 0.001 0.001"/>
         </geometry>
         <xacro:glay/>
       </visual>
@@ -119,7 +119,7 @@
           <origin rpy="0 ${rotor3_tilt} 0" xyz="0 0 0"/>
         </xacro:if>
         <geometry>
-          <mesh filename="package://rolling/urdf/shelled/mesh/roll_gimbal_module.STL" scale="0.001 0.001 0.001"/>
+          <mesh filename="package://rolling/urdf/shelled/mesh/roll_gimbal_module.dae" scale="0.001 0.001 0.001"/>
         </geometry>
         <xacro:black/>
       </visual>
