@@ -20,15 +20,15 @@ double m_f_rate = -0.0143;
 double gravity = 9.81;
 int rotor_num = 3;
 double theta_max = M_PI / 3.0;
-double phi_max = M_PI / 3.0;
+double phi_max = M_PI / 2.0;
 
 std::vector<double> theta(rotor_num);
 std::vector<double> phi(rotor_num);
 std::vector<double> max_theta(rotor_num);
 
-double theta1 = 0.1;
-double theta2 = -0.1;
-double theta3 = 0.1;
+double theta1 = -0.10472;
+double theta2 = 0.10472;
+double theta3 = 0.10472;
 
 double fc_t_min = 0.0;
 double fc_t_min_max = 0.0;
