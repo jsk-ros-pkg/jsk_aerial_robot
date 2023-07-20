@@ -1,6 +1,7 @@
 #include <cmath>
 #include <ros/ros.h>
 #include <std_msgs/Bool.h>
+#include <std_msgs/Float64.h>
 #include <string>
 #include <vector>
 // #include <tf/tf.h>
@@ -58,6 +59,7 @@ private:
   ros::NodeHandle pnh_;
   ros::Subscriber odom_sub_;
   ros::Publisher obs_pub_;
+  ros::Publisher obs_min_dist_pub_;
 
   std::vector<Eigen::Vector3d> positions_;
   std::vector<Scalar> radius_list_;

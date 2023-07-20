@@ -36,6 +36,8 @@ ObstacleCalculator::ObstacleCalculator(ros::NodeHandle nh, ros::NodeHandle pnh)
                             &ObstacleCalculator::CalculatorCallback, this);
   obs_pub_ = nh_.advertise<aerial_robot_msgs::ObstacleArray>(
       "/" + quad_name + "/polar_pixel", 1);
+  obs_min_dist_pub_ = nh_.advertise<std_msgs::Float64>(
+      "/" + quad_name + "/debug/min_obs_distance_with_body", 1);
 
   theta_list_ = {5,15,25,35,45,60,75,90,105, 120};//should change Theta_Cuts if you change this theta's num
   acc_theta_list_ = {1,4,7,10};
@@ -77,11 +79,19 @@ void ObstacleCalculator::CalculatorCallback(
   tf::vectorMsgToEigen(msg->twist.twist.angular, omega);
 
   std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> converted_positions;
+  double min_dist = max_detection_range_;
+  size_t call = 0;
 
   for (const auto &tree_pos : positions_) {
     Eigen::Vector3d converted_pos = R_T * (tree_pos - pos);
     converted_positions.push_back(converted_pos);
+    Eigen::Vector2d converted_pos_2d = {(tree_pos - pos)[0], (tree_pos - pos)[1]}; //world coordinate
+    min_dist = std::min(min_dist, converted_pos_2d.norm() - radius_list_[call]);
+    call++;
   }
+  std_msgs::Float64 min_dist_msg;
+  min_dist_msg.data = min_dist;
+  obs_min_dist_pub_.publish(min_dist_msg);
 
   Vector<Vision::Theta_Cuts> sphericalboxel =
       getsphericalboxel<Vector<Vision::Theta_Cuts>>(converted_positions, poll_y, poll_z, theta_list_, pos);
