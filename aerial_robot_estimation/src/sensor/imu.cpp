@@ -102,6 +102,11 @@ namespace sensor_plugin
         mag_[i] = imu_msg->mag_data[i];
       }
 
+    if (fabs(acc_b_[0]) > 20 || fabs(acc_b_[1]) > 20 || fabs(acc_b_[2] - 10.0) > 20) {
+      estimator_->setUnhealthLevel(Sensor::UNHEALTH_LEVEL3);
+      ROS_ERROR_ONCE("IMU is insane, do force landing");
+    }
+
     estimateProcess();
     updateHealthStamp();
   }
