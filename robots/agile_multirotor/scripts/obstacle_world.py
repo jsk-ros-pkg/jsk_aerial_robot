@@ -141,6 +141,7 @@ class ObstacleWorld:
                     "<specular>0.1 0.1 0.1 1</specular>"  + \
                     "<emissive>0 0 0 0</emissive>"  + \
                     "</material>" + \
+                    "<cast_shadows>false</cast_shadows>" + \
                     "</visual>" + \
                     "</link>"  + \
                     "</model>" + \

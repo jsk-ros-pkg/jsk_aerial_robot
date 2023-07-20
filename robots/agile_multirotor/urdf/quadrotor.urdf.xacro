@@ -128,7 +128,7 @@
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
 	<!-- <mesh filename="package://agile_multirotor/urdf/mesh/quadrotor.stl" /> -->
-        <cylinder length="0.3" radius="0.25"/>
+        <cylinder length="0.3" radius="0.325"/>
       </geometry>
     </visual>
     <!-- collision is not sphere to be able to  -->
@@ -137,7 +137,7 @@
       <geometry>
         <!-- <box size="0.3525 0.26 0.04" /> -->
         <!-- length should be smaller not to collide to myself -->
-        <cylinder length="0.005" radius="0.25"/>
+        <cylinder length="0.005" radius="0.325"/>
       </geometry>
     </collision>
   </link>
