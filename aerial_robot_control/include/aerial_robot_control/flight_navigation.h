@@ -24,7 +24,8 @@ namespace aerial_robot_navigation
     {
       POS_CONTROL_MODE,
       VEL_CONTROL_MODE,
-      ACC_CONTROL_MODE
+      ACC_CONTROL_MODE,
+      X_ACC_Y_POS_MODE
     };
   /* control frame */
   enum control_frame

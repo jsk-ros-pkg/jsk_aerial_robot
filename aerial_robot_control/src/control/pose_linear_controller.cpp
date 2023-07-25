@@ -234,6 +234,10 @@ namespace aerial_robot_control
         pid_controllers_.at(X).update(0, du, 0, target_acc_.x(), i_term_fix);
         pid_controllers_.at(Y).update(0, du, 0, target_acc_.y(), i_term_fix);
         break;
+      case aerial_robot_navigation::X_ACC_Y_POS_MODE:
+        pid_controllers_.at(X).update(0, du, 0, target_acc_.x(), i_term_fix);
+        pid_controllers_.at(Y).update(target_pos_.y() - pos_.y(), du, target_vel_.y() - vel_.y(), target_acc_.y(), i_term_fix);
+        break;
       default:
         break;
       }
