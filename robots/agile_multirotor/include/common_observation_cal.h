@@ -84,6 +84,7 @@ private:
   Scalar vel_calc_boundary_;
 
   double shift_x_, shift_y_;
+  double body_r_;
 
 
   std::vector<std::string> split(std::string &input, char delimiter);

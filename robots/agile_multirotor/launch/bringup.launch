@@ -23,6 +23,7 @@
   <arg name="robot_ns" value="multirotor$(arg robot_id)" />
   <arg name="config_dir" default="$(find agile_multirotor)/config/" />
   <arg name="hokuyo" default="False" />
+  <arg name="body_r" default="0.325" />
 
   ###########  Parameters  ###########
   <group ns="$(arg robot_ns)">
@@ -118,6 +119,7 @@
     <param name="robot_ns" value="$(arg robot_ns)"/>
     <param name="print_yaw" type="bool" value="false" />
     <param name="vel_calc_boundary" type="double" value="0.30" />
+    <param name="body_r" type="double" value="$(arg body_r)" />
   </node>
 
   <!-- <node pkg="agile_multirotor" type="policy_navigator.py" name="policy_navigator" output="screen" ns="$(arg robot_ns)" launch-prefix="xterm -fn 10x20 -e python -m pdb">

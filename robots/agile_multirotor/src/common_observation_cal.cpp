@@ -11,6 +11,7 @@ ObstacleCalculator::ObstacleCalculator(ros::NodeHandle nh, ros::NodeHandle pnh)
   pnh_.getParam("robot_ns", quad_name);
   pnh_.getParam("print_yaw", print_yaw_);
   pnh_.getParam("vel_calc_boundary", vel_calc_boundary_);
+  pnh_.getParam("body_r", body_r_);
   //   file = file + ".csv";
   std::cout << "file name is " << file << std::endl;
   std::ifstream ifs(file);
@@ -190,7 +191,7 @@ Scalar ObstacleCalculator::getClosestDistance(
   Scalar rmin = std::min(std::min(y_p, y_n), max_detection_range_); //[m] from wall
   for (int i = 0; i < positions_.size(); i++) {
     Eigen::Vector3d pos = converted_positions[i];
-    Scalar radius = radius_list_[i];
+    Scalar radius = radius_list_[i] + body_r_;
     Eigen::Vector3d alpha = Cell.cross(poll_z);
     Eigen::Vector3d beta = pos.cross(poll_z);
     Scalar a = std::pow(alpha.norm(), 2);
@@ -209,7 +210,7 @@ Scalar ObstacleCalculator::getClosestDistance(
 }
 
 Scalar ObstacleCalculator::calc_dist_from_wall(Scalar sign, const Vector<3>& Cell, const Vector<3> &poll_y, Eigen::Vector3d &quad_pos) const {
-  Scalar y_d= (sign*wall_pos_ - quad_pos[1]);
+  Scalar y_d= (sign*(wall_pos_-body_r_) - quad_pos[1]);
   Scalar cos_theta = Cell.dot(poll_y);
   if (cos_theta*y_d <= 0) return max_detection_range_;
   else return y_d/cos_theta;

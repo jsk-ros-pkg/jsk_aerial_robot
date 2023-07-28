@@ -140,7 +140,7 @@ class PolarPixelVisualizeNode:
         self.publish_commands = True
 
     def depth_visualize(self, depth):
-        depth += self.body_r/self.max_detection_range
+        # depth += self.body_r/self.max_detection_range
         real_depth = depth*self.max_detection_range
         return real_depth
 
