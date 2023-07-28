@@ -24,7 +24,7 @@ using Vector = Matrix<rows, 1>;
 
 
 enum Vision : int {
-  Theta_Cuts = 20,
+  Theta_Cuts = 26,
   ACC_Theta_Cuts = 8,
   // Phi_Cuts = 2,
   Corner_Num = 5,

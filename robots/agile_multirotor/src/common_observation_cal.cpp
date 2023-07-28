@@ -39,7 +39,7 @@ ObstacleCalculator::ObstacleCalculator(ros::NodeHandle nh, ros::NodeHandle pnh)
   obs_min_dist_pub_ = nh_.advertise<std_msgs::Float64>(
       "/" + quad_name + "/debug/min_obs_distance_with_body", 1);
 
-  theta_list_ = {5,15,25,35,45,60,75,90,105, 120};//should change Theta_Cuts if you change this theta's num
+  theta_list_ = {5,15,25,35,45,55, 65, 75, 85, 95, 105, 115, 125};//should change Theta_Cuts if you change this theta's num
   acc_theta_list_ = {1,4,7,10};
   // phi_list_ = {5};
   wall_pos_ = 1.75;
