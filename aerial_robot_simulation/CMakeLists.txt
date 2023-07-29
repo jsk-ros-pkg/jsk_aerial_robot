@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.0.2)
 project(aerial_robot_simulation)
 
-set(MUJOCO_ROOT_DIR "$ENV{HOME}/.mujoco/mujoco-2.3.6")
+set(MUJOCO_ROOT_DIR "$ENV{HOME}/.mujoco/mujoco-2.3.7")
 set(MUJOCO_INCLUDE_DIR "${MUJOCO_ROOT_DIR}/include")
 set(MUJOCO_LIB_DIR "${MUJOCO_ROOT_DIR}/lib")
 set(MUJOCO_SIM_DIR "${MUJOCO_ROOT_DIR}/simulate")
