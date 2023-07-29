@@ -21,6 +21,15 @@ class MujocoRosInterface:
         self.data = mujoco.MjData(self.model)
 
         # mujoco model parameter
+        self.joint_mask_free = np.where(self.model.jnt_type == 0)
+        self.joint_mask_ball = np.where(self.model.jnt_type == 1)
+        self.joint_mask_else = np.where(self.model.jnt_type > 1)
+
+        joint_names = [self.model.joint(i).name for i in range(self.model.njnt)]
+        self.joint_names_free = list(np.array(joint_names)[self.joint_mask_free])
+        self.joint_names_ball = list(np.array(joint_names)[self.joint_mask_ball])
+        self.joint_names_else = list(np.array(joint_names)[self.joint_mask_else])
+
         self.joint_names = [self.model.joint(i).name for i in range(self.model.njnt)]
         self.joint_names = self.joint_names[1:] # remove root
         self.actuator_names = [self.model.actuator(i).name for i in range(self.model.nu)]

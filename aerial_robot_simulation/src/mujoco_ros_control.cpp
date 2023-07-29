@@ -116,7 +116,7 @@ MujocoRosControl::MujocoRosControl(ros::NodeHandle nh):
       // this loop will finish on time for the next frame to be rendered at 60 fps.
       mjtNum sim_start = mujoco_data_->time;
 
-      while ( mujoco_data_->time - sim_start < 1.0/60.0 && ros::ok() )
+      while ( mujoco_data_->time - sim_start < 1.0/100.0 && ros::ok() )
         {
           for(int i = 0; i < mujoco_model_->nu; i++)
             {
@@ -200,11 +200,15 @@ void MujocoRosControl::publishCallback(const ros::TimerEvent & e)
   fc_rot_mat.getRPY(r, p, y);
   tf::Quaternion fc_quat = tf::Quaternion(r, p, y);
 
+  double time = getCurrentTime();
+
+  // if(time - imu_pub_last_time_ > imu_pub_rate_)
   // if(getCurrentTime() - imu_pub_last_time_ > imu_pub_rate_)
   if(publish_cnt_ % 1 == 0)
     {
       spinal::Imu imu_msg;
-      imu_msg.stamp = (ros::Time) getCurrentTime();
+      // imu_msg.stamp = (ros::Time) getCurrentTime();
+      imu_msg.stamp = (ros::Time) time;
 
       for(int i = 0; i < mujoco_model_->nsensor; i++)
         {
@@ -235,14 +239,15 @@ void MujocoRosControl::publishCallback(const ros::TimerEvent & e)
       imu_msg.angles[2] = y;
       imu_pub_.publish(imu_msg);
 
-      imu_pub_last_time_ = getCurrentTime();
+      imu_pub_last_time_ = time;
     }
 
+  // if(time - mocap_pub_last_time_ > mocap_pub_rate_)
   // if(getCurrentTime() - mocap_pub_last_time_ > mocap_pub_rate_)
   if(publish_cnt_ % 2 == 0)
     {
       geometry_msgs::PoseStamped pose_msg;
-      pose_msg.header.stamp = (ros::Time) getCurrentTime();
+      pose_msg.header.stamp = (ros::Time) time;
       pose_msg.pose.position.x = site_xpos[3 * fc_id + 0];
       pose_msg.pose.position.y = site_xpos[3 * fc_id + 1];
       pose_msg.pose.position.z = site_xpos[3 * fc_id + 2];
@@ -252,29 +257,33 @@ void MujocoRosControl::publishCallback(const ros::TimerEvent & e)
       pose_msg.pose.orientation.w = fc_quat.w();
       mocap_pub_.publish(pose_msg);
 
-      mocap_pub_last_time_ = getCurrentTime();
+      mocap_pub_last_time_ = time;
     }
 
 
+  // if(time - joint_state_pub_last_time_ > joint_state_pub_rate_)
   // if(getCurrentTime() - joint_state_pub_last_time_ > joint_state_pub_rate_)
   if(publish_cnt_ % 4 == 0)
     {
       sensor_msgs::JointState joint_state_msg;
-      joint_state_msg.header.stamp = (ros::Time) getCurrentTime();
+      joint_state_msg.header.stamp = (ros::Time) time;
       joint_state_msg.name = joint_names_;
 
       mjtNum* qpos = mujoco_data_->qpos;
       int* jnt_qposadr = mujoco_model_->jnt_qposadr;
+      mjtNum* qvel = mujoco_data_->qvel;
+      int* jnt_dofadr = mujoco_model_->jnt_dofadr;
       for(int i = 0; i < mujoco_model_->njnt; i++)
         {
           if(mujoco_model_->jnt_type[i] > 1)
             {
               joint_state_msg.position.push_back(qpos[jnt_qposadr[i]]);
+              joint_state_msg.velocity.push_back(qvel[jnt_dofadr[i]]);
             }
         }
       joint_state_pub_.publish(joint_state_msg);
 
-      joint_state_pub_last_time_ = getCurrentTime();
+      joint_state_pub_last_time_ = time;
     }
 }
 
