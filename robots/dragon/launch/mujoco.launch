@@ -41,8 +41,6 @@
 
     ###########  Servo Config  ###########
     <rosparam file="$(arg config_dir)/Servo.yaml" command="load" />
-    <rosparam command="load" file="$(find dragon)/config/ServoOrder.yaml" />
-    <rosparam command="load" file="$(find dragon)/config/RotorList.yaml" />
 
     ###########  Battery Config  ###########
     <rosparam file="$(arg config_dir)/Battery.yaml" command="load" />
@@ -112,10 +110,14 @@
   <!--   <arg name="model" value="$(find dragon)/urdf/mujoco/dragon.xml" /> -->
   <!-- </include> -->
 
+  ###########  Mujoco Config  ###########
+  <group ns="$(arg robot_ns)">
+    <rosparam command="load" file="$(find dragon)/config/ServoOrder.yaml" />
+    <rosparam command="load" file="$(find dragon)/config/RotorList.yaml" />
+    <param name="model" value="$(find dragon)/urdf/mujoco/dragon.xml"/>
+  </group>
   <include file="$(find aerial_robot_simulation)/launch/mujoco.launch" >
     <arg name="robot_ns" value="$(arg robot_ns)" />
-    <arg name="rotor_list" value="$(find dragon)/config/RotorList.yaml"/>
-    <arg name="model" value="$(find dragon)/urdf/mujoco/dragon.xml" />
   </include>
 
 </launch>

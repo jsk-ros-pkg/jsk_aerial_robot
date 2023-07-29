@@ -6,15 +6,13 @@ MujocoRosControl::MujocoRosControl(ros::NodeHandle nh):
   publish_spinner_(1, &publish_loop_queue_),
   callback_spinner_(4)
 {
-  ros::NodeHandle mujoco_model_nh("~");
   std::string xml_path;
-  mujoco_model_nh.getParam("model", xml_path);
-  if(!mujoco_model_nh.getParam("model", xml_path))
+  nh_.getParam("model", xml_path);
+  if(!nh_.getParam("model", xml_path))
     {
       ROS_INFO("Could not get xml path from rosparam\n");
       return;
     }
-  std::cout << xml_path << std::endl;
 
   const char* xml_path_char = xml_path.c_str();
 
@@ -35,19 +33,14 @@ MujocoRosControl::MujocoRosControl(ros::NodeHandle nh):
 
   control_input_.resize(mujoco_model_->nu);
 
-  std::cout << "joint list: ";
   for(int i = 0; i < mujoco_model_->njnt; i++)
     {
       if(mujoco_model_->jnt_type[i] > 1)
         {
           joint_names_.push_back(mj_id2name(mujoco_model_, mjtObj_::mjOBJ_JOINT, i));
-          std::cout << mj_id2name(mujoco_model_, mjtObj_::mjOBJ_JOINT, i) << " ";
         }
     }
-  std::cout << std::endl;
-
   nh_.getParam("rotor_list", rotor_names_);
-  std::cout << "rotor list: ";
   for(int i = 0; i < rotor_names_.size(); i++)
     {
       std::cout << rotor_names_.at(i) << " ";
