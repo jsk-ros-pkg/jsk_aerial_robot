@@ -32,8 +32,6 @@ public:
   MujocoRosControl(ros::NodeHandle nh);
   virtual ~MujocoRosControl();
 
-  void readSim(ros::Time time, ros::Duration period);
-  void writeSim(ros::Time time, ros::Duration period);
   void update();
   void clockCallback(const ros::TimerEvent & e);
   void publishCallback(const ros::TimerEvent & e);
