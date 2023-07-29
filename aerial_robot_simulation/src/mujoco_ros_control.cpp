@@ -30,22 +30,33 @@ MujocoRosControl::MujocoRosControl(ros::NodeHandle nh):
       ROS_INFO("Could not create mujoco data from model\n");
       return;
     }
+  else
+    {
+      ROS_INFO_STREAM("Created mujoco model from " << xml_path);
+    }
 
   control_input_.resize(mujoco_model_->nu);
 
+  // get joint names from mujoco model
+  std::string joint_name = "";
   for(int i = 0; i < mujoco_model_->njnt; i++)
     {
       if(mujoco_model_->jnt_type[i] > 1)
         {
           joint_names_.push_back(mj_id2name(mujoco_model_, mjtObj_::mjOBJ_JOINT, i));
+          joint_name = joint_name + " " + mj_id2name(mujoco_model_, mjtObj_::mjOBJ_JOINT, i);
         }
     }
+  ROS_INFO_STREAM("joint list:" << joint_name);
+
+  // get rotor names from rosparam
   nh_.getParam("rotor_list", rotor_names_);
+  std::string rotor_name = "";
   for(int i = 0; i < rotor_names_.size(); i++)
     {
-      std::cout << rotor_names_.at(i) << " ";
+      rotor_name = rotor_name + std::string(" ") + rotor_names_.at(i);
     }
-  std::cout << std::endl;
+  ROS_INFO_STREAM("rotor list:" << rotor_name);
 
   // init joints from rosparam
   XmlRpc::XmlRpcValue joint_servos_params;
@@ -74,9 +85,6 @@ MujocoRosControl::MujocoRosControl(ros::NodeHandle nh):
 
   // initialize mujoco visualization functions
   mujoco_visualization_utils.init(mujoco_model_, mujoco_data_, window);
-
-  // create scene and context
-  std::cout << "glfw init" << std::endl;
 
   control_input_sub_ = nh_.subscribe("mujoco/ctrl_input", 1, &MujocoRosControl::controlInputCallback, this);
   four_axis_command_sub_ = nh_.subscribe("four_axes/command", 1, &MujocoRosControl::fourAxisCommandCallback, this);
@@ -120,7 +128,7 @@ MujocoRosControl::MujocoRosControl(ros::NodeHandle nh):
     }
 
   mujoco_visualization_utils.terminate();
-  std::cout << "terminate" << std::endl;
+  ROS_INFO("terminated");
 }
 
 MujocoRosControl::~MujocoRosControl()
