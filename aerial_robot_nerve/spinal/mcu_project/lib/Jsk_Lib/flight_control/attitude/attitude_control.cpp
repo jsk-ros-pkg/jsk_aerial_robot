@@ -1087,13 +1087,10 @@ void AttitudeController::pwmConversion()
             f_i.x = target_thrust_[i*2];
             f_i.z = target_thrust_[i*2+1];
             target_thrust_[i] = ap::pythagorous2(f_i.x,f_i.z);
-
-            if(integrate_flag_){
-              target_gimbal_angles_[i] = atan2f(-f_i.x, f_i.z);
-            }
-            else
+            float gimbal_candidate = atan2f(-f_i.x, f_i.z);
+            if(std::isfinite(gimbal_candidate))
               {
-                target_gimbal_angles_[i] = 0.0;
+                target_gimbal_angles_[i] =(target_gimbal_angles_[i]+ gimbal_candidate)/2;
               }
           }
 
