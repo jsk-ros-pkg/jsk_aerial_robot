@@ -6,7 +6,7 @@
   <arg name="estimate_mode"  default= "1" />
   <arg name="sim_estimate_mode"  default= "2" />
   <arg name="headless" default="True" />
-  <arg name="worldtype" default="real_non_side_collision" />
+  <arg name="worldtype" default="real_RP_238" />
   <arg name="nav_exec" default="True" />
   <arg name="launch_gazebo" default="True" />
   <arg name="direct_model" default="False" />
