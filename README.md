@@ -1,5 +1,5 @@
 ## Online website: 
-URL: https://jskaerialrobot.github.io/aerial_robot/
+URL: https://jsk-ros-pkg.github.io/jsk_aerial_robot/
 
 ## Local build:
 ```
