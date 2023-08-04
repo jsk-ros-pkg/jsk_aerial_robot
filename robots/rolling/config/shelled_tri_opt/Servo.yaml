@@ -55,30 +55,6 @@ servo_controller:
         init_value: 0
         type: effort_controllers/JointPositionController
 
-    controller4:
-      id: 4
-      name: gimbal_parent1
-      simulation:
-        pid: {p: 5.0, i: 0.1, d: 0.1, i_clamp_max: 2.0, i_clamp_min: -2.0}
-        init_value: 0
-        type: effort_controllers/JointPositionController
-
-    controller5:
-      id: 5
-      name: gimbal_parent2
-      simulation:
-        pid: {p: 5.0, i: 0.1, d: 0.1, i_clamp_max: 2.0, i_clamp_min: -2.0}
-        init_value: 0
-        type: effort_controllers/JointPositionController
-
-    controller6:
-      id: 6
-      name: gimbal_parent3
-      simulation:
-        pid: {p: 5.0, i: 0.1, d: 0.1, i_clamp_max: 2.0, i_clamp_min: -2.0}
-        init_value: 0
-        type: effort_controllers/JointPositionController
-
     controller7:
       id: 7
       name: gimbal_coord1
@@ -98,6 +74,30 @@ servo_controller:
     controller9:
       id: 9
       name: gimbal_coord3
+      simulation:
+        pid: {p: 5.0, i: 0.1, d: 0.1, i_clamp_max: 2.0, i_clamp_min: -2.0}
+        init_value: 0
+        type: effort_controllers/JointPositionController
+
+    controller10:
+      id: 10
+      name: gimbal_pitch1
+      simulation:
+        pid: {p: 5.0, i: 0.1, d: 0.1, i_clamp_max: 2.0, i_clamp_min: -2.0}
+        init_value: 0
+        type: effort_controllers/JointPositionController
+
+    controller11:
+      id: 11
+      name: gimbal_pitch2
+      simulation:
+        pid: {p: 5.0, i: 0.1, d: 0.1, i_clamp_max: 2.0, i_clamp_min: -2.0}
+        init_value: 0
+        type: effort_controllers/JointPositionController
+
+    controller12:
+      id: 12
+      name: gimbal_pitch3
       simulation:
         pid: {p: 5.0, i: 0.1, d: 0.1, i_clamp_max: 2.0, i_clamp_min: -2.0}
         init_value: 0
