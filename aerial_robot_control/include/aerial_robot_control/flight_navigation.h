@@ -485,6 +485,10 @@ namespace aerial_robot_navigation
       // set the velocty to zero
       target_vel_.setX(0);
       target_vel_.setY(0);
+
+      // set the acceleration to zero
+      setTargetAccX(0);
+      setTargetAccY(0);
     }
 
     void setTargetZFromCurrentState()
