@@ -416,6 +416,7 @@ namespace aerial_robot_navigation
       if(!teleop_flag_) return;
 
       setNaviState(LAND_STATE);
+      setXyControlMode(POS_CONTROL_MODE);
 
       setTargetXyFromCurrentState();
       setTargetYawFromCurrentState();
@@ -430,6 +431,7 @@ namespace aerial_robot_navigation
       force_landing_flag_ = true;
 
       setNaviState(STOP_STATE);
+      setXyControlMode(POS_CONTROL_MODE);
       setTargetXyFromCurrentState();
       setTargetYawFromCurrentState();
       setTargetPosZ(estimator_->getLandingHeight());
