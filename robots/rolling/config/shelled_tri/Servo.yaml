@@ -15,12 +15,12 @@ servo_controller:
       type: effort_controllers/JointPositionController
 
     controller1:
-      id: 7
+      id: 1
       name: joint1
       simulation:
         init_value: 2.08
     controller2:
-      id: 8
+      id: 3
       name: joint2
       simulation:
         init_value: 2.08
@@ -32,7 +32,7 @@ servo_controller:
     zero_point_offset: 2047
 
     controller1:
-      id: 1
+      id: 0
       name: gimbal1
       simulation:
         pid: {p: 5.0, i: 0.1, d: 0.1, i_clamp_max: 2.0, i_clamp_min: -2.0}
@@ -48,7 +48,7 @@ servo_controller:
         type: effort_controllers/JointPositionController
 
     controller3:
-      id: 3
+      id: 4
       name: gimbal3
       simulation:
         pid: {p: 5.0, i: 0.1, d: 0.1, i_clamp_max: 2.0, i_clamp_min: -2.0}
