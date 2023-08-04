@@ -104,6 +104,7 @@ def get_distance(v1, v2):
 if __name__ == '__main__':
     rospy.init_node("convex_plot")
     filepath = rospy.get_param("~filepath", "")
+    torque_radius = rospy.get_param("~radius", 0.0)
     motor_num = 3
 
     f = open(filepath)
@@ -176,12 +177,12 @@ if __name__ == '__main__':
     """
 
     # torque minimum sphere
-    # u,v=np.mgrid[0:2*np.pi:50j, 0:np.pi:25j]
-    # x=np.cos(u)*np.sin(v) * torque_radius
-    # y=np.sin(u)*np.sin(v) * torque_radius
-    # z=np.cos(v) * torque_radius
-    #ax.plot_wireframe(x, y, z, color='maroon', linewidth=1.0)
-    # ax.plot_wireframe(x, y, z, color='darkblue', linewidth=1.0)
+    u,v=np.mgrid[0:2*np.pi:50j, 0:np.pi:25j]
+    x=np.cos(u)*np.sin(v) * torque_radius
+    y=np.sin(u)*np.sin(v) * torque_radius
+    z=np.cos(v) * torque_radius
+    ax.plot_wireframe(x, y, z, color='maroon', linewidth=1.0)
+    ax.plot_wireframe(x, y, z, color='darkblue', linewidth=1.0)
     ax.tick_params(labelsize=7)
     ax.set_title("Feasible Control Torque", fontsize=20)
     ax.set_xlabel("tau_x", fontsize=20)

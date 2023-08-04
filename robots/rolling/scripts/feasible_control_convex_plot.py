@@ -147,7 +147,7 @@ class FeasibleControlConvexPlot():
                 torque_vertices = deepcopy(self.torque_vertices)
                 torque_radius = deepcopy(self.torque_radius)
                 self.lock.release()
-                #print(torque_vertices)
+                # print(torque_vertices)
                 x_min = np.amin(torque_vertices, axis = 0)[0] - 1
                 y_min = np.amin(torque_vertices, axis = 0)[1] - 1
                 z_min = np.amin(torque_vertices, axis = 0)[2] - 1
@@ -163,8 +163,8 @@ class FeasibleControlConvexPlot():
 
 
                 if self.xyz_equal_scale:
-                    xyz_min = np.amin(np.amin(torque_vertices, axis = 0), axis = 0) - 1
-                    xyz_max = np.amax(np.amax(torque_vertices, axis = 0), axis = 0) + 1
+                    xyz_min = np.amin(np.amin(torque_vertices, axis = 0), axis = 0) - 0.5
+                    xyz_max = np.amax(np.amax(torque_vertices, axis = 0), axis = 0) + 0.5
 
                     ax.set_xlim([xyz_min, xyz_max])
                     ax.set_ylim([xyz_min, xyz_max])
@@ -203,6 +203,10 @@ class FeasibleControlConvexPlot():
                 z=np.cos(v) * torque_radius
                 #ax.plot_wireframe(x, y, z, color='maroon', linewidth=1.0)
                 ax.plot_wireframe(x, y, z, color='darkblue', linewidth=1.0)
+                ax.tick_params(labelsize=7)
+                ax.set_xlabel("tau_x", fontsize=20)
+                ax.set_ylabel("tau_y", fontsize=20)
+                ax.set_zlabel("tau_z", fontsize=20)
 
                 if self.one_shot:
                     plt.show()
@@ -233,13 +237,12 @@ class FeasibleControlConvexPlot():
         self.force_vertices = np.empty((0,2), float)
 
         while cnt < 2 ** len(data.poses):
-
             vertice = np.array([0.0, 0.0])
             for i in range(len(data.poses)):
                 if 2 ** i & cnt:
                     vertice += [data.poses[i].position.x, data.poses[i].position.y] # positive
-                else:
-                    vertice -= [data.poses[i].position.x, data.poses[i].position.y] # negative
+                # else:
+                #     vertice -= [data.poses[i].position.x, data.poses[i].position.y] # negative
 
             self.force_vertices = np.append(self.force_vertices, np.array([vertice]), axis=0)
             cnt += 1
@@ -260,6 +263,8 @@ class FeasibleControlConvexPlot():
         unidirection = (data.header.frame_id == "unidirection")
         if unidirection:
             cnt = 1
+
+        cnt = 1
 
         self.lock.acquire()
         self.torque_vertices = np.empty((0,3), float)
