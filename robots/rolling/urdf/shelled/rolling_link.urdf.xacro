@@ -2,9 +2,9 @@
 <robot
     xmlns:xacro="http://www.ros.org/wiki/xacro" name="rolling_link" >
   <xacro:property name="rotor_offset" value="0.05" />
-  <xacro:property name="rotor1_tilt" value="0.0" />
-  <xacro:property name="rotor2_tilt" value="0.0" />
-  <xacro:property name="rotor3_tilt" value="0.0" />
+  <xacro:property name="rotor1_tilt" value="-0.125" />
+  <xacro:property name="rotor2_tilt" value="0.146" />
+  <xacro:property name="rotor3_tilt" value="0.083" />
 
   <xacro:macro name="rolling_module" params="self child baselink rotor_direction">
     ### link ###
@@ -66,7 +66,7 @@
         </inertial>
         <collision>
           <geometry>
-            <cylinder radius="0.4" length="0.03"/>
+            <cylinder radius="0.4" length="0.23"/>
           </geometry>
         </collision>
       </link>
@@ -110,13 +110,13 @@
       </inertial>
       <visual>
         <xacro:if value="${self == 1}">          
-          <origin rpy="0 ${rotor1_tilt} 0" xyz="0 0 0"/>
+          <origin rpy="0 0 0" xyz="0 0 0"/>
         </xacro:if>
         <xacro:if value="${self == 2}">
-          <origin rpy="0 ${rotor2_tilt} 0" xyz="0 0 0"/>
+          <origin rpy="0 0 0" xyz="0 0 0"/>
         </xacro:if>
         <xacro:if value="${self == 3}">
-          <origin rpy="0 ${rotor3_tilt} 0" xyz="0 0 0"/>
+          <origin rpy="0 0 0" xyz="0 0 0"/>
         </xacro:if>
         <geometry>
           <mesh filename="package://rolling/urdf/shelled/mesh/roll_gimbal_module.dae" scale="0.001 0.001 0.001"/>
