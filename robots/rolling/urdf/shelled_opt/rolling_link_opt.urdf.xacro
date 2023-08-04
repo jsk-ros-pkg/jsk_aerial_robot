@@ -136,7 +136,7 @@
 
     #### gimbal joint ####
     <joint name="gimbal${self}" type="continuous" >
-      <limit effort="3" lower="-3.14" upper="3.14" velocity="12.5"/>
+      <limit effort="10" lower="-3.14" upper="3.14" velocity="12.5"/>
       <parent link="link${self}"/>
       <child link="gimbal_link${self}"/>
       <origin xyz="${rotor_pos} 0 0" rpy="0 0 0" />
@@ -157,6 +157,17 @@
     </link>
 
     #### rotor parent link (virtual) ####
+    <link name="rotor_parent_parent${self}">
+      <inertial>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <mass value="0.00001"/>
+        <inertia
+            ixx="0.0001" ixy="0.0" ixz="0.0"
+            iyy="0.0001" iyz="0.0"
+            izz="0.0002"/>
+      </inertial>
+    </link>
+
     <link name="rotor_parent${self}">
       <inertial>
         <origin xyz="0 0 0" rpy="0 0 0"/>
@@ -192,11 +203,19 @@
     </joint>
 
     #### rotor parent link joint (virtual) ####
-    <joint name="gimbal_parent${self}" type="continuous">
-      <limit effort="3.0" lower="${-pi/2}" upper="${pi/2}" velocity="12.5"/>
+    <joint name="gimbal_parent_parent${self}" type="fixed">
       <parent link="gimbal_link${self}"/>
-      <child link="rotor_parent${self}"/>
+      <child link="rotor_parent_parent${self}"/>
       <origin rpy="0 0 0" xyz="0 0 ${rotor_offset}"/> # TODO: update rotor position
+      <axis xyz="0 1 0"/>
+      <dynamics damping="0.1" friction="0.0"/>
+    </joint>
+
+    <joint name="gimbal_pitch${self}" type="continuous">
+      <limit effort="10.0" lower="${-pi/2}" upper="${pi/2}" velocity="12.5"/>
+      <parent link="rotor_parent_parent${self}"/>
+      <child link="rotor_parent${self}"/>
+      <origin rpy="0 0 0" xyz="0 0 0"/> # TODO: update rotor position
       <axis xyz="0 1 0"/>
       <dynamics damping="0.1" friction="0.0"/>
     </joint>
@@ -235,23 +254,23 @@
       </actuator>
     </transmission>
 
-    <transmission name="gimbal_parent_tran${self}">
-      <type>transmission_interface/SimpleTransmission</type>
-      <joint name="gimbal_parent${self}">
-        <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
-      </joint>
-      <actuator name="gimbal_parent${self}">
-        <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
-        <mechanicalReduction>1</mechanicalReduction>
-      </actuator>
-    </transmission>
-
     <transmission name="gimbal_tran${self}">
       <type>transmission_interface/SimpleTransmission</type>
       <joint name="gimbal${self}">
         <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
       </joint>
       <actuator name="gimbal_servo${self}">
+        <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+        <mechanicalReduction>1</mechanicalReduction>
+      </actuator>
+    </transmission>
+
+    <transmission name="gimbal_pitch_tran${self}">
+      <type>transmission_interface/SimpleTransmission</type>
+      <joint name="gimbal_pitch${self}">
+        <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+      </joint>
+      <actuator name="gimbal_pitch_servo${self}">
         <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
         <mechanicalReduction>1</mechanicalReduction>
       </actuator>

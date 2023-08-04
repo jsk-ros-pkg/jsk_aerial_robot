@@ -56,6 +56,10 @@ add_executable(optimal_design src/design/optimal_design.cpp)
 target_link_libraries(optimal_design
   ${catkin_LIBRARIES} ${NLOPT_LIBRARIES})
 
+add_executable(mapping_optimization src/design/mapping_optimization.cpp)
+target_link_libraries(mapping_optimization
+  ${catkin_LIBRARIES} ${NLOPT_LIBRARIES})
+
 install(DIRECTORY include/${PROJECT_NAME}
   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
   )
@@ -65,6 +69,6 @@ install(DIRECTORY config launch plugins scripts
   USE_SOURCE_PERMISSIONS
   )
 
-install(TARGETS opt full_search fc_t_output optimal_design
+install(TARGETS opt full_search fc_t_output optimal_design mapping_optimization
   DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   )
