@@ -408,6 +408,7 @@ void BaseNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
 
       setNaviState(LAND_STATE);
       //update
+      setXyControlMode(POS_CONTROL_MODE)
       setTargetXyFromCurrentState();
       setTargetYawFromCurrentState();
       setTargetPosZ(estimator_->getLandingHeight());
@@ -638,6 +639,7 @@ void BaseNavigator::update()
       if(normal_land && !force_att_control_flag_)
         {
           setNaviState(LAND_STATE);
+          setXyControlMode(POS_CONTROL_MODE);
           setTargetXyFromCurrentState();
           setTargetYawFromCurrentState();
           setTargetPosZ(estimator_->getLandingHeight());
