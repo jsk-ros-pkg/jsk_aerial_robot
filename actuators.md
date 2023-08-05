@@ -4,7 +4,7 @@ title: Actuators
 ---
 
 
-## joint servo motor
+## joint and gimbal servo motor
 ### dynamixel
 you can use [dynamixel_wizard2](http://emanual.robotis.com/docs/en/software/dynamixel/dynamixel_wizard2/) to set the configuration from ubuntu/windows.
 
@@ -19,6 +19,18 @@ you can use [dynamixel_wizard2](http://emanual.robotis.com/docs/en/software/dyna
 - `baud rate: 3` (i.e., 1Mbps)
 - `return delay time: 25[ms]`
 - `operating mode: 5`
+
+#### id setting
+slave_id of each neuron is incremented from 1 and set via rqt.  
+ID of servo motors connected to the same neuron is incremented from 1 for joints and gimbals, in that order.  
+The value of each ID in the Servo.yaml is incremented from 0 starting from the servo with ID 1 connected to neuron with slave_id 1.
+
+Example
+
+|slave_id of neuron|1|1|1|2|2|2|2|3|3|3|  
+|ID of dynamixel|1 (joint)|2 (gimbal)|3 (gimbal)|1 (joint)|2 (joint)|3 (gimbal)|4 (gimbal)|1 (joint)|2 (joint)|3 (gimbal)|  
+|id in Servo.yaml|0|1|2|3|4|5|6|7|8|9|
+
 
 ## thrust rotor 
 - motor specification measurement: See [here](https://github.com/tongtybj/aerial_robot/blob/master/aerial_robot_nerve/motor_test/README.md)
