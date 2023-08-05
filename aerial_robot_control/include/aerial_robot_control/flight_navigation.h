@@ -478,6 +478,7 @@ namespace aerial_robot_navigation
 
     void setTargetXyFromCurrentState()
     {
+      setXyControlMode(POS_CONTROL_MODE);
       tf::Vector3 pos_cog = estimator_->getPos(Frame::COG, estimate_mode_);
       target_pos_.setX(pos_cog.x());
       target_pos_.setY(pos_cog.y());
