@@ -6,7 +6,8 @@ using namespace aerial_robot_navigation;
 RollingNavigator::RollingNavigator():
   BaseNavigator(),
   curr_target_baselink_rot_(0, 0, 0),
-  final_target_baselink_rot_(0, 0, 0)
+  final_target_baselink_rot_(0, 0, 0),
+  landing_flag_(false)
 {
 }
 
@@ -33,6 +34,8 @@ void RollingNavigator::reset()
   target_baselink_rot_msg.roll = curr_target_baselink_rot_.x();
   target_baselink_rot_msg.pitch = curr_target_baselink_rot_.y();
   curr_target_baselink_rot_pub_.publish(target_baselink_rot_msg);
+
+  landing_flag_ = false;
 }
 
 void RollingNavigator::update()
@@ -40,6 +43,8 @@ void RollingNavigator::update()
   BaseNavigator::update();
 
   baselinkRotationProcess();
+
+  landingProcess();
 }
 
 void RollingNavigator::setFinalTargetBaselinkRot(tf::Vector3 rot)
@@ -69,6 +74,48 @@ void RollingNavigator::baselinkRotationProcess()
       curr_target_baselink_rot_pub_.publish(target_baselink_rot_msg);
 
       prev_rotation_stamp_ = ros::Time::now().toSec();
+    }
+}
+
+void RollingNavigator::landingProcess()
+{
+  if(getForceLandingFlag() || getNaviState() == LAND_STATE)
+    {
+      if(curr_target_baselink_rot_.length())
+        {
+          ROS_WARN_ONCE("[navigation][landing] set final desired baselink rotation to (0, 0, 0)");
+          final_target_baselink_rot_.setValue(0, 0, 0);
+
+          if(getNaviState() == LAND_STATE && !landing_flag_)
+            {
+              ROS_WARN("[navigation][landing] set to hovering mode");
+              landing_flag_ = true;
+              setTeleopFlag(false);
+              setTargetPosZ(estimator_->getState(State::Z_COG, estimate_mode_)[0]);
+              setNaviState(HOVER_STATE);
+            }
+        }
+    }
+
+  /* back to landing process */
+  if(landing_flag_)
+    {
+      bool already_level = true;
+
+      if(curr_target_baselink_rot_.length()) already_level = false;
+
+      if(!already_level)
+        {
+          ROS_WARN_ONCE("[navigation][landing] waiting for baselink rotation conversion");
+        }
+
+      if(already_level && getNaviState() == HOVER_STATE)
+        {
+          ROS_WARN("[navigation][landing] back to land state");
+          setNaviState(LAND_STATE);
+          setTargetPosZ(estimator_->getLandingHeight());
+          setTeleopFlag(true);
+        }
     }
 }
 
