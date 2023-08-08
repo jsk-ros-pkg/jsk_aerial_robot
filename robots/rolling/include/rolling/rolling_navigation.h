@@ -26,6 +26,7 @@ namespace aerial_robot_navigation
     ros::Subscriber final_target_baselink_rot_sub_;
 
     void baselinkRotationProcess();
+    void landingProcess();
     void rosParamInit() override;
     void setFinalTargetBaselinkRotCallback(const spinal::DesireCoordConstPtr & msg);
 
@@ -33,6 +34,9 @@ namespace aerial_robot_navigation
     double prev_rotation_stamp_;
     std::vector<double> target_gimbal_angles_;
     tf::Vector3 curr_target_baselink_rot_, final_target_baselink_rot_;
+
+    /* landing process */
+    bool landing_flag_;
 
     /* rosparam */
     double baselink_rot_change_thresh_;
