@@ -1,0 +1,44 @@
+<?xml version="1.0"?>
+<robot
+    xmlns:xacro="http://www.ros.org/wiki/xacro" name="rolling_link2" >
+
+  <xacro:macro name="link2">
+
+    <link name="link2">
+      <inertial>
+        <origin xyz="0.26329859 -0.00016231 0.00746546" rpy="0 0 0"/>
+        <mass value="0.50417254"/>
+        <inertia
+            ixx="0.00065269" iyy="0.01910297" izz="0.01867466"
+            ixy="0.00001175" ixz="0.00180333" iyz="0.00000367"/>
+      </inertial>
+      <visual>
+        <geometry>
+          <mesh filename="package://rolling/urdf/20230808_frameless/mesh/link2_base.dae" scale="0.001 0.001 0.001"/>
+        </geometry>
+      </visual>
+      <collision>
+        <origin xyz="0.25 0 -0.05"/>
+        <geometry>
+          <box size="0.5 0.05 0.18"/>
+        </geometry>
+      </collision>
+    </link>
+
+    <link name="gimbal_link2">
+      <inertial>
+        <origin xyz="0.01274450 -0.00001684 0.02393903" rpy="0 0 0"/>
+        <mass value="0.29654765"/>
+        <inertia
+            ixx="0.00094271" iyy="0.00099628" izz="0.00020518"
+            ixy="0.00000000" ixz="-0.00015385" iyz="0.00000025"/>
+      </inertial>
+      <visual>
+        <geometry>
+          <mesh filename="package://rolling/urdf/20230808_frameless/mesh/link2_gimbal.dae" scale="0.001 0.001 0.001"/>
+        </geometry>
+      </visual>
+    </link>
+
+  </xacro:macro>
+</robot>
