@@ -18,7 +18,7 @@
 #include <type_traits>
 #include <vector>
 
-#include <aerial_robot_simulation/visualization_utils.h>
+#include <aerial_robot_simulation/mujoco_visualization_utils.h>
 #include <aerial_robot_msgs/ControlInput.h>
 #include <spinal/FourAxisCommand.h>
 #include <spinal/Imu.h>

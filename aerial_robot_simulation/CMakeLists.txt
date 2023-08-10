@@ -58,8 +58,8 @@ target_link_libraries(spinal_interface ${catkin_LIBRARIES})
 add_library(aerial_robot_hw_sim src/aerial_robot_hw_sim.cpp)
 target_link_libraries(aerial_robot_hw_sim spinal_interface ${catkin_LIBRARIES} ${GAZEBO_LIBRARIES} ${orocos_kdl_LIBRARIES})
 
-add_library(visualization_utils src/visualization_utils.cpp)
-target_link_libraries(visualization_utils ${catkin_LIBRARIES} ${MUJOCO_INCLUDE_DIR})
+add_library(mujoco_visualization_utils src/mujoco_visualization_utils.cpp)
+target_link_libraries(mujoco_visualization_utils ${catkin_LIBRARIES} ${MUJOCO_INCLUDE_DIR})
 
 install(DIRECTORY include/${PROJECT_NAME}/
   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION})
@@ -83,5 +83,5 @@ target_link_libraries(mujoco_ros_control
   ${catkin_LIBRARIES}
   glfw
   ${LIB_MUJOCO}
-  visualization_utils
+  mujoco_visualization_utils
   )
