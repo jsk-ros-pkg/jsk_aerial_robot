@@ -61,6 +61,12 @@ target_link_libraries(aerial_robot_hw_sim spinal_interface ${catkin_LIBRARIES} $
 add_library(mujoco_visualization_utils src/mujoco_visualization_utils.cpp)
 target_link_libraries(mujoco_visualization_utils ${catkin_LIBRARIES} ${MUJOCO_INCLUDE_DIR})
 
+add_library(mujoco_spinal_interface src/mujoco_spinal_interface.cpp)
+target_link_libraries(mujoco_spinal_interface ${catkin_LIBRARIES} ${MUJOCO_INCLUDE_DIR})
+
+add_library(mujoco_attitude_controller src/mujoco_attitude_controller.cpp)
+target_link_libraries(mujoco_attitude_controller ${catkin_LIBRARIES} ${MUJOCO_INCLUDE_DIR})
+
 install(DIRECTORY include/${PROJECT_NAME}/
   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION})
 
