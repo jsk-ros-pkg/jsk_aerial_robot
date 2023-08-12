@@ -7,6 +7,7 @@ class MujocoSpinalInterface
 {
 public:
   MujocoSpinalInterface();
+  bool init(ros::NodeHandle& nh);
 
   void setImuValue(double acc_x, double acc_y, double acc_z, double gyro_x, double gyro_y, double gyro_z);
   void setMagValue(double mag_x, double mag_y, double mag_z);
@@ -22,8 +23,12 @@ public:
   inline void onGround(bool flag) { on_ground_ = flag; }
   StateEstimate* getEstimatorPtr() {return &spinal_state_estimator_;}
 
+private:
   /* attitude estimator */
   bool on_ground_;
+
+  tf::Matrix3x3 baselink_rot_;
+  tf::Vector3 baselink_angular_;
   StateEstimate spinal_state_estimator_;
 
 };

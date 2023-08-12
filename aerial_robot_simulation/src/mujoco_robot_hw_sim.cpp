@@ -1,26 +1,31 @@
 #include <aerial_robot_simulation/mujoco_robot_hw_sim.h>
 
-namespace mujoco_ros_control
+bool MujocoRobotHWSim::initSim(ros::NodeHandle nh,
+                               )
 {
-  bool MujocoRobotHWSim::initSim(const std::string& robot_namespace,
-                                 ros::NodeHandle model_nh,
-                                 mjModelPtr m,
-                                 mjDataPtr d,
-                                 std::vector<transmission_interface::TransmissionInfo> transmissions
-                                 )
-  {
+  nh_ = nh;
+  spinal_interface_.init(nh_);
 
-  }
+  
+}
 
-  void readSim(ros::Time time, ros::Duration period)
-  {
+void MujocoRobotHWSim::readSim(ros::Time time, ros::Duration period)
+{
+  
 
-  }
+}
 
 
-  void writeSim(ros::Time time, ros::Duration period)
-  {
+void MujocoRobotHWSim::writeSim(ros::Time time, ros::Duration period)
+{
 
-  }
+}
 
+
+int main(int argc, char** argv)
+{
+  ros::init(argc, argv, "mujoco_robot_hw_sim");
+  ros::NodeHandle nh;
+
+  
 }
