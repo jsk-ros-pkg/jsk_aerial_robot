@@ -130,13 +130,13 @@
       <child link="rotor_parent${self}"/>
       <axis xyz="0 0 1"/>
       <xacro:if value="${self == 1}">
-        <origin xyz="-0.00586 0 0.08439" rpy="0 -0.125 0"/>
+        <origin xyz="0 0 0" rpy="0 -0.125 0"/>
       </xacro:if>
       <xacro:if value="${self == 2}">
-        <origin xyz="0.01037 0 0.0846" rpy="0 0.146 0"/>
+        <origin xyz="0 0 0" rpy="0 0.146 0"/>
       </xacro:if>
       <xacro:if value="${self == 3}">
-        <origin xyz="0.00389 0 0.08417" rpy="0 0.083 0"/>
+        <origin xyz="0 0 0" rpy="0 0.083 0"/>
       </xacro:if>
     </joint>
 
@@ -184,7 +184,7 @@
         <mechanicalReduction>1</mechanicalReduction>
       </actuator>
     </transmission>
-    
+
     <transmission name="rotor${self}_tran">
       <type>transmission_interface/SimpleTransmission</type>
       <joint name="rotor${self}">
@@ -195,7 +195,6 @@
         <mechanicalReduction>1</mechanicalReduction>
       </actuator>
     </transmission>
-
 
   </xacro:macro>
 </robot>
