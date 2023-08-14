@@ -22,6 +22,7 @@
   <exec_depend>hydrus_xi</exec_depend>
   <exec_depend>mini_quadrotor</exec_depend>
   <exec_depend>motor_test</exec_depend>
+  <exec_depend>rolling</exec_depend>
   <exec_depend>spinal</exec_depend>
   <exec_depend condition="$ROS_PYTHON_VERSION == 3">python-is-python3</exec_depend>
 
