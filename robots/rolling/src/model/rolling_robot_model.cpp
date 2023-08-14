@@ -1,7 +1,7 @@
 #include <rolling/model/rolling_robot_model.h>
 
-RollingRobotModel::RollingRobotModel(bool init_with_rosparam, bool verbose, double fc_t_min_thre, double epsilon) :
-  HydrusXiFullyActuatedRobotModel(init_with_rosparam, verbose, fc_t_min_thre, epsilon)
+RollingRobotModel::RollingRobotModel(bool init_with_rosparam, bool verbose, double fc_f_min_thre, double fc_t_min_thre, double epsilon) :
+  RobotModel(init_with_rosparam, verbose, fc_f_min_thre, fc_t_min_thre, epsilon)
 {
   const int rotor_num = getRotorNum();
   rotors_coord_rotation_from_cog_.resize(rotor_num);
