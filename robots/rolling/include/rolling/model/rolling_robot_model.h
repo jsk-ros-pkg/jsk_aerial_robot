@@ -5,14 +5,15 @@
 #include <ros/ros.h>
 #include <std_msgs/Float32.h>
 #include <geometry_msgs/PoseArray.h>
-#include <hydrus_xi/hydrus_xi_fully_actuated_robot_model.h>
+#include <aerial_robot_model/model/transformable_aerial_robot_model.h>
 
 using namespace aerial_robot_model;
 
-class RollingRobotModel : public HydrusXiFullyActuatedRobotModel {
+class RollingRobotModel : public aerial_robot_model::transformable::RobotModel {
 public:
   RollingRobotModel(bool init_with_rosparam = true,
                     bool verbose = false,
+                    double fc_f_min_thre = 0,
                     double fc_t_min_thre = 0,
                     double epsilon = 10);
   virtual ~RollingRobotModel() = default;
@@ -51,8 +52,6 @@ private:
 protected:
   void updateRobotModelImpl(const KDL::JntArray& joint_positions) override;
 };
-
-
 template<> inline std::vector<KDL::Rotation> RollingRobotModel::getRotorsCoordFromCog()
 {
   std::lock_guard<std::mutex> lock(rotors_coord_rotation_mutex_);

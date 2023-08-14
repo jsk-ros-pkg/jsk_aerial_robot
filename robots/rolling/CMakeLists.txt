@@ -8,7 +8,6 @@ find_package(catkin REQUIRED COMPONENTS
   aerial_robot_estimation
   aerial_robot_model
   aerial_robot_msgs
-  hydrus_xi
   pluginlib
   roscpp
   )
@@ -19,7 +18,7 @@ find_package(OsqpEigen REQUIRED)
 
 catkin_package(
   INCLUDE_DIRS include
-  CATKIN_DEPENDS aerial_robot_control aerial_robot_estimation aerial_robot_model aerial_robot_msgs hydrus_xi pluginlib roscpp
+  CATKIN_DEPENDS aerial_robot_control aerial_robot_estimation aerial_robot_model aerial_robot_msgs pluginlib roscpp
 )
 
 include_directories(
