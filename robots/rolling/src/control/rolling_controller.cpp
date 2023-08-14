@@ -45,6 +45,8 @@ void RollingController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   target_vectoring_force_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("debug/target_vectoring_force", 1);
   target_wrench_acc_cog_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("debug/target_wrench_acc_cog", 1);
   wrench_allocation_matrix_pub_ = nh_.advertise<aerial_robot_msgs::WrenchAllocationMatrix>("debug/wrench_allocation_matrix", 1);
+  full_q_mat_pub_ = nh_.advertise<aerial_robot_msgs::WrenchAllocationMatrix>("debug/full_q_mat", 1);
+
   ground_mode_sub_ = nh_.subscribe("ground_mode", 1, &RollingController::groundModeCallback, this);
   joint_state_sub_ = nh_.subscribe("joint_states", 1, &RollingController::jointStateCallback, this);
 
@@ -386,6 +388,18 @@ void RollingController::sendCmd()
       wrench_allocation_matrix_msg.t_z.push_back(q_mat_(5, i));
     }
   wrench_allocation_matrix_pub_.publish(wrench_allocation_matrix_msg);
+
+  aerial_robot_msgs::WrenchAllocationMatrix full_q_mat_msg;
+  for(int i = 0; i < 2 * motor_num_; i++)
+    {
+      full_q_mat_msg.f_x.push_back(full_q_mat_(0, i));
+      full_q_mat_msg.f_y.push_back(full_q_mat_(1, i));
+      full_q_mat_msg.f_z.push_back(full_q_mat_(2, i));
+      full_q_mat_msg.t_x.push_back(full_q_mat_(3, i));
+      full_q_mat_msg.t_y.push_back(full_q_mat_(4, i));
+      full_q_mat_msg.t_z.push_back(full_q_mat_(5, i));
+    }
+  full_q_mat_pub_.publish(full_q_mat_msg);
 
   sendFourAxisCommand();
 
