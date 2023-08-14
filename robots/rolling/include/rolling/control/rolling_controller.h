@@ -38,6 +38,7 @@ namespace aerial_robot_control
     ros::Publisher target_vectoring_force_pub_;
     ros::Publisher target_wrench_acc_cog_pub_;
     ros::Publisher wrench_allocation_matrix_pub_;
+    ros::Publisher full_q_mat_pub_;
     ros::Subscriber ground_mode_sub_;
     ros::Subscriber joint_state_sub_;
     tf2_ros::TransformBroadcaster br_;
