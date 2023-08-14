@@ -32,11 +32,27 @@ void RollingController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   full_lambda_all_.resize(2 * motor_num_);
   full_q_mat_.resize(6, 2 * motor_num_);
   full_q_mat_inv_.resize(2 * motor_num_, 6);
-
-  q_mat_.resize(6, motor_num_);
-  q_mat_inv_.resize(motor_num_, 6);
+  under_q_mat_.resize(4, 2 * motor_num_);
+  under_q_mat_inv_.resize(2 * motor_num_, 4);
 
   rosParamInit();
+
+  if(fully_actuated_)
+    {
+      q_mat_.resize(6, motor_num_);
+      q_mat_inv_.resize(motor_num_, 6);
+    }
+  else
+    {
+      q_mat_.resize(4, motor_num_);
+      q_mat_inv_.resize(motor_num_, 4);
+    }
+
+  target_roll_ = 0.0;
+  target_pitch_ = 0.0;
+  target_thrust_z_term_.resize(2 * motor_num_);
+
+  z_limit_ = pid_controllers_.at(Z).getLimitSum();
 
   rpy_gain_pub_ = nh_.advertise<spinal::RollPitchYawTerms>("rpy/gain", 1);
   flight_cmd_pub_ = nh_.advertise<spinal::FourAxisCommand>("four_axes/command", 1);
@@ -71,6 +87,10 @@ void RollingController::rosParamInit()
   getParam<double>(control_nh, "allocation_refine_threshold", allocation_refine_threshold_, 0.01);
   getParam<int>(control_nh, "allocation_refine_max_iteration", allocation_refine_max_iteration_, 1);
   getParam<double>(control_nh, "initial_roll_tilt", initial_roll_tilt_, 0.0);
+  getParam<bool>(control_nh, "use_sr_inv", use_sr_inv_, false);
+  getParam<double>(control_nh, "sr_inv_weight", sr_inv_weight_, 0.0);
+  getParam<bool>(control_nh, "fully_actuated", fully_actuated_, true);
+  getParam<bool>(control_nh, "hovering_approximate", hovering_approximate_, false);
 
   getParam<double>(nh_, "circle_radius", circle_radius_, 0.5);
   rolling_robot_model_->setCircleRadius(circle_radius_);
@@ -90,46 +110,19 @@ void RollingController::rosParamInit()
 
 void RollingController::controlCore()
 {
-  if(!gain_updated_)
+  if(fully_actuated_)
     {
-      if(ground_mode_)
-        {
-          ros::NodeHandle ground_control_nh(nh_, "ground_controller");
-          ros::NodeHandle xy_nh(ground_control_nh, "xy");
-          ros::NodeHandle x_nh(ground_control_nh, "x");
-          ros::NodeHandle y_nh(ground_control_nh, "y");
-          ros::NodeHandle z_nh(ground_control_nh, "z");
-          ros::NodeHandle roll_pitch_nh(ground_control_nh, "roll_pitch");
-          ros::NodeHandle roll_nh(ground_control_nh, "roll");
-          ros::NodeHandle pitch_nh(ground_control_nh, "pitch");
-          ros::NodeHandle yaw_nh(ground_control_nh, "yaw");
-        }
-      gain_updated_ = true;
+      ROS_WARN_ONCE("fully actuated control");
+      RollingController::fullyActuatedFlightControl();
     }
-
-  flightControl();
-  // groundControl();
-
-  // std::vector<Eigen::Vector3d> rotor_origin = rolling_robot_model_->getRotorsOriginFromContactPoint<Eigen::Vector3d>();
-  // for(int i = 0; i < motor_num_; i++)
-  //   {
-  //     std::cout << rotor_origin.at(i) << std::endl;
-  //   }
-  // std::cout << std::endl;
-  // std::vector<Eigen::Vector3d> rotor_normal = rolling_robot_model_->getRotorsNormalFromContactPoint<Eigen::Vector3d>();
-  // for(int i = 0; i < motor_num_; i++)
-  //   {
-  //     std::cout << rotor_normal.at(i) << std::endl;
-  //   }
-  // std::cout << std::endl;
-  // Eigen::Matrix3d inertia_cog = robot_model_->getInertia<Eigen::Matrix3d>();
-  // Eigen::Matrix3d inertia_cp = rolling_robot_model_->getInertiaContactPoint<Eigen::Matrix3d>();
-  // std::cout << inertia_cog << std::endl;
-  // std::cout << inertia_cp << std::endl;
-  // std::cout << std::endl;
+  else
+    {
+      ROS_WARN_ONCE("under actuated control");
+      RollingController::underActuatedFlightControl();
+    }
 }
 
-void RollingController::flightControl()
+void RollingController::fullyActuatedFlightControl()
 {
   PoseLinearController::controlCore();
 
@@ -168,7 +161,7 @@ void RollingController::flightControl()
   if(navigator_->getForceLandingFlag() && target_acc_w.z() < 5.0) // heuristic measures to avoid to large gimbal angles after force land
     start_rp_integration_ = false;
 
-  RollingController::wrenchAllocationFromCog();
+  RollingController::fullyActuatedWrenchAllocationFromCog();
 
   // special process for yaw since the bandwidth between PC and spinal
   double max_yaw_scale = 0; // for reconstruct yaw control term in spinal
@@ -177,180 +170,175 @@ void RollingController::flightControl()
       if(q_mat_inv_(i, YAW) > max_yaw_scale) max_yaw_scale = q_mat_inv_(i, YAW);
     }
   candidate_yaw_term_ = pid_controllers_.at(YAW).result() * max_yaw_scale;
+
 }
 
-void RollingController::groundControl()
+void RollingController::underActuatedFlightControl()
 {
   PoseLinearController::controlCore();
 
-  tf::Matrix3x3 uav_rot = estimator_->getOrientation(Frame::COG, estimate_mode_);
-  tf::Vector3 euler = estimator_->getEuler(Frame::COG, estimate_mode_);
-  pid_controllers_.at(ROLL).setIGain(0.0);
-
-  tf::Vector3 rot = tf::Vector3(initial_roll_tilt_, 0, 0);
-  rolling_navigator_->setFinalTargetBaselinkRot(rot);
-  tf::Vector3 curr_target_baselink_rot = rolling_navigator_->getCurrTargetBaselinkRot();
-  double curr_target_baselink_rot_roll = curr_target_baselink_rot.x();
-  navigator_->setTargetPosZ(circle_radius_ * sin(curr_target_baselink_rot_roll));
+  RollingController::calcWrenchAllocationMatrix();
 
   tf::Vector3 target_acc_w(pid_controllers_.at(X).result(),
                            pid_controllers_.at(Y).result(),
                            pid_controllers_.at(Z).result());
-  double mass = robot_model_->getMass();
-  tf::Vector3 target_acc_cog = uav_rot.inverse() * target_acc_w;
-  Eigen::Vector3d target_force_cog = mass * Eigen::Vector3d(target_acc_cog.x(), target_acc_cog.y(), target_acc_cog.z());
+  tf::Vector3 target_acc_dash = (tf::Matrix3x3(tf::createQuaternionFromYaw(rpy_.z()))).inverse() * target_acc_w;
 
-  double target_ang_acc_x = pid_controllers_.at(ROLL).result();
-  double target_ang_acc_y = pid_controllers_.at(PITCH).result();
-  double target_ang_acc_z = pid_controllers_.at(YAW).result();
-  
-  Eigen::MatrixXd inertia = robot_model_for_control_->getInertia<Eigen::Matrix3d>();
-  Eigen::Vector3d target_torque = inertia * Eigen::Vector3d(target_ang_acc_x, target_ang_acc_y, target_ang_acc_z);
-  
-  pid_msg_.roll.total.at(0) = target_ang_acc_x;
-  pid_msg_.roll.p_term.at(0) = pid_controllers_.at(ROLL).getPTerm();
-  pid_msg_.roll.i_term.at(0) = pid_controllers_.at(ROLL).getITerm();
-  pid_msg_.roll.d_term.at(0) = pid_controllers_.at(ROLL).getDTerm();
-  pid_msg_.roll.target_p = target_rpy_.x();
-  pid_msg_.roll.err_p = pid_controllers_.at(ROLL).getErrP();
-  pid_msg_.roll.target_d = target_omega_.x();
-  pid_msg_.roll.err_d = pid_controllers_.at(ROLL).getErrD();
-  pid_msg_.pitch.total.at(0) = target_ang_acc_y;
-  pid_msg_.pitch.p_term.at(0) = pid_controllers_.at(PITCH).getPTerm();
-  pid_msg_.pitch.i_term.at(0) = pid_controllers_.at(PITCH).getITerm();
-  pid_msg_.pitch.d_term.at(0) = pid_controllers_.at(PITCH).getDTerm();
-  pid_msg_.pitch.target_p = target_rpy_.y();
-  pid_msg_.pitch.err_p = pid_controllers_.at(PITCH).getErrP();
-  pid_msg_.pitch.target_d = target_omega_.y();
-  pid_msg_.pitch.err_d = pid_controllers_.at(PITCH).getErrD();
+  target_wrench_acc_cog_.head(3) = Eigen::Vector3d(target_acc_dash.x(), target_acc_dash.y(), target_acc_dash.z());
 
-  double ff_torque_x = (mass * aerial_robot_estimation::G - target_force_cog(2)) * cos(curr_target_baselink_rot_roll) + target_force_cog(1) * sin(curr_target_baselink_rot_roll);
-  double ff_torque_y = -target_force_cog(0) * sin(curr_target_baselink_rot_roll);
-  double ff_torque_z = target_force_cog(0) * cos(curr_target_baselink_rot_roll);
-  Eigen::Vector3d ff_torque = circle_radius_ * Eigen::Vector3d(ff_torque_x, ff_torque_y, ff_torque_z);
-  std::cout << ff_torque(0) << " " << ff_torque(1) << " " << ff_torque(2) << " " << std::endl;
-  std::cout << std::endl;
+  if(hovering_approximate_)
+    {
+      target_pitch_ = target_acc_dash.x() / aerial_robot_estimation::G;
+      target_roll_ = -target_acc_dash.y() / aerial_robot_estimation::G;
+    }
+  else
+    {
+      target_pitch_ = atan2(target_acc_dash.x(), target_acc_dash.z());
+      target_roll_ = atan2(-target_acc_dash.y(), sqrt(target_acc_dash.x() * target_acc_dash.x() + target_acc_dash.z() * target_acc_dash.z()));
+    }
 
-  target_torque = target_torque + ff_torque;
+  navigator_->setTargetRoll(target_roll_);
+  navigator_->setTargetPitch(target_pitch_);
+  PoseLinearController::controlCore();
 
-  target_wrench_acc_cog_.head(3) = Eigen::Vector3d(target_acc_cog.x(), target_acc_cog.y(), target_acc_cog.z());
-  target_wrench_acc_cog_.tail(3) = inertia.inverse() * target_torque;
+  target_wrench_acc_cog_.tail(3) = Eigen::Vector3d(pid_controllers_.at(ROLL).result(), pid_controllers_.at(PITCH).result(), pid_controllers_.at(YAW).result());
 
-  if(navigator_->getForceLandingFlag() && target_acc_w.z() < 5.0) // heuristic measures to avoid to large gimbal angles after force land
-    start_rp_integration_ = false;
+  /* actuator mapping */
+  full_lambda_trans_ = under_q_mat_inv_.col(0) * target_acc_dash.z();
+  full_lambda_rot_ = under_q_mat_inv_.rightCols(3) * target_wrench_acc_cog_.tail(3);
+  full_lambda_all_ = full_lambda_trans_ + full_lambda_rot_;
 
-  RollingController::wrenchAllocationFromCog();
+  int last_col = 0;
+  for(int i = 0; i < motor_num_; i++)
+    {
+      Eigen::VectorXd full_lambda_trans_i = full_lambda_trans_.segment(last_col, 2);
+      Eigen::VectorXd full_lambda_all_i = full_lambda_all_.segment(last_col, 2);
+      target_gimbal_angles_.at(i) = atan2(-full_lambda_all_i(0), full_lambda_all_i(1));
+      target_base_thrust_.at(i) = full_lambda_trans_i.norm() / fabs(cos(rotor_tilt_.at(i)));
+
+      last_col += 2;
+    }
+
+  /* update robot model by calculated gimbal angle */
+  const auto& joint_index_map = robot_model_->getJointIndexMap();
+  KDL::Rotation cog_desire_orientation = robot_model_->getCogDesireOrientation<KDL::Rotation>();
+  robot_model_for_control_->setCogDesireOrientation(cog_desire_orientation);
+  KDL::JntArray gimbal_processed_joint = robot_model_->getJointPositions();
+  robot_model_for_control_->updateRobotModel(gimbal_processed_joint);
+  for(int i = 0; i < motor_num_; i++)
+    {
+      std::string s = std::to_string(i + 1);
+      gimbal_processed_joint(joint_index_map.find(std::string("gimbal") + s)->second) = target_gimbal_angles_.at(i);
+    }
+
+  /* calculate allocation matrix for realtime control */
+  q_mat_ = robot_model_for_control_->calcWrenchMatrixOnCoG();
+  q_mat_inv_ = aerial_robot_model::pseudoinverse(q_mat_);
 
   // special process for yaw since the bandwidth between PC and spinal
   double max_yaw_scale = 0; // for reconstruct yaw control term in spinal
   for (unsigned int i = 0; i < motor_num_; i++)
     {
-      if(q_mat_inv_(i, YAW) > max_yaw_scale) max_yaw_scale = q_mat_inv_(i, YAW);
+      if(under_q_mat_inv_(i, YAW - 2) > max_yaw_scale) max_yaw_scale = under_q_mat_inv_(i, YAW - 2);
     }
   candidate_yaw_term_ = pid_controllers_.at(YAW).result() * max_yaw_scale;
+
 }
 
-void RollingController::wrenchAllocationFromCog()
+void RollingController::calcWrenchAllocationMatrix()
 {
-  /* iterarively calcurate rotor origin */
+  /* calculate normal allocation */
+  Eigen::MatrixXd wrench_matrix = Eigen::MatrixXd::Zero(6, 3 * motor_num_);
+  Eigen::MatrixXd wrench_map = Eigen::MatrixXd::Zero(6, 3);
+  wrench_map.block(0, 0, 3, 3) =  Eigen::MatrixXd::Identity(3, 3);
+
+  int last_col = 0;
+  std::vector<Eigen::Vector3d> rotors_origin_from_cog = robot_model_for_control_->getRotorsOriginFromCog<Eigen::Vector3d>();
+  for(int i = 0; i < motor_num_; i++)
+    {
+      wrench_map.block(3, 0, 3, 3) = aerial_robot_model::skew(rotors_origin_from_cog.at(i));
+      wrench_matrix.middleCols(last_col, 3) = wrench_map;
+
+      last_col += 3;
+    }
+
+  Eigen::Matrix3d inertia_inv = robot_model_for_control_->getInertia<Eigen::Matrix3d>().inverse();
+  double mass_inv = 1 / robot_model_->getMass();
+  wrench_matrix.topRows(3) = mass_inv * wrench_matrix.topRows(3);
+  wrench_matrix.bottomRows(3) = inertia_inv * wrench_matrix.bottomRows(3);
+
+  /* calculate masked and integrated rotaion matrix */
+  Eigen::MatrixXd integrated_rot = Eigen::MatrixXd::Zero(3 * motor_num_, 2 * motor_num_);
+  const auto links_rotation_from_cog = rolling_robot_model_->getLinksRotationFromCog<Eigen::Matrix3d>();
+  Eigen::MatrixXd mask(3, 2);
+  mask << 0, 0, 1, 0, 0, 1;
+  for(int i = 0; i < motor_num_; i++)
+    {
+      integrated_rot.block(3 * i, 2 * i, 3, 2) = links_rotation_from_cog.at(i) * mask;
+    }
+
+  /* calculate integarated allocation */
+  full_q_mat_ = wrench_matrix * integrated_rot;
+  full_q_mat_inv_ = aerial_robot_model::pseudoinverse(full_q_mat_);
+  if(use_sr_inv_)
+    {
+      // http://www.thothchildren.com/chapter/5bd8d78751d930518903af34
+      Eigen::MatrixXd sr_inv = full_q_mat_.transpose() * (full_q_mat_ * full_q_mat_.transpose() + sr_inv_weight_ * Eigen::MatrixXd::Identity(full_q_mat_.rows(), full_q_mat_.rows())).inverse();
+      full_q_mat_inv_ = sr_inv;
+      ROS_WARN_STREAM_ONCE("use SR-Inverse. weight is " << sr_inv_weight_);
+    }
+  else
+    {
+      ROS_WARN_ONCE("use MP-Inverse");
+    }
+
+  /* calculate wrench allocation matrix for under actuated control  */
+  under_q_mat_ = full_q_mat_.bottomRows(4);
+  under_q_mat_inv_ = aerial_robot_model::pseudoinverse(under_q_mat_);
+  if(use_sr_inv_)
+    {
+      // http://www.thothchildren.com/chapter/5bd8d78751d930518903af34
+      Eigen::MatrixXd sr_inv = under_q_mat_.transpose() * (under_q_mat_ * under_q_mat_.transpose() + sr_inv_weight_ * Eigen::MatrixXd::Identity(under_q_mat_.rows(), under_q_mat_.rows())).inverse();
+      under_q_mat_inv_ = sr_inv;
+    }
+}
+
+void RollingController::fullyActuatedWrenchAllocationFromCog()
+{
+  RollingController::calcWrenchAllocationMatrix();
+
+  /* actuator mapping */
+  full_lambda_trans_ = full_q_mat_inv_.leftCols(3) * target_wrench_acc_cog_.head(3);
+  full_lambda_rot_ = full_q_mat_inv_.rightCols(3) * target_wrench_acc_cog_.tail(3);
+  full_lambda_all_ = full_lambda_trans_ + full_lambda_rot_;
+
+  int last_col = 0;
+  for(int i = 0; i < motor_num_; i++)
+    {
+      Eigen::VectorXd full_lambda_trans_i = full_lambda_trans_.segment(last_col, 2);
+      Eigen::VectorXd full_lambda_all_i = full_lambda_all_.segment(last_col, 2);
+      target_gimbal_angles_.at(i) = atan2(-full_lambda_all_i(0), full_lambda_all_i(1));
+      target_base_thrust_.at(i) = full_lambda_trans_i.norm() / fabs(cos(rotor_tilt_.at(i)));
+
+      last_col += 2;
+    }
+
+  /* update robot model by calculated gimbal angle */
+  const auto& joint_index_map = robot_model_->getJointIndexMap();
   KDL::Rotation cog_desire_orientation = robot_model_->getCogDesireOrientation<KDL::Rotation>();
   robot_model_for_control_->setCogDesireOrientation(cog_desire_orientation);
   KDL::JntArray gimbal_processed_joint = robot_model_->getJointPositions();
   robot_model_for_control_->updateRobotModel(gimbal_processed_joint);
-
-  for(int j = 0; j < allocation_refine_max_iteration_; j++)
+  for(int i = 0; i < motor_num_; i++)
     {
-      /* calculate normal allocation */
-      Eigen::MatrixXd wrench_matrix = Eigen::MatrixXd::Zero(6, 3 * motor_num_);
-      Eigen::MatrixXd wrench_map = Eigen::MatrixXd::Zero(6, 3);
-      wrench_map.block(0, 0, 3, 3) =  Eigen::MatrixXd::Identity(3, 3);
-
-      int last_col = 0;
-      std::vector<Eigen::Vector3d> rotors_origin_from_cog = robot_model_for_control_->getRotorsOriginFromCog<Eigen::Vector3d>();
-      for(int i = 0; i < motor_num_; i++)
-        {
-          wrench_map.block(3, 0, 3, 3) = aerial_robot_model::skew(rotors_origin_from_cog.at(i));
-          wrench_matrix.middleCols(last_col, 3) = wrench_map;
-
-          last_col += 3;
-        }
-
-      Eigen::Matrix3d inertia_inv = robot_model_for_control_->getInertia<Eigen::Matrix3d>().inverse();
-      double mass_inv = 1 / robot_model_->getMass();
-      wrench_matrix.topRows(3) = mass_inv * wrench_matrix.topRows(3);
-      wrench_matrix.bottomRows(3) = inertia_inv * wrench_matrix.bottomRows(3);
-
-      /* calculate masked and integrated rotaion matrix */
-      Eigen::MatrixXd integrated_rot = Eigen::MatrixXd::Zero(3 * motor_num_, 2 * motor_num_);
-      const auto links_rotation_from_cog = rolling_robot_model_->getLinksRotationFromCog<Eigen::Matrix3d>();
-      Eigen::MatrixXd mask(3, 2);
-      mask << 0, 0, 1, 0, 0, 1;
-      for(int i = 0; i < motor_num_; i++)
-        {
-          integrated_rot.block(3 * i, 2 * i, 3, 2) = links_rotation_from_cog.at(i) * mask;
-        }
-
-      /* calculate integarated allocation */
-      full_q_mat_ = wrench_matrix * integrated_rot;
-      full_q_mat_inv_ = aerial_robot_model::pseudoinverse(full_q_mat_);
-
-      /* actuator mapping */
-      full_lambda_trans_ = full_q_mat_inv_.leftCols(3) * target_wrench_acc_cog_.head(3);
-      full_lambda_rot_ = full_q_mat_inv_.rightCols(3) * target_wrench_acc_cog_.tail(3);
-      full_lambda_all_ = full_lambda_trans_ + full_lambda_rot_;
-
-      last_col = 0;
-      for(int i = 0; i < motor_num_; i++)
-        {
-          Eigen::VectorXd full_lambda_trans_i = full_lambda_trans_.segment(last_col, 2);
-          Eigen::VectorXd full_lambda_all_i = full_lambda_all_.segment(last_col, 2);
-          target_gimbal_angles_.at(i) = atan2(-full_lambda_all_i(0), full_lambda_all_i(1));
-          target_base_thrust_.at(i) = full_lambda_trans_i.norm() / fabs(cos(rotor_tilt_.at(i)));
-
-          last_col += 2;
-        }
-
-      /* update robot model by calculated gimbal angle */
-      const auto& joint_index_map = robot_model_->getJointIndexMap();
-      gimbal_processed_joint = robot_model_for_control_->getJointPositions();
-      for(int i = 0; i < motor_num_; i++)
-        {
-          std::string s = std::to_string(i + 1);
-          gimbal_processed_joint(joint_index_map.find(std::string("gimbal") + s)->second) = target_gimbal_angles_.at(i);
-        }
-
-      std::vector<Eigen::Vector3d> prev_rotors_origin_from_cog = rotors_origin_from_cog;
-      robot_model_for_control_->updateRobotModel(gimbal_processed_joint);
-      rotors_origin_from_cog = robot_model_for_control_->getRotorsOriginFromCog<Eigen::Vector3d>();
-
-      double max_diff = 1e-6;
-      for(int i = 0; i < motor_num_; i++)
-        {
-          double diff = (rotors_origin_from_cog.at(i) - prev_rotors_origin_from_cog.at(i)).norm();
-          if(max_diff < diff) max_diff = diff;
-        }
-
-      if(control_verbose_)
-        {
-          // ROS_DEBUG_STREAM("refine rotor origin in control: iteration "<< j+1 << ", max_diff: " << max_diff);  // din't work
-          ROS_WARN_STREAM("refine rotor origin in control: iteration "<< j+1 << ", max_diff: " << max_diff);      // worked
-        }
-      if(max_diff < allocation_refine_threshold_)
-        {
-          break;
-        }
-      if(j == allocation_refine_max_iteration_ - 1)
-        {
-          ROS_WARN_STREAM("refine rotor origin in control: can not converge in iteration " << j+1 << " max_diff: " << max_diff);
-        }
-    }  /* iterarively calcurate rotor origin */
-
+      std::string s = std::to_string(i + 1);
+      gimbal_processed_joint(joint_index_map.find(std::string("gimbal") + s)->second) = target_gimbal_angles_.at(i);
+    }
 
   /* calculate allocation matrix for realtime control */
   q_mat_ = robot_model_for_control_->calcWrenchMatrixOnCoG();
   q_mat_inv_ = aerial_robot_model::pseudoinverse(q_mat_);
 }
-
 
 void RollingController::sendCmd()
 {
@@ -411,6 +399,11 @@ void RollingController::sendFourAxisCommand()
   spinal::FourAxisCommand flight_command_data;
   flight_command_data.angles[2] = candidate_yaw_term_;
   flight_command_data.base_thrust = target_base_thrust_;
+  if(!fully_actuated_)
+    {
+      flight_command_data.angles[0] = target_roll_;
+      flight_command_data.angles[1] = target_pitch_;
+    }
   flight_cmd_pub_.publish(flight_command_data);
 }
 

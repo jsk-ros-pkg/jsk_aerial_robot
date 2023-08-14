@@ -56,6 +56,8 @@ namespace aerial_robot_control
     Eigen::VectorXd full_lambda_all_;
     Eigen::MatrixXd full_q_mat_;
     Eigen::MatrixXd full_q_mat_inv_;
+    Eigen::MatrixXd under_q_mat_;
+    Eigen::MatrixXd under_q_mat_inv_;
     Eigen::MatrixXd q_mat_;
     Eigen::MatrixXd q_mat_inv_;
     double candidate_yaw_term_;
@@ -68,6 +70,13 @@ namespace aerial_robot_control
     double initial_roll_tilt_;
     std::string tf_prefix_;
     bool gain_updated_;
+    bool use_sr_inv_;
+    double sr_inv_weight_;
+    bool fully_actuated_;
+    double z_limit_;
+    Eigen::VectorXd target_thrust_z_term_;
+    double target_roll_, target_pitch_; //for under actuated control
+    bool hovering_approximate_;
 
     void controlCore() override;
     void reset() override;
@@ -78,8 +87,10 @@ namespace aerial_robot_control
     void setAttitudeGains();
     void groundModeCallback(const std_msgs::Int16Ptr & msg);
     void jointStateCallback(const sensor_msgs::JointStateConstPtr & msg);
-    void flightControl();
-    void groundControl();
-    void wrenchAllocationFromCog();
+    void fullyActuatedFlightControl();
+    void underActuatedFlightControl();
+    void calcWrenchAllocationMatrix();
+    void fullyActuatedWrenchAllocationFromCog();
+    void underActuatedWrenchAllocationFromCog();
   };
 };
