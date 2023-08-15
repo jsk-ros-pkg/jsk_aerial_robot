@@ -29,7 +29,8 @@ BaseNavigator::BaseNavigator():
 
 void BaseNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
                                boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
-                               boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator)
+                               boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
+                               double loop_du)
 {
   nh_ = nh;
   nhp_ = nhp;
@@ -38,6 +39,7 @@ void BaseNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
 
   robot_model_ = robot_model;
   estimator_ = estimator;
+  loop_du_ = loop_du;
 
   navi_sub_ = nh_.subscribe("uav/nav", 1, &BaseNavigator::naviCallback, this, ros::TransportHints().tcpNoDelay());
 

@@ -51,7 +51,8 @@ namespace aerial_robot_navigation
 
     virtual void initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
                             boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
-                            boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator);
+                            boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
+                            double loop_du);
     virtual void update();
 
     ros::Publisher& getFlightConfigPublisher() { return flight_config_pub_; }
@@ -228,6 +229,7 @@ namespace aerial_robot_navigation
     int  prev_xy_control_mode_;
     bool xy_vel_mode_pos_ctrl_takeoff_;
 
+    double loop_du_;
     int  control_frame_;
     int estimate_mode_;
     bool  force_att_control_flag_;
