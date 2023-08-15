@@ -711,6 +711,8 @@ void BaseNavigator::update()
                 double delta = curr_pos.z() - land_height_;
                 double vel = curr_vel.z();
 
+                ROS_INFO("expected land height: %f (current height: %f), velocity: %f ", land_height_, curr_pos.z(), vel);
+
                 if (fabs(delta) < land_pos_convergent_thresh_ &&
                     fabs(vel) < land_vel_convergent_thresh_)
                   {
@@ -841,7 +843,7 @@ void BaseNavigator::updateLandCommand()
   // update pos and vel for z
   tf::Vector3 curr_pos = estimator_->getPos(Frame::COG, estimate_mode_);
 
-  setTargetPosZ(curr_pos.z() + land_descend_vel_ * loop_du_);
+  addTargetPosZ(land_descend_vel_ * loop_du_);
   setTargetVelZ(land_descend_vel_);
 }
 
