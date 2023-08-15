@@ -17,7 +17,6 @@ find_package(NLopt REQUIRED)
 find_package(OsqpEigen REQUIRED)
 
 catkin_package(
-  INCLUDE_DIRS include
   CATKIN_DEPENDS aerial_robot_control aerial_robot_estimation aerial_robot_model aerial_robot_msgs pluginlib roscpp
 )
 
@@ -48,8 +47,6 @@ target_link_libraries(full_search
 add_executable(fc_t_output src/design/fc_t_output.cpp)
 target_link_libraries(fc_t_output
   ${catkin_LIBRARIES})
-
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
 
 add_executable(optimal_design src/design/optimal_design.cpp)
 target_link_libraries(optimal_design
