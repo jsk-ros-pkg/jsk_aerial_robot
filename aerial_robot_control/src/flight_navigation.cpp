@@ -11,6 +11,7 @@ BaseNavigator::BaseNavigator():
   target_omega_(0, 0, 0),
   init_height_(0), land_height_(0),
   force_att_control_flag_(false),
+  trajectory_mode_(false),
   low_voltage_flag_(false),
   prev_xy_control_mode_(ACC_CONTROL_MODE),
   vel_control_flag_(false),
@@ -149,6 +150,9 @@ void BaseNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & ms
     {
       setTargetYaw(angles::normalize_angle(msg->target_yaw));
       setTargetOmageZ(msg->target_omega_z);
+
+      trajectory_mode_ = true;
+      trajectory_reset_time_ = trajectory_reset_duration_ + ros::Time::now().toSec();
     }
 
   /* xy control */
@@ -231,6 +235,9 @@ void BaseNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & ms
         setTargetVelX(msg->target_vel_x);
         setTargetVelY(msg->target_vel_y);
 
+        trajectory_mode_ = true;
+        trajectory_reset_time_ = trajectory_reset_duration_ + ros::Time::now().toSec();
+
         break;
       }
     case aerial_robot_msgs::FlightNav::ACC_MODE:
@@ -286,6 +293,9 @@ void BaseNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & ms
     {
       setTargetPosZ(msg->target_pos_z);
       setTargetVelZ(msg->target_vel_z);
+
+      trajectory_mode_ = true;
+      trajectory_reset_time_ = trajectory_reset_duration_ + ros::Time::now().toSec();
     }
 }
 
@@ -647,6 +657,19 @@ void BaseNavigator::update()
         }
     }
 
+  /* update the target pos and velocity */
+  if (trajectory_mode_)
+    {
+      if (ros::Time::now().toSec() > trajectory_reset_time_)
+        {
+          setTargetVel(tf::Vector3(0,0,0));
+
+          trajectory_mode_ = false;
+
+          ROS_INFO("[Flight nav] stop trajectory mode");
+        }
+    }
+
   tf::Vector3 curr_pos = estimator_->getPos(Frame::COG, estimate_mode_);
   tf::Vector3 curr_vel = estimator_->getVel(Frame::COG, estimate_mode_);
   tf::Vector3 delta = target_pos_ - curr_pos;
@@ -858,6 +881,7 @@ void BaseNavigator::rosParamInit()
   getParam<double>(nh, "land_descend_vel",land_descend_vel_, -0.1);
   getParam<double>(nh, "hover_convergent_duration", hover_convergent_duration_, 1.0);
   getParam<double>(nh, "land_check_duration", land_check_duration_, 1.0);
+  getParam<double>(nh, "trajectory_reset_duration", trajectory_reset_duration_, 0.5);
   getParam<double>(nh, "z_convergent_thresh", z_convergent_thresh_, 0.05);
   getParam<double>(nh, "xy_convergent_thresh", xy_convergent_thresh_, 0.15);
   getParam<double>(nh, "land_pos_convergent_thresh", land_pos_convergent_thresh_, 0.02);

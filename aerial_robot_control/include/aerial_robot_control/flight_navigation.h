@@ -76,6 +76,7 @@ namespace aerial_robot_navigation
     inline tf::Vector3 getTargetRPY() {return target_rpy_;}
     inline tf::Vector3 getTargetOmega() {return target_omega_;}
 
+    inline void setTargetVel(tf::Vector3 vel) { target_vel_ = vel; }
     inline void setTargetRoll(float value) { target_rpy_.setX(value); }
     inline void setTargetOmageX(float value) { target_omega_.setX(value); }
     inline void setTargetPitch(float value) { target_rpy_.setY(value); }
@@ -235,6 +236,7 @@ namespace aerial_robot_navigation
     int  control_frame_;
     int estimate_mode_;
     bool  force_att_control_flag_;
+    bool trajectory_mode_;
     bool lock_teleop_;
     ros::Time force_landing_start_time_;
 
@@ -242,6 +244,8 @@ namespace aerial_robot_navigation
     double hover_convergent_duration_;
     double land_check_start_time_;
     double land_check_duration_;
+    double trajectory_reset_time_;
+    double trajectory_reset_duration_;
     double z_convergent_thresh_;
     double xy_convergent_thresh_;
     double land_pos_convergent_thresh_;
@@ -316,6 +320,7 @@ namespace aerial_robot_navigation
       estimator_->setSensorFusionFlag(false);
       estimator_->setFlyingFlag(false);
 
+      trajectory_mode_ = false;
       init_height_ = 0;
       land_height_ = 0;
     }
@@ -358,6 +363,7 @@ namespace aerial_robot_navigation
         }
 
       setNaviState(START_STATE);
+      trajectory_mode_ = false;
       setTargetXyFromCurrentState();
       setTargetPosZ(takeoff_height_);
       setTargetVelZ(0);
