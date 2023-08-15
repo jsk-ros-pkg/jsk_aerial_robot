@@ -96,6 +96,9 @@ namespace aerial_robot_navigation
     inline void setTeleopFlag(bool teleop_flag) { teleop_flag_ = teleop_flag; }
     inline bool getTeleopFlag() { return teleop_flag_; }
 
+    inline const double getInitHeight() const { return init_height_;  }
+    inline void setInitHeight(double height) { init_height_ = height; }
+
     void tfPublish();
 
     uint8_t getEstimateMode(){ return estimate_mode_;}
@@ -222,7 +225,6 @@ namespace aerial_robot_navigation
 
     bool param_verbose_;
 
-    bool start_able_;
     uint8_t navi_state_;
 
     int  xy_control_mode_;
@@ -236,16 +238,23 @@ namespace aerial_robot_navigation
     bool lock_teleop_;
     ros::Time force_landing_start_time_;
 
-    double convergent_start_time_;
-    double convergent_duration_;
+    double hover_convergent_start_time_;
+    double hover_convergent_duration_;
+    double land_check_start_time_;
+    double land_check_duration_;
     double z_convergent_thresh_;
     double xy_convergent_thresh_;
+    double land_pos_convergent_thresh_;
+    double land_vel_convergent_thresh_;
 
     /* target value */
     tf::Vector3 target_pos_, target_vel_, target_acc_;
     tf::Vector3 target_rpy_, target_omega_;
 
     double takeoff_height_;
+    double init_height_;
+    double land_height_;
+    double land_descend_vel_;
 
     /* auto vel nav */
     bool vel_based_waypoint_;
@@ -305,9 +314,10 @@ namespace aerial_robot_navigation
     virtual void reset()
     {
       estimator_->setSensorFusionFlag(false);
-      estimator_->setLandingMode(false);
-      estimator_->setLandedFlag(false);
       estimator_->setFlyingFlag(false);
+
+      init_height_ = 0;
+      land_height_ = 0;
     }
 
     void startTakeoff()
@@ -337,11 +347,11 @@ namespace aerial_robot_navigation
             {
               ros::NodeHandle nh(nh_, "navigation");
               nh.param("outdoor_takeoff_height", takeoff_height_, 1.2);
-              nh.param("outdorr_convergent_duration", convergent_duration_, 0.5);
+              nh.param("outdoor_hover_convergent_duration", hover_convergent_duration_, 0.5);
               nh.param("outdoor_xy_convergent_thresh", xy_convergent_thresh_, 0.6);
               nh.param("outdoor_z_convergent_thresh", z_convergent_thresh_, 0.05);
 
-              ROS_WARN_STREAM("update the navigation parameters for outdoor flight, takeoff height: " << takeoff_height_ << "; outdorr_convergent_duration: " << convergent_duration_ << "; outdoor_xy_convergent_thresh: " << xy_convergent_thresh_ << "; outdoor_z_convergent_thresh: " << z_convergent_thresh_);
+              ROS_WARN_STREAM("update the navigation parameters for outdoor flight, takeoff height: " << takeoff_height_ << "; outdoor_hover_convergent_duration: " << hover_convergent_duration_ << "; outdoor_xy_convergent_thresh: " << xy_convergent_thresh_ << "; outdoor_z_convergent_thresh: " << z_convergent_thresh_);
 
               break;
             }
@@ -349,13 +359,18 @@ namespace aerial_robot_navigation
 
       setNaviState(START_STATE);
       setTargetXyFromCurrentState();
-      estimator_->setLandingHeight(estimator_->getPos(Frame::COG, estimate_mode_).z());
       setTargetPosZ(takeoff_height_);
-
+      setTargetVelZ(0);
+      setTargetAccZ(0);
+      setInitHeight(estimator_->getPos(Frame::COG, estimate_mode_).z());
       setTargetYawFromCurrentState();
+
+      ROS_INFO_STREAM("init height for takeoff: " << init_height_);
 
       ROS_INFO("Start state");
     }
+
+    virtual void updateLandCommand();
 
     tf::Vector3 frameConversion(tf::Vector3 origin_val,  tf::Matrix3x3 r)
     {
@@ -409,7 +424,6 @@ namespace aerial_robot_navigation
 
       setTargetXyFromCurrentState();
       setTargetYawFromCurrentState();
-      setTargetPosZ(estimator_->getLandingHeight());
       ROS_INFO("Land state");
     }
 
@@ -418,11 +432,7 @@ namespace aerial_robot_navigation
       if(!teleop_flag_) return;
 
       force_landing_flag_ = true;
-
       setNaviState(STOP_STATE);
-      setTargetXyFromCurrentState();
-      setTargetYawFromCurrentState();
-      setTargetPosZ(estimator_->getLandingHeight());
 
       ROS_INFO("Halt state");
     }

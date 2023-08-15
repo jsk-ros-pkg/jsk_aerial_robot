@@ -139,11 +139,6 @@ namespace aerial_robot_control
       }
 
     /* z */
-    getParam<double>(z_nh, "landing_err_z", landing_err_z_, -0.5);
-    getParam<double>(z_nh, "safe_landing_height",  safe_landing_height_, 0.5);
-    getParam<double>(z_nh, "force_landing_descending_rate",  force_landing_descending_rate_, -0.5);
-    if(force_landing_descending_rate_ >= 0) force_landing_descending_rate_ = -0.5;
-
     loadParam(z_nh);
     pid_controllers_.push_back(PID("z", p_gain, i_gain, d_gain, limit_sum, limit_p, limit_i, limit_d, limit_err_p, limit_err_i, limit_err_d));
     pid_reconf_servers_.push_back(boost::make_shared<PidControlDynamicConfig>(z_nh));
@@ -248,20 +243,6 @@ namespace aerial_robot_control
     double err_v_z = target_vel_.z() - vel_.z();
     double du_z = du;
     double z_p_limit = pid_controllers_.at(Z).getLimitP();
-    bool final_landing_phase = false;
-    if(navigator_->getNaviState() == aerial_robot_navigation::LAND_STATE)
-      {
-        if(-err_z > safe_landing_height_)
-          {
-            err_z = landing_err_z_;  // too high, slowly descend
-            if(vel_.z() < landing_err_z_) du_z = 0;  // freeze i term when descending
-          }
-        else
-          {
-            pid_controllers_.at(Z).setLimitP(0); // no p control in final safe landing phase
-            final_landing_phase = true;
-          }
-      }
 
     if(navigator_->getForceLandingFlag())
       {
@@ -275,7 +256,7 @@ namespace aerial_robot_control
 
     if(pid_controllers_.at(Z).getErrI() < 0) pid_controllers_.at(Z).setErrI(0);
 
-    if(final_landing_phase || navigator_->getForceLandingFlag())
+    if(navigator_->getForceLandingFlag())
       {
         pid_controllers_.at(Z).setLimitP(z_p_limit); // revert z p limit
         pid_controllers_.at(Z).setErrP(0); // for derived controller which use err_p in feedback control (e.g., LQI)
@@ -285,7 +266,7 @@ namespace aerial_robot_control
     double du_rp = du;
     if(!start_rp_integration_)
       {
-        if(pos_.z() - estimator_->getLandingHeight() > start_rp_integration_height_)
+        if(pos_.z() - navigator_->getInitHeight () > start_rp_integration_height_)
           {
             start_rp_integration_ = true;
             spinal::FlightConfigCmd flight_config_cmd;
