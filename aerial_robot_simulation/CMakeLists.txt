@@ -91,3 +91,13 @@ target_link_libraries(mujoco_ros_control
   ${LIB_MUJOCO}
   mujoco_visualization_utils
   )
+
+add_executable(mujoco_robot_hw_sim src/mujoco_robot_hw_sim.cpp)
+target_link_libraries(mujoco_robot_hw_sim
+  ${catkin_LIBRARIES}
+  glfw
+  ${LIB_MUJOCO}
+  mujoco_visualization_utils
+  mujoco_attitude_controller
+  mujoco_spinal_interface
+  )

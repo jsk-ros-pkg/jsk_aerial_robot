@@ -1,3 +1,5 @@
+#pragma once
+
 #include <ros/ros.h>
 #include <aerial_robot_estimation/state_estimation.h>
 #include <aerial_robot_simulation/spinal_interface.h>

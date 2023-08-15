@@ -2,6 +2,7 @@
 #include <aerial_robot_model/model/aerial_robot_model.h>
 #include <aerial_robot_simulation/mujoco_spinal_interface.h>
 #include <aerial_robot_simulation/mujoco_attitude_controller.h>
+#include <aerial_robot_simulation/mujoco_visualization_utils.h>
 #include <mujoco/mujoco.h>
 
 class MujocoRobotHWSim

@@ -1,6 +1,6 @@
 #include <aerial_robot_simulation/mujoco_robot_hw_sim.h>
 
-bool MujocoRobotHWSim::initSim(ros::NodeHandle nh,
+bool MujocoRobotHWSim::initSim(ros::NodeHandle nh
                                )
 {
   nh_ = nh;
@@ -27,5 +27,6 @@ int main(int argc, char** argv)
   ros::init(argc, argv, "mujoco_robot_hw_sim");
   ros::NodeHandle nh;
 
-  
+  MujocoRobotHWSim mujoco_robot_hw_sim;
+  mujoco_robot_hw_sim.initSim(nh);
 }
