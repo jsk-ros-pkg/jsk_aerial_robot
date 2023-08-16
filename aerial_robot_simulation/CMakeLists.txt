@@ -101,3 +101,8 @@ target_link_libraries(mujoco_robot_hw_sim
   mujoco_attitude_controller
   mujoco_spinal_interface
   )
+
+add_executable(timer src/timer.cpp)
+target_link_libraries(timer
+  ${catkin_LIBRARIES}
+  )
