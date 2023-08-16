@@ -54,6 +54,9 @@ MujocoRobotHWSim::MujocoRobotHWSim(ros::NodeHandle nh):
   spinal_interface_->init(nh_);
   simulation_attitude_controller_.init(spinal_interface_, nh_);
 
+  // ros topics
+  mocap_pub_ = nh_.advertise<geometry_msgs::PoseStamped>("mocap/pose", 1);
+
   // ros callback timers
   clock_pub_ = nh_.advertise<rosgraph_msgs::Clock>("/clock", 10);
 
@@ -66,7 +69,7 @@ MujocoRobotHWSim::MujocoRobotHWSim(ros::NodeHandle nh):
   clock_timer_ = nh_.createTimer(clock_ops);
   clock_spinner_.start();
 
-  ros::TimerOptions read_ops(ros::Duration(1.0 / 100.0),
+  ros::TimerOptions read_ops(ros::Duration(1.0 / 500.0),
                                 boost::bind(&MujocoRobotHWSim::readSim, this, _1),
                                 &read_loop_queue_);
   read_timer_ = nh_.createTimer(read_ops);
@@ -100,6 +103,63 @@ void MujocoRobotHWSim::clockCallback(const ros::TimerEvent & e)
 void MujocoRobotHWSim::readSim(const ros::TimerEvent & e)
 {
   spinal_interface_->stateEstimate();
+  ros::Time time = ros::Time::now();
+  if((time - last_mocap_time_).toSec() > mocap_pub_rate_)
+    {
+      geometry_msgs::PoseStamped pose_msg;
+      int fc_id = mj_name2id(mujoco_model_, mjtObj_::mjOBJ_SITE, "fc");
+      mjtNum* site_xpos = mujoco_data_->site_xpos;
+      mjtNum* site_xmat = mujoco_data_->site_xmat;
+      tf::Matrix3x3 fc_rot_mat = tf::Matrix3x3(site_xmat[9 * fc_id + 0], site_xmat[9 * fc_id + 1], site_xmat[9 * fc_id + 2],
+                                               site_xmat[9 * fc_id + 3], site_xmat[9 * fc_id + 4], site_xmat[9 * fc_id + 5],
+                                               site_xmat[9 * fc_id + 6], site_xmat[9 * fc_id + 7], site_xmat[9 * fc_id + 8]);
+      tfScalar r = 0, p = 0, y = 0;
+      fc_rot_mat.getRPY(r, p, y);
+      tf::Quaternion fc_quat = tf::Quaternion(r, p, y);
+      pose_msg.header.stamp = (ros::Time) time;
+      pose_msg.pose.position.x = site_xpos[3 * fc_id + 0];
+      pose_msg.pose.position.y = site_xpos[3 * fc_id + 1];
+      pose_msg.pose.position.z = site_xpos[3 * fc_id + 2];
+      pose_msg.pose.orientation.x = fc_quat.x();
+      pose_msg.pose.orientation.y = fc_quat.y();
+      pose_msg.pose.orientation.z = fc_quat.z();
+      pose_msg.pose.orientation.w = fc_quat.w();
+      mocap_pub_.publish(pose_msg);
+
+      last_mocap_time_ = time;
+    }
+
+  spinal::Imu imu_msg;
+  for(int i = 0; i < mujoco_model_->nsensor; i++)
+    {
+      if(std::string(mj_id2name(mujoco_model_, mjtObj_::mjOBJ_SENSOR, i)) == "acc")
+        {
+          for(int j = 0; j < mujoco_model_->sensor_dim[i]; j++)
+            {
+              imu_msg.acc_data[j] = mujoco_data_->sensordata[mujoco_model_->sensor_adr[i] + j];
+            }
+        }
+      if(std::string(mj_id2name(mujoco_model_, mjtObj_::mjOBJ_SENSOR, i)) == "gyro")
+        {
+          for(int j = 0; j < mujoco_model_->sensor_dim[i]; j++)
+            {
+              imu_msg.gyro_data[j] = mujoco_data_->sensordata[mujoco_model_->sensor_adr[i] + j];
+            }
+        }
+      if(std::string(mj_id2name(mujoco_model_, mjtObj_::mjOBJ_SENSOR, i)) == "mag")
+        {
+          for(int j = 0; j < mujoco_model_->sensor_dim[i]; j++)
+            {
+              imu_msg.mag_data[j] = mujoco_data_->sensordata[mujoco_model_->sensor_adr[i] + j];
+            }
+        }
+    }
+
+  spinal_interface_->setImuValue(imu_msg.acc_data[0], imu_msg.acc_data[1], imu_msg.acc_data[2], imu_msg.gyro_data[0], imu_msg.gyro_data[1], imu_msg.gyro_data[2]);
+  spinal_interface_->setMagValue(imu_msg.mag_data[0], imu_msg.mag_data[1], imu_msg.mag_data[2]);
+
+  spinal_interface_->stateEstimate();
+
 
   MujocoRobotHWSim::writeSim();
 

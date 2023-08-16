@@ -26,6 +26,7 @@ private:
   ros::Time zero_time_;
 
   ros::Publisher clock_pub_;
+  ros::Publisher mocap_pub_;
 
   ros::AsyncSpinner clock_spinner_;
   ros::AsyncSpinner read_spinner_;
@@ -37,6 +38,9 @@ private:
 
   boost::shared_ptr <MujocoSpinalInterface> spinal_interface_;
   MujocoAttitudeController simulation_attitude_controller_;
+
+  double mocap_pub_rate_ = 0.0100;
+  ros::Time last_mocap_time_ = (ros::Time) 0.0;
 
 };
 
