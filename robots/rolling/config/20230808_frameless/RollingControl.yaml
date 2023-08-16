@@ -9,7 +9,7 @@ controller:
   initial_roll_tilt: 0.8
   use_sr_inv: false
   sr_inv_weight: 0.1
-  fully_actuated: false
+  fully_actuated: true
   hovering_approximate: false
 
   rotor_tilt1: -0.125
