@@ -32,5 +32,4 @@ private:
   tf::Matrix3x3 baselink_rot_;
   tf::Vector3 baselink_angular_;
   StateEstimate spinal_state_estimator_;
-
 };

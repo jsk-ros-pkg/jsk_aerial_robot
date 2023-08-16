@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<launch>
+  <arg name="robot_ns" default="dragon" />
+
+  <group ns="$(arg robot_ns)">
+    <param name="model" value="$(find dragon)/urdf/mujoco/dragon.xml"/>
+    <node pkg="aerial_robot_simulation" type="mujoco_robot_hw_sim" name="mujoco_robot_hw_sim" output="screen"/>
+  </group>
+
+</launch>

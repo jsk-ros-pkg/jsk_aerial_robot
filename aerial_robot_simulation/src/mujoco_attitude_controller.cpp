@@ -5,16 +5,22 @@ MujocoAttitudeController::MujocoAttitudeController():
 {
 }
 
-bool MujocoAttitudeController::init(MujocoSpinalInterface* spinal_interface)
+void MujocoAttitudeController::init(boost::shared_ptr<MujocoSpinalInterface> spinal_interface, ros::NodeHandle & nh)
 {
   spinal_interface_ = spinal_interface;
+
+  int index = nh.getNamespace().rfind('/');
+  std::string robot_ns = nh.getNamespace().substr(0, index);
+  ros::NodeHandle n_robot = ros::NodeHandle(robot_ns);
+  controller_core_->init(&n_robot, spinal_interface_->getEstimatorPtr());
+
 }
 
-void MujocoAttitudeController::starting(const ros::Time& time)
+void MujocoAttitudeController::starting()
 {
 }
 
-void MujocoAttitudeController::update(const ros::Time& time, const ros::Duration& period)
+void MujocoAttitudeController::update()
 {
   /* set ground truth value for control */
   auto true_cog_rpy = spinal_interface_->getTrueCogRPY();
@@ -27,4 +33,5 @@ void MujocoAttitudeController::update(const ros::Time& time, const ros::Duration
 
   /* update the controller */
   controller_core_->update();
+
 }

@@ -12,12 +12,12 @@ public:
   MujocoAttitudeController();
   ~MujocoAttitudeController() {}
 
-  bool init(MujocoSpinalInterface* spinal_interface);
-  void starting(const ros::Time& time);
-  void update(const ros::Time& time, const ros::Duration& period);
+  void init(boost::shared_ptr<MujocoSpinalInterface> spinal_interface, ros::NodeHandle & nh);
+  void starting();
+  void update();
 
 
 private:
   boost::shared_ptr<FlightControl> controller_core_;
-  MujocoSpinalInterface* spinal_interface_;
+  boost::shared_ptr<MujocoSpinalInterface> spinal_interface_;
 };

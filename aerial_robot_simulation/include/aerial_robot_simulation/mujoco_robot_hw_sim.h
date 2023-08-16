@@ -16,7 +16,7 @@ public:
   virtual ~MujocoRobotHWSim();
   bool initSim();
   void readSim(const ros::TimerEvent & e);
-  void writeSim(ros::Time time, ros::Duration period);
+  void writeSim();
   void clockCallback(const ros::TimerEvent & e);
 
 private:
@@ -32,9 +32,11 @@ private:
   ros::CallbackQueue clock_loop_queue_;
   ros::CallbackQueue read_loop_queue_;
 
-  mjModel* m;
-  mjData* d;
-  MujocoSpinalInterface spinal_interface_;
+  mjModel* mujoco_model_;
+  mjData* mujoco_data_;
+
+  boost::shared_ptr <MujocoSpinalInterface> spinal_interface_;
+  MujocoAttitudeController simulation_attitude_controller_;
 
 };
 
