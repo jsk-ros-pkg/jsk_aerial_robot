@@ -578,6 +578,7 @@ namespace sensor_plugin
             }
           return true;
         }
+      return false;
     }
 
     void baroCallback(const spinal::BarometerConstPtr & baro_msg)
