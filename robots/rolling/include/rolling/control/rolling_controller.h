@@ -50,6 +50,7 @@ namespace aerial_robot_control
     std::vector<double> rotor_tilt_;
     std::vector<float> target_base_thrust_;
     std::vector<double> target_gimbal_angles_;
+    std::vector<double> prev_target_gimbal_angles_;
     Eigen::VectorXd target_wrench_acc_cog_;
     Eigen::VectorXd full_lambda_trans_;
     Eigen::VectorXd full_lambda_rot_;
@@ -77,6 +78,7 @@ namespace aerial_robot_control
     Eigen::VectorXd target_thrust_z_term_;
     double target_roll_, target_pitch_; //for under actuated control
     bool hovering_approximate_;
+    double gimbal_lpf_factor_;
 
     void controlCore() override;
     void reset() override;
