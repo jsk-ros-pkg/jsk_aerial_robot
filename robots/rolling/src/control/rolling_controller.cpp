@@ -25,6 +25,7 @@ void RollingController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   rotor_tilt_.resize(motor_num_);
   target_base_thrust_.resize(motor_num_);
   target_gimbal_angles_.resize(motor_num_, 0);
+  prev_target_gimbal_angles_.resize(motor_num_, 0);
 
   target_wrench_acc_cog_.resize(6);
   full_lambda_trans_.resize(2 * motor_num_);
@@ -91,6 +92,7 @@ void RollingController::rosParamInit()
   getParam<double>(control_nh, "sr_inv_weight", sr_inv_weight_, 0.0);
   getParam<bool>(control_nh, "fully_actuated", fully_actuated_, true);
   getParam<bool>(control_nh, "hovering_approximate", hovering_approximate_, false);
+  getParam<double>(control_nh, "gimbal_lpf_factor",gimbal_lpf_factor_, 1.0);
 
   getParam<double>(nh_, "circle_radius", circle_radius_, 0.5);
   rolling_robot_model_->setCircleRadius(circle_radius_);
@@ -112,12 +114,12 @@ void RollingController::controlCore()
 {
   if(fully_actuated_)
     {
-      ROS_WARN_ONCE("fully actuated control");
+      ROS_WARN_ONCE("[control] fully actuated control");
       RollingController::fullyActuatedFlightControl();
     }
   else
     {
-      ROS_WARN_ONCE("under actuated control");
+      ROS_WARN_ONCE("[control] under actuated control");
       RollingController::underActuatedFlightControl();
     }
 }
@@ -213,7 +215,12 @@ void RollingController::underActuatedFlightControl()
     {
       Eigen::VectorXd full_lambda_trans_i = full_lambda_trans_.segment(last_col, 2);
       Eigen::VectorXd full_lambda_all_i = full_lambda_all_.segment(last_col, 2);
-      target_gimbal_angles_.at(i) = atan2(-full_lambda_all_i(0), full_lambda_all_i(1));
+
+      double gimbal_angle_i = atan2(-full_lambda_all_i(0), full_lambda_all_i(1));
+      ROS_WARN_STREAM_ONCE("[control] gimbal lpf factor: " << gimbal_lpf_factor_);
+      prev_target_gimbal_angles_.at(i) = target_gimbal_angles_.at(i);
+      target_gimbal_angles_.at(i) = (gimbal_lpf_factor_ - 1.0) / gimbal_lpf_factor_ * prev_target_gimbal_angles_.at(i) + 1.0 / gimbal_lpf_factor_ * gimbal_angle_i;
+
       target_base_thrust_.at(i) = full_lambda_trans_i.norm() / fabs(cos(rotor_tilt_.at(i)));
 
       last_col += 2;
@@ -285,11 +292,11 @@ void RollingController::calcWrenchAllocationMatrix()
       // http://www.thothchildren.com/chapter/5bd8d78751d930518903af34
       Eigen::MatrixXd sr_inv = full_q_mat_.transpose() * (full_q_mat_ * full_q_mat_.transpose() + sr_inv_weight_ * Eigen::MatrixXd::Identity(full_q_mat_.rows(), full_q_mat_.rows())).inverse();
       full_q_mat_inv_ = sr_inv;
-      ROS_WARN_STREAM_ONCE("use SR-Inverse. weight is " << sr_inv_weight_);
+      ROS_WARN_STREAM_ONCE("[control] use SR-Inverse. weight is " << sr_inv_weight_);
     }
   else
     {
-      ROS_WARN_ONCE("use MP-Inverse");
+      ROS_WARN_ONCE("[control] use MP-Inverse");
     }
 
   /* calculate wrench allocation matrix for under actuated control  */
@@ -317,7 +324,12 @@ void RollingController::fullyActuatedWrenchAllocationFromCog()
     {
       Eigen::VectorXd full_lambda_trans_i = full_lambda_trans_.segment(last_col, 2);
       Eigen::VectorXd full_lambda_all_i = full_lambda_all_.segment(last_col, 2);
-      target_gimbal_angles_.at(i) = atan2(-full_lambda_all_i(0), full_lambda_all_i(1));
+
+      double gimbal_angle_i = atan2(-full_lambda_all_i(0), full_lambda_all_i(1));
+      ROS_WARN_STREAM_ONCE("[control] gimbal lpf factor: " << gimbal_lpf_factor_);
+      prev_target_gimbal_angles_.at(i) = target_gimbal_angles_.at(i);
+      target_gimbal_angles_.at(i) = (gimbal_lpf_factor_ - 1.0) / gimbal_lpf_factor_ * prev_target_gimbal_angles_.at(i) + 1.0 / gimbal_lpf_factor_ * gimbal_angle_i;
+
       target_base_thrust_.at(i) = full_lambda_trans_i.norm() / fabs(cos(rotor_tilt_.at(i)));
 
       last_col += 2;
