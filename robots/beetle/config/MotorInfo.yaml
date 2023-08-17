@@ -1,5 +1,5 @@
 motor_info:
-        min_pwm: 0.59 # 1180 [ms]
+        min_pwm: 0.5 # 1000 [ms]
         max_pwm: 0.9 # 1800 [ms]
         min_thrust: 2.0 #  [N]
         force_landing_thrust: 6.0 #[N]
