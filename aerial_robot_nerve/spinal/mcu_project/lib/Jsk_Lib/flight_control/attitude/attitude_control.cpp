@@ -585,7 +585,7 @@ void AttitudeController::rpyGainCallback( const spinal::RollPitchYawTerms &gain_
 
 void AttitudeController::torqueAllocationMatrixInvCallback(const spinal::TorqueAllocationMatrixInv& msg)
 {
-  if(motor_number_ == 0) return;
+  if(motor_number_ == 0 || !start_control_flag_) return;
 
 #ifdef SIMULATION
   if(msg.rows.size() != motor_number_)
@@ -947,7 +947,7 @@ void AttitudeController::pwmConversion()
             }
         }
     }
-
+  
   for(int i = 0; i < motor_number_; i++)
     target_thrust_[i] = roll_pitch_term_[i] + (1 + base_thrust_decreasing_rate) * base_thrust_term_[i] + (1 + yaw_decreasing_rate) * yaw_term_[i];
 
