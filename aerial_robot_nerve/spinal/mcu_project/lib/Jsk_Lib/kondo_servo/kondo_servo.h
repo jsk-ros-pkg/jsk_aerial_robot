@@ -24,7 +24,7 @@
 #define KONDO_SERVO_POSITION_MAX 11500
 #define KONDO_SERVO_ANGLE_MIN -2.36
 #define KONDO_SERVO_ANGLE_MAX 2.36
-
+#define SERVO_STATE_PUB_INTERVAL 200 //100ms
 
 class KondoServo
 {
@@ -33,16 +33,16 @@ private:
   spinal::ServoStates servo_state_msg_;
   ros::NodeHandle* nh_;
   ros::Subscriber<spinal::ServoControlCmd, KondoServo> kondo_servo_control_sub_;
-  // ros::Publisher servo_state_pub_;
+  ros::Publisher servo_state_pub_;
   uint16_t target_position_[MAX_SERVO_NUM];
   uint16_t current_position_[MAX_SERVO_NUM];
   bool activated_[MAX_SERVO_NUM];
-
+  uint32_t servo_state_pub_last_time_;
 public:
   ~KondoServo(){}
   KondoServo():
-    kondo_servo_control_sub_("kondo_servo_cmd", &KondoServo::servoControlCallback, this)
-    // servo_state_pub_("kondo_servo_states", &servo_state_msg_)
+    kondo_servo_control_sub_("kondo_servo_cmd", &KondoServo::servoControlCallback, this),
+    servo_state_pub_("kondo_servo_states", &servo_state_msg_)
   {
   }
 
@@ -52,7 +52,7 @@ public:
     nh_ = nh;
 
     nh_->subscribe(kondo_servo_control_sub_);
-    // nh_->advertise(servo_state_pub_);
+    nh_->advertise(servo_state_pub_);
 
     // /* TODO: add search process to access only existing motors*/
     // for(int i = 0; i < MAX_SERVO_NUM; i++)
@@ -62,13 +62,13 @@ public:
     //   }
 
     /* TODO: define the msg size dynamically depending on avilable servo numer*/
-    servo_state_msg_.servos_length = MAX_SERVO_NUM;
-    servo_state_msg_.servos = new spinal::ServoState[MAX_SERVO_NUM];
+    servo_state_msg_.servos_length = 5;
+    servo_state_msg_.servos = new spinal::ServoState[5];
+    servo_state_pub_last_time_ = 0;
   }
 
   void update()
   {
-    // sendServoState();
     for(int i = 0; i < MAX_SERVO_NUM; i++)
       {
         if(activated_[i])
@@ -78,6 +78,11 @@ public:
           {
             setPosition(i, 0);  //freed
           }
+      }
+    if(HAL_GetTick() - servo_state_pub_last_time_ > SERVO_STATE_PUB_INTERVAL)
+      {
+        servo_state_pub_last_time_ = HAL_GetTick();
+        sendServoState();
       }
   }
 
@@ -147,23 +152,23 @@ public:
       }
   }
 
-  // void sendServoState()
-  // {
-  //   servo_state_msg_.stamp = nh_->now();
-  //   bool send_flag = false;
-  //   for (unsigned int i = 0; i < MAX_SERVO_NUM; i++)
-  //     {
-  //   	if(activated_[i])
-  //         {
-  //           send_flag = true;
-  //           spinal::ServoState servo;
-  //           servo.index = i;
-  //           servo.angle = current_position_[i];
-  //           servo_state_msg_.servos[i] = servo;
-  //         }
-  //       if(send_flag) servo_state_pub_.publish(&servo_state_msg_);
-  //     }
-  // }
+  void sendServoState()
+  {
+    servo_state_msg_.stamp = nh_->now();
+    bool send_flag = false;
+    for (unsigned int i = 0; i < 5; i++)
+      {
+    	if(activated_[i])
+          {
+            send_flag = true;
+            spinal::ServoState servo;
+            servo.index = i;
+            servo.angle = target_position_[i];
+            servo_state_msg_.servos[i] = servo;
+          }
+        if(send_flag) servo_state_pub_.publish(&servo_state_msg_);
+      }
+  }
 
   void setTargetPos(const std::map<uint16_t, float>& servo_map)
   {
@@ -193,7 +198,6 @@ public:
   uint16_t rad2KondoPosConv(float angle)
   {
     uint16_t kondo_pos = (uint16_t)((KONDO_SERVO_POSITION_MAX-KONDO_SERVO_POSITION_MIN)*(-angle - KONDO_SERVO_ANGLE_MIN)/(KONDO_SERVO_ANGLE_MAX - KONDO_SERVO_ANGLE_MIN) + KONDO_SERVO_POSITION_MIN); //min-max normarization
-
     return kondo_pos;
   }
 
