@@ -56,7 +56,7 @@
       <joint name="fc_joint" type="fixed">
         <child link="fc" />
         <parent link="link${self}" />
-        <origin xyz="0.093 0.0012 0.0489" rpy="0 0 0" />
+        <origin xyz="0.0864 -0.0012 0.020" rpy="0 0 0" />
         <axis xyz="0 0 1"/>
       </joint>
     </xacro:if>
