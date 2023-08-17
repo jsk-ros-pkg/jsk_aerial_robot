@@ -6,9 +6,9 @@ controller:
   gimbal_calc_in_fc : true
 
   xy:
-    p_gain: 6.0
+    p_gain: 10.0
     i_gain: 0.05
-    d_gain: 1.0
+    d_gain: 3.0
     limit_sum: 4.0
     limit_p: 12.0
     limit_i: 12.0
@@ -16,7 +16,7 @@ controller:
 
   z:
     p_gain: 5.0
-    i_gain: 1.0
+    i_gain: 1.5
     d_gain: 2.5
     limit_err_p: 1.0
     limit_sum: 25.0 # N for clamping thrust force
@@ -26,10 +26,10 @@ controller:
     force_landing_descending_rate: -0.5
 
   roll:
-    p_gain: 10.0 #8~25
-    i_gain: 3.0
-    d_gain: 5.0 #4~11
-    limit_sum: 20.0
+    p_gain: 15.0 #8~25
+    i_gain: 5.0
+    d_gain: 10.0 #4~11
+    limit_sum: 0.0
     limit_p: 20.0
     limit_i: 20.0
     limit_d: 20.0
@@ -37,9 +37,9 @@ controller:
     start_rp_integration_height: 0.01
 
   pitch:
-    p_gain: 10.0 #8~25
-    i_gain: 4.0
-    d_gain: 6.0 #4~11
+    p_gain: 15.0 #8~25
+    i_gain: 5.0
+    d_gain: 10.0 #4~11
     limit_sum: 20.0
     limit_p: 20.0
     limit_i: 20.0
@@ -48,7 +48,7 @@ controller:
     start_rp_integration_height: 0.01
 
   yaw:
-    p_gain: 7.0
+    p_gain: 15.0
     i_gain: 1.0
     d_gain: 5.0
     limit_err_p: 0.4
