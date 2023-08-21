@@ -15,7 +15,7 @@ namespace hardware_interface
   {
   public:
     MujocoSpinalInterface();
-    bool init();
+    bool init(ros::NodeHandle& nh);
 
     void setImuValue(double acc_x, double acc_y, double acc_z, double gyro_x, double gyro_y, double gyro_z);
     void setMagValue(double mag_x, double mag_y, double mag_z);

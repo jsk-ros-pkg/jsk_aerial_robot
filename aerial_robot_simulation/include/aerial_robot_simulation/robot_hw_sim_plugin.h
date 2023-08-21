@@ -16,7 +16,9 @@ namespace mujoco_ros_control
   public:
     virtual ~MujocoRobotHWSimPlugin() {}
 
-    virtual bool init(mjModel* mujoco_model,
+    virtual bool init(const std::string& robot_namespace,
+                      ros::NodeHandle model_nh,
+                      mjModel* mujoco_model,
                       mjData* mujoco_data) = 0;
   };
 }

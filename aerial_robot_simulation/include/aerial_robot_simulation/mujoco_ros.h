@@ -5,6 +5,7 @@
 #include <rosgraph_msgs/Clock.h>
 #include <pluginlib/class_loader.h>
 #include <ros/package.h>
+#include <controller_manager/controller_manager.h>
 
 #include <boost/shared_ptr.hpp>
 
@@ -41,6 +42,7 @@ namespace mujoco_ros_control
     ros::NodeHandle &nh_;
 
     ros::Time last_update_sim_time_ros_;
+    boost::shared_ptr<controller_manager::ControllerManager> controller_manager_;
 
   };
 }

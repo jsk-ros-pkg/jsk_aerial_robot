@@ -16,9 +16,9 @@ namespace flight_controllers
     ~MujocoAttitudeController() {}
 
     bool init(hardware_interface::MujocoSpinalInterface *robot, ros::NodeHandle &n);
+
     void starting(const ros::Time& time);
     void update(const ros::Time& time, const ros::Duration& period);
-
   private:
     hardware_interface::MujocoSpinalInterface* spinal_interface_;
     boost::shared_ptr<FlightControl> controller_core_;

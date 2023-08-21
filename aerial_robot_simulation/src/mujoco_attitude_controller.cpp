@@ -5,16 +5,19 @@ namespace flight_controllers
   MujocoAttitudeController::MujocoAttitudeController():
     controller_core_(new FlightControl())
   {
+    std::cout << "contoller constructor" << std::endl;
   }
 
   bool MujocoAttitudeController::init(hardware_interface::MujocoSpinalInterface *robot, ros::NodeHandle &n)
   {
     spinal_interface_ = robot;
 
+    std::cout << "mujoco attitude controller init function" << std::endl;
+
     int index = n.getNamespace().rfind('/');
     std::string robot_ns = n.getNamespace().substr(0, index);
     ros::NodeHandle n_robot = ros::NodeHandle(robot_ns);
-    controller_core_->init(&n_robot, spinal_interface_->getEstimatorPtr());
+    controller_core_->init(&n_robot, robot->getEstimatorPtr());
 
     return true;
 
@@ -37,6 +40,8 @@ namespace flight_controllers
 
     /* update the controller */
     controller_core_->update();
+
+    // std::cout << "controller update" << std::endl;
 
   }
 }

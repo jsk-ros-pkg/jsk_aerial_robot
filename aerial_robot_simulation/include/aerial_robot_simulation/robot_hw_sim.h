@@ -21,7 +21,9 @@ namespace mujoco_ros_control
     MujocoRobotHWSim() {};
     ~MujocoRobotHWSim() {}
 
-    bool init(mjModel* mujoco_model,
+    bool init(const std::string& robot_namespace,
+              ros::NodeHandle model_nh,
+              mjModel* mujoco_model,
               mjData* mujoco_data
               );
 

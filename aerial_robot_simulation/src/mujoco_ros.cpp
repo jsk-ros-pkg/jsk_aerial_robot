@@ -55,7 +55,13 @@ namespace mujoco_ros_control
         ROS_ERROR("The plugin failed to load for some reason. Error: %s", ex.what());
       }
 
-    robot_hw_sim_->init(mujoco_model_, mujoco_data_);
+
+    std::string robot_ns = nh_.getNamespace().substr(1, nh_.getNamespace().size () - 1);
+    robot_hw_sim_->init(robot_ns, nh_, mujoco_model_, mujoco_data_);
+
+    controller_manager_.reset(new controller_manager::ControllerManager(robot_hw_sim_.get(), nh_));
+
+    std::cout << "mujoco ros node init" << std::endl;
 
     return true;
   }
@@ -70,6 +76,8 @@ namespace mujoco_ros_control
     mj_step(mujoco_model_, mujoco_data_);
 
     robot_hw_sim_->read(sim_time_ros, sim_period);
+
+    controller_manager_->update(sim_time_ros, sim_period);
 
     robot_hw_sim_->write(sim_time_ros, sim_period);
 
@@ -100,6 +108,9 @@ int main(int argc, char** argv)
 
   // initialize mujoco visualization functions
   mujoco_visualization_utils.init(mujoco_ros_control.mujoco_model_, mujoco_ros_control.mujoco_data_, window);
+
+  ros::AsyncSpinner spinner(1);
+  spinner.start();
 
   while(ros::ok() && !glfwWindowShouldClose(window))
     {

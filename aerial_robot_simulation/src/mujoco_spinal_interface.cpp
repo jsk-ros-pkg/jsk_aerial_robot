@@ -7,8 +7,9 @@ namespace hardware_interface
   {
   }
 
-  bool MujocoSpinalInterface::init()
+  bool MujocoSpinalInterface::init(ros::NodeHandle& nh)
   {
+    spinal_state_estimator_.init(&nh);
     return true;
   }
 
