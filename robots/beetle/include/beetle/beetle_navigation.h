@@ -27,18 +27,14 @@ namespace aerial_robot_navigation
 
     void update() override;
 
-  protected:
-    void rosParamInit() override;
   private:
     ros::NodeHandle nh_;
     ros::NodeHandle nhp_;
-    int max_modules_num_;
     void naviCallback(const aerial_robot_msgs::FlightNavConstPtr & msg) override;
     void rotateContactPointFrame();
     tf2_ros::TransformBroadcaster br_;
     boost::shared_ptr<BeetleRobotModel> beetle_robot_model_;
     map<string, ros::Subscriber> assembly_flag_subs_;
-    map<int, bool> assembly_flags_;
     void assemblyFlagCallback(const diagnostic_msgs::KeyValue & msg);
   };
 };

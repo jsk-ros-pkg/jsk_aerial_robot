@@ -17,12 +17,11 @@ void BeetleNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   GimbalrotorNavigator::initialize(nh, nhp, robot_model, estimator);
   nh_ = nh;
   nhp_ = nhp;
-  BeetleNavigator::rosParamInit();
   beetle_robot_model_ = boost::dynamic_pointer_cast<BeetleRobotModel>(robot_model);
-  for(int i = 0; i < max_modules_num_; i++){
+  int max_modules_num = beetle_robot_model_->getMaxModuleNum();
+  for(int i = 0; i < max_modules_num; i++){
     std::string module_name  = string("/beetle") + std::to_string(i+1);
     assembly_flag_subs_.insert(make_pair(module_name, nh_.subscribe( module_name + string("/assembly_flag"), 1, &BeetleNavigator::assemblyFlagCallback, this)));
-    assembly_flags_.insert(make_pair(i+1,false));
   }
 }
 void BeetleNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & msg)
@@ -211,8 +210,15 @@ void BeetleNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & 
  {
    int module_id = std::stoi(msg.key);
    int assembly_flag = std::stoi(msg.value);
-   for(const auto &item : assembly_flags_){
-     if(item.first == module_id) assembly_flags_[module_id] = assembly_flag;
+   beetle_robot_model_->setAssemblyFlag(module_id,assembly_flag);
+   map<int, bool> flags = beetle_robot_model_->getAssemblyFlags();
+   for(const auto & item : flags){
+     if(item.second)
+       {
+         std::cout << "id: " << item.first << " -> assembled"<< std::endl;
+       } else {
+         std::cout << "id: " << item.first << " -> separated"<< std::endl;
+       }
    }
    
  }
@@ -232,14 +238,7 @@ void BeetleNavigator::rotateContactPointFrame()
   br_.sendTransform(tf); 
 }
 
-void BeetleNavigator::rosParamInit()
-{
-  GimbalrotorNavigator::rosParamInit();
 
-  ros::NodeHandle navi_nh(nh_, "navigation");
-
-  getParam<int>(navi_nh, "max_assembly_modules", max_modules_num_, 4); 
-}
 /* plugin registration */
 #include <pluginlib/class_list_macros.h>
 PLUGINLIB_EXPORT_CLASS(aerial_robot_navigation::BeetleNavigator, aerial_robot_navigation::BaseNavigator);
