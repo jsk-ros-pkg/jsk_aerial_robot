@@ -69,6 +69,27 @@ add_dependencies(flight_control_pluginlib  ${PROJECT_NAME}_gencfg)
 add_library (flight_navigation src/flight_navigation.cpp)
 target_link_libraries (flight_navigation ${catkin_LIBRARIES})
 
+### trajectory generate based on dodgelib
+add_library (trajectory_generation
+  src/trajectory/reference_base.cpp
+  src/trajectory/trajectory_reference/polynomial.cpp
+  src/trajectory/trajectory_reference/polynomial_trajectory.cpp
+  src/trajectory/trajectory_reference/sampled_trajectory.cpp
+  src/trajectory/base/parameter_base.cpp
+  src/trajectory/math/math.cpp
+  src/trajectory/types/command.cpp
+  src/trajectory/types/quad_state.cpp
+  src/trajectory/types/quadrotor.cpp
+  src/trajectory/utils/logger.cpp
+  src/trajectory/utils/timer.cpp
+  )
+target_link_libraries (trajectory_generation ${catkin_LIBRARIES})
+
+add_executable(trajectory_generation_node src/trajectory/test.cpp)
+target_link_libraries (trajectory_generation_node ${catkin_LIBRARIES} trajectory_generation)
+
+
+
 install(DIRECTORY include/${PROJECT_NAME}/
   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION})
 
