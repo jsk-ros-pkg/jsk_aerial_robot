@@ -15,6 +15,8 @@
   <build_depend>aerial_robot_msgs</build_depend>
   <build_depend>gimbalrotor</build_depend>
   <build_depend>pluginlib</build_depend>
+  <build_depend>pluginlib</build_depend>
+  <build_depend>diagnostic_msgs</build_depend>
   
   <run_depend>aerial_robot_control</run_depend>
   <run_depend>aerial_robot_model</run_depend>
@@ -25,6 +27,7 @@
   <run_depend>gimbalrotor</run_depend>
   <run_depend>roscpp</run_depend>
   <run_depend>pluginlib</run_depend>
+  <run_depend>diagnostic_msgs</run_depend>
 
   <export>
     <aerial_robot_model plugin="${prefix}/plugins/robot_model_plugins.xml" />

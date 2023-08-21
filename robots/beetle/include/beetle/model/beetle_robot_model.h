@@ -4,7 +4,7 @@
 
 #include <gimbalrotor/model/gimbalrotor_robot_model.h>
 #include <tf2_ros/transform_listener.h>
-
+#include <tf2_ros/transform_broadcaster.h>
 using namespace aerial_robot_model;
 
 class BeetleRobotModel : public GimbalrotorRobotModel{
@@ -28,12 +28,18 @@ public:
   int getMaxModuleNum(){return max_modules_num_;}
 
 private:
+  ros::NodeHandle nh_;
   KDL::Frame contact_frame_;
   KDL::Frame Cog2Cp_;
   std::mutex mutex_contact_frame_;
   std::mutex mutex_cog2cp_;
+  tf2_ros::TransformListener tfListener_;
+  tf2_ros::Buffer tfBuffer_;
+  tf2_ros::TransformBroadcaster br_;
   int max_modules_num_ = 4; //TODO: get the value from rosparam
+  int my_id_;
   std::map<int, bool> assembly_flags_;
+  void calcCenterOfMoving();
 
 protected:
   void updateRobotModelImpl(const KDL::JntArray& joint_positions) override;
