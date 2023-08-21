@@ -2,22 +2,25 @@
 
 #include <ros/ros.h>
 #include <aerial_robot_estimation/state_estimation.h>
-#include <aerial_robot_simulation/spinal_interface.h>
 #include <aerial_robot_simulation/mujoco_spinal_interface.h>
 #include <flight_control/flight_control.h>
+#include <controller_interface/controller.h>
+#include <pluginlib/class_list_macros.h>
 
-class MujocoAttitudeController
+namespace flight_controllers
 {
-public:
-  MujocoAttitudeController();
-  ~MujocoAttitudeController() {}
+  class MujocoAttitudeController : public controller_interface::Controller<hardware_interface::MujocoSpinalInterface>
+  {
+  public:
+    MujocoAttitudeController();
+    ~MujocoAttitudeController() {}
 
-  void init(boost::shared_ptr<MujocoSpinalInterface> spinal_interface, ros::NodeHandle & nh);
-  void starting();
-  void update();
+    bool init(hardware_interface::MujocoSpinalInterface *robot, ros::NodeHandle &n);
+    void starting(const ros::Time& time);
+    void update(const ros::Time& time, const ros::Duration& period);
 
-
-private:
-  boost::shared_ptr<FlightControl> controller_core_;
-  boost::shared_ptr<MujocoSpinalInterface> spinal_interface_;
-};
+  private:
+    hardware_interface::MujocoSpinalInterface* spinal_interface_;
+    boost::shared_ptr<FlightControl> controller_core_;
+  };
+}

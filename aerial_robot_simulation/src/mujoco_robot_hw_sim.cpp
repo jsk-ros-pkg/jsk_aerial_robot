@@ -50,7 +50,7 @@ MujocoRobotHWSim::MujocoRobotHWSim(ros::NodeHandle nh):
   mujoco_visualization_utils.init(mujoco_model_, mujoco_data_, window);
 
   // spinal Interface
-  spinal_interface_ = boost::make_shared<MujocoSpinalInterface>();
+  spinal_interface_ = boost::make_shared<hardware_interface::MujocoSpinalInterface>();
   spinal_interface_->init(nh_);
   simulation_attitude_controller_.init(spinal_interface_, nh_);
 

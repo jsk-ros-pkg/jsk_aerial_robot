@@ -36,7 +36,7 @@ private:
   mjModel* mujoco_model_;
   mjData* mujoco_data_;
 
-  boost::shared_ptr <MujocoSpinalInterface> spinal_interface_;
+  boost::shared_ptr <hardware_interface::MujocoSpinalInterface> spinal_interface_;
   MujocoAttitudeController simulation_attitude_controller_;
 
   double mocap_pub_rate_ = 0.0100;
