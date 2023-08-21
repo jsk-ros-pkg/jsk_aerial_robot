@@ -3,6 +3,9 @@
 BeetleRobotModel::BeetleRobotModel(bool init_with_rosparam, bool verbose, double fc_t_min_thre, double epsilon) :
   GimbalrotorRobotModel(init_with_rosparam, verbose, fc_t_min_thre, epsilon)
 {
+  for(int i = 0; i < max_modules_num_; i++){
+    assembly_flags_.insert(std::make_pair(i+1,false));
+  }
 }
 
 void BeetleRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_positions)
@@ -18,6 +21,7 @@ void BeetleRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_positions
   KDL::Frame Cog2Cp;
   setCog2Cp(getCog<KDL::Frame>().Inverse() * variable_cp_frame);
 }
+
 
 /* plugin registration */
 #include <pluginlib/class_list_macros.h>
