@@ -39,9 +39,10 @@
   <run_depend>spinal</run_depend>
   <run_depend>tf</run_depend>
 
-
   <export>
     <gazebo_ros_control plugin="${prefix}/aerial_robot_hw_sim_plugins.xml"/>
     <controller_interface plugin="${prefix}/flight_controllers_plugins.xml"/>
+    <aerial_robot_simulation plugin="${prefix}/robot_hw_sim_plugin.xml"/>
   </export>
+
 </package>

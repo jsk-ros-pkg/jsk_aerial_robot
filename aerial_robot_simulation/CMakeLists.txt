@@ -58,6 +58,9 @@ target_link_libraries(spinal_interface ${catkin_LIBRARIES})
 add_library(aerial_robot_hw_sim src/aerial_robot_hw_sim.cpp)
 target_link_libraries(aerial_robot_hw_sim spinal_interface ${catkin_LIBRARIES} ${GAZEBO_LIBRARIES} ${orocos_kdl_LIBRARIES})
 
+add_library(robot_hw_sim src/robot_hw_sim.cpp)
+target_link_libraries(robot_hw_sim ${catkin_LIBRARIES} ${LIB_MUJOCO})
+
 add_library(mujoco_visualization_utils src/mujoco_visualization_utils.cpp)
 target_link_libraries(mujoco_visualization_utils ${catkin_LIBRARIES} ${MUJOCO_INCLUDE_DIR})
 
@@ -92,14 +95,15 @@ target_link_libraries(mujoco_ros_control
   mujoco_visualization_utils
   )
 
-add_executable(mujoco_robot_hw_sim src/mujoco_robot_hw_sim.cpp)
-target_link_libraries(mujoco_robot_hw_sim
+add_executable(mujoco_ros src/mujoco_ros.cpp)
+target_link_libraries(mujoco_ros
   ${catkin_LIBRARIES}
   glfw
   ${LIB_MUJOCO}
   mujoco_visualization_utils
   mujoco_attitude_controller
   mujoco_spinal_interface
+  robot_hw_sim
   )
 
 add_executable(timer src/timer.cpp)
