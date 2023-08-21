@@ -18,13 +18,13 @@ namespace aerial_robot_navigation
                     boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator) override;
 
     void update() override;
-
+  protected:
+    void rosParamInit() override;
   private:
     ros::Publisher curr_target_baselink_rot_pub_;
     ros::Subscriber final_target_baselink_rot_sub_;
 
     void baselinkRotationProcess();
-    void rosParamInit() override;
     void setFinalTargetBaselinkRotCallback(const spinal::DesireCoordConstPtr & msg);
 
     /* target baselink rotation */

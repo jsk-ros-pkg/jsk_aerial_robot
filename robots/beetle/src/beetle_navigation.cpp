@@ -15,13 +15,18 @@ void BeetleNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
                                    boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator)
 {
   GimbalrotorNavigator::initialize(nh, nhp, robot_model, estimator);
+  nh_ = nh;
+  nhp_ = nhp;
+  BeetleNavigator::rosParamInit();
   beetle_robot_model_ = boost::dynamic_pointer_cast<BeetleRobotModel>(robot_model);
+  for(int i = 0; i < max_modules_num_; i++){
+    std::string module_name  = string("/beetle") + std::to_string(i+1);
+    assembly_flag_subs_.insert(make_pair(module_name, nh_.subscribe( module_name + string("/assembly_flag"), 1, &BeetleNavigator::assemblyFlagCallback, this)));
+    assembly_flags_.insert(make_pair(i+1,false));
+  }
 }
-
 void BeetleNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & msg)
-{
-
-  if(getNaviState() == TAKEOFF_STATE || BaseNavigator::getNaviState() == LAND_STATE) return;
+{  if(getNaviState() == TAKEOFF_STATE || BaseNavigator::getNaviState() == LAND_STATE) return;
 
   gps_waypoint_ = false;
 
@@ -202,6 +207,16 @@ void BeetleNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & 
 
 }
 
+ void BeetleNavigator::assemblyFlagCallback(const diagnostic_msgs::KeyValue & msg)
+ {
+   int module_id = std::stoi(msg.key);
+   int assembly_flag = std::stoi(msg.value);
+   for(const auto &item : assembly_flags_){
+     if(item.first == module_id) assembly_flags_[module_id] = assembly_flag;
+   }
+   
+ }
+
 void BeetleNavigator::update()
 {
   rotateContactPointFrame();
@@ -215,6 +230,15 @@ void BeetleNavigator::rotateContactPointFrame()
   tf.header.frame_id = tf::resolve(std::string(nh_.getNamespace()), beetle_robot_model_->getRootFrameName());
   tf.child_frame_id = tf::resolve(std::string(nh_.getNamespace()), std::string("contact_point"));
   br_.sendTransform(tf); 
+}
+
+void BeetleNavigator::rosParamInit()
+{
+  GimbalrotorNavigator::rosParamInit();
+
+  ros::NodeHandle navi_nh(nh_, "navigation");
+
+  getParam<int>(navi_nh, "max_assembly_modules", max_modules_num_, 4); 
 }
 /* plugin registration */
 #include <pluginlib/class_list_macros.h>
