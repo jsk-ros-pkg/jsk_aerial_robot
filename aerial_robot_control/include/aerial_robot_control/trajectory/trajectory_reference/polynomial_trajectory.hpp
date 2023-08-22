@@ -73,6 +73,9 @@ class MinSnapTrajectory : public PolynomialTrajectory<Polynomial<>> {
                     const std::string& name = "Minimum Snap Trajectory")
     : PolynomialTrajectory(start_state, end_state, Vector<4>(0, 0, 0, 1), order,
                            continuity, name) {}
+  MinSnapTrajectory(const std::vector<QuadState>& states, const int order = 11,
+                    const std::string& name = "Minimum Snap Trajectory")
+    : PolynomialTrajectory(states, Vector<4>(0, 0, 0, 1), order, name) {}
 };
 
 class MinJerkTrajectory : public PolynomialTrajectory<Polynomial<>> {
@@ -82,6 +85,9 @@ class MinJerkTrajectory : public PolynomialTrajectory<Polynomial<>> {
                     const std::string& name = "Minimum Jerk Trajectory")
     : PolynomialTrajectory(start_state, end_state, Vector<3>(0, 0, 1), order,
                            continuity, name) {}
+  MinJerkTrajectory(const std::vector<QuadState>& states, const int order = 11,
+                    const std::string& name = "Minimum Jerk Trajectory")
+    : PolynomialTrajectory(states, Vector<3>(0, 0, 1), order, name) {}
 };
 
 // Closed-Form Minimum-Jerk Specialization
