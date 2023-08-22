@@ -29,7 +29,7 @@ namespace mujoco_ros_control
 
     bool init();
     void update();
-
+    void publishSimTime();
     mjModel* mujoco_model_;
     mjData* mujoco_data_;
 
@@ -43,6 +43,10 @@ namespace mujoco_ros_control
 
     ros::Time last_update_sim_time_ros_;
     boost::shared_ptr<controller_manager::ControllerManager> controller_manager_;
+
+    ros::Publisher clock_pub_;
+    int clock_pub_freq_ = 1000;
+    ros::Time last_clock_pub_time_;
 
   };
 }

@@ -26,6 +26,8 @@ namespace mujoco_ros_control
     mjtNum* site_xpos = mujoco_data_->site_xpos;
     mjtNum* site_xmat = mujoco_data_->site_xmat;
 
+    spinal_interface_.stateEstimate();
+
     // std::cout << "read func" << std::endl;
   }
 
@@ -33,6 +35,7 @@ namespace mujoco_ros_control
   {
     // std::cout << "write func" << std::endl;
   }
+
 }
 
 PLUGINLIB_EXPORT_CLASS(mujoco_ros_control::MujocoRobotHWSim, mujoco_ros_control::MujocoRobotHWSimPlugin);

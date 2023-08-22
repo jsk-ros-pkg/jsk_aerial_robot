@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <launch>
   <arg name="robot_ns" default="dragon" />
+  <rosparam param="/use_sim_time">true</rosparam>
 
   <group ns="$(arg robot_ns)">
     <param name="model" value="$(find dragon)/urdf/mujoco/dragon.xml"/>

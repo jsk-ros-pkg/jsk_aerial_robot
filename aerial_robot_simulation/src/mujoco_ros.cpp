@@ -33,6 +33,8 @@ namespace mujoco_ros_control
         return false;
       }
 
+    mujoco_model_->opt.timestep = 0.001;
+
     mujoco_data_ = mj_makeData(mujoco_model_);
     if(!mujoco_data_)
       {
@@ -61,25 +63,45 @@ namespace mujoco_ros_control
 
     controller_manager_.reset(new controller_manager::ControllerManager(robot_hw_sim_.get(), nh_));
 
+    clock_pub_ =  nh_.advertise<rosgraph_msgs::Clock>("/clock", 10);
+
     std::cout << "mujoco ros node init" << std::endl;
 
     return true;
   }
 
+  void MujocoRosControl::publishSimTime()
+  {
+    ros::Time sim_time = (ros::Time) mujoco_data_->time;
+    if((sim_time - last_clock_pub_time_).toSec() < 1.0 /(double) clock_pub_freq_ )
+      {
+        return;
+      }
+    ros::Time current_time = (ros::Time) mujoco_data_->time;
+    rosgraph_msgs::Clock ros_time;
+    ros_time.clock.fromSec(current_time.toSec());
+    last_clock_pub_time_ = sim_time;
+    clock_pub_.publish(ros_time);
+  }
+
   void MujocoRosControl::update()
   {
+    publishSimTime();
+
     ros::Time sim_time = (ros::Time) mujoco_data_->time;
     ros::Time sim_time_ros(sim_time.sec, sim_time.nsec);
 
     ros::Duration sim_period = sim_time_ros - last_update_sim_time_ros_;
 
-    mj_step(mujoco_model_, mujoco_data_);
+    mj_step1(mujoco_model_, mujoco_data_);
 
     robot_hw_sim_->read(sim_time_ros, sim_period);
 
     controller_manager_->update(sim_time_ros, sim_period);
 
     robot_hw_sim_->write(sim_time_ros, sim_period);
+
+    mj_step2(mujoco_model_, mujoco_data_);
 
     last_update_sim_time_ros_ = sim_time_ros;
   }
