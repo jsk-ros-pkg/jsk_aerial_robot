@@ -33,7 +33,7 @@ namespace mujoco_ros_control
         return false;
       }
 
-    mujoco_model_->opt.timestep = 0.001;
+    mujoco_model_->opt.timestep = 1.0 / clock_pub_freq_;
 
     mujoco_data_ = mj_makeData(mujoco_model_);
     if(!mujoco_data_)
@@ -46,8 +46,8 @@ namespace mujoco_ros_control
         ROS_INFO_STREAM("Created mujoco model from " << xml_path);
       }
 
+    /* hardware interface  */
     robot_hw_sim_loader_.reset(new pluginlib::ClassLoader<mujoco_ros_control::MujocoRobotHWSimPlugin>("aerial_robot_simulation", "mujoco_ros_control::MujocoRobotHWSimPlugin"));
-
     try
       {
         robot_hw_sim_ = robot_hw_sim_loader_->createInstance("mujoco_ros_control/MujocoRobotHWSim");
@@ -56,11 +56,10 @@ namespace mujoco_ros_control
       {
         ROS_ERROR("The plugin failed to load for some reason. Error: %s", ex.what());
       }
-
-
     std::string robot_ns = nh_.getNamespace().substr(1, nh_.getNamespace().size () - 1);
     robot_hw_sim_->init(robot_ns, nh_, mujoco_model_, mujoco_data_);
 
+    /* attitude controller */
     controller_manager_.reset(new controller_manager::ControllerManager(robot_hw_sim_.get(), nh_));
 
     clock_pub_ =  nh_.advertise<rosgraph_msgs::Clock>("/clock", 10);

@@ -8,7 +8,8 @@
 
 #include <aerial_robot_simulation/robot_hw_sim_plugin.h>
 #include <aerial_robot_simulation/mujoco_spinal_interface.h>
-
+#include <nav_msgs/Odometry.h>
+#include <sensor_msgs/JointState.h>
 #include <mujoco/mujoco.h>
 #include <mujoco/mjdata.h>
 #include <mujoco/mjmodel.h>
@@ -36,5 +37,20 @@ namespace mujoco_ros_control
     mjData* mujoco_data_;
     hardware_interface::MujocoSpinalInterface spinal_interface_;
 
+  private:
+    std::vector<std::string> joint_list_;
+    std::vector<std::string> rotor_list_;
+    ros::Publisher ground_truth_pub_;
+    ros::Publisher mocap_pub_;
+    ros::Publisher joint_state_pub_;
+    double ground_truth_pub_rate_;
+    double mocap_pub_rate_;
+    double mocap_rot_noise_, mocap_pos_noise_;
+    double ground_truth_pos_noise_, ground_truth_vel_noise_, ground_truth_rot_noise_, ground_truth_angular_noise_;
+    double ground_truth_rot_drift_, ground_truth_vel_drift_, ground_truth_angular_drift_;
+    double ground_truth_rot_drift_frequency_, ground_truth_vel_drift_frequency_, ground_truth_angular_drift_frequency_;
+    double joint_state_pub_rate_ = 0.02;
+
+    ros::Time last_mocap_time_, last_joint_state_time_;
   };
 }

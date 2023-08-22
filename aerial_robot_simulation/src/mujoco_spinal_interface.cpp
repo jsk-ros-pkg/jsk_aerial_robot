@@ -7,8 +7,10 @@ namespace hardware_interface
   {
   }
 
-  bool MujocoSpinalInterface::init(ros::NodeHandle& nh)
+  bool MujocoSpinalInterface::init(ros::NodeHandle& nh, int motor_num)
   {
+    motor_num_ = motor_num;
+    force_.resize(motor_num_);
     spinal_state_estimator_.init(&nh);
     return true;
   }

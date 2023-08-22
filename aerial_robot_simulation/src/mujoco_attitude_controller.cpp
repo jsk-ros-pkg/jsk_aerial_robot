@@ -11,6 +11,7 @@ namespace flight_controllers
   bool MujocoAttitudeController::init(hardware_interface::MujocoSpinalInterface *robot, ros::NodeHandle &n)
   {
     spinal_interface_ = robot;
+    motor_num_ = spinal_interface_->getMotorNum();
 
     std::cout << "mujoco attitude controller init function" << std::endl;
 
@@ -41,8 +42,10 @@ namespace flight_controllers
     /* update the controller */
     controller_core_->update();
 
-    // std::cout << "controller update" << std::endl;
-
+    for(int i = 0; i < motor_num_; i++)
+      {
+        spinal_interface_->setForce(i, controller_core_->getAttController().getForce(i));
+      }
   }
 }
 
