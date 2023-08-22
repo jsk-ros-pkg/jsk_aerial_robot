@@ -52,7 +52,8 @@ namespace aerial_robot_control
         const double limit_err_p = 1e6, const double limit_err_i = 1e6, const double limit_err_d = 1e6):
       name_(name), result_(0), err_p_(0), err_i_(0), err_i_prev_(0), err_d_(0),
       target_p_(0), target_d_(0), val_p_(0), val_d_(0),
-      p_term_(0), i_term_(0), d_term_(0)
+      p_term_(0), i_term_(0), d_term_(0),
+      i_control_update_flag_(true)
     {
       setGains(p_gain, i_gain, d_gain);
       setLimits(limit_sum, limit_p, limit_i, limit_d, limit_err_p, limit_err_i, limit_err_d);
@@ -64,7 +65,7 @@ namespace aerial_robot_control
     {
       err_p_ = clamp(err_p, -limit_err_p_, limit_err_p_);
       err_i_prev_ = err_i_;
-      err_i_ = clamp(err_i_ + err_p_ * du, -limit_err_i_, limit_err_i_);
+      if(i_control_update_flag_) err_i_ = clamp(err_i_ + err_p_ * du, -limit_err_i_, limit_err_i_);
       err_d_ = clamp(err_d, -limit_err_d_, limit_err_d_);
 
       p_term_ = clamp(err_p_ * p_gain_, -limit_p_, limit_p_);
@@ -133,6 +134,9 @@ namespace aerial_robot_control
     const double& getITerm() const { return i_term_; }
     const double& getDTerm() const { return d_term_; }
 
+    void setIControlUpdateFlag(bool flag) {i_control_update_flag_ = flag;}
+    bool getIControlUpdateFlag() {return i_control_update_flag_;}
+
   protected:
 
     std::string name_;
@@ -144,6 +148,7 @@ namespace aerial_robot_control
     double limit_err_p_, limit_err_i_, limit_err_d_;
     double target_p_, target_d_;
     double val_p_, val_d_;
+    bool i_control_update_flag_;
   };
 
 };
