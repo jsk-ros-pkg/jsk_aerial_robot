@@ -214,6 +214,7 @@ protected:
   double moving_angle_thresh_;
   bool send_init_joint_pose_;
   bool simulation_mode_;
+  bool use_mujoco_;
   int send_init_joint_pose_cnt_;
   vector<string> joint_servo_order_;
   vector<string> gimbal_servo_order_;
