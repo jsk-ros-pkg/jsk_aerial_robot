@@ -1,12 +1,6 @@
 cmake_minimum_required(VERSION 3.0.2)
 project(aerial_robot_simulation)
 
-set(MUJOCO_ROOT_DIR "$ENV{HOME}/.mujoco/mujoco-2.3.7")
-set(MUJOCO_INCLUDE_DIR "${MUJOCO_ROOT_DIR}/include")
-set(MUJOCO_LIB_DIR "${MUJOCO_ROOT_DIR}/lib")
-set(MUJOCO_SIM_DIR "${MUJOCO_ROOT_DIR}/simulate")
-file(GLOB LIB_MUJOCO ${MUJOCO_LIB_DIR}/libmujoco.so)
-
 add_compile_options(-std=c++11 ${GAZEBO_CXX_FLAGS})
 
 find_package(catkin REQUIRED COMPONENTS
@@ -20,6 +14,14 @@ find_package(catkin REQUIRED COMPONENTS
   spinal
   tf
   )
+
+set(MUJOCO mujoco)
+add_custom_command(OUTPUT ${MUJOCO}_build
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+  COMMAND $(MAKE) mujoco
+  VERBATIM
+  )
+add_custom_target(${MUJOCO} DEPENDS ${MUJOCO}_build)
 
 # Depend on system install of Gazebo
 find_package(GAZEBO REQUIRED)
@@ -38,11 +40,13 @@ catkin_package(
 ## Build ##
 ###########
 
+set(MUJOCO_ROOT_DIR ${PROJECT_SOURCE_DIR}/build/mujoco-2.3.7)
+
 include_directories(
   ${catkin_INCLUDE_DIRS}
   ${GAZEBO_INCLUDE_DIRS}
-  ${MUJOCO_INCLUDE_DIR}
   include
+  ${MUJOCO_ROOT_DIR}/include
   )
 
 add_definitions(-DSIMULATION)
@@ -50,51 +54,58 @@ add_definitions(-DSIMULATION)
 add_library(flight_controllers
   src/mujoco_attitude_controller.cpp
   src/simulation_attitude_controller.cpp)
-target_link_libraries(flight_controllers ${catkin_LIBRARIES})
-add_dependencies(flight_controllers spinal_generate_messages_cpp)
+add_dependencies(flight_controllers spinal_generate_messages_cpp ${MUJOCO})
+target_link_libraries(flight_controllers ${catkin_LIBRARIES} ${MUJOCO_ROOT_DIR}/lib/libmujoco.so)
 
 add_library(spinal_interface src/spinal_interface.cpp)
 target_link_libraries(spinal_interface ${catkin_LIBRARIES})
 
 add_library(mujoco_spinal_interface src/mujoco_spinal_interface.cpp)
-target_link_libraries(mujoco_spinal_interface ${catkin_LIBRARIES} ${MUJOCO_INCLUDE_DIR})
+add_dependencies(mujoco_spinal_interface ${MUJOCO})
+target_link_libraries(mujoco_spinal_interface ${catkin_LIBRARIES} ${MUJOCO_ROOT_DIR}/lib/libmujoco.so)
 
 add_library(aerial_robot_hw_sim src/aerial_robot_hw_sim.cpp)
 target_link_libraries(aerial_robot_hw_sim spinal_interface ${catkin_LIBRARIES} ${GAZEBO_LIBRARIES} ${orocos_kdl_LIBRARIES})
 
 add_library(robot_hw_sim src/robot_hw_sim.cpp)
-target_link_libraries(robot_hw_sim ${catkin_LIBRARIES} ${LIB_MUJOCO})
+add_dependencies(robot_hw_sim ${MUJOCO})
+target_link_libraries(robot_hw_sim ${catkin_LIBRARIES} ${MUJOCO_ROOT_DIR}/lib/libmujoco.so)
 
 add_library(mujoco_visualization_utils src/mujoco_visualization_utils.cpp)
-target_link_libraries(mujoco_visualization_utils ${catkin_LIBRARIES} ${MUJOCO_INCLUDE_DIR})
+add_dependencies(mujoco_visualization_utils ${MUJOCO})
+target_link_libraries(mujoco_visualization_utils ${catkin_LIBRARIES} ${MUJOCO_ROOT_DIR}/lib/libmujoco.so)
 
 add_library(mujoco_attitude_controller src/mujoco_attitude_controller.cpp)
-target_link_libraries(mujoco_attitude_controller ${catkin_LIBRARIES} ${MUJOCO_INCLUDE_DIR})
+add_dependencies(mujoco_attitude_controller ${MUJOCO})
+target_link_libraries(mujoco_attitude_controller ${catkin_LIBRARIES} ${MUJOCO_ROOT_DIR}/lib/libmujoco.so)
 
-install(DIRECTORY include/${PROJECT_NAME}/
-  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION})
-
-
-install(TARGETS aerial_robot_hw_sim spinal_interface flight_controllers
-  DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-)
-
-install(DIRECTORY scripts
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
-  USE_SOURCE_PERMISSIONS
-)
-
-install(FILES aerial_robot_hw_sim_plugins.xml flight_controllers_plugins.xml
-        DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
-)
 
 add_executable(mujoco_ros src/mujoco_ros.cpp)
+add_dependencies(mujoco_ros ${MUJOCO})
 target_link_libraries(mujoco_ros
   ${catkin_LIBRARIES}
   glfw
-  ${LIB_MUJOCO}
   mujoco_visualization_utils
   mujoco_attitude_controller
   mujoco_spinal_interface
   robot_hw_sim
+  ${MUJOCO_ROOT_DIR}/lib/libmujoco.so
+  )
+
+install(DIRECTORY include/${PROJECT_NAME}/
+  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+  )
+
+
+install(TARGETS aerial_robot_hw_sim spinal_interface flight_controllers
+  DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  )
+
+install(DIRECTORY scripts
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+  USE_SOURCE_PERMISSIONS
+  )
+
+install(FILES aerial_robot_hw_sim_plugins.xml flight_controllers_plugins.xml
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
   )
