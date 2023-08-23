@@ -88,14 +88,6 @@ install(FILES aerial_robot_hw_sim_plugins.xml flight_controllers_plugins.xml
         DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )
 
-add_executable(mujoco_ros_control src/mujoco_ros_control.cpp)
-target_link_libraries(mujoco_ros_control
-  ${catkin_LIBRARIES}
-  glfw
-  ${LIB_MUJOCO}
-  mujoco_visualization_utils
-  )
-
 add_executable(mujoco_ros src/mujoco_ros.cpp)
 target_link_libraries(mujoco_ros
   ${catkin_LIBRARIES}
@@ -105,9 +97,4 @@ target_link_libraries(mujoco_ros
   mujoco_attitude_controller
   mujoco_spinal_interface
   robot_hw_sim
-  )
-
-add_executable(timer src/timer.cpp)
-target_link_libraries(timer
-  ${catkin_LIBRARIES}
   )
