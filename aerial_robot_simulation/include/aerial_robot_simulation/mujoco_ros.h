@@ -45,8 +45,11 @@ namespace mujoco_ros_control
     boost::shared_ptr<controller_manager::ControllerManager> controller_manager_;
 
     ros::Publisher clock_pub_;
+    ros::Subscriber control_input_sub_;
+
     int clock_pub_freq_ = 1000;
     ros::Time last_clock_pub_time_;
+
 
   };
 }

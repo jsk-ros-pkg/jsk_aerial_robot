@@ -64,10 +64,12 @@ namespace mujoco_ros_control
 
     clock_pub_ =  nh_.advertise<rosgraph_msgs::Clock>("/clock", 10);
 
+
     std::cout << "mujoco ros node init" << std::endl;
 
     return true;
   }
+
 
   void MujocoRosControl::publishSimTime()
   {

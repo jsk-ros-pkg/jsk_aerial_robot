@@ -12,9 +12,21 @@ namespace mujoco_ros_control
     mujoco_model_ = mujoco_model;
     mujoco_data_ = mujoco_data;
 
-    int motor_num = 0;
+    control_input_.resize(mujoco_model_->nu);
     joint_list_.resize(0);
     rotor_list_.resize(0);
+
+    // get joint names from mujoco model
+    for(int i = 0; i < mujoco_model_->njnt; i++)
+      {
+      if(mujoco_model_->jnt_type[i] > 1)
+        {
+          joint_list_.push_back(mj_id2name(mujoco_model_, mjtObj_::mjOBJ_JOINT, i));
+        }
+      }
+
+    // get rotor names from mujoco model
+    int motor_num = 0;
     for(int i = 0; i < mujoco_model_->nu; i++)
       {
         std::string actuator_name = mj_id2name(mujoco_model_, mjtObj_::mjOBJ_ACTUATOR, i);
@@ -23,16 +35,30 @@ namespace mujoco_ros_control
             rotor_list_.push_back(actuator_name);
             motor_num++;
           }
-        else
+      }
+    std::cout << "motor num: " << motor_num << std::endl;
+
+    // init joints from rosparam
+    XmlRpc::XmlRpcValue joint_servos_params;
+    model_nh.getParam("servo_controller/joints", joint_servos_params);
+    for(int i = 0; i < joint_list_.size(); i++)
+      {
+        std::string controller_name = "controller" + std::to_string(i);
+        if(joint_servos_params[controller_name].valid())
           {
-            joint_list_.push_back(actuator_name);
+            double init_value = static_cast<double>(joint_servos_params[controller_name]["simulation"]["init_value"]);
+            std::string servo_name = static_cast<std::string>(joint_servos_params[controller_name]["name"]);
+            control_input_.at((mj_name2id(mujoco_model_, mjtObj_::mjOBJ_ACTUATOR, servo_name.c_str()))) = init_value;
           }
       }
-    std::cout << "motor num: " <<motor_num << std::endl;
 
     /* Initialize spinal interface */
     spinal_interface_.init(model_nh, rotor_list_.size());
     registerInterface(&spinal_interface_);
+
+    control_mode_ = FORCE_CONTROL_MODE;
+    sim_vel_sub_ = model_nh.subscribe("sim_cmd_vel", 1, &MujocoRobotHWSim::cmdVelCallback, this);
+    sim_pos_sub_ = model_nh.subscribe("sim_cmd_pos", 1, &MujocoRobotHWSim::cmdPosCallback, this);
 
     ros::NodeHandle simulation_nh = ros::NodeHandle(model_nh, "simulation");
     simulation_nh.param("ground_truth_pub_rate", ground_truth_pub_rate_, 0.01); // [sec]
@@ -52,10 +78,10 @@ namespace mujoco_ros_control
     simulation_nh.param("mocap_rot_noise", mocap_rot_noise_, 0.001); // rad
     ground_truth_pub_ = model_nh.advertise<nav_msgs::Odometry>("ground_truth", 1);
     mocap_pub_ = model_nh.advertise<geometry_msgs::PoseStamped>("mocap/pose", 1);
+
     joint_state_pub_ = model_nh.advertise<sensor_msgs::JointState>("joint_states", 1);
+    control_input_sub_ = model_nh.subscribe("mujoco/ctrl_input", 1, &MujocoRobotHWSim::controlInputCallback, this);
 
-
-    std::cout << "mujoco robot hw sim init" << std::endl;
     return true;
   }
 
@@ -102,6 +128,22 @@ namespace mujoco_ros_control
 
     spinal_interface_.stateEstimate();
 
+    /* publish ground truth value */
+    nav_msgs::Odometry odom_msg;
+    odom_msg.header.stamp = time;
+    odom_msg.pose.pose.position.x =site_xpos[3 * fc_id + 0];
+    odom_msg.pose.pose.position.y =site_xpos[3 * fc_id + 1];
+    odom_msg.pose.pose.position.z =site_xpos[3 * fc_id + 2];
+    odom_msg.pose.pose.orientation.x = fc_quat.x();
+    odom_msg.pose.pose.orientation.y = fc_quat.y();
+    odom_msg.pose.pose.orientation.z = fc_quat.z();
+    odom_msg.pose.pose.orientation.w = fc_quat.w();
+
+    spinal_interface_.setTrueBaselinkOrientation(fc_quat.x(),
+                                                  fc_quat.y(),
+                                                  fc_quat.z(),
+                                                  fc_quat.w());
+
     if((time - last_mocap_time_).toSec() >= mocap_pub_rate_)
       {
         geometry_msgs::PoseStamped pose_msg;
@@ -146,11 +188,37 @@ namespace mujoco_ros_control
   {
     // std::cout << "write func" << std::endl;
 
-    for(int i = 0; i < spinal_interface_.getMotorNum(); i++)
+      for(int i = 0; i < spinal_interface_.getMotorNum(); i++)
       {
         int rotor_id = mj_name2id(mujoco_model_, mjOBJ_ACTUATOR, rotor_list_.at(i).c_str());
         double rotor_force = spinal_interface_.getForce(i);
+        control_input_.at(rotor_id) = rotor_force;
         mujoco_data_->ctrl[rotor_id] = rotor_force;
+      }
+
+      for(int i = 0; i < control_input_.size(); i++)
+      {
+        mujoco_data_->ctrl[i] = control_input_.at(i);
+      }
+  }
+
+  void MujocoRobotHWSim::controlInputCallback(const aerial_robot_msgs::ControlInput & msg)
+  {
+    if(msg.name.size() != msg.input.size())
+      {
+        ROS_INFO("mujoco: size of actuator names and size of input is not same.");
+      }
+    for(int i = 0; i < msg.name.size(); i++)
+      {
+        int actuator_id = mj_name2id(mujoco_model_, mjtObj_::mjOBJ_ACTUATOR, msg.name.at(i).c_str());
+        if(actuator_id == -1)
+          {
+            ROS_INFO_STREAM("mujoco: joint name " <<  msg.name.at(i) << " does not exist");
+          }
+        else
+          {
+            control_input_.at(actuator_id) = msg.input.at(i);
+          }
       }
   }
 
