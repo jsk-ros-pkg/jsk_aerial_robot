@@ -13,8 +13,8 @@
 #include <aerial_robot_simulation/mujoco_spinal_interface.h>
 #include <aerial_robot_simulation/mujoco_attitude_controller.h>
 #include <aerial_robot_simulation/mujoco_visualization_utils.h>
-#include <aerial_robot_simulation/robot_hw_sim_plugin.h>
-#include <aerial_robot_simulation/robot_hw_sim.h>
+#include <aerial_robot_simulation/mujoco_robot_hw_sim_plugin.h>
+#include <aerial_robot_simulation/mujoco_robot_hw_sim.h>
 
 
 #include <mujoco/mujoco.h>

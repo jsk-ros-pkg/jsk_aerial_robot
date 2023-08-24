@@ -4,7 +4,7 @@
   <rosparam param="/use_sim_time">true</rosparam>
 
   <group ns="$(arg robot_ns)">
-    <node pkg="aerial_robot_simulation" type="mujoco_ros" name="mujoco_ros" output="screen"/>
+    <node pkg="aerial_robot_simulation" type="mujoco_ros_control" name="mujoco_ros_control" output="screen"/>
   </group>
 
   <!-- basic parameter -->

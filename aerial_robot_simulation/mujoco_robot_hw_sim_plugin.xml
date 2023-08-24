@@ -1,4 +1,4 @@
-<library path="lib/librobot_hw_sim">
+<library path="lib/libmujoco_robot_hw_sim">
   <class
       name="mujoco_ros_control/MujocoRobotHWSim"
       type="mujoco_ros_control::MujocoRobotHWSim"

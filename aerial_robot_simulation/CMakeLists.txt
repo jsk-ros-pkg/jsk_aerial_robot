@@ -67,9 +67,9 @@ target_link_libraries(mujoco_spinal_interface ${catkin_LIBRARIES} ${MUJOCO_ROOT_
 add_library(aerial_robot_hw_sim src/aerial_robot_hw_sim.cpp)
 target_link_libraries(aerial_robot_hw_sim spinal_interface ${catkin_LIBRARIES} ${GAZEBO_LIBRARIES} ${orocos_kdl_LIBRARIES})
 
-add_library(robot_hw_sim src/robot_hw_sim.cpp)
-add_dependencies(robot_hw_sim ${MUJOCO})
-target_link_libraries(robot_hw_sim ${catkin_LIBRARIES} ${MUJOCO_ROOT_DIR}/lib/libmujoco.so)
+add_library(mujoco_robot_hw_sim src/mujoco_robot_hw_sim.cpp)
+add_dependencies(mujoco_robot_hw_sim ${MUJOCO})
+target_link_libraries(mujoco_robot_hw_sim ${catkin_LIBRARIES} ${MUJOCO_ROOT_DIR}/lib/libmujoco.so)
 
 add_library(mujoco_visualization_utils src/mujoco_visualization_utils.cpp)
 add_dependencies(mujoco_visualization_utils ${MUJOCO})
@@ -80,15 +80,15 @@ add_dependencies(mujoco_attitude_controller ${MUJOCO})
 target_link_libraries(mujoco_attitude_controller ${catkin_LIBRARIES} ${MUJOCO_ROOT_DIR}/lib/libmujoco.so)
 
 
-add_executable(mujoco_ros src/mujoco_ros.cpp)
-add_dependencies(mujoco_ros ${MUJOCO})
-target_link_libraries(mujoco_ros
+add_executable(mujoco_ros_control src/mujoco_ros_control.cpp)
+add_dependencies(mujoco_ros_control ${MUJOCO})
+target_link_libraries(mujoco_ros_control
   ${catkin_LIBRARIES}
   glfw
   mujoco_visualization_utils
   mujoco_attitude_controller
   mujoco_spinal_interface
-  robot_hw_sim
+  mujoco_robot_hw_sim
   ${MUJOCO_ROOT_DIR}/lib/libmujoco.so
   )
 
@@ -97,7 +97,7 @@ install(DIRECTORY include/${PROJECT_NAME}/
   )
 
 
-install(TARGETS aerial_robot_hw_sim spinal_interface flight_controllers mujoco_ros mujoco_visualization_utils mujoco_attitude_controller mujoco_spinal_interface robot_hw_sim
+install(TARGETS aerial_robot_hw_sim spinal_interface flight_controllers mujoco_ros_control mujoco_visualization_utils mujoco_attitude_controller mujoco_spinal_interface mujoco_robot_hw_sim
   DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   )
 
@@ -106,6 +106,6 @@ install(DIRECTORY scripts
   USE_SOURCE_PERMISSIONS
   )
 
-install(FILES aerial_robot_hw_sim_plugins.xml flight_controllers_plugins.xml robot_hw_sim_plugin.xml
+install(FILES aerial_robot_hw_sim_plugins.xml flight_controllers_plugins.xml mujoco_robot_hw_sim_plugin.xml
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
   )
