@@ -17,9 +17,11 @@ public:
 
   template<class T> T getContactFrame();
   template<class T> T getCog2Cp();
+  template<class T> T getCog2CoM();
 
   void setContactFrame(const KDL::Frame contact_frame){contact_frame_ = contact_frame;}
   void setCog2Cp(const KDL::Frame Cog2Cp){Cog2Cp_ = Cog2Cp;}
+  void setCog2CoM(const KDL::Frame Cog2CoM){Cog2CoM_ = Cog2CoM;}
   void setAssemblyFlag(const int key, const bool value){
     assembly_flags_[key] = value;
   }
@@ -31,8 +33,10 @@ private:
   ros::NodeHandle nh_;
   KDL::Frame contact_frame_;
   KDL::Frame Cog2Cp_;
+  KDL::Frame Cog2CoM_;
   std::mutex mutex_contact_frame_;
   std::mutex mutex_cog2cp_;
+  std::mutex mutex_cog2com_;
   tf2_ros::TransformListener tfListener_;
   tf2_ros::Buffer tfBuffer_;
   tf2_ros::TransformBroadcaster br_;
@@ -55,6 +59,12 @@ template<> inline KDL::Frame BeetleRobotModel::getCog2Cp()
 {
   std::lock_guard<std::mutex> lock(mutex_cog2cp_);
   return Cog2Cp_;
+}
+
+template<> inline KDL::Frame BeetleRobotModel::getCog2CoM()
+{
+  std::lock_guard<std::mutex> lock(mutex_cog2com_);
+  return Cog2CoM_;
 }
 
 template<> inline geometry_msgs::TransformStamped BeetleRobotModel::getContactFrame()
