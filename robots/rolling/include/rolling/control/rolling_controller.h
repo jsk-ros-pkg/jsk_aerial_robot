@@ -8,6 +8,7 @@
 #include <spinal/RollPitchYawTerms.h>
 #include <spinal/TorqueAllocationMatrixInv.h>
 #include <std_msgs/Float32MultiArray.h>
+#include <std_msgs/Bool.h>
 #include <rolling/model/rolling_robot_model.h>
 #include <rolling/rolling_navigation.h>
 #include <std_msgs/Int16.h>
@@ -41,6 +42,7 @@ namespace aerial_robot_control
     ros::Publisher full_q_mat_pub_;
     ros::Subscriber ground_mode_sub_;
     ros::Subscriber joint_state_sub_;
+    ros::Subscriber i_control_flag_set_sub_;
     tf2_ros::TransformBroadcaster br_;
 
     boost::shared_ptr<aerial_robot_navigation::RollingNavigator> rolling_navigator_;
@@ -89,6 +91,7 @@ namespace aerial_robot_control
     void setAttitudeGains();
     void groundModeCallback(const std_msgs::Int16Ptr & msg);
     void jointStateCallback(const sensor_msgs::JointStateConstPtr & msg);
+    void zIControlFlagCallback(const std_msgs::BoolPtr & msg);
     void fullyActuatedFlightControl();
     void underActuatedFlightControl();
     void calcWrenchAllocationMatrix();
