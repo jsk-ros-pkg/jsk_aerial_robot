@@ -23,6 +23,7 @@ void BeetleNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
     std::string module_name  = string("/beetle") + std::to_string(i+1);
     assembly_flag_subs_.insert(make_pair(module_name, nh_.subscribe( module_name + string("/assembly_flag"), 1, &BeetleNavigator::assemblyFlagCallback, this)));
   }
+  
 }
 void BeetleNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & msg)
 {  if(getNaviState() == TAKEOFF_STATE || BaseNavigator::getNaviState() == LAND_STATE) return;
@@ -78,8 +79,8 @@ void BeetleNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & 
         if(!vel_based_waypoint_)
           xy_control_mode_ = POS_CONTROL_MODE;
 
-        setTargetPosX(target_cog_pos.x());
-        setTargetPosY(target_cog_pos.y());
+        setTargetPosCandX(target_cog_pos.x());
+        setTargetPosCandY(target_cog_pos.y());
         setTargetVelX(0);
         setTargetVelY(0);
 
@@ -125,8 +126,8 @@ void BeetleNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & 
           }
 
         xy_control_mode_ = POS_CONTROL_MODE;
-        setTargetPosX(msg->target_pos_x);
-        setTargetPosY(msg->target_pos_y);
+        setTargetPosCandX(msg->target_pos_x);
+        setTargetPosCandY(msg->target_pos_y);
         setTargetVelX(msg->target_vel_x);
         setTargetVelY(msg->target_vel_y);
 
@@ -194,16 +195,15 @@ void BeetleNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & 
           target_cog_pos -= cog2cp_tf.getOrigin();
         }
 
-      setTargetPosZ(target_cog_pos.z());
+      setTargetPosCandZ(target_cog_pos.z());
       setTargetVelZ(0);      
 
     }
   else if(msg->pos_z_nav_mode == aerial_robot_msgs::FlightNav::POS_VEL_MODE)
     {
-      setTargetPosZ(msg->target_pos_z);
+      setTargetPosCandZ(msg->target_pos_z);
       setTargetVelZ(msg->target_vel_z);
     }
-
 }
 
  void BeetleNavigator::assemblyFlagCallback(const diagnostic_msgs::KeyValue & msg)
@@ -218,7 +218,7 @@ void BeetleNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & 
          std::cout << "id: " << item.first << " -> assembled"<< std::endl;
        } else {
          std::cout << "id: " << item.first << " -> separated"<< std::endl;
-       }
+     }
    }
    
  }
@@ -227,6 +227,7 @@ void BeetleNavigator::update()
 {
   rotateContactPointFrame();
   GimbalrotorNavigator::update();
+  convertTargetPosFromCoG2CoM();
 }
 
 void BeetleNavigator::rotateContactPointFrame()
@@ -236,6 +237,41 @@ void BeetleNavigator::rotateContactPointFrame()
   tf.header.frame_id = tf::resolve(std::string(nh_.getNamespace()), beetle_robot_model_->getRootFrameName());
   tf.child_frame_id = tf::resolve(std::string(nh_.getNamespace()), std::string("contact_point"));
   br_.sendTransform(tf); 
+}
+
+void BeetleNavigator::convertTargetPosFromCoG2CoM()
+{
+  tf::Transform cog2com_tf;
+  tf::transformKDLToTF(beetle_robot_model_->getCog2CoM<KDL::Frame>(), cog2com_tf);
+
+  /* check whether the target value was changed */      
+  if( int(pre_target_pos_.x() * 1000) != int(getTargetPos().x() * 1000)){
+    float target_x_com = getTargetPos().x() + cog2com_tf.getOrigin().x();
+    setTargetPosCandX(target_x_com);
+  }
+
+  if( int(pre_target_pos_.y() * 1000) != int(getTargetPos().y() * 1000)){
+    float target_y_com = getTargetPos().y() + cog2com_tf.getOrigin().y();
+    setTargetPosCandY(target_y_com);
+  }
+
+  if( int(pre_target_pos_.z() * 1000) != int(getTargetPos().z() * 1000)){
+    float target_z_com = getTargetPos().z() + cog2com_tf.getOrigin().z();
+    setTargetPosCandZ(target_z_com);
+  }
+  
+  tf::Vector3 target_cog_pos = getTargetPosCand();
+  target_cog_pos -= cog2com_tf.getOrigin();
+
+  if( getNaviState() == HOVER_STATE){
+    setTargetPosX(target_cog_pos.x());
+    setTargetPosY(target_cog_pos.y());
+    setTargetPosZ(target_cog_pos.z());
+  }
+
+  pre_target_pos_.setX(target_cog_pos.x());
+  pre_target_pos_.setY(target_cog_pos.y());
+  pre_target_pos_.setZ(target_cog_pos.z());
 }
 
 

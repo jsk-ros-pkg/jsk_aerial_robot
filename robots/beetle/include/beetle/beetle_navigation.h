@@ -13,7 +13,8 @@ namespace aerial_robot_navigation
     {
      COG,
      BASE_LINK,
-     CONTACT_POINT
+     CONTACT_POINT,
+     CENTER_OF_MOVING
     };
   class BeetleNavigator : public GimbalrotorNavigator
   {
@@ -27,7 +28,15 @@ namespace aerial_robot_navigation
 
     void update() override;
 
+    inline void setTargetPosCandX( float value){  target_pos_candidate_.setX(value);}
+    inline void setTargetPosCandY( float value){  target_pos_candidate_.setY(value);}
+    inline void setTargetPosCandZ( float value){  target_pos_candidate_.setZ(value);}
+    inline void setTargetPosCand( tf::Vector3 value){  target_pos_candidate_ = value ;}
+    inline tf::Vector3 getTargetPosCand() {return target_pos_candidate_;}
+
   private:
+    tf::Vector3 target_pos_candidate_;
+    tf::Vector3 pre_target_pos_;
     ros::NodeHandle nh_;
     ros::NodeHandle nhp_;
     void naviCallback(const aerial_robot_msgs::FlightNavConstPtr & msg) override;
@@ -36,5 +45,6 @@ namespace aerial_robot_navigation
     boost::shared_ptr<BeetleRobotModel> beetle_robot_model_;
     map<string, ros::Subscriber> assembly_flag_subs_;
     void assemblyFlagCallback(const diagnostic_msgs::KeyValue & msg);
+    void convertTargetPosFromCoG2CoM();
   };
 };
