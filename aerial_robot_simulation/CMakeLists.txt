@@ -97,7 +97,7 @@ install(DIRECTORY include/${PROJECT_NAME}/
   )
 
 
-install(TARGETS aerial_robot_hw_sim spinal_interface flight_controllers mujoco_ros
+install(TARGETS aerial_robot_hw_sim spinal_interface flight_controllers mujoco_ros mujoco_visualization_utils mujoco_attitude_controller mujoco_spinal_interface robot_hw_sim
   DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   )
 
@@ -106,6 +106,6 @@ install(DIRECTORY scripts
   USE_SOURCE_PERMISSIONS
   )
 
-install(FILES aerial_robot_hw_sim_plugins.xml flight_controllers_plugins.xml robot_hw_sim_plgin.xml
+install(FILES aerial_robot_hw_sim_plugins.xml flight_controllers_plugins.xml robot_hw_sim_plugin.xml
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
   )
