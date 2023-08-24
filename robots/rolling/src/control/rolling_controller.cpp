@@ -66,7 +66,7 @@ void RollingController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
 
   ground_mode_sub_ = nh_.subscribe("ground_mode", 1, &RollingController::groundModeCallback, this);
   joint_state_sub_ = nh_.subscribe("joint_states", 1, &RollingController::jointStateCallback, this);
-
+  i_control_flag_set_sub_ = nh_.subscribe("z_i_control_flag", 1, &RollingController::zIControlFlagCallback, this);
   ground_mode_ = 0;
   gain_updated_ = false;
 }
@@ -461,6 +461,11 @@ void RollingController::groundModeCallback(const std_msgs::Int16Ptr & msg)
   ground_mode_ = msg->data;
   ROS_INFO_STREAM("[control] changed mode from " << prev_ground_mode << " to " << ground_mode_);
   gain_updated_ = false;
+}
+
+void RollingController::zIControlFlagCallback(const std_msgs::BoolPtr & msg)
+{
+  pid_controllers_.at(Z).setIControlUpdateFlag(msg->data);
 }
 
 void RollingController::jointStateCallback(const sensor_msgs::JointStateConstPtr & state)
