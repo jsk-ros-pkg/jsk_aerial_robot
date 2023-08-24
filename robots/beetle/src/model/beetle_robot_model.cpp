@@ -29,7 +29,11 @@ void BeetleRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_positions
 
 void BeetleRobotModel::calcCenterOfMoving()
 {
-  if(!assembly_flags_[my_id_]) return;
+  if(!assembly_flags_[my_id_]){
+      KDL::Frame com_frame;
+      setCog2CoM(com_frame);
+    return;
+  }
   std::string cog_name = "beetle" + std::to_string(my_id_) + "/cog";
   Eigen::Vector3d center_of_moving = Eigen::Vector3d::Zero();
   int assebled_module = 0;
@@ -67,6 +71,9 @@ void BeetleRobotModel::calcCenterOfMoving()
   tf.transform.rotation.z = 0;
   tf.transform.rotation.w = 1;
   br_.sendTransform(tf);
+  KDL::Frame com_frame = tf2::transformToKDL(tf);
+  setCog2CoM(getCog<KDL::Frame>().Inverse() * com_frame);
+
 }
 
 /* plugin registration */
