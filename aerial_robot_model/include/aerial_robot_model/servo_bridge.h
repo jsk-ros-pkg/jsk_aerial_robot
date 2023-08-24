@@ -41,7 +41,6 @@
 #include <ros/ros.h>
 
 /* ros msg */
-#include <aerial_robot_msgs/ControlInput.h>
 #include <std_msgs/UInt8.h>
 #include <std_msgs/Int8.h>
 #include <std_msgs/Empty.h>

@@ -6,7 +6,6 @@
 #include <transmission_interface/transmission_info.h>
 #include <pluginlib/class_list_macros.h>
 
-#include <aerial_robot_msgs/ControlInput.h>
 #include <aerial_robot_simulation/robot_hw_sim_plugin.h>
 #include <aerial_robot_simulation/mujoco_spinal_interface.h>
 #include <geometry_msgs/PoseStamped.h>
@@ -34,7 +33,7 @@ namespace mujoco_ros_control
 
     void write(const ros::Time& time, const ros::Duration& period);
 
-    void controlInputCallback(const aerial_robot_msgs::ControlInput & msg);
+    void controlInputCallback(const sensor_msgs::JointState & msg);
 
     const static uint8_t FORCE_CONTROL_MODE = 0;
     const static uint8_t SIM_VEL_MODE = 1;

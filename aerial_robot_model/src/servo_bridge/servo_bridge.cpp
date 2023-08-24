@@ -70,7 +70,7 @@ ServoBridge::ServoBridge(ros::NodeHandle nh, ros::NodeHandle nhp): nh_(nh),nhp_(
   servo_states_subs_.insert(make_pair("common", nh_.subscribe<spinal::ServoStates>(state_sub_topic, 10, boost::bind(&ServoBridge::servoStatesCallback, this, _1, "common"))));
   /* common publisher: target servo state to real machine (spinal_ros_bridge) */
   servo_ctrl_pubs_.insert(make_pair("common", nh_.advertise<spinal::ServoControlCmd>(ctrl_pub_topic, 1)));
-  mujoco_control_input_pub_ = nh_.advertise<aerial_robot_msgs::ControlInput>("mujoco/ctrl_input", 1);
+  mujoco_control_input_pub_ = nh_.advertise<sensor_msgs::JointState>("mujoco/ctrl_input", 1);
   /* common publisher: torque on/off command */
   servo_torque_ctrl_pubs_.insert(make_pair("common", nh_.advertise<spinal::ServoTorqueCmd>(torque_pub_topic, 1)));
 
@@ -300,7 +300,7 @@ void ServoBridge::servoStatesCallback(const spinal::ServoStatesConstPtr& state_m
 void ServoBridge::servoCtrlCallback(const sensor_msgs::JointStateConstPtr& servo_ctrl_msg, const string& servo_group_name)
 {
   spinal::ServoControlCmd target_angle_msg;
-  aerial_robot_msgs::ControlInput mujoco_control_input_msg;
+  sensor_msgs::JointState mujoco_control_input_msg;
 
   if(servo_ctrl_msg->name.size() > 0)
     {
@@ -314,7 +314,7 @@ void ServoBridge::servoCtrlCallback(const sensor_msgs::JointStateConstPtr& servo
             }
 
           mujoco_control_input_msg.name.push_back(servo_ctrl_msg->name.at(i));
-          mujoco_control_input_msg.input.push_back(servo_ctrl_msg->position.at(i));
+          mujoco_control_input_msg.position.push_back(servo_ctrl_msg->position.at(i));
 
           // use servo_name to search the servo_handler
           auto servo_handler = find_if(servos_handler_[servo_group_name].begin(), servos_handler_[servo_group_name].end(),
@@ -357,7 +357,7 @@ void ServoBridge::servoCtrlCallback(const sensor_msgs::JointStateConstPtr& servo
           target_angle_msg.angles.push_back(servo_handler->getTargetAngleVal(ValueType::BIT));
 
           // std::cout << servo_group_name << std::endl;  // gimbals or joints
-          mujoco_control_input_msg.input.push_back(servo_ctrl_msg->position[i]);
+          mujoco_control_input_msg.position.push_back(servo_ctrl_msg->position[i]);
 
           if(simulation_mode_)
             {

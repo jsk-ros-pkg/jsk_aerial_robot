@@ -202,9 +202,9 @@ namespace mujoco_ros_control
       }
   }
 
-  void MujocoRobotHWSim::controlInputCallback(const aerial_robot_msgs::ControlInput & msg)
+  void MujocoRobotHWSim::controlInputCallback(const sensor_msgs::JointState & msg)
   {
-    if(msg.name.size() != msg.input.size())
+    if(msg.name.size() != msg.position.size())
       {
         ROS_INFO("mujoco: size of actuator names and size of input is not same.");
       }
@@ -217,7 +217,7 @@ namespace mujoco_ros_control
           }
         else
           {
-            control_input_.at(actuator_id) = msg.input.at(i);
+            control_input_.at(actuator_id) = msg.position.at(i);
           }
       }
   }

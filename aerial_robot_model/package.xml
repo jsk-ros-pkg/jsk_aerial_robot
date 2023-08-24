@@ -31,7 +31,6 @@
   <build_depend>tf_conversions</build_depend>
   <build_depend>urdf</build_depend>
   <build_depend>visualization_msgs</build_depend>
-  <build_depend>aerial_robot_msgs</build_depend>
 
   <run_depend>eigen_conversions</run_depend>
   <run_depend>geometry_msgs</run_depend>
@@ -55,7 +54,6 @@
   <run_depend>urdf</run_depend>
   <run_depend>visualization_msgs</run_depend>
   <run_depend>xacro</run_depend>
-  <run_depend>aerial_robot_msgs</run_depend>
 
   <export>
     <aerial_robot_model plugin="${prefix}/plugins/robot_model_plugins.xml"/>
