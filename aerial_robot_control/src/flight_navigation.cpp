@@ -43,6 +43,7 @@ void BaseNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   loop_du_ = loop_du;
 
   pose_sub_ = nh_.subscribe("target_pose", 1, &BaseNavigator::poseCallback, this, ros::TransportHints().tcpNoDelay());
+  simple_move_base_goal_sub_ = nh_.subscribe("/move_base_simple/goal", 1, &BaseNavigator::simpleMoveBaseGoalCallback, this, ros::TransportHints().tcpNoDelay());
   navi_sub_ = nh_.subscribe("uav/nav", 1, &BaseNavigator::naviCallback, this, ros::TransportHints().tcpNoDelay());
 
   battery_sub_ = nh_.subscribe("battery_voltage_status", 1, &BaseNavigator::batteryCheckCallback, this);
@@ -141,6 +142,18 @@ void BaseNavigator::poseCallback(const geometry_msgs::PoseStampedConstPtr & msg)
 
   generateNewTrajectory(*msg);
 }
+
+void BaseNavigator::simpleMoveBaseGoalCallback(const geometry_msgs::PoseStampedConstPtr & msg)
+{
+  if (traj_generator_ptr_.get() == nullptr)
+    {
+      ROS_DEBUG("traj_generator_ptr_ is null");
+    }
+  geometry_msgs::PoseStamped target_pose = *msg;
+  target_pose.pose.position.z = getTargetPos().z();
+  generateNewTrajectory(target_pose);
+}
+
 
 void BaseNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & msg)
 {
@@ -701,8 +714,14 @@ void BaseNavigator::update()
               setTargetVel(tf::Vector3(target_state.v(0), target_state.v(1), target_state.v(2)));
               setTargetAcc(tf::Vector3(target_state.a(0), target_state.a(1), target_state.a(2)));
 
+              double target_yaw = target_state.getYaw();
+              double target_omega_z = target_state.w(2);
+              setTargetYaw(target_yaw);
+              setTargetOmegaZ(target_omega_z);
+
               tf::Vector3 curr_pos = estimator_->getPos(Frame::COG, estimate_mode_);
-              ROS_INFO_THROTTLE(0.5, "[Nav] trajectory mode, target pos: [%f, %f, %f], curr pos: [%f, %f, %f]", target_state.p(0), target_state.p(1), target_state.p(2), curr_pos.x(), curr_pos.y(), curr_pos.z());
+              double yaw_angle = estimator_->getState(State::YAW_COG, estimate_mode_)[0];
+              ROS_INFO_THROTTLE(0.5, "[Nav] trajectory mode, target pos&yaw: [%f, %f, %f, %f], curr pos&yaw: [%f, %f, %f, %f]", target_state.p(0), target_state.p(1), target_state.p(2), target_yaw, curr_pos.x(), curr_pos.y(), curr_pos.z(), yaw_angle);
             }
         }
     }
@@ -944,8 +963,8 @@ void BaseNavigator::generateNewTrajectory(geometry_msgs::PoseStamped pose)
                       "], and acc [" << start_state.a.transpose() << "] for start state to generate new trajectory");
     }
 
-  double yaw_angle = estimator_->getState(State::YAW_COG, estimate_mode_)[0];
-  start_state.applyYaw(yaw_angle);
+  double yaw_angle = getTargetRPY().z();
+  start_state.setYaw(yaw_angle);
   start_state.t = ros::Time::now().toSec();
 
   agi::QuadState end_state;
@@ -955,7 +974,16 @@ void BaseNavigator::generateNewTrajectory(geometry_msgs::PoseStamped pose)
   end_state.p = p;
   agi::Quaternion q;
   tf::quaternionMsgToEigen(pose.pose.orientation, q);
-  end_state.q(q);
+  if (std::fabs(1 - q.squaredNorm())  < 1e-6)
+    {
+      end_state.q(q);
+    }
+  else
+    {
+      ROS_WARN("[Nav] the target quaternion is invalid [%f, %f, %f, %f] ", q.x(), q.y(), q.z(), q.w());
+      end_state.q(start_state.q());
+
+    }
   double du = std::max((end_state.p - start_state.p).norm()/trajectory_mean_vel_, 1.5);
   end_state.t = start_state.t + du;
 

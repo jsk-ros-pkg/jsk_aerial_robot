@@ -227,6 +227,7 @@ namespace aerial_robot_navigation
     ros::Publisher  path_pub_;
     ros::Subscriber navi_sub_;
     ros::Subscriber pose_sub_;
+    ros::Subscriber simple_move_base_goal_sub_;
     ros::Subscriber battery_sub_;
     ros::Subscriber flight_status_ack_sub_;
     ros::Subscriber takeoff_sub_;
@@ -317,6 +318,7 @@ namespace aerial_robot_navigation
     /* trajectory */
     double trajectory_mean_vel_;
     double start_state_vel_thresh_;
+    bool yaw_trajcetory_flag_;
     std::shared_ptr<agi::MinSnapTrajectory> traj_generator_ptr_;
 
     /* battery info */
@@ -329,6 +331,7 @@ namespace aerial_robot_navigation
 
     virtual void rosParamInit();
     void poseCallback(const geometry_msgs::PoseStampedConstPtr & msg);
+    void simpleMoveBaseGoalCallback(const geometry_msgs::PoseStampedConstPtr & msg);
     void naviCallback(const aerial_robot_msgs::FlightNavConstPtr & msg);
     void joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg);
     void batteryCheckCallback(const std_msgs::Float32ConstPtr &msg);
