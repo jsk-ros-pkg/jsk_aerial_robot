@@ -59,12 +59,12 @@ PolynomialTrajectory<ClosedFormMinJerkAxis>::PolynomialTrajectory(
 template<class PolyType>
 PolynomialTrajectory<PolyType>::PolynomialTrajectory(
   const std::vector<QuadState>& states, const Vector<>& weights,
-  const int order, const std::string& name)
+  const int order, const int continuity, const std::string& name)
   : ReferenceBase(states.front(), states.back().t - states.front().t, name),
     end_state_(states.back()),
-    x_(order, weights, -1),
-    y_(order, weights, -1),
-    z_(order, weights, -1),
+    x_(order, weights, continuity),
+    y_(order, weights, continuity),
+    z_(order, weights, continuity),
     yaw_(5, Vector<3>(0, 0, 1)),
     states_(states) {
   yaw_last_ = start_state_.getYaw();
@@ -74,7 +74,13 @@ PolynomialTrajectory<PolyType>::PolynomialTrajectory(
   z_.scale(start_state_.t, duration_);
   yaw_.scale(start_state_.t, duration_);
 
-  for (const QuadState& state : states_) addStateConstraint(state);
+  addStateConstraint(start_state_);
+  addStateConstraint(end_state_);
+
+  for (size_t i = 1; i < states_.size() - 1; i++) {
+    addStateConstraint(states_.at(i), 0); // only consider the position constraints for the intermediate points
+  }
+
 
   if (!x_.solve()) std::cout << "Could not solve x-axis!" << std::endl;
   if (!y_.solve()) std::cout << "Could not solve y-axis!" << std::endl;
@@ -91,16 +97,19 @@ PolynomialTrajectory<PolyType>::PolynomialTrajectory(
 }
 
 template<class PolyType>
-bool PolynomialTrajectory<PolyType>::addStateConstraint(
-  const QuadState& state) {
+bool PolynomialTrajectory<PolyType>::addStateConstraint(const QuadState& state, int ord) {
   if (!std::isfinite(state.t)) return false;
-  Matrix<> constraints = Matrix<>::Constant(3, 5, NAN);
+  if (ord > 4) return false;
+
+  if (ord < 0)  ord = 4;
+
+  Matrix<> constraints = Matrix<>::Constant(3, ord+1, NAN);
 
   constraints.col(0) = state.p;
-  constraints.col(1) = state.v;
-  constraints.col(2) = state.a;
-  constraints.col(3) = state.j;
-  constraints.col(4) = state.s;
+  if (ord > 0) constraints.col(1) = state.v;
+  if (ord > 1) constraints.col(2) = state.a;
+  if (ord > 2) constraints.col(3) = state.j;
+  if (ord > 3) constraints.col(4) = state.s;
 
   x_.addConstraint(state.t, constraints.row(0).transpose());
   y_.addConstraint(state.t, constraints.row(1).transpose());

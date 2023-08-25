@@ -17,7 +17,7 @@ class PolynomialTrajectory : public ReferenceBase {
                        const std::string& name = "Polynomial Trajectory");
   PolynomialTrajectory(const std::vector<QuadState>& states,
                        const Vector<>& weights = Vector<4>(0, 0, 0, 1),
-                       const int order = 11,
+                       const int order = 11, const int continuity = -1,
                        const std::string& name = "Polynomial Trajectory");
   virtual ~PolynomialTrajectory() = default;
 
@@ -27,7 +27,7 @@ class PolynomialTrajectory : public ReferenceBase {
   virtual Setpoint getStartSetpoint() override final;
   virtual Setpoint getEndSetpoint() override final;
 
-  bool addStateConstraint(const QuadState& state);
+  bool addStateConstraint(const QuadState& state, int ord = -1);
   bool solved() const;
   bool valid() const override;
 
@@ -73,9 +73,11 @@ class MinSnapTrajectory : public PolynomialTrajectory<Polynomial<>> {
                     const std::string& name = "Minimum Snap Trajectory")
     : PolynomialTrajectory(start_state, end_state, Vector<4>(0, 0, 0, 1), order,
                            continuity, name) {}
-  MinSnapTrajectory(const std::vector<QuadState>& states, const int order = 11,
+  MinSnapTrajectory(const std::vector<QuadState>& states,
+                    const int order = 11, const int continuity = 3,
                     const std::string& name = "Minimum Snap Trajectory")
-    : PolynomialTrajectory(states, Vector<4>(0, 0, 0, 1), order, name) {}
+    : PolynomialTrajectory(states, Vector<4>(0, 0, 0, 1), order,
+                           continuity, name) {}
 };
 
 class MinJerkTrajectory : public PolynomialTrajectory<Polynomial<>> {
@@ -85,9 +87,11 @@ class MinJerkTrajectory : public PolynomialTrajectory<Polynomial<>> {
                     const std::string& name = "Minimum Jerk Trajectory")
     : PolynomialTrajectory(start_state, end_state, Vector<3>(0, 0, 1), order,
                            continuity, name) {}
-  MinJerkTrajectory(const std::vector<QuadState>& states, const int order = 11,
+  MinJerkTrajectory(const std::vector<QuadState>& states,
+                    const int order = 11, const int continuity = 2,
                     const std::string& name = "Minimum Jerk Trajectory")
-    : PolynomialTrajectory(states, Vector<3>(0, 0, 1), order, name) {}
+    : PolynomialTrajectory(states, Vector<3>(0, 0, 1), order,
+                           continuity, name) {}
 };
 
 // Closed-Form Minimum-Jerk Specialization
@@ -100,7 +104,7 @@ PolynomialTrajectory<ClosedFormMinJerkAxis>::PolynomialTrajectory(
 template<>
 PolynomialTrajectory<ClosedFormMinJerkAxis>::PolynomialTrajectory(
   const std::vector<QuadState>& states, const Vector<>& weights,
-  const int order, const std::string& name) = delete;
+  const int order, const int continuity,const std::string& name) = delete;
 
 class ClosedFormMinJerkTrajectory
   : public PolynomialTrajectory<ClosedFormMinJerkAxis> {
