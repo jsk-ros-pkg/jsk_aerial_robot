@@ -63,11 +63,10 @@ Scalar QuadState::getYaw(const Scalar yaw) const {
   return -M_PI - angle;
 }
 
-void QuadState::applyYaw(const Scalar angle) {
-  const Scalar yaw = getYaw();
-  const Scalar new_yaw = std::isfinite(yaw) ? yaw : 0.0;
-  q(q() * Eigen::AngleAxis(new_yaw, Vector<3>::UnitZ()));
-  if (qx(0) < 0.0) qx = -qx;
+void QuadState::setYaw(const Scalar angle) {
+  Quaternion q_yaw;
+  q_yaw = Eigen::AngleAxis(angle, Vector<3>::UnitZ());
+  q(q_yaw);
 }
 
 bool QuadState::operator==(const QuadState& rhs) const {

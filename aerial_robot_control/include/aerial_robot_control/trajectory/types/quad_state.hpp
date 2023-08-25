@@ -111,7 +111,7 @@ struct QuadState {
   Ref<Vector<4>> motdes{x.segment<IDX::NMOTDES>(IDX::MOTDES)};
 
   Scalar getYaw(const Scalar yaw = NAN) const;
-  void applyYaw(const Scalar angle);
+  void setYaw(const Scalar angle);
   QuadState getHoverState() const;
 
   bool operator==(const QuadState& rhs) const;
