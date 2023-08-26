@@ -36,7 +36,6 @@ namespace mujoco_ros_control
             motor_num++;
           }
       }
-    std::cout << "motor num: " << motor_num << std::endl;
 
     // init joints from rosparam
     XmlRpc::XmlRpcValue joint_servos_params;
@@ -123,6 +122,7 @@ namespace mujoco_ros_control
               }
           }
       }
+
     spinal_interface_.setImuValue(imu_msg.acc_data[0], imu_msg.acc_data[1], imu_msg.acc_data[2], imu_msg.gyro_data[0], imu_msg.gyro_data[1], imu_msg.gyro_data[2]);
     spinal_interface_.setMagValue(imu_msg.mag_data[0], imu_msg.mag_data[1], imu_msg.mag_data[2]);
 
@@ -140,9 +140,9 @@ namespace mujoco_ros_control
     odom_msg.pose.pose.orientation.w = fc_quat.w();
 
     spinal_interface_.setTrueBaselinkOrientation(fc_quat.x(),
-                                                  fc_quat.y(),
-                                                  fc_quat.z(),
-                                                  fc_quat.w());
+                                                 fc_quat.y(),
+                                                 fc_quat.z(),
+                                                 fc_quat.w());
 
     if((time - last_mocap_time_).toSec() >= mocap_pub_rate_)
       {
@@ -186,8 +186,6 @@ namespace mujoco_ros_control
 
   void MujocoRobotHWSim::write(const ros::Time& time, const ros::Duration& period)
   {
-    // std::cout << "write func" << std::endl;
-
       for(int i = 0; i < spinal_interface_.getMotorNum(); i++)
       {
         int rotor_id = mj_name2id(mujoco_model_, mjOBJ_ACTUATOR, rotor_list_.at(i).c_str());

@@ -16,8 +16,8 @@ namespace mujoco_ros_control
   bool MujocoRosControl::init()
   {
     std::string xml_path;
-    nh_.getParam("model", xml_path);
-    if(!nh_.getParam("model", xml_path))
+    nh_.getParam("mujoco_model_path", xml_path);
+    if(!nh_.getParam("mujoco_model_path", xml_path))
       {
         ROS_INFO("Could not get xml path from rosparam\n");
         return false;
@@ -63,9 +63,6 @@ namespace mujoco_ros_control
     controller_manager_.reset(new controller_manager::ControllerManager(robot_hw_sim_.get(), nh_));
 
     clock_pub_ =  nh_.advertise<rosgraph_msgs::Clock>("/clock", 10);
-
-
-    std::cout << "mujoco ros node init" << std::endl;
 
     return true;
   }
