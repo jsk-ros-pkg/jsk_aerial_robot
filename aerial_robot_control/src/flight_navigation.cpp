@@ -948,23 +948,17 @@ void BaseNavigator::generateNewTrajectory(geometry_msgs::PoseStamped pose)
 
   agi::QuadState start_state;
   start_state.setZero();
-  tf::Vector3 curr_pos = estimator_->getPos(Frame::COG, estimate_mode_);
-  start_state.p = agi::Vector<3>(curr_pos.x(), curr_pos.y(), curr_pos.z()); // get from current state
-  tf::Vector3 curr_vel = estimator_->getVel(Frame::COG, estimate_mode_);
-  if (curr_vel.length() > start_state_vel_thresh_)
-    {
-      // set start state velocity
-      start_state.v = agi::Vector<3>(curr_vel.x(), curr_vel.y(), curr_vel.z());
-      // set start state acceleration only for x/y axes
-      tf::Matrix3x3 curr_att = estimator_->getOrientation(Frame::COG, estimate_mode_);
-      tf::Vector3 acc = curr_att * tf::Vector3(0, 0, 9.80665); // gravity
-      start_state.a = agi::Vector<3>(acc.x(), acc.y(), 0);
-      ROS_INFO_STREAM("[Nav] the initial velocity is to fast, set vel ["<< start_state.v.transpose() <<
-                      "], and acc [" << start_state.a.transpose() << "] for start state to generate new trajectory");
-    }
+  tf::Vector3 last_target_pos = getTargetPos();
+  start_state.p = agi::Vector<3>(last_target_pos.x(), last_target_pos.y(), last_target_pos.z());
+  tf::Vector3 last_target_vel = getTargetVel();
+  start_state.v = agi::Vector<3>(last_target_vel.x(), last_target_vel.y(), last_target_vel.z());
+  tf::Vector3 last_target_acc = getTargetAcc();
+  start_state.a = agi::Vector<3>(last_target_acc.x(), last_target_acc.y(), last_target_acc.z());
 
-  double yaw_angle = getTargetRPY().z();
-  start_state.setYaw(yaw_angle);
+  double last_target_yaw_angle = getTargetRPY().z();
+  start_state.setYaw(last_target_yaw_angle);
+  double last_target_omega_z = getTargetOmega().z();
+  start_state.w(2) = last_target_omega_z;
   start_state.t = ros::Time::now().toSec();
 
   agi::QuadState end_state;
@@ -980,12 +974,21 @@ void BaseNavigator::generateNewTrajectory(geometry_msgs::PoseStamped pose)
     }
   else
     {
-      ROS_WARN("[Nav] the target quaternion is invalid [%f, %f, %f, %f] ", q.x(), q.y(), q.z(), q.w());
+      ROS_WARN("[Nav] the target quaternion is invalid [%f, %f, %f, %f], reset as the start state", q.x(), q.y(), q.z(), q.w());
       end_state.q(start_state.q());
 
     }
+
   double du = std::max((end_state.p - start_state.p).norm()/trajectory_mean_vel_, trajectory_min_du_);
   end_state.t = start_state.t + du;
+
+  ROS_INFO_STREAM("[Nav] revceive the new target pose of " << end_state.p.transpose()
+                  << " (yaw: " << end_state.getYaw() << ")"
+                  << " which starts with the last target pose: " << start_state.p.transpose()
+                  << " (yaw: " << start_state.getYaw() << ")"
+                  << " and target vel: " << start_state.v.transpose()
+                  << " (omega z: " << start_state.w(2) << ")"
+                  << " and target acc: " << start_state.a.transpose());
 
   traj_generator_ptr_ = std::make_shared<agi::MinSnapTrajectory>(start_state, end_state);
 
