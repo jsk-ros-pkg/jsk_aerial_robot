@@ -50,12 +50,12 @@
 
         <body name="inter_joint1" pos="0.424 0 0">
             <inertial pos="0.02918 -0.00427 -0.00155" mass="0.1329" fullinertia="0.0001 0.0001 0.0001 0.0 0.0 0.0" />
-            <joint name="joint1_pitch" pos="0 0 0" axis="0 1 0" limited="true" range="-1.5708 1.5708" damping="30" frictionloss="0.05" />
+            <joint name="joint1_pitch" pos="0 0 0" axis="0 1 0" limited="true" range="-1.5708 1.5708" damping="50" frictionloss="0.05" />
             <geom pos="0.02575 0 0" type="mesh" contype="1" conaffinity="0" group="1" mesh="inter_joint_junction" />
 
             <body name="link2" pos="0.0515 0 0">
                 <inertial pos="0.221541 -0.00473999 -0.0156795" mass="1.13481" fullinertia="0.0018 0.0228 0.0219 -0.0009 -0.0006 0.0001" />
-                <joint name="joint1_yaw" pos="0 0 0" axis="0 0 1" limited="true" range="-1.5708 1.5708" damping="30" frictionloss="0.05" />
+                <joint name="joint1_yaw" pos="0 0 0" axis="0 0 1" limited="true" range="-1.5708 1.5708" damping="50" frictionloss="0.05" />
                 <geom pos="0.212 0 0" type="mesh" contype="1" conaffinity="0" group="1" mesh="ducted_fan_baselink" />
                 <site name="fc" pos="0.316 -0.004 0.043" />
 
@@ -79,12 +79,12 @@
 
                 <body name="inter_joint2" pos="0.424 0 0">
                     <inertial pos="0.02918 -0.00427 -0.00155" mass="0.1329" fullinertia="0.0001 0.0001 0.0001 0.0 0.0 0.0" />
-                    <joint name="joint2_pitch" pos="0 0 0" axis="0 1 0" limited="true" range="-1.5708 1.5708" damping="30" frictionloss="0.05" />
+                    <joint name="joint2_pitch" pos="0 0 0" axis="0 1 0" limited="true" range="-1.5708 1.5708" damping="50" frictionloss="0.05" />
                     <geom pos="0.02575 0 0" type="mesh" contype="1" conaffinity="0" group="1" mesh="inter_joint_junction" />
 
                     <body name="link3" pos="0.0515 0 0">
                         <inertial pos="0.19922 -0.0058 -0.01695" mass="0.9289" fullinertia="0.0015 0.0198 0.0189 -0.0008 -0.0001 0.0001" />
-                        <joint name="joint2_yaw" pos="0 0 0" axis="0 0 1" limited="true" range="-1.5708 1.5708" damping="30" frictionloss="0.05" />
+                        <joint name="joint2_yaw" pos="0 0 0" axis="0 0 1" limited="true" range="-1.5708 1.5708" damping="50" frictionloss="0.05" />
                         <geom pos="0.212 0 0" type="mesh" contype="1" conaffinity="0" group="1" mesh="ducted_fan_general_link" />
 
                         <body name="gimbal3_roll_module" pos="0.212 0 0">
@@ -107,12 +107,12 @@
 
                         <body name="inter_joint3" pos="0.424 0 0">
                             <inertial pos="0.02918 -0.00427 -0.00155" mass="0.1329" fullinertia="0.0001 0.0001 0.0001 0.0 0.0 0.0" />
-                            <joint name="joint3_pitch" pos="0 0 0" axis="0 1 0" limited="true" range="-1.5708 1.5708" damping="30" frictionloss="0.05" />
+                            <joint name="joint3_pitch" pos="0 0 0" axis="0 1 0" limited="true" range="-1.5708 1.5708" damping="50" frictionloss="0.05" />
                             <geom pos="0.02575 0 0" type="mesh" contype="1" conaffinity="0" group="1" mesh="inter_joint_junction" />
 
                             <body name="link4" pos="0.0515 0 0">
                                 <inertial pos="0.16774 -0.00011 -0.02072" mass="0.7943" fullinertia="0.0012 0.0145 0.0134 0.0 0.0003 0.0" />
-                                <joint name="joint3_yaw" pos="0 0 0" axis="0 0 1" limited="true" range="-1.5708 1.5708" damping="30" frictionloss="0.05" />
+                                <joint name="joint3_yaw" pos="0 0 0" axis="0 0 1" limited="true" range="-1.5708 1.5708" damping="50" frictionloss="0.05" />
                                 <geom pos="0.212 0 0" type="mesh" contype="1" conaffinity="0" group="1" mesh="ducted_fan_end_link" />
 
                                 <body name="gimbal4_roll_module" pos="0.212 0 0">
