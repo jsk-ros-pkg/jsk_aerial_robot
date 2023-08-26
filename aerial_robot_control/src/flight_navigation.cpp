@@ -984,7 +984,7 @@ void BaseNavigator::generateNewTrajectory(geometry_msgs::PoseStamped pose)
       end_state.q(start_state.q());
 
     }
-  double du = std::max((end_state.p - start_state.p).norm()/trajectory_mean_vel_, 1.5);
+  double du = std::max((end_state.p - start_state.p).norm()/trajectory_mean_vel_, trajectory_min_du_);
   end_state.t = start_state.t + du;
 
   traj_generator_ptr_ = std::make_shared<agi::MinSnapTrajectory>(start_state, end_state);
@@ -1031,6 +1031,7 @@ void BaseNavigator::rosParamInit()
   //*** trajectory
   getParam<double>(nh, "trajectory_mean_vel", trajectory_mean_vel_, 0.5);
   getParam<double>(nh, "start_state_vel_thresh", start_state_vel_thresh_, 0.1);
+  getParam<double>(nh, "trajectory_min_du", trajectory_min_du_, 2.0);
 
   //*** auto vel nav
   getParam<double>(nh, "nav_vel_limit", nav_vel_limit_, 0.2);

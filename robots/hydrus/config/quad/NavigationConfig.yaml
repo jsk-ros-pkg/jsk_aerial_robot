@@ -28,3 +28,7 @@ navigation:
   # gps waypoint
   gps_waypoint_threshold: 3.0
   gps_waypoint_check_du: 1.0
+
+  # trajectory
+  trajectory_min_du: 4.0
+
