@@ -215,8 +215,6 @@ protected:
   bool simulation_mode_;
   bool use_mujoco_;
   int send_init_joint_pose_cnt_;
-  vector<string> joint_servo_order_;
-  vector<string> gimbal_servo_order_;
 
   void servoStatesCallback(const spinal::ServoStatesConstPtr& state_msg, const std::string& servo_group_name);
   void servoCtrlCallback(const sensor_msgs::JointStateConstPtr& joints_ctrl_msg, const std::string& servo_group_name);

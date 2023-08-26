@@ -108,8 +108,6 @@
 
   ########## Simulation in Mujoco #########
   <group ns="$(arg robot_ns)">
-    <rosparam command="load" file="$(find dragon)/config/ServoOrder.yaml" />
-    <rosparam command="load" file="$(find dragon)/config/RotorList.yaml" />
     <param name="model" value="$(find dragon)/urdf/mujoco/dragon.xml"/>
   </group>
   <include file="$(find aerial_robot_simulation)/launch/mujoco.launch" if="$(eval arg('simulation') and not arg('real_machine') and arg('mujoco'))" >

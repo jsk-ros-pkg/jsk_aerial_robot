@@ -78,8 +78,6 @@ ServoBridge::ServoBridge(ros::NodeHandle nh, ros::NodeHandle nhp): nh_(nh),nhp_(
   /* get additional config for servos from ros parameters */
   XmlRpc::XmlRpcValue all_servos_params;
   nh_.getParam("servo_controller", all_servos_params);
-  nh_.getParam("joint_servo_order", joint_servo_order_);
-  nh_.getParam("gimbal_servo_order", gimbal_servo_order_);
 
   for(auto servo_group_params: all_servos_params)
     {
@@ -356,7 +354,7 @@ void ServoBridge::servoCtrlCallback(const sensor_msgs::JointStateConstPtr& servo
           target_angle_msg.index.push_back(servo_handler->getId());
           target_angle_msg.angles.push_back(servo_handler->getTargetAngleVal(ValueType::BIT));
 
-          // std::cout << servo_group_name << std::endl;  // gimbals or joints
+          mujoco_control_input_msg.name.push_back(servo_handler->getName());
           mujoco_control_input_msg.position.push_back(servo_ctrl_msg->position[i]);
 
           if(simulation_mode_)
@@ -366,15 +364,8 @@ void ServoBridge::servoCtrlCallback(const sensor_msgs::JointStateConstPtr& servo
               servo_ctrl_sim_pubs_[servo_group_name].at(i).publish(msg);
             }
         }
-      if(servo_group_name == std::string("joints"))
-        {
-          mujoco_control_input_msg.name = joint_servo_order_;
-        }
-      else if(servo_group_name == std::string("gimbals"))
-        {
-          mujoco_control_input_msg.name = gimbal_servo_order_;
-        }
     }
+
   mujoco_control_input_pub_.publish(mujoco_control_input_msg);
 
   if (servo_ctrl_pubs_.find(servo_group_name) != servo_ctrl_pubs_.end())
