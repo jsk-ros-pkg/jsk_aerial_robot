@@ -52,7 +52,7 @@
 
    ###########  Navigation  ###########
    <param name="flight_navigation_plugin_name" value="aerial_robot_navigation/rolling_navigation" />
-   <rosparam file="$(arg config_dir)/NavigationConfig.yaml" command="load" />
+   <rosparam file="$(arg config_dir)/GroundNavigation.yaml" command="load" />
 
   </group>
 
