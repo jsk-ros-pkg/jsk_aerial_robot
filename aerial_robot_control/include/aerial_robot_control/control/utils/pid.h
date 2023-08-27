@@ -53,7 +53,7 @@ namespace aerial_robot_control
       name_(name), result_(0), err_p_(0), err_i_(0), err_i_prev_(0), err_d_(0),
       target_p_(0), target_d_(0), val_p_(0), val_d_(0),
       p_term_(0), i_term_(0), d_term_(0),
-      i_control_update_flag_(true)
+      err_i_update_flag_(true)
     {
       setGains(p_gain, i_gain, d_gain);
       setLimits(limit_sum, limit_p, limit_i, limit_d, limit_err_p, limit_err_i, limit_err_d);
@@ -65,7 +65,7 @@ namespace aerial_robot_control
     {
       err_p_ = clamp(err_p, -limit_err_p_, limit_err_p_);
       err_i_prev_ = err_i_;
-      if(i_control_update_flag_) err_i_ = clamp(err_i_ + err_p_ * du, -limit_err_i_, limit_err_i_);
+      if(err_i_update_flag_) err_i_ = clamp(err_i_ + err_p_ * du, -limit_err_i_, limit_err_i_);
       err_d_ = clamp(err_d, -limit_err_d_, limit_err_d_);
 
       p_term_ = clamp(err_p_ * p_gain_, -limit_p_, limit_p_);
@@ -82,6 +82,7 @@ namespace aerial_robot_control
       err_i_ = 0;
       err_i_prev_ = 0;
       result_ = 0;
+      err_i_update_flag_ = true;
     }
 
     const double& getPGain() const { return p_gain_; }
@@ -129,13 +130,18 @@ namespace aerial_robot_control
     const double& getErrD() const { return err_d_; }
     void setErrP(const double err_p) { err_p_ = err_p; }
     void setErrI(const double err_i) { err_i_ = err_i; }
+    void setITerm(const double i_term)
+    {
+      i_term_ = i_term;
+      if(err_i_update_flag_ && i_gain_ != 0) err_i_ = i_term / i_gain_;
+    }
 
     const double& getPTerm() const { return p_term_; }
     const double& getITerm() const { return i_term_; }
     const double& getDTerm() const { return d_term_; }
 
-    void setIControlUpdateFlag(bool flag) {i_control_update_flag_ = flag;}
-    bool getIControlUpdateFlag() {return i_control_update_flag_;}
+    void setErrIUpdateFlag(bool flag) {err_i_update_flag_ = flag;}
+    bool getErrIUpdateFlag() {return err_i_update_flag_;}
 
   protected:
 
@@ -148,7 +154,7 @@ namespace aerial_robot_control
     double limit_err_p_, limit_err_i_, limit_err_d_;
     double target_p_, target_d_;
     double val_p_, val_d_;
-    bool i_control_update_flag_;
+    bool err_i_update_flag_;
   };
 
 };
