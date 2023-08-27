@@ -63,6 +63,9 @@ void RollingController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   target_wrench_acc_cog_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("debug/target_wrench_acc_cog", 1);
   wrench_allocation_matrix_pub_ = nh_.advertise<aerial_robot_msgs::WrenchAllocationMatrix>("debug/wrench_allocation_matrix", 1);
   full_q_mat_pub_ = nh_.advertise<aerial_robot_msgs::WrenchAllocationMatrix>("debug/full_q_mat", 1);
+  full_q_mat_inv_pub_ = nh_.advertise<aerial_robot_msgs::WrenchAllocationMatrix>("debug/full_q_mat_inv", 1);
+  under_q_mat_pub_ = nh_.advertise<aerial_robot_msgs::WrenchAllocationMatrix>("debug/under_q_mat", 1);
+  under_q_mat_inv_pub_ = nh_.advertise<aerial_robot_msgs::WrenchAllocationMatrix>("debug/under_q_mat_inv", 1);
 
   ground_mode_sub_ = nh_.subscribe("ground_mode", 1, &RollingController::groundModeCallback, this);
   joint_state_sub_ = nh_.subscribe("joint_states", 1, &RollingController::jointStateCallback, this);
@@ -400,6 +403,38 @@ void RollingController::sendCmd()
       full_q_mat_msg.t_z.push_back(full_q_mat_(5, i));
     }
   full_q_mat_pub_.publish(full_q_mat_msg);
+
+  aerial_robot_msgs::WrenchAllocationMatrix full_q_mat_inv_msg;
+  for(int i = 0; i < 2 * motor_num_; i++)
+    {
+      full_q_mat_inv_msg.f_x.push_back(full_q_mat_inv_(i, 0));
+      full_q_mat_inv_msg.f_y.push_back(full_q_mat_inv_(i, 1));
+      full_q_mat_inv_msg.f_z.push_back(full_q_mat_inv_(i, 2));
+      full_q_mat_inv_msg.t_x.push_back(full_q_mat_inv_(i, 3));
+      full_q_mat_inv_msg.t_y.push_back(full_q_mat_inv_(i, 4));
+      full_q_mat_inv_msg.t_z.push_back(full_q_mat_inv_(i, 5));
+    }
+  full_q_mat_inv_pub_.publish(full_q_mat_inv_msg);
+
+  aerial_robot_msgs::WrenchAllocationMatrix under_q_mat_msg;
+  for(int i = 0; i < 2 * motor_num_; i++)
+    {
+      under_q_mat_msg.f_z.push_back(under_q_mat_(0, i));
+      under_q_mat_msg.t_x.push_back(under_q_mat_(1, i));
+      under_q_mat_msg.t_y.push_back(under_q_mat_(2, i));
+      under_q_mat_msg.t_z.push_back(under_q_mat_(3, i));
+    }
+  under_q_mat_pub_.publish(under_q_mat_msg);
+
+  aerial_robot_msgs::WrenchAllocationMatrix under_q_mat_inv_msg;
+  for(int i = 0; i < 2 * motor_num_; i++)
+    {
+      under_q_mat_inv_msg.f_z.push_back(under_q_mat_inv_(i, 0));
+      under_q_mat_inv_msg.t_x.push_back(under_q_mat_inv_(i, 1));
+      under_q_mat_inv_msg.t_y.push_back(under_q_mat_inv_(i, 2));
+      under_q_mat_inv_msg.t_z.push_back(under_q_mat_inv_(i, 3));
+    }
+  under_q_mat_inv_pub_.publish(under_q_mat_inv_msg);
 
   sendFourAxisCommand();
 
