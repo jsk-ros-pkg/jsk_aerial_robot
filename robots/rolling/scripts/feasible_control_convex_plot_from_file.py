@@ -1,7 +1,14 @@
 #!/usr/bin/env python
 
-# for hydrus: $rosrun hydrus feasible_control_convex_plot.py __ns:=hydrus
-# for dragon: $rosrun hydrus feasible_control_convex_plot.py __ns:=dragon _only_torque:=false
+# $ sudo apt install msttcorefonts -qq
+# $ rm ~/.cache/matplotlib -rf
+# https://kenbo.hatenablog.com/entry/2018/11/28/111639
+# https://qiita.com/MENDY/items/02b7d0231d215098b4aa
+
+# how to use
+# $ roscore
+# $ rosrun rolling feasible_control_convex_plot_from_file.py _filename:=relative/path/to/v_list/data
+
 
 import sys
 import time
@@ -20,6 +27,8 @@ from sympy import Plane, Point3D
 import networkx as nx
 from copy import deepcopy
 
+plt.rcParams['font.family'] = 'Times New Roman'
+plt.rcParams["mathtext.fontset"] = "stix"
 
 # https://stackoverflow.com/questions/49098466/plot-3d-convex-closed-regions-in-matplot-lib
 def simplify(triangles):
@@ -185,9 +194,9 @@ if __name__ == '__main__':
     ax.plot_wireframe(x, y, z, color='darkblue', linewidth=1.0)
     ax.tick_params(labelsize=7)
     ax.set_title("Feasible Control Torque", fontsize=20)
-    ax.set_xlabel("tau_x", fontsize=20)
-    ax.set_ylabel("tau_y", fontsize=20)
-    ax.set_zlabel("tau_z", fontsize=20)
+    ax.set_xlabel(r'$\tau_x$', fontsize=20)
+    ax.set_ylabel(r"$\tau_y$", fontsize=20)
+    ax.set_zlabel(r"$\tau_z$", fontsize=20)
 
     plt.show()
 
