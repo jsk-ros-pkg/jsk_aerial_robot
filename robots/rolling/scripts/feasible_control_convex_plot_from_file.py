@@ -2,8 +2,13 @@
 
 # $ sudo apt install msttcorefonts -qq
 # $ rm ~/.cache/matplotlib -rf
+# pip install scipy
+# pip install sympy
+# pip install networkx
+# pip install numpy==1.23.1
 # https://kenbo.hatenablog.com/entry/2018/11/28/111639
 # https://qiita.com/MENDY/items/02b7d0231d215098b4aa
+# https://github.com/OpenTalker/video-retalking/issues/35
 
 # how to use
 # $ roscore
@@ -26,6 +31,10 @@ import matplotlib.patches as patches
 from sympy import Plane, Point3D
 import networkx as nx
 from copy import deepcopy
+
+import matplotlib
+del matplotlib.font_manager.weight_dict['roman']
+matplotlib.font_manager._rebuild()
 
 plt.rcParams['font.family'] = 'Times New Roman'
 plt.rcParams["mathtext.fontset"] = "stix"
