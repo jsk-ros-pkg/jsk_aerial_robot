@@ -201,7 +201,7 @@ if __name__ == '__main__':
     z=np.cos(v) * torque_radius
     ax.plot_wireframe(x, y, z, color='maroon', linewidth=1.0)
     ax.plot_wireframe(x, y, z, color='darkblue', linewidth=1.0)
-    ax.tick_params(labelsize=7)
+
     ax.set_title("Feasible Control Torque", fontsize=20)
     ax.set_xlabel(r'$\tau_x$', fontsize=20)
     ax.set_ylabel(r"$\tau_y$", fontsize=20)
