@@ -45,7 +45,8 @@ namespace aerial_robot_control
     ros::Publisher under_q_mat_inv_pub_;
     ros::Subscriber ground_mode_sub_;
     ros::Subscriber joint_state_sub_;
-    ros::Subscriber i_control_flag_set_sub_;
+    ros::Subscriber z_i_control_flag_sub_;
+    ros::Subscriber z_i_term_sub_;
     tf2_ros::TransformBroadcaster br_;
 
     boost::shared_ptr<aerial_robot_navigation::RollingNavigator> rolling_navigator_;
@@ -94,7 +95,9 @@ namespace aerial_robot_control
     void setAttitudeGains();
     void groundModeCallback(const std_msgs::Int16Ptr & msg);
     void jointStateCallback(const sensor_msgs::JointStateConstPtr & msg);
-    void zIControlFlagCallback(const std_msgs::BoolPtr & msg);
+    void setZIControlFlagCallback(const std_msgs::BoolPtr & msg);
+    void setZITermCallback(const std_msgs::Float32Ptr & msg);
+    void stayCurrentXYPosition(const std_msgs::Empty & msg);
     void fullyActuatedFlightControl();
     void underActuatedFlightControl();
     void calcWrenchAllocationMatrix();
