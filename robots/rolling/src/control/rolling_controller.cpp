@@ -69,7 +69,9 @@ void RollingController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
 
   ground_mode_sub_ = nh_.subscribe("ground_mode", 1, &RollingController::groundModeCallback, this);
   joint_state_sub_ = nh_.subscribe("joint_states", 1, &RollingController::jointStateCallback, this);
-  i_control_flag_set_sub_ = nh_.subscribe("z_i_control_flag", 1, &RollingController::zIControlFlagCallback, this);
+  z_i_control_flag_sub_ = nh_.subscribe("z_i_control_flag", 1, &RollingController::setZIControlFlagCallback, this);
+  z_i_term_sub_ = nh_.subscribe("z_i_term", 1, &RollingController::setZITermCallback, this);
+
   ground_mode_ = 0;
   gain_updated_ = false;
 }
@@ -498,9 +500,22 @@ void RollingController::groundModeCallback(const std_msgs::Int16Ptr & msg)
   gain_updated_ = false;
 }
 
-void RollingController::zIControlFlagCallback(const std_msgs::BoolPtr & msg)
+void RollingController::setZIControlFlagCallback(const std_msgs::BoolPtr & msg)
 {
-  pid_controllers_.at(Z).setIControlUpdateFlag(msg->data);
+  ROS_WARN("z i control update flag is set to %d", msg->data);
+  pid_controllers_.at(Z).setErrIUpdateFlag(msg->data);
+}
+
+void RollingController::setZITermCallback(const std_msgs::Float32Ptr & msg)
+{
+  ROS_WARN("set i term of z controller from %lf to %lf", pid_controllers_.at(Z).getITerm(), msg->data);
+  pid_controllers_.at(Z).setITerm(msg->data);
+}
+
+void RollingController::stayCurrentXYPosition(const std_msgs::Empty & msg)
+{
+  navigator_->setTargetPosX(estimator_->getPos(Frame::COG, estimate_mode_).x());
+  navigator_->setTargetPosY(estimator_->getPos(Frame::COG, estimate_mode_).y());
 }
 
 void RollingController::jointStateCallback(const sensor_msgs::JointStateConstPtr & state)
