@@ -66,6 +66,7 @@ void RollingController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   full_q_mat_inv_pub_ = nh_.advertise<aerial_robot_msgs::WrenchAllocationMatrix>("debug/full_q_mat_inv", 1);
   under_q_mat_pub_ = nh_.advertise<aerial_robot_msgs::WrenchAllocationMatrix>("debug/under_q_mat", 1);
   under_q_mat_inv_pub_ = nh_.advertise<aerial_robot_msgs::WrenchAllocationMatrix>("debug/under_q_mat_inv", 1);
+  operability_pub_ = nh_.advertise<std_msgs::Float32>("debug/operability", 1);
 
   ground_mode_sub_ = nh_.subscribe("ground_mode", 1, &RollingController::groundModeCallback, this);
   joint_state_sub_ = nh_.subscribe("joint_states", 1, &RollingController::jointStateCallback, this);
@@ -437,6 +438,14 @@ void RollingController::sendCmd()
       under_q_mat_inv_msg.t_z.push_back(under_q_mat_inv_(i, 3));
     }
   under_q_mat_inv_pub_.publish(under_q_mat_inv_msg);
+
+  std_msgs::Float32 operability_msg;
+  Eigen::MatrixXd q_qt;
+  if(fully_actuated_) q_qt = full_q_mat_ * full_q_mat_.transpose();
+  else q_qt = under_q_mat_ * under_q_mat_.transpose();
+  float det = q_qt.determinant();
+  operability_msg.data =sqrt(det);
+  operability_pub_.publish(operability_msg);
 
   sendFourAxisCommand();
 
