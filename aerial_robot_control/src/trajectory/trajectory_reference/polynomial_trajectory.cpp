@@ -190,6 +190,8 @@ QuadState PolynomialTrajectory<PolyType>::getState(const Scalar time) const {
   state.w = Vector<3>(-1.0 / thrust * body_jerk[1], 1.0 / thrust * body_jerk[0],
                       yaw(1));
 
+  // compute angular acceleration
+  state.tau = Vector<3>(0, 0, yaw(2));
   return state;
 }
 

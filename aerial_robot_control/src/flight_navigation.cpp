@@ -688,6 +688,9 @@ void BaseNavigator::update()
               setTargetZeroVel();
               setTargetZeroAcc();
 
+              setTargetZeroOmega();
+              setTargetZeroAngAcc();
+
               trajectory_mode_ = false;
 
               ROS_INFO("[Flight nav] stop trajectory mode in POS-VEL mode");
@@ -704,6 +707,10 @@ void BaseNavigator::update()
 
               setTargetZeroVel();
               setTargetZeroAcc();
+
+              setTargetZeroOmega();
+              setTargetZeroAngAcc();
+
               trajectory_mode_ = false;
 
               traj_generator_ptr_.reset();
@@ -717,8 +724,10 @@ void BaseNavigator::update()
 
               double target_yaw = target_state.getYaw();
               double target_omega_z = target_state.w(2);
+              double target_ang_acc_z = target_state.tau(2);
               setTargetYaw(target_yaw);
               setTargetOmegaZ(target_omega_z);
+              setTargetAngAccZ(target_ang_acc_z);
 
               tf::Vector3 curr_pos = estimator_->getPos(Frame::COG, estimate_mode_);
               double yaw_angle = estimator_->getState(State::YAW_COG, estimate_mode_)[0];
