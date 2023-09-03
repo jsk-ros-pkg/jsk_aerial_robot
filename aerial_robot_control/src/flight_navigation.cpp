@@ -938,6 +938,7 @@ void BaseNavigator::updateLandCommand()
   setTargetVelZ(land_descend_vel_);
 }
 
+
 void BaseNavigator::generateNewTrajectory(geometry_msgs::PoseStamped pose)
 {
   if (traj_generator_ptr_.get() != nullptr)
@@ -990,7 +991,7 @@ void BaseNavigator::generateNewTrajectory(geometry_msgs::PoseStamped pose)
                   << " (omega z: " << start_state.w(2) << ")"
                   << " and target acc: " << start_state.a.transpose());
 
-  traj_generator_ptr_ = std::make_shared<agi::MinSnapTrajectory>(start_state, end_state);
+  traj_generator_ptr_ = std::make_shared<agi::MinJerkTrajectory>(start_state, end_state);
 
   trajectory_mode_ = true;
 

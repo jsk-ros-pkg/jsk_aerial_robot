@@ -320,7 +320,7 @@ namespace aerial_robot_navigation
     double trajectory_min_du_;
     double start_state_vel_thresh_;
     bool yaw_trajcetory_flag_;
-    std::shared_ptr<agi::MinSnapTrajectory> traj_generator_ptr_;
+    std::shared_ptr<agi::MinJerkTrajectory> traj_generator_ptr_;
 
     /* battery info */
     double low_voltage_thre_;
