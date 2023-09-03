@@ -980,7 +980,14 @@ void BaseNavigator::generateNewTrajectory(geometry_msgs::PoseStamped pose)
 
     }
 
-  double du = std::max((end_state.p - start_state.p).norm()/trajectory_mean_vel_, trajectory_min_du_);
+  double du_tran = (end_state.p - start_state.p).norm() / trajectory_mean_vel_;
+  double du_rot = fabs(end_state.getYaw() - start_state.getYaw()) / trajectory_mean_yaw_rate_;
+  double du = std::max(du_tran, trajectory_min_du_);
+  if (!enable_latch_yaw_trajectory_)
+    {
+      du = std::max(du_rot, du);
+    }
+
   end_state.t = start_state.t + du;
 
   ROS_INFO_STREAM("[Nav] revceive the new target pose of " << end_state.p.transpose()
@@ -1034,8 +1041,9 @@ void BaseNavigator::rosParamInit()
 
   //*** trajectory
   getParam<double>(nh, "trajectory_mean_vel", trajectory_mean_vel_, 0.5);
-  getParam<double>(nh, "start_state_vel_thresh", start_state_vel_thresh_, 0.1);
+  getParam<double>(nh, "trajectory_mean_yaw_rate", trajectory_mean_yaw_rate_, 0.3);
   getParam<double>(nh, "trajectory_min_du", trajectory_min_du_, 2.0);
+  getParam<bool>(nh, "enable_latch_yaw_trajectory", enable_latch_yaw_trajectory_, false);
 
   //*** auto vel nav
   getParam<double>(nh, "nav_vel_limit", nav_vel_limit_, 0.2);

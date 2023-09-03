@@ -317,9 +317,9 @@ namespace aerial_robot_navigation
 
     /* trajectory */
     double trajectory_mean_vel_;
+    double trajectory_mean_yaw_rate_;
     double trajectory_min_du_;
-    double start_state_vel_thresh_;
-    bool yaw_trajcetory_flag_;
+    bool enable_latch_yaw_trajectory_;
     std::shared_ptr<agi::MinJerkTrajectory> traj_generator_ptr_;
 
     /* battery info */
