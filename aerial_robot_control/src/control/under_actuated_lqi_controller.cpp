@@ -239,6 +239,13 @@ void UnderActuatedLQIController::allocateYawTerm()
       pid_msg_.yaw.i_term.at(i) = i_term;
       pid_msg_.yaw.d_term.at(i) = d_term;
     }
+
+  // feed-forward term for yaw
+  Eigen::MatrixXd q_mat_inv = getQInv();
+  double ff_ang_yaw = navigator_->getTargetAngAcc().z();
+  Eigen::VectorXd ff_term = q_mat_inv.col(3) * ff_ang_yaw;
+  target_thrust_yaw_term += ff_term;
+
   // constraint yaw (also  I term)
   int index;
   double max_term = target_thrust_yaw_term.cwiseAbs().maxCoeff(&index);

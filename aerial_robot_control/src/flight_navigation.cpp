@@ -9,6 +9,7 @@ BaseNavigator::BaseNavigator():
   target_acc_(0, 0, 0),
   target_rpy_(0, 0, 0),
   target_omega_(0, 0, 0),
+  target_ang_acc_(0, 0, 0),
   init_height_(0), land_height_(0),
   force_att_control_flag_(false),
   trajectory_mode_(false),
