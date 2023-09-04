@@ -43,7 +43,6 @@
    <rosparam file="$(arg config_dir)/Battery.yaml" command="load" />
 
    ###########  Control  ###########
-   <!-- <rosparam file="$(arg config_dir)/$(arg type)/RollingControl.yaml" command="load"/> -->
    <rosparam file="$(arg config_dir)/$(arg type)/GroundControl.yaml" command="load"/>
 
    ###########  Sensor Fusion  ###########
