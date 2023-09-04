@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+# $ rosrun rolling transformation_demo.py _mode:=0
+
 import sys
 import time
 import rospy
@@ -19,14 +21,13 @@ reverse_reset = rospy.get_param("~reverse_reset", False)
 desire_joint = JointState()
 desire_att = DesireCoord()
 
-half_pi = 1.56 # the limitation of the joint
 pi = math.pi
 
 if demo_mode == 0: # circle
-    desire_joint.position = [pi / 3] * 5
+    desire_joint.position = [pi / 3 * 2] * 2
 
-elif demo_mode == 1: # linear
-    desire_joint.position = [0] * 5
+elif demo_mode == 1: # zigzag
+    desire_joint.position = [1.57, -1.57]
 
 time.sleep(0.6)
 
