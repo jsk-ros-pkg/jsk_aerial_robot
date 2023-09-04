@@ -13,9 +13,9 @@ controller:
   hovering_approximate: false
   gimbal_lpf_factor: 3.0 # don't set to 0
 
-  rotor_tilt1: -0.125
-  rotor_tilt2: 0.146
-  rotor_tilt3: 0.083
+  rotor_tilt1: 0
+  rotor_tilt2: 0
+  rotor_tilt3: 0
 
   xy:
     p_gain: 3.0
