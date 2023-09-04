@@ -1,4 +1,22 @@
-ground_controller:
+aerial_robot_control_name: aerial_robot_control/rolling_controller
+
+controller:
+  control_verbose: false
+  torque_allocation_matrix_inv_pub_interval: 0.05
+  wrench_allocation_matrix_pub_interval: 0.1
+  allocation_refine_max_iteration: 5
+  allocation_refine_threshold: 0.0001
+  initial_roll_tilt: 0.8
+  use_sr_inv: false
+  sr_inv_weight: 0.1
+  fully_actuated: true
+  hovering_approximate: false
+  gimbal_lpf_factor: 3.0 # don't set to 0
+
+  rotor_tilt1: -0.125
+  rotor_tilt2: 0.146
+  rotor_tilt3: 0.083
+
   xy:
     p_gain: 1.5
     i_gain: 0

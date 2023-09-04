@@ -44,7 +44,6 @@
 
    ###########  Control  ###########
    <rosparam file="$(arg config_dir)/$(arg type)/RollingControl.yaml" command="load"/>
-   <rosparam file="$(arg config_dir)/$(arg type)/GroundControl.yaml" command="load"/>
 
    ###########  Sensor Fusion  ###########
    <rosparam file="$(arg config_dir)/StateEstimation.yaml" command="load" />
