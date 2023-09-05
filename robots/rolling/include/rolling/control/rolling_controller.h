@@ -48,6 +48,8 @@ namespace aerial_robot_control
     ros::Subscriber joint_state_sub_;
     ros::Subscriber z_i_control_flag_sub_;
     ros::Subscriber z_i_term_sub_;
+    ros::Subscriber control_mode_sub_;
+
     tf2_ros::TransformBroadcaster br_;
 
     boost::shared_ptr<aerial_robot_navigation::RollingNavigator> rolling_navigator_;
@@ -105,5 +107,6 @@ namespace aerial_robot_control
     void calcWrenchAllocationMatrix();
     void fullyActuatedWrenchAllocationFromCog();
     void underActuatedWrenchAllocationFromCog();
+    void setControlModeCallback(const std_msgs::Int16Ptr & msg);
   };
 };

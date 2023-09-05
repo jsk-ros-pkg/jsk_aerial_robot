@@ -72,6 +72,7 @@ void RollingController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   joint_state_sub_ = nh_.subscribe("joint_states", 1, &RollingController::jointStateCallback, this);
   z_i_control_flag_sub_ = nh_.subscribe("z_i_control_flag", 1, &RollingController::setZIControlFlagCallback, this);
   z_i_term_sub_ = nh_.subscribe("z_i_term", 1, &RollingController::setZITermCallback, this);
+  control_mode_sub_ = nh_.subscribe("control_mode", 1, &RollingController::setControlModeCallback, this);
 
   ground_mode_ = 0;
   gain_updated_ = false;
@@ -530,6 +531,43 @@ void RollingController::stayCurrentXYPosition(const std_msgs::Empty & msg)
 {
   navigator_->setTargetPosX(estimator_->getPos(Frame::COG, estimate_mode_).x());
   navigator_->setTargetPosY(estimator_->getPos(Frame::COG, estimate_mode_).y());
+}
+
+void RollingController::setControlModeCallback(const std_msgs::Int16Ptr & msg)
+{
+  if(msg->data == 0)
+    {
+      fully_actuated_ = true;
+      ROS_WARN("set control mode to fully actuated");
+    }
+
+  else if(msg->data == 1)
+    {
+      fully_actuated_ = false;
+      pid_msg_.roll.total.at(0) = 0;
+      pid_msg_.roll.p_term.at(0) = 0;
+      pid_msg_.roll.i_term.at(0) = 0;
+      pid_msg_.roll.d_term.at(0) = 0;
+      pid_msg_.roll.target_p = 0;
+      pid_msg_.roll.err_p = 0;
+      pid_msg_.roll.target_d = 0;
+      pid_msg_.roll.err_d = 0;
+      pid_msg_.pitch.total.at(0) = 0;
+      pid_msg_.pitch.p_term.at(0) = 0;
+      pid_msg_.pitch.i_term.at(0) = 0;
+      pid_msg_.pitch.d_term.at(0) = 0;
+      pid_msg_.pitch.target_p = 0;
+      pid_msg_.pitch.err_p = 0;
+      pid_msg_.pitch.target_d = 0;
+      pid_msg_.pitch.err_d = 0;
+      ROS_WARN("set control mode to under actuated");
+    }
+
+  else
+    {
+      fully_actuated_ = true;
+      ROS_WARN("set control mode to fully actuated");
+    }
 }
 
 void RollingController::jointStateCallback(const sensor_msgs::JointStateConstPtr & state)
