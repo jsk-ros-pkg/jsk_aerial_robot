@@ -6,7 +6,7 @@ import tf.transformations as tft
 from aerial_robot_msgs.msg import FlightNav
 from nav_msgs.msg import Odometry
 from spinal.msg import DesireCoord
-from std_msgs.msg import Empty, Bool, Float32
+from std_msgs.msg import Empty, Bool, Float32, Int16
 
 class RollingDemo:
     def __init__(self):
@@ -20,6 +20,8 @@ class RollingDemo:
         self.flight_nav_pub = rospy.Publisher("/rolling/uav/nav", FlightNav, queue_size=1)
         self.z_i_control_flag_pub = rospy.Publisher("/rolling/z_i_control_flag", Bool, queue_size=1)
         self.z_i_term_pub = rospy.Publisher("/rolling/z_i_term", Float32, queue_size=1)
+        self.control_mode_pub = rospy.Publisher("/rolling/control_mode", Int16, queue_size=1)
+        self.stay_current_pose_pub = rospy.Publisher("/rolling/stay_current_position", Empty, queue_size=1)
 
         self.start_flag = False
         self.rolling_demo_flag = False
@@ -62,10 +64,16 @@ class RollingDemo:
         self.z_i_term_pub.publish(z_i_term_msg)
         rospy.logwarn("set z i term to %lf", z_i_term_msg.data)
 
+        self.initial_cog_odom = self.cog_odom
+        self.initial_baselink_euler = self.baselink_euler
+
         z_i_control_msg = Bool()
         z_i_control_msg.data = False
         self.z_i_control_flag_pub.publish(z_i_control_msg)
         rospy.logwarn("disable z i control")
+
+        stay_current_pose_msg = Empty()
+        self.stay_current_pose_pub.publish(stay_current_pose_msg)
 
         self.rolling_demo_flag = True
 
@@ -100,6 +108,7 @@ class RollingDemo:
             flight_nav_msg.target_pos_z = self.radius * self.target_pos_z_ratio
             rospy.logwarn_once("set target z to %lf", flight_nav_msg.target_pos_z)
             self.flight_nav_pub.publish(flight_nav_msg)
+
 
 
 if __name__ == '__main__':

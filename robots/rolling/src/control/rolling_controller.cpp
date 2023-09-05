@@ -72,6 +72,8 @@ void RollingController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   joint_state_sub_ = nh_.subscribe("joint_states", 1, &RollingController::jointStateCallback, this);
   z_i_control_flag_sub_ = nh_.subscribe("z_i_control_flag", 1, &RollingController::setZIControlFlagCallback, this);
   z_i_term_sub_ = nh_.subscribe("z_i_term", 1, &RollingController::setZITermCallback, this);
+  stay_current_sub_ = nh_.subscribe("stay_current_position", 1, &RollingController::stayCurrentXYPosition, this);
+  reset_attitude_gains_sub_ = nh_.subscribe("reset_attitude_gains", 1, &RollingController::resetAttitudeGainsCallback, this);
   control_mode_sub_ = nh_.subscribe("control_mode", 1, &RollingController::setControlModeCallback, this);
 
   ground_mode_ = 0;
@@ -507,6 +509,22 @@ void RollingController::setAttitudeGains()
   rpy_gain_pub_.publish(rpy_gain_msg);
 }
 
+void RollingController::resetAttitudeGains()
+{
+  ROS_WARN("reset attitude gain in spinal");
+  spinal::RollPitchYawTerms rpy_gain_msg; //for rosserial
+  /* to flight controller via rosserial scaling by 1000 */
+  rpy_gain_msg.motors.resize(1);
+  rpy_gain_msg.motors.at(0).roll_p = 0;
+  rpy_gain_msg.motors.at(0).roll_i = 0;
+  rpy_gain_msg.motors.at(0).roll_d = 0;
+  rpy_gain_msg.motors.at(0).pitch_p = 0;
+  rpy_gain_msg.motors.at(0).pitch_i = 0;
+  rpy_gain_msg.motors.at(0).pitch_d = 0;
+  rpy_gain_msg.motors.at(0).yaw_d = 0;
+  rpy_gain_pub_.publish(rpy_gain_msg);
+}
+
 void RollingController::groundModeCallback(const std_msgs::Int16Ptr & msg)
 {
   int prev_ground_mode = ground_mode_;
@@ -529,8 +547,13 @@ void RollingController::setZITermCallback(const std_msgs::Float32Ptr & msg)
 
 void RollingController::stayCurrentXYPosition(const std_msgs::Empty & msg)
 {
-  navigator_->setTargetPosX(estimator_->getPos(Frame::COG, estimate_mode_).x());
-  navigator_->setTargetPosY(estimator_->getPos(Frame::COG, estimate_mode_).y());
+  navigator_->setTargetXyFromCurrentState();
+  navigator_->setTargetYawFromCurrentState();
+}
+
+void RollingController::resetAttitudeGainsCallback(const std_msgs::Empty & msg)
+{
+  RollingController::resetAttitudeGains();
 }
 
 void RollingController::setControlModeCallback(const std_msgs::Int16Ptr & msg)
