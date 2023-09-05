@@ -362,13 +362,6 @@ void RollingController::sendCmd()
 {
   PoseLinearController::sendCmd();
 
-  sensor_msgs::JointState gimbal_control_msg;
-  gimbal_control_msg.header.stamp = ros::Time::now();
-  for(int i = 0; i < motor_num_; i++){
-    gimbal_control_msg.position.push_back(target_gimbal_angles_.at(i));
-  }
-  gimbal_control_pub_.publish(gimbal_control_msg);
-
   std_msgs::Float32MultiArray target_vectoring_force_msg;
   for(int i = 0; i < full_lambda_all_.size(); i++)
     {
@@ -447,9 +440,21 @@ void RollingController::sendCmd()
   operability_msg.data =sqrt(det);
   operability_pub_.publish(operability_msg);
 
+  sendGimbalAngles();
+
   sendFourAxisCommand();
 
   sendTorqueAllocationMatrixInv();
+}
+
+void RollingController::sendGimbalAngles()
+{
+  sensor_msgs::JointState gimbal_control_msg;
+  gimbal_control_msg.header.stamp = ros::Time::now();
+  for(int i = 0; i < motor_num_; i++){
+    gimbal_control_msg.position.push_back(target_gimbal_angles_.at(i));
+  }
+  gimbal_control_pub_.publish(gimbal_control_msg);
 }
 
 void RollingController::sendFourAxisCommand()

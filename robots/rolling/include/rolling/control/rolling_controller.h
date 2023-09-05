@@ -91,6 +91,7 @@ namespace aerial_robot_control
     void reset() override;
     void sendCmd();
     void rosParamInit();
+    void sendGimbalAngles();
     void sendFourAxisCommand();
     void sendTorqueAllocationMatrixInv();
     void setAttitudeGains();
