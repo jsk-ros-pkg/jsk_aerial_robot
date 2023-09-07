@@ -38,6 +38,11 @@ class RollingDemo:
         self.initial_cog_odom = None
         self.initial_baselink_euler = None
 
+        self.emargency_roll_thresh = 0.4
+
+        self.pitch_step = 0.2
+        self.step_length_in_xy = self.pitch_step * self.radius
+
         self.timer = rospy.Timer(rospy.Duration(1 / self.timer_freq), self.timerCallback)
 
     def cogOdomcallback(self, msg):
@@ -74,6 +79,7 @@ class RollingDemo:
 
         stay_current_pose_msg = Empty()
         self.stay_current_pose_pub.publish(stay_current_pose_msg)
+        rospy.logwarn("set target xy and yaw to current state")
 
         self.rolling_demo_flag = True
 
@@ -90,9 +96,9 @@ class RollingDemo:
             else:
                 rospy.logwarn_once("not publish because of arcsin error")
 
-            self.desire_coord = DesireCoord()
-            self.desire_coord.roll = self.target_phi
-            self.desire_coord_pub.publish(self.desire_coord)
+            desire_coord = DesireCoord()
+            desire_coord.roll = self.target_phi
+            self.desire_coord_pub.publish(desire_coord)
 
             flight_nav_msg = FlightNav()
             flight_nav_msg.target = FlightNav.COG
@@ -105,9 +111,72 @@ class RollingDemo:
             flight_nav_msg = FlightNav()
             flight_nav_msg.target = FlightNav.COG
             flight_nav_msg.pos_z_nav_mode = 2
-            flight_nav_msg.target_pos_z = self.radius * self.target_pos_z_ratio
-            rospy.logwarn_once("set target z to %lf", flight_nav_msg.target_pos_z)
+
+            safety = None
+
+            if np.abs(self.baselink_euler[0] - 1.57) > self.emargency_roll_thresh:
+                safety = False
+                flight_nav_msg.target_pos_z = self.radius
+                z_i_control_msg = Bool()
+                z_i_control_msg.data = True
+                z_i_term_msg = Float32()
+                z_i_term_msg.data = self.gravity
+                rospy.logerr("roll of baselink is %lf. set target z to %lf", self.baselink_euler[0], flight_nav_msg.target_pos_z)
+            else:
+                safety = True
+                flight_nav_msg.target_pos_z = self.radius * self.target_pos_z_ratio
+                z_i_control_msg = Bool()
+                z_i_control_msg.data = False
+                z_i_term_msg = Float32()
+                z_i_term_msg.data = self.gravity * self.ground_compensation_ratio
+                rospy.logwarn("roll of baselink is %lf. set target z to %lf", self.baselink_euler[0], flight_nav_msg.target_pos_z)
+
+            self.z_i_term_pub.publish(z_i_term_msg)
+            self.z_i_control_flag_pub.publish(z_i_control_msg)
+
+
+            # http://blog.livedoor.jp/ddrerizayoi/archives/56803925.html
+            # y = \tan\psi(x - x_init) + y_init
+            # x \sin\psi - y \cos\psi - x_init \sin\psi + y_init \cos\psi = 0
+            psi = self.initial_baselink_euler[2]
+            initial_x = self.initial_cog_odom.pose.pose.position.x
+            initial_y = self.initial_cog_odom.pose.pose.position.y
+            initial_theta = self.initial_baselink_euler[1]
+
+            cur_x = self.cog_odom.pose.pose.position.x
+            cur_y = self.cog_odom.pose.pose.position.y
+
+            a = np.sin(psi)
+            b = - np.cos(psi)
+            c = -initial_x * np.sin(psi) + initial_y * np.cos(psi)
+
+            symmetry_x = cur_x - 2 * (a * cur_x + b * cur_y + c) * np.sin(psi)
+            symmetry_y = cur_y - 2 * (a * cur_x + b * cur_y + c) * (- np.cos(psi))
+
+            center_x = (cur_x + symmetry_x) / 2.0
+            center_y = (cur_y + symmetry_y) / 2.0
+
+            if safety:
+                flight_nav_msg.pos_xy_nav_mode = 2
+                flight_nav_msg.target_pos_x = center_x + self.step_length_in_xy * np.cos(psi)
+                flight_nav_msg.target_pos_y = center_y + self.step_length_in_xy * np.sin(psi)
+            else:
+                flight_nav_msg.pos_xy_nav_mode = 2
+                flight_nav_msg.target_pos_x = center_x
+                flight_nav_msg.target_pos_y = center_y
+
             self.flight_nav_pub.publish(flight_nav_msg)
+
+            d_x = flight_nav_msg.target_pos_x - initial_x
+            d_y = flight_nav_msg.target_pos_y - initial_y
+            step = np.sqrt(d_x * d_x + d_y * d_y)
+            d_theta = step / self.radius
+
+            desire_coord = DesireCoord()
+            desire_coord.roll = 1.57
+            desire_coord.pitch = initial_theta + d_theta
+            self.desire_coord_pub.publish(desire_coord)
+
 
 
 
