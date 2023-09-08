@@ -31,7 +31,7 @@ class RollingDemo:
         self.radius = rospy.get_param("/rolling/circle_radius")
         self.gravity = 9.81
         self.stable_cnt = 0
-        self.timer_freq = 20
+        self.timer_freq = 20.0
         self.target_phi = 0
         self.target_pos_z_ratio = 0.6
         self.ground_compensation_ratio = 0.6
