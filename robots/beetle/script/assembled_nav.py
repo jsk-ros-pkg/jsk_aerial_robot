@@ -32,7 +32,7 @@ class AssembledNav():
             self.rot_pubs.append(rospy.Publisher(ns + '/final_target_baselink_rot', DesireCoord, queue_size=1))
 
         self.nav_sub = rospy.Subscriber("assembled/uav/nav",FlightNav, self.navCb)
-        self.nav_sub = rospy.Subscriber("assembled/final_target_baselink_rot",DesireCoord, self.rotCb)
+        self.rot_sub = rospy.Subscriber("assembled/final_target_baselink_rot",DesireCoord, self.rotCb)
         self.nav_rate = rospy.Rate(40)
         
         self.flight_nav = FlightNav()
