@@ -118,6 +118,6 @@
     <param name="shift_x" type="double" value="$(arg shift_x)" />
     <param name="shift_y" type="double" value="$(arg shift_y)" />
     <param name="robot_ns" value="$(arg robot_ns)"/>
-    <param name="print_yaw" type="bool" value="$(arg simulation)" />
+    <param name="print_yaw" type="bool" value="false" />
   </node>
 </launch>

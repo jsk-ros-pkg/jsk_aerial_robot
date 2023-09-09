@@ -130,12 +130,12 @@
       </geometry>
       <material name="Dummy_body_color"/>
     </visual>
-    <collision>
+    <!-- <collision>
         <origin rpy="0 0 0" xyz="0 0 0"/>
         <geometry>
           <cylinder length="0.02" radius="${body_radius}"/>
         </geometry>
-    </collision>
+    </collision> -->
   </link>
 
   <joint name="dummy_joint_1" type="fixed">
@@ -144,7 +144,7 @@
     <origin rpy="0 0 0" xyz="${link_length* 0.5} ${link_length* 0.5} 0.0"/>
   </joint>
 
-   <link name="dummy_body_visualize">
+   <!-- <link name="dummy_body_visualize">
     <inertial>
       <mass value = "0.0001" />
       <origin xyz="0 0 0 " rpy="0 0 0"/>
@@ -167,6 +167,6 @@
     <parent link="link1"/>
     <child link="dummy_body_visualize"/>
     <origin rpy="0 0 0" xyz="${link_length* 0.5} ${link_length* 0.5} 0.0"/>
-  </joint>
+  </joint> -->
 
 </robot>
