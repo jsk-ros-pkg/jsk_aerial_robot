@@ -25,6 +25,7 @@
   <arg name="robot_id" default="" />
   <arg name="robot_ns" value="hydrus$(arg robot_id)" />
   <arg name="config_dir" default="$(find hydrus)/config/$(arg type)" />
+  <arg name="body_r" default="0.325" />
 
   ###########  Parameters  ###########
   <group ns="$(arg robot_ns)">
@@ -118,6 +119,8 @@
     <param name="shift_x" type="double" value="$(arg shift_x)" />
     <param name="shift_y" type="double" value="$(arg shift_y)" />
     <param name="robot_ns" value="$(arg robot_ns)"/>
+    <param name="body_r" type="double" value="$(arg body_r)" />
+    <param name="vel_calc_boundary" type="double" value="0.30" />
     <param name="print_yaw" type="bool" value="false" />
   </node>
 </launch>
