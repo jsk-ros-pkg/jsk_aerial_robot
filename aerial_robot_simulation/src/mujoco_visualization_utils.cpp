@@ -71,6 +71,30 @@ void MujocoVisualizationUtils::init(mjModel* mujoco_model, mjData* mujoco_data, 
   glfwSetScrollCallback(window, &MujocoVisualizationUtils::scroll_callback);
   profiler_init();
   sensor_init();
+
+  std::cout << "\n";
+  std::cout << "=========================================" << std::endl;
+  std::cout << "|       Key bind in MuJoCo viewer       |\n";
+  std::cout << "|    w    -> wire frame                 |\n";
+  std::cout << "|    r    -> show refrection            |\n";
+  std::cout << "|    t    -> transparent mode           |\n";
+  std::cout << "|    u    ->                            |\n";
+  std::cout << "|    i    -> inertia                    |\n";
+  std::cout << "|    a    ->                            |\n";
+  std::cout << "|    s    -> visualize shadow           |\n";
+  std::cout << "|    d    ->                            |\n";
+  std::cout << "|    f    -> visualize contact force    |\n";
+  std::cout << "|    g    ->                            |\n";
+  std::cout << "|    j    -> visualize joints           |\n";
+  std::cout << "| ; and : -> visualize coodinates       |\n";
+  std::cout << "|    x    ->                            |\n";
+  std::cout << "|    c    -> visualize contact point    |\n";
+  std::cout << "|    m    -> visualize center of mass   |\n";
+  std::cout << "|    ,    -> contour view               |\n";
+  std::cout << "| . and / -> visualize names of model   |\n";
+  std::cout << "=========================================" << std::endl;
+  std::cout << "\n";
+
 }
 
 void MujocoVisualizationUtils::update(GLFWwindow* window)
