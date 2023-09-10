@@ -31,6 +31,8 @@ elif demo_mode == 1: # spiral model
 elif demo_mode == 2: # mode model
     desire_joint.position = [0.0, half_pi, -1.5, 0.0, 0.0, half_pi]
     desire_att.pitch = 0.75
+else:
+    sys.exit()
 
 if reset:
     desire_joint.position = [0.0, half_pi, 0, half_pi, 0.0, half_pi]
