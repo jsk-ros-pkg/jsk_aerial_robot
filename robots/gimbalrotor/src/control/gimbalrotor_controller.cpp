@@ -32,6 +32,8 @@ namespace aerial_robot_control
     rpy_gain_pub_ = nh_.advertise<spinal::RollPitchYawTerms>("rpy/gain", 1);
     torque_allocation_matrix_inv_pub_ = nh_.advertise<spinal::TorqueAllocationMatrixInv>("torque_allocation_matrix_inv", 1);
     gimbal_dof_pub_ = nh_.advertise<std_msgs::UInt8>("gimbal_dof", 1);
+
+    control_dof_ = std::accumulate(controlled_axis_.begin(), controlled_axis_.end(), 0);
   }
 
   void GimbalrotorController::reset()
@@ -46,6 +48,11 @@ namespace aerial_robot_control
     ros::NodeHandle control_nh(nh_, "controller");
     getParam<int>(control_nh, "gimbal_dof", gimbal_dof_, 1);
     getParam<bool>(control_nh, "gimbal_calc_in_fc", gimbal_calc_in_fc_, true);
+    if(!control_nh.getParam("controlled_axis", controlled_axis_)){
+      controlled_axis_ = std::vector<int>(6, 1);
+      controlled_axis_.at(0) = 0;
+      controlled_axis_.at(1) = 0;
+    }
   }
 
   bool GimbalrotorController::update()

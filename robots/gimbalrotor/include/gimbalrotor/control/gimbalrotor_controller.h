@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include <numeric>
 #include <aerial_robot_control/control/base/pose_linear_controller.h>
 #include <aerial_robot_control/control/fully_actuated_controller.h>
 #include <aerial_robot_estimation/state_estimation.h>
@@ -46,6 +47,8 @@ namespace aerial_robot_control
     double candidate_yaw_term_;
     int gimbal_dof_;
     bool gimbal_calc_in_fc_;
+    std::vector<int> controlled_axis_;
+    int control_dof_;
 
     void rosParamInit();
     bool update() override;

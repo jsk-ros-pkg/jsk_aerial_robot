@@ -4,6 +4,7 @@ controller:
   torque_allocation_matrix_inv_pub_interval: 0.05
   wrench_allocation_matrix_pub_interval: 0.1
   gimbal_calc_in_fc : true
+  controlled_axis: [1, 1, 1, 1, 1, 1]
 
   xy:
     p_gain: 1.5
