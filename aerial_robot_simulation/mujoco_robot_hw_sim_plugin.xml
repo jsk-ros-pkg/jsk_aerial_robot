@@ -4,7 +4,7 @@
       type="mujoco_ros_control::MujocoRobotHWSim"
       base_class_type="mujoco_ros_control::MujocoRobotHWSimPlugin">
     <description>
-      robot hw plugin
+      A aerial robot simulation interface in MuJoCo.
     </description>
   </class>
 </library>

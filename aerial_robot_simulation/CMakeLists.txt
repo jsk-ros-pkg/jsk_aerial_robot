@@ -93,19 +93,18 @@ target_link_libraries(mujoco_ros_control
   )
 
 install(DIRECTORY include/${PROJECT_NAME}/
-  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
-  )
+  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION})
 
 
 install(TARGETS aerial_robot_hw_sim spinal_interface flight_controllers mujoco_ros_control mujoco_visualization_utils mujoco_attitude_controller mujoco_spinal_interface mujoco_robot_hw_sim
   DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  )
+)
 
 install(DIRECTORY scripts
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
   USE_SOURCE_PERMISSIONS
-  )
+)
 
 install(FILES aerial_robot_hw_sim_plugins.xml flight_controllers_plugins.xml mujoco_robot_hw_sim_plugin.xml
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
-  )
+)

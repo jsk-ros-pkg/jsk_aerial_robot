@@ -1,0 +1,174 @@
+<mujoco model="dragon">
+  <compiler coordinate="local" convexhull="false" angle="radian" balanceinertia="true" meshdir="mesh"/>
+  <option timestep="0.001" gravity="0 0 -9.81" collision="all"/>
+  <option density="1" viscosity="1e-3" collision="all"/>
+  <option integrator="implicit" />
+
+  <asset>
+    <mesh name="ducted_fan_head_link" file="ducted_fan_head_link.stl" />
+    <mesh name="ducted_fan_gimbal_roll" file="ducted_fan_gimbal_roll.stl" />
+    <mesh name="ducted_fan_gimbal_pitch" file="ducted_fan_gimbal_pitch.stl" />
+    <mesh name="inter_joint_junction" file="inter_joint_junction.stl" />
+    <mesh name="ducted_fan_baselink" file="ducted_fan_baselink.stl" />
+    <mesh name="ducted_fan_general_link" file="ducted_fan_general_link.stl" />
+    <mesh name="ducted_fan_end_link" file="ducted_fan_end_link.stl" />
+
+    <texture type="skybox" builtin="gradient" rgb1=".3 .5 .7" rgb2="0 0 0" width="32" height="512"/>
+    <texture name="body" type="cube" builtin="flat" mark="cross" width="128" height="128" rgb1="0.8 0.6 0.4" rgb2="0.8 0.6 0.4" markrgb="1 1 1" random="0.01"/>
+    <material name="body" texture="body" texuniform="true" rgba="0.8 0.6 .4 1"/>
+    <texture name="grid" type="2d" builtin="checker" width="512" height="512" rgb1=".1 .2 .3" rgb2=".2 .3 .4"/>
+    <material name="grid" texture="grid" texrepeat="1 1" texuniform="true" reflectance=".2"/>
+  </asset>
+
+  <worldbody>
+    <light directional="true" diffuse=".8 .8 .8" pos="0 0 10" dir="0 0 -10"/>
+    <geom name="floor" size="0 0 .05" type="plane" material="grid" condim="3"/>
+
+    <body name="link1" pos="0 0 0.2" >
+      <freejoint/>
+      <inertial pos="0.22709 -0.00667 -0.02721" mass="0.7968" fullinertia="0.00095 0.0151 0.0148 -0.00098 0.0003 0.0001" />
+      <geom pos="0.212 0 0" type="mesh" contype="1" conaffinity="0" group="1" mesh="ducted_fan_head_link" />
+
+      <body name="gimbal1_roll_module" pos="0.212 0 0">
+        <inertial pos="-0.0276 0.00042 0.01548"  mass="0.4604" fullinertia="0.0004 0.0004 0.0003 0 -0.0003 0" />
+        <joint name="gimbal1_roll" pos="0 0 0" axis="1 0 0" limited="true" range="-3.14 3.14" damping="0.1" />
+        <geom pos="-0.01 0 0" type="mesh" contype="1" conaffinity="0" group="1" mesh="ducted_fan_gimbal_roll" />
+
+        <body name="gimbal1_pitch_module" pos="0 0 0.037">
+          <inertial pos="0 0.000329988 -0.00870967" mass="0.53012" fullinertia="0.0061 0.0001 0.0061 0.0 0.0 0.0" />
+          <joint name="gimbal1_pitch" pos="0 0 0" axis="0 1 0" limited="true" range="-3.14 3.14" damping="0.1" />
+          <geom type="mesh" contype="1" conaffinity="0" group="1" mesh="ducted_fan_gimbal_pitch" />
+
+          <body name="thrust1" pos="0 0 0">
+            <inertial pos="0 0 0" mass="0.0001" fullinertia="0.00001 0.00001 0.00002 0.0 0.0 0.0" />
+            <!-- <joint name="rotor1" pos="0 0 0" axis="0 0 1" limited="true" range="2 30" /> -->
+            <site name="rotor1" pos="0 0 0" />
+          </body>
+        </body>
+      </body>
+
+      <body name="inter_joint1" pos="0.424 0 0">
+        <inertial pos="0.02918 -0.00427 -0.00155" mass="0.1329" fullinertia="0.0001 0.0001 0.0001 0.0 0.0 0.0" />
+        <joint name="joint1_pitch" pos="0 0 0" axis="0 1 0" limited="true" range="-1.5708 1.5708" damping="150" frictionloss="0.05" />
+        <geom pos="0.02575 0 0" type="mesh" contype="1" conaffinity="0" group="1" mesh="inter_joint_junction" />
+
+        <body name="link2" pos="0.0515 0 0">
+          <inertial pos="0.221541 -0.00473999 -0.0156795" mass="1.13481" fullinertia="0.0018 0.0228 0.0219 -0.0009 -0.0006 0.0001" />
+          <joint name="joint1_yaw" pos="0 0 0" axis="0 0 1" limited="true" range="-1.5708 1.5708" damping="150" frictionloss="0.05" />
+          <geom pos="0.212 0 0" type="mesh" contype="1" conaffinity="0" group="1" mesh="ducted_fan_baselink" />
+
+          <site name="fc" pos="0.316 -0.004 0.043" />
+
+          <body name="gimbal2_roll_module" pos="0.212 0 0">
+            <inertial pos="-0.0276 0.00042 0.01548" mass="0.4604" fullinertia="0.0004 0.0004 0.0003 0 -0.0003 0" />
+            <joint name="gimbal2_roll" pos="0 0 0" axis="1 0 0" limited="true" range="-3.14 3.14" damping="0.1" />
+            <geom pos="-0.01 0 0" type="mesh" contype="1" conaffinity="0" group="1" mesh="ducted_fan_gimbal_roll" />
+
+            <body name="gimbal2_pitch_module" pos="0 0 0.037">
+              <inertial pos="0 0.000329988 -0.00870967" mass="0.53012" fullinertia="0.0061 0.0001 0.0061 0.0 0.0 0.0" />
+              <joint name="gimbal2_pitch" pos="0 0 0" axis="0 1 0" limited="true" range="-3.14 3.14" damping="0.1" />
+              <geom type="mesh" contype="1" conaffinity="0" group="1" mesh="ducted_fan_gimbal_pitch" />
+
+              <body name="thrust2" pos="0 0 0">
+                <inertial pos="0 0 0" mass="0.0001" fullinertia="0.00001 0.00001 0.00002 0.0 0.0 0.0" />
+                <!-- <joint name="rotor2" pos="0 0 0" axis="0 0 1" limited="true" range="2 30" /> -->
+                <site name="rotor2" pos="0 0 0" />
+              </body>
+            </body>
+          </body>
+
+          <body name="inter_joint2" pos="0.424 0 0">
+            <inertial pos="0.02918 -0.00427 -0.00155" mass="0.1329" fullinertia="0.0001 0.0001 0.0001 0.0 0.0 0.0" />
+            <joint name="joint2_pitch" pos="0 0 0" axis="0 1 0" limited="true" range="-1.5708 1.5708" damping="150" frictionloss="0.05" />
+            <geom pos="0.02575 0 0" type="mesh" contype="1" conaffinity="0" group="1" mesh="inter_joint_junction" />
+
+            <body name="link3" pos="0.0515 0 0">
+              <inertial pos="0.19922 -0.0058 -0.01695" mass="0.9289" fullinertia="0.0015 0.0198 0.0189 -0.0008 -0.0001 0.0001" />
+              <joint name="joint2_yaw" pos="0 0 0" axis="0 0 1" limited="true" range="-1.5708 1.5708" damping="150" frictionloss="0.05" />
+              <geom pos="0.212 0 0" type="mesh" contype="1" conaffinity="0" group="1" mesh="ducted_fan_general_link" />
+
+              <body name="gimbal3_roll_module" pos="0.212 0 0">
+                <inertial pos="-0.0276 0.00042 0.01548" mass="0.4604" fullinertia="0.0004 0.0004 0.0003 0 -0.0003 0" />
+                <joint name="gimbal3_roll" pos="0 0 0" axis="1 0 0" limited="true" range="-3.14 3.14" damping="0.1" />
+                <geom pos="-0.01 0 0" type="mesh" contype="1" conaffinity="0" group="1" mesh="ducted_fan_gimbal_roll" />
+
+                <body name="gimbal3_pitch_module" pos="0 0 0.037">
+                  <inertial pos="0 0.000329988 -0.00870967" mass="0.53012" fullinertia="0.0061 0.0001 0.0061 0.0 0.0 0.0" />
+                  <joint name="gimbal3_pitch" pos="0 0 0" axis="0 1 0" limited="true" range="-3.14 3.14" damping="0.1" />
+                  <geom type="mesh" contype="1" conaffinity="0" group="1" mesh="ducted_fan_gimbal_pitch" />
+
+                  <body name="thrust3" pos="0 0 0">
+                    <inertial pos="0 0 0" mass="0.0001" fullinertia="0.00001 0.00001 0.00002 0.0 0.0 0.0" />
+                    <!-- <joint name="rotor3" pos="0 0 0" axis="0 0 1" limited="true" range="2 30" /> -->
+                    <site name="rotor3" pos="0 0 0" />
+                  </body>
+                </body>
+              </body>
+
+              <body name="inter_joint3" pos="0.424 0 0">
+                <inertial pos="0.02918 -0.00427 -0.00155" mass="0.1329" fullinertia="0.0001 0.0001 0.0001 0.0 0.0 0.0" />
+                <joint name="joint3_pitch" pos="0 0 0" axis="0 1 0" limited="true" range="-1.5708 1.5708" damping="150" frictionloss="0.05" />
+                <geom pos="0.02575 0 0" type="mesh" contype="1" conaffinity="0" group="1" mesh="inter_joint_junction" />
+
+                <body name="link4" pos="0.0515 0 0">
+                  <inertial pos="0.16774 -0.00011 -0.02072" mass="0.7943" fullinertia="0.0012 0.0145 0.0134 0.0 0.0003 0.0" />
+                  <joint name="joint3_yaw" pos="0 0 0" axis="0 0 1" limited="true" range="-1.5708 1.5708" damping="150" frictionloss="0.05" />
+                  <geom pos="0.212 0 0" type="mesh" contype="1" conaffinity="0" group="1" mesh="ducted_fan_end_link" />
+
+                  <body name="gimbal4_roll_module" pos="0.212 0 0">
+                    <inertial pos="-0.0276 0.00042 0.01548" mass="0.4604" fullinertia="0.0004 0.0004 0.0003 0 -0.0003 0" />
+                    <joint name="gimbal4_roll" pos="0 0 0" axis="1 0 0" limited="true" range="-3.14 3.14" damping="0.1" />
+                    <geom pos="-0.01 0 0" type="mesh" contype="1" conaffinity="0" group="1" mesh="ducted_fan_gimbal_roll" />
+
+                    <body name="gimbal4_pitch_module" pos="0 0 0.037">
+                      <inertial pos="0 0.000329988 -0.00870967" mass="0.53012" fullinertia="0.0061 0.0001 0.0061 0.0 0.0 0.0" />
+                      <joint name="gimbal4_pitch" pos="0 0 0" axis="0 1 0" limited="true" range="-3.14 3.14" damping="0.1" />
+                      <geom type="mesh" contype="1" conaffinity="0" group="1" mesh="ducted_fan_gimbal_pitch" />
+
+                      <body name="thrust4" pos="0 0 0">
+                        <inertial pos="0 0 0"  mass="0.0001" fullinertia="0.00001 0.00001 0.00002 0.0 0.0 0.0" />
+                        <!-- <joint name="rotor4" pos="0 0 0" axis="0 0 1" limited="true" range="2 30" /> -->
+                        <site name="rotor4" pos="0 0 0" />
+                      </body>
+                    </body>
+                  </body>
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+
+  <actuator>
+    <position name="joint1_pitch" kp="40" joint="joint1_pitch" />
+    <position name="joint1_yaw"   kp="40" joint="joint1_yaw" />
+    <position name="joint2_pitch" kp="40" joint="joint2_pitch" />
+    <position name="joint2_yaw"   kp="40" joint="joint2_yaw" />
+    <position name="joint3_pitch" kp="40" joint="joint3_pitch" />
+    <position name="joint3_yaw"   kp="40" joint="joint3_yaw" />
+
+    <position name="gimbal1_pitch" kp="40" joint="gimbal1_pitch" />
+    <position name="gimbal1_roll"  kp="40" joint="gimbal1_roll" />
+    <position name="gimbal2_pitch" kp="40" joint="gimbal2_pitch" />
+    <position name="gimbal2_roll"  kp="40" joint="gimbal2_roll" />
+    <position name="gimbal3_pitch" kp="40" joint="gimbal3_pitch" />
+    <position name="gimbal3_roll"  kp="40" joint="gimbal3_roll" />
+    <position name="gimbal4_pitch" kp="40" joint="gimbal4_pitch" />
+    <position name="gimbal4_roll"  kp="40" joint="gimbal4_roll" />
+
+    <motor name="rotor1" ctrllimited="true" ctrlrange="0.0 30.0" gear="0 0 1 0 0 -0.02" site="rotor1" />
+    <motor name="rotor2" ctrllimited="true" ctrlrange="0.0 30.0" gear="0 0 1 0 0 0.02" site="rotor2" />
+    <motor name="rotor3" ctrllimited="true" ctrlrange="0.0 30.0" gear="0 0 1 0 0 -0.02" site="rotor3" />
+    <motor name="rotor4" ctrllimited="true" ctrlrange="0.0 30.0" gear="0 0 1 0 0 0.02" site="rotor4" />
+  </actuator>
+
+  <sensor>
+    <accelerometer name="acc" site="fc" />
+    <gyro name="gyro" site="fc" />
+    <magnetometer name="mag" site="fc" />
+  </sensor>
+
+</mujoco>
+

@@ -42,7 +42,7 @@ ServoBridge::ServoBridge(ros::NodeHandle nh, ros::NodeHandle nhp): nh_(nh),nhp_(
   nhp_.param("use_mujoco", use_mujoco_, false);
   if(use_mujoco_)
     {
-      std::cout << "use mujoco simulator" << std::endl;
+      ROS_WARN("use mujoco simulator");
       simulation_mode_ = false;
     }
 
@@ -355,7 +355,7 @@ void ServoBridge::servoCtrlCallback(const sensor_msgs::JointStateConstPtr& servo
           target_angle_msg.angles.push_back(servo_handler->getTargetAngleVal(ValueType::BIT));
 
           mujoco_control_input_msg.name.push_back(servo_handler->getName());
-          mujoco_control_input_msg.position.push_back(servo_ctrl_msg->position[i]);
+          mujoco_control_input_msg.position.push_back(servo_ctrl_msg->position.at(i));
 
           if(simulation_mode_)
             {
