@@ -7,9 +7,9 @@ controller:
   controlled_axis: [0, 0, 1, 1, 1, 1]
 
   xy:
-    p_gain: 5.0
-    i_gain: 0.05
-    d_gain: 4.0
+    p_gain: 1.0
+    i_gain: 0.2
+    d_gain: 2.0
     limit_sum: 12.0
     limit_p: 12.0
     limit_i: 12.0
@@ -28,8 +28,8 @@ controller:
 
   roll_pitch:
     p_gain: 6.0
-    i_gain: 0.2
-    d_gain: 3.0
+    i_gain: 0.5
+    d_gain: 4.0
     limit_sum: 20.0
     limit_p: 20.0
     limit_i: 20.0
