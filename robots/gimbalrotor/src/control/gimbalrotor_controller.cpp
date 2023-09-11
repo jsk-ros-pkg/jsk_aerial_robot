@@ -79,7 +79,9 @@ namespace aerial_robot_control
     tf::Vector3 target_acc_dash = (tf::Matrix3x3(tf::createQuaternionFromYaw(rpy_.z()))).inverse() * target_acc_w;
     tf::Vector3 target_acc_cog = uav_rot.inverse() * target_acc_w;
     Eigen::VectorXd target_wrench_acc_cog = Eigen::VectorXd::Zero(6);
-    target_wrench_acc_cog.head(3) = Eigen::Vector3d(target_acc_cog.x(), target_acc_cog.y(), target_acc_cog.z());
+
+    if(control_dof_ < 6) target_wrench_acc_cog.head(3) = Eigen::Vector3d(target_acc_dash.x(), target_acc_dash.y(), target_acc_dash.z());
+    else target_wrench_acc_cog.head(3) = Eigen::Vector3d(target_acc_cog.x(), target_acc_cog.y(), target_acc_cog.z());
 
     double target_ang_acc_x = pid_controllers_.at(ROLL).result();
     double target_ang_acc_y = pid_controllers_.at(PITCH).result();
@@ -158,6 +160,7 @@ namespace aerial_robot_control
     target_wrench_acc_cog  = controlled_axis_mask * target_wrench_acc_cog;
     integrated_map = controlled_axis_mask * integrated_map;
 
+    /* vectoring force mapping */
     Eigen::MatrixXd integrated_map_inv = aerial_robot_model::pseudoinverse(integrated_map);
     integrated_map_inv_trans_ = integrated_map_inv.leftCols(control_dof_ - 3);
     integrated_map_inv_rot_ = integrated_map_inv.rightCols(3);
@@ -169,17 +172,21 @@ namespace aerial_robot_control
     if(!controlled_axis_.at(X)){
       if(hovering_approximate_){
         target_pitch_ = target_acc_dash.x() / aerial_robot_estimation::G;
+        navigator_->setTargetPitch(target_pitch_);
       }
       else{
         target_pitch_ = atan2(target_acc_dash.x(), target_acc_dash.z());
+        navigator_->setTargetPitch(target_pitch_);
       }
     }
     if(!controlled_axis_.at(Y)){
       if(hovering_approximate_){
         target_roll_ = -target_acc_dash.y() / aerial_robot_estimation::G;
+        navigator_->setTargetRoll(target_roll_);
       }
       else{
         target_roll_ = atan2(-target_acc_dash.y(), sqrt(target_acc_dash.x() * target_acc_dash.x() + target_acc_dash.z() * target_acc_dash.z()));
+        navigator_->setTargetRoll(target_roll_);
       }
     }
 
