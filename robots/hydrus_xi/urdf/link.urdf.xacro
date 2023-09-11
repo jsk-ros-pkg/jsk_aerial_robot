@@ -94,6 +94,17 @@
             iyy="${rotor_mass * .25 * rotor_radius * rotor_radius}" iyz="0.0"
             izz="${rotor_mass * .5 * rotor_radius * rotor_radius}"/>
       </inertial>
+      <visual>
+        <origin rpy="0 0 0" xyz="0 0 0.01"/>
+        <geometry>
+          <xacro:if value="${rotor_direction == 1}">
+            <mesh filename="package://hydrus_xi/urdf/mesh/propeller/T-motor-CF-14inch-CCW.dae"/>
+          </xacro:if>
+          <xacro:if value="${rotor_direction == -1}">
+            <mesh filename="package://hydrus_xi/urdf/mesh/propeller/T-motor-CF-14inch-CW.dae"/>
+          </xacro:if>
+        </geometry>
+      </visual>
     </link>
     <xacro:damping_factor link="thrust${self}"/>
 
