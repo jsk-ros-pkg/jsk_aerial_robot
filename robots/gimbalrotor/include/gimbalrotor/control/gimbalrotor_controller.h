@@ -49,6 +49,7 @@ namespace aerial_robot_control
     bool gimbal_calc_in_fc_;
     std::vector<int> controlled_axis_;
     int control_dof_;
+    double target_roll_ = 0.0, target_pitch_ = 0.0;
 
     void rosParamInit();
     bool update() override;

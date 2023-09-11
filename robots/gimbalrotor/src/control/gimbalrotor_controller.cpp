@@ -53,6 +53,7 @@ namespace aerial_robot_control
       controlled_axis_.at(0) = 0;
       controlled_axis_.at(1) = 0;
     }
+    getParam<bool>(control_nh, "hovering_approximate", hovering_approximate_, false);
   }
 
   bool GimbalrotorController::update()
@@ -75,6 +76,7 @@ namespace aerial_robot_control
     tf::Vector3 target_acc_w(pid_controllers_.at(X).result(),
                              pid_controllers_.at(Y).result(),
                              pid_controllers_.at(Z).result());
+    tf::Vector3 target_acc_dash = (tf::Matrix3x3(tf::createQuaternionFromYaw(rpy_.z()))).inverse() * target_acc_w;
     tf::Vector3 target_acc_cog = uav_rot.inverse() * target_acc_w;
     Eigen::VectorXd target_wrench_acc_cog = Eigen::VectorXd::Zero(6);
     target_wrench_acc_cog.head(3) = Eigen::Vector3d(target_acc_cog.x(), target_acc_cog.y(), target_acc_cog.z());
@@ -83,6 +85,7 @@ namespace aerial_robot_control
     double target_ang_acc_y = pid_controllers_.at(PITCH).result();
     double target_ang_acc_z = pid_controllers_.at(YAW).result();
     target_wrench_acc_cog.tail(3) = Eigen::Vector3d(target_ang_acc_x, target_ang_acc_y, target_ang_acc_z);
+
     pid_msg_.roll.total.at(0) = target_ang_acc_x;
     pid_msg_.roll.p_term.at(0) = pid_controllers_.at(ROLL).getPTerm();
     pid_msg_.roll.i_term.at(0) = pid_controllers_.at(ROLL).getITerm();
@@ -143,12 +146,42 @@ namespace aerial_robot_control
     }
     integrated_map = full_q_mat * integrated_rot;
 
+    /* extract controlled axis  */
+    Eigen::MatrixXd controlled_axis_mask = Eigen::MatrixXd::Zero(control_dof_, 6);
+    int last_row = 0;
+    for(int i = 0; i < controlled_axis_.size(); i++){
+      if(controlled_axis_.at(i)){
+        controlled_axis_mask(last_row, i) = 1;
+        last_row++;
+      }
+    }
+    target_wrench_acc_cog  = controlled_axis_mask * target_wrench_acc_cog;
+    integrated_map = controlled_axis_mask * integrated_map;
+
     Eigen::MatrixXd integrated_map_inv = aerial_robot_model::pseudoinverse(integrated_map);
-    integrated_map_inv_trans_ = integrated_map_inv.leftCols(3);
+    integrated_map_inv_trans_ = integrated_map_inv.leftCols(control_dof_ - 3);
     integrated_map_inv_rot_ = integrated_map_inv.rightCols(3);
-    target_vectoring_f_trans_ = integrated_map_inv_trans_ * target_wrench_acc_cog.topRows(3);
+    target_vectoring_f_trans_ = integrated_map_inv_trans_ * target_wrench_acc_cog.topRows(control_dof_ - 3);
     target_vectoring_f_rot_ = integrated_map_inv_rot_ * target_wrench_acc_cog.bottomRows(3); //debug
     last_col = 0;
+
+    /* under actuated axis  */
+    if(!controlled_axis_.at(X)){
+      if(hovering_approximate_){
+        target_pitch_ = target_acc_dash.x() / aerial_robot_estimation::G;
+      }
+      else{
+        target_pitch_ = atan2(target_acc_dash.x(), target_acc_dash.z());
+      }
+    }
+    if(!controlled_axis_.at(Y)){
+      if(hovering_approximate_){
+        target_roll_ = -target_acc_dash.y() / aerial_robot_estimation::G;
+      }
+      else{
+        target_roll_ = atan2(-target_acc_dash.y(), sqrt(target_acc_dash.x() * target_acc_dash.x() + target_acc_dash.z() * target_acc_dash.z()));
+      }
+    }
 
     /*  calculate target base thrust (considering only translational components)*/
     double max_yaw_scale = 0; // for reconstruct yaw control term in spinal
@@ -157,7 +190,7 @@ namespace aerial_robot_control
       target_base_thrust_.at(2*i) = f_i[0];
       target_base_thrust_.at(2*i+1) = f_i[1];
       // target_gimbal_angles_.at(i) = atan2(-f_i[0], f_i[1]);
-      if(integrated_map_inv(i, YAW) > max_yaw_scale) max_yaw_scale = integrated_map_inv(i, YAW);
+      if(integrated_map_inv(i, control_dof_ - 1) > max_yaw_scale) max_yaw_scale = integrated_map_inv(i, control_dof_ - 1);
       last_col += 2;
     }
     candidate_yaw_term_ = pid_controllers_.at(YAW).result() * max_yaw_scale;
@@ -196,6 +229,9 @@ namespace aerial_robot_control
   void GimbalrotorController::sendFourAxisCommand()
   {
     spinal::FourAxisCommand flight_command_data;
+
+    flight_command_data.angles[0] = target_roll_;
+    flight_command_data.angles[1] = target_pitch_;
 
     if(gimbal_calc_in_fc_){
       flight_command_data.base_thrust = target_base_thrust_;
