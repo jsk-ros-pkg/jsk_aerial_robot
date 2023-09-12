@@ -7,8 +7,12 @@ catkin_package(
   CATKIN_DEPENDS aerial_robot_control aerial_robot_estimation aerial_robot_model
 )
 
+install(DIRECTORY config launch
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+  USE_SOURCE_PERMISSIONS
+)
+
 if(CATKIN_ENABLE_TESTING)
   find_package(rostest REQUIRED)
   add_subdirectory(test)
 endif()
-
