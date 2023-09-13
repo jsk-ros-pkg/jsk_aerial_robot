@@ -75,6 +75,7 @@ namespace sensor_plugin
     ros::Timer  servo_control_timer_;
 
     /* ros param */
+    double throttle_rate_;
     double level_pos_noise_sigma_;
     double z_pos_noise_sigma_;
     double vel_noise_sigma_;

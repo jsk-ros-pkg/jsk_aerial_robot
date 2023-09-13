@@ -113,6 +113,8 @@ namespace rotor_limits_interface
      */
     void enforceLimits(const ros::Duration& /* period */)
     {
+      if(jh_.getForce() == 0) return;
+
       /* because of "inline double setForce(double force)    {*force_ = force;}", we can change the value with same address */
       jh_.setForce(internal::saturate(jh_.getForce(), min_force_, max_force_));
     }
