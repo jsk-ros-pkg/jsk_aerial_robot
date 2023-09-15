@@ -244,14 +244,15 @@ void BeetleNavigator::convertTargetPosFromCoG2CoM()
   tf::Transform cog2com_tf;
   tf::transformKDLToTF(beetle_robot_model_->getCog2CoM<KDL::Frame>(), cog2com_tf);
 
-  /* check whether the target value was changed */      
+  /* Check whether the target value was changed by someway other than uav nav */
+  /* Target pos candidate represents a target pos in a module frame */
   if( int(pre_target_pos_.x() * 1000) != int(getTargetPos().x() * 1000)){
-    float target_x_com = getTargetPos().x() + cog2com_tf.getOrigin().x();
+    float target_x_com = getTargetPos().x() + (tf::Matrix3x3(tf::createQuaternionFromYaw(getTargetRPY().z())) * cog2com_tf.getOrigin()).x();
     setTargetPosCandX(target_x_com);
   }
 
   if( int(pre_target_pos_.y() * 1000) != int(getTargetPos().y() * 1000)){
-    float target_y_com = getTargetPos().y() + cog2com_tf.getOrigin().y();
+    float target_y_com = getTargetPos().y() + (tf::Matrix3x3(tf::createQuaternionFromYaw(getTargetRPY().z())) * cog2com_tf.getOrigin()).y();
     setTargetPosCandY(target_y_com);
   }
 
@@ -261,7 +262,7 @@ void BeetleNavigator::convertTargetPosFromCoG2CoM()
   }
   
   tf::Vector3 target_cog_pos = getTargetPosCand();
-  target_cog_pos -= cog2com_tf.getOrigin();
+  target_cog_pos -= tf::Matrix3x3(tf::createQuaternionFromYaw(getTargetRPY().z())) * cog2com_tf.getOrigin();
 
   if( getNaviState() == HOVER_STATE){
     setTargetPosX(target_cog_pos.x());
