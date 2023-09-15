@@ -257,12 +257,12 @@ void BeetleNavigator::convertTargetPosFromCoG2CoM()
   }
 
   if( int(pre_target_pos_.z() * 1000) != int(getTargetPos().z() * 1000)){
-    float target_z_com = getTargetPos().z() + cog2com_tf.getOrigin().z();
+    float target_z_com = getTargetPos().z() + (tf::Matrix3x3(tf::createQuaternionFromYaw(getTargetRPY().z())) * cog2com_tf.getOrigin()).z();
     setTargetPosCandZ(target_z_com);
   }
   
   tf::Vector3 target_cog_pos = getTargetPosCand();
-  target_cog_pos -= tf::Matrix3x3(tf::createQuaternionFromYaw(getTargetRPY().z())) * cog2com_tf.getOrigin();
+  target_cog_pos -=  tf::Matrix3x3(tf::createQuaternionFromYaw(getTargetRPY().z())) * cog2com_tf.getOrigin();
 
   if( getNaviState() == HOVER_STATE){
     setTargetPosX(target_cog_pos.x());

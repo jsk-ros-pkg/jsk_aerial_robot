@@ -44,7 +44,7 @@ void BeetleRobotModel::calcCenterOfMoving()
     if(!value) continue;
     try
       {
-        transformStamped = tfBuffer_.lookupTransform(cog_name, "beetle" + std::to_string(id) + std::string("/root") , ros::Time(0));
+        transformStamped = tfBuffer_.lookupTransform(cog_name, "beetle" + std::to_string(id) + std::string("/cog") , ros::Time(0));
         auto& trans = transformStamped.transform.translation;
         Eigen::Vector3d module_root(trans.x,trans.y,trans.z); 
         center_of_moving += module_root;
@@ -72,8 +72,7 @@ void BeetleRobotModel::calcCenterOfMoving()
   tf.transform.rotation.w = 1;
   br_.sendTransform(tf);
   KDL::Frame com_frame = tf2::transformToKDL(tf);
-  setCog2CoM(getCog<KDL::Frame>().Inverse() * com_frame);
-
+  setCog2CoM(com_frame);
 }
 
 /* plugin registration */
