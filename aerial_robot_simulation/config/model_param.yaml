@@ -1,0 +1,18 @@
+package:
+  ["dragon", "mini_quadrotor", "hydrus_xi"]
+
+dragon:
+  input: ["/robots/quad/euclid_201709.urdf.xacro"]
+  filename: ["euclid_201709"]
+  meshdir: /urdf/mesh
+
+mini_quadrotor:
+  input: ["/urdf/robot.urdf.xacro"]
+  filename: ["robot"]
+  meshdir: "/urdf/mesh"
+
+hydrus_xi:
+  input:  ["/robots/hex_branch/xavier201811.urdf.xacro", "/robots/hex_branch/xavier_hokuyo.urdf.xacro"]
+  filename: ["hex_branch/xavier201811", "hex_branch/xavier_hokuyo"]
+  meshdir: "/urdf/mesh"
+
