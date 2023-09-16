@@ -32,6 +32,7 @@ namespace mujoco_ros_control
     void publishSimTime();
     mjModel* mujoco_model_;
     mjData* mujoco_data_;
+    bool headless_;
 
   protected:
     boost::shared_ptr<pluginlib::ClassLoader<mujoco_ros_control::MujocoRobotHWSimPlugin> > robot_hw_sim_loader_;

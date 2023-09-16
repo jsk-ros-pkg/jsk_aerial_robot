@@ -17,6 +17,7 @@ namespace mujoco_ros_control
   {
     std::string xml_path;
     nh_.getParam("mujoco_model_path", xml_path);
+    nh_.getParam("headless", headless_);
     if(!nh_.getParam("mujoco_model_path", xml_path))
       {
         ROS_INFO("Could not get xml path from rosparam\n");
@@ -112,22 +113,28 @@ int main(int argc, char** argv)
   ros::NodeHandle nh;
   mujoco_ros_control::MujocoRosControl mujoco_ros_control(nh);
 
-  // viewer
-  MujocoVisualizationUtils &mujoco_visualization_utils = MujocoVisualizationUtils::getInstance();
-
   mujoco_ros_control.init();
 
-  // init GLFW, create window, make OpenGL context current, request v-sync
-  glfwInit();
-  GLFWwindow* window = glfwCreateWindow(1200, 900, "Demo", NULL, NULL);
-  glfwMakeContextCurrent(window);
-  glfwSwapInterval(1);
+  bool headless = mujoco_ros_control.headless_;
 
-  // make context current
-  glfwMakeContextCurrent(window);
+  // viewer definition
+  MujocoVisualizationUtils &mujoco_visualization_utils = MujocoVisualizationUtils::getInstance();
+  GLFWwindow* window;
 
-  // initialize mujoco visualization functions
-  mujoco_visualization_utils.init(mujoco_ros_control.mujoco_model_, mujoco_ros_control.mujoco_data_, window);
+  if(!headless)
+    {
+      // init GLFW, create window, make OpenGL context current, request v-sync
+      glfwInit();
+      window = glfwCreateWindow(1200, 900, "Demo", NULL, NULL);
+      glfwMakeContextCurrent(window);
+      glfwSwapInterval(1);
+
+      // make context current
+      glfwMakeContextCurrent(window);
+
+      // initialize mujoco visualization functions
+      mujoco_visualization_utils.init(mujoco_ros_control.mujoco_model_, mujoco_ros_control.mujoco_data_, window);
+    }
 
   ros::AsyncSpinner spinner(1);
   spinner.start();
@@ -139,9 +146,9 @@ int main(int argc, char** argv)
         {
           mujoco_ros_control.update();
         }
-      mujoco_visualization_utils.update(window);
+      if(!headless) mujoco_visualization_utils.update(window);
     }
-  mujoco_visualization_utils.terminate();
+  if(!headless) mujoco_visualization_utils.terminate();
 
   return 0;
 }
