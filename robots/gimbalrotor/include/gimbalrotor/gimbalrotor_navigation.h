@@ -18,6 +18,11 @@ namespace aerial_robot_navigation
                     boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator) override;
 
     void update() override;
+
+    tf::Vector3 getCurrTargetBaselinkRot(){return curr_target_baselink_rot_;}
+    tf::Vector3 getFinalTargetBaselinkRot(){return final_target_baselink_rot_;}
+ 
+    void setFinalTargetBaselinkRot(tf::Vector3 final_target_baselink_rot){final_target_baselink_rot_ = final_target_baselink_rot;}
   protected:
     void rosParamInit() override;
   private:
