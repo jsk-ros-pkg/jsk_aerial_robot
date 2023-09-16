@@ -34,12 +34,21 @@ namespace aerial_robot_navigation
     inline void setTargetPosCand( tf::Vector3 value){  target_pos_candidate_ = value ;}
     inline tf::Vector3 getTargetPosCand() {return target_pos_candidate_;}
 
+  protected:
+    void rosParamInit() override;
+
   private:
     tf::Vector3 target_pos_candidate_;
     tf::Vector3 pre_target_pos_;
     ros::NodeHandle nh_;
     ros::NodeHandle nhp_;
+
+    double max_target_roll_pitch_rate_;
+
+    bool roll_pitch_control_flag_;
+
     void naviCallback(const aerial_robot_msgs::FlightNavConstPtr & msg) override;
+    void joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg) override; 
     void rotateContactPointFrame();
     tf2_ros::TransformBroadcaster br_;
     boost::shared_ptr<BeetleRobotModel> beetle_robot_model_;
