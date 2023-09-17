@@ -35,7 +35,7 @@
 
 #pragma once
 
-#include <aerial_robot_model/transformable_aerial_robot_model.h>
+#include <aerial_robot_model/model/aerial_robot_model.h>
 #include <aerial_robot_msgs/States.h>
 #include <array>
 #include <assert.h>

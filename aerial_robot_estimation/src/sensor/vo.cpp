@@ -44,9 +44,6 @@ namespace
   tf::Transform prev_sensor_tf;
   tf::Vector3 baselink_omega;
   tf::Matrix3x3 baselink_r;
-
-  //debug
-  double sample_interval = 0.02; //50 hz
 }
 
 namespace sensor_plugin
@@ -99,8 +96,6 @@ namespace sensor_plugin
 
   void VisualOdometry::voCallback(const nav_msgs::Odometry::ConstPtr & vo_msg)
   {
-    //if(vo_msg->header.stamp.toSec() - prev_timestamp_ < sample_interval) return;
-
     /* only do egmotion estimate mode */
     if(!getFuserActivate(aerial_robot_estimation::EGOMOTION_ESTIMATE))
       {
@@ -139,8 +134,18 @@ namespace sensor_plugin
     tf::Transform raw_sensor_tf;
     tf::poseMsgToTF(vo_msg->pose.pose, raw_sensor_tf); // motion update
 
-    curr_timestamp_ = vo_msg->header.stamp.toSec() + delay_; //temporal update
+    /* temporal update */
+    curr_timestamp_ = vo_msg->header.stamp.toSec() + delay_;
     reference_timestamp_ = curr_timestamp_;
+
+    /* throttle message */
+    if(throttle_rate_ > 0)
+      {
+        if (curr_timestamp_ - prev_timestamp_ < 1 / throttle_rate_)
+          {
+            return;
+          }
+      }
 
     if(getStatus() == Status::INACTIVE)
       {
@@ -598,6 +603,7 @@ namespace sensor_plugin
     getParam<bool>("z_vel_mode", z_vel_mode_, false);
     getParam<bool>("z_no_delay", z_no_delay_, false);
     getParam<bool>("outdoor_no_vel_time_sync", outdoor_no_vel_time_sync_, false);
+    getParam<double>("throttle_rate", throttle_rate_, 0.0);
     getParam<double>("level_pos_noise_sigma", level_pos_noise_sigma_, 0.01 );
     getParam<double>("z_pos_noise_sigma", z_pos_noise_sigma_, 0.01 );
     getParam<double>("vel_noise_sigma", vel_noise_sigma_, 0.05 );

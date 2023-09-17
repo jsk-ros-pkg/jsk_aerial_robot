@@ -14,7 +14,6 @@
   <build_depend>aerial_robot_control</build_depend>
   <build_depend>aerial_robot_model</build_depend>
   <build_depend>aerial_robot_msgs</build_depend>
-  <build_depend>dynamic_reconfigure</build_depend>
   <build_depend>eigen_conversions</build_depend>
   <build_depend>roscpp</build_depend>
   <build_depend>spinal</build_depend>
@@ -26,7 +25,6 @@
   <run_depend>aerial_robot_model</run_depend>
   <run_depend>aerial_robot_msgs</run_depend>
   <run_depend>aerial_robot_simulation</run_depend>
-  <run_depend>dynamic_reconfigure</run_depend>
   <run_depend>eigen_conversions</run_depend>
   <run_depend>roscpp</run_depend>
   <run_depend>spinal</run_depend>
