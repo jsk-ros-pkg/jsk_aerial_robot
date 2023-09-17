@@ -47,6 +47,13 @@ namespace mujoco_ros_control
         ROS_INFO_STREAM("Created mujoco model from " << xml_path);
       }
 
+    float mass = 0.0;
+    for(int i = 0; i < mujoco_model_->nbody; i++)
+      {
+       mass += mujoco_model_->body_mass[i];
+      }
+    ROS_INFO_STREAM_ONCE("[mujoco] robot mass is " << mass);
+
     /* hardware interface  */
     robot_hw_sim_loader_.reset(new pluginlib::ClassLoader<mujoco_ros_control::MujocoRobotHWSimPlugin>("aerial_robot_simulation", "mujoco_ros_control::MujocoRobotHWSimPlugin"));
     try
