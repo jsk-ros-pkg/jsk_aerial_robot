@@ -345,19 +345,6 @@ void BaseNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & ms
               * cog2baselink_tf.getOrigin();
           }
 
-        tf::Vector3 target_delta = getTargetPos() - target_cog_pos;
-        target_delta.setZ(0);
-
-        if(target_delta.length() > vel_nav_threshold_)
-          {
-            ROS_WARN("start vel nav control for waypoint");
-            vel_based_waypoint_ = true;
-            xy_control_mode_ = VEL_CONTROL_MODE;
-          }
-
-        if(!vel_based_waypoint_)
-          xy_control_mode_ = X_ACC_Y_POS_MODE;
-
         setTargetPosY(target_cog_pos.y());
 
         switch(msg->control_frame)
