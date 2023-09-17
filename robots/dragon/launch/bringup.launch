@@ -55,7 +55,6 @@
     <rosparam file="$(arg config_dir)/control/FullVectoringControlConfig.yaml" command="load" if="$(arg full_vectoring_mode)"/>
     <param name = "controller/rotor_interfere_compensate" value = "false" if = "$(eval not arg('real_machine') and arg('simulation'))" /> <!-- ignore rotor interfer compensate in simulation mode -->
     <rosparam file="$(arg config_dir)/control/LQIGimbalControlConfig.yaml" command="load" unless="$(arg full_vectoring_mode)"/>
-
     ###########  Navigation ###########
     <param name="flight_navigation_plugin_name" value="aerial_robot_navigation/dragon_navigation" />
     <rosparam file="$(arg config_dir)/NavigationConfig.yaml" command="load" />
@@ -108,7 +107,7 @@
 
   ########## Simulation in Mujoco #########
   <group ns="$(arg robot_ns)">
-    <param name="mujoco_model_path" value="$(find dragon)/urdf/dragon.xml"/>
+    <param name="mujoco_model_path" value="$(find dragon)/mujoco/$(arg onboards_model)/robot.xml"/>
     <param name="headless" value="$(arg headless)"/>
   </group>
   <include file="$(find aerial_robot_simulation)/launch/mujoco.launch" if="$(eval arg('simulation') and not arg('real_machine') and arg('mujoco'))" >
