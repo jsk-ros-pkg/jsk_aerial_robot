@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include <aerial_robot_control/control/pose_linear_controller.h>
+#include <aerial_robot_control/control/base/pose_linear_controller.h>
 #include <aerial_robot_control/control/fully_actuated_controller.h>
 #include <aerial_robot_estimation/state_estimation.h>
 #include <std_msgs/Float32MultiArray.h>
