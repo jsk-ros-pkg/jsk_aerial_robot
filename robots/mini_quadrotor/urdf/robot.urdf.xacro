@@ -146,7 +146,7 @@
       <mass value = "0.188" />
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <inertia
-          ixx="0.0" ixy="0.0" ixz="0.0"
+          ixx="0.0002" ixy="0.0" ixz="0.0"
           iyy="0.0002" iyz="0.0" izz="0.0002"/>
     </inertial>
   </xacro:extra_module>
