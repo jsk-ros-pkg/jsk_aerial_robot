@@ -6,11 +6,17 @@ import subprocess
 import yaml
 import rospkg
 import os
-
+import sys
 
 rotor_list = []
 joint_list = []
 rospack = rospkg.RosPack()
+
+def run_subprocess(cmd):
+    if sys.version.split(".")[0] == "2":
+        subprocess.call(cmd, shell=True)
+    if sys.version.split(".")[0] == "3":
+        subprocess.run(cmd, shell=True)
 
 
 def get_filename(filepath):
@@ -28,8 +34,7 @@ def remove_extension(filename):
 
 def run_xacro(input_path, output_path):
     cmd = "rosrun xacro xacro {} > {}".format(input_path, output_path)
-    proc = subprocess.run(cmd, shell=True)
-
+    run_subprocess(cmd)
 
 def process_urdf(package, urdf_path, workdir_path):
     global rotor_list
@@ -65,7 +70,7 @@ def process_urdf(package, urdf_path, workdir_path):
 
                     # copy stl to working directory
                     cmd = "cp {} {}".format(filepath, workdir_path)
-                    proc = subprocess.run(cmd, shell=True)
+                    run_subprocess(cmd)
 
                     # add geometry in visual tag
                     geometry_elem = ET.Element('geometry')
@@ -112,7 +117,7 @@ def process_urdf(package, urdf_path, workdir_path):
 
     # remove blank lines in urdf
     cmd = "sed -i '/^[[:space:]]*$/d' {}".format(urdf_path)
-    proc = subprocess.run(cmd, shell=True)
+    run_subprocess(cmd)
 
 
 def generate_xml(urdf_path, mujoco_path):
@@ -120,7 +125,7 @@ def generate_xml(urdf_path, mujoco_path):
     aerial_robot_simulation_path = rospack.get_path("aerial_robot_simulation")
     mujoco_compile_path = aerial_robot_simulation_path + "/build/mujoco-2.3.7/bin/compile"
     cmd = "{} {} {}".format(mujoco_compile_path, urdf_path, mujoco_path)
-    proc = subprocess.run(cmd, shell=True)
+    run_subprocess(cmd)
 
 def process_xml(urdf_path, mujoco_path):
     mujoco_tree = ET.parse(mujoco_path)
@@ -128,7 +133,7 @@ def process_xml(urdf_path, mujoco_path):
     urdf_tree = ET.parse(urdf_path)
     urdf_root = urdf_tree.getroot()
 
-    # (child, parent)形式のマップを生成する方法
+    # map of (child, parent)
     mujoco_parent_map = dict((c, p) for p in mujoco_tree.iter() for c in p)
     urdf_parent_map = dict((c, p) for p in urdf_tree.iter() for c in p)
 
@@ -245,9 +250,9 @@ def process_xml(urdf_path, mujoco_path):
 
     # add inertial to fixed links connected to root link
     ## search urdf joint
-    ### ルートリンクからfixedなジョイントでつながっていて、visualとinertialを持っているリンクの、メッシュの名前とinertialをとってくる。
+    ### links conected to root link with fixed joint
     child_link_name_list = []
-    #### fixedなジョイントでつながっているリンク名をとってくる
+    #### get link names
     for urdf_joint in urdf_root.iter("joint"):
         if urdf_joint.attrib["type"] == "fixed":
             is_parent_root = False
@@ -266,7 +271,7 @@ def process_xml(urdf_path, mujoco_path):
                 child_link_name_list.append(child_link_name)
 
 
-    #### visualとinertialを探す
+    #### search visual and inertial
     mesh_list = []
     mass_list = []
     origin_pos_list = []
@@ -306,18 +311,18 @@ def process_xml(urdf_path, mujoco_path):
 
     # remove brank line in xml
     cmd = "sed -i '/^[[:space:]]*$/d' {}".format(mujoco_path)
-    proc = subprocess.run(cmd, shell=True)
+    run_subprocess(cmd)
 
     # reload mujoco model
     mujoco_tree = ET.parse(mujoco_path)
     mujoco_root = mujoco_tree.getroot()
     mujoco_parent_map = dict((c, p) for p in mujoco_tree.iter() for c in p)
 
-    ### xmlを修正
+    ### modify xml
     for geom in mujoco_root.iter("geom"):
         if geom.attrib["name"] in link_list:
             geom_pos = "0 0 0"
-            geom_quat = "0 0 0 1"
+            geom_quat = "1 0 0 0"
             if "pos" in geom.attrib:
                 geom_pos = geom.attrib["pos"]
             if "quat" in geom.attrib:
@@ -393,7 +398,7 @@ def process_xml(urdf_path, mujoco_path):
 
     # remove brank line in xml
     cmd = "sed -i '/^[[:space:]]*$/d' {}".format(mujoco_path)
-    proc = subprocess.run(cmd, shell=True)
+    run_subprocess(cmd)
 
     # remove intermediate urdf file
     # os.remove(urdf_path)
@@ -402,7 +407,7 @@ def process_xml(urdf_path, mujoco_path):
 def convert_dae2stl(meshdir):
     aerial_robot_simulation_path = rospack.get_path("aerial_robot_simulation")
     cmd = "blender -b -P {} -- {}".format(aerial_robot_simulation_path + "/scripts/convert.py", meshdir)
-    proc = subprocess.run(cmd, shell=True)
+    run_subprocess(cmd)
 
 
 base = os.path.dirname(os.path.abspath(__file__))
@@ -416,14 +421,14 @@ with open(config_path) as file:
         meshdir = pkg_path + obj[package]["meshdir"]
         convert_dae2stl(meshdir)
         cmd = "rm -r {}".format(pkg_path + "/mujoco")
-        proc = subprocess.run(cmd, shell=True)
+        run_subprocess(cmd)
         for (input_path, filename) in zip(obj[package]["input"], obj[package]["filename"]):
             input_xacro_path = pkg_path + input_path
             workdir_path = pkg_path + "/mujoco/" + filename
             output_urdf_path = workdir_path + "/robot.urdf"
 
             cmd = "mkdir -p {}".format(workdir_path)
-            proc = subprocess.run(cmd, shell=True)
+            run_subprocess(cmd)
 
             run_xacro(input_xacro_path, output_urdf_path)
 
