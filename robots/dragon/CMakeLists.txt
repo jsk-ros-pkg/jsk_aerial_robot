@@ -83,6 +83,15 @@ install(DIRECTORY bin
 )
 
 
+add_custom_command(OUTPUT ${PROJECT_SOURCE_DIR}/mujoco
+  COMMAND rosrun aerial_robot_simulation mujoco_model_generator.py ${PROJECT_SOURCE_DIR}/config/mujoco_model.yaml
+  POST_BUILD
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+  DEPENDS ${PROJECT_SOURCE_DIR}/urdf
+          ${PROJECT_SOURCE_DIR}/robots)
+
+add_custom_target(generate_mujoco_model ALL DEPENDS ${PROJECT_SOURCE_DIR}/mujoco)
+
 if(CATKIN_ENABLE_TESTING)
   find_package(rostest REQUIRED)
   add_subdirectory(test)
