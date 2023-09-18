@@ -3,5 +3,5 @@ package:
 
 dragon:
   input: ["robots/quad/euclid_201709.urdf.xacro"]
-  filename: ["euclid_201709"]
+  filename: ["quad/euclid_201709"]
   meshdir: urdf/mesh
