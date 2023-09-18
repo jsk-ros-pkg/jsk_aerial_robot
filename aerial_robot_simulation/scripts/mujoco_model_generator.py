@@ -409,6 +409,16 @@ def convert_dae2stl(meshdir):
     cmd = "blender -b -P {} -- {}".format(aerial_robot_simulation_path + "/scripts/convert.py", meshdir)
     run_subprocess(cmd)
 
+def remove_stl(meshdir):
+    for foldername, subfolders, filenames in os.walk(meshdir):
+        for filename in filenames:
+            if filename.endswith(".stl"):
+                dae_name = remove_extension(filename) + ".dae"
+                dae_path = os.path.join(foldername, dae_name)
+                stl_path = os.path.join(foldername, filename)
+                if os.path.isfile(dae_path):
+                    os.remove(stl_path)
+
 
 base = os.path.dirname(os.path.abspath(__file__))
 config_path = os.path.normpath(os.path.join(base, "../config/model_param.yaml"))
@@ -419,7 +429,6 @@ with open(config_path) as file:
         print(package)
         pkg_path = rospack.get_path(package)
         meshdir = pkg_path + obj[package]["meshdir"]
-        convert_dae2stl(meshdir)
         cmd = "rm -r {}".format(pkg_path + "/mujoco")
         run_subprocess(cmd)
         for (input_path, filename) in zip(obj[package]["input"], obj[package]["filename"]):
@@ -427,12 +436,15 @@ with open(config_path) as file:
             workdir_path = pkg_path + "/mujoco/" + filename
             output_urdf_path = workdir_path + "/robot.urdf"
 
+            convert_dae2stl(meshdir)
+
             cmd = "mkdir -p {}".format(workdir_path)
             run_subprocess(cmd)
 
             run_xacro(input_xacro_path, output_urdf_path)
 
             process_urdf(package, output_urdf_path, workdir_path)
+            remove_stl(meshdir)
 
             mujoco_path = workdir_path + "/robot.xml"
             generate_xml(output_urdf_path, mujoco_path)
