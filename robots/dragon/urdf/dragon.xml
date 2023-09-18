@@ -1,4 +1,0 @@
-<mujoco model="dragon">
-  <include file="../../../aerial_robot_simulation/mujoco/world.xml"/>
-  <include file="dragoninc.xml"/>
-</mujoco>
