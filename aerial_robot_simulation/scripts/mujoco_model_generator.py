@@ -7,10 +7,12 @@ import yaml
 import rospkg
 import os
 import sys
+import rospy
 
 rotor_list = []
 joint_list = []
 rospack = rospkg.RosPack()
+
 
 def run_subprocess(cmd):
     if sys.version.split(".")[0] == "2":
@@ -35,6 +37,7 @@ def remove_extension(filename):
 def run_xacro(input_path, output_path):
     cmd = "rosrun xacro xacro {} > {}".format(input_path, output_path)
     run_subprocess(cmd)
+
 
 def process_urdf(package, urdf_path, workdir_path):
     global rotor_list
@@ -123,7 +126,7 @@ def process_urdf(package, urdf_path, workdir_path):
 def generate_xml(urdf_path, mujoco_path):
     # compile by mujoco
     aerial_robot_simulation_path = rospack.get_path("aerial_robot_simulation")
-    mujoco_compile_path = aerial_robot_simulation_path + "/build/mujoco-2.3.7/bin/compile"
+    mujoco_compile_path = os.path.join(aerial_robot_simulation_path, "build/mujoco-2.3.7/bin/compile")
     cmd = "{} {} {}".format(mujoco_compile_path, urdf_path, mujoco_path)
     run_subprocess(cmd)
 
@@ -385,7 +388,7 @@ def process_xml(urdf_path, mujoco_path):
 
     # include world
     aerial_robot_simulation_path = rospack.get_path("aerial_robot_simulation")
-    world_path = aerial_robot_simulation_path + "/mujoco/world.xml"
+    world_path = os.path.join(aerial_robot_simulation_path, "mujoco/world.xml")
     rel_path = os.path.relpath(world_path, get_directory(mujoco_path))
     include_elem = ET.Element("include")
     include_elem.set("file", rel_path)
@@ -406,8 +409,9 @@ def process_xml(urdf_path, mujoco_path):
 
 def convert_dae2stl(meshdir):
     aerial_robot_simulation_path = rospack.get_path("aerial_robot_simulation")
-    cmd = "blender -b -P {} -- {}".format(aerial_robot_simulation_path + "/scripts/convert.py", meshdir)
+    cmd = "blender -b -P {} -- {}".format(os.path.join(aerial_robot_simulation_path, "scripts/convert.py"), meshdir)
     run_subprocess(cmd)
+
 
 def remove_stl(meshdir):
     for foldername, subfolders, filenames in os.walk(meshdir):
@@ -420,23 +424,26 @@ def remove_stl(meshdir):
                     os.remove(stl_path)
 
 
-base = os.path.dirname(os.path.abspath(__file__))
-config_path = os.path.normpath(os.path.join(base, "../config/model_param.yaml"))
+config_path = ""
+if(len(sys.argv) == 2):
+    config_path = sys.argv[1]
+else:
+    print("Variable error! Please run following command.\nrosrun aerial_robot_simulation mujoco_model_generator.py absolute_path_to_config_file")
+    sys.exit()
 
 with open(config_path) as file:
     obj = yaml.safe_load(file)
     for package in obj["package"]:
         print(package)
         pkg_path = rospack.get_path(package)
-        meshdir = pkg_path + obj[package]["meshdir"]
+        meshdir = os.path.join(pkg_path, obj[package]["meshdir"])
         cmd = "rm -r {}".format(pkg_path + "/mujoco")
         run_subprocess(cmd)
+        convert_dae2stl(meshdir)
         for (input_path, filename) in zip(obj[package]["input"], obj[package]["filename"]):
-            input_xacro_path = pkg_path + input_path
-            workdir_path = pkg_path + "/mujoco/" + filename
-            output_urdf_path = workdir_path + "/robot.urdf"
-
-            convert_dae2stl(meshdir)
+            input_xacro_path = os.path.join(pkg_path, input_path)
+            workdir_path = os.path.join(pkg_path, "mujoco", filename)
+            output_urdf_path = os.path.join(workdir_path, "robot.urdf")
 
             cmd = "mkdir -p {}".format(workdir_path)
             run_subprocess(cmd)
@@ -444,9 +451,10 @@ with open(config_path) as file:
             run_xacro(input_xacro_path, output_urdf_path)
 
             process_urdf(package, output_urdf_path, workdir_path)
-            remove_stl(meshdir)
 
-            mujoco_path = workdir_path + "/robot.xml"
+            mujoco_path = os.path.join(workdir_path, "robot.xml")
             generate_xml(output_urdf_path, mujoco_path)
 
             process_xml(output_urdf_path, mujoco_path)
+
+        remove_stl(meshdir)
