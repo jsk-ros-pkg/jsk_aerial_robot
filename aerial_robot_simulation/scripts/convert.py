@@ -14,14 +14,14 @@ meshdir = meshdir[5]
 
 def delete_all():
     if bpy.app.version[1] > 80:
-        for col in bpy.data.collections:
-            for item in col.objects:
-                col.objects.unlink(item)
-                bpy.data.objects.remove(item, do_unlink=True)
+        # for col in bpy.data.collections:
+        #     for item in col.objects:
+        #         col.objects.unlink(item)
+        #         bpy.data.objects.remove(item, do_unlink=True)
 
-        for item in bpy.context.scene.collection.objects:
-            bpy.context.scene.collection.objects.unlink(item)
-            bpy.data.objects.remove(item, do_unlink=True)
+        # for item in bpy.context.scene.collection.objects:
+        #     bpy.context.scene.collection.objects.unlink(item)
+        #     bpy.data.objects.remove(item, do_unlink=True)
 
         for item in bpy.data.meshes:
             bpy.data.meshes.remove(item, do_unlink=True)
@@ -30,14 +30,14 @@ def delete_all():
         #     bpy.data.materials.remove(item)
 
     if bpy.app.version[1] <= 79:
-        for item in bpy.context.scene.objects:
-            bpy.context.scene.objects.unlink(item)
-        for item in bpy.data.objects:
-            bpy.data.objects.remove(item)
+        # for item in bpy.context.scene.objects:
+        #     bpy.context.scene.objects.unlink(item)
+        # for item in bpy.data.objects:
+        #     bpy.data.objects.remove(item)
         for item in bpy.data.meshes:
             bpy.data.meshes.remove(item)
-        for item in bpy.data.materials:
-            bpy.data.materials.remove(item)
+        # for item in bpy.data.materials:
+        #     bpy.data.materials.remove(item)
 
 def process_subdirectories(root):
     for foldername, subfolders, filenames in os.walk(root):
