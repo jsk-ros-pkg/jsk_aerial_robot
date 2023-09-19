@@ -8,6 +8,7 @@ import rospkg
 import os
 import sys
 import rospy
+import shutil
 
 rotor_list = []
 joint_list = []
@@ -72,8 +73,7 @@ def process_urdf(package, urdf_path, workdir_path):
                     filename = get_filename(filepath)
 
                     # copy stl to working directory
-                    cmd = "cp {} {}".format(filepath, workdir_path)
-                    run_subprocess(cmd)
+                    shutil.copy(filepath, workdir_path)
 
                     # add geometry in visual tag
                     geometry_elem = ET.Element('geometry')
@@ -437,16 +437,15 @@ with open(config_path) as file:
         print(package)
         pkg_path = rospack.get_path(package)
         meshdir = os.path.join(pkg_path, obj[package]["meshdir"])
-        cmd = "rm -r {}".format(pkg_path + "/mujoco")
-        run_subprocess(cmd)
+        if os.path.isdir(os.path.join(pkg_path, "mujoco")):
+            shutil.rmtree(os.path.join(pkg_path, "mujoco"))
         convert_dae2stl(meshdir)
         for (input_path, filename) in zip(obj[package]["input"], obj[package]["filename"]):
             input_xacro_path = os.path.join(pkg_path, input_path)
             workdir_path = os.path.join(pkg_path, "mujoco", filename)
             output_urdf_path = os.path.join(workdir_path, "robot.urdf")
 
-            cmd = "mkdir -p {}".format(workdir_path)
-            run_subprocess(cmd)
+            os.makedirs(workdir_path)
 
             run_xacro(input_xacro_path, output_urdf_path)
 
