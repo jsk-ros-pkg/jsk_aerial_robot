@@ -409,7 +409,7 @@ def process_xml(urdf_path, mujoco_path):
 
 def convert_dae2stl(meshdir):
     aerial_robot_simulation_path = rospack.get_path("aerial_robot_simulation")
-    cmd = "blender -b -P {} -- {}".format(os.path.join(aerial_robot_simulation_path, "scripts/convert.py"), meshdir)
+    cmd = "blender -b -P {} -- {} > /dev/null 2>&1".format(os.path.join(aerial_robot_simulation_path, "scripts/convert.py"), meshdir)
     run_subprocess(cmd)
 
 
