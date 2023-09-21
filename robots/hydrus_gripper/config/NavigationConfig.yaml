@@ -1,0 +1,25 @@
+# Teleop Basic Param
+
+navigator:
+  xy_control_mode: 0
+  takeoff_height: 0.6 #1.2
+  outdoor_takeoff_height: 2.0
+
+  # teleop operation
+  joy_udp: false
+  max_target_vel: 0.8
+  joy_target_vel_interval: 0.005  # 0.2 / 20 = 0.01, 0.005 ~ 0.01  m/s
+  joy_target_z_interval: 0.02
+  max_target_yaw_rate: 0.1 #  0.05
+  teleop_local_frame: fc
+
+  cmd_vel_lev2_gain : 2.0
+  nav_vel_limit : 0.6
+
+  gain_tunning_mode: 0
+  max_target_tilt_angle: 0.5
+  cmd_angle_lev2_gain : 1.5
+
+  # gps waypoint
+  gps_waypoint_threshold: 0.2
+  gps_waypoint_check_du: 1.0
