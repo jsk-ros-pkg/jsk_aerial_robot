@@ -1,0 +1,134 @@
+<?xml version="1.0"?>
+<robot
+    xmlns:xacro="http://www.ros.org/wiki/xacro" name="hydrus" >
+
+  <!-- basic kinematics model -->
+  <xacro:include filename="$(find hydrus)/urdf/common.xacro" />
+  <xacro:include filename="$(find hydrus)/urdf/link.urdf.xacro" />
+  <xacro:include filename="$(find hydrus_gripper)/urdf/fixed_link.urdf.xacro" />
+
+  <xacro:arg name="default_battery" default="true" />
+
+  <xacro:hydrus_link links="4" self="1" rotor_direction="-1" with_battery = "$(arg default_battery)" with_leg = "true" tilt_mode="1" tilt_angle="10" prop_15inch="true"/>
+  <xacro:hydrus_fixed_link self="2" rotor_direction="1"  with_battery = "$(arg default_battery)" with_leg = "true" tilt_angle="10" prop_15inch="true"/>
+  <xacro:hydrus_fixed_link self="3" rotor_direction="-1" with_battery = "$(arg default_battery)" with_leg = "true" tilt_angle="10" prop_15inch="true"/>
+  <xacro:hydrus_link links="4" self="4" rotor_direction="1"  with_battery = "$(arg default_battery)" with_leg = "true" tilt_mode="true" tilt_angle="10" prop_15inch="true"/>
+
+
+  <!-- onboard -->
+  <!-- 1.  processor -->
+  <!-- 1.1 flight controller -->
+  <xacro:extra_module name = "fc" parent = "link2" visible = "1"
+                      model_url = "package://hydrus_gripper/urdf/mesh/modules/processor/spinal_fixed_joint.dae">
+    <origin xyz="${link_length / 2 + 0.2432} 0.03951 -0.002" rpy="0 0 0"/>
+    <inertial>
+      <mass value = "0.0416" />
+      <origin xyz="0.0136 0.004 0" rpy="0 0 0"/>
+      <inertia
+          ixx="0.00001" ixy="0.0" ixz="0.0"
+          iyy="0.00001" iyz="0.0"
+          izz="0.00002"/>
+    </inertial>
+  </xacro:extra_module>
+  <!-- end: flight controller -->
+
+  <!-- 1.2 processor: neuron for link3 -->
+  <xacro:extra_module name = "neuron3" parent = "link2" visible = "1"
+                      model_url = "package://hydrus_gripper/urdf/mesh/modules/processor/neuron_unit.dae" >
+    <origin xyz="${link_length / 2 + 0.315} 0.07 0.015" rpy="0 0 0"/>
+    <inertial>
+      <mass value = "0.01" />
+      <origin xyz="0 0  0.01" rpy="0 0 0"/>
+      <inertia
+          ixx="0.00000" ixy="0.0" ixz="0.0"
+          iyy="0.00000" iyz="0.0"
+          izz="0.00000"/>
+    </inertial>
+  </xacro:extra_module>
+  <!-- end: processor: neuron -->
+
+
+  <!-- 1.3 processor: NVIDIA Jetson XAVIER NX -->
+  <xacro:extra_module name = "pc" parent = "link2" visible = "1"
+                      model_url = "package://hydrus_gripper/urdf/mesh/modules/processor/intel_upboard_fixed_joint_unit.dae" >  <!-- TODO: set the correct visualize model -->
+    <origin xyz="${link_length / 2 + 0.2845} 0.011 0.016" rpy="0 0 ${pi}"/>
+    <inertial>
+      <mass value = "0.120" />  <!-- TODO: set the correct mass -->
+      <origin xyz="${21 * 0.001} ${4 * 0.001} ${12 * 0.001}" rpy="0 0 0"/>
+      <inertia
+          ixx="0.00004" ixy="0.0" ixz="0.0"
+          iyy="0.00008" iyz="0.0"
+          izz="0.00011"/>
+    </inertial>
+  </xacro:extra_module>
+  <!-- end: processor -->
+
+  <!-- 2. Realsense D435 -->
+  <!-- TODO: accurate intertia parameters and position -->
+  <xacro:extra_module name = "rs_d435_mount" parent = "link2" visible = "1"
+                      model_url = "package://hydrus_gripper/urdf/mesh/modules/sensor/rs_d435_unit2.STL">
+    <origin xyz="${link_length / 2} 0 0" rpy="0 0 0"/>
+    <inertial>
+      <mass value = "0.0" />
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia
+          ixx="0.0" ixy="0.0" ixz="0.0"
+          iyy="0.0" iyz="0.0" izz="0.0"/>
+    </inertial>
+  </xacro:extra_module>
+  <joint name="rs_d435_servo_joint" type="revolute">
+    <limit effort="0.2" lower="0" upper="1.8" velocity="0.1"/>
+    <parent link="link2"/>
+    <child link="rs_d435_servo"/>
+    <origin xyz="${link_length / 2 + 0.20395} 0.02495 -0.038" rpy="0 0 ${pi/4}"/>
+    <axis xyz="-1 0 0"/>
+    <dynamics damping="0.01" friction="0.0"/>
+  </joint>
+  <link name="rs_d435_servo">
+    <inertial>
+      <mass value = "0" />
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia
+          ixx="0.0" ixy="0.0" ixz="0.0"
+          iyy="0.0" iyz="0.0" izz="0.0"/>
+    </inertial>
+  </link>
+
+  <xacro:extra_module name = "rs_d435_unit" parent = "rs_d435_servo" visible = "1" model_url = "package://hydrus_gripper/urdf/mesh/modules/sensor/rs_d435_unit1.STL">
+    <origin xyz="0.05275 0.01005 0" rpy="0 0 ${pi / 2}"/>
+    <inertial>
+      <mass value = "0.124" /> <!-- includes usb cable, servo, mounts -->
+      <origin xyz="-0.01005 0 0" rpy="0 0 0"/>
+      <inertia
+          ixx="0.0001" iyy="0.0001" izz="0.0002"
+          ixy="0" ixz="0" iyz="0"/>
+    </inertial>
+  </xacro:extra_module>
+
+  <!-- rs_d435_link is the parrent of sensors' frame, identical to rs_d435_left_ir_frame  -->
+  <xacro:extra_module name = "rs_d435_link" parent = "rs_d435_unit" visible = "0" >
+    <origin xyz="-0.008 0.0175 0 " rpy="0 0 0"/>
+    <inertial>
+      <mass value = "0.0" />
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia
+          ixx="0.0" ixy="0.0" ixz="0.0"
+          iyy="0.0" iyz="0.0"
+          izz="0.0"/>
+    </inertial>
+  </xacro:extra_module>
+
+
+  <transmission name="rs_d435_servo_joint_tran">
+    <type>transmission_interface/SimpleTransmission</type>
+    <joint name="rs_d435_servo_joint">
+      <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+    </joint>
+    <actuator name="rs_d435_servo_joint">
+      <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+      <mechanicalReduction>1</mechanicalReduction>
+    </actuator>
+  </transmission>
+
+
+</robot>
