@@ -1,0 +1,234 @@
+<?xml version="1.0"?>
+<robot
+    xmlns:xacro="http://www.ros.org/wiki/xacro" name="hydrus_fixed_link" >
+
+  <xacro:macro name="hydrus_fixed_link" params="self rotor_direction with_battery:=1 with_leg:=1 tilt_angle:=0 prop_15inch:=0">
+
+    <!-- link -->
+    <link name="link${self}">
+      <!-- link2 -->
+      <xacro:if value="${self == 2}">
+        <xacro:if value="${tilt_angle == 0}">
+          <inertial>
+            <origin xyz="${link_length* 0.5 - 0.042319} 0.0 0.013328" rpy="0 0 0"/>
+            <mass value="0.4905"/>
+            <inertia
+                ixx="0.0018" iyy="0.010374" izz="0.011694"
+                ixy="0.00000" ixz="0.00000" iyz="0.00000"/>
+          </inertial>
+        </xacro:if>
+        <xacro:unless value="${tilt_angle == 0}">
+          <xacro:if value="${prop_15inch == 1}">
+            <inertial>
+              <origin xyz="${link_length* 0.5 - 0.035768} 0.0 0.024087" rpy="0 0 0"/>
+              <mass value="0.513137"/>
+              <inertia
+                  ixx="0.002135" iyy="0.010964" izz="0.011963"
+                  ixy="-0.000067" ixz="0.000435" iyz="-0.000011"/>
+            </inertial>
+          </xacro:if>
+          <xacro:unless value="${prop_15inch == 1}">
+            <inertial>
+              <origin xyz="${link_length* 0.5 - 0.041294} 0.0 0.02189" rpy="0 0 0"/>
+              <mass value="0.51919"/>
+              <inertia
+                  ixx="0.002049" iyy="0.010608" izz="0.011696"
+                  ixy="0.00000" ixz="0.000267" iyz="0.00000"/>
+            </inertial>
+          </xacro:unless>
+        </xacro:unless>
+      </xacro:if>
+
+      <!-- link3 -->
+      <xacro:if value="${self == 3}">
+        <xacro:if value="${tilt_angle == 0}">
+          <inertial>
+            <origin xyz="${link_length* 0.5 + 0.038503} 0.0 0.0218" rpy="0 0 0"/>
+            <mass value="0.491657"/>
+            <inertia
+                ixx="0.001803" iyy="0.010797" izz="0.012117"
+                ixy="0.00000" ixz="0.000000" iyz="0.00000"/>
+          </inertial>
+        </xacro:if>
+        <xacro:unless value="${tilt_angle == 0}">
+          <xacro:if value="${prop_15inch == 1}">
+            <inertial>
+              <origin xyz="${link_length* 0.5 + 0.035188} 0.0 0.024031" rpy="0 0 0"/>
+              <mass value="0.514337"/>
+              <inertia
+                  ixx="0.002136" iyy="0.011317" izz="0.012316"
+                  ixy="-0.000067" ixz="-0.000428" iyz="0.000011"/>
+            </inertial>
+          </xacro:if>
+          <xacro:unless value="${prop_15inch == 1}">
+            <inertial>
+              <origin xyz="${link_length* 0.5 + 0.038503} 0.0 0.0218" rpy="0 0 0"/>
+              <mass value="0.520389"/>
+              <inertia
+                  ixx="0.00205" iyy="0.011055" izz="0.012143"
+                  ixy="0.00000" ixz="-0.000234" iyz="0.00000"/>
+            </inertial>
+          </xacro:unless>
+        </xacro:unless>
+      </xacro:if>
+
+      <!-- for fcl in planning -->
+      <collision>
+        <xacro:if value="${with_leg == 1}">
+          <origin rpy="0 0 0" xyz="${link_length* 0.5} 0 ${- leg_collision_model_height / 2}"/>
+          <geometry>
+            <box size="${link_length} 0.05 ${leg_collision_model_height}"/>
+          </geometry>
+        </xacro:if>
+        <xacro:unless value="${with_leg == 1}">
+          <origin rpy="0 0 0" xyz="${link_length* 0.5} 0 0"/>
+          <geometry>
+            <box size="${link_length} 0.05 0.1"/>
+          </geometry>
+        </xacro:unless>
+      </collision>
+
+      <visual>
+        <origin rpy="0 0 0" xyz="${link_length* 0.5} 0 0"/>
+        <geometry>
+          <xacro:if value="${tilt_angle == 0}">
+            <mesh filename="package://hydrus_gripper/urdf/mesh/link/fix_joint_link${self}.dae"/> <!-- please create the model withoug joint module -->
+          </xacro:if>
+          <xacro:unless value="${tilt_angle == 0}">
+            <xacro:if value="${prop_15inch == 1}">
+              <mesh filename="package://hydrus_gripper/urdf/mesh/link/tilt_${tilt_angle}deg_15inch_fix_joint_link${self}.dae"/>
+            </xacro:if>
+            <xacro:unless value="${prop_15inch == 1}">
+              <mesh filename="package://hydrus_gripper/urdf/mesh/link/tilt_${tilt_angle}deg_fix_joint_link${self}.dae"/>
+            </xacro:unless>
+          </xacro:unless>
+        </geometry>
+
+      </visual>
+    </link>
+    <xacro:damping_factor link ="link${self}"/>
+
+    <!-- rotor -->
+    <joint name="rotor${self}" type="continuous">
+      <limit effort="100.0" lower="0" upper="${max_force}" velocity="0.5"/> <!-- force range -->
+      <parent link="link${self}"/>
+      <child link="thrust${self}"/>
+      <xacro:if value="${prop_15inch == 1}">
+        <origin rpy="0 ${-rotor_direction * tilt_angle * pi / 180.0} 0" xyz="${link_length* 0.5 + 0.01944 * rotor_direction} 0 0.05395"/>
+      </xacro:if>
+      <xacro:unless value="${prop_15inch == 1}">
+        <origin rpy="0 ${-rotor_direction * tilt_angle * pi / 180.0} 0" xyz="${link_length* 0.5} 0 0.045"/>
+      </xacro:unless>
+      <axis xyz="0 0 ${rotor_direction}"/>
+    </joint>
+
+    <link name="thrust${self}">
+      <!-- visual & collisiont -->
+      <inertial>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <mass value="0.0001"/>
+        <inertia
+            ixx="0.00001" ixy="0.0" ixz="0.0"
+            iyy="0.00001" iyz="0.0"
+            izz="0.00002"/>
+      </inertial>
+      <collision>
+        <origin rpy="0 0 0" xyz="0 0 0"/>
+        <geometry>
+          <cylinder length="0.1" radius="${protector_radius + 0.01}"/>
+        </geometry>
+      </collision>
+    </link>
+    <xacro:damping_factor link ="thrust${self}"/>
+
+    <!-- battery: -->
+    <!-- use default battery: -->
+    <xacro:if value="${with_battery == 1}">
+      <xacro:extra_module name = "bat${self}" parent = "link${self}" visible = "1"
+                          model_url = "package://hydrus/urdf/mesh/battery/VOLTON-PG-1300LP2-6s.stl" scale="0.001">
+        <origin xyz="${link_length/2} 0.0 -0.048" rpy="0 0 0"/>
+        <inertial>
+          <origin xyz="0 0 0" rpy="0 0 0"/>
+          <mass value="0.194"/>
+          <inertia
+              ixx="0.00005" iyy="0.00012" izz="0.00011"
+              ixy="0.0" ixz="0.0" iyz="0.0"/>
+        </inertial>
+      </xacro:extra_module>
+    </xacro:if>
+
+
+    <xacro:if value="${self == 2}">
+      <!-- leg -->
+      <xacro:if value="${with_leg == 1}">
+        <xacro:standard_leg_joint parent = "link${self}" >
+          <origin xyz="0.0 0.0 0" rpy="0 0 0"/>
+        </xacro:standard_leg_joint>
+      </xacro:if>
+      <!-- fixed joint  -->
+      <joint name="joint${self}" type="fixed">
+        <parent link="link${self}"/>
+        <child link="link${self+1}"/>
+        <origin rpy="0 0 ${pi/2}" xyz="${link_length} 0 0"/>
+        <axis xyz="0 0 1"/>
+      </joint>
+
+    </xacro:if>
+
+    <xacro:if value="${self == 3}">
+      <!-- fixed joint unit -->
+      <xacro:extra_module name = "fixed_joint_unit" parent = "link${self}" visible = "1"
+                          model_url = "package://hydrus_gripper/urdf/mesh/link/fix_joint.dae" >
+        <origin xyz="${link_length/2 - 0.26121} 0.03879 0.0" rpy="0 0 0"/>
+        <inertial>
+          <origin xyz="-0.0164 -0.0189 -0.0329" rpy="0 0 0"/>
+          <mass value="0.134"/>
+          <inertia
+              ixx="0.00066" iyy="0.00065" izz="0.00028"
+              ixy="0.0" ixz="0.0" iyz="0.0"/>
+        </inertial>
+      </xacro:extra_module>
+
+      <!-- joint -->
+      <joint name="joint${self}" type="revolute">
+        <limit effort="10.0" lower="${-pi/2}" upper="${pi/2}" velocity="0.5"/>
+        <parent link="link${self}"/>
+        <child link="link${self+1}"/>
+        <origin rpy="0 0 0" xyz="${link_length} 0 0"/>
+        <axis xyz="0 0 1"/>
+        <dynamics damping="0.9" friction="0.05"/>
+      </joint>
+
+      <!-- hardware interface -->
+      <transmission name="joint_tran${self}">
+        <type>transmission_interface/SimpleTransmission</type>
+        <joint name="joint${self}">
+          <!-- TODO: effort is torque, maybe position is enough -->
+          <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+        </joint>
+        <actuator name="servo{self}">
+          <!-- TODO: effort is torque, maybe position is enough -->
+          <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+          <mechanicalReduction>1</mechanicalReduction>
+        </actuator>
+      </transmission>
+    </xacro:if>
+
+    <transmission name="rotor_tran${self}">
+      <type>transmission_interface/SimpleTransmission</type>
+      <joint name="rotor${self}">
+        <!-- TODO: effort is torque, maybe position is enough -->
+        <hardwareInterface>RotorInterface</hardwareInterface>
+      </joint>
+      <actuator name="rotor${self}">
+        <!-- TODO: effort is torque, maybe position is enough -->
+        <hardwareInterface>RotorInterface</hardwareInterface>
+        <mechanicalReduction>1</mechanicalReduction>
+      </actuator>
+    </transmission>
+
+    <xacro:friction self ="${self}"/>
+
+  </xacro:macro>
+
+</robot>
