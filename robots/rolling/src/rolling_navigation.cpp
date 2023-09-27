@@ -22,6 +22,7 @@ void RollingNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   final_target_baselink_rot_sub_ = nh_.subscribe("final_target_baselink_rot", 1, &RollingNavigator::setFinalTargetBaselinkRotCallback, this);
   joy_sub_ = nh_.subscribe("joy", 1, &RollingNavigator::joyCallback, this);
   prev_rotation_stamp_ = ros::Time::now().toSec();
+  current_ground_navigation_mode_ = 0;
 }
 
 void RollingNavigator::reset()

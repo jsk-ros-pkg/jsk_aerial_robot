@@ -6,6 +6,14 @@
 
 namespace aerial_robot_navigation
 {
+  enum rolling_mode
+    {
+     FLYING_STATE,
+     STANDING_STATE,
+     STEERING_STATE,
+     ROLLING_STATE
+    };
+
   class RollingNavigator : public BaseNavigator
   {
   public:
@@ -20,6 +28,7 @@ namespace aerial_robot_navigation
     void reset() override;
     void setFinalTargetBaselinkRot(tf::Vector3 rot);
     inline tf::Vector3 getCurrTargetBaselinkRot() {return curr_target_baselink_rot_;}
+    inline int getGroundNavigationMode() {return current_ground_navigation_mode_;}
 
   private:
     ros::Publisher curr_target_baselink_rot_pub_;
@@ -31,6 +40,10 @@ namespace aerial_robot_navigation
     void rosParamInit() override;
     void setFinalTargetBaselinkRotCallback(const spinal::DesireCoordConstPtr & msg);
     void joyCallback(const sensor_msgs::JoyConstPtr & joy_msg);
+    void setGroundNavigationMode(int state) {current_ground_navigation_mode_ = state;}
+
+    /* navigation mode */
+    int current_ground_navigation_mode_;
 
     /* target baselink rotation */
     double prev_rotation_stamp_;
