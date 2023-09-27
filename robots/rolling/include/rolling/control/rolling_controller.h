@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include <numeric>
 #include <aerial_robot_control/control/base/pose_linear_controller.h>
 #include <aerial_robot_msgs/WrenchAllocationMatrix.h>
 #include <spinal/FourAxisCommand.h>
@@ -91,6 +92,8 @@ namespace aerial_robot_control
     bool hovering_approximate_;
     double gimbal_lpf_factor_;
     int ground_navigation_mode_;
+    std::vector<int> controlled_axis_;
+    int control_dof_;
 
     void controlCore() override;
     void reset() override;
@@ -105,13 +108,19 @@ namespace aerial_robot_control
     void setZIControlFlagCallback(const std_msgs::BoolPtr & msg);
     void setZITermCallback(const std_msgs::Float32Ptr & msg);
     void stayCurrentXYPosition(const std_msgs::Empty & msg);
-    void fullyActuatedFlightControl();
-    void underActuatedFlightControl();
-    void calcWrenchAllocationMatrix();
-    void fullyActuatedWrenchAllocationFromCog();
-    void underActuatedWrenchAllocationFromCog();
     void resetAttitudeGains();
     void resetAttitudeGainsCallback(const std_msgs::Empty & msg);
     void setControlModeCallback(const std_msgs::Int16Ptr & msg);
+    void targetStatePlan();
+    void calcAccFromCog();
+    void calcWrenchAllocationMatrix();
+    void wrenchAllocation();
+    void calcYawTerm();
+    void setControlAxis(int axis, int mode)
+    {
+      if(axis < 0 || 6 <= axis) return;
+      if(mode) controlled_axis_.at(axis) = 1;
+      else controlled_axis_.at(axis) = 0;
+    }
   };
 };
