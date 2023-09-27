@@ -90,6 +90,7 @@ namespace aerial_robot_control
     double target_roll_, target_pitch_; //for under actuated control
     bool hovering_approximate_;
     double gimbal_lpf_factor_;
+    int ground_navigation_mode_;
 
     void controlCore() override;
     void reset() override;
