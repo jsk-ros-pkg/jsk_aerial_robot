@@ -24,11 +24,13 @@ namespace aerial_robot_navigation
   private:
     ros::Publisher curr_target_baselink_rot_pub_;
     ros::Subscriber final_target_baselink_rot_sub_;
+    ros::Subscriber joy_sub_;
 
     void baselinkRotationProcess();
     void landingProcess();
     void rosParamInit() override;
     void setFinalTargetBaselinkRotCallback(const spinal::DesireCoordConstPtr & msg);
+    void joyCallback(const sensor_msgs::JoyConstPtr & joy_msg);
 
     /* target baselink rotation */
     double prev_rotation_stamp_;
