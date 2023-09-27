@@ -20,6 +20,7 @@ void RollingNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
 
   curr_target_baselink_rot_pub_ = nh_.advertise<spinal::DesireCoord>("desire_coordinate", 1);
   final_target_baselink_rot_sub_ = nh_.subscribe("final_target_baselink_rot", 1, &RollingNavigator::setFinalTargetBaselinkRotCallback, this);
+  joy_sub_ = nh_.subscribe("joy", 1, &RollingNavigator::joyCallback, this);
   prev_rotation_stamp_ = ros::Time::now().toSec();
 }
 
@@ -56,6 +57,41 @@ void RollingNavigator::setFinalTargetBaselinkRotCallback(const spinal::DesireCoo
 {
   final_target_baselink_rot_.setValue(msg->roll, msg->pitch, msg->yaw);
 }
+
+void RollingNavigator::joyCallback(const sensor_msgs::JoyConstPtr & joy_msg)
+{
+  sensor_msgs::Joy joy_cmd = (*joy_msg);
+
+  if(joy_cmd.buttons[PS4_BUTTON_REAR_LEFT_1] && joy_cmd.axes[PS4_AXIS_BUTTON_CROSS_UP_DOWN] == 1.0)
+    {
+      ROS_INFO("[joy] change to standing state");
+      setGroundNavigationMode(STANDING_STATE);
+    }
+  if(joy_cmd.buttons[PS4_BUTTON_REAR_LEFT_1] && joy_cmd.axes[PS4_AXIS_BUTTON_CROSS_UP_DOWN] == -1.0)
+    {
+      ROS_INFO("[joy] change to rolling state");
+      setGroundNavigationMode(ROLLING_STATE);
+    }
+
+  if(joy_cmd.axes[PS4_AXIS_BUTTON_CROSS_UP_DOWN] == -1.0)
+    {
+      final_target_baselink_rot_.setX(curr_target_baselink_rot_.x() - 0.1);
+      ROS_WARN_STREAM("[joy] set target final baselink roll: " << final_target_baselink_rot_.x());
+    }
+  if(joy_cmd.axes[PS4_AXIS_BUTTON_CROSS_UP_DOWN] == 1.0)
+    {
+      final_target_baselink_rot_.setX(curr_target_baselink_rot_.x() + 0.1);
+      ROS_WARN_STREAM("[joy] set target final baselink roll: " << final_target_baselink_rot_.x());
+    }
+
+  if(joy_cmd.buttons[PS4_BUTTON_REAR_LEFT_1] && joy_cmd.buttons[PS4_BUTTON_REAR_RIGHT_1])
+    {
+      final_target_baselink_rot_.setX(0);
+      final_target_baselink_rot_.setY(0);
+      ROS_WARN("[joy] set target final baselink to horizon");
+    }
+}
+
 
 void RollingNavigator::baselinkRotationProcess()
 {
