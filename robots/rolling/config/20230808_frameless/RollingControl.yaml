@@ -12,6 +12,7 @@ controller:
   fully_actuated: true
   hovering_approximate: false
   gimbal_lpf_factor: 3.0 # don't set to 0
+  controlled_axis: [1, 1, 1, 1, 1, 1]
 
   rotor_tilt1: -0.125
   rotor_tilt2: 0.146
