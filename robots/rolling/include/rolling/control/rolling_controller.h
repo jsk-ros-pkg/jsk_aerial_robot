@@ -45,6 +45,8 @@ namespace aerial_robot_control
     ros::Publisher under_q_mat_pub_;
     ros::Publisher under_q_mat_inv_pub_;
     ros::Publisher operability_pub_;
+    ros::Publisher target_acc_cog_pub_;
+    ros::Publisher target_acc_dash_pub_;
     ros::Subscriber ground_mode_sub_;
     ros::Subscriber joint_state_sub_;
     ros::Subscriber z_i_control_flag_sub_;
@@ -63,6 +65,8 @@ namespace aerial_robot_control
     std::vector<float> target_base_thrust_;
     std::vector<double> target_gimbal_angles_;
     std::vector<double> prev_target_gimbal_angles_;
+    std::vector<double> target_acc_cog_;
+    std::vector<double> target_acc_dash_;
     Eigen::VectorXd target_wrench_acc_cog_;
     Eigen::VectorXd full_lambda_trans_;
     Eigen::VectorXd full_lambda_rot_;
@@ -73,6 +77,7 @@ namespace aerial_robot_control
     Eigen::MatrixXd under_q_mat_inv_;
     Eigen::MatrixXd q_mat_;
     Eigen::MatrixXd q_mat_inv_;
+
     double candidate_yaw_term_;
     double torque_allocation_matrix_inv_pub_stamp_;
     double torque_allocation_matrix_inv_pub_interval_;
