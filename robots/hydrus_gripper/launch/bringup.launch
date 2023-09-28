@@ -5,7 +5,7 @@
   <arg name="sim" default="False" />
   <arg name="real_machine" default="$(arg rm)" />
   <arg name="simulation" default="$(arg sim)" />
-  <arg name="estimate_mode"  default= "0" />
+  <arg name="estimate_mode"  default= "1" />
   <arg name="sim_estimate_mode"  default= "2" />
   <arg name="config_path" value="$(find hydrus_gripper)/config/"/>
   <arg name="robot_id" default="" />
