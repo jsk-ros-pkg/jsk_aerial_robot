@@ -28,6 +28,10 @@ void RollingController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   prev_target_gimbal_angles_.resize(motor_num_, 0);
 
   target_wrench_acc_cog_.resize(6);
+
+  target_acc_cog_.resize(6);
+  target_acc_dash_.resize(6);
+
   full_lambda_trans_.resize(2 * motor_num_);
   full_lambda_rot_.resize(2 * motor_num_);
   full_lambda_all_.resize(2 * motor_num_);
@@ -54,6 +58,8 @@ void RollingController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   under_q_mat_pub_ = nh_.advertise<aerial_robot_msgs::WrenchAllocationMatrix>("debug/under_q_mat", 1);
   under_q_mat_inv_pub_ = nh_.advertise<aerial_robot_msgs::WrenchAllocationMatrix>("debug/under_q_mat_inv", 1);
   operability_pub_ = nh_.advertise<std_msgs::Float32>("debug/operability", 1);
+  target_acc_cog_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("debug/target_acc_cog", 1);
+  target_acc_dash_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("debug/target_acc_dash", 1);
 
   ground_mode_sub_ = nh_.subscribe("ground_mode", 1, &RollingController::groundModeCallback, this);
   joint_state_sub_ = nh_.subscribe("joint_states", 1, &RollingController::jointStateCallback, this);
@@ -151,9 +157,24 @@ void RollingController::calcAccFromCog()
   tf::Vector3 target_acc_cog = uav_rot.inverse() * target_acc_w;
   tf::Vector3 target_acc_dash = (tf::Matrix3x3(tf::createQuaternionFromYaw(rpy_.z()))).inverse() * target_acc_w;
 
+  target_acc_cog_.at(0) = target_acc_cog.x();
+  target_acc_cog_.at(1) = target_acc_cog.y();
+  target_acc_cog_.at(2) = target_acc_cog.z();
+
+  target_acc_dash_.at(0) = target_acc_dash.x();
+  target_acc_dash_.at(1) = target_acc_dash.y();
+  target_acc_dash_.at(2) = target_acc_dash.z();
+
   Eigen::VectorXd target_wrench_acc_cog = Eigen::VectorXd::Zero(6);
-  if(control_dof_ < 6) target_wrench_acc_cog.head(3) = Eigen::Vector3d(target_acc_dash.x(), target_acc_dash.y(), target_acc_dash.z());
-  else target_wrench_acc_cog.head(3) = Eigen::Vector3d(target_acc_cog.x(), target_acc_cog.y(), target_acc_cog.z());
+  // if(control_dof_ < 6)
+  if(true)
+    {
+      target_wrench_acc_cog.head(3) = Eigen::Vector3d(target_acc_dash.x(), target_acc_dash.y(), target_acc_dash.z());
+    }
+  else
+    {
+      target_wrench_acc_cog.head(3) = Eigen::Vector3d(target_acc_cog.x(), target_acc_cog.y(), target_acc_cog.z());
+    }
 
   double target_ang_acc_x = pid_controllers_.at(ROLL).result();
   double target_ang_acc_y = pid_controllers_.at(PITCH).result();
@@ -352,6 +373,20 @@ void RollingController::sendCmd()
       wrench_allocation_matrix_msg.t_z.push_back(q_mat_(5, i));
     }
   wrench_allocation_matrix_pub_.publish(wrench_allocation_matrix_msg);
+
+  std_msgs::Float32MultiArray target_acc_cog_msg;
+  for(int i = 0; i < target_acc_cog_.size(); i++)
+    {
+      target_acc_cog_msg.data.push_back(target_acc_cog_.at(i));
+    }
+  target_acc_cog_pub_.publish(target_acc_cog_msg);
+
+  std_msgs::Float32MultiArray target_acc_dash_msg;
+  for(int i = 0; i < target_acc_dash_.size(); i++)
+    {
+      target_acc_dash_msg.data.push_back(target_acc_dash_.at(i));
+    }
+  target_acc_dash_pub_.publish(target_acc_dash_msg);
 
   // aerial_robot_msgs::WrenchAllocationMatrix full_q_mat_msg;
   // for(int i = 0; i < 2 * motor_num_; i++)
