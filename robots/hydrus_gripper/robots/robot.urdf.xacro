@@ -7,7 +7,7 @@
   <xacro:include filename="$(find hydrus)/urdf/link.urdf.xacro" />
   <xacro:include filename="$(find hydrus_gripper)/urdf/fixed_link.urdf.xacro" />
 
-  <xacro:arg name="default_battery" default="true" />
+  <xacro:arg name="default_battery" default="false" />
 
   <xacro:hydrus_link links="4" self="1" rotor_direction="-1" with_battery = "$(arg default_battery)" with_leg = "true" tilt_mode="1" tilt_angle="10" prop_15inch="true"/>
   <xacro:hydrus_fixed_link self="2" rotor_direction="1"  with_battery = "$(arg default_battery)" with_leg = "true" tilt_angle="10" prop_15inch="true"/>
