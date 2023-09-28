@@ -5,6 +5,9 @@ navigator:
   takeoff_height: 0.6 #1.2
   outdoor_takeoff_height: 2.0
 
+  z_convergent_thresh: 0.10
+  xy_convergent_thresh: 0.20
+
   # teleop operation
   joy_udp: false
   max_target_vel: 0.8
