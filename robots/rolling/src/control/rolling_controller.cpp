@@ -122,6 +122,8 @@ void RollingController::rosParamInit()
     {
       controlled_axis_ = std::vector<int>(6, 1);
     }
+  ROS_WARN_STREAM("[control] controlled axis: " << controlled_axis_.at(0) << " " << controlled_axis_.at(1) << " " << controlled_axis_.at(2) << " " << controlled_axis_.at(3) << " " << controlled_axis_.at(4) << " " << controlled_axis_.at(5));
+
 }
 
 void RollingController::controlCore()
