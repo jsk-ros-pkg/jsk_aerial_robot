@@ -18,6 +18,7 @@
   <arg name="spawn_yaw" default="0.0"/>
   <arg name="robot_id" default="" />
   <arg name="robot_ns" value="quadrotor$(arg robot_id)" />
+  <arg name="type" default="default_model"/>
   <arg name="config_dir" default="$(find mini_quadrotor)/config" />
   <arg name="mujoco" default="False" />
 
@@ -35,10 +36,10 @@
     <rosparam file="$(arg config_dir)/RobotModel.yaml" command="load" />
 
     ###########  Motor Config  ###########
-    <rosparam file="$(arg config_dir)/MotorInfo.yaml" command="load" />
+    <rosparam file="$(arg config_dir)/$(arg type)/MotorInfo.yaml" command="load" />
 
     ###########  Battery Config  ###########
-    <rosparam file="$(arg config_dir)/Battery.yaml" command="load" />
+    <rosparam file="$(arg config_dir)/$(arg type)/Battery.yaml" command="load" />
 
     ###########  Control  ###########
     <rosparam file="$(arg config_dir)/FlightControl.yaml" command="load" />
@@ -63,7 +64,7 @@
   <arg name="description_mode" value="gazebo" if="$(arg simulation)" />
   <include file="$(find aerial_robot_model)/launch/aerial_robot_model.launch" >
     <arg name="headless" value="$(arg headless)" />
-    <arg name="robot_model" value="$(find mini_quadrotor)/urdf/robot.$(arg description_mode).xacro" unless="$(arg direct_model)"/>
+    <arg name="robot_model" value="$(find mini_quadrotor)/urdf/$(arg type)/robot.$(arg description_mode).xacro" unless="$(arg direct_model)"/>
     <arg name="robot_model" value="$(arg direct_model_name)" if="$(arg direct_model)"/>
     <arg name="robot_ns" value="$(arg robot_ns)" />
     <arg name="rviz_config" value="$(arg config_dir)/rviz_config" />
