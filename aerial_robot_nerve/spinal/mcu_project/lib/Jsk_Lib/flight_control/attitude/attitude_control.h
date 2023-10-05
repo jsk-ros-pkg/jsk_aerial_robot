@@ -45,6 +45,7 @@
 #include <spinal/UavInfo.h>
 #include <spinal/PMatrixPseudoInverseWithInertia.h>
 #include <spinal/TorqueAllocationMatrixInv.h>
+#include <spinal/PoseControlPid.h>
 
 #define IDLE_DUTY 0.5f
 #define FORCE_LANDING_INTEGRAL 0.0025f // 500Hz * 0.0025 = 1.25 N / sec
@@ -110,9 +111,11 @@ private:
   ros::Publisher pwms_pub_;
   ros::Publisher control_term_pub_;
   ros::Publisher control_feedback_state_pub_;
+  ros::Publisher att_pid_pub_;
   spinal::Pwms pwms_msg_;
   spinal::RollPitchYawTerms control_term_msg_;
   spinal::RollPitchYawTerm control_feedback_state_msg_;
+  spinal::PoseControlPid pid_att_msg_;
 
 #ifdef SIMULATION
   ros::Subscriber four_axis_cmd_sub_;
