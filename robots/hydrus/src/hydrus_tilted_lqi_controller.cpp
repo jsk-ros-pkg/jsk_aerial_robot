@@ -126,7 +126,7 @@ void HydrusTiltedLQIController::publishGain()
   spinal::DesireCoord coord_msg;
   coord_msg.roll = roll;
   coord_msg.pitch = pitch;
-  desired_baselink_rot_pub_.publish(coord_msg);
+  // desired_baselink_rot_pub_.publish(coord_msg);
 }
 
 void HydrusTiltedLQIController::rosParamInit()
