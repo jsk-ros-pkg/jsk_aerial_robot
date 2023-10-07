@@ -73,25 +73,15 @@ target_link_libraries(aerial_robot_hw_sim spinal_interface ${catkin_LIBRARIES} $
 
 add_library(mujoco_robot_hw_sim src/mujoco/mujoco_robot_hw_sim.cpp)
 add_dependencies(mujoco_robot_hw_sim ${MUJOCO})
-target_link_libraries(mujoco_robot_hw_sim ${catkin_LIBRARIES} ${MUJOCO_LIBRARY})
+target_link_libraries(mujoco_robot_hw_sim ${catkin_LIBRARIES} ${MUJOCO_LIBRARY}  mujoco_spinal_interface)
 
-add_library(mujoco_visualization_utils src/mujoco/mujoco_visualization_utils.cpp)
-add_dependencies(mujoco_visualization_utils ${MUJOCO})
-target_link_libraries(mujoco_visualization_utils ${catkin_LIBRARIES} ${MUJOCO_LIBRARY})
-
-add_library(mujoco_attitude_controller src/mujoco/mujoco_attitude_controller.cpp)
-add_dependencies(mujoco_attitude_controller ${MUJOCO})
-target_link_libraries(mujoco_attitude_controller ${catkin_LIBRARIES} ${MUJOCO_LIBRARY})
-
-
-add_executable(mujoco_ros_control src/mujoco/mujoco_ros_control.cpp)
+add_executable(mujoco_ros_control
+  src/mujoco/mujoco_ros_control.cpp
+  src/mujoco/mujoco_visualization_utils.cpp)
 add_dependencies(mujoco_ros_control ${MUJOCO})
 target_link_libraries(mujoco_ros_control
   ${catkin_LIBRARIES}
   glfw
-  mujoco_visualization_utils
-  mujoco_attitude_controller
-  mujoco_spinal_interface
   mujoco_robot_hw_sim
   ${MUJOCO_LIBRARY}
   )
@@ -100,7 +90,7 @@ install(DIRECTORY include/${PROJECT_NAME}/ ${MUJOCO_INCLUDE_DIRS}
   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION})
 
 
-install(TARGETS aerial_robot_hw_sim spinal_interface flight_controllers mujoco_ros_control mujoco_visualization_utils mujoco_attitude_controller mujoco_spinal_interface mujoco_robot_hw_sim
+install(TARGETS aerial_robot_hw_sim spinal_interface flight_controllers mujoco_ros_control mujoco_spinal_interface mujoco_robot_hw_sim
   DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 )
 
