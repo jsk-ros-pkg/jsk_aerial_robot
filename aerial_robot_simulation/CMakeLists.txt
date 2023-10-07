@@ -56,7 +56,7 @@ include_directories(
 add_definitions(-DSIMULATION)
 
 add_library(flight_controllers
-  src/mujoco_attitude_controller.cpp
+  src/mujoco/mujoco_attitude_controller.cpp
   src/simulation_attitude_controller.cpp)
 add_dependencies(flight_controllers spinal_generate_messages_cpp ${MUJOCO})
 target_link_libraries(flight_controllers ${catkin_LIBRARIES} ${MUJOCO_LIBRARY})
@@ -64,27 +64,27 @@ target_link_libraries(flight_controllers ${catkin_LIBRARIES} ${MUJOCO_LIBRARY})
 add_library(spinal_interface src/spinal_interface.cpp)
 target_link_libraries(spinal_interface ${catkin_LIBRARIES})
 
-add_library(mujoco_spinal_interface src/mujoco_spinal_interface.cpp)
+add_library(mujoco_spinal_interface src/mujoco/mujoco_spinal_interface.cpp)
 add_dependencies(mujoco_spinal_interface ${MUJOCO})
 target_link_libraries(mujoco_spinal_interface ${catkin_LIBRARIES} ${MUJOCO_LIBRARY})
 
 add_library(aerial_robot_hw_sim src/aerial_robot_hw_sim.cpp)
 target_link_libraries(aerial_robot_hw_sim spinal_interface ${catkin_LIBRARIES} ${GAZEBO_LIBRARIES} ${orocos_kdl_LIBRARIES})
 
-add_library(mujoco_robot_hw_sim src/mujoco_robot_hw_sim.cpp)
+add_library(mujoco_robot_hw_sim src/mujoco/mujoco_robot_hw_sim.cpp)
 add_dependencies(mujoco_robot_hw_sim ${MUJOCO})
 target_link_libraries(mujoco_robot_hw_sim ${catkin_LIBRARIES} ${MUJOCO_LIBRARY})
 
-add_library(mujoco_visualization_utils src/mujoco_visualization_utils.cpp)
+add_library(mujoco_visualization_utils src/mujoco/mujoco_visualization_utils.cpp)
 add_dependencies(mujoco_visualization_utils ${MUJOCO})
 target_link_libraries(mujoco_visualization_utils ${catkin_LIBRARIES} ${MUJOCO_LIBRARY})
 
-add_library(mujoco_attitude_controller src/mujoco_attitude_controller.cpp)
+add_library(mujoco_attitude_controller src/mujoco/mujoco_attitude_controller.cpp)
 add_dependencies(mujoco_attitude_controller ${MUJOCO})
 target_link_libraries(mujoco_attitude_controller ${catkin_LIBRARIES} ${MUJOCO_LIBRARY})
 
 
-add_executable(mujoco_ros_control src/mujoco_ros_control.cpp)
+add_executable(mujoco_ros_control src/mujoco/mujoco_ros_control.cpp)
 add_dependencies(mujoco_ros_control ${MUJOCO})
 target_link_libraries(mujoco_ros_control
   ${catkin_LIBRARIES}

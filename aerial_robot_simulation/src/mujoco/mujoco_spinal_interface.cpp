@@ -1,4 +1,4 @@
-#include <aerial_robot_simulation/mujoco_spinal_interface.h>
+#include <aerial_robot_simulation/mujoco/mujoco_spinal_interface.h>
 
 namespace hardware_interface
 {

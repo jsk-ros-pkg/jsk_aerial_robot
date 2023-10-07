@@ -18,7 +18,7 @@
 * @brief  Hardware interface for simulated robot in Mujoco
 **/
 
-#include <aerial_robot_simulation/mujoco_visualization_utils.h>
+#include <aerial_robot_simulation/mujoco/mujoco_visualization_utils.h>
 #include <boost/function.hpp>
 #include <boost/bind.hpp>
 #include <functional>

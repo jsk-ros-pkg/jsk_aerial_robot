@@ -6,8 +6,8 @@
 #include <transmission_interface/transmission_info.h>
 #include <pluginlib/class_list_macros.h>
 
-#include <aerial_robot_simulation/mujoco_robot_hw_sim_plugin.h>
-#include <aerial_robot_simulation/mujoco_spinal_interface.h>
+#include <aerial_robot_simulation/mujoco/mujoco_robot_hw_sim_plugin.h>
+#include <aerial_robot_simulation/mujoco/mujoco_spinal_interface.h>
 #include <aerial_robot_simulation/noise_model.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <nav_msgs/Odometry.h>

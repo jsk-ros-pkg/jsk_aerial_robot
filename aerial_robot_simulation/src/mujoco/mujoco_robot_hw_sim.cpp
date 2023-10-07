@@ -1,4 +1,4 @@
-#include <aerial_robot_simulation/mujoco_robot_hw_sim.h>
+#include <aerial_robot_simulation/mujoco/mujoco_robot_hw_sim.h>
 
 namespace mujoco_ros_control
 {
