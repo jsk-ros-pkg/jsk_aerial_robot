@@ -195,7 +195,6 @@ namespace mujoco_ros_control
         int rotor_id = mj_name2id(mujoco_model_, mjOBJ_ACTUATOR, rotor_list_.at(i).c_str());
         double rotor_force = spinal_interface_.getForce(i);
         control_input_.at(rotor_id) = rotor_force;
-        mujoco_data_->ctrl[rotor_id] = rotor_force;
       }
 
       for(int i = 0; i < control_input_.size(); i++)
