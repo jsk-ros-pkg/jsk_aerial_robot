@@ -101,9 +101,8 @@ namespace mujoco_ros_control
     tf::Matrix3x3 fc_rot_mat = tf::Matrix3x3(site_xmat[9 * fc_id + 0], site_xmat[9 * fc_id + 1], site_xmat[9 * fc_id + 2],
                                              site_xmat[9 * fc_id + 3], site_xmat[9 * fc_id + 4], site_xmat[9 * fc_id + 5],
                                              site_xmat[9 * fc_id + 6], site_xmat[9 * fc_id + 7], site_xmat[9 * fc_id + 8]);
-    tfScalar fc_roll = 0, fc_pitch = 0, fc_yaw = 0;
-    fc_rot_mat.getRPY(fc_roll, fc_pitch, fc_yaw);
-    tf::Quaternion fc_quat = tf::Quaternion(fc_roll, fc_pitch, fc_yaw);
+    tf::Quaternion fc_quat;
+    fc_rot_mat.getRotation(fc_quat);
 
     spinal::Imu imu_msg;
     for(int i = 0; i < mujoco_model_->nsensor; i++)
@@ -160,10 +159,12 @@ namespace mujoco_ros_control
         pose_msg.pose.position.y = site_xpos[3 * fc_id + 1] + gazebo::gaussianKernel(mocap_pos_noise_);
         pose_msg.pose.position.z = site_xpos[3 * fc_id + 2] + gazebo::gaussianKernel(mocap_pos_noise_);
 
-        fc_roll += gazebo::gaussianKernel(mocap_rot_noise_);
-        fc_pitch += gazebo::gaussianKernel(mocap_rot_noise_);
-        fc_yaw += gazebo::gaussianKernel(mocap_rot_noise_);
-        tf::Quaternion q_noise = tf::Quaternion(fc_roll, fc_pitch, fc_yaw);
+
+        tf::Quaternion q_delta;
+        q_delta.setRPY(gazebo::gaussianKernel(mocap_rot_noise_),
+                       gazebo::gaussianKernel(mocap_rot_noise_),
+                       gazebo::gaussianKernel(mocap_rot_noise_));
+        tf::Quaternion q_noise = fc_quat * q_delta;
         pose_msg.pose.orientation.x = q_noise.x();
         pose_msg.pose.orientation.y = q_noise.y();
         pose_msg.pose.orientation.z = q_noise.z();
