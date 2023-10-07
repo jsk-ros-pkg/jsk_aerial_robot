@@ -51,7 +51,11 @@ namespace mujoco_ros_control
     robot_hw_sim_loader_.reset(new pluginlib::ClassLoader<mujoco_ros_control::RobotHWSim>("aerial_robot_simulation", "mujoco_ros_control::RobotHWSim"));
     try
       {
-        robot_hw_sim_ = robot_hw_sim_loader_->createInstance("mujoco_ros_control/DefaultRobotHWSim");
+        ros::NodeHandle simulation_nh = ros::NodeHandle(nh_, "simulation");
+        std::string plugin_name;
+        simulation_nh.param("robot_hw_sim_plugin_name", plugin_name, std::string("mujoco_ros_control/DefaultRobotHWSim"));
+        robot_hw_sim_ = robot_hw_sim_loader_->createInstance(plugin_name);
+        ROS_ERROR_STREAM("nh name:" << simulation_nh.getNamespace());
       }
     catch(pluginlib::PluginlibException& ex)
       {

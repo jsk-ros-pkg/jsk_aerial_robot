@@ -6,6 +6,8 @@ attitude_controller:
 # sensor -> aerial_robot_hw_sim
 ## mocap
 simulation:
+  robot_hw_sim_plugin_name: mujoco_ros_control/AerialRobotHWSim
+
   mocap_pub_rate: 0.01
   mocap_pos_noise: 0.001
   mocap_rot_noise: 0.001
