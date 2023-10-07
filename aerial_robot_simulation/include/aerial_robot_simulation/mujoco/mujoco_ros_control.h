@@ -6,7 +6,7 @@
 #include <boost/shared_ptr.hpp>
 #include <controller_manager/controller_manager.h>
 #include <aerial_robot_simulation/mujoco/mujoco_visualization_utils.h>
-#include <aerial_robot_simulation/mujoco/mujoco_robot_hw_sim_plugin.h>
+#include <aerial_robot_simulation/mujoco/mujoco_robot_hw_sim.h>
 
 #include <mujoco/mujoco.h>
 
@@ -26,8 +26,8 @@ namespace mujoco_ros_control
     bool headless_;
 
   protected:
-    boost::shared_ptr<pluginlib::ClassLoader<mujoco_ros_control::MujocoRobotHWSimPlugin> > robot_hw_sim_loader_;
-    boost::shared_ptr<mujoco_ros_control::MujocoRobotHWSimPlugin> robot_hw_sim_;
+    boost::shared_ptr<pluginlib::ClassLoader<mujoco_ros_control::RobotHWSim> > robot_hw_sim_loader_;
+    boost::shared_ptr<mujoco_ros_control::RobotHWSim> robot_hw_sim_;
 
   private:
     ros::NodeHandle &nh_;

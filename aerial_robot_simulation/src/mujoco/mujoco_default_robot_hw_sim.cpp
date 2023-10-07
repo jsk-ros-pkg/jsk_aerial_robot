@@ -1,9 +1,9 @@
-#include <aerial_robot_simulation/mujoco/mujoco_robot_hw_sim.h>
+#include <aerial_robot_simulation/mujoco/mujoco_default_robot_hw_sim.h>
 
 namespace mujoco_ros_control
 {
 
-  bool MujocoRobotHWSim::init(const std::string& robot_namespace,
+  bool DefaultRobotHWSim::init(const std::string& robot_namespace,
                               ros::NodeHandle model_nh,
                               mjModel* mujoco_model,
                               mjData* mujoco_data
@@ -65,8 +65,8 @@ namespace mujoco_ros_control
     registerInterface(&spinal_interface_);
 
     control_mode_ = FORCE_CONTROL_MODE;
-    sim_vel_sub_ = model_nh.subscribe("sim_cmd_vel", 1, &MujocoRobotHWSim::cmdVelCallback, this);
-    sim_pos_sub_ = model_nh.subscribe("sim_cmd_pos", 1, &MujocoRobotHWSim::cmdPosCallback, this);
+    sim_vel_sub_ = model_nh.subscribe("sim_cmd_vel", 1, &DefaultRobotHWSim::cmdVelCallback, this);
+    sim_pos_sub_ = model_nh.subscribe("sim_cmd_pos", 1, &DefaultRobotHWSim::cmdPosCallback, this);
 
     ros::NodeHandle simulation_nh = ros::NodeHandle(model_nh, "simulation");
     simulation_nh.param("ground_truth_pub_rate", ground_truth_pub_rate_, 0.01); // [sec]
@@ -88,12 +88,12 @@ namespace mujoco_ros_control
     mocap_pub_ = model_nh.advertise<geometry_msgs::PoseStamped>("mocap/pose", 1);
 
     joint_state_pub_ = model_nh.advertise<sensor_msgs::JointState>("joint_states", 1);
-    control_input_sub_ = model_nh.subscribe("mujoco/ctrl_input", 1, &MujocoRobotHWSim::controlInputCallback, this);
+    control_input_sub_ = model_nh.subscribe("mujoco/ctrl_input", 1, &DefaultRobotHWSim::controlInputCallback, this);
 
     return true;
   }
 
-  void MujocoRobotHWSim::read(const ros::Time& time, const ros::Duration& period)
+  void DefaultRobotHWSim::read(const ros::Time& time, const ros::Duration& period)
   {
     int fc_id = mj_name2id(mujoco_model_, mjtObj_::mjOBJ_SITE, "fc");
     mjtNum* site_xpos = mujoco_data_->site_xpos;
@@ -197,7 +197,7 @@ namespace mujoco_ros_control
 
   }
 
-  void MujocoRobotHWSim::write(const ros::Time& time, const ros::Duration& period)
+  void DefaultRobotHWSim::write(const ros::Time& time, const ros::Duration& period)
   {
       for(int i = 0; i < spinal_interface_.getMotorNum(); i++)
       {
@@ -212,7 +212,7 @@ namespace mujoco_ros_control
       }
   }
 
-  void MujocoRobotHWSim::controlInputCallback(const sensor_msgs::JointState & msg)
+  void DefaultRobotHWSim::controlInputCallback(const sensor_msgs::JointState & msg)
   {
     if(msg.name.size() != msg.position.size())
       {
@@ -234,4 +234,4 @@ namespace mujoco_ros_control
 
 }
 
-PLUGINLIB_EXPORT_CLASS(mujoco_ros_control::MujocoRobotHWSim, mujoco_ros_control::MujocoRobotHWSimPlugin)
+PLUGINLIB_EXPORT_CLASS(mujoco_ros_control::DefaultRobotHWSim, mujoco_ros_control::RobotHWSim)

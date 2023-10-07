@@ -48,10 +48,10 @@ namespace mujoco_ros_control
       }
 
     /* hardware interface  */
-    robot_hw_sim_loader_.reset(new pluginlib::ClassLoader<mujoco_ros_control::MujocoRobotHWSimPlugin>("aerial_robot_simulation", "mujoco_ros_control::MujocoRobotHWSimPlugin"));
+    robot_hw_sim_loader_.reset(new pluginlib::ClassLoader<mujoco_ros_control::RobotHWSim>("aerial_robot_simulation", "mujoco_ros_control::RobotHWSim"));
     try
       {
-        robot_hw_sim_ = robot_hw_sim_loader_->createInstance("mujoco_ros_control/MujocoRobotHWSim");
+        robot_hw_sim_ = robot_hw_sim_loader_->createInstance("mujoco_ros_control/DefaultRobotHWSim");
       }
     catch(pluginlib::PluginlibException& ex)
       {
