@@ -16,6 +16,15 @@ namespace mujoco_ros_control
     joint_list_.resize(0);
     rotor_list_.resize(0);
 
+    // get entire mass
+    float mass = 0.0;
+    for(int i = 0; i < mujoco_model_->nbody; i++)
+      {
+       mass += mujoco_model_->body_mass[i];
+      }
+    ROS_INFO_STREAM("[mujoco] robot mass is " << mass);
+
+
     // get joint names from mujoco model
     for(int i = 0; i < mujoco_model_->njnt; i++)
       {
