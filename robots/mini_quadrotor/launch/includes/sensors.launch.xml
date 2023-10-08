@@ -17,11 +17,11 @@
         <!-- mocap -->
         <include file="$(find aerial_robot_base)/launch/external_module/mocap.launch" />
 
-        <!-- livox mid360 -->
-        <!-- <include file="$(find livox_ros_driver2)/launch_ROS1/msg_MID360.launch" /> -->
-        <!-- <include file="$(find fast_lio)/launch/mapping_avia.launch" > -->
-        <!--   <arg name="rviz" value="false" /> -->
-        <!-- </include> -->
+        <!-- livox mid360 & fast lio -->
+        <include file="$(find livox_ros_driver2)/launch_ROS1/msg_MID360.launch" />
+        <include file="$(find fast_lio)/launch/mapping_mid360.launch" >
+          <arg name="rviz" value="false" />
+        </include>
 
       </group>
     </group>
