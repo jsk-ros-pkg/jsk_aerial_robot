@@ -1,4 +1,4 @@
-#include <aerial_robot_simulation/mujoco_ros_control.h>
+#include <aerial_robot_simulation/mujoco/mujoco_ros_control.h>
 
 namespace mujoco_ros_control
 {
@@ -47,18 +47,15 @@ namespace mujoco_ros_control
         ROS_INFO_STREAM("Created mujoco model from " << xml_path);
       }
 
-    float mass = 0.0;
-    for(int i = 0; i < mujoco_model_->nbody; i++)
-      {
-       mass += mujoco_model_->body_mass[i];
-      }
-    ROS_INFO_STREAM_ONCE("[mujoco] robot mass is " << mass);
-
     /* hardware interface  */
-    robot_hw_sim_loader_.reset(new pluginlib::ClassLoader<mujoco_ros_control::MujocoRobotHWSimPlugin>("aerial_robot_simulation", "mujoco_ros_control::MujocoRobotHWSimPlugin"));
+    robot_hw_sim_loader_.reset(new pluginlib::ClassLoader<mujoco_ros_control::RobotHWSim>("aerial_robot_simulation", "mujoco_ros_control::RobotHWSim"));
     try
       {
-        robot_hw_sim_ = robot_hw_sim_loader_->createInstance("mujoco_ros_control/MujocoRobotHWSim");
+        ros::NodeHandle simulation_nh = ros::NodeHandle(nh_, "simulation");
+        std::string plugin_name;
+        simulation_nh.param("robot_hw_sim_plugin_name", plugin_name, std::string("mujoco_ros_control/DefaultRobotHWSim"));
+        robot_hw_sim_ = robot_hw_sim_loader_->createInstance(plugin_name);
+        ROS_ERROR_STREAM("nh name:" << simulation_nh.getNamespace());
       }
     catch(pluginlib::PluginlibException& ex)
       {
@@ -67,7 +64,7 @@ namespace mujoco_ros_control
     std::string robot_ns = nh_.getNamespace().substr(1, nh_.getNamespace().size () - 1);
     robot_hw_sim_->init(robot_ns, nh_, mujoco_model_, mujoco_data_);
 
-    /* attitude controller */
+    /* controller */
     controller_manager_.reset(new controller_manager::ControllerManager(robot_hw_sim_.get(), nh_));
 
     clock_pub_ =  nh_.advertise<rosgraph_msgs::Clock>("/clock", 10);

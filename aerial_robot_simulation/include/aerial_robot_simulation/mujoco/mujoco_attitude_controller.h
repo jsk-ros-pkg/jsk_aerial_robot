@@ -2,7 +2,7 @@
 
 #include <ros/ros.h>
 #include <aerial_robot_estimation/state_estimation.h>
-#include <aerial_robot_simulation/mujoco_spinal_interface.h>
+#include <aerial_robot_simulation/mujoco/mujoco_spinal_interface.h>
 #include <flight_control/flight_control.h>
 #include <controller_interface/controller.h>
 #include <pluginlib/class_list_macros.h>

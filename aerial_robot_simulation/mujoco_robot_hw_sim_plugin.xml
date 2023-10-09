@@ -1,10 +1,18 @@
 <library path="lib/libmujoco_robot_hw_sim">
   <class
-      name="mujoco_ros_control/MujocoRobotHWSim"
-      type="mujoco_ros_control::MujocoRobotHWSim"
-      base_class_type="mujoco_ros_control::MujocoRobotHWSimPlugin">
+      name="mujoco_ros_control/DefaultRobotHWSim"
+      type="mujoco_ros_control::DefaultRobotHWSim"
+      base_class_type="mujoco_ros_control::RobotHWSim">
     <description>
-      A aerial robot simulation interface in MuJoCo.
+      Default simulation interface in MuJoCo.
+    </description>
+  </class>
+  <class
+      name="mujoco_ros_control/AerialRobotHWSim"
+      type="mujoco_ros_control::AerialRobotHWSim"
+      base_class_type="mujoco_ros_control::RobotHWSim">
+    <description>
+       simulation interface for aerial robot in MuJoCo.
     </description>
   </class>
 </library>

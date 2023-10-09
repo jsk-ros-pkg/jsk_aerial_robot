@@ -1,4 +1,4 @@
-#include <aerial_robot_simulation/mujoco_attitude_controller.h>
+#include <aerial_robot_simulation/mujoco/mujoco_attitude_controller.h>
 
 namespace flight_controllers
 {
