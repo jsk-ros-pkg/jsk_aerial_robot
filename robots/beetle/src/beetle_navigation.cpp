@@ -442,6 +442,14 @@ void BeetleNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & 
           }
         break;
       }
+    case aerial_robot_msgs::FlightNav::STAY_HERE_MODE:
+      {
+        xy_control_mode_ = POS_CONTROL_MODE;
+        setTargetVelX(0);
+        setTargetVelY(0);
+        setTargetXyFromCurrentState();
+        break;
+      }      
     case aerial_robot_msgs::FlightNav::GPS_WAYPOINT_MODE:
       {
         target_wp_ = geodesy::toMsg(msg->target_pos_x, msg->target_pos_y);
@@ -486,6 +494,8 @@ void BeetleNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & 
       setTargetPosCandZ(msg->target_pos_z);
       setTargetVelZ(msg->target_vel_z);
     }
+
+
 }
 
  void BeetleNavigator::assemblyFlagCallback(const diagnostic_msgs::KeyValue & msg)
@@ -527,7 +537,7 @@ void BeetleNavigator::convertTargetPosFromCoG2CoM()
   tf::transformKDLToTF(beetle_robot_model_->getCog2CoM<KDL::Frame>(), cog2com_tf);
 
   /* Check whether the target value was changed by someway other than uav nav */
-  /* Target pos candidate represents a target pos in a module frame */
+  /* Target pos candidate represents a target pos in a assembly frame */
   if( int(pre_target_pos_.x() * 1000) != int(getTargetPos().x() * 1000)){
     float target_x_com = getTargetPos().x() + (tf::Matrix3x3(tf::createQuaternionFromYaw(getTargetRPY().z())) * cog2com_tf.getOrigin()).x();
     setTargetPosCandX(target_x_com);
