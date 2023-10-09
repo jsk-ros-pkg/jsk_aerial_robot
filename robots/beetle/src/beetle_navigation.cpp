@@ -498,22 +498,22 @@ void BeetleNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & 
 
 }
 
- void BeetleNavigator::assemblyFlagCallback(const diagnostic_msgs::KeyValue & msg)
- {
-   int module_id = std::stoi(msg.key);
-   int assembly_flag = std::stoi(msg.value);
-   beetle_robot_model_->setAssemblyFlag(module_id,assembly_flag);
-   map<int, bool> flags = beetle_robot_model_->getAssemblyFlags();
-   for(const auto & item : flags){
-     if(item.second)
-       {
-         std::cout << "id: " << item.first << " -> assembled"<< std::endl;
-       } else {
-         std::cout << "id: " << item.first << " -> separated"<< std::endl;
-     }
-   }
+void BeetleNavigator::assemblyFlagCallback(const diagnostic_msgs::KeyValue & msg)
+{
+  int module_id = std::stoi(msg.key);
+  int assembly_flag = std::stoi(msg.value);
+  beetle_robot_model_->setAssemblyFlag(module_id,assembly_flag);
+  map<int, bool> flags = beetle_robot_model_->getAssemblyFlags();
+  for(const auto & item : flags){
+    if(item.second)
+      {
+        std::cout << "id: " << item.first << " -> assembled"<< std::endl;
+      } else {
+      std::cout << "id: " << item.first << " -> separated"<< std::endl;
+    }
+  }
    
- }
+}
 
 void BeetleNavigator::update()
 {
