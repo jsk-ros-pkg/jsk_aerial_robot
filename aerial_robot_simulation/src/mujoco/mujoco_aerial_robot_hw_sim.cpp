@@ -35,16 +35,48 @@ namespace mujoco_ros_control
       }
 
     // init joints from rosparam
-    XmlRpc::XmlRpcValue joint_servos_params;
-    model_nh.getParam("servo_controller/joints", joint_servos_params);
-    for(int i = 0; i < joint_list_.size(); i++)
+    XmlRpc::XmlRpcValue all_servos_params;
+    model_nh.getParam("servo_controller", all_servos_params);
+    std::string init_value_param_name = "init_value";
+    for(auto servo_group_params: all_servos_params)
       {
-        std::string controller_name = "controller" + std::to_string(i);
-        if(joint_servos_params[controller_name].valid())
+        if (servo_group_params.second.getType() != XmlRpc::XmlRpcValue::TypeStruct)
+          continue;
+        for(auto servo_params : servo_group_params.second)
           {
-            double init_value = static_cast<double>(joint_servos_params[controller_name]["simulation"]["init_value"]);
-            std::string servo_name = static_cast<std::string>(joint_servos_params[controller_name]["name"]);
-            control_input_.at((mj_name2id(mujoco_model_, mjtObj_::mjOBJ_ACTUATOR, servo_name.c_str()))) = init_value;
+            if(servo_params.first.find("controller") != string::npos)
+              {
+                std::string servo_name = static_cast<std::string>(servo_params.second["name"]);
+                double init_value = 0.0;
+
+                // check simulation param exists
+                if(!servo_group_params.second.hasMember("simulation") &&
+                   !servo_params.second.hasMember("simulation"))
+                  {
+                    ROS_ERROR("please set mujoco servo parameters for %s, using sub namespace 'simulation:'", string(servo_params.second["name"]).c_str());
+                    continue;
+                  }
+
+                // search init_value in servo params
+                if(!servo_params.second.hasMember("simulation") ||
+                   (servo_params.second.hasMember("simulation") && !servo_params.second["simulation"].hasMember(init_value_param_name)))
+                  {
+                    // search init_value in servo group params
+                    if(!servo_group_params.second["simulation"].hasMember(init_value_param_name))
+                      {
+                        ROS_ERROR("can not find '%s' gazebo paramter for servo %s", init_value_param_name.c_str(),  string(servo_params.second["name"]).c_str());
+                        return false;
+                      }
+                    // use param of servo group
+                    init_value = static_cast<double>(servo_group_params.second["simulation"][init_value_param_name]);
+                  }
+                else
+                  {
+                    // use param of servo
+                    init_value = static_cast<double>(servo_params.second["simulation"][init_value_param_name]);
+                  }
+                control_input_.at((mj_name2id(mujoco_model_, mjtObj_::mjOBJ_ACTUATOR, servo_name.c_str()))) = init_value;
+              }
           }
       }
 
@@ -160,7 +192,7 @@ namespace mujoco_ros_control
 
   void AerialRobotHWSim::write(const ros::Time& time, const ros::Duration& period)
   {
-      for(int i = 0; i < spinal_interface_.getMotorNum(); i++)
+    for(int i = 0; i < spinal_interface_.getMotorNum(); i++)
       {
         int rotor_id = mj_name2id(mujoco_model_, mjOBJ_ACTUATOR, rotor_list_.at(i).c_str());
         double rotor_force = spinal_interface_.getForce(i);
