@@ -14,7 +14,7 @@
       </inertial>
       <visual>
         <geometry>
-          <mesh filename="package://rolling/urdf/mesh/20230808_frameless/battery_module.dae" scale="0.001 0.001 0.001"/>
+          <mesh filename="package://rolling/urdf/mesh/20230808_frameless/battery_module.dae" />
         </geometry>
       </visual>
     </link>

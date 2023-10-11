@@ -14,7 +14,7 @@
       </inertial>
       <visual>
         <geometry>
-          <mesh filename="package://rolling/urdf/mesh/20230808_frameless/link3_base.dae" scale="0.001 0.001 0.001"/>
+          <mesh filename="package://rolling/urdf/mesh/20230808_frameless/link3_base.dae" />
         </geometry>
       </visual>
       <collision>
@@ -35,7 +35,7 @@
       </inertial>
       <visual>
         <geometry>
-          <mesh filename="package://rolling/urdf/mesh/20230808_frameless/link3_gimbal.dae" scale="0.001 0.001 0.001"/>
+          <mesh filename="package://rolling/urdf/mesh/20230808_frameless/link3_gimbal.dae" />
         </geometry>
       </visual>
     </link>
