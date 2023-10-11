@@ -19,7 +19,7 @@
       <visual>
         <origin rpy="0 0 0" xyz="0 0 0"/>
         <geometry>
-          <mesh filename="package://rolling/urdf/mesh/shelled/link.dae" scale="0.001 0.001 0.001"/>
+          <mesh filename="package://rolling/urdf/mesh/shelled/link.dae" />
         </geometry>
         <xacro:glay/>
       </visual>
@@ -119,7 +119,7 @@
           <origin rpy="0 0 0" xyz="0 0 0"/>
         </xacro:if>
         <geometry>
-          <mesh filename="package://rolling/urdf/mesh/shelled/roll_gimbal_module.dae" scale="0.001 0.001 0.001"/>
+          <mesh filename="package://rolling/urdf/mesh/shelled/roll_gimbal_module.dae" />
         </geometry>
         <xacro:black/>
       </visual>
