@@ -74,7 +74,7 @@ namespace aerial_robot_control
     ros::Publisher interfrence_marker_pub_;
 
     boost::shared_ptr<Dragon::FullVectoringRobotModel> dragon_robot_model_;
-    boost::shared_ptr<aerial_robot_model::RobotModel> robot_model_for_control_;
+    boost::shared_ptr<aerial_robot_model::transformable::RobotModel> robot_model_for_control_;
     std::vector<float> target_base_thrust_;
     std::vector<double> target_gimbal_angles_;
     Eigen::VectorXd target_vectoring_f_;

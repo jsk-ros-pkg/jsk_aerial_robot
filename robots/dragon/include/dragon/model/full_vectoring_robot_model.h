@@ -55,7 +55,7 @@ namespace Dragon
     virtual ~FullVectoringRobotModel() = default;
 
 
-    inline boost::shared_ptr<aerial_robot_model::RobotModel> getRobotModelForPlan() { return robot_model_for_plan_;}
+    inline boost::shared_ptr<aerial_robot_model::transformable::RobotModel> getRobotModelForPlan() { return robot_model_for_plan_;}
     inline const Eigen::VectorXd& getHoverVectoringF() const {return hover_vectoring_f_;}
 
     const std::vector<int> getRollLockedGimbal()
@@ -88,7 +88,7 @@ namespace Dragon
 
   private:
 
-    boost::shared_ptr<aerial_robot_model::RobotModel> robot_model_for_plan_;
+    boost::shared_ptr<aerial_robot_model::transformable::RobotModel> robot_model_for_plan_;
 
     Eigen::VectorXd hover_vectoring_f_;
 
