@@ -32,6 +32,30 @@ void AttitudeController::init(ros::NodeHandle* nh, StateEstimate* estimator)
   torque_allocation_matrix_inv_sub_ = nh_->subscribe("torque_allocation_matrix_inv", 1, &AttitudeController::torqueAllocationMatrixInvCallback, this);
   sim_vol_sub_ = nh_->subscribe("set_sim_voltage", 1, &AttitudeController::setSimVolCallback, this);
   att_pid_pub_ = nh_->advertise<spinal::PoseControlPid>("debug/att/pid", 1);
+  pid_att_msg_.x.total.resize(1);
+  pid_att_msg_.x.p_term.resize(1);
+  pid_att_msg_.x.i_term.resize(1);
+  pid_att_msg_.x.d_term.resize(1);
+  pid_att_msg_.y.total.resize(1);
+  pid_att_msg_.y.p_term.resize(1);
+  pid_att_msg_.y.i_term.resize(1);
+  pid_att_msg_.y.d_term.resize(1);
+  pid_att_msg_.z.total.resize(1);
+  pid_att_msg_.z.p_term.resize(1);
+  pid_att_msg_.z.i_term.resize(1);
+  pid_att_msg_.z.d_term.resize(1);
+  pid_att_msg_.roll.total.resize(1);
+  pid_att_msg_.roll.p_term.resize(1);
+  pid_att_msg_.roll.i_term.resize(1);
+  pid_att_msg_.roll.d_term.resize(1);
+  pid_att_msg_.pitch.total.resize(1);
+  pid_att_msg_.pitch.p_term.resize(1);
+  pid_att_msg_.pitch.i_term.resize(1);
+  pid_att_msg_.pitch.d_term.resize(1);
+  pid_att_msg_.yaw.total.resize(1);
+  pid_att_msg_.yaw.p_term.resize(1);
+  pid_att_msg_.yaw.i_term.resize(1);
+  pid_att_msg_.yaw.d_term.resize(1);
   baseInit();
 }
 
@@ -86,6 +110,57 @@ void AttitudeController::init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2
 
   nh_->advertiseService(att_control_srv_);
 
+  pid_att_msg_.x.total_length = 1;
+  pid_att_msg_.x.total = new float[1];
+  pid_att_msg_.x.total[0] = 0.0;
+  pid_att_msg_.x.p_term = new float[1];
+  pid_att_msg_.x.p_term[0] = 0.0;
+  pid_att_msg_.x.i_term = new float[1];
+  pid_att_msg_.x.i_term[0] = 0.0;
+  pid_att_msg_.x.d_term = new float[1];
+  pid_att_msg_.x.d_term[0] = 0.0;
+  pid_att_msg_.x.total_length = 1;
+  pid_att_msg_.y.total = new float[1];
+  pid_att_msg_.y.total[0] = 0.0;
+  pid_att_msg_.y.p_term = new float[1];
+  pid_att_msg_.y.p_term[0] = 0.0;
+  pid_att_msg_.y.i_term = new float[1];
+  pid_att_msg_.y.i_term[0] = 0.0;
+  pid_att_msg_.y.d_term = new float[1];
+  pid_att_msg_.y.d_term[0] = 0.0;
+  pid_att_msg_.y.total = new float[1];
+  pid_att_msg_.y.total[0] = 0.0;
+  pid_att_msg_.z.p_term = new float[1];
+  pid_att_msg_.z.p_term[0] = 0.0;
+  pid_att_msg_.z.i_term = new float[1];
+  pid_att_msg_.z.i_term[0] = 0.0;
+  pid_att_msg_.z.d_term = new float[1];
+  pid_att_msg_.z.d_term[0] = 0.0;
+
+  pid_att_msg_.roll.total = new float[1];
+  pid_att_msg_.roll.total[0] = 0.0;
+  pid_att_msg_.roll.p_term = new float[1];
+  pid_att_msg_.roll.p_term[0] = 0.0;
+  pid_att_msg_.roll.i_term = new float[1];
+  pid_att_msg_.roll.i_term[0] = 0.0;
+  pid_att_msg_.roll.d_term = new float[1];
+  pid_att_msg_.roll.d_term[0] = 0.0;
+  pid_att_msg_.pitch.total = new float[1];
+  pid_att_msg_.pitch.total[0] = 0.0;
+  pid_att_msg_.pitch.p_term = new float[1];
+  pid_att_msg_.pitch.p_term[0] = 0.0;
+  pid_att_msg_.pitch.i_term = new float[1];
+  pid_att_msg_.pitch.i_term[0] = 0.0;
+  pid_att_msg_.pitch.d_term = new float[1];
+  pid_att_msg_.pitch.d_term[0] = 0.0;
+  pid_att_msg_.yaw.total = new float[1];
+  pid_att_msg_.yaw.total[0] = 0.0;
+  pid_att_msg_.yaw.p_term = new float[1];
+  pid_att_msg_.yaw.p_term[0] = 0.0;
+  pid_att_msg_.yaw.i_term = new float[1];
+  pid_att_msg_.yaw.i_term[0] = 0.0;
+  pid_att_msg_.yaw.d_term = new float[1];
+  pid_att_msg_.yaw.d_term[0] = 0.0;
   baseInit();
 }
 #endif
