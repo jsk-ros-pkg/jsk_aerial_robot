@@ -1,10 +1,9 @@
 #pragma once
 
-
-#include <aerial_robot_simulation/mujoco/mujoco_default_robot_hw_sim.h>
 #include <aerial_robot_simulation/mujoco/mujoco_spinal_interface.h>
 #include <aerial_robot_simulation/noise_model.h>
 #include <geometry_msgs/PoseStamped.h>
+#include <mujoco_ros_control/mujoco_default_robot_hw_sim.h>
 #include <nav_msgs/Odometry.h>
 
 namespace mujoco_ros_control

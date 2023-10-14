@@ -1,7 +1,0 @@
-<launch>
-  <arg name="model" default="$(find aerial_robot_simulation)/mujoco/humanoid100.xml"/>
-
-  <node pkg="aerial_robot_simulation" type="simple_spawn.py" name="simple_spawn" output="screen">
-    <param name="model" value="$(arg model)"/>
-  </node>
-</launch>
