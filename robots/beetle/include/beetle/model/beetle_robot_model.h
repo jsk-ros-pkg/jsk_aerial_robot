@@ -18,6 +18,7 @@ public:
   template<class T> T getContactFrame();
   template<class T> T getCog2Cp();
   template<class T> T getCog2CoM();
+  bool getCurrentAssembled(){return current_assembled_;}
 
   void setContactFrame(const KDL::Frame contact_frame){contact_frame_ = contact_frame;}
   void setCog2Cp(const KDL::Frame Cog2Cp){Cog2Cp_ = Cog2Cp;}
@@ -28,6 +29,8 @@ public:
 
   std::map<int, bool> getAssemblyFlags(){return assembly_flags_;}
   int getMaxModuleNum(){return max_modules_num_;}
+
+  void calcCenterOfMoving();
 
 private:
   ros::NodeHandle nh_;
@@ -43,7 +46,7 @@ private:
   int max_modules_num_ = 4; //TODO: get the value from rosparam
   int my_id_;
   std::map<int, bool> assembly_flags_;
-  void calcCenterOfMoving();
+  bool current_assembled_;
 
 protected:
   void updateRobotModelImpl(const KDL::JntArray& joint_positions) override;
