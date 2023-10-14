@@ -21,12 +21,12 @@
   </include>
 
   <!-- basic parameter -->
-  <rosparam file="$(find aerial_robot_simulation)/config/Simulation.yaml" command="load" ns="$(arg robot_ns)" />
+  <rosparam file="$(find aerial_robot_simulation)/config/Gazebo.yaml" command="load" ns="$(arg robot_ns)" />
 
   <node name="$(anon urdf_spawner)" pkg="gazebo_ros" type="spawn_model" respawn="false" output="screen"
         args="-urdf -model $(arg robot_ns) -x $(arg spawn_x) -y $(arg spawn_y) -z $(arg spawn_z) -Y $(arg spawn_yaw) -param $(arg robot_ns)/robot_description"/>
 
   <node name="controller_spawner" pkg="controller_manager" type="spawner" respawn="false"
-        output="screen" ns="$(arg robot_ns)" args="joint_state_controller attitude_controller">
-  </node>
+        output="screen" ns="$(arg robot_ns)" args="joint_state_controller attitude_controller" />
+
 </launch>
