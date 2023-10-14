@@ -46,6 +46,7 @@ namespace aerial_robot_navigation
     double max_target_roll_pitch_rate_;
 
     bool roll_pitch_control_flag_;
+    bool pre_assembled_ ; 
 
     void naviCallback(const aerial_robot_msgs::FlightNavConstPtr & msg) override;
     void joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg) override; 

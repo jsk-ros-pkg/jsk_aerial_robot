@@ -7,7 +7,8 @@ using namespace aerial_robot_navigation;
 
 BeetleNavigator::BeetleNavigator():
   GimbalrotorNavigator(),
-  roll_pitch_control_flag_(false)
+  roll_pitch_control_flag_(false),
+  pre_assembled_(false)
 {
 }
 
@@ -503,6 +504,7 @@ void BeetleNavigator::assemblyFlagCallback(const diagnostic_msgs::KeyValue & msg
   int module_id = std::stoi(msg.key);
   int assembly_flag = std::stoi(msg.value);
   beetle_robot_model_->setAssemblyFlag(module_id,assembly_flag);
+  beetle_robot_model_->calcCenterOfMoving();
   map<int, bool> flags = beetle_robot_model_->getAssemblyFlags();
   for(const auto & item : flags){
     if(item.second)
@@ -512,7 +514,6 @@ void BeetleNavigator::assemblyFlagCallback(const diagnostic_msgs::KeyValue & msg
       std::cout << "id: " << item.first << " -> separated"<< std::endl;
     }
   }
-   
 }
 
 void BeetleNavigator::update()
@@ -533,6 +534,17 @@ void BeetleNavigator::rotateContactPointFrame()
 
 void BeetleNavigator::convertTargetPosFromCoG2CoM()
 {
+  bool current_assembled = beetle_robot_model_->getCurrentAssembled();
+  if(pre_assembled_  && !current_assembled){ //disassembly process
+    setTargetPosCandX(getTargetPos().x());
+    setTargetPosCandY(getTargetPos().y());
+    setTargetPosCandZ(getTargetPos().z());
+    ROS_INFO("switched");
+    pre_assembled_ = current_assembled;
+  }
+  //TODO : assembly process
+  pre_assembled_ = current_assembled;
+
   tf::Transform cog2com_tf;
   tf::transformKDLToTF(beetle_robot_model_->getCog2CoM<KDL::Frame>(), cog2com_tf);
 

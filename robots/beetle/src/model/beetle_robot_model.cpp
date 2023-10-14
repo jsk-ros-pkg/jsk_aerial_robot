@@ -3,7 +3,8 @@
 BeetleRobotModel::BeetleRobotModel(bool init_with_rosparam, bool verbose, double fc_t_min_thre, double epsilon) :
   GimbalrotorRobotModel(init_with_rosparam, verbose, fc_t_min_thre, epsilon),
   tfBuffer_(),
-  tfListener_(tfBuffer_)
+  tfListener_(tfBuffer_),
+  current_assembled_(false)
 {
   for(int i = 0; i < max_modules_num_; i++){
     assembly_flags_.insert(std::make_pair(i+1,false));
@@ -32,7 +33,8 @@ void BeetleRobotModel::calcCenterOfMoving()
   if(!assembly_flags_[my_id_]){
       KDL::Frame com_frame;
       setCog2CoM(com_frame);
-    return;
+      current_assembled_ = false;
+      return;
   }
   std::string cog_name = "beetle" + std::to_string(my_id_) + "/cog";
   Eigen::Vector3d center_of_moving = Eigen::Vector3d::Zero();
@@ -73,6 +75,7 @@ void BeetleRobotModel::calcCenterOfMoving()
   br_.sendTransform(tf);
   KDL::Frame com_frame = tf2::transformToKDL(tf);
   setCog2CoM(com_frame);
+  current_assembled_ = true;
 }
 
 /* plugin registration */
