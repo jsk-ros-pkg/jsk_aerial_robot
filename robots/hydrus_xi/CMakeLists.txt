@@ -68,7 +68,7 @@ install(FILES flight_navigation_plugin.xml
 )
 
 add_custom_command(OUTPUT ${PROJECT_SOURCE_DIR}/mujoco
-  COMMAND rosrun aerial_robot_simulation mujoco_model_generator.py ${PROJECT_SOURCE_DIR}/config/mujoco_model.yaml
+  COMMAND rosrun mujoco_ros_control mujoco_model_generator.py ${PROJECT_SOURCE_DIR}/config/mujoco_model.yaml
   POST_BUILD
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
   DEPENDS ${PROJECT_SOURCE_DIR}/urdf
