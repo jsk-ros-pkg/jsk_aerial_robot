@@ -16,7 +16,7 @@
   <arg name="spawn_z" default="0.0"/>
   <arg name="spawn_yaw" default="0.0"/>
   <arg name="config_dir" default="$(find beetle)/config"/>
-  <arg name="robot_id" default="2" />
+  <arg name="robot_id" default="1" />
   <arg name="robot_ns" value="beetle$(arg robot_id)" />
 
   ###########  Parameters  ###########
