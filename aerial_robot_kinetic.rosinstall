@@ -1,8 +1,8 @@
 # aerial robot third party
 - git:
     local-name: aerial_robot_3rdparty
-    uri: https://github.com/JSKAerialRobot/aerial_robot_3rdparty.git
-    version: ros-kinetic
+    uri: https://github.com/tongtybj/aerial_robot_3rdparty.git
+    version: PR/mujoco
 
 # kalman filter
 - git:
