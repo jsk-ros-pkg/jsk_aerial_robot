@@ -106,11 +106,10 @@
   <node pkg="hydrus_xi" name="init_gimbal_angles" type="init_gimbal_angles.py" ns="$(arg robot_ns)" if="$(arg init_gimbal_angle)"/>
 
   ########## Simulation in Mujoco #########
-  <group ns="$(arg robot_ns)">
-    <param name="mujoco_model_path" value="$(find hydrus_xi)/mujoco/$(arg type)/$(arg onboards_model)/robot.xml"/>
-    <param name="headless" value="$(arg headless)"/>
-  </group>
   <include file="$(find aerial_robot_simulation)/launch/mujoco.launch" if="$(eval arg('simulation') and not arg('real_machine') and arg('mujoco'))" >
     <arg name="robot_ns" value="$(arg robot_ns)" />
+    <arg name="headless" value="$(arg headless)"/>
+    <arg name="mujoco_model" value="$(find hydrus_xi)/mujoco/$(arg type)/$(arg onboards_model)/robot.xml"/>
   </include>
+
 </launch>
