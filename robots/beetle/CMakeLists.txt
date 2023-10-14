@@ -14,6 +14,8 @@ find_package(catkin REQUIRED COMPONENTS
 
 find_package(Eigen3 REQUIRED)
 
+catkin_python_setup()
+
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES beetle_robot_model beetle_controller beetle_navigation
@@ -39,3 +41,12 @@ install(DIRECTORY config plugins launch
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
   USE_SOURCE_PERMISSIONS
   )
+
+install(DIRECTORY script
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+  USE_SOURCE_PERMISSIONS
+)
+
+# catkin_install_python(PROGRAMS script/beetle/kondo_control.py
+#   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+#   )
