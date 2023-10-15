@@ -519,8 +519,8 @@ void BeetleNavigator::assemblyFlagCallback(const diagnostic_msgs::KeyValue & msg
 void BeetleNavigator::update()
 {
   rotateContactPointFrame();
-  GimbalrotorNavigator::update();
   convertTargetPosFromCoG2CoM();
+  GimbalrotorNavigator::update();
 }
 
 void BeetleNavigator::rotateContactPointFrame()
