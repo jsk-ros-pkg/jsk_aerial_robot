@@ -31,6 +31,31 @@ void AttitudeController::init(ros::NodeHandle* nh, StateEstimate* estimator)
   att_control_srv_ = nh_->advertiseService("set_attitude_control", &AttitudeController::setAttitudeControlCallback, this);
   torque_allocation_matrix_inv_sub_ = nh_->subscribe("torque_allocation_matrix_inv", 1, &AttitudeController::torqueAllocationMatrixInvCallback, this);
   sim_vol_sub_ = nh_->subscribe("set_sim_voltage", 1, &AttitudeController::setSimVolCallback, this);
+  att_pid_pub_ = nh_->advertise<spinal::PoseControlPid>("debug/att/pid", 1);
+  pid_att_msg_.x.total.resize(1);
+  pid_att_msg_.x.p_term.resize(1);
+  pid_att_msg_.x.i_term.resize(1);
+  pid_att_msg_.x.d_term.resize(1);
+  pid_att_msg_.y.total.resize(1);
+  pid_att_msg_.y.p_term.resize(1);
+  pid_att_msg_.y.i_term.resize(1);
+  pid_att_msg_.y.d_term.resize(1);
+  pid_att_msg_.z.total.resize(1);
+  pid_att_msg_.z.p_term.resize(1);
+  pid_att_msg_.z.i_term.resize(1);
+  pid_att_msg_.z.d_term.resize(1);
+  pid_att_msg_.roll.total.resize(1);
+  pid_att_msg_.roll.p_term.resize(1);
+  pid_att_msg_.roll.i_term.resize(1);
+  pid_att_msg_.roll.d_term.resize(1);
+  pid_att_msg_.pitch.total.resize(1);
+  pid_att_msg_.pitch.p_term.resize(1);
+  pid_att_msg_.pitch.i_term.resize(1);
+  pid_att_msg_.pitch.d_term.resize(1);
+  pid_att_msg_.yaw.total.resize(1);
+  pid_att_msg_.yaw.p_term.resize(1);
+  pid_att_msg_.yaw.i_term.resize(1);
+  pid_att_msg_.yaw.d_term.resize(1);
   baseInit();
 }
 
@@ -46,7 +71,8 @@ AttitudeController::AttitudeController():
   p_matrix_pseudo_inverse_inertia_sub_("p_matrix_pseudo_inverse_inertia", &AttitudeController::pMatrixInertiaCallback, this),
   pwm_test_sub_("pwm_test", &AttitudeController::pwmTestCallback, this ),
   att_control_srv_("set_attitude_control", &AttitudeController::setAttitudeControlCallback, this),
-  torque_allocation_matrix_inv_sub_("torque_allocation_matrix_inv", &AttitudeController::torqueAllocationMatrixInvCallback, this)
+  torque_allocation_matrix_inv_sub_("torque_allocation_matrix_inv", &AttitudeController::torqueAllocationMatrixInvCallback, this),
+  att_pid_pub_("debug/att/pid", &pid_att_msg_)
 {
 }
 
@@ -73,6 +99,7 @@ void AttitudeController::init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2
   nh_->advertise(pwms_pub_);
   nh_->advertise(control_term_pub_);
   nh_->advertise(control_feedback_state_pub_);
+  nh_->advertise(att_pid_pub_);
 
   nh_->subscribe(four_axis_cmd_sub_);
   nh_->subscribe(pwm_info_sub_);
@@ -83,6 +110,57 @@ void AttitudeController::init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2
 
   nh_->advertiseService(att_control_srv_);
 
+  pid_att_msg_.x.total_length = 1;
+  pid_att_msg_.x.total = new float[1];
+  pid_att_msg_.x.total[0] = 0.0;
+  pid_att_msg_.x.p_term = new float[1];
+  pid_att_msg_.x.p_term[0] = 0.0;
+  pid_att_msg_.x.i_term = new float[1];
+  pid_att_msg_.x.i_term[0] = 0.0;
+  pid_att_msg_.x.d_term = new float[1];
+  pid_att_msg_.x.d_term[0] = 0.0;
+  pid_att_msg_.x.total_length = 1;
+  pid_att_msg_.y.total = new float[1];
+  pid_att_msg_.y.total[0] = 0.0;
+  pid_att_msg_.y.p_term = new float[1];
+  pid_att_msg_.y.p_term[0] = 0.0;
+  pid_att_msg_.y.i_term = new float[1];
+  pid_att_msg_.y.i_term[0] = 0.0;
+  pid_att_msg_.y.d_term = new float[1];
+  pid_att_msg_.y.d_term[0] = 0.0;
+  pid_att_msg_.y.total = new float[1];
+  pid_att_msg_.y.total[0] = 0.0;
+  pid_att_msg_.z.p_term = new float[1];
+  pid_att_msg_.z.p_term[0] = 0.0;
+  pid_att_msg_.z.i_term = new float[1];
+  pid_att_msg_.z.i_term[0] = 0.0;
+  pid_att_msg_.z.d_term = new float[1];
+  pid_att_msg_.z.d_term[0] = 0.0;
+
+  pid_att_msg_.roll.total = new float[1];
+  pid_att_msg_.roll.total[0] = 0.0;
+  pid_att_msg_.roll.p_term = new float[1];
+  pid_att_msg_.roll.p_term[0] = 0.0;
+  pid_att_msg_.roll.i_term = new float[1];
+  pid_att_msg_.roll.i_term[0] = 0.0;
+  pid_att_msg_.roll.d_term = new float[1];
+  pid_att_msg_.roll.d_term[0] = 0.0;
+  pid_att_msg_.pitch.total = new float[1];
+  pid_att_msg_.pitch.total[0] = 0.0;
+  pid_att_msg_.pitch.p_term = new float[1];
+  pid_att_msg_.pitch.p_term[0] = 0.0;
+  pid_att_msg_.pitch.i_term = new float[1];
+  pid_att_msg_.pitch.i_term[0] = 0.0;
+  pid_att_msg_.pitch.d_term = new float[1];
+  pid_att_msg_.pitch.d_term[0] = 0.0;
+  pid_att_msg_.yaw.total = new float[1];
+  pid_att_msg_.yaw.total[0] = 0.0;
+  pid_att_msg_.yaw.p_term = new float[1];
+  pid_att_msg_.yaw.p_term[0] = 0.0;
+  pid_att_msg_.yaw.i_term = new float[1];
+  pid_att_msg_.yaw.i_term[0] = 0.0;
+  pid_att_msg_.yaw.d_term = new float[1];
+  pid_att_msg_.yaw.d_term[0] = 0.0;
   baseInit();
 }
 #endif
@@ -130,6 +208,7 @@ void AttitudeController::pwmsControl(void)
     {
       control_term_pub_last_time_ = HAL_GetTick();
       control_term_pub_.publish(control_term_msg_);
+      att_pid_pub_.publish(pid_att_msg_);
     }
 
   if(HAL_GetTick() - control_feedback_state_pub_last_time_ > CONTROL_FEEDBACK_STATE_PUB_INTERVAL)
@@ -160,6 +239,7 @@ void AttitudeController::pwmsControl(void)
         {
           control_term_pub_last_time_ = HAL_GetTick();
           control_term_pub_.publish(&control_term_msg_);
+          att_pid_pub_.publish(&pid_att_msg_);
         }
     }
 
@@ -292,6 +372,11 @@ void AttitudeController::update(void)
                 control_feedback_state_msg_.roll_p = error_angle[axis] * 1000;
                 control_feedback_state_msg_.roll_i = error_angle_i_[axis] * 1000;
                 control_feedback_state_msg_.roll_d = vel[axis]  * 1000;
+
+                pid_att_msg_.roll.target_p = target_angle_[axis];
+                pid_att_msg_.roll.err_p = error_angle[axis];
+                pid_att_msg_.roll.target_d = 0.0;
+                pid_att_msg_.roll.err_d = 0.0 - vel[axis];
               }
             if(axis == Y)
               {
@@ -299,6 +384,10 @@ void AttitudeController::update(void)
                 control_feedback_state_msg_.pitch_i = error_angle_i_[axis] * 1000;
                 control_feedback_state_msg_.pitch_d = vel[axis]  * 1000;
 
+                pid_att_msg_.pitch.target_p = target_angle_[axis];
+                pid_att_msg_.pitch.err_p = error_angle[axis];
+                pid_att_msg_.pitch.target_d = 0.0;
+                pid_att_msg_.pitch.err_d = 0.0 - vel[axis];
               }
             if(axis == Z)
               {
@@ -322,6 +411,11 @@ void AttitudeController::update(void)
                     control_term_msg_.motors[i].roll_p = p_term * 1000;
                     control_term_msg_.motors[i].roll_i= i_term * 1000;
                     control_term_msg_.motors[i].roll_d = d_term * 1000;
+
+                    pid_att_msg_.roll.p_term[i] = p_term;
+                    pid_att_msg_.roll.i_term[i] = i_term;
+                    pid_att_msg_.roll.d_term[i] = d_term;
+                    pid_att_msg_.roll.total[i] = p_term + i_term + d_term;
                   }
                 if(axis == Y)
                   {
@@ -329,6 +423,11 @@ void AttitudeController::update(void)
                     control_term_msg_.motors[i].pitch_p = p_term * 1000;
                     control_term_msg_.motors[i].pitch_i = i_term * 1000;
                     control_term_msg_.motors[i].pitch_d = d_term * 1000;
+
+                    pid_att_msg_.pitch.p_term[i] = p_term;
+                    pid_att_msg_.pitch.i_term[i] = i_term;
+                    pid_att_msg_.pitch.d_term[i] = d_term;
+                    pid_att_msg_.pitch.total[i] = p_term + i_term + d_term;
                   }
                 if(axis == Z)
                   {
@@ -691,11 +790,38 @@ void AttitudeController::setMotorNumber(uint8_t motor_number)
 #ifdef SIMULATION
       pwms_msg_.motor_value.resize(motor_number);
       control_term_msg_.motors.resize(control_term_msg_size);
+
+      pid_att_msg_.pitch.total.resize(motor_number);
+      pid_att_msg_.pitch.p_term.resize(motor_number);
+      pid_att_msg_.pitch.i_term.resize(motor_number);
+      pid_att_msg_.pitch.d_term.resize(motor_number);
+      pid_att_msg_.roll.total.resize(motor_number);
+      pid_att_msg_.roll.p_term.resize(motor_number);
+      pid_att_msg_.roll.i_term.resize(motor_number);
+      pid_att_msg_.roll.d_term.resize(motor_number);
 #else
       pwms_msg_.motor_value_length = motor_number;
       control_term_msg_.motors_length = control_term_msg_size;
       pwms_msg_.motor_value = new uint16_t[motor_number];
       control_term_msg_.motors = new spinal::RollPitchYawTerm[control_term_msg_size];
+
+      pid_att_msg_.pitch.total_length = motor_number;
+      pid_att_msg_.pitch.total = new float[motor_number];
+      pid_att_msg_.pitch.p_term_length = motor_number;
+      pid_att_msg_.pitch.p_term = new float[motor_number];
+      pid_att_msg_.pitch.i_term_length = motor_number;
+      pid_att_msg_.pitch.i_term = new float[motor_number];
+      pid_att_msg_.pitch.d_term_length = motor_number;
+      pid_att_msg_.pitch.d_term = new float[motor_number];
+
+      pid_att_msg_.roll.total_length = motor_number;
+      pid_att_msg_.roll.total = new float[motor_number];
+      pid_att_msg_.roll.p_term_length = motor_number;
+      pid_att_msg_.roll.p_term = new float[motor_number];
+      pid_att_msg_.roll.i_term_length = motor_number;
+      pid_att_msg_.roll.i_term = new float[motor_number];
+      pid_att_msg_.roll.d_term_length = motor_number;
+      pid_att_msg_.roll.d_term = new float[motor_number];
 #endif
       for(int i = 0; i < motor_number; i++) pwms_msg_.motor_value[i] = 0;
 

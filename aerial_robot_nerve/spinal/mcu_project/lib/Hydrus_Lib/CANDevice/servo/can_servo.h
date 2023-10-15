@@ -18,14 +18,16 @@ private:
 	uint16_t p_gain_, i_gain_, d_gain_;
 	int16_t present_position_;
 	int16_t goal_position_;
+	int16_t goal_current_;
 	uint16_t profile_velocity_;
-	uint16_t present_current_;
+	int16_t present_current_;
 	uint16_t current_limit_;
 	uint8_t present_temperature_;
 	uint8_t moving_;
 	uint8_t error_;
 	bool send_data_flag_;
 	bool torque_enable_;
+	bool force_servo_off_;
 	bool external_encoder_flag_;
 	uint16_t joint_resolution_;
 	uint16_t servo_resolution_;
@@ -50,10 +52,12 @@ public:
 	uint8_t getPresentTemperature() const {return present_temperature_;}
 	uint8_t getMoving() const {return moving_;}
 	uint8_t getError() const {return error_;}
-	bool getTorqueEnable();
+	bool getTorqueEnable() const {return torque_enable_;}
+	bool getForceServoOffFlag() const {return force_servo_off_;}
 	void setIndex(uint8_t index) {index_ = index;}
 	void setGoalPosition(int16_t goal_position) {goal_position_ = goal_position;}
-	void setTorqueEnable(bool torque_enable) {torque_enable_ = torque_enable;}
+	void setGoalCurrent(int16_t goal_current) {goal_current_ = goal_current;}
+	void setTorqueEnable(bool torque_enable);
 };
 
 class CANServo : public CANDevice
@@ -73,7 +77,7 @@ private:
 	struct CANServoData{
 		int16_t angle;
 		uint8_t temperature;
-		uint8_t moving;
+		uint8_t status;
 		int16_t current;
 		uint8_t error;
 	};
