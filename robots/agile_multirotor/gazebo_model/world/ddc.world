@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" ?>
+<sdf version='1.4'>
+  <world name='default'>
+
+    <physics type='ode'>
+      <max_step_size>0.001</max_step_size>
+      <real_time_factor>1</real_time_factor>
+      <real_time_update_rate>1000</real_time_update_rate>
+      <magnetic_field>34 0 -36</magnetic_field>
+      <gravity>0 0 -9.8</gravity>
+    </physics>
+
+    <spherical_coordinates>
+      <surface_model>EARTH_WGS84</surface_model>
+      <latitude_deg>0</latitude_deg>
+      <longitude_deg>0</longitude_deg>
+      <elevation>0</elevation>
+      <heading_deg>0</heading_deg>
+    </spherical_coordinates>
+
+
+    <!-- A global light source -->
+   <scene>
+      <sky>
+        <clouds>
+          <speed>12</speed>
+        </clouds>
+      </sky>
+   </scene>
+
+   <include>
+     <uri>model://sun</uri>
+   </include>
+
+    <!-- A ground plane -->
+    <include>
+      <uri>model://ground_plane</uri>
+    </include>
+
+    <!-- Obstacle1 -->
+    <!-- set model name to show the difference of tree -->
+    <model name="sub_target_tree1" >
+    <include>
+      <uri>model://cylinder1</uri>
+      <pose>2 0 1 0 0 0</pose>
+      <static>true</static>
+    </include>
+    </model>
+
+    <!-- Obstacle2 -->
+    <model name="sub_target_tree2" >
+    <include>
+      <uri>model://cylinder1</uri>
+      <pose>2 1 1 0 0 0</pose>
+      <static>true</static>
+    </include>
+    </model>
+    
+  </world>
+</sdf>

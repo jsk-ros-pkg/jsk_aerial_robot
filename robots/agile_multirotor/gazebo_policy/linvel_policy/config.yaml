@@ -1,0 +1,79 @@
+environment:
+  level: [medium]
+  env_folder: 0 # beginning of env
+  world_box: [-20, 80, -10, 10, 0.0, 10]
+  goal_vel: [5.0, 0.0, 0.0]
+  max_detection_range: 10.0
+  goal: 70
+# three difficulty level [easy, medium, hard](list when they learn)
+# configurations for dynamic and static obstacles, environment_(0~100)
+# Bounding box applied during training, exiting this box terminates the episode. [xmin, xmax, ymin, ymax, zmin, zmax]
+# goal velicty for tracking vx, vy, vz (desired velocity)
+# max obstacle detection range [m], obstacles outside this range will not be detected. The number of obstacles detected is fixed to 10, if less than 10 obstacles are within detectable range, the observation is padded with 10.0
+# goal position
+rewards:
+  move_coeff: 1.0
+  vel_coeff: 0
+  collision_coeff: -0.05
+  collision_exp_coeff: 1.0
+  dist_margin: 0.5
+  angular_vel_coeff: -0.0001
+  survive_rew: 0.0
+  world_box_coeff: [-0.0005, -0.002] # y,z
+  attitude_coeff: -0.1
+  command_coeff: [-0.000025, -0.0001, -0.0001, -0.0005, -0.0005, -0.0005, -0.00025]
+
+  names: [move_reward, lin_vel_reward, collision_penalty, ang_vel_penalty, survive_rew,
+    world_box_penalty, attitude_penalty, command_penalty, total] #this size determines the size of rewards. (cf. vision_env.cpp l460)
+
+rgb_camera:
+  on: yes
+  t_BC: [0.0, 0.0, 0.3] # translational vector of the camera with repect to the body frame
+  r_BC: [0.0, 0.0, -90] # rotational angle (roll, pitch, yaw) of the camera in degree.
+  channels: 3
+  width: 320
+  height: 240
+  fov: 90.0
+  enable_depth: yes
+  enable_segmentation: no
+  enable_opticalflow: no
+
+unity:
+  scene_id: 0 # 0 warehouse, 1 street, 2 forest, 3 wasteland
+  render: no
+
+simulation:
+  seed: 1
+  sim_dt: 0.02
+  max_t: 20.0
+  num_envs: 100
+  num_threads: 20
+
+quadrotor_dynamics:
+  mass: 0.752
+  tbm_fr: [0.075, -0.10, 0.0] # [m]
+  tbm_bl: [-0.075, 0.10, 0.0] # [m]
+  tbm_br: [-0.075, -0.10, 0.0] # [m]
+  tbm_fl: [0.075, 0.10, 0.0] # [m
+  omega_max: [6.0, 6.0, 2.0]
+  inertia: [0.0025, 0.0021, 0.0043]
+  kappa: 0.022
+  motor_omega_min: 150.0
+  motor_omega_max: 2800.0
+  motor_tau: 0.033
+  thrust_map: [1.562522e-6, 0.0, 0.0] # max thrust = 8.50 N
+  body_drag_1: [0.00, 0.00, 0.00]
+  body_drag_3: [0.00, 0.00, 0.00]
+  body_drag_h: 0.00
+
+Control:
+  drag_compensation: false
+  kpacc: [10.0, 10.0, 20.0]
+  kdacc: [4.0, 4.0, 6.0]
+  kpatt_z: 2
+  kpatt_xy: 10
+  kprate: [0.0, 0.0, 0.0]
+  p_err_max: [0.6, 0.6, 0.3]
+  v_err_max: [1.0, 1.0, 1.0]
+  filter_sampling_frequency: 300       # filter frequency, same as control frequency (Hz)
+  filter_cutoff_frequency: 6          # outer loop filter cut-off frequency (Hz)

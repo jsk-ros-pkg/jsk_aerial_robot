@@ -4,9 +4,9 @@
   <version>1.3.1</version>
   <description>The common msgs for aerial robot platform</description>
 
-  <maintainer email="chou@jsk.imi.i.u-tokyo.ac.jp">Bakui Chou</maintainer> 
+  <maintainer email="chou@jsk.imi.i.u-tokyo.ac.jp">Bakui Chou</maintainer>
   <license>BSD</license>
-  <url type="website">http://wiki.ros.org/beginner_tutorials</url> 
+  <url type="website">http://wiki.ros.org/beginner_tutorials</url>
   <author email="chou@jsk.imi.i.u-tokyo.ac.jp">Bakui Chou</author>
 
   <buildtool_depend>catkin</buildtool_depend>

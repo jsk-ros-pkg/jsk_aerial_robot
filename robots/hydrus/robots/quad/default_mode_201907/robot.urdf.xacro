@@ -71,7 +71,7 @@
 
   <!-- 2.  sensor -->
   <!-- 2.1 leddar one -->
-  <xacro:extra_module name = "leddarone" parent = "link3" visible = "1"
+  <xacro:extra_module name = "leddarone" parent = "link3" visible = "0"
                       model_url = "package://hydrus/urdf/mesh/sensor/leddar_one_tx2_attached_mode.dae">
     <origin xyz="${link_length/2 - 0.1855} 0.0 -0.0626" rpy="${pi} 0 0"/>
     <inertial>
@@ -85,7 +85,7 @@
   <!-- end: leddar one -->
 
   <!-- 2.2 gps -->
-  <xacro:extra_module name = "gps" parent = "link2" visible = "1"
+  <xacro:extra_module name = "gps" parent = "link2" visible = "0"
                       model_url = "package://hydrus/urdf/mesh/sensor/gps_ublox_m8n.dae">
     <origin xyz="${link_length/2 + 0.1925} 0.0 0.152" rpy="0 0 0"/>
     <inertial>
@@ -108,4 +108,65 @@
     </inertial>
   </xacro:extra_module>
   <!-- end: gps -->
+
+  <xacro:property name="body_radius" value="0.50" />
+  <material name="Dummy_body_color">
+    <color rgba="1.0 1.0 1.0 0.5"/>
+  </material>
+
+  <link name="dummy_body">
+    <inertial>
+      <mass value = "0.0001" />
+      <origin xyz="0 0 0 " rpy="0 0 0"/>
+      <inertia
+          ixx="0.000001" ixy="0.0000" ixz="0.0000"
+          iyy="0.000001" iyz="0.00000"
+          izz="0.000001"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <cylinder length="0.30" radius="${body_radius}"/>
+      </geometry>
+      <material name="Dummy_body_color"/>
+    </visual>
+    <!-- <collision>
+        <origin rpy="0 0 0" xyz="0 0 0"/>
+        <geometry>
+          <cylinder length="0.02" radius="${body_radius}"/>
+        </geometry>
+    </collision> -->
+  </link>
+
+  <joint name="dummy_joint_1" type="fixed">
+    <parent link="link1"/>
+    <child link="dummy_body"/>
+    <origin rpy="0 0 0" xyz="${link_length* 0.5} ${link_length* 0.5} 0.0"/>
+  </joint>
+
+   <!-- <link name="dummy_body_visualize">
+    <inertial>
+      <mass value = "0.0001" />
+      <origin xyz="0 0 0 " rpy="0 0 0"/>
+      <inertia
+          ixx="0.000001" ixy="0.0000" ixz="0.0000"
+          iyy="0.000001" iyz="0.00000"
+          izz="0.000001"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+       <mesh
+        scale="2 2 2"
+        filename="package://agile_multirotor/urdf/mesh/quadrotor.stl" />
+      </geometry>
+    </visual>
+  </link>
+
+  <joint name="dummy_joint_2" type="fixed">
+    <parent link="link1"/>
+    <child link="dummy_body_visualize"/>
+    <origin rpy="0 0 0" xyz="${link_length* 0.5} ${link_length* 0.5} 0.0"/>
+  </joint> -->
+
 </robot>
