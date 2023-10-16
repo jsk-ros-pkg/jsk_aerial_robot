@@ -26,7 +26,7 @@ namespace aerial_robot_navigation
   /* control frame */
   enum control_frame
     {
-      WORLD_FRAME, /* global frame, e.g. NEU, mocap */
+      WORLD_FRAME, /* global frame, e.g. ENU, mocap */
       LOCAL_FRAME /* head frame which is identical with imu head direction */
     };
 
