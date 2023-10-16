@@ -1,0 +1,10 @@
+<launch>
+  <node name="point_cloud_xyzrgb"
+          pkg="nodelet" type="nodelet"
+          args="load depth_image_proc/point_cloud_xyzrgb /sample_manager">
+      <remap from="/camera/color/image_info" to="rgb/camera_info"/>
+      <remap from="/camera/color/image_rect_color" to="rgb/image_rect_color"/>
+      <remap from="/camera/depth/image_rect_raw" to="depth_registered/hw_registered/image_rect"/>
+  </node>
+
+</launch>
