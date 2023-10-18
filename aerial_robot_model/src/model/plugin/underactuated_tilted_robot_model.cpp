@@ -36,7 +36,7 @@
 #include <aerial_robot_model/model/plugin/underactuated_tilted_robot_model.h>
 
 UnderactuatedTiltedRobotModel::UnderactuatedTiltedRobotModel(bool init_with_rosparam, bool verbose, double fc_t_min_thre, double epsilon):
-  RobotModel(init_with_rosparam, verbose, fc_t_min_thre, 0, epsilon)
+  RobotModel(init_with_rosparam, verbose, true, 0, fc_t_min_thre, epsilon)
 {
 
   // calc static thrust

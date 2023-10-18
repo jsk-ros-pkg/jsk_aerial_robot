@@ -18,7 +18,7 @@ void DragonFullVectoringController::initialize(ros::NodeHandle nh, ros::NodeHand
   rosParamInit();
 
   dragon_robot_model_ = boost::dynamic_pointer_cast<Dragon::FullVectoringRobotModel>(robot_model);
-  robot_model_for_control_ = boost::make_shared<aerial_robot_model::RobotModel>();
+  robot_model_for_control_ = boost::make_shared<aerial_robot_model::transformable::RobotModel>();
 
   /* initialize the gimbal target angles */
   target_base_thrust_.resize(motor_num_);

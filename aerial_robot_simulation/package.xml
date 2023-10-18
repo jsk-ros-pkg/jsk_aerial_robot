@@ -19,23 +19,22 @@
   <build_depend>gazebo_ros_control</build_depend>
   <build_depend>kdl_parser</build_depend>
   <build_depend>liburdfdom-headers-dev</build_depend>
-  <build_depend>mk</build_depend>
+  <build_depend>mujoco_ros_control</build_depend>
   <build_depend>roscpp</build_depend>
   <build_depend>spinal</build_depend>
   <build_depend>tf</build_depend>
-  <build_depend>libglfw3-dev</build_depend>
 
   <run_depend>aerial_robot_base</run_depend>
   <run_depend>aerial_robot_estimation</run_depend>
   <run_depend>aerial_robot_msgs</run_depend>
   <run_depend>aerial_robot_model</run_depend>
-  <run_depend>blender</run_depend>
   <run_depend>controller_manager</run_depend>
   <run_depend>controller_interface</run_depend>
   <run_depend>gazebo_ros</run_depend>
   <run_depend>gazebo_ros_control</run_depend>
   <run_depend>hector_gazebo_plugins</run_depend>
   <run_depend>kdl_parser</run_depend>
+  <run_depend>mujoco_ros_control</run_depend>
   <run_depend>roscpp</run_depend>
   <run_depend>ros_controllers</run_depend>
   <run_depend>spinal</run_depend>
@@ -44,7 +43,7 @@
   <export>
     <gazebo_ros_control plugin="${prefix}/aerial_robot_hw_sim_plugins.xml"/>
     <controller_interface plugin="${prefix}/flight_controllers_plugins.xml"/>
-    <aerial_robot_simulation plugin="${prefix}/mujoco_robot_hw_sim_plugin.xml"/>
+    <mujoco_ros_control plugin="${prefix}/mujoco_robot_hw_sim_plugin.xml"/>
   </export>
 
 </package>

@@ -36,7 +36,7 @@
 #include <aerial_robot_model/model/plugin/multirotor_robot_model.h>
 
 MultirotorRobotModel::MultirotorRobotModel(bool init_with_rosparam, bool verbose, double fc_t_min_thre, double epsilon):
-  RobotModel(init_with_rosparam, verbose, 0, fc_t_min_thre, epsilon)
+  RobotModel(init_with_rosparam, verbose, true, 0, fc_t_min_thre, epsilon)
 {
 }
 

@@ -2,7 +2,7 @@
 - git:
     local-name: aerial_robot_3rdparty
     uri: https://github.com/JSKAerialRobot/aerial_robot_3rdparty.git
-    version: ros-kinetic
+    version: 658bd5f
 
 # kalman filter
 - git:
