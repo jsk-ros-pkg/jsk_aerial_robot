@@ -11,7 +11,7 @@ controller:
   sr_inv_weight: 0.1
   fully_actuated: true
   hovering_approximate: false
-  gimbal_lpf_factor: 3.0 # don't set to 0
+  gimbal_lpf_factor: 1.0 # don't set to 0
   controlled_axis: [1, 1, 1, 1, 1, 1]
 
   rotor_tilt1: -0.125
@@ -19,8 +19,8 @@ controller:
   rotor_tilt3: 0.083
 
   xy:
-    p_gain: 3.0
-    i_gain: 0.5
+    p_gain: 1.5
+    i_gain: 0.0
     d_gain: 2.5
     limit_sum: 4.0
     limit_p: 12.0
@@ -39,9 +39,9 @@ controller:
     force_landing_descending_rate: -0.5
 
   roll_pitch:
-    p_gain: 10.0
-    i_gain: 0.5
-    d_gain: 4
+    p_gain: 20.0
+    i_gain: 0.0
+    d_gain: 4.0
     limit_sum: 20.0
     limit_p: 20.0
     limit_i: 20.0
@@ -50,10 +50,10 @@ controller:
     start_rp_integration_height: 0.01
 
   yaw:
-    p_gain: 4.0
-    i_gain: 2.0
-    d_gain: 8.0
-    limit_err_p: 0.4
+    p_gain: 10.0
+    i_gain: 0.0
+    d_gain: 6.0
+    limit_err_p: 1.0
     limit_sum: 20.0
     limit_p: 20.0
     limit_i: 20.0
