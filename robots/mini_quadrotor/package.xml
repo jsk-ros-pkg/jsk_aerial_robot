@@ -11,6 +11,8 @@
 
   <buildtool_depend>catkin</buildtool_depend>
 
+  <build_depend>mujoco_ros_control</build_depend>
+
   <run_depend>aerial_robot_base</run_depend>
   <run_depend>aerial_robot_control</run_depend>
   <run_depend>aerial_robot_estimation</run_depend>
