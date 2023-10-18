@@ -50,6 +50,7 @@ void RollingController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   flight_cmd_pub_ = nh_.advertise<spinal::FourAxisCommand>("four_axes/command", 1);
   gimbal_control_pub_ = nh_.advertise<sensor_msgs::JointState>("gimbals_ctrl", 1);
   torque_allocation_matrix_inv_pub_ = nh_.advertise<spinal::TorqueAllocationMatrixInv>("torque_allocation_matrix_inv", 1);
+  desire_coordinate_pub_ = nh_.advertise<spinal::DesireCoord>("desire_coordinate", 1);
   target_vectoring_force_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("debug/target_vectoring_force", 1);
   target_wrench_acc_cog_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("debug/target_wrench_acc_cog", 1);
   wrench_allocation_matrix_pub_ = nh_.advertise<aerial_robot_msgs::WrenchAllocationMatrix>("debug/wrench_allocation_matrix", 1);
@@ -61,7 +62,6 @@ void RollingController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   target_acc_cog_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("debug/target_acc_cog", 1);
   target_acc_dash_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("debug/target_acc_dash", 1);
 
-  ground_mode_sub_ = nh_.subscribe("ground_mode", 1, &RollingController::groundModeCallback, this);
   joint_state_sub_ = nh_.subscribe("joint_states", 1, &RollingController::jointStateCallback, this);
   z_i_control_flag_sub_ = nh_.subscribe("z_i_control_flag", 1, &RollingController::setZIControlFlagCallback, this);
   z_i_term_sub_ = nh_.subscribe("z_i_term", 1, &RollingController::setZITermCallback, this);
@@ -69,7 +69,6 @@ void RollingController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   reset_attitude_gains_sub_ = nh_.subscribe("reset_attitude_gains", 1, &RollingController::resetAttitudeGainsCallback, this);
   control_mode_sub_ = nh_.subscribe("control_mode", 1, &RollingController::setControlModeCallback, this);
 
-  ground_mode_ = 0;
   gain_updated_ = false;
   ground_navigation_mode_ = aerial_robot_navigation::FLYING_STATE;
 
@@ -85,8 +84,8 @@ void RollingController::reset()
   PoseLinearController::reset();
 
   setAttitudeGains();
-  ground_mode_ = 0;
   gain_updated_ = false;
+  standing_target_phi_ = 0.0;
 }
 
 void RollingController::rosParamInit()
@@ -105,6 +104,9 @@ void RollingController::rosParamInit()
 
   getParam<double>(nh_, "circle_radius", circle_radius_, 0.5);
   rolling_robot_model_->setCircleRadius(circle_radius_);
+
+  getParam<double>(control_nh, "standing_converged_baselink_roll_thresh", standing_converged_baselink_roll_thresh_, 0.0);
+  getParam<double>(control_nh, "standing_converged_z_i_term", standing_converged_z_i_term_, 0.0);
 
   getParam<string>(base_nh, "tf_prefix", tf_prefix_, std::string(""));
 
@@ -128,6 +130,7 @@ void RollingController::rosParamInit()
 
 void RollingController::controlCore()
 {
+  targetStatePlan();
   calcAccFromCog();
   calcWrenchAllocationMatrix();
   wrenchAllocation();
@@ -141,14 +144,49 @@ void RollingController::targetStatePlan()
     {
       ROS_WARN_ONCE("[control] flying state");
     }
+
   if(ground_navigation_mode_ == aerial_robot_navigation::STANDING_STATE)
     {
       ROS_WARN_ONCE("[control] standing state");
+
+      tf::Vector3 cog_pos = estimator_->getPos(Frame::COG, estimate_mode_);
+      if(std::abs(cog_pos.z() / circle_radius_) < 1.0 && std::asin(cog_pos.z() / circle_radius_) > standing_target_phi_)
+        {
+          standing_target_phi_ = std::asin(cog_pos.z() / circle_radius_);
+          if(standing_target_phi_ > 1.57)
+            {
+              standing_target_phi_ = 1.57;
+            }
+        }
+      robot_model_->setCogDesireOrientation(standing_target_phi_, 0, 0);
+      spinal::DesireCoord desire_coordinate_msg;
+      desire_coordinate_msg.roll = standing_target_phi_;
+      desire_coordinate_pub_.publish(desire_coordinate_msg);
+
+      tf::Vector3 standing_initial_pos = rolling_navigator_->getStandingInitialPos();
+      tf::Vector3 standing_initial_euler = rolling_navigator_->getStandingInitialEuler();
+
+      navigator_->setTargetPosX(standing_initial_pos.x() - circle_radius_ * (1 - cos(standing_target_phi_)) * cos(standing_initial_euler.z() + M_PI / 2.0));
+      navigator_->setTargetPosY(standing_initial_pos.y() - circle_radius_ * (1 - cos(standing_target_phi_)) * sin(standing_initial_euler.z() + M_PI / 2.0));
+      navigator_->setTargetPosZ(circle_radius_);
+
+      double baselink_roll = estimator_->getEuler(Frame::BASELINK, estimate_mode_).x();
+      std::cout << baselink_roll << std::endl;
+      if(baselink_roll > 1.3)
+        {
+          ROS_WARN_STREAM("[control] decrease thrttle bacause baselink roll > " << standing_converged_baselink_roll_thresh_);
+          pid_controllers_.at(Z).setITerm(5.0);
+          pid_controllers_.at(Z).setErrIUpdateFlag(false);
+        }
     }
 }
 
 void RollingController::calcAccFromCog()
 {
+  ground_navigation_mode_ = rolling_navigator_->getGroundNavigationMode();
+
+  if(ground_navigation_mode_ == aerial_robot_navigation::FLYING_STATE || aerial_robot_navigation::STANDING_STATE){
+    ROS_WARN_ONCE("[control] calc acc for flying state");
   PoseLinearController::controlCore();
   control_dof_ = std::accumulate(controlled_axis_.begin(), controlled_axis_.end(), 0);
 
@@ -168,8 +206,7 @@ void RollingController::calcAccFromCog()
   target_acc_dash_.at(2) = target_acc_dash.z();
 
   Eigen::VectorXd target_wrench_acc_cog = Eigen::VectorXd::Zero(6);
-  // if(control_dof_ < 6)
-  if(true)
+  if(control_dof_ < 6)
     {
       target_wrench_acc_cog.head(3) = Eigen::Vector3d(target_acc_dash.x(), target_acc_dash.y(), target_acc_dash.z());
     }
@@ -228,6 +265,12 @@ void RollingController::calcAccFromCog()
           target_roll_ = atan2(-target_acc_dash.y(), sqrt(target_acc_dash.x() * target_acc_dash.x() + target_acc_dash.z() * target_acc_dash.z()));
         }
       navigator_->setTargetRoll(target_roll_);
+    }
+  }
+
+  else if(ground_navigation_mode_ == aerial_robot_navigation::STANDING_STATE)
+    {
+      ROS_WARN_ONCE("[control] calc acc for standing state");
     }
 
 }
@@ -526,14 +569,6 @@ void RollingController::resetAttitudeGains()
   rpy_gain_msg.motors.at(0).pitch_d = 0;
   rpy_gain_msg.motors.at(0).yaw_d = 0;
   rpy_gain_pub_.publish(rpy_gain_msg);
-}
-
-void RollingController::groundModeCallback(const std_msgs::Int16Ptr & msg)
-{
-  int prev_ground_mode = ground_mode_;
-  ground_mode_ = msg->data;
-  ROS_INFO_STREAM("[control] changed mode from " << prev_ground_mode << " to " << ground_mode_);
-  gain_updated_ = false;
 }
 
 void RollingController::setZIControlFlagCallback(const std_msgs::BoolPtr & msg)

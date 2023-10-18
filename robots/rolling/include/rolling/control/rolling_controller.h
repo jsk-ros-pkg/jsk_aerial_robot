@@ -8,6 +8,7 @@
 #include <spinal/FourAxisCommand.h>
 #include <spinal/RollPitchYawTerms.h>
 #include <spinal/TorqueAllocationMatrixInv.h>
+#include <spinal/DesireCoord.h>
 #include <std_msgs/Float32MultiArray.h>
 #include <std_msgs/Bool.h>
 #include <rolling/model/rolling_robot_model.h>
@@ -37,6 +38,7 @@ namespace aerial_robot_control
     ros::Publisher flight_cmd_pub_;
     ros::Publisher gimbal_control_pub_;
     ros::Publisher torque_allocation_matrix_inv_pub_; //for spinal
+    ros::Publisher desire_coordinate_pub_;
     ros::Publisher target_vectoring_force_pub_;
     ros::Publisher target_wrench_acc_cog_pub_;
     ros::Publisher wrench_allocation_matrix_pub_;
@@ -47,7 +49,6 @@ namespace aerial_robot_control
     ros::Publisher operability_pub_;
     ros::Publisher target_acc_cog_pub_;
     ros::Publisher target_acc_dash_pub_;
-    ros::Subscriber ground_mode_sub_;
     ros::Subscriber joint_state_sub_;
     ros::Subscriber z_i_control_flag_sub_;
     ros::Subscriber z_i_term_sub_;
@@ -83,7 +84,6 @@ namespace aerial_robot_control
     double torque_allocation_matrix_inv_pub_interval_;
     double allocation_refine_threshold_;
     int allocation_refine_max_iteration_;
-    int ground_mode_;
     double circle_radius_;
     double initial_roll_tilt_;
     std::string tf_prefix_;
@@ -100,6 +100,10 @@ namespace aerial_robot_control
     std::vector<int> controlled_axis_;
     int control_dof_;
 
+    double standing_target_phi_;
+    double standing_converged_baselink_roll_thresh_;
+    double standing_converged_z_i_term_;
+
     void controlCore() override;
     void reset() override;
     void sendCmd();
@@ -108,7 +112,6 @@ namespace aerial_robot_control
     void sendFourAxisCommand();
     void sendTorqueAllocationMatrixInv();
     void setAttitudeGains();
-    void groundModeCallback(const std_msgs::Int16Ptr & msg);
     void jointStateCallback(const sensor_msgs::JointStateConstPtr & msg);
     void setZIControlFlagCallback(const std_msgs::BoolPtr & msg);
     void setZITermCallback(const std_msgs::Float32Ptr & msg);
