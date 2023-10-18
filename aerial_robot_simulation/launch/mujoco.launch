@@ -4,7 +4,7 @@
   <arg name="headless" default="false" />
   <arg name="mujoco_model" default="" />
 
-  <!-- mujoco ros controll -->
+  <!-- mujoco ros control -->
   <include file="$(find mujoco_ros_control)/launch/mujoco.launch" >
     <arg name="robot_ns" value="$(arg robot_ns)" />
     <arg name="headless" value="$(arg headless)"/>
