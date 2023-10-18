@@ -3,6 +3,7 @@
 
 #include <aerial_robot_control/flight_navigation.h>
 #include <spinal/DesireCoord.h>
+#include <std_msgs/Int16.h>
 
 namespace aerial_robot_navigation
 {
@@ -26,24 +27,37 @@ namespace aerial_robot_navigation
 
     void update() override;
     void reset() override;
-    void setFinalTargetBaselinkRot(tf::Vector3 rot);
+
     inline tf::Vector3 getCurrTargetBaselinkRot() {return curr_target_baselink_rot_;}
     inline int getGroundNavigationMode() {return current_ground_navigation_mode_;}
+    inline tf::Vector3 getStandingInitialPos() {return standing_initial_pos_;}
+    inline tf::Vector3 getStandingInitialEuler() {return standing_initial_euler_;}
 
   private:
     ros::Publisher curr_target_baselink_rot_pub_;
     ros::Subscriber final_target_baselink_rot_sub_;
     ros::Subscriber joy_sub_;
+    ros::Subscriber ground_navigation_mode_sub_;
+    ros::Publisher ground_navigation_mode_pub_;
 
     void baselinkRotationProcess();
     void landingProcess();
+    void groundModeProcess();
+
     void rosParamInit() override;
+    void setGroundNavigationMode(int state);
+    void setFinalTargetBaselinkRot(tf::Vector3 rot);
+
+    void groundNavigationModeCallback(const std_msgs::Int16Ptr & msg);
     void setFinalTargetBaselinkRotCallback(const spinal::DesireCoordConstPtr & msg);
     void joyCallback(const sensor_msgs::JoyConstPtr & joy_msg);
-    void setGroundNavigationMode(int state) {current_ground_navigation_mode_ = state;}
 
     /* navigation mode */
     int current_ground_navigation_mode_;
+
+    /* standing mode variable */
+    tf::Vector3 standing_initial_pos_;
+    tf::Vector3 standing_initial_euler_;
 
     /* target baselink rotation */
     double prev_rotation_stamp_;
