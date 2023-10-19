@@ -1,0 +1,17 @@
+---
+repos:
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v2.3.0
+    hooks:
+    -   id: check-yaml
+    -   id: end-of-file-fixer
+    -   id: trailing-whitespace
+    -   id: clang-format  # for C++
+        args: [ --style=Google ]
+    -   id: clang-tidy
+-   repo: https://github.com/psf/black
+    rev: 22.10.0
+    hooks:
+    -   id: black
+        language: python
+        args: [--line-length=120]
