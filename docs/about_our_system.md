@@ -1,5 +1,17 @@
 # About Our System
 
+## Folder Structure
+
+![](./UMLs/folder_structure.svg)
+
+## System Config
+
+![](./UMLs/system_config.svg)
+
+## Class Diagram
+
+![](./UMLs/classes.svg)
+
 ## Workflow
 
 ![](./UMLs/workflow.svg)

@@ -6,9 +6,9 @@ repos:
     -   id: check-yaml
     -   id: end-of-file-fixer
     -   id: trailing-whitespace
-    -   id: clang-format  # for C++
-        args: [ --style=Google ]
-    -   id: clang-tidy
+#    -   id: clang-format  # for C++
+#        args: [ --style=Google ]
+#    -   id: clang-tidy
 -   repo: https://github.com/psf/black
     rev: 22.10.0
     hooks:

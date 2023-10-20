@@ -1,0 +1,123 @@
+@startuml
+'https://plantuml.com/component-diagram
+
+'Legend
+' - Blue: common packages
+' - Orange: only for simulation
+' - Green: only for real machine
+
+package "jsk_aerial_robot" {
+
+[aerial_robot_base] #LightBlue
+note right of aerial_robot_base
+  * standalone core
+  - execute functions from following blocks
+end note
+
+[aerial_robot_model] #LightBlue
+note right of [aerial_robot_model]
+  * joint based modelling
+  - kinematics, statics, stability
+  - jacobian
+  - derive model class as ros plugin
+  - servo motor interface (bridge)
+end note
+
+[aerial_robot_estimation] #LightBlue
+note right of [aerial_robot_estimation]
+  * sensor fusion
+  - cog motion estimation
+  - sensor interface as ros plugin
+  - kalman filter as ros plugin
+end note
+
+[aerial_robot_control] #LightBlue
+note right of [aerial_robot_control]
+  * flight control / navigation
+  - control based on cog motion
+  - navigation for cog and joint motion
+  - derive control/navigation class as ros plugin
+end note
+
+[aerial_robot_msgs] #LightBlue
+note right of [aerial_robot_msgs]
+  * ros messages
+  - aerial_robot_msgs/XXXXX
+end note
+
+[aerial_robot_base] -[hidden]-> [aerial_robot_model]
+[aerial_robot_model] -[hidden]-> [aerial_robot_estimation]
+[aerial_robot_estimation] -[hidden]-> [aerial_robot_control]
+[aerial_robot_control] -[hidden]-> [aerial_robot_msgs]
+
+package "robots" {
+
+  note right of "robots"
+    * derive class as plugin for:
+    - model  from aerial_robot_model
+    - control  from aerial_robot_control
+    - navigation  from aerial_robot_control (option)
+  end note
+
+  [hydrus] #LightBlue
+  note right of [hydrus]
+    - two dimensional multilinked type
+    - vertical thrust
+  end note
+
+  [hydrus_xi] #LightBlue
+  note right of [hydrus_xi]
+    - two dimensional multilinked type
+    - 1D vectorable thrust
+  end note
+
+  [dragon] #LightBlue
+  note right of [dragon]
+    - three dimensional multilinked type
+    - 2D vectorable thrust
+  end note
+
+  [hydrus] -[hidden]-> [hydrus_xi]
+  [hydrus_xi] -[hidden]-> [dragon]
+}
+
+[aerial_robot_simulation] #Orange
+note right of [aerial_robot_simulation]
+  * interface for gazebo
+  - hardware interface
+  - controller interface as plugin
+end note
+
+[aerial_robot_msgs] -[hidden]-> [aerial_robot_simulation]
+
+
+package "aerial_robot_nerve" {
+  [spinal_ros_bridge] #LightGreen
+  note right of [spinal_ros_bridge]
+    * uart between ros and spinal
+    - rosserial based
+  end note
+
+  [spinal] #LightGreen
+  note right of [spinal]
+    * project for stm32 mcu
+    - attitude estimation
+    - attitude control
+    - CAN comm with neuron
+  end note
+
+  [neuron] #LightGreen
+  note right of [neuron]
+    * project for stm32 mcu
+    - sensor interface via GPIO
+    - actuator interface via GPIO
+    - CAN comm with spinal
+  end note
+
+  [spinal_ros_bridge] -[hidden]-> [spinal]
+    [spinal] -[hidden]-> [neuron]
+}
+
+}
+
+@enduml

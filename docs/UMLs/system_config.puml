@@ -1,0 +1,74 @@
+@startuml
+'https://plantuml.com/component-diagram
+
+
+package "Class Member as Plugins" {
+  [robot_model_loader_("aerial_robot_model",\n "aerial_robot_model::RobotModel")] as model_plugin
+  [pluginlib::ClassLoader(aerial_robot_estimation",\n "sensor_plugin::SensorBase")] as sensor_plugin
+  [pluginlib::ClassLoader("kalman_filter",\n "kf_plugin::KalmanFilter"))] as kf_plugin
+  model_plugin -[hidden]-> sensor_plugin
+  sensor_plugin -[hidden]-> kf_plugin
+}
+
+package "Load as Plugin" {
+  [navigator_loader_("aerial_robot_control",\n "aerial_robot_navigation::BaseNavigator")] as navigator_plugin
+  [controller_loader_("aerial_robot_control",\n "aerial_robot_control::ControlBase")] as controller_plugin
+  navigator_plugin -[hidden]-> controller_plugin
+}
+
+component "aerial_robot_base" as base {
+  [ROS spinal (ros::AsyncSpinner)\n4 multi-thread to call callbacks] as ROS_Spinal
+  [*Timer Loop\lVoid mainFunc(const ros::TimerEvent & e)\l{\l        navigator_->update();\l        controller_->update();\l }] as TimerLoop
+  package Instance {
+    [robot_model_ros_]
+    [estimator_]
+    [navigator_]
+    [controller_]
+  }
+}
+
+[servo_bridge]
+
+package "Simulation (Gazebo)" {
+  ["Hardware interface"]
+  ["Controller interfaces"]
+  ["Hardware interface"] -[hidden]-> ["Controller interfaces"]
+}
+
+package "Real Machine" {
+  [spinal_ros_bridge]
+  [sensor interfaces]
+  [spinal]
+}
+
+'Relationship
+
+model_plugin -> robot_model_ros_
+sensor_plugin -> estimator_
+kf_plugin -> estimator_
+
+navigator_plugin -> navigator_
+controller_plugin -> controller_
+
+robot_model_ros_ --> estimator_
+robot_model_ros_ --> navigator_
+robot_model_ros_ --> controller_
+estimator_ --> navigator_
+estimator_ --> controller_
+navigator_ --> controller_
+
+navigator_ -> TimerLoop
+controller_ -> TimerLoop
+
+Instance --> ROS_Spinal
+
+base <--> servo_bridge
+base <--> spinal_ros_bridge
+servo_bridge <--> spinal_ros_bridge
+servo_bridge <--> "Simulation (Gazebo)"
+spinal_ros_bridge <--> spinal
+[sensor interfaces] --> base
+
+kf_plugin -[hidden]-> navigator_plugin
+
+@enduml

@@ -1,7 +1,9 @@
 @startuml
 'https://plantuml.com/sequence-diagram
 
-' ->> means inner communication via variables, -> means outer communication via ROS topics
+' Legend
+' ->> means inner communication via variables
+'-> means outer communication via ROS topics
 
 'for nested boxes
 !pragma teoz true
