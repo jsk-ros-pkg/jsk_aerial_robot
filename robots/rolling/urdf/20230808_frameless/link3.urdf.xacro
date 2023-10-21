@@ -40,21 +40,5 @@
       </visual>
     </link>
 
-    <link name="external_pipe">
-      <inertial>
-        <origin xyz="0 0 0" rpy="0 0 0"/>
-        <mass value="0.07"/>
-        <inertia
-            ixx="0.00001" iyy="0.00001" izz="0.00001"
-            ixy="0.00000" ixz="0.00000" iyz="0.00000"/>
-      </inertial>
-    </link>
-
-    <joint name="external_pipe_joint" type="fixed">
-      <parent link="link3"/>
-      <child link="external_pipe"/>
-      <origin xyz="0.75 0 0"/>
-    </joint>
-
   </xacro:macro>
 </robot>
