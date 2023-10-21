@@ -25,6 +25,7 @@ public:
   template <class T> std::vector<T> getRotorsOriginFromContactPoint();
   template <class T> std::vector<T> getRotorsNormalFromContactPoint();
   template <class T> T getInertiaContactPoint();
+  template <class T> T getCenterPoint();
   void setCircleRadius(double radius) {circle_radius_ = radius;}
 
   Eigen::VectorXd calcFeasibleControlFDists(std::vector<Eigen::Vector3d>&u);
@@ -48,6 +49,7 @@ private:
   std::string thrust_link_;
   double circle_radius_;
   KDL::RotationalInertia link_inertia_contact_point_;
+  KDL::Frame center_point_;
 
 protected:
   void updateRobotModelImpl(const KDL::JntArray& joint_positions) override;
@@ -102,6 +104,16 @@ template<> inline KDL::Frame RollingRobotModel::getContactPoint()
 template<> inline geometry_msgs::TransformStamped RollingRobotModel::getContactPoint()
 {
   return aerial_robot_model::kdlToMsg(RollingRobotModel::getContactPoint<KDL::Frame>());
+}
+
+template<> inline KDL::Frame RollingRobotModel::getCenterPoint()
+{
+  return center_point_;
+}
+
+template<> inline geometry_msgs::TransformStamped RollingRobotModel::getCenterPoint()
+{
+  return aerial_robot_model::kdlToMsg(RollingRobotModel::getCenterPoint<KDL::Frame>());
 }
 
 template<> inline KDL::RotationalInertia RollingRobotModel::getInertiaContactPoint()

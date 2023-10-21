@@ -634,11 +634,17 @@ void RollingController::setControlModeCallback(const std_msgs::Int16Ptr & msg)
 void RollingController::jointStateCallback(const sensor_msgs::JointStateConstPtr & state)
 {
   sensor_msgs::JointState joint_state = *state;
-  geometry_msgs::TransformStamped tf = rolling_robot_model_->getContactPoint<geometry_msgs::TransformStamped>();
-  tf.header = state->header;
-  tf.header.frame_id = tf::resolve(tf_prefix_, std::string("root"));
-  tf.child_frame_id = tf::resolve(tf_prefix_, std::string("cp"));
-  br_.sendTransform(tf);
+  geometry_msgs::TransformStamped contact_point_tf = rolling_robot_model_->getContactPoint<geometry_msgs::TransformStamped>();
+  contact_point_tf.header = state->header;
+  contact_point_tf.header.frame_id = tf::resolve(tf_prefix_, std::string("root"));
+  contact_point_tf.child_frame_id = tf::resolve(tf_prefix_, std::string("contact_point"));
+  br_.sendTransform(contact_point_tf);
+
+  geometry_msgs::TransformStamped center_point_tf = rolling_robot_model_->getCenterPoint<geometry_msgs::TransformStamped>();
+  center_point_tf.header = state->header;
+  center_point_tf.header.frame_id = tf::resolve(tf_prefix_, std::string("root"));
+  center_point_tf.child_frame_id = tf::resolve(tf_prefix_, std::string("center_point"));
+  br_.sendTransform(center_point_tf);
 }
 
 
