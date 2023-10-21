@@ -86,6 +86,7 @@ void RollingController::reset()
   setAttitudeGains();
   gain_updated_ = false;
   standing_target_phi_ = 0.0;
+  controlled_axis_.assign(6, 1);
 }
 
 void RollingController::rosParamInit()
@@ -206,7 +207,7 @@ void RollingController::calcAccFromCog()
   target_acc_dash_.at(2) = target_acc_dash.z();
 
   Eigen::VectorXd target_wrench_acc_cog = Eigen::VectorXd::Zero(6);
-  if(control_dof_ < 6)
+  if(controlled_axis_.at(0) == 0 || controlled_axis_.at(1) == 0)
     {
       target_wrench_acc_cog.head(3) = Eigen::Vector3d(target_acc_dash.x(), target_acc_dash.y(), target_acc_dash.z());
     }
@@ -341,8 +342,16 @@ void RollingController::calcWrenchAllocationMatrix()
 void RollingController::wrenchAllocation()
 {
   /* actuator mapping */
-  full_lambda_trans_ = full_q_mat_inv_.leftCols(control_dof_ - 3) * target_wrench_acc_cog_.head(control_dof_ - 3);
-  full_lambda_rot_ = full_q_mat_inv_.rightCols(3) * target_wrench_acc_cog_.tail(3);
+  int rot_dof = 0;
+  for(int i = 3; i < 6; i++)
+    {
+      if(controlled_axis_.at(i))
+        {
+          rot_dof++;
+        }
+    }
+  full_lambda_trans_ = full_q_mat_inv_.leftCols(control_dof_ - rot_dof) * target_wrench_acc_cog_.head(control_dof_ - rot_dof);
+  full_lambda_rot_ = full_q_mat_inv_.rightCols(rot_dof) * target_wrench_acc_cog_.tail(rot_dof);
   full_lambda_all_ = full_lambda_trans_ + full_lambda_rot_;
 
   int last_col = 0;
@@ -387,6 +396,11 @@ void RollingController::calcYawTerm()
       if(q_mat_inv_(i, control_dof_ - 1) > max_yaw_scale) max_yaw_scale = q_mat_inv_(i, control_dof_ - 1);
     }
   candidate_yaw_term_ = pid_controllers_.at(YAW).result() * max_yaw_scale;
+
+  if(controlled_axis_.at(YAW) == 0)
+    {
+      candidate_yaw_term_ = 0;
+    }
 }
 
 void RollingController::sendCmd()
