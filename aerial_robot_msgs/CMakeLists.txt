@@ -3,11 +3,11 @@ project(aerial_robot_msgs)
 
 ## Find catkin and any catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  actionlib
   std_msgs
   geometry_msgs
   message_generation
-
+  actionlib
+  actionlib_msgs
 )
 
 ## Declare ROS messages and services
@@ -40,5 +40,5 @@ generate_messages(DEPENDENCIES std_msgs geometry_msgs actionlib_msgs)
 
 ## Declare a catkin package
 catkin_package(
-  CATKIN_DEPENDS std_msgs geometry_msgs message_runtime
+  CATKIN_DEPENDS std_msgs geometry_msgs message_runtime actionlib actionlib_msgs
 )
