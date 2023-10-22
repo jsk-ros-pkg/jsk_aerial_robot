@@ -24,9 +24,9 @@ repos:
     hooks:
       - id: clang-format
 
-    # YAML
-  - repo: https://github.com/jumanjihouse/pre-commit-hook-yamlfmt
-    rev: 0.2.1    # or other specific tag
-    hooks:
-      - id: yamlfmt
-        args: [--mapping, '2', --sequence, '4', --offset, '2', --width, '120']
+#    # YAML  - still bad support for comments in YAML files
+#  - repo: https://github.com/jumanjihouse/pre-commit-hook-yamlfmt
+#    rev: 0.2.1    # or other specific tag
+#    hooks:
+#      - id: yamlfmt
+#        args: [--mapping, '2', --sequence, '4', --offset, '2', --width, '120']
