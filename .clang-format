@@ -1,7 +1,8 @@
 ---
 Language: Cpp
 # BasedOnStyle:  Google
-AccessModifierOffset: -1
+AccessModifierOffset: 0  # add indent for public/private keywords
+IndentAccessModifiers: true  # add indent after public/private keywords
 AlignAfterOpenBracket: Align
 AlignConsecutiveMacros: false
 AlignConsecutiveAssignments: false
