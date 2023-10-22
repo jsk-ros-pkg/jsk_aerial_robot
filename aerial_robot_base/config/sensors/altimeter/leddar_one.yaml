@@ -1,9 +1,9 @@
 sensor_plugin:
-        alt:
-                range_noise_sigma:  0.01 #old: 0.005
-                range_sensor_sub_name: leddar_one/range
-                sensor_frame: leddarone
-                reference_frame: fc
-                no_height_offset: true
-                time_sync: false
-                delay: 0
+  alt:
+    range_noise_sigma: 0.01 #old: 0.005
+    range_sensor_sub_name: leddar_one/range
+    sensor_frame: leddarone
+    reference_frame: fc
+    no_height_offset: true
+    time_sync: false
+    delay: 0

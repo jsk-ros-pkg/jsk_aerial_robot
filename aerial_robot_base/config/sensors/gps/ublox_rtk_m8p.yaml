@@ -2,15 +2,14 @@
 # Note: we need a normal GPS as gps1, otherwise following yaml file would be never loaded
 
 sensor_plugin:
-        gps2: # we need a normal GPS as gps1, otherwise following yaml file would be never loaded
-                rtk: true
-                min_est_sat_num: 10
-                pos_noise_sigma:  1.0
-                gps_ros_sub_name: rtk_gps/fix
-                rtk_pos_sub_name: rtk_gps/rel_pos
-                sensor_frame: rtk_gps
-                ned_flag: true #north(x)-east(y)-down(z) frame
-                time_sync: true
-                delay: -0.25
-                #rtk_offset: false # Please overwrite this parameter in your StateEstimation.yaml. **Not Here!!*. True: set the takeoff point as zero for RTK model, otherwise, the zero point is the base station like mocap. Default is false
-
+  gps2: # we need a normal GPS as gps1, otherwise following yaml file would be never loaded
+    rtk: true
+    min_est_sat_num: 10
+    pos_noise_sigma: 1.0
+    gps_ros_sub_name: rtk_gps/fix
+    rtk_pos_sub_name: rtk_gps/rel_pos
+    sensor_frame: rtk_gps
+    ned_flag: true #north(x)-east(y)-down(z) frame
+    time_sync: true
+    delay: -0.25
+    #rtk_offset: false # Please overwrite this parameter in your StateEstimation.yaml. **Not Here!!*. True: set the takeoff point as zero for RTK model, otherwise, the zero point is the base station like mocap. Default is false

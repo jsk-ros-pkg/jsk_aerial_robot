@@ -42,25 +42,26 @@ import rostest
 from std_msgs.msg import Empty
 from aerial_robot_msgs.msg import PoseControlPid
 
-PKG = 'rostest'
+PKG = "rostest"
 
-class HoveringCheck():
+
+class HoveringCheck:
     def __init__(self, name="hovering_check"):
-        self.hovering_duration = rospy.get_param('~hovering_duration', 0.0)
-        self.convergence_thresholds = rospy.get_param('~convergence_thresholds', [0.01, 0.01, 0.01]) # [xy,z, theta]
-        self.controller_sub = rospy.Subscriber('debug/pose/pid', PoseControlPid, self._controlCallback)
+        self.hovering_duration = rospy.get_param("~hovering_duration", 0.0)
+        self.convergence_thresholds = rospy.get_param("~convergence_thresholds", [0.01, 0.01, 0.01])  # [xy,z, theta]
+        self.controller_sub = rospy.Subscriber("debug/pose/pid", PoseControlPid, self._controlCallback)
         self.control_msg = None
 
     def hoveringCheck(self):
 
         # start motor arming
-        start_pub = rospy.Publisher('teleop_command/start', Empty, queue_size=1)
-        takeoff_pub = rospy.Publisher('teleop_command/takeoff', Empty, queue_size=1)
+        start_pub = rospy.Publisher("teleop_command/start", Empty, queue_size=1)
+        takeoff_pub = rospy.Publisher("teleop_command/takeoff", Empty, queue_size=1)
 
-        time.sleep(0.5) # wait for publisher initialization
+        time.sleep(0.5)  # wait for publisher initialization
         start_pub.publish(Empty())
 
-        time.sleep(1.0) # second
+        time.sleep(1.0)  # second
 
         # start takeoff
         takeoff_pub.publish(Empty())
@@ -68,54 +69,64 @@ class HoveringCheck():
         deadline = rospy.Time.now() + rospy.Duration(self.hovering_duration)
         while not rospy.Time.now() > deadline:
             if self.control_msg is not None:
-                err_x = self.control_msg.x.err_p;
-                err_y = self.control_msg.y.err_p;
-                err_z = self.control_msg.z.err_p;
-                err_yaw = self.control_msg.yaw.err_p;
-                err_xy = math.sqrt(err_x * err_x + err_y * err_y);
-                rospy.loginfo_throttle(1, 'errors in [xy, z, yaw]: [%f (%f, %f), %f, %f]' %  (err_xy, err_x, err_y, err_z, err_yaw))
+                err_x = self.control_msg.x.err_p
+                err_y = self.control_msg.y.err_p
+                err_z = self.control_msg.z.err_p
+                err_yaw = self.control_msg.yaw.err_p
+                err_xy = math.sqrt(err_x * err_x + err_y * err_y)
+                rospy.loginfo_throttle(
+                    1, "errors in [xy, z, yaw]: [%f (%f, %f), %f, %f]" % (err_xy, err_x, err_y, err_z, err_yaw)
+                )
             rospy.sleep(1.0)
 
-        err_x = self.control_msg.x.err_p;
-        err_y = self.control_msg.y.err_p;
-        err_z = self.control_msg.z.err_p;
-        err_yaw = self.control_msg.yaw.err_p;
-        err_xy = math.sqrt(err_x * err_x + err_y * err_y);
+        err_x = self.control_msg.x.err_p
+        err_y = self.control_msg.y.err_p
+        err_z = self.control_msg.z.err_p
+        err_yaw = self.control_msg.yaw.err_p
+        err_xy = math.sqrt(err_x * err_x + err_y * err_y)
 
         # check convergence
-        if err_xy < self.convergence_thresholds[0] and math.fabs(err_z) < self.convergence_thresholds[1] and math.fabs(err_yaw) < self.convergence_thresholds[2]:
+        if (
+            err_xy < self.convergence_thresholds[0]
+            and math.fabs(err_z) < self.convergence_thresholds[1]
+            and math.fabs(err_yaw) < self.convergence_thresholds[2]
+        ):
             return True
 
         # cannot be convergent
-        rospy.logerr('errors in [xy, z, yaw]: [%f (%f, %f), %f, %f]' %  (err_xy, err_x, err_y, err_z, err_yaw))
+        rospy.logerr("errors in [xy, z, yaw]: [%f (%f, %f), %f, %f]" % (err_xy, err_x, err_y, err_z, err_yaw))
 
         return False
 
     def _controlCallback(self, msg):
         self.control_msg = msg
 
-        err_x = self.control_msg.x.err_p;
-        err_y = self.control_msg.y.err_p;
-        err_z = self.control_msg.z.err_p;
-        err_yaw = self.control_msg.yaw.err_p;
-        err_xy = math.sqrt(err_x * err_x + err_y * err_y);
-        rospy.logdebug_throttle(1, 'errors in [xy, z, yaw]: [%f (%f, %f), %f, %f]' %  (err_xy, err_x, err_y, err_z, err_yaw))
+        err_x = self.control_msg.x.err_p
+        err_y = self.control_msg.y.err_p
+        err_z = self.control_msg.z.err_p
+        err_yaw = self.control_msg.yaw.err_p
+        err_xy = math.sqrt(err_x * err_x + err_y * err_y)
+        rospy.logdebug_throttle(
+            1, "errors in [xy, z, yaw]: [%f (%f, %f), %f, %f]" % (err_xy, err_x, err_y, err_z, err_yaw)
+        )
+
 
 class HoveringTest(unittest.TestCase):
     def __init__(self, *args):
         super(self.__class__, self).__init__(*args)
         rospy.init_node("hovering_test")
-        self.hovering_delay = rospy.get_param('~hovering_delay', 1.0)
+        self.hovering_delay = rospy.get_param("~hovering_delay", 1.0)
 
     def test_hovering(self):
         rospy.sleep(self.hovering_delay)
         checker = HoveringCheck()
-        self.assertTrue(checker.hoveringCheck(), msg='Cannot reach convergence')
+        self.assertTrue(checker.hoveringCheck(), msg="Cannot reach convergence")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     print("start check hovering")
     try:
-        rostest.run(PKG, 'hovering_check', HoveringTest, sys.argv)
+        rostest.run(PKG, "hovering_check", HoveringTest, sys.argv)
     except KeyboardInterrupt:
         pass
 

@@ -1,8 +1,8 @@
 sensor_plugin:
-        altitude:
-                barometer_sub_name: baro
-                baro_noise_sigma: 0.2
-                baro_bias_noise_sigma: 0.001
-                rx_freq: 80.0
-                cutoff_freq: 10.0
-                high_cutoff_freq: 1.0
+  altitude:
+    barometer_sub_name: baro
+    baro_noise_sigma: 0.2
+    baro_bias_noise_sigma: 0.001
+    rx_freq: 80.0
+    cutoff_freq: 10.0
+    high_cutoff_freq: 1.0
