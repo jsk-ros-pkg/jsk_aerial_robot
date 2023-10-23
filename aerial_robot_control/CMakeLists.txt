@@ -16,6 +16,9 @@ find_package(catkin REQUIRED COMPONENTS
 
 find_package(Eigen3 REQUIRED)
 
+list(APPEND CMAKE_PREFIX_PATH "~/Apps/acados")
+find_package(acados REQUIRED)
+
 generate_dynamic_reconfigure_options(
   cfg/PID.cfg
   cfg/LQI.cfg
@@ -51,8 +54,8 @@ include_directories(
 ### control utils
 add_library(control_utils
   src/control/utils/care.cpp
-  )
-target_link_libraries(control_utils ${EIGEN3_LIBRARIES})
+)
+target_link_libraries(control_utils ${EIGEN3_LIBRARIES} acados)
 
 ### flight control plugin
 add_library(flight_control_pluginlib
@@ -60,8 +63,9 @@ add_library(flight_control_pluginlib
   src/control/fully_actuated_controller.cpp
   src/control/under_actuated_controller.cpp
   src/control/under_actuated_lqi_controller.cpp
-  src/control/under_actuated_tilted_lqi_controller.cpp)
-
+  src/control/under_actuated_tilted_lqi_controller.cpp
+  src/control/mpc_controller.cpp
+  src/control/base/mpc_solver.cpp)
 target_link_libraries(flight_control_pluginlib ${catkin_LIBRARIES} control_utils)
 add_dependencies(flight_control_pluginlib  ${PROJECT_NAME}_gencfg)
 
