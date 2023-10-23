@@ -127,7 +127,7 @@
         </inertial>
         <collision>
           <geometry>
-            <cylinder radius="0.4" length="0.1"/>
+            <cylinder radius="0.405" length="0.1"/>
           </geometry>
         </collision>
       </link>
