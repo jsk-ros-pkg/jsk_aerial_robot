@@ -11,27 +11,27 @@
 using namespace std;
 
 class AerialRobotBase {
-  public:
-    AerialRobotBase(const ros::NodeHandle& nh, const ros::NodeHandle& nh_private);
-    ~AerialRobotBase();
+ public:
+  AerialRobotBase(const ros::NodeHandle& nh, const ros::NodeHandle& nh_private);
+  ~AerialRobotBase();
 
-    void mainFunc(const ros::TimerEvent& e);
+  void mainFunc(const ros::TimerEvent& e);
 
-  private:
-    ros::NodeHandle nh_;
-    ros::NodeHandle nhp_;
-    ros::Timer main_timer_;
+ private:
+  ros::NodeHandle nh_;
+  ros::NodeHandle nhp_;
+  ros::Timer main_timer_;
 
-    boost::shared_ptr<aerial_robot_model::RobotModelRos> robot_model_ros_;
-    boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator_;
+  boost::shared_ptr<aerial_robot_model::RobotModelRos> robot_model_ros_;
+  boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator_;
 
-    pluginlib::ClassLoader<aerial_robot_navigation::BaseNavigator> navigator_loader_;
-    boost::shared_ptr<aerial_robot_navigation::BaseNavigator> navigator_;
+  pluginlib::ClassLoader<aerial_robot_navigation::BaseNavigator> navigator_loader_;
+  boost::shared_ptr<aerial_robot_navigation::BaseNavigator> navigator_;
 
-    pluginlib::ClassLoader<aerial_robot_control::ControlBase> controller_loader_;
-    boost::shared_ptr<aerial_robot_control::ControlBase> controller_;
+  pluginlib::ClassLoader<aerial_robot_control::ControlBase> controller_loader_;
+  boost::shared_ptr<aerial_robot_control::ControlBase> controller_;
 
-    ros::AsyncSpinner callback_spinner_;   // Use 4 threads
-    ros::AsyncSpinner main_loop_spinner_;  // Use 1 threads
-    ros::CallbackQueue main_loop_queue_;
+  ros::AsyncSpinner callback_spinner_;   // Use 4 threads
+  ros::AsyncSpinner main_loop_spinner_;  // Use 1 threads
+  ros::CallbackQueue main_loop_queue_;
 };
