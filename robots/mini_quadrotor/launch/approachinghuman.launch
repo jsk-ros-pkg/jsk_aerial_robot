@@ -6,6 +6,13 @@
   <arg name="coral" default="true" />
   <arg name="detector" default="$(find coral_usb)/launch/edgetpu_object_detector.launch" />
 
+  <!-- ROS depth image to OpenCV -->
+  <node pkg="mini_quadrotor"
+        type="converting_ROS_image_to_OpenCV.py"
+        name="ROS2OpenCV" output="screen">
+  </node>
+
+  
   <node pkg="mini_quadrotor"
         type="merge.py"
         name="merge_class_and_rect" output="screen">
