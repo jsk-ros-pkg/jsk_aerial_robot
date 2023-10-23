@@ -12,6 +12,9 @@ controller:
   fully_actuated: true
   hovering_approximate: false
   gimbal_lpf_factor: 1.0 # don't set to 0
+  standing_converged_baselink_roll_thresh: 1.4
+  standing_converged_z_i_term: 6.5
+  standing_baselink_ref_pitch_update_thresh: 2.0
   controlled_axis: [1, 1, 1, 1, 1, 1]
 
   rotor_tilt1: -0.125
