@@ -20,8 +20,8 @@
   <!-- large friction -->
   <xacro:macro name="large_friction" params="link">
     <gazebo reference="${link}">
-      <mu1>20</mu1>
-      <mu2>20</mu2>
+      <mu1>100</mu1>
+      <mu2>100</mu2>
     </gazebo>
   </xacro:macro>
 
