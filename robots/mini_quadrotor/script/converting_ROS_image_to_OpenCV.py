@@ -12,6 +12,8 @@ def camera_callback(msg):
   #msg = Image()
   bridge = CvBridge()
   cv_image = bridge.imgmsg_to_cv2(msg)
+  depth = cv_image.item(240,320)
+  print(depth)
   image_pub.publish(msg)
 
 if __name__ == '__main__':

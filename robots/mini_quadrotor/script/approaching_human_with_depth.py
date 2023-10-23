@@ -2,11 +2,17 @@
 
 import rospy
 import math
+import numpy as np
+import cv2
 from jsk_recognition_msgs.msg import RectArray
 from geometry_msgs.msg import Vector3
 from std_msgs.msg import Empty
 from std_msgs.msg import UInt8
 from aerial_robot_msgs.msg import FlightNav
+
+from cv_bridge import CvBridge
+from sensor_msgs.msg import Image
+
 
 class Approaching_human():
     def __init__(self):
@@ -20,10 +26,10 @@ class Approaching_human():
         self.rotate_cnt = 0
         self.rotate_flag = True
 
-        self.camera_height = 720
-        self.camera_width = 960
+        self.camera_height = 480
+        self.camera_width = 640
         self.camera_param = 0.8
-        
+        #rect(ROS image)
         self.rect_sub = rospy.Subscriber('/human',RectArray,self.rect_cb)
         self.rects = RectArray()
         self.max_index = 0
@@ -31,9 +37,14 @@ class Approaching_human():
         self.max_rect_pos = Vector3()
         self.max_rect_area = 0.0
         self.max_thresh_area  = 370000 #rospy.get_param("~max_thresh_area",370000)
-        self.depth_sub = rospy.Subscriber('/camera/depth/image_raw',,self.camera_depth_cb)
-        self.camera_depth = 
-        
+
+        #depth(OpenCV image)
+        self.depth_sub = rospy.Subscriber('/camera/depth/image_rect_raw',Image,self.camera_depth_cb)
+        #self.camera_depth_image = Image()
+        self.bridge = CvBridge()
+        self.cv_image = np.empty((self.camera_height,self.camera_width))
+        self.depth = 0
+
         self.move_pub = rospy.Publisher('/quadrotor/uav/nav',FlightNav,queue_size = 10)
         self.move_msg = FlightNav()
         self.land_pub =rospy.Publisher('/quadrotor/teleop_command/land',Empty,queue_size = 10)
@@ -48,7 +59,8 @@ class Approaching_human():
         self.flight_state_msg = msg
 
     def camera_depth_cb(self,msg):
-        self.camera_depth = msg
+        #self.camera_depth_image = msg
+        self.cv_image = self.bridge.imgmsg_to_cv2(msg)
 
     def flight_rotate_state(self):
         if self.flight_state_msg == 3:
@@ -78,8 +90,15 @@ class Approaching_human():
 
     def rotate_yaw(self):
         yaw = 0
+        #画面中心から見たrectの中心位置
         self.max_rect_pos.x = (self.max_rect.x + (self.max_rect.width/2)) - (self.camera_width/2)
         self.max_rect_pos.y = (self.max_rect.y + (self.max_rect.height/2)) + (self.camera_height/2)
+        #ピクセル指定したいときのrectの中心位置
+        self.max_rect_pos.x = self.max_rect.x + (self.max_rect.width/2)
+        self.max_rect_pos.y = self.max_rect.y + (self.max_rect.height/2)
+        self.depth = self.cv_image.item(self.max_rect_pos.x,self.max_rect_pos.y)
+        depth = self.camera_depth.data(self.max_rect_pos.x,self.max_rect_pos.y)
+        print(depth)
         yaw = self.max_rect_pos.x * (math.pi/self.camera_width)* self.camera_param
         self.move_msg.target_yaw = yaw
         self.move_msg.target_pos_z = self.max_rect_pos.y * 0.001
