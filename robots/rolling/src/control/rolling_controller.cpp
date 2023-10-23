@@ -86,6 +86,7 @@ void RollingController::reset()
   setAttitudeGains();
   gain_updated_ = false;
   standing_target_phi_ = 0.0;
+  standing_baselink_ref_pitch_last_update_time_ = -1;
   controlled_axis_.assign(6, 1);
 }
 
@@ -108,6 +109,7 @@ void RollingController::rosParamInit()
 
   getParam<double>(control_nh, "standing_converged_baselink_roll_thresh", standing_converged_baselink_roll_thresh_, 0.0);
   getParam<double>(control_nh, "standing_converged_z_i_term", standing_converged_z_i_term_, 0.0);
+  getParam<double>(control_nh, "standing_baselink_ref_pitch_update_thresh", standing_baselink_ref_pitch_update_thresh_, 1.0);
 
   getParam<string>(base_nh, "tf_prefix", tf_prefix_, std::string(""));
 
@@ -149,6 +151,7 @@ void RollingController::targetStatePlan()
   if(ground_navigation_mode_ == aerial_robot_navigation::STANDING_STATE)
     {
       ROS_WARN_ONCE("[control] standing state");
+      setControlAxis(YAW, 0);
 
       tf::Vector3 cog_pos = estimator_->getPos(Frame::COG, estimate_mode_);
       if(std::abs(cog_pos.z() / circle_radius_) < 1.0 && std::asin(cog_pos.z() / circle_radius_) > standing_target_phi_)
@@ -156,13 +159,33 @@ void RollingController::targetStatePlan()
           standing_target_phi_ = std::asin(cog_pos.z() / circle_radius_);
           if(standing_target_phi_ > 1.57)
             {
-              standing_target_phi_ = 1.57;
+              standing_target_phi_ = M_PI / 2.0;
             }
         }
-      robot_model_->setCogDesireOrientation(standing_target_phi_, 0, 0);
+
+      double baselink_roll = estimator_->getEuler(Frame::BASELINK, estimate_mode_).x();
+      double baselink_pitch = estimator_->getEuler(Frame::BASELINK, estimate_mode_).y();
+      double tmp_roll, tmp_pitch, tmp_yaw;
+      double target_baselink_pitch = robot_model_->getCogDesireOrientation<Eigen::Matrix3d>().eulerAngles(0, 1, 2)(1);
+
+      // std::cout << ros::Time::now().toSec() << " " << standing_baselink_ref_pitch_last_update_time_ << std::endl;
+      // std::cout << ros::Time::now().toSec() - standing_baselink_ref_pitch_last_update_time_ << std::endl;
+      // std::cout << standing_baselink_ref_pitch_update_thresh_ << std::endl;
+
       spinal::DesireCoord desire_coordinate_msg;
       desire_coordinate_msg.roll = standing_target_phi_;
+
+      if(ros::Time::now().toSec() - standing_baselink_ref_pitch_last_update_time_ > standing_baselink_ref_pitch_update_thresh_)
+        {
+          ROS_WARN_STREAM("[control] update target baselink pitch angle to " << baselink_pitch);
+          standing_baselink_ref_pitch_last_update_time_ = ros::Time::now().toSec();
+          desire_coordinate_msg.pitch = baselink_pitch;
+          target_baselink_pitch = baselink_pitch;
+          desire_coordinate_msg.pitch = target_baselink_pitch;
+        }
+
       desire_coordinate_pub_.publish(desire_coordinate_msg);
+      robot_model_->setCogDesireOrientation(standing_target_phi_, target_baselink_pitch, 0);
 
       tf::Vector3 standing_initial_pos = rolling_navigator_->getStandingInitialPos();
       tf::Vector3 standing_initial_euler = rolling_navigator_->getStandingInitialEuler();
@@ -171,12 +194,11 @@ void RollingController::targetStatePlan()
       navigator_->setTargetPosY(standing_initial_pos.y() - circle_radius_ * (1 - cos(standing_target_phi_)) * sin(standing_initial_euler.z() + M_PI / 2.0));
       navigator_->setTargetPosZ(circle_radius_);
 
-      double baselink_roll = estimator_->getEuler(Frame::BASELINK, estimate_mode_).x();
-      std::cout << baselink_roll << std::endl;
-      if(baselink_roll > 1.3)
+      // std::cout << estimator_->getEuler(Frame::BASELINK, estimate_mode_).x() << " " << estimator_->getEuler(Frame::BASELINK, estimate_mode_).y() << " " << estimator_->getEuler(Frame::BASELINK, estimate_mode_).z() << " " << std::endl;
+      if(baselink_roll > standing_converged_baselink_roll_thresh_)
         {
           ROS_WARN_STREAM("[control] decrease thrttle bacause baselink roll > " << standing_converged_baselink_roll_thresh_);
-          pid_controllers_.at(Z).setITerm(5.0);
+          pid_controllers_.at(Z).setITerm(standing_converged_z_i_term_);
           pid_controllers_.at(Z).setErrIUpdateFlag(false);
         }
     }
