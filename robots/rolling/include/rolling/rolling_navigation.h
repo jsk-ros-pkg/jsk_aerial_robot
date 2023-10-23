@@ -2,6 +2,7 @@
 #pragma once
 
 #include <aerial_robot_control/flight_navigation.h>
+#include <rolling/model/rolling_robot_model.h>
 #include <spinal/DesireCoord.h>
 #include <std_msgs/Int16.h>
 
@@ -39,6 +40,8 @@ namespace aerial_robot_navigation
     ros::Subscriber joy_sub_;
     ros::Subscriber ground_navigation_mode_sub_;
     ros::Publisher ground_navigation_mode_pub_;
+
+    boost::shared_ptr<RollingRobotModel> rolling_robot_model_;
 
     void baselinkRotationProcess();
     void landingProcess();
