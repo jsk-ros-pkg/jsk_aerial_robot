@@ -7,27 +7,20 @@
   <arg name="detector" default="$(find coral_usb)/launch/edgetpu_object_detector.launch" />
 
   <!-- ROS depth image to OpenCV -->
-  <node pkg="mini_quadrotor"
-        type="converting_ROS_image_to_OpenCV.py"
-        name="ROS2OpenCV" output="screen">
-  </node>
+  <!-- <node pkg="mini_quadrotor" -->
+  <!--       type="converting_ROS_image_to_OpenCV.py" -->
+  <!--       name="ROS2OpenCV" output="screen"> -->
+  <!-- </node> -->
 
   
   <node pkg="mini_quadrotor"
         type="merge.py"
         name="merge_class_and_rect" output="screen">
-    <!-- <remap from="~image" to="$(arg INPUT_IMAGE)" /> -->
-    <!-- <remap from="~info" to="$(arg INPUT_INFO)" /> -->
-    <!-- <remap from="~input_class" to="$(arg INPUT_CLASS)" /> -->
-    <!-- <remap from="~input_rects" to="$(arg INPUT_RECTS)" /> -->
-    <!-- <rosparam> -->
-    <!--   frame_fixed: "rear_rail" -->
-    <!--   image_transport: compressed -->
-    <!--   dimensions_labels: -->
-    <!--       person: [0.5, 0.5, 1.5] -->
-    <!-- </rosparam> -->
   </node>
 
+  <node pkg="mini_quadrotor"
+        type="approaching_human_with_depth.py"
+        name="approaching_human" output="screen">
 
   <!-- launch coral -->
   <include if="$(arg coral)" file="$(arg detector)">
