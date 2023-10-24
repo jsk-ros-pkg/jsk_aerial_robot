@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<launch>
+  <arg name="INPUT_IMAGE" default="/camera/color/image_raw" />
+  <arg name="realsense" default="true" />
+  <arg name="coral" default="true" />
+  <arg name="detector" default="$(find coral_usb)/launch/edgetpu_human_pose_estimator.launch" />
+
+  <node pkg="jsk_perception"
+	type="skeleton_with_depth.py"
+	name="skeleton_with_depth">
+    <remap from="~input/skeleton" to="/edgetpu_human_pose_estimator/output/skeletons" />
+    <remap from="~input/depth" to="/camera/depth/image_rect_raw" />
+    <remap from="~input/info" to="/camera/depth/camera_info" />
+  </node>
+
+  
+  <!-- launch coral -->
+  <include if="$(arg coral)" file="$(arg detector)">
+    <arg name="INPUT_IMAGE" value="$(arg INPUT_IMAGE)" />
+  </include>
+
+  <!-- launch realsense -->
+  <include if="$(arg realsense)" file="$(find realsense2_camera)/launch/rs_camera.launch" >
+    <rosparam>
+      align_depth: "true"
+    </rosparam>
+  </include>
+
+</launch>
