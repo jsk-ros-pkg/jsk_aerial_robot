@@ -31,8 +31,8 @@ add_message_files(FILES
 
 # Generate actions in the 'action' folder
 add_action_files(
-   FILES
-   TrackTraj.action
+  FILES
+  TrackTraj.action
 )
 
 ## Generate added messages and services
