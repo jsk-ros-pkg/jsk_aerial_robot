@@ -8,6 +8,7 @@ find_package(catkin REQUIRED COMPONENTS
   aerial_robot_estimation
   aerial_robot_model
   aerial_robot_msgs
+  mujoco_ros_control
   pluginlib
   roscpp
   )
@@ -69,10 +70,14 @@ install(TARGETS opt full_search fc_t_output optimal_design mapping_optimization
   DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   )
 
-add_custom_command(OUTPUT ${PROJECT_SOURCE_DIR}/mujoco
-  COMMAND rosrun aerial_robot_simulation mujoco_model_generator.py ${PROJECT_SOURCE_DIR}/config/mujoco_model.yaml
-  POST_BUILD
-  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  DEPENDS ${PROJECT_SOURCE_DIR}/urdf
-          ${PROJECT_SOURCE_DIR}/config/mujoco_model.yaml)
-add_custom_target(generate_mujoco_model ALL DEPENDS ${PROJECT_SOURCE_DIR}/mujoco)
+# add_custom_command(OUTPUT ${PROJECT_SOURCE_DIR}/mujoco
+#   COMMAND rosrun aerial_robot_simulation mujoco_model_generator.py ${PROJECT_SOURCE_DIR}/config/mujoco_model.yaml
+#   POST_BUILD
+#   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+#   DEPENDS ${PROJECT_SOURCE_DIR}/urdf
+#           ${PROJECT_SOURCE_DIR}/config/mujoco_model.yaml)
+# add_custom_target(generate_mujoco_model ALL DEPENDS ${PROJECT_SOURCE_DIR}/mujoco)
+
+mujoco_model_convert(
+  ${PROJECT_SOURCE_DIR}
+  ${PROJECT_SOURCE_DIR}/config/mujoco_model.yaml)
