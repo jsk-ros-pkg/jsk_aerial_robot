@@ -35,18 +35,16 @@
 
 #include "aerial_robot_control/control/base/mpc_solver.h"
 
-MPC::MPCSolver::MPCSolver() {
+MPC::MPCSolver::MPCSolver(const aerial_robot_msgs::PredXUConstPtr& x_u_init)
+{
+  /* construct optimizer */
   acados_ocp_capsule = qd_body_rate_model_acados_create_capsule();
-
-  // there is an opportunity to change the number of shooting intervals in C
-  // without new code generation
-  N = QD_BODY_RATE_MODEL_N;
 
   // allocate the array and fill it accordingly
   double* new_time_steps = nullptr;
   status = qd_body_rate_model_acados_create_with_discretization(acados_ocp_capsule, N, new_time_steps);
-
-  if (status) {
+  if (status)
+  {
     printf("qd_body_rate_model_acados_create() returned status %d. Exiting.\n", status);
     exit(1);
   }
@@ -58,60 +56,76 @@ MPC::MPCSolver::MPCSolver() {
   nlp_solver = qd_body_rate_model_acados_get_nlp_solver(acados_ocp_capsule);
   nlp_opts = qd_body_rate_model_acados_get_nlp_opts(acados_ocp_capsule);
 
-  //  set initial constraints
-  for (int i = 0; i < NBX0; i++) {
+  //  set constraints idx for x0
+  int idxbx0[NBX0];
+  for (int i = 0; i < NBX0; i++)
+  {
     idxbx0[i] = i;
-    lbx0[i] = 0.0;
-    ubx0[i] = 0.0;
   }
   ocp_nlp_constraints_model_set(nlp_config, nlp_dims, nlp_in, 0, "idxbx", idxbx0);
-  ocp_nlp_constraints_model_set(nlp_config, nlp_dims, nlp_in, 0, "lbx", lbx0);
-  ocp_nlp_constraints_model_set(nlp_config, nlp_dims, nlp_in, 0, "ubx", ubx0);
 
-  // Initialize parameters
-  for (double& i : p) {
-    i = 0.0;
-  }
-  for (int ii = 0; ii <= N; ii++) {
-    qd_body_rate_model_acados_update_params(acados_ocp_capsule, ii, p, NP);
-  }
+  // set rti_phase TODO: check this according to the paper
+  int rti_phase = 0;
+  ocp_nlp_solver_opts_set(nlp_config, nlp_opts, "rti_phase", &rti_phase);
 
-  // Initialize state values
-  for (double& i : x_init) {
-    i = 0.0;
-  }
-  // Initialize control input
-  for (double& i : u0) {
-    i = 0.0;
-  }
-  reset();
+  /* reset constraints and initial guess */
+  reset(x_u_init);
 }
 
-MPC::MPCSolver::~MPCSolver() {
+MPC::MPCSolver::~MPCSolver()
+{
   // free solver
   status = qd_body_rate_model_acados_free(acados_ocp_capsule);
-  if (status) {
+  if (status)
+  {
     printf("qd_body_rate_model_acados_free() returned status %d. \n", status);
   }
   // free solver capsule
   status = qd_body_rate_model_acados_free_capsule(acados_ocp_capsule);
-  if (status) {
+  if (status)
+  {
     printf("qd_body_rate_model_acados_free_capsule() returned status %d. \n", status);
   }
 }
 
-void MPC::MPCSolver::reset() {
-  // set initial guess
-  int rti_phase = 0;
-  for (int i = 0; i < N; i++) {
-    ocp_nlp_out_set(nlp_config, nlp_dims, nlp_out, i, "x", x_init);
-    ocp_nlp_out_set(nlp_config, nlp_dims, nlp_out, i, "u", u0);
+void MPC::MPCSolver::reset(const aerial_robot_msgs::PredXUConstPtr& x_u)
+{
+  const unsigned int x_stride = x_u->x.layout.dim[1].stride;
+  const unsigned int u_stride = x_u->u.layout.dim[1].stride;
+
+  // reset initial guess
+  double x[NX];
+  double u[NU];
+  double p[NP];
+  for (int i = 0; i < N; i++)
+  {
+    std::copy(x_u->x.data.begin() + x_stride * i, x_u->x.data.begin() + x_stride * (i + 1), x);
+    ocp_nlp_out_set(nlp_config, nlp_dims, nlp_out, i, "x", x);
+
+    std::copy(x_u->u.data.begin() + u_stride * i, x_u->u.data.begin() + u_stride * (i + 1), u);
+    ocp_nlp_out_set(nlp_config, nlp_dims, nlp_out, i, "u", u);
+
+    // quaternions
+    std::copy(x_u->x.data.begin() + x_stride * i + 6, x_u->x.data.begin() + x_stride * i + 10, p);
+    ocp_nlp_out_set(nlp_config, nlp_dims, nlp_out, i, "p", p);
   }
-  ocp_nlp_out_set(nlp_config, nlp_dims, nlp_out, N, "x", x_init);
-  ocp_nlp_solver_opts_set(nlp_config, nlp_opts, "rti_phase", &rti_phase);
+  std::copy(x_u->x.data.begin() + x_stride * N, x_u->x.data.begin() + x_stride * (N + 1), x);
+  ocp_nlp_out_set(nlp_config, nlp_dims, nlp_out, N, "x", x);
+
+  std::copy(x_u->x.data.begin() + x_stride * N + 6, x_u->x.data.begin() + x_stride * N + 10, p);
+  ocp_nlp_out_set(nlp_config, nlp_dims, nlp_out, N, "p", p);
+
+  // set feedback constraints
+  double lbx0[NBX0];
+  std::copy(x_u->x.data.begin() + x_stride * 0 + 0, x_u->x.data.begin() + x_stride * 0 + NBX0, lbx0);
+  ocp_nlp_constraints_model_set(nlp_config, nlp_dims, nlp_in, 0, "lbx", lbx0);
+  double ubx0[NBX0];
+  std::copy(x_u->x.data.begin() + x_stride * 0 + 0, x_u->x.data.begin() + x_stride * 0 + NBX0, ubx0);
+  ocp_nlp_constraints_model_set(nlp_config, nlp_dims, nlp_in, 0, "ubx", ubx0);
 }
 
-int MPC::MPCSolver::solve(double* x0, double* xr, double* ur, double* pr) {
+int MPC::MPCSolver::solve(const nav_msgs::OdometryConstPtr& odom_now, const aerial_robot_msgs::PredXUConstPtr& x_u_ref)
+{
   /* prepare evaluation */
   int N_timings = 1;
   double min_time = 1e12;
@@ -120,13 +134,16 @@ int MPC::MPCSolver::solve(double* x0, double* xr, double* ur, double* pr) {
   int sqp_iter;
 
   /* set values for reference */
-  for (int i = 0; i < N; i++) {
+  for (int i = 0; i < N; i++)
+  {
     // yr = np.concatenate((xr[i, :], ur[i, :]))
     double yr[NX + NU];
-    for (int j = 0; j < NX; j++) {
+    for (int j = 0; j < NX; j++)
+    {
       yr[j] = xr[i * NX + j];
     }
-    for (int j = 0; j < NU; j++) {
+    for (int j = 0; j < NU; j++)
+    {
       yr[NX + j] = ur[i * NU + j];
     }
     ocp_nlp_out_set(nlp_config, nlp_dims, nlp_out, i, "y_ref", yr);
@@ -134,7 +151,8 @@ int MPC::MPCSolver::solve(double* x0, double* xr, double* ur, double* pr) {
     // quaternion_r = xr[i, 6:10]
     // self.solver.set(i, "p", quaternion_r)  # for nonlinear quaternion error
     double quaternion_r[4];
-    for (int j = 0; j < 4; j++) {
+    for (int j = 0; j < 4; j++)
+    {
       quaternion_r[j] = xr[i * NX + 6 + j];
     }
     ocp_nlp_out_set(nlp_config, nlp_dims, nlp_out, i, "p", quaternion_r);
@@ -143,14 +161,16 @@ int MPC::MPCSolver::solve(double* x0, double* xr, double* ur, double* pr) {
   ocp_nlp_out_set(nlp_config, nlp_dims, nlp_out, N, "y_ref", xr + N * NX);
 
   /* solve ocp in loop */
-  for (int i = 0; i < N_timings; i++) {
+  for (int i = 0; i < N_timings; i++)
+  {
     status = qd_body_rate_model_acados_solve(acados_ocp_capsule);
 
     ocp_nlp_get(nlp_config, nlp_solver, "time_tot", &elapsed_time);
     min_time = MIN(elapsed_time, min_time);
   }
 
-  if (status != ACADOS_SUCCESS) {
+  if (status != ACADOS_SUCCESS)
+  {
     ROS_WARN("qd_body_rate_model_acados_solve() failed with status %d.\n", status);
   }
 
@@ -161,12 +181,15 @@ int MPC::MPCSolver::solve(double* x0, double* xr, double* ur, double* pr) {
     ocp_nlp_out_get(nlp_config, nlp_dims, nlp_out, ii, "u", &out_xu.u_traj[ii * NU]);
 
   /* print statistics in DEBUG mode */
-  if (getenv("ROS_DEBUG")) {
+  if (getenv("ROS_DEBUG"))
+  {
     std::cout << "\n--- x_traj ---\n" << std::endl;
 
-    for (int i = 0; i <= N; i++) {
+    for (int i = 0; i <= N; i++)
+    {
       std::cout << "X Row " << i << ":" << std::endl;
-      for (int j = 0; j < NX; j++) {
+      for (int j = 0; j < NX; j++)
+      {
         int index = i * NX + j;
         std::cout << out_xu.x_traj[index] << " ";
       }
@@ -175,9 +198,11 @@ int MPC::MPCSolver::solve(double* x0, double* xr, double* ur, double* pr) {
 
     std::cout << "\n--- u_traj ---\n" << std::endl;
 
-    for (int i = 0; i < N; i++) {
+    for (int i = 0; i < N; i++)
+    {
       std::cout << "U Row " << i << ":" << std::endl;
-      for (int j = 0; j < NU; j++) {
+      for (int j = 0; j < NU; j++)
+      {
         int index = i * NU + j;
         std::cout << out_xu.u_traj[index] << " ";
       }
