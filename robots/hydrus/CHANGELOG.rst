@@ -2,8 +2,8 @@
 Changelog for package hydrus
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.3.3 (2023-10-26)
+------------------
 * [Hydrus][URDF] remove unecessary URDF files (`#560 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/560>`_)
 * Enable visualizing the rotor speed in gazebo (`#500 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/500>`_)
 * [Hydrus] refactor CAD model realted to propeller to enable the visible rotation in gazebo and update the missing CAD model (remove the fixed propeller)

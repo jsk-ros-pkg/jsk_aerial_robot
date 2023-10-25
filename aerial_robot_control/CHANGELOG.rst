@@ -2,8 +2,8 @@
 Changelog for package aerial_robot_control
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.3.3 (2023-10-26)
+------------------
 * [Navigation] refactor landing and halt command during vel acc-based mode (`#553 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/553>`_)
 * [Robot Control] refactor the control framework (`#526 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/526>`_)
 * [Robot Model] refactor the robot modelling framework (`#525 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/525>`_)

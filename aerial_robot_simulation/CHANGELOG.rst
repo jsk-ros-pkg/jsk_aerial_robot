@@ -2,8 +2,8 @@
 Changelog for package aerial_robot_simulation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.3.3 (2023-10-26)
+------------------
 * Enable visualizing the rotor speed in gazebo (`#500 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/500>`_)
 * [Robot Model] refactor the robot modelling framework (`#525 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/525>`_)
 
