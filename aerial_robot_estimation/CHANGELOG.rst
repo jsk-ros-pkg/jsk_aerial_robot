@@ -2,6 +2,11 @@
 Changelog for package aerial_robot_estimation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* [Estimation][VO] Refactor throttle/decimate process (`#558 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/558>`_)
+* [Robot Model] refactor the robot modelling framework (`#525 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/525>`_)
+
 1.3.2 (2023-02-01)
 ------------------
 * Refactor the subscruber transport hint for moacp pose subscriber (`#524 <https://github.com/jsk-ros-pkg/aerial_robot/issues/524>`_)
