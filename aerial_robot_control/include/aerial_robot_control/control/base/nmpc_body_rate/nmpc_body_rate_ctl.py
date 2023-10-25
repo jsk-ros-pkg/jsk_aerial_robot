@@ -14,7 +14,7 @@ import numpy as np
 from acados_template import AcadosOcp, AcadosOcpSolver, AcadosSimSolver, AcadosModel
 import casadi as ca
 
-from params import nmpc_params as CP
+import nmpc_params as CP
 
 
 class NMPCBodyRateController(object):
