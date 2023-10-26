@@ -1,6 +1,6 @@
 #include <aerial_robot_base/aerial_robot_base.h>
 
-AerialRobotBase::AerialRobotBase(ros::NodeHandle nh, ros::NodeHandle nh_private)
+AerialRobotBase::AerialRobotBase(const ros::NodeHandle& nh, const ros::NodeHandle& nh_private)
   : nh_(nh)
   , nhp_(nh_private)
   , callback_spinner_(4)

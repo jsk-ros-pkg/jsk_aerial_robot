@@ -13,7 +13,7 @@ using namespace std;
 class AerialRobotBase
 {
 public:
-  AerialRobotBase(ros::NodeHandle nh, ros::NodeHandle nh_private);
+  AerialRobotBase(const ros::NodeHandle& nh, const ros::NodeHandle& nh_private);
   ~AerialRobotBase();
 
   void mainFunc(const ros::TimerEvent& e);
