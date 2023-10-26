@@ -128,9 +128,21 @@ namespace aerial_robot_control
     void calcYawTerm();
     void setControlAxis(int axis, int mode)
     {
+      int prev_mode = controlled_axis_.at(axis);
       if(axis < 0 || 6 <= axis) return;
       if(mode) controlled_axis_.at(axis) = 1;
       else controlled_axis_.at(axis) = 0;
+      if(prev_mode != mode)
+        {
+          ROS_WARN_STREAM("[control] set control axis about " << axis << " to " << mode << ". The controlled axis is ["
+                          << controlled_axis_.at(0) << " "
+                          << controlled_axis_.at(1) << " "
+                          << controlled_axis_.at(2) << " "
+                          << controlled_axis_.at(3) << " "
+                          << controlled_axis_.at(4) << " "
+                          << controlled_axis_.at(5) << "]"
+                          );
+        }
     }
   };
 };
