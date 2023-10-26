@@ -2,6 +2,13 @@
 Changelog for package aerial_robot_base
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.3.3 (2023-10-26)
+------------------
+* [Mini Quadrotor] support the common quadrotor platform (`#546 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/546>`_)
+* [Estimate][IMU] add standard configuration for spianl IMU
+* [Robot Control] refactor the control framework (`#526 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/526>`_ )
+* [Robot Model] refactor the robot modelling framework (`#525 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/525>`_)
+
 1.3.2 (2023-02-01)
 ------------------
 
