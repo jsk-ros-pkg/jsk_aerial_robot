@@ -1,3 +1,4 @@
+// -*- mode: c++ -*-
 //
 // Created by lijinjie on 23/10/22.
 //
@@ -53,17 +54,11 @@
 namespace MPC
 {
 
-// struct OutXU
-//{
-//   double x_traj[NX * (QD_BODY_RATE_MODEL_N + 1)];
-//   double u_traj[NU * QD_BODY_RATE_MODEL_N];
-// };
-
 class MPCSolver
 {
 public:
-  int status;
-  aerial_robot_msgs::PredXU x_u_out;
+  int status_;
+  aerial_robot_msgs::PredXU x_u_out_;
 
   MPCSolver(const aerial_robot_msgs::PredXUConstPtr& x_u_init);
   ~MPCSolver();
@@ -71,13 +66,23 @@ public:
   int solve(const nav_msgs::OdometryConstPtr& odom_now, const aerial_robot_msgs::PredXUConstPtr& x_u_ref);
 
 private:
-  qd_body_rate_model_solver_capsule* acados_ocp_capsule;
-  ocp_nlp_config* nlp_config;
-  ocp_nlp_dims* nlp_dims;
-  ocp_nlp_in* nlp_in;
-  ocp_nlp_out* nlp_out;
-  ocp_nlp_solver* nlp_solver;
-  void* nlp_opts;
+  qd_body_rate_model_solver_capsule* acados_ocp_capsule_;
+  ocp_nlp_config* nlp_config_;
+  ocp_nlp_dims* nlp_dims_;
+  ocp_nlp_in* nlp_in_;
+  ocp_nlp_out* nlp_out_;
+  ocp_nlp_solver* nlp_solver_;
+  void* nlp_opts_;
+
+  void initReturnValue();
+  void initSolver();
+  void setReference(const aerial_robot_msgs::PredXUConstPtr& x_u_ref, const int x_stride, const int u_stride);
+  void setFeedbackConstraints(const nav_msgs::OdometryConstPtr& odom_now);
+  double solveOCPInLoop(const int N_timings);
+  void getSolution(const int x_stride, const int u_stride);
+
+  void printStatus(const int N_timings, const double min_time);
+  void printSolution();
 };
 
 }  // namespace MPC
