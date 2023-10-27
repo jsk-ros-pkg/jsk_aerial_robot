@@ -5,7 +5,7 @@
 
 #include "aerial_robot_control/control/base/mpc_solver.h"
 
-MPC::MPCSolver::MPCSolver(const aerial_robot_msgs::PredXU& x_u_init)
+MPC::MPCSolver::MPCSolver()
 {
   MPC::initPredXU(x_u_out_);
 
@@ -20,8 +20,6 @@ MPC::MPCSolver::MPCSolver(const aerial_robot_msgs::PredXU& x_u_init)
   // set rti_phase TODO: check this according to the paper
   int rti_phase = 0;
   ocp_nlp_solver_opts_set(nlp_config_, nlp_opts_, "rti_phase", &rti_phase);
-
-  reset(x_u_init);  // reset constraints and initial guess
 }
 
 MPC::MPCSolver::~MPCSolver()
