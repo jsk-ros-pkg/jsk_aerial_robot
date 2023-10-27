@@ -1,4 +1,4 @@
-aerial_robot_control_name: aerial_robot_control/under_actuated_tilted_lqi_controller
+aerial_robot_control_name: aerial_robot_control/mpc_controller
 
 controller:
   xy:
@@ -51,4 +51,3 @@ controller:
 
     trans_constraint_weight: 100
     att_control_weight: 1
-

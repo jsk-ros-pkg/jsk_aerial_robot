@@ -55,7 +55,7 @@ include_directories(
 add_library(control_utils
   src/control/utils/care.cpp
 )
-target_link_libraries(control_utils ${EIGEN3_LIBRARIES} acados)
+target_link_libraries(control_utils ${EIGEN3_LIBRARIES})
 
 ### flight control plugin
 add_library(flight_control_pluginlib
@@ -66,7 +66,7 @@ add_library(flight_control_pluginlib
   src/control/under_actuated_tilted_lqi_controller.cpp
   src/control/mpc_controller.cpp
   src/control/base/mpc_solver.cpp)
-target_link_libraries(flight_control_pluginlib ${catkin_LIBRARIES} control_utils)
+target_link_libraries(flight_control_pluginlib ${catkin_LIBRARIES} control_utils acados ${PROJECT_SOURCE_DIR}/include/aerial_robot_control/control/base/nmpc_body_rate/c_generated_code/libacados_ocp_solver_qd_body_rate_model.so)
 add_dependencies(flight_control_pluginlib  ${PROJECT_NAME}_gencfg)
 
 ### flight navigation

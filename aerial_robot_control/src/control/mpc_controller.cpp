@@ -160,3 +160,7 @@ void aerial_robot_control::MPCController::sendFlightCmd()
 
   flight_cmd_pub_.publish(flight_cmd_);
 }
+
+/* plugin registration */
+#include <pluginlib/class_list_macros.h>
+PLUGINLIB_EXPORT_CLASS(aerial_robot_control::MPCController, aerial_robot_control::ControlBase);
