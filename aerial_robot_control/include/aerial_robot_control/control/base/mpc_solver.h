@@ -60,10 +60,10 @@ public:
   int status_;
   aerial_robot_msgs::PredXU x_u_out_;
 
-  MPCSolver(const aerial_robot_msgs::PredXUConstPtr& x_u_init);
+  MPCSolver(const aerial_robot_msgs::PredXU& x_u_init);
   ~MPCSolver();
-  void reset(const aerial_robot_msgs::PredXUConstPtr& x_u);
-  int solve(const nav_msgs::OdometryConstPtr& odom_now, const aerial_robot_msgs::PredXUConstPtr& x_u_ref);
+  void reset(const aerial_robot_msgs::PredXU& x_u);
+  int solve(const nav_msgs::Odometry& odom_now, const aerial_robot_msgs::PredXU& x_u_ref);
 
 private:
   qd_body_rate_model_solver_capsule* acados_ocp_capsule_;
@@ -74,15 +74,16 @@ private:
   ocp_nlp_solver* nlp_solver_;
   void* nlp_opts_;
 
-  void initReturnValue();
   void initSolver();
-  void setReference(const aerial_robot_msgs::PredXUConstPtr& x_u_ref, const int x_stride, const int u_stride);
-  void setFeedbackConstraints(const nav_msgs::OdometryConstPtr& odom_now);
-  double solveOCPInLoop(const int N_timings);
-  void getSolution(const int x_stride, const int u_stride);
+  void setReference(const aerial_robot_msgs::PredXU& x_u_ref, unsigned int x_stride, unsigned int u_stride);
+  void setFeedbackConstraints(const nav_msgs::Odometry& odom_now);
+  double solveOCPInLoop(int N_timings);
+  void getSolution(unsigned int x_stride, unsigned int u_stride);
 
-  void printStatus(const int N_timings, const double min_time);
+  void printStatus(int N_timings, double min_time);
   void printSolution();
 };
+
+void initPredXU(aerial_robot_msgs::PredXU& x_u);
 
 }  // namespace MPC
