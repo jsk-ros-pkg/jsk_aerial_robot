@@ -13,7 +13,7 @@ MPC::MPCSolver::MPCSolver()
 
   //  set constraints idx for x0
   int idxbx0[NBX0];
-  for (int i = 0; i < NBX0; i++)
+  for (int i = 0; i < 6; i++)  // free quaternion
     idxbx0[i] = i;
   ocp_nlp_constraints_model_set(nlp_config_, nlp_dims_, nlp_in_, 0, "idxbx", idxbx0);
 
@@ -155,10 +155,10 @@ void MPC::MPCSolver::setFeedbackConstraints(const nav_msgs::Odometry& odom_now)
   bx0[3] = odom_now.twist.twist.linear.x;
   bx0[4] = odom_now.twist.twist.linear.y;
   bx0[5] = odom_now.twist.twist.linear.z;
-  bx0[6] = odom_now.pose.pose.orientation.w;
-  bx0[7] = odom_now.pose.pose.orientation.x;
-  bx0[8] = odom_now.pose.pose.orientation.y;
-  bx0[9] = odom_now.pose.pose.orientation.z;
+  //  bx0[6] = odom_now.pose.pose.orientation.w;
+  //  bx0[7] = odom_now.pose.pose.orientation.x;
+  //  bx0[8] = odom_now.pose.pose.orientation.y;
+  //  bx0[9] = odom_now.pose.pose.orientation.z;
 
   ocp_nlp_constraints_model_set(nlp_config_, nlp_dims_, nlp_in_, 0, "lbx", bx0);
   ocp_nlp_constraints_model_set(nlp_config_, nlp_dims_, nlp_in_, 0, "ubx", bx0);
