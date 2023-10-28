@@ -14,6 +14,6 @@ Pre-commit, the format plugin, will run automatically before each commit. The sp
 .pre-commit-config.yaml. To activate this plugin, please run the following command in terminal and root directory:
 
 ```bash
-    pip install pre-commit
+    pip3 install pre-commit
     pre-commit install
 ```
