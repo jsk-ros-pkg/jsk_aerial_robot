@@ -2,6 +2,9 @@
 Changelog for package spinal
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.3.3 (2023-10-26)
+------------------
+
 1.3.2 (2023-02-01)
 ------------------
 * [stm32h7_nucleo] correct the cmake version (`#529 <https://github.com/jsk-ros-pkg/aerial_robot/issues/529>`_)

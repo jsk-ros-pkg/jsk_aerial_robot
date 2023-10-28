@@ -1,0 +1,48 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+
+' Legend
+' ->> means inner communication via variables
+'-> means outer communication via ROS topics
+
+'for nested boxes
+!pragma teoz true
+
+autonumber
+
+box Laptop #Khaki
+participant RViz
+participant Terminal
+end box
+
+box "Onboard PC\n(Jetson NX)" #LightGreen
+participant "Nav" as Nav
+participant "Control" as Ctl
+participant "Estimator" as Est
+end box
+
+box Gazebo (Laptop) #Aliceblue
+
+    box "     MCU\n(STM32 H7)" #LightBlue
+    participant "Spinal/Control_Spawner" as Spinal
+    end box
+
+    box Body  #LightGray
+    participant "ESC&Servo" as ESC
+    end box
+
+end box
+
+Est ->> Est: 100Hz
+
+loop 40Hz
+    Est ->> Ctl: estimator_->getState()
+end loop
+
+Nav ->> Ctl: target_pos/vel/acc
+loop 10Hz
+    Ctl -> Spinal: qd/attitude\ngeometry_msgs/Vector3Stamped
+end loop
+Spinal -> ESC: PWM
+
+@enduml
