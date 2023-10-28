@@ -33,7 +33,7 @@ rosdep update --include-eol-distros
 # Install source code
 mkdir -p ~/catkin_ws/src
 cd ~/catkin_ws
-ln -sf ${CI_SOURCE_PATH} src/${REPOSITORY_NAME}
+cp -r ${CI_SOURCE_PATH} src/${REPOSITORY_NAME} # copy the whole contents instead of create symbolic link
 wstool init src
 wstool merge -t src src/${REPOSITORY_NAME}/aerial_robot_${ROS_DISTRO}.rosinstall
 wstool update -t src
