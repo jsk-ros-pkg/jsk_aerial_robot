@@ -8,6 +8,7 @@ find_package(catkin REQUIRED COMPONENTS
   aerial_robot_msgs
   aerial_robot_control
   aerial_robot_model
+  mujoco_ros_control
   spinal
   eigen_conversions
   tf_conversions
@@ -86,6 +87,9 @@ install(DIRECTORY bin
   USE_SOURCE_PERMISSIONS
 )
 
+mujoco_model_convert(
+  ${PROJECT_SOURCE_DIR}
+  ${PROJECT_SOURCE_DIR}/config/mujoco_model.yaml)
 
 if(CATKIN_ENABLE_TESTING)
   find_package(rostest REQUIRED)

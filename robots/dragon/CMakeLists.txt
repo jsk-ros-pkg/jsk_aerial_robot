@@ -8,6 +8,7 @@ find_package(catkin REQUIRED COMPONENTS
   aerial_robot_model
   aerial_robot_msgs
   hydrus
+  mujoco_ros_control
   pluginlib
   roscpp
 )
@@ -82,6 +83,9 @@ install(DIRECTORY bin
   USE_SOURCE_PERMISSIONS
 )
 
+mujoco_model_convert(
+  ${PROJECT_SOURCE_DIR}
+  ${PROJECT_SOURCE_DIR}/config/mujoco_model.yaml)
 
 if(CATKIN_ENABLE_TESTING)
   find_package(rostest REQUIRED)

@@ -107,3 +107,7 @@ tags
 # Jetbrains
 .idea/
 *cmake-build-debug/
+
+# mujoco
+MUJOCO_LOG.txt
+robots/**/mujoco

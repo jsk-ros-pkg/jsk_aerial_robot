@@ -1,5 +1,6 @@
 <launch>
   <arg name="headless" default="False"/>
+  <arg name="mujoco" default="False"/>
   <arg name="robot_id" default=""/>
   <arg name="robot_ns" value="quadrotor$(arg robot_id)"/>
 
@@ -8,6 +9,7 @@
     <arg name="simulation" value="True" />
     <arg name="robot_id" value="$(arg robot_id)"/>
     <arg name="headless" value="$(arg headless)" />
+    <arg name="mujoco" value="$(arg mujoco)" />
   </include>
 
   <!-- test codes -->
