@@ -30,7 +30,8 @@ include_directories(
 
 add_library(rolling_controller
   src/control/rolling_controller.cpp
-  src/control/ground_controller.cpp)
+  src/control/ground_controller.cpp
+  src/control/pid_param_setter.cpp)
 target_link_libraries(rolling_controller ${catkin_LIBRARIES} ${OsqpEigen_LIBRARIES} ${NLOPT_LIBRARIES})
 
 add_library(rolling_robot_model src/model/rolling_robot_model.cpp)
