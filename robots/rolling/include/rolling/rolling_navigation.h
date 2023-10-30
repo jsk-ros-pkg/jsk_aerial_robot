@@ -30,7 +30,9 @@ namespace aerial_robot_navigation
     void reset() override;
 
     inline tf::Vector3 getCurrTargetBaselinkRot() {return curr_target_baselink_rot_;}
-    inline int getGroundNavigationMode() {return current_ground_navigation_mode_;}
+    inline int getCurrentGroundNavigationMode() {return current_ground_navigation_mode_;}
+    inline int getPrevGroundNavigationMode() {return prev_ground_navigation_mode_;}
+    void setPrevGroundNavigationMode(int mode) {prev_ground_navigation_mode_ = mode;}
     inline tf::Vector3 getStandingInitialPos() {return standing_initial_pos_;}
     inline tf::Vector3 getStandingInitialEuler() {return standing_initial_euler_;}
     inline tf::Vector3 getRollingInitialPos() {return rolling_initial_pos_;}
@@ -59,6 +61,7 @@ namespace aerial_robot_navigation
 
     /* navigation mode */
     int current_ground_navigation_mode_;
+    int prev_ground_navigation_mode_;
 
     /* standing mode variable */
     tf::Vector3 standing_initial_pos_;

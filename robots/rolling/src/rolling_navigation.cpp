@@ -26,6 +26,8 @@ void RollingNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   ground_navigation_mode_sub_ = nh_.subscribe("ground_navigation_command", 1, &RollingNavigator::groundNavigationModeCallback, this);
   ground_navigation_mode_pub_ = nh_.advertise<std_msgs::Int16>("ground_navigation_ack", 1);
   prev_rotation_stamp_ = ros::Time::now().toSec();
+
+  prev_ground_navigation_mode_ = 0;
   current_ground_navigation_mode_ = 0;
 }
 
@@ -47,6 +49,7 @@ void RollingNavigator::reset()
   curr_target_baselink_rot_.setValue(0, 0, 0);
   final_target_baselink_rot_.setValue(0, 0, 0);
 
+  prev_ground_navigation_mode_ = 0;
   current_ground_navigation_mode_ = 0;
 
   spinal::DesireCoord target_baselink_rot_msg;
