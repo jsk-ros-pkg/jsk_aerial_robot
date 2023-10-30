@@ -44,7 +44,8 @@
    <rosparam file="$(arg config_dir)/Battery.yaml" command="load" />
 
    ###########  Control  ###########
-   <rosparam file="$(arg config_dir)/$(arg type)/RollingControl.yaml" command="load"/>
+   <rosparam file="$(arg config_dir)/$(arg type)/RollingControl_sim.yaml" command="load" if="$(eval arg ('simulation') and not arg('real_machine'))"/>
+   <rosparam file="$(arg config_dir)/$(arg type)/RollingControl.yaml" command="load" if="$(eval arg ('real_machine') and not arg ('simulation'))"/>
 
    ###########  Sensor Fusion  ###########
    <rosparam file="$(arg config_dir)/StateEstimation.yaml" command="load" />
