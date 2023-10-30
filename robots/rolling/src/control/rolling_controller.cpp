@@ -132,7 +132,7 @@ void RollingController::rosParamInit()
 
 void RollingController::controlCore()
 {
-  ground_navigation_mode_ = rolling_navigator_->getGroundNavigationMode();
+  ground_navigation_mode_ = rolling_navigator_->getCurrentGroundNavigationMode();
 
   targetStatePlan();
   calcAccFromCog();
@@ -146,19 +146,34 @@ void RollingController::controlCore()
       // steeringControlWrenchAllocation();
     // }
   calcYawTerm();
+
+  rolling_navigator_->setPrevGroundNavigationMode(rolling_navigator_->getCurrentGroundNavigationMode());
 }
 
 void RollingController::targetStatePlan()
 {
-  ground_navigation_mode_ = rolling_navigator_->getGroundNavigationMode();
+  ground_navigation_mode_ = rolling_navigator_->getCurrentGroundNavigationMode();
+
+  // std::cout << rolling_navigator_->getPrevGroundNavigationMode() << " " << rolling_navigator_->getCurrentGroundNavigationMode() << std::endl;
 
   if(ground_navigation_mode_ == aerial_robot_navigation::FLYING_STATE)
     {
       ROS_WARN_ONCE("[control] flying state");
+      if(rolling_navigator_->getPrevGroundNavigationMode() != aerial_robot_navigation::FLYING_STATE)
+        {
+          ROS_ERROR("[control] set control params for flying state");
+          setControllerParams("controller");
+        }
     }
 
   if(ground_navigation_mode_ == aerial_robot_navigation::STANDING_STATE)
     {
+      if(rolling_navigator_->getPrevGroundNavigationMode() != aerial_robot_navigation::STANDING_STATE)
+        {
+          ROS_ERROR("[control] set control params for standing state");
+          setControllerParams("ground_controller");
+        }
+
       ROS_WARN_ONCE("[control] standing state");
       // setControlAxis(X, 0);
       // setControlAxis(Y, 0);
@@ -219,7 +234,7 @@ void RollingController::targetStatePlan()
 
 void RollingController::calcAccFromCog()
 {
-  ground_navigation_mode_ = rolling_navigator_->getGroundNavigationMode();
+  ground_navigation_mode_ = rolling_navigator_->getCurrentGroundNavigationMode();
 
   if(ground_navigation_mode_ == aerial_robot_navigation::FLYING_STATE || aerial_robot_navigation::STANDING_STATE){
     ROS_WARN_ONCE("[control] calc acc for flying state");
