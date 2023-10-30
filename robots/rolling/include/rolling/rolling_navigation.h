@@ -33,6 +33,8 @@ namespace aerial_robot_navigation
     inline int getGroundNavigationMode() {return current_ground_navigation_mode_;}
     inline tf::Vector3 getStandingInitialPos() {return standing_initial_pos_;}
     inline tf::Vector3 getStandingInitialEuler() {return standing_initial_euler_;}
+    inline tf::Vector3 getRollingInitialPos() {return rolling_initial_pos_;}
+    inline tf::Vector3 getRollingInitialEuler() {return rolling_initial_euler_;}
 
   private:
     ros::Publisher curr_target_baselink_rot_pub_;
@@ -61,6 +63,14 @@ namespace aerial_robot_navigation
     /* standing mode variable */
     tf::Vector3 standing_initial_pos_;
     tf::Vector3 standing_initial_euler_;
+
+    /* steering mode variable */
+    double steering_joy_stick_deadzone_;
+
+    /* rolling mode variable */
+    tf::Vector3 rolling_initial_pos_;
+    tf::Vector3 rolling_initial_euler_;
+    double rolling_joy_sitck_deadzone_;
 
     /* target baselink rotation */
     double prev_rotation_stamp_;

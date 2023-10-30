@@ -33,3 +33,9 @@ navigation:
   # desire tilt
   baselink_rot_pub_interval: 0.2
   baselink_rot_change_thresh: 0.02 # 0.2 hz -> 0.04; 0.01 hz-> 0.02
+
+  # rolling mode
+  rolling_joy_stick_deadzone: 0.2
+
+  # steering mode
+  steering_joy_stick_deadzone: 0.2
