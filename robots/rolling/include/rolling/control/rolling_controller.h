@@ -128,6 +128,7 @@ namespace aerial_robot_control
     void wrenchAllocation();
     void calcYawTerm();
     void hoge();
+    void setControllerParams(std::string ns);
 
     void steeringControlWrenchAllocation();
 
