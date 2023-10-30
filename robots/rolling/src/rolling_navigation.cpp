@@ -134,27 +134,42 @@ void RollingNavigator::rosParamInit()
 
   getParam<double>(navi_nh, "baselink_rot_change_thresh", baselink_rot_change_thresh_, 0.02);  // the threshold to change the baselink rotation
   getParam<double>(navi_nh, "baselink_rot_pub_interval", baselink_rot_pub_interval_, 0.1); // the rate to pub baselink rotation command
+  getParam<double>(navi_nh, "rolling_joy_stick_deadzone", rolling_joy_sitck_deadzone_, 0.2);
+  getParam<double>(navi_nh, "steering_joy_stick_deadzone", steering_joy_stick_deadzone_, 0.2);
+
 }
 
 void RollingNavigator::setGroundNavigationMode(int state)
 {
   if(state == aerial_robot_navigation::FLYING_STATE && current_ground_navigation_mode_ != aerial_robot_navigation::FLYING_STATE)
     {
-      ROS_WARN_STREAM("[navigation] flying state");
+      ROS_WARN_STREAM("[navigation] switch to flying state");
     }
+
   if(state == aerial_robot_navigation::STANDING_STATE && current_ground_navigation_mode_ != aerial_robot_navigation::STANDING_STATE)
     {
       standing_initial_pos_ = estimator_->getPos(Frame::COG, estimate_mode_);
       standing_initial_euler_ = estimator_->getEuler(Frame::COG, estimate_mode_);
+      ROS_WARN_STREAM("[navigation] switch to staning mode");
       ROS_WARN_STREAM("[navigation] standing inital pos = [" << standing_initial_pos_.x() << " " << standing_initial_pos_.y() << " " << standing_initial_pos_.z() << "]");
       ROS_WARN_STREAM("[navigation] standing inital euler = [" << standing_initial_euler_.x() << " " << standing_initial_euler_.y() << " " << standing_initial_euler_.z() << "]");
       current_ground_navigation_mode_ = state;
     }
+
   if(state == aerial_robot_navigation::STEERING_STATE && current_ground_navigation_mode_ != aerial_robot_navigation::STEERING_STATE)
     {
-      ROS_WARN_STREAM("[navigation] steering initial pos");
+      ROS_WARN_STREAM("[navigation] switch to steering mode");
       current_ground_navigation_mode_ = state;
     }
+
+  if(state == aerial_robot_navigation::ROLLING_STATE && current_ground_navigation_mode_ != aerial_robot_navigation::ROLLING_STATE)
+    {
+      ROS_WARN_STREAM("[navigation] switch to rolling mode");
+      current_ground_navigation_mode_ = state;
+      rolling_initial_pos_ = estimator_->getPos(Frame::COG, estimate_mode_);
+      rolling_initial_euler_ = estimator_->getEuler(Frame::COG, estimate_mode_);
+    }
+
 }
 
 void RollingNavigator::setFinalTargetBaselinkRot(tf::Vector3 rot)
@@ -177,26 +192,36 @@ void RollingNavigator::joyCallback(const sensor_msgs::JoyConstPtr & joy_msg)
 {
   sensor_msgs::Joy joy_cmd = (*joy_msg);
 
-  if(joy_cmd.buttons[PS4_BUTTON_REAR_LEFT_1] && joy_cmd.axes[PS4_AXIS_BUTTON_CROSS_UP_DOWN] == 1.0)
+  if(joy_cmd.buttons[PS4_BUTTON_REAR_LEFT_1] && joy_cmd.axes[PS4_AXIS_BUTTON_CROSS_UP_DOWN] == 1.0 && current_ground_navigation_mode_ != STANDING_STATE)
     {
       ROS_INFO("[joy] change to standing state");
       setGroundNavigationMode(STANDING_STATE);
     }
-  if(joy_cmd.buttons[PS4_BUTTON_REAR_LEFT_1] && joy_cmd.axes[PS4_AXIS_BUTTON_CROSS_UP_DOWN] == -1.0)
+  if(joy_cmd.buttons[PS4_BUTTON_REAR_LEFT_1] && joy_cmd.axes[PS4_AXIS_BUTTON_CROSS_UP_DOWN] == -1.0 && current_ground_navigation_mode_ != STEERING_STATE)
     {
       ROS_INFO("[joy] change to rolling state");
-      setGroundNavigationMode(ROLLING_STATE);
+      setGroundNavigationMode(STEERING_STATE);
     }
 
-  if(joy_cmd.axes[PS4_AXIS_BUTTON_CROSS_UP_DOWN] == -1.0)
+  // if(joy_cmd.axes[PS4_AXIS_BUTTON_CROSS_UP_DOWN] == -1.0)
+  //   {
+  //     final_target_baselink_rot_.setX(curr_target_baselink_rot_.x() - 0.1);
+  //     ROS_WARN_STREAM("[joy] set target final baselink roll: " << final_target_baselink_rot_.x());
+  //   }
+  // if(joy_cmd.axes[PS4_AXIS_BUTTON_CROSS_UP_DOWN] == 1.0)
+  //   {
+  //     final_target_baselink_rot_.setX(curr_target_baselink_rot_.x() + 0.1);
+  //     ROS_WARN_STREAM("[joy] set target final baselink roll: " << final_target_baselink_rot_.x());
+  //   }
+
+  if(joy_cmd.buttons[PS4_BUTTON_REAR_LEFT_1] && fabs(joy_cmd.axes[PS4_AXIS_STICK_RIGHT_LEFTWARDS]) > steering_joy_stick_deadzone_)
     {
-      final_target_baselink_rot_.setX(curr_target_baselink_rot_.x() - 0.1);
-      ROS_WARN_STREAM("[joy] set target final baselink roll: " << final_target_baselink_rot_.x());
+      ROS_WARN_STREAM("[joy] set target yaw angle to ");
     }
-  if(joy_cmd.axes[PS4_AXIS_BUTTON_CROSS_UP_DOWN] == 1.0)
+
+  if(joy_cmd.buttons[PS4_BUTTON_REAR_LEFT_1] && fabs(joy_cmd.axes[PS4_AXIS_STICK_LEFT_UPWARDS]) > rolling_joy_sitck_deadzone_)
     {
-      final_target_baselink_rot_.setX(curr_target_baselink_rot_.x() + 0.1);
-      ROS_WARN_STREAM("[joy] set target final baselink roll: " << final_target_baselink_rot_.x());
+      ROS_WARN_STREAM("[joy] set rolling speed");
     }
 
   if(joy_cmd.buttons[PS4_BUTTON_REAR_LEFT_1] && joy_cmd.buttons[PS4_BUTTON_REAR_RIGHT_1])
@@ -205,6 +230,7 @@ void RollingNavigator::joyCallback(const sensor_msgs::JoyConstPtr & joy_msg)
       final_target_baselink_rot_.setY(0);
       ROS_WARN("[joy] set target final baselink to horizon");
     }
+
 }
 
 /* plugin registration */
