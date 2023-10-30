@@ -28,7 +28,9 @@ include_directories(
   ${OsqpEigen_INCLUDE_DIRS}
   )
 
-add_library(rolling_controller src/control/rolling_controller.cpp)
+add_library(rolling_controller
+  src/control/rolling_controller.cpp
+  src/control/ground_controller.cpp)
 target_link_libraries(rolling_controller ${catkin_LIBRARIES} ${OsqpEigen_LIBRARIES} ${NLOPT_LIBRARIES})
 
 add_library(rolling_robot_model src/model/rolling_robot_model.cpp)

@@ -56,17 +56,12 @@ void RollingController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   wrench_allocation_matrix_pub_ = nh_.advertise<aerial_robot_msgs::WrenchAllocationMatrix>("debug/wrench_allocation_matrix", 1);
   full_q_mat_pub_ = nh_.advertise<aerial_robot_msgs::WrenchAllocationMatrix>("debug/full_q_mat", 1);
   full_q_mat_inv_pub_ = nh_.advertise<aerial_robot_msgs::WrenchAllocationMatrix>("debug/full_q_mat_inv", 1);
-  under_q_mat_pub_ = nh_.advertise<aerial_robot_msgs::WrenchAllocationMatrix>("debug/under_q_mat", 1);
-  under_q_mat_inv_pub_ = nh_.advertise<aerial_robot_msgs::WrenchAllocationMatrix>("debug/under_q_mat_inv", 1);
   operability_pub_ = nh_.advertise<std_msgs::Float32>("debug/operability", 1);
   target_acc_cog_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("debug/target_acc_cog", 1);
   target_acc_dash_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("debug/target_acc_dash", 1);
 
   joint_state_sub_ = nh_.subscribe("joint_states", 1, &RollingController::jointStateCallback, this);
-  z_i_control_flag_sub_ = nh_.subscribe("z_i_control_flag", 1, &RollingController::setZIControlFlagCallback, this);
-  z_i_term_sub_ = nh_.subscribe("z_i_term", 1, &RollingController::setZITermCallback, this);
   stay_current_sub_ = nh_.subscribe("stay_current_position", 1, &RollingController::stayCurrentXYPosition, this);
-  reset_attitude_gains_sub_ = nh_.subscribe("reset_attitude_gains", 1, &RollingController::resetAttitudeGainsCallback, this);
   control_mode_sub_ = nh_.subscribe("control_mode", 1, &RollingController::setControlModeCallback, this);
 
   gain_updated_ = false;
@@ -87,7 +82,10 @@ void RollingController::reset()
   gain_updated_ = false;
   standing_target_phi_ = 0.0;
   standing_baselink_ref_pitch_last_update_time_ = -1;
+  standing_target_baselink_pitch_ = 0.0;
   controlled_axis_.assign(6, 1);
+
+  robot_model_->setCogDesireOrientation(0, 0, 0);
 }
 
 void RollingController::rosParamInit()
@@ -108,7 +106,8 @@ void RollingController::rosParamInit()
   rolling_robot_model_->setCircleRadius(circle_radius_);
 
   getParam<double>(control_nh, "standing_converged_baselink_roll_thresh", standing_converged_baselink_roll_thresh_, 0.0);
-  getParam<double>(control_nh, "standing_converged_z_i_term", standing_converged_z_i_term_, 0.0);
+  getParam<double>(control_nh, "standing_converged_z_i_term_min", standing_converged_z_i_term_min_, 0.0);
+  getParam<double>(control_nh, "standing_converged_z_i_term_descend_ratio", standing_converged_z_i_term_descend_ratio_, 0.0);
   getParam<double>(control_nh, "standing_baselink_ref_pitch_update_thresh", standing_baselink_ref_pitch_update_thresh_, 1.0);
 
   getParam<string>(base_nh, "tf_prefix", tf_prefix_, std::string(""));
@@ -133,16 +132,26 @@ void RollingController::rosParamInit()
 
 void RollingController::controlCore()
 {
+  ground_navigation_mode_ = rolling_navigator_->getGroundNavigationMode();
+
   targetStatePlan();
   calcAccFromCog();
   calcWrenchAllocationMatrix();
+  // if(ground_navigation_mode_ == aerial_robot_navigation::FLYING_STATE || ground_navigation_mode_ == aerial_robot_navigation::STANDING_STATE)
+  //   {
   wrenchAllocation();
+  //   }
+  // else if(ground_navigation_mode_ == aerial_robot_navigation::STEERING_STATE)
+  //   {
+      // steeringControlWrenchAllocation();
+    // }
   calcYawTerm();
 }
 
 void RollingController::targetStatePlan()
 {
   ground_navigation_mode_ = rolling_navigator_->getGroundNavigationMode();
+
   if(ground_navigation_mode_ == aerial_robot_navigation::FLYING_STATE)
     {
       ROS_WARN_ONCE("[control] flying state");
@@ -151,6 +160,9 @@ void RollingController::targetStatePlan()
   if(ground_navigation_mode_ == aerial_robot_navigation::STANDING_STATE)
     {
       ROS_WARN_ONCE("[control] standing state");
+      // setControlAxis(X, 0);
+      // setControlAxis(Y, 0);
+      setControlAxis(PITCH, 0);
       setControlAxis(YAW, 0);
 
       tf::Vector3 cog_pos = estimator_->getPos(Frame::COG, estimate_mode_);
@@ -165,27 +177,19 @@ void RollingController::targetStatePlan()
 
       double baselink_roll = estimator_->getEuler(Frame::BASELINK, estimate_mode_).x();
       double baselink_pitch = estimator_->getEuler(Frame::BASELINK, estimate_mode_).y();
-      double tmp_roll, tmp_pitch, tmp_yaw;
-      double target_baselink_pitch = robot_model_->getCogDesireOrientation<Eigen::Matrix3d>().eulerAngles(0, 1, 2)(1);
-
-      // std::cout << ros::Time::now().toSec() << " " << standing_baselink_ref_pitch_last_update_time_ << std::endl;
-      // std::cout << ros::Time::now().toSec() - standing_baselink_ref_pitch_last_update_time_ << std::endl;
-      // std::cout << standing_baselink_ref_pitch_update_thresh_ << std::endl;
 
       spinal::DesireCoord desire_coordinate_msg;
       desire_coordinate_msg.roll = standing_target_phi_;
+      desire_coordinate_msg.pitch = standing_target_baselink_pitch_;
 
       if(ros::Time::now().toSec() - standing_baselink_ref_pitch_last_update_time_ > standing_baselink_ref_pitch_update_thresh_)
         {
-          ROS_WARN_STREAM("[control] update target baselink pitch angle to " << baselink_pitch);
+          // ROS_WARN_STREAM("[control] update target baselink pitch angle to " << baselink_pitch);
           standing_baselink_ref_pitch_last_update_time_ = ros::Time::now().toSec();
-          desire_coordinate_msg.pitch = baselink_pitch;
-          target_baselink_pitch = baselink_pitch;
-          desire_coordinate_msg.pitch = target_baselink_pitch;
+          standing_target_baselink_pitch_ = baselink_pitch;
         }
 
       desire_coordinate_pub_.publish(desire_coordinate_msg);
-      robot_model_->setCogDesireOrientation(standing_target_phi_, target_baselink_pitch, 0);
 
       tf::Vector3 standing_initial_pos = rolling_navigator_->getStandingInitialPos();
       tf::Vector3 standing_initial_euler = rolling_navigator_->getStandingInitialEuler();
@@ -195,13 +199,22 @@ void RollingController::targetStatePlan()
       navigator_->setTargetPosZ(circle_radius_);
 
       // std::cout << estimator_->getEuler(Frame::BASELINK, estimate_mode_).x() << " " << estimator_->getEuler(Frame::BASELINK, estimate_mode_).y() << " " << estimator_->getEuler(Frame::BASELINK, estimate_mode_).z() << " " << std::endl;
-      if(baselink_roll > standing_converged_baselink_roll_thresh_)
+      if(fabs(baselink_roll - M_PI / 2.0) < fabs(M_PI / 2.0 - standing_converged_baselink_roll_thresh_))
         {
-          ROS_WARN_STREAM("[control] decrease thrttle bacause baselink roll > " << standing_converged_baselink_roll_thresh_);
-          pid_controllers_.at(Z).setITerm(standing_converged_z_i_term_);
+          ROS_WARN_STREAM("[control] baselink roll is converged " << baselink_roll);
+          // ROS_WARN_STREAM("[control] decrease thrttle bacause baselink roll > " << standing_converged_baselink_roll_thresh_);
+          double z_i_term = pid_controllers_.at(Z).getITerm();
+          pid_controllers_.at(Z).setErrIUpdateFlag(true);
+          pid_controllers_.at(Z).setITerm(std::max(z_i_term -  standing_converged_z_i_term_descend_ratio_, standing_converged_z_i_term_min_));
           pid_controllers_.at(Z).setErrIUpdateFlag(false);
+          ROS_WARN_STREAM("[control] set z i term to " << pid_controllers_.at(Z).getITerm());
         }
     }
+
+  // if(ground_navigation_mode_ == aerial_robot_navigation::STEERING_STATE)
+  //   {
+
+  //   }
 }
 
 void RollingController::calcAccFromCog()
@@ -331,6 +344,8 @@ void RollingController::calcWrenchAllocationMatrix()
 
   /* calculate integarated allocation */
   full_q_mat_ = wrench_matrix * integrated_rot;
+  full_q_trans_ = full_q_mat_.topRows(3);
+  full_q_rot_ = full_q_mat_.bottomRows(3);
 
   /* extract controlled axis */
   Eigen::MatrixXd controlled_axis_mask_ = Eigen::MatrixXd::Zero(control_dof_, 6);
@@ -358,7 +373,6 @@ void RollingController::calcWrenchAllocationMatrix()
     {
       ROS_WARN_ONCE("[control] use MP-Inverse");
     }
-
 }
 
 void RollingController::wrenchAllocation()
@@ -375,6 +389,9 @@ void RollingController::wrenchAllocation()
   full_lambda_trans_ = full_q_mat_inv_.leftCols(control_dof_ - rot_dof) * target_wrench_acc_cog_.head(control_dof_ - rot_dof);
   full_lambda_rot_ = full_q_mat_inv_.rightCols(rot_dof) * target_wrench_acc_cog_.tail(rot_dof);
   full_lambda_all_ = full_lambda_trans_ + full_lambda_rot_;
+
+  // std::cout << "full_lambda_all" << std::endl;
+  // std::cout << full_lambda_all_ << std::endl;
 
   int last_col = 0;
   for(int i = 0; i < motor_num_; i++)
@@ -513,13 +530,13 @@ void RollingController::sendCmd()
   //   }
   // under_q_mat_inv_pub_.publish(under_q_mat_inv_msg);
 
-  std_msgs::Float32 operability_msg;
-  Eigen::MatrixXd q_qt;
-  if(fully_actuated_) q_qt = full_q_mat_ * full_q_mat_.transpose();
-  else q_qt = under_q_mat_ * under_q_mat_.transpose();
-  float det = q_qt.determinant();
-  operability_msg.data =sqrt(det);
-  operability_pub_.publish(operability_msg);
+  // std_msgs::Float32 operability_msg;
+  // Eigen::MatrixXd q_qt;
+  // if(fully_actuated_) q_qt = full_q_mat_ * full_q_mat_.transpose();
+  // else q_qt = under_q_mat_ * under_q_mat_.transpose();
+  // float det = q_qt.determinant();
+  // operability_msg.data =sqrt(det);
+  // operability_pub_.publish(operability_msg);
 
   sendGimbalAngles();
 
@@ -607,27 +624,10 @@ void RollingController::resetAttitudeGains()
   rpy_gain_pub_.publish(rpy_gain_msg);
 }
 
-void RollingController::setZIControlFlagCallback(const std_msgs::BoolPtr & msg)
-{
-  ROS_WARN("z i control update flag is set to %d", msg->data);
-  pid_controllers_.at(Z).setErrIUpdateFlag(msg->data);
-}
-
-void RollingController::setZITermCallback(const std_msgs::Float32Ptr & msg)
-{
-  ROS_WARN("set i term of z controller from %lf to %lf", pid_controllers_.at(Z).getITerm(), msg->data);
-  pid_controllers_.at(Z).setITerm(msg->data);
-}
-
 void RollingController::stayCurrentXYPosition(const std_msgs::Empty & msg)
 {
   navigator_->setTargetXyFromCurrentState();
   navigator_->setTargetYawFromCurrentState();
-}
-
-void RollingController::resetAttitudeGainsCallback(const std_msgs::Empty & msg)
-{
-  RollingController::resetAttitudeGains();
 }
 
 void RollingController::setControlModeCallback(const std_msgs::Int16Ptr & msg)

@@ -33,26 +33,27 @@ namespace aerial_robot_control
                     boost::shared_ptr<aerial_robot_navigation::BaseNavigator> navigator,
                     double ctrl_loop_rate) override;
 
+    Eigen::VectorXd getTargetWrenchAccCog() {return target_wrench_acc_cog_;}
+    Eigen::MatrixXd getFullQ() {return full_q_mat_;}
+    Eigen::MatrixXd getFullQTrans() {return full_q_trans_;}
+    Eigen::MatrixXd getFullQRot() {return full_q_rot_;}
+
+
   private:
-    ros::Publisher rpy_gain_pub_;
-    ros::Publisher flight_cmd_pub_;
-    ros::Publisher gimbal_control_pub_;
-    ros::Publisher torque_allocation_matrix_inv_pub_; //for spinal
-    ros::Publisher desire_coordinate_pub_;
+    ros::Publisher rpy_gain_pub_;                     // for spinal
+    ros::Publisher flight_cmd_pub_;                   // for spinal
+    ros::Publisher gimbal_control_pub_;               // for servo bridge
+    ros::Publisher torque_allocation_matrix_inv_pub_; // for spinal
+    ros::Publisher desire_coordinate_pub_;            // for spinal
     ros::Publisher target_vectoring_force_pub_;
     ros::Publisher target_wrench_acc_cog_pub_;
     ros::Publisher wrench_allocation_matrix_pub_;
     ros::Publisher full_q_mat_pub_;
     ros::Publisher full_q_mat_inv_pub_;
-    ros::Publisher under_q_mat_pub_;
-    ros::Publisher under_q_mat_inv_pub_;
     ros::Publisher operability_pub_;
     ros::Publisher target_acc_cog_pub_;
     ros::Publisher target_acc_dash_pub_;
     ros::Subscriber joint_state_sub_;
-    ros::Subscriber z_i_control_flag_sub_;
-    ros::Subscriber z_i_term_sub_;
-    ros::Subscriber reset_attitude_gains_sub_;
     ros::Subscriber control_mode_sub_;
     ros::Subscriber stay_current_sub_;
 
@@ -74,8 +75,8 @@ namespace aerial_robot_control
     Eigen::VectorXd full_lambda_all_;
     Eigen::MatrixXd full_q_mat_;
     Eigen::MatrixXd full_q_mat_inv_;
-    Eigen::MatrixXd under_q_mat_;
-    Eigen::MatrixXd under_q_mat_inv_;
+    Eigen::MatrixXd full_q_trans_;
+    Eigen::MatrixXd full_q_rot_;
     Eigen::MatrixXd q_mat_;
     Eigen::MatrixXd q_mat_inv_;
 
@@ -102,9 +103,11 @@ namespace aerial_robot_control
 
     double standing_target_phi_;
     double standing_converged_baselink_roll_thresh_;
-    double standing_converged_z_i_term_;
+    double standing_converged_z_i_term_min_;
+    double standing_converged_z_i_term_descend_ratio_;
     double standing_baselink_ref_pitch_last_update_time_;
     double standing_baselink_ref_pitch_update_thresh_;
+    double standing_target_baselink_pitch_;
 
     void controlCore() override;
     void reset() override;
@@ -115,8 +118,6 @@ namespace aerial_robot_control
     void sendTorqueAllocationMatrixInv();
     void setAttitudeGains();
     void jointStateCallback(const sensor_msgs::JointStateConstPtr & msg);
-    void setZIControlFlagCallback(const std_msgs::BoolPtr & msg);
-    void setZITermCallback(const std_msgs::Float32Ptr & msg);
     void stayCurrentXYPosition(const std_msgs::Empty & msg);
     void resetAttitudeGains();
     void resetAttitudeGainsCallback(const std_msgs::Empty & msg);
@@ -126,6 +127,10 @@ namespace aerial_robot_control
     void calcWrenchAllocationMatrix();
     void wrenchAllocation();
     void calcYawTerm();
+    void hoge();
+
+    void steeringControlWrenchAllocation();
+
     void setControlAxis(int axis, int mode)
     {
       int prev_mode = controlled_axis_.at(axis);
@@ -146,3 +151,6 @@ namespace aerial_robot_control
     }
   };
 };
+
+double steeringControlWrenchAllocationObject(const std::vector<double> &x, std::vector<double> &grad, void *ptr);
+double steeringControlWrenchAllocationConstraint(const std::vector<double> &x, std::vector<double> &grad, void *ptr);
