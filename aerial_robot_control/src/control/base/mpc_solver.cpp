@@ -7,6 +7,10 @@
 
 MPC::MPCSolver::MPCSolver()
 {
+}
+
+void MPC::MPCSolver::initialize()
+{
   MPC::initPredXU(x_u_out_);
 
   initSolver();
@@ -89,6 +93,7 @@ void MPC::initPredXU(aerial_robot_msgs::PredXU& x_u)
   x_u.x.layout.dim[1].size = NX;
   x_u.x.layout.dim[1].stride = NX;
   x_u.x.layout.data_offset = 0;
+  x_u.x.data.resize((N + 1) * NX);
 
   x_u.u.layout.dim.emplace_back();
   x_u.u.layout.dim.emplace_back();
@@ -99,6 +104,7 @@ void MPC::initPredXU(aerial_robot_msgs::PredXU& x_u)
   x_u.u.layout.dim[1].size = NU;
   x_u.u.layout.dim[1].stride = NU;
   x_u.u.layout.data_offset = 0;
+  x_u.u.data.resize(N * NU);
 }
 
 void MPC::MPCSolver::initSolver()
@@ -131,19 +137,21 @@ void MPC::MPCSolver::setReference(const aerial_robot_msgs::PredXU& x_u_ref, cons
     // yr = np.concatenate((xr[i, :], ur[i, :]))
     std::copy(x_u_ref.x.data.begin() + x_stride * i, x_u_ref.x.data.begin() + x_stride * (i + 1), yr);
     std::copy(x_u_ref.u.data.begin() + u_stride * i, x_u_ref.u.data.begin() + u_stride * (i + 1), yr + NX);
-    ocp_nlp_out_set(nlp_config_, nlp_dims_, nlp_out_, i, "y_ref", yr);
+    ocp_nlp_cost_model_set(nlp_config_, nlp_dims_, nlp_in_, i, "y_ref", yr);
 
     // quaternions
     std::copy(x_u_ref.x.data.begin() + x_stride * i + 6, x_u_ref.x.data.begin() + x_stride * i + 10, p);
-    ocp_nlp_out_set(nlp_config_, nlp_dims_, nlp_out_, i, "p", p);
+    if (qd_body_rate_model_acados_update_params(acados_ocp_capsule_, i, p, NP))
+      ROS_ERROR("qd_body_rate_model_acados_update_params() returned status %d. Exiting.\n", status_);
   }
   // final x and p, no u
   double xr[NX];
   std::copy(x_u_ref.x.data.begin() + x_stride * N, x_u_ref.x.data.begin() + x_stride * (N + 1), xr);
-  ocp_nlp_out_set(nlp_config_, nlp_dims_, nlp_out_, N, "y_ref", xr);
+  ocp_nlp_cost_model_set(nlp_config_, nlp_dims_, nlp_in_, N, "y_ref", xr);
 
   std::copy(x_u_ref.x.data.begin() + x_stride * N + 6, x_u_ref.x.data.begin() + x_stride * N + 10, p);
-  ocp_nlp_out_set(nlp_config_, nlp_dims_, nlp_out_, N, "p", p);
+  if (qd_body_rate_model_acados_update_params(acados_ocp_capsule_, N, p, NP))
+    ROS_ERROR("qd_body_rate_model_acados_update_params() returned status %d. Exiting.\n", status_);
 }
 
 void MPC::MPCSolver::setFeedbackConstraints(const nav_msgs::Odometry& odom_now)

@@ -7,10 +7,6 @@
 
 aerial_robot_control::MPCController::MPCController() : ControlBase()
 {
-  mass_ = robot_model_->getMass();
-  gravity_const_ = -robot_model_->getGravity()[2];
-
-  mpc_solver_ = MPC::MPCSolver();
 }
 
 void aerial_robot_control::MPCController::initialize(
@@ -19,6 +15,17 @@ void aerial_robot_control::MPCController::initialize(
     boost::shared_ptr<aerial_robot_navigation::BaseNavigator> navigator, double ctrl_loop_du)
 {
   ControlBase::initialize(nh, nhp, robot_model, estimator, navigator, ctrl_loop_du);
+
+  mpc_solver_.initialize();
+
+  ros::NodeHandle control_nh(nh_, "controller");
+
+  mass_ = robot_model_->getMass();
+  gravity_const_ =
+      robot_model_->getGravity()[2];  // TODO: wired. I think the original value should be -9.8 in ENU frame
+  //  ROS_ERROR("gravity size: %td", robot_model_->getGravity().size());
+  //  ROS_ERROR("gravity: %f, %f, %f", robot_model_->getGravity()[0], robot_model_->getGravity()[1],
+  //  robot_model_->getGravity()[2]);
 
   flight_cmd_pub_ = nh_.advertise<spinal::FourAxisCommand>("four_axes/command", 1);
 
@@ -30,12 +37,16 @@ void aerial_robot_control::MPCController::initialize(
   //  ros::param::get("~has_pred_pub", has_pred_pub_);
 
   reset();
+
+  ROS_INFO("MPC Controller initialized!");
 }
 
 bool aerial_robot_control::MPCController::update()
 {
   if (!ControlBase::update())
     return false;
+
+  /* get odom information */
   nav_msgs::Odometry odom_now = getOdom();
 
   /* set target */
@@ -50,8 +61,11 @@ bool aerial_robot_control::MPCController::update()
   }
   std::copy(x, x + NX, x_u_ref_.x.data.begin() + NX * N);
 
+  /* solve */
   mpc_solver_.solve(odom_now, x_u_ref_);
 
+  /* get result */
+  // convert quaternion to rpy
   tf::Quaternion q;
   q.setW(mpc_solver_.x_u_out_.x.data.at(6));
   q.setX(mpc_solver_.x_u_out_.x.data.at(7));
@@ -59,7 +73,6 @@ bool aerial_robot_control::MPCController::update()
   q.setZ(mpc_solver_.x_u_out_.x.data.at(9));
   double thrust = mpc_solver_.x_u_out_.u.data.at(0) * mass_;
 
-  // convert quaternion to rpy
   double roll, pitch, yaw;
   tf::Matrix3x3(q).getRPY(roll, pitch, yaw);
 
@@ -75,7 +88,12 @@ bool aerial_robot_control::MPCController::update()
   }
   flight_cmd_.base_thrust = target_base_thrust_;
 
+  /* pub */
   flight_cmd_pub_.publish(flight_cmd_);
+
+  // output flight cmd using ROS INFO
+  ROS_INFO("r: %f, p: %f, y: %f, 1/4 thrust: %f", flight_cmd_.angles[0], flight_cmd_.angles[1], flight_cmd_.angles[2],
+           flight_cmd_.base_thrust[0]);
 
   return true;
 }
