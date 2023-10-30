@@ -1,0 +1,76 @@
+aerial_robot_control_name: aerial_robot_control/rolling_controller
+
+controller:
+  control_verbose: false
+  torque_allocation_matrix_inv_pub_interval: 0.05
+  wrench_allocation_matrix_pub_interval: 0.1
+  allocation_refine_max_iteration: 5
+  allocation_refine_threshold: 0.0001
+  initial_roll_tilt: 0.8
+  use_sr_inv: false
+  sr_inv_weight: 0.1
+  fully_actuated: true
+  hovering_approximate: false
+  gimbal_lpf_factor: 1.0 # don't set to 0
+  standing_converged_baselink_roll_thresh: 1.4
+  standing_converged_z_i_term_min: 6.5
+  standing_converged_z_i_term_descend_ratio: 0.01
+  standing_baselink_ref_pitch_update_thresh: 0.05
+  controlled_axis: [1, 1, 1, 1, 1, 1]
+
+  rotor_tilt1: -0.125
+  rotor_tilt2: 0.146
+  rotor_tilt3: 0.083
+
+  xy:
+    p_gain: 3.0
+    i_gain: 0.5
+    d_gain: 2.5
+    limit_sum: 4.0
+    limit_p: 12.0
+    limit_i: 12.0
+    limit_d: 12.0
+
+  z:
+    p_gain: 5.0
+    i_gain: 1.0
+    d_gain: 2.5
+    limit_err_p: 1.0
+    limit_sum: 25.0 # N for clamping thrust force
+    limit_p: 25.0
+    limit_i: 25.0
+    limit_d: 25.0
+    force_landing_descending_rate: -0.5
+
+  roll_pitch:
+    start_rp_integration_height: 0.01
+
+  roll:
+    p_gain: 15.0
+    i_gain: 0.5
+    d_gain: 2.0
+    limit_sum: 50.0
+    limit_p: 50.0
+    limit_i: 50.0
+    limit_d: 50.0
+
+  pitch:
+    p_gain: 15.0
+    i_gain: 0.5
+    d_gain: 2.0
+    limit_sum: 50.0
+    limit_p: 50.0
+    limit_i: 50.0
+    limit_d: 50.0
+
+  yaw:
+    p_gain: 4.0
+    i_gain: 2.0
+    d_gain: 6.0
+    limit_err_p: 4.0
+    limit_sum: 20.0
+    limit_p: 20.0
+    limit_i: 20.0
+    limit_d: 20.0
+
+    need_d_control: true
