@@ -29,12 +29,14 @@ void MPC::MPCSolver::initialize()
 MPC::MPCSolver::~MPCSolver()
 {
   // 1. free solver
-  if (qd_body_rate_model_acados_free(acados_ocp_capsule_))
-    std::cout << "qd_body_rate_model_acados_free() returned status " << status_ << ".\n";
+  int status = qd_body_rate_model_acados_free(acados_ocp_capsule_);
+  if (status)
+    std::cout << "qd_body_rate_model_acados_free() returned status " << status << ".\n";
 
   // 2. free solver capsule
-  if (qd_body_rate_model_acados_free_capsule(acados_ocp_capsule_))
-    std::cout << "qd_body_rate_model_acados_free_capsule() returned status " << status_ << ".\n";
+  status = qd_body_rate_model_acados_free_capsule(acados_ocp_capsule_);
+  if (status)
+    std::cout << "qd_body_rate_model_acados_free_capsule() returned status " << status << ".\n";
 }
 
 void MPC::MPCSolver::reset(const aerial_robot_msgs::PredXU& x_u)
@@ -79,7 +81,7 @@ int MPC::MPCSolver::solve(const nav_msgs::Odometry& odom_now, const aerial_robot
     printStatus(N_timings, min_time);
   }
 
-  return status_;
+  return 0;
 }
 
 void MPC::initPredXU(aerial_robot_msgs::PredXU& x_u)
@@ -113,9 +115,11 @@ void MPC::MPCSolver::initSolver()
 
   // 1. allocate the array and fill it accordingly
   double* new_time_steps = nullptr;
-  if (qd_body_rate_model_acados_create_with_discretization(acados_ocp_capsule_, N, new_time_steps))
+
+  int status = qd_body_rate_model_acados_create_with_discretization(acados_ocp_capsule_, N, new_time_steps);
+  if (status)
   {
-    printf("qd_body_rate_model_acados_create() returned status %d. Exiting.\n", status_);
+    printf("qd_body_rate_model_acados_create() returned status %d. Exiting.\n", status);
     exit(1);
   }
 
@@ -141,8 +145,7 @@ void MPC::MPCSolver::setReference(const aerial_robot_msgs::PredXU& x_u_ref, cons
 
     // quaternions
     std::copy(x_u_ref.x.data.begin() + x_stride * i + 6, x_u_ref.x.data.begin() + x_stride * i + 10, p);
-    if (qd_body_rate_model_acados_update_params(acados_ocp_capsule_, i, p, NP))
-      ROS_ERROR("qd_body_rate_model_acados_update_params() returned status %d. Exiting.\n", status_);
+    qd_body_rate_model_acados_update_params(acados_ocp_capsule_, i, p, NP);
   }
   // final x and p, no u
   double xr[NX];
@@ -150,8 +153,7 @@ void MPC::MPCSolver::setReference(const aerial_robot_msgs::PredXU& x_u_ref, cons
   ocp_nlp_cost_model_set(nlp_config_, nlp_dims_, nlp_in_, N, "y_ref", xr);
 
   std::copy(x_u_ref.x.data.begin() + x_stride * N + 6, x_u_ref.x.data.begin() + x_stride * N + 10, p);
-  if (qd_body_rate_model_acados_update_params(acados_ocp_capsule_, N, p, NP))
-    ROS_ERROR("qd_body_rate_model_acados_update_params() returned status %d. Exiting.\n", status_);
+  qd_body_rate_model_acados_update_params(acados_ocp_capsule_, N, p, NP);
 }
 
 void MPC::MPCSolver::setFeedbackConstraints(const nav_msgs::Odometry& odom_now)
@@ -179,9 +181,10 @@ double MPC::MPCSolver::solveOCPInLoop(const int N_timings)
 
   for (int i = 0; i < N_timings; i++)
   {
-    if (qd_body_rate_model_acados_solve(acados_ocp_capsule_) != ACADOS_SUCCESS)
+    int status = qd_body_rate_model_acados_solve(acados_ocp_capsule_);
+    if (status != ACADOS_SUCCESS)
     {
-      std::cout << "qd_body_rate_model_acados_solve() returned status " << status_ << ".\n";
+      std::cout << "qd_body_rate_model_acados_solve() returned status " << status << ".\n";
     }
 
     ocp_nlp_get(nlp_config_, nlp_solver_, "time_tot", &elapsed_time);
