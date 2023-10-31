@@ -74,9 +74,10 @@ namespace aerial_robot_control
     Eigen::VectorXd full_lambda_rot_;
     Eigen::VectorXd full_lambda_all_;
     Eigen::MatrixXd full_q_mat_;
-    Eigen::MatrixXd full_q_mat_inv_;
     Eigen::MatrixXd full_q_trans_;
     Eigen::MatrixXd full_q_rot_;
+    Eigen::MatrixXd controlled_q_mat_;
+    Eigen::MatrixXd controlled_q_mat_inv_;
     Eigen::MatrixXd q_mat_;
     Eigen::MatrixXd q_mat_inv_;
 

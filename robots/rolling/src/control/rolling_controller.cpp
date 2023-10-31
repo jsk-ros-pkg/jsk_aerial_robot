@@ -36,7 +36,6 @@ void RollingController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   full_lambda_rot_.resize(2 * motor_num_);
   full_lambda_all_.resize(2 * motor_num_);
   full_q_mat_.resize(6, 2 * motor_num_);
-  full_q_mat_inv_.resize(2 * motor_num_, 6);
 
   rosParamInit();
 
@@ -69,6 +68,8 @@ void RollingController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
 
   control_dof_ = std::accumulate(controlled_axis_.begin(), controlled_axis_.end(), 0);
 
+  controlled_q_mat_.resize(control_dof_, 2 * motor_num_);
+  controlled_q_mat_inv_.resize(2 * motor_num_, control_dof_);
   q_mat_.resize(control_dof_, motor_num_);
   q_mat_inv_.resize(motor_num_, control_dof_);
 
@@ -373,15 +374,16 @@ void RollingController::calcWrenchAllocationMatrix()
           last_row++;
         }
     }
-  full_q_mat_ = controlled_axis_mask_ * full_q_mat_;
-  full_q_mat_inv_ = aerial_robot_model::pseudoinverse(full_q_mat_);
+
+  controlled_q_mat_ = controlled_axis_mask_ * full_q_mat_;
+  controlled_q_mat_inv_ = aerial_robot_model::pseudoinverse(controlled_q_mat_);
   target_wrench_acc_cog_ = controlled_axis_mask_ * target_wrench_acc_cog_;
 
   if(use_sr_inv_)
     {
       // http://www.thothchildren.com/chapter/5bd8d78751d930518903af34
-      Eigen::MatrixXd sr_inv = full_q_mat_.transpose() * (full_q_mat_ * full_q_mat_.transpose() + sr_inv_weight_ * Eigen::MatrixXd::Identity(full_q_mat_.rows(), full_q_mat_.rows())).inverse();
-      full_q_mat_inv_ = sr_inv;
+      Eigen::MatrixXd sr_inv = controlled_q_mat_.transpose() * (controlled_q_mat_ * controlled_q_mat_.transpose() + sr_inv_weight_ * Eigen::MatrixXd::Identity(controlled_q_mat_.rows(), controlled_q_mat_.rows())).inverse();
+      controlled_q_mat_inv_ = sr_inv;
       ROS_WARN_STREAM_ONCE("[control] use SR-Inverse. weight is " << sr_inv_weight_);
     }
   else
@@ -401,12 +403,9 @@ void RollingController::wrenchAllocation()
           rot_dof++;
         }
     }
-  full_lambda_trans_ = full_q_mat_inv_.leftCols(control_dof_ - rot_dof) * target_wrench_acc_cog_.head(control_dof_ - rot_dof);
-  full_lambda_rot_ = full_q_mat_inv_.rightCols(rot_dof) * target_wrench_acc_cog_.tail(rot_dof);
+  full_lambda_trans_ = controlled_q_mat_inv_.leftCols(control_dof_ - rot_dof) * target_wrench_acc_cog_.head(control_dof_ - rot_dof);
+  full_lambda_rot_ = controlled_q_mat_inv_.rightCols(rot_dof) * target_wrench_acc_cog_.tail(rot_dof);
   full_lambda_all_ = full_lambda_trans_ + full_lambda_rot_;
-
-  // std::cout << "full_lambda_all" << std::endl;
-  // std::cout << full_lambda_all_ << std::endl;
 
   int last_col = 0;
   for(int i = 0; i < motor_num_; i++)
@@ -439,6 +438,7 @@ void RollingController::wrenchAllocation()
   /* calculate allocation matrix for realtime control */
   q_mat_ = robot_model_for_control_->calcWrenchMatrixOnCoG();
   q_mat_inv_ = aerial_robot_model::pseudoinverse(q_mat_);
+
 }
 
 void RollingController::calcYawTerm()
@@ -501,17 +501,17 @@ void RollingController::sendCmd()
     }
   target_acc_dash_pub_.publish(target_acc_dash_msg);
 
-  // aerial_robot_msgs::WrenchAllocationMatrix full_q_mat_msg;
-  // for(int i = 0; i < 2 * motor_num_; i++)
-  //   {
-  //     full_q_mat_msg.f_x.push_back(full_q_mat_(0, i));
-  //     full_q_mat_msg.f_y.push_back(full_q_mat_(1, i));
-  //     full_q_mat_msg.f_z.push_back(full_q_mat_(2, i));
-  //     full_q_mat_msg.t_x.push_back(full_q_mat_(3, i));
-  //     full_q_mat_msg.t_y.push_back(full_q_mat_(4, i));
-  //     full_q_mat_msg.t_z.push_back(full_q_mat_(5, i));
-  //   }
-  // full_q_mat_pub_.publish(full_q_mat_msg);
+  aerial_robot_msgs::WrenchAllocationMatrix full_q_mat_msg;
+  for(int i = 0; i < 2 * motor_num_; i++)
+    {
+      full_q_mat_msg.f_x.push_back(full_q_mat_(0, i));
+      full_q_mat_msg.f_y.push_back(full_q_mat_(1, i));
+      full_q_mat_msg.f_z.push_back(full_q_mat_(2, i));
+      full_q_mat_msg.t_x.push_back(full_q_mat_(3, i));
+      full_q_mat_msg.t_y.push_back(full_q_mat_(4, i));
+      full_q_mat_msg.t_z.push_back(full_q_mat_(5, i));
+    }
+  full_q_mat_pub_.publish(full_q_mat_msg);
 
   // aerial_robot_msgs::WrenchAllocationMatrix full_q_mat_inv_msg;
   // for(int i = 0; i < 2 * motor_num_; i++)
@@ -545,13 +545,12 @@ void RollingController::sendCmd()
   //   }
   // under_q_mat_inv_pub_.publish(under_q_mat_inv_msg);
 
-  // std_msgs::Float32 operability_msg;
-  // Eigen::MatrixXd q_qt;
-  // if(fully_actuated_) q_qt = full_q_mat_ * full_q_mat_.transpose();
-  // else q_qt = under_q_mat_ * under_q_mat_.transpose();
-  // float det = q_qt.determinant();
-  // operability_msg.data =sqrt(det);
-  // operability_pub_.publish(operability_msg);
+  std_msgs::Float32 operability_msg;
+  Eigen::MatrixXd q_qt;
+  q_qt = controlled_q_mat_ * controlled_q_mat_.transpose();
+  float det = q_qt.determinant();
+  operability_msg.data =sqrt(det);
+  operability_pub_.publish(operability_msg);
 
   sendGimbalAngles();
 
