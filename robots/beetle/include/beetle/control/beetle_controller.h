@@ -3,6 +3,7 @@
 #pragma once
 #include <beetle/model/beetle_robot_model.h>
 #include <gimbalrotor/control/gimbalrotor_controller.h>
+#include <beetle/sensor/imu.h>
 
 namespace aerial_robot_control
 {
@@ -10,7 +11,10 @@ namespace aerial_robot_control
   {
   public:
     BeetleController();
-    ~BeetleController() = default;
+    ~BeetleController(){
+      wrench_estimate_thread_.interrupt();
+      wrench_estimate_thread_.join();
+    }
 
     void initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
                     boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
@@ -18,6 +22,20 @@ namespace aerial_robot_control
                     boost::shared_ptr<aerial_robot_navigation::BaseNavigator> navigator,
                     double ctrl_loop_rate
                     ) override;
+  private:
 
+    ros::Publisher estimate_external_wrench_pub_;
+
+    /* external wrench */
+    boost::thread wrench_estimate_thread_;
+    Eigen::VectorXd init_sum_momentum_;
+    Eigen::VectorXd est_external_wrench_;
+    Eigen::MatrixXd momentum_observer_matrix_;
+    Eigen::VectorXd integrate_term_;
+    double prev_est_wrench_timestamp_;
+
+    void externalWrenchEstimate();
+  protected:
+    void rosParamInit() override; 
   };
 };
