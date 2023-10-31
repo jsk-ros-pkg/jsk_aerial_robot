@@ -28,14 +28,22 @@ include_directories(
   ${EIGEN3_INCLUDE_DIRS}
   )
 
+add_library(beetle_sensor_pluginlib  src/sensor/imu.cpp)
+target_link_libraries(beetle_sensor_pluginlib ${catkin_LIBRARIES})
+add_dependencies(beetle_sensor_pluginlib aerial_robot_msgs_generate_messages_cpp spinal_generate_messages_cpp)
+
 add_library(beetle_controller src/control/beetle_controller.cpp)
-target_link_libraries(beetle_controller ${catkin_LIBRARIES})
+target_link_libraries(beetle_controller beetle_sensor_pluginlib ${catkin_LIBRARIES})
 
 add_library(beetle_robot_model src/model/beetle_robot_model.cpp)
 target_link_libraries(beetle_robot_model ${catkin_LIBRARIES})
 
 add_library(beetle_navigation src/beetle_navigation.cpp)
 target_link_libraries(beetle_navigation ${catkin_LIBRARIES})
+
+install(TARGETS beetle_sensor_pluginlib beetle_robot_model beetle_controller beetle_navigation 
+  DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+)
 
 install(DIRECTORY config plugins launch
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
