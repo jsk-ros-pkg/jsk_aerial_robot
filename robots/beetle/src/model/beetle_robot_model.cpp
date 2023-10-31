@@ -37,8 +37,8 @@ void BeetleRobotModel::calcCenterOfMoving()
       return;
   }
   std::string cog_name = "beetle" + std::to_string(my_id_) + "/cog";
-  Eigen::Vector3d center_of_moving = Eigen::Vector3d::Zero();
-  int assebled_module = 0;
+  Eigen::Vector3f center_of_moving = Eigen::Vector3f::Zero();
+  int assembled_module = 0;
   for(const auto & item : assembly_flags_){
     geometry_msgs::TransformStamped transformStamped;
     int id = item.first;
@@ -48,9 +48,9 @@ void BeetleRobotModel::calcCenterOfMoving()
       {
         transformStamped = tfBuffer_.lookupTransform(cog_name, "beetle" + std::to_string(id) + std::string("/cog") , ros::Time(0));
         auto& trans = transformStamped.transform.translation;
-        Eigen::Vector3d module_root(trans.x,trans.y,trans.z); 
+        Eigen::Vector3f module_root(trans.x,trans.y,trans.z); 
         center_of_moving += module_root;
-        assebled_module ++;
+        assembled_module ++;
       }
     catch (tf2::TransformException& ex)
       {
@@ -58,8 +58,9 @@ void BeetleRobotModel::calcCenterOfMoving()
         return;
       }
   }
-  if(!assebled_module) return;
-  center_of_moving = center_of_moving / assebled_module;
+  if(!assembled_module) return;
+  center_of_moving = center_of_moving / assembled_module;
+  if(std::isnan(center_of_moving.x())) return;
 
   geometry_msgs::TransformStamped tf;
   tf.header.stamp = ros::Time::now();
@@ -73,8 +74,17 @@ void BeetleRobotModel::calcCenterOfMoving()
   tf.transform.rotation.z = 0;
   tf.transform.rotation.w = 1;
   br_.sendTransform(tf);
-  KDL::Frame com_frame = tf2::transformToKDL(tf);
-  setCog2CoM(com_frame);
+
+  //process to calcurate an accurate conversion from cog to com
+  if(pre_assembled_modules_ != assembled_module){
+    Eigen::Vector3f cog_com_dist(center_of_moving.norm() * center_of_moving.x()/fabs(center_of_moving.x()),0,0);
+    tf.transform.translation.x = cog_com_dist.x();
+    tf.transform.translation.y = cog_com_dist.y();
+    tf.transform.translation.z = cog_com_dist.z();
+    KDL::Frame com_frame = tf2::transformToKDL(tf);
+    setCog2CoM(com_frame);
+  }
+  pre_assembled_modules_ = assembled_module;
   current_assembled_ = true;
 }
 
