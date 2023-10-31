@@ -534,7 +534,13 @@ void BeetleNavigator::rotateContactPointFrame()
 
 void BeetleNavigator::convertTargetPosFromCoG2CoM()
 {
+  tf::Transform cog2com_tf;
+  tf::transformKDLToTF(beetle_robot_model_->getCog2CoM<KDL::Frame>(), cog2com_tf);
+  tf::Matrix3x3 cog_orientation_tf;
+  tf::matrixEigenToTF(beetle_robot_model_->getCogDesireOrientation<Eigen::Matrix3d>(),cog_orientation_tf);
+  tf::Vector3 com_conversion = cog_orientation_tf *  tf::Matrix3x3(tf::createQuaternionFromYaw(getTargetRPY().z())) * cog2com_tf.getOrigin();
   bool current_assembled = beetle_robot_model_->getCurrentAssembled();
+
   if(pre_assembled_  && !current_assembled){ //disassembly process
     setTargetPosCandX(getTargetPos().x());
     setTargetPosCandY(getTargetPos().y());
@@ -542,31 +548,38 @@ void BeetleNavigator::convertTargetPosFromCoG2CoM()
     ROS_INFO("switched");
     pre_assembled_ = current_assembled;
   }
-  //TODO : assembly process
-  pre_assembled_ = current_assembled;
 
-  tf::Transform cog2com_tf;
-  tf::transformKDLToTF(beetle_robot_model_->getCog2CoM<KDL::Frame>(), cog2com_tf);
+  if(!pre_assembled_  && current_assembled){ //assembly process
+    tf::Vector3 pos_cog = estimator_->getPos(Frame::COG, estimate_mode_);
+    tf::Vector3 orientation_err = getTargetRPY() - estimator_ ->getEuler(Frame::COG, estimate_mode_);
+    tf::Vector3 corrected_target_pos =  tf::Matrix3x3(tf::createQuaternionFromRPY(orientation_err.x(), orientation_err.y(),orientation_err.z())) * pos_cog;
+    setTargetPosCandX(corrected_target_pos.x() + com_conversion.x());
+    setTargetPosCandY(corrected_target_pos.y() + com_conversion.y());
+    setTargetPosCandZ(corrected_target_pos.z() + com_conversion.z());
+    ROS_INFO("switched");
+    pre_assembled_ = current_assembled;
+  }
+  pre_assembled_ = current_assembled;
 
   /* Check whether the target value was changed by someway other than uav nav */
   /* Target pos candidate represents a target pos in a assembly frame */
   if( int(pre_target_pos_.x() * 1000) != int(getTargetPos().x() * 1000)){
-    float target_x_com = getTargetPos().x() + (tf::Matrix3x3(tf::createQuaternionFromYaw(getTargetRPY().z())) * cog2com_tf.getOrigin()).x();
+    float target_x_com = getTargetPos().x() + com_conversion.x();
     setTargetPosCandX(target_x_com);
   }
 
   if( int(pre_target_pos_.y() * 1000) != int(getTargetPos().y() * 1000)){
-    float target_y_com = getTargetPos().y() + (tf::Matrix3x3(tf::createQuaternionFromYaw(getTargetRPY().z())) * cog2com_tf.getOrigin()).y();
+    float target_y_com = getTargetPos().y() + com_conversion.y();
     setTargetPosCandY(target_y_com);
   }
 
   if( int(pre_target_pos_.z() * 1000) != int(getTargetPos().z() * 1000)){
-    float target_z_com = getTargetPos().z() + (tf::Matrix3x3(tf::createQuaternionFromYaw(getTargetRPY().z())) * cog2com_tf.getOrigin()).z();
+    float target_z_com = getTargetPos().z() + com_conversion.z();
     setTargetPosCandZ(target_z_com);
   }
   
   tf::Vector3 target_cog_pos = getTargetPosCand();
-  target_cog_pos -=  tf::Matrix3x3(tf::createQuaternionFromYaw(getTargetRPY().z())) * cog2com_tf.getOrigin();
+  target_cog_pos -=  com_conversion;
 
   if( getNaviState() == HOVER_STATE){
     setTargetPosX(target_cog_pos.x());
