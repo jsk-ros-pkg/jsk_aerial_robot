@@ -52,16 +52,15 @@ class AssembledNav():
         self.flight_nav.target_pos_z = msg.target_pos_z
         self.flight_nav.target_omega_z = msg.target_omega_z
         self.flight_nav.target_yaw = msg.target_yaw
+        for nav_pub in self.nav_pubs:
+            nav_pub.publish(self.flight_nav)
     def rotCb(self, msg):
         self.target_rot.roll = msg.roll
         self.target_rot.pitch = msg.pitch
+        for rot_pub in self.rot_pubs:
+            rot_pub.publish(self.target_rot)
     def main(self):
-        while not rospy.is_shutdown():
-            for nav_pub in self.nav_pubs:
-                nav_pub.publish(self.flight_nav)
-            for rot_pub in self.rot_pubs:
-                rot_pub.publish(self.target_rot)
-        self.nav_rate.sleep()
+        rospy.spin()
 
 
 if __name__ == "__main__":
