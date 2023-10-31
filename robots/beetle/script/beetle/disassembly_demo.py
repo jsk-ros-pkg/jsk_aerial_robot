@@ -6,9 +6,7 @@ import smach_ros
 import math,time,logging
 from std_msgs.msg import Empty, String, Bool
 from aerial_robot_msgs.msg import FlightNav
-from spinal.msg import DesireCoord
 from spinal.msg import ServoControlCmd
-from geometry_msgs.msg import PoseStamped
 from diagnostic_msgs.msg import KeyValue
 from beetle.kondo_control import KondoControl
 import numpy as np
@@ -33,16 +31,18 @@ class SwitchState(smach.State):
         #TODO: change these into pamameters
         self.robot_name = 'beetle1'
         self.robot_id = 1
-        self.servo_id = 1
+        self.servo_id = 5
         self.real_machine = False
         self.unlock_servo_angle_male = 7000
-        self.lock_servo_angle_male = 3700
-        self.unlock_servo_angle_female = 7000 #todo
-        self.lock_servo_angle_female = 3700 #todo
+        self.lock_servo_angle_male = 8800
+        self.unlock_servo_angle_female = 11000 #todo
+        self.lock_servo_angle_female = 5000 #todo
         self.neighboring = 'beetle2'
         self.neighboring_id = 2
+        self.neighboring_servo_id = 6
 
         self.kondo_servo = KondoControl(self.robot_name,self.robot_id,self.servo_id,self.real_machine)
+        self.kondo_servo_neighboring = KondoControl(self.neighboring,self.neighboring_id,self.neighboring_servo_id,self.real_machine)
 
         self.flag_pub = rospy.Publisher('/' + self.robot_name + '/assembly_flag', KeyValue, queue_size = 1)
         self.flag_pub_neighboring = rospy.Publisher('/' + self.neighboring + '/assembly_flag', KeyValue, queue_size = 1)
@@ -61,10 +61,11 @@ class SwitchState(smach.State):
         self.flag_pub_neighboring.publish(self.flag_msg)
         if self.real_machine:
             self.kondo_servo.sendTargetAngle(self.unlock_servo_angle_male)
+            self.kondo_servo_neighboring.sendTargetAngle(self.unlock_servo_angle_female)
         else:
             self.docking_msg.data = False
             self.docking_pub.publish(self.docking_msg)
-        time.sleep(3.0)
+        time.sleep(5.0)
         return 'done'
 
 class SeparateState(smach.State):
@@ -75,9 +76,9 @@ class SeparateState(smach.State):
         #TODO: change these into pamameters
         self.robot_name = 'beetle1'
         self.robot_id = 1
-        self.separate_vel = -0.2
+        self.separate_vel = -0.12
         self.neighboring = 'beetle2'
-        self.target_dist_from_neighboring = 1.5
+        self.target_dist_from_neighboring = 1.8
 
         # tf listener and broadcaster
         self.listener = tf.TransformListener()
