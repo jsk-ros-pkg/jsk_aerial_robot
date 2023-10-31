@@ -76,6 +76,7 @@ namespace aerial_robot_control
     double target_ang_acc_y = pid_controllers_.at(PITCH).result();
     double target_ang_acc_z = pid_controllers_.at(YAW).result();
     target_wrench_acc_cog.tail(3) = Eigen::Vector3d(target_ang_acc_x, target_ang_acc_y, target_ang_acc_z);
+    setTargetWrenchAccCog(target_wrench_acc_cog);
     pid_msg_.roll.total.at(0) = target_ang_acc_x;
     pid_msg_.roll.p_term.at(0) = pid_controllers_.at(ROLL).getPTerm();
     pid_msg_.roll.i_term.at(0) = pid_controllers_.at(ROLL).getITerm();
