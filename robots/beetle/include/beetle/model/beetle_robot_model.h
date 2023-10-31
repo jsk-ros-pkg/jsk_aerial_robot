@@ -44,6 +44,7 @@ private:
   tf2_ros::Buffer tfBuffer_;
   tf2_ros::TransformBroadcaster br_;
   int max_modules_num_ = 4; //TODO: get the value from rosparam
+  int pre_assembled_modules_;
   int my_id_;
   std::map<int, bool> assembly_flags_;
   bool current_assembled_;
