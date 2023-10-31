@@ -66,6 +66,7 @@ public:
   int solve(const nav_msgs::Odometry& odom_now, const aerial_robot_msgs::PredXU& x_u_ref);
 
 private:
+  double* new_time_steps;
   qd_body_rate_model_solver_capsule* acados_ocp_capsule_;
   ocp_nlp_config* nlp_config_;
   ocp_nlp_dims* nlp_dims_;

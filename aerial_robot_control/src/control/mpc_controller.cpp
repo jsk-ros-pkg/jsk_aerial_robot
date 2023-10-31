@@ -51,8 +51,17 @@ bool aerial_robot_control::MPCController::update()
 
   /* set target */
   tf::Vector3 target_pos_ = navigator_->getTargetPos();
-  double x[NX] = { target_pos_.x(), target_pos_.y(), target_pos_.z(), 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0 };
-  double u[NU] = { 0.0, 0.0, 0.0, 0.0 };
+  double x[NX] = { odom_now.pose.pose.position.x,
+                   odom_now.pose.pose.position.y,
+                   odom_now.pose.pose.position.z,
+                   0.0,
+                   0.0,
+                   0.0,
+                   1.0,
+                   0.0,
+                   0.0,
+                   0.0 };
+  double u[NU] = { 0.0, 0.0, 0.0, gravity_const_ };
   MPC::initPredXU(x_u_ref_);
   for (int i = 0; i < N; i++)
   {
@@ -108,9 +117,9 @@ void aerial_robot_control::MPCController::reset()
   tf::Quaternion q;
   q.setRPY(rpy_.x(), rpy_.y(), rpy_.z());
 
-  /* reset controller */
+  /* reset controller using odom */
   double x[NX] = { pos_.x(), pos_.y(), pos_.z(), vel_.x(), vel_.y(), vel_.z(), q.w(), q.x(), q.y(), q.z() };
-  double u[NU] = { 0.0, 0.0, 0.0, 0.0 };
+  double u[NU] = { 0.0, 0.0, 0.0, gravity_const_ };
   MPC::initPredXU(x_u_ref_);
   for (int i = 0; i < N; i++)
   {
