@@ -23,8 +23,17 @@ namespace aerial_robot_control
                     boost::shared_ptr<aerial_robot_navigation::BaseNavigator> navigator,
                     double ctrl_loop_rate
                     ) override;
-
+    void setTargetWrenchAccCog(Eigen::VectorXd target_wrench_acc_cog){
+      std::lock_guard<std::mutex> lock(wrench_mutex_);
+      target_wrench_acc_cog_ = target_wrench_acc_cog;
+    }
+    Eigen::VectorXd getTargetWrenchAccCog(){
+      std::lock_guard<std::mutex> lock(wrench_mutex_);
+      return target_wrench_acc_cog_;
+    }
   private:
+    std::mutex wrench_mutex_;
+    
     ros::Publisher flight_cmd_pub_;
     ros::Publisher gimbal_control_pub_;
     ros::Publisher gimbal_state_pub_;
@@ -38,6 +47,7 @@ namespace aerial_robot_control
     std::vector<float> target_full_thrust_;
     std::vector<double> target_gimbal_angles_;
     bool hovering_approximate_;
+    Eigen::VectorXd target_wrench_acc_cog_;
     Eigen::VectorXd target_vectoring_f_;
     Eigen::VectorXd target_vectoring_f_trans_;
     Eigen::VectorXd target_vectoring_f_rot_;
@@ -47,7 +57,6 @@ namespace aerial_robot_control
     int gimbal_dof_;
     bool gimbal_calc_in_fc_;
 
-    void rosParamInit();
     bool update() override;
     virtual void reset() override;
     void controlCore() override;
@@ -56,6 +65,7 @@ namespace aerial_robot_control
     void sendGimbalCommand();
     void sendTorqueAllocationMatrixInv();
     void setAttitudeGains();
-
+  protected:
+    virtual void rosParamInit();
   };
 };
