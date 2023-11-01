@@ -58,6 +58,9 @@ void RollingNavigator::reset()
   curr_target_baselink_rot_pub_.publish(target_baselink_rot_msg);
 
   landing_flag_ = false;
+
+  ROS_INFO_STREAM("[navigation] reset navigator");
+
 }
 
 void RollingNavigator::baselinkRotationProcess()

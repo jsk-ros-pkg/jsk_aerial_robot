@@ -87,6 +87,8 @@ void RollingController::reset()
   controlled_axis_.assign(6, 1);
 
   robot_model_->setCogDesireOrientation(0, 0, 0);
+
+  ROS_INFO_STREAM("[control] reset controller");
 }
 
 void RollingController::rosParamInit()
@@ -110,6 +112,7 @@ void RollingController::rosParamInit()
   getParam<double>(control_nh, "standing_converged_z_i_term_min", standing_converged_z_i_term_min_, 0.0);
   getParam<double>(control_nh, "standing_converged_z_i_term_descend_ratio", standing_converged_z_i_term_descend_ratio_, 0.0);
   getParam<double>(control_nh, "standing_baselink_ref_pitch_update_thresh", standing_baselink_ref_pitch_update_thresh_, 1.0);
+  getParam<double>(control_nh, "standing_minimum_z_i_term", standing_minimum_z_i_term_, 0.0);
 
   getParam<string>(base_nh, "tf_prefix", tf_prefix_, std::string(""));
 
@@ -189,6 +192,13 @@ void RollingController::targetStatePlan()
             {
               standing_target_phi_ = M_PI / 2.0;
             }
+        }
+
+      if(pid_controllers_.at(Z).getITerm() < standing_minimum_z_i_term_)
+        {
+          pid_controllers_.at(Z).setErrIUpdateFlag(true);
+          pid_controllers_.at(Z).setITerm(standing_minimum_z_i_term_);
+          ROS_WARN_STREAM("[control] set z i term " << standing_minimum_z_i_term_ << " not to vibrate");
         }
 
       double baselink_roll = estimator_->getEuler(Frame::BASELINK, estimate_mode_).x();

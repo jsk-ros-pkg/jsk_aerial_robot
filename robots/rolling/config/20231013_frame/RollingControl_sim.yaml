@@ -16,6 +16,7 @@ controller:
   standing_converged_z_i_term_min: 6.5
   standing_converged_z_i_term_descend_ratio: 0.01
   standing_baselink_ref_pitch_update_thresh: 0.05
+  standing_minimum_z_i_term: 8.5
   controlled_axis: [1, 1, 1, 1, 1, 1]
 
   rotor_tilt1: -0.125
@@ -33,7 +34,7 @@ controller:
 
   z:
     p_gain: 5.0
-    i_gain: 1.0
+    i_gain: 1.5
     d_gain: 2.5
     limit_err_p: 1.0
     limit_sum: 25.0 # N for clamping thrust force
@@ -87,7 +88,7 @@ ground_controller:
 
   z:
     p_gain: 5.0
-    i_gain: 1.0
+    i_gain: 1.5
     d_gain: 2.5
     limit_err_p: 1.0
     limit_sum: 25.0 # N for clamping thrust force
