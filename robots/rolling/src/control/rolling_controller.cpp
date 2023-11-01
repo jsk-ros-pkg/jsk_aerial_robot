@@ -143,6 +143,7 @@ void RollingController::controlCore()
   calcWrenchAllocationMatrix();
   // if(ground_navigation_mode_ == aerial_robot_navigation::FLYING_STATE || ground_navigation_mode_ == aerial_robot_navigation::STANDING_STATE)
   //   {
+  calcFullLambda();
   wrenchAllocation();
   //   }
   // else if(ground_navigation_mode_ == aerial_robot_navigation::STEERING_STATE)
@@ -150,7 +151,8 @@ void RollingController::controlCore()
       // steeringControlWrenchAllocation();
     // }
   calcYawTerm();
-
+  // osqpPractice();
+  // calcSteeringTargetLambda();
   rolling_navigator_->setPrevGroundNavigationMode(rolling_navigator_->getCurrentGroundNavigationMode());
 }
 
@@ -160,7 +162,9 @@ void RollingController::targetStatePlan()
 
   // std::cout << rolling_navigator_->getPrevGroundNavigationMode() << " " << rolling_navigator_->getCurrentGroundNavigationMode() << std::endl;
 
-  if(ground_navigation_mode_ == aerial_robot_navigation::FLYING_STATE)
+  switch(ground_navigation_mode_)
+    {
+    case aerial_robot_navigation::FLYING_STATE:
     {
       ROS_WARN_ONCE("[control] flying state");
       if(rolling_navigator_->getPrevGroundNavigationMode() != aerial_robot_navigation::FLYING_STATE)
@@ -168,10 +172,11 @@ void RollingController::targetStatePlan()
           ROS_ERROR("[control] set control params for flying state");
           setControllerParams("controller");
         }
+      break;
     }
 
-  if(ground_navigation_mode_ == aerial_robot_navigation::STANDING_STATE)
-    {
+    case aerial_robot_navigation::STANDING_STATE:
+      {
       if(rolling_navigator_->getPrevGroundNavigationMode() != aerial_robot_navigation::STANDING_STATE)
         {
           ROS_ERROR("[control] set control params for standing state");
@@ -179,10 +184,12 @@ void RollingController::targetStatePlan()
         }
 
       ROS_WARN_ONCE("[control] standing state");
-      // setControlAxis(X, 0);
-      // setControlAxis(Y, 0);
+      setControlAxis(X, 1);
+      setControlAxis(Y, 1);
+      setControlAxis(Z, 1);
+      setControlAxis(ROLL, 1);
       setControlAxis(PITCH, 0);
-      setControlAxis(YAW, 0);
+      setControlAxis(YAW, 1);
 
       tf::Vector3 cog_pos = estimator_->getPos(Frame::COG, estimate_mode_);
       if(std::abs(cog_pos.z() / circle_radius_) < 1.0 && std::asin(cog_pos.z() / circle_radius_) > standing_target_phi_)
@@ -235,12 +242,20 @@ void RollingController::targetStatePlan()
           pid_controllers_.at(Z).setErrIUpdateFlag(false);
           ROS_WARN_STREAM("[control] set z i term to " << pid_controllers_.at(Z).getITerm());
         }
+      break;
     }
 
-  // if(ground_navigation_mode_ == aerial_robot_navigation::STEERING_STATE)
-  //   {
-
-  //   }
+    case aerial_robot_navigation::STEERING_STATE:
+      {
+      setControlAxis(X, 1);
+      setControlAxis(Y, 1);
+      setControlAxis(Z, 1);
+      setControlAxis(ROLL, 1);
+      setControlAxis(PITCH, 1);
+      setControlAxis(YAW, 1);
+      break;
+    }
+    }
 }
 
 void RollingController::calcAccFromCog()
@@ -402,21 +417,35 @@ void RollingController::calcWrenchAllocationMatrix()
     }
 }
 
+void RollingController::calcFullLambda()
+{
+  ground_navigation_mode_ = rolling_navigator_->getCurrentGroundNavigationMode();
+
+  if(ground_navigation_mode_ == aerial_robot_navigation::FLYING_STATE || ground_navigation_mode_ == aerial_robot_navigation::STANDING_STATE)
+    {
+      /* actuator mapping */
+      int rot_dof = 0;
+      for(int i = 3; i < 6; i++)
+        {
+          if(controlled_axis_.at(i))
+            {
+              rot_dof++;
+            }
+        }
+      full_lambda_trans_ = controlled_q_mat_inv_.leftCols(control_dof_ - rot_dof) * target_wrench_acc_cog_.head(control_dof_ - rot_dof);
+      full_lambda_rot_ = controlled_q_mat_inv_.rightCols(rot_dof) * target_wrench_acc_cog_.tail(rot_dof);
+      full_lambda_all_ = full_lambda_trans_ + full_lambda_rot_;
+    }
+
+  if(ground_navigation_mode_ == aerial_robot_navigation::STEERING_STATE)
+    {
+      calcSteeringTargetLambda();
+    }
+
+}
+
 void RollingController::wrenchAllocation()
 {
-  /* actuator mapping */
-  int rot_dof = 0;
-  for(int i = 3; i < 6; i++)
-    {
-      if(controlled_axis_.at(i))
-        {
-          rot_dof++;
-        }
-    }
-  full_lambda_trans_ = controlled_q_mat_inv_.leftCols(control_dof_ - rot_dof) * target_wrench_acc_cog_.head(control_dof_ - rot_dof);
-  full_lambda_rot_ = controlled_q_mat_inv_.rightCols(rot_dof) * target_wrench_acc_cog_.tail(rot_dof);
-  full_lambda_all_ = full_lambda_trans_ + full_lambda_rot_;
-
   int last_col = 0;
   for(int i = 0; i < motor_num_; i++)
     {
