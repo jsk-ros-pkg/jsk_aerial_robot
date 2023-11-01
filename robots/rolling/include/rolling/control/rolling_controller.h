@@ -127,6 +127,7 @@ namespace aerial_robot_control
     void targetStatePlan();
     void calcAccFromCog();
     void calcWrenchAllocationMatrix();
+    void calcFullLambda();
     void wrenchAllocation();
     void calcYawTerm();
     void hoge();
