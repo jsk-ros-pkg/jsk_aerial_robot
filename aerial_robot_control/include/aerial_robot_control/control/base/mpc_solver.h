@@ -75,7 +75,6 @@ private:
   ocp_nlp_solver* nlp_solver_;
   void* nlp_opts_;
 
-  void initSolver();
   void setReference(const aerial_robot_msgs::PredXU& x_u_ref, unsigned int x_stride, unsigned int u_stride);
   void setFeedbackConstraints(const nav_msgs::Odometry& odom_now);
   double solveOCPInLoop(int N_timings);

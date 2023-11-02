@@ -13,7 +13,24 @@ void MPC::MPCSolver::initialize()
 {
   MPC::initPredXU(x_u_out_);
 
-  initSolver();
+  acados_ocp_capsule_ = qd_body_rate_model_acados_create_capsule();
+
+  // allocate the array and fill it accordingly
+  new_time_steps = nullptr;
+
+  int status = qd_body_rate_model_acados_create_with_discretization(acados_ocp_capsule_, N, new_time_steps);
+  if (status)
+  {
+    printf("qd_body_rate_model_acados_create() returned status %d. Exiting.\n", status);
+    exit(1);
+  }
+
+  nlp_config_ = qd_body_rate_model_acados_get_nlp_config(acados_ocp_capsule_);
+  nlp_dims_ = qd_body_rate_model_acados_get_nlp_dims(acados_ocp_capsule_);
+  nlp_in_ = qd_body_rate_model_acados_get_nlp_in(acados_ocp_capsule_);
+  nlp_out_ = qd_body_rate_model_acados_get_nlp_out(acados_ocp_capsule_);
+  nlp_solver_ = qd_body_rate_model_acados_get_nlp_solver(acados_ocp_capsule_);
+  nlp_opts_ = qd_body_rate_model_acados_get_nlp_opts(acados_ocp_capsule_);
 
   //  set constraints idx for x0
   int idxbx0[NBX0];
@@ -107,28 +124,6 @@ void MPC::initPredXU(aerial_robot_msgs::PredXU& x_u)
   x_u.u.layout.dim[1].stride = NU;
   x_u.u.layout.data_offset = 0;
   x_u.u.data.resize(N * NU);
-}
-
-void MPC::MPCSolver::initSolver()
-{
-  acados_ocp_capsule_ = qd_body_rate_model_acados_create_capsule();
-
-  // 1. allocate the array and fill it accordingly
-  new_time_steps = nullptr;
-
-  int status = qd_body_rate_model_acados_create_with_discretization(acados_ocp_capsule_, N, new_time_steps);
-  if (status)
-  {
-    printf("qd_body_rate_model_acados_create() returned status %d. Exiting.\n", status);
-    exit(1);
-  }
-
-  nlp_config_ = qd_body_rate_model_acados_get_nlp_config(acados_ocp_capsule_);
-  nlp_dims_ = qd_body_rate_model_acados_get_nlp_dims(acados_ocp_capsule_);
-  nlp_in_ = qd_body_rate_model_acados_get_nlp_in(acados_ocp_capsule_);
-  nlp_out_ = qd_body_rate_model_acados_get_nlp_out(acados_ocp_capsule_);
-  nlp_solver_ = qd_body_rate_model_acados_get_nlp_solver(acados_ocp_capsule_);
-  nlp_opts_ = qd_body_rate_model_acados_get_nlp_opts(acados_ocp_capsule_);
 }
 
 void MPC::MPCSolver::setReference(const aerial_robot_msgs::PredXU& x_u_ref, const unsigned int x_stride,
