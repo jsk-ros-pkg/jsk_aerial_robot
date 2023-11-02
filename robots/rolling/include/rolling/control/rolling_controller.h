@@ -53,6 +53,7 @@ namespace aerial_robot_control
     ros::Publisher operability_pub_;
     ros::Publisher target_acc_cog_pub_;
     ros::Publisher target_acc_dash_pub_;
+    ros::Publisher exerted_wrench_pub_;
     ros::Subscriber joint_state_sub_;
     ros::Subscriber control_mode_sub_;
     ros::Subscriber stay_current_sub_;

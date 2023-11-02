@@ -58,6 +58,7 @@ void RollingController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   operability_pub_ = nh_.advertise<std_msgs::Float32>("debug/operability", 1);
   target_acc_cog_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("debug/target_acc_cog", 1);
   target_acc_dash_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("debug/target_acc_dash", 1);
+  exerted_wrench_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("debug/exerted_wrench", 1);
 
   joint_state_sub_ = nh_.subscribe("joint_states", 1, &RollingController::jointStateCallback, this);
   stay_current_sub_ = nh_.subscribe("stay_current_position", 1, &RollingController::stayCurrentXYPosition, this);
@@ -551,6 +552,14 @@ void RollingController::sendCmd()
       full_q_mat_msg.t_z.push_back(full_q_mat_(5, i));
     }
   full_q_mat_pub_.publish(full_q_mat_msg);
+
+  std_msgs::Float32MultiArray exerted_wrench_msg;
+  Eigen::VectorXd exerted_wrench = full_q_mat_ * full_lambda_all_;
+  for(int i = 0; i < exerted_wrench.size(); i++)
+    {
+      exerted_wrench_msg.data.push_back(exerted_wrench(i));
+    }
+  exerted_wrench_pub_.publish(exerted_wrench_msg);
 
   // aerial_robot_msgs::WrenchAllocationMatrix full_q_mat_inv_msg;
   // for(int i = 0; i < 2 * motor_num_; i++)
