@@ -105,6 +105,8 @@ namespace aerial_robot_control
     const double& getLimitP() const { return limit_p_; }
     const double& getLimitI() const { return limit_i_; }
     const double& getLimitD() const { return limit_d_; }
+    void setTargetP(const double target_p) {target_p_ = target_p; }
+    void setTargetD(const double target_d) {target_d_ = target_d; }
     void setLimitSum(const double limit_sum) {limit_sum_ = limit_sum; }
     void setLimitP(const double limit_p) {limit_p_ = limit_p; }
     void setLimitI(const double limit_i) {limit_i_ = limit_i; }
