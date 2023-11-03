@@ -256,8 +256,11 @@ void RollingController::targetStatePlan()
 
       if(fabs(baselink_roll - M_PI / 2.0) > standing_baselink_roll_restart_z_i_control_thresh_)
         {
-          pid_controllers_.at(Z).setErrIUpdateFlag(true);
-          ROS_WARN_STREAM("[control] restart z i control because roll error is larger than " << standing_baselink_roll_restart_z_i_control_thresh_);
+          if(!pid_controllers_.at(Z).getErrIUpdateFlag())
+            {
+              pid_controllers_.at(Z).setErrIUpdateFlag(true);
+              ROS_WARN_STREAM("[control] restart z i control because roll error is larger than " << standing_baselink_roll_restart_z_i_control_thresh_);
+            }
         }
       break;
     }
