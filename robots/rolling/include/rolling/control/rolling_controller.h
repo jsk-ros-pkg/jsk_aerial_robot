@@ -138,6 +138,7 @@ namespace aerial_robot_control
     void calcYawTerm();
     void hoge();
     void setControllerParams(std::string ns);
+    void rosoutControlParams(std::string ns);
     void osqpPractice();
     void calcSteeringTargetLambda();
 

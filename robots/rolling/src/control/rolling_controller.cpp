@@ -138,6 +138,8 @@ void RollingController::rosParamInit()
     }
   ROS_WARN_STREAM("[control] controlled axis: " << controlled_axis_.at(0) << " " << controlled_axis_.at(1) << " " << controlled_axis_.at(2) << " " << controlled_axis_.at(3) << " " << controlled_axis_.at(4) << " " << controlled_axis_.at(5));
 
+  rosoutControlParams("controller");
+  rosoutControlParams("ground_controller");
 }
 
 void RollingController::controlCore()
