@@ -115,6 +115,9 @@ void RollingController::rosParamInit()
   getParam<double>(control_nh, "standing_baselink_ref_pitch_update_thresh", standing_baselink_ref_pitch_update_thresh_, 1.0);
   getParam<double>(control_nh, "standing_minimum_z_i_term", standing_minimum_z_i_term_, 0.0);
 
+  getParam<double>(control_nh, "steering_z_acc_min", steering_z_acc_min_, 0.0);
+  getParam<double>(control_nh, "steering_mu", steering_mu_, 0.0);
+
   getParam<string>(base_nh, "tf_prefix", tf_prefix_, std::string(""));
 
   double rotor_tilt1;
@@ -167,12 +170,12 @@ void RollingController::targetStatePlan()
     {
     case aerial_robot_navigation::FLYING_STATE:
     {
-      ROS_WARN_ONCE("[control] flying state");
       if(rolling_navigator_->getPrevGroundNavigationMode() != aerial_robot_navigation::FLYING_STATE)
         {
           ROS_ERROR("[control] set control params for flying state");
           setControllerParams("controller");
         }
+      ROS_WARN_ONCE("[control] flying state");
       break;
     }
 
