@@ -9,15 +9,19 @@
 #include "base/mpc_solver.h"
 // #include <aerial_robot_control/control/utils/pid.h>
 // #include <aerial_robot_control/PIDConfig.h>
-#include "aerial_robot_msgs/PredXU.h"
-#include "nav_msgs/Odometry.h"
-#include "spinal/FourAxisCommand.h"
+
 #include "angles/angles.h"
 #include "dynamic_reconfigure/server.h"
 // using PidControlDynamicConfig =
 // dynamic_reconfigure::Server<aerial_robot_control::PIDConfig>;
 
-// action
+/* protocol */
+#include "nav_msgs/Odometry.h"
+#include "geometry_msgs/PoseArray.h"
+#include "aerial_robot_msgs/PredXU.h"
+#include "spinal/FourAxisCommand.h"
+
+/* action */
 #include "actionlib/server/simple_action_server.h"
 #include "aerial_robot_msgs/PredXU.h"
 #include "aerial_robot_msgs/TrackTrajAction.h"
@@ -39,9 +43,12 @@ public:
                   boost::shared_ptr<aerial_robot_navigation::BaseNavigator> navigator, double ctrl_loop_du) override;
   bool update() override;
   void reset() override;
+  void callback_viz_pred(const ros::TimerEvent& event);
 
 protected:
-  ros::Publisher flight_cmd_pub_;  // for spinal
+  ros::Publisher pub_flight_cmd_;  // for spinal
+  ros::Publisher pub_viz_pred_;    // for viz predictions
+  ros::Timer tmr_viz_pred_;        // for viz predictions
 
 private:
   double mass_;

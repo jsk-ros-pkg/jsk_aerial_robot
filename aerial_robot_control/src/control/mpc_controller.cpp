@@ -21,13 +21,17 @@ void aerial_robot_control::MPCController::initialize(
   ros::NodeHandle control_nh(nh_, "controller");
 
   mass_ = robot_model_->getMass();
-  gravity_const_ =
-      robot_model_->getGravity()[2];  // TODO: wired. I think the original value should be -9.8 in ENU frame
-  //  ROS_ERROR("gravity size: %td", robot_model_->getGravity().size());
-  //  ROS_ERROR("gravity: %f, %f, %f", robot_model_->getGravity()[0], robot_model_->getGravity()[1],
-  //  robot_model_->getGravity()[2]);
+  // TODO: wired. I think the original value should be -9.8 in ENU frame
+  gravity_const_ = robot_model_->getGravity()[2];
 
-  flight_cmd_pub_ = nh_.advertise<spinal::FourAxisCommand>("four_axes/command", 1);
+  /* timers */
+  tmr_viz_pred_ = nh_.createTimer(ros::Duration(0.05), &MPCController::callback_viz_pred, this);
+
+  /* subscribers */
+
+  /* publishers */
+  pub_viz_pred_ = nh_.advertise<geometry_msgs::PoseArray>("nmpc/viz_pred", 1);
+  pub_flight_cmd_ = nh_.advertise<spinal::FourAxisCommand>("four_axes/command", 1);
 
   // get these parameters from rosparam
   //  ros::param::get("~has_traj_server", has_traj_server_);
@@ -101,7 +105,7 @@ bool aerial_robot_control::MPCController::update()
   flight_cmd_.base_thrust = target_base_thrust_;
 
   /* pub */
-  flight_cmd_pub_.publish(flight_cmd_);
+  pub_flight_cmd_.publish(flight_cmd_);
 
   // output flight cmd using ROS INFO
   ROS_INFO("r: %f, p: %f, y: %f, 1/4 thrust: %f", flight_cmd_.angles[0], flight_cmd_.angles[1], flight_cmd_.angles[2],
@@ -188,7 +192,30 @@ void aerial_robot_control::MPCController::sendFlightCmd()
   }
   flight_cmd_.base_thrust = target_base_thrust_;
 
-  flight_cmd_pub_.publish(flight_cmd_);
+  pub_flight_cmd_.publish(flight_cmd_);
+}
+
+void aerial_robot_control::MPCController::callback_viz_pred(const ros::TimerEvent& event)
+{
+  // from mpc_solver_.x_u_out to PoseArray
+  geometry_msgs::PoseArray viz_poses;
+
+  for (int i = 0; i < N; ++i)
+  {
+    geometry_msgs::Pose pose;
+    pose.position.x = mpc_solver_.x_u_out_.x.data.at(i * NX);
+    pose.position.y = mpc_solver_.x_u_out_.x.data.at(i * NX + 1);
+    pose.position.z = mpc_solver_.x_u_out_.x.data.at(i * NX + 2);
+    pose.orientation.w = mpc_solver_.x_u_out_.x.data.at(i * NX + 6);
+    pose.orientation.x = mpc_solver_.x_u_out_.x.data.at(i * NX + 7);
+    pose.orientation.y = mpc_solver_.x_u_out_.x.data.at(i * NX + 8);
+    pose.orientation.z = mpc_solver_.x_u_out_.x.data.at(i * NX + 9);
+    viz_poses.poses.push_back(pose);
+  }
+
+  viz_poses.header.frame_id = "world";
+  viz_poses.header.stamp = ros::Time::now();
+  pub_viz_pred_.publish(viz_poses);
 }
 
 /* plugin registration */
