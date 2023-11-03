@@ -106,6 +106,7 @@ namespace aerial_robot_control
     double standing_converged_baselink_roll_thresh_;
     double standing_converged_z_i_term_min_;
     double standing_converged_z_i_term_descend_ratio_;
+    double standing_baselink_roll_restart_z_i_control_thresh_;
     double standing_baselink_ref_pitch_last_update_time_;
     double standing_baselink_ref_pitch_update_thresh_;
     double standing_minimum_z_i_term_;

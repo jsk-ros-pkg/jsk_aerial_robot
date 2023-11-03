@@ -112,6 +112,7 @@ void RollingController::rosParamInit()
   getParam<double>(control_nh, "standing_converged_baselink_roll_thresh", standing_converged_baselink_roll_thresh_, 0.0);
   getParam<double>(control_nh, "standing_converged_z_i_term_min", standing_converged_z_i_term_min_, 0.0);
   getParam<double>(control_nh, "standing_converged_z_i_term_descend_ratio", standing_converged_z_i_term_descend_ratio_, 0.0);
+  getParam<double>(control_nh, "standing_baselink_roll_restart_z_i_control_thresh", standing_baselink_roll_restart_z_i_control_thresh_, 0.0);
   getParam<double>(control_nh, "standing_baselink_ref_pitch_update_thresh", standing_baselink_ref_pitch_update_thresh_, 1.0);
   getParam<double>(control_nh, "standing_minimum_z_i_term", standing_minimum_z_i_term_, 0.0);
   getParam<double>(control_nh, "standing_feed_forward_z_compensate_roll_thresh", standing_feed_forward_z_compensate_roll_thresh_, 0.0);
@@ -249,6 +250,12 @@ void RollingController::targetStatePlan()
           pid_controllers_.at(Z).setITerm(std::max(z_i_term -  standing_converged_z_i_term_descend_ratio_, standing_converged_z_i_term_min_));
           pid_controllers_.at(Z).setErrIUpdateFlag(false);
           ROS_WARN_STREAM("[control] set z i term to " << pid_controllers_.at(Z).getITerm());
+        }
+
+      if(fabs(baselink_roll - M_PI / 2.0) > standing_baselink_roll_restart_z_i_control_thresh_)
+        {
+          pid_controllers_.at(Z).setErrIUpdateFlag(true);
+          ROS_WARN_STREAM("[control] restart z i control because roll error is larger than " << standing_baselink_roll_restart_z_i_control_thresh_);
         }
       break;
     }
