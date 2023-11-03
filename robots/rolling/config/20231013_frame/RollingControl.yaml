@@ -17,7 +17,7 @@ controller:
   standing_converged_z_i_term_descend_ratio: 0.01
   standing_baselink_roll_restart_z_i_control_thresh: 0.3
   standing_baselink_ref_pitch_update_thresh: 0.05
-  standing_minimum_z_i_term: 8.5
+  standing_minimum_z_i_term: 7.5
   standing_feed_forward_z_compensate_roll_thresh: 0.6
   steering_z_acc_min: 6.0
   steering_mu: 0.1
@@ -89,7 +89,7 @@ ground_controller:
     d_gain: 2.5
 
   z:
-    p_gain: 5.0
+    p_gain: 10.0
     i_gain: 1.5
     d_gain: 2.5
 
@@ -97,7 +97,7 @@ ground_controller:
     start_rp_integration_height: 0.01
 
   roll:
-    p_gain: 22.0
+    p_gain: 25.0
     i_gain: 0.0
     d_gain: 3.0
 
@@ -109,7 +109,7 @@ ground_controller:
   yaw:
     p_gain: 10.0
     i_gain: 0.0
-    d_gain: 6.0
+    d_gain: 4.0
 
 steering_controller:
   xy:
