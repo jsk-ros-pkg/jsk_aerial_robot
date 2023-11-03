@@ -111,6 +111,7 @@ namespace aerial_robot_control
     double standing_minimum_z_i_term_;
     double standing_target_phi_;
     double standing_target_baselink_pitch_;
+    double standing_feed_forward_z_compensate_roll_thresh_;
 
     double steering_z_acc_min_;
     double steering_mu_;
