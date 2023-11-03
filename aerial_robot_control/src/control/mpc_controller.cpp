@@ -51,16 +51,7 @@ bool aerial_robot_control::MPCController::update()
 
   /* set target */
   tf::Vector3 target_pos_ = navigator_->getTargetPos();
-  double x[NX] = { odom_now.pose.pose.position.x,
-                   odom_now.pose.pose.position.y,
-                   odom_now.pose.pose.position.z,
-                   0.0,
-                   0.0,
-                   0.0,
-                   1.0,
-                   0.0,
-                   0.0,
-                   0.0 };
+  double x[NX] = { target_pos_.x(), target_pos_.y(), target_pos_.z(), 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0 };
   double u[NU] = { 0.0, 0.0, 0.0, gravity_const_ };
   MPC::initPredXU(x_u_ref_);
   for (int i = 0; i < N; i++)
@@ -75,19 +66,31 @@ bool aerial_robot_control::MPCController::update()
 
   /* get result */
   // convert quaternion to rpy
-  tf::Quaternion q;
-  q.setW(mpc_solver_.x_u_out_.x.data.at(6));
-  q.setX(mpc_solver_.x_u_out_.x.data.at(7));
-  q.setY(mpc_solver_.x_u_out_.x.data.at(8));
-  q.setZ(mpc_solver_.x_u_out_.x.data.at(9));
-  double thrust = mpc_solver_.x_u_out_.u.data.at(0) * mass_;
+  tf::Quaternion q0, q1;
+  q0.setW(mpc_solver_.x_u_out_.x.data.at(6));
+  q0.setX(mpc_solver_.x_u_out_.x.data.at(7));
+  q0.setY(mpc_solver_.x_u_out_.x.data.at(8));
+  q0.setZ(mpc_solver_.x_u_out_.x.data.at(9));
+  q1.setW(mpc_solver_.x_u_out_.x.data.at(6 + NX));
+  q1.setX(mpc_solver_.x_u_out_.x.data.at(7 + NX));
+  q1.setY(mpc_solver_.x_u_out_.x.data.at(8 + NX));
+  q1.setZ(mpc_solver_.x_u_out_.x.data.at(9 + NX));
 
-  double roll, pitch, yaw;
-  tf::Matrix3x3(q).getRPY(roll, pitch, yaw);
+  double rpy0[3], rpy1[3];
+  tf::Matrix3x3(q0).getRPY(rpy0[0], rpy0[1], rpy0[2]);
+  tf::Matrix3x3(q1).getRPY(rpy1[0], rpy1[1], rpy1[2]);
+
+  double roll, pitch,
+      yaw;  // TODO: should be set by rosparam   0.025 - 40hz for controller; 0.1 - 10hz for predict horizon
+  roll = (0.025 * rpy0[0] + (0.1 - 0.025) * rpy1[0]) / 0.1;
+  pitch = (0.025 * rpy0[1] + (0.1 - 0.025) * rpy1[1]) / 0.1;
+  yaw = (0.025 * rpy0[2] + (0.1 - 0.025) * rpy1[2]) / 0.1;
 
   flight_cmd_.angles[0] = static_cast<float>(roll);
   flight_cmd_.angles[1] = static_cast<float>(pitch);
   flight_cmd_.angles[2] = static_cast<float>(yaw);
+
+  double thrust = mpc_solver_.x_u_out_.u.data.at(3) * mass_;
 
   std::vector<float> target_base_thrust_;
   target_base_thrust_.resize(motor_num_);
