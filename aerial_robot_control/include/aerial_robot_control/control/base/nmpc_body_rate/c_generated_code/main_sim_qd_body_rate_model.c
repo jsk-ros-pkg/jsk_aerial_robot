@@ -28,7 +28,6 @@
  * POSSIBILITY OF SUCH DAMAGE.;
  */
 
-
 // standard
 #include <stdio.h>
 #include <stdlib.h>
@@ -38,116 +37,103 @@
 #include "acados_c/sim_interface.h"
 #include "acados_sim_solver_qd_body_rate_model.h"
 
-#define NX     QD_BODY_RATE_MODEL_NX
-#define NZ     QD_BODY_RATE_MODEL_NZ
-#define NU     QD_BODY_RATE_MODEL_NU
-#define NP     QD_BODY_RATE_MODEL_NP
-
+#define NX QD_BODY_RATE_MODEL_NX
+#define NZ QD_BODY_RATE_MODEL_NZ
+#define NU QD_BODY_RATE_MODEL_NU
+#define NP QD_BODY_RATE_MODEL_NP
 
 int main()
 {
-    int status = 0;
-    qd_body_rate_model_sim_solver_capsule *capsule = qd_body_rate_model_acados_sim_solver_create_capsule();
-    status = qd_body_rate_model_acados_sim_create(capsule);
+  int status = 0;
+  qd_body_rate_model_sim_solver_capsule* capsule = qd_body_rate_model_acados_sim_solver_create_capsule();
+  status = qd_body_rate_model_acados_sim_create(capsule);
 
-    if (status)
+  if (status)
+  {
+    printf("acados_create() returned status %d. Exiting.\n", status);
+    exit(1);
+  }
+
+  sim_config* acados_sim_config = qd_body_rate_model_acados_get_sim_config(capsule);
+  sim_in* acados_sim_in = qd_body_rate_model_acados_get_sim_in(capsule);
+  sim_out* acados_sim_out = qd_body_rate_model_acados_get_sim_out(capsule);
+  void* acados_sim_dims = qd_body_rate_model_acados_get_sim_dims(capsule);
+
+  // initial condition
+  double x_current[NX];
+  x_current[0] = 0.0;
+  x_current[1] = 0.0;
+  x_current[2] = 0.0;
+  x_current[3] = 0.0;
+  x_current[4] = 0.0;
+  x_current[5] = 0.0;
+  x_current[6] = 0.0;
+  x_current[7] = 0.0;
+  x_current[8] = 0.0;
+  x_current[9] = 0.0;
+
+  x_current[0] = 0;
+  x_current[1] = 0;
+  x_current[2] = 0;
+  x_current[3] = 0;
+  x_current[4] = 0;
+  x_current[5] = 0;
+  x_current[6] = 0;
+  x_current[7] = 0;
+  x_current[8] = 0;
+  x_current[9] = 0;
+
+  // initial value for control input
+  double u0[NU];
+  u0[0] = 0.0;
+  u0[1] = 0.0;
+  u0[2] = 0.0;
+  u0[3] = 0.0;
+  // set parameters
+  double p[NP];
+  p[0] = 0;
+  p[1] = 0;
+  p[2] = 0;
+  p[3] = 0;
+
+  qd_body_rate_model_acados_sim_update_params(capsule, p, NP);
+
+  int n_sim_steps = 3;
+  // solve ocp in loop
+  for (int ii = 0; ii < n_sim_steps; ii++)
+  {
+    // set inputs
+    sim_in_set(acados_sim_config, acados_sim_dims, acados_sim_in, "x", x_current);
+    sim_in_set(acados_sim_config, acados_sim_dims, acados_sim_in, "u", u0);
+
+    // solve
+    status = qd_body_rate_model_acados_sim_solve(capsule);
+    if (status != ACADOS_SUCCESS)
     {
-        printf("acados_create() returned status %d. Exiting.\n", status);
-        exit(1);
+      printf("acados_solve() failed with status %d.\n", status);
     }
 
-    sim_config *acados_sim_config = qd_body_rate_model_acados_get_sim_config(capsule);
-    sim_in *acados_sim_in = qd_body_rate_model_acados_get_sim_in(capsule);
-    sim_out *acados_sim_out = qd_body_rate_model_acados_get_sim_out(capsule);
-    void *acados_sim_dims = qd_body_rate_model_acados_get_sim_dims(capsule);
+    // get outputs
+    sim_out_get(acados_sim_config, acados_sim_dims, acados_sim_out, "x", x_current);
 
-    // initial condition
-    double x_current[NX];
-    x_current[0] = 0.0;
-    x_current[1] = 0.0;
-    x_current[2] = 0.0;
-    x_current[3] = 0.0;
-    x_current[4] = 0.0;
-    x_current[5] = 0.0;
-    x_current[6] = 0.0;
-    x_current[7] = 0.0;
-    x_current[8] = 0.0;
-    x_current[9] = 0.0;
-
-
-    x_current[0] = 0;
-    x_current[1] = 0;
-    x_current[2] = 0;
-    x_current[3] = 0;
-    x_current[4] = 0;
-    x_current[5] = 0;
-    x_current[6] = 0;
-    x_current[7] = 0;
-    x_current[8] = 0;
-    x_current[9] = 0;
-
-
-
-
-    // initial value for control input
-    double u0[NU];
-    u0[0] = 0.0;
-    u0[1] = 0.0;
-    u0[2] = 0.0;
-    u0[3] = 0.0;
-    // set parameters
-    double p[NP];
-    p[0] = 0;
-    p[1] = 0;
-    p[2] = 0;
-    p[3] = 0;
-
-    qd_body_rate_model_acados_sim_update_params(capsule, p, NP);
-
-
-
-
-
-    int n_sim_steps = 3;
-    // solve ocp in loop
-    for (int ii = 0; ii < n_sim_steps; ii++)
+    // print solution
+    printf("\nx_current, %d\n", ii);
+    for (int jj = 0; jj < NX; jj++)
     {
-        // set inputs
-        sim_in_set(acados_sim_config, acados_sim_dims,
-            acados_sim_in, "x", x_current);
-        sim_in_set(acados_sim_config, acados_sim_dims,
-            acados_sim_in, "u", u0);
-
-        // solve
-        status = qd_body_rate_model_acados_sim_solve(capsule);
-        if (status != ACADOS_SUCCESS)
-        {
-            printf("acados_solve() failed with status %d.\n", status);
-        }
-
-        // get outputs
-        sim_out_get(acados_sim_config, acados_sim_dims,
-               acados_sim_out, "x", x_current);
-
-
-
-        // print solution
-        printf("\nx_current, %d\n", ii);
-        for (int jj = 0; jj < NX; jj++)
-        {
-            printf("%e\n", x_current[jj]);
-        }
+      printf("%e\n", x_current[jj]);
     }
+  }
 
-    printf("\nPerformed %d simulation steps with acados integrator successfully.\n\n", n_sim_steps);
+  printf("\nPerformed %d simulation steps with acados integrator successfully.\n\n", n_sim_steps);
 
-    // free solver
-    status = qd_body_rate_model_acados_sim_free(capsule);
-    if (status) {
-        printf("qd_body_rate_model_acados_sim_free() returned status %d. \n", status);
-    }
+  // free solver
+  status = qd_body_rate_model_acados_sim_free(capsule);
+  if (status)
+  {
+    printf("qd_body_rate_model_acados_sim_free() returned status %d. \n", status);
+  }
 
-    qd_body_rate_model_acados_sim_solver_free_capsule(capsule);
+  qd_body_rate_model_acados_sim_solver_free_capsule(capsule);
 
-    return status;
+  return status;
 }

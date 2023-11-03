@@ -77,7 +77,7 @@ class NMPCBodyRateController(object):
         ocp.solver_options.print_level = 0
         ocp.solver_options.nlp_solver_type = "SQP_RTI"
         ocp.solver_options.qp_solver_cond_N = CP.N_node
-        ocp.solver_options.tf = CP.T_horizon
+        ocp.solver_options.tf = CP.T_pred
 
         # compile acados ocp
         json_file_path = os.path.join("./" + opt_model.name + "_acados_ocp.json")
@@ -221,3 +221,12 @@ def safe_mkdir_recursive(directory, overwrite=False):
                 shutil.rmtree(directory)
             except:
                 print("Error while removing directory {}".format(directory))
+
+
+if __name__ == "__main__":
+    mpc_ctl = NMPCBodyRateController()
+    print(f"Successfully initialized acados ocp solver: {mpc_ctl.solver}")
+    print(f"T_samp: {CP.T_samp}")
+    print(f"T_pred: {CP.T_pred}")
+    print(f"T_integ: {CP.T_integ}")
+    print(f"N_node: {CP.N_node}")

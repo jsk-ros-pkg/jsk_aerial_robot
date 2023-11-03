@@ -40,253 +40,232 @@
 #include "acados/utils/external_function_generic.h"
 #include "acados/utils/print.h"
 
-
 // example specific
 #include "qd_body_rate_model_model/qd_body_rate_model_model.h"
 #include "acados_sim_solver_qd_body_rate_model.h"
 
-
 // ** solver data **
 
-qd_body_rate_model_sim_solver_capsule * qd_body_rate_model_acados_sim_solver_create_capsule()
+qd_body_rate_model_sim_solver_capsule* qd_body_rate_model_acados_sim_solver_create_capsule()
 {
-    void* capsule_mem = malloc(sizeof(qd_body_rate_model_sim_solver_capsule));
-    qd_body_rate_model_sim_solver_capsule *capsule = (qd_body_rate_model_sim_solver_capsule *) capsule_mem;
+  void* capsule_mem = malloc(sizeof(qd_body_rate_model_sim_solver_capsule));
+  qd_body_rate_model_sim_solver_capsule* capsule = (qd_body_rate_model_sim_solver_capsule*)capsule_mem;
 
-    return capsule;
+  return capsule;
 }
 
-
-int qd_body_rate_model_acados_sim_solver_free_capsule(qd_body_rate_model_sim_solver_capsule * capsule)
+int qd_body_rate_model_acados_sim_solver_free_capsule(qd_body_rate_model_sim_solver_capsule* capsule)
 {
-    free(capsule);
-    return 0;
+  free(capsule);
+  return 0;
 }
 
-
-int qd_body_rate_model_acados_sim_create(qd_body_rate_model_sim_solver_capsule * capsule)
+int qd_body_rate_model_acados_sim_create(qd_body_rate_model_sim_solver_capsule* capsule)
 {
-    // initialize
-    const int nx = QD_BODY_RATE_MODEL_NX;
-    const int nu = QD_BODY_RATE_MODEL_NU;
-    const int nz = QD_BODY_RATE_MODEL_NZ;
-    const int np = QD_BODY_RATE_MODEL_NP;
-    bool tmp_bool;
+  // initialize
+  const int nx = QD_BODY_RATE_MODEL_NX;
+  const int nu = QD_BODY_RATE_MODEL_NU;
+  const int nz = QD_BODY_RATE_MODEL_NZ;
+  const int np = QD_BODY_RATE_MODEL_NP;
+  bool tmp_bool;
 
+  double Tsim = 0.1;
 
-    double Tsim = 0.1;
+  // explicit ode
+  capsule->sim_forw_vde_casadi = (external_function_param_casadi*)malloc(sizeof(external_function_param_casadi));
+  capsule->sim_vde_adj_casadi = (external_function_param_casadi*)malloc(sizeof(external_function_param_casadi));
+  capsule->sim_expl_ode_fun_casadi = (external_function_param_casadi*)malloc(sizeof(external_function_param_casadi));
 
+  capsule->sim_forw_vde_casadi->casadi_fun = &qd_body_rate_model_expl_vde_forw;
+  capsule->sim_forw_vde_casadi->casadi_n_in = &qd_body_rate_model_expl_vde_forw_n_in;
+  capsule->sim_forw_vde_casadi->casadi_n_out = &qd_body_rate_model_expl_vde_forw_n_out;
+  capsule->sim_forw_vde_casadi->casadi_sparsity_in = &qd_body_rate_model_expl_vde_forw_sparsity_in;
+  capsule->sim_forw_vde_casadi->casadi_sparsity_out = &qd_body_rate_model_expl_vde_forw_sparsity_out;
+  capsule->sim_forw_vde_casadi->casadi_work = &qd_body_rate_model_expl_vde_forw_work;
+  external_function_param_casadi_create(capsule->sim_forw_vde_casadi, np);
 
-    // explicit ode
-    capsule->sim_forw_vde_casadi = (external_function_param_casadi *) malloc(sizeof(external_function_param_casadi));
-    capsule->sim_vde_adj_casadi = (external_function_param_casadi *) malloc(sizeof(external_function_param_casadi));
-    capsule->sim_expl_ode_fun_casadi = (external_function_param_casadi *) malloc(sizeof(external_function_param_casadi));
+  capsule->sim_vde_adj_casadi->casadi_fun = &qd_body_rate_model_expl_vde_adj;
+  capsule->sim_vde_adj_casadi->casadi_n_in = &qd_body_rate_model_expl_vde_adj_n_in;
+  capsule->sim_vde_adj_casadi->casadi_n_out = &qd_body_rate_model_expl_vde_adj_n_out;
+  capsule->sim_vde_adj_casadi->casadi_sparsity_in = &qd_body_rate_model_expl_vde_adj_sparsity_in;
+  capsule->sim_vde_adj_casadi->casadi_sparsity_out = &qd_body_rate_model_expl_vde_adj_sparsity_out;
+  capsule->sim_vde_adj_casadi->casadi_work = &qd_body_rate_model_expl_vde_adj_work;
+  external_function_param_casadi_create(capsule->sim_vde_adj_casadi, np);
 
-    capsule->sim_forw_vde_casadi->casadi_fun = &qd_body_rate_model_expl_vde_forw;
-    capsule->sim_forw_vde_casadi->casadi_n_in = &qd_body_rate_model_expl_vde_forw_n_in;
-    capsule->sim_forw_vde_casadi->casadi_n_out = &qd_body_rate_model_expl_vde_forw_n_out;
-    capsule->sim_forw_vde_casadi->casadi_sparsity_in = &qd_body_rate_model_expl_vde_forw_sparsity_in;
-    capsule->sim_forw_vde_casadi->casadi_sparsity_out = &qd_body_rate_model_expl_vde_forw_sparsity_out;
-    capsule->sim_forw_vde_casadi->casadi_work = &qd_body_rate_model_expl_vde_forw_work;
-    external_function_param_casadi_create(capsule->sim_forw_vde_casadi, np);
+  capsule->sim_expl_ode_fun_casadi->casadi_fun = &qd_body_rate_model_expl_ode_fun;
+  capsule->sim_expl_ode_fun_casadi->casadi_n_in = &qd_body_rate_model_expl_ode_fun_n_in;
+  capsule->sim_expl_ode_fun_casadi->casadi_n_out = &qd_body_rate_model_expl_ode_fun_n_out;
+  capsule->sim_expl_ode_fun_casadi->casadi_sparsity_in = &qd_body_rate_model_expl_ode_fun_sparsity_in;
+  capsule->sim_expl_ode_fun_casadi->casadi_sparsity_out = &qd_body_rate_model_expl_ode_fun_sparsity_out;
+  capsule->sim_expl_ode_fun_casadi->casadi_work = &qd_body_rate_model_expl_ode_fun_work;
+  external_function_param_casadi_create(capsule->sim_expl_ode_fun_casadi, np);
 
-    capsule->sim_vde_adj_casadi->casadi_fun = &qd_body_rate_model_expl_vde_adj;
-    capsule->sim_vde_adj_casadi->casadi_n_in = &qd_body_rate_model_expl_vde_adj_n_in;
-    capsule->sim_vde_adj_casadi->casadi_n_out = &qd_body_rate_model_expl_vde_adj_n_out;
-    capsule->sim_vde_adj_casadi->casadi_sparsity_in = &qd_body_rate_model_expl_vde_adj_sparsity_in;
-    capsule->sim_vde_adj_casadi->casadi_sparsity_out = &qd_body_rate_model_expl_vde_adj_sparsity_out;
-    capsule->sim_vde_adj_casadi->casadi_work = &qd_body_rate_model_expl_vde_adj_work;
-    external_function_param_casadi_create(capsule->sim_vde_adj_casadi, np);
+  // sim plan & config
+  sim_solver_plan_t plan;
+  plan.sim_solver = ERK;
 
-    capsule->sim_expl_ode_fun_casadi->casadi_fun = &qd_body_rate_model_expl_ode_fun;
-    capsule->sim_expl_ode_fun_casadi->casadi_n_in = &qd_body_rate_model_expl_ode_fun_n_in;
-    capsule->sim_expl_ode_fun_casadi->casadi_n_out = &qd_body_rate_model_expl_ode_fun_n_out;
-    capsule->sim_expl_ode_fun_casadi->casadi_sparsity_in = &qd_body_rate_model_expl_ode_fun_sparsity_in;
-    capsule->sim_expl_ode_fun_casadi->casadi_sparsity_out = &qd_body_rate_model_expl_ode_fun_sparsity_out;
-    capsule->sim_expl_ode_fun_casadi->casadi_work = &qd_body_rate_model_expl_ode_fun_work;
-    external_function_param_casadi_create(capsule->sim_expl_ode_fun_casadi, np);
+  // create correct config based on plan
+  sim_config* qd_body_rate_model_sim_config = sim_config_create(plan);
+  capsule->acados_sim_config = qd_body_rate_model_sim_config;
 
+  // sim dims
+  void* qd_body_rate_model_sim_dims = sim_dims_create(qd_body_rate_model_sim_config);
+  capsule->acados_sim_dims = qd_body_rate_model_sim_dims;
+  sim_dims_set(qd_body_rate_model_sim_config, qd_body_rate_model_sim_dims, "nx", &nx);
+  sim_dims_set(qd_body_rate_model_sim_config, qd_body_rate_model_sim_dims, "nu", &nu);
+  sim_dims_set(qd_body_rate_model_sim_config, qd_body_rate_model_sim_dims, "nz", &nz);
 
+  // sim opts
+  sim_opts* qd_body_rate_model_sim_opts = sim_opts_create(qd_body_rate_model_sim_config, qd_body_rate_model_sim_dims);
+  capsule->acados_sim_opts = qd_body_rate_model_sim_opts;
+  int tmp_int = 3;
+  sim_opts_set(qd_body_rate_model_sim_config, qd_body_rate_model_sim_opts, "newton_iter", &tmp_int);
+  double tmp_double = 0;
+  sim_opts_set(qd_body_rate_model_sim_config, qd_body_rate_model_sim_opts, "newton_tol", &tmp_double);
+  sim_collocation_type collocation_type = GAUSS_LEGENDRE;
+  sim_opts_set(qd_body_rate_model_sim_config, qd_body_rate_model_sim_opts, "collocation_type", &collocation_type);
 
-    // sim plan & config
-    sim_solver_plan_t plan;
-    plan.sim_solver = ERK;
+  tmp_int = 4;
+  sim_opts_set(qd_body_rate_model_sim_config, qd_body_rate_model_sim_opts, "num_stages", &tmp_int);
+  tmp_int = 1;
+  sim_opts_set(qd_body_rate_model_sim_config, qd_body_rate_model_sim_opts, "num_steps", &tmp_int);
+  tmp_bool = 0;
+  sim_opts_set(qd_body_rate_model_sim_config, qd_body_rate_model_sim_opts, "jac_reuse", &tmp_bool);
 
-    // create correct config based on plan
-    sim_config * qd_body_rate_model_sim_config = sim_config_create(plan);
-    capsule->acados_sim_config = qd_body_rate_model_sim_config;
+  // sim in / out
+  sim_in* qd_body_rate_model_sim_in = sim_in_create(qd_body_rate_model_sim_config, qd_body_rate_model_sim_dims);
+  capsule->acados_sim_in = qd_body_rate_model_sim_in;
+  sim_out* qd_body_rate_model_sim_out = sim_out_create(qd_body_rate_model_sim_config, qd_body_rate_model_sim_dims);
+  capsule->acados_sim_out = qd_body_rate_model_sim_out;
 
-    // sim dims
-    void *qd_body_rate_model_sim_dims = sim_dims_create(qd_body_rate_model_sim_config);
-    capsule->acados_sim_dims = qd_body_rate_model_sim_dims;
-    sim_dims_set(qd_body_rate_model_sim_config, qd_body_rate_model_sim_dims, "nx", &nx);
-    sim_dims_set(qd_body_rate_model_sim_config, qd_body_rate_model_sim_dims, "nu", &nu);
-    sim_dims_set(qd_body_rate_model_sim_config, qd_body_rate_model_sim_dims, "nz", &nz);
+  sim_in_set(qd_body_rate_model_sim_config, qd_body_rate_model_sim_dims, qd_body_rate_model_sim_in, "T", &Tsim);
 
+  // model functions
+  qd_body_rate_model_sim_config->model_set(qd_body_rate_model_sim_in->model, "expl_vde_forw",
+                                           capsule->sim_forw_vde_casadi);
+  qd_body_rate_model_sim_config->model_set(qd_body_rate_model_sim_in->model, "expl_vde_adj",
+                                           capsule->sim_vde_adj_casadi);
+  qd_body_rate_model_sim_config->model_set(qd_body_rate_model_sim_in->model, "expl_ode_fun",
+                                           capsule->sim_expl_ode_fun_casadi);
 
-    // sim opts
-    sim_opts *qd_body_rate_model_sim_opts = sim_opts_create(qd_body_rate_model_sim_config, qd_body_rate_model_sim_dims);
-    capsule->acados_sim_opts = qd_body_rate_model_sim_opts;
-    int tmp_int = 3;
-    sim_opts_set(qd_body_rate_model_sim_config, qd_body_rate_model_sim_opts, "newton_iter", &tmp_int);
-    double tmp_double = 0;
-    sim_opts_set(qd_body_rate_model_sim_config, qd_body_rate_model_sim_opts, "newton_tol", &tmp_double);
-    sim_collocation_type collocation_type = GAUSS_LEGENDRE;
-    sim_opts_set(qd_body_rate_model_sim_config, qd_body_rate_model_sim_opts, "collocation_type", &collocation_type);
+  // sim solver
+  sim_solver* qd_body_rate_model_sim_solver =
+      sim_solver_create(qd_body_rate_model_sim_config, qd_body_rate_model_sim_dims, qd_body_rate_model_sim_opts);
+  capsule->acados_sim_solver = qd_body_rate_model_sim_solver;
 
+  /* initialize parameter values */
+  double* p = calloc(np, sizeof(double));
 
-    tmp_int = 4;
-    sim_opts_set(qd_body_rate_model_sim_config, qd_body_rate_model_sim_opts, "num_stages", &tmp_int);
-    tmp_int = 1;
-    sim_opts_set(qd_body_rate_model_sim_config, qd_body_rate_model_sim_opts, "num_steps", &tmp_int);
-    tmp_bool = 0;
-    sim_opts_set(qd_body_rate_model_sim_config, qd_body_rate_model_sim_opts, "jac_reuse", &tmp_bool);
+  qd_body_rate_model_acados_sim_update_params(capsule, p, np);
+  free(p);
 
+  /* initialize input */
+  // x
+  double x0[10];
+  for (int ii = 0; ii < 10; ii++)
+    x0[ii] = 0.0;
 
-    // sim in / out
-    sim_in *qd_body_rate_model_sim_in = sim_in_create(qd_body_rate_model_sim_config, qd_body_rate_model_sim_dims);
-    capsule->acados_sim_in = qd_body_rate_model_sim_in;
-    sim_out *qd_body_rate_model_sim_out = sim_out_create(qd_body_rate_model_sim_config, qd_body_rate_model_sim_dims);
-    capsule->acados_sim_out = qd_body_rate_model_sim_out;
+  sim_in_set(qd_body_rate_model_sim_config, qd_body_rate_model_sim_dims, qd_body_rate_model_sim_in, "x", x0);
 
-    sim_in_set(qd_body_rate_model_sim_config, qd_body_rate_model_sim_dims,
-               qd_body_rate_model_sim_in, "T", &Tsim);
+  // u
+  double u0[4];
+  for (int ii = 0; ii < 4; ii++)
+    u0[ii] = 0.0;
 
-    // model functions
-    qd_body_rate_model_sim_config->model_set(qd_body_rate_model_sim_in->model,
-                 "expl_vde_forw", capsule->sim_forw_vde_casadi);
-    qd_body_rate_model_sim_config->model_set(qd_body_rate_model_sim_in->model,
-                 "expl_vde_adj", capsule->sim_vde_adj_casadi);
-    qd_body_rate_model_sim_config->model_set(qd_body_rate_model_sim_in->model,
-                 "expl_ode_fun", capsule->sim_expl_ode_fun_casadi);
+  sim_in_set(qd_body_rate_model_sim_config, qd_body_rate_model_sim_dims, qd_body_rate_model_sim_in, "u", u0);
 
-    // sim solver
-    sim_solver *qd_body_rate_model_sim_solver = sim_solver_create(qd_body_rate_model_sim_config,
-                                               qd_body_rate_model_sim_dims, qd_body_rate_model_sim_opts);
-    capsule->acados_sim_solver = qd_body_rate_model_sim_solver;
+  // S_forw
+  double S_forw[140];
+  for (int ii = 0; ii < 140; ii++)
+    S_forw[ii] = 0.0;
+  for (int ii = 0; ii < 10; ii++)
+    S_forw[ii + ii * 10] = 1.0;
 
+  sim_in_set(qd_body_rate_model_sim_config, qd_body_rate_model_sim_dims, qd_body_rate_model_sim_in, "S_forw", S_forw);
 
-    /* initialize parameter values */
-    double* p = calloc(np, sizeof(double));
+  int status = sim_precompute(qd_body_rate_model_sim_solver, qd_body_rate_model_sim_in, qd_body_rate_model_sim_out);
 
-
-    qd_body_rate_model_acados_sim_update_params(capsule, p, np);
-    free(p);
-
-
-    /* initialize input */
-    // x
-    double x0[10];
-    for (int ii = 0; ii < 10; ii++)
-        x0[ii] = 0.0;
-
-    sim_in_set(qd_body_rate_model_sim_config, qd_body_rate_model_sim_dims,
-               qd_body_rate_model_sim_in, "x", x0);
-
-
-    // u
-    double u0[4];
-    for (int ii = 0; ii < 4; ii++)
-        u0[ii] = 0.0;
-
-    sim_in_set(qd_body_rate_model_sim_config, qd_body_rate_model_sim_dims,
-               qd_body_rate_model_sim_in, "u", u0);
-
-    // S_forw
-    double S_forw[140];
-    for (int ii = 0; ii < 140; ii++)
-        S_forw[ii] = 0.0;
-    for (int ii = 0; ii < 10; ii++)
-        S_forw[ii + ii * 10 ] = 1.0;
-
-
-    sim_in_set(qd_body_rate_model_sim_config, qd_body_rate_model_sim_dims,
-               qd_body_rate_model_sim_in, "S_forw", S_forw);
-
-    int status = sim_precompute(qd_body_rate_model_sim_solver, qd_body_rate_model_sim_in, qd_body_rate_model_sim_out);
-
-    return status;
+  return status;
 }
 
-
-int qd_body_rate_model_acados_sim_solve(qd_body_rate_model_sim_solver_capsule *capsule)
+int qd_body_rate_model_acados_sim_solve(qd_body_rate_model_sim_solver_capsule* capsule)
 {
-    // integrate dynamics using acados sim_solver
-    int status = sim_solve(capsule->acados_sim_solver,
-                           capsule->acados_sim_in, capsule->acados_sim_out);
-    if (status != 0)
-        printf("error in qd_body_rate_model_acados_sim_solve()! Exiting.\n");
+  // integrate dynamics using acados sim_solver
+  int status = sim_solve(capsule->acados_sim_solver, capsule->acados_sim_in, capsule->acados_sim_out);
+  if (status != 0)
+    printf("error in qd_body_rate_model_acados_sim_solve()! Exiting.\n");
 
-    return status;
+  return status;
 }
 
-
-int qd_body_rate_model_acados_sim_free(qd_body_rate_model_sim_solver_capsule *capsule)
+int qd_body_rate_model_acados_sim_free(qd_body_rate_model_sim_solver_capsule* capsule)
 {
-    // free memory
-    sim_solver_destroy(capsule->acados_sim_solver);
-    sim_in_destroy(capsule->acados_sim_in);
-    sim_out_destroy(capsule->acados_sim_out);
-    sim_opts_destroy(capsule->acados_sim_opts);
-    sim_dims_destroy(capsule->acados_sim_dims);
-    sim_config_destroy(capsule->acados_sim_config);
+  // free memory
+  sim_solver_destroy(capsule->acados_sim_solver);
+  sim_in_destroy(capsule->acados_sim_in);
+  sim_out_destroy(capsule->acados_sim_out);
+  sim_opts_destroy(capsule->acados_sim_opts);
+  sim_dims_destroy(capsule->acados_sim_dims);
+  sim_config_destroy(capsule->acados_sim_config);
 
-    // free external function
-    external_function_param_casadi_free(capsule->sim_forw_vde_casadi);
-    external_function_param_casadi_free(capsule->sim_vde_adj_casadi);
-    external_function_param_casadi_free(capsule->sim_expl_ode_fun_casadi);
-    free(capsule->sim_forw_vde_casadi);
-    free(capsule->sim_vde_adj_casadi);
-    free(capsule->sim_expl_ode_fun_casadi);
+  // free external function
+  external_function_param_casadi_free(capsule->sim_forw_vde_casadi);
+  external_function_param_casadi_free(capsule->sim_vde_adj_casadi);
+  external_function_param_casadi_free(capsule->sim_expl_ode_fun_casadi);
+  free(capsule->sim_forw_vde_casadi);
+  free(capsule->sim_vde_adj_casadi);
+  free(capsule->sim_expl_ode_fun_casadi);
 
-    return 0;
+  return 0;
 }
 
-
-int qd_body_rate_model_acados_sim_update_params(qd_body_rate_model_sim_solver_capsule *capsule, double *p, int np)
+int qd_body_rate_model_acados_sim_update_params(qd_body_rate_model_sim_solver_capsule* capsule, double* p, int np)
 {
-    int status = 0;
-    int casadi_np = QD_BODY_RATE_MODEL_NP;
+  int status = 0;
+  int casadi_np = QD_BODY_RATE_MODEL_NP;
 
-    if (casadi_np != np) {
-        printf("qd_body_rate_model_acados_sim_update_params: trying to set %i parameters for external functions."
-            " External function has %i parameters. Exiting.\n", np, casadi_np);
-        exit(1);
-    }
-    capsule->sim_forw_vde_casadi[0].set_param(capsule->sim_forw_vde_casadi, p);
-    capsule->sim_vde_adj_casadi[0].set_param(capsule->sim_vde_adj_casadi, p);
-    capsule->sim_expl_ode_fun_casadi[0].set_param(capsule->sim_expl_ode_fun_casadi, p);
+  if (casadi_np != np)
+  {
+    printf(
+        "qd_body_rate_model_acados_sim_update_params: trying to set %i parameters for external functions."
+        " External function has %i parameters. Exiting.\n",
+        np, casadi_np);
+    exit(1);
+  }
+  capsule->sim_forw_vde_casadi[0].set_param(capsule->sim_forw_vde_casadi, p);
+  capsule->sim_vde_adj_casadi[0].set_param(capsule->sim_vde_adj_casadi, p);
+  capsule->sim_expl_ode_fun_casadi[0].set_param(capsule->sim_expl_ode_fun_casadi, p);
 
-    return status;
+  return status;
 }
 
 /* getters pointers to C objects*/
-sim_config * qd_body_rate_model_acados_get_sim_config(qd_body_rate_model_sim_solver_capsule *capsule)
+sim_config* qd_body_rate_model_acados_get_sim_config(qd_body_rate_model_sim_solver_capsule* capsule)
 {
-    return capsule->acados_sim_config;
+  return capsule->acados_sim_config;
 };
 
-sim_in * qd_body_rate_model_acados_get_sim_in(qd_body_rate_model_sim_solver_capsule *capsule)
+sim_in* qd_body_rate_model_acados_get_sim_in(qd_body_rate_model_sim_solver_capsule* capsule)
 {
-    return capsule->acados_sim_in;
+  return capsule->acados_sim_in;
 };
 
-sim_out * qd_body_rate_model_acados_get_sim_out(qd_body_rate_model_sim_solver_capsule *capsule)
+sim_out* qd_body_rate_model_acados_get_sim_out(qd_body_rate_model_sim_solver_capsule* capsule)
 {
-    return capsule->acados_sim_out;
+  return capsule->acados_sim_out;
 };
 
-void * qd_body_rate_model_acados_get_sim_dims(qd_body_rate_model_sim_solver_capsule *capsule)
+void* qd_body_rate_model_acados_get_sim_dims(qd_body_rate_model_sim_solver_capsule* capsule)
 {
-    return capsule->acados_sim_dims;
+  return capsule->acados_sim_dims;
 };
 
-sim_opts * qd_body_rate_model_acados_get_sim_opts(qd_body_rate_model_sim_solver_capsule *capsule)
+sim_opts* qd_body_rate_model_acados_get_sim_opts(qd_body_rate_model_sim_solver_capsule* capsule)
 {
-    return capsule->acados_sim_opts;
+  return capsule->acados_sim_opts;
 };
 
-sim_solver  * qd_body_rate_model_acados_get_sim_solver(qd_body_rate_model_sim_solver_capsule *capsule)
+sim_solver* qd_body_rate_model_acados_get_sim_solver(qd_body_rate_model_sim_solver_capsule* capsule)
 {
-    return capsule->acados_sim_solver;
+  return capsule->acados_sim_solver;
 };

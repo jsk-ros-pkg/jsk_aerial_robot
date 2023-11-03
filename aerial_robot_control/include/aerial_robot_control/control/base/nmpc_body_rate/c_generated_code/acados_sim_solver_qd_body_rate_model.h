@@ -34,65 +34,66 @@
 #include "acados_c/sim_interface.h"
 #include "acados_c/external_function_interface.h"
 
-#define QD_BODY_RATE_MODEL_NX     10
-#define QD_BODY_RATE_MODEL_NZ     0
-#define QD_BODY_RATE_MODEL_NU     4
-#define QD_BODY_RATE_MODEL_NP     4
+#define QD_BODY_RATE_MODEL_NX 10
+#define QD_BODY_RATE_MODEL_NZ 0
+#define QD_BODY_RATE_MODEL_NU 4
+#define QD_BODY_RATE_MODEL_NP 4
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-
 // ** capsule for solver data **
 typedef struct qd_body_rate_model_sim_solver_capsule
 {
-    // acados objects
-    sim_in *acados_sim_in;
-    sim_out *acados_sim_out;
-    sim_solver *acados_sim_solver;
-    sim_opts *acados_sim_opts;
-    sim_config *acados_sim_config;
-    void *acados_sim_dims;
+  // acados objects
+  sim_in* acados_sim_in;
+  sim_out* acados_sim_out;
+  sim_solver* acados_sim_solver;
+  sim_opts* acados_sim_opts;
+  sim_config* acados_sim_config;
+  void* acados_sim_dims;
 
-    /* external functions */
-    // ERK
-    external_function_param_casadi * sim_forw_vde_casadi;
-    external_function_param_casadi * sim_vde_adj_casadi;
-    external_function_param_casadi * sim_expl_ode_fun_casadi;
-    external_function_param_casadi * sim_expl_ode_hess;
+  /* external functions */
+  // ERK
+  external_function_param_casadi* sim_forw_vde_casadi;
+  external_function_param_casadi* sim_vde_adj_casadi;
+  external_function_param_casadi* sim_expl_ode_fun_casadi;
+  external_function_param_casadi* sim_expl_ode_hess;
 
-    // IRK
-    external_function_param_casadi * sim_impl_dae_fun;
-    external_function_param_casadi * sim_impl_dae_fun_jac_x_xdot_z;
-    external_function_param_casadi * sim_impl_dae_jac_x_xdot_u_z;
-    external_function_param_casadi * sim_impl_dae_hess;
+  // IRK
+  external_function_param_casadi* sim_impl_dae_fun;
+  external_function_param_casadi* sim_impl_dae_fun_jac_x_xdot_z;
+  external_function_param_casadi* sim_impl_dae_jac_x_xdot_u_z;
+  external_function_param_casadi* sim_impl_dae_hess;
 
-    // GNSF
-    external_function_param_casadi * sim_gnsf_phi_fun;
-    external_function_param_casadi * sim_gnsf_phi_fun_jac_y;
-    external_function_param_casadi * sim_gnsf_phi_jac_y_uhat;
-    external_function_param_casadi * sim_gnsf_f_lo_jac_x1_x1dot_u_z;
-    external_function_param_casadi * sim_gnsf_get_matrices_fun;
+  // GNSF
+  external_function_param_casadi* sim_gnsf_phi_fun;
+  external_function_param_casadi* sim_gnsf_phi_fun_jac_y;
+  external_function_param_casadi* sim_gnsf_phi_jac_y_uhat;
+  external_function_param_casadi* sim_gnsf_f_lo_jac_x1_x1dot_u_z;
+  external_function_param_casadi* sim_gnsf_get_matrices_fun;
 
 } qd_body_rate_model_sim_solver_capsule;
 
+ACADOS_SYMBOL_EXPORT int qd_body_rate_model_acados_sim_create(qd_body_rate_model_sim_solver_capsule* capsule);
+ACADOS_SYMBOL_EXPORT int qd_body_rate_model_acados_sim_solve(qd_body_rate_model_sim_solver_capsule* capsule);
+ACADOS_SYMBOL_EXPORT int qd_body_rate_model_acados_sim_free(qd_body_rate_model_sim_solver_capsule* capsule);
+ACADOS_SYMBOL_EXPORT int qd_body_rate_model_acados_sim_update_params(qd_body_rate_model_sim_solver_capsule* capsule,
+                                                                     double* value, int np);
 
-ACADOS_SYMBOL_EXPORT int qd_body_rate_model_acados_sim_create(qd_body_rate_model_sim_solver_capsule *capsule);
-ACADOS_SYMBOL_EXPORT int qd_body_rate_model_acados_sim_solve(qd_body_rate_model_sim_solver_capsule *capsule);
-ACADOS_SYMBOL_EXPORT int qd_body_rate_model_acados_sim_free(qd_body_rate_model_sim_solver_capsule *capsule);
-ACADOS_SYMBOL_EXPORT int qd_body_rate_model_acados_sim_update_params(qd_body_rate_model_sim_solver_capsule *capsule, double *value, int np);
+ACADOS_SYMBOL_EXPORT sim_config*
+qd_body_rate_model_acados_get_sim_config(qd_body_rate_model_sim_solver_capsule* capsule);
+ACADOS_SYMBOL_EXPORT sim_in* qd_body_rate_model_acados_get_sim_in(qd_body_rate_model_sim_solver_capsule* capsule);
+ACADOS_SYMBOL_EXPORT sim_out* qd_body_rate_model_acados_get_sim_out(qd_body_rate_model_sim_solver_capsule* capsule);
+ACADOS_SYMBOL_EXPORT void* qd_body_rate_model_acados_get_sim_dims(qd_body_rate_model_sim_solver_capsule* capsule);
+ACADOS_SYMBOL_EXPORT sim_opts* qd_body_rate_model_acados_get_sim_opts(qd_body_rate_model_sim_solver_capsule* capsule);
+ACADOS_SYMBOL_EXPORT sim_solver*
+qd_body_rate_model_acados_get_sim_solver(qd_body_rate_model_sim_solver_capsule* capsule);
 
-ACADOS_SYMBOL_EXPORT sim_config * qd_body_rate_model_acados_get_sim_config(qd_body_rate_model_sim_solver_capsule *capsule);
-ACADOS_SYMBOL_EXPORT sim_in * qd_body_rate_model_acados_get_sim_in(qd_body_rate_model_sim_solver_capsule *capsule);
-ACADOS_SYMBOL_EXPORT sim_out * qd_body_rate_model_acados_get_sim_out(qd_body_rate_model_sim_solver_capsule *capsule);
-ACADOS_SYMBOL_EXPORT void * qd_body_rate_model_acados_get_sim_dims(qd_body_rate_model_sim_solver_capsule *capsule);
-ACADOS_SYMBOL_EXPORT sim_opts * qd_body_rate_model_acados_get_sim_opts(qd_body_rate_model_sim_solver_capsule *capsule);
-ACADOS_SYMBOL_EXPORT sim_solver * qd_body_rate_model_acados_get_sim_solver(qd_body_rate_model_sim_solver_capsule *capsule);
-
-
-ACADOS_SYMBOL_EXPORT qd_body_rate_model_sim_solver_capsule * qd_body_rate_model_acados_sim_solver_create_capsule(void);
-ACADOS_SYMBOL_EXPORT int qd_body_rate_model_acados_sim_solver_free_capsule(qd_body_rate_model_sim_solver_capsule *capsule);
+ACADOS_SYMBOL_EXPORT qd_body_rate_model_sim_solver_capsule* qd_body_rate_model_acados_sim_solver_create_capsule(void);
+ACADOS_SYMBOL_EXPORT int
+qd_body_rate_model_acados_sim_solver_free_capsule(qd_body_rate_model_sim_solver_capsule* capsule);
 
 #ifdef __cplusplus
 }
