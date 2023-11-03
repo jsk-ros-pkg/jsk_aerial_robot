@@ -175,6 +175,7 @@ void RollingController::targetStatePlan()
         {
           ROS_ERROR("[control] set control params for flying state");
           setControllerParams("controller");
+          setAttitudeGains();
         }
       ROS_WARN_ONCE("[control] flying state");
       break;
@@ -186,6 +187,7 @@ void RollingController::targetStatePlan()
         {
           ROS_ERROR("[control] set control params for standing state");
           setControllerParams("ground_controller");
+          setAttitudeGains();
         }
 
       ROS_WARN_ONCE("[control] standing state");
@@ -237,6 +239,7 @@ void RollingController::targetStatePlan()
       navigator_->setTargetPosZ(circle_radius_);
 
       // std::cout << estimator_->getEuler(Frame::BASELINK, estimate_mode_).x() << " " << estimator_->getEuler(Frame::BASELINK, estimate_mode_).y() << " " << estimator_->getEuler(Frame::BASELINK, estimate_mode_).z() << " " << std::endl;
+
       if(fabs(baselink_roll - M_PI / 2.0) < fabs(M_PI / 2.0 - standing_converged_baselink_roll_thresh_))
         {
           ROS_WARN_STREAM("[control] baselink roll is converged " << baselink_roll);
@@ -256,6 +259,7 @@ void RollingController::targetStatePlan()
           {
             ROS_ERROR("[control] set control params for steering mode");
             setControllerParams("steering_controller");
+            setAttitudeGains();
             ROS_ERROR("[control] set control target for steering mode");
             tf::Vector3 initial_pos = estimator_->getPos(Frame::COG, estimate_mode_);
             tf::Vector3 initial_euler = estimator_->getEuler(Frame::BASELINK, estimate_mode_);
