@@ -35,6 +35,8 @@ namespace aerial_robot_navigation
     void setPrevGroundNavigationMode(int mode) {prev_ground_navigation_mode_ = mode;}
     inline tf::Vector3 getStandingInitialPos() {return standing_initial_pos_;}
     inline tf::Vector3 getStandingInitialEuler() {return standing_initial_euler_;}
+    inline tf::Vector3 getSteeringInitialPos() {return steering_initial_pos_;}
+    inline tf::Vector3 getSteeringInitialEuler() {return steering_initial_euler_;}
     inline tf::Vector3 getRollingInitialPos() {return rolling_initial_pos_;}
     inline tf::Vector3 getRollingInitialEuler() {return rolling_initial_euler_;}
 
@@ -68,6 +70,8 @@ namespace aerial_robot_navigation
     tf::Vector3 standing_initial_euler_;
 
     /* steering mode variable */
+    tf::Vector3 steering_initial_pos_;
+    tf::Vector3 steering_initial_euler_;
     double steering_joy_stick_deadzone_;
 
     /* rolling mode variable */

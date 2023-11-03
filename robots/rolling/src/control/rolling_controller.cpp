@@ -252,14 +252,32 @@ void RollingController::targetStatePlan()
 
     case aerial_robot_navigation::STEERING_STATE:
       {
-      setControlAxis(X, 1);
-      setControlAxis(Y, 1);
-      setControlAxis(Z, 1);
-      setControlAxis(ROLL, 1);
-      setControlAxis(PITCH, 1);
-      setControlAxis(YAW, 1);
-      break;
-    }
+        if(rolling_navigator_->getPrevGroundNavigationMode() != aerial_robot_navigation::STEERING_STATE)
+          {
+            ROS_ERROR("[control] set control params for steering mode");
+            setControllerParams("steering_controller");
+            ROS_ERROR("[control] set control target for steering mode");
+            tf::Vector3 initial_pos = estimator_->getPos(Frame::COG, estimate_mode_);
+            tf::Vector3 initial_euler = estimator_->getEuler(Frame::BASELINK, estimate_mode_);
+            std::cout << "initial pos" << initial_pos.x() << " " << initial_pos.y() << " " << initial_pos.z() << std::endl;
+            std::cout << "initial euler" << initial_euler.x() << " " << initial_euler.y() << " " << initial_euler.z() << std::endl;
+            spinal::DesireCoord desire_coordinate_msg;
+            desire_coordinate_msg.roll = M_PI / 2.0;
+            desire_coordinate_msg.pitch = initial_euler.y();
+            desire_coordinate_pub_.publish(desire_coordinate_msg);
+            pid_controllers_.at(YAW).reset();
+            pid_controllers_.at(YAW).setTargetP(initial_euler.z());
+          }
+
+        setControlAxis(X, 1);
+        setControlAxis(Y, 1);
+        setControlAxis(Z, 1);
+        setControlAxis(ROLL, 1);
+        setControlAxis(PITCH, 1);
+        setControlAxis(YAW, 1);
+
+        break;
+      }
     }
 }
 
@@ -267,7 +285,7 @@ void RollingController::calcAccFromCog()
 {
   ground_navigation_mode_ = rolling_navigator_->getCurrentGroundNavigationMode();
 
-  if(ground_navigation_mode_ == aerial_robot_navigation::FLYING_STATE || aerial_robot_navigation::STANDING_STATE){
+  if(ground_navigation_mode_ == aerial_robot_navigation::FLYING_STATE || ground_navigation_mode_ == aerial_robot_navigation::STANDING_STATE || ground_navigation_mode_ == aerial_robot_navigation::STEERING_STATE){
     ROS_WARN_ONCE("[control] calc acc for flying state");
   PoseLinearController::controlCore();
   control_dof_ = std::accumulate(controlled_axis_.begin(), controlled_axis_.end(), 0);
@@ -349,12 +367,6 @@ void RollingController::calcAccFromCog()
       navigator_->setTargetRoll(target_roll_);
     }
   }
-
-  else if(ground_navigation_mode_ == aerial_robot_navigation::STANDING_STATE)
-    {
-      ROS_WARN_ONCE("[control] calc acc for standing state");
-    }
-
 }
 
 void RollingController::calcWrenchAllocationMatrix()
