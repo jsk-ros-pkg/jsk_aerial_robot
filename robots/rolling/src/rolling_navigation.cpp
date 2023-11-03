@@ -165,6 +165,9 @@ void RollingNavigator::setGroundNavigationMode(int state)
   if(state == aerial_robot_navigation::STEERING_STATE && current_ground_navigation_mode_ != aerial_robot_navigation::STEERING_STATE)
     {
       ROS_WARN_STREAM("[navigation] switch to steering mode");
+
+      steering_initial_pos_ = estimator_->getPos(Frame::COG, estimate_mode_);
+      steering_initial_euler_ = estimator_->getEuler(Frame::COG, estimate_mode_);
       current_ground_navigation_mode_ = state;
     }
 
@@ -205,7 +208,7 @@ void RollingNavigator::joyCallback(const sensor_msgs::JoyConstPtr & joy_msg)
     }
   if(joy_cmd.buttons[PS4_BUTTON_REAR_LEFT_1] && joy_cmd.axes[PS4_AXIS_BUTTON_CROSS_UP_DOWN] == -1.0 && current_ground_navigation_mode_ != STEERING_STATE)
     {
-      ROS_INFO("[joy] change to rolling state");
+      ROS_INFO("[joy] change to steering state");
       setGroundNavigationMode(STEERING_STATE);
     }
 
