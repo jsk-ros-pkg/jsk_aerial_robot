@@ -112,6 +112,9 @@ namespace aerial_robot_control
     double standing_target_phi_;
     double standing_target_baselink_pitch_;
 
+    double steering_z_acc_min_;
+    double steering_mu_;
+
     void controlCore() override;
     void reset() override;
     void sendCmd();

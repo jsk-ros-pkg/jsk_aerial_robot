@@ -167,7 +167,6 @@ void RollingController::calcSteeringTargetLambda()
 {
   int n_variables = 2 * motor_num_;
   int n_constraints = 3 + 1 + 2 + 2;
-  double mu = 0.5;
   double epsilon = 0.001;
 
   Eigen::MatrixXd H(n_variables, n_variables);
@@ -185,14 +184,13 @@ void RollingController::calcSteeringTargetLambda()
   Eigen::MatrixXd A = Eigen::MatrixXd::Zero(n_constraints, n_variables);
   A.topRows(3) = full_q_rot_;                                                    //    eq constraint about rpy torque
   A.block(3, 0, 1, n_variables) = full_q_mat_.row(Z);                            // in eq constraint about z
-  A.block(4, 0, 1, n_variables) = full_q_mat_.row(X) - mu * full_q_mat_.row(Z);  // in eq constraint about x
-  A.block(5, 0, 1, n_variables) = full_q_mat_.row(X) + mu * full_q_mat_.row(Z);  // in eq constraint about x
-  A.block(6, 0, 1, n_variables) = full_q_mat_.row(Y) - mu * full_q_mat_.row(Z);  // in eq constraint about y
-  A.block(7, 0, 1, n_variables) = full_q_mat_.row(Y) + mu * full_q_mat_.row(Z);  // in eq constraint about y
+  A.block(4, 0, 1, n_variables) = full_q_mat_.row(X) - steering_mu_ * full_q_mat_.row(Z);  // in eq constraint about x
+  A.block(5, 0, 1, n_variables) = full_q_mat_.row(X) + steering_mu_ * full_q_mat_.row(Z);  // in eq constraint about x
+  A.block(6, 0, 1, n_variables) = full_q_mat_.row(Y) - steering_mu_ * full_q_mat_.row(Z);  // in eq constraint about y
+  A.block(7, 0, 1, n_variables) = full_q_mat_.row(Y) + steering_mu_ * full_q_mat_.row(Z);  // in eq constraint about y
 
   Eigen::SparseMatrix<double> A_s;
   A_s = A.sparseView();
-
   Eigen::VectorXd gradient = Eigen::VectorXd::Ones(n_variables);
 
   Eigen::VectorXd lower_bound(n_constraints);
@@ -203,10 +201,10 @@ void RollingController::calcSteeringTargetLambda()
     target_wrench_acc_cog_(control_dof_ - 6 + ROLL) - epsilon,
     target_wrench_acc_cog_(control_dof_ - 6 + PITCH) - epsilon,
     target_wrench_acc_cog_(control_dof_ - 6 + YAW) - epsilon,
-    0.0,
-    -mu * robot_model_->getMass() * robot_model_->getGravity()(Z),
+    steering_z_acc_min_,
+    -steering_mu_ * robot_model_->getMass() * robot_model_->getGravity()(Z),
     -INFINITY,
-    -mu * robot_model_->getMass() * robot_model_->getGravity()(Z),
+    -steering_mu_ * robot_model_->getMass() * robot_model_->getGravity()(Z),
     -INFINITY;
 
   upper_bound <<
@@ -215,13 +213,13 @@ void RollingController::calcSteeringTargetLambda()
     target_wrench_acc_cog_(control_dof_ - 6 + YAW) + epsilon,
     robot_model_->getMass() * robot_model_->getGravity()(Z),
     INFINITY,
-    mu * robot_model_->getMass() * robot_model_->getGravity()(Z),
+    steering_mu_ * robot_model_->getMass() * robot_model_->getGravity()(Z),
     INFINITY,
-    mu * robot_model_->getMass() * robot_model_->getGravity()(Z);
+    steering_mu_ * robot_model_->getMass() * robot_model_->getGravity()(Z);
 
   OsqpEigen::Solver solver;
 
-  solver.settings()->setVerbosity(true);
+  solver.settings()->setVerbosity(false);
   solver.settings()->setWarmStart(true);
   solver.data()->setNumberOfVariables(n_variables);
   solver.data()->setNumberOfConstraints(n_constraints);
