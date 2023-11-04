@@ -67,7 +67,7 @@
     <arg name="robot_model" value="$(find mini_quadrotor)/urdf/$(arg type)/robot.$(arg description_mode).xacro" unless="$(arg direct_model)"/>
     <arg name="robot_model" value="$(arg direct_model_name)" if="$(arg direct_model)"/>
     <arg name="robot_ns" value="$(arg robot_ns)" />
-    <arg name="rviz_config" value="$(arg config_dir)/rviz_config" />
+    <arg name="rviz_config" value="$(arg config_dir)/$(arg type)/rviz_config" />
     <arg name="rviz_init_pose" value="$(arg config_dir)/RvizInit.yaml" />
     <arg name="need_joint_state" value="false" if ="$(eval arg('simulation') or arg('real_machine'))"/>
   </include>
