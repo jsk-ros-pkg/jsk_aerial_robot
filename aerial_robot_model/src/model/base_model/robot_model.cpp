@@ -360,6 +360,7 @@ namespace aerial_robot_model {
     cog.p = link_inertia.getCOG();
     setCog(cog);
     mass_ = link_inertia.getMass();
+    ROS_INFO_STREAM_ONCE("[aerial_robot_model] robot mass is " << mass_);
 
     setInertia((cog.Inverse() * link_inertia).getRotationalInertia());
     setCog2Baselink(cog.Inverse() * f_baselink);
