@@ -20,7 +20,7 @@
 #include "acados_c/ocp_nlp_interface.h"
 #include "aerial_robot_control/control/base/nmpc_body_rate/c_generated_code/acados_solver_qd_body_rate_model.h"
 
-#define N QD_BODY_RATE_MODEL_N
+#define NN QD_BODY_RATE_MODEL_N
 #define NX QD_BODY_RATE_MODEL_NX
 #define NZ QD_BODY_RATE_MODEL_NZ
 #define NU QD_BODY_RATE_MODEL_NU

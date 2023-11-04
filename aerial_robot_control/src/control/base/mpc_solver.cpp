@@ -18,7 +18,7 @@ void MPC::MPCSolver::initialize()
   // allocate the array and fill it accordingly
   new_time_steps = nullptr;
 
-  int status = qd_body_rate_model_acados_create_with_discretization(acados_ocp_capsule_, N, new_time_steps);
+  int status = qd_body_rate_model_acados_create_with_discretization(acados_ocp_capsule_, NN, new_time_steps);
   if (status)
   {
     printf("qd_body_rate_model_acados_create() returned status %d. Exiting.\n", status);
@@ -64,7 +64,7 @@ void MPC::MPCSolver::reset(const aerial_robot_msgs::PredXU& x_u)
   // reset initial guess
   double x[NX];
   double u[NU];
-  for (int i = 0; i < N; i++)
+  for (int i = 0; i < NN; i++)
   {
     std::copy(x_u.x.data.begin() + x_stride * i, x_u.x.data.begin() + x_stride * (i + 1), x);
     ocp_nlp_out_set(nlp_config_, nlp_dims_, nlp_out_, i, "x", x);
@@ -72,8 +72,8 @@ void MPC::MPCSolver::reset(const aerial_robot_msgs::PredXU& x_u)
     std::copy(x_u.u.data.begin() + u_stride * i, x_u.u.data.begin() + u_stride * (i + 1), u);
     ocp_nlp_out_set(nlp_config_, nlp_dims_, nlp_out_, i, "u", u);
   }
-  std::copy(x_u.x.data.begin() + x_stride * N, x_u.x.data.begin() + x_stride * (N + 1), x);
-  ocp_nlp_out_set(nlp_config_, nlp_dims_, nlp_out_, N, "x", x);
+  std::copy(x_u.x.data.begin() + x_stride * NN, x_u.x.data.begin() + x_stride * (NN + 1), x);
+  ocp_nlp_out_set(nlp_config_, nlp_dims_, nlp_out_, NN, "x", x);
 }
 
 int MPC::MPCSolver::solve(const nav_msgs::Odometry& odom_now, const aerial_robot_msgs::PredXU& x_u_ref)
@@ -106,24 +106,24 @@ void MPC::initPredXU(aerial_robot_msgs::PredXU& x_u)
   x_u.x.layout.dim.emplace_back();
   x_u.x.layout.dim.emplace_back();
   x_u.x.layout.dim[0].label = "horizon";
-  x_u.x.layout.dim[0].size = N + 1;
-  x_u.x.layout.dim[0].stride = (N + 1) * NX;
+  x_u.x.layout.dim[0].size = NN + 1;
+  x_u.x.layout.dim[0].stride = (NN + 1) * NX;
   x_u.x.layout.dim[1].label = "state";
   x_u.x.layout.dim[1].size = NX;
   x_u.x.layout.dim[1].stride = NX;
   x_u.x.layout.data_offset = 0;
-  x_u.x.data.resize((N + 1) * NX);
+  x_u.x.data.resize((NN + 1) * NX);
 
   x_u.u.layout.dim.emplace_back();
   x_u.u.layout.dim.emplace_back();
   x_u.u.layout.dim[0].label = "horizon";
-  x_u.u.layout.dim[0].size = N;
-  x_u.u.layout.dim[0].stride = N * NU;
+  x_u.u.layout.dim[0].size = NN;
+  x_u.u.layout.dim[0].stride = NN * NU;
   x_u.u.layout.dim[1].label = "input";
   x_u.u.layout.dim[1].size = NU;
   x_u.u.layout.dim[1].stride = NU;
   x_u.u.layout.data_offset = 0;
-  x_u.u.data.resize(N * NU);
+  x_u.u.data.resize(NN * NU);
 }
 
 void MPC::MPCSolver::setReference(const aerial_robot_msgs::PredXU& x_u_ref, const unsigned int x_stride,
@@ -131,7 +131,7 @@ void MPC::MPCSolver::setReference(const aerial_robot_msgs::PredXU& x_u_ref, cons
 {
   double yr[NX + NU];
   double p[NP];
-  for (int i = 0; i < N; i++)
+  for (int i = 0; i < NN; i++)
   {
     // yr = np.concatenate((xr[i, :], ur[i, :]))
     std::copy(x_u_ref.x.data.begin() + x_stride * i, x_u_ref.x.data.begin() + x_stride * (i + 1), yr);
@@ -144,11 +144,11 @@ void MPC::MPCSolver::setReference(const aerial_robot_msgs::PredXU& x_u_ref, cons
   }
   // final x and p, no u
   double xr[NX];
-  std::copy(x_u_ref.x.data.begin() + x_stride * N, x_u_ref.x.data.begin() + x_stride * (N + 1), xr);
-  ocp_nlp_cost_model_set(nlp_config_, nlp_dims_, nlp_in_, N, "y_ref", xr);
+  std::copy(x_u_ref.x.data.begin() + x_stride * NN, x_u_ref.x.data.begin() + x_stride * (NN + 1), xr);
+  ocp_nlp_cost_model_set(nlp_config_, nlp_dims_, nlp_in_, NN, "y_ref", xr);
 
-  std::copy(x_u_ref.x.data.begin() + x_stride * N + 6, x_u_ref.x.data.begin() + x_stride * N + 10, p);
-  qd_body_rate_model_acados_update_params(acados_ocp_capsule_, N, p, NP);
+  std::copy(x_u_ref.x.data.begin() + x_stride * NN + 6, x_u_ref.x.data.begin() + x_stride * NN + 10, p);
+  qd_body_rate_model_acados_update_params(acados_ocp_capsule_, NN, p, NP);
 }
 
 void MPC::MPCSolver::setFeedbackConstraints(const nav_msgs::Odometry& odom_now)
@@ -191,19 +191,19 @@ double MPC::MPCSolver::solveOCPInLoop(const int N_timings)
 
 void MPC::MPCSolver::getSolution(const unsigned int x_stride, const unsigned int u_stride)
 {
-  for (int i = 0; i < N; i++)
+  for (int i = 0; i < NN; i++)
   {
     ocp_nlp_out_get(nlp_config_, nlp_dims_, nlp_out_, i, "x", x_u_out_.x.data.data() + x_stride * i);
     ocp_nlp_out_get(nlp_config_, nlp_dims_, nlp_out_, i, "u", x_u_out_.u.data.data() + u_stride * i);
   }
-  ocp_nlp_out_get(nlp_config_, nlp_dims_, nlp_out_, N, "x", x_u_out_.x.data.data() + x_stride * N);
+  ocp_nlp_out_get(nlp_config_, nlp_dims_, nlp_out_, NN, "x", x_u_out_.x.data.data() + x_stride * NN);
 }
 
 void MPC::MPCSolver::printSolution()
 {
   std::cout << "\n--- x_traj ---\n" << std::endl;
 
-  for (int i = 0; i <= N; i++)
+  for (int i = 0; i <= NN; i++)
   {
     std::cout << "X Row " << i << ":" << std::endl;
     for (int j = 0; j < NX; j++)
@@ -216,7 +216,7 @@ void MPC::MPCSolver::printSolution()
 
   std::cout << "\n--- u_traj ---\n" << std::endl;
 
-  for (int i = 0; i < N; i++)
+  for (int i = 0; i < NN; i++)
   {
     std::cout << "U Row " << i << ":" << std::endl;
     for (int j = 0; j < NU; j++)
