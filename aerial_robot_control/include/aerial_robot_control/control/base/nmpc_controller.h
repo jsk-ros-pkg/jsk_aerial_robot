@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include "base/base.h"
-#include "base/mpc_solver.h"
+#include "base.h"
+#include "mpc_solver.h"
 // #include <aerial_robot_control/control/utils/pid.h>
 // #include <aerial_robot_control/PIDConfig.h>
 
@@ -32,11 +32,11 @@
 namespace aerial_robot_control
 {
 
-class MPCController : public ControlBase
+class NMPCController : public ControlBase
 {
 public:
-  MPCController();  // note that constructor should not have arguments as the rule of rospluginlib
-  ~MPCController() override = default;
+  NMPCController();  // note that constructor should not have arguments as the rule of rospluginlib
+  ~NMPCController() override = default;
   void initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
                   boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
                   boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
@@ -49,6 +49,9 @@ protected:
   ros::Publisher pub_flight_cmd_;  // for spinal
   ros::Publisher pub_viz_pred_;    // for viz predictions
   ros::Timer tmr_viz_pred_;        // for viz predictions
+
+  virtual void controlCore();
+  virtual void sendCmd();
 
 private:
   double mass_;
