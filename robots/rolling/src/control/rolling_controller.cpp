@@ -132,14 +132,14 @@ void RollingController::rosParamInit()
   getParam<double>(control_nh, "rotor_tilt3", rotor_tilt3, 0.0);
   rotor_tilt_.at(2) = rotor_tilt3;
 
-  if(!control_nh.getParam("controlled_axis", controlled_axis_))
-    {
-      controlled_axis_ = std::vector<int>(6, 1);
-    }
-  ROS_WARN_STREAM("[control] controlled axis: " << controlled_axis_.at(0) << " " << controlled_axis_.at(1) << " " << controlled_axis_.at(2) << " " << controlled_axis_.at(3) << " " << controlled_axis_.at(4) << " " << controlled_axis_.at(5));
-
   rosoutControlParams("controller");
   rosoutControlParams("ground_controller");
+
+  controlled_axis_.resize(6);
+  rosoutControlAxis("controller");
+  rosoutControlAxis("ground_controller");
+
+  setControlAxisWithNameSpace("controller");
 }
 
 void RollingController::controlCore()
@@ -178,6 +178,7 @@ void RollingController::targetStatePlan()
         {
           ROS_ERROR("[control] set control params for flying state");
           setControllerParams("controller");
+          setControlAxisWithNameSpace("controller");
           setAttitudeGains();
         }
       ROS_WARN_ONCE("[control] flying state");
@@ -190,16 +191,11 @@ void RollingController::targetStatePlan()
         {
           ROS_ERROR("[control] set control params for standing state");
           setControllerParams("ground_controller");
+          setControlAxisWithNameSpace("ground_controller");
           setAttitudeGains();
         }
 
       ROS_WARN_ONCE("[control] standing state");
-      setControlAxis(X, 1);
-      setControlAxis(Y, 1);
-      setControlAxis(Z, 1);
-      setControlAxis(ROLL, 1);
-      setControlAxis(PITCH, 0);
-      setControlAxis(YAW, 1);
 
       tf::Vector3 cog_pos = estimator_->getPos(Frame::COG, estimate_mode_);
       if(std::abs(cog_pos.z() / circle_radius_) < 1.0 && std::asin(cog_pos.z() / circle_radius_) > standing_target_phi_)

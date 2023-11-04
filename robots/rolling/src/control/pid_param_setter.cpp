@@ -135,3 +135,47 @@ void RollingController::rosoutControlParams(std::string ns)
   loadParam(yaw_nh);
   ROS_WARN_STREAM(ns << " param for Y: [ " <<  p_gain << ", " <<  i_gain << ", " << d_gain << "]");
 }
+
+void RollingController::setControlAxisWithNameSpace(std::string ns)
+{
+  ros::NodeHandle param_nh(nh_, ns);
+  std::vector<int> controlled_axis;
+  if(!param_nh.getParam("controlled_axis", controlled_axis))
+    {
+      ROS_ERROR_STREAM("controlled axis for " << ns << " is not set");
+      return;
+    }
+  if(controlled_axis.size() != 6)
+    {
+      ROS_ERROR_STREAM("size of controlled axis for " << ns << " is not 6");
+      return;
+    }
+  for(int i = 0; i < controlled_axis.size(); i++)
+    {
+      setControlAxis(i, controlled_axis.at(i));
+    }
+  ROS_ERROR_STREAM("[control] set control axis for " << ns);
+}
+
+void RollingController::rosoutControlAxis(std::string ns)
+{
+  ros::NodeHandle param_nh(nh_, ns);
+  std::vector<int> controlled_axis;
+  if(!param_nh.getParam("controlled_axis", controlled_axis))
+    {
+      ROS_ERROR_STREAM("controlled axis for " << ns << " is not set");
+      return;
+    }
+  if(controlled_axis.size() != 6)
+    {
+      ROS_ERROR_STREAM("size of controlled axis for " << ns << " is not 6");
+      return;
+    }
+  ROS_WARN_STREAM("[control] controlled axis for " << ns << ": ["
+                  << controlled_axis.at(0) << " "
+                  << controlled_axis.at(1) << " "
+                  << controlled_axis.at(2) << " "
+                  << controlled_axis.at(3) << " "
+                  << controlled_axis.at(4) << " "
+                  << controlled_axis.at(5) << "]");
+}
