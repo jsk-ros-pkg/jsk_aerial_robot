@@ -16,4 +16,71 @@
     <mu2>0.1</mu2>
   </gazebo>
 
+  <!-- link for cameras -->
+  <joint name="realsence_link_joint" type="fixed">
+    <parent link="main_body"/>
+    <child link="realsence_link"/>
+    <origin xyz="0.1 0 0" rpy="0 0 0"/>
+  </joint>
+  <link name="realsence_link"/>
+
+  <!-- for depth  -->
+  <joint name="realsence_depth_joint" type="fixed">
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <parent link="realsence_link"/>
+    <child link="realsence_depth_frame" />
+  </joint>
+  <link name="realsence_depth_frame"/>
+
+  <!-- gazebo plugin -->
+  <gazebo reference="realsence_depth_frame">
+    <sensor type="depth" name="realsence_camera">
+      <always_on>true</always_on>
+      <visualize>false</visualize>
+      <update_rate>20.0</update_rate>
+      <camera name="head">
+        <horizontal_fov>1.2</horizontal_fov>
+        <!--vertical_fov>1.14319</vertical_fov-->
+        <image>
+          <width>1200</width>
+          <height>800</height>
+          <format>R8G8B8</format>
+        </image>
+        <clip>
+          <near>0.02</near>
+          <far>300</far>
+        </clip>
+        <noise>
+          <type>gaussian</type>
+          <mean>0.0</mean>
+          <stddev>0.007</stddev>
+        </noise>
+      </camera>
+
+      <plugin name="depth_camera" filename="libgazebo_ros_depth_camera.so">
+        <baseline>0.06</baseline>
+        <alwaysOn>true</alwaysOn>
+        <updateRate>10.0</updateRate>
+        <imageTopicName>depth_camera/color/image_raw</imageTopicName>
+        <cameraInfoTopicName>depth_camera/color/camera_info</cameraInfoTopicName>
+        <pointCloudTopicName>depth_camera/depth/points</pointCloudTopicName>
+        <depthImageTopicName>depth_camera/depth/image_raw</depthImageTopicName>
+        <depthImageCameraInfoTopicName>depth_camera/depth/camera_info</depthImageCameraInfoTopicName>
+        <frameName>realsence_depth_frame</frameName>
+        <pointCloudCutoff>0.5</pointCloudCutoff>
+        <cameraName>realsence</cameraName>
+        <distortionK1>0.05</distortionK1>
+        <distortionK2>-0.05</distortionK2>
+        <distortionK3>0</distortionK3>
+        <distortionT1>0</distortionT1>
+        <distortionT2>0</distortionT2>
+        <CxPrime>0</CxPrime>
+        <Cx>0</Cx>
+        <Cy>0</Cy>
+        <focalLength>0</focalLength>
+        <hackBaseline>0.12</hackBaseline>
+      </plugin>
+    </sensor>
+  </gazebo>
+
 </robot>
