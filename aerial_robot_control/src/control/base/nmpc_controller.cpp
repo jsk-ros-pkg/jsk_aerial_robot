@@ -25,12 +25,13 @@ void aerial_robot_control::NMPCController::initialize(
   gravity_const_ = robot_model_->getGravity()[2];
 
   /* timers */
-  tmr_viz_pred_ = nh_.createTimer(ros::Duration(0.05), &NMPCController::callback_viz_pred, this);
+  tmr_viz_ = nh_.createTimer(ros::Duration(0.05), &NMPCController::callback_viz, this);
 
   /* subscribers */
 
   /* publishers */
   pub_viz_pred_ = nh_.advertise<geometry_msgs::PoseArray>("nmpc/viz_pred", 1);
+  pub_viz_ref_ = nh_.advertise<geometry_msgs::PoseArray>("nmpc/viz_ref", 1);
   pub_flight_cmd_ = nh_.advertise<spinal::FourAxisCommand>("four_axes/command", 1);
 
   // get these parameters from rosparam
@@ -120,13 +121,17 @@ void aerial_robot_control::NMPCController::controlCore()
   tf::Vector3 target_pos_ = navigator_->getTargetPos();
   double x[NX] = { target_pos_.x(), target_pos_.y(), target_pos_.z(), 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0 };
   double u[NU] = { 0.0, 0.0, 0.0, gravity_const_ };
-  MPC::initPredXU(x_u_ref_);
+
   for (int i = 0; i < NN; i++)
   {
-    std::copy(x, x + NX, x_u_ref_.x.data.begin() + NX * i);
-    std::copy(u, u + NU, x_u_ref_.u.data.begin() + NU * i);
+    // shift one step
+    std::copy(x_u_ref_.x.data.begin() + NX * (i + 1), x_u_ref_.x.data.begin() + NX * (i + 2),
+              x_u_ref_.x.data.begin() + NX * i);
+    std::copy(x_u_ref_.u.data.begin() + NU * (i + 1), x_u_ref_.u.data.begin() + NU * (i + 2),
+              x_u_ref_.u.data.begin() + NU * i);
   }
   std::copy(x, x + NX, x_u_ref_.x.data.begin() + NX * NN);
+  std::copy(u, u + NU, x_u_ref_.u.data.begin() + NU * NN);
 
   /* solve */
   mpc_solver_.solve(odom_now, x_u_ref_);
@@ -173,25 +178,40 @@ void aerial_robot_control::NMPCController::sendCmd()
   pub_flight_cmd_.publish(flight_cmd_);
 }
 
-void aerial_robot_control::NMPCController::callback_viz_pred(const ros::TimerEvent& event)
+void aerial_robot_control::NMPCController::callback_viz(const ros::TimerEvent& event)
 {
   // from mpc_solver_.x_u_out to PoseArray
-  geometry_msgs::PoseArray viz_poses;
+  geometry_msgs::PoseArray pred_poses;
+  geometry_msgs::PoseArray ref_poses;
 
   for (int i = 0; i < NN; ++i)
   {
-    geometry_msgs::Pose pose;
-    pose.position.x = mpc_solver_.x_u_out_.x.data.at(i * NX);
-    pose.position.y = mpc_solver_.x_u_out_.x.data.at(i * NX + 1);
-    pose.position.z = mpc_solver_.x_u_out_.x.data.at(i * NX + 2);
-    pose.orientation.w = mpc_solver_.x_u_out_.x.data.at(i * NX + 6);
-    pose.orientation.x = mpc_solver_.x_u_out_.x.data.at(i * NX + 7);
-    pose.orientation.y = mpc_solver_.x_u_out_.x.data.at(i * NX + 8);
-    pose.orientation.z = mpc_solver_.x_u_out_.x.data.at(i * NX + 9);
-    viz_poses.poses.push_back(pose);
+    geometry_msgs::Pose pred_pose;
+    pred_pose.position.x = mpc_solver_.x_u_out_.x.data.at(i * NX);
+    pred_pose.position.y = mpc_solver_.x_u_out_.x.data.at(i * NX + 1);
+    pred_pose.position.z = mpc_solver_.x_u_out_.x.data.at(i * NX + 2);
+    pred_pose.orientation.w = mpc_solver_.x_u_out_.x.data.at(i * NX + 6);
+    pred_pose.orientation.x = mpc_solver_.x_u_out_.x.data.at(i * NX + 7);
+    pred_pose.orientation.y = mpc_solver_.x_u_out_.x.data.at(i * NX + 8);
+    pred_pose.orientation.z = mpc_solver_.x_u_out_.x.data.at(i * NX + 9);
+    pred_poses.poses.push_back(pred_pose);
+
+    geometry_msgs::Pose ref_pose;
+    ref_pose.position.x = x_u_ref_.x.data.at(i * NX);
+    ref_pose.position.y = x_u_ref_.x.data.at(i * NX + 1);
+    ref_pose.position.z = x_u_ref_.x.data.at(i * NX + 2);
+    ref_pose.orientation.w = x_u_ref_.x.data.at(i * NX + 6);
+    ref_pose.orientation.x = x_u_ref_.x.data.at(i * NX + 7);
+    ref_pose.orientation.y = x_u_ref_.x.data.at(i * NX + 8);
+    ref_pose.orientation.z = x_u_ref_.x.data.at(i * NX + 9);
+    ref_poses.poses.push_back(ref_pose);
   }
 
-  viz_poses.header.frame_id = "world";
-  viz_poses.header.stamp = ros::Time::now();
-  pub_viz_pred_.publish(viz_poses);
+  pred_poses.header.frame_id = "world";
+  pred_poses.header.stamp = ros::Time::now();
+  pub_viz_pred_.publish(pred_poses);
+
+  ref_poses.header.frame_id = "world";
+  ref_poses.header.stamp = ros::Time::now();
+  pub_viz_ref_.publish(ref_poses);
 }

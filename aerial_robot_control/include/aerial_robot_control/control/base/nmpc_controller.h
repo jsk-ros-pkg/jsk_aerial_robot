@@ -43,12 +43,13 @@ public:
                   boost::shared_ptr<aerial_robot_navigation::BaseNavigator> navigator, double ctrl_loop_du) override;
   bool update() override;
   void reset() override;
-  void callback_viz_pred(const ros::TimerEvent& event);
+  void callback_viz(const ros::TimerEvent& event);
 
 protected:
   ros::Publisher pub_flight_cmd_;  // for spinal
   ros::Publisher pub_viz_pred_;    // for viz predictions
-  ros::Timer tmr_viz_pred_;        // for viz predictions
+  ros::Publisher pub_viz_ref_;     // for viz reference
+  ros::Timer tmr_viz_;             // for viz
 
   virtual void controlCore();
   virtual void sendCmd();

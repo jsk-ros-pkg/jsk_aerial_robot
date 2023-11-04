@@ -9,6 +9,7 @@ Panels:
         - /TF1
         - /RobotModel1
         - /PoseArray1
+        - /PoseArray2
       Splitter Ratio: 0.5
     Tree Height: 539
   - Class: rviz/Selection
@@ -178,6 +179,23 @@ Visualization Manager:
       Topic: /quadrotor/nmpc/viz_pred
       Unreliable: false
       Value: true
+    - Alpha: 1
+      Arrow Length: 0.30000001192092896
+      Axes Length: 0.30000001192092896
+      Axes Radius: 0.009999999776482582
+      Class: rviz/PoseArray
+      Color: 255; 25; 0
+      Enabled: true
+      Head Length: 0.07000000029802322
+      Head Radius: 0.029999999329447746
+      Name: PoseArray
+      Queue Size: 10
+      Shaft Length: 0.23000000417232513
+      Shaft Radius: 0.009999999776482582
+      Shape: Arrow (Flat)
+      Topic: /quadrotor/nmpc/viz_ref
+      Unreliable: false
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -206,7 +224,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 1.3702459335327148
+      Distance: 1.764642596244812
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -222,9 +240,9 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.7497972249984741
+      Pitch: 0.7797971963882446
       Target Frame: <Fixed Frame>
-      Yaw: 2.675398588180542
+      Yaw: 2.620398998260498
     Saved:
       - Class: rviz/Orbit
         Distance: 1.3702459335327148
@@ -263,4 +281,4 @@ Window Geometry:
     collapsed: false
   Width: 1528
   X: 135
-  Y: 78
+  Y: 41
