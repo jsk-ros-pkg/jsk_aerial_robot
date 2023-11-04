@@ -2,6 +2,6 @@ package:
   ["mini_quadrotor"]
 
 mini_quadrotor:
-  input: ["urdf/robot.urdf.xacro"]
-  filename: [""]
+  input: ["urdf/default_model/robot.urdf.xacro"]
+  filename: ["default_model"]
   meshdir: "urdf/mesh"
