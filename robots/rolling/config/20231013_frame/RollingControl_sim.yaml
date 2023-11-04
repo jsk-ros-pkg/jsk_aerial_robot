@@ -4,14 +4,11 @@ controller:
   control_verbose: false
   torque_allocation_matrix_inv_pub_interval: 0.05
   wrench_allocation_matrix_pub_interval: 0.1
-  allocation_refine_max_iteration: 5
-  allocation_refine_threshold: 0.0001
-  initial_roll_tilt: 0.8
   use_sr_inv: false
   sr_inv_weight: 0.1
-  fully_actuated: true
   hovering_approximate: false
   gimbal_lpf_factor: 1.0 # don't set to 0
+
   standing_converged_baselink_roll_thresh: 1.4
   standing_converged_z_i_term_min: 6.5
   standing_converged_z_i_term_descend_ratio: 0.01

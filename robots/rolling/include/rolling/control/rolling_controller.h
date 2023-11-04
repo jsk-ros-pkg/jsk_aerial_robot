@@ -45,18 +45,15 @@ namespace aerial_robot_control
     ros::Publisher gimbal_control_pub_;               // for servo bridge
     ros::Publisher torque_allocation_matrix_inv_pub_; // for spinal
     ros::Publisher desire_coordinate_pub_;            // for spinal
-    ros::Publisher target_vectoring_force_pub_;
-    ros::Publisher target_wrench_acc_cog_pub_;
-    ros::Publisher wrench_allocation_matrix_pub_;
-    ros::Publisher full_q_mat_pub_;
-    ros::Publisher full_q_mat_inv_pub_;
-    ros::Publisher operability_pub_;
-    ros::Publisher target_acc_cog_pub_;
-    ros::Publisher target_acc_dash_pub_;
-    ros::Publisher exerted_wrench_pub_;
+    ros::Publisher target_vectoring_force_pub_;       // for debug
+    ros::Publisher target_wrench_acc_cog_pub_;        // for debug
+    ros::Publisher wrench_allocation_matrix_pub_;     // for debug
+    ros::Publisher full_q_mat_pub_;                   // for debug
+    ros::Publisher operability_pub_;                  // for debug
+    ros::Publisher target_acc_cog_pub_;               // for debug
+    ros::Publisher target_acc_dash_pub_;              // for debug
+    ros::Publisher exerted_wrench_pub_;               // for debug
     ros::Subscriber joint_state_sub_;
-    ros::Subscriber control_mode_sub_;
-    ros::Subscriber stay_current_sub_;
 
     tf2_ros::TransformBroadcaster br_;
 
@@ -85,16 +82,10 @@ namespace aerial_robot_control
     double candidate_yaw_term_;
     double torque_allocation_matrix_inv_pub_stamp_;
     double torque_allocation_matrix_inv_pub_interval_;
-    double allocation_refine_threshold_;
-    int allocation_refine_max_iteration_;
     double circle_radius_;
-    double initial_roll_tilt_;
     std::string tf_prefix_;
-    bool gain_updated_;
     bool use_sr_inv_;
     double sr_inv_weight_;
-    bool fully_actuated_;
-    double z_limit_;
     Eigen::VectorXd target_thrust_z_term_;
     double target_roll_, target_pitch_; //for under actuated control
     bool hovering_approximate_;
@@ -117,25 +108,21 @@ namespace aerial_robot_control
     double steering_z_acc_min_;
     double steering_mu_;
 
-    void controlCore() override;
     void reset() override;
-    void sendCmd();
+    void controlCore() override;
     void rosParamInit();
-    void sendGimbalAngles();
-    void sendFourAxisCommand();
-    void sendTorqueAllocationMatrixInv();
-    void setAttitudeGains();
-    void jointStateCallback(const sensor_msgs::JointStateConstPtr & msg);
-    void stayCurrentXYPosition(const std_msgs::Empty & msg);
-    void resetAttitudeGains();
-    void resetAttitudeGainsCallback(const std_msgs::Empty & msg);
-    void setControlModeCallback(const std_msgs::Int16Ptr & msg);
     void targetStatePlan();
     void calcAccFromCog();
     void calcWrenchAllocationMatrix();
     void calcFullLambda();
     void wrenchAllocation();
     void calcYawTerm();
+    void sendCmd();
+    void sendGimbalAngles();
+    void sendFourAxisCommand();
+    void sendTorqueAllocationMatrixInv();
+    void setAttitudeGains();
+    void jointStateCallback(const sensor_msgs::JointStateConstPtr & msg);
     void hoge();
     void setControllerParams(std::string ns);
     void rosoutControlParams(std::string ns);
@@ -143,7 +130,6 @@ namespace aerial_robot_control
     void rosoutControlAxis(std::string ns);
     void osqpPractice();
     void calcSteeringTargetLambda();
-
     void steeringControlWrenchAllocation();
 
     void setControlAxis(int axis, int mode)
