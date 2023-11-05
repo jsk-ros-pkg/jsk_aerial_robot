@@ -10,6 +10,7 @@ BeetleRobotModel::BeetleRobotModel(bool init_with_rosparam, bool verbose, double
     assembly_flags_.insert(std::make_pair(i+1,false));
   }
   nh_.getParam("robot_id", my_id_);
+  cog_com_dist_pub_ = nh_.advertise<geometry_msgs::Point>("cog_com_dist", 1);
 }
 
 void BeetleRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_positions)
@@ -30,15 +31,11 @@ void BeetleRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_positions
 
 void BeetleRobotModel::calcCenterOfMoving()
 {
-  if(!assembly_flags_[my_id_]){
-      KDL::Frame com_frame;
-      setCog2CoM(com_frame);
-      current_assembled_ = false;
-      return;
-  }
+
   std::string cog_name = "beetle" + std::to_string(my_id_) + "/cog";
   Eigen::Vector3f center_of_moving = Eigen::Vector3f::Zero();
   int assembled_module = 0;
+  geometry_msgs::Point cog_com_dist_msg;
   for(const auto & item : assembly_flags_){
     geometry_msgs::TransformStamped transformStamped;
     int id = item.first;
@@ -57,10 +54,21 @@ void BeetleRobotModel::calcCenterOfMoving()
         ROS_ERROR_STREAM("not exist module is mentioned. ID is "<<id );
         return;
       }
+  }  
+
+  if(!assembled_module || !assembly_flags_[my_id_]){
+    pre_assembled_modules_ = assembled_module;
+    KDL::Frame com_frame;
+    setCog2CoM(com_frame);
+    current_assembled_ = false;
+    cog_com_dist_msg.x = Cog2CoM_.p.x();
+    cog_com_dist_msg.y = Cog2CoM_.p.y();
+    cog_com_dist_msg.z = Cog2CoM_.p.z();
+    cog_com_dist_pub_.publish(cog_com_dist_msg);
+    return;
   }
-  if(!assembled_module) return;
+
   center_of_moving = center_of_moving / assembled_module;
-  if(std::isnan(center_of_moving.x())) return;
 
   geometry_msgs::TransformStamped tf;
   tf.header.stamp = ros::Time::now();
@@ -75,17 +83,21 @@ void BeetleRobotModel::calcCenterOfMoving()
   tf.transform.rotation.w = 1;
   br_.sendTransform(tf);
 
-  //process to calcurate an accurate conversion from cog to com
-  if(pre_assembled_modules_ != assembled_module){
+  //update com-cog distance only during hovering
+  if(pre_assembled_modules_ != assembled_module && hovering_flag_){
     Eigen::Vector3f cog_com_dist(center_of_moving.norm() * center_of_moving.x()/fabs(center_of_moving.x()),0,0);
+    ROS_INFO_STREAM("cog_com_dist is " << cog_com_dist.transpose());
     tf.transform.translation.x = cog_com_dist.x();
     tf.transform.translation.y = cog_com_dist.y();
     tf.transform.translation.z = cog_com_dist.z();
-    KDL::Frame com_frame = tf2::transformToKDL(tf);
-    setCog2CoM(com_frame);
-  }
-  pre_assembled_modules_ = assembled_module;
-  current_assembled_ = true;
+    setCog2CoM(tf2::transformToKDL(tf));
+    pre_assembled_modules_ = assembled_module;
+}
+    cog_com_dist_msg.x = Cog2CoM_.p.x();
+    cog_com_dist_msg.y = Cog2CoM_.p.y();
+    cog_com_dist_msg.z = Cog2CoM_.p.z();
+    cog_com_dist_pub_.publish(cog_com_dist_msg);
+    if(hovering_flag_) current_assembled_ = true;
 }
 
 /* plugin registration */
