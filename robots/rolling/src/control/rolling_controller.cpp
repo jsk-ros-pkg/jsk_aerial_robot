@@ -169,12 +169,12 @@ void RollingController::targetStatePlan()
       {
         if(rolling_navigator_->getPrevGroundNavigationMode() != aerial_robot_navigation::FLYING_STATE)
           {
+            ROS_WARN("[control] flying state");
             ROS_ERROR("[control] set control params for flying state");
             setControllerParams("controller");
             setControlAxisWithNameSpace("controller");
             setAttitudeGains();
           }
-        ROS_WARN_ONCE("[control] flying state");
         break;
       }
 
@@ -182,13 +182,13 @@ void RollingController::targetStatePlan()
       {
         if(rolling_navigator_->getPrevGroundNavigationMode() != aerial_robot_navigation::STANDING_STATE)
           {
+            ROS_WARN("[control] standing state");
             ROS_ERROR("[control] set control params for standing state");
             setControllerParams("ground_controller");
             setControlAxisWithNameSpace("ground_controller");
             setAttitudeGains();
           }
 
-        ROS_WARN_ONCE("[control] standing state");
 
         tf::Vector3 cog_pos = estimator_->getPos(Frame::COG, estimate_mode_);
         if(std::abs(cog_pos.z() / circle_radius_) < 1.0 && std::asin(cog_pos.z() / circle_radius_) > standing_target_phi_)

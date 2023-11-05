@@ -27,7 +27,7 @@ void RollingNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   ground_navigation_mode_pub_ = nh_.advertise<std_msgs::Int16>("ground_navigation_ack", 1);
   prev_rotation_stamp_ = ros::Time::now().toSec();
 
-  prev_ground_navigation_mode_ = 0;
+  prev_ground_navigation_mode_ = -1;
   current_ground_navigation_mode_ = 0;
 }
 
