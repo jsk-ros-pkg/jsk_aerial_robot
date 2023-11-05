@@ -8,7 +8,9 @@
   <arg name="estimate_mode"  default= "0" />
   <arg name="sim_estimate_mode"  default= "2" />
   <arg name="headless" default="True" />
-  <arg name="worldtype" default="$(find aerial_robot_simulation)/gazebo_model/world/empty.world" />
+  <arg name="spawn_human" default="False"/>
+  <arg name="worldtype" default="$(find aerial_robot_simulation)/gazebo_model/world/empty.world" unless="$(arg spawn_human)"/>
+  <arg name="worldtype" default="$(find mini_quadrotor)/gazebo_model/human.world" if="$(arg spawn_human)"/>
   <arg name="launch_gazebo" default="True" />
   <arg name="direct_model" default="False" />
   <arg name="direct_model_name" />
