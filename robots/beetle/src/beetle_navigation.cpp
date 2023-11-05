@@ -521,6 +521,7 @@ void BeetleNavigator::update()
   rotateContactPointFrame();
   convertTargetPosFromCoG2CoM();
   GimbalrotorNavigator::update();
+  beetle_robot_model_->setHoveringFlag((getNaviState() == HOVER_STATE) ? true : false);
 }
 
 void BeetleNavigator::rotateContactPointFrame()
@@ -534,6 +535,7 @@ void BeetleNavigator::rotateContactPointFrame()
 
 void BeetleNavigator::convertTargetPosFromCoG2CoM()
 {
+  //TODO: considering correct rotaion axis
   tf::Transform cog2com_tf;
   tf::transformKDLToTF(beetle_robot_model_->getCog2CoM<KDL::Frame>(), cog2com_tf);
   tf::Matrix3x3 cog_orientation_tf;

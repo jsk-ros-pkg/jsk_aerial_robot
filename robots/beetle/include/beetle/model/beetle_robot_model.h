@@ -5,6 +5,7 @@
 #include <gimbalrotor/model/gimbalrotor_robot_model.h>
 #include <tf2_ros/transform_listener.h>
 #include <tf2_ros/transform_broadcaster.h>
+#include <geometry_msgs/Point.h>
 using namespace aerial_robot_model;
 
 class BeetleRobotModel : public GimbalrotorRobotModel{
@@ -26,6 +27,7 @@ public:
   void setAssemblyFlag(const int key, const bool value){
     assembly_flags_[key] = value;
   }
+  void setHoveringFlag(const bool hovering_flag){hovering_flag_ = hovering_flag;}
 
   std::map<int, bool> getAssemblyFlags(){return assembly_flags_;}
   int getMaxModuleNum(){return max_modules_num_;}
@@ -34,6 +36,7 @@ public:
 
 private:
   ros::NodeHandle nh_;
+  ros::Publisher cog_com_dist_pub_;
   KDL::Frame contact_frame_;
   KDL::Frame Cog2Cp_;
   KDL::Frame Cog2CoM_;
@@ -48,6 +51,7 @@ private:
   int my_id_;
   std::map<int, bool> assembly_flags_;
   bool current_assembled_;
+  bool hovering_flag_;
 
 protected:
   void updateRobotModelImpl(const KDL::JntArray& joint_positions) override;
