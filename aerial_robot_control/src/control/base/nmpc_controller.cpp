@@ -5,7 +5,7 @@
 
 #include "aerial_robot_control/control/base/nmpc_controller.h"
 
-aerial_robot_control::NMPCController::NMPCController() : ControlBase()
+aerial_robot_control::NMPCController::NMPCController() : target_roll_(0), target_pitch_(0), candidate_yaw_term_(0)
 {
 }
 
@@ -152,16 +152,26 @@ void aerial_robot_control::NMPCController::controlCore()
   tf::Matrix3x3(q0).getRPY(rpy0[0], rpy0[1], rpy0[2]);
   tf::Matrix3x3(q1).getRPY(rpy1[0], rpy1[1], rpy1[2]);
 
-  double roll, pitch,
-      yaw;  // TODO: should be set by rosparam   0.025 - 40hz for controller; 0.1 - 10hz for predict horizon
-  roll = (0.025 * rpy0[0] + (0.1 - 0.025) * rpy1[0]) / 0.1;
-  pitch = (0.025 * rpy0[1] + (0.1 - 0.025) * rpy1[1]) / 0.1;
-  yaw = (0.025 * rpy0[2] + (0.1 - 0.025) * rpy1[2]) / 0.1;
+  // TODO: should be set by rosparam   0.025 - 40hz for controller; 0.1 - 10hz for predict horizon
+  // roll, pitch
+  target_roll_ = (0.025 * rpy0[0] + (0.1 - 0.025) * rpy1[0]) / 0.1;
+  target_pitch_ = (0.025 * rpy0[1] + (0.1 - 0.025) * rpy1[1]) / 0.1;
 
-  flight_cmd_.angles[0] = static_cast<float>(roll);
-  flight_cmd_.angles[1] = static_cast<float>(pitch);
-  flight_cmd_.angles[2] = static_cast<float>(yaw);
+  flight_cmd_.angles[0] = static_cast<float>(target_roll_);
+  flight_cmd_.angles[1] = static_cast<float>(target_pitch_);
 
+  // yaw
+  double target_yaw, error_yaw, yaw_p_term, error_yaw_rate, yaw_d_term;
+  target_yaw = (0.025 * rpy0[2] + (0.1 - 0.025) * rpy1[2]) / 0.1;
+  error_yaw = angles::shortest_angular_distance(target_yaw, rpy0[2]);
+  yaw_p_term = 4 * error_yaw;
+  error_yaw_rate = mpc_solver_.x_u_out_.x.data.at(9) - mpc_solver_.x_u_out_.x.data.at(9 + NX);
+  yaw_d_term = 0.1 * error_yaw_rate;
+  candidate_yaw_term_ = -yaw_p_term - yaw_d_term;
+
+  flight_cmd_.angles[2] = static_cast<float>(candidate_yaw_term_);
+
+  // thrust
   double thrust = mpc_solver_.x_u_out_.u.data.at(3) * mass_;
 
   std::vector<float> target_base_thrust_;

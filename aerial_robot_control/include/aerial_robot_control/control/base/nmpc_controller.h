@@ -58,6 +58,9 @@ private:
   double mass_;
   double gravity_const_;
 
+  double target_roll_, target_pitch_;
+  double candidate_yaw_term_;
+
   nav_msgs::Odometry odom_;
   aerial_robot_msgs::PredXU x_u_ref_;
   spinal::FourAxisCommand flight_cmd_;

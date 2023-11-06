@@ -71,8 +71,6 @@ protected:
   boost::shared_ptr<dynamic_reconfigure::Server<aerial_robot_control::LQIConfig> > lqi_server_;
   dynamic_reconfigure::Server<aerial_robot_control::LQIConfig>::CallbackType dynamic_reconf_func_lqi_;
 
-  double target_roll_, target_pitch_;
-  double candidate_yaw_term_;
   std::vector<float> target_base_thrust_;
 
   int lqi_mode_;

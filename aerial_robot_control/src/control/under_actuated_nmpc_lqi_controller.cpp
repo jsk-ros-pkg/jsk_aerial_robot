@@ -38,7 +38,6 @@
 using namespace aerial_robot_control;
 
 UnderActuatedNMPCLQIController::UnderActuatedNMPCLQIController()
-  : target_roll_(0), target_pitch_(0), candidate_yaw_term_(0)
 {
   lqi_roll_pitch_weight_.setZero();
   lqi_yaw_weight_.setZero();
