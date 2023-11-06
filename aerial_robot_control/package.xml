@@ -12,6 +12,7 @@
 
   <buildtool_depend>catkin</buildtool_depend>
 
+  <depend>acados</depend>
   <depend>aerial_robot_estimation</depend>
   <depend>aerial_robot_model</depend>
   <depend>aerial_robot_msgs</depend>

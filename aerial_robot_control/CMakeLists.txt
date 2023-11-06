@@ -16,8 +16,10 @@ find_package(catkin REQUIRED COMPONENTS
 
 find_package(Eigen3 REQUIRED)
 
-list(APPEND CMAKE_PREFIX_PATH "~/Apps/acados")
-find_package(acados REQUIRED)
+
+#list(APPEND CMAKE_PREFIX_PATH "~/acados/install/cmake")
+find_package(acados) # if we use REQUIED, then will cause OpenBLAS and FortranLib Find_Package error
+
 
 generate_dynamic_reconfigure_options(
   cfg/PID.cfg
