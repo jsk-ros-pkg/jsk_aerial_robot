@@ -59,7 +59,6 @@ namespace aerial_robot_control
 
     bool update() override;
     virtual void reset() override;
-    void controlCore() override;
     void sendCmd() override;
     void sendFourAxisCommand();
     void sendGimbalCommand();
@@ -67,5 +66,7 @@ namespace aerial_robot_control
     void setAttitudeGains();
   protected:
     virtual void rosParamInit();
+    virtual void controlCore() override;
+    Eigen::VectorXd feedforward_wrench_acc_cog_term_;
   };
 };

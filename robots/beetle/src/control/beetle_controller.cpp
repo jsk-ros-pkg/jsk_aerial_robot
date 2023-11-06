@@ -5,7 +5,8 @@ using namespace std;
 namespace aerial_robot_control
 {
   BeetleController::BeetleController():
-    GimbalrotorController()
+    GimbalrotorController(),
+    lpf_init_flag_(false)
   {
   }
 
@@ -17,11 +18,16 @@ namespace aerial_robot_control
                                          )
   {
     GimbalrotorController::initialize(nh, nhp, robot_model, estimator, navigator, ctrl_loop_rate);
+    external_wrench_lower_limit_ = Eigen::VectorXd::Zero(6);
+    external_wrench_upper_limit_ = Eigen::VectorXd::Zero(6);
     rosParamInit();
+    lpf_est_external_wrench_ = IirFilter(sample_freq_, cutoff_freq_, 6);
     estimate_external_wrench_pub_ = nh_.advertise<geometry_msgs::WrenchStamped>("estimated_external_wrench", 1);
+    external_wrench_compensation_pub_ = nh_.advertise<geometry_msgs::WrenchStamped>("external_wrench_compensation", 1);
     est_external_wrench_ = Eigen::VectorXd::Zero(6);
     init_sum_momentum_ = Eigen::VectorXd::Zero(6);
     integrate_term_ = Eigen::VectorXd::Zero(6);
+    
     prev_est_wrench_timestamp_ = 0;
     wrench_estimate_thread_ = boost::thread([this]()
                                             {
@@ -38,6 +44,45 @@ namespace aerial_robot_control
                                             });
   }
 
+  void BeetleController::controlCore()
+  {
+    Eigen::VectorXd wrench_compensation_term = Eigen::VectorXd::Zero(6);
+
+    //positive wrench compensation
+    Eigen::VectorXd external_wrench_upper_check = (external_wrench_upper_limit_.array() < est_external_wrench_.array()).cast<double>();
+    wrench_compensation_term = (est_external_wrench_ - external_wrench_upper_limit_).cwiseProduct(external_wrench_upper_check);
+
+    //negative wrench compensation
+    Eigen::VectorXd external_wrench_lower_check = (est_external_wrench_.array() < external_wrench_lower_limit_.array()).cast<double>();
+    wrench_compensation_term += (est_external_wrench_ - external_wrench_lower_limit_).cwiseProduct(external_wrench_lower_check);
+
+    double mass_inv = 1 / robot_model_->getMass();
+    Eigen::Matrix3d inertia_inv = (robot_model_->getInertia<Eigen::Matrix3d>()).inverse();
+
+    Eigen::VectorXd raw_feedforward_wrench_acc_cog_term = Eigen::VectorXd::Zero(6);
+    raw_feedforward_wrench_acc_cog_term.head(3) = mass_inv * wrench_compensation_term.head(3);
+    raw_feedforward_wrench_acc_cog_term.tail(3) = inertia_inv * wrench_compensation_term.tail(3);
+
+    if(!lpf_init_flag_){
+      lpf_est_external_wrench_.setInitValues(raw_feedforward_wrench_acc_cog_term);
+      lpf_init_flag_ = true;
+    }
+
+    feedforward_wrench_acc_cog_term_.head(3) = lpf_est_external_wrench_.filterFunction(raw_feedforward_wrench_acc_cog_term).head(3);
+    feedforward_wrench_acc_cog_term_.tail(3) = lpf_est_external_wrench_.filterFunction(raw_feedforward_wrench_acc_cog_term).tail(3);
+    geometry_msgs::WrenchStamped wrench_msg;
+    wrench_msg.header.stamp.fromSec(estimator_->getImuLatestTimeStamp());
+    wrench_msg.wrench.force.x = feedforward_wrench_acc_cog_term_(0);
+    wrench_msg.wrench.force.y = feedforward_wrench_acc_cog_term_(1);
+    wrench_msg.wrench.force.z = feedforward_wrench_acc_cog_term_(2);
+    wrench_msg.wrench.torque.x = feedforward_wrench_acc_cog_term_(3);
+    wrench_msg.wrench.torque.y = feedforward_wrench_acc_cog_term_(4);
+    wrench_msg.wrench.torque.z = feedforward_wrench_acc_cog_term_(5);
+    external_wrench_compensation_pub_.publish(wrench_msg);
+
+    GimbalrotorController::controlCore();
+  }
+
   void BeetleController::rosParamInit()
   {
     GimbalrotorController::rosParamInit();
@@ -48,6 +93,21 @@ namespace aerial_robot_control
     getParam<double>(control_nh, "momentum_observer_torque_weight", torque_weight, 10.0);
     momentum_observer_matrix_.topRows(3) *= force_weight;
     momentum_observer_matrix_.bottomRows(3) *= torque_weight;
+
+    double external_force_upper_limit, external_force_lower_limit, external_torque_upper_limit, external_torque_lower_limit;
+    getParam<double>(control_nh, "external_force_upper_limit", external_force_upper_limit, 0.5);
+    getParam<double>(control_nh, "external_force_lower_limit", external_force_lower_limit, -0.5);
+    getParam<double>(control_nh, "external_torque_upper_limit", external_torque_upper_limit, 0.01);
+    getParam<double>(control_nh, "external_torque_lower_limit", external_torque_lower_limit, -0.01);
+    external_wrench_upper_limit_.head(3) = Eigen::Vector3d::Constant(external_force_upper_limit);
+    external_wrench_upper_limit_.tail(3) = Eigen::Vector3d::Constant(external_torque_upper_limit);
+    external_wrench_lower_limit_.head(3) = Eigen::Vector3d::Constant(external_force_lower_limit);
+    external_wrench_lower_limit_.tail(3) = Eigen::Vector3d::Constant(external_torque_lower_limit);
+    ROS_INFO_STREAM("upper limit of external wrench : "<<external_wrench_upper_limit_.transpose());
+    ROS_INFO_STREAM("lower limit of external wrench : "<<external_wrench_lower_limit_.transpose());
+
+    getParam<double>(control_nh, "cutoff_freq", cutoff_freq_, 20.0);
+    getParam<double>(control_nh, "sample_freq", sample_freq_, 100.0);
   }
 
   //copy from dragon's full vectoring control

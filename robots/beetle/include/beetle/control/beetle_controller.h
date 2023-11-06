@@ -23,8 +23,8 @@ namespace aerial_robot_control
                     double ctrl_loop_rate
                     ) override;
   private:
-
     ros::Publisher estimate_external_wrench_pub_;
+    ros::Publisher external_wrench_compensation_pub_;
 
     /* external wrench */
     boost::thread wrench_estimate_thread_;
@@ -34,7 +34,19 @@ namespace aerial_robot_control
     Eigen::VectorXd integrate_term_;
     double prev_est_wrench_timestamp_;
 
+    /*low-pass filter*/
+    IirFilter lpf_est_external_wrench_;
+    double sample_freq_;
+    double cutoff_freq_;
+    bool lpf_init_flag_;
+
+    /* external wrench compensation */
+    Eigen::VectorXd external_wrench_upper_limit_;
+    Eigen::VectorXd external_wrench_lower_limit_;
+    
+    void controlCore() override;
     void externalWrenchEstimate();
+
   protected:
     void rosParamInit() override; 
   };
