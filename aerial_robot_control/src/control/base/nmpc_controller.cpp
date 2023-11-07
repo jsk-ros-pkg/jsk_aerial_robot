@@ -25,7 +25,7 @@ void aerial_robot_control::NMPCController::initialize(
   gravity_const_ = robot_model_->getGravity()[2];
 
   /* timers */
-  tmr_viz_ = nh_.createTimer(ros::Duration(0.05), &NMPCController::callback_viz, this);
+  tmr_viz_ = nh_.createTimer(ros::Duration(0.05), &NMPCController::callbackViz, this);
 
   /* subscribers */
 
@@ -33,13 +33,6 @@ void aerial_robot_control::NMPCController::initialize(
   pub_viz_pred_ = nh_.advertise<geometry_msgs::PoseArray>("nmpc/viz_pred", 1);
   pub_viz_ref_ = nh_.advertise<geometry_msgs::PoseArray>("nmpc/viz_ref", 1);
   pub_flight_cmd_ = nh_.advertise<spinal::FourAxisCommand>("four_axes/command", 1);
-
-  // get these parameters from rosparam
-  //  ros::param::get("~has_traj_server", has_traj_server_);
-  //  ros::param::get("~has_pred_viz", has_pred_viz_);
-  //  ros::param::get("~pred_viz_type", pred_viz_type_);
-  //  ros::param::get("~is_build_acados", is_build_acados_);
-  //  ros::param::get("~has_pred_pub", has_pred_pub_);
 
   reset();
 
@@ -53,10 +46,6 @@ bool aerial_robot_control::NMPCController::update()
 
   this->controlCore();
   this->sendCmd();
-
-  // output flight cmd using ROS INFO
-  ROS_INFO("r: %f, p: %f, y: %f, 1/4 thrust: %f", flight_cmd_.angles[0], flight_cmd_.angles[1], flight_cmd_.angles[2],
-           flight_cmd_.base_thrust[0]);
 
   return true;
 }
@@ -153,14 +142,14 @@ void aerial_robot_control::NMPCController::controlCore()
   tf::Matrix3x3(q1).getRPY(rpy1[0], rpy1[1], rpy1[2]);
 
   // TODO: should be set by rosparam   0.025 - 40hz for controller; 0.1 - 10hz for predict horizon
-  // roll, pitch
+  // - roll, pitch
   target_roll_ = (0.025 * rpy0[0] + (0.1 - 0.025) * rpy1[0]) / 0.1;
   target_pitch_ = (0.025 * rpy0[1] + (0.1 - 0.025) * rpy1[1]) / 0.1;
 
   flight_cmd_.angles[0] = static_cast<float>(target_roll_);
   flight_cmd_.angles[1] = static_cast<float>(target_pitch_);
 
-  // yaw
+  // - yaw
   double target_yaw, error_yaw, yaw_p_term, error_yaw_rate, yaw_d_term;
   target_yaw = (0.025 * rpy0[2] + (0.1 - 0.025) * rpy1[2]) / 0.1;
   error_yaw = angles::shortest_angular_distance(target_yaw, rpy0[2]);
@@ -171,7 +160,7 @@ void aerial_robot_control::NMPCController::controlCore()
 
   flight_cmd_.angles[2] = static_cast<float>(candidate_yaw_term_);
 
-  // thrust
+  // - thrust
   double thrust = mpc_solver_.x_u_out_.u.data.at(3) * mass_;
 
   std::vector<float> target_base_thrust_;
@@ -188,7 +177,12 @@ void aerial_robot_control::NMPCController::sendCmd()
   pub_flight_cmd_.publish(flight_cmd_);
 }
 
-void aerial_robot_control::NMPCController::callback_viz(const ros::TimerEvent& event)
+/**
+ * @brief callbackViz: publish the predicted trajectory and reference trajectory
+ * @param [ros::TimerEvent&] event
+ */
+
+void aerial_robot_control::NMPCController::callbackViz(const ros::TimerEvent& event)
 {
   // from mpc_solver_.x_u_out to PoseArray
   geometry_msgs::PoseArray pred_poses;

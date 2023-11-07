@@ -43,7 +43,7 @@ public:
                   boost::shared_ptr<aerial_robot_navigation::BaseNavigator> navigator, double ctrl_loop_du) override;
   bool update() override;
   void reset() override;
-  void callback_viz(const ros::TimerEvent& event);
+  void callbackViz(const ros::TimerEvent& event);
 
 protected:
   ros::Publisher pub_flight_cmd_;  // for spinal
