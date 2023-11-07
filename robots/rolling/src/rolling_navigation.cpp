@@ -179,6 +179,11 @@ void RollingNavigator::setGroundNavigationMode(int state)
       rolling_initial_euler_ = estimator_->getEuler(Frame::COG, estimate_mode_);
     }
 
+  if(state == aerial_robot_navigation::RECOVERING_STATE && current_ground_navigation_mode_ != aerial_robot_navigation::RECOVERING_STATE)
+    {
+      current_ground_navigation_mode_ = state;
+      ROS_ERROR_STREAM("[navigation] recovery state");
+    }
 }
 
 void RollingNavigator::setFinalTargetBaselinkRot(tf::Vector3 rot)

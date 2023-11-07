@@ -13,7 +13,8 @@ namespace aerial_robot_navigation
      FLYING_STATE,
      STANDING_STATE,
      STEERING_STATE,
-     ROLLING_STATE
+     ROLLING_STATE,
+     RECOVERING_STATE
     };
 
   class RollingNavigator : public BaseNavigator
@@ -33,6 +34,7 @@ namespace aerial_robot_navigation
     inline int getCurrentGroundNavigationMode() {return current_ground_navigation_mode_;}
     inline int getPrevGroundNavigationMode() {return prev_ground_navigation_mode_;}
     void setPrevGroundNavigationMode(int mode) {prev_ground_navigation_mode_ = mode;}
+    void setGroundNavigationMode(int state);
     inline tf::Vector3 getStandingInitialPos() {return standing_initial_pos_;}
     inline tf::Vector3 getStandingInitialEuler() {return standing_initial_euler_;}
     inline tf::Vector3 getSteeringInitialPos() {return steering_initial_pos_;}
@@ -54,7 +56,6 @@ namespace aerial_robot_navigation
     void groundModeProcess();
 
     void rosParamInit() override;
-    void setGroundNavigationMode(int state);
     void setFinalTargetBaselinkRot(tf::Vector3 rot);
 
     void groundNavigationModeCallback(const std_msgs::Int16Ptr & msg);
