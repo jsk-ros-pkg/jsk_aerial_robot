@@ -91,6 +91,15 @@ namespace aerial_robot_control
 
     void setPGain(const double p_gain) { p_gain_ = p_gain; }
     void setIGain(const double i_gain) { i_gain_ = i_gain; }
+    void setIGainHoldingTerm(const double i_gain)
+    {
+      if(i_gain == 0) return;
+      else
+        {
+          err_i_ = err_i_ * i_gain_ / i_gain;
+          i_gain_ = i_gain;
+        }
+    }
     void setDGain(const double d_gain) { d_gain_ = d_gain; }
 
     void setGains(const double p_gain, const double i_gain, const double d_gain)
