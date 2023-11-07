@@ -68,6 +68,7 @@ namespace aerial_robot_control
     std::vector<double> target_acc_cog_;
     std::vector<double> target_acc_dash_;
     Eigen::VectorXd target_wrench_acc_cog_;
+    Eigen::VectorXd controlled_wrench_acc_cog_;
     Eigen::VectorXd full_lambda_trans_;
     Eigen::VectorXd full_lambda_rot_;
     Eigen::VectorXd full_lambda_all_;
@@ -93,6 +94,7 @@ namespace aerial_robot_control
     int ground_navigation_mode_;
     std::vector<int> controlled_axis_;
     int control_dof_;
+    double default_z_i_gain_;
 
     double standing_converged_baselink_roll_thresh_;
     double standing_converged_z_i_term_min_;

@@ -28,6 +28,7 @@ void RollingController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   prev_target_gimbal_angles_.resize(motor_num_, 0);
 
   target_wrench_acc_cog_.resize(6);
+  controlled_wrench_acc_cog_.resize(6);
 
   target_acc_cog_.resize(6);
   target_acc_dash_.resize(6);
@@ -95,6 +96,8 @@ void RollingController::rosParamInit()
 {
   ros::NodeHandle control_nh(nh_, "controller");
   ros::NodeHandle base_nh(nh_, "aerial_robot_base_node");
+  ros::NodeHandle z_nh(control_nh, "z");
+
   getParam<double>(control_nh, "torque_allocation_matrix_inv_pub_interval", torque_allocation_matrix_inv_pub_interval_, 0.05);
   getParam<bool>(control_nh, "use_sr_inv", use_sr_inv_, false);
   getParam<double>(control_nh, "sr_inv_weight", sr_inv_weight_, 0.0);
@@ -103,6 +106,8 @@ void RollingController::rosParamInit()
 
   getParam<double>(nh_, "circle_radius", circle_radius_, 0.5);
   rolling_robot_model_->setCircleRadius(circle_radius_);
+
+  getParam<double>(z_nh, "i_gain", default_z_i_gain_, 0.0);
 
   getParam<double>(control_nh, "standing_converged_baselink_roll_thresh", standing_converged_baselink_roll_thresh_, 0.0);
   getParam<double>(control_nh, "standing_converged_z_i_term_min", standing_converged_z_i_term_min_, 0.0);
@@ -129,10 +134,12 @@ void RollingController::rosParamInit()
 
   rosoutControlParams("controller");
   rosoutControlParams("ground_controller");
+  rosoutControlParams("steering_controller");
 
   controlled_axis_.resize(6);
   rosoutControlAxis("controller");
   rosoutControlAxis("ground_controller");
+  rosoutControlAxis("steering_controller");
 }
 
 void RollingController::controlCore()
@@ -154,15 +161,11 @@ void RollingController::controlCore()
   calcYawTerm();
   // osqpPractice();
   // calcSteeringTargetLambda();
-  rolling_navigator_->setPrevGroundNavigationMode(rolling_navigator_->getCurrentGroundNavigationMode());
+  rolling_navigator_->setPrevGroundNavigationMode(ground_navigation_mode_);
 }
 
 void RollingController::targetStatePlan()
 {
-  ground_navigation_mode_ = rolling_navigator_->getCurrentGroundNavigationMode();
-
-  // std::cout << rolling_navigator_->getPrevGroundNavigationMode() << " " << rolling_navigator_->getCurrentGroundNavigationMode() << std::endl;
-
   switch(ground_navigation_mode_)
     {
     case aerial_robot_navigation::FLYING_STATE:
@@ -172,6 +175,7 @@ void RollingController::targetStatePlan()
             ROS_WARN("[control] flying state");
             ROS_ERROR("[control] set control params for flying state");
             setControllerParams("controller");
+            rosoutControlParams("controller");
             setControlAxisWithNameSpace("controller");
             setAttitudeGains();
           }
@@ -185,11 +189,12 @@ void RollingController::targetStatePlan()
             ROS_WARN("[control] standing state");
             ROS_ERROR("[control] set control params for standing state");
             setControllerParams("ground_controller");
+            rosoutControlParams("ground_controller");
             setControlAxisWithNameSpace("ground_controller");
             setAttitudeGains();
           }
 
-
+        /* set target roll of baselink */
         tf::Vector3 cog_pos = estimator_->getPos(Frame::COG, estimate_mode_);
         if(std::abs(cog_pos.z() / circle_radius_) < 1.0 && std::asin(cog_pos.z() / circle_radius_) > standing_target_phi_)
           {
@@ -200,6 +205,10 @@ void RollingController::targetStatePlan()
               }
           }
 
+        /* set target z as same as the radius */
+        navigator_->setTargetPosZ(circle_radius_);
+
+        /* set z feed forward term */
         if(pid_controllers_.at(Z).getITerm() < standing_minimum_z_i_term_ && standing_target_phi_ < standing_feed_forward_z_compensate_roll_thresh_)
           {
             pid_controllers_.at(Z).setErrIUpdateFlag(true);
@@ -207,6 +216,7 @@ void RollingController::targetStatePlan()
             ROS_WARN_STREAM("[control] set z i term " << standing_minimum_z_i_term_ << " not to vibrate");
           }
 
+        /* set desired coorinate of baselink */
         double baselink_roll = estimator_->getEuler(Frame::BASELINK, estimate_mode_).x();
         double baselink_pitch = estimator_->getEuler(Frame::BASELINK, estimate_mode_).y();
 
@@ -220,35 +230,37 @@ void RollingController::targetStatePlan()
             standing_baselink_ref_pitch_last_update_time_ = ros::Time::now().toSec();
             standing_target_baselink_pitch_ = baselink_pitch;
           }
-
         desire_coordinate_pub_.publish(desire_coordinate_msg);
 
+        /* set target xy of cog based on initial state */
         tf::Vector3 standing_initial_pos = rolling_navigator_->getStandingInitialPos();
         tf::Vector3 standing_initial_euler = rolling_navigator_->getStandingInitialEuler();
-
         navigator_->setTargetPosX(standing_initial_pos.x() - circle_radius_ * (1 - cos(standing_target_phi_)) * cos(standing_initial_euler.z() + M_PI / 2.0));
         navigator_->setTargetPosY(standing_initial_pos.y() - circle_radius_ * (1 - cos(standing_target_phi_)) * sin(standing_initial_euler.z() + M_PI / 2.0));
-        navigator_->setTargetPosZ(circle_radius_);
 
-        // std::cout << estimator_->getEuler(Frame::BASELINK, estimate_mode_).x() << " " << estimator_->getEuler(Frame::BASELINK, estimate_mode_).y() << " " << estimator_->getEuler(Frame::BASELINK, estimate_mode_).z() << " " << std::endl;
-
-        if(fabs(baselink_roll - M_PI / 2.0) < fabs(M_PI / 2.0 - standing_converged_baselink_roll_thresh_))
+        /*  decrease throttle if roll angle is converged */
+        if(fabs(baselink_roll - M_PI / 2.0) < standing_converged_baselink_roll_thresh_)
           {
-            ROS_WARN_STREAM("[control] baselink roll is converged " << baselink_roll);
-            // ROS_WARN_STREAM("[control] decrease thrttle bacause baselink roll > " << standing_converged_baselink_roll_thresh_);
+            ROS_WARN_STREAM("[control] baselink roll is converged " << baselink_roll << " thresh is " << standing_converged_baselink_roll_thresh_);
             double z_i_term = pid_controllers_.at(Z).getITerm();
             pid_controllers_.at(Z).setErrIUpdateFlag(true);
-            pid_controllers_.at(Z).setITerm(std::max(z_i_term -  standing_converged_z_i_term_descend_ratio_, standing_converged_z_i_term_min_));
+            double target_z_i_term = std::max(z_i_term -  standing_converged_z_i_term_descend_ratio_, standing_converged_z_i_term_min_);
+            pid_controllers_.at(Z).setITerm(target_z_i_term);
+            pid_controllers_.at(Z).setIGainHoldingTerm(default_z_i_gain_);
             pid_controllers_.at(Z).setErrIUpdateFlag(false);
             ROS_WARN_STREAM("[control] set z i term to " << pid_controllers_.at(Z).getITerm());
           }
 
-        if(fabs(baselink_roll - M_PI / 2.0) > standing_baselink_roll_restart_z_i_control_thresh_)
+        /* restart i control and set feed forward i term again */
+        else
           {
             if(!pid_controllers_.at(Z).getErrIUpdateFlag())
               {
                 pid_controllers_.at(Z).setErrIUpdateFlag(true);
                 ROS_WARN_STREAM("[control] restart z i control because roll error is larger than " << standing_baselink_roll_restart_z_i_control_thresh_);
+                pid_controllers_.at(Z).setITerm(standing_minimum_z_i_term_);
+                pid_controllers_.at(Z).setIGainHoldingTerm(3.0);
+                ROS_WARN_STREAM("[control] set z i term " << standing_minimum_z_i_term_ << " not to fall down");
               }
           }
         break;
@@ -259,39 +271,79 @@ void RollingController::targetStatePlan()
         if(rolling_navigator_->getPrevGroundNavigationMode() != aerial_robot_navigation::STEERING_STATE)
           {
             ROS_ERROR("[control] set control params for steering mode");
+
+            // set parameter and controlled axis
             setControllerParams("steering_controller");
+            rosoutControlParams("steering_controller");
+            setControlAxisWithNameSpace("steering_controller");
             setAttitudeGains();
             ROS_ERROR("[control] set control target for steering mode");
-            tf::Vector3 initial_pos = estimator_->getPos(Frame::COG, estimate_mode_);
-            tf::Vector3 initial_euler = estimator_->getEuler(Frame::BASELINK, estimate_mode_);
-            std::cout << "initial pos" << initial_pos.x() << " " << initial_pos.y() << " " << initial_pos.z() << std::endl;
-            std::cout << "initial euler" << initial_euler.x() << " " << initial_euler.y() << " " << initial_euler.z() << std::endl;
+
+            // set target position from current position
+            tf::Vector3 initial_cog_pos = estimator_->getPos(Frame::COG, estimate_mode_);
+            tf::Vector3 initial_baselink_euler = estimator_->getEuler(Frame::BASELINK, estimate_mode_);
+            tf::Vector3 initial_cog_euler = estimator_->getEuler(Frame::COG, estimate_mode_);
+            std::cout << "initial cog pos " << initial_cog_pos.x() << " " << initial_cog_pos.y() << " " << initial_cog_pos.z() << std::endl;
+            std::cout << "initial baselink euler " << initial_baselink_euler.x() << " " << initial_baselink_euler.y() << " " << initial_baselink_euler.z() << std::endl;
+            std::cout << "initial cog euler " << initial_cog_euler.x() << " " << initial_cog_euler.y() << " " << initial_cog_euler.z() << std::endl;
+            navigator_->setTargetPosX(initial_cog_pos.x());
+            navigator_->setTargetPosY(initial_cog_pos.y());
+            pid_controllers_.at(YAW).reset();
+            navigator_->setTargetYaw(initial_cog_euler.z());
+            ROS_WARN_STREAM("[steering] set target yaw in navigator to " << initial_cog_euler.z());
+
+            // set target baselink pose roll: pi/2, pitch: current statex
             spinal::DesireCoord desire_coordinate_msg;
             desire_coordinate_msg.roll = M_PI / 2.0;
-            desire_coordinate_msg.pitch = initial_euler.y();
+            desire_coordinate_msg.pitch = initial_baselink_euler.y();
             desire_coordinate_pub_.publish(desire_coordinate_msg);
-            pid_controllers_.at(YAW).reset();
-            pid_controllers_.at(YAW).setTargetP(initial_euler.z());
+            ROS_WARN_STREAM("[steering] send desire coordinate: " << desire_coordinate_msg.roll << " " << desire_coordinate_msg.pitch);
+            // std::cout << "[steering] baselink pitch: " << initial_baselink_euler.y() << std::endl;
+            // pid_controllers_.at(YAW).setTargetP(initial_cog_euler.z());
           }
 
-        setControlAxis(X, 1);
-        setControlAxis(Y, 1);
-        setControlAxis(Z, 1);
-        setControlAxis(ROLL, 1);
-        setControlAxis(PITCH, 1);
-        setControlAxis(YAW, 1);
+        // transition to recovery state when roll angle is large
+        double baselink_roll = estimator_->getEuler(Frame::BASELINK, estimate_mode_).x();
+        if(fabs(baselink_roll - M_PI / 2.0) > 0.3)
+          {
+            rolling_navigator_->setGroundNavigationMode(aerial_robot_navigation::RECOVERING_STATE);
+          }
 
         break;
       }
+
+    case aerial_robot_navigation::RECOVERING_STATE:
+      {
+        if(rolling_navigator_->getPrevGroundNavigationMode() != aerial_robot_navigation::RECOVERING_STATE)
+          {
+            setControllerParams("ground_controller");
+            rosoutControlParams("ground_controller");
+            setControlAxisWithNameSpace("ground_controller");
+            setAttitudeGains();
+            ROS_ERROR_STREAM("[control] changed to recovery state");
+            tf::Vector3 initial_cog_pos = estimator_->getPos(Frame::COG, estimate_mode_);
+            tf::Vector3 initial_cog_euler = estimator_->getEuler(Frame::COG, estimate_mode_);
+            tf::Vector3 initial_baselink_euler = estimator_->getEuler(Frame::COG, estimate_mode_);
+            navigator_->setTargetPosX(initial_cog_pos.x());
+            navigator_->setTargetPosY(initial_cog_pos.y());
+            navigator_->setTargetYaw(initial_cog_euler.z());
+          }
+
+        pid_controllers_.at(Z).setErrIUpdateFlag(true);
+        pid_controllers_.at(Z).setITerm(standing_minimum_z_i_term_);
+
+        double baselink_roll = estimator_->getEuler(Frame::BASELINK, estimate_mode_).x();
+        if(fabs(baselink_roll - M_PI / 2.0)  < fabs(standing_converged_baselink_roll_thresh_))
+          {
+            rolling_navigator_->setGroundNavigationMode(aerial_robot_navigation::STANDING_STATE);
+          }
+      }
+
     }
 }
 
 void RollingController::calcAccFromCog()
 {
-  ground_navigation_mode_ = rolling_navigator_->getCurrentGroundNavigationMode();
-
-  if(ground_navigation_mode_ == aerial_robot_navigation::FLYING_STATE || ground_navigation_mode_ == aerial_robot_navigation::STANDING_STATE || ground_navigation_mode_ == aerial_robot_navigation::STEERING_STATE)
-    {
       ROS_WARN_ONCE("[control] calc acc for flying state");
       PoseLinearController::controlCore();
       control_dof_ = std::accumulate(controlled_axis_.begin(), controlled_axis_.end(), 0);
@@ -372,7 +424,7 @@ void RollingController::calcAccFromCog()
             }
           navigator_->setTargetRoll(target_roll_);
         }
-    }
+
 }
 
 void RollingController::calcWrenchAllocationMatrix()
@@ -425,7 +477,7 @@ void RollingController::calcWrenchAllocationMatrix()
 
   controlled_q_mat_ = controlled_axis_mask_ * full_q_mat_;
   controlled_q_mat_inv_ = aerial_robot_model::pseudoinverse(controlled_q_mat_);
-  target_wrench_acc_cog_ = controlled_axis_mask_ * target_wrench_acc_cog_;
+  controlled_wrench_acc_cog_ = controlled_axis_mask_ * target_wrench_acc_cog_;
 
   if(use_sr_inv_)
     {
@@ -438,13 +490,12 @@ void RollingController::calcWrenchAllocationMatrix()
     {
       ROS_WARN_ONCE("[control] use MP-Inverse");
     }
+
 }
 
 void RollingController::calcFullLambda()
 {
-  ground_navigation_mode_ = rolling_navigator_->getCurrentGroundNavigationMode();
-
-  if(ground_navigation_mode_ == aerial_robot_navigation::FLYING_STATE || ground_navigation_mode_ == aerial_robot_navigation::STANDING_STATE)
+  if(ground_navigation_mode_ == aerial_robot_navigation::FLYING_STATE || ground_navigation_mode_ == aerial_robot_navigation::STANDING_STATE || ground_navigation_mode_ == aerial_robot_navigation::STEERING_STATE || aerial_robot_navigation::RECOVERING_STATE)
     {
       /* actuator mapping */
       int rot_dof = 0;
@@ -455,8 +506,8 @@ void RollingController::calcFullLambda()
               rot_dof++;
             }
         }
-      full_lambda_trans_ = controlled_q_mat_inv_.leftCols(control_dof_ - rot_dof) * target_wrench_acc_cog_.head(control_dof_ - rot_dof);
-      full_lambda_rot_ = controlled_q_mat_inv_.rightCols(rot_dof) * target_wrench_acc_cog_.tail(rot_dof);
+      full_lambda_trans_ = controlled_q_mat_inv_.leftCols(control_dof_ - rot_dof) * controlled_wrench_acc_cog_.head(control_dof_ - rot_dof);
+      full_lambda_rot_ = controlled_q_mat_inv_.rightCols(rot_dof) * controlled_wrench_acc_cog_.tail(rot_dof);
       full_lambda_all_ = full_lambda_trans_ + full_lambda_rot_;
     }
 
