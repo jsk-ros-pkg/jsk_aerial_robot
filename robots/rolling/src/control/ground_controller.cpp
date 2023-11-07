@@ -181,13 +181,16 @@ void RollingController::calcSteeringTargetLambda()
   Eigen::SparseMatrix<double> H_s;
   H_s = H.sparseView();
 
+  Eigen::VectorXd full_lambda_rot = aerial_robot_model::pseudoinverse(full_q_mat_.bottomRows(3)) * target_wrench_acc_cog_.tail(3);
+
+  Eigen::MatrixXd full_q_mat_trans = robot_model_->getMass() * full_q_mat_.topRows(3);
   Eigen::MatrixXd A = Eigen::MatrixXd::Zero(n_constraints, n_variables);
-  A.topRows(3) = full_q_rot_;                                                    //    eq constraint about rpy torque
-  A.block(3, 0, 1, n_variables) = full_q_mat_.row(Z);                            // in eq constraint about z
-  A.block(4, 0, 1, n_variables) = full_q_mat_.row(X) - steering_mu_ * full_q_mat_.row(Z);  // in eq constraint about x
-  A.block(5, 0, 1, n_variables) = full_q_mat_.row(X) + steering_mu_ * full_q_mat_.row(Z);  // in eq constraint about x
-  A.block(6, 0, 1, n_variables) = full_q_mat_.row(Y) - steering_mu_ * full_q_mat_.row(Z);  // in eq constraint about y
-  A.block(7, 0, 1, n_variables) = full_q_mat_.row(Y) + steering_mu_ * full_q_mat_.row(Z);  // in eq constraint about y
+  A.topRows(3) = full_q_rot_;                                                                        //    eq constraint about rpy torque
+  A.block(3, 0, 1, n_variables) = full_q_mat_trans.row(Z);                                           // in eq constraint about z
+  A.block(4, 0, 1, n_variables) = full_q_mat_trans.row(X) - steering_mu_ * full_q_mat_trans.row(Z);  // in eq constraint about x
+  A.block(5, 0, 1, n_variables) = full_q_mat_trans.row(X) + steering_mu_ * full_q_mat_trans.row(Z);  // in eq constraint about x
+  A.block(6, 0, 1, n_variables) = full_q_mat_trans.row(Y) - steering_mu_ * full_q_mat_trans.row(Z);  // in eq constraint about y
+  A.block(7, 0, 1, n_variables) = full_q_mat_trans.row(Y) + steering_mu_ * full_q_mat_trans.row(Z);  // in eq constraint about y
 
   Eigen::SparseMatrix<double> A_s;
   A_s = A.sparseView();
@@ -198,19 +201,19 @@ void RollingController::calcSteeringTargetLambda()
 
   lower_bound
     <<
-    target_wrench_acc_cog_(control_dof_ - 6 + ROLL) - epsilon,
-    target_wrench_acc_cog_(control_dof_ - 6 + PITCH) - epsilon,
-    target_wrench_acc_cog_(control_dof_ - 6 + YAW) - epsilon,
-    steering_z_acc_min_,
+    target_wrench_acc_cog_(ROLL) - epsilon,
+    target_wrench_acc_cog_(PITCH) - epsilon,
+    target_wrench_acc_cog_(YAW) - epsilon,
+    robot_model_->getMass() * steering_z_acc_min_,
     -steering_mu_ * robot_model_->getMass() * robot_model_->getGravity()(Z),
     -INFINITY,
     -steering_mu_ * robot_model_->getMass() * robot_model_->getGravity()(Z),
     -INFINITY;
 
   upper_bound <<
-    target_wrench_acc_cog_(control_dof_ - 6 + ROLL) + epsilon,
-    target_wrench_acc_cog_(control_dof_ - 6 + PITCH) + epsilon,
-    target_wrench_acc_cog_(control_dof_ - 6 + YAW) + epsilon,
+    target_wrench_acc_cog_(ROLL) + epsilon,
+    target_wrench_acc_cog_(PITCH) + epsilon,
+    target_wrench_acc_cog_(YAW) + epsilon,
     robot_model_->getMass() * robot_model_->getGravity()(Z),
     INFINITY,
     steering_mu_ * robot_model_->getMass() * robot_model_->getGravity()(Z),
@@ -236,7 +239,7 @@ void RollingController::calcSteeringTargetLambda()
   solver.solve();
   auto solution = solver.getSolution();
 
-  full_lambda_trans_ = solution;
   full_lambda_all_ = solution;
+  full_lambda_trans_ = solution - full_lambda_rot;
 
 }
