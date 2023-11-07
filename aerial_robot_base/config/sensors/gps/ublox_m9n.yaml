@@ -1,11 +1,11 @@
 sensor_plugin:
-        gps: #single GPS
-                min_est_sat_num: 10
-                vel_noise_sigma:  0.02 #0.05 -> 0.01 -> 0.02
-                pos_noise_sigma:  1.0
-                gps_ros_sub_name: sim/gps/fix
-                sensor_frame: gps
-                ned_flag: true #north(x)-east(y)-down(z) frame
-                time_sync: true
-                delay: -0.35 # alternative: -0.25 # Ublox M9N normal: -0.25 ~ 0.35, -0.35 is good @2021.05.24 Kashiwa. TODO: auto-calibra with VIO
-                #only_use_vel: true # debug
+  gps: #single GPS
+    min_est_sat_num: 10
+    vel_noise_sigma: 0.02 #0.05 -> 0.01 -> 0.02
+    pos_noise_sigma: 1.0
+    gps_ros_sub_name: sim/gps/fix
+    sensor_frame: gps
+    ned_flag: true #north(x)-east(y)-down(z) frame
+    time_sync: true
+    delay: -0.35 # alternative: -0.25 # Ublox M9N normal: -0.25 ~ 0.35, -0.35 is good @2021.05.24 Kashiwa. TODO: auto-calibra with VIO
+    #only_use_vel: true # debug
