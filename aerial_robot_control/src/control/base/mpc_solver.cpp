@@ -11,11 +11,9 @@ MPC::MPCSolver::MPCSolver()
 
 void MPC::MPCSolver::initialize(PhysicalParams& physical_params)
 {
-  MPC::initPredXU(x_u_out_);
-
+  /* Allocate the array and fill it accordingly */
   acados_ocp_capsule_ = qd_body_rate_model_acados_create_capsule();
 
-  // allocate the array and fill it accordingly
   new_time_steps = nullptr;
 
   int status = qd_body_rate_model_acados_create_with_discretization(acados_ocp_capsule_, NN, new_time_steps);
@@ -32,23 +30,48 @@ void MPC::MPCSolver::initialize(PhysicalParams& physical_params)
   nlp_solver_ = qd_body_rate_model_acados_get_nlp_solver(acados_ocp_capsule_);
   nlp_opts_ = qd_body_rate_model_acados_get_nlp_opts(acados_ocp_capsule_);
 
-  //  set constraints idx for x0
-  int idxbx0[NBX0];
-  for (int i = 0; i < NBX0; i++)  // free quaternion
-    idxbx0[i] = i;
-  ocp_nlp_constraints_model_set(nlp_config_, nlp_dims_, nlp_in_, 0, "idxbx", idxbx0);
-
-  // set rti_phase TODO: check this according to the paper
-  int rti_phase = 0;
+  /* Set rti_phase */
+  int rti_phase = 0;  //  (1) preparation, (2) feedback, (0) both. 0 is default
   ocp_nlp_solver_opts_set(nlp_config_, nlp_opts_, "rti_phase", &rti_phase);
 
-  // set parameters. note that here initialize all parameters, including variables and constants
+  /* Set constraints */
+  // Please note that the constraints have been set up inside the python interface. Only minimum adjustments are needed.
+  // bx_0: initial state. Note that the value of lbx0 and ubx0 will be set in solve() function, feedback constraints
+  // bx
+  double lbx[NBX] = { -1.0, -1.0, -1.0 };  // TODO: use rosparam for all params
+  double ubx[NBX] = { 1.0, 1.0, 1.0 };
+  for (int i = 1; i < NN; i++)
+  {
+    ocp_nlp_constraints_model_set(nlp_config_, nlp_dims_, nlp_in_, i, "lbx", lbx);
+    ocp_nlp_constraints_model_set(nlp_config_, nlp_dims_, nlp_in_, i, "ubx", ubx);
+  }
+  // bx_e: terminal state
+  double lbx_e[NBXN] = { -1.0, -1.0, -1.0 };
+  double ubx_e[NBXN] = { 1.0, 1.0, 1.0 };
+  ocp_nlp_constraints_model_set(nlp_config_, nlp_dims_, nlp_in_, NN, "lbx", lbx_e);
+  ocp_nlp_constraints_model_set(nlp_config_, nlp_dims_, nlp_in_, NN, "ubx", ubx_e);
+
+  // bu
+  double lbu[NBU] = { -6.0, -6.0, -6.0, physical_params.c_thrust_min / physical_params.mass };
+  double ubu[NBU] = { 6.0, 6.0, 6.0, physical_params.c_thrust_max / physical_params.mass };
+  for (int i = 0; i < NN; i++)
+  {
+    ocp_nlp_constraints_model_set(nlp_config_, nlp_dims_, nlp_in_, i, "lbu", lbu);
+    ocp_nlp_constraints_model_set(nlp_config_, nlp_dims_, nlp_in_, i, "ubu", ubu);
+  }
+
+  /* Set parameters */
+  // Note that the code here initializes all parameters, including variables and constants.
+  // Constants are initialized only once, while variables are initialized in every iteration
   double p[NP] = { 1.0, 0.0, 0.0, 0.0, physical_params.gravity };
   for (int i = 0; i < NN; i++)
   {
     qd_body_rate_model_acados_update_params(acados_ocp_capsule_, i, p, NP);
   }
   qd_body_rate_model_acados_update_params(acados_ocp_capsule_, NN, p, NP);
+
+  /* Initialize output value */
+  MPC::initPredXU(x_u_out_);
 }
 
 MPC::MPCSolver::~MPCSolver()
@@ -139,7 +162,7 @@ void MPC::MPCSolver::setReference(const aerial_robot_msgs::PredXU& x_u_ref, cons
 {
   double yr[NX + NU];
   double qr[4];
-  int qr_idx[4] = { 0, 1, 2, 3 };
+  int qr_idx[] = { 0, 1, 2, 3 };
   for (int i = 0; i < NN; i++)
   {
     // yr = np.concatenate((xr[i, :], ur[i, :]))
