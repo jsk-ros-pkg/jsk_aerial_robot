@@ -8,7 +8,9 @@
   <arg name="estimate_mode"  default= "0" />
   <arg name="sim_estimate_mode"  default= "2" />
   <arg name="headless" default="True" />
-  <arg name="worldtype" default="$(find aerial_robot_simulation)/gazebo_model/world/empty.world" />
+  <arg name="spawn_human" default="False"/>
+  <arg name="worldtype" default="$(find aerial_robot_simulation)/gazebo_model/world/empty.world" unless="$(arg spawn_human)"/>
+  <arg name="worldtype" default="$(find mini_quadrotor)/gazebo_model/human.world" if="$(arg spawn_human)"/>
   <arg name="launch_gazebo" default="True" />
   <arg name="direct_model" default="False" />
   <arg name="direct_model_name" />
@@ -67,7 +69,7 @@
     <arg name="robot_model" value="$(find mini_quadrotor)/urdf/$(arg type)/robot.$(arg description_mode).xacro" unless="$(arg direct_model)"/>
     <arg name="robot_model" value="$(arg direct_model_name)" if="$(arg direct_model)"/>
     <arg name="robot_ns" value="$(arg robot_ns)" />
-    <arg name="rviz_config" value="$(arg config_dir)/rviz_config" />
+    <arg name="rviz_config" value="$(arg config_dir)/$(arg type)/rviz_config" />
     <arg name="rviz_init_pose" value="$(arg config_dir)/RvizInit.yaml" />
     <arg name="need_joint_state" value="false" if ="$(eval arg('simulation') or arg('real_machine'))"/>
   </include>
@@ -96,7 +98,7 @@
   <include file="$(find aerial_robot_simulation)/launch/mujoco.launch" if="$(eval arg('simulation') and not arg('real_machine') and arg('mujoco'))" >
     <arg name="robot_ns" value="$(arg robot_ns)" />
     <arg name="headless" value="$(arg headless)"/>
-    <arg name="mujoco_model" value="$(find mini_quadrotor)/mujoco/robot.xml"/>
+    <arg name="mujoco_model" value="$(find mini_quadrotor)/mujoco/$(arg type)/robot.xml"/>
   </include>
 
 </launch>
