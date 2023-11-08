@@ -7,9 +7,9 @@
   <thrust_link name="thrust" />
 
   <!-- kinematics [m] -->
-  <xacro:property name="rotor_x" value="0.070" />
-  <xacro:property name="rotor_y" value="0.086" />
-  <xacro:property name="rotor_z" value="0.026" />
+  <xacro:property name="rotor_x" value="0.090" />
+  <xacro:property name="rotor_y" value="0.090" />
+  <xacro:property name="rotor_z" value="0.055" />
 
   <!-- dynamics -->
   <m_f_rate value="-0.011" /> <!-- drag torque rate -->
@@ -106,7 +106,7 @@
   <!-- main_body -->
   <link name="main_body">
     <inertial>
-      <mass value = "0.432" />
+      <mass value = "0.910" />
       <origin xyz="0 0 0.017" rpy="0 0 0"/>
       <inertia
           ixx="0.0021" ixy="0" ixz="0"
@@ -152,10 +152,10 @@
   </xacro:extra_module>
 
   <!-- propellers -->
-  <xacro:propeller_module id = "1" x = "${-rotor_x}" y = "${-rotor_y}" z = "${rotor_z}" direction = "-1" />
-  <xacro:propeller_module id = "2" x = "${rotor_x}" y = "${-rotor_y}" z = "${rotor_z}" direction = "1" />
-  <xacro:propeller_module id = "3" x = "${rotor_x}" y = "${rotor_y}" z = "${rotor_z}" direction = "-1" />
-  <xacro:propeller_module id = "4" x = "${-rotor_x}" y = "${rotor_y}" z = "${rotor_z}"  direction = "1" />
+  <xacro:propeller_module id = "1" x = "${-rotor_x}" y = "${-rotor_y}" z = "${rotor_z}" direction = "1" />
+  <xacro:propeller_module id = "2" x = "${rotor_x}" y = "${-rotor_y}" z = "${rotor_z}" direction = "-1" />
+  <xacro:propeller_module id = "3" x = "${rotor_x}" y = "${rotor_y}" z = "${rotor_z}" direction = "1" />
+  <xacro:propeller_module id = "4" x = "${-rotor_x}" y = "${rotor_y}" z = "${rotor_z}"  direction = "-1" />
 
 
 </robot>
