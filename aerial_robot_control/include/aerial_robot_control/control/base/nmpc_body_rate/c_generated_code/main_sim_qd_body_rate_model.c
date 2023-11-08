@@ -95,6 +95,7 @@ int main()
   p[1] = 0;
   p[2] = 0;
   p[3] = 0;
+  p[4] = 0;
 
   qd_body_rate_model_acados_sim_update_params(capsule, p, NP);
 

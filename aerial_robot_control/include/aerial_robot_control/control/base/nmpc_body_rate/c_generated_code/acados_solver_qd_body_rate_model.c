@@ -155,6 +155,7 @@ void qd_body_rate_model_acados_create_1_set_plan(ocp_nlp_plan_t* nlp_solver_plan
     nlp_solver_plan->nlp_constraints[i] = BGH;
   }
   nlp_solver_plan->nlp_constraints[N] = BGH;
+  nlp_solver_plan->regularization = NO_REGULARIZE;
 }
 
 /**
@@ -295,7 +296,7 @@ void qd_body_rate_model_acados_create_3_create_and_set_functions(qd_body_rate_mo
     capsule->__CAPSULE_FNC__.casadi_sparsity_in = &__MODEL_BASE_FNC__##_sparsity_in;                                   \
     capsule->__CAPSULE_FNC__.casadi_sparsity_out = &__MODEL_BASE_FNC__##_sparsity_out;                                 \
     capsule->__CAPSULE_FNC__.casadi_work = &__MODEL_BASE_FNC__##_work;                                                 \
-    external_function_param_casadi_create(&capsule->__CAPSULE_FNC__, 4);                                               \
+    external_function_param_casadi_create(&capsule->__CAPSULE_FNC__, 5);                                               \
   } while (false)
 
   // explicit ode
@@ -538,7 +539,7 @@ void qd_body_rate_model_acados_create_5_set_nlp_in(qd_body_rate_model_solver_cap
   ubu[1] = 6;
   lbu[2] = -6;
   ubu[2] = 6;
-  ubu[3] = 45.70383912248629;
+  ubu[3] = 43.1;
 
   for (int i = 0; i < N; i++)
   {
@@ -576,6 +577,29 @@ void qd_body_rate_model_acados_create_5_set_nlp_in(qd_body_rate_model_solver_cap
   free(lubx);
 
   /* terminal constraints */
+
+  // set up bounds for last stage
+  // x
+  int* idxbx_e = malloc(NBXN * sizeof(int));
+
+  idxbx_e[0] = 3;
+  idxbx_e[1] = 4;
+  idxbx_e[2] = 5;
+  double* lubx_e = calloc(2 * NBXN, sizeof(double));
+  double* lbx_e = lubx_e;
+  double* ubx_e = lubx_e + NBXN;
+
+  lbx_e[0] = -1;
+  ubx_e[0] = 1;
+  lbx_e[1] = -1;
+  ubx_e[1] = 1;
+  lbx_e[2] = -1;
+  ubx_e[2] = 1;
+  ocp_nlp_constraints_model_set(nlp_config, nlp_dims, nlp_in, N, "idxbx", idxbx_e);
+  ocp_nlp_constraints_model_set(nlp_config, nlp_dims, nlp_in, N, "lbx", lbx_e);
+  ocp_nlp_constraints_model_set(nlp_config, nlp_dims, nlp_in, N, "ubx", ubx_e);
+  free(idxbx_e);
+  free(lubx_e);
 }
 
 /**
@@ -829,7 +853,7 @@ int qd_body_rate_model_acados_update_params(qd_body_rate_model_solver_capsule* c
 {
   int solver_status = 0;
 
-  int casadi_np = 4;
+  int casadi_np = 5;
   if (casadi_np != np)
   {
     printf(
@@ -880,7 +904,7 @@ int qd_body_rate_model_acados_update_params_sparse(qd_body_rate_model_solver_cap
 {
   int solver_status = 0;
 
-  int casadi_np = 4;
+  int casadi_np = 5;
   if (casadi_np < n_update)
   {
     printf(

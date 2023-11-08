@@ -37,7 +37,7 @@
 #define QD_BODY_RATE_MODEL_NX 10
 #define QD_BODY_RATE_MODEL_NZ 0
 #define QD_BODY_RATE_MODEL_NU 4
-#define QD_BODY_RATE_MODEL_NP 4
+#define QD_BODY_RATE_MODEL_NP 5
 
 #ifdef __cplusplus
 extern "C" {

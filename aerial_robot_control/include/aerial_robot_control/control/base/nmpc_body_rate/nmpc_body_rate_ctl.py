@@ -75,16 +75,24 @@ class NMPCBodyRateController(object):
         ocp.cost.W_e = Q  # weight matrix at terminal shooting node (N).
 
         # set constraints
+        # # bx
+        ocp.constraints.idxbx = np.array([3, 4, 5])  # vx, vy, vz
+        ocp.constraints.lbx = np.array([nmpc_params["v_min"], nmpc_params["v_min"], nmpc_params["v_min"]])
+        ocp.constraints.ubx = np.array([nmpc_params["v_max"], nmpc_params["v_max"], nmpc_params["v_max"]])
+
+        # # bx_e
+        ocp.constraints.idxbx_e = np.array([3, 4, 5])  # vx, vy, vz
+        ocp.constraints.lbx_e = np.array([nmpc_params["v_min"], nmpc_params["v_min"], nmpc_params["v_min"]])
+        ocp.constraints.ubx_e = np.array([nmpc_params["v_max"], nmpc_params["v_max"], nmpc_params["v_max"]])
+
+        # # bu
+        ocp.constraints.idxbu = np.array([0, 1, 2, 3])  # omega_x, omega_y, omega_z, collective_acceleration
         ocp.constraints.lbu = np.array(
             [nmpc_params["w_min"], nmpc_params["w_min"], nmpc_params["w_min"], nmpc_params["c_min"]]
         )
         ocp.constraints.ubu = np.array(
             [nmpc_params["w_max"], nmpc_params["w_max"], nmpc_params["w_max"], nmpc_params["c_max"]]
         )
-        ocp.constraints.idxbu = np.array([0, 1, 2, 3])  # omega_x, omega_y, omega_z, collective_acceleration
-        ocp.constraints.lbx = np.array([nmpc_params["v_min"], nmpc_params["v_min"], nmpc_params["v_min"]])
-        ocp.constraints.ubx = np.array([nmpc_params["v_max"], nmpc_params["v_max"], nmpc_params["v_max"]])
-        ocp.constraints.idxbx = np.array([3, 4, 5])  # vx, vy, vz
 
         # initial state
         x_ref = np.zeros(nx)

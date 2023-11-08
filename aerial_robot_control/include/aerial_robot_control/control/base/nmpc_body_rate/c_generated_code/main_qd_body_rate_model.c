@@ -158,6 +158,7 @@ int main()
   p[1] = 0;
   p[2] = 0;
   p[3] = 0;
+  p[4] = 0;
 
   for (int ii = 0; ii <= N; ii++)
   {
