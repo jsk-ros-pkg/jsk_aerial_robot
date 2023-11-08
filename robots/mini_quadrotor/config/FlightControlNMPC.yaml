@@ -1,6 +1,33 @@
 aerial_robot_control_name: aerial_robot_control/under_actuated_nmpc_lqi_controller
 
 controller:
+  nmpc:
+    T_samp: 0.025  # 40 Hz  TODO: should be adjusted by main_rate
+    T_pred: 2.0  # seconds
+    T_integ: 0.1  # seconds
+
+    n_states: 10
+    n_controls: 4
+
+    # constraint
+    w_max: 6  # 1 rad/s ~ 57 deg/s
+    w_min: -6
+    c_max: 43.1  # 7 * 4 / 0.65  TODO: should be adjusted by physical constraints
+    c_min: 0
+
+    v_max: 1
+    v_min: -1
+
+    # params for the cost function
+    Qp_xy: 300  # 0
+    Qp_z: 400  # 500
+    Qv_xy: 10  # 0
+    Qv_z: 10  # 100
+    Qq_xy: 10  # 400
+    Qq_z: 100
+    Rw: 10  # 10
+    Rc: 5
+
 
   # LQI gain generator
   lqi:

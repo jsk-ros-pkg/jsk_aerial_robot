@@ -11,14 +11,23 @@ import sys
 import shutil
 import errno
 import numpy as np
+import yaml
+import rospkg
 from acados_template import AcadosOcp, AcadosOcpSolver, AcadosSimSolver, AcadosModel
 import casadi as ca
 
-import nmpc_params as CP
+# read parameters from yaml
+rospack = rospkg.RosPack()
+param_path = os.path.join(rospack.get_path("mini_quadrotor"), "config", "FlightControlNMPC.yaml")
+with open(param_path, "r") as f:
+    param_dict = yaml.load(f, Loader=yaml.FullLoader)
+
+params = param_dict["controller"]["nmpc"]
+params["N_node"] = int(params["T_pred"] / params["T_integ"])
 
 
 class NMPCBodyRateController(object):
-    def __init__(self, is_build_acados=True):
+    def __init__(self):
         opt_model = BodyRateModel().model
 
         nx = opt_model.x.size()[0]
@@ -37,7 +46,7 @@ class NMPCBodyRateController(object):
         ocp.acados_include_path = acados_source_path + "/include"
         ocp.acados_lib_path = acados_source_path + "/lib"
         ocp.model = opt_model
-        ocp.dims.N = CP.N_node
+        ocp.dims.N = params["N_node"]
 
         # initialize parameters
         ocp.dims.np = n_params
@@ -45,19 +54,32 @@ class NMPCBodyRateController(object):
 
         # cost function
         # see https://docs.acados.org/python_interface/#acados_template.acados_ocp.AcadosOcpCost for details
-        Q = np.diag([CP.Qp_xy, CP.Qp_xy, CP.Qp_z, CP.Qv_xy, CP.Qv_xy, CP.Qv_z, 0, CP.Qq_xy, CP.Qq_xy, CP.Qq_z])
-        R = np.diag([CP.Rw, CP.Rw, CP.Rw, CP.Rc])
+        Q = np.diag(
+            [
+                params["Qp_xy"],
+                params["Qp_xy"],
+                params["Qp_z"],
+                params["Qv_xy"],
+                params["Qv_xy"],
+                params["Qv_z"],
+                0,
+                params["Qq_xy"],
+                params["Qq_xy"],
+                params["Qq_z"],
+            ]
+        )
+        R = np.diag([params["Rw"], params["Rw"], params["Rw"], params["Rc"]])
         ocp.cost.cost_type = "NONLINEAR_LS"
         ocp.cost.cost_type_e = "NONLINEAR_LS"
         ocp.cost.W = np.block([[Q, np.zeros((nx, nu))], [np.zeros((nu, nx)), R]])
         ocp.cost.W_e = Q  # weight matrix at terminal shooting node (N).
 
         # set constraints
-        ocp.constraints.lbu = np.array([CP.w_min, CP.w_min, CP.w_min, CP.c_min])
-        ocp.constraints.ubu = np.array([CP.w_max, CP.w_max, CP.w_max, CP.c_max])
+        ocp.constraints.lbu = np.array([params["w_min"], params["w_min"], params["w_min"], params["c_min"]])
+        ocp.constraints.ubu = np.array([params["w_max"], params["w_max"], params["w_max"], params["c_max"]])
         ocp.constraints.idxbu = np.array([0, 1, 2, 3])  # omega_x, omega_y, omega_z, collective_acceleration
-        ocp.constraints.lbx = np.array([CP.v_min, CP.v_min, CP.v_min])
-        ocp.constraints.ubx = np.array([CP.v_max, CP.v_max, CP.v_max])
+        ocp.constraints.lbx = np.array([params["v_min"], params["v_min"], params["v_min"]])
+        ocp.constraints.ubx = np.array([params["v_max"], params["v_max"], params["v_max"]])
         ocp.constraints.idxbx = np.array([3, 4, 5])  # vx, vy, vz
 
         # initial state
@@ -76,12 +98,12 @@ class NMPCBodyRateController(object):
         ocp.solver_options.integrator_type = "ERK"  # explicit Runge-Kutta integrator
         ocp.solver_options.print_level = 0
         ocp.solver_options.nlp_solver_type = "SQP_RTI"
-        ocp.solver_options.qp_solver_cond_N = CP.N_node
-        ocp.solver_options.tf = CP.T_pred
+        ocp.solver_options.qp_solver_cond_N = params["N_node"]
+        ocp.solver_options.tf = params["T_pred"]
 
         # compile acados ocp
         json_file_path = os.path.join("./" + opt_model.name + "_acados_ocp.json")
-        self.solver = AcadosOcpSolver(ocp, json_file=json_file_path, build=is_build_acados)
+        self.solver = AcadosOcpSolver(ocp, json_file=json_file_path, build=True)
 
     def reset(self, xr, ur):
         # reset x and u of NNPC controller, which prevents warm-starting from the previous solution
@@ -146,7 +168,7 @@ class BodyRateModel(object):
             vz,
             2 * (qx * qz + qw * qy) * c,
             2 * (qy * qz - qw * qx) * c,
-            (1 - 2 * qx**2 - 2 * qy**2) * c - CP.gravity,
+            (1 - 2 * qx**2 - 2 * qy**2) * c - 9.81,  # TODO: add gravity by parameter
             (-wx * qx - wy * qy - wz * qz) * 0.5,
             (wx * qw + wz * qy - wy * qz) * 0.5,
             (wy * qw - wz * qx + wx * qz) * 0.5,
@@ -193,13 +215,13 @@ class BodyRateModel(object):
         # constraint
         constraint = ca.types.SimpleNamespace()
 
-        constraint.w_max = CP.w_max
-        constraint.w_min = CP.w_min
-        constraint.c_max = CP.c_max
-        constraint.c_min = CP.c_min
+        constraint.w_max = params["w_max"]
+        constraint.w_min = params["w_min"]
+        constraint.c_max = params["c_max"]
+        constraint.c_min = params["c_min"]
 
-        constraint.v_max = CP.v_max
-        constraint.v_min = CP.v_min
+        constraint.v_max = params["v_max"]
+        constraint.v_min = params["v_min"]
         constraint.expr = ca.vcat([wx, wy, wz, c])
 
         self.model = model
@@ -224,9 +246,11 @@ def safe_mkdir_recursive(directory, overwrite=False):
 
 
 if __name__ == "__main__":
+    # read parameters from launch file
     mpc_ctl = NMPCBodyRateController()
+
     print(f"Successfully initialized acados ocp solver: {mpc_ctl.solver}")
-    print(f"T_samp: {CP.T_samp}")
-    print(f"T_pred: {CP.T_pred}")
-    print(f"T_integ: {CP.T_integ}")
-    print(f"N_node: {CP.N_node}")
+    print(f"T_samp: {params['T_samp']}")
+    print(f"T_pred: {params['T_pred']}")
+    print(f"T_integ: {params['T_integ']}")
+    print(f"N_node: {params['N_node']}")
