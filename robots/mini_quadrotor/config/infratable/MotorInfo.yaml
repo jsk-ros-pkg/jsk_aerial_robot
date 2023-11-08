@@ -2,23 +2,29 @@ motor_info: # TODO: update
         min_pwm: 0.6 # 1200 [ms]
         max_pwm: 0.975 # 1950 [ms]
         min_thrust: 0 #  [N]
-        force_landing_thrust: 1.0 #[N]
-        pwm_conversion_mode: 1 # Polynominal Mode
-        vel_ref_num: 2
+        force_landing_thrust: 1.1 #[N]
+        m_f_rate: -0.011
+        pwm_conversion_mode: 0 # SQRT Mode
+        vel_ref_num: 3
         ref1:
                 voltage: 11
-                max_thrust: 7.2 # N
-                polynominal4: -168.952346    #  -0.0168952346 x10^4
-                polynominal3: 308.7473666    #   0.3087473666 x10^3
-                polynominal2: -203.28702334  #  -2.0328702334 x10^2
-                polynominal1: 106.787265636  #  10.6787265636 x10
-                polynominal0: 56.3518258750  #  56.3518258750 x1
+                max_thrust: 7.8 # N
+                polynominal2: 0.010576985 # 0.0010576985 #x10
+                polynominal1: 0.203228685 # 0.0203228685 #x10
+                polynominal0: -4.8287044777 # -4.8287044777 # x1
+
         ref2:
                 voltage: 12
-                max_thrust: 8.0 # N
-                polynominal4: -39.838825     #  -0.0039838825 x10^4
-                polynominal3: 112.1897517    #   0.1121897517 x10^3
-                polynominal2: -101.84075291  #  -1.0184075291 x10^2
-                polynominal1:  81.582961230  #   8.1582961230 x10
-                polynominal0:  56.9010618089 #  56.9010618089 x1
+                max_thrust: 8.6 # N
+                polynominal2:  0.007079477  # 0.0007079477 # x10
+                polynominal1:  0.971954932 # 0.0971954932 x10
+                polynominal0:  -8.1814872957 # -8.1814872957 # x1
 
+        ref3:
+                voltage: 15
+                max_thrust: 11 # N
+                polynominal2: -0.005535287 # -0.0005535287 # x10
+                polynominal1:  3.491470057 # 0.3491470057 # x10
+                polynominal0:  -18.637065433 # -18.637065433 # x1
+
+        speed_rate: 10.0 # rad/s/N
