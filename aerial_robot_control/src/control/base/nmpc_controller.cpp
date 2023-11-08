@@ -16,13 +16,19 @@ void aerial_robot_control::NMPCController::initialize(
 {
   ControlBase::initialize(nh, nhp, robot_model, estimator, navigator, ctrl_loop_du);
 
-  mpc_solver_.initialize();
-
   ros::NodeHandle control_nh(nh_, "controller");
 
   mass_ = robot_model_->getMass();
   // TODO: wired. I think the original value should be -9.8 in ENU frame
   gravity_const_ = robot_model_->getGravity()[2];
+
+  MPC::PhysicalParams physical_params{};
+  physical_params.mass = robot_model_->getMass();
+  physical_params.gravity = robot_model_->getGravity()[2];
+  physical_params.c_thrust_max = robot_model_->getThrustUpperLimit() * robot_model_->getRotorNum();
+  physical_params.c_thrust_min = robot_model_->getThrustLowerLimit() * robot_model_->getRotorNum();
+
+  mpc_solver_.initialize(physical_params);
 
   /* timers */
   tmr_viz_ = nh_.createTimer(ros::Duration(0.05), &NMPCController::callbackViz, this);

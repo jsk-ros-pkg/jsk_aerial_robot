@@ -9,7 +9,7 @@ MPC::MPCSolver::MPCSolver()
 {
 }
 
-void MPC::MPCSolver::initialize()
+void MPC::MPCSolver::initialize(PhysicalParams& physical_params)
 {
   MPC::initPredXU(x_u_out_);
 
@@ -41,6 +41,14 @@ void MPC::MPCSolver::initialize()
   // set rti_phase TODO: check this according to the paper
   int rti_phase = 0;
   ocp_nlp_solver_opts_set(nlp_config_, nlp_opts_, "rti_phase", &rti_phase);
+
+  // set parameters. note that here initialize all parameters, including variables and constants
+  double p[NP] = { 1.0, 0.0, 0.0, 0.0, physical_params.gravity };
+  for (int i = 0; i < NN; i++)
+  {
+    qd_body_rate_model_acados_update_params(acados_ocp_capsule_, i, p, NP);
+  }
+  qd_body_rate_model_acados_update_params(acados_ocp_capsule_, NN, p, NP);
 }
 
 MPC::MPCSolver::~MPCSolver()
@@ -130,7 +138,8 @@ void MPC::MPCSolver::setReference(const aerial_robot_msgs::PredXU& x_u_ref, cons
                                   const unsigned int u_stride)
 {
   double yr[NX + NU];
-  double p[NP];
+  double qr[4];
+  int qr_idx[4] = { 0, 1, 2, 3 };
   for (int i = 0; i < NN; i++)
   {
     // yr = np.concatenate((xr[i, :], ur[i, :]))
@@ -139,16 +148,16 @@ void MPC::MPCSolver::setReference(const aerial_robot_msgs::PredXU& x_u_ref, cons
     ocp_nlp_cost_model_set(nlp_config_, nlp_dims_, nlp_in_, i, "y_ref", yr);
 
     // quaternions
-    std::copy(x_u_ref.x.data.begin() + x_stride * i + 6, x_u_ref.x.data.begin() + x_stride * i + 10, p);
-    qd_body_rate_model_acados_update_params(acados_ocp_capsule_, i, p, NP);
+    std::copy(x_u_ref.x.data.begin() + x_stride * i + 6, x_u_ref.x.data.begin() + x_stride * i + 10, qr);
+    qd_body_rate_model_acados_update_params_sparse(acados_ocp_capsule_, i, qr_idx, qr, 4);
   }
   // final x and p, no u
   double xr[NX];
   std::copy(x_u_ref.x.data.begin() + x_stride * NN, x_u_ref.x.data.begin() + x_stride * (NN + 1), xr);
   ocp_nlp_cost_model_set(nlp_config_, nlp_dims_, nlp_in_, NN, "y_ref", xr);
 
-  std::copy(x_u_ref.x.data.begin() + x_stride * NN + 6, x_u_ref.x.data.begin() + x_stride * NN + 10, p);
-  qd_body_rate_model_acados_update_params(acados_ocp_capsule_, NN, p, NP);
+  std::copy(x_u_ref.x.data.begin() + x_stride * NN + 6, x_u_ref.x.data.begin() + x_stride * NN + 10, qr);
+  qd_body_rate_model_acados_update_params_sparse(acados_ocp_capsule_, NN, qr_idx, qr, 4);
 }
 
 void MPC::MPCSolver::setFeedbackConstraints(const nav_msgs::Odometry& odom_now)
