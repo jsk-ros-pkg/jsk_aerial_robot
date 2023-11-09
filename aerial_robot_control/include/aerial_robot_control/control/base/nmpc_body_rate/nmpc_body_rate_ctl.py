@@ -6,6 +6,7 @@ File: nmpc_body_rate_ctl.py
 Date: 2023/4/16 9:50 AM
 Description:
 """
+from __future__ import print_function  # be compatible with python2
 import os
 import sys
 import shutil
@@ -165,7 +166,7 @@ class BodyRateModel(object):
         )
 
         # function
-        f = ca.Function("f", [states, controls], [ds], ["state", "control_input"], ["ds"])
+        f = ca.Function("f", [states, controls], [ds], ["state", "control_input"], ["ds"], {"allow_free": True})
 
         # NONLINEAR_LS = error^T @ Q @ error; error = y - y_ref
         qe_x = qwr * qx - qw * qxr + qyr * qz - qy * qzr
@@ -238,8 +239,8 @@ if __name__ == "__main__":
     # read parameters from launch file
     mpc_ctl = NMPCBodyRateController()
 
-    print(f"Successfully initialized acados ocp solver: {mpc_ctl.solver}")
-    print(f"T_samp: {nmpc_params['T_samp']}")
-    print(f"T_pred: {nmpc_params['T_pred']}")
-    print(f"T_integ: {nmpc_params['T_integ']}")
-    print(f"N_node: {nmpc_params['N_node']}")
+    print("Successfully initialized acados ocp solver: ", mpc_ctl.solver)
+    print("T_samp: ", nmpc_params["T_samp"])
+    print("T_pred: ", nmpc_params["T_pred"])
+    print("T_integ: ", nmpc_params["T_integ"])
+    print("N_node: ", nmpc_params["N_node"])
