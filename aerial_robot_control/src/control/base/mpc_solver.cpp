@@ -9,7 +9,7 @@ MPC::MPCSolver::MPCSolver()
 {
 }
 
-void MPC::MPCSolver::initialize(PhysicalParams& physical_params)
+void MPC::MPCSolver::initialize(PhysicalParams& phys_params)
 {
   /* Allocate the array and fill it accordingly */
   acados_ocp_capsule_ = qd_body_rate_model_acados_create_capsule();
@@ -38,22 +38,24 @@ void MPC::MPCSolver::initialize(PhysicalParams& physical_params)
   // Please note that the constraints have been set up inside the python interface. Only minimum adjustments are needed.
   // bx_0: initial state. Note that the value of lbx0 and ubx0 will be set in solve() function, feedback constraints
   // bx
-  double lbx[NBX] = { -1.0, -1.0, -1.0 };  // TODO: use rosparam for all params
-  double ubx[NBX] = { 1.0, 1.0, 1.0 };
+  double lbx[NBX] = { phys_params.v_min, phys_params.v_min, phys_params.v_min };
+  double ubx[NBX] = { phys_params.v_max, phys_params.v_max, phys_params.v_max };
   for (int i = 1; i < NN; i++)
   {
     ocp_nlp_constraints_model_set(nlp_config_, nlp_dims_, nlp_in_, i, "lbx", lbx);
     ocp_nlp_constraints_model_set(nlp_config_, nlp_dims_, nlp_in_, i, "ubx", ubx);
   }
   // bx_e: terminal state
-  double lbx_e[NBXN] = { -1.0, -1.0, -1.0 };
-  double ubx_e[NBXN] = { 1.0, 1.0, 1.0 };
+  double lbx_e[NBXN] = { phys_params.v_min, phys_params.v_min, phys_params.v_min };
+  double ubx_e[NBXN] = { phys_params.v_max, phys_params.v_max, phys_params.v_max };
   ocp_nlp_constraints_model_set(nlp_config_, nlp_dims_, nlp_in_, NN, "lbx", lbx_e);
   ocp_nlp_constraints_model_set(nlp_config_, nlp_dims_, nlp_in_, NN, "ubx", ubx_e);
 
   // bu
-  double lbu[NBU] = { -6.0, -6.0, -6.0, physical_params.c_thrust_min / physical_params.mass };
-  double ubu[NBU] = { 6.0, 6.0, 6.0, physical_params.c_thrust_max / physical_params.mass };
+  double lbu[NBU] = { phys_params.w_min, phys_params.w_min, phys_params.w_min,
+                      phys_params.c_thrust_min / phys_params.mass };
+  double ubu[NBU] = { phys_params.w_max, phys_params.w_max, phys_params.w_max,
+                      phys_params.c_thrust_max / phys_params.mass };
   for (int i = 0; i < NN; i++)
   {
     ocp_nlp_constraints_model_set(nlp_config_, nlp_dims_, nlp_in_, i, "lbu", lbu);
@@ -63,7 +65,7 @@ void MPC::MPCSolver::initialize(PhysicalParams& physical_params)
   /* Set parameters */
   // Note that the code here initializes all parameters, including variables and constants.
   // Constants are initialized only once, while variables are initialized in every iteration
-  double p[NP] = { 1.0, 0.0, 0.0, 0.0, physical_params.gravity };
+  double p[NP] = { 1.0, 0.0, 0.0, 0.0, phys_params.gravity };
   for (int i = 0; i < NN; i++)
   {
     qd_body_rate_model_acados_update_params(acados_ocp_capsule_, i, p, NP);

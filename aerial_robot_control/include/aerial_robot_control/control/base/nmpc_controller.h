@@ -57,6 +57,8 @@ protected:
 private:
   double mass_;
   double gravity_const_;
+  double t_nmpc_samp_;
+  double t_nmpc_integ_;
 
   double target_roll_, target_pitch_;
   double candidate_yaw_term_;
@@ -68,7 +70,6 @@ private:
   MPC::MPCSolver mpc_solver_;
 
   nav_msgs::Odometry getOdom();
-  void sendFlightCmd();
 };
 
 };  // namespace aerial_robot_control

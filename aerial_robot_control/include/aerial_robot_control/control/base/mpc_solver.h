@@ -56,8 +56,15 @@ namespace MPC
 
 struct PhysicalParams
 {
+  // physical params
   double mass;
   double gravity;
+
+  // physical constraints
+  double v_max;
+  double v_min;
+  double w_max;
+  double w_min;
   double c_thrust_max;
   double c_thrust_min;
 };
@@ -69,7 +76,7 @@ public:
 
   MPCSolver();
   ~MPCSolver();
-  void initialize(PhysicalParams& physical_params);
+  void initialize(PhysicalParams& phys_params);
   void reset(const aerial_robot_msgs::PredXU& x_u);
   int solve(const nav_msgs::Odometry& odom_now, const aerial_robot_msgs::PredXU& x_u_ref);
 

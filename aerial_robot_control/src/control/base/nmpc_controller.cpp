@@ -22,12 +22,18 @@ void aerial_robot_control::NMPCController::initialize(
   // TODO: wired. I think the original value should be -9.8 in ENU frame
   gravity_const_ = robot_model_->getGravity()[2];
 
+  // get params and initialize nmpc solver
   MPC::PhysicalParams physical_params{};
   physical_params.mass = robot_model_->getMass();
   physical_params.gravity = robot_model_->getGravity()[2];
   physical_params.c_thrust_max = robot_model_->getThrustUpperLimit() * robot_model_->getRotorNum();
   physical_params.c_thrust_min = robot_model_->getThrustLowerLimit() * robot_model_->getRotorNum();
-
+  getParam<double>(control_nh, "nmpc/v_max", physical_params.v_max, 0.5);
+  getParam<double>(control_nh, "nmpc/v_min", physical_params.v_min, -0.5);
+  getParam<double>(control_nh, "nmpc/w_max", physical_params.w_max, 3.0);
+  getParam<double>(control_nh, "nmpc/w_min", physical_params.w_min, -3.0);
+  getParam<double>(control_nh, "nmpc/T_samp", t_nmpc_samp_, 0.025);
+  getParam<double>(control_nh, "nmpc/T_integ", t_nmpc_integ_, 0.1);
   mpc_solver_.initialize(physical_params);
 
   /* timers */
@@ -147,10 +153,9 @@ void aerial_robot_control::NMPCController::controlCore()
   tf::Matrix3x3(q0).getRPY(rpy0[0], rpy0[1], rpy0[2]);
   tf::Matrix3x3(q1).getRPY(rpy1[0], rpy1[1], rpy1[2]);
 
-  // TODO: should be set by rosparam   0.025 - 40hz for controller; 0.1 - 10hz for predict horizon
   // - roll, pitch
-  target_roll_ = (0.025 * rpy0[0] + (0.1 - 0.025) * rpy1[0]) / 0.1;
-  target_pitch_ = (0.025 * rpy0[1] + (0.1 - 0.025) * rpy1[1]) / 0.1;
+  target_roll_ = (t_nmpc_samp_ * rpy0[0] + (t_nmpc_integ_ - t_nmpc_samp_) * rpy1[0]) / t_nmpc_integ_;
+  target_pitch_ = (t_nmpc_samp_ * rpy0[1] + (t_nmpc_integ_ - t_nmpc_samp_) * rpy1[1]) / t_nmpc_integ_;
 
   flight_cmd_.angles[0] = static_cast<float>(target_roll_);
   flight_cmd_.angles[1] = static_cast<float>(target_pitch_);
@@ -171,7 +176,7 @@ void aerial_robot_control::NMPCController::controlCore()
 
   Eigen::VectorXd static_thrust = robot_model_->getStaticThrust();
   Eigen::VectorXd g = robot_model_->getGravity();
-  Eigen::VectorXd target_thrusts = acc_body_z * static_thrust / gravity_const_;
+  Eigen::VectorXd target_thrusts = acc_body_z * static_thrust / g.norm();
 
   std::vector<float> target_base_thrust_;
   target_base_thrust_.resize(motor_num_);
